@@ -145,19 +145,21 @@ jobs:
           }
           $title = "Againrom $($env:RELEASE_VERSION)"
           $notes = "Windows AMD64. Unpack into a separate folder and run starter.exe. A lawfully owned game install is required. No game assets or player profiles are included.`n`nSource commit: $revision"
-          $endpoint = "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag"
-          $response = @(& gh api $endpoint 2>&1)
-          $status = $LASTEXITCODE
-          if ($status -ne 0) {
-            if (($response -join "`n") -notmatch '\(HTTP 404\)') { throw ($response -join "`n") }
+          # The tag endpoint never returns a draft, so releases are found by
+          # listing them; more than one release naming the tag is preserved.
+          $query = ".[] | select(.tag_name == `"$tag`") | tojson"
+          $found = @(& gh api "repos/$env:GITHUB_REPOSITORY/releases" --paginate --jq $query)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot list releases.' }
+          if ($found.Count -gt 1) { throw 'More than one release names this tag; preserve them for inspection.' }
+          if ($found.Count -eq 0) {
             $notesPath = "$env:RUNNER_TEMP/release-notes.txt"
             [IO.File]::WriteAllText($notesPath, $notes, [Text.UTF8Encoding]::new($false))
             & gh release create $tag --verify-tag --target $revision --draft --title $title --notes-file $notesPath
             if ($LASTEXITCODE -ne 0) { throw 'Cannot create the release draft.' }
-            $response = @(& gh api $endpoint)
-            if ($LASTEXITCODE -ne 0) { throw 'Cannot read the created draft.' }
+            $found = @(& gh api "repos/$env:GITHUB_REPOSITORY/releases" --paginate --jq $query)
+            if ($LASTEXITCODE -ne 0 -or $found.Count -ne 1) { throw 'Cannot read the created draft.' }
           }
-          $release = ($response -join "`n") | ConvertFrom-Json
+          $release = $found[0] | ConvertFrom-Json
           if ($release.target_commitish -cne $revision -or $release.name -cne $title -or $release.body -cne $notes) {
             throw 'Existing release identity or notes conflict; preserve it for inspection.'
           }
