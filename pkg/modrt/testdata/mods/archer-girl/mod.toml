@@ -1,0 +1,8 @@
+id          = "archer-girl"
+title       = "Archer girl"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Takes the armour off the tavern's female archer, draws her as one more kind of peasant woman and names her Archer girl."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

@@ -1,0 +1,44 @@
+# MOD interpreter
+
+## Intent and authority
+
+The first playable mod. A mod is files only (`mod.toml`, `settings.toml`, a Starlark entry file); nothing mod-specific is compiled into `againrom.exe`, which is the engine plus an interpreter. The first rule a mod can set is the highest skill level. Authority is owner direction (`review/mod-milestone/MOD-LAYOUT.md`); the ROM1 differences are rows `DIV-1799` and `DIV-1801` to `DIV-1804` in `docs/divergences/mods.md`. `DIV-1800` was reserved and is unused. Without a mod every hash, SAV byte, scenario and release witness is unchanged.
+
+## As built
+
+Rules (`pkg/rules`, aliased in `pkg/sim`). An immutable value: the skill cap and the experience table `S(0)..S(cap)`, each spelled once. The zero value and `rules.Default()` are the shipped game: cap 100, the 101-row table. `rules.New(Params{SkillCap})` accepts 1..150 and refuses outside it naming the range (the bound is the signed 32-bit experience word: `S(152)` fits, `S(153)` does not). Levels past 100 use `S(n) = ftol((1.1^n - 1) * 1000)` in exact big integers, equal to the table for 0..100. The value reaches `sim.World` (`SetRules`, set again after every world rebuild: `UnmarshalBinary` into an existing world, `importLivingActors`, and the staged world of `RestoreOriginal`, so a hero past 100 keeps progressing after a LOAD; the award path `awardSkill`, `sourceSkillAward`), `data.HumanState.WithSkillCap` through the `SourceDerive` rules argument (a source-backed hero's level clamp), `data.Loadout` (derived statistics: level clamp and experience from the table) and the save writer. The simulation imports `pkg/rules` and nothing of the interpreter. `mapload.Table` carries `Rules` and `Mods` (`mod.Set`, accept-unmarked), so the front end gained no field.
+
+Interpreter (`pkg/modrt`, the only importer of `go.starlark.net`; BSD-3-Clause, Copyright 2017 The Bazel Authors, recorded in `THIRD_PARTY_NOTICES.md` and `LICENSES/starlark-BSD-3-Clause.txt`). Load order (`pkg/mod`, `Order`): `applies-to = common` mods, then mods naming the active base, then `requires` and `load-after`, ties by id; a missing `requires`, a present `conflicts` and a cycle each refuse naming the mod. A mod's entry file (`main.star` unless `entry` names one) runs with the language's own predeclared names only: no file, network, clock or randomness; `load()` reads files of the mod's own folder only; a step budget (`MaxSteps`, 20 000 000) and a 1 MiB script size stop a runaway. The script defines `init(game, settings)`. `settings` holds the mod's resolved settings. `game.rules.skill_cap` is the one writable parameter: an integer within 1..150, any other type or value is a script error. The design adds a parameter by adding a field to `rules.Params` and one attribute. After `init` returns the values it built and its handle on `game` are frozen. A script error refuses the launch with `mod "<id>": <file>:<line>: <message>`.
+
+Settings (`settings.toml`, `pkg/mod`). Each section is one knob: `type = "int"` (`default`, `min`, `max`), `"bool"` or `"choice"` (`choices`), `label = "text"` or `{ en = "...", ru = "..." }`. Values come from repeated `-mod-setting <mod>.<key>=<value>` flags; a value out of range, of the wrong type, for an undeclared key or for a mod that is not enabled refuses naming the mod and setting. The resolved mod set (base, mods in load order, version, content digest of the mod folder, setting values) has a canonical text and a SHA-256 digest (`mod.Set.Digest`).
+
+Flags (`cmd/againrom`): `-mods`, `-mods-dir`, `-mod-setting`, `-mods-accept-unmarked`. `-check` prints `againrom: rules skill_cap=<n>` and the set's settings and digest when mods are active.
+
+Example mod (`pkg/modrt/testdata/mods/skill-cap`, test data, not shipped): `settings.toml` declares `skill_cap` (int, default 150, min 100, max 150); `main.star` sets `game.rules.skill_cap = settings.skill_cap`. The brief named max 200; the experience word bounds it at 150 (`DIV-1803`).
+
+Starter (`cmd/starter`). A toggle `Load unmarked saves` (ini key `accept-unmarked` in `[mods]`) adds `-mods-accept-unmarked` when mods are enabled. A panel `Mod settings` under the mod list shows the settings of the selected mod, else the first enabled mod, up to five rows: an int field with its range, an on/off toggle for a bool, a button that steps through a choice. Labels use the language of the selected base (`ru` for a Russian install, else `en`; a label without a Russian text reads the English one). `Defaults` forgets the mod's stored values. Edited values are stored in `starter.ini` under `[mod.<id>]` (keys of the panel only; unknown keys and comments survive; a key the mod no longer declares is not passed). Play and Check pass `-mod-setting` for each enabled mod's stored values after `-mods-dir`; a value the declaration refuses stops the launch in the window, naming the mod and setting. Offscreen screenshot of the panel: `review/story1267-mod-interpreter/starter-mod-settings.png`.
+
+Saves (`pkg/formats/sav/native_mods.go`, `pkg/game/modmark.go`). When a mod is active, `ExportCurrentSave` writes the leaf `/CurrentState/AgainromMods` (kind-6 dword array, version 1, byte count, padded payload, at most 1 MiB) in both the mission and the town state; it sorts between `AgainromActions` and `AgainromRng`. The payload is JSON: `format` 1, `set_digest`, `base`, `mods` (id, version, digest, settings with their kind), and `domain`, the true state of each changed actor record by document object index (six current levels, six base levels, six experience words, the aggregate experience). The ordinary fields hold the projection: slots 1 to 5, current and base level at most 100, per-slot experience at most 13779612, the aggregate lowered by what the slots lost (`DIV-1801`).
+
+LOAD (`applyModMark`, called by `RestoreOriginal` and `ResumeOriginalSave` before the bytes are read):
+
+- no mods and no mark: the bytes are untouched (a byte search for the leaf name is the only cost);
+- no mods and a mark: refused, naming the mods the save used;
+- mods and no mark: refused unless `-mods-accept-unmarked`;
+- mods and a mark of another set: refused, listing each missing, extra or different mod, version, content digest, setting or load-order difference (`mod.Differences`);
+- mods and the same set: each domain record must still hold the projection of the true values it is given, then the true values are written back before the document is read.
+
+Every refusal wraps `game.ErrModMark`.
+
+## Proof
+
+- Unit: `pkg/rules` (defaults equal the shipped table, the exact extension, bounds), `pkg/mod` (manifest, settings parsing and refusals, order and refusals, digest, set record round trip), `pkg/modrt` (sandbox, load restriction, freeze, error file and line, range, determinism), `pkg/sim` and `pkg/data` and `pkg/mapload` (award past 100 under a larger cap, the default cap unchanged), `pkg/formats/sav` (leaf framing and both state shapes), `pkg/game/modmark_test.go` (projection, restore, every refusal, an unmodded document untouched, a marked save stable across load and save), `cmd/againrom` (flags, `-check`, refusals), `cmd/starter` (panel, ini round trip, argv, refusal), `internal/archtest` (the interpreter is not reachable from `pkg/sim`, `pkg/data` or `pkg/rules`).
+- Release, one root at a time (`pkg/game/modskillcap_release_test.go`, gated): with the mod at 150 a mage at level 100 casts through the ordinary map input and its school passes 100 with experience past the shipped table; SAVE writes the leaf and the ordinary fields hold level 100; a cold LOAD under the same mod restores the true level and experience and a second SAVE carries the same true state; a LOAD without the mod refuses naming `skill-cap`; a LOAD under skill_cap 140 refuses naming `skill_cap`; an unmodded export is byte-equal to an export under an empty mod set and carries no leaf. EN and RU both pass.
+
+## Open debt
+
+- `game.rules.skill_cap` is the only parameter. A further parameter is one `rules.Params` field and one attribute in `modrt`, with its own projection if the save format cannot hold the value.
+- The mark projects only skill slots 1 to 5 of records that carry the level, base and experience blocks. A parameter that moves another saved field needs its own projection (`DIV-1801`).
+- Original SAV-corpus saves were not loaded under a mod; the corpus instrument (`check-milestone2-acceptance.sh`) runs without mods. A class-2 original-source hero is covered by layered tests (the derive, the source derive and the award path pass the rules), not by a release witness: our own saves restore heroes as class 0, so class 2 occurs only with corpus saves.
+- The starter panel shows five settings per mod.
+- The unmodded-bytes witness compares two exports of the same build. Equality with the previous build rests on the unchanged code path and the milestone and scenario chains.

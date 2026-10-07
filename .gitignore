@@ -1,0 +1,99 @@
+# IDE
+.idea/
+
+# SDD playbook (process docs are kept outside the tracked repository)
+SDD/
+
+# Per-user Claude Code overrides. `.claude/settings.json` and `.claude/hooks/`
+# ARE tracked — they carry project gates that must apply to every agent.
+.claude/settings.local.json
+
+# Worktrees, both kinds. A worktree inside the repo it is a worktree of is an
+# embedded repository, and `git add -A` commits it as a **gitlink**: a pointer to
+# a repository no clone can resolve, which checks out as an empty directory with
+# `git status` clean and the build green. git only WARNS — an embedded repo is
+# never an error — so no exit code catches it. It happened in the research repo
+# on 2026-08-03 (two lane worktrees, one commit) and the fix landed only there;
+# these two lines are the same fix on this side.
+#   /wt-*/            lane worktrees, which belong BESIDE this repo, not in it
+#   .claude/worktrees/  made by Claude Code's own agent isolation, without asking
+/wt-*/
+.claude/worktrees/
+
+# Game install and extracted asset bytes — never tracked, never released.
+# The check-no-game-assets.sh guard is the enforcing backstop; these entries
+# keep the common cases from being staged by accident in the first place.
+/game/
+examples/samples/
+*.res
+*.reg
+*.alm
+*.16a
+*.256
+*.spr
+*.pal
+*.fnt
+*.fon
+*.wav
+*.snd
+*.ogg
+*.mp3
+*.smk
+*.bik
+*.mpg
+*.avi
+*.exe
+*.dll
+
+# Decoded sprite PNGs from cmd/sprtool are converted game assets — never track
+# them. The asset guard does not key on .png, so this ignore is the backstop;
+# point `sprtool png` at this folder (or any path outside the repo).
+/sprtool-out/
+
+# Rendered terrain PNGs from cmd/terraintool are likewise converted game assets;
+# point `terraintool render -out` at this folder (or any path outside the repo).
+/terraintool-out/
+
+# Rendered text PNGs from cmd/texttool are converted game assets — glyph art out
+# of the shipped font atlases. `render -out` has no default path, so a picture is
+# only ever written where a caller names; this is the backstop for a caller who
+# names somewhere inside the tree.
+/texttool-out/
+
+# Build output
+/bin/
+/.gocache/
+/logs/
+
+# Saved games. A `go run` launch writes them beside the module it was run from
+# (pkg/game.DefaultSaveDir), which is this directory — and a save carries a
+# marshalled world built out of a lawful install's map. The asset guard keys on
+# extensions and would not catch `.ags`, so this entry is the backstop that keeps
+# game-derived bytes from being staged by accident.
+/saves/
+
+# Local player preferences written by the game beside the working-directory
+# save root (for example GameSpeed). Keep the owner's live settings out of Git.
+/options.txt
+
+# The Hall of Fame the game writes to the same player profile when a campaign
+# ends. It is the owner's play record, never a repository file.
+/famehall.dat
+
+# Per-story runnable builds (see AGENTS.md "Process (SDD)"): one directory per
+# story under builds/<NNNN>-<slug>/, holding the built binary and a run README.
+# Binaries and any converted-asset output they produce are never tracked.
+/builds/
+
+# A lane's handoff note. `HANDOFF.md` is state about a WORKTREE -- its branch,
+# its fork point, its submodule pin, the version it took -- and every line of it
+# is false the moment that worktree is torn down. One reached master on 2026-07-
+# xx inside `0089`'s verification commit and sat at the repo root for 24 stories
+# describing a branch, a pin and a format version that no longer existed, in the
+# imperative, as if it were work still owed. The owner found it and said what it
+# was: a file that lies.
+#
+# A lane's handoff belongs in its RETURN TEXT, or -- when it must survive the
+# lane -- in that story's own `docs/<NNNN>/`, where it is dated by the story it
+# sits in and nobody mistakes it for a live instruction.
+/HANDOFF.md

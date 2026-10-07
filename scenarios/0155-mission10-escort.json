@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "stage": "mission",
+  "assets": "install",
+  "mission": 10,
+  "steps": [
+    {"command": "report", "name": "placed"},
+    {"command": "assert_world", "world": {"outcome": "undecided", "tick_at_most": 0, "unsupported_at_most": 17}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true, "owner": 1}},
+    {"command": "assert_unit", "unit": "u21", "expect": {"alive": true}},
+    {"command": "order", "unit": "u21", "order": "move", "x": 56, "y": 21},
+    {"command": "order", "unit": "p0", "order": "move", "x": 66, "y": 16},
+    {"command": "wait_until", "ticks": 4000, "until": {"outcome": "decided"}},
+    {"command": "report", "name": "decided"}
+  ]
+}

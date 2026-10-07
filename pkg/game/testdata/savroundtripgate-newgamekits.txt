@@ -1,0 +1,24 @@
+# population	case	outcome	key; written by AGAINROM_SAV_ROUNDTRIP_RECORD
+kit cycled	owner-sav-story1225/game9252.sav cycled	accepted	-
+kit cycled	owner-sav-story1225/game9253.sav cycled	accepted	-
+kit cycled	owner-sav-story1226/game9255.sav cycled	accepted	-
+kit cycled	owner-saver-terminal86/kjill.sav cycled	accepted	-
+kit cycled	owner-saver-terminal86/saver.sav cycled	accepted	-
+kit played	owner-sav-story1225/game9252.sav played	accepted	-
+kit played	owner-sav-story1225/game9253.sav played	accepted	-
+kit played	owner-sav-story1226/game9255.sav played	accepted	-
+kit played	owner-saver-terminal86/kjill.sav played	accepted	-
+kit played	owner-saver-terminal86/saver.sav played	accepted	-
+kit resave	owner-sav-story1225/game9252.sav resave	accepted	-
+kit resave	owner-sav-story1225/game9253.sav resave	accepted	-
+kit resave	owner-sav-story1226/game9255.sav resave	accepted	-
+kit resave	owner-saver-terminal86/kjill.sav resave	accepted	-
+kit resave	owner-saver-terminal86/saver.sav resave	accepted	-
+newgame	mission 10 after 300 ticks	accepted	-
+newgame	mission 10 after kills and decay	accepted	-
+newgame	mission 10 after kills and decay sparing actor zero	accepted	-
+newgame	mission 10 at tick 0	accepted	-
+newgame	mission 20 after 300 ticks	accepted	-
+newgame	mission 20 after kills and decay	accepted	-
+newgame	mission 20 after kills and decay sparing actor zero	accepted	-
+newgame	mission 20 at tick 0	accepted	-

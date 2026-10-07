@@ -1,0 +1,55 @@
+# Armour numbers are those of a common iron item.
+#
+# The three clothing layers are worn beside the item in their anchor slot, never
+# in a slot of their own, so the slot key only names the item table the row
+# lives in. The armour table has one free row on a shipped install and the
+# shield table 22: the gambeson takes the armour row, the cloak and the boots
+# take shield rows.
+
+# Under the body armour.
+[[item]]
+key      = "gambeson"
+name     = "item.gambeson"
+slot     = "body"
+layer    = "under"
+defence  = 6
+absorption = 1
+weight   = 6
+price    = 120
+sprite   = "assets/sprites/gambeson.png"
+stand-in = "Soft Mail"
+figure   = "Soft Mail"
+shop     = true
+
+# Over the body armour; fighters only.
+[[item]]
+key      = "cloak"
+name     = "item.cloak"
+slot     = "shield"
+layer    = "over"
+anchor   = "body"
+defence  = 2
+weight   = 4
+price    = 60
+stand-in = "Buckler"
+figure   = "Cloak"
+for      = "fighter"
+shop     = true
+
+# Over the legs.
+[[item]]
+key      = "boots"
+name     = "item.boots"
+slot     = "shield"
+layer    = "over"
+anchor   = "legs"
+defence  = 1
+weight   = 3
+price    = 40
+stand-in = "Buckler"
+figure   = "Chain Boots"
+shop     = true
+
+[[change]]
+item   = "Chain Mail"
+weight = 20

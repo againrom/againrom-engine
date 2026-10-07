@@ -1,0 +1,668 @@
+{
+  "version": 4,
+  "window": {
+    "w": 1600,
+    "h": 1200
+  },
+  "steps": [
+    {
+      "command": "activate",
+      "target": "NEW GAME"
+    },
+    {
+      "command": "activate",
+      "target": "Mission 10: 10.alm"
+    },
+    {
+      "command": "create_character",
+      "character": {
+        "name": "Aeryn",
+        "sex": "Female",
+        "class": "Mage",
+        "skill": "Air",
+        "stats": {
+          "Mind": 30,
+          "Body": 20,
+          "Reaction": 25,
+          "Spirit": 25
+        }
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "map",
+        "documents": 1,
+        "collected_documents": 3
+      }
+    },
+    {
+      "command": "wait_until",
+      "ticks": 600,
+      "until": {
+        "notice": true
+      }
+    },
+    {
+      "command": "activate",
+      "target": "notice"
+    },
+    {
+      "command": "select_member",
+      "id": "hero"
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 1
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "carries": [
+          {
+            "code": 3612,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 1
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 0,
+          "page": 0,
+          "pages": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 1,
+          "page": 0
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "left"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "left"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 0,
+          "page": 0,
+          "pages": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "left"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "left"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 0,
+          "page": 0,
+          "pages": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 1,
+          "page": 0
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 1,
+          "page": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "left"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "left"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 1,
+          "page": 0
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 2
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "right"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 2
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "document": "ok"
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "document": "ok"
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "map",
+        "documents": 1,
+        "collected_documents": 3
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "pack_code": 3612
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 1
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "documents",
+        "document": {
+          "elements": 3,
+          "picture": false,
+          "element": 0,
+          "page": 0,
+          "pages": 1
+        }
+      }
+    },
+    {
+      "command": "key",
+      "key": "escape"
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "map",
+        "documents": 1,
+        "collected_documents": 3
+      }
+    }
+  ]
+}

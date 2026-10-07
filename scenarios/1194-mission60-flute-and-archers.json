@@ -1,0 +1,18 @@
+{
+  "version": 8, "stage": "mission", "assets": "install", "mission": 60,
+  "steps": [
+    {"command": "wait_ticks", "ticks": 4},
+    {"command": "place", "unit": "p0", "x": 121, "y": 22},
+    {"command": "wait_until", "ticks": 200, "until": {"unit": "u14", "within": {"x": 118, "y": 24, "radius": 5}}},
+    {"command": "wait_until", "ticks": 1500, "until": {"unit": "u14", "within": {"x": 96, "y": 35, "radius": 8}}},
+    {"command": "place", "unit": "p0", "x": 94, "y": 36},
+    {"command": "wait_ticks", "ticks": 40},
+    {"command": "assert_world", "world": {"announced": [1, 2, 11]}},
+    {"command": "place", "unit": "p0", "x": 83, "y": 74},
+    {"command": "pick_item", "unit": "p0", "x": 83, "y": 74},
+    {"command": "place", "unit": "p0", "x": 94, "y": 36},
+    {"command": "wait_ticks", "ticks": 40},
+    {"command": "assert_world", "world": {"announced": [1, 2, 11, 12, 10]}},
+    {"command": "wait_until", "ticks": 1500, "until": {"unit": "u69", "within": {"x": 94, "y": 35, "radius": 6}}}
+  ]
+}

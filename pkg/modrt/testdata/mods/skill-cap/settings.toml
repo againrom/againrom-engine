@@ -1,0 +1,6 @@
+[skill_cap]
+label   = { en = "Skill cap", ru = "Предел навыка" }
+type    = "int"
+default = 150
+min     = 100
+max     = 150

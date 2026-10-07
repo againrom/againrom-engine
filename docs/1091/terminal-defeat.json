@@ -1,0 +1,19 @@
+{
+  "version": 3,
+  "steps": [
+    {"command": "assert_state", "state": {"screen": "map"}},
+    {"command": "wait_ticks", "ticks": 30},
+    {"command": "activate", "target": "load game"},
+    {"command": "assert_state", "state": {"screen": "load"}},
+    {"command": "key", "key": "escape"},
+    {"command": "wait_until", "ticks": 1, "until": {"notice": true}},
+    {"command": "activate", "target": "load game"},
+    {"command": "activate", "target": "lost 1091"},
+    {"command": "wait_until", "ticks": 1, "until": {"notice": true}},
+    {"command": "activate", "target": "exit to main menu"},
+    {"command": "assert_state", "state": {"screen": "menu"}},
+    {"command": "key", "key": "load"},
+    {"command": "activate", "target": "running 1091"},
+    {"command": "assert_state", "state": {"screen": "map"}}
+  ]
+}

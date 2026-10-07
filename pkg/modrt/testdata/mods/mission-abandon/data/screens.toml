@@ -1,0 +1,6 @@
+# One action entry: in the in-game menu over a mission entered from the town.
+[[action]]
+key     = "abandon"
+action  = "abandon"
+menu    = "abandon.menu"
+confirm = "abandon.confirm"

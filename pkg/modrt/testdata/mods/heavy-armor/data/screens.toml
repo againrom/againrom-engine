@@ -1,0 +1,8 @@
+# One info screen, opened from the main menu and from the in-game menu.
+[[screen]]
+key   = "about"
+kind  = "info"
+title = "about.title"
+menu  = "about.menu"
+place = "both"
+text  = ["about.p1", "about.p2", "about.p3"]

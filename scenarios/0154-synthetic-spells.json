@@ -1,0 +1,51 @@
+{
+  "version": 2,
+  "stage": "mission",
+  "assets": "synthetic",
+  "world": {
+    "width": 24,
+    "height": 24,
+    "seed": 7,
+    "spells": [
+      {"id": 1, "mana_cost": 3, "school": 1, "max_range": 7, "damage_min": 4, "damage_max": 8, "targets_unit": true, "arm": "damage"},
+      {"id": 6, "mana_cost": 10, "school": 5, "max_range": 6, "damage_min": 10, "damage_max": 20, "targets_unit": true, "arm": "heal"}
+    ],
+    "units": [
+      {"ref": "p0", "x": 4, "y": 4, "owner": 1, "hp": 60, "mana": 50, "max_mana": 50, "mind": 30, "known_spells": [1, 6], "scan_range": 5},
+      {"ref": "p2", "x": 4, "y": 5, "owner": 1, "hp": 60, "mana": 50, "max_mana": 50, "mind": 30, "known_spells": [1], "scan_range": 5},
+      {"ref": "p1", "x": 5, "y": 4, "owner": 1, "hp": 54, "max_hp": 60, "scan_range": 5},
+      {"ref": "u57", "x": 8, "y": 4, "owner": 9, "hp": 40, "damage": 1, "scan_range": 5}
+    ],
+    "hostile": [[1, 9], [9, 1]]
+  },
+  "steps": [
+    {"command": "report", "name": "placed"},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true, "mana_at_least": 50, "autocast": 0}},
+    {"command": "assert_unit", "unit": "p1", "expect": {"alive": true, "hp_at_most": 54}},
+    {"command": "assert_unit", "unit": "u57", "expect": {"alive": true, "hp_at_least": 40}},
+
+    {"command": "order", "unit": "p0", "order": "cast", "target": "p1", "spell": 6},
+    {"command": "wait_ticks", "ticks": 8},
+    {"command": "assert_unit", "unit": "p1", "expect": {"hp_at_least": 59}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"mana_at_most": 40, "mana_at_least": 40}},
+    {"command": "report", "name": "healed"},
+
+    {"command": "order", "unit": "p2", "order": "cast", "target": "u57", "spell": 1},
+    {"command": "wait_ticks", "ticks": 8},
+    {"command": "assert_unit", "unit": "u57", "expect": {"hp_at_most": 36}},
+    {"command": "assert_unit", "unit": "p2", "expect": {"mana_at_most": 47, "mana_at_least": 47}},
+    {"command": "report", "name": "burned"},
+
+    {"command": "order", "unit": "p2", "order": "autocast", "spell": 1},
+    {"command": "assert_unit", "unit": "p2", "expect": {"autocast": 1}},
+    {"command": "wait_until", "ticks": 400, "until": {"unit": "u57", "dead": true}},
+    {"command": "assert_unit", "unit": "u57", "expect": {"alive": false}},
+    {"command": "assert_unit", "unit": "p2", "expect": {"alive": true, "autocast": 1}},
+    {"command": "report", "name": "autocast decided it"},
+
+    {"command": "order", "unit": "p2", "order": "autocast", "spell": 0},
+    {"command": "assert_unit", "unit": "p2", "expect": {"autocast": 0}},
+    {"command": "assert_world", "world": {"alive_at_least": 2, "fallen_at_most": 1, "reached_unsupported_at_most": 0}},
+    {"command": "report", "name": "cleared"}
+  ]
+}

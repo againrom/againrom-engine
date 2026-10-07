@@ -1,0 +1,3 @@
+[submodule "knowledge"]
+	path = knowledge
+	url = https://github.com/againrom/againrom-knowledge.git

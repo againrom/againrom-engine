@@ -1,0 +1,26 @@
+{
+  "version": 9,
+  "steps": [
+    {"command":"activate","target":"NEW GAME"},
+    {"command":"activate","target":"Mission 10: 10.alm"},
+    {"command":"create_character","character":{"name":"Retreater"}},
+    {"command":"key","key":"0"},
+    {"command":"select_member","id":"hero"},
+    {"command":"key","key":"r"},
+    {"command":"key","key":"r"},
+    {"command":"capture","name":"retreat_before_save"},
+    {"command":"key","key":"0"},
+    {"command":"wait_ticks","ticks":1},
+    {"command":"key","key":"f2"},
+    {"command":"assert_state","state":{"screen":"save"}},
+    {"command":"save_action","target":"save"},
+    {"command":"assert_state","state":{"screen":"gamemenu"}},
+    {"command":"key","key":"escape"},
+    {"command":"key","key":"f3"},
+    {"command":"key","key":"enter"},
+    {"command":"assert_state","state":{"screen":"map"}},
+    {"command":"assert_member","member":{"id":"hero","same_character_as":"retreat_before_save"}},
+    {"command":"key","key":"r"},
+    {"command":"assert_state","state":{"screen":"map"}}
+  ]
+}

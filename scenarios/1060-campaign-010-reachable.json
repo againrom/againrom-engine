@@ -1,0 +1,18 @@
+{
+  "version": 6,
+  "stage": "mission",
+  "assets": "install",
+  "mission": 10,
+  "steps": [
+    {"command": "kill", "unit": "u19"},
+    {"command": "kill", "unit": "u20"},
+    {"command": "place", "unit": "p0", "x": 36, "y": 51},
+    {"command": "wait_ticks", "ticks": 32},
+    {"command": "place", "unit": "u21", "x": 56, "y": 21},
+    {"command": "place", "unit": "p0", "x": 55, "y": 21},
+    {"command": "wait_ticks", "ticks": 32},
+    {"command": "place", "unit": "p0", "x": 66, "y": 16},
+    {"command": "wait_until", "ticks": 96, "until": {"outcome": "won"}},
+    {"command": "assert_world", "world": {"outcome": "won", "reached_unsupported_at_most": 0}}
+  ]
+}

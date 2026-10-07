@@ -1,0 +1,62 @@
+{
+  "version": 7,
+  "original_saves": "../../gameversions/saves/2026-08-02",
+  "steps": [
+    {
+      "command": "load",
+      "target": "666 - mission 20"
+    },
+    {"command": "assert_state", "state": {"screen": "map", "mission": 20, "notice": "victory", "purse": 600}},
+    {"command": "activate", "target": "notice"},
+    {"command": "wait_until", "until": {"control": "TAVERN"}, "ticks": 4000},
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "town",
+        "purse": 1100,
+        "town_place": "square",
+        "member_count": 2
+      }
+    },
+    {
+      "command": "abort_game"
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "menu"
+      }
+    },
+    {
+      "command": "activate",
+      "target": "NEW GAME"
+    },
+    {
+      "command": "activate",
+      "target": "Mission 10: 10.alm"
+    },
+    {
+      "command": "create_character",
+      "character": {
+        "name": "Rev",
+        "sex": "Male",
+        "class": "Fighter",
+        "skill": "Blade",
+        "stats": {
+          "Body": 30,
+          "Reaction": 25,
+          "Mind": 25,
+          "Spirit": 25
+        }
+      }
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "map",
+        "purse": 100,
+        "member_count": 1
+      }
+    }
+  ]
+}

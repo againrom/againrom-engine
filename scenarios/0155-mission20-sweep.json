@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "stage": "mission",
+  "assets": "install",
+  "mission": 20,
+  "steps": [
+    {"command": "report", "name": "placed"},
+    {"command": "assert_world", "world": {"outcome": "undecided", "tick_at_most": 0}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true, "owner": 1}},
+    {"command": "wait_ticks", "ticks": 600},
+    {"command": "report", "name": "after-600-ticks"}
+  ]
+}

@@ -1,0 +1,61 @@
+package game
+
+import (
+	"fmt"
+
+	"againrom/pkg/base"
+	"againrom/pkg/ui"
+)
+
+// Base is the profile the front end's install was detected as. A front end
+// assembled by hand has none, which states no limit.
+func (f *FrontEnd) Base() base.Match {
+	if f == nil || f.Archives == nil {
+		return base.Match{}
+	}
+	return f.Archives.Base
+}
+
+// DirectNewGame is the new game of a base that ships no character generation:
+// mission n opened on a fresh town with the default party at normal difficulty.
+// Obtaining the opener commits nothing, as NewGameOpener's own.
+func (f *FrontEnd) DirectNewGame(n int) ui.MapOpener {
+	return func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect, ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {
+		open, err := f.prepareNewGameWith(n, 0, MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table))
+		if err != nil {
+			return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
+		}
+		return open()
+	}
+}
+
+// directNewGame reports whether NEW GAME opens the profile's first mission
+// without generation.
+func (f *FrontEnd) directNewGame() bool {
+	return f.Base().Profile.Limits.NoCharacterGeneration
+}
+
+// BaseLines are the lines -check prints about the base: the detected profile
+// and each limit the profile states.
+func (f *FrontEnd) BaseLines() []string {
+	m := f.Base()
+	if !m.Profile.Known() {
+		return nil
+	}
+	lines := []string{"againrom: base " + m.String()}
+	l := m.Profile.Limits
+	if l.NoCharacterGeneration {
+		if m.Profile.GameOf() == base.GameROM2 {
+			lines = append(lines, "againrom: base limit: native character selection is unavailable; new game opens the initial campaign town with the default hero")
+		} else {
+			lines = append(lines, fmt.Sprintf("againrom: base limit: no character generation; new game opens mission %d with the default party", m.Profile.Mission()))
+		}
+	}
+	if l.OriginalSaveRefusal != "" {
+		lines = append(lines, "againrom: base limit: loading an original save is refused: "+l.OriginalSaveRefusal)
+	}
+	for _, n := range l.Notes {
+		lines = append(lines, "againrom: base limit: "+n)
+	}
+	return lines
+}

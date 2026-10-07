@@ -1,0 +1,8 @@
+{
+  "version": 6, "stage": "mission", "assets": "install", "mission": 80,
+  "steps": [
+    {"command": "place", "unit": "p0", "x": 16, "y": 12},
+    {"command": "wait_until", "ticks": 96, "until": {"outcome": "won"}},
+    {"command": "assert_world", "world": {"outcome": "won", "reached_unsupported_at_most": 0}}
+  ]
+}

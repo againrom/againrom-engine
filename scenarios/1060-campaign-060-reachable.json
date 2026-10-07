@@ -1,0 +1,14 @@
+{
+  "version": 6, "stage": "mission", "assets": "install", "mission": 60,
+  "steps": [
+    {"command": "kill", "unit": "u115"},
+    {"command": "kill", "unit": "u116"},
+    {"command": "kill", "unit": "u119"},
+    {"command": "kill", "unit": "u66"},
+    {"command": "kill", "unit": "u67"},
+    {"command": "kill", "unit": "u68"},
+    {"command": "kill", "unit": "u69"},
+    {"command": "wait_until", "ticks": 128, "until": {"outcome": "won"}},
+    {"command": "assert_world", "world": {"outcome": "won", "reached_unsupported_at_most": 0}}
+  ]
+}

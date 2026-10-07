@@ -1,0 +1,24 @@
+divreconstruct: old=<scratch dir>/old-DIVERGENCES.md (510 rows), new=docs/divergences/*.md (507 rows)
+
+only in OLD (3): DIV-1254, DIV-1304, DIV-880
+only in NEW (0): 
+
+cell-level differences on ids present in both (16):
+  DIV-1266: Type
+  DIV-1269: Type
+  DIV-1311: Type
+  DIV-1313: Type
+  DIV-1349: Type
+  DIV-1359: Type
+  DIV-1360: Type
+  DIV-437: Reason, Status
+  DIV-730: Reason, Status
+  DIV-853: Type
+  DIV-926: Reason, Status
+  DIV-932: Reason, Status
+  DIV-938: Reason, Status
+  DIV-953: Type
+  DIV-954: Type
+  DIV-956: Reason, Status
+
+summary: 3 only-old, 0 only-new, 16 common ids with cell diffs, 491 common ids identical

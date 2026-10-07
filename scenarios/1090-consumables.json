@@ -1,0 +1,32 @@
+{
+  "version": 7,
+  "original_saves": "../../gameversions/saves/2026-08-02",
+  "saves": "../../review/headless-saves/1090",
+  "steps": [
+    {"command":"load","target":"666 - mission 20"},
+    {"command":"assert_state","state":{"notice":"victory"}},
+    {"command":"key","key":"escape"},
+    {"command":"select_member","id":"hero"},
+    {"command":"assert_inventory","inventory":{"carries":[{"code":3590,"count":2}]}},
+    {"command":"pointer","action":"press","at":{"pack_code":3590}},
+    {"command":"pointer","action":"release","at":{"pack_code":3590}},
+    {"command":"pointer","action":"press","at":{"pack_code":3590}},
+    {"command":"pointer","action":"release","at":{"pack_code":3590}},
+    {"command":"wait_ticks","ticks":2},
+    {"command":"assert_inventory","inventory":{"carries":[{"code":3590,"count":1}]}},
+    {"command":"capture","name":"original_stack_used_once"},
+    {"command":"save"},
+    {"command":"load","target":"@first"},
+    {"command":"assert_state","state":{"notice":"victory"}},
+    {"command":"key","key":"escape"},
+    {"command":"select_member","id":"hero"},
+    {"command":"assert_inventory","inventory":{"carries":[{"code":3590,"count":1}]}},
+    {"command":"pointer","action":"press","at":{"pack_code":3590}},
+    {"command":"pointer","action":"release","at":{"pack_code":3590}},
+    {"command":"pointer","action":"press","at":{"pack_code":3590}},
+    {"command":"pointer","action":"release","at":{"pack_code":3590}},
+    {"command":"wait_ticks","ticks":2},
+    {"command":"assert_inventory","inventory":{"carries":[{"code":3590,"absent":true}]}},
+    {"command":"capture","name":"native_remaining_unit_used"}
+  ]
+}

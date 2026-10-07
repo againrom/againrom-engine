@@ -1,0 +1,8 @@
+id          = "reniesta-joins-on-talk"
+title       = "Reniesta joins on talk"
+version     = "1.0.0"
+author      = "Againrom"
+description = "The mage of Plagat joins the party after the hero talks to her in the tavern, not on arrival in the town."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

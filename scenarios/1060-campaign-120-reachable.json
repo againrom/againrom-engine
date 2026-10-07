@@ -1,0 +1,26 @@
+{
+  "version": 6, "stage": "mission", "assets": "install", "mission": 120,
+  "steps": [
+    {"command": "kill", "unit": "u133"},
+    {"command": "kill", "unit": "u132"},
+    {"command": "kill", "unit": "u134"},
+    {"command": "kill", "unit": "u135"},
+    {"command": "kill", "unit": "u136"},
+    {"command": "kill", "unit": "u138"},
+    {"command": "kill", "unit": "u139"},
+    {"command": "kill", "unit": "u141"},
+    {"command": "kill", "unit": "u142"},
+    {"command": "kill", "unit": "u143"},
+    {"command": "kill", "unit": "u144"},
+    {"command": "kill", "unit": "u145"},
+    {"command": "kill", "unit": "u146"},
+    {"command": "kill", "unit": "u152"},
+    {"command": "kill", "unit": "u154"},
+    {"command": "kill", "unit": "u155"},
+    {"command": "kill", "unit": "u161"},
+    {"command": "kill", "unit": "u173"},
+    {"command": "kill", "unit": "u174"},
+    {"command": "wait_until", "ticks": 128, "until": {"outcome": "won"}},
+    {"command": "assert_world", "world": {"outcome": "won", "reached_unsupported_at_most": 0}}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "original_saves": "../../gameversions/saves/2026-08-02",
+  "saves": "../../review/headless-saves/0152",
+  "steps": [
+    {"command": "load", "target": "666 - mission 20"},
+    {"command": "capture", "name": "restore_complete"},
+    {"command": "assert_member", "member": {"id": "hero", "xp": 1795, "skills": {"General": 0, "Blade": 11, "Axe": 0, "Bludgeon": 0, "Pike": 0, "Shooting": 1}}},
+    {"command": "wait_ticks", "ticks": 64},
+    {"command": "capture", "name": "repeat_suppressed"},
+    {"command": "assert_state", "state": {"screen": "map", "member_count": 1}},
+    {"command": "assert_member", "member": {"id": "hero", "same_character_as": "restore_complete"}}
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 3,
+  "steps": [
+    {
+      "command": "activate",
+      "target": "NEW GAME"
+    },
+    {
+      "command": "activate",
+      "target": "Mission 10: 10.alm"
+    },
+    {
+      "command": "capture",
+      "name": "generation_screen"
+    },
+    {
+      "command": "create_character",
+      "character": {
+        "name": "Aeryn",
+        "sex": "Female",
+        "class": "Mage",
+        "skill": "Air",
+        "stats": {
+          "Mind": 30,
+          "Body": 20,
+          "Reaction": 25,
+          "Spirit": 25
+        }
+      }
+    },
+    {
+      "command": "capture",
+      "name": "in_mission"
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "map"
+      }
+    },
+    {
+      "command": "assert_member",
+      "member": {
+        "id": "hero",
+        "temporary": false,
+        "skills": {
+          "General": 0,
+          "Fire": 0,
+          "Water": 0,
+          "Air": 10,
+          "Earth": 0,
+          "Astral": 0
+        }
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 64
+    },
+    {
+      "command": "assert_member",
+      "member": {
+        "id": "hero",
+        "same_character_as": "in_mission"
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "stage": "mission",
+  "assets": "install",
+  "mission": 40,
+  "steps": [
+    {"command": "report", "name": "placed"},
+    {"command": "assert_unit", "unit": "u6", "expect": {"alive": true, "owner": 2, "group": 14}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true, "owner": 1}},
+    {"command": "order", "unit": "p0", "order": "move", "x": 76, "y": 108},
+    {"command": "wait_until", "ticks": 8000, "until": {"unit": "p0", "within": {"x": 77, "y": 112, "radius": 4}}},
+    {"command": "assert_unit", "unit": "u6", "expect": {"alive": true, "owner": 1, "group": 17}},
+    {"command": "report", "name": "joined"}
+  ]
+}

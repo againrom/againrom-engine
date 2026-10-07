@@ -1,0 +1,317 @@
+package ui
+
+import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"image"
+
+	"againrom/pkg/audio"
+	"againrom/pkg/render/text"
+)
+
+// Authored translations use the same catalog and installed-font conversion
+// boundary as game speed and tooltip preferences.
+//
+//go:embed soundoptions_ru.json
+var soundOptionsRUText string
+
+var soundOptionsRU = func() (words struct{ Master, Enabled, Disabled, Test, NotSaved, Unavailable string }) {
+	if err := json.Unmarshal([]byte(soundOptionsRUText), &words); err != nil {
+		panic(err)
+	}
+	return words
+}()
+
+type SoundOptionWords struct {
+	Title, OK, Master, Enabled, Disabled, Test, NotSaved string
+	Acknowledgments                                      string
+	Tracks, RandomOrder, Play, Stop                      string
+	Unavailable                                          string
+	Labels                                               [audio.ChannelCount]string
+}
+
+func DefaultSoundOptionWords() SoundOptionWords {
+	return SoundOptionWords{Title: "Sound Options", OK: "OK", Master: "Master volume",
+		Enabled: "Sound on", Disabled: "Sound off", Test: "Test sound", NotSaved: "Sound settings not saved: ",
+		Labels: [audio.ChannelCount]string{"Music volume", "SFX volume", "Speech volume"}, Acknowledgments: "Acknowledgments",
+		Tracks: "Tracks", RandomOrder: "Random Order", Play: "Play", Stop: "Stop", Unavailable: "Track unavailable"}
+}
+
+type SoundOptionControls struct {
+	Read                 func() audio.ChannelVolumes
+	Write                func(audio.Channel, int) error
+	Words                SoundOptionWords
+	ReadAcknowledgments  func() bool
+	WriteAcknowledgments func(bool) error
+	acknowledgments      bool
+	ReadPlayback         func() MusicPreferences
+	WritePlayback        func(MusicPreferences) error
+	TrackTitle           func(string) string
+	music                func() *MusicController
+	list                 *Picker
+}
+
+type soundOptionPointer struct {
+	pressed bool
+	action  gameMenuAction
+	value   int
+}
+
+func (a *App) SetSoundOptionControls(c SoundOptionControls) {
+	if a == nil || a.flow == nil {
+		return
+	}
+	if a.flow.menuSelector() == text.SelectorConverting {
+		c.Words.Master = a.flow.menuDisplayText(soundOptionsRU.Master)
+		c.Words.Enabled = a.flow.menuDisplayText(soundOptionsRU.Enabled)
+		c.Words.Disabled = a.flow.menuDisplayText(soundOptionsRU.Disabled)
+		c.Words.Test = a.flow.menuDisplayText(soundOptionsRU.Test)
+		c.Words.NotSaved = soundOptionsRU.NotSaved
+		c.Words.Unavailable = soundOptionsRU.Unavailable
+	}
+	a.flow.soundOptions = c
+	a.flow.soundOptions.music = func() *MusicController { return a.music }
+	if a.music != nil && c.ReadPlayback != nil {
+		a.music.SetPreferences(c.ReadPlayback())
+	}
+}
+
+func soundChannelAction(channel audio.Channel) gameMenuAction {
+	return gameMenuMusicVolume + gameMenuAction(channel)
+}
+
+func soundActionChannel(action gameMenuAction) (audio.Channel, bool) {
+	if action < gameMenuMusicVolume || action > gameMenuSpeechVolume {
+		return 0, false
+	}
+	return audio.Channel(action - gameMenuMusicVolume), true
+}
+
+func (f *flow) soundOptionRows() []gameMenuRow {
+	words := f.soundOptions.Words
+	volumes := f.soundOptions.Read()
+	enabled, master, available := f.readMenuSound()
+	var rows []gameMenuRow
+	for channel := audio.Channel(0); channel < audio.ChannelCount; channel++ {
+		rows = append(rows, gameMenuRow{Label: fmt.Sprintf("%s: %d%%", words.Labels[channel], volumes[channel]),
+			Action: soundChannelAction(channel), Enabled: available && f.soundOptions.Write != nil,
+			Fallback: [3]byte{'M', 'F', 'V'}[channel]})
+	}
+	if f.soundOptions.ReadPlayback != nil {
+		present := f.soundOptions.list != nil && f.soundOptions.list.Len() > 0
+		editable := f.soundOptions.WritePlayback != nil
+		rows = append(rows,
+			gameMenuRow{Label: words.Tracks, Fallback: 'L', Action: gameMenuMusicTracks, Enabled: present},
+			gameMenuRow{Label: words.RandomOrder, Fallback: 'R', Action: gameMenuMusicRandom, Enabled: editable},
+			gameMenuRow{Label: words.Play, Fallback: 'P', Action: gameMenuMusicPlay, Enabled: present && editable},
+			gameMenuRow{Label: words.Stop, Fallback: 'S', Action: gameMenuMusicStop, Enabled: editable})
+	}
+	state := words.Disabled
+	if f.soundOptions.ReadAcknowledgments != nil {
+		rows = append(rows, gameMenuRow{Label: words.Acknowledgments, Fallback: 'A',
+			Action: gameMenuAcknowledgments, Enabled: f.soundOptions.WriteAcknowledgments != nil})
+	}
+	if enabled {
+		state = words.Enabled
+	}
+	return append(rows,
+		gameMenuRow{Label: state, Fallback: 'E', Action: gameMenuToggleSound, Enabled: available && f.setMenuSound != nil},
+		gameMenuRow{Label: words.Master + " -", Fallback: 'D', Action: gameMenuVolumeDown, Enabled: available && f.setMenuSound != nil && master > 0},
+		gameMenuRow{Label: words.Master + " +", Fallback: 'U', Action: gameMenuVolumeUp, Enabled: available && f.setMenuSound != nil && master < 100},
+		gameMenuRow{Label: words.Test, Fallback: 'T', Action: gameMenuTestSound, Enabled: available},
+		gameMenuRow{Label: words.OK, Fallback: 'O', Action: gameMenuPageReturn, Enabled: true})
+}
+
+func (f *flow) setSoundOption(channel audio.Channel, value int) {
+	if f.soundOptions.Write == nil || channel >= audio.ChannelCount {
+		return
+	}
+	err := f.soundOptions.Write(channel, max(0, min(100, value)))
+	selection := f.menuList.Selection()
+	f.rebuildGameMenu(gameMenuSoundOptionsPage, selection)
+	if err != nil {
+		f.msg = f.soundOptions.Words.NotSaved + err.Error()
+	}
+}
+
+// soundKeyStep is one keyboard step of a slider, in slider positions.
+const soundKeyStep = 500
+
+// applySoundSlider applies a slider's channel percentage at the control event,
+// without leaving the page and without ending a drag.
+func (f *flow) applySoundSlider(channel audio.Channel, percent int) {
+	if f.soundOptions.Write == nil || channel >= audio.ChannelCount {
+		return
+	}
+	percent = max(0, min(100, percent))
+	if f.soundOptions.Read()[channel] == percent {
+		return
+	}
+	if err := f.soundOptions.Write(channel, percent); err != nil {
+		f.msg = f.soundOptions.Words.NotSaved + err.Error()
+	}
+}
+
+// stepSoundSlider moves a channel by whole slider positions and always changes
+// the stored percentage when the slider has room to move.
+func (f *flow) stepSoundSlider(channel audio.Channel, step int) {
+	current := f.soundOptions.Read()[channel]
+	next := soundSliderPercent(soundPercentSlider(current) + step)
+	if next == current {
+		next += step / soundKeyStep
+	}
+	f.applySoundSlider(channel, next)
+	message := f.msg
+	f.rebuildGameMenu(gameMenuSoundOptionsPage, f.menuList.Selection())
+	f.msg = message
+}
+
+func soundOptionHit(p image.Point) (gameMenuAction, bool) {
+	for _, action := range []gameMenuAction{gameMenuMusicVolume, gameMenuEffectsVolume, gameMenuSpeechVolume,
+		gameMenuAcknowledgments, gameMenuToggleSound, gameMenuVolumeDown, gameMenuVolumeUp, gameMenuTestSound, gameMenuPageReturn,
+		gameMenuMusicTracks, gameMenuMusicRandom, gameMenuMusicPlay, gameMenuMusicStop, gameMenuMusicUp, gameMenuMusicDown, gameMenuMusicScroll} {
+		r := soundOptionRect(action)
+		if channel, slider := soundActionChannel(action); slider {
+			r = soundSliderRect(channel).Inset(-6)
+		}
+		if p.In(r) {
+			return action, true
+		}
+	}
+	return 0, false
+}
+
+func (a *App) stepSoundOptions(in appInput) bool {
+	f := a.flow
+	if in.Unfocused {
+		f.soundPointer = soundOptionPointer{}
+		return false
+	}
+	trackFocused := f.menuRows()[f.menuList.Selection()].Action == gameMenuMusicTracks && f.soundOptions.list != nil
+	if in.PaneMode {
+		delta := 1
+		if in.ShiftHeld {
+			delta = -1
+		}
+		f.menuList.Move(delta)
+	} else if trackFocused && (in.Up || in.Down || in.Home || in.End) {
+		switch {
+		case in.Up:
+			f.soundOptions.list.Move(-1)
+		case in.Down:
+			f.soundOptions.list.Move(1)
+		case in.Home:
+			f.soundOptions.list.Select(0)
+		case in.End:
+			f.soundOptions.list.Select(f.soundOptions.list.Len() - 1)
+		}
+	} else if in.Up {
+		f.menuList.Move(-1)
+	} else if in.Down {
+		f.menuList.Move(1)
+	} else if in.Left || in.Right {
+		row := f.menuRows()[f.menuList.Selection()]
+		if channel, ok := soundActionChannel(row.Action); ok && row.Enabled {
+			step := -soundKeyStep
+			if in.Right {
+				step = soundKeyStep
+			}
+			f.stepSoundSlider(channel, step)
+		}
+	} else if in.Enter {
+		a.chooseGameMenu()
+	} else {
+		for _, r := range in.Typed {
+			if f.chooseGameMenuAccelerator(r, a.beforeGameMenuAction) {
+				break
+			}
+		}
+	}
+	if f.menuPage != gameMenuSoundOptionsPage {
+		f.soundPointer = soundOptionPointer{}
+		return false
+	}
+	p, inFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	if inFrame && p.In(soundOptionRect(gameMenuMusicTracks)) && f.soundOptions.list != nil && in.WheelY != 0 {
+		f.soundOptions.list.Move(-int(in.WheelY) * 3)
+	}
+	action, hit := soundOptionHit(p)
+	if in.PrimaryPressed {
+		f.soundPointer = soundOptionPointer{pressed: inFrame && hit, action: action}
+		if action == gameMenuMusicTracks {
+			f.soundPointer.value = f.soundTrackAt(p)
+		}
+	}
+	press := &f.soundPointer
+	if press.pressed {
+		if channel, slider := soundActionChannel(press.action); slider && inFrame {
+			press.value = soundSliderValue(channel, p.X)
+			f.applySoundSlider(channel, soundSliderPercent(press.value))
+		}
+	}
+	if !in.PrimaryReleased {
+		return false
+	}
+	selected := *press
+	f.soundPointer = soundOptionPointer{}
+	if !selected.pressed || !inFrame {
+		return false
+	}
+	if hit && action == selected.action && f.soundOptions.list != nil {
+		switch action {
+		case gameMenuMusicTracks:
+			if selected.value >= 0 && f.soundTrackAt(p) == selected.value {
+				f.soundOptions.list.Select(selected.value)
+				f.focusMusicTracks()
+			}
+			return false
+		case gameMenuMusicUp:
+			f.soundOptions.list.Move(-1)
+			f.focusMusicTracks()
+			return false
+		case gameMenuMusicDown:
+			f.soundOptions.list.Move(1)
+			f.focusMusicTracks()
+			return false
+		case gameMenuMusicScroll:
+			r := soundOptionRect(gameMenuMusicScroll)
+			f.soundOptions.list.Select((p.Y - r.Min.Y) * (f.soundOptions.list.Len() - 1) / max(1, r.Dy()-1))
+			f.focusMusicTracks()
+			return false
+		}
+	}
+	for i, row := range f.menuRows() {
+		if row.Action != selected.action || !row.Enabled {
+			continue
+		}
+		f.menuList.Select(i)
+		if channel, slider := soundActionChannel(selected.action); slider {
+			a.playUISound(UISoundCommonControl)
+			if channel == audio.EffectsChannel {
+				a.playUISound(UISoundOptionsTest)
+			} else if channel == audio.SpeechChannel {
+				a.playSpeechTest()
+			}
+		} else if hit && action == selected.action {
+			a.chooseGameMenu()
+		}
+		break
+	}
+	return false
+}
+
+const speechTestSample = "mf_merc/select2.wav"
+
+func (a *App) playSpeechTest() {
+	bank := a.namedSounds()
+	if a.speechPlayer == nil || bank == nil {
+		return
+	}
+	sample, ok := bank.NamedSample(speechTestSample)
+	if !ok {
+		return
+	}
+	audio.Dispatch(a.speechPlayer, sample, audio.FixedRequest("fixed-interface", "voice:"+speechTestSample,
+		audio.SpeechChannel, 220, false, audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
+}

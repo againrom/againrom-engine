@@ -1,0 +1,186 @@
+name: Windows release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vMAJOR.MINOR.PATCH tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.identity.outputs.tag }}
+      revision: ${{ steps.identity.outputs.revision }}
+      version: ${{ steps.identity.outputs.version }}
+    env:
+      GOOS: windows
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+      GOMAXPROCS: '4'
+      GOFLAGS: -p=2
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate immutable release identity
+        id: identity
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -and $env:GITHUB_REF -ne 'refs/heads/main') {
+            throw 'Dispatch this workflow from main with an existing version tag.'
+          }
+          $tag = $env:RELEASE_TAG
+          if ($tag -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+            throw 'Tag must be vMAJOR.MINOR.PATCH.'
+          }
+          $revision = & git rev-parse --verify "refs/tags/$tag^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag does not exist.' }
+          if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $eventRevision = & git rev-parse --verify "$($env:GITHUB_SHA)^{commit}"
+            if ($LASTEXITCODE -ne 0 -or $eventRevision -cne $revision) { throw 'Tag moved after its push event.' }
+          }
+          & git merge-base --is-ancestor $revision origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag must name a commit on origin/main.' }
+          & git checkout --detach $revision
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot select the release commit.' }
+          $version = (Get-Content -LiteralPath cmd/againrom/VERSION -Raw).Trim()
+          if ($tag -cne "v$version") { throw 'Tag differs from cmd/againrom/VERSION.' }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "revision=$revision" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Check stamps and build Windows programs
+        shell: pwsh
+        run: |
+          & go test -trimpath -count=1 ./internal/buildinfo ./internal/versionres
+          if ($LASTEXITCODE -ne 0) { throw 'Version checks failed.' }
+          & bash scripts/build-tools.sh "$env:RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter
+          if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
+      - name: Check the public package boundary
+        shell: pwsh
+        run: |
+          & ./scripts/test-windows-package.ps1 -BinariesDirectory "$env:RUNNER_TEMP/againrom-binaries" -EvidenceDirectory "$env:RUNNER_TEMP/package-check"
+      - name: Package Windows release
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ steps.identity.outputs.tag }}
+          SOURCE_REVISION: ${{ steps.identity.outputs.revision }}
+        run: |
+          & ./scripts/package-windows.ps1 -BinariesDirectory "$env:RUNNER_TEMP/againrom-binaries" -OutputDirectory "$env:RUNNER_TEMP/againrom-package" -Revision $env:SOURCE_REVISION -Tag $env:RELEASE_TAG
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-${{ steps.identity.outputs.tag }}-${{ steps.identity.outputs.revision }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-windows-amd64.zip
+            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-windows-amd64.zip.sha256
+
+  publish:
+    needs: build
+    if: github.repository == 'againrom/againrom-engine'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.build.outputs.tag }}
+      SOURCE_REVISION: ${{ needs.build.outputs.revision }}
+      RELEASE_VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.build.outputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: windows-${{ needs.build.outputs.tag }}-${{ needs.build.outputs.revision }}
+          path: ${{ runner.temp }}/release-assets
+      - name: Publish the verified assets through a draft
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:RELEASE_TAG
+          $revision = $env:SOURCE_REVISION
+          $tagRevision = & git rev-parse --verify "refs/tags/$tag^{commit}"
+          if ($LASTEXITCODE -ne 0 -or $tagRevision -cne $revision) { throw 'Release tag changed during the build.' }
+          & git merge-base --is-ancestor $revision origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'Release commit is no longer on origin/main.' }
+          $name = "againrom-$($env:RELEASE_VERSION)-windows-amd64.zip"
+          $assets = "$env:RUNNER_TEMP/release-assets"
+          $zip = Join-Path $assets $name
+          $checksum = "$zip.sha256"
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ((Get-Content -LiteralPath $checksum -Raw) -cne "$hash  $name`n") { throw 'Downloaded ZIP checksum differs.' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            $entry = $archive.GetEntry('againrom/BUILD-INFO.json')
+            $reader = [IO.StreamReader]::new($entry.Open())
+            try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+          } finally { $archive.Dispose() }
+          if ($manifest.revision -cne $revision -or $manifest.tag -cne $tag -or $manifest.version -cne $env:RELEASE_VERSION) {
+            throw 'Downloaded manifest differs from the selected release.'
+          }
+          $title = "Againrom $($env:RELEASE_VERSION)"
+          $notes = "Windows AMD64. Unpack into a separate folder and run starter.exe. A lawfully owned game install is required. No game assets or player profiles are included.`n`nSource commit: $revision"
+          $endpoint = "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag"
+          $response = @(& gh api $endpoint 2>&1)
+          $status = $LASTEXITCODE
+          if ($status -ne 0) {
+            if (($response -join "`n") -notmatch '\(HTTP 404\)') { throw ($response -join "`n") }
+            $notesPath = "$env:RUNNER_TEMP/release-notes.txt"
+            [IO.File]::WriteAllText($notesPath, $notes, [Text.UTF8Encoding]::new($false))
+            & gh release create $tag --verify-tag --target $revision --draft --title $title --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot create the release draft.' }
+            $response = @(& gh api $endpoint)
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot read the created draft.' }
+          }
+          $release = ($response -join "`n") | ConvertFrom-Json
+          if ($release.target_commitish -cne $revision -or $release.name -cne $title -or $release.body -cne $notes) {
+            throw 'Existing release identity or notes conflict; preserve it for inspection.'
+          }
+          $expected = @($name, "$name.sha256")
+          $existingDirectory = "$env:RUNNER_TEMP/existing-assets"
+          foreach ($asset in $release.assets) {
+            if ($asset.name -cnotin $expected) { throw 'Existing release has unknown assets; preserve them for inspection.' }
+            $existing = Join-Path $existingDirectory $asset.name
+            & gh release download $tag --pattern $asset.name --dir $existingDirectory
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot verify existing release asset bytes.' }
+            if ((Get-FileHash -LiteralPath $existing).Hash -cne (Get-FileHash -LiteralPath (Join-Path $assets $asset.name)).Hash) {
+              throw 'Existing release asset bytes conflict; do not overwrite them.'
+            }
+          }
+          $missing = @($expected | Where-Object { $_ -cnotin @($release.assets.name) })
+          if (-not $release.draft) {
+            if ($missing.Count -ne 0) { throw 'Published release is incomplete; preserve it for inspection.' }
+            Write-Output 'Published release already has the exact verified assets.'
+          } else {
+            foreach ($file in $missing) {
+              & gh release upload $tag (Join-Path $assets $file)
+              if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed; leave the release as a draft.' }
+            }
+            & gh release edit $tag --draft=false
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot publish the verified draft.' }
+          }

@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "stage": "mission",
+  "assets": "install",
+  "mission": 30,
+  "steps": [
+    {"command": "report", "name": "placed"},
+    {"command": "assert_world", "world": {"outcome": "undecided", "tick_at_most": 0, "unsupported_at_most": 8}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true, "owner": 1, "x": 15, "y": 69}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"carries": [{"code": 3614, "absent": true}]}},
+    {"command": "wait_ticks", "ticks": 20},
+    {"command": "assert_unit", "unit": "p0", "expect": {"carries": [{"code": 3614, "count": 1}]}},
+    {"command": "assert_unit", "unit": "u56", "expect": {"alive": true, "x": 65, "y": 15}},
+    {"command": "report", "name": "cure-in-hand"}
+  ]
+}

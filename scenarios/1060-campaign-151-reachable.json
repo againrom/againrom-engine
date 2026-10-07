@@ -1,0 +1,9 @@
+{
+  "version": 6, "stage": "mission", "assets": "install", "mission": 151,
+  "steps": [
+    {"command": "kill_player", "player": 3},
+    {"command": "kill_player", "player": 4},
+    {"command": "wait_until", "ticks": 96, "until": {"outcome": "won"}},
+    {"command": "assert_world", "world": {"outcome": "won", "reached_unsupported_at_most": 0}}
+  ]
+}

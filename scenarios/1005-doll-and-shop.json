@@ -1,0 +1,829 @@
+{
+  "version": 7,
+  "window": {
+    "w": 2400,
+    "h": 1200
+  },
+  "original_saves": "../../gameversions/saves/2026-08-02",
+  "saves": "../../review/headless-saves/1005",
+  "steps": [
+    {
+      "command": "load",
+      "target": "666 - mission 20"
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "map",
+        "mission": 20,
+        "notice": "victory",
+        "purse": 600
+      }
+    },
+    {
+      "command": "activate",
+      "target": "notice"
+    },
+    {
+      "command": "wait_until",
+      "until": {
+        "control": "SHOP"
+      },
+      "ticks": 4000
+    },
+    {
+      "command": "assert_state",
+      "state": {
+        "screen": "town"
+      }
+    },
+    {
+      "command": "activate",
+      "target": "SHOP"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "picker_next",
+          "index": 0
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "picker_next",
+          "index": 0
+        }
+      }
+    },
+    {
+      "command": "assert_shop",
+      "shop": {
+        "member": 1,
+        "doll": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "worn": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "doll",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "shop": {
+          "surface": "doll",
+          "index": 1
+        },
+        "offset_x": 16,
+        "offset_y": 16
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "doll",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "assert_shop",
+      "shop": {
+        "member": 1,
+        "worn": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 0
+          }
+        ],
+        "doll": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "doll",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "doll",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "assert_shop",
+      "shop": {
+        "member": 1,
+        "worn": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 1
+          }
+        ],
+        "doll": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "pack",
+          "code": 33037
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "shop": {
+          "surface": "doll_box"
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "doll_box"
+        }
+      }
+    },
+    {
+      "command": "assert_shop",
+      "shop": {
+        "member": 1,
+        "doll": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "worn": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "doll",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "shop": {
+          "surface": "pack",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "pack",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "assert_shop",
+      "shop": {
+        "member": 1,
+        "worn": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 1
+          }
+        ],
+        "doll": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "pack",
+          "index": 0,
+          "code": 33037
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "shop": {
+          "surface": "table",
+          "index": 0
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "table",
+          "index": 0
+        }
+      }
+    },
+    {
+      "command": "assert_shop",
+      "shop": {
+        "member": 1,
+        "carries": [
+          {
+            "code": 33037,
+            "absent": true
+          }
+        ],
+        "table": [
+          {
+            "code": 33037,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "shop": {
+          "surface": "shelf",
+          "index": 0
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "shop": {
+          "surface": "pack",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "shop": {
+          "surface": "pack",
+          "index": 1
+        }
+      }
+    },
+    {
+      "command": "key",
+      "key": "escape"
+    },
+    {
+      "command": "activate",
+      "target": "TAVERN"
+    },
+    {
+      "command": "activate",
+      "target": "NPC 22"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "activate",
+      "target": "dialogue"
+    },
+    {
+      "command": "key",
+      "key": "escape"
+    },
+    {
+      "command": "activate",
+      "target": "GATES"
+    },
+    {
+      "command": "activate",
+      "target": "walk out to mission 30"
+    },
+    {
+      "command": "wait_until",
+      "until": {
+        "screen": "map"
+      },
+      "ticks": 600
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "select_member",
+      "id": "hero"
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 1
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "weapon_fallback": false,
+        "figure": [
+          {
+            "slot": 1,
+            "code": 33076
+          }
+        ],
+        "equipment": [
+          {
+            "slot": 1,
+            "code": 33076
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "doll_slot": 1
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "doll_slot": 1,
+        "offset_x": 3,
+        "offset_y": 3
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "doll_slot": 1
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "equipment": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33076,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 33076
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "doll_box": true
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "doll_box": true
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "equipment": [
+          {
+            "slot": 1,
+            "code": 33076
+          }
+        ],
+        "carries": [
+          {
+            "code": 33076,
+            "absent": true
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "doll_slot": 1
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "ground": true
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "ground": true
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "equipment": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33076,
+            "absent": true
+          }
+        ],
+        "sacks": [
+          {
+            "code": 33076,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "key",
+      "key": "i"
+    },
+    {
+      "command": "key",
+      "key": "b"
+    },
+    {
+      "command": "select_member",
+      "id": "npc:22"
+    },
+    {
+      "command": "key",
+      "key": "i"
+    },
+    {
+      "command": "key",
+      "key": "b"
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 1
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "weapon_fallback": false,
+        "equipment": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 33037
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "doll_box": true
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "doll_box": true
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "weapon_fallback": false,
+        "figure": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "equipment": [
+          {
+            "slot": 1,
+            "code": 33037
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "absent": true
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "doll_slot": 1
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "doll_slot": 1,
+        "offset_x": 3,
+        "offset_y": 3
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "doll_slot": 1
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "weapon_fallback": false,
+        "equipment": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "press",
+      "at": {
+        "pack_code": 33037
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "move",
+      "at": {
+        "ground": true
+      }
+    },
+    {
+      "command": "pointer",
+      "action": "release",
+      "at": {
+        "ground": true
+      }
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "weapon_fallback": false,
+        "equipment": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "absent": true
+          }
+        ],
+        "sacks": [
+          {
+            "code": 33037,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "command": "save"
+    },
+    {
+      "command": "load",
+      "target": "@first"
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 3
+    },
+    {
+      "command": "key",
+      "key": "i"
+    },
+    {
+      "command": "key",
+      "key": "b"
+    },
+    {
+      "command": "wait_ticks",
+      "ticks": 1
+    },
+    {
+      "command": "assert_inventory",
+      "inventory": {
+        "weapon_fallback": false,
+        "figure": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "equipment": [
+          {
+            "slot": 1,
+            "empty": true
+          }
+        ],
+        "carries": [
+          {
+            "code": 33037,
+            "absent": true
+          }
+        ]
+      }
+    }
+  ]
+}

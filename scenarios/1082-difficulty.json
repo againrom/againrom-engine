@@ -1,0 +1,11 @@
+{
+  "version": 3,
+  "steps": [
+    {"command": "activate", "target": "NEW GAME"},
+    {"command": "activate", "target": "Mission 10: 10.alm"},
+    {"command": "capture", "name": "default_normal_draft"},
+    {"command": "create_character", "character": {"name": "Witness", "difficulty": "hard"}},
+    {"command": "assert_state", "state": {"screen": "map", "difficulty": 3}},
+    {"command": "capture", "name": "hard_campaign"}
+  ]
+}

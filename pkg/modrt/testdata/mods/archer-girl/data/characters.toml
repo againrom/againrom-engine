@@ -1,0 +1,10 @@
+# The tavern's female archer: mercenary type 6, definition rows NPC06_1 to
+# NPC06_4. To edit another character, change the target line.
+[[character]]
+target = "NPC06"
+name   = "character.archer_girl"
+# The class and figure columns (type, face sheet, sex) of the shipped peasant
+# woman archers, A_PeasantGuard1 to A_PeasantGuard4, tier for tier.
+kind   = "A_PeasantGuard"
+# No armour or jewellery; the bow stays.
+strip  = ["armour"]

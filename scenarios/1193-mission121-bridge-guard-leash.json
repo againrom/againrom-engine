@@ -1,0 +1,20 @@
+{
+  "version": 6, "stage": "mission", "assets": "install", "mission": 121,
+  "steps": [
+    {"command": "place", "unit": "p0", "x": 12, "y": 24},
+    {"command": "wait_ticks", "ticks": 16},
+    {"command": "place", "unit": "p0", "x": 12, "y": 25},
+    {"command": "wait_ticks", "ticks": 6},
+    {"command": "place", "unit": "p0", "x": 12, "y": 26},
+    {"command": "wait_ticks", "ticks": 6},
+    {"command": "place", "unit": "p0", "x": 12, "y": 27},
+    {"command": "wait_ticks", "ticks": 6},
+    {"command": "place", "unit": "p0", "x": 12, "y": 28},
+    {"command": "wait_ticks", "ticks": 6},
+    {"command": "assert_unit", "unit": "u61", "expect": {"within": {"x": 12, "y": 22, "radius": 1}}},
+    {"command": "place", "unit": "p0", "x": 25, "y": 25},
+    {"command": "wait_until", "ticks": 300, "until": {"unit": "u61", "within": {"x": 12, "y": 21, "radius": 0}}},
+    {"command": "assert_unit", "unit": "u61", "expect": {"alive": true, "x": 12, "y": 21}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true}}
+  ]
+}

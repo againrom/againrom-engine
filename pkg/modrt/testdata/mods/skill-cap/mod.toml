@@ -1,0 +1,8 @@
+id          = "skill-cap"
+title       = "Skill cap"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Raises the highest skill level."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

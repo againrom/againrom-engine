@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "stage": "mission",
+  "assets": "synthetic",
+  "world": {
+    "width": 24,
+    "height": 24,
+    "units": [
+      {"ref": "p0", "x": 4, "y": 4, "owner": 1, "hp": 40, "damage": 4, "scan_range": 5, "always_hits": true},
+      {"ref": "u57", "x": 6, "y": 4, "owner": 9, "hp": 20, "damage": 1, "scan_range": 5, "always_hits": true}
+    ],
+    "hostile": [[1, 9], [9, 1]]
+  },
+  "steps": [
+    {"command": "report", "name": "placed"},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true, "x": 4, "y": 4}},
+    {"command": "assert_unit", "unit": "u57", "expect": {"alive": true, "hp_at_least": 20}},
+    {"command": "order", "unit": "p0", "order": "attack", "target": "u57"},
+    {"command": "wait_until", "ticks": 2000, "until": {"unit": "u57", "dead": true}},
+    {"command": "assert_unit", "unit": "u57", "expect": {"alive": false}},
+    {"command": "assert_unit", "unit": "p0", "expect": {"alive": true}},
+    {"command": "assert_world", "world": {"alive_at_least": 1, "fallen_at_most": 1, "reached_unsupported_at_most": 0}},
+    {"command": "report", "name": "decided"}
+  ]
+}

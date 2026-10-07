@@ -1,0 +1,32 @@
+{
+  "version": 9,
+  "steps": [
+    {"command":"activate","target":"NEW GAME"},
+    {"command":"activate","target":"Mission 30: 30.alm"},
+    {"command":"create_character","character":{"name":"Traveler","sex":"Male","class":"Fighter","skill":"Blade","stats":{"Body":30,"Reaction":30,"Mind":30,"Spirit":30}}},
+    {"command":"save_open"},
+    {"command":"assert_state","state":{"screen":"save","mission":30}},
+    {"command":"save_edit","name":"Expedition checkpoint","target":"SAV"},
+    {"command":"save_action","target":"save"},
+    {"command":"load","target":"@first"},
+    {"command":"assert_state","state":{"screen":"map","mission":30}},
+    {"command":"save_open"},
+    {"command":"save_edit","name":"Expedition mission","target":"SAV"},
+    {"command":"save_action","target":"save"},
+    {"command":"load","target":"@first"},
+    {"command":"assert_state","state":{"screen":"map","mission":30}},
+    {"command":"save_open"},
+    {"command":"save_edit","name":"Mission checkpoint","target":"SAV"},
+    {"command":"save_action","target":"save"},
+    {"command":"save_open"},
+    {"command":"save_edit","name":"Mission checkpoint","target":"SAV"},
+    {"command":"save_action","target":"save"},
+    {"command":"capture","name":"exact-save-confirmation"},
+    {"command":"save_action","target":"back"},
+    {"command":"save_action","target":"save"},
+    {"command":"save_action","target":"overwrite"},
+    {"command":"save_open"},
+    {"command":"save_action","target":"cancel"},
+    {"command":"capture","name":"cancel-keeps-mission"}
+  ]
+}

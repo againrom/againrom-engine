@@ -1,0 +1,8 @@
+# The campaign companion 22 is granted by the town of chapter 30 (Plagat). She
+# joins when the tavern conversation with record 22 of that chapter opens.
+[[join]]
+key       = "plagat_mage"
+companion = 22
+chapter   = 30
+building  = "tavern"
+talk      = 22

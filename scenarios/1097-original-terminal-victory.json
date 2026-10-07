@@ -1,0 +1,20 @@
+{
+  "version": 7,
+  "original_saves": "../../gameversions/saves/2026-08-02",
+  "saves": "../../review/story1097/drive-saves",
+  "steps": [
+    {"command": "load", "target": "666 - mission 20"},
+    {"command": "capture", "name": "saved_victory"},
+    {"command": "assert_state", "state": {"screen": "map", "mission": 20, "notice": "victory", "purse": 600}},
+    {"command": "assert_member", "member": {"id": "hero", "xp": 1795}},
+    {"command": "wait_ticks", "ticks": 64},
+    {"command": "assert_state", "state": {"screen": "map", "mission": 20, "notice": "victory", "purse": 600}},
+    {"command": "activate", "target": "notice"},
+    {"command": "assert_state", "state": {"screen": "town", "town_place": "world_map", "purse": 1100}},
+    {"command": "wait_until", "until": {"control": "TAVERN"}, "ticks": 4000},
+    {"command": "capture", "name": "town_after_victory"},
+    {"command": "assert_state", "state": {"screen": "town", "town_place": "square", "purse": 1100, "member_count": 2}},
+    {"command": "assert_member", "member": {"id": "hero", "xp": 1795, "same_character_as": "saved_victory"}},
+    {"command": "assert_member", "member": {"id": "npc:22", "xp": 1593, "temporary": false}}
+  ]
+}
