@@ -654,6 +654,9 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		if e.HasTarget || !closed || e.Turning() || e.PursuitIdle {
 			return
 		}
+		if !structure && e.Reach > 1 && w.turnTowardActor(i, position.X-e.X, position.Y-e.Y) {
+			return
+		}
 		_, weaponSpellEligible := w.weaponSpell(*e)
 		weaponSpellEligible = weaponSpellEligible && !structure
 		// A WEAPON-BORNE RELEASE MUST NOT LOAD TOWARD A TARGET THIS CASTER CANNOT
