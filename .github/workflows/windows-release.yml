@@ -152,12 +152,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot list releases.' }
           if ($found.Count -gt 1) { throw 'More than one release names this tag; preserve them for inspection.' }
           if ($found.Count -eq 0) {
-            $notesPath = "$env:RUNNER_TEMP/release-notes.txt"
-            [IO.File]::WriteAllText($notesPath, $notes, [Text.UTF8Encoding]::new($false))
-            & gh release create $tag --verify-tag --target $revision --draft --title $title --notes-file $notesPath
-            if ($LASTEXITCODE -ne 0) { throw 'Cannot create the release draft.' }
-            $found = @(& gh api "repos/$env:GITHUB_REPOSITORY/releases" --paginate --jq $query)
-            if ($LASTEXITCODE -ne 0 -or $found.Count -ne 1) { throw 'Cannot read the created draft.' }
+            # The release list lags a new draft, so the draft is taken from
+            # the create response and handled by id from here on.
+            $requestPath = "$env:RUNNER_TEMP/release-request.json"
+            $request = @{ tag_name = $tag; target_commitish = $revision; name = $title; body = $notes; draft = $true } | ConvertTo-Json -Compress
+            [IO.File]::WriteAllText($requestPath, $request, [Text.UTF8Encoding]::new($false))
+            $found = @(& gh api -X POST "repos/$env:GITHUB_REPOSITORY/releases" --input $requestPath --jq tojson)
+            if ($LASTEXITCODE -ne 0 -or $found.Count -ne 1) { throw 'Cannot create the release draft.' }
           }
           $release = $found[0] | ConvertFrom-Json
           if ($release.target_commitish -cne $revision -or $release.name -cne $title -or $release.body -cne $notes) {
@@ -180,9 +181,9 @@ jobs:
             Write-Output 'Published release already has the exact verified assets.'
           } else {
             foreach ($file in $missing) {
-              & gh release upload $tag (Join-Path $assets $file)
+              & gh api -X POST "https://uploads.github.com/repos/$env:GITHUB_REPOSITORY/releases/$($release.id)/assets?name=$file" -H 'Content-Type: application/octet-stream' --input (Join-Path $assets $file) --silent
               if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed; leave the release as a draft.' }
             }
-            & gh release edit $tag --draft=false
+            & gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($release.id)" -F draft=false --silent
             if ($LASTEXITCODE -ne 0) { throw 'Cannot publish the verified draft.' }
           }
