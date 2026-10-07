@@ -476,6 +476,7 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 	for i := range hero.Skill {
 		hero.Skill[i] = int32(c.SkillLevels[i])
 	}
+	repairHeroSkills(&hero.Skill, c.SkillLevels, c.SkillXP)
 	r.Statistics++
 	r.Skills++
 	r.Capacity++

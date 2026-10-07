@@ -105,7 +105,7 @@ func TestInstanceWeightLegacyCitySalesKeepImportPolicy(t *testing.T) {
 				}
 			}
 			if c.Stats[7] != uint16(d.Capacity) || c.Stats[8] != uint16(hp) || c.Stats[9] != uint16(d.HealthMax) ||
-				c.Stats[11] != uint16(mp) || c.Stats[12] != uint16(d.ManaMax) || c.Experience != uint32(d.Experience) {
+				c.Stats[11] != uint16(mp) || c.Stats[12] != uint16(d.ManaMax) || c.Experience != carriedSkillXPSum(member) {
 				t.Fatal("ordinary Human pools/capacity/experience differ from current values", p.ID, c.Stats, c.Experience, d, hp, mp)
 			}
 			for i, xp := range member.Carry.SkillXP {
@@ -189,4 +189,16 @@ func TestInstanceWeightLegacyCitySalesKeepImportPolicy(t *testing.T) {
 		t.Fatal("next sale changed the price", result.Msg)
 	}
 	roundtrip(f, 1, 3011)
+}
+
+// carriedSkillXPSum is the saved aggregate the writer owes: the sum of the six
+// slot experiences the member carries.
+func carriedSkillXPSum(member mapload.PartyMember) uint32 {
+	var sum uint32
+	if member.Carry != nil {
+		for _, xp := range member.Carry.SkillXP {
+			sum += uint32(xp)
+		}
+	}
+	return sum
 }

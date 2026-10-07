@@ -84,8 +84,8 @@ func TestLeavingATownRoomPostsNoLine(t *testing.T) {
 		f := shellFrontEnd()
 		s := f.townUI
 		exit := ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: tavernButtonExit}
-		if act := s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: tavernButtonHire}, false); act.Msg == "" {
-			t.Fatal("a hire posted no line, so this seam cannot show one")
+		if act := s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: tavernButtonHire}, false); act.Msg != "" || !f.Town.MercenaryHired(3) {
+			t.Fatalf("hire = %q, hired %v, want the squad hired with no line", act.Msg, f.Town.MercenaryHired(3))
 		}
 		if act := s.TownSurfaceClick(exit, false); act.Msg != "" {
 			t.Errorf("the tavern's Exit posted %q", act.Msg)
@@ -283,8 +283,11 @@ func TestEndingATavernConversationThroughAppInputPostsNoLine(t *testing.T) {
 	if err := a.HeadlessActivate(s.TownSurface().Buttons[tavernButtonHire].Label); err != nil {
 		t.Fatal(err)
 	}
-	if a.HeadlessMessage() == "" {
-		t.Fatal("a hire showed no line, so this route cannot show one")
+	if !f.Town.MercenaryHired(3) {
+		t.Fatal("the hire press did not hire the squad")
+	}
+	if got := a.HeadlessMessage(); got != "" {
+		t.Fatalf("a hire showed %q", got)
 	}
 	if err := a.HeadlessActivate(s.TownSurface().Buttons[tavernButtonExit].Label); err != nil {
 		t.Fatal(err)

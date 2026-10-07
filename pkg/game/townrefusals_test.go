@@ -34,7 +34,7 @@ func TestTownRefusalsPostNoLineAndHireRefusalRequestsItsSlot(t *testing.T) {
 
 	// A hire within the purse still posts its line and requests no refusal.
 	f.Town.gold = 1000
-	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "squad 3 hired for 50" || s.tavernSlotRequests[tavernSlotHireRefused] != 2 {
+	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "" || !f.Town.MercenaryHired(3) || s.tavernSlotRequests[tavernSlotHireRefused] != 2 {
 		t.Fatalf("hire = %q, requests %v", act.Msg, s.tavernSlotRequests)
 	}
 

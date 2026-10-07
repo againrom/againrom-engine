@@ -384,8 +384,10 @@ func applyCurrentCityHuman(unit *sav.CityUnitData, p mapload.PartyMember, table 
 	}
 	h.HasSpellbook = p.Book.WirePresent(p.KnownSpells)
 	if p.Carry != nil {
+		h.Experience = 0
 		for i, xp := range p.Carry.SkillXP {
 			h.SkillXP[i] = uint32(xp)
+			h.Experience += uint32(xp)
 		}
 	}
 	if p.Carry != nil && p.Carry.LiveLoad != nil {

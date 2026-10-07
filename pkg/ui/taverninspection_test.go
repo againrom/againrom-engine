@@ -219,3 +219,50 @@ func TestAppCandidateDollHoverClickAndDragAreReadOnly(t *testing.T) {
 		t.Fatal("candidate doll input mutated its production view")
 	}
 }
+
+func TestTavernCandidateCardStartsTwelvePixelsRight(t *testing.T) {
+	font := townShellRosterTestFont()
+	edge := color.RGBA{R: 0xc8, A: 0xff}
+	body := uniform(160, 238, characterCardFill)
+	for y := 0; y < 238; y++ {
+		for x := 0; x < 12; x++ {
+			body.SetRGBA(x, y, edge)
+		}
+	}
+	seam := uniform(16, 238, edge)
+	art := &TownTavernArt{LeftStats: body, LeftStatsSeam: seam}
+	candidate := TownCharacterView{HasSubject: true, Font: font, CardFont: font, Subject: PanelSubject{Name: "Mercenary"}}
+
+	view := tavernCandidateStats(candidate, art)
+	if got, want := view.cardRect(), image.Rect(12, 0, 172, 238); got != want {
+		t.Fatalf("card rectangle = %v, want %v", got, want)
+	}
+	bg := shiftedCardBackground(body, seam, 12)
+	if bg.RGBAAt(0, 5) != characterCardFill || bg.RGBAAt(147, 5) != characterCardFill || bg.RGBAAt(148, 5) != edge || bg.RGBAAt(159, 5) != edge {
+		t.Fatalf("shifted board columns 0,147,148,159 = %v %v %v %v", bg.RGBAAt(0, 5), bg.RGBAAt(147, 5), bg.RGBAAt(148, 5), bg.RGBAAt(159, 5))
+	}
+
+	got := RenderTownCandidateInspection(candidate, art)
+	if got == nil || got.Bounds().Dx() != 176 {
+		t.Fatalf("inspection = %v, want 176 columns", got)
+	}
+	for y := 0; y < 238; y++ {
+		for x := 0; x < 12; x++ {
+			if got.RGBAAt(x, y) != edge {
+				t.Fatalf("pixel (%d,%d) = %v left of the card canvas, want the board edge", x, y, got.RGBAAt(x, y))
+			}
+		}
+	}
+	lit := false
+	for y := 0; y < 238 && !lit; y++ {
+		for x := 12; x < 160; x++ {
+			if c := got.RGBAAt(x, y); c != characterCardFill && c != edge && c.A != 0 {
+				lit = true
+				break
+			}
+		}
+	}
+	if !lit {
+		t.Fatal("the card drew no text right of its canvas origin")
+	}
+}

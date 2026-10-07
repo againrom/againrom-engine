@@ -26,13 +26,13 @@ type helpScrollbarStyleWitness struct {
 func prepareHelpScrollbarStyleWitness(t *testing.T, f *FrontEnd) *helpScrollbarStyleWitness {
 	t.Helper()
 	output := os.Getenv("AGAINROM_HELP_SCROLL_STYLE_WITNESS_DIR")
-	root, err := filepath.EvalSymlinks(f.Archives.Root)
-	if err != nil || !filepath.IsAbs(root) || !filepath.IsAbs(output) {
+	root, err := editorPhysicalDirectory(f.Archives.Root)
+	if err != nil || !filepath.IsAbs(f.Archives.Root) || !filepath.IsAbs(root) || !filepath.IsAbs(output) {
 		t.Fatal("absolute asset root and AGAINROM_HELP_SCROLL_STYLE_WITNESS_DIR required", err)
 	}
 	ancestor, suffix := filepath.Clean(output), ""
 	for {
-		resolved, err := filepath.EvalSymlinks(ancestor)
+		resolved, err := editorPhysicalDirectory(ancestor)
 		if err == nil {
 			output = filepath.Join(resolved, suffix)
 			break

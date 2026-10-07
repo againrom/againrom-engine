@@ -25,7 +25,7 @@ func effectRimOutputPath(root, output string) (string, error) {
 	if !filepath.IsAbs(output) {
 		return "", fmt.Errorf("absolute AGAINROM_EFFECT_RIM_WITNESS_DIR required")
 	}
-	root, err := filepath.EvalSymlinks(root)
+	root, err := editorPhysicalDirectory(root)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +44,7 @@ func effectRimOutputPath(root, output string) (string, error) {
 		suffix = filepath.Join(filepath.Base(parent), suffix)
 		parent = next
 	}
-	parent, err = filepath.EvalSymlinks(parent)
+	parent, err = editorPhysicalDirectory(parent)
 	if err != nil {
 		return "", err
 	}

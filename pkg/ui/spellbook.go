@@ -369,13 +369,29 @@ func composeOriginalSpellBar(art *BottomHUDArt, entries []SpellEntry, selected u
 			continue
 		}
 		if entries[i].ID == selected {
-			drawBorder(img, box, spellbookSelected)
+			liftPressedSlot(img, box)
 		}
 		if entries[i].Autocast {
 			drawAutocastBorder(img, box, phase, autocastDashColor)
 		}
 	}
 	return img
+}
+
+const pressedSlotLift = 45
+
+func liftPressedSlot(img *image.RGBA, box image.Rectangle) {
+	box = box.Intersect(img.Bounds())
+	for y := box.Min.Y; y < box.Max.Y; y++ {
+		for x := box.Min.X; x < box.Max.X; x++ {
+			c := img.RGBAAt(x, y)
+			img.SetRGBA(x, y, color.RGBA{liftChannel(c.R), liftChannel(c.G), liftChannel(c.B), c.A})
+		}
+	}
+}
+
+func liftChannel(v uint8) uint8 {
+	return v + uint8((255-int(v))*pressedSlotLift/100)
 }
 
 // quickSpellMarkInk is the digit ink of the mission spell bar's quick-spell

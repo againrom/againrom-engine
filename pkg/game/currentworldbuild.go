@@ -440,9 +440,17 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 		binary.LittleEndian.PutUint16(source.Attack[2+2*i:], uint16(v))
 		source.SkillXP[i] = uint32(e.SkillXP[i])
 	}
-	if source.Class == 2 && e.NativeTraining.Present {
+	if source.Class == 2 {
+		// The base block holds the trained levels. A native actor that has
+		// not been trained in this run carries no worn skill bonus, so its
+		// effective levels are its base levels; the record's own base words
+		// are the loaded document's, not the current state.
+		levels := e.Skill
+		if e.NativeTraining.Present {
+			levels = e.NativeTraining.Levels
+		}
 		for j := 1; j < data.SkillSlots; j++ {
-			binary.LittleEndian.PutUint16(source.Base[2+2*j:], uint16(e.NativeTraining.Levels[j]))
+			binary.LittleEndian.PutUint16(source.Base[2+2*j:], uint16(levels[j]))
 		}
 	}
 	if source.Class == 2 {
@@ -479,6 +487,9 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 		source.Defence[17+i] = e.Resistance[i]
 	}
 	source.MoverSpeed, source.Sight = uint8(e.RotationSpeed), uint16(e.ScanRange)<<8
+	if source.Class == 2 {
+		source.Sight = data.SightWord(e.Mind, e.Reaction, int32(e.ScanRange))
+	}
 	source.Reach, source.AttackCharge, source.AttackRelax, source.EquipmentRuntimePresent = e.Reach, uint8(e.AttackCharge), uint8(e.AttackRelax), true
 	binary.LittleEndian.PutUint16(source.Modifier[10:], uint16(e.HealthRegeneration))
 	binary.LittleEndian.PutUint16(source.Modifier[14:], uint16(e.ManaRegeneration))

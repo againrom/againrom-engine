@@ -141,13 +141,13 @@ func panelTooltipSlot(field PanelField, s PanelSubject) int {
 // Hit the same laid-out, disclosure-filtered rows the card actually paints.
 // A hidden field or blank space between its cells does not acquire a hint.
 func characterStatsTooltip(v TownCharacterView, w Words, p image.Point) tooltipTarget {
-	if !v.HasSubject || !v.Statistics || !p.In(v.paneRect()) || v.cardFont() == nil {
+	if !v.HasSubject || !v.Statistics || !p.In(v.paneRect()) && !p.In(v.cardRect()) || v.cardFont() == nil {
 		return tooltipTarget{}
 	}
 	l, font := v.statsLayout(), v.cardFont()
 	items := panelItems(l, v.Subject)
 	lines := layoutLines(l, font, items)
-	p = p.Sub(v.paneRect().Min)
+	p = p.Sub(v.cardRect().Min)
 	for i, line := range lines {
 		if i >= len(items) || p.Y < line.at.Y || p.Y >= line.at.Y+font.Height() {
 			continue
@@ -282,11 +282,7 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 			return tooltipTarget{tooltipText, fmt.Sprintf("candidate-item/%d", surface.Candidate.Subject.ID), lines, surface.Font}
 		}
 		if surface.Kind == TownSurfaceTavern {
-			candidate := surface.Candidate
-			candidate.Statistics, candidate.PaneRect = true, tavernCandidateStatsRect
-			if surface.TavernArt != nil {
-				candidate.StatsPane = TownPane{Body: surface.TavernArt.LeftStats}
-			}
+			candidate := tavernCandidateStats(surface.Candidate, surface.TavernArt)
 			if hint := characterStatsTooltip(candidate, w, p); hint.key() != "" {
 				return hint
 			}

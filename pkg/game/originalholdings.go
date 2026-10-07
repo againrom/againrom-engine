@@ -42,6 +42,7 @@ func originalActorBasis(b *sav.ActorBasis) sim.SourceActor {
 		class = 1
 	}
 	s := mapload.HumanSourceActor(h, class)
+	repairSourceSkills(&s)
 	s.Reach, s.AttackCharge, s.AttackRelax, s.EquipmentRuntimePresent = b.Reach, b.AttackCharge, b.AttackRelax, true
 	return s
 }

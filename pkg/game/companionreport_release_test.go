@@ -29,8 +29,8 @@ func TestReleaseMission70CompanionReportUsesLiveSpeakerVariants(t *testing.T) {
 	for _, primaryDir := range []data.FigureDir{data.FigureDirManFighter, data.FigureDirManMage, data.FigureDirWomanFighter, data.FigureDirWomanMage} {
 		t.Run(string(primaryDir), func(t *testing.T) {
 			f := releaseFront(t)
-			root, err := filepath.EvalSymlinks(f.Archives.Root)
-			if err != nil || !filepath.IsAbs(root) || !filepath.IsAbs(output) {
+			root, err := editorPhysicalDirectory(f.Archives.Root)
+			if err != nil || !filepath.IsAbs(f.Archives.Root) || !filepath.IsAbs(root) || !filepath.IsAbs(output) {
 				t.Fatal("absolute resolved install and witness roots required", err)
 			}
 			rel, err := filepath.Rel(root, filepath.Clean(output))

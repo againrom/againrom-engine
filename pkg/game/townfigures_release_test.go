@@ -543,8 +543,8 @@ func TestReleaseTownFiguresTakeNoPressAndGuardsRestAfterRoomExits(t *testing.T) 
 	if !hireControl(t, r.f, r.app, r.s) {
 		t.Fatal("the first town lists no mercenary squad, so this route has no press that shows a line")
 	}
-	if after := r.state(false); after.line == "" || after.line == before.line {
-		t.Fatalf("a hire left the line %q (was %q), so this route cannot show one", after.line, before.line)
+	if after := r.state(false); after.line != "" {
+		t.Fatalf("a hire left the line %q (was %q), want none", after.line, before.line)
 	}
 	r.leave(roomTavern, false)
 	r.enter("SCHOOL", roomSchool)

@@ -256,6 +256,7 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		if err != nil {
 			return mapload.PartyMember{}, err
 		}
+		repairHeroSkills(&out.Hero.Skill, c.SkillLevels, c.SkillXP)
 	}
 	out.Class, out.SuppressCorpseLoot = state.Class, state.SuppressCorpseLoot
 	out.KnownSpells, out.Book = state.KnownSpells, state.Book

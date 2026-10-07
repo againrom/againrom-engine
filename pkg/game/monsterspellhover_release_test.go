@@ -8,12 +8,17 @@ import (
 	"againrom/pkg/ui"
 )
 
-// monsterHoverScan hovers the frame on a grid and returns the first pixel whose
-// hover target begins with prefix, scanning rows top to bottom.
-func monsterHoverScan(t *testing.T, app *ui.App, w, h, step int, prefix string) (image.Point, bool) {
+// monsterHoverScan hovers the drawn card on the frame's grid and returns the
+// first pixel whose hover target begins with prefix.
+func monsterHoverScan(t *testing.T, app *ui.App, step int, prefix string) (image.Point, bool) {
 	t.Helper()
-	for y := 0; y < h; y += step {
-		for x := 0; x < w; x += step {
+	card, at, err := app.HeadlessDrawnMissionCard()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bounds := card.Bounds().Add(at)
+	for y := (bounds.Min.Y + step - 1) / step * step; y < bounds.Max.Y; y += step {
+		for x := (bounds.Min.X + step - 1) / step * step; x < bounds.Max.X; x += step {
 			if err := app.HeadlessPointer("hover", x, y); err != nil {
 				t.Fatal(err)
 			}
@@ -40,7 +45,7 @@ func TestReleaseTooltipMonsterSpellListOnCreatureCard(t *testing.T) {
 		t.Fatal("the turtle's card does not state the spellcaster caption")
 	}
 	const w, h = 1024, 768
-	at, ok := monsterHoverScan(t, app, w, h, 3, "stat-spells/")
+	at, ok := monsterHoverScan(t, app, 3, "stat-spells/")
 	if !ok {
 		t.Fatal("no pixel of the turtle's card hovers the spellcaster row")
 	}
@@ -80,8 +85,10 @@ func TestReleaseTooltipMonsterSpellListOnCreatureCard(t *testing.T) {
 		t.Fatalf("hint survived moving off the row: %+v", state)
 	}
 
-	magicWitnessCaption(t, f, app, plain)
-	if _, ok := monsterHoverScan(t, app, w, h, 3, "stat-spells/"); ok {
+	if magicWitnessCaption(t, f, app, plain) {
+		t.Fatal("a plain creature's card states the spellcaster caption")
+	}
+	if _, ok := monsterHoverScan(t, app, 3, "stat-spells/"); ok {
 		t.Fatal("a plain creature's card offers the monster spell list")
 	}
 }

@@ -145,7 +145,7 @@ func TestPartyCharactersPairsTheStartsOwnSlices(t *testing.T) {
 		7: {Known: true, Band: ui.CharacterBandPerson, Body: int(s.Body), Reaction: int(s.Reaction), Mind: int(s.Mind),
 			Spirit: int(s.Spirit), Skills: [ui.PanelSkillSlots]int{0, 10, 0, 0, 0, 0}, Weapon: "Iron Short Sword",
 			Experience: int(d7.Experience), Protection: family(d7.Protection), Resistance: family(d7.Resistance),
-			Sight: int(d7.Sight)},
+			Sight: int(d7.Sight), Sight256: (15+26)*256/25 + 4*256},
 		// ALL SIX SLOTS ARE READ OFF THE HERO and none is assumed to be the one
 		// this front end generates: an axe-trained member states its level at
 		// slot 2 and zero everywhere else. A BARE member names no weapon
@@ -153,11 +153,11 @@ func TestPartyCharactersPairsTheStartsOwnSlices(t *testing.T) {
 		8: {Known: true, Band: ui.CharacterBandPerson, Body: 30, Reaction: 20, Mind: 18, Spirit: 17,
 			Skills:     [ui.PanelSkillSlots]int{0, 0, 10, 0, 0, 0},
 			Experience: int(d8.Experience), Protection: family(d8.Protection), Resistance: family(d8.Resistance),
-			Sight: int(d8.Sight)},
+			Sight: int(d8.Sight), Sight256: (18+20)*256/25 + 4*256},
 		// A member who trained nothing states six zeros, slot 0 included.
 		9: {Known: true, Band: ui.CharacterBandPerson, Body: 21, Reaction: 22, Mind: 23, Spirit: 24, Weapon: "Bronze Pike",
 			Experience: int(d9.Experience), Protection: family(d9.Protection), Resistance: family(d9.Resistance),
-			Sight: int(d9.Sight)},
+			Sight: int(d9.Sight), Sight256: (23+22)*256/25 + 4*256},
 	}
 	for id, w := range want {
 		if got[id] != w {

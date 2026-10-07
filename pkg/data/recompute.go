@@ -272,6 +272,36 @@ func SkillXPFor(level int32) int32 {
 	return rules.Rules{}.SkillXPExtended(level)
 }
 
+// RepairSkillLevel is the load-time repair of one slot's stored level against
+// its stored experience. A slot at level L holds experience in
+// (S(L-1), S(L)]. A save may hold experience above S(L+1), which the award
+// sink would then spend one level per award. Such a slot takes the level its
+// experience implies, the smallest level whose threshold is not below the
+// experience. A level that is zero or at the original cap, and experience not
+// above the next threshold, return the level unchanged.
+func RepairSkillLevel(level, xp int32) int32 {
+	if level <= 0 || level >= 100 || xp <= SkillXPFor(level+1) {
+		return level
+	}
+	repaired := level + 1
+	for repaired < 100 && xp > SkillXPFor(repaired) {
+		repaired++
+	}
+	return repaired
+}
+
+// SightWord is a Human's sight word in 1/256 cell: the fractional part
+// ((mind+reaction)/25 + 4) carries, and the whole-cell byte is replaced by
+// cells, the value the derive reports after equipment and effects.
+func SightWord(mind, reaction int32, cells int32) uint16 {
+	raw := SightSubCells(mind, reaction)
+	raw += cells<<8 - raw&^0xff
+	if raw <= 0 || raw > 0xffff {
+		return uint16(max(0, min(cells, 255)) << 8)
+	}
+	return uint16(raw)
+}
+
 // Recompute is the one implementation of the derived-stat graph in this
 // tree: a character's four statistics, his six skill levels, the profile he
 // carries and what he is wearing, to the whole Derived set. In the original

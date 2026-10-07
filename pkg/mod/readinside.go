@@ -11,9 +11,8 @@ import (
 // MaxFileBytes bounds a file a mod's script, data or picture is read from.
 const MaxFileBytes = 1 << 20
 
-// ReadInside returns the bytes of a file of the mod folder dir and its clean
-// relative slash path. The path must stay inside the folder: no absolute path,
-// no backslash, no .. segment, and no symbolic link leading out.
+// ReadInside reads a regular file within dir, returning its relative slash path.
+// Absolute paths, backslashes and paths that resolve outside dir are refused.
 func ReadInside(dir, name string) ([]byte, string, error) {
 	if name == "" || strings.ContainsAny(name, "\\:\x00") || path.IsAbs(name) || strings.HasPrefix(name, "/") {
 		return nil, "", fmt.Errorf("%q is not a path inside the mod folder", name)
@@ -23,11 +22,11 @@ func ReadInside(dir, name string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("%q is not a path inside the mod folder", name)
 	}
 	full := filepath.Join(dir, filepath.FromSlash(rel))
-	root, err := filepath.EvalSymlinks(dir)
+	root, err := resolvedPath(dir)
 	if err != nil {
 		return nil, "", err
 	}
-	real, err := filepath.EvalSymlinks(full)
+	real, err := resolvedPath(full)
 	if err != nil {
 		return nil, "", fmt.Errorf("%s: no such file in the mod folder", rel)
 	}

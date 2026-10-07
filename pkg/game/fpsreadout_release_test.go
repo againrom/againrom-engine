@@ -237,14 +237,14 @@ func TestReleaseFPSReadoutCompositionAndSAVLoad(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	out := os.Getenv("AGAINROM_FPS_READOUT_WITNESS_DIR")
-	if !filepath.IsAbs(out) {
+	if !filepath.IsAbs(out) || !filepath.IsAbs(f.Archives.Root) {
 		t.Fatal("AGAINROM_FPS_READOUT_WITNESS_DIR must name an absolute output directory outside the install")
 	}
-	resolvedOut, err := filepath.EvalSymlinks(out)
+	resolvedOut, err := editorPhysicalDirectory(out)
 	if err != nil {
 		t.Fatal("explicit output directory must already exist", err)
 	}
-	resolvedInstall, err := filepath.EvalSymlinks(f.Archives.Root)
+	resolvedInstall, err := editorPhysicalDirectory(f.Archives.Root)
 	if err != nil {
 		t.Fatal(err)
 	}

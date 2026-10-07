@@ -26,17 +26,6 @@ func (r roomExitReader) quiet(step string) {
 	}
 }
 
-// posts reads a control: a press the original also answers with a line, which
-// proves this route can show one.
-func (r roomExitReader) posts(step string) {
-	r.t.Helper()
-	got := r.app.HeadlessMessage()
-	r.t.Logf("%-38s line %q (control)", step, got)
-	if got == "" {
-		r.t.Fatalf("%s showed no line, so this route cannot show one", step)
-	}
-}
-
 // finish presses OK, or Escape, until the open conversation ends, reading the
 // line after every press.
 func (r roomExitReader) finish(s *townScreen, what string, escape bool) {
@@ -163,7 +152,7 @@ func roomExitWalk(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) (shop, 
 	}
 
 	// The tavern: every NPC with a conversation, alternately ended by OK and by
-	// Escape, then the first mercenary the chapter offers, then a hire as a control
+	// Escape, then the first mercenary the chapter offers, then a hire
 	// and the Exit button. The inn commits nothing while the player is in it: the
 	// missions its conversations queue reach the gates when the Exit button leaves.
 	npcs := f.Town.Offers(TownTavern)
@@ -209,7 +198,7 @@ func roomExitWalk(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) (shop, 
 		t.Fatalf("the conversations returned to room %d, want the tavern", s.room)
 	}
 	if hireControl(t, f, app, s) {
-		r.posts("tavern hire")
+		r.quiet("tavern hire")
 	} else {
 		t.Log("the chapter lists no mercenary squad, so no tavern press shows a line")
 	}
@@ -384,8 +373,7 @@ func TestReleaseTownRoomExitsAndConversationEndsPostNoLine(t *testing.T) {
 
 // hireControl hires the first squad the tavern lists, with a purse that covers
 // it, and reports whether it did. A chapter that lists no squad is given the
-// installed type-14 squad first. The hire posts a line, which proves the route
-// can show one.
+// installed type-14 squad first. The hire posts no line.
 func hireControl(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) bool {
 	t.Helper()
 	const typ = 14
@@ -400,11 +388,15 @@ func hireControl(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) bool {
 			continue
 		}
 		f.Town.gold = 1 << 24
+		carried := len(f.Carried)
 		if err := app.HeadlessActivate(cell.Semantic); err != nil {
 			t.Fatal(err)
 		}
 		if err := app.HeadlessActivate(s.TownSurface().Buttons[tavernButtonHire].Label); err != nil {
 			t.Fatal(err)
+		}
+		if len(f.Carried) <= carried {
+			t.Fatalf("the hire press left %d carried member(s), want more than %d", len(f.Carried), carried)
 		}
 		return true
 	}

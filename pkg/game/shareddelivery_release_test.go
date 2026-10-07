@@ -806,14 +806,14 @@ func TestReleaseSharedAudioDelivery(t *testing.T) {
 		t.Skip("set AGAINROM_ASSETS to a lawful install")
 	}
 	out := os.Getenv("AGAINROM_SFX_DELIVERY_WITNESS_DIR")
-	if !filepath.IsAbs(out) {
+	if !filepath.IsAbs(out) || !filepath.IsAbs(root) {
 		t.Fatal("instrument: AGAINROM_SFX_DELIVERY_WITNESS_DIR must be an absolute existing directory")
 	}
-	out, err := filepath.EvalSymlinks(out)
+	out, err := editorPhysicalDirectory(out)
 	if err != nil {
 		t.Fatal("instrument:", err)
 	}
-	install, err := filepath.EvalSymlinks(root)
+	install, err := editorPhysicalDirectory(root)
 	if err != nil {
 		t.Fatal("instrument:", err)
 	}

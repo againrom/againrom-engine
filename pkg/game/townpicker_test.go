@@ -66,7 +66,7 @@ func hiredSquadTown(t *testing.T, companion, squadBetween bool) (*FrontEnd, *tow
 	s := f.townUI
 	s.composeShopFaces()
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: 0}, false)
-	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "squad 3 hired for 50" {
+	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "" || !f.Town.MercenaryHired(3) {
 		t.Fatalf("Hire = %q, want the squad hired", act.Msg)
 	}
 	if got := s.mercenaryPartyCount(3); got != 2 {

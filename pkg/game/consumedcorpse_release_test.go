@@ -220,14 +220,14 @@ func consumedCorpseLoadControl(t *testing.T, f *FrontEnd, app *ui.App, store Sav
 func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 	f := releaseFront(t)
 	out := os.Getenv("AGAINROM_CONSUMED_CORPSE_WITNESS_DIR")
-	if !filepath.IsAbs(out) {
+	if !filepath.IsAbs(out) || !filepath.IsAbs(f.Archives.Root) {
 		t.Fatal("AGAINROM_CONSUMED_CORPSE_WITNESS_DIR must name an absolute existing directory outside the install")
 	}
-	out, err := filepath.EvalSymlinks(out)
+	out, err := editorPhysicalDirectory(out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	install, err := filepath.EvalSymlinks(f.Archives.Root)
+	install, err := editorPhysicalDirectory(f.Archives.Root)
 	if err != nil {
 		t.Fatal(err)
 	}

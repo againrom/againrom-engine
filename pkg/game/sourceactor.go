@@ -11,7 +11,7 @@ func (mw *mapWorld) refreshSourceCharacter(e sim.Entity) {
 	h := mapload.SourceHumanState(e.SourceNow(), e.ActorLoad.Accumulator)
 	if ch, ok := mw.chars[e.ID]; ok {
 		ch.Body, ch.Reaction, ch.Mind, ch.Spirit = int(int16(h.Body)), int(int16(h.Reaction)), int(int16(h.Mind)), int(int16(h.Spirit))
-		ch.Experience, ch.Sight = int(int32(h.Experience)), int(h.Sight>>8)
+		ch.Experience, ch.Sight, ch.Sight256 = int(int32(h.Experience)), int(h.Sight>>8), h.Sight
 		for i := range ch.Skills {
 			ch.Skills[i] = int(e.Skill[i])
 		}

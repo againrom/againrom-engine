@@ -68,7 +68,10 @@ func TestOriginalBookMasksUnknownsAndKeepsNativePixels(t *testing.T) {
 		x, y := 198+38*(i%12), 6+38*(i/12)
 		want := color.RGBA{byte(i + 50), 70, 90, 255}
 		if i == 1 {
-			want = spellbookSelected
+			want = color.RGBA{liftChannel(want.R), liftChannel(want.G), liftChannel(want.B), 255}
+			if want.R <= byte(i+50) || want == spellbookSelected {
+				t.Fatal("selected slot is not lifted")
+			}
 		}
 		if i == 4 {
 			want = hidden
@@ -76,6 +79,9 @@ func TestOriginalBookMasksUnknownsAndKeepsNativePixels(t *testing.T) {
 		if got := pic.RGBAAt(x, y); got != want {
 			t.Fatalf("slot=%d pixel=%v want=%v", i, got, want)
 		}
+	}
+	if c := pic.RGBAAt(198+38, 6+1); c != (color.RGBA{liftChannel(green.R), liftChannel(green.G), liftChannel(green.B), 255}) {
+		t.Fatalf("selected slot edge=%v", c)
 	}
 	if pic.RGBAAt(0, 0) != gold || pic.RGBAAt(863, 84) != gold {
 		t.Fatal("missing book wing")

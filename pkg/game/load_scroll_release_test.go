@@ -20,7 +20,7 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, err = filepath.EvalSymlinks(root)
+	root, err = editorPhysicalDirectory(root)
 	if err != nil {
 		t.Fatal(err)
 	}

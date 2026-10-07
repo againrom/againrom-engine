@@ -148,7 +148,7 @@ func TestSelectedMercenaryButtonChangesFromHireToFire(t *testing.T) {
 	if button.Label != "Hire" || !button.Enabled {
 		t.Fatalf("available squad button = %+v, want enabled Hire", button)
 	}
-	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "squad 3 hired for 50" {
+	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "" || !f.Town.MercenaryHired(3) {
 		t.Fatalf("Hire action = %q", act.Msg)
 	}
 	f.Town.gold = 0 // returning an already hired squad must not require money
@@ -157,7 +157,7 @@ func TestSelectedMercenaryButtonChangesFromHireToFire(t *testing.T) {
 		t.Fatalf("hired squad button/state = %+v/%v, want enabled Fire/hired", button, f.Town.MercenaryHired(3))
 	}
 	f.Town.gold = 950
-	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "squad 3 returned; you have 1000" {
+	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "" || f.Town.MercenaryHired(3) || f.Town.Gold() != 1000 {
 		t.Fatalf("Fire action = %q", act.Msg)
 	}
 	button = s.TownSurface().Buttons[tavernButtonHire]

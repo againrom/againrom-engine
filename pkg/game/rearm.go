@@ -147,6 +147,7 @@ func (mw *mapWorld) projectDerivedCharacter(id sim.EntityID, d data.Derived) {
 	}
 	ch.Body, ch.Reaction, ch.Mind, ch.Spirit = int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)
 	ch.Experience, ch.Sight = int(d.Experience), int(d.Sight)
+	ch.Sight256 = data.SightWord(d.Mind, d.Reaction, d.Sight)
 	for i := range ch.Skills {
 		ch.Skills[i] = int(d.Skill[i])
 	}

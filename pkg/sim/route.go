@@ -1092,6 +1092,9 @@ const (
 // the bound, which is the answer a wave that labelled nothing already gives.
 func (w *World) settleFor(s *routeScratch, self int, settle settleRule, start, target cell) (cell, bool) {
 	limit := settleRings(settle, start, target)
+	if start.chebyshevTo(target) <= pursuitRings && w.pursuitGoalIsVictim(self, settle, target) && limit < pursuitRings+1 {
+		limit = pursuitRings + 1
+	}
 	victim, towardVictim := w.pursuitVictimCell(self, settle)
 
 	var best cell
@@ -1147,4 +1150,18 @@ func (w *World) pursuitVictimCell(self int, settle settleRule) (cell, bool) {
 		return cell{}, false
 	}
 	return cell{x: w.entities[ti].X, y: w.entities[ti].Y}, true
+}
+
+// pursuitRings is how many rings around its victim a pursuer's far search looks
+// for a free cell once the victim is that many cells away (DIV-2456).
+const pursuitRings int64 = 8
+
+// pursuitGoalIsVictim reports whether a settling far search of the entity at
+// index self is aimed at the cell of the unit victim it pursues.
+func (w *World) pursuitGoalIsVictim(self int, settle settleRule, target cell) bool {
+	if settle != settleOrdered {
+		return false
+	}
+	v, ok := w.pursuitVictimCell(self, settleStep)
+	return ok && v == target
 }

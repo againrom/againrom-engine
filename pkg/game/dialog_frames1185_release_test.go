@@ -77,8 +77,8 @@ func TestReleaseSharedDialogFrames1185(t *testing.T) {
 func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 	t.Helper()
 	output := os.Getenv("AGAINROM_SAVE_CHOOSER_STYLE_WITNESS_DIR")
-	root, err := filepath.EvalSymlinks(f.Archives.Root)
-	if err != nil || !filepath.IsAbs(root) || !filepath.IsAbs(output) {
+	root, err := editorPhysicalDirectory(f.Archives.Root)
+	if err != nil || !filepath.IsAbs(f.Archives.Root) || !filepath.IsAbs(root) || !filepath.IsAbs(output) {
 		t.Fatal("absolute asset root and AGAINROM_SAVE_CHOOSER_STYLE_WITNESS_DIR required", err)
 	}
 	rel, err := filepath.Rel(root, filepath.Clean(output))

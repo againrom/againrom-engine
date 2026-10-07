@@ -15,6 +15,15 @@ func profileJunction(t *testing.T, link, target string) {
 	t.Cleanup(func() { _ = os.Remove(link) })
 }
 
+func TestEffectRimOutputJunctionCannotHideAnInstall(t *testing.T) {
+	install := profileInstall(t)
+	link := filepath.Join(t.TempDir(), "redirect")
+	profileJunction(t, link, install)
+	if path, err := effectRimOutputPath(install, link); err == nil {
+		t.Fatalf("install junction admitted as witness output: %s", path)
+	}
+}
+
 func TestRuntimeProfileJunctionCannotGrantOrRetargetInstallWrites(t *testing.T) {
 	t.Run("initial profile junction falls back", func(t *testing.T) {
 		install, other, config := profileInstall(t), profileInstall(t), t.TempDir()

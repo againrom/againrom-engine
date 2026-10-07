@@ -151,6 +151,10 @@ type TownCharacterView struct {
 	// and 1024x768.
 	PaneRect image.Rectangle
 
+	// CardOffset moves the card canvas right of PaneRect's origin; zero except
+	// in the tavern.
+	CardOffset image.Point
+
 	// PackOpen and BookOpen are the two open flags rect A's and rect B's art
 	// is selected by: `FindChildById(mapview, 2) != 0` and
 	// `FindChildById(host, 3) != 0` (`TOWN-354`). This build reads them from
@@ -168,6 +172,16 @@ type TownCharacterView struct {
 	// resolved none. A nil pane draws the corners' outlines and no picture,
 	// on DrawTownCharacterRegion's own fallback rule for the body.
 	CornerArt *CharacterPaneCornerArt
+}
+
+// cardRect is where the statistics card's canvas stands: PaneRect moved by
+// CardOffset and as wide as the card layout.
+func (v TownCharacterView) cardRect() image.Rectangle {
+	r := v.paneRect()
+	if v.CardOffset == (image.Point{}) {
+		return r
+	}
+	return image.Rectangle{Min: r.Min.Add(v.CardOffset), Max: r.Max.Add(v.CardOffset)}
 }
 
 func (v TownCharacterView) paneRect() image.Rectangle {
@@ -406,6 +420,18 @@ var (
 	// Drawing and equipment hover use this same origin, (8,240) at native size.
 	tavernCandidateDollShift = image.Pt(8, 1)
 )
+
+// tavernCandidateCardOffset: the original draws the panel into (12,0)-(172,238).
+var tavernCandidateCardOffset = image.Pt(12, 0)
+
+func tavernCandidateStats(v TownCharacterView, art *TownTavernArt) TownCharacterView {
+	v.Statistics, v.PaneRect = true, tavernCandidateStatsRect
+	if art != nil {
+		v.StatsPane = TownPane{Body: art.LeftStats, Seam: art.LeftStatsSeam}
+		v.CardOffset = tavernCandidateCardOffset
+	}
+	return v
+}
 
 // TownCandidateHoverLines returns the selected candidate's normal worn-item
 // tooltip at p. The answer is read-only presentation data: this helper does
@@ -995,8 +1021,18 @@ func drawCharacterPaneBody(dst *image.RGBA, v TownCharacterView) {
 			start := markCapture()
 			if card := RenderCharacterPanel(layout, v.cardFont(), v.Subject); card != nil {
 				b := card.Bounds()
-				at := r.Min.Sub(b.Min)
-				draw.Draw(dst, b.Add(at).Intersect(r), card, b.Min, draw.Src)
+				cr := v.cardRect()
+				at := cr.Min.Sub(b.Min)
+				if cr == r {
+					draw.Draw(dst, b.Add(at).Intersect(r), card, b.Min, draw.Src)
+				} else {
+					// Recolour the strip left of the canvas; keep the seam under it.
+					if bg := v.cardBoard(); bg != nil {
+						lead := image.Rect(r.Min.X, r.Min.Y, cr.Min.X, r.Max.Y)
+						draw.Draw(dst, lead.Intersect(r), bg, bg.Bounds().Min.Add(lead.Min.Sub(r.Min)), draw.Src)
+					}
+					draw.Draw(dst, b.Add(at).Intersect(cr), card, b.Min, draw.Over)
+				}
 				shiftCapture(start, at)
 			}
 		} else if v.Figure != nil {
@@ -1150,13 +1186,9 @@ func RenderTownCandidateInspection(v TownCharacterView, art *TownTavernArt) *ima
 	if art == nil || !v.HasSubject && v.Figure == nil {
 		return nil
 	}
-	dst := image.NewRGBA(image.Rect(0, 0, 160, 480))
+	dst := image.NewRGBA(image.Rect(0, 0, 176, 480))
 	if v.HasSubject {
-		stats := v
-		stats.Statistics = true
-		stats.PaneRect = tavernCandidateStatsRect
-		stats.StatsPane = TownPane{Body: art.LeftStats, Seam: art.LeftStatsSeam}
-		DrawCharacterPaneBody(dst, stats)
+		DrawCharacterPaneBody(dst, tavernCandidateStats(v, art))
 	}
 	drawInventoryPictureShifted(dst, tavernCandidateDollRect, v.Figure, tavernCandidateDollShift)
 	return dst
@@ -1244,11 +1276,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		text.Append(v.CandidateText, 0, 0)
 	} else if artTavern && (v.Candidate.HasSubject || v.Candidate.Figure != nil) {
 		if v.Candidate.HasSubject {
-			stats := v.Candidate
-			stats.Statistics = true
-			stats.PaneRect = tavernCandidateStatsRect
-			stats.StatsPane = TownPane{Body: v.TavernArt.LeftStats, Seam: v.TavernArt.LeftStatsSeam}
-			DrawCharacterPaneBody(dst, stats)
+			DrawCharacterPaneBody(dst, tavernCandidateStats(v.Candidate, v.TavernArt))
 		}
 
 		// The lower picture is the same already-composed equipment figure used
@@ -1512,9 +1540,37 @@ func schoolPanelVisible(v TownSurfaceView) bool {
 		(!v.SchoolColumnSet || v.SchoolColumnFrame == v.SchoolClass*15)
 }
 
+// cardBoard is the recoloured board bitmap, or nil when the pane has none.
+func (v TownCharacterView) cardBoard() *image.RGBA {
+	bg, _ := v.StatsPane.Body.(*image.RGBA)
+	if bg == nil || bg.Bounds().Empty() {
+		return nil
+	}
+	return characterCardBackground(bg)
+}
+
+// shiftedCardBackground is the board in card canvas coordinates: body moved
+// left by dx, the seam's first dx columns completing the right edge.
+func shiftedCardBackground(body *image.RGBA, seam image.Image, dx int) *image.RGBA {
+	b := body.Bounds()
+	if dx <= 0 || dx >= b.Dx() {
+		return body
+	}
+	out := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(out, image.Rect(0, 0, b.Dx()-dx, b.Dy()), body, image.Pt(b.Min.X+dx, b.Min.Y), draw.Src)
+	if seam != nil {
+		sb := seam.Bounds()
+		draw.Draw(out, image.Rect(b.Dx()-dx, 0, b.Dx(), min(b.Dy(), sb.Dy())), seam, sb.Min, draw.Over)
+	}
+	return out
+}
+
 // statsLayout is shared by card paint and hover geometry.
 func (v TownCharacterView) statsLayout() PanelLayout {
 	bg, _ := v.StatsPane.Body.(*image.RGBA)
+	if bg != nil && v.CardOffset.X > 0 {
+		bg = shiftedCardBackground(bg, v.StatsPane.Seam, v.CardOffset.X)
+	}
 	layout := CompactPanelLayout(bg)
 	if v.CardLayout != nil {
 		layout = *v.CardLayout

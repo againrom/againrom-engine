@@ -240,8 +240,8 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	if button := s.TownSurface().Buttons[tavernButtonHire]; button.Label != wantHire || !button.Enabled {
 		t.Fatalf("available production squad button = %+v", button)
 	}
-	if act := s.townSurfaceButton(tavernButtonHire); act.Msg == "" {
-		t.Fatalf("hire type %d returned no message", mercs[0].Type)
+	if act := s.townSurfaceButton(tavernButtonHire); act.Msg != "" {
+		t.Fatalf("hire type %d returned the line %q, want none", mercs[0].Type, act.Msg)
 	}
 	if button := s.TownSurface().Buttons[tavernButtonHire]; button.Label != wantFire || !button.Enabled {
 		t.Fatalf("hired production squad button = %+v, want enabled Fire", button)

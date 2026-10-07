@@ -199,11 +199,11 @@ func TestReleaseSharedAudioCombat(t *testing.T) {
 	if !filepath.IsAbs(out) {
 		t.Fatal("instrument: AGAINROM_SFX_DELIVERY_WITNESS_DIR must name an absolute existing directory")
 	}
-	out, err := filepath.EvalSymlinks(out)
+	out, err := editorPhysicalDirectory(out)
 	if err != nil {
 		t.Fatal("instrument:", err)
 	}
-	install, err := filepath.EvalSymlinks(root)
+	install, err := editorPhysicalDirectory(root)
 	if err != nil {
 		t.Fatal("instrument:", err)
 	}

@@ -1884,6 +1884,15 @@ package storyguard
 // CommentBytes falls for the sweep that replaced the executable locators in
 // comments with opaque aliases; the value is a fresh measure including this
 // paragraph.
+// CommentBytes rises for the tavern statistics card's offset: the docs of the
+// new cardRect, cardBoard, shiftedCardBackground and tavernCandidateCardOffset
+// in pkg/ui/townshell.go, new code, including this paragraph.
+// CommentBytes rises for the bank pursuit hotfix: the docs of pursuitRings and
+// pursuitGoalIsVictim in pkg/sim/route.go and the test comment, new code,
+// including this paragraph.
+// CommentBytes rises for the skill level hotfix: the docs of RepairSkillLevel,
+// SightWord, skillrepair.go, snapshotHumanFields and the writer census test
+// file, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4840,
 	TestFileCount:  265,
@@ -1907,5 +1916,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1834,
 	},
-	CommentBytes: 8502497,
+	CommentBytes: 8508786,
 }

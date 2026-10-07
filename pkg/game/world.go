@@ -1322,6 +1322,7 @@ func partyPanelSubject(p mapload.PartyMember, t *mapload.Table, installed ...ui.
 			s.Char.Experience += int(xp)
 		}
 	}
+	s.Char.Sight256 = data.SightWord(d.Mind, d.Reaction, d.Sight)
 	if h, ok := p.OriginalHumanState(); ok {
 		s.MaxHP, s.MaxMana = int(int16(h.HealthMax)), int(int16(h.ManaMax))
 		s.Char.Sight256 = h.Sight

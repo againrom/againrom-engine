@@ -52,6 +52,23 @@ func nativeCityHumanState(member mapload.PartyMember, table *mapload.Table, unit
 	return h, nil
 }
 
+// snapshotHumanField is a Human field a save takes from the loaded document
+// because the engine does not model it.
+type snapshotHumanField struct{ Field, Reason string }
+
+// snapshotHumanFields is the whole list of Human fields a save still takes
+// from the loaded document. Every other field the engine models is written
+// from the current state; the retained document state is used for the whole
+// record only while every modelled field still equals it
+// (PartyMember.OriginalHumanState).
+var snapshotHumanFields = []snapshotHumanField{
+	{"Attack.Tail", "opaque words of the attack block with no decoded meaning"},
+	{"Base.Tail", "opaque words of the base block with no decoded meaning"},
+	{"Modifier.Attack.Tail", "opaque words of the modifier attack block with no decoded meaning"},
+	{"TypeID", "definition identity, never changed in play"},
+	{"ManaReservePercent", "per-player setting owned by the loaded owner record"},
+}
+
 // Opaque tails have identity ownership, independent of the retained arithmetic
 // guard. A current actor load supersedes the member basis, including zero bytes.
 func currentCityHumanTails(member mapload.PartyMember) ([3][2]byte, bool) {

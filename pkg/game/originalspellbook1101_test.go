@@ -162,7 +162,8 @@ func assertMageFieldDiff1101(t *testing.T, source, trained []byte) {
 			for off, value := range map[int]uint16{18: 56, 24: 112, 32: 1689} {
 				binary.LittleEndian.PutUint16(u.Scalar2[off:], value)
 			}
-			binary.LittleEndian.PutUint32(u.Scalar2[35:], 23450)
+			// The saved aggregate is the sum of the six slot experiences.
+			binary.LittleEndian.PutUint32(u.Scalar2[35:], 16450)
 			binary.LittleEndian.PutUint32(u.XP[4:], 16450)
 			binary.LittleEndian.PutUint16(u.RawA6, 4)
 			binary.LittleEndian.PutUint16(u.RawA6[4:], 33)

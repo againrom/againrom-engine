@@ -163,7 +163,7 @@ func (t *townScreen) toggleMercenary(typ int) (string, bool) {
 		t.sess.Town.settleCityGroups(t.sess.Carried)
 		t.clampTownMember()
 		t.composeShopFaces()
-		return fmt.Sprintf("squad %d returned; you have %d", typ, t.sess.Town.Gold()), true
+		return "", true
 	}
 
 	count := t.sess.Town.MercenaryPool(typ)
@@ -181,7 +181,7 @@ func (t *townScreen) toggleMercenary(typ int) (string, bool) {
 	t.sess.Carried = mapload.OwnParty(append(t.sess.Carried, members...))
 	t.sess.Town.settleCityGroups(t.sess.Carried)
 	t.composeShopFaces()
-	return fmt.Sprintf("squad %d hired for %d", typ, price), true
+	return "", true
 }
 
 func mercenaryLevel(mission int) int {

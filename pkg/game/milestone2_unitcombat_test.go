@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sort"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -209,8 +210,28 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 			differences = append(differences, prefix+": absent/duplicate live DTO projection")
 		}
 		s := e.ActorLoad.Source
+		// A slot whose saved experience lies above its level's band loads at
+		// the level that experience implies; the expected blocks carry that
+		// repair, which is the one place the live words differ from the raw.
+		expectedRaw := map[string][]byte{}
+		for name, raw := range r.raw {
+			expectedRaw[name] = raw
+		}
+		if xp, present := r.raw["H1CC"]; present && class == 2 {
+			attack, base := bytes.Clone(r.raw["UA6"]), bytes.Clone(r.raw["U114"])
+			for i := 1; i <= 5; i++ {
+				stored := int32(int16(binary.LittleEndian.Uint16(attack[2+2*i:])))
+				fixed := data.RepairSkillLevel(stored, int32(binary.LittleEndian.Uint32(xp[4*i:])))
+				if fixed != stored {
+					wasBase := int32(int16(binary.LittleEndian.Uint16(base[2+2*i:])))
+					binary.LittleEndian.PutUint16(attack[2+2*i:], uint16(fixed))
+					binary.LittleEndian.PutUint16(base[2+2*i:], uint16(wasBase+fixed-stored))
+				}
+			}
+			expectedRaw["UA6"], expectedRaw["U114"] = attack, base
+		}
 		for _, block := range []sav.DocumentRawData{{Name: "UA6", Bytes: s.Attack[:]}, {Name: "UBE", Bytes: s.Defence[:]}, {Name: "U114", Bytes: s.Base[:]}, {Name: "UD4", Bytes: s.Modifier[:]}} {
-			if !bytes.Equal(block.Bytes, r.raw[block.Name]) {
+			if !bytes.Equal(block.Bytes, expectedRaw[block.Name]) {
 				differences = append(differences, prefix+": live source "+block.Name+" bytes differ")
 			}
 		}
@@ -219,7 +240,7 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 				differences = append(differences, fmt.Sprintf("%s %s: live=%d raw=%d", prefix, name, got, expected))
 			}
 		}
-		a, d, m := r.raw["UA6"], r.raw["UBE"], r.raw["UD4"]
+		a, d, m := expectedRaw["UA6"], r.raw["UBE"], r.raw["UD4"]
 		word := func(b []byte, at int) int32 { return int32(int16(binary.LittleEndian.Uint16(b[at:]))) }
 		// A Human whose stored level sits at the original cap with a base plus
 		// bonus above it fights at the higher level; to-hit and damage base
@@ -233,7 +254,7 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 				if stored != 100 {
 					continue
 				}
-				if eff := min(min(word(r.raw["U114"], 2+2*i), 100)+word(m, 20+2*i), 255); eff > stored {
+				if eff := min(min(word(expectedRaw["U114"], 2+2*i), 100)+word(m, 20+2*i), 255); eff > stored {
 					lifted[i] = eff - stored
 					if int32(a[16]) == int32(i) {
 						toHitLift, damageLift = 3*(eff-stored), eff/5-stored/5
