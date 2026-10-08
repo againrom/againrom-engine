@@ -53,9 +53,15 @@ func TestAnAttackerBlockedByItsTargetsEscortHoldsTheOrderAndNeverAdvances(t *tes
 		t.Fatalf("the fixture's own first decision holds %v/%v, want entity 2 acquired", v, held)
 	}
 
+	// The original counts no stalled tick for this pursuit and gives up on
+	// none: a near search that finds no step is retried, and passes above a
+	// third of the static count plus one search in full again (AI-384,
+	// AI-415). The walk is never cancelled.
 	const runTicks = 400
 	maxStall := uint8(0)
 	sawWalkCancelled := false
+	searches := 0
+	lastPasses := uint8(0)
 	farthest := troll.X
 	for k := 0; k < runTicks; k++ {
 		Step(w, nil)
@@ -74,6 +80,10 @@ func TestAnAttackerBlockedByItsTargetsEscortHoldsTheOrderAndNeverAdvances(t *tes
 		if e.X > farthest {
 			farthest = e.X
 		}
+		if e.Pursuit.Passes < lastPasses {
+			searches++
+		}
+		lastPasses = e.Pursuit.Passes
 	}
 
 	// The escort's leftmost body stands at column 8, so a 2x2 footprint
@@ -84,12 +94,11 @@ func TestAnAttackerBlockedByItsTargetsEscortHoldsTheOrderAndNeverAdvances(t *tes
 		t.Errorf("the attacker's footprint reached column %d, at or past the escort wall (column 8) — "+
 			"this fixture no longer jams it", farthest)
 	}
-	if maxStall < stallLimit-1 {
-		t.Errorf("stall reached at most %d, want it to climb to one below the cap (%d) at least once — "+
-			"the retry loop this test documents never actually fired", maxStall, stallLimit-1)
+	if maxStall != 0 || sawWalkCancelled {
+		t.Errorf("stall reached %d and the walk was cancelled %v; an AI pursuit counts no stall", maxStall, sawWalkCancelled)
 	}
-	if !sawWalkCancelled {
-		t.Error("the walk order (HasTarget) was never seen cancelled — restAt's own sixteen-tick cap never fired")
+	if searches < 10 {
+		t.Errorf("the pursuit searched in full %d time(s) over %d ticks; want the cadence to keep re-searching", searches, runTicks)
 	}
 
 	if final := w.entities[indexOfEntity(w.entities, 1)]; !final.HasAttackTarget {

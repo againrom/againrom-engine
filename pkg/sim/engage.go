@@ -1314,7 +1314,15 @@ func (w *World) attachAttack(i int, victim EntityID, kind AttackTargetKind, queu
 			return false
 		}
 	}
+	// A reissue at the victim a pursuit holds keeps its route, as the
+	// original's order rewrite leaves the mover alone (AI-REISSUE-077,
+	// DIV-2558).
+	keep := kind == AttackTargetUnit && e.HasAttackTarget && e.AttackTargetKind == kind && e.AttackTarget == victim && e.Pursuit.Held
+	route, tx, ty, has := w.routes[i], e.TargetX, e.TargetY, e.HasTarget
 	w.clearOrder(i)
+	if keep {
+		w.routes[i], e.TargetX, e.TargetY, e.HasTarget = route, tx, ty, has
+	}
 	e.PendingOrder = PendingOrder{}
 	e.clearPendingAttack()
 	if queued && e.HasAttackTarget && e.AttackPhase != AttackReady && (e.AttackTarget != victim || e.AttackTargetKind != kind) {

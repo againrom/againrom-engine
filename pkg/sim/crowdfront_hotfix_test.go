@@ -2,10 +2,11 @@ package sim
 
 import "testing"
 
-// A crowd closing on one victim across a river fills the free bank cells
-// nearest the victim; no attacker stands behind a taken cell while a free
-// bank cell lies nearer the victim.
-func TestAttackersFillTheFreeBankCellsNearestTheirVictim(t *testing.T) {
+// A crowd closing on one victim across a river fills the bank cells of the
+// first ring around the victim it can reach, and the rest stand on the next
+// ring: picker B takes the lowest label of the first ring that holds one, and
+// a pursuer whose own cell is that lowest stops there (MOVE-099, MOVE-100).
+func TestACrowdAtABankFillsTheFirstRingItCanReach(t *testing.T) {
 	const width, height, bank = 50, 30, 23
 	grid := make([]byte, width*height)
 	for y := int32(0); y < height; y++ {
@@ -29,21 +30,19 @@ func TestAttackersFillTheFreeBankCellsNearestTheirVictim(t *testing.T) {
 	for k := 0; k < 600; k++ {
 		Step(w, nil)
 	}
-	gap := func(x, y int32) int32 { return (x-26)*(x-26) + (y-15)*(y-15) }
 	taken := map[int32]bool{}
 	for _, e := range w.entities[1:] {
+		ring := (cell{x: e.X, y: e.Y}).chebyshevTo(cell{x: 26, y: 15})
+		if ring != 3 && ring != 4 || !e.PursuitIdle {
+			t.Errorf("attacker %d stands at (%d,%d), ring %d, idle %v; want it idle on ring 3 or 4", e.ID, e.X, e.Y, ring, e.PursuitIdle)
+		}
 		if e.X == bank {
 			taken[e.Y] = true
 		}
 	}
-	for _, e := range w.entities[1:] {
-		if e.X >= bank {
-			continue
-		}
-		for y := int32(0); y < height; y++ {
-			if !taken[y] && gap(bank, y) < gap(e.X, e.Y) {
-				t.Fatalf("attacker %d stands at (%d,%d) while the bank cell (%d,%d) nearer the victim is free", e.ID, e.X, e.Y, bank, y)
-			}
+	for y := int32(12); y <= 18; y++ {
+		if !taken[y] {
+			t.Errorf("the ring-3 bank cell (%d,%d) is free", bank, y)
 		}
 	}
 }

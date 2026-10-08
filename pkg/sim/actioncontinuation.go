@@ -57,6 +57,7 @@ type ActorContinuation struct {
 	PendingOrder                                                PendingOrder     `json:",omitempty"`
 	AcquirePursuit                                              bool             `json:",omitempty"`
 	PursuitIdle                                                 bool             `json:",omitempty"`
+	Pursuit                                                     *PursuitSearch   `json:",omitempty"`
 	AttackPhase                                                 AttackPhase
 	AttackCountdown                                             int32
 	CastWait                                                    uint8
@@ -178,6 +179,10 @@ func (w *World) Actions() ActionContinuations {
 			HasEscortTarget: e.HasEscortTarget, EscortRange: e.EscortRange, CommandGroup: e.CommandGroup, Order: order, ProfileBasis: &basis,
 			Current: &ActorCurrentContinuation{Class: &class, AdmittedBookSpell: e.AdmittedBookSpell, RotationSpeed: e.RotationSpeed, WeaponSpell: e.WeaponSpell, WeaponSpellLevel: e.WeaponSpellLevel, WeaponSpellSource: e.WeaponSpellSource, SpellFX: e.SpellFX, SpellFXSpell: e.SpellFXSpell},
 		})
+		if e.Pursuit.Held {
+			p := e.Pursuit
+			a.Actors[len(a.Actors)-1].Pursuit = &p
+		}
 		if e.NativeBasis.HasValues() {
 			native := w.nativeBasisNow(e)
 			a.Actors[len(a.Actors)-1].Current.NativeBasis = &native
@@ -421,6 +426,10 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		e.PendingAttackTarget, e.PendingAttackTargetKind, e.HasPendingAttackTarget = v.PendingAttackTarget, v.PendingAttackTargetKind, v.HasPendingAttackTarget
 		e.PendingOrder = v.PendingOrder
 		e.AcquirePursuit, e.PursuitIdle = v.AcquirePursuit, v.PursuitIdle
+		e.Pursuit = PursuitSearch{}
+		if v.Pursuit != nil {
+			e.Pursuit = *v.Pursuit
+		}
 		e.AttackPhase, e.AttackCountdown, e.CastWait, e.AutoSpell = v.AttackPhase, v.AttackCountdown, v.CastWait, v.AutoSpell
 		e.ActionClock, e.Withdraw, e.Wimpy = v.ActionClock, v.Withdraw, v.Wimpy
 		e.PatrolHeadX, e.PatrolHeadY, e.PatrolTailX, e.PatrolTailY, e.PatrolLeg = v.PatrolHeadX, v.PatrolHeadY, v.PatrolTailX, v.PatrolTailY, v.PatrolLeg
@@ -488,6 +497,11 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		}
 		if e.PursuitIdle && (!e.HasAttackTarget || e.AttackTargetKind != AttackTargetUnit || e.AcquirePursuit) {
 			return fmt.Errorf("sim: idle pursuit requires a current unit victim")
+		}
+		_, endIn := cellIndexIn(n.bounds, e.Pursuit.EndX, e.Pursuit.EndY)
+		_, aimIn := cellIndexIn(n.bounds, e.Pursuit.AimX, e.Pursuit.AimY)
+		if p := e.Pursuit; p.Held && (!e.HasAttackTarget || e.AttackTargetKind != AttackTargetUnit || !endIn || !aimIn) || !p.Held && p != (PursuitSearch{}) {
+			return fmt.Errorf("sim: invalid pursuit search record")
 		}
 	}
 	if err := restoreActionOrderOrdinals(n.savedGroups, a.Actors); err != nil {

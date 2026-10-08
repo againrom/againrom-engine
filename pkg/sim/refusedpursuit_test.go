@@ -8,12 +8,18 @@ import "testing"
 // victim by command.
 func refusedPursuitWorld(t *testing.T, owner uint32) *World {
 	t.Helper()
+	return refusedPursuitWorldAt(t, owner, 20)
+}
+
+// refusedPursuitWorldAt is refusedPursuitWorld with the victim at column vx.
+func refusedPursuitWorldAt(t *testing.T, owner uint32, vx int32) *World {
+	t.Helper()
 	const width, height = 24, 10
 	b, grid := escortWallGrid(width, height)
 	troll := engFighter(1, owner, 2, 4)
 	troll.TokenSize = 2
 	troll.ScanRange = 100
-	ents := []Entity{troll, engFighter(2, 3, 20, 4)}
+	ents := []Entity{troll, engFighter(2, 3, vx, 4)}
 	for i, x := range []int32{8, 9, 10, 11, 12} {
 		ents = append(ents, engFighter(EntityID(10+i), 5, x, 4))
 	}
@@ -78,9 +84,11 @@ func TestAnIdleRefusedPursuitEndsOnTheNextOrder(t *testing.T) {
 	}
 }
 
+// The victim stands just past the escort, so the troll's static list falls
+// to five nodes and its near search, aimed at the route end, finds no step.
 func TestAnAIAttackerRefusedItsRouteIsReissuedByItsGroup(t *testing.T) {
 	t.Parallel()
-	w := refusedPursuitWorld(t, 2)
+	w := refusedPursuitWorldAt(t, 2, 13)
 	engRun(w, 1)
 	stepUntilIdle(t, w, nil)
 	e := refusedAttacker(w)
