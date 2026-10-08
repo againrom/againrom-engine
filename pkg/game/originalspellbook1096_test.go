@@ -482,6 +482,7 @@ func TestOriginalSpellbook1096LegacyCityProvenanceKeepsNativeProgress(t *testing
 				legacy.Party[0].KnownSpells |= 1 << 6
 				legacy.Party[0].Hero.Body++
 				legacy.Party[0].Carry.SkillXP[2]++
+				legacy.Party[0].Hero.Skill[2]++
 			}
 			want := mapload.CloneParty(legacy.Party)
 			encoded, err := EncodeSave(legacy, "legacy native progress")

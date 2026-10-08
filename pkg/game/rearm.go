@@ -96,7 +96,7 @@ func (mw *mapWorld) recomputeRaisedSkills() {
 		if !ok {
 			continue
 		}
-		if mw.world.NativeTrainingNeedsProducer(c.id) && e.PotionStats == mw.derivedPotions[c.id] &&
+		if (mw.world.NativeTrainingNeedsProducer(c.id) || e.NativeTraining.Present) && e.PotionStats == mw.derivedPotions[c.id] &&
 			e.NativeTraining == mw.derivedSkills[c.id].training && mapload.EquippedSkillBonus(items, c.member.Profile.Fighter) == mw.skillBonus[c.id] {
 			mw.derivedSkills[c.id] = derivedSkillState{e.Skill, e.NativeTraining}
 			continue
@@ -303,16 +303,7 @@ func applyRearmLoadout(w *sim.World, id sim.EntityID, h data.Hero, profile data.
 	}
 	mapload.ApplyItemEffects(&loadout, items, profile.Fighter)
 	derived := h.Recompute(profile, loadout)
-	// THE SPELL, off derived.Combat.SpellName through mapload's own token-to-id
-	// lookup (0139 FR-1b) and derived.Combat.SpellPower directly: the id a
-	// re-armed entity releases is a fact about the INSTALLED table, exactly as
-	// the weapon and the armour above already are, so it is resolved off the
-	// same t this call already reads rather than carried as a string past
-	// pkg/sim's determinism wall. A nil t, or one with no spell collection,
-	// answers (0, false) on SpellIDByToken's own leniency — the same fold
-	// this function already extends to a missing armour table above — so a
-	// caller that cannot say what a spell is does not also refuse the weapon
-	// and the armour it CAN resolve.
+	// Resolve the derived weapon spell through the installed table.
 	spellID, _ := mapload.SpellIDByToken(t, derived.Combat.SpellName)
 	source := sim.WeaponSpellNone
 	var authoritativeSpell uint16

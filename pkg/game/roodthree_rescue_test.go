@@ -132,13 +132,15 @@ func roodHealer(t *testing.T, f *FrontEnd, rood sim.EntityID) (sim.EntityID, uin
 func roodFallAndHeal(t *testing.T, input []byte, fallenHP int32) {
 	f := loadRoodMission(t, input)
 	healthy := ownerRoodPartyEntity(t, f)
-	wantTraining := sim.NativeTraining{Present: true, Levels: [6]int32{0, 70, 45, 15, 82, 63}}
+	// The native save's XP repairs the deficient trained base without changing its effective sheet or lifecycle.
+	wantTraining := sim.NativeTraining{Present: true, Levels: [6]int32{0, 70, 100, 100, 86, 64}}
+	wantXP := [6]int32{0, 788746, 12527069, 12527588, 3406036, 404319}
 	items, itemsOK := f.live.world.EquippedItems(healthy.ID)
 	bonus := mapload.EquippedSkillBonus(items, false)
-	if !itemsOK || healthy.NativeTraining != wantTraining || healthy.Skill != ([6]int32{0, 70, 100, 100, 86, 64}) ||
-		f.live.world.Rules().EffectiveSkill(wantTraining.Levels[3], bonus[3]) == healthy.Skill[3] || !f.live.world.NativeTrainingNeedsProducer(healthy.ID) {
+	if !itemsOK || healthy.NativeTraining != wantTraining || healthy.SkillXP != wantXP || healthy.Skill != ([6]int32{0, 70, 100, 100, 86, 64}) ||
+		f.live.world.Rules().EffectiveSkill(wantTraining.Levels[3], bonus[3]) != healthy.Skill[3] || f.live.world.NativeTrainingNeedsProducer(healthy.ID) {
 		policy := f.live.world.CurrentPolicy()
-		t.Fatalf("owner Rood lost the independently known base or unreproduced live sheet: base %v skill %v worn %v items %t clock %t object carrier %t source %t/%d profile %d", healthy.NativeTraining, healthy.Skill, bonus, itemsOK, policy.ClockKnown, policy.ObjectCarrier, healthy.ActorLoad.Present, healthy.ActorLoad.Source.Class, healthy.CurrentProfileBasis)
+		t.Fatalf("owner Rood lost the repaired trained base, XP or effective sheet: base %v skill %v XP %v worn %v items %t clock %t object carrier %t source %t/%d profile %d", healthy.NativeTraining, healthy.Skill, healthy.SkillXP, bonus, itemsOK, policy.ClockKnown, policy.ObjectCarrier, healthy.ActorLoad.Present, healthy.ActorLoad.Source.Class, healthy.CurrentProfileBasis)
 	}
 	if !healthy.Alive() || healthy.HP <= 0 || healthy.Decay != sim.DecayNone || healthy.Defence != roodHealthyDefence {
 		t.Fatalf("source Rood is not a healthy party member with Defence %d: %+v", roodHealthyDefence, healthy)

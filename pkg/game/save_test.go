@@ -899,7 +899,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"invSubject": true, "invSubjectSet": true, "invCodes": true,
 		"invEquipment": true, "invEquipmentItems": true,
 		"invFigureEquipment": true, "invFigureEquipmentItems": true, "invComposedEquipment": true,
-		"invDollSuppressSlot": true, "invSkill": true,
+		"invDollSuppressSlot": true, "invSkill": true, "invTraining": true,
 		"invSkillSet": true, "skillPosted": true, "bodyEquipment": true,
 		"invWeaponEverEquipped": true, "invLayers": true, "invFigureLayers": true,
 		"stopped": true, "unpaced": true, "mission": true, "projectiles": true,

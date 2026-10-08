@@ -26,6 +26,11 @@ func TestReleaseCurrentCityPartyOrdinaryWireWins(t *testing.T) {
 		}
 	}
 	want := mapload.CloneParty(f.Carried)
+	if want[0].Carry == nil || want[0].Hero.Skill[5] != 0 || want[0].Carry.SkillXP[5] != 1 {
+		t.Fatal("ordinary-wire fixture has no untrained hero slot with one XP")
+	}
+	// Loading one XP in an untrained native skill raises its rank to one.
+	want[0].Hero.Skill[5] = 1
 	raw := currentTownSave(t, f)
 	for cycle := 0; cycle < 2; cycle++ {
 		g := currentTownReload(t, raw)
@@ -44,8 +49,13 @@ func TestReleaseCurrentCityPartyOrdinaryWireWins(t *testing.T) {
 				!reflect.DeepEqual(mapload.MemberCarriedItems(before, f.Table), mapload.MemberCarriedItems(after, g.Table)) {
 				t.Fatalf("city member %d current holdings changed", i)
 			}
-			if before.Carry != nil && (after.Carry == nil || before.Carry.SkillXP != after.Carry.SkillXP) {
-				t.Fatal("city experience was recomputed from displayed levels", cycle, i)
+			if before.Carry != nil {
+				if after.Carry == nil {
+					t.Fatal("city member lost current experience", cycle, i)
+				}
+				if before.Carry.SkillXP != after.Carry.SkillXP {
+					t.Fatalf("city member %d experience changed on cycle %d: %v -> %v", i, cycle, before.Carry.SkillXP, after.Carry.SkillXP)
+				}
 			}
 		}
 		raw = currentTownSave(t, g)

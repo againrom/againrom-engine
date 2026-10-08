@@ -256,7 +256,14 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		if err != nil {
 			return mapload.PartyMember{}, err
 		}
-		repairHeroSkills(&out.Hero.Skill, c.SkillLevels, c.SkillXP)
+		if !state.Native || c.Class == "Unit" {
+			repairHeroSkills(&out.Hero.Skill, c.SkillLevels, c.SkillXP)
+		}
+	}
+	if state.Native && c.Class != "Unit" {
+		if repairNativeSkills(&out.Hero.Skill, state.SkillXP, mapload.TableRules(t)) && base != nil {
+			base.LegacyTraining = false
+		}
 	}
 	out.Class, out.SuppressCorpseLoot = state.Class, state.SuppressCorpseLoot
 	out.KnownSpells, out.Book = state.KnownSpells, state.Book
@@ -349,7 +356,11 @@ func restoreCurrentPartyMembers(ms *Mission, a *currentActionData, t *mapload.Ta
 	}
 	for _, rows := range [][]currentPartyMember{a.Party, a.Roster} {
 		for _, p := range rows {
-			if p.Base == nil || !p.Base.Native || p.Template != nil {
+			if p.Template != nil || p.Base != nil && !p.Base.Native {
+				continue
+			}
+			e, ok := ms.World.Entity(p.Entity)
+			if !ok || e.ActorLoad.Source.Class != 0 {
 				continue
 			}
 			member := roster[p.Entity]
@@ -358,13 +369,45 @@ func restoreCurrentPartyMembers(ms *Mission, a *currentActionData, t *mapload.Ta
 					member = party[i]
 				}
 			}
+			before := p.restore().Hero
+			if p.Base != nil {
+				var err error
+				before, err = p.Base.restore(p.ordinary.Character, e.PotionStats)
+				if err != nil {
+					return err
+				}
+			}
+			var repaired [data.SkillSlots]bool
+			for i := 1; i < data.SkillSlots; i++ {
+				repaired[i] = member.Hero.Skill[i] > before.Skill[i] && (p.ordinary == nil || p.ordinary.Character.Class != "Unit")
+			}
+			changed := repaired != ([data.SkillSlots]bool{})
+			if p.Base == nil && !changed {
+				continue
+			}
 			training := sim.NativeTraining{}
-			if !p.Base.LegacyTraining {
+			if changed || !p.Base.LegacyTraining {
 				training = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
 			}
 			ms.World.SetNativeTraining(p.Entity, training)
+			if changed {
+				items, _ := ms.World.EquippedItems(p.Entity)
+				bonus := mapload.EquippedSkillBonus(items, member.Profile.Fighter)
+				levels := e.Skill
+				for i := 1; i < data.SkillSlots; i++ {
+					if repaired[i] {
+						levels[i] = max(levels[i], ms.World.Rules().EffectiveSkill(member.Hero.Skill[i], bonus[i]))
+					}
+				}
+				if !ms.World.RepairNativeSkillLevels(p.Entity, levels) {
+					return fmt.Errorf("cannot restore repaired party skills")
+				}
+			}
+			if p.Base == nil {
+				continue
+			}
 			class := sim.NativeClass{}
-			if !p.Base.LegacyClass && p.ordinary != nil && p.ordinary.Character.Class == "Human" {
+			if p.Base != nil && !p.Base.LegacyClass && p.ordinary != nil && p.ordinary.Character.Class == "Human" {
 				class = sim.NativeClass{Present: true, Fighter: member.Profile.Fighter}
 			}
 			ms.World.SetNativeClass(p.Entity, class)

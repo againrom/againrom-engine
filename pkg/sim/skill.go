@@ -33,6 +33,26 @@ func (w *World) SetSkillLevels(id EntityID, levels [skillSlots]int32) bool {
 	return true
 }
 
+// RepairNativeSkillLevels raises saved skills and their active combat terms.
+// Every other current field retains its saved value.
+func (w *World) RepairNativeSkillLevels(id EntityID, levels [skillSlots]int32) bool {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 || w.entities[i].ActorLoad.Source.Class != 0 {
+		return false
+	}
+	e := &w.entities[i]
+	for j := 1; j < skillSlots; j++ {
+		levels[j] = max(e.Skill[j], min(levels[j], w.rules.EffectiveSkillLimit()))
+	}
+	levels[0] = e.Skill[0]
+	j := int(e.XPSlot)
+	if j > 0 && j < skillSlots {
+		e.ToHit += skillToHitPerLevel * (levels[j] - e.Skill[j])
+		e.DamageBase += levels[j]/skillDamageDivisor - e.Skill[j]/skillDamageDivisor
+	}
+	return w.SetSkillLevels(id, levels)
+}
+
 // wornSkillBonus folds the class-selected skill family of the worn items.
 func (w *World) wornSkillBonus(i int, slot int32) int32 {
 	if i >= len(w.equipment) {

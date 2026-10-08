@@ -541,6 +541,7 @@ type mapWorld struct {
 	invDollSuppressSlot int
 
 	invSkill    [data.SkillSlots]int32
+	invTraining sim.NativeTraining
 	invSkillSet bool
 
 	skillPosted map[sim.EntityID][data.SkillSlots]int32
@@ -1140,6 +1141,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		}
 		if e, ok := mw.entity(sim.EntityID(mw.invSubject.ID)); ok {
 			mw.invSkill, mw.invSkillSet = e.Skill, true
+			mw.invTraining = e.NativeTraining
 		}
 	}
 	v.SetInventorySubject(mw.invSubject)
@@ -2307,8 +2309,10 @@ func (mw *mapWorld) switchInventorySubject(selected uint32) {
 	mw.invComposedEquipment, _ = missionDollEquipment(mw.world, sim.EntityID(selected), member)
 	if e, ok := mw.entity(sim.EntityID(selected)); ok {
 		mw.invSkill, mw.invSkillSet = e.Skill, true
+		mw.invTraining = e.NativeTraining
 	} else {
 		mw.invSkill, mw.invSkillSet = [data.SkillSlots]int32{}, false
+		mw.invTraining = sim.NativeTraining{}
 	}
 	mw.view.SetInventorySubject(mw.invSubject)
 }
@@ -3002,10 +3006,12 @@ func (mw *mapWorld) rearm() {
 	e, held := mw.entity(id)
 
 	// Seed the live-level comparison every call, including unchanged equipment.
-	var levelMoved bool
+	var levelMoved, trainingMoved bool
 	if held {
 		levelMoved = mw.invSkillSet && e.Skill != mw.invSkill
+		trainingMoved = !mw.invSkillSet || e.NativeTraining != mw.invTraining
 		mw.invSkill, mw.invSkillSet = e.Skill, true
+		mw.invTraining = e.NativeTraining
 	}
 
 	eq := mw.currentEquipment()
@@ -3014,7 +3020,8 @@ func (mw *mapWorld) rearm() {
 	if eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && !levelMoved && slices.Equal(layers, mw.invLayers) {
 		return
 	}
-	if eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && slices.Equal(layers, mw.invLayers) && mw.world.NativeTrainingNeedsProducer(id) {
+	if eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && slices.Equal(layers, mw.invLayers) &&
+		(mw.world.NativeTrainingNeedsProducer(id) || held && e.NativeTraining.Present && !trainingMoved) {
 		return
 	}
 	mw.invEquipment = eq

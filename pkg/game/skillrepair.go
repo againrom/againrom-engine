@@ -7,6 +7,24 @@ import (
 	"againrom/pkg/sim"
 )
 
+func repairNativeSkills(skill *[data.SkillSlots]int32, xp [data.SkillSlots]int32, rules sim.Rules) bool {
+	repaired := false
+	for i := 1; i < data.SkillSlots; i++ {
+		if xp[i] <= 0 {
+			continue
+		}
+		// A native school purchase stores the purchased rank's threshold plus one.
+		if skill[i] > 0 && xp[i] == rules.SkillXP(skill[i])+1 {
+			continue
+		}
+		level := rules.ClampSkill(rules.SkillLevelFor(xp[i]-1) + 1)
+		if skill[i] < level {
+			skill[i], repaired = level, true
+		}
+	}
+	return repaired
+}
+
 // repairedSkillLevel is the level a loaded slot holds. A slot whose stored
 // experience lies above its stored level's band takes the level that
 // experience implies (data.RepairSkillLevel); every other slot is unchanged.
