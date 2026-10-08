@@ -833,3 +833,47 @@ func TestToggleHudPanelKeepsSelectionAndCameraIdentity(t *testing.T) {
 		t.Error("an out-of-range panel moved a switch")
 	}
 }
+
+// The wheel over the pack bar scrolls the pack one element per notch and
+// leaves the map zoom alone; off the bar it still zooms (owner).
+func TestTheWheelOverThePackScrollsItInsteadOfZooming(t *testing.T) {
+	a := inventoryTestApp(t)
+	v := a.flow.viewer
+	layoutViewport(v, MenuWindowW, MenuWindowH)
+	v.SetEntities([]MapEntity{{ID: 5, Cell: image.Pt(1, 1)}})
+	v.sel = selection{5}
+	bar, cols, ok := packBarRect(image.Pt(v.frameW, v.frameH))
+	if !ok {
+		t.Fatalf("setup: no pack bar at %dx%d", v.frameW, v.frameH)
+	}
+	pics := make([]*image.RGBA, cols+2)
+	for i := range pics {
+		pics[i] = solidPic(4, 4, color.RGBA{A: 0xff})
+	}
+	v.SetInventorySubject(packOf(5, pics...))
+	if _, _, shown := v.packBar(); !shown {
+		t.Fatal("setup: the pack bar is not shown")
+	}
+	c := packCellRects(bar, cols)[1]
+	x, y := (c.Min.X+c.Max.X)/2, (c.Min.Y+c.Max.Y)/2
+
+	zoom := v.cam.Zoom
+	if err := a.HeadlessPointer("wheel-down", x, y); err != nil {
+		t.Fatal(err)
+	}
+	if got := v.packScrollAt(cols); got != 1 || v.cam.Zoom != zoom {
+		t.Fatalf("wheel-down over the pack: scroll %d zoom %v, want 1 and %v", got, v.cam.Zoom, zoom)
+	}
+	if err := a.HeadlessPointer("wheel-up", x, y); err != nil {
+		t.Fatal(err)
+	}
+	if got := v.packScrollAt(cols); got != 0 || v.cam.Zoom != zoom {
+		t.Fatalf("wheel-up over the pack: scroll %d zoom %v, want 0 and %v", got, v.cam.Zoom, zoom)
+	}
+	if err := a.HeadlessPointer("wheel-up", x, bar.Min.Y-40); err != nil {
+		t.Fatal(err)
+	}
+	if v.packScrollAt(cols) != 0 || v.cam.Zoom == zoom {
+		t.Fatalf("wheel over the map: scroll %d zoom %v, want 0 and a changed zoom", v.packScrollAt(cols), v.cam.Zoom)
+	}
+}

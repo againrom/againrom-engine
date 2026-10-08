@@ -1902,6 +1902,8 @@ package storyguard
 // file, new code, including this paragraph.
 // CommentBytes rises for the school shine hotfix: the doc of schoolShineDisplaySlot
 // and the test comments, new code, including this paragraph.
+// CommentBytes rises for the pack no-hero line and the wheel over the pack: the
+// docs of drawPackNoHeroText and the two new tests, including this paragraph.
 // New constructor Base documentation is in pkg/mapload/nativeinitialbasis.go
 // and its test. The comment count includes this baseline explanation.
 // New local constructor Modifier tests and UpdateNativeEquipmentBasis document
@@ -1941,5 +1943,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1831,
 	},
-	CommentBytes: 8516805,
+	CommentBytes: 8517539,
 }

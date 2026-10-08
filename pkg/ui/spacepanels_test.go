@@ -275,3 +275,40 @@ func TestCastKeyHookSurvivesClosingTheBook(t *testing.T) {
 		t.Fatalf("after the cast: live %v book %v spell %d", v.spellModeLive(), v.hudShown(hudPanelBook), v.selectedSpell)
 	}
 }
+
+// A switched-on pack stays on screen whenever no single hero is selected —
+// none or several — and carries the spellbook strip's no-hero line (DIV-2264).
+func TestOpenPackWithoutOneHeroShowsTheNoHeroLine(t *testing.T) {
+	a, v := panelCasterApp(t)
+	pressPanelKey(t, a, "space")
+	for _, tc := range []struct {
+		name string
+		sel  selection
+	}{
+		{"none selected", selection{}},
+		{"two selected", selection{panelCasterID, panelVictimID}},
+	} {
+		v.sel = tc.sel
+		v.SetWords(Words{NoHeroSelected: "NO HERO SELECTED", PauseNotice: "p"})
+		withText, _, ok := v.packBarPresent()
+		if !ok {
+			t.Fatalf("%s: the open pack is not drawn", tc.name)
+		}
+		if _, _, ok := v.packBar(); ok {
+			t.Fatalf("%s: the pack answers presses with no single hero", tc.name)
+		}
+		v.SetWords(Words{PauseNotice: "p"})
+		noText, _, _ := v.packBarPresent()
+		if bytes.Equal(withText.Pix, noText.Pix) {
+			t.Fatalf("%s: the no-hero line did not reach the pack grid", tc.name)
+		}
+	}
+	v.sel = selection{panelCasterID}
+	v.SetWords(Words{NoHeroSelected: "NO HERO SELECTED", PauseNotice: "p"})
+	hero, _, _ := v.packBarPresent()
+	v.SetWords(Words{PauseNotice: "p"})
+	heroNoWords, _, _ := v.packBarPresent()
+	if !bytes.Equal(hero.Pix, heroNoWords.Pix) {
+		t.Fatal("the hero's own pack carries the no-hero line")
+	}
+}

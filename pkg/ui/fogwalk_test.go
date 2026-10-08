@@ -132,8 +132,6 @@ var fogWalkTable = map[string]struct {
 		"whether a panel press may arm or issue at all, on commandPanelActive/armAttack's own terms; input, not a map pixel"},
 	"castKey": {fogWalkNotADraw,
 		"whether the C key may arm Cast mode for the selection, on armAttack's own ownership terms; input, not a map pixel"},
-	"packBarShown": {fogWalkNotADraw,
-		"whether the pack bar stands at all: it counts the present selection only to tell an empty selection from a non-hero one; a fixed UI panel, not a map glyph, and reveals no cell"},
 	"commandHoverPresent": {fogWalkNotADraw,
 		"whether the hovered cell's label may show at all, on commandPanelActive's own terms; a tooltip over a fixed UI panel, not a map glyph, and reveals no cell"},
 	"tooltipTarget": {fogWalkNotADraw, "resolves fixed HUD help under the same command-panel ownership gate; does not emit actor glyphs or reveal map cells"},
