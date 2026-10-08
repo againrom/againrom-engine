@@ -125,9 +125,6 @@ type Viewer struct {
 	graphics            GraphicsOptions
 	sackBoundaries      map[*terrain.StaticFrame]*terrain.StaticFrame
 	sackHighlight       bool
-	hiddenTop           image.Rectangle
-	hiddenTopKnown      bool
-	topRowShown         bool
 	sackOutlineImages   map[sackOutlineKey]*ebiten.Image
 	tooltip             *tooltipController
 	tooltipManaged      bool
@@ -2233,152 +2230,31 @@ func (v *Viewer) playableCellRectScan() (image.Rectangle, bool) {
 	return image.Rect(minX, minY, maxX+1, maxY+1), true
 }
 
-// lowerRenderLipRows is the single textured, impassable row ROM1 shows below
-// the last playable terrain row in the owner's edge witness. It already belongs
-// to the authored engine margin and therefore stays blocked to movement.
-const lowerRenderLipRows = 1
+const lowerRenderLipRows = 4
 
-// hiddenTopRows is how many of the playable rectangle's first rows the view
-// does not draw or scroll to: the camera's upper limit starts that many rows
-// lower and the rows draw black.
-const hiddenTopRows = 1
-
-// renderCellRect is the terrain rectangle used by camera motion: the playable
-// cells plus the one lower render-only lip. It never invents cells outside the
-// grid, and maps carrying no derived margin retain their complete-world clamp.
 func (v *Viewer) renderCellRect() (image.Rectangle, bool) {
 	cells, ok := v.playableCellRect()
-	if !ok {
-		return image.Rectangle{}, false
+	if ok {
+		cells.Max.Y = min(v.grid.Height, cells.Max.Y+lowerRenderLipRows)
 	}
-	cells.Max.Y = min(v.grid.Height, cells.Max.Y+lowerRenderLipRows)
-	if !v.topRowShown {
-		cells.Min.Y = min(cells.Min.Y+hiddenTopRows, cells.Max.Y-1)
-	}
-	return cells, true
+	return cells, ok
 }
 
-func (v *Viewer) SetTopRowShown(on bool) {
-	if v.topRowShown == on {
-		return
-	}
-	v.topRowShown, v.hiddenTopKnown = on, false
-	v.syncCameraBounds()
-}
-
-// hiddenTopRowCells is the rectangle of playable cells the view never draws:
-// the first hiddenTopRows rows of the playable rectangle.
-func (v *Viewer) hiddenTopRowCells() image.Rectangle {
-	if !v.hiddenTopKnown {
-		v.hiddenTopKnown = true
-		if cells, ok := v.playableCellRect(); ok && !v.topRowShown {
-			cells.Max.Y = min(cells.Min.Y+hiddenTopRows, cells.Max.Y)
-			v.hiddenTop = cells
-		}
-	}
-	return v.hiddenTop
-}
-
-// syncCameraBounds confines ordinary camera motion to terrain that is not the
-// black engine margin. When the player zooms far enough out that this interior
-// cannot fill the viewport, camera.Camera centres it and exposes equal,
-// unavoidable slack on the two sides.
-//
-// A displaced map has a jagged top and bottom edge. Its safe vertical span is
-// resolved over the columns currently visible, not over the whole map: a hill
-// outside the horizontal view cannot crop reachable terrain at this position.
-//
-// Inside the view the span COVERS the drawn terrain rather than being covered by
-// it. Relief in one visible column raises that column's edges without hiding the
-// playable cells another visible column draws lower; the alternative reading
-// cost the player ground the map declares playable, which is the one thing this
-// clamp may not do.
+// TERR-216.
 func (v *Viewer) syncCameraBounds() {
-	cells, ok := v.renderCellRect()
+	cells, ok := v.playableCellRect()
 	if !ok {
 		v.cam.ClearClampBounds()
 		return
 	}
-
-	minX := float64(cells.Min.X * camera.CellSize)
-	maxX := float64(cells.Max.X * camera.CellSize)
-	minY := float64(cells.Min.Y * camera.CellSize)
-	maxY := float64(cells.Max.Y * camera.CellSize)
+	origin := 0
 	if v.Mode() == ModeDisplaced {
-		minY, maxY = v.projectedPlayableVerticalBounds(cells, minX, maxX)
-		v.cam.SetAdaptiveClampBounds(minX, minY, maxX, maxY,
-			func(viewMinX, viewMaxX float64) (float64, float64) {
-				return v.projectedPlayableVerticalBounds(cells, viewMinX, viewMaxX)
-			})
-		return
+		origin = v.proj.MinV
 	}
-	v.cam.SetClampBounds(minX, minY, maxX, maxY)
-}
-
-// projectedPlayableVerticalBounds returns the smallest Y span that CONTAINS the
-// projected playable terrain over [viewMinX,viewMaxX]: the highest top edge and
-// the lowest bottom edge any sampled column draws. The top and bottom edges are
-// piecewise linear, so their extrema occur at the interval ends or at a
-// cell-column vertex; sampling exactly those points is complete.
-//
-// It is the containing span and not the contained one, and that is the whole of
-// what this function decides. Over a jagged edge the two disagree by the relief
-// across the visible columns — 119 world pixels, 3.7 cells, on shipped map 81 —
-// and the contained reading spends that difference on playable cells the camera
-// can then never bring into view: the low ground beside a hill stays below the
-// bottom bound, so it cannot be looked at, clicked or walked to. The containing
-// reading spends it instead on margin drawn past the render lip under the raised
-// column, which is a picture the player can already reach at any other pan.
-//
-// The span can never invert: over the same columns the bottom row's edge exceeds
-// the top row's by at least one cell of height plus the relief between them.
-func (v *Viewer) projectedPlayableVerticalBounds(cells image.Rectangle,
-	viewMinX, viewMaxX float64,
-) (minY, maxY float64) {
-	drawMinX := float64(cells.Min.X * camera.CellSize)
-	drawMaxX := float64(cells.Max.X * camera.CellSize)
-	lo := math.Max(math.Min(viewMinX, viewMaxX), drawMinX)
-	hi := math.Min(math.Max(viewMinX, viewMaxX), drawMaxX)
-	if hi < lo {
-		lo, hi = drawMinX, drawMaxX
-	}
-
-	first := true
-	sample := func(x float64) {
-		top := v.projectedRowEdgeAt(cells, cells.Min.Y, x)
-		bottom := v.projectedRowEdgeAt(cells, cells.Max.Y, x)
-		if first || top < minY {
-			minY = top
-		}
-		if first || bottom > maxY {
-			maxY = bottom
-		}
-		first = false
-	}
-	sample(lo)
-	for col := int(math.Floor(lo/float64(camera.CellSize))) + 1; float64(col*camera.CellSize) < hi; col++ {
-		sample(float64(col * camera.CellSize))
-	}
-	if hi > lo {
-		sample(hi)
-	}
-	return minY, maxY
-}
-
-// projectedRowEdgeAt evaluates one horizontal cell-row edge at world X using
-// the same linear interpolation the terrain triangles draw between vertices.
-func (v *Viewer) projectedRowEdgeAt(cells image.Rectangle, row int, x float64) float64 {
-	col := int(math.Floor(x / float64(camera.CellSize)))
-	if col < cells.Min.X {
-		col = cells.Min.X
-	}
-	if col >= cells.Max.X {
-		col = cells.Max.X - 1
-	}
-	x0 := float64(col * camera.CellSize)
-	_, y0 := v.proj.WorldCorner(col, row)
-	_, y1 := v.proj.WorldCorner(col+1, row)
-	return float64(y0) + float64(y1-y0)*(x-x0)/float64(camera.CellSize)
+	v.cam.SetCellClampBounds(float64(cells.Min.X*camera.CellSize),
+		float64(cells.Min.Y*camera.CellSize-origin),
+		float64(cells.Max.X*camera.CellSize),
+		float64(cells.Max.Y*camera.CellSize-origin))
 }
 
 // SetAnimated turns water animation on or off. Off reproduces the static render
@@ -3443,6 +3319,7 @@ var blitColumnLayer = func(screen, img *ebiten.Image, op *ebiten.DrawImageOption
 
 // drawFrame composes the mission screen onto one frame-sized destination.
 func (v *Viewer) drawFrame(screen *ebiten.Image) {
+	mapSurface := screen.SubImage(image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH).Intersect(screen.Bounds())).(*ebiten.Image)
 	// THE HOVER-LIGHTING CACHE, before either terrain or the plane sprites —
 	// both read it, and hoverLitID's own doc states why it cannot be read
 	// lazily from inside planeSprites itself (hotfix, owner report 1,
@@ -3457,22 +3334,22 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	v.refreshStructureLighting()
 
 	if v.Mode() == ModeDisplaced {
-		v.drawDisplaced(screen)
+		v.drawDisplaced(mapSurface)
 	} else {
-		v.drawFlat(screen)
+		v.drawFlat(mapSurface)
 	}
 
 	// drawArt owns the complete retained-overlay/shadow/projectile/body order
 	// (ANIM-047). Its existing static-object depth merge stays inside the body
 	// pass; all of this content remains below diagnostic glyphs and shroud.
-	v.drawArt(screen)
+	v.drawArt(mapSurface)
 	if v.editorView {
 		return
 	}
 
 	// The separate Heal/Drain shower retains its existing pass.
-	v.drawHealArt(screen)
-	v.drawShroud(screen)
+	v.drawHealArt(mapSurface)
+	v.drawShroud(mapSurface)
 	if v.playerPaused {
 		r := image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)
 		wash := color.RGBA{A: 32}
@@ -4152,23 +4029,24 @@ func terrainTextureVertices(verts [4]ebiten.Vertex) [4]ebiten.Vertex {
 	return verts
 }
 
-// forEachDrawnTile calls fn once per tile THIS FRAME'S TERRAIN PASS draws,
-// in the order it draws them, whichever mode the viewer is in.
-//
-// IT IS THE ONE DEFINITION OF "THE BAND", and that is the whole reason it
-// exists. Both terrain paths iterate it, and so does the cell lattice — so the
-// instrument covers exactly the cells the terrain covered, by CALLING the same
-// walk rather than by a second band that happens to agree. The two bands are
-// genuinely different (see forEachDisplacedTile: the displaced rows come from
-// the projection and are offset from the camera's own by up to eight cell
-// rows), which is what a second copy would eventually get wrong.
-//
-// The flat arm is the camera's visible tiles, exact rather than padded, because
-// no altitude term reaches a flat cell at all. An empty range visits nothing,
-// which is what the loop bounds already say; there is no separate early return,
-// because a range that visits no tile and a range a caller returned before
-// reaching are the same frame.
+// TERR-217.
 func (v *Viewer) forEachDrawnTile(fn func(tx, ty int)) {
+	if _, bounded := v.playableCellRect(); bounded {
+		origin := 0
+		if v.Mode() == ModeDisplaced {
+			origin = v.proj.MinV
+		}
+		col := int(math.Floor(v.cam.X / camera.CellSize))
+		row := int(math.Floor((v.cam.Y + float64(origin)) / camera.CellSize))
+		cols := int(float64(v.cam.ViewW) / (v.cam.Zoom * camera.CellSize))
+		rows := int(float64(v.cam.ViewH) / (v.cam.Zoom * camera.CellSize))
+		for y := max(0, row); y < min(v.grid.Height, row+rows+lowerRenderLipRows); y++ {
+			for x := min(v.grid.Width, col+cols) - 1; x >= max(0, col); x-- {
+				fn(x, y)
+			}
+		}
+		return
+	}
 	if v.Mode() == ModeDisplaced {
 		v.forEachDisplacedTile(fn)
 		return
@@ -4361,33 +4239,13 @@ func (v *Viewer) cornerShading(tx, ty int) [4]float32 {
 // every reader of a corner scale is unchanged: 0 is a scale like any other.
 const mapBorderDim float32 = 0
 
-// dimBorder scales a cell's four corner multipliers down when the cell lies in
-// the black part of the engine margin, and returns them untouched when it does
-// not. The first margin row immediately below playable terrain is a render-only
-// apron: it keeps the map texture but remains blocked because this presentation
-// rule does not alter the block plane.
-//
-// It MULTIPLIES rather than replaces, which is what makes the dim compose with
-// 0014's corner lighting instead of standing in for it: a lit margin cell keeps
-// its relief, one shade darker, and the margin's own slopes stay readable. The
-// array is taken by value, so the caller's is not written through.
-//
-// The dim is decided PER TILE, so the margin's inner boundary is a hard step
-// between two adjacent quads rather than a ramp across them, and that is the
-// deliverable rather than a rough edge. The renderer interpolates everything
-// else it draws; this one line is where it must not, because the line the
-// player needs to see is exactly where the playable region stops.
+// dimBorder leaves the admitted lower terrain rows textured without changing movement.
+// TERR-217.
 func (v *Viewer) dimBorder(sc [4]float32, tx, ty int) [4]float32 {
-	if image.Pt(tx, ty).In(v.hiddenTopRowCells()) {
-		return [4]float32{}
-	}
 	if !v.grid.BorderCell(tx, ty) {
 		return sc
 	}
-	// ROM1's lower edge carries one additional textured cell beyond the place a
-	// unit may enter. Keep precisely that first lower margin row lit; every
-	// remaining margin row stays black outside the camera's render boundary.
-	if ty > 0 && !v.grid.BorderCell(tx, ty-1) {
+	if cells, ok := v.renderCellRect(); ok && image.Pt(tx, ty).In(cells) {
 		return sc
 	}
 	for i := range sc {

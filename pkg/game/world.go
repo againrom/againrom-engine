@@ -138,7 +138,6 @@ type mapWorld struct {
 	sched            [][]sim.Command
 	units            *terrain.UnitSet
 	view             *ui.Viewer
-	topRowDecided    bool
 	scene            int
 	prev             map[sim.EntityID]image.Point
 	died             map[sim.EntityID]int
@@ -4492,7 +4491,6 @@ func (mw *mapWorld) push() {
 		mw.view.AppendDamageMessages(messages)
 		mw.pendingDamage = nil
 	}
-	mw.decideTopRow(draws)
 	mw.view.SetEntities(draws)
 	mw.soundEntities = draws
 	mw.view.SetUnitInspectionPictureSource(mw.inspectionUnitPicture)

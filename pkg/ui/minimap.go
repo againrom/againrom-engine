@@ -440,9 +440,7 @@ func (v *Viewer) minimapWindowed(g minimapGeom) ([]color.RGBA, func(col, row int
 // green outline stop above terrain the player can actually see.
 func (v *Viewer) minimapViewCells() image.Rectangle {
 	r := v.cam.VisibleTiles()
-	// Use the same single lower render lip as camera motion. Clipping the outline
-	// back to playableCellRect made the minimap claim the surface stopped above
-	// the textured impassable row the camera deliberately shows.
+	// Include the four lower terrain rows admitted by the draw walk.
 	cells, bounded := v.renderCellRect()
 	if bounded {
 		r.Col0 = max(r.Col0, cells.Min.X)

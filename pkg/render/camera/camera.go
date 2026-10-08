@@ -53,6 +53,7 @@ type Camera struct {
 	// useful camera room.
 	clampRect [4]float64 // minX, minY, maxX, maxY
 	clampSet  bool
+	cellClamp bool
 
 	// verticalClamp optionally refines clampRect's Y span for the horizontal
 	// world interval the view actually covers. Height-displaced terrain has a
@@ -127,6 +128,17 @@ func (c *Camera) SetClampBounds(minX, minY, maxX, maxY float64) {
 	c.clampRect = values
 	c.clampSet = true
 	c.verticalClamp = nil
+	c.cellClamp = false
+	c.Clamp()
+}
+
+// SetCellClampBounds uses whole-cell spans and applies the upper bound last.
+// TERR-216.
+func (c *Camera) SetCellClampBounds(minX, minY, maxX, maxY float64) {
+	x, y := c.X, c.Y
+	c.SetClampBounds(minX, minY, maxX, maxY)
+	c.cellClamp = c.clampSet
+	c.X, c.Y = x, y
 	c.Clamp()
 }
 
@@ -155,6 +167,7 @@ func (c *Camera) SetAdaptiveClampBounds(minX, minY, maxX, maxY float64,
 	c.clampRect = values
 	c.clampSet = true
 	c.verticalClamp = vertical
+	c.cellClamp = false
 	c.Clamp()
 }
 
@@ -163,6 +176,7 @@ func (c *Camera) ClearClampBounds() {
 	c.clampRect = [4]float64{}
 	c.clampSet = false
 	c.verticalClamp = nil
+	c.cellClamp = false
 	c.Clamp()
 }
 
@@ -221,6 +235,19 @@ func (c *Camera) Clamp() {
 	minX, minY, maxX, maxY := 0.0, 0.0, c.WorldW(), c.WorldH()
 	if c.clampSet {
 		minX, minY, maxX, maxY = c.clampRect[0], c.clampRect[1], c.clampRect[2], c.clampRect[3]
+	}
+	if c.cellClamp {
+		vw = math.Floor(vw/CellSize) * CellSize
+		vh = math.Floor(vh/CellSize) * CellSize
+		if math.IsNaN(c.X) {
+			c.X = minX
+		}
+		if math.IsNaN(c.Y) {
+			c.Y = minY
+		}
+		c.X = math.Min(math.Max(c.X, minX), maxX-vw)
+		c.Y = math.Min(math.Max(c.Y, minY), maxY-vh)
+		return
 	}
 	c.X = clampAxisBounds(c.X, minX, maxX, vw)
 	if c.verticalClamp != nil {
