@@ -245,6 +245,9 @@ func actSkill(t *testing.T, f *FrontEnd, id sim.EntityID, spell uint32) {
 	f.live.attackOrCast(uint32(id), uint32(victim.ID), spell, int(victim.X), int(victim.Y), false)
 	for tick := 0; tick < 48; tick++ {
 		f.live.tick()
+		// The trainee stands among live foes for every award; it is kept alive
+		// so the count of awards does not hang on which fights it survives.
+		_ = f.live.world.HeadlessHeal(id)
 	}
 }
 
