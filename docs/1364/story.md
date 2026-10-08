@@ -25,11 +25,13 @@ The parser uses the 13 case-sensitive prefixes in the original chain order, incl
 | `#pickup all` | Takes every ground Sack through ordinary pickup, credits gold, moves inventory, removes the Sacks, sends notice 7 and posts `All sacks picked up`. | Player `Money`, actor inventory, Item and Sack records. |
 | `#show map` | Reveals the client exploration plane, freezes its fog clear and gives enemy cards level 7. Sends notice 7. | Client reveal flag is transient. Ordinary exploration writes remain on the existing SAV path. |
 | `#hide map` | Clears the client reveal flag without clearing exploration already revealed. Sends notice 7. | Runtime flag only. |
-| `#victory` | Opens ordinary mission-win presentation and continuation without writing a server outcome or forcing a saved win latch. Sends no notice. | The command adds no SAV field. The unread latch consequence is DIV-2545. |
+| `#victory` | Opens the retained ordinary Victory/Continue panel. Victory, or Continue followed by later Victory, uses ordinary campaign completion: carry the party, record the mission done and reach its successor or town. Side missions retain that panel and the same completion route. Sends no notice and does not force the simulation outcome. | Ordinary continuation supplies any saved campaign changes; the command adds no SAV field or explicit win-latch override. Side presentation is FIDELITY-DEBT and the saved-latch consequence remains Medium/Unknown in DIV-2545. |
 | `#event n` | Opens the existing event dialogue for the numeric id without privilege or a cheat notice. A missing event opens no panel. | Runtime dialogue only; missing text is DIV-2544. |
 | `#Chicken` | Sets privilege to 255, posts the original enable-cheating line and installed notice 5. A suffix still matches the prefix. | No SAV state. Fresh-mission and cold-LOAD policy is DIV-2540. |
 
 Notices 5, 6 and 7 use installed `main.txt` entries 221 through 226 and the current Player name (`MENU-111`). Console replies use the existing local mission message line; the absent connection broadcast and unread original presentation are DIV-2547.
+
+MENU-109 establishes at High that cheat victory reaches the same client win arm as the ordinary win packet. Its side-mission arm posts the mission-end message instead of constructing the Victory/Continue panel. MISSION-VICTORY-030 establishes that this message reaches the win-latch test and tears the mission down; SESS-END-011 establishes the campaign win path back to town for side missions. The existing real-win side panel is retained here under the owner minimum rule; this presentation difference is DIV-2545, FIDELITY-DEBT. The client arm's effect on a SAV-carried latch is Medium and remains Unknown.
 
 Create, each summon and pickup-all preflight the ordinary import limit of 2^20 item/effect values across living and dying actors. Each carried instance contributes one plus its effect count; equipment uses the same width. Create includes cumulative merges, summon includes its proposed pack and equipment, and pickup-all includes every ground Sack. Over-capacity mutations refuse before expanding holdings; pickup-all refuses before any Sack transfer. These bounds prevent a mutation from exceeding ordinary cold-LOAD capacity (DIV-2541).
 
@@ -41,7 +43,7 @@ Privilege, knowledge override, map reveal flag and trace toggles start clear for
 
 ## Proof
 
-The installed test inventory has fourteen command and launch witnesses plus one screenshot publication witness. Each uses the App input or mission-entry route. The required release runs execute them on EN and RU.
+The installed test inventory has fifteen command and launch witnesses plus one screenshot publication witness. Each uses the App input or mission-entry route. The required release runs execute them on EN and RU.
 
 | Installed surface | Witness test |
 |---|---|
@@ -52,6 +54,7 @@ The installed test inventory has fourteen command and launch witnesses plus one 
 | Named kill, both kill-all literals and kill cheaters | `TestReleaseCheatKillsUseAppAndOrdinarySAV` |
 | Pickup every Sack, gold and inventory; ordinary SAV and cold LOAD | `TestReleaseCheatPickupAllUsesAppAndOrdinarySAV` |
 | Show map, hide map, victory, event and Chicken cold reset | `TestReleaseCheatClientCommandsAndChickenColdReset` |
+| Campaign cheat Victory completion and ordinary SAV cold LOAD: main successor, main town and side town, including Continue followed by later Victory | `TestReleaseCheatVictoryUsesCampaignCompletion` |
 | Six acting Alt keys, help and console replies | `TestReleaseCheatAltConsoleThroughApp` |
 | Alt console privilege and execution while Drop Gold is open | `TestReleaseCheatAltConsoleThroughDropGold` |
 | Knowledge resend without privilege | `TestReleaseCheatKnowledgeWithoutPrivilegeKeepsOrdinaryCounts` |
@@ -74,6 +77,8 @@ Focused construction, simulation and input controls:
 
 The installed mutation witnesses write an ordinary SAV, cold-load it through the game route and check the affected state. The summon witness checks the source face and class axes, current equipment picture, App pane pixels, retained original hero metadata, selection, App move admission and movement across subsequent dispatches. The focused binary controls cover internal deterministic continuation separately.
 
+The campaign cheat-victory witness presses Victory through App input in main mission 10, reaching successor 20, main mission 30, reaching town, and side mission 151, reaching town. The main-town and side-town cases also use Continue followed by later Victory. It checks the unchanged simulation outcome and world hash before acknowledgement, then destination, mission-done state, chapter and payment through ordinary successor or town SAV and cold LOAD. These controls check Againrom continuation; the original SAV-latch consequence remains Medium/Unknown.
+
 The kill witnesses establish health -50 and valid ordinary SAV continuation. They do not establish original death timing: the current ordinary property mutation applies the fallen, action and defence transition immediately, while the researched helper writes only health and later-tick death remains Medium (DIV-2077). A faithful deferred state requires native and SAV reader admission plus SAV action projection and their continuation gates. The brief excludes SAV writer changes, so this timing gap remains open.
 
 The screenshot publication test supplies a completed App frame and checks input and PNG publication separately from runtime capture. The external `framecapturewitness` exercised real Ebiten `RunGame` and `App.Draw` on the installed ROM1 EN and RU inputs. After two updates for each input, Alt+S produced a 1024x768 PNG with 47,207 distinct colours for EN and 47,164 for RU. Visual inspection confirmed installed map art, fog, interface and pointer in both captures, including RU Cyrillic text. The original screenshot writer remains unread.
@@ -89,7 +94,9 @@ Execution receipts, elapsed times and the exact committed candidate are returned
 
 ## Open debt and Unknowns
 
-DIV-2540 through DIV-2550 record the authored lifetime, item and actor name sets, placement, missing targets and events, client win latch, chat presentation, console reply presentation, statistics and trace consumers. The original mission/town privilege lifetime, Safe mode SAV lifetime and unread statistics must not be claimed as established.
+DIV-2540 through DIV-2544 and DIV-2546 through DIV-2550 record the authored lifetime, item and actor name sets, placement, missing targets and events, chat presentation, console reply presentation, statistics and trace consumers. The original mission/town privilege lifetime, Safe mode SAV lifetime and unread statistics must not be claimed as established.
+
+The retained side-mission Victory/Continue panel differs from MENU-109's High mission-end-message arm and remains DIV-2545, FIDELITY-DEBT. Campaign completion uses the ordinary real-win route. The saved-latch consequence remains Medium/Unknown; no explicit override is added for it.
 
 The current single-player client has no phase-3 host console or remote connection lifecycle. `#disconnect id` and `#curse id` cannot be entered through that original route. The curse simulation mutation has a focused test, but that does not implement the host UI or network effects (DIV-2551, FIDELITY-DEBT).
 
