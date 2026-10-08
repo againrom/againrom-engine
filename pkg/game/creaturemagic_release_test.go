@@ -44,6 +44,10 @@ func magicWitnessOpen(t *testing.T) (*FrontEnd, *ui.App, sim.Entity) {
 			t.Fatal(err)
 		}
 	}
+	// Enemy cards draw the exactly-7 captions only at full knowledge.
+	if err := app.HeadlessKey("shift-f4"); err != nil {
+		t.Fatal(err)
+	}
 	var holders []sim.Entity
 	for _, e := range f.live.world.Entities() {
 		if e.CreatureSpells[0].ID != 0 && e.Owner != sim.SelfSlot {
@@ -244,6 +248,10 @@ func TestReleaseMission51OgreTurtleKeepsItsMagic(t *testing.T) {
 	if loaded.CreatureSpells != turtle.CreatureSpells || loaded.KnownSpells != turtle.KnownSpells || loaded.XPValue != turtle.XPValue {
 		t.Fatalf("cold LOAD holds slots %v known %#x xp %d, want %v %#x %d", loaded.CreatureSpells, loaded.KnownSpells,
 			loaded.XPValue, turtle.CreatureSpells, turtle.KnownSpells, turtle.XPValue)
+	}
+	// Enemy cards draw the exactly-7 captions only at full knowledge.
+	if err := gapp.HeadlessKey("shift-f4"); err != nil {
+		t.Fatal(err)
 	}
 	if !magicWitnessCaption(t, g, gapp, turtle.ID) || magicWitnessCaption(t, g, gapp, magicWitnessPlain(t, g)) {
 		t.Fatal("after cold LOAD the turtle's card lacks the caption or a plain creature's card has it")

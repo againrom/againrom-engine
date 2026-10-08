@@ -240,18 +240,18 @@ func (f *sack1151Fixture) live(t *testing.T) (*SnapshotSAVObjectBindings, *sim.S
 
 func TestSacks1151IndependentReaderAndControls(t *testing.T) {
 	fixture := sack1151Literal()
-	source, err := sacks1151Read(fixture.body, 0, fixture.locations)
+	source, err := sackRead(fixture.body, 0, fixture.locations)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if source.count != 2 || len(source.rows) != 10 || source.rows[source.roots[0]].values["Contents20"] != 0xffffffef {
 		t.Fatal("literal count/population/signed tail changed", source.count, len(source.rows))
 	}
-	if differences := sacks1151DocumentDifferences(source, fixture.origins, &fixture.doc); len(differences) != 0 {
+	if differences := sackDocumentDifferences(source, fixture.origins, &fixture.doc); len(differences) != 0 {
 		t.Fatal(differences)
 	}
 	b, r, sacks := fixture.live(t)
-	if differences, gaps := sacks1151LiveDifferences(source, fixture.origins, b, r, sacks); len(differences)+len(gaps) != 0 {
+	if differences, gaps := sackLiveDifferences(source, fixture.origins, b, r, sacks); len(differences)+len(gaps) != 0 {
 		t.Fatal(differences, gaps)
 	}
 	for _, tc := range []struct {
@@ -285,7 +285,7 @@ func TestSacks1151IndependentReaderAndControls(t *testing.T) {
 		t.Run("Document/"+tc.name, func(t *testing.T) {
 			f := sack1151Literal()
 			tc.edit(&f)
-			d := sacks1151DocumentDifferences(source, f.origins, &f.doc)
+			d := sackDocumentDifferences(source, f.origins, &f.doc)
 			if !strings.Contains(strings.Join(d, "\n"), tc.fragment) {
 				t.Fatal("control escaped", d)
 			}
@@ -323,7 +323,7 @@ func TestSacks1151IndependentReaderAndControls(t *testing.T) {
 			f := sack1151Literal()
 			b, r, s := f.live(t)
 			tc.edit(b, r, s)
-			d, _ := sacks1151LiveDifferences(source, f.origins, b, r, s)
+			d, _ := sackLiveDifferences(source, f.origins, b, r, s)
 			if len(d) == 0 {
 				t.Fatal("control escaped")
 			}
@@ -342,7 +342,7 @@ func TestSacks1151IndependentReaderAndControls(t *testing.T) {
 		t.Run("source/"+tc.name, func(t *testing.T) {
 			f := sack1151Literal()
 			tc.edit(&f)
-			if _, err := sacks1151Read(f.body, 0, f.locations); err == nil {
+			if _, err := sackRead(f.body, 0, f.locations); err == nil {
 				t.Fatal("malformed source accepted")
 			}
 		})
@@ -369,7 +369,7 @@ func TestSacks1151RejectsCollapsedEqualEffectOrigins(t *testing.T) {
 		}
 		copy(f.body[second:second+44], f.body[first:first+44])
 		f.doc.Objects[3] = f.doc.Objects[2]
-		source, err := sacks1151Read(f.body, 0, f.locations)
+		source, err := sackRead(f.body, 0, f.locations)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -396,10 +396,10 @@ func TestSacks1151RejectsCollapsedEqualEffectOrigins(t *testing.T) {
 	if len(source.rows) != 10 || len(f.doc.Objects) != 10 || len(r.Effects) != 2 {
 		t.Fatal("distinct equal-valued baseline population changed")
 	}
-	if d := sacks1151DocumentDifferences(source, f.origins, &f.doc); len(d) != 0 {
+	if d := sackDocumentDifferences(source, f.origins, &f.doc); len(d) != 0 {
 		t.Fatal("distinct equal-valued Document baseline", d)
 	}
-	if d, gaps := sacks1151LiveDifferences(source, f.origins, b, r, sacks); len(d)+len(gaps) != 0 {
+	if d, gaps := sackLiveDifferences(source, f.origins, b, r, sacks); len(d)+len(gaps) != 0 {
 		t.Fatal("distinct equal-valued World baseline", d, gaps)
 	}
 	t.Log("baseline: raw10/Document10/nativeEffects2; distinct equal-valued objects and repeated references both preserved")
@@ -433,8 +433,8 @@ func TestSacks1151RejectsCollapsedEqualEffectOrigins(t *testing.T) {
 		if len(source.rows) != 10 || len(f.doc.Objects) != 9 || len(r.Effects) != 1 || f.origins[6] != f.origins[7] {
 			t.Fatal("collapse control did not remove the distinct Effect")
 		}
-		document := sacks1151DocumentDifferences(source, f.origins, &f.doc)
-		world, gaps := sacks1151LiveDifferences(source, f.origins, b, r, sacks)
+		document := sackDocumentDifferences(source, f.origins, &f.doc)
+		world, gaps := sackLiveDifferences(source, f.origins, b, r, sacks)
 		if !strings.Contains(strings.Join(document, "\n"), "archive-to-DTO identity collapse") || !strings.Contains(strings.Join(world, "\n"), "archive-to-DTO identity collapse") || len(gaps) != 0 {
 			t.Fatalf("false acceptance: raw10/Document9/nativeEffects1; Document=%v World=%v gaps=%v", document, world, gaps)
 		}
@@ -453,10 +453,10 @@ func TestSacks1151RejectsCollapsedEqualEffectOrigins(t *testing.T) {
 		}
 		b.Effects[1].ID = 3
 		validate(r)
-		if d := sacks1151DocumentDifferences(source, f.origins, &f.doc); len(d) != 0 {
+		if d := sackDocumentDifferences(source, f.origins, &f.doc); len(d) != 0 {
 			t.Fatal("native-only collapse changed the complete Document", d)
 		}
-		world, gaps := sacks1151LiveDifferences(source, f.origins, b, r, sacks)
+		world, gaps := sackLiveDifferences(source, f.origins, b, r, sacks)
 		if !strings.Contains(strings.Join(world, "\n"), "DTO-to-native identity collapse") || len(gaps) != 0 {
 			t.Fatalf("false acceptance: raw10/Document10/nativeEffects1; World=%v gaps=%v", world, gaps)
 		}

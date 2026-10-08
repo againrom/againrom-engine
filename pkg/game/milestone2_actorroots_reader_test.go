@@ -395,7 +395,7 @@ func actor1161DocumentDifferences(roots []actor1161Record, r *sack1151Reader, or
 		// root list. City actor children do not require a live mission world.
 		detached.World = &sav.DocumentWorldData{}
 	}
-	differences = append(differences, sacks1151DocumentDifferences(r.source, origins, &detached)...)
+	differences = append(differences, sackDocumentDifferences(r.source, origins, &detached)...)
 	for _, a := range roots {
 		prefix := fmt.Sprintf("actor %d %s", a.loc.ArchiveIndex, a.loc.Class)
 		local := origins[a.loc.ArchiveIndex]

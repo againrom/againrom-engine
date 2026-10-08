@@ -1909,6 +1909,8 @@ type World struct {
 	// 1139 (Form85) gives it a wire position too (carriedresumebinary.go,
 	// DIV-956).
 	savedDiaries []SavedDiary
+
+	diary diaryRuntime
 }
 
 // NewWorld returns a world seeded with seed, bounded by b, routing by mode, over

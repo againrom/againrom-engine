@@ -211,6 +211,7 @@ func restoreOriginalActorStock(ms *Mission, source []sav.ActorHoldings, table *m
 	var staged sim.World
 	mapload.BindSourceDerive(&staged)
 	staged.SetRules(ms.World.Rules())
+	staged.CopyDiaryUnits(ms.World)
 	// STORIES 1130..1135 primed this staging round trip's fresh receiver by
 	// hand for every carried-not-wire-form field (two raw session spans, cell-
 	// record residue, the SpellEffect graph, the Projectiles store, Diaries):

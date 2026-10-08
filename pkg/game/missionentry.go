@@ -309,6 +309,9 @@ func seatWorld(r missionRequest, table *mapload.Table, ms *Mission, v *ui.Viewer
 		}
 		ms.World.SetPurse(sim.SelfSlot, gold)
 	}
+	if d := r.town.knowledgeDiaries(); r.fresh() && len(d) != 0 {
+		ms.World.SetSavedDiaries(d)
+	}
 	if _, hasClock := ms.World.SessionClock(); hasClock {
 		// DIV-779: original SAV does not establish the incoming light
 		// cache. Choose the standard scheduled cache at its retained S,

@@ -94,6 +94,7 @@ func (w *World) processNewKillCredits(beforeHP map[EntityID]int32) {
 	for i := range w.entities {
 		before, tracked := beforeHP[w.entities[i].ID]
 		if tracked && before >= 0 && w.entities[i].Dead() {
+			w.recordDiaryKill(i)
 			w.processKillCredit(i)
 			delete(beforeHP, w.entities[i].ID)
 		}

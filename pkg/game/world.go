@@ -4940,7 +4940,8 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// gate to compare and interpreted nowhere on either side. It is the
 			// simulation's own field at its own width — zero for an entity no map
 			// placed, which is every entity this tree spawns.
-			Owner: e.Owner,
+			Owner:     e.Owner,
+			Knowledge: mw.world.KnowledgeLevel(e), KnowledgeKnown: true,
 			// THE LOCAL PARTICIPANT'S OWN RELATION TOWARD IT (1031 B3;
 			// UNIT-VPLAYER-021, UNIT-VISBIT-044), read off the same relation
 			// matrix `pkg/sim/engage.go` already reads for engagement — not

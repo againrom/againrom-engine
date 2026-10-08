@@ -259,6 +259,9 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	if err != nil {
 		return sav.DocumentData{}, nil, err
 	}
+	if err := projectTownKnowledge(&doc, s.knowledge); err != nil {
+		return sav.DocumentData{}, nil, err
+	}
 	return doc, order, nil
 }
 

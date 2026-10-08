@@ -518,6 +518,12 @@ type MapEntity struct {
 	// by nobody, which is what every entity built before this story is.
 	Owner uint32
 
+	// Knowledge is the card level the local player holds for this unit, and
+	// KnowledgeKnown says the far side stated one. An entity that states none draws
+	// every card group.
+	Knowledge      int
+	KnowledgeKnown bool
+
 	// Hostile is whether the LOCAL PARTICIPANT treats this entity's owner as an
 	// enemy: the simulation's own relation, `sim.Relations.Hostile(SelfSlot,
 	// Owner)`, read once per tick and carried across whole (1031 B3).

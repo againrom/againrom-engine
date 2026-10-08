@@ -1979,6 +1979,11 @@ func (w *World) decayPass() {
 			}
 		}
 		if s := decayStageFor(e.HP); s > decayLast {
+			// A downed body whose walk crosses below zero and leaves in the same
+			// pass is never seen by the kill scan after the ladder.
+			if beforeHP >= 0 {
+				w.recordDiaryKill(i)
+			}
 			if e.Decay < DecayBones {
 				w.releaseAtTeardown(i)
 			}

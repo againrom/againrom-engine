@@ -130,6 +130,7 @@ func TestReleaseOriginalSaveLoadedCycleFinishesBeforeStateAndMoveOrders(t *testi
 					t.Fatalf("%s %s at offset %d: decode after the order: %v", rel, wr.name, offset, err)
 				}
 				mapload.BindSourceDerive(&control)
+				control.CopyDiaryUnits(w)
 				if control.Hash() != w.Hash() {
 					t.Fatalf("%s %s at offset %d: the decoded world's hash differs from the live world's", rel, wr.name, offset)
 				}

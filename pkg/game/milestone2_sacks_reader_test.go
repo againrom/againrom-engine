@@ -194,7 +194,7 @@ func (r *sack1151Reader) record(loc sav.DocumentObjectLocation, depth int) *sack
 	return row
 }
 
-func sacks1151Read(body []byte, start int, locations []sav.DocumentObjectLocation) (sackByteSource, error) {
+func sackRead(body []byte, start int, locations []sav.DocumentObjectLocation) (sackByteSource, error) {
 	r := &sack1151Reader{body: body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: sackByteSource{rows: map[uint16]*sackByteRecord{}}}
 	for _, loc := range locations {
 		if _, ok := r.byIndex[loc.ArchiveIndex]; ok {
@@ -231,7 +231,7 @@ func sackByteWalk(f *sav.File) (sackByteSource, error) {
 	if err != nil {
 		return sackByteSource{}, err
 	}
-	return sacks1151Read(f.Body, f.World.SessionOff+4374, locations)
+	return sackRead(f.Body, f.World.SessionOff+4374, locations)
 }
 
 func (s sackByteSource) indices() []uint16 {

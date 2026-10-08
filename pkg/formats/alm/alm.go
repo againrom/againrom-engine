@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 
 	"golang.org/x/text/encoding/charmap"
 )
@@ -338,6 +339,9 @@ type Map struct {
 	Groups []Group
 
 	Units []Unit // type6; empty when the record is absent
+	// AuthoredUnits is Units as decoded. A loader that withdraws placements
+	// from Units leaves it whole.
+	AuthoredUnits []Unit
 
 	Extension [3][]byte
 
@@ -859,6 +863,7 @@ func (m *Map) decodeUnits(p []byte) error {
 		}
 	}
 	m.Units = units
+	m.AuthoredUnits = slices.Clone(units)
 	return nil
 }
 

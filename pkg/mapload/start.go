@@ -1075,6 +1075,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		return nil, Start{}, err
 	}
 	out.SetRules(t.rules())
+	out.CopyDiaryUnits(base)
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
 		return nil, Start{}, err
 	}
@@ -1239,6 +1240,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 		return nil, Start{}, err
 	}
 	out.SetRules(t.rules())
+	out.CopyDiaryUnits(base)
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
 		return nil, Start{}, err
 	}

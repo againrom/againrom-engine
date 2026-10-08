@@ -158,6 +158,9 @@ var nstPinned = []struct {
 		{"effectWalking", "bool"},
 		// 1135: same class again.
 		{"savedDiaries", "[]sim.SavedDiary"},
+		// Install-derived Diary input (the Units length and each placed
+		// creature's row), carried across a decode like rules and ghost.
+		{"diary", "sim.diaryRuntime"},
 	}},
 	{"Entity", reflect.TypeOf(Entity{}), []nstField{
 		{"SourceBinding", "sim.SourceBinding"},

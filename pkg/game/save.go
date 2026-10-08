@@ -49,6 +49,9 @@ type Snapshot struct {
 	CityObjects  *cityObjectTopology
 	// cityGroups is the town's live Player group membership at capture.
 	cityGroups []cityLiveGroup
+	// knowledge is the town's carried Player Diary at capture (UNIT-148,
+	// SAV-847). The town SAV writes it into the Player's Diary record.
+	knowledge []sim.SavedDiary
 	// NativeMissionTerrain requests the original writer's own scoped
 	// block-plane row set (a delta inside its own sweep window, only where
 	// a cell's dynamic byte exceeds the ingested baseline) instead of the
@@ -299,6 +302,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 	s.OfferLabels = snapshotOfferLabels(t)
 	s.CityObjects = t.cityObjects.Clone()
 	s.cityGroups = slices.Clone(t.cityGroups)
+	s.knowledge = slices.Clone(t.knowledge)
 	s.HeroGrantState = true
 	for chapter, consumed := range t.heroGrants {
 		if consumed {
@@ -393,6 +397,7 @@ func restoreTown(c Campaign, s Snapshot) *Town {
 	}
 	t.cityObjects = s.CityObjects.Clone()
 	t.cityGroups = slices.Clone(s.cityGroups)
+	t.knowledge = slices.Clone(s.knowledge)
 	t.gold = s.Gold
 	if s.MercenaryState && !restoredCampaign {
 		t.mercPool, t.mercEnabled, t.mercHired = s.MercenaryPool, s.MercenaryEnabled, s.MercenaryHired

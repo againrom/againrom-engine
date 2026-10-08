@@ -225,6 +225,7 @@ func (s *CampaignSession) carryMissionHome(in townInstall, n int, party []maploa
 	// mission's payment is applied. Both are the same participant-owned u32.
 	if w != nil && s.Town != nil {
 		s.Town.gold = int(w.Purse(sim.SelfSlot))
+		s.Town.carryKnowledge(w)
 	}
 	if address, ok := MissionMap(n); ok && s.Town != nil {
 		s.Town.lastMap = originalMapName(address)

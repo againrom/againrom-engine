@@ -523,7 +523,8 @@ type PanelSubject struct {
 	// UnitNameIndex and DetailLevel are presentation-only inputs decoded by
 	// TEXT-UI-034..036. UnitNameIndex supplies the class-name fallback only
 	// when Name is empty. They never enter simulation or persistence. Current
-	// production producers deliberately use full detail (7).
+	// town, shop and generator panels use full detail (7); the mission panel
+	// states the unit's knowledge level.
 	UnitNameIndex int
 	DetailLevel   int
 	DetailSet     bool
@@ -1150,14 +1151,14 @@ func panelText(s PanelSubject, f PanelField) (string, bool) {
 	case PanelFieldName:
 		return PanelSubjectName(s)
 	case PanelFieldHealth:
-		return fmt.Sprintf("%d/%d", s.HP, s.MaxHP), panelPoolPositive(s, s.MaxHP)
+		return fmt.Sprintf("%d/%d", s.HP, s.MaxHP), panelPoolPositive(s, s.MaxHP) && panelDetailAtLeast(s, 1)
 	case PanelFieldMana:
 		// THE HEALTH ARM'S OWN SHAPE, and the one field here that can be absent
 		// for a reason other than "unknown": a unit with no mana system has a
 		// maximum of zero, and that is a fact about the unit rather than a caller
 		// that never filled the field in — the same "nothing to say" rule
 		// PanelFieldCount already uses, on a different test.
-		return fmt.Sprintf("%d/%d", s.Mana, s.MaxMana), s.MaxMana > 0
+		return fmt.Sprintf("%d/%d", s.Mana, s.MaxMana), s.MaxMana > 0 && panelDetailAtLeast(s, 1)
 	case PanelFieldCell:
 		if s.Unplaced {
 			return "-, -", true
@@ -1182,15 +1183,16 @@ func panelText(s PanelSubject, f PanelField) (string, bool) {
 		// so the formatter, not this switch, decides the row's width.
 		return panelSkillText(s.Char.Skills, s.Char.Band), s.Char.Known && panelDetailAbove(s, 6)
 	case PanelFieldWeapon:
-		return s.Char.Weapon, s.Char.Known && s.Char.Weapon != ""
+		return s.Char.Weapon, s.Char.Known && s.Char.Weapon != "" && panelDetailAtLeast(s, 7)
 	case PanelFieldWorn:
-		return panelWornText(s.Worn)
+		worn, ok := panelWornText(s.Worn)
+		return worn, ok && panelDetailAtLeast(s, 7)
 	case PanelFieldExperience:
 		return fmt.Sprintf("%d", s.Char.Experience), s.Char.Known
 	case PanelFieldProtection:
-		return panelFamilyText(s.Char.Protection), s.Char.Known && panelDetailAbove(s, 6)
+		return panelFamilyText(s.Char.Protection), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldResistance:
-		return panelFamilyText(s.Char.Resistance), s.Char.Known && panelDetailAbove(s, 6)
+		return panelFamilyText(s.Char.Resistance), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldSight:
 		if s.Char.Sight256 != 0 {
 			// HERO-104: whole = raw >> 8, one decimal truncated toward zero.
@@ -1217,36 +1219,38 @@ func panelText(s PanelSubject, f PanelField) (string, bool) {
 		return fmt.Sprintf("%d", s.Char.Skills[5]), s.Char.Known && panelDetailAbove(s, 6)
 
 	case PanelFieldProtFire:
-		return fmt.Sprintf("%d", s.Char.Protection[0]), s.Char.Known && panelDetailAbove(s, 6)
+		return fmt.Sprintf("%d", s.Char.Protection[0]), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldProtWater:
-		return fmt.Sprintf("%d", s.Char.Protection[1]), s.Char.Known && panelDetailAbove(s, 6)
+		return fmt.Sprintf("%d", s.Char.Protection[1]), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldProtAir:
-		return fmt.Sprintf("%d", s.Char.Protection[2]), s.Char.Known && panelDetailAbove(s, 6)
+		return fmt.Sprintf("%d", s.Char.Protection[2]), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldProtEarth:
-		return fmt.Sprintf("%d", s.Char.Protection[3]), s.Char.Known && panelDetailAbove(s, 6)
+		return fmt.Sprintf("%d", s.Char.Protection[3]), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldProtAstral:
-		return fmt.Sprintf("%d", s.Char.Protection[4]), s.Char.Known && panelDetailAbove(s, 6)
+		return fmt.Sprintf("%d", s.Char.Protection[4]), s.Char.Known && panelDetailAtLeast(s, 6)
 
 	case PanelFieldHealthHeading:
 		// A HEADING RESOLVES TO NOTHING AND SAYS IT HAS SOMETHING. The empty
 		// value is what composeItems paints after the label — nothing — and
 		// the true keeps panelItems from dropping the row. Health is stated
 		// for every unit that exists, so this heading is too.
-		return "", panelPoolPositive(s, s.MaxHP)
+		return "", panelPoolPositive(s, s.MaxHP) && panelDetailAtLeast(s, 1)
 	case PanelFieldManaHeading:
 		// THE MANA ROW'S OWN GATE, restated rather than referenced: a unit with no
 		// mana pool has a maximum of zero, and a heading standing over a row that
 		// is not there is the defect this gate exists to prevent.
-		return "", s.MaxMana > 0
-	case PanelFieldSkillsHeading, PanelFieldResistHeading:
+		return "", s.MaxMana > 0 && panelDetailAtLeast(s, 1)
+	case PanelFieldSkillsHeading:
 		return "", s.Char.Known && panelDetailAbove(s, 6)
+	case PanelFieldResistHeading:
+		return "", s.Char.Known && panelDetailAtLeast(s, 6)
 
 	case PanelFieldBlank:
 		return "", true
 	case PanelFieldManaCardHeading:
-		return "", s.MaxMana > 0 || (s.Char.Known && s.Char.Band != CharacterBandCreature)
+		return "", (s.MaxMana > 0 || (s.Char.Known && s.Char.Band != CharacterBandCreature)) && panelDetailAtLeast(s, 1)
 	case PanelFieldManaCard:
-		return fmt.Sprintf("%d/%d", s.Mana, s.MaxMana), s.MaxMana > 0 || (s.Char.Known && s.Char.Band != CharacterBandCreature)
+		return fmt.Sprintf("%d/%d", s.Mana, s.MaxMana), (s.MaxMana > 0 || (s.Char.Known && s.Char.Band != CharacterBandCreature)) && panelDetailAtLeast(s, 1)
 
 	case PanelFieldDamage:
 		// OWNER-AUTHORED UI SEMANTICS: a staff whose attack releases a spell has
@@ -1270,7 +1274,7 @@ func panelText(s PanelSubject, f PanelField) (string, bool) {
 	case PanelFieldAbsorption:
 		return fmt.Sprintf("%d", s.Combat.Absorption), s.Combat.Known && panelDetailAbove(s, 3)
 	case PanelFieldSwing:
-		return fmt.Sprintf("%d/%d", s.Combat.AttackCharge, s.Combat.AttackRelax), s.Combat.Known
+		return fmt.Sprintf("%d/%d", s.Combat.AttackCharge, s.Combat.AttackRelax), s.Combat.Known && panelDetailAtLeast(s, 3)
 	case PanelFieldArmorPiercing:
 		return "", s.OriginalPanel.Known && s.OriginalPanel.Flags&0x11 == 0 &&
 			s.OriginalPanel.Byte14A != 0 && panelDetailFull(s)
@@ -1295,6 +1299,10 @@ func panelPlayerCharacter(s PanelSubject) bool {
 
 func panelDetailAbove(s PanelSubject, threshold int) bool {
 	return !s.DetailSet || s.DetailLevel > threshold
+}
+
+func panelDetailAtLeast(s PanelSubject, level int) bool {
+	return !s.DetailSet || s.DetailLevel >= level
 }
 
 func panelDetailFull(s PanelSubject) bool {
@@ -2161,6 +2169,17 @@ func (v *Viewer) panelSubject() (PanelSubject, bool) {
 	return v.panelSubjectFromPresent(present), true
 }
 
+// cardLevel is the level a unit card draws: the unit's own, or the full level
+// while the display reveal is on. The reveal never writes the level back.
+func (v *Viewer) cardLevel(e MapEntity) int {
+	if v.fogReveal || !e.KnowledgeKnown {
+		return cardLevelFull
+	}
+	return e.Knowledge
+}
+
+const cardLevelFull = 7
+
 func (v *Viewer) panelSubjectFromPresent(present []MapEntity) PanelSubject {
 	e := present[0]
 	// The two groups are CARRIED ACROSS from the entry, not looked up here.
@@ -2171,7 +2190,7 @@ func (v *Viewer) panelSubjectFromPresent(present []MapEntity) PanelSubject {
 		Mana: e.Mana, MaxMana: e.MaxMana, Cell: e.Cell,
 		Selected: len(present), Combat: e.Combat, Char: e.Char, Speed: e.Speed,
 		Weight: e.Load, WeightKnown: true, UnitNameIndex: e.UnitNameIndex,
-		DetailLevel: 7, DetailSet: true, Words: v.words, OriginalPanel: e.OriginalPanel,
+		DetailLevel: v.cardLevel(e), DetailSet: true, Words: v.words, OriginalPanel: e.OriginalPanel,
 		KnownSpells: e.KnownSpells}
 }
 

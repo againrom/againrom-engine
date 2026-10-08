@@ -36,7 +36,7 @@ func sacks1151CheckOrigins(source sackByteSource, origins map[uint16]uint16, bad
 	}
 }
 
-func sacks1151DocumentDifferences(source sackByteSource, origins map[uint16]uint16, doc *sav.DocumentData) []string {
+func sackDocumentDifferences(source sackByteSource, origins map[uint16]uint16, doc *sav.DocumentData) []string {
 	var differences []string
 	bad := func(format string, args ...any) {
 		differences = append(differences, fmt.Sprintf("Document: "+format, args...))
@@ -141,7 +141,7 @@ func sack1151SameItem(got, want sim.ItemStack) bool {
 	return sim.StackStateEqual(got, want)
 }
 
-func sacks1151LiveDifferences(source sackByteSource, origins map[uint16]uint16, bindings *SnapshotSAVObjectBindings, registry *sim.SavedObjects, sacks []sim.Sack) (differences, gaps []string) {
+func sackLiveDifferences(source sackByteSource, origins map[uint16]uint16, bindings *SnapshotSAVObjectBindings, registry *sim.SavedObjects, sacks []sim.Sack) (differences, gaps []string) {
 	bad := func(format string, args ...any) {
 		differences = append(differences, fmt.Sprintf("World: "+format, args...))
 	}
@@ -187,12 +187,17 @@ func sacks1151LiveDifferences(source sackByteSource, origins map[uint16]uint16, 
 	for _, b := range bindings.Unavailable {
 		unavailable[b.ObjectIndex] = b.Reason
 	}
-	if uint32(len(sacks)) != source.count {
-		bad("ground Sack count %d, raw count %d", len(sacks), source.count)
+	physical := map[uint16]bool{}
+	for _, archive := range source.roots {
+		physical[archive] = true
+	}
+	if len(sacks) != len(physical) {
+		bad("ground Sack count %d, raw distinct Sack objects %d (%d root slots)", len(sacks), len(physical), source.count)
 	}
 	var roots []sim.SavedObjectID
 	adopted, ownedItems := 0, 0
 	checkedChildren := map[uint16]bool{}
+	checkedSacks := map[uint16]bool{}
 	for slot, index := range source.roots {
 		r := source.rows[index]
 		token := sack1151Token(r)
@@ -213,6 +218,13 @@ func sacks1151LiveDifferences(source sackByteSource, origins map[uint16]uint16, 
 		if native.Gold != r.values["S3C"] || native.ObjectID != id {
 			bad("%s ground Gold/ObjectID differs", label)
 		}
+		if id != 0 {
+			roots = append(roots, id)
+		}
+		if checkedSacks[index] {
+			continue
+		}
+		checkedSacks[index] = true
 		if id == 0 {
 			if reason := unavailable[local]; reason != "" {
 				gaps = append(gaps, fmt.Sprintf("%s: %s; Token/container/item graph unavailable in World, checked in Document", label, reason))
@@ -221,7 +233,6 @@ func sacks1151LiveDifferences(source sackByteSource, origins map[uint16]uint16, 
 			}
 		} else {
 			adopted++
-			roots = append(roots, id)
 			found := 0
 			for _, s := range registry.Sacks {
 				if s.ID == id {
@@ -337,8 +348,44 @@ func sacks1151LiveDifferences(source sackByteSource, origins map[uint16]uint16, 
 	if !slices.Equal(registry.SackRoots, roots) {
 		bad("Sack root order/aliases %v, raw adopted %v", registry.SackRoots, roots)
 	}
-	if len(registry.Sacks) != adopted {
-		bad("live Sack object population %d, raw adopted %d", len(registry.Sacks), adopted)
+	live, _ := sackLifecycleCounts(registry)
+	seenSackIDs := map[sim.SavedObjectID]bool{}
+	for _, row := range registry.Sacks {
+		if row.ID == 0 || seenSackIDs[row.ID] {
+			bad("zero/duplicate Sack record identity %d", row.ID)
+		}
+		seenSackIDs[row.ID] = true
+		matched := 0
+		for _, binding := range bindings.Sacks {
+			if binding.ID == row.ID {
+				matched++
+				if row.Retired != (binding.ObjectIndex == 0) {
+					bad("Sack %d lifecycle/binding differs", row.ID)
+				}
+			}
+		}
+		if matched != 1 {
+			bad("Sack %d has %d exact lifecycle bindings", row.ID, matched)
+		}
+		if !row.Retired {
+			continue
+		}
+		if row.Gold != 0 || slices.Contains(registry.SackRoots, row.ID) {
+			bad("retired Sack %d retains Gold/root", row.ID)
+		}
+		for _, sack := range sacks {
+			if sack.ObjectID == row.ID {
+				bad("retired Sack %d retains ground carrier", row.ID)
+			}
+		}
+		for _, container := range registry.Containers {
+			if container.Owner == (sim.SavedObjectOwner{Kind: sim.SavedOwnerSack, Object: row.ID}) {
+				bad("retired Sack %d retains container", row.ID)
+			}
+		}
+	}
+	if live != adopted {
+		bad("live Sack object population %d, raw distinct adopted %d", live, adopted)
 	}
 	actualItems := 0
 	for _, item := range registry.Items {
@@ -352,4 +399,88 @@ func sacks1151LiveDifferences(source sackByteSource, origins map[uint16]uint16, 
 		bad("Sack-owned Item population %d, raw adopted %d", actualItems, ownedItems)
 	}
 	return differences, gaps
+}
+
+// SAV-SPELL-044: Spell.This is the saved-address key.
+func sackCurrentOrigins(source sackByteSource, doc *sav.DocumentData) (map[uint16]uint16, error) {
+	if doc == nil || doc.World == nil || len(doc.Objects) > 32767 {
+		return nil, fmt.Errorf("Sack current identity join lacks a bounded complete Document")
+	}
+	type identity struct {
+		class string
+		key   uint32
+	}
+	member := func(class string) string {
+		switch class {
+		case "Sack", "Item", "Weapon", "Armor", "Shield", "Effect":
+			return "Identity"
+		case "Spell":
+			return "This"
+		}
+		return ""
+	}
+	sourceKeys, classes := map[identity]uint16{}, map[string]bool{}
+	for _, archive := range source.indices() {
+		row := source.rows[archive]
+		if row == nil {
+			return nil, fmt.Errorf("raw archive %d has no identity record", archive)
+		}
+		name := member(row.class)
+		key, present := row.values[name]
+		if archive == 0 || name == "" || !present || key == 0 {
+			return nil, fmt.Errorf("raw %s archive %d has missing/zero identity", row.class, archive)
+		}
+		id := identity{row.class, key}
+		if previous := sourceKeys[id]; previous != 0 {
+			return nil, fmt.Errorf("raw %s identity %#x is ambiguous on archives %d/%d", row.class, key, previous, archive)
+		}
+		sourceKeys[id], classes[row.class] = archive, true
+	}
+	current := map[identity]uint16{}
+	for i, row := range doc.Objects {
+		if !classes[row.Class] {
+			continue
+		}
+		name, count, key := member(row.Class), 0, uint32(0)
+		for _, value := range row.Values {
+			if value.Name == name {
+				count++
+				key = value.Value
+			}
+		}
+		if count != 1 || key == 0 {
+			return nil, fmt.Errorf("current %s object %d has missing/zero/duplicate identity member", row.Class, i+1)
+		}
+		id := identity{row.Class, key}
+		if previous := current[id]; previous != 0 {
+			return nil, fmt.Errorf("current %s identity %#x is ambiguous on objects %d/%d", row.Class, key, previous, i+1)
+		}
+		current[id] = uint16(i + 1)
+	}
+	join, used := map[uint16]uint16{}, map[uint16]uint16{}
+	for _, archive := range source.indices() {
+		row := source.rows[archive]
+		local := current[identity{row.class, row.values[member(row.class)]}]
+		if local == 0 {
+			return nil, fmt.Errorf("raw %s archive %d lacks its exact current identity", row.class, archive)
+		}
+		if previous := used[local]; previous != 0 && previous != archive {
+			return nil, fmt.Errorf("distinct raw archives %d/%d collapse into current object %d", previous, archive, local)
+		}
+		join[archive], used[local] = local, archive
+	}
+	return join, nil
+}
+
+func sackLifecycleCounts(registry *sim.SavedObjects) (live, retired int) {
+	if registry != nil {
+		for _, row := range registry.Sacks {
+			if row.Retired {
+				retired++
+			} else {
+				live++
+			}
+		}
+	}
+	return live, retired
 }

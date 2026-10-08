@@ -3,6 +3,7 @@ package alm
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 )
 
 const (
@@ -123,5 +124,6 @@ func (m *Map) decodeUnitsROM2(p []byte) error {
 		}
 	}
 	m.Units = units
+	m.AuthoredUnits = slices.Clone(units)
 	return nil
 }

@@ -66,17 +66,12 @@ func TestOriginalPanelDetailLevelsZeroThroughSeven(t *testing.T) {
 			{PanelFieldDamage, 2}, {PanelFieldToHit, 2},
 			{PanelFieldDefence, 3}, {PanelFieldAbsorption, 3},
 			{PanelFieldBody, 4}, {PanelFieldReaction, 4}, {PanelFieldMind, 4}, {PanelFieldSpirit, 4},
-			{PanelFieldSkillsHeading, 6}, {PanelFieldSkillBlade, 6}, {PanelFieldProtFire, 6},
+			{PanelFieldSkillsHeading, 6}, {PanelFieldSkillBlade, 6}, {PanelFieldProtFire, 5},
+			{PanelFieldResistHeading, 5}, {PanelFieldHealth, 0}, {PanelFieldMana, 0},
 		} {
 			if _, got := panelText(s, tc.field); got != (level > tc.above) {
 				t.Errorf("level %d field %d visible=%v, want level > %d", level, tc.field, got, tc.above)
 			}
-		}
-		if _, ok := panelText(s, PanelFieldHealth); !ok {
-			t.Errorf("level %d lost positive health pool", level)
-		}
-		if _, ok := panelText(s, PanelFieldMana); !ok {
-			t.Errorf("level %d lost positive mana pool", level)
 		}
 	}
 	s.MaxHP, s.MaxMana = 0, 0

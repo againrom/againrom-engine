@@ -34,8 +34,8 @@ func TestReleaseMilestone2Sacks1151(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		d := sacks1151DocumentDifferences(want, join, snapshot.SavedDocument.Document)
-		live, gaps := sacks1151LiveDifferences(want, join, snapshot.SavedDocument.Objects, front.live.world.SavedObjects(), front.live.world.Sacks())
+		d := sackDocumentDifferences(want, join, snapshot.SavedDocument.Document)
+		live, gaps := sackLiveDifferences(want, join, snapshot.SavedDocument.Objects, front.live.world.SavedObjects(), front.live.world.Sacks())
 		if len(d)+len(live)+len(gaps) != 0 {
 			t.Fatal(d, live, gaps)
 		}

@@ -73,6 +73,9 @@ func init() {
 	worldWriters = append(worldWriters, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
+	// The Diary rules read install-derived rows set once per world.
+	worldMethods = append(worldMethods, "SetDiaryUnits", "CopyDiaryUnits", "KnowledgeLevel")
+	worldWriters = append(worldWriters, "SetDiaryUnits", "CopyDiaryUnits")
 	worldMethods = append(worldMethods, "NativeAreaSaveStates", "NativeCastContinuations", "RandomState", "ImportOriginalActionClocks")
 	worldMethods = append(worldMethods, "RestoreRandomState")
 	worldMethods = append(worldMethods, "PendingSpellDeliveries")
@@ -108,6 +111,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"ActorOrderProgress": {reflect.ValueOf(EntityID(7))},
 	"SackValue":          {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(2))},
 	"Entity":             {reflect.ValueOf(EntityID(7))},
+	"KnowledgeLevel":     {reflect.ValueOf(Entity{})},
 	"AutoHealing":        {reflect.ValueOf(uint32(SelfSlot))},
 	"FrozenGroupAI":      {reflect.ValueOf(uint32(SelfSlot)), reflect.ValueOf(uint32(0))},
 	"AppendCorpseStates": {reflect.ValueOf([]CorpseState(nil))},

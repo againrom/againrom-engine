@@ -3210,6 +3210,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		sourceDerive:      w.sourceDerive,
 		burst:             burstState{phases: w.burst.phases},
 		rules:             w.rules,
+		diary:             w.diary,
 		rawSessionHead:    carriedResume.head,
 		rawSessionMid:     carriedResume.mid,
 		savedCellRecords:  carriedResume.cellRecords,

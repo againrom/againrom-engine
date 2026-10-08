@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/sim"
 )
 
 // initialPlayerPurse is written when the campaign participant is created. It
@@ -96,6 +97,10 @@ type Town struct {
 	open bool
 
 	gold int
+
+	// knowledge is the local Player's Diary the last won mission ended with. It
+	// is replaced whole, never edited, and a new campaign starts without one.
+	knowledge []sim.SavedDiary
 
 	// A mission is marked once and paid on that same transition.
 	won map[int]bool

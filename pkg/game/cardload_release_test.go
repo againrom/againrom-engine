@@ -130,6 +130,10 @@ func TestReleaseInformationCardStatesLoadOnlyForTheHeroes(t *testing.T) {
 		if err := app.HeadlessKey("0"); err != nil {
 			t.Fatal(err)
 		}
+		// Enemy cards draw the exactly-7 captions only at full knowledge.
+		if err := app.HeadlessKey("shift-f4"); err != nil {
+			t.Fatal(err)
+		}
 		cardLoadWitness(t, f, app, f.live.mission.ids[0], "hero-m10", true, false)
 		found := false
 		for _, e := range f.live.world.Entities() {
@@ -153,6 +157,10 @@ func TestReleaseInformationCardStatesLoadOnlyForTheHeroes(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := app.HeadlessKey("0"); err != nil {
+			t.Fatal(err)
+		}
+		// Enemy cards draw the exactly-7 captions only at full knowledge.
+		if err := app.HeadlessKey("shift-f4"); err != nil {
 			t.Fatal(err)
 		}
 		found := false

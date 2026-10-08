@@ -1884,6 +1884,13 @@ package storyguard
 // CommentBytes falls for the sweep that replaced the executable locators in
 // comments with opaque aliases; the value is a fresh measure including this
 // paragraph.
+// CommentBytes rose for the enemy card knowledge level and the Diary kill writer:
+// pkg/sim/diaryknowledge.go, pkg/mapload/diaryunits.go, pkg/formats/alm/alm.go, pkg/game/townknowledge.go,
+// the panel gates in pkg/ui/panel.go and the new tests in
+// pkg/sim/diaryknowledge_test.go, pkg/ui/cardknowledge_test.go and
+// pkg/game/enemycard_release_test.go, pkg/game/enemycardtown_release_test.go, and the full-knowledge notes in
+// pkg/game/creaturemagic_release_test.go, pkg/game/cardload_release_test.go and
+// pkg/game/loadedsheets_release_test.go, all new code, including this paragraph.
 // CommentBytes rises for the tavern statistics card's offset: the docs of the
 // new cardRect, cardBoard, shiftedCardBackground and tavernCandidateCardOffset
 // in pkg/ui/townshell.go, new code, including this paragraph.
@@ -1894,7 +1901,7 @@ package storyguard
 // SightWord, skillrepair.go, snapshotHumanFields and the writer census test
 // file, new code, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4840,
+	TestIdentCount: 4838,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1916,5 +1923,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1834,
 	},
-	CommentBytes: 8508772,
+	CommentBytes: 8516095,
 }

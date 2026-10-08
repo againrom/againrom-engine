@@ -145,6 +145,16 @@ func readPlacedSheets(t *testing.T, a *ui.App, live *mapWorld, when string) map[
 	for i := range live.fog.visible {
 		live.fog.visible[i], live.fog.explored[i] = 1, 1
 	}
+	// The cards are read at full knowledge: the kills that reach the loaded
+	// state raise the Diary, and a card at a lower level draws fewer groups.
+	if err := a.HeadlessKey("shift-f4"); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := a.HeadlessKey("shift-f4"); err != nil {
+			t.Fatal(err)
+		}
+	}()
 	if _, stats, err := a.HeadlessCharacterPane(); err != nil {
 		t.Fatalf("%s: %v", when, err)
 	} else if !stats {

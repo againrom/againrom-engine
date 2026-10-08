@@ -458,6 +458,11 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 		relationFrom(groups), authoredSacks, append(authoredStock, loadout...), spellsFor(t),
 		ghostTemplate(t, diff), Structures(m, t))
 	w.SetRules(t.rules())
+	authored := units
+	if m != nil && m.AuthoredUnits != nil {
+		authored = m.AuthoredUnits
+	}
+	w.SetDiaryUnits(diaryRows(t), diaryUnits(authored, t))
 	if err := bindCellTails(w, m); err != nil {
 		return nil, nil, err
 	}
