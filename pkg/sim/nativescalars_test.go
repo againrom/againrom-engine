@@ -514,7 +514,7 @@ func TestNativeScalarPhysicalAttackOverridesMotion(t *testing.T) {
 		{"turning", AttackReady, func(w *World) {
 			e := &w.entities[0]
 			e.RotationSpeed, e.DesiredFacing, e.TurnRemaining, e.TurnTotal = 16, 32, 1, 1
-		}, 0},
+		}, 1},
 		{"casting phase without a held Spell", AttackCasting, func(w *World) {
 			w.entities[0].AttackCountdown = 2
 			w.savedMotion = &savedActorMotionState{Motions: []SavedActorMotion{{Entity: 0, Current: true, Position: SavedActorPosition{FineX: 128, FineY: 128}, ActorAction: 13}}}

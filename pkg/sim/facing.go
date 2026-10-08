@@ -58,20 +58,8 @@ var dirOfSigns = [3][3]int{
 // rather than silently reading north.
 const noDirection = -1
 
-// FacingDir is the direction the facing byte f names: (f + 16) >> 5, masked to
-// the eight — the decoded rounding, transcribed as the first thing the rate law
-// does with a facing (MOVE-RATE-029).
-//
-// It is TOTAL over all 256 bytes and answers in [0, 8), so a facing this build
-// never writes — every one it writes is a multiple of 32 — still names exactly
-// one direction. That matters because the field is carried whole and refused
-// nowhere: a form may hand back any byte, and every consumer of a facing goes
-// through this function.
-//
-// The sum is taken in int rather than in the byte, so the +16 is the addition
-// it looks like and does not depend on the wrap and the mask agreeing. They do
-// agree — the bit a byte add would lose is the bit the mask discards — and
-// relying on that would be a correctness argument where an int costs nothing.
+// FacingDir rounds any facing byte to one of eight movement headings.
+// MOVE-RATE-029
 func FacingDir(f uint8) int { return ((int(f) + facingRound) >> 5) & (directions - 1) }
 
 // facingOfDir is the facing byte that names direction d: d << 5, the store the
@@ -156,8 +144,11 @@ func signIndex(v int32) int {
 // Turning reports the one active shape of the canonical turn state.
 func (e Entity) Turning() bool { return e.TurnRemaining != 0 }
 
-// ANIM-DIR-006, DIV-438
+// ANIM-136
 func (e Entity) DrawnFacing() uint8 {
+	if e.TurnState.Present {
+		return e.TurnState.Drawn & 0xf0
+	}
 	if !e.Turning() || e.TurnTotal == 0 || e.TurnRemaining > e.TurnTotal {
 		return e.Facing
 	}
@@ -186,6 +177,9 @@ func (e *Entity) clearTurn() {
 	e.DesiredFacing = e.Facing
 	e.TurnRemaining = 0
 	e.TurnTotal = 0
+	if !e.Alive() {
+		e.TurnState = TurnState{}
+	}
 }
 
 // facingArc is the unsigned shortest arc between two facing bytes. The tie at
@@ -204,35 +198,46 @@ func facingArc(from, to uint8) int32 {
 // result says the action must wait. A non-positive rate is the compatibility
 // arm: it writes the direction immediately and creates no turn interval.
 //
-// A request for the desired direction of a turn already in progress preserves
-// its remainder. A different request replaces it from the body direction still
-// shown. This is what lets a retained order survive re-issue without making a
-// new order inherit progress toward somewhere else.
-func (e *Entity) requestFacing(desired uint8) bool {
+// Reissuing the target preserves progress. A new target steps from the current
+// body byte and replaces the client run from its drawn sixteenth.
+func (e *Entity) requestFacing(desired uint8, deferStep ...bool) bool {
 	if e.Turning() && e.DesiredFacing == desired {
 		return true
 	}
 	arc := facingArc(e.Facing, desired)
 	if arc == 0 {
+		e.TurnState.Active = false
 		e.clearTurn()
 		return false
 	}
 	if e.RotationSpeed <= 0 {
 		e.Facing = desired
+		e.TurnState.Active = false
 		e.clearTurn()
 		return false
 	}
+	drawn := e.DrawnFacing() >> 4
+	active := e.TurnState.Active || e.Turning()
 	e.DesiredFacing = desired
-	if arc <= facingStep {
-		// The one-direction arm snaps the visible direction but still owes the
-		// decoded one-tick action interval.
-		e.Facing = desired
-		e.TurnRemaining = 1
-		e.TurnTotal = 1
-		return true
+	next, count := turnStep(e.Facing, desired, uint8(e.RotationSpeed), active)
+	deferred := len(deferStep) != 0 && deferStep[0]
+	if !deferred {
+		e.Facing = next
 	}
-	e.TurnRemaining = uint8((int64(arc) + int64(e.RotationSpeed) - 1) / int64(e.RotationSpeed))
+	e.TurnRemaining = count
 	e.TurnTotal = e.TurnRemaining
+	counter := e.TurnState.Counter
+	if !active {
+		counter = 0
+	}
+	if !deferred {
+		counter++
+	}
+	e.TurnState = TurnState{Present: true, Active: e.Facing != desired, Counter: counter,
+		Drawn: drawn << 4, DrawTarget: uint8((int(desired)+8)>>4) & 15, DrawRemaining: e.TurnTotal}
+	if !deferred {
+		e.advanceDrawnTurn()
+	}
 	return true
 }
 
@@ -261,7 +266,11 @@ func (w *World) turnFacing(i int, dx, dy int32, heading func(dx, dy int32) (uint
 		w.invalidateActorMotion(w.entities[i].ID, "native turn supersedes original mover")
 	}
 	oldRemaining, oldDesired := w.entities[i].TurnRemaining, w.entities[i].DesiredFacing
-	wait := w.entities[i].requestFacing(desired)
+	already := w.turnAlreadyStepped(w.entities[i].ID)
+	wait := w.entities[i].requestFacing(desired, already)
+	if wait && !already {
+		w.markTurnStepped(w.entities[i].ID)
+	}
 	if wait && (oldRemaining == 0 || oldDesired != desired) {
 		w.entities[i].startAction(w.tick, int64(w.entities[i].TurnRemaining))
 	}
@@ -291,27 +300,51 @@ func (w *World) clearTurnUnlessCasting(i int) {
 	}
 }
 
-// advanceTurns consumes one already-active turn per eligible actor at the head
-// of its tick. Turns begun by later producers therefore stand for their whole
-// first tick. Stone Curse and off-map presence freeze the state intact.
+// advanceTurns takes one rate step per eligible actor. The per-update guard
+// shares this budget with later producers. Stone Curse and off-map presence
+// freeze both the mover and the client run.
 func (w *World) advanceTurns() {
 	for i := range w.entities {
 		e := &w.entities[i]
-		if !e.Alive() || e.OffMap || w.stoneCursed(i) || !e.Turning() || w.motionActive(e.ID) {
+		if !e.Alive() || e.OffMap || w.stoneCursed(i) || w.motionActive(e.ID) {
 			continue
 		}
-		e.TurnRemaining--
-		if e.TurnRemaining == 0 {
-			e.Facing = e.DesiredFacing
-			e.clearTurn()
+		if !e.Turning() {
+			e.advanceDrawnTurn()
+			continue
 		}
+		if w.turnAlreadyStepped(e.ID) {
+			continue
+		}
+		if e.Facing == e.DesiredFacing {
+			e.TurnState.Active = false
+			e.advanceDrawnTurn()
+			e.clearTurn()
+			continue
+		}
+		if !e.TurnState.Present {
+			drawn := e.DrawnFacing() & 0xf0
+			counter := e.TurnTotal - e.TurnRemaining
+			_, count := turnStep(e.Facing, e.DesiredFacing, uint8(e.RotationSpeed), true)
+			e.TurnTotal = count
+			e.TurnState = TurnState{Present: true, Active: true, Counter: counter,
+				Drawn: drawn, DrawTarget: uint8((int(e.DesiredFacing)+8)>>4) & 15,
+				DrawRemaining: count}
+		}
+		e.Facing, e.TurnRemaining = turnStep(e.Facing, e.DesiredFacing, uint8(e.RotationSpeed), e.TurnState.Active)
+		w.markTurnStepped(e.ID)
+		e.TurnState.Active = e.Facing != e.DesiredFacing
+		e.TurnState.Counter++
+		e.advanceDrawnTurn()
 	}
 }
 
-// turnFault refuses turn states no runtime producer can make. Current facing
-// remains total over all 256 byte values; only an ACTIVE desired direction has
-// the eight-direction quantum the producer writes.
+// turnFault bounds persisted turn operands. Both facing bytes remain total
+// over all 256 values, including targets retained from original saves.
 func turnFault(e Entity) error {
+	if !e.TurnState.Present && e.TurnState != (TurnState{}) || e.TurnState.DrawTarget > 15 || e.TurnState.DrawRemaining > 128 {
+		return fmt.Errorf("invalid turn message state")
+	}
 	if !e.Turning() {
 		if e.DesiredFacing != e.Facing {
 			return fmt.Errorf("inactive turn desires facing %d while current facing is %d", e.DesiredFacing, e.Facing)
@@ -330,13 +363,10 @@ func turnFault(e Entity) error {
 	if e.TurnRemaining > 128 {
 		return fmt.Errorf("active turn holds impossible remainder %d", e.TurnRemaining)
 	}
-	if e.TurnTotal == 0 || e.TurnTotal > 128 || e.TurnRemaining > e.TurnTotal {
+	if e.TurnTotal == 0 || e.TurnTotal > 128 {
 		return fmt.Errorf("active turn holds remainder %d outside total duration %d", e.TurnRemaining, e.TurnTotal)
 	}
-	if e.DesiredFacing%facingStep != 0 {
-		return fmt.Errorf("active turn desires non-direction facing %d", e.DesiredFacing)
-	}
-	if e.DesiredFacing == e.Facing && (e.TurnRemaining != 1 || e.TurnTotal != 1) {
+	if e.DesiredFacing == e.Facing && e.TurnRemaining != 1 {
 		return fmt.Errorf("active turn holds equal facings for %d/%d ticks", e.TurnRemaining, e.TurnTotal)
 	}
 	return nil

@@ -1921,7 +1921,7 @@ package storyguard
 // sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
 // includes that new-code documentation and this explanation.
 var Committed = Baseline{
-	TestIdentCount: 4708,
+	TestIdentCount: 4699,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1941,7 +1941,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1831,
+		"longcommentgroups":      1829,
 	},
-	CommentBytes: 8517539,
+	CommentBytes: 8512057,
 }

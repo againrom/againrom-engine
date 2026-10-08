@@ -5152,6 +5152,12 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 
 		frames := c.TierFrames(tier)
+		if e.DrawingTurn() && len(frames) > 0 {
+			facing := ((int(e.DrawnFacing()) >> 4) + 8) & 15
+			frame, mirror := terrain.SelectStandingFrame(c.Anim, len(frames), facing)
+			draws[i].Art, draws[i].Frame, draws[i].Mirror = c, frames[frame], mirror
+			continue
+		}
 
 		// THE SWING PATH, and it falls through exactly as the death path above
 		// does: a class with no attack block, an empty track, a failed gate or an

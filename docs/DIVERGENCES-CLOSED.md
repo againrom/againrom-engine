@@ -11,6 +11,13 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## Turn rate and standing facing
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-437 | mover rate / construction and derive producers | Preserve restored mover bytes and implement established rate producers | `MOVE-106`, `MOVE-RATE-053` and `MOVE-RATE-054` give the Human derived-speed byte, its effect producer and the independent creature table rate | Installed Human placements and party spawn use the low byte of derived speed. Native rearm, speed effects and inventory load mutations refresh the low byte of `aloneSpeed`; source-backed derive preserves its claimed arithmetic. Original LOAD retains its saved byte until an actual derive. Creature table rates remain independent. Formerly native Human loadouts retained a flat default rate | FIDELITY-DEBT | Closed for the known rate producers. Construction and first-turn chronology remain `DIV-2568`; native overload ordering remains `DIV-1421` | Reopen if a covered Human derive fails to publish its resulting mover byte | CLOSED |
+| DIV-438 | simulation / sixteen-way standing facing during a turn | Draw every sixteenth of the standing turn | `ANIM-136` and `ANIM-DIR-006` give the whole sixteen-way standing facing and the message-count accumulator; move and attack blocks halve that facing | `DrawingTurn` selects standing art before idle, move or attack. The selector keeps every sixteenth, with the nine-frame layout mirroring headings 9 through 15. The accumulator follows the rounded message target over the fixed message count. Formerly turning art was quantized to eight headings and could use the idle block | FIDELITY-DEBT | Closed: the standing selector and client arithmetic follow the claims. Delivery alignment and action replacement remain `DIV-2570` | Reopen if a client turn loses a sixteenth or bypasses standing art | CLOSED |
+
 The shop price figure hotfix settles the grid figure's placement and shadow:
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

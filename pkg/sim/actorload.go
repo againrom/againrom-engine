@@ -170,9 +170,11 @@ func (w *World) finishLoadMutation(i int, before loadMutation) bool {
 		} else {
 			e.HumanMovement = HumanMovement{}
 		}
+		e.refreshHumanTurnRate()
 		return true
 	}
 	w.recomputeLoad(i)
+	w.entities[i].refreshHumanTurnRate()
 	return true
 }
 

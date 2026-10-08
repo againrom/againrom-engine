@@ -207,15 +207,6 @@ const skillSlots = 6
 // constructor's not-alive block takes no clause for it. The four fields that
 // block does clear are residue of a state the unit has left; a body faces the way
 // it fell, which is a fact about it rather than a leftover of one.
-//
-// NOTHING IN THIS PACKAGE READS IT. A blow is not refused for facing away
-// and a step is not withheld until a mover has turned, and BOTH of those are
-// the engine's behaviour rather than an absence here — the step gate and
-// the turn's own cost are named divergences. THIS IS THE SEAM: the story
-// that gives a turn its `ceil(arc / RotationSpeed)` ticks, its route
-// destruction and its step gate writes them against this byte unaltered,
-// because the byte is the one the arc arithmetic is over. What a later story
-// changes here is a value and a gate, never the representation.
 type Entity struct {
 	SourceBinding    SourceBinding
 	NativeBasis      NativeActorBasis
@@ -237,16 +228,13 @@ type Entity struct {
 	Stride          NativeStride
 	GroupSpeed      uint8
 	Facing          uint8
-	// DesiredFacing, TurnRemaining and TurnTotal are the canonical turn between the
-	// direction the body still shows and the direction its retained action
-	// requires. A zero remainder is the one inactive shape, with both facings
-	// equal and a zero total. Positive remainders are consumed by the actor tick
-	// before movement, book wind-up or attack cadence may advance. TurnTotal is
-	// the request-time duration and does not change when equipment recomputes the
-	// live RotationSpeed during an active turn.
+	// TurnRemaining is the last call's pre-step estimate. A completed call keeps
+	// one interval until the next actor update. TurnTotal is the message count;
+	// later rate changes affect the server step, not the client message run.
 	DesiredFacing uint8
 	TurnRemaining uint8
 	TurnTotal     uint8
+	TurnState     TurnState
 	// PotionStats are permanent single-use gains in Body, Reaction, Mind,
 	// Spirit order. Headroom is the derived sheet's remaining capacity to the
 	// effective attribute cap; the post-step derive owns its refresh.
@@ -1771,6 +1759,8 @@ func newPlane(b Bounds, plane []byte, absent byte, what string) ([]byte, error) 
 type World struct {
 	tick              uint64
 	damageObservation *damageObservation
+	turnSteps         map[EntityID]struct{}
+	turnStepScope     bool
 
 	// A source session uses tick as its uint32 SubTick and keeps FullTick
 	// independently. Without this presence bit the historical native uint64

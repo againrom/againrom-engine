@@ -79,6 +79,17 @@ func SelectUnitFrame(a UnitAnim, frameCount int, moving bool, oct, tick, odo int
 	return frame, mirror
 }
 
+func SelectStandingFrame(a UnitAnim, frameCount, facing int) (frame int, mirror bool) {
+	frame = facing
+	if a.S == 9 && facing > 8 {
+		frame, mirror = 16-facing, true
+	}
+	if frame < 0 || frame >= frameCount {
+		return 0, false
+	}
+	return frame, mirror
+}
+
 // deathPhaseTicks is how long ONE dying frame is held: two ticks
 // (ANIM-DEATH-007, TERR-SPR-047).
 //

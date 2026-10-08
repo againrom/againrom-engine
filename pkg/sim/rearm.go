@@ -105,6 +105,7 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 	e.RotationSpeed = d.RotationSpeed
 	if e.RotationSpeed <= 0 && e.Turning() {
 		e.Facing = e.DesiredFacing
+		e.TurnState.Active = false
 		e.clearTurn()
 	}
 	// The capacity is assigned flat: no effect delta touches it, no clamp
@@ -119,6 +120,7 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 	if e.ActorLoad.Present {
 		e.Load = e.ActorLoad.CurrentLoad()
 	}
+	e.refreshHumanTurnRate()
 	sight := int32(d.ScanRange) + w.effectDelta(id, EffectScanRange)
 	if sight < 0 {
 		sight = 0
