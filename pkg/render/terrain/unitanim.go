@@ -52,6 +52,15 @@ type UnitAnim struct {
 }
 
 func SelectUnitFrame(a UnitAnim, frameCount int, moving bool, oct, tick, odo int) (frame int, mirror bool) {
+	return selectUnitFrame(a, frameCount, moving, 2*oct, oct, tick, odo)
+}
+
+// ANIM-DIR-006
+func SelectUnitFacingFrame(a UnitAnim, frameCount int, moving bool, facing, tick, odo int) (frame int, mirror bool) {
+	return selectUnitFrame(a, frameCount, moving, facing, facing>>1, tick, odo)
+}
+
+func selectUnitFrame(a UnitAnim, frameCount int, moving bool, facing, oct, tick, odo int) (frame int, mirror bool) {
 	switch {
 	case moving && a.MoveOK && len(a.MoveTrack) > 0:
 		slot, m := unitSlot(a.D, oct)
@@ -62,16 +71,7 @@ func SelectUnitFrame(a UnitAnim, frameCount int, moving bool, oct, tick, odo int
 		frame = a.TailBase + slot*a.IdleSlot + a.IdleTrack[unitStep(tick, len(a.IdleTrack))]
 		mirror = m
 	default:
-		// Standing is 16-way over the eight octants, g = 2*oct. The S 9
-		// layout stores frames 0..8 and mirrors the rest as 16-g; every
-		// other layout draws g plain — at S 16 that is the whole block,
-		// and any other S yields an index for the guard to judge.
-		g := 2 * oct
-		if a.S == 9 && g > 8 {
-			frame, mirror = 16-g, true
-		} else {
-			frame, mirror = g, false
-		}
+		return SelectStandingFrame(a, frameCount, facing)
 	}
 	if frame < 0 || frame >= frameCount {
 		return 0, false

@@ -8,7 +8,7 @@ import (
 )
 
 // UnitAnimRow is one class's audit line: the descriptor's predicted sheet
-// total against the sheet's own frame count, and the full selection domain
+// total against the sheet's own frame count, and the octant selection domain
 // split into the selections the bounds guard left unchanged and the ones it
 // refused. Every tuple of the domain lands in exactly one of the two counts,
 // so InRange + Guarded is the domain's size. A Predicted that differs from
@@ -23,7 +23,7 @@ type UnitAnimRow struct {
 	Guarded   int   // selections the bounds guard refused
 }
 
-// UnitAnimAudit sweeps, per class of the set, the FULL selection domain —
+// UnitAnimAudit sweeps, per class of the set, the octant compatibility domain —
 // both states, all 8 octants, every step of each track — through
 // terrain.SelectUnitFrame, and reports one row per class, ascending by id
 // (AC-10).
@@ -48,7 +48,7 @@ func UnitAnimAudit(set *terrain.UnitSet) []UnitAnimRow {
 	return rows
 }
 
-// auditUnitClass sweeps one class's whole selection domain and counts each
+// auditUnitClass sweeps one class's octant selection domain and counts each
 // tuple in range or guarded.
 //
 // THE DOMAIN IS RECTANGULAR: both states x 8 octants x one full period of the
