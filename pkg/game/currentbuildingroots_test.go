@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"reflect"
-	"strings"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -195,7 +194,7 @@ func TestCurrentBuildingRootsInitializeUnrepresentedCellSuffix(t *testing.T) {
 	checkCurrentBuildingSources(t, coldCurrentScript(t, cold, nextRaw).live.world, live, source)
 }
 
-func TestCurrentBuildingRootsRejectCrossObjectIdentityCollisionAtomically(t *testing.T) {
+func TestCurrentBuildingRootsIgnoreLoadedIdentityCollision(t *testing.T) {
 	f, snapshot, world, _, source := currentBuildingRootFixture(t, true)
 	for i := range snapshot.SavedDocument.Document.Objects {
 		record := &snapshot.SavedDocument.Document.Objects[i]
@@ -208,13 +207,27 @@ func TestCurrentBuildingRootsRejectCrossObjectIdentityCollisionAtomically(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = f.materializeCurrentWorld(snapshot, world)
-	if err == nil || !strings.Contains(err.Error(), "cross-object Identity/This collision") {
-		t.Fatal("Building key collision picked a donor or reminted the current key", err)
+	// The loaded document is not a source: its colliding Unit key is not
+	// read, and each object keeps the key the World holds for it.
+	state, err := f.materializeCurrentWorld(snapshot, world)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owners := 0
+	for _, record := range state.Document.Objects {
+		if key, err := savedStructureValue(&record, "Identity"); err == nil && key == source[0].SourceKey {
+			owners++
+			if record.Class == "Unit" {
+				t.Fatal("loaded Unit key replaced the World identity")
+			}
+		}
+	}
+	if owners != 1 {
+		t.Fatal("Building key is not held by exactly one object", owners)
 	}
 	after, err := sav.EncodeDocumentData(*snapshot.SavedDocument.Document)
 	if err != nil || !bytes.Equal(before, after) {
-		t.Fatal("failed Building materialization mutated retained input", err)
+		t.Fatal("Building materialization mutated retained input", err)
 	}
 }
 

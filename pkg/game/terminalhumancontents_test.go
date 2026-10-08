@@ -176,13 +176,23 @@ func TestTerminalHumanContentsSurviveSAVColdLoadAndTicks(t *testing.T) {
 		t.Fatal("terminal source fine position changed", body)
 	}
 	purse, sacks := f.live.world.Purse(1), f.live.world.Sacks()
+	// A SAVE writes the record from the World: the dead tuple keeps identity,
+	// stage and position, while the retained file contents and the repeated
+	// root are not World state. Every later SAVE writes the same record.
 	for cycle := range 2 {
 		raw = currentRuntimeSave(t, f)
 		written, err := sav.DecodeDocumentData(raw)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := terminalHumanContentsGraph(t, written, identity); !reflect.DeepEqual(got, want) {
+		got := terminalHumanContentsGraph(t, written, identity)
+		if cycle == 0 {
+			if len(got.Roots) != 1 || len(got.Nodes) != 0 {
+				t.Fatalf("World-built terminal Human carries file contents: %+v", got)
+			}
+			want = got
+		}
+		if !reflect.DeepEqual(got, want) {
 			t.Fatalf("cycle %d changed complete contents, identity, order, nulls or aliases:\nwant %+v\ngot %+v", cycle, want, got)
 		}
 		cold := openCurrentRetainedRuntime(t, currentRetainedRuntimeFront(t), raw)

@@ -21,6 +21,7 @@ type generatedDocumentBuilder struct {
 	reservedKeys         []uint32
 	currentKeys          map[uint32]bool
 	documentKeysReserved bool
+	heldKeys             map[uint32]bool
 }
 
 func constructedGeneratedItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {

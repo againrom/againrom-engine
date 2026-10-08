@@ -62,13 +62,16 @@ func (s *milestoneActorSubjects) terminal(archive uint16, off int, class string,
 	}
 	owners := 0
 	var difference string
+	// The blob row carries no worn mask; LOAD takes it from the dead root.
+	want := *current.Terminal
+	want.Worn = savedRecordWornMask(r)
 	for _, terminal := range m.World.CurrentTerminalActors() {
 		if terminal.ID != current.ID {
 			continue
 		}
 		owners++
-		if terminal != *current.Terminal || terminal.Stage != stage || terminal.HP != int32(hp) || len(position) != 4 || position[0] != byte(terminal.Cell) || position[1] != byte(terminal.Cell>>8) || position[2] != byte(terminal.Cell) || position[3] != byte(terminal.Cell>>8) {
-			difference = fmt.Sprintf("terminal actor subject current tuple differs: manager=%+v input=%+v raw Stage=%d HP=%d Cells=%x", terminal, *current.Terminal, stage, hp, position)
+		if terminal != want || terminal.Stage != stage || terminal.HP != int32(hp) || len(position) != 4 || position[0] != byte(terminal.Cell) || position[1] != byte(terminal.Cell>>8) || position[2] != byte(terminal.Cell) || position[3] != byte(terminal.Cell>>8) {
+			difference = fmt.Sprintf("terminal actor subject current tuple differs: manager=%+v input=%+v raw Stage=%d HP=%d Cells=%x", terminal, want, stage, hp, position)
 		}
 	}
 	if owners != 1 {

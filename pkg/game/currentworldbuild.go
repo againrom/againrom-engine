@@ -1,6 +1,7 @@
 package game
 
 import (
+	"cmp"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -12,7 +13,9 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Materialization fills missing representation from the captured World.
+// materializeCurrentWorld builds the whole SAV document of a mission from the
+// captured World, the installed tables and the map. A loaded game and a new
+// game take this one path; the loaded document is never its base.
 func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotSAVDocument, error) {
 	if f.live == nil || f.live.mission == nil || f.live.mission.state == nil {
 		return nil, fmt.Errorf("current mission lacks installed descriptors")
@@ -23,134 +26,124 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		diaryRows = t.Units.Len()
 	}
 	b := &generatedDocumentBuilder{nextKey: 0x51000000, table: t}
-	state, err := cloneSavedDocument(s.SavedDocument)
-	if err != nil {
-		return nil, err
-	}
-	fresh := state == nil || state.Document == nil
-	if !fresh {
-		b.doc = *state.Document
-	}
 	if err := b.reserveCurrentWorld(w); err != nil {
 		return nil, err
 	}
-	if fresh {
-		terrain := uint32(0)
-		if sources, _, present := w.SavedStructures(); present && len(sources) != 0 {
-			terrain = binary.LittleEndian.Uint32(sources[0].Position[8:])
-			for _, source := range sources {
-				if binary.LittleEndian.Uint32(source.Position[8:]) != terrain {
-					terrain = 0
-					break
-				}
-			}
-			raw, err := w.MarshalBinary()
-			if err != nil {
-				return nil, err
-			}
-			b.reserveCurrentForm(raw)
-		}
-		if terrain == 0 {
-			terrain = b.identity()
-		}
-		b.doc = sav.DocumentData{Version: sav.DocumentDataVersion, FileVersion: sav.MinVersion, Marker: sav.GeneratedCityMarker,
-			Head:  sav.DocumentHeadData{Mission: uint32(s.Mission), Difficulty: uint32(s.Difficulty), CounterA: uint32(w.Tick()), MapName: originalMapName(ms.Address), PlayerListField: 1},
-			World: &sav.DocumentWorldData{TerrainIdentity: terrain}}
-		state = &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion,
-			GroupBindings: &SnapshotSAVGroupBindings{Version: 1, PlayersPresent: true}, ActorEffects: &SnapshotSAVActorEffects{Version: 1}, Objects: &SnapshotSAVObjectBindings{Version: 2}}
-	} else {
-		b.reservedKeys, err = sav.ReserveDocumentKeys(b.doc, 65536)
-		if err != nil {
-			return nil, err
-		}
+	raw, err := w.MarshalBinary()
+	if err != nil {
+		return nil, err
 	}
-	terrainMissing := b.doc.World.TerrainIdentity == 0
-	if terrainMissing {
-		b.doc.World.TerrainIdentity = b.identity()
+	// Every key the World holds stays reserved, so a minted key never
+	// collides with an identity a current object or reference names.
+	b.reserveCurrentForm(raw)
+	if err := b.reserveWorldEffectKeys(s.SavedDocument, w); err != nil {
+		return nil, err
 	}
+	terrain := currentTerrainKey(w)
+	if terrain == 0 {
+		terrain = b.identity()
+	}
+	b.doc = sav.DocumentData{Version: sav.DocumentDataVersion, FileVersion: sav.MinVersion, Marker: sav.GeneratedCityMarker,
+		Head:  sav.DocumentHeadData{Mission: uint32(s.Mission), Difficulty: uint32(s.Difficulty), CounterA: uint32(w.Tick()), MapName: originalMapName(ms.Address), PlayerListField: 1},
+		World: &sav.DocumentWorldData{TerrainIdentity: terrain}}
+	state := &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion,
+		GroupBindings: &SnapshotSAVGroupBindings{Version: 1, PlayersPresent: true}, ActorEffects: &SnapshotSAVActorEffects{Version: 1}, Objects: &SnapshotSAVObjectBindings{Version: 2}}
 	state.Document = &b.doc
-	if state.GroupBindings == nil {
-		state.GroupBindings = &SnapshotSAVGroupBindings{Version: 1, PlayersPresent: true}
-	}
 	if _, _, groups := w.SavedGroups(); groups {
 		_, players := w.SavedGroupPlayers()
 		state.GroupBindings.PlayersConstructed = !players
 	}
 	b.state = state
 	currentPlayers, haveCurrentPlayers := w.CurrentPlayers()
-	rootIDs := map[uint16]uint32{}
-	for _, row := range currentPlayerRoots(state) {
-		rootIDs[row.ObjectIndex] = row.ID
-	}
-	keys, objects := map[uint32]uint32{}, map[uint32]uint16{}
-	for _, index := range b.doc.Players {
-		if index == 0 {
-			continue
-		}
-		r := &b.doc.Objects[index-1]
-		slot, _ := savedStructureValue(r, "Slot")
-		key, _ := savedStructureValue(r, "This")
-		keys[slot], objects[slot] = key, index
-		found := false
-		for _, p := range state.GroupBindings.Players {
-			found = found || p.ObjectIndex == index
-		}
-		if !found {
-			id := uint32(index)
-			if rootIDs[index] != 0 {
-				id = rootIDs[index]
-			} else if players, present := w.CurrentPlayers(); present {
-				for _, p := range players {
-					if p.Slot == slot {
-						id = p.ID
-					}
-				}
-			}
-			state.GroupBindings.Players = append(state.GroupBindings.Players, SnapshotSAVGroupPlayerBinding{ID: id, ObjectIndex: index})
-		}
-	}
-	var slots []uint32
+	// One Player record is written per current Player; two Players may share
+	// a Slot. An owner Slot no current Player names gets a constructed root.
+	type playerRoot struct{ slot, id uint32 }
+	var roots []playerRoot
+	covered := map[uint32]bool{}
 	if haveCurrentPlayers {
+		seen := map[uint32]bool{}
 		for _, p := range currentPlayers {
-			if !slices.Contains(slots, p.Slot) {
-				slots = append(slots, p.Slot)
+			if seen[p.ID] {
+				return nil, fmt.Errorf("current generated Player has ambiguous exact identities")
 			}
+			seen[p.ID], covered[p.Slot] = true, true
+			roots = append(roots, playerRoot{p.Slot, p.ID})
 		}
-	} else if fresh {
+	} else {
 		for i := range ms.Map.Groups {
-			slots = append(slots, uint32(i+1))
+			slot := uint32(i + 1)
+			covered[slot] = true
+			roots = append(roots, playerRoot{slot: slot})
 		}
 	}
-	for _, e := range w.Entities() {
-		if !slices.Contains(slots, e.Owner) {
-			slots = append(slots, e.Owner)
+	departed, err := currentTerminalBodies(w, ms.Map, t, s.Difficulty)
+	if err != nil {
+		return nil, err
+	}
+	owners := w.Entities()
+	for _, row := range w.CurrentTerminalActors() {
+		if body, held := departed[row.ID]; held && !haveCurrentPlayers {
+			owners = append(owners, body.entity)
+		}
+	}
+	for _, e := range owners {
+		if !covered[e.Owner] {
+			covered[e.Owner] = true
+			roots = append(roots, playerRoot{slot: e.Owner})
 		}
 	}
 	if !haveCurrentPlayers {
-		slices.Sort(slots)
+		slices.SortStableFunc(roots, func(a, b playerRoot) int { return cmp.Compare(a.slot, b.slot) })
 	}
-	changed := fresh || terrainMissing
-	for _, slot := range slots {
-		if objects[slot] != 0 {
-			continue
+	// An actor's Player is the current Player containing its Group, else the
+	// first Player of its owner Slot.
+	containers := map[sim.EntityID]uint32{}
+	if groups, _, present := w.SavedGroups(); present {
+		for _, g := range groups {
+			for _, m := range g.Members {
+				if m.Bound && g.ContainerID != 0 {
+					containers[m.Entity] = g.ContainerID
+				}
+			}
 		}
-		changed = true
-		key := b.identity()
+	}
+	local := currentLocalPlayerRoot(w, s, containers, len(roots), func(i int) (uint32, uint32) { return roots[i].slot, roots[i].id })
+	keys, objects := map[uint32]uint32{}, map[uint32]uint16{}
+	idKeys, idObjects := map[uint32]uint32{}, map[uint32]uint16{}
+	formations, formationsPresent := w.SavedPlayerFormations()
+	state.GroupBindings.FormationsPresent = formationsPresent
+	for rootIndex, root := range roots {
+		slot, currentID := root.slot, root.id
+		key := currentPlayerKey(w, slot, currentID)
+		if key == 0 || b.claimHeldKey(key) {
+			key = b.identity()
+		}
+		trigger, mode := slot, w.FormationMode(slot)
+		if currentID != 0 {
+			for _, f := range formations {
+				if f.PlayerID == currentID {
+					trigger, mode = f.TriggerID, f.Mode
+				}
+			}
+		}
 		r := mustNewRecord("Player")
 		name, color, participant := "", uint32(1), uint32(1)
 		if slot > 0 && int(slot) <= len(ms.Map.Groups) {
 			g := ms.Map.Groups[slot-1]
 			name, color, participant = g.Name, g.Color+1, g.Participant
 		}
-		if slot == sim.SelfSlot {
+		if rootIndex == local {
 			name, participant = nativeCityHeroOf(s.Party).Name, 0
+		} else if participant == 0 {
+			// Exactly one Player is the local human.
+			participant = 1
 		}
 		mustSetText(&r, "Name", name)
 		percent, present := w.AutoHealing(slot)
 		if !present {
 			percent = currentActorOwnerReserve(w, slot)
 		}
-		for _, v := range []sav.DocumentValueData{{Name: "Slot", Value: slot}, {Name: "SlotAgain", Value: slot}, {Name: "This", Value: key}, {Name: "F44", Value: color}, {Name: "Participant", Value: participant}, {Name: "F58", Value: percent}, {Name: "Money", Value: w.Purse(slot)}} {
+		for _, v := range []sav.DocumentValueData{{Name: "Slot", Value: slot}, {Name: "SlotAgain", Value: trigger}, {Name: "This", Value: key}, {Name: "F44", Value: color}, {Name: "Participant", Value: participant}, {Name: "F58", Value: percent}, {Name: "Money", Value: w.Purse(slot)}} {
 			mustSetValue(&r, v.Name, v.Value)
 		}
 		if participant == 0 {
@@ -158,28 +151,21 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			mustSetValue(&r, "F3D", 1)
 		}
 		tail := make([]byte, sav.PlayerTailLen)
-		tail[sav.PlayerTailFormationByte] = w.FormationMode(slot)
+		tail[sav.PlayerTailFormationByte] = mode
 		mustSetRaw(&r, "PRaw32", tail)
 		r.Inline[0].Record = mustNewDiaryRecord(diaryRows, key)
 		index, err := b.append(r)
 		if err != nil {
 			return nil, err
 		}
-		keys[slot], objects[slot] = key, index
-		b.doc.Players = append(b.doc.Players, index)
-		// Current IDs bind roots independently of Slot, including Slot zero.
-		id := uint32(1)
-		currentID := uint32(0)
-		if haveCurrentPlayers {
-			for _, p := range currentPlayers {
-				if p.Slot == slot {
-					if currentID != 0 {
-						return nil, fmt.Errorf("current generated Player Slot has ambiguous exact identities")
-					}
-					currentID = p.ID
-				}
-			}
+		if objects[slot] == 0 {
+			keys[slot], objects[slot] = key, index
 		}
+		if currentID != 0 {
+			idKeys[currentID], idObjects[currentID] = key, index
+		}
+		b.doc.Players = append(b.doc.Players, index)
+		id := uint32(1)
 		for _, p := range state.GroupBindings.Players {
 			if p.ID == ^uint32(0) {
 				return nil, fmt.Errorf("current Player identity namespace exhausted")
@@ -189,8 +175,10 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		if currentID != 0 {
 			id = currentID
 		}
+		// A record built for a current Player is that Player's exact
+		// container; only a record with no current identity is constructed.
 		_, nativePlayers := w.SavedGroupPlayers()
-		state.GroupBindings.Players = append(state.GroupBindings.Players, SnapshotSAVGroupPlayerBinding{ID: id, ObjectIndex: index, Constructed: nativePlayers})
+		state.GroupBindings.Players = append(state.GroupBindings.Players, SnapshotSAVGroupPlayerBinding{ID: id, ObjectIndex: index, Constructed: nativePlayers && currentID == 0})
 	}
 	if err := bindCurrentPlayerRoots(state, w); err != nil {
 		return nil, err
@@ -207,12 +195,89 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			party[id] = s.Party[i]
 		}
 	}
+	ownerKey := func(e sim.Entity) (uint32, uint16) {
+		if id := containers[e.ID]; idObjects[id] != 0 {
+			return idKeys[id], idObjects[id]
+		}
+		return keys[e.Owner], objects[e.Owner]
+	}
+	// writeActor writes one actor record from a World body: a live entity or
+	// the body a terminal row holds.
+	writeActor := func(e sim.Entity, member mapload.PartyMember, retained *sim.OriginalDeadRecord, diary bool) (uint16, uint32, error) {
+		var placement *alm.Unit
+		for i := range ms.Map.Units {
+			if e.MapUnitID != 0 && ms.Map.Units[i].UnitID == e.MapUnitID {
+				placement = &ms.Map.Units[i]
+				break
+			}
+		}
+		key := heldActorKey(w, e.ID)
+		if key == 0 || b.claimHeldKey(key) {
+			key = b.identity()
+		}
+		basis, name, err := currentRecordActor(e, member, nativeCityHeroOf(s.Party), placement, t, key, b.runtime())
+		if err != nil {
+			return 0, 0, err
+		}
+		if retained != nil {
+			basis.SourceBinding.Identity, basis.SourceBinding.Class = retained.Source.Identity, retained.Source.Class
+		}
+		flags := []string{"HasInventory"}
+		if e.Book.WirePresent(e.KnownSpells) {
+			flags = append(flags, "HasSpellbook")
+		}
+		r := mustNewRecord(savedActorClass(basis.SourceBinding.Class), flags...)
+		source := basis.SourceBinding
+		playerKey, _ := ownerKey(e)
+		mustSetToken(&r, nativeCityToken(source.Identity, playerKey, source.TokenRow, source.TypeID))
+		// SAV-1093/SAV-678: ordinary mask 2; observed off-map records 0.
+		mask := uint32(2)
+		if e.OffMap {
+			mask = 0
+		}
+		mustSetValue(&r, "T18", mask)
+		mustSetValue(&r, "RuntimeID", source.RuntimeID)
+		mustSetValue(&r, "T08", uint32(e.MapUnitID))
+		mustSetRaw(&r, "Block12", constructedPositionBlock(e.X, e.Y, b.doc.World.TerrainIdentity))
+		mustSetText(&r, "Name", name)
+		for _, v := range []sav.DocumentValueData{{Name: "U4B", Value: uint32(source.Face)}, {Name: "U4C", Value: uint32(source.ClassFlags)}, {Name: "U148", Value: source.DisplayBacking}, {Name: "U49", Value: uint32(e.TokenSize)}, {Name: "U4A", Value: uint32(e.Domain) + 1}, {Name: "Inventory1C", Value: e.ActorLoad.InsertIndex}, {Name: "Inventory20", Value: uint32(e.ActorLoad.Accumulator)}} {
+			mustSetValue(&r, v.Name, v.Value)
+		}
+		r, err = savedActorValueRecord(r, basis, true)
+		if err != nil {
+			return 0, 0, err
+		}
+		// A party character always has an actor Diary; another actor has one
+		// only when the World holds its Diary.
+		if r.Class != "Unit" && diary {
+			index, err := b.append(mustNewDiaryRecord(diaryRows, 0))
+			if err != nil {
+				return 0, 0, err
+			}
+			mustSetRefs(&r, "Diary", []uint16{index})
+		}
+		if retained != nil {
+			if err := b.currentDeadRecord(&r, *retained); err != nil {
+				return 0, 0, err
+			}
+		}
+		index, err := b.append(r)
+		if err != nil {
+			return 0, 0, err
+		}
+		return index, source.Identity, nil
+	}
 	dead := w.OriginalDeadActors()
+	diaries := map[sim.EntityID]bool{}
+	for _, d := range w.SavedDiaries() {
+		if !d.Owner.Player {
+			diaries[d.Owner.Actor] = true
+		}
+	}
 	for _, e := range w.Entities() {
 		if bound[e.ID] {
 			continue
 		}
-		changed = true
 		member, isParty := party[e.ID]
 		if !isParty {
 			member = s.CurrentRoster[e.ID]
@@ -255,85 +320,34 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 				continue
 			}
 		}
-		var placement *alm.Unit
-		for i := range ms.Map.Units {
-			if e.MapUnitID != 0 && ms.Map.Units[i].UnitID == e.MapUnitID {
-				placement = &ms.Map.Units[i]
-				break
-			}
-		}
-		basis, name, err := currentRecordActor(e, member, nativeCityHeroOf(s.Party), placement, t, b.identity(), b.runtime())
-		if err != nil {
-			return nil, err
-		}
-		if retained != nil {
-			basis.SourceBinding.Identity, basis.SourceBinding.Class = retained.Source.Identity, retained.Source.Class
-		}
-		flags := []string{"HasInventory"}
-		if e.Book.WirePresent(e.KnownSpells) {
-			flags = append(flags, "HasSpellbook")
-		}
-		r := mustNewRecord(savedActorClass(basis.SourceBinding.Class), flags...)
-		source := basis.SourceBinding
-		mustSetToken(&r, nativeCityToken(source.Identity, keys[e.Owner], source.TokenRow, source.TypeID))
-		// SAV-1093/SAV-678: ordinary mask 2; observed off-map records 0.
-		mask := uint32(2)
-		if e.OffMap {
-			mask = 0
-		}
-		mustSetValue(&r, "T18", mask)
-		mustSetValue(&r, "RuntimeID", source.RuntimeID)
-		mustSetValue(&r, "T08", uint32(e.MapUnitID))
-		mustSetRaw(&r, "Block12", constructedPositionBlock(e.X, e.Y, b.doc.World.TerrainIdentity))
-		mustSetText(&r, "Name", name)
-		for _, v := range []sav.DocumentValueData{{Name: "U4B", Value: uint32(source.Face)}, {Name: "U4C", Value: uint32(source.ClassFlags)}, {Name: "U148", Value: source.DisplayBacking}, {Name: "U49", Value: uint32(e.TokenSize)}, {Name: "U4A", Value: uint32(e.Domain) + 1}, {Name: "Inventory1C", Value: e.ActorLoad.InsertIndex}, {Name: "Inventory20", Value: uint32(e.ActorLoad.Accumulator)}} {
-			mustSetValue(&r, v.Name, v.Value)
-		}
-		r, err = savedActorValueRecord(r, basis, true)
-		if err != nil {
-			return nil, err
-		}
-		if r.Class != "Unit" {
-			index, err := b.append(mustNewDiaryRecord(diaryRows, 0))
-			if err != nil {
-				return nil, err
-			}
-			mustSetRefs(&r, "Diary", []uint16{index})
-		}
-		if retained != nil {
-			if err := b.currentDeadRecord(&r, *retained); err != nil {
-				return nil, err
-			}
-		}
-		index, err := b.append(r)
+		index, identity, err := writeActor(e, member, retained, isParty || diaries[e.ID])
 		if err != nil {
 			return nil, err
 		}
 		state.Actors = append(state.Actors, SnapshotSAVActor{EntityID: e.ID, ObjectIndex: index})
 		state.GroupBindings.Members = append(state.GroupBindings.Members, SnapshotSAVGroupMemberBinding{EntityID: e.ID, ObjectIndex: index, Bound: true})
-		if member.StartingHero {
-			mustSetValue(&b.doc.Objects[objects[e.Owner]-1], "Hero", source.Identity)
+		if _, playerObject := ownerKey(e); member.StartingHero {
+			mustSetValue(&b.doc.Objects[playerObject-1], "Hero", identity)
 		}
 	}
-	if added, err := b.appendAbsentDeadRecords(w, ms); err != nil {
-		return nil, err
-	} else {
-		changed = changed || added
-	}
-	if !fresh {
-		added, err := b.currentStructureRoots(w)
+	// A departed actor's record is written from its constructed body at the
+	// terminal row's cell, health and stage.
+	for _, row := range w.CurrentTerminalActors() {
+		body, held := departed[row.ID]
+		if !held || bound[row.ID] {
+			continue
+		}
+		index, _, err := writeActor(body.entity, mapload.PartyMember{}, nil, diaries[row.ID])
 		if err != nil {
 			return nil, err
 		}
-		changed = changed || added
-	}
-	if !changed && state.PlayerPurses != nil {
-		if !w.CurrentPolicy().MotionCarrier {
-			if err := b.currentActorCells(w, ms.Map, f.Archives.Containers); err != nil {
-				return nil, err
-			}
+		state.Actors = append(state.Actors, SnapshotSAVActor{EntityID: row.ID, ObjectIndex: index, Retired: true})
+		if err := b.currentTerminalWorn(index, body.worn, w); err != nil {
+			return nil, err
 		}
-		return state, nil
+	}
+	if _, err := b.appendAbsentDeadRecords(w, ms); err != nil {
+		return nil, err
 	}
 	slices.SortFunc(state.Actors, func(a, b SnapshotSAVActor) int { return int(a.EntityID) - int(b.EntityID) })
 	slices.SortFunc(state.GroupBindings.Members, savedGroupMemberCompare)
@@ -354,29 +368,26 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			return nil, err
 		}
 	}
-	if fresh {
-		if err := b.currentSpatial(w, ms.Map, t, f.Archives.Containers); err != nil {
-			return nil, err
-		}
-		base := sav.NewCityStateData(nativeCityHeroOf(s.Party).Name)
-		b.doc.State = sav.DocumentStateData{RootKind: base.RootKind, DirectoryRecords: base.DirectoryRecords, ValueRecords: base.ValueRecords}
-		b.doc.State.DirectoryRecords = append(b.doc.State.DirectoryRecords, sav.CityStateDirectoryData{Path: "/Fog", Kind: 1})
-		fog := make([]byte, 4)
-		binary.LittleEndian.PutUint32(fog, uint32(ms.Map.Width*ms.Map.Height))
-		b.doc.State.ValueRecords = append(b.doc.State.ValueRecords, sav.CityStateRecordData{Path: "/Fog/FirstState", Value: sav.CityStateValueData{Kind: 2}}, sav.CityStateRecordData{Path: "/Fog/Data", Value: sav.CityStateValueData{Kind: 6, Bytes: fog}})
-		current := w.SavedProjectiles()
-		ids := make([]uint16, len(current.Items))
-		for i, p := range current.Items {
-			ids[i] = p.ID
-		}
-		if err := constructProjectileLeaves(&b.doc, current, ids, map[string]bool{}); err != nil {
-			return nil, err
-		}
-		b.doc.Campaign.Scalars[1] = 1
-	} else if !w.CurrentPolicy().MotionCarrier {
-		if err := b.currentActorCells(w, ms.Map, f.Archives.Containers); err != nil {
-			return nil, err
-		}
+	if err := b.currentSpatial(w, ms.Map, t, f.Archives.Containers); err != nil {
+		return nil, err
+	}
+	base := sav.NewCityStateData(nativeCityHeroOf(s.Party).Name)
+	b.doc.State = sav.DocumentStateData{RootKind: base.RootKind, DirectoryRecords: base.DirectoryRecords, ValueRecords: base.ValueRecords}
+	b.doc.State.DirectoryRecords = append(b.doc.State.DirectoryRecords, sav.CityStateDirectoryData{Path: "/Fog", Kind: 1})
+	fog := make([]byte, 4)
+	binary.LittleEndian.PutUint32(fog, uint32(ms.Map.Width*ms.Map.Height))
+	b.doc.State.ValueRecords = append(b.doc.State.ValueRecords, sav.CityStateRecordData{Path: "/Fog/FirstState", Value: sav.CityStateValueData{Kind: 2}}, sav.CityStateRecordData{Path: "/Fog/Data", Value: sav.CityStateValueData{Kind: 6, Bytes: fog}})
+	current := w.SavedProjectiles()
+	ids := make([]uint16, len(current.Items))
+	for i, p := range current.Items {
+		ids[i] = p.ID
+	}
+	if err := constructProjectileLeaves(&b.doc, current, ids, map[string]bool{}); err != nil {
+		return nil, err
+	}
+	b.doc.Campaign.Scalars[1] = 1
+	if err := b.currentWorldEffects(s.SavedDocument, w); err != nil {
+		return nil, err
 	}
 	rows, err := savedPlayerPurseRows(state.Document, state.GroupBindings)
 	if err != nil {
@@ -397,6 +408,86 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		return nil, err
 	}
 	return state, nil
+}
+
+// currentLocalPlayerRoot is the root of the local human Player: the Player
+// holding the starting hero, by its Group container or owner Slot, else the
+// first root of the local Slot, else the first root.
+func currentLocalPlayerRoot(w *sim.World, s Snapshot, containers map[sim.EntityID]uint32, n int, root func(int) (uint32, uint32)) int {
+	first := func(match func(slot, id uint32) bool) int {
+		for i := range n {
+			if match(root(i)) {
+				return i
+			}
+		}
+		return -1
+	}
+	for i, id := range s.CurrentPartyIDs {
+		if i >= len(s.Party) || !s.Party[i].StartingHero {
+			continue
+		}
+		if c := containers[id]; c != 0 {
+			if at := first(func(_, rid uint32) bool { return rid == c }); at >= 0 {
+				return at
+			}
+		}
+		for _, e := range w.Entities() {
+			if e.ID == id {
+				if at := first(func(slot, _ uint32) bool { return slot == e.Owner }); at >= 0 {
+					return at
+				}
+			}
+		}
+	}
+	if at := first(func(slot, _ uint32) bool { return slot == sim.SelfSlot }); at >= 0 || n == 0 {
+		return at
+	}
+	return 0
+}
+
+// heldActorKey is the key a World cell record holds for its bound actor; it
+// is the actor's written identity, so the cell and the actor stay joined.
+func heldActorKey(w *sim.World, id sim.EntityID) uint32 {
+	var key uint32
+	for _, row := range w.SavedCellRecords() {
+		for _, slot := range []sim.SavedCellActorSlot{row.Ground, row.Air} {
+			if slot.Bound && slot.Entity == id && slot.Key != 0 {
+				if key != 0 && key != slot.Key {
+					return 0
+				}
+				key = slot.Key
+			}
+		}
+	}
+	return key
+}
+
+// currentTerrainKey is the terrain identity the World holds: the key every
+// structure position names, else the one every actor motion names. Zero means
+// the World holds none and the writer mints one.
+func currentTerrainKey(w *sim.World) uint32 {
+	var keys []uint32
+	if sources, _, present := w.SavedStructures(); present {
+		for _, source := range sources {
+			keys = append(keys, binary.LittleEndian.Uint32(source.Position[8:]))
+		}
+	}
+	if len(keys) == 0 {
+		if motions, _, _, present := w.SavedActorMotions(); present {
+			for _, m := range motions {
+				keys = append(keys, m.Position.TerrainKey)
+			}
+		}
+	}
+	if len(keys) == 0 {
+		return 0
+	}
+	for _, key := range keys {
+		if key != keys[0] {
+			return 0
+		}
+	}
+	return keys[0]
 }
 
 func currentRecordActor(e sim.Entity, member, hero mapload.PartyMember, placement *alm.Unit, t *mapload.Table, key, runtime uint32) (sim.Entity, string, error) {
@@ -426,7 +517,8 @@ func currentRecordActor(e sim.Entity, member, hero mapload.PartyMember, placemen
 					row = data.FindHumanByType(t.Humans, member.Class)
 				}
 			}
-			if row >= 0 && row < t.Humans.Len() {
+			// An installed Humans row with no parameters is no definition.
+			if row >= 0 && row < t.Humans.Len() && len(t.Humans.EntryParams(row)) != 0 {
 				def, err := data.NewHumanDef(t.Humans.EntryName(row), t.Humans.EntryParams(row))
 				if err != nil {
 					return e, "", err
@@ -675,4 +767,58 @@ func projectCurrentPatrols(state *SnapshotSAVDocument, w *sim.World) error {
 		}
 	}
 	return nil
+}
+
+// currentPlayerKey is the identity key the World holds for a Player slot: the
+// key its Group references name, else the owner key most of its actors' native
+// scalars name. Zero means the World holds none and the writer mints one.
+func currentPlayerKey(w *sim.World, slot, id uint32) uint32 {
+	groups, _, _ := w.SavedGroups()
+	if id != 0 {
+		// A Group a current Player contains names that Player's key as its
+		// owner reference when the owner Slot is the Player's own.
+		for _, g := range groups {
+			if g.ContainerID == id && g.Owner.Class == 1 && g.Owner.Owner == slot && g.Owner.Key != 0 {
+				return g.Owner.Key
+			}
+		}
+	}
+	for _, g := range groups {
+		for _, ref := range []sim.SavedGroupReference{g.Owner, g.Reference} {
+			if ref.Class == 1 && ref.Owner == slot && ref.Key != 0 {
+				return ref.Key
+			}
+		}
+	}
+	votes := map[uint32]int{}
+	for _, e := range w.Entities() {
+		if e.Owner == slot && e.NativeBasis.ScalarIsKnown(sim.ScalarReference) {
+			if key := e.NativeBasis.Scalars[sim.ScalarReference]; key != 0 {
+				votes[key]++
+			}
+		}
+	}
+	var key uint32
+	for k, n := range votes {
+		if n > votes[key] || n == votes[key] && k < key {
+			key = k
+		}
+	}
+	return key
+}
+
+// claimHeldKey claims a World-held key for one object. It reports true when
+// another object already claimed the key, which then cannot be reused.
+func (b *generatedDocumentBuilder) claimHeldKey(key uint32) bool {
+	if !b.documentKeysReserved {
+		b.reserveCurrentDocumentKeys()
+	}
+	if b.heldKeys == nil {
+		b.heldKeys = map[uint32]bool{}
+	}
+	if b.heldKeys[key] {
+		return true
+	}
+	b.heldKeys[key], b.currentKeys[key] = true, true
+	return false
 }

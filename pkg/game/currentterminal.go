@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"slices"
 
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
@@ -74,6 +75,7 @@ func captureCurrentTerminalValues(w *sim.World, a *currentActionData) error {
 			return fmt.Errorf("current terminal actor %d collides with a live value", terminal.ID)
 		}
 		row := terminal
+		row.Worn = 0 // the departed actor's record holds its worn items
 		a.Values[terminal.ID] = sim.ActorValues{CurrentTerminal: &row}
 	}
 	return nil
@@ -179,7 +181,11 @@ func currentTerminalImportRows(ms *Mission, a *currentActionData) ([]sim.Current
 		if err != nil || object != 0 && (seenObjects[object] || seenKeys[key]) {
 			return nil, fmt.Errorf("current terminal actor %d has an invalid SAV identity", id)
 		}
-		rows = append(rows, *values.CurrentTerminal)
+		row := *values.CurrentTerminal
+		if object != 0 {
+			row.Worn = savedRecordWornMask(&ms.savedDocument.Document.Objects[object-1])
+		}
+		rows = append(rows, row)
 		if object != 0 {
 			seenObjects[object], seenKeys[key] = true, true
 		}
@@ -227,4 +233,22 @@ func currentTerminalActorBindingsFromActions(state *SnapshotSAVDocument, a *curr
 		}
 	}
 	return out, nil
+}
+
+// savedRecordWornMask is the set of equipment slots an actor record holds an
+// item in: HeldWeapon and HeldShield are slots 0 and 1, Worn lists every slot.
+func savedRecordWornMask(r *sav.DocumentRecordData) uint16 {
+	var mask uint16
+	for slot, field := range []string{"HeldWeapon", "HeldShield"} {
+		if refs, _ := savedObjectRefs(r, field); len(refs) != 0 && refs[0] != 0 {
+			mask |= 1 << slot
+		}
+	}
+	refs, _ := savedObjectRefs(r, "Worn")
+	for slot, ref := range refs {
+		if ref != 0 && slot < sim.EquipSlots {
+			mask |= 1 << slot
+		}
+	}
+	return mask
 }

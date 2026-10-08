@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/base"
 	"againrom/pkg/data"
@@ -149,6 +150,7 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	// SAV-792, worldsave.go's own doc comment on currentWorldDocument).
 	native := s.NativeMissionTerrain
 	var err error
+	s.loadedDocument = s.SavedDocument
 	s.SavedDocument, err = f.materializeCurrentWorld(s, &w)
 	if err != nil {
 		return sav.DocumentData{}, err
@@ -237,14 +239,7 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	if err := nativeCityPlayerFormation(&city, s.ApplicationState, nil); err != nil {
 		return sav.DocumentData{}, nil, err
 	}
-	var loaded []sav.CityStateRecordData
-	if s.OriginalCity != nil {
-		loaded = s.OriginalCity.Document.State.ValueRecords
-		if s.OriginalCity.Unavailable != "" {
-			loaded = s.OriginalCity.loadedState
-		}
-	}
-	if err := projectCityApplication(&city, s.ApplicationState, loaded); err != nil {
+	if err := projectCityApplication(&city, s.ApplicationState, s.townOptions); err != nil {
 		return sav.DocumentData{}, nil, err
 	}
 	base, err := sav.CityFromData(city)
@@ -460,4 +455,22 @@ func currentCityItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {
 	item.Kind = kind
 	item.ObjectID = 0
 	return item
+}
+
+// townApplicationOptions takes the option and view leaves of a loaded town.
+func townApplicationOptions(city *SnapshotOriginalCity) []sav.CityStateRecordData {
+	if city == nil {
+		return nil
+	}
+	records := city.Document.State.ValueRecords
+	if city.Unavailable != "" {
+		records = city.loadedState
+	}
+	var out []sav.CityStateRecordData
+	for _, r := range records {
+		if r.Value.Kind == 2 && (r.Path == "/GameOptions/Formation" || slices.Contains(cityApplicationLeaves, r.Path)) {
+			out = append(out, r)
+		}
+	}
+	return out
 }

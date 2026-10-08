@@ -291,6 +291,9 @@ func projectSavedActorMotions(state *SnapshotSAVDocument, world *sim.World) erro
 			next.World.Blocks = append(next.World.Blocks, value)
 		}
 	}
+	// Block rows are keyed by cell in ascending order; an appended row joins
+	// the World-built plane delta at its cell.
+	slices.SortStableFunc(next.World.Blocks, func(a, b sav.BlockRecord) int { return int(a.Cell) - int(b.Cell) })
 	checked, err := sav.CloneDocumentData(next)
 	if err != nil {
 		return err

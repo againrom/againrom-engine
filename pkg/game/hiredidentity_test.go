@@ -178,18 +178,12 @@ func TestHiredActorRenamedCityKeepsDefinitionAndHire(t *testing.T) {
 	}
 }
 
-func TestHiredActorCityResidueKeepsUnmodelledDisplayBits(t *testing.T) {
-	for _, hired := range []bool{false, true} {
-		current := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "U148", Value: 13}}}
-		source := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "U148", Value: 0x12345600}}}
-		mergeCityActorResidue(&current, &source, currentCityActorGraft{CurrentHire: hired})
-		want := uint32(0x12345600)
-		if hired {
-			want |= 13
-		}
-		if current.Values[0].Value != want {
-			t.Fatalf("hired=%v backing=%x want=%x", hired, current.Values[0].Value, want)
-		}
+func TestHiredActorCityResidueTakesNoHireBits(t *testing.T) {
+	current := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "U148", Value: 13}}}
+	source := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "U148", Value: 0x12345600}}}
+	mergeCityActorResidue(&current, &source, currentCityActorGraft{}, unknownRecordSpans())
+	if current.Values[0].Value != 13 {
+		t.Fatalf("hire word=%x, want the constructed 13", current.Values[0].Value)
 	}
 }
 

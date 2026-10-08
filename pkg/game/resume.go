@@ -184,6 +184,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	s.Party = mapload.CloneParty(f.Carried)
 	s.Offered = f.Offered
 	s.OriginalCity = f.originalCity.snapshot()
+	s.townOptions = townApplicationOptions(s.OriginalCity)
 	// A SAVE TAKEN OFF THE MAP SCREEN IS A TOWN SAVE EVEN THOUGH A DRIVER IS
 	// STILL HELD. f.live is set when a map opens and is never cleared —
 	// nothing on the game side runs when a map screen is left — so the

@@ -255,8 +255,20 @@ func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *m
 		}
 	}
 	registry := w.SavedObjects()
+	heldSacks := map[uint16]uint32{}
+	_, heldCells, _, _ := w.SavedActorMotions()
+	for _, row := range heldCells {
+		heldSacks[row.Cell] = binary.LittleEndian.Uint32(row.Payload[16:])
+	}
+	for _, row := range w.SavedCellRecords() {
+		heldSacks[row.Cell] = row.Sack
+	}
 	for _, sack := range w.Sacks() {
-		key := b.identity()
+		// The World's cell record holds the key of the Sack on its cell.
+		key := heldSacks[uint16(sack.X)|uint16(sack.Y)<<8]
+		if key == 0 || b.claimHeldKey(key) {
+			key = b.identity()
+		}
 		r := mustNewRecord("Sack")
 		mustSetToken(&r, nativeCityToken(key, 0, 0, 0))
 		mustSetValue(&r, "RuntimeID", b.runtime())
@@ -339,6 +351,41 @@ func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *m
 		v := cellAt(key)
 		v.Operation, v.Power, v.SourceX, v.SourceY, v.TargetX, v.TargetY = tail.Bytes[0], tail.Bytes[1], tail.Bytes[2], tail.Bytes[3], tail.Bytes[4], tail.Bytes[5]
 		cells[key] = v
+	}
+	// The World's cell records carry each archived cell's layer count, residue
+	// spans and slot keys. The record cell stays present with those fields. A
+	// motion cell's payload supplies the same span where no record holds it
+	// (DIV-2476).
+	_, motionCells, _, _ := w.SavedActorMotions()
+	for _, row := range motionCells {
+		v, p := cellAt(row.Cell), row.Payload
+		v.LayerCount, v.Residue03, v.Residue32 = p[2], p[3], binary.LittleEndian.Uint16(p[50:])
+		cells[row.Cell] = v
+	}
+	for _, row := range w.SavedCellRecords() {
+		v := cellAt(row.Cell)
+		v.LayerCount, v.Residue03 = row.LayerCount, row.Residue0
+		v.Residue32 = binary.LittleEndian.Uint16(row.Residue1[:])
+		v.GroundActor, v.AirActor, v.Layers = row.Ground.Key, row.Air.Key, row.SpellEffects
+		if row.Sack != 0 {
+			v.Sack = row.Sack
+		}
+		// A slot bound to a current actor names the key that actor is
+		// written with.
+		for _, slot := range []struct {
+			s   sim.SavedCellActorSlot
+			key *uint32
+		}{{row.Ground, &v.GroundActor}, {row.Air, &v.AirActor}} {
+			if !slot.s.Bound {
+				continue
+			}
+			for _, a := range b.state.Actors {
+				if a.EntityID == slot.s.Entity && !a.Retired {
+					*slot.key, _ = savedStructureValue(&b.doc.Objects[a.ObjectIndex-1], "Identity")
+				}
+			}
+		}
+		cells[row.Cell] = v
 	}
 	areas, err := w.NativeAreaSaveStates()
 	if err != nil {

@@ -113,8 +113,15 @@ func TestGeneratedCurrentWorldOrdinaryActorFields(t *testing.T) {
 				if next == want[field] {
 					t.Fatal("ordinary control did not change its field")
 				}
-				want[field] = next
 				savedObjectSetValue(actor, field, next)
+				// An actor of an engine-written file loads without a source
+				// binding. Its type is World state, and so is its key, which
+				// the World's cell record holds; its runtime ID, row selector
+				// and face/class come from constructor rules and are not
+				// carried.
+				if field == "T0E" || field == "Identity" {
+					want[field] = next
+				}
 			}
 			afterPolicy, _, err := sav.NativeActions(doc.State)
 			if err != nil || !bytes.Equal(policy, afterPolicy) {
