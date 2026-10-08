@@ -408,7 +408,7 @@ func TestEveryEntityGlyphStandsOnItsOwnCellsMarkerGeometry(t *testing.T) {
 								terrain.SelectionMarkerRects(e.Cell.X, e.Cell.Y, w, h, terrain.CellSize)...)...)
 					}
 					bar, ok := terrain.StatusBarRect(terrain.HealthBar, e.Cell.X, e.Cell.Y, w, h, e.TokenSize, e.Art)
-					fill, pool := terrain.StatusBarFill(bar.Dx(), e.HP, e.MaxHP)
+					fill, pool := terrain.StatusBarFill(terrain.HealthBar, bar.Dx(), e.HP, e.MaxHP)
 					if !ok || !pool {
 						continue
 					}

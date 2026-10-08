@@ -39,8 +39,9 @@ type screenRect struct {
 // content band drawArt paints before this slice exists. So the field is gone
 // and Color applies to everything a pass can hold.
 type overlayPass struct {
-	Color color.RGBA
-	Rects []screenRect
+	HalfAdd bool
+	Color   color.RGBA
+	Rects   []screenRect
 }
 
 // SetObjects configures the placed-objects diagnostic overlay: whether to draw

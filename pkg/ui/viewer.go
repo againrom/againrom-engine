@@ -151,8 +151,9 @@ type Viewer struct {
 	// EVERY POSITION INSIDE THIS PACKAGE IS A FRAME POSITION once it is past
 	// step, command and noticeButtonAt, which are the three doors a window
 	// position comes in through (1026 B4).
-	place  frame.Placement
-	canvas *ebiten.Image
+	place            frame.Placement
+	canvas           *ebiten.Image
+	statusBarScratch *ebiten.Image
 
 	// textSmoothingEnabled is owner decision method C's own on/off switch
 	// (DIV-1385), mirrored from the App by SetTextSmoothing. textOverlay
@@ -3382,6 +3383,10 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	// float32 the drawer takes, never a pixel snap of our own.
 	for _, pass := range v.overlayPasses() {
 		for _, rect := range pass.Rects {
+			if pass.HalfAdd {
+				v.drawStatusBarHalfRect(screen, rect, pass.Color)
+				continue
+			}
 			vector.DrawFilledRect(screen, float32(rect.X), float32(rect.Y), float32(rect.W), float32(rect.H),
 				pass.Color, false)
 		}
