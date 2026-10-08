@@ -12,51 +12,45 @@ const (
 	FogVisible  uint8 = 2
 )
 
-// SetFog stores a participant's fog plane and its own dimensions: one byte
-// per map cell in row-major order, each FogUnseen/FogExplored/FogVisible.
-//
-// A NIL OR EMPTY PLANE MEANS "NO FOG". fogAt's own empty check is what makes
-// that true rather than a convention someone has to keep: a viewer nothing
-// has ever called SetFog on — every viewer built before this story, the
-// standalone developer viewer, the map picker, and every existing test in
-// this package — answers FogVisible for every cell, which is the fog-free
-// answer withScales, the drawable gates and the minimap all already assume.
-// Fog is opt-in at this seam and the mission is the one caller that opts in.
-//
-// cols/rows are the PLANE'S OWN dimensions, not v.grid's (plan R-4): fogAt
-// bounds-checks against these two, so a plane whose size disagrees with the
-// terrain grid answers unseen for the cells outside it rather than reading
-// past the slice or trusting a grid this value was never measured against.
-// Nothing here validates len(plane) against cols*rows either — a short
-// plane is the same disagreement, and fogAt's own bounds check on the
-// index, not a check made here, is what keeps it safe.
+// SetFog projects an ordinary fog sample without changing its backing slice.
+// Cheat exploration and transient visibility live only in the client plane.
 func (v *Viewer) SetFog(plane []byte, cols, rows int) {
+	v.cheatFogSource = plane
+	if len(v.cheatExplored) != 0 {
+		plane = append([]byte(nil), plane...)
+		for i := 0; i < min(len(plane), len(v.cheatExplored)); i++ {
+			if v.cheatExplored[i] != 0 && v.cheatVisible {
+				plane[i] = FogVisible
+			} else if v.cheatExplored[i] != 0 && plane[i] == FogUnseen {
+				plane[i] = FogExplored
+			}
+		}
+	}
 	v.fogPlane, v.fogCols, v.fogRows = plane, cols, rows
 }
 
-// fogAt answers cell (col,row)'s fog state — THE ONLY READ OF THE PLANE
-// ANYWHERE. Every other function in this package that needs to know a cell's
-// fog state calls this one rather than v.fogPlane directly.
-//
-// The reveal is checked FIRST and short-circuits everything below it: while
-// it is on, every cell answers FogVisible and the plane itself is never
-// read, let alone written, which is what makes AC-11's "turning it off
-// restores the previous drawing exactly" true by construction — there is
-// no plane edit for turning it off to undo.
-//
-// AN EMPTY PLANE ALSO ANSWERS FogVisible, and that is the SECOND check
-// rather than folded into the bounds test below: a viewer that was never
-// given a plane at all is a different case from one given a plane whose
-// bounds a particular cell falls outside, and the two answer differently —
-// the first is "fog does not apply here", the second is "this cell fell
-// outside what was measured".
-//
-// A cell outside the plane's own cols/rows answers FogUnseen (plan R-4): the
-// plane's dimensions may disagree with the terrain grid's, and the safe
-// disagreement is to hide rather than to panic or to read past the slice.
-// The same guard covers a plane shorter than cols*rows would imply.
-//
-// Otherwise the stored byte is returned exactly as the plane holds it.
+func (v *Viewer) SetCheatMapReveal(on bool) {
+	v.fogReveal = on
+	if !on {
+		return
+	}
+	v.cheatVisible = true
+	v.cheatExplored = make([]byte, len(v.fogPlane))
+	for i := range v.cheatExplored {
+		v.cheatExplored[i] = 1
+	}
+	v.SetFog(v.cheatFogSource, v.fogCols, v.fogRows)
+}
+
+func (v *Viewer) RefreshCheatFog() {
+	if !v.fogReveal && v.cheatVisible {
+		v.cheatVisible = false
+		v.SetFog(v.cheatFogSource, v.fogCols, v.fogRows)
+	}
+}
+
+// fogAt applies reveal, then reads a bounded cell in the client plane.
+// An empty plane is fog-free; cells outside a nonempty plane are unseen.
 func (v *Viewer) fogAt(col, row int) uint8 {
 	if v.fogReveal {
 		return FogVisible
@@ -94,10 +88,7 @@ func fogScale(state uint8) float32 {
 	return fogScaleTable[state]
 }
 
-// SetFogReveal sets the debug reveal. While on, fogAt answers FogVisible for
-// every cell and the plane is never written — it is a VIEW FLAG, not a
-// plane edit, so nothing this call does needs undoing when it is turned back
-// off (AC-11).
+// SetFogReveal changes the temporary display override without editing fog.
 func (v *Viewer) SetFogReveal(on bool) { v.fogReveal = on }
 
 // ToggleFogReveal flips the reveal and reports the state it left it in —

@@ -101,6 +101,7 @@ no state), or **rides**.
 | `pendingIgnored` | **rides** | parallel ignored-endpoint markers preserve the queue without minting a missing actor or structure. A missing endpoint never dispatches; an absent old queue retains the legacy pending-settings policy |
 | `mission` | derivable | the notice machinery is rebuilt at open; a notice that was on screen when the save was taken is not restored |
 | `fame` | derivable | The observer binds to campaign-owned Snapshot.Fame and baselines current corpse stages at map adoption. Its scratch slices and pointer are rebuilt; campaign counters and the captured result persist separately in Snapshot.Fame |
+| `cheats` | derivable | Privilege and client reveal, knowledge and trace flags reset at mission open or cold LOAD; factory difficulty rebuilds from mission options. Saved gameplay mutations and exploration use the ordinary World and Fog records. DIV-2540 |
 
 ## FR-6 — the mini-menu
 

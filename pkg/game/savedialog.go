@@ -41,6 +41,7 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	if f.Archives != nil {
 		fences = append(fences, f.Archives.Root)
 	}
+	f.configureScreenshot(app, store, fences)
 	f.configureTimedAutosave(app, &current, fences, now, queue, observers...)
 	f.configureQuickSave(app, &current, fences, queue, observers...)
 	app.SetSaveDelete(func(token string) bool {
