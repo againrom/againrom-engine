@@ -166,7 +166,17 @@ func ItemEqual(a, b ItemInstance) bool {
 // CanMergeItemValues is the current container's scalar retention predicate.
 // Node identity and child lifetime belong to the caller's explicit graph.
 func CanMergeItemValues(a, b ItemInstance) bool {
-	return ItemEqual(a, b) && a.Price == b.Price && a.Kind == b.Kind && nativeItemRecordEqual(a.NativeRecord, b.NativeRecord)
+	return ItemEqual(a, b) && a.Price == b.Price && a.Kind == b.Kind && nativeItemMergeEqual(a.NativeRecord, b.NativeRecord)
+}
+
+func nativeItemMergeEqual(a, b *NativeItemRecord) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	x, y := *a, *b
+	x.Token.Identity, y.Token.Identity = 0, 0
+	x.Token.RuntimeID, y.Token.RuntimeID = 0, 0
+	return x == y
 }
 
 // JoinForm is incoming written in held's stored form, and whether that

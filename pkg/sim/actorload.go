@@ -215,11 +215,9 @@ func (w *World) addCarried(i int, item ItemStack, otherActive ...int) bool {
 	if a.Present && !a.ContainerPresent {
 		return false
 	}
-	for k, held := range w.carried[i] {
-		if held.Code != 0 && held.Count != 0 && len(foldContainer([]ItemStack{held, item})) == 1 {
-			w.carried[i][k].Count += item.Count
-			return true
-		}
+	if k := w.firstMergeableHeld(i, item); k >= 0 && w.carried[i][k].ObjectID == 0 {
+		w.carried[i][k].Count += item.Count
+		return true
 	}
 	index := len(w.carried[i])
 	if a.Present {
@@ -235,7 +233,14 @@ func (w *World) addCarried(i int, item ItemStack, otherActive ...int) bool {
 // or -1: the first one CanMergeItemValues accepts, whether or not either side
 // is a bound saved object (ITEM-MERGE-129 retains that destination).
 func (w *World) firstMergeableHeld(i int, item ItemStack) int {
+	var uses map[uint32]int
+	if item.NativeRecord != nil {
+		uses = w.nativeItemIdentityUses()
+	}
 	for k, held := range w.carried[i] {
+		if held.NativeRecord != nil && uses[held.NativeRecord.Token.Identity] > 1 {
+			continue
+		}
 		if held.Code != 0 && held.Count != 0 && CanMergeItemValues(held.Instance(), item.Instance()) {
 			return k
 		}

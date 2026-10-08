@@ -1337,6 +1337,7 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	if a.Policy != nil && !a.Policy.GroupCarrier && ms.savedDocument.GroupBindings != nil {
 		ms.savedDocument.GroupBindings.FormationsPresent = false
 	}
+	repairCurrentNativePacks(ms, a, actorIDs)
 	if err := restoreCurrentPartyMembers(ms, a, table); err != nil {
 		return err
 	}
