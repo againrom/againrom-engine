@@ -260,12 +260,11 @@ func releaseLargeBudget(d int32) int32 { return 5 + d }
 // hero is ordered onto a creature across the map with the attack key and a click,
 // and creature 30 of owner 4, a size-two Ogre, chases him from 25 to 29 cells away
 // over ground where the way round is a few cells longer than the distance. Every
-// route a creature larger than one cell stores onto the hero's cell from
+// route a creature larger than one cell stores toward the hero from
 // releaseLargeParted cells or more must be no longer than its budget plus
-// releaseLargeSlack. With the change none is longer than the budget itself; before
-// it, the route stored on tick 1381 was longer than the bound. The drive also
-// holds routes that stop beside the hero, so the bound is not met by a creature
-// that never reaches him.
+// releaseLargeSlack. A pursuit's full search settles on a free cell beside the
+// victim (MOVE-099), so the drive's routes end beside the hero and the bound
+// applies to them as well as to any route onto his cell.
 func TestReleaseALargeAICreaturesFarSearchSpendsTheNxNArm(t *testing.T) {
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
@@ -295,16 +294,16 @@ func TestReleaseALargeAICreaturesFarSearchSpendsTheNxNArm(t *testing.T) {
 				live.world.Tick(), e.ID, e.TokenSize, s.from[0], s.from[1], len(s.route), end[0], end[1], goal[0], goal[1], d, releaseLargeBudget(d))
 			if end != goal && end != was {
 				beside++
-				continue
+			} else {
+				onHero++
 			}
-			onHero++
 			if len(s.route) > int(releaseLargeBudget(d))+releaseLargeSlack {
-				t.Errorf("tick %d: creature %d (owner %d, size %d) stored a %d-cell route onto the hero's cell (%d,%d), %d cells away: its far search spent more than the %d generations of a creature larger than one cell",
+				t.Errorf("tick %d: creature %d (owner %d, size %d) stored a %d-cell route toward the hero's cell (%d,%d), %d cells away: its far search spent more than the %d generations of a creature larger than one cell",
 					live.world.Tick(), e.ID, e.Owner, e.TokenSize, len(s.route), goal[0], goal[1], d, releaseLargeBudget(d))
 			}
 		}
 	}
-	if onHero == 0 || beside == 0 {
+	if onHero+beside == 0 {
 		t.Fatalf("%d routes onto the hero's cell and %d that stop beside it from over %d cells within %d ticks: the drive does not reach the state under test",
 			onHero, beside, releaseLargeParted, releaseLargeHorizon)
 	}

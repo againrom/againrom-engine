@@ -96,9 +96,13 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 	if !ok || len(step) == 0 {
 		w.countPursuitPass(i)
 		// A human participant's order takes the stall count and the whole-map
-		// check instead of the cancel, so a passing ally cannot end it
-		// (DIV-1316).
+		// check instead of the cancel, so a passing ally cannot end it, and
+		// forgets a route end that served nothing, so its next pass searches
+		// in full toward where the victim now stands (DIV-1316, DIV-2561).
 		if e.Owner == SelfSlot {
+			if aimsAtEnd {
+				*p = PursuitSearch{}
+			}
 			e.Stall++
 			if e.Stall >= stallLimit {
 				refused := w.pursuitRefused(s, i)

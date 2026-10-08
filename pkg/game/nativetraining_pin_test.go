@@ -10,6 +10,20 @@ import (
 
 func beforeNativeTrainingForm(t *testing.T, form []byte) []byte {
 	t.Helper()
+	// A held pursuit search wraps any earlier form; an earlier form never
+	// held one, so its peel drops the records.
+	if end := len(form); end > 0 && form[0] == 115 {
+		if end < 40 || string(form[end-4:]) != "PRS1" || form[end-5] >= 115 {
+			t.Fatal("invalid pursuit search footer")
+		}
+		span := uint64(binary.LittleEndian.Uint32(form[end-9:]))
+		if span < 31 || span > uint64(end-9-34) || (span-4)%27 != 0 {
+			t.Fatal("invalid pursuit search span", span)
+		}
+		base := form[end-5]
+		form = bytes.Clone(form[:end-9-int(span)])
+		form[0] = base
+	}
 	for _, suffix := range []struct {
 		version byte
 		tag     string

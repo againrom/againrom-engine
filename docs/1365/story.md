@@ -42,7 +42,8 @@ mover bytes `+0x7c`, `+0x8a`, `+0x09`, `+0x76` and `+0x8c`:
   is reproduced exactly in integers.
 - An empty near search aimed at the route end refuses an AI-owned attacker;
   aimed at a waypoint it retries next pass. A human participant counts stalled
-  passes instead (DIV-2561, DIV-1316).
+  passes instead and forgets the route end, so its next pass searches in full
+  toward the victim's current cell (DIV-2561, DIV-1316).
 - A pass whose step only turns is not counted (DIV-2556). A refusal, a lost
   victim and a new order clear the record (DIV-2557). A group reissue at the
   held victim keeps the route (DIV-2558).
