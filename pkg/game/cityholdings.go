@@ -95,6 +95,12 @@ func checkCityEquipmentGraph(g *sav.CityEquipmentGraph, p mapload.PartyMember) e
 			return err
 		}
 		item.Value.SourceEquipment.Definition = want[slot].SourceEquipment.Definition
+		if history := want[slot].NativeRecord; history != nil {
+			if nativeItemRecord(item) != *history {
+				return fmt.Errorf("city current worn slot %d lost native record", slot)
+			}
+			item.Value.NativeRecord = want[slot].Clone().NativeRecord
+		}
 		if !sim.StackStateEqual(item.Value, sim.StackItem(want[slot], 1)) {
 			return fmt.Errorf("city current worn slot %d differs from current item", slot)
 		}
@@ -258,6 +264,12 @@ func checkCityItemGraph(g *sav.CityItemGraph, p mapload.PartyMember) error {
 			return err
 		}
 		item.Value.SourceEquipment.Definition = stacks[i].SourceEquipment.Definition
+		if history := stacks[i].NativeRecord; history != nil {
+			if nativeItemRecord(item) != *history {
+				return fmt.Errorf("city current pack item %d lost native record", i)
+			}
+			item.Value.NativeRecord = stacks[i].Clone().NativeRecord
+		}
 		if !sim.StackStateEqual(item.Value, stacks[i]) {
 			return fmt.Errorf("city current pack item %d differs from current stack", i)
 		}

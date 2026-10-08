@@ -262,7 +262,7 @@ func newGroupCount1115(t *testing.T, record sav.DocumentRecordData, name string)
 func newGroupDocument1115(t *testing.T, f *FrontEnd, want []newGroupWant1115, duplicateSlot bool) Snapshot {
 	t.Helper()
 	groups := newGroupRoster1115(t, f.live.world, want, duplicateSlot)
-	s := groupDocumentSnapshot1115(t, f)
+	s := groupDocumentSnapshot(t, f)
 	doc, bindings := s.SavedDocument.Document, s.SavedDocument.GroupBindings
 	if bindings.Unavailable != "" {
 		t.Fatal("bounded native Group producer refused", bindings.Unavailable)
@@ -389,7 +389,7 @@ func newGroupNative1115(t *testing.T, f *FrontEnd, snapshot Snapshot, destinatio
 	if err := fresh.App("generated Group AGS resume").OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
-	restored := groupDocumentSnapshot1115(t, fresh)
+	restored := groupDocumentSnapshot(t, fresh)
 	if !reflect.DeepEqual(restored.SavedDocument, snapshot.SavedDocument) || f.live.world.Hash() != fresh.live.world.Hash() {
 		t.Fatal("AGS Restore/OpenMission/Snapshot changed exact state")
 	}
@@ -571,7 +571,7 @@ func TestSavedGroupNew1115DuplicateSlotKeepsExactIdentityAndHandoverGap(t *testi
 	if len(groups) != 6 || groups[0].ID != 2 || groups[1].ID != 3 || groups[2].ID != 6 || len(groups[2].Members) != 0 || groups[3].ID != 4 || groups[4].ID != 5 || groups[5].ID != 7 || groups[5].ContainerID != 0 || !slices.Equal(newGroupMemberKeys1115(t, f.live.world, groups[5]), []uint32{newGroupA}) {
 		t.Fatal("ambiguous handover inferred Player identity or ran ordinary cleanup", groups)
 	}
-	gap := groupDocumentSnapshot1115(t, f)
+	gap := groupDocumentSnapshot(t, f)
 	if !strings.Contains(gap.SavedDocument.GroupBindings.Unavailable, "exact native Player container") || !reflect.DeepEqual(gap.SavedDocument.GroupBindings.Players, initial.SavedDocument.GroupBindings.Players) || !reflect.DeepEqual(gap.SavedDocument.GroupBindings.Groups, initial.SavedDocument.GroupBindings.Groups) {
 		t.Fatal("ambiguous slot did not remain an atomic export gap", gap.SavedDocument.GroupBindings)
 	}

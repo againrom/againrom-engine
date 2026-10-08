@@ -198,6 +198,7 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 		w.clearInvalidTargetReferences(d.ID)
 		if s.Stage == 5 {
 			r.terminal = s
+			e.NativeBasis = NativeActorBasis{}
 			gone = append(gone, d.ID)
 		}
 		w.originalDead = append(w.originalDead, r)

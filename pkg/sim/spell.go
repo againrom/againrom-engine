@@ -151,6 +151,7 @@ type GhostTemplate struct {
 	Withdraw      int32
 	Wimpy         int32
 	Humanoid      bool
+	NativeBasis   NativeActorBasis
 
 	Protection   [5]int32
 	Resistance   [5]uint8
@@ -589,6 +590,7 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 		TokenSize: g.TokenSize, DyingTime: g.DyingTime, XPValue: g.XPValue,
 		Withdraw: g.Withdraw, Wimpy: g.Wimpy,
 		Humanoid:     g.Humanoid,
+		NativeBasis:  g.NativeBasis,
 		Protection:   g.Protection,
 		Resistance:   g.Resistance,
 		XPSlot:       g.XPSlot,
@@ -1553,6 +1555,7 @@ func (w *World) beginBookSpellMode(ci int, victim EntityID, spellID uint32, reta
 	if !w.queueBookCast(c) {
 		return false
 	}
+	w.entities[ci].AdmittedBookSpell = uint16(spellID)
 	// Facing is part of admission: a refusal above writes nothing, and target
 	// movement during wind-up cannot restart or retarget this action.
 	w.turnTowardActor(ci, target.X-caster.X, target.Y-caster.Y)
@@ -1791,6 +1794,7 @@ func (w *World) beginBookSpellAtMode(ci int, x, y int32, spellID uint32, retaine
 	if !w.queueBookCast(c) {
 		return false
 	}
+	w.entities[ci].AdmittedBookSpell = uint16(spellID)
 	w.turnToward(ci, x-caster.X, y-caster.Y)
 	if c.Phase == bookCharging {
 		w.admitBookPayment(ci, rule)

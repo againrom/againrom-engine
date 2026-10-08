@@ -30,7 +30,7 @@ func TestUnit1156MissingLiveSubjectControls(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			want, err := unit1156Expected(source, raw)
+			want, err := unitScalarExpected(source, raw)
 			if err != nil {
 				t.Fatal(err)
 			}

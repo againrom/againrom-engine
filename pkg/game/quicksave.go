@@ -156,7 +156,7 @@ func writeQuickSave(store SaveStore, fences []string, slot int, sequence uint64,
 	return err
 }
 
-func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []string, queue *autosaveQueue) {
+func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []string, queue *autosaveQueue, observers ...func(string, Snapshot)) {
 	app.SetQuickSaveControls(ui.QuickSaveControls{
 		Save: func(onMap bool) error {
 			queue.wait()
@@ -167,6 +167,7 @@ func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []
 			if err != nil {
 				return err
 			}
+			notifySaveCapture(observers, "f4", snapshot)
 			slot, sequence, err := quickSavePosition(readQuickSaveSlots(current.Dir))
 			if err != nil {
 				return err

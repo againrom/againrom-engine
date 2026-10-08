@@ -446,6 +446,9 @@ func TestArmingAPersonMovesTheDigest(t *testing.T) {
 	// own four. Put back to the bare person's for the same reason those four
 	// are.
 	a.XPSlot = b.XPSlot
+	assertInitialModifier(t, a, [64]byte{18: 7, 32: 5, 33: 3, 42: 2})
+	assertInitialModifier(t, b, [64]byte{})
+	a.NativeBasis.Modifier = b.NativeBasis.Modifier
 	if a != b {
 		t.Errorf("the two worlds differ outside the weapon's own four:\n got %+v\nwant %+v", a, b)
 	}

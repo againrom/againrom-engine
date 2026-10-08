@@ -395,6 +395,12 @@ func generatedMissionColdPass(t *testing.T, path, dir string) (secondPath string
 				t.Fatal("a second SAV was due but this stage has no directory for it")
 			}
 			second := generatedMissionSaveIn(t, f, app, dir)
+			if proof.Mission == 111 {
+				probe, _ := loadSAVWindow(t, SaveStore{Dir: filepath.Dir(second)}, filepath.Base(second))
+				if f.live.world.Hash() != probe.live.world.Hash() {
+					currentMenuWorldDiagnostics(t, f.live.world, probe.live.world)
+				}
+			}
 			next := proof
 			next.Offset, next.Samples = step, proof.Samples[step:]
 			nextRaw, err := os.ReadFile(second)

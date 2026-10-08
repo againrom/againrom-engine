@@ -108,6 +108,10 @@ func cityPackJoins(held, incoming sim.ItemInstance, table *mapload.Table) bool {
 // cell, which compares without price (DIV-322).
 func cityShelfJoins(held, incoming sim.ItemInstance, table *mapload.Table) bool {
 	v, ok := cityJoinForm(held, incoming, table)
+	if _, _, cast := incoming.CastSpell(); cast && incoming.SourceEquipment.Class == sim.SourceWeapon &&
+		!incoming.SourceEquipment.Spell.Present && v.SourceEquipment != incoming.SourceEquipment {
+		return false
+	}
 	return ok && sim.ItemEqual(held, v)
 }
 

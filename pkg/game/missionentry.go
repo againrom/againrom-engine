@@ -57,6 +57,7 @@ type missionPorts struct {
 type missionInstall interface {
 	// missionTable is the definition table the mission is started over.
 	missionTable() *mapload.Table
+	constructCurrentBuildings(ms *Mission) error
 	// decodeMission reads and decodes the map at addr into a viewer.
 	decodeMission(addr string) (*MapView, error)
 	// nameJoinedRoster resolves the displayed names and bodies of the roster
@@ -236,6 +237,17 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 	if r.fresh() {
 		if err := seedCurrentCityObjects(ms, r.town, table, ports.cityBase); err != nil {
 			return nil, nil, err
+		}
+		if err := ports.install.constructCurrentBuildings(ms); err != nil {
+			return nil, nil, err
+		}
+		for i, id := range ms.Start.IDs {
+			if i >= len(ms.Party) || ms.Party[i].Carry == nil {
+				continue
+			}
+			if e, ok := ms.World.Entity(id); ok {
+				ms.Party[i].Carry.NativeHistory = mapload.CaptureNativeCarryHistory(e)
+			}
 		}
 	}
 	// THE CAMPAIGN GRANTS ITS DOCUMENTS AT MISSION ENTRY (REG-SCN-097,

@@ -175,7 +175,7 @@ func TestSavedActorValues1115CurrentValuesExactBindingsAndUnownedState(t *testin
 				t.Fatal(err)
 			}
 			after := target.Objects[binding.ObjectIndex-1]
-			for name, want := range map[string]uint32{"T0E": 0, "U49": 0, "Body": 31, "Reaction": 65533, "Mind": 7, "Spirit": 9, "Speed": 65531,
+			for name, want := range map[string]uint32{"T0C": 0, "U4B": 0, "T0E": 0, "U49": 0, "Body": 31, "Reaction": 65533, "Mind": 7, "Spirit": 9, "Speed": 65531,
 				"U8E": 65529, "U90": 63, "Capacity": 333, "Health": 17, "HealthMax": 123, "HealthRegen": 99,
 				"Mana": 19, "ManaMax": 231, "ManaRegen": 50, "UA0": 77, "UA4": 1731, "U130": 0xfffffff1,
 				"UA2": 255, "UA3": 157, "U12C": 9, "U134": 23, "U135": 31} {
@@ -219,7 +219,7 @@ func TestSavedActorValues1115CurrentValuesExactBindingsAndUnownedState(t *testin
 				t.Fatal(err)
 			}
 			er := &expected.Objects[binding.ObjectIndex-1]
-			ownedValues := strings.Fields("T0E U49 Body Reaction Mind Spirit Speed U8E U90 Capacity Health HealthMax HealthRegen Mana ManaMax ManaRegen UA0 UA4 U130 UA2 UA3 U12C U134 U135")
+			ownedValues := strings.Fields("T0C U4B T0E U49 Body Reaction Mind Spirit Speed U8E U90 Capacity Health HealthMax HealthRegen Mana ManaMax ManaRegen UA0 UA4 U130 UA2 UA3 U12C U134 U135")
 			for i, value := range er.Values {
 				if slices.Contains(ownedValues, value.Name) {
 					er.Values[i].Value = actorProjectionValue(t, after, value.Name)
@@ -454,6 +454,7 @@ func TestSavedActorValuesOffMapBitFollowsLivePresence(t *testing.T) {
 		}
 	}
 	e := world.Entities()[0]
+	e.SourceBinding.ClassFlags = 0x02
 	e.OffMap = true
 	out, err := savedActorValueRecord(r, e, false)
 	if err != nil {

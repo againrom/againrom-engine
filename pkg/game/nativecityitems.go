@@ -122,13 +122,20 @@ func nativeCityItemObject(item sim.ItemInstance, identity, owner uint32, table *
 	}
 	token := nativeCityItemToken(identity, owner, row, item.Price)
 	fields := nativeCityItemFields(item.Code, 1, item.Kind, item.Weight)
-	if class != "Item" {
+	if class != "Item" && item.NativeRecord == nil {
 		construction, err := nativeCityItemConstructionFor(item.Code, table)
 		if err != nil {
 			return sav.CityObjectData{}, err
 		}
 		fields[5], fields[6] = construction.Shape, construction.Material
 		binary.LittleEndian.PutUint16(fields[7:9], construction.F48)
+	}
+	if history := item.NativeRecord; history != nil {
+		current := history.Token
+		current.T0C, current.T1C = row, uint32(item.Price)
+		token, _ = binary.Append(nil, binary.LittleEndian, current)
+		fields[5], fields[6], fields[11] = history.F45, history.F46, history.F47
+		binary.LittleEndian.PutUint16(fields[7:9], history.F48)
 	}
 	return sav.CityObjectData{Class: class, Item: &sav.CityItemData{Token: token, Fields: fields, Derived: derived}}, nil
 }

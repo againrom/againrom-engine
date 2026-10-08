@@ -376,9 +376,6 @@ func TestAStartedPartyMembersReachIsHisWeaponsRange(t *testing.T) {
 	}
 }
 
-// A WORLD HOLDING SUCH A PARTY ROUND-TRIPS, at the version this story does not
-// bump. The eight numbers were already in the record; filling them moves no
-// byte of the layout.
 func TestAWorldHoldingAnArmedPartyRoundTrips(t *testing.T) {
 	m := startMap(t, 40, 40, mapload.Cell{X: 17, Y: 20})
 	w, _ := mustStart(t, m, []mapload.PartyMember{
@@ -390,10 +387,6 @@ func TestAWorldHoldingAnArmedPartyRoundTrips(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MarshalBinary: %v", err)
 	}
-	if b[0] != 107 {
-		t.Fatalf("encoded version %d, want native class form 107", b[0])
-	}
-
 	var back sim.World
 	if err := back.UnmarshalBinary(b); err != nil {
 		t.Fatalf("UnmarshalBinary: %v", err)

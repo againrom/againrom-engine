@@ -221,6 +221,7 @@ func TestSkillRankLoadPreservesSavedSheet(t *testing.T) {
 	for cycle := range 2 {
 		got := skillRankLoadedHero(t, loaded)
 		if !reflect.DeepEqual(got, want) {
+			currentValueDiagnostics(t, "repaired/control sheet", reflect.ValueOf(got), reflect.ValueOf(want))
 			t.Fatalf("cycle %d repaired LOAD changed the saved sheet: got %+v want %+v", cycle, got, want)
 		}
 		raw, _, _ := saveCurrentEffect(t, loaded)

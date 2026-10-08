@@ -110,7 +110,7 @@ func formation1159Initial(t *testing.T, raw []byte, f *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := players1154Expected(file)
+	want, err := nativeExpectedPlayers(file)
 	if err != nil {
 		t.Fatal(err)
 	}

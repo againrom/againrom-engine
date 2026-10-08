@@ -190,7 +190,7 @@ func (w *World) dropFromEquipment(i, slot int, destX, destY int32) {
 			ok = n.takeWornObject(i, slot, item)
 			if ok {
 				n.equipment[i][slot-1] = ItemInstance{}
-				applyEquipmentItemState(&n.entities[i], item, ItemInstance{}, n.spells, n.damageObservation)
+				n.applyEquipmentItemState(&n.entities[i], item, ItemInstance{}, n.spells, n.damageObservation)
 				if slot == slotWeapon+1 {
 					syncWeaponItem(&n.entities[i], ItemInstance{})
 				}
@@ -227,7 +227,7 @@ func (w *World) dropFromEquipment(i, slot int, destX, destY int32) {
 	}
 	before := w.beginLoadMutation(i)
 	w.equipment[i][slot-1] = ItemInstance{}
-	applyEquipmentItemState(&w.entities[i], item, ItemInstance{}, w.spells, w.damageObservation)
+	w.applyEquipmentItemState(&w.entities[i], item, ItemInstance{}, w.spells, w.damageObservation)
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}

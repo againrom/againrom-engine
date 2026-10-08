@@ -91,7 +91,7 @@ func TestMover1160DocumentLossControls(t *testing.T) {
 				for _, block := range r.blocks() {
 					for i := range block.Bytes {
 						t.Run(fmt.Sprintf("%s-%d-%s-byte%d", r.class, r.archive, block.Name, i), func(t *testing.T) {
-							bad := unit1156Clone(t, state)
+							bad := cloneSavedDocumentFixture(t, state)
 							for _, field := range bad.Document.Objects[index].Raw {
 								if field.Name == block.Name {
 									field.Bytes[i] ^= 0x80
@@ -108,7 +108,7 @@ func TestMover1160DocumentLossControls(t *testing.T) {
 			for _, name := range mover1160Lists {
 				for _, control := range []string{"count", "missing-count", "duplicate-count", "missing-raw", "duplicate-raw", "reverse"} {
 					t.Run(name+"-"+control, func(t *testing.T) {
-						bad := unit1156Clone(t, state)
+						bad := cloneSavedDocumentFixture(t, state)
 						r := &bad.Document.Objects[index]
 						for i, f := range r.Counts {
 							if f.Name == name {
@@ -148,7 +148,7 @@ func TestMover1160DocumentLossControls(t *testing.T) {
 			}
 			for _, control := range []string{"nil", "unavailable", "drop-equal", "class", "alias-DTO", "zero-DTO"} {
 				t.Run(control, func(t *testing.T) {
-					bad := unit1156Clone(t, state)
+					bad := cloneSavedDocumentFixture(t, state)
 					changed := want
 					changed.origins = map[uint16]uint16{}
 					for k, v := range want.origins {
@@ -266,7 +266,7 @@ func TestMover1160MissingCarrierControls(t *testing.T) {
 					entities := ms.World.Entities()
 					motions, _, _, _ := ms.World.SavedActorMotions()
 					_, orders, _ := ms.World.SavedGroups()
-					doc := unit1156Clone(t, ms.savedDocument)
+					doc := cloneSavedDocumentFixture(t, ms.savedDocument)
 					switch control {
 					case "entity":
 						entities = entities[1:]
@@ -388,7 +388,7 @@ func TestMover1160LiveListLossControls(t *testing.T) {
 	}
 	// Matching corruption in two projected Documents must not pass merely
 	// because a paired continuation agrees with the same broken projector.
-	bad := unit1156Clone(t, ms.savedDocument)
+	bad := cloneSavedDocumentFixture(t, ms.savedDocument)
 	for _, r := range bad.Document.Objects {
 		if !unit1156Class(r.Class) {
 			continue

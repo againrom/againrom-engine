@@ -97,7 +97,7 @@ func players1154Inputs(t *testing.T, raw []byte) (players1154Source, map[uint16]
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := players1154Expected(f)
+	want, err := nativeExpectedPlayers(f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -519,7 +519,7 @@ func TestPlayers1154RawScopeAndF58Controls(t *testing.T) {
 		owner := want.players[want.roots[3]]
 		at := owner.off + 1 + len(owner.name) + 39 // SAV-PLAYER-028's widths up to F58.
 		binary.LittleEndian.PutUint32(file.Body[at:], owner.values["F58"]+1)
-		changed, err := players1154Expected(file)
+		changed, err := nativeExpectedPlayers(file)
 		if err != nil {
 			t.Fatal(err)
 		}

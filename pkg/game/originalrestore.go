@@ -413,7 +413,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := applyOriginalCellTails(ms, tails, hasTails, &r); err != nil {
 				return err
 			}
-			if err := applyOriginalStructures(ms, buildings, hasBuildings, in.table, &r, sf); err != nil {
+			if err := applyOriginalStructuresCurrent(ms, buildings, hasBuildings, in.table, &r, src.campaign.actions, sf); err != nil {
 				return err
 			}
 			if err := applyOriginalCellRecords(ms, cellRecords, hasCellRecords, registry, &r); err != nil {

@@ -47,6 +47,8 @@ func TestReleaseCurrentCityPartyOrdinaryWireWins(t *testing.T) {
 			}
 			if !reflect.DeepEqual(mapload.MemberItemEquipment(before, f.Table), mapload.MemberItemEquipment(after, g.Table)) ||
 				!reflect.DeepEqual(mapload.MemberCarriedItems(before, f.Table), mapload.MemberCarriedItems(after, g.Table)) {
+				currentValueDiagnostics(t, "equipment", reflect.ValueOf(mapload.MemberItemEquipment(before, f.Table)), reflect.ValueOf(mapload.MemberItemEquipment(after, g.Table)))
+				currentValueDiagnostics(t, "pack", reflect.ValueOf(mapload.MemberCarriedItems(before, f.Table)), reflect.ValueOf(mapload.MemberCarriedItems(after, g.Table)))
 				t.Fatalf("city member %d current holdings changed", i)
 			}
 			if before.Carry != nil {

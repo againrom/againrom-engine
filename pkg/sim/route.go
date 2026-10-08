@@ -506,7 +506,7 @@ func (w *World) terrainOpen(d Domain, x, y int32) bool {
 	if key, inside := savedPlaneKey(x, y); ok && inside && w.savedCellPlanes != nil {
 		return w.savedCellPlanes.Static[key]&savedStaticMask(d) == 0 && (d == DomainAir || w.grid[i]&blockMagicWall == 0)
 	}
-	return ok && w.grid[i]&d.blocksForSaved(w.hasSavedStructures) == 0
+	return ok && w.grid[i]&d.blocksForSaved(w.nativeStructurePlanes) == 0
 }
 
 // footprintSide normalises the table's zero value to the one-cell footprint
@@ -538,7 +538,7 @@ func (w *World) terrainOpenSize(domain Domain, size uint8, x, y int32) bool {
 		}
 		return true
 	}
-	return terrainOpenSizeIn(w.bounds, w.grid, domain, size, x, y, w.hasSavedStructures)
+	return terrainOpenSizeIn(w.bounds, w.grid, domain, size, x, y, w.nativeStructurePlanes)
 }
 
 // terrainOpenFootprintIn is the same predicate over the decoded bounds and grid

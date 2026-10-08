@@ -44,6 +44,7 @@ func assertCurrentWorldEqual(t *testing.T, want, got *sim.World, cut string) {
 		}
 	}
 	if want.Hash() != got.Hash() {
+		currentMenuWorldDiagnostics(t, want, got)
 		t.Fatalf("%s: complete World hash changed: %x / %x", cut, want.Hash(), got.Hash())
 	}
 }

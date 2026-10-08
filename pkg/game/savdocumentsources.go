@@ -1,0 +1,47 @@
+package game
+
+type savDocumentFallback struct {
+	Pattern, Span, Indices, Page, Reason string
+}
+
+var savDocumentFallbacks = []savDocumentFallback{
+	{"Building.r.B52", "0-13,16-17", "", "sav/objects.md", "Meaning remains unknown on the named format page: unnamed remainder of raw runtime+52..67."},
+	{"Building.r.Block12", "6-7", "", "sav/token.md", "Meaning remains unknown on the named format page: unmanaged Position pair."},
+	{"Building.v.B46", "0-1", "", "sav/token.md", "Meaning remains unknown on the named format page: literal+46 word; gameplay meaning unnamed."},
+	{"Building.v.B48", "0", "", "sav/token.md", "Meaning remains unknown on the named format page: literal+48 byte; gameplay meaning unnamed."},
+	{"Building.v.T08", "2-3", "", "sav/token.md", "Meaning remains unknown on the named format page: upper word Token+08 outside mapped low-word interpretation."},
+	{"Building.v.T1C", "0-3", "", "sav/token.md", "Meaning remains unknown on the named format page: Building Token+1c gameplay meaning unnamed."},
+	{"Effect.r.Block12", "6-7", "", "sav/token.md", "Meaning remains unknown on the named format page: unmanaged Position pair."},
+	{"Effect.v.T08", "0-3", "", "sav/token.md", "Meaning remains unknown on the named format page: Effect Token+08 meaning unnamed in inspected page."},
+	{"Effect.v.T1C", "0-3", "", "sav/token.md", "Meaning remains unknown on the named format page: Effect Token+1c meaning unnamed."},
+	{"GlobalDWord", "0-3", "", "sav/document.md", "Meaning remains unknown on the named format page: separate global L07886: meaning/nonzero ordinary producer unnamed."},
+	{"Head.Reserved[]", "0-3 each", "9-10", "sav/document.md", "Meaning remains unknown on the named format page: world-head runtime+144/+140, other consumers unknown."},
+	{"Human.r.U114", "22-23", "", "sav/human-state.md", "Meaning remains unknown on the named format page: unnamed base attack final pair; initializer touches only22/24 bytes."},
+	{"Human.r.UA6", "22-23", "", "sav/human-state.md", "Meaning remains unknown on the named format page: unnamed live attack+bc/+bd pair."},
+	{"Human.r.UBE", "4-5", "", "sav/human-state.md", "Meaning remains unknown on the named format page: protection slotzero gameplay meaning unknown; numeric layout named."},
+	{"Human.r.UD4", "40-41", "", "sav/human-state.md", "Meaning remains unknown on the named format page: unnamed modifier attack+fc/+fd pair."},
+	{"Human.r.UD4", "46-47", "", "sav/human-state.md", "Meaning remains unknown on the named format page: protection slotzero modifier; numeric fold/layout known but ordinary gameplay slot meaning unknown."},
+	{"Human.v.SpellsHeader", "0-3", "", "sav/objects.md", "Meaning remains unknown on the named format page: opaque Spellbook+18 dword; wire shape known."},
+	{"Human.v.T08", "2-3", "", "sav/token.md", "Meaning remains unknown on the named format page: upperword Token+08 outside mapped lowword meaning."},
+	{"Human.v.T1C", "0-3", "", "sav/token.md", "Meaning remains unknown on the named format page: Human Token+1c meaning unnamed."},
+	{"Player.r.Raw10", "0-7", "", "sav/player.md", "Meaning remains unknown on the named format page: Player+10 literal8; meaning/default unnamed."},
+	{"Player.v.F48", "0-3", "", "sav/player.md", "Meaning remains unknown on the named format page: XOR-coded word; gameplay meaning unnamed."},
+	{"Player.v.F4C", "0-1", "", "sav/player.md", "Meaning remains unknown on the named format page: saturated word, gameplay meaning unnamed."},
+	{"Player.v.F54", "0-1", "", "sav/player.md", "Meaning remains unknown on the named format page: saturated word, gameplay meaning unnamed."},
+	{"Trailer[]", "0-3 each", "2-99", "sav/document.md", "Meaning remains unknown on the named format page: remaining392-byte world-owned block; consumers unnamed."},
+	{"Unit.r.U114", "22-23", "", "sav/human-state.md", "Meaning remains unknown on the named format page: unnamed base attack final pair; initializer touches only22/24 bytes."},
+	{"Unit.r.UA6", "22-23", "", "sav/human-state.md", "Meaning remains unknown on the named format page: unnamed live attack+bc/+bd pair."},
+	{"Unit.r.UBE", "4-5", "", "sav/human-state.md", "Meaning remains unknown on the named format page: protection slotzero gameplay meaning unknown; numeric layout named."},
+	{"Unit.r.UD4", "40-41", "", "sav/human-state.md", "Meaning remains unknown on the named format page: unnamed modifier attack+fc/+fd pair."},
+	{"Unit.r.UD4", "46-47", "", "sav/human-state.md", "Meaning remains unknown on the named format page: protection slotzero modifier; numeric fold/layout known but ordinary gameplay slot meaning unknown."},
+	{"Unit.v.SpellsHeader", "0-3", "", "sav/objects.md", "Meaning remains unknown on the named format page: opaque Spellbook+18 dword; wire shape known."},
+	{"Unit.v.T08", "2-3", "", "sav/token.md", "Meaning remains unknown on the named format page: upperword Token+08 outside mapped lowword meaning."},
+	{"World.Cells[].Residue03", "0", "", "terrain/cells.md", "Meaning remains unknown on the named format page: unnamed residue byte."},
+	{"World.Cells[].Residue32", "0-1", "", "terrain/cells.md", "Meaning remains unknown on the named format page: unnamed residue word."},
+	{"World.Session.DiplomacyHeader", "0-3", "", "sav/world.md", "Meaning remains unknown on the named format page: first4 bytes of+a9bc header; meaning unnamed."},
+	{"World.Session.FlagA48", "0", "", "sav/world.md", "Meaning remains unknown on the named format page: literal session field FlagA48 meaning/default unnamed."},
+	{"World.Session.FlagA49", "0", "", "sav/world.md", "Meaning remains unknown on the named format page: literal session field FlagA49 meaning/default unnamed."},
+	{"World.Session.Raw08", "0-15,24-31,36-47", "", "sav/world.md", "Meaning remains unknown on the named format page: unnamed other36 raw-head bytes."},
+	{"World.Session.ValueA4C", "0-3", "", "sav/world.md", "Meaning remains unknown on the named format page: literal session field ValueA4C meaning/default unnamed."},
+	{"World.Session.ValueB3B0", "0-3", "", "sav/world.md", "Meaning remains unknown on the named format page: literal session field ValueB3B0 meaning/default unnamed."},
+}

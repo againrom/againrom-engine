@@ -53,6 +53,11 @@ type currentViewResidue struct {
 	PeriodUS                   int
 	Unpaced                    bool
 	PlayerPaused               bool
+	Panels                     *currentPanelVisibility `json:",omitempty"`
+}
+
+type currentPanelVisibility struct {
+	DollOpen, WornOpen bool
 }
 
 func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
@@ -96,6 +101,7 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 			return err
 		}
 		a.Session.View = &currentViewResidue{Zoom: v.Zoom, FractionX: v.ViewX - math.Round(v.ViewX), FractionY: v.ViewY - math.Round(v.ViewY), Speed: raw.Speed, PeriodUS: v.PeriodUS, Unpaced: v.Unpaced, PlayerPaused: v.PlayerPaused}
+		a.Session.View.Panels = &currentPanelVisibility{DollOpen: v.DollOpen, WornOpen: v.WornOpen}
 		if s.mapAnimation != nil {
 			animation := *s.mapAnimation
 			a.Session.View.Animation = &animation
@@ -231,6 +237,9 @@ func applyCurrentView(v *ui.SaveApplicationState, raw OriginalStateData, a *curr
 		return
 	}
 	r := a.Session.View
+	if r.Panels != nil {
+		v.DollOpen, v.WornOpen = r.Panels.DollOpen, r.Panels.WornOpen
+	}
 	if r.PressedSpell != 0 && raw.Pressed == -1 {
 		v.PressedSpell = r.PressedSpell
 	}

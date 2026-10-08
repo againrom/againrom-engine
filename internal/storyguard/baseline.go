@@ -1902,8 +1902,24 @@ package storyguard
 // file, new code, including this paragraph.
 // CommentBytes rises for the school shine hotfix: the doc of schoolShineDisplaySlot
 // and the test comments, new code, including this paragraph.
+// New constructor Base documentation is in pkg/mapload/nativeinitialbasis.go
+// and its test. The comment count includes this baseline explanation.
+// New local constructor Modifier tests and UpdateNativeEquipmentBasis document
+// independent initial history. This measure includes this explanation.
+// New native subject comparison documents its independent metadata boundary.
+// The measure includes this explanation and neutral fixture names.
+// Native live-block and Item-record state adds new-code comments in sim/item.go,
+// game/currentnativeitem.go, and the new raw, item and route controls. Shared
+// acceptance fixture names now use their subjects instead of story numbers.
+// SetNativeTraining in pkg/sim/training.go documents the new selected-byte
+// repair seam. The comment count includes this explanation.
+// Native scalar state, legacy name membership and their independent loss controls
+// add new-code documentation, including this measured baseline explanation.
+// New native effect-mask controls document their attachment and expiry inputs in
+// sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
+// includes that new-code documentation and this explanation.
 var Committed = Baseline{
-	TestIdentCount: 4838,
+	TestIdentCount: 4708,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1914,7 +1930,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1887,
 		"scclause":        509,
-		"barestorynumber": 1754,
+		"barestorynumber": 1753,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -1923,7 +1939,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1834,
+		"longcommentgroups":      1831,
 	},
-	CommentBytes: 8516432,
+	CommentBytes: 8516805,
 }

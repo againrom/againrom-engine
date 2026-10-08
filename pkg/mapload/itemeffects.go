@@ -507,7 +507,7 @@ func resolveWeaponCell(cell string, table *Table) (data.Weapon, sim.ItemInstance
 		}
 		break
 	}
-	return w, equipmentInstance(w.Code, effects, table.Weapons, table), nil
+	return w, sourceWeaponItem(equipmentInstance(w.Code, effects, table.Weapons, table), w, table), nil
 }
 
 func resolveShieldCell(cell string, table *Table) (data.Shield, sim.ItemInstance, error) {
@@ -523,7 +523,7 @@ func resolveShieldCell(cell string, table *Table) (data.Shield, sim.ItemInstance
 	if err != nil {
 		return data.Shield{}, sim.ItemInstance{}, err
 	}
-	return s, equipmentInstance(s.Code, effects, table.Shields, table), nil
+	return s, sourceDefenceItem(equipmentInstance(s.Code, effects, table.Shields, table), sim.SourceShield, 0, s.Defence, s.Absorption, s.Weight), nil
 }
 
 func resolveArmorCell(cell string, table *Table) (data.Armor, sim.ItemInstance, error) {
@@ -539,5 +539,5 @@ func resolveArmorCell(cell string, table *Table) (data.Armor, sim.ItemInstance, 
 	if err != nil {
 		return data.Armor{}, sim.ItemInstance{}, err
 	}
-	return a, equipmentInstance(a.Code, effects, table.Armors, table), nil
+	return a, sourceDefenceItem(equipmentInstance(a.Code, effects, table.Armors, table), sim.SourceArmor, uint8(a.Slot), a.Defence, a.Absorption, a.Weight), nil
 }

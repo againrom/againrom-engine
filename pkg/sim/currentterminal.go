@@ -72,6 +72,9 @@ func (w *World) importCurrentTerminalActors(batch []CurrentTerminalActor, replac
 			}
 			// Discard any LOAD-attached SourceBinding; stays native, not OriginalDead.
 			next.entities[i].SourceBinding = SourceBinding{}
+			if replaceConstruction {
+				next.entities[i].NativeBasis = NativeActorBasis{}
+			}
 			remove = append(remove, row.ID)
 		}
 		for _, dead := range next.originalDead {
@@ -159,6 +162,7 @@ func (w *World) RetireUnboundConstructors(ids []EntityID) error {
 		if i < 0 || next.entities[i].SourceBinding.Class != 0 {
 			return fmt.Errorf("sim: entity %d is not an unbound constructor", id)
 		}
+		next.entities[i].NativeBasis = NativeActorBasis{}
 	}
 	if !next.remove(slices.Clone(ids)) {
 		return fmt.Errorf("sim: could not retire unbound constructors")

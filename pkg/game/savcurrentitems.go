@@ -107,6 +107,9 @@ func projectCurrentItemGraphMode(state *SnapshotSAVDocument, world *sim.World, f
 		return err
 	}
 	b := generatedDocumentBuilder{doc: *state.Document, reservedKeys: keys, runtimeIDs: savedRuntimeIDs(reservation.Objects)}
+	if err := b.reserveCurrentWorld(world); err != nil {
+		return err
+	}
 	if len(tables) != 0 {
 		b.table = tables[0]
 	}
@@ -828,7 +831,8 @@ func projectCurrentSackRoots(b *generatedDocumentBuilder, bindings *SnapshotSAVO
 
 func currentItemRecordValue(item sim.ItemInstance, held bool, weights map[uint16]sim.ItemWeight, table *mapload.Table) sim.ItemInstance {
 	constructor := mapload.SourceConstructedItem(sim.PlainItem(item.Code), table)
-	if item.SourceEquipment.Class == 0 && (held || !item.WeightPresent) {
+	historyClass := item.NativeRecord != nil && item.NativeRecord.Class != 0
+	if item.SourceEquipment.Class == 0 && (held || !item.WeightPresent || historyClass) {
 		item.SourceEquipment = weights[item.Code].Constructor
 		if item.SourceEquipment.Class == 0 {
 			item.SourceEquipment = constructor.SourceEquipment
@@ -846,6 +850,9 @@ func currentItemRecordValue(item sim.ItemInstance, held bool, weights map[uint16
 			if item.SourceEquipment.Class != 0 {
 				item.SourceEquipment.DefinitionRow = uint8(code.D())
 			}
+		}
+		if historyClass {
+			item.SourceEquipment.Class = item.NativeRecord.Class
 		}
 	}
 	if !item.WeightPresent {

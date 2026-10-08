@@ -82,21 +82,27 @@ func (mw *mapWorld) installCharacterDerivations(ms *Mission, t *mapload.Table) {
 
 // recomputeRaisedSkills folds canonical awards into each live derived sheet.
 func (mw *mapWorld) recomputeRaisedSkills() {
-	for _, c := range mw.derives {
+	for n := range mw.derives {
+		c := &mw.derives[n]
+		member := c.member
+		if current := mw.missionPartyMember(c.id); current != nil {
+			member.Hero = current.Hero
+		}
+		heroChanged := member.Hero != c.member.Hero
 		e, ok := mw.entity(c.id)
 		if ok && e.ActorLoad.Source.Class != 0 {
 			mw.refreshSourceCharacter(e)
 			mw.derivedSkills[c.id], mw.derivedPotions[c.id] = derivedSkillState{e.Skill, e.NativeTraining}, e.PotionStats
 			continue
 		}
-		if !ok || (derivedSkillState{e.Skill, e.NativeTraining}) == mw.derivedSkills[c.id] && e.PotionStats == mw.derivedPotions[c.id] {
+		if !ok || !heroChanged && (derivedSkillState{e.Skill, e.NativeTraining}) == mw.derivedSkills[c.id] && e.PotionStats == mw.derivedPotions[c.id] {
 			continue
 		}
 		items, ok := mw.world.EquippedItems(c.id)
 		if !ok {
 			continue
 		}
-		if (mw.world.NativeTrainingNeedsProducer(c.id) || e.NativeTraining.Present) && e.PotionStats == mw.derivedPotions[c.id] &&
+		if !heroChanged && (mw.world.NativeTrainingNeedsProducer(c.id) || e.NativeTraining.Present) && e.PotionStats == mw.derivedPotions[c.id] &&
 			e.NativeTraining == mw.derivedSkills[c.id].training && mapload.EquippedSkillBonus(items, c.member.Profile.Fighter) == mw.skillBonus[c.id] {
 			mw.derivedSkills[c.id] = derivedSkillState{e.Skill, e.NativeTraining}
 			continue
@@ -115,7 +121,7 @@ func (mw *mapWorld) recomputeRaisedSkills() {
 		loadout.RotationSpeed = mapload.RotationSpeedBase(c.member.Hired(), c.member.HiredRotationSpeed, c.member.Class, c.table)
 		mapload.ApplyItemEffects(&loadout, items, c.member.Profile.Fighter)
 		mapload.AddLayers(&loadout, mw.activeLayers(c.id), c.table)
-		hero := mapload.PotionHero(c.member.Hero, e.PotionStats)
+		hero := mapload.PotionHero(member.Hero, e.PotionStats)
 		hero.Skill = e.TrainedSkills(mw.skillBonus[c.id])
 		d := hero.RecomputeWithSkillXP(c.member.Profile, loadout, e.SkillXP)
 		// DIV-675: native modifier producers remain incomplete. Keep the
@@ -129,6 +135,7 @@ func (mw *mapWorld) recomputeRaisedSkills() {
 		if !mw.world.SetDerived(c.id, simDerivedBlock(d, spellID, e.WeaponSpellSource)) {
 			continue
 		}
+		c.member.Hero = member.Hero
 		reportOriginalProfileRetirement(mw.world, e)
 		mw.settleSkillBonus(c.id, loadout.Mod.SkillBonus)
 		mw.derivedSkills[c.id] = derivedSkillState{d.Skill, e.NativeTraining}
@@ -213,6 +220,7 @@ func simDerivedBlock(d data.Derived, spellID uint16, source sim.WeaponSpellSourc
 		MaxHP: d.HealthMax, MaxMana: d.ManaMax, Speed: d.Speed, ScanRange: derivedByte(d.Sight),
 		Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit, Capacity: d.Capacity,
 		Skill: d.Skill, SkillSet: true,
+		Body: d.Body, BodyPresent: true,
 		HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
 		RotationSpeed: d.RotationSpeed,
 		Combat: sim.CombatBlock{

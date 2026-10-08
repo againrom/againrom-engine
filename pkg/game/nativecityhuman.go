@@ -91,6 +91,8 @@ func nativeCityHumanFromDerived(member mapload.PartyMember, table *mapload.Table
 		TypeID: binary.LittleEndian.Uint16(unit.Token[17:]), HasOwner: true, ManaReservePercent: nativeCityManaReserve,
 		InventoryWeight: int32(unit.ContainerTails[1]), Experience: uint32(d.Experience)}
 	if member.Saved != nil {
+		h.Health, h.HealthMax = uint16(member.Saved.HP), uint16(member.Saved.MaxHP)
+		h.Mana, h.ManaMax = uint16(member.Saved.Mana), uint16(member.Saved.MaxMana)
 		h.HealthPeriod, h.ManaPeriod = uint16(member.Saved.HealthRegenPeriod), uint16(member.Saved.ManaRegenPeriod)
 	}
 	// ManaReservePercent is a per-Player setting, not a per-Human one

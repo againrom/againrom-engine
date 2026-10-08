@@ -21,17 +21,17 @@ func unit1158InitialCheck(t *testing.T, want unit1158Set, ms *Mission) {
 
 // Current-state extraction is only the native-persistence assertion. It never
 // supplies expected values or counts to the independent original-byte reader.
-func unit1158CurrentDocument(t *testing.T, state *SnapshotSAVDocument) map[int]unit1158Record {
+func unit1158CurrentDocument(t *testing.T, state *SnapshotSAVDocument) map[int]unitCombatRecord {
 	t.Helper()
 	if state == nil || state.Document == nil || state.Unavailable != "" {
 		t.Fatal("native Unit combat Document unavailable")
 	}
-	out := map[int]unit1158Record{}
+	out := map[int]unitCombatRecord{}
 	for i, object := range state.Document.Objects {
 		if !unit1156Class(object.Class) {
 			continue
 		}
-		r := unit1158Record{class: object.Class, raw: map[string][]byte{}}
+		r := unitCombatRecord{class: object.Class, raw: map[string][]byte{}}
 		for _, block := range unit1158Blocks {
 			for _, field := range object.Raw {
 				if field.Name != block.name {
@@ -61,7 +61,7 @@ func unit1158App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := unit1158Expected(source, raw)
+	want, err := readUnitCombatExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

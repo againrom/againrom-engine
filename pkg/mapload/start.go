@@ -795,6 +795,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			id := sim.EntityID(len(ents))
 			st.IDs[i] = id
 			e.ID, e.X, e.Y, e.MapUnitID = id, st.Cells[i].X, st.Cells[i].Y, savedMapUnitID(p)
+			carriedNativeHistory(p, &e)
 			ents = append(ents, e)
 			if !itemEquipmentEmpty(b.worn) || len(b.carried) > 0 {
 				worn = append(worn, sim.Stock{ID: id, ItemInstances: cloneItemInstances(b.carried), EquippedItems: cloneItemEquipment(b.worn)})
@@ -807,7 +808,6 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		// be minted with (the generation screen's consequence block) reads the
 		// same expression this loop mints from, rather than a second copy of
 		// it that could drift.
-		d, hp, mana := PartySpawnWithTable(p, t)
 		equippedItems := MemberItemEquipment(p, t)
 		for slot := range equippedItems {
 			if _, _, carriesSpell := equippedItems[slot].CastSpell(); carriesSpell {
@@ -815,6 +815,12 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			}
 		}
 		carriedItems := MemberCarriedItems(p, t)
+		NormalizeShieldLoadout(&equippedItems, &carriedItems, t)
+		nativeBasis := sim.NativeActorBasis{}
+		if p.Carry == nil || p.Carry.NativeHistory == nil {
+			nativeBasis = nativeInitialModifier(nativeInitialBase(&p.Hero.Skill), &equippedItems, t, p.Hero.Skill[0], true, p.Profile.Fighter)
+		}
+		d, hp, mana := PartySpawnWithTable(p, t)
 		// WHAT A RESTORED CHARACTER ARRIVES WITH IS THE FILE'S, NOT THE FOLD'S,
 		// and all six values move together — see restoredPools below for why it
 		// is all six or none.
@@ -974,6 +980,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			Skill:          d.Skill,
 			NativeTraining: sim.NativeTraining{Present: true, Levels: p.Hero.Skill},
 			NativeClass:    sim.NativeClass{Present: true, Fighter: p.Profile.Fighter},
+			NativeBasis:    nativeBasis.WithBody(uint16(d.Body)),
 			SkillXP:        reward.SkillXP, Reaction: d.Reaction, Mind: reward.Mind, Spirit: d.Spirit,
 			Humanoid: true,
 			XPSlot:   uint8(d.Combat.SkillSlot), GainsXP: sim.InPersistBand(typeID),
@@ -989,6 +996,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			TypeID:             typeID,
 			SuppressCorpseLoot: p.SuppressCorpseLoot,
 		})
+		carriedNativeHistory(p, &ents[len(ents)-1])
 		// A CARRIED MEMBER ARRIVES HOLDING WHAT HE LEFT WITH, and the class
 		// row's starting weapon is NOT minted for him a second time (the
 		// continuity hotfix). That is the whole reason Carry is reached by
@@ -1084,6 +1092,9 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	// carried codes are codes no world base ever held. It is not read back off
 	// base for that reason -- base's table names the map's codes alone.
 	declareItemWeights(out, t)
+	if err := initializeCurrentPlayers(out, m, t); err != nil {
+		return nil, Start{}, err
+	}
 	// Money is already participant-owned in sim. Quest documents follow the
 	// same campaign surface: wherever a carried party member arrived holding
 	// them, collect the stack onto the explicitly marked starting hero before
@@ -1249,6 +1260,12 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	// the only place the script's own item literals reach the pass at all.
 	declareItemWeights(out, t)
 	out.CopyPotionEffects(base)
+	if players, present := base.CurrentPlayers(); present {
+		rows, participants := base.PlayerParticipants()
+		if err := out.RestoreCurrentPlayers(players, rows, participants); err != nil {
+			return nil, Start{}, err
+		}
+	}
 	if err := initializeOriginalHumanMovement(out, party, st); err != nil {
 		return nil, Start{}, err
 	}

@@ -17,7 +17,7 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 	// project the live native state again at the town boundary instead of
 	// treating its generated actor records as an original Human basis.
 	if captured.SavedDocument != nil && !generatedCurrentMissionDocument(captured.SavedDocument) {
-		state, e := snapshotSavedDocument(&Mission{World: world, savedDocument: captured.SavedDocument})
+		state, e := snapshotSavedDocument(&Mission{World: world, savedDocument: captured.SavedDocument, Start: mapload.Start{ConstructionTable: in.table}})
 		if e != nil {
 			return nil, e
 		}

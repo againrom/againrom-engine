@@ -61,6 +61,8 @@ func sourceWeaponItem(item sim.ItemInstance, weapon data.Weapon, t *Table) sim.I
 	s := sim.SourceEquipment{Class: sim.SourceWeapon, DefinitionRow: uint8(weapon.Row), OwnKind: uint8(weapon.Range)}
 	binary.LittleEndian.PutUint16(s.Attack[:], uint16(weapon.ToHit))
 	s.Attack[14], s.Attack[15] = uint8(weapon.DamageBase), uint8(weapon.DamageSpread)
+	// ITEM-157: fresh construction initializes this triple; copy/LOAD retain it.
+	s.Attack[19], s.Attack[20], s.Attack[21] = 0, 0, 0
 	binary.LittleEndian.PutUint16(s.Defence[:], uint16(weapon.Defence))
 	item.SourceEquipment = BindSourceItemDefinition(sim.ItemInstance{Code: item.Code, SourceEquipment: s}, t).SourceEquipment
 	if !item.SourceEquipment.Definition.Present {
@@ -72,6 +74,14 @@ func sourceWeaponItem(item sim.ItemInstance, weapon data.Weapon, t *Table) sim.I
 		item.SourceEquipment.Definition = definition
 	}
 	item.WeightPresent, item.Weight, item.Kind = true, int16(weapon.Weight), 2
+	return item
+}
+
+func sourceDefenceItem(item sim.ItemInstance, class, slot uint8, defence, absorption, weight int32) sim.ItemInstance {
+	s := sim.SourceEquipment{Class: class, DefinitionRow: uint8(data.ItemCode(item.Code).D()), OwnKind: slot}
+	binary.LittleEndian.PutUint16(s.Defence[:], uint16(defence))
+	binary.LittleEndian.PutUint16(s.Defence[2:], uint16(absorption))
+	item.SourceEquipment, item.WeightPresent, item.Weight, item.Kind = s, true, int16(weight), 1
 	return item
 }
 

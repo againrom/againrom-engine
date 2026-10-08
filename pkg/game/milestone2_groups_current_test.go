@@ -244,7 +244,7 @@ func TestCurrentGroupRootObserverRejectsChangedTopology(t *testing.T) {
 	if err := f.App("current Group observer").OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
-	s := groupDocumentSnapshot1115(t, f)
+	s := groupDocumentSnapshot(t, f)
 	state, err := f.materializeCurrentWorld(s, f.live.world)
 	if err != nil {
 		t.Fatal(err)

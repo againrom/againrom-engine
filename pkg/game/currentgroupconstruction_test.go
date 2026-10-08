@@ -24,7 +24,7 @@ func currentMixedPlayerFixture(t *testing.T) (*FrontEnd, Snapshot) {
 	a := registryActors1111(t, f.live.world)[35]
 	f.live.enqueue(uint32(a.ID), 20, 16)
 	f.live.tick()
-	s := groupDocumentSnapshot1115(t, f)
+	s := groupDocumentSnapshot(t, f)
 	return f, s
 }
 

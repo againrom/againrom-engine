@@ -47,7 +47,7 @@ func groupDocumentLiteral1115(t *testing.T, front *FrontEnd) []byte {
 	return completeDocumentTail1115(t, front, savedContainer(body))
 }
 
-func groupDocumentSnapshot1115(t *testing.T, front *FrontEnd) Snapshot {
+func groupDocumentSnapshot(t *testing.T, front *FrontEnd) Snapshot {
 	t.Helper()
 	snapshot, _, err := front.Snapshot(true)
 	if err != nil || snapshot.SavedDocument == nil || snapshot.SavedDocument.Document == nil || snapshot.SavedDocument.GroupBindings == nil || snapshot.SavedDocument.GroupBindings.Version != 1 {
@@ -124,7 +124,7 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 		if err := front.App("fresh reordered Group").OpenMission(open); err != nil {
 			t.Fatal(err)
 		}
-		current := groupDocumentSnapshot1115(t, front)
+		current := groupDocumentSnapshot(t, front)
 		if current.SavedDocument.GroupBindings.Unavailable != "" || !reflect.DeepEqual(current.SavedDocument, incoming.SavedDocument) || fmt.Sprintf("%x", front.live.world.Hash()) != os.Getenv("AGAINROM_GROUP_DOCUMENT1115_WORLD") {
 			t.Fatal("fresh reordered native LOAD/Snapshot lost graph, bindings or World")
 		}
@@ -165,7 +165,7 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 		t.Fatal(err)
 	}
 	clear(raw)
-	before := groupDocumentSnapshot1115(t, front)
+	before := groupDocumentSnapshot(t, front)
 	beforeBytes, err := sav.EncodeDocumentData(*before.SavedDocument.Document)
 	if err != nil {
 		t.Fatal(err)
@@ -194,7 +194,7 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 		t.Fatal("typed current-state update", err)
 	}
 	worldBefore := front.live.world.Hash()
-	current := groupDocumentSnapshot1115(t, front)
+	current := groupDocumentSnapshot(t, front)
 	if front.live.world.Hash() != worldBefore {
 		t.Fatal("Snapshot mutated live Group/order state")
 	}
@@ -242,7 +242,7 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 	}
 	// A second projection must be stable; native encode/decode carries the
 	// exact reindexed binding metadata beside the complete document.
-	again := groupDocumentSnapshot1115(t, front)
+	again := groupDocumentSnapshot(t, front)
 	if !reflect.DeepEqual(current.SavedDocument, again.SavedDocument) {
 		t.Fatal("projection is not deterministic")
 	}
@@ -353,7 +353,7 @@ func TestSavedGroupDocument1115AuthoredMoveProjectsCommandGroup(t *testing.T) {
 			if err := os.Remove(path); err != nil {
 				t.Fatal(err)
 			}
-			before := groupDocumentSnapshot1115(t, front)
+			before := groupDocumentSnapshot(t, front)
 			if before.SavedDocument.GroupBindings.Unavailable != "" {
 				t.Fatal("original Group fixture starts outside export coverage", before.SavedDocument.GroupBindings.Unavailable)
 			}
@@ -374,7 +374,7 @@ func TestSavedGroupDocument1115AuthoredMoveProjectsCommandGroup(t *testing.T) {
 			if len(groups) != 2 || !groups[1].Authored || len(groups[1].Members) != 1 || groups[1].Members[0].Entity != actor.ID {
 				t.Fatal("ordinary Move did not create current authored Group", groups)
 			}
-			current := groupDocumentSnapshot1115(t, front)
+			current := groupDocumentSnapshot(t, front)
 			if current.SavedDocument.GroupBindings.Unavailable != "" {
 				t.Fatal("current native command Group was not projected", current.SavedDocument.GroupBindings.Unavailable)
 			}
@@ -441,7 +441,7 @@ func TestSavedGroupDocument1115AuthoredMoveProjectsCommandGroup(t *testing.T) {
 			if !has || !reflect.DeepEqual(groups, gg) || !reflect.DeepEqual(orders, oo) || front.live.world.Hash() != fresh.live.world.Hash() {
 				t.Fatal("fresh native LOAD changed authored Group/current World")
 			}
-			loaded := groupDocumentSnapshot1115(t, fresh)
+			loaded := groupDocumentSnapshot(t, fresh)
 			if loaded.SavedDocument.GroupBindings.Unavailable != "" {
 				t.Fatal("current SAVE/LOAD lost exact Group authority")
 			}

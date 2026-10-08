@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 	"slices"
 	"testing"
 
@@ -213,6 +214,7 @@ func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 		}
 		for tick := 0; tick < 4; tick++ {
 			if worlds[0].Hash() != worlds[1].Hash() {
+				currentValueDiagnostics(t, "live/cold World", reflect.ValueOf(worlds[0]).Elem(), reflect.ValueOf(worlds[1]).Elem())
 				t.Fatalf("cycle %d: live and cold World hashes differ %d ticks after mission entry", cycle, tick)
 			}
 			sim.Step(worlds[0], nil)

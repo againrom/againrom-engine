@@ -42,7 +42,7 @@ func TestActorRoots1161DocumentLossControls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	roots, r, origins, err := actor1161Read(source, raw)
+	roots, r, origins, err := readActorRoots(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +174,7 @@ func TestActorRoots1161ReaderTrustAndBounds(t *testing.T) {
 func TestActorRoots1161LiveLossControls(t *testing.T) {
 	raw := unit1158AppFixture(t)
 	source, _ := sav.Open(raw)
-	roots, r, origins, err := actor1161Read(source, raw)
+	roots, r, origins, err := readActorRoots(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestActorRoots1161LiveLossControls(t *testing.T) {
 			case "wrong class":
 				bad[0].SourceBinding.Class = 3
 			}
-			d, _ := actor1161EntityDifferences(roots, r, origins, ms.savedDocument, ms.World, bad)
+			d, _ := actorRootEntityDifferences(roots, r, origins, ms.savedDocument, ms.World, bad)
 			if len(d) == 0 {
 				t.Fatal("accepted live root loss")
 			}
@@ -212,7 +212,7 @@ func TestActorRoots1161LiveLossControls(t *testing.T) {
 	// The independent stage, not the imported survivor set, decides this case.
 	roots[0].stage = 1
 	roots[0].hp = 0
-	if d, _ := actor1161EntityDifferences(roots, r, origins, ms.savedDocument, ms.World, observed[1:]); !strings.Contains(strings.Join(d, ";"), "eligible raw actor missing") {
+	if d, _ := actorRootEntityDifferences(roots, r, origins, ms.savedDocument, ms.World, observed[1:]); !strings.Contains(strings.Join(d, ";"), "eligible raw actor missing") {
 		t.Fatal("dying omission was hidden as raw-only", d)
 	}
 }

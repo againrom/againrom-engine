@@ -60,7 +60,7 @@ func TestCurrentSAVSessionHeadPrecedenceAndAbsence(t *testing.T) {
 		{"partial-source-is-not-absent", [48]byte{}, partial, partial},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			f, _ := documentSnapshot1115(t)
+			f, _ := documentSnapshotFixture(t)
 			ms := f.live.mission.state
 			ms.World.SetRawSessionHead(tc.live)
 			ms.savedDocument.Document.World.Session.Raw08 = tc.source

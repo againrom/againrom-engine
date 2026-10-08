@@ -124,7 +124,7 @@ func TestReleaseMilestone2Sacks1151(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := &sack1151Reader{body: file.Body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: source}
+	r := &sackByteReader{body: file.Body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: source}
 	for _, loc := range locations {
 		r.byIndex[loc.ArchiveIndex], r.byOff[loc.Off] = loc, loc
 	}

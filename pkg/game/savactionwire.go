@@ -105,6 +105,16 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 			continue
 		}
 		r := &state.Document.Objects[index-1]
+		if spell := e.AdmittedBookSpell; spell != 0 {
+			refs, _ := savedObjectRefs(r, "Spells")
+			if int(spell) <= len(refs) && refs[spell-1] != 0 && int(refs[spell-1]) <= len(state.Document.Objects) {
+				key, err := savedStructureValue(&state.Document.Objects[refs[spell-1]-1], "This")
+				if err != nil {
+					return err
+				}
+				savedObjectSetValue(r, "U44", key)
+			}
+		}
 		// ITEM-CASTSTATE-056: U68 is an archive borrow, U64 a reminted
 		// Spell key. An active weapon cast borrows its current held object.
 		if e.HasAttackTarget && e.AttackPhase == sim.AttackCasting && !e.PendingOrder.RowAdmitted {
@@ -163,6 +173,9 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 			}
 		}
 		stateCode, inner := uint32(0xd), byte(8)
+		if book && spellKey != 0 {
+			savedObjectSetValue(r, "U44", spellKey)
+		}
 		if atCell {
 			stateCode, inner = 0xe, 9
 		}

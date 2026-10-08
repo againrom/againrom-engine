@@ -65,6 +65,9 @@ func (w *World) beginManualCast(i int, c Command) bool {
 		}
 		e.PendingOrder = p
 		e.PendingOrder.RowAdmitted = w.pendingLogicalProgress(i) == 0
+		if e.PendingOrder.RowAdmitted {
+			e.AdmittedBookSpell = p.Spell
+		}
 		if !resumes {
 			w.commandGroup([]int{i}, orderNone, cell{})
 			w.acquireInPlace(i)
@@ -129,6 +132,7 @@ func (w *World) beginCellCastApproach(i int, c Command) bool {
 	if !w.queueBookCast(bookCast{Caster: e.ID, Spell: c.Spell, X: c.X, Y: c.Y, AtCell: true, Retained: true, Phase: bookApproach}) {
 		return false
 	}
+	e.AdmittedBookSpell = c.Spell
 	w.attachMoveOrder(i, c.X, c.Y, false)
 	w.syncSavedActorCommand(i)
 	w.syncSavedPost(i)

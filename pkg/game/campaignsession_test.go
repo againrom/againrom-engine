@@ -241,6 +241,8 @@ type refusingInstall struct{ missionInstall }
 
 func (refusingInstall) decodeMission(string) (*MapView, error) { return nil, errors.New("no map") }
 
+func (refusingInstall) constructCurrentBuildings(*Mission) error { return nil }
+
 func TestMissionEntryStopsWhenTheInstallRefusesTheMap(t *testing.T) {
 	audio := &recordingAudio{}
 	e := newEntryFixture(t, audio)

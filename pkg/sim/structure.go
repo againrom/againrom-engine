@@ -1,6 +1,9 @@
 package sim
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // StructureID is a structure's identity within a world, on EntityID's own terms
 // (world.go): an OPAQUE HANDLE a script's Target_Structure reference is bound
@@ -55,6 +58,7 @@ type Structure struct {
 // shape mutation is implemented. The cache derives from the persisted saved
 // cell overlay or the legacy shape, never from a constructor replay on SAV LOAD.
 func (w *World) rebuildStructureSlots() {
+	w.nativeStructurePlanes = w.hasSavedStructures && (len(w.savedStructures) == 0 || slices.ContainsFunc(w.savedStructures, func(s SavedStructure) bool { return !s.Class.Generated() }))
 	w.structureSlots = nil
 	if w.hasSavedStructures {
 		for _, c := range w.savedStructureCells {
@@ -88,6 +92,20 @@ func (w *World) rebuildStructureSlots() {
 			}
 		}
 	}
+}
+
+type StructureCellBinding struct {
+	Cell uint16
+	ID   StructureID
+}
+
+func (w *World) StructureOccupancy() []StructureCellBinding {
+	rows := make([]StructureCellBinding, 0, len(w.structureSlots))
+	for cell, index := range w.structureSlots {
+		rows = append(rows, StructureCellBinding{cell, w.structures[index].ID})
+	}
+	slices.SortFunc(rows, func(a, b StructureCellBinding) int { return int(a.Cell) - int(b.Cell) })
+	return rows
 }
 
 // indexOfStructure is indexOfEntity's own binary search (step.go), over a

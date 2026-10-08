@@ -20,6 +20,7 @@ func (w *World) RestoreCurrentPlayerSlots(rows []CurrentPlayerSlot, money map[ui
 	next := *w
 	next.entities = slices.Clone(w.entities)
 	next.savedGroups = cloneSavedGroups(w.savedGroups)
+	next.currentPlayers = cloneCurrentPlayers(w.currentPlayers)
 	byPlayer, byKey := map[uint32]CurrentPlayerSlot{}, map[uint32]CurrentPlayerSlot{}
 	for _, r := range rows {
 		if r.Player == 0 || r.Key == 0 || r.Wire == 0 || r.Wire > 16 || r.Wire == r.Native && r.Trigger == nil && !r.Shared || r.Native >= relationSlots ||
@@ -41,6 +42,17 @@ func (w *World) RestoreCurrentPlayerSlots(rows []CurrentPlayerSlot, money map[ui
 		p := &next.savedGroups.Players[i]
 		if r, ok := byPlayer[p.ID]; ok {
 			p.Slot = r.Native
+		}
+	}
+	if next.currentPlayers != nil {
+		for i := range next.currentPlayers.Players {
+			p := &next.currentPlayers.Players[i]
+			if r, ok := byPlayer[p.ID]; ok {
+				if p.Slot != r.Wire {
+					return fmt.Errorf("sim: current Player slot differs from its exact registry")
+				}
+				p.Slot = r.Native
+			}
 		}
 	}
 	actors := map[EntityID]CurrentPlayerSlot{}

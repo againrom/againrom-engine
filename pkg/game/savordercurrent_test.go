@@ -116,7 +116,7 @@ func TestSavedCurrentOrder1115ScriptToDocumentAndNativeContinuation(t *testing.T
 				}
 			}
 			beforeSave := front.live.world.Hash()
-			current = groupDocumentSnapshot1115(t, front)
+			current = groupDocumentSnapshot(t, front)
 			if current.SavedDocument.GroupBindings.Unavailable != "" {
 				t.Fatal("known current order was not projected", current.SavedDocument.GroupBindings.Unavailable)
 			}
@@ -241,7 +241,7 @@ func TestSavedCurrentOrder1115ScriptToDocumentAndNativeContinuation(t *testing.T
 			if err := fresh.App("fresh current order").OpenMission(open); err != nil {
 				t.Fatal(err)
 			}
-			again := groupDocumentSnapshot1115(t, fresh)
+			again := groupDocumentSnapshot(t, fresh)
 			if !reflect.DeepEqual(current.SavedDocument, again.SavedDocument) {
 				t.Fatal("fresh native LOAD lost current document")
 			}
@@ -258,7 +258,7 @@ func TestSavedCurrentOrder1115ScriptToDocumentAndNativeContinuation(t *testing.T
 
 func TestSavedCurrentOrder1115TargetAndStateGapsAreAtomic(t *testing.T) {
 	front, target := currentScriptOrderFront(t, 15)
-	state := groupDocumentSnapshot1115(t, front).SavedDocument
+	state := groupDocumentSnapshot(t, front).SavedDocument
 	_, orders, _ := front.live.world.SavedGroups()
 	var sourceOrder sim.SavedActorOrder
 	for _, order := range orders {

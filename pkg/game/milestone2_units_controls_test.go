@@ -14,7 +14,7 @@ import (
 // CStrings and all three classes. Literal writer positions below are independent
 // of the structural locator. Zero/duplicate Token identities are legal document
 // values here, not a claim that the live registry admits them.
-func unit1156Literal(t *testing.T, identity uint32) ([]byte, unit1156Set, *SnapshotSAVDocument) {
+func unit1156Literal(t *testing.T, identity uint32) ([]byte, unitScalarSet, *SnapshotSAVDocument) {
 	t.Helper()
 	a := &poolFixtureActor{name: "A"}
 	b := &poolFixtureActor{name: "A"}
@@ -47,7 +47,7 @@ func unit1156Literal(t *testing.T, identity uint32) ([]byte, unit1156Set, *Snaps
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := unit1156Expected(source, raw)
+	want, err := unitScalarExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func unit1156Literal(t *testing.T, identity uint32) ([]byte, unit1156Set, *Snaps
 	return raw, want, state
 }
 
-func unit1156Clone(t *testing.T, state *SnapshotSAVDocument) *SnapshotSAVDocument {
+func cloneSavedDocumentFixture(t *testing.T, state *SnapshotSAVDocument) *SnapshotSAVDocument {
 	t.Helper()
 	copy, err := cloneSavedDocument(state)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestUnit1156DocumentControls(t *testing.T) {
 			index := want.origins[want.records[0].archive] - 1
 			for _, name := range spell1152Keys(want.records[0].values) {
 				t.Run("omit-"+name, func(t *testing.T) {
-					bad := unit1156Clone(t, state)
+					bad := cloneSavedDocumentFixture(t, state)
 					values := bad.Document.Objects[index].Values
 					for i, field := range values {
 						if field.Name == name {
@@ -93,7 +93,7 @@ func TestUnit1156DocumentControls(t *testing.T) {
 			for _, name := range spell1152Keys(want.records[0].raw) {
 				for byteIndex := range want.records[0].raw[name] {
 					t.Run(fmt.Sprintf("raw-%s-%d", name, byteIndex), func(t *testing.T) {
-						bad := unit1156Clone(t, state)
+						bad := cloneSavedDocumentFixture(t, state)
 						for i, field := range bad.Document.Objects[index].Raw {
 							if field.Name == name {
 								bad.Document.Objects[index].Raw[i].Bytes[byteIndex] ^= 1
@@ -107,7 +107,7 @@ func TestUnit1156DocumentControls(t *testing.T) {
 			}
 			for _, control := range []string{"wrong-scalar", "duplicate-scalar", "cstring", "class", "missing-document", "collapsed-equal-actors"} {
 				t.Run(control, func(t *testing.T) {
-					bad := unit1156Clone(t, state)
+					bad := cloneSavedDocumentFixture(t, state)
 					changed := want
 					switch control {
 					case "wrong-scalar":
@@ -192,7 +192,7 @@ func TestUnit1156LiveControls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := unit1156Expected(source, raw)
+	want, err := unitScalarExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

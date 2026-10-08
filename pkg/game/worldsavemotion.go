@@ -127,6 +127,17 @@ func projectMotion(state *SnapshotSAVDocument, world *sim.World) error {
 			}
 		}
 		*r = next
+		if live && e.ActorLoad.Source.Class == 0 && e.NativeBasis.BlockKnown != 0 {
+			position, err := savedMotionRaw(r, "Block12", 12)
+			if err != nil {
+				return err
+			}
+			for n := 4; n < len(e.NativeBasis.Block); n++ {
+				if e.NativeBasis.BlockByteKnown(n) {
+					position[n+2] = e.NativeBasis.Block[n]
+				}
+			}
+		}
 	}
 	return nil
 }

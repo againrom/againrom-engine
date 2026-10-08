@@ -19,7 +19,7 @@ func groupPlayersValidationSnapshot1115(t *testing.T) (*FrontEnd, Snapshot) {
 	if err := front.App("Player binding validation").OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
-	s := groupDocumentSnapshot1115(t, front)
+	s := groupDocumentSnapshot(t, front)
 	b := s.SavedDocument.GroupBindings
 	if !b.PlayersPresent || len(b.Players) != 1 || len(b.Groups) != 1 || b.Groups[0].ContainerID != b.Players[0].ID || b.Groups[0].Authored || b.Unavailable != "" {
 		t.Fatal("fixture lacks current exact imported Player/Group provenance", b)
@@ -316,10 +316,10 @@ func TestSavedGroupPlayersValidation1115DetachedCloneAndNativeRoundTrip(t *testi
 	if err := front.App("Player binding round trip").OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
-	before := groupDocumentSnapshot1115(t, front)
+	before := groupDocumentSnapshot(t, front)
 	decoded.SavedDocument.GroupBindings.Players[0].ID++
 	decoded.SavedDocument.GroupBindings.Groups[0].ContainerID++
-	after := groupDocumentSnapshot1115(t, front)
+	after := groupDocumentSnapshot(t, front)
 	if !reflect.DeepEqual(before, after) || !reflect.DeepEqual(source, want) {
 		t.Fatal("decoded Player slice aliases source or restored session")
 	}

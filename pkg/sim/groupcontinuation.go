@@ -22,6 +22,7 @@ func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater ui
 		return fmt.Errorf("sim: incomplete current Group continuation")
 	}
 	n := cloneSavedGroups(w.savedGroups)
+	current := cloneCurrentPlayers(w.currentPlayers)
 	byID := map[uint32]SavedGroup{}
 	for _, g := range n.Groups {
 		byID[g.ID] = g
@@ -82,11 +83,31 @@ func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater ui
 			}
 		}
 		n.Formations = formations
+		if current != nil {
+			kept := current.Players[:0]
+			for _, p := range current.Players {
+				if !absent[p.ID] {
+					kept = append(kept, p)
+				}
+			}
+			current.Players = kept
+			participants := current.Participants[:0]
+			for _, p := range current.Participants {
+				if !absent[p.PlayerID] {
+					participants = append(participants, p)
+				}
+			}
+			current.Participants = participants
+		}
 	}
 	if err := savedGroupsFault(n, w.entities, w.originalDead); err != nil {
 		return err
 	}
+	if err := currentPlayersFault(current); err != nil {
+		return err
+	}
 	w.savedGroups = n
+	w.currentPlayers = current
 	return nil
 }
 

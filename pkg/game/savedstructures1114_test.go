@@ -20,7 +20,7 @@ import (
 	"againrom/pkg/vfs"
 )
 
-func structureFront1114(t *testing.T, generated ...bool) *FrontEnd {
+func structureFront(t *testing.T, generated ...bool) *FrontEnd {
 	f := structureFixtureFront(t, 51, 52, 53)
 	f.Campaign = resolved(Campaign{Main: []int{10}, Offered: []int{10}, Chapters: map[int]Chapter{10: {Mission: 10}}}, nil)
 	f.Font = resolved(missionFont(), nil)
@@ -28,9 +28,17 @@ func structureFront1114(t *testing.T, generated ...bool) *FrontEnd {
 	f.Table = actorRegistryTable()
 	f.Table.Buildings = buildingTable
 	objects := []synth.ALMObject{{X: 10 << 8, Y: 10 << 8, Kind: 1, Field12: 51}, {X: 18 << 8, Y: 10 << 8, Kind: 1, Field12: 52}, {X: 26 << 8, Y: 10 << 8, Kind: 1, Field12: 53}}
+	if len(generated) > 2 && generated[2] {
+		objects[1].Field12 = 51
+	}
 	path := filepath.Join(t.TempDir(), ScenarioArchive)
 	paths := []string{path}
 	options := synth.ALMOptions{Width: 40, Height: 40, Objects: objects}
+	if len(generated) > 1 && generated[1] {
+		units := f.Table.Units.(dbCollection)
+		units[1].params[29], units[1].params[30], units[1].params[32] = 35, 0, 2
+		options.Units = []synth.ALMUnit{{X: 8 << 8, Y: 8 << 8, ClassID: 35}}
+	}
 	if len(generated) != 0 && generated[0] {
 		drop := make([]byte, 4+796+8)
 		binary.LittleEndian.PutUint32(drop, 1)
@@ -188,7 +196,7 @@ func structureWitnessActor1114(t *testing.T, w *sim.World) sim.Entity {
 }
 
 func TestSavedStructures1114BothDoorsAndFreshNativeAction(t *testing.T) {
-	f := structureFront1114(t)
+	f := structureFront(t)
 	app := f.App("1114 saved structures")
 	app.Layout(1024, 768)
 	if path := os.Getenv("AGAINROM_STRUCTURES_1114_NATIVE"); path != "" {
@@ -285,7 +293,7 @@ func TestSavedStructures1114BothDoorsAndFreshNativeAction(t *testing.T) {
 }
 
 func TestSavedStructures1114LateReferenceRefusesAtomically(t *testing.T) {
-	f := structureFront1114(t, true)
+	f := structureFront(t, true)
 	native, nativeErr := StartMission(f.Archives.Containers, 10, f.Table, mapload.DifficultyNormal, f.NextParty())
 	if nativeErr != nil {
 		t.Fatal(nativeErr)
@@ -334,7 +342,7 @@ func TestSavedStructures1114LateReferenceRefusesAtomically(t *testing.T) {
 }
 
 func TestSavedStructures1114AppAttackHitsMovedBuilding(t *testing.T) {
-	f := structureFront1114(t)
+	f := structureFront(t)
 	app := f.App("1114 physical attack")
 	app.Layout(1024, 768)
 	opener, _, err := f.RestoreOriginal(structureSave1114(t, 0, false))

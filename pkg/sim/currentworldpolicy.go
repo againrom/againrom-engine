@@ -158,6 +158,9 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		if err := experienceSlotFault(p.Ghost.XPSlot); err != nil {
 			return fmt.Errorf("sim: invalid current Ghost experience slot: %w", err)
 		}
+		if err := p.Ghost.NativeBasis.Validate(); err != nil {
+			return fmt.Errorf("sim: invalid current Ghost native basis: %w", err)
+		}
 	}
 	if err := w.RestoreCurrentClock(p.TickHigh, p.ClockKnown); err != nil {
 		return err
@@ -243,6 +246,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 			w.savedStructureCells = nil
 		}
 	}
+	w.rebuildStructureSlots()
 	if !p.ObjectCarrier {
 		w.savedObjects = nil
 		w.carried = slices.Clone(w.carried)

@@ -44,12 +44,18 @@ type currentNativeDelivery struct {
 	Policy sim.CurrentDeliveryPolicy
 }
 type currentActionData struct {
-	Version        uint32
-	WorldMapReturn *SnapshotMapReturn `json:",omitempty"`
-	Bindings       []currentActionBinding
-	Objects        []currentActionObject
-	Actions        sim.ActionContinuations
-	Program        *currentScriptProgram `json:",omitempty"`
+	structureGenerated   map[uint32]bool
+	StructureBindings    *[]currentStructureBinding   `json:",omitempty"`
+	NativeBasisWires     []currentNativeBasisWire     `json:",omitempty"`
+	HeldNativeBasisWires bool                         `json:",omitempty"`
+	RemovedNativeBases   []sim.NativeActorBasisRecord `json:",omitempty"`
+	Version              uint32
+	NativeHistoryVersion uint8              `json:",omitempty"`
+	WorldMapReturn       *SnapshotMapReturn `json:",omitempty"`
+	Bindings             []currentActionBinding
+	Objects              []currentActionObject
+	Actions              sim.ActionContinuations
+	Program              *currentScriptProgram `json:",omitempty"`
 	// A terminal body is owned by SAV's dead list. Its dormant action residue
 	// remains with that exact root; it never resurrects a ticking Entity.
 	Held                 []sim.ActorContinuation
@@ -71,6 +77,8 @@ type currentActionData struct {
 	GroupHighWater       uint32
 	GroupPlayers         *bool                            `json:",omitempty"`
 	GroupFormations      *bool                            `json:",omitempty"`
+	GroupParticipants    *bool                            `json:",omitempty"`
+	PlayerIdentities     *[]currentPlayerIdentity         `json:",omitempty"`
 	DepartedCharacters   []uint32                         `json:",omitempty"`
 	AbsentPlayers        []currentAbsentPlayer            `json:",omitempty"`
 	ArchiveCoordinates   []currentArchiveCoordinate       `json:",omitempty"`
@@ -117,13 +125,16 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	if err := d.Decode(&tail); err != io.EOF {
 		return nil, fmt.Errorf("current actions contain trailing data")
 	}
-	if a.Version != 1 || len(a.Bindings) > 131072 || len(a.Actions.Actors) > 32767 || len(a.Groups) > 65534 || len(a.CellCosts) > 65536 || len(a.SpellCasters) > 65534 || len(a.AbsentStructureCells) > 65536 {
+	if a.Version != 1 || a.NativeHistoryVersion > 1 || len(a.Bindings) > 131072 || len(a.Actions.Actors) > 32767 || len(a.Groups) > 65534 || len(a.CellCosts) > 65536 || len(a.SpellCasters) > 65534 || len(a.AbsentStructureCells) > 65536 {
 		return nil, fmt.Errorf("current action version/population is invalid")
 	}
 	if a.Program != nil && (doc.World == nil || a.Policy == nil) {
 		return nil, fmt.Errorf("current script program lacks world/register policy")
 	}
 	if err := validateCurrentDepartedCharacters(a.DepartedCharacters); err != nil {
+		return nil, err
+	}
+	if err := matchCurrentNativeBasis(doc, &a); err != nil {
 		return nil, err
 	}
 	if p := a.WorldMapReturn; p != nil && (doc.Head.Mission != 0 || p.Mission <= 0 || p.Shown < 0) {
@@ -140,6 +151,9 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	}
 	if (a.GroupPlayers == nil) != (a.GroupFormations == nil) || a.GroupPlayers != nil && (a.Groups == nil || *a.GroupFormations && !*a.GroupPlayers) {
 		return nil, fmt.Errorf("current Group carrier presence is incomplete or conflicting")
+	}
+	if a.GroupParticipants != nil && a.GroupPlayers == nil && a.PlayerIdentities == nil {
+		return nil, fmt.Errorf("current Participant presence lacks exact Player identities")
 	}
 	if err := validatePendingGameOptions(a.Options); err != nil {
 		return nil, err
@@ -168,6 +182,9 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 		return nil, err
 	}
 	if err := validateCurrentArchiveCoordinates(doc, &a); err != nil {
+		return nil, err
+	}
+	if err := validateCurrentStructureBindings(doc, &a); err != nil {
 		return nil, err
 	}
 	if err := validateCurrentActorManifest(&a); err != nil {
@@ -305,7 +322,7 @@ func sourceActorDocumentClass(class uint8) string {
 // layer relocates these addresses with every reindex/retirement; final key
 // completion is independent. Constructor objects may still have a zero wire key.
 func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w *sim.World, s Snapshot, table *mapload.Table, captured ...sim.CurrentWorldPolicy) error {
-	a := currentActionData{Version: 1, Actions: w.Actions(), Options: s.Residue.PendingGameOptions,
+	a := currentActionData{Version: 1, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases(), Options: s.Residue.PendingGameOptions,
 		Bolts: s.Residue.SpellBolts, Heals: s.Residue.HealBursts, Runs: s.Residue.CastRuns, GroupTag: s.Residue.GroupTag, VisualIdentities: s.Residue.VisualIdentities, VisualNext: s.Residue.VisualNext}
 	if w.Script().Dialect() == sim.ScriptROM2 {
 		a.Fog = captureCurrentMissionFog(s.Residue)
@@ -396,10 +413,15 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 		}
 	}
 	groups, _, hasGroups := w.SavedGroups()
+	if err := captureCurrentPlayerIdentities(state, w, &a); err != nil {
+		return err
+	}
 	if hasGroups && state.GroupBindings != nil {
 		_, players := w.SavedGroupPlayers()
 		_, formations := w.SavedPlayerFormations()
 		a.GroupPlayers, a.GroupFormations = &players, &formations
+		_, participants := w.PlayerParticipants()
+		a.GroupParticipants = &participants
 		a.Groups = make([]currentGroupContinuation, 0, len(groups))
 		a.GroupHighWater = w.GroupHighWater()
 		for _, g := range groups {
@@ -789,6 +811,9 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	if err := captureCurrentArchiveCoordinates(doc, state, w, &a); err != nil {
 		return err
 	}
+	if err := captureCurrentStructureBindings(doc, w, &a); err != nil {
+		return err
+	}
 	captureCurrentManaReserves(doc, state, w, &a)
 	if err := captureCurrentDead(doc, state, w, &a); err != nil {
 		return err
@@ -801,6 +826,9 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	}
 	a.Pending, err = projectCurrentPending(s.Residue, byActor, byStructure)
 	if err != nil {
+		return err
+	}
+	if err := captureCurrentNativeBasis(doc, &a); err != nil {
 		return err
 	}
 	b, err := json.Marshal(a)
@@ -1029,6 +1057,22 @@ func resolveCurrentActions(ms *Mission, a *currentActionData) (map[sim.EntityID]
 	if err := (&sim.ActionContinuations{Actors: a.Held}).RemapActors(ref); err != nil {
 		return nil, err
 	}
+	for i := range a.RemovedNativeBases {
+		id, err := ref(a.RemovedNativeBases[i].ID, false)
+		if err != nil {
+			return nil, err
+		}
+		a.RemovedNativeBases[i].ID = id
+	}
+	slices.SortFunc(a.RemovedNativeBases, func(x, y sim.NativeActorBasisRecord) int {
+		if x.ID < y.ID {
+			return -1
+		}
+		if x.ID > y.ID {
+			return 1
+		}
+		return 0
+	})
 	return actorMap, nil
 }
 
@@ -1079,6 +1123,9 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	if err := restoreCurrentPlayerSlots(ms, a.PlayerSlots); err != nil {
 		return err
 	}
+	if err := restoreCurrentPlayerIdentities(ms, a); err != nil {
+		return err
+	}
 	if err := bindCurrentPartyRecords(a, ms.savedDocument.Document); err != nil {
 		return err
 	}
@@ -1113,6 +1160,14 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 		if err := ms.World.RestoreGroupCarrierPresence(*a.GroupPlayers, *a.GroupFormations); err != nil {
 			return err
 		}
+	}
+	if a.GroupParticipants != nil && !*a.GroupParticipants {
+		if err := ms.World.RestorePlayerParticipants(nil, false); err != nil {
+			return err
+		}
+	}
+	if a.PlayerIdentities == nil && (a.GroupParticipants == nil || !*a.GroupParticipants) {
+		ms.World.RestoreCurrentPlayerRegistryAbsent()
 	}
 	if a.Groups != nil {
 		bindings := ms.savedDocument.GroupBindings
@@ -1243,6 +1298,9 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 		return err
 	}
 	matchCurrentManaReserves(ms, a)
+	if err := matchCurrentBookSelection(ms.savedDocument.Document, a); err != nil {
+		return err
+	}
 	if err := matchCurrentOrderSpellAbsence(ms.savedDocument.Document, a); err != nil {
 		return err
 	}
@@ -1250,6 +1308,12 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 		return err
 	}
 	if err := ms.World.RestoreCurrentContinuation(a.Policy, a.Values, a.Actions, objects, terminalMotions...); err != nil {
+		return err
+	}
+	if err := ms.World.RestoreNativeActorBases(a.RemovedNativeBases); err != nil {
+		return err
+	}
+	if err := restoreLegacyNativeObservations(ms, a); err != nil {
 		return err
 	}
 	if err := restoreCurrentArchiveCoordinates(ms, a, archiveCoordinates); err != nil {
@@ -1320,10 +1384,10 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 			appendMissing(&ms.savedDocument.Objects.Spells, v.ID)
 		}
 	}
-	if err := retireCurrentAreaDocument(ms, a.NativeAreas, a.NativeDeliveries); err != nil {
+	if err := reconcileSavedTerminalRegistry(ms); err != nil {
 		return err
 	}
-	if err := reconcileSavedTerminalRegistry(ms); err != nil {
+	if err := bindCurrentPlayerRoots(ms.savedDocument, ms.World); err != nil {
 		return err
 	}
 	*original.World = *ms.World

@@ -22,9 +22,10 @@ type unit1156Record struct {
 	values  map[string]uint32
 	raw     map[string][]byte
 	name    string
+	current *milestoneActorCurrent
 }
 
-type unit1156Set struct {
+type unitScalarSet struct {
 	records []unit1156Record
 	origins map[uint16]uint16
 }
@@ -35,27 +36,37 @@ func unit1156Class(class string) bool {
 	return class == "Unit" || class == "Human" || class == "Humanoid"
 }
 
-func unit1156Expected(f *sav.File, source []byte) (unit1156Set, error) {
+func unitScalarExpected(f *sav.File, source []byte) (unitScalarSet, error) {
 	locations, err := f.DocumentActorLocations()
 	if err != nil {
-		return unit1156Set{}, err
+		return unitScalarSet{}, err
 	}
 	objects, err := f.DocumentObjectLocations()
 	if err != nil {
-		return unit1156Set{}, err
+		return unitScalarSet{}, err
 	}
-	// Only the permutation is used. The decoded values returned by this
-	// call are discarded. Token.Identity is compared later as a value; a
-	// corrupt identity cannot redirect a join or merge equal-valued actors.
-	_, origins, err := sav.DecodeDocumentDataWithOrigins(source)
+	// Decoded ordinary scalar values are discarded. The supplement supplies
+	// only exact identity/admission/presence; ordinary Body remains the oracle.
+	document, origins, err := sav.DecodeDocumentDataWithOrigins(source)
 	if err != nil {
-		return unit1156Set{}, err
+		return unitScalarSet{}, err
 	}
-	return unit1156Read(f.Body, locations, objects, origins)
+	out, err := unit1156Read(f.Body, locations, objects, origins)
+	if err != nil {
+		return out, err
+	}
+	current, err := milestoneActorCurrentInputs(&document)
+	if err != nil {
+		return out, err
+	}
+	for i := range out.records {
+		out.records[i].current = current[out.origins[out.records[i].archive]]
+	}
+	return out, nil
 }
 
-func unit1156Read(body []byte, locations []sav.DocumentActorLocation, objects []sav.DocumentObjectLocation, origins []sav.DocumentObjectOrigin) (unit1156Set, error) {
-	out := unit1156Set{origins: map[uint16]uint16{}}
+func unit1156Read(body []byte, locations []sav.DocumentActorLocation, objects []sav.DocumentObjectLocation, origins []sav.DocumentObjectOrigin) (unitScalarSet, error) {
+	out := unitScalarSet{origins: map[uint16]uint16{}}
 	byArchive := map[uint16]sav.DocumentObjectLocation{}
 	wanted := map[uint16]sav.DocumentObjectLocation{}
 	for _, object := range objects {
@@ -139,7 +150,7 @@ func unit1156Unsigned(b []byte, width int) uint32 {
 	}
 }
 
-func (want unit1156Set) documentDifferences(state *SnapshotSAVDocument) []string {
+func (want unitScalarSet) documentDifferences(state *SnapshotSAVDocument) []string {
 	if state == nil || state.Document == nil || state.Unavailable != "" {
 		return []string{"complete Unit document unavailable"}
 	}
@@ -210,27 +221,35 @@ func (want unit1156Set) documentDifferences(state *SnapshotSAVDocument) []string
 // records. A missing importer binding cannot change that population. Late-dead,
 // terminal and other raw-only records remain in Document comparisons and are
 // reported individually; native ALM-only entities are not invented SAV rows.
-func (want unit1156Set) worldDifferences(world *sim.World, manifest *SnapshotActorManifest) (differences, excluded []string, compared int) {
-	return want.entityDifferences(world.Entities(), manifest)
+func (want unitScalarSet) worldDifferences(world *sim.World, manifest *SnapshotActorManifest, contexts ...*Mission) (differences, excluded []string, compared int) {
+	return want.entityDifferences(world.Entities(), manifest, contexts...)
 }
 
-func (want unit1156Set) entityDifferences(entities []sim.Entity, manifest *SnapshotActorManifest) (differences, excluded []string, compared int) {
-	byArchive := map[uint16]sim.Entity{}
-	for _, e := range entities {
-		if e.SourceBinding.Class == 0 {
-			continue
-		}
-		if _, duplicate := byArchive[e.SourceBinding.ArchiveIndex]; duplicate {
-			differences = append(differences, "duplicate live SourceBinding archive")
-		}
-		byArchive[e.SourceBinding.ArchiveIndex] = e
+func (want unitScalarSet) entityDifferences(entities []sim.Entity, manifest *SnapshotActorManifest, contexts ...*Mission) (differences, excluded []string, compared int) {
+	var state *SnapshotSAVDocument
+	if len(contexts) == 1 && contexts[0] != nil {
+		state = contexts[0].savedDocument
 	}
+	subjects, subjectDifferences := newMilestoneActorSubjects(entities, state, contexts...)
+	differences = append(differences, subjectDifferences...)
+	byArchive := subjects.byArchive
 	for _, r := range want.records {
 		prefix := fmt.Sprintf("archive %d %s offset %d", r.archive, r.class, r.off)
-		e, exists := byArchive[r.archive]
+		e, exists, native, issue := subjects.actor(r.archive, r.off, r.class, r.values["Identity"], r.values["RuntimeID"], want.origins[r.archive], r.current)
+		if issue != "" {
+			differences = append(differences, prefix+": "+issue)
+		}
 		if !exists {
 			stage, hp := r.values["Stage"], int16(r.values["Health"])
-			if stage == 1 || stage == 0 && hp > 0 {
+			owned, ownerIssue := subjects.terminal(r.archive, r.off, r.class, r.values["Identity"], r.values["RuntimeID"], want.origins[r.archive], r.current, byte(stage), hp, r.raw["Block12"][:4])
+			if ownerIssue != "" {
+				differences = append(differences, prefix+": "+ownerIssue)
+			}
+			if owned {
+				excluded = append(excluded, prefix+": exact current terminal owner; raw tuple and complete Document compared")
+				continue
+			}
+			if native || stage == 1 || stage == 0 && hp > 0 {
 				differences = append(differences, fmt.Sprintf("%s: expected live scalar SourceBinding entity missing (stage=%d, signed HP=%d, runtime=%d)", prefix, stage, hp, r.values["RuntimeID"]))
 			} else {
 				excluded = append(excluded, fmt.Sprintf("%s: no scalar SourceBinding entity (stage=%d, signed HP=%d, runtime=%d); retained Document still compared", prefix, stage, hp, r.values["RuntimeID"]))
@@ -239,6 +258,10 @@ func (want unit1156Set) entityDifferences(entities []sim.Entity, manifest *Snaps
 		}
 		delete(byArchive, r.archive)
 		compared++
+		if native {
+			differences = append(differences, unit1156NativeDifferences(r, e, r.current, manifest)...)
+			continue
+		}
 		check := func(name string, got, expected uint32) {
 			if got != expected {
 				differences = append(differences, fmt.Sprintf("%s %s: World=%#x raw=%#x", prefix, name, got, expected))
@@ -305,10 +328,145 @@ func (want unit1156Set) entityDifferences(entities []sim.Entity, manifest *Snaps
 			}
 		}
 	}
+	if n := subjects.unexpectedNative(); n != 0 {
+		differences = append(differences, fmt.Sprintf("unexpected native actor subject population%d", n))
+	}
 	for archive := range byArchive {
 		differences = append(differences, fmt.Sprintf("live archive %d absent from raw Unit population", archive))
 	}
 	return
+}
+
+func unit1156NativeDifferences(r unit1156Record, e sim.Entity, current *milestoneActorCurrent, manifest *SnapshotActorManifest) []string {
+	prefix := fmt.Sprintf("archive %d %s offset %d", r.archive, r.class, r.off)
+	var differences []string
+	check := func(name string, got, expected uint32) {
+		if got != expected {
+			differences = append(differences, fmt.Sprintf("%s %s: World=%#x raw=%#x", prefix, name, got, expected))
+		}
+	}
+	unavailable := func(name string) {
+		differences = append(differences, prefix+": native "+name+" current scalar carrier unavailable; complete Document compared")
+	}
+	v, b, mask := r.values, e.NativeBasis, current.Basis
+	if err := b.Validate(); err != nil {
+		differences = append(differences, prefix+": native basis invalid: "+err.Error())
+	}
+	if b.BasePresent != mask.BasePresent || b.BaseKnown != mask.BaseKnown || b.ModifierPresent != mask.ModifierPresent || b.ModifierKnown != mask.ModifierKnown || b.BodyPresent != mask.BodyPresent || b.BodyKnown != mask.BodyKnown {
+		differences = append(differences, prefix+": native basis presence/mask differs")
+	}
+	if b.ScalarsPresent != mask.ScalarsPresent || b.ScalarKnown != mask.ScalarKnown || b.BlockPresent != mask.BlockPresent || b.BlockKnown != mask.BlockKnown {
+		differences = append(differences, prefix+": native scalar presence/mask differs")
+	}
+	scalar := func(name string, index int, expected uint32) {
+		if !b.ScalarsPresent || b.ScalarKnown&(uint32(1)<<index) == 0 || mask.ScalarKnown&(uint32(1)<<index) == 0 {
+			unavailable(name)
+			return
+		}
+		check("native "+name, b.Scalars[index], expected)
+	}
+	if b.BodyPresent && b.BodyKnown && mask.BodyPresent && mask.BodyKnown {
+		check("native Body", uint32(b.Body), v["Body"])
+	} else {
+		unavailable("Body")
+	}
+	// The exact subject join compared raw Identity/RuntimeID to registry source
+	// metadata and the independently restored ordinary binding, not EntityID.
+	for _, field := range []struct {
+		name string
+		got  uint16
+	}{
+		{"Reaction", uint16(e.Reaction)}, {"Mind", uint16(e.Mind)}, {"Spirit", uint16(e.Spirit)},
+		{"Speed", uint16(e.Speed)}, {"U90", uint16(e.Load)}, {"Capacity", uint16(e.Capacity)},
+		{"Health", uint16(e.HP)}, {"HealthMax", uint16(e.MaxHP)}, {"Mana", uint16(e.Mana)}, {"ManaMax", uint16(e.MaxMana)},
+		{"HealthRegen", uint16(e.HealthRegenPeriod)}, {"ManaRegen", uint16(e.ManaRegenPeriod)}, {"T0E", uint16(e.TypeID)},
+	} {
+		check(field.name, uint32(field.got), v[field.name])
+	}
+	if e.ActorLoad.Present {
+		check("U8E", uint32(uint16(e.ActorLoad.OwnWeight)), v["U8E"])
+	} else {
+		scalar("U8E", sim.ScalarU8E, v["U8E"])
+	}
+	for _, field := range []struct {
+		name string
+		got  uint32
+	}{
+		{"U49", uint32(e.TokenSize)}, {"UA2", uint32(e.HealthHundredths)}, {"UA3", uint32(e.ManaHundredths)},
+		{"U12C", uint32(e.Reach)}, {"U134", uint32(uint8(e.AttackCharge))}, {"U135", uint32(uint8(e.AttackRelax))},
+	} {
+		check(field.name, field.got, v[field.name])
+	}
+	check("MapUnitID", uint32(e.MapUnitID), v["T08"]&0xffff)
+	check("domain", uint32(e.Domain)+1, v["U4A"])
+	for _, difference := range unitNativePositionDifferences(e, r.raw["Block12"]) {
+		differences = append(differences, prefix+" "+difference)
+	}
+	check("ScanRange", uint32(e.ScanRange), v["UA4"]>>8)
+	check("U4C off-map", boolUint1156(e.OffMap), boolUint1156(v["U4C"]&sav.ActorOffMapFlag != 0))
+	if r.class == "Human" && e.NativeClass.Present {
+		check("U4C Fighter", boolUint1156(e.NativeClass.Fighter), boolUint1156(v["U4C"]&4 == 0))
+	} else if !b.ScalarsPresent || b.ScalarKnown&(1<<sim.ScalarU4C) == 0 {
+		unavailable("U4C bit2")
+	}
+	scalar("U4C remaining bits", sim.ScalarU4C, v["U4C"])
+	check("Stage", uint32(e.Decay), v["Stage"])
+	if v["Stage"] == 1 {
+		check("dying timer U6C", uint32(e.Dwell), v["U6C"])
+	} else {
+		scalar("U6C", sim.ScalarU6C, v["U6C"])
+	}
+	if r.class == "Unit" && e.TypeID >= 0x1a {
+		check("T1C", uint32(e.XPValue), v["T1C"])
+	} else {
+		scalar("T1C", sim.ScalarT1C, v["T1C"])
+	}
+	// No current writer DTO or retained constructor scalar is an expectation.
+	// These obligations remain failures until an independent carrier is present.
+	for _, field := range []struct {
+		name  string
+		index int
+	}{
+		{"T0C", sim.ScalarT0C}, {"T08 high word", sim.ScalarT08High}, {"T18", sim.ScalarT18}, {"Reference", sim.ScalarReference},
+		{"U4B", sim.ScalarU4B}, {"U60", sim.ScalarU60}, {"U61", sim.ScalarU61}, {"UA0", sim.ScalarUA0}, {"UA4", sim.ScalarUA4},
+		{"U130", sim.ScalarU130}, {"U136", sim.ScalarU136}, {"U138", sim.ScalarU138}, {"U148", sim.ScalarU148}, {"U144", sim.ScalarU144},
+	} {
+		expected := v[field.name]
+		if field.index == sim.ScalarT08High {
+			expected = v["T08"] >> 16
+		}
+		scalar(field.name, field.index, expected)
+	}
+	for n := range 10 {
+		if !b.BlockPresent || b.BlockKnown&(1<<n) == 0 || mask.BlockKnown&(1<<n) == 0 {
+			unavailable(fmt.Sprintf("Block12 byte%d", n+2))
+		} else {
+			check(fmt.Sprintf("native Block12 byte%d", n+2), uint32(b.Block[n]), uint32(r.raw["Block12"][n+2]))
+		}
+	}
+	for _, field := range []struct {
+		name  string
+		index int
+	}{{"U50", sim.ScalarU50}, {"U54", sim.ScalarU54}, {"U58", sim.ScalarU58}} {
+		scalar(field.name, field.index, binary.LittleEndian.Uint32(r.raw[field.name]))
+	}
+	if manifest == nil {
+		unavailable("Name")
+	} else {
+		count := 0
+		for _, row := range manifest.Actors {
+			if row.ID == e.ID {
+				count++
+				if row.Name != r.name {
+					differences = append(differences, prefix+": live manifest Name differs")
+				}
+			}
+		}
+		if count != 1 {
+			differences = append(differences, prefix+": missing/duplicate manifest Name")
+		}
+	}
+	return differences
 }
 
 func boolUint1156(v bool) uint32 {
@@ -316,4 +474,36 @@ func boolUint1156(v bool) uint32 {
 		return 1
 	}
 	return 0
+}
+
+func unitNativePositionDifferences(e sim.Entity, raw []byte) []string {
+	if len(raw) != 12 {
+		return []string{"position block length differs"}
+	}
+	x, y := e.X, e.Y
+	var differences []string
+	if e.Transit > 0 && e.Stride.Present {
+		s := e.Stride
+		if e.TransitTotal == 0 || e.Transit > e.TransitTotal || e.X != s.ToX || e.Y != s.ToY {
+			return []string{"accepted stride destination/interval differs"}
+		}
+		elapsed := int32(e.TransitTotal - e.Transit)
+		fineX := s.FromX*256 + 128 + int32(s.StepX)*elapsed
+		fineY := s.FromY*256 + 128 + int32(s.StepY)*elapsed
+		x, y = fineX>>8, fineY>>8
+		if byte(fineX) != raw[4] || byte(fineY) != raw[5] {
+			differences = append(differences, "accepted stride fine position differs")
+		}
+	}
+	cell := binary.LittleEndian.Uint16(raw)
+	if x != int32(cell&255) {
+		differences = append(differences, fmt.Sprintf("cell X: World=%#x raw=%#x", x, cell&255))
+	}
+	if y != int32(cell>>8) {
+		differences = append(differences, fmt.Sprintf("cell Y: World=%#x raw=%#x", y, cell>>8))
+	}
+	if e.Transit > 0 && e.Stride.Present && binary.LittleEndian.Uint16(raw[2:]) != cell {
+		differences = append(differences, "accepted stride packed position differs")
+	}
+	return differences
 }

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
@@ -20,6 +21,8 @@ func TestCurrentConsumedCorpseZeroIDSAVAndMissingBinding(t *testing.T) {
 		p[1], p[4], p[6], p[8] = 2, 1, 4, 1
 		f.Table.Spells = spells
 		body := sim.Entity{ID: 0, X: 15, Y: 15, HP: -12, MaxHP: 29, Decay: sim.DecayBones, Owner: sim.SelfSlot, TypeID: 1, TokenSize: 1, DyingTime: 200}
+		body.NativeBasis = sim.NativeActorBasis{BasePresent: true, BaseKnown: 1 << 22, ModifierPresent: true, ModifierKnown: 1 << 40, BodyPresent: true, BodyKnown: true, Body: 17}
+		body.NativeBasis.Base[22], body.NativeBasis.Modifier[40] = 23, 29
 		mage := sim.Entity{ID: 41, X: 14, Y: 15, HP: 40, MaxHP: 40, Owner: sim.SelfSlot, TypeID: 1, TokenSize: 1, ScanRange: 10, Mana: 100, MaxMana: 100, Mind: 40, KnownSpells: 1 << 25}
 		ghost := sim.GhostTemplate{Class: 1, TypeID: 1, Domain: sim.DomainGhost, Speed: 1, TokenSize: 1}
 		w, err := sim.NewSummoningWorld(9, base.Bounds(), sim.ModeCanonical, sim.Terrain{}, []sim.Entity{body, mage}, consumedCorpseScript(t, 0),
@@ -37,6 +40,11 @@ func TestCurrentConsumedCorpseZeroIDSAVAndMissingBinding(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
+		basis := body.NativeBasis.WithBody(0)
+		basis.Base[22], basis.Modifier[40] = 96, 100
+		if err := w.RestoreNativeActorBases([]sim.NativeActorBasisRecord{{ID: 0, Basis: basis}}); err != nil {
+			t.Fatal(err)
+		}
 		sim.Step(w, []sim.Command{sim.Cast(41, 0, 25)})
 		for range 256 {
 			if len(w.CurrentTerminalActors()) != 0 {
@@ -48,6 +56,10 @@ func TestCurrentConsumedCorpseZeroIDSAVAndMissingBinding(t *testing.T) {
 		if got := w.CurrentTerminalActors(); !reflect.DeepEqual(got, []sim.CurrentTerminalActor{want}) {
 			t.Fatal("actual cast did not consume ID0", got)
 		}
+		wantBases := []sim.NativeActorBasisRecord{{ID: 0, Basis: basis}}
+		if got := w.RemovedNativeActorBases(); !reflect.DeepEqual(got, wantBases) {
+			t.Fatal("actual consumed corpse lost current native basis", got)
+		}
 		snapshot.World, err = w.MarshalBinary()
 		if err != nil {
 			t.Fatal(err)
@@ -58,6 +70,9 @@ func TestCurrentConsumedCorpseZeroIDSAVAndMissingBinding(t *testing.T) {
 		}
 		consumedCorpseTuple(t, raw, want, bound)
 		cold := coldCurrentScript(t, f, raw)
+		if got := cold.live.world.RemovedNativeActorBases(); !reflect.DeepEqual(got, wantBases) {
+			t.Fatal("cold SAV lost consumed current native basis", got)
+		}
 		if got := cold.live.world.CurrentTerminalActors(); !reflect.DeepEqual(got, []sim.CurrentTerminalActor{want}) {
 			t.Fatal("raw SAV lost consumed zero-ID tuple", got)
 		}
@@ -79,6 +94,59 @@ func TestCurrentConsumedCorpseZeroIDSAVAndMissingBinding(t *testing.T) {
 		}
 		if !pureCurrentTerminalActorValue(a.Values[0], 0) {
 			t.Fatal("zero terminal acquired live policy")
+		}
+		if bound {
+			for _, binding := range a.Bindings {
+				if binding.Structure || binding.ID != 0 || binding.Missing {
+					continue
+				}
+				r := &doc.Objects[binding.Object-1]
+				base, _ := savedActorRaw(r, "U114", 24)
+				modifier, _ := savedActorRaw(r, "UD4", 64)
+				if base[22] != 96 || modifier[40] != 100 || actorProjectionValue(t, *r, "Body") != 0 {
+					t.Fatal("removed current basis retained its earlier ordinary bytes")
+				}
+				for _, field := range []string{"Body", "U114", "UD4"} {
+					changed, err := sav.CloneDocumentData(doc)
+					if err != nil {
+						t.Fatal(err)
+					}
+					wantEdit := basis
+					if field == "Body" {
+						savedObjectSetValue(&changed.Objects[binding.Object-1], field, 1)
+						wantEdit.Body = 1
+					} else {
+						value, at, size := byte(97), 22, 24
+						if field == "UD4" {
+							value, at, size = 101, 40, 64
+							wantEdit.Modifier[40] = value
+						} else {
+							wantEdit.Base[22] = value
+						}
+						block, _ := savedActorRaw(&changed.Objects[binding.Object-1], field, size)
+						block[at] = value
+					}
+					before, _, _ := sav.NativeActions(doc.State)
+					after, _, _ := sav.NativeActions(changed.State)
+					if !bytes.Equal(before, after) {
+						t.Fatal("ordinary edit changed the supplemental anchor")
+					}
+					encoded, err := sav.EncodeDocumentData(changed)
+					if err != nil {
+						t.Fatal(err)
+					}
+					edited := coldCurrentScript(t, f, encoded)
+					if got := edited.live.world.RemovedNativeActorBases(); !reflect.DeepEqual(got, []sim.NativeActorBasisRecord{{ID: 0, Basis: wantEdit}}) {
+						t.Fatal("ordinary edit was masked by removed basis", field, got)
+					}
+					edited.live.tick()
+					again := bindingOrderSave(t, edited, "edited consumed basis")
+					resaved := coldCurrentScript(t, f, again)
+					if !reflect.DeepEqual(resaved.live.world.RemovedNativeActorBases(), edited.live.world.RemovedNativeActorBases()) {
+						t.Fatal("next SAVE lost ordinary removed basis edit", field)
+					}
+				}
+			}
 		}
 	}
 }

@@ -121,6 +121,7 @@ func TestReleaseCityRosterMultipleHiredSquadsF2SAV(t *testing.T) {
 	}
 	for tick := 0; tick < 3; tick++ {
 		if worlds[0].Hash() != worlds[1].Hash() {
+			currentValueDiagnostics(t, "live/cold World", reflect.ValueOf(worlds[0]).Elem(), reflect.ValueOf(worlds[1]).Elem())
 			t.Fatal("live/cold mission continuation differs", tick)
 		}
 		sim.Step(worlds[0], nil)

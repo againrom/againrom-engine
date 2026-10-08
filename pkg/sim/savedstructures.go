@@ -87,7 +87,7 @@ func validateSavedStructures(structures []Structure, source []SavedStructure, ce
 	keys := make(map[uint32]bool, len(source))
 	archives := make(map[uint16]bool, len(source))
 	authored := make(map[uint32]bool, len(source))
-	authoredIDs := make(map[uint32]bool, len(source))
+	authoredIDs := make(map[uint32]SavedStructureClass, len(source))
 	for i, s := range source {
 		if s.ID != structures[i].ID || (i > 0 && s.ID <= source[i-1].ID) {
 			return fmt.Errorf("saved structures: invalid native ordering at %d", i)
@@ -98,14 +98,14 @@ func validateSavedStructures(structures []Structure, source []SavedStructure, ce
 		keys[s.SourceKey], archives[s.ArchiveIndex] = true, true
 		if (!s.HasAuthored && s.AuthoredIndex != 0) ||
 			(s.HasAuthored && (s.AuthoredID == 0 || authored[s.AuthoredIndex] || uint32(s.ID) != s.AuthoredIndex)) ||
-			(s.AuthoredID != 0 && authoredIDs[s.AuthoredID]) {
+			(s.AuthoredID != 0 && authoredIDs[s.AuthoredID] != 0 && (!s.Class.Generated() || !authoredIDs[s.AuthoredID].Generated())) {
 			return fmt.Errorf("saved structures: ambiguous authored binding at %d", i)
 		}
 		if s.HasAuthored {
 			authored[s.AuthoredIndex] = true
 		}
 		if s.AuthoredID != 0 {
-			authoredIDs[s.AuthoredID] = true
+			authoredIDs[s.AuthoredID] = s.Class
 		}
 		st := structures[i]
 		if st.Col != int32(s.Position[0]) || st.Row != int32(s.Position[1]) {
@@ -150,7 +150,17 @@ func (w *World) ConstructSavedStructures(source []SavedStructure, cells []SavedS
 	if err := validateSavedStructures(w.structures, source, cells); err != nil {
 		return err
 	}
+	if len(cells) != len(w.structureSlots) {
+		return fmt.Errorf("saved structures: constructor cell roster differs from current aliases")
+	}
+	for _, cell := range cells {
+		index, present := w.structureSlots[cell.Cell]
+		if !cell.HasStructure || !present || w.structures[index].ID != cell.ID {
+			return fmt.Errorf("saved structures: constructor cell ownership differs from current aliases")
+		}
+	}
 	w.savedStructures, w.savedStructureCells, w.hasSavedStructures = cloneSavedStructures(source), slices.Clone(cells), true
+	w.rebuildStructureSlots()
 	return nil
 }
 

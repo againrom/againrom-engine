@@ -130,6 +130,7 @@ func castOrderLockstep(t *testing.T, f, g *FrontEnd, limit int, done func(*Front
 		f.live.tickWithCastSink(func(ev []sim.CastEvent) { mine = append(mine, ev...) })
 		g.live.tickWithCastSink(func(ev []sim.CastEvent) { cold = append(cold, ev...) })
 		if f.live.world.Hash() != g.live.world.Hash() {
+			logCurrentCarrierDiff(t, f.live.world, g.live.world)
 			t.Fatalf("cold LOAD diverged from the uninterrupted session at tick %d", tick)
 		}
 		a, b := done(f, mine), done(g, cold)

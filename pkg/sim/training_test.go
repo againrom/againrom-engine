@@ -3,6 +3,7 @@ package sim
 import (
 	"bytes"
 	"encoding/binary"
+	"reflect"
 	"testing"
 )
 
@@ -115,6 +116,66 @@ func TestNativeTrainingLegacyFallbackAndKnownBase(t *testing.T) {
 	cold.entities[0].ActorLoad.Source.Class = 2
 	if cold.SetNativeTraining(1, NativeTraining{Present: true, Levels: base}) {
 		t.Fatal("source arithmetic accepted a native base")
+	}
+}
+
+func TestNativeTrainingRepairUpdatesOnlySelectedKnownBaseBytes(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		present bool
+		known   uint32
+		mask    bool
+		source  bool
+	}{
+		{"no repair mask", true, 3 << 10, false, false},
+		{"known word", true, 3 << 10, true, false},
+		{"known low byte", true, 1 << 10, true, false},
+		{"known high byte", true, 1 << 11, true, false},
+		{"unknown word", true, 0, true, false},
+		{"absent base", false, 0, true, false},
+		{"source actor", true, 3 << 10, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := trainingWorld(t, 17, 3)
+			e := &w.entities[0]
+			e.NativeTraining.Levels[1], e.NativeTraining.Levels[4] = 22, 17
+			e.NativeBasis = NativeActorBasis{ModifierPresent: true, ModifierKnown: 1 << 39, Modifier: [64]byte{39: 0x73}, BodyPresent: true, BodyKnown: true, Body: 40}
+			if tc.present {
+				e.NativeBasis.BasePresent = true
+				e.NativeBasis.BaseKnown = 3<<2 | 3<<4 | 1<<22 | tc.known
+				e.NativeBasis.Base = [24]byte{0: 0x95, 2: 0x91, 4: 22, 10: 17, 11: 0xa7, 22: 0x63, 23: 0xb5}
+				if tc.known == 3<<10 {
+					e.NativeBasis.Base[11] = 0
+				}
+			}
+			if tc.source {
+				e.ActorLoad.Source.Class = 2
+			}
+			before := *e
+			training := before.NativeTraining
+			training.Levels[0], training.Levels[1], training.Levels[4] = 7, 77, 62
+			want := before
+			if !tc.source {
+				want.NativeTraining = training
+				if tc.mask {
+					if tc.known&(1<<10) != 0 {
+						want.NativeBasis.Base[10] = 62
+					}
+					if tc.known&(1<<11) != 0 {
+						want.NativeBasis.Base[11] = 0
+					}
+				}
+			}
+			var accepted bool
+			if tc.mask {
+				accepted = w.SetNativeTraining(before.ID, training, [skillSlots]bool{0: true, 4: true})
+			} else {
+				accepted = w.SetNativeTraining(before.ID, training)
+			}
+			if accepted == tc.source || !reflect.DeepEqual(w.entities[0], want) {
+				t.Fatalf("training repair acceptance=%v: got %+v want %+v", accepted, w.entities[0], want)
+			}
+		})
 	}
 }
 

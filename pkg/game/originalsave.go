@@ -593,6 +593,10 @@ func ResumeOriginalSave(fsys entrySource, saved []byte, t *mapload.Table, diff m
 		return nil, r, err
 	}
 	document, origins := decodeSavedDocument(saved)
+	currentStructures, err := readCurrentActions(document.Document)
+	if err != nil {
+		return nil, r, err
+	}
 	graph, err := currentActorGraph(f, document, origins)
 	if err != nil {
 		return nil, r, err
@@ -676,7 +680,7 @@ func ResumeOriginalSave(fsys entrySource, saved []byte, t *mapload.Table, diff m
 	if err := applyOriginalCellTails(ms, tails, hasTails, &r); err != nil {
 		return nil, r, err
 	}
-	if err := applyOriginalStructures(ms, buildings, hasBuildings, t, &r, f); err != nil {
+	if err := applyOriginalStructuresCurrent(ms, buildings, hasBuildings, t, &r, currentStructures, f); err != nil {
 		return nil, r, err
 	}
 	if err := applyOriginalCellRecords(ms, cellRecords, hasCellRecords, registry, &r); err != nil {

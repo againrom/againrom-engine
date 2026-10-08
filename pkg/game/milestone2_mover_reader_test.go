@@ -58,7 +58,7 @@ func mover1160Read(body []byte, locs []sav.DocumentActorLocation, objects []sav.
 		return out, err
 	}
 	out.origins = population.origins
-	byArchive := map[uint16]unit1158Record{}
+	byArchive := map[uint16]unitCombatRecord{}
 	for _, r := range population.records {
 		byArchive[r.archive] = r
 	}

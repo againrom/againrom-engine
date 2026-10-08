@@ -49,7 +49,7 @@ func TestDeadRoots1163OrderMultiplicityAndIdentityControls(t *testing.T) {
 	}
 	for _, name := range []string{"omit-repeat", "permute", "collapse-equal"} {
 		t.Run(name, func(t *testing.T) {
-			bad := unit1156Clone(t, ms.savedDocument)
+			bad := cloneSavedDocumentFixture(t, ms.savedDocument)
 			r := bad.Document.DeadActors
 			switch name {
 			case "omit-repeat":

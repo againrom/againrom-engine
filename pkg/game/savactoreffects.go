@@ -268,14 +268,17 @@ func projectSavedActorEffects(state *SnapshotSAVDocument, world *sim.World) erro
 	var retired []uint16
 	for i := range next.ActorEffects.Rows {
 		row := &next.ActorEffects.Rows[i]
-		if row.ObjectIndex == 0 {
-			continue
-		}
 		e, found := active[[2]uint32{uint32(row.Entity), uint32(row.Spell)}]
 		actor := &next.Document.Objects[actors[row.Entity]-1]
 		mask, err := savedStructureValue(actor, "U144")
 		if err != nil {
 			return err
+		}
+		if row.ObjectIndex == 0 {
+			if !found {
+				savedObjectSetValue(actor, "U144", mask & ^(uint32(1)<<row.Spell))
+			}
+			continue
 		}
 		if !found {
 			refs, _ := savedObjectRefs(actor, "Effects")

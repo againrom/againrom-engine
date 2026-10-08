@@ -10,6 +10,48 @@ import (
 
 func beforeNativeTrainingForm(t *testing.T, form []byte) []byte {
 	t.Helper()
+	for _, suffix := range []struct {
+		version byte
+		tag     string
+		width   uint64
+		prefix  uint64
+	}{{112, "NLB1", 59, 4}, {111, "CPP1", 12, 5}, {110, "PPT1", 8, 4}, {109, "NAB1", 107, 4}, {108, "BSL1", 6, 4}} {
+		if len(form) == 0 || form[0] != suffix.version {
+			continue
+		}
+		end := len(form)
+		if end < 56 || string(form[end-4:]) != suffix.tag || form[end-5] >= suffix.version {
+			t.Fatal("invalid native actor compatibility footer", suffix.tag)
+		}
+		span := uint64(binary.LittleEndian.Uint32(form[end-9:]))
+		player := suffix.tag == "PPT1" || suffix.tag == "CPP1"
+		if span < suffix.prefix || !player && span < suffix.prefix+suffix.width || span > uint64(end-43) {
+			t.Fatal("invalid native actor compatibility span", suffix.tag)
+		}
+		start := end - 9 - int(span)
+		if suffix.tag == "CPP1" && form[start] > 1 {
+			t.Fatal("invalid current Player presence")
+		}
+		count := uint64(binary.LittleEndian.Uint32(form[start+int(suffix.prefix)-4:]))
+		if count == 0 && !player || count > 65535 || span != suffix.prefix+suffix.width*count {
+			t.Fatal("invalid native actor compatibility population", suffix.tag)
+		}
+		var prior uint32
+		for n := uint64(0); n < count; n++ {
+			o := start + int(suffix.prefix+suffix.width*n)
+			id := binary.LittleEndian.Uint32(form[o:])
+			if n > 0 && id <= prior || player && id == 0 {
+				t.Fatal("invalid native actor compatibility order", suffix.tag)
+			}
+			prior = id
+			if suffix.tag == "CPP1" && form[start] == 0 && binary.LittleEndian.Uint32(form[o+8:]) != 0 {
+				t.Fatal("absent current Participant has a value")
+			}
+		}
+		out := bytes.Clone(form[:start])
+		out[0] = form[end-5]
+		form = out
+	}
 	if len(form) != 0 && form[0] == 107 {
 		end := len(form)
 		if end < 56 || string(form[end-4:]) != "CLS1" || form[end-5] >= 107 {

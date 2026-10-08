@@ -98,14 +98,23 @@ func TestReleaseRaisedGhostSurvivesSAV(t *testing.T) {
 			break
 		}
 	}
+	beforePath, _ := writeOrdinarySAV(t, f, "ghost-before-raise.sav")
+	beforeCold := loadAreaContinuation(t, beforePath)
+	if beforeCold.live.world.Ghost().NativeBasis != w.Ghost().NativeBasis {
+		t.Fatal("cold SAV lost the resolved Ghost constructor basis")
+	}
 	f.live.pending = append(f.live.pending, sim.Cast(mage.ID, victim.ID, 25))
+	beforeCold.live.pending = append(beforeCold.live.pending, sim.Cast(mage.ID, victim.ID, 25))
 	for range 256 {
 		f.live.tick()
+		beforeCold.live.tick()
 		if _, ok := liveEntity(f, victim.ID); !ok {
 			break
 		}
 	}
 	requireLiveRaisedGhost(t, f, typ)
+	requireRaisedGhostNativeHistory(t, f, typ, w.Ghost().NativeBasis)
+	requireRaisedGhostNativeHistory(t, beforeCold, typ, w.Ghost().NativeBasis)
 
 	row := 0
 	for i := 1; i < f.Table.Units.Len(); i++ {
@@ -125,6 +134,11 @@ func TestReleaseRaisedGhostSurvivesSAV(t *testing.T) {
 	}
 	cold := loadAreaContinuation(t, path)
 	requireLiveRaisedGhost(t, cold, typ)
+	requireRaisedGhostNativeHistory(t, cold, typ, w.Ghost().NativeBasis)
+	for range 3 {
+		cold.live.tick()
+	}
+	requireRaisedGhostNativeHistory(t, cold, typ, w.Ghost().NativeBasis)
 	_, again := writeOrdinarySAV(t, cold, "ghost-again.sav")
 	if got := raisedGhostRecord(t, again, typ); got.DefRow != saved.DefRow || got.Face != saved.Face {
 		t.Fatalf("second SAV Ghost row %d face %d, want %d and %d", got.DefRow, got.Face, saved.DefRow, saved.Face)
@@ -167,6 +181,33 @@ func TestReleaseRaisedGhostSurvivesSAV(t *testing.T) {
 		t.Fatal(err)
 	}
 	requireLiveRaisedGhost(t, loadAreaContinuation(t, legacyPath), typ)
+}
+
+func requireRaisedGhostNativeHistory(t *testing.T, f *FrontEnd, typ int32, want sim.NativeActorBasis) {
+	t.Helper()
+	if !want.BasePresent || want.BaseKnown != 0x003fffff || !want.ModifierPresent || want.ModifierKnown != ^uint64(0) || !want.BodyPresent || !want.BodyKnown {
+		t.Fatal("resolved Ghost template lacks its constructor availability", want)
+	}
+	for _, e := range f.live.world.Entities() {
+		if e.TypeID == typ && e.Owner == sim.SelfSlot && e.MapUnitID == 0 && e.Alive() {
+			if e.ActorLoad.Source.Class != 0 || e.NativeBasis != want {
+				t.Fatal("raised native Ghost lost exact constructor history", e.ID, e.NativeBasis, want)
+			}
+			before := f.live.world.Hash()
+			changed := want.WithBody(want.Body + 1)
+			if err := f.live.world.RestoreNativeActorBases([]sim.NativeActorBasisRecord{{ID: e.ID, Basis: changed}}); err != nil {
+				t.Fatal(err)
+			}
+			if f.live.world.Hash() == before {
+				t.Fatal("actual raised Ghost history is excluded from World hash")
+			}
+			if err := f.live.world.RestoreNativeActorBases([]sim.NativeActorBasisRecord{{ID: e.ID, Basis: want}}); err != nil || f.live.world.Hash() != before {
+				t.Fatal("restoring exact Ghost history changed unrelated state", err)
+			}
+			return
+		}
+	}
+	t.Fatal("native history witness has no actual raised Ghost")
 }
 
 // liveEntity returns the live entity with the given ID.

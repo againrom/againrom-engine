@@ -132,6 +132,7 @@ type placedSheetRead struct {
 	sheet  ui.UnitCharacter
 	card   *image.RGBA
 	hp     int32
+	draw   ui.MapEntity
 }
 
 // readPlacedSheets reads every placed actor of live, keyed by the map unit id
@@ -174,6 +175,12 @@ func readPlacedSheets(t *testing.T, a *ui.App, live *mapWorld, when string) map[
 		if !e.Humanoid && e.Alive() {
 			inspectionCentre(live, int(e.X), int(e.Y))
 			live.push()
+			for _, draw := range live.entityDraws() {
+				if draw.ID == uint32(e.ID) {
+					read.draw = draw
+					break
+				}
+			}
 			releaseHoverInspection(t, a, live, ui.InspectionSubject{Kind: ui.InspectionUnit, ID: uint32(e.ID)})
 			pic, stats, err := a.HeadlessCharacterPane()
 			if err != nil || !stats {
@@ -248,6 +255,11 @@ func compareLoadedSheets(t *testing.T, g *FrontEnd, fresh map[uint16]placedSheet
 		}
 		cards++
 		if l.card.Bounds() != want.card.Bounds() || !bytes.Equal(l.card.Pix, want.card.Pix) {
+			if unit == 22 {
+				t.Logf("%s: unit22 card actual Name=%q Char=%+v Combat=%+v Speed=%d Load=%d OriginalPanel=%+v; fresh Name=%q Char=%+v Combat=%+v Speed=%d Load=%d OriginalPanel=%+v",
+					when, l.draw.Name, l.draw.Char, l.draw.Combat, l.draw.Speed, l.draw.Load, l.draw.OriginalPanel,
+					want.draw.Name, want.draw.Char, want.draw.Combat, want.draw.Speed, want.draw.Load, want.draw.OriginalPanel)
+			}
 			t.Errorf("%s: creature unit %d (entity %d): the hovered statistics card differs from the fresh mission's", when, unit, l.entity)
 		}
 	}

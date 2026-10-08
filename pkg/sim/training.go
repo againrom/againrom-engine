@@ -24,12 +24,29 @@ func (e Entity) TrainedSkills(bonus [skillSlots]int32) [skillSlots]int32 {
 }
 
 // SetNativeTraining installs a known base without changing the effective sheet.
-func (w *World) SetNativeTraining(id EntityID, training NativeTraining) bool {
+// An optional repair mask updates only already-known bytes of selected trained
+// words. Unknown bytes and the remaining history keep their current values.
+func (w *World) SetNativeTraining(id EntityID, training NativeTraining, repaired ...[skillSlots]bool) bool {
 	i := indexOfEntity(w.entities, id)
 	if i < 0 || w.entities[i].ActorLoad.Source.Class != 0 || !training.Present && training.Levels != ([skillSlots]int32{}) {
 		return false
 	}
-	w.entities[i].NativeTraining = training
+	e := &w.entities[i]
+	e.NativeTraining = training
+	if training.Present && len(repaired) != 0 {
+		for slot := 1; slot < skillSlots; slot++ {
+			if !repaired[0][slot] {
+				continue
+			}
+			at, level := 2+2*slot, uint16(training.Levels[slot])
+			if e.NativeBasis.BaseByteKnown(at) {
+				e.NativeBasis.Base[at] = byte(level)
+			}
+			if e.NativeBasis.BaseByteKnown(at + 1) {
+				e.NativeBasis.Base[at+1] = byte(level >> 8)
+			}
+		}
+	}
 	return true
 }
 

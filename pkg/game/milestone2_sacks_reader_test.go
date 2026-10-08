@@ -32,7 +32,7 @@ type sackByteSource struct {
 	rows  map[uint16]*sackByteRecord
 }
 
-type sack1151Reader struct {
+type sackByteReader struct {
 	body    []byte
 	byIndex map[uint16]sav.DocumentObjectLocation
 	byOff   map[int]sav.DocumentObjectLocation
@@ -40,7 +40,7 @@ type sack1151Reader struct {
 	err     error
 }
 
-func (r *sack1151Reader) take(p *int, n int) []byte {
+func (r *sackByteReader) take(p *int, n int) []byte {
 	if r.err != nil {
 		return make([]byte, n)
 	}
@@ -53,7 +53,7 @@ func (r *sack1151Reader) take(p *int, n int) []byte {
 	return b
 }
 
-func (r *sack1151Reader) number(p *int, n int) uint32 {
+func (r *sackByteReader) number(p *int, n int) uint32 {
 	b := r.take(p, n)
 	switch n {
 	case 1:
@@ -65,7 +65,7 @@ func (r *sack1151Reader) number(p *int, n int) uint32 {
 	}
 }
 
-func (r *sack1151Reader) list(p *int, depth int) (uint32, []uint16) {
+func (r *sackByteReader) list(p *int, depth int) (uint32, []uint16) {
 	n := r.number(p, 4)
 	if r.err != nil {
 		return n, nil
@@ -84,7 +84,7 @@ func (r *sack1151Reader) list(p *int, depth int) (uint32, []uint16) {
 	return n, refs
 }
 
-func (r *sack1151Reader) reference(p *int, depth int) uint16 {
+func (r *sackByteReader) reference(p *int, depth int) uint16 {
 	if depth > 16 {
 		r.err = fmt.Errorf("Sack byte walk: nesting exceeds 16")
 		return 0
@@ -123,7 +123,7 @@ func (r *sack1151Reader) reference(p *int, depth int) uint16 {
 	return loc.ArchiveIndex
 }
 
-func (r *sack1151Reader) record(loc sav.DocumentObjectLocation, depth int) *sackByteRecord {
+func (r *sackByteReader) record(loc sav.DocumentObjectLocation, depth int) *sackByteRecord {
 	if old := r.source.rows[loc.ArchiveIndex]; old != nil {
 		if old.end == 0 {
 			r.err = fmt.Errorf("Sack byte walk: recursive object %d", loc.ArchiveIndex)
@@ -195,7 +195,7 @@ func (r *sack1151Reader) record(loc sav.DocumentObjectLocation, depth int) *sack
 }
 
 func sackRead(body []byte, start int, locations []sav.DocumentObjectLocation) (sackByteSource, error) {
-	r := &sack1151Reader{body: body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: sackByteSource{rows: map[uint16]*sackByteRecord{}}}
+	r := &sackByteReader{body: body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: sackByteSource{rows: map[uint16]*sackByteRecord{}}}
 	for _, loc := range locations {
 		if _, ok := r.byIndex[loc.ArchiveIndex]; ok {
 			return r.source, fmt.Errorf("duplicate archive location %d", loc.ArchiveIndex)

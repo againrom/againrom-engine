@@ -53,6 +53,11 @@ func currentMenuWorldDiagnostics(t *testing.T, before, after *sim.World) {
 	left, _ := before.MarshalBinary()
 	right, _ := after.MarshalBinary()
 	currentItemWorldDiagnostics(t, left, right)
+	currentValueDiagnostics(t, "World", reflect.ValueOf(before).Elem(), reflect.ValueOf(after).Elem())
+}
+
+func currentValueDiagnostics(t *testing.T, path string, before, after reflect.Value) {
+	t.Helper()
 	count := 0
 	var walk func(string, reflect.Value, reflect.Value)
 	walk = func(path string, a, b reflect.Value) {
@@ -102,5 +107,5 @@ func currentMenuWorldDiagnostics(t *testing.T, before, after *sim.World) {
 			}
 		}
 	}
-	walk("World", reflect.ValueOf(before).Elem(), reflect.ValueOf(after).Elem())
+	walk(path, before, after)
 }

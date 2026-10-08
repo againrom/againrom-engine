@@ -17,8 +17,9 @@ type currentCityPartyPolicy struct {
 	LegacyBookWire     *[32]byte `json:",omitempty"`
 	ExtraSpells        uint32
 	OrderedStacks      bool
-	Load               *currentCityLoadPolicy `json:",omitempty"`
-	Potion             *sim.ActiveEffect      `json:",omitempty"`
+	Load               *currentCityLoadPolicy     `json:",omitempty"`
+	Potion             *sim.ActiveEffect          `json:",omitempty"`
+	NativeHistory      *currentPartyNativeHistory `json:",omitempty"`
 }
 
 type currentCityLoadPolicy struct {
@@ -83,6 +84,10 @@ func captureOrdinaryPartyMember(id sim.EntityID, member mapload.PartyMember, c s
 		}
 	}
 	var err error
+	p.City.NativeHistory, err = capturePartyNativeHistory(member)
+	if err != nil {
+		return currentPartyMember{}, err
+	}
 	p.Base, err = capturePartyBase(member.Hero, c.Character, native, [4]int32{})
 	if err != nil {
 		return currentPartyMember{}, err
@@ -218,6 +223,14 @@ func currentOrdinaryPartyState(doc *sav.DocumentData, actor uint16, p currentPar
 		return nil, fmt.Errorf("current city member lost ordinary actor")
 	}
 	r := &doc.Objects[actor-1]
+	source := uint8(0)
+	if state.Load != nil {
+		source = state.Load.Inventory.Source.Class
+	}
+	state.NativeHistory, err = policy.NativeHistory.restore(r, source, c.Basis.Human.Fighter)
+	if err != nil {
+		return nil, err
+	}
 	item := func(ref uint16) (sim.ItemStack, error) {
 		if ref == 0 {
 			return sim.ItemStack{}, nil

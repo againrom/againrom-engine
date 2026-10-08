@@ -16,7 +16,7 @@ import (
 // Five distinct objects cover all subclasses and another exact Building;
 // the final root references the FIRST object. Native/source/archive/local IDs
 // deliberately differ, including the valid native handle zero.
-func structureProjection1115Fixture(t *testing.T) (sav.DocumentData, *sim.World, []sim.SavedStructure) {
+func structureProjectionFixture(t *testing.T) (sav.DocumentData, *sim.World, []sim.SavedStructure) {
 	t.Helper()
 	a := &poolFixtureActor{cell: 0x0a09, hp: 100, maxHP: 100}
 	body := poolFixtureBody([]*poolFixturePlayer{{groups: [][]*poolFixtureActor{{a}}}}, nil)
@@ -129,7 +129,7 @@ func structureProjection1115Fixture(t *testing.T) (sav.DocumentData, *sim.World,
 }
 
 func TestSavedStructuresProjection1115DamageGeometrySuffixesAndCells(t *testing.T) {
-	document, world, source := structureProjection1115Fixture(t)
+	document, world, source := structureProjectionFixture(t)
 	before, err := sav.CloneDocumentData(document)
 	if err != nil {
 		t.Fatal(err)
@@ -220,7 +220,7 @@ func TestSavedStructuresProjection1115DamageGeometrySuffixesAndCells(t *testing.
 }
 
 func TestSavedStructuresProjection1115CurrentRetainedOwner(t *testing.T) {
-	document, world, sources := structureProjection1115Fixture(t)
+	document, world, sources := structureProjectionFixture(t)
 	_, cells, _ := world.SavedStructures()
 	// The registry, not the original DTO, owns this retained state. This test
 	// supplies different explicit values through its public importer; it does
@@ -281,7 +281,7 @@ func TestSavedStructuresProjection1115LateRefusalIsAtomic(t *testing.T) {
 		{"late malformed block", func(d *sav.DocumentData, _ *sim.World) { d.Objects[d.World.Buildings[4]-1].Raw[0].Bytes = []byte{1} }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			document, world, _ := structureProjection1115Fixture(t)
+			document, world, _ := structureProjectionFixture(t)
 			tc.mutate(&document, world)
 			before := actorProjection1115Copy(t, document)
 			worldBefore := world.Hash()
@@ -296,7 +296,7 @@ func TestSavedStructuresProjection1115LateRefusalIsAtomic(t *testing.T) {
 }
 
 func TestSavedStructuresProjection1115AbsentAndPresentEmptyDiffer(t *testing.T) {
-	document, _, _ := structureProjection1115Fixture(t)
+	document, _, _ := structureProjectionFixture(t)
 	before, err := sav.EncodeDocumentData(document)
 	if err != nil {
 		t.Fatal(err)

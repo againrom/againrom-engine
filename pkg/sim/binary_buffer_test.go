@@ -560,7 +560,28 @@ func legacyBinaryBufferEncoding(w *World) []byte {
 	w.encodeActorLoads(b, o)
 	w.relations.encodeInto(b[len(b)-relationLen:])
 	payload := w.appendAttackNotices(w.appendSavedWorldEffects(w.appendSavedFormations(w.appendStructureUses(w.appendScorched(w.appendGroupRoam(w.appendActionClocks(w.appendCarriedResumeState(w.appendSavedObjects(w.appendSavedCellPlanes(w.appendSavedMotions(w.appendNativeStrides(w.appendSavedGroupPlayerSection(w.appendSavedStructureSection(w.appendSavedGroups(w.appendSessionClock(b))))))))))))))))
-	return independentPendingOrderEncoding(w, w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload))))))))
+	return independentBookSelectionEncoding(w, independentPendingOrderEncoding(w, w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload)))))))))
+}
+
+func independentBookSelectionEncoding(w *World, base []byte) []byte {
+	rows := []byte{}
+	count := uint32(0)
+	for _, e := range w.entities {
+		if e.AdmittedBookSpell != 0 {
+			rows = binary.LittleEndian.AppendUint32(rows, uint32(e.ID))
+			rows = binary.LittleEndian.AppendUint16(rows, e.AdmittedBookSpell)
+			count++
+		}
+	}
+	if count == 0 {
+		return base
+	}
+	previous := base[0]
+	base[0] = bookSelectionFormVersion
+	base = binary.LittleEndian.AppendUint32(base, count)
+	base = append(base, rows...)
+	base = binary.LittleEndian.AppendUint32(base, uint32(4+len(rows)))
+	return append(base, previous, 'B', 'S', 'L', '1')
 }
 
 func independentPendingOrderEncoding(w *World, base []byte) []byte {

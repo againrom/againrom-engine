@@ -282,6 +282,7 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 		return sav.DocumentData{}, err
 	}
 	b := generatedDocumentBuilder{doc: doc, table: f.Table, reservedKeys: keys, runtimeIDs: savedRuntimeIDs(doc.Objects)}
+	b.reserveCurrentParty(s.Party)
 	a := currentActionData{Version: 1}
 	var actors []uint16
 	for i, r := range doc.Objects {
@@ -414,6 +415,31 @@ func applyCurrentCityHuman(unit *sav.CityUnitData, p mapload.PartyMember, table 
 	if runtime != nil {
 		unit.Scalar2[28], unit.Scalar2[29] = runtime.HealthHundredths, runtime.ManaHundredths
 		unit.Scalar2[34], unit.Scalar2[39], unit.Scalar2[40] = runtime.Reach, runtime.AttackCharge, runtime.AttackRelax
+	}
+	if p.Carry != nil && p.Carry.NativeHistory != nil {
+		if _, err := capturePartyNativeHistory(p); err != nil {
+			return err
+		}
+		h := p.Carry.NativeHistory
+		for n := range h.Basis.Base {
+			if h.Basis.BaseByteKnown(n) {
+				unit.Raw114[n] = h.Basis.Base[n]
+			}
+		}
+		for n := range h.Basis.Modifier {
+			if h.Basis.ModifierByteKnown(n) {
+				unit.RawD4[n] = h.Basis.Modifier[n]
+			}
+		}
+		if h.Basis.BodyKnown {
+			binary.LittleEndian.PutUint16(unit.Scalar2, h.Basis.Body)
+		}
+		if h.Class.Present {
+			unit.Scalar1[3] &^= 4
+			if !h.Class.Fighter {
+				unit.Scalar1[3] |= 4
+			}
+		}
 	}
 	return nil
 }

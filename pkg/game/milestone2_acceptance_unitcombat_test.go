@@ -9,7 +9,7 @@ func TestMilestone2UnitCombat(t *testing.T) {
 	classes := map[string]int{"Unit": 0, "Human": 0, "Humanoid": 0}
 	var refused []milestone2ResumeRefusal
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
-		want, err := unit1158Expected(mf.f, mf.raw)
+		want, err := readUnitCombatExpected(mf.f, mf.raw)
 		if err != nil {
 			mismatches++
 			t.Errorf("independent Unit combat read: %v", err)
@@ -50,7 +50,7 @@ func TestMilestone2UnitCombat(t *testing.T) {
 			mismatches++
 			t.Error("retained Document before Snapshot: " + difference)
 		}
-		differences, excluded, n := want.entityDifferences(ms.World.Entities(), ms.savedDocument)
+		differences, excluded, n := want.entityDifferences(ms.World.Entities(), ms.savedDocument, ms)
 		live += n
 		rawOnly += len(excluded)
 		for _, difference := range differences {

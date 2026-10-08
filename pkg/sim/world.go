@@ -218,6 +218,7 @@ const skillSlots = 6
 // changes here is a value and a gate, never the representation.
 type Entity struct {
 	SourceBinding    SourceBinding
+	NativeBasis      NativeActorBasis
 	ID               EntityID
 	X, Y             int32
 	TargetX, TargetY int32
@@ -342,6 +343,7 @@ type Entity struct {
 	PendingAttackTargetKind AttackTargetKind
 	HasPendingAttackTarget  bool
 	PendingOrder            PendingOrder
+	AdmittedBookSpell       uint16
 	AcquirePursuit          bool
 	// PursuitIdle marks an attack order whose route was refused: the victim
 	// stays held and the order does nothing until an order is written again
@@ -1873,7 +1875,8 @@ type World struct {
 
 	structures []Structure
 	// Derived immutable cell aliases; HP changes do not detach a ruin.
-	structureSlots map[uint16]int
+	structureSlots        map[uint16]int
+	nativeStructurePlanes bool
 	// 1114: absent legacy mode derives slots from placements. Present mode
 	// retains the source roster and explicit saved cell links, including empty.
 	hasSavedStructures    bool
@@ -1881,6 +1884,8 @@ type World struct {
 	savedStructureCells   []SavedStructureCell
 	originalDead          []originalDeadRecord
 	currentTerminalActors []CurrentTerminalActor
+	removedNativeBases    []NativeActorBasisRecord
+	currentPlayers        *currentPlayerState
 	savedMotion           *savedActorMotionState
 	savedCellPlanes       *SavedCellPlanes
 	savedObjects          *SavedObjects
@@ -2180,6 +2185,9 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	// selector on its source template here, before the world can retain it, on
 	// the same six-slot boundary every initial Entity crosses below.
 	if err := experienceSlotFault(ghost.XPSlot); err != nil {
+		return nil, fmt.Errorf("sim: ghost template: %w", err)
+	}
+	if err := ghost.NativeBasis.Validate(); err != nil {
 		return nil, fmt.Errorf("sim: ghost template: %w", err)
 	}
 	g, err := newGrid(b, t.Block)
@@ -2584,6 +2592,9 @@ func (w *World) flipOnBlow(ai, ti int) {
 func (w *World) Entities() []Entity {
 	out := make([]Entity, len(w.entities))
 	copy(out, w.entities)
+	for i := range out {
+		out[i].NativeBasis = w.nativeBasisNow(out[i])
+	}
 	return out
 }
 
@@ -2600,7 +2611,9 @@ func (w *World) EntityView() []Entity {
 // without copying the whole list.
 func (w *World) Entity(id EntityID) (Entity, bool) {
 	if i := indexOfEntity(w.entities, id); i >= 0 {
-		return w.entities[i], true
+		e := w.entities[i]
+		e.NativeBasis = w.nativeBasisNow(e)
+		return e, true
 	}
 	return Entity{}, false
 }

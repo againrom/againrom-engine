@@ -46,16 +46,6 @@ func currentMissionCityParty(world *sim.World, state *SnapshotSAVDocument, party
 			continue
 		}
 		actors = append(actors, cityActorEntityBinding{Entity: id, PartyID: member.ID})
-		// A native actor without an original load record still owns ordered,
-		// counted stacks. Flattened display instances cannot describe its roots.
-		if member.Carry != nil {
-			if stacks, ok := world.CarriedStacks(id); ok {
-				member.Carry.OrderedStacks = stacks
-				for j := range stacks {
-					member.Carry.OrderedStacks[j].ObjectID = 0
-				}
-			}
-		}
 	}
 	graph, err := captureCityObjectTopologyFromSaved(registry, actors)
 	if err != nil {

@@ -35,6 +35,22 @@ func (w *World) ActiveEffects() []ActiveEffect {
 	return out
 }
 
+func (w *World) setNativeAttachedEffectMask(target EntityID, spell uint16, present bool) {
+	if spell >= 32 {
+		return
+	}
+	i := indexOfEntity(w.entities, target)
+	if i < 0 || w.entities[i].ActorLoad.Source.Class != 0 || !w.entities[i].NativeBasis.ScalarIsKnown(ScalarU144) {
+		return
+	}
+	mask := &w.entities[i].NativeBasis.Scalars[ScalarU144]
+	if present {
+		*mask |= uint32(1) << spell
+	} else {
+		*mask &^= uint32(1) << spell
+	}
+}
+
 // setAttachedEffectDuration is instant 30's canonical store
 // (TRIG-EFFECTTIME-034). The original effect id is a byte, so both the stored
 // id and the authored parameter are compared after byte narrowing. Every
@@ -157,6 +173,7 @@ func (w *World) applyEffectDelta(i int, kind EffectKind, amount int32) (int32, b
 	if !moves {
 		return 0, false
 	}
+	nativeModifierEffectDelta(&next, kind, landed)
 	w.entities[i] = next
 	if kind != EffectHealth || amount <= 0 {
 		w.reportHealthLoss(before, i)
@@ -286,6 +303,7 @@ func (w *World) removeAttachedAt(i int) bool {
 		w.clearFelled(ti)
 	}
 	w.attached = append(w.attached[:i], w.attached[i+1:]...)
+	w.setNativeAttachedEffectMask(e.Target, e.Spell, false)
 	return true
 }
 
@@ -394,6 +412,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	if exists {
 		if mode&EffectContinuous != 0 {
 			w.attached[i].Remaining = duration
+			w.setNativeAttachedEffectMask(target, rule.ID, true)
 			return true
 		}
 		w.removeAttachedAt(i)
@@ -408,6 +427,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	w.attached = append(w.attached, attachedEffect{})
 	copy(w.attached[i+1:], w.attached[i:])
 	w.attached[i] = e
+	w.setNativeAttachedEffectMask(target, rule.ID, true)
 	// Every effect is applied at attachment time. Continuous means the same
 	// ordinary apply is repeated each eighth tick; it does not postpone the
 	// first application until the countdown happens to reach a multiple of 8.

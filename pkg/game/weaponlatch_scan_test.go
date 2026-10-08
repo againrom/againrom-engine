@@ -11,60 +11,14 @@ import (
 	"testing"
 )
 
-// THE MECHANISM BEHIND closure.md's WRITE/READ TABLE (1005 round 2, seventh
-// pass). PartyMember.WeaponMaterialized has been wrong in four separate
-// places across four adversarial passes, each time because a NEW site
-// touched it and the reasoning written down for the old sites did not reach
-// the new one. This test parses package game's AND package mapload's own
-// source — widened from package game alone (round-2's seventh pass, C3):
-// the fix for that pass added the field's first reader outside pkg/game,
-// mapload.PartyLoadout (pkg/mapload/loadout.go), and a scan confined to one
-// package cannot see a site in the other. It fails when the latch is
-// assigned anywhere but materializeStartingWeapon, or mentioned in any
-// function the table below does not name.
-//
-// TWO BLIND SPOTS FOUND IT STILL PASSING (round-2, ninth pass) and were
-// closed here rather than argued away. FIRST: the walk matched only
-// *ast.SelectorExpr, so a composite-literal key —
-// mapload.PartyMember{WeaponMaterialized: true} — read and wrote the field
-// through an *ast.KeyValueExpr the walk never inspected; adding func
-// probeEvadeScan() mapload.PartyMember { return
-// mapload.PartyMember{WeaponMaterialized: true} } to this very file left the
-// test green. The walk below now inspects composite-literal keys too, keyed
-// separately as "pkg.Func!lit" in weaponLatchSites because a literal is a
-// WRITE (it sets the field's value outright, same footing as an assignment)
-// and not a read like every other entry, and the ONE-WRITER rule is enforced
-// against it exactly as it is against an *ast.AssignStmt. SECOND: the scan
-// covered pkg/game and pkg/mapload alone, so a reader in any of the eleven
-// other directories that import pkg/mapload — the cmd/* tools this repo
-// ships, every one a package main — was invisible to it. weaponLatchDirs
-// now lists every directory under cmd/ that imports pkg/mapload in non-test
-// code, found by `grep -rl 'againrom/pkg/mapload"' --include=*.go . | grep
-// -v _test.go`, alongside game and mapload themselves; a twelfth cmd/* tool
-// starting to import mapload needs a row added here for this test to see it,
-// the same obligation the write/read table already carries.
-//
-// WHEN IT FAILS, the fix is not to widen the table quietly. Add the row to
-// docs/1005-interactive-doll/closure.md's write/read enumeration WITH the
-// file:line and what the site does, then name the function here as
-// "pkg.Func". The table and the document are meant to move together, which is
-// the whole reason this is a test rather than a comment.
+// Keep the documented latch readers exact across every package that imports mapload.
+// Only materializeStartingWeapon may assign it, including composite literals.
 
 // weaponLatchWriter is the ONE function permitted to assign the latch, keyed
 // "pkg.Func" the same way weaponLatchSites is below.
 const weaponLatchWriter = "game.materializeStartingWeapon"
 
-// weaponLatchDirs are the source directories this test parses, as a path
-// relative to this package's own directory (pkg/game — go test's working
-// directory for this package), each paired with the package name
-// parser.ParseDir returns for it. The cmd/* entries are every directory in
-// this repo that imports againrom/pkg/mapload in non-test code besides
-// pkg/game itself, found with (from the repo root):
-//
-//	grep -rl 'againrom/pkg/mapload"' --include=*.go . | grep -v _test.go | xargs -n1 dirname | sort -u
-//
-// A directory that starts importing mapload needs a row added here, on the
-// same obligation weaponLatchSites already carries for a function.
+// Parse every production package that imports mapload.
 var weaponLatchDirs = map[string]string{
 	".":                          "game",
 	"../mapload":                 "mapload",
@@ -82,20 +36,16 @@ var weaponLatchDirs = map[string]string{
 	"../../cmd/wearcheck":        "main",
 }
 
-// weaponLatchSites is every function, across both scanned packages, whose
-// body may mention PartyMember.WeaponMaterialized at all, with what it does
-// there. Keyed "pkg.Func" so a name shared by two packages can never collide.
-// The set is exact: a function that stops touching the latch must be
-// removed, exactly as one that starts touching it must be added, so the list
-// cannot quietly drift into a superset of the truth.
+// The latch reader set is exact; remove a site when its read disappears.
 var weaponLatchSites = map[string]string{
-	"game.capturePartyPolicy":        "reads the current latch into the SAV presence policy",
-	"game.capturePartyWeapon":        "reads it to retain only an unused starting-weapon fallback",
-	"game.restoreFromState":          "reads it when deriving the weapon view from restored current equipment",
-	"mapload.MemberWeapon":           "reads it when selecting current equipment or the unused starting fallback",
-	"game.materializeStartingWeapon": "raises it; the only assignment across both scanned packages",
-	"game.resolveWeaponMaterialized": "reads it, and raises it through the writer when slot 1 is occupied for real",
-	"game.shopWeaponFallbackCode":    "reads it: a raised latch means the shop offers no fallback code",
+	"game.capturePartyPolicy":             "reads the current latch into the SAV presence policy",
+	"game.capturePartyWeapon":             "reads it to retain only an unused starting-weapon fallback",
+	"game.restoreFromState":               "reads it when deriving the weapon view from restored current equipment",
+	"game.projectCurrentPartyActorFields": "reads the captured latch when deriving native Body from current worn items",
+	"mapload.MemberWeapon":                "reads it when selecting current equipment or the unused starting fallback",
+	"game.materializeStartingWeapon":      "raises it; the only assignment across both scanned packages",
+	"game.resolveWeaponMaterialized":      "reads it, and raises it through the writer when slot 1 is occupied for real",
+	"game.shopWeaponFallbackCode":         "reads it: a raised latch means the shop offers no fallback code",
 	"game.missionDollEquipment": "reads it: a raised latch means the opening doll composes slot 1 from the array alone " +
 		"(split out of buildInventorySubject, round-2 twelfth pass, 2026-08-17, C1b, so world.go's own tracker seed " +
 		"can call the same composition instead of a second one)",

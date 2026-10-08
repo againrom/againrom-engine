@@ -55,8 +55,10 @@ type DerivedBlock struct {
 	// Skill is the six effective levels of the same recompute: the trained
 	// base plus the bonus of the worn items. SkillSet says the block carries
 	// them; a block without them leaves the entity's levels as they are.
-	Skill    [skillSlots]int32
-	SkillSet bool
+	Skill       [skillSlots]int32
+	SkillSet    bool
+	Body        int32
+	BodyPresent bool
 }
 
 // SetDerived replaces one actor's complete derived sheet without refilling its
@@ -74,6 +76,10 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 		return false
 	}
 	e := &w.entities[i]
+	if d.BodyPresent {
+		e.NativeBasis = e.NativeBasis.WithBody(uint16(d.Body))
+	}
+	priorSpeed := w.effectDelta(id, EffectSpeed)
 	e.MaxHP, e.MaxMana = d.MaxHP, d.MaxMana
 	if e.HP > e.MaxHP {
 		e.HP = e.MaxHP
@@ -81,27 +87,21 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 	if e.Mana > e.MaxMana {
 		e.Mana = e.MaxMana
 	}
-	// R3-A1: this line carried no floor at all, so the exact divergence
-	// applyEffectDelta guards against on every OTHER writer of Speed reached
-	// here unguarded — a fresh base too low to sustain the active total
-	// produced a negative Entity.Speed, which moverSpeed/rated (world.go)
-	// read as "unrated," the fastest cadence step.go has. d.Speed is a fresh,
-	// effect-free base (recomputeRaisedSkills, pkg/game/rearm.go, calls this
-	// on every skill level that rises), so a clamp here establishes a NEW
-	// baseline going forward; redistributeShortfall keeps it self-consistent
-	// with what a later expiry of one of these same records will give back
-	// (effect.go's own doc on that function states the trade-off this
-	// carries).
+	// Reconcile attached magnitudes when the fresh base cannot sustain them.
+	// The raw modifier changes by that history delta, not by a sheet inverse.
 	speed := d.Speed + w.effectDelta(id, EffectSpeed)
 	if speed < minEffectSpeed {
 		w.redistributeShortfall(id, EffectSpeed, -1, minEffectSpeed-speed)
 		speed = minEffectSpeed
 	}
 	e.Speed = speed
+	nativeModifierEffectDelta(e, EffectSpeed, w.effectDelta(id, EffectSpeed)-priorSpeed)
 	e.HumanMovement = HumanMovement{}
 	e.Reaction, e.Mind, e.Spirit = d.Reaction, d.Mind, d.Spirit
 	e.HealthRegeneration = d.HealthRegeneration + w.effectDelta(id, EffectHealthRegeneration)
 	e.ManaRegeneration = d.ManaRegeneration + w.effectDelta(id, EffectManaRegeneration)
+	nativeModifierEffectDelta(e, EffectHealthRegeneration, 0)
+	nativeModifierEffectDelta(e, EffectManaRegeneration, 0)
 	e.RotationSpeed = d.RotationSpeed
 	if e.RotationSpeed <= 0 && e.Turning() {
 		e.Facing = e.DesiredFacing
@@ -142,76 +142,9 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 	return true
 }
 
-// SetCombat refreshes c's scalar values, two five-value families and one
-// secondary-damage triple on the entity id names, and reports whether admission
-// succeeded. It is ALL-OR-NOTHING at that boundary: an unknown id, an XPSlot
-// outside 0..5 or a secondary selector outside 0..4 is refused before any
-// write. Every admitted call refreshes the complete block;
-// the existing live-effect reconciliation below owns the stored Absorption and
-// Protection results.
-//
-// A CREDITED SLOT OUTSIDE 0..5 IS REFUSED, AND THAT IS A REACHABLE STATE
-// RATHER THAN A DEFENSIVE ONE. payExperience indexes SkillXP with this very
-// byte — `a.SkillXP[a.XPSlot] += ...`, combat.go — so a setter that could
-// write past the array would not be an invalid world, it would be a PANIC on
-// the next blow that entity lands. The value arrives from a recompute's
-// `activeSkill`, which answers a melee weapon's own attack type, and "melee"
-// there is `AttackType < 0xa` while this package holds six slots: an attack
-// type of 6..9, or a negative one narrowed into a uint8, is inside that
-// predicate and outside this array. The shipped weapon table HAS such a row —
-// measured on both lawful roots, 28 Weapons rows of which one, row 23, carries
-// attack type -1 and still resolves through data.WeaponFromCode as a melee
-// weapon — so this is not a hypothetical shape.
-//
-// THE GUARD IS experienceFault, NOT A SECOND COMPARISON AGAINST skillSlots.
-// A setter is a third producer of entity state and owes the same answer, so
-// it asks the same function rather than restating its rule — the entity it
-// would leave behind is built, asked, and only then committed.
-//
-// IT MUTATES CANONICAL, HASHED STATE. The attack cycle and resolveBlow consume
-// its scalars; spell and secondary damage consume Protection; physical damage
-// uses XPSlot to select Resistance. Every field and every family element is
-// carried by the byte form and therefore by World.Hash. A caller must apply
-// SetCombat at a deterministic point in the frame: peers that re-arm on
-// different ticks can disagree on damage, range, cadence, attached spell,
-// experience slot and resistance result at the next attack.
-//
-// A CALLER HOLDING AN Entities() COPY HOLDS A SNAPSHOT, not a view. A copy
-// taken before SetCombat keeps the old scalars, both old families and the old
-// secondary triple; the call reaches the world's own storage. Re-read Entities
-// after calling.
-//
-// IT IS THE STORAGE DOOR, NOT THE EQUIPMENT TRIGGER. SetDerived uses it after a
-// complete sheet recompute, and pkg/game.Rearm uses it after an equipment
-// change. Those callers decide when a recompute is due; this function owns one
-// complete canonical write.
-//
-// IT WRITES THAT COMBAT BLOCK AND DOES NOT RECOMPUTE UNRELATED ENTITY STATE.
-// Not the health pair, not
-// the six SLOT EXPERIENCES — XPSlot selects among them and this function
-// never moves one — not Mind, not XPValue, not the gains flag, not Speed,
-// not the order block (AttackTarget, HasAttackTarget, AttackPhase,
-// AttackCountdown) — INCLUDING THE PHASE ITSELF: a unit mid-charge toward a
-// blow when its weapon changes stays mid-charge toward one until FR-3a's own
-// live re-ask decides otherwise, on the next advance, never inside this
-// call — not the tick, not the position, not the entity's group or owner —
-// every other field of the named entity, and every field of every other
-// entity in the world, is byte-for-byte what it was before the call.
-//
-// TWO FIELDS ARE ADDED TO Entity BY THIS TASK, AND THE TENTH'S OWN CLAIM
-// NARROWS TO WHAT IT WAS ABOUT: XPSlot already existed on Entity when the
-// hotfix that added it here landed, so THAT field spent neither the byte
-// form nor the version constant. WeaponSpell and WeaponSpellLevel do not
-// have that history — they are new to Entity (world.go), new to the byte
-// form (binary.go, +211) and the reason formatVersion moved to 41. What
-// still holds is narrower but no less real: this FILE's own act — giving
-// the pair a live setter beside the ten — spends neither by itself, because
-// the two fields and the version bump are 0139's own record-widening task,
-// not this door's opening of it.
-//
-// The lookup is indexOfEntity, the SAME binary search Route and StepRate use
-// (step.go) — entities are held sorted by id (World's own doc, world.go), so
-// this is not a second id-to-index scheme beside theirs to drift from.
+// SetCombat validates the complete block before writing it. Attached effects
+// retain their magnitudes, with shortfall reconciliation at protection clamps.
+// Equipment callers own when the recompute runs; this stores its current result.
 func (w *World) SetCombat(id EntityID, c CombatBlock) bool {
 	i := indexOfEntity(w.entities, id)
 	if i < 0 {
@@ -264,6 +197,7 @@ func (w *World) SetCombat(id EntityID, c CombatBlock) bool {
 	// EffectKind at all, so there is no active-effect sibling to correct
 	// against and none is attempted.
 	for k := range e.Protection {
+		prior := w.effectDelta(id, EffectProtectionFire+EffectKind(k))
 		e.Protection[k] = c.Protection[k]
 		hasEffect := EffectKind(k) <= EffectProtectionEarth-EffectProtectionFire
 		if hasEffect {
@@ -280,11 +214,20 @@ func (w *World) SetCombat(id EntityID, c CombatBlock) bool {
 			if shortfall := e.Protection[k] - raw; shortfall != 0 {
 				w.redistributeShortfall(id, EffectProtectionFire+EffectKind(k), -1, shortfall)
 			}
+			nativeModifierEffectDelta(e, EffectProtectionFire+EffectKind(k), w.effectDelta(id, EffectProtectionFire+EffectKind(k))-prior)
 		}
 	}
 	// Weapon-kind resistances have no timed effect delta and no [0,100]
 	// clamp. Their byte already embodies the original's modulo-256 store.
 	e.Resistance = c.Resistance
+	if e.Humanoid && e.ActorLoad.Source.Class == 0 {
+		e.NativeBasis.DefenceKnown &^= uint32(1) << 16
+		if e.NativeBasis.ModifierByteKnown(58) {
+			e.NativeBasis.DefencePresent = true
+			e.NativeBasis.DefenceKnown |= uint32(1) << 16
+			e.NativeBasis.Defence[16] = e.NativeBasis.Modifier[58]
+		}
+	}
 	e.SecondaryDamage = c.SecondaryDamage
 	e.AttackCharge, e.AttackRelax = c.AttackCharge, c.AttackRelax
 	e.AlwaysHits = c.AlwaysHits

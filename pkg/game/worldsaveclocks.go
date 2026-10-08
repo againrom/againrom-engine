@@ -18,7 +18,11 @@ func projectActionClocks(state *SnapshotSAVDocument, world *sim.World) error {
 		if !ok {
 			return worldSaveUnsupportedf("actor %d current action deadline is unavailable", a.EntityID)
 		}
-		if err := savedActorSetValue(&state.Document.Objects[a.ObjectIndex-1], "U138", e.ActionClock.End); err != nil {
+		end := e.ActionClock.End
+		if !e.ActionClock.Known && e.NativeBasis.ScalarIsKnown(sim.ScalarU138) {
+			end = e.NativeBasis.Scalars[sim.ScalarU138]
+		}
+		if err := savedActorSetValue(&state.Document.Objects[a.ObjectIndex-1], "U138", end); err != nil {
 			return err
 		}
 	}

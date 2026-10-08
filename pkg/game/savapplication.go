@@ -669,7 +669,19 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 	}
 	arrays := map[string][]uint32{"/Fog/Data": runs, "/Objects/Selection": selection,
 		"/SpellBook/Shortcuts": {uint32(shortcuts[0]), uint32(shortcuts[1]), uint32(shortcuts[2]), uint32(shortcuts[3])}}
+	var characterName []byte
+	for _, member := range s.Party {
+		if member.StartingHero {
+			characterName = append([]byte(member.Name), 0)
+			break
+		}
+	}
 	// Validate all addressed leaves before adopting even one change.
+	if characterName != nil {
+		if _, err := readOriginalStateLeaf(doc, "/Character/Name", 0); err != nil {
+			return err
+		}
+	}
 	for path := range ints {
 		if _, err := readOriginalStateLeaf(doc, path, 2); err != nil {
 			return err
@@ -682,6 +694,9 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 	}
 	records := slices.Clone(doc.State.ValueRecords)
 	for i := range records {
+		if characterName != nil && records[i].Path == "/Character/Name" {
+			records[i].Value = sav.CityStateValueData{Kind: 0, Bytes: characterName}
+		}
 		if value, ok := ints[records[i].Path]; ok {
 			records[i].Value = sav.CityStateValueData{Kind: 2, Int32: value}
 		}

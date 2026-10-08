@@ -36,6 +36,7 @@ type SnapshotSAVDocument struct {
 	Actors        []SnapshotSAVActor
 	Unavailable   string
 	GroupBindings *SnapshotSAVGroupBindings
+	PlayerRoots   *[]SnapshotSAVGroupPlayerBinding `json:",omitempty"`
 	PlayerPurses  *SnapshotSAVPlayerPurses
 	Objects       *SnapshotSAVObjectBindings
 	ActorEffects  *SnapshotSAVActorEffects
@@ -64,7 +65,7 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 		return nil, fmt.Errorf("saved SAV document version %d is unsupported", src.Version)
 	}
 	if src.Document == nil {
-		if src.Unavailable == "" || len(src.Unavailable) > 4096 || strings.ContainsRune(src.Unavailable, '\x00') || len(src.Actors) != 0 || src.GroupBindings != nil || src.PlayerPurses != nil || src.Objects != nil || src.ActorEffects != nil || src.WorldEffects != nil {
+		if src.Unavailable == "" || len(src.Unavailable) > 4096 || strings.ContainsRune(src.Unavailable, '\x00') || len(src.Actors) != 0 || src.GroupBindings != nil || src.PlayerRoots != nil || src.PlayerPurses != nil || src.Objects != nil || src.ActorEffects != nil || src.WorldEffects != nil {
 			return nil, fmt.Errorf("saved SAV document has invalid unavailable state")
 		}
 		return &SnapshotSAVDocument{Version: src.Version, Unavailable: src.Unavailable}, nil
@@ -96,6 +97,10 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 	if err != nil {
 		return nil, err
 	}
+	playerRoots, err := cloneCurrentPlayerRoots(src.PlayerRoots, src.Document)
+	if err != nil {
+		return nil, err
+	}
 	purses, err := cloneSavedPlayerPurses(src.PlayerPurses, src.Document, groups)
 	if err != nil {
 		return nil, err
@@ -112,7 +117,7 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 	if err != nil {
 		return nil, err
 	}
-	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects, ActionTick: src.ActionTick, ActionTickSet: src.ActionTickSet}
+	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects, ActionTick: src.ActionTick, ActionTickSet: src.ActionTickSet}
 	if err := remapSavedSackDocument(out, permutation); err != nil {
 		return nil, err
 	}
@@ -151,12 +156,15 @@ func savedDocumentFromSnapshot(s Snapshot) (*SnapshotSAVDocument, error) {
 	if out.Document != nil && (uint64(s.Mission) != uint64(out.Document.Head.Mission) || int64(s.Difficulty) != int64(out.Document.Head.Difficulty)) {
 		return nil, fmt.Errorf("saved SAV document names a different mission or difficulty")
 	}
-	if out.PlayerPurses != nil || out.Objects != nil || out.GroupBindings != nil || len(s.World) != 0 && s.World[0] >= firstSavedFormationWorldForm {
+	if out.PlayerPurses != nil || out.Objects != nil || out.GroupBindings != nil || out.PlayerRoots != nil || len(s.World) != 0 && s.World[0] >= firstSavedFormationWorldForm {
 		validate := func(world *sim.World) error {
 			if err := savedFormationWorld(out, world, false); err != nil {
 				return err
 			}
 			if err := validateSavedGroupBindingWorld(out, world); err != nil {
+				return err
+			}
+			if err := validateCurrentPlayerRoots(out, world); err != nil {
 				return err
 			}
 			if err := savedPlayerPurseWorld(out, world, true); err != nil {
@@ -205,6 +213,9 @@ func validateSavedDocumentWorld(state *SnapshotSAVDocument, world *sim.World) er
 	}
 	if world == nil {
 		return fmt.Errorf("saved SAV document has no native world")
+	}
+	if err := validateCurrentPlayerRoots(state, world); err != nil {
+		return err
 	}
 	clock, present := world.SessionClock()
 	if present && (clock.SubTick != state.Document.Head.CounterA || clock.FullTick != state.Document.Head.CounterB) || !present && uint32(world.Tick()) != state.Document.Head.CounterA {
@@ -342,6 +353,7 @@ func snapshotSavedDocument(ms *Mission, fresh ...bool) (*SnapshotSAVDocument, er
 	}
 	state.Document.Head.CounterA, state.Document.Head.CounterB = clock.SubTick, clock.FullTick
 	state.Document.World.Session.Raw08 = savedSessionHead(ms.World.RawSessionHead(), state.Document.World.Session.Raw08)
+	state.Document.World.Session.RawA828 = ms.World.RawSessionMid()
 	state.Document.World.Session.Won, state.Document.World.Session.Lost = ms.World.ScriptCounters()
 	for i := range state.Document.World.Session.Latches {
 		state.Document.World.Session.Latches[i] = 0
@@ -389,13 +401,16 @@ func snapshotSavedDocument(ms *Mission, fresh ...bool) (*SnapshotSAVDocument, er
 	if err := savedFormationWorld(state, ms.World, true); err != nil {
 		return nil, err
 	}
+	if err := projectSavedPlayerParticipants(state, ms.World); err != nil {
+		return nil, err
+	}
 	if err := projectSavedPlayerPurses(state, ms.World); err != nil {
 		return nil, err
 	}
 	if err := savedAutoHealingWorld(state, ms.World, true); err != nil {
 		return nil, err
 	}
-	if err := projectSavedSackObjects(state, ms.World); err != nil {
+	if err := projectSavedSackObjects(state, ms.World, ms.Start.ConstructionTable); err != nil {
 		return nil, err
 	}
 	if err := projectSavedActorEffects(state, ms.World); err != nil {
@@ -448,6 +463,9 @@ func importSavedDocument(ms *Mission, state *SnapshotSAVDocument, origins []sav.
 	var err error
 	bound.GroupBindings, err = importSavedGroupBindings(state.Document, ms.World, byArchive)
 	if err != nil {
+		return err
+	}
+	if err := importSavedPlayerParticipants(&bound, ms.World); err != nil {
 		return err
 	}
 	if err := importSavedActorMotions(ms, &bound); err != nil {

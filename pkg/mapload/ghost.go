@@ -45,6 +45,7 @@ func ghostTemplate(t *Table, diff Difficulty) sim.GhostTemplate {
 		c.SkillSlot = data.FoldWeapon(c, w, d.ToHit).SkillSlot
 	}
 	return sim.GhostTemplate{
+		NativeBasis: nativeInitialBase(nil).WithModifier([64]byte{}).WithBody(uint16(d.Body)),
 		// THE CLASS KEY IS THE ROW'S TypeID COLUMN. It is the same number a
 		// placement carries in ClassID and that Resolve keys FindUnit on, and
 		// it is what pkg/game indexes units.reg with — so the row and the

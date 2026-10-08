@@ -208,6 +208,13 @@ func townReturnMissionSave(t *testing.T, f *FrontEnd) string {
 		t.Fatalf("mission raw values: %+v", wire)
 	}
 	proof := townReturnProof{Stage: "mission", SHA: fmt.Sprintf("%x", sha256.Sum256(raw)), WorldSHA: worldSHA, WorldHash: hash}
+	worldBytes, err := f.live.world.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(paths[0]+".world.bytes", worldBytes, 0600); err != nil {
+		t.Fatal(err)
+	}
 	townReturnWriteProof(t, paths[0], proof)
 	return paths[0]
 }
@@ -503,6 +510,24 @@ func townReturnChild(t *testing.T, path string) {
 	}
 	hash, worldSHA := townReturnWorld(t, f)
 	if hash != proof.WorldHash || worldSHA != proof.WorldSHA {
+		sourceBytes, err := os.ReadFile(path + ".world.bytes")
+		var source sim.World
+		if err != nil || source.UnmarshalBinary(sourceBytes) != nil || source.Hash() != proof.WorldHash {
+			t.Fatal("invalid independent source World diagnostic", err)
+		}
+		coldBytes, err := f.live.world.MarshalBinary()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path+".world.cold.bytes", coldBytes, 0600); err != nil {
+			t.Fatal(err)
+		}
+		first := 0
+		for first < len(sourceBytes) && first < len(coldBytes) && sourceBytes[first] == coldBytes[first] {
+			first++
+		}
+		t.Logf("canonical World byte difference at %d, lengths %d/%d", first, len(sourceBytes), len(coldBytes))
+		assertCurrentWorldEqual(t, &source, f.live.world, "cold mission")
 		t.Fatal("cold mission changed canonical World")
 	}
 	if won, lost := f.live.world.ScriptCounters(); f.live.world.Outcome() != sim.OutcomeWon || won != 1 || lost != 0 || f.live.world.Purse(sim.SelfSlot) != 600 {

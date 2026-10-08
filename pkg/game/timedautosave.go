@@ -165,7 +165,7 @@ func writeTimedSave(store SaveStore, fences []string, slot int, sequence uint64,
 	return err
 }
 
-func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fences []string, clock func() time.Time, q *autosaveQueue) {
+func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fences []string, clock func() time.Time, q *autosaveQueue, observers ...func(string, Snapshot)) {
 	if clock == nil {
 		clock = time.Now
 	}
@@ -225,6 +225,7 @@ func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fence
 			if err != nil {
 				return err
 			}
+			notifySaveCapture(observers, "timed", snapshot)
 			store := *current
 			view, snapshot := f.detachedExporter(snapshot)
 			q.submit(f.runsAutosaveInline(), true, "", func() autosaveResult {

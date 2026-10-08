@@ -13,9 +13,9 @@ type dead1163Source struct {
 	roots      []uint16                 // full counted sequence, including repeated references
 	actors     []sim.OriginalDeadSource // distinct archives in first-occurrence order
 	origins    map[uint16]uint16
-	scalars    unit1156Set
+	scalars    unitScalarSet
 	actorRoots []actor1161Record
-	children   *sack1151Reader
+	children   *sackByteReader
 }
 
 // SAV-DEADLOAD-124/126/129, SAV-STREAM-013 and SAV-UNITPROG-156. Only
@@ -24,7 +24,7 @@ type dead1163Source struct {
 // 1161 reads variable actor roots/tails and1151 reads item children from Body.
 func dead1163Expected(f *sav.File, raw []byte) (dead1163Source, error) {
 	var out dead1163Source
-	players, err := players1154Expected(f)
+	players, err := nativeExpectedPlayers(f)
 	if err != nil {
 		return out, err
 	}
@@ -35,11 +35,11 @@ func dead1163Expected(f *sav.File, raw []byte) (dead1163Source, error) {
 	if loc.CountOff != players.end {
 		return out, fmt.Errorf("dead count start%d != independent Player end%d", loc.CountOff, players.end)
 	}
-	scalars, err := unit1156Expected(f, raw)
+	scalars, err := unitScalarExpected(f, raw)
 	if err != nil {
 		return out, err
 	}
-	roots, children, origins, err := actor1161Read(f, raw)
+	roots, children, origins, err := readActorRoots(f, raw)
 	if err != nil {
 		return out, err
 	}

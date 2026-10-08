@@ -5,35 +5,10 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Carry is what a party member brings OUT of one mission and INTO the next:
-// the state he EARNED while a world was running, as opposed to the state he
-// was minted from.
-//
-// IT EXISTS BECAUSE PartyMember CANNOT SAY ANY OF IT. Every other field of a
-// member is an INPUT to the mint — four statistics, a profile, a body name, a
-// weapon — and each is a fact about who he is rather than about what has
-// happened to him. Experience, a pack and a worn set are the opposite: they
-// are what the SIMULATION wrote, they exist only after a world has run, and
-// before this type there was nowhere in a member to put them. So a second
-// mission opened on a freshly minted party and everything the first one earned
-// was thrown away.
-//
-// IT IS A LOADER INPUT LIKE Body AND Profile ARE, and it is carried by
-// POINTER for the one reason a pointer is ever right here: the zero value has
-// to mean "this member earned nothing yet", and a member who really did end a
-// mission holding nothing and wearing nothing is a DIFFERENT state from one
-// who was never in a mission at all. The first arrives bare; the second
-// arrives wearing the weapon his class row gave him. A struct value could not
-// tell those two apart, and the mint would have re-armed a hero who had
-// deliberately dropped his sword.
-//
-// NIL IS EVERY PARTY THIS TREE BUILT BEFORE THE CONTINUITY HOTFIX, and a nil
-// carry changes nothing at all: the mint takes exactly the arm it always took.
-//
-// Party saves persist this value through PartyMember. The code arrays remain
-// validated compatibility projections; ItemInstances and EquippedItems carry
-// canonical item values. CarryRoster's data-only world boundary drops registry
-// handles, not item values. CarryRosterIDs retains them inside a running world.
+// Carry retains the last mission's experience and canonical holdings.
+// Nil retains the fresh starting loadout; a present empty Carry stays empty.
+// Registry handles survive only within the current World. NativeHistory
+// independently records whether that World supplied a native actor observation.
 type Carry struct {
 	// SkillXP is the six per-slot experience integers the entity ENDED the
 	// previous mission with, exactly (0125's own field).
@@ -55,6 +30,7 @@ type Carry struct {
 	ItemInstances []sim.ItemInstance
 	OrderedStacks []sim.ItemStack
 	LiveLoad      *sim.ActorLoadSnapshot
+	NativeHistory *NativeCarryHistory
 
 	// Equipped is the twelve equipment slots as the previous mission left
 	// them — sim.Stock.Equipped's own shape and its own meaning, slot 1 at
@@ -134,6 +110,7 @@ func CarryParty(party []PartyMember, w *sim.World, ids []sim.EntityID) []PartyMe
 		}
 		c := Carry{SkillXP: e.SkillXP, Equipped: worn(w, ids[i]), EquippedItems: wornItems(w, ids[i])}
 		c.LiveLoad = e.CurrentActorLoad()
+		c.NativeHistory = CaptureNativeCarryHistory(e)
 		if c.LiveLoad != nil {
 			c.OrderedStacks, _ = w.CarriedStacks(ids[i])
 		}
@@ -221,7 +198,11 @@ func wornItems(w *sim.World, id sim.EntityID) [sim.EquipSlots]sim.ItemInstance {
 // CarryParty, which is what every caller that has no roster to hand gets.
 func CarryRoster(party []PartyMember, w *sim.World, ids []sim.EntityID,
 	roster map[sim.EntityID]PartyMember) []PartyMember {
-	out, _ := CarryRosterIDs(party, w, ids, roster)
+	out, liveIDs := CarryRosterIDs(party, w, ids, roster)
+	retain := func(item sim.ItemInstance) sim.ItemInstance {
+		item.ObjectID = 0
+		return item
+	}
 	// A new mission or the town has no copy of the completed World's object
 	// registry. Its local handles cannot accompany this value-only projection.
 	// Full cross-world Token/child identity ownership remains DIV804 debt.
@@ -230,14 +211,17 @@ func CarryRoster(party []PartyMember, w *sim.World, ids []sim.EntityID,
 		if c == nil {
 			continue
 		}
+		if c.OrderedStacks == nil && w != nil && i < len(liveIDs) {
+			c.OrderedStacks, _ = w.CarriedStacks(liveIDs[i])
+		}
 		for j := range c.ItemInstances {
-			c.ItemInstances[j].ObjectID = 0
+			c.ItemInstances[j] = retain(c.ItemInstances[j])
 		}
 		for j := range c.OrderedStacks {
-			c.OrderedStacks[j].ObjectID = 0
+			c.OrderedStacks[j] = sim.StackItem(retain(c.OrderedStacks[j].Instance()), c.OrderedStacks[j].Count)
 		}
 		for j := range c.EquippedItems {
-			c.EquippedItems[j].ObjectID = 0
+			c.EquippedItems[j] = retain(c.EquippedItems[j])
 		}
 		setCarryHoldings(&out[i])
 	}
@@ -302,6 +286,7 @@ func CarryRosterIDs(party []PartyMember, w *sim.World, ids []sim.EntityID,
 			// who walked in, applied to one who did not.
 			c.SkillXP = e.SkillXP
 			c.LiveLoad = e.CurrentActorLoad()
+			c.NativeHistory = CaptureNativeCarryHistory(e)
 			if c.LiveLoad != nil {
 				c.OrderedStacks, _ = w.CarriedStacks(id)
 			}

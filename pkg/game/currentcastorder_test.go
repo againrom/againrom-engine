@@ -96,6 +96,18 @@ func TestCurrentCastOrderCarriesItsUnitCastFlag(t *testing.T) {
 			}
 			raw, doc, a := saveCurrentEffect(t, f)
 			r := castOrderRecord(t, doc, a, 1)
+			spells, _ := savedObjectRefs(&r, "Spells")
+			spell := uint16(6)
+			if tc.flag == 0 {
+				spell = 3
+			}
+			if spell == 0 || int(spell) > len(spells) || spells[spell-1] == 0 {
+				t.Fatal("current cast lacks exact sparse-book Spell node")
+			}
+			selected := savedRecordValueForTest(t, doc.Objects[spells[spell-1]-1], "This")
+			if got := savedRecordValueForTest(t, r, "U44"); got == 0 || got != selected {
+				t.Fatalf("admitted current book selection U44=%#x, current Spell%d key%#x", got, spell, selected)
+			}
 			order := savedRecordRawForTest(t, r, "U158")
 			target := uint32(0)
 			if tc.flag == 1 {
@@ -132,5 +144,69 @@ func TestCurrentCastOrderCarriesItsUnitCastFlag(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestCompletedBookAdmissionWritesCurrentSelectionOnFirstSave(t *testing.T) {
+	for _, command := range []sim.Command{sim.Cast(1, 2, 6), sim.CastAt(1, 3, sim.CellPoint{X: 14, Y: 10})} {
+		f := castOrderFront(t)
+		initial, _, _ := saveCurrentEffect(t, f)
+		f = openCurrentEffectSave(t, f, initial)
+		w := f.live.world
+		sim.Step(w, []sim.Command{command})
+		if len(w.Actions().Books) != 1 {
+			t.Fatal("cast was not admitted")
+		}
+		for tick := 0; len(w.Actions().Books) != 0 || w.Entities()[0].PendingOrder.Kind != sim.PendingNone; tick++ {
+			if tick == 96 {
+				t.Fatal("cast did not complete")
+			}
+			sim.Step(w, nil)
+		}
+		raw, doc, actions := saveCurrentEffect(t, f)
+		r := castOrderRecord(t, doc, actions, 1)
+		spells, _ := savedObjectRefs(&r, "Spells")
+		slot := uint16(6)
+		if command.Kind == sim.KindCastAt {
+			slot = 3
+		}
+		want := savedRecordValueForTest(t, doc.Objects[spells[slot-1]-1], "This")
+		if got := savedRecordValueForTest(t, r, "U44"); got == 0 || got != want {
+			t.Fatalf("first SAVE after completed cast U44=%#x, admitted slot%d key%#x", got, slot, want)
+		}
+		if command.Kind == sim.KindCastAt {
+			continue
+		}
+		cold := openCurrentEffectSave(t, f, raw)
+		assertCurrentWorldEqual(t, w, cold.live.world, "completed book admission cold LOAD")
+		loss, err := sav.CloneDocumentData(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		actor := castOrderRecord(t, loss, actions, 1)
+		for i := range loss.Objects {
+			if loss.Objects[i].Class == actor.Class && savedRecordValueForTest(t, loss.Objects[i], "Identity") == savedRecordValueForTest(t, actor, "Identity") {
+				savedObjectSetValue(&loss.Objects[i], "U44", 0)
+			}
+		}
+		lostRaw, err := sav.EncodeDocumentData(loss)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lost := openCurrentEffectSave(t, f, lostRaw)
+		if lost.live.world.Entities()[0].AdmittedBookSpell != 0 || lost.live.world.Hash() == w.Hash() {
+			t.Fatal("ordinary selection removal failed its cold loss control")
+		}
+		_, next, nextActions := saveCurrentEffect(t, cold)
+		if got := savedRecordValueForTest(t, castOrderRecord(t, next, nextActions, 1), "U44"); got != want {
+			t.Fatalf("cold SAVE lost completed book admission: %#x != %#x", got, want)
+		}
+		for tick := 0; tick < 3; tick++ {
+			sim.Step(w, nil)
+			sim.Step(cold.live.world, nil)
+			if w.Hash() != cold.live.world.Hash() {
+				t.Fatal("completed selection changed post-LOAD continuation")
+			}
+		}
 	}
 }

@@ -37,7 +37,7 @@ func (w *World) syncSavedItemViews(id SavedObjectID, before ItemStack, active in
 			}
 			item := row.Value.Instance()
 			w.equipment[i][j] = item.Clone()
-			applyEquipmentItemState(&w.entities[i], old, item, w.spells, w.damageObservation)
+			w.applyEquipmentItemState(&w.entities[i], old, item, w.spells, w.damageObservation)
 			if j == slotWeapon {
 				syncWeaponItem(&w.entities[i], item)
 			}

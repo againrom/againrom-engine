@@ -373,7 +373,7 @@ func removedCorpseProjectileApp(t *testing.T, raw []byte) (*FrontEnd, *ui.App, s
 	if err != nil {
 		t.Fatal(err)
 	}
-	actors, _, _, err := actor1161Read(source, raw)
+	actors, _, _, err := readActorRoots(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

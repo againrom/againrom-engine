@@ -21,7 +21,7 @@ func TestReleaseEngagement1163OriginalAndNativeContinuation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scalars, err := unit1156Expected(source, raw)
+	scalars, err := unitScalarExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestReleaseEngagement1163OriginalAndNativeContinuation(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Two equally corrupted Documents cannot pass this direct World check.
-	bad := unit1156Clone(t, before.SavedDocument)
+	bad := cloneSavedDocumentFixture(t, before.SavedDocument)
 	for _, b := range bad.Actors {
 		if b.EntityID == actor {
 			for _, field := range bad.Document.Objects[b.ObjectIndex-1].Raw {

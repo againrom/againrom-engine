@@ -20,6 +20,10 @@ type installMission struct {
 
 func (s installMission) missionTable() *mapload.Table { return s.in.Table }
 
+func (s installMission) constructCurrentBuildings(ms *Mission) error {
+	return constructCurrentBuildings(ms, s.in.Archives.Containers)
+}
+
 func (s installMission) decodeMission(addr string) (*MapView, error) {
 	mapBytes, err := s.in.Archives.Containers.ReadFile(addr)
 	if err != nil {

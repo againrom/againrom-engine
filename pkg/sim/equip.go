@@ -45,7 +45,7 @@ func (w *World) equip(i, cindex, slot, displace int) {
 		other = w.equipment[i][displace-1]
 	}
 	w.equipment[i][slot-1] = item.Clone()
-	applyEquipmentItemState(&w.entities[i], held, item, w.spells, w.damageObservation)
+	w.applyEquipmentItemState(&w.entities[i], held, item, w.spells, w.damageObservation)
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], item)
 	}
@@ -62,7 +62,7 @@ func (w *World) equip(i, cindex, slot, displace int) {
 	}
 	if !other.Empty() {
 		w.equipment[i][displace-1] = ItemInstance{}
-		applyEquipmentItemState(&w.entities[i], other, ItemInstance{}, w.spells, w.damageObservation)
+		w.applyEquipmentItemState(&w.entities[i], other, ItemInstance{}, w.spells, w.damageObservation)
 		if displace == slotWeapon+1 {
 			syncWeaponItem(&w.entities[i], ItemInstance{})
 		}
@@ -98,10 +98,8 @@ func (w *World) equip(i, cindex, slot, displace int) {
 // always succeeds. Taking off slot 1 leaves a worn slot-2 shield where it is:
 // a shield is worn on its own.
 //
-// NOTHING ELSE ABOUT THE ENTITY MOVES — not health, position, order block,
-// combat block or tick, equip's own rule restated for its inverse. The combat
-// block recompute is a pkg/game call site outside this package (equip's own
-// doc), unchanged by this function.
+// Current item state and represented raw history move here. The complete
+// combat sheet recompute remains the caller's responsibility.
 func (w *World) unequip(i, slot int) {
 	if w.entities[i].ActorLoad.Source.Class != 0 {
 		n := w.sourceMutationCopy(i)
@@ -131,7 +129,7 @@ func (w *World) unequip(i, slot int) {
 	}
 	before := w.beginLoadMutation(i)
 	w.equipment[i][slot-1] = ItemInstance{}
-	applyEquipmentItemState(&w.entities[i], item, ItemInstance{}, w.spells, w.damageObservation)
+	w.applyEquipmentItemState(&w.entities[i], item, ItemInstance{}, w.spells, w.damageObservation)
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}

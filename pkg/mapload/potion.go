@@ -51,6 +51,11 @@ func PartyDisplayWithTable(p PartyMember, t *Table) (d data.Derived, health, man
 	if !resolvedSiege {
 		d, health, mana = PartySpawnWithTable(p, t)
 	}
+	_, _, _, sourcePools := originalHumanSpawn(p, t)
+	if p.Saved != nil && !sourcePools {
+		health, d.HealthMax = p.Saved.HP, p.Saved.MaxHP
+		mana, d.ManaMax = p.Saved.Mana, p.Saved.MaxMana
+	}
 	if p.PotionEffect == nil || p.Carry != nil && p.Carry.LiveLoad != nil && p.Carry.LiveLoad.Inventory.Source.Class == 2 {
 		return
 	}
@@ -74,6 +79,8 @@ func initializePotions(w *sim.World, party []PartyMember, st Start, table *Table
 		if p.PotionEffect != nil {
 			if p.Carry != nil && p.Carry.LiveLoad != nil && p.Carry.LiveLoad.Inventory.Source.Class == 2 {
 				w.RestoreAppliedPotionEffect(st.IDs[i], *p.PotionEffect)
+			} else if p.Carry != nil && p.Carry.NativeHistory != nil {
+				w.RestoreCarriedPotionEffect(st.IDs[i], *p.PotionEffect)
 			} else {
 				w.RestorePotionEffect(st.IDs[i], *p.PotionEffect)
 			}
@@ -92,20 +99,38 @@ func ApplyTownPotion(p PartyMember, item sim.ItemInstance, table *Table) (PartyM
 		return applySourceTownPotion(p, item)
 	}
 	d, hp, mana := PartySpawnWithTable(p, table)
+	_, _, _, sourcePools := originalHumanSpawn(p, table)
+	if p.Saved != nil && !sourcePools {
+		hp, d.HealthMax = p.Saved.HP, p.Saved.MaxHP
+		mana, d.ManaMax = p.Saved.Mana, p.Saved.MaxMana
+	}
 	e := sim.Entity{ID: 1, HP: hp, MaxHP: d.HealthMax, Mana: mana, MaxMana: d.ManaMax, Absorption: d.Combat.Absorption,
 		HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration, PotionHeadroom: PotionHeadroom(p.Hero, d)}
+	e.Humanoid = true
+	carriedNativeHistory(p, &e)
 	w, err := sim.NewStockedWorld(0, sim.Bounds{Width: 1, Height: 1}, sim.ModeCanonical, sim.Terrain{}, []sim.Entity{e}, nil, sim.Relations{}, nil, []sim.Stock{{ID: 1, ItemInstances: []sim.ItemInstance{item}}})
 	if err != nil {
 		return p, false
 	}
-	if p.PotionEffect != nil && !w.RestorePotionEffect(1, *p.PotionEffect) {
-		return p, false
+	if p.PotionEffect != nil {
+		var restored bool
+		if p.Carry != nil && p.Carry.NativeHistory != nil {
+			restored = w.RestoreCarriedPotionEffect(1, *p.PotionEffect)
+		} else {
+			restored = w.RestorePotionEffect(1, *p.PotionEffect)
+		}
+		if !restored {
+			return p, false
+		}
 	}
 	if !w.UseCarriedPotion(1, 0) {
 		return p, false
 	}
 	out := clonePartyMember(p)
 	actor := w.Entities()[0]
+	if out.Carry != nil && out.Carry.NativeHistory != nil {
+		out.Carry.NativeHistory = CaptureNativeCarryHistory(actor)
+	}
 	out.Hero = PotionHero(out.Hero, actor.PotionStats)
 	out.PotionEffect = nil
 	for _, effect := range w.ActiveEffects() {

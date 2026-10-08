@@ -2099,7 +2099,8 @@ func (w *World) encodeInto(b []byte) []byte {
 	w.encodeActorLoads(b, o)
 	w.relations.encodeInto(b[len(b)-relationLen:])
 	payload := w.appendAttackNotices(w.appendSavedWorldEffects(w.appendSavedFormations(w.appendStructureUses(w.appendScorched(w.appendGroupRoam(w.appendActionClocks(w.appendCarriedResumeState(w.appendSavedObjects(w.appendSavedCellPlanes(w.appendSavedMotions(w.appendNativeStrides(w.appendSavedGroupPlayerSection(w.appendSavedStructureSection(w.appendSavedGroups(w.appendSessionClock(b))))))))))))))))
-	return w.appendNativeClasses(w.appendROM2ScriptState(w.appendNativeTraining(w.appendAreaCosts(w.appendCreatureSpells(w.appendPendingOrders(w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload)))))))))))))
+	payload = w.appendNativeItemRecords(w.appendNativeLiveBlocks(w.appendPlayerParticipants(w.appendNativeActorBases(w.appendBookSelections(w.appendNativeClasses(w.appendROM2ScriptState(w.appendNativeTraining(w.appendAreaCosts(w.appendCreatureSpells(w.appendPendingOrders(w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload))))))))))))))))))
+	return w.appendNativeScalars(payload)
 }
 
 // MarshalBinary returns the world's canonical byte form: versioned,
@@ -2117,6 +2118,20 @@ func (w *World) MarshalBinary() ([]byte, error) {
 // owns this storage; the World never retains it. An error leaves dst unchanged.
 // MarshalBinary returns independent storage on every call.
 func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
+	if err := w.nativeItemsFault(); err != nil {
+		return nil, err
+	}
+	if err := w.currentPlayersFault(); err != nil {
+		return nil, err
+	}
+	if err := w.nativeBasisFault(); err != nil {
+		return nil, err
+	}
+	for _, e := range w.entities {
+		if e.AdmittedBookSpell > 28 {
+			return nil, fmt.Errorf("invalid admitted book selection")
+		}
+	}
 	if err := w.nativeTrainingFault(); err != nil {
 		return nil, err
 	}
@@ -2258,6 +2273,27 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 // record bytes and failing the second, and truncated and over-long stay the same
 // comparison.
 func (w *World) UnmarshalBinary(data []byte) error {
+	if len(data) > 0 && data[0] == nativeScalarFormVersion {
+		return w.unmarshalNativeScalars(data)
+	}
+	if len(data) > 0 && data[0] == nativeItemFormVersion {
+		return w.unmarshalNativeItemRecords(data)
+	}
+	if len(data) > 0 && data[0] == nativeLiveFormVersion {
+		return w.unmarshalNativeLiveBlocks(data)
+	}
+	if len(data) > 0 && data[0] == currentPlayerFormVersion {
+		return w.unmarshalCurrentPlayers(data)
+	}
+	if len(data) > 0 && data[0] == playerParticipantFormVersion {
+		return w.unmarshalPlayerParticipants(data)
+	}
+	if len(data) > 0 && data[0] == nativeBasisFormVersion {
+		return w.unmarshalNativeActorBases(data)
+	}
+	if len(data) > 0 && data[0] == bookSelectionFormVersion {
+		return w.unmarshalBookSelections(data)
+	}
 	if len(data) > 0 && data[0] == nativeClassFormVersion {
 		return w.unmarshalNativeClasses(data)
 	}

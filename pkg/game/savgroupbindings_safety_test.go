@@ -79,7 +79,7 @@ func groupBindingsSafetyPlayerReference1115(t *testing.T, s *Snapshot) SnapshotS
 }
 
 func TestSavedGroupBindings1115MalformedMetadataIsAtomic(t *testing.T) {
-	f, source := documentSnapshot1115(t)
+	f, source := documentSnapshotFixture(t)
 	for _, tc := range []struct {
 		name, reason string
 		mutate       func(*testing.T, *Snapshot)
@@ -221,7 +221,7 @@ func TestSavedGroupBindings1115EmptyPresenceAndOwnership(t *testing.T) {
 			}
 		})
 	}
-	_, snapshot := documentSnapshot1115(t)
+	_, snapshot := documentSnapshotFixture(t)
 	source := snapshot.SavedDocument.GroupBindings
 	baseline := *source
 	baseline.Groups = append([]SnapshotSAVGroupBinding(nil), source.Groups...)

@@ -1109,6 +1109,7 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 			alter: func(t *testing.T, _ *FrontEnd, s *Snapshot) {
 				t.Helper()
 				s.World = append([]byte(nil), s.World[:8]...)
+				s.World[0] = 95
 			},
 			want: "byte form truncated",
 		},

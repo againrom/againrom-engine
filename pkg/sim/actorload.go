@@ -105,6 +105,9 @@ func (e Entity) CurrentActorLoad() *ActorLoadSnapshot {
 
 func (s ActorLoadSnapshot) apply(e *Entity) {
 	e.ActorLoad, e.Load, e.Capacity, e.Speed, e.HumanMovement = s.Inventory, s.Load, s.Capacity, s.Speed, s.Movement
+	if s.Inventory.Source.Class != 0 {
+		e.NativeBasis = NativeActorBasis{}
+	}
 	e.HealthHundredths, e.ManaHundredths = s.HealthHundredths, s.ManaHundredths
 }
 

@@ -12,9 +12,7 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Materialization supplies missing representation, without installing a new
-// simulation or modifying the captured World. Every existing typed family is
-// read from that World, including registries that have no prior Document.
+// Materialization fills missing representation from the captured World.
 func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotSAVDocument, error) {
 	if f.live == nil || f.live.mission == nil || f.live.mission.state == nil {
 		return nil, fmt.Errorf("current mission lacks installed descriptors")
@@ -30,14 +28,37 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		return nil, err
 	}
 	fresh := state == nil || state.Document == nil
+	if !fresh {
+		b.doc = *state.Document
+	}
+	if err := b.reserveCurrentWorld(w); err != nil {
+		return nil, err
+	}
 	if fresh {
+		terrain := uint32(0)
+		if sources, _, present := w.SavedStructures(); present && len(sources) != 0 {
+			terrain = binary.LittleEndian.Uint32(sources[0].Position[8:])
+			for _, source := range sources {
+				if binary.LittleEndian.Uint32(source.Position[8:]) != terrain {
+					terrain = 0
+					break
+				}
+			}
+			raw, err := w.MarshalBinary()
+			if err != nil {
+				return nil, err
+			}
+			b.reserveCurrentForm(raw)
+		}
+		if terrain == 0 {
+			terrain = b.identity()
+		}
 		b.doc = sav.DocumentData{Version: sav.DocumentDataVersion, FileVersion: sav.MinVersion, Marker: sav.GeneratedCityMarker,
 			Head:  sav.DocumentHeadData{Mission: uint32(s.Mission), Difficulty: uint32(s.Difficulty), CounterA: uint32(w.Tick()), MapName: originalMapName(ms.Address), PlayerListField: 1},
-			World: &sav.DocumentWorldData{TerrainIdentity: b.identity()}}
+			World: &sav.DocumentWorldData{TerrainIdentity: terrain}}
 		state = &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion,
 			GroupBindings: &SnapshotSAVGroupBindings{Version: 1, PlayersPresent: true}, ActorEffects: &SnapshotSAVActorEffects{Version: 1}, Objects: &SnapshotSAVObjectBindings{Version: 2}}
 	} else {
-		b.doc = *state.Document
 		b.reservedKeys, err = sav.ReserveDocumentKeys(b.doc, 65536)
 		if err != nil {
 			return nil, err
@@ -56,6 +77,11 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		state.GroupBindings.PlayersConstructed = !players
 	}
 	b.state = state
+	currentPlayers, haveCurrentPlayers := w.CurrentPlayers()
+	rootIDs := map[uint16]uint32{}
+	for _, row := range currentPlayerRoots(state) {
+		rootIDs[row.ObjectIndex] = row.ID
+	}
 	keys, objects := map[uint32]uint32{}, map[uint32]uint16{}
 	for _, index := range b.doc.Players {
 		if index == 0 {
@@ -71,7 +97,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		}
 		if !found {
 			id := uint32(index)
-			if players, present := w.SavedGroupPlayers(); present {
+			if rootIDs[index] != 0 {
+				id = rootIDs[index]
+			} else if players, present := w.CurrentPlayers(); present {
 				for _, p := range players {
 					if p.Slot == slot {
 						id = p.ID
@@ -82,7 +110,13 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		}
 	}
 	var slots []uint32
-	if fresh {
+	if haveCurrentPlayers {
+		for _, p := range currentPlayers {
+			if !slices.Contains(slots, p.Slot) {
+				slots = append(slots, p.Slot)
+			}
+		}
+	} else if fresh {
 		for i := range ms.Map.Groups {
 			slots = append(slots, uint32(i+1))
 		}
@@ -92,7 +126,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			slots = append(slots, e.Owner)
 		}
 	}
-	slices.Sort(slots)
+	if !haveCurrentPlayers {
+		slices.Sort(slots)
+	}
 	changed := fresh || terrainMissing
 	for _, slot := range slots {
 		if objects[slot] != 0 {
@@ -131,17 +167,33 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		}
 		keys[slot], objects[slot] = key, index
 		b.doc.Players = append(b.doc.Players, index)
-		// A Player's native identity follows root order independently of Slot.
-		// Slot zero is a valid owner, and existing sparse identities stay bound.
+		// Current IDs bind roots independently of Slot, including Slot zero.
 		id := uint32(1)
+		currentID := uint32(0)
+		if haveCurrentPlayers {
+			for _, p := range currentPlayers {
+				if p.Slot == slot {
+					if currentID != 0 {
+						return nil, fmt.Errorf("current generated Player Slot has ambiguous exact identities")
+					}
+					currentID = p.ID
+				}
+			}
+		}
 		for _, p := range state.GroupBindings.Players {
 			if p.ID == ^uint32(0) {
 				return nil, fmt.Errorf("current Player identity namespace exhausted")
 			}
 			id = max(id, p.ID+1)
 		}
+		if currentID != 0 {
+			id = currentID
+		}
 		_, nativePlayers := w.SavedGroupPlayers()
 		state.GroupBindings.Players = append(state.GroupBindings.Players, SnapshotSAVGroupPlayerBinding{ID: id, ObjectIndex: index, Constructed: nativePlayers})
+	}
+	if err := bindCurrentPlayerRoots(state, w); err != nil {
+		return nil, err
 	}
 	// The player-list dword is one past the list count in every corpus SAV.
 	b.doc.Head.PlayerListField = uint32(len(b.doc.Players) + 1)
@@ -266,6 +318,13 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	if added, err := b.appendAbsentDeadRecords(w, ms); err != nil {
 		return nil, err
 	} else {
+		changed = changed || added
+	}
+	if !fresh {
+		added, err := b.currentStructureRoots(w)
+		if err != nil {
+			return nil, err
+		}
 		changed = changed || added
 	}
 	if !changed && state.PlayerPurses != nil {
@@ -411,6 +470,7 @@ func currentRecordActor(e sim.Entity, member, hero mapload.PartyMember, placemen
 	basis = e
 	basis.SourceBinding = binding
 	basis.ActorLoad.Source, basis.ActorLoad.Present = source, true
+	basis.NativeBasis = sim.NativeActorBasis{}
 	basis.HumanMovement = sim.HumanMovement{Present: true, RawSpeed: int16(e.Speed), NativeSpeed: e.Speed, Load: e.Load, Capacity: e.Capacity}
 	if member.Hired() {
 		name = ordinaryActorName(member, t)
@@ -428,6 +488,29 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 			source.Class = 2
 		}
 	}
+	if e.NativeBasis.BodyPresent && e.NativeBasis.BodyKnown {
+		source.Stats[0] = e.NativeBasis.Body
+	}
+	for n := range source.Attack {
+		if e.NativeBasis.AttackByteKnown(n) {
+			source.Attack[n] = e.NativeBasis.Attack[n]
+		}
+	}
+	for n := range source.Defence {
+		if e.NativeBasis.DefenceByteKnown(n) {
+			source.Defence[n] = e.NativeBasis.Defence[n]
+		}
+	}
+	for n := range source.Base {
+		if e.NativeBasis.BaseByteKnown(n) {
+			source.Base[n] = e.NativeBasis.Base[n]
+		}
+	}
+	for n := range source.Modifier {
+		if e.NativeBasis.ModifierByteKnown(n) {
+			source.Modifier[n] = e.NativeBasis.Modifier[n]
+		}
+	}
 	source.TypeID = uint16(e.TypeID)
 	if e.NativeClass.Present {
 		source.Fighter = e.NativeClass.Fighter
@@ -436,21 +519,32 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 	for i, v := range values {
 		source.Stats[i] = uint16(v)
 	}
+	if !e.ActorLoad.Present && e.NativeBasis.ScalarIsKnown(sim.ScalarU8E) {
+		source.Stats[5] = uint16(e.NativeBasis.Scalars[sim.ScalarU8E])
+	}
+	if e.NativeBasis.ScalarIsKnown(sim.ScalarUA0) {
+		source.ManaFloor = uint16(e.NativeBasis.Scalars[sim.ScalarUA0])
+	}
 	for i, v := range e.Skill {
 		binary.LittleEndian.PutUint16(source.Attack[2+2*i:], uint16(v))
 		source.SkillXP[i] = uint32(e.SkillXP[i])
 	}
 	if source.Class == 2 {
-		// The base block holds the trained levels. A native actor that has
-		// not been trained in this run carries no worn skill bonus, so its
-		// effective levels are its base levels; the record's own base words
-		// are the loaded document's, not the current state.
+		// Training takes priority over supplied raw words; legacy effective
+		// levels fill only bytes whose independent base is unavailable.
 		levels := e.Skill
 		if e.NativeTraining.Present {
 			levels = e.NativeTraining.Levels
 		}
 		for j := 1; j < data.SkillSlots; j++ {
-			binary.LittleEndian.PutUint16(source.Base[2+2*j:], uint16(levels[j]))
+			at := 2 + 2*j
+			word := uint16(levels[j])
+			if e.NativeTraining.Present || !e.NativeBasis.BaseByteKnown(at) {
+				source.Base[at] = byte(word)
+			}
+			if e.NativeTraining.Present || !e.NativeBasis.BaseByteKnown(at+1) {
+				source.Base[at+1] = byte(word >> 8)
+			}
 		}
 	}
 	if source.Class == 2 {
@@ -467,6 +561,9 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 			experience += uint32(xp)
 		}
 		source.Experience = experience
+	}
+	if e.NativeBasis.ScalarIsKnown(sim.ScalarU130) {
+		source.Experience = e.NativeBasis.Scalars[sim.ScalarU130]
 	}
 	binary.LittleEndian.PutUint16(source.Attack[:], uint16(e.ToHit))
 	source.Attack[14], source.Attack[15], source.Attack[16] = uint8(e.DamageBase), uint8(e.DamageSpread), e.XPSlot
@@ -489,6 +586,9 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 	source.MoverSpeed, source.Sight = uint8(e.RotationSpeed), uint16(e.ScanRange)<<8
 	if source.Class == 2 {
 		source.Sight = data.SightWord(e.Mind, e.Reaction, int32(e.ScanRange))
+	}
+	if e.NativeBasis.ScalarIsKnown(sim.ScalarUA4) {
+		source.Sight = uint16(e.ScanRange)<<8 | uint16(e.NativeBasis.Scalars[sim.ScalarUA4]&0xff)
 	}
 	source.Reach, source.AttackCharge, source.AttackRelax, source.EquipmentRuntimePresent = e.Reach, uint8(e.AttackCharge), uint8(e.AttackRelax), true
 	binary.LittleEndian.PutUint16(source.Modifier[10:], uint16(e.HealthRegeneration))

@@ -111,7 +111,7 @@ func (w *World) equipSavedNative(i, index, slot, displace int) bool {
 		return false
 	}
 	w.equipment[i][slot-1] = item.Instance()
-	applyEquipmentItemState(&w.entities[i], held, item.Instance(), w.spells, w.damageObservation)
+	w.applyEquipmentItemState(&w.entities[i], held, item.Instance(), w.spells, w.damageObservation)
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], item.Instance())
 	}
@@ -125,7 +125,7 @@ func (w *World) equipSavedNative(i, index, slot, displace int) bool {
 				return false
 			}
 			w.equipment[i][displace-1] = ItemInstance{}
-			applyEquipmentItemState(&w.entities[i], other, ItemInstance{}, w.spells, w.damageObservation)
+			w.applyEquipmentItemState(&w.entities[i], other, ItemInstance{}, w.spells, w.damageObservation)
 			if displace == slotWeapon+1 {
 				syncWeaponItem(&w.entities[i], ItemInstance{})
 			}
@@ -147,7 +147,7 @@ func (w *World) unequipSavedNative(i, slot int) bool {
 		return false
 	}
 	w.equipment[i][slot-1] = ItemInstance{}
-	applyEquipmentItemState(&w.entities[i], item, ItemInstance{}, w.spells, w.damageObservation)
+	w.applyEquipmentItemState(&w.entities[i], item, ItemInstance{}, w.spells, w.damageObservation)
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}

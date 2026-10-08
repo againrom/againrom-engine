@@ -11,6 +11,9 @@ func MaterializePartyCarry(member PartyMember, table *Table) PartyMember {
 	}
 	items := MemberCarriedItems(p, table)
 	worn := MemberItemEquipment(p, table)
+	for i := range worn {
+		worn[i] = SourceConstructedItem(worn[i], table)
+	}
 	c := &Carry{SkillXP: p.Hero.Reward().SkillXP, OrderedStacks: sim.FoldItems(items), EquippedItems: worn}
 	c.ItemInstances = items[:0]
 	for _, stack := range c.OrderedStacks {

@@ -9,7 +9,7 @@ import (
 // baseline is the first complete snapshot, already checked against original
 // origins. It freezes source correspondence before native projection can add
 // objects. Current Player/actor bindings provide only local indices; expected
-// Player and Diary values continue to come from players1154Expected(raw).
+// Player and Diary values continue to come from nativeExpectedPlayers(f).
 // Scope is the Player/Diary subjects, not every original object in the graph.
 func players1154SnapshotOrigins(want players1154Source, original map[uint16]uint16, baseline, current *SnapshotSAVDocument) (map[uint16]uint16, error) {
 	if baseline == nil || current == nil || baseline.Document == nil || current.Document == nil || baseline.GroupBindings == nil || current.GroupBindings == nil {

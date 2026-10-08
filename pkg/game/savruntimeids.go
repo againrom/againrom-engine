@@ -27,8 +27,8 @@ func runtimePlaceable(class string) bool {
 	return false
 }
 
-// Runtime IDs occupy a separate namespace from archive addresses and item
-// tokens. The last projection rewrites only placeables and their runtime edges.
+// Rewrite placeables and their runtime edges. Reserve retained item/effect IDs
+// conservatively; their LOAD bitmap membership remains unresolved.
 func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 	oldObjects := map[uint32][]uint16{}
 	for i, r := range doc.Objects {
@@ -62,6 +62,14 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 		drivers = w.SavedWorldEffectDrivers()
 	}
 	used := map[uint32]bool{0: true}
+	placeableIDs := map[uint32]bool{0: true}
+	for _, record := range doc.Objects {
+		if !runtimePlaceable(record.Class) {
+			if id, err := savedStructureValue(&record, "RuntimeID"); err == nil {
+				reserveSavedRuntimeID(used, record.Class, id)
+			}
+		}
+	}
 	pinned := map[uint16]uint32{}
 	registry := w.SavedObjects()
 	if a != nil && registry != nil {
@@ -84,6 +92,7 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 			}
 			pinned[row.Object] = id
 			reserveSavedRuntimeID(used, "Sack", id)
+			reserveSavedRuntimeID(placeableIDs, "Sack", id)
 		}
 	}
 	targets := map[int]uint16{}
@@ -111,11 +120,15 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 		}
 		if object == 0 {
 			used[old], used[uint32(uint16(old))] = true, true
+			placeableIDs[old], placeableIDs[uint32(uint16(old))] = true, true
 		} else {
 			targets[i] = object
 		}
 	}
 	nativePin := pinNativeProjectileTargets(&w, drivers, actors, used)
+	for _, id := range nativePin {
+		reserveSavedRuntimeID(placeableIDs, "Unit", id)
+	}
 	retained := map[uint32]uint16{}
 	for i, r := range doc.Objects {
 		object := uint16(i + 1)
@@ -125,11 +138,12 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 			continue
 		}
 		id, _ := savedStructureValue(&r, "RuntimeID")
-		if id == 0 || id > 65535 || used[id] {
+		if id == 0 || id > 65535 || placeableIDs[id] || r.Class == "Sack" && used[id] {
 			continue
 		}
 		retained[id] = object
 		used[id] = true
+		placeableIDs[id] = true
 	}
 	byObject := map[uint16]uint32{}
 	for i := range doc.Objects {
@@ -225,6 +239,24 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 			if wire != dead.Current.RuntimeID {
 				value.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: wire, Value: dead.Current.RuntimeID}
 				a.Values[dead.ID] = value
+			}
+		}
+		if a.StructureBindings != nil {
+			structures, _, present := w.SavedStructures()
+			if !present || len(structures) != len(*a.StructureBindings) {
+				return fmt.Errorf("current structure runtime coordinate lacks its complete current roster")
+			}
+			for i := range *a.StructureBindings {
+				row := &(*a.StructureBindings)[i]
+				source := structures[i]
+				wire, found := byObject[row.Object]
+				if !found || wire == 0 || row.ID != source.ID || row.SourceKey != source.SourceKey || row.Class != source.Class {
+					return fmt.Errorf("current structure runtime coordinate lacks an exact subject")
+				}
+				row.RuntimeID = nil
+				if wire != source.RuntimeID {
+					row.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: wire, Value: source.RuntimeID}
+				}
 			}
 		}
 		for i := range a.ArchiveCoordinates {

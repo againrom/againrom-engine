@@ -635,7 +635,7 @@ func cloneCandidateUnits(src *terrain.UnitSet) *terrain.UnitSet {
 // orig IS READ-ONLY AND MAY BE ZERO. An OriginalStore with no directory lists
 // nothing, so a build pointed at no install behaves exactly as this seam did
 // before the original format could be read at all.
-func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() time.Time) (ui.SaveGame, ui.SaveList, ui.LoadGame) {
+func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() time.Time, observers ...func(string, Snapshot)) (ui.SaveGame, ui.SaveList, ui.LoadGame) {
 	if now == nil {
 		now = time.Now
 	}
@@ -644,6 +644,7 @@ func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() tim
 		if err != nil {
 			return "", err
 		}
+		notifySaveCapture(observers, "manual", s)
 		encoded, err := encodeSaveLabel(label, f.textSelector())
 		if err != nil {
 			return "", err

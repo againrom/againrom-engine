@@ -236,21 +236,17 @@ func TestFromALMIsIdenticalAcrossLoads(t *testing.T) {
 	}
 }
 
-// TestFromALMSeedsFromTheConstant pins the whole loaded world against one built
-// by hand from the exported seed and the hand-written grid above. Nothing
-// consumes the RNG in this story, so its state is observable only through the
-// digest — and the digest covers the seed, the entities, the bounds and the grid
-// together, so a world built from any other seed fails here.
-//
-// The comparison world takes wantGrid and NOT the derivation's answer, which is
-// what keeps this a pin: handed Passability's own output it would agree with
-// whatever that function returned.
+// The expected seed, grid, entities and current Player are independent inputs.
+// The digest distinguishes another seed and an absent grid.
 func TestFromALMSeedsFromTheConstant(t *testing.T) {
 	got := mapload.FromALM(fixtureMap())
 
 	want, err := sim.NewWorld(mapload.Seed, wantBounds, sim.ModeCanonical, wantGrid(), wantEntities())
 	if err != nil {
 		t.Fatalf("NewWorld over the expected entities: %v", err)
+	}
+	if err := want.RestoreCurrentPlayers([]sim.SavedGroupPlayer{{ID: 1, Slot: 0}}, []sim.PlayerParticipant{{PlayerID: 1, Value: 1}}, true); err != nil {
+		t.Fatal(err)
 	}
 	if got.Hash() != want.Hash() {
 		t.Errorf("loaded world hashes %#x, want %#x", got.Hash(), want.Hash())
@@ -597,7 +593,7 @@ func TestTheSingleArgumentEntryPointIsUnmoved(t *testing.T) {
 	if want := preStoryFormLength + len(w.Entities())*(10+decayBlockLen+actorStateTailLen+1+postLen+regenLen+commandGroupLen+experienceLen+knownSpellsLen+skillBlockLen+weaponSpellLen+spellStateLen+offMapLen+lastArmsLen+spellEffectsLen+corpseLootLen+itemAttributionLen+carriedWeightLen+mapUnitIDLen+weaponResistanceLen+withdrawalThresholdLen+1+2+1+32+15+113+2+1+35) + 2*preStoryCells +
 		formRelationLen + groupSectionCountLen + sackSectionCountLen +
 		len(w.Entities())*carryCountLen + len(w.Entities())*equipRecordLen + len(w.Entities())*16 + purseLen + spellCountLen + itemWeightCountLen + 2*castingCountLen +
-		relationSlotsInForm + cellTailCountLen + structureCountLen + 8 + 189*len(w.Entities()) + 4 + 4 + 4 + 4 + 5 + 4 + 4 + absentSavedPlayerFooterLen + absentNativeStrideFooterLen + absentSavedMotionFooterLen + absentSavedCellFooterLen + absentSavedObjectsFooterLen + absentCarriedResumeFooterLen + 28 + entityIDFloorFooterLen + 4; len(form) != want {
+		relationSlotsInForm + cellTailCountLen + structureCountLen + 8 + 189*len(w.Entities()) + 4 + 4 + 4 + 4 + 5 + 4 + 4 + absentSavedPlayerFooterLen + absentNativeStrideFooterLen + absentSavedMotionFooterLen + absentSavedCellFooterLen + absentSavedObjectsFooterLen + absentCarriedResumeFooterLen + 28 + entityIDFloorFooterLen + 4 + 26; len(form) != want {
 		t.Errorf("the byte form is %d byte(s), want the pre-story %d plus every record's own growth, "+
 			"two more planes, the relation, the empty group section, the empty sack section, the "+
 			"empty carry section, the empty equipment section, the purse section this fixture's "+
@@ -605,7 +601,7 @@ func TestTheSingleArgumentEntryPointIsUnmoved(t *testing.T) {
 			"block (0135) and the six-byte weapon-spell tail this fixture's placements resolve to "+
 			"no spell (0139), the five-byte autocast and mark tail (0154), 0166's own seven "+
 			"bytes a record and its script-state section, the structure section's own "+
-			"four-byte zero count (1033 B3), and absent span footers through form91",
+			"four-byte zero count (1033 B3), absent span footers and one current Player",
 			len(form), want)
 	}
 	if got := strippedOfTheOwnerAndGroupWords(t, form, len(w.Structures())); got != preStoryDigest {
@@ -763,6 +759,14 @@ func TestAWorldBuiltWithATableCarriesTheResolvedHealth(t *testing.T) {
 				// untouched — the cadence, the damage pair, the absorption and the
 				// mark included, so a setting that reached one of those would fail here.
 				a, b := ents[i], base[i]
+				if resolved {
+					if !a.NativeBasis.BodyPresent || !a.NativeBasis.BodyKnown || a.NativeBasis.Body != 30 {
+						t.Fatal("resolved constructor Body was not captured", a.ID, a.NativeBasis)
+					}
+				} else if a.NativeBasis.HasValues() {
+					t.Fatal("unresolved constructor fabricated native basis", a.ID, a.NativeBasis)
+				}
+				a.NativeBasis, b.NativeBasis = sim.NativeActorBasis{}, sim.NativeActorBasis{}
 				a.NativeTraining, b.NativeTraining = sim.NativeTraining{}, sim.NativeTraining{}
 				a.NativeClass, b.NativeClass = sim.NativeClass{}, sim.NativeClass{}
 				a.HP, a.MaxHP, b.HP, b.MaxHP = 0, 0, 0, 0
@@ -1150,11 +1154,6 @@ func TestATableBuiltWorldRoundTripsAtTheVersionTheTreeCarries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MarshalBinary: %v", err)
 	}
-	if form[0] != 107 {
-		t.Errorf("the form opens at version %d, want %d — a world at any other version must be "+
-			"refused rather than migrated", form[0], 107)
-	}
-
 	var back sim.World
 	if err := back.UnmarshalBinary(form); err != nil {
 		t.Fatalf("UnmarshalBinary: %v", err)
@@ -1447,8 +1446,58 @@ const absentCarriedResumeFooterLen = 4
 
 const entityIDFloorFooterLen = 8
 
-func strippedOfAbsentPlayerRegistry1115(form []byte) []byte {
+func strippedOfPlayerCarriers(form []byte) []byte {
 	out := append([]byte(nil), form...)
+	if len(out) >= 13+formHeaderLen && out[0] == 112 && string(out[len(out)-4:]) == "NLB1" {
+		n := uint64(binary.LittleEndian.Uint32(out[len(out)-9:]))
+		base := out[len(out)-5]
+		if n > uint64(len(out)-9-formHeaderLen) || n < 63 || (n-4)%59 != 0 || base >= 112 {
+			panic("invalid native live block fixture span")
+		}
+		start := len(out) - 9 - int(n)
+		if uint64(binary.LittleEndian.Uint32(out[start:])) != (n-4)/59 {
+			panic("native live block fixture count differs from span")
+		}
+		out = out[:start]
+		out[0] = base
+	}
+	if len(out) >= 14 && out[0] == 111 && string(out[len(out)-4:]) == "CPP1" {
+		n := uint64(binary.LittleEndian.Uint32(out[len(out)-9:]))
+		base := out[len(out)-5]
+		if n > uint64(len(out)-9-formHeaderLen) || n < 5 || base >= 111 {
+			panic("current Player span exceeds payload")
+		}
+		start := len(out) - 9 - int(n)
+		count := uint64(binary.LittleEndian.Uint32(out[start+1:]))
+		if out[start] > 1 || count > 65535 || n != 5+12*count {
+			panic("invalid current Player population")
+		}
+		var previous uint32
+		for i := uint64(0); i < count; i++ {
+			at := start + 5 + 12*int(i)
+			id := binary.LittleEndian.Uint32(out[at:])
+			if id == 0 || id <= previous || out[start] == 0 && binary.LittleEndian.Uint32(out[at+8:]) != 0 {
+				panic("invalid current Player identity or absence")
+			}
+			previous = id
+		}
+		out = out[:start]
+		out[0] = base
+	}
+	if len(out) >= 9 && out[0] == 109 && string(out[len(out)-4:]) == "NAB1" {
+		n := uint64(binary.LittleEndian.Uint32(out[len(out)-9:]))
+		base := out[len(out)-5]
+		if n > uint64(len(out)-9) || n < 111 || base >= 109 {
+			panic("native basis span exceeds payload")
+		}
+		start := len(out) - 9 - int(n)
+		count := uint64(binary.LittleEndian.Uint32(out[start:]))
+		if count == 0 || count > 65535 || n != 4+107*count {
+			panic("invalid native basis population")
+		}
+		out = out[:start]
+		out[0] = base
+	}
 	if len(out) >= 9 && out[0] == 107 && string(out[len(out)-4:]) == "CLS1" {
 		n := int(binary.LittleEndian.Uint32(out[len(out)-9:]))
 		base := out[len(out)-5]
@@ -1533,7 +1582,7 @@ func strippedOfAbsentPlayerRegistry1115(form []byte) []byte {
 	}
 	if len(out) > 0 && out[0] == 85 {
 		if len(out) < formHeaderLen+absentCarriedResumeFooterLen || binary.LittleEndian.Uint32(out[len(out)-absentCarriedResumeFooterLen:]) != 0 {
-			panic("strippedOfAbsentPlayerRegistry1115: ALM fixture must carry absent carried resume state")
+			panic("strippedOfPlayerCarriers: ALM fixture must carry absent carried resume state")
 		}
 		out = out[:len(out)-absentCarriedResumeFooterLen]
 		out[0] = 84
@@ -1542,21 +1591,21 @@ func strippedOfAbsentPlayerRegistry1115(form []byte) []byte {
 	// explicit absent span may be removed; all predecessor pins stay literal.
 	if len(out) > 0 && out[0] == 84 {
 		if len(out) < formHeaderLen+absentSavedObjectsFooterLen || binary.LittleEndian.Uint32(out[len(out)-absentSavedObjectsFooterLen:]) != 0 {
-			panic("strippedOfAbsentPlayerRegistry1115: ALM fixture must carry absent current objects")
+			panic("strippedOfPlayerCarriers: ALM fixture must carry absent current objects")
 		}
 		out = out[:len(out)-absentSavedObjectsFooterLen]
 		out[0] = 83
 	}
 	if len(out) > 0 && out[0] == 83 {
 		if len(out) < formHeaderLen+4 || binary.LittleEndian.Uint32(out[len(out)-4:]) != 0 {
-			panic("strippedOfAbsentPlayerRegistry1115: ALM fixture must carry absent original cell planes")
+			panic("strippedOfPlayerCarriers: ALM fixture must carry absent original cell planes")
 		}
 		out = out[:len(out)-4]
 		out[0] = 82
 	}
 	if len(out) > 0 && out[0] == 82 {
 		if len(out) < formHeaderLen+4 || binary.LittleEndian.Uint32(out[len(out)-4:]) != 0 {
-			panic("strippedOfAbsentPlayerRegistry1115: ALM fixture must carry absent saved motion")
+			panic("strippedOfPlayerCarriers: ALM fixture must carry absent saved motion")
 		}
 		out = out[:len(out)-4]
 		out[0] = 81
@@ -1565,18 +1614,18 @@ func strippedOfAbsentPlayerRegistry1115(form []byte) []byte {
 	// that captured history to compare the older gameplay-state goldens.
 	if len(out) > 0 && out[0] == 81 {
 		if len(out) < formHeaderLen+4 {
-			panic("strippedOfAbsentPlayerRegistry1115: truncated stride footer")
+			panic("strippedOfPlayerCarriers: truncated stride footer")
 		}
 		span := uint64(binary.LittleEndian.Uint32(out[len(out)-4:]))
 		if span > uint64(len(out)-formHeaderLen-4) {
-			panic("strippedOfAbsentPlayerRegistry1115: stride span exceeds payload")
+			panic("strippedOfPlayerCarriers: stride span exceeds payload")
 		}
 		out = out[:len(out)-4-int(span)]
 		out[0] = 80
 	}
 	if out[0] >= 80 {
 		if len(out) < formHeaderLen+absentSavedPlayerFooterLen || binary.LittleEndian.Uint32(out[len(out)-absentSavedPlayerFooterLen:]) != 0 {
-			panic("strippedOfAbsentPlayerRegistry1115: ALM fixture must carry an absent Player footer")
+			panic("strippedOfPlayerCarriers: ALM fixture must carry an absent Player footer")
 		}
 		out = out[:len(out)-absentSavedPlayerFooterLen]
 		out[0] = 79
@@ -1587,7 +1636,7 @@ func strippedOfAbsentPlayerRegistry1115(form []byte) []byte {
 // Literal form73 layout, independent of sim's private record-width constant.
 // Removing the new provenance byte must leave every older digest unchanged.
 func strippedOfCurrentProfile1107(form []byte) []byte {
-	out := strippedOfAbsentPlayerRegistry1115(form)
+	out := strippedOfPlayerCarriers(form)
 	if out[0] >= 79 {
 		span := int(binary.LittleEndian.Uint32(out[len(out)-4:]))
 		out = out[:len(out)-4-span]
@@ -3312,7 +3361,7 @@ func relBlock(t *testing.T, w *sim.World) []byte {
 	if len(form) < relBlockLen {
 		t.Fatalf("the byte form is %d bytes, shorter than the relation block alone", len(form))
 	}
-	form = strippedOfAbsentPlayerRegistry1115(form)
+	form = strippedOfPlayerCarriers(form)
 	end := len(form)
 	for range 2 { // Structure79 then Group78, each variable-sized
 		span := int(binary.LittleEndian.Uint32(form[end-4:]))

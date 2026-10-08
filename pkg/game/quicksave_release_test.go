@@ -341,6 +341,7 @@ func quickTownWitness(t *testing.T) {
 	}
 	g.TownScreen().(*townScreen).CloseTip()
 	if got := timedTownCapture(t, g); !reflect.DeepEqual(got, first) {
+		currentValueDiagnostics(t, "town", reflect.ValueOf(first), reflect.ValueOf(got))
 		t.Fatal("town F9 lost current state")
 	}
 	if got, err := os.ReadFile(filepath.Join(dir, "quick-save-1.sav")); err != nil || !bytes.Equal(got, older) {

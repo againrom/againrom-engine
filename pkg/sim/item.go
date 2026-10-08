@@ -55,6 +55,28 @@ type ItemInstance struct {
 	Weight          int16
 	WeightPresent   bool
 	SourceEquipment SourceEquipment
+	NativeRecord    *NativeItemRecord
+}
+
+// NativeItemRecord travels with an unregistered item after its ordinary
+// record is observed. Gameplay fields and child values keep their own owners.
+type NativeItemRecord struct {
+	Class         uint8
+	Token         SavedObjectToken
+	F45, F46, F47 uint8
+	F48           uint16
+}
+
+func cloneNativeItemRecord(v *NativeItemRecord) *NativeItemRecord {
+	if v == nil {
+		return nil
+	}
+	n := *v
+	return &n
+}
+
+func nativeItemRecordEqual(a, b *NativeItemRecord) bool {
+	return a == nil && b == nil || a != nil && b != nil && *a == *b
 }
 
 // PlainItem constructs the form-60 and code-only producer representation.
@@ -68,6 +90,9 @@ func (i ItemInstance) ValidateWeight() error {
 	if i.Code == 0 && (i.SourceEquipment.Class != 0 || i.ObjectID != 0) {
 		return fmt.Errorf("sim: empty item has source equipment or object identity")
 	}
+	if i.NativeRecord != nil && (i.Code == 0 || i.ObjectID != 0 || i.NativeRecord.Class > SourceShield || i.NativeRecord.Token.T1C != 0) {
+		return fmt.Errorf("sim: native Item record has no unregistered owner: code %04x, id %d, class %d, price word %d", i.Code, i.ObjectID, i.NativeRecord.Class, i.NativeRecord.Token.T1C)
+	}
 	return itemWeightFault(i.Code, i.WeightPresent, i.Weight)
 }
 
@@ -75,12 +100,13 @@ func (i ItemInstance) ValidateWeight() error {
 // returned Effects slice.
 func (i ItemInstance) Clone() ItemInstance {
 	i.Effects = append([]ItemEffect(nil), i.Effects...)
+	i.NativeRecord = cloneNativeItemRecord(i.NativeRecord)
 	return i
 }
 
 // Empty reports the fixed-slot sentinel. An empty instance has no residue.
 func (i ItemInstance) Empty() bool {
-	return i.ObjectID == 0 && i.Code == 0 && i.Kind == 0 && i.Price == 0 && len(i.Effects) == 0 && !i.WeightPresent && i.Weight == 0 && i.SourceEquipment == (SourceEquipment{})
+	return i.ObjectID == 0 && i.Code == 0 && i.Kind == 0 && i.Price == 0 && len(i.Effects) == 0 && !i.WeightPresent && i.Weight == 0 && i.SourceEquipment == (SourceEquipment{}) && i.NativeRecord == nil
 }
 
 // HasEnchantment is the single read-only seam for presentation consumers.
@@ -140,7 +166,7 @@ func ItemEqual(a, b ItemInstance) bool {
 // CanMergeItemValues is the current container's scalar retention predicate.
 // Node identity and child lifetime belong to the caller's explicit graph.
 func CanMergeItemValues(a, b ItemInstance) bool {
-	return ItemEqual(a, b) && a.Price == b.Price && a.Kind == b.Kind
+	return ItemEqual(a, b) && a.Price == b.Price && a.Kind == b.Kind && nativeItemRecordEqual(a.NativeRecord, b.NativeRecord)
 }
 
 // JoinForm is incoming written in held's stored form, and whether that
@@ -339,13 +365,14 @@ type ItemStack struct {
 	Weight          int16
 	WeightPresent   bool
 	SourceEquipment SourceEquipment
+	NativeRecord    *NativeItemRecord
 }
 
 // StackItem constructs a container cell without exposing the embedding detail
 // to callers that already have a complete instance.
 func StackItem(item ItemInstance, count uint32) ItemStack {
 	item = item.Clone()
-	return ItemStack{ObjectID: item.ObjectID, Code: item.Code, Kind: item.Kind, Effects: item.Effects, Price: item.Price, Count: count, Weight: item.Weight, WeightPresent: item.WeightPresent, SourceEquipment: item.SourceEquipment}
+	return ItemStack{ObjectID: item.ObjectID, Code: item.Code, Kind: item.Kind, Effects: item.Effects, Price: item.Price, Count: count, Weight: item.Weight, WeightPresent: item.WeightPresent, SourceEquipment: item.SourceEquipment, NativeRecord: item.NativeRecord}
 }
 
 // PlainStack is the compatibility constructor for code-only producers.
@@ -356,19 +383,20 @@ func PlainStack(code uint16, count uint32) ItemStack {
 // Clone returns a deep copy of the stack and its item instance.
 func (s ItemStack) Clone() ItemStack {
 	s.Effects = append([]ItemEffect(nil), s.Effects...)
+	s.NativeRecord = cloneNativeItemRecord(s.NativeRecord)
 	return s
 }
 
 // Instance returns the complete object represented by this cell.
 func (s ItemStack) Instance() ItemInstance {
-	return ItemInstance{ObjectID: s.ObjectID, Code: s.Code, Kind: s.Kind, Effects: append([]ItemEffect(nil), s.Effects...), Price: s.Price, Weight: s.Weight, WeightPresent: s.WeightPresent, SourceEquipment: s.SourceEquipment}
+	return ItemInstance{ObjectID: s.ObjectID, Code: s.Code, Kind: s.Kind, Effects: append([]ItemEffect(nil), s.Effects...), Price: s.Price, Weight: s.Weight, WeightPresent: s.WeightPresent, SourceEquipment: s.SourceEquipment, NativeRecord: cloneNativeItemRecord(s.NativeRecord)}
 }
 
 // StackStateEqual compares the complete persisted cell, including the stored
 // price which ItemEqual deliberately ignores outside Potion stacking.
 func StackStateEqual(a, b ItemStack) bool {
 	return a.ObjectID == b.ObjectID && a.Code == b.Code && a.Kind == b.Kind && a.Price == b.Price &&
-		a.Count == b.Count && a.Weight == b.Weight && a.WeightPresent == b.WeightPresent && a.SourceEquipment == b.SourceEquipment && itemEffectsEqual(a.Effects, b.Effects)
+		a.Count == b.Count && a.Weight == b.Weight && a.WeightPresent == b.WeightPresent && a.SourceEquipment == b.SourceEquipment && itemEffectsEqual(a.Effects, b.Effects) && nativeItemRecordEqual(a.NativeRecord, b.NativeRecord)
 }
 
 func cloneItems(in []ItemInstance) []ItemInstance {
@@ -461,7 +489,7 @@ func equipmentItemsEmpty(items [EquipSlots]ItemInstance) bool {
 }
 
 func itemHasMetadata(item ItemInstance) bool {
-	return item.ObjectID != 0 || item.Kind != 0 || item.Price != 0 || len(item.Effects) != 0 || item.WeightPresent || item.Weight != 0 || item.SourceEquipment != (SourceEquipment{})
+	return item.ObjectID != 0 || item.Kind != 0 || item.Price != 0 || len(item.Effects) != 0 || item.WeightPresent || item.Weight != 0 || item.SourceEquipment != (SourceEquipment{}) || item.NativeRecord != nil
 }
 
 func itemsHaveMetadata(items []ItemInstance) bool {

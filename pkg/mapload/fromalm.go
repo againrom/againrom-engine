@@ -379,6 +379,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 			AttackCharge: b.combat.AttackChargeTime, AttackRelax: b.combat.AttackRelaxTime,
 			Humanoid:    b.humanoid,
 			NativeClass: b.nativeClass,
+			NativeBasis: b.nativeBasis,
 			ToHit:       b.combat.ToHit, Defence: b.combat.Defence, Absorption: b.combat.Absorption,
 			DamageBase: b.combat.DamageBase, DamageSpread: b.combat.DamageSpread,
 			AlwaysHits: b.combat.AlwaysHits,
@@ -473,6 +474,9 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	// handed, which name the same codes in a shape that has not been folded
 	// yet.
 	declareItemWeights(w, t)
+	if err := initializeCurrentPlayers(w, m, t); err != nil {
+		return nil, nil, err
+	}
 	return w, roster, nil
 }
 
@@ -810,6 +814,7 @@ func relationFrom(groups []alm.Group) sim.Relations {
 // story, exactly as the mana pair's is, and never a literal written out
 // here.
 type spawnBlock struct {
+	nativeBasis  sim.NativeActorBasis
 	nativeClass  sim.NativeClass
 	class        int32
 	health       int32
@@ -944,8 +949,10 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 				skill[i] = 30
 			}
 		}
+		nativeBasis := nativeInitialModifier(nativeInitialBase(nil), &worn, t, skill[0], false, true)
 		return spawnBlock{class: int32(u.ClassID), health: def.HealthMax, domain: domainFor(def),
-			speed: def.Speed, sight: sightOf(def.ScanRange), seeInvisible: sightOf(def.SeeInvisible), dying: def.DyingTime,
+			nativeBasis: nativeBasis.WithBody(uint16(def.Body)),
+			speed:       def.Speed, sight: sightOf(def.ScanRange), seeInvisible: sightOf(def.SeeInvisible), dying: def.DyingTime,
 			withdraw: def.Withdraw, wimpy: def.Wimpy,
 			combat: def.Combat(), protection: def.Protection,
 			resistance: data.DamageKindResistance(def.Resistance), tokenSize: uint8(def.TokenSize),
@@ -1007,6 +1014,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		// or missing item collections); the fallback below keeps exactly
 		// this arm's pre-hotfix loadout (the weapon alone) for that case, so
 		// a table too thin to fold armour still starts a person armed.
+		nativeBasis := nativeInitialModifier(nativeInitialBase(&h.Skill), &hworn, t, h.Skill[0], true, h.Profile().Fighter)
 		loadout, lok := ResolveEquipmentLoadout(equipmentFromSlots(itemEquipmentCodes(hworn)), w, false, t)
 		if !lok {
 			loadout = data.Loadout{Weapon: w, Rules: t.rules()}
@@ -1023,6 +1031,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		}
 		_, _, taught := EquippedPoolEffects(hworn)
 		return spawnBlock{class: class, health: der.HealthMax, domain: domainForCode(h.MovementType),
+			nativeBasis: nativeBasis.WithBody(uint16(der.Body)),
 			nativeClass: sim.NativeClass{Present: true, Fighter: h.Profile().Fighter},
 			humanoid:    true,
 			speed:       h.Speed + riderBonus(typeID) + loadout.Mod.Speed, sight: sightOf(h.ScanRange + loadout.Mod.Sight), dying: h.DyingTime,

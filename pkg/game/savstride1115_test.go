@@ -85,7 +85,7 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 						t.Fatalf("replacement command rewrote the accepted crossing: %+v", e)
 					}
 				}
-				before := groupDocumentSnapshot1115(t, f)
+				before := groupDocumentSnapshot(t, f)
 				if err := app.HeadlessKey("escape"); err != nil {
 					t.Fatal(err)
 				}
@@ -101,7 +101,7 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 				fs, fl, fn := agsSaveSeams(fresh, store, OriginalStore{}, nil)
 				freshApp.SetSaveSeams(fs, fl, fn)
 				groundAppLoad(t, freshApp, fl, entries[0].Name)
-				after := groupDocumentSnapshot1115(t, fresh)
+				after := groupDocumentSnapshot(t, fresh)
 				if !bytes.Equal(before.World, after.World) || f.live.world.Hash() != fresh.live.world.Hash() || strideActor1115(t, fresh).Stride != strideEast1115() {
 					t.Fatal("current SAV/fresh App LOAD changed World or stride")
 				}
@@ -161,7 +161,7 @@ func TestSavedStride1115MalformedEnvelopeLeavesFrontEndUntouched(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newGroupOpen1115(t, -1, false)
 			strideStartEast(t, f)
-			before := groupDocumentSnapshot1115(t, f)
+			before := groupDocumentSnapshot(t, f)
 			bad := before
 			bad.World = bytes.Clone(before.World)
 			if len(bad.World) < 54 || beforeAutoHealing1191(t, bad.World)[0] != 95 || binary.LittleEndian.Uint32(beforeStructureUseForm1150(t, bad.World)[len(beforeStructureUseForm1150(t, bad.World))-4:]) != 0 {
@@ -212,7 +212,7 @@ func TestSavedStride1115MalformedEnvelopeLeavesFrontEndUntouched(t *testing.T) {
 			if open, town, err := f.Restore(bad); err == nil || open != nil || town {
 				t.Fatal("Restore accepted malformed stride", open != nil, town, err)
 			}
-			after := groupDocumentSnapshot1115(t, f)
+			after := groupDocumentSnapshot(t, f)
 			if !reflect.DeepEqual(before, after) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
 				t.Fatal("failed stride restore adopted partial FrontEnd state")
 			}
@@ -237,7 +237,7 @@ func TestSavedStride1115MalformedEnvelopeLeavesFrontEndUntouched(t *testing.T) {
 			if app.Screen() != ui.ScreenLoad || app.HeadlessMessage() == "" {
 				t.Fatal("ordinary LOAD did not expose the stride refusal", app.Screen(), app.HeadlessMessage())
 			}
-			after = groupDocumentSnapshot1115(t, f)
+			after = groupDocumentSnapshot(t, f)
 			if !reflect.DeepEqual(before, after) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
 				t.Fatal("ordinary failed stride LOAD changed live state")
 			}

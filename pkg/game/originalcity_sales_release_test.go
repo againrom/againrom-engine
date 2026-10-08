@@ -370,6 +370,9 @@ func requireSameDocumentButKeys(t *testing.T, a, b []byte) {
 		})
 	}
 	if changed := documentFieldChanges(first, second); len(changed) != 0 {
+		left, _ := readCurrentActions(&first)
+		right, _ := readCurrentActions(&second)
+		currentValueDiagnostics(t, "actions", reflect.ValueOf(left), reflect.ValueOf(right))
 		t.Fatalf("town SAVs differ in %v beyond %d renamed keys", changed, len(renamed))
 	}
 }

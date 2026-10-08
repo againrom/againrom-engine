@@ -75,6 +75,26 @@ func TestCurrentSessionHeadEveryOrdinaryByteEditWins(t *testing.T) {
 	}
 }
 
+func TestCurrentSessionHeadClearedOpaqueByteWinsWhileTimerRemainsPresent(t *testing.T) {
+	current := savedSessionHead([48]byte{}, [48]byte{})
+	current[0] = 11
+	retained := current
+	retained[0] = 77
+	w := sessionHeadWorld(t)
+	w.SetRawSessionHead(current)
+	current[0] = 0
+	w.SetRawSessionHead(current)
+	wire := savedSessionHead(w.RawSessionHead(), retained)
+	if wire != current || wire[0] != 0 || binary.LittleEndian.Uint64(wire[16:24]) != 10000000 {
+		t.Fatal("cleared current byte acquired retained authority", wire)
+	}
+	doc := sav.DocumentData{World: &sav.DocumentWorldData{}}
+	doc.World.Session.Raw08 = wire
+	if captureAbsentSessionHead(&doc, w) != nil {
+		t.Fatal("nonzero whole head acquired absence policy")
+	}
+}
+
 func TestCurrentSessionHeadMalformedPolicyIsAtomicAndLegacyIsOrdinary(t *testing.T) {
 	w := sessionHeadWorld(t)
 	head := [48]byte{0: 3, 16: 7, 47: 11}

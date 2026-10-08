@@ -21,15 +21,12 @@ func worldSaveUnsupportedf(format string, args ...any) error {
 	return &worldSaveUnsupportedError{fmt.Sprintf(format, args...)}
 }
 
-// ExportCurrentWorldSave retains the established API name. All save points
-// construct their document through ExportCurrentSave.
+// All save points use ExportCurrentSave.
 func (f *FrontEnd) ExportCurrentWorldSave(s Snapshot, label string) ([]byte, error) {
 	return f.ExportCurrentSave(s, label)
 }
 
-// fresh is Snapshot.NativeMissionTerrain, threaded through to
-// projectCurrentTerrain below; see that function's own doc comment. It also
-// gates the recompute call's Human own-weight, mover and order repairs.
+// fresh selects the scoped native block-plane projection and initial repairs.
 func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav.DocumentData, error) {
 	var table *mapload.Table
 	if len(tables) != 0 {
@@ -54,9 +51,23 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if state.Document == nil {
 		return fail(state.Unavailable)
 	}
+	difficulty, err := campaignDifficulty(int64(s.Difficulty))
+	if err != nil {
+		return sav.DocumentData{}, err
+	}
+	state.Document.Head.Difficulty = uint32(difficulty)
 	var world sim.World
 	if err = world.UnmarshalBinary(s.World); err != nil {
 		return sav.DocumentData{}, err
+	}
+	actions, err := readCurrentActions(state.Document)
+	if err != nil {
+		return sav.DocumentData{}, err
+	}
+	if actions != nil {
+		if err := retireCurrentAreaDocument(&Mission{World: &world, savedDocument: state}, actions.NativeAreas, actions.NativeDeliveries); err != nil {
+			return sav.DocumentData{}, err
+		}
 	}
 	policy := world.CurrentPolicy()
 	policy.Ghost = s.ghost
@@ -71,9 +82,12 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	}
 	// Recompute supported fields from World even when a caller supplies an old
 	// retained Document. Bindings, not equal field values, select each object.
-	state, err = snapshotSavedDocument(&Mission{World: &world, savedDocument: state}, fresh)
+	state, err = snapshotSavedDocument(&Mission{World: &world, savedDocument: state, Start: mapload.Start{ConstructionTable: table}}, fresh)
 	if err != nil {
 		return sav.DocumentData{}, fmt.Errorf("capture current document: %w", err)
+	}
+	if err := projectCurrentPartyActorFields(state, &world, s, table); err != nil {
+		return sav.DocumentData{}, err
 	}
 	if err := retireCurrentActors(state, &world); err != nil {
 		return sav.DocumentData{}, fmt.Errorf("retire current actors: %w", err)
@@ -112,6 +126,9 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 		return sav.DocumentData{}, err
 	}
 	if err := projectDeadActors(state, &world); err != nil {
+		return sav.DocumentData{}, err
+	}
+	if err := projectRemovedNativeBasis(state, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
 	terminalBindings, err := currentTerminalActorBindings(state, &world)

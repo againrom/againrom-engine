@@ -182,6 +182,9 @@ func TestThePlanesAWorldIsBuiltOverAreTheMapsOwn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewTerrainWorld: %v", err)
 	}
+	if err := want.RestoreCurrentPlayers(nil, nil, true); err != nil {
+		t.Fatal(err)
+	}
 	if got != want.Hash() {
 		t.Errorf("the loader builds %#016x and the map's own three planes build %#016x",
 			got, want.Hash())

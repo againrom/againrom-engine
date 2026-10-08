@@ -61,7 +61,7 @@ func group1155Bytes(words []uint16) []byte {
 func groups1155Expected(f *sav.File) (groups1155Source, error) {
 	s := groups1155Source{actors: map[uint16]group1155ActorRaw{}}
 	var err error
-	s.players, err = players1154Expected(f)
+	s.players, err = nativeExpectedPlayers(f)
 	if err != nil {
 		return s, err
 	}

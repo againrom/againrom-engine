@@ -49,7 +49,10 @@ type currentOwnedObject struct {
 	Sack                          *sim.SavedSackObject   `json:",omitempty"`
 	// TokenRow is an unclassed Item's registry row; its record names the
 	// row derived from its code.
-	TokenRow *uint8 `json:",omitempty"`
+	TokenRow                  *uint8    `json:",omitempty"`
+	NativeRecordKnown         bool      `json:",omitempty"`
+	NativeRecordAnchor        *[32]byte `json:",omitempty"`
+	NativeRecordAnchorVersion uint8     `json:",omitempty"`
 }
 
 type currentSpellRange struct {
@@ -59,7 +62,7 @@ type currentSpellRange struct {
 
 func currentItemPolicy(v sim.ItemStack, object uint16) currentOwnedObject {
 	row := currentOwnedObject{ID: v.ObjectID, Object: object, Kind: 1, WeightKnown: v.WeightPresent,
-		EquipmentKnown: v.SourceEquipment.Class != 0, Definition: v.SourceEquipment.Definition, EffectsUnsupported: v.SourceEquipment.EffectsUnsupported}
+		EquipmentKnown: v.SourceEquipment.Class != 0, Definition: v.SourceEquipment.Definition, EffectsUnsupported: v.SourceEquipment.EffectsUnsupported, NativeRecordKnown: v.NativeRecord != nil}
 	if v.SourceEquipment.Class == sim.SourceWeapon {
 		def := v.SourceEquipment.DefinitionRow
 		row.DefinitionRow = &def
@@ -71,6 +74,9 @@ func currentItemPolicy(v sim.ItemStack, object uint16) currentOwnedObject {
 }
 
 func readCurrentItem(doc *sav.DocumentData, row currentOwnedObject, table *mapload.Table) (sim.SavedItemObject, error) {
+	if err := validateNativeItemRecordPolicy(row); err != nil {
+		return sim.SavedItemObject{}, err
+	}
 	if err := validateCurrentItemCount(row); err != nil {
 		return sim.SavedItemObject{}, err
 	}
@@ -78,6 +84,7 @@ func readCurrentItem(doc *sav.DocumentData, row currentOwnedObject, table *maplo
 	if err != nil {
 		return v, err
 	}
+	record := nativeItemRecord(v)
 	if lift := row.CountLift; lift != nil && v.Value.Count == uint32(lift.Wire) {
 		v.Value.Count += lift.Lift
 	}
@@ -104,6 +111,12 @@ func readCurrentItem(doc *sav.DocumentData, row currentOwnedObject, table *maplo
 		}
 	}
 	v.ID, v.Value.ObjectID = row.ID, row.ID
+	if row.ID == 0 {
+		weightEdited := record.Class != 0 && !row.WeightKnown && v.Value.WeightPresent
+		if row.NativeRecordKnown || row.NativeRecordAnchor == nil || *row.NativeRecordAnchor != nativeItemAbsenceAnchor(doc, record, row.NativeRecordAnchorVersion) || weightEdited {
+			v.Value.NativeRecord = &record
+		}
+	}
 	return v, nil
 }
 

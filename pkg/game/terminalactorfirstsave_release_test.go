@@ -30,6 +30,7 @@ func terminalSaveReload(t *testing.T, f *FrontEnd, label string) *FrontEnd {
 		t.Fatalf("%s: terminal rows %+v, want %+v", label, after.CurrentTerminalActors(), before.CurrentTerminalActors())
 	}
 	if after.Hash() != before.Hash() || after.Tick() != before.Tick() {
+		logCurrentCarrierDiff(t, before, after)
 		t.Fatalf("%s: LOAD hash %016x tick %d, saved %016x tick %d", label, after.Hash(), after.Tick(), before.Hash(), before.Tick())
 	}
 	return next

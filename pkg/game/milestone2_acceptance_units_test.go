@@ -59,7 +59,7 @@ func TestMilestone2UnitScalars(t *testing.T) {
 	classes := map[string]int{"Unit": 0, "Human": 0, "Humanoid": 0}
 	var refused []milestone2ResumeRefusal
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
-		want, err := unit1156Expected(mf.f, mf.raw)
+		want, err := unitScalarExpected(mf.f, mf.raw)
 		if err != nil {
 			mismatches++
 			t.Errorf("independent Unit scalar read: %v", err)
@@ -136,7 +136,7 @@ func TestMilestone2UnitScalars(t *testing.T) {
 					mf.rel, counts.rawCapacity, counts.rawOwnWeight, counts.liveCapacity, counts.liveOwnWeight)
 			}
 		}
-		differences, excluded, n := worldExpected.worldDifferences(ms.World, ms.ActorManifest)
+		differences, excluded, n := worldExpected.worldDifferences(ms.World, ms.ActorManifest, ms)
 		if pinnedDrops, pinned := unitHiredInputs[mf.rel]; pinned {
 			hired := map[uint16]string{}
 			for i, member := range ms.Party {

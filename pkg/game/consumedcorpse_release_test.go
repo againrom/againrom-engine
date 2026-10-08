@@ -341,6 +341,9 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 			if len(rows) != 1 || rows[0] != want {
 				t.Fatal("raw source -> cold terminal/identity", rows, want)
 			}
+			if !reflect.DeepEqual(w.RemovedNativeActorBases(), cold.live.world.RemovedNativeActorBases()) {
+				t.Fatal("raw source -> cold removed native basis")
+			}
 			if cold.live.world.Tick() != w.Tick() || !reflect.DeepEqual(w.Actions(), cold.live.world.Actions()) || !reflect.DeepEqual(w.CurrentPolicy(), cold.live.world.CurrentPolicy()) {
 				t.Fatal("cold LOAD changed tick/actions/policy")
 			}

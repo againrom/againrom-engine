@@ -26,6 +26,9 @@ func currentItemAnchorMatches(anchor *[32]byte, value sim.ItemStack, equipment b
 }
 
 func captureCurrentItemAbsence(doc *sav.DocumentData, row *currentOwnedObject) error {
+	if err := captureNativeItemRecordAnchor(doc, row); err != nil {
+		return err
+	}
 	row.WeightAnchor, row.EquipmentAnchor = nil, nil
 	if row.Kind != 1 || row.Object == 0 || row.WeightKnown && row.EquipmentKnown {
 		return nil
@@ -46,6 +49,9 @@ func captureCurrentItemAbsence(doc *sav.DocumentData, row *currentOwnedObject) e
 }
 
 func validateCurrentItemAbsence(row currentOwnedObject) error {
+	if err := validateNativeItemRecordPolicy(row); err != nil {
+		return err
+	}
 	for _, field := range []struct {
 		anchor *[32]byte
 		known  bool

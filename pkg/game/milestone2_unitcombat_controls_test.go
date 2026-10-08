@@ -1,9 +1,11 @@
 package game
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -36,7 +38,7 @@ func unit1158Literal(t *testing.T, identity uint32) ([]byte, unit1158Set, *Snaps
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := unit1158Expected(source, raw)
+	want, err := readUnitCombatExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +70,7 @@ func TestUnit1158DocumentControls(t *testing.T) {
 					}
 					for _, control := range []string{"omit", "duplicate", "short", "long"} {
 						t.Run(fmt.Sprintf("archive%d-%s-%s", r.archive, block.name, control), func(t *testing.T) {
-							bad := unit1156Clone(t, state)
+							bad := cloneSavedDocumentFixture(t, state)
 							fields := bad.Document.Objects[index].Raw
 							for i, field := range fields {
 								if field.Name != block.name {
@@ -94,7 +96,7 @@ func TestUnit1158DocumentControls(t *testing.T) {
 					}
 					for i := range block.width {
 						t.Run(fmt.Sprintf("archive%d-%s-byte%d", r.archive, block.name, i), func(t *testing.T) {
-							bad := unit1156Clone(t, state)
+							bad := cloneSavedDocumentFixture(t, state)
 							for _, field := range bad.Document.Objects[index].Raw {
 								if field.Name == block.name {
 									field.Bytes[i] ^= 0x80
@@ -109,7 +111,7 @@ func TestUnit1158DocumentControls(t *testing.T) {
 			}
 			for _, control := range []string{"missing-document", "unavailable", "class", "extra-Unit-XP", "drop-equal-Unit", "collapse-equal-DTO", "zero-DTO", "out-of-range-DTO"} {
 				t.Run(control, func(t *testing.T) {
-					bad := unit1156Clone(t, state)
+					bad := cloneSavedDocumentFixture(t, state)
 					changed := want
 					changed.origins = map[uint16]uint16{}
 					for archive, index := range want.origins {
@@ -206,7 +208,7 @@ func TestUnit1158LiveControls(t *testing.T) {
 	raw := unit1158AppFixture(t)
 	f := unit1158FixtureFront(t)
 	source, _ := sav.Open(raw)
-	want, err := unit1158Expected(source, raw)
+	want, err := readUnitCombatExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +292,7 @@ func TestUnit1158LiveControls(t *testing.T) {
 	}
 	for _, control := range []string{"missing", "duplicate", "retired", "DTO-is-archive", "Entity-is-DTO"} {
 		t.Run("projection-"+control, func(t *testing.T) {
-			bad := unit1156Clone(t, ms.savedDocument)
+			bad := cloneSavedDocumentFixture(t, ms.savedDocument)
 			switch control {
 			case "missing":
 				bad.Actors = nil
@@ -307,5 +309,146 @@ func TestUnit1158LiveControls(t *testing.T) {
 				t.Fatal("accepted incorrect identity namespace")
 			}
 		})
+	}
+}
+
+func TestNativePartyCombatRawSkillRepairBoundaries(t *testing.T) {
+	for _, test := range []struct {
+		name                 string
+		level, xp, cap, want int32
+		admit                bool
+		class                string
+	}{
+		{"owner tuple", 22, 171859, 100, 55, true, "Human"},
+		{"settled purchase", 22, 7141, 100, 22, true, "Human"},
+		{"threshold equality", 21, 7140, 100, 22, true, "Human"},
+		{"zero XP", 22, 0, 100, 22, true, "Human"},
+		{"negative XP", 22, -1, 100, 22, true, "Human"},
+		{"higher base", 70, 171859, 100, 70, true, "Human"},
+		{"installed lower cap", 22, 171859, 50, 50, true, "Human"},
+		{"non-party", 22, 171859, 100, 22, false, "Human"},
+		{"Unit arithmetic", 22, 171859, 100, 22, true, "Unit"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			rules, err := sim.NewRules(sim.RulesParams{SkillCap: test.cap})
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw := map[string][]byte{"U114": make([]byte, 24), "H1CC": make([]byte, 24), "UA6": {17, 23}}
+			binary.LittleEndian.PutUint16(raw["U114"][2:], 9)
+			binary.LittleEndian.PutUint32(raw["H1CC"], 171859)
+			binary.LittleEndian.PutUint16(raw["U114"][4:], uint16(test.level))
+			binary.LittleEndian.PutUint32(raw["H1CC"][4:], uint32(test.xp))
+			before := bytes.Clone(raw["U114"])
+			want := bytes.Clone(before)
+			binary.LittleEndian.PutUint16(want[4:], uint16(test.want))
+			got := unitNativePartyCombatRaw(raw, &milestoneActorCurrent{NativeParty: test.admit}, test.class, rules)
+			if !bytes.Equal(got["U114"], want) || !bytes.Equal(raw["U114"], before) || !bytes.Equal(got["UA6"], raw["UA6"]) || !bytes.Equal(got["H1CC"], raw["H1CC"]) {
+				t.Fatal("independent native base repair changed unrelated or source bytes", got, raw)
+			}
+		})
+	}
+}
+
+func TestNativePartyCombatLOADRepairKeepsIndependentLossControls(t *testing.T) {
+	settled := [6]int32{1, 55, 1, 1, 1, 1}
+	levels := settled
+	levels[1] = 22
+	xp := [6]int32{0, 171859}
+	front := skillRankLoadFront(t, settled)
+	raw := skillRankLegacySave(t, front, levels, settled, xp, false)
+	raw = nativeActorItemLeafEdit(t, raw, func(input map[string]any) {
+		input["NativeHistoryVersion"] = uint8(0)
+		delete(input, "NativeBasisWires")
+		delete(input, "RemovedNativeBases")
+		delete(input, "HeldNativeBasisWires")
+		actors := input["Actions"].(map[string]any)["Actors"].([]any)
+		for _, value := range actors {
+			row := value.(map[string]any)
+			if current, present := row["Current"].(map[string]any); present {
+				delete(current, "NativeBasis")
+			}
+		}
+		if held, present := input["Held"].([]any); present {
+			for _, value := range held {
+				row := value.(map[string]any)
+				if current, present := row["Current"].(map[string]any); present {
+					delete(current, "NativeBasis")
+				}
+			}
+		}
+	})
+	cold := openCurrentEffectSave(t, front, raw)
+	ms := cold.live.mission.state
+	file, err := sav.Open(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := readUnitCombatExpected(file, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var targets []unitCombatRecord
+	for _, record := range want.records {
+		if record.class == "Human" && record.current != nil && record.current.NativeParty {
+			targets = append(targets, record)
+		}
+	}
+	if len(targets) != 1 {
+		t.Fatal("exact raw native party Human population", len(targets))
+	}
+	target := targets[0]
+	want.records = targets
+	var observed []sim.Entity
+	for _, entity := range ms.World.Entities() {
+		if entity.ID == target.current.ID {
+			observed = append(observed, entity)
+		}
+	}
+	if len(observed) != 1 {
+		t.Fatal("exact native party subject population", len(observed))
+	}
+	if differences, _, n := want.entityDifferences(observed, ms.savedDocument, ms); len(differences) != 0 || n != 1 {
+		t.Fatal("native party LOAD repair raw baseline", n, differences)
+	}
+	for _, name := range []string{"repaired base", "unrelated base", "base mask", "XP"} {
+		t.Run(name, func(t *testing.T) {
+			bad := slices.Clone(observed)
+			switch name {
+			case "repaired base":
+				bad[0].NativeBasis.Base[4] = 22
+			case "unrelated base":
+				bad[0].NativeBasis.Base[0]++
+			case "base mask":
+				bad[0].NativeBasis.BaseKnown ^= 1 << 4
+			case "XP":
+				bad[0].SkillXP[1]++
+			}
+			if differences, _, _ := want.entityDifferences(bad, ms.savedDocument, ms); len(differences) == 0 {
+				t.Fatal("accepted native party combat loss", name)
+			}
+		})
+	}
+	unadmitted := nativeActorItemLeafEdit(t, raw, func(input map[string]any) { delete(input, "Party"); delete(input, "Roster") })
+	unadmittedFile, err := sav.Open(unadmitted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unadmittedWant, err := readUnitCombatExpected(unadmittedFile, unadmitted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var unadmittedTargets []unitCombatRecord
+	for _, record := range unadmittedWant.records {
+		if record.archive == target.archive && record.off == target.off && record.class == target.class {
+			unadmittedTargets = append(unadmittedTargets, record)
+		}
+	}
+	if len(unadmittedTargets) != 1 {
+		t.Fatal("exact unadmitted raw Human population", len(unadmittedTargets))
+	}
+	unadmittedWant.records = unadmittedTargets
+	if differences, _, _ := unadmittedWant.entityDifferences(observed, ms.savedDocument, ms); !strings.Contains(strings.Join(differences, ";"), "native U114 byte4 differs") {
+		t.Fatal("non-party native base was normalized", differences)
 	}
 }

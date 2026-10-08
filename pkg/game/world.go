@@ -4901,12 +4901,14 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			spellBase, spellSpread = spell.DamageMin, spell.DamageMax-spell.DamageMin
 		}
 		nameIndex := int(e.TypeID)
+		nativeClassName := e.SourceBinding.Class == 0 && e.ActorLoad.Source.Class == 0 &&
+			e.NativeBasis.HasValues() && c != nil && mw.actorNames[e.ID] == c.Name
 		ordinary := (e.SourceBinding.ActorClass() == 1 || !sim.InPersistBand(e.TypeID)) &&
 			mw.missionPartyMember(e.ID) == nil
 		if !ordinary && char.UnitNameIndex != 0 {
 			nameIndex = char.UnitNameIndex
 		}
-		if (ordinary || char.Known) && char.Name == "" && mw.actorNames[e.ID] == "" &&
+		if (ordinary || char.Known) && char.Name == "" && (mw.actorNames[e.ID] == "" || nativeClassName) &&
 			nameIndex >= 0 && nameIndex < len(unitNames) && unitNames[nameIndex] != "" {
 			name = unitNames[nameIndex]
 		}

@@ -11,8 +11,9 @@ import (
 // Names remain ordinary UnitState fields. Only native manifest presence,
 // membership, order and the construction marker lack an ordinary owner.
 type currentActorManifest struct {
-	Present bool
-	Actors  []currentManifestActor
+	Present      bool
+	Actors       []currentManifestActor
+	NativeActors []currentManifestActor
 }
 
 type currentManifestActor struct {
@@ -25,22 +26,31 @@ func captureCurrentActorManifest(doc *sav.DocumentData, state *SnapshotSAVDocume
 	if err != nil {
 		return nil, err
 	}
-	policy := &currentActorManifest{Present: manifest != nil}
+	policy := &currentActorManifest{Present: manifest != nil && !manifest.NativeNamesOnly}
 	if manifest == nil {
 		return policy, nil
 	}
 	objects := map[sim.EntityID]uint16{}
+	bindings := map[sim.EntityID]int{}
 	for _, binding := range state.Actors {
 		if !binding.Retired {
 			objects[binding.EntityID] = binding.ObjectIndex
+			bindings[binding.EntityID]++
 		}
+	}
+	if manifest.NativeNamesOnly {
+		policy.NativeActors = []currentManifestActor{}
 	}
 	for _, actor := range manifest.Actors {
 		object := objects[actor.ID]
-		if object == 0 || int(object) > len(doc.Objects) {
+		if bindings[actor.ID] != 1 || object == 0 || int(object) > len(doc.Objects) {
 			return nil, fmt.Errorf("current actor manifest lacks an ordinary binding")
 		}
 		record := &doc.Objects[object-1]
+		entity, live := world.Entity(actor.ID)
+		if !live || !currentActorRecordMatches(world, entity, *record) {
+			return nil, fmt.Errorf("current actor manifest conflicts with its ordinary class")
+		}
 		if record.Class != "Unit" && record.Class != "Human" && record.Class != "Humanoid" {
 			return nil, fmt.Errorf("current actor manifest has a non-actor binding")
 		}
@@ -54,7 +64,12 @@ func captureCurrentActorManifest(doc *sav.DocumentData, state *SnapshotSAVDocume
 		if found != 1 {
 			return nil, fmt.Errorf("current actor manifest has no unique ordinary name")
 		}
-		policy.Actors = append(policy.Actors, currentManifestActor{actor.ID, actor.Constructed})
+		row := currentManifestActor{actor.ID, actor.Constructed}
+		if entity.SourceBinding.Class == 0 {
+			policy.NativeActors = append(policy.NativeActors, row)
+		} else {
+			policy.Actors = append(policy.Actors, row)
+		}
 	}
 	return policy, nil
 }
@@ -64,19 +79,32 @@ func validateCurrentActorManifest(a *currentActionData) error {
 	if p == nil {
 		return nil
 	}
-	if len(p.Actors) > 32767 || !p.Present && p.Actors != nil {
+	if len(p.Actors)+len(p.NativeActors) > 32767 || !p.Present && p.Actors != nil {
 		return fmt.Errorf("current actor manifest presence or population is invalid")
 	}
-	bound := map[sim.EntityID]bool{}
+	bound := map[sim.EntityID]int{}
 	for _, binding := range a.Bindings {
-		if !binding.Structure && !binding.Missing {
-			bound[binding.ID] = true
+		if !binding.Structure && !binding.Missing && binding.Object != 0 {
+			bound[binding.ID]++
 		}
 	}
 	seen := map[sim.EntityID]bool{}
 	for _, actor := range p.Actors {
-		if seen[actor.Entity] || !bound[actor.Entity] || !a.Values[actor.Entity].SourceBound {
+		if seen[actor.Entity] || bound[actor.Entity] != 1 || !a.Values[actor.Entity].SourceBound {
 			return fmt.Errorf("current actor manifest has a repeated or absent source actor")
+		}
+		seen[actor.Entity] = true
+	}
+	native := map[sim.EntityID]bool{}
+	for _, actor := range a.Actions.Actors {
+		if actor.Current != nil && actor.Current.NativeBasis != nil && actor.Current.NativeBasis.HasValues() {
+			native[actor.Entity] = true
+		}
+	}
+	for _, actor := range p.NativeActors {
+		value, found := a.Values[actor.Entity]
+		if seen[actor.Entity] || bound[actor.Entity] != 1 || !found || value.SourceBound || value.SourceClass != 0 || !native[actor.Entity] {
+			return fmt.Errorf("current native actor name lacks an exact native subject")
 		}
 		seen[actor.Entity] = true
 	}
@@ -93,20 +121,27 @@ func restoreCurrentActorManifest(ms *Mission, a *currentActionData, table *maplo
 		return nil
 	}
 	var manifest *SnapshotActorManifest
-	if a.Manifest.Present {
-		manifest = &SnapshotActorManifest{Version: actorManifestVersion}
+	if a.Manifest.Present || a.Manifest.NativeActors != nil {
+		manifest = &SnapshotActorManifest{Version: actorManifestVersion, NativeNamesOnly: !a.Manifest.Present}
 		objects := map[sim.EntityID]uint16{}
+		bindings := map[sim.EntityID]int{}
 		for _, binding := range ms.savedDocument.Actors {
 			if !binding.Retired {
 				objects[binding.EntityID] = binding.ObjectIndex
+				bindings[binding.EntityID]++
 			}
 		}
-		for _, actor := range a.Manifest.Actors {
+		rows := append(append([]currentManifestActor(nil), a.Manifest.Actors...), a.Manifest.NativeActors...)
+		for _, actor := range rows {
 			object := objects[actor.Entity]
-			if object == 0 || int(object) > len(ms.savedDocument.Document.Objects) {
+			if bindings[actor.Entity] != 1 || object == 0 || int(object) > len(ms.savedDocument.Document.Objects) {
 				return fmt.Errorf("current actor manifest lost its ordinary actor")
 			}
 			record := &ms.savedDocument.Document.Objects[object-1]
+			entity, live := ms.World.Entity(actor.Entity)
+			if !live || !currentActorRecordMatches(ms.World, entity, *record) {
+				return fmt.Errorf("current actor manifest lost its ordinary class")
+			}
 			name, found := "", 0
 			for _, text := range record.Texts {
 				if text.Name == "Name" {

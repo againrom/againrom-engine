@@ -25,11 +25,11 @@ func producerSAVLoad(t *testing.T) (*FrontEnd, *ui.App, string, *sav.File) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scalars, err := unit1156Expected(source, raw)
+	scalars, err := unitScalarExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	combat, err := unit1158Expected(source, raw)
+	combat, err := readUnitCombatExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -221,6 +221,17 @@ func assertReleaseJoinedPayload(t *testing.T, ms *Mission, id sim.EntityID, want
 	if aggregate != wantAggregate {
 		t.Fatalf("joined live entity %d aggregate xp = %d, want %d", id, aggregate, wantAggregate)
 	}
+	for slot, item := range want.worn {
+		if item.Empty() {
+			continue
+		}
+		constructed := mapload.SourceConstructedItem(item, ms.Start.ConstructionTable)
+		if constructed.Code != item.Code || constructed.Kind != item.Kind || constructed.Price != item.Price ||
+			!reflect.DeepEqual(constructed.Effects, item.Effects) || !constructed.WeightPresent || constructed.SourceEquipment.Class == 0 {
+			t.Fatalf("joined canonical slot %d constructor = %+v, want scalar fixture %+v with installed operands", slot+1, constructed, item)
+		}
+		want.worn[slot] = constructed
+	}
 	worn, ok := ms.World.EquippedItems(id)
 	if !ok || !reflect.DeepEqual(worn, want.worn) {
 		t.Fatalf("joined live entity %d worn instances = %#v, ok=%v; want %#v", id, worn, ok, want.worn)
@@ -965,6 +976,7 @@ func TestReleaseCampaignJoinRoutesAreImmediateInteractiveAndPersistent(t *testin
 					tc.npc, tc.witnessSlot+1, before[tc.witnessSlot], ok, tc.witnessCode.Name(), tc.witnessPrice)
 			}
 			item := before[tc.witnessSlot].Clone()
+			registryBefore := f.live.world.SavedObjects()
 			f.live.enqueueUnequip(tc.unequip)
 			f.live.tick()
 			afterOff, _ := f.live.world.EquippedItems(joinID)
@@ -982,11 +994,38 @@ func TestReleaseCampaignJoinRoutesAreImmediateInteractiveAndPersistent(t *testin
 			if packIndex < 0 {
 				t.Fatalf("npc%d pack after unequip = %+v, missing %+v", tc.npc, stacks, item)
 			}
+			packed := stacks[packIndex]
+			if item.ObjectID == 0 {
+				if packed.ObjectID == 0 {
+					t.Fatalf("npc%d first unequip did not register its item", tc.npc)
+				}
+				if _, existed := registryBefore.Item(packed.ObjectID); existed {
+					t.Fatalf("npc%d first unequip adopted existing item %d", tc.npc, packed.ObjectID)
+				}
+				item.ObjectID = packed.ObjectID
+			}
+			if packed.Count != 1 || !reflect.DeepEqual(packed.Instance(), item) {
+				t.Fatalf("npc%d unequip changed item operands: %+v, want %+v", tc.npc, packed, item)
+			}
+			registryOff := f.live.world.SavedObjects()
+			packLocation := sim.SavedItemLocation{Owner: sim.SavedObjectOwner{Kind: sim.SavedOwnerActorPack, Entity: joinID}, Index: uint32(packIndex)}
+			row, registered := registryOff.Item(item.ObjectID)
+			if !registered || row.Retired || row.InFlight != 0 || !sim.StackStateEqual(row.Value, packed) ||
+				!reflect.DeepEqual(registryOff.Locations(item.ObjectID), []sim.SavedItemLocation{packLocation}) {
+				t.Fatalf("npc%d unequipped item %d has no exact pack owner at %d", tc.npc, item.ObjectID, packIndex)
+			}
 			f.live.enqueueEquip(packIndex)
 			f.live.tick()
 			afterOn, _ := f.live.world.EquippedItems(joinID)
 			if !reflect.DeepEqual(afterOn[tc.witnessSlot], item) {
 				t.Fatalf("npc%d reversible equip restored %+v, want %+v", tc.npc, afterOn[tc.witnessSlot], item)
+			}
+			registryOn := f.live.world.SavedObjects()
+			wornLocation := sim.SavedItemLocation{Owner: sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: joinID, Slot: uint32(tc.witnessSlot + 1)}}
+			row, registered = registryOn.Item(item.ObjectID)
+			if !registered || row.Retired || row.InFlight != 0 || !sim.StackStateEqual(row.Value, sim.StackItem(item, 1)) ||
+				!reflect.DeepEqual(registryOn.Locations(item.ObjectID), []sim.SavedItemLocation{wornLocation}) {
+				t.Fatalf("npc%d re-equipped item %d has no exact worn owner at slot %d", tc.npc, item.ObjectID, tc.witnessSlot+1)
 			}
 
 			snap, label, err := f.Snapshot(true)

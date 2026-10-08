@@ -21,7 +21,7 @@ import (
 // this witness cannot pass through the partial-document Unavailable arm.
 func composedDocumentFront1115(t *testing.T, generated ...bool) *FrontEnd {
 	t.Helper()
-	f := structureFront1114(t, generated...)
+	f := structureFront(t, generated...)
 	f.Campaign = resolved(saveCampaign(), nil)
 	return f
 }

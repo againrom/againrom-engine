@@ -57,7 +57,7 @@ func completeDocumentTail1115(t *testing.T, f *FrontEnd, b []byte) []byte {
 	return b
 }
 
-func documentSnapshot1115(t *testing.T) (*FrontEnd, Snapshot) {
+func documentSnapshotFixture(t *testing.T) (*FrontEnd, Snapshot) {
 	t.Helper()
 	f := poolFixtureFront(t, 91)
 	f.Campaign = resolved(saveCampaign(), nil)
@@ -81,7 +81,7 @@ func documentSnapshot1115(t *testing.T) (*FrontEnd, Snapshot) {
 }
 
 func TestDocument1115NativeOwnsWholeModelAndCurrentClock(t *testing.T) {
-	f, first := documentSnapshot1115(t)
+	f, first := documentSnapshotFixture(t)
 	baseline, err := sav.EncodeDocumentData(*first.SavedDocument.Document)
 	if err != nil {
 		t.Fatal(err)
@@ -157,7 +157,7 @@ func uncheckedDocumentEnvelope1115(t *testing.T, s Snapshot) []byte {
 }
 
 func TestDocument1115MalformedNativeIsAtomic(t *testing.T) {
-	f, source := documentSnapshot1115(t)
+	f, source := documentSnapshotFixture(t)
 	for name, mutate := range map[string]func(*Snapshot){
 		"version":          func(s *Snapshot) { s.SavedDocument.Version++ },
 		"document version": func(s *Snapshot) { s.SavedDocument.Document.Version++ },

@@ -918,6 +918,7 @@ the shipped tree.
 | `capturePartyWeapon` | `pkg/game/currentpartyweapon.go:15` | read | Retains a starting fallback only for an empty slot whose latch is unraised. |
 | `currentPartyMember.restoreFromState` | `pkg/game/currentpartyread.go:263` | read | Derives the current weapon view from ordinary equipment and restored materialization history. |
 | `MemberWeapon` | `pkg/mapload/currentweapon.go:13` | read | The common current-weapon reader suppresses a previously spent starting fallback. |
+| `projectCurrentPartyActorFields` | `pkg/game/savnativeattributes.go:36` | read | Reads the captured latch when deriving native Body from current worn items and permanent gains. |
 
 **The enumeration is kept true by a test, not by a request to the next reader.**
 `TestWeaponMaterializedHasOneWriter` (`pkg/game/weaponlatch_scan_test.go`) parses package `game`'s

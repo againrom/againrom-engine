@@ -21,7 +21,15 @@ func projectSavedStructures(document *sav.DocumentData, world *sim.World) error 
 	}
 	sources, cells, present := world.SavedStructures()
 	if !present {
-		projectUnregisteredStructureHealth(document, world)
+		if len(world.Structures()) == 0 {
+			return nil
+		}
+		next, err := sav.CloneDocumentData(*document)
+		if err != nil {
+			return err
+		}
+		projectUnregisteredStructureGeometry(&next, world)
+		*document = next
 		return nil
 	}
 	if document.World == nil {
@@ -244,8 +252,8 @@ func savedStructureSetRaw(record *sav.DocumentRecordData, name string, raw []byt
 	return fmt.Errorf("missing structure block %s", name)
 }
 
-// projectUnregisteredStructureHealth writes live health into one Building.
-func projectUnregisteredStructureHealth(document *sav.DocumentData, world *sim.World) {
+// Unregistered structures join only a unique root at the same kind and cell.
+func projectUnregisteredStructureGeometry(document *sav.DocumentData, world *sim.World) {
 	if document.World == nil {
 		return
 	}
@@ -284,7 +292,18 @@ func projectUnregisteredStructureHealth(document *sav.DocumentData, world *sim.W
 		if match == nil {
 			continue
 		}
-		_ = savedStructureSetValue(match, "B42", uint32(structure.Field42))
-		_ = savedStructureSetValue(match, "B44", uint32(structure.MaxHealth))
+		for _, value := range []sav.DocumentValueData{
+			{Name: "B42", Value: uint32(structure.Field42)}, {Name: "B44", Value: uint32(structure.MaxHealth)},
+			{Name: "B60", Value: uint32(structure.Width)}, {Name: "B61", Value: uint32(structure.Height)},
+			{Name: "B64", Value: structure.Blocking}, {Name: "B68", Value: structure.Attach},
+		} {
+			_ = savedStructureSetValue(match, value.Name, value.Value)
+		}
+		for _, raw := range match.Raw {
+			if raw.Name == "B52" && len(raw.Bytes) == 22 {
+				raw.Bytes[14], raw.Bytes[15] = structure.Width, structure.Height
+				binary.LittleEndian.PutUint32(raw.Bytes[18:], structure.Blocking)
+			}
+		}
 	}
 }

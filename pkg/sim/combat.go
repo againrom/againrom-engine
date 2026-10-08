@@ -866,7 +866,15 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 			dmg = 0
 		}
 		if dmg > 0 {
-			if slot := int(a.XPSlot) - 1; slot >= 0 && slot < len(t.Resistance) {
+			if a.XPSlot == 0 {
+				value := uint8(0)
+				if t.ActorLoad.Source.Class != 0 {
+					value = t.ActorLoad.Source.Defence[16]
+				} else if t.NativeBasis.DefenceByteKnown(16) {
+					value = t.NativeBasis.Defence[16]
+				}
+				dmg = resistPhysicalDamage(dmg, value)
+			} else if slot := int(a.XPSlot) - 1; slot >= 0 && slot < len(t.Resistance) {
 				dmg = resistPhysicalDamage(dmg, t.Resistance[slot])
 			}
 		}

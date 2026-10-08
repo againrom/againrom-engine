@@ -11,11 +11,20 @@ import (
 // overlay. ALM is only an authored-script binding and terrain baseline.
 func applyOriginalStructures(ms *Mission, source []sav.Building, present bool,
 	table *mapload.Table, report *OriginalSaveResume, files ...*sav.File) error {
+	return applyOriginalStructuresCurrent(ms, source, present, table, report, nil, files...)
+}
+
+func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present bool,
+	table *mapload.Table, report *OriginalSaveResume, current *currentActionData, files ...*sav.File) error {
 	if !present {
 		return nil
 	}
 	if ms == nil || ms.Map == nil || ms.World == nil {
 		return fmt.Errorf("original structures: mission has no map/world")
+	}
+	subjects, err := currentStructureSubjects(current, ms, source)
+	if err != nil {
+		return err
 	}
 	byMapID := make(map[uint32][]int)
 	for i, object := range ms.Map.Objects {
@@ -30,14 +39,14 @@ func applyOriginalStructures(ms *Mission, source []sav.Building, present bool,
 	byKey := make(map[uint32]sim.StructureID)
 	matched := make(map[int]bool)
 	for i, s := range source {
-		if s.AuthoredID != 0 && seen[s.AuthoredID] {
+		if subjects == nil && s.AuthoredID != 0 && seen[s.AuthoredID] {
 			return fmt.Errorf("original structures: ambiguous authored ID %d", s.AuthoredID)
 		}
 		if s.AuthoredID != 0 {
 			seen[s.AuthoredID] = true
 		}
 		targets := byMapID[s.AuthoredID]
-		if len(targets) > 1 {
+		if subjects == nil && len(targets) > 1 {
 			return fmt.Errorf("original structures: ambiguous map authored ID %d", s.AuthoredID)
 		}
 		id := sim.StructureID(len(ms.Map.Objects) + i)
@@ -47,7 +56,16 @@ func applyOriginalStructures(ms *Mission, source []sav.Building, present bool,
 			Reference: s.Reference, Base52: s.Base52, Kind: s.Kind, Field46: s.Field46,
 			Field48: s.Field48, Blocking: s.Blocking, Tavern9C: s.Tavern9C, Shop70: s.Shop70,
 			OutpostWords: s.OutpostWords, OutpostRecords: s.OutpostRecords}
-		if len(targets) == 1 {
+		if subjects != nil {
+			row := subjects[s.Identity]
+			id, ss.HasAuthored, ss.AuthoredIndex = row.ID, row.HasAuthored, row.AuthoredIndex
+			if row.RuntimeID != nil && row.RuntimeID.Wire == s.RuntimeID {
+				ss.RuntimeID = row.RuntimeID.Value
+			}
+			if row.HasAuthored {
+				matched[int(row.AuthoredIndex)] = true
+			}
+		} else if len(targets) == 1 {
 			id = sim.StructureID(targets[0])
 			ss.HasAuthored, ss.AuthoredIndex = true, uint32(targets[0])
 			matched[targets[0]] = true
@@ -70,6 +88,9 @@ func applyOriginalStructures(ms *Mission, source []sav.Building, present bool,
 			counts.Subclasses++
 		default:
 			return fmt.Errorf("original structures: unsupported archive class %q", s.Class)
+		}
+		if subjects != nil && subjects[s.Identity].Class.Generated() {
+			ss.Class, ss.ArchiveIndex = subjects[s.Identity].Class, 0
 		}
 		ss.ID = id
 		if _, exists := byKey[s.Identity]; exists || s.Identity == 0 {

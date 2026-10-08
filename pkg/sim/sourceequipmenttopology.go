@@ -178,7 +178,7 @@ func (w *World) sourceTraceSpell(t *sourceEquipmentTrace, ticket uint32, value S
 			item := old.Clone()
 			item.SourceEquipment.Spell = value
 			w.equipment[g.actor][slot] = item
-			applyEquipmentItemState(&w.entities[g.actor], old, item, w.spells, w.damageObservation)
+			w.applyEquipmentItemState(&w.entities[g.actor], old, item, w.spells, w.damageObservation)
 			if slot == slotWeapon {
 				syncWeaponItem(&w.entities[g.actor], item)
 			}

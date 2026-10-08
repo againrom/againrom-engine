@@ -20,8 +20,9 @@ type SnapshotActor struct {
 }
 
 type SnapshotActorManifest struct {
-	Version uint32
-	Actors  []SnapshotActor
+	Version         uint32
+	Actors          []SnapshotActor
+	NativeNamesOnly bool
 }
 
 func cloneActorManifest(in *SnapshotActorManifest) *SnapshotActorManifest {
@@ -69,16 +70,23 @@ func validateActorManifest(in *SnapshotActorManifest, world *sim.World) error {
 			}
 			return 0
 		})
-		if !found || entities[i].SourceBinding.Class == 0 {
+		if !found || !manifestActorAvailable(entities[i]) || in.NativeNamesOnly && entities[i].SourceBinding.Class != 0 {
 			return fmt.Errorf("saved actor manifest entity %d has no matching actor class", actor.ID)
 		}
 	}
 	for _, e := range entities {
+		if in.NativeNamesOnly && e.SourceBinding.Class != 0 {
+			return fmt.Errorf("native actor names cannot supply a source manifest")
+		}
 		if e.SourceBinding.Class != 0 && !seen[e.ID] {
 			return fmt.Errorf("saved actor manifest omits entity %d", e.ID)
 		}
 	}
 	return nil
+}
+
+func manifestActorAvailable(e sim.Entity) bool {
+	return e.SourceBinding.Class != 0 || e.ActorLoad.Source.Class == 0 && e.NativeBasis.HasValues()
 }
 
 func restoreActorManifest(ms *Mission, in *SnapshotActorManifest) error {
@@ -113,7 +121,7 @@ func snapshotActorManifest(in *SnapshotActorManifest, world *sim.World) (*Snapsh
 	}
 	live := make(map[sim.EntityID]bool)
 	for _, e := range world.Entities() {
-		live[e.ID] = e.SourceBinding.Class != 0
+		live[e.ID] = manifestActorAvailable(e)
 	}
 	out := cloneActorManifest(in)
 	out.Actors = slices.DeleteFunc(out.Actors, func(actor SnapshotActor) bool { return !live[actor.ID] })

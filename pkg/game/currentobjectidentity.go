@@ -37,6 +37,9 @@ func finalizeCurrentObjectIdentityAbsence(doc *sav.DocumentData) error {
 	}
 	for i := range a.Ownership {
 		row := &a.Ownership[i]
+		if err := captureNativeItemRecordAnchor(doc, row); err != nil {
+			return err
+		}
 		row.IdentityAnchor = nil
 		if row.IdentityPresent == nil || *row.IdentityPresent || row.Object == 0 {
 			continue

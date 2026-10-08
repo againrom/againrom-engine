@@ -12,7 +12,7 @@ import (
 
 // Synthetic actor, modifier and Effect are constructed independently. This
 // fixture supplies a full graph for native validation, not ROM1 evidence.
-func actorEffect1161Fixture(t *testing.T) (*FrontEnd, *Mission) {
+func actorEffectFixture(t *testing.T) (*FrontEnd, *Mission) {
 	t.Helper()
 	f := unit1158FixtureFront(t)
 	doc, err := sav.DecodeDocumentData(unit1158AppFixture(t))
@@ -58,7 +58,7 @@ func actorEffect1161Fixture(t *testing.T) (*FrontEnd, *Mission) {
 }
 
 func TestActorEffects1161NativeDocumentLossControls(t *testing.T) {
-	_, ms := actorEffect1161Fixture(t)
+	_, ms := actorEffectFixture(t)
 	good := ms.savedDocument
 	if err := validateSavedActorEffectsWorld(good, ms.World); err != nil {
 		t.Fatal("positive native baseline", err)
@@ -115,7 +115,7 @@ func TestActorEffects1161NativeDocumentLossControls(t *testing.T) {
 }
 
 func TestActorEffects1161LegacyNativeDoesNotRestartAndNewAttachmentIsProjected(t *testing.T) {
-	_, ms := actorEffect1161Fixture(t)
+	_, ms := actorEffectFixture(t)
 	legacy, _ := cloneSavedDocument(ms.savedDocument)
 	legacy.ActorEffects = nil
 	// Recreate a predecessor's already-expired native world while retaining
@@ -154,7 +154,7 @@ func TestActorEffects1161LegacyNativeDoesNotRestartAndNewAttachmentIsProjected(t
 	if len(freshWorld.ActiveEffects()) != 0 || legacyMission.savedDocument.ActorEffects != nil {
 		t.Fatal("native restore restarted historic timers")
 	}
-	_, ms = actorEffect1161Fixture(t)
+	_, ms = actorEffectFixture(t)
 	sim.Step(ms.World, nil)
 	sim.Step(ms.World, nil)
 	state, err := snapshotSavedDocument(ms)
@@ -182,7 +182,7 @@ func TestActorEffects1161LegacyNativeDoesNotRestartAndNewAttachmentIsProjected(t
 }
 
 func TestActorEffects1161RetirementReindexesAndPreservesIdentity(t *testing.T) {
-	_, ms := actorEffect1161Fixture(t)
+	_, ms := actorEffectFixture(t)
 	before, _ := cloneSavedDocument(ms.savedDocument)
 	removed := before.ActorEffects.Rows[0].ObjectIndex
 	sim.Step(ms.World, nil)

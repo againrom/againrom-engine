@@ -9,7 +9,7 @@ func TestMilestone2ActorRoots(t *testing.T) {
 	var total actor1161Population
 	var refused []milestone2ResumeRefusal
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
-		roots, r, origins, err := actor1161Read(mf.f, mf.raw)
+		roots, r, origins, err := readActorRoots(mf.f, mf.raw)
 		if err != nil {
 			mismatches++
 			t.Error("independent actor roots", err)
@@ -36,7 +36,7 @@ func TestMilestone2ActorRoots(t *testing.T) {
 			mismatches++
 			t.Error("original BEFORE Snapshot: " + diff)
 		}
-		diffs, p := actor1161WorldDifferences(roots, r, origins, ms.savedDocument, ms.World)
+		diffs, p := actor1161WorldDifferences(roots, r, origins, ms.savedDocument, ms.World, ms)
 		for _, diff := range diffs {
 			mismatches++
 			t.Error("initial World: " + diff)

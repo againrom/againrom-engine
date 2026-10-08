@@ -143,6 +143,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 		e.SourceBinding.ClassFlags |= 0x10
 	}
 	e.ActorLoad = sim.ActorLoad{Present: true, ContainerPresent: true, Source: s}
+	e.NativeBasis = sim.NativeActorBasis{}
 	e.HumanMovement = sim.HumanMovement{Present: true, RawSpeed: int16(e.Speed), NativeSpeed: e.Speed, Load: e.Load, Capacity: e.Capacity}
 	if err := e.SourceBinding.Validate(e); err != nil {
 		return e, "", err

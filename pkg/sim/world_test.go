@@ -6,28 +6,20 @@ import (
 	"testing"
 )
 
-// worldMethods pins *World's exported method set. The negative half of that
-// — "no exported call sets a position, the tick, the bounds or the RNG
-// individually" — is the half that goes stale in silence. A hand-kept list
-// of readers stops being complete the moment a method is added; this one is
-// read back off the type, so an addition fails here until whoever made it
-// has said which kind of method it is.
+// worldMethods pins the exported method set by reflection. Every addition must
+// declare whether it reads or mutates deterministic state.
 var worldMethods = []string{"ActiveEffects", "BindSourceDerive", "BookSpellCellRefusal", "BookSpellRefusal", "BoundarySurvivors", "Bounds", "Carried", "CarriedItems", "CarriedStacks", "CastingSpell", "CellEffects", "CellTails", "CompleteSackPickup", "CopyPotionEffects", "DeclareCellTails", "DeclareItemWeights", "DeclareStructures", "DropLanding", "Entities", "Entity", "EntityView", "EquipSourceCarried", "EquipSourceItem", "Equipped", "EquippedItems", "FireWallCount", "FormationMode", "Ghost", "GroupRateTerm", "HasEffectSpell", "HasNativeAreaEffects", "Hash", "HeadlessDamage", "HeadlessHeal", "HeadlessKill", "HeadlessKillPlayer", "HeadlessPlace", "ImportOriginalActorFacings", "ImportOriginalActorPools", "ImportOriginalActorProfiles", "ImportOriginalActorSpellbooks", "ImportOriginalActorStock", "ImportOriginalCellTails", "ImportOriginalDeadActors", "ImportOriginalLivingActors", "ImportOriginalSession", "ImportOriginalStructureHealth", "ImportSavedGroups", "InvisibleTo", "ItemWeights", "MarshalBinary", "MoveCarried", "NextEntityID", "OriginalDeadActors", "Outcome", "Purse", "Relations", "ReplaceGroundSacks", "ReplaceStock", "RestoreActorLoad", "RestoreOneShotPlayerCasts", "RestorePotionEffect", "Route", "Rules", "SackValue", "Sacks", "SavedGroupIssues", "SavedGroups", "Script", "ScriptCasts", "ScriptCounters", "ScriptLatched", "ScriptPassJustRan", "ScriptRegister", "ScorchedCells", "ScrollCasts", "SessionClock", "SetCombat", "SetDerived", "SetHumanMovement", "SetPotionHeadroom", "SetPurse", "SetRules", "RateSpeed", "ScriptTriggerBlocked", "Sight", "Spell", "Spells", "StepRate", "Stock", "Structures", "TakeSack", "Tick", "UnequipSource", "UnmarshalBinary", "UseCarriedPotion", "WeaponSpellDamage", "WithoutStructureAndItemStateSections"}
 
-// worldWriters explicitly excludes state mutations from the reader sweep;
-// arguments alone never classify a method. SetCombat accepts the complete
-// floating-point derivation owned by pkg/data. TakeSack transfers inventory
-// and purse without advancing a tick. Restore/import helpers install validated
-// canonical sections; cell declarations establish construction-time bindings.
-// CompleteSackPickup arms the completion after transfer. Hash, MarshalBinary
-// and the methods that omit sections from a detached encoding remain readers.
+// worldWriters excludes explicit state mutations from the reader sweep.
 var worldWriters = []string{"BindSourceDerive", "CompleteSackPickup", "CopyPotionEffects", "DeclareCellTails", "DeclareItemWeights", "DeclareStructures", "EquipSourceCarried", "EquipSourceItem", "HeadlessDamage", "HeadlessHeal", "HeadlessKill", "HeadlessKillPlayer", "HeadlessPlace", "ImportOriginalActorFacings", "ImportOriginalActorPools", "ImportOriginalActorProfiles", "ImportOriginalActorSpellbooks", "ImportOriginalActorStock", "ImportOriginalCellTails", "ImportOriginalDeadActors", "ImportOriginalLivingActors", "ImportOriginalSession", "ImportOriginalStructureHealth", "ImportSavedGroups", "MoveCarried", "ReplaceGroundSacks", "ReplaceStock", "RestoreActorLoad", "RestoreOneShotPlayerCasts", "RestorePotionEffect", "SetCombat", "SetDerived", "SetHumanMovement", "SetPotionHeadroom", "SetPurse", "SetRules", "TakeSack", "UnequipSource", "UnmarshalBinary", "UseCarriedPotion"}
 
 func init() {
+	worldMethods = append(worldMethods, "PlayerParticipants", "RestorePlayerParticipants", "SetPlayerParticipant", "CurrentPlayers", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
+	worldWriters = append(worldWriters, "RestorePlayerParticipants", "SetPlayerParticipant", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
 	worldMethods = append(worldMethods, "ActorOrderProgress", "CancelSackPickup")
 	worldWriters = append(worldWriters, "CancelSackPickup", "ReleaseUnitShot")
-	worldMethods = append(worldMethods, "RestoreAppliedPotionEffect")
-	worldWriters = append(worldWriters, "RestoreAppliedPotionEffect")
+	worldMethods = append(worldMethods, "RestoreAppliedPotionEffect", "RestoreCarriedPotionEffect")
+	worldWriters = append(worldWriters, "RestoreAppliedPotionEffect", "RestoreCarriedPotionEffect")
 	worldMethods = append(worldMethods, "Actions", "RestoreActions")
 	worldWriters = append(worldWriters, "RestoreActions")
 	worldMethods = append(worldMethods, "CurrentPolicy", "CurrentTerminalActors", "RestoreCurrentContinuation", "ReplaceCurrentObjects", "RestoreCurrentAreas", "RestoreCurrentSpellDeliveries", "RestoreCurrentPlayerSlots", "ImportCurrentTerminalActors", "RestoreCurrentTerminalActors", "RetireUnboundConstructors")
@@ -71,6 +63,7 @@ func init() {
 	worldWriters = append(worldWriters, "ImportOriginalDyingActors")
 	worldMethods = append(worldMethods, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldWriters = append(worldWriters, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
+	worldMethods = append(worldMethods, "StructureOccupancy")
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	// The Diary rules read install-derived rows set once per world.
@@ -97,6 +90,8 @@ func init() {
 	worldMethods = append(worldMethods, "ActorTraversal", "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	worldMethods = append(worldMethods, "SetNativeTraining", "NativeTrainingNeedsProducer", "ROM2ScenarioValue", "ROM2ScenarioState", "SetROM2ScenarioState", "SetNativeClass", "RepairNativeSkillLevels")
 	worldWriters = append(worldWriters, "SetNativeTraining", "SetNativeClass", "SetROM2ScenarioState", "RepairNativeSkillLevels")
+	worldMethods = append(worldMethods, "RestoreNativeActorBases", "RemovedNativeActorBases")
+	worldWriters = append(worldWriters, "RestoreNativeActorBases")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")

@@ -15,7 +15,7 @@ func TestSavedNewGroup1115LateGapIsAtomic(t *testing.T) {
 	if err := front.App("new Group atomic projection").OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
-	before := groupDocumentSnapshot1115(t, front)
+	before := groupDocumentSnapshot(t, front)
 	state, err := cloneSavedDocument(before.SavedDocument)
 	if err != nil {
 		t.Fatal(err)

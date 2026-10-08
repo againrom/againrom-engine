@@ -100,6 +100,7 @@ func TestReleaseNativeActorRegistryCurrentSAV(t *testing.T) {
 	cold := loadLocalLegacySave(t, store, name)
 	for tick := 0; tick < 3; tick++ {
 		if f.live.world.Hash() != cold.live.world.Hash() {
+			logCurrentCarrierDiff(t, f.live.world, cold.live.world)
 			t.Fatalf("spatial registry differs after cold LOAD at tick%d", tick)
 		}
 		f.live.tick()

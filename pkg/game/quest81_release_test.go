@@ -249,6 +249,7 @@ func quest81Paired(t *testing.T, a, b *FrontEnd, ticks int) {
 			equal = right == leftConstructed || left == rightConstructed || leftConstructed == rightConstructed
 		}
 		if !equal {
+			logCurrentCarrierDiff(t, a.live.world, b.live.world)
 			t.Fatalf("cold continuation differs at tick%d: %016x/%016x", a.live.world.Tick(), a.live.world.Hash(), b.live.world.Hash())
 		}
 		if i < ticks {

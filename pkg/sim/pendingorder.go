@@ -121,6 +121,7 @@ func (w *World) takePendingOrders() {
 		}
 		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && !p.RowAdmitted {
 			e.PendingOrder.RowAdmitted = true
+			e.AdmittedBookSpell = p.Spell
 			continue
 		}
 		if p.RowAdmitted && (e.Transit != 0 || w.motionActive(e.ID) || w.stoneCursed(i)) {

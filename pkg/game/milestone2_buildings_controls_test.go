@@ -9,7 +9,7 @@ import (
 )
 
 func TestBuilding1145WitnessDetectsLostState(t *testing.T) {
-	f := structureFront1114(t)
+	f := structureFront(t)
 	raw := structureSave1114(t, 0, false)
 	source, err := sav.Open(raw)
 	if err != nil {

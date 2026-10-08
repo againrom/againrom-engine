@@ -107,6 +107,10 @@ func clonePartyMember(in PartyMember) PartyMember {
 		carry.Items = append([]uint16(nil), in.Carry.Items...)
 		carry.ItemInstances = cloneItemInstances(in.Carry.ItemInstances)
 		carry.EquippedItems = cloneItemEquipment(in.Carry.EquippedItems)
+		if in.Carry.NativeHistory != nil {
+			history := *in.Carry.NativeHistory
+			carry.NativeHistory = &history
+		}
 		if in.Carry.LiveLoad != nil {
 			state := *in.Carry.LiveLoad
 			carry.LiveLoad = &state

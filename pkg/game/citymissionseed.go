@@ -46,15 +46,38 @@ func currentCityMissionObjects(graph *cityObjectTopology, party []mapload.PartyM
 	if world == nil || len(party) != len(ids) {
 		return nil, nil, fmt.Errorf("current city mission has unmatched party identities")
 	}
-	p, err := newCityObjectProjection(graph, party, table)
-	if err != nil {
-		return nil, nil, err
-	}
 	var namespace sav.DocumentData
 	if len(namespaces) != 0 {
 		namespace = namespaces[0]
 	}
-	if err := p.constructSpellRecords(namespace); err != nil {
+	city, err := newCityObjectProjection(graph, party, table)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := city.constructSpellRecords(namespace); err != nil {
+		return nil, nil, err
+	}
+	currentParty := mapload.CloneParty(party)
+	for i := range currentParty {
+		worn, _ := world.EquippedItems(ids[i])
+		equipment := cityMemberEquipment(currentParty[i], table)
+		for slot := range equipment {
+			if equipment[slot].Code != 0 && equipment[slot].Code == worn[slot].Code {
+				equipment[slot].Weight, equipment[slot].WeightPresent = worn[slot].Weight, worn[slot].WeightPresent
+				equipment[slot].SourceEquipment = worn[slot].SourceEquipment
+			}
+			if equipment[slot].SourceEquipment.Class == sim.SourceWeapon {
+				equipment[slot].SourceEquipment.Spell = worn[slot].SourceEquipment.Spell
+			}
+		}
+		if currentParty[i].Carry != nil {
+			currentParty[i].Carry.EquippedItems = equipment
+		} else {
+			currentParty[i].WornItems = equipment
+		}
+	}
+	p, err := newCityObjectProjection(city.graph, currentParty, table)
+	if err != nil {
 		return nil, nil, err
 	}
 	if err := p.followQuestDocumentCollection(party, ids, world); err != nil {
@@ -129,9 +152,14 @@ func currentCityMissionObjects(graph *cityObjectTopology, party []mapload.PartyM
 				row.Token.Identity = token().Identity
 			}
 		}
+		if history := value.NativeRecord; history != nil {
+			row.Token = history.Token
+			row.F45, row.F46, row.F47, row.F48 = history.F45, history.F46, history.F47, history.F48
+			row.Value.NativeRecord = nil
+		}
 		row.Token.T1C = uint32(value.Price)
 		_, hasSource := p.graph.ItemRecords[node.ID]
-		if value.SourceEquipment.Class != 0 || value.SourceEquipment.DefinitionRow != 0 || !hasSource {
+		if value.SourceEquipment.Class != 0 || value.SourceEquipment.DefinitionRow != 0 || !hasSource && value.NativeRecord == nil {
 			row.Token.T0C = value.SourceEquipment.DefinitionRow
 		}
 		if value.Count > 65535 {

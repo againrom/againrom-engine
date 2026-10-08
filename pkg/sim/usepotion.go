@@ -59,6 +59,9 @@ func (w *World) applyPotion(i, index int, item ItemInstance) bool {
 			}
 			e.PotionStats[slot] += amount
 			e.PotionHeadroom[slot] -= amount
+			if slot == 0 && e.NativeBasis.BodyPresent && e.NativeBasis.BodyKnown {
+				e.NativeBasis.Body += uint16(amount)
+			}
 		case 6:
 			e.setCurrentHealth(potionPool(e.HP, e.MaxHP, amount))
 		case 9:
@@ -194,6 +197,24 @@ func (w *World) RestoreAppliedPotionEffect(id EntityID, effect ActiveEffect) boo
 	copy(w.attached[k+1:], w.attached[k:])
 	w.attached[k] = attachedEffect{Target: id, Kind: effect.Kind, Mode: effect.Mode,
 		Magnitude: effect.Magnitude, Remaining: effect.Remaining}
+	return true
+}
+
+// RestoreCarriedPotionEffect restores the new actor's effective delta while
+// retaining the raw history in which this same timed attachment already landed.
+func (w *World) RestoreCarriedPotionEffect(id EntityID, effect ActiveEffect) bool {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 || w.entities[i].ActorLoad.Source.Class != 0 {
+		return false
+	}
+	if _, exists := effectIndex(w.attached, id, 0); exists {
+		return false
+	}
+	basis := w.entities[i].NativeBasis
+	if !w.RestorePotionEffect(id, effect) {
+		return false
+	}
+	w.entities[i].NativeBasis = basis
 	return true
 }
 

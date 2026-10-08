@@ -153,6 +153,7 @@ func projectSavedGroupGraph(state *SnapshotSAVDocument, world *sim.World) error 
 		return err
 	}
 	state.Document, state.Actors, state.GroupBindings = next.Document, next.Actors, next.GroupBindings
+	state.PlayerRoots = next.PlayerRoots
 	state.Objects = next.Objects
 	state.ActorEffects = next.ActorEffects
 	state.WorldEffects = next.WorldEffects

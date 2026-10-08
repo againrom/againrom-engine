@@ -16,19 +16,22 @@ import (
 // owns the six raw dwords, independently of aggregate XP. Only decompression,
 // structural starts and the identity-only archive/DTO permutation come from
 // production. No decoded block, ActorHoldings or imported population is expected.
-type unit1158Record struct {
-	archive uint16
-	class   string
-	off     int
-	raw     map[string][]byte
+type unitCombatRecord struct {
+	archive           uint16
+	class             string
+	off               int
+	identity, runtime uint32
+	position          [4]byte
+	raw               map[string][]byte
 	// These independently read scalar bytes only name the existing non-live
 	// boundary.
-	stage byte
-	hp    int16
+	stage   byte
+	hp      int16
+	current *milestoneActorCurrent
 }
 
 type unit1158Set struct {
-	records []unit1158Record
+	records []unitCombatRecord
 	origins map[uint16]uint16
 }
 
@@ -37,7 +40,7 @@ var unit1158Blocks = [...]struct {
 	width int
 }{{"UA6", 24}, {"UBE", 22}, {"U114", 24}, {"UD4", 64}, {"H1CC", 24}}
 
-func unit1158Expected(f *sav.File, source []byte) (unit1158Set, error) {
+func readUnitCombatExpected(f *sav.File, source []byte) (unit1158Set, error) {
 	locations, err := f.DocumentActorLocations()
 	if err != nil {
 		return unit1158Set{}, err
@@ -46,11 +49,22 @@ func unit1158Expected(f *sav.File, source []byte) (unit1158Set, error) {
 	if err != nil {
 		return unit1158Set{}, err
 	}
-	_, origins, err := sav.DecodeDocumentDataWithOrigins(source)
+	document, origins, err := sav.DecodeDocumentDataWithOrigins(source)
 	if err != nil {
 		return unit1158Set{}, err
 	}
-	return unit1158Read(f.Body, locations, objects, origins)
+	out, err := unit1158Read(f.Body, locations, objects, origins)
+	if err != nil {
+		return out, err
+	}
+	current, err := milestoneActorCurrentInputs(&document)
+	if err != nil {
+		return out, err
+	}
+	for i := range out.records {
+		out.records[i].current = current[out.origins[out.records[i].archive]]
+	}
+	return out, nil
 }
 
 func unit1158Read(body []byte, locations []sav.DocumentActorLocation, objects []sav.DocumentObjectLocation, origins []sav.DocumentObjectOrigin) (unit1158Set, error) {
@@ -89,8 +103,10 @@ func unit1158Read(body []byte, locations []sav.DocumentActorLocation, objects []
 			return out, fmt.Errorf("archive %d truncated/unsupported diagnostic state", loc.ArchiveIndex)
 		}
 		state := body[loc.StateOff+1+n : loc.StateOff+1+n+55]
-		r := unit1158Record{archive: loc.ArchiveIndex, class: loc.Class, off: loc.Off,
+		r := unitCombatRecord{archive: loc.ArchiveIndex, class: loc.Class, off: loc.Off,
+			identity: binary.LittleEndian.Uint32(body[loc.Off+29:]), runtime: binary.LittleEndian.Uint32(body[loc.Off+12:]),
 			raw: map[string][]byte{}, stage: state[46], hp: int16(binary.LittleEndian.Uint16(state[16:]))}
+		copy(r.position[:], body[loc.Off:loc.Off+4])
 		at := loc.RawBlocksOff
 		for _, block := range unit1158Blocks[:4] {
 			r.raw[block.name] = slices.Clone(body[at : at+block.width])
@@ -164,35 +180,38 @@ func (want unit1158Set) documentDifferences(state *SnapshotSAVDocument) []string
 // Non-live records keep their complete Document comparison. Their scalar
 // stage/HP bytes identify the existing admission boundary without using an
 // importer-produced count. Native IDs, DTO indices and archive IDs never mix.
-func (want unit1158Set) entityDifferences(entities []sim.Entity, state *SnapshotSAVDocument) (differences, excluded []string, compared int) {
-	byArchive := map[uint16]sim.Entity{}
-	for _, e := range entities {
-		if e.SourceBinding.Class == 0 {
-			continue
-		}
-		if _, duplicate := byArchive[e.SourceBinding.ArchiveIndex]; duplicate {
-			differences = append(differences, "duplicate live SourceBinding archive")
-		}
-		byArchive[e.SourceBinding.ArchiveIndex] = e
-	}
+func (want unit1158Set) entityDifferences(entities []sim.Entity, state *SnapshotSAVDocument, contexts ...*Mission) (differences, excluded []string, compared int) {
+	subjects, subjectDifferences := newMilestoneActorSubjects(entities, state, contexts...)
+	differences = append(differences, subjectDifferences...)
+	byArchive := subjects.byArchive
 	for _, r := range want.records {
 		prefix := fmt.Sprintf("archive %d %s offset %d", r.archive, r.class, r.off)
-		e, exists := byArchive[r.archive]
+		e, exists, native, issue := subjects.actor(r.archive, r.off, r.class, r.identity, r.runtime, want.origins[r.archive], r.current)
+		if issue != "" {
+			differences = append(differences, prefix+": "+issue)
+		}
 		if !exists {
-			if r.stage == 1 || r.stage == 0 && r.hp > 0 {
+			owned, ownerIssue := subjects.terminal(r.archive, r.off, r.class, r.identity, r.runtime, want.origins[r.archive], r.current, r.stage, r.hp, r.position[:])
+			if ownerIssue != "" {
+				differences = append(differences, prefix+": "+ownerIssue)
+			}
+			if owned {
+				excluded = append(excluded, prefix+": exact current terminal owner; raw tuple and complete Document compared")
+				continue
+			}
+			if native || r.stage == 1 || r.stage == 0 && r.hp > 0 {
 				differences = append(differences, prefix+": expected live source basis unavailable")
 			} else {
 				excluded = append(excluded, fmt.Sprintf("%s: no live combat basis (stage=%d signed HP=%d); complete Document compared", prefix, r.stage, r.hp))
 			}
 			continue
 		}
-		delete(byArchive, r.archive)
 		compared++
 		class := uint8(2)
 		if r.class == "Unit" {
 			class = 1
 		}
-		if savedActorClass(e.SourceBinding.Class) != r.class || !e.ActorLoad.Present || e.ActorLoad.Source.Class != class {
+		if !native && (savedActorClass(e.SourceBinding.Class) != r.class || !e.ActorLoad.Present || e.ActorLoad.Source.Class != class) {
 			differences = append(differences, prefix+": live class/basis presence differs")
 		}
 		bound := 0
@@ -217,7 +236,7 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 		for name, raw := range r.raw {
 			expectedRaw[name] = raw
 		}
-		if xp, present := r.raw["H1CC"]; present && class == 2 {
+		if xp, present := r.raw["H1CC"]; !native && present && class == 2 {
 			attack, base := bytes.Clone(r.raw["UA6"]), bytes.Clone(r.raw["U114"])
 			for i := 1; i <= 5; i++ {
 				stored := int32(int16(binary.LittleEndian.Uint16(attack[2+2*i:])))
@@ -230,9 +249,18 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 			}
 			expectedRaw["UA6"], expectedRaw["U114"] = attack, base
 		}
-		for _, block := range []sav.DocumentRawData{{Name: "UA6", Bytes: s.Attack[:]}, {Name: "UBE", Bytes: s.Defence[:]}, {Name: "U114", Bytes: s.Base[:]}, {Name: "UD4", Bytes: s.Modifier[:]}} {
-			if !bytes.Equal(block.Bytes, expectedRaw[block.Name]) {
-				differences = append(differences, prefix+": live source "+block.Name+" bytes differ")
+		if native {
+			rules := sim.Rules{}
+			if subjects.mission != nil && subjects.mission.World != nil {
+				rules = subjects.mission.World.Rules()
+			}
+			expectedRaw = unitNativePartyCombatRaw(expectedRaw, r.current, r.class, rules)
+			differences = append(differences, milestoneNativeCombatDifferences(prefix, e, r.current, expectedRaw)...)
+		} else {
+			for _, block := range []sav.DocumentRawData{{Name: "UA6", Bytes: s.Attack[:]}, {Name: "UBE", Bytes: s.Defence[:]}, {Name: "U114", Bytes: s.Base[:]}, {Name: "UD4", Bytes: s.Modifier[:]}} {
+				if !bytes.Equal(block.Bytes, expectedRaw[block.Name]) {
+					differences = append(differences, prefix+": live source "+block.Name+" bytes differ")
+				}
 			}
 		}
 		check := func(name string, got, expected int32) {
@@ -248,7 +276,7 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 		// original's values and is compared as bytes above.
 		lifted := [6]int32{}
 		toHitLift, damageLift := int32(0), int32(0)
-		if class == 2 {
+		if !native && class == 2 {
 			for i := 1; i <= 5; i++ {
 				stored := word(a, 2+2*i)
 				if stored != 100 {
@@ -266,7 +294,9 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 			check(fmt.Sprintf("Skill[%d]", i), e.Skill[i], word(a, 2+2*i)+lifted[i])
 			if xp, present := r.raw["H1CC"]; present {
 				expected := int32(binary.LittleEndian.Uint32(xp[4*i:]))
-				check(fmt.Sprintf("basis.SkillXP[%d]", i), int32(s.SkillXP[i]), expected)
+				if !native {
+					check(fmt.Sprintf("basis.SkillXP[%d]", i), int32(s.SkillXP[i]), expected)
+				}
 				check(fmt.Sprintf("entity.SkillXP[%d]", i), e.SkillXP[i], expected)
 			}
 		}
@@ -296,8 +326,41 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 			check(fmt.Sprintf("Resistance[%d]", i), int32(e.Resistance[i]), int32(d[17+i]))
 		}
 	}
+	if n := subjects.unexpectedNative(); n != 0 {
+		differences = append(differences, fmt.Sprintf("unexpected native actor subject population%d", n))
+	}
 	for archive := range byArchive {
 		differences = append(differences, fmt.Sprintf("live archive %d absent from raw Unit population", archive))
 	}
 	return
+}
+
+func unitNativePartyCombatRaw(raw map[string][]byte, current *milestoneActorCurrent, class string, rules sim.Rules) map[string][]byte {
+	if current == nil || !current.NativeParty || current.SourceBound || current.SourceClass != 0 || class == "Unit" || len(raw["U114"]) != 24 || len(raw["H1CC"]) != 24 {
+		return raw
+	}
+	out := make(map[string][]byte, len(raw))
+	for name, value := range raw {
+		out[name] = value
+	}
+	base := bytes.Clone(raw["U114"])
+	for slot := 1; slot <= 5; slot++ {
+		xp := int32(binary.LittleEndian.Uint32(raw["H1CC"][4*slot:]))
+		level := int32(int16(binary.LittleEndian.Uint16(base[2+2*slot:])))
+		if xp <= 0 || level > 0 && xp == rules.SkillXP(level)+1 {
+			continue
+		}
+		covered := rules.SkillCap()
+		for rank := int32(0); rank <= rules.SkillCap(); rank++ {
+			if rules.SkillXP(rank) >= xp {
+				covered = rank
+				break
+			}
+		}
+		if covered > level {
+			binary.LittleEndian.PutUint16(base[2+2*slot:], uint16(covered))
+		}
+	}
+	out["U114"] = base
+	return out
 }

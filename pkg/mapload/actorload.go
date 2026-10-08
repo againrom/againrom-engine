@@ -74,6 +74,7 @@ func UpdatePartyLoadOrdered(before PartyMember, p *PartyMember, t *Table, refres
 }
 
 func updatePartyLoad(before PartyMember, p *PartyMember, t *Table, refresh, derive, reconcile bool) error {
+	updateNativePartyHistory(before, p, t, derive)
 	if before.Carry == nil || before.Carry.LiveLoad == nil || p.Carry == nil {
 		return nil
 	}
@@ -186,6 +187,14 @@ func ValidatePartyLoad(p PartyMember) error {
 		return nil
 	}
 	c := p.Carry
+	if c.NativeHistory != nil {
+		if err := c.NativeHistory.Basis.Validate(); err != nil {
+			return err
+		}
+		if !c.NativeHistory.Class.Present && c.NativeHistory.Class.Fighter || c.LiveLoad != nil && c.LiveLoad.Inventory.Source.Class != 0 {
+			return fmt.Errorf("party: conflicting native history")
+		}
+	}
 	if c.LiveLoad == nil {
 		if c.OrderedStacks == nil {
 			return nil

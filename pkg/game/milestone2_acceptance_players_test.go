@@ -12,7 +12,7 @@ func TestMilestone2Players(t *testing.T) {
 		if !mf.present {
 			return
 		}
-		want, err := players1154Expected(mf.f)
+		want, err := nativeExpectedPlayers(mf.f)
 		if err != nil {
 			unreadable = append(unreadable, milestone2ResumeRefusal{mf.rel, err})
 			return

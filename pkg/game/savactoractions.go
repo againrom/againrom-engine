@@ -234,6 +234,9 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 				raw = sim.ProjectCastOrderOperands(raw, target, spellKey, p.X, p.Y, reach, p.Kind == sim.PendingCellCast)
 				copy(order, raw[:])
 				if p.RowAdmitted {
+					if spellKey != 0 {
+						savedObjectSetValue(r, "U44", spellKey)
+					}
 					order[8], order[9] = 8, 2
 					if p.Kind == sim.PendingCellCast {
 						order[8] = 9

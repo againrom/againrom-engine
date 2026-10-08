@@ -107,10 +107,23 @@ func (w *World) ImportSavedObjects(registry *SavedObjects, bindings []SavedSackB
 			}
 			expected := StackItem(*value, b.Value.Count)
 			expected.ObjectID = b.ID
+			if history := expected.NativeRecord; history != nil {
+				token := row.Token
+				token.T1C = 0
+				historyToken := history.Token
+				if expected.SourceEquipment.Class != 0 || expected.SourceEquipment.DefinitionRow != 0 {
+					historyToken.T0C = expected.SourceEquipment.DefinitionRow
+				}
+				if historyToken != token || history.F45 != row.F45 || history.F46 != row.F46 || history.F47 != row.F47 || history.F48 != row.F48 {
+					return fmt.Errorf("sim: saved item binding loses current native record")
+				}
+				expected.NativeRecord = nil
+			}
 			if !StackStateEqual(expected, b.Value) {
 				return fmt.Errorf("sim: explicit saved item value differs")
 			}
 			value.ObjectID = b.ID
+			value.NativeRecord = nil
 			return nil
 		}
 		switch b.Owner.Kind {
@@ -127,7 +140,7 @@ func (w *World) ImportSavedObjects(registry *SavedObjects, bindings []SavedSackB
 			if err := bind(&value); err != nil {
 				return err
 			}
-			st.ObjectID = b.ID
+			*st = StackItem(value, st.Count)
 		case SavedOwnerActorWorn:
 			ei := indexOfEntity(n.entities, b.Owner.Entity)
 			if ei < 0 || b.Owner.Slot == 0 || b.Owner.Slot > EquipSlots || b.Index != 0 {

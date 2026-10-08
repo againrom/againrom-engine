@@ -61,7 +61,7 @@ func TestPlayerPurses1115HostileEnvelopeKeepsActiveSession(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			front, before := documentSnapshot1115(t)
+			front, before := documentSnapshotFixture(t)
 			if before.SavedDocument.PlayerPurses == nil || len(before.SavedDocument.PlayerPurses.Players) != 2 || before.SavedDocument.PlayerPurses.Players[0].Unavailable != "" {
 				t.Fatal("literal fixture lacks its two distinct Player purses")
 			}
@@ -133,7 +133,7 @@ func flipPurseMoney1115(t *testing.T, snapshot *Snapshot, mask uint32) {
 // Failure after staged SetPurse must not leak a partially installed purse.
 // The unrelated motion contradiction deliberately fails final validation.
 func TestPlayerPurses1115LateImportFailureIsAtomic(t *testing.T) {
-	front, before := documentSnapshot1115(t)
+	front, before := documentSnapshotFixture(t)
 	bad := before
 	var err error
 	bad.SavedDocument, err = cloneSavedDocument(before.SavedDocument)
@@ -178,11 +178,11 @@ func TestPlayerPurses1115ExactOwnersSurviveGameplayGraphReindex(t *testing.T) {
 	if err := app.OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
-	before := groupDocumentSnapshot1115(t, f)
+	before := groupDocumentSnapshot(t, f)
 	for range 20 {
 		f.live.tick()
 	}
-	after := groupDocumentSnapshot1115(t, f)
+	after := groupDocumentSnapshot(t, f)
 	if !f.live.world.ScriptLatched(0) || newGroupActors1115(t, f.live.world)[newGroupA].Owner != 2 {
 		t.Fatal("ordinary GiveUnit did not execute")
 	}
@@ -206,7 +206,7 @@ func TestPlayerPurses1115ExactOwnersSurviveGameplayGraphReindex(t *testing.T) {
 	save, list, load = agsSaveSeams(fresh, store, OriginalStore{}, nil)
 	freshApp.SetSaveSeams(save, list, load)
 	groundAppLoad(t, freshApp, list, name)
-	check(fresh, groupDocumentSnapshot1115(t, fresh))
+	check(fresh, groupDocumentSnapshot(t, fresh))
 	for range 20 {
 		f.live.tick()
 		fresh.live.tick()

@@ -170,7 +170,7 @@ func TestCurrentActorPopulationIncludesBoundLateRoots(t *testing.T) {
 }
 
 func TestCurrentAttachmentOnlyRepairsExactObsoleteMarker(t *testing.T) {
-	_, ms := actorEffect1161Fixture(t)
+	_, ms := actorEffectFixture(t)
 	row := ms.savedDocument.ActorEffects.Rows[0]
 	marker := fmt.Sprintf("current world SAV unavailable: actor %d effect %d caster persistence is not established; preserve this state in .ags", row.Entity, row.Spell)
 	current := worldSaveUnsupportedf("actor %d effect %d caster persistence is not established", row.Entity, row.Spell).Error()

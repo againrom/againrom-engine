@@ -241,7 +241,7 @@ func crossingCheck1115(t *testing.T, f *FrontEnd, tick int, replaced bool) Snaps
 		t.Fatal("loaded crossing actor absent from draw seam")
 	}
 	hash := f.live.world.Hash()
-	snapshot := groupDocumentSnapshot1115(t, f)
+	snapshot := groupDocumentSnapshot(t, f)
 	if hash != f.live.world.Hash() {
 		t.Fatal("SAVE mutated live spatial state")
 	}
@@ -456,10 +456,10 @@ func TestSavedCrossing1115EmptyOldCellKeepsLifecycleIssueAcrossNativeLoad(t *tes
 		t.Fatal("empty-old-cell literal did not enter the active subset", e, motion)
 	}
 	f.live.tick()
-	before := groupDocumentSnapshot1115(t, f)
+	before := groupDocumentSnapshot(t, f)
 	name := crossingMenuSave(t, app, store)
 	fresh := crossingNativeDoor(t, store, name)
-	after := groupDocumentSnapshot1115(t, fresh)
+	after := groupDocumentSnapshot(t, fresh)
 	if !bytes.Equal(before.World, after.World) || f.live.world.Hash() != fresh.live.world.Hash() {
 		t.Fatal("lifecycle-issue native checkpoint changed current state")
 	}
@@ -557,7 +557,7 @@ func TestSavedCrossing1115DocumentDisagreementRefusedBeforeAdoption(t *testing.T
 			if open, town, err := f.Restore(decoded); err == nil || open != nil || town {
 				t.Fatal("Restore adopted disagreeing saved crossing", open != nil, town, err)
 			}
-			if !reflect.DeepEqual(before, groupDocumentSnapshot1115(t, f)) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
+			if !reflect.DeepEqual(before, groupDocumentSnapshot(t, f)) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
 				t.Fatal("refused DTO changed FrontEnd state")
 			}
 			store := SaveStore{Dir: t.TempDir()}
@@ -580,7 +580,7 @@ func TestSavedCrossing1115DocumentDisagreementRefusedBeforeAdoption(t *testing.T
 			if app.Screen() != ui.ScreenLoad || app.HeadlessMessage() == "" {
 				t.Fatal("ordinary LOAD did not expose DTO refusal", app.Screen(), app.HeadlessMessage())
 			}
-			if !reflect.DeepEqual(before, groupDocumentSnapshot1115(t, f)) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
+			if !reflect.DeepEqual(before, groupDocumentSnapshot(t, f)) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
 				t.Fatal("ordinary refused DTO LOAD adopted partial state")
 			}
 		})

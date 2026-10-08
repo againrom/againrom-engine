@@ -23,6 +23,7 @@ type currentPartyState struct {
 	Potion             *sim.ActiveEffect
 	PotionStats        [4]int32
 	Native             bool
+	NativeHistory      *mapload.NativeCarryHistory
 }
 
 func bindCurrentPartyRecords(a *currentActionData, doc *sav.DocumentData) error {
@@ -164,6 +165,7 @@ func (p currentPartyMember) restoreFromCurrent(w *sim.World, t *mapload.Table) (
 		state = &currentPartyState{Class: e.Class, SuppressCorpseLoot: e.SuppressCorpseLoot,
 			KnownSpells: e.KnownSpells, Book: e.Book, Equipment: equipment, Items: items, Stacks: stacks,
 			SkillXP: e.SkillXP, Load: e.CurrentActorLoad(), PotionStats: e.PotionStats, Native: e.ActorLoad.Source.Class != 2,
+			NativeHistory: mapload.CaptureNativeCarryHistory(e),
 			Saved: &mapload.Saved{Cell: mapload.Cell{X: e.X, Y: e.Y}, MapUnitID: e.MapUnitID,
 				HP: e.HP, MaxHP: e.MaxHP, Mana: e.Mana, MaxMana: e.MaxMana,
 				HealthRegenPeriod: e.HealthRegenPeriod, ManaRegenPeriod: e.ManaRegenPeriod}}
@@ -297,7 +299,7 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 	out.Weapon = canonicalMageWeapon(out.Weapon, out.Mage, t)
 	if out.Carry != nil {
 		out.Carry = &mapload.Carry{SkillXP: state.SkillXP, Items: out.Carried, ItemInstances: items,
-			Equipped: out.Worn, EquippedItems: equipment, OrderedStacks: stacks, LiveLoad: state.Load}
+			Equipped: out.Worn, EquippedItems: equipment, OrderedStacks: stacks, LiveLoad: state.Load, NativeHistory: state.NativeHistory}
 	}
 	if out.Saved != nil {
 		out.Saved = state.Saved
@@ -389,7 +391,7 @@ func restoreCurrentPartyMembers(ms *Mission, a *currentActionData, t *mapload.Ta
 			if changed || !p.Base.LegacyTraining {
 				training = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
 			}
-			ms.World.SetNativeTraining(p.Entity, training)
+			ms.World.SetNativeTraining(p.Entity, training, repaired)
 			if changed {
 				items, _ := ms.World.EquippedItems(p.Entity)
 				bonus := mapload.EquippedSkillBonus(items, member.Profile.Fighter)
@@ -402,6 +404,11 @@ func restoreCurrentPartyMembers(ms *Mission, a *currentActionData, t *mapload.Ta
 				if !ms.World.RepairNativeSkillLevels(p.Entity, levels) {
 					return fmt.Errorf("cannot restore repaired party skills")
 				}
+				if member.Carry != nil && member.Carry.NativeHistory != nil {
+					if current, ok := ms.World.Entity(p.Entity); ok {
+						member.Carry.NativeHistory.Basis = current.NativeBasis
+					}
+				}
 			}
 			if p.Base == nil {
 				continue
@@ -411,6 +418,9 @@ func restoreCurrentPartyMembers(ms *Mission, a *currentActionData, t *mapload.Ta
 				class = sim.NativeClass{Present: true, Fighter: member.Profile.Fighter}
 			}
 			ms.World.SetNativeClass(p.Entity, class)
+			if member.Carry != nil && member.Carry.NativeHistory != nil {
+				member.Carry.NativeHistory.Class = class
+			}
 		}
 	}
 	return nil

@@ -75,7 +75,9 @@ type ActorContinuation struct {
 	Current                                                     *ActorCurrentContinuation
 }
 type ActorCurrentContinuation struct {
-	Class             *int32 `json:",omitempty"`
+	Class             *int32            `json:",omitempty"`
+	NativeBasis       *NativeActorBasis `json:",omitempty"`
+	AdmittedBookSpell uint16            `json:",omitempty"`
 	RotationSpeed     int32
 	WeaponSpell       uint16
 	WeaponSpellLevel  int32
@@ -174,8 +176,12 @@ func (w *World) Actions() ActionContinuations {
 			PatrolTailX: e.PatrolTailX, PatrolTailY: e.PatrolTailY, PatrolLeg: e.PatrolLeg,
 			PostX: e.PostX, PostY: e.PostY, EscortTarget: e.EscortTarget,
 			HasEscortTarget: e.HasEscortTarget, EscortRange: e.EscortRange, CommandGroup: e.CommandGroup, Order: order, ProfileBasis: &basis,
-			Current: &ActorCurrentContinuation{Class: &class, RotationSpeed: e.RotationSpeed, WeaponSpell: e.WeaponSpell, WeaponSpellLevel: e.WeaponSpellLevel, WeaponSpellSource: e.WeaponSpellSource, SpellFX: e.SpellFX, SpellFXSpell: e.SpellFXSpell},
+			Current: &ActorCurrentContinuation{Class: &class, AdmittedBookSpell: e.AdmittedBookSpell, RotationSpeed: e.RotationSpeed, WeaponSpell: e.WeaponSpell, WeaponSpellLevel: e.WeaponSpellLevel, WeaponSpellSource: e.WeaponSpellSource, SpellFX: e.SpellFX, SpellFXSpell: e.SpellFXSpell},
 		})
+		if e.NativeBasis.HasValues() {
+			native := w.nativeBasisNow(e)
+			a.Actors[len(a.Actors)-1].Current.NativeBasis = &native
+		}
 	}
 	a.SessionVersion = 2
 	for _, c := range w.bookCasts {
@@ -382,6 +388,20 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		}
 		if v.Current != nil {
 			c := v.Current
+			e.NativeBasis = NativeActorBasis{}
+			if c.NativeBasis != nil {
+				if e.ActorLoad.Source.Class != 0 || !c.NativeBasis.HasValues() {
+					return fmt.Errorf("sim: invalid current native actor basis owner")
+				}
+				if err := c.NativeBasis.Validate(); err != nil {
+					return err
+				}
+				e.NativeBasis = *c.NativeBasis
+			}
+			if c.AdmittedBookSpell > 28 {
+				return fmt.Errorf("sim: invalid admitted book selection")
+			}
+			e.AdmittedBookSpell = c.AdmittedBookSpell
 			if c.Class != nil {
 				e.Class = *c.Class
 			}

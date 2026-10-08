@@ -145,6 +145,9 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 
 	before := level
 	a.SkillXP[slot] += int32(gain)
+	if a.NativeBasis.ScalarIsKnown(ScalarU130) {
+		a.NativeBasis.Scalars[ScalarU130] += uint32(gain)
+	}
 	if a.SkillXP[slot] <= w.rules.SkillXP(before) {
 		return false
 	}
@@ -152,6 +155,11 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 		a.NativeTraining = NativeTraining{Present: true, Levels: a.TrainedSkills(w.nativeSkillBonuses(ai))}
 	}
 	a.NativeTraining.Levels[slot] = before + 1
+	if slot > 0 && a.NativeBasis.BasePresent {
+		at, level := 2+2*slot, uint16(before+1)
+		a.NativeBasis.Base[at], a.NativeBasis.Base[at+1] = byte(level), byte(level>>8)
+		a.NativeBasis.BaseKnown |= uint32(3) << at
+	}
 	a.Skill[slot] = w.rules.EffectiveSkill(before+1, w.wornSkillBonus(ai, slot))
 	RefreshBook(w.rules, a, w.spells)
 	w.refreshSavedBookRoots(ai)

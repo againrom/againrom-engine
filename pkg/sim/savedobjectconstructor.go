@@ -28,6 +28,12 @@ func ConstructSavedItem(value ItemStack, mint func() (SavedObjectID, SavedObject
 	value = value.Clone()
 	value.ObjectID = id
 	out = SavedItemObject{ID: id, Origin: SavedObjectOrigin{Kind: SavedObjectGenerated}, InFlight: 1, Value: value, Token: token}
+	if history := value.NativeRecord; history != nil {
+		out.Token = history.Token
+		out.Token.T0C, out.Token.T1C = token.T0C, token.T1C
+		out.F45, out.F46, out.F47, out.F48 = history.F45, history.F46, history.F47, history.F48
+		out.Value.NativeRecord = nil
+	}
 	var effects []SavedEffectObject
 	for _, effect := range value.Effects {
 		childID, childToken, err := mint()

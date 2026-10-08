@@ -87,6 +87,7 @@ func TestReleaseTerminalLootGroundCurrentSAV(t *testing.T) {
 	cold := loadLocalLegacySave(t, store, name)
 	for tick := 0; tick < 5; tick++ {
 		if cold.live.world.Hash() != f.live.world.Hash() {
+			logCurrentCarrierDiff(t, f.live.world, cold.live.world)
 			t.Fatalf("cold SAV tick %d differs", tick)
 		}
 		current := groundAt(cold.live.world.Sacks(), loot.X, loot.Y)

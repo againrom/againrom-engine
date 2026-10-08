@@ -60,6 +60,12 @@ func projectSavedActorValues(document *sav.DocumentData, bindings []SnapshotSAVA
 		if err := e.SourceBinding.Validate(e); err != nil {
 			return fmt.Errorf("saved SAV actor %d: %w", e.ID, err)
 		}
+		if err := e.NativeBasis.Validate(); err != nil {
+			return err
+		}
+		if e.NativeBasis.HasValues() && e.ActorLoad.Source.Class != 0 {
+			return fmt.Errorf("saved native actor basis has a source-backed owner")
+		}
 		if err := savedActorValueDomain(e); err != nil {
 			return err
 		}
@@ -80,10 +86,17 @@ func projectSavedActorValues(document *sav.DocumentData, bindings []SnapshotSAVA
 					return err
 				}
 				for j, v := range bonus {
-					binary.LittleEndian.PutUint16(block[20+2*j:], uint16(v))
+					at := 20 + 2*j
+					word := uint16(v)
+					if !e.NativeBasis.ModifierByteKnown(at) {
+						block[at] = byte(word)
+					}
+					if !e.NativeBasis.ModifierByteKnown(at + 1) {
+						block[at+1] = byte(word >> 8)
+					}
 				}
 			}
-			if err := projectSavedModifierWords(document, &next, modifierEffects[e.ID]); err != nil {
+			if err := projectNativeModifierWords(document, &next, modifierEffects[e.ID], e.NativeBasis, &record); err != nil {
 				return fmt.Errorf("saved SAV actor %d: %w", e.ID, err)
 			}
 		}
@@ -183,13 +196,25 @@ func currentModifierEffectDeltas(world *sim.World) map[sim.EntityID]map[sim.Effe
 // Effects of that kind; a zero word beside such Effects is an older save that
 // never folded them.
 func projectSavedModifierWords(document *sav.DocumentData, record *sav.DocumentRecordData, current map[sim.EffectKind]int32) error {
+	return projectNativeModifierWords(document, record, current, sim.NativeActorBasis{}, record)
+}
+
+func projectNativeModifierWords(document *sav.DocumentData, record *sav.DocumentRecordData, current map[sim.EffectKind]int32, basis sim.NativeActorBasis, retained *sav.DocumentRecordData) error {
+	previousBlock, err := savedActorRaw(retained, "UD4", 64)
+	if err != nil {
+		return err
+	}
+	previousBlock = slices.Clone(previousBlock)
 	block, err := savedActorRaw(record, "UD4", 64)
 	if err != nil {
 		return err
 	}
 	refs, _ := savedObjectRefs(record, "Effects")
 	for _, m := range savedModifierEffects {
-		word := int32(int16(binary.LittleEndian.Uint16(block[m.offset:])))
+		if basis.ModifierByteKnown(m.offset) && basis.ModifierByteKnown(m.offset+1) {
+			continue
+		}
+		word := int32(int16(binary.LittleEndian.Uint16(previousBlock[m.offset:])))
 		var previous int32
 		for _, index := range refs {
 			if index == 0 || int(index) > len(document.Objects) {
@@ -209,6 +234,11 @@ func projectSavedModifierWords(document *sav.DocumentData, record *sav.DocumentR
 			remainder = 0
 		}
 		binary.LittleEndian.PutUint16(block[m.offset:], uint16(remainder+current[m.kind]*m.scale))
+		for n := m.offset; n < m.offset+2; n++ {
+			if basis.ModifierByteKnown(n) {
+				block[n] = basis.Modifier[n]
+			}
+		}
 	}
 	return nil
 }
@@ -229,7 +259,24 @@ func savedActorValueRecord(record sav.DocumentRecordData, e sim.Entity, fresh bo
 	next := record
 	next.Values = slices.Clone(record.Values)
 	next.Raw = slices.Clone(record.Raw)
+	if e.NativeBasis.HasValues() && e.ActorLoad.Source.Class != 0 {
+		return sav.DocumentRecordData{}, fmt.Errorf("saved native actor basis has a source-backed owner")
+	}
+	if err := projectNativeScalars(&next, e.NativeBasis); err != nil {
+		return sav.DocumentRecordData{}, err
+	}
+	if e.Domain <= sim.DomainAir {
+		if err := savedActorSetValue(&next, "U4A", uint32(e.Domain)+1); err != nil {
+			return sav.DocumentRecordData{}, err
+		}
+	}
 	if e.SourceBinding.Class != 0 {
+		if err := savedActorSetValue(&next, "U4B", uint32(e.SourceBinding.Face)); err != nil {
+			return sav.DocumentRecordData{}, err
+		}
+		if err := savedActorSetValue(&next, "T0C", uint32(e.SourceBinding.TokenRow)); err != nil {
+			return sav.DocumentRecordData{}, err
+		}
 		if err := savedActorSetValue(&next, "U148", e.SourceBinding.DisplayBacking); err != nil {
 			return sav.DocumentRecordData{}, err
 		}
@@ -237,14 +284,14 @@ func savedActorValueRecord(record sav.DocumentRecordData, e sim.Entity, fresh bo
 	s := e.SourceNow()
 	if s.Class == 0 {
 		for i, name := range []string{"Body", "Reaction", "Mind", "Spirit", "Speed", "U8E", "U90", "Capacity", "Health", "HealthMax", "HealthRegen", "Mana", "ManaMax", "ManaRegen"} {
-			v, _ := savedStructureValue(&record, name)
+			v, _ := savedStructureValue(&next, name)
 			s.Stats[i] = uint16(v)
 		}
 		for _, pair := range []struct {
 			name string
 			dst  []byte
 		}{{"UA6", s.Attack[:]}, {"UBE", s.Defence[:]}, {"U114", s.Base[:]}, {"UD4", s.Modifier[:]}} {
-			for _, raw := range record.Raw {
+			for _, raw := range next.Raw {
 				if raw.Name == pair.name {
 					copy(pair.dst, raw.Bytes)
 				}
@@ -254,6 +301,9 @@ func savedActorValueRecord(record sav.DocumentRecordData, e sim.Entity, fresh bo
 	}
 	if record.Class == "Unit" {
 		s.Stats[sav.StatCapacity], s.Stats[sav.StatOwnWeight] = unitLoadWords(s.Stats[sav.StatCapacity], s.Stats[sav.StatOwnWeight], s.Stats[sav.StatLoad], e.ActorLoad.Present && !fresh)
+		if !e.ActorLoad.Present && e.NativeBasis.ScalarIsKnown(sim.ScalarU8E) {
+			s.Stats[sav.StatOwnWeight] = uint16(e.NativeBasis.Scalars[sim.ScalarU8E])
+		}
 	} else if fresh && s.Stats[sav.StatOwnWeight] == 0 {
 		// SAV-792/ITEM-LOAD-005: a generated Human's own weight is never
 		// populated. The kit export mirrors its load.
@@ -298,6 +348,9 @@ func savedActorValueRecord(record sav.DocumentRecordData, e sim.Entity, fresh bo
 	flags, err := savedStructureValue(&next, "U4C")
 	if err != nil {
 		return sav.DocumentRecordData{}, err
+	}
+	if e.SourceBinding.Class != 0 {
+		flags = uint32(e.SourceBinding.ClassFlags)
 	}
 	flags &^= sav.ActorOffMapFlag
 	if record.Class == "Human" && e.NativeClass.Present {

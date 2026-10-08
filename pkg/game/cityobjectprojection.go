@@ -184,7 +184,7 @@ func newCityObjectProjection(source *cityObjectTopology, party []mapload.PartyMe
 			return id, nil
 		}
 		value := currentCityItem(native.Instance(), table)
-		ownedSpell, err := nativeCityWeaponSpell(value, equipped, table)
+		ownedSpell, err := nativeCityWeaponSpell(value, equipped && native.SourceEquipment.Class == 0, table)
 		if err != nil {
 			return 0, err
 		}
@@ -432,7 +432,7 @@ func (p *cityObjectProjection) emit(b *generatedDocumentBuilder, a *currentActio
 				}
 			}
 			row.ID, row.Effects, row.Spell = id, slices.Clone(node.Effects), node.Spell
-			if value.SourceEquipment.Class != 0 {
+			if value.SourceEquipment.Class != 0 && value.NativeRecord == nil {
 				if construction, err := nativeCityItemConstructionFor(value.Code, b.table); err == nil {
 					row.F45, row.F46, row.F48 = construction.Shape, construction.Material, construction.F48
 				}

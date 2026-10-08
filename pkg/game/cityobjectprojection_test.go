@@ -193,6 +193,73 @@ func TestCityObjectProjectionTwoSAVCyclesPreserveAliasesAndNativeAbsence(t *test
 	}
 }
 
+func TestCityObjectProjectionCurrentWeaponSpellAbsence(t *testing.T) {
+	raw, newFront := cityProjectionSource(t)
+	f := cityProjectionLoad(t, raw, newFront)
+	clearSpell := func(item *sim.ItemInstance) {
+		if item.SourceEquipment.Class == sim.SourceWeapon {
+			item.SourceEquipment.Spell = sim.SourceItemSpell{}
+			item.Effects = []sim.ItemEffect{{Kind: 41, Operand: 1}, {Kind: 41, Operand: 1}}
+		}
+	}
+	for i := range f.Carried {
+		member := &f.Carried[i]
+		if member.Carry == nil || member.Carry.OrderedStacks == nil {
+			t.Fatal("fixture lacks current city holdings")
+		}
+		for slot := range member.Carry.EquippedItems {
+			clearSpell(&member.Carry.EquippedItems[slot])
+			clearSpell(&member.WornItems[slot])
+		}
+		for slot := range member.Carry.ItemInstances {
+			clearSpell(&member.Carry.ItemInstances[slot])
+		}
+		for slot := range member.CarriedItems {
+			clearSpell(&member.CarriedItems[slot])
+		}
+		for slot := range member.Carry.OrderedStacks {
+			item := &member.Carry.OrderedStacks[slot]
+			if item.SourceEquipment.Class == sim.SourceWeapon {
+				item.SourceEquipment.Spell = sim.SourceItemSpell{}
+				item.Effects = []sim.ItemEffect{{Kind: 41, Operand: 1}, {Kind: 41, Operand: 1}}
+			}
+		}
+	}
+	raw = cityProjectionSave(t, f)
+	want := sim.SourceItemSpell{}
+	for cycle := 0; cycle < 2; cycle++ {
+		doc, _, _ := cityProjectionWire(t, raw)
+		weapons := 0
+		for i, record := range doc.Objects {
+			if record.Class != "Weapon" {
+				continue
+			}
+			weapons++
+			item, err := savedItemRecord(&doc, uint16(i+1))
+			if err != nil || item.Value.SourceEquipment.Spell != want {
+				t.Fatal("ordinary SAVE changed current weapon Spell", cycle, item.Value.SourceEquipment.Spell, want, err)
+			}
+		}
+		if weapons != 3 {
+			t.Fatal("fixture lost its three ordinary Weapons", weapons)
+		}
+		f = cityProjectionLoad(t, raw, newFront)
+		for _, member := range f.Carried {
+			for _, item := range cityMemberStacks(member, f.Table) {
+				if item.SourceEquipment.Class == sim.SourceWeapon && item.SourceEquipment.Spell != want {
+					t.Fatal("cold LOAD changed carried weapon Spell", cycle, item.SourceEquipment.Spell, want)
+				}
+			}
+			for _, item := range cityMemberEquipment(member, f.Table) {
+				if item.SourceEquipment.Class == sim.SourceWeapon && item.SourceEquipment.Spell != want {
+					t.Fatal("cold LOAD changed equipped weapon Spell", cycle, item.SourceEquipment.Spell, want)
+				}
+			}
+		}
+		raw = cityProjectionSave(t, f)
+	}
+}
+
 func TestCityObjectProjectionOrdinaryItemEffectSpellEditsWinForTwoCycles(t *testing.T) {
 	raw, newFront := cityProjectionSource(t)
 	f := cityProjectionLoad(t, raw, newFront)

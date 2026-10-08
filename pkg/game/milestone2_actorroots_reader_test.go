@@ -16,15 +16,17 @@ import (
 // every reachable Item/Effect/Spell field. No imported survivor list supplies
 // the expected actor population or the live/late-dead admission decision.
 type actor1161Record struct {
-	loc    sav.DocumentActorLocation
-	stage  byte
-	hp     int16
-	values map[string]uint32
-	counts map[string]uint32
-	refs   map[string][]uint16
+	loc     sav.DocumentActorLocation
+	stage   byte
+	hp      int16
+	values  map[string]uint32
+	counts  map[string]uint32
+	refs    map[string][]uint16
+	current *milestoneActorCurrent
+	items   *nativeActorItemModes
 }
 
-func actor1161Reference(r *sack1151Reader, p *int) uint16 {
+func actor1161Reference(r *sackByteReader, p *int) uint16 {
 	start := *p
 	tag := uint16(r.number(p, 2))
 	if tag == 0 || r.err != nil {
@@ -79,8 +81,8 @@ func actor1161Reference(r *sack1151Reader, p *int) uint16 {
 	return r.reference(p, 0)
 }
 
-func actor1161Read(f *sav.File, raw []byte) ([]actor1161Record, *sack1151Reader, map[uint16]uint16, error) {
-	_, os, err := sav.DecodeDocumentDataWithOrigins(raw)
+func readActorRoots(f *sav.File, raw []byte) ([]actor1161Record, *sackByteReader, map[uint16]uint16, error) {
+	document, os, err := sav.DecodeDocumentDataWithOrigins(raw)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -92,34 +94,53 @@ func actor1161Read(f *sav.File, raw []byte) ([]actor1161Record, *sack1151Reader,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return actor1161ReadLocations(f.Body, actors, locs, os)
+	out, reader, origins, err := actor1161ReadLocations(f.Body, actors, locs, os)
+	if err != nil {
+		return out, reader, origins, err
+	}
+	current, err := milestoneActorCurrentInputs(&document)
+	if err != nil {
+		return nil, reader, origins, err
+	}
+	itemModes, err := nativeActorReadItemModes(&document, f)
+	if err != nil {
+		return nil, reader, origins, err
+	}
+	for i := range out {
+		out[i].current = current[origins[out[i].loc.ArchiveIndex]]
+		out[i].items = &itemModes
+	}
+	return out, reader, origins, nil
 }
 
 type actor1161Population struct{ live, rawOnly, books, spellRefs, effects, u68 int }
 
-func actor1161WorldDifferences(roots []actor1161Record, r *sack1151Reader, origins map[uint16]uint16, state *SnapshotSAVDocument, world *sim.World) ([]string, actor1161Population) {
-	return actor1161EntityDifferences(roots, r, origins, state, world, world.Entities())
+func actor1161WorldDifferences(roots []actor1161Record, r *sackByteReader, origins map[uint16]uint16, state *SnapshotSAVDocument, world *sim.World, contexts ...*Mission) ([]string, actor1161Population) {
+	return actorRootEntityDifferences(roots, r, origins, state, world, world.Entities(), contexts...)
 }
 
-func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, origins map[uint16]uint16, state *SnapshotSAVDocument, world *sim.World, observed []sim.Entity) ([]string, actor1161Population) {
+func actorRootEntityDifferences(roots []actor1161Record, r *sackByteReader, origins map[uint16]uint16, state *SnapshotSAVDocument, world *sim.World, observed []sim.Entity, contexts ...*Mission) ([]string, actor1161Population) {
 	var differences []string
 	var pop actor1161Population
 	add := func(format string, args ...any) { differences = append(differences, fmt.Sprintf(format, args...)) }
-	if state == nil || state.Objects == nil {
+	if state == nil {
 		return []string{"actor item identities absent"}, pop
 	}
-	entities := map[uint16]sim.Entity{}
-	for _, e := range observed {
-		if e.SourceBinding.Class != 0 {
-			if _, exists := entities[e.SourceBinding.ArchiveIndex]; exists {
-				add("duplicate live actor archive%d", e.SourceBinding.ArchiveIndex)
-			}
-			entities[e.SourceBinding.ArchiveIndex] = e
-		}
+	modes, modeErr := nativeActorReadModes(state.Document)
+	if modeErr != nil {
+		return []string{"actor modes: " + modeErr.Error()}, pop
 	}
+	if state.Objects == nil && (!modes.present || modes.inventory == nil || modes.inventory.Present) {
+		return []string{"actor item identities absent"}, pop
+	}
+	subjects, subjectDifferences := newMilestoneActorSubjects(observed, state, contexts...)
+	differences = append(differences, subjectDifferences...)
+	entities := subjects.byArchive
 	ids := map[uint16]sim.SavedObjectID{}
-	for _, b := range state.Objects.Items {
-		ids[b.ObjectIndex] = b.ID
+	if state.Objects != nil {
+		for _, b := range state.Objects.Items {
+			ids[b.ObjectIndex] = b.ID
+		}
 	}
 	bindings := map[sim.EntityID]uint16{}
 	for _, b := range state.Actors {
@@ -127,15 +148,44 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 	}
 	active := map[[2]uint32]sim.ActiveEffect{}
 	for _, e := range world.ActiveEffects() {
-		active[[2]uint32{uint32(e.Target), uint32(e.Spell)}] = e
+		key := [2]uint32{uint32(e.Target), uint32(e.Spell)}
+		if _, duplicate := active[key]; duplicate {
+			add("live attachment target/Spell aliases")
+		}
+		active[key] = e
 	}
+	itemModes := nativeActorItemModes{}
+	if len(roots) != 0 && roots[0].items != nil {
+		itemModes = *roots[0].items
+	}
+	if itemModes.present {
+		// ID0/token absence uses a retained Document carrier. This raw-to-
+		// retained comparison is separate from every actual holder value.
+		for _, d := range actor1161DocumentDifferences(roots, r, origins, state.Document) {
+			add("retained item/edge: %s", d)
+		}
+	}
+	itemLocations := map[sim.SavedObjectID][]sim.SavedItemLocation{}
+	liveItemActors := map[sim.EntityID]bool{}
 	expectedEffects := 0
 	for _, a := range roots {
 		prefix := fmt.Sprintf("actor%d %s", a.loc.ArchiveIndex, a.loc.Class)
-		e, ok := entities[a.loc.ArchiveIndex]
-		delete(entities, a.loc.ArchiveIndex)
+		e, ok, native, issue := subjects.actor(a.loc.ArchiveIndex, a.loc.Off, a.loc.Class,
+			binary.LittleEndian.Uint32(r.body[a.loc.Off+29:]), binary.LittleEndian.Uint32(r.body[a.loc.Off+12:]), origins[a.loc.ArchiveIndex], a.current)
+		if issue != "" {
+			add("%s %s", prefix, issue)
+		}
 		if !ok {
-			if a.stage == 1 || a.stage == 0 && a.hp > 0 {
+			owned, ownerIssue := subjects.terminal(a.loc.ArchiveIndex, a.loc.Off, a.loc.Class,
+				binary.LittleEndian.Uint32(r.body[a.loc.Off+29:]), binary.LittleEndian.Uint32(r.body[a.loc.Off+12:]), origins[a.loc.ArchiveIndex], a.current, a.stage, a.hp, r.body[a.loc.Off:a.loc.Off+4])
+			if ownerIssue != "" {
+				add("%s %s", prefix, ownerIssue)
+			}
+			if owned {
+				pop.rawOnly++
+				continue
+			}
+			if native || a.stage == 1 || a.stage == 0 && a.hp > 0 {
 				add("%s eligible raw actor missing live carrier", prefix)
 			} else {
 				pop.rawOnly++
@@ -143,6 +193,7 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 			continue
 		}
 		pop.live++
+		liveItemActors[e.ID] = true
 		class := uint8(1)
 		if a.loc.Class == "Human" {
 			class = 2
@@ -150,7 +201,7 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 		if a.loc.Class == "Humanoid" {
 			class = 3
 		}
-		if e.SourceBinding.Class != class || e.SourceBinding.Identity != binary.LittleEndian.Uint32(r.body[a.loc.Off+29:]) || e.SourceBinding.RuntimeID != binary.LittleEndian.Uint32(r.body[a.loc.Off+12:]) || bindings[e.ID] != origins[a.loc.ArchiveIndex] {
+		if !native && (e.SourceBinding.Class != class || e.SourceBinding.Identity != binary.LittleEndian.Uint32(r.body[a.loc.Off+29:]) || e.SourceBinding.RuntimeID != binary.LittleEndian.Uint32(r.body[a.loc.Off+12:]) || bindings[e.ID] != origins[a.loc.ArchiveIndex]) {
 			add("%s source/Document identity differs", prefix)
 		}
 		pack, ok := world.CarriedStacks(e.ID)
@@ -170,12 +221,11 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 				continue
 			}
 			id := ids[origins[ref]]
-			if id == 0 {
-				add("%s pack item%d lost identity", prefix, ref)
+			location := sim.SavedItemLocation{Owner: sim.SavedObjectOwner{Kind: sim.SavedOwnerActorPack, Entity: e.ID}, Index: uint32(i)}
+			if id != 0 {
+				itemLocations[id] = append(itemLocations[id], location)
 			}
-			if !sack1151SameItem(pack[i], r.source.item(row, id)) {
-				add("%s pack slot%d item differs", prefix, i)
-			}
+			differences = append(differences, nativeActorItemDifferences(fmt.Sprintf("%s pack slot%d item%d", prefix, i, ref), pack[i], ref, false, location, r, origins, ids, state, world, itemModes)...)
 		}
 		worn, ok := world.EquippedItems(e.ID)
 		if !ok {
@@ -198,31 +248,31 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 				continue
 			}
 			id := ids[origins[ref]]
-			if id == 0 {
-				add("%s worn item%d lost identity", prefix, ref)
+			location := sim.SavedItemLocation{Owner: sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: e.ID, Slot: uint32(slot + 1)}}
+			if id != 0 {
+				itemLocations[id] = append(itemLocations[id], location)
 			}
-			want := r.source.item(row, id)
-			want.Count = 1
-			if !sack1151SameItem(sim.StackItem(worn[slot], 1), want) {
-				add("%s worn slot%d item differs", prefix, slot)
-			}
+			differences = append(differences, nativeActorItemDifferences(fmt.Sprintf("%s worn slot%d item%d", prefix, slot, ref), sim.StackItem(worn[slot], 1), ref, true, location, r, origins, ids, state, world, itemModes)...)
 		}
 		n := 0
-		for _, c := range world.SavedObjects().Containers {
-			if c.Owner.Kind != sim.SavedOwnerActorPack || c.Owner.Entity != e.ID {
-				continue
-			}
-			n++
-			want := make([]sim.SavedObjectID, len(a.refs["Inventory"]))
-			for i, x := range a.refs["Inventory"] {
-				want[i] = ids[origins[x]]
-			}
-			if c.Present != (a.values["HasInventory"] != 0) || c.InsertIndex != a.values["Inventory1C"] || c.Accumulator != int32(a.values["Inventory20"]) || !slices.Equal(c.Items, want) {
-				add("%s live container presence/header/identities differ", prefix)
+		registry := world.SavedObjects()
+		if registry != nil {
+			for _, c := range registry.Containers {
+				if c.Owner.Kind != sim.SavedOwnerActorPack || c.Owner.Entity != e.ID {
+					continue
+				}
+				n++
+				want := make([]sim.SavedObjectID, len(a.refs["Inventory"]))
+				for i, x := range a.refs["Inventory"] {
+					want[i] = ids[origins[x]]
+				}
+				if c.Present != (a.values["HasInventory"] != 0) || c.InsertIndex != a.values["Inventory1C"] || c.Accumulator != int32(a.values["Inventory20"]) || !slices.Equal(c.Items, want) {
+					add("%s live container presence/header/identities differ", prefix)
+				}
 			}
 		}
-		if n != 1 {
-			add("%s live container population%d", prefix, n)
+		if issue := nativeActorContainerDifference(a, e, pack, native, modes, registry, n); issue != "" {
+			add("%s %s", prefix, issue)
 		}
 		book := sim.Spellbook{State: sim.BookAbsent}
 		mask := uint32(0)
@@ -248,9 +298,7 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 			mask |= 1 << id
 			book.Slots[id-1] = sim.BookSpell{Range: uint8(s.values["S09"]), Defensive: uint8(s.values["S0A"]), ManaCost: uint16(s.values["S0C"])}
 		}
-		if e.Book != book || e.KnownSpells != mask {
-			add("%s live spellbook differs", prefix)
-		}
+		differences = append(differences, nativeActorBookDifferences(prefix, e, book, mask, native, modes, world)...)
 		if a.refs["U68"][0] != 0 {
 			pop.u68++
 		}
@@ -265,7 +313,7 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 			id, kind, mode, operand := raw.values["E0C"], raw.values["E3C"], raw.values["E3D"], raw.values["E40"]
 			kinds := map[uint32]sim.EffectKind{6: sim.EffectHealth, 8: sim.EffectHealthRegeneration, 11: sim.EffectManaRegeneration, 16: sim.EffectAbsorption, 17: sim.EffectSpeed, 19: sim.EffectScanRange, 21: sim.EffectProtectionFire, 22: sim.EffectProtectionWater, 23: sim.EffectProtectionAir, 24: sim.EffectProtectionEarth, 38: sim.EffectInvisible, 39: sim.EffectBless, 40: sim.EffectCurse}
 			got, found := active[[2]uint32{uint32(e.ID), id}]
-			if !found || kinds[kind] == sim.EffectNone || got.HasCaster || got.Caster != 0 || got.Kind != kinds[kind] || uint32(got.Mode) != mode || got.Magnitude != int32(int16(operand)) || got.Remaining != uint16(operand>>16) {
+			if !found || kinds[kind] == sim.EffectNone || !nativeActorCasterMatches(got, e.ID, id, native, modes) || got.Kind != kinds[kind] || uint32(got.Mode) != mode || got.Magnitude != int32(int16(operand)) || got.Remaining != uint16(operand>>16) {
 				add("%s live Effect%d differs from raw id%d/kind%d/mode%d/operand%d", prefix, ref, id, kind, mode, operand)
 			}
 			bound := 0
@@ -281,8 +329,15 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 			}
 		}
 	}
+	differences = append(differences, nativeActorItemLocationDifferences(itemLocations, liveItemActors, world)...)
 	if len(entities) != 0 {
 		add("unexpected live actor population%d", len(entities))
+	}
+	if n := subjects.unexpectedNative(); n != 0 {
+		add("unexpected native actor subject population%d", n)
+	}
+	if modes.casters != nil && len(modes.casters) != expectedEffects {
+		add("native effect caster policy population%d expected%d", len(modes.casters), expectedEffects)
 	}
 	if len(active) != expectedEffects {
 		add("live effect population%d expected%d", len(active), expectedEffects)
@@ -293,16 +348,16 @@ func actor1161EntityDifferences(roots []actor1161Record, r *sack1151Reader, orig
 	return differences, pop
 }
 
-func actor1161ReadLocations(body []byte, actors []sav.DocumentActorLocation, locs []sav.DocumentObjectLocation, origins []sav.DocumentObjectOrigin) ([]actor1161Record, *sack1151Reader, map[uint16]uint16, error) {
+func actor1161ReadLocations(body []byte, actors []sav.DocumentActorLocation, locs []sav.DocumentObjectLocation, origins []sav.DocumentObjectOrigin) ([]actor1161Record, *sackByteReader, map[uint16]uint16, error) {
 	population, err := unit1158Read(body, actors, locs, origins)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	admission := map[uint16]unit1158Record{}
+	admission := map[uint16]unitCombatRecord{}
 	for _, row := range population.records {
 		admission[row.archive] = row
 	}
-	r := &sack1151Reader{body: body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: sackByteSource{rows: map[uint16]*sackByteRecord{}}}
+	r := &sackByteReader{body: body, byIndex: map[uint16]sav.DocumentObjectLocation{}, byOff: map[int]sav.DocumentObjectLocation{}, source: sackByteSource{rows: map[uint16]*sackByteRecord{}}}
 	for _, loc := range locs {
 		if loc.ArchiveIndex == 0 || loc.Off < 0 || loc.Off >= len(body) {
 			return nil, r, nil, fmt.Errorf("invalid object location")
@@ -378,7 +433,7 @@ func actor1161ReadLocations(body []byte, actors []sav.DocumentActorLocation, loc
 	return out, r, population.origins, nil
 }
 
-func actor1161DocumentDifferences(roots []actor1161Record, r *sack1151Reader, origins map[uint16]uint16, doc *sav.DocumentData) []string {
+func actor1161DocumentDifferences(roots []actor1161Record, r *sackByteReader, origins map[uint16]uint16, doc *sav.DocumentData) []string {
 	if doc == nil {
 		return []string{"missing actor-root Document"}
 	}

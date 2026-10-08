@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -440,6 +441,13 @@ func remapSavedSackDocument(state *SnapshotSAVDocument, permutation []uint16) er
 			return err
 		}
 	}
+	if state.PlayerRoots != nil {
+		for i := range *state.PlayerRoots {
+			if err := remap(&(*state.PlayerRoots)[i].ObjectIndex); err != nil {
+				return err
+			}
+		}
+	}
 	if groups := state.GroupBindings; groups != nil {
 		for i := range groups.Groups {
 			for _, index := range []*uint16{&groups.Groups[i].PlayerObject, &groups.Groups[i].Reference.ObjectIndex, &groups.Groups[i].Owner.ObjectIndex} {
@@ -468,7 +476,7 @@ func remapSavedSackDocument(state *SnapshotSAVDocument, permutation []uint16) er
 	return remapSavedObjectBindings(state.Objects, permutation)
 }
 
-func projectSavedSackObjects(state *SnapshotSAVDocument, world *sim.World) error {
+func projectSavedSackObjects(state *SnapshotSAVDocument, world *sim.World, tables ...*mapload.Table) error {
 	if state == nil || state.Objects == nil {
 		if world.SavedObjects() != nil {
 			return fmt.Errorf("saved SAV object registry has no paired document")
@@ -480,7 +488,7 @@ func projectSavedSackObjects(state *SnapshotSAVDocument, world *sim.World) error
 		return err
 	}
 	if next.Objects.Version == 2 {
-		if err := projectCurrentItemGraph(next, world); err != nil {
+		if err := projectCurrentItemGraph(next, world, tables...); err != nil {
 			return err
 		}
 		*state = *next

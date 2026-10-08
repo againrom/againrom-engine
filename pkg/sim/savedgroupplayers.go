@@ -53,6 +53,9 @@ func (w *World) ImportSavedGroupPlayers(players []SavedGroupPlayer, containers [
 	if err := savedGroupPlayersFault(s); err != nil {
 		return err
 	}
+	if w.currentPlayers != nil && !slices.Equal(w.currentPlayers.Players, s.Players) {
+		w.currentPlayers = &currentPlayerState{Players: slices.Clone(s.Players)}
+	}
 	w.savedGroups = s
 	return nil
 }

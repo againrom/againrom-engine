@@ -9,7 +9,7 @@ import (
 
 // autosaveMissionStart captures the mission at tick zero on the frame thread
 // and queues the export and the write.
-func (f *FrontEnd) autosaveMissionStart(viewer *ui.Viewer, store SaveStore, original OriginalStore, q *autosaveQueue) {
+func (f *FrontEnd) autosaveMissionStart(viewer *ui.Viewer, store SaveStore, original OriginalStore, q *autosaveQueue, observers ...func(string, Snapshot)) {
 	if store.Dir == "" || f.live == nil || f.live.view != viewer || f.liveMission <= 0 ||
 		f.live.mission == nil || f.live.mission.resumed || f.live.world.Tick() != 0 {
 		return
@@ -19,6 +19,7 @@ func (f *FrontEnd) autosaveMissionStart(viewer *ui.Viewer, store SaveStore, orig
 		viewer.PostMessage("cannot autosave mission start: "+err.Error(), ui.MessageWhite, 15*time.Second)
 		return
 	}
+	notifySaveCapture(observers, "entry", captured)
 	view, captured := f.detachedExporter(captured)
 	label := fmt.Sprintf("autosave start mission %d", f.liveMission)
 	inline := f.runsAutosaveInline()

@@ -36,13 +36,16 @@ func templateSavedFields(saved *mapload.Saved) []*int32 {
 		&saved.HealthRegenPeriod, &saved.Mana, &saved.MaxMana, &saved.ManaRegenPeriod}
 }
 
-func captureTemplateSavedLifts(saved *mapload.Saved, c sav.Character) []currentTemplateSavedLift {
+func captureTemplateSavedLifts(saved *mapload.Saved, c sav.Character, sourcePools bool) []currentTemplateSavedLift {
 	if saved == nil {
 		return nil
 	}
 	wire := templateSavedFields(restoredSaved(c, &RestoredParty{}))
 	var lifts []currentTemplateSavedLift
 	for i, value := range templateSavedFields(saved) {
+		if i >= 2 && sourcePools && uint16(*value) != uint16(*wire[i]) {
+			continue
+		}
 		if *value != *wire[i] {
 			lifts = append(lifts, currentTemplateSavedLift{Field: uint8(i), Wire: uint16(*wire[i]), Lift: int64(*value) - int64(*wire[i])})
 		}
@@ -76,7 +79,8 @@ func currentMemberActorRecord(member, hero mapload.PartyMember, table *mapload.T
 		return sav.DocumentRecordData{}, err
 	}
 	class := "Human"
-	if member.Carry != nil && member.Carry.LiveLoad != nil && member.Carry.LiveLoad.Inventory.Source.Class != 0 {
+	sourcePools := member.Carry != nil && member.Carry.LiveLoad != nil && member.Carry.LiveLoad.Inventory.Source.Class != 0
+	if sourcePools {
 		load := member.Carry.LiveLoad
 		if err := load.Validate(); err != nil {
 			return sav.DocumentRecordData{}, err
@@ -103,8 +107,10 @@ func currentMemberActorRecord(member, hero mapload.PartyMember, table *mapload.T
 	if saved := member.Saved; saved != nil {
 		copy(unit.Token, constructedPositionBlock(int32(uint8(saved.Cell.X)), int32(uint8(saved.Cell.Y)), 0))
 		binary.LittleEndian.PutUint32(unit.Token[19:], uint32(saved.MapUnitID))
-		for i, value := range []int32{saved.HP, saved.MaxHP, saved.HealthRegenPeriod, saved.Mana, saved.MaxMana, saved.ManaRegenPeriod} {
-			binary.LittleEndian.PutUint16(unit.Scalar2[(8+i)*2:], uint16(value))
+		if !sourcePools {
+			for i, value := range []int32{saved.HP, saved.MaxHP, saved.HealthRegenPeriod, saved.Mana, saved.MaxMana, saved.ManaRegenPeriod} {
+				binary.LittleEndian.PutUint16(unit.Scalar2[(8+i)*2:], uint16(value))
+			}
 		}
 	}
 	return sav.DocumentActorFromCityUnit(class, unit)
@@ -112,6 +118,7 @@ func currentMemberActorRecord(member, hero mapload.PartyMember, table *mapload.T
 
 func captureCurrentPartyTemplate(id sim.EntityID, member, hero mapload.PartyMember, table *mapload.Table) (currentPartyMember, error) {
 	b := generatedDocumentBuilder{table: table}
+	b.reserveCurrentParty([]mapload.PartyMember{member})
 	r, err := currentMemberActorRecord(member, hero, table, b.identity())
 	if err != nil {
 		return currentPartyMember{}, fmt.Errorf("current absent member %d: %w", id, err)
@@ -144,7 +151,8 @@ func captureCurrentPartyTemplate(id sim.EntityID, member, hero mapload.PartyMemb
 		return currentPartyMember{}, err
 	}
 	p.Template = &currentPartyTemplate{Records: fragment, Items: a.Ownership, Policy: p.City, StartingHero: member.StartingHero, Equipment: equipment}
-	p.Template.SavedLifts = captureTemplateSavedLifts(member.Saved, characters[0].Character)
+	sourcePools := member.Carry != nil && member.Carry.LiveLoad != nil && member.Carry.LiveLoad.Inventory.Source.Class != 0
+	p.Template.SavedLifts = captureTemplateSavedLifts(member.Saved, characters[0].Character, sourcePools)
 	p.City = nil
 	p.Name = nil
 	if r.Class == "Unit" && member.Carry != nil {

@@ -10,7 +10,7 @@ import (
 	"againrom/pkg/formats/sav"
 )
 
-func unit1156InitialCheck(t *testing.T, want unit1156Set, ms *Mission) {
+func unit1156InitialCheck(t *testing.T, want unitScalarSet, ms *Mission) {
 	t.Helper()
 	document := want.documentDifferences(ms.savedDocument)
 	differences, _, n := want.worldDifferences(ms.World, ms.ActorManifest)
@@ -70,7 +70,7 @@ func unit1156App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := unit1156Expected(source, raw)
+	want, err := unitScalarExpected(source, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

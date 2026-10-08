@@ -176,7 +176,7 @@ func TestMover1160CurrentOrderLossControls(t *testing.T) {
 	f, s, index := mover1160OrderControl(t)
 	for i := range 144 {
 		t.Run(fmt.Sprintf("Order144-byte%d", i), func(t *testing.T) {
-			bad := unit1156Clone(t, s.SavedDocument)
+			bad := cloneSavedDocumentFixture(t, s.SavedDocument)
 			for _, field := range bad.Document.Objects[index-1].Raw {
 				if field.Name == "U158" {
 					field.Bytes[i] ^= 0x80
@@ -192,7 +192,7 @@ func TestMover1160CurrentOrderLossControls(t *testing.T) {
 	}
 	for i := 144; i < 148; i++ {
 		t.Run(fmt.Sprintf("transport-byte%d", i), func(t *testing.T) {
-			bad := unit1156Clone(t, s.SavedDocument)
+			bad := cloneSavedDocumentFixture(t, s.SavedDocument)
 			for _, field := range bad.Document.Objects[index-1].Raw {
 				if field.Name == "U158" {
 					field.Bytes[i] ^= 0x80
@@ -213,7 +213,7 @@ func TestMover1160CurrentPathLossControls(t *testing.T) {
 	for _, name := range mover1160Lists {
 		for _, loss := range []string{"drop", "truncate", "append", "low-byte", "high-byte"} {
 			t.Run(name+"-"+loss, func(t *testing.T) {
-				bad := unit1156Clone(t, s.SavedDocument)
+				bad := cloneSavedDocumentFixture(t, s.SavedDocument)
 				r := &bad.Document.Objects[index-1]
 				for j := range r.Raw {
 					field := &r.Raw[j]
@@ -299,7 +299,7 @@ func TestMover1160CurrentTypedOrderTransforms(t *testing.T) {
 				if err != nil || subject.Raw != want {
 					t.Fatal("runtime did not synchronize the exact typed escort before Snapshot", err)
 				}
-				stale := unit1156Clone(t, s.SavedDocument)
+				stale := cloneSavedDocumentFixture(t, s.SavedDocument)
 				for _, field := range stale.Document.Objects[index-1].Raw {
 					if field.Name == "U158" {
 						binary.LittleEndian.PutUint32(field.Bytes[0x10:], 0xdecafbad)
@@ -311,7 +311,7 @@ func TestMover1160CurrentTypedOrderTransforms(t *testing.T) {
 				}
 			}
 			for i := range 144 {
-				bad := unit1156Clone(t, s.SavedDocument)
+				bad := cloneSavedDocumentFixture(t, s.SavedDocument)
 				for _, field := range bad.Document.Objects[index-1].Raw {
 					if field.Name == "U158" {
 						field.Bytes[i] ^= 0x80
@@ -334,7 +334,7 @@ func TestMover1160CurrentOrderBindingControls(t *testing.T) {
 	}
 	for _, control := range []string{"missing", "duplicate", "alias", "absent-groups", "unavailable"} {
 		t.Run(control, func(t *testing.T) {
-			bad := unit1156Clone(t, s.SavedDocument)
+			bad := cloneSavedDocumentFixture(t, s.SavedDocument)
 			switch control {
 			case "missing":
 				bad.Actors = bad.Actors[1:]

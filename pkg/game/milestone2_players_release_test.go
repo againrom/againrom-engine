@@ -18,7 +18,7 @@ func TestReleaseMilestone2Players1154(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := players1154Expected(file)
+	want, err := nativeExpectedPlayers(file)
 	if err != nil {
 		t.Fatal(err)
 	}

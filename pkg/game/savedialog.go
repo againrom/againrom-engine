@@ -14,7 +14,7 @@ import (
 // ConfigureSaveSeams installs the player dialog and keeps LOAD in the directory
 // of the last successful save. Interactive and automatic saves share the
 // current SAV producer.
-func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original OriginalStore, now func() time.Time) {
+func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original OriginalStore, now func() time.Time, observers ...func(string, Snapshot)) {
 	// The hall stays in the launch profile even if SAVE later browses elsewhere.
 	if store.Dir != "" {
 		f.hallStore.Dir = filepath.Dir(store.Dir)
@@ -35,14 +35,14 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	queue := newAutosaveQueue()
 	app.SetBackgroundFlush(queue.wait)
 	app.SetMapEntryObserver(func(viewer *ui.Viewer) {
-		f.autosaveMissionStart(viewer, current, original, queue)
+		f.autosaveMissionStart(viewer, current, original, queue, observers...)
 	})
 	fences := []string{original.Dir}
 	if f.Archives != nil {
 		fences = append(fences, f.Archives.Root)
 	}
-	f.configureTimedAutosave(app, &current, fences, now, queue)
-	f.configureQuickSave(app, &current, fences, queue)
+	f.configureTimedAutosave(app, &current, fences, now, queue, observers...)
+	f.configureQuickSave(app, &current, fences, queue, observers...)
 	app.SetSaveDelete(func(token string) bool {
 		_, err := loadDeletePath(current.Dir, token, fences, current.profile)
 		return err == nil
@@ -52,7 +52,7 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	})
 	app.SetSaveSeams(func(onMap bool) (string, error) {
 		queue.wait()
-		save, _, _ := f.SaveSeams(current, original, now)
+		save, _, _ := f.SaveSeams(current, original, now, observers...)
 		return save(onMap)
 	}, func() []ui.SaveEntry {
 		_, list, _ := f.SaveSeams(current, original, now)
@@ -83,7 +83,7 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 		_, _, load := f.SaveSeams(current, original, now)
 		return load(name)
 	})
-	seams := f.SaveDialogSeams(store, original)
+	seams := f.SaveDialogSeams(store, original, observers...)
 	prepare := seams.Prepare
 	prepareDelete := seams.PrepareDelete
 	seams.PrepareDelete = func(dir, name string) (func() error, error) {
@@ -110,7 +110,7 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	app.SetSaveDialogSeams(seams)
 }
 
-func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore) ui.SaveDialogSeams {
+func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, observers ...func(string, Snapshot)) ui.SaveDialogSeams {
 	fences := []string{original.Dir}
 	if f.Archives != nil {
 		fences = append(fences, f.Archives.Root)
@@ -141,6 +141,7 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore) ui.S
 			if err != nil {
 				return ui.PreparedSave{}, err
 			}
+			notifySaveCapture(observers, "f2", s)
 			raw, notice, err := f.playerMissionSave(s, string(name))
 			if err != nil {
 				return ui.PreparedSave{}, err
@@ -153,6 +154,14 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore) ui.S
 			prepared.Notice = notice
 			return prepared, nil
 		}}
+}
+
+func notifySaveCapture(observers []func(string, Snapshot), route string, captured Snapshot) {
+	for _, observer := range observers {
+		if observer != nil {
+			observer(route, captured)
+		}
+	}
 }
 
 func saveDialogDeleteToken(name string) string {

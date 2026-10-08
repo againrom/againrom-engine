@@ -32,6 +32,10 @@ func commitTownPotion(member *mapload.PartyMember, result mapload.PartyMember) b
 	// overwrite that updated container with the preflight copy's inventory.
 	member.RetireOriginalHuman()
 	member.Hero, member.PotionEffect = result.Hero, result.PotionEffect
+	if member.Carry != nil && result.Carry != nil && result.Carry.NativeHistory != nil {
+		history := *result.Carry.NativeHistory
+		member.Carry.NativeHistory = &history
+	}
 	if member.Saved != nil && result.Saved != nil {
 		member.Saved.HP, member.Saved.Mana = result.Saved.HP, result.Saved.Mana
 	}

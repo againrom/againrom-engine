@@ -119,7 +119,7 @@ func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16
 			}
 		}
 	}
-	for _, name := range []string{"Bindings", "Objects", "Groups", "PlayerSlots", "AbsentPlayers", "SpellCasters", "Ownership", "NativeAreas", "NativeDeliveries", "AbsentDiaries", "ArchiveCoordinates", "ActorGroups", "EffectWidths"} {
+	for _, name := range []string{"Bindings", "StructureBindings", "Objects", "Groups", "PlayerSlots", "AbsentPlayers", "SpellCasters", "Ownership", "NativeAreas", "NativeDeliveries", "AbsentDiaries", "ArchiveCoordinates", "ActorGroups", "EffectWidths"} {
 		raw, ok := root[name]
 		if !ok {
 			continue
@@ -184,7 +184,7 @@ func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16
 				}
 				row["Caster"], _ = json.Marshal(permutation[caster])
 			}
-			if current == 0 && (name == "Groups" || name == "PlayerSlots" || name == "AbsentPlayers") {
+			if current == 0 && (name == "Groups" || name == "StructureBindings" || name == "PlayerSlots" || name == "AbsentPlayers") {
 				return fmt.Errorf("sav: current Group container was retired")
 			}
 			if current == 0 && (name == "Objects" || name == "NativeAreas" || name == "NativeDeliveries" || name == "AbsentDiaries" || name == "ArchiveCoordinates") {

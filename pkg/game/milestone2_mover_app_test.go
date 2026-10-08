@@ -461,7 +461,7 @@ func TestMover1160NativeAndDocumentLossControls(t *testing.T) {
 	for _, name := range []string{"U158", "U154", "Block12", "U15C", "U178", "U158_90"} {
 		t.Run("Document-"+name, func(t *testing.T) {
 			bad := back
-			bad.SavedDocument = unit1156Clone(t, back.SavedDocument)
+			bad.SavedDocument = cloneSavedDocumentFixture(t, back.SavedDocument)
 			for i := range bad.SavedDocument.Document.Objects {
 				r := &bad.SavedDocument.Document.Objects[i]
 				if !unit1156Class(r.Class) {

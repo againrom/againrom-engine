@@ -104,7 +104,7 @@ func (r *player1154Reader) diary(loc sav.DocumentDiaryLocation) diary1154Raw {
 	return d
 }
 
-func players1154Expected(f *sav.File) (players1154Source, error) {
+func nativeExpectedPlayers(f *sav.File) (players1154Source, error) {
 	s := players1154Source{players: map[uint16]*player1154Raw{}, memberContainers: map[uint16][]int{}}
 	locations, err := f.DocumentDiaryLocations()
 	if err != nil {

@@ -85,7 +85,7 @@ func TestGroups1155DyingBothDoorsRetainSourceAndCurrentGraph(t *testing.T) {
 			}
 			checkCurrent := func(front *FrontEnd) Snapshot {
 				t.Helper()
-				s := groupDocumentSnapshot1115(t, front)
+				s := groupDocumentSnapshot(t, front)
 				if differences := groups1155CurrentDifferences(want, s.SavedDocument, front.live.world); len(differences) != 0 {
 					t.Fatal("dying current Document is unavailable or differs", differences)
 				}

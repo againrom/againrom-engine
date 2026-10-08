@@ -15,7 +15,7 @@ import (
 // 15c707b2fa029c47aaa4cfa58c02a6e581c35b62 without optional Group bindings in
 // SnapshotSAVDocument. Form77 peels the two absent Group/Structure spans
 // from releasedSaveFixtureSnapshot; Form72 uses preCurrentProfileForm1107.
-// The populated document comes from documentSnapshot1115's synthetic literal
+// The populated document comes from documentSnapshotFixture's synthetic literal
 // SAV, not an installed asset or owner save. Preserve these bytes and hashes;
 // never regenerate them from a later gob descriptor.
 const beforeGroupBindingsDocumentLabel = "complete native document before group bindings"

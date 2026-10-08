@@ -11,12 +11,16 @@ import (
 )
 
 type generatedDocumentBuilder struct {
+	nativeItems          map[uint32]nativeItemEmission
+	nativeItemIndices    map[uint32]uint16
 	doc                  sav.DocumentData
 	state                *SnapshotSAVDocument
 	nextKey, nextRuntime uint32
 	runtimeIDs           map[uint32]bool
 	table                *mapload.Table
 	reservedKeys         []uint32
+	currentKeys          map[uint32]bool
+	documentKeysReserved bool
 }
 
 func constructedGeneratedItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {
@@ -30,13 +34,120 @@ func constructedGeneratedItem(item sim.ItemInstance, t *mapload.Table) sim.ItemI
 }
 
 func (c *generatedDocumentBuilder) identity() uint32 {
-	if len(c.reservedKeys) != 0 {
-		key := c.reservedKeys[0]
-		c.reservedKeys = c.reservedKeys[1:]
+	if !c.documentKeysReserved {
+		c.reserveCurrentDocumentKeys()
+	}
+	for {
+		var key uint32
+		if len(c.reservedKeys) != 0 {
+			key = c.reservedKeys[0]
+			c.reservedKeys = c.reservedKeys[1:]
+		} else {
+			c.nextKey += 16
+			key = c.nextKey
+		}
+		if key == 0 || c.currentKeys[key] {
+			continue
+		}
+		c.currentKeys[key] = true
 		return key
 	}
-	c.nextKey += 16
-	return c.nextKey
+}
+
+func (c *generatedDocumentBuilder) reserveCurrentDocumentKeys() {
+	if c.currentKeys == nil {
+		c.currentKeys = map[uint32]bool{}
+	}
+	for _, record := range c.doc.Objects {
+		for _, value := range record.Values {
+			if value.Name == "Identity" || value.Name == "This" {
+				c.currentKeys[value.Value] = true
+			}
+		}
+	}
+	if c.doc.World != nil {
+		c.currentKeys[c.doc.World.TerrainIdentity] = true
+	}
+	if c.runtimeIDs == nil {
+		c.runtimeIDs = savedRuntimeIDs(c.doc.Objects)
+	}
+	c.documentKeysReserved = true
+}
+
+func (c *generatedDocumentBuilder) reserveCurrentForm(raw []byte) {
+	c.reserveCurrentDocumentKeys()
+	for at := 0; at+4 <= len(raw); at++ {
+		value := binary.LittleEndian.Uint32(raw[at:])
+		c.currentKeys[value], c.runtimeIDs[value] = true, true
+	}
+}
+
+func (c *generatedDocumentBuilder) reserveCurrentToken(token sim.SavedObjectToken) {
+	c.currentKeys[token.Identity], c.currentKeys[token.Reference] = true, true
+	c.currentKeys[binary.LittleEndian.Uint32(token.Position[8:])] = true
+	c.runtimeIDs[token.RuntimeID] = true
+}
+
+func (c *generatedDocumentBuilder) reserveCurrentNativeItem(record *sim.NativeItemRecord) {
+	if record != nil {
+		c.reserveCurrentToken(record.Token)
+	}
+}
+
+func (c *generatedDocumentBuilder) reserveCurrentParty(party []mapload.PartyMember) {
+	c.reserveCurrentDocumentKeys()
+	for _, member := range party {
+		for _, item := range cityMemberStacks(member, c.table) {
+			c.reserveCurrentNativeItem(item.NativeRecord)
+		}
+		for _, item := range cityMemberEquipment(member, c.table) {
+			c.reserveCurrentNativeItem(item.NativeRecord)
+		}
+	}
+}
+
+func (c *generatedDocumentBuilder) reserveCurrentWorld(w *sim.World) error {
+	if w == nil {
+		return fmt.Errorf("current key reservation lacks a World")
+	}
+	c.reserveCurrentDocumentKeys()
+	for _, stock := range w.Stock() {
+		for _, item := range stock.OrderedStacks {
+			c.reserveCurrentNativeItem(item.NativeRecord)
+		}
+		for _, item := range stock.EquippedItems {
+			c.reserveCurrentNativeItem(item.NativeRecord)
+		}
+	}
+	for _, sack := range w.Sacks() {
+		for _, item := range sack.ItemInstances {
+			c.reserveCurrentNativeItem(item.NativeRecord)
+		}
+	}
+	if registry := w.SavedObjects(); registry != nil {
+		for _, item := range registry.Items {
+			c.reserveCurrentToken(item.Token)
+			c.reserveCurrentNativeItem(item.Value.NativeRecord)
+		}
+		for _, effect := range registry.Effects {
+			c.reserveCurrentToken(effect.Token)
+		}
+		for _, spell := range registry.Spells {
+			c.currentKeys[spell.This] = true
+		}
+		for _, sack := range registry.Sacks {
+			c.reserveCurrentToken(sack.Token)
+			reserveSavedRuntimeID(c.runtimeIDs, "Sack", sack.Token.RuntimeID)
+		}
+	}
+	for _, actor := range w.OriginalDeadActors() {
+		weapon := actor.Source.HeldWeapon
+		if weapon.Present {
+			c.currentKeys[weapon.Identity], c.currentKeys[weapon.Reference], c.currentKeys[weapon.TerrainKey] = true, true, true
+			c.runtimeIDs[weapon.RuntimeID] = true
+		}
+	}
+	return nil
 }
 func (c *generatedDocumentBuilder) runtime() uint32 {
 	if c.runtimeIDs == nil {
@@ -57,6 +168,35 @@ func (c *generatedDocumentBuilder) append(r sav.DocumentRecordData) (uint16, err
 	c.doc.Objects = append(c.doc.Objects, r)
 	return uint16(len(c.doc.Objects)), nil
 }
+
+func (c *generatedDocumentBuilder) retainedNativeItem(identity uint32) (uint16, error) {
+	if identity == 0 {
+		return 0, nil
+	}
+	if c.nativeItemIndices == nil {
+		c.nativeItemIndices = map[uint32]uint16{}
+		for i, record := range c.doc.Objects {
+			if !savedItemClass(record.Class) {
+				continue
+			}
+			key, err := savedStructureValue(&record, "Identity")
+			if err != nil || key == 0 {
+				continue
+			}
+			if _, exists := c.nativeItemIndices[key]; exists {
+				c.nativeItemIndices[key] = 0
+			} else {
+				c.nativeItemIndices[key] = uint16(i + 1)
+			}
+		}
+	}
+	index, present := c.nativeItemIndices[identity]
+	if present && index == 0 {
+		return 0, fmt.Errorf("current native Item has ambiguous retained identity")
+	}
+	return index, nil
+}
+
 func mustSetValue(r *sav.DocumentRecordData, n string, v uint32) {
 	if err := savedStructureSetValue(r, n, v); err != nil {
 		panic(err)
