@@ -83,6 +83,17 @@ func (t *townScreen) advanceSchoolShine(now time.Time) {
 // build's shared slot order, which swaps the third and fourth (DIV-121).
 var schoolStoredToDisplaySlot = [5]int{0, 1, 3, 2, 4}
 
+// schoolShineDisplaySlot is the slot the idle shine lights at cycle step c. The
+// fighter panel's shine visits the slots in the order they are drawn (sword,
+// axe, club, pike, bow); the mage panel keeps the stored order of the
+// original's icon arrays.
+func schoolShineDisplaySlot(mage bool, cycle int) int {
+	if !mage {
+		return cycle
+	}
+	return schoolStoredToDisplaySlot[cycle]
+}
+
 func schoolClassForMage(mage bool) int {
 	if mage {
 		return schoolMageClass

@@ -350,7 +350,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		v.SchoolClass = t.schoolPanelClass()
 		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumn.frame, t.schoolColumn.ready
 		if t.schoolTrainingStatic.shineReady {
-			v.SchoolIdleShine, v.SchoolIdleSlot = true, schoolStoredToDisplaySlot[t.schoolTrainingStatic.shineCycle]
+			v.SchoolIdleShine, v.SchoolIdleSlot = true, schoolShineDisplaySlot(v.SchoolClass == schoolMageClass, t.schoolTrainingStatic.shineCycle)
 		}
 		v.SchoolTraining = t.schoolTrainingFrame()
 		if v.SchoolArt == nil || v.SchoolArt.Column[v.SchoolColumnFrame] == nil {

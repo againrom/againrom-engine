@@ -1900,6 +1900,8 @@ package storyguard
 // CommentBytes rises for the skill level hotfix: the docs of RepairSkillLevel,
 // SightWord, skillrepair.go, snapshotHumanFields and the writer census test
 // file, new code, including this paragraph.
+// CommentBytes rises for the school shine hotfix: the doc of schoolShineDisplaySlot
+// and the test comments, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4838,
 	TestFileCount:  265,
@@ -1923,5 +1925,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1834,
 	},
-	CommentBytes: 8516095,
+	CommentBytes: 8516672,
 }

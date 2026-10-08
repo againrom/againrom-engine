@@ -28,8 +28,9 @@ func TestSchoolShineStepsEveryHalfSecondModuloFive(t *testing.T) {
 }
 
 // TestSchoolViewCarriesTheIdleSlotInTheSharedOrder: the view names the slot the
-// idle clock stands on in the shared slot order, which swaps the stored third
-// and fourth slot, and carries none before the first school paint.
+// idle clock stands on in the shared slot order. The fighter panel's shine
+// visits sword, axe, club, pike, bow in the order drawn, and carries none
+// before the first school paint.
 func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 	f := shellFrontEnd()
 	now := time.Unix(1000, 0)
@@ -41,14 +42,29 @@ func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 		t.Fatal("the idle shine showed before any school paint")
 	}
 	s.AdvanceTownSurfaceAnimation()
-	want := []int{0, 1, 3, 2, 4, 0}
+	want := []int{0, 1, 2, 3, 4, 0}
 	for cycle, slot := range want {
 		if cycle > 0 {
 			now = now.Add(500 * time.Millisecond)
 			s.AdvanceTownSurfaceAnimation()
 		}
 		if v := s.TownSurface(); !v.SchoolIdleShine || v.SchoolIdleSlot != slot {
-			t.Fatalf("stored slot %d: view idle = %v slot %d, want slot %d", cycle, v.SchoolIdleShine, v.SchoolIdleSlot, slot)
+			t.Fatalf("cycle %d: view idle = %v slot %d, want slot %d", cycle, v.SchoolIdleShine, v.SchoolIdleSlot, slot)
+		}
+	}
+}
+
+// TestSchoolShineDisplaySlotKeepsTheMageStoredOrder: only the fighter panel
+// follows the drawn order; the mage panel keeps the stored order.
+func TestSchoolShineDisplaySlotKeepsTheMageStoredOrder(t *testing.T) {
+	for cycle, want := range []int{0, 1, 2, 3, 4} {
+		if got := schoolShineDisplaySlot(false, cycle); got != want {
+			t.Errorf("fighter cycle %d: slot %d, want %d", cycle, got, want)
+		}
+	}
+	for cycle, want := range []int{0, 1, 3, 2, 4} {
+		if got := schoolShineDisplaySlot(true, cycle); got != want {
+			t.Errorf("mage cycle %d: slot %d, want %d", cycle, got, want)
 		}
 	}
 }

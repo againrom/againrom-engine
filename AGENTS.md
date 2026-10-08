@@ -33,11 +33,13 @@ Nothing identifies the tool, model, vendor or session that produced a change:
 not a commit message, tag, branch name, pull request, review report, code
 comment or repository file. That excludes `Co-Authored-By` trailers naming an
 assistant, session links such as `Claude-Session:`, "Generated with" lines,
-model names and model IDs, and task trailers. Commits carry the owner's Git
-identity. Story, experiment, claim and divergence IDs are project identifiers
-and remain allowed. Naming the model or effort an agent runs on in agent or
-tool configuration is configuration, not attribution. `.claude/settings.json`
-switches off Claude Code's automatic commit and pull-request attribution.
+model names and model IDs, and task trailers. Engine and knowledge commits
+carry the project identity `Againrom <noreply@againrom.invalid>`; all other
+commits carry the owner's Git identity. Story, experiment, claim and
+divergence IDs are project identifiers and remain allowed. Naming the model or
+effort an agent runs on in agent or tool configuration is configuration, not
+attribution. `.claude/settings.json` switches off Claude Code's automatic
+commit and pull-request attribution.
 
 ## Shape of the code
 

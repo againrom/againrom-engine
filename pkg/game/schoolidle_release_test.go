@@ -28,7 +28,7 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 	f.Town.gold = 100000
 	s := f.TownScreen().(*townScreen)
 	stored := [2][5]string{
-		{"sword", "axe", "pike", "club", "bow"},
+		{"sword", "axe", "club", "pike", "bow"},
 		{"fire", "water", "earth", "air", "astral"},
 	}
 	dirs := [2]string{"fighter", "mage"}
@@ -90,6 +90,9 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 			quiet.SchoolIdleShine = false
 			base := ui.ComposeTownSurface(quiet)
 			r := ui.SchoolSkillRect(class, v.SchoolIdleSlot)
+			if class == 0 && v.SchoolIdleSlot != c {
+				t.Fatalf("fighter cycle %d lit slot %d, want the drawn order", c, v.SchoolIdleSlot)
+			}
 			if bad := differences(frame, base, decode(class, c, "shine"), r); bad != 0 {
 				t.Fatalf("class %d stored slot %d (%s): %d pixels differ from its shine picture", class, c, stored[class][c], bad)
 			}
