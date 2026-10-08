@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -20,6 +21,10 @@ type cityShopSelection struct {
 func (t *townScreen) hasCityShopTopology() bool {
 	return t.sess.Town != nil && t.sess.Town.cityObjects != nil
 }
+
+type shopRefusal string
+
+func (r shopRefusal) Error() string { return string(r) }
 
 func (t *townScreen) withCityShopMutation(action func(*townScreen) (ui.TownAction, error)) ui.TownAction {
 	n := *t
@@ -55,6 +60,10 @@ func (t *townScreen) withCityShopMutation(action func(*townScreen) (ui.TownActio
 		err = n.validateCityShopRoots()
 	}
 	if err != nil {
+		var refused shopRefusal
+		if errors.As(err, &refused) {
+			return ui.TownAction{}
+		}
 		return ui.TownAction{Msg: "cannot change city items: " + err.Error()}
 	}
 	t.sess.commitCityBookCandidate(n.sess)
@@ -491,7 +500,7 @@ func (t *townScreen) cityShopPutTable(incoming ShopPlace) error {
 		return nil
 	}
 	if len(t.sess.Shop.table) >= ShopTablePlaces {
-		return fmt.Errorf("the table holds five and no more")
+		return shopRefusal("the table holds five and no more")
 	}
 	t.sess.Shop.table = append(t.sess.Shop.table, incoming)
 	return nil
@@ -583,7 +592,7 @@ func (t *townScreen) cityShopBuy() (ui.TownAction, error) {
 		}
 	}
 	if spend <= 0 || spend > int64(t.sess.Town.Gold()) || spend > 1<<31-1 {
-		return ui.TownAction{}, fmt.Errorf("he will not sell you that: check the table and your purse")
+		return ui.TownAction{}, shopRefusal("he will not sell you that: check the table and your purse")
 	}
 	for i := 0; i < len(t.sess.Shop.table); {
 		if t.sess.Shop.table[i].Mine {
@@ -703,7 +712,7 @@ func (t *townScreen) cityShopSourceEquipment(index, slot int, incoming ShopItem,
 	var receipt sim.SourceEquipmentReceipt
 	next, removed, ok := mapload.SourceTownEquipment(before, t.in.Table, index, slot, incoming.Instance(), toPack, sim.SourceEquipmentOperation{Topology: &topology, Receipt: &receipt})
 	if !ok {
-		return ShopItem{}, fmt.Errorf("cannot change that equipment")
+		return ShopItem{}, shopRefusal("cannot change that equipment")
 	}
 	stacks := cityMemberStacks(before, t.in.Table)
 	pack := make([]cityShopOccurrence, len(stacks))
@@ -1020,21 +1029,21 @@ func (t *townScreen) cityShopNativeWear(slot int, item ShopItem) error {
 }
 
 func (t *townScreen) cityShopUse(item ShopItem, take func() (ShopItem, error), packIndex int) (ui.TownAction, error) {
-	if user, result, refusal, potion := t.shopPotionUser(item.Instance()); potion {
+	if user, result, _, potion := t.shopPotionUser(item.Instance()); potion {
 		if user == nil {
-			return ui.TownAction{}, fmt.Errorf("%s", refusal.Msg)
+			return ui.TownAction{}, shopRefusal("refused")
 		}
 		if _, err := take(); err != nil {
 			return ui.TownAction{}, err
 		}
 		if !commitTownPotion(&t.sess.Carried[t.shopMemberIndex()], result) {
-			return ui.TownAction{}, fmt.Errorf("cannot use that potion")
+			return ui.TownAction{}, shopRefusal("cannot use that potion")
 		}
 		return ui.TownInfo("used"), nil
 	}
-	if reader, spell, refusal, readable := t.shopBookReader(item.Instance()); readable {
+	if reader, spell, _, readable := t.shopBookReader(item.Instance()); readable {
 		if reader == nil {
-			return ui.TownAction{}, fmt.Errorf("%s", refusal.Msg)
+			return ui.TownAction{}, shopRefusal("refused")
 		}
 		if _, err := take(); err != nil {
 			return ui.TownAction{}, err
@@ -1042,9 +1051,9 @@ func (t *townScreen) cityShopUse(item ShopItem, take func() (ShopItem, error), p
 		t.shopLearnBook(&t.sess.Carried[t.shopMemberIndex()], spell)
 		return ui.TownInfo("learned"), nil
 	}
-	slot, ok, refusal := t.shopWearInstance(item.Instance())
+	slot, ok, _ := t.shopWearInstance(item.Instance())
 	if !ok {
-		return ui.TownAction{}, fmt.Errorf("%s", refusal.Msg)
+		return ui.TownAction{}, shopRefusal("refused")
 	}
 	if mapload.HasSourceActor(t.sess.Carried[t.shopMemberIndex()]) && packIndex >= 0 {
 		_, err := t.cityShopSourceEquipment(packIndex, slot, ShopItem{}, false)
@@ -1083,7 +1092,7 @@ func (t *townScreen) cityShopEquipShelf(index int) (ui.TownAction, error) {
 		return ui.TownAction{}, fmt.Errorf("merchant item has no valid price")
 	}
 	if item.Price > 0 && int64(t.sess.Town.Gold()) < int64(item.Price) {
-		return ui.TownAction{}, fmt.Errorf("you cannot afford that")
+		return ui.TownAction{}, shopRefusal("you cannot afford that")
 	}
 	action, err := t.cityShopUse(item, func() (ShopItem, error) { return t.cityShopTakeShelf(shelf, index, false) }, -1)
 	if err == nil {
@@ -1102,7 +1111,7 @@ func (t *townScreen) cityShopEquipTable(index int) (ui.TownAction, error) {
 		return ui.TownAction{}, fmt.Errorf("merchant item has no valid price")
 	}
 	if !place.Mine && place.Price > 0 && int64(t.sess.Town.Gold()) < int64(place.Price) {
-		return ui.TownAction{}, fmt.Errorf("you cannot afford that")
+		return ui.TownAction{}, shopRefusal("you cannot afford that")
 	}
 	action, err := t.cityShopUse(place.ShopItem, func() (ShopItem, error) {
 		p, err := t.cityShopTakeTable(index, false)
@@ -1162,10 +1171,10 @@ func (t *townScreen) cityShopNativeUnequip(slot int, toPack bool) (ShopItem, err
 		}
 	}
 	if value.Empty() {
-		return ShopItem{}, fmt.Errorf("nothing is worn in that slot")
+		return ShopItem{}, shopRefusal("nothing is worn in that slot")
 	}
 	if toPack && !t.shopHasActorContainer() {
-		return ShopItem{}, fmt.Errorf("no pack")
+		return ShopItem{}, shopRefusal("no pack")
 	}
 	root, err := cityMutationParty(t.sess.Town.cityObjects, member.ID)
 	if err != nil {
@@ -1218,7 +1227,7 @@ func (t *townScreen) cityShopPutPack(item ShopItem, refresh bool) error {
 	memberIndex := t.shopMemberIndex()
 	member := t.shopPartyMember(memberIndex)
 	if member == nil || !t.shopHasActorContainer() {
-		return fmt.Errorf("no pack")
+		return shopRefusal("no pack")
 	}
 	var err error
 	item, err = t.cityShopBind(item)

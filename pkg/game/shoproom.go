@@ -22,12 +22,12 @@ func (t *townScreen) shopBuy() ui.TownAction {
 		return ui.TownAction{}
 	}
 	if !t.shopHasActorContainer() {
-		return ui.TownAction{Msg: "no pack"}
+		return ui.TownAction{}
 	}
 	shop := cloneShopMutation(t.sess.Shop)
 	bought, spend, ok := shop.Buy(int32(t.sess.Town.Gold()))
 	if !ok {
-		return ui.TownAction{Msg: "he will not sell you that: check the table and your purse"}
+		return ui.TownAction{}
 	}
 	items := t.shopPackItemInstances()
 	units := 0
@@ -38,7 +38,7 @@ func (t *townScreen) shopBuy() ui.TownAction {
 		}
 	}
 	if !t.setShopPackItemInstances(items) {
-		return ui.TownAction{Msg: "cannot change that pack"}
+		return ui.TownAction{}
 	}
 	*t.sess.Shop = *shop
 	t.sess.Town.gold -= int(spend)
@@ -65,7 +65,7 @@ func (t *townScreen) shopSell() ui.TownAction {
 		if t.sess.originalCity != nil {
 			t.sess.originalCity.trade = candidate
 		}
-		return ui.TownAction{Msg: "put something of yours on the table first"}
+		return ui.TownAction{}
 	}
 	t.sess.Town.gold += int(paid)
 	t.finishOriginalCitySale(candidate, before, gold, int(paid))
@@ -84,7 +84,7 @@ func (t *townScreen) shopClear() ui.TownAction {
 		return t.withCityShopMutation((*townScreen).cityShopClear)
 	}
 	if !t.shopHasActorContainer() && len(t.sess.Shop.Table()) != 0 {
-		return ui.TownAction{Msg: "no pack"}
+		return ui.TownAction{}
 	}
 	shop := cloneShopMutation(t.sess.Shop)
 	back := shop.ClearTable()
@@ -96,7 +96,7 @@ func (t *townScreen) shopClear() ui.TownAction {
 			}
 		}
 		if !t.setShopPackItemInstancesRefresh(items, false) {
-			return ui.TownAction{Msg: "cannot change that pack"}
+			return ui.TownAction{}
 		}
 	}
 	if t.sess.Shop != nil {
@@ -120,7 +120,7 @@ func (t *townScreen) shopOffTable(i int, whole bool) ui.TownAction {
 		return ui.TownAction{}
 	}
 	if table[i].Mine && !t.shopHasActorContainer() {
-		return ui.TownAction{Msg: "no pack"}
+		return ui.TownAction{}
 	}
 	n := int32(1)
 	if whole {
@@ -141,7 +141,7 @@ func (t *townScreen) shopOffTable(i int, whole bool) ui.TownAction {
 		items = append(items, place.Instance())
 	}
 	if !t.setShopPackItemInstances(items) {
-		return ui.TownAction{Msg: "cannot change that pack"}
+		return ui.TownAction{}
 	}
 	*t.sess.Shop = *shop
 	return ui.TownInfo("back in your pack")
@@ -190,7 +190,7 @@ func (t *townScreen) shopFromShelf(i int, whole bool) ui.TownAction {
 		return ui.TownAction{}
 	}
 	if !t.sess.Shop.TakeFromShelf(t.shopShelf, i, n) {
-		return ui.TownAction{Msg: "the table holds five and no more"}
+		return ui.TownAction{}
 	}
 	t.startTownResponse(shopItemSpeech(st))
 	return ui.TownAction{}
@@ -242,7 +242,7 @@ func (t *townScreen) shopFromPack(i int, whole bool) ui.TownAction {
 			return ui.TownAction{}
 		}
 	} else if !shop.PutOnTable(shopItem) {
-		return ui.TownAction{Msg: "the table holds five and no more"}
+		return ui.TownAction{}
 	}
 
 	items := t.shopPackItemInstances()
@@ -256,12 +256,12 @@ func (t *townScreen) shopFromPack(i int, whole bool) ui.TownAction {
 		kept = append(kept, candidate)
 	}
 	if left != 0 || !t.setShopPackItemInstancesRefresh(kept, false) {
-		return ui.TownAction{Msg: "cannot change that pack"}
+		return ui.TownAction{}
 	}
 	*t.sess.Shop = *shop
 	t.stageOriginalCitySale(candidate)
 	if price <= 0 {
-		return ui.TownAction{Msg: "he puts no price on that one - it can go on the table but he will not buy it"}
+		return ui.TownAction{}
 	}
 	return ui.TownAction{}
 }
@@ -611,15 +611,15 @@ func (t *townScreen) shopTakeOnePackItem(item sim.ItemInstance) bool {
 func (t *townScreen) shopWear(code data.ItemCode) (slot int, ok bool, action ui.TownAction) {
 	slot, ok = EquipTarget(code, t.in.Table)
 	if !ok {
-		return 0, false, ui.TownAction{Msg: "he cannot wear that"}
+		return 0, false, ui.TownAction{}
 	}
 	if !t.shopUsable(code) {
-		return 0, false, ui.TownAction{Msg: "not for his class"}
+		return 0, false, ui.TownAction{}
 	}
 	if !t.shopHasActorContainer() {
 		worn := t.shopWornItemSlots(t.shopMemberIndex())
 		if worn != nil && (!worn[slot-1].Empty() || slot == 1 && !worn[1].Empty() || slot == 2 && t.shopShieldDisplacesWeapon()) {
-			return 0, false, ui.TownAction{Msg: "no pack"}
+			return 0, false, ui.TownAction{}
 		}
 	}
 	return slot, true, ui.TownAction{}
@@ -627,7 +627,7 @@ func (t *townScreen) shopWear(code data.ItemCode) (slot int, ok bool, action ui.
 
 func (t *townScreen) shopWearInstance(item sim.ItemInstance) (int, bool, ui.TownAction) {
 	if _, layer := mapload.LayerItem(t.in.Table, item.Code); layer {
-		return 0, false, ui.TownAction{Msg: "worn from the pack"}
+		return 0, false, ui.TownAction{}
 	}
 	m := t.shopPartyMember(t.shopMemberIndex())
 	if m == nil || !mapload.HasSourceActor(*m) {
@@ -645,10 +645,10 @@ func (t *townScreen) shopWearInstance(item sim.ItemInstance) (int, bool, ui.Town
 		slot = int(item.SourceEquipment.OwnKind)
 	}
 	if slot < 1 || slot > sim.EquipSlots {
-		return 0, false, ui.TownAction{Msg: "he cannot wear that"}
+		return 0, false, ui.TownAction{}
 	}
 	if !t.shopUsable(data.ItemCode(item.Code)) {
-		return 0, false, ui.TownAction{Msg: "not for his class"}
+		return 0, false, ui.TownAction{}
 	}
 	return slot, true, ui.TownAction{}
 }
@@ -693,7 +693,7 @@ func (t *townScreen) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember
 	}
 	member := t.shopPartyMember(t.shopMemberIndex())
 	if member == nil || !member.Mage {
-		return nil, 0, ui.TownAction{Msg: "only a mage can read that"}, true
+		return nil, 0, ui.TownAction{}, true
 	}
 	return member, spell, ui.TownAction{}, true
 }
@@ -746,7 +746,7 @@ func (t *townScreen) shopEquipFromPackValues(i int) ui.TownAction {
 			if t.sess.originalCity != nil {
 				t.sess.originalCity.trade = trade
 			}
-			return ui.TownAction{Msg: "cannot use that potion"}
+			return ui.TownAction{}
 		}
 		return ui.TownInfo("used")
 	}
@@ -768,7 +768,7 @@ func (t *townScreen) shopEquipFromPackValues(i int) ui.TownAction {
 	if mapload.HasSourceActor(*member) {
 		next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, k, slot, item, false)
 		if !ok {
-			return ui.TownAction{Msg: "cannot wear that"}
+			return ui.TownAction{}
 		}
 		t.commitShopSourceEquipment(member, next, slot)
 		return ui.TownInfo("worn")
@@ -809,11 +809,11 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 			return refusal
 		}
 		if item.Price > 0 && int32(t.sess.Town.Gold()) < item.Price {
-			return ui.TownAction{Msg: "you cannot afford that"}
+			return ui.TownAction{}
 		}
 		next := mapload.CloneParty([]mapload.PartyMember{*user})[0]
 		if !commitTownPotion(&next, result) {
-			return ui.TownAction{Msg: "cannot use that potion"}
+			return ui.TownAction{}
 		}
 		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
 			return ui.TownAction{}
@@ -827,7 +827,7 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 			return refusal
 		}
 		if item.Price > 0 && int32(t.sess.Town.Gold()) < item.Price {
-			return ui.TownAction{Msg: "you cannot afford that"}
+			return ui.TownAction{}
 		}
 		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
 			return ui.TownAction{}
@@ -841,13 +841,13 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 		return refusal
 	}
 	if item.Price > 0 && int32(t.sess.Town.Gold()) < item.Price {
-		return ui.TownAction{Msg: "you cannot afford that"}
+		return ui.TownAction{}
 	}
 	member := t.shopPartyMember(t.shopMemberIndex())
 	if mapload.HasSourceActor(*member) {
 		next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, item.Instance(), false)
 		if !ok {
-			return ui.TownAction{Msg: "cannot wear that"}
+			return ui.TownAction{}
 		}
 		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
 			return ui.TownAction{}
@@ -886,11 +886,11 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 			return refusal
 		}
 		if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
-			return ui.TownAction{Msg: "you cannot afford that"}
+			return ui.TownAction{}
 		}
 		next := mapload.CloneParty([]mapload.PartyMember{*user})[0]
 		if !commitTownPotion(&next, result) {
-			return ui.TownAction{Msg: "cannot use that potion"}
+			return ui.TownAction{}
 		}
 		taken, ok := t.sess.Shop.TakeOffTable(i, 1)
 		if !ok {
@@ -907,7 +907,7 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 			return refusal
 		}
 		if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
-			return ui.TownAction{Msg: "you cannot afford that"}
+			return ui.TownAction{}
 		}
 		taken, ok := t.sess.Shop.TakeOffTable(i, 1)
 		if !ok {
@@ -927,13 +927,13 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 		return refusal
 	}
 	if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
-		return ui.TownAction{Msg: "you cannot afford that"}
+		return ui.TownAction{}
 	}
 	member := t.shopPartyMember(t.shopMemberIndex())
 	if mapload.HasSourceActor(*member) {
 		next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, place.Instance(), false)
 		if !ok {
-			return ui.TownAction{Msg: "cannot wear that"}
+			return ui.TownAction{}
 		}
 		if _, ok := t.sess.Shop.TakeOffTable(i, 1); !ok {
 			return ui.TownAction{}
@@ -996,7 +996,7 @@ func (t *townScreen) shopUnequipDollValues(slot int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	if !t.shopHasActorContainer() {
-		return ui.TownAction{Msg: "no pack"}
+		return ui.TownAction{}
 	}
 	// Retire the starting-weapon fallback even when the removed weapon was real;
 	// otherwise the next removal could create another unit from the fallback.
@@ -1040,7 +1040,7 @@ func (t *townScreen) shopUnequipToTableValues(slot int) ui.TownAction {
 			ok = trade.PutOnTable(shopItem)
 		}
 		if !ok {
-			return ui.TownAction{Msg: "the table holds five and no more"}
+			return ui.TownAction{}
 		}
 		t.shopRevealTradeTable()
 		*t.sess.Shop = *trade
@@ -1073,10 +1073,10 @@ func (t *townScreen) shopUnequipToTableValues(slot int) ui.TownAction {
 	shopItem = t.ownShopItem(shopItem, -1)
 	if idx, found := shopFindMineItemPlace(t.sess.Shop.Table(), shopItem); found {
 		if !t.sess.Shop.growOwnedTablePlace(idx, shopItem) {
-			return ui.TownAction{Msg: "the table holds five and no more"}
+			return ui.TownAction{}
 		}
 	} else if !t.sess.Shop.PutOnTable(shopItem) {
-		return ui.TownAction{Msg: "the table holds five and no more"}
+		return ui.TownAction{}
 	}
 	// shopUnequipDoll's own rule, on the same slot and for the same reason
 	// (R2): a real weapon staged on the table has left the member exactly as

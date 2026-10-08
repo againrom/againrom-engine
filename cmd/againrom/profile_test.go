@@ -49,6 +49,12 @@ func TestLaunchProfileKeepsSavesAndOptionsTogether(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if mode == "portable" {
+				want, err = filepath.EvalSymlinks(want)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
 			wantSaves := filepath.Join(want, "saves")
 			if o.saves != "" {
 				wantSaves = o.saves
@@ -69,6 +75,10 @@ func TestLaunchProfileSuppliesStartupPreferences(t *testing.T) {
 	install := defaultInstall(t)
 	profileDir := filepath.Join(install, "Againrom")
 	if err := os.Mkdir(profileDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	profileDir, err := filepath.EvalSymlinks(profileDir)
+	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(profileDir, "options.txt"), []byte("SoundEnabled=0\nMasterVolume=25\n"), 0600); err != nil {

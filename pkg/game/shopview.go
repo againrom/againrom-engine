@@ -444,7 +444,7 @@ func (t *townScreen) shopStepMember(step int) ui.TownAction {
 	roster := townPickerMembers(party)
 	n := len(roster)
 	if n <= 1 {
-		return ui.TownAction{Msg: "nobody else is with you"}
+		return ui.TownAction{}
 	}
 	previous := t.shopMemberIndex()
 	at := slices.Index(roster, previous)
@@ -691,7 +691,7 @@ func (t *townScreen) ShopClick(c ui.ShopControl) ui.TownAction {
 		return t.shopClickShelfCell(c.Index, c.Shift)
 	case ui.ShopControlTableCell:
 		if t.shopBook {
-			return ui.TownAction{Msg: "close the book to use the trade table"}
+			return ui.TownAction{}
 		}
 		return t.shopOffTable(c.Index, c.Shift)
 	case ui.ShopControlPackCell:
@@ -773,7 +773,7 @@ func (t *townScreen) shopButton(i int) ui.TownAction {
 // units since `DIV-322`.
 func (t *townScreen) shopClickShelfCell(i int, whole bool) ui.TownAction {
 	if t.shopChosen < 0 || t.shopChosen >= len(shopRoomShelves) {
-		return ui.TownAction{Msg: "click a shelf in the room first"}
+		return ui.TownAction{}
 	}
 	room := shopRoomShelves[t.shopChosen]
 	if !room.stocked {

@@ -614,3 +614,37 @@ func TestTrainedCityLegacyNativeDefaultsAndMalformedHistory(t *testing.T) {
 		}
 	}
 }
+
+func TestSchoolTrainsNativeStateCharacterOfAnOriginalCity(t *testing.T) {
+	f := currentTrainingCity(t)
+	for i := range f.Carried {
+		if f.Carried[i].ID == "hero" {
+			carry := *f.Carried[i].Carry
+			carry.LiveLoad = nil
+			f.Carried[i].Carry = &carry
+			f.Carried[i].OriginalHuman = nil
+			f.Carried[i].Hero.Spirit--
+		}
+	}
+	gold := f.Town.Gold()
+	s := f.TownScreen().(*townScreen)
+	s.room, s.schoolCell, s.shopMember = roomSchool, 0, 0
+	msg := s.trainHeroSkill(1)
+	hero := trainingPartyMember(t, f, "hero")
+	if !strings.HasPrefix(msg, "trained ") || f.Town.Gold() >= gold || hero.Hero.Skill[1] != 12 {
+		t.Fatalf("native-state character was not trained: %q gold %d->%d skill %d", msg, gold, f.Town.Gold(), hero.Hero.Skill[1])
+	}
+}
+
+func TestTrainingPostedLineShowsFaultsAndHidesPlayerRefusals(t *testing.T) {
+	for msg, want := range map[string]string{
+		"trained Air to 3 for 200":                                  "trained Air to 3 for 200",
+		"SAV training requires unchanged items and character state": "SAV training requires unchanged items and character state",
+		"training costs 500":                                        "",
+		"cannot train that skill":                                   "",
+	} {
+		if got := trainingPostedLine(msg); got != want {
+			t.Errorf("trainingPostedLine(%q) = %q, want %q", msg, got, want)
+		}
+	}
+}

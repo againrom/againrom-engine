@@ -233,7 +233,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Table = shopBookFixtureTable()
 		f.Carried[0].Carry.ItemInstances = []sim.ItemInstance{book}
 		f.Carried[0].Carry.Items = []uint16{book.Code}
-		if action := screen.shopEquipFromPack(1); action.Msg != "only a mage can read that" {
+		if action := screen.shopEquipFromPack(1); action.Msg != "" {
 			t.Fatalf("fighter read = %+v", action)
 		}
 		if f.Carried[0].KnownSpells != 0 || len(mapload.MemberCarriedItems(f.Carried[0], f.Table)) != 1 {

@@ -126,21 +126,19 @@ func (t *townScreen) requestTavernSlotSound(slot int) {
 // pressMercenary hires or returns a squad the way the tavern's upper button
 // does. A hire refused for its price requests the refusal sound slot and posts
 // no line; no other refusal posts a line either (TAVERN-LINES-022).
-func (t *townScreen) pressMercenary(typ int) string {
+func (t *townScreen) pressMercenary(typ int) {
 	if t == nil || t.sess == nil || t.sess.Town == nil {
-		return ""
+		return
 	}
 	hired := t.sess.Town.MercenaryHired(typ)
-	msg, ok := t.toggleMercenary(typ)
-	if ok {
-		return msg
+	if _, ok := t.toggleMercenary(typ); ok {
+		return
 	}
 	if !hired {
 		if price, priced := t.mercenaryPrice(typ, t.sess.Town.MercenaryPool(typ)); priced && price > t.sess.Town.Gold() {
 			t.requestTavernSlotSound(tavernSlotHireRefused)
 		}
 	}
-	return ""
 }
 
 func (t *townScreen) toggleMercenary(typ int) (string, bool) {

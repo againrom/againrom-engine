@@ -857,7 +857,8 @@ func worldMapMarkerMissions(town *Town, data *globalMapData) []int {
 func (t *townScreen) worldMapMissionAction(mission int) ui.TownAction {
 	open := t.openMission(mission)
 	return ui.TownAction{
-		Msg: fmt.Sprintf("travelling to mission %d", mission),
+		Msg:  fmt.Sprintf("travelling to mission %d", mission),
+		Info: true,
 		Open: func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect,
 			ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {
 			v, tick, order, cadence, affect, advance, attack, grab, stance, march, err := open()

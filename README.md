@@ -1,7 +1,7 @@
 # againrom
 
 againrom is a new engine for **Rage of Mages** (Allods, 1998). You play the
-original game's campaign with your own copy of the game, on a modern Windows PC.
+original game's campaign with your own copy of the game, on Windows or macOS.
 
 It ships no game files. It reads the maps, graphics, sounds, music and movies
 from a Rage of Mages install that you already own. Both the English and the
@@ -13,13 +13,13 @@ original. Each known difference is listed in `docs/divergences/`.
 
 ## What you need
 
-- 64-bit Windows.
+- 64-bit Windows, or macOS on Intel or Apple Silicon.
 - An installed copy of Rage of Mages, English or Russian. It is sold
   digitally, for example on GOG.
 
 againrom only reads the install. It never changes the original game's files.
 
-## Install
+## Install on Windows
 
 1. Download the Windows AMD64 ZIP from
    [GitHub Releases](https://github.com/againrom/againrom-engine/releases/latest).
@@ -35,6 +35,27 @@ The starter remembers your choices in `starter.ini` beside it. You can add
 both the English and the Russian install and switch between them.
 The package starts with default settings. It includes no saves, mods or personal
 configuration files.
+
+## Install on macOS
+
+1. Download the macOS AMD64 ZIP for an Intel Mac, or the macOS ARM64 ZIP for
+   Apple Silicon. Unpack it into a separate folder outside the game install.
+2. These builds have no Developer ID signature or notarization. For a download
+   you trust, open Terminal in the unpacked `againrom` folder and remove its
+   quarantine attributes:
+
+   ```sh
+   xattr -d com.apple.quarantine againrom starter
+   ```
+
+   An attribute-not-found message means that executable is already unquarantined.
+3. Run `./starter` from that Terminal. Under **Base game**, type the absolute
+   path of the owned install, press **Add**, then **Play**. The Mac starter
+   currently requires typed paths; clipboard paste and Command+V are pending.
+
+The ZIP preserves executable permissions and contains no game assets or player
+profiles. It is a pair of command-line-launched executables, without an `.app`
+bundle. Alternatively, run `./againrom -assets "/path/to/Rage of Mages"`.
 
 ## Starter settings
 
@@ -54,7 +75,10 @@ the original game made in its own install folder, and they load in againrom.
 
 By default, saves go to the `saves` folder beside `againrom.exe`. If the game
 runs from inside an install folder, they go to `Againrom\saves` there instead,
-or to `%APPDATA%\Againrom` when that folder is read-only.
+or to the user configuration directory's `Againrom` when that folder is
+read-only (`%APPDATA%\Againrom` on Windows,
+`~/Library/Application Support/Againrom` on macOS). The Mac executable is named
+`againrom`; its install-local profile is `Againrom/saves` beside it.
 
 ## Mods
 
@@ -86,6 +110,7 @@ Requests about pirated copies of the game are closed without reply.
 ## Building from source
 
 You need Go, at the version named in `go.mod`.
+macOS builds also require Xcode Command Line Tools and `CGO_ENABLED=1`.
 
 ```
 go build ./...
@@ -98,6 +123,8 @@ and `docs/PROVENANCE.md` describes how the original game's behaviour was
 established without copying its code or data.
 The version-tagged Windows packaging workflow is described in
 [`docs/windows-release.md`](docs/windows-release.md).
+That workflow also builds macOS Intel and Apple Silicon packages through
+`.github/workflows/macos-release.yml` on native macOS runners.
 
 ## Legal
 

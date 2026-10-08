@@ -341,8 +341,8 @@ func TestShopShieldNeedsAPackOnlyToTakeAWeaponOff(t *testing.T) {
 			if ok && slot != 2 {
 				t.Fatalf("shopWear slot = %d, want 2", slot)
 			}
-			if !ok && act.Msg != "no pack" {
-				t.Fatalf("shopWear refused with %q, want no pack", act.Msg)
+			if !ok && act.Msg != "" {
+				t.Fatalf("shopWear refusal posted %q, want no line", act.Msg)
 			}
 		})
 	}

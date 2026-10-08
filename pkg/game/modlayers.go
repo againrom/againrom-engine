@@ -116,10 +116,10 @@ func (t *townScreen) shopToggleLayer(i int) (ui.TownAction, bool) {
 		return ui.TownInfo("removed"), true
 	}
 	if mapload.HasSourceActor(*member) {
-		return ui.TownAction{Msg: "he cannot wear that"}, true
+		return ui.TownAction{}, true
 	}
 	if !t.shopUsable(data.ItemCode(layer.Code)) {
-		return ui.TownAction{Msg: "not for his class"}, true
+		return ui.TownAction{}, true
 	}
 	member.Layers = wearLayer(member.Layers, layer, t.in.Table)
 	t.composeShopFaces()

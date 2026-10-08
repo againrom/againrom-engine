@@ -1,0 +1,103 @@
+name: macOS release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vMAJOR.MINOR.PATCH tag, or empty to verify this branch
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: darwin/${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    env:
+      GOOS: darwin
+      GOARCH: ${{ matrix.arch }}
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '4'
+      GOFLAGS: -p=2
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate immutable release identity or verification commit
+        id: identity
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EVENT_REVISION: ${{ github.sha }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+          if [[ -n "$tag" ]]; then
+            if [[ "$EVENT_NAME" == workflow_dispatch && "$EVENT_REF" != refs/heads/main ]]; then
+              echo 'Dispatch a tagged release from main.' >&2; exit 1
+            fi
+            [[ "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+            revision=$(git rev-parse --verify "refs/tags/$tag^{commit}")
+            if [[ "$EVENT_NAME" == push ]]; then
+              [[ "$revision" == "$(git rev-parse --verify "$EVENT_REVISION^{commit}")" ]]
+            fi
+            git merge-base --is-ancestor "$revision" origin/main
+            git checkout --detach "$revision"
+          else
+            [[ "$EVENT_REF" == refs/heads/story-1362-macos-release || "$EVENT_NAME" == workflow_dispatch ]]
+            revision=$(git rev-parse --verify "$EVENT_REVISION^{commit}")
+            [[ "$(git rev-parse HEAD)" == "$revision" ]]
+          fi
+          version=$(tr -d '\r\n' < cmd/againrom/VERSION)
+          [[ -n "$tag" ]] || tag="v$version"
+          [[ "$tag" == "v$version" ]]
+          printf 'tag=%s\nrevision=%s\nversion=%s\n' "$tag" "$revision" "$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Verify native architecture, versions and player profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(go env GOHOSTARCH)" == "$GOARCH" ]]
+          go test -trimpath -count=1 ./internal/buildinfo ./internal/versionres ./cmd/starter
+          go test -trimpath -count=1 ./cmd/againrom ./pkg/game -run 'Test(RuntimeProfile|LaunchProfile)'
+      - name: Build macOS programs
+        shell: bash
+        run: bash scripts/build-tools.sh "$RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter
+      - name: Check the public package boundary
+        shell: bash
+        run: python3 scripts/test-macos-package.py --binaries-directory "$RUNNER_TEMP/againrom-binaries" --evidence-directory "$RUNNER_TEMP/package-check" --arch "$GOARCH"
+      - name: Package macOS release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.identity.outputs.tag }}
+          SOURCE_REVISION: ${{ steps.identity.outputs.revision }}
+        run: python3 scripts/package-macos.py --binaries-directory "$RUNNER_TEMP/againrom-binaries" --output-directory "$RUNNER_TEMP/againrom-package" --revision "$SOURCE_REVISION" --tag "$RELEASE_TAG" --arch "$GOARCH"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: macos-${{ matrix.arch }}-${{ steps.identity.outputs.tag }}-${{ steps.identity.outputs.revision }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-macos-${{ matrix.arch }}.zip
+            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-macos-${{ matrix.arch }}.zip.sha256

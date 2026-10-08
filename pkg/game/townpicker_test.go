@@ -153,7 +153,7 @@ func TestTownPickersStandStillWithOnePlayerCharacterAndASquad(t *testing.T) {
 			}
 			for _, next := range []bool{true, false} {
 				act := room.press(s, next)
-				if act.Msg != "nobody else is with you" {
+				if act.Msg != "" {
 					t.Errorf("stepping alone said %q", act.Msg)
 				}
 				if got := s.shopMemberIndex(); got != 0 || f.Carried[got].Hired() {

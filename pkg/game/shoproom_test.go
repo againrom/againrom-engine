@@ -160,8 +160,8 @@ func TestAPurseBelowTheTotalKeepsBuyClickableAndRefusesTheTransaction(t *testing
 	if !s.ShopScreen().Live[1] {
 		t.Fatal("BUY must remain clickable with an empty purse")
 	}
-	if act := click(s, ui.ShopControlButton, 1); act.Msg == "" {
-		t.Error("pressing unaffordable BUY said nothing")
+	if act := click(s, ui.ShopControlButton, 1); act.Msg != "" {
+		t.Errorf("pressing unaffordable BUY posted %q, want no line", act.Msg)
 	}
 	if _, _, ok := f.Shop.Buy(0); ok {
 		t.Error("the model sold on an empty purse")
@@ -432,8 +432,8 @@ func TestShiftClickOntoAFullTableRefusesAndMovesNothing(t *testing.T) {
 	}
 
 	act := clickShift(s, ui.ShopControlPackCell, 1)
-	if !contains(act.Msg, "five and no more") {
-		t.Errorf("message %q, want the table's own refusal", act.Msg)
+	if act.Msg != "" {
+		t.Errorf("message %q, want no line for the full table", act.Msg)
 	}
 	if got := len(f.Carried[0].Carry.Items); got != 3 {
 		t.Errorf("the pack holds %d units after the refusal, want all 3 still there", got)
@@ -490,8 +490,8 @@ func TestTheRoomRefusesASixthPlace(t *testing.T) {
 	// and price, so a magic-shelf take can never join an armour-shelf place.
 	click(s, ui.ShopControlShelfPick, roomMagic)
 	act := click(s, ui.ShopControlShelfCell, 0)
-	if act.Msg == "" {
-		t.Error("the sixth take said nothing")
+	if act.Msg != "" {
+		t.Errorf("the sixth take posted %q, want no line", act.Msg)
 	}
 	if len(f.Shop.Table()) != ShopTablePlaces {
 		t.Errorf("the table took a sixth: %d places", len(f.Shop.Table()))
@@ -721,8 +721,8 @@ func TestAnUnpriceableItemIsStatedAsHavingNoPrice(t *testing.T) {
 	f, s := shopRoom(t, []uint16{questItem})
 
 	act := click(s, ui.ShopControlPackCell, 1)
-	if act.Msg == "" {
-		t.Error("putting an unpriced item on the table said nothing")
+	if act.Msg != "" {
+		t.Errorf("putting an unpriced item on the table posted %q, want no line", act.Msg)
 	}
 	if got := f.Shop.SellTotal(); got != 0 {
 		t.Errorf("SellTotal = %d, want 0 for an item with no price", got)
@@ -943,7 +943,7 @@ func TestEveryTradeTableProducerRevealsTheTableBeforeItStagesAnything(t *testing
 		f, s := shopRoom(t, []uint16{0x0101})
 		s.shopBook = true
 		act := click(s, ui.ShopControlPackCell, 1)
-		if act.Msg == "the table holds five and no more" || s.shopBook || len(f.Shop.Table()) != 1 ||
+		if act.Msg != "" || s.shopBook || len(f.Shop.Table()) != 1 ||
 			!s.ShopScreen().Table[0].Occupied() || len(f.Carried[0].Carry.Items) != 0 {
 			t.Fatalf("pack stage = msg %q book %v table %+v pack %v", act.Msg, s.shopBook,
 				f.Shop.Table(), f.Carried[0].Carry.Items)
@@ -955,7 +955,7 @@ func TestEveryTradeTableProducerRevealsTheTableBeforeItStagesAnything(t *testing
 		click(s, ui.ShopControlShelfPick, roomArmour)
 		s.shopBook = true
 		act := click(s, ui.ShopControlShelfCell, 0)
-		if act.Msg == "the table holds five and no more" || s.shopBook || len(f.Shop.Table()) != 1 ||
+		if act.Msg != "" || s.shopBook || len(f.Shop.Table()) != 1 ||
 			!s.ShopScreen().Table[0].Occupied() {
 			t.Fatalf("shelf stage = msg %q book %v table %+v", act.Msg, s.shopBook, f.Shop.Table())
 		}
@@ -968,8 +968,8 @@ func TestEveryTradeTableProducerRevealsTheTableBeforeItStagesAnything(t *testing
 		beforePack := append([]uint16(nil), f.Carried[0].Carry.Items...)
 		s.shopBook = true
 		act := click(s, ui.ShopControlPackCell, 1)
-		if act.Msg != "the table holds five and no more" || s.shopBook {
-			t.Fatalf("full stage = msg %q book %v, want a visible full-table refusal", act.Msg, s.shopBook)
+		if act.Msg != "" || s.shopBook {
+			t.Fatalf("full stage = msg %q book %v, want no line and the table revealed", act.Msg, s.shopBook)
 		}
 		if !reflect.DeepEqual(f.Shop.Table(), beforeTable) || !reflect.DeepEqual(f.Carried[0].Carry.Items, beforePack) {
 			t.Fatal("full-table refusal changed the table or pack")

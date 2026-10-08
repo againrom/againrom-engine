@@ -148,13 +148,25 @@ func TestMalformedIniLineIsReportedNotFatal(t *testing.T) {
 func TestIniFolderThatCannotBeWrittenIsReportedAndTheWindowKeepsRunning(t *testing.T) {
 	r := newRig(t, "")
 	blocker := filepath.Join(r.dir, "blocker")
-	if err := os.WriteFile(blocker, []byte("file"), 0o644); err != nil {
+	if err := os.Mkdir(blocker, 0o755); err != nil {
 		t.Fatal(err)
 	}
 	r.ini = filepath.Join(blocker, "starter.ini")
+	if err := os.WriteFile(r.ini, []byte("[starter]\nlast-base = en\n[bases]\nen = "+r.root+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	a := r.app()
-	if !a.statusBad || !strings.Contains(a.status, "not writable") {
+	if root, ok := a.selectedRoot(); a.statusBad || !ok || root != r.root {
 		t.Fatalf("status %q", a.status)
+	}
+	if err := os.Remove(r.ini); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(blocker); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(blocker, []byte("file"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 	do(t, a, action{kind: aSave})
 	if !a.statusBad || !strings.Contains(a.status, "cannot save") || a.closing {

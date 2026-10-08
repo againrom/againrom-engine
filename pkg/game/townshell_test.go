@@ -473,6 +473,11 @@ func TestTavernOfferRequiresMissionUnlockAndStockAndUnaffordableHireIsAtomic(t *
 		t.Fatalf("unaffordable hire mutated gold=%d pool=%d hired=%v party=%#v",
 			f.Town.Gold(), f.Town.MercenaryPool(3), f.Town.MercenaryHired(3), f.Carried)
 	}
+	sounds := s.tavernSlotRequests[tavernSlotHireRefused]
+	s.pressMercenary(3)
+	if got := s.tavernSlotRequests[tavernSlotHireRefused]; got != sounds+1 {
+		t.Fatalf("unaffordable hire requested the refusal sound %d times, want %d", got, sounds+1)
+	}
 }
 
 func TestSchoolPricesAndTrainingPersistThroughSave(t *testing.T) {

@@ -131,7 +131,7 @@ func TestShopSelectedCountShortageLeavesPackAndTableUnchanged(t *testing.T) {
 				t.Fatal("could not stage existing place")
 			}
 			beforeTable := f.Shop.Table()
-			if action := clickShift(screen, ui.ShopControlPackCell, 1); action.Msg != "cannot change that pack" {
+			if action := clickShift(screen, ui.ShopControlPackCell, 1); action.Msg != "" {
 				t.Fatalf("shortage action = %+v", action)
 			}
 			requireShopPackIDs(t, f, 101, 202)

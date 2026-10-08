@@ -199,8 +199,8 @@ func TestReleaseModJoinWaitsForTheTavernTalk(t *testing.T) {
 	if names := modJoinPickerNames(t, s); len(names) != 1 {
 		t.Fatalf("the picker before the talk shows %v", names)
 	}
-	if msg := s.shopStepMember(1).Msg; msg != "nobody else is with you" {
-		t.Fatalf("character switch before the talk: %q", msg)
+	if act := s.shopStepMember(1); act.Msg != "" || act.Open != nil || s.shopMemberIndex() != 0 {
+		t.Fatalf("character switch before the talk: %+v, member %d", act, s.shopMemberIndex())
 	}
 	if containsMission(g.Town.Available(), 30) {
 		t.Fatal("mission 30 is at the gates before its tavern conversation")

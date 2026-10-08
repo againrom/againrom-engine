@@ -196,7 +196,7 @@ func TestShopInteriorMerchantPriorityTriggersAndIdleCandidate(t *testing.T) {
 	}
 	a.merchantModes, a.merchantIndex = 0, 4
 	f.Town.gold = 0
-	if msg := s.ShopClick(ui.ShopControl{Kind: ui.ShopControlButton, Index: 1}).Msg; msg == "" || a.merchantModes != shopMerchantNo || a.merchantIndex != 4 {
+	if msg := s.ShopClick(ui.ShopControl{Kind: ui.ShopControlButton, Index: 1}).Msg; msg != "" || a.merchantModes != shopMerchantNo || a.merchantIndex != 4 {
 		t.Fatalf("unaffordable buy = %q modes%x index%d", msg, a.merchantModes, a.merchantIndex)
 	}
 	f.Shop.ClearTable()

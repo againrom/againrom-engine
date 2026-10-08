@@ -95,8 +95,14 @@ jobs:
             ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-windows-amd64.zip
             ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-windows-amd64.zip.sha256
 
-  publish:
+  macos:
     needs: build
+    uses: ./.github/workflows/macos-release.yml
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+
+  publish:
+    needs: [build, macos]
     if: github.repository == 'againrom/againrom-engine'
     runs-on: windows-2022
     timeout-minutes: 10
@@ -115,7 +121,8 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: windows-${{ needs.build.outputs.tag }}-${{ needs.build.outputs.revision }}
+          pattern: '*-${{ needs.build.outputs.tag }}-${{ needs.build.outputs.revision }}'
+          merge-multiple: true
           path: ${{ runner.temp }}/release-assets
       - name: Publish the verified assets through a draft
         shell: pwsh
@@ -127,24 +134,29 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $tagRevision -cne $revision) { throw 'Release tag changed during the build.' }
           & git merge-base --is-ancestor $revision origin/main
           if ($LASTEXITCODE -ne 0) { throw 'Release commit is no longer on origin/main.' }
-          $name = "againrom-$($env:RELEASE_VERSION)-windows-amd64.zip"
           $assets = "$env:RUNNER_TEMP/release-assets"
-          $zip = Join-Path $assets $name
-          $checksum = "$zip.sha256"
-          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ((Get-Content -LiteralPath $checksum -Raw) -cne "$hash  $name`n") { throw 'Downloaded ZIP checksum differs.' }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $archive = [IO.Compression.ZipFile]::OpenRead($zip)
-          try {
-            $entry = $archive.GetEntry('againrom/BUILD-INFO.json')
-            $reader = [IO.StreamReader]::new($entry.Open())
-            try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
-          } finally { $archive.Dispose() }
-          if ($manifest.revision -cne $revision -or $manifest.tag -cne $tag -or $manifest.version -cne $env:RELEASE_VERSION) {
-            throw 'Downloaded manifest differs from the selected release.'
+          $expected = @()
+          foreach ($platform in @('windows-amd64', 'macos-amd64', 'macos-arm64')) {
+            $name = "againrom-$($env:RELEASE_VERSION)-$platform.zip"
+            $zip = Join-Path $assets $name
+            $checksum = "$zip.sha256"
+            $expected += @($name, "$name.sha256")
+            $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ((Get-Content -LiteralPath $checksum -Raw) -cne "$hash  $name`n") { throw 'Downloaded ZIP checksum differs.' }
+            $archive = [IO.Compression.ZipFile]::OpenRead($zip)
+            try {
+              $entry = $archive.GetEntry('againrom/BUILD-INFO.json')
+              $reader = [IO.StreamReader]::new($entry.Open())
+              try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+            } finally { $archive.Dispose() }
+            $target = $platform.Replace('macos-', 'darwin/').Replace('windows-', 'windows/')
+            if ($manifest.revision -cne $revision -or $manifest.tag -cne $tag -or $manifest.version -cne $env:RELEASE_VERSION -or $manifest.target -cne $target) {
+              throw 'Downloaded manifest differs from the selected release.'
+            }
           }
           $title = "Againrom $($env:RELEASE_VERSION)"
-          $notes = "Windows AMD64. Unpack into a separate folder and run starter.exe. A lawfully owned game install is required. No game assets or player profiles are included.`n`nSource commit: $revision"
+          $notes = "Windows AMD64, macOS Intel and macOS Apple Silicon. Unpack into a separate folder and run starter.exe on Windows or ./starter on macOS. Mac builds are unsigned and not notarized; see README.md for Gatekeeper instructions. A lawfully owned game install is required. No game assets or player profiles are included.`n`nSource commit: $revision"
           # The tag endpoint never returns a draft, so releases are found by
           # listing them; more than one release naming the tag is preserved.
           $query = ".[] | select(.tag_name == `"$tag`") | tojson"
@@ -164,7 +176,6 @@ jobs:
           if ($release.target_commitish -cne $revision -or $release.name -cne $title -or $release.body -cne $notes) {
             throw 'Existing release identity or notes conflict; preserve it for inspection.'
           }
-          $expected = @($name, "$name.sha256")
           $existingDirectory = "$env:RUNNER_TEMP/existing-assets"
           foreach ($asset in $release.assets) {
             if ($asset.name -cnotin $expected) { throw 'Existing release has unknown assets; preserve them for inspection.' }
@@ -184,6 +195,6 @@ jobs:
               & gh api -X POST "https://uploads.github.com/repos/$env:GITHUB_REPOSITORY/releases/$($release.id)/assets?name=$file" -H 'Content-Type: application/octet-stream' --input (Join-Path $assets $file) --silent
               if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed; leave the release as a draft.' }
             }
-            & gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($release.id)" -F draft=false --silent
+            & gh api -X PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($release.id)" -F draft=false -f make_latest=true --silent
             if ($LASTEXITCODE -ne 0) { throw 'Cannot publish the verified draft.' }
           }

@@ -1,7 +1,8 @@
 # Windows release
 
-An immutable `vMAJOR.MINOR.PATCH` tag publishes a Windows AMD64 ZIP and SHA-256
-checksum on GitHub Releases. The tag must match `cmd/againrom/VERSION` and name a
+An immutable `vMAJOR.MINOR.PATCH` tag publishes Windows AMD64, macOS Intel and
+macOS Apple Silicon ZIPs and SHA-256 checksums on GitHub Releases. The tag must
+match `cmd/againrom/VERSION` and name a
 commit on `origin/main`. Create it only after the source commit has passed the
 release gates. Never move a published tag. The starter keeps its own VERSION.
 
@@ -21,7 +22,13 @@ output is preserved. ZIP entries have fixed timestamps so unchanged inputs
 produce unchanged bytes.
 
 The build job has read permission. The publication job alone has write permission.
-Publication creates a draft, uploads both verified assets, then publishes it.
+The macOS builds run through the reusable macOS workflow with CGO enabled on
+`macos-15-intel` and `macos-15`. Both Mac packages include the game and starter.
+README describes terminal launch and Gatekeeper quarantine removal for these
+unsigned, non-notarized executables.
+
+Publication waits for all three builds, creates a draft, uploads the six verified
+assets, then publishes it.
 A retry may complete a matching draft or confirm a matching published release.
 Conflicting identity, notes, unknown assets or different bytes stop publication
 without overwriting the release. Failed uploads leave a draft for inspection.

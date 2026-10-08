@@ -438,7 +438,7 @@ func (t *townScreen) TownSurfaceClick(c ui.TownSurfaceControl, double bool) ui.T
 		return t.stepTownMember(+1)
 	case ui.TownSurfaceControlMode:
 		if len(t.shopParty()) == 0 {
-			return ui.TownAction{Msg: "there is no character to show"}
+			return ui.TownAction{}
 		}
 		t.townStats = !t.townStats
 		return ui.TownAction{}
@@ -461,7 +461,8 @@ func (t *townScreen) TownSurfaceClick(c ui.TownSurfaceControl, double bool) ui.T
 		}
 		if double && t.room == roomTavern {
 			if o, ok := t.selectedMercenary(); ok {
-				return ui.TownAction{Msg: t.pressMercenary(o.Type)}
+				t.pressMercenary(o.Type)
+				return ui.TownAction{}
 			}
 			return t.townSurfaceButton(tavernButtonTalk)
 		}
@@ -494,7 +495,7 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 			if t.sess.Town.Gold() < gold {
 				t.speakSchoolTraining(slot)
 			}
-			return ui.TownAction{Msg: trainingPostedLine(msg)}
+			return ui.TownAction{Msg: trainingPostedLine(msg), Info: true}
 		case 1:
 			t.Back()
 		}
@@ -507,13 +508,14 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 			return ui.TownAction{}
 		case tavernButtonHire:
 			if o, ok := t.selectedMercenary(); ok {
-				return ui.TownAction{Msg: t.pressMercenary(o.Type)}
+				t.pressMercenary(o.Type)
+				return ui.TownAction{}
 			}
 			return ui.TownAction{}
 		case tavernButtonTalk:
 			candidate, ok := t.selectedTavernCandidate()
 			if !ok {
-				return ui.TownAction{Msg: "select a candidate"}
+				return ui.TownAction{}
 			}
 			if candidate.key.kind == tavernCandidateOffer {
 				if !t.tavernOfferCanTalk(candidate.offer) {
@@ -534,12 +536,12 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 	return ui.TownAction{}
 }
 
-// trainingPostedLine keeps the line of a completed training and drops every
-// refusal text: the training refusal branches post no message line
-// (TAVERN-LINES-022).
+// trainingPostedLine keeps training and SAV fault lines; player refusals post none (TAVERN-LINES-022).
 func trainingPostedLine(msg string) string {
-	if strings.HasPrefix(msg, "trained ") {
-		return msg
+	for _, prefix := range []string{"trained ", "SAV training", "training requires", "training produced", "training price"} {
+		if strings.HasPrefix(msg, prefix) {
+			return msg
+		}
 	}
 	return ""
 }

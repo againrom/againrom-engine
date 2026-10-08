@@ -8,7 +8,7 @@ import (
 
 func (t *townScreen) shopPotionUser(item sim.ItemInstance) (*mapload.PartyMember, mapload.PartyMember, ui.TownAction, bool) {
 	if item.Kind == 4 {
-		return nil, mapload.PartyMember{}, ui.TownAction{Msg: "use a scroll on the mission map"}, true
+		return nil, mapload.PartyMember{}, ui.TownAction{}, true
 	}
 	if item.Kind != 3 {
 		return nil, mapload.PartyMember{}, ui.TownAction{}, false
@@ -19,7 +19,7 @@ func (t *townScreen) shopPotionUser(item sim.ItemInstance) (*mapload.PartyMember
 	}
 	result, ok := mapload.ApplyTownPotion(*p, item, t.in.Table)
 	if !ok {
-		return nil, mapload.PartyMember{}, ui.TownAction{Msg: "cannot use that potion"}, true
+		return nil, mapload.PartyMember{}, ui.TownAction{}, true
 	}
 	return p, result, ui.TownAction{}, true
 }

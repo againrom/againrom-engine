@@ -753,7 +753,7 @@ func TestCityShopDollTableMergePreservesDestinationAndAliases(t *testing.T) {
 				before, graph, shop, gold := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone(), f.cityBookCandidate().Shop, f.Town.Gold()
 				a := screen.shopUnequipToTable(slot)
 				if mode == "different price" || mode == "merchant" {
-					if !strings.Contains(a.Msg, "five and no more") || !reflect.DeepEqual(before, f.Carried) || !reflect.DeepEqual(graph, f.Town.cityObjects) || !reflect.DeepEqual(shop, f.Shop) || f.Town.Gold() != gold {
+					if a.Msg != "" || !reflect.DeepEqual(before, f.Carried) || !reflect.DeepEqual(graph, f.Town.cityObjects) || !reflect.DeepEqual(shop, f.Shop) || f.Town.Gold() != gold {
 						t.Fatal("ineligible full-table removal committed a prefix", a)
 					}
 					return

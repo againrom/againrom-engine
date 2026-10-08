@@ -79,10 +79,11 @@ func mustParse(t *testing.T, text string) *ini.File {
 func TestStoreWritesAFreshFileInDocumentedOrder(t *testing.T) {
 	f, _ := ini.Parse(nil)
 	s := defaultSettings()
-	s.addBase(`C:\Games\EN`)
+	root := filepath.Join("Games", "EN")
+	s.addBase(root)
 	s.LastBase = "en"
 	s.store(f)
-	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = C:\\Games\\EN\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nsaves =\nmission =\npicker = false\nskill =\nextra =\n"
+	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nsaves =\nmission =\npicker = false\nskill =\nextra =\n"
 	if got := string(f.Bytes()); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
@@ -166,16 +167,16 @@ func TestSplitArgs(t *testing.T) {
 
 func TestBaseKeysAreUniqueAndSafe(t *testing.T) {
 	var s settings
-	if k := s.addBase(`C:\games\EN`); k != "en" {
+	if k := s.addBase(filepath.Join("games", "EN")); k != "en" {
 		t.Fatal(k)
 	}
-	if k := s.addBase(`D:\other\en`); k != "en-2" {
+	if k := s.addBase(filepath.Join("other", "en")); k != "en-2" {
 		t.Fatal(k)
 	}
-	if k := s.addBase(`C:\games\en`); k != "en" {
+	if k := s.addBase(filepath.Join("games", "en")); k != "en" {
 		t.Fatalf("same path added twice under %s", k)
 	}
-	if k := s.addBase(`C:\Игры\ROM1 demo`); k != "rom1-demo" {
+	if k := s.addBase(filepath.Join("Игры", "ROM1 demo")); k != "rom1-demo" {
 		t.Fatal(k)
 	}
 	if k := baseKey(`\\`); k == "" {

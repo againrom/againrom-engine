@@ -126,8 +126,8 @@ func TestShopEquipFromShelfRefusesWhenThePurseCannotPay(t *testing.T) {
 	s.shelfBase = idx
 
 	act := s.shopEquipFromShelf(0)
-	if act.Msg != "you cannot afford that" {
-		t.Fatalf("shopEquipFromShelf = %+v, want the purse refusal", act)
+	if act.Msg != "" {
+		t.Fatalf("shopEquipFromShelf = %+v, want no line for the purse refusal", act)
 	}
 	if s.shopWornSlots(0)[slot-1] != 0 {
 		t.Error("the slot was worn despite the refusal")
@@ -182,8 +182,8 @@ func TestShopEquipFromPackRefusesTheWrongClass(t *testing.T) {
 	f.Carried[0].Carry.Items = []uint16{uint16(code)}
 
 	act := s.shopEquipFromPack(1)
-	if act.Msg != "not for his class" {
-		t.Fatalf("shopEquipFromPack = %+v, want the class refusal", act)
+	if act.Msg != "" {
+		t.Fatalf("shopEquipFromPack = %+v, want no line for the class refusal", act)
 	}
 	if s.shopWornSlots(0)[4] != 0 {
 		t.Error("the slot was worn despite the class refusal")
@@ -384,8 +384,8 @@ func TestShopUnequipToTableRefusesWhenTheTableIsFull(t *testing.T) {
 	s.shopEquipFromShelf(0)
 
 	act := s.shopUnequipToTable(slot)
-	if act.Msg != "the table holds five and no more" {
-		t.Fatalf("shopUnequipToTable = %+v, want the full-table refusal", act)
+	if act.Msg != "" {
+		t.Fatalf("shopUnequipToTable = %+v, want no line for the full-table refusal", act)
 	}
 	if s.shopWornSlots(0)[slot-1] != uint16(code) {
 		t.Error("the slot was cleared despite the refusal")

@@ -41,6 +41,10 @@ func TestRuntimeProfileInstallLaunchWritesOnlyPrivateFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := filepath.Join(exeDir, "Againrom")
+			want, err = filepath.EvalSymlinks(want)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if profile.Directory != want || profile.Saves.Dir != filepath.Join(want, "saves") || profile.Options.Path != filepath.Join(want, optionsFileName) {
 				t.Fatalf("launch profile = %+v, want private profile %s", profile, want)
 			}

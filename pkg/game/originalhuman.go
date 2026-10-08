@@ -237,6 +237,10 @@ func (t *townScreen) trainOriginalCityFighter(slot int, member *mapload.PartyMem
 		} else {
 			unchanged = equalTrainingMember(*member, expected)
 		}
+		if !unchanged && member.OriginalHuman == nil {
+			// Native current state, as for a retired Human.
+			return false, ""
+		}
 		if !unchanged {
 			return true, "SAV training requires unchanged items and character state"
 		}
