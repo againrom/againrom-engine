@@ -3144,7 +3144,15 @@ func (v *Viewer) step(in Input, now time.Time) {
 		v.cam.Pan(dx, dy)
 	}
 
-	if in.WheelY != 0 {
+	// Over a switched-on pack the wheel scrolls the pack, one element per
+	// notch as its end strips do, and never zooms the map (owner).
+	if bar, onPack := v.packBarArea(); in.WheelY != 0 && onPack && image.Pt(in.CursorX, in.CursorY).In(bar) {
+		if in.WheelY > 0 {
+			v.ScrollPack(-1)
+		} else {
+			v.ScrollPack(+1)
+		}
+	} else if in.WheelY != 0 {
 		factor := WheelZoomStep
 		if in.WheelY < 0 {
 			factor = 1 / WheelZoomStep

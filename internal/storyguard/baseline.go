@@ -1902,6 +1902,8 @@ package storyguard
 // file, new code, including this paragraph.
 // CommentBytes rises for the school shine hotfix: the doc of schoolShineDisplaySlot
 // and the test comments, new code, including this paragraph.
+// CommentBytes rises for the pack no-hero line and the wheel over the pack: the
+// docs of drawPackNoHeroText and the two new tests, including this paragraph.
 // New constructor Base documentation is in pkg/mapload/nativeinitialbasis.go
 // and its test. The comment count includes this baseline explanation.
 // New local constructor Modifier tests and UpdateNativeEquipmentBasis document
@@ -1918,6 +1920,9 @@ package storyguard
 // New native effect-mask controls document their attachment and expiry inputs in
 // sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
 // includes that new-code documentation and this explanation.
+// CommentBytes rises for the melee facing hotfix: the docs of the new melee
+// walking witness, the Kadagan release test's pack note and the skill
+// trainee's heal note, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4704,
 	TestFileCount:  265,
@@ -1939,7 +1944,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1829,
+		"longcommentgroups":      1828,
 	},
-	CommentBytes: 8514005,
+	CommentBytes: 8512720,
 }

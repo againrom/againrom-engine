@@ -1,9 +1,10 @@
 package game_test
 
 // The Kadagan Post garrison, run on a lawful install with player commands
-// only: the hero walks to the post's gate and attacks one warrior. The
-// garrison is one placed group of five (two warriors, two crossbow bearers and
-// a mage), and every member must start attacking, the mage included.
+// after one roaming pack is removed: the hero walks to the post's gate and
+// attacks one warrior. The garrison is one placed group of five (two warriors,
+// two crossbow bearers and a mage), and every member must start attacking, the
+// mage included.
 //
 // It reads a LAWFUL INSTALL and is skipped unless an asset root is
 // configured.
@@ -59,7 +60,23 @@ func TestReleaseAnAttackedGroupAtKadaganPostFightsAsAGroup(t *testing.T) {
 		t.Fatalf("the warrior's group holds %d members %v, want the garrison of five", len(members), members)
 	}
 
-	sim.Step(w, []sim.Command{sim.MoveTo(hero, sim.CellPoint{X: 52, Y: 61})})
+	// Without the roaming pack the hero meets on its way, the far members
+	// fight or not by the pack's skirmish timing.
+	const pack = sim.EntityID(28)
+	stray, ok := w.Entity(pack)
+	if h, _ := w.Entity(hero); !ok || stray.Owner == first.Owner || stray.Owner == h.Owner {
+		t.Fatalf("this install's mission 41 holds no roaming unit %d of a third owner", pack)
+	}
+	var clear []sim.Command
+	for _, e := range w.Entities() {
+		if e.Owner == stray.Owner && e.Group == stray.Group {
+			clear = append(clear, sim.Kill(e.ID))
+		}
+	}
+	if len(clear) != 4 {
+		t.Fatalf("the roaming pack holds %d members, want four", len(clear))
+	}
+	sim.Step(w, append(clear, sim.MoveTo(hero, sim.CellPoint{X: 52, Y: 61})))
 	for i := 0; i < 3000; i++ {
 		sim.Step(w, nil)
 		if h, _ := w.Entity(hero); !h.HasTarget {

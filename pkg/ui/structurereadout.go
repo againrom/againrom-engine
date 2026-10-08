@@ -8,10 +8,7 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// Widget 8's structure readout (MENU-070, MENU-071, MENU-072): three text
-// lines in the column's fourth slot, drawn for a structure only. Each is at
-// the widget's right edge minus 88 pixels, one flat shadow pixel down and
-// right of its glyphs, in the card font.
+// Widget 8 centres three structure lines on the card face (MENU-071).
 const (
 	readoutRightInset = 0x58
 	readoutNameY      = 0x1c
@@ -104,23 +101,22 @@ func composeStructureReadout(lines [3]string, f *text.Font) *image.RGBA {
 	inks := [3]color.RGBA{readoutNameInk, readoutNameInk, readoutRatioInk}
 	img := image.NewRGBA(image.Rect(0, 0, width+readoutShadow, ys[2]+f.Height()+readoutShadow))
 	for i, l := range lines {
-		f.DrawFlat(img, l, readoutShadow, ys[i]+readoutShadow, messageShadowColor)
-		f.Draw(img, l, 0, ys[i], inks[i])
+		w, _ := f.Measure(l)
+		x := width/2 - w/2
+		f.DrawFlat(img, l, x+readoutShadow, ys[i]+readoutShadow, messageShadowColor)
+		f.Draw(img, l, x, ys[i], inks[i])
 	}
 	return img
 }
 
-// structureReadoutPresent is the picture to draw this frame and where its
-// top-left corner goes, or false for a frame with no readout: no card font, no
-// room for the column's fourth slot or no structure to read. It draws at the
-// slot's own right edge minus 88, the name 28 pixels below the slot's top, the
-// caption 44 and the ratio 54 (MENU-071).
+// structureReadoutPresent anchors the centred lines to the card box, or
+// returns false without a card font, room for the card or a structure.
 func (v *Viewer) structureReadoutPresent() (*image.RGBA, image.Point, bool) {
 	f := v.cardFont()
 	if f == nil {
 		return nil, image.Point{}, false
 	}
-	box, ok := columnFillerRect(image.Pt(v.frameW, v.frameH))
+	box, ok := missionCardBoxRect(image.Pt(v.frameW, v.frameH))
 	if !ok {
 		return nil, image.Point{}, false
 	}
@@ -142,5 +138,6 @@ func (v *Viewer) structureReadoutPresent() (*image.RGBA, image.Point, bool) {
 		return nil, image.Point{}, false
 	}
 	text.Append(v.structText, 0, 0)
-	return v.structPic, image.Pt(box.Max.X-readoutRightInset, box.Min.Y+readoutNameY), true
+	halfWidth := (v.structPic.Bounds().Dx() - readoutShadow) / 2
+	return v.structPic, image.Pt(box.Max.X-readoutRightInset-halfWidth, box.Min.Y+readoutNameY), true
 }
