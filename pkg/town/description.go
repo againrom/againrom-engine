@@ -375,20 +375,47 @@ type Rect [4]int
 // Rectangle is the image rectangle.
 func (r Rect) Rectangle() image.Rectangle { return image.Rect(r[0], r[1], r[2], r[3]) }
 
-// Decode reads a description strictly: an unknown field, a trailing value or a
-// description that fails Validate is a named error.
-func Decode(data []byte) (*Description, error) {
+// Vocabulary is the hook and condition names a game answers. A description
+// that names any other is refused when it is read.
+type Vocabulary struct {
+	Hooks      []string
+	Conditions []string
+}
+
+func (v Vocabulary) has(list []string, name string) bool {
+	for _, n := range list {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+// Decode reads a description strictly: an unknown field, any data after the
+// description, a hook or condition outside vocab, or a description that fails
+// Validate is a named error.
+func Decode(data []byte, vocab Vocabulary) (*Description, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var d Description
 	if err := dec.Decode(&d); err != nil {
 		return nil, fmt.Errorf("town description: %w", err)
 	}
-	if dec.More() {
-		return nil, fmt.Errorf("town description: trailing data")
+	if rest := bytes.TrimSpace(data[dec.InputOffset():]); len(rest) > 0 {
+		return nil, fmt.Errorf("town description: trailing data %q", firstBytes(rest))
 	}
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
+	if err := d.checkVocabulary(vocab); err != nil {
+		return nil, err
+	}
 	return &d, nil
+}
+
+func firstBytes(b []byte) []byte {
+	if len(b) > 16 {
+		return b[:16]
+	}
+	return b
 }

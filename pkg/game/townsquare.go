@@ -19,15 +19,34 @@ import (
 var rom1TownJSON []byte
 
 // rom1Town is the decoded ROM1 town description. A description that does not
-// decode is a build defect, so it stops the process at start.
-var rom1Town = mustDecodeTown(rom1TownJSON)
+// decode, or names a hook or condition the ROM1 campaign does not answer, is a
+// build defect, so it stops the process at start. It is decoded in init
+// because the hooks it is checked against reach the description themselves.
+var rom1Town *town.Description
+
+func init() {
+	rom1Town = mustDecodeTown(rom1TownJSON)
+	TownTipPath = rom1Town.Tip.Text
+}
 
 func mustDecodeTown(data []byte) *town.Description {
-	d, err := town.Decode(data)
+	d, err := town.Decode(data, townVocabulary())
 	if err != nil {
 		panic(err)
 	}
 	return d
+}
+
+// townVocabulary is the hook and condition names the ROM1 campaign answers.
+func townVocabulary() town.Vocabulary {
+	var v town.Vocabulary
+	for name := range townHooks {
+		v.Hooks = append(v.Hooks, name)
+	}
+	for name := range townConditions {
+		v.Conditions = append(v.Conditions, name)
+	}
+	return v
 }
 
 // ROM1TownDescription answers the ROM1 town description the square is built
@@ -35,7 +54,7 @@ func mustDecodeTown(data []byte) *town.Description {
 func ROM1TownDescription() *town.Description { return rom1Town }
 
 // TownTipPath is the square's tip text, as the description names it.
-var TownTipPath = rom1Town.Tip.Text
+var TownTipPath string
 
 // LoadTownSquareArt resolves the square's art from the install as the ROM1
 // description names it. A required entry that fails carries its address in
