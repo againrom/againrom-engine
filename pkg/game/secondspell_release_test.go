@@ -109,6 +109,7 @@ func TestReleaseSecondGameMissionTenMageHealsTheHero(t *testing.T) {
 	sim.Step(w, []sim.Command{sim.MoveTo(hero, sim.CellPoint{X: mage.X - 2, Y: mage.Y})})
 	paid := int32(-1)
 	for tick := 0; tick < 2000; tick++ {
+		secondSpellWoundNear(t, w, hero, mage.ID, 3)
 		before, _ := w.Entity(hero)
 		caster, _ := w.Entity(mage.ID)
 		events := sim.StepObserved(w, nil)
@@ -194,6 +195,7 @@ func TestReleaseSecondMissionTenHealSaveContinuation(t *testing.T) {
 			f.live.enqueue(uint32(hero), int(mage.X)-7, int(mage.Y))
 			walked = true
 		}
+		secondSpellWoundNear(t, f.live.world, hero, mage.ID, 8)
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
@@ -237,6 +239,22 @@ func TestReleaseSecondMissionTenHealSaveContinuation(t *testing.T) {
 		t.Fatal("post-load continuation hashes differ")
 	}
 	t.Logf("M10 Heal cast -> named SAV -> cold LOAD -> 300 identical steps holding %d further cast(s)", casts)
+}
+
+// secondSpellWoundNear wounds an unhurt hero once he stands within reach
+// cells of the mage, so the Heal has a wound to restore. The wound used to
+// come from a creature whose chase crossed the hero's route; that encounter
+// depends on routes, and the healing drive does not test routes.
+func secondSpellWoundNear(t *testing.T, w *sim.World, hero, mage sim.EntityID, reach int32) {
+	t.Helper()
+	h, _ := w.Entity(hero)
+	m, _ := w.Entity(mage)
+	if h.HP < h.MaxHP || max(h.X-m.X, m.X-h.X, h.Y-m.Y, m.Y-h.Y) > reach {
+		return
+	}
+	if err := w.HeadlessDamage(hero, h.MaxHP/4); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // secondSpellNearestHostile is the placed creature nearest the hero that

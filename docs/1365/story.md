@@ -113,6 +113,13 @@ reach at its next pass (`AI-REACH-072`):
   leaves reach during a loaded cycle and is released before the hero is ready
   again, in all 48 rounds. The drive counts those ticks too: the hero keeps
   its cell through the loaded cycle, and a ready hero turns where it stands.
+- `TestReleaseSecondGameMissionTenMageHealsTheHero` and
+  `TestReleaseSecondMissionTenHealSaveContinuation` (second game): the hero's
+  wound came from a creature whose chase crossed his route. The pursuit search
+  changes earlier creature cells, the hero detours one cell at (25,40), that
+  creature never acquires him and the mage has nothing to heal. Both drives
+  now wound an unhurt hero by a quarter of his health once he stands near the
+  mage, and pass on this branch and on main.
 
 Gates on `ff84f1ce`: scenarios EN 54 s and RU 32 s pass. The census script set
 is unchanged; the mission 10 drive's escort is lost at tick 800 instead of
