@@ -121,7 +121,15 @@ func (t frontTransitions) finishWon(n int, ms *Mission) (int, string) {
 		if refused := t.f.CampaignSession.carryMissionHome(t.f.townInstall(), n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster); refused != "" {
 			return -1, refused
 		}
-		town.second.complete(ms.World)
+		// The output reads the bank before the case stores (R2-ENGINE-148).
+		output := town.second.complete(ms.World)
+		if live := t.f.live; live != nil && live.view != nil {
+			movie := ""
+			if in := t.f.Archives; in != nil && in.Containers != nil {
+				movie = secondGameCompletionDirectory(in.Containers, output)
+			}
+			live.view.SetCompletionCutscene(movie)
+		}
 		town.won[n] = true
 		t.f.Offered = 0
 		for _, l := range town.second.available {

@@ -640,10 +640,13 @@ func secondMissionSaveLosses(t *testing.T, mission int) {
 				case "foreign kind":
 					a.Session.Second.Current.Kind = 2
 				case "unsupported pair":
-					a.Session.Second.Current.ID = 30
-					a.Session.Second.Available[0].ID = 30
+					a.Session.Second.Current.ID = 128
+					a.Session.Second.Available[0].ID = 128
 				case "available overflow":
-					a.Session.Second.Available = append(a.Session.Second.Available, currentSecondLocation{1, 20})
+					a.Session.Second.Available = make([]currentSecondLocation, maxSecondAvailable+1)
+					for i := range a.Session.Second.Available {
+						a.Session.Second.Available[i] = a.Session.Second.Current
+					}
 				case "fog absent":
 					a.Fog = nil
 				case "fog extent":

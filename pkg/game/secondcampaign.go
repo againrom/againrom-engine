@@ -21,8 +21,14 @@ const (
 	secondTownInn
 )
 
+// secondAux is the eight-entry auxiliary array of five DWORD fields (+0,
+// +4, +8, +0xC, +0x10) the departure stores outside the bank. Its
+// consumers are Unknown; it is only stored and persisted (DIV-2437).
+type secondAux [8][5]int32
+
 type secondCampaign struct {
 	bank      [1024]int32
+	aux       secondAux
 	available []secondLocation
 	current   secondLocation
 	room      secondTownRoom
@@ -47,28 +53,28 @@ func (c *secondCampaign) has(location secondLocation) bool {
 	return false
 }
 
-func (c *secondCampaign) talk() bool {
-	if c.current != (secondLocation{kind: 2, id: 1}) || c.bank[768] != 10 {
+// leaveTown is the type-2 departure: town 1 removes its node, a later town
+// keeps it, and both clear current (R2-ENGINE-144). Town 1's gate opens
+// only once mission 10 is available.
+func (c *secondCampaign) leaveTown() bool {
+	if c.current.kind != 2 || !c.gateOpen() {
 		return false
 	}
-	mission := secondLocation{kind: 1, id: 10}
-	if !c.has(mission) {
-		c.available = append(c.available, mission)
+	if c.current.id == 1 {
+		remaining := c.available[:0]
+		for _, l := range c.available {
+			if l != c.current {
+				remaining = append(remaining, l)
+			}
+		}
+		c.available = remaining
 	}
+	c.current = secondLocation{}
 	return true
 }
 
-func (c *secondCampaign) leaveTown() bool {
-	if c.current == (secondLocation{2, 2}) {
-		c.current = secondLocation{}
-		return true
-	}
-	if c.current != (secondLocation{kind: 2, id: 1}) || !c.has(secondLocation{kind: 1, id: 10}) {
-		return false
-	}
-	c.available = []secondLocation{{kind: 1, id: 10}}
-	c.current = secondLocation{}
-	return true
+func (c *secondCampaign) gateOpen() bool {
+	return c.current.id != 1 || c.has(secondLocation{kind: 1, id: 10})
 }
 
 func (c *secondCampaign) canEnter(n int) bool {
@@ -86,17 +92,32 @@ func (c *secondCampaign) finish(n int, w *sim.World) error {
 	return nil
 }
 
-// secondContinues names the missions whose victory the controller continues.
-func secondContinues(n int) bool { return n == 10 || n == 20 || n == 21 }
+// secondContinues names the missions whose victory the controller continues:
+// every ordinary ID whose slot 896+ID lies inside the bank (R2-SESSION-052).
+func secondContinues(n int) bool { return n > 0 && n < 128 }
 
-func (c *secondCampaign) complete(w *sim.World) {
+// complete applies the ordinary departure and answers its output DWORD.
+func (c *secondCampaign) complete(w *sim.World) int {
 	bank, _ := w.ROM2ScenarioState()
-	c.completeBank(bank)
+	return c.completeBank(bank)
 }
 
-// completeBank applies the ordinary departure to the bank a won mission left.
-func (c *secondCampaign) completeBank(bank [1024]int32) {
+// secondStageAux is field +4 of the auxiliary entries each stage case
+// stores, and how many entries from 0 it covers (R2-SESSION-050).
+var secondStageAux = map[int32]struct {
+	value   int32
+	entries int
+}{
+	30: {10000, 4}, 40: {22000, 4}, 50: {60000, 8}, 60: {150000, 8}, 70: {400000, 8},
+	80: {800000, 8}, 90: {1500000, 8}, 100: {5000000, 8}, 110: {10000000, 8},
+}
+
+// completeBank applies the ordinary departure to the bank a won mission left
+// and answers the output DWORD: -1 unless a case body stores one
+// (R2-ENGINE-145, R2-ENGINE-146, R2-ENGINE-148, R2-SESSION-047..050).
+func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	n := c.current.id
+	output := -1
 	c.bank = bank
 	c.bank[773] = 0
 	for i := 0; i < 20; i++ {
@@ -124,18 +145,71 @@ func (c *secondCampaign) completeBank(bank [1024]int32) {
 	switch n {
 	case 10:
 		add(secondLocation{1, 20})
+		output = 1
 	case 20:
 		add(secondLocation{2, 2})
 		if c.bank[772] != 0 {
 			add(secondLocation{1, 21})
 		}
 		c.bank[532], c.bank[552] = 1, 2
+	case 30:
+		output = 2
+	case 31:
+		add(secondLocation{1, 32})
+	case 40:
+		add(secondLocation{1, 50})
+		add(secondLocation{1, 60})
+		c.bank[773] = 23
+	case 50:
+		// The bank780-gated fixed record has no resolved type or ID and is
+		// not appended (DIV-2629).
+		add(secondLocation{2, 3})
+		c.bank[771], c.bank[534], c.bank[554] = 1, 1, 3
+		for i := 4; i < 8; i++ {
+			c.aux[i][0], c.aux[i][2], c.aux[i][3] = 499, 100, 2
+			if i == 5 || i == 6 {
+				c.aux[i][2], c.aux[i][3] = 20, 1
+			}
+		}
+		c.aux[6][0] = 0
+	case 60:
+		add(secondLocation{1, 80})
+		c.bank[537], c.bank[557], c.bank[774] = 1, 2, 1
+	case 70:
+		c.bank[535], c.bank[555] = 1, 3
+		if c.bank[777] == 0 && c.bank[778] != 0 {
+			output = 3
+		}
+		c.bank[777], c.bank[770] = 1, 1
+	case 80:
+		if c.bank[778] == 0 && c.bank[777] != 0 {
+			output = 3
+		}
+		c.bank[778] = 1
+	case 100:
+		c.bank[538], c.bank[558] = 1, 2
+	case 110:
+		output = 4
+		if c.bank[779] != 0 {
+			output = 5
+		}
 	}
 	if n%10 == 0 {
 		c.bank[768] += 10
 	}
+	if stage, ok := secondStageAux[c.bank[768]]; ok {
+		for i := 0; i < stage.entries; i++ {
+			c.aux[i][1] = stage.value
+		}
+		if extra := map[int32]int32{90: 12000, 100: 40000}[c.bank[768]]; extra != 0 {
+			for _, i := range []int{0, 1, 3} {
+				c.aux[i][0] = extra
+			}
+		}
+	}
 	c.current = secondLocation{}
 	c.selected, c.room = secondLocation{}, secondTownSquare
+	return output
 }
 
 type secondCampaignScreen struct {
@@ -192,13 +266,15 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 		return nil
 	}
 	if c.current.kind == 2 {
-		if c.current.id == 2 {
-			return []ui.TownRow{{Text: "GATES", Choosable: true}}
+		gates := ui.TownRow{Text: "GATES", Choosable: c.gateOpen()}
+		if c.room != secondTownInn {
+			return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
 		}
-		if c.room == secondTownInn {
-			return []ui.TownRow{{Text: "TALK", Choosable: true}, {Text: "GATES", Choosable: c.has(secondLocation{kind: 1, id: 10})}}
+		var rows []ui.TownRow
+		for _, o := range c.speakers() {
+			rows = append(rows, ui.TownRow{Text: fmt.Sprintf("TALK %d", o.npc), Choosable: true})
 		}
-		return []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: c.has(secondLocation{kind: 1, id: 10})}}
+		return append(rows, gates)
 	}
 	var rows []ui.TownRow
 	for _, location := range c.available {
@@ -215,10 +291,17 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 }
 
 func (t *secondCampaignScreen) Footer() []string {
-	if c := t.state(); c != nil && (c.current == (secondLocation{2, 2}) || c.has(secondLocation{2, 2})) {
-		return []string{"Town 2 conversations and services are unavailable."}
+	c := t.state()
+	if c == nil {
+		return nil
 	}
-	return nil
+	var out []string
+	for id := 2; id <= 3; id++ {
+		if town := (secondLocation{2, id}); c.current == town || c.has(town) {
+			out = append(out, fmt.Sprintf("Town %d services are unavailable.", id))
+		}
+	}
+	return out
 }
 
 func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
@@ -241,21 +324,23 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		}
 		return ui.TownAction{}
 	}
-	if i == 1 || c.current.id == 2 {
+	if i == len(rows)-1 {
 		c.leaveTown()
 		c.room = secondTownSquare
 		return ui.TownAction{}
 	}
 	if c.room != secondTownInn {
 		c.room = secondTownInn
-	} else {
-		payload, err := readSecondTownTalk(t.install)
-		if err != nil {
-			return ui.TownAction{Msg: err.Error()}
-		}
-		if c.talk() {
-			c.payload, c.part = payload, 1
-		}
+		return ui.TownAction{}
+	}
+	o := c.speakers()[i]
+	payload, err := readSecondTownTalk(t.install, secondTalkKey(o))
+	if err != nil {
+		return ui.TownAction{Msg: err.Error()}
+	}
+	c.talkTo(o)
+	if payload != nil {
+		c.payload, c.part = payload, 1
 	}
 	return ui.TownAction{}
 }
@@ -330,14 +415,16 @@ func (c *secondCampaign) savePoint() bool {
 	return c != nil && c.selected == (secondLocation{}) && c.payload == nil && c.part == 0 && captureSecondCampaign(c).validateTown() == nil
 }
 
-func readSecondTownTalk(install *InstallResources) ([]byte, error) {
+// readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a
+// missing section shows no conversation (DIV-2635).
+func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 	payload, err := install.Archives.Containers.ReadFile(mainPrefix + "text/town.txt")
 	if err != nil {
 		return nil, fmt.Errorf("initial campaign town: %w", err)
 	}
-	body := secondGameTextSection(secondGameMissionBytes(payload, LanguageSelector(install.Archives.Containers)), "npc517talk10")
+	body := secondGameTextSection(secondGameMissionBytes(payload, LanguageSelector(install.Archives.Containers)), key)
 	if body == "" {
-		return nil, fmt.Errorf("initial inn conversation is unavailable")
+		return nil, nil
 	}
 	return []byte(body), nil
 }
