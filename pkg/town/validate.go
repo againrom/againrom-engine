@@ -21,6 +21,9 @@ func (d *Description) Validate() error {
 	if d.Clock.Compare != "greater" && d.Clock.Compare != "at-least" {
 		return fail("clock compare %q", d.Clock.Compare)
 	}
+	if d.Clock.PeriodMS <= 0 {
+		return fail("clock period %d ms", d.Clock.PeriodMS)
+	}
 	random := map[string]bool{}
 	for _, r := range d.Random {
 		switch r.Source {
@@ -60,9 +63,19 @@ func (d *Description) Validate() error {
 	if d.Mask.Art != "" && !art[d.Mask.Art] {
 		return fail("mask art %q", d.Mask.Art)
 	}
+	maskBytes := map[int]bool{}
 	for _, m := range d.Mask.Bytes {
 		if !spots[m.Hotspot] {
 			return fail("mask byte %d names no hotspot %q", m.Byte, m.Hotspot)
+		}
+		if maskBytes[m.Byte] {
+			return fail("mask byte %d is mapped twice", m.Byte)
+		}
+		maskBytes[m.Byte] = true
+	}
+	for _, h := range d.Hotspots {
+		if h.Tip < 0 {
+			return fail("hotspot %q has negative tip slot %d", h.Name, h.Tip)
 		}
 	}
 	actors := map[string]string{}
@@ -102,6 +115,9 @@ func (d *Description) Validate() error {
 			if err := validateStep(s, "room "+r.Name, fail); err != nil {
 				return err
 			}
+		}
+		if err := d.validateRoom(r); err != nil {
+			return err
 		}
 	}
 	for _, s := range d.Square.Enter {
@@ -327,6 +343,120 @@ func (d *Description) validateActor(a ActorSpec, where string, art map[string]bo
 				return fail("order names unknown member %q", n)
 			}
 		}
+		for _, n := range a.PaintOrder {
+			for _, m := range a.Members {
+				if m.Name == n && m.Mode != "episode" {
+					return fail("paint-order names %s member %q; only an episode member is scheduled", m.Mode, n)
+				}
+			}
+		}
+		picks := map[string]*PickSpec{}
+		for _, s := range a.Entry {
+			if s.Unequal != "" {
+				other := picks[s.Unequal]
+				if s.Position == "" || other == nil {
+					return fail("entry %q is drawn unequal to %q, which no earlier entry positions", s.Position, s.Unequal)
+				}
+				if onlyEqual(*s.Pick, *other) {
+					return fail("entry %q can only draw the value %q holds", s.Position, s.Unequal)
+				}
+			}
+			if s.Position != "" {
+				picks[s.Position] = s.Pick
+			}
+		}
 	}
 	return nil
+}
+
+// pickRange is the closed range of values a pick can answer.
+func pickRange(p PickSpec) (lo, hi int) {
+	if p.N <= 1 {
+		return p.Base, p.Base
+	}
+	return p.Base, p.Base + p.N - 1
+}
+
+// onlyEqual reports whether a redraw of p until it differs from a value o
+// answered can never end: p has one value and o can answer it.
+func onlyEqual(p, o PickSpec) bool {
+	plo, phi := pickRange(p)
+	olo, ohi := pickRange(o)
+	return plo == phi && plo >= olo && plo <= ohi
+}
+
+// checkVocabulary refuses a hook, condition, value or event name the game
+// does not answer.
+func (d *Description) checkVocabulary(vocab Vocabulary) error {
+	lists := map[string][]string{"hook": vocab.Hooks, "condition": vocab.Conditions, "value": vocab.Values, "event": vocab.Events}
+	for _, u := range d.uses() {
+		if !vocab.has(lists[u.kind], u.name) {
+			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, u.kind, u.name)
+		}
+	}
+	return nil
+}
+
+type nameUse struct {
+	where, name, kind string
+}
+
+// uses lists every hook, condition, value and event name the description
+// uses. An event a scene's own actor raises is the scene's, not the game's.
+func (d *Description) uses() []nameUse {
+	var out []nameUse
+	use := func(kind, where, name string) {
+		if name != "" {
+			out = append(out, nameUse{where: where, name: name, kind: kind})
+		}
+	}
+	var ops func(where string, list []Op)
+	ops = func(where string, list []Op) {
+		for _, op := range list {
+			use("hook", where, op.Hook)
+			use("condition", where, op.If)
+			use("condition", where, op.Unless)
+			ops(where, op.Then)
+			ops(where, op.Else)
+		}
+	}
+	for _, h := range d.Hotspots {
+		ops("hotspot "+h.Name, h.Click)
+		ops("hotspot "+h.Name, h.Hover)
+	}
+	ops("pointer", d.Pointer.Every)
+	ops("pointer", d.Pointer.Off)
+	for _, a := range d.Actors {
+		use("condition", "actor "+a.Name, a.HoldUnless)
+	}
+	for _, s := range d.Square.Enter {
+		use("hook", "square", s.Hook)
+	}
+	for _, r := range d.Rooms {
+		for _, s := range append(append([]Step{}, r.Enter...), r.Exit...) {
+			use("hook", "room "+r.Name, s.Hook)
+		}
+		if r.Music != nil {
+			use("value", "room "+r.Name+" music", r.Music.By)
+		}
+		if r.Scene == nil {
+			continue
+		}
+		raised := map[string]bool{}
+		for _, a := range r.Scene.Actors {
+			raised[a.Raise] = true
+		}
+		for _, a := range r.Scene.Actors {
+			where := "room " + r.Name + " actor " + a.Name
+			use("value", where, a.Value)
+			use("value", where, a.Selected)
+			for _, on := range a.On {
+				if !raised[on.Event] {
+					use("event", where, on.Event)
+				}
+			}
+		}
+	}
+	use("condition", "save", d.Save.AdmittedWhen)
+	return out
 }

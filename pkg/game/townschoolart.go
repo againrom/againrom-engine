@@ -9,7 +9,6 @@ import (
 )
 
 const townSchoolArtPrefix = graphicsPrefix + "interface/training/"
-const townSchoolMoviesPrefix = moviesPrefix + "training/"
 
 const (
 	schoolFighterClass = iota
@@ -17,24 +16,14 @@ const (
 	schoolClassCount
 )
 
-var schoolTrainingFamilyShape = [schoolClassCount]struct {
-	dir            string
-	width          int
-	transitionLast int
-	idleLast       int
-}{
-	{dir: "fighter", width: 160, transitionLast: 18, idleLast: 9},
-	{dir: "mage", width: 172, transitionLast: 22, idleLast: 11},
-}
-
 // LoadTownSchoolArt resolves the school's immutable surface. It is cosmetic:
 // NewFrontEnd carries an error beside a nil result so a missing picture never
 // makes the game unusable, while a complete install performs no archive reads
 // in the draw or hit-test path.
 //
-// TOWN-146/147/149: all sixteen 148x208 column frames are retained. Frame 0
-// is the fighter endpoint, frame 15 the mage endpoint. The fourteen interior
-// frames carry no skill panel. No archive read occurs during rotation.
+// The school scene's art is the town description's: the required column
+// and diamond series fail the load, and each optional training family is
+// dropped alone. The column's endpoints are the two rest faces.
 //
 // Skill patches use a source-16-bit-zero keyed blit; the rest faces are opaque
 // (TOWN-150). keyBlack (shopart.go) instead tests source RGB for pure black.
@@ -51,26 +40,11 @@ func LoadTownSchoolArt(src terrain.EntrySource) (*ui.TownSchoolArt, error) {
 	if err = chargenSize(a.Background, 480, 480, townSchoolArtPrefix+"trnhall.bmp"); err != nil {
 		return nil, err
 	}
-	for frame := range a.Column {
-		addr := fmt.Sprintf("%scolumn/rt%04d.bmp", townSchoolArtPrefix, frame)
-		if a.Column[frame], err = readChargenBMP(src, addr); err != nil {
-			return nil, err
-		}
-		if err = chargenSize(a.Column[frame], 148, 208, addr); err != nil {
-			return nil, err
-		}
+	if a.Scene, err = loadRoomSceneArt("school", src); a.Scene == nil {
+		return nil, err
 	}
-	a.Faces = [2]image.Image{a.Column[0], a.Column[15]}
-	// TOWN-154: nine opaque 80x76 frames, in archive-number order.
-	for frame := range a.Diamond {
-		addr := fmt.Sprintf("%sdiamond/on%04d.bmp", townSchoolArtPrefix, frame)
-		if a.Diamond[frame], err = readChargenBMP(src, addr); err != nil {
-			return nil, err
-		}
-		if err = chargenSize(a.Diamond[frame], 80, 76, addr); err != nil {
-			return nil, err
-		}
-	}
+	column := a.Scene["column"]
+	a.Faces = [2]image.Image{column[0], column[len(column)-1]}
 	if a.Upper, err = readChargenBMP(src, townSchoolArtPrefix+"buttonsarea.bmp"); err != nil {
 		return nil, err
 	}
@@ -140,31 +114,5 @@ func LoadTownSchoolArt(src terrain.EntrySource) (*ui.TownSchoolArt, error) {
 			}
 		}
 	}
-	// TOWN-427/428: the four movies.res families are optional presentation
-	// children of this otherwise-required room art. Each family is atomic and
-	// independent: one missing or malformed member disables only that family,
-	// while complete siblings and every existing school control remain usable.
-	for class, shape := range schoolTrainingFamilyShape {
-		base := townSchoolMoviesPrefix + shape.dir + "/"
-		a.Training[class].Transition = loadSchoolTrainingFamily(src, base+"tr%04d.bmp", 0, shape.transitionLast+1, shape.width)
-		a.Training[class].Idle = loadSchoolTrainingFamily(src, base+"m%04d.bmp", 1, shape.idleLast, shape.width)
-	}
 	return a, nil
-}
-
-// loadSchoolTrainingFamily admits no partial sequence. All four shipped
-// groups are opaque 224-row BMPs; fighter is 160 wide and mage is 172 wide.
-// A failure is cosmetic absence rather than a LoadTownSchoolArt error because
-// the base school was already usable before these optional movie families.
-func loadSchoolTrainingFamily(src terrain.EntrySource, pattern string, first, count, width int) []image.Image {
-	frames := make([]image.Image, count)
-	for i := range frames {
-		addr := fmt.Sprintf(pattern, first+i)
-		pic, err := readChargenBMP(src, addr)
-		if err != nil || pic == nil || pic.Bounds().Dx() != width || pic.Bounds().Dy() != 224 {
-			return nil
-		}
-		frames[i] = pic
-	}
-	return frames
 }

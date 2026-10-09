@@ -1,14 +1,13 @@
 package game
 
 import (
+	"againrom/pkg/town"
 	"encoding/binary"
 	"fmt"
 	"image/color"
 	"sort"
 	"strings"
 	"testing"
-
-	"againrom/pkg/ui"
 )
 
 // tavernUnitSheet builds a minimal one-frame .16a stream: a 1024-byte
@@ -62,10 +61,10 @@ func townTavernSource() chargenSource {
 	for typ := 1; typ <= 15; typ++ {
 		src[fmt.Sprintf("%sunit%d/sprites.16a", townTavernArtPrefix, typ)] = tavernUnitSheet()
 	}
-	for family, spec := range tavernInteriorFamilySpecs {
-		for i := 0; i < spec.loaded; i++ {
+	for family, spec := range roomSceneArt("tavern") {
+		for i := 0; i < spec.Count; i++ {
 			c := color.RGBA{R: uint8(0x40 + family), G: uint8(i + 1), B: 0x24, A: 0xff}
-			src[townTavernArtPrefix+fmt.Sprintf(spec.pattern, spec.first+i)] = synthBMP(32, 12, c)
+			src[fmt.Sprintf(spec.Key, spec.First+i)] = synthBMP(32, 12, c)
 		}
 	}
 	return src
@@ -135,9 +134,9 @@ func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 	if len(withTalk.HeroFrames[0]) != 1 || len(withTalk.HeroFrames[1]) != 1 || got.HeroFrames[0] != nil {
 		t.Fatal("HeroFighter/HeroMage sheets did not load, or loaded from nothing")
 	}
-	if len(got.Interior.Candle) != tavernCandleLoaded || len(got.Interior.Cauldron) != tavernCauldronLoaded ||
-		len(got.Interior.Breath) != tavernBreathLoaded || len(got.Interior.Drink) != tavernDrinkLoaded {
-		t.Fatalf("interior family counts = %d/%d/%d/%d", len(got.Interior.Candle), len(got.Interior.Cauldron), len(got.Interior.Breath), len(got.Interior.Drink))
+	if len(got.Scene["candle"]) != 10 || len(got.Scene["cauldron"]) != tavernCauldronLoaded ||
+		len(got.Scene["breath"]) != tavernBreathLoaded || len(got.Scene["drink"]) != tavernDrinkLoaded {
+		t.Fatalf("interior family counts = %d/%d/%d/%d", len(got.Scene["candle"]), len(got.Scene["cauldron"]), len(got.Scene["breath"]), len(got.Scene["drink"]))
 	}
 
 	cases := make([]string, 0, len(src))
@@ -157,30 +156,21 @@ func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 }
 
 func TestTavernInteriorFamiliesDegradeIndependently(t *testing.T) {
-	for _, tc := range []struct {
-		name string
-		spec tavernInteriorFamilySpec
-		len  func(ui.TavernInteriorArt) int
-	}{
-		{"candle", tavernInteriorFamilySpecs[0], func(a ui.TavernInteriorArt) int { return len(a.Candle) }},
-		{"cauldron", tavernInteriorFamilySpecs[1], func(a ui.TavernInteriorArt) int { return len(a.Cauldron) }},
-		{"breath", tavernInteriorFamilySpecs[2], func(a ui.TavernInteriorArt) int { return len(a.Breath) }},
-		{"drink", tavernInteriorFamilySpecs[3], func(a ui.TavernInteriorArt) int { return len(a.Drink) }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, spec := range roomSceneArt("tavern") {
+		t.Run(spec.Name, func(t *testing.T) {
 			src := townTavernSource()
-			missing := townTavernArtPrefix + fmt.Sprintf(tc.spec.pattern, tc.spec.first+tc.spec.loaded/2)
+			missing := fmt.Sprintf(spec.Key, spec.First+spec.Count/2)
 			delete(src, missing)
 			got, err := LoadTownTavernArt(src)
 			if err == nil || !strings.Contains(err.Error(), missing) {
 				t.Fatalf("diagnostic = %v, want %s", err, missing)
 			}
-			if got == nil || got.Center == nil || tc.len(got.Interior) != 0 {
+			if got == nil || got.Center == nil || len(got.Scene[spec.Name]) != 0 {
 				t.Fatalf("family-local fallback lost room or retained partial family: %#v", got)
 			}
 			complete := 0
-			for _, n := range []int{len(got.Interior.Candle), len(got.Interior.Cauldron), len(got.Interior.Breath), len(got.Interior.Drink)} {
-				if n != 0 {
+			for _, frames := range got.Scene {
+				if len(frames) != 0 {
 					complete++
 				}
 			}
@@ -189,4 +179,15 @@ func TestTavernInteriorFamiliesDegradeIndependently(t *testing.T) {
 			}
 		})
 	}
+}
+
+// roomSceneArt answers the art entries of a room scene in the ROM1
+// description.
+func roomSceneArt(room string) []town.ArtSpec {
+	for _, r := range ROM1TownDescription().Rooms {
+		if r.Name == room && r.Scene != nil {
+			return r.Scene.Art
+		}
+	}
+	return nil
 }

@@ -230,19 +230,13 @@ type TownSchoolArt struct {
 	Background image.Image
 	Upper      image.Image
 	Faces      [2]image.Image
-	// Column is TOWN-146's sixteen opaque frames, rt0000..rt0015.
-	// Faces aliases its endpoints for static callers and provenance tools.
-	Column [16]image.Image
-	Masks  [2]*image.Paletted
-	Skills [2][5][3]image.Image
-	// Diamond is TOWN-154's nine opaque 80x76 frames, on0000..on0008.
-	Diamond [9]image.Image
+	Masks      [2]*image.Paletted
+	Skills     [2][5][3]image.Image
 
-	// Training is the four independently complete movies.res families.
-	// Class index zero is fighter and one is mage, matching Masks, Skills and
-	// Faces. A nil family means that family was absent or incomplete; no
-	// partial sequence crosses into the controller (TOWN-427).
-	Training [2]SchoolTrainingArt
+	// Scene is the school centre's pictures by the town description's entry
+	// names: the training column, the diamond and the training movies. The
+	// game's room page draws them.
+	Scene map[string][]image.Image
 
 	// Buttons is the school's two shipped buttons (Train, Exit), each an
 	// off/on pair: Buttons[i][0] is off, Buttons[i][1] is on (1017).
@@ -254,23 +248,6 @@ type TownSchoolArt struct {
 	// left edge with no visible join, for all three rooms this build draws it
 	// in (DIV-166, DIV-168); it is not school-specific art.
 	UpperSeam image.Image
-}
-
-// SchoolTrainingArt is one side of the school room's immutable movie cache.
-// Transition is tr0000... and Idle is m0001.... The game owns every clock,
-// flag, index and cached-picture rule; this type owns only decoded pictures.
-type SchoolTrainingArt struct {
-	Transition []image.Image
-	Idle       []image.Image
-}
-
-// SchoolTrainingFrame is the controller's read-only choice for one paint.
-// Images rather than indices cross the package seam, so the compositor cannot
-// become an animation-state authority. Nil leaves that side's background
-// untouched.
-type SchoolTrainingFrame struct {
-	Mage    image.Image
-	Fighter image.Image
 }
 
 // TavernSheetLimit bounds the Unit<n> inn sheet numbers: TOWN-470's census
@@ -313,29 +290,16 @@ type TownTavernArt struct {
 	// TownSchoolArt.UpperSeam carries, read from the tavern's own directory.
 	UpperSeam image.Image
 
-	// Interior is the four independently loaded centre-child animation
-	// families. A nil family leaves only that motion absent; Center and every
-	// control remain usable. The game owns the indices and clocks.
-	Interior TavernInteriorArt
+	// Scene is the tavern centre's pictures by the town description's entry
+	// names. The game's room page draws them; a missing entry leaves only that
+	// motion absent.
+	Scene map[string][]image.Image
 }
 
-// TavernInteriorArt is immutable install art. Loaded counts and loop counts
-// are deliberately not represented by one field: the game applies the
-// accepted per-family bounds when it selects a picture.
-type TavernInteriorArt struct {
-	Candle   []image.Image
-	Cauldron []image.Image
-	Breath   []image.Image
-	Drink    []image.Image
-}
-
-// TavernInteriorFrame is one paint-owned selection from TavernInteriorArt.
-// Images, rather than indices, cross the package seam so the compositor does
-// not become the authority for the controller's separate index/cache rules.
-type TavernInteriorFrame struct {
-	Candle   image.Image
-	Cauldron image.Image
-	Tender   image.Image
+// RoomScene paints one named group of a room's composed centre onto the
+// screen. The game owns its clocks and frames; painting changes no state.
+type RoomScene interface {
+	Paint(dst *image.RGBA, group string)
 }
 
 // TownSurfaceView is a complete tavern or school frame before a modal dialogue
@@ -365,17 +329,11 @@ type TownSurfaceView struct {
 	// that no selected member can own a school panel.
 	SchoolArt   *TownSchoolArt
 	SchoolClass int
-	// SchoolColumnSet selects the explicit displayed frame, including the
-	// intermediate frames with no skill panel. Zero preserves static callers.
+	// SchoolColumnSet reports that the scene draws the column at
+	// SchoolColumnFrame, including the intermediate frames with no skill
+	// panel. Zero preserves static callers.
 	SchoolColumnFrame int
 	SchoolColumnSet   bool
-	// SchoolTraining carries at most one chosen picture per side. The
-	// controller resolves m-over-tr priority before constructing this view.
-	SchoolTraining SchoolTrainingFrame
-	// SchoolDiamondActive is the current-image and nonzero-step paint gate.
-	// The game owns the phase; reading a view never advances it (TOWN-381).
-	SchoolDiamondFrame  int
-	SchoolDiamondActive bool
 	// SchoolIdleShine paints the shine picture of slot SchoolIdleSlot of the
 	// shown class while no skill is hovered (TOWN-500). The slot is in the
 	// shared slot order.
@@ -387,7 +345,8 @@ type TownSurfaceView struct {
 	// covers every position.
 	RosterUnpainted bool
 	TavernArt       *TownTavernArt
-	TavernInterior  TavernInteriorFrame
+	// Scene is the room's composed centre; nil draws none.
+	Scene RoomScene
 	// AnimationFrame is a client presentation phase. Only the selected
 	// portrait cell consumes it; every other card holds its first frame.
 	AnimationFrame int
@@ -1220,56 +1179,20 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// does not resolve their destination, so the order is authored, not
 		// decoded.
 		draw.Draw(dst, image.Rect(160, 0, 480, 480), v.TavernArt.Center, v.TavernArt.Center.Bounds().Min, draw.Src)
-		// TOWN-407: these are the central child's own pictures, placed after
-		// CenterArea.bmp. The two tender families share one destination but
-		// the controller exposes at most the currently selected mode.
-		for _, layer := range []struct {
-			pic image.Image
-			at  image.Point
-		}{
-			{v.TavernInterior.Candle, image.Pt(160, 48)},
-			{v.TavernInterior.Cauldron, image.Pt(420, 160)},
-			{v.TavernInterior.Tender, image.Pt(240, 152)},
-		} {
-			if layer.pic == nil {
-				continue
-			}
-			b := layer.pic.Bounds()
-			placed := b.Add(layer.at.Sub(b.Min))
-			clip := placed.Intersect(image.Rect(160, 0, 480, 480))
-			if !clip.Empty() {
-				src := b.Min.Add(clip.Min.Sub(placed.Min))
-				draw.Draw(dst, clip, layer.pic, src, draw.Over)
-			}
+		// TOWN-407: the central child's own pictures, placed after
+		// CenterArea.bmp.
+		if v.Scene != nil {
+			v.Scene.Paint(dst, "centre")
 		}
 		drawTownPane(dst, TownPane{Body: v.TavernArt.LeftStats, Seam: v.TavernArt.LeftStatsSeam}, image.Rect(0, 0, 160, 238), image.Rect(160, 0, 176, 238))
 		drawTownPane(dst, TownPane{Body: v.TavernArt.LeftPicture, Seam: v.TavernArt.LeftPictureSeam}, image.Rect(0, 238, 160, 480), image.Rect(160, 238, 176, 480))
 	} else {
 		drawTownShellBox(dst, TownContentRegion, false)
 	}
-	if artSchool {
+	if artSchool && v.Scene != nil {
 		// TOWN-428's own-painter order is background, one selected movie per
-		// side, then the column, skills and diamond below. Both training
-		// families are opaque; clip only at the room's content boundary.
-		for _, layer := range []struct {
-			pic image.Image
-			at  image.Point
-		}{
-			{v.SchoolTraining.Mage, image.Pt(0, 200)},
-			{v.SchoolTraining.Fighter, image.Pt(320, 200)},
-		} {
-			if layer.pic == nil {
-				continue
-			}
-			b := layer.pic.Bounds()
-			placed := b.Add(layer.at.Sub(b.Min))
-			clip := placed.Intersect(TownContentRegion)
-			if clip.Empty() {
-				continue
-			}
-			src := b.Min.Add(clip.Min.Sub(placed.Min))
-			draw.Draw(dst, clip, layer.pic, src, draw.Src)
-		}
+		// side, then the column, skills and diamond below.
+		v.Scene.Paint(dst, "movies")
 	}
 	if artTavern && v.CandidatePixels != nil {
 		draw.Draw(dst, v.CandidatePixels.Bounds(), v.CandidatePixels, v.CandidatePixels.Bounds().Min, draw.Over)
@@ -1388,13 +1311,8 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 			outline(dst, r.Inset(3), townShellText)
 		}
 	}
-	if artSchool && v.SchoolColumnSet {
-		if frame := v.SchoolColumnFrame; frame >= 0 && frame < len(v.SchoolArt.Column) {
-			if pic := v.SchoolArt.Column[frame]; pic != nil {
-				b := pic.Bounds()
-				draw.Draw(dst, b.Add(SchoolFaceOrigin.Sub(b.Min)), pic, b.Min, draw.Src)
-			}
-		}
+	if artSchool && v.Scene != nil {
+		v.Scene.Paint(dst, "column")
 	}
 	if artSchool && schoolPanelVisible(v) {
 		class := v.SchoolClass
@@ -1449,12 +1367,9 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 			}
 		}
 	}
-	if artSchool && v.SchoolDiamondActive && v.SchoolDiamondFrame >= 0 && v.SchoolDiamondFrame < len(v.SchoolArt.Diamond) {
-		if pic := v.SchoolArt.Diamond[v.SchoolDiamondFrame]; pic != nil {
-			b := pic.Bounds()
-			// TOWN-154 paint step 6: opaque, independent of the class column.
-			draw.Draw(dst, b.Add(image.Pt(200, 60).Sub(b.Min)), pic, b.Min, draw.Src)
-		}
+	if artSchool && v.Scene != nil {
+		// TOWN-154 paint step 6, independent of the class column.
+		v.Scene.Paint(dst, "diamond")
 	}
 	for i, b := range v.Buttons {
 		r := townSurfaceButtonRect(v.Kind, i)

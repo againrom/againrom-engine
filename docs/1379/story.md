@@ -10,7 +10,7 @@ sees, hears or saves changes. A third profile or a mod profile is an edition
 value and, at most, one more service implementation; it adds no arm to shared
 code.
 
-Base: `af6c6a09` (game 0.105.0), reconciled with main `dfb84f0f`. Knowledge
+Base: `af6c6a09` (game 0.105.0), reconciled with main `458e07e2`. Knowledge
 pin: k208.
 
 ## Authority
@@ -134,5 +134,9 @@ field named `second` or `Second`. Allowed: `campaignfirst.go` (2 findings) and
   dialogue tag reader branches on it.
 - `ROM1TownDescription` and `TownTipPath` remain first-game exports for the
   town square tool and tests.
+- The room pages, room tips and room scene art (tavern, shop, school) read
+  the first game's description through `ROM1TownDescription`. The shop and
+  school art load without a town screen; moving them to the profile needs a
+  rule for what a second-game install reads there.
 - The second game's town has no square description, so no square art is
   loaded for it; nothing on that game read it.

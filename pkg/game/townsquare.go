@@ -20,9 +20,16 @@ import (
 var rom1TownJSON []byte
 
 // townDescriptions are the town descriptions a profile's edition can name, by
-// that name. A description that does not decode is a build defect, so it
-// stops the process at start.
-var townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1TownJSON)}
+// that name. A description that does not decode, or names a hook or condition
+// the campaign does not answer, is a build defect, so it stops the process at
+// start. They are decoded in init because the hooks they are checked against
+// reach the descriptions themselves.
+var townDescriptions map[string]*town.Description
+
+func init() {
+	townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1TownJSON)}
+	TownTipPath = ROM1TownDescription().Tip.Text
+}
 
 // TownDescription is the town description the profile's edition names, or
 // nil when its game's town is not a composed square. Callers must not change
@@ -30,11 +37,27 @@ var townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1T
 func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
 
 func mustDecodeTown(data []byte) *town.Description {
-	d, err := town.Decode(data)
+	d, err := town.Decode(data, townVocabulary())
 	if err != nil {
 		panic(err)
 	}
 	return d
+}
+
+// townVocabulary is the hook, condition, value and event names the ROM1
+// campaign answers.
+func townVocabulary() town.Vocabulary {
+	v := town.Vocabulary{Events: roomEvents}
+	for name := range townHooks {
+		v.Hooks = append(v.Hooks, name)
+	}
+	for name := range townConditions {
+		v.Conditions = append(v.Conditions, name)
+	}
+	for name := range roomValues {
+		v.Values = append(v.Values, name)
+	}
+	return v
 }
 
 // ROM1TownDescription answers the ROM1 town description the square is built
@@ -43,7 +66,7 @@ func mustDecodeTown(data []byte) *town.Description {
 func ROM1TownDescription() *town.Description { return TownDescription(base.Profile{}) }
 
 // TownTipPath is the ROM1 square's tip text, as its description names it.
-var TownTipPath = ROM1TownDescription().Tip.Text
+var TownTipPath string
 
 // LoadTownSquareArt resolves the square's art from the install as the ROM1
 // description names it. A required entry that fails carries its address in
@@ -138,16 +161,15 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 	"talk-clear":    func(t *townScreen, _ townRoom) { t.npc, t.offer, t.said = 0, TownOffer{}, 0 },
 	"tip":           func(t *townScreen, room townRoom) { t.loadTip(room) },
 	"school-reset": func(t *townScreen, _ townRoom) {
-		t.schoolDiamond = schoolDiamondAnimation{}
 		t.schoolSpent = [schoolLatchCount]bool{}
-		t.enterSchoolTraining()
+		t.enterSchoolPage()
 		t.clearSchoolSelection()
 	},
 	"shop-shelf": func(t *townScreen, _ townRoom) {
 		t.packBase, t.shopBook = 0, false
 		t.openStockedShopShelf()
 	},
-	"shop-interior": func(t *townScreen, _ townRoom) { t.enterShopInterior() },
+	"shop-interior": func(t *townScreen, _ townRoom) { t.shopPage().Enter() },
 	"faces":         func(t *townScreen, _ townRoom) { t.composeShopFaces() },
 	"offer-on-entry": func(t *townScreen, room townRoom) {
 		building := TownShop
@@ -158,7 +180,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 			t.openOfferDialogue(building, offers[0], 0)
 		}
 	},
-	"tavern-interior":     func(t *townScreen, _ townRoom) { t.enterTavernInterior() },
+	"tavern-interior":     func(t *townScreen, _ townRoom) { t.tavernPage().Enter() },
 	"tavern-detail-clear": func(t *townScreen, _ townRoom) { t.clearTavernDetail() },
 	"tavern-selection":    func(t *townScreen, _ townRoom) { t.activateTavernSelection(t.tavernCandidates()) },
 	"navigate":            func(t *townScreen, _ townRoom) { t.enterWorldMap() },
@@ -169,7 +191,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 		t.resetTownSpeech()
 	},
 	"tavern-leave": func(t *townScreen, _ townRoom) { t.leaveTavernInterior() },
-	"shop-reset":   func(t *townScreen, _ townRoom) { t.resetShopInterior() },
+	"shop-reset":   func(t *townScreen, _ townRoom) { t.shopPage().Reset() },
 	"school-leave": func(t *townScreen, _ townRoom) { t.leaveSchoolTraining() },
 }
 

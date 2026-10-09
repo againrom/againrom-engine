@@ -215,10 +215,8 @@ func sqActorFrames(name string) int {
 	panic("no actor " + name)
 }
 
-var (
-	townBirdFrameCount = sqActorFrames("birds")
-	townStarFrameCount = sqActorFrames("star")
-)
+func townBirdFrameCount() int { return sqActorFrames("birds") }
+func townStarFrameCount() int { return sqActorFrames("star") }
 
 // sqProgress is the flock's progress words as text.
 func (t *townScreen) sqProgress() string { return fmt.Sprint(t.sqBirds().Progress) }

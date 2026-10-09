@@ -54,8 +54,8 @@ func releaseQuietShopApp(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavern
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if s.room != roomShop || !s.shopInterior.ready {
-		t.Fatalf("App entered room %d, interior ready %v; want the installed shop", s.room, s.shopInterior.ready)
+	if s.room != roomShop || !s.shopPage().Ready() {
+		t.Fatalf("App entered room %d, interior ready %v; want the installed shop", s.room, s.shopPage().Ready())
 	}
 	closeShopTip(t, app, s)
 	return f, app, s, r
@@ -72,16 +72,16 @@ func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	f, app, s, r := releaseQuietShopApp(t)
 	point := shopPointer(t, app)
 	base := len(r.samples)
-	if s.shopInterior.merchantModes != 0 {
-		t.Fatalf("shop entry armed merchant modes %#x", s.shopInterior.merchantModes)
+	if shopModes(s) != 0 {
+		t.Fatalf("shop entry armed merchant modes %#x", shopModes(s))
 	}
 	recorded := func(action string, want int) {
 		t.Helper()
 		if got := len(r.samples) - base; got != want {
 			t.Fatalf("%s: merchant started %d recording(s) in the shop, want %d", action, got, want)
 		}
-		if s.shopInterior.merchantModes != 0 {
-			t.Fatalf("%s armed merchant modes %#x", action, s.shopInterior.merchantModes)
+		if shopModes(s) != 0 {
+			t.Fatalf("%s armed merchant modes %#x", action, shopModes(s))
 		}
 	}
 	places := func(action string, want ...bool) {
@@ -194,8 +194,8 @@ func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	}
 
 	point("shelf_pick", roomWeapons, "press", "release")
-	if got := len(r.samples) - base; got != 1 || s.shopInterior.merchantModes != shopMerchantYes {
-		t.Fatalf("changed rack: recordings %d, modes %#x; want 1 and Yes", got, s.shopInterior.merchantModes)
+	if got := len(r.samples) - base; got != 1 || shopModes(s) != shopMerchantYes {
+		t.Fatalf("changed rack: recordings %d, modes %#x; want 1 and Yes", got, shopModes(s))
 	}
 	t.Logf("sale stack %s at armour shelf cell %d", name, cell)
 }
