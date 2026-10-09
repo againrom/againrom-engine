@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.101.0
+
 - [ROM1] Spells leave the caster's staff tip or hand, on the side he faces,
   as the original places them for his weapon and direction.
 - [ROM1] Lightning and Prismatic Spray light the ground and the units along
