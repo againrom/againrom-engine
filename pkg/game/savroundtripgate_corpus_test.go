@@ -490,7 +490,7 @@ func savGateBrief(s string) string {
 // savGateOpen builds one front end and opens a case's mission on it.
 func savGateOpen(t *testing.T, assets, title string, c savGateCase, raw []byte) (*FrontEnd, *ui.App, string, bool) {
 	t.Helper()
-	f, err := NewFrontEnd(assets)
+	f, err := decodedInstallFront(assets)
 	if err != nil {
 		t.Fatalf("NewFrontEnd(%q): %v", assets, err)
 	}
@@ -747,10 +747,11 @@ var savGateTownProvenance = map[string]bool{"OriginalCity": true, "CityObjects":
 // towns' snapshots field path by field path.
 func savGateTownRun(t *testing.T, assets string, c savGateCase) (out savGateOutcome) {
 	restore := func(raw []byte) (*FrontEnd, string) {
-		f, err := NewFrontEnd(assets)
+		f, err := decodedInstallFront(assets)
 		if err != nil {
 			t.Fatalf("NewFrontEnd(%q): %v", assets, err)
 		}
+		cleanupFrontAudio(t, f)
 		f.SetDeterministicFrames(true)
 		_, town, err := f.RestoreOriginal(raw)
 		if err != nil {

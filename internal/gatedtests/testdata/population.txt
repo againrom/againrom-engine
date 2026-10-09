@@ -2,6 +2,7 @@
 # Scan in both directions. pipeline/check-release-tests.sh independently
 # TestScanMatchesTheCheckedInPopulationList requires an exact match with
 # matches these IDs against its runtime JSON skip census.
+pkg/game.TestReleaseDecodedInstallFixtureIsolation
 pkg/game.TestReleaseQuickSaveCurrentStateAndLoad
 pkg/game.TestReleaseActivePauseOrderedSAVAndResume
 pkg/game.TestReleaseActivePauseRenderedWorld

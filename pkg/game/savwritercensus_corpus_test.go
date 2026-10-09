@@ -941,7 +941,7 @@ func writerCensusSave(f *FrontEnd, onMap bool, dir string) ([]byte, string, erro
 // writerCensusWriteOne loads, changes and writes one original on its own
 // front end. It returns the refusal stage and error when no file is written.
 func writerCensusWriteOne(t *testing.T, assets string, mf milestone2File) (writerCensusWrite, string, error) {
-	f, err := NewFrontEnd(assets)
+	f, err := decodedInstallFront(assets)
 	if err != nil {
 		t.Fatalf("NewFrontEnd(%q): %v", assets, err)
 	}

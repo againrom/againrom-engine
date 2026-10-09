@@ -309,7 +309,11 @@ func skillExport(t *testing.T, f *FrontEnd, onMap bool, how string) []byte {
 
 func coldMission(t *testing.T, raw []byte) (*FrontEnd, sim.EntityID) {
 	t.Helper()
-	f := releaseFront(t)
+	return coldMissionFront(t, releaseFront(t), raw)
+}
+
+func coldMissionFront(t *testing.T, f *FrontEnd, raw []byte) (*FrontEnd, sim.EntityID) {
+	t.Helper()
 	f.SetDeterministicFrames(true)
 	open, _, err := f.RestoreOriginal(raw)
 	if err != nil || open == nil {
@@ -331,15 +335,14 @@ func coldHeroLevels(t *testing.T, label string, f *FrontEnd, id sim.EntityID, li
 	}
 }
 
-// A level raised in play stays raised through every save path, a cold LOAD, the
-// carry home, the town SAVE, its cold LOAD and the next mission entry, with the
-// experience per slot unchanged and in band at every step.
+// Raised skills and experience survive mission SAVE, autosave, cold LOAD,
+// town return, town SAVE and the next mission, with each slot still in band.
 func TestReleaseSkillLevelsSurviveEverySavePath(t *testing.T) {
 	const mission = 90
 	for _, c := range skillCases() {
 		c := c
 		t.Run(c.name, func(t *testing.T) {
-			f := releaseFront(t)
+			f := skillSaveFront(t)
 			id := openSkillMission(t, f, mission, skillCaseParty(f, c))
 			start := releaseEntity(t, f.live, id)
 			for i, level := range c.levels {
@@ -352,8 +355,22 @@ func TestReleaseSkillLevelsSurviveEverySavePath(t *testing.T) {
 	}
 }
 
-// exerciseSavePaths trains the hero's slot until it rises, then drives every
-// save path and checks the level words, the base words and the experience.
+func skillSaveFront(t *testing.T) *FrontEnd {
+	t.Helper()
+	root := os.Getenv("AGAINROM_ASSETS")
+	if root == "" {
+		t.Skip("no AGAINROM_ASSETS: skill save paths need a lawful install")
+	}
+	f, err := decodedInstallFront(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanupFrontAudio(t, f)
+	f.AmbientSeed = 1
+	return f
+}
+
+// exerciseSavePaths checks raised levels, base levels and experience on every save path.
 func exerciseSavePaths(t *testing.T, f *FrontEnd, id sim.EntityID, c skillCase, mission int) {
 	t.Helper()
 	trainSkill(t, f, id, c, true)
@@ -367,14 +384,15 @@ func exerciseSavePaths(t *testing.T, f *FrontEnd, id sim.EntityID, c skillCase, 
 	}
 	for _, how := range []string{"mission SAVE", "autosave"} {
 		raw := skillExport(t, f, true, how)
-		assertSheet(t, how, savHero(t, raw), want, true)
-		for _, m := range censusMismatch(savHero(t, raw), live, false) {
+		sheet := savHero(t, raw)
+		assertSheet(t, how, sheet, want, true)
+		for _, m := range censusMismatch(sheet, live, false) {
 			t.Errorf("%s: census: %s", how, m)
 		}
-		for _, m := range censusIdentity(savHero(t, raw), f, f.live.mission.party[0], id) {
+		for _, m := range censusIdentity(sheet, f, f.live.mission.party[0], id) {
 			t.Errorf("%s: census: %s", how, m)
 		}
-		cold, cid := coldMission(t, raw)
+		cold, cid := coldMissionFront(t, skillSaveFront(t), raw)
 		coldHeroLevels(t, how, cold, cid, live)
 		trainSkill(t, cold, cid, skillCase{c.name, c.mage, c.levels, c.spell, c.slot, 99, 6}, false)
 		again := releaseEntity(t, cold.live, cid)
@@ -388,17 +406,18 @@ func exerciseSavePaths(t *testing.T, f *FrontEnd, id sim.EntityID, c skillCase, 
 		}
 	}
 	raw := skillExport(t, f, true, "mission SAVE")
-	home, _ := coldMission(t, raw)
+	home, _ := coldMissionFront(t, skillSaveFront(t), raw)
 	ms := home.live.mission
 	if refused := home.CampaignSession.carryMissionHome(home.townInstall(), mission, ms.party, home.live.world, ms.ids, nil); refused != "" {
 		t.Fatal(refused)
 	}
 	town := skillExport(t, home, false, "town SAVE")
-	assertSheet(t, "town SAVE", savHero(t, town), want, false)
-	for _, m := range censusMismatch(savHero(t, town), live, true) {
+	sheet := savHero(t, town)
+	assertSheet(t, "town SAVE", sheet, want, false)
+	for _, m := range censusMismatch(sheet, live, true) {
 		t.Errorf("town SAVE: census: %s", m)
 	}
-	cold := releaseFront(t)
+	cold := skillSaveFront(t)
 	open, isCity, err := cold.RestoreOriginal(town)
 	if err != nil || open != nil || !isCity {
 		t.Fatalf("cold LOAD of the town save: open=%v city=%v err=%v", open != nil, isCity, err)
