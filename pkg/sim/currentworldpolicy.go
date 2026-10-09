@@ -233,7 +233,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		w.savedCellPlanes = nil
 		w.grid = slices.Clone(w.grid)
 		for _, e := range w.effects {
-			if e.Spell == 19 && e.Mode == areaModeCloud {
+			if w.spellArm(e.Spell) == 19 && e.Mode == areaModeCloud {
 				w.setWallCells(e.Cells, true)
 			}
 		}

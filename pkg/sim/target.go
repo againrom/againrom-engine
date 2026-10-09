@@ -6,7 +6,7 @@ const controlSpiritSpellID = 25
 // in the 0 through -9 finishing band. Heal has its own restorative admission
 // below; buffs and every other support row remain forbidden on a body.
 func spellFinishesBody(rule SpellRule) bool {
-	return rule.Damaging || rule.ID == 11 ||
+	return rule.Damaging || rule.arm() == 11 ||
 		rule.EffectKind == EffectHealth && rule.EffectMagnitude < 0
 }
 
@@ -14,7 +14,7 @@ func spellFinishesBody(rule SpellRule) bool {
 // selection and application. Control Spirit's more specific bones-only gate is
 // pointEffectRefusal; this predicate only preserves its explicit corpse route.
 func spellTargetable(target Entity, rule SpellRule) bool {
-	if rule.ID == controlSpiritSpellID {
+	if rule.arm() == controlSpiritSpellID {
 		return true
 	}
 	if !target.OrdinaryTargetable() {
@@ -31,7 +31,7 @@ func spellTargetable(target Entity, rule SpellRule) bool {
 // cannot claim a body as a support-or-damage guess. The explicit Control Spirit
 // id remains retained even when its table is supplied later by a caller.
 func (w *World) spellIDTargetable(target Entity, spell uint32) bool {
-	if spell == controlSpiritSpellID {
+	if w.spellArmIs(int64(spell), controlSpiritSpellID) {
 		return true
 	}
 	rule, ok := w.findSpell(spell)

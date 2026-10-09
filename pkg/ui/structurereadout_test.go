@@ -3,29 +3,33 @@ package ui
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"testing"
 
 	"againrom/pkg/render/text"
 )
 
-// readoutExpected draws the readout's three lines independently of the
-// production composer: a flat (8,8,8) shadow one pixel down and right, then the
-// ink, at relative heights 0, 16 and 26.
+// readoutExpected draws the centred lines on the whole card independently.
 func readoutExpected(f *text.Font, lines [3]string) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, 200, 40))
-	for i, ys := range [3]int{0, 16, 26} {
+	img := image.NewRGBA(image.Rect(0, 0, 160, 242))
+	for i, ys := range [3]int{28, 44, 54} {
+		w, _ := f.Measure(lines[i])
+		x := 72 - w/2
 		ink := color.RGBA{R: 185, G: 159, B: 73, A: 255}
 		if i == 2 {
 			ink = color.RGBA{R: 107, G: 154, B: 120, A: 255}
 		}
-		f.DrawFlat(img, lines[i], 1, ys+1, color.RGBA{R: 8, G: 8, B: 8, A: 255})
-		f.Draw(img, lines[i], 0, ys, ink)
+		f.DrawFlat(img, lines[i], x+1, ys+1, color.RGBA{R: 8, G: 8, B: 8, A: 255})
+		f.Draw(img, lines[i], x, ys, ink)
 	}
 	return img
 }
 
 func readoutSame(t *testing.T, got *image.RGBA, want *image.RGBA) bool {
 	t.Helper()
+	if got.Bounds() != want.Bounds() {
+		return false
+	}
 	for y := 0; y < got.Bounds().Dy(); y++ {
 		for x := 0; x < got.Bounds().Dx(); x++ {
 			if got.RGBAAt(x, y) != want.RGBAAt(x, y) {
@@ -36,32 +40,60 @@ func readoutSame(t *testing.T, got *image.RGBA, want *image.RGBA) bool {
 	return true
 }
 
-// Widget 8 draws a structure's building name, the word Health and current
-// over maximum health, at the column's right edge minus 88 (MENU-071). The
-// hovered structure wins; with none hovered the single selected one is read.
+// Widget 8 centres each structure line inside the card (MENU-071).
 func TestStructureReadoutIsTheHoveredThenTheSelectedStructure(t *testing.T) {
 	a, v := inspectionFixture(t, image.Pt(1024, 768))
 	v.sel = nil
 	ref := InspectionSubject{InspectionStructure, 7}
+	f := v.cardFont()
+	f.Glyphs['H'-text.FirstChar].Advance += 3
+	if w, _ := f.Measure(v.words.PanelCaptions[19]); w != 30 {
+		t.Fatalf("caption width %d, want 30", w)
+	}
+	if w, _ := f.Measure("456/789"); w != 29 {
+		t.Fatalf("ratio width %d, want 29", w)
+	}
 
 	if _, _, ok := v.structureReadoutPresent(); ok {
 		t.Fatal("a readout is drawn with nothing hovered or selected")
 	}
 	inspectionHover(t, a, v, ref)
-	pic, at, ok := v.structureReadoutPresent()
-	if !ok {
-		t.Fatal("no readout over a hovered structure")
-	}
-	if want := image.Pt(1024-88, 480+28); at != want {
-		t.Errorf("readout at %v, want %v", at, want)
-	}
 	lines := [3]string{"Gate", v.words.PanelCaptions[19], "456/789"}
-	if v.structKey.lines != lines {
-		t.Errorf("lines %q, want %q", v.structKey.lines, lines)
+	check := func(what string) {
+		t.Helper()
+		pic, at, ok := v.structureReadoutPresent()
+		if !ok {
+			t.Fatalf("%s: no structure readout", what)
+		}
+		width := 0
+		for _, line := range lines {
+			w, _ := v.cardFont().Measure(line)
+			width = max(width, w)
+		}
+		if want := image.Pt(v.frameW-88-width/2, 526+28); at != want {
+			t.Errorf("%s: readout at %v, want %v", what, at, want)
+		}
+		if v.structKey.lines != lines {
+			t.Errorf("%s: lines %q, want %q", what, v.structKey.lines, lines)
+		}
+		got := image.NewRGBA(image.Rect(0, 0, 160, 242))
+		rect := pic.Bounds().Add(at.Sub(image.Pt(v.frameW-160, 526)))
+		if !rect.In(got.Bounds()) {
+			t.Errorf("%s: readout %v lies outside the card", what, rect)
+		}
+		draw.Draw(got, rect, pic, pic.Bounds().Min, draw.Src)
+		if !readoutSame(t, got, readoutExpected(v.cardFont(), lines)) {
+			t.Errorf("%s: the card differs from the independently centred lines", what)
+		}
 	}
-	if !readoutSame(t, pic, readoutExpected(v.cardFont(), lines)) {
-		t.Error("the picture differs from the independently drawn lines")
+	check("hovered")
+	v.selStructure = ref
+	if err := a.HeadlessPointer("hover", -1, -1); err != nil {
+		t.Fatal(err)
 	}
+	check("selected")
+	a.Layout(1280, 768)
+	check("selected at wider frame")
 
 	// Hovering a unit draws no structure readout, though a structure is selected.
 	v.selStructure = ref

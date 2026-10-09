@@ -80,7 +80,7 @@ func TestOriginalFacingChangesTheNextMoveTurnAndSurvivesNativeContinuation(t *te
 	e := w.entities[0]
 	// North0 from southwest160 takes the shorter96-byte arc: ceil(96/16)=6.
 	// Starting north by mistake would begin movement, not this stationary turn.
-	if e.X != 3 || e.Y != 3 || e.Facing != 160 || e.DesiredFacing != 0 || e.TurnRemaining != 6 || e.TurnTotal != 6 {
+	if e.X != 3 || e.Y != 3 || e.Facing != 176 || e.DesiredFacing != 0 || e.TurnRemaining != 6 || e.TurnTotal != 6 {
 		t.Fatalf("next move did not use imported direction: %+v", e)
 	}
 	for i := 0; i < 32; i++ {

@@ -128,6 +128,8 @@ func RotationSpeedBase(hired bool, hiredBase, class int32, t *Table) int32 {
 	return data.UnitDefaults().RotationSpeed
 }
 
+func HumanTurnRate(speed int32) int32 { return int32(uint8(speed)) }
+
 // equipmentSlots keeps the shared width anchored to the simulation's owned
 // equipment record. It is compile-time evidence that data and sim still agree.
 var _ [sim.EquipSlots]uint16 = [data.EquipSlots]uint16{}

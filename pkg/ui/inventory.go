@@ -754,12 +754,12 @@ func (v *Viewer) packBar() (image.Rectangle, int, bool) {
 	return v.packBarShown()
 }
 
-// packBarShown is the pack bar's rectangle for a switched-on pack: for the
-// hero's pack, and empty while nothing is selected, so the pack icon and the
-// bar agree (DIV-2264). A selection that is not the one hero still draws no
-// bar. packBar adds the eligibility its hit tests and scrolling need.
+// packBarShown is the pack bar's rectangle for a switched-on pack: the hero's
+// pack, or an empty grid carrying the no-hero line while no single hero is
+// selected (none, or several), so the pack icon and the bar agree (DIV-2264).
+// packBar adds the eligibility its hit tests and scrolling need.
 func (v *Viewer) packBarShown() (image.Rectangle, int, bool) {
-	if !v.hudShown(hudPanelPack) || (!v.inventoryEligible() && len(presentSelected(v.sel, v.entities)) != 0) {
+	if !v.hudShown(hudPanelPack) {
 		return image.Rectangle{}, 0, false
 	}
 	return packBarRect(image.Pt(v.frameW, v.frameH))
@@ -1029,11 +1029,15 @@ func (v *Viewer) packBarPresent() (*image.RGBA, image.Point, bool) {
 		return nil, image.Point{}, false
 	}
 	subject, scroll := InventorySubject{}, 0
-	if v.inventoryEligible() {
+	eligible := v.inventoryEligible()
+	if eligible {
 		subject, scroll = v.previewSubject(), v.packScrollAt(cols)
 	}
 	v.syncPackStarPhases(scroll, cols)
 	pic := renderPackBarArt(subject, scroll, cols, bar, v.cardFont(), v.packStarPhases, v.packStarOmit(), v.bottomHUDArt)
+	if !eligible {
+		drawPackNoHeroText(pic, packCellRects(bar, cols), bar.Min, v.words.NoHeroSelected, v.cardFont(), v.font, v.bottomHUDArt != nil)
+	}
 	if v.bottomHUDArt != nil {
 		back, fwd := packScrollRects(bar, cols)
 		p := image.Pt(v.cursorX, v.cursorY)
@@ -1044,6 +1048,25 @@ func (v *Viewer) packBarPresent() (*image.RGBA, image.Point, bool) {
 		}
 	}
 	return pic, image.Pt(0, bar.Min.Y), true
+}
+
+// drawPackNoHeroText centres the install's no-hero line over the pack cells,
+// the spellbook strip's own line and font. An empty line draws nothing.
+func drawPackNoHeroText(img *image.RGBA, cells []image.Rectangle, origin image.Point, line string, cardFont, font *text.Font, original bool) {
+	f := font
+	if original && cardFont != nil {
+		f = cardFont
+	}
+	if line == "" || f == nil || len(cells) == 0 {
+		return
+	}
+	span := cells[0]
+	for _, c := range cells[1:] {
+		span = span.Union(c)
+	}
+	span = span.Sub(image.Pt(0, origin.Y))
+	w, h := f.Measure(line)
+	f.Draw(img, line, span.Min.X+(span.Dx()-w)/2, span.Min.Y+(span.Dy()-h)/2, spellbookText)
 }
 
 // AdvanceInventoryStars is the mission grid's ITEM-STARPHASE-099 message

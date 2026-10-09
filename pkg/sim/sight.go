@@ -458,7 +458,7 @@ func (w *World) actorSeesEntity(i, target int) bool {
 	if !w.actorSees(i, cellOf(candidate)) {
 		return false
 	}
-	return !w.hasAttachedSpell(candidate.ID, 15) ||
+	return !w.hasAttachedSpell(candidate.ID, w.armSpellID(15)) ||
 		cellOf(observer).chebyshevTo(cellOf(candidate)) <= int64(observer.SeeInvisible)
 }
 
@@ -467,7 +467,7 @@ func (w *World) actorSeesEntity(i, target int) bool {
 // target carrying spell 15 is dropped when the observer lacks detection.
 func (w *World) invisibleToActor(i, target int) bool {
 	return target >= 0 && target < len(w.entities) &&
-		w.hasAttachedSpell(w.entities[target].ID, 15) && !w.actorSeesEntity(i, target)
+		w.hasAttachedSpell(w.entities[target].ID, w.armSpellID(15)) && !w.actorSeesEntity(i, target)
 }
 
 // sightShows reports whether c is a cell the stamp lit.

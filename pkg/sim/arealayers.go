@@ -31,7 +31,7 @@ func areaLayerConflict(incoming, old uint16) bool {
 
 func (w *World) nativeAreaLayerPresent(key, spell uint16) bool {
 	for _, e := range w.effects {
-		if e.Mode == areaModeCloud && e.Spell == spell && containsKey(e.Cells, key) {
+		if e.Mode == areaModeCloud && w.spellArm(e.Spell) == spell && containsKey(e.Cells, key) {
 			return true
 		}
 	}
@@ -82,7 +82,7 @@ func (w *World) cloudPulseCells(key, spell uint16, radius int32) []uint16 {
 // a cast can clear an old layer or spend its caster. A wall's two-cell paint
 // extent is independent of Radius; include both bounded extents here.
 func (w *World) areaPaintIssue(rule SpellRule, x, y int32) string {
-	if !layerSpell(rule.ID) && rule.ID != 2 {
+	if !layerSpell(rule.arm()) && rule.arm() != 2 {
 		return ""
 	}
 	if err := w.savedWorldEffectsFault(); err != nil {

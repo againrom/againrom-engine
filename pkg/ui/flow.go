@@ -401,6 +401,7 @@ type flow struct {
 	helpScroll                                      *helpScrollArt
 	questPress                                      bool
 	questTop                                        int
+	questBar                                        scrollBarInput
 	ending                                          EndingView
 	endingPage, endingTop, endingFocus, endingPress int
 	screen                                          Screen
@@ -679,8 +680,10 @@ type flow struct {
 	// The surface is derived from menuBack at open time rather than read from
 	// it at every use: menuBack is where closing returns to, and the surface is
 	// which panel was built, and those are different questions.
-	menuSurface         gameMenuSurface
-	menuPage            gameMenuPage
+	menuSurface gameMenuSurface
+	menuPage    gameMenuPage
+	// menuPress is the menu buttons' press latch (MENU-116).
+	menuPress           buttonLatch
 	menuContext         GameMenuContext
 	menuCanSave         bool
 	menuCanLoad         bool

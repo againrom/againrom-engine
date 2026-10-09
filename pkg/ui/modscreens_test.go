@@ -149,6 +149,8 @@ func TestPressOffTheEntryOpensNothing(t *testing.T) {
 
 func TestMainMenuHoverRedrawsTheEntry(t *testing.T) {
 	a := modTestApp(t, modTestScreens())
+	// The entry is a push button: hover turns its caption gold (MENU-115).
+	a.flow.menuFont = gameMenuTestFont()
 	a.drawMenuForTest()
 	idle, _ := a.composeScreen()
 	p := midOf(modMenuEntryRects(2)[0])

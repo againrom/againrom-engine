@@ -5,6 +5,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
@@ -89,13 +90,7 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 			baseViewport, baseZoom, v.Camera().Zoom)
 	}
 
-	// Mission 10 carries the production engine margin which the terrain pass
-	// paints black outside its first lower row. At ordinary zoom the side and
-	// top camera extremes stop at the playable surface. The lower extreme admits
-	// exactly one textured-but-impassable apron row; its far edge is the camera
-	// bound, so the last playable terrain cell is not clipped. Reaching the
-	// complete-world edge would still reproduce the owner's old large black
-	// widescreen bands.
+	// TERR-216.
 	cam := v.Camera()
 	cam.Pan(-1e9, -1e9)
 	if cam.X <= 0 || cam.Y <= 0 {
@@ -108,11 +103,10 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 		t.Fatalf("wide mission far edge reached black world margin: right=%v bottom=%v",
 			rightSlack, bottomSlack)
 	}
-	// Mission 10's playable bottom is row 72. Its one textured apron row must
-	// also enter the camera range; merely reaching 72 puts the playable terrain
-	// edge exactly on the raster boundary and recreates the owner's lower crop.
-	if got := cam.VisibleTiles().Row1; got < 72+1 {
-		t.Fatalf("wide mission far edge stops at row %d, want playable row 72 plus one render-lip row", got)
+	m := f.live.mission.state.Map
+	wantY := float64((m.Height-8-int(float64(cam.ViewH)/(cam.Zoom*32)))*32 - terrain.Project(m.Altitudes, m.Width, m.Height).MinV)
+	if cam.Y != wantY {
+		t.Fatalf("wide mission far camera Y %v, want %v", cam.Y, wantY)
 	}
 	if got := f.live.world.Hash(); got != beforeHash {
 		t.Fatalf("Layout changed world hash from %#x to %#x", beforeHash, got)

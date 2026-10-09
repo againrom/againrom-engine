@@ -40,12 +40,8 @@ type TipPanelArt struct {
 	// Border is interface/t_border.bmp, keyed so its own centre is
 	// transparent, drawn as a nine-patch over the tiled fill.
 	Border image.Image
-	// GemOff and GemOn are two of interface/radiob.256's six frames: the
-	// toggle's own unchecked and checked pictures. WHICH TWO OF THE SIX IS
-	// AUTHORED (pkg/game's LoadTipPanelArt doc): the file ships three
-	// shapes (round, square, small square) each as a dark/light pair, and
-	// this build takes the small-square pair, frames 4 and 5, as the
-	// closest fit to a checkbox next to a line of text.
+	// GemOff and GemOn are radiob.256 frames 4 and 5, the tip checkbox's
+	// clear and checked pictures (MENU-125).
 	GemOff, GemOn image.Image
 }
 
@@ -92,6 +88,11 @@ type TipPanelView struct {
 	CloseLabel, ToggleLabel string
 	Art                     *TipPanelArt
 	Font                    *text.Font
+	// Pointer and the Close states feed the shared painters' hover and
+	// pressed looks; a screen that leaves them zero shows them at rest.
+	Pointer                  image.Point
+	PointerOK                bool
+	CloseHover, ClosePressed bool
 }
 
 // Showing reports whether there is anything to draw or hit-test.
@@ -113,7 +114,6 @@ const (
 	tipPanelButtonRowH = 18
 	tipPanelCloseW     = 56
 	tipPanelGemSize    = 16
-	tipPanelGemGap     = 4
 
 	// tipPanelChromeH is the close/toggle row's own total footprint below the
 	// text area: top inset, bottom inset, the row itself and the 4px gap
@@ -219,13 +219,10 @@ func TipPanelCloseRect(r image.Rectangle) image.Rectangle {
 	)
 }
 
-// TipPanelToggleRect is the checkbox's own draw position and hit rectangle:
-// the gem plus its label, one clickable band on the same row as Close,
-// starting at the panel's own left inset. Inside the band the gem is drawn
-// at the band's left edge and the label is CENTRED in what remains, because
-// ComposeTipPanel draws it through drawTownShellText, which centres
-// (townShellTextLayout, townshell.go). This doc read "left-aligned" until
-// the story's landing (round-3 adversarial review, D-6).
+// TipPanelToggleRect is the checkbox's own hit rectangle: the gem plus its
+// label, one clickable band on the same row as Close, starting at the
+// panel's own left inset. The shared tip checkbox draws inside it
+// (MENU-125).
 func TipPanelToggleRect(r image.Rectangle) image.Rectangle {
 	return image.Rect(
 		r.Min.X+tipPanelInset, r.Max.Y-tipPanelInset-tipPanelButtonRowH,
@@ -415,30 +412,25 @@ func ComposeTipPanel(dst *image.RGBA, v TipPanelView) {
 	}
 
 	closeRect := TipPanelCloseRect(r)
-	drawTownShellBox(dst, closeRect, false)
 	closeLabel := v.CloseLabel
 	if closeLabel == "" {
 		closeLabel = AuthoredTipClose
 	}
-	drawTownShellText(dst, v.Font, closeLabel, closeRect, townShellText)
+	drawPushButton(dst, v.Font, pushButton{Rect: closeRect, Label: closeLabel, Literal: true,
+		Hover: v.CloseHover, Inside: v.CloseHover, Pressed: v.ClosePressed})
 
 	toggleRect := TipPanelToggleRect(r)
-	gem := v.Art.GemOff
-	if v.ToggleOn {
-		gem = v.Art.GemOn
-	}
-	gy := toggleRect.Min.Y + (toggleRect.Dy()-tipPanelGemSize)/2
-	if gem != nil {
-		gb := gem.Bounds()
-		at := image.Pt(toggleRect.Min.X, gy)
-		draw.Draw(dst, gb.Add(at.Sub(gb.Min)), gem, gb.Min, draw.Over)
-	}
-	labelRect := image.Rect(toggleRect.Min.X+tipPanelGemSize+tipPanelGemGap, toggleRect.Min.Y, toggleRect.Max.X, toggleRect.Max.Y)
 	toggleLabel := v.ToggleLabel
 	if toggleLabel == "" {
 		toggleLabel = AuthoredTipShowNext
 	}
-	drawTownShellText(dst, v.Font, toggleLabel, labelRect, townShellText)
+	gy := toggleRect.Min.Y + (toggleRect.Dy()-tipPanelGemSize)/2
+	g := choiceGroup{Kind: choiceTipCheck, Rect: image.Rect(toggleRect.Min.X-1, gy, toggleRect.Max.X, gy+tipPanelGemSize),
+		Labels: []string{toggleLabel}, Pointer: v.Pointer, PointerOK: v.PointerOK, Off: v.Art.GemOff, On: v.Art.GemOn}
+	if v.ToggleOn {
+		g.Mask = 1
+	}
+	drawChoiceGroup(dst, v.Font, g)
 }
 
 // tileBlitSrc repeats src opaquely across target, one draw.Src blit per

@@ -1060,7 +1060,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 			// ever reads KnownSpells from.
 			knownSpells:        h.KnownSpells | taught,
 			healthRegeneration: der.HealthRegeneration, manaRegeneration: der.ManaRegeneration,
-			rotationSpeed:      der.RotationSpeed,
+			rotationSpeed:      HumanTurnRate(der.Speed),
 			secondaryDamage:    der.SecondaryDamage,
 			suppressCorpseLoot: SuppressesCorpseLoot(personRowName(u, t)),
 			worn:               hworn, carried: hcarried}, nil

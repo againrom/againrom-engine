@@ -54,7 +54,7 @@ type markElement struct {
 func (mw *mapWorld) advanceEffectMarks() {
 	live := make(map[sim.EntityID]map[int]bool)
 	for _, e := range mw.world.ActiveEffects() {
-		kind := terrain.MarkKind(int(e.Spell))
+		kind := terrain.MarkKind(int(mw.world.SpellArm(e.Spell)))
 		if live[e.Target] == nil {
 			live[e.Target] = make(map[int]bool)
 		}
@@ -130,7 +130,7 @@ func (mw *mapWorld) markDraws(id sim.EntityID, tileSize int) []ui.UnitMark {
 // landed, while simulation supplies the owner-directed movement and attack
 // gate and MapEntity.Stone supplies the decoded grayscale draw.
 func (mw *mapWorld) stoneHeld(id sim.EntityID) (int, bool) {
-	if !mw.world.HasEffectSpell(id, 20) {
+	if !mw.world.HasEffectArm(id, 20) {
 		delete(mw.stoneHold, id)
 		return 0, false
 	}

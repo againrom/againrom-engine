@@ -114,6 +114,15 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 	if e.Turning() {
 		binary.LittleEndian.PutUint32(m.Mover[0xa0:], 1)
 		m.Mover[0x9d], m.Mover[0xa4] = e.TurnTotal-e.TurnRemaining, e.TurnRemaining
+		m.ActorAction = 1
+	}
+	if e.TurnState.Present {
+		flag := uint32(0)
+		if e.TurnState.Active {
+			flag = 1
+		}
+		binary.LittleEndian.PutUint32(m.Mover[0xa0:], flag)
+		m.Mover[0x9d] = e.TurnState.Counter
 	}
 	for _, cell := range route {
 		key, err := pack(cell[0], cell[1])

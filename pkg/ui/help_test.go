@@ -165,13 +165,16 @@ func TestHelpScrollbarPress(t *testing.T) {
 	}
 	x, y := window(down)
 	a.step(appInput{PrimaryPressed: true, CursorX: x, CursorY: y}, now)
+	a.step(appInput{PrimaryReleased: true, CursorX: x, CursorY: y}, now)
+	a.step(appInput{PrimaryPressed: true, CursorX: x, CursorY: y}, now)
+	a.step(appInput{PrimaryReleased: true, CursorX: x, CursorY: y}, now)
 	if first, _ := v.HelpScroll(); first != 1 {
-		t.Errorf("down arrow moved to %d, want 1", first)
+		t.Errorf("second down arrow moved to %d, want 1", first)
 	}
 	x, y = window(image.Rect(track.Min.X, track.Max.Y-2, track.Max.X, track.Max.Y))
 	a.step(appInput{PrimaryPressed: true, CursorX: x, CursorY: y}, now)
-	if first, _ := v.HelpScroll(); first != 1+visible {
-		t.Errorf("track below the thumb moved to %d, want %d", first, 1+visible)
+	if first, _ := v.HelpScroll(); first != visible {
+		t.Errorf("track below the thumb moved to %d, want %d", first, visible)
 	}
 	if !v.HelpOpen() {
 		t.Error("a scroll bar press closed the panel")

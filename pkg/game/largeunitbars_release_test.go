@@ -212,7 +212,13 @@ func TestReleaseStatusBarsSpanALargeUnitsSelectionBox(t *testing.T) {
 				t.Fatalf("the %s has token size %d; want a one-cell unit", u.name, e.TokenSize)
 			}
 			mana := health.Add(image.Pt(0, 4))
-			fill := func(v, most int32) int { return min(max((width-8)*int(v)/int(most), 0), width-8) }
+			fill := func(v, most int32, minimum bool) int {
+				n := (width - 8) * int(v) / int(most)
+				if n == 0 && minimum {
+					n = 1
+				}
+				return n
+			}
 			t.Logf("%s: HP %d/%d mana %d/%d, health bar at %v, %d wide", u.name, e.HP, e.MaxHP, e.Mana, e.MaxMana, health, width)
 			report := func(what string, at image.Point, bad []string) {
 				if len(bad) > 0 {
@@ -220,9 +226,10 @@ func TestReleaseStatusBarsSpanALargeUnitsSelectionBox(t *testing.T) {
 						u.name, faded, what, at, width, len(bad), 4*width, strings.Join(bad[:min(3, len(bad))], "; "))
 				}
 			}
-			report("health bar", health, statusBarCheck(frame, under, health, width, &statusBarWantHealth, fill(e.HP, e.MaxHP), faded))
+			healthRows := statusBarWantHealthAt(e.HP, e.MaxHP)
+			report("health bar", health, statusBarCheck(frame, under, health, width, &healthRows, fill(e.HP, e.MaxHP, e.HP != 0), faded))
 			if e.MaxMana > 0 {
-				report("mana bar", mana, statusBarCheck(frame, under, mana, width, &statusBarWantMana, fill(e.Mana, e.MaxMana), faded))
+				report("mana bar", mana, statusBarCheck(frame, under, mana, width, &statusBarWantMana, fill(e.Mana, e.MaxMana, true), faded))
 			} else {
 				report("band under health, which must hold no bar,", mana, statusBarCheck(frame, under, mana, width, nil, 0, false))
 			}

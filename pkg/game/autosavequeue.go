@@ -168,7 +168,7 @@ func (f *FrontEnd) detachedMission(s Snapshot) (Snapshot, *mapWorld) {
 
 // runsAutosaveInline is true for deterministic headless runs, which write an
 // automatic save before the next frame instead of on a worker.
-func (f *FrontEnd) runsAutosaveInline() bool { return f.deterministicFrames }
+func (f *FrontEnd) runsAutosaveInline() bool { return f.runtime.deterministicFrames }
 
 // showsViewer reports whether v is the live mission's viewer.
 func (f *FrontEnd) showsViewer(v *ui.Viewer) bool { return f.live != nil && f.live.view == v }

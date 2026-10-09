@@ -402,7 +402,7 @@ func TestTooltipMonsterSpellListJoinsHeadingAndKnownSpellNames(t *testing.T) {
 func TestTooltipWrappingKeepsAuthoredLinesAndFitsFrame(t *testing.T) {
 	font := messageFont()
 	target := tooltipTarget{tooltipText, "text", []string{"ONE#TWO", strings.Repeat("wide ", 40)}, font}
-	pic, at, ok := tooltipPicture(target, image.Pt(99, 119), image.Rect(0, 0, 100, 240))
+	pic, at, ok := tooltipPicture(target, image.Pt(99, 119), image.Rect(0, 0, 100, 240), nil)
 	if !ok || pic.Bounds().Dx() > 100 || at.X < 0 || at.Y < 0 || at.X+pic.Bounds().Dx() > 100 {
 		t.Fatal("tooltip escaped frame", at, pic.Bounds())
 	}
@@ -426,7 +426,7 @@ func TestTooltipKindsShareCardFontAndBoundedWidth(t *testing.T) {
 			if !ok || pic == nil || pic.Bounds().Dx() > min(320, frameWidth) || at.X < 0 || at.X+pic.Bounds().Dx() > frameWidth {
 				t.Fatalf("kind%d width%d escaped its column: %v", kind, frameWidth, at)
 			}
-			if pic.Bounds().Dy() <= 2*(cardFont.Height()+popupLinePad) {
+			if pic.Bounds().Dy() <= 2*hoverPitch+hoverExtraH {
 				t.Fatal("long tooltip did not wrap downward")
 			}
 		}
@@ -442,12 +442,12 @@ func TestTooltipAnchorsBottomLeftAtCursorAndStaysInsideEdges(t *testing.T) {
 	for _, kind := range []uint8{tooltipText, tooltipItem, tooltipSpell, tooltipCommand} {
 		for _, lines := range [][]string{{"NAME"}, {"NAME", "DAMAGE", "MAGIC"}, {strings.Repeat("long name ", 30)}} {
 			target := tooltipTarget{kind, "anchor", lines, font}
-			pic, at, ok := tooltipPicture(target, image.Pt(200, 350), frame)
+			pic, at, ok := tooltipPicture(target, image.Pt(200, 350), frame, nil)
 			if !ok || at.X != 200 || at.Y+pic.Bounds().Dy() != 350 {
 				t.Fatalf("kind%d: lower-left corner moved away from pointer: %v", kind, at)
 			}
 			for _, p := range []image.Point{{0, 0}, {639, 0}, {0, 479}, {639, 479}} {
-				pic, at, ok := tooltipPicture(target, p, frame)
+				pic, at, ok := tooltipPicture(target, p, frame, nil)
 				if !ok || !pic.Bounds().Add(at).In(frame) {
 					t.Fatalf("kind%d cursor%v: popup escaped frame at %v", kind, p, at)
 				}

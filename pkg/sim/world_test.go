@@ -14,6 +14,8 @@ var worldMethods = []string{"ActiveEffects", "BindSourceDerive", "BookSpellCellR
 var worldWriters = []string{"BindSourceDerive", "CompleteSackPickup", "CopyPotionEffects", "DeclareCellTails", "DeclareItemWeights", "DeclareStructures", "EquipSourceCarried", "EquipSourceItem", "HeadlessDamage", "HeadlessHeal", "HeadlessKill", "HeadlessKillPlayer", "HeadlessPlace", "ImportOriginalActorFacings", "ImportOriginalActorPools", "ImportOriginalActorProfiles", "ImportOriginalActorSpellbooks", "ImportOriginalActorStock", "ImportOriginalCellTails", "ImportOriginalDeadActors", "ImportOriginalLivingActors", "ImportOriginalSession", "ImportOriginalStructureHealth", "ImportSavedGroups", "MoveCarried", "ReplaceGroundSacks", "ReplaceStock", "RestoreActorLoad", "RestoreOneShotPlayerCasts", "RestorePotionEffect", "SetCombat", "SetDerived", "SetHumanMovement", "SetPotionHeadroom", "SetPurse", "SetRules", "TakeSack", "UnequipSource", "UnmarshalBinary", "UseCarriedPotion"}
 
 func init() {
+	worldMethods = append(worldMethods, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")
+	worldWriters = append(worldWriters, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")
 	worldMethods = append(worldMethods, "PlayerParticipants", "RestorePlayerParticipants", "SetPlayerParticipant", "CurrentPlayers", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
 	worldWriters = append(worldWriters, "RestorePlayerParticipants", "SetPlayerParticipant", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
 	worldMethods = append(worldMethods, "ActorOrderProgress", "CancelSackPickup")
@@ -64,6 +66,7 @@ func init() {
 	worldMethods = append(worldMethods, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldWriters = append(worldWriters, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldMethods = append(worldMethods, "StructureOccupancy")
+	worldMethods = append(worldMethods, "HasEffectArm", "SpellArm")
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	// The Diary rules read install-derived rows set once per world.
@@ -92,6 +95,8 @@ func init() {
 	worldWriters = append(worldWriters, "SetNativeTraining", "SetNativeClass", "SetROM2ScenarioState", "RepairNativeSkillLevels")
 	worldMethods = append(worldMethods, "RestoreNativeActorBases", "RemovedNativeActorBases")
 	worldWriters = append(worldWriters, "RestoreNativeActorBases")
+	worldMethods = append(worldMethods, "RepairNativePackCells")
+	worldWriters = append(worldWriters, "RepairNativePackCells")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")
@@ -124,6 +129,8 @@ var worldArgReaders = map[string][]reflect.Value{
 	// and at spell 15, `invisibility`, so the call reaches the attached-effect
 	// lookup rather than stopping at "entity absent".
 	"HasEffectSpell":       {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint16(15))},
+	"HasEffectArm":         {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint16(15))},
+	"SpellArm":             {reflect.ValueOf(uint16(15))},
 	"DropLanding":          {reflect.ValueOf(EntityID(7)), reflect.ValueOf(int32(0)), reflect.ValueOf(int32(0))},
 	"InvisibleTo":          {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint32(1))},
 	"CastingSpell":         {reflect.ValueOf(EntityID(7))},

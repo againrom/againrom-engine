@@ -76,7 +76,7 @@ func (c *secondCampaign) canEnter(n int) bool {
 }
 
 func (c *secondCampaign) finish(n int, w *sim.World) error {
-	if n != 10 && n != 20 && n != 21 || c.current != (secondLocation{kind: 1, id: n}) || !c.has(c.current) || w == nil || w.Outcome() != sim.OutcomeWon {
+	if !secondContinues(n) || c.current != (secondLocation{kind: 1, id: n}) || !c.has(c.current) || w == nil || w.Outcome() != sim.OutcomeWon {
 		return fmt.Errorf("campaign continuation after mission %d is unavailable", n)
 	}
 	bank, ok := w.ROM2ScenarioState()
@@ -86,9 +86,18 @@ func (c *secondCampaign) finish(n int, w *sim.World) error {
 	return nil
 }
 
+// secondContinues names the missions whose victory the controller continues.
+func secondContinues(n int) bool { return n == 10 || n == 20 || n == 21 }
+
 func (c *secondCampaign) complete(w *sim.World) {
+	bank, _ := w.ROM2ScenarioState()
+	c.completeBank(bank)
+}
+
+// completeBank applies the ordinary departure to the bank a won mission left.
+func (c *secondCampaign) completeBank(bank [1024]int32) {
 	n := c.current.id
-	c.bank, _ = w.ROM2ScenarioState()
+	c.bank = bank
 	c.bank[773] = 0
 	for i := 0; i < 20; i++ {
 		if c.bank[532+i] != 0 {

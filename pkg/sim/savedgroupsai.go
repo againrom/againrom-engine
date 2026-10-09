@@ -41,7 +41,7 @@ func savedEscortBindingValid(o SavedActorOrder, entities []Entity, dead []origin
 // This is an operation admission check, not a whole-file LOAD refusal. In
 // particular absent order payloads on dead members do not invent live state.
 func (w *World) savedPrimaryIssue(g *SavedGroup) string {
-	if g.AI[0x45] == 0 {
+	if g.AI[0x45] == 0 && !w.safeMode {
 		return ""
 	}
 	members, complete := w.savedLiving(g)
@@ -256,6 +256,9 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			if !arrived(*e) || e.X != x || e.Y != y {
 				w.cancelTurnForTargetChange(i, x, y)
 				w.clearOrder(i)
+				if escortState(e.ActorState) {
+					w.clearEscort(i)
+				}
 				e.clearAttackBetweenCycles()
 				e.TargetX, e.TargetY, e.HasTarget = x, y, true
 				w.syncSavedDestination(i)

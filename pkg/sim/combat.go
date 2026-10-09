@@ -382,7 +382,7 @@ func (w *World) approach(s *routeScratch, i int) {
 	// a victim the world still has. Removing it at the blow instead let an
 	// invisible attacker that missed its to-hit roll stay invisible, and let
 	// one whose victim stood out of reach stay invisible indefinitely.
-	w.removeAttachedSpell(w.entities[i].ID, 15)
+	w.removeAttachedSpell(w.entities[i].ID, w.armSpellID(15))
 	if w.entities[i].PursuitIdle {
 		return
 	}
@@ -654,7 +654,7 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		if e.HasTarget || !closed || e.Turning() || e.PursuitIdle {
 			return
 		}
-		if !structure && e.Reach > 1 && w.turnTowardActor(i, position.X-e.X, position.Y-e.Y) {
+		if !structure && w.turnTowardActor(i, position.X-e.X, position.Y-e.Y) {
 			return
 		}
 		_, weaponSpellEligible := w.weaponSpell(*e)
@@ -837,9 +837,9 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 
 	damageDraw := w.rng.uniform(a.DamageSpread)
 	dmg := int64(a.DamageBase) + int64(damageDraw)
-	if chance, ok := w.attachedMagnitude(a.ID, 23); ok && w.rng.uniform(100) < chance {
+	if chance, ok := w.attachedMagnitude(a.ID, w.armSpellID(23)); ok && w.rng.uniform(100) < chance {
 		dmg = int64(a.DamageBase) + int64(a.DamageSpread)
-	} else if chance, ok := w.attachedMagnitude(a.ID, 27); ok && w.rng.uniform(100) < chance {
+	} else if chance, ok := w.attachedMagnitude(a.ID, w.armSpellID(27)); ok && w.rng.uniform(100) < chance {
 		dmg = int64(a.DamageBase)
 	}
 	roll := int64(w.rng.uniform(hitRollSpan)) + hitRollFloor

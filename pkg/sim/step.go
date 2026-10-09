@@ -406,6 +406,8 @@ func StepWithdrawalTraced(w *World, cmds []Command) []WithdrawalDecision {
 }
 
 func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs) {
+	w.beginTurnSubTick()
+	defer w.endTurnSubTick()
 	if obs != nil {
 		w.damageObservation = &damageObservation{}
 		defer func() {
@@ -882,6 +884,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		if w.stoneCursed(i) {
 			continue
 		}
+		if e.Transit == 0 && !w.actorCastBusy(i) && e.AttackPhase == AttackReady && e.AttackCountdown == 0 && w.stepEscortOrder(scratch, i) {
+			continue
+		}
 		// The head pass above is the turn's only advance. A remainder still held
 		// here withholds every body/action producer for this actor on this tick.
 		if e.Turning() {
@@ -1123,6 +1128,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 		w.invalidateActorMotion(e.ID, "native cell step supersedes original movement")
 		e.X, e.Y = step[0].x, step[0].y
+		e.replaceDrawnTurn()
 		e.clearStride()
 		// A MOVER FACES THE CELL IT STEPPED TO, written from the step's own delta
 		// — the cell taken less the cell left — and here rather than anywhere
@@ -1524,7 +1530,7 @@ func (w *World) clearFelledActions(i int) {
 	// the same sentence: a felled actor holds no order of either layer,
 	// so a defend or a follow state on a body is residue exactly as a
 	// patrol state is. patrolFault refuses both.
-	w.entities[i].clearEscort()
+	w.clearEscort(i)
 }
 
 // clearFelled performs the one death transition after combat, command,
@@ -1701,6 +1707,7 @@ func (w *World) deathGold(i int) uint32 {
 // clearOrder is what does both.
 func (e *Entity) clearTarget() {
 	e.TargetX, e.TargetY, e.HasTarget, e.Stall = 0, 0, false, 0
+	e.EscortOrder = escortOrderNone
 }
 
 // searchRoute is the route the world's own mode chooses from the entity at index

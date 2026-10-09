@@ -22,10 +22,8 @@ func statusBarWantRGB(v uint32) color.RGBA {
 	return color.RGBA{R: uint8(v >> 16), G: uint8(v >> 8), B: uint8(v), A: 0xff}
 }
 
-// The original's bar picture as measured from the owner's screenshot: the
-// end cap, rows top to bottom, a zero colour transparent, and the two kinds'
-// interior rows. Written out here rather than read from the render tier, so
-// the witness does not grade the code by its own tables.
+// Caps retain the measured picture. Interior expectations independently pack
+// the claim's source rows into RGB565 and expand them for this surface.
 var (
 	statusBarWantCap = [4][4]color.RGBA{
 		{{}, statusBarWantRGB(0x6b4129), statusBarWantRGB(0x4a2c18), {}},
@@ -33,15 +31,24 @@ var (
 		{statusBarWantRGB(0x6b4129), statusBarWantRGB(0x9c6542), statusBarWantRGB(0x4a2810), statusBarWantRGB(0x392410)},
 		{statusBarWantRGB(0x000400), statusBarWantRGB(0x392410), statusBarWantRGB(0x211408), {}},
 	}
-	statusBarWantHealth = [4]color.RGBA{statusBarWantRGB(0x008200), statusBarWantRGB(0x00ff00), statusBarWantRGB(0x00c300), statusBarWantRGB(0x008200)}
-	statusBarWantMana   = [4]color.RGBA{statusBarWantRGB(0x000084), statusBarWantRGB(0x0000ff), statusBarWantRGB(0x0000c6), statusBarWantRGB(0x000084)}
+	statusBarWantHealth = [4]color.RGBA{statusBarWantRGB(0x008100), statusBarWantRGB(0x00ff00), statusBarWantRGB(0x00c200), statusBarWantRGB(0x008100)}
+	statusBarWantMana   = [4]color.RGBA{statusBarWantRGB(0x000083), statusBarWantRGB(0x0000ff), statusBarWantRGB(0x0000c5), statusBarWantRGB(0x000083)}
 )
 
-// statusBarWantFaded is a row colour at half opacity over what lies under
-// it: the colour's 128/255 plus the ground's 127/255.
+func statusBarWantHealthAt(hp, maximum int32) [4]color.RGBA {
+	if hp < maximum/4 {
+		return [4]color.RGBA{statusBarWantRGB(0x830000), statusBarWantRGB(0xff0000), statusBarWantRGB(0xc50000), statusBarWantRGB(0x830000)}
+	}
+	if hp < maximum/2 {
+		return [4]color.RGBA{statusBarWantRGB(0x838100), statusBarWantRGB(0xffff00), statusBarWantRGB(0xc5c200), statusBarWantRGB(0x838100)}
+	}
+	return statusBarWantHealth
+}
+
 func statusBarWantFaded(c, under color.RGBA) color.RGBA {
-	mix := func(s, d uint8) uint8 { return uint8((uint32(s)*128+127)/255 + (uint32(d)*127+127)/255) }
-	return color.RGBA{R: mix(c.R, under.R), G: mix(c.G, under.G), B: mix(c.B, under.B), A: 0xff}
+	rb := func(s, d uint8) uint8 { return uint8((int(s/8/2) + int(d/8/2)) * 255 / 31) }
+	g := func(s, d uint8) uint8 { return uint8((int(s/4/2) + int(d/4/2)) * 255 / 63) }
+	return color.RGBA{rb(c.R, under.R), g(c.G, under.G), rb(c.B, under.B), 255}
 }
 
 func statusBarNear(a, b color.RGBA) bool {
@@ -49,10 +56,9 @@ func statusBarNear(a, b color.RGBA) bool {
 	return d(a.R, b.R) <= 1 && d(a.G, b.G) <= 1 && d(a.B, b.B) <= 1
 }
 
-// statusBarCheck compares the width by 4 pixels at 'at' with one bar: the
-// caps exact and opaque at both ends, fill interior columns in the rows (half
-// blended when faded), the unfilled columns and the caps' transparent pixels
-// showing what lies under. rows nil asks that no bar is drawn there at all.
+// statusBarCheck reads caps, filled rows and the selected grey remainder.
+// Unselected remainder and transparent cap pixels retain the scene.
+// rows nil requires that no bar is drawn.
 func statusBarCheck(frame, under *image.RGBA, at image.Point, width int, rows *[4]color.RGBA, fill int, faded bool) []string {
 	var bad []string
 	for y := range 4 {
@@ -74,9 +80,11 @@ func statusBarCheck(frame, under *image.RGBA, at image.Point, width int, rows *[
 					want = c
 				}
 			case x-4 < fill && faded:
-				want, near = statusBarWantFaded(rows[y], ground), true
+				want = statusBarWantFaded(rows[y], ground)
 			case x-4 < fill:
 				want = rows[y]
+			case !faded:
+				want = [4]color.RGBA{statusBarWantRGB(0x414041), statusBarWantRGB(0x838183), statusBarWantRGB(0x626162), statusBarWantRGB(0x414041)}[y]
 			}
 			if got != want && !(near && statusBarNear(got, want)) {
 				bad = append(bad, fmt.Sprintf("pixel (%d,%d) is %v, want %v over %v", x, y, got, want, ground))
@@ -95,14 +103,10 @@ func statusBarAnchorLift(m *alm.Map, minV, col, row int) int {
 	return -h/4 - minV
 }
 
-// TestReleaseStatusBarsOnAFighterAndAMage opens installed mission 10 with a
-// fighter and a mage, selects each in turn through the production press, and
-// composes the viewport on the CPU. The selected unit's bars must be the
-// original's opaque picture and the other unit's interiors half blended with
-// opaque caps; the fighter has no mana bar; each bar stands 16 (health) or 12
-// (mana) rows above its unit's lifted cell; composing does not move the world
-// hash. AGAINROM_STATUSBAR_FRAMES, when set, names the directory the frames
-// are written to for inspection.
+// TestReleaseStatusBarsOnAFighterAndAMage composes installed mission 10 at
+// HP 24,25,50 of 101 for each selection. Four rows, remainder, blue mana,
+// placement and unchanged composition hash are checked independently.
+// AGAINROM_STATUSBAR_FRAMES names an optional explicit frame directory.
 func TestReleaseStatusBarsOnAFighterAndAMage(t *testing.T) {
 	f := releaseFront(t)
 	witnessDir := effectRimWitnessDir(t, f)
@@ -145,6 +149,10 @@ func TestReleaseStatusBarsOnAFighterAndAMage(t *testing.T) {
 	b, _ := live.entity(units[1].id)
 	if a.MaxMana != 0 || b.MaxMana <= 0 {
 		t.Fatalf("fighter mana maximum %d, mage %d; want none and some", a.MaxMana, b.MaxMana)
+	}
+	originalPools := []sim.OriginalActorPools{
+		{ID: units[0].id, HP: a.HP, MaxHP: a.MaxHP, Mana: a.Mana, MaxMana: a.MaxMana},
+		{ID: units[1].id, HP: b.HP, MaxHP: b.MaxHP, Mana: b.Mana, MaxMana: b.MaxMana},
 	}
 	// The party stands near the map's bottom edge, and a selection slides the
 	// unit panel up over the view's lower rows, so the camera is centred on the
@@ -223,49 +231,72 @@ func TestReleaseStatusBarsOnAFighterAndAMage(t *testing.T) {
 		if got, ok := live.view.SelectedUnit(); !ok || got != uint32(selected.id) {
 			t.Fatalf("the selection is %d (%v), want the %s", got, ok, selected.name)
 		}
-		before := live.world.Hash()
-		start := time.Now()
-		frame, under, err := live.view.HeadlessStatusBarFrame()
-		if err != nil {
-			t.Fatalf("compose with the %s selected: %v", selected.name, err)
-		}
-		t.Logf("%s selected: composed in %v", selected.name, time.Since(start).Round(time.Millisecond))
-		if after := live.world.Hash(); after != before {
-			t.Fatalf("composing moved the world hash from %#016x to %#016x", before, after)
-		}
-		if cam.Zoom != 1 || cam.X != math.Floor(cam.X) || cam.Y != math.Floor(cam.Y) {
-			t.Fatalf("camera at (%v,%v) zoom %v; the witness reads whole native pixels", cam.X, cam.Y, cam.Zoom)
-		}
-		crop := image.Rectangle{}
-		for _, u := range units {
-			e, ok := live.entity(u.id)
-			if !ok || e.TokenSize > 1 || e.MaxHP <= 0 {
-				t.Fatalf("the %s is %+v; want a present one-cell unit with health", u.name, e)
+		for _, hp := range []int32{24, 25, 50} {
+			var pools []sim.OriginalActorPools
+			for _, u := range units {
+				e, _ := live.entity(u.id)
+				pools = append(pools, sim.OriginalActorPools{ID: u.id, HP: hp, MaxHP: 101, Mana: e.Mana, MaxMana: e.MaxMana})
 			}
-			top := image.Pt(int(e.X)*32-int(cam.X), int(e.Y)*32+statusBarAnchorLift(m, minV, int(e.X), int(e.Y))-int(cam.Y))
-			faded := u.id != selected.id
-			fill := func(v, most int32) int { return min(max(24*int(v)/int(most), 0), 24) }
-			health, mana := top.Add(image.Pt(0, -16)), top.Add(image.Pt(0, -12))
-			report := func(what string, at image.Point, bad []string) {
-				if len(bad) > 0 {
-					t.Errorf("%s selected, %s (faded %v) %s at %v: %d of 128 pixels differ; first %s",
-						selected.name, u.name, faded, what, at, len(bad), strings.Join(bad[:min(3, len(bad))], "; "))
+			if err := live.world.ImportOriginalActorPools(pools); err != nil {
+				t.Fatal(err)
+			}
+			live.push()
+			before := live.world.Hash()
+			start := time.Now()
+			frame, under, err := live.view.HeadlessStatusBarFrame()
+			if err != nil {
+				t.Fatalf("compose with the %s selected: %v", selected.name, err)
+			}
+			t.Logf("%s selected: composed in %v", selected.name, time.Since(start).Round(time.Millisecond))
+			if after := live.world.Hash(); after != before {
+				t.Fatalf("composing moved the world hash from %#016x to %#016x", before, after)
+			}
+			if cam.Zoom != 1 || cam.X != math.Floor(cam.X) || cam.Y != math.Floor(cam.Y) {
+				t.Fatalf("camera at (%v,%v) zoom %v; the witness reads whole native pixels", cam.X, cam.Y, cam.Zoom)
+			}
+			crop := image.Rectangle{}
+			for _, u := range units {
+				e, ok := live.entity(u.id)
+				if !ok || e.TokenSize > 1 || e.MaxHP <= 0 {
+					t.Fatalf("the %s is %+v; want a present one-cell unit with health", u.name, e)
 				}
+				top := image.Pt(int(e.X)*32-int(cam.X), int(e.Y)*32+statusBarAnchorLift(m, minV, int(e.X), int(e.Y))-int(cam.Y))
+				faded := u.id != selected.id
+				fill := func(v, most int32, minimum bool) int {
+					n := 24 * int(v) / int(most)
+					if n == 0 && minimum {
+						n = 1
+					}
+					return n
+				}
+				health, mana := top.Add(image.Pt(0, -16)), top.Add(image.Pt(0, -12))
+				report := func(what string, at image.Point, bad []string) {
+					if len(bad) > 0 {
+						t.Errorf("%s selected, %s (faded %v) %s at %v: %d of 128 pixels differ; first %s",
+							selected.name, u.name, faded, what, at, len(bad), strings.Join(bad[:min(3, len(bad))], "; "))
+					}
+				}
+				healthRows := statusBarWantHealthAt(e.HP, e.MaxHP)
+				t.Logf("%s HP=%d/%d selected=%v N=%d at=%v", u.name, e.HP, e.MaxHP, !faded, fill(e.HP, e.MaxHP, e.HP != 0), health)
+				report("health bar", health, statusBarCheck(frame, under, health, 32, &healthRows, fill(e.HP, e.MaxHP, e.HP != 0), faded))
+				if e.MaxMana > 0 {
+					report("mana bar", mana, statusBarCheck(frame, under, mana, 32, &statusBarWantMana, fill(e.Mana, e.MaxMana, true), faded))
+				} else {
+					report("band under health, which must hold no bar,", mana, statusBarCheck(frame, under, mana, 32, nil, 0, false))
+				}
+				crop = crop.Union(image.Rect(top.X-16, top.Y-48, top.X+48, top.Y+40))
 			}
-			report("health bar", health, statusBarCheck(frame, under, health, 32, &statusBarWantHealth, fill(e.HP, e.MaxHP), faded))
-			if e.MaxMana > 0 {
-				report("mana bar", mana, statusBarCheck(frame, under, mana, 32, &statusBarWantMana, fill(e.Mana, e.MaxMana), faded))
-			} else {
-				report("band under health, which must hold no bar,", mana, statusBarCheck(frame, under, mana, 32, nil, 0, false))
+			if dir != "" {
+				name := fmt.Sprintf("%s-%s-selected-health-%d", lang, selected.name, hp)
+				writeStatusBarFrame(t, filepath.Join(dir, name+"-frame.png"), frame)
+				writeStatusBarFrame(t, filepath.Join(dir, name+"-crop4x.png"), statusBarScaled(frame, crop.Intersect(frame.Bounds()), 4))
 			}
-			crop = crop.Union(image.Rect(top.X-16, top.Y-48, top.X+48, top.Y+40))
-		}
-		if dir != "" {
-			name := fmt.Sprintf("%s-%s-selected", lang, selected.name)
-			writeStatusBarFrame(t, filepath.Join(dir, name+"-frame.png"), frame)
-			writeStatusBarFrame(t, filepath.Join(dir, name+"-crop4x.png"), statusBarScaled(frame, crop.Intersect(frame.Bounds()), 4))
 		}
 	}
+	if err := live.world.ImportOriginalActorPools(originalPools); err != nil {
+		t.Fatal(err)
+	}
+	live.push()
 	t.Run("lasting effect art", func(t *testing.T) { releaseEffectRims(t, f, m, minV, witnessDir) })
 }
 

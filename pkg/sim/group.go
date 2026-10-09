@@ -280,6 +280,9 @@ func (w *World) issueSavedGroupDestination(g *SavedGroup, members []int, ordered
 
 	for _, i := range members {
 		e := &w.entities[i]
+		if escortState(e.ActorState) {
+			w.clearEscort(i)
+		}
 		// EVERY GROUP ORDER ALLOCATES A FRESH GROUP, whose rate term is zero
 		// until the formation arm sets one. So the zeroing is unconditional and
 		// stands before the arms rather than inside the one that does not set a
@@ -402,7 +405,7 @@ func (w *World) commandGroup(members []int, order uint8, ordered cell) {
 		// FIRST and installs its ring after, so it is not undone by its own
 		// release.
 		w.entities[mi].clearPatrol()
-		w.entities[mi].clearEscort()
+		w.clearEscort(mi)
 	}
 	id := w.freeCommandGroup()
 	if id == 0 {

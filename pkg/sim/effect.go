@@ -77,7 +77,7 @@ func (w *World) HasEffectSpell(target EntityID, spell uint16) bool {
 // read this one lookup rather than carrying a second immobilisation flag that
 // could outlive the effect.
 func (w *World) stoneCursed(i int) bool {
-	return i >= 0 && i < len(w.entities) && w.hasAttachedSpell(w.entities[i].ID, 20)
+	return i >= 0 && i < len(w.entities) && w.hasAttachedSpell(w.entities[i].ID, w.armSpellID(20))
 }
 
 // InvisibleTo reports whether target is hidden from the participant in roster
@@ -97,7 +97,7 @@ func (w *World) stoneCursed(i int) bool {
 // terms, one function up.
 func (w *World) InvisibleTo(target EntityID, owner uint32) bool {
 	ti := indexOfEntity(w.entities, target)
-	if ti < 0 || !w.hasAttachedSpell(target, 15) {
+	if ti < 0 || !w.hasAttachedSpell(target, w.armSpellID(15)) {
 		return false
 	}
 	at := cellOf(w.entities[ti])
@@ -230,6 +230,9 @@ func effectLanding(e Entity, kind EffectKind, amount int32) (Entity, int32, bool
 			v = minEffectSpeed
 		}
 		e.Speed = v
+		if e.Humanoid {
+			e.refreshHumanTurnRate()
+		}
 		return e, e.Speed - before, true
 	case EffectScanRange:
 		before := int32(e.ScanRange)
@@ -394,16 +397,16 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	if ti < 0 || duration == 0 || kind == EffectNone {
 		return false
 	}
-	poison := rule.ID == 8 && mode&EffectContinuous != 0
+	poison := rule.arm() == 8 && mode&EffectContinuous != 0
 	if w.entities[ti].ActorLoad.Source.Class != 0 && !poison {
 		return w.attachSourceEffect(ti, caster, rule, kind, magnitude, duration, mode)
 	}
-	if rule.ID == 23 || rule.ID == 27 {
+	if rule.arm() == 23 || rule.arm() == 27 {
 		opposite := uint16(23)
-		if rule.ID == 23 {
+		if rule.arm() == 23 {
 			opposite = 27
 		}
-		if oi, ok := effectIndex(w.attached, target, opposite); ok {
+		if oi, ok := effectIndex(w.attached, target, w.armSpellID(opposite)); ok {
 			w.removeAttachedAt(oi)
 			return true
 		}
@@ -489,7 +492,7 @@ func (w *World) stepAttachedEffects() {
 		beforeRemaining := e.Remaining
 		if e.Mode&EffectContinuous != 0 && beforeRemaining > 0 && beforeRemaining%8 == 0 {
 			if ti := indexOfEntity(w.entities, e.Target); ti >= 0 {
-				if e.Spell == 8 {
+				if w.spellArm(e.Spell) == 8 {
 					w.applyPoisonAttachment(i, ti)
 				} else if _, ok := w.applyEffectDelta(ti, e.Kind, e.Magnitude); !ok && w.entities[ti].ActorLoad.Source.Class != 0 {
 					i++

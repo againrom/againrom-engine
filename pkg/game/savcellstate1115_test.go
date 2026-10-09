@@ -17,6 +17,38 @@ import (
 	"againrom/pkg/vfs"
 )
 
+func beforeTurnStateForm(t *testing.T, raw []byte) []byte {
+	t.Helper()
+	if len(raw) == 0 || raw[0] != 115 {
+		return raw
+	}
+	end := len(raw)
+	if end < 56 || string(raw[end-4:]) != "TRN1" || raw[end-5] >= 115 {
+		t.Fatal("invalid turn-state fixture footer")
+	}
+	span := uint64(binary.LittleEndian.Uint32(raw[end-9:]))
+	if span < 13 || span > uint64(end-43) {
+		t.Fatal("invalid turn-state fixture span")
+	}
+	start := end - 9 - int(span)
+	count := uint64(binary.LittleEndian.Uint32(raw[start:]))
+	if count == 0 || span != 4+9*count {
+		t.Fatal("invalid turn-state fixture population")
+	}
+	var prior uint32
+	for n := uint64(0); n < count; n++ {
+		at := start + 4 + 9*int(n)
+		id := binary.LittleEndian.Uint32(raw[at:])
+		if n > 0 && id <= prior || raw[at+4] > 3 || raw[at+7] > 15 || raw[at+8] > 128 {
+			t.Fatal("invalid turn-state fixture record")
+		}
+		prior = id
+	}
+	out := bytes.Clone(raw[:start])
+	out[0] = raw[end-5]
+	return out
+}
+
 // Both archives contain only synthetic fixture data. Read the existing
 // independent actor/map grammar before reopening its VFS with explicit terrain
 // parameters; absence of map.reg in older fixtures remains meaningful.
@@ -248,15 +280,16 @@ func cellStateCheck1115(t *testing.T, f *FrontEnd, bit4 bool, tick int) Snapshot
 	if err != nil || before != f.live.world.Hash() {
 		t.Fatal("cell-lifecycle Snapshot failed or mutated live state", err)
 	}
-	legacy := beforeStructureUseForm1150(t, snapshot.World)
+	nativeForm := beforeTurnStateForm(t, snapshot.World)
+	legacy := beforeStructureUseForm1150(t, nativeForm)
 	clockEnd := len(legacy) - 8
-	if binary.LittleEndian.Uint32(snapshot.World[clockEnd:]) != 0 {
+	if binary.LittleEndian.Uint32(nativeForm[clockEnd:]) != 0 {
 		t.Fatal("unexpected native Roam counter")
 	}
-	planeEnd := clockEnd - 4 - int(binary.LittleEndian.Uint32(snapshot.World[clockEnd-4:]))
-	planeEnd -= 4 + int(binary.LittleEndian.Uint32(snapshot.World[planeEnd-4:]))
-	planeEnd -= 4 + int(binary.LittleEndian.Uint32(snapshot.World[planeEnd-4:]))
-	if beforeAutoHealing1191(t, snapshot.World)[0] != 95 || binary.LittleEndian.Uint32(legacy[len(legacy)-4:]) != 0 || planeEnd < 4 || binary.LittleEndian.Uint32(snapshot.World[planeEnd-4:]) != 327691 ||
+	planeEnd := clockEnd - 4 - int(binary.LittleEndian.Uint32(nativeForm[clockEnd-4:]))
+	planeEnd -= 4 + int(binary.LittleEndian.Uint32(nativeForm[planeEnd-4:]))
+	planeEnd -= 4 + int(binary.LittleEndian.Uint32(nativeForm[planeEnd-4:]))
+	if beforeAutoHealing1191(t, nativeForm)[0] != 95 || binary.LittleEndian.Uint32(legacy[len(legacy)-4:]) != 0 || planeEnd < 4 || binary.LittleEndian.Uint32(nativeForm[planeEnd-4:]) != 327691 ||
 		snapshot.SavedDocument == nil || snapshot.SavedDocument.Document == nil || snapshot.SavedDocument.Document.World == nil {
 		t.Fatal("cell lifecycle lacks complete native plane state before form84 objects and story 1139's own carried-resume span")
 	}

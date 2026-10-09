@@ -171,7 +171,7 @@ func (w *World) spellDeliveryFault() error {
 		}
 	}
 	for _, d := range w.deliveries {
-		if d.ConstructSacrifice && (d.Rule.ID != 4 || !d.AtCell || d.Current == nil || SavedAreaPayloadSupported(&d.Current.Payload)) {
+		if d.ConstructSacrifice && (d.Rule.arm() != 4 || !d.AtCell || d.Current == nil || SavedAreaPayloadSupported(&d.Current.Payload)) {
 			return fmt.Errorf("sim: invalid deferred sacrifice construction")
 		}
 		if c := d.Current; c != nil {
@@ -190,7 +190,7 @@ func (w *World) spellDeliveryFault() error {
 		if d.Rule.Delivery != 1 || d.Rule.bookInstance || d.Rule.bookDefensive != 0 || d.Rule.ID == 0 ||
 			d.Rule.DamageMin < 0 || d.Rule.DamageMax < 0 ||
 			!d.HasCaster && d.Caster != 0 || d.AtCell != d.Rule.Area ||
-			d.BirthTick > w.tick || d.FanHead && (!d.HasCaster || d.Rule.ID != 14 || d.AtCell) {
+			d.BirthTick > w.tick || d.FanHead && (!d.HasCaster || d.Rule.arm() != 14 || d.AtCell) {
 			return fmt.Errorf("sim: invalid prepared spell delivery")
 		}
 		if _, ok := cellIndexIn(w.bounds, d.X, d.Y); !ok {

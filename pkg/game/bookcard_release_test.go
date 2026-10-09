@@ -142,7 +142,7 @@ func TestReleaseShopBookShelfPopupShowsTheBookCard(t *testing.T) {
 			t.Fatal(err)
 		}
 		state, pic := app.HeadlessTooltip()
-		drawn, _, ok := ui.ComposeTooltipHint(view.Shelf[c].Info, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480))
+		drawn, _, ok := ui.ComposeTooltipHint(view.Shelf[c].Info, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480), f.HoverBall())
 		if !state.Visible || pic == nil || !ok || !bytes.Equal(pic.Pix, drawn.Pix) {
 			t.Fatalf("popup (visible %v) is not the drawn card %q", state.Visible, view.Shelf[c].Info)
 		}

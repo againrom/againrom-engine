@@ -143,7 +143,7 @@ func (w *World) RestoreCurrentSpellDeliveries(rows []CurrentDeliveryRestore) err
 			d.Current.Payload = v
 		}
 		if p.Special != nil && !SavedAreaPayloadSupported(payload) {
-			d.ConstructSacrifice = d.AtCell && child.Spell == 4
+			d.ConstructSacrifice = d.AtCell && w.spellArm(child.Spell) == 4
 			x := p.Special
 			d.Rule.Damaging = x.Damaging
 			d.Rule.DamageMin, d.Rule.DamageMax, d.Rule.EffectKind, d.Rule.EffectMode = x.DamageMin, x.DamageMax, x.Kind, x.Mode
@@ -157,7 +157,7 @@ func (w *World) RestoreCurrentSpellDeliveries(rows []CurrentDeliveryRestore) err
 				d.Rule.EffectMagnitude = int32(int16(v.E40))
 			}
 		}
-		if d.AtCell && p.DerivedArea && d.Current != nil && child.Spell != 4 {
+		if d.AtCell && p.DerivedArea && d.Current != nil && w.spellArm(child.Spell) != 4 {
 			expected := SavedEffect{Class: "Effect", E0C: uint8(child.Spell)}
 			probe := cellEffect{Spell: child.Spell, Power: uint16(d.Power)}
 			expected = areaSavePayload(&n, probe, baseRule)

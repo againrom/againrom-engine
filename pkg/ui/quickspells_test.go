@@ -73,13 +73,13 @@ func TestQuickSpellFeedbackDoesNotConflateCurrentArmOrSlot(t *testing.T) {
 	v.cursorX, v.cursorY = cast.Min.X+2, cast.Min.Y+2
 	v.hasCursor = true
 	tooltip, _, ok := v.commandHoverPresent()
-	wantTooltip := composeItemPopup([]string{v.words.Command[commandCellCast] + ": Unavailable"}, v.font)
+	wantTooltip := composeHoverBox([]string{v.words.Command[commandCellCast] + ": Unavailable"}, v.font, nil)
 	if !ok || !bytes.Equal(tooltip.Pix, wantTooltip.Pix) {
 		t.Fatal("Cast tooltip lost the current unavailable spell name")
 	}
 	v.selectedSpell = 999
 	tooltip, _, ok = v.commandHoverPresent()
-	wantTooltip = composeItemPopup([]string{v.words.Command[commandCellCast]}, v.font)
+	wantTooltip = composeHoverBox([]string{v.words.Command[commandCellCast]}, v.font, nil)
 	if !ok || !bytes.Equal(tooltip.Pix, wantTooltip.Pix) {
 		t.Fatal("unknown ID got a fabricated name")
 	}

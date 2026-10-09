@@ -188,7 +188,7 @@ func (mw *mapWorld) observeScriptCasts(events []sim.ScriptCastEvent) {
 	for i, ev := range events {
 		from := image.Pt(int(ev.FromX), int(ev.FromY))
 		to := image.Pt(int(ev.ToX), int(ev.ToY))
-		if ev.Spell == 13 {
+		if mw.world.SpellArm(uint16(ev.Spell)) == 13 {
 			// UNIT-M10CAST-056 / MAGIC-DELIVER-035: direct-client Lightning
 			// carries flight parameter 5, not the normal caster's 13 ticks.
 			// This is visual lifetime, never an admission cooldown.

@@ -11,15 +11,14 @@ import (
 )
 
 const (
-	saveVisibleRows      = 6
-	saveRowHeight        = 23
-	saveScrollX          = 580
+	saveVisibleRows      = 7
 	saveConfirmationRows = 17
 )
 
 var (
 	savePanelRect      = image.Rect(24, 12, 616, 468)
 	saveListRect       = image.Rect(38, 88, 602, 235)
+	saveListArg        = image.Rect(38, 88, 578, 235)
 	saveFocusColor     = color.RGBA{R: 0xc8, G: 0xa2, B: 0x56, A: 0xff}
 	saveSelectionColor = color.RGBA{R: 0x48, G: 0x3b, B: 0x27, A: 0xff}
 )
@@ -45,6 +44,10 @@ func saveControlRect(c saveControl) image.Rectangle {
 	}
 	return image.Rectangle{}
 }
+
+// saveListBox is the save dialog's shared list; its bar fills the list
+// rectangle's right 24 pixels.
+func (a *App) saveListBox() listBox { return newListBox(saveListArg, saveVisibleRows, a.flow.menuFont) }
 
 type savePaintText struct {
 	text  string
@@ -162,8 +165,17 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 		a.flow.menuArt.Draw(s.pix, image.Rect(8, 0, 632, 480))
 	}
 	s.label(w.Title, 38, 23, layout.TextColor)
+	pointer, pointerOK := a.pointerFrame()
 	button := func(c saveControl, label string, selected bool) {
 		r := saveControlRect(c)
+		disabled := c == saveDeleteControl && d.remove == nil && !a.flow.canDeleteSave()
+		label = a.saveTextFit(label, r.Dx()-10)
+		if font := a.flow.menuFont; font != nil {
+			inside := pointerOK && pointer.In(r)
+			drawPushButton(s.pix, font, pushButton{Rect: r, Label: a.flow.menuDisplayText(label), Hover: inside,
+				Focus: d.focus == c, Pressed: d.pressed && d.press == c, Inside: inside, Disabled: disabled})
+			return
+		}
 		fill, border := layout.ButtonFill, layout.ButtonBorder
 		if selected {
 			fill = saveSelectionColor
@@ -172,10 +184,9 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 			border = saveFocusColor
 		}
 		s.box(r, fill, border)
-		label = a.saveTextFit(label, r.Dx()-10)
 		x := r.Min.X + (r.Dx()-a.saveTextWidth(label))/2
 		textColor := layout.TextColor
-		if c == saveDeleteControl && d.remove == nil && !a.flow.canDeleteSave() {
+		if disabled {
 			textColor = loadDisabledText
 		}
 		s.label(label, x, r.Min.Y+5, textColor)
@@ -204,67 +215,58 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	}
 	s.label(w.Directory, 38, 58, layout.TextColor)
 	s.label(w.Name, 38, 272, layout.TextColor)
+	textH := listFallbackPitch - listPitchExtra
+	if font := a.flow.menuFont; font != nil {
+		textH = font.Height()
+	}
 	for _, c := range []saveControl{saveDirectoryControl, saveNameControl} {
 		r := saveControlRect(c)
-		fill, border := color.RGBA{R: 8, G: 10, B: 14, A: 255}, layout.Border
 		value := d.request.Directory
 		if c == saveNameControl {
 			value = d.request.Name
 		}
-		if d.focus == c {
-			border = saveFocusColor
-			if d.selectedText {
-				fill = saveSelectionColor
-			}
-		}
-		s.box(r, fill, border)
 		runes := []rune(value)
 		start := 0
-		if d.focus == c {
-			caret := d.caret
-			if caret > len(runes) {
-				caret = len(runes)
-			}
+		e := editField{Rect: r, TextH: textH, Focus: d.focus == c, Phase: a.blink.on()}
+		if e.Focus {
+			caret := min(d.caret, len(runes))
 			for start < caret && a.saveTextWidth(string(runes[start:caret])) > r.Dx()-16 {
 				start++
 			}
-			x := r.Min.X + 5 + a.saveTextWidth(string(runes[start:caret]))
-			if !d.selectedText {
-				draw.Draw(s.pix, image.Rect(x, r.Min.Y+5, x+1, r.Max.Y-5), image.NewUniform(layout.TextColor), image.Point{}, draw.Src)
+			e.Caret = a.saveTextWidth(string(runes[start:caret]))
+			if d.selectedText {
+				e.SelTo = a.saveTextWidth(string(runes[start:]))
 			}
 		}
-		s.label(a.saveTextFit(string(runes[start:]), r.Dx()-12), r.Min.X+5, r.Min.Y+5, layout.TextColor)
+		shown := a.saveTextFit(string(runes[start:]), r.Dx()-12)
+		drawEditField(s.pix, e, func(at image.Point) {
+			// The text paints before the caret, which draws over it
+			// (MENU-126); only a fontless debug app queues it.
+			if font := a.flow.menuFont; font != nil {
+				font.Draw(s.pix, a.flow.menuDisplayText(shown), at.X, at.Y, layout.TextColor)
+				return
+			}
+			s.label(shown, at.X, at.Y, layout.TextColor)
+		})
 	}
 	button(saveOpenControl, w.Open, false)
 	button(saveUpControl, w.Up, false)
-	top, count := 0, 0
 	if d.list != nil {
-		top, count = d.list.Visible()
-	}
-	for i := 0; i < saveVisibleRows; i++ {
-		y := saveListRect.Min.Y + 4 + i*saveRowHeight
-		selected := i < count && top+i == d.list.Selection()
-		drawMovieBox(s.pix, image.Rect(40, y-1, saveScrollX-3, y+saveRowHeight-2), selected)
-		if i < count {
-			ink := townShellText
-			if selected {
-				ink = loadSelectedText
+		box := a.saveListBox()
+		pointer, pointerOK := a.pointerFrame()
+		if font := a.flow.menuFont; font != nil {
+			drawListBox(s.pix, font, a.media.scroll, box, d.list, func(row, width int) string {
+				return a.flow.menuDisplayText(a.saveTextFit(d.list.Rows()[row].Text, width))
+			}, pointer, pointerOK)
+		} else {
+			top, count := d.list.Visible()
+			for i := 0; i < count; i++ {
+				s.label(a.saveTextFit(d.list.Rows()[top+i].Text, box.Rect.Dx()-2*listTextX), box.Row(i).Min.X+listTextX, box.Row(i).Min.Y+listTextY, townShellText)
 			}
-			s.label(a.saveTextFit(d.list.Rows()[top+i].Text, 525), 44, y+2, ink)
+			drawVScrollBar(s.pix, a.media.scroll, listBar(box, d.list).withPointer(pointer, pointerOK))
 		}
-	}
-	if d.list != nil {
-		if count == 0 {
+		if d.list.Len() == 0 {
 			s.label(w.Empty, 44, 96, layout.TextColor)
-		}
-		thumbY := 112
-		if len(d.list.Rows()) > 1 {
-			thumbY += d.list.Selection() * (99 - 24) / (len(d.list.Rows()) - 1)
-		}
-		if !drawScrollbarSkin(s.pix, a.media.scroll, image.Rect(580, 88, 602, 112), image.Rect(580, 112, 602, 211),
-			image.Rect(580, 211, 602, 235), image.Rect(580, thumbY, 602, thumbY+24)) {
-			s.label("^", 585, 96, layout.TextColor)
-			s.label("v", 585, 212, layout.TextColor)
 		}
 		i := d.list.Selection() - len(d.directory.Directories)
 		if i >= 0 && i < len(d.directory.Entries) {

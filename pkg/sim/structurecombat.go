@@ -38,7 +38,7 @@ func (w *World) approachStructure(scratch *routeScratch, i int) {
 		w.restAt(scratch, i)
 		return
 	}
-	w.removeAttachedSpell(w.entities[i].ID, 15)
+	w.removeAttachedSpell(w.entities[i].ID, w.armSpellID(15))
 	if InStructureReach(w.entities[i], s) {
 		w.turnToward(i, s.Col-w.entities[i].X, s.Row-w.entities[i].Y)
 		w.restAt(scratch, i)

@@ -44,6 +44,13 @@ func (w *World) ImportOriginalActorActions(actions []OriginalActorAction) error 
 				state = 0
 			} else {
 				e.EscortTarget, e.HasEscortTarget, e.EscortRange = o.EscortTarget, true, o.Raw[0x70]
+				switch o.Raw[8] {
+				case 4:
+					e.EscortOrder = escortOrderClose
+				case 0xb:
+					e.EscortOrder = escortOrderIdle
+				}
+				e.EscortTurnPending = o.Raw[0x54] != 0
 			}
 		}
 		if !e.Alive() && livingOnlyState(state) {

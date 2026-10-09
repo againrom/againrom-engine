@@ -1902,6 +1902,8 @@ package storyguard
 // file, new code, including this paragraph.
 // CommentBytes rises for the school shine hotfix: the doc of schoolShineDisplaySlot
 // and the test comments, new code, including this paragraph.
+// CommentBytes rises for the pack no-hero line and the wheel over the pack: the
+// docs of drawPackNoHeroText and the two new tests, including this paragraph.
 // New constructor Base documentation is in pkg/mapload/nativeinitialbasis.go
 // and its test. The comment count includes this baseline explanation.
 // New local constructor Modifier tests and UpdateNativeEquipmentBasis document
@@ -1923,8 +1925,33 @@ package storyguard
 // spell effects, the restored and frozen order carriers, the joined actor
 // identity, the town option carrier and the loaded-document census and
 // loss-control tests, including this paragraph.
+// CommentBytes rises for the melee facing hotfix: the docs of the new melee
+// walking witness, the Kadagan release test's pack note and the skill
+// trainee's heal note, new code, including this paragraph.
+// CommentBytes rises for the shared widget kit: the docs of the new push
+// button, bar, list, slider, radio and checkbox, edit field and hover box
+// builders in pkg/ui, of their focused and per-screen tests, of the notice
+// picture accessor, the hover corner accessor, the Load double-click
+// release and the EN/RU widget screen witness, and the release witnesses
+// restated to the shared bar, new code, including this paragraph.
+// CommentBytes rises for the widget kit's input corrections: the widget
+// latch reset on focus loss, checkbox press and Space, radio arrows and Tab,
+// the Save caret paint order and their tests, new code, including this paragraph.
+// CommentBytes rises for the Skrakan portal-part release witness's comments,
+// new code, including this paragraph.
+// CommentBytes rises for the second game's campaign support census: the docs
+// of pkg/game/secondcensus.go, its focused and release tests, the
+// cmd/campaigncensus package doc and archtest row, and the four helpers it
+// reads (secondContinues, completeBank, secondCompletionMovie,
+// sim.SpellRuleApplicable), new code, including this paragraph. It rises
+// again for the docs of each departure exit and its bank gates.
+// CommentBytes rises for the second game's spell arms: the docs of
+// SpellRule.Arm and Second, the pkg/sim/secondspell.go helpers, the mapload
+// arm assignment and their focused and release tests, new code, including
+// this paragraph. It rises again for the attached-effect lookups by arm and
+// their tests.
 var Committed = Baseline{
-	TestIdentCount: 4708,
+	TestIdentCount: 4695,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1933,9 +1960,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1887,
-		"scclause":        509,
-		"barestorynumber": 1753,
+		"acclause":        1882,
+		"scclause":        508,
+		"barestorynumber": 1750,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -1944,7 +1971,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1831,
+		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8532156,
+	CommentBytes: 8531421,
 }

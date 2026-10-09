@@ -134,6 +134,10 @@ func TestAdvanceToMissionEntersTheOpenersMapThroughTheSharedEntry(t *testing.T) 
 			seam.dest, seam.msg, seam.open = NoticeToMission, "unused: FR-8's sentence, not this seam's", o.open
 
 			a.step(in, now)
+			if in.PrimaryPressed {
+				// The button activates on the release inside it (MENU-116).
+				a.step(appInput{PrimaryReleased: true, CursorX: in.CursorX, CursorY: in.CursorY}, now)
+			}
 
 			// SC-3, AC-4's own front-end half: the map screen showing is the
 			// opener's own, and the map list was never shown.

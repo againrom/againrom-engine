@@ -46,17 +46,22 @@ func literalUnicodeLoadRow(font *text.Font) string {
 	return string(name) + ".ags"
 }
 
-func assertUnicodeLoadRow(t *testing.T, font *text.Font, pix *image.RGBA) {
+func assertUnicodeLoadRow(t *testing.T, a *App, font *text.Font, pix *image.RGBA) {
 	t.Helper()
 	expect := image.NewRGBA(pix.Bounds())
 	draw.Draw(expect, expect.Bounds(), pix, pix.Bounds().Min, draw.Src)
-	// Compare the glyph-bearing row against independently encoded bytes.
-	r := image.Rect(122, 152, 502, 171)
+	// Compare the glyph-bearing row against independently encoded bytes: the
+	// shared list's first row, pitch font height plus 4, selected.
+	r := image.Rect(122, 152, 504, 152+font.Height()+4)
+	if got := a.loadListBox().Row(0); got != r {
+		t.Fatalf("LOAD row 0 = %v, want %v", got, r)
+	}
 	background := image.NewRGBA(pix.Bounds())
 	drawTownShellBox(background, loadPanel, false)
-	drawMovieBox(background, r, true)
+	draw.Draw(background, r, &image.Uniform{C: color.RGBA{0, 7, 6, 220}}, image.Point{}, draw.Over)
+	outline(background, r, color.RGBA{57, 77, 65, 255})
 	draw.Draw(expect, r, background, r.Min, draw.Src)
-	font.Draw(expect.SubImage(r).(*image.RGBA), literalUnicodeLoadRow(font), 125, 154, loadSelectedText)
+	font.Draw(expect.SubImage(r.Inset(1)).(*image.RGBA), literalUnicodeLoadRow(font), 125, 154, loadSelectedText)
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		for x := r.Min.X; x < r.Max.X; x++ {
 			if pix.RGBAAt(x, y) != expect.RGBAAt(x, y) {
@@ -82,7 +87,7 @@ func TestLoadDrawsUnicodeInsideFramedListAndKeepsExactLoadToken(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertUnicodeLoadRow(t, font, pix)
+		assertUnicodeLoadRow(t, a, font, pix)
 		if got := a.HeadlessRows(); len(got) != 1 || got[0].Text != "Тест.ags" {
 			t.Fatalf("LOAD model lost UTF-8 label: %v", got)
 		}
@@ -132,24 +137,12 @@ func TestLoadTextClipsAtMeasuredPixelsAndFailureWinsNote(t *testing.T) {
 	}
 }
 
-func loadScrollTestFrames() []*image.RGBA {
-	frames := make([]*image.RGBA, 26)
-	for _, index := range []int{16, 18, 19, 20} {
-		pic := image.NewRGBA(image.Rect(0, 0, 24, 24))
-		for y := 0; y < 24; y++ {
-			for x := 0; x < 24; x++ {
-				pic.SetRGBA(x, y, color.RGBA{uint8(30 + index*7), uint8(20 + x*5), uint8(30 + y*7), 255})
-			}
-		}
-		frames[index] = pic
-	}
-	return frames
-}
+func loadScrollTestFrames() []*image.RGBA { return widgetTestFrames() }
 
 func loadScrollTestApp(t *testing.T, frames []*image.RGBA, loaded *[]string) *App {
 	t.Helper()
 	a := newTestApp(t, nil, nil)
-	a.SetWords(AuthoredWords(), chargenTestFont(), nil)
+	a.SetWords(AuthoredWords(), solidFont15(), nil)
 	rows := make([]SaveEntry, 27)
 	for i := range rows {
 		rows[i] = SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("row-%02d", i), Note: fmt.Sprintf("note-%02d", i)}
@@ -180,72 +173,42 @@ func loadScrollTestFrame(t *testing.T, a *App) *image.RGBA {
 	return pix
 }
 
-func assertLoadScrollSourcePixels(t *testing.T, pix, fallback *image.RGBA, frames []*image.RGBA, thumbY int) {
-	t.Helper()
-	strip := image.Rect(504, 152, 528, 342)
-	counts := map[int]int{}
-	for y := 0; y < 480; y++ {
-		for x := 0; x < 640; x++ {
-			if !image.Pt(x, y).In(strip) {
-				if pix.RGBAAt(x, y) != fallback.RGBAAt(x, y) {
-					t.Fatalf("LOAD skin changed pixels outside strip at %d,%d", x, y)
-				}
-				continue
-			}
-			index, sy := 19, (y-176)%24
-			switch {
-			case y < 176:
-				index, sy = 18, y-152
-			case y >= 318:
-				index, sy = 20, y-318
-			case y >= thumbY && y < thumbY+24:
-				index, sy = 16, y-thumbY
-			}
-			want := frames[index].RGBAAt(x-504, sy)
-			if got := pix.RGBAAt(x, y); got != want {
-				t.Fatalf("LOAD frame %d source %d,%d at %d,%d = %v, want %v", index, x-504, sy, x, y, got, want)
-			}
-			counts[index]++
-		}
-	}
-	for _, index := range []int{16, 18, 19, 20} {
-		want := 576
-		if index == 19 {
-			want = 2832
-		}
-		if counts[index] != want {
-			t.Fatalf("LOAD frame %d checked %d pixels, want %d", index, counts[index], want)
-		}
-	}
-}
-
-func TestFramedLoadScrollSkinKeepsLiteralGeometryAndSelection(t *testing.T) {
-	frames := loadScrollTestFrames()
+// TestLoadDrawsThroughTheSharedKit: the Load window draws its list, bar and
+// three buttons with the shared builders, the bar bound to the selection
+// over the save count (MENU-120), Delete disabled while it cannot act.
+func TestLoadDrawsThroughTheSharedKit(t *testing.T) {
 	var loaded []string
-	a := loadScrollTestApp(t, nil, &loaded)
-	fallback := loadScrollTestFrame(t, a)
-	a.SetCutsceneScrollArt(frames)
-	initial := loadScrollTestFrame(t, a)
-	assertLoadScrollSourcePixels(t, initial, fallback, frames, 176)
+	a := loadScrollTestApp(t, loadScrollTestFrames(), &loaded)
 	for i := 0; i < 13; i++ {
 		if err := a.HeadlessKey("down"); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if top, count := a.flow.loadList.Visible(); top != 4 || count != 10 || a.flow.loadList.Selection() != 13 {
-		t.Fatalf("LOAD selection/window = %d/%d/%d", a.flow.loadList.Selection(), top, count)
+	calls := recordWidgets(t, func() { loadScrollTestFrame(t, a) })
+	var bars, lists, buttons int
+	for _, c := range calls {
+		switch c.kind {
+		case widgetListBox:
+			lists++
+			if c.rect != image.Rect(122, 152, 504, 344) {
+				t.Errorf("list at %v", c.rect)
+			}
+		case widgetVScrollBar:
+			bars++
+			b := c.state.(vScrollBar)
+			if c.rect != image.Rect(504, 152, 528, 344) || b.Pos != 13 || b.Count != 27 {
+				t.Errorf("bar %v at %d of %d", c.rect, b.Pos, b.Count)
+			}
+		case widgetPushButton:
+			b := c.state.(pushButton)
+			if c.rect != loadButtonRect(buttons) || b.Disabled != (buttons == loadDeleteButton) {
+				t.Errorf("button %d at %v disabled %t", buttons, c.rect, b.Disabled)
+			}
+			buttons++
+		}
 	}
-	a.SetCutsceneScrollArt(nil)
-	fallback = loadScrollTestFrame(t, a)
-	a.SetCutsceneScrollArt(frames)
-	moved := loadScrollTestFrame(t, a)
-	assertLoadScrollSourcePixels(t, moved, fallback, frames, 235)
-	if got, want := moved.RGBAAt(515, 184), frames[19].RGBAAt(11, 8); got != want || got == initial.RGBAAt(515, 184) {
-		t.Fatalf("old LOAD thumb did not restore track: %v, want %v", got, want)
-	}
-	rows := a.HeadlessRows()
-	if len(rows) != 27 || rows[13].Text != "row-13" || !rows[13].Choosable || a.loadMessage() != "note-13" {
-		t.Fatalf("LOAD row/note changed: %v / %q", rows, a.loadMessage())
+	if lists != 1 || bars != 1 || buttons != 3 {
+		t.Fatalf("Load drew %d lists, %d bars, %d buttons", lists, bars, buttons)
 	}
 	if err := a.HeadlessKey("enter"); err != nil {
 		t.Fatal(err)
@@ -255,21 +218,10 @@ func TestFramedLoadScrollSkinKeepsLiteralGeometryAndSelection(t *testing.T) {
 	}
 }
 
-func TestFramedLoadScrollSkinNeedsOnlyUsableRequiredFrames(t *testing.T) {
-	for _, name := range []string{"21 frames", "unrelated nil"} {
-		t.Run(name, func(t *testing.T) {
-			frames := loadScrollTestFrames()
-			if name == "21 frames" {
-				frames = frames[:21]
-			}
-			var loaded []string
-			a := loadScrollTestApp(t, nil, &loaded)
-			fallback := loadScrollTestFrame(t, a)
-			a.SetCutsceneScrollArt(frames)
-			assertLoadScrollSourcePixels(t, loadScrollTestFrame(t, a), fallback, frames, 176)
-		})
-	}
-	for _, index := range []int{16, 18, 19, 20} {
+// TestLoadBarNeedsEveryClaimedFrame: a scroll bank missing any frame the
+// painter selects draws the plain fallback bar, never a partial skin.
+func TestLoadBarNeedsEveryClaimedFrame(t *testing.T) {
+	for _, index := range []int{0, 7, 10, 18, 19, 20, 21, 22, 23} {
 		for _, damage := range []string{"missing", "nil", "empty"} {
 			t.Run(fmt.Sprintf("frame-%d-%s", index, damage), func(t *testing.T) {
 				frames := loadScrollTestFrames()
@@ -285,8 +237,7 @@ func TestFramedLoadScrollSkinNeedsOnlyUsableRequiredFrames(t *testing.T) {
 				a := loadScrollTestApp(t, nil, &loaded)
 				fallback := loadScrollTestFrame(t, a)
 				a.SetCutsceneScrollArt(frames)
-				got := loadScrollTestFrame(t, a)
-				if !bytes.Equal(got.Pix, fallback.Pix) {
+				if got := loadScrollTestFrame(t, a); !bytes.Equal(got.Pix, fallback.Pix) {
 					t.Fatalf("unusable LOAD frame %d (%s) did not retain complete fallback", index, damage)
 				}
 			})
@@ -317,7 +268,13 @@ func TestFramedLoadScrollSkinKeepsExactDoubleClickAndReset(t *testing.T) {
 		t.Fatal("LOAD skin paint changed double-click state")
 	}
 	now = now.Add(200 * time.Millisecond)
-	click()
+	// The second press selects; the release over the same row loads, so no
+	// release reaches the screen the load opens.
+	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryPressed: true}, now)
+	if len(loaded) != 0 {
+		t.Fatal("the double click's second press loaded before its release")
+	}
+	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryReleased: true}, now.Add(time.Millisecond))
 	if len(loaded) != 1 || loaded[0] != "slot-13.sav" || a.Screen() != ScreenLoad || a.HeadlessMessage() == "" {
 		t.Fatalf("LOAD double click changed token/refusal: %v / %s / %q", loaded, a.Screen(), a.HeadlessMessage())
 	}

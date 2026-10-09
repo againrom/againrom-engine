@@ -57,7 +57,7 @@ func (w *World) standScriptedMembers(members []int) {
 		e := &w.entities[mi]
 		e.clearGroupSpeed()
 		e.clearPatrol()
-		e.clearEscort()
+		w.clearEscort(mi)
 		if w.savedGroups != nil {
 			w.syncSavedStandGround(mi)
 			w.ensureSavedOrder(mi).State = uint32(e.ActorState)

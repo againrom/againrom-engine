@@ -116,9 +116,6 @@ func (a *App) HeadlessKey(name string) error {
 		in.Viewer.Alt, in.Backspace = true, true
 	case "alt-f12":
 		in.Viewer.Alt, in.FPS = true, true
-	case "alt-b", "alt-c", "alt-d", "alt-e", "alt-f", "alt-i", "alt-j", "alt-p", "alt-q":
-		in.Viewer.Alt = true
-		in.setAltLetter(name[len(name)-1])
 	case "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6", "ctrl-f7", "ctrl-f8":
 		key := strings.ToLower(strings.TrimSpace(name))
 		in.Viewer.Ctrl = strings.HasPrefix(key, "ctrl-")
@@ -208,7 +205,13 @@ func (a *App) HeadlessKey(name string) error {
 	case "doll", "j":
 		in.Doll = true
 	default:
-		return fmt.Errorf("headless key: unknown key %q", name)
+		key := strings.ToLower(strings.TrimSpace(name))
+		if len(key) != 5 || key[:4] != "alt-" || key[4] < 'a' || key[4] > 'z' {
+			return fmt.Errorf("headless key: unknown key %q", name)
+		}
+		in.Viewer.Alt = true
+		in.AltLetter = readAltLetter(true, onlyKey(altLetterKeys[key[4]-'a']))
+		in.setAltLetter(key[4])
 	}
 	if a.step(in, a.headlessAt()) {
 		return fmt.Errorf("headless key %q requested application exit", name)
@@ -1051,7 +1054,9 @@ func headlessWorldMapMissionNumber(target string) (int, bool) {
 // list from either end, never enough to loop.
 func (a *App) headlessChooseRow(p *Picker, target int) error {
 	down, up := "down", "up"
-	if a.flow != nil && a.flow.screen == ScreenGameMenu && a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil && p == a.flow.menuList {
+	if a.flow != nil && a.flow.screen == ScreenGameMenu && p == a.flow.menuList &&
+		(a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil ||
+			a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil) {
 		down, up = "tab", "shift-tab"
 	}
 	bound := len(p.Rows()) + 1

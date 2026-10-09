@@ -124,7 +124,7 @@ func writeMapListHint(f *game.FrontEnd, font *text.Font, path string, out *os.Fi
 		return fmt.Errorf("row %q raised no hint", row.Text)
 	}
 	fmt.Fprintf(out, "maplist row %q -> %v\n", row.Text, lines)
-	return paintAndWrite(lines, font, path)
+	return paintAndWrite(lines, font, f.HoverBall(), path)
 }
 
 // writeMonsterSpellHint scans campaign missions, in order, for the first
@@ -174,7 +174,7 @@ func writeMonsterSpellHint(f *game.FrontEnd, font *text.Font, path string, missi
 				continue
 			}
 			fmt.Fprintf(out, "monster spellcaster (DECODED): mission %d entity %d known=%#x -> %v\n", n, e.ID, e.KnownSpells, lines)
-			return paintAndWrite(lines, font, path)
+			return paintAndWrite(lines, font, f.HoverBall(), path)
 		}
 	}
 	lines, known, ok := authoredSpellBitmaskFallback(f.Words)
@@ -182,7 +182,7 @@ func writeMonsterSpellHint(f *game.FrontEnd, font *text.Font, path string, missi
 		return fmt.Errorf("no creature with a nonzero KnownSpells bitmask found in %d started missions (limit %d), and the install states fewer than two spell names to fall back on", searched, missionLimit)
 	}
 	fmt.Fprintf(out, "monster spellcaster (AUTHORED FALLBACK, no decoded creature found in %d started missions): known=%#x -> %v\n", searched, known, lines)
-	return paintAndWrite(lines, font, path)
+	return paintAndWrite(lines, font, f.HoverBall(), path)
 }
 
 // authoredSpellBitmaskFallback picks the first two spell IDs whose installed
@@ -207,8 +207,8 @@ func authoredSpellBitmaskFallback(w ui.Words) ([]string, uint32, bool) {
 	return lines, known, ok
 }
 
-func paintAndWrite(lines []string, font *text.Font, path string) error {
-	pic, _, ok := ui.ComposeTooltipHint(lines, font, hintAnchor, hintBounds)
+func paintAndWrite(lines []string, font *text.Font, ball image.Image, path string) error {
+	pic, _, ok := ui.ComposeTooltipHint(lines, font, hintAnchor, hintBounds, ball)
 	if !ok {
 		return fmt.Errorf("composed no picture for %v", lines)
 	}

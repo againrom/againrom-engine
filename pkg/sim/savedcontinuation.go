@@ -107,7 +107,7 @@ func (w *World) savedWorldEffectsFault() error {
 			roots[a.Root] = true
 		}
 		e, bound := w.savedAreaValue(a)
-		if bound && e.Class != "AreaEffect" || a.Mode == areaModeRing && ringStageCount(a.Spell) == 0 {
+		if bound && e.Class != "AreaEffect" || a.Mode == areaModeRing && ringStageCount(w.spellArm(a.Spell)) == 0 {
 			return fail()
 		}
 
@@ -309,7 +309,7 @@ func savedAreaPayload(e *SavedEffect) (EffectKind, EffectMode, bool) {
 }
 
 func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cells []uint16, caster ...EntityID) {
-	if d.Spell == 19 {
+	if w.spellArm(d.Spell) == 19 {
 		return
 	}
 	if e.AE44 != nil && e.AE44.Class == "Effect_DirectDamage" && SavedAreaPayloadSupported(e.AE44) {
@@ -362,7 +362,7 @@ func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cel
 				}
 				if applied {
 					w.markSpellEffect(at, rule.ID)
-					if rule.ID == 17 && len(caster) != 0 && caster[0] != w.entities[at].ID {
+					if rule.arm() == 17 && len(caster) != 0 && caster[0] != w.entities[at].ID {
 						w.orderAttack(at, caster[0])
 					}
 				}
@@ -394,7 +394,7 @@ func (w *World) tickSavedArea(i int, obs *castObs) {
 		}
 		e.AE4C--
 		if e.AE4C%16 == 0 {
-			w.applySavedAreaPayload(*d, *e, w.cloudPulseCells(d.Key, d.Spell, int32(e.AE48[1])))
+			w.applySavedAreaPayload(*d, *e, w.cloudPulseCells(d.Key, w.spellArm(d.Spell), int32(e.AE48[1])))
 		}
 	case areaModeRing:
 		if e.AE4C > 0 {
@@ -407,7 +407,7 @@ func (w *World) tickSavedArea(i int, obs *castObs) {
 		obs.recordPaint(w, native, cells)
 		w.applySavedAreaPayload(*d, *e, cells)
 		e.AE48[3]++
-		if int(e.AE48[3]) >= ringStageCount(d.Spell) {
+		if int(e.AE48[3]) >= ringStageCount(w.spellArm(d.Spell)) {
 			w.retireSavedArea(i)
 		}
 	case areaModeBlast:

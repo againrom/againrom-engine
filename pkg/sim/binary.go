@@ -1640,6 +1640,9 @@ func (w *World) encodeInto(b []byte) []byte {
 	binary.LittleEndian.PutUint32(b[21:25], uint32(w.bounds.Height))
 	binary.LittleEndian.PutUint32(b[25:29], uint32(len(w.entities)))
 	b[29] = byte(w.mode)
+	if w.safeMode {
+		b[29] |= 0x80
+	}
 	binary.LittleEndian.PutUint32(b[30:34], uint32(len(w.grid)))
 	// All three planes are always materialised, so this writes W*H cells apiece
 	// for every world and there is no absent case to encode differently. That is
@@ -2100,7 +2103,7 @@ func (w *World) encodeInto(b []byte) []byte {
 	w.relations.encodeInto(b[len(b)-relationLen:])
 	payload := w.appendAttackNotices(w.appendSavedWorldEffects(w.appendSavedFormations(w.appendStructureUses(w.appendScorched(w.appendGroupRoam(w.appendActionClocks(w.appendCarriedResumeState(w.appendSavedObjects(w.appendSavedCellPlanes(w.appendSavedMotions(w.appendNativeStrides(w.appendSavedGroupPlayerSection(w.appendSavedStructureSection(w.appendSavedGroups(w.appendSessionClock(b))))))))))))))))
 	payload = w.appendNativeItemRecords(w.appendNativeLiveBlocks(w.appendPlayerParticipants(w.appendNativeActorBases(w.appendBookSelections(w.appendNativeClasses(w.appendROM2ScriptState(w.appendNativeTraining(w.appendAreaCosts(w.appendCreatureSpells(w.appendPendingOrders(w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload))))))))))))))))))
-	return w.appendNativeScalars(payload)
+	return w.appendEscortResidues(w.appendTurnStates(w.appendNativeScalars(payload)))
 }
 
 // MarshalBinary returns the world's canonical byte form: versioned,
@@ -2118,6 +2121,11 @@ func (w *World) MarshalBinary() ([]byte, error) {
 // owns this storage; the World never retains it. An error leaves dst unchanged.
 // MarshalBinary returns independent storage on every call.
 func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
+	for _, e := range w.entities {
+		if err := escortResidueFault(e); err != nil {
+			return nil, err
+		}
+	}
 	if err := w.nativeItemsFault(); err != nil {
 		return nil, err
 	}
@@ -2273,6 +2281,12 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 // record bytes and failing the second, and truncated and over-long stay the same
 // comparison.
 func (w *World) UnmarshalBinary(data []byte) error {
+	if len(data) > 0 && data[0] == escortFormVersion {
+		return w.unmarshalEscortResidues(data)
+	}
+	if len(data) > 0 && data[0] == turnStateFormVersion {
+		return w.unmarshalTurnStates(data)
+	}
 	if len(data) > 0 && data[0] == nativeScalarFormVersion {
 		return w.unmarshalNativeScalars(data)
 	}
@@ -2429,7 +2443,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 	}
 	data = body
 
-	mode := Mode(data[29])
+	mode := Mode(data[29] &^ 0x80)
 	if !mode.defined() {
 		return fmt.Errorf("sim: byte form names routing mode %d, which is not defined", data[29])
 	}
@@ -3216,6 +3230,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		rng:                 rng{state: binary.LittleEndian.Uint64(data[9:17])},
 		bounds:              b,
 		mode:                mode,
+		safeMode:            data[29]&0x80 != 0,
 		grid:                grid,
 		cost:                cost,
 		height:              height,

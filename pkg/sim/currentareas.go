@@ -93,7 +93,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 				// native cellEffect before asking whether the payload is derived;
 				// otherwise a cold SAVE would retain an artificial Current node
 				// and report a different constructor shape.
-				if e.Spell == 4 && e.Current.Payload.Class == "Effect_DirectDamage" && SavedAreaPayloadSupported(&e.Current.Payload) {
+				if w.spellArm(e.Spell) == 4 && e.Current.Payload.Class == "Effect_DirectDamage" && SavedAreaPayloadSupported(&e.Current.Payload) {
 					e.DamageMin = int32(e.Current.Payload.DirectDamage[19])
 					e.DamageMax = e.DamageMin + int32(e.Current.Payload.DirectDamage[20])
 				}

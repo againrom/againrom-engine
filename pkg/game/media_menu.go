@@ -103,8 +103,24 @@ func (f *FrontEnd) wireMediaMenu(a *ui.App) {
 				a.SetCutsceneScrollArt(frames)
 			}
 		}
+		if ball := f.HoverBall(); ball != nil {
+			a.SetHoverArt(ball)
+		}
 	}
 	a.SetCredits(f.creditsView)
+}
+
+// HoverBall is interface/Ball.bmp keyed on black, the hover box's corner
+// (MENU-128), or nil when the install lacks a 4x4 picture there.
+func (f *FrontEnd) HoverBall() image.Image {
+	if f.Archives == nil || f.Archives.Containers == nil {
+		return nil
+	}
+	pic, err := readChargenBMP(f.Archives.Containers, graphicsPrefix+"interface/Ball.bmp")
+	if err != nil || pic.Bounds().Size() != image.Pt(4, 4) {
+		return nil
+	}
+	return keyBlack(pic)
 }
 
 func (f *FrontEnd) creditsView() ui.CreditsView {

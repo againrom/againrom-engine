@@ -10,6 +10,7 @@ import (
 
 func beforeNativeTrainingForm(t *testing.T, form []byte) []byte {
 	t.Helper()
+	form = beforeTurnStateForm(t, form)
 	for _, suffix := range []struct {
 		version byte
 		tag     string
@@ -129,5 +130,15 @@ func TestNativeTrainingCompatibilityPeelIsExact(t *testing.T) {
 	form = append(form, base[0], 'T', 'R', 'N', '1')
 	if got := beforeNativeTrainingForm(t, form); !bytes.Equal(got, base) {
 		t.Fatal("training peel changed predecessor bytes")
+	}
+	turn := bytes.Clone(form)
+	turn[0] = 115
+	turn = binary.LittleEndian.AppendUint32(turn, 1)
+	turn = binary.LittleEndian.AppendUint32(turn, 7)
+	turn = append(turn, 1, 1, 16, 8, 7)
+	turn = binary.LittleEndian.AppendUint32(turn, 13)
+	turn = append(turn, 105, 'T', 'R', 'N', '1')
+	if got := beforeNativeTrainingForm(t, turn); !bytes.Equal(got, base) {
+		t.Fatal("turn and training peel changed predecessor bytes")
 	}
 }

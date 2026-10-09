@@ -334,11 +334,8 @@ type RuntimeServices struct {
 	AmbientPlayer ui.AmbientDevice
 	AmbientSeed   int64
 
-	// deterministicFrames replaces only the physical frame clock. Every map
-	// frame still enters through ui.App and mapWorld.paced; the adapter makes a
-	// running frame advance exactly one simulation tick, while a stopped frame
-	// advances none. It is enabled only by the scenario runner.
-	deterministicFrames bool
+	// runtime keeps launch flags and the scenario frame adapter across games.
+	runtime runtimeSwitches
 }
 
 // CampaignSession is the game currently being played, and it is EXACTLY what
@@ -556,7 +553,7 @@ func (f *FrontEnd) addChapterCompanions(chapter int) {
 // production headless scenario runner. It must be called before a map is opened.
 func (f *FrontEnd) SetDeterministicFrames(on bool) {
 	if f != nil {
-		f.deterministicFrames = on
+		f.runtime.deterministicFrames = on
 	}
 }
 
@@ -984,6 +981,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 			Word70: e.Word70, Word74: e.Word74})
 	}
 	a := ui.NewApp(title, f.Assets, rows, f.loadMap)
+	a.SetCheatCommands(f.chatCommand, f.debugLetter)
 	tooltipDelay, _ := f.Options.TooltipDelay()
 	a.SetTooltipDelayPreference(tooltipDelay, f.Options.SetTooltipDelay)
 	a.SetTooltipFont(f.tipFont())
@@ -1337,7 +1335,7 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	// screen may reach into this world by, and the whole set lives and dies
 	// with the viewer.
 	pace := mw.paced
-	if f.deterministicFrames {
+	if f.runtime.deterministicFrames {
 		pace = mw.deterministicFrame
 	}
 	mv.Viewer.SetEntities(mw.entityDraws())
