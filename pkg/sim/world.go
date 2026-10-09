@@ -669,9 +669,11 @@ type Entity struct {
 	// THE TRIPLE IS RESIDUE ON AN ENTITY IN NO ESCORT STATE, exactly as the
 	// patrol ring is on an entity not patrolling — see actorFault's rules
 	// inside patrolFault.
-	EscortTarget    EntityID
-	HasEscortTarget bool
-	EscortRange     uint8
+	EscortTarget      EntityID
+	HasEscortTarget   bool
+	EscortRange       uint8
+	EscortOrder       uint8
+	EscortTurnPending bool
 
 	// OffMap is whether the mission script has taken this entity OFF THE MAP.
 	// It is the one bit instant 16 sets and instant 17 clears
@@ -830,6 +832,7 @@ func (e *Entity) clearEscort() {
 	e.ActorState = actorStateGuard
 	e.EscortTarget, e.HasEscortTarget = 0, false
 	e.EscortRange = 0
+	e.EscortOrder, e.EscortTurnPending = escortOrderNone, false
 }
 
 // patrolFault names what is wrong with e's actor state, or nil when it is a
@@ -881,7 +884,7 @@ func patrolFault(e Entity) error {
 	case e.ActorState == actorStatePickupComplete && (e.HasTarget || e.HasAttackTarget && e.PendingOrder.Kind != PendingPickupComplete || e.GroupSpeed != 0):
 		return fmt.Errorf("pickup completion carries movement, attack or group-speed residue")
 	}
-	return nil
+	return escortResidueFault(e)
 }
 
 // DecayStage is how far a body has decayed, and it is the SECOND thing in this
