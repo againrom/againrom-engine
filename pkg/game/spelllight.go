@@ -16,15 +16,6 @@ import (
 // boltLightStep is the stamp byte per phase of a path picture (MAGIC-270).
 const boltLightStep = 10
 
-// boltLightPhases is a path object's phase on calls 1..13 of normal caster
-// construction; the direct route's five calls take the first five (MAGIC-272).
-var boltLightPhases = [...]uint8{4, 3, 2, 1, 0, 1, 2, 1, 0, 1, 2, 3, 4}
-
-// boltLightPhase is the phase at age; a later age holds the last value.
-func boltLightPhase(age int) uint8 {
-	return boltLightPhases[min(max(age, 0), len(boltLightPhases)-1)]
-}
-
 // Fire Arrow and Fire Ball flight stamp at a fixed level (MAGIC-271).
 const (
 	flightLightLevel     = 16
@@ -45,12 +36,14 @@ var explosionLight = [...]struct {
 const wallFireLightRadius = 1
 
 // pathLightStamps writes the four vertices of each in-map path point's cell
-// at u8(10*phase) (MAGIC-270). The points are the drawn figure's (DIV-2659).
-func pathLightStamps(out []ui.LightStamp, points []image.Point, phase uint8, bounds sim.Bounds) []ui.LightStamp {
-	level := uint8(boltLightStep * int(phase))
+// at u8(10*phase) (MAGIC-270). The points are the stored figure's native
+// display points; the column is x>>5 and the row is the ground row under the
+// point (DIV-2659).
+func (mw *mapWorld) pathLightStamps(out []ui.LightStamp, points []image.Point, phase int, bounds sim.Bounds) []ui.LightStamp {
+	level := uint8(boltLightStep * phase)
 	for _, p := range points {
-		c := lightCell(p)
-		if c.X < 0 || c.Y < 0 || c.X >= int(bounds.Width) || c.Y >= int(bounds.Height) {
+		c, ok := mw.displayLightCell(p)
+		if !ok || c.X < 0 || c.Y < 0 || c.X >= int(bounds.Width) || c.Y >= int(bounds.Height) {
 			continue
 		}
 		for _, v := range [4]image.Point{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
@@ -58,6 +51,17 @@ func pathLightStamps(out []ui.LightStamp, points []image.Point, phase uint8, bou
 		}
 	}
 	return out
+}
+
+// displayLightCell is the cell under a native display point: column x>>5 and
+// the viewer's ground row, or y>>5 with no viewer.
+func (mw *mapWorld) displayLightCell(p image.Point) (image.Point, bool) {
+	col := p.X >> 5
+	if mw.view == nil {
+		return image.Pt(col, p.Y>>5), true
+	}
+	row, ok := mw.view.DisplayRow(p.X, p.Y)
+	return image.Pt(col, row), ok
 }
 
 // pointLightStamps is the point helper (MAGIC-271): for i, j in 0..radius with
@@ -120,7 +124,7 @@ func (mw *mapWorld) boltLightStamps(out []ui.LightStamp, b spellBolt, bounds sim
 	}
 	if data.CastDrawsPath(b.picture) {
 		_, _, points := mw.pathFigure(b)
-		return pathLightStamps(out, points, boltLightPhase(b.age), bounds)
+		return mw.pathLightStamps(out, points, boltDriverPhase(b), bounds)
 	}
 	age, life := b.age-b.delay, b.life-b.delay
 	num := min(age+1, life)

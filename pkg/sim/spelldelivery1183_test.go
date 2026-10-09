@@ -213,7 +213,7 @@ func TestDeliveryPrismaticCapsTheFanAndKeepsPrimaryFirst(t *testing.T) {
 
 func TestDeliveryScriptUsesAuthoredSourceForItsClock(t *testing.T) {
 	w := deliveryTestWorld(t, 1)
-	_, _, ok := w.landPointCast(scriptCast{AtUnit: true, Target: 2, FromX: 4, FromY: 1}, w.spells[0])
+	_, _, _, ok := w.landPointCast(scriptCast{AtUnit: true, Target: 2, FromX: 4, FromY: 1}, w.spells[0])
 	if !ok || len(w.deliveries) != 1 || w.deliveries[0].Remaining != 2 || w.entities[1].SpellFX != 0 {
 		t.Fatal("script source or early impact", w.deliveries)
 	}

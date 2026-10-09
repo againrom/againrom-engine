@@ -40,7 +40,7 @@ func TestLightningAndPrismaticLightTheirPathPerPhase(t *testing.T) {
 			_, _, points := mw.pathFigure(mw.bolts[0])
 			want := map[image.Point]bool{}
 			for _, p := range points {
-				c := lightCell(p)
+				c, _ := mw.displayLightCell(p)
 				for _, v := range []image.Point{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
 					want[c.Add(v)] = true
 				}
@@ -62,13 +62,14 @@ func TestLightningAndPrismaticLightTheirPathPerPhase(t *testing.T) {
 	}
 }
 
-// MAGIC-272: the direct route's five calls.
+// MAGIC-281: the direct route starts at actionphase -1, so its five calls
+// keep phase 0 and then take 4,3,2,1.
 func TestADirectLightningLightsFivePhases(t *testing.T) {
 	t.Parallel()
 	mw := spWorld(t)
 	mw.bolts = append(mw.bolts, spellBolt{from: image.Pt(2, 2), to: image.Pt(7, 2), picture: 34, life: 5,
 		centered: true, seed: 9})
-	for _, phase := range []uint8{4, 3, 2, 1, 0} {
+	for _, phase := range []uint8{0, 4, 3, 2, 1} {
 		stamps := mw.objectLightStamps(nil)
 		if len(stamps) == 0 || stamps[0].Level != 10*phase {
 			t.Fatalf("direct Lightning stamps %v, want level %d", stamps, 10*phase)

@@ -164,7 +164,7 @@ func TestReleaseOriginalCellTriggers1106AppOverlayAndNativeEntry(t *testing.T) {
 			pending, _ := cellAppSaveFresh1106(t, f, app, SaveStore{Dir: t.TempDir()}, "pending-entry")
 			a, b := sim.StepReported(f.live.world, nil), sim.StepReported(pending.live.world, nil)
 			wantEvent := sim.ScriptCastEvent{Spell: 13, FromX: wantCast.FromX, FromY: wantCast.FromY, ToX: 21, ToY: 63}
-			if !reflect.DeepEqual(a, b) || f.live.world.Hash() != pending.live.world.Hash() || len(a.ScriptCasts) != 1 || a.ScriptCasts[0] != wantEvent {
+			if !reflect.DeepEqual(a, b) || f.live.world.Hash() != pending.live.world.Hash() || len(a.ScriptCasts) != 1 || !reflect.DeepEqual(a.ScriptCasts[0], wantEvent) {
 				t.Fatalf("pending native cast continuation: %+v / %+v", a.ScriptCasts, b.ScriptCasts)
 			}
 			t.Logf("%s: records184 union%d; pointer cast %+v; ordinary AGS before/pending fresh LOAD hash/events equal", variant, len(want), wantCast)
