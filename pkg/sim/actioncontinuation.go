@@ -43,6 +43,7 @@ type ActorContinuation struct {
 	Transit, TransitTotal                                       uint16
 	Stride                                                      NativeStride
 	GroupSpeed, Facing, DesiredFacing, TurnRemaining, TurnTotal uint8
+	TurnState                                                   *TurnState `json:",omitempty"`
 	ImportedMotion                                              bool
 	MotionIssue                                                 string
 	Route                                                       [][2]int32
@@ -150,6 +151,11 @@ func (w *World) Actions() ActionContinuations {
 			issue = m.Issue
 		}
 		var order *ActionOrderContinuation
+		var turn *TurnState
+		if e.TurnState.Present {
+			state := e.TurnState
+			turn = &state
+		}
 		if o := w.savedOrder(e.ID); o != nil {
 			ordinal := ordinals[e.ID]
 			order = &ActionOrderContinuation{State: o.State, Authored: o.Authored, RepairStage: o.RepairStage, Inner: o.Raw[8], Progress: o.Raw[9], Retry: o.Raw[0x15], Ordinal: &ordinal}
@@ -164,7 +170,7 @@ func (w *World) Actions() ActionContinuations {
 			HasTarget: e.HasTarget, OffMap: e.OffMap, Stall: e.Stall, Retreat: retreat,
 			Transit: e.Transit, TransitTotal: e.TransitTotal, Stride: e.Stride,
 			GroupSpeed: e.GroupSpeed, Facing: e.Facing, DesiredFacing: e.DesiredFacing,
-			TurnRemaining: e.TurnRemaining, TurnTotal: e.TurnTotal, ImportedMotion: m != nil && m.Current, MotionIssue: issue,
+			TurnRemaining: e.TurnRemaining, TurnTotal: e.TurnTotal, TurnState: turn, ImportedMotion: m != nil && m.Current, MotionIssue: issue,
 			Route: w.Route(e.ID), ActorState: e.ActorState, AttackTarget: e.AttackTarget,
 			AttackTargetKind: e.AttackTargetKind, HasAttackTarget: e.HasAttackTarget,
 			PendingAttackTarget: e.PendingAttackTarget, PendingAttackTargetKind: e.PendingAttackTargetKind, HasPendingAttackTarget: e.HasPendingAttackTarget,
@@ -413,6 +419,10 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		e.Transit, e.TransitTotal, e.Stride = v.Transit, v.TransitTotal, v.Stride
 		e.GroupSpeed, e.Facing, e.DesiredFacing = v.GroupSpeed, v.Facing, v.DesiredFacing
 		e.TurnRemaining, e.TurnTotal = v.TurnRemaining, v.TurnTotal
+		e.TurnState = TurnState{}
+		if v.TurnState != nil {
+			e.TurnState = *v.TurnState
+		}
 		e.ActorState, e.AttackTarget, e.AttackTargetKind, e.HasAttackTarget = v.ActorState, v.AttackTarget, v.AttackTargetKind, v.HasAttackTarget
 		e.Retreat = RetreatContinuation{}
 		if v.Retreat != nil {

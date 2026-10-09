@@ -230,6 +230,9 @@ func effectLanding(e Entity, kind EffectKind, amount int32) (Entity, int32, bool
 			v = minEffectSpeed
 		}
 		e.Speed = v
+		if e.Humanoid {
+			e.refreshHumanTurnRate()
+		}
 		return e, e.Speed - before, true
 	case EffectScanRange:
 		before := int32(e.ScanRange)

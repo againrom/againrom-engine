@@ -4683,7 +4683,7 @@ func wallFireLightBright(scene int, cell image.Point) bool {
 // cannot see.
 //
 // SELECTION IS REACHED ONLY THROUGH THE RENDER TIER'S OWN SELECTIONS, and
-// there is one per life state. A living entity takes SelectUnitFrame at its
+// there is one per life state. A living entity takes SelectUnitFacingFrame at its
 // effective tick, scene + int(id) — a cosmetic de-sync from deterministic
 // snapshot data — AND at its own walk odometer, which is what the moving
 // arm actually reads. The two clocks are the engine's own asymmetry:
@@ -5036,12 +5036,9 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// which is that key's own registry default.
 			Marks: mw.markDraws(e.ID, markTileSize(classes[e.Class]))}
 
-		// THE DIRECTION IS THE SIMULATION'S OWN, translated and not derived. It
-		// used to be the sign-octant of the observed step, remembered per entity
-		// here because the world held no facing to read; the world holds one now,
-		// so a memory beside it would be a second answer to one question — the
-		// failure the world's own field-set pin refuses one tier down.
-		oct := sheetOctant(e.DrawnFacing())
+		// ANIM-DIR-006
+		facing := ((int(e.DrawnFacing()) >> 4) + 8) & 15
+		oct := facing >> 1
 
 		// The death path, and it is the first thing tried for an entity the world
 		// reports not alive — downed and dead alike. The frames come out of the
@@ -5159,6 +5156,11 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 
 		frames := c.TierFrames(tier)
+		if e.DrawingTurn() && len(frames) > 0 {
+			frame, mirror := terrain.SelectStandingFrame(c.Anim, len(frames), facing)
+			draws[i].Art, draws[i].Frame, draws[i].Mirror = c, frames[frame], mirror
+			continue
+		}
 
 		// THE SWING PATH, and it falls through exactly as the death path above
 		// does: a class with no attack block, an empty track, a failed gate or an
@@ -5191,7 +5193,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			if at, ok := mw.stoneHeld(e.ID); ok {
 				clock, held = at, true
 			}
-			frame, mirror := terrain.SelectUnitFrame(c.Anim, len(frames), moving && !held, oct,
+			frame, mirror := terrain.SelectUnitFacingFrame(c.Anim, len(frames), moving && !held, facing,
 				clock+int(e.ID), mw.walk[e.ID].dist)
 			draws[i].Art = c
 			draws[i].Frame = frames[frame]
@@ -5475,28 +5477,8 @@ func lifeOf(e sim.Entity) uint8 {
 	}
 }
 
-// sheetOctant is the SPRITE SHEET's direction number for a simulation
-// facing: the one translation between the tree's two direction orderings,
-// and the whole of what this tier does with a facing.
-//
-// The two orderings are both decoded and they are not the same. The simulation's
-// runs CLOCKWISE FROM NORTH — 0 north, 2 east, 4 south, 6 west — because that is
-// the movement delta table's order (MOVE-DIR-034). The sheet's runs from SOUTH —
-// S 0, SW 1, W 2, NW 3, N 4, NE 5, E 6, SE 7 — and has since 0024. Laid side by
-// side they name the same eight compass directions offset by four, so the
-// translation is one addition and a mask.
-//
-// THE CONSTANT IS NOT CHOSEN. It is asserted over all eight deltas against this
-// package's own independent transcription of the sheet ordering, in the commit
-// that removed the derivation it replaces, so the two answers were compared
-// while both existed. A rotation of anything but four disagrees on every
-// direction but one.
-//
-// It replaced signOctant, signOctants and signIndex — the sign-octant
-// derivation this tier kept while the world held no facing to read. What went
-// with them is not an implementation but an ANSWER: the direction a unit faced
-// was remembered here, and a remembered fact beside a canonical one is free to
-// disagree with it after any write that moves one and not the other.
+// sheetOctant converts the simulation's nearest compass octant to sheet order.
+// The live renderer instead halves the stored client sixteenth (ANIM-DIR-006).
 func sheetOctant(facing uint8) int { return (sim.FacingDir(facing) + 4) & 7 }
 
 // routeOf is one entity's remaining route as the seam carries it: the

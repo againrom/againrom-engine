@@ -124,6 +124,9 @@ func (mw *mapWorld) recomputeRaisedSkills() {
 		hero := mapload.PotionHero(member.Hero, e.PotionStats)
 		hero.Skill = e.TrainedSkills(mw.skillBonus[c.id])
 		d := hero.RecomputeWithSkillXP(c.member.Profile, loadout, e.SkillXP)
+		if e.Humanoid {
+			d.RotationSpeed = mapload.HumanTurnRate(d.Speed)
+		}
 		// DIV-675: native modifier producers remain incomplete. Keep the
 		// observed pair; do not manufacture a new one from item arithmetic.
 		d.Combat.SecondBase, d.Combat.SecondSpread = e.SecondBase, e.SecondSpread
@@ -311,6 +314,9 @@ func applyRearmLoadout(w *sim.World, id sim.EntityID, h data.Hero, profile data.
 	}
 	mapload.ApplyItemEffects(&loadout, items, profile.Fighter)
 	derived := h.Recompute(profile, loadout)
+	if before.Humanoid {
+		derived.RotationSpeed = mapload.HumanTurnRate(derived.Speed)
+	}
 	// Resolve the derived weapon spell through the installed table.
 	spellID, _ := mapload.SpellIDByToken(t, derived.Combat.SpellName)
 	source := sim.WeaponSpellNone

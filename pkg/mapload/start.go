@@ -586,6 +586,7 @@ func MemberCarriedItems(p PartyMember, t *Table) []sim.ItemInstance {
 
 func partySpawn(p PartyMember, loadout data.Loadout) (d data.Derived, health, mana int32) {
 	d = p.Hero.Recompute(p.Profile, loadout)
+	d.RotationSpeed = HumanTurnRate(d.Speed)
 
 	health = SpawnHP
 	if p.Profile.HealthColumn && d.HealthMax > 0 {

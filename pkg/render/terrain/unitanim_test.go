@@ -191,6 +191,40 @@ func TestSelectUnitFrameStanding(t *testing.T) {
 	}
 }
 
+func TestSelectUnitFacingFrameKeepsStandingAndHalvesAnimatedDirections(t *testing.T) {
+	for _, tc := range []struct {
+		name                       string
+		stored, directions, facing int
+		standing, move, idle       sel
+	}{
+		{"plain_north_bend", 16, 8, 9, sel{9, false}, sel{20, false}, sel{28, false}},
+		{"plain_east_bend", 16, 8, 11, sel{11, false}, sel{21, false}, sel{29, false}},
+		{"plain_south_bend", 16, 8, 1, sel{1, false}, sel{16, false}, sel{24, false}},
+		{"mirrored_north_bend", 9, 5, 9, sel{7, true}, sel{13, false}, sel{18, false}},
+		{"mirrored_east_bend", 9, 5, 11, sel{5, true}, sel{12, true}, sel{17, true}},
+		{"mirrored_south_bend", 9, 5, 1, sel{1, false}, sel{9, false}, sel{14, false}},
+	} {
+		for _, phase := range []struct {
+			name         string
+			moving, idle bool
+			want         sel
+		}{{"standing", false, false, tc.standing}, {"move", true, false, tc.move}, {"idle", false, true, tc.idle}} {
+			t.Run(tc.name+"/"+phase.name, func(t *testing.T) {
+				a := terrain.UnitAnim{S: tc.stored, D: tc.directions, MoveBase: tc.stored,
+					MoveSlot: 1, MoveTrack: []int{0}, MoveOK: true,
+					TailBase: tc.stored + tc.directions}
+				if phase.idle {
+					a.IdleSlot, a.IdleTrack, a.IdleOK = 1, []int{0}, true
+				}
+				frame, mirror := terrain.SelectUnitFacingFrame(a, 64, phase.moving, tc.facing, 0, 0)
+				if frame != phase.want.frame || mirror != phase.want.mirror {
+					t.Errorf("frame/mirror %d/%v, want %d/%v", frame, mirror, phase.want.frame, phase.want.mirror)
+				}
+			})
+		}
+	}
+}
+
 // walker builds a Flip-0 mover whose whole sheet is one direction's Move
 // block, so that at oct 0 the selected index IS the track's own value:
 // MoveBase 0, MoveWind 0, slot 0. track is the run-length expansion a
