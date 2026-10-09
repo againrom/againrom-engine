@@ -183,11 +183,8 @@ func withdrawSavedPartyPlacements(m *alm.Map, party []mapload.PartyMember) int {
 // install and reads no field of a front end, so it can be decided against a
 // hand-built save with no install anywhere near it.
 //
-// A SAVE WHOSE WALK REACHES NO CHARACTER FALLS BACK TO fresh, and says so. That
-// is not a silent substitution — Fallback is a field, the report prints it, and
-// the load window's own caveat is written for the case where it is false. The
-// alternative is a mission opened with an empty party, which is a world the
-// player cannot play and cannot diagnose.
+// A save with no recorded character falls back to fresh. The report records
+// Fallback so an empty, unplayable party is not silently substituted.
 func RestoreParty(sf *sav.File, fresh []mapload.PartyMember, bodies data.BodyList,
 	t *mapload.Table) ([]mapload.PartyMember, RestoredParty) {
 

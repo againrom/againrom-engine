@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"strings"
 	"testing"
 	"time"
@@ -8,7 +9,54 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/text"
 )
+
+func TestSelectedOriginalSaveDetailIsItsLabel(t *testing.T) {
+	a := newTestApp(t, appRows(3), okLoader(t))
+	a.SetWords(AuthoredWords(), solidFont15(), nil)
+	rows := []SaveEntry{
+		{Name: "game0000.sav", Label: "INSTALL mission 10"},
+		{Name: "local:ours.sav", Label: "LOCAL mission 10"},
+	}
+	a.SetSaveSeams(nil, func() []SaveEntry { return rows }, nil)
+	a.flow.openLoad(ScreenMenu)
+	for i, row := range rows {
+		if i > 0 {
+			a.flow.loadList.Move(1)
+		}
+		if got := a.loadMessage(); got != row.Label {
+			t.Fatalf("selected %s detail = %q, want label %q", row.Name, got, row.Label)
+		}
+		calls := text.Record(func() {
+			if _, err := a.composeLoadScreen(); err != nil {
+				t.Fatal(err)
+			}
+		})
+		at := image.Pt(loadMessageBox.Min.X, max(loadMessageBox.Min.Y, a.loadListBox().Rect.Max.Y+2))
+		var detail []text.DrawCall
+		for _, call := range calls {
+			if call.Y == at.Y {
+				detail = append(detail, call)
+			}
+		}
+		want := text.Record(func() {
+			a.flow.menuFont.Draw(image.NewRGBA(image.Rect(0, 0, frame.W, frame.H)), a.flow.menuDisplayText(row.Label), at.X, at.Y, townShellText)
+		})
+		if len(detail) != len(want) || len(want) == 0 {
+			t.Fatalf("selected %s drew %d detail glyphs, want %d label glyphs", row.Name, len(detail), len(want))
+		}
+		for j, call := range detail {
+			if call.Glyph != want[j].Glyph || call.X != want[j].X || call.Color != want[j].Color {
+				t.Fatalf("selected %s detail glyph %d differs from its label", row.Name, j)
+			}
+		}
+	}
+	a.flow.msg = "this file will not read"
+	if got := a.loadMessage(); got != a.flow.msg {
+		t.Fatalf("load refusal = %q, want %q", got, a.flow.msg)
+	}
+}
 
 func leaveViaMenu(f *flow) {
 	if f.screen != ScreenGameMenu || f.menuList == nil {
@@ -361,81 +409,4 @@ func TestSaveTellsTheFarSideWhichScreenItWasTakenOn(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestTheLoadWindowShowsTheHIGHLIGHTEDRowsCaveatAndARefusalWinsTheLine(t *testing.T) {
-	f := &flow{
-		screen: ScreenLoad,
-		saves: []SaveEntry{
-			{Name: "ours.ags", Label: "mission 10 — tick 300"},
-			{Name: "game0000.sav", Label: "1 — mission 10", Note: "carries almost nothing"},
-		},
-	}
-	f.loadList = NewPicker([]PickerRow{
-		{Text: f.saves[0].Label, Choosable: true},
-		{Text: f.saves[1].Label, Choosable: true},
-	})
-
-	if got := f.loadNote(); got != "" {
-		t.Errorf("our own save showed the caveat %q; it has none", got)
-	}
-	f.loadList.Move(1)
-	if got := f.loadNote(); got != f.saves[1].Note {
-		t.Errorf("on the original row the line reads %q, want %q", got, f.saves[1].Note)
-	}
-
-	// A refusal takes the line back, because there is only one and what just
-	// failed is the more urgent of the two.
-	f.msg = "this file will not read"
-	if got := f.loadNote(); got != "" {
-		t.Errorf("a refusal was on the line and the caveat still claimed it: %q", got)
-	}
-	f.msg = ""
-
-	// Off the load window it answers nothing at all, so no other screen can
-	// pick the line up by accident.
-	f.screen = ScreenMenu
-	if got := f.loadNote(); got != "" {
-		t.Errorf("the caveat %q reached the %v screen", got, f.screen)
-	}
-
-	// And an empty list is not an index error.
-	f.screen, f.saves = ScreenLoad, nil
-	if got := f.loadNote(); got != "" {
-		t.Errorf("an empty list produced the caveat %q", got)
-	}
-}
-
-// TestTheCaveatReachesTheWindowAndTheDrawPathTakesIt is as far as this package
-// can witness a drawn string, and the header of app_test.go says why: Draw runs
-// headless but ReadPixels panics before a game starts, so what a human would see
-// is a developer-run criterion and is not claimed here.
-//
-// What IS witnessed: the note survives the seam into the row the window holds,
-// loadNote answers it while that row is highlighted, and the draw path runs over
-// exactly that state without panicking. The statement that puts it on the canvas
-// is the same shape as the four message-line draws beside it.
-func TestTheCaveatReachesTheWindowAndTheDrawPathTakesIt(t *testing.T) {
-	const note = "ORIGINAL SAVE: map unit positions only"
-	a := newTestApp(t, appRows(3), okLoader(t))
-	now := time.Unix(1_700_000_000, 0)
-	a.SetSaveSeams(nil,
-		func() []SaveEntry {
-			return []SaveEntry{{Name: "game0000.sav", Label: "1 — mission 10", Note: note}}
-		},
-		func(string) (MapOpener, bool, error) { return nil, true, nil },
-	)
-	a.step(appInput{}, now)
-	a.step(appInput{Load: true}, now)
-	if a.Screen() != ScreenLoad {
-		t.Fatalf("L landed on %v, want the load window", a.Screen())
-	}
-	if a.flow.msg != "" {
-		t.Fatalf("the line already holds %q, so the caveat could not show anyway", a.flow.msg)
-	}
-	if got := a.flow.loadNote(); got != note {
-		t.Fatalf("the window would draw %q on its message line, want the row's note %q", got, note)
-	}
-	a.canvas = ebiten.NewImage(frame.W, frame.H)
-	a.Draw(ebiten.NewImage(a.winW, a.winH))
 }

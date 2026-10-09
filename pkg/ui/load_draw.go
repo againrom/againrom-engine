@@ -54,7 +54,7 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 		if !a.flow.loadUI.confirm {
 			messageY = max(messageY, a.loadListBox().Rect.Max.Y+2)
 		}
-		// Wrap refusals below the list; the row model retains its full text.
+		// Wrap the detail or refusal below the list; the row retains its full text.
 		for i, line := range NoticeLines(font, a.flow.menuDisplayText(message), loadMessageBox.Dx()) {
 			if i >= 2 {
 				break
@@ -80,7 +80,14 @@ func (a *App) loadMessage() string {
 	if a.flow.msg != "" {
 		return a.flow.msg
 	}
-	return a.flow.loadNote()
+	if a.flow.screen != ScreenLoad || a.flow.loadList == nil {
+		return ""
+	}
+	i := a.flow.loadList.Selection()
+	if i < 0 || i >= len(a.flow.saves) {
+		return ""
+	}
+	return a.flow.saves[i].Label
 }
 
 // The installed font is proportional, so a row is clipped by measured pixels

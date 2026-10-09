@@ -3,7 +3,6 @@ package game
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -133,25 +132,6 @@ func TestALabelIsMadeDrawableThroughTheInstallsOwnPage(t *testing.T) {
 	} {
 		if got := asciiLabel(c.raw, c.selector); got != c.want {
 			t.Errorf("%s: asciiLabel(%v, %d) = %q, want %q", c.name, c.raw, c.selector, got, c.want)
-		}
-	}
-}
-
-func TestTheOriginalSaveCaveatIsSayableOnOneLine(t *testing.T) {
-	const uiPickerCols = 104
-	if OriginalSaveNote == "" {
-		t.Fatal("there is no caveat at all")
-	}
-	if n := len([]rune(OriginalSaveNote)); n > uiPickerCols {
-		t.Errorf("the caveat is %d columns and the line holds %d: %q", n, uiPickerCols, OriginalSaveNote)
-	}
-	// It names both restored state and the boundary that still restarts. A
-	// caveat that calls all campaign progress absent would contradict the state
-	// installed before this row opens.
-	for _, word := range []string{"party", "positions", "pools", "items", "explored map", "latches", "diplomacy",
-		"campaign", "other state restarts"} {
-		if !strings.Contains(OriginalSaveNote, word) {
-			t.Errorf("the caveat does not contain %q: %q", word, OriginalSaveNote)
 		}
 	}
 }

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The LOAD window no longer shows a note under original saves; the
+  selected save shows its own label.
 - [BASE] The map no longer shows black strips at the right and bottom while
   scrolling, and zooming out keeps the view centred instead of moving the map
   into a corner.

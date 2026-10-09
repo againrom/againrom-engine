@@ -113,7 +113,7 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
 	rows := make([]ui.SaveEntry, 27)
 	for i := range rows {
-		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("slot-%02d", i), Note: fmt.Sprintf("detail-%02d", i)}
+		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("slot-%02d", i)}
 	}
 	manifest := map[string]any{"asset_root_sha256": rootHash, "scroll_sha256": fmt.Sprintf("%x", sha256.Sum256(raw))}
 	frame := func(t *testing.T, app *ui.App, name string) *image.RGBA {

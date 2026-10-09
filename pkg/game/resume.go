@@ -663,27 +663,18 @@ func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() tim
 	// another program's last run. Each group keeps its own newest-first order.
 	list := func() []ui.SaveEntry {
 		var out []ui.SaveEntry
-		// A STORED LABEL IS MADE DRAWABLE HERE, for the same reason the note
-		// below is composed here: what a label needs in order to appear on a
-		// row is decided at this seam, and pkg/ui only draws it. SaveStore.List
-		// keeps reporting the bytes in the header, which is what its own test
-		// pins.
+		// Decode stored labels at the seam; SaveStore.List retains header bytes.
 		if ents, err := store.List(); err == nil {
 			for _, e := range ents {
 				name := e.Name
-				note := ""
 				if IsOriginal(name) {
 					name = localOriginalSaveToken(name)
-					note = OriginalSaveNote
 				}
-				out = append(out, ui.SaveEntry{Name: name, Label: drawableLabel(e.Label), Note: note})
+				out = append(out, ui.SaveEntry{Name: name, Label: drawableLabel(e.Label)})
 			}
 		}
-		// THE NOTE RIDES WITH THE ROW and is not decided by the screen. What
-		// this format does and does not carry is a fact about the format, so
-		// the sentence is composed here and pkg/ui only draws it.
 		for _, e := range orig.List() {
-			out = append(out, ui.SaveEntry{Name: e.Name, Label: e.Label, Note: OriginalSaveNote})
+			out = append(out, ui.SaveEntry{Name: e.Name, Label: e.Label})
 		}
 		return out
 	}

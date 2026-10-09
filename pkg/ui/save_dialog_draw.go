@@ -272,11 +272,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 		i := d.list.Selection() - len(d.directory.Directories)
 		if i >= 0 && i < len(d.directory.Entries) {
 			entry := d.directory.Entries[i]
-			detail := entry.Label
-			if entry.Note != "" {
-				detail = entry.Note
-			}
-			s.label(a.saveTextFit(detail, 560), 40, 241, layout.TextColor)
+			s.label(a.saveTextFit(entry.Label, 560), 40, 241, layout.TextColor)
 		}
 	}
 	detail := w.TownDetail

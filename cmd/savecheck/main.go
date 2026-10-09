@@ -153,15 +153,8 @@ func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalSt
 		fmt.Fprintln(stderr, "savecheck: no saves in", store.Dir, "or", original.Dir)
 		return 1
 	}
-	// THE NOTE IS PRINTED WITH THE ROW. It is what the load window puts on its
-	// message line while that row is highlighted, so a tool that showed the
-	// list without it would be checking a different list from the one the
-	// player reads.
 	for _, e := range list {
 		fmt.Fprintf(stdout, "savecheck: on disk %s  %q\n", e.Name, e.Label)
-		if e.Note != "" {
-			fmt.Fprintf(stdout, "savecheck:   note %s\n", e.Note)
-		}
 	}
 	chosen := list[0].Name
 	if want != "" {
@@ -303,8 +296,6 @@ func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalSt
 		// other end of the same claim, read off the world that was built — which
 		// is the only place a restored statistic can be checked against the file
 		// rather than against the code that read it.
-		fmt.Fprintln(stdout, "savecheck: that was the ORIGINAL game's format --",
-			game.OriginalSaveNote)
 		for _, e := range w.Entities() {
 			if e.Owner != sim.SelfSlot {
 				continue

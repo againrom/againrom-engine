@@ -22,7 +22,7 @@ func unicodeLoadApp(t *testing.T, font *text.Font, loaded *string) *App {
 		return textinput.EncodeRune(r, font.Selector)
 	})
 	a.SetSaveSeams(nil, func() []SaveEntry {
-		return []SaveEntry{{Name: "Тест.ags", Label: "Тест.ags", Note: "Сохранение"}}
+		return []SaveEntry{{Name: "Тест.ags", Label: "Тест.ags"}}
 	}, func(name string) (MapOpener, bool, error) {
 		*loaded = name
 		return nil, false, errors.New("fixture stops after exact LOAD token")
@@ -119,7 +119,7 @@ func TestComposeScreenSelectsLoadComposer(t *testing.T) {
 	}
 }
 
-func TestLoadTextClipsAtMeasuredPixelsAndFailureWinsNote(t *testing.T) {
+func TestLoadTextClipsAtMeasuredPixelsAndFailureWinsLabel(t *testing.T) {
 	loaded := ""
 	a := unicodeLoadApp(t, chargenTestFont(), &loaded)
 	label := strings.Repeat("Тест ", 60)
@@ -128,12 +128,12 @@ func TestLoadTextClipsAtMeasuredPixelsAndFailureWinsNote(t *testing.T) {
 	if width > 90 || !strings.HasSuffix(clipped, "...") {
 		t.Fatalf("pixel fit = %d %q", width, clipped)
 	}
-	if a.loadMessage() != "Сохранение" {
-		t.Fatal("LOAD lost selected note")
+	if a.loadMessage() != a.flow.saves[0].Label {
+		t.Fatal("LOAD lost selected label")
 	}
 	a.flow.msg = "read failed"
 	if a.loadMessage() != "read failed" {
-		t.Fatal("selected note hid failure")
+		t.Fatal("selected label hid failure")
 	}
 }
 
@@ -145,7 +145,7 @@ func loadScrollTestApp(t *testing.T, frames []*image.RGBA, loaded *[]string) *Ap
 	a.SetWords(AuthoredWords(), solidFont15(), nil)
 	rows := make([]SaveEntry, 27)
 	for i := range rows {
-		rows[i] = SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("row-%02d", i), Note: fmt.Sprintf("note-%02d", i)}
+		rows[i] = SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("row-%02d", i)}
 	}
 	a.SetSaveSeams(nil, func() []SaveEntry { return rows }, func(name string) (MapOpener, bool, error) {
 		*loaded = append(*loaded, name)

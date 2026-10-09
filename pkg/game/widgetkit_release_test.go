@@ -60,8 +60,15 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 	}
 	rows := make([]ui.SaveEntry, 27)
 	for i := range rows {
-		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("slot-%02d", i), Note: fmt.Sprintf("detail-%02d", i)}
+		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("slot-%02d", i)}
 	}
+	orig := OriginalStore{Dir: os.Getenv("AGAINROM_ORIGINAL_SAVES"), Selector: f.textSelector()}
+	_, originalList, _ := f.SaveSeams(SaveStore{Dir: stateDir}, orig, nil)
+	originalRows := originalList()
+	if len(originalRows) == 0 || !IsOriginal(originalRows[0].Name) {
+		t.Fatal("widget kit requires an original SAV row")
+	}
+	rows[13] = originalRows[0]
 
 	load := f.App("widget kit load")
 	t.Cleanup(load.StopAudio)
@@ -71,7 +78,15 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 	if err := load.HeadlessKey("load"); err != nil {
 		t.Fatal(err)
 	}
-	loadPicture := shot(t, load, "load-game")
+	for range 13 {
+		if err := load.HeadlessKey("down"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var loadPicture *image.RGBA
+	loadGlyphs := text.Record(func() { loadPicture = shot(t, load, "load-game") })
+	assertInstalledLoadDetailLabel(t, f, loadPicture, loadGlyphs, rows[13].Label)
+	t.Logf("%s: selected original SAV %s; detail is label %q", lang, rows[13].Name, rows[13].Label)
 	assertInstalledChooserWell(t, loadPicture, image.Rect(122, 152, 504, 152+10*(f.Font.Value().Height()+4)+2))
 	if !holdsSprite(loadPicture, frames[barThumb]) {
 		t.Fatal("Load Game lost the installed bar thumb")
@@ -166,6 +181,53 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 		t.Fatal("drawing the widget screens changed World")
 	}
 	t.Logf("%s: seven widget screens written to %s; scroll source sha256 %x", lang, out, sha256.Sum256(raw))
+}
+
+func assertInstalledLoadDetailLabel(t *testing.T, f *FrontEnd, pic *image.RGBA, calls []text.DrawCall, label string) {
+	t.Helper()
+	encoded, err := encodeSaveLabel(label, f.textSelector())
+	if err != nil {
+		t.Fatal(err)
+	}
+	font := f.Font.Value()
+	y := max(344, 152+10*(font.Height()+4)+4)
+	expected := image.NewRGBA(pic.Bounds())
+	want := text.Record(func() {
+		for i, line := range ui.NoticeLines(font, encoded, 400) {
+			if i >= 2 {
+				break
+			}
+			font.Draw(expected, line, 122, y+i*(font.Height()+1), color.RGBA{242, 230, 196, 255})
+		}
+	})
+	var detail []text.DrawCall
+	for _, call := range calls {
+		if call.Y == y || call.Y == y+font.Height()+1 {
+			detail = append(detail, call)
+		}
+	}
+	if len(want) == 0 || len(detail) != len(want) {
+		t.Fatalf("LOAD detail drew %d glyphs, want %d label glyphs", len(detail), len(want))
+	}
+	for i, call := range detail {
+		if call.Glyph != want[i].Glyph || call.X != want[i].X || call.Y != want[i].Y || call.Color != want[i].Color {
+			t.Fatalf("LOAD detail glyph %d differs from the selected label", i)
+		}
+	}
+	painted := 0
+	for py := y; py < min(pic.Bounds().Max.Y, y+2*(font.Height()+1)); py++ {
+		for x := 122; x < 522; x++ {
+			if pixel := expected.RGBAAt(x, py); pixel.A == 255 {
+				painted++
+				if pic.RGBAAt(x, py) != pixel {
+					t.Fatalf("LOAD label pixel differs at %d,%d", x, py)
+				}
+			}
+		}
+	}
+	if painted < 20 {
+		t.Fatal("LOAD label has no bounded pixel witness")
+	}
 }
 
 func assertInstalledChooserWell(t *testing.T, pic *image.RGBA, list image.Rectangle) {

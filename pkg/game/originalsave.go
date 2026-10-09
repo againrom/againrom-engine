@@ -1186,31 +1186,6 @@ func (f *FrontEnd) restoreOriginalMission(src *originalSource, in originalInstal
 	return openPrepared(candidate.prepared, func() { f.installCandidate(candidate) }), false, nil
 }
 
-// OriginalSaveNote is the caveat the LOAD GAME window shows while a row from
-// this format is highlighted (owner).
-//
-// IT SAYS WHAT IS CARRIED AND WHAT IS NOT, IN THE READER'S UNITS. Its
-// previous wording — "map unit positions only" — was true of the file
-// and read as "your positions are carried", which is how this defect reached
-// the owner: the positions a player checks first were the ones being
-// dropped. The wording below is what a player can check against the screen
-// in front of him.
-//
-// THE TWO HALVES ARE BOTH LOAD-BEARING. Party, map position, explored map,
-// trigger latches, diplomacy and campaign arrive; the other mission-world axes
-// restart. Naming spells and skills here would cost more columns than the line
-// has; the counted report (OriginalSaveResume) is where every unapplied world
-// axis is named.
-//
-// THE EXPLORED MAP MOVED FROM THE SECOND HALF TO THE FIRST at 0150. The record
-// is in the save's uncompressed tail and this build restores it, so the line
-// names it beside the party: it is the second thing a player checks after his
-// own characters, and the previous wording left him to assume it was gone.
-//
-// IT FITS THE MESSAGE LINE. 104 columns is what pkg/ui can draw there, and a
-// caveat clipped mid-word is a caveat that stops before the part that matters.
-const OriginalSaveNote = "ORIG: party, positions/pools, items, explored map, latches, diplomacy, campaign; other state restarts"
-
 // OriginalSaveLabel is the row the LOAD GAME window shows for one such file.
 //
 // IT IS BUILT FROM THE HEAD ALONE so that listing a directory of saves costs one

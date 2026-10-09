@@ -12,22 +12,10 @@ import (
 // the screen behind the menu, leaving persistence to the game package.
 type SaveGame func(onMap bool) (name string, err error)
 
-// SaveEntry is one row of what is on disk: the name the far side reads back by,
-// and the label out of that file's own header.
-//
-// THREE STRINGS ARE THE WHOLE PAYLOAD, on SaveGame's own reasoning. A label is
-// composed on the far side, where a mission number and a tick can be named; a
-// name is an opaque token this package passes back unread; and Note is a caveat
-// the far side attaches to a row it knows loads less than a player would assume.
-//
-// THE NOTE IS A STRING AND NOT A FLAG. "This row is an original save" would make
-// this package hold a fact about a file format and then decide what that fact
-// means for the player — two things it is not allowed to know. A sentence
-// composed where the format is understood is one thing it can only draw.
+// SaveEntry holds the disk token and the label from its header.
 type SaveEntry struct {
 	Name  string
 	Label string
-	Note  string
 }
 
 // SaveList is what is on disk, newest first.
@@ -637,28 +625,6 @@ func (f *flow) closeLoad() {
 	}
 	f.setScreen(back)
 	f.msg = ""
-}
-
-// loadNote is what the load window adds to its one message line: the caveat the
-// HIGHLIGHTED row carries, and nothing at all when a refusal is already using
-// that line.
-//
-// A REFUSAL WINS THE LINE. What just failed is more urgent than what the next
-// choice would cost, and there is only one line — two claims on it would race
-// and the player would read whichever won.
-//
-// IT IS READ AND NEVER CACHED. The selection moves under the keyboard and the
-// wheel between frames, and a note stored when the window opened would describe
-// whichever row happened to be first.
-func (f *flow) loadNote() string {
-	if f.screen != ScreenLoad || f.loadList == nil || f.msg != "" {
-		return ""
-	}
-	i := f.loadList.Selection()
-	if i < 0 || i >= len(f.saves) {
-		return ""
-	}
-	return f.saves[i].Note
 }
 
 // chooseLoad loads the selected save.

@@ -56,7 +56,7 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 	}
 	rows := make([]ui.SaveEntry, 27)
 	for i := range rows {
-		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("Saved game %02d", i), Note: fmt.Sprintf("Selected slot %02d", i)}
+		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("Saved game %02d", i)}
 	}
 	loaded, prepared, removed := []string{}, []string{}, 0
 	makeApp := func(record bool) *ui.App {
