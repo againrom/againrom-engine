@@ -1980,7 +1980,7 @@ func composeItems(l PanelLayout, f *text.Font, items []panelItem) *image.RGBA {
 	if l.Background != nil {
 		drawPanelBackground(img, l.Background)
 	} else {
-		fillPanelFrame(img, box, l.Fill, l.Border)
+		drawFrame(img, panelFrame(image.Rectangle{Max: box}, l.Fill, l.Border))
 	}
 	paint := img
 	if l.CompactCard && l.Background != nil {
@@ -2043,20 +2043,6 @@ func drawPanelBackground(dst, src *image.RGBA) {
 	for y := 0; y < b.Dy() && y < sb.Dy(); y++ {
 		for x := 0; x < b.Dx() && x < sb.Dx(); x++ {
 			dst.SetRGBA(b.Min.X+x, b.Min.Y+y, src.RGBAAt(sb.Min.X+x, sb.Min.Y+y))
-		}
-	}
-}
-
-// fillPanelFrame is the authored frame: fill over the whole box, then a
-// one-pixel border on its edge in the other colour.
-func fillPanelFrame(dst *image.RGBA, box image.Point, fill, border color.RGBA) {
-	for y := 0; y < box.Y; y++ {
-		for x := 0; x < box.X; x++ {
-			c := fill
-			if x == 0 || y == 0 || x == box.X-1 || y == box.Y-1 {
-				c = border
-			}
-			dst.SetRGBA(x, y, c)
 		}
 	}
 }

@@ -248,7 +248,7 @@ func (a *App) gameOptionsPicture() *image.RGBA {
 	f := a.flow
 	g := gameOptionsDialog
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawSnappedDialog(dst, f.menuArt, g)
+	drawFrame(dst, g.frame(f.menuArt))
 	font := f.menuFont
 	w := f.gameOptions.Words
 	label := gameMenuLabelText(w.Title)

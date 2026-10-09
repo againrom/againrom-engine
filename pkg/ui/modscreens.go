@@ -353,7 +353,7 @@ func (a *App) composeModScreen() (*image.RGBA, error) {
 	if a.assets != nil {
 		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
-	f.menuArt.Draw(pix, modPanel)
+	drawFrame(pix, windowFrame(modPanel, f.menuArt))
 	a.drawModCentered(pix, s.Title, modTitleBox)
 
 	lines := a.modLines(s)

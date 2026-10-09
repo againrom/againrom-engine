@@ -21,7 +21,7 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 	if a.assets != nil {
 		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
-	a.flow.menuArt.Draw(pix, loadPanel)
+	drawFrame(pix, windowFrame(loadPanel, a.flow.menuArt))
 	w := a.flow.loadUI.words
 	if w.Title == "" {
 		w = defaultLoadWindowWords()
@@ -43,7 +43,6 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 		font.Draw(pix, w.Subtitle, 125, 130, loadSelectedText)
 		pointer, pointerOK := a.pointerFrame()
 		box := a.loadListBox()
-		drawEditField(pix, editField{Rect: box.Rect.Inset(-1)}, nil)
 		drawListBox(pix, font, a.media.scroll, box, list, func(row, width int) string {
 			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
 		}, pointer, pointerOK)

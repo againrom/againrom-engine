@@ -196,7 +196,7 @@ func TestHeadlessFrameNoteNamesTheGameMenuOverlay(t *testing.T) {
 // zero-witness composer (contract B2). Size is fixed on both axes (a
 // non-zero Size means fixed, not fit-to-content — PanelLayout's own
 // comment), so the box is exactly the 40x20 requested regardless of Rows:
-// the assertion is that fillPanelFrame's border occupies exactly the
+// the assertion is that the panel frame's border occupies exactly the
 // outermost ring and nothing more, colours chosen by this test and compared
 // directly rather than read back from the layout that produced them.
 func TestRenderPanelDrawsAOnePixelBorderOnAFixedBox(t *testing.T) {

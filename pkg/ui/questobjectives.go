@@ -65,7 +65,7 @@ func (f *flow) questRows() []gameMenuRow {
 func (a *App) questPicture() *image.RGBA {
 	f := a.flow
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawMenuPanel(pix, questPanelRect, f.menuArt)
+	drawFrame(pix, windowFrame(questPanelRect, f.menuArt))
 	font := f.menuFont
 	if font == nil {
 		return pix

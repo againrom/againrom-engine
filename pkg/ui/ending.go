@@ -287,7 +287,7 @@ func (a *App) endingPaint() *savePaint {
 		draw.Draw(p.pix, p.pix.Bounds(), f.ending.HallBackground, image.Point{}, draw.Src)
 		ink = color.RGBA{R: 40, G: 22, B: 8, A: 255}
 	} else {
-		p.box(image.Rect(20, 20, 620, 416), pickerBackground, saveFocusColor)
+		drawFrame(p.pix, panelFrame(image.Rect(20, 20, 620, 416), pickerBackground, saveFocusColor))
 		title := w.Title
 		if f.endingPage == 1 {
 			title = w.Credits
@@ -337,7 +337,7 @@ func (a *App) endingPaint() *savePaint {
 		if i == f.endingFocus {
 			border = saveFocusColor
 		}
-		p.box(r, pickerBackground, border)
+		drawFrame(p.pix, panelFrame(r, pickerBackground, border))
 		p.label(a.fitEndingText(name, r.Dx()-12), r.Min.X+6, r.Min.Y+8, gameMenuText)
 	}
 	return p

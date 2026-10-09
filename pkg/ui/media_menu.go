@@ -281,7 +281,7 @@ func (a *App) composeCutsceneLibrary() *image.RGBA {
 	if a.assets != nil {
 		draw.Draw(dst, dst.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
-	drawMenuPanel(dst, moviePanel, a.flow.menuArt)
+	drawFrame(dst, windowFrame(moviePanel, a.flow.menuArt))
 	font := a.flow.menuFont
 	if font == nil {
 		return dst

@@ -205,7 +205,7 @@ const (
 
 // The furniture's own authored palette: a frame in the drawing tier's
 // existing colours, reused rather than a second one invented here —
-// panel.go's fillPanelFrame paints each outer box and drawInventoryCell
+// the kit's panel frame paints each outer box and drawInventoryCell
 // below paints every cell of all three, so the doll box, the pack bar and
 // the spellbook bar read as one family.
 var (
@@ -410,7 +410,7 @@ func packScrollCueRect(strip image.Rectangle) image.Rectangle {
 func RenderWorn(s InventorySubject) *image.RGBA {
 	size := wornBoxSize()
 	img := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
-	fillPanelFrame(img, size, invFill, invBorder)
+	drawFrame(img, panelFrame(image.Rectangle{Max: size}, invFill, invBorder))
 
 	for i, box := range wornSlotRects() {
 		drawInventoryCell(img, box, s.Slots[i], invCellBorder)
@@ -445,7 +445,7 @@ func renderPackBarArt(s InventorySubject, scroll, cols int, bar image.Rectangle,
 	size := image.Pt(bar.Dx()+sidebarWidth, bar.Dy())
 	img := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
 	if art == nil {
-		fillPanelFrame(img, bar.Size(), invFill, invBorder)
+		drawFrame(img, panelFrame(image.Rectangle{Max: bar.Size()}, invFill, invBorder))
 	} else {
 		drawPackGround(img, bar, cols, art)
 	}

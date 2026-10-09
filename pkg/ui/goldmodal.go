@@ -437,7 +437,7 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 	}
 	box := v.goldModalBox()
 	img := image.NewRGBA(image.Rect(0, 0, box.Dx(), box.Dy()))
-	fillPanelFrame(img, box.Size(), goldFill, invBorder)
+	drawFrame(img, panelFrame(image.Rectangle{Max: box.Size()}, goldFill, invBorder))
 	edit, action, cancel := v.goldModalControls()
 	edit, action, cancel = edit.Sub(box.Min), action.Sub(box.Min), cancel.Sub(box.Min)
 	f := v.cardFont()

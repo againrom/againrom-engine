@@ -25,7 +25,8 @@ func TestDialogueShadowPackedLevelSixPreservesSkipsAndPadding(t *testing.T) {
 	mask.SetRGBA(4, 5, color.RGBA{1, 127, 255, 255})
 	mask.SetRGBA(6, 5, color.RGBA{255, 1, 127, 255})
 	mask.SetRGBA(5, 6, color.RGBA{127, 255, 1, 255})
-	stampShadow(dst, mask, image.Pt(9, 20))
+	l, _ := backdrop.NewLevel(backdrop.RGB565, backdrop.Full, 6)
+	remapDialogueMask(dst, mask, image.Pt(9, 20), dst.Bounds(), l, nil)
 	want := color.RGBA{156, 157, 156, 255}
 	for y := 20; y < 23; y++ {
 		for x := 10; x < 14; x++ {
@@ -83,7 +84,7 @@ func TestDialogueShadowFullAndReducedWholeWordPopulations(t *testing.T) {
 func TestDialogueFrameRequestsReplacementAndIncomingClip(t *testing.T) {
 	art := dialogueClaimFrame()
 	body := image.Rect(12, 17, 492, 241)
-	tiles, shadows := art.dialogueTiles(body), art.dialogueShadows(body)
+	tiles, shadows := frameTiles(art, body, true), frameShadowTiles(art, body, frameRows[frameWindow])
 	if len(tiles) != 24 || len(shadows) != 9 {
 		t.Fatal("request counts", len(tiles), len(shadows))
 	}
