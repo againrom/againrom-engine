@@ -86,7 +86,7 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 		return v
 	}
 	v.Art = t.art.shopScreen()
-	v.Interior = t.shopInteriorFrame(v.Art)
+	v.Scene = roomScene{t.shopPage()}
 	v.Font = t.in.Font.Value()
 	v.PriceFont = t.in.tipFont()
 	v.Words = t.in.Words
@@ -748,15 +748,15 @@ func (t *townScreen) shopButton(i int) ui.TownAction {
 	case 1:
 		if total := t.sess.Shop.BuyTotal(); total != 0 {
 			if int32(t.sess.Town.Gold()) >= total {
-				t.requestShopMerchantYes()
+				t.shopPage().Event("merchant-yes")
 			} else {
-				t.requestShopMerchantNo()
+				t.shopPage().Event("merchant-no")
 			}
 		}
 		return t.shopBuy()
 	case 2:
 		if t.sess.Shop.SellTotal() != 0 {
-			t.requestShopMerchantYes()
+			t.shopPage().Event("merchant-yes")
 		}
 		return t.shopSell()
 	case 3:
@@ -789,7 +789,7 @@ func (t *townScreen) chooseRoomShelf(i int) ui.TownAction {
 	if i < 0 || i >= len(shopRoomShelves) {
 		return ui.TownAction{}
 	}
-	t.selectShopInteriorRack(i, true)
+	t.shopPage().Event("rack", i)
 	t.shopChosen, t.shelfBase = i, 0
 	room := shopRoomShelves[i]
 	t.shopShelf = room.shelf

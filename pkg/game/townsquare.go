@@ -37,14 +37,18 @@ func mustDecodeTown(data []byte) *town.Description {
 	return d
 }
 
-// townVocabulary is the hook and condition names the ROM1 campaign answers.
+// townVocabulary is the hook, condition, value and event names the ROM1
+// campaign answers.
 func townVocabulary() town.Vocabulary {
-	var v town.Vocabulary
+	v := town.Vocabulary{Events: roomEvents}
 	for name := range townHooks {
 		v.Hooks = append(v.Hooks, name)
 	}
 	for name := range townConditions {
 		v.Conditions = append(v.Conditions, name)
+	}
+	for name := range roomValues {
+		v.Values = append(v.Values, name)
 	}
 	return v
 }
@@ -140,7 +144,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 		t.packBase, t.shopBook = 0, false
 		t.openStockedShopShelf()
 	},
-	"shop-interior": func(t *townScreen, _ townRoom) { t.enterShopInterior() },
+	"shop-interior": func(t *townScreen, _ townRoom) { t.shopPage().Enter() },
 	"faces":         func(t *townScreen, _ townRoom) { t.composeShopFaces() },
 	"offer-on-entry": func(t *townScreen, room townRoom) {
 		building := TownShop
@@ -162,7 +166,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 		t.resetTownSpeech()
 	},
 	"tavern-leave": func(t *townScreen, _ townRoom) { t.leaveTavernInterior() },
-	"shop-reset":   func(t *townScreen, _ townRoom) { t.resetShopInterior() },
+	"shop-reset":   func(t *townScreen, _ townRoom) { t.shopPage().Reset() },
 	"school-leave": func(t *townScreen, _ townRoom) { t.leaveSchoolTraining() },
 }
 

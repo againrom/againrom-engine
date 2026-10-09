@@ -312,6 +312,68 @@
        {"hook": "offer-on-entry", "cite": ["DIV-157"]}
      ],
      "exit": [{"hook": "trade-cancel", "cite": ["SHOP-LIFE-013", "DIV-1527"]}],
+     "scene": {
+       "random": [{"name": "idle", "source": "host", "cite": ["SHOP-ANIMATION-081", "DIV-851"]}],
+       "art": [
+         {"name": "rack0", "format": "series", "key": "graphics/interface/shopanim/04/%d.bmp", "first": 1, "count": 11,
+          "keep-missing": true, "transparent": "black", "cite": ["SHOP-ANIMATION-082", "SHOP-SHELF-047", "DIV-856"]},
+         {"name": "rack1", "format": "series", "key": "graphics/interface/shopanim/03/%d.bmp", "first": 1, "count": 11,
+          "keep-missing": true, "transparent": "black", "cite": ["SHOP-ANIMATION-082", "SHOP-SHELF-047", "DIV-856"]},
+         {"name": "rack2", "format": "series", "key": "graphics/interface/shopanim/02/%d.bmp", "first": 1, "count": 11,
+          "keep-missing": true, "transparent": "black", "cite": ["SHOP-ANIMATION-082", "SHOP-SHELF-047", "DIV-856"]},
+         {"name": "rack3", "format": "series", "key": "graphics/interface/shopanim/01/%d.bmp", "first": 1, "count": 11,
+          "keep-missing": true, "transparent": "black", "cite": ["SHOP-ANIMATION-082", "SHOP-SHELF-047", "DIV-856"]},
+         {"name": "merchant", "format": "picture", "key": "movies/shopanim/pose2-3/1.bmp", "transparent": "black",
+          "cite": ["SHOP-MERCHANT-046", "SHOP-ANIMATION-083"]},
+         {"name": "idle", "format": "series", "key": "movies/shopanim/pose2-3/%d.bmp", "first": 2, "count": 28,
+          "transparent": "black", "cite": ["SHOP-ANIMATION-083", "DIV-856"]},
+         {"name": "yes", "format": "series", "key": "movies/shopanim/yes/%d.bmp", "first": 2, "count": 11,
+          "transparent": "black", "cite": ["SHOP-ANIMATION-083", "DIV-856"]},
+         {"name": "no", "format": "series", "key": "movies/shopanim/no/%d.bmp", "first": 2, "count": 11,
+          "transparent": "black", "cite": ["SHOP-ANIMATION-083", "DIV-856"]}
+       ],
+       "clocks": [
+         {"name": "step", "period-ms": 100, "compare": "at-least", "entry-ms": -100, "back-stamps": true, "rebase": "after-first",
+          "cite": ["SHOP-ANIMATION-081", "DIV-850", "DIV-852"]},
+         {"name": "idle", "compare": "at-least", "rebase": "after-first", "cite": ["SHOP-ANIMATION-081", "DIV-852"]}
+       ],
+       "actors": [
+         {"name": "racks", "program": "selector", "frames": 11, "loop-at": 9, "loop-to": 3, "stop-at": 10, "release": 9,
+          "selected": "shop-chosen", "raise": "rack-changed",
+          "members": [
+            {"name": "rack-armour", "art": "rack0", "cite": ["SHOP-ANIMATION-082"]},
+            {"name": "rack-weapons", "art": "rack1", "cite": ["SHOP-ANIMATION-082"]},
+            {"name": "rack-magic", "art": "rack2", "cite": ["SHOP-ANIMATION-082"]},
+            {"name": "rack-books", "art": "rack3", "cite": ["SHOP-ANIMATION-082"]}
+          ],
+          "on": [{"event": "rack", "do": "select", "cite": ["SHOP-ANIMATION-082", "SHOP-ANIMATION-084"]}],
+          "cite": ["SHOP-ANIMATION-082", "DIV-853"]},
+         {"name": "merchant", "program": "priority", "art": "merchant", "clock": "idle",
+          "delay": {"draw": "idle", "n": 5, "times": 1000, "base": 5000, "cite": ["SHOP-ANIMATION-081", "DIV-851"]},
+          "states": [
+            {"name": "idle", "art": "idle", "complete": 28, "steps": 28, "cite": ["SHOP-ANIMATION-083"]},
+            {"name": "yes", "art": "yes", "complete": 11, "steps": 12, "cite": ["SHOP-ANIMATION-083", "SHOP-ANIMATION-084"]},
+            {"name": "no", "art": "no", "complete": 11, "steps": 12, "cite": ["SHOP-ANIMATION-083", "SHOP-ANIMATION-084"]}
+          ],
+          "on": [
+            {"event": "merchant-yes", "do": "yes", "cite": ["SHOP-ANIMATION-084", "DIV-854"]},
+            {"event": "merchant-no", "do": "no", "cite": ["SHOP-ANIMATION-084", "DIV-854"]},
+            {"event": "rack-changed", "do": "yes", "cite": ["SHOP-ANIMATION-084"]}
+          ],
+          "cite": ["SHOP-ANIMATION-083", "SHOP-ANIMATION-084", "DIV-854"]}
+       ],
+       "steps": [
+         {"clock": "step", "when": "active", "run": ["arm merchant", "advance racks", "advance merchant"],
+          "cite": ["SHOP-ANIMATION-081"]}
+       ],
+       "layers": [
+         {"group": "interior", "actor": "rack-armour", "mode": "over", "at": [353, 108], "cite": ["SHOP-SHELF-047"]},
+         {"group": "interior", "actor": "rack-weapons", "mode": "over", "at": [197, 108], "cite": ["SHOP-SHELF-047"]},
+         {"group": "interior", "actor": "rack-magic", "mode": "over", "at": [313, 20], "cite": ["SHOP-SHELF-047"]},
+         {"group": "interior", "actor": "rack-books", "mode": "over", "at": [201, 20], "cite": ["SHOP-SHELF-047"]},
+         {"group": "interior", "actor": "merchant", "mode": "over", "at": [277, 112], "cite": ["SHOP-MERCHANT-046"]}
+       ],
+       "cite": ["SHOP-ANIMATION-081", "DIV-850", "DIV-852", "DIV-855"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "school", "page": "school",
      "enter": [

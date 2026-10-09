@@ -164,11 +164,10 @@ type townScreen struct {
 	squareAction ui.TownAction
 	// pages are the room pages the composer builds, by room name, and
 	// pageRandom their fallback presentation generators by draw source.
-	pages        map[string]*town.Page
-	pageRandom   map[string]*rand.Rand
-	shopInterior shopInteriorAnimation
-	townStats    bool
-	shopBook     bool
+	pages      map[string]*town.Page
+	pageRandom map[string]*rand.Rand
+	townStats  bool
+	shopBook   bool
 
 	// schoolSounds holds the school's own chrgen skill instances
 	// (VIDEO-SFX-059); presentation only.
@@ -304,7 +303,7 @@ func (t *townScreen) resetForNewGame() {
 	t.schoolSounds.Stop()
 	t.resetSchoolTraining()
 	t.tavernPage().Reset()
-	t.resetShopInterior()
+	t.shopPage().Reset()
 	t.townStats, t.shopBook = false, false
 	t.clearTavernDetail()
 	t.shopFigures, t.shopFigureMasks = nil, nil

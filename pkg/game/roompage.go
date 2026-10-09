@@ -27,6 +27,8 @@ func (t *townScreen) roomPage(room string) *town.Page {
 
 func (t *townScreen) tavernPage() *town.Page { return t.roomPage("tavern") }
 
+func (t *townScreen) shopPage() *town.Page { return t.roomPage("shop") }
+
 // loadRoomSceneArt resolves a room scene's art as the ROM1 description names
 // it: its pictures by entry name, and the problems of the entries that did
 // not load joined into one error. A required entry that fails answers no
@@ -68,6 +70,10 @@ func (h roomPageHost) Art() *town.Art {
 		if a := t.in.TownTavernArt.Value(); a != nil {
 			return &town.Art{Frames: a.Scene}
 		}
+	case "shop":
+		if a := t.art.shopScreen(); a != nil {
+			return &town.Art{Frames: a.Scene}
+		}
 	}
 	return nil
 }
@@ -77,6 +83,7 @@ func (h roomPageHost) Now() time.Time { return h.t.townAnimationNow() }
 // roomDraws binds each scene draw source to the runtime's draw service.
 var roomDraws = map[string]func(townDraws) func(int) int{
 	"tender": townDraws.tavernDraw,
+	"idle":   townDraws.shopDraw,
 }
 
 func (h roomPageHost) Draw(source string, n int) int {
@@ -126,8 +133,14 @@ func (h roomPageHost) StopSound(v town.Voice) {
 	}
 }
 
+// roomEvents are the events the ROM1 campaign raises on its room pages: a
+// shop rack picked by the player, the merchant's reactions to a trade.
+var roomEvents = []string{"rack", "merchant-yes", "merchant-no"}
+
 // roomValues answers the values the description names.
-var roomValues = map[string]func(t *townScreen) int{}
+var roomValues = map[string]func(t *townScreen) int{
+	"shop-chosen": func(t *townScreen) int { return t.shopChosen },
+}
 
 func (h roomPageHost) Value(name string) int {
 	if v := roomValues[name]; v != nil {
@@ -165,4 +178,25 @@ func (t *townScreen) TavernInteriorActive(active bool) {
 		return
 	}
 	t.tavernPage().SetActive(active && t.inTavernInterior())
+}
+
+func (t *townScreen) inShopInterior() bool { return t != nil && t.AtTownShop() }
+
+// ShopInteriorActive freezes the shop page's clocks while the shop is not the
+// focused live room. The first activation keeps the entry stamps; later
+// resumes rebase both clocks and cannot catch up time spent behind a menu,
+// cutscene or focus loss.
+func (t *townScreen) ShopInteriorActive(active bool) {
+	if t == nil || t.sess == nil {
+		return
+	}
+	t.shopPage().SetActive(active && t.inShopInterior())
+}
+
+// AdvanceShopInteriorAnimation is one paint of the shop page.
+func (t *townScreen) AdvanceShopInteriorAnimation() {
+	if t == nil || !t.inShopInterior() {
+		return
+	}
+	t.shopPage().Advance()
 }

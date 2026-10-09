@@ -97,7 +97,6 @@ func nonZeroTownScreen() *townScreen {
 		squareAction:        ui.TownAction{Msg: "pending"},
 		tipRevision:         1,
 		pageRandom:          map[string]*rand.Rand{"tender": rand.New(rand.NewSource(3))},
-		shopInterior:        shopInteriorAnimation{ready: true, active: true, selectedRack: 2, merchantModes: shopMerchantYes},
 		townStats:           true,
 		shopBook:            true,
 		tavernDetailType:    6,
