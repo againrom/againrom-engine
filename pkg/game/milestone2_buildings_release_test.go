@@ -54,7 +54,7 @@ func TestReleaseMilestone2Buildings1145(t *testing.T) {
 					t.Fatal(differences)
 				}
 			}
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatal(err)
 			}

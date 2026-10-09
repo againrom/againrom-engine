@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -75,9 +74,9 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 			}
 			worlds++
 
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 
 			// Pre-cycle export: the world exactly as the original LOAD left

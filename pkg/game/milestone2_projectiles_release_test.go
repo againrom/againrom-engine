@@ -32,7 +32,7 @@ func TestReleaseMilestone2Projectiles1157(t *testing.T) {
 		t.Fatalf("nonempty raw release subject changed: %+v", want)
 	}
 	f := releaseFront(t)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func projectileSAVApp(t *testing.T, raw []byte) {
 	}
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, raw)
 	if err != nil || report.ProjectilesApplied != want.present {
 		t.Fatal("direct resume/presence", report.ProjectilesApplied, want.present, err)
 	}

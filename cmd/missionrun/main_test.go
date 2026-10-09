@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,9 +14,8 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Everything below the campaign drive is synthetic and runs with no game
-// present: the waypoint grammar is a pure function over a string, and every
-// refusal run reaches its error before an archive is opened.
+// Argument parsing and argument refusals run without a game. Installed
+// mission and save tests require their asset and corpus roots.
 
 func TestAWaypointIsREFXYRadius(t *testing.T) {
 	got, err := parseWaypoint("u21:56:21:3")
@@ -98,6 +98,21 @@ func TestMageIsARecognisedFlag(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "asset root") {
 		t.Fatalf("run with -mage and no asset root = %v, want an error naming the asset root "+
 			"(not a flag-parsing error, which would mean -mage is not registered)", err)
+	}
+}
+
+func TestReleaseMissionRunRefusesBetweenMissionSAV(t *testing.T) {
+	if os.Getenv("AGAINROM_ASSETS") == "" || os.Getenv("AGAINROM_SAVE_CORPUS") == "" {
+		t.Skip("AGAINROM_ASSETS and AGAINROM_SAVE_CORPUS are required")
+	}
+	path := filepath.Join(os.Getenv("AGAINROM_SAVE_CORPUS"), "2026-08-15", "game0010.sav")
+	var out bytes.Buffer
+	err := run([]string{"-sav", path, "-ticks", "1"}, &out)
+	if err == nil || err.Error() != "-sav is between missions; missionrun requires a mission save" {
+		t.Fatalf("between-mission SAV drive = %v; output %q", err, out.String())
+	}
+	if out.Len() != 0 {
+		t.Fatalf("refused town SAV drove a mission: %s", out.String())
 	}
 }
 

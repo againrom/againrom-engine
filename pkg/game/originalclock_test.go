@@ -63,7 +63,7 @@ func TestOriginalClockBothDoorsAndLateFailure(t *testing.T) {
 		}
 		actor := &poolFixtureActor{mapID: 91, cell: 0x0605, hp: 10, maxHP: 100, mana: 10, maxMana: 100, profile: literalProfile1107()}
 		payload := clockFixture1112(9343, 584, actor)
-		ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+		ms, _, err := loadOriginalMission(f, payload)
 		if err != nil {
 			t.Fatal(err)
 		}

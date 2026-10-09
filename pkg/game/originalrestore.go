@@ -55,7 +55,6 @@ type originalSource struct {
 // install's mod context and campaign. A mission number of zero is a
 // between-mission save.
 func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campaign) (*originalSource, error) {
-	saved = repairLoadedEquipmentRows(saved)
 	saved, modLayers, err := applyModMark(saved, mods)
 	if err != nil {
 		return nil, err
@@ -89,11 +88,8 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	if _, err := sf.Party(); errors.Is(err, sav.ErrSpellbook) {
 		return nil, err
 	}
-	// A second, independent PartyWalk, on ResumeOriginalSave's own precedent
-	// immediately above sf.Party(): a Diary owner cannot be resolved from the
-	// persistent-filtered, reordered mapload.PartyMember view alone. Its own
-	// walk error is not fatal here, the same tolerance the sf.Party() call
-	// immediately above already applies to every non-ErrSpellbook walk failure.
+	// Diary owners require the raw PartyWalk records. Ordinary walk failures
+	// remain tolerated; malformed books have already been refused.
 	diaryChars, diaryPlayerRec, _ := sf.PartyWalk()
 	decoded, err := decodeOriginalCampaign(sf, saved, campaign, quickSpells)
 	if err != nil {
@@ -476,6 +472,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			publishSessionEntry(ms)
 			currentGroups, _, _ := ms.World.SavedGroups()
 			r.GroupsRestored, r.GroupIssues = len(currentGroups), ms.World.SavedGroupIssues()
+			ms.originalSaveReport = &r
 			return nil
 		}
 		g.done = report

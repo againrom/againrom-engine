@@ -4,8 +4,6 @@ package game
 
 import (
 	"testing"
-
-	"againrom/pkg/mapload"
 )
 
 // The raw count includes every overwritten row; comparison uses each key's
@@ -23,7 +21,7 @@ func TestMilestone2CellRecords(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ms, _, err := ResumeOriginalSave(fe.Archives.Containers, mf.raw, fe.Table, mapload.DifficultyNormal, nil, fe.Bodies)
+		ms, _, err := loadOriginalMission(fe, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

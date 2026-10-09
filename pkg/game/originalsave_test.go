@@ -254,30 +254,13 @@ func TestADeadSavedObjectIsNotResumed(t *testing.T) {
 	}
 }
 
-func TestResumeRefusesASaveTakenBetweenMissions(t *testing.T) {
-	_, r, err := ResumeOriginalSave(missionSource{}, savedFile(0, tenActors()), nil,
-		mapload.DifficultyNormal, nil, nil)
-	if err == nil {
-		t.Fatal("a between-mission save was resumed")
-	}
-	if !strings.Contains(err.Error(), "BETWEEN missions") {
-		t.Fatalf("the refusal does not say why: %v", err)
-	}
-	// The report is still filled in, because a caller that cannot resume a
-	// save still wants to know what was in it.
-	if r.Outcome != 1 || r.Money != 700 || r.MapName != "10.alm" {
-		t.Fatalf("report reads %+v", r)
-	}
-}
-
-func TestResumeOriginalSaveRestoresSessionBeforeAnnouncerAndFirstTick(t *testing.T) {
+func TestPlayerOriginalSaveRestoresSessionBeforeAnnouncerAndFirstTick(t *testing.T) {
 	// This fixture isolates session state from actor materialization.
 	saved := savedFileWithSession(t, 10, nil, 7, 1, 3, 4, 1)
 	src := missionSource{"scenario/10.alm": synth.ALM(synth.ALMOptions{Width: 40, Height: 40})}
-	ms, r, err := ResumeOriginalSave(src, saved, nil, mapload.DifficultyNormal,
-		[]mapload.PartyMember{{Class: 1}}, nil)
+	ms, r, err := loadOriginalMission(originalMissionFixture(src), saved)
 	if err != nil {
-		t.Fatalf("ResumeOriginalSave: %v", err)
+		t.Fatalf("RestoreOriginal: %v", err)
 	}
 	if ms.World.Tick() != rawSavedSubTick1112(t, saved) {
 		t.Fatalf("resumed world already advanced to tick %d", ms.World.Tick())
@@ -305,7 +288,7 @@ func TestResumeOriginalSaveRestoresSessionBeforeAnnouncerAndFirstTick(t *testing
 	}
 }
 
-func TestResumeOriginalSaveCarriesRawSessionSpansThroughActorStockStaging(t *testing.T) {
+func TestPlayerOriginalSaveCarriesRawSessionSpansThroughActorStockStaging(t *testing.T) {
 	saved := savedFileWithSession(t, 10, nil, -1, 0, -1, 0, 0)
 	f, err := sav.Open(saved)
 	if err != nil {
@@ -324,10 +307,9 @@ func TestResumeOriginalSaveCarriesRawSessionSpansThroughActorStockStaging(t *tes
 	saved = f.Marshal()
 
 	src := missionSource{"scenario/10.alm": synth.ALM(synth.ALMOptions{Width: 40, Height: 40})}
-	ms, r, err := ResumeOriginalSave(src, saved, nil, mapload.DifficultyNormal,
-		[]mapload.PartyMember{{Class: 1}}, nil)
+	ms, r, err := loadOriginalMission(originalMissionFixture(src), saved)
 	if err != nil {
-		t.Fatalf("ResumeOriginalSave: %v", err)
+		t.Fatalf("RestoreOriginal: %v", err)
 	}
 	if !r.SessionApplied {
 		t.Fatal("session was not applied")
@@ -340,11 +322,11 @@ func TestResumeOriginalSaveCarriesRawSessionSpansThroughActorStockStaging(t *tes
 	}
 }
 
-func TestResumeOriginalSaveRejectsAnInvalidLatchBeforeOpeningTheMap(t *testing.T) {
+func TestPlayerOriginalSaveRejectsAnInvalidLatchBeforeOpeningTheMap(t *testing.T) {
 	saved := savedFileWithSession(t, 10, tenActors(), 999, 2, 3, 4, 1)
-	_, r, err := ResumeOriginalSave(missionSource{}, saved, nil, mapload.DifficultyNormal, nil, nil)
+	_, r, err := loadOriginalMission(originalMissionFixture(missionSource{}), saved)
 	if err == nil || !strings.Contains(err.Error(), "latch 999 is 2") {
-		t.Fatalf("ResumeOriginalSave error = %v, want invalid latch refusal", err)
+		t.Fatalf("RestoreOriginal error = %v, want invalid latch refusal", err)
 	}
 	if r.SessionApplied {
 		t.Fatal("a refused original session was reported as applied")
@@ -419,18 +401,15 @@ func TestClearRestoredMissionPositionDropsOnlyThePosition(t *testing.T) {
 }
 
 func TestResumeRefusesWhatItCannotOpen(t *testing.T) {
-	if _, _, err := ResumeOriginalSave(missionSource{}, []byte("not a save"), nil,
-		mapload.DifficultyNormal, nil, nil); err == nil {
+	if _, _, err := loadOriginalMission(originalMissionFixture(missionSource{}), []byte("not a save")); err == nil {
 		t.Fatal("a file that is not a save was resumed")
 	}
 	// A save naming a mission number no campaign map answers to.
-	if _, _, err := ResumeOriginalSave(missionSource{}, savedFile(999, tenActors()), nil,
-		mapload.DifficultyNormal, nil, nil); err == nil {
+	if _, _, err := loadOriginalMission(originalMissionFixture(missionSource{}), savedFile(999, tenActors())); err == nil {
 		t.Fatal("a save naming no campaign mission was resumed")
 	}
 	// And a mission whose map the archive does not hold.
-	if _, _, err := ResumeOriginalSave(missionSource{}, savedFile(10, tenActors()), nil,
-		mapload.DifficultyNormal, nil, nil); err == nil {
+	if _, _, err := loadOriginalMission(originalMissionFixture(missionSource{}), savedFile(10, tenActors())); err == nil {
 		t.Fatal("a mission whose map is absent was resumed")
 	}
 }

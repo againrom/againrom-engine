@@ -230,7 +230,7 @@ func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
 				}
 			}
 			assert(f.live.world)
-			diagnostic, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+			diagnostic, report, err := loadOriginalMission(f, payload)
 			if err != nil {
 				t.Fatal(err)
 			}

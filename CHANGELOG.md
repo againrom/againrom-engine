@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A Ghost raised by Control Spirit now takes its whole Ghost row: it
+  regenerates health, sees invisible creatures within two cells and has
+  carrying capacity 300. Before, it had none of these.
 - [BASE] The town square is built from a town description by one town
   composer; it looks and plays the same.
 - [BASE] The tavern, shop and school are built from the town description by

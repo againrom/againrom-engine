@@ -61,7 +61,7 @@ func TestReleaseOriginalDying1144OwnerGraphDoesNotResurrect(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, payload)
 			if err != nil {
 				t.Fatal(err)
 			}

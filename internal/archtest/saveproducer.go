@@ -7,12 +7,12 @@ import (
 	"sort"
 )
 
-// CheckSaveProducer follows resolved game function references, including
-// callbacks, from the current producer. Compatibility names may delegate only;
-// current construction cannot reach a legacy writer, AGS encoder or migration.
+// CheckSaveProducer admits one SAV serializer and two load re-encoders.
+// Resolved function references include callbacks. Compatibility names only
+// delegate; construction cannot reach AGS encoding or migration.
 func CheckSaveProducer(p *CheckedPackage) []string {
 	aliases := map[string]bool{"ExportCurrentWorldSave": true, "ExportOriginalSave": true, "ExportNativeCitySave": true}
-	forbidden := map[string]bool{"EncodeSave": true, "exportMissionCity": true, "CheckSaveForm": true}
+	forbidden := map[string]bool{"EncodeSave": true, "CheckSaveForm": true}
 	decls := map[*types.Func]*ast.FuncDecl{}
 	var root *types.Func
 	var findings []string
@@ -34,6 +34,33 @@ func CheckSaveProducer(p *CheckedPackage) []string {
 	}
 	if root == nil {
 		return append(findings, "current SAV producer is absent")
+	}
+	for _, file := range p.Files[:p.NumProd] {
+		for _, decl := range file.Decls {
+			var owner *types.Func
+			path := "package scope"
+			if fn, ok := decl.(*ast.FuncDecl); ok {
+				owner, _ = p.Info.Defs[fn.Name].(*types.Func)
+				path = fn.Name.Name
+			}
+			loadReencoder := owner != nil && saveReceiverName(owner) == "" &&
+				(owner.Name() == "repairLoadedEquipmentRows" || owner.Name() == "applyModMark")
+			ast.Inspect(decl, func(node ast.Node) bool {
+				id, ok := node.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				called, _ := p.Info.Uses[id].(*types.Func)
+				if !saveSerializer(called, p.ImportPath) {
+					return true
+				}
+				if called.Name() == "EncodeDocumentData" && (owner == root || loadReencoder) {
+					return true
+				}
+				findings = append(findings, path+" selects second SAV producer via "+called.Name())
+				return true
+			})
+		}
 	}
 	for obj, fn := range decls {
 		if aliases[obj.Name()] && !directCurrentSaveDelegate(p, fn, root) {
@@ -169,6 +196,16 @@ func CheckSaveProducer(p *CheckedPackage) []string {
 	}
 	sort.Strings(findings)
 	return findings
+}
+
+func saveSerializer(fn *types.Func, gamePath string) bool {
+	if fn == nil || fn.Pkg() == nil {
+		return false
+	}
+	if fn.Pkg().Path() == "againrom/pkg/formats/sav" {
+		return fn.Name() == "EncodeDocumentData" || fn.Name() == "Marshal"
+	}
+	return fn.Pkg().Path() == gamePath && fn.Name() == "Marshal" && saveReceiverName(fn) == "originalCityDocument"
 }
 
 func saveReceiverName(fn *types.Func) string {

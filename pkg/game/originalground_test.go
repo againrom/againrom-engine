@@ -7,7 +7,6 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -92,7 +91,7 @@ func testGroundPopulation() []sav.GroundSack {
 func TestOriginalGroundRestoresStackEffectsAndMergesBeforePickup(t *testing.T) {
 	saved := groundSave(t, testGroundPopulation())
 	src := missionSource{"scenario/10.alm": synth.ALM(synth.ALMOptions{Width: 40, Height: 40})}
-	ms, report, err := ResumeOriginalSave(src, saved, nil, mapload.DifficultyNormal, []mapload.PartyMember{{Class: 1}}, nil)
+	ms, report, err := loadOriginalMission(originalMissionFixture(src), saved)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +143,7 @@ func TestOriginalGroundRestoresSackDespiteOneUnsupportedItemEffect(t *testing.T)
 	sacks[0].Items[0].UnsupportedEffectStates = []uint8{1}
 	saved := groundSave(t, sacks)
 	src := missionSource{"scenario/10.alm": synth.ALM(synth.ALMOptions{Width: 40, Height: 40})}
-	ms, report, err := ResumeOriginalSave(src, saved, nil, mapload.DifficultyNormal, []mapload.PartyMember{{Class: 1}}, nil)
+	ms, report, err := loadOriginalMission(originalMissionFixture(src), saved)
 	if err != nil {
 		t.Fatalf("a Sack with one unsupported item Effect was refused: %v", err)
 	}

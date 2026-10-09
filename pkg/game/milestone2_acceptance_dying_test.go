@@ -3,10 +3,8 @@
 package game
 
 import (
-	"testing"
-
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"testing"
 )
 
 // TestMilestone2DyingOwnerActors reads the file side directly. ActorGraph
@@ -59,7 +57,7 @@ func TestMilestone2DyingOwnerActors(t *testing.T) {
 		if len(wants) == 0 {
 			return
 		}
-		ms, _, err := ResumeOriginalSave(fe.Archives.Containers, mf.raw, fe.Table, mapload.DifficultyNormal, nil, fe.Bodies)
+		ms, _, err := loadOriginalMission(fe, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return
