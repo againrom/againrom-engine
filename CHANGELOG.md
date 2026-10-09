@@ -10,6 +10,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [BASE] The town square is built from a town description by one town
   composer; it looks and plays the same.
+- [BASE] The game is chosen once, by one profile; nothing changes in play.
 
 ## 0.105.0
 
