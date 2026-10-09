@@ -48,8 +48,11 @@ of a ROM2 root. Per map it:
   recording any panic, the outcome, its tick and failure reason;
 - walks the engine's own campaign controller (`secondEngineReach`,
   `completeBank`) to say whether the map can become available, whether its
-  victory is continued, what the continuation adds, and whether the engine
-  plays the departure movie and writes a mission SAV.
+  victory is continued and whether it writes a mission SAV. Each published
+  departure exit (a location add or a movie output) is listed with the bank
+  gates it stands behind. An exit counts as supported only when the engine
+  produces it with every gate held and withholds it with any one gate
+  inverted.
 
 `Blockers` names the gap classes per map: `start`, `run`, `headless-loss`,
 `opcode`, `reference`, `party`, `definition`, `spell`, `entry`,
@@ -84,6 +87,7 @@ Inputs: the preserved ROM2 EN and RU roots. Instrument:
 | maps naming a spell with no applicable rule | 41 | 41 |
 | ordinary events; events with no text; failure reasons with no text | 425; 0; 2 | 425; 0; 2 |
 | maps the controller can make available; maps whose victory it continues | 3 (10, 20, 21) | 3 |
+| departure exits; behind a bank gate; produced by the engine | 15; 6; 4 | 15; 6; 4 |
 | maps with no blocker | 1 (20) | 1 (20) |
 
 Facts behind the totals:
@@ -96,32 +100,38 @@ Facts behind the totals:
   map's alive check sees it dead at the first evaluation. Maps 30 (two) and
   50 (one) carry the other zero-health placements.
 - Scripts write three departure gates: map 20 slot 772, map 50 slot 780,
-  map 110 slot 779.
+  map 110 slot 779. Map 110's script writes slot 779 both ways, so both of
+  its exits, output 5 when the slot is nonzero and output 4 when it is zero,
+  are script requests. No campaign script writes slot 777 or 778; under
+  R2-ENGINE-148 the departures of 70 and 80 set them. Inference from that
+  claim: output 3 is stored by whichever of 70 and 80 departs second.
+- The engine produces 4 of the 15 exits: mission 20 and output 1 of
+  mission 10, and town 2 and the slot-772 mission 21 of mission 20.
 - Map 40 reason 7 and map 96 reason 5 have no failure section.
 - The only per-map EN/RU difference beyond placement counts is map 52's
   trigger count (25 against 24).
 
-| Mission | Placements EN/RU | Born fallen | Party omissions n/t/a | Spell IDs without rule | Departure output | Producer | Blockers |
+| Mission | Placements EN/RU | Born fallen | Party omissions n/t/a | Spell IDs without rule | Exits the engine does not produce | Producer | Blockers |
 |---|---|---|---|---|---|---|---|
-| 10 | 29/29 | 0 | 0/0/0 | 10, 11, 18, 24, 27 | 1 | town 1 inn talk | spell |
+| 10 | 29/29 | 0 | 0/0/0 | 10, 11, 18, 24, 27 | none | town 1 inn talk | spell |
 | 20 | 41/41 | 0 | 0/0/0 | none | none | departure of 10 | none |
 | 21 | 58/58 | 0 | 0/0/0 | 1, 5, 24, 27 | none | departure of 20 | spell |
-| 30 | 124/124 | 2 | 11/10/0 | 26 | 2 | Unknown | party, spell, entry, continuation, movie, save |
-| 31 | 76/76 | 0 | 0/0/0 | 1, 24, 26, 27 | none | Unknown | spell, entry, continuation, save |
+| 30 | 124/124 | 2 | 11/10/0 | 26 | movie 2 | Unknown | party, spell, entry, continuation, movie, save |
+| 31 | 76/76 | 0 | 0/0/0 | 1, 24, 26, 27 | mission 32 | Unknown | spell, entry, continuation, save |
 | 32 | 20/20 | 0 | 0/0/0 | none | none | departure of 31 | entry, continuation, save |
-| 40 | 108/108 | 0 | 10/7/3 | 1, 2, 4, 10, 20, 21, 24, 26, 27 | none | Unknown | party, spell, entry, continuation, save |
+| 40 | 108/108 | 0 | 10/7/3 | 1, 2, 4, 10, 20, 21, 24, 26, 27 | mission 50, mission 60 | Unknown | party, spell, entry, continuation, save |
 | 41 | 48/48 | 0 | 1/1/0 | 1, 10, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
 | 42 | 89/89 | 0 | 4/6/0 | 1, 2, 5, 6, 10, 16, 20, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
 | 43 | 55/55 | 0 | 1/2/0 | 26 | none | Unknown | party, spell, entry, continuation, save |
-| 50 | 74/74 | 1 | 10/12/0 | 5, 26 | none | departure of 40 | party, spell, entry, continuation, save |
+| 50 | 74/74 | 1 | 10/12/0 | 5, 26 | town 3, unresolved record if 780!=0 | departure of 40 | party, spell, entry, continuation, save |
 | 51 | 147/147 | 0 | 2/2/0 | 26 | none | Unknown | party, spell, entry, continuation, save |
 | 52 | 70/70 | 0 | 6/6/0 | 5 | none | Unknown | party, spell, entry, continuation, save |
 | 53 | 90/90 | 0 | 10/10/0 | 5, 7, 26 | none | Unknown | party, spell, entry, continuation, save |
-| 60 | 96/96 | 0 | 3/2/1 | 1, 6 | none | departure of 40 | party, spell, entry, continuation, save |
+| 60 | 96/96 | 0 | 3/2/1 | 1, 6 | mission 80 | departure of 40 | party, spell, entry, continuation, save |
 | 61 | 68/68 | 0 | 0/0/0 | 1 | none | Unknown | spell, entry, continuation, save |
 | 62 | 39/39 | 0 | 4/4/0 | 1, 2, 5, 10, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
 | 63 | 102/102 | 0 | 4/7/0 | 1, 2, 10, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
-| 70 | 140/140 | 0 | 17/6/4 | 5, 6, 10, 18, 24, 26, 27 | 3 | Unknown | party, spell, entry, continuation, movie, save |
+| 70 | 140/140 | 0 | 17/6/4 | 5, 6, 10, 18, 24, 26, 27 | movie 3 if 777=0 778!=0 | Unknown | party, spell, entry, continuation, movie, save |
 | 71 | 63/63 | 0 | 4/6/0 | 17 | none | Unknown | party, spell, entry, continuation, save |
 | 72 | 165/165 | 0 | 12/8/0 | 1, 10 | none | Unknown | party, spell, entry, continuation, save |
 | 73 | 97/97 | 0 | 4/4/0 | 2, 5, 6, 10, 20, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
@@ -129,7 +139,7 @@ Facts behind the totals:
 | 75 | 115/115 | 0 | 6/9/0 | 5, 6, 10, 20, 24, 26, 27 | none | Unknown | party, spell, entry, continuation, save |
 | 76 | 132/132 | 0 | 6/8/0 | 1, 2, 5, 10, 24, 26, 27 | none | Unknown | party, spell, entry, continuation, save |
 | 77 | 131/131 | 0 | 4/6/0 | 10, 26 | none | Unknown | party, spell, entry, continuation, save |
-| 80 | 127/127 | 0 | 4/4/0 | 1, 10 | 3 | departure of 60 | party, spell, entry, continuation, movie, save |
+| 80 | 127/127 | 0 | 4/4/0 | 1, 10 | movie 3 if 778=0 777!=0 | departure of 60 | party, spell, entry, continuation, movie, save |
 | 81 | 59/59 | 0 | 0/0/0 | 26 | none | Unknown | spell, entry, continuation, save |
 | 82 | 86/86 | 0 | 0/0/0 | none | none | Unknown | entry, continuation, save |
 | 83 | 92/92 | 0 | 0/0/0 | 1, 10, 26 | none | Unknown | spell, entry, continuation, save |
@@ -148,7 +158,7 @@ Facts behind the totals:
 | 101 | 191/191 | 1 | 4/4/0 | 5, 26 | none | Unknown | headless-loss, party, spell, entry, continuation, save |
 | 102 | 145/145 | 0 | 8/10/0 | 10, 11, 18, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
 | 103 | 99/99 | 0 | 16/8/0 | 1, 10, 24, 27 | none | Unknown | party, spell, entry, continuation, save |
-| 110 | 259/281 | 0 | 0/0/0 | 2, 5, 10, 11, 18, 20, 21, 24, 26, 27 | 4 | Unknown | spell, entry, continuation, movie, save |
+| 110 | 259/281 | 0 | 0/0/0 | 2, 5, 10, 11, 18, 20, 21, 24, 26, 27 | movie 5 if 779!=0, movie 4 if 779=0 | Unknown | spell, entry, continuation, movie, save |
 
 ## Candidate slices
 
@@ -163,9 +173,15 @@ rows above.
    where the claims do not name it.
 2. **Second-chapter route without companions.** Town 2 TALK entries, ordinary
    departure for every mission ID (case bodies, the join, the common stores
-   and the stage switch), movie outputs 2..4, and mission SAV on every
-   ordinary mission. Unlocks 31 and 32; removes the continuation blocker from
-   43 maps and the movie blocker from 4. Authority: R2-ENGINE-145,
+   and the stage switch), every movie exit with its gate, and mission SAV on
+   every ordinary mission. The movie exits are output 2 of mission 30;
+   output 3 of mission 70 when slot 777 is zero and slot 778 nonzero, and of
+   mission 80 when slot 778 is zero and slot 777 nonzero; output 5 of mission
+   110 when slot 779 is nonzero and output 4 when it is zero. Unlocks 31 and
+   32; removes the continuation blocker from 43 maps and the movie blocker
+   from 4. Unknown in R2-ENGINE-148: what outputs 2..5 select beyond the
+   consumer, and how the caller treats a gated case that stores no output.
+   Authority: R2-ENGINE-145,
    R2-ENGINE-146, R2-ENGINE-148, R2-SESSION-047..R2-SESSION-049 and
    R2-ENGINE-075 (published, High); the SAV contract and DIV-2410. Unknown,
    needing research: which catalog records the stage-30 EnterInn and town 2
@@ -179,8 +195,9 @@ rows above.
    holds the current bridge.
 4. **Later chapter entries.** The EnterInn entries for stages 40..110, town 3
    (departure of 50) and the bank775 restored list. Unlocks 40..100, 102,
-   103 and 110 (every remaining map except 101); 50, 60 and 80 also follow
-   from published departures once 40 and 60 are entered. Authority:
+   103 and 110 (every remaining map except 101; both of 110's movie exits
+   and the gated outputs of 70 and 80 are in slice 2); 50, 60 and 80 also
+   follow from published departures once 40 and 60 are entered. Authority:
    R2-ENGINE-146 for departure adds; Unknown, needing research, for the inn
    entries (R2-ENGINE-161) and the restored records (R2-ENGINE-149).
 5. **Placement current health.** Decide what the ROM2 record's `+0x24` word
@@ -202,11 +219,12 @@ then reports those maps as available.
   `TestSecondGapsCountTheTriggersEachOpcodeHolds`,
   `TestSecondItemRowSelectsTheClassCollection`,
   `TestSecondControllerReachesAndContinuesOnlyItsMissions`,
+  `TestSecondDepartureKeepsEveryExitAndItsGates`,
   `TestSecondBlockersNameEachClass` and
   `TestWriteSecondCensusPrintsRowsAndTotals` classify synthetic inputs.
 - `TestReleaseSecondGameSupportCensus` runs on each ROM2 root and pins the
-  totals above, the blocker-free map 20, map 101's loss and the two failure
-  reasons without text. `AGAINROM_ROM2_CENSUS_OUT=<dir>` also writes the
+  totals above, the blocker-free map 20, both gated exits of map 110, map
+  101's loss and the two failure reasons without text. `AGAINROM_ROM2_CENSUS_OUT=<dir>` also writes the
   census there.
 - `cmd/campaigncensus` `TestRunNamesTheMissingRoot`.
 

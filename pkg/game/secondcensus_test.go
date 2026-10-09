@@ -157,26 +157,59 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		t.Fatalf("engine reaches %v, want [10 20 21]", got)
 	}
 	for _, tc := range []struct {
-		n                  int
-		producer           string
-		entry, win, movie  bool
-		adds, engineAdds   []string
-		output             int32
-		continued, blocked bool
+		n                 int
+		producer          string
+		entry, win        bool
+		exits, engineAdds []string
 	}{
-		{n: 10, producer: "town 1 inn talk", entry: true, win: true, movie: true, adds: []string{"mission 20"}, engineAdds: []string{"mission 20"}, output: 1},
-		{n: 20, producer: "departure of 10", entry: true, win: true, adds: []string{"town 2", "mission 21"}, engineAdds: []string{"town 2", "mission 21"}, output: -1},
-		{n: 21, producer: "departure of 20", entry: true, win: true, output: -1},
-		{n: 30, output: 2},
-		{n: 32, producer: "departure of 31", output: -1},
-		{n: 40, adds: []string{"mission 50", "mission 60"}, output: -1},
-		{n: 41, output: -1},
+		{n: 10, producer: "town 1 inn talk", entry: true, win: true, exits: []string{"mission 20:yes", "movie 1:yes"}, engineAdds: []string{"mission 20"}},
+		{n: 20, producer: "departure of 10", entry: true, win: true, exits: []string{"town 2:yes", "mission 21 if 772!=0:yes"}, engineAdds: []string{"town 2", "mission 21"}},
+		{n: 21, producer: "departure of 20", entry: true, win: true},
+		{n: 30, exits: []string{"movie 2:no"}},
+		{n: 32, producer: "departure of 31"},
+		{n: 40, exits: []string{"mission 50:no", "mission 60:no"}},
+		{n: 41},
 	} {
 		d := secondDeparture(tc.n, reach)
-		if d.Producer != tc.producer || d.EngineEntry != tc.entry || d.EngineWin != tc.win || d.EngineMovie != tc.movie ||
-			!slices.Equal(d.Adds, tc.adds) || !slices.Equal(d.EngineAdds, tc.engineAdds) || d.Output != tc.output {
-			t.Errorf("departure of %d = %+v", tc.n, d)
+		if d.Producer != tc.producer || d.EngineEntry != tc.entry || d.EngineWin != tc.win ||
+			!slices.Equal(censusExits(d), tc.exits) || !slices.Equal(d.EngineAdds, tc.engineAdds) {
+			t.Errorf("departure of %d = %+v, exits %v", tc.n, d, censusExits(d))
 		}
+	}
+}
+
+// censusExits prints each exit as "target[ if gates]:engine".
+func censusExits(d SecondDeparture) []string {
+	var out []string
+	for _, e := range d.Exits {
+		out = append(out, secondExitList([]SecondExit{e}, e.Engine)+":"+secondYes(e.Engine))
+	}
+	return out
+}
+
+// Every published exit stays, with its gates: both of mission 110's outputs,
+// and the opposite bank777/bank778 gates on the outputs of 70 and 80.
+func TestSecondDepartureKeepsEveryExitAndItsGates(t *testing.T) {
+	reach := secondEngineReach()
+	for n, want := range map[int][]string{
+		70:  {"movie 3 if 777=0 778!=0:no"},
+		80:  {"movie 3 if 778=0 777!=0:no"},
+		110: {"movie 5 if 779!=0:no", "movie 4 if 779=0:no"},
+		50:  {"town 3:no", "unresolved record if 780!=0:no"},
+	} {
+		d := secondDeparture(n, reach)
+		if got := censusExits(d); !slices.Equal(got, want) {
+			t.Errorf("exits of %d = %v, want %v", n, got, want)
+		}
+		if b := (SecondMapCensus{Mission: n, Departure: d}).Blockers(); slices.Contains(b, BlockMovie) != (n != 50) {
+			t.Errorf("blockers of %d = %v", n, b)
+		}
+	}
+	if !secondEngineExit(20, SecondExit{Target: "mission 21", Gates: []SecondGate{{772, true}}}) {
+		t.Error("the engine's gated mission 21 add is not recognised")
+	}
+	if secondEngineExit(20, SecondExit{Target: "mission 21"}) || secondEngineExit(20, SecondExit{Target: "mission 21", Gates: []SecondGate{{772, false}}}) {
+		t.Error("an exit the engine gates was accepted under another gate")
 	}
 }
 
@@ -200,8 +233,8 @@ func TestSecondBlockersNameEachClass(t *testing.T) {
 		{BlockDefinition, func(c *SecondMapCensus) { c.NoRowPlacements = 1 }},
 		{BlockSpell, func(c *SecondMapCensus) { c.NoSpellRule = []uint16{29} }},
 		{BlockEntry, func(c *SecondMapCensus) { c.Departure.EngineEntry = false }},
-		{BlockContinuation, func(c *SecondMapCensus) { c.Departure.EngineAdds = nil }},
-		{BlockMovie, func(c *SecondMapCensus) { c.Departure.Output = 2 }},
+		{BlockContinuation, func(c *SecondMapCensus) { c.Departure.Exits[1].Engine = false }},
+		{BlockMovie, func(c *SecondMapCensus) { c.Departure.Exits = append(c.Departure.Exits, SecondExit{Target: "movie 2"}) }},
 		{BlockSave, func(c *SecondMapCensus) { c.Departure.EngineSave = false }},
 	} {
 		c := censusReady()

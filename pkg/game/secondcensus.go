@@ -55,16 +55,34 @@ type SecondOpGap struct {
 // SecondDeparture is a map's ordinary departure: the cases the published
 // claims give and what the engine's campaign controller does with them.
 type SecondDeparture struct {
-	Case        bool     // R2-ENGINE-145: the departure has a case body for this ID
-	Adds        []string // R2-ENGINE-146: locations the case may add, gates satisfied
-	Output      int32    // R2-ENGINE-148: the movie output a case stores, -1 for none
-	Producer    string   // which published route makes the map available, "" for Unknown
-	EngineEntry bool     // the engine's controller can make the map available
-	EngineWin   bool     // the engine continues the campaign after its victory
-	EngineAdds  []string // what the engine's continuation adds
-	EngineMovie bool     // the engine dispatches the case's movie output
-	EngineSave  bool     // the engine writes a mission SAV on this map
+	Case        bool         // R2-ENGINE-145: the departure has a case body for this ID
+	Exits       []SecondExit // R2-ENGINE-146 adds and R2-ENGINE-148 movie outputs
+	Producer    string       // which published route makes the map available, "" for Unknown
+	EngineEntry bool         // the engine's controller can make the map available
+	EngineWin   bool         // the engine continues the campaign after its victory
+	EngineAdds  []string     // what the engine's continuation adds, every gate open
+	EngineSave  bool         // the engine writes a mission SAV on this map
 }
+
+// SecondGate is one bank-slot test of a departure exit: the slot is nonzero,
+// or it is zero.
+type SecondGate struct {
+	Slot    int
+	Nonzero bool
+}
+
+// SecondExit is one result a departure case can produce: a location it adds
+// ("mission 21", "town 3", "unresolved record") or a movie output ("movie
+// 5"), behind every gate it names. Engine says the controller produces it
+// exactly when those gates hold.
+type SecondExit struct {
+	Target string
+	Gates  []SecondGate
+	Engine bool
+}
+
+// Movie reports whether the exit is a movie output.
+func (e SecondExit) Movie() bool { return strings.HasPrefix(e.Target, "movie ") }
 
 // SecondRun is the headless run of a started map: how far it ran, and the
 // tick and failure reason of an outcome it reached.
@@ -167,10 +185,30 @@ func (c SecondMapCensus) Blockers() []string {
 	add(c.NoRowPlacements+c.NoStructureRowKeys+len(c.NoItemRow) > 0, BlockDefinition)
 	add(len(c.NoSpellRule) > 0, BlockSpell)
 	add(!d.EngineEntry, BlockEntry)
-	add(!d.EngineWin || !slices.Equal(d.Adds, d.EngineAdds), BlockContinuation)
-	add(d.Output >= 0 && !d.EngineMovie, BlockMovie)
+	add(!d.EngineWin || d.unsupported(false) || d.extraAdds(), BlockContinuation)
+	add(d.unsupported(true), BlockMovie)
 	add(!d.EngineSave, BlockSave)
 	return out
+}
+
+// unsupported reports an exit of the kind the engine does not produce.
+func (d SecondDeparture) unsupported(movie bool) bool {
+	for _, e := range d.Exits {
+		if e.Movie() == movie && !e.Engine {
+			return true
+		}
+	}
+	return false
+}
+
+// extraAdds reports a location the engine adds that no published exit names.
+func (d SecondDeparture) extraAdds() bool {
+	for _, a := range d.EngineAdds {
+		if !slices.ContainsFunc(d.Exits, func(e SecondExit) bool { return e.Target == a }) {
+			return true
+		}
+	}
+	return false
 }
 
 // SecondGameCensus walks every campaign map the archives carry, ascending, and
@@ -580,18 +618,21 @@ func secondRun(w *sim.World, ticks int) (run SecondRun) {
 	return run
 }
 
-// secondDepartureCase is one published ordinary-departure case
-// (R2-ENGINE-145, R2-ENGINE-146, R2-ENGINE-148).
-type secondDepartureCase struct {
-	adds   []string
-	output int32
-}
-
-var secondDepartureCases = map[int]secondDepartureCase{
-	10: {[]string{"mission 20"}, 1}, 20: {[]string{"town 2", "mission 21"}, -1},
-	30: {nil, 2}, 31: {[]string{"mission 32"}, -1}, 40: {[]string{"mission 50", "mission 60"}, -1},
-	50: {[]string{"town 3", "unresolved record"}, -1}, 60: {[]string{"mission 80"}, -1},
-	70: {nil, 3}, 80: {nil, 3}, 90: {nil, -1}, 100: {nil, -1}, 110: {nil, 4},
+// secondDepartureCases holds every exit of each published ordinary-departure
+// case with its gates, in case-body order (R2-ENGINE-145, R2-ENGINE-146,
+// R2-ENGINE-148). A case with no exit stores no output and adds nothing.
+var secondDepartureCases = map[int][]SecondExit{
+	10: {{Target: "mission 20"}, {Target: "movie 1"}},
+	20: {{Target: "town 2"}, {Target: "mission 21", Gates: []SecondGate{{772, true}}}},
+	30: {{Target: "movie 2"}},
+	31: {{Target: "mission 32"}},
+	40: {{Target: "mission 50"}, {Target: "mission 60"}},
+	50: {{Target: "town 3"}, {Target: "unresolved record", Gates: []SecondGate{{780, true}}}},
+	60: {{Target: "mission 80"}},
+	70: {{Target: "movie 3", Gates: []SecondGate{{777, false}, {778, true}}}},
+	80: {{Target: "movie 3", Gates: []SecondGate{{778, false}, {777, true}}}},
+	90: nil, 100: nil,
+	110: {{Target: "movie 5", Gates: []SecondGate{{779, true}}}, {Target: "movie 4", Gates: []SecondGate{{779, false}}}},
 }
 
 // secondProducer names the published route that makes a mission available:
@@ -600,8 +641,9 @@ func secondProducer(n int) string {
 	if n == 10 {
 		return "town 1 inn talk"
 	}
+	target := fmt.Sprintf("mission %d", n)
 	for _, from := range slices.Sorted(maps.Keys(secondDepartureCases)) {
-		if slices.Contains(secondDepartureCases[from].adds, fmt.Sprintf("mission %d", n)) {
+		if slices.ContainsFunc(secondDepartureCases[from], func(e SecondExit) bool { return e.Target == target }) {
 			return fmt.Sprintf("departure of %d", from)
 		}
 	}
@@ -643,24 +685,94 @@ func secondEngineReach() map[int]bool {
 }
 
 func secondDeparture(n int, reach map[int]bool) SecondDeparture {
-	d := SecondDeparture{Output: -1, Producer: secondProducer(n), EngineEntry: reach[n], EngineSave: secondSaveMission(n)}
-	if k, ok := secondDepartureCases[n]; ok {
-		d.Case, d.Adds, d.Output = true, k.adds, k.output
-	}
-	d.EngineWin = secondContinues(n)
-	if d.EngineWin {
-		c := newSecondCampaign()
-		c.current = secondLocation{kind: 1, id: n}
-		c.available = []secondLocation{c.current}
-		var bank [1024]int32
-		bank[772], bank[780] = 1, 1
-		c.completeBank(bank)
-		for _, l := range c.available {
-			d.EngineAdds = append(d.EngineAdds, secondLocationName(l))
+	d := SecondDeparture{Producer: secondProducer(n), EngineEntry: reach[n], EngineSave: secondSaveMission(n), EngineWin: secondContinues(n)}
+	exits, ok := secondDepartureCases[n]
+	d.Case = ok
+	var open [1024]int32
+	for _, e := range exits {
+		for _, g := range e.Gates {
+			if g.Nonzero {
+				open[g.Slot] = 1
+			}
 		}
 	}
-	d.EngineMovie = d.Output >= 0 && secondCompletionMovie(n)
+	d.EngineAdds = secondEngineAdds(n, open)
+	for _, e := range exits {
+		e.Gates = slices.Clone(e.Gates)
+		e.Engine = secondEngineExit(n, e)
+		d.Exits = append(d.Exits, e)
+	}
 	return d
+}
+
+// secondEngineAdds is what the engine's continuation of mission n adds from
+// the given bank; nothing when the engine does not continue n.
+func secondEngineAdds(n int, bank [1024]int32) []string {
+	if !secondContinues(n) {
+		return nil
+	}
+	c := newSecondCampaign()
+	c.current = secondLocation{kind: 1, id: n}
+	c.available = []secondLocation{c.current}
+	c.completeBank(bank)
+	var out []string
+	for _, l := range c.available {
+		out = append(out, secondLocationName(l))
+	}
+	return out
+}
+
+// secondEngineExit reports whether the engine produces e exactly when its
+// gates hold: with every gate held, and with no gate inverted. The engine
+// plays one departure movie, output 1 of mission 10, and holds no gate for it.
+func secondEngineExit(n int, e SecondExit) bool {
+	if e.Movie() {
+		return e.Target == "movie 1" && len(e.Gates) == 0 && secondCompletionMovie(n)
+	}
+	produced := func(flip int) bool {
+		var bank [1024]int32
+		for i, g := range e.Gates {
+			if g.Nonzero != (i == flip) {
+				bank[g.Slot] = 1
+			}
+		}
+		return slices.Contains(secondEngineAdds(n, bank), e.Target)
+	}
+	if !produced(-1) {
+		return false
+	}
+	for i := range e.Gates {
+		if produced(i) {
+			return false
+		}
+	}
+	return true
+}
+
+// secondExitList prints exits as "target" or "target if 779!=0 778=0".
+func secondExitList(exits []SecondExit, engine bool) string {
+	var out []string
+	for _, e := range exits {
+		if e.Engine != engine {
+			continue
+		}
+		s := e.Target
+		for i, g := range e.Gates {
+			if i == 0 {
+				s += " if"
+			}
+			op := "="
+			if g.Nonzero {
+				op = "!="
+			}
+			s += fmt.Sprintf(" %d%s0", g.Slot, op)
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return "-"
+	}
+	return strings.Join(out, ",")
 }
 
 func insertSorted[T int32 | uint16](s []T, v T) []T {
@@ -682,6 +794,7 @@ type SecondCensusTotals struct {
 	SharedNodes                             int
 	Omitted                                 [secondCauses]SecondOmission
 	FixtureMaps, EntryMaps, WinMaps, Ready  int
+	Exits, GatedExits, EngineExits          int
 }
 
 // SecondTotals sums cs.
@@ -737,6 +850,15 @@ func SecondTotals(cs []SecondMapCensus) SecondCensusTotals {
 		if c.Departure.EngineWin {
 			t.WinMaps++
 		}
+		for _, e := range c.Departure.Exits {
+			t.Exits++
+			if len(e.Gates) > 0 {
+				t.GatedExits++
+			}
+			if e.Engine {
+				t.EngineExits++
+			}
+		}
 		if len(c.Blockers()) == 0 {
 			t.Ready++
 		}
@@ -749,7 +871,7 @@ func WriteSecondCensus(w io.Writer, cs []SecondMapCensus) error {
 	head := "mission\tstart\trun\toutcome\tplaced\twithdrawn\tauthored_hp\tborn_fallen\tno_row\tstructures\tno_structure_row\tloot\tloot_dropped\tno_item_row\tspells\tno_spell_rule\t" +
 		"events\tno_event_text\treasons\tno_reason_text\tchecks\tinstants\ttriggers\tshared_nodes\tshared_checks\tshared_instants\tgaps\tinert\t" +
 		"fixture\tdynamic\twithdrawn_ref\tabsent\tstructure_ref\tbank_slots\t" +
-		"case\tadds\toutput\tproducer\tengine_entry\tengine_win\tengine_adds\tengine_movie\tengine_save\tblockers\n"
+		"case\texits\tproducer\tengine_entry\tengine_win\tengine_adds\tengine_exits\tengine_save\tblockers\n"
 	if _, err := io.WriteString(w, head); err != nil {
 		return err
 	}
@@ -771,19 +893,19 @@ func WriteSecondCensus(w io.Writer, cs []SecondMapCensus) error {
 		for _, o := range c.Omitted {
 			row = append(row, fmt.Sprintf("%d/%d/%d", o.Nodes, o.Triggers, o.ActionTriggers))
 		}
-		row = append(row, secondList(c.BankSlots), secondYes(d.Case), strings.Join(d.Adds, ","), strconv.Itoa(int(d.Output)), d.Producer,
-			secondYes(d.EngineEntry), secondYes(d.EngineWin), strings.Join(d.EngineAdds, ","), secondYes(d.EngineMovie), secondYes(d.EngineSave), strings.Join(c.Blockers(), ","))
+		row = append(row, secondList(c.BankSlots), secondYes(d.Case), secondExitList(d.Exits, false), d.Producer,
+			secondYes(d.EngineEntry), secondYes(d.EngineWin), strings.Join(d.EngineAdds, ","), secondExitList(d.Exits, true), secondYes(d.EngineSave), strings.Join(c.Blockers(), ","))
 		if _, err := io.WriteString(w, strings.Join(row, "\t")+"\n"); err != nil {
 			return err
 		}
 	}
 	t := SecondTotals(cs)
 	_, err := fmt.Fprintf(w, "totals maps=%d started=%d ran%d=%d won=%d lost=%d placed=%d withdrawn=%d authored_hp=%d born_fallen=%d no_row=%d no_structure_row=%d no_item_row=%d no_spell_maps=%d events=%d no_event_text=%d no_reason_text=%d "+
-		"checks=%d instants=%d triggers=%d shared_nodes=%d gaps=%d inert=%d fixture=%s dynamic=%s withdrawn_ref=%s absent=%s structure_ref=%s fixture_maps=%d engine_entry=%d engine_win=%d ready=%d\n",
+		"checks=%d instants=%d triggers=%d shared_nodes=%d gaps=%d inert=%d fixture=%s dynamic=%s withdrawn_ref=%s absent=%s structure_ref=%s fixture_maps=%d engine_entry=%d engine_win=%d exits=%d gated_exits=%d engine_exits=%d ready=%d\n",
 		t.Maps, t.Started, SecondCensusTicks, t.Ran, t.Won, t.Lost, t.Placements, t.Withdrawn, t.AuthoredHP, t.BornFallen, t.NoRowPlacements, t.NoStructureRow, t.NoItemRow, t.NoSpellMaps, t.Events, t.NoEventText, t.NoReasonText,
 		t.Checks, t.Instants, t.Triggers, t.SharedNodes, t.Gaps, t.Inert, secondOmit(t.Omitted[CauseFixture]), secondOmit(t.Omitted[CauseDynamic]),
 		secondOmit(t.Omitted[CauseWithdrawn]), secondOmit(t.Omitted[CauseAbsent]), secondOmit(t.Omitted[CauseStructure]),
-		t.FixtureMaps, t.EntryMaps, t.WinMaps, t.Ready)
+		t.FixtureMaps, t.EntryMaps, t.WinMaps, t.Exits, t.GatedExits, t.EngineExits, t.Ready)
 	return err
 }
 

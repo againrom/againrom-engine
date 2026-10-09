@@ -39,6 +39,7 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
 		FixtureMaps: 32, EntryMaps: 3, WinMaps: 3, Ready: 1,
+		Exits: 15, GatedExits: 6, EngineExits: 4,
 	}
 	want.Omitted[CauseFixture] = SecondOmission{Nodes: 189, Triggers: 192, ActionTriggers: 8}
 	if got != want {
@@ -54,6 +55,10 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		case 101:
 			if c.Run.Outcome != sim.OutcomeLost || c.Run.Reason != 5 || c.Run.DecidedAt != 32 || c.BornFallen != 1 {
 				t.Errorf("mission 101 run %+v with %d fallen placements, want lost at tick 32 for reason 5 beside one", c.Run, c.BornFallen)
+			}
+		case 110:
+			if got := censusExits(c.Departure); !slices.Equal(got, []string{"movie 5 if 779!=0:no", "movie 4 if 779=0:no"}) || !slices.Contains(c.BankSlots, 779) {
+				t.Errorf("mission 110 exits %v with bank slots %v, want both outputs behind the slot its script writes", got, c.BankSlots)
 			}
 		case 40, 96:
 			want := map[int][]int32{40: {7}, 96: {5}}[c.Mission]
