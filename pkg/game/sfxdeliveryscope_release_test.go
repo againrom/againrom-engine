@@ -314,7 +314,10 @@ func deliveryScopeControlled(w *deliveryWitness) {
 			capacityChanges[before.ID] = [2]int32{before.Capacity, after.Capacity}
 		}
 	}
-	deliveryScopeJSON(cold, "cold-projection", map[string]any{"sourceWorld": baseline.World, "coldWorld": coldBefore.World, "capacityChanges": capacityChanges, "qualification": "DIV-1675: a Ghost Unit capacity of 0 is written and cold-restored as 300; full cold World hash parity is not claimed"})
+	deliveryScopeJSON(cold, "cold-projection", map[string]any{"sourceWorld": baseline.World, "coldWorld": coldBefore.World, "capacityChanges": capacityChanges, "qualification": "cold LOAD changes no actor capacity and keeps the source World hash"})
+	if len(capacityChanges) != 0 || coldBefore.World != baseline.World {
+		w.t.Fatal("cold ordinary LOAD changed actor capacity or the World hash", capacityChanges, baseline.World, coldBefore.World)
+	}
 	cold.receipt("cold-load")
 	coldReceipt, coldPlayer, coldPhase := deliveryScopeProbe(cold)
 	cold.owner.SetSettings(audio.EffectsChannel, audio.Settings{Master: 43, Muted: true})

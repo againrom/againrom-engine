@@ -469,10 +469,20 @@ func definitionFor(u alm.Unit, t *Table, diff Difficulty) (def data.UnitDef, wor
 	if r.Arm != ArmUnits || !r.Found() {
 		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, false, nil
 	}
-	c := t.units()
-	d, err := data.NewUnitDef(c.EntryName(r.Index), c.EntryParams(r.Index))
+	def, worn, err = unitRowDefinition(t, r.Index, diff)
 	if err != nil {
 		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, false, err
+	}
+	return def, worn, true, nil
+}
+
+// unitRowDefinition is the adjusted definition of the Units row at index and
+// the worn set its weapon string arms.
+func unitRowDefinition(t *Table, index int, diff Difficulty) (data.UnitDef, [sim.EquipSlots]sim.ItemInstance, error) {
+	c := t.units()
+	d, err := data.NewUnitDef(c.EntryName(index), c.EntryParams(index))
+	if err != nil {
+		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, err
 	}
 	// UNIT-DIFF-002 copies the authored live ToHit into General during the
 	// Units stream. UNIT-GATE-013 applies Hard's +50 later, at placement, to
@@ -483,7 +493,7 @@ func definitionFor(u alm.Unit, t *Table, diff Difficulty) (def data.UnitDef, wor
 	// cannot be applied twice by a second caller reading the same entry.
 	d, err = Adjust(d, diff)
 	if err != nil {
-		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, false, err
+		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, err
 	}
 	// The class row's own equipment, off unitWeapon's own read of this row's
 	// two trailing strings — a units row carries no reach column of its own
@@ -499,10 +509,10 @@ func definitionFor(u alm.Unit, t *Table, diff Difficulty) (def data.UnitDef, wor
 	// melee kind or clearing a ranged row to General (1039). Writing these
 	// eight folded fields back onto d therefore preserves both the additions
 	// and the assignments; the spell pair follows from the same block below.
-	strs := c.EntryStrings(r.Index)
+	strs := c.EntryStrings(index)
 	w, weaponItem, weaponErr := unitWeaponItem(strs, t)
 	if weaponErr != nil {
-		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, false, weaponErr
+		return data.UnitDef{}, [sim.EquipSlots]sim.ItemInstance{}, weaponErr
 	}
 	if w != nil {
 		cb := data.FoldWeapon(d.Combat(), w, general)
@@ -520,8 +530,7 @@ func definitionFor(u alm.Unit, t *Table, diff Difficulty) (def data.UnitDef, wor
 		weaponItem = sourceWeaponItem(weaponItem, *w, t)
 		weaponItem = SourceEquippedItem(weaponItem, t)
 	}
-	worn = wornFromWeaponItem(weaponItem)
-	return d, worn, true, nil
+	return d, wornFromWeaponItem(weaponItem), nil
 }
 
 func wornFromWeaponItem(item sim.ItemInstance) [sim.EquipSlots]sim.ItemInstance {

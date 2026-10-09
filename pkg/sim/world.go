@@ -2169,23 +2169,10 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	if !mode.defined() {
 		return nil, fmt.Errorf("sim: routing mode %d is not defined", uint8(mode))
 	}
-	// Control Spirit copies the template domain into the actor it appends. The
-	// decoder refuses an Entity outside the three defined domains, so the common
-	// constructor must reject the source before a world can retain it. This is
-	// unconditional: the zero GhostTemplate is not raisable, but its zero domain
-	// is the valid ground domain and therefore needs no special case.
-	if !ghost.Domain.defined() {
-		return nil, fmt.Errorf("sim: ghost template: movement domain %d is not defined",
-			uint8(ghost.Domain))
-	}
 	// Control Spirit is the one runtime path that mints and appends an Entity
-	// without returning through this constructor. Refuse an unrepresentable
-	// selector on its source template here, before the world can retain it, on
-	// the same six-slot boundary every initial Entity crosses below.
-	if err := experienceSlotFault(ghost.XPSlot); err != nil {
-		return nil, fmt.Errorf("sim: ghost template: %w", err)
-	}
-	if err := ghost.NativeBasis.Validate(); err != nil {
+	// without returning through this constructor, so its source template is
+	// refused here on the boundaries every initial Entity crosses below.
+	if err := ghost.fault(); err != nil {
 		return nil, fmt.Errorf("sim: ghost template: %w", err)
 	}
 	g, err := newGrid(b, t.Block)
