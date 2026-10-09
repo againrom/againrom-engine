@@ -140,9 +140,10 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 // painted (tooltipPicture, above), positioned within bounds from the anchor
 // point p. It exists for an install-gated witness that has no live App or
 // Viewer to hover through and needs production's own paint for one screen's
-// hint, not the screen beneath it — see cmd/tooltipshot.
-func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle) (*image.RGBA, image.Point, bool) {
-	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, nil)
+// hint, not the screen beneath it — see cmd/tooltipshot. ball is the
+// installed corner picture the App was given (FrontEnd.HoverBall).
+func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle, ball image.Image) (*image.RGBA, image.Point, bool) {
+	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, ball)
 }
 
 func wrapTooltipLine(s string, font *text.Font, width int) []string {

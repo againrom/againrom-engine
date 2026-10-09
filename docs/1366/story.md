@@ -26,7 +26,7 @@ Base: `b7cd8466` (game 0.92.4). Knowledge pin: k204.
 | window frame | MENU-127 (not built; open debt) |
 
 Medium and Unknown parts take the smallest rule and a row: DIV-2580 through
-DIV-2590 in `docs/divergences/ui-widget-kit.md`.
+DIV-2591 in `docs/divergences/ui-widget-kit.md`.
 
 ## As built
 
@@ -73,7 +73,8 @@ test-only hook.
 | hover box | item, spell, command and text hover help |
 
 Outcome notice buttons now act on release inside (MENU-116), as the other
-buttons do. The Sound Options volume step is 312 of 5000 per key or endcap,
+buttons do. A Load row's double click loads at the second release
+(DIV-2591). The Sound Options volume step is 312 of 5000 per key or endcap,
 from the MENU-118 step rule. Removed builders: the item popup frame, the
 notice button painter, the plain slider, the speed-click handler, the quest
 text arrows and the unused chargen text control. Screens with their own

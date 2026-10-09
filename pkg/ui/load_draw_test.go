@@ -268,7 +268,13 @@ func TestFramedLoadScrollSkinKeepsExactDoubleClickAndReset(t *testing.T) {
 		t.Fatal("LOAD skin paint changed double-click state")
 	}
 	now = now.Add(200 * time.Millisecond)
-	click()
+	// The second press selects; the release over the same row loads, so no
+	// release reaches the screen the load opens.
+	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryPressed: true}, now)
+	if len(loaded) != 0 {
+		t.Fatal("the double click's second press loaded before its release")
+	}
+	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryReleased: true}, now.Add(time.Millisecond))
 	if len(loaded) != 1 || loaded[0] != "slot-13.sav" || a.Screen() != ScreenLoad || a.HeadlessMessage() == "" {
 		t.Fatalf("LOAD double click changed token/refusal: %v / %s / %q", loaded, a.Screen(), a.HeadlessMessage())
 	}

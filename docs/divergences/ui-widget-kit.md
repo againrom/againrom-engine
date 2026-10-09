@@ -1,6 +1,6 @@
 # Divergences -- UI widget kit
 
-11 row(s). Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
+12 row(s). Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
 
 ## Divergences
 
@@ -12,6 +12,7 @@ Implementation and researched ROM1 behaviour differ, or the owner ruled against 
 | DIV-2587 | widget kit / hover box wrap and label ink | Every hover help draws as the original hover box | MENU-128: fill (36,44,39), gold bevel (160,120,50) and (80,60,24), Ball.bmp corners, size W+11 by 14n+5; wrapping alternatives are excluded within its three routines. The label ramp and native corner keying are Unknown | Item, spell, command and text hovers draw MENU-128's box. Lines longer than a 320-pixel column (or the frame) wrap at spaces. Labels use the cream (242,230,196). Ball.bmp is keyed on black | DEVIATION | Long installed descriptions would otherwise leave the frame; the label colour is not established | A claim of the label ramp, or an owner ruling on the wrap | OPEN |
 | DIV-2589 | widget kit / tip panel close button states | Buttons look raised, hover turns the caption yellow, a press sinks the button | MENU-115 hover, focus and press looks; MENU-116 latch | The tip panel's close control draws as the shared push button at rest; hover and press looks are not fed to it. Its click behaviour is unchanged | FIDELITY-DEBT | The tip panel's pointer state lives in each screen's own input route; wiring it to the view was left out of this story | Feed TipPanelView's pointer and latch from the shop, school, tavern and pre-create routes | OPEN |
 | DIV-2590 | widget kit / window and dialog frames | One builder for window and dialog frames | MENU-127: lm frames 0..8 with snapping, frames 9..17 for room tips; High for the frame selectors and sizing, Medium for the wider window population | Frames keep their existing painters: the snapped menu dialog, the notice frames, the tip panel art and the plain panel frame. No shared frame builder exists | FIDELITY-DEBT | The kit landed the control kinds first; the frame census in MENU-127 is Medium for the wider population | A frame builder following MENU-127 with each window moved to it | OPEN |
+| DIV-2591 | widget kit / Load list double click | - | MENU-120: a list press selects and a double click sends its activation message at the second press | A Load row's second press within 500 ms selects; the release over the same row loads | DEVIATION | Loading at the press let that click's release reach the restored map as a map click | A claim showing how the original keeps the release from the next screen | OPEN |
 
 ## Authored where research is silent
 

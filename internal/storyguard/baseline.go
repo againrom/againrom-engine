@@ -1926,8 +1926,9 @@ package storyguard
 // CommentBytes rises for the shared widget kit: the docs of the new push
 // button, bar, list, slider, radio and checkbox, edit field and hover box
 // builders in pkg/ui, of their focused and per-screen tests, of the notice
-// picture accessor and of the EN/RU widget screen witness, new code,
-// including this paragraph.
+// picture accessor, the hover corner accessor, the Load double-click
+// release and the EN/RU widget screen witness, and the release witnesses
+// restated to the shared bar, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4708,
 	TestFileCount:  265,
@@ -1951,5 +1952,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1829,
 	},
-	CommentBytes: 8533189,
+	CommentBytes: 8535549,
 }

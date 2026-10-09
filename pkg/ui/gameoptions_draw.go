@@ -26,7 +26,7 @@ func gameOptionRect(action gameMenuAction) image.Rectangle {
 	case gameMenuAnimation:
 		return g.Rect(40, 208, 250, 232)
 	case gameMenuTooltipDelay:
-		return g.Rect(40, 234, 250, 254)
+		return g.Rect(40, 236, 250, 256)
 	case gameMenuFormation:
 		return g.Rect(40, 256, 232, 346)
 	case gameMenuHealth:

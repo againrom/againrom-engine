@@ -23,12 +23,15 @@ type loadWindow struct {
 	remove        func() error
 	lastName      string
 	lastClick     time.Time
+	// doubled is the row a double click's second press landed on, plus one;
+	// the release over it loads, so the release reaches no later screen.
+	doubled int
 	// completed counts the loads that replaced the session, so presentation can
 	// tell a fresh load from an unchanged screen. It is never reset.
 	completed uint32
 }
 
-func (w *loadWindow) resetClick() { w.lastName, w.lastClick = "", time.Time{} }
+func (w *loadWindow) resetClick() { w.lastName, w.lastClick, w.doubled = "", time.Time{}, 0 }
 
 func (w *loadWindow) resetPointer() {
 	w.press.clear()
@@ -195,13 +198,22 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		elapsed := now.Sub(f.loadUI.lastClick)
 		if name == f.loadUI.lastName && !f.loadUI.lastClick.IsZero() && elapsed >= 0 && elapsed <= 500*time.Millisecond {
 			f.loadUI.resetClick()
-			a.acceptLoad()
+			f.loadUI.doubled = index + 1
 			return
 		}
 		f.loadUI.lastName, f.loadUI.lastClick = name, now
 		return
 	}
 	if !in.PrimaryReleased {
+		return
+	}
+	if doubled := f.loadUI.doubled; doubled != 0 {
+		f.loadUI.doubled = 0
+		row, onRow := box.RowAt(p)
+		top, _ := l.Visible()
+		if ok && onRow && top+row == doubled-1 {
+			a.acceptLoad()
+		}
 		return
 	}
 	at, inside := loadButtonAt(p)

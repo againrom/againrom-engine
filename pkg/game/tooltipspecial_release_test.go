@@ -131,7 +131,7 @@ func TestReleaseSpellbookCaptionHoverIsBuiltFromTheClaim(t *testing.T) {
 	}
 	bounds := image.Rect(0, 0, 1024, 768)
 	compose := func(lines []string) *image.RGBA {
-		pic, _, _ := ui.ComposeTooltipHint(lines, f.Font.Value(), image.Point{}, bounds)
+		pic, _, _ := ui.ComposeTooltipHint(lines, f.Font.Value(), image.Point{}, bounds, f.HoverBall())
 		return pic
 	}
 	captioned := 0
@@ -267,7 +267,7 @@ func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 	check := func(what string, p image.Point, lines []string) *image.RGBA {
 		t.Helper()
 		pic := hover(p)
-		want, _, ok := ui.ComposeTooltipHint(lines, f.Font.Value(), p, bounds)
+		want, _, ok := ui.ComposeTooltipHint(lines, f.Font.Value(), p, bounds, f.HoverBall())
 		if !ok || !samePicture(pic, want) {
 			t.Fatalf("%s: hover differs from the claim-built lines %q", what, lines)
 		}
@@ -353,7 +353,7 @@ func TestReleaseMapListHoverChoosesByColumn(t *testing.T) {
 	rowY := func(i int) int { return 40 + 16*i + 1 }
 	p := image.Pt(9, rowY(described))
 	desc := hover(p)
-	wantDesc, _, _ := ui.ComposeTooltipHint(strings.Split(rows[described].Description, "#"), f.Font.Value(), p, bounds)
+	wantDesc, _, _ := ui.ComposeTooltipHint(strings.Split(rows[described].Description, "#"), f.Font.Value(), p, bounds, f.HoverBall())
 	if !samePicture(desc, wantDesc) {
 		t.Fatal("description column hover differs from the row's own description")
 	}
@@ -365,7 +365,7 @@ func TestReleaseMapListHoverChoosesByColumn(t *testing.T) {
 		want := strings.Split(caption(slot), "#")
 		for _, i := range []int{described, 0, 3} {
 			at := image.Pt(x, rowY(i))
-			expected, _, _ := ui.ComposeTooltipHint(want, f.Font.Value(), at, bounds)
+			expected, _, _ := ui.ComposeTooltipHint(want, f.Font.Value(), at, bounds, f.HoverBall())
 			pic := hover(at)
 			if !samePicture(pic, expected) {
 				t.Fatalf("column %d over row %d: hover differs from dialogs.txt[%d]", column, i, slot)
@@ -453,7 +453,7 @@ func TestReleaseMapListHoverReadsTheWholeDescriptionBlock(t *testing.T) {
 		lines = append(lines, one)
 	}
 	bounds := image.Rect(0, 0, 640, 480)
-	want, _, _ := ui.ComposeTooltipHint(lines, f.Font.Value(), p, bounds)
+	want, _, _ := ui.ComposeTooltipHint(lines, f.Font.Value(), p, bounds, f.HoverBall())
 	if !samePicture(pic, want) {
 		t.Fatal("hover over a long multi-line description differs from its lines")
 	}
@@ -462,7 +462,7 @@ func TestReleaseMapListHoverReadsTheWholeDescriptionBlock(t *testing.T) {
 	if n := bytes.IndexByte(field, 0); n >= 0 {
 		field = field[:n]
 	}
-	old, _, _ := ui.ComposeTooltipHint(strings.Split(EncodeInstallText(string(field), selector), "#"), f.Font.Value(), p, bounds)
+	old, _, _ := ui.ComposeTooltipHint(strings.Split(EncodeInstallText(string(field), selector), "#"), f.Font.Value(), p, bounds, f.HoverBall())
 	if samePicture(pic, old) {
 		t.Fatal("the 64-byte field reading paints the same popup; the witness cannot tell them apart")
 	}

@@ -82,18 +82,18 @@ func TestReleaseModItemNameDrawsInTheInstallAlphabet(t *testing.T) {
 	}
 	bounds := image.Rect(0, 0, 640, 480)
 	at := image.Pt(320, 240)
-	pic, _, ok := ui.ComposeTooltipHint(lines, f.tipFont(), at, bounds)
+	pic, _, ok := ui.ComposeTooltipHint(lines, f.tipFont(), at, bounds, f.HoverBall())
 	if !ok {
 		t.Fatal("the popup does not compose")
 	}
 	writeModShot(t, "item-name-popup", pic)
-	named, _, ok := ui.ComposeTooltipHint(append([]string{want}, lines[1:]...), f.tipFont(), at, bounds)
+	named, _, ok := ui.ComposeTooltipHint(append([]string{want}, lines[1:]...), f.tipFont(), at, bounds, f.HoverBall())
 	if !ok || !bytes.Equal(pic.Pix, named.Pix) {
 		t.Fatal("the popup is not the picture of the encoded name")
 	}
 	if text != want {
 		utf8Lines := append([]string{text}, lines[1:]...)
-		loss, _, ok := ui.ComposeTooltipHint(utf8Lines, f.tipFont(), at, bounds)
+		loss, _, ok := ui.ComposeTooltipHint(utf8Lines, f.tipFont(), at, bounds, f.HoverBall())
 		if ok && loss.Bounds() == pic.Bounds() && bytes.Equal(loss.Pix, pic.Pix) {
 			t.Fatal("the UTF-8 name draws the same as the install bytes; the witness cannot tell them apart")
 		}
