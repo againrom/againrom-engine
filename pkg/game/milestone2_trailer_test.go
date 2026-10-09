@@ -118,7 +118,7 @@ func trailerAcceptanceApp(t *testing.T, raw []byte, want [100]uint32, front func
 			t.Fatal(diff)
 		}
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

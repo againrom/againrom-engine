@@ -175,42 +175,6 @@ func repairGeneratedHeroDefRow(doc *sav.DocumentData, ref uint16, member mapload
 	}
 }
 
-func (f *FrontEnd) exportMissionCity(city, captured Snapshot, world *sim.World, label string) ([]byte, error) {
-	if _, err := fameForOriginal(city); err != nil {
-		return nil, err
-	}
-	provenance, err := f.missionCityProvenance(f.townInstall(), city, captured, world)
-	if err != nil {
-		return nil, err
-	}
-	shortcuts, err := quickSpellsToOriginalIndices(city.QuickSpells)
-	if err != nil {
-		return nil, err
-	}
-	if city.Gold < 0 || uint64(city.Gold) > uint64(^uint32(0)) {
-		return nil, fmt.Errorf("city purse is outside uint32")
-	}
-	update := sav.CityUpdate{Label: []byte(label), Money: uint32(city.Gold), Shortcuts: &shortcuts}
-	for _, actor := range provenance.Roster() {
-		u := originalCityBaselineUpdate(actor)
-		u.Returned = true
-		update.Characters = append(update.Characters, u)
-	}
-	var campaign sav.CampaignProjection
-	if city.CampaignState {
-		campaign = f.cityCampaignMarkerPaths(city.Campaign)
-		campaign = f.campaignMapObjects(campaign)
-		campaign.FirstMapPoint = true
-	} else {
-		campaign, err = nativeCampaignProjection(f, city)
-		if err != nil {
-			return nil, err
-		}
-	}
-	update.Campaign = &campaign
-	return provenance.Marshal(update)
-}
-
 func nativeMissionItems(objects []sav.CityObjectData, unit *sav.CityUnitData, member mapload.PartyMember, table *mapload.Table, owner uint32, seq *int, ordered []sim.ItemStack) ([]sav.CityObjectData, error) {
 	if member.OriginalHuman != nil || member.Carry == nil || member.PotionEffect != nil {
 		return nil, originalCityUnsupportedf("native mission city requires a normalized native member")

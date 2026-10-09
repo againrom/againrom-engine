@@ -15,7 +15,7 @@ func nativeActorNativeModeFixture(t *testing.T) ([]byte, *FrontEnd, *Mission) {
 	t.Helper()
 	f := currentEffectFront(t, 10)
 	raw, _, _ := saveCurrentEffect(t, f)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestActorRootsNativeRawBookAndEmptyHeaderLossControls(t *testing.T) {
 				t.Fatal("accepted stale current holder/book against raw edit", name)
 			}
 			if strings.HasPrefix(name, "S0") {
-				cold, _, err := ResumeOriginalSave(source.Archives.Containers, back, source.Table, source.Difficulty, nil, source.Bodies)
+				cold, _, err := loadOriginalMission(source, back)
 				if err != nil {
 					t.Fatal(err)
 				}

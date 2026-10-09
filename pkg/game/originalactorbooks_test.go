@@ -111,7 +111,7 @@ func TestActorSpellbooks1105MalformedLatePlayerIsAtomic(t *testing.T) {
 			if _, _, err := f.RestoreOriginal(payload); !errors.Is(err, sav.ErrSpellbook) {
 				t.Fatal("LOAD accepted late malformed book", err)
 			}
-			if _, _, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil); !errors.Is(err, sav.ErrSpellbook) {
+			if _, _, err := loadOriginalMission(f, payload); !errors.Is(err, sav.ErrSpellbook) {
 				t.Fatal("diagnostic LOAD accepted late malformed book", err)
 			}
 			after, _, err := f.Snapshot(true)
@@ -231,7 +231,7 @@ func TestOriginalActorSpellbooksLoadClearsTemplateAndConstructsSourceOnlyActor(t
 		f.Table.Units = actorRegistryTable().Units
 		var w *sim.World
 		if diagnostic {
-			ms, r, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+			ms, r, err := loadOriginalMission(f, payload)
 			if err != nil || r.Books.Restored != 5 || r.Books.Absent != 1 || r.Books.Empty != 1 || r.Books.Unmatched != 0 {
 				t.Fatalf("presence report %+v %v", r.Books, err)
 			}
@@ -274,7 +274,7 @@ func TestOriginalActorSpellbooks1105BothDoorsNewCastAndNativeWindup(t *testing.T
 		app.SetSaveSeams(save, list, load)
 		var w *sim.World
 		if diagnostic {
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+			ms, report, err := loadOriginalMission(f, payload)
 			if err != nil || report.Books.Restored != 2 || report.Books.Spells != 2 {
 				t.Fatalf("diagnostic %+v %v", report.Books, err)
 			}

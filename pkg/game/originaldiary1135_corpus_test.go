@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -86,9 +85,9 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				nonEmpty++
 			}
 
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			if !report.DiariesApplied {
 				t.Fatal("a world-half save did not apply diaries")

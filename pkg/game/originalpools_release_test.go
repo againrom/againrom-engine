@@ -49,7 +49,7 @@ func TestReleaseOriginalPools1094WoundedNonPartyAppLoadAndNativeRoundtrip(t *tes
 		t.Fatalf("wrong owner/tick/party for imported entity: %+v tick=%d", actor, w.Tick())
 	}
 	// Diagnostic resume must make the same four assignments after rearming.
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.PoolsRestored == 0 {
 		t.Fatalf("diagnostic import failed: %v report=%+v", err, report)
 	}

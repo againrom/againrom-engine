@@ -1,15 +1,13 @@
 package game
 
 import (
+	"againrom/pkg/sim"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
-
-	"againrom/pkg/mapload"
-	"againrom/pkg/sim"
 )
 
 func TestCurrentGroupReportFollowsRestoredWorld(t *testing.T) {
@@ -29,7 +27,7 @@ func TestCurrentGroupReportFollowsRestoredWorld(t *testing.T) {
 			var after *sim.World
 			var report string
 			if path == "low level" {
-				mission, resumed, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, nil)
+				mission, resumed, err := loadOriginalMission(f, raw)
 				if err != nil {
 					t.Fatal(err)
 				}

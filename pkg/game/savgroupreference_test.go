@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 func TestSavedGroupDocument1115ResolvedAndMissingKeys(t *testing.T) {
@@ -36,7 +35,7 @@ func TestSavedGroupDocument1115ResolvedAndMissingKeys(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			mission, _, err := ResumeOriginalSave(front.Archives.Containers, raw, front.Table, mapload.DifficultyNormal, nil, nil)
+			mission, _, err := loadOriginalMission(front, raw)
 			if err != nil {
 				t.Fatal(err)
 			}

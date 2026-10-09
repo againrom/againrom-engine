@@ -141,7 +141,7 @@ func TestReleaseDifficultyCampaignThroughProductionUI(t *testing.T) {
 	for _, level := range []int{1, 3} {
 		saved := originalDifficultyFixture(t, 10, uint32(level))
 		// The original import's Head value beats the diagnostic caller flag.
-		ms, _, err := ResumeOriginalSave(f.Archives.Containers, saved, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+		ms, _, err := loadOriginalMission(f, saved)
 		if err != nil {
 			t.Fatal(err)
 		}

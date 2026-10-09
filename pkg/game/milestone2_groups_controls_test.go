@@ -212,7 +212,7 @@ func TestGroups1155RawDocumentControls(t *testing.T) {
 func TestGroups1155LiveNormalizationAndOmissionControls(t *testing.T) {
 	f, raw := groups1155Fixture(t, false)
 	want, join, _ := groups1155Inputs(t, raw)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestGroups1155IdentityControls(t *testing.T) {
 	if !reflect.DeepEqual(doc.Objects[left-1].Groups[0], doc.Objects[left-1].Groups[1]) {
 		t.Fatal("equal-valued distinct inline Groups absent")
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

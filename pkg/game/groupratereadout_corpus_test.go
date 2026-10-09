@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 // Census: entities whose group rate term differs from the entity field.
@@ -41,7 +40,7 @@ func TestGroupRateTermCorpusCensus(t *testing.T) {
 		if err != nil || source.World == nil {
 			return nil
 		}
-		ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+		ms, _, err := loadOriginalMission(f, raw)
 		if err != nil {
 			return nil
 		}

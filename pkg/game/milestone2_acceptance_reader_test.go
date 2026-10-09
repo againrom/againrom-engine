@@ -19,7 +19,7 @@
 // that package for exactly this (WorldHalf's own doc comment). Every claimed
 // field byte within a structure is then read here with this file's own
 // binary.LittleEndian arithmetic. The LIVE side is always this engine's own
-// resumed game state (ResumeOriginalSave -> *Mission / sim.World accessors),
+// resumed game state (RestoreOriginal -> *Mission / sim.World accessors),
 // never a second decode of the file.
 //
 // Selected by scripts/check-milestone2-acceptance.sh, required by the seat
@@ -57,7 +57,7 @@ type milestone2File struct {
 	present bool
 }
 
-// milestone2ResumeRefusal names one corpus file ResumeOriginalSave refused,
+// milestone2ResumeRefusal names one corpus file RestoreOriginal refused,
 // with its own error text.
 //
 // This is not a claim that the discovered corpus carries zero refusals going
@@ -81,7 +81,7 @@ type milestone2ResumeRefusal struct {
 func milestone2LogRefusals(t *testing.T, label string, refused []milestone2ResumeRefusal) {
 	t.Helper()
 	for _, r := range refused {
-		t.Logf("%s: excluded (ResumeOriginalSave refused) %s: %v", label, r.rel, r.err)
+		t.Logf("%s: excluded (RestoreOriginal refused) %s: %v", label, r.rel, r.err)
 	}
 }
 

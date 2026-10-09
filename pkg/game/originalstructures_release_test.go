@@ -150,7 +150,7 @@ func TestReleaseOriginalStructures1098HealthRuinAndNativeSave(t *testing.T) {
 			if f.live.world.Hash() != hash || !bytes.Equal(pixels, check()) {
 				t.Fatal("native SAVE/LOAD changed world or rendered health card")
 			}
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, payload)
 			if err != nil || report.Structures != (originalStructureCounts{Restored: 11}) {
 				t.Fatalf("diagnostic %+v %v", report.Structures, err)
 			}

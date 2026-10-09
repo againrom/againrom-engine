@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -73,9 +72,9 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 				}
 			}
 
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			if _, _, _, present := ms.World.SavedActorMotions(); !present {
 				mismatches++
@@ -84,7 +83,7 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 			}
 
 			// The live comparison value is the world's own carried state before
-			// any tick: ResumeOriginalSave advances none. This walk never calls
+			// any tick: RestoreOriginal advances none. This walk never calls
 			// exportOriginalMoverRoutes, so a bug shared with the production
 			// join would not silently pass both this and the byte-level check
 			// below.

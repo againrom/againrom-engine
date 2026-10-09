@@ -244,7 +244,7 @@ func TestReleaseOriginalGround1076ProductionAppReplacesFreshLootAndSavesPickup(t
 		}
 	}
 	// The headless diagnostic importer must expose exactly the same population.
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || !report.GroundApplied || !reflect.DeepEqual(ms.World.Sacks(), got) {
 		t.Fatalf("diagnostic importer disagrees: %v report=%+v", err, report)
 	}

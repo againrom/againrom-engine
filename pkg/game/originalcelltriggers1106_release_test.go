@@ -76,7 +76,7 @@ func TestReleaseOriginalCellTriggers1106AppOverlayAndNativeEntry(t *testing.T) {
 			if !reflect.DeepEqual(f.live.world.CellTails(), want) || f.live.world.Tick() != rawSavedSubTick1112(t, payload) || len(f.live.world.ScriptCasts()) != 0 {
 				t.Fatalf("LOAD did not install exact union: tails=%d want=%d tick=%d", len(f.live.world.CellTails()), len(want), f.live.world.Tick())
 			}
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, changed, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, changed)
 			if err != nil || ms == nil || !report.CellTriggersApplied || report.CellTriggerRecords != 184 || !reflect.DeepEqual(ms.World.CellTails(), want) || ms.World.Tick() != rawSavedSubTick1112(t, payload) || len(ms.World.ScriptCasts()) != 0 {
 				t.Fatalf("diagnostic overlay: %v %+v", err, report)
 			}

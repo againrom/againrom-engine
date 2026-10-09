@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -135,7 +134,7 @@ func TestDocument1115ComposedGroupsStructuresMenuSaveFreshProcess(t *testing.T) 
 		t.Run(fmt.Sprintf("from-map-%t", fromMap), func(t *testing.T) {
 			f := composedDocumentFront1115(t, fromMap)
 			raw := completeDocumentTail1115(t, f, structureSave1114(t, 0, false))
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, nil)
+			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil || report.GroupsRestored != 1 || ms.savedDocument == nil || ms.savedDocument.Document == nil {
 				t.Fatal("low-level composed LOAD", err)
 			}

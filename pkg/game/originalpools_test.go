@@ -532,7 +532,7 @@ func TestOriginalPools1094AppLoadAndNativeSaveKeepFourValues(t *testing.T) {
 			t.Fatalf("native continuation diverged at tick %d", priorWorld.Tick())
 		}
 	}
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.PoolsRestored != 2 {
 		t.Fatalf("diagnostic resume: %+v %v", report, err)
 	}

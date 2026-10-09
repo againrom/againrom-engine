@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-
-	"againrom/pkg/mapload"
 )
 
 // TestMilestone2MapReopen is the independent acceptance instrument for the
@@ -25,7 +23,7 @@ import (
 // SAV-HEAD-025 also states the ORIGINAL's own reopen mechanism: Mission is a
 // mode switch, and when nonzero the load arm reopens MapName with a
 // "Scenario\" prefix. This engine's importer (originalsave.go
-// ResumeOriginalSave) instead looks up the map from Mission's numeric value
+// RestoreOriginal) instead looks up the map from Mission's numeric value
 // alone, through its own mission-to-map table (OriginalSaveResume.MapName
 // carries the string only for a load-menu label -- originalsave.go:1655).
 //
@@ -80,7 +78,7 @@ func TestMilestone2MapReopen(t *testing.T) {
 		if !mf.present {
 			return
 		}
-		ms, _, err := ResumeOriginalSave(fe.Archives.Containers, mf.raw, fe.Table, mapload.DifficultyNormal, nil, fe.Bodies)
+		ms, _, err := loadOriginalMission(fe, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return
