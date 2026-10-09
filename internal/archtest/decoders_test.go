@@ -1,8 +1,8 @@
 package archtest
 
 import (
+	"fmt"
 	"go/ast"
-	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
@@ -35,6 +35,10 @@ func TestLiveDecodersStayInTheFormatsTree(t *testing.T) {
 // TestDecoderFindingsSeeEachShape holds the scan against synthetic sources, so
 // a scan that went blind fails here rather than passing a dirty tree.
 func TestDecoderFindingsSeeEachShape(t *testing.T) {
+	// A stub of image/color: a -trimpath test binary has no GOROOT to import
+	// the real one from.
+	const imgcolor = `package color
+type RGBA struct{ R, G, B, A uint8 }`
 	const pal = `package pal
 type Color struct{ R, G, B uint8 }`
 	const spr = `package spr256
@@ -75,7 +79,7 @@ func compare(a, b pal.Color) bool { return a.R == b.R && a == b }
 			if pk, ok := pkgs[p]; ok {
 				return pk, nil
 			}
-			return importer.Default().Import(p)
+			return nil, fmt.Errorf("no stub for %q", p)
 		})}
 		pk, err := conf.Check(path, fset, []*ast.File{f}, info)
 		if err != nil {
@@ -84,6 +88,7 @@ func compare(a, b pal.Color) bool { return a.R == b.R && a == b }
 		pkgs[path] = pk
 		return f, info
 	}
+	check("image/color", imgcolor)
 	check("againrom/pkg/formats/pal", pal)
 	check("againrom/pkg/formats/spr256", spr)
 	f, info := check("user", user)
