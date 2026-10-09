@@ -41,12 +41,16 @@ var allow = map[string][]string{
 	"pkg/formats/res":     {},
 	"pkg/formats/reg":     {},
 	"pkg/formats/alm":     {},
-	"pkg/formats/spr256":  {},
-	"pkg/formats/spr16":   {},
+	"pkg/formats/spr256":  {"pkg/formats/pal"},
+	"pkg/formats/spr16":   {"pkg/formats/pal"},
 	"pkg/formats/databin": {},
 	"pkg/formats/pal":     {},
-	"pkg/formats/bmp":     {},
-	"pkg/formats/fame":    {},
+	// The bitmap and sprite decoders read their colour entries through the
+	// palette leaf, the one owner of the blue-green-red entry layout.
+	"pkg/formats/bmp": {"pkg/formats/pal"},
+	// The WAV leaf owns the RIFF chunk walk; it imports nothing of this tree.
+	"pkg/formats/wav":  {},
+	"pkg/formats/fame": {},
 	// The icon leaf reads the icon resources of the original executable, for
 	// the window's icon. It walks a PE resource directory and decodes icon
 	// bitmaps, imports nothing of this tree and converts no text.
@@ -68,20 +72,22 @@ var allow = map[string][]string{
 	// could import the map tier would be one refactor from resolving that delta
 	// itself instead of reporting it. That reasoning is untouched and
 	// pkg/mapload is still denied here.
-	"pkg/formats/sav":       {"pkg/formats/reg"},
-	"pkg/vfs":               {"pkg/formats/res"},
-	"pkg/data":              {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
-	"pkg/sim":               {"pkg/rules"},
-	"pkg/rules":             {},
-	"pkg/mapload":           {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules"},
-	"pkg/mapedit":           {"pkg/formats/alm"},
-	"pkg/render":            {"pkg/sim", "pkg/vfs"},
-	"pkg/render/terrain":    {},
+	"pkg/formats/sav": {"pkg/formats/reg"},
+	"pkg/vfs":         {"pkg/formats/res"},
+	"pkg/data":        {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
+	"pkg/sim":         {"pkg/rules"},
+	"pkg/rules":       {},
+	"pkg/mapload":     {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules"},
+	"pkg/mapedit":     {"pkg/formats/alm"},
+	"pkg/render":      {"pkg/sim", "pkg/vfs"},
+	// The terrain and menu tiers decode their bitmaps through the bitmap
+	// leaf and keep no decoder of their own.
+	"pkg/render/terrain":    {"pkg/formats/bmp"},
 	"pkg/render/refraction": {},
 	"pkg/render/backdrop":   {},
 	"pkg/render/camera":     {},
 	"pkg/render/frame":      {},
-	"pkg/render/menu":       {},
+	"pkg/render/menu":       {"pkg/formats/bmp"},
 	// The text tier is a LEAF: it holds the font model, the placement rule and
 	// the blit as plain data plus arithmetic, and a loader outside it fills the
 	// data. So it gains the graph a node and no outgoing edge, and this empty
@@ -97,13 +103,11 @@ var allow = map[string][]string{
 	// The final-frame scaler leaf holds the Catmull-Rom kernel, its Kage
 	// source and a reference resampler as plain data plus arithmetic.
 	"pkg/render/catmullrom": {},
-	// The audio leaf holds WAV decode, resampling, positional gain and mixing
-	// as plain data plus arithmetic — nothing here knows a slot, an archive or
-	// a listener exists, so it gains the graph a node and no outgoing edge, the
-	// same shape pkg/render/text already has (0126 plan T1, "the same shape
-	// pkg/render/text already has"). The empty allow-set is what makes "no
-	// other tier's type crosses in" mechanical rather than a promise.
-	"pkg/audio": {},
+	// The audio tier holds resampling, positional gain and mixing as plain
+	// data plus arithmetic — nothing here knows a slot, an archive or a
+	// listener exists. Its one edge is the WAV format leaf, which owns the
+	// chunk walk, so no other tier's type crosses in.
+	"pkg/audio": {"pkg/formats/wav"},
 	// Video is a presentation/transport leaf; it cannot import game or sim.
 	// It reads a movie's sidecar registry through the reg format leaf.
 	"pkg/video": {"pkg/video/smacker", "pkg/formats/reg"},
@@ -432,6 +436,7 @@ var noExternalFormats = map[string]bool{
 	// bytes and a reserved one — so this format converts no text and takes no
 	// text-encoding dependency.
 	"pkg/formats/pal": true,
+	"pkg/formats/wav": true,
 	// The item-name leaf carries text but converts none of it (0151 T12): a
 	// line is stored as the shipped bytes, and the code-page pass is
 	// pkg/render/text's own, applied per drawn byte rather than once at

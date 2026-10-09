@@ -1,4 +1,4 @@
-package terrain_test
+package bmp_test
 
 import (
 	"encoding/binary"
@@ -6,36 +6,26 @@ import (
 	"image/color"
 	"testing"
 
-	"againrom/pkg/render/terrain"
+	"againrom/pkg/formats/bmp"
 )
 
-// --- synthetic fixture builders (no game bytes anywhere) ---
-
-// bmpPixelOffset is where buildBMP8 puts the pixel data: 14-byte file header +
-// 40-byte DIB header + a full 256-entry palette, i.e. the bfOffBits = 1078 the
-// real terrain tiles use.
+// bmpPixelOffset is where buildBMP8 puts the pixel data: the two headers and a
+// full 256-entry palette, the bfOffBits = 1078 the shipped terrain tiles use.
 const bmpPixelOffset = 14 + 40 + 256*4
 
-// buildBMP8 assembles a byte-exact uncompressed 8-bit Windows BMP from an RGB
-// palette and a top-down index grid. Rows are written bottom-up and padded to a
-// 4-byte boundary, exactly as the format requires, so the decoder's row
-// ordering and padding handling are both exercised by construction.
+// buildBMP8 assembles an uncompressed 8-bit bitmap from an RGB palette and a
+// top-down index grid, rows stored bottom-up and padded to four bytes.
 func buildBMP8(w, h int, palRGB [][3]byte, topDown []byte) []byte {
 	stride := (w + 3) &^ 3
 	out := make([]byte, bmpPixelOffset+stride*h)
-
 	out[0x00], out[0x01] = 'B', 'M'
-	binary.LittleEndian.PutUint32(out[0x02:], uint32(len(out)))       // bfSize
-	binary.LittleEndian.PutUint32(out[0x0a:], uint32(bmpPixelOffset)) // bfOffBits
-	binary.LittleEndian.PutUint32(out[0x0e:], 40)                     // DIB header size
-	binary.LittleEndian.PutUint32(out[0x12:], uint32(int32(w)))       // width
-	binary.LittleEndian.PutUint32(out[0x16:], uint32(int32(h)))       // height (positive => bottom-up)
-	binary.LittleEndian.PutUint16(out[0x1a:], 1)                      // planes
-	binary.LittleEndian.PutUint16(out[0x1c:], 8)                      // bits per pixel
-	binary.LittleEndian.PutUint32(out[0x1e:], 0)                      // BI_RGB
-	binary.LittleEndian.PutUint32(out[0x2e:], 0)                      // clrUsed 0 => 256
-
-	// Palette entries are stored B, G, R, X.
+	binary.LittleEndian.PutUint32(out[0x02:], uint32(len(out)))
+	binary.LittleEndian.PutUint32(out[0x0a:], uint32(bmpPixelOffset))
+	binary.LittleEndian.PutUint32(out[0x0e:], 40)
+	binary.LittleEndian.PutUint32(out[0x12:], uint32(int32(w)))
+	binary.LittleEndian.PutUint32(out[0x16:], uint32(int32(h)))
+	binary.LittleEndian.PutUint16(out[0x1a:], 1)
+	binary.LittleEndian.PutUint16(out[0x1c:], 8)
 	for i, c := range palRGB {
 		e := out[54+i*4:]
 		e[0], e[1], e[2] = c[2], c[1], c[0]
@@ -46,8 +36,6 @@ func buildBMP8(w, h int, palRGB [][3]byte, topDown []byte) []byte {
 	return out
 }
 
-// rampPalette returns a 256-entry palette whose entry i is a distinct RGB
-// triple, so a decoded pixel identifies its source index unambiguously.
 func rampPalette() [][3]byte {
 	pal := make([][3]byte, 256)
 	for i := range pal {
@@ -60,54 +48,19 @@ func rampColor(idx byte) color.RGBA {
 	return color.RGBA{R: idx, G: 255 - idx, B: idx*7 + 3, A: 0xff}
 }
 
+func pixColor(img *image.Paletted, x, y int) color.RGBA {
+	return img.Palette[img.ColorIndexAt(x, y)].(color.RGBA)
+}
+
 // i32bits reinterprets a signed 32-bit header field as the u32 that is stored.
 // Written as a function so a negative value is not a constant conversion.
 func i32bits(v int32) uint32 { return uint32(v) }
-
-// solidStrip builds a 32 x (32*cells) tile strip in which sub-cell k is filled
-// with palette index fill(k) — the shape of every terrain tile file.
-func solidStrip(cells int, fill func(k int) byte) []byte {
-	const size = 32
-	h := size * cells
-	idx := make([]byte, size*h)
-	for k := 0; k < cells; k++ {
-		for y := k * size; y < (k+1)*size; y++ {
-			for x := 0; x < size; x++ {
-				idx[y*size+x] = fill(k)
-			}
-		}
-	}
-	return buildBMP8(size, h, rampPalette(), idx)
-}
-
-// halfStrip builds a strip whose fill varies across the row, so a fixture can
-// mix transparent (index 0) and opaque pixels inside one sub-cell.
-func halfStrip(cells int, fill func(k, x int) byte) []byte {
-	const size = 32
-	h := size * cells
-	idx := make([]byte, size*h)
-	for k := 0; k < cells; k++ {
-		for y := k * size; y < (k+1)*size; y++ {
-			for x := 0; x < size; x++ {
-				idx[y*size+x] = fill(k, x)
-			}
-		}
-	}
-	return buildBMP8(size, h, rampPalette(), idx)
-}
-
-// pixColor resolves a paletted pixel to the RGBA the compositor would draw.
-// Tests read decoded tiles by palette index now, so this keeps the assertions
-// written in colours.
-func pixColor(img *image.Paletted, x, y int) color.RGBA {
-	return rampColor(img.ColorIndexAt(x, y))
-}
 
 // decodeReject asserts that a byte stream is rejected atomically: an error
 // and no image.
 func decodeReject(t *testing.T, name string, data []byte) {
 	t.Helper()
-	img, err := terrain.DecodeBMP8(data)
+	img, err := bmp.DecodePaletted(data)
 	if err == nil {
 		t.Fatalf("%s: expected an error, got nil", name)
 	}
@@ -118,12 +71,12 @@ func decodeReject(t *testing.T, name string, data []byte) {
 
 // --- tests ---
 
-func TestDecodeBMP8Pixels(t *testing.T) {
+func TestDecodePalettedPixels(t *testing.T) {
 	const w, h = 3, 2
 	topDown := []byte{1, 2, 3, 4, 5, 6} // row 0 (top) then row 1 (bottom)
 	data := buildBMP8(w, h, rampPalette(), topDown)
 
-	img, err := terrain.DecodeBMP8(data)
+	img, err := bmp.DecodePaletted(data)
 	if err != nil {
 		t.Fatalf("decode: unexpected error: %v", err)
 	}
@@ -149,10 +102,10 @@ func TestDecodeBMP8Pixels(t *testing.T) {
 	}
 }
 
-// TestDecodeBMP8RejectsOutsideSubset - AC-2: a depth other than 8, a
+// TestDecodePalettedRejectsOutsideSubset - AC-2: a depth other than 8, a
 // compression other than BI_RGB, a truncated palette and truncated pixel data
 // each reject with no image.
-func TestDecodeBMP8RejectsOutsideSubset(t *testing.T) {
+func TestDecodePalettedRejectsOutsideSubset(t *testing.T) {
 	valid := buildBMP8(3, 2, rampPalette(), []byte{1, 2, 3, 4, 5, 6})
 
 	badDepth := append([]byte(nil), valid...)
@@ -185,7 +138,7 @@ func TestDecodeBMP8RejectsOutsideSubset(t *testing.T) {
 	decodeReject(t, "clrUsed > 256", bigPalette)
 }
 
-func TestDecodeBMP8RejectsMalformedHeader(t *testing.T) {
+func TestDecodePalettedRejectsMalformedHeader(t *testing.T) {
 	valid := buildBMP8(3, 2, rampPalette(), []byte{1, 2, 3, 4, 5, 6})
 
 	decodeReject(t, "empty", nil)
@@ -204,10 +157,6 @@ func TestDecodeBMP8RejectsMalformedHeader(t *testing.T) {
 	binary.LittleEndian.PutUint32(zeroHeight[0x16:], 0)
 	decodeReject(t, "height 0", zeroHeight)
 
-	negHeight := append([]byte(nil), valid...)
-	binary.LittleEndian.PutUint32(negHeight[0x16:], i32bits(-2))
-	decodeReject(t, "negative height (top-down)", negHeight)
-
 	negWidth := append([]byte(nil), valid...)
 	binary.LittleEndian.PutUint32(negWidth[0x12:], i32bits(-3))
 	decodeReject(t, "negative width", negWidth)
@@ -219,7 +168,7 @@ func TestDecodeBMP8RejectsMalformedHeader(t *testing.T) {
 	decodeReject(t, "overflowing dimensions", huge)
 }
 
-func TestDecodeBMP8NeverPanics(t *testing.T) {
+func TestDecodePalettedNeverPanics(t *testing.T) {
 	valid := buildBMP8(8, 4, rampPalette(), make([]byte, 8*4))
 
 	try := func(name string, data []byte) {
@@ -228,7 +177,7 @@ func TestDecodeBMP8NeverPanics(t *testing.T) {
 				t.Fatalf("%s: decoder panicked: %v", name, r)
 			}
 		}()
-		img, err := terrain.DecodeBMP8(data)
+		img, err := bmp.DecodePaletted(data)
 		switch {
 		case err != nil && img != nil:
 			t.Fatalf("%s: error and a non-nil image", name)

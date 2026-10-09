@@ -62,11 +62,11 @@ type ChargenAssets struct {
 }
 
 func chargenRGBA(data []byte, addr string) (*image.RGBA, error) {
-	b, err := bmp.Decode(data)
+	pic, err := bmp.DecodeRGBA(data)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
-	return portraitRGBA(b), nil
+	return pic, nil
 }
 
 func readChargenBMP(src terrain.EntrySource, addr string) (*image.RGBA, error) {
@@ -88,7 +88,7 @@ func readChargenMask(src terrain.EntrySource, addr string) (*image.Paletted, err
 	if err != nil {
 		return nil, err
 	}
-	mask, err := terrain.DecodeBMP8(b)
+	mask, err := bmp.DecodePaletted(b)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}

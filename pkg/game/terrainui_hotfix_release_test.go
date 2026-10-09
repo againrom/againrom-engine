@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -144,7 +145,7 @@ func TestReleaseSoftwareTerrainFamily(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			bmp, err := terrain.DecodeBMP8(original)
+			bmp, err := bmp.DecodePaletted(original)
 			if err != nil || !bytes.Equal(strip.SubCells[0].Pix, bmp.Pix[:32*32]) {
 				t.Fatalf("loaded strip differs from ordinary resource %s: %v", path, err)
 			}

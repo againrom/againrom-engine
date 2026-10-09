@@ -30,7 +30,6 @@ import (
 	"flag"
 	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 	"image/png"
 	"io"
@@ -341,17 +340,6 @@ func absInt(v int) int {
 	return v
 }
 
-func toRGBA(im *bmp.Image) *image.RGBA {
-	dst := image.NewRGBA(image.Rect(0, 0, im.Width, im.Height))
-	for y := 0; y < im.Height; y++ {
-		for x := 0; x < im.Width; x++ {
-			c := im.At(x, y)
-			dst.Set(x, y, color.RGBA{R: c.R, G: c.G, B: c.B, A: 0xff})
-		}
-	}
-	return dst
-}
-
 // writeComposite writes the 176-wide seam alone (strip at (0,0), plaque at
 // (16,0)) under -png/seam-<room>-<strip-file>.png, at 4x nearest-neighbour
 // scale so the seam is legible without a viewer that zooms.
@@ -360,8 +348,8 @@ func writeComposite(dir, room, stripAddr string, strip, plaque *bmp.Image) error
 	stripFile := sanitise(filepath.Base(stripAddr))
 	h := plaque.Height
 	seam := image.NewRGBA(image.Rect(0, 0, 176, h))
-	draw.Draw(seam, image.Rect(0, 0, 16, h), toRGBA(strip), image.Point{}, draw.Src)
-	draw.Draw(seam, image.Rect(16, 0, 176, h), toRGBA(plaque), image.Point{}, draw.Src)
+	draw.Draw(seam, image.Rect(0, 0, 16, h), strip.RGBA(), image.Point{}, draw.Src)
+	draw.Draw(seam, image.Rect(16, 0, 176, h), plaque.RGBA(), image.Point{}, draw.Src)
 	scaled := scale4x(seam)
 	name := filepath.Join(dir, fmt.Sprintf("seam-%s-%s.png", room, stripFile))
 	f, err := os.Create(name)

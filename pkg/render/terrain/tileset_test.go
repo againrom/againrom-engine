@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/formats/bmp"
 	"againrom/pkg/render/terrain"
 )
 
@@ -58,7 +59,7 @@ func TestSliceStripSubCellCounts(t *testing.T) {
 	for _, tc := range []struct{ cells int }{{14}, {8}, {4}} {
 		name := fmt.Sprintf("32x%d", tc.cells*terrain.CellSize)
 		t.Run(name, func(t *testing.T) {
-			img, err := terrain.DecodeBMP8(solidStrip(tc.cells, func(k int) byte { return fillOf(10, k) }))
+			img, err := bmp.DecodePaletted(solidStrip(tc.cells, func(k int) byte { return fillOf(10, k) }))
 			if err != nil {
 				t.Fatalf("decode: %v", err)
 			}
@@ -103,7 +104,7 @@ func TestSliceStripRejectsBadGeometry(t *testing.T) {
 		{32, 20},  // not a whole cell
 		{32, 100}, // 3 cells + 4 px
 	} {
-		img, err := terrain.DecodeBMP8(buildBMP8(tc.w, tc.h, rampPalette(), make([]byte, tc.w*tc.h)))
+		img, err := bmp.DecodePaletted(buildBMP8(tc.w, tc.h, rampPalette(), make([]byte, tc.w*tc.h)))
 		if err != nil {
 			t.Fatalf("%dx%d decode: %v", tc.w, tc.h, err)
 		}

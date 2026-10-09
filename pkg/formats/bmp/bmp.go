@@ -3,51 +3,46 @@ package bmp
 import (
 	"encoding/binary"
 	"fmt"
+	"image"
+	"image/color"
+
+	"againrom/pkg/formats/pal"
 )
 
-// The header geometry, named rather than spelled into the reader as offsets.
-// These are the two structures a `dataOff=54` file has and nothing else: a
-// 14-byte file header and a 40-byte BITMAPINFOHEADER immediately after it.
+// The header geometry: a 14-byte file header and a 40-byte BITMAPINFOHEADER,
+// the only DIB header accepted. An 8-bit colour table starts right after it.
 const (
 	fileHeaderLen = 14
 	infoHeaderLen = 40
 
-	// HeaderLen is where the pixel run begins in every shipped node
-	// (`SPR256-PICT-043`: `dataOff=54` on all of them). It is not assumed —
-	// the file's own dataOff field is read and compared against it — but it is
-	// the only value this decoder accepts, because a different one means a
-	// header version this package does not carry.
+	// HeaderLen is where the colour table, or a 24-bit pixel run, begins.
 	HeaderLen = fileHeaderLen + infoHeaderLen
 
-	// BitsPerPixel is the one depth this corpus ships. Three bytes a pixel,
-	// stored blue-green-red, with no palette and no alpha anywhere.
+	// BitsPerPixel is the depth Decode reads: three bytes a pixel, stored
+	// blue-green-red, with no alpha.
 	BitsPerPixel = 24
+
+	// IndexedBitsPerPixel is the depth DecodePaletted reads: one palette index
+	// a pixel.
+	IndexedBitsPerPixel = 8
+
+	maxPalette = 256
 )
 
-// Color is one pixel. The file stores blue, green and red in that order and
-// this type carries them the other way round, which is the one reordering this
-// package performs on a pixel.
-type Color struct {
-	R, G, B uint8
-}
+// Color is one 24-bit pixel: pal.Color, since the stored order is the palette
+// layout's own blue-green-red.
+type Color = pal.Color
 
-// Image is a decoded bitmap: its extent and one Color per pixel, row-major,
-// THE TOP ROW FIRST.
-//
-// THE ROW ORDER IS FLIPPED AND THAT IS THE SECOND OF THIS PACKAGE'S TWO
-// CONVERSIONS. A Windows bitmap with a positive height stores its rows bottom
-// to top, which every shipped node is (`h=240`, `h=85`); a consumer that wants
-// a picture wants it the other way, and doing it here means it is done once
-// rather than by each of the two callers this format has.
+// Image is a decoded 24-bit bitmap: its extent and one Color per pixel,
+// row-major, THE TOP ROW FIRST, whatever the stored row order.
 type Image struct {
 	Width, Height int
 	Pix           []Color
 }
 
 // At is the pixel at (x, y), origin top-left, and the zero Color for a
-// coordinate outside the image — the same total reading spr256's own frame
-// accessor gives, so a caller cutting a sub-rectangle out of an atlas cannot
-// index past the end of one.
+// coordinate outside the image, so a caller cutting a sub-rectangle out of an
+// atlas cannot index past the end of one.
 func (im *Image) At(x, y int) Color {
 	if im == nil || x < 0 || y < 0 || x >= im.Width || y >= im.Height {
 		return Color{}
@@ -55,80 +50,166 @@ func (im *Image) At(x, y int) Color {
 	return im.Pix[y*im.Width+x]
 }
 
-// Decode reads one 24-bit uncompressed Windows bitmap.
-//
-// IT REFUSES EVERY OTHER SHAPE BY NAME, and the errors say which field was
-// wrong rather than "bad bitmap": this decoder exists for a corpus whose whole
-// header set was measured, so an unexpected value is evidence that the corpus
-// widened and the reader should say exactly how.
-//
-// A file longer than its own pixel run is ACCEPTED, tail ignored — see the
-// package doc for the two bytes that make that the ordinary case rather than
-// the exception.
-func Decode(data []byte) (*Image, error) {
-	if len(data) < HeaderLen {
-		return nil, fmt.Errorf("bmp: %d bytes is shorter than the %d-byte header", len(data), HeaderLen)
+// RGBA is the image at full opacity: the format stores no alpha.
+func (im *Image) RGBA() *image.RGBA {
+	if im == nil || im.Width <= 0 || im.Height <= 0 {
+		return nil
 	}
-	if data[0] != 'B' || data[1] != 'M' {
-		return nil, fmt.Errorf("bmp: magic %q, want \"BM\"", data[0:2])
-	}
+	return im.SubRGBA(image.Rect(0, 0, im.Width, im.Height))
+}
 
-	u16 := func(off int) int { return int(binary.LittleEndian.Uint16(data[off:])) }
-	u32 := func(off int) uint32 { return binary.LittleEndian.Uint32(data[off:]) }
-	i32 := func(off int) int { return int(int32(binary.LittleEndian.Uint32(data[off:]))) }
-
-	if off := u32(10); off != HeaderLen {
-		return nil, fmt.Errorf("bmp: pixel data at %d, want %d", off, HeaderLen)
-	}
-	if n := u32(14); n != infoHeaderLen {
-		return nil, fmt.Errorf("bmp: info header is %d bytes, want %d", n, infoHeaderLen)
-	}
-
-	w, h := i32(18), i32(22)
-	if w <= 0 {
-		return nil, fmt.Errorf("bmp: width %d", w)
-	}
-	// A NEGATIVE HEIGHT IS THE TOP-DOWN FORM AND IS REFUSED RATHER THAN
-	// HANDLED. No shipped node carries one, so the flip below would be the
-	// only branch here with nothing to exercise it; a reader that silently
-	// accepted it would be one whose row order is untested in half its domain.
-	if h <= 0 {
-		return nil, fmt.Errorf("bmp: height %d - a top-down bitmap is not a shape this corpus ships", h)
-	}
-	if planes := u16(26); planes != 1 {
-		return nil, fmt.Errorf("bmp: %d colour planes, want 1", planes)
-	}
-	if bpp := u16(28); bpp != BitsPerPixel {
-		return nil, fmt.Errorf("bmp: %d bits per pixel, want %d", bpp, BitsPerPixel)
-	}
-	if c := u32(30); c != 0 {
-		return nil, fmt.Errorf("bmp: compression %d, want 0 (none)", c)
-	}
-	if n := u32(46); n != 0 {
-		return nil, fmt.Errorf("bmp: %d palette entries, want 0", n)
-	}
-
-	// THE ROW STRIDE IS PADDED TO FOUR BYTES, which is the format's rule and
-	// not this corpus's: at 24 bits a row of w pixels is 3w bytes and the next
-	// row starts at the next multiple of four. Both shipped widths — 160 and
-	// 480 — make 3w a multiple of four already, so the padding is zero on
-	// everything that ships and is computed anyway, because a width that did
-	// not would be read three bytes out of step per row with nothing to say so.
-	stride := (w*3 + 3) &^ 3
-	need := HeaderLen + stride*h
-	if len(data) < need {
-		return nil, fmt.Errorf("bmp: %dx%d needs %d bytes, have %d", w, h, need, len(data))
-	}
-
-	im := &Image{Width: w, Height: h, Pix: make([]Color, w*h)}
-	for y := 0; y < h; y++ {
-		// The flip: file row 0 is the picture's BOTTOM row.
-		row := HeaderLen + (h-1-y)*stride
-		out := y * w
-		for x := 0; x < w; x++ {
-			p := row + x*3
-			im.Pix[out+x] = Color{R: data[p+2], G: data[p+1], B: data[p]}
+// SubRGBA is the rectangle r of the image at full opacity, on an image of r's
+// size with its origin at zero. Pixels of r outside the image are opaque black.
+func (im *Image) SubRGBA(r image.Rectangle) *image.RGBA {
+	pic := image.NewRGBA(image.Rect(0, 0, r.Dx(), r.Dy()))
+	for y := 0; y < r.Dy(); y++ {
+		for x := 0; x < r.Dx(); x++ {
+			c := im.At(r.Min.X+x, r.Min.Y+y)
+			o := y*pic.Stride + x*4
+			pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, 0xff
 		}
 	}
+	return pic
+}
+
+// header is a validated header: the accepted subset, range-checked against
+// the stream.
+type header struct {
+	width, height int
+	bottomUp      bool
+	stride        int
+	offBits       int
+	palette       []Color
+}
+
+// row is the stored bytes of display row y.
+func (h header) row(data []byte, y int) []byte {
+	if h.bottomUp {
+		y = h.height - 1 - y
+	}
+	return data[h.offBits+y*h.stride:]
+}
+
+// parse validates the header of an uncompressed Windows bitmap at depth bpp.
+//
+// The pixel run is located through the file's own offset, its length is
+// computed from the width, height and 4-byte row stride and never read from
+// the header, and a stream longer than the run is accepted, its tail ignored:
+// shipped bitmaps carry two bytes past their pixels (see doc.go). A positive
+// height stores rows bottom-up and a negative one top-down; both are the public
+// format's rule. At 8 bits a colour table of clrUsed entries (0 meaning 256)
+// follows the header; at 24 bits there is none to read.
+func parse(data []byte, bpp int) (header, error) {
+	var h header
+	if len(data) < HeaderLen {
+		return h, fmt.Errorf("bmp: %d bytes is shorter than the %d-byte header", len(data), HeaderLen)
+	}
+	if data[0] != 'B' || data[1] != 'M' {
+		return h, fmt.Errorf("bmp: magic %q, want \"BM\"", data[0:2])
+	}
+	u16 := func(off int) int { return int(binary.LittleEndian.Uint16(data[off:])) }
+	u32 := func(off int) uint32 { return binary.LittleEndian.Uint32(data[off:]) }
+	if n := u32(14); n != infoHeaderLen {
+		return h, fmt.Errorf("bmp: info header is %d bytes, want %d", n, infoHeaderLen)
+	}
+	if planes := u16(26); planes != 1 {
+		return h, fmt.Errorf("bmp: %d colour planes, want 1", planes)
+	}
+	if got := u16(28); got != bpp {
+		return h, fmt.Errorf("bmp: %d bits per pixel, want %d", got, bpp)
+	}
+	if c := u32(30); c != 0 {
+		return h, fmt.Errorf("bmp: compression %d, want 0 (none)", c)
+	}
+	w, storedH := int64(int32(u32(18))), int64(int32(u32(22)))
+	if w <= 0 {
+		return h, fmt.Errorf("bmp: width %d", w)
+	}
+	if storedH == 0 {
+		return h, fmt.Errorf("bmp: height 0")
+	}
+	h.bottomUp = storedH > 0
+	if storedH < 0 {
+		storedH = -storedH
+	}
+
+	total := int64(len(data))
+	tableEnd := int64(HeaderLen)
+	if bpp == IndexedBitsPerPixel {
+		n := u32(46)
+		if n == 0 {
+			n = maxPalette
+		}
+		if n > maxPalette {
+			return h, fmt.Errorf("bmp: palette declares %d entries, want at most %d", n, maxPalette)
+		}
+		tableEnd += int64(n) * pal.EntrySize
+		if tableEnd > total {
+			return h, fmt.Errorf("bmp: palette [%d, %d) overruns the %d-byte stream", HeaderLen, tableEnd, total)
+		}
+		h.palette = pal.Entries(data[HeaderLen:tableEnd])
+	}
+	off := int64(u32(10))
+	if off < tableEnd || off > total {
+		return h, fmt.Errorf("bmp: pixel data at %d, outside [%d, %d]", off, tableEnd, total)
+	}
+	stride := (w*int64(bpp/8) + 3) &^ 3
+	// Compared by division, so no product of two header fields can overflow
+	// into a length that looks present.
+	if avail := total - off; storedH > avail/stride {
+		return h, fmt.Errorf("bmp: %dx%d needs %d-byte rows, %d bytes present", w, storedH, stride, avail)
+	}
+	h.width, h.height, h.stride, h.offBits = int(w), int(storedH), int(stride), int(off)
+	return h, nil
+}
+
+// Decode reads one uncompressed 24-bit Windows bitmap into its colour grid.
+// Every other shape is refused by name, never decoded into a partial image.
+func Decode(data []byte) (*Image, error) {
+	h, err := parse(data, BitsPerPixel)
+	if err != nil {
+		return nil, err
+	}
+	im := &Image{Width: h.width, Height: h.height, Pix: make([]Color, h.width*h.height)}
+	for y := 0; y < h.height; y++ {
+		row := h.row(data, y)
+		copy(im.Pix[y*h.width:(y+1)*h.width], pal.Pixels(row[:h.width*3]))
+	}
 	return im, nil
+}
+
+// DecodeRGBA is Decode at full opacity.
+func DecodeRGBA(data []byte) (*image.RGBA, error) {
+	im, err := Decode(data)
+	if err != nil {
+		return nil, err
+	}
+	return im.RGBA(), nil
+}
+
+// DecodePaletted reads one uncompressed 8-bit Windows bitmap and keeps its
+// palette indices: a hit mask and a terrain tile are addressed by index, not
+// colour. The colour table rides along at full opacity. A pixel naming an
+// entry past the stored table is refused rather than clamped.
+func DecodePaletted(data []byte) (*image.Paletted, error) {
+	h, err := parse(data, IndexedBitsPerPixel)
+	if err != nil {
+		return nil, err
+	}
+	palette := make(color.Palette, len(h.palette))
+	for i, c := range h.palette {
+		palette[i] = c.Opaque()
+	}
+	img := image.NewPaletted(image.Rect(0, 0, h.width, h.height), palette)
+	for y := 0; y < h.height; y++ {
+		row := h.row(data, y)
+		dst := img.Pix[y*img.Stride:]
+		for x := 0; x < h.width; x++ {
+			if int(row[x]) >= len(palette) {
+				return nil, fmt.Errorf("bmp: pixel (%d,%d) index %d outside the %d-entry palette", x, y, row[x], len(palette))
+			}
+			dst[x] = row[x]
+		}
+	}
+	return img, nil
 }

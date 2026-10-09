@@ -24,11 +24,7 @@ func DecodeOwnerTables(data []byte) ([OwnerTableCount]Table, error) {
 
 	var out [OwnerTableCount]Table
 	for table := range out {
-		base := table * TableSize
-		for i := range out[table] {
-			e := data[base+i*EntrySize:]
-			out[table][i] = Color{R: e[2], G: e[1], B: e[0]}
-		}
+		copy(out[table][:], Entries(data[table*TableSize:(table+1)*TableSize]))
 	}
 	return out, nil
 }

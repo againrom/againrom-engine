@@ -1,6 +1,10 @@
 package pal
 
-import "fmt"
+import (
+	"fmt"
+	"image"
+	"image/color"
+)
 
 // TableOffset is where the colour table begins: the engine's own seek, 0x36
 // bytes into the file. It is a CONSTANT and not a field read out of the stream —
@@ -83,9 +87,63 @@ func Decode(data []byte) (Table, error) {
 	}
 
 	var t Table
-	for i := range t {
-		e := data[TableOffset+i*EntrySize:]
-		t[i] = Color{R: e[2], G: e[1], B: e[0]}
-	}
+	copy(t[:], Entries(data[TableOffset:MinSize]))
 	return t, nil
+}
+
+// Entries reads len(raw)/EntrySize consecutive [B, G, R, reserved] entries as
+// RGB colours, dropping the reserved byte; a partial tail entry is not read.
+// It is the one reader of this layout: a .pal table, the human-owner tables,
+// a .256 or .16a sheet's leading palette and an 8-bit BMP's colour table.
+func Entries(raw []byte) []Color { return entries(raw, EntrySize) }
+
+// Pixels reads len(raw)/3 consecutive [B, G, R] triples, a 24-bit bitmap row's
+// layout: the same order with no reserved byte.
+func Pixels(raw []byte) []Color { return entries(raw, 3) }
+
+func entries(raw []byte, size int) []Color {
+	out := make([]Color, len(raw)/size)
+	for i := range out {
+		e := raw[i*size:]
+		out[i] = Color{R: e[2], G: e[1], B: e[0]}
+	}
+	return out
+}
+
+// Opaque is the colour at full opacity.
+func (c Color) Opaque() color.RGBA { return color.RGBA{R: c.R, G: c.G, B: c.B, A: 0xff} }
+
+// Opaque is the table at full opacity, indexed as the table is.
+func (t Table) Opaque() [EntryCount]color.RGBA {
+	var out [EntryCount]color.RGBA
+	for i, c := range t {
+		out[i] = c.Opaque()
+	}
+	return out
+}
+
+// TableOf is cols as a Table, or false when cols does not hold exactly
+// EntryCount colours.
+func TableOf(cols []Color) (Table, bool) {
+	var t Table
+	if len(cols) != EntryCount {
+		return t, false
+	}
+	copy(t[:], cols)
+	return t, true
+}
+
+// Picture lays px, one colour per pixel in row-major order, onto a new
+// width x height image. Pixels past the image are dropped; missing pixels stay
+// transparent.
+func Picture(width, height int, px []color.RGBA) *image.RGBA {
+	pic := image.NewRGBA(image.Rect(0, 0, width, height))
+	for i, c := range px {
+		o := i * 4
+		if o+3 >= len(pic.Pix) {
+			break
+		}
+		pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, c.A
+	}
+	return pic
 }

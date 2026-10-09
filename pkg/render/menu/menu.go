@@ -8,7 +8,7 @@
 // container (the archive is 0001's), invents no format fact, and reads no game
 // path — its input is a one-method entry source the caller supplies.
 //
-// It is stdlib-only and engine-free, so the whole selection/compositing contract
+// It imports only the bitmap decoder and is engine-free, so the whole selection/compositing contract
 // is unit-testable with no window.
 //
 // # Two things a reader should know before changing anything here
@@ -16,8 +16,8 @@
 // The hit mask is consumed as RAW 8-BIT INDICES, never through palette colours.
 // The mask's 256-entry palette is an identity grayscale ramp, so it carries no
 // meaning of its own and the index value is the semantic; a colour-based reading
-// is wrong by construction rather than merely slower. bmp.go keeps the indices
-// and ButtonAt reads them straight out of Pix.
+// is wrong by construction rather than merely slower. bmp.DecodePaletted keeps
+// the indices and ButtonAt reads them straight out of Pix.
 //
 // The mask's stored ROW ORDER is *inferred* by the research, not read directly:
 // it was concluded from each button's placement rectangle bracketing its mask
@@ -33,6 +33,8 @@ package menu
 import (
 	"fmt"
 	"image"
+
+	"againrom/pkg/formats/bmp"
 )
 
 // Frame size. The menu is composed in the game's fixed 640x480 frame, and the
@@ -315,7 +317,7 @@ func load(src EntrySource, hover, pressed [ButtonCount]image.Rectangle) (*Assets
 	if err != nil {
 		return nil, fmt.Errorf("menu: %s: %w", maskName, err)
 	}
-	mask, err := decodeBMP8(maskData)
+	mask, err := bmp.DecodePaletted(maskData)
 	if err != nil {
 		return nil, fmt.Errorf("menu: %s: %w", maskName, err)
 	}
@@ -352,7 +354,7 @@ func loadRGBA(src EntrySource, name string) (*image.RGBA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("menu: %s: %w", name, err)
 	}
-	img, err := decodeBMP24(data)
+	img, err := bmp.DecodeRGBA(data)
 	if err != nil {
 		return nil, fmt.Errorf("menu: %s: %w", name, err)
 	}
