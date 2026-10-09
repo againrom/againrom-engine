@@ -151,7 +151,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 			t.openOfferDialogue(building, offers[0], 0)
 		}
 	},
-	"tavern-interior":     func(t *townScreen, _ townRoom) { t.enterTavernInterior() },
+	"tavern-interior":     func(t *townScreen, _ townRoom) { t.tavernPage().Enter() },
 	"tavern-detail-clear": func(t *townScreen, _ townRoom) { t.clearTavernDetail() },
 	"tavern-selection":    func(t *townScreen, _ townRoom) { t.activateTavernSelection(t.tavernCandidates()) },
 	"navigate":            func(t *townScreen, _ townRoom) { t.enterWorldMap() },

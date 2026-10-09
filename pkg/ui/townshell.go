@@ -313,29 +313,16 @@ type TownTavernArt struct {
 	// TownSchoolArt.UpperSeam carries, read from the tavern's own directory.
 	UpperSeam image.Image
 
-	// Interior is the four independently loaded centre-child animation
-	// families. A nil family leaves only that motion absent; Center and every
-	// control remain usable. The game owns the indices and clocks.
-	Interior TavernInteriorArt
+	// Scene is the tavern centre's pictures by the town description's entry
+	// names. The game's room page draws them; a missing entry leaves only that
+	// motion absent.
+	Scene map[string][]image.Image
 }
 
-// TavernInteriorArt is immutable install art. Loaded counts and loop counts
-// are deliberately not represented by one field: the game applies the
-// accepted per-family bounds when it selects a picture.
-type TavernInteriorArt struct {
-	Candle   []image.Image
-	Cauldron []image.Image
-	Breath   []image.Image
-	Drink    []image.Image
-}
-
-// TavernInteriorFrame is one paint-owned selection from TavernInteriorArt.
-// Images, rather than indices, cross the package seam so the compositor does
-// not become the authority for the controller's separate index/cache rules.
-type TavernInteriorFrame struct {
-	Candle   image.Image
-	Cauldron image.Image
-	Tender   image.Image
+// RoomScene paints one named group of a room's composed centre onto the
+// screen. The game owns its clocks and frames; painting changes no state.
+type RoomScene interface {
+	Paint(dst *image.RGBA, group string)
 }
 
 // TownSurfaceView is a complete tavern or school frame before a modal dialogue
@@ -387,7 +374,8 @@ type TownSurfaceView struct {
 	// covers every position.
 	RosterUnpainted bool
 	TavernArt       *TownTavernArt
-	TavernInterior  TavernInteriorFrame
+	// Scene is the room's composed centre; nil draws none.
+	Scene RoomScene
 	// AnimationFrame is a client presentation phase. Only the selected
 	// portrait cell consumes it; every other card holds its first frame.
 	AnimationFrame int
@@ -1220,27 +1208,10 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// does not resolve their destination, so the order is authored, not
 		// decoded.
 		draw.Draw(dst, image.Rect(160, 0, 480, 480), v.TavernArt.Center, v.TavernArt.Center.Bounds().Min, draw.Src)
-		// TOWN-407: these are the central child's own pictures, placed after
-		// CenterArea.bmp. The two tender families share one destination but
-		// the controller exposes at most the currently selected mode.
-		for _, layer := range []struct {
-			pic image.Image
-			at  image.Point
-		}{
-			{v.TavernInterior.Candle, image.Pt(160, 48)},
-			{v.TavernInterior.Cauldron, image.Pt(420, 160)},
-			{v.TavernInterior.Tender, image.Pt(240, 152)},
-		} {
-			if layer.pic == nil {
-				continue
-			}
-			b := layer.pic.Bounds()
-			placed := b.Add(layer.at.Sub(b.Min))
-			clip := placed.Intersect(image.Rect(160, 0, 480, 480))
-			if !clip.Empty() {
-				src := b.Min.Add(clip.Min.Sub(placed.Min))
-				draw.Draw(dst, clip, layer.pic, src, draw.Over)
-			}
+		// TOWN-407: the central child's own pictures, placed after
+		// CenterArea.bmp.
+		if v.Scene != nil {
+			v.Scene.Paint(dst, "centre")
 		}
 		drawTownPane(dst, TownPane{Body: v.TavernArt.LeftStats, Seam: v.TavernArt.LeftStatsSeam}, image.Rect(0, 0, 160, 238), image.Rect(160, 0, 176, 238))
 		drawTownPane(dst, TownPane{Body: v.TavernArt.LeftPicture, Seam: v.TavernArt.LeftPictureSeam}, image.Rect(0, 238, 160, 480), image.Rect(160, 238, 176, 480))

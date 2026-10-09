@@ -158,14 +158,17 @@ type townScreen struct {
 	// square is the square's composer view, built on first use. squareRandom
 	// is its fallback presentation generators, squareLoop its entry loop's
 	// voice and squareAction the action a click's hooks left.
-	square         *town.View
-	squareRandom   [2]*rand.Rand
-	squareLoop     audio.Voice
-	squareAction   ui.TownAction
-	tavernInterior tavernInteriorAnimation
-	shopInterior   shopInteriorAnimation
-	townStats      bool
-	shopBook       bool
+	square       *town.View
+	squareRandom [2]*rand.Rand
+	squareLoop   audio.Voice
+	squareAction ui.TownAction
+	// pages are the room pages the composer builds, by room name, and
+	// pageRandom their fallback presentation generators by draw source.
+	pages        map[string]*town.Page
+	pageRandom   map[string]*rand.Rand
+	shopInterior shopInteriorAnimation
+	townStats    bool
+	shopBook     bool
 
 	// schoolSounds holds the school's own chrgen skill instances
 	// (VIDEO-SFX-059); presentation only.
@@ -300,7 +303,7 @@ func (t *townScreen) resetForNewGame() {
 	t.schoolColumn = schoolColumnAnimation{}
 	t.schoolSounds.Stop()
 	t.resetSchoolTraining()
-	t.resetTavernInterior()
+	t.tavernPage().Reset()
 	t.resetShopInterior()
 	t.townStats, t.shopBook = false, false
 	t.clearTavernDetail()

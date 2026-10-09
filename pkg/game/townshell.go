@@ -373,7 +373,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	cells, selected, hasSelection := t.tavernSnapshot(candidates)
 	v.Cells = cells
 	v.TavernArt = t.in.TownTavernArt.Value()
-	v.TavernInterior = t.tavernInteriorFrame()
+	v.Scene = roomScene{t.tavernPage()}
 	o, merc := selected.merc, hasSelection && selected.key.kind == tavernCandidateMercenary
 	value := ""
 	if merc {

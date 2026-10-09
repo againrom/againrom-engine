@@ -96,7 +96,7 @@ func nonZeroTownScreen() *townScreen {
 		squareLoop:          &tavernInteriorVoice{},
 		squareAction:        ui.TownAction{Msg: "pending"},
 		tipRevision:         1,
-		tavernInterior:      tavernInteriorAnimation{ready: true, mode: 1, direction: -1},
+		pageRandom:          map[string]*rand.Rand{"tender": rand.New(rand.NewSource(3))},
 		shopInterior:        shopInteriorAnimation{ready: true, active: true, selectedRack: 2, merchantModes: shopMerchantYes},
 		townStats:           true,
 		shopBook:            true,
@@ -128,6 +128,7 @@ func nonZeroTownScreen() *townScreen {
 		resolver:            speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}},
 	}
 	ts.square = town.NewView(rom1Town, townSquareHost{ts}, ts.townProcess)
+	ts.tavernPage().Enter()
 	return ts
 }
 
@@ -153,6 +154,8 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"resolver":             "rebuilt by composeShopFaces on every entry into a room that can show it",
 		"schoolTrainingStatic": "process-static school presentation timestamps, random extras and hold counters; never game state",
 		"square":               "the square's composer view; resetForNewGame resets it in place",
+		"pages":                "the room pages the composer builds; resetForNewGame resets each in place",
+		"pageRandom":           "process presentation fallback generators of the room pages; never game state",
 		"squareRandom":         "process presentation fallback generators of the square; never game state",
 		"squareLoop":           "the square entry loop's voice, owned by the view's loop state",
 		"squareAction":         "set and cleared inside one square click",

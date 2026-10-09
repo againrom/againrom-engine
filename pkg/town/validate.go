@@ -116,6 +116,9 @@ func (d *Description) Validate() error {
 				return err
 			}
 		}
+		if err := d.validateRoom(r); err != nil {
+			return err
+		}
 	}
 	for _, s := range d.Square.Enter {
 		if err := validateStep(s, "square", fail); err != nil {
@@ -382,48 +385,37 @@ func onlyEqual(p, o PickSpec) bool {
 	return plo == phi && plo >= olo && plo <= ohi
 }
 
-// checkVocabulary refuses a hook or condition name the game does not answer.
+// checkVocabulary refuses a hook, condition, value or event name the game
+// does not answer.
 func (d *Description) checkVocabulary(vocab Vocabulary) error {
+	lists := map[string][]string{"hook": vocab.Hooks, "condition": vocab.Conditions, "value": vocab.Values, "event": vocab.Events}
 	for _, u := range d.uses() {
-		list := vocab.Conditions
-		if u.hook {
-			list = vocab.Hooks
-		}
-		if !vocab.has(list, u.name) {
-			kind := "condition"
-			if u.hook {
-				kind = "hook"
-			}
-			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, kind, u.name)
+		if !vocab.has(lists[u.kind], u.name) {
+			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, u.kind, u.name)
 		}
 	}
 	return nil
 }
 
 type nameUse struct {
-	where, name string
-	hook        bool
+	where, name, kind string
 }
 
-// uses lists every hook and condition name the description uses.
+// uses lists every hook, condition, value and event name the description
+// uses. An event a scene's own actor raises is the scene's, not the game's.
 func (d *Description) uses() []nameUse {
 	var out []nameUse
-	cond := func(where, name string) {
+	use := func(kind, where, name string) {
 		if name != "" {
-			out = append(out, nameUse{where: where, name: name})
-		}
-	}
-	hook := func(where, name string) {
-		if name != "" {
-			out = append(out, nameUse{where: where, name: name, hook: true})
+			out = append(out, nameUse{where: where, name: name, kind: kind})
 		}
 	}
 	var ops func(where string, list []Op)
 	ops = func(where string, list []Op) {
 		for _, op := range list {
-			hook(where, op.Hook)
-			cond(where, op.If)
-			cond(where, op.Unless)
+			use("hook", where, op.Hook)
+			use("condition", where, op.If)
+			use("condition", where, op.Unless)
 			ops(where, op.Then)
 			ops(where, op.Else)
 		}
@@ -435,16 +427,36 @@ func (d *Description) uses() []nameUse {
 	ops("pointer", d.Pointer.Every)
 	ops("pointer", d.Pointer.Off)
 	for _, a := range d.Actors {
-		cond("actor "+a.Name, a.HoldUnless)
+		use("condition", "actor "+a.Name, a.HoldUnless)
 	}
 	for _, s := range d.Square.Enter {
-		hook("square", s.Hook)
+		use("hook", "square", s.Hook)
 	}
 	for _, r := range d.Rooms {
 		for _, s := range append(append([]Step{}, r.Enter...), r.Exit...) {
-			hook("room "+r.Name, s.Hook)
+			use("hook", "room "+r.Name, s.Hook)
+		}
+		if r.Music != nil {
+			use("value", "room "+r.Name+" music", r.Music.By)
+		}
+		if r.Scene == nil {
+			continue
+		}
+		raised := map[string]bool{}
+		for _, a := range r.Scene.Actors {
+			raised[a.Raise] = true
+		}
+		for _, a := range r.Scene.Actors {
+			where := "room " + r.Name + " actor " + a.Name
+			use("value", where, a.Value)
+			use("value", where, a.Selected)
+			for _, on := range a.On {
+				if !raised[on.Event] {
+					use("event", where, on.Event)
+				}
+			}
 		}
 	}
-	cond("save", d.Save.AdmittedWhen)
+	use("condition", "save", d.Save.AdmittedWhen)
 	return out
 }

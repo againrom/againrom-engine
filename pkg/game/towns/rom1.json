@@ -244,6 +244,61 @@
        {"hook": "tavern-selection", "cite": ["TOWN-468"]}
      ],
      "exit": [{"hook": "inn-queue-commit", "cite": ["SAV-CAMPAIGN-081"]}],
+     "scene": {
+       "random": [{"name": "tender", "source": "host", "cite": ["TOWN-409", "DIV-843"]}],
+       "art": [
+         {"name": "candle", "format": "series", "key": "graphics/interface/inn/candle/t%04d.bmp", "count": 10,
+          "max-size": [640, 480], "transparent": "black", "cite": ["TOWN-407", "DIV-848"]},
+         {"name": "cauldron", "format": "series", "key": "graphics/interface/inn/cauldron/t%04d.bmp", "count": 21,
+          "max-size": [640, 480], "transparent": "black", "cite": ["TOWN-407", "DIV-848"]},
+         {"name": "breath", "format": "series", "key": "graphics/interface/inn/tender/breath/br%04d.bmp", "first": 1, "count": 24,
+          "max-size": [640, 480], "cite": ["TOWN-407", "DIV-848"]},
+         {"name": "drink", "format": "series", "key": "graphics/interface/inn/tender/drink/dr%04d.bmp", "first": 1, "count": 40,
+          "max-size": [640, 480], "cite": ["TOWN-407", "DIV-848"]}
+       ],
+       "sounds": {"slots": [
+         {"name": "drink", "source": "tavern-interior", "key": "town/inn/drink.wav", "cite": ["TOWN-413", "DIV-847"]},
+         {"name": "glotok", "source": "tavern-interior", "key": "town/inn/glotok.wav", "cite": ["TOWN-413", "DIV-847"]},
+         {"name": "steam", "source": "tavern-interior", "key": "town/inn/steam.wav", "cite": ["TOWN-413", "DIV-847"]},
+         {"name": "water", "source": "tavern-interior", "key": "town/inn/water.wav", "loop": true, "cite": ["TOWN-413", "DIV-849"]},
+         {"name": "chair", "source": "tavern-interior", "key": "town/inn/chair.wav", "cite": ["TOWN-413", "DIV-847"]},
+         {"name": "breath", "source": "tavern-interior", "key": "town/shop/breath.wav", "cite": ["TOWN-413", "DIV-847"]},
+         {"name": "enter", "source": "tavern-interior", "key": "town/inn/enter.wav", "cite": ["TOWN-413", "DIV-847"]}
+       ], "cite": ["TOWN-413"]},
+       "clocks": [
+         {"name": "cycle", "period-ms": 100, "compare": "greater", "rebase": "every", "cite": ["TOWN-408", "DIV-842"]},
+         {"name": "tender", "period-ms": 83, "compare": "greater", "rebase": "every", "cite": ["TOWN-410", "TOWN-411", "DIV-842"]},
+         {"name": "steam", "period-ms": 10000, "compare": "greater", "rebase": "every", "cite": ["TOWN-413", "DIV-842"]}
+       ],
+       "actors": [
+         {"name": "candle", "program": "loop", "art": "candle", "frames": 10, "loop": 9, "cite": ["TOWN-407", "TOWN-408"]},
+         {"name": "cauldron", "program": "loop", "art": "cauldron", "frames": 21, "loop": 20, "cite": ["TOWN-407", "TOWN-408"]},
+         {"name": "tender", "program": "alternating", "clock": "tender",
+          "delay": {"draw": "tender", "raw": 32768, "divide": 16, "base": 3000, "cite": ["TOWN-409", "DIV-843"]},
+          "states": [
+            {"name": "drink", "art": "drink", "complete": 40, "when": "odd", "motion": "ping-pong",
+             "frame-sounds": [{"frame": 30, "slot": "drink", "cite": ["TOWN-413"]}],
+             "end-sounds": ["glotok"], "cite": ["TOWN-409", "TOWN-411", "TOWN-413", "DIV-848"]},
+            {"name": "breath", "art": "breath", "complete": 24, "when": "even", "motion": "forward",
+             "start-sounds": ["chair", "breath"], "cite": ["TOWN-409", "TOWN-410", "TOWN-413", "DIV-848"]}
+          ],
+          "cite": ["TOWN-409", "TOWN-412", "DIV-844"]}
+       ],
+       "enter": ["sound enter"],
+       "steps": [
+         {"when": "active", "run": ["arm tender", "publish candle", "publish cauldron", "publish tender", "sound water"],
+          "cite": ["TOWN-407", "TOWN-409", "TOWN-413", "DIV-849"]},
+         {"when": "active", "clock": "steam", "run": ["sound steam"], "cite": ["TOWN-413"]},
+         {"when": "active", "run": ["cue tender"], "cite": ["TOWN-413"]},
+         {"when": "active", "clock": "cycle", "run": ["advance candle", "advance cauldron"], "cite": ["TOWN-408"]},
+         {"when": "active", "run": ["advance tender"], "cite": ["TOWN-410", "TOWN-411"]}
+       ],
+       "layers": [
+         {"group": "centre", "actor": "candle", "mode": "over", "at": [160, 48], "clip": [160, 0, 480, 480], "cite": ["TOWN-407"]},
+         {"group": "centre", "actor": "cauldron", "mode": "over", "at": [420, 160], "clip": [160, 0, 480, 480], "cite": ["TOWN-407"]},
+         {"group": "centre", "actor": "tender", "mode": "over", "at": [240, 152], "clip": [160, 0, 480, 480], "cite": ["TOWN-407"]}
+       ],
+       "cite": ["TOWN-407", "TOWN-412", "DIV-842", "DIV-844"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "shop", "page": "shop",
      "enter": [

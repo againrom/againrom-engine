@@ -33,7 +33,7 @@ func (a *schoolDiamondAnimation) advance() {
 // the diamond. A school dialogue keeps its room background painting too.
 func (t *townScreen) AdvanceTownSurfaceAnimation() {
 	if t.inTavernInterior() {
-		t.advanceTavernInterior()
+		t.tavernPage().Advance()
 		return
 	}
 	if t.room == roomSchool || t.room == roomTalk && t.dialogueBuilding == TownSchool {
