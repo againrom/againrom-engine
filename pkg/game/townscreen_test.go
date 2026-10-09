@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
-	"time"
 	"unsafe"
 
 	"againrom/pkg/data"
@@ -79,19 +78,7 @@ func nonZeroTownScreen() *townScreen {
 		tavernSlotRequests:  map[int]int{tavernSlotHireRefused: 2},
 		schoolCell:          7,
 		schoolSpent:         [schoolLatchCount]bool{3: true},
-		schoolDiamond:       schoolDiamondAnimation{frame: 6, step: -1, ready: true},
-		schoolColumn:        schoolColumnAnimation{frame: 7, target: 15, ready: true},
 		schoolSounds:        playingSchoolSounds(),
-		schoolTraining: schoolTrainingAnimation{
-			ready: true, active: true, last: time.Unix(17, 0), waitClass: schoolMageClass,
-			columnStarted: true, sides: [schoolClassCount]schoolTrainingSideAnimation{{transitionActive: true}, {idleActive: true, idleDirection: -1}},
-		},
-		schoolTrainingStatic: schoolTrainingStatic{
-			initialized: [schoolClassCount]bool{true, true},
-			idleLast:    [schoolClassCount]time.Time{time.Unix(18, 0), time.Unix(19, 0)},
-			idleExtra:   [schoolClassCount]time.Duration{time.Second, 2 * time.Second},
-			hold:        [schoolClassCount]int{1, 2}, holdLimit: [schoolClassCount]int{20, 21},
-		},
 		squareRandom:        [2]*rand.Rand{rand.New(rand.NewSource(1)), rand.New(rand.NewSource(2))},
 		squareLoop:          &tavernInteriorVoice{},
 		squareAction:        ui.TownAction{Msg: "pending"},
@@ -148,16 +135,15 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"shopSpellIcons":      "spell pictures keyed by spell id, resolved from the install's own atlas",
 		"shopTip":             "re-read from the install's own shop1.txt on every shop-room entry",
 
-		"schoolTip":            "re-read from the install's own training.txt on every school entry",
-		"tavernTip":            "re-read from the install's own inn.txt on every tavern entry",
-		"resolver":             "rebuilt by composeShopFaces on every entry into a room that can show it",
-		"schoolTrainingStatic": "process-static school presentation timestamps, random extras and hold counters; never game state",
-		"square":               "the square's composer view; resetForNewGame resets it in place",
-		"pages":                "the room pages the composer builds; resetForNewGame resets each in place",
-		"pageRandom":           "process presentation fallback generators of the room pages; never game state",
-		"squareRandom":         "process presentation fallback generators of the square; never game state",
-		"squareLoop":           "the square entry loop's voice, owned by the view's loop state",
-		"squareAction":         "set and cleared inside one square click",
+		"schoolTip":    "re-read from the install's own training.txt on every school entry",
+		"tavernTip":    "re-read from the install's own inn.txt on every tavern entry",
+		"resolver":     "rebuilt by composeShopFaces on every entry into a room that can show it",
+		"square":       "the square's composer view; resetForNewGame resets it in place",
+		"pages":        "the room pages the composer builds; resetForNewGame resets each in place",
+		"pageRandom":   "process presentation fallback generators of the room pages; never game state",
+		"squareRandom": "process presentation fallback generators of the square; never game state",
+		"squareLoop":   "the square entry loop's voice, owned by the view's loop state",
+		"squareAction": "set and cleared inside one square click",
 	}
 
 	ts := nonZeroTownScreen()

@@ -14,8 +14,6 @@ func TestSchoolTrainingOpaqueSidesDrawBetweenBackgroundAndSchoolOverlays(t *test
 	skill := color.RGBA{R: 0xd4, G: 0xd4, A: 0xff}
 	diamond := color.RGBA{R: 0xe5, B: 0xe5, A: 0xff}
 	art := &TownSchoolArt{Background: uniform(480, 480, background)}
-	art.Column[0] = uniform(148, 208, column)
-	art.Diamond[1] = uniform(80, 76, diamond)
 	art.Skills[0][0][0] = uniform(20, 20, skill)
 	mask := image.NewPaletted(image.Rect(0, 0, 92, 120), color.Palette{color.Black})
 	for i := range mask.Pix {
@@ -23,16 +21,21 @@ func TestSchoolTrainingOpaqueSidesDrawBetweenBackgroundAndSchoolOverlays(t *test
 	}
 	art.Masks[0] = mask
 	v := TownSurfaceView{
-		Kind:                TownSurfaceSchool,
-		SchoolArt:           art,
-		SchoolClass:         0,
-		SchoolColumnSet:     true,
-		SchoolColumnFrame:   0,
-		SchoolDiamondActive: true,
-		SchoolDiamondFrame:  1,
-		SchoolTraining:      SchoolTrainingFrame{Mage: uniform(172, 224, mage), Fighter: uniform(160, 224, fighter)},
-		HoverCell:           -1,
-		Cells:               []TownSurfaceCell{{Enabled: true, Selected: true}},
+		Kind:              TownSurfaceSchool,
+		SchoolArt:         art,
+		SchoolClass:       0,
+		SchoolColumnSet:   true,
+		SchoolColumnFrame: 0,
+		Scene: groupScene{
+			"movies": func(dst *image.RGBA) {
+				fill(uniform(172, 224, mage), image.Pt(0, 200))(dst)
+				fill(uniform(160, 224, fighter), image.Pt(320, 200))(dst)
+			},
+			"column":  fill(uniform(148, 208, column), SchoolFaceOrigin),
+			"diamond": fill(uniform(80, 76, diamond), image.Pt(200, 60)),
+		},
+		HoverCell: -1,
+		Cells:     []TownSurfaceCell{{Enabled: true, Selected: true}},
 	}
 	pix := ComposeTownSurface(v)
 	if got := pix.RGBAAt(0, 200); got != mage {

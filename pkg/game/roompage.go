@@ -74,6 +74,10 @@ func (h roomPageHost) Art() *town.Art {
 		if a := t.art.shopScreen(); a != nil {
 			return &town.Art{Frames: a.Scene}
 		}
+	case "school":
+		if a := t.in.TownSchoolArt.Value(); a != nil {
+			return &town.Art{Frames: a.Scene}
+		}
 	}
 	return nil
 }
@@ -82,8 +86,9 @@ func (h roomPageHost) Now() time.Time { return h.t.townAnimationNow() }
 
 // roomDraws binds each scene draw source to the runtime's draw service.
 var roomDraws = map[string]func(townDraws) func(int) int{
-	"tender": townDraws.tavernDraw,
-	"idle":   townDraws.shopDraw,
+	"tender":   townDraws.tavernDraw,
+	"idle":     townDraws.shopDraw,
+	"training": townDraws.schoolDraw,
 }
 
 func (h roomPageHost) Draw(source string, n int) int {
@@ -134,12 +139,14 @@ func (h roomPageHost) StopSound(v town.Voice) {
 }
 
 // roomEvents are the events the ROM1 campaign raises on its room pages: a
-// shop rack picked by the player, the merchant's reactions to a trade.
-var roomEvents = []string{"rack", "merchant-yes", "merchant-no"}
+// shop rack picked by the player, the merchant's reactions to a trade, a
+// school lesson and a change of the shown member's class.
+var roomEvents = []string{"rack", "merchant-yes", "merchant-no", "train", "class-change"}
 
 // roomValues answers the values the description names.
 var roomValues = map[string]func(t *townScreen) int{
-	"shop-chosen": func(t *townScreen) int { return t.shopChosen },
+	"shop-chosen":  func(t *townScreen) int { return t.shopChosen },
+	"member-class": (*townScreen).schoolMemberClass,
 }
 
 func (h roomPageHost) Value(name string) int {

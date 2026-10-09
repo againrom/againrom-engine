@@ -385,6 +385,64 @@
        {"hook": "faces", "cite": ["owner"]},
        {"hook": "offer-on-entry", "cite": ["DIV-157"]}
      ],
+     "scene": {
+       "random": [{"name": "training", "source": "host", "cite": ["TOWN-433"]}],
+       "art": [
+         {"name": "column", "format": "series", "key": "graphics/interface/training/column/rt%04d.bmp", "first": 0, "count": 16,
+          "size": [148, 208], "required": true, "cite": ["TOWN-146", "TOWN-147", "TOWN-149"]},
+         {"name": "diamond", "format": "series", "key": "graphics/interface/training/diamond/on%04d.bmp", "first": 0, "count": 9,
+          "size": [80, 76], "required": true, "cite": ["TOWN-154", "DIV-525"]},
+         {"name": "fighter-tr", "format": "series", "key": "movies/training/fighter/tr%04d.bmp", "first": 0, "count": 19,
+          "size": [160, 224], "cite": ["TOWN-427", "TOWN-428"]},
+         {"name": "fighter-m", "format": "series", "key": "movies/training/fighter/m%04d.bmp", "first": 1, "count": 9,
+          "size": [160, 224], "cite": ["TOWN-427", "TOWN-428"]},
+         {"name": "mage-tr", "format": "series", "key": "movies/training/mage/tr%04d.bmp", "first": 0, "count": 23,
+          "size": [172, 224], "cite": ["TOWN-427", "TOWN-428"]},
+         {"name": "mage-m", "format": "series", "key": "movies/training/mage/m%04d.bmp", "first": 1, "count": 11,
+          "size": [172, 224], "cite": ["TOWN-427", "TOWN-428"]}
+       ],
+       "sounds": {
+         "slots": [{"name": "rotate", "source": "school-training", "key": "town/school/rotate.wav", "untracked": true,
+                    "cite": ["TOWN-147", "TOWN-430"]}],
+         "cite": ["TOWN-147"]},
+       "clocks": [
+         {"name": "gate", "period-ms": 83, "compare": "greater", "rebase": "every", "cite": ["TOWN-430", "DIV-872"]}
+       ],
+       "enter-active": true,
+       "actors": [
+         {"name": "column", "program": "target", "art": "column", "frames": 16, "endpoints": [0, 15], "value": "member-class",
+          "wait": {"base-ms": 83, "compare": "greater", "cite": ["TOWN-147"]},
+          "cite": ["TOWN-146", "TOWN-147", "DIV-814"]},
+         {"name": "training", "program": "training", "clock": "gate", "column": "column", "slot": "rotate", "value": "member-class",
+          "delay": {"draw": "training", "raw": 32768, "divide": 10, "cite": ["TOWN-433"]},
+          "delay-ms": 3000,
+          "hold-pick": {"draw": "training", "raw": 32768, "form": "scaled", "n": 20, "base": 20, "cite": ["TOWN-431", "TOWN-433"]},
+          "variants": [
+            {"name": "fighter", "transition": "fighter-tr", "transition-count": 19, "idle": "fighter-m", "idle-count": 9,
+             "column-at": 6, "cite": ["TOWN-429", "TOWN-430"]},
+            {"name": "mage", "transition": "mage-tr", "transition-count": 23, "idle": "mage-m", "idle-count": 11,
+             "reverse-from": 8, "column-at": 5, "cite": ["TOWN-429", "TOWN-430", "TOWN-431"]}
+          ],
+          "on": [{"event": "class-change", "do": "change", "cite": ["TOWN-429", "DIV-873"]}],
+          "cite": ["TOWN-429", "TOWN-430", "TOWN-431", "TOWN-432", "TOWN-433", "DIV-872", "DIV-873"]},
+         {"name": "diamond", "program": "bounce", "art": "diamond", "frames": 9,
+          "on": [{"event": "train", "do": "arm", "cite": ["TOWN-379"]}],
+          "cite": ["TOWN-379", "TOWN-380", "TOWN-381", "DIV-524"]},
+         {"name": "shine", "program": "cycle", "frames": 5,
+          "wait": {"base-ms": 500, "compare": "at-least", "cite": ["TOWN-500"]},
+          "order": [[0, 1, 2, 3, 4], [0, 1, 3, 2, 4]],
+          "cite": ["TOWN-500", "DIV-121"]}
+       ],
+       "steps": [
+         {"run": ["advance diamond", "advance shine", "advance training"], "cite": ["TOWN-380", "TOWN-430", "TOWN-500"]}
+       ],
+       "layers": [
+         {"group": "movies", "actor": "mage", "mode": "copy", "at": [0, 200], "clip": [0, 0, 480, 480], "cite": ["TOWN-428"]},
+         {"group": "movies", "actor": "fighter", "mode": "copy", "at": [320, 200], "clip": [0, 0, 480, 480], "cite": ["TOWN-428"]},
+         {"group": "column", "actor": "column", "mode": "copy", "at": [168, 176], "cite": ["TOWN-146", "TOWN-428"]},
+         {"group": "diamond", "actor": "diamond", "mode": "copy", "at": [200, 60], "cite": ["TOWN-154"]}
+       ],
+       "cite": ["TOWN-428", "TOWN-430"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "gates", "page": "world-map",
      "enter": [

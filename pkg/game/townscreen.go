@@ -148,13 +148,7 @@ type townScreen struct {
 	schoolCell         int
 	// schoolSpent marks the teacher speech latches already used since the room
 	// was entered; a zero value is a set latch (TOWN-502).
-	schoolSpent    [schoolLatchCount]bool
-	schoolDiamond  schoolDiamondAnimation
-	schoolColumn   schoolColumnAnimation
-	schoolTraining schoolTrainingAnimation
-	// schoolTrainingStatic projects original process-static presentation
-	// clocks/counters and therefore survives object-local room/new-game resets.
-	schoolTrainingStatic schoolTrainingStatic
+	schoolSpent [schoolLatchCount]bool
 	// square is the square's composer view, built on first use. squareRandom
 	// is its fallback presentation generators, squareLoop its entry loop's
 	// voice and squareAction the action a click's hooks left.
@@ -297,11 +291,9 @@ func (t *townScreen) resetForNewGame() {
 	t.shelfBase, t.packBase = 0, 0
 	t.shopMember, t.tavernSelection, t.schoolCell = 0, tavernCandidateKey{}, schoolNoSelection
 	t.tavernSlotRequests = nil
-	t.schoolDiamond = schoolDiamondAnimation{}
 	t.schoolSpent = [schoolLatchCount]bool{}
-	t.schoolColumn = schoolColumnAnimation{}
 	t.schoolSounds.Stop()
-	t.resetSchoolTraining()
+	t.schoolPage().Reset()
 	t.tavernPage().Reset()
 	t.shopPage().Reset()
 	t.townStats, t.shopBook = false, false

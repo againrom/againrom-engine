@@ -35,13 +35,13 @@ func paintDiamondSchool(t *testing.T, s *townScreen) *image.RGBA {
 
 func TestSchoolDiamondTrainPaintOrbitAndCompletion(t *testing.T) {
 	f, s := diamondSchool(t)
-	if s.schoolDiamond != (schoolDiamondAnimation{}) {
+	if schoolDiamondState(s) != (diamondState{}) {
 		t.Fatal("entry or skill selection armed the diamond")
 	}
 	before := paintDiamondSchool(t, s)
 	s.townSurfaceButton(0)
-	if s.schoolDiamond != (schoolDiamondAnimation{step: 1}) {
-		t.Fatalf("first Train should arm without publishing a frame: %+v", s.schoolDiamond)
+	if schoolDiamondState(s) != (diamondState{step: 1}) {
+		t.Fatalf("first Train should arm without publishing a frame: %+v", *s.schoolDiamond())
 	}
 	if f.Town.Gold() != 800 || f.Carried[0].Hero.Skill[2] != 1 {
 		t.Fatal("diamond wiring changed the admitted training transaction")
@@ -52,10 +52,9 @@ func TestSchoolDiamondTrainPaintOrbitAndCompletion(t *testing.T) {
 	want := []int{1, 2, 3, 4, 5, 6, 7, 8, 7, 6, 5, 4, 3, 2, 1, 0}
 	for paint, frame := range want {
 		pix := paintDiamondSchool(t, s)
-		view := s.TownSurface()
-		if view.SchoolDiamondFrame != frame || view.SchoolDiamondActive != (paint < 15) {
+		if s.schoolDiamond().Frame != frame || s.schoolDiamond().Shown() != (paint < 15) {
 			t.Fatalf("paint %d: frame=%d active=%v, want %d/%v", paint+1,
-				view.SchoolDiamondFrame, view.SchoolDiamondActive, frame, paint < 15)
+				s.schoolDiamond().Frame, s.schoolDiamond().Shown(), frame, paint < 15)
 		}
 		wantPixel := before.RGBAAt(240, 100)
 		if paint < 15 {
@@ -65,11 +64,11 @@ func TestSchoolDiamondTrainPaintOrbitAndCompletion(t *testing.T) {
 			t.Fatalf("paint %d: pixel=%v, want %v", paint+1, got, wantPixel)
 		}
 	}
-	if s.schoolDiamond != (schoolDiamondAnimation{ready: true}) {
-		t.Fatalf("completion must cache hidden frame zero: %+v", s.schoolDiamond)
+	if schoolDiamondState(s) != (diamondState{ready: true}) {
+		t.Fatalf("completion must cache hidden frame zero: %+v", *s.schoolDiamond())
 	}
 	paintDiamondSchool(t, s)
-	if s.schoolDiamond != (schoolDiamondAnimation{ready: true}) ||
+	if schoolDiamondState(s) != (diamondState{ready: true}) ||
 		f.Town.Gold() != gold || !reflect.DeepEqual(party, f.Carried[0]) {
 		t.Fatal("idle paint advanced state or animation changed the training model")
 	}
@@ -79,14 +78,14 @@ func TestSchoolDiamondSnapshotsAndRawCompositionDoNotAdvance(t *testing.T) {
 	_, s := diamondSchool(t)
 	s.townSurfaceButton(0)
 	paintDiamondSchool(t, s)
-	want := s.schoolDiamond
+	want := schoolDiamondState(s)
 	for i := 0; i < 20; i++ {
 		view := s.TownSurface()
 		ui.TownSurfaceControlAt(view, image.Pt(550, 95))
 		ui.ComposeTownSurface(view)
 	}
-	if s.schoolDiamond != want {
-		t.Fatalf("a snapshot, hit test, or pure view composition advanced state: %+v != %+v", s.schoolDiamond, want)
+	if schoolDiamondState(s) != want {
+		t.Fatalf("a snapshot, hit test, or pure view composition advanced state: %+v != %+v", schoolDiamondState(s), want)
 	}
 }
 
@@ -105,15 +104,15 @@ func TestSchoolDiamondTrainRetriggersEveryReachablePhaseWithoutReset(t *testing.
 		for i := 0; i < tc.paints; i++ {
 			paintDiamondSchool(t, s)
 		}
-		before := s.schoolDiamond
+		before := schoolDiamondState(s)
 		s.townSurfaceButton(0)
-		if before.frame != tc.phase || s.schoolDiamond.frame != tc.phase ||
-			s.schoolDiamond.ready != before.ready || s.schoolDiamond.step != 1 {
-			t.Fatalf("retrigger at paint %d reset phase/current: before=%+v after=%+v", tc.paints, before, s.schoolDiamond)
+		if before.frame != tc.phase || s.schoolDiamond().Frame != tc.phase ||
+			s.schoolDiamond().Stepped != before.ready || s.schoolDiamond().Step != 1 {
+			t.Fatalf("retrigger at paint %d reset phase/current: before=%+v after=%+v", tc.paints, before, *s.schoolDiamond())
 		}
 		paintDiamondSchool(t, s)
-		if s.schoolDiamond.frame != tc.next {
-			t.Fatalf("retrigger at phase %d: next=%d, want %d", tc.phase, s.schoolDiamond.frame, tc.next)
+		if s.schoolDiamond().Frame != tc.next {
+			t.Fatalf("retrigger at phase %d: next=%d, want %d", tc.phase, s.schoolDiamond().Frame, tc.next)
 		}
 	}
 }
@@ -128,14 +127,14 @@ func TestSchoolDiamondLocalRefusalPreservesIdleAndActiveState(t *testing.T) {
 			}
 		}
 		f.Town.gold = 0
-		want := s.schoolDiamond
+		want := schoolDiamondState(s)
 		s.townSurfaceButton(0)
-		if s.schoolDiamond != want {
-			t.Fatalf("unaffordable Train changed active=%v animation: %+v != %+v", active, s.schoolDiamond, want)
+		if schoolDiamondState(s) != want {
+			t.Fatalf("unaffordable Train changed active=%v animation: %+v != %+v", active, schoolDiamondState(s), want)
 		}
 		s.clearSchoolSelection()
 		s.townSurfaceButton(0)
-		if s.schoolDiamond != want {
+		if schoolDiamondState(s) != want {
 			t.Fatal("Train without a selected skill changed the animation")
 		}
 	}
@@ -148,32 +147,32 @@ func TestSchoolDiamondPickerLeaveReentryAndNewGameBoundaries(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		paintDiamondSchool(t, s)
 	}
-	want := s.schoolDiamond
+	want := schoolDiamondState(s)
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlMode}, false)
-	if s.schoolDiamond != want || s.shopMemberIndex() != 1 {
+	if schoolDiamondState(s) != want || s.shopMemberIndex() != 1 {
 		t.Fatal("picker or statistics toggle reset/rearmed the animation")
 	}
 	paintDiamondSchool(t, s)
-	if s.schoolDiamond.frame != 5 || s.schoolDiamond.step != -1 {
-		t.Fatalf("paint following picker must continue descent: %+v", s.schoolDiamond)
+	if s.schoolDiamond().Frame != 5 || s.schoolDiamond().Step != -1 {
+		t.Fatalf("paint following picker must continue descent: %+v", *s.schoolDiamond())
 	}
-	want = s.schoolDiamond
 	s.townSurfaceButton(1)             // Exit
 	_, _ = ui.ComposeTownScreen(s, "") // fixture square has no shipped picture
 	s.Choose(0)                        // tavern
+	want = schoolDiamondState(s)
 	paintDiamondSchool(t, s)
-	if s.schoolDiamond != want {
+	if schoolDiamondState(s) != want {
 		t.Fatal("painting another room advanced hidden school state")
 	}
 	s.Back()
 	s.Choose(2)
-	if s.schoolDiamond != (schoolDiamondAnimation{}) {
-		t.Fatalf("school reentry did not clear state: %+v", s.schoolDiamond)
+	if schoolDiamondState(s) != (diamondState{}) {
+		t.Fatalf("school reentry did not clear state: %+v", *s.schoolDiamond())
 	}
-	s.schoolDiamond = want
+	setSchoolDiamondState(s, want)
 	s.resetForNewGame()
-	if s.schoolDiamond != (schoolDiamondAnimation{}) {
+	if schoolDiamondState(s) != (diamondState{}) {
 		t.Fatal("new game retained the diamond")
 	}
 }

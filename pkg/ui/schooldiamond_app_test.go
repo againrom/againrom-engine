@@ -14,7 +14,6 @@ type fakeSchoolAnimator struct {
 func (s *fakeSchoolAnimator) AtTownSurface() bool { return !s.closed }
 func (s *fakeSchoolAnimator) AdvanceTownSurfaceAnimation() {
 	s.paints++
-	s.view.SchoolDiamondFrame = s.paints
 }
 
 func TestSchoolAnimationAdvancesInAppPaintButNotUpdate(t *testing.T) {

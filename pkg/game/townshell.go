@@ -345,16 +345,11 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	if t.room == roomSchool || t.room == roomTalk && t.dialogueBuilding == TownSchool {
 		v.Kind, v.Title, v.Cells = ui.TownSurfaceSchool, "", t.schoolSurfaceCells()
 		v.SchoolArt = t.in.TownSchoolArt.Value()
-		v.SchoolDiamondFrame = t.schoolDiamond.frame
-		v.SchoolDiamondActive = t.schoolDiamond.ready && t.schoolDiamond.step != 0
+		v.Scene = roomScene{t.schoolPage()}
 		v.SchoolClass = t.schoolPanelClass()
-		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumn.frame, t.schoolColumn.ready
-		if t.schoolTrainingStatic.shineReady {
-			v.SchoolIdleShine, v.SchoolIdleSlot = true, schoolShineDisplaySlot(v.SchoolClass == schoolMageClass, t.schoolTrainingStatic.shineCycle)
-		}
-		v.SchoolTraining = t.schoolTrainingFrame()
-		if v.SchoolArt == nil || v.SchoolArt.Column[v.SchoolColumnFrame] == nil {
-			v.SchoolColumnSet = false
+		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumnShown()
+		if shine := t.schoolShine(); shine.Stamped {
+			v.SchoolIdleShine, v.SchoolIdleSlot = true, shine.Slot(v.SchoolClass)
 		}
 		_, price, ok := t.selectedSchoolSlot()
 		// Two buttons, not three: the school's shipped area picture bakes two
@@ -594,7 +589,7 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 	if t.room == roomSchool && price > 0 && price <= t.sess.Town.Gold() {
 		// TOWN-379: local admission arms before the purchase, not on a
 		// successful reply. A refusal leaves any running animation alone.
-		t.schoolDiamond.arm()
+		t.schoolPage().Event("train")
 	}
 	if !t.sess.Town.spend(price) {
 		return fmt.Sprintf("training costs %d", price)

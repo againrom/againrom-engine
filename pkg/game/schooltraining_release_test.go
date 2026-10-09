@@ -1,10 +1,12 @@
 package game
 
 import (
+	"againrom/pkg/town"
 	"bytes"
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -65,10 +67,10 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 		got  []image.Image
 		want []image.Image
 	}{
-		"fighter/tr": {f.TownSchoolArt.Value().Training[0].Transition, fighterTR},
-		"fighter/m":  {f.TownSchoolArt.Value().Training[0].Idle, fighterM},
-		"mage/tr":    {f.TownSchoolArt.Value().Training[1].Transition, mageTR},
-		"mage/m":     {f.TownSchoolArt.Value().Training[1].Idle, mageM},
+		"fighter/tr": {f.TownSchoolArt.Value().Scene["fighter-tr"], fighterTR},
+		"fighter/m":  {f.TownSchoolArt.Value().Scene["fighter-m"], fighterM},
+		"mage/tr":    {f.TownSchoolArt.Value().Scene["mage-tr"], mageTR},
+		"mage/m":     {f.TownSchoolArt.Value().Scene["mage-m"], mageM},
 	} {
 		if len(pair.got) != len(pair.want) {
 			t.Fatalf("installed %s count = %d, want %d", name, len(pair.got), len(pair.want))
@@ -148,8 +150,8 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 			t.Fatal(err)
 		}
 	}
-	if s.room != roomSchool || !s.schoolTraining.active {
-		t.Fatalf("App entered room%d active%v", s.room, s.schoolTraining.active)
+	if s.room != roomSchool || !s.schoolPage().Active() {
+		t.Fatalf("App entered room%d active%v", s.room, s.schoolPage().Active())
 	}
 	s.CloseTip()
 	// Headless load and dialogue routing may request unrelated UI sounds. The
@@ -180,7 +182,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	check := func(name string, actual *image.RGBA, wantMage, wantFighter image.Image) {
 		t.Helper()
 		view := s.TownSurface()
-		view.SchoolTraining = ui.SchoolTrainingFrame{Mage: wantMage, Fighter: wantFighter}
+		view.Scene = literalSchoolMovies{page: s.schoolPage(), mage: wantMage, fighter: wantFighter}
 		want := ui.ComposeTownSurface(view)
 		if !imagesEqual(actual, want) {
 			for y := 0; y < 480; y++ {
@@ -197,11 +199,11 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 
 	frame := drawApp(0)
 	check("fighter-tr0000", frame, nil, fighterTR[0])
-	if s.schoolTraining.sides[schoolFighterClass].transitionIndex != 0 {
+	if s.schoolTraining().Sides[schoolFighterClass].TransitionIndex != 0 {
 		t.Fatal("zero-time App paint advanced entry tr")
 	}
 	drawApp(83 * time.Millisecond)
-	if s.schoolTraining.sides[schoolFighterClass].transitionIndex != 0 {
+	if s.schoolTraining().Sides[schoolFighterClass].TransitionIndex != 0 {
 		t.Fatal("installed entry tr admitted 83ms equality")
 	}
 	for i := 0; i < 19; i++ {
@@ -219,9 +221,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	}
 
 	// Prevent the other idle side from arming during this bounded transition.
-	s.schoolTrainingStatic.initialized = [schoolClassCount]bool{true, true}
-	s.schoolTrainingStatic.idleLast = [schoolClassCount]time.Time{now, now}
-	s.schoolTrainingStatic.idleExtra = [schoolClassCount]time.Duration{3276 * time.Millisecond, 0}
+	setSchoolIdleStatics(s, now, 3276*time.Millisecond, 0)
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
 	if s.shopMemberIndex() != 1 || s.TownSurface().Hero.Member != 1 || s.TownSurface().Hero.Figure == nil || len(recorder.samples) != 0 {
 		t.Fatalf("installed class picker = member%d hero%d figure%v sounds%d busy%v class%d",
@@ -232,14 +232,14 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	check("mage-tr0000", frame, mageTR[0], nil)
 	for want := 1; want <= 5; want++ {
 		frame = drawApp(84 * time.Millisecond)
-		if s.schoolTraining.sides[schoolMageClass].transitionIndex != want {
-			t.Fatalf("installed mage tr = %d, want %d", s.schoolTraining.sides[schoolMageClass].transitionIndex, want)
+		if s.schoolTraining().Sides[schoolMageClass].TransitionIndex != want {
+			t.Fatalf("installed mage tr = %d, want %d", s.schoolTraining().Sides[schoolMageClass].TransitionIndex, want)
 		}
 	}
 	check("mage-tr0005-column01", frame, mageTR[5], nil)
-	if s.schoolColumn.frame != 1 || len(recorder.samples) != 1 || !reflect.DeepEqual(recorder.samples[0], wantSound) ||
+	if s.schoolColumn().Frame != 1 || len(recorder.samples) != 1 || !reflect.DeepEqual(recorder.samples[0], wantSound) ||
 		recorder.places[0] != (audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}) {
-		t.Fatalf("threshold column/sound = frame%d samples%d", s.schoolColumn.frame, len(recorder.samples))
+		t.Fatalf("threshold column/sound = frame%d samples%d", s.schoolColumn().Frame, len(recorder.samples))
 	}
 	columnRaw, err := f.Archives.Containers.ReadFile("graphics/interface/training/column/rt0001.bmp")
 	if err != nil {
@@ -257,7 +257,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 			}
 		}
 	}
-	s.schoolDiamond.arm()
+	s.schoolPage().Event("train")
 	frame = drawApp(0)
 	diamondRaw, err := f.Archives.Containers.ReadFile("graphics/interface/training/diamond/on0001.bmp")
 	if err != nil {
@@ -278,16 +278,14 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	for i := 0; s.schoolTrainingBusy() && i < 64; i++ {
 		drawApp(84 * time.Millisecond)
 	}
-	if s.schoolTrainingBusy() || s.schoolColumn.frame != 15 || s.schoolPanelClass() != schoolMageClass {
+	if s.schoolTrainingBusy() || s.schoolColumn().Frame != 15 || s.schoolPanelClass() != schoolMageClass {
 		t.Fatal("installed mage transition did not settle at endpoint")
 	}
 
 	// Exact idle boundary and the mage terminal skip, on live App paints.
-	s.schoolTrainingStatic.initialized = [schoolClassCount]bool{true, true}
-	s.schoolTrainingStatic.idleLast = [schoolClassCount]time.Time{now, now}
-	s.schoolTrainingStatic.idleExtra = [schoolClassCount]time.Duration{3276 * time.Millisecond, 0}
+	setSchoolIdleStatics(s, now, 3276*time.Millisecond, 0)
 	drawApp(3000 * time.Millisecond)
-	if s.schoolTraining.sides[schoolMageClass].idleActive {
+	if s.schoolTraining().Sides[schoolMageClass].IdleActive {
 		t.Fatal("installed mage idle armed at equality")
 	}
 	frame = drawApp(time.Millisecond)
@@ -296,7 +294,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	for i := 1; i <= 10; i++ {
 		frame = drawApp(84 * time.Millisecond)
 	}
-	if s.schoolTraining.sides[schoolMageClass].idleIndex != 10 {
+	if s.schoolTraining().Sides[schoolMageClass].IdleIndex != 10 {
 		t.Fatal("installed mage idle did not reach m0011")
 	}
 	check("mage-m0011", frame, mageM[10], nil)
@@ -306,20 +304,20 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	}
 	check("mage-m0011-hold", frame, mageM[10], nil)
 	frame = drawApp(84 * time.Millisecond)
-	if s.schoolTraining.sides[schoolMageClass].idleIndex != 7 || s.schoolTraining.sides[schoolMageClass].idleCached != 7 {
+	if s.schoolTraining().Sides[schoolMageClass].IdleIndex != 7 || s.schoolTraining().Sides[schoolMageClass].IdleCached != 7 {
 		t.Fatal("installed mage return did not skip m0010/m0009")
 	}
 	check("mage-m0008-return", frame, mageM[7], nil)
-	for s.schoolTraining.sides[schoolMageClass].idleActive {
+	for s.schoolTraining().Sides[schoolMageClass].IdleActive {
 		drawApp(84 * time.Millisecond)
 	}
 
 	// The fighter shares the hold arithmetic but returns normally 8 -> 7.
-	s.schoolTraining.sides[schoolFighterClass] = schoolTrainingSideAnimation{}
-	s.schoolTrainingStatic.idleLast[schoolFighterClass] = now
-	s.schoolTrainingStatic.idleExtra[schoolFighterClass] = 0
-	s.schoolTrainingStatic.idleLast[schoolMageClass] = now
-	s.schoolTrainingStatic.idleExtra[schoolMageClass] = 3276 * time.Millisecond
+	s.schoolTraining().Sides[schoolFighterClass] = town.TrainingSide{}
+	s.schoolTraining().Static[schoolFighterClass].IdleLast = now
+	s.schoolTraining().Static[schoolFighterClass].IdleExtra = 0
+	s.schoolTraining().Static[schoolMageClass].IdleLast = now
+	s.schoolTraining().Static[schoolMageClass].IdleExtra = 3276 * time.Millisecond
 	frame = drawApp(3001 * time.Millisecond)
 	check("fighter-m0001", frame, nil, fighterM[0])
 	for i := 1; i <= 8; i++ {
@@ -330,7 +328,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 		frame = drawApp(84 * time.Millisecond)
 	}
 	frame = drawApp(84 * time.Millisecond)
-	if s.schoolTraining.sides[schoolFighterClass].idleIndex != 7 || s.schoolTraining.sides[schoolFighterClass].idleCached != 7 {
+	if s.schoolTraining().Sides[schoolFighterClass].IdleIndex != 7 || s.schoolTraining().Sides[schoolFighterClass].IdleCached != 7 {
 		t.Fatal("installed fighter did not reverse m0009 -> m0008")
 	}
 	check("fighter-m0008-return", frame, nil, fighterM[7])
@@ -380,5 +378,32 @@ func writeSchoolTrainingWitness(t *testing.T, f *FrontEnd, name string, pix *ima
 	}
 	if closeErr != nil {
 		t.Fatal(closeErr)
+	}
+}
+
+// literalSchoolMovies composes the school's movie group from literal ROM1
+// placements, each side copied at its fixed point inside the content region,
+// and leaves every other group to the page.
+type literalSchoolMovies struct {
+	page          *town.Page
+	mage, fighter image.Image
+}
+
+func (l literalSchoolMovies) Paint(dst *image.RGBA, group string) {
+	if group != "movies" {
+		l.page.Paint(dst, group)
+		return
+	}
+	for _, layer := range []struct {
+		pic image.Image
+		at  image.Point
+	}{{l.mage, image.Pt(0, 200)}, {l.fighter, image.Pt(320, 200)}} {
+		if layer.pic == nil {
+			continue
+		}
+		b := layer.pic.Bounds()
+		placed := b.Add(layer.at.Sub(b.Min))
+		clip := placed.Intersect(image.Rect(0, 0, 480, 480))
+		draw.Draw(dst, clip, layer.pic, b.Min.Add(clip.Min.Sub(placed.Min)), draw.Src)
 	}
 }
