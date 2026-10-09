@@ -21,7 +21,11 @@ import (
 
 func secondCampaignFixture(t *testing.T, withTown bool) (*FrontEnd, *ui.App, *secondCampaignScreen) {
 	t.Helper()
-	var files []synth.File
+	return secondCampaignFixtureFiles(t, withTown)
+}
+
+func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File) (*FrontEnd, *ui.App, *secondCampaignScreen) {
+	t.Helper()
 	if withTown {
 		files = append(files, synth.File{Path: "text/town.txt", Data: []byte("#npc517talk10\r\n<NPC=517,PART=1>\r\nFirst page.\r\n<NPC=21,PART=2>\r\nSecond page.\r\n#other\r\n")})
 	}
@@ -74,7 +78,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if err := app.HeadlessActivate("GATES"); err == nil {
 		t.Fatal("locked gate was enabled")
 	}
-	for _, target := range []string{"TAVERN", "TALK"} {
+	for _, target := range []string{"TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -96,7 +100,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if screen.state().payload != nil {
 		t.Fatal("conversation did not close")
 	}
-	if err := app.HeadlessActivate("TALK"); err != nil {
+	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
 	if len(c.available) != 2 {
@@ -207,7 +211,8 @@ func TestSecondCampaignUnclaimedVictoryRetainsPanel(t *testing.T) {
 		t.Run(fmt.Sprint(restored), func(t *testing.T) {
 			f, app, _ := secondCampaignFixture(t, true)
 			c := newSecondCampaign()
-			n := 30
+			// 128 is outside the bank, so no ordinary departure applies.
+			n := 128
 			if restored {
 				n = 10
 			}

@@ -2,18 +2,18 @@ package game
 
 import "testing"
 
-func TestSecondCompletionUsesTheSelectedOutputTableOnlyForFirstMission(t *testing.T) {
-	src := missionSource{mainPrefix + "text/cutpaths.txt": []byte("unused\r\nselected-stem\r\nlater-stem\r\n")}
-	for _, mission := range []int{0, 1, 10, 20, 30} {
+func TestSecondCompletionUsesTheSelectedOutputTable(t *testing.T) {
+	src := missionSource{mainPrefix + "text/cutpaths.txt": []byte("unused\r\none\r\ntwo\r\nthree\r\nfour\r\nfive\r\n")}
+	for _, output := range []int{-1, 0, 1, 2, 3, 4, 5, 6, 10} {
 		want := ""
-		if mission == 10 {
-			want = "selected-stem"
+		if output >= 1 && output <= 5 {
+			want = []string{"", "one", "two", "three", "four", "five"}[output]
 		}
-		if got := secondGameCompletionDirectory(src, mission); got != want {
-			t.Fatalf("mission%d selected %q, want %q", mission, got, want)
+		if got := secondGameCompletionDirectory(src, output); got != want {
+			t.Fatalf("output%d selected %q, want %q", output, got, want)
 		}
 	}
-	if got := secondGameCompletionDirectory(nil, 10); got != "" {
+	if got := secondGameCompletionDirectory(nil, 1); got != "" {
 		t.Fatal("missing table manufactured a movie", got)
 	}
 }

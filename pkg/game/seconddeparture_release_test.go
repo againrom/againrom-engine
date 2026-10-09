@@ -394,7 +394,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 						companion.Hero.Body++
 						f.Carried = append(f.Carried, companion)
 					}
-					secondLaterChoose(t, app, "TAVERN", "TALK")
+					secondLaterChoose(t, app, "TAVERN", "TALK 517")
 					for page := 0; page < 64; page++ {
 						if app.HeadlessActivate("notice") != nil {
 							break
@@ -469,10 +469,8 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 						t.Fatal("duplicate acknowledgement advanced again")
 					}
 					secondLaterChoose(t, app, "town 2", "CANCEL", "town 2", "ENTER")
-					for _, target := range []string{"TAVERN", "TALK"} {
-						if app.HeadlessActivate(target) == nil {
-							t.Fatal("town2 reused first-town service")
-						}
+					if app.HeadlessActivate("TALK 517") == nil {
+						t.Fatal("town2 reused the first-town talk")
 					}
 					sample := secondTownSampleNow(t, f, app)
 					frame, _, err := app.HeadlessFrame()

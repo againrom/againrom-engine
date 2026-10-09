@@ -6,6 +6,15 @@ New entries go under Unreleased; a release renames that heading to its version.
 
 ## Unreleased
 
+## 0.98.0
+
+- Second game: the campaign goes on past the first missions. Winning any
+  mission continues to the places it opens, and the cutscenes that follow a
+  victory play only when their conditions are met.
+- Second game: the second town's inn lists the people to talk to. Talking to
+  them opens maps 30 and 31 from a new game, and map 31 leads on to 32.
+- Second game: every ordinary mission can be saved and loaded.
+
 ## 0.97.0
 
 - Second game: spells work. Its spell table loads on both language versions,
