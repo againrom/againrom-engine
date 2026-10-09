@@ -204,18 +204,22 @@ func minimapVisibleInstalled(t *testing.T, f *FrontEnd, a *ui.App, stage string)
 	if err != nil || !slices.Contains(layers, "minimap") {
 		t.Fatal(stage, "actual Draw omitted minimap", layers, err)
 	}
-	matches := 0
+	matches, opaque := 0, 0
 	for y := range pic.Bounds().Dy() {
 		for x := range pic.Bounds().Dx() {
 			c := pic.RGBAAt(x, y)
+			if c.A != 255 {
+				continue
+			}
+			opaque++
 			actual, known := a.DialogueBackdropPixel(1024-pic.Bounds().Dx()+x, y)
-			if c.A == 255 && known && actual == c {
+			if known && actual == c {
 				matches++
 			}
 		}
 	}
-	if matches < 27000 {
-		t.Fatal(stage, "final Draw minimap obscured", matches)
+	if opaque < 26000 || matches != opaque {
+		t.Fatal(stage, "final Draw minimap obscured", matches, opaque)
 	}
 	if !f.live.view.SaveApplication().MinimapOpen {
 		t.Fatal(stage, "capture says hidden")
@@ -229,7 +233,7 @@ func minimapVisibleInstalled(t *testing.T, f *FrontEnd, a *ui.App, stage string)
 		}
 		mapRevealPNG(t, filepath.Join(dir, t.Name()+"-"+stage+".png"), pic)
 	}
-	t.Logf("%s: terrain=%d blank-loss=0 Draw-match=%d minimap=%x", stage, terrainPixels, matches, sha256.Sum256(pic.Pix))
+	t.Logf("%s: terrain=%d blank-loss=0 Draw-match=%d opaque=%d minimap=%x", stage, terrainPixels, matches, opaque, sha256.Sum256(pic.Pix))
 }
 
 func minimapDismissNotices(t *testing.T, a *ui.App) {

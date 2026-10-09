@@ -379,9 +379,9 @@ func (v *Viewer) minimapPresent() (*image.RGBA, image.Point, bool) {
 	pic := image.NewRGBA(image.Rect(0, 0, box.X+seam, box.Y))
 	if v.dialogFrame != nil && v.dialogFrame.Minimap != nil {
 		if seam > 0 {
-			copyNative(pic, v.dialogFrame.MinimapSeam, image.Point{}, pic.Bounds())
+			copyNativeKeyed(pic, v.dialogFrame.MinimapSeam, image.Point{}, pic.Bounds())
 		}
-		copyNative(pic, v.dialogFrame.Minimap, image.Pt(seam, 0), pic.Bounds())
+		copyNativeKeyed(pic, v.dialogFrame.Minimap, image.Pt(seam, 0), pic.Bounds())
 	} else {
 		fillPanelFrame(pic, box, minimapFill, minimapBorder)
 	}

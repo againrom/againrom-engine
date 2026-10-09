@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The black area around the minimap crystal is gone; the map shows
+  through.
 - [BASE] The red square around the unit under the attack cursor is gone; the
   unit's highlight stays.
 - [BASE] The LOAD window no longer shows a note under original saves; the
