@@ -2,14 +2,13 @@ package ui
 
 import (
 	"image"
-	"image/color"
-	"image/draw"
 
 	"againrom/pkg/render/frame"
 )
 
 // gameOptionRect places controls inside the snapped Game Options frame.
-// Authored controls use compact rows below the formation and retreat groups.
+// The checkboxes, radio groups and slider keep MENU-073's 24-pixel rows; the
+// engine's own controls fit around them.
 func gameOptionRect(action gameMenuAction) image.Rectangle {
 	g := gameOptionsDialog
 	w := g.W()
@@ -17,19 +16,19 @@ func gameOptionRect(action gameMenuAction) image.Rectangle {
 	case gameMenuSpeedDown, gameMenuSpeedUp:
 		return g.Rect(40, 84, 232, 108)
 	case gameMenuDayNight:
-		return g.Rect(40, 114, 250, 138)
+		return g.Rect(40, 112, 250, 136)
 	case gameMenuSmoothing:
-		return g.Rect(40, 140, 250, 164)
+		return g.Rect(40, 136, 250, 160)
 	case gameMenuShadows:
-		return g.Rect(40, 166, 250, 190)
+		return g.Rect(40, 160, 250, 184)
 	case gameMenuLighting:
-		return g.Rect(40, 192, 250, 216)
+		return g.Rect(40, 184, 250, 208)
 	case gameMenuAnimation:
-		return g.Rect(40, 218, 250, 242)
+		return g.Rect(40, 208, 250, 232)
 	case gameMenuTooltipDelay:
-		return g.Rect(40, 244, 250, 264)
+		return g.Rect(40, 236, 250, 256)
 	case gameMenuFormation:
-		return g.Rect(40, 264, 232, 346)
+		return g.Rect(40, 256, 232, 346)
 	case gameMenuHealth:
 		return g.Rect(256, 56, 472, 80)
 	case gameMenuDamage:
@@ -39,9 +38,9 @@ func gameOptionRect(action gameMenuAction) image.Rectangle {
 	case gameMenuAutoHealing:
 		return g.Rect(256, 140, 448, 232)
 	case gameMenuPathfinding:
-		return g.Rect(256, 232, 472, 262)
+		return g.Rect(256, 232, 472, 256)
 	case gameMenuRetreat:
-		return g.Rect(256, 264, 424, 346)
+		return g.Rect(256, 256, 424, 346)
 	case gameMenuTimedAutosave:
 		return g.Rect(40, 348, 250, 372)
 	case gameMenuAutosaveMinutes:
@@ -57,19 +56,36 @@ func gameOptionRect(action gameMenuAction) image.Rectangle {
 // gameOptionSpeedLabel is the slider's caption rectangle.
 func gameOptionSpeedLabel() image.Rectangle { return gameOptionsDialog.Rect(40, 56, 232, 80) }
 
-// gameOptionChoiceRect fits three radio items below the group caption.
-func gameOptionChoiceRect(action gameMenuAction, choice int) image.Rectangle {
+// gameOptionRadioRect is a radio group's rows: three 24-pixel rows at the
+// bottom of its rectangle, under the group caption.
+func gameOptionRadioRect(action gameMenuAction) image.Rectangle {
 	r := gameOptionRect(action)
-	h := (r.Dy() - 22) / 3
-	r.Min.Y = r.Max.Y - 3*h + choice*h
-	r.Max.Y = r.Min.Y + h
-	return r
+	return image.Rect(r.Min.X, r.Max.Y-3*24, r.Max.X, r.Max.Y)
 }
 
-// gameOptionSliderPosition maps a frame x to a slider position.
-func gameOptionSliderPosition(x int) int {
-	track := gameOptionRect(gameMenuSpeedDown)
-	return min(max((x-track.Min.X)*gameSpeedLevels*2/max(1, track.Dx()-1)+1, 0), gameSpeedLevels*2) / 2
+// gameOptionChoiceRect is radio row choice of a group.
+func gameOptionChoiceRect(action gameMenuAction, choice int) image.Rectangle {
+	return choiceGroup{Rect: gameOptionRadioRect(action)}.RowRect(choice)
+}
+
+// isGameOptionButton reports the push buttons among the page's rows.
+func isGameOptionButton(a gameMenuAction) bool {
+	return a == gameMenuTooltipDelay || a == gameMenuAutosaveMinutes || a == gameMenuPageReturn || a == gameMenuOptionsCancel
+}
+
+// gameSpeedSlider is the speed control: the shared slider over the engine's
+// speed positions (MENU-118).
+func (a *App) gameSpeedSlider(speed int) hSlider {
+	p, ok := a.pointerFrame()
+	return hSlider{Rect: gameOptionRect(gameMenuSpeedDown), Pos: speed, Max: gameSpeedLevels}.withPointer(p, ok)
+}
+
+// isGameOptionCheck reports whether a Game Options row is a checkbox.
+func isGameOptionCheck(a gameMenuAction) bool {
+	if a == gameMenuToggleTips || a == gameMenuTimedAutosave {
+		return true
+	}
+	return a >= gameMenuDayNight && a <= gameMenuAutoHealing && !isRadioAction(a)
 }
 
 func isRadioAction(a gameMenuAction) bool {
@@ -96,80 +112,136 @@ func (a *App) stepGameOptionsPointer(in appInput) bool {
 		return true
 	}
 	if (in.Left || in.Right) && (focus == gameMenuSpeedDown || focus == gameMenuSpeedUp) {
-		delta := -1
+		delta := -a.gameSpeedSlider(d.speed).step()
 		if in.Right {
-			delta = 1
+			delta = -delta
 		}
 		f.setDraftSpeed(d.speed + delta)
 		f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
 		return true
 	}
+	if in.PaneMode {
+		// Tab and Shift+Tab move the focus between controls, as on Sound
+		// Options, while a focused control keeps its own arrows.
+		delta := 1
+		if in.ShiftHeld {
+			delta = -1
+		}
+		f.menuList.Move(delta)
+		return true
+	}
+	if (in.Up || in.Down) && isRadioAction(focus) {
+		// Focused arrows move the group's own selection and keep the focus
+		// (MENU-123); past the group's end they move to the next control
+		// (DIV-2592).
+		o := GameOption(focus - gameMenuDayNight)
+		n := f.optionValues()[o] + 1
+		if in.Up {
+			n -= 2
+		}
+		if n >= 0 && n < 3 {
+			f.setDraftOption(o, n)
+			f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
+			return true
+		}
+	}
+	if in.Panels && isGameOptionCheck(focus) {
+		// Focused Space toggles a checkbox (MENU-124).
+		a.chooseGameMenu()
+		a.syncViewerLayout()
+		return true
+	}
 	if in.Unfocused {
-		d.dragging = false
+		d.slider = sliderInput{}
 		return false
 	}
 	p, inFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	track := gameOptionRect(gameMenuSpeedDown)
-	if in.PrimaryPressed && inFrame && p.In(track.Inset(-4)) {
-		d.dragging = true
+	if d.radio != 0 && !in.PrimaryPressed && in.Viewer.PrimaryDown && inFrame {
+		// A held button moved over the group selects again (MENU-123).
+		a.selectGameOptionRadio(d.radio, p)
 	}
-	if d.dragging && inFrame {
-		f.setDraftSpeed(gameOptionSliderPosition(p.X))
+	held := d.slider.active()
+	if pos, set := d.slider.step(a.gameSpeedSlider(d.speed), p, inFrame, in); set {
+		f.setDraftSpeed(pos)
 		f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
 	}
-	if in.PrimaryReleased && d.dragging {
-		d.dragging = false
+	if held && !d.slider.active() {
 		a.playUISound(UISoundCommonControl)
 		return true
 	}
-	return d.dragging
+	return d.slider.active()
 }
 
-func (a *App) clickGameOptions(p image.Point) {
-	f := a.flow
-	for i, row := range f.menuRows() {
+// gameOptionsRowAt is the enabled control row under p, outside the slider.
+func (a *App) gameOptionsRowAt(p image.Point) (int, gameMenuRow, bool) {
+	for i, row := range a.flow.menuRows() {
 		if row.Status || !row.Enabled || row.Action == gameMenuSpeedDown || row.Action == gameMenuSpeedUp ||
 			!p.In(gameOptionRect(row.Action)) {
 			continue
 		}
-		f.menuList.Select(i)
-		if row.Action == gameMenuAutosaveMinutes {
-			r := gameOptionRect(row.Action)
-			delta := 1
-			if p.X < r.Min.X+r.Dx()/2 {
-				delta = -1
-			}
-			f.gameOptions.draft.autosave.Minutes = min(max(f.gameOptions.draft.autosave.Minutes+delta, 1), MaxAutosaveMinutes)
-			f.rebuildGameMenu(gameMenuGameOptionsPage, i)
-			a.playUISound(UISoundCommonControl)
-			return
-		}
-		if isRadioAction(row.Action) {
-			for n := 0; n < 3; n++ {
-				if p.In(gameOptionChoiceRect(row.Action, n)) {
-					a.playUISound(UISoundCommonControl)
-					f.setDraftOption(GameOption(row.Action-gameMenuDayNight), n)
-					f.rebuildGameMenu(gameMenuGameOptionsPage, i)
-					return
-				}
-			}
-			return
-		}
+		return i, row, true
+	}
+	return 0, gameMenuRow{}, false
+}
+
+// pressGameOptions is the page's button-down: a checkbox toggles and a radio
+// row selects on the press (MENU-123, MENU-124); a push button latches.
+func (a *App) pressGameOptions(p image.Point, ok bool) {
+	f := a.flow
+	f.menuPress.clear()
+	i, row, hit := a.gameOptionsRowAt(p)
+	if !ok || !hit {
+		return
+	}
+	f.menuList.Select(i)
+	switch {
+	case isGameOptionButton(row.Action):
+		f.menuPress.press(i, true)
+	case isRadioAction(row.Action):
+		f.gameOptions.draft.radio = row.Action
+		a.selectGameOptionRadio(row.Action, p)
+	default:
 		a.chooseGameMenu()
 		a.syncViewerLayout()
-		return
 	}
 }
 
-// drawSlider paints a track, its filled part and the thumb for position value
-// of max.
-func drawSlider(dst *image.RGBA, track image.Rectangle, value, max int, focused bool) {
-	drawMovieBox(dst, track, false)
-	filled := track.Inset(3)
-	filled.Max.X = filled.Min.X + filled.Dx()*value/max
-	draw.Draw(dst, filled, &image.Uniform{C: color.RGBA{48, 112, 130, 255}}, image.Point{}, draw.Src)
-	x := track.Min.X + value*(track.Dx()-1)/max
-	drawMovieBox(dst, image.Rect(x-4, track.Min.Y-3, x+5, track.Max.Y+3), focused)
+// selectGameOptionRadio selects the radio row under p, if it changes.
+func (a *App) selectGameOptionRadio(action gameMenuAction, p image.Point) {
+	f := a.flow
+	n, ok := choiceGroup{Rect: gameOptionRadioRect(action), Labels: make([]string, 3)}.RowAt(p)
+	o := GameOption(action - gameMenuDayNight)
+	if !ok || f.optionValues()[o] == n {
+		return
+	}
+	a.playUISound(UISoundCommonControl)
+	f.setDraftOption(o, n)
+	f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
+}
+
+// releaseGameOptions activates the latched push button on a release inside.
+func (a *App) releaseGameOptions(p image.Point, ok bool) {
+	f := a.flow
+	f.gameOptions.draft.radio = 0
+	i, row, hit := a.gameOptionsRowAt(p)
+	at, activated := f.menuPress.release(i, ok && hit && isGameOptionButton(row.Action))
+	if !activated {
+		return
+	}
+	f.menuList.Select(at)
+	if row.Action == gameMenuAutosaveMinutes {
+		r := gameOptionRect(row.Action)
+		delta := 1
+		if p.X < r.Min.X+r.Dx()/2 {
+			delta = -1
+		}
+		f.gameOptions.draft.autosave.Minutes = min(max(f.gameOptions.draft.autosave.Minutes+delta, 1), MaxAutosaveMinutes)
+		f.rebuildGameMenu(gameMenuGameOptionsPage, at)
+		a.playUISound(UISoundCommonControl)
+		return
+	}
+	a.chooseGameMenu()
+	a.syncViewerLayout()
 }
 
 func (a *App) gameOptionsPicture() *image.RGBA {
@@ -183,6 +255,7 @@ func (a *App) gameOptionsPicture() *image.RGBA {
 	font.Draw(dst, label, g.Min.X+(g.W()-font.Advance(label))/2, g.Min.Y+20, gameMenuText)
 	values := f.optionValues()
 	d := f.gameOptions.draft
+	pointer, pointerOK := a.pointerFrame()
 	for i, row := range f.menuRows() {
 		focused := i == f.menuList.Selection()
 		if row.Status {
@@ -194,84 +267,55 @@ func (a *App) gameOptionsPicture() *image.RGBA {
 		if r.Empty() {
 			continue
 		}
-		since := markCapture()
 		switch {
 		case row.Action == gameMenuSpeedDown || row.Action == gameMenuSpeedUp:
 			if row.Action == gameMenuSpeedDown {
-				drawSlider(dst, r, d.speed, gameSpeedLevels, focused || d.dragging)
-			} else if focused {
-				drawMovieBox(dst, r.Inset(-2), true)
+				drawHSlider(dst, a.media.scroll, a.gameSpeedSlider(d.speed))
 			}
-			continue
 		case isRadioAction(row.Action):
 			o := GameOption(row.Action - gameMenuDayNight)
-			if focused {
-				drawMovieBox(dst, r, true)
-			}
+			since := markCapture()
 			font.Draw(dst.SubImage(r).(*image.RGBA), gameMenuLabelText(w.Labels[o]), r.Min.X+2, r.Min.Y+2, gameMenuText)
+			if !row.Enabled {
+				dimDisabledRow(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, gameOptionRadioRect(row.Action).Min.Y), since)
+			}
 			choices := w.Formation
 			if o == GameOptionRetreat {
 				choices = w.Retreat
 			} else if o == GameOptionAutoHealing {
 				choices = w.AutoHealing
 			}
-			for n, name := range choices {
-				a.drawGameOption(dst, gameOptionChoiceRect(row.Action, n), name, values[o] == n, true)
-			}
-		case row.Action == gameMenuToggleTips:
-			if focused {
-				drawMovieBox(dst, r, true)
-			}
-			a.drawGameOption(dst, r, w.Tips, d.tips, false)
-		case row.Action == gameMenuTimedAutosave:
-			if focused {
-				drawMovieBox(dst, r, true)
-			}
-			label, _ := f.timedAutosaveLabels(d)
-			a.drawGameOption(dst, r, label, d.autosave.Enabled, false)
-		case row.Action == gameMenuTooltipDelay || row.Action == gameMenuPageReturn || row.Action == gameMenuOptionsCancel || row.Action == gameMenuAutosaveMinutes:
-			drawMovieBox(dst, r, focused)
-			text := row.text()
-			if row.Action == gameMenuPageReturn {
-				text = gameMenuLabelText(row.Label)
-			}
-			font.Draw(dst.SubImage(r).(*image.RGBA), text, r.Min.X+(r.Dx()-font.Advance(text))/2,
-				r.Min.Y+(r.Dy()-font.Height())/2, gameMenuText)
+			drawChoiceGroup(dst, font, choiceGroup{Kind: choiceRadio, Rect: gameOptionRadioRect(row.Action), Labels: choices[:],
+				Selected: values[o], Focus: focused, Disabled: !row.Enabled, Off: f.gameOptions.Radios[0], On: f.gameOptions.Radios[1]})
+		case isGameOptionButton(row.Action):
+			inside := pointerOK && pointer.In(r)
+			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Literal: row.Literal, Hover: inside, Inside: inside,
+				Focus: focused, Pressed: f.menuPress.pressed(i), Disabled: !row.Enabled})
 		default:
-			if focused {
-				drawMovieBox(dst, r, true)
+			label, on := "", false
+			switch row.Action {
+			case gameMenuToggleTips:
+				label, on = w.Tips, d.tips
+			case gameMenuTimedAutosave:
+				label, _ = f.timedAutosaveLabels(d)
+				on = d.autosave.Enabled
+			default:
+				o := GameOption(row.Action - gameMenuDayNight)
+				label, on = w.Labels[o], values[o] != 0
 			}
-			o := GameOption(row.Action - gameMenuDayNight)
-			a.drawGameOption(dst, r, w.Labels[o], values[o] != 0, false)
-		}
-		if !row.Enabled {
-			dimDisabledRow(dst, r, since)
+			a.drawGameOption(dst, r, label, on, focused, !row.Enabled)
 		}
 	}
 	return dst
 }
 
-func (a *App) drawGameOption(dst *image.RGBA, r image.Rectangle, label string, on, radio bool) {
-	art := a.flow.gameOptions.Checks
-	if radio {
-		art = a.flow.gameOptions.Radios
-	}
-	i := 0
+// drawGameOption draws one standard checkbox row through the shared
+// builder (MENU-124).
+func (a *App) drawGameOption(dst *image.RGBA, r image.Rectangle, label string, on, focused, disabled bool) {
+	g := choiceGroup{Kind: choiceCheck, Rect: r, Labels: []string{label}, Focus: focused, Disabled: disabled,
+		Off: a.flow.gameOptions.Checks[0], On: a.flow.gameOptions.Checks[1]}
 	if on {
-		i = 1
+		g.Mask = 1
 	}
-	if pic := art[i]; pic != nil {
-		p := image.Pt(r.Min.X+(24-pic.Bounds().Dx())/2, r.Min.Y+(r.Dy()-pic.Bounds().Dy())/2)
-		draw.Draw(dst, pic.Bounds().Sub(pic.Bounds().Min).Add(p), pic, pic.Bounds().Min, draw.Over)
-	} else {
-		y := r.Min.Y + (r.Dy()-16)/2
-		drawMovieBox(dst, image.Rect(r.Min.X+3, y, r.Min.X+19, y+16), on)
-	}
-	font := a.flow.menuFont
-	lines := wrapTooltipLine(gameMenuLabelText(label), font, r.Dx()-30)
-	y := r.Min.Y + (r.Dy()-len(lines)*font.Height())/2
-	for _, line := range lines {
-		font.Draw(dst.SubImage(r).(*image.RGBA), line, r.Min.X+30, y, gameMenuText)
-		y += font.Height()
-	}
+	drawChoiceGroup(dst, a.flow.menuFont, g)
 }

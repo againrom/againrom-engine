@@ -65,9 +65,9 @@ type helpState struct {
 	// it on opening.
 	okFocus bool
 
-	hold   helpHold
-	grab   int // thumb top to cursor row at the grab
-	repeat chargenRepeat
+	// bar is the scroll bar's held gesture; hot its endcap states.
+	bar               scrollBarInput
+	topHot, bottomHot bool
 }
 
 type helpScrollArt struct{ frames []*image.RGBA }
@@ -158,6 +158,7 @@ func (v *Viewer) helpApply(l NoticeLayout) NoticeLayout {
 	g := v.helpGeo()
 	l.Box = image.Rect(helpBoxX, helpBoxY, helpBoxX+helpBoxW, helpBoxY+helpBoxH)
 	l.Text, l.Scrollbar = g.text, g.bar
+	l.ScrollbarTopHot, l.ScrollbarBottomHot = v.help.topHot, v.help.bottomHot
 	l.Portrait, l.TextBesidePortrait = image.Rectangle{}, image.Rectangle{}
 	l.Button = image.Rect(helpButtonX, helpButtonY, helpButtonX+helpButtonW, helpButtonY+helpButtonH)
 	l.Ink = helpInk
@@ -241,32 +242,44 @@ func (v *Viewer) helpTab(tab bool) {
 	}
 }
 
-// helpBarParts is the up arrow, track, thumb and down arrow of a scroll bar.
-func helpBarParts(bar image.Rectangle, first, total, visible int) (up, down, track, thumb image.Rectangle) {
-	up = image.Rect(bar.Min.X, bar.Min.Y, bar.Max.X, bar.Min.Y+bar.Dx())
-	down = image.Rect(bar.Min.X, bar.Max.Y-bar.Dx(), bar.Max.X, bar.Max.Y)
-	track = image.Rect(bar.Min.X, up.Max.Y, bar.Max.X, down.Min.Y)
-	thumb = track
-	if total > visible && visible > 0 {
-		h := max(track.Dy()*visible/total, bar.Dx())
-		span := track.Dy() - h
-		top := track.Min.Y + span*first/(total-visible)
-		thumb = image.Rect(bar.Min.X, top, bar.Max.X, top+h)
-	}
-	return up, down, track, thumb
+// helpBar is the help panel's bar: the shared vertical bar over the text
+// control's top-line positions, 0..lines minus visible (MENU-078, MENU-119).
+func helpBar(bar image.Rectangle, first, total, visible int) vScrollBar {
+	return vScrollBar{Rect: bar, Pos: first, Count: max(total-visible, 0) + 1}
 }
 
-// helpHold is the scroll bar part a held primary button owns.
-type helpHold int
+// helpBarParts is the up endcap, down endcap, track and thumb of the bar.
+func helpBarParts(bar image.Rectangle, first, total, visible int) (up, down, track, thumb image.Rectangle) {
+	b := helpBar(bar, first, total, visible)
+	up, down = b.top(), b.bottom()
+	return up, down, image.Rect(bar.Min.X, up.Max.Y, bar.Max.X, down.Min.Y), b.Thumb()
+}
 
-const (
-	helpHoldNone helpHold = iota
-	helpHoldUp
-	helpHoldDown
-	helpHoldPageUp
-	helpHoldPageDown
-	helpHoldThumb
-)
+// helpBarRequest is the text control's handler of its bar's requests: set
+// position, line up, line down, page up and page down, through the same
+// routines as its keys (MENU-078).
+func (v *Viewer) helpBarRequest(req barRequest, pos int) {
+	h := v.help
+	g := v.helpGeo()
+	switch req {
+	case barSetPos:
+		v.helpSetPos(pos)
+	case barLineUp:
+		if h.cur > 0 {
+			v.helpSetPos(h.cur - 1)
+		}
+	case barLineDown:
+		v.helpSetPos(h.cur + 1)
+	case barPageUp:
+		if h.cur == h.scroll {
+			v.helpSetPos(h.scroll - g.visible)
+		} else {
+			v.helpSetPos(h.scroll)
+		}
+	case barPageDown:
+		v.helpSetPos(h.scroll + g.visible - helpPageDownLess)
+	}
+}
 
 // helpPanelPoint maps a window position to the open help panel's own pixels.
 func (v *Viewer) helpPanelPoint(x, y int) (image.Point, bool) {
@@ -278,61 +291,9 @@ func (v *Viewer) helpPanelPoint(x, y int) (image.Point, bool) {
 	return image.Pt(int(math.Floor(float64(fx-at.X)/scale)), int(math.Floor(float64(fy-at.Y)/scale))), true
 }
 
-// helpPartAt is the scroll bar part under panel point p.
-func helpPartAt(l NoticeLayout, first, total, visible int, p image.Point) helpHold {
-	if l.Scrollbar.Empty() || !p.In(l.Scrollbar) {
-		return helpHoldNone
-	}
-	up, down, _, thumb := helpBarParts(l.Scrollbar, first, total, visible)
-	switch {
-	case p.In(up):
-		return helpHoldUp
-	case p.In(down):
-		return helpHoldDown
-	case p.In(thumb):
-		return helpHoldThumb
-	case p.Y < thumb.Min.Y:
-		return helpHoldPageUp
-	}
-	return helpHoldPageDown
-}
-
-// helpStep applies one step of a held arrow or track part.
-func (v *Viewer) helpStep(part helpHold, visible int) {
-	switch part {
-	case helpHoldUp:
-		v.helpScrollBy(-1)
-	case helpHoldDown:
-		v.helpScrollBy(1)
-	case helpHoldPageUp:
-		v.helpScrollBy(-visible)
-	case helpHoldPageDown:
-		v.helpScrollBy(visible)
-	}
-}
-
-// helpThumbTo scrolls so the thumb's top follows panel row y, less the grab
-// offset, over the track's travel.
-func (v *Viewer) helpThumbTo(l NoticeLayout, y int) {
-	g := v.helpGeo()
-	if g.maxScroll() == 0 {
-		return
-	}
-	_, _, track, thumb := helpBarParts(l.Scrollbar, 0, g.lines, g.visible)
-	span := track.Dy() - thumb.Dy()
-	if span <= 0 {
-		return
-	}
-	top := min(max(y-v.help.grab-track.Min.Y, 0), span)
-	v.helpScrollBy((top*g.maxScroll()+span/2)/span - v.help.scroll)
-}
-
-// helpPointer drives the open help panel's scroll bar and wheel for one tick.
-// A press acts on its own tick: an arrow or the track steps once and the thumb
-// is grabbed. A held arrow or track repeats at the character page's held-button
-// timing while the cursor stays on the part, the thumb follows the cursor until
-// release, and the wheel steps as the mod screens' wheel does. It reports whether the
-// tick's press landed on the bar.
+// helpPointer drives the open help panel's scroll bar and wheel for one tick
+// through the shared bar input. It reports whether the tick's press landed
+// on the bar.
 func (v *Viewer) helpPointer(in appInput) bool {
 	h := v.help
 	if h == nil || !v.NoticeOpen() {
@@ -348,41 +309,21 @@ func (v *Viewer) helpPointer(in appInput) bool {
 	}
 	l := v.noticeLayout()
 	p, ok := v.helpPanelPoint(in.CursorX, in.CursorY)
-	if !ok {
-		h.hold = helpHoldNone
+	bar := helpBar(l.Scrollbar, h.scroll, g.lines, g.visible)
+	if hot := bar.withPointer(p, ok && !l.Scrollbar.Empty()); hot.TopHot != h.topHot || hot.BottomHot != h.bottomHot {
+		h.topHot, h.bottomHot = hot.TopHot, hot.BottomHot
+		v.noticeSerial++
+		v.noticePic = nil
+	}
+	if l.Scrollbar.Empty() {
+		h.bar.reset()
 		return false
 	}
-	pressed := false
-	if in.PrimaryPressed {
-		h.hold = helpPartAt(l, h.scroll, g.lines, g.visible, p)
-		pressed = h.hold != helpHoldNone
-		h.repeat = chargenRepeat{}
-		if pressed {
-			if h.hold == helpHoldThumb {
-				_, _, _, thumb := helpBarParts(l.Scrollbar, h.scroll, g.lines, g.visible)
-				h.grab = p.Y - thumb.Min.Y
-			} else {
-				v.helpStep(h.hold, g.visible)
-			}
-			h.repeat.tick(in)
-		}
-		return pressed
+	req, pos := h.bar.step(bar, p, ok, in)
+	if req != barNone {
+		v.helpBarRequest(req, pos)
 	}
-	if h.hold == helpHoldNone {
-		return false
-	}
-	if in.PrimaryReleased || !in.Viewer.PrimaryDown {
-		h.hold = helpHoldNone
-		return false
-	}
-	if h.hold == helpHoldThumb {
-		v.helpThumbTo(l, p.Y)
-		return false
-	}
-	if h.repeat.tick(in) && helpPartAt(l, h.scroll, g.lines, g.visible, p) == h.hold {
-		v.helpStep(h.hold, g.visible)
-	}
-	return false
+	return in.PrimaryPressed && h.bar.active()
 }
 
 var (
@@ -390,37 +331,12 @@ var (
 	helpBarKnobInk  = color.RGBA{24, 41, 36, 255}
 )
 
-func drawHelpScrollbar(dst *image.RGBA, f *text.Font, l NoticeLayout, first, total, visible int) {
-	bar := l.Scrollbar
-	up, down, track, thumb := helpBarParts(bar, first, total, visible)
-	if l.Frame != nil && drawScrollbarSkin(dst, l.Frame.helpScroll, up, track, down, thumb) {
-		return
+func drawHelpScrollbar(dst *image.RGBA, l NoticeLayout, first, total, visible int, topHot, bottomHot bool) {
+	var frames []*image.RGBA
+	if l.Frame != nil {
+		frames = l.Frame.helpScroll
 	}
-	for y := track.Min.Y; y < track.Max.Y; y++ {
-		for x := track.Min.X; x < track.Max.X; x++ {
-			dst.SetRGBA(x, y, helpBarTrackInk)
-		}
-	}
-	for _, knob := range []image.Rectangle{up, down, thumb} {
-		for y := knob.Min.Y; y < knob.Max.Y; y++ {
-			for x := knob.Min.X; x < knob.Max.X; x++ {
-				dst.SetRGBA(x, y, helpBarKnobInk)
-			}
-		}
-		drawDialogueButton(dst, knob, "", f, l)
-	}
-	arrow := func(r image.Rectangle, pointUp bool) {
-		cx, cy := (r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2
-		for i := 0; i < 4; i++ {
-			y := cy - 2 + i
-			if !pointUp {
-				y = cy + 1 - i
-			}
-			for x := cx - i; x <= cx+i; x++ {
-				dst.SetRGBA(x, y, dialogueButtonInk)
-			}
-		}
-	}
-	arrow(up, true)
-	arrow(down, false)
+	b := helpBar(l.Scrollbar, first, total, visible)
+	b.TopHot, b.BottomHot = topHot, bottomHot
+	drawVScrollBar(dst, frames, b)
 }

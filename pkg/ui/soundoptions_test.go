@@ -45,8 +45,7 @@ func TestSoundOptions1187PointerKeyboardPersistenceFailureAndModalExit(t *testin
 		}
 	}
 	for channel := audio.Channel(0); channel < audio.ChannelCount; channel++ {
-		track := soundSliderRect(channel)
-		start, end := image.Pt(track.Min.X, track.Min.Y+5), image.Pt(track.Max.X-1, track.Min.Y+5)
+		start, end := SoundSliderPoint(channel, 0), SoundSliderPoint(channel, 100)
 		pointer("press", start)
 		if volumes[channel] != 0 || writes != 2*int(channel)+1 {
 			t.Fatal("the press did not apply the slider at the control event", volumes, writes)
@@ -63,14 +62,15 @@ func TestSoundOptions1187PointerKeyboardPersistenceFailureAndModalExit(t *testin
 	if err := a.HeadlessKey("left"); err != nil {
 		t.Fatal(err)
 	}
-	if volumes != (audio.ChannelVolumes{100, 100, 94}) {
+	stepped := soundSliderPercent(soundSliderRange - soundKeyStep)
+	if volumes != (audio.ChannelVolumes{100, 100, stepped}) {
 		t.Fatal("keyboard did not adjust the focused speech channel", volumes)
 	}
 	fail = true
 	if err := a.HeadlessKey("left"); err != nil {
 		t.Fatal(err)
 	}
-	if volumes[audio.SpeechChannel] != 94 || !strings.Contains(a.HeadlessMessage(), "read-only profile") {
+	if volumes[audio.SpeechChannel] != stepped || !strings.Contains(a.HeadlessMessage(), "read-only profile") {
 		t.Fatal("failed write changed the value or hid the error")
 	}
 	fail = false
@@ -81,7 +81,7 @@ func TestSoundOptions1187PointerKeyboardPersistenceFailureAndModalExit(t *testin
 		t.Fatal("unpaired release changed a slider")
 	}
 	// Escape has no restore: a slider keeps the value it was moved to.
-	pointer("press", track.Min)
+	pointer("press", SoundSliderPoint(audio.MusicChannel, 0))
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}

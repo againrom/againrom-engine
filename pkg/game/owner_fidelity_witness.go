@@ -212,7 +212,8 @@ func (f *FrontEnd) witnessOwnerFidelity(root, output string, report io.Writer) e
 		}
 	}
 	if a.Screen() != ui.ScreenMap || f.live.world.Hash() != before || f.live.view.PathfindingShown() != want {
-		return fmt.Errorf("fidelity witness: double click did not restore the world and process preference")
+		return fmt.Errorf("fidelity witness: double click did not restore the world and process preference: screen %s, world kept %v, pathfinding %v",
+			a.Screen(), f.live.world.Hash() == before, f.live.view.PathfindingShown())
 	}
 	fmt.Fprintf(report, "fidelity: crystal=176x158 mage-card=%v warrior-card=%v doll=%v; real HUD compositions written\n", card.Bounds().Size(), warriorCard.Bounds().Size(), doll.Bounds().Size())
 	fmt.Fprintf(report, "fidelity: pathfinding startup=%v toggled=%v cold-profile=yes state-unchanged=yes; real SAV double-click LOAD=yes\n", initial, want)

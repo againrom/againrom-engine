@@ -49,7 +49,8 @@ func TestSound1189SelectionFocusPlayStopAndFailedWrite(t *testing.T) {
 	if list.Len() != 12 || list.Rows()[3].Text != "Title B03.wav" {
 		t.Fatal("candidate titles", list.Rows())
 	}
-	click(image.Pt(130, 217))
+	row := soundTrackBox(a.flow.menuFont).Row(3)
+	click(image.Pt(row.Min.X+60, row.Min.Y+row.Dy()/2))
 	if list.Selection() != 3 || a.music.Playing() != "B00.wav" {
 		t.Fatal("selection changed playback", list.Selection(), a.music.Playing())
 	}

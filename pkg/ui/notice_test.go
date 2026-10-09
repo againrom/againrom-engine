@@ -381,6 +381,9 @@ func TestSuccessPanelGeometryAndInputStateTable(t *testing.T) {
 			a, seam := noticeApp(t)
 			seam.v.SetNotice("Mission Completed", NoticeSuccess)
 			a.step(tc.in, now)
+			if tc.in.PrimaryPressed {
+				a.step(appInput{PrimaryReleased: true, CursorX: tc.in.CursorX, CursorY: tc.in.CursorY}, now)
+			}
 			if len(seam.actions) != 1 || seam.actions[0] != tc.want {
 				t.Fatalf("actions = %v, want [%v]", seam.actions, tc.want)
 			}

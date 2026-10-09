@@ -80,6 +80,29 @@ func modTemplate(t *testing.T, f *FrontEnd, s string) *image.RGBA {
 	return img
 }
 
+// modButtonTemplate is s as the shared push button draws its caption at
+// rest: the grey (210,210,210) ramp, each pixel packed to RGB565 and expanded
+// (MENU-115).
+func modButtonTemplate(t *testing.T, f *FrontEnd, s string) *image.RGBA {
+	t.Helper()
+	font := f.Font.Value()
+	if font == nil {
+		t.Fatal("the install has no font")
+	}
+	encoded := EncodeInstallText(s, font.Selector)
+	w, h := font.Measure(encoded)
+	img := image.NewRGBA(image.Rect(0, 0, w+1, h+1))
+	font.Draw(img, encoded, 0, 0, color.RGBA{210, 210, 210, 255})
+	for i := 0; i < len(img.Pix); i += 4 {
+		if img.Pix[i+3] == 0 {
+			continue
+		}
+		r, g, b := img.Pix[i]>>3, img.Pix[i+1]>>2, img.Pix[i+2]>>3
+		img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3] = uint8(int(r)*255/31), uint8(int(g)*255/63), uint8(int(b)*255/31), 255
+	}
+	return img
+}
+
 // findTemplate reports where inside region every glyph pixel of tmpl appears
 // on pix with the colour the template gives it.
 func findTemplate(pix, tmpl *image.RGBA, region image.Rectangle) (image.Point, bool) {
@@ -207,7 +230,7 @@ func TestReleaseModScreenMainMenuEntryOpensTheScreenAndBackReturns(t *testing.T)
 	if !box.In(image.Rect(0, 300, 260, 480)) {
 		t.Fatalf("the entry changes pixels outside the bottom left corner: %v", box)
 	}
-	label := modTemplate(t, f, screen.MenuLabel)
+	label := modButtonTemplate(t, f, screen.MenuLabel)
 	requireTemplate(t, "the entry label", menuFrame, label, box)
 	// Loss control: the same label is not on the unmodded menu.
 	requireNoTemplate(t, "the entry label on the unmodded menu", got, label, image.Rect(0, 300, 260, 480))

@@ -28,6 +28,9 @@ import (
 var (
 	tipTextColour      = color.RGBA{R: 0xe8, G: 0xdc, B: 0xc0, A: 0xff}
 	tipShellTextColour = color.RGBA{R: 0xf2, G: 0xe6, B: 0xc4, A: 0xff}
+	// tipCloseInk is the shared push button's grey caption (210,210,210)
+	// packed to 16-bit RGB565 and expanded (MENU-115).
+	tipCloseInk = color.RGBA{R: 213, G: 210, B: 213, A: 0xff}
 )
 
 func countPixels(img *image.RGBA, r image.Rectangle, want color.RGBA) int {
@@ -79,7 +82,7 @@ func assertTipPanelWitnessed(t *testing.T, screen string, v ui.TipPanelView, wor
 	if n := countPixels(with, ui.TipPanelTextRect(v.Rect), tipTextColour); n == 0 {
 		t.Errorf("%s: no pixel in the tip body's own text colour inside %v", screen, ui.TipPanelTextRect(v.Rect))
 	}
-	if n := countPixels(with, ui.TipPanelCloseRect(v.Rect), tipShellTextColour); n == 0 {
+	if n := countPixels(with, ui.TipPanelCloseRect(v.Rect), tipCloseInk); n == 0 {
 		t.Errorf("%s: no pixel in the Close label's own text colour inside %v", screen, ui.TipPanelCloseRect(v.Rect))
 	}
 	if n := countPixels(with, ui.TipPanelToggleRect(v.Rect), tipShellTextColour); n == 0 {

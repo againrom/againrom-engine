@@ -143,7 +143,7 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 		}
 		row, _ := bookTable.At(5)
 		expected := spellInfoLines(bless, sim.SpellCharacteristicsFor(sim.Rules{}, entity, bless), strings.SplitN(row, "#", 2)[0], &f.Words)
-		wantPic, _, ok := ui.ComposeTooltipHint(expected, f.Font.Value(), image.Point{}, image.Rect(0, 0, 1024, 768))
+		wantPic, _, ok := ui.ComposeTooltipHint(expected, f.Font.Value(), image.Point{}, image.Rect(0, 0, 1024, 768), f.HoverBall())
 		if !ok || !bytes.Equal(pic.Pix, wantPic.Pix) || pic.Bounds() != wantPic.Bounds() {
 			t.Fatal("mission hover did not paint cell 5's installed name")
 		}
@@ -217,7 +217,7 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 		if !state.Visible || pic == nil || !strings.HasPrefix(state.Target, "shop-item/") {
 			t.Fatalf("town hover route = %+v", state)
 		}
-		wantPic, _, ok := ui.ComposeTooltipHint(lines, f.Font.Value(), p, image.Rect(0, 0, 640, 480))
+		wantPic, _, ok := ui.ComposeTooltipHint(lines, f.Font.Value(), p, image.Rect(0, 0, 640, 480), f.HoverBall())
 		if !ok || !bytes.Equal(pic.Pix, wantPic.Pix) || pic.Bounds() != wantPic.Bounds() {
 			t.Fatal("town hover did not paint cell 12's installed name")
 		}

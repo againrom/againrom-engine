@@ -124,7 +124,7 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 	}
 	state, actual := app.HeadlessTooltip()
 	compose := func(lines []string) *image.RGBA {
-		pic, _, ok := ui.ComposeTooltipHint(lines, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480))
+		pic, _, ok := ui.ComposeTooltipHint(lines, f.tipFont(), image.Pt(x, y), image.Rect(0, 0, 640, 480), f.HoverBall())
 		if !ok || pic == nil {
 			t.Fatal("independent expected card did not compose")
 		}
