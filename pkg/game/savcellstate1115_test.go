@@ -17,8 +17,31 @@ import (
 	"againrom/pkg/vfs"
 )
 
+func beforeHeldOrderForm(t *testing.T, raw []byte) []byte {
+	t.Helper()
+	if len(raw) == 0 || raw[0] != 117 {
+		return raw
+	}
+	end := len(raw)
+	if end < 56 || string(raw[end-4:]) != "HLD1" || raw[end-5] >= 117 {
+		t.Fatal("invalid held-order fixture footer")
+	}
+	span := uint64(binary.LittleEndian.Uint32(raw[end-9:]))
+	if span < 25 || span > uint64(end-43) {
+		t.Fatal("invalid held-order fixture span")
+	}
+	start := end - 9 - int(span)
+	if count := uint64(binary.LittleEndian.Uint32(raw[start:])); count == 0 || span != 4+21*count {
+		t.Fatal("invalid held-order fixture population")
+	}
+	out := bytes.Clone(raw[:start])
+	out[0] = raw[end-5]
+	return out
+}
+
 func beforeTurnStateForm(t *testing.T, raw []byte) []byte {
 	t.Helper()
+	raw = beforeHeldOrderForm(t, raw)
 	if len(raw) == 0 || raw[0] != 115 {
 		return raw
 	}
