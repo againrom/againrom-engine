@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.105.0
+
+- [ROM1] A party member killed in a mission started from the town now keeps
+  his body for his dying time, 12 or 8 ticks, as he does after a save and
+  load. Before, his body could break down on the tick he fell.
 - [BASE] Images and sounds are read by one decoder per file format. Nothing
   on screen or in the sound changes.
 
