@@ -185,7 +185,7 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 			continue
 		}
 		e.clearPatrol()
-		e.clearEscort()
+		w.clearEscort(i)
 		o := w.ensureSavedOrder(i)
 		o.State, o.Patrol = 0xb, nil
 		o.authorNative()
@@ -267,7 +267,7 @@ func (w *World) setSavedPatrol(members []int, point cell) {
 		e := &w.entities[i]
 		w.retainCycleForState(i)
 		e.clearPatrol()
-		e.clearEscort()
+		w.clearEscort(i)
 		e.clearGroupSpeed()
 		e.ActorState = actorStatePatrol
 		e.PatrolHeadX, e.PatrolHeadY, e.PatrolTailX, e.PatrolTailY = e.X, e.Y, x, y
@@ -373,7 +373,7 @@ func (w *World) stopSavedGroupMembers(group uint32) []int {
 			w.retainCycleForState(i)
 			w.entities[i].clearGroupSpeed()
 			w.entities[i].clearPatrol()
-			w.entities[i].clearEscort()
+			w.clearEscort(i)
 			stopped = append(stopped, i)
 		}
 	}

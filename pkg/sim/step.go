@@ -1530,7 +1530,7 @@ func (w *World) clearFelledActions(i int) {
 	// the same sentence: a felled actor holds no order of either layer,
 	// so a defend or a follow state on a body is residue exactly as a
 	// patrol state is. patrolFault refuses both.
-	w.entities[i].clearEscort()
+	w.clearEscort(i)
 }
 
 // clearFelled performs the one death transition after combat, command,
