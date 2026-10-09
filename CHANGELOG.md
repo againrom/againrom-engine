@@ -8,6 +8,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.100.0
+
+- [BASE] Every save, in a mission or in town, is now written from the game as
+  it stands instead of being patched over the save you loaded. Bodies, the
+  orders units were following and the gear of fallen units are saved as they
+  are now, not as they were when the save was loaded.
+- [ROM1] Original mission saves that could not be saved again after loading,
+  failing with a message about the current Player, now save.
+
 ## 0.99.0
 
 - [BASE] A unit chasing an enemy it cannot yet reach looks for a way to it on
