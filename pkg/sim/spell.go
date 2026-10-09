@@ -641,17 +641,19 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 	if maxHP < 1 {
 		maxHP = 1
 	}
-	e := Entity{
-		ID: id, X: src.X, Y: src.Y, PostX: src.X, PostY: src.Y,
-		Owner: caster.Owner, Group: caster.Group,
-		// The ghost takes the corpse's facing with no turn in progress;
-		// DesiredFacing must equal Facing then or the byte form refuses it.
-		Facing: src.Facing, DesiredFacing: src.Facing,
+	reach, token := g.Reach, g.TokenSize
+	if reach == 0 {
+		reach = 1
+	}
+	if token == 0 {
+		token = 1
+	}
+	e := NewActor(ActorDefinition{
 		HP: maxHP, MaxHP: maxHP,
 		Class: g.Class, TypeID: g.TypeID, Domain: g.Domain,
 		Speed: g.Speed, RotationSpeed: g.RotationSpeed,
-		ScanRange: g.ScanRange, Reach: g.Reach,
-		TokenSize: g.TokenSize, DyingTime: g.DyingTime, XPValue: g.XPValue,
+		ScanRange: g.ScanRange, Reach: reach,
+		TokenSize: token, DyingTime: g.DyingTime, XPValue: g.XPValue,
 		Withdraw: g.Withdraw, Wimpy: g.Wimpy,
 		Humanoid:     g.Humanoid,
 		NativeBasis:  g.NativeBasis,
@@ -667,14 +669,9 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 		AttackRelax:  g.AttackRelax,
 		AlwaysHits:   g.AlwaysHits,
 		Reaction:     src.Reaction/2 + 1, Mind: src.Mind, Spirit: src.Spirit,
-		ActorState: actorStateGuard,
-	}
-	if e.Reach == 0 {
-		e.Reach = 1
-	}
-	if e.TokenSize == 0 {
-		e.TokenSize = 1
-	}
+	}, ActorPlacement{ID: id, X: src.X, Y: src.Y, Facing: src.Facing,
+		Owner: caster.Owner, Group: caster.Group})
+	e.standAtPost()
 	return e, true
 }
 

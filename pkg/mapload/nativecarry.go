@@ -21,10 +21,10 @@ func CaptureNativeCarryHistory(e sim.Entity) *NativeCarryHistory {
 	return &NativeCarryHistory{Basis: e.NativeBasis, Class: e.NativeClass}
 }
 
-func carriedNativeHistory(p PartyMember, e *sim.Entity) {
+func carriedNativeHistory(p PartyMember, basis *sim.NativeActorBasis, class *sim.NativeClass) {
 	if p.Carry != nil && p.Carry.NativeHistory != nil {
-		e.NativeBasis = p.Carry.NativeHistory.Basis
-		e.NativeClass = p.Carry.NativeHistory.Class
+		*basis = p.Carry.NativeHistory.Basis
+		*class = p.Carry.NativeHistory.Class
 	}
 }
 
