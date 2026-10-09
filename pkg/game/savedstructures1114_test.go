@@ -215,12 +215,12 @@ func TestSavedStructures1114BothDoorsAndFreshNativeAction(t *testing.T) {
 		return
 	}
 	payload := structureSave1114(t, 0, false)
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.Structures.Restored != 2 || report.Structures.Absent != 2 {
 		t.Fatalf("diagnostic %+v %v", report.Structures, err)
 	}
 	assertStructures1114(t, ms.World)
-	ms2, _, err := ResumeOriginalSave(f.Archives.Containers, structureSave1114(t, 0x100000, false), f.Table, mapload.DifficultyNormal, nil, nil)
+	ms2, _, err := loadOriginalMission(f, structureSave1114(t, 0x100000, false))
 	if err != nil || !reflect.DeepEqual(ms2.World.Structures(), ms.World.Structures()) {
 		t.Fatalf("reminted identities changed bindings: %v", err)
 	}

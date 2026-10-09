@@ -122,7 +122,7 @@ func TestReleaseMilestone2SpellEffects1152(t *testing.T) {
 	if len(want.roots) != 1 || len(want.nodes) != 3 || fields != 152 || typed != 41 || refs != 3 || aliases != 0 || want.span != 220 || classes["SpellTransport"] != 1 || classes["PointEffect"] != 1 || classes["Effect_DirectDamage"] != 1 {
 		t.Fatalf("SAV-EFFECTGRAPH-366 population changed: roots=%d nodes=%d fields=%d typed=%d refs=%d aliases=%d span=%d classes=%v", len(want.roots), len(want.nodes), fields, typed, refs, aliases, want.span, classes)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

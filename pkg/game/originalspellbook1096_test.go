@@ -192,7 +192,7 @@ func TestOriginalSpellbook1096EarlierActorErrorCannotMaskBookFailure(t *testing.
 			if err != nil || priorLive != front.live || priorTown != front.Town || !reflect.DeepEqual(before, after) {
 				t.Fatal("mixed-error LOAD published partial state")
 			}
-			if _, _, err := ResumeOriginalSave(front.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil); !errors.Is(err, sav.ErrSpellbook) {
+			if _, _, err := loadOriginalMission(front, payload); !errors.Is(err, sav.ErrSpellbook) {
 				t.Fatalf("diagnostic mixed-error LOAD: %v", err)
 			}
 		}

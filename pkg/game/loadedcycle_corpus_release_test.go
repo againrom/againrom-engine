@@ -37,9 +37,9 @@ func corpusEntity(w *sim.World, id sim.EntityID) (sim.Entity, bool) {
 // no destination, and a second living unit of the participant when one exists.
 func loadedCycleHolder(t *testing.T, f *FrontEnd, raw []byte, offset int) (w *sim.World, holder sim.Entity, companion sim.EntityID, hasCompanion, ok bool) {
 	t.Helper()
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
-		t.Fatalf("ResumeOriginalSave: %v", err)
+		t.Fatalf("RestoreOriginal: %v", err)
 	}
 	w = ms.World
 	for range offset {

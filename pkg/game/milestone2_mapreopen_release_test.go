@@ -12,9 +12,9 @@ import (
 // registered one asserting that resuming an original mid-mission save opens
 // the map the file itself names: existing release tests exercise session,
 // clock, cell-record and actor state on real preserved saves, but none pin
-// ResumeOriginalSave's own Mission.Number/Address against the file's Mission
+// RestoreOriginal's own Mission.Number/Address against the file's Mission
 // and MapName. It drives the same production door
-// (originalsave.go ResumeOriginalSave) TestMilestone2MapReopen's opt-in
+// (originalsave.go RestoreOriginal) TestMilestone2MapReopen's opt-in
 // corpus audit exercises independently, over one lawful owner save, in the
 // default release gate.
 func TestReleaseMilestone2MapReopen1140(t *testing.T) {
@@ -29,9 +29,9 @@ func TestReleaseMilestone2MapReopen1140(t *testing.T) {
 
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, payload)
 	if err != nil {
-		t.Fatalf("ResumeOriginalSave: %v", err)
+		t.Fatalf("RestoreOriginal: %v", err)
 	}
 	if uint32(ms.Number) != source.Head.Mission {
 		t.Fatalf("live Mission.Number %d, file Mission %d", ms.Number, source.Head.Mission)

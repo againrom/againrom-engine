@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -37,7 +36,7 @@ func TestReleaseOriginalNonPartySpellbooks1105(t *testing.T) {
 			t.Fatalf("natural non-party book: position%d,%d HP%d known%x book%+v", e.X, e.Y, e.HP, e.KnownSpells, e.Book)
 		}
 	}
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.Books.Spells < 2 {
 		t.Fatalf("diagnostic natural book %+v %v", report.Books, err)
 	}

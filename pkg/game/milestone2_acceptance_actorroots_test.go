@@ -26,7 +26,7 @@ func TestMilestone2ActorRoots(t *testing.T) {
 			cities++
 			return
 		}
-		ms, _, err := ResumeOriginalSave(fe.Archives.Containers, mf.raw, fe.Table, fe.Difficulty, nil, fe.Bodies)
+		ms, _, err := loadOriginalMission(fe, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

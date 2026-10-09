@@ -83,7 +83,7 @@ func TestSavedStructures1114SubclassesRemainCompleteAcrossNativeSave(t *testing.
 	rows[2].Class = "Outpost"
 	rows[2].OutpostWords = [4]uint32{0x84, 0x88, 0x80, 0x8c}
 	rows[2].OutpostRecords = [][8]byte{{1, 2, 3, 4, 5, 6, 7, 8}}
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, structureFixtureSave(rows), f.Table, f.Difficulty, nil, nil)
+	ms, report, err := loadOriginalMission(f, structureFixtureSave(rows))
 	if err != nil || report.Structures.Restored != 3 || report.Structures.Subclasses != 3 {
 		t.Fatalf("subclasses %+v %v", report.Structures, err)
 	}
@@ -257,7 +257,7 @@ func TestOriginalStructuresAppLoadAndNativeSaveKeepBothWords(t *testing.T) {
 				}
 				f, app = cold, coldApp
 			}
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+			ms, report, err := loadOriginalMission(f, payload)
 			if err != nil || report.Structures.Restored != 3 {
 				t.Fatalf("diagnostic restore: %+v %v", report.Structures, err)
 			}

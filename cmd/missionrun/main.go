@@ -447,50 +447,47 @@ func run(args []string, out io.Writer) error {
 		return fmt.Errorf("no asset root: pass -assets or set AGAINROM_ASSETS")
 	}
 
-	archives, err := game.OpenArchives(root)
-	if err != nil {
-		return err
-	}
-	// LoadDefinitions rather than LoadTable, so the party's hero is armed out of
-	// the SAME walk of the same file the placements resolve against — the tool
-	// and the game start the identical party or neither does.
-	defs, err := game.LoadDefinitionsFor(archives.Containers, archives.Game())
-	if err != nil {
-		return err
-	}
-	table := defs.Table
-	if defs.StartWeapon == nil {
-		fmt.Fprintln(out, "hero is BARE:", defs.StartWeaponErr)
-	}
-	// -mage TAKES game.MissionPartyAs OVER game.MissionParty: the mage arm
-	// resolves its OWN weapon off table, so defs.StartWeapon — always the
-	// fighter arm's own resolution (resolveStartingWeapon is unconditionally
-	// mage=false) — still reaches here and still arms the fighter path
-	// unchanged; MissionPartyAs is what decides whether it is ever read.
-	party := game.MissionPartyAs(*mage, defs.StartWeapon, defs.Bodies, table)
+	var table *mapload.Table
 	var ms *game.Mission
 	if saved != nil {
-		// The RESUME PATH. It starts the mission through the same call the
-		// arm below does, so the differences between a resumed drive and a
-		// fresh one are the party — which comes from the file as of 0147 —
-		// and where the map's units stand. Everything the save does not
-		// carry is stated by the report and not by silence.
-		//
-		// party IS THE FALLBACK AND NOT THE PARTY. A save whose object walk
-		// reaches no character opens with the party assembled above, and the
-		// report's own first line says which of the two happened.
-		r, rerr := game.OriginalSaveResume{}, error(nil)
-		ms, r, rerr = game.ResumeOriginalSave(archives.Containers, saved, table,
-			mapload.DifficultyNormal, party, defs.Bodies)
-		if rerr != nil {
-			return rerr
+		front, err := game.NewFrontEnd(root)
+		if err != nil {
+			return err
 		}
+		open, town, err := front.RestoreOriginal(saved)
+		if err != nil {
+			return err
+		}
+		if town {
+			return fmt.Errorf("-sav is between missions; missionrun requires a mission save")
+		}
+		if err := front.App("Mission drive").OpenMission(open); err != nil {
+			return err
+		}
+		ms = front.CurrentMission()
+		if ms == nil {
+			return fmt.Errorf("-sav did not load a mission")
+		}
+		table = front.Table
+		r := ms.OriginalSaveReport()
 		if *mission > 0 && *mission != r.Mission {
 			return fmt.Errorf("-sav names mission %d, -mission says %d", r.Mission, *mission)
 		}
 		fmt.Fprintln(out, r)
 	} else {
-		var err error
+		archives, err := game.OpenArchives(root)
+		if err != nil {
+			return err
+		}
+		defs, err := game.LoadDefinitionsFor(archives.Containers, archives.Game())
+		if err != nil {
+			return err
+		}
+		table = defs.Table
+		if defs.StartWeapon == nil {
+			fmt.Fprintln(out, "hero is BARE:", defs.StartWeaponErr)
+		}
+		party := game.MissionPartyAs(*mage, defs.StartWeapon, defs.Bodies, table)
 		ms, err = game.StartMission(archives.Containers, *mission, table, mapload.DifficultyNormal, party)
 		if err != nil {
 			return err
@@ -818,7 +815,7 @@ func drive(ms *game.Mission, table *mapload.Table, points []waypoint, blows []st
 		//
 		// RECHECKED against the premise's own failure class (round-2 adversarial
 		// review, ninth pass): both party sources this tool has —
-		// game.MissionPartyAs's fresh mint and game.ResumeOriginalSave's
+		// game.MissionPartyAs's fresh mint and the original-SAV LOAD's
 		// restoredMember (pkg/game/originalparty.go) — leave
 		// PartyMember.WeaponMaterialized at its zero value, false, on every entry
 		// to this binary; neither carries our own persisted latch in from a prior

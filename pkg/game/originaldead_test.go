@@ -132,7 +132,7 @@ func TestOriginalDead1100AppLoadSaveContinuationAndRollback(t *testing.T) {
 			}
 		}
 	}
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, deadFixturePayload(0, false), f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, deadFixturePayload(0, false))
 	if err != nil || report.CorpsesRestored != 1 || report.TerminalRestored != 1 || len(ms.World.OriginalDeadActors()) != 2 {
 		t.Fatalf("diagnostic door: %+v %v", report, err)
 	}
@@ -141,7 +141,7 @@ func TestOriginalDead1100AppLoadSaveContinuationAndRollback(t *testing.T) {
 func TestOriginalDead1100AmbiguousMapFailsBeforeAnyImport(t *testing.T) {
 	f := poolFixtureFront(t, 91, 91, 92)
 	payload := deadFixturePayload(0, false)
-	if _, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+	if _, _, err := loadOriginalMission(f, payload); err == nil || !strings.Contains(err.Error(), "ambiguous") {
 		t.Fatalf("duplicate ALM accepted: %v", err)
 	}
 	// Pure projection takes the archive list, not the heuristic actor scan.
