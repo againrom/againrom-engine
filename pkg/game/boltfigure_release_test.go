@@ -5,6 +5,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -12,10 +13,10 @@ import (
 	"againrom/pkg/sim"
 )
 
-// TestReleaseLightningFigureOverItsLife drives one installed Lightning cast
-// through its 13 driver calls on mission 41. Every call hands the drawer one
-// display stamp per stored point, on the installed lightnin sheet (5 frames),
-// at the published ramp frame (MAGIC-280, MAGIC-281, ANIM-BOLTRAMP-035).
+// TestReleaseLightningFigureOverItsLife orders an installed Lightning cast on
+// mission 41 and follows normal world ticks. The bolt is drawn on exactly 13
+// ticks at the ramp frames, one display stamp per stored point on the
+// installed lightnin sheet (MAGIC-280, MAGIC-281, ANIM-BOLTRAMP-035).
 func TestReleaseLightningFigureOverItsLife(t *testing.T) {
 	f, hero := launchWitness(t, true)
 	mw := f.live
@@ -23,33 +24,46 @@ func TestReleaseLightningFigureOverItsLife(t *testing.T) {
 	if sheet == nil || len(sheet.Frames) != 5 || chain == nil || len(chain.Frames) != 35 {
 		t.Fatalf("installed bolt sheets hold %v/%v frames, want 5 and 35", sheet, chain)
 	}
-	b := launchObserve(t, mw, hero, launchFacings[2], launchDirections[2])
-	mw.bolts = []spellBolt{b}
-	mw.bolts[0].age = 0
-	ents := mw.world.EntityView()
-	for call := 1; len(mw.bolts) > 0; call++ {
-		obj := mw.bolts[0]
+	victim := launchIssue(t, mw, hero)
+	var seed uint32
+	var frames []int
+	for tick := 0; tick < 240; tick++ {
+		mw.tick()
+		var obj *spellBolt
+		for i := range mw.bolts {
+			if b := &mw.bolts[i]; b.picture == 34 && (len(frames) == 0 || b.seed == seed) {
+				obj = b
+			}
+		}
+		if obj == nil {
+			if len(frames) > 0 {
+				break
+			}
+			continue
+		}
+		seed = obj.seed
 		ax, ay := mw.boltDisplayPoint(castOrigin(obj.from, obj.launch), obj.from)
 		bx, by := mw.boltDisplayPoint(obj.to.Mul(256), obj.to)
-		stored := boltFigure(ax, ay, bx, by, 34, (&boltRNG{state: boltSeed(obj)}).next)
-		var stamps int
-		for _, d := range mw.boltDraws(ents) {
+		stored := boltFigure(ax, ay, bx, by, 34, (&boltRNG{state: boltSeed(*obj)}).next)
+		frame, stamps := -1, 0
+		for _, d := range mw.boltDraws(mw.world.EntityView()) {
 			if d.Sheet != sheet {
 				continue
 			}
-			if !d.Display || d.Frame != boltRamp[call-1] || d.Pos != image.Pt(int(stored[stamps].X), int(stored[stamps].Y)) {
-				t.Fatalf("call %d stamp %d: %+v, want display frame %d at %v", call, stamps, d, boltRamp[call-1], stored[stamps])
+			if !d.Display || stamps >= len(stored) || (frame >= 0 && d.Frame != frame) || d.Pos != image.Pt(int(stored[stamps].X), int(stored[stamps].Y)) {
+				t.Fatalf("drawn tick %d stamp %d: %+v against %d stored points", len(frames)+1, stamps, d, len(stored))
 			}
+			frame = d.Frame
 			stamps++
 		}
 		if stamps == 0 || stamps != len(stored) {
-			t.Fatalf("call %d drew %d stamps for %d stored points", call, stamps, len(stored))
+			t.Fatalf("drawn tick %d: %d stamps for %d stored points", len(frames)+1, stamps, len(stored))
 		}
-		t.Logf("call %2d: frame %d, %d stamps from %v to %v", call, boltRamp[call-1], stamps, stored[0], stored[len(stored)-1])
-		mw.advanceBolts()
-		if call > 13 {
-			t.Fatal("the object outlived 13 calls")
-		}
+		frames = append(frames, frame)
+		t.Logf("drawn tick %2d: frame %d, %d stamps from %v to %v", len(frames), frame, stamps, stored[0], stored[len(stored)-1])
+	}
+	if !slices.Equal(frames, boltRamp[:]) {
+		t.Fatalf("Lightning at victim %d drew frames %v over %d ticks, want %v", victim, frames, len(frames), boltRamp)
 	}
 	boltRenders(t, f, hero)
 }

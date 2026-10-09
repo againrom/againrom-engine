@@ -32,7 +32,10 @@ ANIM-BOLTRAMP-035 (the phase is per route).
 
 - `boltFigure` (`pkg/game/boltfigure.go`) is the producer: float64 with every
   product rounded by an explicit conversion, so no target fuses a multiply-add
-  (DIV-2680). Constants are declared by their published bits. Re-runs and walk
+  (DIV-2680). The length helper `boltHypot` runs at its own fixed precision:
+  every step at a 64-bit significand, nearest, with binary64 stores at a, b,
+  q, h and p, emulated exactly with `math/big` and an integer square root
+  (MAGIC-282). Constants are declared by their published bits. Re-runs and walk
   attempts are bounded far above any reachable count (DIV-2682).
 - The rand recurrence is MSVC's (`boltRNG`). Each driver call seeds it from the
   observation seed and the object's age; a re-run continues that stream
@@ -46,7 +49,9 @@ ANIM-BOLTRAMP-035 (the phase is per route).
   36 frame `phase+5*(victimIndex%7)` (DIV-2684 for pixels).
 - `boltDriverPhase` runs the ramp `4,3,2,1,0,1,2,1,0,1,2,3,4` over
   `age+1` calls from actionphase 0 (caster) or -1 (cell source), keeping the
-  phase outside 1..13. Normal casts live 13 calls, direct 0x8b Lightning 5,
+  phase outside 1..13. A path object spawned during a tick is not aged
+  before that tick's push, so the observation tick draws call 1
+  (DIV-2686). Normal casts live 13 calls, direct 0x8b Lightning 5,
   and a source-cell 0x8c Prismatic Spray 13: a trigger-cast Prismatic Spray
   now draws one link per resolved victim (`ScriptCastEvent.Victims`,
   observation only).
@@ -77,12 +82,19 @@ DIV-2659. Added: DIV-2680..2686. DIV-2687 is unused.
   re-run on the continued stream; 125 whole figures equal to the oracle; one
   pinned figure.
 - `pkg/game/boltroute_test.go`: phase sequences of the normal, direct and
-  source-cell routes; picture 36 frame for victim index 9; one stamp per stored
+  source-cell routes; a path object spawned this tick keeps age 0 for its
+  first push; picture 36 frame for victim index 9; one stamp per stored
   point in order; restore at calls 2..5 continues the sequence.
 - `pkg/ui/spellbolt_test.go`: display stamp placement; display row.
-- `TestReleaseLightningFigureOverItsLife` (EN and RU): 13 calls of an
-  installed Lightning cast on mission 41, every stamp on the installed
-  5-frame `lightnin` sheet at the ramp frame and the stored point.
+- `TestReleaseLightningFigureOverItsLife` (EN and RU): an ordered Lightning
+  cast on mission 41 followed through normal world ticks is drawn on exactly
+  13 ticks at the ramp frames, every stamp on the installed 5-frame
+  `lightnin` sheet at the stored point. It fails with a life of 5 or 14.
+- `TestBoltLengthPrecisionMovesAStamp`: the installed mission-41 endpoints
+  (1451,2139)->(1552,2040) at seed 4166887068 and the vector
+  (1451,2158)->(1588,2230) at seed 1, whose length bits and first point
+  differ between PC64 and binary64 length arithmetic; it fails on the
+  binary64 helper, as does `TestBoltHypotIsPC64OverIntegerDeltas`.
 - `TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath` (EN and RU,
   renamed from the caster form): a phase-0 path lights the ground and the
   living unit standing in a fully stamped cell, and with Dynamic lighting off

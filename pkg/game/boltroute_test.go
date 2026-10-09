@@ -122,3 +122,20 @@ func TestALoadedBoltContinuesItsCounterAndPhase(t *testing.T) {
 		}
 	}
 }
+
+// A path object spawned this tick keeps age 0 for its first push.
+func TestABoltSpawnedThisTickIsNotAgedBeforeItsFirstPush(t *testing.T) {
+	t.Parallel()
+	mw := spWorld(t)
+	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
+	born := len(mw.bolts)
+	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
+	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spFireBall, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
+	if len(mw.bolts) != 3 {
+		t.Fatalf("spawned %d objects, want 3", len(mw.bolts))
+	}
+	mw.advanceBoltsBornFrom(born)
+	if got := []int{mw.bolts[0].age, mw.bolts[1].age, mw.bolts[2].age}; !slices.Equal(got, []int{1, 0, 1}) {
+		t.Fatalf("ages after the spawn tick %v, want [1 0 1]", got)
+	}
+}

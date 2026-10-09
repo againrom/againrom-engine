@@ -1,6 +1,9 @@
 package game
 
-import "math"
+import (
+	"math"
+	"math/big"
+)
 
 // The Lightning and Prismatic Spray figure, pass for pass as the original
 // builds it (MAGIC-275..278, MAGIC-282). Inputs are integer display points;
@@ -8,6 +11,7 @@ import "math"
 // to binary64 at its own instruction: each product is wrapped in an explicit
 // float64 conversion, which forbids a fused multiply-add on any target. The
 // native entry control word is Unknown; binary64 nearest is used (DIV-2680).
+// The length helper alone runs at its own fixed 64-bit precision.
 
 // The stored constants, by their published bits (MAGIC-282).
 var (
@@ -62,25 +66,66 @@ func boltFigure(ax, ay, bx, by int32, tag uint8, rand func() int) []boltPoint {
 	return boltRotate(xs, ys, dx, dy, length, tag)
 }
 
-// boltHypot is the scaled length (MAGIC-282): both deltas over their larger
-// magnitude, a square root, then the exponent of the frexp product rebuilt
-// rather than multiplied.
+// boltHypot is the scaled length (MAGIC-282). The helper installs its own
+// control word, so every step is 64-bit-significand nearest arithmetic with a
+// binary64 store at a, b, q, h and p; the exponent of the frexp product is
+// rebuilt rather than multiplied. Only the later figure arithmetic inherits
+// the Unknown incoming word (DIV-2680).
 func boltHypot(dx, dy float64) float64 {
 	adx, ady := math.Abs(dx), math.Abs(dy)
 	m := math.Max(adx, ady)
 	if m == 0 {
 		return 0
 	}
-	a, b := adx/m, ady/m
-	q := float64(a*a) + float64(b*b)
-	h := math.Sqrt(q)
+	a := boltS53(boltR64().Quo(boltX(adx), boltX(m)))
+	b := boltS53(boltR64().Quo(boltX(ady), boltX(m)))
+	q := boltS53(boltR64().Add(boltR64().Mul(boltX(a), boltX(a)), boltR64().Mul(boltX(b), boltX(b))))
+	h := boltS53(boltSqrt64(q))
 	fm, em := math.Frexp(m)
 	fh, eh := math.Frexp(h)
-	p := float64(fm * fh)
+	p := boltS53(boltR64().Mul(boltX(fm), boltX(fh)))
 	bits := math.Float64bits(p)
 	n := int((bits>>52)&0x7ff) - 1022 + em + eh
 	top := uint16(bits>>48)&0x800f | uint16((n+1022)<<4)
 	return math.Float64frombits(bits&0x0000ffffffffffff | uint64(top)<<48)
+}
+
+// boltR64 is a 64-bit-significand nearest result.
+func boltR64() *big.Float { return new(big.Float).SetPrec(64).SetMode(big.ToNearestEven) }
+
+func boltX(v float64) *big.Float { return boltR64().SetFloat64(v) }
+
+// boltS53 is a binary64 store, nearest-even.
+func boltS53(v *big.Float) float64 {
+	f, _ := v.Float64()
+	return f
+}
+
+// boltSqrt64 is sqrt(q) rounded once to a 64-bit significand, nearest-even.
+func boltSqrt64(q float64) *big.Float {
+	if !(q > 0) || math.IsInf(q, 0) {
+		return boltX(math.Sqrt(q))
+	}
+	frac, exp := math.Frexp(q)
+	mant := new(big.Int).SetUint64(uint64(math.Ldexp(frac, 53)))
+	exp -= 53
+	if exp%2 != 0 {
+		mant.Lsh(mant, 1)
+		exp--
+	}
+	const scale = 128
+	mant.Lsh(mant, scale)
+	root := new(big.Int).Sqrt(mant)
+	sticky := new(big.Int).Mul(root, root).Cmp(mant) != 0
+	drop := uint(root.BitLen() - 64)
+	low := new(big.Int).And(root, new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), drop), big.NewInt(1)))
+	half := new(big.Int).Lsh(big.NewInt(1), drop-1)
+	root.Rsh(root, drop)
+	if c := low.Cmp(half); c > 0 || c == 0 && (sticky || root.Bit(0) == 1) {
+		root.Add(root, big.NewInt(1))
+	}
+	z := boltR64().SetInt(root)
+	return z.SetMantExp(z, exp/2-scale/2+int(drop))
 }
 
 // boltSampleRun is one complete run: walk, knots, quadratic samples and the

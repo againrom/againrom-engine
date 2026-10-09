@@ -83,6 +83,22 @@ func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, 
 // until its path object stands at age 4.
 func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 	t.Helper()
+	victim := launchIssue(t, mw, hero)
+	for tick := 0; tick < 240; tick++ {
+		mw.tick()
+		for _, b := range mw.bolts {
+			if b.picture == 34 && b.age == 4 {
+				return b
+			}
+		}
+	}
+	t.Fatalf("no Lightning object reached age 4 at victim %d", victim)
+	return spellBolt{}
+}
+
+// launchIssue orders the hero's Lightning at the nearest admitted victim.
+func launchIssue(t *testing.T, mw *mapWorld, hero sim.EntityID) sim.EntityID {
+	t.Helper()
 	mw.bolts = nil
 	launchRefill(t, mw, hero)
 	h, _ := mw.entity(hero)
@@ -100,16 +116,7 @@ func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 		t.Fatal("no unit the book admits as a Lightning victim")
 	}
 	mw.pending = append(mw.pending, sim.Cast(hero, victim, spLightning))
-	for tick := 0; tick < 240; tick++ {
-		mw.tick()
-		for _, b := range mw.bolts {
-			if b.picture == 34 && b.age == 4 {
-				return b
-			}
-		}
-	}
-	t.Fatalf("no Lightning object reached age 4 at victim %d", victim)
-	return spellBolt{}
+	return victim
 }
 
 func launchRenderDir(t *testing.T) string {

@@ -154,6 +154,40 @@ func TestBoltHypotMatchesTheScaledSequence(t *testing.T) {
 	}
 }
 
+// The helper equals the oracle over integer deltas.
+func TestBoltHypotIsPC64OverIntegerDeltas(t *testing.T) {
+	rng := boltRNG{state: 11}
+	for i := 0; i < 20000; i++ {
+		dx, dy := float64(rng.next()%1200-600), float64(rng.next()%1200-600)
+		if got, want := boltHypot(dx, dy), boltOracleHypot(dx, dy); math.Float64bits(got) != math.Float64bits(want) {
+			t.Fatalf("hypot(%v,%v) bits %x, want %x", dx, dy, math.Float64bits(got), math.Float64bits(want))
+		}
+	}
+}
+
+// Two inputs whose first point differs under binary64 length arithmetic
+// (MAGIC-282): an installed mission-41 Lightning and a smaller vector.
+func TestBoltLengthPrecisionMovesAStamp(t *testing.T) {
+	for _, c := range []struct {
+		ends [4]int32
+		seed uint32
+		bits uint64
+		p0   boltPoint
+	}{
+		{[4]int32{1451, 2139, 1552, 2040}, 4166887068, 0x4061adb5accf1fec, boltPoint{1451, 2139, 34}},
+		{[4]int32{1451, 2158, 1588, 2230}, 1, 0x4063588fea0eb303, boltPoint{1451, 2157, 34}},
+	} {
+		e := c.ends
+		if got := math.Float64bits(boltHypot(float64(e[2]-e[0]), float64(e[3]-e[1]))); got != c.bits {
+			t.Errorf("%v: length bits %x, want %x", e, got, c.bits)
+		}
+		pts := boltFigure(e[0], e[1], e[2], e[3], 34, (&boltRNG{state: c.seed}).next)
+		if len(pts) == 0 || pts[0] != c.p0 {
+			t.Errorf("%v seed %d: first point %v, want %v", e, c.seed, pts, c.p0)
+		}
+	}
+}
+
 // TestBoltTruncationKeepsTheLowWord: toward zero, then the low 16 bits.
 func TestBoltTruncationKeepsTheLowWord(t *testing.T) {
 	for _, c := range []struct {
@@ -267,19 +301,22 @@ func boltOp(op byte, a, b *big.Float) *big.Float {
 
 func boltF64(z *big.Float) float64 { v, _ := z.Float64(); return v }
 
+// boltOracleHypot is MAGIC-282's PC64 length sequence with binary64 stores.
 func boltOracleHypot(dx, dy float64) float64 {
 	adx, ady := math.Abs(dx), math.Abs(dy)
 	m := math.Max(adx, ady)
 	if m == 0 {
 		return 0
 	}
-	a, b := boltOp('/', boltBF(adx), boltBF(m)), boltOp('/', boltBF(ady), boltBF(m))
-	q := boltOp('+', boltOp('*', a, a), boltOp('*', b, b))
-	h := new(big.Float).SetPrec(boltOraclePrec).SetMode(big.ToNearestEven).Sqrt(q)
+	x := func(v float64) *big.Float { return new(big.Float).SetPrec(64).SetFloat64(v) }
+	r := func() *big.Float { return new(big.Float).SetPrec(64).SetMode(big.ToNearestEven) }
+	a, b := boltF64(r().Quo(x(adx), x(m))), boltF64(r().Quo(x(ady), x(m)))
+	q := boltF64(r().Add(r().Mul(x(a), x(a)), r().Mul(x(b), x(b))))
+	h := boltF64(r().Sqrt(x(q)))
 	// p*2^(em+eh) is the rebuilt exponent: fm*fh*2^em*2^eh.
 	fm, em := math.Frexp(m)
-	fh, eh := math.Frexp(boltF64(h))
-	return math.Ldexp(boltF64(boltOp('*', boltBF(fm), boltBF(fh))), em+eh)
+	fh, eh := math.Frexp(h)
+	return math.Ldexp(boltF64(r().Mul(x(fm), x(fh))), em+eh)
 }
 
 func boltOracleQuadratic(k [6]float64) (a, b, c float64) {
