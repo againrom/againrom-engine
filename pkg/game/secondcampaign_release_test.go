@@ -11,7 +11,7 @@ import (
 
 func enterSecondCampaignMission(t *testing.T, app *ui.App) {
 	t.Helper()
-	for _, target := range []string{"new game", "TAVERN", "TALK 517"} {
+	for _, target := range []string{"new game", "TAVERN", "NPC 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -29,6 +29,9 @@ func enterSecondCampaignMission(t *testing.T, app *ui.App) {
 		if pages == 63 {
 			t.Fatal("initial inn dialogue exceeded 64 pages")
 		}
+	}
+	if err := app.HeadlessKey("escape"); err != nil {
+		t.Fatal(err)
 	}
 	for _, target := range []string{"GATES", "mission 10", "ENTER"} {
 		if err := app.HeadlessActivate(target); err != nil {

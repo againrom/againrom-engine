@@ -15,6 +15,18 @@ const townTavernArtPrefix = graphicsPrefix + "interface/inn/"
 // type-indexed roster pictures once. Like the school surface it is cosmetic and
 // is carried with an error rather than making startup fatal.
 func LoadTownTavernArt(src terrain.EntrySource) (*ui.TownTavernArt, error) {
+	return loadTownTavernArt(src, true)
+}
+
+// LoadSecondTownTavernArt is the same room over a second-game install. That
+// install ships no Unit2 or Unit6 sheet and its tavern hires no one, so a
+// missing mercenary sheet leaves its slot empty instead of failing the room
+// (DIV-2674).
+func LoadSecondTownTavernArt(src terrain.EntrySource) (*ui.TownTavernArt, error) {
+	return loadTownTavernArt(src, false)
+}
+
+func loadTownTavernArt(src terrain.EntrySource, mercenaries bool) (*ui.TownTavernArt, error) {
 	a := &ui.TownTavernArt{}
 	var err error
 	if a.LeftPicture, err = readChargenBMP(src, townTavernArtPrefix+"leftpicture.bmp"); err != nil {
@@ -119,6 +131,9 @@ func LoadTownTavernArt(src terrain.EntrySource) (*ui.TownTavernArt, error) {
 	}
 	for typ := 1; typ <= 15; typ++ {
 		frames, err := tavernSheetFrames(src, fmt.Sprintf("unit%d", typ))
+		if err != nil && !mercenaries {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}

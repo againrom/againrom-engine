@@ -278,6 +278,9 @@ func (t *townScreen) stopTownCrowd() {
 }
 
 func (t *townScreen) exteriorGateAvailable() bool {
+	if t.gateRule != nil {
+		return t.gateRule()
+	}
 	return t.sess.Town.gateMission() != -1
 }
 

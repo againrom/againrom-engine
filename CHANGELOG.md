@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The first town is drawn as the first game's town: the square with
+  its animations, sounds and building highlights, and the tavern room, both
+  from the second game's own art. Click the tavern to talk to its people and
+  the gates to travel. The shop is closed and the school does not open.
 - [ROM1] Town tips look like the original: ornate frame, solid teal fill,
   justified shadowed text, a panel sized to its text, and the checkbox and
   Close inside the frame.

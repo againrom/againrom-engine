@@ -78,7 +78,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if err := app.HeadlessActivate("GATES"); err == nil {
 		t.Fatal("locked gate was enabled")
 	}
-	for _, target := range []string{"TAVERN", "TALK 517"} {
+	for _, target := range []string{"TAVERN", "NPC 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -100,7 +100,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if screen.state().payload != nil {
 		t.Fatal("conversation did not close")
 	}
-	if err := app.HeadlessActivate("TALK 517"); err != nil {
+	if err := app.HeadlessActivate("NPC 517"); err != nil {
 		t.Fatal(err)
 	}
 	if len(c.available) != 2 {
@@ -111,9 +111,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessActivate("GATES"); err != nil {
-		t.Fatal(err)
-	}
+	secondTownGates(t, f, app)
 	beforeBank, beforeCurrent := c.bank, c.current
 	beforeAvailable := append([]secondLocation(nil), c.available...)
 	beforeParty := mapload.CloneParty(f.Carried)

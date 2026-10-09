@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sync"
 
+	"againrom/pkg/base"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -80,7 +81,11 @@ func loadInstallShare(root string) (*installShare, error) {
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)
 	s.units, s.unitsErr = LoadUnits(archives.Containers)
 	s.townSchool, s.townSchoolErr = LoadTownSchoolArt(archives.Containers)
-	s.townTavern, s.townTavernErr = LoadTownTavernArt(archives.Containers)
+	if match.Profile.GameOf() == base.GameROM2 {
+		s.townTavern, s.townTavernErr = LoadSecondTownTavernArt(archives.Containers)
+	} else {
+		s.townTavern, s.townTavernErr = LoadTownTavernArt(archives.Containers)
+	}
 	s.townSquare, s.townSquareErr = LoadTownSquareArt(archives.Containers)
 	return s, nil
 }

@@ -124,6 +124,7 @@ func nonZeroTownScreen() *townScreen {
 		worldPositionSet:    true,
 		worldSelectedOnce:   map[int]bool{5: true},
 		resolver:            speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}},
+		gateRule:            func() bool { return true },
 	}
 }
 
@@ -138,6 +139,7 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"latches":             "the process-level bird and star latches; do not change across a load",
 		"pc":                  "the persistence component the screen reads; does not change across a load",
 		"openMission":         "the mission opener port; does not change across a load",
+		"gateRule":            "the gate port of the campaign that draws this town; does not change across a load",
 		"shopIconCache":       "item pictures keyed by item CODE, resolved from the install's own archives",
 		"shopSpellAtlasImg":   "spell atlas resolved from the install's own archives",
 		"shopSpellAtlasTried": "spell-atlas load attempt belongs to the install, not a game",

@@ -893,6 +893,8 @@ pkg/game.TestReleaseCurrentSkillInverseClass
 
 pkg/game.TestReleaseSecondCampaignFirstRoute
 pkg/game.TestReleaseSecondCampaignFailureDoesNotLeave
+pkg/game.TestReleaseSecondFirstTownSquareAndTavern
+pkg/game.TestReleaseSecondFirstTownColdLoadKeepsTheRoom
 pkg/game.TestReleaseSecondGameFirstSuccessPresentation
 pkg/game.TestReleaseSecondGameFirstMovieControls
 pkg/video/smacker.TestReleaseSecondGameFirstMovieAgainstOracles

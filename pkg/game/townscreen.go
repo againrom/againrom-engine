@@ -254,6 +254,10 @@ type townScreen struct {
 	worldSelectedOnce map[int]bool
 
 	resolver speakerResolver
+
+	// gateRule replaces the campaign's gate answer when another campaign
+	// draws its town through this screen; nil keeps the first game's rule.
+	gateRule func() bool
 }
 
 // resetWorldPosition drops the party's own remembered map position

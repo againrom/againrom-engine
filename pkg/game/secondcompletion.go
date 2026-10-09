@@ -20,7 +20,14 @@ func secondGameCompletionDirectory(src entrySource, output int) string {
 func reportWordsFor(words *InstallWords, game base.Game) ui.Words {
 	result := words.Words()
 	if game == base.GameROM2 && words != nil {
-		for _, value := range []*string{&result.MissionWon, &result.MenuVictory, &result.OutcomeContinue} {
+		// The tavern buttons and the square's five hints are the installed
+		// words the first town draws (DIV-2378).
+		values := []*string{&result.MissionWon, &result.MenuVictory, &result.OutcomeContinue,
+			&result.TavernTalk, &result.TavernExit, &result.TavernHired}
+		for slot := 233; slot <= 237; slot++ {
+			values = append(values, &result.Hover[slot])
+		}
+		for _, value := range values {
 			*value = string(secondGameMissionBytes([]byte(*value), words.Selector))
 		}
 	}

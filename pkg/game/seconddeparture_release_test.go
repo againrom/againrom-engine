@@ -394,13 +394,14 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 						companion.Hero.Body++
 						f.Carried = append(f.Carried, companion)
 					}
-					secondLaterChoose(t, app, "TAVERN", "TALK 517")
+					secondLaterChoose(t, app, "TAVERN", "NPC 517")
 					for page := 0; page < 64; page++ {
 						if app.HeadlessActivate("notice") != nil {
 							break
 						}
 					}
-					secondLaterChoose(t, app, "GATES", "mission 10", "ENTER")
+					secondTownGates(t, f, app)
+					secondLaterChoose(t, app, "mission 10", "ENTER")
 					enterSecondCampaignNextMission(t, f, app, false)
 					if enriched {
 						f.live.world.SetPurse(sim.SelfSlot, 913)

@@ -98,9 +98,23 @@ func secondTownNew(t *testing.T, inn, unlocked bool) (*FrontEnd, *ui.App) {
 	return f, app
 }
 
+// secondTownGates leaves the first town's tavern for the square, as Escape
+// does, and departs by its gates.
+func secondTownGates(t *testing.T, f *FrontEnd, app *ui.App) {
+	t.Helper()
+	if f.Town.second.room == secondTownInn {
+		if err := app.HeadlessKey("escape"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := app.HeadlessActivate("GATES"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func secondTownTalk(t *testing.T, app *ui.App) {
 	t.Helper()
-	if err := app.HeadlessActivate("TALK 517"); err != nil {
+	if err := app.HeadlessActivate("NPC 517"); err != nil {
 		t.Fatal(err)
 	}
 	for page := 0; page < 64; page++ {
@@ -218,9 +232,7 @@ func secondTownEnter(t *testing.T, f *FrontEnd, app *ui.App) {
 	if len(c.available) != 2 {
 		t.Fatal("repeated ordinary TALK duplicated destination")
 	}
-	if err := app.HeadlessActivate("GATES"); err != nil {
-		t.Fatal(err)
-	}
+	secondTownGates(t, f, app)
 	party := mapload.CloneParty(f.Carried)
 	for _, target := range []string{"mission 10", "CANCEL"} {
 		if err := app.HeadlessActivate(target); err != nil {
@@ -441,7 +453,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if err := app.HeadlessActivate("TAVERN"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessActivate("TALK 517"); err != nil {
+	if err := app.HeadlessActivate("NPC 517"); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := view.ExportCurrentSave(detached, "same producer")
@@ -459,10 +471,9 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	}
 	secondTownDismissAck(t, app)
 	secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
-	for _, target := range []string{"GATES", "mission 10"} {
-		if err := app.HeadlessActivate(target); err != nil {
-			t.Fatal(err)
-		}
+	secondTownGates(t, f, app)
+	if err := app.HeadlessActivate("mission 10"); err != nil {
+		t.Fatal(err)
 	}
 	if f.Town.second.selected == (secondLocation{}) {
 		t.Fatal("destination was not selected")
@@ -693,7 +704,7 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessActivate("TALK 517"); err != nil {
+	if err := app.HeadlessActivate("NPC 517"); err != nil {
 		t.Fatal(err)
 	}
 	c := f.Town.second

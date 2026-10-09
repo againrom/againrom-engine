@@ -17,7 +17,7 @@ import (
 // maps no published inn entry admits from a new game (DIV-2392).
 func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32) {
 	t.Helper()
-	for _, target := range []string{"new game", "TAVERN", "TALK 517"} {
+	for _, target := range []string{"new game", "TAVERN", "NPC 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}

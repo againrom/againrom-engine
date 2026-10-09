@@ -218,6 +218,7 @@ type secondCampaignScreen struct {
 	open    missionDoor
 	frame   func() *ui.DialogFrame
 	start   func() error
+	firstTownView
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -229,8 +230,10 @@ func (f *FrontEnd) startSecondCampaign() error {
 }
 
 func (f *FrontEnd) secondCampaignScreen() ui.TownScreen {
-	return &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
+	t := &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
 		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign}
+	t.bindFirstTown(f)
+	return t
 }
 
 func (t *secondCampaignScreen) StartNewGame() error {
@@ -264,6 +267,9 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 	c := t.state()
 	if c == nil {
 		return nil
+	}
+	if c.current == firstSecondTown {
+		return t.firstTownRows(c)
 	}
 	if c.current.kind == 2 {
 		gates := ui.TownRow{Text: "GATES", Choosable: c.gateOpen()}
@@ -310,6 +316,9 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	c := t.state()
+	if c.current == firstSecondTown {
+		return t.chooseFirstTown(c, i)
+	}
 	if c.current.kind != 2 {
 		if i < len(c.available) {
 			c.selected = c.available[i]
@@ -333,7 +342,11 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		c.room = secondTownInn
 		return ui.TownAction{}
 	}
-	o := c.speakers()[i]
+	return t.talk(c, c.speakers()[i])
+}
+
+// talk runs one inn TALK: the npc%dtalk%d dialogue, then TalkTo.
+func (t *secondCampaignScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
 	payload, err := readSecondTownTalk(t.install, secondTalkKey(o))
 	if err != nil {
 		return ui.TownAction{Msg: err.Error()}
