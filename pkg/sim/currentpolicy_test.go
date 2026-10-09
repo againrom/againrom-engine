@@ -16,7 +16,7 @@ func TestCurrentSpellPolicyKeepsAdmissionAndOrdinaryBookAuthority(t *testing.T) 
 		if len(policy.SpellPolicies) != 1 {
 			t.Fatal("missing current delivery deviation", policy.SpellPolicies)
 		}
-		raw, err := json.Marshal(policy)
+		raw, err := json.Marshal(policy.SpellPolicies)
 		if err != nil {
 			t.Fatal(err)
 		}

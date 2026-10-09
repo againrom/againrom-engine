@@ -356,7 +356,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	}
 	w, _ := sim.NewStructuredWorld(Seed, b, sim.ModeCanonical, Planes(m, t), ents, nil,
 		relationFrom(groups), authoredSacks, append(authoredStock, loadout...), spellsFor(t),
-		ghostTemplate(t, diff), Structures(m, t))
+		ghostTemplate(t), Structures(m, t))
 	w.SetRules(t.rules())
 	authored := units
 	if m != nil && m.AuthoredUnits != nil {
@@ -836,38 +836,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		return spawnBlock{}, err
 	}
 	if ok {
-		resolved := Resolve(u, t)
-		params := t.units().EntryParams(resolved.Index)
-		known, book, slots := unitSpellbook(params, t, def.TypeID)
-		var skill [data.SkillSlots]int32
-		if len(params) > 14 && params[14] >= 0 {
-			skill[data.SkillGeneral] = params[14]
-		}
-		if def.Face == 4 {
-			for i := 1; i < len(skill); i++ {
-				skill[i] = 30
-			}
-		}
-		nativeBasis := nativeInitialModifier(nativeInitialBase(nil), &worn, t, skill[0], false, true)
-		return spawnBlock{class: int32(u.ClassID), health: def.HealthMax, domain: domainFor(def),
-			nativeBasis: nativeBasis.WithBody(uint16(def.Body)),
-			speed:       def.Speed, sight: sightOf(def.ScanRange), seeInvisible: sightOf(def.SeeInvisible), dying: def.DyingTime,
-			withdraw: def.Withdraw, wimpy: def.Wimpy,
-			combat: def.Combat(), protection: def.Protection,
-			resistance: data.DamageKindResistance(def.Resistance), tokenSize: uint8(def.TokenSize),
-			mana: def.Mana, manaMax: def.ManaMax,
-			healthPeriod: def.HealthRegenPeriod, manaPeriod: def.ManaRegenPeriod,
-			rotationSpeed:   def.RotationSpeed,
-			secondaryDamage: def.SecondaryDamage,
-			// THE ROW'S OWN EXPERIENCE VALUE AND MIND, off the same def every other
-			// field above comes off. A CREATURE DOES NOT GAIN: a units row derives no
-			// class from anywhere — UnitDef.Combat's own doc says as much of the
-			// slot it leaves at zero — so there is no class here that could earn,
-			// and the flag says so rather than leaving a gain to be paid at zero.
-			xpValue: def.XPValue, reaction: def.Reaction, mind: def.Mind, spirit: def.Spirit, gainsXP: false,
-			typeID: def.TypeID, goldChance: def.GoldChance,
-			treasureMin: def.TreasureMin, treasureMax: def.TreasureMax, capacity: data.UnitCapacity(),
-			skill: skill, knownSpells: known, book: book, creatureSpells: slots, worn: worn}, nil
+		return unitRowBlock(int32(u.ClassID), Resolve(u, t).Index, def, worn, t), nil
 	}
 
 	h, w, hworn, hcarried, ok, err := definitionForHuman(u, t)
@@ -989,4 +958,40 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		// and that tier derives no class, so there is nothing here that could
 		// earn.
 		xpValue: d.XPValue, reaction: d.Reaction, mind: d.Mind, spirit: d.Spirit, gainsXP: false, capacity: data.UnitCapacity()}, nil
+}
+
+// unitRowBlock is the creature arm's block for the Units row at index. class
+// is a placement's ClassID or the raised Ghost's TypeID.
+func unitRowBlock(class int32, index int, def data.UnitDef, worn [sim.EquipSlots]sim.ItemInstance, t *Table) spawnBlock {
+	params := t.units().EntryParams(index)
+	known, book, slots := unitSpellbook(params, t, def.TypeID)
+	var skill [data.SkillSlots]int32
+	if len(params) > 14 && params[14] >= 0 {
+		skill[data.SkillGeneral] = params[14]
+	}
+	if def.Face == 4 {
+		for i := 1; i < len(skill); i++ {
+			skill[i] = 30
+		}
+	}
+	nativeBasis := nativeInitialModifier(nativeInitialBase(nil), &worn, t, skill[0], false, true)
+	return spawnBlock{class: class, health: def.HealthMax, domain: domainFor(def),
+		nativeBasis: nativeBasis.WithBody(uint16(def.Body)),
+		speed:       def.Speed, sight: sightOf(def.ScanRange), seeInvisible: sightOf(def.SeeInvisible), dying: def.DyingTime,
+		withdraw: def.Withdraw, wimpy: def.Wimpy,
+		combat: def.Combat(), protection: def.Protection,
+		resistance: data.DamageKindResistance(def.Resistance), tokenSize: uint8(def.TokenSize),
+		mana: def.Mana, manaMax: def.ManaMax,
+		healthPeriod: def.HealthRegenPeriod, manaPeriod: def.ManaRegenPeriod,
+		rotationSpeed:   def.RotationSpeed,
+		secondaryDamage: def.SecondaryDamage,
+		// THE ROW'S OWN EXPERIENCE VALUE AND MIND, off the same def every other
+		// field above comes off. A CREATURE DOES NOT GAIN: a units row derives no
+		// class from anywhere — UnitDef.Combat's own doc says as much of the
+		// slot it leaves at zero — so there is no class here that could earn,
+		// and the flag says so rather than leaving a gain to be paid at zero.
+		xpValue: def.XPValue, reaction: def.Reaction, mind: def.Mind, spirit: def.Spirit, gainsXP: false,
+		typeID: def.TypeID, goldChance: def.GoldChance,
+		treasureMin: def.TreasureMin, treasureMax: def.TreasureMax, capacity: data.UnitCapacity(),
+		skill: skill, knownSpells: known, book: book, creatureSpells: slots, worn: worn}
 }

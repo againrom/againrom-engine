@@ -2003,7 +2003,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1777,
+		"longcommentgroups":      1776,
 	},
-	CommentBytes: 8504711,
+	CommentBytes: 8503778,
 }
