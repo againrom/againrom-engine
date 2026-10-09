@@ -9,7 +9,7 @@ mod town are further descriptions for it, not further code. The rooms behind
 the square (tavern, shop, school, world map) stay the existing room pages and
 are reached through a named page and campaign hooks; a later story moves them.
 
-Base: `5d22d8cc` (game 0.102.0), merged with `75bd892d` (game 0.103.0).
+Base: `5d22d8cc` (game 0.102.0), merged with `51cccab7` (game 0.104.0).
 Knowledge pin: k208.
 
 ## Authority
@@ -56,6 +56,8 @@ Knowledge pin: k208.
   `school-reset`, `navigate`, `inn-queue-commit`, `trade-cancel` and
   `gate-closed`. Room entry and exit run as ordered step lists in the
   description, so the S19/S20 order is data.
+- The town screen builds its square view when its services are bound, so a
+  reader such as a refused LOAD's save check leaves the screen unchanged.
 - `pkg/ui` no longer knows the square: `TownSquareView` carries a
   `TownSquareScene` (size, paint, control and tip at a point), and the ui
   draws the message line and the tip panel over it. The music request takes
