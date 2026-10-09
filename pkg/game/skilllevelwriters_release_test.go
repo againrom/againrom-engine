@@ -238,16 +238,32 @@ func actSkill(t *testing.T, f *FrontEnd, id sim.EntityID, spell uint32) {
 		t.Fatal("mission holds no reachable hostile actor to train on")
 	}
 	for tick := 0; releaseEntity(t, f.live, id).CastWait != 0 && tick < 512; tick++ {
-		f.live.tick()
+		skillTick(t, f, id)
 	}
 	_ = f.live.world.HeadlessHeal(id)
 	_ = f.live.world.HeadlessHeal(victim.ID)
 	f.live.attackOrCast(uint32(id), uint32(victim.ID), spell, int(victim.X), int(victim.Y), false)
 	for tick := 0; tick < 48; tick++ {
-		f.live.tick()
+		skillTick(t, f, id)
 		// The trainee stands among live foes for every award; it is kept alive
 		// so the count of awards does not hang on which fights it survives.
 		_ = f.live.world.HeadlessHeal(id)
+	}
+}
+
+// skillTick advances one tick. The rule raises a slot one level per award,
+// and one tick lands at most a cast award and a hit award, so no slot rises
+// by more than two in a tick. The bound is per tick, not per ordered cast: a
+// trainee among live foes also casts at its attackers on its own.
+func skillTick(t *testing.T, f *FrontEnd, id sim.EntityID) {
+	t.Helper()
+	before := releaseEntity(t, f.live, id).Skill
+	f.live.tick()
+	after := releaseEntity(t, f.live, id).Skill
+	for slot := range after {
+		if after[slot] > before[slot]+2 {
+			t.Fatalf("tick %d (a cast award and a hit award) raised slot %d from %d to %d", f.live.world.Tick(), slot, before[slot], after[slot])
+		}
 	}
 }
 
@@ -258,9 +274,6 @@ func trainSkill(t *testing.T, f *FrontEnd, id sim.EntityID, c skillCase, mustRis
 		before := releaseEntity(t, f.live, id).Skill[c.slot]
 		actSkill(t, f, id, c.spell)
 		after := releaseEntity(t, f.live, id)
-		if after.Skill[c.slot] > before+2 {
-			t.Fatalf("one cast (a cast award and a hit award) raised slot %d from %d to %d", c.slot, before, after.Skill[c.slot])
-		}
 		if after.Skill[c.slot] > before {
 			raised++
 		}

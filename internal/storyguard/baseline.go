@@ -1924,7 +1924,9 @@ package storyguard
 // pickerb.go, pursuitsearchbinary.go and their tests, and the release drives
 // it moved document their new set-ups, as do the structure-order, remap and
 // head-removal fixes and their tests, net of the removed stand-in docs,
-// including this explanation.
+// including this explanation. Reconciled with the melee facing turn, the
+// spell graph check names the area drivers it guards, and the release drives
+// that moved again document their set-ups and a new witness, in new code.
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
@@ -1951,5 +1953,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1820,
 	},
-	CommentBytes: 8506007,
+	CommentBytes: 8507469,
 }

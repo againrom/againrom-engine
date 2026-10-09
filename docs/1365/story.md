@@ -85,6 +85,27 @@ Release drives the cadence moved, each rebuilt on its own subject:
   finds no cell.
 - Scenario 1060 (mission 40) removes the two pursuers that now reach the hero.
 
+Merged with game 0.93.0, whose melee facing turn moves the same cadence:
+
+- `TestReleaseOriginalGround1076GoldEffectsAndStackSurviveNativeContinuation`
+  found an engine defect. An arrow fired after the loaded spell graph retired
+  refused the SAVE ("spell graph carrier lost while effects remain"). Only an
+  area driver needs the graph's records now; a projectile driver has its own
+  (`TestRetiredSpellGraphRefusesOnlyForAnAreaDriver`).
+- `TestReleaseAnAttackedGroupAtKadaganPostFightsAsAGroup`: the far member's
+  full search settles beside the occupied victim cell (`AI-414`, `MOVE-099`)
+  and arrives after the hero falls; the hero is healed below half health.
+- `TestReleaseRescuedVillagersReplyAndHurtInThePeasantBank`: a monster group
+  scores the joined villager best (`candidateCost`: distance first, the lowest
+  id on a tie) and strikes it before the fight; the monsters already fighting
+  the party are removed when it joins.
+- `TestReleaseSkillLevelsSurviveEverySavePath`: the trainee also casts at its
+  attackers on its own, so the award bound is two per tick, not per ordered
+  cast.
+
+The three adapted drives pass on EN and RU both on this branch and on main
+`5006517a`.
+
 Gates on `ff84f1ce`: scenarios EN 54 s and RU 32 s pass. The census script set
 is unchanged; the mission 10 drive's escort is lost at tick 800 instead of
 496, with 7 of 36 units moved and 1 fallen. M2 (EN and RU, 214 s) fails the

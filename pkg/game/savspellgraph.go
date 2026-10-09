@@ -292,7 +292,7 @@ func validateSavedSpellGraph(state *SnapshotSAVDocument, world *sim.World) error
 	g := world.SavedSpellGraph()
 	if g == nil {
 		if state != nil && state.WorldEffects != nil && len(state.WorldEffects.SpellNodes) > 0 &&
-			(len(world.SavedSpellEffects()) != 0 || world.SavedWorldEffectDrivers() != nil) {
+			(len(world.SavedSpellEffects()) != 0 || spellGraphAreasRemain(world)) {
 			return fmt.Errorf("saved spell graph lost")
 		}
 		return nil
@@ -419,7 +419,7 @@ func projectSavedSpellGraph(state *SnapshotSAVDocument, world *sim.World) error 
 		if len(state.WorldEffects.SpellNodes) == 0 {
 			return nil
 		}
-		if len(world.SavedSpellEffects()) != 0 || world.SavedWorldEffectDrivers() != nil {
+		if len(world.SavedSpellEffects()) != 0 || spellGraphAreasRemain(world) {
 			return fmt.Errorf("spell graph carrier lost while effects remain")
 		}
 		retiredRoots := make(map[uint16]bool, len(state.WorldEffects.SpellNodes))
@@ -490,4 +490,12 @@ func projectSavedSpellGraph(state *SnapshotSAVDocument, world *sim.World) error 
 		state.WorldEffects.SpellNodes = nil
 	}
 	return nil
+}
+
+// spellGraphAreasRemain reports whether an area driver still needs the spell
+// graph. A projectile driver has its own records (bindProjectileDrivers), so
+// an arrow fired after the loaded graph retired does not refuse the SAVE.
+func spellGraphAreasRemain(world *sim.World) bool {
+	d := world.SavedWorldEffectDrivers()
+	return d != nil && len(d.Areas) > 0
 }
