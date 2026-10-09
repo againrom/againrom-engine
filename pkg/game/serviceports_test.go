@@ -143,13 +143,13 @@ func TestTownScreenPlaysThroughASubstitutedAudioService(t *testing.T) {
 	fake := &fakeTownAudio{ambient: &recordingAmbient{}}
 	s := bareTownScreen(t)
 	s.sound = fake
-	s.exterior.crowdActive = true
+	s.squareLoop = &tavernInteriorVoice{playing: true}
 
-	s.stopTownCrowd()
+	townSquareHost{s}.StopLoop(rom1Town.Sounds.Loop)
 	if !reflect.DeepEqual(fake.ambient.stopped, []ui.AmbientLoop{ui.AmbientTownCrowd}) {
 		t.Fatalf("the crowd loop was stopped on %v", fake.ambient.stopped)
 	}
-	if s.exterior.crowdActive {
+	if s.squareLoop != nil {
 		t.Fatal("the crowd stays active")
 	}
 	if got := s.roomSoundPlayer(audio.EffectsChannel); got != audio.Player(fake.sound) {
@@ -183,7 +183,7 @@ func (d fakeTownDraws) schoolDraw() func(int) int    { return nil }
 func TestTownScreenReadsASubstitutedDrawService(t *testing.T) {
 	s := bareTownScreen(t)
 	s.draws = fakeTownDraws{fixed: func(n int) int { return n - 1 }}
-	if got := s.exteriorRoll(5); got != 4 {
+	if got := (townSquareHost{s}).Draw("animation", 5); got != 4 {
 		t.Fatalf("exterior roll %d, want the service's draw", got)
 	}
 	if got := s.townAnimationNow(); !got.Equal(time.Unix(7, 0)) {

@@ -39,14 +39,6 @@ type townArt interface {
 	worldMap() *worldMapAssets
 }
 
-// townAmbientLatches are the process-scoped bird delay latch and star
-// terminal counter. They survive campaign resets and never enter saves.
-type townAmbientLatches struct {
-	birdDelayReady  bool
-	birdDelay       time.Duration
-	starTerminalCnt int
-}
-
 // runtimeTownAudio is the production townAudio over the process's players.
 type runtimeTownAudio struct{ rt *RuntimeServices }
 
@@ -87,5 +79,5 @@ func (a installTownArt) worldMap() *worldMapAssets     { return a.pr.worldMapAss
 // bindServices gives the screen its production services.
 func (t *townScreen) bindServices(rt *RuntimeServices, in *InstallResources, pr *Presentation) {
 	t.sound, t.draws = runtimeTownAudio{rt}, runtimeTownDraws{rt}
-	t.art, t.latches = installTownArt{in, pr}, &pr.townLatches
+	t.art, t.townProcess = installTownArt{in, pr}, &pr.townProcess
 }

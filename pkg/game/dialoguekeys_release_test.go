@@ -161,7 +161,7 @@ func TestReleaseAClickOutsideTheEscMenuReachesNothing(t *testing.T) {
 	for y := 0; y < mask.Bounds().Dy(); y += 3 {
 		for x := 0; x < mask.Bounds().Dx(); x += 3 {
 			p := image.Pt(x, y)
-			c, ok := ui.TownSquareControlAt(mask, p)
+			c, ok := squareControlAt(f, p)
 			if !ok || p.In(panel) {
 				continue
 			}

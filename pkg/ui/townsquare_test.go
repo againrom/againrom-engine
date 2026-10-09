@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/color"
 	"reflect"
 	"testing"
 	"time"
@@ -16,85 +15,13 @@ import (
 // expectation is transcribed from docs/1016-town-square/spec.md, not read
 // back out of the code.
 
-// synthTownSquareMask is a 640x480 paletted fixture carrying the five
-// significant codes at five known, well-separated points, and background
-// (code 0, no hit) everywhere else. The exact production positions are a
-// property of the shipped install and are measured by cmd/townsquarecheck,
-// not asserted here — this fixture exists only to drive
-// TownSquareControlAt's code table.
-func synthTownSquareMask() *image.Paletted {
-	m := image.NewPaletted(image.Rect(0, 0, 640, 480), make(color.Palette, 256))
-	for i := range m.Palette {
-		m.Palette[i] = color.Gray{Y: uint8(i)}
-	}
-	m.SetColorIndex(10, 10, townSquareCodeTavern)
-	m.SetColorIndex(20, 20, townSquareCodeShop)
-	m.SetColorIndex(30, 30, townSquareCodeSchool)
-	m.SetColorIndex(40, 40, townSquareCodeGate)
-	m.SetColorIndex(50, 50, townSquareCodeStatue)
-	return m
-}
-
-func synthTownSquareArt() *TownSquareArt {
-	bg := image.NewRGBA(image.Rect(0, 0, 640, 480))
-	for i := range bg.Pix {
-		bg.Pix[i] = 0x40
-	}
-	add := image.NewRGBA(image.Rect(0, 0, 552, 92))
-	for i := range add.Pix {
-		add.Pix[i] = 0x50
-	}
-	a := &TownSquareArt{Background: bg, Add: add, Mask: synthTownSquareMask()}
-	sizes := [3][2]int{{52, 76}, {28, 64}, {140, 116}}
-	for i, s := range sizes {
-		lbl := image.NewRGBA(image.Rect(0, 0, s[0], s[1]))
-		for p := range lbl.Pix {
-			lbl.Pix[p] = uint8(0x60 + i)
-		}
-		a.Labels[i] = lbl
-	}
-	return a
-}
-
-func TestTownSquareControlAtReadsTheFiveSignificantCodes(t *testing.T) {
-	mask := synthTownSquareMask()
-	cases := []struct {
-		name string
-		p    image.Point
-		want TownSquareControl
-	}{
-		{"tavern", image.Pt(10, 10), TownSquareControl{Kind: TownSquareControlDoor, Door: 0}},
-		{"shop", image.Pt(20, 20), TownSquareControl{Kind: TownSquareControlDoor, Door: 1}},
-		{"school", image.Pt(30, 30), TownSquareControl{Kind: TownSquareControlDoor, Door: 2}},
-		{"gate", image.Pt(40, 40), TownSquareControl{Kind: TownSquareControlDoor, Door: 3}},
-		{"statue", image.Pt(50, 50), TownSquareControl{Kind: TownSquareControlMenu}},
-	}
-	for _, c := range cases {
-		got, ok := TownSquareControlAt(mask, c.p)
-		if !ok || got != c.want {
-			t.Errorf("%s: TownSquareControlAt(%v) = %+v, %v; want %+v, true", c.name, c.p, got, ok, c.want)
-		}
-	}
-}
-
-// A code the table does not carry — the background, or one of the shipped
-// mask's own edge-noise codes — answers no hit at all, on the school's own
-// exact-code rule (schoolMaskSlot) rather than a tolerant nearest match.
-func TestTownSquareControlAtRefusesAnUnlistedCode(t *testing.T) {
-	mask := synthTownSquareMask()
-	if _, ok := TownSquareControlAt(mask, image.Pt(0, 0)); ok {
-		t.Error("the background code answered a hit")
-	}
-	mask.SetColorIndex(5, 5, 7) // an arbitrary noise code
-	if _, ok := TownSquareControlAt(mask, image.Pt(5, 5)); ok {
-		t.Error("an unlisted code answered a hit")
-	}
-	if _, ok := TownSquareControlAt(mask, image.Pt(-1, 0)); ok {
-		t.Error("a point outside the mask's bounds answered a hit")
-	}
-	if _, ok := TownSquareControlAt(nil, image.Pt(10, 10)); ok {
-		t.Error("a nil mask answered a hit")
-	}
+// synthTownSquareScene is a scene filled with 0x40 that answers the four
+// doors and the statue's menu at five known points.
+func synthTownSquareScene() *fakeSquareScene {
+	return &fakeSquareScene{fill: 0x40, controls: map[image.Point]TownSquareControl{
+		image.Pt(10, 10): squareDoor(0), image.Pt(20, 20): squareDoor(1), image.Pt(30, 30): squareDoor(2),
+		image.Pt(40, 40): squareDoor(3), image.Pt(50, 50): squareMenu,
+	}}
 }
 
 // fakeSquareArtTown is a minimal TownScreen carrying only the square's own
@@ -106,13 +33,13 @@ func TestTownSquareControlAtRefusesAnUnlistedCode(t *testing.T) {
 // first call, which would silently change what Rows() answers between two
 // clicks in the same test).
 type fakeSquareArtTown struct {
-	art         *TownSquareArt
+	scene       TownSquareScene
 	chosen      []int
 	headerCalls int
 }
 
 func (f *fakeSquareArtTown) TownSquareView() TownSquareView {
-	return TownSquareView{Art: f.art, Font: panelFont()}
+	return TownSquareView{Scene: f.scene, Font: panelFont()}
 }
 func (f *fakeSquareArtTown) AtTownSquare() bool { return true }
 
@@ -152,8 +79,7 @@ func (f *fakeSquareArtTown) Back() bool { return false }
 // TestComposeTownSquarePaintsNoHintText and TestComposeTownSquareWithNoArtIsBlank
 // below, against the plain *image.RGBA it returns.
 func TestTownSquareArtDrawsThePictureInsteadOfTheGrid(t *testing.T) {
-	art := synthTownSquareArt()
-	town := &fakeSquareArtTown{art: art}
+	town := &fakeSquareArtTown{scene: synthTownSquareScene()}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {
@@ -182,8 +108,7 @@ func TestTownSquareArtDrawsThePictureInsteadOfTheGrid(t *testing.T) {
 // empty throughout, and headerCalls confirms the composed branch — not the
 // row-button fallback — was the one dispatch ran against the whole time.
 func TestTownSquareKeyboardSelectionIsInertOnceArtIsReady(t *testing.T) {
-	art := synthTownSquareArt()
-	town := &fakeSquareArtTown{art: art}
+	town := &fakeSquareArtTown{scene: synthTownSquareScene()}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {
@@ -210,8 +135,7 @@ func TestTownSquareKeyboardSelectionIsInertOnceArtIsReady(t *testing.T) {
 }
 
 func TestHeadlessActivateChoosesTheSquareDoorByNameOnceArtIsReady(t *testing.T) {
-	art := synthTownSquareArt()
-	town := &fakeSquareArtTown{art: art}
+	town := &fakeSquareArtTown{scene: synthTownSquareScene()}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {
@@ -231,8 +155,7 @@ func TestHeadlessActivateChoosesTheSquareDoorByNameOnceArtIsReady(t *testing.T) 
 // Choose(i) and every headless scenario driving it are unaffected by this
 // story.
 func TestTownSquareRasterMaskClicksChooseTheSameDoorIndexAsTheGrid(t *testing.T) {
-	art := synthTownSquareArt()
-	town := &fakeSquareArtTown{art: art}
+	town := &fakeSquareArtTown{scene: synthTownSquareScene()}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {
@@ -255,8 +178,7 @@ func TestTownSquareRasterMaskClicksChooseTheSameDoorIndexAsTheGrid(t *testing.T)
 // A click that lands on the gate opens the world map through the same
 // Choose(i) path — 1016 wires no separate door for it.
 func TestTownSquareGateClickEntersThroughChoose(t *testing.T) {
-	art := synthTownSquareArt()
-	town := &fakeSquareArtTown{art: art}
+	town := &fakeSquareArtTown{scene: synthTownSquareScene()}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {
@@ -274,8 +196,7 @@ func TestTownSquareGateClickEntersThroughChoose(t *testing.T) {
 // The statue opens the SAME mini-menu Escape already does at the square
 // rather than crossing the town's own Choose seam at all.
 func TestTownSquareStatueClickOpensTheMiniMenu(t *testing.T) {
-	art := synthTownSquareArt()
-	town := &fakeSquareArtTown{art: art}
+	town := &fakeSquareArtTown{scene: synthTownSquareScene()}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {
@@ -300,8 +221,7 @@ func TestTownSquareStatueClickOpensTheMiniMenu(t *testing.T) {
 // canvas only within the background, overlay strip and three label
 // rectangles this test already knows the extent of.
 func TestComposeTownSquarePaintsNoHintText(t *testing.T) {
-	art := synthTownSquareArt()
-	dst := ComposeTownSquare(TownSquareView{Art: art})
+	dst := ComposeTownSquare(TownSquareView{Scene: synthTownSquareScene()})
 	// A point well outside every drawn rectangle (background covers the
 	// whole canvas, so pick a point covered ONLY by the background and
 	// confirm it carries the background's own colour, not some row-button
@@ -312,30 +232,8 @@ func TestComposeTownSquarePaintsNoHintText(t *testing.T) {
 	}
 }
 
-// Each label is drawn at its own measured origin (townSquareLabelOrigin),
-// opaque over the background — a pixel inside its placed rectangle carries
-// the label's own colour, and one just outside carries the background's.
-func TestComposeTownSquareDrawsEachLabelAtItsOwnOrigin(t *testing.T) {
-	art := synthTownSquareArt()
-	for i, origin := range []image.Point{{264, 264}, {144, 332}, {436, 300}} {
-		dst := ComposeTownSquare(TownSquareView{Art: art, Selector: []int{1, 2, 4}[i]})
-		inside := dst.At(origin.X+1, origin.Y+1)
-		r, _, _, _ := inside.RGBA()
-		if want := uint32(0x60 + i); r>>8 != want {
-			t.Errorf("label %d pixel inside its origin = %v, want channel %d", i, inside, want)
-		}
-		outside := dst.At(origin.X-1, origin.Y-1)
-		or, _, _, _ := outside.RGBA()
-		if or>>8 != 0x40 {
-			t.Errorf("label %d pixel just outside its origin = %v, want the background's own 0x40", i, outside)
-		}
-	}
-}
-
-// A nil Art, or an Art with no Background, answers a blank canvas rather
-// than panicking — app.go never calls this without first confirming
-// Background is non-nil (townSquareView), but the function is defensive on
-// its own.
+// A view with no scene answers a blank canvas rather than panicking; app.go
+// never calls this without a scene (townSquareView).
 func TestComposeTownSquareWithNoArtIsBlank(t *testing.T) {
 	dst := ComposeTownSquare(TownSquareView{})
 	if dst.Bounds().Dx() != 640 || dst.Bounds().Dy() != 480 {

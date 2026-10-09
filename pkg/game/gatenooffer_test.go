@@ -56,7 +56,7 @@ func squareGatePoint(t *testing.T, f *FrontEnd) image.Point {
 	for y := 0; y < mask.Bounds().Dy(); y++ {
 		for x := 0; x < mask.Bounds().Dx(); x++ {
 			p := image.Pt(x, y)
-			if c, ok := ui.TownSquareControlAt(mask, p); ok && c.Kind == ui.TownSquareControlDoor && c.Door == 3 {
+			if c, ok := squareControlAt(f, p); ok && c.Kind == ui.TownSquareControlDoor && c.Door == 3 {
 				gate = append(gate, p)
 			}
 		}

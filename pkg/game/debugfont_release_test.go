@@ -223,7 +223,7 @@ func debugFontInstalledTown(t *testing.T) *ui.App {
 	// positions clear of the line.
 	a := f.App("debug font town")
 	draws := &familyDraws{script: []int{rawH(4), rawB(3), rawB(2)}}
-	f.townUI.townFamilyRand.raw = draws.next
+	f.townUI.squareView().SetRawDraw("wildlife", draws.next)
 	t.Cleanup(a.StopAudio)
 	a.Layout(smoothingW, smoothingH)
 	save, list, load := f.SaveSeams(SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(path)}, nil)

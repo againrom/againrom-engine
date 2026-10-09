@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
-	"againrom/pkg/ui"
+	"againrom/pkg/town"
 )
 
 // writeTownFamiliesShot writes one frame to AGAINROM_SHOT_DIR, or to the
@@ -48,7 +48,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	if shotDir == "" {
 		shotDir = t.TempDir()
 	}
-	if v := f.TownSquareArt.Value(); v == nil || v.Exterior == nil || len(v.ExteriorProblems) != 0 {
+	if v := f.TownSquareArt.Value(); v == nil || len(v.Problems) != 0 {
 		t.Fatalf("town art: %v", f.TownSquareArt.Err())
 	}
 	oracle := loadTownSquareOracle(t, f)
@@ -58,7 +58,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 			t.Fatalf("%s: %d frames, want %d", name, got, want)
 		}
 	}
-	art := f.TownSquareArt.Value().Exterior
+	art := f.TownSquareArt.Value()
 	same := func(name string, got, want []image.Image) {
 		t.Helper()
 		wantCount(name, len(got), len(want))
@@ -68,21 +68,21 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 			}
 		}
 	}
-	for p := range art.Horse {
-		for v := range art.Horse[p] {
+	for p := range oracle.horse {
+		for v := range oracle.horse[p] {
 			wantCount(fmt.Sprintf("horse%d/a%d", p+1, v+1), len(oracle.horse[p][v]), 15)
-			same(fmt.Sprintf("horse%d/a%d", p+1, v+1), art.Horse[p][v], oracle.horse[p][v])
+			same(fmt.Sprintf("horse%d/a%d", p+1, v+1), art.Pictures(fmt.Sprintf("horse/%d/%d", p, v)), oracle.horse[p][v])
 		}
 	}
-	for p := range art.Baba {
-		for v := range art.Baba[p] {
+	for p := range oracle.baba {
+		for v := range oracle.baba[p] {
 			wantCount(fmt.Sprintf("baba%d/a%d", p+1, v+1), len(oracle.baba[p][v]), 31+v)
-			same(fmt.Sprintf("baba%d/a%d", p+1, v+1), art.Baba[p][v], oracle.baba[p][v])
+			same(fmt.Sprintf("baba%d/a%d", p+1, v+1), art.Pictures(fmt.Sprintf("baba/%d/%d", p, v)), oracle.baba[p][v])
 		}
 	}
-	for p := range art.Dervish {
+	for p := range oracle.dervish {
 		wantCount(fmt.Sprintf("dervish%d", p+1), len(oracle.dervish[p]), 30)
-		same(fmt.Sprintf("dervish%d", p+1), art.Dervish[p], oracle.dervish[p])
+		same(fmt.Sprintf("dervish%d", p+1), art.Pictures(fmt.Sprintf("dervish/%d", p)), oracle.dervish[p])
 	}
 
 	f.Carried = f.NextParty()
@@ -91,7 +91,8 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	now := time.Unix(900, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	f.TownAnimationRandom = func(int) int { return 0 }
-	f.townLatches.birdDelayReady, f.townLatches.birdDelay = true, 24*time.Hour
+	birdWait := f.townProcess.WaitLatch("birds")
+	birdWait.Ready, birdWait.Wait = true, 24*time.Hour
 	voices := &exteriorRecorder{}
 	f.SoundPlayer = voices
 	f.SoundBank = OpenSounds(f.Archives.Root)
@@ -106,25 +107,25 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	app, screen := exteriorApp(t, f)
 
 	draws := &familyDraws{}
-	screen.townFamilyRand.raw = draws.next
+	screen.squareView().SetRawDraw("wildlife", draws.next)
 	// horse position 4, baba position 3, dervish position 3 (the baba's,
 	// re-rolled) then 1, baba delay 2000 ms, horse delay 2000 ms.
 	draws.script = []int{rawH(3), rawB(2), rawB(2), 0, rawZero, rawZero}
 	screen.resetTownExterior()
-	screen.townPaintLast = time.Time{}
+	screen.squareView().SetClockLast(time.Time{})
 	screen.TownSquareActive(true)
 	if len(draws.script) != 0 {
 		t.Fatalf("entry left %v", draws.script)
 	}
 
 	shots, hubs := 0, 0
-	check := func(name string, dt time.Duration, inspect func(ui.TownExteriorFrame)) {
+	check := func(name string, dt time.Duration, inspect func(exteriorFrame)) {
 		t.Helper()
 		pix := exteriorPaint(t, app, &now, dt)
-		if dt > townExteriorInterval {
+		if dt > time.Duration(rom1Town.Clock.PeriodMS)*time.Millisecond {
 			hubs++
 		}
-		frame := *screen.townExteriorFrame()
+		frame := screen.sqExteriorFrame()
 		if frame.Dervish.Frame != hubs%30 {
 			t.Fatalf("%s: dervish frame %d after %d hubs", name, frame.Dervish.Frame, hubs)
 		}
@@ -148,22 +149,22 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 		}
 	}
 
-	check("entry", 0, func(frame ui.TownExteriorFrame) {
-		if frame.Horse != (ui.TownFamilyFrame{Visible: true, Position: 3}) ||
-			frame.Baba != (ui.TownFamilyFrame{Visible: true, Position: 2}) ||
-			frame.Dervish != (ui.TownFamilyFrame{Visible: true, Position: 0}) {
+	check("entry", 0, func(frame exteriorFrame) {
+		if frame.Horse != (familyFrame{Visible: true, Position: 3}) ||
+			frame.Baba != (familyFrame{Visible: true, Position: 2}) ||
+			frame.Dervish != (familyFrame{Visible: true, Position: 0}) {
 			t.Fatalf("entry families %+v %+v %+v", frame.Horse, frame.Baba, frame.Dervish)
 		}
 	})
-	check("", 2000*time.Millisecond, func(ui.TownExteriorFrame) {
-		if screen.exterior.fam.horse.active || screen.exterior.fam.baba.active {
+	check("", 2000*time.Millisecond, func(exteriorFrame) {
+		if screen.sqWildlife().Member("horse").Active || screen.sqWildlife().Member("baba").Active {
 			t.Fatal("elapsed equal to the entry delay armed a family")
 		}
 	})
 	// Horse A3 (raw 22000) and baba A2 (raw 16384) arm on the same paint,
 	// baba first. Delays 4499 ms and 4499 ms follow.
 	draws.script = []int{rawArmDelayMid, rawHalf, rawArmDelayMid, rawSheet3}
-	check("arm", time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("arm", time.Millisecond, func(frame exteriorFrame) {
 		if len(draws.script) != 0 || frame.Horse.Sheet != 2 || frame.Horse.Frame != 0 || frame.Baba.Sheet != 1 || frame.Baba.Frame != 0 {
 			t.Fatalf("arm frames horse %+v baba %+v, %d draws left", frame.Horse, frame.Baba, len(draws.script))
 		}
@@ -184,7 +185,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 		}
 		return sample
 	}
-	horse1, horse2 := wantSound(townHorse1Sound), wantSound(townHorse2Sound)
+	horse1, horse2 := wantSound("town/horse1.wav"), wantSound("town/horse2.wav")
 	count := func(want audio.Sample) int {
 		n := 0
 		for _, got := range voices.samples {
@@ -197,37 +198,37 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	if count(horse1)+count(horse2) != 0 {
 		t.Fatal("horse sound before its gate")
 	}
-	check("horse-frame1", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("horse-frame1", 68*time.Millisecond, func(frame exteriorFrame) {
 		if frame.Horse.Frame != 1 || frame.Baba.Frame != 1 || count(horse1) != 1 {
 			t.Fatalf("first step: horse frame %d baba frame %d Horse1 requests %d", frame.Horse.Frame, frame.Baba.Frame, count(horse1))
 		}
 	})
 	// Inside the dwell the playing Horse1 is not requested again.
-	check("", 10*time.Millisecond, func(ui.TownExteriorFrame) {
+	check("", 10*time.Millisecond, func(exteriorFrame) {
 		if count(horse1) != 1 {
 			t.Fatalf("Horse1 requested again while playing: %d", count(horse1))
 		}
 	})
 	for f := 2; f <= 13; f++ {
-		check("", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
+		check("", 68*time.Millisecond, func(frame exteriorFrame) {
 			if frame.Horse.Frame != f {
 				t.Fatalf("hub %d: horse frame %d", f, frame.Horse.Frame)
 			}
 		})
 	}
-	check("horse-frame14", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("horse-frame14", 68*time.Millisecond, func(frame exteriorFrame) {
 		if frame.Horse.Frame != 14 || count(horse2) != 1 {
 			t.Fatalf("frame %d Horse2 requests %d", frame.Horse.Frame, count(horse2))
 		}
 	})
-	check("", 10*time.Millisecond, func(ui.TownExteriorFrame) {
+	check("", 10*time.Millisecond, func(exteriorFrame) {
 		if count(horse2) != 1 {
 			t.Fatalf("Horse2 requested again while playing: %d", count(horse2))
 		}
 	})
-	check("horse-terminal", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
-		if frame.Horse.Frame != 0 || screen.exterior.fam.horse.active {
-			t.Fatalf("terminal horse %+v active=%v", frame.Horse, screen.exterior.fam.horse.active)
+	check("horse-terminal", 68*time.Millisecond, func(frame exteriorFrame) {
+		if frame.Horse.Frame != 0 || screen.sqWildlife().Member("horse").Active {
+			t.Fatalf("terminal horse %+v active=%v", frame.Horse, screen.sqWildlife().Member("horse").Active)
 		}
 		for _, v := range voices.voices {
 			if v.stops != 0 {
@@ -235,10 +236,10 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 			}
 		}
 	})
-	for screen.exterior.fam.baba.active {
+	for screen.sqWildlife().Member("baba").Active {
 		check("", 68*time.Millisecond, nil)
 	}
-	check("baba-terminal", 10*time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("baba-terminal", 10*time.Millisecond, func(frame exteriorFrame) {
 		if frame.Baba.Frame != 0 || frame.Baba.Sheet != 1 {
 			t.Fatalf("terminal baba %+v", frame.Baba)
 		}
@@ -247,7 +248,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	for (hubs+1)%30 != 0 {
 		check("", 68*time.Millisecond, nil)
 	}
-	check("dervish-wrap", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("dervish-wrap", 68*time.Millisecond, func(frame exteriorFrame) {
 		if !frame.Dervish.Visible || frame.Dervish.Frame != 0 {
 			t.Fatalf("dervish wrap %+v", frame.Dervish)
 		}
@@ -295,41 +296,42 @@ func TestReleaseTownFamiliesSeededDelaysFromTheLastStep(t *testing.T) {
 	now := time.Unix(1200, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	f.TownAnimationRandom = func(int) int { return 0 }
-	f.townLatches.birdDelayReady, f.townLatches.birdDelay = true, 24*time.Hour
+	birdWait := f.townProcess.WaitLatch("birds")
+	birdWait.Ready, birdWait.Wait = true, 24*time.Hour
 	f.SoundPlayer = &exteriorRecorder{}
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	app, screen := exteriorApp(t, f)
 	screen.resetTownExterior()
-	screen.townFamilyRand = townCRT{}
-	screen.townPaintLast = time.Time{}
+	screen.squareView().ResetDraw("wildlife")
+	screen.squareView().SetClockLast(time.Time{})
 	screen.TownSquareActive(true)
 	exteriorPaint(t, app, &now, 0)
-	fam := &screen.exterior.fam
-	if d := fam.horse.delay; d < 2000*time.Millisecond || d > 3999*time.Millisecond {
+	fam := screen.sqWildlife()
+	if d := fam.Member("horse").Wait; d < 2000*time.Millisecond || d > 3999*time.Millisecond {
 		t.Fatalf("horse entry delay %v", d)
 	}
-	if d := fam.baba.delay; d < 2000*time.Millisecond || d > 3999*time.Millisecond {
+	if d := fam.Member("baba").Wait; d < 2000*time.Millisecond || d > 3999*time.Millisecond {
 		t.Fatalf("baba entry delay %v", d)
 	}
 	const dt = 68 * time.Millisecond
 	arms := map[string]int{}
 	for i := 0; i < 6000; i++ {
-		prev := map[string]townFamily{"horse": fam.horse, "baba": fam.baba}
+		prev := map[string]town.FamilyMember{"horse": *fam.Member("horse"), "baba": *fam.Member("baba")}
 		exteriorAdvanceWithoutBlit(t, app, &now, dt)
-		cur := map[string]townFamily{"horse": fam.horse, "baba": fam.baba}
+		cur := map[string]town.FamilyMember{"horse": *fam.Member("horse"), "baba": *fam.Member("baba")}
 		for name, p := range prev {
 			c := cur[name]
-			if !c.active || c.current != 0 {
+			if !c.Active || c.Current != 0 {
 				continue
 			}
 			arms[name]++
 			// The clock before this paint holds the last step (or entry).
-			elapsed := now.Sub(p.clock)
-			if p.active || elapsed <= p.delay || elapsed > p.delay+dt {
-				t.Fatalf("%s armed after %v with delay %v (active before: %v)", name, elapsed, p.delay, p.active)
+			elapsed := now.Sub(p.Clock)
+			if p.Active || elapsed <= p.Wait || elapsed > p.Wait+dt {
+				t.Fatalf("%s armed after %v with delay %v (active before: %v)", name, elapsed, p.Wait, p.Active)
 			}
-			if c.delay < 2000*time.Millisecond || c.delay > 6999*time.Millisecond {
-				t.Fatalf("%s arm delay %v", name, c.delay)
+			if c.Wait < 2000*time.Millisecond || c.Wait > 6999*time.Millisecond {
+				t.Fatalf("%s arm delay %v", name, c.Wait)
 			}
 		}
 	}

@@ -1975,9 +1975,12 @@ package storyguard
 // this paragraph.
 // CommentBytes rises for the town square trace instrument: the docs of its
 // recorder and script, new code, including this paragraph.
+// CommentBytes rises for the town composer: the docs of pkg/town's description
+// format, actor programs and view, which replace the square's per-actor code,
+// new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
-	TestFileCount:  265,
+	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
 		"storymention":    0,
@@ -1986,7 +1989,7 @@ var Committed = Baseline{
 		"funaddr":         0,
 		"expmention":      0,
 		"acclause":        1880,
-		"scclause":        508,
+		"scclause":        506,
 		"barestorynumber": 1749,
 	},
 	Counts: map[string]int{
@@ -1996,7 +1999,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1791,
+		"longcommentgroups":      1788,
 	},
-	CommentBytes: 8512248,
+	CommentBytes: 8517923,
 }

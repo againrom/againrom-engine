@@ -104,6 +104,10 @@ var allow = map[string][]string{
 	// pkg/render/text already has"). The empty allow-set is what makes "no
 	// other tier's type crosses in" mechanical rather than a promise.
 	"pkg/audio": {},
+	// The town composer builds a town view from a description. It holds no
+	// game fact and imports only the standard library; a game supplies its
+	// descriptions, art and hooks.
+	"pkg/town": {},
 	// Video is a presentation/transport leaf; it cannot import game or sim.
 	// It reads a movie's sidecar registry through the reg format leaf.
 	"pkg/video": {"pkg/video/smacker", "pkg/formats/reg"},

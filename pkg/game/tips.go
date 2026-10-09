@@ -10,8 +10,6 @@ import (
 // The tip widget's own text for the four rooms besides the shop (1018 spec
 // behaviours 2, 3, 4, 5).
 const (
-	// TownTipPath is main/text/tips/town.txt (TOWN-165).
-	TownTipPath = mainPrefix + "text/tips/town.txt"
 	// SchoolTipPath is main/text/tips/training.txt (TOWN-021, discharged by
 	// TOWN-188).
 	SchoolTipPath = mainPrefix + "text/tips/training.txt"
@@ -64,7 +62,7 @@ func (t *townScreen) rereadTip(room townRoom) {
 func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	switch room {
 	case roomSquare:
-		return &t.townTip, TownTipPath
+		return &t.townTip, rom1Town.Tip.Text
 	case roomShop:
 		return &t.shopTip, ShopTip1Path
 	case roomSchool:

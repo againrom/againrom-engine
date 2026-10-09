@@ -42,8 +42,20 @@ const separation = 4
 
 const townArtPrefix = "graphics/interface/town/"
 
-// labelName, in ui.TownSquareLabel* index order.
+// labelName is each label's file name; labelArt is the art entry the ROM1
+// town description gives it, same order.
 var labelName = [3]string{"shop_l", "tavern_l", "trener_l"}
+var labelArt = [3]string{"label-shop", "label-tavern", "label-school"}
+
+// layerAt answers where the ROM1 town description paints the named art.
+func layerAt(art string) image.Point {
+	for _, l := range game.ROM1TownDescription().Layers {
+		if l.Art == art {
+			return l.At.Pt()
+		}
+	}
+	return image.Pt(-1, -1)
+}
 
 // labelAddr is each label's own archive address, same order.
 var labelAddr = [3]string{
@@ -57,7 +69,7 @@ var labelAddr = [3]string{
 // expected to sit over, and wantCode is the mask code expected to dominate
 // under it. Both are this tool's OWN independent reading of the shipped tip
 // text (main/text/tips/town.txt) and the correlation below, kept apart from
-// pkg/ui/townsquare.go's unexported constants so the two can disagree.
+// the ROM1 town description so the two can disagree.
 var wantDoor = [3]int{1, 0, 2} // shop, tavern, school
 var wantCode = [3]uint8{144, 128, 192}
 
@@ -202,9 +214,9 @@ func abs(v int) int {
 // (the gate) has 17, 16 of them a single pixel. Both strays stretch their
 // own bounding box far past the real archway blob, and a nearest-any-pixel
 // anchor landed on one of them — the tool's own hit-test and drive lines
-// answered correctly there too, since TownSquareControlAt is a bare switch
-// on the colour index and answers identically for every pixel of a code
-// wherever it lies (pkg/ui/townsquare.go), but that agreement demonstrated
+// answered correctly there too, since the scene's ControlAt maps the colour
+// index alone and answers identically for every pixel of a code wherever it
+// lies, but that agreement demonstrated
 // only that an isolated rounding artifact resolves correctly, not that a
 // click on the VISIBLE graphic does.
 //
@@ -361,7 +373,7 @@ func run(args []string, w io.Writer) error {
 		}
 	}
 
-	// Instrument A: town_add.bmp against production's TownSquareAddOrigin.
+	// Instrument A: town_add.bmp against the description's overlay layer.
 	addPic, addBlack, err := readPic(src, townArtPrefix+"town_add.bmp")
 	if err != nil {
 		return err
@@ -369,11 +381,11 @@ func run(args []string, w io.Writer) error {
 	fmt.Fprintf(w, "town_add.bmp %dx%d black %d\n", addPic.Bounds().Dx(), addPic.Bounds().Dy(), addBlack)
 	ac := correlate(main1, addPic)
 	mark := "ok"
-	if ac.at != ui.TownSquareAddOrigin {
+	if ac.at != layerAt("overlay") {
 		mark, fail = "FAIL", true
 	}
 	fmt.Fprintf(w, "town_add best %v frac %.4f (%d total) next %.4f at %v production %v %s\n",
-		ac.at, ac.fraction, ac.total, ac.next, ac.nextAt, ui.TownSquareAddOrigin, mark)
+		ac.at, ac.fraction, ac.total, ac.next, ac.nextAt, layerAt("overlay"), mark)
 
 	if *pngDir != "" {
 		if err := os.MkdirAll(*pngDir, 0o755); err != nil {
@@ -416,7 +428,7 @@ func run(args []string, w io.Writer) error {
 		}
 		fmt.Fprintf(w, "%s %dx%d black %d\n", labelName[i], p.Bounds().Dx(), p.Bounds().Dy(), pblack)
 		c := correlate(main1, p)
-		want := ui.TownSquareLabelOrigin(i)
+		want := layerAt(labelArt[i])
 		mark := "ok"
 		if c.at != want {
 			mark, fail = "FAIL", true
@@ -488,10 +500,11 @@ func run(args []string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	if art.Background == nil || art.Mask == nil {
+	base := art.Pictures("base")
+	if len(base) == 0 || art.Mask == nil {
 		return fmt.Errorf("LoadTownSquareArt returned an incomplete art set")
 	}
-	if !sameRGBA(main1, art.Background) {
+	if !sameRGBA(main1, base[0]) {
 		fmt.Fprintln(w, "FAIL production LoadTownSquareArt's Background differs from this tool's own decode of townmain.bmp")
 		fail = true
 	} else {
@@ -508,13 +521,17 @@ func run(args []string, w io.Writer) error {
 		codeGate:   {ui.TownSquareControlDoor, 3},
 		codeStatue: {ui.TownSquareControlMenu, 0},
 	}
+	scene, err := squareScene(root)
+	if err != nil {
+		return err
+	}
 	for _, code := range []uint8{codeTavern, codeShop, codeGate, codeStatue, codeSchool} {
 		box, ok := boxes[code]
 		if !ok {
 			continue
 		}
 		mid := codeAnchor(mask, code, box)
-		got, hit := ui.TownSquareControlAt(art.Mask, mid)
+		got, hit := scene.ControlAt(mid)
 		want := expect[code]
 		mark := "ok"
 		if !hit || got.Kind != want.kind || (want.kind == ui.TownSquareControlDoor && got.Door != want.door) {
@@ -526,9 +543,9 @@ func run(args []string, w io.Writer) error {
 	// SELF-CONSISTENCY CHECK, NOT A PRODUCTION CHECK (round-3 review, D-3): this
 	// loop compares two tables THIS TOOL OWN AUTHORS — labelDomCode (measured by
 	// correlation, above) against expect and wantDoor (both hand-written
-	// constants in this file) — and never calls ui.TownSquareControlAt or any
-	// other production code. Under a mutation of TownSquareControlAt's tavern
-	// arm, this line stayed "ok" while the "hit-test" lines below failed:
+	// constants in this file) — and never calls the scene's ControlAt or any
+	// other production code. Under a mutation of the production tavern
+	// mapping, this line stayed "ok" while the "hit-test" lines failed:
 	// production's own code-to-door mapping is covered by those lines alone.
 	// This one only catches this file's own two tables disagreeing with each
 	// other.
@@ -547,7 +564,7 @@ func run(args []string, w io.Writer) error {
 	// code is fed to Choose(i) on a freshly started campaign town (Choose
 	// mutates room state, so each door needs its own front end) and the
 	// resulting room is read back from Header(), independently of the
-	// TownSquareControlAt call that produced the index.
+	// ControlAt call that produced the index.
 	for _, code := range []uint8{codeTavern, codeShop, codeSchool, codeGate} {
 		box := boxes[code]
 		mid := codeAnchor(mask, code, box)
@@ -568,6 +585,28 @@ func run(args []string, w io.Writer) error {
 	}
 	fmt.Fprintln(w, "townsquarecheck: ok")
 	return nil
+}
+
+// squareScene answers the production square scene of a freshly started
+// campaign town.
+func squareScene(root string) (ui.TownSquareScene, error) {
+	f, err := game.NewFrontEnd(root)
+	if err != nil {
+		return nil, err
+	}
+	if f.Town == nil {
+		return nil, fmt.Errorf("the front end started with no town")
+	}
+	f.Town.Arrive()
+	as, ok := f.TownScreen().(ui.TownSquareArtScreen)
+	if !ok {
+		return nil, fmt.Errorf("the town screen does not implement TownSquareArtScreen")
+	}
+	v := as.TownSquareView()
+	if v.Scene == nil {
+		return nil, fmt.Errorf("the town screen's square has no scene")
+	}
+	return v.Scene, nil
 }
 
 // sameRGBA compares two images pixel for pixel over their shared bounds size.
@@ -594,7 +633,7 @@ var codeDoorName = map[uint8]string{
 }
 
 // driveDoor starts one fresh campaign front end, arrives at the town square,
-// resolves the given mask code through production's own TownSquareControlAt,
+// resolves the given mask code through production's own scene ControlAt,
 // and feeds the resulting door index to production's own Choose(i) — the
 // same seam the row-button grid has always used. The room Choose(i) leaves
 // the screen in is read back from Header(), a call this loop never fed the
@@ -614,10 +653,10 @@ func driveDoor(root string, code uint8, mid image.Point, w io.Writer) (bool, err
 		return false, fmt.Errorf("drive: the town screen does not implement TownSquareArtScreen")
 	}
 	v := as.TownSquareView()
-	if v.Art == nil || v.Art.Mask == nil {
-		return false, fmt.Errorf("drive: the town screen's square art carries no mask")
+	if v.Scene == nil {
+		return false, fmt.Errorf("drive: the town screen's square has no scene")
 	}
-	c, hit := ui.TownSquareControlAt(v.Art.Mask, mid)
+	c, hit := v.Scene.ControlAt(mid)
 	if !hit || c.Kind != ui.TownSquareControlDoor {
 		fmt.Fprintf(w, "FAIL drive code %d at %v: production hit-test answers no door\n", code, mid)
 		return true, nil
@@ -654,10 +693,10 @@ func driveStatue(root string, mid image.Point, w io.Writer) (bool, error) {
 		return false, fmt.Errorf("drive: the town screen does not implement TownSquareArtScreen")
 	}
 	v := as.TownSquareView()
-	if v.Art == nil || v.Art.Mask == nil {
-		return false, fmt.Errorf("drive: the town screen's square art carries no mask")
+	if v.Scene == nil {
+		return false, fmt.Errorf("drive: the town screen's square has no scene")
 	}
-	c, hit := ui.TownSquareControlAt(v.Art.Mask, mid)
+	c, hit := v.Scene.ControlAt(mid)
 	mark := "ok"
 	bad := false
 	if !hit || c.Kind != ui.TownSquareControlMenu {

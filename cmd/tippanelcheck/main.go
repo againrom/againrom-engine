@@ -8,8 +8,8 @@
 // whole at the rect's researched width (ui.TipPanelFits, searched upward
 // from a small floor); the spare rows the current rect carries past that
 // minimum; and how many of the current rect's own pixels sit over a control
-// the room's own hit test would otherwise reach — TownSquareControlAt for
-// the town square's mask, TownSurfaceControlAt for the school and tavern's
+// the room's own hit test would otherwise reach — the square scene's
+// ControlAt for the town square's mask, TownSurfaceControlAt for the school and tavern's
 // cells and button wells, ui.PreCreateControlAt for the generator's
 // portraits, ShopControlAt for the shop.
 //
@@ -65,13 +65,12 @@ func run(args []string, w io.Writer) error {
 		return fmt.Errorf("TownScreen() does not implement TownSquareArtScreen")
 	}
 	sqv := sq.TownSquareView()
-	if sqv.Art == nil || sqv.Art.Mask == nil {
+	if sqv.Scene == nil {
 		return fmt.Errorf("town square art did not resolve from %s", root)
 	}
-	mask := sqv.Art.Mask
 	sqRect := sqv.Tip.Rect
 	report(w, "town square", sqv.Tip, sqRect, topAnchor(sqRect.Min.X, sqRect.Min.Y, sqRect.Max.X), func(p image.Point) (string, bool) {
-		c, hit := ui.TownSquareControlAt(mask, p)
+		c, hit := sqv.Scene.ControlAt(p)
 		if !hit {
 			return "", false
 		}

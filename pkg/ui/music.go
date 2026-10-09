@@ -40,6 +40,8 @@ type MusicDevice interface {
 type musicRequest struct {
 	scene     MusicScene
 	mageFirst bool
+	// track replaces the scene's static list with this one track when set.
+	track string
 }
 
 var missionMusicTracks = [...]string{
@@ -72,6 +74,12 @@ func NewMusicController(source MusicSource, device MusicDevice, seed int64) *Mus
 // selected school member's class order. It carries no game model type.
 type TownMusicScreen interface {
 	TownMusic() (scene MusicScene, mageFirst bool)
+}
+
+// TownMusicTrack optionally names the one track a town room plays in place
+// of its scene's static list; false keeps the static list.
+type TownMusicTrack interface {
+	TownMusicTrack() (string, bool)
 }
 
 // SetMusic installs the optional source and retained device, then starts the
@@ -109,23 +117,39 @@ func (a *App) syncMusic() {
 	if a == nil || a.music == nil {
 		return
 	}
-	scene, mageFirst, replace := a.musicScene()
+	next, replace := a.musicRequest()
 	if !replace {
 		return
 	}
+	scene := next.scene
 	// A completed mission load always re-requests; any other surface keeps
 	// an equal list running.
 	if a.flow != nil && a.flow.loadUI.completed != a.musicLoads {
 		a.musicLoads = a.flow.loadUI.completed
 		if scene == MusicMission {
-			a.music.RequestScene(scene, mageFirst)
+			a.music.replaceRequest(next)
 			return
 		}
-		if a.music.set && a.music.request == (musicRequest{scene: scene, mageFirst: mageFirst}) {
+		if a.music.set && a.music.request == next {
 			a.music.record("skip:" + sceneKey(a.music.request))
 		}
 	}
-	a.music.SetScene(scene, mageFirst)
+	a.music.setRequest(next)
+}
+
+// musicRequest is the request the shown screen makes: its scene, the
+// school's class order and a town room's own track.
+func (a *App) musicRequest() (musicRequest, bool) {
+	scene, mageFirst, replace := a.musicScene()
+	next := musicRequest{scene: scene, mageFirst: mageFirst}
+	if replace && a.flow != nil && a.flow.screen == ScreenTown && a.cutscene == nil {
+		if town, ok := a.flow.town.(TownMusicTrack); ok {
+			if track, ok := town.TownMusicTrack(); ok {
+				next.track = track
+			}
+		}
+	}
+	return next, replace
 }
 
 func (a *App) musicScene() (MusicScene, bool, bool) {
@@ -167,11 +191,14 @@ func (m *MusicController) SetScene(scene MusicScene, mageFirst bool) {
 	if m == nil {
 		return
 	}
-	next := musicRequest{scene: scene, mageFirst: mageFirst}
+	m.setRequest(musicRequest{scene: scene, mageFirst: mageFirst})
+}
+
+func (m *MusicController) setRequest(next musicRequest) {
 	if m.set && m.request == next {
 		return
 	}
-	m.RequestScene(scene, mageFirst)
+	m.replaceRequest(next)
 }
 
 // RequestScene replaces the ordinary candidate list whether or not the scene
@@ -181,15 +208,17 @@ func (m *MusicController) RequestScene(scene MusicScene, mageFirst bool) {
 	if m == nil {
 		return
 	}
-	next := musicRequest{scene: scene, mageFirst: mageFirst}
+	m.replaceRequest(musicRequest{scene: scene, mageFirst: mageFirst})
+}
+
+func (m *MusicController) replaceRequest(next musicRequest) {
 	if m.set && m.device != nil {
 		m.device.Stop()
 		m.record("stop")
 	}
 	m.record("request:" + sceneKey(next))
 	m.request, m.set, m.active = next, true, false
-	tracks := staticMusicTracks(scene, mageFirst)
-	m.order = m.shuffle(tracks)
+	m.order = m.shuffle(requestTracks(next))
 	m.position = 0
 	if m.preferences.Enabled {
 		m.startCurrent()
@@ -218,8 +247,16 @@ func (m *MusicController) record(event string) {
 	m.log = append(m.log, event)
 }
 
+// requestTracks is a request's list: its own track, else its scene's.
+func requestTracks(r musicRequest) []string {
+	if r.track != "" {
+		return []string{r.track}
+	}
+	return staticMusicTracks(r.scene, r.mageFirst)
+}
+
 func sceneKey(r musicRequest) string {
-	tracks := staticMusicTracks(r.scene, r.mageFirst)
+	tracks := requestTracks(r)
 	if len(tracks) == 0 {
 		return "silent"
 	}

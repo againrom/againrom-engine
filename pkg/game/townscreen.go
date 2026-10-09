@@ -3,15 +3,17 @@ package game
 import (
 	"fmt"
 	"image"
+	"math/rand"
 	"strings"
-	"time"
 
+	"againrom/pkg/audio"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -80,7 +82,7 @@ type townScreen struct {
 	sound       townAudio
 	draws       townDraws
 	art         townArt
-	latches     *townAmbientLatches
+	townProcess *town.Process
 	pc          *PersistenceContext
 	openMission missionDoor
 
@@ -153,12 +155,13 @@ type townScreen struct {
 	// schoolTrainingStatic projects original process-static presentation
 	// clocks/counters and therefore survives object-local room/new-game resets.
 	schoolTrainingStatic schoolTrainingStatic
-	exterior             townExteriorAnimation
-	// townPaintLast survives session resets on the cached FrontEnd town screen.
-	townPaintLast time.Time
-	// townFamilyRand is the process-wide generator of the horse, baba and
-	// dervish presentation; it survives exterior resets like the original's.
-	townFamilyRand townCRT
+	// square is the square's composer view, built on first use. squareRandom
+	// is its fallback presentation generators, squareLoop its entry loop's
+	// voice and squareAction the action a click's hooks left.
+	square         *town.View
+	squareRandom   [2]*rand.Rand
+	squareLoop     audio.Voice
+	squareAction   ui.TownAction
 	tavernInterior tavernInteriorAnimation
 	shopInterior   shopInteriorAnimation
 	townStats      bool
@@ -520,8 +523,15 @@ func (t *townScreen) townLines() []string {
 	return lines
 }
 
+// CanSave answers the description's save admission.
 func (t *townScreen) CanSave() bool {
-	return t != nil && t.sess != nil && t.sess.Town != nil && t.sess.Town.Open() &&
+	return t != nil && t.sess != nil && t.squareView().SaveAdmitted()
+}
+
+// saveAdmitted is the campaign's save admission: an open town and no journey
+// home under way.
+func (t *townScreen) saveAdmitted() bool {
+	return t.sess.Town != nil && t.sess.Town.Open() &&
 		(t.worldMap == nil || t.worldMap.returnMission == 0)
 }
 
@@ -613,23 +623,22 @@ func (t *townScreen) TownMusic() (ui.MusicScene, bool) {
 	}
 }
 
-// TownSquareView is the square's own picture and the font its message line
-// draws with (1016; TOWN-003, TOWN-017 — the raster-mask mechanism the
-// school already implements, reused rather than duplicated). A nil
-// TownSquareArt (an install that failed to ship the picture) keeps app.go's
-// row-button layout for the square, on ui.townSquareView's own readiness
-// test.
+// TownSquareView is the square's composed scene, the font its message line
+// draws with and its tip panel. A square whose art did not load has no scene,
+// and app.go keeps the row-button layout for it.
 func (t *townScreen) TownSquareView() ui.TownSquareView {
 	if t == nil || t.sess == nil {
 		return ui.TownSquareView{}
 	}
-	return ui.TownSquareView{
-		Art:      t.in.TownSquareArt.Value(),
-		Font:     t.in.Font.Value(),
-		Tip:      t.tipView(roomSquare, t.townTip, ui.TipPanelShrinkRect(ui.TownTipRect, t.in.tipFont(), t.townTip)),
-		Selector: t.exterior.selector,
-		Exterior: t.townExteriorFrame(),
+	tip := rom1Town.Tip.Rect.Rectangle()
+	v := ui.TownSquareView{
+		Font: t.in.Font.Value(),
+		Tip:  t.tipView(roomSquare, t.townTip, ui.TipPanelShrinkRect(tip, t.in.tipFont(), t.townTip)),
 	}
+	if t.in.TownSquareArt.Value() != nil {
+		v.Scene = townSquareScene{t}
+	}
+	return v
 }
 
 // AtTownShop reports whether the shop's five-place table is on screen.
@@ -924,15 +933,7 @@ func (t *townScreen) atSquare() {
 	if t == nil {
 		return
 	}
-	t.dialogueRevision++
-	t.resetTownSpeech()
-	t.resetTownExterior()
-	t.leaveTavernInterior()
-	t.resetShopInterior()
-	t.leaveSchoolTraining()
-	t.destroyRoomAudio()
-	t.room, t.npc, t.offer, t.said = roomSquare, 0, TownOffer{}, 0
-	t.loadTip(roomSquare)
+	t.squareView().EnterSquare()
 }
 
 // Header is the line above the list: which room, and which chapter the town
@@ -1126,64 +1127,7 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 	}
 	switch t.room {
 	case roomSquare:
-		if i < 0 || i >= len(townDoors) {
-			return ui.TownAction{}
-		}
-		if townDoors[i].room == roomGates && !t.exteriorGateAvailable() {
-			// TOWN-483/484: no latched record opens npc35 over the town.
-			t.composeShopFaces()
-			if !t.openTownDialogue(TownGate, TownOffer{}, 0) {
-				return ui.TownAction{Msg: "Town dialogue unavailable: " + townGateTextPath}
-			}
-			return ui.TownAction{}
-		}
-		t.resetTownExterior()
-		t.destroyRoomAudio()
-		t.room = townDoors[i].room
-		if t.room == roomSchool {
-			// TOWN-382 resets current, phase and step on school entry even
-			// when the room object is reused. Leaving need not clear them.
-			t.schoolDiamond = schoolDiamondAnimation{}
-			t.schoolSpent = [schoolLatchCount]bool{}
-			t.enterSchoolTraining()
-			t.clearSchoolSelection()
-		}
-		// Every room this build shows a tip panel in re-reads its own node
-		// on entry (1018 spec behaviours 2, 4; loadTip's own per-room
-		// switch): a room this switch does not name (roomGates, roomTalk)
-		// is loadTip's own no-op default.
-		t.loadTip(t.room)
-		if t.room == roomGates {
-			t.enterWorldMap()
-		}
-		if t.room == roomShop {
-			// Each visit opens the first stocked shelf and the trade table.
-			t.packBase, t.shopBook = 0, false
-			t.openStockedShopShelf()
-			t.enterShopInterior()
-		}
-		if t.room == roomShop || t.room == roomSchool {
-			building := TownShop
-			if t.room == roomSchool {
-				building = TownSchool
-			}
-			t.composeShopFaces()
-			offers := t.sess.Town.Offers(building)
-			// The offer opens on entry as long as it is still on offer
-			// (owner ruling in docs/1017-button-frames/spec.md), and opening it
-			// registers it: Offers() excludes a taken offer, which is the school's
-			// and the shop's only gate, so a later entry finds none.
-			if len(offers) > 0 {
-				t.openOfferDialogue(building, offers[0], 0)
-			}
-		}
-		if t.room == roomTavern {
-			t.enterTavernInterior()
-			t.clearTavernDetail()
-			t.composeShopFaces()
-			t.activateTavernSelection(t.tavernCandidates())
-		}
-		return ui.TownAction{}
+		return t.chooseSquare(i)
 	case roomGates:
 		return ui.TownAction{}
 	case roomShop:
@@ -1241,19 +1185,10 @@ func (t *townScreen) Back() bool {
 		t.AdvanceTownDialogue()
 		return true
 	}
-	if t.room == roomTavern {
-		t.commitInnQueue()
-	}
-	if t.room == roomShop {
-		// LEAVING THE SHOP CLEARS THE TABLE. The merchant's places go back on his
-		// shelves and the player's back in his pack, so nothing he owns is ever
-		// left sitting on a table he is not standing at. Without this, the next
-		// arrival in the town regenerates the shelves — which is a
-		// clear-and-refill (SHOP-LIFE-013) — and the items he had put down would
-		// be destroyed with them.
-		t.shopClear()
-	}
-	t.atSquare()
+	// The room's exit steps run, then the square's entry: the tavern commits
+	// its queue and the shop clears its table (SHOP-LIFE-013), so nothing the
+	// player put down is destroyed by the next restock.
+	t.squareView().LeaveRoom(townRoomName(t.room))
 	return true
 }
 

@@ -137,13 +137,13 @@ func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
 		if want := (audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}); voices.places[press] != want {
 			t.Errorf("press %d placed the recording at %+v, want centred %+v", press+1, voices.places[press], want)
 		}
-		beforeFrame, beforeClock, beforeRolls := s.exterior.frame, s.townPaintLast, rolls
+		beforeFrame, beforeClock, beforeRolls := s.sqFrames(), s.sqPaintLast(), rolls
 		now = now.Add(68 * time.Millisecond)
 		if pix, _, err := app.HeadlessFrame(); err != nil || pix == nil {
 			t.Fatalf("press %d: the town with the line open does not compose: %v", press+1, err)
 		}
-		if s.exterior.frame != beforeFrame || s.townPaintLast != beforeClock || rolls != beforeRolls || voices.voices[press].stops != 0 {
-			t.Fatalf("shown npc35: frame %+v=>%+v clock %v=>%v rolls %d=>%d voice stops=%d", beforeFrame, s.exterior.frame, beforeClock, s.townPaintLast, beforeRolls, rolls, voices.voices[press].stops)
+		if s.sqFrames() != beforeFrame || s.sqPaintLast() != beforeClock || rolls != beforeRolls || voices.voices[press].stops != 0 {
+			t.Fatalf("shown npc35: frame %+v=>%+v clock %v=>%v rolls %d=>%d voice stops=%d", beforeFrame, s.sqFrames(), beforeClock, s.sqPaintLast(), beforeRolls, rolls, voices.voices[press].stops)
 		}
 		if pic, open := s.TownDialogue(); !open || pic == nil {
 			t.Fatalf("press %d: the line has no window", press+1)
@@ -156,28 +156,28 @@ func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
 			}
 			return pix
 		})
-		if s.exterior.frame != beforeFrame || s.townPaintLast != beforeClock || voices.voices[press].stops != 0 {
-			t.Fatalf("captured pointer controls: frame %+v=>%+v clock %v=>%v voice stops=%d", beforeFrame, s.exterior.frame, beforeClock, s.townPaintLast, voices.voices[press].stops)
+		if s.sqFrames() != beforeFrame || s.sqPaintLast() != beforeClock || voices.voices[press].stops != 0 {
+			t.Fatalf("captured pointer controls: frame %+v=>%+v clock %v=>%v voice stops=%d", beforeFrame, s.sqFrames(), beforeClock, s.sqPaintLast(), voices.voices[press].stops)
 		}
 		closeLine(fmt.Sprintf("press %d's line, ended by %s", press+1, key), key)
 		if voices.voices[press].stops != 1 {
 			t.Errorf("press %d: ending the line stopped its recording %d times, want 1", press+1, voices.voices[press].stops)
 		}
-		if s.townPaintLast != beforeClock {
-			t.Fatalf("pager close changed the blocked timestamp: %v=>%v, now=%v", beforeClock, s.townPaintLast, now)
+		if s.sqPaintLast() != beforeClock {
+			t.Fatalf("pager close changed the blocked timestamp: %v=>%v, now=%v", beforeClock, s.sqPaintLast(), now)
 		}
 		beforeComposeRolls := rolls
 		if pix, _, err := app.HeadlessFrame(); err != nil || pix == nil {
 			t.Fatal("post-pager square composition", err)
 		}
-		if rolls != beforeComposeRolls+2 || s.townPaintLast != now {
-			t.Fatalf("post-pager pure frame: rolls %d=>%d want +2; clock %v=>%v want %v", beforeComposeRolls, rolls, beforeClock, s.townPaintLast, now)
+		if rolls != beforeComposeRolls+2 || s.sqPaintLast() != now {
+			t.Fatalf("post-pager pure frame: rolls %d=>%d want +2; clock %v=>%v want %v", beforeComposeRolls, rolls, beforeClock, s.sqPaintLast(), now)
 		}
 		if pix, _, err := app.HeadlessFrame(); err != nil || pix == nil {
 			t.Fatal("same-clock square composition", err)
 		}
-		if rolls != beforeComposeRolls+2 || s.townPaintLast != now {
-			t.Fatalf("same-clock pure frame: rolls=%d want %d; clock=%v want %v", rolls, beforeComposeRolls+2, s.townPaintLast, now)
+		if rolls != beforeComposeRolls+2 || s.sqPaintLast() != now {
+			t.Fatalf("same-clock pure frame: rolls=%d want %d; clock=%v want %v", rolls, beforeComposeRolls+2, s.sqPaintLast(), now)
 		}
 		if got := f.Town.Available(); len(got) != 0 {
 			t.Fatalf("press %d made %v available", press+1, got)
