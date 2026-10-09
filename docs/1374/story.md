@@ -57,6 +57,8 @@ ANIM-BOLTRAMP-035 (the phase is per route).
   drawn (DIV-2685).
 - The path light stamps the stored display points: column `x>>5`, row from the
   ground picker edge model (`Viewer.DisplayRow`) (DIV-2659 amended).
+  The first stored point is the raised launch point, so the caster's own
+  cell is stamped only when that point lies over it.
 - Hashed state: only `SavedProjectile.Phase` of a loaded picture 34/36 record
   whose actionphase leaves 1..13 changes. The figure, its seed and the
   observation victims are presentation.
@@ -81,6 +83,11 @@ DIV-2659. Added: DIV-2680..2686. DIV-2687 is unused.
 - `TestReleaseLightningFigureOverItsLife` (EN and RU): 13 calls of an
   installed Lightning cast on mission 41, every stamp on the installed
   5-frame `lightnin` sheet at the ramp frame and the stored point.
+- `TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath` (EN and RU,
+  renamed from the caster form): a phase-0 path lights the ground and the
+  living unit standing in a fully stamped cell, and with Dynamic lighting off
+  only that unit. On mission 41 the launch point lies over row 66 and the
+  caster stands on row 68.
 
 ## Open debt
 

@@ -12,7 +12,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   random zigzag of curved segments built anew on every tick, one star per
   point, flickering through the original's thirteen-step brightness ramp.
   A Lightning or Prismatic Spray cast by a map trigger starts at its own
-  ramp, and a map-triggered Prismatic Spray now draws its rays.
+  ramp, and a map-triggered Prismatic Spray now draws its rays. The bolt
+  lights the ground cells under the drawn figure, so a caster whose raised
+  hand sits over the next row up is no longer lit by his own bolt.
 
 ## 0.101.0
 
