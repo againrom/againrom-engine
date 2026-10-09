@@ -1985,7 +1985,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1879,
 		"scclause":        508,
-		"barestorynumber": 1744,
+		"barestorynumber": 1742,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
