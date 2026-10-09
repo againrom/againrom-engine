@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"againrom/pkg/data"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -20,13 +21,16 @@ import (
 // (MAGIC-TRAIL-073), a different mechanism. Nothing here reaches pkg/sim: the
 // figure is presentation, regenerated from the object's seed and age.
 
-// boltRNG is MSVC's rand recurrence (MAGIC-279). Its seed is the engine's own
-// per call (boltSeed, DIV-2681), so a replay draws the same figure.
+// boltRNG is the bolt and heal figures' stream: MSVC's rand recurrence
+// (MAGIC-279) at the engine's own per-call seed (boltSeed, DIV-2681), so a
+// replay draws the same figure.
 type boltRNG struct{ state uint32 }
 
 func (r *boltRNG) next() int {
-	r.state = r.state*214013 + 2531011
-	return int((r.state >> 16) & 0x7fff)
+	m := random.MSVC{State: r.state}
+	v := m.Rand()
+	r.state = m.State
+	return int(v)
 }
 
 // boltUnitsPerPixel converts screen pixels into ShotScale units.
@@ -58,8 +62,9 @@ func castShotPoint(from, to image.Point, num, den int, launch image.Point) image
 // object's age. Each call reseeds, so the figure changes every tick and a
 // replay repeats it (owner: the random source is ours, DIV-2681).
 func boltSeed(b spellBolt) uint32 {
-	s := b.seed*2654435761 + uint32(b.age)*2246822519 + uint32(b.picture)
-	return s*214013 + 2531011
+	m := random.MSVC{State: b.seed*2654435761 + uint32(b.age)*2246822519 + uint32(b.picture)}
+	m.Rand()
+	return m.State
 }
 
 // boltRamp is the phase for actionphase 1..13 (ANIM-BOLTRAMP-035).

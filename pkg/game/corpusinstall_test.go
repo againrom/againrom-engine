@@ -8,9 +8,9 @@ import (
 	"slices"
 	"sync"
 	"testing"
-	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -89,8 +89,8 @@ func decodedInstallFront(root string) (*FrontEnd, error) {
 		RuntimeServices: RuntimeServices{
 			Sound: soundOptions, SoundChannels: soundChannelVolumes,
 			SoundPlayer: scope.Player(audio.EffectsChannel), SpeechPlayer: scope.Player(audio.SpeechChannel),
-			MusicPlayer: music, MusicSeed: time.Now().UnixNano(),
-			AmbientPlayer: scope.Ambient(), AmbientSeed: time.Now().UnixNano(), CutsceneAudioPlayer: cutscene,
+			MusicPlayer: music, AmbientPlayer: scope.Ambient(), CutsceneAudioPlayer: cutscene,
+			Random: random.NewService(random.Session{}),
 		},
 		CampaignSession: CampaignSession{fame: SnapshotFame{Known: true}, Town: NewTown(in.Campaign.Value())},
 		Presentation:    Presentation{Markers: Markers{Objects: true, Units: true, Statics: true}},
@@ -123,7 +123,7 @@ func TestReleaseDecodedInstallFixtureIsolation(t *testing.T) {
 	runtime := func(f *FrontEnd) RuntimeServices {
 		r := f.RuntimeServices
 		r.SoundPlayer, r.SpeechPlayer, r.MusicPlayer, r.AmbientPlayer, r.CutsceneAudioPlayer = nil, nil, nil, nil, nil
-		r.MusicSeed, r.AmbientSeed = 0, 0
+		r.Random = nil
 		return r
 	}
 	defaults := func(f *FrontEnd) {

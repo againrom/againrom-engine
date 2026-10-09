@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 )
 
@@ -366,7 +367,8 @@ func skillSaveFront(t *testing.T) *FrontEnd {
 		t.Fatal(err)
 	}
 	cleanupFrontAudio(t, f)
-	f.AmbientSeed = 1
+	f.randomService().SetStreamSeed(random.TownWildlife, 1)
+	f.randomService().SetStreamSeed(random.AmbientBirds, 1)
 	return f
 }
 

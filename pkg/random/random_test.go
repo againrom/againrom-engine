@@ -134,6 +134,7 @@ func TestStreamSeedOverride(t *testing.T) {
 type countingShared struct{ m MSVC }
 
 func (c *countingShared) OriginalRand() int32 { return c.m.Rand() }
+func (c *countingShared) RandomState() uint64 { return uint64(c.m.State) }
 
 func TestOriginalStreamsInterleaveOnOneSharedStream(t *testing.T) {
 	s := NewService(Session{Seed: 5, Mode: Original, Shared: 1})
@@ -157,15 +158,22 @@ func TestOriginalStreamsInterleaveOnOneSharedStream(t *testing.T) {
 		t.Fatal("an own stream moved the shared stream")
 	}
 	w := &countingShared{m: MSVC{State: 42}}
-	s.Bind(w)
-	at := s.SharedState()
+	var live Shared = w
+	s.Track(func() Shared { return live })
+	betweenMissions := s.shared.State
 	music.Raw()
-	if s.SharedState() != at || w.m.State == 42 {
-		t.Fatal("a bound mission did not take the draw")
+	if s.shared.State != betweenMissions || w.m.State == 42 || s.SharedState() != w.m.State {
+		t.Fatal("a running mission did not take the draw")
 	}
-	s.Unbind(w.m.State)
+	live = nil
 	if s.SharedState() != w.m.State {
-		t.Fatal("unbind did not take the mission's state back")
+		t.Fatal("the service did not take the mission's state back")
+	}
+	live = w
+	s.Begin(Session{Seed: 5, Mode: Original, Shared: 9})
+	live = nil
+	if s.SharedState() != 9 {
+		t.Fatal("a mission of the session before overwrote the new session")
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
@@ -322,7 +323,6 @@ type RuntimeServices struct {
 	// SoundPlayer is the opened sound device, or nil.
 	SoundPlayer audio.Player
 	MusicPlayer ui.MusicDevice
-	MusicSeed   int64
 
 	// CutsceneAudioPlayer streams the installed decoder's own track for the
 	// movie currently playing, under master controls only. Original
@@ -330,10 +330,12 @@ type RuntimeServices struct {
 	// exactly like a missing SoundPlayer or MusicPlayer.
 	CutsceneAudioPlayer ui.CutsceneAudioDevice
 
-	// AmbientPlayer owns the two retained mission loops. AmbientSeed drives
-	// presentation-only deadline choices and never enters simulation state.
+	// AmbientPlayer owns the two retained mission loops.
 	AmbientPlayer ui.AmbientDevice
-	AmbientSeed   int64
+
+	// Random is the session's random service. Every presentation draw takes
+	// a named stream from it; a new game or a LOAD begins a session in it.
+	Random *random.Service
 
 	// runtime keeps launch flags and the scenario frame adapter across games.
 	runtime runtimeSwitches
@@ -533,7 +535,9 @@ func (f *FrontEnd) arriveInTown() {
 	if f == nil {
 		return
 	}
-	f.CampaignSession.arriveInTown(f.townInstall())
+	in := f.townInstall()
+	in.stock = f.randomService().Stream(random.ShopStock)
+	f.CampaignSession.arriveInTown(in)
 	// The party's own remembered world-map position does not survive a
 	// return to town (`DIV-137`, authored): this is the one place every
 	// return to town passes through, whether from finishing a mission or
@@ -824,9 +828,8 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 			SpeechPlayer:        speechPlayer,
 			SoundPlayer:         soundPlayer,
 			MusicPlayer:         musicPlayer,
-			MusicSeed:           time.Now().UnixNano(),
 			AmbientPlayer:       ambientPlayer,
-			AmbientSeed:         time.Now().UnixNano(),
+			Random:              random.NewService(random.Session{}),
 			CutsceneAudioPlayer: cutsceneAudioPlayer,
 		},
 		CampaignSession: CampaignSession{
@@ -1054,7 +1057,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	)
 	f.wireGameOptions(a)
 	f.wireSoundOptions(a)
-	a.SetMusic(f.MusicBank, f.MusicPlayer, f.MusicSeed)
+	a.SetMusic(f.MusicBank, f.MusicPlayer, f.randomService().Stream(random.Music))
 	return a
 }
 

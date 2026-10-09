@@ -126,6 +126,10 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := markDocumentForMods(&doc, f.ModSet(), f.modContext().Items, modMarkLayers(s.Party, f.Table)); err != nil {
 		return nil, err
 	}
+	rs := s.randomSession
+	if err := sav.SetNativeSession(&doc.State, sav.NativeSession{Seed: rs.Seed, Mode: uint32(rs.Mode), Shared: rs.Shared}); err != nil {
+		return nil, err
+	}
 	clampOriginalLevels(&doc)
 	return sav.EncodeDocumentData(doc)
 }

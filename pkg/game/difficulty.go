@@ -44,6 +44,12 @@ func (f *FrontEnd) prepareNewGameWith(n int, level int64, party []mapload.PartyM
 	if err != nil {
 		return nil, err
 	}
+	// A new game begins a fresh random session; its first mission is built
+	// over it while the running game keeps its own until the commit.
+	fresh := f.randomService().Fresh(clockSessionSeed())
+	c.randomSession = &fresh
+	f.randomService().Prepare(fresh)
+	defer f.randomService().Cancel()
 	open := f.missionOpenerMode(n, party, nil, nil, nil,
 		&c.activate, c.units, c.difficulty, c.town)
 	c.prepared.viewer, c.prepared.tick, c.prepared.order, c.prepared.cadence,

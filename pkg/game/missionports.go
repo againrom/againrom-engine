@@ -85,6 +85,7 @@ func (f *FrontEnd) missionPorts() missionPorts {
 		art:      viewerArtSource{in: &f.InstallResources, pr: &f.Presentation}.resolve,
 		cityBase: cityBaseFrom(f, f.Table),
 		advance:  advanceFrom(frontTransitions{f}),
+		random:   f.Random,
 	}
 }
 

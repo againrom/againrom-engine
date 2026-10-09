@@ -56,16 +56,122 @@ type Session struct {
 // generator in original mode.
 type Shared interface {
 	OriginalRand() int32
+	RandomState() uint64
 }
 
 // Service is the session's random service. It is not safe for concurrent use.
 type Service struct {
 	session   Session
 	shared    MSVC
-	bound     Shared
+	track     func() Shared
+	last      Shared
+	stale     Shared
 	streams   map[Name]*Stream
 	overrides map[Name]int64
+	launch    Launch
+	pending   *Session
 }
+
+// Launch is what the launch settings choose: a fixed session seed, or none so
+// that each new game takes the caller's clock value, and the mode.
+type Launch struct {
+	Seed  uint64
+	Fixed bool
+	Mode  Mode
+	// configured is set by SetLaunch. A service whose launch was never set
+	// begins every new game at seed zero, so a session built without launch
+	// settings replays without a clock.
+	configured bool
+}
+
+// ItemStarDraws is how many draws the four item-star grids take at start-up.
+const ItemStarDraws = 4 * 1024 * 2
+
+// SetLaunch records the launch settings and begins the process's session.
+// In original mode the shared stream starts at seed 1, the item-star grids
+// take its first draws and sound initialisation reseeds it (SESS-083).
+func (s *Service) SetLaunch(l Launch, clock uint64) {
+	l.configured = true
+	s.launch = l
+	session := Session{Seed: clock, Mode: l.Mode}
+	if l.Fixed {
+		session.Seed = l.Seed
+	}
+	if l.Mode == Original {
+		start := MSVC{State: OriginalStartSeed}
+		for range ItemStarDraws {
+			start.Rand()
+		}
+		session.Shared = ReseedValue(session.Seed, SoundInit, start.State)
+	}
+	s.Begin(session)
+}
+
+// Prepare holds session for a game being prepared: a new game or a LOAD
+// builds its mission over it while the running game keeps its own. Commit
+// begins it; Cancel drops it.
+func (s *Service) Prepare(session Session) { s.pending = &session }
+
+// Prepared answers the session being prepared, else the running one.
+func (s *Service) Prepared() Session {
+	if s.pending != nil {
+		return *s.pending
+	}
+	return s.Session()
+}
+
+// Commit begins the prepared session, if any.
+func (s *Service) Commit() {
+	if s.pending != nil {
+		p := *s.pending
+		s.pending = nil
+		s.Begin(p)
+	}
+}
+
+// Cancel drops the prepared session.
+func (s *Service) Cancel() { s.pending = nil }
+
+// LaunchSettings answers the launch settings.
+func (s *Service) LaunchSettings() Launch { return s.launch }
+
+// Fresh is the session a new game begins: the launch seed when one is fixed,
+// otherwise clock, in the launch mode, with the shared stream continuing
+// through the scenario constructor's reseed.
+func (s *Service) Fresh(clock uint64) Session {
+	out := Session{Seed: clock, Mode: s.launch.Mode, Shared: s.SharedState()}
+	if s.launch.Fixed || !s.launch.configured {
+		out.Seed = s.launch.Seed
+	}
+	if out.Mode == Original {
+		out.Shared = ReseedValue(out.Seed, ScenarioConstructor, out.Shared)
+	}
+	return out
+}
+
+// Loaded is the session a LOAD begins from a saved session: its seed, the
+// launch mode, and the saved state carried into that mode through the load
+// path's two reseeds (SESS-083). A saved state from the other mode is folded
+// into the current one deterministically; a LOAD is never refused.
+func (s *Service) Loaded(saved Session) Session {
+	out := Session{Seed: saved.Seed, Mode: s.launch.Mode, Shared: saved.Shared}
+	if out.Mode == Original {
+		out.Shared = MissionLoadState(out.Seed, out.Shared)
+	}
+	return out
+}
+
+// MissionLoadState is the shared state after a mission or save load's two
+// reseeds: the mission loader's, then the AI manager's (SESS-083).
+func MissionLoadState(seed uint64, state uint32) uint32 {
+	return ReseedValue(seed, AIManager, ReseedValue(seed, MissionLoader, state))
+}
+
+// FoldSeeded carries a seeded 64-bit state into an original 32-bit one.
+func FoldSeeded(state uint64) uint32 { return uint32(mix64(state)) }
+
+// UnfoldOriginal carries an original 32-bit state into a seeded 64-bit one.
+func UnfoldOriginal(state uint32) uint64 { return mix64(uint64(state) | 1<<32) }
 
 // NewService is a service over session.
 func NewService(session Session) *Service {
@@ -79,7 +185,7 @@ func NewService(session Session) *Service {
 func (s *Service) Begin(session Session) {
 	s.session = session
 	s.shared = MSVC{State: session.Shared}
-	s.bound = nil
+	s.last, s.stale = nil, s.holder()
 	for name, st := range s.streams {
 		st.g = NewGo(s.StreamSeed(name))
 	}
@@ -91,7 +197,7 @@ func (s *Service) Session() Session {
 		return Session{}
 	}
 	out := s.session
-	out.Shared = s.shared.State
+	out.Shared = s.SharedState()
 	return out
 }
 
@@ -138,26 +244,50 @@ func (s *Service) Stream(name Name) *Stream {
 	return st
 }
 
-// Bind hands the shared stream to a running mission; draws go to w until
-// Unbind.
-func (s *Service) Bind(w Shared) { s.bound = w }
+// Track names the running mission's stream: holder answers the World that
+// holds the shared stream now, or nil between missions. When a holder goes
+// away the service takes its state back. A holder present when a session
+// begins belongs to the session before and is never adopted.
+func (s *Service) Track(holder func() Shared) { s.track = holder }
 
-// Unbind takes the shared stream back from a mission at state.
-func (s *Service) Unbind(state uint32) {
-	s.bound = nil
-	s.shared.State = state
+func (s *Service) holder() Shared {
+	if s.track == nil {
+		return nil
+	}
+	h := s.track()
+	if h == nil || h == s.stale {
+		return nil
+	}
+	return h
+}
+
+// sync answers the current holder, taking the state back from one that went
+// away.
+func (s *Service) sync() Shared {
+	h := s.holder()
+	if h != s.last && s.last != nil {
+		s.shared.State = uint32(s.last.RandomState())
+	}
+	s.last = h
+	return h
 }
 
 // Bound reports whether a mission holds the shared stream.
-func (s *Service) Bound() bool { return s != nil && s.bound != nil }
+func (s *Service) Bound() bool { return s != nil && s.sync() != nil }
 
-// SharedState answers the shared stream's state between missions.
-func (s *Service) SharedState() uint32 { return s.shared.State }
+// SharedState answers the shared stream's state, the holder's while a
+// mission holds it.
+func (s *Service) SharedState() uint32 {
+	if h := s.sync(); h != nil {
+		return uint32(h.RandomState())
+	}
+	return s.shared.State
+}
 
 // rand is one raw draw of the shared stream.
 func (s *Service) rand() int32 {
-	if s.bound != nil {
-		return s.bound.OriginalRand()
+	if h := s.sync(); h != nil {
+		return h.OriginalRand()
 	}
 	return s.shared.Rand()
 }
@@ -206,6 +336,14 @@ func SeedOf(b []byte) uint64 {
 		h *= 1099511628211
 	}
 	return mix64(h)
+}
+
+// NewStream is a standalone seeded stream that starts at seed, for a
+// consumer a test drives without a session.
+func NewStream(seed int64) *Stream {
+	s := NewService(Session{})
+	s.SetStreamSeed("standalone", seed)
+	return s.Stream("standalone")
 }
 
 // Stream is one named stream.

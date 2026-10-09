@@ -112,10 +112,9 @@ var allow = map[string][]string{
 	// chunk walk, so no other tier's type crosses in.
 	"pkg/audio": {"pkg/formats/wav"},
 	// The town composer builds a town view from a description. It holds no
-	// game fact and imports only the standard library and the random service;
-	// a game supplies its
+	// game fact and imports only the standard library; a game supplies its
 	// descriptions, art and hooks.
-	"pkg/town": {"pkg/random"},
+	"pkg/town": {},
 	// Video is a presentation/transport leaf; it cannot import game or sim.
 	// It reads a movie's sidecar registry through the reg format leaf.
 	"pkg/video": {"pkg/video/smacker", "pkg/formats/reg"},
