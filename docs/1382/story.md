@@ -46,6 +46,7 @@ Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
 | TOWN-520: only `Mask.bmp` decides a hit | keyed nonblack pixels overrode the mask | mask regions 20..180 only |
 | TOWN-523: `select` cursor every pre-create paint; `default` every detailed paint | `default` on both | set on every paint (`DIV-2717` for the dice setter) |
 | MENU-138: `+`/`-` draw nloff, loff, lon, disable; `nlon` never | `nlon` after a capture left the button | four states; lon while held over the button |
+| MENU-138, MENU-066: `+` (cost) at x 107..127, `-` (refund) at x 132..152 | `-` left, `+` right | `+` left, `-` right |
 | MENU-139: Accept/Reset/Back are `Inn\button{1,2,3}{on,off}.bmp` over `Inn\ButtonsArea.bmp`, font4 labels, on only while pressed and hovered | measured wells on `chrgen\buttonsarea.bmp`, font1 labels | the Inn art, rectangles and states (`DIV-156` closed; `DIV-169` keeps the ink) |
 | TRIG-TIPS-087: a dialogue closing on its last page after a part set `tips=N` shows `m<mission>\tips<NN>` in popup `0x10` at (10,20)-(370,188), replacing an open one, while `TipsMode` is set | tags ignored in missions | mission popup on the viewer; raised by the dialogue close |
 | TRIG-TIPS-088: once per mission run through fire-once triggers; LOAD restores the latch | none | no own latch; the trigger latch already rides the SAV |

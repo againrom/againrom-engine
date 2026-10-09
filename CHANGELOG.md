@@ -16,8 +16,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   skills in turn until then.
 - [ROM1] The generator's first page shows its selection cursor, a portrait
   is lit only when chosen or under the pointer, and only the original's
-  click areas choose. The statistic buttons and Accept, Reset and Back use
-  the original pictures and pressed states.
+  click areas choose. The statistic buttons stand in the original order, plus
+  before minus, and they and Accept, Reset and Back use the original pictures
+  and pressed states.
 - [ROM1] Missions 10 and 20 show their tips in the top left corner after the
   dialogue that names them, as the original does: at the start, at the sack,
   after the rogues, the woman, the bees and the ghosts, and after the

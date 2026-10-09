@@ -238,27 +238,27 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	// start leaves no points, - disabled at the floor, + hovered and held.
 	writeTipRender(t, dir, "detailed-plus-disabled-no-points", frame)
 	for i := 0; i < 40; i++ {
-		click(image.Pt(117, 64))
+		click(image.Pt(142, 64))
 	}
 	if err := app.HeadlessPointer("hover", 300, 470); err != nil {
 		t.Fatal(err)
 	}
 	floor, _, _ := app.HeadlessFrame()
 	writeTipRender(t, dir, "detailed-minus-disabled-at-floor", floor)
-	if err := app.HeadlessPointer("hover", 142, 64); err != nil {
+	if err := app.HeadlessPointer("hover", 117, 64); err != nil {
 		t.Fatal(err)
 	}
 	hovered, _, _ := app.HeadlessFrame()
 	writeTipRender(t, dir, "detailed-plus-hovered", hovered)
-	if err := app.HeadlessPointer("press", 142, 64); err != nil {
+	if err := app.HeadlessPointer("press", 117, 64); err != nil {
 		t.Fatal(err)
 	}
 	held, _, _ := app.HeadlessFrame()
 	writeTipRender(t, dir, "detailed-plus-held", held)
-	if err := app.HeadlessPointer("release", 142, 64); err != nil {
+	if err := app.HeadlessPointer("release", 117, 64); err != nil {
 		t.Fatal(err)
 	}
-	plus := image.Rect(132, 54, 152, 74)
+	plus := image.Rect(107, 54, 127, 74)
 	if sameTipPixels(floor, hovered, plus) || sameTipPixels(hovered, held, plus) {
 		t.Fatal("the + button draws the same picture plain, hovered and held")
 	}

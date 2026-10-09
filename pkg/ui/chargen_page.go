@@ -288,12 +288,12 @@ var chargenStatValueBox = [...]image.Rectangle{
 	image.Rect(82, 118, 102, 138), image.Rect(82, 150, 102, 170),
 }
 
-var chargenStatMinusBox = [...]image.Rectangle{
+var chargenStatPlusBox = [...]image.Rectangle{
 	image.Rect(107, 54, 127, 74), image.Rect(107, 86, 127, 106),
 	image.Rect(107, 118, 127, 138), image.Rect(107, 150, 127, 170),
 }
 
-var chargenStatPlusBox = [...]image.Rectangle{
+var chargenStatMinusBox = [...]image.Rectangle{
 	image.Rect(132, 54, 152, 74), image.Rect(132, 86, 152, 106),
 	image.Rect(132, 118, 152, 138), image.Rect(132, 150, 152, 170),
 }
