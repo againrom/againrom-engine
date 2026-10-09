@@ -481,14 +481,15 @@ func (w *HeadlessWorldSpec) Build() (*PlayWorld, error) {
 				known |= 1 << spell
 			}
 		}
-		ents = append(ents, sim.Entity{
-			ID: id, X: u.X, Y: u.Y, Owner: u.Owner, Group: u.Group,
+		// An authored unit states only what its scenario measures; every
+		// other field keeps its zero.
+		ents = append(ents, sim.NewActor(sim.ActorDefinition{
 			HP: u.HP, MaxHP: headlessMaxHP(u), DamageBase: u.Damage,
 			ScanRange: u.ScanRange, AlwaysHits: u.AlwaysHits,
 			Mana: u.Mana, MaxMana: u.MaxMana, Mind: u.Mind,
 			KnownSpells: known, AutoSpell: u.Autocast,
 			RotationSpeed: u.RotationSpeed,
-		})
+		}, sim.ActorPlacement{ID: id, X: u.X, Y: u.Y, Owner: u.Owner, Group: u.Group}))
 		kind, n, err := headlessRefParts(u.Ref)
 		if err != nil {
 			return nil, err

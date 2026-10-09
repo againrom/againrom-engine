@@ -7,7 +7,7 @@ Each image and sound format the engine reads has one decoder under
 and no fallback copy is kept. A defect fixed in one decoder then reaches every
 screen at once. Nothing a player sees or hears changes.
 
-Base: `5d22d8cc` (game 0.102.0). Reconciled main: `75bd892d` (game 0.103.0,
+Base: `5d22d8cc` (game 0.102.0). Reconciled main: `51cccab7` (game 0.104.0,
 knowledge k208).
 
 ## Authority

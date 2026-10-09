@@ -2239,9 +2239,7 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 		// ring or a leg on an entity that is (now) not in the patrol state — and
 		// it is dropped with the state rather than kept as a fact about an order
 		// this build has no way to have issued yet.
-		cp[i].ActorState = actorStateGuard
-		cp[i].Retreat = RetreatContinuation{}
-		cp[i].PostX, cp[i].PostY = cp[i].X, cp[i].Y
+		cp[i].standAtPost()
 		// BOTH CLEARS, not one (0166 D-13): patrolFault now answers for the
 		// escort triple as well as for the ring, and a fault it names in one
 		// of them is not repaired by clearing the other. Together they satisfy
