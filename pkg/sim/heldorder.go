@@ -83,7 +83,7 @@ func (w *World) releaseHeldOrders() {
 	}
 }
 
-const heldOrderFormVersion byte = 117
+const heldOrderFormVersion byte = 118
 const heldOrderRecordLen = 21
 
 func (w *World) appendHeldOrders(b []byte) []byte {

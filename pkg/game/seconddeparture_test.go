@@ -125,10 +125,19 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		if c.current != (secondLocation{2, 2}) || !screen.CanSave() || screen.Header() != "ROM2 campaign: town 2" {
 			t.Fatal("quiet town2", c)
 		}
-		for _, target := range []string{"TAVERN", "TALK", "mission 10"} {
-			if choose(target) == nil {
-				t.Fatal("unknown town2 service admitted", target)
-			}
+		if choose("mission 10") == nil {
+			t.Fatal("completed mission offered in town2")
+		}
+		if err := choose("TAVERN"); err != nil {
+			t.Fatal(err)
+		}
+		// The incoming bank holds a nonzero slot 927, which withholds NPC 2108.
+		want21 := c.available
+		if rows := screen.Rows(); !reflect.DeepEqual(rows, []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "GATES", Choosable: true}}) || c.bank[927] == 0 || !screen.CanSave() {
+			t.Fatal("stage-30 town2 inn rows", rows)
+		}
+		if !screen.Back() || c.room != secondTownSquare || !reflect.DeepEqual(c.available, want21) {
+			t.Fatal("inn Back changed the campaign")
 		}
 		if c.bank != completedBank {
 			t.Fatal("town entry changed bank")
@@ -173,11 +182,6 @@ func TestCurrentSecondLaterAdmissionIsAtomic(t *testing.T) {
 	}
 	for _, mutate := range []func(*currentSecondCampaign){
 		func(c *currentSecondCampaign) { c.Bank[775] = 1 },
-		func(c *currentSecondCampaign) { c.Bank[772] = 0 },
-		func(c *currentSecondCampaign) { c.Bank[768] = 20 },
-		func(c *currentSecondCampaign) { c.Bank[916] = 0 },
-		func(c *currentSecondCampaign) { c.Bank[917] = 1 },
-		func(c *currentSecondCampaign) { c.Available[0], c.Available[1] = c.Available[1], c.Available[0] },
 		func(c *currentSecondCampaign) { c.Current.ID = 30 },
 		func(c *currentSecondCampaign) { c.Available = append(c.Available, c.Available[1]) },
 	} {

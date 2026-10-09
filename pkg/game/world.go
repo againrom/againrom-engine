@@ -932,7 +932,8 @@ func missionOutcomeText(v *ui.Viewer, o sim.Outcome) string {
 func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Viewer,
 	src entrySource, faces FaceSource, npcFaces map[int32]data.NPCFace) *mapWorld {
 	if t != nil && t.Game == base.GameROM2 {
-		v.SetCompletionCutscene(secondGameCompletionDirectory(src, ms.Number))
+		// The departure output selects the movie at acknowledgement.
+		v.SetCompletionCutscene("")
 	}
 	normalizeMissionShieldLoadouts(ms, t)
 	// NO SCHEDULE. A mission's units are moved by its script and by the AI, and

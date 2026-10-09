@@ -145,6 +145,7 @@ func (e *Entity) clearActiveAttack() {
 	e.AttackTargetKind = AttackTargetUnit
 	e.AcquirePursuit = false
 	e.PursuitIdle = false
+	e.Pursuit = PursuitSearch{}
 	e.AttackPhase, e.AttackCountdown = AttackReady, 0
 }
 
@@ -339,8 +340,9 @@ func attackFault(e Entity) error {
 //     cast's own admission distance while weaponSpell says this attacker is
 //     even now eligible, inReach otherwise. THE ATTACKER
 //     TURNS TO FACE IT HERE, on this arm and nowhere else;
-//   - acquisition turns in place; engagement paths to the victim's current
-//     cell (AI-PURSUE-040).
+//   - acquisition turns in place; engagement returns the victim's index, and
+//     the movement pass runs pursue for it (AI-PURSUE-040). Every other
+//     outcome returns -1.
 //
 // Health is not a pursuit refusal. A linked, reachable target remains the
 // retained target until the group/order teardown removes or replaces it, and
@@ -366,16 +368,16 @@ func attackFault(e Entity) error {
 //
 // A victim on the attacker's OWN cell is a zero delta, which names no direction,
 // and face leaves the facing as it found it.
-func (w *World) approach(s *routeScratch, i int) {
+func (w *World) approach(s *routeScratch, i int) int {
 	if w.entities[i].AttackTargetKind == AttackTargetStructure {
 		w.approachStructure(s, i)
-		return
+		return -1
 	}
 	ti := indexOfEntity(w.entities, w.entities[i].AttackTarget)
 	if ti < 0 || !w.entities[ti].OrdinaryTargetable() || w.invisibleToActor(i, ti) {
 		w.entities[i].clearActiveAttack()
 		w.restAt(s, i)
-		return
+		return -1
 	}
 	// INVISIBILITY ENDS AT THE APPROACH, NOT AT A LANDED BLOW. This function is
 	// that approach: it runs every tick for an actor holding an attack order on
@@ -384,7 +386,7 @@ func (w *World) approach(s *routeScratch, i int) {
 	// one whose victim stood out of reach stay invisible indefinitely.
 	w.removeAttachedSpell(w.entities[i].ID, w.armSpellID(15))
 	if w.entities[i].PursuitIdle {
-		return
+		return -1
 	}
 	latched := w.entities[i].AttackPhase != AttackReady
 	if t := w.entities[ti]; w.closedOn(i, ti) {
@@ -392,17 +394,17 @@ func (w *World) approach(s *routeScratch, i int) {
 			w.turnTowardActor(i, t.X-w.entities[i].X, t.Y-w.entities[i].Y)
 		}
 		w.restAt(s, i)
-		return
+		return -1
 	}
 	if latched {
-		return
+		return -1
 	}
 	if w.entities[i].AcquirePursuit {
 		w.turnTowardActor(i, w.entities[ti].X-w.entities[i].X, w.entities[ti].Y-w.entities[i].Y)
 		w.restAt(s, i)
-		return
+		return -1
 	}
-	w.walkTo(s, i, w.entities[ti].X, w.entities[ti].Y)
+	return ti
 }
 
 // pursuitRefused reports whether a route from attacker i to its unit victim is

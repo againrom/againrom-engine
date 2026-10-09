@@ -48,7 +48,7 @@ or dead record.
   the terrain or a dead actor stays theirs, so a cell that still names a bone
   gives the actor standing on it no second copy of that key.
 - The World holds an actor's order words it does not run
-  (`sim.HeldOrder`, byte form 117). LOAD fills it. A frozen order is the
+  (`sim.HeldOrder`, byte form 118). LOAD fills it. A frozen order is the
   nonzero attack phase word and attack-complete flag of an actor LOAD found
   neither alive nor dying, a late corpse included; it ends when the actor
   lives again. A body order is a live actor's attack order on a body below

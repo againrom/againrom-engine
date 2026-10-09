@@ -1926,6 +1926,15 @@ package storyguard
 // identity, the town option carrier and the loaded-document census and
 // loss-control tests, and of the World's held orders, the graft's held
 // bases and the consumed-corpse held-byte control, including this paragraph.
+// The pursuit search adds new code documented in pkg/sim/pursuitsearch.go,
+// pickerb.go, pursuitsearchbinary.go and their tests, and the release drives
+// it moved document their new set-ups, as do the structure-order, remap and
+// head-removal fixes and their tests, net of the removed stand-in docs,
+// including this explanation. Reconciled with the melee facing turn, the
+// spell graph check names the area drivers it guards, and the release drives
+// that moved again document their set-ups and a new witness, in new code.
+// The acquisition drive documents the Defend arm's release past reach.
+// The mission 10 heal drives document the wound they now set near the mage.
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
@@ -1951,6 +1960,13 @@ package storyguard
 // arm assignment and their focused and release tests, new code, including
 // this paragraph. It rises again for the attached-effect lookups by arm and
 // their tests.
+// CommentBytes rises for the second game's ordinary departure: the docs of
+// completeBank's output, secondAux and its decoder, the stage table, the
+// later-town departure and the movie chosen at acknowledgement, and the
+// focused and installed tests of every case body, new code, including this
+// paragraph. It rises again for the town inn options and TALK: the docs of
+// EnterInn, the speakers and TalkTo, and the focused and installed tests of
+// the stage-30 inn route, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1974,5 +1990,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8533242,
+	CommentBytes: 8552536,
 }

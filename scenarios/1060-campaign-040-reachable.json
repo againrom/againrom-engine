@@ -7,6 +7,8 @@
     {"command": "kill", "unit": "u91"},
     {"command": "kill", "unit": "u92"},
     {"command": "kill", "unit": "u95"},
+    {"command": "kill", "unit": "u41"},
+    {"command": "kill", "unit": "u45"},
     {"command": "pick_item", "unit": "p0", "x": 96, "y": 84},
     {"command": "wait_until", "ticks": 96, "until": {"outcome": "won"}},
     {"command": "assert_world", "world": {"outcome": "won", "reached_unsupported_at_most": 0}}

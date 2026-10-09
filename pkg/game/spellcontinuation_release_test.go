@@ -165,7 +165,7 @@ func spellSAVContinuation(t *testing.T, spell uint16) {
 	var sprayCandidates []sim.EntityID
 	if spell == 14 {
 		// The player's other units stand clear: the group's members close on
-		// the nearest of them and settle beside it (DIV-2225), which would walk
+		// the nearest of them and settle on its contact ring (MOVE-ALT-020), which would walk
 		// the row's actors off the cells the fan is laid on.
 		for _, e := range f.live.world.Entities() {
 			if e.Owner == sim.SelfSlot && e.Alive() && (e.MaxMana == 0 || !e.Book.HasInstances()) {

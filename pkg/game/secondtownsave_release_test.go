@@ -100,7 +100,7 @@ func secondTownNew(t *testing.T, inn, unlocked bool) (*FrontEnd, *ui.App) {
 
 func secondTownTalk(t *testing.T, app *ui.App) {
 	t.Helper()
-	if err := app.HeadlessActivate("TALK"); err != nil {
+	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
 	for page := 0; page < 64; page++ {
@@ -209,6 +209,8 @@ func secondTownEnter(t *testing.T, f *FrontEnd, app *ui.App) {
 		}
 	}
 	secondTownTalk(t, app)
+	// The initial record stores slot 769 (R2-SESSION-110).
+	bank[769] = 1
 	if c.bank != bank || !reflect.DeepEqual(c.available, []secondLocation{{2, 1}, {1, 10}}) {
 		t.Fatal("ordinary TALK changed bank or duplicated unlock")
 	}
@@ -439,7 +441,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if err := app.HeadlessActivate("TAVERN"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessActivate("TALK"); err != nil {
+	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
 	raw, err := view.ExportCurrentSave(detached, "same producer")
@@ -691,7 +693,7 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessActivate("TALK"); err != nil {
+	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
 	c := f.Town.second

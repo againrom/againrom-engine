@@ -11,7 +11,7 @@ import (
 
 func enterSecondCampaignMission(t *testing.T, app *ui.App) {
 	t.Helper()
-	for _, target := range []string{"new game", "TAVERN", "TALK"} {
+	for _, target := range []string{"new game", "TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}

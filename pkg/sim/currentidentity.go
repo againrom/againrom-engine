@@ -118,6 +118,7 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 		optional(&e.KillCreditSource, e.HasKillCredit)
 		optional(&e.AttackTarget, e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit)
 		optional(&e.PendingAttackTarget, e.HasPendingAttackTarget && e.PendingAttackTargetKind == AttackTargetUnit)
+		optional(&e.Pursuit.Victim, e.Pursuit.Held)
 		optional(&e.PendingOrder.Target, e.PendingOrder.Kind == PendingActorCast)
 		optional(&e.EscortTarget, e.HasEscortTarget)
 		optional(&e.HeldOrder.Target, e.HeldOrder.Kind == HeldOrderBody)

@@ -19,11 +19,11 @@ import (
 
 func beforeHeldOrderForm(t *testing.T, raw []byte) []byte {
 	t.Helper()
-	if len(raw) == 0 || raw[0] != 117 {
+	if len(raw) == 0 || raw[0] != 118 {
 		return raw
 	}
 	end := len(raw)
-	if end < 56 || string(raw[end-4:]) != "HLD1" || raw[end-5] >= 117 {
+	if end < 56 || string(raw[end-4:]) != "HLD1" || raw[end-5] >= 118 {
 		t.Fatal("invalid held-order fixture footer")
 	}
 	span := uint64(binary.LittleEndian.Uint32(raw[end-9:]))

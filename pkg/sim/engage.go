@@ -1319,7 +1319,15 @@ func (w *World) attachAttack(i int, victim EntityID, kind AttackTargetKind, queu
 			return false
 		}
 	}
+	// A reissue at the victim a pursuit holds keeps its route, as the
+	// original's order rewrite leaves the mover alone (AI-REISSUE-077,
+	// DIV-2558).
+	keep := kind == AttackTargetUnit && e.HasAttackTarget && e.AttackTargetKind == kind && e.AttackTarget == victim && e.Pursuit.Held
+	route, tx, ty, has := w.routes[i], e.TargetX, e.TargetY, e.HasTarget
 	w.clearOrder(i)
+	if keep {
+		w.routes[i], e.TargetX, e.TargetY, e.HasTarget = route, tx, ty, has
+	}
 	e.PendingOrder = PendingOrder{}
 	e.clearPendingAttack()
 	if queued && e.HasAttackTarget && e.AttackPhase != AttackReady && (e.AttackTarget != victim || e.AttackTargetKind != kind) {
@@ -1327,7 +1335,10 @@ func (w *World) attachAttack(i int, victim EntityID, kind AttackTargetKind, queu
 		return true
 	}
 	if !e.HasAttackTarget || e.AttackTarget != victim || e.AttackTargetKind != kind {
+		// A replaced victim, unit or structure, ends the held pursuit search
+		// (DIV-2557).
 		e.clearTurn()
+		e.Pursuit = PursuitSearch{}
 		e.AttackTarget, e.HasAttackTarget = victim, true
 		e.AttackTargetKind = kind
 		e.AttackPhase, e.AttackCountdown = AttackReady, 0

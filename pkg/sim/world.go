@@ -337,7 +337,10 @@ type Entity struct {
 	// PursuitIdle marks an attack order whose route was refused: the victim
 	// stays held and the order does nothing until an order is written again
 	// (AI-327, AI-328). It is cleared with the victim and by any reissue.
-	PursuitIdle     bool
+	PursuitIdle bool
+	// Pursuit is the route-search state of a pursuit on a unit victim. It is
+	// cleared with the victim (pursuitsearch.go).
+	Pursuit         PursuitSearch
 	AttackPhase     AttackPhase
 	AttackCountdown int32
 
