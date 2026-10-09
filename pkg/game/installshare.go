@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -28,7 +29,7 @@ type installShare struct {
 	townSchoolErr error
 	townTavern    *ui.TownTavernArt
 	townTavernErr error
-	townSquare    *ui.TownSquareArt
+	townSquare    *town.Art
 	townSquareErr error
 }
 

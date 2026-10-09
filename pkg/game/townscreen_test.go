@@ -2,6 +2,7 @@ package game
 
 import (
 	"image"
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/render/text"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -44,14 +46,14 @@ func settable(v reflect.Value) reflect.Value {
 // and does not need to: this test only requires resolver to come back
 // UNCHANGED, not to hold any particular value.
 func nonZeroTownScreen() *townScreen {
-	return &townScreen{
+	ts := &townScreen{
 		sess:                &CampaignSession{},
 		in:                  &InstallResources{},
 		pc:                  &PersistenceContext{},
 		sound:               &fakeTownAudio{},
 		draws:               fakeTownDraws{},
 		art:                 fakeTownArt{},
-		latches:             &townAmbientLatches{},
+		townProcess:         &town.Process{},
 		openMission:         func(int) ui.MapOpener { return nil },
 		room:                roomTalk,
 		roomAudio:           &ui.AudioScope{},
@@ -90,9 +92,9 @@ func nonZeroTownScreen() *townScreen {
 			idleExtra:   [schoolClassCount]time.Duration{time.Second, 2 * time.Second},
 			hold:        [schoolClassCount]int{1, 2}, holdLimit: [schoolClassCount]int{20, 21},
 		},
-		exterior:            townExteriorAnimation{ready: true, selector: 4, school: true},
-		townPaintLast:       time.Unix(10, 0),
-		townFamilyRand:      townCRT{state: 7, seeded: true},
+		squareRandom:        [2]*rand.Rand{rand.New(rand.NewSource(1)), rand.New(rand.NewSource(2))},
+		squareLoop:          &tavernInteriorVoice{},
+		squareAction:        ui.TownAction{Msg: "pending"},
 		tipRevision:         1,
 		tavernInterior:      tavernInteriorAnimation{ready: true, mode: 1, direction: -1},
 		shopInterior:        shopInteriorAnimation{ready: true, active: true, selectedRack: 2, merchantModes: shopMerchantYes},
@@ -125,6 +127,8 @@ func nonZeroTownScreen() *townScreen {
 		worldSelectedOnce:   map[int]bool{5: true},
 		resolver:            speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}},
 	}
+	ts.square = town.NewView(rom1Town, townSquareHost{ts}, ts.townProcess)
+	return ts
 }
 
 // Every field is classified as reset state or retained process presentation.
@@ -135,7 +139,7 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"sound":               "the audio service the screen plays through; does not change across a load",
 		"draws":               "the presentation clock and draw service; does not change across a load",
 		"art":                 "the first-use art service; does not change across a load",
-		"latches":             "the process-level bird and star latches; do not change across a load",
+		"townProcess":         "the town composer's process-scoped state; does not change across a load",
 		"pc":                  "the persistence component the screen reads; does not change across a load",
 		"openMission":         "the mission opener port; does not change across a load",
 		"shopIconCache":       "item pictures keyed by item CODE, resolved from the install's own archives",
@@ -148,8 +152,10 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"tavernTip":            "re-read from the install's own inn.txt on every tavern entry",
 		"resolver":             "rebuilt by composeShopFaces on every entry into a room that can show it",
 		"schoolTrainingStatic": "process-static school presentation timestamps, random extras and hold counters; never game state",
-		"townPaintLast":        "process-static town paint timer; never game state",
-		"townFamilyRand":       "process-static presentation generator of the town wildlife; never game state",
+		"square":               "the square's composer view; resetForNewGame resets it in place",
+		"squareRandom":         "process presentation fallback generators of the square; never game state",
+		"squareLoop":           "the square entry loop's voice, owned by the view's loop state",
+		"squareAction":         "set and cleared inside one square click",
 	}
 
 	ts := nonZeroTownScreen()

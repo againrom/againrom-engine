@@ -17,6 +17,7 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -180,7 +181,7 @@ type InstallResources struct {
 	// same cosmetic rule as the two above: a missing node leaves the
 	// row-button layout that drew before it existed, and its reason beside
 	// the value.
-	TownSquareArt lazy[*ui.TownSquareArt]
+	TownSquareArt lazy[*town.Art]
 
 	// AttackPointer is the game's own attack cursor, resolved once here beside
 	// the font and handed to every map this front-end opens; the map screen
@@ -446,10 +447,11 @@ type Presentation struct {
 	// load, so it can be flipped between two picks, not only at startup.
 	Markers Markers
 
-	// The bird delay latch/value and star terminal counter reproduce the
-	// process-scoped side of TOWN-417/TOWN-419. They are presentation-only,
-	// survive campaign resets and never enter native or simulation state.
-	townLatches     townAmbientLatches
+	// townProcess is the town composer's process-scoped state: the paint
+	// clock, the wildlife generator, the bird delay latch and the star
+	// terminal counter (TOWN-417, TOWN-419). It survives campaign resets and
+	// never enters native or simulation state.
+	townProcess     town.Process
 	graphics        ui.GraphicsOptions
 	showPathfinding bool
 

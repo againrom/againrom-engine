@@ -296,11 +296,7 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 		return tooltipTarget{}
 	}
 	if square, ok := townSquareView(a.flow.town); ok && !square.Tip.Covers(p) {
-		if c, ok := TownSquareControlAt(square.Art.Mask, p); ok {
-			slot := 235
-			if c.Kind == TownSquareControlDoor && c.Door >= 0 && c.Door < 4 {
-				slot = [4]int{236, 233, 234, 237}[c.Door]
-			}
+		if slot, ok := square.Scene.TipAt(p); ok {
 			return mainTooltip(w, slot, fmt.Sprintf("town/%d", slot), square.Font)
 		}
 	}

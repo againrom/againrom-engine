@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The town square is built from a town description by one town
+  composer; it looks and plays the same.
+
 ## 0.105.0
 
 - [ROM1] A party member killed in a mission started from the town now keeps

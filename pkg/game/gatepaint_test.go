@@ -36,8 +36,8 @@ func TestGateDialoguePaintAdmission(t *testing.T) {
 		gatePaintFrame(t, a)
 		*now = now.Add(68 * time.Millisecond)
 		gatePaintFrame(t, a)
-		if s.exterior.frame.Tavern != 1 {
-			t.Fatalf("ordinary due square paint: tavern=%d want 1", s.exterior.frame.Tavern)
+		if s.sqEpisode("tavern").Frame != 1 {
+			t.Fatalf("ordinary due square paint: tavern=%d want 1", s.sqEpisode("tavern").Frame)
 		}
 		t.Log("ordinary due square paint advances tavern 0 to 1")
 	})
@@ -48,32 +48,32 @@ func TestGateDialoguePaintAdmission(t *testing.T) {
 		if !gateDialogueOpen(s) || a.Screen() != ui.ScreenTown {
 			t.Fatal("npc35 not shown on town")
 		}
-		before, beforeRolls, beforeClock := s.exterior.frame, *rolls, s.townPaintLast
+		before, beforeRolls, beforeClock := s.sqFrames(), *rolls, s.sqPaintLast()
 		*now = now.Add(68 * time.Millisecond)
 		gatePaintFrame(t, a)
-		t.Logf("npc35 shown: guard %d=>%d; hub random calls %d=>%d; square=%v", before.Guard, s.exterior.frame.Guard, beforeRolls, *rolls, s.AtTownSquare())
+		t.Logf("npc35 shown: guard %d=>%d; hub random calls %d=>%d; square=%v", before.Guard, s.sqGuard().Frame, beforeRolls, *rolls, s.AtTownSquare())
 		if !reflect.DeepEqual(s.townLines(), []string{"Nobody has given you work yet."}) || !gateDialogueOpen(s) || a.Screen() != ui.ScreenTown {
 			t.Fatal("paint changed dialogue content or screen")
 		}
-		if s.exterior.frame != before || *rolls != beforeRolls {
-			t.Errorf("npc35 admits the blocked town paint: frame %+v=>%+v random calls %d=>%d", before, s.exterior.frame, beforeRolls, *rolls)
+		if s.sqFrames() != before || *rolls != beforeRolls {
+			t.Errorf("npc35 admits the blocked town paint: frame %+v=>%+v random calls %d=>%d", before, s.sqFrames(), beforeRolls, *rolls)
 		}
-		if s.townPaintLast != beforeClock {
+		if s.sqPaintLast() != beforeClock {
 			t.Fatal("blocked paint changed the process timestamp")
 		}
 		exteriorPointer(t, a, 10)
-		if s.exterior.selector != 2 || !s.exterior.tavern || s.exterior.frame != before {
+		if s.sqSelector() != 2 || !s.sqEpisode("tavern").Enabled || s.sqFrames() != before {
 			t.Fatal("shown dialogue blocked delivered pointer or pointer advanced the frame")
 		}
 		gatePaintFrame(t, a)
-		if s.exterior.frame != before || *rolls != beforeRolls || s.townPaintLast != beforeClock {
+		if s.sqFrames() != before || *rolls != beforeRolls || s.sqPaintLast() != beforeClock {
 			t.Fatal("pointer-triggered dialogue composition admitted town paint")
 		}
 		if err := a.HeadlessKey("escape"); err != nil {
 			t.Fatal(err)
 		}
 		gatePaintFrame(t, a)
-		if gateDialogueOpen(s) || s.exterior.frame.Tavern != 1 || *rolls != beforeRolls+2 || s.townPaintLast != *now {
+		if gateDialogueOpen(s) || s.sqEpisode("tavern").Frame != 1 || *rolls != beforeRolls+2 || s.sqPaintLast() != *now {
 			t.Fatal("pager close did not readmit the already-due hub at its retained timestamp")
 		}
 	})
@@ -90,8 +90,8 @@ func TestGateDialoguePaintAdmission(t *testing.T) {
 		exteriorPointer(t, a, 10)
 		*now = now.Add(68 * time.Millisecond)
 		gatePaintFrame(t, a)
-		if s.exterior.frame.Tavern != 1 {
-			t.Fatalf("square after pager close: tavern=%d", s.exterior.frame.Tavern)
+		if s.sqEpisode("tavern").Frame != 1 {
+			t.Fatalf("square after pager close: tavern=%d", s.sqEpisode("tavern").Frame)
 		}
 		if err := a.HeadlessKey("escape"); err != nil {
 			t.Fatal(err)
@@ -99,10 +99,10 @@ func TestGateDialoguePaintAdmission(t *testing.T) {
 		if a.Screen() == ui.ScreenTown {
 			t.Fatal("square Escape did not leave town screen")
 		}
-		before := s.exterior.frame
+		before := s.sqFrames()
 		*now = now.Add(time.Second)
 		gatePaintFrame(t, a)
-		if s.exterior.frame != before {
+		if s.sqFrames() != before {
 			t.Fatal("off-screen town paint advanced")
 		}
 		t.Log("pager close resumes due square paint; screen exit blocks square composition")

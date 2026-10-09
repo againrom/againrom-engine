@@ -305,8 +305,8 @@ func (w *deliveryWitness) currentSave() ([]byte, uint64) {
 
 func (w *deliveryWitness) callerRetryRoutes() {
 	w.t.Helper()
-	oldDraw := w.front.townUI.townFamilyRand.raw
-	defer func() { w.front.townUI.townFamilyRand.raw = oldDraw }()
+	oldDraw := w.front.townUI.squareView().RawDraw("wildlife")
+	defer func() { w.front.townUI.squareView().SetRawDraw("wildlife", oldDraw) }()
 	w.check(w.app.HeadlessFocus(false))
 	w.finishOneShots()
 	w.holdOneShots = true
@@ -357,11 +357,11 @@ func (w *deliveryWitness) callerRetryRoutes() {
 	if count("town-crowd", audio.DeliveryAdmitted) != admitted+1 {
 		w.t.Fatal("crowd did not retry on a fresh entry")
 	}
-	w.front.townUI.townFamilyRand.raw = func() int { return rawSheet3 }
+	w.front.townUI.squareView().SetRawDraw("wildlife", func() int { return rawSheet3 })
 	w.paint(8 * time.Second)
 	w.paint(68 * time.Millisecond)
-	if w.front.townUI.exterior.fam.horse.current != 1 || count("town-horse", audio.DeliveryChannelsBusy) == 0 {
-		w.t.Fatal("horse paint did not reach refused A3 frame1", w.front.townUI.exterior.fam.horse)
+	if w.front.townUI.sqWildlife().Member("horse").Current != 1 || count("town-horse", audio.DeliveryChannelsBusy) == 0 {
+		w.t.Fatal("horse paint did not reach refused A3 frame1", w.front.townUI.sqWildlife().Member("horse"))
 	}
 	audio.StopReset(voices[1])
 	prior := w.owner.Service.Snapshot().Counters.Admitted
@@ -369,7 +369,7 @@ func (w *deliveryWitness) callerRetryRoutes() {
 		w.t.Fatal("horse refusal replayed without caller paint")
 	}
 	w.paint(10 * time.Millisecond)
-	if w.front.townUI.exterior.fam.horse.current != 1 || count("town-horse", audio.DeliveryAdmitted) != 1 || w.owner.Service.Snapshot().Counters.Admitted != prior+1 {
+	if w.front.townUI.sqWildlife().Member("horse").Current != 1 || count("town-horse", audio.DeliveryAdmitted) != 1 || w.owner.Service.Snapshot().Counters.Admitted != prior+1 {
 		w.t.Fatal("horse did not retry at the same paint frame after capacity freed")
 	}
 	w.receipt("caller-retry")

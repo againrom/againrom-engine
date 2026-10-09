@@ -44,13 +44,13 @@ func tipBackgroundZone(r image.Rectangle) image.Rectangle {
 // mirrors the production four-door order so Choose(i) matches townDoors.
 type fakeTipSquareEnumTown struct {
 	tipCloseToggleRecorder
-	art    *TownSquareArt
+	scene  TownSquareScene
 	tip    TipPanelView
 	chosen []int
 }
 
 func (f *fakeTipSquareEnumTown) TownSquareView() TownSquareView {
-	return TownSquareView{Art: f.art, Font: panelFont(), Tip: f.tip}
+	return TownSquareView{Scene: f.scene, Font: panelFont(), Tip: f.tip}
 }
 func (f *fakeTipSquareEnumTown) AtTownSquare() bool { return true }
 func (f *fakeTipSquareEnumTown) Header() string     { return "square" }
@@ -70,31 +70,27 @@ func (f *fakeTipSquareEnumTown) Choose(i int) TownAction {
 func (f *fakeTipSquareEnumTown) Back() bool { return false }
 
 // TestTownSquareTipListConsumesReleaseAndBodyPasses enumerates all five
-// codes TownSquareControlAt names (four doors and the statue's own menu),
+// controls a square scene answers (four doors and the statue's own menu),
 // each placed inside TownTipRect (328,0)-(640,373): the mask's own full
 // vocabulary, not one representative door.
 func TestTownSquareTipListConsumesReleaseAndBodyPasses(t *testing.T) {
-	mask := image.NewPaletted(image.Rect(0, 0, 640, 480), make(color.Palette, 256))
-	for i := range mask.Palette {
-		mask.Palette[i] = color.Gray{Y: uint8(i)}
-	}
 	codes := []struct {
-		code uint8
-		at   image.Point
+		control TownSquareControl
+		at      image.Point
 	}{
-		{townSquareCodeTavern, image.Pt(340, 30)},
-		{townSquareCodeShop, image.Pt(380, 60)},
-		{townSquareCodeSchool, image.Pt(420, 90)},
-		{townSquareCodeGate, image.Pt(460, 120)},
-		{townSquareCodeStatue, image.Pt(500, 150)},
+		{squareDoor(0), image.Pt(340, 30)},
+		{squareDoor(1), image.Pt(380, 60)},
+		{squareDoor(2), image.Pt(420, 90)},
+		{squareDoor(3), image.Pt(460, 120)},
+		{squareMenu, image.Pt(500, 150)},
 	}
+	scene := &fakeSquareScene{controls: map[image.Point]TownSquareControl{}}
 	for _, c := range codes {
 		if !c.at.In(TownTipRect) {
 			t.Fatalf("fixture error: %v is not inside TownTipRect %v", c.at, TownTipRect)
 		}
-		mask.SetColorIndex(c.at.X, c.at.Y, c.code)
+		scene.controls[c.at] = c.control
 	}
-	art := &TownSquareArt{Background: image.NewRGBA(image.Rect(0, 0, 640, 480)), Mask: mask}
 	tip := TipPanelView{Rect: TownTipRect, Text: "the square is where the town meets", Art: tipTestArt(), Font: shopTipTestFont()}
 	if !tip.Showing() {
 		t.Fatal("fixture tip is not Showing()")
@@ -105,7 +101,7 @@ func TestTownSquareTipListConsumesReleaseAndBodyPasses(t *testing.T) {
 		}
 	}
 
-	town := &fakeTipSquareEnumTown{art: art, tip: tip}
+	town := &fakeTipSquareEnumTown{scene: scene, tip: tip}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)
 	if !a.flow.showTown("") {

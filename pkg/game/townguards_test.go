@@ -58,7 +58,7 @@ func townGuardsLeave(t *testing.T, f *FrontEnd, a *ui.App, s *townScreen, door s
 // (TOWN-476, TOWN-477).
 func TestTownGuardsRestAtTheSheetsLastFrameOnEntry(t *testing.T) {
 	_, a, s, now, _, r := exteriorFixture(t)
-	if got := s.TownSquareView().Exterior.Guard; got != 7 {
+	if got := s.sqGuard().Shown(s.squareView()); got != 7 {
 		t.Fatalf("the square before any update shows the guards at frame %d, want 7", got)
 	}
 	exteriorPointer(t, a, 0)
@@ -67,8 +67,8 @@ func TestTownGuardsRestAtTheSheetsLastFrameOnEntry(t *testing.T) {
 			t.Fatalf("hub %d: guards at frame %d, want 7", i+1, got)
 		}
 	}
-	if guard1, guard2 := guardSounds(r); guard1 != 0 || guard2 != 1 || s.exterior.guardStep != 0 {
-		t.Fatalf("guard1 %d, guard2 %d, step %d; want one guard2 request and no motion", guard1, guard2, s.exterior.guardStep)
+	if guard1, guard2 := guardSounds(r); guard1 != 0 || guard2 != 1 || s.sqGuard().Dir != 0 {
+		t.Fatalf("guard1 %d, guard2 %d, step %d; want one guard2 request and no motion", guard1, guard2, s.sqGuard().Dir)
 	}
 }
 
@@ -93,8 +93,8 @@ func TestTownGuardsRestAtTheSheetsLastFrameAfterARoomExit(t *testing.T) {
 				clearTownTestGateLatches(f.Town)
 			}
 			townGuardsLeave(t, f, a, s, tc.door, tc.room)
-			if s.exterior.guardStep != 0 {
-				t.Fatalf("leaving %s left guard step %d", tc.door, s.exterior.guardStep)
+			if s.sqGuard().Dir != 0 {
+				t.Fatalf("leaving %s left guard step %d", tc.door, s.sqGuard().Dir)
 			}
 			// The square is back and no pointer has been delivered to it yet.
 			if got := guardsOnScreen(exteriorPaint(t, a, now, 68*time.Millisecond)); got != 7 {
@@ -106,8 +106,8 @@ func TestTownGuardsRestAtTheSheetsLastFrameAfterARoomExit(t *testing.T) {
 					t.Fatalf("after leaving %s, hub %d: guards at frame %d, want 7", tc.door, i+1, got)
 				}
 			}
-			if s.exterior.guardStep != 0 {
-				t.Fatalf("guard step %d after the hubs, want 0", s.exterior.guardStep)
+			if s.sqGuard().Dir != 0 {
+				t.Fatalf("guard step %d after the hubs, want 0", s.sqGuard().Dir)
 			}
 			if guard1, guard2 := guardSounds(r); guard1 != 0 || guard2 != 1 {
 				t.Fatalf("halberd sounds after the exit: guard1 %d, guard2 %d; want one guard2 request", guard1, guard2)
@@ -134,8 +134,8 @@ func TestTownGuardsForgetTheLastVisitsSweep(t *testing.T) {
 		t.Fatalf("a first sweep down asked for guard1 %d and guard2 %d, want none: the latch is clear", guard1, guard2)
 	}
 	townGuardsLeave(t, f, a, s, "TAVERN", roomTavern)
-	if s.exterior.frame.Guard != 7 || s.exterior.guardStep != 0 || s.exterior.guardLatch {
-		t.Fatalf("after the exit: frame %d, step %d, latch %v; want 7, 0, false", s.exterior.frame.Guard, s.exterior.guardStep, s.exterior.guardLatch)
+	if s.sqGuard().Frame != 7 || s.sqGuard().Dir != 0 || s.sqGuard().Forward {
+		t.Fatalf("after the exit: frame %d, step %d, latch %v; want 7, 0, false", s.sqGuard().Frame, s.sqGuard().Dir, s.sqGuard().Forward)
 	}
 	exteriorPointer(t, a, 40)
 	for i, frame := range want {
