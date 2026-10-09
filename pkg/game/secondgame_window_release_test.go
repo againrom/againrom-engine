@@ -90,7 +90,7 @@ func TestReleaseSecondGameWindowStartsMissionTen(t *testing.T) {
 	if f.Archives.Game() != base.GameROM2 {
 		t.Fatal("not a second-game root")
 	}
-	f.Cutscenes = OpenCutscenes(os.Getenv("AGAINROM_ASSETS"), "video4")
+	f.Cutscenes = f.OpenCutscenes("video4")
 	app := f.App("second")
 	app.Layout(1024, 768)
 	if app.PlayStartupCutscenes() {
