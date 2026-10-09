@@ -190,11 +190,14 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 		saveBar, savePitch := sharedListBar(f, image.Rect(38, 88, 578, 235), 7)
 		t.Run("row-region", func(t *testing.T) {
 			assertInstalledChooserRows(t, initial, 38, 88, 578, savePitch, 0)
+			// The fill tiles start inside the corner piece of the window
+			// whose body starts at (8,0) (MENU-127).
 			tile := f.gameMenuArt().Pieces[0]
+			fill := image.Pt(8, 0).Add(f.gameMenuArt().Pieces[1].Bounds().Size())
 			for row := range 6 {
 				x, y := 550, 88+savePitch*row+savePitch/2
 				want := image.NewRGBA(image.Rect(0, 0, 1, 1))
-				want.SetRGBA(0, 0, tile.RGBAAt((x-24)%tile.Bounds().Dx(), (y-16)%tile.Bounds().Dy()))
+				want.SetRGBA(0, 0, tile.RGBAAt((x-fill.X)%tile.Bounds().Dx(), (y-fill.Y)%tile.Bounds().Dy()))
 				if row == 0 {
 					draw.Draw(want, want.Bounds(), image.NewUniform(color.RGBA{0, 7, 6, 220}), image.Point{}, draw.Over)
 				}
