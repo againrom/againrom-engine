@@ -295,6 +295,7 @@ var nstPinned = []struct {
 		{"Protection", "[5]int32"}, {"Resistance", "[5]uint8"}, {"TokenSize", "uint8"},
 		{"EscortTarget", "sim.EntityID"}, {"HasEscortTarget", "bool"},
 		{"EscortRange", "uint8"},
+		{"EscortOrder", "uint8"}, {"EscortTurnPending", "bool"},
 		// Map presence: whether the mission script has taken this entity off the
 		// map. It is state and not position — the coordinates above it are
 		// untouched by the removal, which is why the return arm needs no authored

@@ -884,6 +884,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		if w.stoneCursed(i) {
 			continue
 		}
+		if e.Transit == 0 && !w.actorCastBusy(i) && e.AttackPhase == AttackReady && e.AttackCountdown == 0 && w.stepEscortOrder(scratch, i) {
+			continue
+		}
 		// The head pass above is the turn's only advance. A remainder still held
 		// here withholds every body/action producer for this actor on this tick.
 		if e.Turning() {
@@ -1704,6 +1707,7 @@ func (w *World) deathGold(i int) uint32 {
 // clearOrder is what does both.
 func (e *Entity) clearTarget() {
 	e.TargetX, e.TargetY, e.HasTarget, e.Stall = 0, 0, false, 0
+	e.EscortOrder = escortOrderNone
 }
 
 // searchRoute is the route the world's own mode chooses from the entity at index

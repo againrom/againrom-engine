@@ -21,7 +21,7 @@ func CheckSaveForm(data []byte) error {
 	case formatVersion, oldestReadableVersion:
 		return nil
 	case autoHealingFormVersion, spellGraphFormVersion, currentAreaFormVersion, structureBlockingFormVersion,
-		tacticalFormVersion, pendingOrderFormVersion, creatureSpellFormVersion, areaCostFormVersion, nativeTrainingFormVersion, rom2ScriptFormVersion, nativeClassFormVersion, bookSelectionFormVersion, nativeBasisFormVersion, playerParticipantFormVersion, currentPlayerFormVersion, nativeLiveFormVersion, nativeItemFormVersion, nativeScalarFormVersion, turnStateFormVersion:
+		tacticalFormVersion, pendingOrderFormVersion, creatureSpellFormVersion, areaCostFormVersion, nativeTrainingFormVersion, rom2ScriptFormVersion, nativeClassFormVersion, bookSelectionFormVersion, nativeBasisFormVersion, playerParticipantFormVersion, currentPlayerFormVersion, nativeLiveFormVersion, nativeItemFormVersion, nativeScalarFormVersion, turnStateFormVersion, escortFormVersion:
 		var checked World
 		return checked.UnmarshalBinary(data)
 	}
