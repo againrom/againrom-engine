@@ -89,9 +89,8 @@ func TestEveryTipRectSitsAtItsResearchedOrigin(t *testing.T) {
 	}
 }
 
-// TestShopTipPanelRectKeepsTheWidgetOrigin guards the one derived rect: the
-// bordered panel adds chrome height below the decoded widget and must move
-// neither its origin nor its width (DIV-162).
+// TestShopTipPanelRectKeepsTheWidgetOrigin pins the original panel rectangle
+// before any text-dependent height adjustment (SHOP-TIP-045).
 func TestShopTipPanelRectKeepsTheWidgetOrigin(t *testing.T) {
 	panel := ShopTipRect()
 	if panel.Min != image.Pt(164, 162) {
@@ -100,8 +99,7 @@ func TestShopTipPanelRectKeepsTheWidgetOrigin(t *testing.T) {
 	if panel.Dx() != 312 {
 		t.Errorf("ShopTipRect() = %v: width = %d, want 312 (SHOP-TIP-045)", panel, panel.Dx())
 	}
-	if panel.Dy() <= shopTipRect.Dy() {
-		t.Errorf("ShopTipRect() = %v is %d rows, want more than the widget's own %d: the close/toggle row is added BELOW the decoded text capacity, never carved out of it",
-			panel, panel.Dy(), shopTipRect.Dy())
+	if panel.Dy() != 136 {
+		t.Errorf("ShopTipRect() = %v: height = %d, want 136 (SHOP-TIP-045)", panel, panel.Dy())
 	}
 }

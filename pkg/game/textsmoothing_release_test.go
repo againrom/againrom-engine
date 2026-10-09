@@ -2,6 +2,7 @@ package game
 
 import (
 	"image"
+	"image/color"
 	"slices"
 	"strings"
 	"testing"
@@ -432,6 +433,8 @@ func smoothingViews() []smoothingRun {
 		{name: "cutscene library", open: front("cutscenes", 0),
 			hidden: "the up and down labels lie under the scroll arrow pictures"},
 		{name: "pre-create page, tip open", open: preCreate(false, false),
+			hidden: "the ornate tip frame covers the name prompt and field",
+			extra:  smoothingPreCreateTipOcclusion,
 			ready: func(t *testing.T, _ *FrontEnd, a *ui.App) {
 				if st, _ := a.HeadlessChargenState(); st.Stage != ui.ChargenStagePreCreate {
 					t.Fatalf("the screen shows the %s page", st.Stage)
@@ -630,6 +633,71 @@ func shows(call text.DrawCall, pix *image.RGBA) bool {
 		}
 	}
 	return false
+}
+
+func smoothingPreCreateTipOcclusion(t *testing.T, f *FrontEnd, a *ui.App, fates []ui.TextFate) {
+	t.Helper()
+	state, ok := a.HeadlessChargenState()
+	if !ok || state.Stage != ui.ChargenStagePreCreate {
+		t.Fatal("tip occlusion audit needs the pre-create page")
+	}
+	if f.ChargenAssets == nil || f.ChargenAssets.Presentation == nil || f.ChargenAssets.Presentation.NameFont == nil {
+		t.Fatal("tip occlusion audit needs the installed prompt/name font")
+	}
+	font := f.ChargenAssets.Presentation.NameFont
+	type promptCell struct {
+		glyph *text.Glyph
+		x, y  int
+		ink   color.RGBA
+	}
+	allowed := map[promptCell]bool{}
+	for _, line := range []struct {
+		value string
+		at    image.Point
+		ink   color.RGBA
+	}{
+		{f.ChargenAssets.Prompt, image.Pt(224, 305), color.RGBA{65, 47, 20, 255}},
+		{state.Name + "|", image.Pt(224, 321), color.RGBA{101, 39, 61, 255}},
+	} {
+		for i := 0; i < len(line.value); i++ {
+			allowed[promptCell{font.GlyphFor(line.value[i]), line.at.X + font.Advance(line.value[:i]), line.at.Y, line.ink}] = true
+		}
+	}
+	pieces := releaseTipFramePieces(t)
+	opaque := map[image.Point]bool{}
+	for _, tile := range releaseTipTiles(image.Rect(160, 280, 464, 472)) {
+		pic := pieces[tile.piece]
+		for y := 0; y < pic.Rect.Dy(); y++ {
+			for x := 0; x < pic.Rect.Dx(); x++ {
+				if pic.RGBAAt(x, y).A == 255 {
+					opaque[tile.at.Add(image.Pt(x, y))] = true
+				}
+			}
+		}
+	}
+	for _, ft := range fates {
+		if ft.Fate != textsmooth.Hidden {
+			continue
+		}
+		c := ft.Call
+		if c.Flat || !allowed[promptCell{c.Glyph, c.X, c.Y, c.Color}] {
+			t.Fatalf("hidden glyph at (%d,%d) is outside the installed prompt/name draws", c.X, c.Y)
+		}
+		painted := 0
+		for n, p := range c.Glyph.Pixels {
+			if !p.Painted {
+				continue
+			}
+			painted++
+			at := image.Pt(c.X+n%c.Glyph.Width, c.Y+n/c.Glyph.Width)
+			if !opaque[at] {
+				t.Fatalf("hidden prompt/name glyph at (%d,%d) has a cell at %v outside the opaque tip frame", c.X, c.Y, at)
+			}
+		}
+		if painted == 0 {
+			t.Fatal("tip occlusion classified an empty glyph as hidden")
+		}
+	}
 }
 
 // smoothingResult is what one witness frame settled.

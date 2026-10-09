@@ -136,24 +136,7 @@ var shopMerchantRect = image.Rect(277, 112, 353, 288)
 // panel's own rect.
 var shopTipRect = image.Rect(164, 162, 476, 298)
 
-// ShopTipRect is the bordered tip PANEL's own rectangle (1018 spec behaviour
-// 5, superseding drawShopTip's bare-text placement above): shopTipRect's own
-// left, top, right and its own 136-row height UNCHANGED as the panel's own
-// text capacity, plus `tipPanelChromeH` (tippanel.go) of ADDITIONAL floor
-// space below it for the close/toggle row (DIV-162 — carving the row out of
-// the 136 rows instead left only 4 of the shipped EN tip's own 7 wrapped
-// lines fitting; DIV-133 already measured those 7 as an exact fit with no
-// spare row before this story added the row at all). The extra rows land on
-// `shopMessageRect` (below), which the panel now draws over while showing —
-// the panel draws last and opaque (ComposeShopScreen's own doc), so this is
-// full occlusion for the duration the panel is open, not the bleed-through
-// DIV-133 originally clipped against; the message strip composes exactly as
-// it did before this story once the panel is closed or suppressed.
-func ShopTipRect() image.Rectangle {
-	r := shopTipRect
-	r.Max.Y += tipPanelChromeH
-	return r
-}
+func ShopTipRect() image.Rectangle { return shopTipRect }
 
 // The four command buttons, top to bottom (SHOP-SCREEN-035). Each carries one
 // number and one command: purse, buy total, sell total, and the projected purse

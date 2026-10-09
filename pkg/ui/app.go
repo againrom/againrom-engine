@@ -3400,6 +3400,7 @@ func (a *App) stepChargen(in appInput, now time.Time) {
 // pointer press or completed release, Enter, movement, and text input are
 // mutually exclusive in this order, so a frame cannot both edit and launch.
 func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
+	a.observeChargenTipPress(in)
 	repeat := a.chargenRepeat.tick(in)
 	// THE SHOWING PANEL SWALLOWS EVERY PRESS AND RELEASE INSIDE ITS OWN RECT
 	// BEFORE THE PAGE (1022 spec B5, stepPreCreate's own precedent above):
@@ -3626,6 +3627,7 @@ func (a *App) playChargen(c *Chargen) {
 const chargenDoubleClickWindow = 500 * time.Millisecond
 
 func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
+	a.observeChargenTipPress(in)
 	// THE SHOWING PANEL SWALLOWS EVERY PRESS AND RELEASE INSIDE ITS OWN RECT
 	// BEFORE THE PAGE (1018 spec behaviour 1, restored in round 3 / DIV-162),
 	// on the town screens' own precedent (stepShop/stepTownSurface /square
@@ -4420,9 +4422,13 @@ var errTownRowList = errors.New("the row-list room has no shipped picture")
 // state and dragIcon/hasDrag the shop's own held item; a caller with none of
 // that live App state (ComposeTownScreen) passes the zero values, which is
 // what an App with no session interaction yet would also hold.
-func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor bool, press TownSurfaceControl, dragIcon *image.RGBA, hasDrag bool, animationFrame int, stars *shopStarState, dragOrigin ShopControl, dragOriginBase int, liveShopAnimation bool, shopPress ...ShopControl) (*image.RGBA, error) {
+func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor bool, press TownSurfaceControl, dragIcon *image.RGBA, hasDrag bool, animationFrame int, stars *shopStarState, dragOrigin ShopControl, dragOriginBase int, liveShopAnimation bool, pointerState ...townRoomPointerState) (*image.RGBA, error) {
 	if t == nil {
 		return nil, fmt.Errorf("no town model installed")
+	}
+	var pointer townRoomPointerState
+	if len(pointerState) != 0 {
+		pointer = pointerState[0]
 	}
 	if world, onMap := townWorldMapScreen(t); onMap {
 		view := world.WorldMapView()
@@ -4460,6 +4466,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 	surface, inSurface := townSurfaceScreen(t)
 	switch {
 	case inSurface:
+		surface.Tip = tipPanelWithPointer(surface.Tip, uint8(surface.Kind)+1, cursor, hasCursor, pointer.tipPress)
 		surface.SuppressHover = true
 		surface.Message = msg
 		surface.AnimationFrame = animationFrame
@@ -4481,10 +4488,11 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 		}
 		return ComposeTownSurface(surface), nil
 	case inShop:
+		shop.TipPanel = tipPanelWithPointer(shop.TipPanel, 3, cursor, hasCursor, pointer.tipPress)
 		shop.SuppressHover = true
 		shop.Msg = msg
-		if len(shopPress) > 0 {
-			shop.Press = shopPress[0]
+		if len(pointerState) > 0 {
+			shop.Press = pointer.shopPress
 		}
 		if stars != nil {
 			visibleOrigin := shopDragOriginAt(shop, dragOrigin, dragOriginBase)
@@ -4504,6 +4512,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 				squareView, _ = townSquareView(t)
 			}
 			squareView.Message = msg
+			squareView.Tip = tipPanelWithPointer(squareView.Tip, 4, cursor, hasCursor, pointer.tipPress)
 			return ComposeTownSquare(squareView), nil
 		}
 		return nil, errTownRowList
@@ -4529,6 +4538,7 @@ func (a *App) composeTownRoom() (*image.RGBA, error) {
 	if atTownSquare(a.flow.town) && !a.townPaintAllowed() {
 		if v, ready := townSquareView(a.flow.town); ready {
 			v.Message = msg
+			v.Tip = tipPanelWithPointer(v.Tip, 4, a.townCursor, a.hasTownCursor, a.townTipPress)
 			return ComposeTownSquare(v), nil
 		}
 	}
@@ -4537,7 +4547,7 @@ func (a *App) composeTownRoom() (*image.RGBA, error) {
 	if a.shopDragArmed {
 		press = a.shopDragOrigin
 	}
-	pix, err := composeTownRoom(a.flow.town, msg, a.townCursor, a.hasTownCursor, a.townSurfacePress, dragIcon, hasDrag, a.townSurfaceAnimationTick/6, &a.shopStars, a.shopDragOrigin, a.shopDragOriginBase, true, press)
+	pix, err := composeTownRoom(a.flow.town, msg, a.townCursor, a.hasTownCursor, a.townSurfacePress, dragIcon, hasDrag, a.townSurfaceAnimationTick/6, &a.shopStars, a.shopDragOrigin, a.shopDragOriginBase, true, townRoomPointerState{shopPress: press, tipPress: a.townTipPress})
 	if errors.Is(err, errTownRowList) {
 		return composeTownList(a.flow.town, a.flow.townList, a.flow.msg), nil
 	}
@@ -4787,7 +4797,9 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	// swapping shipped copy for transient UI wording would mean the panel no
 	// longer shows what it is named for.
 	c.SetDetailMessage(a.chargenDetailMessage())
-	return composeChargenPage(c, a.chargenHover, a.chargenPress), nil
+	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)
+	tip := tipPanelWithPointer(c.TipPanel(), chargenTipRoom, p, inside, a.townTipPress)
+	return composeChargenPage(c, a.chargenHover, a.chargenPress, tip), nil
 }
 
 // drawChargen paints the generation screen: a header carrying the setup's

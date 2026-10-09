@@ -860,15 +860,7 @@ func (c *Chargen) TipPanel() TipPanelView {
 		return TipPanelView{}
 	}
 	return TipPanelView{
-		// TipPanelShrinkRect, not the raw ChargenTipRect (round-2
-		// adversarial review, owner item: the shop tip is too tall — the
-		// generator's own tip is the same missing-call-site shape at lower
-		// severity, measured by cmd/tippanelcheck at a spare of 40 rows,
-		// covering "choice 0" at 97.9%). The three room tips already route
-		// through this same shrink (townshell.go, townscreen.go); the
-		// generator is the fourth call site and was the one this story's
-		// own B2 table called unchanged.
-		Rect:        TipPanelShrinkRect(ChargenTipRect, font, tipText),
+		Rect:        ChargenTipRect,
 		Text:        tipText,
 		ToggleOn:    c.setup.TipsOn,
 		CloseLabel:  c.setup.TipClose,

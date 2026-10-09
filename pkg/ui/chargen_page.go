@@ -542,9 +542,9 @@ var (
 
 // composeChargenPage produces the 640-by-480 pre-create frame. Source images
 // are copied at native pixels and clipped to their declared control regions.
-func composeChargenPage(c *Chargen, hover, pressed chargenControl) *image.RGBA {
+func composeChargenPage(c *Chargen, hover, pressed chargenControl, tipState ...TipPanelView) *image.RGBA {
 	if c != nil && c.Stage() == DetailedStage {
-		return composeChargenDetailedPage(c, hover, pressed)
+		return composeChargenDetailedPage(c, hover, pressed, tipState...)
 	}
 	dst := image.NewRGBA(image.Rect(0, 0, chargenPageW, chargenPageH))
 	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: color.RGBA{18, 18, 18, 255}}, image.Point{}, draw.Src)
@@ -614,7 +614,7 @@ func composeChargenPage(c *Chargen, hover, pressed chargenControl) *image.RGBA {
 		font.Draw(dst, name, nameAt.X, nameAt.Y, preCreateNameInk)
 	}
 	c.paintSparkle(dst)
-	ComposeTipPanel(dst, c.TipPanel())
+	composeChargenTip(dst, c, tipState)
 	return dst
 }
 
@@ -792,7 +792,7 @@ func detailedStatAvailable(c *Chargen, plus bool, stat int) bool {
 // composeChargenDetailedPage composes the detailed stage into the same fixed
 // virtual frame as pre-create. Every pointer rectangle is computed from the
 // same region or clipped source image used below.
-func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl) *image.RGBA {
+func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipState ...TipPanelView) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, chargenPageW, chargenPageH))
 	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: color.RGBA{18, 18, 18, 255}}, image.Point{}, draw.Src)
 	if c == nil || c.setup.PreCreate == nil || c.setup.PreCreate.Art == nil {
@@ -956,8 +956,16 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl) *imag
 	// (160,280)-(472,480), reaches into the centre column and the skill
 	// icons this function draws above, so it must compose over them rather
 	// than under.
-	ComposeTipPanel(dst, c.TipPanel())
+	composeChargenTip(dst, c, tipState)
 	return dst
+}
+
+func composeChargenTip(dst *image.RGBA, c *Chargen, state []TipPanelView) {
+	v := c.TipPanel()
+	if len(state) != 0 {
+		v = state[0]
+	}
+	ComposeTipPanel(dst, v)
 }
 
 // DetailedAttributeBoxes are attribute row stat's plate, value, lower and

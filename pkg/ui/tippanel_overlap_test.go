@@ -224,22 +224,18 @@ func TestTavernTipListPressReachesCoveredCells(t *testing.T) {
 	}
 }
 
-// TestSchoolTipListPressReachesCoveredSkills enumerates all five of
-// the fighter class's own skill codes (schoolMaskSlot, class 0), each placed
-// inside schoolPanelRects[0]'s own overlap with SchoolTipRect (0,0)-(456,271):
-// the rect's own bottom edge sits at y=271, well past the fighter panel's
-// own y=192 start, so all five icons are covered regardless of which one
-// the player meant to press. The button wells are checked clear for the
-// same reason as the tavern's.
+// TestSchoolTipListPressReachesCoveredSkills covers all five fighter skill
+// codes with a deliberately tall tip fixture. The room's native tip rectangle
+// does not determine this input-routing overlap.
 func TestSchoolTipListPressReachesCoveredSkills(t *testing.T) {
-	tip := TipPanelView{Rect: SchoolTipRect, Text: "the school teaches skills", Art: tipTestArt(), Font: shopTipTestFont()}
+	tip := TipPanelView{Rect: image.Rect(0, 0, 456, 264), Text: "the school teaches skills", Art: tipTestArt(), Font: shopTipTestFont()}
 	if !tip.Showing() {
 		t.Fatal("fixture tip is not Showing()")
 	}
 	for i, well := range townSurfaceButtonWells[TownSurfaceSchool] {
 		global := well.Add(TownUpperRegion.Min)
-		if global.Overlaps(SchoolTipRect) {
-			t.Fatalf("fixture error: school button well %d (%v) overlaps SchoolTipRect %v — the enumeration below must cover it too", i, global, SchoolTipRect)
+		if global.Overlaps(tip.Rect) {
+			t.Fatalf("fixture error: school button well %d (%v) overlaps tip rectangle %v — the enumeration below must cover it too", i, global, tip.Rect)
 		}
 	}
 
@@ -250,16 +246,16 @@ func TestSchoolTipListPressReachesCoveredSkills(t *testing.T) {
 	art := &TownSchoolArt{}
 	art.Masks[0] = image.NewPaletted(image.Rect(0, 0, 92, 120), palette)
 	panelRect := schoolPanelRects[0]
-	overlap := panelRect.Intersect(tipBackgroundZone(SchoolTipRect))
+	overlap := panelRect.Intersect(tipBackgroundZone(tip.Rect))
 	if overlap.Dx() <= 0 || overlap.Dy() <= 0 {
-		t.Fatalf("fixture error: the fighter skill panel %v does not overlap SchoolTipRect's own background zone", panelRect)
+		t.Fatalf("fixture error: the fighter skill panel %v does not overlap the tip background zone", panelRect)
 	}
 
 	codes := []uint8{0xff, 0x9e, 0xd2, 0x87, 0x37} // sword, axe, club, pike, bow — schoolMaskSlot(0, ...)
 	var covered []image.Point
 	for i, code := range codes {
-		local := image.Pt(10+i*15, 10)
-		global := panelRect.Min.Add(local)
+		global := overlap.Min.Add(image.Pt(10+i*15, overlap.Dy()/2))
+		local := global.Sub(panelRect.Min)
 		if !global.In(overlap) {
 			t.Fatalf("fixture error: skill %d's own placement %v is not inside the panel/background overlap %v", i, global, overlap)
 		}
@@ -290,17 +286,17 @@ func TestSchoolTipListPressReachesCoveredSkills(t *testing.T) {
 	}
 
 	closedBefore, toggledBefore := town.closed, town.toggled
-	closeAt, ok := sampleInside(TipPanelCloseRect(SchoolTipRect))
+	closeAt, ok := sampleInside(TipPanelCloseRect(tip.Rect))
 	if !ok {
-		t.Fatal("fixture error: TipPanelCloseRect(SchoolTipRect) is empty")
+		t.Fatal("fixture error: the tip Close rectangle is empty")
 	}
 	clickAt(a, now, closeAt)
 	if town.closed != closedBefore+1 {
 		t.Fatalf("CloseTip() calls = %d after a release on the panel's own Close control, want %d", town.closed, closedBefore+1)
 	}
-	toggleAt, ok := sampleInside(TipPanelToggleRect(SchoolTipRect))
+	toggleAt, ok := sampleInside(TipPanelToggleRect(tip.Rect))
 	if !ok {
-		t.Fatal("fixture error: TipPanelToggleRect(SchoolTipRect) is empty")
+		t.Fatal("fixture error: the tip Toggle rectangle is empty")
 	}
 	clickAt(a, now, toggleAt)
 	if town.toggled != toggledBefore+1 {

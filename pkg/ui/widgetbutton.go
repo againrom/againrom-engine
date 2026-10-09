@@ -69,7 +69,9 @@ type pushButton struct {
 	Disabled        bool
 	// Literal draws Label as given, with no accelerator marker.
 	Literal bool
-	Policy  DialogueBackdrop
+	// LabelRaise replaces the default vertical anchor when positive.
+	LabelRaise int
+	Policy     DialogueBackdrop
 }
 
 // ink is the label colour the ramp selects for the button's state.
@@ -119,7 +121,11 @@ func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 			label = gameMenuLabelText(label)
 		}
 		x := left + (right-left)/2 + 1 - f.Advance(label)/2
-		y := top + (bottom-top)/2 - dialogueLabelRaise
+		raise := dialogueLabelRaise
+		if b.LabelRaise > 0 {
+			raise = b.LabelRaise
+		}
+		y := top + (bottom-top)/2 - raise
 		ink := b.ink()
 		flat := quantize(messageShadowColor)
 		before := slices.Clone(dst.Pix)

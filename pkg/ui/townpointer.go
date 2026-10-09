@@ -17,10 +17,30 @@ type townTipPress struct {
 	armed bool
 }
 
+const chargenTipRoom uint8 = 5
+
+type townRoomPointerState struct {
+	shopPress ShopControl
+	tipPress  townTipPress
+}
+
+func tipPanelOwner(v TipPanelView, room uint8) townTipOwner {
+	return townTipOwner{revision: v.Revision, room: room, rect: v.Rect, text: v.Text}
+}
+
+func tipPanelWithPointer(v TipPanelView, room uint8, p image.Point, inside bool, press townTipPress) TipPanelView {
+	v.Pointer, v.PointerOK = p, inside
+	v.CloseHover = inside && p.In(TipPanelCloseRect(v.Rect))
+	v.ClosePressed = press.armed && press.owner == tipPanelOwner(v, room)
+	return v
+}
+
 func (a *App) currentTownTip() (TipPanelView, townTipOwner) {
 	var v TipPanelView
 	var room uint8
-	if a.flow.screen == ScreenTown {
+	if a.flow.screen == ScreenChargen && a.flow.chargen != nil {
+		v, room = a.flow.chargen.TipPanel(), chargenTipRoom
+	} else if a.flow.screen == ScreenTown {
 		if _, open := townDialogue(a.flow.town); open {
 			return v, townTipOwner{}
 		}
@@ -32,14 +52,27 @@ func (a *App) currentTownTip() (TipPanelView, townTipOwner) {
 			v, room = square.Tip, 4
 		}
 	}
-	return v, townTipOwner{revision: v.Revision, room: room, rect: v.Rect, text: v.Text}
+	return v, tipPanelOwner(v, room)
 }
 
 func (a *App) cancelTownTipPointer() {
-	if a.townTipPress.armed {
+	if a.townTipPress.armed && a.townTipPress.owner.room != chargenTipRoom {
 		a.suppressPrimaryRelease = true
 	}
 	a.townTipPress = townTipPress{}
+}
+
+func (a *App) observeChargenTipPress(in appInput) {
+	if in.PrimaryPressed {
+		a.townTipPress = townTipPress{}
+		v, owner := a.currentTownTip()
+		if p, inside := a.windowToNativeFrame(in.CursorX, in.CursorY); inside && v.Showing() && p.In(TipPanelCloseRect(v.Rect)) {
+			a.townTipPress = townTipPress{owner: owner, armed: true}
+		}
+	}
+	if in.PrimaryReleased {
+		a.townTipPress = townTipPress{}
+	}
 }
 
 func (a *App) validateTownTipPointer(in appInput) {

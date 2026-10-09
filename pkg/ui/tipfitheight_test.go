@@ -17,14 +17,14 @@ func tipPanelFitHeightOracle(t *testing.T, s string, width int) int {
 	font := shopTipTestFont()
 	const floor, ceiling = 20, 480
 	if s == "" {
-		return floor
+		return 104
 	}
 	for h := floor; h <= ceiling; h++ {
 		if tipPanelTextFits(font, s, image.Rect(0, 0, width, h)) {
-			return h
+			return min(456, max(104, 72+((max(0, h-72)+31)/32)*32))
 		}
 	}
-	return ceiling
+	return 456
 }
 
 // The hoisted wrap must not move a single answer. Each case is a width and a
