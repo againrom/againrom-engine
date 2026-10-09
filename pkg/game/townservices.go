@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/render/text"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -76,8 +77,10 @@ func (a installTownArt) tipPanel() *ui.TipPanelArt     { return a.pr.tipArt(a.in
 func (a installTownArt) documentFont() *text.Font      { return a.pr.documentFont(a.in) }
 func (a installTownArt) worldMap() *worldMapAssets     { return a.pr.worldMapAssets(a.in) }
 
-// bindServices gives the screen its production services.
+// bindServices gives the screen its production services and builds its
+// square view, so no later reader changes the screen by building it.
 func (t *townScreen) bindServices(rt *RuntimeServices, in *InstallResources, pr *Presentation) {
 	t.sound, t.draws = runtimeTownAudio{rt}, runtimeTownDraws{rt}
 	t.art, t.townProcess = installTownArt{in, pr}, &pr.townProcess
+	t.square = town.NewView(rom1Town, townSquareHost{t}, t.townProcess)
 }
