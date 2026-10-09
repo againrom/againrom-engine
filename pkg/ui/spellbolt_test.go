@@ -289,3 +289,49 @@ func TestABoltsDepartureCarriesNoHandHeight(t *testing.T) {
 		}
 	}
 }
+
+// TestABoltStampIsPlacedAtItsDisplayPointLessEight: a display stamp ignores
+// the sheet halves and every cell lift; it is the native display point less
+// the immediate 8, moved into the camera world by -MinV (ANIM-BOLTDRAW-034).
+func TestABoltStampIsPlacedAtItsDisplayPointLessEight(t *testing.T) {
+	v := identityViewer(t, cliffGrid(), cliffW*terrain.CellSize, cliffCanvasH)
+	if v.Mode() != ModeDisplaced {
+		t.Fatalf("Mode() = %v, want displaced", v.Mode())
+	}
+	cam, proj := v.Camera(), cliffProjection()
+	sheet := uiSheet(1, 16, 16, 3, 5)
+	at := image.Pt(40, 70)
+	v.SetSpellBolts([]SpellBolt{{Cell: image.Pt(1, 1), To: image.Pt(0, 3), Pos: at, Display: true, Sheet: sheet}})
+	placed := v.spellArtPlacements()
+	if len(placed) != 1 {
+		t.Fatalf("one stamp placed %d rectangles", len(placed))
+	}
+	wx, wy := cam.WorldToScreen(float64(at.X-8), float64(at.Y-8-proj.MinV))
+	if placed[0].X != wx || placed[0].Y != wy {
+		t.Errorf("stamp at (%v,%v), want (%v,%v)", placed[0].X, placed[0].Y, wx, wy)
+	}
+}
+
+// TestDisplayRowFindsTheGroundRowUnderADisplayPoint: a cell's own display
+// centre resolves to a row whose corner edges contain it; the flat view
+// answers y>>5.
+func TestDisplayRowFindsTheGroundRowUnderADisplayPoint(t *testing.T) {
+	v := identityViewer(t, cliffGrid(), cliffW*terrain.CellSize, cliffCanvasH)
+	proj := cliffProjection()
+	for _, c := range []image.Point{{1, 1}, {0, 3}, {2, 2}} {
+		x := c.X*terrain.CellSize + terrain.CellSize/2
+		y := c.Y*terrain.CellSize + terrain.CellSize/2 - v.DisplayHeight(c)
+		row, ok := v.DisplayRow(x, y)
+		if !ok {
+			t.Fatalf("cell %v: no row under its display centre", c)
+		}
+		top, bottom := proj.CellColumnBounds(c.X, row, x)
+		if wy := y - proj.MinV; wy < top || wy > bottom {
+			t.Errorf("cell %v: row %d bounds [%d,%d] miss %d", c, row, top, bottom, wy)
+		}
+	}
+	flat := commandViewer(t)
+	if row, ok := flat.DisplayRow(5, 70); !ok || row != 2 || flat.DisplayHeight(image.Pt(1, 1)) != 0 {
+		t.Errorf("flat view row %d ok %v, want 2", row, ok)
+	}
+}

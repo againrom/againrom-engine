@@ -188,13 +188,22 @@ func (mw *mapWorld) observeScriptCasts(events []sim.ScriptCastEvent) {
 	for i, ev := range events {
 		from := image.Pt(int(ev.FromX), int(ev.FromY))
 		to := image.Pt(int(ev.ToX), int(ev.ToY))
-		if mw.world.SpellArm(uint16(ev.Spell)) == 13 {
+		seed := uint32(from.X|from.Y<<8) ^ uint32(to.X|to.Y<<8)<<16 ^ uint32(i+1)
+		switch mw.world.SpellArm(uint16(ev.Spell)) {
+		case 13:
 			// UNIT-M10CAST-056 / MAGIC-DELIVER-035: direct-client Lightning
 			// carries flight parameter 5, not the normal caster's 13 ticks.
 			// This is visual lifetime, never an admission cooldown.
 			mw.bolts = append(mw.bolts, spellBolt{from: from, to: to,
-				picture: data.CastPicture(13), life: 5, centered: true,
-				seed: uint32(from.X|from.Y<<8) ^ uint32(to.X|to.Y<<8)<<16 ^ uint32(i+1)})
+				picture: data.CastPicture(13), life: 5, centered: true, seed: seed})
+		case 14:
+			// The source-cell 0x8c Prismatic Spray: one link per resolved
+			// victim in selection order, tag index%7, 13 calls (MAGIC-281).
+			for k, v := range ev.Victims {
+				mw.bolts = append(mw.bolts, spellBolt{from: from, to: image.Pt(int(v.X), int(v.Y)),
+					picture: data.CastPicture(14), life: data.CastFlight(data.PicturePathSecond, 0),
+					centered: true, seed: seed + uint32(k)*2654435761, tag: k % chainTagCount})
+			}
 		}
 		mw.playSpellSound(castSpellSoundSlot(ev.Spell), 0, from, "scripted-cast")
 		mw.scheduleBlastSound(ev.Spell, 0, from, to, false)

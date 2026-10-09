@@ -130,8 +130,9 @@ func TestACastObjectLeavesTheCastersStaffTip(t *testing.T) {
 		if len(mw.bolts) != 2 {
 			t.Fatalf("direction %d: %d objects, want 2", d, len(mw.bolts))
 		}
-		if _, _, points := mw.pathFigure(mw.bolts[0]); len(points) == 0 || points[0] != want {
-			t.Errorf("direction %d: Lightning starts at %v, want %v", d, points, want)
+		display := ui.GroundPixel(want)
+		if _, _, points := mw.pathFigure(mw.bolts[0]); len(points) == 0 || !withinPixel(points[0], display) {
+			t.Errorf("direction %d: Lightning starts at %v, want %v", d, points, display)
 		}
 		if got := castShotPoint(mw.bolts[1].from, mw.bolts[1].to, 0, mw.bolts[1].life, mw.bolts[1].launch); got != want {
 			t.Errorf("direction %d: Fire Arrow starts at %v, want %v", d, got, want)
@@ -157,4 +158,12 @@ func TestACastObjectInFlightKeepsItsLaunchAcrossTheVisualSnapshot(t *testing.T) 
 	if restored.bolts[0].launch != (image.Point{}) {
 		t.Fatalf("an envelope without Launch restored %v", restored.bolts[0].launch)
 	}
+}
+
+// withinPixel: the first stored point is the first sample, whose ordinate can
+// differ from the launch point by evaluation residue before truncation
+// (MAGIC-275).
+func withinPixel(a, b image.Point) bool {
+	d := a.Sub(b)
+	return max(d.X, -d.X, d.Y, -d.Y) <= 1
 }

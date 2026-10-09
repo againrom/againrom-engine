@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"againrom/pkg/sim"
-	"againrom/pkg/ui"
 )
 
 func TestCellEntry1084DirectLightningHasNoActorAnimationAndExpires(t *testing.T) {
@@ -19,12 +18,14 @@ func TestCellEntry1084DirectLightningHasNoActorAnimationAndExpires(t *testing.T)
 	if b.life != 5 || b.from != image.Pt(3, 4) || b.to != image.Pt(7, 6) || !b.centered {
 		t.Fatalf("direct-client bolt = %+v", b)
 	}
-	// Independent endpoints: no north-facing hand offset on a source cell.
-	points := boltPathFrom(image.Pt(3*ui.ShotScale, 4*ui.ShotScale), b.to, b.seed, 0)
-	if len(points) < 2 || points[0] != image.Pt(3*ui.ShotScale, 4*ui.ShotScale) || points[len(points)-1] != image.Pt(7*ui.ShotScale, 6*ui.ShotScale) {
-		t.Fatalf("direct bolt endpoints = %v", points)
-	}
-	for i := 0; i < 5; i++ {
+	// Independent endpoints: no north-facing hand offset on a source cell. The
+	// direct route's five calls draw phases 0,4,3,2,1 (MAGIC-281).
+	for i, want := range []int{0, 4, 3, 2, 1} {
+		b := mw.bolts[0]
+		_, frame, points := mw.pathFigure(b)
+		if frame != want || len(points) < 2 || !withinPixel(points[0], image.Pt(3*32+16, 4*32+16)) {
+			t.Fatalf("direct call %d: frame %d points %v, want frame %d from the source cell centre", i, frame, points, want)
+		}
 		mw.advanceBolts()
 	}
 	if len(mw.bolts) != 0 || mw.world.Hash() != before {

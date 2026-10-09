@@ -180,12 +180,12 @@ func (w *World) resolveScriptCast(c scriptCast, obs *castObs) {
 	}
 	if rule.Area {
 		if x, y, landed := w.landAreaCast(c, rule, obs); landed {
-			obs.recordScriptCast(c, rule.ID, x, y)
+			obs.recordScriptCast(c, rule.ID, x, y, nil)
 		}
 		return
 	}
-	if x, y, landed := w.landPointCast(c, rule); landed {
-		obs.recordScriptCast(c, rule.ID, x, y)
+	if x, y, victims, landed := w.landPointCast(c, rule); landed {
+		obs.recordScriptCast(c, rule.ID, x, y, victims)
 	}
 }
 
@@ -242,22 +242,23 @@ func (w *World) landAreaCast(c scriptCast, rule SpellRule, obs *castObs) (int32,
 // be off its cadence floor or to pay a mana cost; the constructor builds the
 // spell object unconditionally. What is asked is only that the target is a unit
 // the world holds and that it is alive.
-func (w *World) landPointCast(c scriptCast, rule SpellRule) (int32, int32, bool) {
+func (w *World) landPointCast(c scriptCast, rule SpellRule) (int32, int32, []CellPoint, bool) {
 	if !c.AtUnit {
-		return 0, 0, false
+		return 0, 0, nil, false
 	}
 	i := indexOfEntity(w.entities, c.Target)
 	if i < 0 || !spellTargetable(w.entities[i], rule) || prismaticBodyPrimary(w.entities[i], rule) {
-		return 0, 0, false
+		return 0, 0, nil, false
 	}
 	x, y := w.entities[i].X, w.entities[i].Y
 	power := int32(c.Power)
+	var victims []CellPoint
 	if rule.arm() == 14 {
-		w.applyPrismatic(-1, i, rule, power)
+		victims = w.applyPrismatic(-1, i, rule, power)
 	} else if rule.Delivery == 2 {
 		w.queueSpellDelivery(spellDelivery{Target: c.Target, X: x, Y: y, FromX: int32(c.FromX), FromY: int32(c.FromY), Rule: rule, Power: power})
 	} else if !w.ordinaryEffect(-1, i, rule, power) {
-		return 0, 0, false
+		return 0, 0, nil, false
 	}
 	// The mark says a unit was touched by a spell, and it is set only where
 	// something was applied — on the target alone, because the caster this
@@ -265,5 +266,5 @@ func (w *World) landPointCast(c scriptCast, rule SpellRule) (int32, int32, bool)
 	if rule.Delivery != 2 {
 		w.markSpellEffect(i, rule.ID)
 	}
-	return x, y, true
+	return x, y, victims, true
 }
