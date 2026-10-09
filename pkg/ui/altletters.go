@@ -1,8 +1,6 @@
 package ui
 
-// suppressAltLetters clears the letter-driven map actions of a frame with Alt
-// held: Alt plus a letter reaches no map action and the debug console is not
-// built (MENU-062, AI-378, DIV-2077).
+// suppressAltLetters keeps console chords from reaching ordinary map actions.
 func (in *appInput) suppressAltLetters() {
 	if !in.Viewer.Alt {
 		return

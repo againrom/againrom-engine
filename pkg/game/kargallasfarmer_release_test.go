@@ -115,7 +115,7 @@ func TestReleaseKargallasWorldMapObjectBuildsNoMarker(t *testing.T) {
 }
 
 // Mission 90's castle is placed whole inside the playable columns, and the
-// highest camera position at every view x is above its top (TERR-STRUCT-207).
+// highest camera position meets its top (TERR-221).
 func TestReleaseKargallasCastleIsNeverCutByTheCamera(t *testing.T) {
 	f := releaseFront(t)
 	addr, _ := MissionMap(90)
@@ -167,8 +167,8 @@ func TestReleaseKargallasCastleIsNeverCutByTheCamera(t *testing.T) {
 		cam.Clamp()
 		cam.Y = -1e9
 		cam.Clamp()
-		if cam.X < float64(right)-float64(cam.ViewW) && cam.X+float64(cam.ViewW) > float64(left) && cam.Y > float64(top) {
-			t.Fatalf("at view x %.0f the highest camera y %.0f is below the castle top %d", cam.X, cam.Y, top)
+		if cam.X < float64(right)-float64(cam.ViewW) && cam.X+float64(cam.ViewW) > float64(left) && cam.Y != float64(top) {
+			t.Fatalf("at view x %.0f the highest camera y %.0f does not meet the castle top %d", cam.X, cam.Y, top)
 		}
 	}
 }

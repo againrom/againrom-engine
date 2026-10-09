@@ -9,7 +9,7 @@ import (
 
 // Shroud is composited over the complete world, including structure overhangs.
 // TERR-FOG-083 supplies the four vertex levels; TERR-FOG-084 supplies the gain.
-// An opaque outside fill also hides art protruding beyond the terrain mesh.
+// DIV-2578.
 func (v *Viewer) drawShroud(dst *ebiten.Image) {
 	if len(v.fogPlane) == 0 || v.FogRevealed() {
 		return
@@ -25,9 +25,18 @@ func (v *Viewer) drawShroud(dst *ebiten.Image) {
 		v.fogInk = ebiten.NewImage(1, 1)
 		v.fogInk.Fill(color.Black)
 	}
-	v.fogCanvas.Fill(color.Black)
-	v.drawShroudTiles(v.fogCanvas, v.fogInk)
+	v.paintShroud(v.fogCanvas, v.fogInk)
 	dst.DrawImage(v.fogCanvas, nil)
+}
+
+type shroudTarget interface {
+	triangleTarget
+	Fill(color.Color)
+}
+
+func (v *Viewer) paintShroud(dst shroudTarget, ink *ebiten.Image) {
+	dst.Fill(color.Transparent)
+	v.drawShroudTiles(dst, ink)
 }
 
 func (v *Viewer) drawShroudTiles(dst triangleTarget, ink *ebiten.Image) {

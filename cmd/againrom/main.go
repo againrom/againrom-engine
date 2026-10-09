@@ -96,7 +96,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-chicken] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // markersUsage is the -markers flag's own help text. Named rather than
 // written inline so the wording has ONE home, mirroring cmd/mapview's flag
@@ -341,6 +341,7 @@ type options struct {
 	assets  string
 	check   bool
 	markers bool
+	chicken bool
 	picker  bool
 	mission int
 
@@ -404,6 +405,7 @@ func parse(args []string) (options, error) {
 	fs.StringVar(&o.assets, "assets", "", "path to the game asset root (overrides AGAINROM_ASSETS, which overrides the install found at the working directory or beside this binary)")
 	fs.BoolVar(&o.check, "check", false, "load the assets and the map list, print a summary, and exit without a window")
 	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
+	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
 	fs.BoolVar(&o.picker, "picker", false, pickerUsage)
 	fs.IntVar(&o.mission, "mission", defaultCampaignMission, missionUsage)
 	// -chargen IS BOUND TO A THROWAWAY (0140). The flag must still PARSE — an
@@ -542,6 +544,7 @@ func frontEnd(root string, o options, preferences game.OptionsStore) (*game.Fron
 	// trees and stones are the map's content, drawn unconditionally by the load
 	// path, so -markers=false leaves them on screen and takes the crosses off.
 	front.Markers = game.Markers{Objects: o.markers, Units: o.markers, Statics: o.markers}
+	front.SetChickenAtMissionStart(o.chicken)
 	front.Options = preferences
 	front.LoadOptions()
 	return front, nil

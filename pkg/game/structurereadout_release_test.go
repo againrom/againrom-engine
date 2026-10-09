@@ -17,18 +17,18 @@ import (
 	"againrom/pkg/ui"
 )
 
-// readoutPicture draws widget 8's three lines on the installed card font the
-// way MENU-071 gives them: flat (8,8,8) shadow one pixel down and right of the
-// glyphs, ink entry 15 of each ramp, lines 0, 16 and 26 pixels below the first.
+// readoutPicture independently draws the centred lines inside the card.
 func readoutPicture(f *text.Font, lines [3]string) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, 400, 60))
-	for i, ys := range [3]int{0, 16, 26} {
+	img := image.NewRGBA(image.Rect(0, 0, 160, 242))
+	for i, ys := range [3]int{28, 44, 54} {
+		w, _ := f.Measure(lines[i])
+		x := 72 - w/2
 		ink := color.RGBA{R: 185, G: 159, B: 73, A: 255}
 		if i == 2 {
 			ink = color.RGBA{R: 107, G: 154, B: 120, A: 255}
 		}
-		f.DrawFlat(img, lines[i], 1, ys+1, color.RGBA{R: 8, G: 8, B: 8, A: 255})
-		f.Draw(img, lines[i], 0, ys, ink)
+		f.DrawFlat(img, lines[i], x+1, ys+1, color.RGBA{R: 8, G: 8, B: 8, A: 255})
+		f.Draw(img, lines[i], x, ys, ink)
 	}
 	return img
 }
@@ -113,16 +113,27 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 		if err != nil {
 			t.Fatalf("%s: %v", what, err)
 		}
-		if wantAt := image.Pt(1024-88, 480+28); at != wantAt {
+		width := 0
+		for _, line := range [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)} {
+			w, _ := f.tipFont().Measure(line)
+			width = max(width, w)
+		}
+		if wantAt := image.Pt(1024-88-width/2, 526+28); at != wantAt {
 			t.Errorf("%s: readout at %v, want %v", what, at, wantAt)
 		}
 		if lines != [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)} {
 			t.Errorf("%s: lines %q, want building.txt[%d] %q, main.txt[19] %q and %d/%d", what, lines, kind-1, name, health, hp, maxHP)
 		}
-		for y := 0; y < pic.Bounds().Dy(); y++ {
-			for x := 0; x < pic.Bounds().Dx(); x++ {
-				if pic.RGBAAt(x, y) != want.RGBAAt(x, y) {
-					t.Fatalf("%s: pixel (%d,%d) is %v, want %v", what, x, y, pic.RGBAAt(x, y), want.RGBAAt(x, y))
+		got := image.NewRGBA(want.Bounds())
+		rect := pic.Bounds().Add(at.Sub(image.Pt(1024-160, 526)))
+		if !rect.In(got.Bounds()) {
+			t.Fatalf("%s: readout %v lies outside the card", what, rect)
+		}
+		draw.Draw(got, rect, pic, pic.Bounds().Min, draw.Src)
+		for y := 0; y < got.Bounds().Dy(); y++ {
+			for x := 0; x < got.Bounds().Dx(); x++ {
+				if got.RGBAAt(x, y) != want.RGBAAt(x, y) {
+					t.Fatalf("%s: card pixel (%d,%d) is %v, want %v", what, x, y, got.RGBAAt(x, y), want.RGBAAt(x, y))
 				}
 			}
 		}

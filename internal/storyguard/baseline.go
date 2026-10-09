@@ -1920,8 +1920,11 @@ package storyguard
 // New native effect-mask controls document their attachment and expiry inputs in
 // sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
 // includes that new-code documentation and this explanation.
+// CommentBytes rises for the melee facing hotfix: the docs of the new melee
+// walking witness, the Kadagan release test's pack note and the skill
+// trainee's heal note, new code, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4699,
+	TestIdentCount: 4695,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1930,9 +1933,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1887,
+		"acclause":        1882,
 		"scclause":        509,
-		"barestorynumber": 1752,
+		"barestorynumber": 1751,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -1941,7 +1944,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1828,
+		"longcommentgroups":      1817,
 	},
-	CommentBytes: 8510296,
+	CommentBytes: 8488820,
 }

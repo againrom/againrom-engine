@@ -503,25 +503,7 @@ func appendStructureStrips(out []StructurePlacement, g Grid, c *StructureClass,
 	return out
 }
 
-// structureLift is the one value the whole structure stands at: a bilinear sample
-// of the terrain's CORNER heights at the rectangle's centre (spec, "The lift";
-// TERR-STRUCT-106).
-//
-// With x2 = 2*anchorCol + TileWidth and y2 = 2*anchorRow + TileHeight it is the
-// mean of the corner heights at (x2/2, y2/2), ((x2+1)/2, y2/2), (x2/2, (y2+1)/2)
-// and ((x2+1)/2, (y2+1)/2). Every division TRUNCATES TOWARD ZERO, which is Go's
-// own integer division and is what the object path already does; a halving written
-// as a right shift would not be this function.
-//
-// The doubling is what makes the centre expressible at all: the rectangle's centre
-// falls on a half-integer whenever an extent is odd, so the four samples are the
-// two integer neighbours in each axis. Where BOTH extents are odd the two
-// neighbours in each axis are the two corners of one cell, so the four samples are
-// that centre cell's own four corners and the result is its four-corner mean — by
-// arithmetic, and not by a special case (AC-5).
-//
-// A nil accessor is the FLAT geometry and answers 0, mirroring the object
-// builder's nil lift.
+// TERR-221.
 func structureLift(c *StructureClass, anchorCol, anchorRow int, corner func(cc, rr int) int) int {
 	return structureRectLift(c.TileWidth, c.TileHeight, anchorCol, anchorRow, corner)
 }
@@ -532,10 +514,12 @@ func structureRectLift(width, height, anchorCol, anchorRow int, corner func(cc, 
 	}
 	x2 := 2*anchorCol + width
 	y2 := 2*anchorRow + height
-	return (corner(x2/2, y2/2) +
-		corner((x2+1)/2, y2/2) +
-		corner(x2/2, (y2+1)/2) +
-		corner((x2+1)/2, (y2+1)/2)) / 4
+	x, y := x2/2, y2/2
+	a, b := corner(x, y), corner((x2+1)/2, y)
+	c, d := corner(x, (y2+1)/2), corner((x2+1)/2, (y2+1)/2)
+	top := a + (b-a)*(x2%2)/2
+	bottom := c + (d-c)*(x2%2)/2
+	return top + (bottom-top)*(y2%2)/2
 }
 
 func SelectStructureFrame(c *StructureClass, gridIndex int, counter uint32, animate, ruined bool) int {

@@ -144,6 +144,7 @@ func runPausedPresentationProbe(dir string) error {
 		tex := ebiten.NewImage(1024, 768)
 		defer tex.Dispose()
 		capture := func(name string) (*image.RGBA, error) {
+			tex.Clear()
 			v.Draw(tex)
 			pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
 			tex.ReadPixels(pic.Pix)
@@ -338,6 +339,7 @@ func probeInstalledScenery(f *FrontEnd, dir string) error {
 	tex := ebiten.NewImage(1024, 768)
 	defer tex.Dispose()
 	capture := func() []byte {
+		tex.Clear()
 		v.Draw(tex)
 		pixels := make([]byte, 1024*768*4)
 		tex.ReadPixels(pixels)
@@ -375,8 +377,17 @@ func probeInstalledScenery(f *FrontEnd, dir string) error {
 				return err
 			}
 		}
-		if !bytes.Equal(paused, capture()) || v.AnimationCounter() != count {
-			return fmt.Errorf("installed %s advanced during pause", name)
+		held := capture()
+		if !bytes.Equal(paused, held) || v.AnimationCounter() != count {
+			changed, bounds := 0, image.Rectangle{}
+			for i := 0; i < len(paused); i += 4 {
+				if !bytes.Equal(paused[i:i+4], held[i:i+4]) {
+					changed++
+					x, y := (i/4)%1024, (i/4)/1024
+					bounds = bounds.Union(image.Rect(x, y, x+1, y+1))
+				}
+			}
+			return fmt.Errorf("installed %s advanced during pause: count %d to %d; %d pixels in %v", name, count, v.AnimationCounter(), changed, bounds)
 		}
 		if err := app.HeadlessKey("0"); err != nil {
 			return err
