@@ -152,14 +152,8 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		return fmt.Errorf("sim: invalid current world policy")
 	}
 	if p.Ghost != nil {
-		if !p.Ghost.Domain.defined() {
-			return fmt.Errorf("sim: invalid current Ghost domain")
-		}
-		if err := experienceSlotFault(p.Ghost.XPSlot); err != nil {
-			return fmt.Errorf("sim: invalid current Ghost experience slot: %w", err)
-		}
-		if err := p.Ghost.NativeBasis.Validate(); err != nil {
-			return fmt.Errorf("sim: invalid current Ghost native basis: %w", err)
+		if err := p.Ghost.fault(); err != nil {
+			return fmt.Errorf("sim: invalid current Ghost: %w", err)
 		}
 	}
 	if err := w.RestoreCurrentClock(p.TickHigh, p.ClockKnown); err != nil {

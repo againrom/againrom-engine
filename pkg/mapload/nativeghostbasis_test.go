@@ -20,7 +20,7 @@ func TestResolvedGhostRaiseUsesFreshNativeConstructorWithoutWornHistory(t *testi
 			name = "cold-policy"
 		}
 		t.Run(name, func(t *testing.T) {
-			ghost := ghostTemplate(table, DifficultyNormal)
+			ghost := ghostTemplate(table)
 			caster := sim.Entity{ID: 1, X: 1, Y: 1, HP: 100, MaxHP: 100,
 				Mana: 100, MaxMana: 100, Mind: 30, Reaction: 120,
 				Owner: sim.SelfSlot, TypeID: sim.HumanTypeID, TokenSize: 1, ScanRange: 6,

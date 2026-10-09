@@ -381,13 +381,12 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 				}
 				if e.TypeID == w.Ghost().TypeID && e.MapUnitID == 0 && e.Owner == sim.SelfSlot {
 					ghostID = e.ID
-					if e.Capacity != 0 || got.Capacity != 300 {
-						t.Fatal("DIV-1675 zero Unit capacity control", e.Capacity, got.Capacity)
+					if e.Capacity != 300 {
+						t.Fatal("raised Ghost lacks its Units row capacity", e.Capacity)
 					}
-					got.Capacity = e.Capacity
 				}
 				if !reflect.DeepEqual(e, got) {
-					t.Fatal("cold LOAD changed actor fields beyond known Unit capacity", e.ID)
+					t.Fatal("cold LOAD changed actor fields", e.ID)
 				}
 			}
 			file, err := sav.Open(raw)

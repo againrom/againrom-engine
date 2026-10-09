@@ -172,54 +172,34 @@ const (
 	AreaHitsHostile
 )
 
-// GhostTemplate is the definition-table `Units` row a Control Spirit cast
-// raises, reduced to the fields the raise reads and carried as a PLAIN VALUE —
-// no pointer, no slice — across the pkg/mapload seam exactly as SpellRule is,
-// because pkg/sim may not import pkg/data (the determinism wall, AGENTS.md).
-//
-// Class IS THE FIELD THE DEFECT WAS ABOUT. pkg/game resolves an actor's art
-// and its displayed name through classes[e.Class]; a raise that left it at
-// zero produced a unit drawn as nothing with an empty name, because no shipped
-// units.reg carries a class 0.
-//
-// The row is the first exact-name `Units` row `Ghost` and supplies every field
-// below. ToHit and Defence are persisted in saves but unread by the raise: the
-// arm takes the to-hit and defence words, health and the three stats from the
-// corpse (MAGIC-249). The row's other columns are Medium (row streaming).
-type GhostTemplate struct {
-	Class         int32
-	TypeID        int32
-	Domain        Domain
-	Speed         int32
-	RotationSpeed int32
-	ScanRange     uint8
-	Reach         uint8
-	TokenSize     uint8
-	DyingTime     int32
-	XPValue       int32
-	Withdraw      int32
-	Wimpy         int32
-	Humanoid      bool
-	NativeBasis   NativeActorBasis
-
-	Protection   [5]int32
-	Resistance   [5]uint8
-	XPSlot       uint8
-	ToHit        int32
-	Defence      int32
-	Absorption   int32
-	DamageBase   int32
-	DamageSpread int32
-	AttackCharge int32
-	AttackRelax  int32
-	AlwaysHits   bool
-}
+// GhostTemplate is the actor definition a Control Spirit cast raises, the
+// `Ghost` Units row as pkg/mapload resolves it (MAGIC-249). The raise replaces
+// the corpse stores (raisedGhost). A saved policy older than the whole row
+// leaves the added columns zero.
+type GhostTemplate ActorDefinition
 
 // Raisable reports whether the template names a class at all. A world built
 // against no definition table, or one whose table ships no `Ghost` row, holds
 // the zero value and raises nothing — the cast is refused at admission rather
 // than producing an actor no front end can draw.
 func (g GhostTemplate) Raisable() bool { return g.Class != 0 }
+
+// fault refuses a template whose raised actor the decoder would refuse.
+func (g GhostTemplate) fault() error {
+	if !g.Domain.defined() {
+		return fmt.Errorf("movement domain %d is not defined", uint8(g.Domain))
+	}
+	if err := experienceSlotFault(g.XPSlot); err != nil {
+		return err
+	}
+	if err := g.NativeBasis.Validate(); err != nil {
+		return err
+	}
+	if err := g.Book.Validate(g.KnownSpells); err != nil {
+		return err
+	}
+	return secondaryDamageFault(g.SecondaryDamage)
+}
 
 type durationScale uint8
 
@@ -629,6 +609,7 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 // corpse's cell and facing, and the seven stores the arm takes off the corpse:
 // `reaction/2 + 1`, Mind, Spirit, `healthMax/2` with health equal to it, and
 // the first word of the to-hit block and of the defence block (MAGIC-249).
+// A corpse whose health maximum is 1 raises an actor with health 1 (DIV-037).
 //
 // IT GAINS NO EXPERIENCE. GainsXP stays false, on the creature arm's own rule
 // (pkg/mapload blockFor): a units row derives no class that could earn.
@@ -636,40 +617,22 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 	if !w.ghost.Raisable() {
 		return Entity{}, false
 	}
-	g, src, caster := w.ghost, w.entities[ti], w.entities[ci]
+	d, src, caster := ActorDefinition(w.ghost), w.entities[ti], w.entities[ci]
 	maxHP := src.MaxHP / 2
 	if maxHP < 1 {
 		maxHP = 1
 	}
-	reach, token := g.Reach, g.TokenSize
-	if reach == 0 {
-		reach = 1
+	if d.Reach == 0 {
+		d.Reach = 1
 	}
-	if token == 0 {
-		token = 1
+	if d.TokenSize == 0 {
+		d.TokenSize = 1
 	}
-	e := NewActor(ActorDefinition{
-		HP: maxHP, MaxHP: maxHP,
-		Class: g.Class, TypeID: g.TypeID, Domain: g.Domain,
-		Speed: g.Speed, RotationSpeed: g.RotationSpeed,
-		ScanRange: g.ScanRange, Reach: reach,
-		TokenSize: token, DyingTime: g.DyingTime, XPValue: g.XPValue,
-		Withdraw: g.Withdraw, Wimpy: g.Wimpy,
-		Humanoid:     g.Humanoid,
-		NativeBasis:  g.NativeBasis,
-		Protection:   g.Protection,
-		Resistance:   g.Resistance,
-		XPSlot:       g.XPSlot,
-		ToHit:        src.ToHit,
-		Defence:      src.Defence,
-		Absorption:   g.Absorption,
-		DamageBase:   g.DamageBase,
-		DamageSpread: g.DamageSpread,
-		AttackCharge: g.AttackCharge,
-		AttackRelax:  g.AttackRelax,
-		AlwaysHits:   g.AlwaysHits,
-		Reaction:     src.Reaction/2 + 1, Mind: src.Mind, Spirit: src.Spirit,
-	}, ActorPlacement{ID: id, X: src.X, Y: src.Y, Facing: src.Facing,
+	d.HP, d.MaxHP = maxHP, maxHP
+	d.ToHit, d.Defence = src.ToHit, src.Defence
+	d.Reaction, d.Mind, d.Spirit = src.Reaction/2+1, src.Mind, src.Spirit
+	d.GainsXP = false
+	e := NewActor(d, ActorPlacement{ID: id, X: src.X, Y: src.Y, Facing: src.Facing,
 		Owner: caster.Owner, Group: caster.Group})
 	e.standAtPost()
 	return e, true
