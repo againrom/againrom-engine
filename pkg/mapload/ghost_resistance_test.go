@@ -27,8 +27,8 @@ func (ghostResistanceScale) EntryDoubles(int) []float64 {
 	return []float64{1, 1, 1, 1, 1, 1, 1, 1, 1}
 }
 
-// TestGhostTemplateCarriesResistanceAndItsResolvedWeaponKind covers the one
-// actor producer that does not pass through definitionFor. The synthetic Ghost
+// TestGhostTemplateCarriesResistanceAndItsResolvedWeaponKind covers the
+// Ghost row resolved by name rather than through definitionFor. The synthetic Ghost
 // row carries all five bytes and a long-reach melee kind 5 weapon; reach does
 // not turn that weapon into the ranged arm, so the raised actor consults the
 // Shooting byte.
@@ -59,7 +59,7 @@ func TestGhostTemplateCarriesResistanceAndItsResolvedWeaponKind(t *testing.T) {
 	weapons := ghostResistanceCollection{{}, {name: "LongMelee", params: weapon}}
 	tbl := &Table{Units: units, Shapes: ghostResistanceScale{}, Materials: ghostResistanceScale{}, Weapons: weapons}
 
-	got := ghostTemplate(tbl, DifficultyNormal)
+	got := ghostTemplate(tbl)
 	if got.Resistance != ([5]uint8{11, 22, 33, 44, 255}) {
 		t.Errorf("Resistance = %v, want the Ghost row's five narrowed bytes", got.Resistance)
 	}
@@ -69,9 +69,8 @@ func TestGhostTemplateCarriesResistanceAndItsResolvedWeaponKind(t *testing.T) {
 	if got.Withdraw != 27 || got.Wimpy != 9 {
 		t.Errorf("Withdraw/Wimpy = %d/%d, want the Ghost row's 27/9", got.Withdraw, got.Wimpy)
 	}
-	// This story resolves only the active kind for the dedicated Ghost path;
-	// its pre-existing row-combat reach remains unchanged.
-	if got.Reach != 1 {
-		t.Errorf("Reach = %d, want the Ghost row's unchanged default 1", got.Reach)
+	// The row's weapon folds its reach as for a placement.
+	if got.Reach != 8 {
+		t.Errorf("Reach = %d, want the folded weapon reach 8", got.Reach)
 	}
 }
