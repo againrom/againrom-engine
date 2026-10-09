@@ -392,7 +392,7 @@ func TestReleaseActivePauseOrderedSAVAndResume(t *testing.T) {
 		}
 	}
 	openOptions()
-	click(142, 124)
+	click(126, 116)
 	if f.live.view.SaveApplication().PlayerPaused || !bytes.Equal(optionsBefore, marshalWorld(t, f.live.world)) {
 		t.Fatal("installed zero draft changed player intent or simulation")
 	}
@@ -403,7 +403,7 @@ func TestReleaseActivePauseOrderedSAVAndResume(t *testing.T) {
 		t.Fatal("installed zero Cancel changed exact cadence", err)
 	}
 	openOptions()
-	click(142, 124)
+	click(126, 116)
 	for _, action := range []string{"page-return", "return"} {
 		if err := app.HeadlessGameMenuAction(action); err != nil {
 			t.Fatal(err)
@@ -413,7 +413,7 @@ func TestReleaseActivePauseOrderedSAVAndResume(t *testing.T) {
 		t.Fatal("installed zero OK did not retain the exact paused resume mode")
 	}
 	openOptions()
-	click(243, 124)
+	click(227, 116)
 	for _, action := range []string{"page-return", "return"} {
 		if err := app.HeadlessGameMenuAction(action); err != nil {
 			t.Fatal(err)

@@ -55,16 +55,21 @@ func actorRegistryFront(t *testing.T) *FrontEnd {
 // Literal SAV offsets from the independent fixture writer: Token row/type
 // at16/17; Unit store-A at509; mover facing at179. No importer output supplies
 // these expected operands. The two nonmatching MapUnitIDs deliberately collide.
-func actorRegistrySave1111() []byte {
-	body, _ := actorRegistryBody1111()
+func actorRegistrySave(names ...string) []byte {
+	body, _ := actorRegistryBody1111(names...)
 	return savedContainer(body)
 }
 
-func actorRegistryBody1111() ([]byte, []*poolFixtureActor) {
+func actorRegistryBody1111(names ...string) ([]byte, []*poolFixtureActor) {
 	load, runtime := &[4]int16{100, 0, 0, 300}, &[3]byte{1, 8, 4}
 	a := &poolFixtureActor{cell: 0x100f, hp: 7, maxHP: 31, name: "Source creature", loadWords: load, equipmentRuntime: runtime}
 	b := &poolFixtureActor{mapID: 900, cell: 0x120f, hp: 9, maxHP: 41, human: true, name: "Source temporary", loadWords: load, equipmentRuntime: runtime}
 	c := &poolFixtureActor{mapID: 900, cell: 0x140f, hp: 11, maxHP: 51, human: true, name: "Source persistent", loadWords: load, equipmentRuntime: runtime}
+	for i, actor := range []*poolFixtureActor{a, b, c} {
+		if i < len(names) {
+			actor.name = names[i]
+		}
+	}
 	body := poolFixtureBody([]*poolFixturePlayer{{groups: [][]*poolFixtureActor{{a, b, a, c}}}}, nil)
 	for i, actor := range []*poolFixtureActor{a, b, c} {
 		binary.LittleEndian.PutUint32(body[actor.off+12:], uint32(501+i))
@@ -161,7 +166,7 @@ func TestActorRegistry1111OriginalDoorsNativeMenuFreshProcess(t *testing.T) {
 		t.Log("source-only actors: ordinary menu SAVE, fresh-process App LOAD, rendered names/persons and next MapOrder PASS")
 		return
 	}
-	payload := actorRegistrySave1111()
+	payload := actorRegistrySave()
 	ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
 	if err != nil {
 		t.Fatal(err)

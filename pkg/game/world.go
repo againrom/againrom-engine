@@ -4834,13 +4834,8 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 		mw.drawnMoving[e.ID] = moving
 
-		// THE ENTITY'S OWN CLASS, resolved once and read for two things that must
-		// not follow each other: the name, which is this entity's in every life
-		// state, and the art below, which the death path replaces with the corpse
-		// class WHOLE. Reading the name off the substituted class instead would
-		// rename a unit on the frame it falls, wherever a class names a
-		// differently named one as its dying class. A nil class leaves the empty
-		// name — the same "resolved to nothing" answer a nil Art already gives.
+		// Keep the entity's own class before corpse-art substitution. Display
+		// captions below use its type or an explicit actor name.
 		c := classes[e.Class]
 		category := terrain.UnitCategoryFor(c, uint8(e.Decay))
 
@@ -4894,7 +4889,17 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		// (world.go), so the map itself moves for that one field and this loop
 		// reads the current name by reading the map — no second resolve on a
 		// tick, and no per-entity work for the entities that cannot re-arm.
+		ordinary := (e.SourceBinding.ActorClass() == 1 || !sim.InPersistBand(e.TypeID)) &&
+			mw.missionPartyMember(e.ID) == nil
+		definitionName := ""
+		if ordinary && mw.mission != nil {
+			definitionName = sourceActorDefinitionName(mw.mission.table, e.SourceBinding)
+		}
+		sourceClassName := definitionName != "" && mw.actorNames[e.ID] == definitionName
 		char := mw.chars[e.ID]
+		if ordinary && definitionName != "" && char.Name == definitionName {
+			char.Name = ""
+		}
 		if char.Name != "" {
 			name = char.Name
 		}
@@ -4921,14 +4926,16 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		nameIndex := int(e.TypeID)
 		nativeClassName := e.SourceBinding.Class == 0 && e.ActorLoad.Source.Class == 0 &&
 			e.NativeBasis.HasValues() && c != nil && mw.actorNames[e.ID] == c.Name
-		ordinary := (e.SourceBinding.ActorClass() == 1 || !sim.InPersistBand(e.TypeID)) &&
-			mw.missionPartyMember(e.ID) == nil
 		if !ordinary && char.UnitNameIndex != 0 {
 			nameIndex = char.UnitNameIndex
 		}
-		if (ordinary || char.Known) && char.Name == "" && (mw.actorNames[e.ID] == "" || nativeClassName) &&
-			nameIndex >= 0 && nameIndex < len(unitNames) && unitNames[nameIndex] != "" {
-			name = unitNames[nameIndex]
+		if (ordinary || char.Known) && char.Name == "" && (mw.actorNames[e.ID] == "" || nativeClassName || sourceClassName) {
+			if ordinary {
+				name = ""
+			}
+			if nameIndex >= 0 && nameIndex < len(unitNames) && unitNames[nameIndex] != "" {
+				name = unitNames[nameIndex]
+			}
 		}
 		playerCharacter := mw.isGuarded(e.ID)
 		panelXPValue := e.XPValue

@@ -35,8 +35,7 @@ func TestDialogBaseSnapsAndCentresTheThreeArgumentRectangles(t *testing.T) {
 	}
 }
 
-// Every control of both dialogs lies inside its frame body, and the button
-// pair follows the builder's W/7 arithmetic (MENU-073).
+// Every control lies inside its frame body; Game Options buttons use its width.
 func TestOptionsDialogControlsLieInsideTheirFrames(t *testing.T) {
 	for _, action := range []gameMenuAction{gameMenuSpeedDown, gameMenuDayNight, gameMenuSmoothing, gameMenuShadows,
 		gameMenuLighting, gameMenuAnimation, gameMenuTooltipDelay, gameMenuFormation, gameMenuHealth, gameMenuDamage,
@@ -48,8 +47,8 @@ func TestOptionsDialogControlsLieInsideTheirFrames(t *testing.T) {
 	}
 	ok, cancel := gameOptionRect(gameMenuPageReturn), gameOptionRect(gameMenuOptionsCancel)
 	g := gameOptionsDialog
-	if ok != g.Rect(69, 380, 209, 404) || cancel != g.Rect(278, 380, 418, 404) {
-		t.Errorf("buttons %v %v, want x 69..209 and 278..418 at y 380..404", ok, cancel)
+	if ok != g.Rect(68, 372, 205, 396) || cancel != g.Rect(274, 372, 411, 396) {
+		t.Errorf("buttons %v %v, want x 68..205 and 274..411 at y 372..396", ok, cancel)
 	}
 	for _, action := range []gameMenuAction{gameMenuMusicVolume, gameMenuEffectsVolume, gameMenuSpeechVolume,
 		gameMenuMusicTracks, gameMenuMusicUp, gameMenuMusicDown, gameMenuMusicScroll, gameMenuMusicRandom,

@@ -4,12 +4,14 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
 
@@ -69,7 +71,9 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 	if err := load.HeadlessKey("load"); err != nil {
 		t.Fatal(err)
 	}
-	if !holdsSprite(shot(t, load, "load-game"), frames[barThumb]) {
+	loadPicture := shot(t, load, "load-game")
+	assertInstalledChooserWell(t, loadPicture, image.Rect(122, 152, 504, 152+10*(f.Font.Value().Height()+4)+2))
+	if !holdsSprite(loadPicture, frames[barThumb]) {
 		t.Fatal("Load Game lost the installed bar thumb")
 	}
 
@@ -120,7 +124,10 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("game-options"); err != nil {
 		t.Fatal(err)
 	}
-	if !holdsSprite(panel(t, "game-options"), frames[sliderKnob]) {
+	var optionsPicture *image.RGBA
+	optionsGlyphs := text.Record(func() { optionsPicture = panel(t, "game-options") })
+	assertInstalledOptionsContent(t, f, optionsGlyphs)
+	if !holdsSprite(optionsPicture, frames[sliderKnob]) {
 		t.Fatal("Game Options lost the installed slider knob")
 	}
 	if err := app.HeadlessGameMenuAction("options-cancel"); err != nil {
@@ -139,7 +146,11 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("Save dialog", app.Screen(), err)
 	}
-	if !holdsSprite(shot(t, app, "save-dialog"), frames[barThumb]) {
+	var savePicture *image.RGBA
+	saveGlyphs := text.Record(func() { savePicture = shot(t, app, "save-dialog") })
+	assertInstalledChooserWell(t, savePicture, image.Rect(38, 88, 578, 88+7*(f.Font.Value().Height()+4)+2))
+	assertInstalledDialogGlyphsInside(t, saveGlyphs, image.Rect(56, 420, 584, 464), 420)
+	if !holdsSprite(savePicture, frames[barThumb]) {
 		t.Fatal("the Save dialog lost the installed bar thumb")
 	}
 	if err := app.HeadlessSaveAction("cancel"); err != nil {
@@ -155,6 +166,71 @@ func TestReleaseWidgetKitScreens(t *testing.T) {
 		t.Fatal("drawing the widget screens changed World")
 	}
 	t.Logf("%s: seven widget screens written to %s; scroll source sha256 %x", lang, out, sha256.Sum256(raw))
+}
+
+func assertInstalledChooserWell(t *testing.T, pic *image.RGBA, list image.Rectangle) {
+	t.Helper()
+	r := list.Inset(-1)
+	dark, light := color.RGBA{8, 8, 8, 255}, color.RGBA{94, 115, 101, 255}
+	for x := r.Min.X + 1; x < r.Max.X-1; x++ {
+		if pic.RGBAAt(x, r.Min.Y) != dark || pic.RGBAAt(x, r.Max.Y-1) != light {
+			t.Fatalf("chooser lacks sunken horizontal edges at x%d", x)
+		}
+	}
+	for y := r.Min.Y + 1; y < r.Max.Y-1; y++ {
+		if pic.RGBAAt(r.Min.X, y) != dark {
+			t.Fatalf("chooser lacks sunken left edge at y%d", y)
+		}
+	}
+}
+
+func assertInstalledDialogGlyphsInside(t *testing.T, calls []text.DrawCall, well image.Rectangle, minY int) {
+	t.Helper()
+	count := 0
+	for _, call := range calls {
+		if call.Y < minY || call.Glyph == nil || call.Glyph.Width == 0 {
+			continue
+		}
+		for i, pixel := range call.Glyph.Pixels {
+			at := image.Pt(call.X+i%call.Glyph.Width, call.Y+i/call.Glyph.Width)
+			if !pixel.Painted || !call.Clip.Empty() && !at.In(call.Clip) {
+				continue
+			}
+			count++
+			if !at.In(well) {
+				t.Fatalf("dialog glyph or shadow enters frame at %v outside %v", at, well)
+			}
+		}
+	}
+	if count == 0 {
+		t.Fatal("dialog has no captured glyph pixels")
+	}
+}
+
+func assertInstalledOptionsContent(t *testing.T, f *FrontEnd, calls []text.DrawCall) {
+	t.Helper()
+	assertInstalledDialogGlyphsInside(t, calls, image.Rect(92, 44, 540, 428), 0)
+	content := image.Rectangle{}
+	title, ok := LoadTextTable(f.Archives.Containers, DialogsTextPath).At(150)
+	if !ok || title == "" {
+		t.Fatal("installed options title is absent")
+	}
+	wantTitleX := 76 + (480-f.Font.Value().Advance(strings.ReplaceAll(title, "~", "")))/2
+	titleFound := false
+	for _, call := range calls {
+		if call.Y == 48 && !call.Flat && !titleFound {
+			titleFound = true
+			if call.X != wantTitleX {
+				t.Fatalf("options title starts at %d, want centred pen %d", call.X, wantTitleX)
+			}
+		}
+		if call.Y >= 70 && call.Y < 400 && call.Clip.Dx() > 50 && call.Clip.Dx() < 480 {
+			content = content.Union(call.Clip)
+		}
+	}
+	if !titleFound || content.Empty() || content.Min.X-76 != 556-content.Max.X {
+		t.Fatalf("options title=%t content=%v is not centred in the painted body", titleFound, content)
+	}
 }
 
 // holdsSprite reports whether every opaque pixel of sprite stands unchanged

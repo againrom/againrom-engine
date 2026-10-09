@@ -71,7 +71,7 @@ func TestSaveDialogDeleteUsesSelectedListedFile(t *testing.T) {
 			}
 			startDelete := func() {
 				if input == "mouse" {
-					saveDialogClick(a, 295, 444)
+					saveDialogClick(a, 195, 444)
 				} else {
 					for i := 0; i < 3; i++ {
 						if err := a.HeadlessKey("tab"); err != nil {
@@ -120,7 +120,7 @@ func TestSaveDialogDeleteUsesSelectedListedFile(t *testing.T) {
 				t.Fatal("pending delete allowed directory navigation")
 			}
 			if input == "mouse" {
-				saveDialogClick(a, 295, 444)
+				saveDialogClick(a, 195, 444)
 			} else {
 				if err := a.HeadlessKey("tab"); err != nil {
 					t.Fatal(err)
@@ -168,7 +168,7 @@ func TestSaveDialogDeleteTracksNewDirectoryAndIgnoresTextDelete(t *testing.T) {
 	if err := a.HeadlessSaveEdit("other", "old.sav", ""); err != nil {
 		t.Fatal(err)
 	}
-	saveDialogClick(a, 295, 444)
+	saveDialogClick(a, 195, 444)
 	h, _ = a.HeadlessSaveState()
 	if h.Confirmation || target != "" {
 		t.Fatal("directory row allowed deletion of prior file")
@@ -220,7 +220,7 @@ func TestSaveDialogDeleteFailureRequiresFreshConfirmation(t *testing.T) {
 	if prepared != 2 || removed != 1 {
 		t.Fatalf("prepare/remove = %d/%d, want 2/1", prepared, removed)
 	}
-	saveDialogClick(a, 520, 444)
+	saveDialogClick(a, 420, 444)
 	if removed != 1 {
 		t.Fatal("Back button invoked deletion")
 	}

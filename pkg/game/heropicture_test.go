@@ -23,6 +23,9 @@ const (
 	pictureW, pictureH = 12, 12
 	pictureSeed        = 0x0085
 	pictureClass       = 3
+	pictureBodyClass   = 4
+	pictureCaption     = "Localized actor"
+	pictureBodyCaption = "Localized equipment body"
 	pictureMember      = sim.EntityID(0)
 	pictureOther       = sim.EntityID(1)
 )
@@ -34,8 +37,9 @@ func pictureBundle() (*terrain.UnitSet, *terrain.UnitClass) {
 	rec := worldFixtureArt(48, 56, 24, 50, 3, 3, 2)
 	rec.Name = "Human Swordsman"
 	body := *rec
+	body.Name = "Equipment body"
 	body.Frames = worldFixtureArt(48, 56, 24, 50, 7, 2, 3).Frames
-	return &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{pictureClass: rec}}, &body
+	return &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{pictureClass: rec, pictureBodyClass: &body}}, &body
 }
 
 func pictureDriver(t *testing.T, art map[sim.EntityID]*terrain.UnitClass,
@@ -52,13 +56,16 @@ func pictureDriver(t *testing.T, art map[sim.EntityID]*terrain.UnitClass,
 	if err != nil {
 		t.Fatalf("NewViewer: %v", err)
 	}
+	words := ui.AuthoredWords()
+	words.UnitNames[pictureClass], words.UnitNames[pictureBodyClass] = pictureCaption, pictureBodyCaption
+	v.SetWords(words)
 	return newMapWorldWith(w, nil, set, nil, nil, art, v)
 }
 
 func pictureEntities() []sim.Entity {
 	return []sim.Entity{
-		{ID: pictureMember, X: 4, Y: 4, Class: pictureClass, HP: 100, MaxHP: 100},
-		{ID: pictureOther, X: 8, Y: 4, Class: pictureClass, HP: 100, MaxHP: 100},
+		{ID: pictureMember, X: 4, Y: 4, Class: pictureClass, TypeID: pictureClass, HP: 100, MaxHP: 100},
+		{ID: pictureOther, X: 8, Y: 4, Class: pictureClass, TypeID: pictureClass, HP: 100, MaxHP: 100},
 	}
 }
 
@@ -99,11 +106,14 @@ func TestOnlyTheEntityAnArtEntryNamesDrawsTheBody(t *testing.T) {
 			member.Art.Width, member.Art.Height, member.Art.CenterY,
 			rec.Width, rec.Height, rec.CenterY)
 	}
-	if member.Name != rec.Name {
-		t.Errorf("the member is named %q, want the drawn class's %q", member.Name, rec.Name)
+	if member.Name != pictureCaption {
+		t.Errorf("the member is named %q, want its own installed caption %q", member.Name, pictureCaption)
 	}
 
 	other := pictureDraw(t, mw, pictureOther)
+	if other.Name != pictureCaption {
+		t.Errorf("the other entity is named %q, want its own installed caption %q", other.Name, pictureCaption)
+	}
 	if other.Art != rec {
 		t.Errorf("the other entity's art is %p, want its own class record %p", other.Art, rec)
 	}

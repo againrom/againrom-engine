@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Creature cards show the creature's proper name from the game's text
+  instead of an internal name such as BAT_SONIC.3. The SAVE and LOAD file
+  lists sit in a pressed-in frame, the Save dialog's buttons stay inside its
+  border, and the options dialog is centred inside its frame.
+
 ## 0.100.0
 
 - [BASE] Every save, in a mission or in town, is now written from the game as

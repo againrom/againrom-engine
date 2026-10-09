@@ -118,7 +118,7 @@ func TestGameOptionsOKWritesInOrderAndForcesLighting(t *testing.T) {
 	var log []optionWrite
 	a := optionsApp(t, &values, &log, nil)
 	clickRect(t, a, gameOptionRect(gameMenuAnimation))
-	clickRect(t, a, gameOptionRect(gameMenuOptionsCancel).Add(image.Pt(-209, 0)))
+	clickRect(t, a, gameOptionRect(gameMenuPageReturn))
 	if a.flow.menuPage != gameMenuRoot {
 		t.Fatal("OK did not return to the root menu")
 	}

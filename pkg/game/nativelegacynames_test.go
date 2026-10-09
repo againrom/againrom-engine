@@ -338,7 +338,7 @@ func TestNativeObservedClassNameUsesInstalledCaption(t *testing.T) {
 	}{
 		{"native default", "definition name", "localized creature", "localized creature", false},
 		{"native custom", "current instance name", "localized creature", "current instance name", false},
-		{"native default without label", "definition name", "", "definition name", false},
+		{"native default without label", "definition name", "", "", false},
 		{"source instance", "definition name", "localized creature", "definition name", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

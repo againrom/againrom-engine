@@ -42,18 +42,24 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 	} else {
 		font.Draw(pix, w.Subtitle, 125, 130, loadSelectedText)
 		pointer, pointerOK := a.pointerFrame()
-		drawListBox(pix, font, a.media.scroll, a.loadListBox(), list, func(row, width int) string {
+		box := a.loadListBox()
+		drawEditField(pix, editField{Rect: box.Rect.Inset(-1)}, nil)
+		drawListBox(pix, font, a.media.scroll, box, list, func(row, width int) string {
 			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
 		}, pointer, pointerOK)
 	}
 	message := a.loadMessage()
 	if message != "" {
+		messageY := loadMessageBox.Min.Y
+		if !a.flow.loadUI.confirm {
+			messageY = max(messageY, a.loadListBox().Rect.Max.Y+2)
+		}
 		// Wrap refusals below the list; the row model retains its full text.
 		for i, line := range NoticeLines(font, a.flow.menuDisplayText(message), loadMessageBox.Dx()) {
 			if i >= 2 {
 				break
 			}
-			font.Draw(pix, string(line), loadMessageBox.Min.X, loadMessageBox.Min.Y+i*(font.Height()+1), townShellText)
+			font.Draw(pix, string(line), loadMessageBox.Min.X, messageY+i*(font.Height()+1), townShellText)
 		}
 	}
 	pointer, pointerOK := a.pointerFrame()

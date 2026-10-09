@@ -260,10 +260,10 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 		target, gem image.Rectangle
 		off, on     int
 	}{
-		{"retreat Medium", image.Pt(416, 364), image.Rect(332, 350, 500, 374), image.Rect(333, 350, 357, 374), 0, 1},
-		{"day/night", image.Pt(212, 154), image.Rect(116, 140, 326, 164), image.Rect(117, 140, 141, 164), 2, 3},
-		{"health", image.Pt(440, 96), image.Rect(332, 84, 548, 108), image.Rect(333, 84, 357, 108), 2, 3},
-		{"damage", image.Pt(440, 124), image.Rect(332, 112, 548, 136), image.Rect(333, 112, 357, 136), 2, 3},
+		{"retreat Medium", image.Pt(400, 356), image.Rect(316, 342, 484, 366), image.Rect(317, 342, 341, 366), 0, 1},
+		{"day/night", image.Pt(196, 146), image.Rect(100, 132, 310, 156), image.Rect(101, 132, 125, 156), 2, 3},
+		{"health", image.Pt(424, 88), image.Rect(316, 76, 532, 100), image.Rect(317, 76, 341, 100), 2, 3},
+		{"damage", image.Pt(424, 116), image.Rect(316, 104, 532, 128), image.Rect(317, 104, 341, 128), 2, 3},
 	} {
 		if !control.point.In(control.target) {
 			t.Fatal("pointer outside independent rendered target", control.name)

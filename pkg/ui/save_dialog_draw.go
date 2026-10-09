@@ -36,11 +36,11 @@ func saveControlRect(c saveControl) image.Rectangle {
 	case saveNameControl:
 		return image.Rect(106, 266, 602, 293)
 	case saveDeleteControl:
-		return image.Rect(238, 432, 354, 458)
+		return image.Rect(138, 432, 254, 458)
 	case saveWriteControl:
-		return image.Rect(362, 432, 478, 458)
+		return image.Rect(262, 432, 378, 458)
 	case saveCancelControl:
-		return image.Rect(486, 432, 602, 458)
+		return image.Rect(386, 432, 502, 458)
 	}
 	return image.Rectangle{}
 }
@@ -253,6 +253,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	button(saveUpControl, w.Up, false)
 	if d.list != nil {
 		box := a.saveListBox()
+		drawEditField(s.pix, editField{Rect: box.Rect.Inset(-1)}, nil)
 		pointer, pointerOK := a.pointerFrame()
 		if font := a.flow.menuFont; font != nil {
 			drawListBox(s.pix, font, a.media.scroll, box, d.list, func(row, width int) string {

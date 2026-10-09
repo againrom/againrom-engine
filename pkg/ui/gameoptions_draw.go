@@ -11,50 +11,50 @@ import (
 // engine's own controls fit around them.
 func gameOptionRect(action gameMenuAction) image.Rectangle {
 	g := gameOptionsDialog
-	w := g.W()
+	w := g.Body().Dx()
 	switch action {
 	case gameMenuSpeedDown, gameMenuSpeedUp:
-		return g.Rect(40, 84, 232, 108)
+		return g.Rect(24, 76, 216, 100)
 	case gameMenuDayNight:
-		return g.Rect(40, 112, 250, 136)
+		return g.Rect(24, 104, 234, 128)
 	case gameMenuSmoothing:
-		return g.Rect(40, 136, 250, 160)
+		return g.Rect(24, 128, 234, 152)
 	case gameMenuShadows:
-		return g.Rect(40, 160, 250, 184)
+		return g.Rect(24, 152, 234, 176)
 	case gameMenuLighting:
-		return g.Rect(40, 184, 250, 208)
+		return g.Rect(24, 176, 234, 200)
 	case gameMenuAnimation:
-		return g.Rect(40, 208, 250, 232)
+		return g.Rect(24, 200, 234, 224)
 	case gameMenuTooltipDelay:
-		return g.Rect(40, 236, 250, 256)
+		return g.Rect(24, 228, 234, 248)
 	case gameMenuFormation:
-		return g.Rect(40, 256, 232, 346)
+		return g.Rect(24, 248, 216, 338)
 	case gameMenuHealth:
-		return g.Rect(256, 56, 472, 80)
+		return g.Rect(240, 48, 456, 72)
 	case gameMenuDamage:
-		return g.Rect(256, 84, 472, 108)
+		return g.Rect(240, 76, 456, 100)
 	case gameMenuToggleTips:
-		return g.Rect(256, 112, 472, 136)
+		return g.Rect(240, 104, 456, 128)
 	case gameMenuAutoHealing:
-		return g.Rect(256, 140, 448, 232)
+		return g.Rect(240, 132, 432, 224)
 	case gameMenuPathfinding:
-		return g.Rect(256, 232, 472, 256)
+		return g.Rect(240, 224, 456, 248)
 	case gameMenuRetreat:
-		return g.Rect(256, 256, 424, 346)
+		return g.Rect(240, 248, 408, 338)
 	case gameMenuTimedAutosave:
-		return g.Rect(40, 348, 250, 372)
+		return g.Rect(24, 340, 234, 364)
 	case gameMenuAutosaveMinutes:
-		return g.Rect(256, 348, 472, 372)
+		return g.Rect(240, 340, 456, 364)
 	case gameMenuPageReturn:
-		return g.Rect(w/7, 380, 3*w/7, 404)
+		return g.Rect(w/7, 372, 3*w/7, 396)
 	case gameMenuOptionsCancel:
-		return g.Rect(4*w/7, 380, 6*w/7, 404)
+		return g.Rect(4*w/7, 372, 6*w/7, 396)
 	}
 	return image.Rectangle{}
 }
 
 // gameOptionSpeedLabel is the slider's caption rectangle.
-func gameOptionSpeedLabel() image.Rectangle { return gameOptionsDialog.Rect(40, 56, 232, 80) }
+func gameOptionSpeedLabel() image.Rectangle { return gameOptionsDialog.Rect(24, 48, 216, 72) }
 
 // gameOptionRadioRect is a radio group's rows: three 24-pixel rows at the
 // bottom of its rectangle, under the group caption.
@@ -252,7 +252,7 @@ func (a *App) gameOptionsPicture() *image.RGBA {
 	font := f.menuFont
 	w := f.gameOptions.Words
 	label := gameMenuLabelText(w.Title)
-	font.Draw(dst, label, g.Min.X+(g.W()-font.Advance(label))/2, g.Min.Y+20, gameMenuText)
+	font.Draw(dst, label, g.Min.X+(g.Body().Dx()-font.Advance(label))/2, g.Min.Y+20, gameMenuText)
 	values := f.optionValues()
 	d := f.gameOptions.draft
 	pointer, pointerOK := a.pointerFrame()

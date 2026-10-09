@@ -21,7 +21,7 @@ func releaseTooltipMenuWitness(t *testing.T, f *FrontEnd, app *ui.App) {
 		// click changes the dialog's copy; OK applies it.
 		prior := app.TooltipDelay()
 		for _, edge := range []string{"press", "release"} {
-			if err := app.HeadlessPointer(edge, 221, 282); err != nil {
+			if err := app.HeadlessPointer(edge, 205, 274); err != nil {
 				t.Fatal(err)
 			}
 		}

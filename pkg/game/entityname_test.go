@@ -22,8 +22,10 @@ const (
 	nameBones  = 2
 	nameNobody = 77
 
-	walkerName = "Walker"
-	bonesName  = "Bones"
+	walkerName    = "Walker"
+	bonesName     = "Bones"
+	walkerCaption = "Localized walker"
+	bonesCaption  = "Localized bones"
 )
 
 // nameBundle links the walker's bodies to the differently named corpse class,
@@ -56,6 +58,9 @@ func nameDraws(t *testing.T, ents ...sim.Entity) map[uint32]struct {
 	if err != nil {
 		t.Fatalf("NewViewer: %v", err)
 	}
+	words := ui.AuthoredWords()
+	words.UnitNames[nameWalker], words.UnitNames[nameBones] = walkerCaption, bonesCaption
+	v.SetWords(words)
 	mw := newMapWorld(w, nil, nameBundle(), v)
 	out := make(map[uint32]struct {
 		name string
@@ -74,10 +79,10 @@ func TestSnapshotCarriesTheEntitysOwnClassName(t *testing.T) {
 	draws := nameDraws(t,
 		// Alive, downed and dead, all of the walker class; and one whose id
 		// names no class in the bundle.
-		sim.Entity{ID: 1, X: 1, Y: 1, Class: nameWalker, HP: 100, MaxHP: 100},
-		sim.Entity{ID: 2, X: 2, Y: 1, Class: nameWalker, HP: 0, MaxHP: 100},
-		sim.Entity{ID: 3, X: 3, Y: 1, Class: nameWalker, HP: -1, MaxHP: 100},
-		sim.Entity{ID: 4, X: 4, Y: 1, Class: nameNobody, HP: 100, MaxHP: 100},
+		sim.Entity{ID: 1, X: 1, Y: 1, Class: nameWalker, TypeID: nameWalker, HP: 100, MaxHP: 100},
+		sim.Entity{ID: 2, X: 2, Y: 1, Class: nameWalker, TypeID: nameWalker, HP: 0, MaxHP: 100},
+		sim.Entity{ID: 3, X: 3, Y: 1, Class: nameWalker, TypeID: nameWalker, HP: -1, MaxHP: 100},
+		sim.Entity{ID: 4, X: 4, Y: 1, Class: nameNobody, TypeID: nameNobody, HP: 100, MaxHP: 100},
 	)
 
 	if len(draws) != 4 {
@@ -90,9 +95,9 @@ func TestSnapshotCarriesTheEntitysOwnClassName(t *testing.T) {
 		why      string
 		substnow bool
 	}{
-		{1, walkerName, "a live unit carries its own class's name", false},
-		{2, walkerName, "a DOWNED unit is drawn as a body and is still a walker", true},
-		{3, walkerName, "a DEAD unit is drawn as a body and is still a walker", true},
+		{1, walkerCaption, "a live unit carries its own installed caption", false},
+		{2, walkerCaption, "a DOWNED unit is drawn as a body and is still a walker", true},
+		{3, walkerCaption, "a DEAD unit is drawn as a body and is still a walker", true},
 		{4, "", "an id naming no class carries the empty name", false},
 	} {
 		got := draws[tc.id]

@@ -20,7 +20,7 @@ func releaseMenuSpeedWitness(t *testing.T, f *FrontEnd, app *ui.App) {
 	}
 	// Positive level 6 is the default rung plus one after the pause position.
 	for _, edge := range []string{"press", "release"} {
-		if err := app.HeadlessPointer(edge, 243, 124); err != nil {
+		if err := app.HeadlessPointer(edge, 227, 116); err != nil {
 			t.Fatal(err)
 		}
 	}

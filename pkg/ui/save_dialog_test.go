@@ -397,7 +397,7 @@ func TestSaveDialogDirectoryFailureClearsOldRowsAndKeyboardScrolls(t *testing.T)
 func TestSaveDialogPointerRequiresMatchingGestureAndEmptyRowsDoNothing(t *testing.T) {
 	s := &saveDialogSpy{directories: map[string]SaveDirectory{"saves": {Path: "saves", Entries: []SaveEntry{{Name: "one.ags"}}}}}
 	a := newSaveDialogApp(t, s, ScreenTown)
-	a.step(appInput{CursorX: 400, CursorY: 444, PrimaryReleased: true}, headlessNow)
+	a.step(appInput{CursorX: 300, CursorY: 444, PrimaryReleased: true}, headlessNow)
 	if len(s.requests) != 0 {
 		t.Fatal("orphan release saved")
 	}
@@ -411,8 +411,8 @@ func TestSaveDialogPointerRequiresMatchingGestureAndEmptyRowsDoNothing(t *testin
 	if a.flow.saveDialog.request.Name != "one.ags" {
 		t.Fatal("visible save row did not fill name")
 	}
-	a.step(appInput{CursorX: 400, CursorY: 444, PrimaryPressed: true}, headlessNow)
-	a.step(appInput{CursorX: 520, CursorY: 444, PrimaryReleased: true}, headlessNow)
+	a.step(appInput{CursorX: 300, CursorY: 444, PrimaryPressed: true}, headlessNow)
+	a.step(appInput{CursorX: 420, CursorY: 444, PrimaryReleased: true}, headlessNow)
 	if len(s.requests) != 0 || a.Screen() != ScreenSave {
 		t.Fatal("cross-button release activated")
 	}
@@ -478,7 +478,7 @@ func TestSaveDialogDrawsFieldsAndTitleAtLiteralOrigins(t *testing.T) {
 	}
 	deleteButton, nameField := false, false
 	for _, c := range calls {
-		deleteButton = deleteButton || c.kind == widgetPushButton && c.rect == image.Rect(238, 432, 354, 458)
+		deleteButton = deleteButton || c.kind == widgetPushButton && c.rect == image.Rect(138, 432, 254, 458)
 		nameField = nameField || c.kind == widgetEdit && c.rect == saveControlRect(saveNameControl)
 	}
 	if pix.RGBAAt(24, 12) != AuthoredDialogueLayout().Border || !nameField || !deleteButton {

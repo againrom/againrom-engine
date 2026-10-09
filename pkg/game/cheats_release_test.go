@@ -413,11 +413,19 @@ func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 			if spawn.Owner != sim.SelfSlot || spawn.TypeID != template.TypeID || spawn.Humanoid != template.Humanoid || spawn.OffMap {
 				t.Fatalf("summon current actor=%+v, template type=%d", spawn, template.TypeID)
 			}
+			wantCaption := name
+			if spawn.SourceBinding.ActorClass() == 1 || !sim.InPersistBand(spawn.TypeID) {
+				captions := LoadTextTable(f.Archives.Containers, UnitNameTextPath)
+				if captions == nil || spawn.TypeID < 0 || int(spawn.TypeID) >= captions.Lines() {
+					t.Fatal("summoned actor has no installed caption index", spawn.TypeID)
+				}
+				wantCaption, _ = captions.At(int(spawn.TypeID))
+			}
 			if err := a.HeadlessSelectEntity(uint32(spawn.ID)); err != nil {
 				t.Fatal(err)
 			}
-			if panel, ok := f.live.view.InspectionPanel(); !ok || panel.ID != uint32(spawn.ID) || panel.Name != name {
-				t.Fatalf("live summoned actor card=%+v, want name %q", panel, name)
+			if panel, ok := f.live.view.InspectionPanel(); !ok || panel.ID != uint32(spawn.ID) || panel.Name != wantCaption {
+				t.Fatalf("live summoned actor card=%+v, want caption %q", panel, wantCaption)
 			}
 			livePicture := f.live.inspectionUnitPicture(uint32(spawn.ID))
 			if spawn.Humanoid {
@@ -477,8 +485,8 @@ func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 			if err := coldApp.HeadlessSelectEntity(uint32(loaded.ID)); err != nil {
 				t.Fatal(err)
 			}
-			if panel, ok := cold.live.view.InspectionPanel(); !ok || panel.ID != uint32(loaded.ID) || panel.Name != name {
-				t.Fatalf("cold summoned actor card=%+v, want name %q", panel, name)
+			if panel, ok := cold.live.view.InspectionPanel(); !ok || panel.ID != uint32(loaded.ID) || panel.Name != wantCaption {
+				t.Fatalf("cold summoned actor card=%+v, want caption %q", panel, wantCaption)
 			}
 			if loaded.Humanoid {
 				picture := cold.live.inspectionUnitPicture(uint32(loaded.ID))

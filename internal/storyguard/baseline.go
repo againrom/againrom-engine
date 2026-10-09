@@ -1968,7 +1968,7 @@ package storyguard
 // EnterInn, the speakers and TalkTo, and the focused and installed tests of
 // the stage-30 inn route, new code, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4695,
+	TestIdentCount: 4694,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1990,5 +1990,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8552536,
+	CommentBytes: 8552109,
 }
