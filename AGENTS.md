@@ -17,13 +17,16 @@ gates, and where the result is returned.
   takes no rows. `internal/divledger` and `cmd/divcensus` read
   `docs/divergences/*.md`.
 - Never commit an install byte, extracted game asset, owner save, screenshot,
-  generated render or third-party implementation source. Lawful installs are
-  read-only inputs. A tool that can write takes an explicit output path and
-  never defaults into an install. The game's automatic player profile is the
-  owner's exception: when the executable is inside an install, use `Againrom/`
-  beside it, or the user configuration directory's `Againrom/` when that
-  profile cannot be written. Only that selected profile may be written;
-  installed files and explicitly selected install destinations remain fenced.
+  generated render, original program code, or source whose licence does not
+  admit it into a GPL-3.0-or-later work. A licensed open-source component
+  enters only as `docs/PROVENANCE.md` admits it, with its notice and licence
+  text. Lawful installs are read-only inputs. A tool that can write takes an
+  explicit output path and never defaults into an install. The game's
+  automatic player profile is the owner's exception: when the executable is
+  inside an install, use `Againrom/` beside it, or the user configuration
+  directory's `Againrom/` when that profile cannot be written. Only that
+  selected profile may be written; installed files and explicitly selected
+  install destinations remain fenced.
 - One checkout has one committer. Preserve unrelated and pre-existing changes;
   never clean, reset or rewrite another checkout's work.
 
