@@ -1,8 +1,10 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"reflect"
 	"testing"
 
@@ -65,20 +67,10 @@ func TestAPathPictureStandsStillAndSpansItsWholeSegment(t *testing.T) {
 	}
 
 	// The world holds no caster class, so the launch point is the caster's
-	// cell centre (castLaunch).
-	from := image.Pt(2*ui.ShotScale, 2*ui.ShotScale)
-	to := image.Pt(8*ui.ShotScale, 5*ui.ShotScale)
+	// cell centre (castLaunch); both ends are display pixels.
+	from, to := image.Pt(2*32+16, 2*32+16), image.Pt(8*32+16, 5*32+16)
 	for age := range 13 {
-		draws := mw.boltDraws(nil)
-		if len(draws) < 3 {
-			t.Fatalf("at age %d the figure is %d stamps, want a path", age, len(draws))
-		}
-		if draws[0].Pos != from {
-			t.Errorf("at age %d the figure starts at %v, want the launch point %v", age, draws[0].Pos, from)
-		}
-		if got := draws[len(draws)-1].Pos; got != to {
-			t.Errorf("at age %d the figure ends at %v, want the target's %v", age, got, to)
-		}
+		spCheckFigure(t, fmt.Sprintf("age %d", age), mw.boltDraws(nil), from, to)
 		mw.advanceBolts()
 	}
 	if got := mw.boltDraws(nil); len(got) != 0 {
@@ -123,7 +115,7 @@ func TestAPathLeavesTheStraightLine(t *testing.T) {
 	var off int
 	for range 13 {
 		for _, d := range mw.boltDraws(nil) {
-			if d.Pos.Y != 0 {
+			if d.Pos.Y != 16 {
 				off++
 			}
 		}
@@ -174,8 +166,9 @@ func TestTheSecondPathPictureOffsetsItsPhaseByTheRecordTag(t *testing.T) {
 	for _, d := range draws {
 		byTag[d.Frame] = true
 	}
-	if !byTag[0] || !byTag[chainPhaseStride] {
-		t.Errorf("the two sets drew frames %v, want one at 0 and one at %d", byTag, chainPhaseStride)
+	// Call 1 of the normal route is phase 4; tag 1 adds five.
+	if len(byTag) != 2 || !byTag[4] || !byTag[4+boltChainStride] {
+		t.Errorf("the two sets drew frames %v, want 4 and %d", byTag, 4+boltChainStride)
 	}
 }
 
@@ -296,21 +289,10 @@ func TestAWeaponBorneLightningDrawsTheSameFigureABookCastDoes(t *testing.T) {
 	mw := spWorld(t)
 	ents := spStaff(spLightning)
 	// The world holds no caster class, so the launch point is the cell centre.
-	from := image.Pt(2*ui.ShotScale, 2*ui.ShotScale)
-	to := image.Pt(6*ui.ShotScale, 2*ui.ShotScale)
-
+	from, to := image.Pt(2*32+16, 2*32+16), image.Pt(6*32+16, 2*32+16)
 	for swing := range 5 {
 		mw.swing[1] = swing
-		draws := mw.weaponBoltDraws(ents)
-		if len(draws) < 3 {
-			t.Fatalf("at swing %d the staff drew %d stamps, want a path", swing, len(draws))
-		}
-		if draws[0].Pos != from {
-			t.Errorf("at swing %d the figure starts at %v, want the launch point %v", swing, draws[0].Pos, from)
-		}
-		if got := draws[len(draws)-1].Pos; got != to {
-			t.Errorf("at swing %d the figure ends at %v, want the victim's %v", swing, got, to)
-		}
+		spCheckFigure(t, fmt.Sprintf("swing %d", swing), mw.weaponBoltDraws(ents), from, to)
 	}
 }
 
@@ -591,110 +573,54 @@ func TestAWeaponBornePrismaticSprayVariesItsPhaseBlockByCarrier(t *testing.T) {
 	}
 }
 
-// TestABoltsStampsOverlapAlongItsWholeFigure is half of that report: the line
-// was drawn as separate stars with gaps between them. The frame is 16 wide and
-// the glyph inside it is a star whose opaque core is 8 by 6, so a spacing of one
-// frame width left 8 px of thin arm between each pair of cores.
-func TestABoltsStampsOverlapAlongItsWholeFigure(t *testing.T) {
+// TestABoltsExcursionStaysInsideTheBand: an accepted figure keeps every
+// sample within 0.15 of the length of the projectile ordinate (MAGIC-278);
+// rotation and truncation add at most one pixel on a horizontal segment.
+func TestABoltsExcursionStaysInsideTheBand(t *testing.T) {
 	t.Parallel()
 
-	mw := spWorld(t)
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning,
-		FromX: 1, FromY: 1, ToX: 15, ToY: 9}})
-
-	// spWorld's picture-34 sheet is 16 wide, the shipped record's own width.
-	// The slack is the two axes' own truncation, one unit each.
-	want := 16*boltUnitsPerPixel/boltStampsPerFrame + 2
-	for age := range 13 {
-		draws := mw.boltDraws(nil)
-		if len(draws) < 20 {
-			t.Fatalf("at age %d the figure is %d stamps over fourteen cells, want a filled line", age, len(draws))
-		}
-		for i := 1; i < len(draws); i++ {
-			d := draws[i].Pos.Sub(draws[i-1].Pos)
-			if d.X*d.X+d.Y*d.Y > want*want {
-				t.Fatalf("at age %d stamps %d and %d are %v apart, want no more than %d ShotScale units — that is a gap",
-					age, i-1, i, d, want)
+	const length = 384
+	off := 0
+	for s := uint32(1); s <= 256; s++ {
+		for _, p := range boltFigure(0, 100, length, 100, 34, (&boltRNG{state: s}).next) {
+			d := max(int(p.Y)-100, 100-int(p.Y))
+			off = max(off, d)
+			if float64(d) > 0.15*length+1 {
+				t.Fatalf("seed %d drew a point %d px off the line, past the band", s, d)
 			}
 		}
-		mw.advanceBolts()
+	}
+	if off == 0 {
+		t.Fatal("no seed left the straight line")
 	}
 }
 
-// TestABoltsExcursionIsAFractionOfItsSegment is the other half: the figure was
-// drawn 3 px either side of the straight line at every distance, which is a
-// straight line. The generator's own scale is 0.03 of the segment length
-// (`MAGIC-BOLTSHAPE-070`), so the excursion grows with the cast.
-func TestABoltsExcursionIsAFractionOfItsSegment(t *testing.T) {
-	t.Parallel()
-
-	// One seed at two distances is the same walk, so the ordinates are the same
-	// and only the scale differs. On a horizontal segment the perpendicular is
-	// the Y coordinate itself; a zero launch keeps the segment horizontal.
-	const seed = 0x51ee11
-	var launch image.Point
-	near := boltPath(image.Pt(0, 0), image.Pt(6, 0), seed, 0, launch)
-	far := boltPath(image.Pt(0, 0), image.Pt(12, 0), seed, 0, launch)
-	if len(near) != len(far) {
-		t.Fatalf("one seed drew %d points at six cells and %d at twelve — that is not one walk", len(near), len(far))
+// spCheckFigure checks one drawn link: display stamps on one frame, the first
+// within a pixel of the launch point, every stamp inside the band, and the
+// last within one sampling step of the target end (MAGIC-277, MAGIC-278).
+func spCheckFigure(t *testing.T, at string, draws []ui.SpellBolt, from, to image.Point) {
+	t.Helper()
+	if len(draws) < 3 {
+		t.Fatalf("%s: the figure is %d stamps, want a path", at, len(draws))
 	}
-	widest := func(ps []image.Point) int {
-		m := 0
-		for _, p := range ps {
-			m = max(m, max(p.Y, -p.Y))
+	d := to.Sub(from)
+	length := math.Hypot(float64(d.X), float64(d.Y))
+	for i, s := range draws {
+		if !s.Display || s.Frame != draws[0].Frame {
+			t.Fatalf("%s: stamp %d is %+v, want a display stamp on one frame", at, i, s)
 		}
-		return m
-	}
-	n, f := widest(near), widest(far)
-	if n == 0 {
-		t.Fatalf("the six-cell figure never left the straight line — this seed cannot say anything")
-	}
-	if f < 2*n-20 || f > 2*n+20 {
-		t.Errorf("doubling the segment moved the widest point from %d to %d, want about %d — "+
-			"a constant excursion is the straight line the owner reported", n, f, 2*n)
-	}
-
-	// And the bound the generator keeps it inside: 0.15 of the segment, enforced
-	// by rejecting the whole figure and rerunning the walk. A figure that fails
-	// boltMaxAttempts times is kept as it stands, so this is a property of what
-	// the rejection admits and not a hard clamp — no shipped seed reaches it.
-	const cells = 12
-	bound := cells * ui.ShotScale * boltRejectNumer / boltHundredths
-	for s := uint32(1); s <= 256; s++ {
-		if w := widest(boltPath(image.Pt(0, 0), image.Pt(cells, 0), s, 0, launch)); w > bound {
-			t.Fatalf("seed %d drew a point %d units off the line, past the rejection bound's own %d", s, w, bound)
+		r := s.Pos.Sub(from)
+		perp := math.Abs(float64(r.X*d.Y-r.Y*d.X)) / length
+		if perp > 0.15*length+2 {
+			t.Fatalf("%s: stamp %d is %v px off the segment", at, i, perp)
 		}
 	}
-}
-
-func TestBoltSmoothCutsCornersInsteadOfSharpeningThem(t *testing.T) {
-	t.Parallel()
-
-	// A hard right-angle turn at (100, 0), the shape a jagged two-segment
-	// path draws. Magnitudes are ShotScale-sized, matching what boltSmooth
-	// actually receives from boltPath's own rotation.
-	corner := image.Pt(100, 0)
-	raw := []image.Point{{X: 0, Y: 0}, corner, {X: 100, Y: 100}}
-
-	got := boltSmooth(append([]image.Point{}, raw...))
-	if got[0] != raw[0] {
-		t.Errorf("the first point moved: got %v, want %v", got[0], raw[0])
+	if p := draws[0].Pos.Sub(from); max(p.X, -p.X, p.Y, -p.Y) > 1 {
+		t.Errorf("%s: the figure starts at %v, want the launch point %v", at, draws[0].Pos, from)
 	}
-	if got[len(got)-1] != raw[2] {
-		t.Errorf("the last point moved: got %v, want %v", got[len(got)-1], raw[2])
-	}
-	for _, p := range got {
-		if p == corner {
-			t.Fatalf("the smoothed figure still passes through the raw corner %v — nothing was cut", corner)
-		}
-	}
-
-	// A corner cut never overshoots what it cuts between: every generated
-	// point stays inside the raw figure's own bounding box.
-	for _, p := range got {
-		if p.X < 0 || p.X > 100 || p.Y < 0 || p.Y > 100 {
-			t.Errorf("point %v left the raw figure's own bounding box [0,100]x[0,100]", p)
-		}
+	r := draws[len(draws)-1].Pos.Sub(from)
+	if along := float64(r.X*d.X+r.Y*d.Y) / length; along < length-8 || along > length {
+		t.Errorf("%s: the last stamp is %v along a %v segment, want within one sampling step of the end", at, along, length)
 	}
 }
 
@@ -736,14 +662,14 @@ func TestAPrismaticSprayDrawsOneFigurePerVictimInItsOwnColour(t *testing.T) {
 			if k < 0 {
 				t.Fatalf("at age %d a stamp runs to %v, which is no victim's cell", age, d.To)
 			}
-			blocksSeen[k][d.Frame/chainPhaseStride] = true
-			if d.Pos == image.Pt(d.To.X*ui.ShotScale, d.To.Y*ui.ShotScale) {
+			blocksSeen[k][d.Frame/boltChainStride] = true
+			if e := d.Pos.Sub(d.To.Mul(32).Add(image.Pt(16, 16))); max(e.X, -e.X, e.Y, -e.Y) <= 12 {
 				reached[k] = true
 			}
 		}
 		for k, v := range victims {
 			if !reached[k] {
-				t.Errorf("at age %d no stamp of figure %d stands on its own victim's cell %v", age, k, v)
+				t.Errorf("at age %d no stamp of figure %d ends near its own victim's cell %v", age, k, v)
 			}
 		}
 		mw.advanceBolts()

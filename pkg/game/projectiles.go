@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // The projectile art loader: the registry a cast's picture is looked up in,
@@ -95,6 +96,8 @@ type CastFigureEvidence struct {
 	First     image.Point
 	Last      image.Point
 	MaxOffset int
+	// Frames is each stamp's sheet frame, in draw order.
+	Frames []int
 }
 
 // InspectCastFigure drives the real cast observation and the real draw over a
@@ -139,7 +142,8 @@ func InspectCastFigure(src terrain.EntrySource, spell, cells int) ([]CastFigureE
 				}
 				row.Last = d.Pos
 				row.Stamps++
-				if o := offsetFromLine(d.Pos); o > row.MaxOffset {
+				row.Frames = append(row.Frames, d.Frame)
+				if o := offsetFromLine(d, row.First); o > row.MaxOffset {
 					row.MaxOffset = o
 				}
 			}
@@ -189,7 +193,8 @@ func InspectWeaponRelease(src terrain.EntrySource, spell, cells int) ([]CastFigu
 				}
 				row.Last = d.Pos
 				row.Stamps++
-				if o := offsetFromLine(d.Pos); o > row.MaxOffset {
+				row.Frames = append(row.Frames, d.Frame)
+				if o := offsetFromLine(d, row.First); o > row.MaxOffset {
 					row.MaxOffset = o
 				}
 			}
@@ -201,11 +206,15 @@ func InspectWeaponRelease(src terrain.EntrySource, spell, cells int) ([]CastFigu
 
 // offsetFromLine is a point's distance from the cast's own straight line, in
 // ShotScale units. The line here runs along x, so it is the y term alone.
-func offsetFromLine(p image.Point) int {
-	if p.Y < 0 {
-		return -p.Y
+func offsetFromLine(d ui.SpellBolt, first image.Point) int {
+	y := d.Pos.Y
+	if d.Display {
+		y -= first.Y
 	}
-	return p.Y
+	if y < 0 {
+		return -y
+	}
+	return y
 }
 
 // LoadProjectiles decodes the projectile records and their sheets' every

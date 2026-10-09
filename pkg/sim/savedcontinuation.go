@@ -467,9 +467,9 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 	p.ActionPhase++
 	switch {
 	case p.Picture == 34 || p.Picture == 36:
-		// MAGIC-BOLTSTILL-072 / ANIM-BOLTRAMP-035: no position writes.
+		// MAGIC-BOLTSTILL-072 / ANIM-BOLTRAMP-035: no position writes. An
+		// actionphase outside 1..13 keeps the previous phase (MAGIC-281).
 		ramp := [...]int32{4, 3, 2, 1, 0, 1, 2, 1, 0, 1, 2, 3, 4}
-		p.Phase = 0
 		if p.ActionPhase >= 1 && p.ActionPhase <= 13 {
 			p.Phase = ramp[p.ActionPhase-1]
 		}

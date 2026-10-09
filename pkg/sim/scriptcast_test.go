@@ -103,7 +103,7 @@ func TestAResolvedTemporaryCasterReportsItsSourceAndDestinationOnce(t *testing.T
 
 	report := StepReported(w, nil)
 	want := ScriptCastEvent{Spell: scAreaSpell, FromX: 7, FromY: 8, ToX: 30, ToY: 31}
-	if len(report.ScriptCasts) != 1 || report.ScriptCasts[0] != want {
+	if len(report.ScriptCasts) != 1 || !reflect.DeepEqual(report.ScriptCasts[0], want) {
 		t.Fatalf("script cast events = %+v, want [%+v]", report.ScriptCasts, want)
 	}
 	wantRaw := uint16((15 << 4) + (20<<4)/10)
