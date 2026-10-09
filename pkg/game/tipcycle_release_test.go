@@ -272,19 +272,20 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	writeTipRender(t, dir, "detailed-back-pressed", frame)
 }
 
-// TestReleaseMissionStartTipRender writes the m10 start tip popup for the
-// owner when AGAINROM_TIPS_RENDER_DIR is set.
+// TestReleaseMissionStartTipRender composes the m10 start tip popup and writes
+// it for the owner when AGAINROM_TIPS_RENDER_DIR is set.
 func TestReleaseMissionStartTipRender(t *testing.T) {
 	f := missionTipFront(t)
 	dir := tipRenderDir(t, f)
-	if dir == "" {
-		t.Skip("AGAINROM_TIPS_RENDER_DIR is not set")
-	}
 	app, live := openMissionTipMap(t, f, 10)
 	pageMissionDialogue(t, app, live, "start dialogue")
 	wantMissionTip(t, f, live, 10, 2, "start trigger")
 	// The map frame needs the GPU; the popup composes alone at its place.
-	writeTipRender(t, dir, "mission10-start-tip-popup", ui.ComposeMissionTip(live.view, 1024, 768))
+	pic := ui.ComposeMissionTip(live.view, 1024, 768)
+	if pic.RGBAAt(ui.MissionTipRect.Min.X+40, ui.MissionTipRect.Min.Y+40).A == 0 || pic.RGBAAt(ui.MissionTipRect.Max.X+5, ui.MissionTipRect.Min.Y+40).A != 0 {
+		t.Fatal("the mission popup does not compose inside its rectangle")
+	}
+	writeTipRender(t, dir, "mission10-start-tip-popup", pic)
 }
 
 // sameTipPixels reports whether a and b agree on every pixel of r.
