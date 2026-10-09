@@ -65,7 +65,33 @@ band case of `AI-418` from 7 and from 12, the record round trip, and a reissue
 at the held victim. `pkg/sim/pursuitbank_hotfix_test.go` (the bank test of the
 stand-in) passes unchanged.
 
-PROOF-RESULTS
+The owner's save, RU, 600 ticks, victim at (77,37): the ten orcs on column 70,
+seven cells from the victim, go idle on their first pass, as the band case of
+`AI-418` predicts for a full search over rings 1 to 4 that finds no cell. Orcs
+75, 79, 76 and 104, eight or more cells away, take route end (72,37), walk
+round the column and stand on column 72 in their attack phase.
+
+Release drives the cadence moved, each rebuilt on its own subject:
+
+- `TestReleaseAcquiredVictimLeavingReachTurnsWithoutWalking`: Defend acquires
+  only on the actor pass, so the drive tries sixteen start delays.
+- `TestReleaseALargeAICreaturesFarSearchSpendsTheNxNArm`: pursuit routes now
+  end beside the hero (`MOVE-099`); the budget bound covers those routes.
+- `TestReleaseCarriedPotionMissionSaveKeepsModifierWordThroughColdLoadAndExpiry`:
+  both worlds heal the hero below half health until the potion expires.
+- `TestReleaseAnOrderOntoAnUnreachableCreatureTakesTheHostileBesideTheHero`:
+  the hero starts 27 cells from the creature, where the first full search
+  finds no cell.
+- Scenario 1060 (mission 40) removes the two pursuers that now reach the hero.
+
+Gates on `ff84f1ce`: scenarios EN 54 s and RU 32 s pass. The census script set
+is unchanged; the mission 10 drive's escort is lost at tick 800 instead of
+496, with 7 of 36 units moved and 1 fallen. M2 (EN and RU, 214 s) fails the
+same 24 tests as before the change, less two. Release tests pass on EN in
+663 s and RU in 1076 s. `go test -trimpath -count=1 ./...` (213 s) fails only
+`TestReleaseOgreStrikesOnlyWhatItsBodyTouches`, which needs the installed
+root beside its save and passes with it on EN and RU. `check-no-game-assets.sh`
+passes.
 
 ## Open debt
 
