@@ -1,12 +1,6 @@
 package ui
 
-// What the frame draws for the attack mode: the pointer, the system cursor it
-// replaces, and the marker over the unit a press would name.
-//
-// Every case reads the two pure methods that DECIDE, never a drawn frame. That
-// is deliberate and it is what this story's shape is for: the decisions were put
-// above the draw so they could be asserted with no window, and asserting the
-// draw instead would witness ebitengine rather than the contract.
+// Attack pointer presentation and the press's own target hit test.
 
 import (
 	"image"
@@ -85,15 +79,12 @@ func TestThePointerIsDrawnExactlyWhileTheModeIsUp(t *testing.T) {
 	// The developer viewer has no route to the mode at all: both writers are
 	// unexported and its own Update never reaches either. This asserts the frame
 	// that follows from that.
-	t.Run("the standalone developer viewer draws neither", func(t *testing.T) {
+	t.Run("the standalone developer viewer draws no attack pointer", func(t *testing.T) {
 		v := newViewer(t, grid(60, 60))
 		v.SetEntities(atEntities())
 		v.step(Input{CursorX: 10, CursorY: 10}, atAt)
 		if _, _, ok := v.attackPointerPresent(); ok {
 			t.Error("the developer viewer drew an attack pointer")
-		}
-		if _, ok := v.attackTargetRect(); ok {
-			t.Error("the developer viewer drew a target marker")
 		}
 	})
 }
@@ -144,69 +135,35 @@ func TestTheSystemPointerIsHiddenExactlyWhenOursIsDrawn(t *testing.T) {
 	}
 }
 
-// TestTheMarkedUnitIsTheUnitAPressWouldName is AC-8.
-func TestTheMarkedUnitIsTheUnitAPressWouldName(t *testing.T) {
-	arm := func(t *testing.T, col, row int) (*Viewer, int, int) {
-		t.Helper()
-		a, v, _ := atOnMap(t)
-		x, y := cellPoint(v, col, row)
-		a.step(afHeld(x, y), atAt)
-		return v, x, y
-	}
-
-	t.Run("over a unit, the unit's own rectangle", func(t *testing.T) {
-		v, x, y := arm(t, atFoeCol, atFoeRow)
-		got, ok := v.attackTargetRect()
-		if !ok {
-			t.Fatal("nothing marked with the cursor over a drawn unit")
-		}
-		// The marked rectangle is the pick rectangle of the very id the press
-		// would name — asserted through the press's own hit test, not through a
-		// remembered geometry.
-		id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false)
-		if !hit {
-			t.Fatal("premise: the press names nothing where the marker marks something")
-		}
-		var want screenRect
-		for _, e := range v.entities {
-			if e.ID == id {
-				want, _ = v.entityPickRect(e)
+func TestAttackTargetHitNamesTheUnitAPressWouldName(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		col, row int
+		want     uint32
+		hit      bool
+	}{
+		{"enemy", atFoeCol, atFoeRow, atFoeID, true},
+		{"corpse", atDeadCol, atDeadRow, 0, false},
+		{"empty ground", atEmptyCol, atEmptyRow, 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a, v, _ := atOnMap(t)
+			x, y := cellPoint(v, tc.col, tc.row)
+			a.step(afHeld(x, y), atAt)
+			id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false)
+			if hit != tc.hit || hit && id != tc.want {
+				t.Fatalf("target hit = %d/%v, want %d/%v", id, hit, tc.want, tc.hit)
 			}
-		}
-		if got != want {
-			t.Errorf("marked %v, want %v — the rectangle of the id a press names", got, want)
-		}
-		if id != atFoeID {
-			t.Errorf("the press names %d, want %d", id, atFoeID)
-		}
-	})
-
-	t.Run("over a corpse, nothing", func(t *testing.T) {
-		v, _, _ := arm(t, atDeadCol, atDeadRow)
-		if _, ok := v.attackTargetRect(); ok {
-			t.Error("a corpse was marked; a press there falls through to the move arm")
-		}
-	})
-
-	t.Run("over empty ground, nothing", func(t *testing.T) {
-		v, _, _ := arm(t, atEmptyCol, atEmptyRow)
-		if _, ok := v.attackTargetRect(); ok {
-			t.Error("empty ground was marked")
-		}
-	})
-
-	t.Run("with the mode down, nothing", func(t *testing.T) {
+		})
+	}
+	t.Run("mode down", func(t *testing.T) {
 		a, v, _ := atOnMap(t)
 		ptHover(a, v, atFoeCol, atFoeRow)
-		if _, ok := v.attackTargetRect(); ok {
-			t.Error("a unit was marked with the mode down")
+		if _, _, shown := v.attackPointerPresent(); shown {
+			t.Fatal("attack pointer shown with the mode down")
 		}
 	})
-
-	// Two units on ONE cell: their pick rectangles are identical, so the point
-	// is held by both and the tie can only be settled over ids. The marker must
-	// settle it the way the press does.
-	t.Run("where two rectangles hold the point, the lower id", func(t *testing.T) {
+	t.Run("overlapping rectangles choose the lower id", func(t *testing.T) {
 		a, v, _ := atOnMap(t)
 		v.SetEntities([]MapEntity{
 			{ID: atHiID, Cell: image.Pt(atFoeCol, atFoeRow), Life: LifeAlive, HP: 100, MaxHP: 100},
@@ -214,109 +171,45 @@ func TestTheMarkedUnitIsTheUnitAPressWouldName(t *testing.T) {
 		})
 		x, y := cellPoint(v, atFoeCol, atFoeRow)
 		a.step(afHeld(x, y), atAt)
-
-		got, ok := v.attackTargetRect()
-		if !ok {
-			t.Fatal("nothing marked where two units stand")
-		}
-		id, _ := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false)
-		if id != atLoID {
-			t.Fatalf("premise: the press names %d, want the lower id %d", id, atLoID)
-		}
-		var want screenRect
-		for _, e := range v.entities {
-			if e.ID == atLoID {
-				want, _ = v.entityPickRect(e)
-			}
-		}
-		if got != want {
-			t.Errorf("marked %v, want the lower id's rectangle %v", got, want)
+		if id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); !hit || id != atLoID {
+			t.Fatalf("target hit = %d/%v, want lower id %d", id, hit, atLoID)
 		}
 	})
 }
 
-// TestTheAttackTargetMarkerIsClippedToTheWorldViewport is adversarial pass 2's
-// F2: the marker annotates a unit standing on the map, so it must not stroke
-// into the right column, even for a unit whose PICK rectangle — the one the
-// press's own hit test reads — legitimately crosses the boundary and must
-// stay unclipped so the unit stays pickable.
-//
-// MUTATION THIS FAILS AGAINST: attackTargetRect returning entityPickRect's
-// result directly, with no call to clipScreenRectToViewport.
-//
-// THE ASSERTION ANSWERS FOR THE PAINTED SPAN, NOT THE RECT (adversarial pass
-// 3, F2): Ebiten's vector.StrokeRect centres a strokeWidth-wide line on the
-// rect's own edge rather than drawing inside it, so a rect clipped flush to
-// ViewW still paints AttackMarkerWidth/2 pixels past it. The rect-only
-// assertion below is kept for the pick-rectangle premise it also carries,
-// but it cannot see this: clipScreenRectToViewport always returns a rect
-// flush to ViewW regardless of stroke width, so the rect check is green
-// whether or not the paint bleeds. The painted-span assertion computes its
-// bound from Ebiten's own centring rule directly, not from
-// clipScreenRectToViewport's formula, and reads AttackMarkerWidth only as
-// the shipped fact of what is drawn.
-//
-// MUTATION THE PAINTED-SPAN ASSERTION FAILS AGAINST, WHEN THE OLD
-// (PASS-2) CLIP IS RESTORED: clipScreenRectToViewport returning a rect
-// flush to the viewport bound with no stroke-width inset. Verified by hand
-// against a checked-out copy of that version: got.X+got.W == 200 exactly,
-// so paintedRight == 200+AttackMarkerWidth/2 > 200, red at the current
-// AttackMarkerWidth (2) already and reds harder if AttackMarkerWidth is
-// raised to 4, which the rect-only assertion above cannot do at any width.
-func TestTheAttackTargetMarkerIsClippedToTheWorldViewport(t *testing.T) {
+func TestAttackTargetPickRectangleStaysUnclippedAtTheWorldViewport(t *testing.T) {
 	a, v, _ := atOnMap(t)
 	layoutViewport(v, 200, 200)
-
-	const edgeCol, edgeRow = 6, 2 // native zoom, 32px cells: footprint ~[192,224), straddling x=200
+	const edgeCol, edgeRow = 6, 2
 	v.SetEntities([]MapEntity{{ID: atLoID, Cell: image.Pt(edgeCol, edgeRow), Life: LifeAlive, HP: 100, MaxHP: 100}})
-
 	unclipped, ok := v.entityPickRect(v.entities[0])
-	if !ok {
-		t.Fatal("premise: the entity has no pick rectangle")
+	if !ok || unclipped.X+unclipped.W <= float64(v.cam.ViewW) || unclipped.X >= float64(v.cam.ViewW) {
+		t.Fatalf("pick rectangle %+v/%v does not straddle viewport edge %d", unclipped, ok, v.cam.ViewW)
 	}
-	if unclipped.X+unclipped.W <= float64(v.cam.ViewW) {
-		t.Fatalf("premise: the unclipped pick rectangle %+v does not cross the viewport's right edge at %d", unclipped, v.cam.ViewW)
-	}
-	if unclipped.X >= float64(v.cam.ViewW) {
-		t.Fatalf("premise: the unclipped pick rectangle %+v starts past the viewport's right edge at %d, leaves no on-map point inside it", unclipped, v.cam.ViewW)
-	}
-
-	// x sits two pixels into the rect from its left edge, which is inside
-	// the straddling rect and, by the premise just checked, still short of
-	// ViewW.
 	x, y := int(unclipped.X)+2, int(unclipped.Y)+int(unclipped.H)/2
 	if x >= v.cam.ViewW {
-		t.Fatalf("premise: chosen cursor x=%d is not on the map surface (ViewW=%d)", x, v.cam.ViewW)
+		t.Fatal("fixture point lies outside the map surface")
 	}
 	a.step(afHeld(x, y), atAt)
-
-	got, ok := v.attackTargetRect()
-	if !ok {
-		t.Fatal("nothing marked over the unit")
+	if id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); !hit || id != atLoID {
+		t.Fatalf("on-map target hit = %d/%v, want %d", id, hit, atLoID)
 	}
-	if got.X+got.W > float64(v.cam.ViewW) {
-		t.Errorf("marker rect %+v extends past the world viewport's right edge at %d", got, v.cam.ViewW)
+	x = v.cam.ViewW + 1
+	if id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); !hit || id != atLoID {
+		t.Fatalf("unclipped target hit = %d/%v, want %d", id, hit, atLoID)
 	}
-
-	paintedRight := got.X + got.W + float64(AttackMarkerWidth)/2
-	if paintedRight > float64(v.cam.ViewW) {
-		t.Errorf("painted right edge %v extends past the world viewport's right edge at %d (marker rect %+v, AttackMarkerWidth %d)",
-			paintedRight, v.cam.ViewW, got, AttackMarkerWidth)
-	}
-
-	id, hit := topAt(v.entities, v.entityPickRect, float64(x), float64(y))
-	if !hit || id != atLoID {
-		t.Fatalf("premise: the unit near the edge must still be pickable through the unclipped rect, got id=%d hit=%v", id, hit)
+	if name := v.gestureCursorAt(x, y); name != "" {
+		t.Fatalf("off-map gesture cursor = %q, want no arm", name)
 	}
 }
 
-// TestAPopupDrawsNeitherInstrument is AC-9's drawn half.
+// A popup suppresses the attack pointer even before the next input step.
 //
 // The mode is already lowered by the time a popup is up, so this asserts the
 // SECOND gate: what a frame composed without a step having run first would draw.
 // The fields are set directly for that reason — the case is precisely the one no
 // dispatch produces.
-func TestAPopupDrawsNeitherInstrument(t *testing.T) {
+func TestAPopupDrawsNoAttackPointer(t *testing.T) {
 	f := newPopupFix(t, haltOpts{})
 	f.frame(f.at(popupACol, popupARow))
 	f.v.SetAttackPointer(ptPic())
@@ -329,8 +222,5 @@ func TestAPopupDrawsNeitherInstrument(t *testing.T) {
 	f.open()
 	if _, _, ok := f.v.attackPointerPresent(); ok {
 		t.Error("an attack pointer is drawn under a popup")
-	}
-	if _, ok := f.v.attackTargetRect(); ok {
-		t.Error("a target marker is drawn under a popup")
 	}
 }

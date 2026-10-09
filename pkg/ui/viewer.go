@@ -3646,51 +3646,7 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		v.paintNotice(screen)
 	}
 
-	// The marker is a STROKED rectangle rather than a member of the pass slice: a
-	// pass carries FILLED rectangles, and a filled one would cover the very unit
-	// it is pointing at. It is drawn under the pointer so the pointer is never
-	// hidden by the thing it is naming.
-	//
-	// Both are decided entirely above, by two pure methods that need no window,
-	// and these statements decide nothing — the three boxes' own shape. They draw
-	// nothing at all for a viewer whose mode is down, which is every viewer built
-	// before this story and the standalone developer viewer under every input.
-	if r, ok := v.attackTargetRect(); ok {
-		vector.StrokeRect(screen, float32(r.X), float32(r.Y), float32(r.W), float32(r.H),
-			AttackMarkerWidth, AttackMarkerColor, false)
-		v.canvasLog.unknown(image.Rect(int(math.Floor(r.X)), int(math.Floor(r.Y)),
-			int(math.Ceil(r.X+r.W)), int(math.Ceil(r.Y+r.H))).Inset(-AttackMarkerWidth - 1))
-	}
-
-	// THE POINTER ITSELF IS NOT DRAWN HERE ANY MORE (owner): all three cursor
-	// pictures are drawPointer's, below every box this method composes. The
-	// marker above stays where it is in the DRAW ORDER — it is an outline
-	// around a unit standing on the map, not a pointer, and moving it into
-	// drawPointer's slice would put a world annotation over the doll and the
-	// control panel, which contradicts its own nature.
-	//
-	// ITS DRAW ORDER PUTS IT OVER TWO OF THE FOUR RIGHT-COLUMN BOXES AND UNDER
-	// THE OTHER TWO (adversarial pass 2, F2): this statement used to say it
-	// stayed "under the panels", which was true of neither the panel block
-	// above nor the minimap above it — the marker is composed after both. What
-	// keeps it off the column is not the draw order, which was never the right
-	// instrument for that, but attackTargetRect's own clamp to the world
-	// viewport (clipScreenRectToViewport): the marker annotates a unit
-	// standing on the map, so it is confined to the same rect that clips the
-	// world it annotates.
-	//
-	// THE CLAMP ITSELF INSETS BY THE STROKE'S OWN HALF-WIDTH (adversarial pass
-	// 3): a rect clipped flush to the viewport edge still painted one pixel
-	// column into the panel, because vector.StrokeRect centres its line on the
-	// rect's edge rather than drawing inside it. The comment here used to say
-	// the marker "never strokes into the column regardless of where in the draw
-	// order it falls", which was true of the RECT clipScreenRectTo Viewport
-	// returned and false of the PAINT vector.StrokeRect produced from it —
-	// the two are not the same claim, and only the first was checked.
-	//
-	// A VIEWER INSIDE AN APP SESSION MAKES NO ENGINE CALL HERE: that App told
-	// the engine once for the whole frame, from the same three answers, through
-	// flow.pointerWanted.
+	// App sessions own the system cursor mode; standalone viewers update it here.
 	if _, _, shown := v.attackPointerPresent(); v.cursorMgr == nil && v.pointerModeChange(shown) {
 		mode := ebiten.CursorModeVisible
 		if shown {

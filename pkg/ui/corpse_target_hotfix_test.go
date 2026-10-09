@@ -56,7 +56,7 @@ func TestAttackCursorCanFinishAMinusNineBody(t *testing.T) {
 	}
 }
 
-func TestFinishableBodyGetsAttackHoverAndArmedMarker(t *testing.T) {
+func TestFinishableBodyGetsAttackHoverAndTargetHit(t *testing.T) {
 	a, v, _ := atOnMap(t)
 	ents := atEntities()
 	for i := range ents {
@@ -73,18 +73,8 @@ func TestFinishableBodyGetsAttackHoverAndArmedMarker(t *testing.T) {
 	}
 
 	a.step(afHeld(x, y), atAt)
-	got, ok := v.attackTargetRect()
-	if !ok {
-		t.Fatal("armed attack drew no marker over HP -9 body")
-	}
-	var want screenRect
-	for _, e := range ents {
-		if e.ID == atDeadID {
-			want, _ = v.entityPickRect(e)
-		}
-	}
-	if got != want {
-		t.Fatalf("HP -9 marker = %+v, want target rectangle %+v", got, want)
+	if id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); !hit || id != atDeadID {
+		t.Fatalf("HP -9 target hit = %d/%v, want %d", id, hit, atDeadID)
 	}
 
 	ents[1].HP, ents[1].Untargetable = -10, true
@@ -96,7 +86,7 @@ func TestFinishableBodyGetsAttackHoverAndArmedMarker(t *testing.T) {
 		t.Fatalf("HP -10 corpse hover = %q/%v, want move", name, ok)
 	}
 	a.step(afHeld(x, y), atAt)
-	if _, ok := v.attackTargetRect(); ok {
-		t.Fatal("armed attack drew a marker over HP -10 corpse")
+	if id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); hit {
+		t.Fatalf("HP -10 target hit = %d, want no hit", id)
 	}
 }

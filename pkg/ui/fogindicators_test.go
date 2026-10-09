@@ -266,38 +266,26 @@ func TestARouteDoesNotLeakThroughTheFog(t *testing.T) {
 	}
 }
 
-// TestTheAttackOutlineDoesNotLeakThroughTheFog is the cursor's own indicator,
-// and it asserts BOTH sides of the asymmetry this hotfix chose: the outline is
-// gone, and the press behind it is NOT — topAt still names the unit, because
-// gating input is a behavioural claim no decoded fact backs and this is a
-// hotfix.
-func TestTheAttackOutlineDoesNotLeakThroughTheFog(t *testing.T) {
+func TestAttackTargetHitAndHoverKeepTheirFogGates(t *testing.T) {
 	a, v, _ := atOnMap(t)
-
-	// Every cell unseen but the one the LOW unit stands on, so the foe at
-	// (atFoeCol, atFoeRow) is in the dark.
 	cols, rows := int(v.grid.Width), int(v.grid.Height)
 	plane := make([]byte, cols*rows)
 	plane[atLoRow*cols+atLoCol] = FogVisible
 	v.SetFog(plane, cols, rows)
-	v.SetLocalOwner(fiOwner) // no entity in atEntities carries it
-
+	v.SetLocalOwner(fiOwner)
 	x, y := ptHover(a, v, atFoeCol, atFoeRow)
 	a.step(afHeld(x, y), atAt)
-
-	if _, ok := v.attackTargetRect(); ok {
-		t.Error("the attack cursor outlined a unit standing in the fog")
+	if id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); !hit || id != atFoeID {
+		t.Fatalf("raw target hit in fog = %d/%v, want %d", id, hit, atFoeID)
 	}
-	if _, hit := topAt(v.entities, v.entityPickRect, float64(x), float64(y)); !hit {
-		t.Error("the PRESS stopped naming the unit too — gating input is not what this " +
-			"hotfix does, and cursor.go says why")
+	if _, id, hit := v.hoverMask(x, y); hit {
+		t.Fatalf("fogged hover names %d", id)
 	}
-
-	// Over the unit on the one visible cell the outline is still drawn, so
-	// the absence above is the fog and not the fixture.
+	if name := v.gestureCursorAt(x, y); name != "attack" {
+		t.Fatalf("held attack cursor in fog = %q", name)
+	}
 	bx, by := ptHover(a, v, atLoCol, atLoRow)
-	a.step(afHeld(bx, by), atAt)
-	if _, ok := v.attackTargetRect(); !ok {
-		t.Error("nothing outlined over a unit on a VISIBLE cell")
+	if _, id, hit := v.hoverMask(bx, by); !hit || id != atLoID {
+		t.Fatalf("visible hover = %d/%v, want %d", id, hit, atLoID)
 	}
 }

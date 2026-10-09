@@ -67,7 +67,6 @@ var fogWalkTable = map[string]struct {
 	"shotScreenRects":      {fogWalkGated, "the shot mark"},
 	"ingestDamage":         {fogWalkGated, "the damage numeral's creation half"},
 	"stepSound":            {fogWalkGated, "the blow grunt -- the numeral's other half, and a positional sound carries the direction too"},
-	"attackTargetRect":     {fogWalkGated, "the attack cursor's outline; the PRESS behind it is deliberately not gated, see cursor.go"},
 	"selectionScreenRects": {fogWalkGated, "the selection rim over a selected enemy that walked into the dark"},
 	"pathScreenSegments":   {fogWalkGated, "the ordered route of a selected unit — where he is AND where he is going"},
 	"spellEffectPasses":    {fogWalkGated, "the spell effect ring: a spell landing on a unit in the dark shows nothing, on the selection rim's own terms"},

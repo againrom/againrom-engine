@@ -3,54 +3,13 @@ package ui
 import (
 	"image"
 	"image/color"
-	"math"
 	"time"
 )
 
-// THE ATTACK POINTER AND THE TARGET MARKER — the whole of what a player
-// sees of the attack mode, and the whole of what decides it.
-//
-// The file holds the DECISIONS and none of the drawing. Every function here is
-// pure: it reads the mode, the cursor and the snapshot and answers with a
-// picture, a point or a rectangle. Draw makes the engine calls and decides
-// nothing. That is the unit panel's, the readout's and the notice's own shape
-// and it is here for their reason — a decision taken inside a draw call is a
-// decision no test without a window can see, and this one is the story's whole
-// deliverable.
-//
-// WHY THE POINTER AND NOT A HINT SOMEWHERE. What is being reconstructed turns a
-// click into an order BY THE CURSOR IT WAS MADE UNDER: the pointer is not a
-// caption about the mode, it is the mode. So the affordance this front-end owed
-// was never a label — it was the thing the player is already looking at.
-
-// AttackMarkerColor is the outline drawn around the unit a press would name, and
-// AttackMarkerWidth its stroke in SCREEN pixels.
-//
-// Both are OURS. Nothing decoded describes a target marker at all — the
-// original's affordance is the pointer alone — so this asserts nothing about it
-// and exists to answer the second question the pointer cannot: not "is a mode
-// up" but "what will this press hit".
-//
-// The width does not scale with the zoom, for PathWidth's own reason: it is an
-// instrument reporting a decision, not a thing standing on the map, so it stays
-// legible zoomed out instead of thinning to nothing.
+// AttackMarkerColor is the authored attack pointer cross color.
 var AttackMarkerColor = color.RGBA{R: 0xff, G: 0x40, B: 0x40, A: 0xff}
 
-// AttackMarkerWidth is the marker's stroke width in screen pixels.
-const AttackMarkerWidth = 2
-
-// The authored pointer — what is drawn at the cursor when no art was
-// supplied.
-//
-// IT IS DELIBERATELY NOT A DRAWN SWORD. A hand-made imitation of art this build
-// could not load would be the worst of both: it would assert a shape while
-// claiming to assert none. Two crossed strokes say that a mode is up and say
-// nothing else, and the colour is the marker's so the two instruments of this
-// story read as one.
-//
-// Its arm is measured from the cursor point, so the cross is centred on the very
-// pixel a press would be made at — where the art, having a point of its own,
-// hangs from that pixel instead.
+// The authored attack pointer is a centered cross when pointer art is absent.
 const (
 	AttackAuthoredArm   = 7
 	AttackAuthoredWidth = 2
@@ -149,8 +108,7 @@ func (v *Viewer) advanceCursorManager(now time.Time) {
 	v.cursorMgr.Advance(now.UnixMilli())
 }
 
-// attackShown is the ONE gate both instruments read: the mode is up, no popup
-// stands over the map and the pointer is over the game area.
+// attackShown gates the attack pointer on mode, popup and game area.
 //
 // THE POPUP TEST HERE IS NOT REDUNDANT WITH THE ONE THAT LOWERS THE MODE.
 // That one lowers the STATE, inside the viewer's step, and it is what makes
@@ -198,7 +156,7 @@ func (v *Viewer) attackPointerPresent() (*image.RGBA, image.Point, bool) {
 	// ever supplied. The manager's own current name is checked rather than
 	// assumed, so a manager set to some other cursor by a caller this story
 	// does not anticipate never has its picture drawn here under the attack
-	// marker's own colour and position.
+	// pointer's own position.
 	if v.cursorMgr != nil && v.cursorMgr.CurrentName() == "attack" {
 		if pic, hot, ok := v.cursorMgr.Current(); ok {
 			return pic, image.Pt(v.cursorX-hot.X, v.cursorY-hot.Y), true
@@ -208,88 +166,6 @@ func (v *Viewer) attackPointerPresent() (*image.RGBA, image.Point, bool) {
 		return nil, image.Pt(v.cursorX, v.cursorY), true
 	}
 	return v.attackPointer, image.Pt(v.cursorX-AttackPointerHotspot.X, v.cursorY-AttackPointerHotspot.Y), true
-}
-
-// attackTargetRect is the rectangle drawn around the unit a consuming press
-// made at the current cursor would name, and whether there is one.
-//
-// IT CALLS THE PRESS'S OWN ATTACK HIT TEST rather than the selection hit.
-// targetAt is what decide asks for the victim, over the same per-entity pick
-// rectangle, so "what is outlined is what would be attacked" includes the
-// -1 through -9 finishing band, the -10 refusal and the lowest-id tie rule.
-//
-// It looks the named id back up in the snapshot because the pick answers with an
-// id and a rectangle is a property of the entry. The walk is the snapshot's own
-// and stops at the first match, since ids are unique in it.
-//
-// THE RETURNED RECT IS CLIPPED TO THE WORLD VIEWPORT (adversarial pass 2, F2).
-// entityPickRect is shared with topAt's own hit test above and must not be
-// clamped — a unit whose art crosses into the right strip must still be
-// pickable exactly as it is today. The marker is a world annotation drawn
-// over the map only (viewer.go's own drawFrame comment), so the clamp is
-// applied here, to this function's own return, and nowhere upstream of it.
-func (v *Viewer) attackTargetRect() (screenRect, bool) {
-	if !v.attackShown() || !v.hasCursor || !v.mapSurfaceCaptures(v.cursorX, v.cursorY) {
-		return screenRect{}, false
-	}
-	id, hit := targetAt(v.entities, v.entityPickRect, float64(v.cursorX), float64(v.cursorY), false)
-	if !hit {
-		return screenRect{}, false
-	}
-	for _, e := range v.entities {
-		if e.ID == id {
-			// AND IT IS NOT DRAWN OVER A UNIT THAT MAY NOT BE SEEN (hotfix). An
-			// outline appearing when the cursor crosses a dark cell is an enemy
-			// indicator like any other -- it says something is standing there -- and
-			// the owner's instruction is that none of them shows.
-			//
-			// THE PRESS ITSELF IS DELIBERATELY NOT GATED, and the asymmetry
-			// is stated rather than accidental. Gating topAt's INPUT would
-			// change what the player can target, not merely what he can see,
-			// and whether the original refuses an attack on a unit outside
-			// the party's sight is not decoded -- it is a question for a
-			// story, not a thing to decide in a hotfix. So the outline's own
-			// contract weakens in ONE SAFE DIRECTION: everything outlined is
-			// still exactly what would be attacked, and there is now a case
-			// where something would be attacked and is not outlined.
-			if !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
-				return screenRect{}, false
-			}
-			r, ok := v.entityPickRect(e)
-			if !ok {
-				return screenRect{}, false
-			}
-			return clipScreenRectToViewport(r, float64(v.cam.ViewW), float64(v.cam.ViewH))
-		}
-	}
-	return screenRect{}, false
-}
-
-// clipScreenRectToViewport intersects r with the world viewport, (0,0) to
-// (w,h) in frame pixels, and reports whether anything of it remains. w and h
-// are the viewer's own v.cam.ViewW/ViewH — the same rect mapSurfaceCaptures
-// tests and MissionViewportSize/viewportSize compute (1026 B3; DIV-249): the
-// frame minus the 160-pixel right strip.
-//
-// THE INSET IS THE STROKE'S, NOT THE RECT'S (adversarial pass 3). The only
-// caller draws this return with vector.StrokeRect, which centres a
-// strokeWidth-wide line on the rect's own edge — Ebiten's own arithmetic
-// translates the right edge to x+width-strokeWidth/2, so a rect clipped
-// flush to w paints strokeWidth/2 past it. A rect clipped to exactly x=864
-// (this build's own MissionPanelRect().Min.X) painted x in [863,865): one
-// pixel column inside the panel, on every camera position, not only a
-// straddling one. Insetting the bound the rect is clipped TO, by half the
-// stroke's own width, is what makes the PAINTED span stop at the true edge
-// rather than the rect clipped to the edge with a stroke still centred on
-// it.
-func clipScreenRectToViewport(r screenRect, w, h float64) (screenRect, bool) {
-	const strokeInset = AttackMarkerWidth / 2
-	x0, y0 := math.Max(r.X, strokeInset), math.Max(r.Y, strokeInset)
-	x1, y1 := math.Min(r.X+r.W, w-strokeInset), math.Min(r.Y+r.H, h-strokeInset)
-	if x1 <= x0 || y1 <= y0 {
-		return screenRect{}, false
-	}
-	return screenRect{X: x0, Y: y0, W: x1 - x0, H: y1 - y0}, true
 }
 
 // pointerModeChange adopts whether the system pointer should be hidden and

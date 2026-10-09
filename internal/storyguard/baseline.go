@@ -1977,7 +1977,7 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1882,
+		"acclause":        1880,
 		"scclause":        508,
 		"barestorynumber": 1749,
 	},
@@ -1988,7 +1988,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1807,
+		"longcommentgroups":      1801,
 	},
-	CommentBytes: 8547244,
+	CommentBytes: 8536430,
 }

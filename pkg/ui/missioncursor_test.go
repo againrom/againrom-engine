@@ -189,8 +189,11 @@ func TestHoverAndAttackCursorsRequireTheMapSurfaceAtAPannedCamera(t *testing.T) 
 	}
 
 	a.step(afHeld(cx, cy), atAt)
-	if got, ok := v.attackTargetRect(); ok {
-		t.Errorf("attackTargetRect over the panel at a panned camera = %+v,%v, want no hit", got, ok)
+	if _, _, shown := v.attackPointerPresent(); shown {
+		t.Error("attack pointer shown over the panel at a panned camera")
+	}
+	if name := v.gestureCursorAt(cx, cy); name != "" {
+		t.Fatalf("panel gesture cursor = %q, want no arm", name)
 	}
 }
 
