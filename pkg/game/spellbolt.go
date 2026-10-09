@@ -529,10 +529,16 @@ func (mw *mapWorld) advanceCastRuns() {
 // observations arrived in — ascending caster id inside one tick, ticks in order
 // across them — so what the drawing tier receives is a function of the casts and
 // not of a map walk.
-func (mw *mapWorld) advanceBolts() {
+func (mw *mapWorld) advanceBolts() { mw.advanceBoltsBornFrom(len(mw.bolts)) }
+
+// advanceBoltsBornFrom ages every object except a path object at index born or
+// later, spawned this tick: its first push draws driver call 1 (DIV-2686).
+func (mw *mapWorld) advanceBoltsBornFrom(born int) {
 	live := mw.bolts[:0]
-	for _, b := range mw.bolts {
-		b.age++
+	for i, b := range mw.bolts {
+		if i < born || !data.CastDrawsPath(b.picture) {
+			b.age++
+		}
 		if b.age < b.life {
 			live = append(live, b)
 		}

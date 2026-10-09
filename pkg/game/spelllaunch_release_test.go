@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -82,6 +83,22 @@ func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, 
 // until its path object stands at age 4.
 func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 	t.Helper()
+	victim := launchIssue(t, mw, hero)
+	for tick := 0; tick < 240; tick++ {
+		mw.tick()
+		for _, b := range mw.bolts {
+			if b.picture == 34 && b.age == 4 {
+				return b
+			}
+		}
+	}
+	t.Fatalf("no Lightning object reached age 4 at victim %d", victim)
+	return spellBolt{}
+}
+
+// launchIssue orders the hero's Lightning at the nearest admitted victim.
+func launchIssue(t *testing.T, mw *mapWorld, hero sim.EntityID) sim.EntityID {
+	t.Helper()
 	mw.bolts = nil
 	launchRefill(t, mw, hero)
 	h, _ := mw.entity(hero)
@@ -99,16 +116,7 @@ func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 		t.Fatal("no unit the book admits as a Lightning victim")
 	}
 	mw.pending = append(mw.pending, sim.Cast(hero, victim, spLightning))
-	for tick := 0; tick < 240; tick++ {
-		mw.tick()
-		for _, b := range mw.bolts {
-			if b.picture == 34 && b.age == 4 {
-				return b
-			}
-		}
-	}
-	t.Fatalf("no Lightning object reached age 4 at victim %d", victim)
-	return spellBolt{}
+	return victim
 }
 
 func launchRenderDir(t *testing.T) string {
@@ -178,8 +186,8 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		for d, step := range launchDirections {
 			b := launchObserve(t, mw, hero, launchFacings[d], step)
 			_, _, points := mw.pathFigure(b)
-			want := b.from.Mul(256).Add(c.deltas[d])
-			if len(points) == 0 || points[0] != want {
+			want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[d]))
+			if len(points) == 0 || !withinPixel(points[0], want) {
 				t.Fatalf("%s %s: the figure starts at %v, want %v", c.name, launchDirectionNames[d], points, want)
 			}
 			if dir != "" {
@@ -195,24 +203,24 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		b := launchCast(t, mw, hero)
 		e, _ = mw.entity(hero)
 		_, _, points := mw.pathFigure(b)
-		if want := b.from.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8]); len(points) == 0 || points[0] != want {
+		if want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
 			t.Fatalf("%s: an ordered cast at facing %d starts at %v, want %v", c.name, e.Facing, points, want)
 		}
-		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0].Sub(b.from.Mul(256)))
+		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0])
 	}
 }
 
-// heroScale is the colour scale the art pass draws the hero's sprite with,
-// and the screen boxes of every sprite it draws.
-func heroScale(t *testing.T, mw *mapWorld, hero sim.EntityID, draws []ui.HeadlessArtDraw) (float32, []image.Rectangle) {
+// unitScales is the sorted colour scales of the sprites drawn with the
+// unit's frame, and the screen boxes of every sprite.
+func unitScales(t *testing.T, mw *mapWorld, unit sim.EntityID, draws []ui.HeadlessArtDraw) (string, []image.Rectangle) {
 	t.Helper()
 	var actor ui.MapEntity
 	for _, d := range mw.entityDraws() {
-		if d.ID == uint32(hero) {
+		if d.ID == uint32(unit) {
 			actor = d
 		}
 	}
-	scale, found := float32(0), false
+	var scales []float64
 	var boxes []image.Rectangle
 	for _, d := range draws {
 		if d.Kind != "sprite" {
@@ -222,13 +230,14 @@ func heroScale(t *testing.T, mw *mapWorld, hero sim.EntityID, draws []ui.Headles
 		x1, y1 := d.Geometry.Apply(float64(d.Pixels.Bounds().Dx()), float64(d.Pixels.Bounds().Dy()))
 		boxes = append(boxes, image.Rect(int(min(x0, x1))-1, int(min(y0, y1))-1, int(max(x0, x1))+2, int(max(y0, y1))+2))
 		if d.Frame == actor.Frame && actor.Frame != nil {
-			scale, found = d.ColorScale.R(), true
+			scales = append(scales, float64(d.ColorScale.R()))
 		}
 	}
-	if !found {
-		t.Fatal("the art pass drew no hero sprite")
+	if len(scales) == 0 {
+		t.Fatal("the art pass drew no sprite of the unit")
 	}
-	return scale, boxes
+	sort.Float64s(scales)
+	return fmt.Sprint(scales), boxes
 }
 
 func inAny(p image.Point, boxes []image.Rectangle) bool {
@@ -248,10 +257,9 @@ func lumaSum(pix *image.RGBA) int {
 	return sum
 }
 
-// A Lightning path at phase 0 lights the ground and the caster with Dynamic
-// lighting on; with it off the caster is lit the same and the ground is not
-// (MAGIC-270, MAGIC-273).
-func TestReleaseALightningBoltLightsTheGroundAndTheCaster(t *testing.T) {
+// A phase-0 Lightning path lights the ground and a unit in a stamped cell;
+// with Dynamic lighting off only the unit (MAGIC-270, MAGIC-273).
+func TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath(t *testing.T) {
 	dir := launchRenderDir(t)
 	f, hero := launchWitness(t, true)
 	mw := f.live
@@ -261,15 +269,28 @@ func TestReleaseALightningBoltLightsTheGroundAndTheCaster(t *testing.T) {
 	if len(stamps) == 0 {
 		t.Fatal("the bolt stamps no light")
 	}
+	stamped := map[image.Point]bool{}
 	for _, s := range stamps {
 		if !s.Point && s.Level != 0 {
 			t.Fatalf("a phase-0 path stamp at level %d", s.Level)
 		}
+		stamped[s.Vertex] = true
+	}
+	unit := sim.EntityID(0)
+	for _, e := range mw.world.Entities() {
+		c := image.Pt(int(e.X), int(e.Y))
+		if e.Alive() && stamped[c] && stamped[c.Add(image.Pt(1, 0))] && stamped[c.Add(image.Pt(0, 1))] && stamped[c.Add(image.Pt(1, 1))] {
+			unit = e.ID
+			break
+		}
+	}
+	if unit == 0 {
+		t.Fatal("no living unit stands in a stamped path cell")
 	}
 	view := mw.view
 	type shot struct {
 		pix   *image.RGBA
-		scale float32
+		scale string
 		boxes []image.Rectangle
 	}
 	frame := func(off, lit, sprites bool) shot {
@@ -281,11 +302,11 @@ func TestReleaseALightningBoltLightsTheGroundAndTheCaster(t *testing.T) {
 		if !sprites {
 			view.SetSpellBolts(nil)
 		}
-		pix, draws, err := view.HeadlessMapFrame(b.from, 224, 224)
+		pix, draws, err := view.HeadlessMapFrame(b.to, 224, 224)
 		if err != nil {
 			t.Fatal(err)
 		}
-		scale, boxes := heroScale(t, mw, hero, draws)
+		scale, boxes := unitScales(t, mw, unit, draws)
 		return shot{pix, scale, boxes}
 	}
 	launchWritePNG(t, dir, "bolt-lit-dynamic-on.png", frame(false, true, true).pix)
@@ -297,7 +318,7 @@ func TestReleaseALightningBoltLightsTheGroundAndTheCaster(t *testing.T) {
 	}
 	litOff, plainOff := frame(true, true, false), frame(true, false, false)
 	if litOn.scale != litOff.scale || litOff.scale == plainOff.scale {
-		t.Errorf("caster scale: lit on %v, lit off %v, unlit off %v", litOn.scale, litOff.scale, plainOff.scale)
+		t.Errorf("unit %d scales: lit on %v, lit off %v, unlit off %v", unit, litOn.scale, litOff.scale, plainOff.scale)
 	}
 	for y := 0; y < litOff.pix.Bounds().Dy(); y++ {
 		for x := 0; x < litOff.pix.Bounds().Dx(); x++ {
@@ -307,8 +328,8 @@ func TestReleaseALightningBoltLightsTheGroundAndTheCaster(t *testing.T) {
 		}
 	}
 	view.SetGraphicsOptions(ui.GraphicsOptions{})
-	t.Logf("caster scale lit %v unlit %v; ground luma lit %d unlit %d; %d stamps",
-		litOn.scale, plainOff.scale, lumaSum(litOn.pix), lumaSum(darkOn.pix), len(stamps))
+	t.Logf("unit %d scales lit %v unlit %v; ground luma lit %d unlit %d; %d stamps",
+		unit, litOn.scale, plainOff.scale, lumaSum(litOn.pix), lumaSum(darkOn.pix), len(stamps))
 }
 
 func launchAbs(n int) int {
@@ -316,4 +337,10 @@ func launchAbs(n int) int {
 		return -n
 	}
 	return n
+}
+
+// launchDisplay is a launch point as the figure's native display pixel.
+func launchDisplay(mw *mapWorld, cell, pos image.Point) image.Point {
+	x, y := mw.boltDisplayPoint(pos, cell)
+	return image.Pt(int(x), int(y))
 }

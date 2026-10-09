@@ -37,7 +37,7 @@ func TestCellEntry1084MovementDomainsStandingAndReentry(t *testing.T) {
 					t.Fatalf("entry cast = %+v", casts)
 				}
 				report := StepReported(w, nil)
-				if len(report.ScriptCasts) != 1 || report.ScriptCasts[0] != (ScriptCastEvent{Spell: 13, FromX: 9, FromY: 10, ToX: 3, ToY: 3}) || w.entities[0].HP >= before {
+				if len(report.ScriptCasts) != 1 || !reflect.DeepEqual(report.ScriptCasts[0], ScriptCastEvent{Spell: 13, FromX: 9, FromY: 10, ToX: 3, ToY: 3}) || w.entities[0].HP >= before {
 					t.Fatalf("no ordinary effect: report=%+v hp=%d before=%d", report.ScriptCasts, w.entities[0].HP, before)
 				}
 				after := w.entities[0].HP

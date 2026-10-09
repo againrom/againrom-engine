@@ -12,6 +12,9 @@ type ScriptCastEvent struct {
 	Spell        uint16
 	FromX, FromY int32
 	ToX, ToY     int32
+	// Victims is a Prismatic Spray's victim cells in selection order, as
+	// CastEvent.Victims. Observation only; nothing reads it back.
+	Victims []CellPoint
 }
 
 // CastEvent captures one applied cast and its endpoints at resolution time,
@@ -94,12 +97,12 @@ func (o *castObs) recordScriptMessage(event int32) {
 	}
 }
 
-func (o *castObs) recordScriptCast(c scriptCast, spell uint16, toX, toY int32) {
+func (o *castObs) recordScriptCast(c scriptCast, spell uint16, toX, toY int32, victims []CellPoint) {
 	if o == nil {
 		return
 	}
 	o.scriptCasts = append(o.scriptCasts, ScriptCastEvent{
-		Spell: spell, FromX: int32(c.FromX), FromY: int32(c.FromY), ToX: toX, ToY: toY,
+		Spell: spell, FromX: int32(c.FromX), FromY: int32(c.FromY), ToX: toX, ToY: toY, Victims: victims,
 	})
 }
 

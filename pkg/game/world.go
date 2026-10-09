@@ -4071,6 +4071,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// observe an in-between state.
 	mw.syncJoinedHeroes()
 	events := report.Casts
+	born := len(mw.bolts)
 	mw.observeScriptCasts(report.ScriptCasts)
 	// A successful spell can raise a school level inside StepObserved. Fold
 	// that new level through the complete installed character graph before any
@@ -4109,7 +4110,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// The bolts age in the same window and for the same reason: after the step,
 	// so the age read is the age the push will select on, and before the push,
 	// so the viewer receives this tick's own.
-	mw.advanceBolts()
+	mw.advanceBoltsBornFrom(born)
 	mw.advanceHealBursts()
 	mw.advanceSpellSoundCues()
 	// And the effect-mark elements, in the same window and for the same
