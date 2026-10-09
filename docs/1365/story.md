@@ -51,7 +51,7 @@ mover bytes `+0x7c`, `+0x8a`, `+0x09`, `+0x76` and `+0x8c`:
 
 The stand-in's eight-ring far search and the nearest-to-victim settle rule are
 removed; DIV-2456 and DIV-2225 are closed. The engine save form carries the
-record as optional form 115; a world holding no record keeps its earlier bytes.
+record as optional form 117; a world holding no record keeps its earlier bytes.
 A SAV carries the record in the native continuation supplement; the SAV mover
 bytes are neither read into the record nor written from it
 (DIV-2562).

@@ -222,6 +222,20 @@ func releaseRescueMission1055(t *testing.T, f *FrontEnd, mission int, unitIDs []
 	// and body state must remain byte-identical.
 	ms = releaseResumeMission1055(t, f, start(), party, mission, ms.World)
 	caster := ms.Start.IDs[0]
+	for _, latch := range latches {
+		if ms.World.ScriptLatched(latch) {
+			t.Fatalf("mission %d rescue latch %d starts fired", mission, latch)
+		}
+	}
+	fired := make(map[int32]bool)
+	observe := func() {
+		for _, latch := range latches {
+			if !fired[latch] && ms.World.ScriptLatched(latch) {
+				fired[latch] = true
+				t.Logf("mission %d rescue latch %d observed at tick %d", mission, latch, ms.World.Tick())
+			}
+		}
+	}
 	seenHeal := make(map[sim.EntityID]bool)
 	for ticks := 0; ticks < 2048 && len(seenHeal) < len(targets); ticks++ {
 		var cmds []sim.Command
@@ -237,7 +251,9 @@ func releaseRescueMission1055(t *testing.T, f *FrontEnd, mission int, unitIDs []
 				break
 			}
 		}
-		for _, cast := range sim.StepObserved(ms.World, cmds) {
+		casts := sim.StepObserved(ms.World, cmds)
+		observe()
+		for _, cast := range casts {
 			if cast.Caster == caster && cast.Spell == 6 && cast.HealthRestored > 0 {
 				for _, target := range targets {
 					if cast.Target == target {
@@ -258,16 +274,13 @@ func releaseRescueMission1055(t *testing.T, f *FrontEnd, mission int, unitIDs []
 		}
 	}
 
-	fired := make(map[int32]bool)
 	for tick := 0; tick < 4*16; tick++ {
-		tr := sim.StepTraced(ms.World, nil)
-		for _, firing := range tr.Firings {
-			fired[firing.Latch] = true
-		}
+		sim.Step(ms.World, nil)
+		observe()
 	}
 	for _, latch := range latches {
 		if !fired[latch] || !ms.World.ScriptLatched(latch) {
-			t.Fatalf("mission %d rescue latch %d did not fire: trace=%v", mission, latch, fired)
+			t.Fatalf("mission %d rescue latch %d did not fire: observed=%v latched=%v tick=%d", mission, latch, fired, ms.World.ScriptLatched(latch), ms.World.Tick())
 		}
 	}
 	foundRaise := false

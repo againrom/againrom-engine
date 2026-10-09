@@ -208,12 +208,21 @@ type Spell struct {
 // negative mana cost — both refused rather than padded or clamped, because a
 // row this contract cannot represent should say so rather than ship a spell
 // with a silent hole in it.
+//
+// A run of blank entries at the END of the collection — no name and no
+// parameter — is not a row. The second game's table carries 29 spells and
+// five blank trailing entries (R2-ENGINE-019); the walk stops before the run.
+// A blank entry followed by any written entry is still refused as too short.
 func LoadSpells(c Collection) ([]Spell, error) {
 	if c == nil {
 		return nil, nil
 	}
-	spells := make([]Spell, 0, c.Len())
-	for i := 1; i < c.Len(); i++ {
+	n := c.Len()
+	for n > 1 && blankSpellEntry(c, n-1) {
+		n--
+	}
+	spells := make([]Spell, 0, n)
+	for i := 1; i < n; i++ {
 		name := c.EntryName(i)
 		p := c.EntryParams(i)
 		if len(p) <= lastSpellSlot {
@@ -256,6 +265,11 @@ func LoadSpells(c Collection) ([]Spell, error) {
 		spells = append(spells, sp)
 	}
 	return spells, nil
+}
+
+// blankSpellEntry reports an entry that carries no name and no parameter.
+func blankSpellEntry(c Collection, i int) bool {
+	return c.EntryName(i) == "" && len(c.EntryParams(i)) == 0
 }
 
 func ClassifySpell(id int, dmin, dmax int32) (damaging, restorative bool) {

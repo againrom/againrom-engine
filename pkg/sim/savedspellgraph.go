@@ -187,7 +187,7 @@ func (w *World) paintSavedArea(i int) {
 	e := cellEffect{Key: d.Key, Spell: d.Spell, Mode: AreaModeCloud, Direction: v.AE48[2] >> 5}
 	if rule.Distribution == distributionWall {
 		e.Cells = w.wallCells(x, y, e.Direction)
-		if d.Spell == 19 {
+		if w.spellArm(d.Spell) == 19 {
 			e.Cells = w.skipOccupiedGround(e.Cells)
 		}
 	} else {
@@ -216,8 +216,8 @@ func (w *World) paintSavedArea(i int) {
 		binary.LittleEndian.PutUint32(c.Payload[20+4*d.Layer:], d.Identity)
 		w.recomputeSavedCell(key)
 	}
-	w.scorchCells(d.Spell, e.Cells)
-	if d.Spell == 19 {
+	w.scorchCells(w.spellArm(d.Spell), e.Cells)
+	if w.spellArm(d.Spell) == 19 {
 		w.setWallCells(d.Cells, true)
 	}
 	w.refreshSavedPlaneBlocks()

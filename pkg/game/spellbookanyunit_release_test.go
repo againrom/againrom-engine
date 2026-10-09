@@ -64,7 +64,7 @@ func spellbookShow(t *testing.T, a *ui.App, live *mapWorld, id sim.EntityID) {
 	}
 }
 
-func TestReleaseSecondMageOfDownWithOrcsOpensHisBookAndCasts(t *testing.T) {
+func TestReleaseDownWithOrcsSecondMageOpensHisBookAndCasts(t *testing.T) {
 	f, a := spellbookMissionApp(t)
 	live := f.live
 	const mage = sim.EntityID(0)

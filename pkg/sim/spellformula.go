@@ -51,7 +51,7 @@ func spellRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 }
 
 func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
-	if !rule.bookInstance && (rule.ID == 26 || rule.MaxRange != 0) {
+	if !rule.bookInstance && (rule.arm() == 26 || rule.MaxRange != 0) {
 		if bonus, ok := rangeBonusFor(r, rule, power); ok {
 			return min(int64(rule.MaxRange)+bonus, 255)
 		}
@@ -60,12 +60,17 @@ func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 }
 
 func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
+	if rule.Second && rule.arm() == 15 {
+		// The second game's Invisibility lasts P << 4 (R2-ENGINE-022), at
+		// application and in the spell record alike.
+		return uint16(min(int64(power)<<4, durationTickCeiling))
+	}
 	f, ok := r.SpellFormulaAt(rules.FormulaDuration, rule.ID, power)
 	if !ok {
 		return spellLastingTicks(rule, power)
 	}
 	base := int64(rule.SpellDuration)
-	if rule.ID == 15 {
+	if rule.arm() == 15 {
 		base = 3
 	}
 	if base <= 0 {
@@ -75,9 +80,15 @@ func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
 }
 
 func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
-	switch rule.ID {
+	switch rule.arm() {
 	case 15, 5, 10, 16, 18, 20, 22, 23, 24, 27, 28:
 		return spellLastingTicksUnder(r, rule, power)
+	case 8:
+		// The second game's Poison Cloud effect lasts its Duration column on
+		// the 1.025 law (R2-ENGINE-024).
+		if rule.Second {
+			return spellLastingTicksUnder(r, rule, power)
+		}
 	}
 	return rule.EffectDuration
 }

@@ -9,29 +9,9 @@ import (
 	"againrom/pkg/sim"
 )
 
-// TestReleaseAMissionTenPatrolReversalAdvancesTheDrawnOctant runs the same
-// no-command mission-10 drive as TestPatrolWalksTheMissionTensPatrollers,
-// watching for a tick at which either patroller holds an ACTIVE turn of more
-// than one remaining tick (TurnRemaining > 1, i.e. an arc bigger than one
-// octant-width — the shape a reversal produces and a single-direction snap
-// never does; requestFacing's own one-direction arm always finishes in
-// exactly one tick). Across such an interval, Facing itself must stay at its
-// pre-turn value the whole time and sim.Entity.DrawnFacing must visit more
-// than the two endpoint octants — a static drawn value for the whole
-// interval is exactly round 2's own defect, now measured against real
-// shipped RotationSpeed and arc combinations instead of only the synthetic
-// ones turn1047_test.go's fixture chooses.
-//
-// THIS IS A SIM-LEVEL WITNESS, NOT A RENDER-LEVEL ONE: it calls
-// sim.Entity.DrawnFacing() directly and never reaches pkg/game/world.go's
-// own oct := sheetOctant(e.DrawnFacing()) call site, because package
-// game_test cannot see that unexported line. The call site itself is
-// witnessed by TestTheDrawnOctantAdvancesAcrossAMultiTickTurn
-// (turn1047_test.go), a synthetic fixture that does reach it and does fail
-// under that mutation. The two together are what "shipped content" and "the
-// render wiring" both need: this test supplies the first on the real
-// RotationSpeed/arc population a lawful install ships, that one supplies the
-// second.
+// The installed patrol drive witnesses advancing server and drawn facings
+// through completed multi-tick turns. The installed hero witness measures
+// the submitted standing frame separately.
 func TestReleaseAMissionTenPatrolReversalAdvancesTheDrawnOctant(t *testing.T) {
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
@@ -105,9 +85,7 @@ func TestReleaseAMissionTenPatrolReversalAdvancesTheDrawnOctant(t *testing.T) {
 			}
 		}
 	}
-	// An interval still active when the drive ends is not scored: its final
-	// snap tick, the one thing that would prove Facing never drifted mid-turn,
-	// has not happened yet.
+	// An unfinished interval does not establish completed turn progress.
 
 	if len(closedLong) == 0 {
 		t.Fatalf("mission 10's patrol drive completed %d ticks with no multi-tick turn "+
@@ -115,9 +93,8 @@ func TestReleaseAMissionTenPatrolReversalAdvancesTheDrawnOctant(t *testing.T) {
 			"a reversal that did not occur", ticks)
 	}
 	for _, iv := range closedLong {
-		if iv.facingMoved {
-			t.Errorf("interval starting tick %d: Facing changed mid-turn; it must hold its "+
-				"pre-turn value for the whole interval (advanceTurns)", iv.startTick)
+		if !iv.facingMoved {
+			t.Errorf("interval starting tick %d: Facing never advanced during its multi-tick turn", iv.startTick)
 		}
 		if len(iv.distinctOctants) < 3 {
 			t.Errorf("interval starting tick %d (longest remaining %d): drawn octant visited "+

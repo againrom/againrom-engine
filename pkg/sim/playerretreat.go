@@ -37,7 +37,7 @@ func (w *World) retreatOrder(cmds []Command, first int, consumed []bool) {
 			w.cancelScroll(i)
 		}
 		e := &w.entities[i]
-		e.clearEscort()
+		w.clearEscort(i)
 		e.PendingOrder = PendingOrder{}
 		e.ActorState = actorStateRetreat
 		e.Retreat = RetreatContinuation{Known: true, Progress: w.retreatCurrentProgress(i)}

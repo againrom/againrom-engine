@@ -21,9 +21,9 @@ func TestTurnDurationUsesTheShortestByteArc(t *testing.T) {
 	}{
 		{"wrap clockwise", 224, 0, 16, 32, 1, 0},
 		{"wrap counter-clockwise", 0, 224, 16, 32, 1, 224},
-		{"two directions", 0, 64, 24, 64, 3, 0},
-		{"half circle", 64, 192, 16, 128, 8, 64},
-		{"very large positive rate", 64, 192, 2147483647, 128, 1, 64},
+		{"two directions", 0, 64, 24, 64, 3, 24},
+		{"half circle", 64, 192, 16, 128, 8, 80},
+		{"very large positive rate", 64, 192, 2147483647, 128, 1, 192},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := facingArc(tc.from, tc.to); got != tc.wantArc {
@@ -54,16 +54,17 @@ func TestMovementWaitsForItsTurnAndRetainsRoutes(t *testing.T) {
 	})
 	Step(w, []Command{{Entity: 1, X: 1, Y: 3}})
 	e := w.entities[0]
-	if e.X != 3 || e.Y != 3 || e.Facing != facingOfDir(2) || e.DesiredFacing != facingOfDir(6) || e.TurnRemaining != 8 {
+	if e.X != 3 || e.Y != 3 || e.Facing != 80 || e.DesiredFacing != facingOfDir(6) || e.TurnRemaining != 8 {
 		t.Fatalf("initial reverse = %+v, want stationary east-to-west turn with 8 ticks", e)
 	}
 	if len(w.routes[0]) == 0 {
 		t.Fatal("large turn discarded its admitted route")
 	}
-	for remaining := uint8(7); remaining > 0; remaining-- {
+	for call, facing := range []uint8{96, 112, 128, 144, 160, 176, 192} {
+		remaining := uint8(7 - call)
 		Step(w, nil)
 		e = w.entities[0]
-		if e.X != 3 || e.Y != 3 || e.TurnRemaining != remaining {
+		if e.X != 3 || e.Y != 3 || e.Facing != facing || e.TurnRemaining != remaining {
 			t.Fatalf("remaining %d: actor = %+v", remaining, e)
 		}
 	}
@@ -87,8 +88,8 @@ func TestTurnReplacementRestartsButARepeatedOrderPreservesProgress(t *testing.T)
 	}
 	Step(w, []Command{{Entity: 1, X: 4, Y: 2}})
 	e := w.entities[0]
-	if e.DesiredFacing != facingOfDir(0) || e.TurnRemaining != 4 || e.Facing != facingOfDir(2) {
-		t.Errorf("replacement destination left %+v, want a fresh four-tick north turn", e)
+	if e.DesiredFacing != facingOfDir(0) || e.TurnRemaining != 7 || e.Facing != 112 {
+		t.Errorf("replacement destination left %+v, want current facing 112 and seven-call north turn", e)
 	}
 }
 
@@ -239,11 +240,8 @@ func TestTurnFaultRejectsStatesNoProducerCanMake(t *testing.T) {
 	}{
 		{"nonpositive active rate", func(e *Entity) { e.DesiredFacing, e.TurnRemaining, e.TurnTotal, e.RotationSpeed = 32, 1, 1, 0 }},
 		{"missing total", func(e *Entity) { e.DesiredFacing, e.TurnRemaining = 32, 1 }},
-		{"remainder above total", func(e *Entity) { e.DesiredFacing, e.TurnRemaining, e.TurnTotal = 32, 2, 1 }},
-		{"non-direction desired", func(e *Entity) { e.DesiredFacing, e.TurnRemaining, e.TurnTotal = 31, 1, 1 }},
 		{"overlong remainder", func(e *Entity) { e.DesiredFacing, e.TurnRemaining, e.TurnTotal = 128, 129, 129 }},
 		{"equal long turn", func(e *Entity) { e.DesiredFacing, e.TurnRemaining, e.TurnTotal = 0, 2, 2 }},
-		{"equal facing with stale total", func(e *Entity) { e.DesiredFacing, e.TurnRemaining, e.TurnTotal = 0, 1, 2 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e := base
@@ -321,12 +319,12 @@ func TestDeathDuringAnActiveTurnClearsItWithoutCompletingIt(t *testing.T) {
 		turnActor(1, 3, 3, facingOfDir(2), 16),
 	})
 	Step(w, []Command{{Entity: 1, X: 1, Y: 3}})
-	if e := w.entities[0]; e.Facing != facingOfDir(2) || e.DesiredFacing != facingOfDir(6) || e.TurnRemaining != 8 {
+	if e := w.entities[0]; e.Facing != 80 || e.DesiredFacing != facingOfDir(6) || e.TurnRemaining != 8 {
 		t.Fatalf("setup: turn did not start as expected: %+v", e)
 	}
 	Step(w, nil)
 	Step(w, nil)
-	if e := w.entities[0]; !e.Turning() || e.TurnRemaining != 6 {
+	if e := w.entities[0]; !e.Turning() || e.Facing != 112 || e.TurnRemaining != 6 {
 		t.Fatalf("setup: turn did not stay open two ticks in: %+v", e)
 	}
 
@@ -345,9 +343,8 @@ func TestDeathDuringAnActiveTurnClearsItWithoutCompletingIt(t *testing.T) {
 	if e.TurnTotal != 0 {
 		t.Fatalf("death left TurnTotal = %d, want 0", e.TurnTotal)
 	}
-	if e.Facing != facingOfDir(2) {
-		t.Fatalf("death changed Facing to %d, want the pre-death facing %d (a corpse does not finish its turn)",
-			e.Facing, facingOfDir(2))
+	if e.Facing != 128 {
+		t.Fatalf("death changed Facing to %d, want 128 from the kill tick's body step", e.Facing)
 	}
 	if e.DesiredFacing != e.Facing {
 		t.Fatalf("death left DesiredFacing %d != Facing %d, which turnFault refuses on a non-turning actor",

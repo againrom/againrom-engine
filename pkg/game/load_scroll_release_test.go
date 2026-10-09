@@ -90,6 +90,7 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 		return a
 	}
 	a, oracle := makeApp(true), makeApp(false)
+	bar, _ := sharedListBar(f, image.Rect(122, 152, 504, 342), 10)
 	type receipt struct {
 		Stage, Input         string
 		X, Y, Selection, Top int
@@ -125,39 +126,7 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 				}
 			}
 		}
-		thumb := image.Rect(504, 176+selection*118/26, 528, 200+selection*118/26)
-		counts := map[int]int{}
-		for _, index := range []int{18, 19, 20, 16} {
-			r := image.Rect(504, 152, 528, 176)
-			if index == 19 {
-				r = image.Rect(504, 176, 528, 318)
-			}
-			if index == 20 {
-				r = image.Rect(504, 318, 528, 342)
-			}
-			if index == 16 {
-				r = thumb
-			}
-			for yy := r.Min.Y; yy < r.Max.Y; yy++ {
-				for xx := r.Min.X; xx < r.Max.X; xx++ {
-					if index == 19 && image.Pt(xx, yy).In(thumb) {
-						continue
-					}
-					sy := (yy - r.Min.Y) % 24
-					c := frames[index].RGBAAt(xx-504, sy)
-					if c.A != 255 {
-						continue
-					}
-					counts[index]++
-					if got := pic.RGBAAt(xx, yy); got != c {
-						t.Fatalf("%s installed frame%d pixel%d,%d=%v want%v", stage, index, xx, yy, got, c)
-					}
-				}
-			}
-			if counts[index] == 0 {
-				t.Fatalf("%s frame%d vacuous", stage, index)
-			}
-		}
+		counts := assertInstalledChooserBar(t, pic, frames, bar, selection, len(rows))
 		if len(loaded) != 0 || len(prepared) != 0 || removed != 0 {
 			t.Fatalf("%s scroll activated Load/Delete: %v/%v/%d", stage, loaded, prepared, removed)
 		}
@@ -184,50 +153,56 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 			t.Fatal(err)
 		}
 	}
+	// The drag maps the pointer row to (N-1)*(y-T-24)/(H-3*(W-4)) (MENU-119):
+	// rowFor is the first row reading pos, thumbAt the thumb's centre at pos.
+	span := bar.Dy() - 3*(bar.Dx()-4)
+	rowFor := func(pos int) int { return bar.Min.Y + 24 + (pos*span+len(rows)-2)/(len(rows)-1) }
+	thumbAt := func(pos int) int { return bar.Min.Y + 24 + pos*(bar.Dy()-3*bar.Dx()+8)/(len(rows)-1) - 4 + 12 }
+	x := bar.Min.X + 12
 	capture("initial", "load", 0, 0, 0, 0)
-	pointer("press", 516, 188)
-	capture("pressed", "press", 516, 188, 0, 0)
-	pointer("move", 516, 247)
+	pointer("press", x, thumbAt(0))
+	capture("pressed", "press", x, thumbAt(0), 0, 0)
+	pointer("move", x, rowFor(13))
 	key(oracle, "down", 13)
-	capture("held-midpoint", "move", 516, 247, 13, 4)
-	pointer("move", 516, 306)
+	capture("held-midpoint", "move", x, rowFor(13), 13, 4)
+	pointer("move", x, rowFor(26))
 	key(oracle, "down", 13)
-	capture("held-end", "move", 516, 306, 26, 17)
-	pointer("move", 516, 221)
+	capture("held-end", "move", x, rowFor(26), 26, 17)
+	pointer("move", x, rowFor(7))
 	key(oracle, "up", 19)
-	capture("held-reversal", "move", 516, 221, 7, 7)
-	pointer("move", 140, 247)
+	capture("held-reversal", "move", x, rowFor(7), 7, 7)
+	pointer("move", 140, rowFor(13))
 	key(oracle, "down", 6)
-	capture("held-outside-bar", "move", 140, 247, 13, 7)
+	capture("held-outside-bar", "move", 140, rowFor(13), 13, 7)
 	pointer("release", 140, 272)
 	capture("release-on-selected-row", "release", 140, 272, 13, 7)
-	pointer("move", 516, 306)
-	capture("release-tail", "move", 516, 306, 13, 7)
+	pointer("move", x, rowFor(26))
+	capture("release-tail", "move", x, rowFor(26), 13, 7)
 	pointer("release", 324, 392)
 	capture("delete-release-tail", "release", 324, 392, 13, 7)
-	pointer("press", 516, 247)
+	pointer("press", x, thumbAt(13))
 	if err := a.HeadlessFocus(false); err != nil {
 		t.Fatal(err)
 	}
-	pointer("move", 516, 306)
+	pointer("move", x, rowFor(26))
 	if err := a.HeadlessFocus(true); err != nil {
 		t.Fatal(err)
 	}
-	pointer("move", 516, 306)
+	pointer("move", x, rowFor(26))
 	pointer("release", 200, 392)
 	capture("focus-cancelled", "release", 200, 392, 13, 7)
-	pointer("press", 516, 247)
+	pointer("press", x, thumbAt(13))
 	key(a, "escape", 1)
 	key(a, "load", 1)
-	pointer("move", 516, 306)
+	pointer("move", x, rowFor(26))
 	pointer("release", 200, 392)
 	key(oracle, "home", 1)
 	capture("reopened", "release", 200, 392, 0, 0)
-	pointer("press", 516, 188)
-	pointer("move", 516, 247)
-	pointer("release", 516, 247)
+	pointer("press", x, thumbAt(0))
+	pointer("move", x, rowFor(13))
+	pointer("release", x, rowFor(13))
 	key(oracle, "down", 13)
-	capture("final-selected", "release", 516, 247, 13, 4)
+	capture("final-selected", "release", x, rowFor(13), 13, 4)
 	key(a, "enter", 1)
 	if len(loaded) != 1 || loaded[0] != "slot-13.sav" || len(prepared) != 0 || removed != 0 {
 		t.Fatalf("exact token/action ownership=%v/%v/%d", loaded, prepared, removed)

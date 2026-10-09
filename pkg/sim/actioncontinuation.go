@@ -43,6 +43,7 @@ type ActorContinuation struct {
 	Transit, TransitTotal                                       uint16
 	Stride                                                      NativeStride
 	GroupSpeed, Facing, DesiredFacing, TurnRemaining, TurnTotal uint8
+	TurnState                                                   *TurnState `json:",omitempty"`
 	ImportedMotion                                              bool
 	MotionIssue                                                 string
 	Route                                                       [][2]int32
@@ -70,6 +71,8 @@ type ActorContinuation struct {
 	EscortTarget                                                EntityID
 	HasEscortTarget                                             bool
 	EscortRange                                                 uint8
+	EscortOrder                                                 uint8 `json:",omitempty"`
+	EscortTurnPending                                           bool  `json:",omitempty"`
 	CommandGroup                                                uint32
 	Order                                                       *ActionOrderContinuation
 	ProfileBasis                                                *CurrentProfileBasis
@@ -151,6 +154,11 @@ func (w *World) Actions() ActionContinuations {
 			issue = m.Issue
 		}
 		var order *ActionOrderContinuation
+		var turn *TurnState
+		if e.TurnState.Present {
+			state := e.TurnState
+			turn = &state
+		}
 		if o := w.savedOrder(e.ID); o != nil {
 			ordinal := ordinals[e.ID]
 			order = &ActionOrderContinuation{State: o.State, Authored: o.Authored, RepairStage: o.RepairStage, Inner: o.Raw[8], Progress: o.Raw[9], Retry: o.Raw[0x15], Ordinal: &ordinal}
@@ -165,7 +173,7 @@ func (w *World) Actions() ActionContinuations {
 			HasTarget: e.HasTarget, OffMap: e.OffMap, Stall: e.Stall, Retreat: retreat,
 			Transit: e.Transit, TransitTotal: e.TransitTotal, Stride: e.Stride,
 			GroupSpeed: e.GroupSpeed, Facing: e.Facing, DesiredFacing: e.DesiredFacing,
-			TurnRemaining: e.TurnRemaining, TurnTotal: e.TurnTotal, ImportedMotion: m != nil && m.Current, MotionIssue: issue,
+			TurnRemaining: e.TurnRemaining, TurnTotal: e.TurnTotal, TurnState: turn, ImportedMotion: m != nil && m.Current, MotionIssue: issue,
 			Route: w.Route(e.ID), ActorState: e.ActorState, AttackTarget: e.AttackTarget,
 			AttackTargetKind: e.AttackTargetKind, HasAttackTarget: e.HasAttackTarget,
 			PendingAttackTarget: e.PendingAttackTarget, PendingAttackTargetKind: e.PendingAttackTargetKind, HasPendingAttackTarget: e.HasPendingAttackTarget,
@@ -177,6 +185,7 @@ func (w *World) Actions() ActionContinuations {
 			PatrolTailX: e.PatrolTailX, PatrolTailY: e.PatrolTailY, PatrolLeg: e.PatrolLeg,
 			PostX: e.PostX, PostY: e.PostY, EscortTarget: e.EscortTarget,
 			HasEscortTarget: e.HasEscortTarget, EscortRange: e.EscortRange, CommandGroup: e.CommandGroup, Order: order, ProfileBasis: &basis,
+			EscortOrder: e.EscortOrder, EscortTurnPending: e.EscortTurnPending,
 			Current: &ActorCurrentContinuation{Class: &class, AdmittedBookSpell: e.AdmittedBookSpell, RotationSpeed: e.RotationSpeed, WeaponSpell: e.WeaponSpell, WeaponSpellLevel: e.WeaponSpellLevel, WeaponSpellSource: e.WeaponSpellSource, SpellFX: e.SpellFX, SpellFXSpell: e.SpellFXSpell},
 		})
 		if e.Pursuit.Held {
@@ -423,6 +432,10 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		e.Transit, e.TransitTotal, e.Stride = v.Transit, v.TransitTotal, v.Stride
 		e.GroupSpeed, e.Facing, e.DesiredFacing = v.GroupSpeed, v.Facing, v.DesiredFacing
 		e.TurnRemaining, e.TurnTotal = v.TurnRemaining, v.TurnTotal
+		e.TurnState = TurnState{}
+		if v.TurnState != nil {
+			e.TurnState = *v.TurnState
+		}
 		e.ActorState, e.AttackTarget, e.AttackTargetKind, e.HasAttackTarget = v.ActorState, v.AttackTarget, v.AttackTargetKind, v.HasAttackTarget
 		e.Retreat = RetreatContinuation{}
 		if v.Retreat != nil {
@@ -439,6 +452,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		e.ActionClock, e.Withdraw, e.Wimpy = v.ActionClock, v.Withdraw, v.Wimpy
 		e.PatrolHeadX, e.PatrolHeadY, e.PatrolTailX, e.PatrolTailY, e.PatrolLeg = v.PatrolHeadX, v.PatrolHeadY, v.PatrolTailX, v.PatrolTailY, v.PatrolLeg
 		e.PostX, e.PostY, e.EscortTarget, e.HasEscortTarget, e.EscortRange, e.CommandGroup = v.PostX, v.PostY, v.EscortTarget, v.HasEscortTarget, v.EscortRange, v.CommandGroup
+		e.EscortOrder, e.EscortTurnPending = v.EscortOrder, v.EscortTurnPending
 		if v.Order != nil {
 			if o := n.savedOrder(e.ID); o != nil {
 				if v.Order.Authored {
@@ -492,6 +506,9 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 			return err
 		}
 		if err := turnFault(*e); err != nil {
+			return err
+		}
+		if err := escortResidueFault(*e); err != nil {
 			return err
 		}
 		if !e.AttackPhase.defined() || e.AttackTargetKind > AttackTargetStructure || !e.ActionClock.Known && e.ActionClock.End != 0 {

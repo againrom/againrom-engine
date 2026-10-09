@@ -498,10 +498,9 @@ func TestANoticeCanSendTheFrontEndToTheTown(t *testing.T) {
 	}
 }
 
-// The press that dismisses an outcome owns its release even when the press
-// changes screens. Town doors activate on release, so letting that other half
-// reach the newly opened town would enter whichever door happened to be under
-// the pointer without a second click.
+// The release that dismisses an outcome is consumed by the button even when
+// it changes screens. Town doors activate on release, so letting it reach the
+// newly opened town would enter whichever door lay under the pointer.
 func TestMissionCompleteClickIsConsumedAcrossTheTownTransition(t *testing.T) {
 	town := &fakeSquareTown{}
 	a, seam := noticeApp(t)
@@ -513,23 +512,22 @@ func TestMissionCompleteClickIsConsumedAcrossTheTownTransition(t *testing.T) {
 	l := AuthoredOutcomeLayout()
 	button := l.Button.Add(l.Box.Min)
 	now := time.Unix(1_700_000_000, 0)
-	a.step(appInput{
-		PrimaryPressed: true,
-		CursorX:        (button.Min.X + button.Max.X) / 2,
-		CursorY:        (button.Min.Y + button.Max.Y) / 2,
-	}, now)
+	bx, by := (button.Min.X+button.Max.X)/2, (button.Min.Y+button.Max.Y)/2
+	a.step(appInput{PrimaryPressed: true, CursorX: bx, CursorY: by}, now)
+	if a.Screen() != ScreenMap {
+		t.Fatalf("screen after outcome press = %v, want the map until the release", a.Screen())
+	}
+	a.step(appInput{PrimaryReleased: true, CursorX: bx, CursorY: by}, now)
 	if a.Screen() != ScreenTown {
-		t.Fatalf("screen after outcome press = %v, want ScreenTown", a.Screen())
+		t.Fatalf("screen after outcome release = %v, want ScreenTown", a.Screen())
 	}
 	if len(town.chosen) != 0 {
-		t.Fatalf("outcome press chose town rows %v", town.chosen)
+		t.Fatalf("outcome release chose town rows %v", town.chosen)
 	}
 
 	x, y, w, h := townSquareRect(0)
 	doorX, doorY := x+w/2, y+h/2
-	// The held frame and release are the rest of the outcome-button gesture.
 	a.step(appInput{CursorX: doorX, CursorY: doorY}, now)
-	a.step(appInput{PrimaryReleased: true, CursorX: doorX, CursorY: doorY}, now)
 	if len(town.chosen) != 0 {
 		t.Fatalf("outcome release fell through to town rows %v", town.chosen)
 	}

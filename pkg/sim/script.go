@@ -1992,6 +1992,9 @@ func (w *World) stopGroupMembers(group uint32) []int {
 			w.clearOrder(mi)
 			w.retainCycleForState(mi)
 			w.entities[mi].clearGroupSpeed()
+			if escortState(w.entities[mi].ActorState) {
+				w.clearEscort(mi)
+			}
 			stopped = append(stopped, mi)
 		}
 	}
@@ -2011,7 +2014,7 @@ func (w *World) stopGroupMembers(group uint32) []int {
 // writes are byte for byte the named unit's three.
 func (w *World) acquireInPlace(i int) {
 	e := &w.entities[i]
-	e.clearEscort()
+	w.clearEscort(i)
 	e.ActorState = actorStateAcquire
 	e.PostX, e.PostY = e.X, e.Y
 }
@@ -2073,7 +2076,7 @@ func (w *World) cmdGroupAttack(in ScriptInstant) {
 			continue
 		}
 		// TRIG-GRPARM-047 names the same explicit setter as the player command.
-		w.entities[mi].clearEscort()
+		w.clearEscort(mi)
 		accepted := !w.actorCastBusy(mi) && w.attachAttack(mi, in.Unit, AttackTargetUnit, true)
 		// AND THE STATE THE ORDER BELONGS TO (1141). It was left at guard while no
 		// arm read the byte; the per-actor guard arm reads it now, and a member
@@ -2227,6 +2230,7 @@ func (w *World) cmdGroupPatrol(in ScriptInstant) {
 			w.clearOrder(mi)          //
 			w.retainCycleForState(mi) //
 			e.clearGroupSpeed()       //
+			w.clearEscort(mi)
 			e.ActorState = actorStatePatrol
 			e.PatrolHeadX, e.PatrolHeadY = e.X, e.Y
 			e.PatrolTailX, e.PatrolTailY = w.bounds.clamp(in.Args[1], in.Args[2])

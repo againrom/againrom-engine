@@ -128,70 +128,40 @@ func assertHelpStyleFrozen(t *testing.T, calls *helpStyleCalls) {
 	}
 }
 
+// helpStyleBarArea is the help bar with the parts' (+4,+4) shadows.
+var helpStyleBarArea = image.Rect(422, 56, 450, 271)
+
 func assertHelpStyleOutsideBar(t *testing.T, pix, fallback *image.RGBA) {
 	t.Helper()
-	bar := image.Rect(422, 56, 446, 267)
 	for y := 0; y < 360; y++ {
 		for x := 0; x < 488; x++ {
-			if !image.Pt(x, y).In(bar) && pix.RGBAAt(x, y) != fallback.RGBAAt(x, y) {
+			if !image.Pt(x, y).In(helpStyleBarArea) && pix.RGBAAt(x, y) != fallback.RGBAAt(x, y) {
 				t.Fatalf("F1 skin changed text, OK or frame outside bar at %d,%d", x, y)
 			}
 		}
 	}
 }
 
-func assertHelpStyleSourcePixels(t *testing.T, pix, background *image.RGBA, frames []*image.RGBA, thumbY int) {
+// assertHelpStyleSourcePixels checks the panel's bar area against the shared
+// bar painter over the bar-less panel, at position pos of the 49 positions,
+// and that the panel drew exactly one shared bar there.
+func assertHelpStyleSourcePixels(t *testing.T, v *Viewer, pix *image.RGBA, frames []*image.RGBA, pos int) {
 	t.Helper()
-	counts := map[int]int{}
-	for y := 56; y < 267; y++ {
-		for x := 422; x < 446; x++ {
-			want := color.RGBA{}
-			if background != nil {
-				want = background.RGBAAt(x, y)
+	l, body, _ := v.HelpPanel()
+	bar := helpBar(l.Scrollbar, pos, 60, 12)
+	bar.TopHot, bar.BottomHot = l.ScrollbarTopHot, l.ScrollbarBottomHot
+	l.Scrollbar = image.Rectangle{}
+	want := RenderNotice(l, v.font, body, nil)
+	drawVScrollBar(want, frames, bar)
+	for y := helpStyleBarArea.Min.Y; y < helpStyleBarArea.Max.Y; y++ {
+		for x := helpStyleBarArea.Min.X; x < helpStyleBarArea.Max.X; x++ {
+			if got := pix.RGBAAt(x, y); got != want.RGBAAt(x, y) {
+				t.Fatalf("F1 bar at %d,%d = %v, want %v (position %d)", x, y, got, want.RGBAAt(x, y), pos)
 			}
-			index, sy := 19, (y-80)%24
-			switch {
-			case y < 80:
-				index, sy = 18, y-56
-			case y >= 243:
-				index, sy = 20, y-243
-			}
-			under := frames[index].RGBAAt(x-422, sy)
-			if under.A == 255 {
-				want = under
-			} else if under.A != 0 {
-				t.Fatal("synthetic F1 source has unexpected partial alpha")
-			}
-			if y >= thumbY && y < thumbY+32 {
-				thumb := frames[16].RGBAAt(x-422, (y-thumbY)*24/32)
-				if thumb.A == 255 {
-					want = thumb
-					index = 16
-				} else if thumb.A != 0 {
-					t.Fatal("synthetic F1 thumb has unexpected partial alpha")
-				}
-			}
-			if got := pix.RGBAAt(x, y); got != want {
-				t.Fatalf("F1 source frame %d at %d,%d = %v, want %v (thumb %d..%d)", index, x, y, got, want, thumbY, thumbY+32)
-			}
-			counts[index]++
 		}
 	}
-	for _, index := range []int{16, 18, 19, 20} {
-		if counts[index] == 0 {
-			t.Fatalf("F1 source frame %d checked no pixels", index)
-		}
-		if background == nil {
-			want := 576
-			if index == 16 {
-				want = 768
-			} else if index == 19 {
-				want = 3144
-			}
-			if counts[index] != want {
-				t.Fatalf("F1 source frame %d checked %d pixels, want %d", index, counts[index], want)
-			}
-		}
+	if thumb := bar.Thumb(); scrollArt(frames) && pix.RGBAAt(thumb.Min.X, thumb.Min.Y) != frames[barThumbFrame].RGBAAt(0, 0) {
+		t.Fatalf("F1 thumb frame not at %v", thumb.Min)
 	}
 }
 
@@ -206,38 +176,38 @@ func TestHelpScrollbarSkinKeepsHeldDragGeometryAndWorld(t *testing.T) {
 			if first, _ := v.HelpScroll(); first != 0 {
 				t.Fatalf("F1 initial thumb press moved to %d", first)
 			}
-			x, y = helpWindowPoint(t, v, image.Pt(434, 162))
+			x, y = helpWindowPoint(t, v, image.Pt(434, 156))
 			a.step(helpDown(x, y), now.Add(2*time.Millisecond))
-			if first, last := v.HelpScroll(); first != 24 || last != 48 || v.help.hold != helpHoldThumb {
-				t.Fatalf("held F1 midpoint before release = %d/%d/%v, want 24/48/thumb", first, last, v.help.hold)
+			if first, last := v.HelpScroll(); first != 24 || last != 48 || !v.help.bar.drag {
+				t.Fatalf("held F1 midpoint before release = %d/%d/%v, want 24/48/thumb", first, last, v.help.bar.drag)
 			}
 			middle, fallback24 := helpStylePictures(t, a, v, frames)
-			x, y = helpWindowPoint(t, v, image.Pt(434, 227))
+			x, y = helpWindowPoint(t, v, image.Pt(434, 236))
 			a.step(helpDown(x, y), now.Add(3*time.Millisecond))
 			if first, last := v.HelpScroll(); first != 48 || last != 48 {
 				t.Fatalf("held F1 bottom before release = %d/%d, want 48/48", first, last)
 			}
 			bottom, fallback48 := helpStylePictures(t, a, v, frames)
-			x, y = helpWindowPoint(t, v, image.Pt(120, 227))
+			x, y = helpWindowPoint(t, v, image.Pt(120, 236))
 			a.step(appInput{CursorX: x, CursorY: y, PrimaryReleased: true}, now.Add(4*time.Millisecond))
 			x, y = helpWindowPoint(t, v, image.Pt(434, 96))
 			a.step(appInput{CursorX: x, CursorY: y}, now.Add(5*time.Millisecond))
 			a.step(helpDown(x, y), now.Add(6*time.Millisecond))
-			if first, _ := v.HelpScroll(); first != 48 || v.help.hold != helpHoldNone || !v.HelpOpen() {
-				t.Fatalf("outside release/next idle retained F1 drag: %d/%v/%t", first, v.help.hold, v.HelpOpen())
+			if first, _ := v.HelpScroll(); first != 48 || v.help.bar.active() || !v.HelpOpen() {
+				t.Fatalf("outside release/next idle retained F1 drag: %d/%v/%t", first, v.help.bar.active(), v.HelpOpen())
 			}
 			assertHelpStyleFrozen(t, calls)
 			for _, stage := range []struct {
 				name          string
 				pix, fallback *image.RGBA
-				thumbY        int
-			}{{"initial", initial, fallback0, 80}, {"middle", middle, fallback24, 145}, {"bottom", bottom, fallback48, 211}} {
+				pos           int
+			}{{"initial", initial, fallback0, 0}, {"middle", middle, fallback24, 24}, {"bottom", bottom, fallback48, 48}} {
 				t.Run(stage.name, func(t *testing.T) {
 					assertHelpStyleOutsideBar(t, stage.pix, stage.fallback)
-					assertHelpStyleSourcePixels(t, stage.pix, nil, frames, stage.thumbY)
+					assertHelpStyleSourcePixels(t, v, stage.pix, frames, stage.pos)
 				})
 			}
-			if got, want := middle.RGBAAt(434, 96), frames[19].RGBAAt(12, 16); got != want || got == initial.RGBAAt(434, 96) {
+			if got, want := middle.RGBAAt(434, 96), frames[barTrackFrame].RGBAAt(12, 16); got != want || got == initial.RGBAAt(434, 96) {
 				t.Errorf("F1 old thumb did not restore track: %v, want %v", got, want)
 			}
 			a.step(appInput{Escape: true}, now.Add(7*time.Millisecond))
@@ -264,7 +234,7 @@ func TestHelpScrollbarSkinRefreshesCacheAndTravelsToNewViewer(t *testing.T) {
 	a.SetCutsceneScrollArt(frames)
 	x, y := helpWindowPoint(t, v, image.Pt(434, 96))
 	a.step(helpPressAt(x, y), now.Add(time.Millisecond))
-	x, y = helpWindowPoint(t, v, image.Pt(434, 162))
+	x, y = helpWindowPoint(t, v, image.Pt(434, 156))
 	a.step(helpDown(x, y), now.Add(2*time.Millisecond))
 	a.step(appInput{CursorX: x, CursorY: y, PrimaryReleased: true}, now.Add(3*time.Millisecond))
 	before := helpStylePicture(t, v)
@@ -274,7 +244,7 @@ func TestHelpScrollbarSkinRefreshesCacheAndTravelsToNewViewer(t *testing.T) {
 		t.Fatal("unchanged F1 recomposed its cache")
 	}
 	replacement := loadScrollTestFrames()
-	for _, index := range []int{16, 18, 19, 20} {
+	for _, index := range []int{18, 19, 20, 22} {
 		for y := 0; y < 24; y++ {
 			for x := 0; x < 24; x++ {
 				c := replacement[index].RGBAAt(x, y)
@@ -289,7 +259,7 @@ func TestHelpScrollbarSkinRefreshesCacheAndTravelsToNewViewer(t *testing.T) {
 		t.Fatalf("F1 replacement did not refresh cache at same scroll: %d/%d builds %d/%d", first, last, v.noticeBuilds, builds)
 	}
 	assertHelpStyleOutsideBar(t, after, before)
-	assertHelpStyleSourcePixels(t, after, nil, replacement, 145)
+	assertHelpStyleSourcePixels(t, v, after, replacement, 24)
 	layout, _, _ := v.HelpPanel()
 	if !reflect.DeepEqual(*shared, saved) || a.flow.menuArt != shared || v.dialogFrame != shared || layout.Frame == nil || layout.Frame == shared || layout.Frame.Minimap != shared.Minimap {
 		t.Fatal("F1 resolved frame did not preserve shared caller frame and artwork")
@@ -310,25 +280,27 @@ func TestHelpScrollbarSkinRefreshesCacheAndTravelsToNewViewer(t *testing.T) {
 	if lines, visible := v.HelpLines(); !v.HelpOpen() || lines != 60 || visible != 12 {
 		t.Fatalf("new Viewer lost F1 body: %d/%d/%t", lines, visible, v.HelpOpen())
 	}
-	assertHelpStyleSourcePixels(t, helpStylePicture(t, v), nil, replacement, 80)
+	assertHelpStyleSourcePixels(t, v, helpStylePicture(t, v), replacement, 0)
 	assertHelpStyleFrozen(t, calls)
 }
 
 func TestHelpScrollbarSkinRequiresOnlyUsableFrames(t *testing.T) {
-	for _, name := range []string{"21 frames", "unrelated nil"} {
+	for _, name := range []string{"24 frames", "unrelated nil"} {
 		t.Run(name, func(t *testing.T) {
 			frames := loadScrollTestFrames()
-			if name == "21 frames" {
-				frames = frames[:21]
+			if name == "24 frames" {
+				frames = frames[:24]
+			} else {
+				frames[16] = nil
 			}
 			a, v, calls, _, _ := helpStyleApp(t, frames, 0, 0)
 			pix, fallback := helpStylePictures(t, a, v, frames)
 			assertHelpStyleOutsideBar(t, pix, fallback)
-			assertHelpStyleSourcePixels(t, pix, nil, frames, 80)
+			assertHelpStyleSourcePixels(t, v, pix, frames, 0)
 			assertHelpStyleFrozen(t, calls)
 		})
 	}
-	for _, index := range []int{16, 18, 19, 20} {
+	for _, index := range []int{18, 19, 20, 22} {
 		for _, damage := range []string{"missing", "nil", "empty"} {
 			t.Run(fmt.Sprintf("frame-%d-%s", index, damage), func(t *testing.T) {
 				frames := loadScrollTestFrames()
@@ -352,31 +324,26 @@ func TestHelpScrollbarSkinRequiresOnlyUsableFrames(t *testing.T) {
 	}
 }
 
+// Opaque RGB black in a part stays black; a transparent pixel shows what
+// lies under it: the panel, or an earlier part.
 func TestHelpScrollbarSkinKeepsOpaqueBlackAndStructuralTransparency(t *testing.T) {
 	frames := loadScrollTestFrames()
-	for _, index := range []int{16, 18, 19, 20} {
+	for _, index := range []int{18, 19, 20, 22} {
 		frames[index].SetRGBA(12, 10, color.RGBA{})
 		frames[index].SetRGBA(13, 10, color.RGBA{0, 0, 0, 255})
 	}
-	frames[16].SetRGBA(12, 9, color.RGBA{})
-	frames[16].SetRGBA(13, 9, color.RGBA{0, 0, 0, 255})
 	a, v, calls, _, _ := helpStyleApp(t, frames, 0, 0)
 	pix, fallback := helpStylePictures(t, a, v, frames)
-	l, body, _ := v.HelpPanel()
-	l.Scrollbar = image.Rectangle{}
-	background := RenderNotice(l, v.font, body, nil)
 	assertHelpStyleOutsideBar(t, pix, fallback)
-	assertHelpStyleSourcePixels(t, pix, background, frames, 80)
-	for _, p := range []image.Point{{435, 66}, {435, 92}, {435, 138}, {435, 253}} {
+	assertHelpStyleSourcePixels(t, v, pix, frames, 0)
+	// Top cap at 56, thumb at 76, track tiles from 80, bottom cap at 243.
+	for _, p := range []image.Point{{435, 86}, {435, 114}, {435, 253}} {
 		if got := pix.RGBAAt(p.X, p.Y); got != (color.RGBA{0, 0, 0, 255}) {
 			t.Fatalf("F1 opaque RGB black became a hole at %v: %v", p, got)
 		}
 	}
-	if got, want := pix.RGBAAt(434, 92), frames[19].RGBAAt(12, 12); got != want {
-		t.Fatalf("F1 structural thumb hole did not reveal track: %v, want %v", got, want)
-	}
-	if got, want := pix.RGBAAt(434, 138), background.RGBAAt(434, 138); got != want {
-		t.Fatalf("F1 structural track hole did not reveal panel: %v, want %v", got, want)
+	if got, want := pix.RGBAAt(434, 86), mustLevel(t, widgetShadowLevel).Color(frames[barTrackFrame].RGBAAt(12, 86-80)); got != want {
+		t.Fatalf("F1 thumb hole did not reveal the shadowed track: %v, want %v", got, want)
 	}
 	assertHelpStyleFrozen(t, calls)
 }
@@ -402,7 +369,7 @@ func helpStyleHeldMiddle(t *testing.T, a *App, v *Viewer, now time.Time) {
 	t.Helper()
 	x, y := helpWindowPoint(t, v, image.Pt(434, 96))
 	a.step(helpPressAt(x, y), now.Add(time.Millisecond))
-	x, y = helpWindowPoint(t, v, image.Pt(434, 162))
+	x, y = helpWindowPoint(t, v, image.Pt(434, 156))
 	a.step(helpDown(x, y), now.Add(2*time.Millisecond))
 	assertHelpStyleHeldMiddle(t, v)
 }
@@ -411,8 +378,8 @@ func assertHelpStyleHeldMiddle(t *testing.T, v *Viewer) {
 	t.Helper()
 	_, body, ok := v.HelpPanel()
 	first, last := v.HelpScroll()
-	if !ok || body != helpStyleBody() || first != 24 || last != 48 || v.help.hold != helpHoldThumb || v.help.grab != 16 {
-		t.Fatalf("F1 setters changed body, position or held capture: %t/%d/%d/%v/%d", ok, first, last, v.help.hold, v.help.grab)
+	if !ok || body != helpStyleBody() || first != 24 || last != 48 || !v.help.bar.drag {
+		t.Fatalf("F1 setters changed body, position or held capture: %t/%d/%d/%v", ok, first, last, v.help.bar.drag)
 	}
 }
 
@@ -454,13 +421,13 @@ func TestHelpScrollbarSkinSurvivesFrameSetterOrdersAndReplacement(t *testing.T) 
 				layout, body, _ := v.HelpPanel()
 				layout.Frame = supplied
 				assertHelpStyleOutsideBar(t, pix, RenderNotice(layout, v.font, body, nil))
-				assertHelpStyleSourcePixels(t, pix, nil, frames, 145)
+				assertHelpStyleSourcePixels(t, v, pix, frames, 24)
 				if !reflect.DeepEqual(*firstArt, *firstSnapshot) || !reflect.DeepEqual(*secondArt, *secondSnapshot) {
 					t.Fatal("F1 setters mutated supplied frame or source pixels")
 				}
 				assertHelpStyleFrozen(t, calls)
 			}
-			x, y := helpWindowPoint(t, v, image.Pt(434, 227))
+			x, y := helpWindowPoint(t, v, image.Pt(434, 236))
 			a.step(helpDown(x, y), now.Add(3*time.Millisecond))
 			if first, _ := v.HelpScroll(); first != 48 {
 				t.Fatalf("F1 frame replacement broke held continuation: %d, want 48", first)
@@ -481,7 +448,7 @@ func TestHelpScrollbarSkinClearsIndependentlyFromFrame(t *testing.T) {
 	frames := loadScrollTestFrames()
 	a.SetCutsceneScrollArt(frames)
 	skinned := helpStylePicture(t, v)
-	assertHelpStyleSourcePixels(t, skinned, nil, frames, 145)
+	assertHelpStyleSourcePixels(t, v, skinned, frames, 24)
 	assertHelpStyleOutsideBar(t, skinned, frameFallback)
 	a.SetCutsceneScrollArt(nil)
 	cleared := helpStylePicture(t, v)
@@ -495,7 +462,7 @@ func TestHelpScrollbarSkinClearsIndependentlyFromFrame(t *testing.T) {
 	nilFrame := helpStylePicture(t, v)
 	assertHelpStyleHeldMiddle(t, v)
 	assertHelpStyleOutsideBar(t, nilFrame, nilFallback)
-	assertHelpStyleSourcePixels(t, nilFrame, nil, frames, 145)
+	assertHelpStyleSourcePixels(t, v, nilFrame, frames, 24)
 	a.SetCutsceneScrollArt(nil)
 	if cleared := helpStylePicture(t, v); !bytes.Equal(cleared.Pix, nilFallback.Pix) {
 		t.Fatal("nil frame plus cleared F1 scroll art lost original fallback panel")
@@ -504,7 +471,7 @@ func TestHelpScrollbarSkinClearsIndependentlyFromFrame(t *testing.T) {
 	if !reflect.DeepEqual(*art, *snapshot) {
 		t.Fatal("clearing or nil frame setter mutated supplied artwork")
 	}
-	x, y := helpWindowPoint(t, v, image.Pt(434, 227))
+	x, y := helpWindowPoint(t, v, image.Pt(434, 236))
 	a.step(helpDown(x, y), now.Add(3*time.Millisecond))
 	if first, _ := v.HelpScroll(); first != 48 {
 		t.Fatalf("F1 cleared/nil frame broke held continuation: %d, want 48", first)
@@ -548,7 +515,7 @@ func TestHelpScrollbarSkinKeepsOrdinaryNoticeAndPortraitPixels(t *testing.T) {
 				if portrait && bytes.Equal(pixels, omittedPixels) {
 					t.Fatal("ordinary portrait omission control is insensitive")
 				}
-				for _, frames := range [][]*image.RGBA{loadScrollTestFrames(), loadScrollTestFrames()[:21], nil} {
+				for _, frames := range [][]*image.RGBA{loadScrollTestFrames(), loadScrollTestFrames()[:20], nil} {
 					a.SetCutsceneScrollArt(frames)
 					after, _, _, ok := v.noticePresent()
 					if !ok || after == nil || after.Bounds() != bounds || !bytes.Equal(after.Pix, pixels) {
@@ -583,7 +550,7 @@ func TestHelpScrollbarSkinKeepsNilFrameSaveConfirmationPixels(t *testing.T) {
 	}
 	bounds, pixels := before.Bounds(), append([]byte(nil), before.Pix...)
 	state, _ := a.HeadlessSaveState()
-	for _, frames := range [][]*image.RGBA{loadScrollTestFrames(), loadScrollTestFrames()[:21], nil} {
+	for _, frames := range [][]*image.RGBA{loadScrollTestFrames(), loadScrollTestFrames()[:20], nil} {
 		a.SetCutsceneScrollArt(frames)
 		after, note, err := a.HeadlessFrame()
 		if err != nil || note != "" || after == nil || after.Bounds() != bounds || !bytes.Equal(after.Pix, pixels) {

@@ -283,7 +283,9 @@ func TestDialoguePointerUsesWindowPlacement(t *testing.T) {
 	}
 }
 
-func TestDialoguePointerKeepsOutcomePanelPressActions(t *testing.T) {
+// An outcome panel's button acts on the release inside it, as every push
+// button does (MENU-116); the press only latches.
+func TestDialoguePointerOutcomePanelActsOnRelease(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		kind      NoticeKind
@@ -314,13 +316,13 @@ func TestDialoguePointerKeepsOutcomePanelPressActions(t *testing.T) {
 			if tc.disabled {
 				wantCount = 0
 			}
-			if len(seam.actions) != wantCount || (wantCount != 0 && seam.actions[0] != tc.want) {
-				t.Fatalf("press actions = %v, want count %d, action %v", seam.actions, wantCount, tc.want)
+			if len(seam.actions) != 0 {
+				t.Fatalf("press actions = %v, want none before the release", seam.actions)
 			}
 			if err := a.HeadlessPointer("release", p.X, p.Y); err != nil {
 				t.Fatal(err)
 			}
-			if len(seam.actions) != wantCount || seam.v.held {
+			if len(seam.actions) != wantCount || (wantCount != 0 && seam.actions[0] != tc.want) || seam.v.held {
 				t.Fatalf("release actions = %v, selection gesture %v", seam.actions, seam.v.held)
 			}
 		})

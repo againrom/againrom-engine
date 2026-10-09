@@ -62,8 +62,8 @@ func TestTooltipOmitsEmptySeparators(t *testing.T) {
 	font := messageFont()
 	bounds := image.Rect(0, 0, 640, 480)
 	p := image.Pt(100, 300)
-	a, aa, ok := tooltipPicture(tooltipTarget{tooltipItem, "item", []string{"Sword", "#Damage 4", " ", "#", "#Value 9"}, font}, p, bounds)
-	b, bb, bok := tooltipPicture(tooltipTarget{tooltipItem, "item", []string{"Sword", "Damage 4", "Value 9"}, font}, p, bounds)
+	a, aa, ok := tooltipPicture(tooltipTarget{tooltipItem, "item", []string{"Sword", "#Damage 4", " ", "#", "#Value 9"}, font}, p, bounds, nil)
+	b, bb, bok := tooltipPicture(tooltipTarget{tooltipItem, "item", []string{"Sword", "Damage 4", "Value 9"}, font}, p, bounds, nil)
 	if !ok || !bok || aa != bb || a.Bounds() != b.Bounds() || !bytes.Equal(a.Pix, b.Pix) {
 		t.Fatal("empty separators changed the item popup")
 	}

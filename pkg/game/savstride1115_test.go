@@ -164,10 +164,12 @@ func TestSavedStride1115MalformedEnvelopeLeavesFrontEndUntouched(t *testing.T) {
 			before := groupDocumentSnapshot(t, f)
 			bad := before
 			bad.World = bytes.Clone(before.World)
-			if len(bad.World) < 54 || beforeAutoHealing1191(t, bad.World)[0] != 95 || binary.LittleEndian.Uint32(beforeStructureUseForm1150(t, bad.World)[len(beforeStructureUseForm1150(t, bad.World))-4:]) != 0 {
+			nativeForm := beforeTurnStateForm(t, bad.World)
+			legacy := beforeStructureUseForm1150(t, nativeForm)
+			if len(nativeForm) < 54 || beforeAutoHealing1191(t, nativeForm)[0] != 95 || binary.LittleEndian.Uint32(legacy[len(legacy)-4:]) != 0 {
 				t.Fatal("fixture is not the current native form with absent cell planes")
 			}
-			counterEnd := len(beforeStructureUseForm1150(t, bad.World)) - 8
+			counterEnd := len(legacy) - 8
 			if binary.LittleEndian.Uint32(bad.World[counterEnd:]) != 0 {
 				t.Fatal("unexpected native Roam counter")
 			}

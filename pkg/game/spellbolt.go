@@ -169,10 +169,10 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 			mw.spawnBurst(to, int(ev.Spell), ev.Owner, delay)
 		}
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
-		if ev.Spell == 6 || ev.Spell == 11 {
+		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 {
 			mw.healBursts = append(mw.healBursts, healBurst{at: to,
-				picture: data.CastPicture(int(ev.Spell)), owner: ev.TargetOwner,
-				seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: ev.Spell == 11})
+				picture: data.CastPicture(int(arm)), owner: ev.TargetOwner,
+				seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
 		}
 	}
 }

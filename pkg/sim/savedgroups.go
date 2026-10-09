@@ -441,6 +441,9 @@ func (w *World) savedActorDispatch(i int) {
 			}
 		}
 	case 8, 0x11:
+		if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
+			return
+		}
 		if !o.Authored {
 			if o.RepairStage != 0 || !o.EscortBound || !savedEscortBindingValid(*o, w.entities, w.originalDead) {
 				return
@@ -476,6 +479,8 @@ func (w *World) savedActorDispatch(i int) {
 			if o.Raw[0x14] == 0 {
 				o.Raw[0x14] = w.entities[i].ScanRange
 			}
+		} else if w.entities[i].EscortOrder == escortOrderIdle {
+			o.Raw[8] = 0xb
 		}
 	}
 }

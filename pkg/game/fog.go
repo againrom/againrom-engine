@@ -26,7 +26,7 @@ const fogPeriod = 32
 
 func (mw *mapWorld) localTeleportArrived(events []sim.CastEvent) bool {
 	for _, event := range events {
-		if event.Spell != 26 || event.Owner != sim.SelfSlot || (event.FromX == event.ToX && event.FromY == event.ToY) {
+		if mw.world.SpellArm(uint16(event.Spell)) != 26 || event.Owner != sim.SelfSlot || (event.FromX == event.ToX && event.FromY == event.ToY) {
 			continue
 		}
 		// A blocked placement emits the same endpoint effects and pays mana.

@@ -24,7 +24,7 @@ func (a *App) GameMenuPanel() *image.RGBA {
 	if a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil {
 		return a.soundOptionsPicture()
 	}
-	dst := composeGameMenuPanel(a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, a.flow.menuArt)
+	dst := composeGameMenuPanel(a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, a.flow.menuArt, a.menuPointer())
 	if message := a.gameMenuAcknowledgement(); message != "" {
 		font := a.flow.menuFont
 		r := image.Rect(pickerLeft, pickerMessageY, pickerLeft+pickerCols*pickerAdvance, pickerMessageY+pickerLine)
@@ -56,7 +56,24 @@ func (a *App) gameMenuAcknowledgement() string {
 	return ""
 }
 
-func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame) *image.RGBA {
+// gameMenuPointer is what the menu buttons read of the pointer: where it is
+// on the frame, and which button holds the press latch.
+type gameMenuPointer struct {
+	at    image.Point
+	ok    bool
+	press buttonLatch
+}
+
+// menuPointer is the pointer state the menu panel is drawn with.
+func (a *App) menuPointer() gameMenuPointer {
+	p, ok := a.pointerFrame()
+	return gameMenuPointer{at: p, ok: ok, press: a.flow.menuPress}
+}
+
+// composeGameMenuPanel draws the frame and one push button per row
+// (MENU-115, MENU-ART-014). The selected row is the keyboard focus. Status
+// and literal rows are text, not buttons.
+func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
 	art.Draw(dst, gameMenuPanelRectFor(s, rows))
 	if list == nil {
@@ -66,19 +83,17 @@ func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow
 	for slot := 0; slot < count && top+slot < len(rows); slot++ {
 		row := rows[top+slot]
 		r := gameMenuRowRect(s, slot)
-		since := markCapture()
-		if top+slot == list.Selection() {
-			drawMovieBox(dst, r, true)
+		if !row.Status && !row.Literal {
+			inside := pointer.ok && pointer.at.In(r)
+			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Hover: inside,
+				Focus: top+slot == list.Selection(), Pressed: pointer.press.pressed(top + slot),
+				Inside: inside, Disabled: !row.Enabled})
+			continue
 		}
+		since := markCapture()
 		label := row.text()
 		x, y := r.Min.X+gameMenuTextX, r.Min.Y+(gameMenuRowPitch-font.Height())/2
 		font.Draw(dst.SubImage(r).(*image.RGBA), label, x, y, gameMenuText)
-		if col := gameMenuAcceleratorColumn(row.Label); !row.Literal && col >= 0 && col < len(label) {
-			x += font.Advance(label[:col])
-			w := font.Advance(label[col : col+1])
-			y += font.Height()
-			draw.Draw(dst, image.Rect(x, y, x+w, y+1), &image.Uniform{C: gameMenuBorder}, image.Point{}, draw.Src)
-		}
 		if !row.Enabled && !row.Status {
 			dimDisabledRow(dst, r, since)
 		}

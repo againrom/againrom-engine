@@ -1840,18 +1840,9 @@ func sameSlice(a, b []sim.Command) bool {
 // that ordered before tick 0 could not tell an exclusion from a script that
 // never named the unit.
 //
-// THE SCRIPT'S OWN EAST TURN NEVER BECOMES VISIBLE AT ALL, which is a real
-// consequence and not an artifact of this test: the player's order lands one
-// tick later, while entity 0's Facing is still 0 (a turn's Facing does not
-// move until the turn completes — advanceTurns, pkg/sim/facing.go). Replacing
-// the target cancels the in-progress east turn outright
-// (cancelTurnForTargetChange), so the south-east turn that follows is
-// computed fresh from the UNCHANGED facing 0, not from wherever the cancelled
-// turn had progressed to. A one-tick-early exclusion could not be told apart
-// from this fixture's own timing by cell position either, for the same
-// reason: both land on the same tick, because Facing is 0 in both cases when
-// the redirect happens. Measured directly against this fixture rather than
-// assumed.
+// MOVE-105: the scripted east turn advances the current byte before the
+// player's south-east target replaces it. The early facing sequence below
+// distinguishes that progress from a script excluded before its first order.
 func TestACommandedUnitTakesNoFurtherScriptedTarget(t *testing.T) {
 	const (
 		orderedEntity        = 0
@@ -1868,17 +1859,16 @@ func TestACommandedUnitTakesNoFurtherScriptedTarget(t *testing.T) {
 	// tick, so the coverage is one assertion per tick written as the changes.
 	//
 	// Entity 0's ordered leg is south-east, so its cells cost the diagonal
-	// crossing; ordered is the tick the order drains and orderedTurnTicks the
-	// fresh south-east turn from facing 0 that follows it (ceil(96/16), the
-	// same arc and rate as the corner turn below). cornerTurnTicks is the
-	// diagonal-to-straight corner once the row axis is home, this fixture's
-	// twin of the one in TestAnOrderedUnitWalksToItsCellAndTheDigestFollowsAHeadlessRun.
+	// crossing. The east order steps to facing 16 at index 0 and the head pass
+	// reaches 32 at index 1. The new target 96 defers its step on that index;
+	// its remaining arc takes four later calls, then movement at index 6.
+	// cornerTurnTicks is the fresh short bend from 96 to 64, one call.
 	// Entity 0's steps all carry it EAST across the ramp, so both its scripted
 	// straight one and its ordered diagonals are the uphill counts; entity 1
 	// walks a column and stays on the level pair.
 	const (
 		ordered          = 1
-		orderedTurnTicks = 6
+		orderedTurnTicks = 5
 		cornerTurnTicks  = 1
 		// entity1TurnTicks is entity 1's own turn, north-to-south or the
 		// reverse, at every one of its four scripted legs: ceil(128/16), the
@@ -1888,7 +1878,7 @@ func TestACommandedUnitTakesNoFurtherScriptedTarget(t *testing.T) {
 		entity1TurnTicks = 8
 	)
 	e0At := map[int]image.Point{
-		ordered + orderedTurnTicks + 0*uphillDiagonalCellTicks:                                       {X: 22, Y: 24}, // the order has drained and turned south-east; the script's own east step never became visible
+		ordered + orderedTurnTicks + 0*uphillDiagonalCellTicks:                                       {X: 22, Y: 24},
 		ordered + orderedTurnTicks + 1*uphillDiagonalCellTicks:                                       {X: 23, Y: 25},
 		ordered + orderedTurnTicks + 2*uphillDiagonalCellTicks:                                       {X: 24, Y: 26},
 		ordered + orderedTurnTicks + 3*uphillDiagonalCellTicks:                                       {X: 25, Y: 27},
@@ -1909,6 +1899,7 @@ func TestACommandedUnitTakesNoFurtherScriptedTarget(t *testing.T) {
 		12*cellTicks + entity1TurnTicks: {X: 25, Y: 22}, // turn FOUR — entity 0 still stands
 	}
 
+	turnFacings := [...]uint8{16, 32, 48, 64, 80, 96}
 	e0, e1 := worldFixtureCells[0], worldFixtureCells[1]
 	for i := 0; i < 13*cellTicks; i++ {
 		if i == 1 {
@@ -1916,14 +1907,20 @@ func TestACommandedUnitTakesNoFurtherScriptedTarget(t *testing.T) {
 		}
 		mw.tick()
 		if i == 0 {
-			// The script's own east order reached entity 0 on this very
-			// tick, before the player's order overrides it on the next —
-			// checked on the target it admitted, since the cell it will
-			// eventually reach is the same either way (the paragraph above
-			// this function).
+			// The scripted east order is admitted before the player's order.
 			if e := mw.world.Entities()[orderedEntity]; !e.HasTarget || e.TargetX != 31 || e.TargetY != 23 {
 				t.Fatalf("after tick 0 entity %d heads for (%d,%d) hasTarget=%v, want (31,23) — the script "+
 					"never reached it", orderedEntity, e.TargetX, e.TargetY, e.HasTarget)
+			}
+		}
+		if i < len(turnFacings) {
+			if e := mw.world.Entities()[orderedEntity]; e.Facing != turnFacings[i] || !e.Turning() || e.Transit != 0 {
+				t.Fatalf("after index %d facing/turn/transit = %d/%v/%d, want %d/true/0", i, e.Facing, e.Turning(), e.Transit, turnFacings[i])
+			}
+		}
+		if i >= ordered {
+			if e := mw.world.Entities()[orderedEntity]; e.HasTarget && (e.TargetX != targetCol || e.TargetY != targetRow) {
+				t.Fatalf("after index %d commanded target = (%d,%d), want (%d,%d)", i, e.TargetX, e.TargetY, targetCol, targetRow)
 			}
 		}
 		if p, ok := e0At[i]; ok {

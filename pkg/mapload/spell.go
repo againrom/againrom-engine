@@ -3,6 +3,7 @@ package mapload
 import (
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -106,6 +107,20 @@ func spellRules(spells []data.Spell) []sim.SpellRule {
 	return out
 }
 
+// secondGameRules gives each second-game row its arm and classifies its
+// damage pair by that arm: the second game's Heal and Drain Life are rows 24
+// and 26, not the first game's 6 and 11 (R2-ENGINE-019, R2-ENGINE-024).
+func secondGameRules(rules []sim.SpellRule) {
+	sim.AssignSecondGameArms(rules)
+	for i := range rules {
+		arm := int(rules[i].Arm)
+		if rules[i].Arm == sim.ArmNone {
+			arm = 0
+		}
+		rules[i].Damaging, rules[i].Restorative = data.ClassifySpell(arm, rules[i].DamageMin, rules[i].DamageMax)
+	}
+}
+
 // spellsFor is the world's own spell table, resolved off t's Spells
 // collection: the one call FromALMWith makes to decide what
 // sim.NewStockedSpelledWorld's own last argument is.
@@ -127,6 +142,9 @@ func SpellRules(t *Table) []sim.SpellRule {
 	}
 	applyModSpells(spells, t.Mods.Spells)
 	rules := spellRules(spells)
+	if t.Game == base.GameROM2 {
+		secondGameRules(rules)
+	}
 	applyModSpellTargets(rules, spells, t.Mods.Spells)
 	return rules
 }

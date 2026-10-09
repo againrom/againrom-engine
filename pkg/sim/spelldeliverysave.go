@@ -48,7 +48,7 @@ func (w *World) NativeSpellDeliverySaveStates() []SpellDeliverySaveState {
 		}
 		if d.Current != nil {
 			a = *d.Current
-		} else if d.AtCell && d.Rule.ID == 4 {
+		} else if d.AtCell && d.Rule.arm() == 4 {
 			// Sacrifice constructs its payload from impact-time pools. The
 			// queued table payload is not yet the effect that will be applied.
 			a.Payload = SavedEffect{Class: "Effect", E0C: uint8(d.Rule.ID)}

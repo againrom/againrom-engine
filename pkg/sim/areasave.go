@@ -82,7 +82,7 @@ func areaSavePayload(w *World, e cellEffect, rule SpellRule) SavedEffect {
 		}
 		payload.Class = "Effect_DirectDamage"
 		payload.DirectDamage[19], payload.DirectDamage[20], payload.DirectDamage[21] = clampByte(base), clampByte(spread), rule.School
-	} else if e.Spell != 19 {
+	} else if w.spellArm(e.Spell) != 19 {
 		kind, magnitude, duration, mode := w.pointEffect(-1, rule, int32(e.Power))
 		payload.E3C, payload.E3D = OriginalEffectKind(kind), uint8(mode)
 		payload.E40 = uint32(magnitude)

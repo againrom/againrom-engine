@@ -661,6 +661,11 @@ func (w *World) armSwarm(g aiGroup, cands []int) {
 			// Idle on the commanded cell: left in every field.
 			continue
 		}
+		if escortState(e.ActorState) {
+			w.cancelTurnForTargetChange(mi, cx, cy)
+			w.clearOrder(mi)
+			w.clearEscort(mi)
+		}
 		e.TargetX, e.TargetY, e.HasTarget = cx, cy, true
 		e.clearAttackBetweenCycles()
 		e.clearGroupSpeed()
@@ -823,7 +828,7 @@ func (w *World) candidates(g aiGroup) []int {
 		if !w.sightShows(stamp, cellOf(c)) {
 			continue
 		}
-		if w.hasAttachedSpell(c.ID, 15) && !w.groupDetectsInvisible(g.members, cellOf(c)) {
+		if w.hasAttachedSpell(c.ID, w.armSpellID(15)) && !w.groupDetectsInvisible(g.members, cellOf(c)) {
 			continue
 		}
 		if !w.hostileTo(decider, c) {

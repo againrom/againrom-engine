@@ -40,18 +40,12 @@ func (w *World) advanceSavedTurn(i int, m *SavedActorMotion) bool {
 	if !active {
 		m.Mover[0x9d] = 0
 	}
-	arc, rate := facingArc(m.Mover[0], m.Mover[1]), int32(m.Mover[10])
-	if !active && arc <= 32 {
-		m.Mover[0], m.Mover[0xa4] = m.Mover[1], 1
-	} else {
-		step := byte(min(arc, rate))
-		if byte(m.Mover[1]-m.Mover[0]) <= 128 {
-			m.Mover[0] += step
-		} else {
-			m.Mover[0] -= step
-		}
-		m.Mover[0xa4] = byte((arc + rate - 1) / rate)
-	}
+	drawn := e.DrawnFacing() & 0xf0
+	desired := m.Mover[1]
+	newDesired := e.DesiredFacing != desired
+	freshMessage := !e.TurnState.Present || newDesired
+	m.Mover[0], m.Mover[0xa4] = turnStep(m.Mover[0], desired, m.Mover[10], active)
+	w.markTurnStepped(e.ID)
 	m.Mover[0x9d]++
 	flag := uint32(0)
 	if m.Mover[0] != m.Mover[1] {
@@ -59,8 +53,18 @@ func (w *World) advanceSavedTurn(i int, m *SavedActorMotion) bool {
 	}
 	binary.LittleEndian.PutUint32(m.Mover[0xa0:], flag)
 	e.Facing = m.Mover[0]
-	e.clearTurn()
-	e.startAction(w.tick, int64(m.Mover[0xa4]))
+	e.RotationSpeed = int32(m.Mover[10])
+	e.DesiredFacing, e.TurnRemaining = desired, m.Mover[0xa4]
+	if freshMessage {
+		e.TurnTotal = e.TurnRemaining
+		e.TurnState = TurnState{Present: true, Drawn: drawn, DrawTarget: uint8((int(desired)+8)>>4) & 15,
+			DrawRemaining: e.TurnTotal}
+	}
+	e.TurnState.Active, e.TurnState.Counter = flag != 0, m.Mover[0x9d]
+	e.advanceDrawnTurn()
+	if newDesired {
+		e.startAction(w.tick, int64(m.Mover[0xa4]))
+	}
 	if flag == 0 {
 		// A saved standing/attack facing can carry an old route. Only an
 		// ordinary move order authorizes handing that route to the body.

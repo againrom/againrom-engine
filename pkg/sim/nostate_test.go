@@ -67,6 +67,8 @@ var nstPinned = []struct {
 	{"World", reflect.TypeOf(World{}), []nstField{
 		{"tick", "uint64"},
 		{"damageObservation", "*sim.damageObservation"},
+		{"turnSteps", "map[sim.EntityID]struct {}"},
+		{"turnStepScope", "bool"},
 		{"hasSessionClock", "bool"},
 		{"fullTick", "uint32"},
 		{"rng", "sim.rng"},
@@ -191,6 +193,7 @@ var nstPinned = []struct {
 		{"DesiredFacing", "uint8"},
 		{"TurnRemaining", "uint8"},
 		{"TurnTotal", "uint8"},
+		{"TurnState", "sim.TurnState"},
 		{"PotionStats", "[4]int32"},
 		{"PotionHeadroom", "[4]int32"},
 		{"Group", "uint32"},
@@ -293,6 +296,7 @@ var nstPinned = []struct {
 		{"Protection", "[5]int32"}, {"Resistance", "[5]uint8"}, {"TokenSize", "uint8"},
 		{"EscortTarget", "sim.EntityID"}, {"HasEscortTarget", "bool"},
 		{"EscortRange", "uint8"},
+		{"EscortOrder", "uint8"}, {"EscortTurnPending", "bool"},
 		// Map presence: whether the mission script has taken this entity off the
 		// map. It is state and not position — the coordinates above it are
 		// untouched by the removal, which is why the return arm needs no authored

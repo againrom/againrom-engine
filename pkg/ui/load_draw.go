@@ -41,19 +41,10 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 		}
 	} else {
 		font.Draw(pix, w.Subtitle, 125, 130, loadSelectedText)
-		top, count := 0, 0
-		if list != nil {
-			top, count = list.Visible()
-		}
-		for i := 0; i < loadVisibleRows; i++ {
-			r := loadRowRect(i)
-			selected := i < count && top+i == list.Selection()
-			drawMovieBox(pix, r, selected)
-			if i < count {
-				label(list.Rows()[top+i].Text, r, selected)
-			}
-		}
-		a.drawLoadScroll(pix, list)
+		pointer, pointerOK := a.pointerFrame()
+		drawListBox(pix, font, a.media.scroll, a.loadListBox(), list, func(row, width int) string {
+			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
+		}, pointer, pointerOK)
 	}
 	message := a.loadMessage()
 	if message != "" {
@@ -65,14 +56,12 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 			font.Draw(pix, string(line), loadMessageBox.Min.X, loadMessageBox.Min.Y+i*(font.Height()+1), townShellText)
 		}
 	}
+	pointer, pointerOK := a.pointerFrame()
 	for i, caption := range []string{w.OK, w.Delete, w.Cancel} {
 		r := loadButtonRect(i)
-		drawMovieBox(pix, r, a.flow.loadUI.press == (loadTarget{kind: loadHitButton, index: i}))
-		c := townShellText
-		if i == 1 && (!a.flow.canDeleteLoad() || a.flow.loadUI.confirm) {
-			c = loadDisabledText
-		}
-		drawTownShellText(pix, font, caption, r, c)
+		inside := pointerOK && pointer.In(r)
+		drawPushButton(pix, font, pushButton{Rect: r, Label: caption, Hover: inside, Inside: inside,
+			Pressed: a.flow.loadUI.press.pressed(i), Disabled: a.flow.loadButtonDisabled(i)})
 	}
 	return pix, nil
 }

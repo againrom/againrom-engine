@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func turnWorld1147(t *testing.T, current, desired, rate byte, active uint32, counter byte) *World {
+func savedTurnWorldForTest(t *testing.T, current, desired, rate byte, active uint32, counter byte) *World {
 	t.Helper()
 	w, m, cells, blocks := motionFixture1115(t, 128, 128, 0, 0, 0, 0, 0)
 	m.StaticRoute, m.DynamicRoute = nil, nil
@@ -36,7 +36,7 @@ func TestSavedTurn1147LocalBranches(t *testing.T) {
 		{"equal facings active high byte", 64, 64, 16, 65536, 7, 64, 0, 8, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			w := turnWorld1147(t, tc.current, tc.desired, tc.rate, tc.active, tc.counter)
+			w := savedTurnWorldForTest(t, tc.current, tc.desired, tc.rate, tc.active, tc.counter)
 			before := *w.motionFor(7)
 			if before.Issue != "" || !w.ActorMotionActive(7) {
 				t.Fatalf("turn not admitted: %+v", before)
@@ -60,7 +60,7 @@ func TestSavedTurn1147LocalBranches(t *testing.T) {
 }
 
 func TestSavedTurn1147CompletesBeforeFollowingRoute(t *testing.T) {
-	w := turnWorld1147(t, 0, 96, 16, 1, 0)
+	w := savedTurnWorldForTest(t, 0, 96, 16, 1, 0)
 	m := w.motionFor(7)
 	m.DynamicRoute, m.StaticRoute = []uint16{0x1110}, []uint16{0x1010}
 	w.savedOrder(7).Raw[10], w.savedOrder(7).Raw[11] = 16, 17
@@ -94,7 +94,7 @@ func TestSavedTurn1147CompletesBeforeFollowingRoute(t *testing.T) {
 
 func TestSavedTurn1147LegacyRefusalsAndUnrelatedDebt(t *testing.T) {
 	for _, issue := range []string{"centered original turn continuation is not executed", "original pending turn after crossing is not executed", "original boundary speed callback is not executed"} {
-		w := turnWorld1147(t, 0, 64, 16, 1, 0)
+		w := savedTurnWorldForTest(t, 0, 64, 16, 1, 0)
 		w.motionFor(7).Issue = issue
 		cold := retreatRoundTrip1089(t, w)
 		if cold.motionFor(7).Issue != issue {
@@ -110,7 +110,7 @@ func TestSavedTurn1147LegacyRefusalsAndUnrelatedDebt(t *testing.T) {
 			t.Fatalf("old turn refusal was not re-admitted: %+v", m)
 		}
 	}
-	w := turnWorld1147(t, 0, 64, 0, 1, 0)
+	w := savedTurnWorldForTest(t, 0, 64, 0, 1, 0)
 	if w.motionFor(7).Issue == "" || w.ActorMotionActive(7) {
 		t.Fatal("zero rotation rate admitted")
 	}
@@ -119,7 +119,7 @@ func TestSavedTurn1147LegacyRefusalsAndUnrelatedDebt(t *testing.T) {
 }
 
 func TestSavedTurn1147StandingTurnDoesNotWalkAStaleRoute(t *testing.T) {
-	w := turnWorld1147(t, 0, 32, 16, 0, 0)
+	w := savedTurnWorldForTest(t, 0, 32, 16, 0, 0)
 	w.savedOrder(7).Raw[8] = 0xb
 	w.motionFor(7).StaticRoute = []uint16{0x1010}
 	Step(w, nil)
@@ -154,7 +154,7 @@ func TestManualTeleportInterruptsSavedTurn1147(t *testing.T) {
 }
 
 func TestSavedTurn1147WallDuringTurnKeepsTheRouteAndSaveReloadable(t *testing.T) {
-	w := turnWorld1147(t, 0, 96, 16, 1, 0)
+	w := savedTurnWorldForTest(t, 0, 96, 16, 1, 0)
 	w.motionFor(7).DynamicRoute = []uint16{0x1110}
 	w.savedOrder(7).Raw[10], w.savedOrder(7).Raw[11] = 16, 17
 	w.spells = []SpellRule{{ID: 19, Area: true, Distribution: 4, Radius: 2, AreaDuration: 15}}

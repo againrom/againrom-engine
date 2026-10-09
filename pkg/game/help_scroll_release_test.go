@@ -47,11 +47,13 @@ func TestReleaseHelpScrollBarDragAndWheel(t *testing.T) {
 	if !helpDiffers(start, helpFrame(t, f), start.Bounds()) {
 		t.Error("the dragged panel is drawn unchanged")
 	}
-	pointer("move", tx, ty)
+	// The drag maps the pointer row (MENU-119); above the track it reads 0.
+	ux, uy := point("up")
+	pointer("move", ux, uy)
 	if scroll() != 0 {
 		t.Errorf("thumb dragged back up: scroll %d, want 0", scroll())
 	}
-	pointer("release", tx, ty)
+	pointer("release", ux, uy)
 
 	dx, dy := point("down")
 	pointer("press", dx, dy)

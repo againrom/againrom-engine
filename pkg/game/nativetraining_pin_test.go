@@ -12,8 +12,8 @@ func beforeNativeTrainingForm(t *testing.T, form []byte) []byte {
 	t.Helper()
 	// A held pursuit search wraps any earlier form; an earlier form never
 	// held one, so its peel drops the records.
-	if end := len(form); end > 0 && form[0] == 115 {
-		if end < 40 || string(form[end-4:]) != "PRS1" || form[end-5] >= 115 {
+	if end := len(form); end > 0 && form[0] == 117 {
+		if end < 40 || string(form[end-4:]) != "PRS1" || form[end-5] >= 117 {
 			t.Fatal("invalid pursuit search footer")
 		}
 		span := uint64(binary.LittleEndian.Uint32(form[end-9:]))
@@ -24,6 +24,7 @@ func beforeNativeTrainingForm(t *testing.T, form []byte) []byte {
 		form = bytes.Clone(form[:end-9-int(span)])
 		form[0] = base
 	}
+	form = beforeTurnStateForm(t, form)
 	for _, suffix := range []struct {
 		version byte
 		tag     string
@@ -143,5 +144,15 @@ func TestNativeTrainingCompatibilityPeelIsExact(t *testing.T) {
 	form = append(form, base[0], 'T', 'R', 'N', '1')
 	if got := beforeNativeTrainingForm(t, form); !bytes.Equal(got, base) {
 		t.Fatal("training peel changed predecessor bytes")
+	}
+	turn := bytes.Clone(form)
+	turn[0] = 115
+	turn = binary.LittleEndian.AppendUint32(turn, 1)
+	turn = binary.LittleEndian.AppendUint32(turn, 7)
+	turn = append(turn, 1, 1, 16, 8, 7)
+	turn = binary.LittleEndian.AppendUint32(turn, 13)
+	turn = append(turn, 105, 'T', 'R', 'N', '1')
+	if got := beforeNativeTrainingForm(t, turn); !bytes.Equal(got, base) {
+		t.Fatal("turn and training peel changed predecessor bytes")
 	}
 }

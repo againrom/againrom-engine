@@ -8,7 +8,7 @@ import (
 
 // pursuitSearchFormVersion wraps any earlier form with the held pursuit
 // search records. A world holding none keeps its earlier bytes.
-const pursuitSearchFormVersion byte = 115
+const pursuitSearchFormVersion byte = 117
 const pursuitSearchRecordLen = 27
 
 func (w *World) appendPursuitSearches(b []byte) []byte {

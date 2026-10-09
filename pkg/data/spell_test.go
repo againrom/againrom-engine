@@ -314,3 +314,30 @@ func TestAHealRowWithNoDamagePairIsNeitherFlag(t *testing.T) {
 			sp.Damaging, sp.Restorative)
 	}
 }
+
+// TestLoadSpellsStopsBeforeTrailingBlankEntries: a table that ends in entries
+// with no name and no parameter loads the rows before them (R2-ENGINE-019).
+func TestLoadSpellsStopsBeforeTrailingBlankEntries(t *testing.T) {
+	c := spells(t, []synth.DataBinRow{
+		spellRow("Fire Arrow", 3, 1, 1, 7, 4, 8, 0),
+		spellRow("Fire Ball", 5, 1, 1, 7, 6, 10, 0),
+		{}, {}, {},
+	})
+	rows, err := data.LoadSpells(c)
+	if err != nil || len(rows) != 2 {
+		t.Fatalf("LoadSpells = %d rows, %v; want the 2 written rows", len(rows), err)
+	}
+}
+
+// TestLoadSpellsRefusesABlankEntryBeforeAWrittenRow: only a trailing run is
+// dropped; a blank entry between written rows is still too short.
+func TestLoadSpellsRefusesABlankEntryBeforeAWrittenRow(t *testing.T) {
+	c := spells(t, []synth.DataBinRow{
+		spellRow("Fire Arrow", 3, 1, 1, 7, 4, 8, 0),
+		{},
+		spellRow("Fire Ball", 5, 1, 1, 7, 6, 10, 0),
+	})
+	if _, err := data.LoadSpells(c); err == nil {
+		t.Fatal("LoadSpells accepted a blank entry before a written row")
+	}
+}
