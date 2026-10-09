@@ -1967,6 +1967,9 @@ package storyguard
 // paragraph. It rises again for the town inn options and TALK: the docs of
 // EnterInn, the speakers and TalkTo, and the focused and installed tests of
 // the stage-30 inn route, new code, including this paragraph.
+// CommentBytes rises for the remaining inn stage bodies: the docs of the
+// stage entry table and its predicates, and the focused and installed tests
+// of the stage 40 to 110 entries, new code, including this paragraph.
 // CommentBytes rises for the staff projectile light: the note in
 // objectLightStamps and the doc of its new focused test, new code, including
 // this paragraph.
@@ -1998,5 +2001,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1791,
 	},
-	CommentBytes: 8511740,
+	CommentBytes: 8514494,
 }

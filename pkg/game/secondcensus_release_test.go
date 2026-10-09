@@ -38,12 +38,24 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 5,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 32, EntryMaps: 6, WinMaps: 46, Ready: 5,
+		FixtureMaps: 32, EntryMaps: 34, WinMaps: 46, Ready: 8,
 		Exits: 15, GatedExits: 6, EngineExits: 14,
 	}
 	want.Omitted[CauseFixture] = SecondOmission{Nodes: 189, Triggers: 192, ActionTriggers: 8}
 	if got != want {
 		t.Errorf("census totals\n got %+v\nwant %+v", got, want)
+	}
+	// The maps no published producer reaches on the controller's walk: 52,
+	// the slot 776/781 alternatives 75..77, 85..87 and 94..96, the slot 776
+	// alternative 81, and 83, which needs slot 536 in town 3.
+	var unreached []int
+	for _, c := range census {
+		if slices.Contains(c.Blockers(), BlockEntry) {
+			unreached = append(unreached, c.Mission)
+		}
+	}
+	if want := []int{52, 75, 76, 77, 81, 83, 85, 86, 87, 94, 95, 96}; !slices.Equal(unreached, want) {
+		t.Errorf("maps blocked on entry %v, want %v", unreached, want)
 	}
 	for _, c := range census {
 		blockers := c.Blockers()
@@ -51,7 +63,7 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 			t.Errorf("mission %d blockers %v: only mission 50's unresolved record may block continuation", c.Mission, blockers)
 		}
 		switch c.Mission {
-		case 10, 20, 21, 31, 32:
+		case 10, 20, 21, 31, 32, 61, 82, 93:
 			if len(blockers) != 0 {
 				t.Errorf("mission %d blockers %v, want none", c.Mission, blockers)
 			}

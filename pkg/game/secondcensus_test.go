@@ -153,8 +153,10 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 			}
 		}
 	})
-	if !slices.Equal(got, []int{10, 20, 21, 30, 31, 32}) {
-		t.Fatalf("engine reaches %v, want [10 20 21 30 31 32]", got)
+	want := []int{10, 20, 21, 30, 31, 32, 40, 41, 42, 43, 50, 51, 53, 60, 61, 62, 63, 70, 71, 72, 73, 74,
+		80, 82, 84, 90, 91, 92, 93, 100, 101, 102, 103, 110}
+	if !slices.Equal(got, want) {
+		t.Fatalf("engine reaches %v, want %v", got, want)
 	}
 	for _, tc := range []struct {
 		n                 int
@@ -168,10 +170,14 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		{n: 30, producer: "stage 30 inn talk", entry: true, win: true, exits: []string{"movie 2:yes"}},
 		{n: 31, producer: "stage 30 inn talk", entry: true, win: true, exits: []string{"mission 32:yes"}, engineAdds: []string{"mission 32"}},
 		{n: 32, producer: "departure of 31", entry: true, win: true},
-		{n: 40, win: true, exits: []string{"mission 50:yes", "mission 60:yes"}, engineAdds: []string{"mission 50", "mission 60"}},
-		{n: 41, win: true},
-		{n: 50, producer: "departure of 40", win: true, exits: []string{"town 3:yes", "unresolved record if 780!=0:no"}, engineAdds: []string{"town 3"}},
-		{n: 60, producer: "departure of 40", win: true, exits: []string{"mission 80:yes"}, engineAdds: []string{"mission 80"}},
+		{n: 40, producer: "stage 40 inn talk", entry: true, win: true, exits: []string{"mission 50:yes", "mission 60:yes"}, engineAdds: []string{"mission 50", "mission 60"}},
+		{n: 41, producer: "stage 40 inn talk", entry: true, win: true},
+		{n: 52, win: true},
+		{n: 70, producer: "stage 60/70/80 inn talk", entry: true, win: true, exits: []string{"movie 3 if 777=0 778!=0:yes"}},
+		{n: 83, producer: "stage 80 inn talk", win: true},
+		{n: 101, producer: "stage 100 inn talk", entry: true, win: true},
+		{n: 50, producer: "departure of 40", entry: true, win: true, exits: []string{"town 3:yes", "unresolved record if 780!=0:no"}, engineAdds: []string{"town 3"}},
+		{n: 60, producer: "departure of 40", entry: true, win: true, exits: []string{"mission 80:yes"}, engineAdds: []string{"mission 80"}},
 	} {
 		d := secondDeparture(tc.n, reach)
 		if d.Producer != tc.producer || d.EngineEntry != tc.entry || d.EngineWin != tc.win ||
