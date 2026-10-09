@@ -26,7 +26,7 @@ Base: `b7cd8466` (game 0.92.4). Knowledge pin: k204.
 | window frame | MENU-127 (not built; open debt) |
 
 Medium and Unknown parts take the smallest rule and a row: DIV-2580 through
-DIV-2591 in `docs/divergences/ui-widget-kit.md`.
+DIV-2593 in `docs/divergences/ui-widget-kit.md`.
 
 ## As built
 
@@ -53,7 +53,10 @@ test-only hook.
 - `choiceGroup` and `drawChoiceGroup` (`widgetchoice.go`): radiob.256 frames
   0/1, 2/3 and 4/5; 24-pixel rows with labels at (L+30,T+24i+5), or 16-pixel
   tip rows with labels at (L+22,T+3). A radio row selects on the press and
-  again under a held move; a checkbox toggles on the press. A disabled group
+  again under a held move; a checkbox toggles on the press, on Game and
+  Sound Options alike, and its release does nothing. Focused Space toggles
+  a checkbox; focused Up and Down move a radio group's selection, and Tab
+  moves the focus between controls (DIV-2592). A disabled group
   is remapped at level 3 over its rectangle grown by one.
 - `editField`, `drawEditField` and `caretBlink` (`widgetedit.go`): the four
   bevel lines, the level-12 selection remap, the text at (L+4, middle) and the
@@ -74,7 +77,9 @@ test-only hook.
 
 Outcome notice buttons now act on release inside (MENU-116), as the other
 buttons do. A Load row's double click loads at the second release
-(DIV-2591). The Sound Options volume step is 312 of 5000 per key or endcap,
+(DIV-2591); any scroll bar gesture between two row clicks breaks the
+double click. Focus loss drops every held widget press, and a replaced
+outcome drops its held button (DIV-2593). The Sound Options volume step is 312 of 5000 per key or endcap,
 from the MENU-118 step rule. Removed builders: the item popup frame, the
 notice button painter, the plain slider, the speed-click handler, the quest
 text arrows and the unused chargen text control. Screens with their own
@@ -90,6 +95,12 @@ panel) keep it.
   frames, slider endcap, track and drag input; radio, checkbox and tip
   checkbox pixels, labels, ramps and disabled remap; edit field pixels, caret
   and 500 ms blink; hover box size, fill, bevel, corners and label.
+- `widgetkit_input_test.go`: a thumb tap breaks the Load double click; a
+  held menu or outcome press does not survive focus loss or a replaced
+  notice; Sound Options checkboxes toggle on the press; Space toggles a
+  focused checkbox; Up and Down move a focused radio group; the Save caret
+  draws over the field text. `TestReleaseSaveCaretStaysWhiteAtHome` checks
+  the caret with each install's font.
 - `widgetkit_screens_test.go`, `load_draw_test.go`, `save_dialog_test.go`:
   each screen calls the shared builders.
 - `pkg/game` `TestReleaseWidgetKitScreens` (EN and RU): Load Game, the

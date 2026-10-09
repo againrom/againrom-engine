@@ -172,6 +172,9 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 			return
 		}
 		if f.loadUI.bar.active() {
+			// Any bar gesture, a still thumb tap included, ends the
+			// row's double-click history.
+			f.loadUI.resetClick()
 			return
 		}
 	}

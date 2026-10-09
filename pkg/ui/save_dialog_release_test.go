@@ -186,3 +186,47 @@ func writeSaveDialogCapture(t *testing.T, name string, pix *image.RGBA) {
 		t.Logf("capture %s", path)
 	}
 }
+
+// The Save name caret stays two white columns at Home with the installed font.
+func TestReleaseSaveCaretStaysWhiteAtHome(t *testing.T) {
+	root := os.Getenv("AGAINROM_ASSETS")
+	if root == "" {
+		t.Skip("AGAINROM_ASSETS not set")
+	}
+	font := saveDialogInstallFont(t, root)
+	a := newSaveDialogApp(t, &saveDialogSpy{}, ScreenTown)
+	a.SetWords(AuthoredWords(), font, nil)
+	if err := a.HeadlessKey("home"); err != nil {
+		t.Fatal(err)
+	}
+	a.blink.off = false
+	var e editField
+	var pix *image.RGBA
+	var err error
+	calls := recordWidgets(t, func() { pix, err = a.composeSaveDialogScreen() })
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, c := range calls {
+		if c.kind == widgetEdit && c.rect == saveControlRect(saveNameControl) {
+			e = c.state.(editField)
+			found = true
+		}
+	}
+	if !found || !e.Focus || !e.Phase || e.Caret != 0 {
+		t.Fatalf("caret setup: found %v state %+v", found, e)
+	}
+	x := e.Rect.Min.X + 4
+	mismatches := 0
+	for y := e.Rect.Min.Y + 2; y < e.Rect.Max.Y-3; y++ {
+		for dx := 0; dx < 2; dx++ {
+			if pix.RGBAAt(x+dx, y) != editCaret {
+				mismatches++
+			}
+		}
+	}
+	if mismatches != 0 {
+		t.Fatalf("installed Save Home caret: %d pixels overwritten, want two white columns", mismatches)
+	}
+}

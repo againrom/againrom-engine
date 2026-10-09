@@ -1054,7 +1054,9 @@ func headlessWorldMapMissionNumber(target string) (int, bool) {
 // list from either end, never enough to loop.
 func (a *App) headlessChooseRow(p *Picker, target int) error {
 	down, up := "down", "up"
-	if a.flow != nil && a.flow.screen == ScreenGameMenu && a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil && p == a.flow.menuList {
+	if a.flow != nil && a.flow.screen == ScreenGameMenu && p == a.flow.menuList &&
+		(a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil ||
+			a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil) {
 		down, up = "tab", "shift-tab"
 	}
 	bound := len(p.Rows()) + 1

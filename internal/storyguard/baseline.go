@@ -1929,6 +1929,9 @@ package storyguard
 // picture accessor, the hover corner accessor, the Load double-click
 // release and the EN/RU widget screen witness, and the release witnesses
 // restated to the shared bar, new code, including this paragraph.
+// CommentBytes rises for the widget kit's input corrections: the widget
+// latch reset on focus loss, checkbox press and Space, radio arrows and Tab,
+// the Save caret paint order and their tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1952,5 +1955,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1816,
 	},
-	CommentBytes: 8508849,
+	CommentBytes: 8510553,
 }

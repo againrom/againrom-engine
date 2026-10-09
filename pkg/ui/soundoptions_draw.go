@@ -107,7 +107,7 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 				dimDisabledRow(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, s.Rect.Min.Y), since)
 			}
 			continue
-		} else if row.Action == gameMenuAcknowledgments || row.Action == gameMenuMusicRandom {
+		} else if isSoundCheck(row.Action) {
 			on := f.soundOptions.acknowledgments
 			if row.Action == gameMenuMusicRandom {
 				on = f.soundOptions.ReadPlayback().RandomOrder

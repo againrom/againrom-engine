@@ -221,6 +221,9 @@ func (a *App) stepSoundOptions(in appInput) bool {
 		}
 	} else if in.Enter {
 		a.chooseGameMenu()
+	} else if in.Panels && isSoundCheck(f.menuRows()[f.menuList.Selection()].Action) {
+		// Focused Space toggles a checkbox (MENU-124).
+		a.chooseGameMenu()
 	} else {
 		for _, r := range in.Typed {
 			if f.chooseGameMenuAccelerator(r, a.beforeGameMenuAction) {
@@ -247,6 +250,18 @@ func (a *App) stepSoundOptions(in appInput) bool {
 		}
 	}
 	action, hit := soundOptionHit(p)
+	if in.PrimaryPressed && inFrame && hit && isSoundCheck(action) {
+		// A checkbox toggles on the press; its release is a no-op (MENU-124).
+		f.soundPointer = soundOptionPointer{}
+		for i, row := range f.menuRows() {
+			if row.Action == action && row.Enabled {
+				f.menuList.Select(i)
+				a.chooseGameMenu()
+				break
+			}
+		}
+		return false
+	}
 	if in.PrimaryPressed {
 		f.soundPointer = soundOptionPointer{pressed: inFrame && hit, action: action}
 		if action == gameMenuMusicTracks && inFrame {
@@ -312,4 +327,9 @@ func (a *App) playSpeechTest() {
 	}
 	audio.Dispatch(a.speechPlayer, sample, audio.FixedRequest("fixed-interface", "voice:"+speechTestSample,
 		audio.SpeechChannel, 220, false, audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
+}
+
+// isSoundCheck reports whether a Sound Options row is a checkbox.
+func isSoundCheck(a gameMenuAction) bool {
+	return a == gameMenuAcknowledgments || a == gameMenuMusicRandom
 }

@@ -80,6 +80,14 @@ func (a *App) gameSpeedSlider(speed int) hSlider {
 	return hSlider{Rect: gameOptionRect(gameMenuSpeedDown), Pos: speed, Max: gameSpeedLevels}.withPointer(p, ok)
 }
 
+// isGameOptionCheck reports whether a Game Options row is a checkbox.
+func isGameOptionCheck(a gameMenuAction) bool {
+	if a == gameMenuToggleTips || a == gameMenuTimedAutosave {
+		return true
+	}
+	return a >= gameMenuDayNight && a <= gameMenuAutoHealing && !isRadioAction(a)
+}
+
 func isRadioAction(a gameMenuAction) bool {
 	return a == gameMenuFormation || a == gameMenuRetreat || a == gameMenuAutoHealing
 }
@@ -110,6 +118,37 @@ func (a *App) stepGameOptionsPointer(in appInput) bool {
 		}
 		f.setDraftSpeed(d.speed + delta)
 		f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
+		return true
+	}
+	if in.PaneMode {
+		// Tab and Shift+Tab move the focus between controls, as on Sound
+		// Options, while a focused control keeps its own arrows.
+		delta := 1
+		if in.ShiftHeld {
+			delta = -1
+		}
+		f.menuList.Move(delta)
+		return true
+	}
+	if (in.Up || in.Down) && isRadioAction(focus) {
+		// Focused arrows move the group's own selection and keep the focus
+		// (MENU-123); past the group's end they move to the next control
+		// (DIV-2592).
+		o := GameOption(focus - gameMenuDayNight)
+		n := f.optionValues()[o] + 1
+		if in.Up {
+			n -= 2
+		}
+		if n >= 0 && n < 3 {
+			f.setDraftOption(o, n)
+			f.rebuildGameMenu(gameMenuGameOptionsPage, f.menuList.Selection())
+			return true
+		}
+	}
+	if in.Panels && isGameOptionCheck(focus) {
+		// Focused Space toggles a checkbox (MENU-124).
+		a.chooseGameMenu()
+		a.syncViewerLayout()
 		return true
 	}
 	if in.Unfocused {

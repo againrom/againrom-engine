@@ -912,6 +912,8 @@ type App struct {
 	dialoguePress       dialoguePointerPress
 	// noticePress is an outcome panel's button press latch (MENU-116).
 	noticePress buttonLatch
+	// noticePressSerial is the notice serial the outcome latch was taken on.
+	noticePressSerial int
 	// blink is the edit fields' caret phase (MENU-126).
 	blink              caretBlink
 	townTipPress       townTipPress
@@ -1271,6 +1273,27 @@ func (a *App) currentDialoguePointerOwner() (dialoguePointerOwner, bool) {
 	return dialoguePointerOwner{}, false
 }
 
+// validateWidgetLatches drops every held widget press when the window loses
+// focus or closes, and the outcome latch when its notice was replaced, so a
+// release can only activate the button its own press latched (MENU-116).
+func (a *App) validateWidgetLatches(in appInput) {
+	f := a.flow
+	if in.Unfocused || in.Close {
+		a.noticePress.clear()
+		f.menuPress.clear()
+		f.loadUI.press.clear()
+		a.media.press.clear()
+		f.soundPointer = soundOptionPointer{}
+		if d := f.gameOptions.draft; d != nil {
+			d.radio = 0
+		}
+		return
+	}
+	if v := f.viewer; a.noticePress.held && (v == nil || !v.NoticeOpen() || v.noticeSerial != a.noticePressSerial) {
+		a.noticePress.clear()
+	}
+}
+
 // stepNoticeButtons drives an outcome panel's buttons through the shared
 // latch: a press latches, a release inside the latched button activates it
 // (MENU-116), and the pointer writes each button's hover and pressed look.
@@ -1279,6 +1302,7 @@ func (a *App) stepNoticeButtons(in *appInput) bool {
 	id, over := v.noticeButtonIDAt(in.CursorX, in.CursorY)
 	if in.PrimaryPressed {
 		a.noticePress.press(id, over)
+		a.noticePressSerial = v.noticeSerial
 		if over {
 			in.PrimaryPressed = false
 		}
@@ -1398,6 +1422,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	a.blink.tick(now)
 	a.tooltipSurface = nil
 	a.validateDialoguePointer(in)
+	a.validateWidgetLatches(in)
 	a.validateTownTipPointer(in)
 	defer func(before Screen, viewer *Viewer, tooltipInput appInput) {
 		a.updateTooltip(tooltipInput, now, exit || before != a.flow.screen || viewer != a.flow.viewer)

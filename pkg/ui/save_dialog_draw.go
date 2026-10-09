@@ -239,7 +239,15 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 			}
 		}
 		shown := a.saveTextFit(string(runes[start:]), r.Dx()-12)
-		drawEditField(s.pix, e, func(at image.Point) { s.label(shown, at.X, at.Y, layout.TextColor) })
+		drawEditField(s.pix, e, func(at image.Point) {
+			// The text paints before the caret, which draws over it
+			// (MENU-126); only a fontless debug app queues it.
+			if font := a.flow.menuFont; font != nil {
+				font.Draw(s.pix, a.flow.menuDisplayText(shown), at.X, at.Y, layout.TextColor)
+				return
+			}
+			s.label(shown, at.X, at.Y, layout.TextColor)
+		})
 	}
 	button(saveOpenControl, w.Open, false)
 	button(saveUpControl, w.Up, false)
