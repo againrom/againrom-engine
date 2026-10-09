@@ -171,7 +171,7 @@ func (t *townScreen) trainOriginalCityFighter(slot int, member *mapload.PartyMem
 		}
 		*member, t.sess.Town.cityObjects = candidate, graph
 		if t.room == roomSchool {
-			t.schoolDiamond.arm()
+			t.schoolPage().Event("train")
 		}
 		t.composeShopFaces()
 		return true, fmt.Sprintf("trained %s to %d for %d", schoolSkillName(member.Mage, slot), member.Hero.Skill[slot], price)
@@ -291,7 +291,7 @@ func (t *townScreen) trainOriginalCityFighter(slot int, member *mapload.PartyMem
 		t.sess.Town.cityObjects = graph
 		b.training = append(b.training, uint8(slot))
 		if t.room == roomSchool {
-			t.schoolDiamond.arm()
+			t.schoolPage().Event("train")
 		}
 		t.composeShopFaces()
 		return true, fmt.Sprintf("trained %s to %d for %d", schoolSkillName(member.Mage, slot), member.Hero.Skill[slot], price)

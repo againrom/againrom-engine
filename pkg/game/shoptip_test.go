@@ -1,9 +1,11 @@
 package game
 
 import (
+	"image"
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/ui"
 )
 
 // The tip widget's own load (1011 spec; SHOP-TIP-045; DIV-132).
@@ -12,7 +14,7 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 	payload := []byte("Buy low\rand sell high.")
 	fsys := townTextFS(t, []synth.File{{Path: "text/tips/shop1.txt", Data: payload}})
 
-	got, ok := ReadShopTip(fsys, ShopTip1Path)
+	got, ok := ReadShopTip(fsys, roomTip(roomShop).Text)
 	if !ok {
 		t.Fatal("ReadShopTip reported the file absent")
 	}
@@ -25,17 +27,17 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 // there is nothing to draw (matching every other install text reader).
 func TestReadShopTipMissingFileAnswersFalse(t *testing.T) {
 	fsys := townTextFS(t, nil)
-	if _, ok := ReadShopTip(fsys, ShopTip1Path); ok {
+	if _, ok := ReadShopTip(fsys, roomTip(roomShop).Text); ok {
 		t.Error("ReadShopTip found a file that was never shipped")
 	}
-	if _, ok := ReadShopTip(nil, ShopTip1Path); ok {
+	if _, ok := ReadShopTip(nil, roomTip(roomShop).Text); ok {
 		t.Error("ReadShopTip with a nil source answered true")
 	}
 }
 
 func TestShopTipPathIsMainTextTipsShop1(t *testing.T) {
-	if ShopTip1Path != "main/text/tips/shop1.txt" {
-		t.Fatalf("ShopTip1Path = %q, want main/text/tips/shop1.txt", ShopTip1Path)
+	if got := roomTip(roomShop).Text; got != "main/text/tips/shop1.txt" {
+		t.Fatalf("shop room tip = %q, want main/text/tips/shop1.txt", got)
 	}
 	if ShopTip2Path != "main/text/tips/shop2.txt" {
 		t.Fatalf("ShopTip2Path = %q, want main/text/tips/shop2.txt", ShopTip2Path)
@@ -103,5 +105,23 @@ func TestEnteringTheShopWithNoArchivesDoesNotPanic(t *testing.T) {
 	s.Choose(1)
 	if got := s.ShopScreen().TipPanel.Text; got != "" {
 		t.Fatalf("ShopScreen().Tip with no Archives = %q, want empty", got)
+	}
+}
+
+// The room tips the description gives are the panels the ui lays out: the
+// same text addresses and rectangles (TOWN-015, TOWN-021, SHOP-TIP-045).
+func TestRoomTipsAreTheDescribedTextsAndRectangles(t *testing.T) {
+	for _, tc := range []struct {
+		room townRoom
+		text string
+		rect image.Rectangle
+	}{
+		{roomTavern, "main/text/tips/inn.txt", ui.TavernTipRect},
+		{roomShop, "main/text/tips/shop1.txt", ui.ShopTipRect()},
+		{roomSchool, "main/text/tips/training.txt", ui.SchoolTipRect},
+	} {
+		if tip := roomTip(tc.room); tip.Text != tc.text || tip.Rect.Rectangle() != tc.rect {
+			t.Errorf("room %d tip = %q %v, want %q %v", tc.room, tip.Text, tip.Rect.Rectangle(), tc.text, tc.rect)
+		}
 	}
 }

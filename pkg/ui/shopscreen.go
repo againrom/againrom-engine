@@ -113,8 +113,8 @@ var shopShelfPickRects = [4]image.Rectangle{
 }
 
 // shopShelfDrawRects is where shelf i's own animation is drawn, index for index
-// with the hit rects above (SHOP-SHELF-047). ShopScreenArt.ShelfAnim[i] is
-// blit here at its own natural size; the chosen shelf is also marked here.
+// with the hit rects above (SHOP-SHELF-047). The town description draws each
+// rack here at its own natural size; the chosen shelf is also marked here.
 var shopShelfDrawRects = [4]image.Rectangle{
 	image.Rect(353, 108, 433, 220),
 	image.Rect(197, 108, 277, 220),
@@ -292,33 +292,9 @@ type ShopScreenArt struct {
 	// cell.
 	Coin *image.RGBA
 
-	// Merchant is movies\shopanim\Pose2-3\1.bmp, 76x176, drawn at
-	// shopMerchantRect.Min (SHOP-MERCHANT-046).
-	Merchant *image.RGBA
-
-	// ShelfAnim[i] is folder `4-i`'s own first frame. It remains the static
-	// fallback for synthetic callers and for an incomplete installed family.
-	ShelfAnim [4]*image.RGBA
-
-	// RackAnimation carries the four complete eleven-file selector families.
-	// MerchantIdle carries Pose2-3 files 2..29; MerchantYes and MerchantNo
-	// carry files 2..12. The slices are immutable install-cache entries. An
-	// incomplete family is nil and cannot remove any complete sibling.
-	RackAnimation [4][]*image.RGBA
-	MerchantIdle  []*image.RGBA
-	MerchantYes   []*image.RGBA
-	MerchantNo    []*image.RGBA
-}
-
-// ShopInteriorFrame is the shop controller's read-only selection for one
-// composition. Animated distinguishes a live controller from legacy and
-// synthetic ShopScreenView values, which keep the static first-frame drawing.
-// Images cross the seam so the compositor never owns progression rules.
-type ShopInteriorFrame struct {
-	Animated    bool
-	RackVisible [4]bool
-	Rack        [4]image.Image
-	Merchant    image.Image
+	// Scene is the shop interior's racks and merchant by the town
+	// description's entry names. The game's room page draws them.
+	Scene map[string][]image.Image
 }
 
 // ShopScreenView is the whole screen's state for one frame.
@@ -328,7 +304,8 @@ type ShopScreenView struct {
 	Shelf         [shopShelfN]ShopCell
 	Table         [shopStripN]ShopCell
 	Pack          [shopStripN]ShopCell
-	Interior      ShopInteriorFrame
+	// Scene is the shop's composed interior; nil draws none.
+	Scene RoomScene
 
 	// Purse, Buy, Sell and Total are the four numbers printed in button order.
 	// Total is Purse + Sell - Buy, including a negative projected balance.
@@ -1085,18 +1062,8 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 				blit(dst, art.PackArrow[n], r.Min.X, r.Min.Y+packArrowDY)
 			}
 		}
-		if v.Interior.Animated {
-			for i, r := range shopShelfDrawRects {
-				if v.Interior.RackVisible[i] {
-					blitPicture(dst, v.Interior.Rack[i], r.Min.X, r.Min.Y)
-				}
-			}
-			blitPicture(dst, v.Interior.Merchant, shopMerchantRect.Min.X, shopMerchantRect.Min.Y)
-		} else {
-			for i, r := range shopShelfDrawRects {
-				blit(dst, art.ShelfAnim[i], r.Min.X, r.Min.Y)
-			}
-			blit(dst, art.Merchant, shopMerchantRect.Min.X, shopMerchantRect.Min.Y)
+		if v.Scene != nil {
+			v.Scene.Paint(dst, "interior")
 		}
 	}
 	for i := 0; i < shopShelfN; i++ {

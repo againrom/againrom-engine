@@ -11,10 +11,8 @@ package game
 // TWO FACTS THE CLAIM LEAVES OPEN ARE AUTHORED HERE, and both are recorded as
 // divergence rows rather than left in a comment (`DIV-132`):
 const (
-	// ShopTip1Path is main/text/tips/shop1.txt, the text the tip widget shows
-	// from the moment the shop room is entered (SHOP-TIP-045, L09771).
-	ShopTip1Path = mainPrefix + "text/tips/shop1.txt"
-
+	// ShopTip2Path is main/text/tips/shop2.txt; the shop room's entry text is
+	// its tip in the ROM1 description (SHOP-TIP-045).
 	ShopTip2Path = mainPrefix + "text/tips/shop2.txt"
 )
 

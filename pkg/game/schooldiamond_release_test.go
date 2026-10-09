@@ -19,8 +19,9 @@ func TestReleaseSchoolDiamondFramesMatchInstalledPixels(t *testing.T) {
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("production school art: %v", f.TownSchoolArt.Err())
 	}
+	s := f.TownScreen().(*townScreen)
 	v := ui.TownSurfaceView{Kind: ui.TownSurfaceSchool, SchoolArt: f.TownSchoolArt.Value(),
-		SchoolClass: -1, HoverCell: -1, SchoolDiamondActive: true}
+		SchoolClass: -1, HoverCell: -1, Scene: roomScene{s.schoolPage()}}
 	for frame := 0; frame < 9; frame++ {
 		// Read the literal claim address independently of LoadTownSchoolArt.
 		// The expected pixels do not come from its array or RGBA conversion.
@@ -36,7 +37,7 @@ func TestReleaseSchoolDiamondFramesMatchInstalledPixels(t *testing.T) {
 		if want.Width != 80 || want.Height != 76 {
 			t.Fatalf("%s: %dx%d, want 80x76", name, want.Width, want.Height)
 		}
-		v.SchoolDiamondFrame = frame
+		setSchoolDiamondState(s, diamondState{frame: frame, step: 1, ready: true})
 		got := ui.ComposeTownSurface(v)
 		for y := 0; y < 76; y++ {
 			for x := 0; x < 80; x++ {
@@ -81,7 +82,7 @@ func TestReleaseSchoolDiamondTrainPaintLifecycle(t *testing.T) {
 	changed := 0
 	for i, frame := range []int{1, 2, 3, 4, 5, 6, 7, 8, 7, 6, 5, 4, 3, 2, 1, 0} {
 		pix := paintDiamondSchool(t, s)
-		if s.TownSurface().SchoolDiamondActive != (i < 15) || s.TownSurface().SchoolDiamondFrame != frame {
+		if s.schoolDiamond().Shown() != (i < 15) || s.schoolDiamond().Frame != frame {
 			t.Fatalf("paint %d did not publish phase %d / active=%v", i+1, frame, i < 15)
 		}
 		var expected *bmp.Image

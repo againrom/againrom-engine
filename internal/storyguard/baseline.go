@@ -1982,6 +1982,9 @@ package storyguard
 // CommentBytes rises for the town composer: the docs of pkg/town's description
 // format, actor programs and view, which replace the square's per-actor code,
 // new code, including this paragraph.
+// CommentBytes rises for the town room pages: the room trace instrument, the
+// reader's refusals, pkg/town's own tests and its page programs, new code,
+// including this paragraph.
 // CommentBytes rises for the tip witnesses: the docs of the new release test
 // file for the generator cycles and the tip renders, and the scroll witness's
 // note that the mission start tip covers its click, new code, including this
@@ -2009,5 +2012,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1772,
 	},
-	CommentBytes: 8505826,
+	CommentBytes: 8512701,
 }

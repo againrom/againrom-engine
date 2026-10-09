@@ -4,17 +4,12 @@ import (
 	"image"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
-// The tip widget's own text for the four rooms besides the shop (1018 spec
-// behaviours 2, 3, 4, 5).
+// The character generator's tip texts.
 const (
-	// SchoolTipPath is main/text/tips/training.txt (TOWN-021, discharged by
-	// TOWN-188).
-	SchoolTipPath = mainPrefix + "text/tips/training.txt"
-	// TavernTipPath is main/text/tips/inn.txt (TOWN-015).
-	TavernTipPath = mainPrefix + "text/tips/inn.txt"
 	// ChargenFighterTipPath and ChargenMageTipPath are chrgen1f.txt and
 	// chrgen1m.txt. THE LETTERS ARE CLASS, NOT SEX (contract's "The 1f/1m
 	// trap"; TOWN-187, corrected at research 8990406, an ancestor of this
@@ -72,14 +67,27 @@ func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	case roomSquare:
 		return &t.townTip, rom1Town.Tip.Text
 	case roomShop:
-		return &t.shopTip, ShopTip1Path
+		return &t.shopTip, roomTip(room).Text
 	case roomSchool:
-		return &t.schoolTip, SchoolTipPath
+		return &t.schoolTip, roomTip(room).Text
 	case roomTavern:
-		return &t.tavernTip, TavernTipPath
+		return &t.tavernTip, roomTip(room).Text
 	}
 	return nil, ""
 }
+
+// roomTip answers a room's tip as the ROM1 description gives it.
+func roomTip(room townRoom) town.TipSpec {
+	name := townRoomName(room)
+	for i := range rom1Town.Rooms {
+		if r := &rom1Town.Rooms[i]; r.Name == name && r.Tip != nil {
+			return *r.Tip
+		}
+	}
+	return town.TipSpec{}
+}
+
+func roomTipRect(room townRoom) image.Rectangle { return roomTip(room).Rect.Rectangle() }
 
 func (t *townScreen) readTipText(dst *string, addr string) {
 	var src entrySource

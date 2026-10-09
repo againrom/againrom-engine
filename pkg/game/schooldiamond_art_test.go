@@ -22,7 +22,7 @@ func TestLoadSchoolDiamondFramesInArchiveOrderAndOpaque(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 9; i++ {
-		pic := art.Diamond[i]
+		pic := art.Scene["diamond"][i]
 		if pic == nil || pic.Bounds().Dx() != 80 || pic.Bounds().Dy() != 76 {
 			t.Fatalf("frame %d: missing or not 80x76: %v", i, pic)
 		}

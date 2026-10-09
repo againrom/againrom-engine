@@ -9,9 +9,11 @@ import (
 // slot index steps once, modulo five, on a paint at least 500 ms after the
 // last step, and a late paint never steps twice.
 func TestSchoolShineStepsEveryHalfSecondModuloFive(t *testing.T) {
-	s := &townScreen{}
+	f, s := diamondSchool(t)
 	at := time.Unix(1000, 0)
-	s.advanceSchoolShine(at)
+	now := at
+	f.TownAnimationNow = func() time.Time { return now }
+	s.schoolPage().Advance()
 	steps := []struct {
 		after time.Duration
 		cycle int
@@ -20,8 +22,9 @@ func TestSchoolShineStepsEveryHalfSecondModuloFive(t *testing.T) {
 		{2100 * time.Millisecond, 3}, {2600 * time.Millisecond, 4}, {3100 * time.Millisecond, 0},
 	}
 	for _, step := range steps {
-		s.advanceSchoolShine(at.Add(step.after))
-		if got := s.schoolTrainingStatic.shineCycle; got != step.cycle {
+		now = at.Add(step.after)
+		s.schoolPage().Advance()
+		if got := s.schoolShine().Index; got != step.cycle {
 			t.Fatalf("at +%v the idle slot is %d, want %d", step.after, got, step.cycle)
 		}
 	}
@@ -33,6 +36,11 @@ func TestSchoolShineStepsEveryHalfSecondModuloFive(t *testing.T) {
 // before the first school paint.
 func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 	f := shellFrontEnd()
+	schoolArt, err := LoadTownSchoolArt(townSchoolSource())
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.TownSchoolArt = resolved(schoolArt, nil)
 	now := time.Unix(1000, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	s := f.townUI
@@ -58,12 +66,16 @@ func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 // follows the drawn order; the mage panel keeps the stored order.
 func TestSchoolShineDisplaySlotKeepsTheMageStoredOrder(t *testing.T) {
 	for cycle, want := range []int{0, 1, 2, 3, 4} {
-		if got := schoolShineDisplaySlot(false, cycle); got != want {
+		s := &townScreen{}
+		s.schoolShine().Index = cycle
+		if got := s.schoolShine().Slot(schoolFighterClass); got != want {
 			t.Errorf("fighter cycle %d: slot %d, want %d", cycle, got, want)
 		}
 	}
 	for cycle, want := range []int{0, 1, 3, 2, 4} {
-		if got := schoolShineDisplaySlot(true, cycle); got != want {
+		s := &townScreen{}
+		s.schoolShine().Index = cycle
+		if got := s.schoolShine().Slot(schoolMageClass); got != want {
 			t.Errorf("mage cycle %d: slot %d, want %d", cycle, got, want)
 		}
 	}
