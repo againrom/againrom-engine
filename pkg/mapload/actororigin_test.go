@@ -105,8 +105,8 @@ func TestSiegeHireActorCarriesItsCensusFields(t *testing.T) {
 }
 
 // Census row "party": a generated member's own fold, pools and spellbook, the
-// player's slot and the start cell; no group and no row-borne dying time,
-// sight-through-invisibility, retreat thresholds or treasure.
+// player's slot and the start cell; no group, no dying time (this member binds
+// no Humans row), sight-through-invisibility, retreat thresholds or treasure.
 func TestPartyActorCarriesItsCensusFields(t *testing.T) {
 	table := cheatActorTable()
 	sword := data.Weapon{Name: "Blade", DamageBase: 3, DamageSpread: 2, AttackType: data.SkillBlade,

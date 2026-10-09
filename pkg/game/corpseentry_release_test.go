@@ -245,6 +245,12 @@ func TestReleaseCorpseEntrySAVLoad(t *testing.T) {
 		if err := savedStructureSetValue(actor, "Health", uint32(uint16(coldHP))); err != nil {
 			t.Fatal(err)
 		}
+		// A body past stage 1 has served its dying countdown (HERO-DWELL-065).
+		if coldStage != 1 {
+			if err := savedStructureSetValue(actor, "U6C", 0); err != nil {
+				t.Fatal(err)
+			}
+		}
 		coldRaw, err := sav.EncodeDocumentData(changed)
 		if err != nil {
 			t.Fatal(err)

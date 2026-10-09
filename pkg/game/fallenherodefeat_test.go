@@ -9,8 +9,7 @@ import (
 )
 
 // fallenHeroEntity is a human player character at full health with the given
-// dying time: 0 for a hero a fresh campaign mints, 8 for one an original SAV
-// carries.
+// dying time: 0 for a body with no dwell, 8 for a hero's Humans row.
 func fallenHeroEntity(id sim.EntityID, x, y, dyingTime int32) sim.Entity {
 	return sim.Entity{ID: id, Owner: sim.SelfSlot, X: x, Y: y, HP: 40, MaxHP: 40, DyingTime: dyingTime,
 		TypeID: sim.HumanTypeID, Humanoid: true}

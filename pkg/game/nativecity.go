@@ -134,38 +134,7 @@ func nativeCityHumanTypeWord(member mapload.PartyMember) uint16 {
 // a template with no TypeID at all) safely falls out of the row<=0 bound
 // below the same way it always did.
 func nativeCityDefRow(member, hero mapload.PartyMember, table *mapload.Table) byte {
-	if table == nil || table.Humans == nil {
-		return 0
-	}
-	if member.StartingHero {
-		fig := data.FigureDir(member.FigureDir)
-		_, row, ok := data.ChargenBase(table.Humans, fig.Mage(), fig.Female())
-		if !ok || row <= 0 || row > 255 {
-			return 0
-		}
-		return byte(row)
-	}
-	if member.CompanionNPC != 0 {
-		heroFemale := data.FigureDir(hero.FigureDir).Female()
-		if serverID, ok := table.NPC.CampaignServerID(int32(member.CompanionNPC), 0, hero.Mage, heroFemale); ok {
-			if row := data.FindHumanByServerID(table.Humans, serverID); row > 0 && row <= 255 {
-				return byte(row)
-			}
-		}
-	}
-	if member.MercenaryType != 0 && !nativeCitySiegeMember(member) {
-		if row := int(member.DefinitionRow); row > 0 && row < table.Humans.Len() {
-			return byte(row)
-		}
-		if row := data.FindHumanByName(table.Humans, member.Name); row > 0 && row <= 255 {
-			return byte(row)
-		}
-	}
-	row := data.FindHumanByType(table.Humans, member.Class)
-	if row <= 0 || row > 255 {
-		return 0
-	}
-	return byte(row)
+	return byte(mapload.PartyHumanRow(member, hero, table))
 }
 
 // nativeCityHeroOf returns party's own starting hero, or the zero value when
