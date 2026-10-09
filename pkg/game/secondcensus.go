@@ -636,16 +636,29 @@ var secondDepartureCases = map[int][]SecondExit{
 }
 
 // secondProducer names the published route that makes a mission available:
-// R2-ENGINE-073 for the first inn talk, R2-ENGINE-216 and R2-ENGINE-217 for
-// the later inn talks, R2-ENGINE-146 for each departure add.
+// R2-ENGINE-073 for the first inn talk, the stage bodies of EnterInn
+// (R2-ENGINE-216, R2-ENGINE-223..R2-ENGINE-228) and its continuation
+// (R2-ENGINE-217) for the later inn talks, R2-ENGINE-146 for each
+// departure add.
 func secondProducer(n int) string {
 	switch {
 	case n == 10:
 		return "town 1 inn talk"
-	case n == 30 || n == 31:
-		return "stage 30 inn talk"
 	case n == 62 || n >= 74 && n <= 77 || n >= 84 && n <= 87 || n >= 93 && n <= 96:
 		return "town 2 inn talk"
+	}
+	for _, stage := range slices.Sorted(maps.Keys(secondInnStages)) {
+		for _, e := range secondInnStages[stage] {
+			if e.kind != 3 || e.topic != n {
+				continue
+			}
+			if e.stage != 0 {
+				stage = e.stage
+			} else if stage >= 60 && stage <= 80 {
+				return "stage 60/70/80 inn talk"
+			}
+			return fmt.Sprintf("stage %d inn talk", stage)
+		}
 	}
 	target := fmt.Sprintf("mission %d", n)
 	for _, from := range slices.Sorted(maps.Keys(secondDepartureCases)) {
@@ -665,8 +678,9 @@ func secondLocationName(l secondLocation) string {
 
 // secondEngineReach walks the engine's own controller from a new game. Each
 // round visits every available town first, talks to each of its speakers
-// and leaves, then wins every available mission not yet reached, with every
-// departure gate satisfied.
+// and leaves, then wins the first available mission not yet reached, with
+// every departure gate satisfied, so every stage a departure reaches gets
+// its own town visits.
 func secondEngineReach() map[int]bool {
 	c := newSecondCampaign()
 	visit := func() {
@@ -700,6 +714,7 @@ func secondEngineReach() map[int]bool {
 			bank := c.bank
 			bank[772], bank[780] = 1, 1
 			c.completeBank(bank)
+			break
 		}
 	}
 	return reach
