@@ -53,30 +53,28 @@ func (c *secondCampaign) has(location secondLocation) bool {
 	return false
 }
 
-func (c *secondCampaign) talk() bool {
-	if c.current != (secondLocation{kind: 2, id: 1}) || c.bank[768] != 10 {
+// leaveTown is the type-2 departure: town 1 removes its node, a later town
+// keeps it, and both clear current (R2-ENGINE-144). Town 1's gate opens
+// only once mission 10 is available.
+func (c *secondCampaign) leaveTown() bool {
+	if c.current.kind != 2 || !c.gateOpen() {
 		return false
 	}
-	mission := secondLocation{kind: 1, id: 10}
-	if !c.has(mission) {
-		c.available = append(c.available, mission)
+	if c.current.id == 1 {
+		remaining := c.available[:0]
+		for _, l := range c.available {
+			if l != c.current {
+				remaining = append(remaining, l)
+			}
+		}
+		c.available = remaining
 	}
+	c.current = secondLocation{}
 	return true
 }
 
-// leaveTown is the type-2 departure: a later town clears current and keeps
-// its available node (R2-ENGINE-144).
-func (c *secondCampaign) leaveTown() bool {
-	if c.current.kind == 2 && c.current.id != 1 {
-		c.current = secondLocation{}
-		return true
-	}
-	if c.current != (secondLocation{kind: 2, id: 1}) || !c.has(secondLocation{kind: 1, id: 10}) {
-		return false
-	}
-	c.available = []secondLocation{{kind: 1, id: 10}}
-	c.current = secondLocation{}
-	return true
+func (c *secondCampaign) gateOpen() bool {
+	return c.current.id != 1 || c.has(secondLocation{kind: 1, id: 10})
 }
 
 func (c *secondCampaign) canEnter(n int) bool {
@@ -268,13 +266,15 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 		return nil
 	}
 	if c.current.kind == 2 {
-		if c.current.id != 1 {
-			return []ui.TownRow{{Text: "GATES", Choosable: true}}
+		gates := ui.TownRow{Text: "GATES", Choosable: c.gateOpen()}
+		if c.room != secondTownInn {
+			return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
 		}
-		if c.room == secondTownInn {
-			return []ui.TownRow{{Text: "TALK", Choosable: true}, {Text: "GATES", Choosable: c.has(secondLocation{kind: 1, id: 10})}}
+		var rows []ui.TownRow
+		for _, o := range c.speakers() {
+			rows = append(rows, ui.TownRow{Text: fmt.Sprintf("TALK %d", o.npc), Choosable: true})
 		}
-		return []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: c.has(secondLocation{kind: 1, id: 10})}}
+		return append(rows, gates)
 	}
 	var rows []ui.TownRow
 	for _, location := range c.available {
@@ -298,7 +298,7 @@ func (t *secondCampaignScreen) Footer() []string {
 	var out []string
 	for id := 2; id <= 3; id++ {
 		if town := (secondLocation{2, id}); c.current == town || c.has(town) {
-			out = append(out, fmt.Sprintf("Town %d conversations and services are unavailable.", id))
+			out = append(out, fmt.Sprintf("Town %d services are unavailable.", id))
 		}
 	}
 	return out
@@ -324,21 +324,23 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		}
 		return ui.TownAction{}
 	}
-	if i == 1 || c.current.id != 1 {
+	if i == len(rows)-1 {
 		c.leaveTown()
 		c.room = secondTownSquare
 		return ui.TownAction{}
 	}
 	if c.room != secondTownInn {
 		c.room = secondTownInn
-	} else {
-		payload, err := readSecondTownTalk(t.install)
-		if err != nil {
-			return ui.TownAction{Msg: err.Error()}
-		}
-		if c.talk() {
-			c.payload, c.part = payload, 1
-		}
+		return ui.TownAction{}
+	}
+	o := c.speakers()[i]
+	payload, err := readSecondTownTalk(t.install, secondTalkKey(o))
+	if err != nil {
+		return ui.TownAction{Msg: err.Error()}
+	}
+	c.talkTo(o)
+	if payload != nil {
+		c.payload, c.part = payload, 1
 	}
 	return ui.TownAction{}
 }
@@ -413,14 +415,16 @@ func (c *secondCampaign) savePoint() bool {
 	return c != nil && c.selected == (secondLocation{}) && c.payload == nil && c.part == 0 && captureSecondCampaign(c).validateTown() == nil
 }
 
-func readSecondTownTalk(install *InstallResources) ([]byte, error) {
+// readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a
+// missing section shows no conversation (DIV-2635).
+func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 	payload, err := install.Archives.Containers.ReadFile(mainPrefix + "text/town.txt")
 	if err != nil {
 		return nil, fmt.Errorf("initial campaign town: %w", err)
 	}
-	body := secondGameTextSection(secondGameMissionBytes(payload, LanguageSelector(install.Archives.Containers)), "npc517talk10")
+	body := secondGameTextSection(secondGameMissionBytes(payload, LanguageSelector(install.Archives.Containers)), key)
 	if body == "" {
-		return nil, fmt.Errorf("initial inn conversation is unavailable")
+		return nil, nil
 	}
 	return []byte(body), nil
 }

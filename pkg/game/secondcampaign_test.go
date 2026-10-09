@@ -78,7 +78,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if err := app.HeadlessActivate("GATES"); err == nil {
 		t.Fatal("locked gate was enabled")
 	}
-	for _, target := range []string{"TAVERN", "TALK"} {
+	for _, target := range []string{"TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -100,7 +100,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	if screen.state().payload != nil {
 		t.Fatal("conversation did not close")
 	}
-	if err := app.HeadlessActivate("TALK"); err != nil {
+	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
 	if len(c.available) != 2 {

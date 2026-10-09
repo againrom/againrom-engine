@@ -153,8 +153,8 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 			}
 		}
 	})
-	if !slices.Equal(got, []int{10, 20, 21}) {
-		t.Fatalf("engine reaches %v, want [10 20 21]", got)
+	if !slices.Equal(got, []int{10, 20, 21, 30, 31, 32}) {
+		t.Fatalf("engine reaches %v, want [10 20 21 30 31 32]", got)
 	}
 	for _, tc := range []struct {
 		n                 int
@@ -165,9 +165,9 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		{n: 10, producer: "town 1 inn talk", entry: true, win: true, exits: []string{"mission 20:yes", "movie 1:yes"}, engineAdds: []string{"mission 20"}},
 		{n: 20, producer: "departure of 10", entry: true, win: true, exits: []string{"town 2:yes", "mission 21 if 772!=0:yes"}, engineAdds: []string{"town 2", "mission 21"}},
 		{n: 21, producer: "departure of 20", entry: true, win: true},
-		{n: 30, win: true, exits: []string{"movie 2:yes"}},
-		{n: 31, win: true, exits: []string{"mission 32:yes"}, engineAdds: []string{"mission 32"}},
-		{n: 32, producer: "departure of 31", win: true},
+		{n: 30, producer: "stage 30 inn talk", entry: true, win: true, exits: []string{"movie 2:yes"}},
+		{n: 31, producer: "stage 30 inn talk", entry: true, win: true, exits: []string{"mission 32:yes"}, engineAdds: []string{"mission 32"}},
+		{n: 32, producer: "departure of 31", entry: true, win: true},
 		{n: 40, win: true, exits: []string{"mission 50:yes", "mission 60:yes"}, engineAdds: []string{"mission 50", "mission 60"}},
 		{n: 41, win: true},
 		{n: 50, producer: "departure of 40", win: true, exits: []string{"town 3:yes", "unresolved record if 780!=0:no"}, engineAdds: []string{"town 3"}},

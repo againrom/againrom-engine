@@ -13,11 +13,11 @@ import (
 // secondLaterEntry starts a new ROM2 campaign through the first inn talk,
 // then places it in quiet town 2 at a later stage with town 2 and mission n
 // available, leaves by GATES and enters mission n through the destination
-// rows. The stage and destinations are a constructed campaign position: no
-// published entry reaches stage 30 missions from a new game (DIV-2392).
+// rows. The stage and destinations are a constructed campaign position for
+// maps no published inn entry admits from a new game (DIV-2392).
 func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32) {
 	t.Helper()
-	for _, target := range []string{"new game", "TAVERN", "TALK"} {
+	for _, target := range []string{"new game", "TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -42,6 +42,57 @@ func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32
 		t.Fatal("town 2 GATES did not depart", c.current)
 	}
 	secondLaterEnter(t, f, app, n)
+}
+
+// secondStageThirtyVisit plays a new ROM2 campaign through missions 10 and
+// 20, enters town 2 at stage 30, and talks to NPC 22 and NPC 2108 in its
+// inn, which admit missions 30 and 31 (R2-ENGINE-216, R2-ENGINE-219). It
+// leaves by GATES and returns the campaign at the destination rows.
+func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampaign {
+	t.Helper()
+	enterSecondCampaignMission(t, app)
+	enterSecondCampaignNextMission(t, f, app, false)
+	secondTwentyWin(t, f, app, false)
+	secondLaterChoose(t, app, "notice", "town 2", "ENTER", "TAVERN")
+	c := f.Town.second
+	if c.current != (secondLocation{2, 2}) || c.room != secondTownInn || c.bank[768] != 30 {
+		t.Fatalf("town 2 inn: current=%v room=%d stage=%d", c.current, c.room, c.bank[768])
+	}
+	var npcs []int
+	for _, o := range c.speakers() {
+		npcs = append(npcs, o.npc)
+	}
+	if !reflect.DeepEqual(npcs, []int{22, 2108, 2110}) || app.HeadlessActivate("TALK 517") == nil {
+		t.Fatal("stage 30 inn speakers", npcs)
+	}
+	for _, step := range []struct {
+		target string
+		want   []secondLocation
+	}{
+		{"TALK 22", []secondLocation{{2, 2}, {1, 30}}},
+		{"TALK 2108", []secondLocation{{2, 2}, {1, 30}, {1, 31}}},
+		{"TALK 2110", []secondLocation{{2, 2}, {1, 30}, {1, 31}}},
+	} {
+		secondLaterChoose(t, app, step.target)
+		pages := 0
+		for ; app.HeadlessActivate("notice") == nil; pages++ {
+			if pages == 64 {
+				t.Fatal(step.target, "dialogue exceeded 64 pages")
+			}
+		}
+		if pages == 0 || !reflect.DeepEqual(c.available, step.want) {
+			t.Fatalf("%s: pages=%d available=%v", step.target, pages, c.available)
+		}
+		t.Logf("%s: %d dialogue pages, available %v", step.target, pages, c.available)
+	}
+	if c.bank[533] != 1 || c.bank[553] != 2 {
+		t.Fatal("TALK 22 did not store slots 533 and 553")
+	}
+	secondLaterChoose(t, app, "GATES")
+	if c.current != (secondLocation{}) || app.Screen() != ui.ScreenTown {
+		t.Fatal("town 2 GATES did not depart", c.current)
+	}
+	return c
 }
 
 func secondLaterEnter(t *testing.T, f *FrontEnd, app *ui.App, n int) {
@@ -122,13 +173,14 @@ func secondThirtyOneWin(t *testing.T, app *ui.App, live *mapWorld) {
 	secondLaterAwaitVictory(t, app, live, 400)
 }
 
-// TestReleaseSecondLaterDepartureReachesTheNextMap wins installed mission
-// 31, acknowledges the victory, and enters the mission its departure adds.
+// TestReleaseSecondLaterDepartureReachesTheNextMap plays a new campaign to
+// the stage 30 inn and its two mission talks, wins installed mission 31, acknowledges the victory, and enters the mission its departure adds.
 func TestReleaseSecondLaterDepartureReachesTheNextMap(t *testing.T) {
 	f := secondGameFront(t)
 	app := f.App("later departure")
 	app.Layout(1024, 768)
-	secondLaterEntry(t, f, app, 31, 30)
+	secondStageThirtyVisit(t, f, app)
+	secondLaterEnter(t, f, app, 31)
 	live := f.live
 	secondThirtyOneWin(t, app, live)
 	bank, _ := live.world.ROM2ScenarioState()
@@ -137,7 +189,7 @@ func TestReleaseSecondLaterDepartureReachesTheNextMap(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := f.Town.second
-	if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 32}}) {
+	if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 30}, {1, 32}}) {
 		t.Fatalf("mission 31 departure: screen=%v current=%v available=%v message=%q", app.Screen(), c.current, c.available, app.HeadlessMessage())
 	}
 	want := bank
@@ -169,7 +221,22 @@ func TestReleaseSecondLaterDepartureReachesTheNextMap(t *testing.T) {
 			t.Fatalf("mission 32 bank[%d]=%d want %d", i, next[i], expect)
 		}
 	}
-	t.Logf("installed M31 victory tick %d -> departure adds 32 -> M32 opens with the carried party", live.world.Tick())
+	t.Logf("new game -> M10 -> M20 -> stage 30 inn TALK 22/2108 -> M31 victory tick %d -> departure adds 32 -> M32 opens with the carried party", live.world.Tick())
+}
+
+// TestReleaseSecondStageThirtyInnOpensMissionThirty enters the mission the
+// stage 30 inn talk with NPC 22 admits.
+func TestReleaseSecondStageThirtyInnOpensMissionThirty(t *testing.T) {
+	f := secondGameFront(t)
+	app := f.App("stage 30 inn")
+	app.Layout(1024, 768)
+	c := secondStageThirtyVisit(t, f, app)
+	secondLaterEnter(t, f, app, 30)
+	bank, _ := f.live.world.ROM2ScenarioState()
+	if c.current != (secondLocation{1, 30}) || bank[533] != 1 || bank[553] != 2 || bank[768] != 30 {
+		t.Fatal("mission 30 did not open from the stage 30 campaign", c.current)
+	}
+	t.Logf("new game -> stage 30 inn TALK 22 -> M30 opens, tick %d", f.live.world.Tick())
 }
 
 // TestReleaseSecondMovieExitAtLaterDeparture wins installed mission 110 and
@@ -242,7 +309,8 @@ func TestReleaseSecondLaterMissionSaveContinuation(t *testing.T) {
 	f := secondGameFront(t)
 	app := f.App("later save")
 	app.Layout(1024, 768)
-	secondLaterEntry(t, f, app, 31, 30)
+	secondStageThirtyVisit(t, f, app)
+	secondLaterEnter(t, f, app, 31)
 	secondThirtyOneWin(t, app, f.live)
 	if err := app.HeadlessActivate("notice"); err != nil {
 		t.Fatal(err)

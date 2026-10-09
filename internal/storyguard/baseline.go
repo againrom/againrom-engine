@@ -1949,7 +1949,9 @@ package storyguard
 // completeBank's output, secondAux and its decoder, the stage table, the
 // later-town departure and the movie chosen at acknowledgement, and the
 // focused and installed tests of every case body, new code, including this
-// paragraph.
+// paragraph. It rises again for the town inn options and TALK: the docs of
+// EnterInn, the speakers and TalkTo, and the focused and installed tests of
+// the stage-30 inn route, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1973,5 +1975,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8520236,
+	CommentBytes: 8523163,
 }

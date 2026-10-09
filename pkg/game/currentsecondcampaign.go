@@ -88,11 +88,7 @@ func (c *currentSecondCampaign) validate() error {
 	if mission.Kind != 1 || !secondSaveMission(mission.ID) || c.Room != nil {
 		return fmt.Errorf("current second campaign requires a supported ordinary mission")
 	}
-	if mission.ID == 21 {
-		if err := c.validateLaterAvailable(); err != nil || len(c.Available) != 2 {
-			return fmt.Errorf("current second campaign requires available mission21")
-		}
-	} else if mission.ID == 10 || mission.ID == 20 {
+	if mission.ID == 10 || mission.ID == 20 {
 		if len(c.Available) != 1 || c.Available[0] != mission {
 			return fmt.Errorf("current second campaign requires the selected mission")
 		}
@@ -123,17 +119,11 @@ func (c *currentSecondCampaign) validateOrdinaryAvailable() error {
 }
 
 func (c *currentSecondCampaign) validateTown() error {
-	if c.Current == (currentSecondLocation{2, 3}) {
-		if c.Room == nil || *c.Room != secondTownSquare {
+	if c.Current == (currentSecondLocation{2, 2}) || c.Current == (currentSecondLocation{2, 3}) {
+		if c.Room == nil || *c.Room > secondTownInn {
 			return fmt.Errorf("current second campaign requires a quiet later town")
 		}
 		return c.validateOrdinaryAvailable()
-	}
-	if c.Current == (currentSecondLocation{2, 2}) {
-		if c.Room == nil || *c.Room != secondTownSquare {
-			return fmt.Errorf("current second campaign requires a quiet second town")
-		}
-		return c.validateLaterAvailable()
 	}
 	town, mission := (currentSecondLocation{2, 1}), (currentSecondLocation{1, 10})
 	if c.Current != town || c.Bank[768] != 10 || c.Room == nil || *c.Room > secondTownInn || len(c.Available) < 1 || len(c.Available) > 2 || c.Available[0] != town || len(c.Available) == 2 && c.Available[1] != mission {
@@ -142,16 +132,6 @@ func (c *currentSecondCampaign) validateTown() error {
 	return nil
 }
 
-func (c *currentSecondCampaign) validateLaterAvailable() error {
-	if c.Bank[768] != 30 || c.Bank[916] != 1 || c.Bank[775] != 0 || len(c.Available) < 1 || len(c.Available) > 2 || c.Available[0] != (currentSecondLocation{2, 2}) {
-		return fmt.Errorf("current second campaign requires ordinary second-town availability")
-	}
-	wantMission := c.Bank[772] != 0 && c.Bank[917] == 0
-	if (len(c.Available) == 2) != wantMission || len(c.Available) == 2 && c.Available[1] != (currentSecondLocation{1, 21}) {
-		return fmt.Errorf("current second campaign mission21 availability disagrees with bank")
-	}
-	return nil
-}
 func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 	if c == nil {
 		return nil

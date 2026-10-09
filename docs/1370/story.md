@@ -1,4 +1,4 @@
-# ROM2 ordinary departure for every mission
+# ROM2 ordinary departure for every mission and the stage-30 inn
 
 ## Intent
 
@@ -10,11 +10,12 @@ published ordinary departure for every won mission, produces each movie exit
 behind its gates, and writes a mission SAV on every ordinary mission. ROM1
 code paths, release tests and hashed state do not change.
 
-Maps 31 and 32 are not made reachable. No published departure adds mission 30
-or 31; ID 31 adds 32. The record that offers 31 is most likely a stage-30 inn
-or town 2 TALK entry, which no claim names (DIV-2632).
+The second step implements the town inn options and TALK that knowledge k205
+publishes. From a new game, ordinary play reaches town 2 at stage 30, where
+TALK 22 admits mission 30 and TALK 2108 admits mission 31; mission 31 departs
+to 32.
 
-Base: `71847832` (game 0.97.0). Knowledge pin: k204.
+Base: `71847832` (game 0.97.0). Knowledge pin: k204, moved to k205.
 
 ## Authority
 
@@ -30,6 +31,14 @@ Base: `71847832` (game 0.97.0). Knowledge pin: k204.
 | slot 896+ID store is unbounded | R2-SESSION-052 |
 | type-2 departure keeps a later town's node | R2-ENGINE-144 |
 | cutpaths row indexed by the output | R2-ENGINE-075 |
+| EnterInn selects on slot 768 for any current record | R2-ENGINE-215 |
+| stage-10 and stage-30 inn entries, slot 927 gate | R2-ENGINE-161, R2-ENGINE-216 |
+| fifteen continuation stores, signed stage compares, slot 776/781 topic pick | R2-ENGINE-217 |
+| dynamic tail of kinds 1 and 2 | R2-ENGINE-221 |
+| kinds 0 and 3 are talk actors; first match; npc%dtalk%d | R2-ENGINE-220 |
+| TalkTo: kind 3 admits the topic; NPC 22 topic 30 stores 533 and 553 | R2-ENGINE-219 |
+| initial topic 10 stores slot 769 | R2-SESSION-110 |
+| stage 30 at the first town 2 visit, 40 after mission 30 | R2-SESSION-107, R2-SESSION-109 |
 
 ## As built
 
@@ -56,26 +65,44 @@ Base: `71847832` (game 0.97.0). Knowledge pin: k204.
 - The movie is chosen at acknowledgement: `frontTransitions.finishWon` sets
   the live viewer's completion movie to the cutpaths row the output selects;
   output -1 plays nothing (DIV-2628). Mission entry selects no movie.
-- Town 3 and every later town show GATES only with an unavailable-services
-  line; GATES clears current and keeps the node. Quiet town 3 is a save point
-  (DIV-2631).
-- A mission SAV is written for every ordinary ID 1..127. Missions 10, 20 and
-  21 keep their exact availability shapes; every other mission takes bounded
-  availability: at most 130 unique entries, missions 1..127, towns 1..3, the
-  current mission present, bank775 zero (DIV-2633).
-- The census reads the same controller: a movie exit counts as produced when
-  `completeBank` stores its output with every gate held and with no gate
-  inverted.
+- Every town has a square (TAVERN, GATES) and an inn.
+  `secondCampaign.innOptions` (`pkg/game/secondinn.go`) is EnterInn: the
+  stage body selected by slot 768 (stage 10: NPC 207 topic 9 and NPC 2108
+  topic 8 of kind 0, NPC 517 topic 10 of kind 3; stage 30: NPC 22 topic 30
+  of kind 3, NPC 2108 topic 31 of kind 3 when slot 927 is zero, NPC 2110
+  topic 39 of kind 0), then the fifteen continuation stores under their
+  exact signed compares and current-ID gates, then the dynamic tail. It
+  changes no state. Other stage bodies offer nothing (DIV-2634).
+- The inn shows one "TALK <NPC>" row per distinct kind 0 or 3 NPC key, then
+  GATES (DIV-2635). A row shows the npc%dtalk%d section of the town text and
+  applies `talkTo`: kind 3 admits mission topic, topic 10 also stores slot
+  769, NPC 22 topic 30 also stores 533=1 and 553=2; kind 0 stores nothing
+  (DIV-2639). Kinds 1 and 2 are computed and not presented (DIV-2636).
+  Admission and allocation are not modelled (DIV-2637, DIV-2638).
+- GATES clears current. Town 1 also removes its node and opens only once
+  mission 10 is available; a later town keeps its node. Quiet towns 1..3,
+  square or inn, are save points (DIV-2631).
+- A mission SAV is written for every ordinary ID 1..127. Missions 10 and 20
+  keep their exact availability shapes; every other mission and towns 2 and
+  3 take bounded availability: at most 130 unique entries, missions 1..127,
+  towns 1..3, the current mission present, bank775 zero (DIV-2633).
+- The census reads the same controller. Reach visits each available town,
+  talks to every speaker, leaves, then enters each available mission. A movie
+  exit counts as produced when `completeBank` stores its output with every
+  gate held and with no gate inverted.
 - Mission 50's bank780-gated fixed record has no type or ID and is not
   appended (DIV-2629).
 
 ## Divergences
 
 DIV-2628 (movie output), DIV-2629 (mission 50 record), DIV-2630 (unpublished
-auxiliary immediates), DIV-2631 (town 3), DIV-2632 (stage-30 inn entries and
-reach), DIV-2633 (every ordinary mission and its SAV), all in
-`docs/divergences/rom2.md`. DIV-2437 now records the stored auxiliary array.
-DIV-2356, DIV-2392 and DIV-2436 point to the new rows.
+auxiliary immediates), DIV-2631 (town 3), DIV-2632 (the stage-30 inn route,
+Medium as a composed route), DIV-2633 (every ordinary mission and its SAV),
+DIV-2634 (other stage bodies), DIV-2635 (talk rows and dialogue), DIV-2636
+(kinds 1 and 2), DIV-2637 (EnterInn admission), DIV-2638 (allocation) and
+DIV-2639 (kind 0 effects), all in `docs/divergences/rom2.md`. DIV-2437
+records the stored auxiliary array. DIV-2356, DIV-2392 and DIV-2436 point to
+the new rows.
 
 ## Proof
 
@@ -97,47 +124,66 @@ Focused tests (`pkg/game`):
   `TestCurrentSecondLaterMissionKeepsEveryAvailableRecordInOrder`,
   `TestCurrentSecondLaterMissionRefusesMalformedAvailabilityAtomically`,
   `TestSecondCompletionUsesTheSelectedOutputTable`.
+- `TestSecondInnStageOptions`, `TestSecondInnContinuationGates`,
+  `TestSecondInnDynamicTail`, `TestSecondInnTalkEffects`: every stage, slot
+  927, the signed stage and slot compares, the 776/781 pick for each family,
+  topic 62, the tail's kind and high bit, and each TalkTo effect against
+  tables written from the claims.
+- `TestSecondInnScreenTalksToEachSpeaker`: rows, dialogue, a missing
+  section, a kind 0 talk, a save point in the inn and GATES through the
+  screen.
 
 Installed witnesses, EN and RU ROM2 roots (`secondlaterroute_release_test.go`).
-Each starts from a constructed stage-30 or stage-100 campaign position, since
-no published entry reaches those maps:
+`secondStageThirtyVisit` plays a new game: TALK 517, mission 10 won by a
+pointer move, mission 20 won with disclosed `HeadlessPlace` steps, town 2
+entered at stage 30, TAVERN, then TALK 22 (16 dialogue pages on EN; admits
+30), TALK 2108 (8 pages; admits 31) and TALK 2110 (1 page; no change), then
+GATES.
 
-- `TestReleaseSecondLaterDepartureReachesTheNextMap`: mission 31 is won by
-  its own triggers after a disclosed `HeadlessKillPlayer(4)` and a
-  `HeadlessPlace` beside the unit its register-74 trigger measures; the
-  acknowledgement adds mission 32, and mission 32 opens with the carried party
-  and the departed bank.
-- `TestReleaseSecondMovieExitAtLaterDeparture`: mission 110 is won by its own
-  trigger after a disclosed `HeadlessKill` of the unit it tests; slot 779 is
-  set through `SetROM2ScenarioState`. Output 4 (779 zero) and output 5 (779
-  nonzero) each play the installed cutpaths row.
+- `TestReleaseSecondStageThirtyInnOpensMissionThirty`: mission 30 opens from
+  that campaign with slots 533=1, 553=2 and stage 30.
+- `TestReleaseSecondLaterDepartureReachesTheNextMap`: from that campaign
+  mission 31 is won by its own triggers after a disclosed
+  `HeadlessKillPlayer(4)` and a `HeadlessPlace` beside the unit its
+  register-74 trigger measures; the acknowledgement adds mission 32 beside
+  the still-available 30, and mission 32 opens with the carried party and the
+  departed bank.
 - `TestReleaseSecondLaterMissionSaveContinuation`: mission 32, reached by that
   route, writes a named SAV carrying the stage-30 auxiliary stores; a fresh
   front end cold-loads it and 24 ticks after the same pointer command equal
   the uninterrupted run.
+- `TestReleaseSecondMovieExitAtLaterDeparture` starts from a constructed
+  stage-100 position, since no published entry reaches mission 110. The
+  mission is won by its own trigger after a disclosed `HeadlessKill` of the
+  unit it tests; slot 779 is set through `SetROM2ScenarioState`. Output 4
+  (779 zero) and output 5 (779 nonzero) each play the installed cutpaths row.
 
 ## Census
 
-`TestReleaseSecondGameSupportCensus` on both ROM2 roots, against the
-story1369 baseline:
+`TestReleaseSecondGameSupportCensus` and `cmd/campaigncensus` on both ROM2
+roots (46 maps), against the story1369 baseline. EN and RU agree.
 
-| Total | Before | After |
-|---|---|---|
-| engine_win | 3 | 46 |
-| engine_exits (of 15) | 4 | 14 |
-| maps blocked on continuation | 43 | 1 (mission 50, DIV-2629) |
-| maps blocked on movie | 4 | 0 |
-| maps blocked on save | 43 | 0 |
-| maps blocked on entry | 43 | 43 |
-| engine_entry, ready | 3, 3 | 3, 3 |
+| Total | Baseline | Departure step | Inn step |
+|---|---|---|---|
+| engine_win | 3 | 46 | 46 |
+| engine_exits (of 15) | 4 | 14 | 14 |
+| maps blocked on continuation | 43 | 1 (mission 50, DIV-2629) | 1 |
+| maps blocked on movie | 4 | 0 | 0 |
+| maps blocked on save | 43 | 0 | 0 |
+| maps blocked on entry | 43 | 43 | 40 |
+| engine_entry (reach) | 3 | 3 | 6: 10, 20, 21, 30, 31, 32 |
+| ready | 3 | 3 | 5: 10, 20, 21, 31, 32 |
 
-The save count is the census predicate (`secondSaveMission`); the installed
-SAV witness covers missions 10, 20, 21 and 32.
+Mission 30 is reached and keeps its census party blocker. The save count is
+the census predicate (`secondSaveMission`); the installed SAV witness covers
+missions 10, 20, 21 and 32.
 
 ## Open debt
 
-- Entry to mission 30 and every later map waits on the stage-30 inn and town
-  2 TALK entries (DIV-2632).
+- Entry to every map after 32 waits on unpublished stage bodies and
+  continuation writers (DIV-2634); the composed route is Medium (DIV-2632).
+- Inn rendering and dialogue choice, kinds 1 and 2, admission, allocation
+  and kind 0 effects (DIV-2635..DIV-2639).
 - Mission 50's fixed record (DIV-2629); auxiliary consumers (DIV-2437) and
   field +0x10 immediates (DIV-2630).
 - Catalog membership is not checked before an add (DIV-2633).

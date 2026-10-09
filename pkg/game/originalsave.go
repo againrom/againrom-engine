@@ -1142,7 +1142,10 @@ func (f *FrontEnd) restoreOriginal(saved []byte) (ui.MapOpener, bool, error) {
 // refusal must not replace the running campaign, counters or observer.
 func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, selectedMarkers map[int]bool) (ui.MapOpener, bool, error) {
 	if src.campaign.town.second != nil {
-		if _, err := readSecondTownTalk(&f.InstallResources); err != nil {
+		if payload, err := readSecondTownTalk(&f.InstallResources, "npc517talk10"); err != nil || payload == nil {
+			if err == nil {
+				err = fmt.Errorf("initial inn conversation is unavailable")
+			}
 			return nil, false, err
 		}
 	}

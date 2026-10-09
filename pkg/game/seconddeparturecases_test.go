@@ -374,10 +374,10 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 	}
 	choose("town 3")
 	choose("ENTER")
-	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "GATES", Choosable: true}}) {
+	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}}) {
 		t.Fatal("town 3 screen", c.current, screen.Header(), screen.Rows())
 	}
-	if got := screen.Footer(); !reflect.DeepEqual(got, []string{"Town 2 conversations and services are unavailable.", "Town 3 conversations and services are unavailable."}) {
+	if got := screen.Footer(); !reflect.DeepEqual(got, []string{"Town 2 services are unavailable.", "Town 3 services are unavailable."}) {
 		t.Fatal("town 3 footer", got)
 	}
 	if !screen.CanSave() {
@@ -396,7 +396,7 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 		t.Fatal("town 3 departure changed availability", c.available)
 	}
 	for _, bad := range []func(*currentSecondCampaign){
-		func(c *currentSecondCampaign) { inn := secondTownInn; c.Room = &inn },
+		func(c *currentSecondCampaign) { room := secondTownInn + 1; c.Room = &room },
 		func(c *currentSecondCampaign) { c.Room = nil },
 		func(c *currentSecondCampaign) { c.Available = c.Available[:2] },
 		func(c *currentSecondCampaign) { c.Bank[775] = 1 },
