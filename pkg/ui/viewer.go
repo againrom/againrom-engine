@@ -2240,7 +2240,16 @@ const lowerRenderLipRows = 4
 func (v *Viewer) renderCellRect() (image.Rectangle, bool) {
 	cells, ok := v.playableCellRect()
 	if ok {
-		cells.Max.Y = min(v.grid.Height, cells.Max.Y+lowerRenderLipRows)
+		lip := lowerRenderLipRows
+		origin := 0
+		if v.Mode() == ModeDisplaced {
+			origin = v.proj.MinV
+		}
+		bottom := (v.cam.Y + float64(origin) + float64(v.cam.ViewH)/v.cam.Zoom) / camera.CellSize
+		if bottom > float64(cells.Max.Y) {
+			lip++
+		}
+		cells.Max.Y = min(v.grid.Height, cells.Max.Y+lip)
 	}
 	return cells, ok
 }
@@ -3038,7 +3047,11 @@ func (v *Viewer) step(in Input, now time.Time) {
 		if in.WheelY < 0 {
 			factor = 1 / WheelZoomStep
 		}
-		v.cam.ZoomAbout(float64(in.CursorX), float64(in.CursorY), factor)
+		sx, sy := float64(v.cam.ViewW)/2, float64(v.cam.ViewH)/2
+		if v.editorView {
+			sx, sy = float64(in.CursorX), float64(in.CursorY)
+		}
+		v.cam.ZoomAbout(sx, sy, factor)
 	}
 	v.stepAmbient(now)
 }
@@ -4038,19 +4051,18 @@ func terrainTextureVertices(verts [4]ebiten.Vertex) [4]ebiten.Vertex {
 	return verts
 }
 
-// TERR-217.
+// TERR-217; DIV-2640.
 func (v *Viewer) forEachDrawnTile(fn func(tx, ty int)) {
-	if _, bounded := v.playableCellRect(); bounded {
+	if cells, bounded := v.renderCellRect(); bounded {
 		origin := 0
 		if v.Mode() == ModeDisplaced {
 			origin = v.proj.MinV
 		}
-		col := int(math.Floor(v.cam.X / camera.CellSize))
+		cols := v.cam.VisibleTiles()
 		row := int(math.Floor((v.cam.Y + float64(origin)) / camera.CellSize))
-		cols := int(float64(v.cam.ViewW) / (v.cam.Zoom * camera.CellSize))
-		rows := int(float64(v.cam.ViewH) / (v.cam.Zoom * camera.CellSize))
-		for y := max(0, row); y < min(v.grid.Height, row+rows+lowerRenderLipRows); y++ {
-			for x := min(v.grid.Width, col+cols) - 1; x >= max(0, col); x-- {
+		bottom := int(math.Ceil((v.cam.Y + float64(origin) + float64(v.cam.ViewH)/v.cam.Zoom) / camera.CellSize))
+		for y := max(cells.Min.Y, row); y < min(cells.Max.Y, bottom+lowerRenderLipRows); y++ {
+			for x := min(cells.Max.X, cols.Col1) - 1; x >= max(cells.Min.X, cols.Col0); x-- {
 				fn(x, y)
 			}
 		}

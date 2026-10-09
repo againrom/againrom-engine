@@ -3,9 +3,11 @@ package ui
 import (
 	"fmt"
 	"image"
+	"math"
 	"testing"
 )
 
+// TERR-216; DIV-2640.
 func TestMapCameraLimitsAndTerrainWalk(t *testing.T) {
 	const width, height = 64, 64
 	spans := []struct {
@@ -65,17 +67,29 @@ func TestMapCameraLimitsAndTerrainWalk(t *testing.T) {
 						v.cam.X, v.cam.Y = 20*32, float64(20*32-origin)
 						v.cam.Pan(edge.dx, edge.dy)
 						wantX, wantY := float64(edge.col*32), float64(edge.row*32-origin)
+						if edge.name == "right" {
+							wantX -= float64(span.extraW)
+						}
 						if v.cam.X != wantX || v.cam.Y != wantY {
 							t.Errorf("camera = (%v,%v), want (%v,%v), projection origin %d", v.cam.X, v.cam.Y, wantX, wantY, origin)
 						}
 						var cells []image.Point
 						v.forEachDrawnTile(func(x, y int) { cells = append(cells, image.Pt(x, y)) })
-						wantCount := span.cols * (span.rows + 4)
+						cols, rows := span.cols, span.rows
+						if span.extraW > 0 {
+							cols++
+						}
+						if span.extraH > 0 {
+							rows++
+						}
+						wantCount := cols * (rows + 4)
 						if len(cells) != wantCount {
 							t.Errorf("terrain walk has %d cells, want %d", len(cells), wantCount)
 						}
 						for i, got := range cells {
-							want := image.Pt(edge.col+span.cols-1-i%span.cols, edge.row+i/span.cols)
+							col := int(math.Floor(wantX / 32))
+							row := int(math.Floor((wantY + float64(origin)) / 32))
+							want := image.Pt(col+cols-1-i%cols, row+i/cols)
 							if got != want {
 								t.Errorf("terrain cell %d = %v, want %v; rows ascend and columns descend", i, got, want)
 								break
@@ -104,30 +118,23 @@ func TestMapCameraSpanChangesReapplyLimits(t *testing.T) {
 	v := newViewer(t, g)
 	v.cam.ViewW, v.cam.ViewH = 511, 511
 	v.cam.Pan(1e9, 1e9)
-	if v.cam.X != 41*32 || v.cam.Y != 41*32+28 {
-		t.Errorf("initial 15x15 lower/right = (%v,%v), want (1312,1340)", v.cam.X, v.cam.Y)
+	if v.cam.X != 1281 || v.cam.Y != 1340 {
+		t.Errorf("initial 511x511 lower/right = (%v,%v), want (1281,1340)", v.cam.X, v.cam.Y)
 	}
 	v.cam.ViewW, v.cam.ViewH = 647, 605
 	v.cam.Clamp()
-	if v.cam.X != 36*32 || v.cam.Y != 38*32+28 {
-		t.Errorf("resized 20x18 lower/right = (%v,%v), want (1152,1244)", v.cam.X, v.cam.Y)
+	if v.cam.X != 1145 || v.cam.Y != 1244 {
+		t.Errorf("resized 647x605 lower/right = (%v,%v), want (1145,1244)", v.cam.X, v.cam.Y)
 	}
-	for _, tc := range []struct {
-		zoom     float64
-		col, row int
-	}{
-		{2, 46, 47},
-		{0.75, 30, 31},
-		{8, 54, 54},
-	} {
+	for _, zoom := range []float64{2, 0.75, 8} {
 		v.cam.X, v.cam.Y = 1e9, 1e9
-		v.cam.SetZoom(tc.zoom)
-		if wantX, wantY := float64(tc.col*32), float64(tc.row*32+28); v.cam.X != wantX || v.cam.Y != wantY {
-			t.Errorf("zoom %v lower/right = (%v,%v), want (%v,%v)", tc.zoom, v.cam.X, v.cam.Y, wantX, wantY)
+		v.cam.SetZoom(zoom)
+		if wantX, wantY := 1792-647/zoom, 1820-math.Floor(605/(zoom*32))*32; v.cam.X != wantX || v.cam.Y != wantY {
+			t.Errorf("zoom %v lower/right = (%v,%v), want (%v,%v)", zoom, v.cam.X, v.cam.Y, wantX, wantY)
 		}
 		v.cam.Pan(-1e9, -1e9)
 		if v.cam.X != 256 || v.cam.Y != 284 {
-			t.Errorf("zoom %v upper/left = (%v,%v), want (256,284)", tc.zoom, v.cam.X, v.cam.Y)
+			t.Errorf("zoom %v upper/left = (%v,%v), want (256,284)", zoom, v.cam.X, v.cam.Y)
 		}
 	}
 }

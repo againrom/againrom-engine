@@ -171,7 +171,7 @@ func TestViewerStep(t *testing.T) {
 		}
 	})
 
-	t.Run("a wheel notch zooms about the cursor", func(t *testing.T) {
+	t.Run("a wheel notch zooms about the view centre", func(t *testing.T) {
 		for _, tc := range []struct {
 			name   string
 			wheel  float64
@@ -183,19 +183,18 @@ func TestViewerStep(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				v := stepViewer(t)
 				z0 := v.Camera().Zoom
-				// The world point under the cursor, computed before the zoom.
-				wx, wy := v.Camera().ScreenToWorld(float64(centre.x), float64(centre.y))
+				v.syncMapViewport()
+				sx, sy := float64(v.Camera().ViewW)/2, float64(v.Camera().ViewH)/2
+				wx, wy := v.Camera().ScreenToWorld(sx, sy)
 
 				v.step(Input{CursorX: centre.x, CursorY: centre.y, WheelY: tc.wheel}, frozen)
 
 				if got, want := v.Camera().Zoom, z0*tc.factor; math.Abs(got-want) > 1e-12 {
 					t.Errorf("Zoom = %v, want %v", got, want)
 				}
-				// The anchor is preserved away from the clamp bounds, which is where
-				// this viewer sits.
-				gx, gy := v.Camera().ScreenToWorld(float64(centre.x), float64(centre.y))
+				gx, gy := v.Camera().ScreenToWorld(sx, sy)
 				if math.Abs(gx-wx) > 1e-9 || math.Abs(gy-wy) > 1e-9 {
-					t.Errorf("world point under the cursor moved from (%v,%v) to (%v,%v)", wx, wy, gx, gy)
+					t.Errorf("view centre moved from (%v,%v) to (%v,%v)", wx, wy, gx, gy)
 				}
 			})
 		}

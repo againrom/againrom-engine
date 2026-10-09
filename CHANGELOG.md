@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The map no longer shows black strips at the right and bottom while
+  scrolling, and zooming out keeps the view centred instead of moving the map
+  into a corner.
 - [BASE] Creature cards show the creature's proper name from the game's text
   instead of an internal name such as BAT_SONIC.3. The SAVE and LOAD file
   lists sit in a pressed-in frame, the Save dialog's buttons stay inside its

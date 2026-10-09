@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"image"
+	"math"
 	"testing"
 
 	"againrom/pkg/render/terrain"
@@ -90,7 +91,7 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 			baseViewport, baseZoom, v.Camera().Zoom)
 	}
 
-	// TERR-216.
+	// TERR-216; DIV-2640.
 	cam := v.Camera()
 	cam.Pan(-1e9, -1e9)
 	if cam.X <= 0 || cam.Y <= 0 {
@@ -104,7 +105,7 @@ func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
 			rightSlack, bottomSlack)
 	}
 	m := f.live.mission.state.Map
-	wantY := float64((m.Height-8-int(float64(cam.ViewH)/(cam.Zoom*32)))*32 - terrain.Project(m.Altitudes, m.Width, m.Height).MinV)
+	wantY := float64((m.Height-8)*32-terrain.Project(m.Altitudes, m.Width, m.Height).MinV) - math.Floor(float64(cam.ViewH)/(cam.Zoom*32))*32
 	if cam.Y != wantY {
 		t.Fatalf("wide mission far camera Y %v, want %v", cam.Y, wantY)
 	}

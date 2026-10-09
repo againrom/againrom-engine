@@ -132,8 +132,8 @@ func (c *Camera) SetClampBounds(minX, minY, maxX, maxY float64) {
 	c.Clamp()
 }
 
-// SetCellClampBounds uses whole-cell spans and applies the upper bound last.
-// TERR-216.
+// SetCellClampBounds uses full width and whole-cell Y limits.
+// TERR-216; DIV-2641.
 func (c *Camera) SetCellClampBounds(minX, minY, maxX, maxY float64) {
 	x, y := c.X, c.Y
 	c.SetClampBounds(minX, minY, maxX, maxY)
@@ -222,13 +222,8 @@ func (c *Camera) SetZoom(z float64) {
 	c.Clamp()
 }
 
-// Clamp confines the view to its drawable bounds, or to the complete world
-// when no narrower bounds were supplied. On an axis larger than the view, the
-// offset is held between the two drawable edges; on an axis smaller than the
-// view, the drawable span is centred instead.
-//
-// Every mutator ends with Clamp, so no sequence of pans and zooms can leave
-// the camera outside these bounds.
+// Clamp restores the camera origin bounds after every mutation.
+// An axis smaller than the view stays centred.
 func (c *Camera) Clamp() {
 	c.Zoom = c.zoom()
 	vw, vh := c.viewWorld()
@@ -237,16 +232,11 @@ func (c *Camera) Clamp() {
 		minX, minY, maxX, maxY = c.clampRect[0], c.clampRect[1], c.clampRect[2], c.clampRect[3]
 	}
 	if c.cellClamp {
-		vw = math.Floor(vw/CellSize) * CellSize
-		vh = math.Floor(vh/CellSize) * CellSize
-		if math.IsNaN(c.X) {
-			c.X = minX
+		c.X = clampAxisBounds(c.X, minX, maxX, vw)
+		if vh <= maxY-minY {
+			vh = math.Floor(vh/CellSize) * CellSize
 		}
-		if math.IsNaN(c.Y) {
-			c.Y = minY
-		}
-		c.X = math.Min(math.Max(c.X, minX), maxX-vw)
-		c.Y = math.Min(math.Max(c.Y, minY), maxY-vh)
+		c.Y = clampAxisBounds(c.Y, minY, maxY, vh)
 		return
 	}
 	c.X = clampAxisBounds(c.X, minX, maxX, vw)
