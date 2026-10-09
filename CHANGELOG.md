@@ -10,6 +10,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [BASE] The town square is built from a town description by one town
   composer; it looks and plays the same.
+- [BASE] The tavern, shop and school are built from the town description by
+  the same composer; they look and play the same.
 
 ## 0.105.0
 
