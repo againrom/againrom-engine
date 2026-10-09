@@ -9,7 +9,8 @@ research has not established may take bytes from the loaded file; each such
 field kind is listed below with its format page.
 
 Base: public main `a975806f` (game 0.92.0, knowledge k200), reconciled with
-main `71847832` (game 0.97.0, knowledge k204).
+main `71847832` (game 0.97.0, knowledge k204) and main `11d5d636` (game
+0.99.0). The pursuit search there holds byte form 117, so held orders take 118.
 
 ## As built
 
@@ -157,6 +158,9 @@ The three corpus tests below passed on the EN and the RU install.
 
 - `TestSAVRoundTrip1195OriginalCorpus` (`sessioncorpusaudit`): all 121
   readable original saves SAVE and round-trip, as at the base.
+- `TestSAVRoundTripGateCorpus` (`sessioncorpusaudit`) passes on EN and RU:
+  its dying census accepts 63 of 63; at `71847832` it accepts 62: the
+  `saveorcsdontgo.sav` dying case mismatches on actor native basis and area cost.
 
 ## Open debt
 
