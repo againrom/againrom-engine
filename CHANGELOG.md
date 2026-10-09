@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Town tips look like the original: ornate frame, solid teal fill,
+  justified shadowed text, a panel sized to its text, and the checkbox and
+  Close inside the frame.
 - [BASE] The black area around the minimap crystal is gone; the map shows
   through.
 - [BASE] The red square around the unit under the attack cursor is gone; the

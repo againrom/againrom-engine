@@ -228,7 +228,7 @@ func TestComposeShopScreenDrawsTheButtonCaptionFromWords(t *testing.T) {
 // TestComposeShopScreenDrawsTheDragIconUnderTheCursor is Counterexample 2's
 // own witness (round-2 adversarial review): `contract.md`'s "carried on the
 // cursor" clause names the shop grid explicitly, and this is the one call
-// the shop's own software compositor makes that draws it — centred on
+// the shop's own software compositor makes that draws it вЂ” centred on
 // hover, drawn last, and only while a drag genuinely carries a picture
 // (`DIV-090` retired).
 func TestComposeShopScreenDrawsTheDragIconUnderTheCursor(t *testing.T) {
@@ -242,7 +242,7 @@ func TestComposeShopScreenDrawsTheDragIconUnderTheCursor(t *testing.T) {
 
 	pic := ComposeShopScreen(ShopScreenView{Chosen: -1}, hover, true, icon, true)
 	if got := pic.RGBAAt(hover.X, hover.Y); got.R != 0xff || got.A != 0xff {
-		t.Errorf("(%d,%d) = %+v, want the icon's own opaque red — centred on hover", hover.X, hover.Y, got)
+		t.Errorf("(%d,%d) = %+v, want the icon's own opaque red вЂ” centred on hover", hover.X, hover.Y, got)
 	}
 
 	// hasHover false, dragIcon nil, and hasDrag false each independently
@@ -463,7 +463,7 @@ func TestComposeShopScreenDrawsTheMerchantAndTheShelfAnimations(t *testing.T) {
 // gate then restricts it to townCharacterFigure and its uncovered pixels.
 
 // shopTestMask is a SlotMask the size of shopFigureRect, slot 4 (1-based,
-// zero-based 3) at figure-local (50,100) and nowhere else — one marked pixel is
+// zero-based 3) at figure-local (50,100) and nowhere else вЂ” one marked pixel is
 // enough to tell "the mask answered" from "the mask answered nothing".
 func shopTestMask() *SlotMask {
 	w, h := shopFigureRect.Dx(), shopFigureRect.Dy()
@@ -532,7 +532,7 @@ func TestShopDollSlotAtReadsTheMask(t *testing.T) {
 // round-2's own deletion of the authored Book plaque). Book no longer paints
 // an opaque fill anywhere, so its own area shows the same figure pixels the
 // doll area does, and only the hit test's own documented control precedence
-// — Book wins inside its own rectangle, shopDollAreaAt — still separates
+// вЂ” Book wins inside its own rectangle, shopDollAreaAt вЂ” still separates
 // them. That precedence is asserted here by name, the same way the loop
 // below asserts the removed name row by literal points rather than by
 // re-deriving it from a former layout helper.
@@ -589,7 +589,7 @@ func TestShopDollFormerNameRowsStayInteractive(t *testing.T) {
 
 // shopGridControlAt: the doll wins over the grid it sits inside (there is
 // none, since shopFigureRect stands entirely inside the merchant's room
-// picture — SHOP-FIGURE-041's own doc), the shelf and pack cells still pass
+// picture вЂ” SHOP-FIGURE-041's own doc), the shelf and pack cells still pass
 // through unchanged, and every other family (button, arrow, table cell,
 // picker, merchant, shelf pick) is a miss, because none of them is a drag
 // surface this story's gestures use.
@@ -727,7 +727,7 @@ func TestShopHoverLinesAnswersTheDollSlotFirst(t *testing.T) {
 	}
 
 	// The same mask, an unmarked pixel of the figure's own box: no slot, so
-	// no lines — and, critically, NOT the grid's answer for that point,
+	// no lines вЂ” and, critically, NOT the grid's answer for that point,
 	// because there is none (shopFigureRect stands over no grid cell).
 	unmarked := shopFigureRect.Min.Add(image.Pt(50, 50))
 	if lines, ok := ShopHoverLines(v, unmarked); ok {
@@ -754,8 +754,8 @@ func TestShopHoverLinesMissesTheDollDuringStatistics(t *testing.T) {
 
 // The tip widget (1011 spec; SHOP-TIP-045; DIV-132, DIV-133).
 
-// shopTipTestFont is a 224-record font whose every glyph — including record 0,
-// the space — is the SAME solid, painted 6x12 cell with a 24px advance, so a
+// shopTipTestFont is a 224-record font whose every glyph вЂ” including record 0,
+// the space вЂ” is the SAME solid, painted 6x12 cell with a 24px advance, so a
 // string's measured width is predictable from its length alone and every
 // drawn byte leaves ink a pixel comparison can see.
 func shopTipTestFont() *text.Font {
@@ -771,7 +771,7 @@ func shopTipTestFont() *text.Font {
 }
 
 // wrapShopTip breaks on whitespace, greedily, measuring each candidate line
-// against the font exactly as the widths it is asked to fit are measured —
+// against the font exactly as the widths it is asked to fit are measured вЂ”
 // the same font, not a hand-derived pixel count, so this cannot pass by
 // agreeing with an arithmetic mistake shared with the code under test.
 func TestWrapShopTipBreaksGreedilyOnWhitespace(t *testing.T) {
@@ -800,7 +800,7 @@ func TestWrapShopTipNeverSplitsAWordWiderThanTheRect(t *testing.T) {
 	}
 }
 
-// The file's own CRLF ends a line even where both halves would fit together —
+// The file's own CRLF ends a line even where both halves would fit together вЂ”
 // a paragraph break is authored as the file's structure, not folded into the
 // same whitespace test a plain space is.
 func TestWrapShopTipTreatsCRLFAsAParagraphBreak(t *testing.T) {
@@ -826,25 +826,9 @@ func longShopTip(n int) string {
 	return s
 }
 
-// ShopTipRect NEVER REACHES THE MESSAGE STRIP. DIV-018 named this exact
-// collision: the tip widget's decoded rectangle (shopTipRect) carries this
-// build's own message line at its bottom. ShopTipRect() stops at
-// shopMessageRect's own top rather than at shopTipRect's own bottom.
-// ShopTipRect NOW EXTENDS PAST shopMessageRect, ON PURPOSE (DIV-162, this
-// story's own landing): its own 136-row SHOP-TIP-045 height is kept whole as
-// text capacity and tipPanelChromeH is added below it for the close/toggle
-// row, rather than carved out of those 136 rows. Carving the row out left
-// only 4 of the shipped EN tip's own 7 wrapped lines fitting, a regression
-// against DIV-133's own "seven lines, no spare row" measurement of the build
-// before this story. The overlap with shopMessageRect is intentional: see
-// TestTipPanelOccludesTheMessageStripWhileShowing below for what that means
-// for the strip itself.
-func TestShopTipRectExtendsPastTheMessageStrip(t *testing.T) {
-	if got, want := ShopTipRect().Max.Y, shopTipRect.Max.Y+tipPanelChromeH; got != want {
-		t.Fatalf("ShopTipRect().Max.Y = %d, want shopTipRect.Max.Y + tipPanelChromeH = %d", got, want)
-	}
-	if !ShopTipRect().Overlaps(shopMessageRect) {
-		t.Fatal("ShopTipRect() does not overlap shopMessageRect, want it to (DIV-162)")
+func TestShopTipRectKeepsPublishedConstructionGeometry(t *testing.T) {
+	if got, want := ShopTipRect(), image.Rect(164, 162, 476, 298); got != want {
+		t.Fatalf("shop tip rect = %v, want %v", got, want)
 	}
 }
 
@@ -858,7 +842,7 @@ func TestShopTipRectExtendsPastTheMessageStrip(t *testing.T) {
 // this story, which the second half of this test checks.
 func TestTipPanelOccludesTheMessageStripWhileShowing(t *testing.T) {
 	font := shopTipTestFont()
-	art := &TipPanelArt{Fill: image.NewUniform(shopScreenFill), Border: image.NewUniform(shopScreenFill)}
+	art := &TipPanelArt{Frame: tipClaimFrame()}
 	render := func(tipText, msgText string) *image.RGBA {
 		v := ShopScreenView{Chosen: -1, Font: font, Msg: msgText}
 		if tipText != "" {
@@ -883,7 +867,7 @@ func TestTipPanelOccludesTheMessageStripWhileShowing(t *testing.T) {
 	}
 
 	// With no tip text (Showing() false, TipPanelView{}), the strip must be
-	// pixel-identical to a render with no panel at all — the affordance this
+	// pixel-identical to a render with no panel at all вЂ” the affordance this
 	// story does not otherwise touch.
 	notShowing := render("", "on the table")
 	for y := shopMessageRect.Min.Y; y < shopMessageRect.Max.Y; y++ {

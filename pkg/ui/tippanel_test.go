@@ -14,15 +14,11 @@ import (
 // panel this file's rects use, filled with a distinct solid colour so a
 // composed frame can be told apart from the bare background.
 func tipTestArt() *TipPanelArt {
-	fill := image.NewRGBA(image.Rect(0, 0, 40, 40))
-	draw.Draw(fill, fill.Bounds(), &image.Uniform{C: color.RGBA{10, 20, 30, 255}}, image.Point{}, draw.Src)
-	border := image.NewRGBA(image.Rect(0, 0, 88, 108))
-	draw.Draw(border, border.Bounds(), &image.Uniform{C: color.RGBA{200, 180, 90, 255}}, image.Point{}, draw.Src)
 	gemOff := image.NewRGBA(image.Rect(0, 0, tipPanelGemSize, tipPanelGemSize))
 	draw.Draw(gemOff, gemOff.Bounds(), &image.Uniform{C: color.RGBA{60, 60, 60, 255}}, image.Point{}, draw.Src)
 	gemOn := image.NewRGBA(image.Rect(0, 0, tipPanelGemSize, tipPanelGemSize))
 	draw.Draw(gemOn, gemOn.Bounds(), &image.Uniform{C: color.RGBA{240, 220, 40, 255}}, image.Point{}, draw.Src)
-	return &TipPanelArt{Fill: fill, Border: border, GemOff: gemOff, GemOn: gemOn}
+	return &TipPanelArt{Frame: tipClaimFrame(), GemOff: gemOff, GemOn: gemOn}
 }
 
 // A panel is Showing only with every one of Art, Font, Text and a non-empty
@@ -51,8 +47,8 @@ func TestTipPanelViewShowingRequiresEveryField(t *testing.T) {
 	}
 }
 
-// ComposeTipPanel draws nothing at all when the view is not Showing — no
-// fill, no border, no text — and something inside the rect when it is.
+// ComposeTipPanel draws nothing at all when the view is not Showing вЂ” no
+// fill, no border, no text вЂ” and something inside the rect when it is.
 func TestComposeTipPanelDrawsNothingWhenNotShowing(t *testing.T) {
 	dst := image.NewRGBA(image.Rect(0, 0, 200, 200))
 	blank := image.NewRGBA(image.Rect(0, 0, 200, 200))
@@ -134,7 +130,7 @@ func TestTipControlRectsSitInsideThePanel(t *testing.T) {
 
 // TipPanelControlAt: outside the rect is no hit at all; inside the rect but
 // off both controls is a consumed hit with TipControlNone (spec behaviour 1,
-// "takes input before it" — the whole panel swallows the press, not only its
+// "takes input before it" вЂ” the whole panel swallows the press, not only its
 // two named controls); on each control is that control, consumed.
 func TestTipPanelControlAt(t *testing.T) {
 	rect := image.Rect(100, 100, 300, 300)
@@ -152,7 +148,7 @@ func TestTipPanelControlAt(t *testing.T) {
 		t.Fatalf("on the toggle control: kind=%v consumed=%v, want TipControlToggle, true", kind, consumed)
 	}
 	// Inside the rect, off both controls (the panel's own top-left, above
-	// the text — never inside either button's own row).
+	// the text вЂ” never inside either button's own row).
 	if kind, consumed := TipPanelControlAt(v, rect.Min.Add(image.Pt(2, 2))); !consumed || kind != TipControlNone {
 		t.Fatalf("inside the panel off both controls: kind=%v consumed=%v, want TipControlNone, true", kind, consumed)
 	}
@@ -167,7 +163,7 @@ func TestTipPanelControlAtNotShowingConsumesNothing(t *testing.T) {
 	}
 }
 
-// The toggle draws the lit gem when ToggleOn and the unlit one otherwise —
+// The toggle draws the lit gem when ToggleOn and the unlit one otherwise вЂ”
 // the two art pictures this file gives distinct colours, so the pixel at
 // the toggle's own draw origin tells them apart.
 func TestComposeTipPanelDrawsTheGemForToggleState(t *testing.T) {
@@ -180,7 +176,7 @@ func TestComposeTipPanelDrawsTheGemForToggleState(t *testing.T) {
 	}
 	toggleRect := TipPanelToggleRect(rect)
 	gy := toggleRect.Min.Y + (toggleRect.Dy()-tipPanelGemSize)/2
-	at := image.Pt(toggleRect.Min.X, gy)
+	at := image.Pt(toggleRect.Min.X+1, gy)
 
 	off := render(false).RGBAAt(at.X, at.Y)
 	on := render(true).RGBAAt(at.X, at.Y)
@@ -206,13 +202,13 @@ func TestTipPanelFitsTellsAFullRectFromATruncatingOne(t *testing.T) {
 	art := tipTestArt()
 	text := "one two three four five six seven eight nine ten"
 	width := 60 // narrow enough that this wraps to several lines under a 24px advance
-	lines := wrapShopTip(font, text, width)
+	lines := tipTextLines(font, text, width)
 	if len(lines) < 3 {
 		t.Fatalf("fixture text wrapped to %d lines at width %d, want at least 3 to test a partial fit", len(lines), width)
 	}
 	pitch := font.Height() + 2
 
-	full := image.Rect(0, 0, width+2*tipPanelInset, tipPanelInset*2+tipPanelButtonRowH+4+font.Height()+(len(lines)-1)*pitch)
+	full := image.Rect(0, 0, width+48, 69+font.Height()+(len(lines)-1)*pitch)
 	if !TipPanelFits(TipPanelView{Rect: full, Text: text, Art: art, Font: font}) {
 		t.Fatalf("TipPanelFits = false for a rect sized to hold all %d wrapped lines, want true", len(lines))
 	}
