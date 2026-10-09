@@ -1972,8 +1972,9 @@ package storyguard
 // this paragraph.
 // CommentBytes rises for the second game's first town drawn as the first
 // game's town: the docs of the square and tavern seams, the gate rule, the
-// second-game tavern art loader and the converted tavern words, and their
-// focused and installed tests, new code, including this paragraph.
+// second-game tavern art loader and the converted tavern words, their
+// focused and installed tests and the town continuation sample's note, new
+// code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  265,
@@ -1997,5 +1998,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1791,
 	},
-	CommentBytes: 8511461,
+	CommentBytes: 8511740,
 }

@@ -100,7 +100,11 @@ and RU second-game roots:
   room and the campaign state.
 
 The existing second-game tests now name the speaker card `NPC 517` and leave
-the tavern by Escape before GATES.
+the tavern by Escape before GATES. The town continuation sample compares a
+drawn square or tavern by its room instead of a frame hash: the square's
+animation phase and the tavern selection are presentation, which a SAV does
+not carry for the first game's town either (`townScreen.tavernSelection`).
+The destination list keeps the frame hash.
 
 ## Open debt
 

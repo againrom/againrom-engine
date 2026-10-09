@@ -28,6 +28,7 @@ type secondTownSample struct {
 	Fame          SnapshotFame
 	Header        string
 	Rows          []ui.TownRow
+	Drawn         string
 	Frame         [32]byte
 }
 
@@ -39,7 +40,16 @@ func secondTownSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondTownSampl
 		t.Fatal("composed first-town frame", err, note)
 	}
 	sample := secondTownSample{Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Offered: f.Offered,
-		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: screen.Rows(), Frame: sha256.Sum256(picture.Pix)}
+		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: screen.Rows()}
+	// The first town's square and tavern carry animation phases and a tavern
+	// selection that are presentation, as the first game's town keeps them,
+	// so a drawn room is compared by which room it is; the text surfaces
+	// keep the composed frame.
+	if drawn, ok := screen.(*secondCampaignScreen); ok && (drawn.AtTownSquare() || drawn.AtTownSurface()) {
+		sample.Drawn = map[bool]string{true: "square", false: "tavern"}[drawn.AtTownSquare()]
+	} else {
+		sample.Frame = sha256.Sum256(picture.Pix)
+	}
 	for _, p := range mapload.CloneParty(f.Carried) {
 		p.WornItems = mapload.MemberItemEquipment(p, f.Table)
 		p.CarriedItems = mapload.MemberCarriedItems(p, f.Table)
@@ -70,7 +80,7 @@ func secondTownAssertSample(t *testing.T, want, got secondTownSample) {
 				}
 			}
 		}
-		t.Fatalf("town continuation: campaign=%v party=%v gold=%d/%d offered=%d/%d difficulty=%d/%d quick=%v fame=%v header=%q/%q rows=%v frame=%v", reflect.DeepEqual(want.Campaign, got.Campaign), reflect.DeepEqual(want.Party, got.Party), want.Gold, got.Gold, want.Offered, got.Offered, want.Difficulty, got.Difficulty, want.Quick == got.Quick, reflect.DeepEqual(want.Fame, got.Fame), want.Header, got.Header, reflect.DeepEqual(want.Rows, got.Rows), want.Frame == got.Frame)
+		t.Fatalf("town continuation: campaign=%v party=%v gold=%d/%d offered=%d/%d difficulty=%d/%d quick=%v fame=%v header=%q/%q rows=%v drawn=%q/%q frame=%v", reflect.DeepEqual(want.Campaign, got.Campaign), reflect.DeepEqual(want.Party, got.Party), want.Gold, got.Gold, want.Offered, got.Offered, want.Difficulty, got.Difficulty, want.Quick == got.Quick, reflect.DeepEqual(want.Fame, got.Fame), want.Header, got.Header, reflect.DeepEqual(want.Rows, got.Rows), want.Drawn, got.Drawn, want.Frame == got.Frame)
 	}
 }
 
