@@ -118,8 +118,8 @@ func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
 	rel := f.live.world.Relations()
 
 	// Every living mercenary attacks the nearest living hostile until a mace
-	// mercenary falls past Heal. The hero holds his place: a crowd now fills
-	// the free cells nearest its victim (DIV-2225), and with the hero fighting
+	// mercenary falls past Heal. The hero holds his place: a crowd fills
+	// the contact ring around its victim (MOVE-ALT-020), and with the hero fighting
 	// as well he fell first on this map.
 	var body sim.Entity
 	victims := map[sim.EntityID]sim.EntityID{}

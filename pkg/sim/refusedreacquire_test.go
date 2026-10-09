@@ -52,7 +52,9 @@ func stepsUntilRefused(t *testing.T, w *World, cmds []Command) (int, Entity) {
 
 func TestARefusedPursuitTakesTheNearestHostileWithinReach(t *testing.T) {
 	t.Parallel()
-	w := reacquireWall(t, SelfSlot, 3, 20, []int32{8, 9, 10, 11, 12}, true)
+	// The troll stops at column 3, where picker B finds no cell around its
+	// far victim, so reach 5 is what brings the escort's first body in.
+	w := reacquireWall(t, SelfSlot, 5, 20, []int32{8, 9, 10, 11, 12}, true)
 	_, e := stepsUntilRefused(t, w, []Command{Attack(1, 2)})
 	if !e.AcquirePursuit || e.PursuitIdle || !e.HasAttackTarget || e.AttackTarget != 10 || e.HasTarget || e.Stall != 0 {
 		t.Fatalf("acquisition %v idle %v victim %v/%d walk %v stall %d; want the nearest body 10 taken",
@@ -172,7 +174,7 @@ func TestAHumanAttackOrderSurvivesAnAllyPassingInAOneCellCorridor(t *testing.T) 
 
 func TestARefusedPursuitFarFromTheVictimWaitsForTheStallCount(t *testing.T) {
 	t.Parallel()
-	w := reacquireWall(t, SelfSlot, 3, 24, []int32{8, 9, 10, 11, 12}, true)
+	w := reacquireWall(t, SelfSlot, 5, 24, []int32{8, 9, 10, 11, 12}, true)
 	still, e := stepsUntilRefused(t, w, []Command{Attack(1, 2)})
 	if !e.AcquirePursuit {
 		t.Fatalf("acquisition %v idle %v", e.AcquirePursuit, e.PursuitIdle)

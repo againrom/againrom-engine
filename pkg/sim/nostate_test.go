@@ -215,6 +215,7 @@ var nstPinned = []struct {
 		{"AdmittedBookSpell", "uint16"},
 		{"AcquirePursuit", "bool"},
 		{"PursuitIdle", "bool"},
+		{"Pursuit", "sim.PursuitSearch"},
 		{"AttackPhase", "sim.AttackPhase"},
 		{"AttackCountdown", "int32"},
 		{"AttackCharge", "int32"},

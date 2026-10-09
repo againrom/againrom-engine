@@ -8,6 +8,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.99.0
+
+- [BASE] A unit chasing an enemy it cannot yet reach looks for a way to it on
+  the original's schedule: a full search now and then, a short one in between,
+  and the original's choice of the cell to head for. This replaces the earlier
+  stand-in that sent such units on a wide search every time.
+- [BASE] A save no longer fails when an arrow is in flight after a loaded
+  spell has ended.
+
 ## 0.98.0
 
 - [ROM2] The campaign goes on past the first missions. Winning any

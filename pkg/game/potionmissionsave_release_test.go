@@ -106,6 +106,17 @@ func TestReleaseCarriedPotionMissionSaveKeepsModifierWordThroughColdLoadAndExpir
 				if tick > 1200 {
 					t.Fatal("potion never expired")
 				}
+				// The mission's hostiles reach the hero before the potion runs
+				// out, and a fallen hero's effects stop counting down. Both
+				// worlds take the same heal on the same tick, so they stay alike.
+				if e := releaseEntity(t, f.live, id); e.HP > 0 && e.HP < e.MaxHP/2 {
+					if err := f.live.world.HeadlessHeal(id); err != nil {
+						t.Fatal(err)
+					}
+					if err := cold.live.world.HeadlessHeal(loaded.Target); err != nil {
+						t.Fatal(err)
+					}
+				}
 				f.live.tick()
 				cold.live.tick()
 				_, a := potionActive(f)

@@ -449,6 +449,7 @@ const (
 	exactGoal     settleRule = 0
 	settleOrdered settleRule = 1
 	settleStep    settleRule = 2
+	settleVictim  settleRule = 3
 )
 
 // settles reports whether a search under s may come back with a cell other than
@@ -1091,15 +1092,13 @@ const (
 // stop the growth -- the search goes to the next ring and answers no route at
 // the bound, which is the answer a wave that labelled nothing already gives.
 func (w *World) settleFor(s *routeScratch, self int, settle settleRule, start, target cell) (cell, bool) {
-	limit := settleRings(settle, start, target)
-	if start.chebyshevTo(target) <= pursuitRings && w.pursuitGoalIsVictim(self, settle, target) && limit < pursuitRings+1 {
-		limit = pursuitRings + 1
+	if settle == settleVictim {
+		return w.pickerB(s, self, start)
 	}
-	victim, towardVictim := w.pursuitVictimCell(self, settle)
+	limit := settleRings(settle, start, target)
 
 	var best cell
 	var bestLabel uint64
-	var bestGap int64
 	for r := int64(1); ; r++ {
 		found := false
 		probe := func(x, y int64) {
@@ -1110,15 +1109,10 @@ func (w *World) settleFor(s *routeScratch, self int, settle settleRule, start, t
 			if !ok || !w.restFree(s, self, int32(x), int32(y)) {
 				return
 			}
-			var gap int64
-			if towardVictim {
-				dx, dy := x-int64(victim.x), y-int64(victim.y)
-				gap = dx*dx + dy*dy
-			}
-			if found && (gap > bestGap || gap == bestGap && l >= bestLabel) {
+			if found && l >= bestLabel {
 				return
 			}
-			best, bestLabel, bestGap, found = cell{x: int32(x), y: int32(y)}, l, gap, true
+			best, bestLabel, found = cell{x: int32(x), y: int32(y)}, l, true
 		}
 		tx, ty := int64(target.x), int64(target.y)
 		for i := -r; i <= r; i++ {
@@ -1134,34 +1128,4 @@ func (w *World) settleFor(s *routeScratch, self int, settle settleRule, start, t
 			return cell{}, false
 		}
 	}
-}
-
-// pursuitVictimCell is where an attacker's near search looks for a free cell
-// beside a taken one: the cell of the unit victim it pursues, so that a crowd
-// closing on one victim fills the free cells nearest it before it stands behind
-// a taken one.
-func (w *World) pursuitVictimCell(self int, settle settleRule) (cell, bool) {
-	e := w.entities[self]
-	if settle != settleStep || !e.HasAttackTarget || e.AttackTargetKind != AttackTargetUnit {
-		return cell{}, false
-	}
-	ti := indexOfEntity(w.entities, e.AttackTarget)
-	if ti < 0 {
-		return cell{}, false
-	}
-	return cell{x: w.entities[ti].X, y: w.entities[ti].Y}, true
-}
-
-// pursuitRings is how many rings around its victim a pursuer's far search looks
-// for a free cell once the victim is that many cells away (DIV-2456).
-const pursuitRings int64 = 8
-
-// pursuitGoalIsVictim reports whether a settling far search of the entity at
-// index self is aimed at the cell of the unit victim it pursues.
-func (w *World) pursuitGoalIsVictim(self int, settle settleRule, target cell) bool {
-	if settle != settleOrdered {
-		return false
-	}
-	v, ok := w.pursuitVictimCell(self, settleStep)
-	return ok && v == target
 }

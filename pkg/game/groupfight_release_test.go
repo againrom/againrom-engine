@@ -89,6 +89,14 @@ func TestReleaseAnAttackedGroupAtKadaganPostFightsAsAGroup(t *testing.T) {
 	var firstAt uint64
 	remaining := len(members)
 	for i := 0; i < 4000 && remaining > 0; i++ {
+		// The hero is healed below half health so the fight lasts until the
+		// farthest member arrives: whether he outlives the garrison's blows
+		// is the dice's, not the group's, and his death ends every victim.
+		if h, _ := w.Entity(hero); h.HP > 0 && h.HP < h.MaxHP/2 {
+			if err := w.HeadlessHeal(hero); err != nil {
+				t.Fatal(err)
+			}
+		}
 		sim.Step(w, nil)
 		for k, id := range members {
 			if fightingAt[k] != 0 {

@@ -964,7 +964,10 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				heldFirstCall = true
 			}
 			if e.HasAttackTarget {
-				w.approach(scratch, i)
+				if ti := w.approach(scratch, i); ti >= 0 && !w.usingStructure(e.ID) {
+					w.pursue(scratch, i, ti, heldFirstCall)
+					continue
+				}
 			}
 		}
 		if w.advanceStructureUse(scratch, i) {
@@ -1107,77 +1110,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 			continue
 		}
-		// The move and the index's own record of it are one statement's worth of
-		// work: an advance that told the plane nothing would leave the cell just
-		// vacated reading as held and the cell just taken as free, and the next
-		// unit resolved would route straight onto an occupied cell.
-		from := cell{x: e.X, y: e.Y}
-		facingBefore := e.Facing
-		if w.turnToward(i, step[0].x-from.x, step[0].y-from.y) {
+		if w.advanceStep(scratch, i, step[0], heldFirstCall) != stepTaken {
 			continue
 		}
-		// The walk's first call after a held cycle steps in that call only when
-		// the facing already equals the direction to the first node; otherwise
-		// it turns and the step comes at the next call (MOVE-090).
-		if heldFirstCall && e.Facing != facingBefore {
-			continue
-		}
-		w.requestFootprintCasts(i, step[0].x, step[0].y)
-		if e.Domain != DomainAir && !w.occupancyOpenFootprint(scratch, i, step[0].x, step[0].y) {
-			continue
-		}
-		w.invalidateActorMotion(e.ID, "native cell step supersedes original movement")
-		e.X, e.Y = step[0].x, step[0].y
-		e.replaceDrawnTurn()
-		e.clearStride()
-		// A MOVER FACES THE CELL IT STEPPED TO, written from the step's own delta
-		// — the cell taken less the cell left — and here rather than anywhere
-		// else, because this is the one site a cell changes at. So a mover that is
-		// blocked, that gives up or that arrives keeps the facing its last step
-		// left, by there being no assignment on any of those paths rather than by
-		// a rule.
-		//
-		// It is written on the crossing's FIRST tick, the tick the cell is
-		// committed, and the ticks that pay for the crossing leave it alone —
-		// which is what keeps a rated mover pointing along the stride it is
-		// drawn sliding down for the whole of it.
-		//
-		// The engine derives the same facing from the same NEXT CELL, and the one
-		// thing it does with it that this does not is WAIT: a step there is taken
-		// only once the two facing bytes agree, and an arc above one direction
-		// costs ticks and destroys the route. Both are named divergences, and
-		// neither changes the facing this arrives at. THE RATE IS TAKEN HERE,
-		// once, from the two cells this step joins, and held until the next one
-		// — so "once per cell transit" is a position in this function rather
-		// than a rule someone keeps elsewhere. WHAT it is composed of is
-		// stepRate's, and the composition lives there rather than here so that the
-		// read which reports this number to a front-end cannot come to compose it
-		// differently.
-		//
-		// The transit's own tick is its FIRST, so the owed count is one short of
-		// the length and the cadence is exactly that length of ticks per cell.
-		// Only a rated mover writes either: an unrated one owes nothing, and keeps
-		// the cell-a-tick cadence every mover here had before — and that gate is
-		// why stepRate's OTHER caller must refuse an unrated mover rather than let
-		// the law's total arithmetic answer for one.
-		if rated(w.groupRateEntity(*e)) {
-			rate, t := w.stepRate(*e, from, cell{x: e.X, y: e.Y}, true)
-			e.TransitTotal = uint16(t)
-			e.Transit = uint16(t - 1)
-			e.retainStride(from, rate)
-		}
-		e.startAction(w.tick, max(1, int64(e.TransitTotal)))
-		// Only a mover its plane counts WHILE IT MOVES tells the plane anything.
-		// A flyer under orders is counted nowhere, so it commits its position and
-		// touches no count — which is what lets two of them cross one cell.
-		if w.savedMotion != nil {
-			scratch.occupy(w)
-		} else if counted(*e) {
-			scratch.moved(w, *e, from, cell{x: e.X, y: e.Y})
-		}
-		// Any advance ends the stall, so the count measures CONSECUTIVE ticks
-		// held up and not ticks held up in total.
-		e.Stall = 0
 
 		if e.X == e.TargetX && e.Y == e.TargetY {
 			w.restAt(scratch, i)
@@ -2138,4 +2073,92 @@ func containsID(ids []EntityID, id EntityID) bool {
 		}
 	}
 	return false
+}
+
+// stepOutcome is what advanceStep did with a mover's next cell.
+type stepOutcome uint8
+
+const (
+	stepTurned stepOutcome = iota
+	stepBlocked
+	stepTaken
+)
+
+// advanceStep turns entity i toward next or steps it there: the turn when its
+// facing must change first, nothing when the cell is held, and otherwise the
+// step with its transit, its plane record and the end of its stall.
+func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCall bool) stepOutcome {
+	e := &w.entities[i]
+	// The move and the index's own record of it are one statement's worth of
+	// work: an advance that told the plane nothing would leave the cell just
+	// vacated reading as held and the cell just taken as free, and the next
+	// unit resolved would route straight onto an occupied cell.
+	from := cell{x: e.X, y: e.Y}
+	facingBefore := e.Facing
+	if w.turnToward(i, next.x-from.x, next.y-from.y) {
+		return stepTurned
+	}
+	// The walk's first call after a held cycle steps in that call only when
+	// the facing already equals the direction to the first node; otherwise
+	// it turns and the step comes at the next call (MOVE-090).
+	if heldFirstCall && e.Facing != facingBefore {
+		return stepTurned
+	}
+	w.requestFootprintCasts(i, next.x, next.y)
+	if e.Domain != DomainAir && !w.occupancyOpenFootprint(scratch, i, next.x, next.y) {
+		return stepBlocked
+	}
+	w.invalidateActorMotion(e.ID, "native cell step supersedes original movement")
+	e.X, e.Y = next.x, next.y
+	e.replaceDrawnTurn()
+	e.clearStride()
+	// A MOVER FACES THE CELL IT STEPPED TO, written from the step's own delta
+	// — the cell taken less the cell left — and here rather than anywhere
+	// else, because this is the one site a cell changes at. So a mover that is
+	// blocked, that gives up or that arrives keeps the facing its last step
+	// left, by there being no assignment on any of those paths rather than by
+	// a rule.
+	//
+	// It is written on the crossing's FIRST tick, the tick the cell is
+	// committed, and the ticks that pay for the crossing leave it alone —
+	// which is what keeps a rated mover pointing along the stride it is
+	// drawn sliding down for the whole of it.
+	//
+	// The engine derives the same facing from the same NEXT CELL, and the one
+	// thing it does with it that this does not is WAIT: a step there is taken
+	// only once the two facing bytes agree, and an arc above one direction
+	// costs ticks and destroys the route. Both are named divergences, and
+	// neither changes the facing this arrives at. THE RATE IS TAKEN HERE,
+	// once, from the two cells this step joins, and held until the next one
+	// — so "once per cell transit" is a position in this function rather
+	// than a rule someone keeps elsewhere. WHAT it is composed of is
+	// stepRate's, and the composition lives there rather than here so that the
+	// read which reports this number to a front-end cannot come to compose it
+	// differently.
+	//
+	// The transit's own tick is its FIRST, so the owed count is one short of
+	// the length and the cadence is exactly that length of ticks per cell.
+	// Only a rated mover writes either: an unrated one owes nothing, and keeps
+	// the cell-a-tick cadence every mover here had before — and that gate is
+	// why stepRate's OTHER caller must refuse an unrated mover rather than let
+	// the law's total arithmetic answer for one.
+	if rated(w.groupRateEntity(*e)) {
+		rate, t := w.stepRate(*e, from, cell{x: e.X, y: e.Y}, true)
+		e.TransitTotal = uint16(t)
+		e.Transit = uint16(t - 1)
+		e.retainStride(from, rate)
+	}
+	e.startAction(w.tick, max(1, int64(e.TransitTotal)))
+	// Only a mover its plane counts WHILE IT MOVES tells the plane anything.
+	// A flyer under orders is counted nowhere, so it commits its position and
+	// touches no count — which is what lets two of them cross one cell.
+	if w.savedMotion != nil {
+		scratch.occupy(w)
+	} else if counted(*e) {
+		scratch.moved(w, *e, from, cell{x: e.X, y: e.Y})
+	}
+	// Any advance ends the stall, so the count measures CONSECUTIVE ticks
+	// held up and not ticks held up in total.
+	e.Stall = 0
+	return stepTaken
 }

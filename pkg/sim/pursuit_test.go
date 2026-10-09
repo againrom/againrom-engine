@@ -78,21 +78,25 @@ func TestAVictimThatMovesIsFollowed(t *testing.T) {
 	w := puWorld(t, 13, puFighter(1, 0, 0), cbEnt(2, 6, 0))
 	Step(w, []Command{cbOrder(1, 2), {Kind: KindMoveTo, Entity: 2, X: 20, Y: 20}})
 
+	// The attacker aims at the end of the route its last full search found,
+	// which is a cell the victim stood on as some advance began: the loop
+	// resolves entities in ascending id, so the attacker is aimed before the
+	// victim of a higher id has moved, and it re-aims at each full search
+	// (AI-415).
 	seen := map[[2]int32]bool{}
+	stood := map[[2]int32]bool{{6, 0}: true}
 	for n := 0; n < 12; n++ {
-		// Where the victim stands as this advance BEGINS, which is what the
-		// attacker's turn sees: the loop resolves entities in ascending id, so
-		// the attacker is aimed before the victim of a higher id has moved.
 		was := cbAt(t, w, 2)
+		stood[[2]int32{was.X, was.Y}] = true
 		Step(w, nil)
 		a := cbAt(t, w, 1)
 		if !a.HasAttackTarget || !a.HasTarget {
 			continue
 		}
 		seen[[2]int32{a.TargetX, a.TargetY}] = true
-		if a.TargetX != was.X || a.TargetY != was.Y {
-			t.Fatalf("advance %d: the attacker aims at %d,%d; its victim began the advance at %d,%d",
-				n, a.TargetX, a.TargetY, was.X, was.Y)
+		if !stood[[2]int32{a.TargetX, a.TargetY}] {
+			t.Fatalf("advance %d: the attacker aims at %d,%d, a cell its victim never began an advance on",
+				n, a.TargetX, a.TargetY)
 		}
 	}
 	if len(seen) < 2 {
@@ -155,8 +159,9 @@ func TestAnApproachRoundTrips(t *testing.T) {
 	// added no field of its own to make it move. The message said 13 for two
 	// bumps after the literal said 14, which is the same thing the version-refusal
 	// test's own doc block is on record about: a number carried by prose drifts.
-	if b[0] != formatVersion {
-		t.Errorf("the byte form reads version %d, want the %d this tree writes", b[0], formatVersion)
+	if b[0] != pursuitSearchFormVersion || b[len(b)-5] != formatVersion {
+		t.Errorf("the byte form reads version %d over %d, want the %d over %d this tree writes",
+			b[0], b[len(b)-5], pursuitSearchFormVersion, formatVersion)
 	}
 	var got World
 	if err := got.UnmarshalBinary(b); err != nil {

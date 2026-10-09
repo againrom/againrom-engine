@@ -19,7 +19,7 @@ type unreachableArena struct {
 	beside sim.EntityID
 }
 
-func openUnreachableArena(t *testing.T, placeBeside bool, offset int32) *unreachableArena {
+func openUnreachableArena(t *testing.T, placeBeside bool, offset int32, heroAt ...int32) *unreachableArena {
 	t.Helper()
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
@@ -49,6 +49,11 @@ func openUnreachableArena(t *testing.T, placeBeside bool, offset int32) *unreach
 		t.Fatal(err)
 	}
 	heroID := live.mission.ids[0]
+	if len(heroAt) == 2 {
+		if err := live.world.HeadlessPlace(heroID, heroAt[0], heroAt[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
 	hero, ok := live.entity(heroID)
 	if !ok {
 		t.Fatal("no party hero")
@@ -145,7 +150,11 @@ func (a *unreachableArena) reloadCold(t *testing.T) *FrontEnd {
 
 func TestReleaseAnOrderOntoAnUnreachableCreatureTakesTheHostileBesideTheHero(t *testing.T) {
 	t.Run("hostile beside the hero", func(t *testing.T) {
-		a := openUnreachableArena(t, true, 1)
+		// From the hero's mission start, 29 cells from the creature, the first
+		// full search settles on a cell ten from it and the hero walks off
+		// before refusing (MOVE-099). From 27 cells the first full search
+		// finds no cell, so the refusal comes while the hostile is beside him.
+		a := openUnreachableArena(t, true, 1, 19, 64)
 		start := a.get(a.beside).HP
 		var picked, struck int
 		var cold *FrontEnd

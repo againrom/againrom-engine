@@ -365,7 +365,19 @@ func TestReleaseRescuedVillagersReplyAndHurtInThePeasantBank(t *testing.T) {
 	id := villagers[0]
 	labyrinthRescue(t, f, app, mercs, id)
 	// The joined villager guards on its own and walks into the monsters; the
-	// player's Stand Ground keeps it where the clicks below expect it.
+	// player's Stand Ground keeps it where the clicks below expect it. The
+	// monsters already fighting the party are removed: their groups choose
+	// the nearest foe, the lowest id on a tie, so the villager beside the
+	// mace-bearers may be struck while the clicks run, and a blow within
+	// 1500 ms before the fight below would silence its first wound there.
+	for _, e := range f.live.world.Entities() {
+		if !e.Alive() || e.Owner == sim.SelfSlot || !e.HasAttackTarget || e.AttackTargetKind != sim.AttackTargetUnit {
+			continue
+		}
+		if victim, ok := f.live.entity(e.AttackTarget); ok && victim.Owner == sim.SelfSlot {
+			f.live.pending = append(f.live.pending, sim.Kill(e.ID))
+		}
+	}
 	f.live.pending = append(f.live.pending, sim.GroupStance(id, sim.OrderStandGround, 0))
 	for range 8 {
 		if err := labyrinthFrame(f, app); err != nil {

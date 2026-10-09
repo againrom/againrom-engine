@@ -1920,6 +1920,15 @@ package storyguard
 // New native effect-mask controls document their attachment and expiry inputs in
 // sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
 // includes that new-code documentation and this explanation.
+// The pursuit search adds new code documented in pkg/sim/pursuitsearch.go,
+// pickerb.go, pursuitsearchbinary.go and their tests, and the release drives
+// it moved document their new set-ups, as do the structure-order, remap and
+// head-removal fixes and their tests, net of the removed stand-in docs,
+// including this explanation. Reconciled with the melee facing turn, the
+// spell graph check names the area drivers it guards, and the release drives
+// that moved again document their set-ups and a new witness, in new code.
+// The acquisition drive documents the Defend arm's release past reach.
+// The mission 10 heal drives document the wound they now set near the mage.
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
@@ -1975,5 +1984,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8523163,
+	CommentBytes: 8535364,
 }
