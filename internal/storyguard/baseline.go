@@ -1923,6 +1923,8 @@ package storyguard
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
+// CommentBytes rises for the Skrakan portal-part release witness's comments,
+// new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1946,5 +1948,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1817,
 	},
-	CommentBytes: 8488820,
+	CommentBytes: 8489279,
 }
