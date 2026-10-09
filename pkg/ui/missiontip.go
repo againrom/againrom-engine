@@ -17,6 +17,8 @@ type missionTip struct {
 	dress       MissionTipDress
 	closeArmed  bool
 	pic         *ebiten.Image
+	glyphs      []text.DrawCall
+	rgba        *image.RGBA
 	composedFor TipPanelView
 }
 
@@ -120,22 +122,27 @@ func (v *Viewer) paintMissionTip(screen *ebiten.Image) {
 		return
 	}
 	r := view.Rect
+	capture := beginTextCapture(v.textSmoothingEnabled)
+	defer endTextCapture(capture, r.Min)
 	if v.mtip.pic == nil || v.mtip.composedFor != view {
 		local := view
 		local.Rect = r.Sub(r.Min)
 		local.Pointer = view.Pointer.Sub(r.Min)
 		pic := image.NewRGBA(local.Rect)
-		ComposeTipPanel(pic, local)
+		v.mtip.glyphs = text.Record(func() { ComposeTipPanel(pic, local) })
 		if v.mtip.pic == nil {
 			v.mtip.pic = ebiten.NewImage(r.Dx(), r.Dy())
 		}
 		v.mtip.pic.WritePixels(pic.Pix)
+		v.mtip.rgba = pic
 		v.mtip.composedFor = view
 	}
+	text.Append(v.mtip.glyphs, 0, 0)
 	var op ebiten.DrawImageOptions
 	op.Filter = ebiten.FilterNearest
 	op.GeoM.Translate(float64(r.Min.X), float64(r.Min.Y))
 	screen.DrawImage(v.mtip.pic, &op)
+	v.canvasLog.over(v.mtip.rgba, r.Min)
 }
 
 // ComposeMissionTip composes the viewer's mission popup alone on a

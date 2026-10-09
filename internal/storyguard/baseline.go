@@ -1983,7 +1983,8 @@ package storyguard
 // format, actor programs and view, which replace the square's per-actor code,
 // new code, including this paragraph.
 // CommentBytes rises for the tip witnesses: the docs of the new release test
-// file for the generator cycles and the tip renders, new code, including this
+// file for the generator cycles and the tip renders, and the scroll witness's
+// note that the mission start tip covers its click, new code, including this
 // paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
@@ -2008,5 +2009,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1772,
 	},
-	CommentBytes: 8505617,
+	CommentBytes: 8505826,
 }
