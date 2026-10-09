@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The town inn now offers the missions of every later chapter: after
+  mission 30 its speakers admit missions 40 to 43, and later stages offer
+  their own missions under the game's conditions.
 - [ROM1] Town tips look like the original: ornate frame, solid teal fill,
   justified shadowed text, a panel sized to its text, and the checkbox and
   Close inside the frame.
