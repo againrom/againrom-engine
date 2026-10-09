@@ -1,9 +1,12 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"testing"
 
+	"againrom/pkg/data"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -168,5 +171,33 @@ func TestObjectLightLeavesTheWorldUnchanged(t *testing.T) {
 	mw.objectLightStamps(nil)
 	if mw.world.Hash() != before {
 		t.Fatal("building the light stamps changed the world hash")
+	}
+}
+
+// A staff's Fire Arrow and Fire Ball stamp their light at the cell they are
+// drawn in on every step of the wind-up (MAGIC-271).
+func TestWeaponFlightLightStaysAtTheDrawnPoint(t *testing.T) {
+	t.Parallel()
+	for _, spell := range []uint16{1, 2} {
+		mw := sbWorld(t)
+		mw.projectiles.Sheets[12] = &terrain.EffectSheet{Frames: spFrames(4, 8), Phases: 4, RotationPhases: 1}
+		caster := sim.Entity{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, Owner: 1,
+			WeaponSpell: spell, HasAttackTarget: true, AttackTarget: 2,
+			AttackTargetKind: sim.AttackTargetUnit, AttackPhase: sim.AttackCasting, AttackCharge: 4}
+		victim := sim.Entity{ID: 2, X: 10, Y: 2, HP: 100, MaxHP: 100, Owner: 2}
+		ents := []sim.Entity{caster, victim}
+		for swing := 0; swing <= 4; swing++ {
+			mw.swing[1] = swing
+			draws := mw.weaponBoltDraws(ents)
+			if len(draws) == 0 {
+				t.Fatalf("spell %d swing %d: nothing drawn", spell, swing)
+			}
+			cell := lightCell(draws[0].Pos)
+			got := lightGrid(mw.objectLightStamps(ents))
+			want := lightGrid(pictureLightStamps(nil, data.CastPicture(int(spell)), cell, -1))
+			if len(want) == 0 || fmt.Sprint(got) != fmt.Sprint(want) {
+				t.Errorf("spell %d swing %d: drawn at %v (cell %v), light %v, want %v", spell, swing, draws[0].Pos, cell, got, want)
+			}
+		}
 	}
 }

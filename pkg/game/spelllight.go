@@ -160,7 +160,12 @@ func (mw *mapWorld) objectLightStamps(ents []sim.Entity) []ui.LightStamp {
 	}
 	out = mw.savedProjectileLightStamps(out)
 	for _, b := range mw.weaponBolts(ents) {
-		out = mw.boltLightStamps(out, b, bounds)
+		if data.CastDrawsPath(b.picture) {
+			out = mw.boltLightStamps(out, b, bounds)
+			continue
+		}
+		// weaponBoltDraws draws a flying picture at swing/charge, not (age+1).
+		out = pictureLightStamps(out, b.picture, lightCell(castShotPoint(b.from, b.to, b.age, b.life, b.launch)), -1)
 	}
 	for _, s := range mw.shots.flying {
 		b := s.spellBolt
