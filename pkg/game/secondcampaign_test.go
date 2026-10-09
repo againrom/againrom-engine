@@ -21,7 +21,11 @@ import (
 
 func secondCampaignFixture(t *testing.T, withTown bool) (*FrontEnd, *ui.App, *secondCampaignScreen) {
 	t.Helper()
-	var files []synth.File
+	return secondCampaignFixtureFiles(t, withTown)
+}
+
+func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File) (*FrontEnd, *ui.App, *secondCampaignScreen) {
+	t.Helper()
 	if withTown {
 		files = append(files, synth.File{Path: "text/town.txt", Data: []byte("#npc517talk10\r\n<NPC=517,PART=1>\r\nFirst page.\r\n<NPC=21,PART=2>\r\nSecond page.\r\n#other\r\n")})
 	}
@@ -207,7 +211,8 @@ func TestSecondCampaignUnclaimedVictoryRetainsPanel(t *testing.T) {
 		t.Run(fmt.Sprint(restored), func(t *testing.T) {
 			f, app, _ := secondCampaignFixture(t, true)
 			c := newSecondCampaign()
-			n := 30
+			// 128 is outside the bank, so no ordinary departure applies.
+			n := 128
 			if restored {
 				n = 10
 			}

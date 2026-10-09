@@ -165,10 +165,13 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		{n: 10, producer: "town 1 inn talk", entry: true, win: true, exits: []string{"mission 20:yes", "movie 1:yes"}, engineAdds: []string{"mission 20"}},
 		{n: 20, producer: "departure of 10", entry: true, win: true, exits: []string{"town 2:yes", "mission 21 if 772!=0:yes"}, engineAdds: []string{"town 2", "mission 21"}},
 		{n: 21, producer: "departure of 20", entry: true, win: true},
-		{n: 30, exits: []string{"movie 2:no"}},
-		{n: 32, producer: "departure of 31"},
-		{n: 40, exits: []string{"mission 50:no", "mission 60:no"}},
-		{n: 41},
+		{n: 30, win: true, exits: []string{"movie 2:yes"}},
+		{n: 31, win: true, exits: []string{"mission 32:yes"}, engineAdds: []string{"mission 32"}},
+		{n: 32, producer: "departure of 31", win: true},
+		{n: 40, win: true, exits: []string{"mission 50:yes", "mission 60:yes"}, engineAdds: []string{"mission 50", "mission 60"}},
+		{n: 41, win: true},
+		{n: 50, producer: "departure of 40", win: true, exits: []string{"town 3:yes", "unresolved record if 780!=0:no"}, engineAdds: []string{"town 3"}},
+		{n: 60, producer: "departure of 40", win: true, exits: []string{"mission 80:yes"}, engineAdds: []string{"mission 80"}},
 	} {
 		d := secondDeparture(tc.n, reach)
 		if d.Producer != tc.producer || d.EngineEntry != tc.entry || d.EngineWin != tc.win ||
@@ -188,20 +191,23 @@ func censusExits(d SecondDeparture) []string {
 }
 
 // Every published exit stays, with its gates: both of mission 110's outputs,
-// and the opposite bank777/bank778 gates on the outputs of 70 and 80.
+// and the opposite bank777/bank778 gates on the outputs of 70 and 80. The
+// engine produces each movie exactly under its gates; only mission 50's
+// unresolved record stays unproduced.
 func TestSecondDepartureKeepsEveryExitAndItsGates(t *testing.T) {
 	reach := secondEngineReach()
 	for n, want := range map[int][]string{
-		70:  {"movie 3 if 777=0 778!=0:no"},
-		80:  {"movie 3 if 778=0 777!=0:no"},
-		110: {"movie 5 if 779!=0:no", "movie 4 if 779=0:no"},
-		50:  {"town 3:no", "unresolved record if 780!=0:no"},
+		70:  {"movie 3 if 777=0 778!=0:yes"},
+		80:  {"movie 3 if 778=0 777!=0:yes"},
+		110: {"movie 5 if 779!=0:yes", "movie 4 if 779=0:yes"},
+		50:  {"town 3:yes", "unresolved record if 780!=0:no"},
 	} {
 		d := secondDeparture(n, reach)
 		if got := censusExits(d); !slices.Equal(got, want) {
 			t.Errorf("exits of %d = %v, want %v", n, got, want)
 		}
-		if b := (SecondMapCensus{Mission: n, Departure: d}).Blockers(); slices.Contains(b, BlockMovie) != (n != 50) {
+		b := (SecondMapCensus{Mission: n, Departure: d}).Blockers()
+		if slices.Contains(b, BlockMovie) || slices.Contains(b, BlockContinuation) != (n == 50) {
 			t.Errorf("blockers of %d = %v", n, b)
 		}
 	}

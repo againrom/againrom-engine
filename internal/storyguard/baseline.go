@@ -1945,6 +1945,11 @@ package storyguard
 // arm assignment and their focused and release tests, new code, including
 // this paragraph. It rises again for the attached-effect lookups by arm and
 // their tests.
+// CommentBytes rises for the second game's ordinary departure: the docs of
+// completeBank's output, secondAux and its decoder, the stage table, the
+// later-town departure and the movie chosen at acknowledgement, and the
+// focused and installed tests of every case body, new code, including this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1968,5 +1973,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8516070,
+	CommentBytes: 8520236,
 }

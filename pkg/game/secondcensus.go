@@ -708,27 +708,35 @@ func secondDeparture(n int, reach map[int]bool) SecondDeparture {
 // secondEngineAdds is what the engine's continuation of mission n adds from
 // the given bank; nothing when the engine does not continue n.
 func secondEngineAdds(n int, bank [1024]int32) []string {
+	out, _ := secondEngineDeparture(n, bank)
+	return out
+}
+
+// secondEngineDeparture runs the engine's continuation of mission n over the
+// given bank: the locations it adds and the movie output it stores, "" for
+// none.
+func secondEngineDeparture(n int, bank [1024]int32) ([]string, string) {
 	if !secondContinues(n) {
-		return nil
+		return nil, ""
 	}
 	c := newSecondCampaign()
 	c.current = secondLocation{kind: 1, id: n}
 	c.available = []secondLocation{c.current}
-	c.completeBank(bank)
+	output := c.completeBank(bank)
 	var out []string
 	for _, l := range c.available {
 		out = append(out, secondLocationName(l))
 	}
-	return out
+	movie := ""
+	if output >= 0 {
+		movie = fmt.Sprintf("movie %d", output)
+	}
+	return out, movie
 }
 
 // secondEngineExit reports whether the engine produces e exactly when its
-// gates hold: with every gate held, and with no gate inverted. The engine
-// plays one departure movie, output 1 of mission 10, and holds no gate for it.
+// gates hold: with every gate held, and with no gate inverted.
 func secondEngineExit(n int, e SecondExit) bool {
-	if e.Movie() {
-		return e.Target == "movie 1" && len(e.Gates) == 0 && secondCompletionMovie(n)
-	}
 	produced := func(flip int) bool {
 		var bank [1024]int32
 		for i, g := range e.Gates {
@@ -736,7 +744,11 @@ func secondEngineExit(n int, e SecondExit) bool {
 				bank[g.Slot] = 1
 			}
 		}
-		return slices.Contains(secondEngineAdds(n, bank), e.Target)
+		adds, movie := secondEngineDeparture(n, bank)
+		if e.Movie() {
+			return movie == e.Target
+		}
+		return slices.Contains(adds, e.Target)
 	}
 	if !produced(-1) {
 		return false

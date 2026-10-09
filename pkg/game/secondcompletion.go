@@ -5,14 +5,15 @@ import (
 	"againrom/pkg/ui"
 )
 
-// secondCompletionMovie names the missions whose departure movie the engine plays.
-func secondCompletionMovie(mission int) bool { return mission == 10 }
-
-func secondGameCompletionDirectory(src entrySource, mission int) string {
-	if !secondCompletionMovie(mission) {
+// secondGameCompletionDirectory is the movie stem a departure output selects:
+// the cutpaths row the output indexes (R2-ENGINE-075). Only outputs 1..5
+// are stored by a case body (R2-ENGINE-148); -1 and every other value
+// select no movie (DIV-2628).
+func secondGameCompletionDirectory(src entrySource, output int) string {
+	if output < 1 || output > 5 {
 		return ""
 	}
-	stem, _ := LoadTextTable(src, mainPrefix+"text/cutpaths.txt").At(1)
+	stem, _ := LoadTextTable(src, mainPrefix+"text/cutpaths.txt").At(output)
 	return stem
 }
 

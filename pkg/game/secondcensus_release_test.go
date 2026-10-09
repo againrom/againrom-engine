@@ -38,8 +38,8 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 5,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 32, EntryMaps: 3, WinMaps: 3, Ready: 3,
-		Exits: 15, GatedExits: 6, EngineExits: 4,
+		FixtureMaps: 32, EntryMaps: 3, WinMaps: 46, Ready: 3,
+		Exits: 15, GatedExits: 6, EngineExits: 14,
 	}
 	want.Omitted[CauseFixture] = SecondOmission{Nodes: 189, Triggers: 192, ActionTriggers: 8}
 	if got != want {
@@ -47,6 +47,9 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 	}
 	for _, c := range census {
 		blockers := c.Blockers()
+		if slices.Contains(blockers, BlockMovie) || slices.Contains(blockers, BlockSave) || slices.Contains(blockers, BlockContinuation) != (c.Mission == 50) {
+			t.Errorf("mission %d blockers %v: only mission 50's unresolved record may block continuation", c.Mission, blockers)
+		}
 		switch c.Mission {
 		case 10, 20, 21:
 			if len(blockers) != 0 {
@@ -64,7 +67,7 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 			if !slices.Equal(c.NoSpellRule, []uint16{7}) {
 				t.Errorf("mission 110 spells without a rule %v, want Blizzard alone", c.NoSpellRule)
 			}
-			if got := censusExits(c.Departure); !slices.Equal(got, []string{"movie 5 if 779!=0:no", "movie 4 if 779=0:no"}) || !slices.Contains(c.BankSlots, 779) {
+			if got := censusExits(c.Departure); !slices.Equal(got, []string{"movie 5 if 779!=0:yes", "movie 4 if 779=0:yes"}) || !slices.Contains(c.BankSlots, 779) {
 				t.Errorf("mission 110 exits %v with bank slots %v, want both outputs behind the slot its script writes", got, c.BankSlots)
 			}
 		case 40, 96:
