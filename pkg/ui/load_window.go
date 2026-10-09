@@ -3,7 +3,6 @@ package ui
 import (
 	"image"
 	"image/color"
-	"image/draw"
 	"time"
 )
 
@@ -16,9 +15,8 @@ func defaultLoadWindowWords() LoadWindowWords {
 type loadWindow struct {
 	quick         QuickSaveControls
 	words         LoadWindowWords
-	press         loadTarget
-	drag          bool
-	grab          int
+	press         buttonLatch
+	bar           scrollBarInput
 	confirm       bool
 	canDelete     func(string) bool
 	prepareDelete func(string) (func() error, error)
@@ -33,7 +31,8 @@ type loadWindow struct {
 func (w *loadWindow) resetClick() { w.lastName, w.lastClick = "", time.Time{} }
 
 func (w *loadWindow) resetPointer() {
-	w.press, w.drag, w.grab = loadTarget{}, false, 0
+	w.press.clear()
+	w.bar.reset()
 }
 
 func (a *App) SetLoadWindowWords(w LoadWindowWords) { a.flow.loadUI.words = w }
@@ -43,65 +42,40 @@ func (a *App) SetSaveDelete(can func(string) bool, prepare func(string) (func() 
 
 const loadVisibleRows = 10
 
-type loadHitKind uint8
-
-const (
-	loadHitNone loadHitKind = iota
-	loadHitRow
-	loadHitButton
-	loadHitUp
-	loadHitDown
-	loadHitTrack
-)
-
-type loadTarget struct {
-	kind  loadHitKind
-	index int
-}
-
 var (
 	loadPanel        = image.Rect(80, 56, 560, 420)
-	loadRowsBox      = image.Rect(122, 152, 502, 342)
-	loadTrack        = image.Rect(504, 176, 528, 318)
+	loadListArg      = image.Rect(122, 152, 504, 342)
 	loadMessageBox   = image.Rect(122, 344, 522, 375)
 	loadSelectedText = color.RGBA{218, 183, 71, 255}
 	loadDisabledText = color.RGBA{112, 122, 115, 255}
 )
 
-func loadRowRect(i int) image.Rectangle    { return image.Rect(122, 152+i*19, 502, 171+i*19) }
+// The three Load buttons, as button latch ids.
+const (
+	loadOKButton = iota
+	loadDeleteButton
+	loadCancelButton
+)
+
 func loadButtonRect(i int) image.Rectangle { return image.Rect(156+i*124, 380, 252+i*124, 404) }
 
-func loadThumb(list *Picker) image.Rectangle {
-	y := loadTrack.Min.Y
-	if list != nil && len(list.Rows()) > 1 {
-		y += list.Selection() * (loadTrack.Dy() - 24) / (len(list.Rows()) - 1)
-	}
-	return image.Rect(loadTrack.Min.X, y, loadTrack.Max.X, y+24)
-}
+// loadListBox is the Load window's shared list.
+func (a *App) loadListBox() listBox { return newListBox(loadListArg, loadVisibleRows, a.flow.menuFont) }
 
-func loadHit(p image.Point, list *Picker) loadTarget {
+// loadButtonAt is the Load button under p.
+func loadButtonAt(p image.Point) (int, bool) {
 	for i := 0; i < 3; i++ {
 		if p.In(loadButtonRect(i)) {
-			return loadTarget{kind: loadHitButton, index: i}
+			return i, true
 		}
 	}
-	if p.In(image.Rect(504, 152, 528, 176)) {
-		return loadTarget{kind: loadHitUp}
-	}
-	if p.In(image.Rect(504, 318, 528, 342)) {
-		return loadTarget{kind: loadHitDown}
-	}
-	if p.In(loadTrack) {
-		return loadTarget{kind: loadHitTrack}
-	}
-	if list != nil && p.In(loadRowsBox) {
-		top, n := list.Visible()
-		i := (p.Y - loadRowsBox.Min.Y) / 19
-		if i < n {
-			return loadTarget{kind: loadHitRow, index: top + i}
-		}
-	}
-	return loadTarget{}
+	return 0, false
+}
+
+// loadButtonDisabled reports whether Load button i is disabled: Delete
+// while no save can be deleted or a deletion awaits confirmation.
+func (f *flow) loadButtonDisabled(i int) bool {
+	return i == loadDeleteButton && (!f.canDeleteLoad() || f.loadUI.confirm)
 }
 
 func (f *flow) canDeleteLoad() bool {
@@ -171,14 +145,11 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		return
 	}
 	if !f.loadUI.confirm {
-		if in.Up || in.Down || in.Home || in.End || in.WheelY != 0 {
+		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || in.WheelY != 0 {
 			f.loadUI.resetClick()
 		}
+		listKey(l, in.Up, in.Down, in.PageUp, in.PageDown)
 		switch {
-		case in.Up:
-			l.Move(-1)
-		case in.Down:
-			l.Move(1)
 		case in.Home:
 			l.Select(0)
 		case in.End:
@@ -190,122 +161,67 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		}
 	}
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	var hit loadTarget
-	if ok {
-		hit = loadHit(p, l)
+	box := a.loadListBox()
+	if !f.loadUI.confirm {
+		if req, pos := f.loadUI.bar.step(listBar(box, l), p, ok, in); req != barNone {
+			f.loadUI.resetClick()
+			listBarRequest(l, req, pos)
+			return
+		}
+		if f.loadUI.bar.active() {
+			return
+		}
 	}
 	if in.PrimaryPressed {
-		f.loadUI.resetPointer()
-		f.loadUI.press = hit
-		if hit.kind != loadHitRow {
+		button, onButton := loadButtonAt(p)
+		f.loadUI.press.press(button, ok && onButton && !f.loadButtonDisabled(button))
+		if !ok || onButton || f.loadUI.confirm {
 			f.loadUI.resetClick()
-		}
-		if !f.loadUI.confirm && hit.kind == loadHitTrack && len(l.Rows()) > 1 && p.In(loadThumb(l)) {
-			f.loadUI.drag, f.loadUI.grab = true, p.Y-loadThumb(l).Min.Y
 			return
 		}
-	}
-	if f.loadUI.drag {
-		if !ok || in.PrimaryReleased || !in.Viewer.PrimaryDown {
-			f.loadUI.resetPointer()
+		row, onRow := box.RowAt(p)
+		top, count := l.Visible()
+		if !onRow || row >= count {
+			f.loadUI.resetClick()
 			return
 		}
-		span := loadTrack.Dy() - 24
-		top := min(max(p.Y-f.loadUI.grab-loadTrack.Min.Y, 0), span)
-		l.Select((top*(len(l.Rows())-1) + span/2) / span)
+		index := top + row
+		l.Select(index)
+		if index >= len(f.saves) {
+			f.loadUI.resetClick()
+			return
+		}
+		name := f.saves[index].Name
+		elapsed := now.Sub(f.loadUI.lastClick)
+		if name == f.loadUI.lastName && !f.loadUI.lastClick.IsZero() && elapsed >= 0 && elapsed <= 500*time.Millisecond {
+			f.loadUI.resetClick()
+			a.acceptLoad()
+			return
+		}
+		f.loadUI.lastName, f.loadUI.lastClick = name, now
 		return
 	}
 	if !in.PrimaryReleased {
 		return
 	}
-	pressed := f.loadUI.press
-	f.loadUI.resetPointer()
-	if hit.kind == loadHitNone || hit != pressed {
-		f.loadUI.resetClick()
+	at, inside := loadButtonAt(p)
+	button, activated := f.loadUI.press.release(at, ok && inside)
+	if !activated {
 		return
 	}
-	switch hit.kind {
-	case loadHitButton:
-		switch hit.index {
-		case 0:
-			a.acceptLoad()
-		case 1:
-			if !f.loadUI.confirm && f.canDeleteLoad() {
-				f.confirmDeleteLoad()
-			}
-		case 2:
-			if f.loadUI.confirm {
-				f.loadUI.confirm = false
-				f.msg = ""
-			} else {
-				f.closeLoad()
-			}
+	switch button {
+	case loadOKButton:
+		a.acceptLoad()
+	case loadDeleteButton:
+		if !f.loadUI.confirm && f.canDeleteLoad() {
+			f.confirmDeleteLoad()
 		}
-	default:
+	case loadCancelButton:
 		if f.loadUI.confirm {
-			return
-		}
-		switch hit.kind {
-		case loadHitUp:
-			l.Move(-1)
-		case loadHitDown:
-			l.Move(1)
-		case loadHitTrack:
-			l.Select((p.Y - loadTrack.Min.Y) * max(0, len(l.Rows())-1) / loadTrack.Dy())
-		case loadHitRow:
-			l.Select(hit.index)
-			if hit.index >= len(f.saves) {
-				f.loadUI.resetClick()
-				return
-			}
-			name := f.saves[hit.index].Name
-			elapsed := now.Sub(f.loadUI.lastClick)
-			if name == f.loadUI.lastName && !f.loadUI.lastClick.IsZero() && elapsed >= 0 && elapsed <= 500*time.Millisecond {
-				a.acceptLoad()
-				return
-			}
-			f.loadUI.lastName, f.loadUI.lastClick = name, now
+			f.loadUI.confirm = false
+			f.msg = ""
+		} else {
+			f.closeLoad()
 		}
 	}
-}
-
-func (a *App) drawLoadScroll(dst *image.RGBA, l *Picker) {
-	if !drawScrollbarSkin(dst, a.media.scroll, image.Rect(504, 152, 528, 176), loadTrack,
-		image.Rect(504, 318, 528, 342), loadThumb(l)) {
-		drawMovieBox(dst, loadTrack, false)
-	}
-}
-
-func drawScrollbarSkin(dst *image.RGBA, frames []*image.RGBA, up, track, down, thumb image.Rectangle) bool {
-	for _, index := range []int{16, 18, 19, 20} {
-		if index >= len(frames) || frames[index] == nil || frames[index].Bounds().Empty() {
-			return false
-		}
-	}
-	for y := track.Min.Y; y < track.Max.Y; y += frames[19].Bounds().Dy() {
-		copyScrollbarFit(dst, frames[19], image.Rect(track.Min.X, y, track.Max.X, y+frames[19].Bounds().Dy()), track)
-	}
-	copyScrollbarFit(dst, frames[18], up, up)
-	copyScrollbarFit(dst, frames[20], down, down)
-	copyScrollbarFit(dst, frames[16], thumb, thumb)
-	return true
-}
-
-func copyScrollbarFit(dst, src *image.RGBA, target, clip image.Rectangle) {
-	if target.Empty() {
-		return
-	}
-	b := src.Bounds()
-	if b.Size() == target.Size() {
-		copyNativeOver(dst, src, target.Min, clip.Intersect(target))
-		return
-	}
-	fit := image.NewRGBA(target)
-	for y := target.Min.Y; y < target.Max.Y; y++ {
-		for x := target.Min.X; x < target.Max.X; x++ {
-			fit.SetRGBA(x, y, src.RGBAAt(b.Min.X+(x-target.Min.X)*b.Dx()/target.Dx(), b.Min.Y+(y-target.Min.Y)*b.Dy()/target.Dy()))
-		}
-	}
-	visible := target.Intersect(clip)
-	draw.Draw(dst, visible, fit, visible.Min, draw.Over)
 }

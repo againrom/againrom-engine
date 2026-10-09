@@ -864,6 +864,10 @@ type Viewer struct {
 	noticeKey         noticeKey
 	noticePic         *image.RGBA
 	noticeButtonState DialogueButtonState
+	// blink is the gold editor's caret phase (MENU-126).
+	blink caretBlink
+	// noticeSecondState is an outcome panel's second button's state.
+	noticeSecondState DialogueButtonState
 	noticeText        []text.DrawCall
 	noticeFresh       bool
 	noticeImg         *ebiten.Image

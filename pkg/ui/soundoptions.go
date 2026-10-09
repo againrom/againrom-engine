@@ -50,12 +50,14 @@ type SoundOptionControls struct {
 	TrackTitle           func(string) string
 	music                func() *MusicController
 	list                 *Picker
+	bar                  scrollBarInput
 }
 
 type soundOptionPointer struct {
 	pressed bool
 	action  gameMenuAction
 	value   int
+	slider  sliderInput
 }
 
 func (a *App) SetSoundOptionControls(c SoundOptionControls) {
@@ -135,8 +137,9 @@ func (f *flow) setSoundOption(channel audio.Channel, value int) {
 	}
 }
 
-// soundKeyStep is one keyboard step of a slider, in slider positions.
-const soundKeyStep = 500
+// soundKeyStep is one keyboard or endcap step of a slider, in slider
+// positions: max(trunc(N/16),1) (MENU-118).
+const soundKeyStep = soundSliderRange / 16
 
 // applySoundSlider applies a slider's channel percentage at the control event,
 // without leaving the page and without ending a drag.
@@ -173,7 +176,7 @@ func soundOptionHit(p image.Point) (gameMenuAction, bool) {
 		gameMenuMusicTracks, gameMenuMusicRandom, gameMenuMusicPlay, gameMenuMusicStop, gameMenuMusicUp, gameMenuMusicDown, gameMenuMusicScroll} {
 		r := soundOptionRect(action)
 		if channel, slider := soundActionChannel(action); slider {
-			r = soundSliderRect(channel).Inset(-6)
+			r = soundSliderRect(channel)
 		}
 		if p.In(r) {
 			return action, true
@@ -195,12 +198,9 @@ func (a *App) stepSoundOptions(in appInput) bool {
 			delta = -1
 		}
 		f.menuList.Move(delta)
-	} else if trackFocused && (in.Up || in.Down || in.Home || in.End) {
+	} else if trackFocused && (in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End) {
 		switch {
-		case in.Up:
-			f.soundOptions.list.Move(-1)
-		case in.Down:
-			f.soundOptions.list.Move(1)
+		case listKey(f.soundOptions.list, in.Up, in.Down, in.PageUp, in.PageDown):
 		case in.Home:
 			f.soundOptions.list.Select(0)
 		case in.End:
@@ -236,18 +236,36 @@ func (a *App) stepSoundOptions(in appInput) bool {
 	if inFrame && p.In(soundOptionRect(gameMenuMusicTracks)) && f.soundOptions.list != nil && in.WheelY != 0 {
 		f.soundOptions.list.Move(-int(in.WheelY) * 3)
 	}
+	if list := f.soundOptions.list; list != nil {
+		if req, pos := f.soundOptions.bar.step(listBar(soundTrackBox(f.menuFont), list), p, inFrame, in); req != barNone {
+			listBarRequest(list, req, pos)
+			f.focusMusicTracks()
+			return false
+		}
+		if f.soundOptions.bar.active() {
+			return false
+		}
+	}
 	action, hit := soundOptionHit(p)
 	if in.PrimaryPressed {
 		f.soundPointer = soundOptionPointer{pressed: inFrame && hit, action: action}
-		if action == gameMenuMusicTracks {
-			f.soundPointer.value = f.soundTrackAt(p)
+		if action == gameMenuMusicTracks && inFrame {
+			// The shared list selects on the press (MENU-120).
+			if row := f.soundTrackAt(p); row >= 0 && f.soundOptions.list != nil {
+				f.soundOptions.list.Select(row)
+				f.focusMusicTracks()
+			}
 		}
 	}
 	press := &f.soundPointer
-	if press.pressed {
-		if channel, slider := soundActionChannel(press.action); slider && inFrame {
-			press.value = soundSliderValue(channel, p.X)
-			f.applySoundSlider(channel, soundSliderPercent(press.value))
+	if channel, slider := soundActionChannel(press.action); press.pressed && slider {
+		position := soundPercentSlider(f.soundOptions.Read()[channel])
+		if press.slider.active() {
+			position = press.value
+		}
+		if pos, set := press.slider.step(a.soundSlider(channel, position), p, inFrame, in); set {
+			press.value = pos
+			f.applySoundSlider(channel, soundSliderPercent(pos))
 		}
 	}
 	if !in.PrimaryReleased {
@@ -258,28 +276,8 @@ func (a *App) stepSoundOptions(in appInput) bool {
 	if !selected.pressed || !inFrame {
 		return false
 	}
-	if hit && action == selected.action && f.soundOptions.list != nil {
-		switch action {
-		case gameMenuMusicTracks:
-			if selected.value >= 0 && f.soundTrackAt(p) == selected.value {
-				f.soundOptions.list.Select(selected.value)
-				f.focusMusicTracks()
-			}
-			return false
-		case gameMenuMusicUp:
-			f.soundOptions.list.Move(-1)
-			f.focusMusicTracks()
-			return false
-		case gameMenuMusicDown:
-			f.soundOptions.list.Move(1)
-			f.focusMusicTracks()
-			return false
-		case gameMenuMusicScroll:
-			r := soundOptionRect(gameMenuMusicScroll)
-			f.soundOptions.list.Select((p.Y - r.Min.Y) * (f.soundOptions.list.Len() - 1) / max(1, r.Dy()-1))
-			f.focusMusicTracks()
-			return false
-		}
+	if selected.action == gameMenuMusicTracks {
+		return false
 	}
 	for i, row := range f.menuRows() {
 		if row.Action != selected.action || !row.Enabled {

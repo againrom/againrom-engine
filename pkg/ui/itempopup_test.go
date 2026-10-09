@@ -158,27 +158,18 @@ func TestItemPopupPresentDrawsOverAHoveredWornCell(t *testing.T) {
 	}
 }
 
-// composeItemPopup paints the project's usual framed background (T10):
-// fillPanelFrame's fill and one-pixel border (panel.go), in invFill and
-// invBorder — inventory.go's own colours, the same pair RenderDoll,
-// RenderWorn and renderPackBar open with for the boxes the popup stands
-// over. The box's own corner is the border colour and an interior pixel
-// clear of every glyph is the fill colour, neither left transparent the
-// way composeTextLines' bare boxes are.
-func TestComposeItemPopupPaintsTheInventoryFrame(t *testing.T) {
-	pic := composeItemPopup([]string{"Sword"}, messageFont())
+// The item popup is the shared hover box (MENU-128): its interior is the
+// hover fill and its outer bevel row the light gold.
+func TestItemPopupIsTheHoverBox(t *testing.T) {
+	pic := composeHoverBox([]string{"Sword"}, messageFont(), nil)
 	if pic == nil {
-		t.Fatal("composeItemPopup returned nil")
+		t.Fatal("composeHoverBox returned nil")
 	}
-	b := pic.Bounds()
-	if got := pic.RGBAAt(b.Min.X, b.Min.Y); got != invBorder {
-		t.Errorf("corner pixel = %v, want invBorder %v", got, invBorder)
+	if got := pic.RGBAAt(3, 1); got != hoverLight {
+		t.Errorf("bevel pixel = %v, want %v", got, hoverLight)
 	}
-	// A pixel in the padding band: past the border, short of where the
-	// first glyph starts at itemPopupBorderPad's own offset.
-	x, y := 1+itemPopupBorderPad/2, 1+itemPopupBorderPad/2
-	if got := pic.RGBAAt(x, y); got != invFill {
-		t.Errorf("interior pixel (%d,%d) = %v, want invFill %v", x, y, got, invFill)
+	if got := pic.RGBAAt(3, 3); got != hoverFill {
+		t.Errorf("interior pixel = %v, want %v", got, hoverFill)
 	}
 }
 

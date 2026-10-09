@@ -264,6 +264,7 @@ func TestScrolledDiplomacyReturnUsesTheVisiblePointerSlot(t *testing.T) {
 	r := gameMenuRowRect(gameMenuMission, count-1)
 	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 	a := &App{flow: f, place: frame.Fit(frame.W, frame.H, frame.W, frame.H)}
+	a.stepGameMenu(appInput{PrimaryPressed: true, CursorX: p.X, CursorY: p.Y})
 	a.stepGameMenu(appInput{PrimaryReleased: true, CursorX: p.X, CursorY: p.Y})
 	if f.menuPage != gameMenuRoot {
 		t.Fatalf("pointer on visible Return left page %v, want root", f.menuPage)

@@ -906,8 +906,12 @@ type App struct {
 	townSurfaceReleased bool
 	townSurfaceRevision uint64
 	dialoguePress       dialoguePointerPress
-	townTipPress        townTipPress
-	townPaintAdmission  func() bool
+	// noticePress is an outcome panel's button press latch (MENU-116).
+	noticePress buttonLatch
+	// blink is the edit fields' caret phase (MENU-126).
+	blink              caretBlink
+	townTipPress       townTipPress
+	townPaintAdmission func() bool
 	// townSurfaceAnimationTick is presentation time only. Six client ticks
 	// make one shipped miniature frame; TownSurfaceView applies it only to
 	// the selected card, so no simulation clock or hash consumes it.
@@ -1263,6 +1267,32 @@ func (a *App) currentDialoguePointerOwner() (dialoguePointerOwner, bool) {
 	return dialoguePointerOwner{}, false
 }
 
+// stepNoticeButtons drives an outcome panel's buttons through the shared
+// latch: a press latches, a release inside the latched button activates it
+// (MENU-116), and the pointer writes each button's hover and pressed look.
+func (a *App) stepNoticeButtons(in *appInput) bool {
+	v := a.flow.viewer
+	id, over := v.noticeButtonIDAt(in.CursorX, in.CursorY)
+	if in.PrimaryPressed {
+		a.noticePress.press(id, over)
+		if over {
+			in.PrimaryPressed = false
+		}
+	}
+	activated := false
+	if in.PrimaryReleased {
+		if _, activated = a.noticePress.release(id, over); activated {
+			in.PrimaryReleased = false
+		}
+	}
+	state := func(b int) DialogueButtonState {
+		inside := over && id == b
+		return DialogueButtonState{Hover: inside, Pressed: a.noticePress.pressed(b), Inside: inside}
+	}
+	v.setNoticeButtonStates(state(noticePrimaryButton), state(noticeSecondButton))
+	return activated
+}
+
 func (a *App) dialogueButtonDisabled(owner dialoguePointerOwner) bool {
 	if owner.viewer != nil {
 		return owner.viewer.noticeLayout().ButtonState.Disabled
@@ -1361,6 +1391,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	squareBefore, squareRevision := a.townEntryState()
 	screenBefore := a.flow.screen
 	a.pointer = image.Pt(in.CursorX, in.CursorY)
+	a.blink.tick(now)
 	a.tooltipSurface = nil
 	a.validateDialoguePointer(in)
 	a.validateTownTipPointer(in)
@@ -1560,6 +1591,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			if a.flow.noticeOpen() {
 				viewer.cancelGold()
 			} else {
+				viewer.blink.tick(now)
 				in = a.stepGoldModal(viewer, in)
 			}
 		}
@@ -1582,13 +1614,10 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 				mouseAdvance = a.stepDialoguePointer(in, owner, a.flow.viewer.noticeDialogueInside(in.CursorX, in.CursorY))
 				in.PrimaryPressed, in.PrimaryReleased = false, false
 			} else {
-				mouseAdvance = in.PrimaryPressed && mouseAdvance
+				mouseAdvance = a.stepNoticeButtons(&in)
 			}
 			if in.Enter || mouseAdvance {
 				in.PrimaryPressed = false
-				if mouseAdvance && !dialogue {
-					a.suppressPrimaryRelease = true
-				}
 				action := a.flow.viewer.noticeDefaultAction()
 				if mouseAdvance {
 					action = mouseAction
@@ -3072,6 +3101,14 @@ func (a *App) stepGameMenu(in appInput) bool {
 	if a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil && a.stepGameOptionsPointer(in) {
 		return false
 	}
+	options := a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil
+	if in.PrimaryPressed {
+		if options {
+			a.pressGameOptions(a.windowToNativeFrame(in.CursorX, in.CursorY))
+		} else {
+			a.flow.menuPress.press(a.gameMenuButtonAt(in))
+		}
+	}
 	switch {
 	case in.Up:
 		list.Move(-1)
@@ -3093,24 +3130,37 @@ func (a *App) stepGameMenu(in appInput) bool {
 			}
 		}
 	case in.PrimaryReleased:
-		p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-		if !ok {
+		if options {
+			a.releaseGameOptions(a.windowToNativeFrame(in.CursorX, in.CursorY))
 			return false
 		}
-		top, count := a.flow.menuList.Visible()
-		if a.flow.menuPage == gameMenuGameOptionsPage && a.flow.gameOptions.Read != nil {
-			a.clickGameOptions(p)
+		at, inside := a.gameMenuButtonAt(in)
+		row, activated := a.flow.menuPress.release(at, inside)
+		if !activated {
 			return false
 		}
-		row, ok := gameMenuRowAt(a.flow.menuPanelSurface(), count, p)
-		if !ok {
-			return false
-		}
-		list.Select(top + row)
+		list.Select(row)
 		a.chooseGameMenu()
 		a.syncViewerLayout()
 	}
 	return a.flow.takeMenuExit()
+}
+
+// gameMenuButtonAt is the enabled menu button under the pointer, as a list
+// index. Status rows and disabled rows are not buttons a press can latch.
+func (a *App) gameMenuButtonAt(in appInput) (int, bool) {
+	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	list := a.flow.menuList
+	if !ok || list == nil {
+		return 0, false
+	}
+	top, count := list.Visible()
+	row, ok := gameMenuRowAt(a.flow.menuPanelSurface(), count, p)
+	rows := a.flow.menuRows()
+	if !ok || top+row >= len(rows) || rows[top+row].Status || !rows[top+row].Enabled {
+		return 0, false
+	}
+	return top + row, true
 }
 
 // stepDocuments drives the campaign documents panel: hover, press and the

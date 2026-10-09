@@ -32,7 +32,7 @@ func saveChooserStyleApp(t *testing.T, count int) (*App, *saveDialogSpy, []*imag
 	}
 	spy := &saveDialogSpy{directories: map[string]SaveDirectory{"saves": {Path: "saves", Entries: entries}}}
 	a := newSaveDialogApp(t, spy, ScreenTown)
-	a.SetWords(AuthoredWords(), chargenTestFont(), nil)
+	a.SetWords(AuthoredWords(), solidFont15(), nil)
 	art := &DialogFrame{}
 	for i := range art.Pieces {
 		art.Pieces[i] = image.NewRGBA(image.Rect(0, 0, 48, 48))
@@ -40,9 +40,6 @@ func saveChooserStyleApp(t *testing.T, count int) (*App, *saveDialogSpy, []*imag
 	}
 	a.SetGameMenuArt(art)
 	frames := loadScrollTestFrames()
-	frames[16].SetRGBA(12, 8, color.RGBA{0, 0, 0, 255})
-	frames[16].SetRGBA(18, 18, color.RGBA{})
-	frames[19].SetRGBA(18, 18, color.RGBA{})
 	a.SetCutsceneScrollArt(frames)
 	return a, spy, frames
 }
@@ -56,98 +53,43 @@ func saveChooserStyleFrame(t *testing.T, a *App) *image.RGBA {
 	return pix
 }
 
-func assertSaveChooserStyleBar(t *testing.T, pix *image.RGBA, frames []*image.RGBA, thumbY int) {
-	t.Helper()
-	counts := map[int]int{}
-	for y := 88; y < 235; y++ {
-		for x := 580; x < 602; x++ {
-			index, sy := 19, (y-112)%24
-			switch {
-			case y < 112:
-				index, sy = 18, y-88
-			case y >= 211:
-				index, sy = 20, y-211
-			case y >= thumbY && y < thumbY+24:
-				index, sy = 16, y-thumbY
-			}
-			sx := (x - 580) * 24 / 22
-			want := frames[index].RGBAAt(sx, sy)
-			if want.A != 255 {
-				continue
-			}
-			if got := pix.RGBAAt(x, y); got != want {
-				t.Fatalf("Save frame%d source%d,%d at%d,%d = %v, want %v", index, sx, sy, x, y, got, want)
-			}
-			counts[index]++
-		}
-	}
-	for _, index := range []int{16, 18, 19, 20} {
-		if counts[index] < 500 {
-			t.Fatal("vacuous Save source-frame oracle", index, counts)
-		}
-	}
-}
-
+// TestSaveDialogLoadStyleHasLiteralRowsAndBar: the save chooser draws its
+// rows and bar with the shared list builder: seven rows of font height plus
+// 4 at (38,88), the bar at the list's right edge bound to the selection.
 func TestSaveDialogLoadStyleHasLiteralRowsAndBar(t *testing.T) {
-	a, spy, frames := saveChooserStyleApp(t, 7)
-	initial := saveChooserStyleFrame(t, a)
-	t.Run("row-border-and-texture", func(t *testing.T) {
-		for row := 0; row < 6; row++ {
-			r := image.Rect(40, 91+23*row, 577, 113+23*row)
-			for _, p := range []image.Point{r.Min, {576, r.Min.Y}, {40, r.Max.Y - 1}, {576, r.Max.Y - 1}} {
-				if initial.RGBAAt(p.X, p.Y) != (color.RGBA{57, 77, 65, 255}) {
-					t.Fatalf("Save row%d border at%v is not the literal green outline", row, p)
+	a, spy, _ := saveChooserStyleApp(t, 9)
+	check := func(sel int) {
+		t.Helper()
+		calls := recordWidgets(t, func() { saveChooserStyleFrame(t, a) })
+		var lists, bars int
+		for _, c := range calls {
+			switch c.kind {
+			case widgetListBox:
+				lists++
+				if c.rect != image.Rect(38, 88, 578, 223) {
+					t.Errorf("Save list at %v", c.rect)
+				}
+			case widgetVScrollBar:
+				bars++
+				if b := c.state.(vScrollBar); c.rect != image.Rect(578, 88, 602, 223) || b.Pos != sel || b.Count != 9 {
+					t.Errorf("Save bar %v at %d of %d, want %d of 9", c.rect, b.Pos, b.Count, sel)
 				}
 			}
-			want := image.NewRGBA(image.Rect(0, 0, 1, 1))
-			want.SetRGBA(0, 0, color.RGBA{91, 53, 27, 255})
-			overlay := color.RGBA{0, 0, 0, 45}
-			if row == 0 {
-				overlay = color.RGBA{0, 7, 6, 220}
-			}
-			draw.Draw(want, want.Bounds(), image.NewUniform(overlay), image.Point{}, draw.Over)
-			if initial.RGBAAt(550, 101+23*row) != want.RGBAAt(0, 0) {
-				t.Fatal("Save row hides its panel texture", row)
-			}
 		}
-	})
-	t.Run("bar", func(t *testing.T) { assertSaveChooserStyleBar(t, initial, frames, 112) })
-	if err := a.HeadlessSaveSelect(6); err != nil {
+		if lists != 1 || bars != 1 {
+			t.Fatalf("Save drew %d lists and %d bars", lists, bars)
+		}
+	}
+	check(0)
+	if err := a.HeadlessSaveSelect(8); err != nil {
 		t.Fatal(err)
 	}
-	moved := saveChooserStyleFrame(t, a)
-	t.Run("moved-bar", func(t *testing.T) { assertSaveChooserStyleBar(t, moved, frames, 187) })
-	if top, count := a.flow.saveDialog.list.Visible(); top != 1 || count != 6 || a.flow.saveDialog.list.Selection() != 6 || a.flow.saveDialog.request.Name != "slot-06" {
+	check(8)
+	if top, count := a.flow.saveDialog.list.Visible(); top != 2 || count != 7 || a.flow.saveDialog.list.Selection() != 8 || a.flow.saveDialog.request.Name != "slot-08" {
 		t.Fatal("Save style changed window or selected exact name")
 	}
-	if got := moved.RGBAAt(591, 120); got != frames[19].RGBAAt(12, 8) || got == initial.RGBAAt(591, 120) {
-		t.Error("old Save thumb did not restore track")
-	}
-	if moved.RGBAAt(597, 130) != (color.RGBA{91, 53, 27, 255}) || initial.RGBAAt(591, 120) != (color.RGBA{0, 0, 0, 255}) {
-		t.Error("Save skin confused structural transparency with opaque RGB black")
-	}
-	paint, err := a.saveDialogPaint()
-	if err != nil {
-		t.Fatal(err)
-	}
-	seen := 0
-	for _, label := range paint.texts {
-		if strings.HasPrefix(label.text, "slot-") && label.at.X == 44 {
-			want := townShellText
-			if label.text == "slot-06" {
-				want = color.RGBA{218, 183, 71, 255}
-			}
-			if label.color != want || label.at.Y != 94+23*seen {
-				t.Error("Save row label moved or lost Load text colour", label)
-			}
-			seen++
-		}
-	}
-	if seen != 6 || len(spy.requests) != 0 {
-		t.Fatal("Save paint clipped the window or prepared a save")
-	}
 	mustSaveAction(t, a, "save")
-	if len(spy.requests) != 1 || spy.requests[0].Name != "slot-06" || !reflect.DeepEqual(spy.commits, []bool{false}) {
+	if len(spy.requests) != 1 || spy.requests[0].Name != "slot-08" || !reflect.DeepEqual(spy.commits, []bool{false}) {
 		t.Fatal("Save style changed the activated target", spy.requests, spy.commits)
 	}
 }
@@ -155,7 +97,7 @@ func TestSaveDialogLoadStyleHasLiteralRowsAndBar(t *testing.T) {
 func TestSaveDialogLoadStyleEmptyRowsAndFallbackStayInert(t *testing.T) {
 	a, spy, frames := saveChooserStyleApp(t, 1)
 	for _, damage := range []string{"missing", "nil", "empty"} {
-		for _, index := range []int{16, 18, 19, 20} {
+		for _, index := range []int{7, 18, 22} {
 			t.Run(fmt.Sprintf("frame%d-%s", index, damage), func(t *testing.T) {
 				a.SetCutsceneScrollArt(nil)
 				fallback := saveChooserStyleFrame(t, a)
@@ -176,41 +118,13 @@ func TestSaveDialogLoadStyleEmptyRowsAndFallbackStayInert(t *testing.T) {
 		}
 	}
 	a.SetCutsceneScrollArt(frames)
-	pix := saveChooserStyleFrame(t, a)
-	if pix.RGBAAt(40, 206) != (color.RGBA{57, 77, 65, 255}) {
-		t.Error("empty sixth Save row has no framed outline")
-	}
 	for _, edge := range []string{"press", "release"} {
-		if err := a.HeadlessPointer(edge, 100, 220); err != nil {
+		if err := a.HeadlessPointer(edge, 100, 200); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if a.flow.saveDialog.request.Name != "save" || len(spy.requests) != 0 {
 		t.Fatal("empty painted Save row became actionable")
-	}
-}
-
-func TestScrollbarFitKeepsTopLeftClipSourceAndOutsidePixels(t *testing.T) {
-	for _, width := range []int{22, 24} {
-		t.Run(fmt.Sprint(width), func(t *testing.T) {
-			dst := image.NewRGBA(image.Rect(0, 0, 50, 50))
-			untouched := color.RGBA{13, 17, 23, 255}
-			draw.Draw(dst, dst.Bounds(), image.NewUniform(untouched), image.Point{}, draw.Src)
-			target, clip := image.Rect(10, 20, 10+width, 44), image.Rect(13, 25, 31, 40)
-			source := loadScrollTestFrames()[16]
-			copyScrollbarFit(dst, source, target, clip)
-			for y := 0; y < 50; y++ {
-				for x := 0; x < 50; x++ {
-					want := untouched
-					if image.Pt(x, y).In(target.Intersect(clip)) {
-						want = source.RGBAAt((x-10)*24/width, y-20)
-					}
-					if got := dst.RGBAAt(x, y); got != want {
-						t.Fatalf("clipped source at%d,%d =%v want%v", x, y, got, want)
-					}
-				}
-			}
-		})
 	}
 }
 
@@ -556,11 +470,18 @@ func TestSaveDialogDrawsFieldsAndTitleAtLiteralOrigins(t *testing.T) {
 	a := newSaveDialogApp(t, &saveDialogSpy{}, ScreenTown)
 	font := chargenTestFont()
 	a.SetWords(AuthoredWords(), font, nil)
-	pix, err := a.composeSaveDialogScreen()
+	var pix *image.RGBA
+	var err error
+	calls := recordWidgets(t, func() { pix, err = a.composeSaveDialogScreen() })
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pix.RGBAAt(24, 12) != AuthoredDialogueLayout().Border || pix.RGBAAt(106, 266) != saveFocusColor || pix.RGBAAt(238, 432) != AuthoredDialogueLayout().ButtonBorder {
+	deleteButton, nameField := false, false
+	for _, c := range calls {
+		deleteButton = deleteButton || c.kind == widgetPushButton && c.rect == image.Rect(238, 432, 354, 458)
+		nameField = nameField || c.kind == widgetEdit && c.rect == saveControlRect(saveNameControl)
+	}
+	if pix.RGBAAt(24, 12) != AuthoredDialogueLayout().Border || !nameField || !deleteButton {
 		t.Fatal("panel, name field, or delete button moved")
 	}
 	expect := image.NewRGBA(pix.Bounds())

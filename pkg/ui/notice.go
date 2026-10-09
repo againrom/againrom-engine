@@ -172,6 +172,8 @@ type NoticeLayout struct {
 	// SecondaryButton is the second control on the campaign-success panel.
 	// It is empty on dialogue and failure notices.
 	SecondaryButton image.Rectangle
+	// SecondaryState is the second button's pointer state.
+	SecondaryState DialogueButtonState
 
 	// Portrait is the pane the speaker's face stands in, and
 	// TextBesidePortrait is where the words go when it is there — both
@@ -210,6 +212,8 @@ type NoticeLayout struct {
 	// panel that does not scroll. Only the help panel sets either.
 	FirstLine int
 	Scrollbar image.Rectangle
+	// ScrollbarTopHot and ScrollbarBottomHot are the bar's endcap states.
+	ScrollbarTopHot, ScrollbarBottomHot bool
 
 	// Ink is the body text colour when its alpha is nonzero; the dialogue ink
 	// otherwise. Only the help panel sets it.
@@ -677,14 +681,14 @@ func RenderNotice(l NoticeLayout, f *text.Font, s string, face *image.RGBA) *ima
 	}
 
 	if b := l.Button; b.Dx() > 0 && b.Dy() > 0 {
-		drawNoticeButton(img, b, l.ButtonLabel, l, f)
+		s := l.ButtonState
+		drawPushButton(img, f, pushButton{Rect: b, Label: l.ButtonLabel, Hover: s.Hover, Pressed: s.Pressed,
+			Inside: s.Inside, Disabled: s.Disabled, Policy: l.DialogueBackdrop})
 	}
 	if b := l.SecondaryButton; b.Dx() > 0 && b.Dy() > 0 {
-		button := l
-		if l.SecondaryDisabled {
-			button.ButtonText = color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff}
-		}
-		drawNoticeButton(img, b, l.SecondaryButtonLabel, button, f)
+		s := l.SecondaryState
+		drawPushButton(img, f, pushButton{Rect: b, Label: l.SecondaryButtonLabel, Hover: s.Hover, Pressed: s.Pressed,
+			Inside: s.Inside, Disabled: l.SecondaryDisabled, Policy: l.DialogueBackdrop})
 	}
 
 	pitch := f.Height() + l.Pitch
@@ -806,29 +810,6 @@ func blitNoticeWindow(dst *image.RGBA, clip image.Rectangle, origin image.Point,
 	}
 }
 
-// drawNoticeButton paints the button's frame inside the composed box and centres
-// its label in it, by the font's own PEN — where a following run would start —
-// rather than by its measured box, for the panel's own reason: the box runs
-// wider than the pen wherever a glyph's ink overhangs its advance, and centring
-// by it would shift the word by whatever its last letter happens to be.
-func drawNoticeButton(img *image.RGBA, b image.Rectangle, label string, l NoticeLayout, f *text.Font) {
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			c := l.ButtonFill
-			if x == b.Min.X || y == b.Min.Y || x == b.Max.X-1 || y == b.Max.Y-1 {
-				c = l.ButtonBorder
-			}
-			img.SetRGBA(x, y, c)
-		}
-	}
-	if label == "" {
-		return
-	}
-	label = gameMenuLabelText(label)
-	w := f.Advance(label)
-	f.Draw(img, label, b.Min.X+(b.Dx()-w)/2, b.Min.Y+(b.Dy()-f.Height())/2, l.ButtonText)
-}
-
 // noticeKey is everything the presented picture is a function of: the words, the
 // kind, and which font composed them. The DESIGN-SPACE geometry is fixed by the
 // layout, so — unlike the panel's key — the window's area is NOT in here: a
@@ -840,6 +821,7 @@ type noticeKey struct {
 	portrait bool
 	face     int
 	button   DialogueButtonState
+	second   DialogueButtonState
 	policy   DialogueBackdrop
 }
 
@@ -907,7 +889,7 @@ func (v *Viewer) PageDialogue(d Dialogue) {
 	v.notice, v.noticeKind, v.noticeOpen = d.Text, NoticeDialogue, true
 	v.help = nil
 	v.noticeSerial++
-	v.noticeButtonState = DialogueButtonState{}
+	v.noticeButtonState, v.noticeSecondState = DialogueButtonState{}, DialogueButtonState{}
 	v.noticePortrait = d.Portrait
 	if d.Speaks {
 		v.noticeFace, v.noticeFaceWindow = d.Face, d.FaceWindow
@@ -956,7 +938,7 @@ func (v *Viewer) SetNotice(s string, kind NoticeKind) {
 	v.notice, v.noticeKind, v.noticeOpen = s, kind, true
 	v.help = nil
 	v.noticeSerial++
-	v.noticeButtonState = DialogueButtonState{}
+	v.noticeButtonState, v.noticeSecondState = DialogueButtonState{}, DialogueButtonState{}
 	v.noticePortrait, v.noticeFace = false, nil
 	v.noticeFaceWindow = image.Rectangle{}
 	v.noticeFaceSerial++
@@ -987,7 +969,7 @@ func (v *Viewer) ClearNotice() {
 	v.dialogueBackdrop.shows = 0
 	v.notice, v.noticeOpen = "", false
 	v.help = nil
-	v.noticeButtonState = DialogueButtonState{}
+	v.noticeButtonState, v.noticeSecondState = DialogueButtonState{}, DialogueButtonState{}
 	v.noticeTerminal = false
 	v.noticePortrait, v.noticeFace = false, nil
 	v.noticeFaceWindow = image.Rectangle{}
@@ -1061,8 +1043,20 @@ func (v *Viewer) noticeLayout() NoticeLayout {
 		if v.help != nil {
 			l = v.helpApply(l)
 		}
+	} else {
+		state := v.noticeButtonState
+		state.Disabled = l.ButtonState.Disabled
+		l.ButtonState, l.SecondaryState = state, v.noticeSecondState
 	}
 	return l
+}
+
+// setNoticeButtonStates writes an outcome panel's two button states.
+func (v *Viewer) setNoticeButtonStates(primary, second DialogueButtonState) {
+	if v.noticeButtonState != primary || v.noticeSecondState != second {
+		v.noticeButtonState, v.noticeSecondState = primary, second
+		v.noticePic = nil
+	}
 }
 
 func (v *Viewer) SetDialogueButtonState(state DialogueButtonState) {
@@ -1099,7 +1093,7 @@ func (v *Viewer) noticePresent() (*image.RGBA, image.Point, float64, bool) {
 	}
 	l := v.noticeLayout()
 	key := noticeKey{text: v.notice, kind: v.noticeKind, serial: v.noticeSerial,
-		portrait: v.noticePortrait, face: v.noticeFaceSerial, button: l.ButtonState, policy: l.DialogueBackdrop}
+		portrait: v.noticePortrait, face: v.noticeFaceSerial, button: l.ButtonState, second: l.SecondaryState, policy: l.DialogueBackdrop}
 	if v.noticePic == nil || key != v.noticeKey {
 		v.noticeText = text.Record(func() {
 			v.noticePic, v.noticeFresh = RenderNotice(l, v.font, v.notice, v.noticeFace), true
@@ -1174,24 +1168,41 @@ func (v *Viewer) noticeDialogueInside(x, y int) bool {
 
 // noticeActionAt resolves a click against the exact control that was painted.
 func (v *Viewer) noticeActionAt(x, y int) (NoticeAction, bool) {
-	if !v.NoticeOpen() {
-		return NoticeAdvance, false
-	}
-	_, at, scale, ok := v.noticePresent()
-	if !ok {
-		return NoticeAdvance, false
-	}
-	fx, fy := v.windowToFrame(x, y)
-	p := image.Pt(int(math.Floor(float64(fx-at.X)/scale)), int(math.Floor(float64(fy-at.Y)/scale)))
-	l := v.noticeLayout()
-	if p.In(l.Button) && !(l.Style == NoticeStyleDialogue && l.ButtonState.Disabled) {
+	switch id, _ := v.noticeButtonIDAt(x, y); id {
+	case noticePrimaryButton:
 		return v.noticeDefaultAction(), true
-	}
-	if !l.SecondaryDisabled && !l.SecondaryButton.Empty() && p.In(l.SecondaryButton) {
+	case noticeSecondButton:
 		if v.noticeKind == NoticeFailure {
 			return NoticeLoadGame, true
 		}
 		return NoticeContinue, true
 	}
 	return NoticeAdvance, false
+}
+
+// The open notice's two buttons, as press-latch ids.
+const (
+	noticePrimaryButton = iota + 1
+	noticeSecondButton
+)
+
+// noticeButtonIDAt is the enabled notice button under a window point.
+func (v *Viewer) noticeButtonIDAt(x, y int) (int, bool) {
+	if !v.NoticeOpen() {
+		return 0, false
+	}
+	_, at, scale, ok := v.noticePresent()
+	if !ok {
+		return 0, false
+	}
+	fx, fy := v.windowToFrame(x, y)
+	p := image.Pt(int(math.Floor(float64(fx-at.X)/scale)), int(math.Floor(float64(fy-at.Y)/scale)))
+	l := v.noticeLayout()
+	if p.In(l.Button) && !(l.Style == NoticeStyleDialogue && l.ButtonState.Disabled) {
+		return noticePrimaryButton, true
+	}
+	if !l.SecondaryDisabled && !l.SecondaryButton.Empty() && p.In(l.SecondaryButton) {
+		return noticeSecondButton, true
+	}
+	return 0, false
 }

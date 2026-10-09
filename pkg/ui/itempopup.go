@@ -3,8 +3,6 @@ package ui
 import (
 	"image"
 	"image/color"
-
-	"againrom/pkg/render/text"
 )
 
 // The item popup (0151, defect 5): a small text box, over whichever cell of
@@ -19,69 +17,11 @@ import (
 // other field command.go owns are untouched by this file (fence: "the
 // popup gates nothing and issues nothing").
 //
-// IT DRAWS THROUGH composeItemPopup, BELOW: a framed box of shadowed lines, the
-// frame painted there so the popup's text stays legible over the map.
+// IT DRAWS THROUGH THE SHARED HOVER BOX (composeHoverBox, MENU-128).
 
-// itemPopupBorderPad is the fill kept between the frame's one-pixel border
-// (fillPanelFrame, panel.go) and the first glyph, on every side — so the
-// text stays legible against invFill rather than crowding invBorder. It is
-// added on top of the shadow's clearance; this box needs a second margin for
-// the border it alone draws.
-const itemPopupBorderPad = 3
-
-const (
-	// popupShadow is the offset a line's shadow stands at behind its face,
-	// and popupLinePad is added to the font's height for the pitch between
-	// two lines.
-	popupShadow  = 1
-	popupLinePad = 2
-)
-
-var (
-	// popupTextColor is the cream ink of the notice box, and popupShadowColor
-	// the opaque black behind it, for legibility over the map's own art.
-	popupTextColor   = color.RGBA{R: 0xf2, G: 0xe6, B: 0xc4, A: 0xff}
-	popupShadowColor = color.RGBA{A: 0xff}
-)
-
-// composeItemPopup composes lines over the project's usual framed
-// background rather than as bare text: fillPanelFrame's fill and
-// one-pixel border (panel.go), in invFill and invBorder — inventory.go's
-// own colours, reused rather than a third palette invented for one more
-// box standing over the same worn box and pack bar RenderDoll, RenderWorn
-// and renderPackBar already fill with them.
-//
-// The width and line pitch come from the font, and each line takes two draws
-// (shadow then face, at popupShadow's offset, in popupShadowColor and
-// popupTextColor), moved in from the canvas edge by the border and
-// itemPopupBorderPad.
-//
-// nil for nothing to draw: no font, a font holding no record, no lines, or
-// lines that measure to no width at all.
-func composeItemPopup(lines []string, f *text.Font) *image.RGBA {
-	if f == nil || f.Height() <= 0 || len(lines) == 0 {
-		return nil
-	}
-	width := 0
-	for _, ln := range lines {
-		w, _ := f.Measure(ln)
-		width = max(width, w, f.Advance(ln))
-	}
-	if width <= 0 {
-		return nil
-	}
-	pitch := f.Height() + popupLinePad
-	pad := 1 + itemPopupBorderPad // the border pixel itself, plus the clearance kept off it
-	size := image.Pt(width+popupShadow+2*pad, len(lines)*pitch+popupShadow+2*pad)
-	img := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
-	fillPanelFrame(img, size, invFill, invBorder)
-	for i, ln := range lines {
-		x, y := pad, pad+i*pitch
-		f.Draw(img, ln, x+popupShadow, y+popupShadow, popupShadowColor)
-		f.Draw(img, ln, x, y, popupTextColor)
-	}
-	return img
-}
+// popupTextColor is the hover box's label ink: the label ramp's runtime
+// colour is Unknown (MENU-128), so the engine keeps the notice box's cream.
+var popupTextColor = color.RGBA{R: 0xf2, G: 0xe6, B: 0xc4, A: 0xff}
 
 // hoveredItemInfoAt is the popup text for whichever cell of the worn box,
 // the doll figure or the pack bar stands under the window pixel (x, y), or

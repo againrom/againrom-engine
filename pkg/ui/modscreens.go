@@ -24,6 +24,7 @@ type modScreenState struct {
 	backPress bool
 	hover     int
 	press     int
+	bar       scrollBarInput
 	// pending is the 1-based index of the action entry whose confirming page is
 	// open, zero for none.
 	pending int
@@ -137,7 +138,7 @@ func (f *flow) openModScreen(i int, back Screen, row int) {
 		return
 	}
 	f.modUI.open, f.modUI.back, f.modUI.returnRow = i, back, row
-	f.modUI.top, f.modUI.backPress = 0, false
+	f.modUI.top, f.modUI.backPress, f.modUI.bar = 0, false, scrollBarInput{}
 	f.msg = ""
 	f.setScreen(ScreenMod)
 }
@@ -317,16 +318,6 @@ func (a *App) modBackCaption() string {
 	return w.OK
 }
 
-// drawInstallCentered draws s, already in the install's code page, centred in r.
-func (a *App) drawInstallCentered(pix *image.RGBA, s string, r image.Rectangle) {
-	if f := a.flow.menuFont; f != nil {
-		w, h := f.Measure(s)
-		f.Draw(pix, s, r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-h)/2, townShellText)
-		return
-	}
-	a.drawModCentered(pix, s, r)
-}
-
 // drawModText draws s with the page's font at (x, y), top left. The text is
 // converted to the install's code page as every other row is.
 func (a *App) drawModText(pix *image.RGBA, s string, x, y int) {
@@ -390,17 +381,39 @@ func (a *App) composeModScreen() (*image.RGBA, error) {
 			a.drawModText(pix, l.left, x, y)
 		}
 	}
+	pointer, pointerOK := a.pointerFrame()
 	if len(lines) > visible {
-		track := image.Rect(modScrollBarX, modBodyBox.Min.Y, modScrollBarX+3, modBodyBox.Max.Y)
-		draw.Draw(pix, track, &image.Uniform{C: gameMenuDisabled}, image.Point{}, draw.Over)
-		span := track.Dy()
-		h := span * visible / len(lines)
-		y := track.Min.Y + (span-h)*top/(len(lines)-visible)
-		draw.Draw(pix, image.Rect(track.Min.X, y, track.Max.X, y+h), &image.Uniform{C: loadSelectedText}, image.Point{}, draw.Over)
+		drawVScrollBar(pix, a.media.scroll, a.modBar(top).withPointer(pointer, pointerOK))
 	}
-	drawMovieBox(pix, modBackButton, f.modUI.backPress)
-	a.drawInstallCentered(pix, a.modBackCaption(), modBackButton)
+	inside := pointerOK && pointer.In(modBackButton)
+	a.drawModButton(pix, pushButton{Rect: modBackButton, Label: a.modBackCaption(), Literal: true,
+		Hover: inside, Inside: inside, Pressed: f.modUI.backPress}, false)
 	return pix, nil
+}
+
+// modBar is the mod screen's bar: the shared vertical bar over the body's
+// top-line positions.
+func (a *App) modBar(top int) vScrollBar {
+	return vScrollBar{Rect: image.Rect(modScrollBarX, modBodyBox.Min.Y, modScrollBarX+widgetSpriteSize, modBodyBox.Max.Y),
+		Pos: top, Count: a.modMaxTop() + 1}
+}
+
+// drawModButton draws a mod page button through the shared painter. A label
+// in the page's own text is converted to the install's code page; without
+// the install font the fallback text is centred over the bevel.
+func (a *App) drawModButton(pix *image.RGBA, b pushButton, convert bool) {
+	font := a.flow.menuFont
+	if font == nil {
+		label := b.Label
+		b.Label = ""
+		drawPushButton(pix, nil, b)
+		a.drawModCentered(pix, label, b.Rect)
+		return
+	}
+	if convert {
+		b.Label = a.flow.menuDisplayText(b.Label)
+	}
+	drawPushButton(pix, font, b)
 }
 
 // stepModScreen drives an open mod screen: Up, Down and the wheel scroll, and
@@ -426,6 +439,27 @@ func (a *App) stepModScreen(in appInput) {
 		return
 	}
 	p, inFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	if a.modMaxTop() > 0 {
+		if req, pos := f.modUI.bar.step(a.modBar(f.modUI.top), p, inFrame, in); req != barNone {
+			visible := a.modVisibleLines()
+			switch req {
+			case barSetPos:
+				f.modUI.top = pos
+			case barLineUp:
+				f.modUI.top--
+			case barLineDown:
+				f.modUI.top++
+			case barPageUp:
+				f.modUI.top -= visible
+			case barPageDown:
+				f.modUI.top += visible
+			}
+			f.modUI.top = min(max(f.modUI.top, 0), a.modMaxTop())
+		}
+		if f.modUI.bar.active() {
+			return
+		}
+	}
 	onBack := inFrame && p.In(modBackButton)
 	if in.PrimaryPressed {
 		f.modUI.backPress = onBack
@@ -457,10 +491,10 @@ func (a *App) drawModMenuEntries(pix *image.RGBA) {
 	f := a.flow
 	idx := f.modScreenIndexes(false)
 	for k, r := range modMenuEntryRects(len(idx)) {
-		lit := f.modUI.hover == k+1 && (f.modUI.press == 0 || f.modUI.press == k+1)
-		drawTownShellBox(pix, r, lit)
+		over := f.modUI.hover == k+1
 		label := a.fitModText(f.modUI.screens[idx[k]].MenuLabel, r.Dx()-12)
-		a.drawModCentered(pix, label, r)
+		a.drawModButton(pix, pushButton{Rect: r, Label: label, Literal: true, Hover: over, Inside: over,
+			Pressed: f.modUI.press == k+1}, true)
 	}
 }
 

@@ -86,7 +86,7 @@ func TestReleaseSaveDialogUsesInstalledFontWithoutClipping(t *testing.T) {
 		if err != nil || note != "" {
 			t.Fatalf("Unicode LOAD frame: %q / %v", note, err)
 		}
-		assertUnicodeLoadRow(t, font, pix)
+		assertUnicodeLoadRow(t, a, font, pix)
 		writeSaveDialogCapture(t, "load-unicode", pix)
 	})
 	for _, tc := range []struct {

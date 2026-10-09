@@ -82,19 +82,24 @@ func (a *App) questPicture() *image.RGBA {
 	for i := 0; i < count && top+i < len(lines); i++ {
 		label(lines[top+i], 120, 194+i*pitch)
 	}
+	pointer, pointerOK := a.pointerFrame()
 	if len(lines) > count {
-		if top > 0 {
-			label("^", 535, 195)
-		}
-		if top+count < len(lines) {
-			label("v", 535, 280)
-		}
+		drawVScrollBar(pix, a.media.scroll, questBar(top, len(lines)-count).withPointer(pointer, pointerOK))
 	}
-	drawTownShellBox(pix, questButtonRect, f.questPress)
 	rows := f.questRows()
-	drawTownShellText(pix, font, rows[len(rows)-1].Label, questButtonRect, townShellText)
+	inside := pointerOK && pointer.In(questButtonRect)
+	drawPushButton(pix, font, pushButton{Rect: questButtonRect, Label: rows[len(rows)-1].Label, Literal: true,
+		Hover: inside, Inside: inside, Pressed: f.questPress})
 	return pix
 }
+
+// questBar is the objective text's bar: the shared vertical bar over its
+// top-line positions 0..most.
+func questBar(top, most int) vScrollBar {
+	return vScrollBar{Rect: questBarRect, Pos: top, Count: most + 1}
+}
+
+var questBarRect = image.Rect(530, 194, 554, 294)
 
 // QuestObjectivePanel exposes the same CPU composition uploaded by Draw.
 func (a *App) QuestObjectivePanel() *image.RGBA {
@@ -133,7 +138,7 @@ func (a *App) paintCurrentGameMenu(dst *ebiten.Image) {
 func (a *App) stepQuestObjectives(in appInput) {
 	f := a.flow
 	if in.Unfocused {
-		f.questPress = false
+		f.questPress, f.questBar = false, scrollBarInput{}
 		return
 	}
 	if in.Enter {
@@ -154,8 +159,29 @@ func (a *App) stepQuestObjectives(in appInput) {
 	if f.menuFont != nil {
 		pitch = max(1, f.menuFont.Height()+2)
 	}
-	f.questTop = min(f.questTop, max(0, len(f.questLines())-max(1, 100/pitch)))
+	most := max(0, len(f.questLines())-max(1, 100/pitch))
+	f.questTop = min(f.questTop, most)
 	p, valid := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	if most > 0 {
+		if req, pos := f.questBar.step(questBar(f.questTop, most), p, valid, in); req != barNone {
+			switch req {
+			case barSetPos:
+				f.questTop = pos
+			case barLineUp:
+				f.questTop--
+			case barLineDown:
+				f.questTop++
+			case barPageUp:
+				f.questTop -= max(1, 100/pitch)
+			case barPageDown:
+				f.questTop += max(1, 100/pitch)
+			}
+			f.questTop = min(max(f.questTop, 0), most)
+		}
+		if f.questBar.active() {
+			return
+		}
+	}
 	hit := valid && p.In(questButtonRect)
 	if in.PrimaryPressed {
 		f.questPress = hit

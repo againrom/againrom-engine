@@ -241,7 +241,7 @@ func (f *FrontEnd) wireGameOptions(a *ui.App) {
 			}
 		}
 		for i := 0; i < 2; i++ {
-			if pic, err := loadTipGemFrame(f.Archives.Containers, tipGemPath, i+4); err == nil {
+			if pic, err := loadTipGemFrame(f.Archives.Containers, tipGemPath, checkGemFrame+i); err == nil {
 				c.Checks[i] = pic
 			}
 			if pic, err := loadTipGemFrame(f.Archives.Containers, tipGemPath, i); err == nil {

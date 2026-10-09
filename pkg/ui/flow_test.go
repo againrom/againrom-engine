@@ -628,6 +628,8 @@ func TestFlow(t *testing.T) {
 			"completedCutscene": false,
 			"hallFromMenu":      false,
 			"modUI":             false, "menuArt": false, "helpScroll": false, "questPress": false, "questTop": false, "loadUI": false,
+			// The menu buttons' one press latch, not a command table.
+			"menuPress": false, "questBar": false,
 		}
 		if ft.NumField() != len(wantFields) {
 			names := make([]string, ft.NumField())

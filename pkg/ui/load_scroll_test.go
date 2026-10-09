@@ -60,34 +60,39 @@ func loadScrollState(t *testing.T, a *App, calls *loadScrollCalls, selection, to
 	}
 }
 
+// The Load bar is the shared bar at (504,152)-(528,344): H 192, W 24. Its
+// drag arm maps y to clamp(26*(y-176)/132, 0, 26) over 27 saves, and its
+// thumb starts at y 172 (MENU-119).
+func loadDragPos(y int) int { return min(max(26*(y-176)/132, 0), 26) }
+
 func TestLoadThumbFollowsHeldPointerAndConsumesRelease(t *testing.T) {
 	a, calls := loadScrollApp(t, 27)
 	loadScrollPointer(t, a, "press", 516, 188)
 	loadScrollState(t, a, calls, 0, 0)
 	loadScrollPointer(t, a, "move", 516, 247)
-	loadScrollState(t, a, calls, 13, 4)
-	loadScrollPointer(t, a, "move", 516, 306)
+	loadScrollState(t, a, calls, loadDragPos(247), 4)
+	loadScrollPointer(t, a, "move", 516, 308)
 	loadScrollState(t, a, calls, 26, 17)
 	loadScrollPointer(t, a, "move", 516, 221)
-	loadScrollState(t, a, calls, 7, 7)
+	loadScrollState(t, a, calls, loadDragPos(221), loadDragPos(221))
 	loadScrollPointer(t, a, "move", 140, 247)
-	loadScrollState(t, a, calls, 13, 7)
+	loadScrollState(t, a, calls, 13, 8)
 	loadScrollPointer(t, a, "release", 140, 272)
-	loadScrollState(t, a, calls, 13, 7)
+	loadScrollState(t, a, calls, 13, 8)
 	loadScrollPointer(t, a, "move", 516, 306)
-	loadScrollState(t, a, calls, 13, 7)
+	loadScrollState(t, a, calls, 13, 8)
 	loadScrollKey(t, a, "enter")
 	if len(calls.loaded) != 1 || calls.loaded[0] != "slot-13.sav" {
 		t.Fatalf("OK changed exact token: %+v", calls)
 	}
 }
 
-func TestLoadThumbGrabOffsetBoundsAndCancellation(t *testing.T) {
+func TestLoadThumbBoundsAndCancellation(t *testing.T) {
 	for _, scenario := range []string{"outside bar", "outside frame", "focus", "idle", "reopen", "confirmation"} {
 		t.Run(scenario, func(t *testing.T) {
 			a, calls := loadScrollApp(t, 27)
-			loadScrollPointer(t, a, "press", 516, 199)
-			loadScrollPointer(t, a, "move", 516, 258)
+			loadScrollPointer(t, a, "press", 516, 190)
+			loadScrollPointer(t, a, "move", 516, 247)
 			loadScrollState(t, a, calls, 13, 4)
 			switch scenario {
 			case "outside bar":
@@ -99,7 +104,13 @@ func TestLoadThumbGrabOffsetBoundsAndCancellation(t *testing.T) {
 				loadScrollState(t, a, calls, 0, 0)
 				return
 			case "outside frame":
+				// Off the frame the drag keeps its capture and asks nothing.
 				loadScrollPointer(t, a, "move", -1, 258)
+				loadScrollState(t, a, calls, 13, 4)
+				loadScrollPointer(t, a, "move", 516, 300)
+				loadScrollState(t, a, calls, loadDragPos(300), loadDragPos(300)-9)
+				loadScrollPointer(t, a, "release", 200, 392)
+				return
 			case "focus":
 				if err := a.HeadlessFocus(false); err != nil {
 					t.Fatal(err)
@@ -118,9 +129,9 @@ func TestLoadThumbGrabOffsetBoundsAndCancellation(t *testing.T) {
 				loadScrollState(t, a, calls, 0, 0)
 				return
 			case "confirmation":
-				loadScrollPointer(t, a, "release", 516, 258)
+				loadScrollPointer(t, a, "release", 516, 247)
 				loadScrollKey(t, a, "delete")
-				loadScrollPointer(t, a, "press", 516, 258)
+				loadScrollPointer(t, a, "press", 516, 247)
 				loadScrollPointer(t, a, "move", 516, 317)
 				loadScrollPointer(t, a, "release", 200, 392)
 				if a.flow.loadList.Selection() != 13 || len(calls.prepared) != 1 || calls.prepared[0] != "slot-13.sav" || calls.removed != 0 || !a.flow.loadUI.confirm {
@@ -157,33 +168,37 @@ func TestLoadThumbSmallListsRemainBounded(t *testing.T) {
 		t.Run(fmt.Sprint(count), func(t *testing.T) {
 			a, calls := loadScrollApp(t, count)
 			loadScrollPointer(t, a, "press", 516, 188)
-			loadScrollPointer(t, a, "move", 516, 306)
+			loadScrollPointer(t, a, "move", 516, 340)
 			loadScrollPointer(t, a, "release", 324, 392)
 			loadScrollState(t, a, calls, count-1, 0)
 		})
 	}
 }
 
+// TestLoadScrollKeepsTrackArrowAndWheelActions: the bar acts on the press
+// (MENU-119): the track below the thumb pages as Page Down does (MENU-120),
+// the endcaps step a line, and a release elsewhere changes nothing. The
+// wheel moves three rows.
 func TestLoadScrollKeepsTrackArrowAndWheelActions(t *testing.T) {
 	a, calls := loadScrollApp(t, 27)
 	loadScrollPointer(t, a, "press", 516, 260)
+	loadScrollState(t, a, calls, 9, 0)
 	loadScrollPointer(t, a, "move", 516, 280)
-	loadScrollState(t, a, calls, 0, 0)
 	loadScrollPointer(t, a, "release", 516, 260)
-	loadScrollState(t, a, calls, 15, 6)
+	loadScrollState(t, a, calls, 9, 0)
+	loadScrollPointer(t, a, "press", 516, 300)
+	loadScrollPointer(t, a, "release", 516, 300)
+	loadScrollState(t, a, calls, 19, 10)
 	loadScrollPointer(t, a, "press", 516, 164)
 	loadScrollPointer(t, a, "release", 516, 164)
-	loadScrollState(t, a, calls, 14, 6)
-	loadScrollPointer(t, a, "press", 516, 330)
-	loadScrollPointer(t, a, "release", 516, 330)
-	loadScrollState(t, a, calls, 15, 6)
-	loadScrollPointer(t, a, "press", 516, 330)
+	loadScrollState(t, a, calls, 18, 10)
+	loadScrollPointer(t, a, "press", 516, 336)
 	loadScrollPointer(t, a, "release", 516, 164)
-	loadScrollState(t, a, calls, 15, 6)
+	loadScrollState(t, a, calls, 19, 10)
 	loadScrollPointer(t, a, "wheel-down", 140, 158)
-	loadScrollState(t, a, calls, 18, 9)
+	loadScrollState(t, a, calls, 22, 13)
 	loadScrollPointer(t, a, "wheel-up", 140, 158)
-	loadScrollState(t, a, calls, 15, 9)
+	loadScrollState(t, a, calls, 19, 13)
 }
 
 func TestLoadThumbUsesWindowPlacement(t *testing.T) {

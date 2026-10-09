@@ -55,8 +55,9 @@ func helpPressAt(x, y int) appInput {
 	return in
 }
 
-// Dragging the thumb moves the text in proportion to the cursor, both ways, and
-// clamps at both ends.
+// Dragging the thumb sets the position the bar's drag arm computes from the
+// pointer row alone, (range-1)*(y-top-24)/(height-3*(width-4)) clamped, both
+// ways and at every window scale (MENU-078, MENU-119).
 func TestHelpThumbDragFollowsTheMouse(t *testing.T) {
 	for _, sz := range helpWindowSizes {
 		t.Run(sz.name, func(t *testing.T) {
@@ -70,32 +71,17 @@ func TestHelpThumbDragFollowsTheMouse(t *testing.T) {
 			if first, _ := v.HelpScroll(); first != 0 {
 				t.Fatalf("pressing the thumb moved the text to %d", first)
 			}
-			span := track.Dy() - thumb.Dy()
-			most := g.maxScroll()
-			at := func(dy int) int {
+			bar := helpBar(l.Scrollbar, 0, g.lines, g.visible)
+			for _, dy := range []int{track.Dy(), track.Dy() + 20, track.Dy() / 2, 0, -40} {
 				x, y := helpWindowPoint(t, v, grab.Add(image.Pt(0, dy)))
 				a.step(helpDown(x, y), now)
-				first, _ := v.HelpScroll()
-				return first
+				p, _ := v.helpPanelPoint(x, y)
+				if first, _ := v.HelpScroll(); first != bar.dragPos(p.Y) {
+					t.Errorf("thumb dragged to panel row %d: scroll %d, want %d", p.Y, first, bar.dragPos(p.Y))
+				}
 			}
-			if got := at(span); got != most {
-				t.Errorf("thumb dragged to the bottom: scroll %d, want %d", got, most)
-			}
-			if got := at(span + 20); got != most {
-				t.Errorf("thumb dragged past the bottom: scroll %d, want clamp %d", got, most)
-			}
-			if got, want := at(span/2), (span/2*most+span/2)/span; got != want {
-				t.Errorf("thumb dragged to the middle: scroll %d, want %d", got, want)
-			}
-			_, _, _, moved := helpBarParts(l.Scrollbar, v.help.scroll, g.lines, g.visible)
-			if c := (moved.Min.Y + moved.Max.Y) / 2; c < grab.Y+span/2-span/most-1 || c > grab.Y+span/2+span/most+1 {
-				t.Errorf("thumb centre %d does not follow the cursor at %d", c, grab.Y+span/2)
-			}
-			if got := at(0); got != 0 {
-				t.Errorf("thumb dragged back up to the top: scroll %d, want 0", got)
-			}
-			if got := at(-20); got != 0 {
-				t.Errorf("thumb dragged past the top: scroll %d, want 0", got)
+			if first, _ := v.HelpScroll(); first != 0 {
+				t.Errorf("thumb dragged past the top: scroll %d, want 0", first)
 			}
 			if !v.HelpOpen() {
 				t.Error("a thumb drag closed the panel")
@@ -153,6 +139,8 @@ func TestHelpThumbDragReleasesOutsideTheBar(t *testing.T) {
 }
 
 // An arrow or the track acts on the press tick itself, at every window scale.
+// The first line down only resyncs the current line, -1, to the top
+// (MENU-078); a page down moves visible rows minus one.
 func TestHelpBarActsOnThePressTick(t *testing.T) {
 	for _, sz := range helpWindowSizes {
 		t.Run(sz.name, func(t *testing.T) {
@@ -169,6 +157,10 @@ func TestHelpBarActsOnThePressTick(t *testing.T) {
 			}
 			x, y := centre(down)
 			press(x, y)
+			if first, _ := v.HelpScroll(); first != 0 {
+				t.Fatalf("first down arrow: scroll %d, want 0", first)
+			}
+			press(x, y)
 			if first, _ := v.HelpScroll(); first != 1 {
 				t.Fatalf("down arrow on its press tick: scroll %d, want 1", first)
 			}
@@ -179,15 +171,16 @@ func TestHelpBarActsOnThePressTick(t *testing.T) {
 			}
 			x, y = centre(image.Rect(track.Min.X, track.Max.Y-3, track.Max.X, track.Max.Y))
 			press(x, y)
-			if first, _ := v.HelpScroll(); first != g.visible {
-				t.Fatalf("track below the thumb on its press tick: scroll %d, want %d", first, g.visible)
+			if first, _ := v.HelpScroll(); first != g.visible-helpPageDownLess {
+				t.Fatalf("track below the thumb on its press tick: scroll %d, want %d", first, g.visible-helpPageDownLess)
 			}
 		})
 	}
 }
 
 // A held arrow repeats after the held-button delay and then at the held-button
-// interval; releasing stops it.
+// interval; releasing stops it. The press tick's line down only resyncs the
+// current line (MENU-078).
 func TestHelpBarHeldArrowRepeats(t *testing.T) {
 	a, v, now := helpScaledApp(t, 1280, 960)
 	g := v.helpGeo()
@@ -195,34 +188,34 @@ func TestHelpBarHeldArrowRepeats(t *testing.T) {
 	x, y := helpWindowPoint(t, v, down.Min.Add(down.Max).Div(2))
 	a.step(helpPressAt(x, y), now)
 	scrolls := func() int { first, _ := v.HelpScroll(); return first }
-	if scrolls() != 1 {
-		t.Fatalf("press: scroll %d, want 1", scrolls())
+	if scrolls() != 0 {
+		t.Fatalf("press: scroll %d, want 0", scrolls())
 	}
 	for i := 1; i < chargenRepeatDelayTicks; i++ {
 		a.step(helpDown(x, y), now)
-		if scrolls() != 1 {
+		if scrolls() != 0 {
 			t.Fatalf("repeat before the delay, held tick %d: scroll %d", i, scrolls())
 		}
 	}
 	a.step(helpDown(x, y), now)
-	if scrolls() != 2 {
-		t.Fatalf("first repeat: scroll %d, want 2", scrolls())
+	if scrolls() != 1 {
+		t.Fatalf("first repeat: scroll %d, want 1", scrolls())
 	}
 	for i := 1; i < chargenRepeatIntervalTicks; i++ {
 		a.step(helpDown(x, y), now)
-		if scrolls() != 2 {
+		if scrolls() != 1 {
 			t.Fatalf("repeat inside the interval, tick %d: scroll %d", i, scrolls())
 		}
 	}
 	a.step(helpDown(x, y), now)
-	if scrolls() != 3 {
-		t.Fatalf("second repeat: scroll %d, want 3", scrolls())
+	if scrolls() != 2 {
+		t.Fatalf("second repeat: scroll %d, want 2", scrolls())
 	}
 	a.step(appInput{CursorX: x, CursorY: y, PrimaryReleased: true}, now)
 	for i := 0; i < 3*chargenRepeatDelayTicks; i++ {
 		a.step(appInput{CursorX: x, CursorY: y}, now)
 	}
-	if scrolls() != 3 {
+	if scrolls() != 2 {
 		t.Errorf("scroll kept moving to %d after release", scrolls())
 	}
 }
@@ -234,8 +227,8 @@ func TestHelpBarHeldTrackRepeatsToTheThumb(t *testing.T) {
 	_, _, track, _ := helpBarParts(v.noticeLayout().Scrollbar, 0, g.lines, g.visible)
 	x, y := helpWindowPoint(t, v, image.Pt(track.Min.X+2, track.Max.Y-2))
 	a.step(helpPressAt(x, y), now)
-	if first, _ := v.HelpScroll(); first != g.visible {
-		t.Fatalf("track press: scroll %d, want %d", first, g.visible)
+	if first, _ := v.HelpScroll(); first != g.visible-helpPageDownLess {
+		t.Fatalf("track press: scroll %d, want %d", first, g.visible-helpPageDownLess)
 	}
 	for i := 0; i < 20*(chargenRepeatDelayTicks+chargenRepeatIntervalTicks); i++ {
 		a.step(helpDown(x, y), now)

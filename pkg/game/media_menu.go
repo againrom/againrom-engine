@@ -103,6 +103,10 @@ func (f *FrontEnd) wireMediaMenu(a *ui.App) {
 				a.SetCutsceneScrollArt(frames)
 			}
 		}
+		const ball = graphicsPrefix + "interface/Ball.bmp"
+		if pic, err := readChargenBMP(f.Archives.Containers, ball); err == nil && pic.Bounds().Size() == image.Pt(4, 4) {
+			a.SetHoverArt(keyBlack(pic))
+		}
 	}
 	a.SetCredits(f.creditsView)
 }

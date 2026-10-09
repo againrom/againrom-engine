@@ -1923,6 +1923,10 @@ package storyguard
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
+// CommentBytes rises for the shared widget kit: the docs of the new push
+// button, bar, list, slider, radio and checkbox, edit field and hover box
+// builders in pkg/ui and of their focused and per-screen tests, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4708,
 	TestFileCount:  265,
@@ -1944,7 +1948,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1830,
+		"longcommentgroups":      1829,
 	},
-	CommentBytes: 8515520,
+	CommentBytes: 8532323,
 }
