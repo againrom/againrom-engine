@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.102.0
+
+- [ROM2] The town inn offers its missions and talk at stages 40 to 110 once
+  the campaign reaches those stages. A new ROM2 campaign still stops at
+  mission 30, which cannot be won without companions.
+
 ## 0.101.0
 
 - [ROM1] Spells leave the caster's staff tip or hand, on the side he faces,
