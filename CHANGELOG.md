@@ -8,6 +8,20 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The character generator's tips work as in the original. The first
+  page shows three step tips in the top right corner, advanced by a portrait
+  click and then a level click, and highlights the portraits, then the
+  levels, then the amulet and OK in turn. The second page shows the class
+  tip, then the skill tip after the first skill click, and highlights the
+  skills in turn until then.
+- [ROM1] The generator's first page shows its selection cursor, a portrait
+  is lit only when chosen or under the pointer, and only the original's
+  click areas choose. The statistic buttons and Accept, Reset and Back use
+  the original pictures and pressed states.
+- [ROM1] Missions 10 and 20 show their tips in the top left corner after the
+  dialogue that names them, as the original does: at the start, at the sack,
+  after the rogues, the woman, the bees and the ghosts, and after the
+  Squiells. "Show tips next time" turns them off at once.
 - [ROM1] A Ghost raised by Control Spirit now takes its whole Ghost row: it
   regenerates health, sees invisible creatures within two cells and has
   carrying capacity 300. Before, it had none of these.
