@@ -11,7 +11,7 @@ the druid town) keep the text list. The campaign logic, the departure and its
 gate rule do not change. ROM1 code paths, release tests and hashed state do
 not change.
 
-Base: `772868a6` (game 0.100.6). Knowledge pin: k205.
+Base: `772868a6` (game 0.100.6), reconciled with main `ba0b7ef3` (game 0.101.0). Knowledge pin: k207.
 
 ## Authority
 

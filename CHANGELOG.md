@@ -12,6 +12,17 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   its animations, sounds and building highlights, and the tavern room, both
   from the second game's own art. Click the tavern to talk to its people and
   the gates to travel. The shop is closed and the school does not open.
+
+## 0.101.0
+
+- [ROM1] Spells leave the caster's staff tip or hand, on the side he faces,
+  as the original places them for his weapon and direction.
+- [ROM1] Lightning and Prismatic Spray light the ground and the units along
+  their path while they last. Fire Arrow, Fire Ball and the Fire Ball
+  explosion light the ground and units around them. With Dynamic lighting
+  off, a Lightning or Prismatic Spray still lights the units it passes and
+  leaves the ground unlit.
+- [ROM1] Wall of Fire also lights the ground around its flames.
 - [ROM1] Town tips look like the original: ornate frame, solid teal fill,
   justified shadowed text, a panel sized to its text, and the checkbox and
   Close inside the frame.

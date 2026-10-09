@@ -43,11 +43,6 @@ import (
 // lights its whole footprint DILATED by the radius, not a disc around one
 // cell — a 2x2 footprint with radius 1 lights a 4x4 region.
 //
-// THE SAME SHAPE THE DECODED MECHANISM USES. The decoded fact is the
-// existence and per-cell form of that stamp; the owner's words are the
-// authority for reading LightRadius through it. The two are stated
-// separately and the second is never offered as proof of the first.
-//
 // THE PEAK BRIGHTNESS IS OURS, sized equal to the Light spell's own actor
 // and terrain levels (spellLightingCells' lightTerrainBrightness/
 // lightSpriteBrightness, pkg/game/world.go) because the owner's own words
@@ -64,8 +59,7 @@ import (
 // FogVisible ("only if there is line of sight"); the owner's new words are
 // "освещение работает всегда" (item 2's own report: "the object itself must
 // not animate out of view — LIGHTING always works"), and TERR-LIGHT-061's
-// three-stage terrain sweep and MAGIC-UNITLIGHT-057's unit-level splat carry
-// no sight test of their own. structurePlacements() still requires a
+// three-stage sweep carries no sight test of its own. structurePlacements() still requires a
 // structure be EXPLORED at least once to draw at all — a structure never
 // revealed casts no light because it never places — and the existing shroud
 // (drawShroud) already hides whatever the local player cannot presently see;
@@ -202,8 +196,7 @@ func structureLightLevel(peak float32, swing float64) float32 {
 
 // refreshStructureLighting rebuilds this frame's structure-light mask: every
 // currently placed light-source structure contributes a radius-dilated stamp
-// of its own footprint — one square stamp per footprint cell, exactly
-// spellLightingCells' own Wall of Fire loop shape (pkg/game/world.go),
+// of its own footprint — one authored round stamp per footprint cell,
 // unioned by MAX so overlapping stamps (a multi-cell footprint's own, or two
 // neighbouring structures') cannot disagree by order — into this file's own
 // v.structureLighting (cell-keyed, SpellLightCell.Sprite's own units) and

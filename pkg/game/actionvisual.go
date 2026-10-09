@@ -18,6 +18,10 @@ type SnapshotSpellBolt struct {
 	Tag              int
 	Facing           uint8
 	Centered         bool
+	// Launch is the start offset from From's centre (castLaunch). An
+	// envelope written before it existed restores zero: the object then
+	// starts at its caster's cell centre for the rest of its short life.
+	Launch image.Point
 }
 type SnapshotHealBurst struct {
 	At          image.Point
@@ -37,7 +41,7 @@ type SnapshotVisualIdentity struct{ Entity, Label sim.EntityID }
 func (mw *mapWorld) actionVisuals(r *SnapshotResidue) {
 	r.VisualIdentities, r.VisualNext = mw.currentVisualIdentities()
 	for _, b := range mw.bolts {
-		r.SpellBolts = append(r.SpellBolts, SnapshotSpellBolt{b.from, b.to, b.picture, b.owner, b.age, b.life, b.delay, b.seed, b.tag, b.facing, b.centered})
+		r.SpellBolts = append(r.SpellBolts, SnapshotSpellBolt{b.from, b.to, b.picture, b.owner, b.age, b.life, b.delay, b.seed, b.tag, b.facing, b.centered, b.launch})
 	}
 	for _, b := range mw.healBursts {
 		r.HealBursts = append(r.HealBursts, SnapshotHealBurst{b.at, b.picture, b.owner, b.seed, b.tile, b.drain, b.age})
@@ -163,7 +167,7 @@ func validateActionVisuals(bolts []SnapshotSpellBolt, heals []SnapshotHealBurst)
 func (mw *mapWorld) restoreActionVisuals(bolts []SnapshotSpellBolt, heals []SnapshotHealBurst) {
 	mw.bolts, mw.healBursts = nil, nil
 	for _, b := range bolts {
-		mw.bolts = append(mw.bolts, spellBolt{b.From, b.To, b.Picture, b.Owner, b.Age, b.Life, b.Delay, b.Seed, b.Tag, b.Facing, b.Centered})
+		mw.bolts = append(mw.bolts, spellBolt{b.From, b.To, b.Picture, b.Owner, b.Age, b.Life, b.Delay, b.Seed, b.Tag, b.Facing, b.Centered, b.Launch})
 	}
 	for _, b := range heals {
 		mw.healBursts = append(mw.healBursts, healBurst{b.At, b.Picture, b.Owner, b.Seed, b.Tile, b.Drain, b.Age})

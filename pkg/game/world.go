@@ -4524,7 +4524,9 @@ func (mw *mapWorld) push() {
 	// this tier remembers and the weapon-borne ones it reads live off the
 	// attack cycle, both resolved fresh from the world's own entities so a
 	// frame with no tick behind it draws the same picture.
-	mw.view.SetSpellBolts(mw.boltDraws(mw.world.EntityView()))
+	ents := mw.world.EntityView()
+	mw.view.SetSpellBolts(mw.boltDraws(ents))
+	mw.view.SetLightStamps(mw.objectLightStamps(ents))
 	mw.view.SetHealSprites(mw.healSpriteDraws())
 }
 
@@ -4567,7 +4569,7 @@ const (
 // simulation's layer-conflict and expiry rules remain its single canonical
 // state; a push rebuilding this list restores ordinary light without residue.
 func (mw *mapWorld) spellLighting() []ui.SpellLightCell {
-	return spellLightingCells(mw.cellEffectsByArm(), mw.world.Bounds(), mw.scene)
+	return spellLightingCells(mw.cellEffectsByArm(), mw.world.Bounds())
 }
 
 // cellEffectsByArm is the live area records with each spell id replaced by the
@@ -4580,13 +4582,12 @@ func (mw *mapWorld) cellEffectsByArm() []sim.CellEffect {
 	return effects
 }
 
-// spellLightingCells is MAGIC-UNITLIGHT-057's complete three-kind population.
-// Light and Darkness write both their cell-local actor level and the separate
-// terrain value carried to the shared vertex plane. Wall of Fire writes no
-// terrain value: each retained fire cell is a presentation-only radius-one
-// actor-light source, bright at decoded level 0 and neutral at level 12.
-// Every other spell is absent from the unit-light dispatch.
-func spellLightingCells(effects []sim.CellEffect, bounds sim.Bounds, scene int) []ui.SpellLightCell {
+// spellLightingCells is the Light and Darkness population of the cell-bit
+// stage (MAGIC-UNITLIGHT-057): each writes its cell-local actor level and the
+// separate terrain value carried to the shared vertex plane. Wall of Fire is a
+// light-stamp source instead (wallFireLightStamps). Every other spell is
+// absent from the cell-bit dispatch.
+func spellLightingCells(effects []sim.CellEffect, bounds sim.Bounds) []ui.SpellLightCell {
 	var out []ui.SpellLightCell
 	indices := make(map[image.Point]int)
 	put := func(cell image.Point, terrainBrightness, spriteBrightness float32) {
@@ -4597,9 +4598,8 @@ func spellLightingCells(effects []sim.CellEffect, bounds sim.Bounds, scene int) 
 			if terrainBrightness > 0 {
 				out[i].Terrain = terrainBrightness
 			}
-			// The wall stamp can only brighten the seeded unit level. Max on
-			// the gain scale makes overlapping sources and an intersecting
-			// Light/Darkness cell independent of effect-record order.
+			// Max on the gain scale makes an intersecting Light/Darkness cell
+			// independent of effect-record order.
 			if spriteBrightness > out[i].Sprite {
 				out[i].Sprite = spriteBrightness
 			}
@@ -4611,19 +4611,6 @@ func spellLightingCells(effects []sim.CellEffect, bounds sim.Bounds, scene int) 
 	for _, effect := range effects {
 		terrainBrightness, spriteBrightness := float32(0), float32(0)
 		switch effect.Spell {
-		case 3:
-			for _, cell := range effect.Cells {
-				source := image.Pt(int(cell[0]), int(cell[1]))
-				if !wallFireLightBright(scene, source) {
-					continue
-				}
-				for dy := -1; dy <= 1; dy++ {
-					for dx := -1; dx <= 1; dx++ {
-						put(source.Add(image.Pt(dx, dy)), 0, lightSpriteBrightness)
-					}
-				}
-			}
-			continue
 		case lightSpellID:
 			terrainBrightness, spriteBrightness = lightTerrainBrightness, lightSpriteBrightness
 		case darknessSpellID:
@@ -4638,16 +4625,18 @@ func spellLightingCells(effects []sim.CellEffect, bounds sim.Bounds, scene int) 
 	return out
 }
 
-// wallFireLightBright is the decoded level selector before the radius-one
-// splat: abs(scene/2 + worldX*worldY)/5 alternates level 0 and level 12 on its
-// quotient's low bit. Level 12 cannot darken the seeded actor grid, so only the
-// level-0 half contributes an override in this gain representation.
-func wallFireLightBright(scene int, cell image.Point) bool {
+// wallFireLightLevel is the level a Wall of Fire cell stamps, the flicker
+// between 0 and 12 seeded by scene/2 + worldX*worldY (TERR-LIGHT-061). This
+// build selects level 0 when abs(seed)/5 is even and 12 when it is odd.
+func wallFireLightLevel(scene int, cell image.Point) uint8 {
 	value := scene/2 + cell.X*cell.Y
 	if value < 0 {
 		value = -value
 	}
-	return (value/5)&1 == 0
+	if (value/5)&1 == 0 {
+		return 0
+	}
+	return 12
 }
 
 // entityDraws is the world's entities as the window tier receives them —
