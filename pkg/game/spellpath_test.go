@@ -64,10 +64,9 @@ func TestAPathPictureStandsStillAndSpansItsWholeSegment(t *testing.T) {
 		t.Fatalf("lightning spawned %+v, want one picture-34 object of 13 ticks", mw.bolts)
 	}
 
-	// The observation sets no Facing, which is the zero byte and reads as
-	// north (sim.FacingDir(0) == 0), so the departure point is the caster's
-	// cell shifted by boltHandOffset's own north entry: {0, -boltHandReach}.
-	from := image.Pt(2*ui.ShotScale, 2*ui.ShotScale-boltHandReach)
+	// The world holds no caster class, so the launch point is the caster's
+	// cell centre (castLaunch).
+	from := image.Pt(2*ui.ShotScale, 2*ui.ShotScale)
 	to := image.Pt(8*ui.ShotScale, 5*ui.ShotScale)
 	for age := range 13 {
 		draws := mw.boltDraws(nil)
@@ -75,7 +74,7 @@ func TestAPathPictureStandsStillAndSpansItsWholeSegment(t *testing.T) {
 			t.Fatalf("at age %d the figure is %d stamps, want a path", age, len(draws))
 		}
 		if draws[0].Pos != from {
-			t.Errorf("at age %d the figure starts at %v, want the caster's hand-offset %v", age, draws[0].Pos, from)
+			t.Errorf("at age %d the figure starts at %v, want the launch point %v", age, draws[0].Pos, from)
 		}
 		if got := draws[len(draws)-1].Pos; got != to {
 			t.Errorf("at age %d the figure ends at %v, want the target's %v", age, got, to)
@@ -296,10 +295,8 @@ func TestAWeaponBorneLightningDrawsTheSameFigureABookCastDoes(t *testing.T) {
 
 	mw := spWorld(t)
 	ents := spStaff(spLightning)
-	// spStaff sets no Facing, the zero byte, which reads as north — the
-	// departure point is the caster's cell shifted by boltHandOffset's own
-	// north entry.
-	from := image.Pt(2*ui.ShotScale, 2*ui.ShotScale-boltHandReach)
+	// The world holds no caster class, so the launch point is the cell centre.
+	from := image.Pt(2*ui.ShotScale, 2*ui.ShotScale)
 	to := image.Pt(6*ui.ShotScale, 2*ui.ShotScale)
 
 	for swing := range 5 {
@@ -309,7 +306,7 @@ func TestAWeaponBorneLightningDrawsTheSameFigureABookCastDoes(t *testing.T) {
 			t.Fatalf("at swing %d the staff drew %d stamps, want a path", swing, len(draws))
 		}
 		if draws[0].Pos != from {
-			t.Errorf("at swing %d the figure starts at %v, want the caster's hand-offset %v", swing, draws[0].Pos, from)
+			t.Errorf("at swing %d the figure starts at %v, want the launch point %v", swing, draws[0].Pos, from)
 		}
 		if got := draws[len(draws)-1].Pos; got != to {
 			t.Errorf("at swing %d the figure ends at %v, want the victim's %v", swing, got, to)
@@ -633,14 +630,11 @@ func TestABoltsExcursionIsAFractionOfItsSegment(t *testing.T) {
 
 	// One seed at two distances is the same walk, so the ordinates are the same
 	// and only the scale differs. On a horizontal segment the perpendicular is
-	// the Y coordinate itself — kept horizontal despite the hand offset by
-	// facing the cast EAST (sim.FacingDir(eastFacing) == 2): east's own entry
-	// in boltHandOffset carries no Y term, so it shifts the segment's start
-	// along X alone and the Y-only excursion this test reads is untouched.
+	// the Y coordinate itself; a zero launch keeps the segment horizontal.
 	const seed = 0x51ee11
-	const eastFacing = 64
-	near := boltPath(image.Pt(0, 0), image.Pt(6, 0), seed, 0, eastFacing)
-	far := boltPath(image.Pt(0, 0), image.Pt(12, 0), seed, 0, eastFacing)
+	var launch image.Point
+	near := boltPath(image.Pt(0, 0), image.Pt(6, 0), seed, 0, launch)
+	far := boltPath(image.Pt(0, 0), image.Pt(12, 0), seed, 0, launch)
 	if len(near) != len(far) {
 		t.Fatalf("one seed drew %d points at six cells and %d at twelve — that is not one walk", len(near), len(far))
 	}
@@ -667,7 +661,7 @@ func TestABoltsExcursionIsAFractionOfItsSegment(t *testing.T) {
 	const cells = 12
 	bound := cells * ui.ShotScale * boltRejectNumer / boltHundredths
 	for s := uint32(1); s <= 256; s++ {
-		if w := widest(boltPath(image.Pt(0, 0), image.Pt(cells, 0), s, 0, eastFacing)); w > bound {
+		if w := widest(boltPath(image.Pt(0, 0), image.Pt(cells, 0), s, 0, launch)); w > bound {
 			t.Fatalf("seed %d drew a point %d units off the line, past the rejection bound's own %d", s, w, bound)
 		}
 	}
@@ -701,54 +695,6 @@ func TestBoltSmoothCutsCornersInsteadOfSharpeningThem(t *testing.T) {
 		if p.X < 0 || p.X > 100 || p.Y < 0 || p.Y > 100 {
 			t.Errorf("point %v left the raw figure's own bounding box [0,100]x[0,100]", p)
 		}
-	}
-}
-
-func TestABoltsDepartureFollowsTheCastersFacing(t *testing.T) {
-	t.Parallel()
-
-	departure := func(facing uint8) image.Point {
-		mw := spWorld(t)
-		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning,
-			FromX: 4, FromY: 4, ToX: 10, ToY: 4, Facing: facing}})
-		return mw.boltDraws(nil)[0].Pos
-	}
-
-	cell := image.Pt(4*ui.ShotScale, 4*ui.ShotScale)
-	north, east, south, west := departure(0), departure(64), departure(128), departure(192)
-
-	if north == cell || east == cell || south == cell || west == cell {
-		t.Fatalf("a departure point landed exactly on the cell centre %v — no offset was applied", cell)
-	}
-	if north.Y >= cell.Y {
-		t.Errorf("facing north departs at %v, want a point above the cell (Y < %d)", north, cell.Y)
-	}
-	if south.Y <= cell.Y {
-		t.Errorf("facing south departs at %v, want a point below the cell (Y > %d)", south, cell.Y)
-	}
-	if east.X <= cell.X {
-		t.Errorf("facing east departs at %v, want a point right of the cell (X > %d)", east, cell.X)
-	}
-	if west.X >= cell.X {
-		t.Errorf("facing west departs at %v, want a point left of the cell (X < %d)", west, cell.X)
-	}
-}
-
-func TestABoltsDepartureIsHalfACellFromTheCellCentre(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning,
-		FromX: 4, FromY: 4, ToX: 10, ToY: 4, Facing: 0}}) // north
-	got := mw.boltDraws(nil)[0].Pos
-
-	// cell centre Y is 4*256 = 1024; north's own boltHandOffset entry is
-	// {0, -boltHandReach}, so the departure sits 128 units above it.
-	if want := 1024 - 128; got.Y != want {
-		t.Errorf("north departure Y = %d, want %d (cell centre 1024 less a literal half-cell 128)", got.Y, want)
-	}
-	if got.X != 4*256 {
-		t.Errorf("north departure X = %d, want %d — north carries no X term", got.X, 4*256)
 	}
 }
 

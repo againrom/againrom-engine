@@ -113,7 +113,8 @@ func (mw *mapWorld) advanceUnitShots() {
 		if !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
 			continue
 		}
-		picture, delay, drawn := mw.classShot(mw.spellClientClass(e.ID, e.Class))
+		class := mw.spellClientClass(e.ID, e.Class)
+		picture, delay, drawn := mw.classShot(class)
 		record := e.AttackTargetKind == sim.AttackTargetUnit && picture <= unitShotRegistryTop
 		at := delay
 		if record {
@@ -135,9 +136,12 @@ func (mw *mapWorld) advanceUnitShots() {
 		if life < 1 {
 			life = 1
 		}
+		// A structure shot leaves the release point a unit record leaves from
+		// (shotOffset, SAV-1130).
+		dx, dy := mw.shotOffset(class, e.Facing)
 		mw.shots.flying = append(mw.shots.flying, unitShot{
 			spellBolt: spellBolt{from: from, to: to, picture: picture, owner: e.Owner,
-				life: life, facing: e.Facing},
+				life: life, facing: e.Facing, launch: image.Pt(dx, dy)},
 			target:    e.AttackTarget,
 			structure: e.AttackTargetKind == sim.AttackTargetStructure,
 		})
@@ -228,12 +232,12 @@ func (mw *mapWorld) advanceShotTrails() {
 // unitShotDraws is every presentation shot in flight as the viewer draws it, through the
 // cast object's own sprite and trail producers, so a picture reads the same
 // from a swing as from a book. A shot of life N stands (age+1)/N of the way
-// from the shooter's hand and on its target at its last drawn tick.
+// from the shooter's release point and on its target at its last drawn tick.
 func (mw *mapWorld) unitShotDraws() []ui.SpellBolt {
 	var out []ui.SpellBolt
 	for _, s := range mw.shots.flying {
 		b := s.spellBolt
-		pos := castShotPoint(b.from, b.to, b.age+1, b.life, b.facing)
+		pos := castShotPoint(b.from, b.to, b.age+1, b.life, b.launch)
 		if d, ok := mw.spellDraw(b.picture, b.from, b.to, pos, b.age, b.owner); ok {
 			out = append(out, d)
 		}

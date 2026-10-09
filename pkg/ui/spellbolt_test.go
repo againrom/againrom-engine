@@ -211,8 +211,8 @@ func TestABoltsFarEndTakesTheTargetCellsOwnRelief(t *testing.T) {
 		_, sy := cam.WorldToScreen(0, float64(py+dy))
 		return sy
 	}
-	if got, want := placed[0].Y, wantY(near, from)+float64(spellHandLift); got != want {
-		t.Errorf("the near end is at %v, want the caster cell's own relief plus the hand lift, %v", got, want)
+	if got, want := placed[0].Y, wantY(near, from); got != want {
+		t.Errorf("the near end is at %v, want the caster cell's own relief, %v", got, want)
 	}
 	if got, want := placed[2].Y, wantY(far, to); got != want {
 		t.Errorf("the far end is at %v, want the target cell's own %v", got, want)
@@ -257,93 +257,35 @@ func TestAStationaryObjectTakesOneLift(t *testing.T) {
 	}
 }
 
-// ---------------------------------------------- the departure's own hand height
+// ---------------------------------------------- no hand height at the departure
 
-func TestABoltsDepartureCarriesHandHeightDecayingToTheFarEnd(t *testing.T) {
+// TestABoltsDepartureCarriesNoHandHeight: the launch point already holds the
+// caster-relative height (MAGIC-261), so the near end takes only its cell's
+// terrain lift and the middle the interpolated one.
+func TestABoltsDepartureCarriesNoHandHeight(t *testing.T) {
 	v := identityViewer(t, cliffGrid(), cliffW*terrain.CellSize, cliffCanvasH)
 	if v.Mode() != ModeDisplaced {
-		t.Fatalf("Mode() = %v, want displaced — the fixture must select displaced or this test says nothing", v.Mode())
+		t.Fatalf("Mode() = %v, want displaced", v.Mode())
 	}
-
 	from, to := image.Pt(1, 1), image.Pt(0, 3)
 	sheet := uiSheet(1, 8, 8, 0, 0)
 	near := image.Pt(from.X*ShotScale, from.Y*ShotScale) // (256, 256)
 	far := image.Pt(to.X*ShotScale, to.Y*ShotScale)      // (0, 768)
-	mid := image.Pt((near.X+far.X)/2, (near.Y+far.Y)/2)  // (128, 512), num/den = 1/2 exactly
+	mid := image.Pt((near.X+far.X)/2, (near.Y+far.Y)/2)  // (128, 512), num/den = 1/2
 	v.SetSpellBolts([]SpellBolt{
 		{Cell: from, To: to, Pos: near, Sheet: sheet},
 		{Cell: from, To: to, Pos: mid, Sheet: sheet},
 		{Cell: from, To: to, Pos: far, Sheet: sheet},
 	})
-
 	placed := v.spellArtPlacements()
 	if len(placed) != 3 {
 		t.Fatalf("three stamps placed %d rectangles, want three", len(placed))
 	}
-	// near: py = 256*32/256+16 = 48; lift = cellLift(1,1) + spellHandLift = -32-16 = -48; screen = 0.
-	if got, want := placed[0].Y, 0.0; got != want {
-		t.Errorf("near end at %v, want %v (48 py, -48 lift: -32 terrain, -16 full hand)", got, want)
-	}
-	// mid: py = 512*32/256+16 = 80; terrainLift = 127*163840/327680 = 63;
-	// hand = -16*163840/327680 = -8; lift = -32+63-8 = 23; screen = 103.
-	if got, want := placed[1].Y, 103.0; got != want {
-		t.Errorf("mid stamp at %v, want %v (80 py, 23 lift: half hand carried)", got, want)
-	}
-	// far: py = 768*32/256+16 = 112; lift = cellLift(0,3) = 95, no hand term; screen = 207.
-	if got, want := placed[2].Y, 207.0; got != want {
-		t.Errorf("far end at %v, want %v (112 py, 95 lift, no hand term)", got, want)
-	}
-}
-
-// TestABoltsHandHeightAppliesInFlatModeToo is the mode question the same
-// hotfix leaves explicit in spellBoltLift's own comment: the hand height is a
-// property of the caster, not of the terrain, so it is not gated on
-// v.Mode() == ModeDisplaced the way the terrain interpolation is. cellLift
-// already returns 0 for both ends in flat mode, so only the hand term's own
-// contribution differs from zero here.
-func TestABoltsHandHeightAppliesInFlatModeToo(t *testing.T) {
-	v := identityViewer(t, cliffGrid(), cliffW*terrain.CellSize, cliffCanvasH)
-	v.SetFlat(true)
-	if v.Mode() != ModeFlat {
-		t.Fatalf("SetFlat(true): Mode() = %v, want flat", v.Mode())
-	}
-	// The flat world (cliffFlatH, 128) is shorter than this view (cliffCanvasH,
-	// 223), so SetFlat re-centres the camera vertically; it is no longer the
-	// identity identityViewer checked before the mode switch. cam.WorldToScreen
-	// is the same independent oracle TestABoltsFarEndTakesTheTargetCellsOwnRelief
-	// already uses, so the recentring is read from the camera rather than
-	// assumed, and only the WORLD-space py+lift figures below are literals.
-	cam := v.Camera()
-
-	from, to := image.Pt(1, 1), image.Pt(0, 3)
-	sheet := uiSheet(1, 8, 8, 0, 0)
-	near := image.Pt(from.X*ShotScale, from.Y*ShotScale)
-	far := image.Pt(to.X*ShotScale, to.Y*ShotScale)
-	mid := image.Pt((near.X+far.X)/2, (near.Y+far.Y)/2)
-	v.SetSpellBolts([]SpellBolt{
-		{Cell: from, To: to, Pos: near, Sheet: sheet},
-		{Cell: from, To: to, Pos: mid, Sheet: sheet},
-		{Cell: from, To: to, Pos: far, Sheet: sheet},
-	})
-
-	placed := v.spellArtPlacements()
-	if len(placed) != 3 {
-		t.Fatalf("three stamps placed %d rectangles, want three", len(placed))
-	}
-	// near: py=48, lift = 0 (flat) + a LITERAL -16 hand lift = -16; world Y = 32.
-	_, wantNear := cam.WorldToScreen(0, 32)
-	if got := placed[0].Y; got != wantNear {
-		t.Errorf("flat-mode near end at %v, want %v — the hand term must survive with no terrain lift", got, wantNear)
-	}
-	// mid: py=80, terrainLift=0 (both cellLifts 0 in flat), a LITERAL -8 half
-	// hand lift; world Y = 72.
-	_, wantMid := cam.WorldToScreen(0, 72)
-	if got := placed[1].Y; got != wantMid {
-		t.Errorf("flat-mode mid stamp at %v, want %v", got, wantMid)
-	}
-	// far: py=112, lift=0, no hand term; world Y = 112.
-	_, wantFar := cam.WorldToScreen(0, 112)
-	if got := placed[2].Y; got != wantFar {
-		t.Errorf("flat-mode far end at %v, want %v — the far end carries no hand term in either mode", got, wantFar)
+	// near: py 48, lift cellLift(1,1) = -32; mid: py 80, lift -32+127/2 = 31;
+	// far: py 112, lift cellLift(0,3) = 95.
+	for i, want := range []float64{16, 111, 207} {
+		if got := placed[i].Y; got != want {
+			t.Errorf("stamp %d at %v, want %v", i, got, want)
+		}
 	}
 }

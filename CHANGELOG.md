@@ -8,6 +8,14 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Spells leave the caster's staff tip or hand, on the side he faces,
+  as the original places them for his weapon and direction.
+- [ROM1] Lightning and Prismatic Spray light the ground and the units along
+  their path while they last. Fire Arrow, Fire Ball and the Fire Ball
+  explosion light the ground and units around them. With Dynamic lighting
+  off, a Lightning or Prismatic Spray still lights the units it passes and
+  leaves the ground unlit.
+- [ROM1] Wall of Fire also lights the ground around its flames.
 - [BASE] The black area around the minimap crystal is gone; the map shows
   through.
 - [BASE] The red square around the unit under the attack cursor is gone; the
