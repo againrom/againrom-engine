@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The town square is built from a town description by one town
+  composer; it looks and plays the same.
+
 ## 0.103.0
 
 - [ROM1] Lightning and Prismatic Spray draw the bolt the original draws: a
