@@ -95,6 +95,8 @@ func init() {
 	worldWriters = append(worldWriters, "SetNativeTraining", "SetNativeClass", "SetROM2ScenarioState", "RepairNativeSkillLevels")
 	worldMethods = append(worldMethods, "RestoreNativeActorBases", "RemovedNativeActorBases")
 	worldWriters = append(worldWriters, "RestoreNativeActorBases")
+	worldMethods = append(worldMethods, "RestoreHeldOrders")
+	worldWriters = append(worldWriters, "RestoreHeldOrders")
 	worldMethods = append(worldMethods, "RepairNativePackCells")
 	worldWriters = append(worldWriters, "RepairNativePackCells")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")

@@ -4,8 +4,9 @@
 // savDocumentFallbacks names may come from the loaded file. Each save is
 // loaded and its Snapshot taken; then the loaded document the Snapshot holds
 // is changed twice: once only inside the unknown-meaning spans, once
-// everywhere but the join keys. Both SAVEs must be byte-identical: a written leaf that differs
-// is a known kind taken from the loaded file, and the census requires none.
+// everywhere but the join keys, a scalar's known part beside its unknown
+// span included. Both SAVEs must be byte-identical: a written leaf that
+// differs is a known kind taken from the loaded file. The census names each.
 package game
 
 import (
@@ -34,6 +35,8 @@ var loadedCensusSaves = []struct {
 	{"2026-10-07/beforekargallas.sav", true},
 	{"2026-10-06/game0007-original-m70-boltcoming.sav", false},
 	{"2026-10-06/game0008-original-m70-dying.sav", false},
+	// Loaded original world spell effects.
+	{"2026-08-15/game0018.sav", false},
 }
 
 // loadedCensusAnchor names the leaves the full change keeps: the format
@@ -44,6 +47,23 @@ func loadedCensusAnchor(pattern string) bool {
 	case pattern == "Version", pattern == "Marker", strings.HasSuffix(pattern, ".v.Identity"), strings.HasSuffix(pattern, ".v.This"), strings.HasSuffix(pattern, ".v.Reference"),
 		pattern == "Player.v.Slot", pattern == "World.Cells[].Cell":
 		return true
+	}
+	return false
+}
+
+// loadedCensusDeclaredDebt reports a known Token field of an original world
+// spell effect record. The World holds no Token for those records, so a SAVE
+// copies them from the loaded record (DIV-2502). The census names each one.
+func loadedCensusDeclaredDebt(pattern string) bool {
+	class, field, ok := strings.Cut(pattern, ".")
+	switch class {
+	case "SpellEffect", "PointEffect", "AreaEffect", "SpellTransport", "Effect", "Effect_DirectDamage":
+	default:
+		return false
+	}
+	switch field {
+	case "r.Block12", "v.RuntimeID", "v.T08", "v.T0C", "v.T0E", "v.T18", "v.T1C":
+		return ok
 	}
 	return false
 }
@@ -80,7 +100,7 @@ func setLeafBytes(l censusLeaf, b []byte) {
 func poisonDocument(doc *sav.DocumentData, mode int, keep map[string]bool) {
 	spans := unknownRecordSpans()
 	for _, l := range censusLeaves(doc) {
-		if l.topology || mode == poisonNone || loadedCensusAnchor(l.pattern) || mode == poisonAll && keep != nil && !keep[l.pattern] {
+		if l.topology || mode == poisonNone || loadedCensusAnchor(l.pattern) || keep != nil && !keep[l.pattern] {
 			continue
 		}
 		v := l.value
@@ -105,9 +125,24 @@ func poisonDocument(doc *sav.DocumentData, mode int, keep map[string]bool) {
 			}
 		}
 		switch {
-		case mode != poisonAll || spanned && v.Kind() != reflect.Slice:
-			// A value that holds an unknown span changes only there in both
-			// modes, so the two SAVEs stay comparable.
+		case mode != poisonAll:
+		case spanned && v.Kind() != reflect.Slice && v.Kind() != reflect.Array:
+			// A scalar that holds an unknown span changes there in both modes;
+			// the full change also flips the low bit of its first known byte
+			// below the span. A byte above it lies outside a narrower field's
+			// wire (a 16-bit field whose whole wire is unknown).
+			last := -1
+			for i := range b {
+				if unknownSpanAllows(spans, censusKey(l), i) {
+					last = i
+				}
+			}
+			for i := 0; i < last; i++ {
+				if !unknownSpanAllows(spans, censusKey(l), i) {
+					b[i] ^= 1
+					break
+				}
+			}
 		case v.Kind() == reflect.Slice || v.Kind() == reflect.Array:
 			for i := range b {
 				if !unknownSpanAllows(spans, censusKey(l), i) {
@@ -165,10 +200,11 @@ func loadedCensusDiff(a, b map[string][]byte) []string {
 	return out
 }
 
-func loadedCensusMission(t *testing.T, name string) [3]map[string][]byte {
+// loadedCensusMission returns the three SAVEs and, when the full change is
+// refused, the known kinds a per-pattern change names instead.
+func loadedCensusMission(t *testing.T, name string) ([3]map[string][]byte, []string) {
 	f := censusMissionFront(t, name)
-	var out [3]map[string][]byte
-	for mode := range out {
+	export := func(mode int, keep map[string]bool) ([]byte, error) {
 		snap, label, err := f.Snapshot(true)
 		if err != nil {
 			t.Fatal(err)
@@ -180,15 +216,57 @@ func loadedCensusMission(t *testing.T, name string) [3]map[string][]byte {
 		if err != nil {
 			t.Fatal(err)
 		}
-		poisonDocument(state.Document, mode, nil)
+		poisonDocument(state.Document, mode, keep)
 		snap.SavedDocument = state
-		raw, err := safeExport(func() ([]byte, error) { return f.ExportCurrentSave(snap, label) })
+		return safeExport(func() ([]byte, error) { return f.ExportCurrentSave(snap, label) })
+	}
+	var out [3]map[string][]byte
+	for mode := range out {
+		raw, err := export(mode, nil)
+		if err != nil && mode == poisonAll {
+			t.Logf("the full change is refused (%v); each pattern is changed alone", err)
+			return out, loadedCensusPerPattern(t, f, export)
+		}
 		if err != nil {
 			t.Fatalf("SAVE refused with the loaded document changed (mode %d): %v", mode, err)
 		}
 		out[mode] = flattenSAV(t, raw)
 	}
-	return out
+	return out, nil
+}
+
+// loadedCensusPerPattern changes one pattern at a time, inside its unknown
+// spans and then everywhere. A pattern whose full change alters the SAVE or
+// is refused is a known kind taken from the loaded file.
+func loadedCensusPerPattern(t *testing.T, f *FrontEnd, export func(int, map[string]bool) ([]byte, error)) []string {
+	t.Helper()
+	snap, _, err := f.Snapshot(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var known []string
+	tried := map[string]bool{}
+	for _, l := range censusLeaves(snap.SavedDocument.Document) {
+		if tried[l.pattern] || l.topology || loadedCensusAnchor(l.pattern) {
+			continue
+		}
+		tried[l.pattern] = true
+		keep := map[string]bool{l.pattern: true}
+		base, err := export(poisonUnknown, keep)
+		if err != nil {
+			t.Fatalf("SAVE refused with %s changed in its unknown spans: %v", l.pattern, err)
+		}
+		full, err := export(poisonAll, keep)
+		switch {
+		case err != nil:
+			t.Logf("SAVE refuses a changed %s: %v", l.pattern, err)
+			known = append(known, l.pattern+" (SAVE refused)")
+		case len(loadedCensusDiff(flattenSAV(t, base), flattenSAV(t, full))) != 0:
+			known = append(known, l.pattern)
+		}
+	}
+	sort.Strings(known)
+	return known
 }
 
 func loadedCensusTown(t *testing.T, name string) [3]map[string][]byte {
@@ -285,19 +363,31 @@ func TestSAVWriterCensusLoadedDocument(t *testing.T) {
 	for _, input := range loadedCensusSaves {
 		t.Run(filepath.Base(input.name), func(t *testing.T) {
 			var out [3]map[string][]byte
+			var probed []string
 			if input.town {
 				out = loadedCensusTown(t, input.name)
 			} else {
-				out = loadedCensusMission(t, input.name)
+				out, probed = loadedCensusMission(t, input.name)
 			}
 			unknown := loadedCensusDiff(out[poisonNone], out[poisonUnknown])
 			known := loadedCensusDiff(out[poisonUnknown], out[poisonAll])
-			line := fmt.Sprintf("%s: %d known kinds from the loaded file %v; %d written kinds follow its unknown-meaning spans %v",
-				input.name, len(known), known, len(unknown), unknown)
+			if out[poisonAll] == nil {
+				known = probed
+			}
+			var declared, undeclared []string
+			for _, k := range known {
+				if loadedCensusDeclaredDebt(k) {
+					declared = append(declared, k)
+				} else {
+					undeclared = append(undeclared, k)
+				}
+			}
+			line := fmt.Sprintf("%s: %d known kinds from the loaded file %v, %d of them the declared world-effect Token debt (DIV-2502); %d written kinds follow its unknown-meaning spans %v",
+				input.name, len(known), known, len(declared), len(unknown), unknown)
 			report = append(report, line)
 			t.Log(line)
-			if len(known) != 0 {
-				t.Errorf("known kinds taken from the loaded file: %v", known)
+			if len(undeclared) != 0 {
+				t.Errorf("known kinds taken from the loaded file: %v", undeclared)
 			}
 		})
 	}

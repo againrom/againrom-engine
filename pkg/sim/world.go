@@ -235,6 +235,7 @@ type Entity struct {
 	TurnRemaining uint8
 	TurnTotal     uint8
 	TurnState     TurnState
+	HeldOrder     HeldOrder
 	// PotionStats are permanent single-use gains in Body, Reaction, Mind,
 	// Spirit order. Headroom is the derived sheet's remaining capacity to the
 	// effective attribute cap; the post-step derive owns its refresh.

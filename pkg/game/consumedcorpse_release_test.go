@@ -220,6 +220,25 @@ func consumedCorpseLoadControl(t *testing.T, f *FrontEnd, app *ui.App, store Sav
 	}
 }
 
+// consumedCorpseHeldBytes makes the World hold base byte 22 and modifier
+// byte 40 of one live actor at the given values.
+func consumedCorpseHeldBytes(t *testing.T, w *sim.World, id sim.EntityID, base, modifier byte) {
+	t.Helper()
+	var basis sim.NativeActorBasis
+	for _, e := range w.Entities() {
+		if e.ID == id {
+			basis = e.NativeBasis
+		}
+	}
+	basis.BasePresent, basis.ModifierPresent = true, true
+	basis.BaseKnown |= 1 << 22
+	basis.ModifierKnown |= 1 << 40
+	basis.Base[22], basis.Modifier[40] = base, modifier
+	if err := w.RestoreNativeActorBases([]sim.NativeActorBasisRecord{{ID: id, Basis: basis}}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 	f := releaseFront(t)
 	out := os.Getenv("AGAINROM_CONSUMED_CORPSE_WITNESS_DIR")
@@ -302,6 +321,9 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 			}
 			var baselineIdentity uint32
 			if bound {
+				// The loaded file holds 23/29 in two unknown-meaning bytes the
+				// World also holds; the live values change before consumption.
+				consumedCorpseHeldBytes(t, w, victim.ID, 23, 29)
 				raw := consumedCorpseSave(t, f, app, store, "bones")
 				doc, err := sav.DecodeDocumentData(raw)
 				if err != nil {
@@ -321,6 +343,7 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 					t.Fatal("current LOAD did not retain native policy", e)
 				}
 			}
+			consumedCorpseHeldBytes(t, w, victim.ID, 96, 100)
 			f.live.pending = append(f.live.pending, sim.Cast(mage.ID, victim.ID, 25))
 			for range 256 {
 				f.live.tick()

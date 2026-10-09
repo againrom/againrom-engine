@@ -120,6 +120,7 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 		optional(&e.PendingAttackTarget, e.HasPendingAttackTarget && e.PendingAttackTargetKind == AttackTargetUnit)
 		optional(&e.PendingOrder.Target, e.PendingOrder.Kind == PendingActorCast)
 		optional(&e.EscortTarget, e.HasEscortTarget)
+		optional(&e.HeldOrder.Target, e.HeldOrder.Kind == HeldOrderBody)
 	}
 	if w.script != nil {
 		for i := range w.script.checks {

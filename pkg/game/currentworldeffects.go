@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"strings"
 
 	"againrom/pkg/formats/sav"
@@ -82,13 +83,10 @@ func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocume
 		return nil
 	}
 	// A family whose records all retired still binds every graph node.
-	source, err := cloneSavedDocument(loaded)
-	if err != nil {
-		return err
-	}
+	source := loaded
 	moved := map[uint16]uint16{}
 	for _, index := range family {
-		r := source.Document.Objects[index-1]
+		r := cloneEffectRecord(source.Document.Objects[index-1])
 		// A runtime handle stays as loaded, zero included, unless another
 		// written object already holds it.
 		if id, err := savedStructureValue(&r, "RuntimeID"); err == nil && id != 0 {
@@ -231,4 +229,27 @@ func (b *generatedDocumentBuilder) projectWorldEffectTokens(meta *SnapshotSAVWor
 		}
 	}
 	return nil
+}
+
+// cloneEffectRecord copies one loaded record so the written one shares no
+// storage with the loaded document.
+func cloneEffectRecord(r sav.DocumentRecordData) sav.DocumentRecordData {
+	r.Values, r.Texts, r.Counts = slices.Clone(r.Values), slices.Clone(r.Texts), slices.Clone(r.Counts)
+	r.Raw = slices.Clone(r.Raw)
+	for i := range r.Raw {
+		r.Raw[i].Bytes = slices.Clone(r.Raw[i].Bytes)
+	}
+	r.RefSlots = slices.Clone(r.RefSlots)
+	for i := range r.RefSlots {
+		r.RefSlots[i].Objects = slices.Clone(r.RefSlots[i].Objects)
+	}
+	r.Inline = slices.Clone(r.Inline)
+	for i := range r.Inline {
+		r.Inline[i].Record = cloneEffectRecord(r.Inline[i].Record)
+	}
+	r.Groups = slices.Clone(r.Groups)
+	for i := range r.Groups {
+		r.Groups[i] = cloneEffectRecord(r.Groups[i])
+	}
+	return r
 }

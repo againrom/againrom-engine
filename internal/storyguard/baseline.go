@@ -1924,7 +1924,8 @@ package storyguard
 // graft, the departed-actor and departed-member bodies, the original world
 // spell effects, the restored and frozen order carriers, the joined actor
 // identity, the town option carrier and the loaded-document census and
-// loss-control tests, including this paragraph.
+// loss-control tests, and of the World's held orders, the graft's held
+// bases and the consumed-corpse held-byte control, including this paragraph.
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
@@ -1973,5 +1974,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8531421,
+	CommentBytes: 8533242,
 }

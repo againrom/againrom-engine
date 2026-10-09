@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"encoding/binary"
 	"fmt"
-	"maps"
 	"slices"
 
 	"againrom/pkg/data"
@@ -73,12 +72,6 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	state := &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion,
 		GroupBindings: &SnapshotSAVGroupBindings{Version: 1, PlayersPresent: true}, ActorEffects: &SnapshotSAVActorEffects{Version: 1}, Objects: &SnapshotSAVObjectBindings{Version: 2}}
 	state.Document = &b.doc
-	// A restored order on a body is World-tick state of the LOAD that built
-	// this World; it lapses when the World advances. A frozen order stands
-	// while its actor is neither alive nor dying.
-	if l := s.SavedDocument; l != nil {
-		state.ActionTick, state.ActionTickSet, state.BodyOrders, state.FrozenOrders = l.ActionTick, l.ActionTickSet, maps.Clone(l.BodyOrders), maps.Clone(l.FrozenOrders)
-	}
 	if _, _, groups := w.SavedGroups(); groups {
 		_, players := w.SavedGroupPlayers()
 		state.GroupBindings.PlayersConstructed = !players

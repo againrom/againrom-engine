@@ -194,6 +194,7 @@ var nstPinned = []struct {
 		{"TurnRemaining", "uint8"},
 		{"TurnTotal", "uint8"},
 		{"TurnState", "sim.TurnState"},
+		{"HeldOrder", "sim.HeldOrder"},
 		{"PotionStats", "[4]int32"},
 		{"PotionHeadroom", "[4]int32"},
 		{"Group", "uint32"},

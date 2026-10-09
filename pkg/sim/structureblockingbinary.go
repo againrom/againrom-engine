@@ -13,12 +13,14 @@ func HasStructureBlockingForm(data []byte) bool {
 		return false
 	}
 	version := data[0]
-	for version == escortFormVersion || version == turnStateFormVersion || version == nativeScalarFormVersion || version == nativeLiveFormVersion || version == nativeItemFormVersion || version == currentPlayerFormVersion || version == playerParticipantFormVersion || version == nativeBasisFormVersion || version == bookSelectionFormVersion || version == nativeClassFormVersion || version == rom2ScriptFormVersion || version == nativeTrainingFormVersion || version == areaCostFormVersion || version == creatureSpellFormVersion || version == pendingOrderFormVersion || version == tacticalFormVersion {
+	for version == heldOrderFormVersion || version == escortFormVersion || version == turnStateFormVersion || version == nativeScalarFormVersion || version == nativeLiveFormVersion || version == nativeItemFormVersion || version == currentPlayerFormVersion || version == playerParticipantFormVersion || version == nativeBasisFormVersion || version == bookSelectionFormVersion || version == nativeClassFormVersion || version == rom2ScriptFormVersion || version == nativeTrainingFormVersion || version == areaCostFormVersion || version == creatureSpellFormVersion || version == pendingOrderFormVersion || version == tacticalFormVersion {
 		if len(data) < headerLen+9 {
 			return false
 		}
 		tag := "TAC1"
 		switch version {
+		case heldOrderFormVersion:
+			tag = "HLD1"
 		case escortFormVersion:
 			tag = "ESC1"
 		case turnStateFormVersion:

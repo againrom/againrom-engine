@@ -156,14 +156,9 @@ func graftUnknownObjects(doc *sav.DocumentData, state, loaded *SnapshotSAVDocume
 	if err := graftUnknownSingletons(doc, loaded, world); err != nil {
 		return err
 	}
-	bases := map[uint16]*sim.NativeActorBasis{}
-	for _, e := range world.Entities() {
-		for _, a := range state.Actors {
-			if a.EntityID == e.ID && !a.Retired {
-				basis := e.NativeBasis
-				bases[a.ObjectIndex] = &basis
-			}
-		}
+	bases, err := graftHeldBases(doc, state, world)
+	if err != nil {
+		return err
 	}
 	old := loaded.Document
 	spans := unknownRecordSpans()
@@ -227,6 +222,42 @@ func graftUnknownObjects(doc *sav.DocumentData, state, loaded *SnapshotSAVDocume
 		graftUnknownRecord(&doc.Objects[to-1], &old.Objects[from-1], spans, bases[to])
 	}
 	return nil
+}
+
+// graftHeldBases maps each written actor record to the native basis the
+// World holds for it: a bound entity's, retired or not, and a removed actor's
+// held basis on its terminal or dead record. Those bytes are never grafted.
+func graftHeldBases(doc *sav.DocumentData, state *SnapshotSAVDocument, world *sim.World) (map[uint16]*sim.NativeActorBasis, error) {
+	bases := map[uint16]*sim.NativeActorBasis{}
+	for _, e := range world.Entities() {
+		for _, a := range state.Actors {
+			if a.EntityID == e.ID && a.ObjectIndex != 0 && int(a.ObjectIndex) <= len(doc.Objects) {
+				basis := e.NativeBasis
+				bases[a.ObjectIndex] = &basis
+			}
+		}
+	}
+	records, removed, err := removedNativeBasisRecords(state, world)
+	if err != nil {
+		return nil, err
+	}
+	for i, record := range records {
+		// The identity join below admits only a unique nonzero class key.
+		key, _ := savedStructureValue(record, "Identity")
+		at, matches := -1, 0
+		for j := range doc.Objects {
+			if r := &doc.Objects[j]; r.Class == record.Class && key != 0 {
+				if k, err := savedStructureValue(r, "Identity"); err == nil && k == key {
+					at, matches = j, matches+1
+				}
+			}
+		}
+		if matches == 1 {
+			basis := removed[i]
+			bases[uint16(at+1)] = &basis
+		}
+	}
+	return bases, nil
 }
 
 // graftUnknownSingletons copies the unknown spans of the head, trailer,
