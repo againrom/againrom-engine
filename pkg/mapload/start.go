@@ -789,15 +789,15 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		// Catapult and Ballista keep their Units-row combat, domain, footprint
 		// and equipment instead of being flattened into a zero-profile Hero.
 		if p.MercenaryType == 1 || p.MercenaryType == 2 {
-			e, b, err := siegeEntity(p, t)
+			def, b, err := siegeDefinition(p, t)
 			if err != nil {
 				return nil, Start{}, err
 			}
+			carriedNativeHistory(p, &def.NativeBasis, &def.NativeClass)
 			id := sim.EntityID(len(ents))
 			st.IDs[i] = id
-			e.ID, e.X, e.Y, e.MapUnitID = id, st.Cells[i].X, st.Cells[i].Y, savedMapUnitID(p)
-			carriedNativeHistory(p, &e)
-			ents = append(ents, e)
+			ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: id, X: st.Cells[i].X, Y: st.Cells[i].Y,
+				Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p)}))
 			if !itemEquipmentEmpty(b.worn) || len(b.carried) > 0 {
 				worn = append(worn, sim.Stock{ID: id, ItemInstances: cloneItemInstances(b.carried), EquippedItems: cloneItemEquipment(b.worn)})
 			}
@@ -895,109 +895,39 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		if p.Hired() {
 			typeID = p.Class
 		}
-		// The id is recorded from the SAME expression that mints it, so the two
-		// cannot come apart.
-		st.IDs[i] = sim.EntityID(len(ents))
-		ents = append(ents, sim.Entity{
-			ID: st.IDs[i], X: st.Cells[i].X, Y: st.Cells[i].Y,
-			// THE ROSTER SLOT THE PLAYER STANDS ON, and it is sim's own constant
-			// rather than a 1 written here.
-			//
-			// It was absent until 0094, and the absence was not a gap in a filled
-			// record — it was the player standing OUTSIDE the map's diplomacy. Slot
-			// 0 names no roster entry, so it has neither a row nor a column:
-			// nothing could be hostile to a party member and a party member could
-			// be hostile to nothing, on every map, by construction. The only fights
-			// a world could hold were between units the map itself placed.
-			//
-			// THE GROUP WORD IS DELIBERATELY NOT WRITTEN. Zero is the value the
-			// field already held, and nothing decoded says what group word the
-			// campaign's own units carry — so writing `Group: 0` would state as a
-			// decision what is the absence of one. What it means here is that every
-			// member of one start shares a group with every other member and with
-			// no placement: the party is one group, which is what a party is.
-			Owner: sim.SelfSlot,
-			Class: p.Class, HP: pool.hp, MaxHP: pool.maxHP,
-			Domain: sim.DomainGround, Speed: d.Speed,
-			// HIS CARRYING CAPACITY, off the same recompute as his rate
-			// (HERO-SIGHT-007, High). A party member is the one entity in this tree
-			// that always has one: he is generated rather than placed, so the
-			// recompute always ran for him.
-			Capacity:   d.Capacity,
-			Protection: d.Protection, Resistance: data.DamageKindResistance(d.Resistance), TokenSize: 1,
-			// HIS OWN SIGHT, derived like his rate and his eight numbers rather than
-			// taken from any table. A party member has no row at all — he is
-			// generated, not placed — so the class table's column has nothing to
-			// say about him, and the constructor's 5 would be an authored number
-			// wearing a decoded one's clothes.
-			//
-			// IT IS NOW READ. This comment said the opposite until 0094, on the
-			// then-true ground that an entity of slot 0 belongs to no group and
-			// takes no engagement decision — so the value was filled and consulted
-			// by nothing. With the slot above it is the radius a party member's own
-			// group sees by, and the number a guarding group's circle is measured
-			// against once the player is a candidate for it.
-			ScanRange: uint8(d.Sight),
-			// HIS REACH, off the same fold rather than left unwritten. Until this
-			// story the field was never set here at all, so a started party member's
-			// reach was the world constructor's own repair of the zero it read — a
-			// normalisation standing in for a derivation, and one that happened to
-			// answer 1 for exactly the reason d.Combat.Reach does when p.Weapon is
-			// nil. reachOf is the same narrowing FromALMWith already applies to a
-			// placed person's.
-			Reach:        reachOf(d.Combat.Reach),
-			AttackCharge: d.Combat.AttackChargeTime, AttackRelax: d.Combat.AttackRelaxTime,
+		// A generated member has no row: his numbers are the fold's, his pools
+		// the restored or derived ones, his reach and sight derived like his
+		// rate. He stands on the player's roster slot and in no map group. A
+		// member restored from an original save keeps the record's map unit id.
+		// The treasure values stay zero; the death-gold roll is gated above
+		// the person band.
+		def := sim.ActorDefinition{
+			Class: p.Class, TypeID: typeID, Humanoid: true, Domain: sim.DomainGround,
+			HP: pool.hp, MaxHP: pool.maxHP, Mana: pool.mana, MaxMana: pool.maxMana,
+			HealthRegenPeriod: pool.healthPeriod, ManaRegenPeriod: pool.manaPeriod,
+			HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
+			Speed: d.Speed, RotationSpeed: d.RotationSpeed, Capacity: d.Capacity,
+			ScanRange: uint8(d.Sight), Reach: reachOf(d.Combat.Reach), TokenSize: 1,
 			ToHit: d.Combat.ToHit, Defence: d.Combat.Defence, Absorption: d.Combat.Absorption,
 			DamageBase: d.Combat.DamageBase, DamageSpread: d.Combat.DamageSpread,
 			SecondBase: d.Combat.SecondBase, SecondSpread: d.Combat.SecondSpread,
-			AlwaysHits: d.Combat.AlwaysHits,
-			// THE SPELL, off spellID above and d.Combat.SpellPower directly: the
-			// level is the attachment's own, carried whole through the fold, never
-			// clamped and never looked up — only the name half needed a table.
+			SecondaryDamage: simSecondaryDamage(d.SecondaryDamage), AlwaysHits: d.Combat.AlwaysHits,
+			AttackCharge: d.Combat.AttackChargeTime, AttackRelax: d.Combat.AttackRelaxTime,
+			Protection: d.Protection, Resistance: data.DamageKindResistance(d.Resistance),
 			WeaponSpell: spellID, WeaponSpellLevel: d.Combat.SpellPower, WeaponSpellSource: weaponSource,
-			Mana: pool.mana, MaxMana: pool.maxMana,
-			// HIS BOOK (0127 FR-4a), off the party member rather than off the
-			// recompute: what a character knows is stated by the row he starts
-			// from and is not derived from a statistic — MAGIC-BOOK-002's
-			// amendment is that nothing about the book is gated on a stat.
-			KnownSpells: p.KnownSpells | taught,
-			Book:        p.Book,
-			// THE TWO PERIODS, off regen above: a started party member regenerates at
-			// the base rate whether or not he holds a pool to regenerate — the mana
-			// pair above is what decides whether that period does anything, not this
-			// field.
-			HealthRegenPeriod: pool.healthPeriod, ManaRegenPeriod: pool.manaPeriod,
-			HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
-			RotationSpeed:   d.RotationSpeed,
-			SecondaryDamage: simSecondaryDamage(d.SecondaryDamage),
-			// THE AUTHORED MAP ID HE STILL ANSWERS TO. A generated member has none; a
-			// member restored from an original save keeps the record's identifier
-			// word, and ScriptUnits already binds a compile-time reference to that
-			// word to this same entity. Writing it here is what makes the run-time
-			// direction agree: check opcode 9 answers the id the script would have
-			// used to name him.
-			MapUnitID: savedMapUnitID(p),
-			// Effective levels and trained inputs travel independently.
-			Skill:          d.Skill,
-			NativeTraining: sim.NativeTraining{Present: true, Levels: p.Hero.Skill},
-			NativeClass:    sim.NativeClass{Present: true, Fighter: p.Profile.Fighter},
+			// MAGIC-BOOK-002: the book is the member's own, not gated on a stat.
+			KnownSpells: p.KnownSpells | taught, Book: p.Book,
+			Reaction: d.Reaction, Mind: reward.Mind, Spirit: d.Spirit,
+			XPSlot: uint8(d.Combat.SkillSlot), GainsXP: sim.InPersistBand(typeID),
+			Skill: d.Skill, SkillXP: reward.SkillXP, SuppressCorpseLoot: p.SuppressCorpseLoot,
 			NativeBasis:    nativeBasis.WithBody(uint16(d.Body)),
-			SkillXP:        reward.SkillXP, Reaction: d.Reaction, Mind: reward.Mind, Spirit: d.Spirit,
-			Humanoid: true,
-			XPSlot:   uint8(d.Combat.SkillSlot), GainsXP: sim.InPersistBand(typeID),
-			// THE SERVER TYPE ID. A minted party member is a person, so he carries
-			// the person arm's own band value, the same one a map's person placement
-			// carries. It is what makes him cross the mission boundary by the SAME
-			// test his companions cross by, rather than by being on a list.
-			//
-			// The three treasure values beside it stay at zero, which is
-			// what the comment on XPValue above already says of a member's
-			// worth dead: the death-gold roll is gated strictly above the
-			// band and cannot reach this value.
-			TypeID:             typeID,
-			SuppressCorpseLoot: p.SuppressCorpseLoot,
-		})
-		carriedNativeHistory(p, &ents[len(ents)-1])
+			NativeClass:    sim.NativeClass{Present: true, Fighter: p.Profile.Fighter},
+			NativeTraining: sim.NativeTraining{Present: true, Levels: p.Hero.Skill},
+		}
+		carriedNativeHistory(p, &def.NativeBasis, &def.NativeClass)
+		st.IDs[i] = sim.EntityID(len(ents))
+		ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: st.IDs[i], X: st.Cells[i].X, Y: st.Cells[i].Y,
+			Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p)}))
 		// A CARRIED MEMBER ARRIVES HOLDING WHAT HE LEFT WITH, and the class
 		// row's starting weapon is NOT minted for him a second time (the
 		// continuity hotfix). That is the whole reason Carry is reached by
