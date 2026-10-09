@@ -304,3 +304,116 @@ func TestAReissueAtTheHeldVictimKeepsThePursuit(t *testing.T) {
 		t.Fatalf("reissue left %+v and %d cells, want %+v and %d", p, len(w.Route(1)), before, len(route))
 	}
 }
+
+// An attack order moved from a pursued unit to a structure ends the held
+// search, so the world saves and loads (DIV-2557).
+func TestPursuitEndsWhenTheOrderTurnsToAStructure(t *testing.T) {
+	s := structureCombatTarget()
+	s.ID, s.Col, s.Row = 3, 15, 10
+	w, err := NewStructuredWorld(1, Bounds{Width: 40, Height: 21}, ModeCanonical, Terrain{}, []Entity{puFighter(1, 0, 10), cbEnt(2, 12, 10)}, nil, Relations{}, nil, nil, nil, GhostTemplate{}, []Structure{s})
+	if err != nil {
+		t.Fatal(err)
+	}
+	Step(w, []Command{Attack(1, 2)})
+	if !w.entities[0].Pursuit.Held {
+		t.Fatal("no held pursuit after the unit order")
+	}
+	Step(w, []Command{AttackStructure(1, 3)})
+	if e := w.entities[0]; e.AttackTargetKind != AttackTargetStructure || e.Pursuit != (PursuitSearch{}) {
+		t.Fatalf("after the structure order: kind %d pursuit %+v", e.AttackTargetKind, e.Pursuit)
+	}
+	raw, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cold World
+	if err := cold.UnmarshalBinary(raw); err != nil {
+		t.Fatalf("the saved world does not load: %v", err)
+	}
+}
+
+// Both actor remaps carry the held victim with the attack target, so the
+// next pass continues the search instead of starting a new one.
+func TestPursuitVictimFollowsActorRemaps(t *testing.T) {
+	t.Run("action supplement", func(t *testing.T) {
+		w := pursuitLine(t, 12)
+		Step(w, []Command{Attack(1, 2)})
+		a := w.Actions()
+		if err := a.RemapActors(func(id EntityID, _ bool) (EntityID, error) { return id + 10, nil }); err != nil {
+			t.Fatal(err)
+		}
+		e := a.Actors[0]
+		if e.Pursuit == nil || e.Pursuit.Victim != e.AttackTarget {
+			t.Fatalf("remapped target %d, pursuit %+v", e.AttackTarget, e.Pursuit)
+		}
+	})
+	t.Run("world identities", func(t *testing.T) {
+		w := pursuitLine(t, 12)
+		Step(w, []Command{Attack(1, 2)})
+		var uninterrupted World
+		raw, err := w.MarshalBinary()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := uninterrupted.UnmarshalBinary(raw); err != nil {
+			t.Fatal(err)
+		}
+		if err := w.RestoreActorIdentities(map[EntityID]EntityID{1: 11, 2: 12}, nil); err != nil {
+			t.Fatal(err)
+		}
+		if p := w.entities[0].Pursuit; p.Victim != 12 {
+			t.Fatalf("held victim %d after the remap, want 12", p.Victim)
+		}
+		Step(w, nil)
+		Step(&uninterrupted, nil)
+		got, want := w.entities[0].Pursuit, uninterrupted.entities[0].Pursuit
+		if got.Count != want.Count || got.Passes != want.Passes {
+			t.Fatalf("count/passes %d/%d after the remap, %d/%d without it", got.Count, got.Passes, want.Count, want.Passes)
+		}
+	})
+	t.Run("actor id zero", func(t *testing.T) {
+		w := pursuitLine(t, 12)
+		Step(w, []Command{Attack(1, 2)})
+		w.entities[0].Pursuit.Victim = 0
+		w.entities[0].AttackTarget = 0
+		a := w.Actions()
+		if err := a.RemapActors(func(id EntityID, _ bool) (EntityID, error) { return id + 10, nil }); err != nil {
+			t.Fatal(err)
+		}
+		if e := a.Actors[0]; e.Pursuit == nil || e.Pursuit.Victim != 10 || e.AttackTarget != 10 {
+			t.Fatalf("victim zero remapped to target %d, pursuit %+v", e.AttackTarget, e.Pursuit)
+		}
+	})
+}
+
+// The head of the static list is removed when it lay within three cells of
+// the cell the near search started from; the step that search allows does
+// not count (AI-373, AI-384).
+func TestPursuitHeadRemovalUsesTheSearchStart(t *testing.T) {
+	w := pursuitLine(t, 14)
+	Step(w, []Command{Attack(1, 2)})
+	p := w.entities[0].Pursuit
+	w.routes[0] = w.routes[0][3:]
+	p.Passes = 0
+	w.entities[0].Pursuit = p
+	head := w.routes[0][0]
+	start := cell{x: w.entities[0].X, y: w.entities[0].Y}
+	if start.chebyshevTo(head) != 4 {
+		t.Fatalf("set-up: start %v head %v", start, head)
+	}
+	raw, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var check World
+	if err := check.UnmarshalBinary(raw); err != nil {
+		t.Fatalf("set-up is not a valid saved state: %v", err)
+	}
+	Step(w, nil)
+	if e := w.entities[0]; e.X == start.x && e.Y == start.y {
+		t.Fatal("the pass took no step")
+	}
+	if len(w.routes[0]) == 0 || w.routes[0][0] != head {
+		t.Fatalf("head %v, four cells from the search start, was removed; route %v", head, w.routes[0])
+	}
+}

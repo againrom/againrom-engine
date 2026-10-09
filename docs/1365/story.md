@@ -31,8 +31,9 @@ mover bytes `+0x7c`, `+0x8a`, `+0x09`, `+0x76` and `+0x8c`:
   found it forgets the victim, so the next pass searches in full (`AI-415`).
 - The near search aims at the route end while five nodes or fewer remain, else
   at the head, or at the node three after it when the head is within three
-  cells. A head within three cells is removed after a counted pass (`AI-373`,
-  `AI-417`).
+  cells. A head within three cells of the cell the search started from is
+  removed after a counted pass (`AI-373`, `AI-384`, `AI-417`). A held victim
+  follows both actor-ID remaps with the attack target.
 - The near search settles by picker B (`pkg/sim/pickerb.go`): eight rings
   around the victim, entered on the edge the 16-way bearing selects where the
   line between the fine centres crosses it, two walkers turning at the side

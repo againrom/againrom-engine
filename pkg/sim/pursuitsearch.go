@@ -92,9 +92,10 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 	if e.Domain == DomainAir {
 		near = terrainRelation
 	}
+	from := cell{x: e.X, y: e.Y}
 	step, ok := w.searchRoute(s, i, near, dynamicWindow, scaledBudget, settleVictim, goal.x, goal.y)
 	if !ok || len(step) == 0 {
-		w.countPursuitPass(i)
+		w.countPursuitPass(i, from)
 		// A human participant's order takes the stall count and the whole-map
 		// check instead of the cancel, so a passing ally cannot end it, and
 		// forgets a route end that served nothing, so its next pass searches
@@ -118,17 +119,17 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 		return
 	}
 	if w.advanceStep(s, i, step[0], heldFirstCall) != stepTurned {
-		w.countPursuitPass(i)
+		w.countPursuitPass(i, from)
 	}
 }
 
 // countPursuitPass counts one near search of pursuer i and removes the head
-// node of its static list when the head lies within dynamicByStaticLookup of
-// the mover (AI-373, AI-417).
-func (w *World) countPursuitPass(i int) {
+// node of its static list when the head lay within dynamicByStaticLookup of
+// the cell the search started from, before any step (AI-373, AI-384, AI-417).
+func (w *World) countPursuitPass(i int, from cell) {
 	e := &w.entities[i]
 	e.Pursuit.Passes++
-	if route := w.routes[i]; len(route) > 0 && (cell{x: e.X, y: e.Y}).chebyshevTo(route[0]) <= dynamicByStaticLookup {
+	if route := w.routes[i]; len(route) > 0 && from.chebyshevTo(route[0]) <= dynamicByStaticLookup {
 		w.routes[i] = route[1:]
 	}
 }

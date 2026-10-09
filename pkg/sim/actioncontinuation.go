@@ -257,6 +257,11 @@ func (a *ActionContinuations) RemapActors(ref func(EntityID, bool) (EntityID, er
 				return err
 			}
 		}
+		if v.Pursuit != nil && v.Pursuit.Held {
+			if err := apply(&v.Pursuit.Victim, false); err != nil {
+				return err
+			}
+		}
 		if v.PendingOrder.Kind == PendingActorCast {
 			if err := apply(&v.PendingOrder.Target, false); err != nil {
 				return err

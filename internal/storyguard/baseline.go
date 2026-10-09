@@ -1922,7 +1922,8 @@ package storyguard
 // includes that new-code documentation and this explanation.
 // The pursuit search adds new code documented in pkg/sim/pursuitsearch.go,
 // pickerb.go, pursuitsearchbinary.go and their tests, and the release drives
-// it moved document their new set-ups, net of the removed stand-in docs,
+// it moved document their new set-ups, as do the structure-order, remap and
+// head-removal fixes and their tests, net of the removed stand-in docs,
 // including this explanation.
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
@@ -1950,5 +1951,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1820,
 	},
-	CommentBytes: 8505286,
+	CommentBytes: 8506007,
 }

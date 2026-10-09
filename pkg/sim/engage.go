@@ -1330,7 +1330,10 @@ func (w *World) attachAttack(i int, victim EntityID, kind AttackTargetKind, queu
 		return true
 	}
 	if !e.HasAttackTarget || e.AttackTarget != victim || e.AttackTargetKind != kind {
+		// A replaced victim, unit or structure, ends the held pursuit search
+		// (DIV-2557).
 		e.clearTurn()
+		e.Pursuit = PursuitSearch{}
 		e.AttackTarget, e.HasAttackTarget = victim, true
 		e.AttackTargetKind = kind
 		e.AttackPhase, e.AttackCountdown = AttackReady, 0
