@@ -3,7 +3,6 @@ package game
 import (
 	"image"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -211,74 +210,33 @@ func TestReleaseSecondGameWindowArtLoads(t *testing.T) {
 	}
 }
 
-func messageTexts(f *FrontEnd) string {
-	var out string
-	for _, l := range f.live.view.MessageLines() {
-		out += l.Text + "\n"
-	}
-	return out
-}
-
-func saveDirEmpty(t *testing.T, dir, what string) {
-	t.Helper()
-	ents, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ents) != 0 {
-		t.Fatalf("%s wrote %d file(s) into the save store", what, len(ents))
-	}
-}
-
-func TestReleaseSecondGameWritesNoSave(t *testing.T) {
+func TestReleaseSecondGameMissionEntryAutosaveColdLoads(t *testing.T) {
 	f := secondGameFront(t)
-	dir := t.TempDir()
+	store := SaveStore{Dir: t.TempDir()}
 	now := time.Unix(100, 0)
 	app := f.App("second")
 	app.Layout(1024, 768)
-	f.ConfigureSaveSeams(app, SaveStore{Dir: dir}, OriginalStore{}, func() time.Time { return now })
+	f.ConfigureSaveSeams(app, store, OriginalStore{}, func() time.Time { return now })
 	enterSecondCampaignMission(t, app)
-	if app.Screen() != ui.ScreenMap {
-		t.Fatalf("screen %v", app.Screen())
+	if app.Screen() != ui.ScreenMap || f.live.world.Tick() != 0 {
+		t.Fatalf("mission entry screen %v tick %d", app.Screen(), f.live.world.Tick())
 	}
-	const want = "saving is not available for this game yet"
-	if !strings.Contains(messageTexts(f), want) {
-		t.Errorf("mission entry shows %q", messageTexts(f))
+	row := missionAutosaveRow(t, f, store, 10)
+	entries, err := os.ReadDir(store.Dir)
+	if err != nil || len(entries) != 1 || entries[0].Name() != row.Name {
+		t.Fatalf("mission entry save files %v: %v", entries, err)
 	}
-	saveDirEmpty(t, dir, "mission-entry autosave")
-
-	if err := app.HeadlessKey("f4"); err != nil {
-		t.Fatal(err)
+	want := secondSaveSampleNow(t, f, app)
+	cold, loaded := secondMissionCold(t, store.Dir, row.Name)
+	assertCurrentWorldEqual(t, f.live.world, cold.live.world, "mission entry")
+	secondAssertSample(t, want, secondSaveSampleNow(t, cold, loaded))
+	for range 16 {
+		f.live.tick()
+		cold.live.tick()
+		assertCurrentWorldEqual(t, f.live.world, cold.live.world, "post-load tick")
 	}
-	if !strings.Contains(messageTexts(f), want) {
-		t.Errorf("quick save shows %q", messageTexts(f))
+	if f.live.world.Tick() != 16 || cold.live.world.Tick() != 16 {
+		t.Fatal("post-load worlds did not advance sixteen ticks")
 	}
-	saveDirEmpty(t, dir, "quick save")
-
-	now = now.Add(10 * time.Minute)
-	for i := 0; i < 3; i++ {
-		if err := app.HeadlessStep(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	saveDirEmpty(t, dir, "timed autosave")
-
-	if err := app.HeadlessKey("f2"); err != nil {
-		t.Fatal(err)
-	}
-	if err := app.HeadlessSaveEdit(dir, "second", ui.SaveSAV); err != nil {
-		t.Fatal(err)
-	}
-	err := app.HeadlessSaveAction("save")
-	state, _ := app.HeadlessSaveState()
-	if err == nil || !strings.Contains(err.Error(), want) || state.Message != want {
-		t.Errorf("menu save: err %v, message %q", err, state.Message)
-	}
-	saveDirEmpty(t, dir, "menu save")
-
-	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
-	if _, err := save(true); err == nil || err.Error() != want {
-		t.Errorf("save seam error %v, want %q", err, want)
-	}
-	saveDirEmpty(t, dir, "save seam")
+	secondAssertSample(t, secondSaveSampleNow(t, f, app), secondSaveSampleNow(t, cold, loaded))
 }

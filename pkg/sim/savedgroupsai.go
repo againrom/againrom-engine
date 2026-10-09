@@ -256,6 +256,9 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			if !arrived(*e) || e.X != x || e.Y != y {
 				w.cancelTurnForTargetChange(i, x, y)
 				w.clearOrder(i)
+				if escortState(e.ActorState) {
+					w.clearEscort(i)
+				}
 				e.clearAttackBetweenCycles()
 				e.TargetX, e.TargetY, e.HasTarget = x, y, true
 				w.syncSavedDestination(i)
