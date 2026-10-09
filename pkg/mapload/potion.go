@@ -107,7 +107,7 @@ func ApplyTownPotion(p PartyMember, item sim.ItemInstance, table *Table) (PartyM
 	e := sim.Entity{ID: 1, HP: hp, MaxHP: d.HealthMax, Mana: mana, MaxMana: d.ManaMax, Absorption: d.Combat.Absorption,
 		HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration, PotionHeadroom: PotionHeadroom(p.Hero, d)}
 	e.Humanoid = true
-	carriedNativeHistory(p, &e)
+	carriedNativeHistory(p, &e.NativeBasis, &e.NativeClass)
 	w, err := sim.NewStockedWorld(0, sim.Bounds{Width: 1, Height: 1}, sim.ModeCanonical, sim.Terrain{}, []sim.Entity{e}, nil, sim.Relations{}, nil, []sim.Stock{{ID: 1, ItemInstances: []sim.ItemInstance{item}}})
 	if err != nil {
 		return p, false

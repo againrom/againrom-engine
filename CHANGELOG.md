@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.104.0
+
+- [BASE] Every actor is now built one way. Nothing changes in play.
+
 ## 0.103.0
 
 - [ROM1] Lightning and Prismatic Spray draw the bolt the original draws: a

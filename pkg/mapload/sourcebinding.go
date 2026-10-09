@@ -11,11 +11,11 @@ import (
 // importer does not restore. It neither equips table-authored items nor derives
 // a Human sheet. The caller must overlay saved fields before admitting it.
 func SourceActorSeed(s sim.SourceBinding, t *Table) (sim.Entity, error) {
-	e := sim.Entity{Class: int32(uint8(s.TypeID)), TypeID: int32(s.TypeID), Humanoid: s.ActorClass() == 2}
+	def := sim.ActorDefinition{Class: int32(uint8(s.TypeID)), TypeID: int32(s.TypeID), Humanoid: s.ActorClass() == 2}
 	row := int(s.DefinitionRow())
 	if s.ActorClass() == 1 {
 		if t == nil || t.Units == nil || row >= t.Units.Len() {
-			return e, fmt.Errorf("source Unit row %d unavailable", row)
+			return sim.NewActor(def, sim.ActorPlacement{}), fmt.Errorf("source Unit row %d unavailable", row)
 		}
 		d, err := data.NewUnitDef(t.Units.EntryName(row), t.Units.EntryParams(row))
 		if err != nil && row == 0 {
@@ -36,25 +36,25 @@ func SourceActorSeed(s sim.SourceBinding, t *Table) (sim.Entity, error) {
 			}
 		}
 		if err != nil {
-			return e, err
+			return sim.NewActor(def, sim.ActorPlacement{}), err
 		}
-		e.RotationSpeed, e.DyingTime = d.RotationSpeed, d.DyingTime
-		e.Withdraw, e.Wimpy, e.SeeInvisible = d.Withdraw, d.Wimpy, sightOf(d.SeeInvisible)
-		e.XPValue, e.GoldChance, e.TreasureMin, e.TreasureMax = d.XPValue, d.GoldChance, d.TreasureMin, d.TreasureMax
-		e.AlwaysHits = d.AlwaysHits
-		return e, nil
+		def.RotationSpeed, def.DyingTime = d.RotationSpeed, d.DyingTime
+		def.Withdraw, def.Wimpy, def.SeeInvisible = d.Withdraw, d.Wimpy, sightOf(d.SeeInvisible)
+		def.XPValue, def.GoldChance, def.TreasureMin, def.TreasureMax = d.XPValue, d.GoldChance, d.TreasureMin, d.TreasureMax
+		def.AlwaysHits = d.AlwaysHits
+		return sim.NewActor(def, sim.ActorPlacement{}), nil
 	}
 	if s.ActorClass() != 2 || t == nil || t.Humans == nil || row >= t.Humans.Len() {
-		return e, fmt.Errorf("source actor class %d Human row %d unavailable", s.Class, row)
+		return sim.NewActor(def, sim.ActorPlacement{}), fmt.Errorf("source actor class %d Human row %d unavailable", s.Class, row)
 	}
 	d, err := sourceHumanDef(t, row)
 	if err != nil {
-		return e, err
+		return sim.NewActor(def, sim.ActorPlacement{}), err
 	}
-	e.RotationSpeed, e.DyingTime = d.RotationSpeed, d.DyingTime
-	e.XPValue, e.GainsXP = data.UnitDefaults().XPValue, sim.InPersistBand(e.TypeID)
-	e.SuppressCorpseLoot = SuppressesCorpseLoot(t.Humans.EntryName(row))
-	return e, nil
+	def.RotationSpeed, def.DyingTime = d.RotationSpeed, d.DyingTime
+	def.XPValue, def.GainsXP = data.UnitDefaults().XPValue, sim.InPersistBand(def.TypeID)
+	def.SuppressCorpseLoot = SuppressesCorpseLoot(t.Humans.EntryName(row))
+	return sim.NewActor(def, sim.ActorPlacement{}), nil
 }
 
 // sourceHumanDef is the definition a saved Human actor's row names. A row

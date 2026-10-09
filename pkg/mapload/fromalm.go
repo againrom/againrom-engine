@@ -298,120 +298,19 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 			}
 			roster[sim.EntityID(i)] = tmpl
 		}
-		// THE SPELL b.combat.SpellName NAMES, off the SAME t every other
-		// resolution in this loop reads: SpellIDByToken (spell.go) is FR-1b's
-		// lookup, and it answers 0 — WeaponSpell's own "none" (world.go) — for
-		// a placement resolving to nothing, a weapon carrying no spell, and a
-		// token this table cannot resolve alike, which is exactly what
-		// b.combat.SpellName already is in the first two cases.
-		spellID, _ := SpellIDByToken(t, b.combat.SpellName)
-		weaponSource := sim.WeaponSpellNone
-		if spellID != 0 || b.combat.SpellPower != 0 {
-			if itemSpell, itemPower, itemCast := b.worn[0].CastSpell(); itemCast && itemSpell == spellID && itemPower == b.combat.SpellPower {
-				weaponSource = sim.WeaponSpellItem
-			} else {
-				weaponSource = sim.WeaponSpellInnate
-			}
-		}
-		// Every number below comes off the SAME block, in the SAME composite
-		// literal, so no path gives an entity some of them and not the rest and
-		// no reader has to go looking for a second statement. Each column is
-		// carried WHOLE and range checked nowhere, exactly as the health pair
-		// is: the rate law's own clamp and the blow resolution's own arithmetic
-		// are where a value outside a usable range is dealt with, and both
-		// belong to the simulation rather than to a loader.
-		//
-		// THE REACH IS THE SIGHT RANGE'S OWN SHAPE. Neither band's row carries a
-		// reach COLUMN — a class key names no such cell — but a unit row's
-		// trailing equipment strings and a person's already- resolved weapon each
-		// name one indirectly, through the item collections a table carries beside
-		// the two definition ones. That is what the note about the sight range
-		// below says of ITS OWN column, one step further back: the fallback of 1
-		// is reached by a bare row, by a row this build cannot resolve, and by a
-		// placement that resolved to nothing at all — the same three ways the
-		// fallback of 5 is.
-		//
-		// THE SIGHT RANGE IS DIFFERENT ONLY IN WHERE ITS NUMBER LIVES, and is why
-		// the two are named together: it looks like the same shape — one number
-		// the tree used to take from the constructor for every class — but both
-		// bands DO carry a column for it, so the value below is the row's own and
-		// the fallback 5 is reached only by a placement that resolved to nothing.
-		//
-		// THE GROUP AND THE OWNER ARE THE TWO FIELDS HERE THAT COME OFF THE RECORD
-		// rather than off the resolution, and they therefore take no `resolved`
-		// test: which group a placement belongs to and which roster slot owns it
-		// are the map's own statements, carried whether or not that placement
-		// found a table row at all.
-		//
-		// THE OWNER IS CARRIED HERE FOR EVERYTHING A MAP PLACES, and this is the
-		// one assignment that reads it off a record. It said "and nowhere else"
-		// until 0094, on the ground that every other way an entity reaches a world
-		// leaves the field at zero — and the party placement was in that list,
-		// which meant the player stood outside the map's own diplomacy. A start now
-		// writes sim.SelfSlot, so the property is the narrower and truer one: an
-		// entity's owner is either the slot its record named or the slot the player
-		// stands on, and a zero is what is left for a test's literal and a decode.
-		currentHP := b.health
+		// The group, the owner and the authored map id come off the record and
+		// hold whether or not the placement resolved. UNIT-PLACE-034: an
+		// authored current health is signed and applied verbatim; difficulty
+		// scales only the resolved maximum.
+		def := b.actorDefinition(t)
 		if u.HasCurrentHP {
-			// UNIT-PLACE-034: the authored word is signed and is applied
-			// verbatim. Difficulty still scales the resolved maximum above;
-			// it never scales or clamps this override.
-			currentHP = int32(u.CurrentHP)
+			def.HP = int32(u.CurrentHP)
 		}
-		ents[i] = sim.Entity{ID: sim.EntityID(i), X: x, Y: y, Class: b.class,
-			Group: u.GroupID, Owner: u.Owner,
-			// THE AUTHORED MAP ID, the record's own identifier word. It comes off the
-			// record and takes no `resolved` test, on the group's and the owner's own
-			// ground beside it: which id a placement was made under is the map's
-			// statement, carried whether or not that placement found a table row.
-			// ScriptUnits builds the same fact keyed the other way for the
-			// compile-time binder; this is the direction check opcode 9 needs at run
-			// time.
-			MapUnitID:          u.UnitID,
-			SuppressCorpseLoot: b.suppressCorpseLoot,
-			HP:                 currentHP, MaxHP: b.health, Domain: b.domain, Speed: b.speed,
-			Withdraw: b.withdraw, Wimpy: b.wimpy,
-			Capacity:   b.capacity,
-			Protection: b.protection, Resistance: b.resistance, TokenSize: b.tokenSize,
-			ScanRange: b.sight, SeeInvisible: b.seeInvisible,
-			DyingTime:    b.dying,
-			Reach:        reachOf(b.combat.Reach),
-			AttackCharge: b.combat.AttackChargeTime, AttackRelax: b.combat.AttackRelaxTime,
-			Humanoid:    b.humanoid,
-			NativeClass: b.nativeClass,
-			NativeBasis: b.nativeBasis,
-			ToHit:       b.combat.ToHit, Defence: b.combat.Defence, Absorption: b.combat.Absorption,
-			DamageBase: b.combat.DamageBase, DamageSpread: b.combat.DamageSpread,
-			AlwaysHits: b.combat.AlwaysHits,
-			// THE SPELL, off spellID above and b.combat.SpellPower directly: the
-			// level is the attachment's own, carried whole through the fold, never
-			// clamped and never looked up — only the name half needed a table.
-			WeaponSpell: spellID, WeaponSpellLevel: b.combat.SpellPower, WeaponSpellSource: weaponSource,
-			// THE MANA PAIR AND THE TWO PERIODS, off the same block every other field
-			// above comes off — a placement that resolves is born with its row's,
-			// and one that resolves to nothing takes the definition tier's own
-			// defaults whole, exactly as every other number here already does.
-			Mana: b.mana, MaxMana: b.manaMax,
-			HealthRegenPeriod: b.healthPeriod, ManaRegenPeriod: b.manaPeriod,
-			HealthRegeneration: b.healthRegeneration, ManaRegeneration: b.manaRegeneration,
-			RotationSpeed:   b.rotationSpeed,
-			SecondaryDamage: simSecondaryDamage(b.secondaryDamage),
-			// THE ROW'S OWN SPELLBOOK (0127 FR-4b), off the same block every other
-			// Humans and resolved Units each carry their authored spellbooks.
-			KnownSpells: b.knownSpells, Book: b.book, CreatureSpells: b.creatureSpells,
-			// THE THREE DEFINITION-BORNE NUMBERS AND THE FLAG, off the same block
-			// every other field above comes off: a creature and an unresolved
-			// placement carry a false flag and a person a true one, and gaining
-			// nothing is not this entity paid zero — payExperience never computes
-			// for it at all.
-			XPValue: b.xpValue, Reaction: b.reaction, Mind: b.mind, Spirit: b.spirit,
-			XPSlot: uint8(b.combat.SkillSlot), GainsXP: b.gainsXP,
-			TypeID: b.typeID, GoldChance: b.goldChance,
-			TreasureMin: b.treasureMin, TreasureMax: b.treasureMax,
-			Skill: b.skill, SkillXP: b.skillXP}
 		if member, ok := roster[sim.EntityID(i)]; ok {
-			ents[i].NativeTraining = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
+			def.NativeTraining = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
 		}
+		ents[i] = sim.NewActor(def, sim.ActorPlacement{ID: sim.EntityID(i), X: x, Y: y,
+			Owner: u.Owner, Group: u.GroupID, MapUnitID: u.UnitID})
 		if u.HasCurrentHP {
 			// An authored body arrives already fallen; this applies the
 			// death-time combat adjustment without running clearFelled, which

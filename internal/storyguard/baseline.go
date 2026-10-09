@@ -1985,7 +1985,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1880,
 		"scclause":        508,
-		"barestorynumber": 1749,
+		"barestorynumber": 1744,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -1994,7 +1994,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1788,
+		"longcommentgroups":      1786,
 	},
-	CommentBytes: 8507988,
+	CommentBytes: 8505339,
 }
