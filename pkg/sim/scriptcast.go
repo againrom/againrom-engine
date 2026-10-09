@@ -252,7 +252,7 @@ func (w *World) landPointCast(c scriptCast, rule SpellRule) (int32, int32, bool)
 	}
 	x, y := w.entities[i].X, w.entities[i].Y
 	power := int32(c.Power)
-	if rule.ID == 14 {
+	if rule.arm() == 14 {
 		w.applyPrismatic(-1, i, rule, power)
 	} else if rule.Delivery == 2 {
 		w.queueSpellDelivery(spellDelivery{Target: c.Target, X: x, Y: y, FromX: int32(c.FromX), FromY: int32(c.FromY), Rule: rule, Power: power})

@@ -3406,7 +3406,7 @@ func (mw *mapWorld) attackOrCast(entity, victim, spell uint32, x, y int, cell bo
 			// disconnected grave can be reached. Keep the populated fog plane's
 			// map bounds guard; range and terrain remain simulation refusals.
 			const teleportSpellID = 26
-			if spell == teleportSpellID && !mw.fog.contains(x, y) {
+			if spellArmOf(mw.world.Spells(), spell) == teleportSpellID && !mw.fog.contains(x, y) {
 				return
 			}
 			id := sim.EntityID(entity)

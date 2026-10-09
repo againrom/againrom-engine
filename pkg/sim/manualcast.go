@@ -110,7 +110,7 @@ func (w *World) beginManualCast(i int, c Command) bool {
 // order walks toward the cell and casts once in range.
 func (w *World) manualCellApproach(c Command) bool {
 	i := indexOfEntity(w.entities, c.Entity)
-	return c.Kind == KindCastAt && c.Spell == teleportSpellID && i >= 0 && w.entities[i].Owner == SelfSlot && w.manualCastRefusal(c) == refusalCellOutOfRange &&
+	return c.Kind == KindCastAt && w.spellArmIs(int64(c.Spell), teleportSpellID) && i >= 0 && w.entities[i].Owner == SelfSlot && w.manualCastRefusal(c) == refusalCellOutOfRange &&
 		w.bookSpellCellAdmissionRange(i, c.X, c.Y, uint32(c.Spell), false, false, false, true) == ""
 }
 

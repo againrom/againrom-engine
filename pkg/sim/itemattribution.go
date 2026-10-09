@@ -40,7 +40,7 @@ func (w *World) pointAttribution(ci, ti int, rule SpellRule) {
 	if rule.bookInstance {
 		defensive = rule.bookDefensive == 1
 	}
-	if rule.ID == 11 || defensive || ci < 0 || ci >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
+	if rule.arm() == 11 || defensive || ci < 0 || ci >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
 		return
 	}
 	source := &w.entities[ci]
@@ -67,7 +67,7 @@ func (w *World) pointAttribution(ci, ti int, rule SpellRule) {
 // unsigned nonzero gate admits all three defined Domain values. Unlike point,
 // either definition or owner loss clears prior credit.
 func (w *World) areaAttribution(ci, ti int, rule SpellRule) {
-	if rule.ID == 19 || rule.ID == 12 || ci < 0 || ci >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
+	if rule.arm() == 19 || rule.arm() == 12 || ci < 0 || ci >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
 		return
 	}
 	if uint8(w.entities[ti].Domain)+1 == 0 { // unsigned gate; custom 0xff wraps to zero

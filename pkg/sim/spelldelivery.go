@@ -33,7 +33,7 @@ type areaAim struct {
 }
 
 func spellDeliveryTicks(rule SpellRule, x, y, toX, toY int32) uint16 {
-	if rule.ID == 13 || rule.ID == 14 {
+	if rule.arm() == 13 || rule.arm() == 14 {
 		return 10
 	}
 	if rule.EffectSpeed <= 0 {
@@ -186,7 +186,7 @@ func (w *World) admitBookPayment(ci int, rule SpellRule) {
 	if w.bookCasts[i].AtCell || w.bookCasts[i].Target != w.entities[ci].ID {
 		w.removeAttachedSpell(w.entities[ci].ID, 15)
 	}
-	if rule.ID == 14 && rule.Delivery == 2 && !w.bookCasts[i].AtCell {
+	if rule.arm() == 14 && rule.Delivery == 2 && !w.bookCasts[i].AtCell {
 		ti := indexOfEntity(w.entities, w.bookCasts[i].Target)
 		if ti >= 0 {
 			level := int32(0)
@@ -219,7 +219,7 @@ func (w *World) observeAdmissionFans(obs *castObs) {
 		var victims []CellPoint
 		for j := i; j < len(w.deliveries); j++ {
 			p := w.deliveries[j]
-			if j > i && p.FanHead || p.BirthTick != d.BirthTick || p.Caster != d.Caster || p.Rule.ID != 14 {
+			if j > i && p.FanHead || p.BirthTick != d.BirthTick || p.Caster != d.Caster || p.Rule.arm() != 14 {
 				break
 			}
 			victims = append(victims, CellPoint{X: p.X, Y: p.Y})

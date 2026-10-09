@@ -35,10 +35,10 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 	got := SecondTotals(census)
 	want := SecondCensusTotals{
 		Maps: 46, Started: 46, Ran: 46, Lost: 1,
-		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 41,
+		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 5,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 32, EntryMaps: 3, WinMaps: 3, Ready: 1,
+		FixtureMaps: 32, EntryMaps: 3, WinMaps: 3, Ready: 3,
 		Exits: 15, GatedExits: 6, EngineExits: 4,
 	}
 	want.Omitted[CauseFixture] = SecondOmission{Nodes: 189, Triggers: 192, ActionTriggers: 8}
@@ -48,15 +48,22 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 	for _, c := range census {
 		blockers := c.Blockers()
 		switch c.Mission {
-		case 20:
+		case 10, 20, 21:
 			if len(blockers) != 0 {
-				t.Errorf("mission 20 blockers %v, want none", blockers)
+				t.Errorf("mission %d blockers %v, want none", c.Mission, blockers)
+			}
+		case 53, 87, 92, 102:
+			if !slices.Equal(c.NoSpellRule, []uint16{7}) {
+				t.Errorf("mission %d spells without a rule %v, want Blizzard alone", c.Mission, c.NoSpellRule)
 			}
 		case 101:
 			if c.Run.Outcome != sim.OutcomeLost || c.Run.Reason != 5 || c.Run.DecidedAt != 32 || c.BornFallen != 1 {
 				t.Errorf("mission 101 run %+v with %d fallen placements, want lost at tick 32 for reason 5 beside one", c.Run, c.BornFallen)
 			}
 		case 110:
+			if !slices.Equal(c.NoSpellRule, []uint16{7}) {
+				t.Errorf("mission 110 spells without a rule %v, want Blizzard alone", c.NoSpellRule)
+			}
 			if got := censusExits(c.Departure); !slices.Equal(got, []string{"movie 5 if 779!=0:no", "movie 4 if 779=0:no"}) || !slices.Contains(c.BankSlots, 779) {
 				t.Errorf("mission 110 exits %v with bank slots %v, want both outputs behind the slot its script writes", got, c.BankSlots)
 			}
