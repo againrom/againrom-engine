@@ -14,7 +14,7 @@ import (
 // sbCheckBar compares one native bar rectangle of the composed frame with the
 // original's picture at that rectangle's own width: the measured cap at both
 // ends, the interior between them filled for fill columns from the left
-// (half blended when faded) and ground past the fill, and ground in the
+// (packed half-add when faded), selected grey remainder, and ground in the
 // column either side of the bar. at is the screen pixel of the bar's native
 // top-left. It returns one line per native row that differs.
 func sbCheckBar(img *image.RGBA, at image.Point, zoom, width int, rows [4]uint32, fill int, faded bool, ground color.RGBA) []string {
@@ -36,9 +36,9 @@ func sbCheckBar(img *image.RGBA, at image.Point, zoom, width int, rows [4]uint32
 			case x-4 < fill && !faded:
 				want = sbRGB(rows[y])
 			case x-4 < fill:
-				c := sbRGB(rows[y])
-				half := func(a, b uint8) uint8 { return uint8((uint32(a) + uint32(b)) / 2) }
-				want, blend = color.RGBA{half(c.R, ground.R), half(c.G, ground.G), half(c.B, ground.B), 0xff}, true
+				want = sbPackedBlend(sbRGB(rows[y]), ground)
+			case !faded:
+				want = sbRGB([4]uint32{0x414041, 0x838183, 0x626162, 0x414041}[y])
 			}
 			tol := 0
 			if blend {

@@ -1930,7 +1930,7 @@ package storyguard
 // release and the EN/RU widget screen witness, and the release witnesses
 // restated to the shared bar, new code, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4708,
+	TestIdentCount: 4704,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1939,9 +1939,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1887,
+		"acclause":        1882,
 		"scclause":        509,
-		"barestorynumber": 1753,
+		"barestorynumber": 1752,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -1950,7 +1950,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1829,
+		"longcommentgroups":      1819,
 	},
-	CommentBytes: 8535549,
+	CommentBytes: 8516092,
 }

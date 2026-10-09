@@ -70,6 +70,7 @@ func TestWorldMarshalBinaryIntoCanonicalBytes(t *testing.T) {
 		{"empty", func(t *testing.T) *World { return mustWorld(t, 7, Bounds{Width: 2, Height: 2}, nil) }},
 		{"offsets", offsetWorld},
 		{"populated", func(t *testing.T) *World { return binaryBufferWorld(t, 143) }},
+		{"safe mode", func(t *testing.T) *World { w := binaryBufferWorld(t, 143); w.SetSafeMode(true); return w }},
 		{"pending release", func(t *testing.T) *World { w := lcPlayerWorld(t); w.releaseAttack(0); return w }},
 		{"pending completion", func(t *testing.T) *World { w := lcPlayerWorld(t); w.CompleteSackPickup(1); return w }},
 		{"admitted row with retained carrier", func(t *testing.T) *World {
@@ -305,6 +306,9 @@ func legacyBinaryBufferEncoding(w *World) []byte {
 	binary.LittleEndian.PutUint32(b[21:25], uint32(w.bounds.Height))
 	binary.LittleEndian.PutUint32(b[25:29], uint32(len(w.entities)))
 	b[29] = byte(w.mode)
+	if w.safeMode {
+		b[29] |= 0x80
+	}
 	binary.LittleEndian.PutUint32(b[30:34], uint32(len(w.grid)))
 	copy(b[headerLen:], w.grid)
 	copy(b[headerLen+len(w.grid):], w.cost)

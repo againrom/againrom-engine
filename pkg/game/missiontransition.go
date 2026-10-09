@@ -22,29 +22,10 @@ type missionTransitions interface {
 	returnToTown(n int)
 }
 
-// continueMission wraps the driver's own advance seam: dismissing a won
-// mission's banner carries the party forward and opens the successor or the
-// town the campaign declares, and otherwise names what follows.
-//
-// It wraps rather than edits. The driver decides what a notice does (it pages
-// a dialogue, sends a loss to the menu and a win to the map list) and this
-// reads the answer it already gave and acts only on a win.
-//
-// The win is recognised from the world's outcome and not from the destination:
-// the outcome is the fact, and a later destination added beside the map list
-// must not silently start carrying a party.
-//
-// It fires once. The banner closes on the call that returns the destination,
-// so a second dismissal finds nothing open and the driver answers NoticeStay.
-//
-// The opener is built one statement after finishWon returns, because finishWon
-// writes the carried party first. It is the default-party opener and not one
-// handed the carry directly, so a mission with no party opens the successor
-// with the default hero every other door mints: one door, one answer.
-//
-// A declared successor the tree must refuse never reaches the route: that
-// refusal and its sentence are composed inside finishWon, and a positive
-// return is the only one that opens.
+// continueMission carries an acknowledged win through ordinary campaign
+// completion. The simulation outcome or the current client's win admits it;
+// a destination alone cannot complete a mission. Party carry precedes opening
+// a successor, and the driver's one-shot acknowledgement prevents a replay.
 func continueMission(t missionTransitions, n int, ms *Mission, advance ui.MapAdvance) ui.MapAdvance {
 	return func(actions ...ui.NoticeAction) (ui.NoticeDest, string, ui.MapOpener) {
 		if len(actions) > 0 && (actions[0] == ui.NoticeAbandon || actions[0] == ui.NoticeRestart) {
@@ -68,7 +49,10 @@ func continueMission(t missionTransitions, n int, ms *Mission, advance ui.MapAdv
 		switch dest {
 		case ui.NoticeToMapList:
 			if ms.World.Outcome() != sim.OutcomeWon {
-				return dest, msg, open
+				client, ok := t.(interface{ clientWon(int, *Mission) bool })
+				if !ok || !client.clientWon(n, ms) {
+					return dest, msg, open
+				}
 			}
 			successor, line := t.finishWon(n, ms)
 			switch t.route(n, successor) {
@@ -102,6 +86,12 @@ func advanceFrom(t missionTransitions) func(n int, ms *Mission, advance ui.MapAd
 // frontTransitions is the production missionTransitions over a front end. It
 // is the one place the transition rule meets the front end.
 type frontTransitions struct{ f *FrontEnd }
+
+func (t frontTransitions) clientWon(n int, ms *Mission) bool {
+	live := t.f.live
+	return live != nil && live.world == ms.World && live.mission != nil &&
+		live.mission.number == n && live.mission.outcome == sim.OutcomeWon
+}
 
 func (t frontTransitions) beforeAdvance(n int, ms *Mission, action ui.NoticeAction) string {
 	town, live := t.f.Town, t.f.live

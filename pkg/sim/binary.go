@@ -1640,6 +1640,9 @@ func (w *World) encodeInto(b []byte) []byte {
 	binary.LittleEndian.PutUint32(b[21:25], uint32(w.bounds.Height))
 	binary.LittleEndian.PutUint32(b[25:29], uint32(len(w.entities)))
 	b[29] = byte(w.mode)
+	if w.safeMode {
+		b[29] |= 0x80
+	}
 	binary.LittleEndian.PutUint32(b[30:34], uint32(len(w.grid)))
 	// All three planes are always materialised, so this writes W*H cells apiece
 	// for every world and there is no absent case to encode differently. That is
@@ -2429,7 +2432,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 	}
 	data = body
 
-	mode := Mode(data[29])
+	mode := Mode(data[29] &^ 0x80)
 	if !mode.defined() {
 		return fmt.Errorf("sim: byte form names routing mode %d, which is not defined", data[29])
 	}
@@ -3216,6 +3219,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		rng:                 rng{state: binary.LittleEndian.Uint64(data[9:17])},
 		bounds:              b,
 		mode:                mode,
+		safeMode:            data[29]&0x80 != 0,
 		grid:                grid,
 		cost:                cost,
 		height:              height,

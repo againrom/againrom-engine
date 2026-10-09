@@ -63,6 +63,7 @@ type settings struct {
 	Movies  bool
 	Video   string // videoNormal, video4x or video8x
 	Markers bool
+	Chicken bool
 	Saves   string
 	Mission string // empty means the game's default
 	Picker  bool
@@ -110,6 +111,7 @@ func loadSettings(f *ini.File) settings {
 		s.Video = v
 	}
 	s.Markers = parseBool(get(secOptions, "markers"), false)
+	s.Chicken = parseBool(get(secOptions, "chicken"), false)
 	s.Saves = get(secOptions, "saves")
 	s.Mission = get(secOptions, "mission")
 	s.Picker = parseBool(get(secOptions, "picker"), false)
@@ -156,6 +158,7 @@ func (s settings) store(f *ini.File) {
 	f.Set(secOptions, "movies", formatBool(s.Movies))
 	f.Set(secOptions, "video", s.Video)
 	f.Set(secOptions, "markers", formatBool(s.Markers))
+	f.Set(secOptions, "chicken", formatBool(s.Chicken))
 	f.Set(secOptions, "saves", s.Saves)
 	f.Set(secOptions, "mission", s.Mission)
 	f.Set(secOptions, "picker", formatBool(s.Picker))
@@ -342,6 +345,9 @@ func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string,
 	}
 	if s.Markers {
 		args = append(args, "-markers")
+	}
+	if s.Chicken {
+		args = append(args, "-chicken")
 	}
 	if v := strings.TrimSpace(s.Saves); v != "" {
 		args = append(args, "-saves", v)

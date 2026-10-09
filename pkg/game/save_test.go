@@ -888,6 +888,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"groupTag": true, "fog": true, "pending": true, "pendingIgnored": true, "bolts": true, "castRun": true, "healBursts": true,
 		"visualIDs": true, "visualNext": true}
 	derivable := map[string]bool{
+		"cheats":          true,
 		"visualLocalNext": true,
 		"fame":            true,
 		"sched":           true, "units": true, "view": true, "clock": true, "last": true,
@@ -906,7 +907,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"derives": true, "derivedSkills": true, "skillBonus": true, "derivedPotions": true,
 	}
 	cosmetic := map[string]bool{"prev": true, "walk": true, "died": true, "hurt": true, "blows": true, "strikes": true, "scene": true,
-		"pendingDamage": true, "soundEntities": true, "topRowDecided": true,
+		"pendingDamage": true, "soundEntities": true,
 		"spellSoundCues": true,
 		"markElements":   true, "stoneHold": true, "pickup": true, "shots": true, "drawnMoving": true}
 

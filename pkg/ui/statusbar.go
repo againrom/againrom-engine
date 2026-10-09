@@ -15,29 +15,17 @@ import (
 // unit's displacement already added, how many interior columns its pool fills,
 // and whether it is faded because its unit is not selected.
 type statusBar struct {
-	Cell  image.Point
-	Kind  terrain.StatusBarKind
-	Rect  image.Rectangle
-	Fill  int
-	Faded bool
+	Cell           image.Point
+	Kind           terrain.StatusBarKind
+	Rect           image.Rectangle
+	Fill           int
+	Faded          bool
+	Value, Maximum int
 }
 
-// statusBars is every bar this frame shows, in the snapshot's order, health
-// before mana within a unit.
-//
-// WHICH UNITS CARRY ONE is the contract's two clauses read off the seam: the
-// unit is NOT DEAD — the simulation's own answer, never re-derived from the
-// numbers beside it — and the pool's maximum is positive, which a unit with no
-// such pool fails. A downed unit keeps its bars; an empty pool draws the caps
-// alone. Show Health (DIV-333) decides for an unselected unit, and a unit is
-// drawn only while fogGateEntity lets its sprite be seen, so a bar never stands
-// over a unit the fog hides.
-//
-// A SELECTED UNIT'S BARS ARE OPAQUE AND ANY OTHER UNIT'S ARE FADED: caps
-// opaque, interior at half opacity, as the owner's screenshot of the original
-// shows. The bars take the unit's walking displacement, as its sprite does, and
-// not its damage jolt (DIV-488). The unit's class sizes them: a class wider
-// than one cell spans its selection box over the body (terrain.StatusBarRect).
+// statusBars admits visible non-dead units with positive pool maxima.
+// Selection and Show Health choose opaque or blended interiors. TERR-225
+// Walking and relief displacement remain independent of damage jolt.
 func (v *Viewer) statusBars() []statusBar {
 	var bars []statusBar
 	for _, e := range v.entities {
@@ -60,39 +48,33 @@ func (v *Viewer) statusBars() []statusBar {
 			if !ok {
 				continue
 			}
-			fill, ok := terrain.StatusBarFill(rect.Dx(), pool.value, pool.maximum)
+			fill, ok := terrain.StatusBarFill(pool.kind, rect.Dx(), pool.value, pool.maximum)
 			if !ok {
 				continue
 			}
-			bars = append(bars, statusBar{Cell: e.Cell, Kind: pool.kind, Rect: rect.Add(shift), Fill: fill, Faded: faded})
+			bars = append(bars, statusBar{Cell: e.Cell, Kind: pool.kind, Rect: rect.Add(shift), Fill: fill, Faded: faded, Value: pool.value, Maximum: pool.maximum})
 		}
 	}
 	return bars
 }
 
-// statusBarPasses turns statusBars into overlay passes: one pass per colour,
-// in the order the colours first occur, each run placed through the lift of
-// its unit's cell and the camera exactly as a mark on that cell is placed.
-// The runs are native pixels, so the camera's zoom scales a bar with the map.
-//
-// One pass per colour draws two overlapping bars colour by colour rather than
-// unit by unit. Bars overlap only while one unit passes another, and a pass
-// per colour keeps the frame at no more than twenty-one bar passes.
+// statusBarPasses keeps run order and merges adjacent equal operations.
+// Placement takes the unit cell's lift, camera and zoom.
 func (v *Viewer) statusBarPasses() []overlayPass {
 	var passes []overlayPass
 	var runs []terrain.StatusBarRun
 	for _, bar := range v.statusBars() {
 		lift := v.cellLift(bar.Cell)
-		runs = terrain.AppendStatusBarRuns(runs[:0], bar.Kind, bar.Rect, bar.Fill, bar.Faded)
+		runs = terrain.AppendStatusBarRuns(runs[:0], bar.Kind, bar.Rect, bar.Value, bar.Maximum, bar.Faded)
 		for _, run := range runs {
 			r, in := v.placeLifted(lift, run.Rect)
 			if !in {
 				continue
 			}
-			i := slices.IndexFunc(passes, func(p overlayPass) bool { return p.Color == run.Color })
-			if i < 0 {
+			i := len(passes) - 1
+			if i < 0 || passes[i].Color != run.Color || passes[i].HalfAdd != run.HalfAdd {
 				i = len(passes)
-				passes = append(passes, overlayPass{Color: run.Color})
+				passes = append(passes, overlayPass{Color: run.Color, HalfAdd: run.HalfAdd})
 			}
 			passes[i].Rects = append(passes[i].Rects, r)
 		}
@@ -103,8 +85,8 @@ func (v *Viewer) statusBarPasses() []overlayPass {
 // HeadlessStatusBarFrame composes the mission viewport on the CPU for a
 // release witness: the render tier's terrain raster sampled through the
 // camera, the flat structures and the plane's body placements, then this
-// frame's overlay passes, the status bars among them, each rectangle covering
-// the pixels whose centres it contains and blended source-over. under is the
+// frame's overlay passes, the status bars among them. Rectangles cover pixel
+// centres and use source-over or packed half-add as declared. under is the
 // same composite before the passes. It is a diagnostic and not GPU readback:
 // edge sampling can differ, and lighting, shadows, shroud and the HUD are not
 // composed.
@@ -146,7 +128,11 @@ func (v *Viewer) HeadlessStatusBarFrame() (frame, under *image.RGBA, err error) 
 	copy(frame.Pix, under.Pix)
 	for _, p := range v.overlayPasses() {
 		for _, r := range p.Rects {
-			blendScreenRect(frame, r, p.Color)
+			if p.HalfAdd {
+				blendStatusBarRect(frame, r, p.Color)
+			} else {
+				blendScreenRect(frame, r, p.Color)
+			}
 		}
 	}
 	return frame, under, nil

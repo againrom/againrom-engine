@@ -132,13 +132,13 @@ import (
 // would then carry a switch it must never read and cmd/mapview would gain
 // one it cannot honour.
 type mapWorld struct {
+	cheats           cheatConsole
 	fame             fameObserver
 	applicationState *SnapshotApplicationState
 	world            *sim.World
 	sched            [][]sim.Command
 	units            *terrain.UnitSet
 	view             *ui.Viewer
-	topRowDecided    bool
 	scene            int
 	prev             map[sim.EntityID]image.Point
 	died             map[sim.EntityID]int
@@ -998,6 +998,13 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		ann: NewAnnouncer(ms.World, ms.Raises),
 	}
 	mw.mission.audience = speakerAudience(HeroAudience(ms.Party), npcFaces)
+	if ms.ActorManifest != nil {
+		for _, actor := range ms.ActorManifest.Actors {
+			if _, present := mw.chars[actor.ID]; !present {
+				mw.rememberCheatCharacter(actor.ID, actor.Name)
+			}
+		}
+	}
 	if mw.mission.secondGame() {
 		mw.mission.objectiveLabels = secondGameObjectiveLabels(src, ms.Number)
 		mw.mission.npcKeys = secondGameNPCKeys(ms, t)
@@ -4127,6 +4134,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// pushed. Ordinary updates retain the periodic world-tick cadence.
 	if mw.world.Tick()%fogPeriod == 0 || mw.localTeleportArrived(events) {
 		mw.fog.refresh(mw.world, sim.SelfSlot)
+		mw.view.RefreshCheatFog()
 	}
 	if project {
 		mw.push()
@@ -4492,7 +4500,6 @@ func (mw *mapWorld) push() {
 		mw.view.AppendDamageMessages(messages)
 		mw.pendingDamage = nil
 	}
-	mw.decideTopRow(draws)
 	mw.view.SetEntities(draws)
 	mw.soundEntities = draws
 	mw.view.SetUnitInspectionPictureSource(mw.inspectionUnitPicture)
@@ -4950,7 +4957,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// simulation's own field at its own width — zero for an entity no map
 			// placed, which is every entity this tree spawns.
 			Owner:     e.Owner,
-			Knowledge: mw.world.KnowledgeLevel(e), KnowledgeKnown: true,
+			Knowledge: mw.cardKnowledge(e), KnowledgeKnown: true,
 			// THE LOCAL PARTICIPANT'S OWN RELATION TOWARD IT (1031 B3;
 			// UNIT-VPLAYER-021, UNIT-VISBIT-044), read off the same relation
 			// matrix `pkg/sim/engage.go` already reads for engagement — not

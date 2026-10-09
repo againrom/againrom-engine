@@ -253,15 +253,14 @@ func (arena *loadedCycleArena) orderAttack(t *testing.T, victim sim.EntityID) {
 	}
 }
 
-// clickGround clicks the ground cell with the current selection standing and
-// the current cursor armed, and returns the commands the click queued. The pixel
-// is the first in the middle of the view the production hit test resolves to the
-// cell. It costs two frames.
+// clickGround searches the fixture's unscaled viewport outside the top status
+// line and edge bands, verifies the ground picker, then sends a pointer tap.
 func (arena *loadedCycleArena) clickGround(t *testing.T, col, row int32) []sim.Command {
 	t.Helper()
 	before := len(arena.live.pending)
-	for py := 100; py < 560; py += 4 {
-		for px := 160; px < 750; px += 4 {
+	viewport := arena.live.view.ViewportSize()
+	for py := 48; py < viewport.Y-24; py += 4 {
+		for px := 24; px < viewport.X-24; px += 4 {
 			c, r, err := arena.app.HeadlessDropCell(px, py)
 			if err != nil || int32(c) != col || int32(r) != row {
 				continue

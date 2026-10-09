@@ -258,7 +258,7 @@ func (f *FrontEnd) witnessTownAfterClosed(root, output string, report io.Writer)
 	if err := audioWitnessClosed(ui.DeliveryOwner(f.SoundPlayer)); err != nil {
 		return err
 	}
-	town, err := newAudioWitnessFront(root, f.Options, f.Sound, f.SoundChannels, f.deterministicFrames)
+	town, err := newAudioWitnessFront(root, f.Options, f.Sound, f.SoundChannels, f.runtime.deterministicFrames)
 	if err != nil {
 		return err
 	}

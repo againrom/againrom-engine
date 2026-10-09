@@ -95,8 +95,8 @@ func TestReleaseMissionTwentyKeepsCameraThroughSAVAndCommonTicks(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := f.live.view.SaveApplication()
-	if want.ViewY >= viewOriginFloor || want.ViewX < viewOriginFloor {
-		t.Fatalf("mission camera witness no longer crosses only the Y floor: (%v, %v)", want.ViewX, want.ViewY)
+	if want.ViewY != viewOriginFloor || want.ViewX < viewOriginFloor {
+		t.Fatalf("fresh mission camera = (%v, %v), want row8 and a legal column", want.ViewX, want.ViewY)
 	}
 	store, name, wire := menuSAVE(t, f, a, OriginalStore{})
 	doc, err := sav.DecodeDocumentData(wire)
@@ -106,6 +106,13 @@ func TestReleaseMissionTwentyKeepsCameraThroughSAVAndCommonTicks(t *testing.T) {
 	raw, err := readOriginalApplicationState(&doc)
 	if err != nil || raw.ViewY != viewOriginFloor {
 		t.Fatalf("ordinary SAV Y=%d, want floor %d: %v", raw.ViewY, viewOriginFloor, err)
+	}
+	actions, err := readCurrentActions(&doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actions.Session == nil || actions.Session.View == nil || actions.Session.View.YOriginDelta != nil {
+		t.Fatalf("legal fresh camera acquired an integer Y offset: %+v", actions.Session)
 	}
 	g := releaseFront(t)
 	g.SetDeterministicFrames(true)

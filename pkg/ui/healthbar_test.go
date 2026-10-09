@@ -110,8 +110,8 @@ func TestOnlyTheLivingWithAHealthSystemCarryABar(t *testing.T) {
 }
 
 // TestOnlyMagesCarryABlueManaBar covers the complete owner-directed pool
-// projection: full, partial and empty mana still have a bar; only positive
-// mana has a fill; a non-mage with no maximum has no meaningless zero bar.
+// projection: full, partial and empty mana still have a bar; positive
+// and zero mana keep a one-pixel fill; a non-mage has no mana bar.
 func TestOnlyMagesCarryABlueManaBar(t *testing.T) {
 	v := commandViewer(t)
 	v.SetEntities([]MapEntity{
@@ -121,22 +121,24 @@ func TestOnlyMagesCarryABlueManaBar(t *testing.T) {
 		{ID: 4, Cell: image.Pt(4, 2), Life: LifeAlive, Mana: 0, MaxMana: 0},
 	})
 	grounds, fills := v.manaBarScreenRects()
-	if len(grounds) != 3 || len(fills) != 2 {
-		t.Fatalf("mana bars: %d bars and %d fills, want 3 and 2", len(grounds), len(fills))
+	if len(grounds) != 3 || len(fills) != 3 {
+		t.Fatalf("mana bars: %d bars and %d fills, want 3 and 3", len(grounds), len(fills))
 	}
 	if fills[0].W*terrain.StatusBarWidth != grounds[0].W*terrain.StatusBarInterior || !(fills[1].W > 0 && fills[1].W < fills[0].W) {
 		t.Fatalf("mana fill widths full=%v partial=%v bar=%v", fills[0].W, fills[1].W, grounds[0].W)
 	}
 	// None of the four is selected, so each filled mana interior draws its
-	// brightest row as the faded #0000ff: one run per filled bar.
-	blue := terrain.StatusBarFaded(color.RGBA{B: 0xff, A: 0xff})
+	// brightest blue row with packed half-add: one run per bar.
+	blue := color.RGBA{B: 0xff, A: 0xff}
 	passes := v.overlayPasses()
-	i := slices.IndexFunc(passes, func(p overlayPass) bool { return p.Color == blue })
-	if i < 0 {
-		t.Fatal("no blue mana row pass")
+	n := 0
+	for _, p := range passes {
+		if p.Color == blue && p.HalfAdd {
+			n += len(p.Rects)
+		}
 	}
-	if n := len(passes[i].Rects); n != 2 {
-		t.Errorf("blue row pass has %d runs, want 2", n)
+	if n != 3 {
+		t.Errorf("blue row passes have %d runs, want 3", n)
 	}
 }
 
