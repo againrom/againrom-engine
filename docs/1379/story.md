@@ -10,7 +10,8 @@ sees, hears or saves changes. A third profile or a mod profile is an edition
 value and, at most, one more service implementation; it adds no arm to shared
 code.
 
-Base: `af6c6a09` (game 0.105.0). Knowledge pin: k208.
+Base: `af6c6a09` (game 0.105.0), reconciled with main `6f05571d`. Knowledge
+pin: k208.
 
 ## Authority
 
@@ -85,7 +86,7 @@ Both implementations are stateless.
 | `exportable`, `refuseCompleted`, `campaignProjection` | `ExportCurrentSave` second-game gate and completed-campaign refusal; the campaign record in `currentMissionDocument` and `currentCityDocument` |
 | `validateSession`, `validateAuthored`, `undecodedSave`, `statesCampaign` | `validateCurrentSession`, `validateAuthoredGame`, `validateOriginalGame`, `decodeOriginalCampaign` |
 | `canEnter`, `enterMission`, `seatWorld` | `admitMission`, `activateLive`, `seatWorld` |
-| `selectedMarkers`, `checkTownLoad`, `arriveLoaded`, `keepsTownSurface` | `restoreOriginal`, `restoreOriginalTown`, `installCandidate`, `resetTownSurface` |
+| `selectedMarkers`, `checkTownLoad`, `arriveLoaded`, `keepsTownSurface` | `RestoreOriginal`, `restoreOriginalTown`, `installCandidate`, `resetTownSurface` |
 | `beforeAdvance`, `finishWon`, `route`, `returnToTown` | the four `frontTransitions` second-campaign arms |
 | `openMission`, `loadMissionText`, `scriptMessages`, `settleNotices`, `acknowledgeNotice`, `outcomeText`, `eventAudience`, `objectives` | the table test in `openMission` and the helper `missionNotices.secondGame` with its seven callers in `world.go`, `secondgamenotices.go`, `companionreport.go`, `questobjectives.go`; its two callers in `cheats.go` read `Edition.Cheats` |
 
