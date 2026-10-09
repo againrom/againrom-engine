@@ -66,7 +66,7 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 		r := loadButtonRect(i)
 		inside := pointerOK && pointer.In(r)
 		drawPushButton(pix, font, pushButton{Rect: r, Label: caption, Hover: inside, Inside: inside,
-			Pressed: a.flow.loadUI.press.pressed(i), Disabled: a.flow.loadButtonDisabled(i)})
+			Pressed: a.flow.loadUI.press.Pressed(i), Disabled: a.flow.loadButtonDisabled(i)})
 	}
 	return pix, nil
 }

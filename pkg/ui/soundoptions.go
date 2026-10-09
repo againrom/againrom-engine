@@ -54,10 +54,10 @@ type SoundOptionControls struct {
 }
 
 type soundOptionPointer struct {
-	pressed bool
-	action  gameMenuAction
-	value   int
-	slider  sliderInput
+	press  buttonLatch
+	action gameMenuAction
+	value  int
+	slider sliderInput
 }
 
 func (a *App) SetSoundOptionControls(c SoundOptionControls) {
@@ -262,8 +262,9 @@ func (a *App) stepSoundOptions(in appInput) bool {
 		}
 		return false
 	}
-	if in.PrimaryPressed {
-		f.soundPointer = soundOptionPointer{pressed: inFrame && hit, action: action}
+	if in.PrimaryPressed && !f.soundPointer.press.Holds() {
+		f.soundPointer = soundOptionPointer{action: action}
+		f.soundPointer.press.Press(int(action), inFrame && hit)
 		if action == gameMenuMusicTracks && inFrame {
 			// The shared list selects on the press (MENU-120).
 			if row := f.soundTrackAt(p); row >= 0 && f.soundOptions.list != nil {
@@ -273,7 +274,7 @@ func (a *App) stepSoundOptions(in appInput) bool {
 		}
 	}
 	press := &f.soundPointer
-	if channel, slider := soundActionChannel(press.action); press.pressed && slider {
+	if channel, slider := soundActionChannel(press.action); press.press.Holds() && slider {
 		position := soundPercentSlider(f.soundOptions.Read()[channel])
 		if press.slider.active() {
 			position = press.value
@@ -288,7 +289,7 @@ func (a *App) stepSoundOptions(in appInput) bool {
 	}
 	selected := *press
 	f.soundPointer = soundOptionPointer{}
-	if !selected.pressed || !inFrame {
+	if !selected.press.Holds() || !inFrame {
 		return false
 	}
 	if selected.action == gameMenuMusicTracks {
@@ -306,7 +307,7 @@ func (a *App) stepSoundOptions(in appInput) bool {
 			} else if channel == audio.SpeechChannel {
 				a.playSpeechTest()
 			}
-		} else if hit && action == selected.action {
+		} else if _, activated := selected.press.Release(int(action), hit); activated {
 			a.chooseGameMenu()
 		}
 		break

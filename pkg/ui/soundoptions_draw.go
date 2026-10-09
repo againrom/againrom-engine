@@ -123,7 +123,7 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 			}
 			inside := pointerOK && pointer.In(r)
 			drawPushButton(dst, font, pushButton{Rect: r, Label: label, Literal: literal, Hover: inside, Inside: inside, Focus: focused,
-				Pressed: f.soundPointer.pressed && f.soundPointer.action == row.Action, Disabled: !row.Enabled})
+				Pressed: f.soundPointer.press.Pressed(int(row.Action)), Disabled: !row.Enabled})
 			continue
 		}
 		if !row.Enabled {

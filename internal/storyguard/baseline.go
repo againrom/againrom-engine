@@ -1986,6 +1986,9 @@ package storyguard
 // tiling and the shadow tone in the new widget kit file, which replace the
 // separate window, tip, panel and border painters, new code, including this
 // paragraph.
+// CommentBytes rises for the one press latch: the latch package docs and
+// the notes on the dialogue capture and the generation page latch, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2009,5 +2012,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1776,
 	},
-	CommentBytes: 8507153,
+	CommentBytes: 8508108,
 }

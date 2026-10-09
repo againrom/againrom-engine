@@ -768,10 +768,13 @@ type dialoguePointerOwner struct {
 	revision uint64
 }
 
+// dialoguePointerPress captures the pointer for the dialogue that a press
+// began on; the kit latch holds the press when it landed on the enabled
+// advance button.
 type dialoguePointerPress struct {
 	owner    dialoguePointerOwner
 	captured bool
-	armed    bool
+	press    buttonLatch
 }
 
 type townDialogueRevision interface {
@@ -979,7 +982,7 @@ type App struct {
 	// same physical click's later release activates a town door.
 	suppressPrimaryRelease   bool
 	suppressSecondaryRelease bool
-	chargenPress             chargenControl
+	chargenPress             buttonLatch
 	chargenHover             chargenControl
 	chargenHoverText         string
 	chargenChoiceClick       chargenControl
@@ -1096,7 +1099,7 @@ func (a *App) OpenChargen(c *Chargen, begin func(ChargenResult) (MapOpener, erro
 	if !a.flow.armChargen(c, begin, ScreenMenu) {
 		return errors.New("OpenChargen: nil model")
 	}
-	a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = chargenNone, chargenNone, "", chargenNone
+	a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = buttonLatch{}, chargenNone, "", chargenNone
 	a.chargenChoiceAt = time.Time{}
 	a.chargenRepeat = chargenRepeat{}
 	a.syncMusic()
@@ -1279,18 +1282,33 @@ func (a *App) currentDialoguePointerOwner() (dialoguePointerOwner, bool) {
 func (a *App) validateWidgetLatches(in appInput) {
 	f := a.flow
 	if in.Unfocused || in.Close {
-		a.noticePress.clear()
-		f.menuPress.clear()
-		f.loadUI.press.clear()
-		a.media.press.clear()
+		a.noticePress.Clear()
+		f.menuPress.Clear()
+		f.loadUI.press.Clear()
+		a.media.press.Clear()
+		a.sel.Clear()
+		a.chargenPress.Clear()
+		f.questPress.Clear()
+		f.endingPress.Clear()
+		f.modUI.backPress.Clear()
+		f.modUI.press.Clear()
+		if f.saveDialog != nil {
+			f.saveDialog.press.Clear()
+		}
+		if f.docPanel != nil {
+			f.docPanel.press.Clear()
+		}
+		if f.viewer != nil {
+			f.viewer.gold.press.Clear()
+		}
 		f.soundPointer = soundOptionPointer{}
 		if d := f.gameOptions.draft; d != nil {
 			d.radio = 0
 		}
 		return
 	}
-	if v := f.viewer; a.noticePress.held && (v == nil || !v.NoticeOpen() || v.noticeSerial != a.noticePressSerial) {
-		a.noticePress.clear()
+	if v := f.viewer; a.noticePress.Holds() && (v == nil || !v.NoticeOpen() || v.noticeSerial != a.noticePressSerial) {
+		a.noticePress.Clear()
 	}
 }
 
@@ -1301,7 +1319,7 @@ func (a *App) stepNoticeButtons(in *appInput) bool {
 	v := a.flow.viewer
 	id, over := v.noticeButtonIDAt(in.CursorX, in.CursorY)
 	if in.PrimaryPressed {
-		a.noticePress.press(id, over)
+		a.noticePress.Press(id, over)
 		a.noticePressSerial = v.noticeSerial
 		if over {
 			in.PrimaryPressed = false
@@ -1309,13 +1327,13 @@ func (a *App) stepNoticeButtons(in *appInput) bool {
 	}
 	activated := false
 	if in.PrimaryReleased {
-		if _, activated = a.noticePress.release(id, over); activated {
+		if _, activated = a.noticePress.Release(id, over); activated {
 			in.PrimaryReleased = false
 		}
 	}
 	state := func(b int) DialogueButtonState {
 		inside := over && id == b
-		return DialogueButtonState{Hover: inside, Pressed: a.noticePress.pressed(b), Inside: inside}
+		return DialogueButtonState{Hover: inside, Pressed: a.noticePress.Pressed(b), Inside: inside}
 	}
 	v.setNoticeButtonStates(state(noticePrimaryButton), state(noticeSecondButton))
 	return activated
@@ -1382,10 +1400,14 @@ func (a *App) stepDialoguePointer(in appInput, owner dialoguePointerOwner, insid
 		a.cancelDialoguePointer()
 	}
 	if in.PrimaryPressed {
-		a.dialoguePress = dialoguePointerPress{owner: owner, captured: true, armed: inside && !a.dialogueButtonDisabled(owner)}
+		if !a.dialoguePress.captured {
+			a.dialoguePress = dialoguePointerPress{owner: owner, captured: true}
+		}
+		a.dialoguePress.press.Press(0, inside && !a.dialogueButtonDisabled(owner))
 	}
 	if in.PrimaryReleased {
-		advance := a.dialoguePress.captured && a.dialoguePress.armed && inside && a.dialoguePress.owner == owner && !a.dialogueButtonDisabled(owner)
+		_, released := a.dialoguePress.press.Release(0, inside && a.dialoguePress.owner == owner && !a.dialogueButtonDisabled(owner))
+		advance := a.dialoguePress.captured && released
 		a.dialoguePress = dialoguePointerPress{}
 		a.applyDialogueButtonState(owner, DialogueButtonState{Hover: inside, Inside: inside})
 		return advance
@@ -1582,7 +1604,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		// Detailed-stage Escape is its own Back transition. Pre-create Escape
 		// keeps the existing flow unwind to the screen that armed generation.
 		if a.flow.screen == ScreenChargen && a.flow.chargen != nil && a.flow.chargen.Back() {
-			a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = chargenNone, chargenNone, "", chargenNone
+			a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = buttonLatch{}, chargenNone, "", chargenNone
 			a.chargenChoiceAt = time.Time{}
 			return false
 		}
@@ -3139,7 +3161,7 @@ func (a *App) stepGameMenu(in appInput) bool {
 		if options {
 			a.pressGameOptions(a.windowToNativeFrame(in.CursorX, in.CursorY))
 		} else {
-			a.flow.menuPress.press(a.gameMenuButtonAt(in))
+			a.flow.menuPress.Press(a.gameMenuButtonAt(in))
 		}
 	}
 	switch {
@@ -3168,7 +3190,7 @@ func (a *App) stepGameMenu(in appInput) bool {
 			return false
 		}
 		at, inside := a.gameMenuButtonAt(in)
-		row, activated := a.flow.menuPress.release(at, inside)
+		row, activated := a.flow.menuPress.Release(at, inside)
 		if !activated {
 			return false
 		}
@@ -3220,14 +3242,13 @@ func (a *App) stepDocuments(in appInput) {
 	}
 	p.hover = control
 	if in.PrimaryPressed {
-		p.press = control
+		p.press.Press(control, control != docNoControl)
 	}
 	if !in.PrimaryReleased {
 		return
 	}
-	pressed := p.press
-	p.press = docNoControl
-	if pressed == docNoControl || pressed != control {
+	pressed, activated := p.press.Release(control, control != docNoControl)
+	if !activated {
 		return
 	}
 	a.playUISound(UISoundCommonControl)
@@ -3415,7 +3436,7 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 					c.ToggleTips()
 				}
 			}
-			a.chargenPress = chargenNone
+			a.chargenPress.Clear()
 			if in.PrimaryPressed {
 				a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 			}
@@ -3428,14 +3449,14 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 	}
 	a.chargenHover = hit
 	a.chargenHoverText = ""
-	if c.setup.Detailed != nil && hit >= chargenSkill0 && hit <= chargenSkill4 && a.chargenPress == chargenNone {
+	if c.setup.Detailed != nil && hit >= chargenSkill0 && hit <= chargenSkill4 && !a.chargenPress.Holds() {
 		class := 0
 		if len(c.choiceIndex) > 1 && c.choiceIndex[1] != 0 {
 			class = 1
 		}
 		a.chargenHoverText = c.setup.Detailed.SkillHover[class][int(hit-chargenSkill0)]
 	}
-	if a.chargenPress == chargenNone {
+	if !a.chargenPress.Holds() {
 		if hit >= chargenStatMinus0 && hit <= chargenStatMinus3 {
 			a.chargenHoverText, _ = c.StatStepText(int(hit-chargenStatMinus0), false)
 		} else if hit >= chargenStatPlus0 && hit <= chargenStatPlus3 {
@@ -3449,7 +3470,7 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 		a.activateChargenDetailed(c, hit, true)
 	}
 	if in.PrimaryPressed {
-		a.chargenPress = hit
+		a.chargenPress.Press(int(hit), hit != chargenNone)
 		double := a.chargenDoubleClick(hit, now)
 		if chargenStatControl(hit) || hit >= chargenSkill0 && hit <= chargenSkill4 && !double {
 			a.activateChargenDetailed(c, hit, true)
@@ -3457,8 +3478,8 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 		return
 	}
 	if in.PrimaryReleased {
-		activate := a.chargenPress != chargenNone && a.chargenPress == hit && !chargenStatControl(hit) && (hit < chargenSkill0 || hit > chargenSkill4)
-		a.chargenPress = chargenNone
+		_, released := a.chargenPress.Release(int(hit), hit != chargenNone)
+		activate := released && !chargenStatControl(hit) && (hit < chargenSkill0 || hit > chargenSkill4)
 		if activate {
 			a.activateChargenDetailed(c, hit, true)
 		}
@@ -3531,6 +3552,15 @@ func chargenStatControl(id chargenControl) bool {
 // records it. A press on the control the previous single press chose, inside
 // chargenDoubleClickWindow, is the second click of a double-click; the press
 // after it starts a new pair (DIV-1493).
+// chargenPressed is the generation page control the press latched, or
+// chargenNone.
+func (a *App) chargenPressed() chargenControl {
+	if c, ok := a.chargenPress.Latched(); ok {
+		return chargenControl(c)
+	}
+	return chargenNone
+}
+
 func (a *App) chargenDoubleClick(hit chargenControl, now time.Time) bool {
 	double := hit != chargenNone && a.chargenChoiceClick == hit && !a.chargenChoiceAt.IsZero() && now.Sub(a.chargenChoiceAt) <= chargenDoubleClickWindow
 	if double || hit == chargenNone {
@@ -3656,7 +3686,7 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 			// read as the second half of a double click it was never part
 			// of. Clearing it here mirrors what the un-swallowed release
 			// path already does unconditionally at its own end (below).
-			a.chargenPress = chargenNone
+			a.chargenPress.Clear()
 			if in.PrimaryPressed {
 				a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 			}
@@ -3672,20 +3702,20 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 	}
 	a.chargenHover = hit
 	if in.PrimaryPressed {
-		a.chargenPress = hit
+		a.chargenPress.Press(int(hit), hit != chargenNone)
 		// Difficulty, hero, OK and the amulet act on the left press
 		// (VIDEO-SFX-058); the name field keeps its completed release.
 		if double := a.chargenDoubleClick(hit, now); hit != chargenNone && hit != chargenName {
 			a.activatePreCreate(c, hit, true, double)
 			if a.flow.screen != ScreenChargen || c.Stage() != PreCreateStage {
-				a.chargenPress = chargenNone
+				a.chargenPress.Clear()
 				return
 			}
 		}
 	}
 	if in.PrimaryReleased {
-		activate := a.chargenPress == chargenName && hit == chargenName
-		a.chargenPress = chargenNone
+		_, released := a.chargenPress.Release(int(hit), hit != chargenNone)
+		activate := released && hit == chargenName
 		if activate {
 			a.activatePreCreate(c, hit, true, false)
 		}
@@ -4797,7 +4827,7 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	c.SetDetailMessage(a.chargenDetailMessage())
 	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)
 	tip := tipPanelWithPointer(c.TipPanel(), chargenTipRoom, p, inside, a.townTipPress)
-	return composeChargenPage(c, a.chargenHover, a.chargenPress, tip), nil
+	return composeChargenPage(c, a.chargenHover, a.chargenPressed(), tip), nil
 }
 
 // drawChargen paints the generation screen: a header carrying the setup's

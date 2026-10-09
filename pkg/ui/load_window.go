@@ -34,7 +34,7 @@ type loadWindow struct {
 func (w *loadWindow) resetClick() { w.lastName, w.lastClick, w.doubled = "", time.Time{}, 0 }
 
 func (w *loadWindow) resetPointer() {
-	w.press.clear()
+	w.press.Clear()
 	w.bar.reset()
 }
 
@@ -180,7 +180,7 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 	}
 	if in.PrimaryPressed {
 		button, onButton := loadButtonAt(p)
-		f.loadUI.press.press(button, ok && onButton && !f.loadButtonDisabled(button))
+		f.loadUI.press.Press(button, ok && onButton && !f.loadButtonDisabled(button))
 		if !ok || onButton || f.loadUI.confirm {
 			f.loadUI.resetClick()
 			return
@@ -220,7 +220,7 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		return
 	}
 	at, inside := loadButtonAt(p)
-	button, activated := f.loadUI.press.release(at, ok && inside)
+	button, activated := f.loadUI.press.Release(at, ok && inside)
 	if !activated {
 		return
 	}

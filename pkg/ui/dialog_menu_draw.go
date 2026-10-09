@@ -86,7 +86,7 @@ func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow
 		if !row.Status && !row.Literal {
 			inside := pointer.ok && pointer.at.In(r)
 			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Hover: inside,
-				Focus: top+slot == list.Selection(), Pressed: pointer.press.pressed(top + slot),
+				Focus: top+slot == list.Selection(), Pressed: pointer.press.Pressed(top + slot),
 				Inside: inside, Disabled: !row.Enabled})
 			continue
 		}

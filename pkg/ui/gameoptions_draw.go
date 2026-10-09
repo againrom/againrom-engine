@@ -188,7 +188,7 @@ func (a *App) gameOptionsRowAt(p image.Point) (int, gameMenuRow, bool) {
 // row selects on the press (MENU-123, MENU-124); a push button latches.
 func (a *App) pressGameOptions(p image.Point, ok bool) {
 	f := a.flow
-	f.menuPress.clear()
+	f.menuPress.Clear()
 	i, row, hit := a.gameOptionsRowAt(p)
 	if !ok || !hit {
 		return
@@ -196,7 +196,7 @@ func (a *App) pressGameOptions(p image.Point, ok bool) {
 	f.menuList.Select(i)
 	switch {
 	case isGameOptionButton(row.Action):
-		f.menuPress.press(i, true)
+		f.menuPress.Press(i, true)
 	case isRadioAction(row.Action):
 		f.gameOptions.draft.radio = row.Action
 		a.selectGameOptionRadio(row.Action, p)
@@ -224,7 +224,7 @@ func (a *App) releaseGameOptions(p image.Point, ok bool) {
 	f := a.flow
 	f.gameOptions.draft.radio = 0
 	i, row, hit := a.gameOptionsRowAt(p)
-	at, activated := f.menuPress.release(i, ok && hit && isGameOptionButton(row.Action))
+	at, activated := f.menuPress.Release(i, ok && hit && isGameOptionButton(row.Action))
 	if !activated {
 		return
 	}
@@ -290,7 +290,7 @@ func (a *App) gameOptionsPicture() *image.RGBA {
 		case isGameOptionButton(row.Action):
 			inside := pointerOK && pointer.In(r)
 			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Literal: row.Literal, Hover: inside, Inside: inside,
-				Focus: focused, Pressed: f.menuPress.pressed(i), Disabled: !row.Enabled})
+				Focus: focused, Pressed: f.menuPress.Pressed(i), Disabled: !row.Enabled})
 		default:
 			label, on := "", false
 			switch row.Action {

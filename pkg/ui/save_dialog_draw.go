@@ -168,7 +168,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 		if font := a.flow.menuFont; font != nil {
 			inside := pointerOK && pointer.In(r)
 			drawPushButton(s.pix, font, pushButton{Rect: r, Label: a.flow.menuDisplayText(label), Hover: inside,
-				Focus: d.focus == c, Pressed: d.pressed && d.press == c, Inside: inside, Disabled: disabled})
+				Focus: d.focus == c, Pressed: d.press.Pressed(saveLatchID(c, 0)), Inside: inside, Disabled: disabled})
 			return
 		}
 		fill, border := layout.ButtonFill, layout.ButtonBorder
