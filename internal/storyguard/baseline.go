@@ -1924,8 +1924,11 @@ package storyguard
 // pickerb.go, pursuitsearchbinary.go and their tests, and the release drives
 // it moved document their new set-ups, net of the removed stand-in docs,
 // including this explanation.
+// CommentBytes rises for the melee facing hotfix: the docs of the new melee
+// walking witness, the Kadagan release test's pack note and the skill
+// trainee's heal note, new code, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4708,
+	TestIdentCount: 4704,
 	TestFileCount:  265,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -1934,9 +1937,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1887,
+		"acclause":        1882,
 		"scclause":        509,
-		"barestorynumber": 1753,
+		"barestorynumber": 1752,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -1945,7 +1948,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1831,
+		"longcommentgroups":      1820,
 	},
-	CommentBytes: 8526762,
+	CommentBytes: 8505286,
 }

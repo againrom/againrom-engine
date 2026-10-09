@@ -88,6 +88,7 @@ type missionDisplay struct {
 	textSmoothing      bool
 	frameSmoothing     bool
 	deterministicFrame bool
+	chicken            bool
 }
 
 // enterMission builds the complete map screen for one mission and returns the
@@ -142,6 +143,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// world opens nothing, and a driver that went looking for an install
 	// itself would give one mission two behaviours depending on when it ran.
 	mw := ports.install.openMissionDriver(ms, r.units, mv.Viewer)
+	mw.cheats.difficulty = diff
 	ports.audio.wireReplies(mw)
 	mw.view.SetPathfinding(ports.display.pathfinding)
 	mw.view.SetGraphicsOptions(ports.display.graphics)
@@ -162,6 +164,9 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	ports.audio.wireEffects(mw, mv.Viewer)
 	if err := settleMission(r, mw, mv.Viewer, ms, fog, ports.profile); err != nil {
 		return preparedMap{}, err
+	}
+	if r.fresh() && ports.display.chicken {
+		mw.chatCommand("#Chicken")
 	}
 	// Commit fresh selection with the driver; LOAD keeps its validated campaign.
 	commitDriver := func() {

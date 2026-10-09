@@ -490,7 +490,7 @@ func (w *World) savedGroupPass(obs *castObs) {
 	for gi := 0; gi < count; gi++ {
 		g := &w.savedGroups.Groups[gi]
 		id := g.ID
-		if g.AI[0x45] == 0 {
+		if g.AI[0x45] == 0 && !w.safeMode {
 			continue
 		}
 		if len(g.Members) == 0 {

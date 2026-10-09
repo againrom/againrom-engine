@@ -66,6 +66,7 @@ const (
 	aVideo
 	aMovies
 	aMarkers
+	aChicken
 	aPicker
 	aCloseOnPlay
 	aAcceptUnmarked
@@ -516,16 +517,18 @@ func (a *app) layout() []item {
 	field(ctl(y), fMission)
 	y = row(8, "Map picker")
 	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
-	y = row(9, "Skill")
+	y = row(9, "#Chicken each mission")
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
+	y = row(10, "Skill")
 	field(ctl(y), fSkill)
-	y = row(10, "Extra arguments")
+	y = row(11, "Extra arguments")
 	field(ctl(y), fExtra)
-	heading(395, 332, "Starter")
-	y = row(12, "Close after Play")
+	heading(395, 356, "Starter")
+	y = row(13, "Close after Play")
 	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-	y = row(13, "Game program")
+	y = row(14, "Game program")
 	field(ctl(y), fAgainrom)
-	y = row(14, "Load unmarked saves")
+	y = row(15, "Load unmarked saves")
 	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 
 	// Mod settings.
@@ -714,6 +717,8 @@ func (a *app) apply(act action) {
 		a.s.Movies = !a.s.Movies
 	case aMarkers:
 		a.s.Markers = !a.s.Markers
+	case aChicken:
+		a.s.Chicken = !a.s.Chicken
 	case aPicker:
 		a.s.Picker = !a.s.Picker
 	case aAcceptUnmarked:

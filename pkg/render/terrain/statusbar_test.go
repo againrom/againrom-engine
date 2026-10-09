@@ -25,7 +25,7 @@ var (
 
 // TestStatusBarRectGeometry writes each expected rectangle out from the
 // contract rather than from statusbar.go. A unit drawn without a class, or of
-// a one-cell class, has a 32 by 4 bar centred on its whole footprint, its top
+// a class without valid selection geometry, has a 32 by 4 fallback bar, its top
 // edge 16 rows (health) or 12 rows (mana) above the footprint's top edge.
 // Cell (1,1) on a 4 by 4 map has its footprint at [32,64) x [32,64) and its
 // centre, where a body's class centre lands, at (48,48). A class wider than
@@ -50,7 +50,7 @@ func TestStatusBarRectGeometry(t *testing.T) {
 		{"no class, two cells wide, centres on both", terrain.HealthBar, 1, 1, 2, nil, image.Rect(48, 16, 80, 20), true},
 		{"no class, three cells wide, centres on all three", terrain.ManaBar, 1, 1, 3, nil, image.Rect(64, 20, 96, 24), true},
 		{"a one-cell class keeps the cell rule", terrain.HealthBar, 1, 1, 1, sbMage, image.Rect(32, 16, 64, 20), true},
-		{"a one-cell class with a wider box keeps the cell rule", terrain.ManaBar, 1, 1, 1, sbLance, image.Rect(32, 20, 64, 24), true},
+		{"a one-cell class uses its selection width", terrain.ManaBar, 1, 1, 1, sbLance, image.Rect(24, 20, 72, 24), true},
 		{"the dragon's health spans its box", terrain.HealthBar, 1, 1, 3, sbDragon, image.Rect(0, -2, 96, 2), true},
 		{"the dragon's mana under its health", terrain.ManaBar, 1, 1, 3, sbDragon, image.Rect(0, 2, 96, 6), true},
 		{"the troll's health spans its box", terrain.HealthBar, 1, 1, 2, sbTroll, image.Rect(18, -4, 78, 0), true},
@@ -103,158 +103,114 @@ func TestStatusBarsOfEveryInstalledWideClass(t *testing.T) {
 	}
 }
 
-// TestStatusBarFillTruncatesAndClamps: the interior, the bar's width less its
-// two 4-column caps, fills interior*value/maximum columns, truncated; it never
-// shrinks as the value rises, is empty at or below zero and full at or above
-// the maximum. A value below zero is a fallen unit's ordinary health, and
-// nothing stops a value above its maximum.
-func TestStatusBarFillTruncatesAndClamps(t *testing.T) {
-	for _, tc := range []struct{ width, value, maximum, fill int }{
-		{32, 60, 60, 24}, {32, 59, 60, 23}, {32, 45, 60, 18}, {32, 30, 60, 12}, {32, 3, 60, 1}, {32, 2, 60, 0},
-		{32, 10, 40, 6}, {32, 0, 60, 0}, {32, -9, 60, 0}, {32, 61, 60, 24},
-		{96, 60, 60, 88}, {96, 59, 60, 86}, {96, 45, 60, 66}, {96, 1, 88, 1}, {96, 1, 89, 0}, {96, 61, 60, 88},
-		{60, 45, 60, 39}, {64, 45, 60, 42}, {6, 5, 10, 0},
+func TestStatusBarFillTruncatesWithPoolMinimum(t *testing.T) {
+	for _, tc := range []struct {
+		kind                        terrain.StatusBarKind
+		width, value, maximum, want int
+	}{
+		{terrain.HealthBar, 32, 0, 100, 0}, {terrain.HealthBar, 32, 1, 100, 1},
+		{terrain.HealthBar, 32, -1, 100, 1}, {terrain.HealthBar, 32, -100, 100, -24},
+		{terrain.ManaBar, 32, 0, 100, 1}, {terrain.ManaBar, 32, 1, 100, 1},
+		{terrain.HealthBar, 25, 1, 3, 5}, {terrain.ManaBar, 25, 150, 100, 25},
+		{terrain.HealthBar, 32, 150, 100, 36}, {terrain.HealthBar, 96, 1, 89, 1},
+		{terrain.HealthBar, 6, 1, 100, 0},
 	} {
-		if fill, ok := terrain.StatusBarFill(tc.width, tc.value, tc.maximum); !ok || fill != tc.fill {
-			t.Errorf("StatusBarFill(%d, %d, %d) = %d, %v; want %d, true", tc.width, tc.value, tc.maximum, fill, ok, tc.fill)
+		if got, ok := terrain.StatusBarFill(tc.kind, tc.width, tc.value, tc.maximum); !ok || got != tc.want {
+			t.Errorf("kind %d width %d pool %d/%d N=%d,%v want %d,true", tc.kind, tc.width, tc.value, tc.maximum, got, ok, tc.want)
 		}
 	}
-	for _, maximum := range []int{0, -5} {
-		if fill, ok := terrain.StatusBarFill(32, 3, maximum); ok || fill != 0 {
-			t.Errorf("StatusBarFill(32, 3, %d) = %d, %v; a unit without the pool has no bar", maximum, fill, ok)
-		}
-	}
-	for _, width := range []int{32, 60, 64, 96} {
-		for _, maximum := range []int{1, 7, 40, 1000} {
-			last := 0
-			for value := -2*maximum - 5; value <= 2*maximum+5; value++ {
-				fill, _ := terrain.StatusBarFill(width, value, maximum)
-				switch {
-				case fill < last:
-					t.Fatalf("width %d, maximum %d: value %d fills %d, value %d filled %d", width, maximum, value, fill, value-1, last)
-				case value <= 0 && fill != 0:
-					t.Fatalf("width %d, maximum %d: value %d fills %d, want 0", width, maximum, value, fill)
-				case value >= maximum && fill != width-8:
-					t.Fatalf("width %d, maximum %d: value %d fills %d, want %d", width, maximum, value, fill, width-8)
-				}
-				last = fill
+	for _, kind := range []terrain.StatusBarKind{terrain.HealthBar, terrain.ManaBar} {
+		for _, maximum := range []int{0, -5} {
+			if fill, ok := terrain.StatusBarFill(kind, 32, 3, maximum); ok || fill != 0 {
+				t.Errorf("nonpositive maximum %d gives N=%d,%v", maximum, fill, ok)
 			}
 		}
 	}
 }
 
-// TestStatusBarRunsPaintEachPixelOnce paints bars of a one-cell unit's width
-// and of two wide classes' run by run and checks the structure the picture
-// needs: no pixel is painted twice, both end caps are one picture repeated at
-// the bar's own two ends rather than mirrored, the interior between them fills
-// from the left and leaves its unfilled columns unpainted, a clamped fill
-// paints what the clamp says, and a faded bar changes only its interior's
-// colours. A bar too narrow for its two caps paints nothing.
-func TestStatusBarRunsPaintEachPixelOnce(t *testing.T) {
+func TestStatusBarRunsPaintRowsAndRemainder(t *testing.T) {
+	grey := [4]color.RGBA{{65, 64, 65, 255}, {131, 129, 131, 255}, {98, 97, 98, 255}, {65, 64, 65, 255}}
 	for _, width := range []int{32, 60, 96} {
 		bar := image.Rect(100, 50, 100+width, 54)
-		interior := width - 8
-		paint := func(kind terrain.StatusBarKind, fill int, faded bool) map[image.Point]color.RGBA {
-			t.Helper()
-			px := map[image.Point]color.RGBA{}
-			for _, run := range terrain.AppendStatusBarRuns(nil, kind, bar, fill, faded) {
-				if run.Rect.Dy() != 1 || run.Rect.Empty() || !run.Rect.In(bar) {
-					t.Fatalf("width %d, fill %d: the run %v is not one row inside the bar %v", width, fill, run.Rect, bar)
-				}
-				if run.Color.A == 0 {
-					t.Fatalf("width %d, fill %d: the run %v paints a transparent colour", width, fill, run.Rect)
-				}
-				for y := run.Rect.Min.Y; y < run.Rect.Max.Y; y++ {
-					for x := run.Rect.Min.X; x < run.Rect.Max.X; x++ {
-						p := image.Pt(x, y)
-						if _, twice := px[p]; twice {
-							t.Fatalf("width %d, fill %d: pixel %v is painted twice", width, fill, p.Sub(bar.Min))
-						}
-						px[p] = run.Color
-					}
-				}
-			}
-			return px
-		}
-
 		for _, kind := range []terrain.StatusBarKind{terrain.HealthBar, terrain.ManaBar} {
-			full := paint(kind, interior, false)
-			faded := paint(kind, interior, true)
-			for y := range 4 {
-				for x := range 4 {
-					left, right := bar.Min.Add(image.Pt(x, y)), bar.Min.Add(image.Pt(width-4+x, y))
-					l, lok := full[left]
-					r, rok := full[right]
-					if lok != rok || l != r {
-						t.Errorf("width %d, kind %d: cap pixel (%d,%d) is %v at the left and %v at the right", width, kind, x, y, l, r)
+			for _, faded := range []bool{false, true} {
+				for _, value := range []int{0, 1, 24, 25, 49, 50, 100, 150} {
+					fill := (width - 8) * value / 100
+					if fill == 0 && (kind == terrain.ManaBar || value != 0) {
+						fill = 1
 					}
-					if f, fok := faded[left]; fok != lok || f != l || (lok && l.A != 0xff) {
-						t.Errorf("width %d, kind %d: cap pixel (%d,%d) is %v opaque and %v faded; a cap stays opaque", width, kind, x, y, l, f)
+					pixels := map[image.Point]terrain.StatusBarRun{}
+					for _, run := range terrain.AppendStatusBarRuns(nil, kind, bar, value, 100, faded) {
+						if run.Rect.Dy() != 1 || run.Rect.Empty() {
+							t.Fatalf("invalid row %v", run.Rect)
+						}
+						for x := run.Rect.Min.X; x < run.Rect.Max.X; x++ {
+							p := image.Pt(x, run.Rect.Min.Y)
+							if _, twice := pixels[p]; twice && value <= 100 {
+								t.Fatalf("pixel painted twice: %v", p)
+							}
+							pixels[p] = run
+						}
 					}
-				}
-				row := full[bar.Min.Add(image.Pt(4, y))]
-				for x := 4; x < width-4; x++ {
-					p := bar.Min.Add(image.Pt(x, y))
-					if full[p] != row || row.A != 0xff {
-						t.Errorf("width %d, kind %d: interior (%d,%d) is %v, want the row's opaque %v", width, kind, x, y, full[p], row)
-					}
-					if want := terrain.StatusBarFaded(row); faded[p] != want {
-						t.Errorf("width %d, kind %d: faded interior (%d,%d) is %v, want %v", width, kind, x, y, faded[p], want)
-					}
-				}
-			}
-
-			for _, tc := range []struct{ fill, painted int }{
-				{0, 0}, {-3, 0}, {1, 1}, {interior / 2, interior / 2}, {interior - 1, interior - 1}, {interior + 6, interior},
-			} {
-				px := paint(kind, tc.fill, false)
-				for y := range 4 {
-					for x := 4; x < width-4; x++ {
-						p := bar.Min.Add(image.Pt(x, y))
-						c, ok := px[p]
-						if want := x < 4+tc.painted; ok != want || (ok && c != full[p]) {
-							t.Errorf("width %d, kind %d, fill %d: interior (%d,%d) painted=%v %v, want painted=%v",
-								width, kind, tc.fill, x, y, ok, c, want)
+					for y := range 4 {
+						rb, g := [4]uint8{131, 255, 197, 131}[y], [4]uint8{129, 255, 194, 129}[y]
+						row := color.RGBA{A: 255}
+						switch {
+						case kind == terrain.ManaBar:
+							row.B = rb
+						case value < 25:
+							row.R = rb
+						case value < 50:
+							row.R, row.G = rb, g
+						default:
+							row.G = g
+						}
+						for x := 4; x < width-4; x++ {
+							got, painted := pixels[bar.Min.Add(image.Pt(x, y))]
+							if x-4 < fill {
+								if !painted || got.Color != row || got.HalfAdd != faded {
+									t.Errorf("width=%d kind=%d value=%d faded=%v row=%d x=%d got=%+v painted=%v want=%v", width, kind, value, faded, y, x, got, painted, row)
+								}
+							} else if faded {
+								if painted {
+									t.Errorf("faded remainder painted at %d,%d", x, y)
+								}
+							} else if !painted || got.Color != grey[y] || got.HalfAdd {
+								t.Errorf("selected remainder at %d,%d=%+v want %v", x, y, got, grey[y])
+							}
+						}
+						if value > 100 {
+							p := bar.Min.Add(image.Pt(4+fill-1, y))
+							if got := pixels[p]; got.Color != row || got.HalfAdd != faded {
+								t.Errorf("overfull endpoint %v=%+v want %v", p, got, row)
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-
-	bar := image.Rect(100, 50, 132, 54)
-	prefix := []terrain.StatusBarRun{{Rect: image.Rect(0, 0, 1, 1), Color: color.RGBA{A: 0xff}}}
-	if got := terrain.AppendStatusBarRuns(prefix, terrain.StatusBarKind(2), bar, 24, false); len(got) != 1 {
-		t.Errorf("an unknown kind appended %d runs", len(got)-1)
+	prefix := []terrain.StatusBarRun{{Rect: image.Rect(0, 0, 1, 1), Color: color.RGBA{A: 255}}}
+	for _, kind := range []terrain.StatusBarKind{-1, 2} {
+		if got := terrain.AppendStatusBarRuns(prefix, kind, image.Rect(0, 0, 32, 4), 100, 100, false); len(got) != 1 {
+			t.Errorf("unknown kind appended %d runs", len(got)-1)
+		}
 	}
-	if got := terrain.AppendStatusBarRuns(prefix, terrain.HealthBar, image.Rect(100, 50, 107, 54), 0, false); len(got) != 1 {
-		t.Errorf("a bar 7 wide appended %d runs; it cannot hold both caps", len(got)-1)
-	}
-	if got := terrain.AppendStatusBarRuns(prefix, terrain.HealthBar, bar, 24, false); got[0] != prefix[0] {
-		t.Errorf("appending changed the run already in the slice: %v", got[0])
+	if got := terrain.AppendStatusBarRuns(prefix, terrain.HealthBar, image.Rect(0, 0, 7, 4), 1, 100, false); len(got) != 1 {
+		t.Errorf("narrow bar appended %d runs", len(got)-1)
 	}
 }
 
-// TestStatusBarFadedIsHalfOpacityPremultiplied: the faded colour carries alpha
-// 128, no channel exceeds it, and blended source-over the health row's
-// brightest green over the owner's sampled ground #313421 reads #189a10. The
-// original's own blend reads #189610 there (DIV-1459).
-func TestStatusBarFadedIsHalfOpacityPremultiplied(t *testing.T) {
-	green := color.RGBA{G: 0xff, A: 0xff}
-	f := terrain.StatusBarFaded(green)
-	if f != (color.RGBA{G: 128, A: 128}) {
-		t.Fatalf("StatusBarFaded(%v) = %v, want {0 128 0 128}", green, f)
-	}
-	for _, c := range []color.RGBA{{G: 0x82, A: 0xff}, {B: 0xc6, A: 0xff}, {R: 0xff, G: 0xff, B: 0xff, A: 0xff}} {
-		if f := terrain.StatusBarFaded(c); f.A != 128 || f.R > f.A || f.G > f.A || f.B > f.A {
-			t.Errorf("StatusBarFaded(%v) = %v is not a premultiplied half", c, f)
+func TestStatusBarBlendMatchesPackedHalfWords(t *testing.T) {
+	for _, source := range []color.RGBA{{128, 0, 0, 255}, {255, 0, 0, 255}, {192, 0, 0, 255}, {128, 128, 0, 255}, {255, 255, 0, 255}, {192, 192, 0, 255}, {0, 128, 0, 255}, {0, 255, 0, 255}, {0, 192, 0, 255}, {0, 0, 128, 255}, {0, 0, 255, 255}, {0, 0, 192, 255}} {
+		for word := 0; word < 65536; word++ {
+			r, g, b := word/2048, word/32%64, word%32
+			under := color.RGBA{uint8(r * 255 / 31), uint8(g * 255 / 63), uint8(b * 255 / 31), 255}
+			want := color.RGBA{uint8((r/2 + int(source.R)/8/2) * 255 / 31), uint8((g/2 + int(source.G)/4/2) * 255 / 63), uint8((b/2 + int(source.B)/8/2) * 255 / 31), 255}
+			if got := terrain.StatusBarBlend(source, under); got != want {
+				t.Fatalf("source=%v word=%04x got=%v want=%v", source, word, got, want)
+			}
 		}
-	}
-	ground := color.RGBA{R: 0x31, G: 0x34, B: 0x21, A: 0xff}
-	over := func(s, d uint8) uint8 { return uint8(uint32(s) + (uint32(d)*(255-uint32(f.A))+127)/255) }
-	got := color.RGBA{R: over(f.R, ground.R), G: over(f.G, ground.G), B: over(f.B, ground.B), A: 0xff}
-	if want := (color.RGBA{R: 0x18, G: 0x9a, B: 0x10, A: 0xff}); got != want {
-		t.Errorf("the faded green over %v reads %v, want %v", ground, got, want)
 	}
 }
 

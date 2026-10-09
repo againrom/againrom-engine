@@ -123,6 +123,7 @@ type appInput struct {
 	Down       bool
 	Enter      bool
 	Typed      string
+	AltLetter  byte
 	Backspace  bool
 	Delete     bool
 	Home       bool
@@ -540,6 +541,7 @@ func readAppInput() appInput {
 		Down:              inpututil.IsKeyJustPressed(ebiten.KeyArrowDown),
 		Enter:             enterPressed(inpututil.IsKeyJustPressed),
 		Typed:             string(ebiten.AppendInputChars(nil)),
+		AltLetter:         readAltLetter(altHeld(), inpututil.IsKeyJustPressed),
 		Backspace:         inpututil.IsKeyJustPressed(ebiten.KeyBackspace),
 		Delete:            inpututil.IsKeyJustPressed(ebiten.KeyDelete),
 		Home:              inpututil.IsKeyJustPressed(ebiten.KeyHome),
@@ -784,6 +786,8 @@ type townDialogueRevision interface {
 // finished logical frame receives the window's uniform fit. The mission family
 // owns a separate height-768 frame and expands its map viewport directly.
 type App struct {
+	cheatInput     cheatInputState
+	screenshot     screenshotState
 	tooltip        tooltipController
 	tooltipPoint   image.Point
 	tooltipTexture *ebiten.Image
@@ -1491,6 +1495,12 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		in.SecondaryPressed, in.SecondaryReleased, in.Viewer.SecondaryDown = false, false, false
 	}
 
+	if a.flow.missionCheatInput() && in.Viewer.Alt && in.AltLetter != 0 && !in.Unfocused {
+		a.dispatchCheatAlt(in.AltLetter)
+		in.AltLetter = 0
+		in.Typed = ""
+	}
+	in = a.stepCheatChat(in)
 	if in.Escape {
 		// The open Drop Gold editor owns Escape as its cancel.
 		if v := a.flow.viewer; v != nil && a.flow.screen == ScreenMap && v.goldModalOpen() && !in.Unfocused {
@@ -3748,6 +3758,7 @@ func (a *App) composeScreen() (*image.RGBA, error) {
 // Town-family screens retain their native 640x480 composition and are fitted
 // uniformly. Mission screens alone expand their height-768 logical frame.
 func (a *App) Draw(screen *ebiten.Image) {
+	defer a.captureScreenshot(screen)
 	if a.cutscene != nil {
 		a.drawCutscene(screen)
 		return
@@ -3768,6 +3779,7 @@ func (a *App) Draw(screen *ebiten.Image) {
 	if a.flow.mapShowing() {
 		if v := a.flow.viewer; v != nil {
 			v.Draw(screen)
+			a.drawCheatChat(screen)
 			a.textLayers = append(a.textLayers[:0], textLayer{v.textCalls, v.canvas.Bounds(), &v.canvasLog})
 			a.menuCaptured, a.menuKept = 0, 0
 			a.drawGameMenuOverMap(screen)

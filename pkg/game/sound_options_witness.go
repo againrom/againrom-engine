@@ -204,7 +204,7 @@ func (f *FrontEnd) WitnessSoundOptions(root, output string, report io.Writer) er
 	if err := audioWitnessClosed(ui.DeliveryOwner(f.SoundPlayer)); err != nil {
 		return err
 	}
-	probe, err := newAudioWitnessFront(f.Archives.Root, f.Options, f.Sound, f.SoundChannels, f.deterministicFrames)
+	probe, err := newAudioWitnessFront(f.Archives.Root, f.Options, f.Sound, f.SoundChannels, f.runtime.deterministicFrames)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (f *FrontEnd) WitnessSoundOptions(root, output string, report io.Writer) er
 	if err := audioWitnessClosed(ui.DeliveryOwner(probe.SoundPlayer)); err != nil {
 		return err
 	}
-	later, err := newAudioWitnessFront(probe.Archives.Root, probe.Options, probe.Sound, probe.SoundChannels, probe.deterministicFrames)
+	later, err := newAudioWitnessFront(probe.Archives.Root, probe.Options, probe.Sound, probe.SoundChannels, probe.runtime.deterministicFrames)
 	if err != nil {
 		return err
 	}

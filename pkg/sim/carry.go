@@ -5,45 +5,9 @@ import (
 	"sort"
 )
 
-// foldContainer is THE ONE PLACE a container is normalised: equal codes
-// collapse into the FIRST place the code occupies, their counts summing, and
-// an element whose count is 0 is dropped rather than kept as a place holding
-// nothing.
-//
-// Every act that puts an item into a container ends here — construction from
-// an authored loadout, a decode of the byte form, a take, a give-all, and an
-// item displaced out of an equipment slot — so there is no act that can
-// leave two elements naming one code behind. It is chosen over a merging
-// add(code, count) called at each site (D-2) because equip's write-back puts
-// a code back at a NAMED INDEX rather than appending, so an add-only helper
-// would leave that one path to merge by hand, and that is exactly the path
-// that would rot.
-//
-// FOLDING IS IDEMPOTENT: a container already holding at most one element per
-// code is returned with every element, count and place exactly where it was,
-// because the inner scan then never finds a match.
-//
-// IT IS A LINEAR SCAN AND NOT A MAP, on normaliseSacks' own ground and
-// normaliseHoldings' own rule: no map belongs on any path that builds a
-// world, because Go's iteration order is randomised and a container's order
-// is canonical state that reaches the byte form and the digest. That makes
-// it O(n²) over ELEMENTS in the worst case, and n is one actor's container.
-//
-// COUNTS SUM WITH NO LIMIT TEST OF ANY KIND. There is no capacity and no
-// slot count in this build, and the 32-bit width is itself the argument that
-// no container this package can construct can reach the count's own top: the
-// flat expansion is written with a 32-bit length, so it can hold no more
-// units than a 32-bit count can carry.
-//
-// IT FOLDS BY COMPLETE INSTANCE IDENTITY. `ITEM-STACK-003` makes stackable a
-// virtual whose base body accepts a Potion or an item with no effect list.
-// ItemEqual supplies the corresponding instance predicate here: ordinary
-// items compare code, kind and ordered effects, while Potion also includes
-// stored value under the owner's retention rule. Enchanted and plain copies
-// of one code therefore remain distinct container elements.
-//
-// THE RESULT IS A FRESH SLICE, never the argument's own backing array, so a
-// caller that folds one container cannot write through into another.
+// foldContainer sums equal unbound values with the same retained native record.
+// Independent native records need a complete alias census before merging.
+// Bound objects retain their graph roots; returned values own their metadata.
 func foldContainer(c []ItemStack) []ItemStack {
 	var out []ItemStack
 	for _, st := range c {
@@ -62,7 +26,7 @@ func foldContainer(c []ItemStack) []ItemStack {
 			// one Price to preserve, so equal objects bought for different
 			// amounts remain separate cells. Kind is retained for the same
 			// reason (DIV-747): one cell cannot preserve two concrete kinds.
-			if CanMergeItemValues(out[k].Instance(), st.Instance()) {
+			if nativeItemRecordEqual(out[k].NativeRecord, st.NativeRecord) && CanMergeItemValues(out[k].Instance(), st.Instance()) {
 				out[k].Count += st.Count
 				merged = true
 				break

@@ -180,7 +180,7 @@ func shiftAssert(t *testing.T, v *Viewer, proj terrain.Projection, relief bool, 
 		shiftPlace(cam, lift, shift, terrain.SelectionMarkerRects(e.Cell.X, e.Cell.Y, w, h, terrain.CellSize)...))
 
 	bar, ok := terrain.StatusBarRect(terrain.HealthBar, e.Cell.X, e.Cell.Y, w, h, e.TokenSize, e.Art)
-	fill, pool := terrain.StatusBarFill(bar.Dx(), e.HP, e.MaxHP)
+	fill, pool := terrain.StatusBarFill(terrain.HealthBar, bar.Dx(), e.HP, e.MaxHP)
 	if !ok || !pool {
 		t.Fatalf("%s: the render tier builds no bar for entity %d", label, e.ID)
 	}

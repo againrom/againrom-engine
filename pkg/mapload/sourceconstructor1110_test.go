@@ -15,7 +15,7 @@ func (sourceConstructorScale1110) EntryDoubles(int) []float64 {
 	return []float64{1, 1, 1, 1, 1, 1, 1, 1, 1}
 }
 
-func sourceConstructorTable1110() *Table {
+func sourceActorConstructorTable() *Table {
 	return &Table{Shapes: sourceConstructorScale1110("Common"), Materials: sourceConstructorScale1110("Iron"),
 		Weapons: ghostResistanceCollection{{}, {name: "Blade", params: []int32{0, 0, 0, 2, 0, 1, 7, 16, 11, 6, 0, 4, 13, 17, 1, 1}}},
 		Shields: ghostResistanceCollection{{}, {name: "Shield", params: []int32{0, 0, 0, 2, 0, 0, 0, 0, 0, 7, 3}}},
@@ -23,7 +23,7 @@ func sourceConstructorTable1110() *Table {
 }
 
 func TestSourceConstructor1110LiteralOperandsAndMissingTable(t *testing.T) {
-	table := sourceConstructorTable1110()
+	table := sourceActorConstructorTable()
 	for _, code := range []uint16{0x0101, 0x0201, 0x0701} {
 		item := SourceConstructedItem(sim.PlainItem(code), table)
 		want := sim.SourceEquipment{DefinitionRow: 1, Defence: [22]byte{7, 0, 3}}
@@ -64,7 +64,7 @@ func TestSourceConstructor1110GeneratedEquipmentFreshWorld(t *testing.T) {
 	s.AttackRelax = 4
 	for _, code := range []uint16{0x0101, 0x0701} {
 		w := sourceWorld1110(t, s, []sim.ItemInstance{sim.PlainItem(code)})
-		DeclareCodeWeights(w, sourceConstructorTable1110(), []uint16{code})
+		DeclareCodeWeights(w, sourceActorConstructorTable(), []uint16{code})
 		fresh := sourceNative1110(t, w)
 		for _, current := range []*sim.World{w, fresh} {
 			if !current.EquipSourceCarried(1, 0) {
@@ -106,7 +106,7 @@ func TestSourceConstructor1110ShieldAttachFreshNative(t *testing.T) {
 	s.AttackCharge = 8
 	s.AttackRelax = 4
 	w := sourceWorld1110(t, s, []sim.ItemInstance{sim.PlainItem(0x0101), sim.PlainItem(0x0201)})
-	DeclareCodeWeights(w, sourceConstructorTable1110(), []uint16{0x0101, 0x0201})
+	DeclareCodeWeights(w, sourceActorConstructorTable(), []uint16{0x0101, 0x0201})
 	if !w.EquipSourceCarried(1, 0) {
 		t.Fatal("weapon")
 	}

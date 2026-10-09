@@ -249,12 +249,16 @@ func (a *App) HeadlessType(text string, backspace bool) error {
 		return fmt.Errorf("headless type: nil application")
 	}
 	if backspace {
-		if a.step(appInput{Backspace: true, Unfocused: a.headlessUnfocused}, a.headlessAt()) {
+		in := a.headlessIdleInput()
+		in.Backspace = true
+		if a.step(in, a.headlessAt()) {
 			return fmt.Errorf("headless backspace requested application exit")
 		}
 	}
 	for _, r := range text {
-		if a.step(appInput{Typed: string(r), Unfocused: a.headlessUnfocused}, a.headlessAt()) {
+		in := a.headlessIdleInput()
+		in.Typed = string(r)
+		if a.step(in, a.headlessAt()) {
 			return fmt.Errorf("headless type %q requested application exit", text)
 		}
 	}

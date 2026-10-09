@@ -14,6 +14,8 @@ var worldMethods = []string{"ActiveEffects", "BindSourceDerive", "BookSpellCellR
 var worldWriters = []string{"BindSourceDerive", "CompleteSackPickup", "CopyPotionEffects", "DeclareCellTails", "DeclareItemWeights", "DeclareStructures", "EquipSourceCarried", "EquipSourceItem", "HeadlessDamage", "HeadlessHeal", "HeadlessKill", "HeadlessKillPlayer", "HeadlessPlace", "ImportOriginalActorFacings", "ImportOriginalActorPools", "ImportOriginalActorProfiles", "ImportOriginalActorSpellbooks", "ImportOriginalActorStock", "ImportOriginalCellTails", "ImportOriginalDeadActors", "ImportOriginalLivingActors", "ImportOriginalSession", "ImportOriginalStructureHealth", "ImportSavedGroups", "MoveCarried", "ReplaceGroundSacks", "ReplaceStock", "RestoreActorLoad", "RestoreOneShotPlayerCasts", "RestorePotionEffect", "SetCombat", "SetDerived", "SetHumanMovement", "SetPotionHeadroom", "SetPurse", "SetRules", "TakeSack", "UnequipSource", "UnmarshalBinary", "UseCarriedPotion"}
 
 func init() {
+	worldMethods = append(worldMethods, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")
+	worldWriters = append(worldWriters, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")
 	worldMethods = append(worldMethods, "PlayerParticipants", "RestorePlayerParticipants", "SetPlayerParticipant", "CurrentPlayers", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
 	worldWriters = append(worldWriters, "RestorePlayerParticipants", "SetPlayerParticipant", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
 	worldMethods = append(worldMethods, "ActorOrderProgress", "CancelSackPickup")
@@ -92,6 +94,8 @@ func init() {
 	worldWriters = append(worldWriters, "SetNativeTraining", "SetNativeClass", "SetROM2ScenarioState", "RepairNativeSkillLevels")
 	worldMethods = append(worldMethods, "RestoreNativeActorBases", "RemovedNativeActorBases")
 	worldWriters = append(worldWriters, "RestoreNativeActorBases")
+	worldMethods = append(worldMethods, "RepairNativePackCells")
+	worldWriters = append(worldWriters, "RepairNativePackCells")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")

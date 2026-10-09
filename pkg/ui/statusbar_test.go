@@ -1,9 +1,8 @@
 package ui
 
 // The status bars as the frame composes them, measured against the owner's
-// screenshot of the original. The expected picture is written out here from
-// the measurements, not read from the render tier, so the render tier cannot
-// agree with itself by accident.
+// pinned claims and retained cap sample. Expected pixels are independent
+// of the production colour tables.
 
 import (
 	"fmt"
@@ -25,8 +24,8 @@ var (
 		{0x6b4129, 0x9c6542, 0x4a2810, 0x392410},
 		{0x000400, 0x392410, 0x211408, sbClear},
 	}
-	sbHealthRows = [4]uint32{0x008200, 0x00ff00, 0x00c300, 0x008200}
-	sbManaRows   = [4]uint32{0x000084, 0x0000ff, 0x0000c6, 0x000084}
+	sbHealthRows = [4]uint32{0x008100, 0x00ff00, 0x00c200, 0x008100}
+	sbManaRows   = [4]uint32{0x000083, 0x0000ff, 0x0000c5, 0x000083}
 	// sbGround is the terrain colour the screenshot's faded bar stands on.
 	sbGround = color.RGBA{R: 0x31, G: 0x34, B: 0x21, A: 0xff}
 )
@@ -37,7 +36,7 @@ func sbRGB(v uint32) color.RGBA {
 
 // sbCompose paints the frame's overlay passes over a uniform ground the way
 // Draw submits them: a rectangle covers the pixels whose centres it contains,
-// and its premultiplied colour is blended source-over.
+// with packed half-add for unselected bars.
 func sbCompose(v *Viewer, w, h int, ground color.RGBA) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	for i := 0; i < len(img.Pix); i += 4 {
@@ -45,15 +44,10 @@ func sbCompose(v *Viewer, w, h int, ground color.RGBA) *image.RGBA {
 	}
 	for _, p := range v.overlayPasses() {
 		for _, r := range p.Rects {
-			x0, x1 := int(math.Ceil(r.X-0.5)), int(math.Ceil(r.X+r.W-0.5))
-			y0, y1 := int(math.Ceil(r.Y-0.5)), int(math.Ceil(r.Y+r.H-0.5))
-			for y := max(y0, 0); y < min(y1, h); y++ {
-				for x := max(x0, 0); x < min(x1, w); x++ {
-					old := img.RGBAAt(x, y)
-					keep := 255 - uint32(p.Color.A)
-					over := func(c, d uint8) uint8 { return uint8(uint32(c) + (uint32(d)*keep+127)/255) }
-					img.SetRGBA(x, y, color.RGBA{over(p.Color.R, old.R), over(p.Color.G, old.G), over(p.Color.B, old.B), 0xff})
-				}
+			if p.HalfAdd {
+				blendStatusBarRect(img, r, p.Color)
+			} else {
+				blendScreenRect(img, r, p.Color)
 			}
 		}
 	}
@@ -73,7 +67,7 @@ type sbBar struct {
 // sbExpect is the colour one native bar pixel must read over ground, and a
 // tolerance: the caps are opaque and exact, a selected unit's interior is
 // opaque and exact, an unselected unit's interior is half the row colour and
-// half the ground, and an unfilled interior column is the ground itself.
+// half the ground. A selected remainder is grey; an unselected one is untouched.
 func sbExpect(b sbBar, x, y int, ground color.RGBA) (want color.RGBA, blend bool) {
 	switch {
 	case x < 4:
@@ -87,13 +81,20 @@ func sbExpect(b sbBar, x, y int, ground color.RGBA) (want color.RGBA, blend bool
 		}
 		return ground, false
 	case x-4 >= b.fill:
-		return ground, false
+		if b.faded {
+			return ground, false
+		}
+		return sbRGB([4]uint32{0x414041, 0x838183, 0x626162, 0x414041}[y]), false
 	case !b.faded:
 		return sbRGB(b.rows[y]), false
 	}
-	c := sbRGB(b.rows[y])
-	half := func(a, b uint8) uint8 { return uint8((uint32(a) + uint32(b)) / 2) }
-	return color.RGBA{half(c.R, ground.R), half(c.G, ground.G), half(c.B, ground.B), 0xff}, true
+	return sbPackedBlend(sbRGB(b.rows[y]), ground), false
+}
+
+func sbPackedBlend(source, under color.RGBA) color.RGBA {
+	rb := func(s, d uint8) uint8 { return uint8((int(s/8/2) + int(d/8/2)) * 255 / 31) }
+	g := func(s, d uint8) uint8 { return uint8((int(s/4/2) + int(d/4/2)) * 255 / 63) }
+	return color.RGBA{rb(source.R, under.R), g(source.G, under.G), rb(source.B, under.B), 255}
 }
 
 func sbNear(got, want color.RGBA, tol int) bool {
@@ -159,8 +160,8 @@ func sbCheckBand(img *image.RGBA, cellTL image.Point, zoom int, bars []sbBar, gr
 // its interior is a 50 percent blend with the ground. Health stands 16 to 13
 // rows above the cell's top edge and mana directly under it, 12 to 9 rows
 // above, both centred on the cell (DIV-1460). A wounded bar fills 24*value/max
-// interior columns from the left and leaves the rest of the interior
-// undrawn, with both caps kept (DIV-1459). The rest of the band is bare ground.
+// interior columns from the left. Selected remainder is grey (TERR-225).
+// The rest of the band is bare ground.
 func TestStatusBarsComposeTheOriginalsPicture(t *testing.T) {
 	for _, zoom := range []int{1, 2} {
 		t.Run(fmt.Sprintf("zoom %d", zoom), func(t *testing.T) {
@@ -206,8 +207,7 @@ func TestStatusBarsComposeTheOriginalsPicture(t *testing.T) {
 
 			// The screenshot's own sample: the unselected fighter's brightest
 			// row, #00ff00 over #313421, reads #189610 in the original. This
-			// build blends at 8-bit precision, the original at 16-bit, so the
-			// check allows the four units the original's halving loses in green.
+			// chosen RGB565 expansion can differ from native display conversion.
 			r, _ := v.placeArm(image.Pt(1, 2), image.Rect(32, 64, 64, 96))
 			got := img.RGBAAt(int(math.Round(r.X))+10*zoom, int(math.Round(r.Y))-15*zoom)
 			if !sbNear(got, sbRGB(0x189610), 4) {
