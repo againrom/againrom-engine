@@ -288,7 +288,10 @@ func traceKey(t *testing.T, f *FrontEnd) string {
 	return hex.EncodeToString(sum[:6])
 }
 
-func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
+// startTownTrace builds the traced front end, loads into the town through the
+// ui load path and records the town's first tick.
+func startTownTrace(t *testing.T, party func(*FrontEnd)) (*townTrace, map[byte][2]image.Point, image.Point) {
+	t.Helper()
 	f := releaseFront(t)
 	now := time.Unix(5000, 0)
 	f.TownAnimationNow = func() time.Time { return now }
@@ -304,6 +307,9 @@ func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
 	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = sounds, sounds, sounds
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	f.Carried = f.NextParty()
+	if party != nil {
+		party(f)
+	}
 	f.arriveInTown()
 	points, off := traceMaskPoints(t, f)
 
@@ -323,6 +329,12 @@ func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
 	}
 	tr := &townTrace{t: t, f: f, a: a, now: &now, sound: sounds}
 	tr.action("enter-town")
+	return tr, points, off
+}
+
+func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
+	tr, points, off := startTownTrace(t, nil)
+	f, a := tr.f, tr.a
 
 	tr.hover(off, 34*time.Millisecond, 20)
 	for _, c := range []byte{0x80, 0x90, 0xa0, 0xb0, 0xc0} {
@@ -380,9 +392,16 @@ func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
 	tr.expect("square")
 	tr.hover(off, 34*time.Millisecond, 40)
 	tr.hover(points[0xa0][1], 34*time.Millisecond, 20)
+	tr.compare("townsquaretrace")
+}
 
+// compare checks the recorded lines against testdata/<dir>/<install>.txt, or
+// rewrites that file when AGAINROM_TOWN_TRACE_WRITE is set.
+func (tr *townTrace) compare(dir string) {
+	t, f := tr.t, tr.f
+	t.Helper()
 	got := strings.Join(tr.lines, "\n") + "\n"
-	path := filepath.Join("testdata", "townsquaretrace", traceKey(t, f)+".txt")
+	path := filepath.Join("testdata", dir, traceKey(t, f)+".txt")
 	if os.Getenv("AGAINROM_TOWN_TRACE_WRITE") != "" {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
@@ -399,7 +418,7 @@ func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
 	}
 	want = bytes.ReplaceAll(want, []byte("\r\n"), []byte("\n"))
 	if string(want) == got {
-		t.Logf("town square trace: %d ticks identical to %s", len(tr.lines), path)
+		t.Logf("town trace %s: %d ticks identical to %s", dir, len(tr.lines), path)
 		return
 	}
 	wl := strings.Split(string(want), "\n")

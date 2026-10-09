@@ -309,7 +309,7 @@ func TestCityBookAllocationFailureLeavesTrainingAndShopUntouched(t *testing.T) {
 			}
 			party, graph := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone()
 			gold, history, stock, tray := f.Town.Gold(), f.originalCity.snapshot(), f.Shop.Shelf(ShelfBooks), f.Shop.Table()
-			diamond := screen.schoolDiamond
+			diamond := schoolDiamondState(screen)
 			var msg string
 			switch action {
 			case "shelf":
@@ -324,7 +324,7 @@ func TestCityBookAllocationFailureLeavesTrainingAndShopUntouched(t *testing.T) {
 			if !strings.Contains(msg, "exhaust") {
 				t.Fatal("allocation failure was not reported", msg)
 			}
-			if !reflect.DeepEqual(f.Carried, party) || !reflect.DeepEqual(f.Town.cityObjects, graph) || f.Town.Gold() != gold || !reflect.DeepEqual(f.originalCity.snapshot(), history) || !reflect.DeepEqual(f.Shop.Shelf(ShelfBooks), stock) || !reflect.DeepEqual(f.Shop.Table(), tray) || screen.schoolDiamond != diamond {
+			if !reflect.DeepEqual(f.Carried, party) || !reflect.DeepEqual(f.Town.cityObjects, graph) || f.Town.Gold() != gold || !reflect.DeepEqual(f.originalCity.snapshot(), history) || !reflect.DeepEqual(f.Shop.Shelf(ShelfBooks), stock) || !reflect.DeepEqual(f.Shop.Table(), tray) || schoolDiamondState(screen) != diamond {
 				t.Fatal("failed book mutation leaked values, edges, gold, stock, history or animation")
 			}
 		})

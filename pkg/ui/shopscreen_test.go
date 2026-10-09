@@ -428,32 +428,25 @@ func TestTheCharacterPanelUsesTheSharedFigureCropAndControls(t *testing.T) {
 
 // A merchant with work to offer is marked, because nothing decoded says how the
 // original invites the press and his box is otherwise part of the room picture.
-// TestComposeShopScreenDrawsTheMerchantAndTheShelfAnimations is 1009's own
-// witness: DIV-020's static merchant picture and DIV-018's four shelf
-// animations (their first frame; DIV-127 covers the missing cadence) are
-// blit at the addresses SHOP-MERCHANT-046 and SHOP-SHELF-047 give, not left
-// as an empty region.
-func TestComposeShopScreenDrawsTheMerchantAndTheShelfAnimations(t *testing.T) {
-	art := &ShopScreenArt{Merchant: solid(4, color.RGBA{R: 0x11, A: 0xff})}
-	for i := range art.ShelfAnim {
-		art.ShelfAnim[i] = solid(4, color.RGBA{R: uint8(0x20 + i), A: 0xff})
+// The shop centre is the view's room scene, painted as its "interior" group:
+// the merchant and the four racks are the scene's, not the composer's.
+func TestComposeShopScreenPaintsTheRoomSceneInterior(t *testing.T) {
+	scene := &recordingScene{}
+	pic := ComposeShopScreen(ShopScreenView{Chosen: -1, Art: &ShopScreenArt{}, Scene: scene}, image.Point{}, false, nil, false)
+	if len(scene.groups) != 1 || scene.groups[0] != "interior" {
+		t.Fatalf("painted groups = %v, want one interior", scene.groups)
 	}
-	pic := ComposeShopScreen(ShopScreenView{Chosen: -1}, image.Point{}, false, nil, false)
-	blank := pic.RGBAAt(shopMerchantRect.Min.X, shopMerchantRect.Min.Y)
-
-	pic = ComposeShopScreen(ShopScreenView{Chosen: -1, Art: art}, image.Point{}, false, nil, false)
 	corner := shopMerchantRect.Min
 	if got := pic.RGBAAt(corner.X, corner.Y); got != (color.RGBA{R: 0x11, A: 0xff}) {
-		t.Errorf("merchant corner = %+v, want the art's own picture", got)
+		t.Errorf("merchant corner = %+v, want the scene's own picture", got)
 	}
-	if got := pic.RGBAAt(corner.X, corner.Y); got == blank {
-		t.Error("the merchant corner is unchanged with art present")
-	}
-	for i, r := range shopShelfDrawRects {
-		if got := pic.RGBAAt(r.Min.X, r.Min.Y); got != (color.RGBA{R: uint8(0x20 + i), A: 0xff}) {
-			t.Errorf("shelf %d corner = %+v, want its own folder's first frame", i, got)
-		}
-	}
+}
+
+type recordingScene struct{ groups []string }
+
+func (r *recordingScene) Paint(dst *image.RGBA, group string) {
+	r.groups = append(r.groups, group)
+	dst.SetRGBA(shopMerchantRect.Min.X, shopMerchantRect.Min.Y, color.RGBA{R: 0x11, A: 0xff})
 }
 
 // The shop's own doll, its hit test and hover (1005 round 2: shopDollSlotAt,

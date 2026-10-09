@@ -345,16 +345,11 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	if t.room == roomSchool || t.room == roomTalk && t.dialogueBuilding == TownSchool {
 		v.Kind, v.Title, v.Cells = ui.TownSurfaceSchool, "", t.schoolSurfaceCells()
 		v.SchoolArt = t.in.TownSchoolArt.Value()
-		v.SchoolDiamondFrame = t.schoolDiamond.frame
-		v.SchoolDiamondActive = t.schoolDiamond.ready && t.schoolDiamond.step != 0
+		v.Scene = roomScene{t.schoolPage()}
 		v.SchoolClass = t.schoolPanelClass()
-		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumn.frame, t.schoolColumn.ready
-		if t.schoolTrainingStatic.shineReady {
-			v.SchoolIdleShine, v.SchoolIdleSlot = true, schoolShineDisplaySlot(v.SchoolClass == schoolMageClass, t.schoolTrainingStatic.shineCycle)
-		}
-		v.SchoolTraining = t.schoolTrainingFrame()
-		if v.SchoolArt == nil || v.SchoolArt.Column[v.SchoolColumnFrame] == nil {
-			v.SchoolColumnSet = false
+		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumnShown()
+		if shine := t.schoolShine(); shine.Stamped {
+			v.SchoolIdleShine, v.SchoolIdleSlot = true, shine.Slot(v.SchoolClass)
 		}
 		_, price, ok := t.selectedSchoolSlot()
 		// Two buttons, not three: the school's shipped area picture bakes two
@@ -365,7 +360,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: ok && price <= t.sess.Town.Gold()},
 			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(t.sess.Town.Gold())), Enabled: true},
 		}
-		v.Tip = t.tipView(roomSchool, t.schoolTip, ui.TipPanelShrinkRect(ui.SchoolTipRect, t.in.tipFont(), t.schoolTip))
+		v.Tip = t.tipView(roomSchool, t.schoolTip, ui.TipPanelShrinkRect(roomTipRect(roomSchool), t.in.tipFont(), t.schoolTip))
 		return v
 	}
 	candidates := t.tavernCandidates()
@@ -373,7 +368,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	cells, selected, hasSelection := t.tavernSnapshot(candidates)
 	v.Cells = cells
 	v.TavernArt = t.in.TownTavernArt.Value()
-	v.TavernInterior = t.tavernInteriorFrame()
+	v.Scene = roomScene{t.tavernPage()}
 	o, merc := selected.merc, hasSelection && selected.key.kind == tavernCandidateMercenary
 	value := ""
 	if merc {
@@ -404,7 +399,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		{Label: t.in.Words.TavernTalk, Enabled: talk},
 		{Label: t.in.Words.TavernExit, Value: ui.GroupDigits(int64(t.sess.Town.Gold())), Enabled: true},
 	}
-	v.Tip = t.tipView(roomTavern, t.tavernTip, ui.TipPanelShrinkRect(ui.TavernTipRect, t.in.tipFont(), t.tavernTip))
+	v.Tip = t.tipView(roomTavern, t.tavernTip, ui.TipPanelShrinkRect(roomTipRect(roomTavern), t.in.tipFont(), t.tavernTip))
 	return v
 }
 
@@ -594,7 +589,7 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 	if t.room == roomSchool && price > 0 && price <= t.sess.Town.Gold() {
 		// TOWN-379: local admission arms before the purchase, not on a
 		// successful reply. A refusal leaves any running animation alone.
-		t.schoolDiamond.arm()
+		t.schoolPage().Event("train")
 	}
 	if !t.sess.Town.spend(price) {
 		return fmt.Sprintf("training costs %d", price)

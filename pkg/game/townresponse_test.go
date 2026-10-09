@@ -123,7 +123,7 @@ func TestSchoolTeacherSpeaksAfterAPaidStepOncePerLatch(t *testing.T) {
 
 	// The mage's key is npc34, with its own latch.
 	f.Carried[0].Mage = true
-	s.resetSchoolColumn()
+	s.schoolColumn().Rest(s.schoolMemberClass())
 	cell(8)
 	f.Carried[0].Hero.Skill[4] = 70
 	train()

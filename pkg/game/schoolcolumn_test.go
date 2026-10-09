@@ -60,26 +60,26 @@ func columnSchool(t *testing.T) (*FrontEnd, *townScreen, *time.Time, *schoolRota
 
 func TestSchoolColumnStrictGateBothDirectionsAndNoCatchup(t *testing.T) {
 	_, s, now, recorder := columnSchool(t)
-	if s.schoolColumn.frame != 0 || s.schoolColumn.target != 0 || !s.schoolColumn.ready {
-		t.Fatalf("fighter entry = %+v", s.schoolColumn)
+	if s.schoolColumn().Frame != 0 || s.schoolColumn().Goal != 0 || !s.schoolColumn().Ready {
+		t.Fatalf("fighter entry = %+v", *s.schoolColumn())
 	}
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
-	if len(recorder.samples) != 1 || s.schoolColumn.frame != 0 || s.schoolColumn.target != 15 {
+	if len(recorder.samples) != 1 || s.schoolColumn().Frame != 0 || s.schoolColumn().Goal != 15 {
 		t.Fatal("class selection must start once without skipping the displayed frame")
 	}
 	for _, frame := range []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15} {
 		*now = now.Add(83 * time.Millisecond)
 		paintDiamondSchool(t, s)
-		if s.schoolColumn.frame != frame-1 {
-			t.Fatalf("exactly 83ms advanced to %d", s.schoolColumn.frame)
+		if s.schoolColumn().Frame != frame-1 {
+			t.Fatalf("exactly 83ms advanced to %d", s.schoolColumn().Frame)
 		}
 		*now = now.Add(time.Millisecond)
 		paintDiamondSchool(t, s)
-		if s.schoolColumn.frame != frame {
-			t.Fatalf("84ms frame = %d, want %d", s.schoolColumn.frame, frame)
+		if s.schoolColumn().Frame != frame {
+			t.Fatalf("84ms frame = %d, want %d", s.schoolColumn().Frame, frame)
 		}
 		paintDiamondSchool(t, s)
-		if s.schoolColumn.frame != frame {
+		if s.schoolColumn().Frame != frame {
 			t.Fatal("a second paint at the same instant advanced again")
 		}
 	}
@@ -90,14 +90,14 @@ func TestSchoolColumnStrictGateBothDirectionsAndNoCatchup(t *testing.T) {
 	for _, frame := range []int{14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0} {
 		*now = now.Add(10 * time.Second)
 		paintDiamondSchool(t, s)
-		if s.schoolColumn.frame != frame {
-			t.Fatalf("long paint gap frame = %d, want one step to %d", s.schoolColumn.frame, frame)
+		if s.schoolColumn().Frame != frame {
+			t.Fatalf("long paint gap frame = %d, want one step to %d", s.schoolColumn().Frame, frame)
 		}
 	}
-	before := s.schoolColumn
+	before := schoolColumnState(s)
 	*now = now.Add(time.Hour)
 	paintDiamondSchool(t, s)
-	if s.schoolColumn != before || len(recorder.samples) != 2 {
+	if schoolColumnState(s) != before || len(recorder.samples) != 2 {
 		t.Fatal("endpoint paints changed column state or replayed Rotate")
 	}
 	for _, p := range recorder.places {
@@ -136,23 +136,23 @@ func TestSchoolColumnSelectionControlsAndRetargetPolicy(t *testing.T) {
 	}
 	// Go toward fighter from the displayed frame, not from either endpoint.
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
-	if s.schoolColumn.frame != 1 || s.schoolColumn.target != 0 || len(recorder.samples) != 2 {
+	if s.schoolColumn().Frame != 1 || s.schoolColumn().Goal != 0 || len(recorder.samples) != 2 {
 		t.Fatal("rapid retarget jumped or failed to reverse")
 	}
-	last := s.schoolColumn.last
+	last := s.schoolColumn().Last
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false) // fighter -> fighter
-	if s.schoolColumn.last != last || len(recorder.samples) != 2 {
+	if s.schoolColumn().Last != last || len(recorder.samples) != 2 {
 		t.Fatal("same-class member change rearmed or sounded the rotation")
 	}
 	*now = now.Add(84 * time.Millisecond)
 	paintDiamondSchool(t, s)
-	if s.schoolColumn.frame != 0 || s.TownSurface().SchoolClass != 0 {
+	if s.schoolColumn().Frame != 0 || s.TownSurface().SchoolClass != 0 {
 		t.Fatal("reverse did not stop at fighter")
 	}
 	// A second click before the first frame cancels without a phantom sound.
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlPrevious}, false)
-	if s.schoolColumn.frame != 0 || s.schoolColumn.target != 0 || len(recorder.samples) != 3 {
+	if s.schoolColumn().Frame != 0 || s.schoolColumn().Goal != 0 || len(recorder.samples) != 3 {
 		t.Fatal("zero-distance cancellation started a second rotation")
 	}
 }
@@ -162,7 +162,7 @@ func TestSchoolColumnReadsRoomBoundariesAndIndependentDiamond(t *testing.T) {
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
 	*now = now.Add(84 * time.Millisecond)
 	paintDiamondSchool(t, s)
-	before := s.schoolColumn
+	before := schoolColumnState(s)
 	*now = now.Add(time.Hour)
 	for i := 0; i < 20; i++ {
 		view := s.TownSurface()
@@ -171,35 +171,35 @@ func TestSchoolColumnReadsRoomBoundariesAndIndependentDiamond(t *testing.T) {
 		s.Rows()
 		s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlMode}, false)
 	}
-	if s.schoolColumn != before || len(recorder.samples) != 1 {
+	if schoolColumnState(s) != before || len(recorder.samples) != 1 {
 		t.Fatal("an inspection or statistics toggle advanced the column")
 	}
-	s.schoolDiamond.arm()
+	s.schoolPage().Event("train")
 	s.room, s.dialogueBuilding = roomTalk, TownSchool
 	paintDiamondSchool(t, s)
-	if s.schoolColumn.frame != 2 || s.schoolDiamond.frame != 1 {
+	if s.schoolColumn().Frame != 2 || s.schoolDiamond().Frame != 1 {
 		t.Fatal("school dialogue did not paint both independent animations")
 	}
 	paintDiamondSchool(t, s)
-	if s.schoolColumn.frame != 2 || s.schoolDiamond.frame != 2 {
+	if s.schoolColumn().Frame != 2 || s.schoolDiamond().Frame != 2 {
 		t.Fatal("the diamond inherited the column's millisecond gate")
 	}
 	s.room = roomSchool
 	s.Back()
-	before = s.schoolColumn
+	before = schoolColumnState(s)
 	*now = now.Add(time.Hour)
 	s.Choose(0)
 	paintDiamondSchool(t, s)
-	if s.schoolColumn != before {
+	if schoolColumnState(s) != before {
 		t.Fatal("tavern paint advanced the hidden school column")
 	}
 	s.Back()
 	s.Choose(2)
-	if s.schoolColumn.frame != 15 || s.schoolColumn.target != 15 || len(recorder.samples) != 1 {
+	if s.schoolColumn().Frame != 15 || s.schoolColumn().Goal != 15 || len(recorder.samples) != 1 {
 		t.Fatal("school reentry must initialize the selected class without a rotation")
 	}
 	s.resetForNewGame()
-	if s.schoolColumn != (schoolColumnAnimation{}) {
+	if schoolColumnState(s) != (columnState{}) {
 		t.Fatal("new game retained the previous game's column")
 	}
 }
@@ -212,17 +212,17 @@ func TestSchoolColumnBackwardClockAndDegradedArt(t *testing.T) {
 			case "art":
 				f.TownSchoolArt = lazy[*ui.TownSchoolArt]{}
 			case "frames":
-				f.TownSchoolArt.Value().Column = [16]image.Image{}
+				f.TownSchoolArt.Value().Scene["column"] = make([]image.Image, 16)
 			case "sound":
 				f.SoundBank = nil
 			case "device":
 				f.SoundPlayer = nil
 			}
 			s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlNext}, false)
-			before := s.schoolColumn
+			before := schoolColumnState(s)
 			*now = now.Add(-time.Hour)
 			paintDiamondSchool(t, s)
-			if s.schoolColumn != before {
+			if schoolColumnState(s) != before {
 				t.Fatal("backward clock advanced or rewound the animation")
 			}
 			if missing == "art" || missing == "frames" {
@@ -244,7 +244,7 @@ func TestLoadSchoolColumnAllFramesOrderedOpaqueAndValidated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for frame, pic := range art.Column {
+	for frame, pic := range art.Scene["column"] {
 		if got := pic.At(3, 3); got != (color.RGBA{R: uint8(0x40 + frame), G: 0x22, B: 0x11, A: 255}) {
 			t.Fatalf("column frame %d = %v", frame, got)
 		}
@@ -261,14 +261,14 @@ func TestLoadSchoolColumnAllFramesOrderedOpaqueAndValidated(t *testing.T) {
 			}
 		}
 	}
-	if art.Faces[0] != art.Column[0] || art.Faces[1] != art.Column[15] {
+	if art.Faces[0] != art.Scene["column"][0] || art.Faces[1] != art.Scene["column"][15] {
 		t.Fatal("static callers no longer share exact endpoint frames")
 	}
 	// Black is real column paint, not the key used for skill overlays.
 	src := townSchoolSource()
 	src[townSchoolArtPrefix+"column/rt0007.bmp"] = synthBMP(148, 208, color.RGBA{A: 255})
 	art, err = LoadTownSchoolArt(src)
-	if err != nil || art.Column[7].At(70, 90) != (color.RGBA{A: 255}) {
+	if err != nil || art.Scene["column"][7].At(70, 90) != (color.RGBA{A: 255}) {
 		t.Fatal("a pure-black rotation pixel lost its opaque alpha")
 	}
 }

@@ -1982,6 +1982,9 @@ package storyguard
 // CommentBytes rises for the town composer: the docs of pkg/town's description
 // format, actor programs and view, which replace the square's per-actor code,
 // new code, including this paragraph.
+// CommentBytes rises for the town room pages: the room trace instrument, the
+// reader's refusals, pkg/town's own tests and its page programs, new code,
+// including this paragraph.
 // CommentBytes rises for the frame builder: the docs of the frame rows, the
 // tiling and the shadow tone in the new widget kit file, which replace the
 // separate window, tip, panel and border painters, new code, including this
@@ -2014,5 +2017,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1776,
 	},
-	CommentBytes: 8511030,
+	CommentBytes: 8518007,
 }

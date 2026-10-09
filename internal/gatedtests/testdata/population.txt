@@ -969,4 +969,5 @@ pkg/game.TestReleaseLightningFigureOverItsLife
 pkg/game.TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath
 pkg/game.TestReleaseRoomTipStyleAndLayoutFromInstall
 pkg/game.TestReleaseFreshPartyBodyKeepsItsRowDwell
+pkg/game.TestReleaseTownRoomTraceIsUnchanged
 pkg/game.TestReleaseFrameAndButtonCensus

@@ -97,8 +97,8 @@ func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testin
 			count  int
 			first  int
 		}{
-			{"tr", art.Training[class].Transition, shape.transitionLast + 1, 0},
-			{"m", art.Training[class].Idle, shape.idleLast, 1},
+			{"tr", art.Scene[schoolMovieNames[class][0]], shape.transitionLast + 1, 0},
+			{"m", art.Scene[schoolMovieNames[class][1]], shape.idleLast, 1},
 		}
 		for _, family := range families {
 			if len(family.frames) != family.count {
@@ -132,7 +132,7 @@ func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testin
 			t.Fatalf("optional missing %s failed base room: %v", missing.path, err)
 		}
 		for class, shape := range schoolTrainingFamilyShape {
-			for family, frames := range [][]image.Image{got.Training[class].Transition, got.Training[class].Idle} {
+			for family, frames := range [][]image.Image{got.Scene[schoolMovieNames[class][0]], got.Scene[schoolMovieNames[class][1]]} {
 				want := shape.transitionLast + 1
 				if family == 1 {
 					want = shape.idleLast
@@ -150,8 +150,8 @@ func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testin
 	src := townSchoolTrainingSource()
 	src[townSchoolMoviesPrefix+"mage/m0009.bmp"] = synthBMP(171, 224, color.RGBA{A: 0xff})
 	got, err := LoadTownSchoolArt(src)
-	if err != nil || got.Training[schoolMageClass].Idle != nil || len(got.Training[schoolMageClass].Transition) != 23 || len(got.Training[schoolFighterClass].Idle) != 9 {
-		t.Fatalf("malformed mage/m degraded outside its family: err=%v art=%+v", err, got.Training)
+	if err != nil || got.Scene["mage-m"] != nil || len(got.Scene["mage-tr"]) != 23 || len(got.Scene["fighter-m"]) != 9 {
+		t.Fatalf("malformed mage/m degraded outside its family: err=%v art=%d entries", err, len(got.Scene))
 	}
 }
 

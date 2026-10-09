@@ -13,6 +13,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   carrying capacity 300. Before, it had none of these.
 - [BASE] The town square is built from a town description by one town
   composer; it looks and plays the same.
+- [BASE] The tavern, shop and school are built from the town description by
+  the same composer; they look and play the same.
 - [ROM1] Windows, panels and lists now look alike everywhere. Every window
   frame is drawn with whole edge tiles as the original draws it, and the
   cutscene library and Sound Options lists sit in the same sunken well as

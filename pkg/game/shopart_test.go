@@ -25,9 +25,9 @@ import (
 func shopAnimationFixtureFS(t *testing.T, omit string) *vfs.FS {
 	t.Helper()
 	var graphics, movies []synth.File
-	for rack, folder := range shopRackFolders {
+	for rack := 0; rack < 4; rack++ {
 		for frame := 1; frame <= shopRackFrameCount; frame++ {
-			path := fmt.Sprintf("interface/shopanim/%s/%d.bmp", folder, frame)
+			path := fmt.Sprintf("interface/shopanim/%02d/%d.bmp", 4-rack, frame)
 			if path != omit {
 				graphics = append(graphics, synth.File{Path: path, Data: shopSolidBMP(2, 2, color.RGBA{R: uint8(10 + rack*20 + frame), A: 0xff})})
 			}
@@ -106,73 +106,79 @@ func shopArtFixtureFS(t *testing.T) *vfs.FS {
 // SHOP-MERCHANT-046 gives, and not out of graphics.res.
 func TestLoadShopArtReadsTheMerchantOutOfMoviesArchive(t *testing.T) {
 	art := loadShopArt(shopArtFixtureFS(t))
-	if art.Merchant == nil {
-		t.Fatal("Merchant is nil with movies.res present")
+	merchant := art.Scene["merchant"]
+	if len(merchant) != 1 || merchant[0] == nil {
+		t.Fatal("merchant is missing with movies.res present")
 	}
-	if got := art.Merchant.RGBAAt(0, 0); got != (color.RGBA{R: 0x20, A: 0xff}) {
-		t.Errorf("Merchant pixel = %+v, want the movies.res fixture's own colour", got)
+	if got := shopPixel(merchant[0]); got != (color.RGBA{R: 0x20, A: 0xff}) {
+		t.Errorf("merchant pixel = %+v, want the movies.res fixture's own colour", got)
 	}
 }
 
-// The four shelf animations' first frame come out of graphics.res, folder
-// `4-i` for hit/draw index i (SHOP-SHELF-047), and each folder is distinct.
+// The four rack series' first frames come out of graphics.res, folder `4-i`
+// for hit/draw index i (SHOP-SHELF-047), and each folder is distinct.
 func TestLoadShopArtReadsTheShelfAnimationsFolderFourMinusI(t *testing.T) {
 	art := loadShopArt(shopArtFixtureFS(t))
 	want := [4]color.RGBA{{R: 0x10, A: 0xff}, {R: 0x11, A: 0xff}, {R: 0x12, A: 0xff}, {R: 0x13, A: 0xff}}
 	for i, w := range want {
-		if art.ShelfAnim[i] == nil {
-			t.Fatalf("ShelfAnim[%d] is nil with graphics.res present", i)
+		frames := art.Scene[fmt.Sprintf("rack%d", i)]
+		if len(frames) == 0 || frames[0] == nil {
+			t.Fatalf("rack %d first frame is missing with graphics.res present", i)
 		}
-		if got := art.ShelfAnim[i].RGBAAt(0, 0); got != w {
-			t.Errorf("ShelfAnim[%d] pixel = %+v, want folder %d's own colour %+v", i, got, 4-i, w)
+		if got := shopPixel(frames[0]); got != w {
+			t.Errorf("rack %d pixel = %+v, want folder %d's own colour %+v", i, got, 4-i, w)
 		}
 	}
 }
 
-func TestLoadShopArtLeavesTheNewFieldsNilWithNoArchive(t *testing.T) {
-	art := loadShopArt(nil)
-	if art.Merchant != nil {
-		t.Error("Merchant is non-nil with no archive")
-	}
-	for i, pic := range art.ShelfAnim {
-		if pic != nil {
-			t.Errorf("ShelfAnim[%d] is non-nil with no archive", i)
-		}
+func TestLoadShopArtLeavesTheSceneEmptyWithNoArchive(t *testing.T) {
+	if art := loadShopArt(nil); len(art.Scene) != 0 {
+		t.Errorf("scene = %d entries with no archive", len(art.Scene))
 	}
 }
 
 func TestLoadShopArtCachesEveryAcceptedAnimationFamily(t *testing.T) {
 	art := loadShopArt(shopAnimationFixtureFS(t, ""))
-	for i, frames := range art.RackAnimation {
-		if len(frames) != shopRackFrameCount || frames[0] != art.ShelfAnim[i] {
-			t.Fatalf("rack %d cache = %d frames, first alias %v", i, len(frames), frames[0] == art.ShelfAnim[i])
+	for i := 0; i < 4; i++ {
+		frames := art.Scene[fmt.Sprintf("rack%d", i)]
+		if len(frames) != shopRackFrameCount {
+			t.Fatalf("rack %d cache = %d frames", i, len(frames))
 		}
-		if got := frames[10].RGBAAt(0, 0).R; got != uint8(21+i*20) {
+		if got := shopPixel(frames[10]).R; got != uint8(21+i*20) {
 			t.Fatalf("rack %d file11 marker = %d", i, got)
 		}
 	}
-	if len(art.MerchantIdle) != shopMerchantIdleCount || len(art.MerchantYes) != shopMerchantReactCount || len(art.MerchantNo) != shopMerchantReactCount {
-		t.Fatalf("merchant family counts = idle%d yes%d no%d", len(art.MerchantIdle), len(art.MerchantYes), len(art.MerchantNo))
+	idle, yes, no := art.Scene["idle"], art.Scene["yes"], art.Scene["no"]
+	if len(idle) != shopMerchantIdleCount || len(yes) != shopMerchantReactCount || len(no) != shopMerchantReactCount {
+		t.Fatalf("merchant family counts = idle%d yes%d no%d", len(idle), len(yes), len(no))
 	}
-	if got := art.MerchantIdle[0].RGBAAt(0, 0).G; got != 2 {
+	if got := shopPixel(idle[0]).G; got != 2 {
 		t.Fatalf("idle first marker = %d, want Pose file2", got)
 	}
-	if got := art.MerchantYes[10].RGBAAt(0, 0).B; got != 12 {
+	if got := shopPixel(yes[10]).B; got != 12 {
 		t.Fatalf("Yes last marker = %d, want file12", got)
 	}
 }
 
+// A rack series keeps its loaded members and leaves a missing one empty; a
+// merchant series with a missing member is dropped alone.
 func TestLoadShopArtDropsOnlyTheIncompleteAnimationFamily(t *testing.T) {
 	art := loadShopArt(shopAnimationFixtureFS(t, "interface/shopanim/03/7.bmp"))
-	if art.RackAnimation[1] != nil || art.ShelfAnim[1] == nil {
-		t.Fatalf("incomplete rack = series %#v first %v", art.RackAnimation[1], art.ShelfAnim[1] != nil)
+	rack := art.Scene["rack1"]
+	if len(rack) != shopRackFrameCount || rack[0] == nil || rack[6] != nil {
+		t.Fatalf("incomplete rack = %d frames, first %v, missing member %v", len(rack), rack[0] != nil, rack[6] == nil)
 	}
-	if len(art.RackAnimation[0]) != shopRackFrameCount || len(art.RackAnimation[2]) != shopRackFrameCount || len(art.MerchantIdle) != shopMerchantIdleCount {
+	if len(art.Scene["rack0"]) != shopRackFrameCount || len(art.Scene["rack2"]) != shopRackFrameCount || len(art.Scene["idle"]) != shopMerchantIdleCount {
 		t.Fatal("missing rack member removed a complete sibling")
 	}
 
 	art = loadShopArt(shopAnimationFixtureFS(t, "shopanim/yes/6.bmp"))
-	if art.MerchantYes != nil || len(art.MerchantNo) != shopMerchantReactCount || len(art.MerchantIdle) != shopMerchantIdleCount {
+	if art.Scene["yes"] != nil || len(art.Scene["no"]) != shopMerchantReactCount || len(art.Scene["idle"]) != shopMerchantIdleCount {
 		t.Fatal("missing Yes member removed another merchant family")
 	}
+}
+
+func shopPixel(pic image.Image) color.RGBA {
+	b := pic.Bounds()
+	return color.RGBAModel.Convert(pic.At(b.Min.X, b.Min.Y)).(color.RGBA)
 }

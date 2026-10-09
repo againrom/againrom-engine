@@ -148,24 +148,20 @@ type townScreen struct {
 	schoolCell         int
 	// schoolSpent marks the teacher speech latches already used since the room
 	// was entered; a zero value is a set latch (TOWN-502).
-	schoolSpent    [schoolLatchCount]bool
-	schoolDiamond  schoolDiamondAnimation
-	schoolColumn   schoolColumnAnimation
-	schoolTraining schoolTrainingAnimation
-	// schoolTrainingStatic projects original process-static presentation
-	// clocks/counters and therefore survives object-local room/new-game resets.
-	schoolTrainingStatic schoolTrainingStatic
+	schoolSpent [schoolLatchCount]bool
 	// square is the square's composer view, built on first use. squareRandom
 	// is its fallback presentation generators, squareLoop its entry loop's
 	// voice and squareAction the action a click's hooks left.
-	square         *town.View
-	squareRandom   [2]*rand.Rand
-	squareLoop     audio.Voice
-	squareAction   ui.TownAction
-	tavernInterior tavernInteriorAnimation
-	shopInterior   shopInteriorAnimation
-	townStats      bool
-	shopBook       bool
+	square       *town.View
+	squareRandom [2]*rand.Rand
+	squareLoop   audio.Voice
+	squareAction ui.TownAction
+	// pages are the room pages the composer builds, by room name, and
+	// pageRandom their fallback presentation generators by draw source.
+	pages      map[string]*town.Page
+	pageRandom map[string]*rand.Rand
+	townStats  bool
+	shopBook   bool
 
 	// schoolSounds holds the school's own chrgen skill instances
 	// (VIDEO-SFX-059); presentation only.
@@ -295,13 +291,11 @@ func (t *townScreen) resetForNewGame() {
 	t.shelfBase, t.packBase = 0, 0
 	t.shopMember, t.tavernSelection, t.schoolCell = 0, tavernCandidateKey{}, schoolNoSelection
 	t.tavernSlotRequests = nil
-	t.schoolDiamond = schoolDiamondAnimation{}
 	t.schoolSpent = [schoolLatchCount]bool{}
-	t.schoolColumn = schoolColumnAnimation{}
 	t.schoolSounds.Stop()
-	t.resetSchoolTraining()
-	t.resetTavernInterior()
-	t.resetShopInterior()
+	t.schoolPage().Reset()
+	t.tavernPage().Reset()
+	t.shopPage().Reset()
 	t.townStats, t.shopBook = false, false
 	t.clearTavernDetail()
 	t.shopFigures, t.shopFigureMasks = nil, nil
@@ -558,7 +552,8 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 		// schoolNoSelection for the same reason: 0 is a real skill, and a
 		// freshly built town must not open the school with one already
 		// selected and its price quoted.
-		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection})
+		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection,
+			pages: map[string]*town.Page{}, pageRandom: map[string]*rand.Rand{}})
 		// The screen is constructed already at roomSquare (townRoom's own
 		// zero value; atSquare's doc), so this is that room's own entry load
 		// (1018 spec behaviour 2), not a special case of construction.

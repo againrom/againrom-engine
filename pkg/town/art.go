@@ -146,13 +146,23 @@ func loadEntry(spec ArtSpec, e artEntry, src Loader) ([]image.Image, error) {
 	case "series":
 		var frames []image.Image
 		for i := 0; i < e.count; i++ {
-			key := fmt.Sprintf(e.key, i)
+			key := fmt.Sprintf(e.key, i+spec.First)
 			pic, err := src.Picture(key)
 			if err == nil && spec.Size != nil {
 				err = checkSize(pic, *spec.Size, key)
 			}
+			if err == nil && spec.MaxSize != nil {
+				err = checkMaxSize(pic, *spec.MaxSize, key)
+			}
+			if err != nil && spec.KeepMissing {
+				frames = append(frames, nil)
+				continue
+			}
 			if err != nil {
 				return nil, fmt.Errorf("%s: %v", key, err)
+			}
+			if spec.Transparent == "black" {
+				pic = keyBlack(pic)
 			}
 			frames = append(frames, pic)
 		}
@@ -181,6 +191,15 @@ func checkSize(pic image.Image, want Point, key string) error {
 	}
 	if pic.Bounds().Dx() != want[0] || pic.Bounds().Dy() != want[1] {
 		return fmt.Errorf("%s: size %dx%d, want %dx%d", key, pic.Bounds().Dx(), pic.Bounds().Dy(), want[0], want[1])
+	}
+	return nil
+}
+
+// checkMaxSize admits a picture with a positive size inside the envelope.
+func checkMaxSize(pic image.Image, envelope Point, key string) error {
+	b := pic.Bounds()
+	if b.Dx() <= 0 || b.Dy() <= 0 || b.Dx() > envelope[0] || b.Dy() > envelope[1] {
+		return fmt.Errorf("%s: invalid bounds %v", key, b)
 	}
 	return nil
 }
