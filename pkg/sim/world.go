@@ -1798,6 +1798,7 @@ type World struct {
 	spells        []SpellRule
 	ghost         GhostTemplate
 	sourceDerive  SourceDerive
+	safeMode      bool
 	carried       [][]ItemStack
 	equipment     [][EquipSlots]ItemInstance
 	purses        [relationSlots]uint32

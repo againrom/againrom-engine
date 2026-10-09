@@ -1429,11 +1429,11 @@ type Viewer struct {
 	fogPlane         []byte
 	fogCols, fogRows int
 
-	// fogReveal is the debug reveal's own flag. While set, fogAt answers
-	// FogVisible for every cell without touching fogPlane at all, so AC-11's
-	// "turning it off restores the previous drawing exactly" holds by
-	// construction — there is no plane edit to undo.
-	fogReveal bool
+	// fogReveal displays every cell; chat reveal also retains client fog bits.
+	fogReveal      bool
+	cheatExplored  []byte
+	cheatVisible   bool
+	cheatFogSource []byte
 
 	// The terrain colors stay cached for this grid and tileset; the uploaded
 	// texture is rebuilt only when its dimensions change.
