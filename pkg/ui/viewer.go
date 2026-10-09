@@ -594,6 +594,12 @@ type Viewer struct {
 	structureLighting        map[image.Point]float32
 	structureTerrainLighting map[image.Point]float32
 
+	// lightStamps and boltLightStamps are the projectile light-stamp grid
+	// (objectlight.go): every stamp, and only the stamps the Dynamic lighting
+	// option does not skip. Replaced on every game push. Presentation-only.
+	lightStamps     map[image.Point]uint8
+	boltLightStamps map[image.Point]uint8
+
 	shadowMasks map[*terrain.StaticFrame]*ebiten.Image
 
 	// dragging is whether a primary-button drag is currently in progress, and
@@ -4174,6 +4180,11 @@ func (v *Viewer) cornerScales(tx, ty int) [4]float32 {
 		if glow, ok := v.structureTerrainScale(vertices[i]); ok && glow > sc[i] {
 			sc[i] = glow
 		}
+		// A light stamp takes min(stamp, terrain level), the larger scale
+		// (lightStampTerrainScale). The black map margin stays black.
+		if stamp, ok := v.lightStampTerrainScale(vertices[i]); ok && stamp > sc[i] && !v.borderDimmed(tx, ty) {
+			sc[i] = stamp
+		}
 	}
 	return sc
 }
@@ -4219,16 +4230,22 @@ const mapBorderDim float32 = 0
 // dimBorder leaves the admitted lower terrain rows textured without changing movement.
 // TERR-217.
 func (v *Viewer) dimBorder(sc [4]float32, tx, ty int) [4]float32 {
-	if !v.grid.BorderCell(tx, ty) {
-		return sc
-	}
-	if cells, ok := v.renderCellRect(); ok && image.Pt(tx, ty).In(cells) {
+	if !v.borderDimmed(tx, ty) {
 		return sc
 	}
 	for i := range sc {
 		sc[i] *= mapBorderDim
 	}
 	return sc
+}
+
+// borderDimmed reports whether dimBorder blacks out cell (tx,ty).
+func (v *Viewer) borderDimmed(tx, ty int) bool {
+	if !v.grid.BorderCell(tx, ty) {
+		return false
+	}
+	cells, ok := v.renderCellRect()
+	return !ok || !image.Pt(tx, ty).In(cells)
 }
 
 // tileWord is the tile word at (col,row), read row-major.

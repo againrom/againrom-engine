@@ -50,15 +50,15 @@ type spellBolt struct {
 	seed uint32
 	tag  int
 
-	// facing is the caster's own facing at the moment of the cast, carried so
-	// every producer of a flying picture can place its departure point at the
-	// caster's hand or staff rather than his cell centre (owner). It is zero
-	// — which reads as north, sim.FacingDir's own default — for a burst or
-	// an area-paint object, neither of which has a departure point of its own
-	// to offset.
+	// facing is the caster's own facing at the moment of the cast. It is zero
+	// for a burst or an area-paint object.
 	facing uint8
 	// A runtime-id-zero source is a cell, not a person's hand (1084).
 	centered bool
+	// launch is the object's start relative to the from cell's centre, in
+	// ShotScale units (castLaunch, MAGIC-261). Zero for a burst, an area-paint
+	// object and a cell source.
+	launch image.Point
 }
 
 // healBurst is the client lifetime of one Heal or Drain shower. Its anchor is
@@ -208,13 +208,14 @@ func (mw *mapWorld) effectTileSize(id sim.EntityID) int {
 func (mw *mapWorld) spawnCastSet(from, to image.Point, ev sim.CastEvent, index int) {
 	spell, owner := int(ev.Spell), ev.Owner
 	seed := mw.visualCastSeed(ev.Caster, ev.Target, spell, ev.AtCell)
+	class := mw.casterClass(ev.Caster)
 	if len(ev.Victims) == 0 {
-		mw.spawnCast(from, to, spell, owner, seed, index%chainTagCount, ev.Facing)
+		mw.spawnCast(from, to, spell, owner, seed, index%chainTagCount, ev.Facing, class)
 		return
 	}
 	for k, v := range ev.Victims {
 		mw.spawnCast(from, image.Pt(int(v.X), int(v.Y)), spell, owner,
-			seed+uint32(k)*2654435761, k%chainTagCount, ev.Facing)
+			seed+uint32(k)*2654435761, k%chainTagCount, ev.Facing, class)
 	}
 }
 
@@ -226,26 +227,32 @@ func (mw *mapWorld) spawnCastSet(from, to image.Point, ev sim.CastEvent, index i
 // table of flight lengths whose value is zero for all but seven pictures, and a
 // zero-length object never executes a driver arm.
 //
-// TELEPORT SPAWNS TWO. Its picture allocates a second object at the caster's
-// own centre, so a second entry is appended with both ends on the caster's
-// cell — which stands still and runs the same clock through the same code,
-// with nothing downstream special-casing it.
-func (mw *mapWorld) spawnCast(from, to image.Point, spell int, owner uint32, seed uint32, tag int, facing uint8) {
+// EVERY OBJECT STARTS AT ITS CASTER CLASS'S LAUNCH POINT (castLaunch,
+// MAGIC-261): the staff tip, the hand or the Selection fallback the class
+// and facing select.
+//
+// TELEPORT SPAWNS TWO stationary objects, both on the Selection fallback. The
+// first stands at the caster's cell plus that delta; the second's raw point is
+// the destination plus the same delta (MAGIC-265; DIV-2658).
+func (mw *mapWorld) spawnCast(from, to image.Point, spell int, owner uint32, seed uint32, tag int, facing uint8, class *terrain.UnitClass) {
 	picture := data.CastPicture(spell)
 	life := data.CastFlight(picture, castDistance(from, to))
 	if life <= 0 {
 		return
 	}
+	launch := castLaunch(class, facing, picture)
 	if picture == teleportPicture {
-		// Teleport is two stationary flashes, never a projectile travelling
-		// between the cells. Both use the ordinary picture cadence.
+		arrive := image.Point{}
+		if class != nil {
+			arrive = castSelectionDelta(class)
+		}
 		mw.bolts = append(mw.bolts,
-			spellBolt{from: from, to: from, picture: picture, owner: owner, life: life, seed: seed, tag: tag, facing: facing},
-			spellBolt{from: to, to: to, picture: picture, owner: owner, life: life, seed: seed, tag: tag, facing: facing})
+			spellBolt{from: from, to: from, picture: picture, owner: owner, life: life, seed: seed, tag: tag, facing: facing, launch: launch},
+			spellBolt{from: to, to: to, picture: picture, owner: owner, life: life, seed: seed, tag: tag, facing: facing, launch: arrive})
 		return
 	}
 	mw.bolts = append(mw.bolts, spellBolt{from: from, to: to, picture: picture, owner: owner,
-		life: life, seed: seed, tag: tag, facing: facing})
+		life: life, seed: seed, tag: tag, facing: facing, launch: launch})
 }
 
 // chainTagCount is how many record tags the second path picture cycles through.
@@ -293,8 +300,7 @@ func (mw *mapWorld) burstDelay(ev sim.CastEvent, from, to image.Point) int {
 }
 
 // teleportPicture is the one picture that puts TWO objects on the map: the
-// spawner copy-constructs a second one and places it at the caster's own
-// bounding-box centre.
+// spawner copy-constructs a second one (MAGIC-265).
 const teleportPicture = 60
 
 // fireBallSpell is the spell whose burst the World builds as a record.
@@ -624,7 +630,7 @@ func (mw *mapWorld) boltDraws(ents []sim.Entity) []ui.SpellBolt {
 		if num > life {
 			num = life
 		}
-		if d, ok := mw.spellDraw(b.picture, b.from, b.to, castShotPoint(b.from, b.to, num, life, b.facing),
+		if d, ok := mw.spellDraw(b.picture, b.from, b.to, castShotPoint(b.from, b.to, num, life, b.launch),
 			age, b.owner); ok {
 			out = append(out, d)
 		}
@@ -868,6 +874,25 @@ func (mw *mapWorld) spellDraw(picture int, from, to, pos image.Point, age int, o
 // through the wind-up its caster stands.
 func (mw *mapWorld) weaponBoltDraws(ents []sim.Entity) []ui.SpellBolt {
 	var out []ui.SpellBolt
+	for _, b := range mw.weaponBolts(ents) {
+		if data.CastDrawsPath(b.picture) {
+			out = append(out, mw.pathDraws(b)...)
+			continue
+		}
+		if d, ok := mw.spellDraw(b.picture, b.from, b.to, castShotPoint(b.from, b.to, b.age, b.life, b.launch),
+			b.age, b.owner); ok {
+			out = append(out, d)
+		}
+		out = append(out, mw.trailDraws(b)...)
+	}
+	return out
+}
+
+// weaponBolts is the live weapon-borne objects weaponBoltDraws draws, one per
+// attacker in the casting wind-up, with the swing clock as age and the charge
+// as life. The spell light reads the same objects (objectLightStamps).
+func (mw *mapWorld) weaponBolts(ents []sim.Entity) []spellBolt {
+	var out []spellBolt
 	for _, e := range ents {
 		if !e.Alive() || !e.HasAttackTarget || e.AttackTargetKind != sim.AttackTargetUnit || e.AttackPhase != sim.AttackCasting {
 			continue
@@ -901,10 +926,10 @@ func (mw *mapWorld) weaponBoltDraws(ents []sim.Entity) []ui.SpellBolt {
 		// THE SAME OBJECT THIS TIER DRAWS FOR A BOOK CAST, on the swing clock
 		// instead of on an object's own age. A weapon-borne release is not a
 		// spellBolt in mw.bolts — it is rebuilt from the attack cycle every
-		// frame — so it is assembled here and handed to the same two producers,
+		// frame — so it is assembled here and handed to the same producers,
 		// and a picture cannot come to be drawn one way from a book and another
 		// way from a staff.
-		b := spellBolt{
+		out = append(out, spellBolt{
 			from:    image.Point{X: int(e.X), Y: int(e.Y)},
 			to:      image.Point{X: int(victim.X), Y: int(victim.Y)},
 			picture: picture,
@@ -913,6 +938,7 @@ func (mw *mapWorld) weaponBoltDraws(ents []sim.Entity) []ui.SpellBolt {
 			life:    den,
 			seed:    mw.visualCastSeed(e.ID, e.AttackTarget, int(e.WeaponSpell), false),
 			facing:  e.Facing,
+			launch:  mw.castLaunchFor(e.ID, e.Facing, picture),
 			// THE TAG IS THE ATTACKER'S OWN ID, not zero. A book cast takes the
 			// observation's index inside its tick; this producer holds no
 			// observation, and leaving the field unset would make every staff on
@@ -921,16 +947,7 @@ func (mw *mapWorld) weaponBoltDraws(ents []sim.Entity) []ui.SpellBolt {
 			// flicker across one swing. Both indices are authored: what fills the
 			// caster's victim array is not decoded (DIV-081).
 			tag: int(mw.visualActorLabel(e.ID)) % chainTagCount,
-		}
-		if data.CastDrawsPath(picture) {
-			out = append(out, mw.pathDraws(b)...)
-			continue
-		}
-		if d, ok := mw.spellDraw(picture, b.from, b.to, castShotPoint(b.from, b.to, num, den, b.facing),
-			num, e.Owner); ok {
-			out = append(out, d)
-		}
-		out = append(out, mw.trailDraws(b)...)
+		})
 	}
 	return out
 }

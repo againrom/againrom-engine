@@ -1970,6 +1970,9 @@ package storyguard
 // CommentBytes rises for the remaining inn stage bodies: the docs of the
 // stage entry table and its predicates, and the focused and installed tests
 // of the stage 40 to 110 entries, new code, including this paragraph.
+// CommentBytes rises for the staff projectile light: the note in
+// objectLightStamps and the doc of its new focused test, new code, including
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  265,
@@ -1991,7 +1994,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1793,
+		"longcommentgroups":      1791,
 	},
-	CommentBytes: 8510553,
+	CommentBytes: 8510558,
 }

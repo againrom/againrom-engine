@@ -770,15 +770,27 @@ func (v *Viewer) structureTerrainScale(vertex image.Point) (float32, bool) {
 // spellSpriteFactor reads one cell's sprite gain, over the SAME normalized
 // scale, composed by the same MAX rule as spellTerrainScale above (DIV-1313
 // amended).
+//
+// A cell with a stamped light-stamp corner takes the merged stamp level in
+// place of the Light/Darkness value, as the original's stamp sweep overwrites
+// the cell-bit stage (MAGIC-273). That merge reads no Lighting option, so a
+// Lightning bolt lights units with Dynamic lighting off.
 func (v *Viewer) spellSpriteFactor(cell image.Point) float32 {
-	if v.graphics.DisableLighting {
-		return 1
-	}
 	// SpriteRow's decoded gain equals this terrain-ladder expression.
 	normal := terrain.ShadeScale(4*v.spriteRow() + 32)
+	row, stamped := v.lightStampSpriteRow(cell)
+	if v.graphics.DisableLighting {
+		if stamped {
+			return terrain.ShadeScale(4*row+32) / normal
+		}
+		return 1
+	}
 	level := float32(0)
 	if value, ok := v.spellLighting[cell]; ok {
 		level = value.sprite
+	}
+	if stamped {
+		level = terrain.ShadeScale(4*row + 32)
 	}
 	if structure, ok := v.structureLighting[cell]; ok && structure > level {
 		level = structure

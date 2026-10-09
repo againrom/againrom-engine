@@ -3,15 +3,17 @@
 ## Intent
 
 Before this story the ROM2 inn offered its own entries only at stages 10 and
-30 (DIV-2634). After mission 30 departed, the stage became 40, and the town 2
-inn offered no mission, so the campaign stopped after missions 30 to 32. This
-story implements every remaining EnterInn stage body that knowledge k206
-publishes, each with its kind, topic, NPC, bank gates and current-record
-gates. A kind 3 TALK admits its mission; a kind 0 TALK shows its text and
-changes nothing. ROM1 code paths, release tests and hashed state do not
-change. Companions are out of scope.
+30 (DIV-2634). A mission-30 departure raises the stage to 40, where the town 2
+inn offered no mission. This story implements every remaining EnterInn stage
+body that knowledge k206 publishes, each with its kind, topic, NPC, bank gates
+and current-record gates. These offers and talks are conditional on reaching
+stages 40 to 110. A new ROM2 campaign still stops at mission 30: it cannot be
+won without companions (DIV-2391). A kind 3 TALK admits its mission; a kind 0
+TALK shows its text and changes nothing. ROM1 code paths and hashed state do
+not change in the inn implementation. Companions are out of scope.
 
 Base: `772868a6` (game 0.100.6). Knowledge pin: k205, moved to k207.
+Reconciled main: `ba0b7ef3` (game 0.101.0, knowledge k207).
 
 ## Authority
 
@@ -57,19 +59,23 @@ Base: `772868a6` (game 0.100.6). Knowledge pin: k205, moved to k207.
   own visit. Before this story the walk won every available mission in one
   round; with the stage 60 gates that skipped topics 61 and 63.
 
-Observed while building the witness: installed mission 30's victory trigger
-names a companion, which the census party omits (map 30 keeps its `party`
-blocker; DIV-2391). From a new game the engine therefore cannot win mission
-30, and stage 40 is not reached by play in this build. The stage 40 witness
-applies the controller's own departure of mission 30 as a disclosed step.
+Installed mission 30's victory trigger names a companion that the fresh
+engine party does not supply. A new ROM2 campaign cannot win mission 30 or
+reach stage 40 through ordinary play (DIV-2391); map 30 keeps its census
+`party` blocker. The stage 40 witness applies the controller's departure of
+mission 30 as a disclosed constructed step, bypassing victory admission.
 
 ## Divergences
 
 - DIV-2634 is closed and moved to `docs/DIVERGENCES-CLOSED.md`: every stage
   body is published and implemented.
-- DIV-2664 (new): slots 536, 776 and 781 have no engine producer, so topics
-  81 and 83 and the family topics 75..77, 85..87 and 94..96 are never
-  offered on the ordinary path. No writer is invented.
+- DIV-2664 (new): the engine lacks the character-choice producer for slots
+  776 and 781, whose native writers are published by R2-SESSION-023 (High)
+  and R2-SESSION-109 (Medium). The departure prefix in `secondcampaign.go`
+  normalizes slot 536 to 1 or 2 only when it is already nonzero; zero stays
+  zero. A fresh nonzero producer remains missing. The census has 12 entry
+  blockers: nine family alternatives (75..77, 85..87, 94..96), topics 81
+  and 83, and topic 52 with no published admission.
 - DIV-2632, DIV-2392, DIV-2356 and DIV-2639 point to the new behaviour.
 - Reserved DIV-2665..DIV-2671 are unused.
 
@@ -100,9 +106,10 @@ Installed witness, EN and RU ROM2 roots
 (`pkg/game/secondstageforty_release_test.go`):
 
 - `TestReleaseSecondStageFortyInnOffersItsMissions` plays a new game through
-  missions 10 and 20 to the stage 30 inn and its two mission talks, applies
-  the departure of mission 30 (output 2, stage 40), and enters town 2 and its
-  inn. The rows are TALK 22, 2108, 2015, 2111, 2004 and GATES. A named SAV is
+  missions 10 and 20 to the stage 30 inn and its two mission talks, constructs
+  the departure of mission 30 with `completeBank` (output 2, stage 40), and
+  enters town 2 and its inn. This bypasses the missing mission-30 victory.
+  The rows are TALK 22, 2108, 2015, 2111, 2004 and GATES. A named SAV is
   written in the inn and cold-loaded in a fresh front end; the town sample
   and rows match. On both front ends the five talks run in order: TALK 22
   admits 40, TALK 2108 (kind 0) admits nothing and leaves the bank, TALK
@@ -115,6 +122,9 @@ Installed witness, EN and RU ROM2 roots
 
 `TestReleaseSecondGameSupportCensus` on both ROM2 roots (46 maps), base
 `772868a6` against this branch. EN and RU agree on every per-map row.
+The census supplies wins, departures and satisfied departure gates. Its
+conditional controller reach and map-local support counts do not establish
+playable progression from a fresh campaign past mission 30 (DIV-2391).
 
 | Total | Base | This story |
 |---|---|---|
@@ -135,7 +145,10 @@ alternatives), 83 (slot 536) (DIV-2664).
 
 - Mission 30 cannot be won without companions, so ordinary play does not
   reach stage 40 (DIV-2391).
-- Slots 536, 776 and 781 have no producer (DIV-2664); map 52 has no
-  published producer.
+- The engine character-choice producer for slots 776 and 781 is missing,
+  despite the published native writers. Slot 536 has departure normalization
+  but no fresh nonzero producer; topic 52 has no published admission
+  (DIV-2664). Complete character-choice input binding and live bank-writer
+  scheduling remain Unknown.
 - The composed route and visit scheduling stay Medium (DIV-2632,
   R2-SESSION-112).
