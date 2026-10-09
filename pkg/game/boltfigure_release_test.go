@@ -51,18 +51,17 @@ func TestReleaseLightningFigureOverItsLife(t *testing.T) {
 			t.Fatal("the object outlived 13 calls")
 		}
 	}
+	boltRenders(t, f, hero)
 }
 
-// TestReleaseBoltFigureRenders writes PNGs of one Lightning cast at calls 1,
-// 4, 7, 10 and 13 when AGAINROM_BOLT_RENDERS names a directory outside the
-// install. It uses only the mission witness, the cast observation and the
-// headless map frame.
-func TestReleaseBoltFigureRenders(t *testing.T) {
+// boltRenders writes PNGs of one Lightning cast at calls 1, 4, 7, 10 and 13
+// when AGAINROM_BOLT_RENDERS names a directory outside the install.
+func boltRenders(t *testing.T, f *FrontEnd, hero sim.EntityID) {
+	t.Helper()
 	out := os.Getenv("AGAINROM_BOLT_RENDERS")
 	if out == "" {
-		t.Skip("AGAINROM_BOLT_RENDERS is not set")
+		return
 	}
-	f, hero := launchWitness(t, true)
 	mw := f.live
 	root, _ := filepath.Abs(os.Getenv("AGAINROM_ASSETS"))
 	out, _ = filepath.Abs(out)
