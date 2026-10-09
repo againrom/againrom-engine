@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.103.0
+
 - [ROM1] Lightning and Prismatic Spray draw the bolt the original draws: a
   random zigzag of curved segments built anew on every tick, one star per
   point, flickering through the original's thirteen-step brightness ramp.
