@@ -23,6 +23,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   dialogue that names them, as the original does: at the start, at the sack,
   after the rogues, the woman, the bees and the ghosts, and after the
   Squiells. "Show tips next time" turns them off at once.
+- [ROM1] The tavern, shop and school tips keep the original's size at every
+  visit. The shop tip changes to its second text once you put an item on the
+  table, as in the original.
 - [ROM1] A Ghost raised by Control Spirit now takes its whole Ghost row: it
   regenerates health, sees invisible creatures within two cells and has
   carrying capacity 300. Before, it had none of these.

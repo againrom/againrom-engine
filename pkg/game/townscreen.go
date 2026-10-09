@@ -217,6 +217,9 @@ type townScreen struct {
 	// entered (SHOP-TIP-045; `DIV-132`). Empty whenever the install ships no
 	// `shop1.txt`, which draws no widget at all.
 	shopTip string
+	// shopTipSecond is the shop popup's once-per-activation latch for its
+	// second text (TOWN-517).
+	shopTipSecond bool
 
 	// townTip, schoolTip and tavernTip are the same widget's own text for the
 	// other three rooms this story adds it to (1018 spec behaviours 2, 5):
@@ -625,10 +628,9 @@ func (t *townScreen) TownSquareView() ui.TownSquareView {
 	if t == nil || t.sess == nil {
 		return ui.TownSquareView{}
 	}
-	tip := rom1Town.Tip.Rect.Rectangle()
 	v := ui.TownSquareView{
 		Font: t.in.Font.Value(),
-		Tip:  t.tipView(roomSquare, t.townTip, ui.TipPanelShrinkRect(tip, t.in.tipFont(), t.townTip)),
+		Tip:  t.roomTipView(roomSquare, t.townTip),
 	}
 	if t.in.TownSquareArt.Value() != nil {
 		v.Scene = townSquareScene{t}

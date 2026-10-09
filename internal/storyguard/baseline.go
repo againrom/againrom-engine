@@ -1986,9 +1986,9 @@ package storyguard
 // reader's refusals, pkg/town's own tests and its page programs, new code,
 // including this paragraph.
 // CommentBytes rises for the tip witnesses: the docs of the new release test
-// file for the generator cycles and the tip renders, and the scroll witness's
-// note that the mission start tip covers its click, new code, including this
-// paragraph.
+// file for the generator cycles and the tip renders, the scroll witness's
+// note that the mission start tip covers its click, and the room tip
+// witness, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2012,5 +2012,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1772,
 	},
-	CommentBytes: 8512701,
+	CommentBytes: 8513321,
 }

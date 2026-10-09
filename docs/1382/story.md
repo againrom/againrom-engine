@@ -12,7 +12,7 @@ machine (`ui.guidedCycle`) serves both generator pages, with targets and art
 as data.
 
 Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
-`dfb84f0f`.
+`458e07e2` (the rooms on the town composer).
 
 ## Authority
 
@@ -52,8 +52,8 @@ Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
 | TRIG-TIPS-088: once per mission run through fire-once triggers; LOAD restores the latch | none | no own latch; the trigger latch already rides the SAV |
 | MENU-135: only the popup checkbox and Game Options OK write `TipsMode`; not in SAV | matched | unchanged; the mission popup's checkbox writes it on its press |
 | MENU-136: `TipsMode` gates construction and steps, not shop2 or the skill cycle; clearing deletes no open popup | generator texts were not read at all with the flag clear | texts always read; the gate is tested at enter and at each step |
-| TOWN-516: rooms build their popup at every enter while `TipsMode` is set | matched except the rectangle height | unchanged here (`DIV-2719`) |
-| TOWN-517: shop2 replaces shop1 once per shop activation on the idle check | never read | unchanged here (`DIV-132`) |
+| TOWN-516: rooms build their popup at every enter while `TipsMode` is set, at fixed rectangles | enter, gate and Close matched; every popup fitted to its text's height | the description rectangle; the bottom edge moves only when the engine's wrap overflows it (`DIV-2719`) |
+| TOWN-517: shop2 replaces shop1 once per shop activation on the idle check, without reading `TipsMode` | never read | the description's second text, read on the shop's paint pass when the table holds a place (`DIV-132` for the getter and the campaign bit) |
 
 ## As built
 
@@ -70,6 +70,11 @@ Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
   dialogue closes after its last page; the ROM2 dialogue is outside the claim.
 - `pkg/game/chargenassets.go`: loads `Inn\ButtonsArea.bmp` and the six button
   pictures.
+- `pkg/game/towns/rom1.json`, `pkg/town` `TipSpec`: each room's tip keeps its
+  claimed rectangle; the shop's tip names its second text. `TipSpec.Fit` fits
+  a popup to its text when a description asks for it; ROM1's does not.
+  `pkg/game/tips.go` projects the popups and runs the shop's second-text
+  latch, cleared at each shop enter.
 
 ## Proof
 
@@ -81,6 +86,8 @@ Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
 | `TestReleaseMissionTipsFollowTheirTaggedDialogues`: every shipped tag in m10 (7) and m20 (2), start tips through the start triggers | EN, RU | pass |
 | `TestReleaseMissionTipControlsAndTipsMode`: checkbox clears `TipsMode` at once and keeps the popup; no tip with the flag clear; Close on its release | EN, RU | pass |
 | `TestReleaseMissionStartTipDoesNotReturnAfterSaveAndLoad`: F2 SAVE, cold LOAD, no start dialogue or tip | EN, RU | pass |
+| `TestReleaseRoomTipsAtEveryEnterAndShopSecondText`: tavern, shop and school popups at their rectangles on two enters each, after Close; the town popup at its rectangle unless its text overflows; shop1 with an empty table, shop2 after a place, again after a new entry and with `TipsMode` cleared after the entry; no popup with `TipsMode` clear at the entry | EN, RU | pass |
+| `TestReleaseRoomTipStyleAndLayoutFromInstall`: the four popups at the claimed heights, the RU town grown for its text | EN, RU | pass |
 | `TestReleaseChargenSoundsThroughAppInput`, `TestReleaseDifficultyLevelsInstalledArtAndPointer`, `TestReleaseChargenDetailedNavLabelsAreDrawn` updated to the claimed rectangles and mask | EN, RU | pass |
 
 Owner renders: `TestReleaseMissionStartTipRender` and the generator witness
@@ -88,8 +95,9 @@ write PNG frames when `AGAINROM_TIPS_RENDER_DIR` is set.
 
 ## Open debt
 
-- Room popups keep their fitted height (`DIV-2719`) and the shop never shows
-  shop2 (`DIV-132`). Both wait for the rooms' move onto the town composer.
+- The RU town popup grows to 232 px because the engine's wrap needs 223 px;
+  the original's overflow is Unknown (`DIV-2719`). The shop's tray getter and
+  campaign bit gate are Unknown (`DIV-132`).
 - Unknowns kept as rows: pre-create origin (`DIV-2714`), placement at larger
   resolutions (`DIV-2715`), the mission popup across SAVE, LOAD and mission end
   (`DIV-2716`), the dice cursor (`DIV-2717`), an unreadable tip file

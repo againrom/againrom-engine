@@ -90,14 +90,7 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 	v.Font = t.in.Font.Value()
 	v.PriceFont = t.in.tipFont()
 	v.Words = t.in.Words
-	// TipPanelShrinkRect, not the raw ui.ShopTipRect() (round-2 adversarial
-	// review, owner item: the shop tip is too tall). The other three rooms
-	// already route their own tip rect through this shrink
-	// (townshell.go:169, :184; townscreen.go:455); the shop was the one
-	// call site this story's own B2 table called unchanged, and
-	// cmd/tippanelcheck measured its own spare at the shipped font as 66
-	// rows on en, 78 on ru, covering table cell 2 at 46.2% (2960 of 6400px).
-	v.TipPanel = t.tipView(roomShop, t.shopTip, ui.TipPanelShrinkRect(roomTipRect(roomShop), t.in.tipFont(), t.shopTip))
+	v.TipPanel = t.roomTipView(roomShop, t.shopTip)
 
 	shop := t.sess.Shop
 	if shop != nil {

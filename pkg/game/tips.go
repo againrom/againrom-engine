@@ -44,6 +44,9 @@ func (t *townScreen) loadTip(room townRoom) {
 	}
 	t.tipRevision++
 	t.tipClosed[room] = false
+	if room == roomShop {
+		t.shopTipSecond = false
+	}
 	if t.pc.tipsOffNow() {
 		*dst = ""
 		return
@@ -78,6 +81,9 @@ func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 
 // roomTip answers a room's tip as the ROM1 description gives it.
 func roomTip(room townRoom) town.TipSpec {
+	if room == roomSquare {
+		return rom1Town.Tip
+	}
 	name := townRoomName(room)
 	for i := range rom1Town.Rooms {
 		if r := &rom1Town.Rooms[i]; r.Name == name && r.Tip != nil {
@@ -88,6 +94,37 @@ func roomTip(room townRoom) town.TipSpec {
 }
 
 func roomTipRect(room townRoom) image.Rectangle { return roomTip(room).Rect.Rectangle() }
+
+// roomTipView projects a room's popup at the description's rectangle. The
+// bottom edge follows the text when the description asks for that, and grows
+// when the engine's wrap would cut the text at the rectangle (DIV-2719).
+func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
+	spec := roomTip(room)
+	v := t.tipView(room, text, spec.Rect.Rectangle())
+	if spec.Fit || !ui.TipPanelFits(v) {
+		v.Rect = ui.TipPanelShrinkRect(v.Rect, t.in.tipFont(), text)
+	}
+	return v
+}
+
+// advanceShopSecondTip retexts the open shop popup with the description's
+// second text once per shop activation, when the table holds an item
+// (TOWN-517). It reads no TipsMode: the popup exists only if the flag was set
+// at activation.
+func (t *townScreen) advanceShopSecondTip() {
+	if t == nil || t.sess == nil || t.shopTip == "" || t.shopTipSecond {
+		return
+	}
+	if shop := t.sess.Shop; shop == nil || len(shop.Table()) == 0 {
+		return
+	}
+	second := roomTip(roomShop).Second
+	if second == "" {
+		return
+	}
+	t.shopTipSecond = true
+	t.readTipText(&t.shopTip, second)
+}
 
 func (t *townScreen) readTipText(dst *string, addr string) {
 	var src entrySource

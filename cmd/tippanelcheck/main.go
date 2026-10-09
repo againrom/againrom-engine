@@ -77,14 +77,10 @@ func run(args []string, w io.Writer) error {
 		return squareLabel(c), true
 	})
 
-	// surface reports against v.Tip.Rect itself, not against
-	// ui.TavernTipRect/ui.SchoolTipRect: since 1021 (spec B2) production
-	// shrinks each room's rect to that root's own minimum-plus-margin
-	// height, so the outer package constant and the rect this room actually
-	// draws and hit-tests against can differ. The shrink keeps the left
-	// edge, width and top edge fixed (pkg/ui.TipPanelShrinkRect's own doc),
-	// so an anchor built from the resolved rect's own corners is still a
-	// top anchor.
+	// surface reports against v.Tip.Rect itself: production keeps the
+	// room's description rectangle and moves only its bottom edge when the
+	// text overflows it, so an anchor built from the resolved rect's own
+	// corners is still a top anchor.
 	surface := func(door int, name string) error {
 		scr.Back()
 		scr.Choose(door)

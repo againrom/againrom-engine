@@ -975,3 +975,4 @@ pkg/game.TestReleaseMissionTipControlsAndTipsMode
 pkg/game.TestReleaseMissionStartTipDoesNotReturnAfterSaveAndLoad
 pkg/game.TestReleaseGeneratorTipsCycleAndStep
 pkg/game.TestReleaseMissionStartTipRender
+pkg/game.TestReleaseRoomTipsAtEveryEnterAndShopSecondText

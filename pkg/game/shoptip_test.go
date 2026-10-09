@@ -39,8 +39,8 @@ func TestShopTipPathIsMainTextTipsShop1(t *testing.T) {
 	if got := roomTip(roomShop).Text; got != "main/text/tips/shop1.txt" {
 		t.Fatalf("shop room tip = %q, want main/text/tips/shop1.txt", got)
 	}
-	if ShopTip2Path != "main/text/tips/shop2.txt" {
-		t.Fatalf("ShopTip2Path = %q, want main/text/tips/shop2.txt", ShopTip2Path)
+	if got := roomTip(roomShop).Second; got != "main/text/tips/shop2.txt" {
+		t.Fatalf("shop room second tip = %q, want main/text/tips/shop2.txt", got)
 	}
 }
 

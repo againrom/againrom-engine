@@ -426,10 +426,16 @@ func assertReleaseTipText(t *testing.T, v roomTipRaster) {
 			t.Fatalf("tip glyph or shadow at %v = %v, want %v", at, got, want)
 		}
 	}
+	// TOWN-516's heights; a text the engine's wrap cannot fit grows the
+	// panel to the tile-aligned height (DIV-2719).
+	claimed := map[string]int{"town-square": 200, "tavern": 200, "school": 200, "shop": 136}[v.name]
 	minHeight := ys[len(ys)-1] - v.view.Rect.Min.Y + v.view.Font.Height() + 1 + 44
-	wantHeight := max(104, 72+((max(0, minHeight-72)+31)/32)*32)
+	wantHeight := claimed
+	if minHeight > claimed {
+		wantHeight = max(104, 72+((max(0, minHeight-72)+31)/32)*32)
+	}
 	if v.view.Rect.Dy() != wantHeight {
-		t.Errorf("panel height = %d, want tight tile-aligned height %d for %d lines", v.view.Rect.Dy(), wantHeight, len(lines))
+		t.Errorf("panel height = %d, want %d for %d lines (claimed %d)", v.view.Rect.Dy(), wantHeight, len(lines), claimed)
 	}
 }
 
