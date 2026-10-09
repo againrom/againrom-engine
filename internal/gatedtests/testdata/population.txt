@@ -922,3 +922,4 @@ pkg/game.TestReleaseOriginalLoadedHeroLevelsSurviveEverySavePath
 pkg/game.TestReleaseBeforeKargallasLoadsFireAtItsExperienceLevel
 pkg/game.TestReleaseNativeBodyWritesCurrentPartyBase
 pkg/game.TestReleaseCapturedFieldsThroughProductionSaveRoutes
+pkg/game.TestReleaseWidgetKitScreens

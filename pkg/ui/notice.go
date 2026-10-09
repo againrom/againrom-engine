@@ -1073,6 +1073,13 @@ func (v *Viewer) noticePlace() frame.Placement {
 	return frame.FitDown(frame.W, frame.H, area.X, area.Y)
 }
 
+// HeadlessNoticePicture is the open notice's composed picture, the one the
+// map frame draws, for a witness that cannot read the live canvas.
+func (v *Viewer) HeadlessNoticePicture() (*image.RGBA, bool) {
+	pic, _, _, ok := v.noticePresent()
+	return pic, ok && pic != nil
+}
+
 // noticePresent is the picture to draw this frame, where its top-left corner
 // goes in window pixels, and the scale it is drawn at — or false for a frame
 // that draws no notice at all.

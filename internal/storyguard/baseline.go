@@ -1925,7 +1925,8 @@ package storyguard
 // trainee's heal note, new code, including this paragraph.
 // CommentBytes rises for the shared widget kit: the docs of the new push
 // button, bar, list, slider, radio and checkbox, edit field and hover box
-// builders in pkg/ui and of their focused and per-screen tests, new code,
+// builders in pkg/ui, of their focused and per-screen tests, of the notice
+// picture accessor and of the EN/RU widget screen witness, new code,
 // including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4708,
@@ -1950,5 +1951,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1829,
 	},
-	CommentBytes: 8532323,
+	CommentBytes: 8533189,
 }
