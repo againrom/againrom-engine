@@ -92,7 +92,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 		r.endConversation(true)
 		checkPopup()
 		r.leave(room.kind, false)
-		if !r.s.TownSquareView().Tip.Showing() || r.s.exterior.guardStep != 0 || r.s.exterior.frame.Guard != 7 {
+		if !r.s.TownSquareView().Tip.Showing() || r.s.sqGuard().Dir != 0 || r.s.sqGuard().Frame != 7 {
 			t.Fatal("room Exit did not recreate square popup and idle guard")
 		}
 		r.enter(room.door, room.kind)
@@ -142,7 +142,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 	if r.app.Screen() != ui.ScreenTown {
 		t.Fatal("SAVE dialog did not return to town")
 	}
-	oldScreen, lastPaint := r.s, r.s.townPaintLast
+	oldScreen, lastPaint := r.s, r.s.sqPaintLast()
 	r.now = r.now.Add(67 * time.Millisecond)
 	if err := r.app.HeadlessKey("f3"); err != nil {
 		t.Fatal(err)
@@ -150,8 +150,8 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 	if err := r.app.HeadlessKey("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if r.f.TownScreen() != oldScreen || r.s.townPaintLast != lastPaint || !r.s.TownSquareView().Tip.Showing() {
-		t.Fatalf("same-process SAV LOAD screen=%s same=%v last=%v before=%v now=%v popup=%v tipsOff=%v", r.app.Screen(), r.f.TownScreen() == oldScreen, r.s.townPaintLast, lastPaint, r.now, r.s.TownSquareView().Tip.Showing(), r.f.TipsOff())
+	if r.f.TownScreen() != oldScreen || r.s.sqPaintLast() != lastPaint || !r.s.TownSquareView().Tip.Showing() {
+		t.Fatalf("same-process SAV LOAD screen=%s same=%v last=%v before=%v now=%v popup=%v tipsOff=%v", r.app.Screen(), r.f.TownScreen() == oldScreen, r.s.sqPaintLast(), lastPaint, r.now, r.s.TownSquareView().Tip.Showing(), r.f.TipsOff())
 	}
 	other := releaseFront(t)
 	other.Options = r.f.Options
@@ -168,7 +168,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := other.TownScreen().(*townScreen)
-	if cold.Screen() != ui.ScreenTown || !s.TownSquareView().Tip.Showing() || s.exterior.guardStep != 0 || s.townPaintLast.IsZero() {
+	if cold.Screen() != ui.ScreenTown || !s.TownSquareView().Tip.Showing() || s.sqGuard().Dir != 0 || s.sqPaintLast().IsZero() {
 		t.Fatal("cold town LOAD lacks reconstructed popup/synchronous first paint")
 	}
 	r.f, r.app, r.s = other, cold, s

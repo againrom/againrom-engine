@@ -12,7 +12,6 @@ import (
 
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
@@ -277,7 +276,7 @@ func TestReleaseDifficultyLevelsInstalledArtAndPointer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mask, err := terrain.DecodeBMP8(maskBytes)
+	mask, err := bmp.DecodePaletted(maskBytes)
 	if err != nil {
 		t.Fatal(err)
 	}

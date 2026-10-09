@@ -37,7 +37,7 @@ func TestTownScreenNextPartyPrefersTheCarriedParty(t *testing.T) {
 
 func TestUnboundTownScreenAnswersNothing(t *testing.T) {
 	s := &townScreen{}
-	if v := s.TownSquareView(); v.Art != nil || v.Font != nil {
+	if v := s.TownSquareView(); v.Scene != nil || v.Font != nil {
 		t.Fatalf("an unbound screen drew %+v", v)
 	}
 	s.loadTip(roomSquare)

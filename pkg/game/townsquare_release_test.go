@@ -3,20 +3,16 @@ package game
 import (
 	"image"
 	"testing"
-
-	"againrom/pkg/ui"
 )
 
 func TestReleaseTownSquareOverlayDoesNotPaintBlackOverTheSky(t *testing.T) {
 	f := releaseFront(t)
-	if f.TownSquareArt.Value() == nil || f.TownSquareArt.Value().Background == nil {
+	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Pictures("base")) != 1 {
 		t.Fatalf("production town square art did not resolve: %v", f.TownSquareArt.Err())
 	}
-	art := *f.TownSquareArt.Value()
-	art.Exterior = nil // this witness isolates the overlay from later motion families
-	composed := ui.ComposeTownSquare(ui.TownSquareView{Art: &art, Font: f.Font.Value(),
-		Exterior: &ui.TownExteriorFrame{BirdOverlayVisible: true}})
-	base := f.TownSquareArt.Value().Background
+	// This witness isolates the overlay from the motion families.
+	composed := paintStill(staticSquareArt(f.TownSquareArt.Value()))
+	base := f.TownSquareArt.Value().Pictures("base")[0]
 	bb := base.Bounds()
 	bad := 0
 	for y := bb.Min.Y; y < bb.Max.Y; y++ {
@@ -44,10 +40,10 @@ func TestReleaseTownSquareOverlayDoesNotPaintBlackOverTheSky(t *testing.T) {
 // 0), not merely the composed canvas.
 func TestReleaseTownSquareOverlayIsKeyedAtLoad(t *testing.T) {
 	f := releaseFront(t)
-	if f.TownSquareArt.Value() == nil || f.TownSquareArt.Value().Add == nil {
+	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Pictures("overlay")) != 1 {
 		t.Fatalf("production town square overlay did not resolve: %v", f.TownSquareArt.Err())
 	}
-	add := f.TownSquareArt.Value().Add
+	add := f.TownSquareArt.Value().Pictures("overlay")[0]
 	ab := add.Bounds()
 	transparent := 0
 	for y := ab.Min.Y; y < ab.Max.Y; y++ {
@@ -77,7 +73,7 @@ func TestReleaseTownSquareOverlayIsKeyedAtLoad(t *testing.T) {
 // placement half of the same witness, and it exists because the black-pixel
 // test above does not cover placement (round-3 adversarial review, W-1).
 //
-// THE GAP IT CLOSES. Moving TownSquareAddOrigin from (0,0) to (60,100), or a
+// THE GAP IT CLOSES. Moving the overlay layer from (0,0) to (60,100), or a
 // label's own origin by any amount, puts a shipped patch visibly in the middle
 // of the square. Before this test, both mutations left `go test ./...` green,
 // check-scenarios green and check-release-tests green; only cmd/townsquarecheck
@@ -90,13 +86,13 @@ func TestReleaseTownSquareOverlayIsKeyedAtLoad(t *testing.T) {
 // picture in exactly one place: the three door labels.
 //
 // THE THREE EXCLUSION RECTS ARE LITERALS ON PURPOSE. Deriving them from
-// townSquareLabelOrigin would move the exclusion with the value under test, and
+// the description's label layers would move the exclusion with the value under test, and
 // the test could not then see a label move at all. These are the label sizes and
 // origins as measured from the shipped art: shop 52x76 at (264,264), tavern
 // 28x64 at (144,332), school 140x116 at (436,300).
 func TestReleaseTownSquareCompositesEveryPatchWhereTheInstallPutsIt(t *testing.T) {
 	f := releaseFront(t)
-	if f.TownSquareArt.Value() == nil || f.TownSquareArt.Value().Background == nil {
+	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Pictures("base")) != 1 {
 		t.Fatalf("production town square art did not resolve: %v", f.TownSquareArt.Err())
 	}
 	labels := [3]image.Rectangle{
@@ -104,11 +100,9 @@ func TestReleaseTownSquareCompositesEveryPatchWhereTheInstallPutsIt(t *testing.T
 		image.Rect(144, 332, 144+28, 332+64),
 		image.Rect(436, 300, 436+140, 300+116),
 	}
-	art := *f.TownSquareArt.Value()
-	art.Exterior = nil // this witness isolates the overlay from later motion families
-	composed := ui.ComposeTownSquare(ui.TownSquareView{Art: &art, Font: f.Font.Value(),
-		Exterior: &ui.TownExteriorFrame{BirdOverlayVisible: true}})
-	base := f.TownSquareArt.Value().Background
+	// This witness isolates the overlay from the motion families.
+	composed := paintStill(staticSquareArt(f.TownSquareArt.Value()))
+	base := f.TownSquareArt.Value().Pictures("base")[0]
 	bb := base.Bounds()
 	differing, first := 0, image.Point{-1, -1}
 	for y := bb.Min.Y; y < bb.Max.Y; y++ {

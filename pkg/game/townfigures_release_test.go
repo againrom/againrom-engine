@@ -132,20 +132,13 @@ type townFiguresRig struct {
 func newTownFiguresRig(t *testing.T) *townFiguresRig {
 	t.Helper()
 	f := releaseFront(t)
-	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().ExteriorProblems) != 0 {
+	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Problems) != 0 {
 		t.Fatalf("exterior load: %v", f.TownSquareArt.Err())
 	}
 	// The square art is the process's shared install data, so the ambient
 	// families are cleared on this front end's own copy: nothing but the guards
 	// paints in their rectangle.
-	square := *f.TownSquareArt.Value()
-	exterior := *square.Exterior
-	square.Exterior = &exterior
-	for i := range exterior.Birds {
-		exterior.Birds[i] = nil
-	}
-	exterior.Stars = nil
-	f.TownSquareArt = resolved(&square, nil)
+	f.TownSquareArt = resolved(withoutAmbience(f.TownSquareArt.Value()), nil)
 
 	r := &townFiguresRig{t: t, f: f, now: time.Unix(100, 0), sounds: &exteriorRecorder{}, speech: &tavernInteriorRecorder{}}
 	f.SoundPlayer, f.SpeechPlayer = r.sounds, r.speech

@@ -138,7 +138,7 @@ func loadTownSquareOracle(t *testing.T, f *FrontEnd) townSquareOracle {
 
 // drawFamilies paints horse, baba and dervish, the painter's last three
 // sprite draws, in that order.
-func (o townSquareOracle) drawFamilies(dst *image.RGBA, frame ui.TownExteriorFrame) {
+func (o townSquareOracle) drawFamilies(dst *image.RGBA, frame exteriorFrame) {
 	put := func(pic image.Image, p image.Point) {
 		b := pic.Bounds()
 		draw.Draw(dst, b.Add(p.Sub(b.Min)), pic, b.Min, draw.Over)
@@ -154,7 +154,7 @@ func (o townSquareOracle) drawFamilies(dst *image.RGBA, frame ui.TownExteriorFra
 	}
 }
 
-func (o townSquareOracle) compose(frame ui.TownExteriorFrame, selector int) *image.RGBA {
+func (o townSquareOracle) compose(frame exteriorFrame, selector int) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
 	draw.Draw(dst, dst.Bounds(), o.base, image.Point{}, draw.Src)
 	put := func(pic image.Image, p image.Point, op draw.Op) {
@@ -198,12 +198,12 @@ func (o townSquareOracle) compose(frame ui.TownExteriorFrame, selector int) *ima
 
 func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 	f := releaseFront(t)
-	if f.TownSquareArt.Value() == nil || f.TownSquareArt.Value().Exterior == nil || len(f.TownSquareArt.Value().ExteriorProblems) != 0 {
-		t.Fatalf("town ambient art: %v / %v", f.TownSquareArt.Err(), f.TownSquareArt.Value().ExteriorProblems)
+	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Problems) != 0 {
+		t.Fatalf("town ambient art: %v / %v", f.TownSquareArt.Err(), f.TownSquareArt.Value().Problems)
 	}
 	oracle := loadTownSquareOracle(t, f)
 	for family := range oracle.birds {
-		if got := f.TownSquareArt.Value().Exterior.Birds[family]; len(got) != len(oracle.birds[family]) {
+		if got := f.TownSquareArt.Value().Pictures(fmt.Sprintf("birds/%d", family)); len(got) != len(oracle.birds[family]) {
 			t.Fatalf("production Birds%d count %d", family+1, len(got))
 		} else {
 			for i := range got {
@@ -213,8 +213,8 @@ func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 			}
 		}
 	}
-	if len(f.TownSquareArt.Value().Exterior.Stars) != 9 {
-		t.Fatalf("production stars %d", len(f.TownSquareArt.Value().Exterior.Stars))
+	if len(f.TownSquareArt.Value().Pictures("stars")) != 9 {
+		t.Fatalf("production stars %d", len(f.TownSquareArt.Value().Pictures("stars")))
 	}
 
 	f.Carried = f.NextParty()
@@ -225,7 +225,8 @@ func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 	f.TownAnimationRandom = func(int) int { return 0 }
 	rolls := &townAmbientRolls{values: []int{0, 0, 999, 1, 2, 0}}
 	f.TownAmbientRandom = rolls.draw
-	f.townLatches.birdDelayReady, f.townLatches.birdDelay = true, time.Second
+	birdWait := f.townProcess.WaitLatch("birds")
+	birdWait.Ready, birdWait.Wait = true, time.Second
 	voices := &exteriorRecorder{}
 	crowd := &townCrowdRecorder{}
 	f.SoundPlayer, f.AmbientPlayer = voices, crowd
@@ -244,10 +245,10 @@ func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 	}
 
 	selector := -1
-	check := func(name string, dt time.Duration, inspect func(ui.TownExteriorFrame)) {
+	check := func(name string, dt time.Duration, inspect func(exteriorFrame)) {
 		t.Helper()
 		pix := exteriorPaint(t, app, &now, dt)
-		frame := *screen.townExteriorFrame()
+		frame := screen.sqExteriorFrame()
 		if inspect != nil {
 			inspect(frame)
 		}
@@ -263,39 +264,39 @@ func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 		}
 		writeTownAmbient1123Witness(t, f, name, pix)
 	}
-	check("s00", 0, func(frame ui.TownExteriorFrame) {
+	check("s00", 0, func(frame exteriorFrame) {
 		if !frame.Star.Visible || frame.Star.Frame != 0 || frame.BirdOverlayVisible {
 			t.Fatalf("entry frame %+v", frame)
 		}
 	})
-	check("delay-equality", time.Second, func(frame ui.TownExteriorFrame) {
+	check("delay-equality", time.Second, func(frame exteriorFrame) {
 		if frame.BirdOverlayVisible {
 			t.Fatal("strict bird delay admitted equality")
 		}
 	})
-	check("bird1", time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("bird1", time.Millisecond, func(frame exteriorFrame) {
 		if !frame.BirdOverlayVisible || !frame.Birds[0].Visible || frame.Birds[0].Family != 0 || frame.Birds[1].Visible {
 			t.Fatalf("bird1 frame %+v", frame)
 		}
 	})
-	for screen.exterior.birdProgress[0] < 56 {
+	for screen.sqBirds().Progress[0] < 56 {
 		check("", 68*time.Millisecond, nil)
 	}
-	check("bird-terminal", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
-		if !frame.BirdOverlayVisible || frame.Birds[0].Visible || !screen.exterior.birdTerminalPaint {
+	check("bird-terminal", 68*time.Millisecond, func(frame exteriorFrame) {
+		if !frame.BirdOverlayVisible || frame.Birds[0].Visible || !screen.sqBirds().Terminal {
 			t.Fatalf("terminal frame %+v", frame)
 		}
 	})
-	check("bird-post", time.Millisecond, func(frame ui.TownExteriorFrame) {
-		if frame.BirdOverlayVisible || screen.exterior.birdActive {
+	check("bird-post", time.Millisecond, func(frame exteriorFrame) {
+		if frame.BirdOverlayVisible || screen.sqBirds().Active {
 			t.Fatalf("post-terminal frame %+v", frame)
 		}
 	})
-	if voice, ok := screen.exterior.voices[exteriorBird].(*exteriorVoice); ok {
+	if voice, ok := screen.sqVoice("bird").(*exteriorVoice); ok {
 		voice.playing = false
 	}
-	check("bird3", f.townLatches.birdDelay+time.Millisecond, func(frame ui.TownExteriorFrame) {
-		if !frame.BirdOverlayVisible || screen.exterior.birdCount != 3 {
+	check("bird3", birdWait.Wait+time.Millisecond, func(frame exteriorFrame) {
+		if !frame.BirdOverlayVisible || screen.sqBirds().Count != 3 {
 			t.Fatalf("bird3 frame %+v", frame)
 		}
 		for i := 0; i < 3; i++ {
@@ -306,11 +307,11 @@ func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 	})
 
 	// A fresh effective view restores S00 while retaining process counters.
-	f.townLatches.birdDelay = 24 * time.Hour
+	birdWait.Wait = 24 * time.Hour
 	screen.resetTownExterior()
 	screen.TownSquareActive(true)
 	selector = -1
-	check("s00-reentry", 0, func(frame ui.TownExteriorFrame) {
+	check("s00-reentry", 0, func(frame exteriorFrame) {
 		if !frame.Star.Visible || frame.Star.Frame != 0 {
 			t.Fatalf("reentry star %+v", frame.Star)
 		}
@@ -334,12 +335,12 @@ func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
 	for i := 1; i <= 7; i++ {
 		check("", 68*time.Millisecond, nil)
 	}
-	check("s08", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("s08", 68*time.Millisecond, func(frame exteriorFrame) {
 		if !frame.Star.Visible || frame.Star.Frame != 8 {
 			t.Fatalf("S08 frame %+v", frame.Star)
 		}
 	})
-	check("star-hidden", 68*time.Millisecond, func(frame ui.TownExteriorFrame) {
+	check("star-hidden", 68*time.Millisecond, func(frame exteriorFrame) {
 		if frame.Star.Visible {
 			t.Fatalf("terminal star %+v", frame.Star)
 		}

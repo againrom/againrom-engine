@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"image"
 	"image/color"
-	"reflect"
 	"testing"
 	"time"
 
 	"againrom/pkg/audio"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -47,7 +47,7 @@ func (r *exteriorRecorder) StartVoice(s audio.Sample, p audio.Placement) audio.V
 
 var exteriorSoundPaths = []string{"town/shop/enter.wav", "town/school/point.wav", "town/point.wav", "town/gateup.wav", "town/gatedn.wav", "town/guard1.wav", "town/guard2.wav", "town/flag.wav", "town/flugel.wav"}
 
-func exteriorTestArt(t *testing.T) *ui.TownSquareArt {
+func exteriorTestArt(t *testing.T) *town.Art {
 	t.Helper()
 	a, err := LoadTownSquareArt(townSquareSource())
 	if err != nil {
@@ -71,7 +71,9 @@ func exteriorTestArt(t *testing.T) *ui.TownSquareArt {
 		}
 		return out
 	}
-	a.Exterior = &ui.TownExteriorArt{Shop: frames(30), Tavern: frames(10), Fighter: frames(11), Mage: frames(11), Guard: frames(8), Door: frames(9), Sign: frames(10), Fluger: frames(8)}
+	for name, n := range map[string]int{"shop": 30, "tavern": 10, "fighter": 11, "mage": 11, "guard": 8, "door": 9, "sign": 10, "fluger": 8} {
+		a.Frames[name] = frames(n)
+	}
 	return a
 }
 
@@ -147,41 +149,41 @@ func exteriorPaint(t *testing.T, a *ui.App, now *time.Time, dt time.Duration) *i
 func TestTownExteriorAppDeliveredCyclesStrictPaintAndStationaryPointer(t *testing.T) {
 	_, a, s, now, roll, _ := exteriorFixture(t)
 	exteriorPointer(t, a, 10)
-	if s.exterior.frame.Tavern != 0 || !s.exterior.tavern || s.exterior.selector != 2 {
+	if s.sqEpisode("tavern").Frame != 0 || !s.sqEpisode("tavern").Enabled || s.sqSelector() != 2 {
 		t.Fatal("delivery did not arm without stepping")
 	}
 	exteriorPaint(t, a, now, 67*time.Millisecond)
-	if s.exterior.frame.Tavern != 0 {
+	if s.sqEpisode("tavern").Frame != 0 {
 		t.Fatal("67ms admitted hub")
 	}
 	pix := exteriorPaint(t, a, now, time.Millisecond)
-	if s.exterior.frame.Tavern != 1 || pix.RGBAAt(124, 312).R != 2 {
+	if s.sqEpisode("tavern").Frame != 1 || pix.RGBAAt(124, 312).R != 2 {
 		t.Fatal("68ms missing real Draw frame")
 	}
 	if err := a.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if s.exterior.selector != 2 || s.exterior.frame.Tavern != 1 {
+	if s.sqSelector() != 2 || s.sqEpisode("tavern").Frame != 1 {
 		t.Fatal("idle lost town pointer or Update stepped paint")
 	}
 	if err := a.HeadlessKey("up"); err != nil {
 		t.Fatal(err)
 	}
-	if s.exterior.selector != 2 {
+	if s.sqSelector() != 2 {
 		t.Fatal("key lost pointer")
 	}
 	exteriorPointer(t, a, 0)
 	for i := 2; i <= 10; i++ {
 		exteriorPaint(t, a, now, time.Second)
-		if s.exterior.frame.Tavern != i%10 {
-			t.Fatalf("one step after long gap: %d", s.exterior.frame.Tavern)
+		if s.sqEpisode("tavern").Frame != i%10 {
+			t.Fatalf("one step after long gap: %d", s.sqEpisode("tavern").Frame)
 		}
 	}
-	if s.exterior.tavern {
+	if s.sqEpisode("tavern").Enabled {
 		t.Fatal("cycle did not clear")
 	}
 	exteriorPaint(t, a, now, time.Second)
-	if s.exterior.frame.Tavern != 0 {
+	if s.sqEpisode("tavern").Frame != 0 {
 		t.Fatal("paint rearmed delivered-only tavern")
 	}
 	exteriorPointer(t, a, 10)
@@ -191,30 +193,30 @@ func TestTownExteriorAppDeliveredCyclesStrictPaintAndStationaryPointer(t *testin
 		}
 		exteriorPaint(t, a, now, 68*time.Millisecond)
 	}
-	if s.exterior.frame.Tavern != 1 {
+	if s.sqEpisode("tavern").Frame != 1 {
 		t.Fatal("stationary delivered updates did not rearm completed cycle")
 	}
 	*roll = 95
 	exteriorPointer(t, a, 20)
-	if s.exterior.shop {
+	if s.sqEpisode("shop").Enabled {
 		t.Fatal("shop armed at95")
 	}
 	*roll = 96
 	if err := a.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}
-	if !s.exterior.shop {
+	if !s.sqEpisode("shop").Enabled {
 		t.Fatal("stationary shop update did not retry at96")
 	}
 	*roll = 0
 	exteriorPointer(t, a, 0)
 	for i := 1; i <= 30; i++ {
 		exteriorPaint(t, a, now, 68*time.Millisecond)
-		if s.exterior.frame.Shop != i%30 {
+		if s.sqEpisode("shop").Frame != i%30 {
 			t.Fatalf("shop cycle %d", i)
 		}
 	}
-	if s.exterior.shop {
+	if s.sqEpisode("shop").Enabled {
 		t.Fatal("shop cycle retained bit")
 	}
 }
@@ -224,12 +226,12 @@ func TestTownExteriorAppSchoolSharedBitAndIndependentAmbience(t *testing.T) {
 	*roll = 95
 	exteriorPointer(t, a, 30)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Fighter != 0 || s.exterior.frame.Mage != 0 || s.exterior.frame.Sign != 1 || s.exterior.frame.Fluger != 0 {
-		t.Fatalf("threshold boundary: %+v", s.exterior.frame)
+	if s.sqSchool().Member("fighter").Frame != 0 || s.sqSchool().Member("mage").Frame != 0 || s.sqEpisode("sign").Frame != 1 || s.sqEpisode("fluger").Frame != 0 {
+		t.Fatalf("threshold boundary: %+v", s.sqFrames())
 	}
 	*roll = 96
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Fighter != 1 || s.exterior.frame.Mage != 1 {
+	if s.sqSchool().Member("fighter").Frame != 1 || s.sqSchool().Member("mage").Frame != 1 {
 		t.Fatal("school start")
 	}
 	exteriorPointer(t, a, 0)
@@ -238,12 +240,12 @@ func TestTownExteriorAppSchoolSharedBitAndIndependentAmbience(t *testing.T) {
 		exteriorPaint(t, a, now, 68*time.Millisecond)
 	}
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Fighter != 10 || s.exterior.fighterStep != 0 {
+	if s.sqSchool().Member("fighter").Frame != 10 || s.sqSchool().Member("fighter").Step != 0 {
 		t.Fatal("leave reversed school or endpoint did not wait")
 	}
 	*roll = 96
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Fighter != 9 || s.exterior.fighterStep != -1 {
+	if s.sqSchool().Member("fighter").Frame != 9 || s.sqSchool().Member("fighter").Step != -1 {
 		t.Fatal("upper endpoint did not reverse")
 	}
 	*roll = 0
@@ -251,36 +253,36 @@ func TestTownExteriorAppSchoolSharedBitAndIndependentAmbience(t *testing.T) {
 		exteriorPaint(t, a, now, 68*time.Millisecond)
 	}
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.school {
+	if s.sqSchool().Enabled {
 		t.Fatal("school return did not clear shared bit")
 	}
 	// Independently transcribed TOWN-402 shared-bit boundary. The mutation
 	// seeds a reachable helper boundary; all advancement remains App.Draw.
-	s.exterior.frame.Fighter, s.exterior.fighterStep = 0, -1
-	s.exterior.frame.Mage, s.exterior.mageStep = 5, 1
+	s.sqSchool().Member("fighter").Frame, s.sqSchool().Member("fighter").Step = 0, -1
+	s.sqSchool().Member("mage").Frame, s.sqSchool().Member("mage").Step = 5, 1
 	exteriorPointer(t, a, 30)
 	exteriorPointer(t, a, 0)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.school || s.exterior.frame.Mage != 6 {
+	if s.sqSchool().Enabled || s.sqSchool().Member("mage").Frame != 6 {
 		t.Fatal("fighter clear skipped mage in same hub")
 	}
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Mage != 6 {
+	if s.sqSchool().Member("mage").Frame != 6 {
 		t.Fatal("cleared bit did not pause both")
 	}
 	*roll = 98
 	exteriorPaint(t, a, now, 68*time.Millisecond)
 	*roll = 0
-	if s.exterior.frame.Fluger != 1 || !s.exterior.fluger {
+	if s.sqEpisode("fluger").Frame != 1 || !s.sqEpisode("fluger").Enabled {
 		t.Fatal("fluger not independently armed on blank")
 	}
 	for i := 0; i < 10; i++ {
 		exteriorPaint(t, a, now, 68*time.Millisecond)
 	}
-	if s.exterior.fluger || s.exterior.sign || s.exterior.frame.Fluger != 0 || s.exterior.frame.Sign != 0 {
+	if s.sqEpisode("fluger").Enabled || s.sqEpisode("sign").Enabled || s.sqEpisode("fluger").Frame != 0 || s.sqEpisode("sign").Frame != 0 {
 		t.Fatal("ambient cycles did not end")
 	}
-	if s.exterior.frame.Mage != 6 {
+	if s.sqSchool().Member("mage").Frame != 6 {
 		t.Fatal("ambient tick advanced unarmed school")
 	}
 }
@@ -288,12 +290,12 @@ func TestTownExteriorAppSchoolSharedBitAndIndependentAmbience(t *testing.T) {
 func TestTownExteriorAppGateReverseGuardUnavailableAndSoundCancel(t *testing.T) {
 	f, a, s, now, _, r := exteriorFixture(t)
 	exteriorPointer(t, a, 20)
-	shop := s.exterior.voices[exteriorShop].(*exteriorVoice)
+	shop := s.sqVoice("shop").(*exteriorVoice)
 	exteriorPointer(t, a, 30)
 	if shop.stops != 1 {
 		t.Fatal("school did not cancel shop")
 	}
-	school := s.exterior.voices[exteriorSchool].(*exteriorVoice)
+	school := s.sqVoice("school").(*exteriorVoice)
 	exteriorPointer(t, a, 10)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
 	if school.stops != 1 {
@@ -301,36 +303,36 @@ func TestTownExteriorAppGateReverseGuardUnavailableAndSoundCancel(t *testing.T) 
 	}
 	exteriorPointer(t, a, 40)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Door != 7 {
+	if s.sqDoor().Frame != 7 {
 		t.Fatal("gate did not open")
 	}
-	up := s.exterior.voices[exteriorGate].(*exteriorVoice)
+	up := s.sqVoice("gate").(*exteriorVoice)
 	exteriorPointer(t, a, 0)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Door != 8 || up.stops != 1 {
+	if s.sqDoor().Frame != 8 || up.stops != 1 {
 		t.Fatal("gate did not reverse/cancel")
 	}
 	exteriorPointer(t, a, 40)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Door != 7 {
+	if s.sqDoor().Frame != 7 {
 		t.Fatal("gate reentry reset progress")
 	}
 	for i := 0; i < 8; i++ {
 		exteriorPaint(t, a, now, 68*time.Millisecond)
 	}
-	if s.exterior.frame.Door != 0 || s.exterior.frame.Guard != 7 || s.exterior.guardStep != 0 || s.exterior.voices[exteriorGuard] != nil {
+	if s.sqDoor().Frame != 0 || s.sqGuard().Frame != 7 || s.sqGuard().Dir != 0 || s.sqVoice("guard") != nil {
 		t.Fatal("endpoints/overshoot release")
 	}
 	clearTownTestGateLatches(f.Town)
 	exteriorPointer(t, a, 40)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Door != 8 || !s.exterior.gateLatch || s.exterior.frame.Guard != 6 {
+	if s.sqDoor().Frame != 8 || !s.sqDoor().TowardFirst || s.sqGuard().Frame != 6 {
 		t.Fatal("unavailable gate/guard branch")
 	}
 	for i := 0; i < 7; i++ {
 		exteriorPaint(t, a, now, 68*time.Millisecond)
 	}
-	if s.exterior.frame.Guard != 0 || s.exterior.guardStep != 0 || s.exterior.voices[exteriorGuard] != nil {
+	if s.sqGuard().Frame != 0 || s.sqGuard().Dir != 0 || s.sqVoice("guard") != nil {
 		t.Fatal("negative overshoot")
 	}
 	// All retained channel starts use centered placement; no one-shot fallback.
@@ -351,19 +353,19 @@ func TestTownExteriorAppMenuFocusRoomReentryAndLoadReset(t *testing.T) {
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
-	if s.exterior.active || s.exterior.selector != -1 {
+	if s.squareView().Active() || s.sqSelector() != -1 {
 		t.Fatal("menu kept stale hover active")
 	}
 	*now = now.Add(time.Hour)
 	a.Draw(ebiten.NewImage(640, 480))
-	if s.exterior.frame.Tavern != 1 {
+	if s.sqEpisode("tavern").Frame != 1 {
 		t.Fatal("menu paint advanced square")
 	}
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
 	exteriorPaint(t, a, now, 0)
-	if s.exterior.frame.Tavern != 2 {
+	if s.sqEpisode("tavern").Frame != 2 {
 		t.Fatal("resume did not admit one due process-timer hub")
 	}
 	if err := a.HeadlessFocus(false); err != nil {
@@ -373,14 +375,14 @@ func TestTownExteriorAppMenuFocusRoomReentryAndLoadReset(t *testing.T) {
 		t.Fatal(err)
 	}
 	exteriorPaint(t, a, now, time.Hour)
-	if s.exterior.active || s.exterior.frame.Tavern != 2 {
+	if s.squareView().Active() || s.sqEpisode("tavern").Frame != 2 {
 		t.Fatal("focus pause failed")
 	}
 	if err := a.HeadlessFocus(true); err != nil {
 		t.Fatal(err)
 	}
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if s.exterior.frame.Tavern != 3 || s.exterior.selector != 2 {
+	if s.sqEpisode("tavern").Frame != 3 || s.sqSelector() != 2 {
 		t.Fatal("focus resume lost pointer/cycle")
 	}
 	for _, x := range []int{10, 20, 30, 40} {
@@ -395,7 +397,7 @@ func TestTownExteriorAppMenuFocusRoomReentryAndLoadReset(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if s.room != roomSquare || s.exterior.frame.Tavern != 0 || s.exterior.frame.Door != 8 {
+		if s.room != roomSquare || s.sqEpisode("tavern").Frame != 0 || s.sqDoor().Frame != 8 {
 			t.Fatal("Back/reentry did not reset")
 		}
 	}
@@ -407,7 +409,7 @@ func TestTownExteriorAppMenuFocusRoomReentryAndLoadReset(t *testing.T) {
 	if err := a.HeadlessActivate("@first"); err != nil {
 		t.Fatal(err)
 	}
-	if a.Screen() != ui.ScreenTown || s.exterior.frame.Tavern != 0 || s.exterior.frame.Door != 8 || s.exterior.tavern {
+	if a.Screen() != ui.ScreenTown || s.sqEpisode("tavern").Frame != 0 || s.sqDoor().Frame != 8 || s.sqEpisode("tavern").Enabled {
 		t.Fatal("App load retained old entrance cycle")
 	}
 }
@@ -445,14 +447,14 @@ func TestTownExteriorPresentationLeavesNativeBytesIdentical(t *testing.T) {
 		t.Fatal("presentation changed sim hash or binary state")
 	}
 	s.resetForNewGame()
-	if !reflect.DeepEqual(s.exterior, townExteriorAnimation{}) {
+	if s.squareView().Ready() || s.sqEpisode("tavern").Enabled || s.sqFrames() != (sqFrameSet{Guard: 7, Door: 8}) {
 		t.Fatal("new game retained exterior")
 	}
 }
 
 func TestTownExteriorMissingMotionAndSoundCapability(t *testing.T) {
 	f, a, s, now, _, _ := exteriorFixture(t)
-	f.TownSquareArt.Value().Exterior = &ui.TownExteriorArt{}
+	*f.TownSquareArt.Value() = *staticSquareArt(f.TownSquareArt.Value())
 	f.SoundPlayer = &legacySoundRecorder{}
 	for _, x := range []int{10, 20, 30, 40, 0} {
 		exteriorPointer(t, a, x)
@@ -461,10 +463,10 @@ func TestTownExteriorMissingMotionAndSoundCapability(t *testing.T) {
 	if len(f.SoundPlayer.(*legacySoundRecorder).samples) != 0 {
 		t.Fatal("one-shot substitute")
 	}
-	f.TownSquareArt = lazy[*ui.TownSquareArt]{}
+	f.TownSquareArt = lazy[*town.Art]{}
 	exteriorPointer(t, a, 10)
 	a.Draw(ebiten.NewImage(640, 480))
-	if s.exterior.selector != -1 {
+	if s.sqSelector() != -1 {
 		t.Fatal("missing mask retained selector")
 	}
 	if err := a.HeadlessKey("enter"); err != nil {
@@ -487,7 +489,7 @@ func TestTownExteriorSoundStatusRetriesAndGuardSameHubRelease(t *testing.T) {
 		return n
 	}
 	exteriorPointer(t, a, 20)
-	voice := s.exterior.voices[exteriorShop].(*exteriorVoice)
+	voice := s.sqVoice("shop").(*exteriorVoice)
 	exteriorPointer(t, a, 0)
 	exteriorPointer(t, a, 20)
 	if count(1) != 1 || voice.stops != 0 {
@@ -499,7 +501,7 @@ func TestTownExteriorSoundStatusRetriesAndGuardSameHubRelease(t *testing.T) {
 	if count(1) != 2 || voice.stops != 1 {
 		t.Fatal("finished voice did not release/retry")
 	}
-	voice = s.exterior.voices[exteriorShop].(*exteriorVoice)
+	voice = s.sqVoice("shop").(*exteriorVoice)
 	if err := a.HeadlessFocus(false); err != nil {
 		t.Fatal(err)
 	}
@@ -509,11 +511,11 @@ func TestTownExteriorSoundStatusRetriesAndGuardSameHubRelease(t *testing.T) {
 	if err := a.HeadlessFocus(true); err != nil {
 		t.Fatal(err)
 	}
-	s.exterior.frame.Guard = 7
-	s.exterior.guardLatch = false
+	s.sqGuard().Frame = 7
+	s.sqGuard().Forward = false
 	exteriorPointer(t, a, 0)
 	exteriorPaint(t, a, now, 68*time.Millisecond)
-	if count(7) != 1 || r.voices[len(r.voices)-1].stops != 1 || s.exterior.voices[exteriorGuard] != nil {
+	if count(7) != 1 || r.voices[len(r.voices)-1].stops != 1 || s.sqVoice("guard") != nil {
 		t.Fatal("terminal guard request was not released in its same hub")
 	}
 }

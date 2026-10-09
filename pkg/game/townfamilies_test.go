@@ -1,12 +1,14 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"testing"
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -36,24 +38,24 @@ func familyColour(base byte, sheet, frame int) color.RGBA {
 	return color.RGBA{R: base + byte(frame), G: 10 + 20*byte(sheet), B: base, A: 255}
 }
 
-func installTownFamilyArt(a *ui.TownSquareArt, horse, baba, dervish bool) {
-	for p := range a.Exterior.Horse {
-		for v := range a.Exterior.Horse[p] {
+func installTownFamilyArt(a *town.Art, horse, baba, dervish bool) {
+	for p := 0; p < 5; p++ {
+		for v := 0; v < 3; v++ {
 			if horse {
-				a.Exterior.Horse[p][v] = familyFrames(15, familyHorseBase, byte(v))
+				a.Frames[fmt.Sprintf("horse/%d/%d", p, v)] = familyFrames(15, familyHorseBase, byte(v))
 			}
 		}
 	}
-	for p := range a.Exterior.Baba {
-		for v := range a.Exterior.Baba[p] {
+	for p := 0; p < 4; p++ {
+		for v := 0; v < 2; v++ {
 			if baba {
-				a.Exterior.Baba[p][v] = familyFrames(31+v, familyBabaBase, byte(v))
+				a.Frames[fmt.Sprintf("baba/%d/%d", p, v)] = familyFrames(31+v, familyBabaBase, byte(v))
 			}
 		}
 	}
-	for p := range a.Exterior.Dervish {
+	for p := 0; p < 4; p++ {
 		if dervish {
-			a.Exterior.Dervish[p] = familyFrames(30, familyDervishBase, 0)
+			a.Frames[fmt.Sprintf("dervish/%d", p)] = familyFrames(30, familyDervishBase, 0)
 		}
 	}
 }
@@ -100,7 +102,7 @@ func newTownFamilyRig(t *testing.T, horse, baba, dervish bool) *townFamilyRig {
 	r := &exteriorRecorder{}
 	f.SoundPlayer = r
 	f.SoundBank = &SoundBank{named: map[string]soundCacheEntry{}, cache: map[int]soundCacheEntry{}}
-	for i, p := range []string{townHorse1Sound, townHorse2Sound} {
+	for i, p := range []string{"town/horse1.wav", "town/horse2.wav"} {
 		f.SoundBank.named[p] = soundCacheEntry{sample: audio.Sample{Rate: audio.DeviceRate, PCM: []int16{int16(111 + i)}}, ok: true}
 	}
 	app, s := exteriorApp(t, f)
@@ -112,9 +114,9 @@ func newTownFamilyRig(t *testing.T, horse, baba, dervish bool) *townFamilyRig {
 func (r *townFamilyRig) enter(t *testing.T, script ...int) {
 	t.Helper()
 	r.draws.script = script
-	r.s.townFamilyRand.raw = r.draws.next
+	r.s.squareView().SetRawDraw("wildlife", r.draws.next)
 	r.s.resetTownExterior()
-	r.s.townPaintLast = time.Time{}
+	r.s.squareView().SetClockLast(time.Time{})
 	r.s.TownSquareActive(true)
 	if len(r.draws.script) != 0 {
 		t.Fatalf("entry left %d scripted draws", len(r.draws.script))
@@ -157,15 +159,16 @@ func TestTownFamiliesEnterDrawnAtFrameZeroOnTheChosenPositions(t *testing.T) {
 	// horse 2, baba 1, dervish 1 (the baba's, re-rolled) then 3, baba delay
 	// 2999 ms, horse delay 2000 ms.
 	r.enter(t, rawH(2), rawB(1), rawB(1), rawB(3), rawEntryDelayLong, rawMax)
-	fam := r.s.exterior.fam
-	if fam.horse.position != 2 || fam.baba.position != 1 || fam.dervish.position != 3 {
-		t.Fatalf("positions horse%d baba%d dervish%d", fam.horse.position, fam.baba.position, fam.dervish.position)
+	w := r.s.sqWildlife()
+	horse, baba, dervish := w.Member("horse"), w.Member("baba"), w.Member("dervish")
+	if horse.Position != 2 || baba.Position != 1 || dervish.Position != 3 {
+		t.Fatalf("positions horse%d baba%d dervish%d", horse.Position, baba.Position, dervish.Position)
 	}
-	if fam.baba.delay != 2999*time.Millisecond || fam.horse.delay != 2000*time.Millisecond {
-		t.Fatalf("entry delays baba %v horse %v", fam.baba.delay, fam.horse.delay)
+	if baba.Wait != 2999*time.Millisecond || horse.Wait != 2000*time.Millisecond {
+		t.Fatalf("entry delays baba %v horse %v", baba.Wait, horse.Wait)
 	}
-	if fam.baba.sheet != 0 || fam.horse.sheet != 0 || fam.baba.current != -1 || fam.horse.current != -1 || fam.baba.active || fam.horse.active || !fam.dervish.active {
-		t.Fatalf("entry state %+v", fam)
+	if baba.Sheet != 0 || horse.Sheet != 0 || baba.Current != -1 || horse.Current != -1 || baba.Active || horse.Active || !dervish.Active {
+		t.Fatalf("entry state %+v", w.Members)
 	}
 	pix := r.paint(t, 0)
 	for _, c := range []struct {
@@ -190,16 +193,16 @@ func TestTownFamiliesEnterDrawnAtFrameZeroOnTheChosenPositions(t *testing.T) {
 func TestTownFamiliesHorseEpisodeDelayStepsAndSounds(t *testing.T) {
 	r := newTownFamilyRig(t, true, true, true)
 	r.enter(t, rawH(2), rawB(1), rawB(3), rawEntryDelayLong, rawMax)
-	frame := func() ui.TownFamilyFrame { return r.s.townExteriorFrame().Horse }
+	frame := func() familyFrame { return r.s.sqExteriorFrame().Horse }
 
 	r.paint(t, 2000*time.Millisecond)
-	if r.s.exterior.fam.horse.active {
+	if r.s.sqWildlife().Member("horse").Active {
 		t.Fatal("elapsed equal to the delay armed the horse")
 	}
 	r.draws.script = []int{rawArmDelayMid, rawSheet3}
 	r.paint(t, time.Millisecond)
-	h := r.s.exterior.fam.horse
-	if !h.active || h.sheet != 2 || h.current != 0 || h.delay != 4499*time.Millisecond || len(r.draws.script) != 0 {
+	h := r.s.sqWildlife().Member("horse")
+	if !h.Active || h.Sheet != 2 || h.Current != 0 || h.Wait != 4499*time.Millisecond || len(r.draws.script) != 0 {
 		t.Fatalf("arm state %+v script left %v", h, r.draws.script)
 	}
 	if f := frame(); !f.Visible || f.Sheet != 2 || f.Frame != 0 {
@@ -240,7 +243,7 @@ func TestTownFamiliesHorseEpisodeDelayStepsAndSounds(t *testing.T) {
 	}
 	horse2 := r.voices.voices[len(r.voices.voices)-1]
 	r.paint(t, 68*time.Millisecond)
-	if h := r.s.exterior.fam.horse; h.active || h.current != -1 {
+	if h := r.s.sqWildlife().Member("horse"); h.Active || h.Current != -1 {
 		t.Fatalf("terminal step left %+v", h)
 	}
 	if f := frame(); !f.Visible || f.Frame != 0 || f.Sheet != 2 {
@@ -252,12 +255,12 @@ func TestTownFamiliesHorseEpisodeDelayStepsAndSounds(t *testing.T) {
 
 	// The delay runs from the last step and is strict.
 	r.paint(t, 4499*time.Millisecond)
-	if r.s.exterior.fam.horse.active {
+	if r.s.sqWildlife().Member("horse").Active {
 		t.Fatal("elapsed equal to the rolled delay armed the horse")
 	}
 	r.draws.script = []int{rawZero, rawZero}
 	r.paint(t, time.Millisecond)
-	if h := r.s.exterior.fam.horse; !h.active || h.sheet != 0 || h.delay != 2000*time.Millisecond {
+	if h := r.s.sqWildlife().Member("horse"); !h.Active || h.Sheet != 0 || h.Wait != 2000*time.Millisecond {
 		t.Fatalf("second arm %+v", h)
 	}
 
@@ -277,8 +280,8 @@ func TestTownFamiliesHorse2GatesPerSheet(t *testing.T) {
 		r.enter(t, 0, 0, rawB(1), rawEntryDelayLong, rawZero)
 		r.draws.script = []int{rawZero, c.raw}
 		r.paint(t, 2001*time.Millisecond)
-		if r.s.exterior.fam.horse.sheet != c.sheet || !r.s.exterior.fam.horse.active {
-			t.Fatalf("sheet A%d armed as %+v", c.sheet+1, r.s.exterior.fam.horse)
+		if r.s.sqWildlife().Member("horse").Sheet != c.sheet || !r.s.sqWildlife().Member("horse").Active {
+			t.Fatalf("sheet A%d armed as %+v", c.sheet+1, r.s.sqWildlife().Member("horse"))
 		}
 		seen := -1
 		for f := 1; f <= 14; f++ {
@@ -302,23 +305,23 @@ func TestTownFamiliesBabaSheetLengthsAndDelays(t *testing.T) {
 		r := newTownFamilyRig(t, true, true, true)
 		r.enter(t, 0, 0, rawB(1), rawZero, rawMax)
 		r.paint(t, 2000*time.Millisecond)
-		if r.s.exterior.fam.baba.active {
+		if r.s.sqWildlife().Member("baba").Active {
 			t.Fatal("elapsed equal to the baba delay armed it")
 		}
 		r.draws.script = []int{rawZero, c.raw}
 		r.paint(t, time.Millisecond)
-		if b := r.s.exterior.fam.baba; !b.active || b.sheet != c.sheet || b.delay != 2000*time.Millisecond {
+		if b := r.s.sqWildlife().Member("baba"); !b.Active || b.Sheet != c.sheet || b.Wait != 2000*time.Millisecond {
 			t.Fatalf("baba arm %+v", b)
 		}
 		steps := 0
-		for r.s.exterior.fam.baba.active {
+		for r.s.sqWildlife().Member("baba").Active {
 			r.paint(t, 68*time.Millisecond)
 			steps++
 			if steps > 40 {
 				t.Fatal("episode never ended")
 			}
 		}
-		if steps != c.frames || r.s.exterior.fam.baba.current != -1 {
+		if steps != c.frames || r.s.sqWildlife().Member("baba").Current != -1 {
 			t.Errorf("sheet A%d: %d steps, want %d", c.sheet+1, steps, c.frames)
 		}
 	}
@@ -330,11 +333,11 @@ func TestTownFamiliesDervishRevolutionOnePerHub(t *testing.T) {
 	r.enter(t, 0, 0, rawB(1), rawMax, rawMax)
 	for i := 1; i <= 31; i++ {
 		r.paint(t, 68*time.Millisecond)
-		if got := r.s.townExteriorFrame().Dervish.Frame; got != i%30 {
+		if got := r.s.sqExteriorFrame().Dervish.Frame; got != i%30 {
 			t.Fatalf("hub %d dervish frame %d", i, got)
 		}
 		r.paint(t, 10*time.Millisecond)
-		if got := r.s.townExteriorFrame().Dervish.Frame; got != i%30 {
+		if got := r.s.sqExteriorFrame().Dervish.Frame; got != i%30 {
 			t.Fatalf("paint inside the hub interval moved the dervish to %d", got)
 		}
 	}
@@ -356,7 +359,7 @@ func TestTownFamiliesAbsentFamilyDrawsNothingOthersContinue(t *testing.T) {
 			r.endVoices()
 		}
 		pix := r.paint(t, 0)
-		fr := r.s.townExteriorFrame()
+		fr := r.s.sqExteriorFrame()
 		for _, tc := range []struct {
 			name string
 			p    image.Point
@@ -382,31 +385,48 @@ func TestTownFamiliesAbsentFamilyDrawsNothingOthersContinue(t *testing.T) {
 func TestTownFamiliesArmTestIgnoresAnActiveEpisode(t *testing.T) {
 	r := newTownFamilyRig(t, true, true, true)
 	r.enter(t, 0, 0, rawB(1), rawMax, rawMax)
-	fam := &r.s.exterior.fam
-	fam.baba.active, fam.baba.current, fam.baba.sheet = true, 7, 0
-	fam.baba.clock, fam.baba.delay = r.now.Add(-5*time.Second), 2*time.Second
+	b := r.s.sqWildlife().Member("baba")
+	b.Active, b.Current, b.Sheet = true, 7, 0
+	b.Clock, b.Wait = r.now.Add(-5*time.Second), 2*time.Second
 	r.draws.script = []int{rawZero, rawHalf}
-	r.s.paintTownFamilies(*r.now)
-	if b := fam.baba; !b.active || b.current != 0 || b.sheet != 1 || !b.clock.Equal(*r.now) {
+	r.paint(t, 0)
+	if !b.Active || b.Current != 0 || b.Sheet != 1 || !b.Clock.Equal(*r.now) {
 		t.Fatalf("restart %+v", b)
 	}
+}
+
+// seedHost is a still host with a fixed generator seed.
+type seedHost struct {
+	stillHost
+	seed int64
+}
+
+func (h seedHost) Seed() int64 { return h.seed }
+
+// crtRand is an independent CRT rand: state*214013+2531011, bits 16..30.
+type crtRand struct{ state uint32 }
+
+func (g *crtRand) next() int {
+	g.state = g.state*214013 + 2531011
+	return int(g.state>>16) & 0x7fff
 }
 
 // The generator is the CRT rand (AI-RAND-058) and the entry and arm delays
 // stay inside their bounds over a seeded run.
 func TestTownFamilyGeneratorIsTheCRTRandAndDelaysStayInBounds(t *testing.T) {
-	g := townCRT{state: 1, seeded: true}
-	for i, want := range []int{41, 18467, 6334, 26500, 19169} {
-		if got := g.next(time.Time{}); got != want {
-			t.Fatalf("draw %d = %d want %d", i, got, want)
+	v := town.NewView(rom1Town, seedHost{seed: 1}, nil)
+	oracle := crtRand{state: 1}
+	for i := 0; i < 5; i++ {
+		raw := oracle.next()
+		if got, want := v.Pick("wildlife", "scaled", 2000), raw*2000/0x7fff%2000; got != want {
+			t.Fatalf("draw %d = %d want %d (raw %d)", i, got, want, raw)
 		}
 	}
-	g = townCRT{}
-	seed := time.Unix(1234, 5678)
+	v = town.NewView(rom1Town, seedHost{seed: 1234}, nil)
 	loEntry, hiEntry, loArm, hiArm := 1<<30, 0, 1<<30, 0
 	for i := 0; i < 200000; i++ {
-		e := 2000 + g.scaled(seed, 2000)
-		a := 2000 + g.scaled(seed, 5000)
+		e := 2000 + v.Pick("wildlife", "scaled", 2000)
+		a := 2000 + v.Pick("wildlife", "scaled", 5000)
 		loEntry, hiEntry = min(loEntry, e), max(hiEntry, e)
 		loArm, hiArm = min(loArm, a), max(hiArm, a)
 	}
@@ -418,8 +438,8 @@ func TestTownFamilyGeneratorIsTheCRTRandAndDelaysStayInBounds(t *testing.T) {
 	}
 	// The raw extremes: 0 and 0x7fff both give the minimum, 0x7ffe the maximum.
 	for raw, want := range map[int]int{0: 2000, 0x7fff: 2000, 0x7ffe: 3999} {
-		lim := townCRT{raw: func() int { return raw }}
-		if got := 2000 + lim.scaled(seed, 2000); got != want {
+		v.SetRawDraw("wildlife", func() int { return raw })
+		if got := 2000 + v.Pick("wildlife", "scaled", 2000); got != want {
 			t.Errorf("raw %#x: entry delay %d want %d", raw, got, want)
 		}
 	}
@@ -431,8 +451,8 @@ func TestTownFamiliesLeaveEveryOtherGeneratorAlone(t *testing.T) {
 	run := func(families bool) int {
 		r := newTownFamilyRig(t, families, families, families)
 		r.s.resetTownExterior()
-		r.s.townFamilyRand = townCRT{}
-		r.s.townPaintLast = time.Time{}
+		r.s.squareView().ResetDraw("wildlife")
+		r.s.squareView().SetClockLast(time.Time{})
 		r.s.TownSquareActive(true)
 		exteriorPaint(t, r.app, r.now, 0)
 		for i := 0; i < 400; i++ {
@@ -449,8 +469,9 @@ func TestTownFamiliesLeaveEveryOtherGeneratorAlone(t *testing.T) {
 // Position rolls are scaled quotients, not r mod n (TOWN-505).
 func TestTownFamilyPositionRollsAreTheScaledQuotients(t *testing.T) {
 	roll := func(raw int) (horse, baba int) {
-		g := townCRT{raw: func() int { return raw }}
-		return g.scaled(time.Time{}, ui.TownHorsePositions), g.quarter(time.Time{})
+		v := town.NewView(rom1Town, stillHost{}, nil)
+		v.SetRawDraw("wildlife", func() int { return raw })
+		return v.Pick("wildlife", "scaled", 5), v.Pick("wildlife", "masked", 4)
 	}
 	for _, c := range []struct{ raw, horse, baba int }{
 		{0, 0, 0},

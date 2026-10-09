@@ -385,16 +385,8 @@ func effectClock(picture int) terrain.EffectClock {
 // effectFrames is one sheet's every frame, or nil for any of the ways it
 // cannot be built.
 //
-// THE BLEND IS cursorPixel's, called and not copied. This package already
-// resolves a pixel of this format to a premultiplied colour, for the attack
-// pointer and the inventory icon, and a second resolution here that
-// disagreed about what a level means would be invisible on screen: nobody
-// looking at a rendered bolt can tell that coverage 7 came out one sixteenth
-// too bright. One walk, three callers.
-//
-// An UNPAINTED cell is the zero value and is left alone, which is the decoder's
-// own distinction: a painted level of 0 is a written pixel that is nearly
-// transparent, and an unpainted cell is no pixel at all.
+// THE BLEND IS the one .16a frame converter's (spr16.FrameA.Colors), the same
+// resolution the attack pointer and the inventory icon take.
 func effectFrames(src terrain.EntrySource, addr string) []*terrain.EffectFrame {
 	b, err := src.ReadFile(addr)
 	if err != nil {
@@ -406,18 +398,7 @@ func effectFrames(src terrain.EntrySource, addr string) []*terrain.EffectFrame {
 	}
 	out := make([]*terrain.EffectFrame, 0, len(sprite.Frames))
 	for _, f := range sprite.Frames {
-		frame := &terrain.EffectFrame{
-			Width:  f.Width,
-			Height: f.Height,
-			Pixels: make([]color.RGBA, len(f.Pixels)),
-		}
-		for i, p := range f.Pixels {
-			if !p.Painted {
-				continue
-			}
-			frame.Pixels[i] = cursorPixel(sprite.Palette, p)
-		}
-		out = append(out, frame)
+		out = append(out, &terrain.EffectFrame{Width: f.Width, Height: f.Height, Pixels: f.Colors(sprite.Palette)})
 	}
 	if len(out) == 0 {
 		return nil
@@ -441,7 +422,7 @@ func sharedProjectileTable(src terrain.EntrySource) *[256]color.RGBA {
 	if err != nil {
 		return nil
 	}
-	table := tableRGBA(t)
+	table := t.Opaque()
 	return &table
 }
 
@@ -463,26 +444,16 @@ func indexedEffectFrames(src terrain.EntrySource, addr string, shared bool, shar
 	if err != nil {
 		return nil
 	}
-	var table [256]color.RGBA
-	switch {
-	case shared && sharedTable != nil:
-		table = *sharedTable
-	case !shared && sprite.HasPalette && len(sprite.Palette) == len(table):
-		for i, e := range sprite.Palette {
-			table[i] = color.RGBA{R: e.R, G: e.G, B: e.B, A: 0xff}
-		}
-	default:
+	table := sharedTable
+	if !shared {
+		table, _ = sprite.Table()
+	}
+	if table == nil {
 		return nil
 	}
 	out := make([]*terrain.EffectFrame, 0, len(sprite.Frames))
 	for _, f := range sprite.Frames {
-		frame := &terrain.EffectFrame{Width: f.Width, Height: f.Height, Pixels: make([]color.RGBA, len(f.Pixels))}
-		for i, p := range f.Pixels {
-			if p.Opaque {
-				frame.Pixels[i] = table[p.Index]
-			}
-		}
-		out = append(out, frame)
+		out = append(out, &terrain.EffectFrame{Width: f.Width, Height: f.Height, Pixels: f.Colors(table)})
 	}
 	if len(out) == 0 {
 		return nil

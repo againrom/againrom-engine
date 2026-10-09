@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -29,7 +30,7 @@ func (s *entryPaintTrace) TownSquarePointer(p image.Point) {
 	s.townScreen.TownSquarePointer(p)
 }
 
-func entryPaintArt() *ui.TownSquareArt {
+func entryPaintArt() *town.Art {
 	frames := func(n int) []image.Image {
 		out := make([]image.Image, n)
 		for i := range out {
@@ -39,13 +40,10 @@ func entryPaintArt() *ui.TownSquareArt {
 		}
 		return out
 	}
-	return &ui.TownSquareArt{
-		Background: image.NewRGBA(image.Rect(0, 0, 640, 480)),
-		Mask:       image.NewPaletted(image.Rect(0, 0, 640, 480), make(color.Palette, 256)),
-		Exterior: &ui.TownExteriorArt{
-			Guard: frames(8), Door: frames(9), Sign: frames(10), Fluger: frames(8),
-		},
-	}
+	return squareArt(image.NewPaletted(image.Rect(0, 0, 640, 480), make(color.Palette, 256)), map[string][]image.Image{
+		"base":  {image.NewRGBA(image.Rect(0, 0, 640, 480))},
+		"guard": frames(8), "door": frames(9), "sign": frames(10), "fluger": frames(8),
+	})
 }
 
 type entryPaintFixture struct {
@@ -129,8 +127,8 @@ func TestTownEntryPaintPrecedesNextPointer(t *testing.T) {
 			if x.town.points != 0 {
 				t.Fatalf("entry delivered %d unsolicited pointers", x.town.points)
 			}
-			if x.town.exterior.guardStep != 0 || x.town.exterior.frame.Guard != 7 {
-				t.Fatalf("fresh entry changed idle guard: frame=%d step=%d", x.town.exterior.frame.Guard, x.town.exterior.guardStep)
+			if x.town.sqGuard().Dir != 0 || x.town.sqGuard().Frame != 7 {
+				t.Fatalf("fresh entry changed idle guard: frame=%d step=%d", x.town.sqGuard().Frame, x.town.sqGuard().Dir)
 			}
 			if x.town.paints != 1 {
 				t.Errorf("entry returned with %d synchronous paint calls; want 1 before next explicit pointer", x.town.paints)
@@ -138,13 +136,13 @@ func TestTownEntryPaintPrecedesNextPointer(t *testing.T) {
 			if err := x.app.HeadlessPointer("hover", 2, 2); err != nil {
 				t.Fatal(err)
 			}
-			if x.town.points != 1 || x.town.exterior.guardStep != 1 {
+			if x.town.points != 1 || x.town.sqGuard().Dir != 1 {
 				t.Fatal("explicit next pointer did not reach real guard selection")
 			}
 			if !reflect.DeepEqual(x.town.events, []string{"paint", "pointer"}) {
 				t.Errorf("entry/next-pointer order %v; want [paint pointer]", x.town.events)
 			}
-			t.Logf("route=%s frame=%d step=%d events=%v rolls=%d", route, x.town.exterior.frame.Guard, x.town.exterior.guardStep, x.town.events, x.rolls)
+			t.Logf("route=%s frame=%d step=%d events=%v rolls=%d", route, x.town.sqGuard().Frame, x.town.sqGuard().Dir, x.town.events, x.rolls)
 		})
 	}
 }
@@ -155,37 +153,37 @@ func TestTownEntryPaintAdmissionControls(t *testing.T) {
 		x.enter(t)
 		x.town.events, x.town.paints, x.town.points = nil, 0, 0
 		x.paint(t)
-		if x.rolls != 0 || x.town.exterior.guardStep != 0 || x.town.exterior.frame.Guard != 7 {
-			t.Fatalf("first actual paint admitted hub or guard movement: rolls=%d frame=%d step=%d", x.rolls, x.town.exterior.frame.Guard, x.town.exterior.guardStep)
+		if x.rolls != 0 || x.town.sqGuard().Dir != 0 || x.town.sqGuard().Frame != 7 {
+			t.Fatalf("first actual paint admitted hub or guard movement: rolls=%d frame=%d step=%d", x.rolls, x.town.sqGuard().Frame, x.town.sqGuard().Dir)
 		}
-		if x.town.paints != 1 || x.town.points != 0 || x.town.exterior.last != x.now {
+		if x.town.paints != 1 || x.town.points != 0 || x.town.sqPaintLast() != x.now {
 			t.Fatal("first actual paint/lifecycle fixture is not initialized")
 		}
-		x.town.exterior.frame.Guard = 4
+		x.town.sqGuard().Frame = 4
 		x.now = x.now.Add(67 * time.Millisecond)
 		x.paint(t)
-		if x.rolls != 0 || x.town.exterior.frame.Guard != 4 {
+		if x.rolls != 0 || x.town.sqGuard().Frame != 4 {
 			t.Fatal("67ms admitted hub")
 		}
 		x.now = x.now.Add(time.Millisecond)
 		x.paint(t)
-		if x.rolls != 2 || x.town.exterior.frame.Guard != 4 || x.town.exterior.guardStep != 0 {
-			t.Fatalf("68ms must admit hub while step0 holds guard: rolls=%d frame=%d step=%d", x.rolls, x.town.exterior.frame.Guard, x.town.exterior.guardStep)
+		if x.rolls != 2 || x.town.sqGuard().Frame != 4 || x.town.sqGuard().Dir != 0 {
+			t.Fatalf("68ms must admit hub while step0 holds guard: rolls=%d frame=%d step=%d", x.rolls, x.town.sqGuard().Frame, x.town.sqGuard().Dir)
 		}
 		x.paint(t)
-		if x.rolls != 2 || x.town.exterior.frame.Guard != 4 {
+		if x.rolls != 2 || x.town.sqGuard().Frame != 4 {
 			t.Fatal("same-time duplicate paint admitted another hub")
 		}
 		if err := x.app.HeadlessPointer("hover", 2, 2); err != nil {
 			t.Fatal(err)
 		}
-		if x.town.exterior.guardStep != 1 || x.town.exterior.frame.Guard != 4 {
+		if x.town.sqGuard().Dir != 1 || x.town.sqGuard().Frame != 4 {
 			t.Fatal("next pointer must arm, not paint, the guard")
 		}
 		x.now = x.now.Add(68 * time.Millisecond)
 		x.paint(t)
-		if x.rolls != 4 || x.town.exterior.frame.Guard != 5 || x.town.points != 1 {
-			t.Fatalf("explicit pointer followed by due paint missing: rolls=%d frame=%d points=%d", x.rolls, x.town.exterior.frame.Guard, x.town.points)
+		if x.rolls != 4 || x.town.sqGuard().Frame != 5 || x.town.points != 1 {
+			t.Fatalf("explicit pointer followed by due paint missing: rolls=%d frame=%d points=%d", x.rolls, x.town.sqGuard().Frame, x.town.points)
 		}
 		t.Logf("fresh0, not-due67, due68/step0, duplicate0, explicit-pointer1, due68/frame5; events=%v", x.town.events)
 	})
@@ -195,21 +193,21 @@ func TestTownEntryPaintAdmissionControls(t *testing.T) {
 		if err := x.app.HeadlessFocus(false); err != nil {
 			t.Fatal(err)
 		}
-		x.town.exterior.frame.Guard, x.town.exterior.guardStep = 4, 0
+		x.town.sqGuard().Frame, x.town.sqGuard().Dir = 4, 0
 		x.now = x.now.Add(time.Second)
 		x.paint(t)
-		if x.town.exterior.active || x.rolls != 0 || x.town.exterior.frame.Guard != 4 {
+		if x.town.squareView().Active() || x.rolls != 0 || x.town.sqGuard().Frame != 4 {
 			t.Fatal("inactive paint admitted hub")
 		}
 	})
 	t.Run("missing-exterior-loss-control", func(t *testing.T) {
 		x := newEntryPaintFixture(t)
 		x.enter(t)
-		x.front.TownSquareArt.Value().Exterior = nil
-		x.town.exterior.frame.Guard, x.town.exterior.guardStep = 4, 0
+		x.front.TownSquareArt = resolved[*town.Art](nil, nil)
+		x.town.sqGuard().Frame, x.town.sqGuard().Dir = 4, 0
 		x.now = x.now.Add(time.Second)
 		x.paint(t)
-		if x.rolls != 0 || x.town.exterior.frame.Guard != 4 {
+		if x.rolls != 0 || x.town.sqGuard().Frame != 4 {
 			t.Fatal("missing exterior paint admitted hub")
 		}
 	})
@@ -229,7 +227,7 @@ func TestTownEntryProcessTimerAndBlockedAdmission(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			x := newEntryPaintFixture(t)
 			x.enter(t)
-			last := x.front.townUI.townPaintLast
+			last := x.front.townUI.sqPaintLast()
 			if err := x.app.HeadlessActivate("Tavern"); err != nil {
 				t.Fatal(err)
 			}
@@ -239,10 +237,10 @@ func TestTownEntryProcessTimerAndBlockedAdmission(t *testing.T) {
 			if err := x.app.HeadlessKey("escape"); err != nil {
 				t.Fatal(err)
 			}
-			if x.rolls != tc.want || x.town.exterior.guardStep != 0 || x.town.exterior.frame.Guard != 7 || x.town.points != 0 {
-				t.Fatalf("entry admission rolls=%d guard=%d step=%d points=%d", x.rolls, x.town.exterior.frame.Guard, x.town.exterior.guardStep, x.town.points)
+			if x.rolls != tc.want || x.town.sqGuard().Dir != 0 || x.town.sqGuard().Frame != 7 || x.town.points != 0 {
+				t.Fatalf("entry admission rolls=%d guard=%d step=%d points=%d", x.rolls, x.town.sqGuard().Frame, x.town.sqGuard().Dir, x.town.points)
 			}
-			if tc.want == 0 && x.front.townUI.townPaintLast != last {
+			if tc.want == 0 && x.front.townUI.sqPaintLast() != last {
 				t.Fatal("non-admitted entry reset process timer")
 			}
 			if tc.blocked {
@@ -256,14 +254,14 @@ func TestTownEntryProcessTimerAndBlockedAdmission(t *testing.T) {
 					t.Fatal("unblocked due paint lost process admission")
 				}
 			}
-			last = x.front.townUI.townPaintLast
+			last = x.front.townUI.sqPaintLast()
 			if err := x.app.HeadlessKey("f3"); err != nil {
 				t.Fatal(err)
 			}
 			if err := x.app.HeadlessKey("enter"); err != nil {
 				t.Fatal(err)
 			}
-			if x.front.townUI.townPaintLast != last {
+			if x.front.townUI.sqPaintLast() != last {
 				t.Fatal("LOAD reset process timer")
 			}
 		})
@@ -274,13 +272,13 @@ func TestTownEntryBlockedFirstPaintDoesNotInitializeTimer(t *testing.T) {
 	x := newEntryPaintFixture(t)
 	x.app.SetTownPaintAdmission(func() bool { return false })
 	x.enter(t)
-	if !x.front.townUI.townPaintLast.IsZero() || x.town.paints != 0 {
+	if !x.front.townUI.sqPaintLast().IsZero() || x.town.paints != 0 {
 		t.Fatal("blocked entry initialized process paint")
 	}
 	x.now = x.now.Add(time.Hour)
 	x.app.SetTownPaintAdmission(nil)
 	x.paint(t)
-	if x.rolls != 0 || x.front.townUI.townPaintLast != x.now {
+	if x.rolls != 0 || x.front.townUI.sqPaintLast() != x.now {
 		t.Fatal("first admitted paint ran hub instead of initializing timer")
 	}
 }

@@ -17,6 +17,7 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -180,7 +181,7 @@ type InstallResources struct {
 	// same cosmetic rule as the two above: a missing node leaves the
 	// row-button layout that drew before it existed, and its reason beside
 	// the value.
-	TownSquareArt lazy[*ui.TownSquareArt]
+	TownSquareArt lazy[*town.Art]
 
 	// AttackPointer is the game's own attack cursor, resolved once here beside
 	// the font and handed to every map this front-end opens; the map screen
@@ -446,10 +447,11 @@ type Presentation struct {
 	// load, so it can be flipped between two picks, not only at startup.
 	Markers Markers
 
-	// The bird delay latch/value and star terminal counter reproduce the
-	// process-scoped side of TOWN-417/TOWN-419. They are presentation-only,
-	// survive campaign resets and never enter native or simulation state.
-	townLatches     townAmbientLatches
+	// townProcess is the town composer's process-scoped state: the paint
+	// clock, the wildlife generator, the bird delay latch and the star
+	// terminal counter (TOWN-417, TOWN-419). It survives campaign resets and
+	// never enters native or simulation state.
+	townProcess     town.Process
 	graphics        ui.GraphicsOptions
 	showPathfinding bool
 
@@ -632,7 +634,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// by the time this line does (main.go's own ordering, mirroring
 	// SetPartySkill's).
 	soundBank := OpenSounds(root)
-	soundClasses := LoadUnitSounds(archives.Containers)
+	soundClasses := share.unitSounds
 	audioSettings := audio.Settings{
 		Master: soundOptions.Volume,
 		Muted:  !soundOptions.Enabled,
@@ -681,15 +683,12 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	townTavernArt, townTavernArtErr := share.townTavern, share.townTavernErr
 	townSquareArt, townSquareArtErr := share.townSquare, share.townSquareErr
 
-	// The attack pointer, off the same container filesystem and under the same
-	// carried-error rule. Assigned as a pair for the font's own reason: a
-	// caller cannot reach the picture without the variable that says why there
-	// is none.
-	pointer, pointerErr := LoadAttackPointer(archives.Containers)
-
-	// The cursor registry, off the same container filesystem and under the
-	// same carried-error rule (docs/1030-cursor-lifecycle B1).
-	cursorRegistry, cursorRegistryErr := LoadCursorRegistry(archives.Containers)
+	// The attack pointer and the cursor registry, off the same container
+	// filesystem and under the same carried-error rule (docs/1030-cursor-lifecycle
+	// B1). The pointer is frame 0 of the registry's own decoded attack sheet.
+	cursors := loadCursorArt(archives.Containers)
+	pointer, pointerErr := cursors.pointer, cursors.pointerErr
+	cursorRegistry, cursorRegistryErr := cursors.registry, cursors.registryErr
 
 	// The command panel's four bitmaps, off the same container filesystem and
 	// under the same carried-error rule (docs/1028-command-panel contract B1).

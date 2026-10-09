@@ -531,9 +531,7 @@ func newFigureSlotMask(b image.Rectangle) *ui.SlotMask {
 // loadItemIcon resolves the .16a icon at addr — the full, prefixed address,
 // unlike figureRGBA's path, which takes sheetCache's own unprefixed spelling
 // — through LoadAttackPointer's own path (cursor.go): ReadFile, DecodeA with
-// the palette declared present, frame 0, and cursorPixel's premultiply,
-// reused rather than rewritten so the two .16a readers in this package
-// cannot drift on what a level and an index resolve to.
+// the palette declared present, frame 0, and the one .16a frame converter.
 //
 // Every failure is an error and none is a partial picture — LoadAttackPointer's
 // own contract, restated here because this is a second, independent
@@ -557,16 +555,7 @@ func loadItemIcon(src entrySource, addr string) (*image.RGBA, error) {
 		return nil, fmt.Errorf("%s frame 0 is %dx%d and would draw nothing", addr, f.Width, f.Height)
 	}
 
-	pic := image.NewRGBA(image.Rect(0, 0, f.Width, f.Height))
-	for i, p := range f.Pixels {
-		if !p.Painted {
-			continue
-		}
-		c := cursorPixel(sprite.Palette, p)
-		o := i * 4
-		pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, c.A
-	}
-	return pic, nil
+	return f.RGBA(sprite.Palette), nil
 }
 
 // buildInventoryPack is T6's own builder, taking an ELEMENT per cell rather

@@ -8,8 +8,8 @@
 // the raw nonnegative count and refuses negative values; its frames start at
 // zero without a palette (SPR16A-070 through SPR16A-072, DIV-1250).
 // Decoded pixels keep their raw fields — the .16a
-// {index, level} pair and the .16 value — with no colour resolution; the
-// palette is returned separately for the consumer to apply. Malformed input is
+// {index, level} pair and the .16 value; FrameA.RGBA is the one resolution of
+// a .16a pair to a premultiplied colour (SPR16A-031). Malformed input is
 // rejected with an error and no result, never a panic. See
 // knowledge/formats/spr16a/format.md for the current byte-level contract.
 //
@@ -18,10 +18,9 @@
 // is. Advances decodes it; joining the pair is the caller's, since neither file
 // names the other (docs/0050-text/spec.md).
 //
-// Tier: pkg/formats/* is the lowest layer. This package imports only the Go
-// standard library — neither grammar carries text, so the formats tier's
-// golang.org/x/text grant is denied to it in internal/archtest's
-// noExternalFormats map. It must not import any other againrom package. The
-// boundary is enforced by internal/archtest and documented in
-// docs/ARCHITECTURE.md.
+// Tier: pkg/formats/* is the lowest layer. This package imports the Go
+// standard library and pkg/formats/pal, the one reader of the palette layout —
+// neither grammar carries text, so the formats tier's golang.org/x/text grant
+// is denied to it in internal/archtest's noExternalFormats map. The boundary
+// is enforced by internal/archtest and documented in docs/ARCHITECTURE.md.
 package spr16

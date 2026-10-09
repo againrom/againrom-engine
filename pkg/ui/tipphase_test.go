@@ -10,8 +10,8 @@ import (
 func tipPhaseApp(t *testing.T) (*App, *fakeTipSquareEnumTown) {
 	t.Helper()
 	town := &fakeTipSquareEnumTown{
-		art: &TownSquareArt{Background: image.NewRGBA(image.Rect(0, 0, 640, 480))},
-		tip: TipPanelView{Rect: TownTipRect, Text: "tip", Art: tipTestArt(), Font: shopTipTestFont()},
+		scene: &fakeSquareScene{},
+		tip:   TipPanelView{Rect: TownTipRect, Text: "tip", Art: tipTestArt(), Font: shopTipTestFont()},
 	}
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetTown(town)

@@ -119,9 +119,9 @@ type TownShopScreen interface {
 }
 
 // TownSquareArtScreen is the optional presentation seam for the town
-// square's own picture (docs/1016-town-square). A TownScreen that does not
-// implement it, or whose art carries no Background, keeps the row-button
-// layout drawTown has always drawn for the square.
+// square's own picture. A TownScreen that does not implement it, or whose
+// view carries no scene, keeps the row-button layout drawTown has always
+// drawn for the square.
 type TownSquareArtScreen interface {
 	TownSquareView() TownSquareView
 }
@@ -244,18 +244,17 @@ func atTownShop(t TownScreen) bool {
 	return ok && s.AtTownShop()
 }
 
-// townSquareView answers the square's own art view and whether it is
-// complete enough to draw: the screen must be at the square, implement
-// TownSquareArtScreen, and carry a non-nil Background. LoadTownSquareArt
-// (pkg/game) fails atomically, so a non-nil Background means every other
-// field — Add, Mask, all three Labels — loaded too.
+// townSquareView answers the square's own view and whether it can be drawn:
+// the screen must be at the square, implement TownSquareArtScreen, and
+// supply a scene. A game supplies no scene when its square's art did not
+// load.
 func townSquareView(t TownScreen) (TownSquareView, bool) {
 	s, ok := t.(TownSquareArtScreen)
 	if !ok || !atTownSquare(t) {
 		return TownSquareView{}, false
 	}
 	v := s.TownSquareView()
-	if v.Art == nil || v.Art.Background == nil {
+	if v.Scene == nil {
 		return TownSquareView{}, false
 	}
 	return v, true

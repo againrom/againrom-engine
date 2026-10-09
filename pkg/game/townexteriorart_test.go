@@ -30,10 +30,10 @@ func TestTownExteriorArtDropsOnlyIncompleteFamily(t *testing.T) {
 	}
 	src[townSquareArtPrefix+"sign/v04.bmp"] = []byte("corrupt")
 	a, err := LoadTownSquareArt(src)
-	if err != nil || a.Background == nil || a.Mask == nil || len(a.Exterior.Door) != 9 || len(a.Exterior.Sign) != 0 {
+	if err != nil || len(a.Pictures("base")) != 1 || a.Mask == nil || len(a.Pictures("door")) != 9 || len(a.Pictures("sign")) != 0 {
 		t.Fatalf("independent fallback: %v / %+v", err, a)
 	}
-	if !strings.Contains(strings.Join(a.ExteriorProblems, "\n"), "sign/v04.bmp") {
+	if !strings.Contains(strings.Join(a.Problems, "\n"), "sign/v04.bmp") {
 		t.Fatal("missing named optional-art error")
 	}
 }
@@ -50,20 +50,20 @@ func TestTownAmbientArtLoadsBirdFamiliesLocallyAndStarsAtomically(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(a.Exterior.Birds[0]) != 57 || len(a.Exterior.Birds[1]) != 0 {
-		t.Fatalf("bird family fallback = %d/%d", len(a.Exterior.Birds[0]), len(a.Exterior.Birds[1]))
+	if len(a.Pictures("birds/0")) != 57 || len(a.Pictures("birds/1")) != 0 {
+		t.Fatalf("bird family fallback = %d/%d", len(a.Pictures("birds/0")), len(a.Pictures("birds/1")))
 	}
-	if len(a.Exterior.Stars) != 0 {
+	if len(a.Pictures("stars")) != 0 {
 		t.Fatal("partial star family escaped atomic fallback")
 	}
-	problems := strings.Join(a.ExteriorProblems, "\n")
+	problems := strings.Join(a.Problems, "\n")
 	if !strings.Contains(problems, "birds2/sprites.16a") || !strings.Contains(problems, "stars/s04.bmp") {
 		t.Fatalf("named optional failures missing:\n%s", problems)
 	}
 
 	src[townSquareArtPrefix+"stars/s04.bmp"] = synthBMP(64, 44, color.RGBA{R: 5, A: 255})
 	a, err = LoadTownSquareArt(src)
-	if err != nil || len(a.Exterior.Stars) != 9 {
-		t.Fatalf("complete star family = %d, %v", len(a.Exterior.Stars), err)
+	if err != nil || len(a.Pictures("stars")) != 9 {
+		t.Fatalf("complete star family = %d, %v", len(a.Pictures("stars")), err)
 	}
 }

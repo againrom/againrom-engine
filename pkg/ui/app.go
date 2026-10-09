@@ -2948,11 +2948,9 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 					a.syncViewerLayout()
 					return
 				}
-				// THE SQUARE'S OWN PICTURE IS HIT-TESTED THROUGH ITS RASTER MASK, the
-				// same mechanism the school already uses (schoolControlAt,
-				// townshell.go): TownSquareControlAt reads one pixel of the install's
-				// own townmask.bmp rather than a rectangle this build authored.
-				if c, hit := TownSquareControlAt(v.Art.Mask, p); hit {
+				// THE SQUARE'S OWN PICTURE IS HIT-TESTED BY ITS SCENE, which reads
+				// the install's own mask rather than a rectangle this build authored.
+				if c, hit := v.Scene.ControlAt(p); hit {
 					switch c.Kind {
 					case TownSquareControlDoor:
 						// THE DOOR INDEX FEEDS THE SAME SEAM THE ROW-BUTTON GRID ALWAYS HAS

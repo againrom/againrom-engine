@@ -22,20 +22,13 @@ import (
 
 func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 	f := releaseFront(t)
-	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().ExteriorProblems) != 0 {
+	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Problems) != 0 {
 		t.Fatalf("exterior load: %v / %v", f.TownSquareArt.Err(), f.TownSquareArt)
 	}
 	// This older oracle owns the entrance/sign/fluger families only. The
 	// square art is the process's shared install data, so the families are
 	// cleared on this front end's own copy.
-	square := *f.TownSquareArt.Value()
-	exterior := *square.Exterior
-	square.Exterior = &exterior
-	f.TownSquareArt = resolved(&square, nil)
-	for i := range f.TownSquareArt.Value().Exterior.Birds {
-		f.TownSquareArt.Value().Exterior.Birds[i] = nil
-	}
-	f.TownSquareArt.Value().Exterior.Stars = nil
+	f.TownSquareArt = resolved(withoutAmbience(f.TownSquareArt.Value()), nil)
 	f.Carried = f.NextParty()
 	f.arriveInTown()
 	// Accepted mission availability is existing model state, not animation state.
@@ -151,10 +144,10 @@ func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 	families := loadTownSquareOracle(t, f)
 	checks, changed := 0, 0
 	var first *image.RGBA
-	check := func(name string, want ui.TownExteriorFrame, dt time.Duration) {
+	check := func(name string, want exteriorFrame, dt time.Duration) {
 		t.Helper()
 		pix := exteriorPaint(t, a, &now, dt)
-		got := *s.TownSquareView().Exterior
+		got := s.sqExteriorFrame()
 		// The three wildlife families have their own installed witness.
 		want.Horse, want.Baba, want.Dervish = got.Horse, got.Baba, got.Dervish
 		if got != want {
@@ -203,7 +196,7 @@ func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 			writeTownExteriorWitness(t, f, name, pix)
 		}
 	}
-	w := ui.TownExteriorFrame{Door: 8, Guard: 7}
+	w := exteriorFrame{Door: 8, Guard: 7}
 	check("entry", w, 0)
 	pointer(0x80, 2)
 	for i := 1; i <= 10; i++ {

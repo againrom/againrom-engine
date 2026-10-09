@@ -42,7 +42,7 @@ import (
 // make one), and the *17 ramps stretch a 4-bit level or value over 0..255
 // (15*17 = 255).
 const (
-	view16A = "palette declared present (this tool's fixed declaration); painted pixel = palette RGB at alpha level*17, transparent = alpha 0"
+	view16A = "palette declared present (this tool's fixed declaration); painted pixel = the game's own resolution, palette RGB at coverage (level+1)/16 premultiplied, transparent = alpha 0"
 	view16G = "painted value = opaque gray value*17, transparent = alpha 0"
 )
 
@@ -100,22 +100,14 @@ func doPNG(archivePath, entryPath, dir string) error {
 		return err
 	}
 
+	table := viewTable(sprite)
 	written := 0
 	for i, f := range sprite.Frames {
 		if f.Width == 0 || f.Height == 0 {
 			fmt.Fprintf(os.Stderr, "sprtool: frame %d is empty (%dx%d); skipped\n", i, f.Width, f.Height)
 			continue
 		}
-		img := image.NewRGBA(image.Rect(0, 0, f.Width, f.Height))
-		for y := 0; y < f.Height; y++ {
-			for x := 0; x < f.Width; x++ {
-				px := f.Pixels[y*f.Width+x]
-				if !px.Opaque {
-					continue // leave the pixel fully transparent (alpha 0)
-				}
-				img.Set(x, y, colorFor(sprite, px.Index))
-			}
-		}
+		img := f.RGBA(table)
 		name := filepath.Join(dir, fmt.Sprintf("frame_%03d.png", i))
 		if err := writePNG(name, img); err != nil {
 			return err
@@ -148,19 +140,7 @@ func doPNG16A(archivePath, entryPath, dir string) error {
 			fmt.Fprintf(os.Stderr, "sprtool: frame %d is empty (%dx%d); skipped\n", i, f.Width, f.Height)
 			continue
 		}
-		// NRGBA stores the palette RGB beside the level alpha unpremultiplied,
-		// exactly as the view line states them.
-		img := image.NewNRGBA(image.Rect(0, 0, f.Width, f.Height))
-		for y := 0; y < f.Height; y++ {
-			for x := 0; x < f.Width; x++ {
-				px := f.Pixels[y*f.Width+x]
-				if !px.Painted {
-					continue // leave the pixel fully transparent (alpha 0)
-				}
-				c := sprite.Palette[px.Index]
-				img.SetNRGBA(x, y, color.NRGBA{R: c.R, G: c.G, B: c.B, A: px.Level * 17})
-			}
-		}
+		img := f.RGBA(sprite.Palette)
 		name := filepath.Join(dir, fmt.Sprintf("frame_%03d.png", i))
 		if err := writePNG(name, img); err != nil {
 			return err
@@ -223,16 +203,18 @@ func readEntry(archivePath, entryPath string) ([]byte, error) {
 	return a.ReadFile(entryPath)
 }
 
-// colorFor resolves a palette index to an opaque RGBA color. With a palette the
-// decoded RGB is used; without one (the no-palette variant, whose real palette is
-// borrowed elsewhere and is the consumer's concern) the index is shown as gray so
-// the frame is still inspectable.
-func colorFor(s *spr256.Sprite, idx uint8) color.RGBA {
-	if s.HasPalette {
-		c := s.Palette[idx]
-		return color.RGBA{R: c.R, G: c.G, B: c.B, A: 0xFF}
+// viewTable is the sheet's own table, or for the no-palette variant (whose real
+// table is borrowed elsewhere and is the consumer's concern) a grey ramp, so the
+// frame is still inspectable.
+func viewTable(s *spr256.Sprite) *[256]color.RGBA {
+	if t, ok := s.Table(); ok {
+		return t
 	}
-	return color.RGBA{R: idx, G: idx, B: idx, A: 0xFF}
+	var ramp [256]color.RGBA
+	for i := range ramp {
+		ramp[i] = color.RGBA{R: uint8(i), G: uint8(i), B: uint8(i), A: 0xFF}
+	}
+	return &ramp
 }
 
 func writePNG(name string, img image.Image) error {

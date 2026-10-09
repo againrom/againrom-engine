@@ -111,20 +111,6 @@ func composeMemberPortraitLayered(src entrySource, units *terrain.UnitSet, id ui
 // opens the archive, decodes a bitmap and hands over an *image.RGBA; pkg/ui
 // learns no class, no registry key and no address.
 
-// portraitRGBA copies BMP colours into an opaque surface. Interface backgrounds
-// also use this converter; portrait-specific colour keying belongs in loadPortrait.
-func portraitRGBA(im *bmp.Image) *image.RGBA {
-	if im == nil || im.Width <= 0 || im.Height <= 0 {
-		return nil
-	}
-	pic := image.NewRGBA(image.Rect(0, 0, im.Width, im.Height))
-	for i, c := range im.Pix {
-		o := i * 4
-		pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, 0xff
-	}
-	return pic
-}
-
 // loadPortrait reads one flat portrait at addr — the FULL, prefixed address,
 // like loadItemIcon's — and answers nil for every way it can fail to produce
 // one.
@@ -143,14 +129,14 @@ func loadPortrait(src entrySource, addr string) *image.RGBA {
 	if err != nil {
 		return nil
 	}
-	im, err := bmp.Decode(b)
+	pic, err := bmp.DecodeRGBA(b)
 	if err != nil {
 		return nil
 	}
 	// The 24-bit BMP has no stored alpha (SPR256-PICT-043), but the owner
 	// requests a transparent black portrait background. Preserve near-black
 	// artwork and leave opaque interface backgrounds on their separate loader.
-	return keyBlack(portraitRGBA(im))
+	return keyBlack(pic)
 }
 
 // classPortrait is the picture for one unit class AT ONE TIER, or nil for a

@@ -214,7 +214,7 @@ func drawCell(dst *image.RGBA, originX, originY, scale int, src, dirt *image.Pal
 
 // paletteColor resolves a paletted pixel to RGBA. An index past the palette
 // yields the placeholder rather than panicking, keeping the compositor
-// total; DecodeBMP8 already rejects such files, so this is a belt-and-braces
+// total; bmp.DecodePaletted already rejects such files, so this is a belt-and-braces
 // bound, not an expected path.
 func paletteColor(img *image.Paletted, x, y int) color.RGBA {
 	idx := int(img.ColorIndexAt(x, y))

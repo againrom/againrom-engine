@@ -25,7 +25,7 @@ func TestTownTipClosePresentationFollowsPointerAndLatch(t *testing.T) {
 			switch room {
 			case "square":
 				v.Rect = TownTipRect
-				a.SetTown(&fakeTipSquareEnumTown{art: &TownSquareArt{Background: image.NewRGBA(image.Rect(0, 0, 640, 480))}, tip: v})
+				a.SetTown(&fakeTipSquareEnumTown{scene: &fakeSquareScene{}, tip: v})
 			case "tavern", "school":
 				kind := TownSurfaceTavern
 				v.Rect = TavernTipRect

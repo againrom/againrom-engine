@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"againrom/pkg/audio"
-	"againrom/pkg/render/terrain"
+	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
 
@@ -191,7 +191,7 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mask, err := terrain.DecodeBMP8(raw)
+		mask, err := bmp.DecodePaletted(raw)
 		if err != nil {
 			t.Fatal(err)
 		}

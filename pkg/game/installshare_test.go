@@ -396,9 +396,9 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 	if diff := installShareDiff(share, fresh); len(diff) != 0 {
 		t.Fatalf("the restored unit class still differs: %v", diff)
 	}
-	img, ok := fresh.townSquare.Background.(draw.Image)
+	img, ok := fresh.townSquare.Pictures("base")[0].(draw.Image)
 	if !ok {
-		t.Fatalf("the town square background is a %T", fresh.townSquare.Background)
+		t.Fatalf("the town square background is a %T", fresh.townSquare.Pictures("base")[0])
 	}
 	r, g, b, _ := img.At(0, 0).RGBA()
 	img.Set(0, 0, color.RGBA{R: ^uint8(r >> 8), G: ^uint8(g >> 8), B: ^uint8(b >> 8), A: 0xff})

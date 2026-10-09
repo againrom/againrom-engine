@@ -1,4 +1,4 @@
-package menu
+package bmp
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 //
 // A BMP stream opens with a 14-byte BITMAPFILEHEADER ("BM", the file size, two
 // reserved words and bfOffBits) followed by the DIB header. The only DIB header
-// the menu art uses is the 40-byte BITMAPINFOHEADER: biSize, biWidth and
+// the shipped art uses is the 40-byte BITMAPINFOHEADER: biSize, biWidth and
 // biHeight as signed 32-bit, biPlanes and biBitCount as 16-bit, biCompression,
 // biSizeImage, two pels-per-metre fields, biClrUsed and biClrImportant.
 //
@@ -164,22 +164,22 @@ func btCheck8(t *testing.T, name string, img *image.Paletted, w, h int) {
 	}
 }
 
-// btReject24 asserts that decodeBMP24 refuses a stream atomically: a non-nil
+// btReject24 asserts that DecodeRGBA refuses a stream atomically: a non-nil
 // error, a nil image, and no panic.
 func btReject24(t *testing.T, name string, data []byte) {
 	t.Helper()
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("%s: decodeBMP24 panicked: %v", name, r)
+			t.Errorf("%s: DecodeRGBA panicked: %v", name, r)
 		}
 	}()
-	img, err := decodeBMP24(data)
+	img, err := DecodeRGBA(data)
 	if err == nil {
-		t.Errorf("%s: decodeBMP24 accepted the stream, want an error", name)
+		t.Errorf("%s: DecodeRGBA accepted the stream, want an error", name)
 		return
 	}
 	if img != nil {
-		t.Errorf("%s: decodeBMP24 reported an error and a non-nil image %v", name, img.Bounds())
+		t.Errorf("%s: DecodeRGBA reported an error and a non-nil image %v", name, img.Bounds())
 	}
 }
 
@@ -187,44 +187,44 @@ func btReject8(t *testing.T, name string, data []byte) {
 	t.Helper()
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("%s: decodeBMP8 panicked: %v", name, r)
+			t.Errorf("%s: DecodePaletted panicked: %v", name, r)
 		}
 	}()
-	img, err := decodeBMP8(data)
+	img, err := DecodePaletted(data)
 	if err == nil {
-		t.Errorf("%s: decodeBMP8 accepted the stream, want an error", name)
+		t.Errorf("%s: DecodePaletted accepted the stream, want an error", name)
 		return
 	}
 	if img != nil {
-		t.Errorf("%s: decodeBMP8 reported an error and a non-nil image %v", name, img.Bounds())
+		t.Errorf("%s: DecodePaletted reported an error and a non-nil image %v", name, img.Bounds())
 	}
 }
 
 func btDecode24(t *testing.T, name string, data []byte) *image.RGBA {
 	t.Helper()
-	img, err := decodeBMP24(data)
+	img, err := DecodeRGBA(data)
 	if err != nil {
-		t.Fatalf("%s: decodeBMP24: %v", name, err)
+		t.Fatalf("%s: DecodeRGBA: %v", name, err)
 	}
 	if img == nil {
-		t.Fatalf("%s: decodeBMP24 returned a nil image and a nil error", name)
+		t.Fatalf("%s: DecodeRGBA returned a nil image and a nil error", name)
 	}
 	return img
 }
 
 func btDecode8(t *testing.T, name string, data []byte) *image.Paletted {
 	t.Helper()
-	img, err := decodeBMP8(data)
+	img, err := DecodePaletted(data)
 	if err != nil {
-		t.Fatalf("%s: decodeBMP8: %v", name, err)
+		t.Fatalf("%s: DecodePaletted: %v", name, err)
 	}
 	if img == nil {
-		t.Fatalf("%s: decodeBMP8 returned a nil image and a nil error", name)
+		t.Fatalf("%s: DecodePaletted returned a nil image and a nil error", name)
 	}
 	return img
 }
 
-// TestDecodeBMP — T2: the two menu BMP readers against the Windows BMP contract
+// TestDecodeBMP — T2: the two bitmap readers against the Windows BMP contract
 // transcribed above. Dimensions are deliberately non-square and deliberately
 // unaligned (3 px at 24 bpp needs 3 padding bytes per row, 5 px at 8 bpp needs
 // 3), so a width/height transposition and a padding leak are both caught.
@@ -427,7 +427,7 @@ func TestDecodeBMP(t *testing.T) {
 			{"pixel offset past EOF", btMutate(valid24, func(b []byte) { btPut32(b, btOffBfOffBits, uint32(len(valid24)+1)) })},
 			{"truncated pixel data", valid24[:len(valid24)-4]},
 		} {
-			btReject24(t, "decodeBMP24/"+c.name, c.data)
+			btReject24(t, "DecodeRGBA/"+c.name, c.data)
 		}
 
 		for _, c := range []struct {
@@ -453,7 +453,7 @@ func TestDecodeBMP(t *testing.T) {
 			{"pixel offset past EOF", btMutate(valid8, func(b []byte) { btPut32(b, btOffBfOffBits, uint32(len(valid8)+1)) })},
 			{"truncated pixel data", valid8[:len(valid8)-4]},
 		} {
-			btReject8(t, "decodeBMP8/"+c.name, c.data)
+			btReject8(t, "DecodePaletted/"+c.name, c.data)
 		}
 	})
 }

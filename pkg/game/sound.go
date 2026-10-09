@@ -264,40 +264,23 @@ type UnitSound struct {
 	AttackDelay int32
 }
 
-// LoadUnitSounds parses units.reg a SECOND TIME and keeps the two fields
-// LoadUnits (units.go) drops on the way to the render tier's bundle: a
-// class's sound-slot array and its attack delay, keyed by class ID.
-//
-// A SECOND PARSE OF ONE REGISTRY IS THE ACCEPTED COST (plan T3). LoadUnits
-// already does src.ReadFile(UnitRegistry) -> reg.Parse -> data.LoadUnitClasses
-// once per process and converts every class into terrain.UnitClass, a type
-// this story does not widen — doing so would touch the render tier's own
-// mirror type and every one of its call sites for two fields only the audio
-// layer wants. A second small parse, run once at startup beside the first,
-// is cheaper than that seam.
+// LoadUnitSounds is the two units.reg fields LoadUnits drops on the way to the
+// render tier's bundle: a class's sound-slot array and its attack delay, keyed
+// by class ID. A front end takes it from its install share, which derives it
+// and the unit set from one parse.
 //
 // IT RETURNS NO ERROR, on OpenSounds' own rule: a nil src, an unreadable
 // registry and one that will not parse all yield a nil map, and a nil map
-// answers every class lookup with "no class", which composes with
-// swingSlot's own rule (world.go) into exactly the swing's silent state —
-// an absent array is silence (spec Terms) — with no second guard needed at
-// the call site.
+// answers every class lookup with "no class" — the swing's silent state.
 func LoadUnitSounds(src terrain.EntrySource) map[int32]UnitSound {
-	if src == nil {
-		return nil
-	}
-	stream, err := src.ReadFile(UnitRegistry)
+	classes, err := loadUnitClasses(src)
 	if err != nil {
 		return nil
 	}
-	r, err := reg.Parse(stream)
-	if err != nil {
-		return nil
-	}
-	classes, err := data.LoadUnitClasses(r)
-	if err != nil {
-		return nil
-	}
+	return unitSounds(classes)
+}
+
+func unitSounds(classes *data.UnitClasses) map[int32]UnitSound {
 	all := classes.All()
 	out := make(map[int32]UnitSound, len(all))
 	for _, c := range all {
