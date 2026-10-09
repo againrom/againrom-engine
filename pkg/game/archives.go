@@ -86,21 +86,14 @@ type Archives struct {
 	// all.
 	Loose *vfs.FS
 
-	// Base is the profile the root was detected as. OpenArchives leaves it
-	// zero, which states no limit; NewFrontEnd's install share fills it.
+	// Base is the profile the root was detected as, once, when it was opened.
+	// A root no profile matches leaves it zero, which states no limit and is
+	// the first game.
 	Base base.Match
 }
 
-// Game is the game the opened root belongs to, read from its files.
-func (a *Archives) Game() base.Game {
-	if a.Base.Profile.Known() {
-		return a.Base.Profile.GameOf()
-	}
-	if m, err := DetectBase(a.Root); err == nil {
-		return m.Profile.GameOf()
-	}
-	return base.GameROM1
-}
+// Game is the game of the profile the root was detected as.
+func (a *Archives) Game() base.Game { return a.Base.Profile.GameOf() }
 
 // OpenArchives opens all five required archives under root, in a fixed order,
 // and returns the first failure with the path in the message.
@@ -152,7 +145,11 @@ func OpenArchives(root string) (*Archives, error) {
 		return nil, err
 	}
 
-	return &Archives{Root: root, Containers: containers, Loose: loose}, nil
+	a := &Archives{Root: root, Containers: containers, Loose: loose}
+	if match, err := DetectBase(root); err == nil {
+		a.Base = match
+	}
+	return a, nil
 }
 
 // OpenContainers opens the container filesystem over the single archive at path,

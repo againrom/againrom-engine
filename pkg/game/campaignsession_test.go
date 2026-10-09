@@ -35,14 +35,14 @@ func TestNewCampaignCandidateIsFreshAndIsolated(t *testing.T) {
 }
 
 func TestAdmitMissionRefusals(t *testing.T) {
-	if _, _, err := admitMission(NewTown(Campaign{}), 0, false, 0); err == nil ||
+	if _, _, err := admitMission(firstCampaignRules{}, NewTown(Campaign{}), 0, false, 0); err == nil ||
 		!strings.Contains(err.Error(), "not a campaign mission number") {
 		t.Fatalf("unknown mission: %v", err)
 	}
-	if _, _, err := admitMission(nil, 10, false, mapload.Difficulty(7)); err == nil {
+	if _, _, err := admitMission(firstCampaignRules{}, nil, 10, false, mapload.Difficulty(7)); err == nil {
 		t.Fatal("bad difficulty was accepted")
 	}
-	if _, d, err := admitMission(nil, 10, false, 0); err != nil || d != mapload.DifficultyNormal {
+	if _, d, err := admitMission(firstCampaignRules{}, nil, 10, false, 0); err != nil || d != mapload.DifficultyNormal {
 		t.Fatalf("zero difficulty = %v, %v; want Normal", d, err)
 	}
 }
@@ -73,13 +73,13 @@ func TestSessionAdoptThenClear(t *testing.T) {
 func TestActivateLiveReturnsOnlyAReplacedWorld(t *testing.T) {
 	s := CampaignSession{Town: NewTown(Campaign{})}
 	first, second := &mapWorld{}, &mapWorld{}
-	if out := s.activateLive(first, 0, nil); out != nil {
+	if out := s.activateLive(firstCampaignRules{}, first, 0, nil); out != nil {
 		t.Fatalf("first activation replaced %v", out)
 	}
-	if out := s.activateLive(first, 0, nil); out != nil {
+	if out := s.activateLive(firstCampaignRules{}, first, 0, nil); out != nil {
 		t.Fatal("re-activating the live map reported it as replaced")
 	}
-	if out := s.activateLive(second, 0, nil); out != first || s.live != second {
+	if out := s.activateLive(firstCampaignRules{}, second, 0, nil); out != first || s.live != second {
 		t.Fatalf("replacement returned %v, live %v", out, s.live)
 	}
 	if out := s.endLive(); out != second || s.live != nil || s.liveMission != 0 {

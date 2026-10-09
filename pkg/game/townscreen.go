@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"againrom/pkg/audio"
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
@@ -548,10 +547,10 @@ func (t *townScreen) saveAdmitted() bool {
 // the ROOM this screen has open is session state that belongs to the game being
 // left. Restore puts it back at the square through this pointer, because pkg/ui
 // installs the seam once and has no way to say "the same screen, at the square".
-func (f *FrontEnd) TownScreen() ui.TownScreen {
-	if f.Base().Profile.GameOf() == base.GameROM2 {
-		return f.secondCampaignScreen()
-	}
+func (f *FrontEnd) TownScreen() ui.TownScreen { return f.campaign().townScreen(f) }
+
+// chapterTownScreen is the first game's town screen, bound on first use.
+func (f *FrontEnd) chapterTownScreen() ui.TownScreen {
 	if f.townUI == nil {
 		// shopChosen starts at shopNoShelf, which is the state the original's
 		// shop view is constructed in (SHOP-SCREEN-034). schoolCell starts at
@@ -630,7 +629,7 @@ func (t *townScreen) TownSquareView() ui.TownSquareView {
 	if t == nil || t.sess == nil {
 		return ui.TownSquareView{}
 	}
-	tip := rom1Town.Tip.Rect.Rectangle()
+	tip := t.townDescription().Tip.Rect.Rectangle()
 	v := ui.TownSquareView{
 		Font: t.in.Font.Value(),
 		Tip:  t.tipView(roomSquare, t.townTip, ui.TipPanelShrinkRect(tip, t.in.tipFont(), t.townTip)),

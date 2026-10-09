@@ -1,7 +1,6 @@
 package game
 
 import (
-	"againrom/pkg/base"
 	"fmt"
 	"slices"
 
@@ -21,7 +20,7 @@ func restoreCurrentScriptBindings(ms *Mission, table *mapload.Table) error {
 	}
 	refs := campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] })
 	compile := mapload.CompileScript
-	if table != nil && table.Game == base.GameROM2 {
+	if tableGame(table).Edition().SecondScripts {
 		compile = mapload.CompileROM2Script
 	}
 	roles, _, err := compile(ms.Map, refs)

@@ -86,7 +86,7 @@ func clean(t *town, g base.Game) (base.Game, *campaign) { return g, t.second }
 		t.Errorf("findings %v, want only %v", got, want)
 	}
 
-	found := []ProfileFinding{{File: "pkg/game/a.go", Line: 1}, {File: "pkg/game/b.go", Line: 2}, {File: "pkg/game/campaignservice.go", Line: 3}}
+	found := []ProfileFinding{{File: "pkg/game/a.go", Line: 1}, {File: "pkg/game/b.go", Line: 2}, {File: "pkg/game/campaignsecond.go", Line: 3}}
 	if v := CheckProfile(found, map[string]int{"pkg/game/b.go": 1}); len(v) != 1 {
 		t.Errorf("a finding outside the debt must fail once, got %v", v)
 	}

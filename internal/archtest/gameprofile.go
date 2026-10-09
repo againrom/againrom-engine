@@ -23,46 +23,16 @@ import (
 const profilePackage = "pkg/base/"
 
 // ProfileAllowed are the files outside pkg/base that may hold a finding, each
-// with its reason.
+// with its reason: the two campaign service implementations. The service is
+// picked from the edition's campaign model, which is not a game comparison.
 var ProfileAllowed = map[string]string{
-	"pkg/game/campaignservice.go": "the one place that picks the campaign service from the profile",
-	"pkg/game/campaignsecond.go":  "the second game's campaign service guards its own state",
+	"pkg/game/campaignfirst.go":  "the first game's campaign service refuses a second-campaign record",
+	"pkg/game/campaignsecond.go": "the second game's campaign service guards its own state",
 }
 
-// ProfileDebt is the findings this story could not move, per file. A count
-// may only fall; a file whose count reaches zero leaves the map in the same
-// commit.
-var ProfileDebt = map[string]int{
-	"cmd/terraintool/main.go":           2,
-	"pkg/game/archives.go":              1,
-	"pkg/game/base.go":                  2,
-	"pkg/game/campaignsession.go":       2,
-	"pkg/game/currentsave.go":           9,
-	"pkg/game/currentscriptbindings.go": 2,
-	"pkg/game/currentsecondcampaign.go": 10,
-	"pkg/game/currentsession.go":        14,
-	"pkg/game/cutscene.go":              2,
-	"pkg/game/frontend.go":              6,
-	"pkg/game/mapload.go":               3,
-	"pkg/game/mission.go":               6,
-	"pkg/game/missionentry.go":          1,
-	"pkg/game/missiontransition.go":     4,
-	"pkg/game/originalsave.go":          6,
-	"pkg/game/questobjectives.go":       2,
-	"pkg/game/resume.go":                13,
-	"pkg/game/save.go":                  1,
-	"pkg/game/secondcensus.go":          3,
-	"pkg/game/secondcompletion.go":      2,
-	"pkg/game/secondgamenotices.go":     2,
-	"pkg/game/secondgametext.go":        2,
-	"pkg/game/table.go":                 3,
-	"pkg/game/townscreen.go":            2,
-	"pkg/game/world.go":                 3,
-	"pkg/mapload/cheatfactory.go":       4,
-	"pkg/mapload/currentplayers.go":     2,
-	"pkg/mapload/spawn.go":              2,
-	"pkg/mapload/spell.go":              2,
-}
+// ProfileDebt is the findings not yet moved, per file. A count may only
+// fall; a file whose count reaches zero leaves the map in the same commit.
+var ProfileDebt = map[string]int{}
 
 // ProfileFinding is one site and the shape found there.
 type ProfileFinding struct {

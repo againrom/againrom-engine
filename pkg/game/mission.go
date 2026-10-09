@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -137,7 +136,7 @@ func StartMission(fsys entrySource, n int, t *mapload.Table, diff mapload.Diffic
 		return nil, fmt.Errorf("read %s: %w", addr, err)
 	}
 	open := alm.Open
-	if t != nil && t.Game == base.GameROM2 {
+	if tableGame(t).Edition().SecondMaps {
 		open = alm.OpenROM2
 	}
 	m, err := open(b)
@@ -206,8 +205,9 @@ func StartMissionFrom(m *alm.Map, addr string, n int, t *mapload.Table, diff map
 	// The hero band is resolved here from the party, before the world is built,
 	// because the world is built to run the compiled program. A party of none
 	// binds nobody.
+	edition := tableGame(t).Edition()
 	compile := mapload.CompileScript
-	if t != nil && t.Game == base.GameROM2 {
+	if edition.SecondScripts {
 		compile = mapload.CompileROM2Script
 	}
 	s, rep, raiseErr := compile(m, campaignScriptRefs(m, t, party))
@@ -218,7 +218,7 @@ func StartMissionFrom(m *alm.Map, addr string, n int, t *mapload.Table, diff map
 	// Compile the rule into the simulation script rather than deciding loss in
 	// the client. That gives save-loaded and fresh worlds the same hashed rule,
 	// and leaves every other party member outside the objective.
-	if n == 40 && (t == nil || t.Game != base.GameROM2) {
+	if companion := edition.CompanionObjectiveMission; companion != 0 && n == companion {
 		for i := range party {
 			if party[i].CompanionNPC != 22 && party[i].ID != "npc:22" {
 				continue

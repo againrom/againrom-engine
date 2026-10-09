@@ -62,7 +62,7 @@ func (t *townScreen) rereadTip(room townRoom) {
 func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	switch room {
 	case roomSquare:
-		return &t.townTip, rom1Town.Tip.Text
+		return &t.townTip, t.townDescription().Tip.Text
 	case roomShop:
 		return &t.shopTip, ShopTip1Path
 	case roomSchool:

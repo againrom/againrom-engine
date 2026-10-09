@@ -52,7 +52,7 @@ func squareControlAt(f *FrontEnd, p image.Point) (ui.TownSquareControl, bool) {
 // seededTownProcess is a process state with a stamped paint clock.
 func seededTownProcess() town.Process {
 	p := &town.Process{}
-	town.NewView(rom1Town, nil, p).SetClockLast(time.Unix(1777, 0))
+	town.NewView(ROM1TownDescription(), nil, p).SetClockLast(time.Unix(1777, 0))
 	return *p
 }
 
@@ -137,7 +137,7 @@ func staticSquareArt(full *town.Art) *town.Art {
 
 // paintStill paints a square view of art with the bird overlay shown.
 func paintStill(art *town.Art) *image.RGBA {
-	v := town.NewView(rom1Town, stillHost{art}, nil)
+	v := town.NewView(ROM1TownDescription(), stillHost{art}, nil)
 	v.Actor("birds").(*town.Flock).Active = true
 	dst := image.NewRGBA(image.Rectangle{Max: v.Size()})
 	v.Paint(dst)
@@ -207,7 +207,7 @@ func withoutAmbience(full *town.Art) *town.Art {
 
 // sqActorFrames is an actor's declared frame count in the description.
 func sqActorFrames(name string) int {
-	for _, a := range rom1Town.Actors {
+	for _, a := range ROM1TownDescription().Actors {
 		if a.Name == name {
 			return a.Frames
 		}
