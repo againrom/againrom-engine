@@ -88,6 +88,18 @@ func roomTipSteps(t *testing.T, app *ui.App, n int) {
 	}
 }
 
+func roomTipRender(t *testing.T, app *ui.App, dir, name string) {
+	t.Helper()
+	if dir == "" {
+		return
+	}
+	pic, _, err := app.HeadlessFrame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTipRender(t, dir, name, pic)
+}
+
 // TOWN-516: each room builds its popup at its rectangle on every enter while
 // TipsMode is set. TOWN-517: shop2 replaces shop1 once per shop activation
 // when the table holds an item, whatever TipsMode says after the activation.
@@ -138,16 +150,19 @@ func TestReleaseRoomTipsAtEveryEnterAndShopSecondText(t *testing.T) {
 	}
 
 	app := roomTipTownApp(t, f)
+	renders := tipRenderDir(t, f)
 	s := roomTipEnterShop(t, f, app)
 	roomTipSteps(t, app, 3)
 	if got := s.ShopScreen().TipPanel.Text; got != shop1 {
 		t.Fatalf("empty table: popup text %q, want shop1", got)
 	}
+	roomTipRender(t, app, renders, "shop-first-tip")
 	roomTipPutOnTable(t, s)
 	roomTipSteps(t, app, 1)
 	if got := s.ShopScreen().TipPanel.Text; got != shop2 {
 		t.Fatalf("item on the table: popup text %q, want shop2", got)
 	}
+	roomTipRender(t, app, renders, "shop-second-tip-after-table")
 	roomTipLeave(t, app, s)
 
 	// A new activation clears the latch; TipsMode cleared after it does not
