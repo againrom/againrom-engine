@@ -149,3 +149,160 @@ func TestCreatureAimOfARowWithNoArmFollowsItsColumns(t *testing.T) {
 		}
 	}
 }
+
+// The tests below hold every consumer of an attached effect to the row's arm:
+// a second-game effect is stored under its own row id.
+
+func TestSecondBlessLeavesItsTargetFreeToMove(t *testing.T) {
+	bless := secondRow(SpellRule{ID: 20, TargetsUnit: true, SpellDuration: 10})
+	actor := effectMage(1, 2, 2, 1<<20)
+	actor.Speed = 4
+	w := spWorld(t, 1, []SpellRule{bless}, actor)
+	if !w.ordinaryEffectPayload(0, 0, bless, 30) {
+		t.Fatal("Bless did not attach")
+	}
+	Step(w, []Command{MoveTo(1, CellPoint{X: 8, Y: 2})})
+	got, _ := w.Entity(1)
+	if w.stoneCursed(0) || !got.HasTarget && got.X == 2 && got.Y == 2 {
+		t.Fatalf("Bless froze the actor: stoneCursed=%v target=%v at %d,%d", w.stoneCursed(0), got.HasTarget, got.X, got.Y)
+	}
+	curse := secondRow(SpellRule{ID: 18, TargetsUnit: true, SpellDuration: 10, EffectKind: EffectAbsorption, EffectMode: EffectDuration, EffectMagnitude: 5})
+	w = spWorld(t, 1, []SpellRule{curse}, effectMage(1, 2, 2, 1<<18))
+	if !w.ordinaryEffectPayload(0, 0, curse, 30) || !w.stoneCursed(0) {
+		t.Fatal("a second-game Stone Curse with an effect kind does not hold its target")
+	}
+}
+
+func TestSecondInvisibilityHidesItsTargetUntilItAttacks(t *testing.T) {
+	invisible := secondRow(SpellRule{ID: 12, TargetsUnit: true, SpellDuration: 10})
+	caster, enemy := effectMage(1, 2, 2, 1<<12), spEnt(2, 6, 2)
+	enemy.Owner, enemy.ScanRange = 2, 12
+	w := spWorld(t, 1, []SpellRule{invisible}, caster, enemy)
+	if !w.ordinaryEffectPayload(0, 0, invisible, 30) {
+		t.Fatal("Invisibility did not attach")
+	}
+	if !w.InvisibleTo(1, 2) || !w.invisibleToActor(1, 0) || !w.HasEffectArm(1, 15) {
+		t.Fatalf("Invisibility attached but its target is visible: InvisibleTo=%v invisibleToActor=%v", w.InvisibleTo(1, 2), w.invisibleToActor(1, 0))
+	}
+	if !w.removeAttachedSpell(1, w.armSpellID(15)) || w.InvisibleTo(1, 2) {
+		t.Fatal("the cancellation lookup does not find the second-game Invisibility")
+	}
+}
+
+func TestSecondBlessAndCurseAnnihilate(t *testing.T) {
+	bless := secondRow(SpellRule{ID: 20, TargetsUnit: true, SpellDuration: 10})
+	curse := secondRow(SpellRule{ID: 28, TargetsUnit: true, SpellDuration: 10})
+	w := spWorld(t, 1, []SpellRule{bless, curse}, spEnt(1, 2, 2))
+	if !w.ordinaryEffectPayload(0, 0, bless, 30) || !w.ordinaryEffectPayload(0, 0, curse, 30) {
+		t.Fatal("an effect did not attach")
+	}
+	if len(w.attached) != 0 {
+		t.Fatalf("Bless and Curse coexist: %+v", w.ActiveEffects())
+	}
+}
+
+func TestSecondBlessAndCurseControlPhysicalDamage(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		id   uint16
+		want int32
+	}{{"Bless", 20, 30}, {"Curse", 28, 10}} {
+		t.Run(tc.name, func(t *testing.T) {
+			rule := secondRow(SpellRule{ID: tc.id, SpellDuration: 10})
+			a, v := spEnt(1, 2, 2), spEnt(2, 3, 2)
+			a.DamageBase, a.DamageSpread, a.AlwaysHits, a.Reach = 10, 20, true, 1
+			w := spWorld(t, 1, []SpellRule{rule}, a, v)
+			if !w.ordinaryEffectPayload(0, 0, rule, 100) {
+				t.Fatal("effect did not attach")
+			}
+			w.rng.state = 0x1001
+			w.resolveBlow(0, 1, nil)
+			if got := int32(100) - w.entities[1].HP; got != tc.want {
+				t.Fatalf("%s damage %d, want %d", tc.name, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSecondShieldDoesNotActAsCurse(t *testing.T) {
+	shield := secondRow(SpellRule{ID: 27, SpellDuration: 20, EffectKind: EffectAbsorption, EffectMode: EffectDuration})
+	a, v := spEnt(1, 2, 2), spEnt(2, 3, 2)
+	a.DamageBase, a.DamageSpread, a.AlwaysHits, a.Reach = 10, 20, true, 1
+	w := spWorld(t, 1, []SpellRule{shield}, a, v)
+	if !w.ordinaryEffectPayload(0, 0, shield, 100) {
+		t.Fatal("Shield did not attach")
+	}
+	// A seed whose damage draw is above 0 and whose next draw would admit a
+	// Curse of Shield's magnitude.
+	var state uint64
+	var draw int32
+	for state = 1; state < 1000; state++ {
+		probe := rng{state: state}
+		draw = probe.uniform(20)
+		if chance := probe.uniform(100); draw > 0 && chance < 13 {
+			break
+		}
+	}
+	if state == 1000 {
+		t.Fatal("no witness seed")
+	}
+	w.rng.state = state
+	w.resolveBlow(0, 1, nil)
+	if got := int32(100) - w.entities[1].HP; got != 10+draw {
+		t.Fatalf("Shield changed its wearer's own damage: seed %d got %d want %d", state, got, 10+draw)
+	}
+}
+
+func TestSecondInvisibilityRecordDurationIsItsAppliedDuration(t *testing.T) {
+	rule := secondRow(SpellRule{ID: 12, TargetsUnit: true, SpellDuration: 10})
+	record := SpellCharacteristicsFor(Rules{}, Entity{Mind: 100}, rule)
+	w := spWorld(t, 1, []SpellRule{rule}, spEnt(1, 2, 2))
+	_, _, applied, _ := w.pointEffect(0, rule, 70)
+	if record.Duration != applied || applied != 70<<4 {
+		t.Fatalf("Invisibility at P70: record %d, applied %d, want %d", record.Duration, applied, 70<<4)
+	}
+}
+
+func TestSecondArmsSurviveAColdBinaryLoad(t *testing.T) {
+	rows := []SpellRule{secondRow(SpellRule{ID: 12, TargetsUnit: true, SpellDuration: 10}),
+		secondRow(SpellRule{ID: 24, Restorative: true, TargetsUnit: true, DamageMin: 8, DamageMax: 16})}
+	script, err := NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := NewSpelledWorld(1, Bounds{Width: 16, Height: 16}, ModeCanonical, nil, []Entity{spEnt(1, 2, 2)}, script, rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cold World
+	if err = cold.UnmarshalBinary(raw); err != nil {
+		t.Fatal(err)
+	}
+	for i, r := range cold.Spells() {
+		if r.Arm != rows[i].Arm || !r.Second {
+			t.Fatalf("row %d lost its arm: %+v", r.ID, r)
+		}
+	}
+}
+
+// TestFirstGameEffectLookupsKeepTheirIDs: a first-game table resolves every
+// arm to the same id, and a second-game arm no row runs to no id at all.
+func TestFirstGameEffectLookupsKeepTheirIDs(t *testing.T) {
+	first := spWorld(t, 1, []SpellRule{{ID: 15}, {ID: 20}, {ID: 23}, {ID: 27}}, spEnt(1, 2, 2))
+	for _, arm := range []uint16{15, 20, 23, 27, 4} {
+		if got := first.armSpellID(arm); got != arm {
+			t.Errorf("first-game armSpellID(%d) = %d", arm, got)
+		}
+	}
+	second := spWorld(t, 1, []SpellRule{secondRow(SpellRule{ID: 12}), secondRow(SpellRule{ID: 21})}, spEnt(1, 2, 2))
+	if got := second.armSpellID(15); got != 12 {
+		t.Errorf("second-game armSpellID(15) = %d, want row 12", got)
+	}
+	if got := second.armSpellID(21); got != ArmNone {
+		t.Errorf("second-game armSpellID(21) = %d, want no row (row 21 runs arm 24)", got)
+	}
+}

@@ -77,7 +77,7 @@ func (w *World) HasEffectSpell(target EntityID, spell uint16) bool {
 // read this one lookup rather than carrying a second immobilisation flag that
 // could outlive the effect.
 func (w *World) stoneCursed(i int) bool {
-	return i >= 0 && i < len(w.entities) && w.hasAttachedSpell(w.entities[i].ID, 20)
+	return i >= 0 && i < len(w.entities) && w.hasAttachedSpell(w.entities[i].ID, w.armSpellID(20))
 }
 
 // InvisibleTo reports whether target is hidden from the participant in roster
@@ -97,7 +97,7 @@ func (w *World) stoneCursed(i int) bool {
 // terms, one function up.
 func (w *World) InvisibleTo(target EntityID, owner uint32) bool {
 	ti := indexOfEntity(w.entities, target)
-	if ti < 0 || !w.hasAttachedSpell(target, 15) {
+	if ti < 0 || !w.hasAttachedSpell(target, w.armSpellID(15)) {
 		return false
 	}
 	at := cellOf(w.entities[ti])
@@ -406,7 +406,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 		if rule.arm() == 23 {
 			opposite = 27
 		}
-		if oi, ok := effectIndex(w.attached, target, opposite); ok {
+		if oi, ok := effectIndex(w.attached, target, w.armSpellID(opposite)); ok {
 			w.removeAttachedAt(oi)
 			return true
 		}

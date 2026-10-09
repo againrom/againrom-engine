@@ -259,3 +259,58 @@ func secondSpellNearestHostile(t *testing.T, w *sim.World, hero sim.EntityID) si
 	}
 	return best
 }
+
+// secondSpellBookCastWorld is a world on the installed second-game table in
+// which a mage casts row id on himself through an ordinary book command.
+func secondSpellBookCastWorld(t *testing.T, id uint16) *sim.World {
+	t.Helper()
+	archives := secondGameRoot(t)
+	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := sim.Entity{ID: 1, Owner: sim.SelfSlot, X: 2, Y: 2, HP: 100, MaxHP: 100, TypeID: sim.HumanTypeID, TokenSize: 1, Speed: 4, Mind: 60, MaxMana: 1000, Mana: 1000, KnownSpells: 1 << id, ScanRange: 12}
+	observer := sim.Entity{ID: 2, Owner: 2, X: 6, Y: 2, HP: 100, MaxHP: 100, TokenSize: 1, ScanRange: 12}
+	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil, []sim.Entity{actor, observer}, nil, mapload.SpellRules(defs.Table))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for n := 0; n < 200; n++ {
+		var commands []sim.Command
+		if n == 0 {
+			commands = []sim.Command{sim.Cast(1, 1, sim.SpellID(id))}
+		}
+		sim.Step(w, commands)
+		if w.HasEffectSpell(1, id) {
+			return w
+		}
+	}
+	t.Fatalf("installed row %d never attached through an ordinary book cast", id)
+	return nil
+}
+
+// TestReleaseSecondGameAttachedEffectsActAsTheirOwnArms: the installed Bless
+// leaves its target free to move, the installed Invisibility hides its
+// target and its spell record states the duration it applies.
+func TestReleaseSecondGameAttachedEffectsActAsTheirOwnArms(t *testing.T) {
+	t.Run("Bless allows movement", func(t *testing.T) {
+		w := secondSpellBookCastWorld(t, 20)
+		sim.Step(w, []sim.Command{sim.MoveTo(1, sim.CellPoint{X: 8, Y: 2})})
+		if a, _ := w.Entity(1); !a.HasTarget && a.X == 2 && a.Y == 2 {
+			t.Fatalf("installed Bless blocks MoveTo: target=%v at %d,%d", a.HasTarget, a.X, a.Y)
+		}
+	})
+	t.Run("Invisibility hides", func(t *testing.T) {
+		w := secondSpellBookCastWorld(t, 12)
+		if !w.InvisibleTo(1, 2) || !w.HasEffectArm(1, 15) {
+			t.Fatal("installed Invisibility leaves its caster visible")
+		}
+	})
+	t.Run("Invisibility record duration", func(t *testing.T) {
+		w := secondSpellBookCastWorld(t, 12)
+		invisible := secondSpellRule(t, w, 12)
+		if got := sim.SpellCharacteristicsFor(sim.Rules{}, sim.Entity{Mind: 100}, invisible); got.Duration != 70<<4 {
+			t.Fatalf("installed Invisibility record at P70 = %d, want %d", got.Duration, 70<<4)
+		}
+	})
+}

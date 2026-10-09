@@ -304,7 +304,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32, obs *castObs) {
 	a := w.entities[ci]
 	if c.AtCell || c.Target != a.ID {
-		w.removeAttachedSpell(a.ID, 15)
+		w.removeAttachedSpell(a.ID, w.armSpellID(15))
 	}
 	if c.AtCell {
 		applied := false

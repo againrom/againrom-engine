@@ -4507,7 +4507,7 @@ func (mw *mapWorld) push() {
 	mw.view.SetScorchedCellsAt(mw.world.ScorchedCells(), uint64(mw.world.Tick()))
 	mw.view.SetLightClock(mw.world.Tick())
 	mw.view.SetSpellLighting(mw.spellLighting())
-	mw.view.SetAmbientWallFire(wallFireAmbientCells(mw.world.CellEffects()))
+	mw.view.SetAmbientWallFire(wallFireAmbientCells(mw.cellEffectsByArm()))
 	mw.view.SetSacks(mw.sackDraws())
 	mw.view.SetFog(mw.fog.project(), mw.fog.cols, mw.fog.rows)
 	// THE SPELLBOOK, beside SetSacks and SetFog on push's own reasoning: the
@@ -4566,7 +4566,17 @@ const (
 // simulation's layer-conflict and expiry rules remain its single canonical
 // state; a push rebuilding this list restores ordinary light without residue.
 func (mw *mapWorld) spellLighting() []ui.SpellLightCell {
-	return spellLightingCells(mw.world.CellEffects(), mw.world.Bounds(), mw.scene)
+	return spellLightingCells(mw.cellEffectsByArm(), mw.world.Bounds(), mw.scene)
+}
+
+// cellEffectsByArm is the live area records with each spell id replaced by the
+// arm its row runs, so a second-game row lights and burns as its own arm.
+func (mw *mapWorld) cellEffectsByArm() []sim.CellEffect {
+	effects := mw.world.CellEffects()
+	for i := range effects {
+		effects[i].Spell = mw.world.SpellArm(effects[i].Spell)
+	}
+	return effects
 }
 
 // spellLightingCells is MAGIC-UNITLIGHT-057's complete three-kind population.
@@ -4941,7 +4951,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// drops a fallen unit's mark once this is false (DIV-1455).
 			Restorable: e.MaxHP > 0 && e.OrdinaryTargetable(),
 			DamageJolt: mw.damageJolt(e.ID),
-			Stone:      mw.world.HasEffectSpell(e.ID, 20), Translucent: mw.world.HasEffectSpell(e.ID, 15),
+			Stone:      mw.world.HasEffectArm(e.ID, 20), Translucent: mw.world.HasEffectArm(e.ID, 15),
 			// The mana pair beside it, read off the same copy-handing entity read as
 			// everything else here and carried whole — no period, no remainder: the
 			// panel states a pool, not a rate.

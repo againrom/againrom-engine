@@ -57,3 +57,29 @@ func SpellRuleLands(rule SpellRule) bool {
 	}
 	return !rule.Area || areaModeFor(rule) != areaModeRing || ringStageCount(rule.arm()) != 0
 }
+
+// armSpellID is the row id an attached effect of arm carries. A first-game
+// table returns arm itself; a second-game table returns the row running arm,
+// or ArmNone, which no effect carries, when no row runs it.
+func (w *World) armSpellID(arm uint16) uint16 {
+	if len(w.spells) == 0 || !w.spells[0].Second {
+		return arm
+	}
+	for _, r := range w.spells {
+		if r.arm() == arm {
+			return r.ID
+		}
+	}
+	return ArmNone
+}
+
+// HasEffectArm reports whether target carries the lasting effect of the row
+// running arm: presentation asks by arm, so a second-game row draws as its
+// own effect and never as the first-game spell of the same id.
+func (w *World) HasEffectArm(target EntityID, arm uint16) bool {
+	return w.hasAttachedSpell(target, w.armSpellID(arm))
+}
+
+// SpellArm is the arm the table row id runs; an id no row carries is its own
+// arm.
+func (w *World) SpellArm(id uint16) uint16 { return w.spellArm(id) }

@@ -60,6 +60,11 @@ func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 }
 
 func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
+	if rule.Second && rule.arm() == 15 {
+		// The second game's Invisibility lasts P << 4 (R2-ENGINE-022), at
+		// application and in the spell record alike.
+		return uint16(min(int64(power)<<4, durationTickCeiling))
+	}
 	f, ok := r.SpellFormulaAt(rules.FormulaDuration, rule.ID, power)
 	if !ok {
 		return spellLastingTicks(rule, power)

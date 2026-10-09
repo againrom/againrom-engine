@@ -27,7 +27,7 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 		if rule.arm() == 23 {
 			opposite = 27
 		}
-		if index, ok := effectIndex(n.attached, id, opposite); ok {
+		if index, ok := effectIndex(n.attached, id, w.armSpellID(opposite)); ok {
 			if !remove(index) {
 				return false
 			}

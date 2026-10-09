@@ -66,6 +66,7 @@ func init() {
 	worldMethods = append(worldMethods, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldWriters = append(worldWriters, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldMethods = append(worldMethods, "StructureOccupancy")
+	worldMethods = append(worldMethods, "HasEffectArm", "SpellArm")
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	// The Diary rules read install-derived rows set once per world.
@@ -128,6 +129,8 @@ var worldArgReaders = map[string][]reflect.Value{
 	// and at spell 15, `invisibility`, so the call reaches the attached-effect
 	// lookup rather than stopping at "entity absent".
 	"HasEffectSpell":       {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint16(15))},
+	"HasEffectArm":         {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint16(15))},
+	"SpellArm":             {reflect.ValueOf(uint16(15))},
 	"DropLanding":          {reflect.ValueOf(EntityID(7)), reflect.ValueOf(int32(0)), reflect.ValueOf(int32(0))},
 	"InvisibleTo":          {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint32(1))},
 	"CastingSpell":         {reflect.ValueOf(EntityID(7))},

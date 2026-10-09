@@ -523,9 +523,6 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 		}
 		return kind, mag, spellLastingTicksUnder(w.rules, rule, power), EffectDuration
 	case 15:
-		if rule.Second {
-			return EffectInvisible, 1, uint16(power << 4), EffectDuration
-		}
 		return EffectInvisible, 1, spellLastingTicksUnder(w.rules, rule, power), EffectDuration
 	}
 	kind, mode := rule.EffectKind, rule.EffectMode
@@ -1136,7 +1133,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	}
 	w.refreshAppliedBook(ci, spellID)
 	if victim != caster.ID {
-		w.removeAttachedSpell(caster.ID, 15)
+		w.removeAttachedSpell(caster.ID, w.armSpellID(15))
 	}
 
 	var raisedID EntityID
