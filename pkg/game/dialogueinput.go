@@ -36,3 +36,18 @@ func dialoguePart(payload []byte, part int, audience EventAudience) (string, boo
 	}
 	return acceptedDialogueTail(tail)
 }
+
+// dialoguePartTips is the `tips=` value the accepted tag of part carries, and
+// whether it carries one (TRIG-TIPS-087). Tags are case-folded, so `Tips=3`
+// counts.
+func dialoguePartTips(payload []byte, part int, audience EventAudience) (int, bool) {
+	tag, _, ok := eventPartTail(dialoguePayload(payload), part, audience)
+	if !ok {
+		return 0, false
+	}
+	at := indexFold(tag, "tips=")
+	if at < 0 {
+		return 0, false
+	}
+	return dialogueInteger(tag[at+5:])
+}

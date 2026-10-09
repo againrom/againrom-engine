@@ -524,3 +524,8 @@ func EventPart(payload []byte, n int, aud EventAudience) (string, bool) {
 	_, body, ok := eventPartTag(payload, n, aud)
 	return body, ok
 }
+
+// MissionTipPath is the mission tip text tip n of mission names (TRIG-TIPS-087).
+func MissionTipPath(mission, n int) string {
+	return fmt.Sprintf("%stext/battle/m%d/tips%02d.txt", mainPrefix, mission, n)
+}

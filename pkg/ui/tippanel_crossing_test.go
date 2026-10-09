@@ -238,7 +238,7 @@ func TestPreCreateTipPanelCrossingLeavesNoLatch(t *testing.T) {
 	setup.PreCreate = &ChargenPreCreate{Art: art}
 	setup.TipsOn = true
 	setup.TipArt = tipTestArt()
-	setup.TipText = "pick a hero"
+	setup.TipSelect[0] = "pick a hero"
 	a := newTestApp(t, appRows(1), okLoader(t))
 	c := NewChargen(setup)
 	if err := a.OpenChargen(c, func(ChargenResult) (MapOpener, error) { return nil, nil }); err != nil {

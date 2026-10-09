@@ -255,14 +255,14 @@ func TestTooltipAroundOpenTips1184(t *testing.T) {
 	if a.tooltipTarget().key() != "" {
 		t.Fatal("covered item leaked through panel")
 	}
-	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Font: font}}, TipArt: &TipPanelArt{}, TipText: "Tips", TipsOn: true})
+	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Font: font}}, TipArt: &TipPanelArt{}, TipSelect: [3]string{"Tips"}, TipsOn: true})
 	a.flow.chargen, a.flow.screen = c, ScreenChargen
 	a.flow.words.Hover[255], a.flow.words.Hover[256] = "Back", "Character name"
 	if got := a.chargenTooltip(image.Pt(600, 200)); got.key() == "" {
 		t.Fatal("generator tips suppressed the visible Back tooltip")
 	}
-	// The name field lies inside the open tip panel's rect, which owns it.
-	if got := a.chargenTooltip(image.Pt(230, 320)); got.key() != "" {
-		t.Fatalf("the name tooltip leaked through the open tip panel: %q", got.key())
+	// The amulet's top lies inside the open tip panel's rect, which owns it.
+	if got := a.chargenTooltip(image.Pt(600, 134)); got.key() != "" {
+		t.Fatalf("the Back tooltip leaked through the open tip panel: %q", got.key())
 	}
 }

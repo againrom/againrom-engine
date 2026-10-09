@@ -135,27 +135,28 @@ func TestReleaseChargenTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
 	assertTipPanelWitnessed(t, "chargen", v, f.Words, with, without)
 }
 
+// TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt: the
+// detailed page's enter shows chrgen1m for a mage and chrgen1f otherwise
+// (TOWN-522).
 func TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt(t *testing.T) {
 	f := releaseFront(t)
 	setup := f.ChargenSetup()
-	if setup.TipTextMage == "" {
-		t.Fatal("f.ChargenSetup().TipTextMage is empty: the mage tip node did not resolve from this install")
+	if setup.TipTextMage == "" || setup.TipTextMage == setup.TipText {
+		t.Fatal("the fighter and mage nodes did not resolve as two texts on this install")
 	}
-	if setup.TipTextMage == setup.TipText {
-		t.Fatal("TipTextMage == TipText: the fighter and mage nodes read identically on this install, the fixture cannot discriminate")
+	frames := map[int]*image.RGBA{}
+	for _, choice := range []int{0, 1} {
+		c := ui.NewChargen(setup)
+		c.SelectPreChoice(choice)
+		c.Forward()
+		want := map[int]string{0: setup.TipText, 1: setup.TipTextMage}[choice]
+		if v := c.TipPanel(); v.Text != want || v.Rect != ui.ChargenTipRect {
+			t.Fatalf("choice %d detailed popup = %q at %v", choice, v.Text, v.Rect)
+		}
+		frames[choice] = ui.ComposeChargenFrame(c)
 	}
-	c := ui.NewChargen(setup)
-	fighter := ui.ComposeChargenFrame(c)
-	c.SelectPreChoice(1)
-	mage := ui.ComposeChargenFrame(c)
-
-	v := c.TipPanel()
-	if v.Text != setup.TipTextMage {
-		t.Fatalf("TipPanel().Text after SelectPreChoice(1) = %q, want the mage node", v.Text)
-	}
-	if n := diffPixelCount(fighter, mage, ui.TipPanelTextRect(v.Rect)); n == 0 {
-		t.Error("selecting the mage portrait changed 0 pixels inside the tip body's own text rect: " +
-			"the composed frame still shows the fighter text")
+	if n := diffPixelCount(frames[0], frames[1], ui.TipPanelTextRect(ui.ChargenTipRect)); n == 0 {
+		t.Error("the mage and fighter detailed popups composed the same text pixels")
 	}
 }
 
@@ -209,6 +210,15 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 		v := ui.TipPanelView{Rect: ui.ChargenTipRect, Text: text, Art: art, Font: font}
 		if !ui.TipPanelFits(v) {
 			t.Errorf("chargen %s tip does not fit ChargenTipRect %v", name, v.Rect)
+		}
+	}
+	for i, addr := range ChargenSelectTipPaths {
+		text, ok := ReadShopTip(src, addr)
+		if !ok {
+			t.Fatalf("%s is not shipped", addr)
+		}
+		if v := (ui.TipPanelView{Rect: ui.PreCreateTipRect, Text: text, Art: art, Font: font}); !ui.TipPanelFits(v) {
+			t.Errorf("pre-create step %d tip does not fit PreCreateTipRect %v", i, v.Rect)
 		}
 	}
 }

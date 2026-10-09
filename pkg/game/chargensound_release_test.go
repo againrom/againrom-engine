@@ -148,7 +148,8 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 		t.Helper()
 		for y := 0; y < 480; y++ {
 			for x := 0; x < 640; x++ {
-				if got, ok := ui.PreCreateControlAt(c, image.Pt(x, y)); ok && got == owner {
+				// Back rebuilds the tip popup (TOWN-518); a press there is the popup's.
+				if got, ok := ui.PreCreateControlAt(c, image.Pt(x, y)); ok && got == owner && !c.TipPanel().Covers(image.Pt(x, y)) {
 					return image.Pt(x, y)
 				}
 			}
@@ -236,7 +237,7 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 		if !mage {
 			break
 		}
-		click(image.Pt(552, 185)) // the detailed page's Back well
+		click(image.Pt(552, 160)) // the detailed page's Back button (MENU-139)
 		if s := state(); s.Stage != ui.ChargenStagePreCreate {
 			t.Fatalf("detailed Back left stage %q", s.Stage)
 		}

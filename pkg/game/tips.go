@@ -30,6 +30,14 @@ const (
 	ChargenDetailTipPath = mainPrefix + "text/tips/chrgen2.txt"
 )
 
+// ChargenSelectTipPaths are the pre-create popup's step texts chrsel1..3
+// (TOWN-518).
+var ChargenSelectTipPaths = [3]string{
+	mainPrefix + "text/tips/chrsel1.txt",
+	mainPrefix + "text/tips/chrsel2.txt",
+	mainPrefix + "text/tips/chrsel3.txt",
+}
+
 // loadTip constructs one room popup and tests the global option once.
 func (t *townScreen) loadTip(room townRoom) {
 	if t == nil || t.sess == nil {

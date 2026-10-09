@@ -51,6 +51,12 @@ var (
 	TavernTipRect  = image.Rect(160, 0, 472, 200)
 	SchoolTipRect  = image.Rect(0, 0, 456, 200)
 	ChargenTipRect = image.Rect(160, 280, 472, 480)
+	// PreCreateTipRect is the pre-create popup at the page origin (0,0)
+	// (MENU-137; the absolute origin is DIV-2714).
+	PreCreateTipRect = image.Rect(232, 0, 640, 136)
+	// MissionTipRect is the mission popup in the campaign window
+	// (TRIG-TIPS-087).
+	MissionTipRect = image.Rect(10, 20, 370, 188)
 )
 
 func TipPanelTextRect(r image.Rectangle) image.Rectangle {

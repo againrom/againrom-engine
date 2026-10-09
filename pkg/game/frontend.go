@@ -720,15 +720,6 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	if font != nil {
 		font.Selector = LanguageSelector(archives.Containers)
 	}
-	// The generator's three nav labels (Back/Reset/Play) draw with the same
-	// font as the town shell's own plaque labels, font1/DefaultFont, not
-	// chargenAssets' own font2 every other label on that page keeps (owner).
-	// font may be nil on a carried LoadFont error; composeChargenDetailedPage
-	// falls back to Font in that case, the same degrade this page's every other
-	// label already has.
-	if chargenAssets != nil {
-		chargenAssets.Presentation.NavFont = font
-	}
 
 	// The loose scan still walks the host — the filesystem enumerates no
 	// directory tier, so nothing else can say which files an install ships

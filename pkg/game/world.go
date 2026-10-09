@@ -805,6 +805,7 @@ type missionNotices struct {
 	kind            ui.NoticeKind
 	payload         []byte
 	part            int
+	tips            int
 	pendingMessages []int32
 	objectiveLabels []string
 	npcKeys         map[sim.EntityID]uint16
@@ -1802,6 +1803,8 @@ func (mw *mapWorld) openDialogue(event int) bool {
 	}
 	m.open, m.kind, m.payload, m.part = true, ui.NoticeDialogue, payload, 1
 	m.dialogueAudience = audience
+	m.tips = 0
+	m.noteTips(1)
 	// THE SHAPE IS SETTLED HERE, ONCE, from the whole file — which is the one
 	// place it can be settled from, because that is what the test is over. It
 	// is then carried across every page of this window and re-derived at none
@@ -1899,9 +1902,11 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 			return ui.NoticeStay, "", nil
 		}
 	} else if body, ok := dialoguePart(m.payload, m.part, m.dialogueAudience); ok {
+		m.noteTips(m.part)
 		mw.view.PageDialogue(m.dialogueOf(body, m.part))
 		return ui.NoticeStay, "", nil
 	}
+	mw.raiseMissionTip()
 	if m.secondGame() {
 		mw.closeNotice()
 		mw.settleSecondGameNotices()
@@ -1915,12 +1920,37 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 	return ui.NoticeStay, "", nil
 }
 
+// noteTips keeps the `tips=` value of the part just shown, as the dialogue
+// panel keeps the last one its parser stored (TRIG-TIPS-087).
+func (m *missionNotices) noteTips(part int) {
+	if n, ok := dialoguePartTips(m.payload, part, m.dialogueAudience); ok {
+		m.tips = n
+	}
+}
+
+// raiseMissionTip is the dialogue's close on its last page: a nonzero stored
+// value shows that tip in the mission popup while TipsMode is set, replacing
+// an open one (TRIG-TIPS-087). The ROM2 dialogue is outside the claim.
+func (mw *mapWorld) raiseMissionTip() {
+	m := mw.mission
+	n := m.tips
+	m.tips = 0
+	if n == 0 || m.payload == nil || m.secondGame() || !mw.view.MissionTipsMode() {
+		return
+	}
+	text, ok := ReadShopTip(m.src, MissionTipPath(m.number, n))
+	if !ok {
+		return
+	}
+	mw.view.ShowMissionTip(text)
+}
+
 // closeNotice drops what the driver was holding and tells the viewer to stop
 // drawing it, in that order and in one place, so the two cannot come to disagree
 // about whether a notice is up.
 func (mw *mapWorld) closeNotice() {
 	m := mw.mission
-	m.open, m.payload, m.part, m.portrait = false, nil, 0, false
+	m.open, m.payload, m.part, m.portrait, m.tips = false, nil, 0, false, 0
 	m.pages = nil
 	m.dialogueAudience = EventAudience{}
 	mw.view.ClearNotice()

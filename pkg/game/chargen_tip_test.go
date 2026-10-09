@@ -52,16 +52,16 @@ func TestChargenSetupResolvesTheFighterTip(t *testing.T) {
 	}
 }
 
-// TipsOff gates the read itself (TOWN-186's own construction-time gate,
-// tips.go's own loadTip precedent): a suppressed front end's ChargenSetup
-// never opens the node, so TipText is empty even though the install ships
-// one.
-func TestChargenSetupWithTipsOffLeavesTipTextEmpty(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Archives: &Archives{Containers: townTextFS(t, []synth.File{{Path: "text/tips/chrgen1f.txt", Data: []byte("fighter text")}})}}}
+// The texts are read whatever TipsMode says; each page's enter tests
+// TipsMode itself (TOWN-518), so TipsOn carries the gate.
+func TestChargenSetupWithTipsOffCarriesTheGate(t *testing.T) {
+	f := &FrontEnd{InstallResources: InstallResources{Archives: &Archives{Containers: townTextFS(t, []synth.File{
+		{Path: "text/tips/chrgen1f.txt", Data: []byte("fighter text")},
+		{Path: "text/tips/chrsel2.txt", Data: []byte("second step")}})}}}
 	f.tipsOff = true
 	s := f.ChargenSetup()
-	if s.TipText != "" {
-		t.Fatalf("TipText with TipsOff = %q, want empty", s.TipText)
+	if s.TipText != "fighter text" || s.TipSelect[1] != "second step" {
+		t.Fatalf("texts with TipsOff = %q, %q", s.TipText, s.TipSelect[1])
 	}
 	if s.TipsOn {
 		t.Fatal("TipsOn with TipsOff = true, want false")
