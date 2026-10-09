@@ -422,12 +422,7 @@ func (a *App) HeadlessGoldControlPoint(name string) (int, int, error) {
 	return v.frameToWindow(r.Min.Add(r.Max).Div(2), "headless gold control")
 }
 
-var (
-	goldFill      = color.RGBA{R: 0x10, G: 0x12, B: 0x18, A: 0xff}
-	goldFieldFill = color.RGBA{R: 0x1c, G: 0x1f, B: 0x2a, A: 0xff}
-	goldSelection = color.RGBA{R: 0x4a, G: 0x42, B: 0x2a, A: 0xff}
-	goldFocusEdge = color.RGBA{R: 0xf2, G: 0xe6, B: 0xc4, A: 0xff}
-)
+var goldFill = color.RGBA{R: 0x10, G: 0x12, B: 0x18, A: 0xff}
 
 // Authored labels. The installed strings of the Drop Gold dialog are not
 // established, so the editor states its own English words.
@@ -445,67 +440,38 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 	fillPanelFrame(img, box.Size(), goldFill, invBorder)
 	edit, action, cancel := v.goldModalControls()
 	edit, action, cancel = edit.Sub(box.Min), action.Sub(box.Min), cancel.Sub(box.Min)
-	outline := func(r image.Rectangle, fill, edge color.RGBA) {
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				c := fill
-				if x == r.Min.X || y == r.Min.Y || x == r.Max.X-1 || y == r.Max.Y-1 {
-					c = edge
-				}
-				img.SetRGBA(x, y, c)
-			}
-		}
-	}
-	edgeOf := func(c goldFocus) color.RGBA {
-		if v.gold.focus == c {
-			return goldFocusEdge
-		}
-		return invCellBorder
-	}
-	outline(edit, goldFieldFill, edgeOf(goldFocusEdit))
-	outline(action, goldFill, edgeOf(goldFocusAction))
-	outline(cancel, goldFill, edgeOf(goldFocusCancel))
 	f := v.cardFont()
-	if f == nil {
-		return img, box.Min, true
-	}
 	g := v.gold
 	g.clampEdit()
-	_, lineH := f.Measure("0")
-	textAt := image.Pt(edit.Min.X+6, edit.Min.Y+(edit.Dy()-lineH)/2)
-	if g.selEnd > g.selStart {
-		x0, _ := f.Measure(g.text[:g.selStart])
-		x1, _ := f.Measure(g.text[:g.selEnd])
-		for y := edit.Min.Y + 3; y < edit.Max.Y-3; y++ {
-			for x := textAt.X + x0; x < textAt.X+x1 && x < edit.Max.X-2; x++ {
-				img.SetRGBA(x, y, goldSelection)
-			}
+	e := editField{Rect: edit, Focus: g.focus == goldFocusEdit, Phase: v.blink.on()}
+	label := func(image.Point) {}
+	if f != nil {
+		_, e.TextH = f.Measure("0")
+		e.Caret, _ = f.Measure(g.text[:g.caret])
+		if g.selEnd > g.selStart {
+			e.SelFrom, _ = f.Measure(g.text[:g.selStart])
+			e.SelTo, _ = f.Measure(g.text[:g.selEnd])
 		}
-	}
-	draw := func(s string, at image.Point) {
-		f.DrawFlat(img, s, at.X+shopPriceShadow, at.Y+shopPriceShadow, messageShadowColor)
-		f.Draw(img, s, at.X, at.Y, shopPriceInk)
-	}
-	draw(g.text, textAt)
-	if g.focus == goldFocusEdit {
-		cx, _ := f.Measure(g.text[:g.caret])
-		for y := edit.Min.Y + 4; y < edit.Max.Y-4; y++ {
-			if p := image.Pt(textAt.X+cx, y); p.In(edit) {
-				img.SetRGBA(p.X, p.Y, goldFocusEdge)
-			}
+		draw := func(s string, at image.Point) {
+			f.DrawFlat(img, s, at.X+shopPriceShadow, at.Y+shopPriceShadow, messageShadowColor)
+			f.Draw(img, s, at.X, at.Y, shopPriceInk)
 		}
+		label = func(at image.Point) { draw(g.text, at) }
+		draw(goldTitleWord, image.Pt(16, 16))
 	}
-	draw(goldTitleWord, image.Pt(16, 16))
+	drawEditField(img, e, label)
 	ok := v.Words().NoticeButton
 	if ok == "" {
 		ok = AuthoredNoticeButton
 	}
-	for _, b := range []struct {
+	pointer, pointerOK := image.Pt(v.cursorX, v.cursorY).Sub(box.Min), v.hasCursor
+	for i, b := range []struct {
 		r image.Rectangle
 		s string
 	}{{action, ok}, {cancel, goldCancelWord}} {
-		w, h := f.Measure(b.s)
-		draw(b.s, image.Pt(b.r.Min.X+(b.r.Dx()-w)/2, b.r.Min.Y+(b.r.Dy()-h)/2))
+		inside := pointerOK && pointer.In(b.r)
+		drawPushButton(img, f, pushButton{Rect: b.r, Label: b.s, Literal: true, Hover: inside, Inside: inside,
+			Focus: g.focus == goldFocusAction+goldFocus(i), Pressed: g.press == int(goldFocusAction)+i+1})
 	}
 	return img, box.Min, true
 }

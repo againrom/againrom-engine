@@ -182,13 +182,23 @@ func TestGameOptionsSpeedSliderIsStagedAndStepsLevels(t *testing.T) {
 		a.HeadlessPointer("press", x, track.Min.Y+4)
 		a.HeadlessPointer("release", x, track.Min.Y+4)
 	}
-	press(track.Min.X)
+	// MENU-118: x maps to trunc(N*(x-L-H-2)/(W-2H-4)) on the track; the
+	// endcaps step by one.
+	press(track.Min.X + 26)
 	if d.speed != 0 {
-		t.Fatalf("left end is level %d", d.speed)
+		t.Fatalf("track start is level %d", d.speed)
 	}
-	press(track.Max.X - 1)
+	press(track.Max.X - 25)
 	if d.speed != gameSpeedLevels {
-		t.Fatalf("right end is level %d", d.speed)
+		t.Fatalf("track end is level %d", d.speed)
+	}
+	press(track.Min.X + 2)
+	if d.speed != gameSpeedLevels-1 {
+		t.Fatalf("left endcap stepped to level %d", d.speed)
+	}
+	press(track.Max.X - 2)
+	if d.speed != gameSpeedLevels {
+		t.Fatalf("right endcap stepped to level %d", d.speed)
 	}
 	a.HeadlessKey("escape")
 	if a.flow.rung != 7 {
@@ -198,7 +208,7 @@ func TestGameOptionsSpeedSliderIsStagedAndStepsLevels(t *testing.T) {
 		t.Fatal(err)
 	}
 	track = gameOptionRect(gameMenuSpeedDown)
-	press(track.Min.X)
+	press(track.Min.X + 26)
 	if err := a.HeadlessGameMenuAction("page-return"); err != nil {
 		t.Fatal(err)
 	}

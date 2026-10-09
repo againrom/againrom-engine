@@ -177,7 +177,7 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 			fmt.Sprintf("%s: %d", label(spellLabelManaCost), heal.ManaCost),
 			fmt.Sprintf("%s: %s", label(spellLabelDamage), spellPair(int64(lo), int64(hi), "%d", "-")),
 			fmt.Sprintf("%s: %d", label(spellLabelRange), recordRange(heal, power))}
-		wantPic, _, ok := ui.ComposeTooltipHint(want, f.Font.Value(), image.Point{}, image.Rect(0, 0, 1024, 768))
+		wantPic, _, ok := ui.ComposeTooltipHint(want, f.Font.Value(), image.Point{}, image.Rect(0, 0, 1024, 768), f.HoverBall())
 		if !ok || !bytes.Equal(pic.Pix, wantPic.Pix) || pic.Bounds() != wantPic.Bounds() {
 			t.Fatalf("heal hover did not paint %q", want)
 		}

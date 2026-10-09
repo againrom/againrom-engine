@@ -19,8 +19,6 @@ const (
 	saveWriteControl
 	saveDeleteControl
 	saveCancelControl
-	savePreviousControl
-	saveNextControl
 )
 
 type saveDialog struct {
@@ -37,6 +35,7 @@ type saveDialog struct {
 	press        saveControl
 	pressRow     int
 	pressed      bool
+	bar          scrollBarInput
 }
 
 // SetSaveDialogSeams opts this application into the interactive save route.
@@ -313,15 +312,6 @@ func (f *flow) activateSaveControl(c saveControl) {
 		f.submitSaveDialog()
 	case saveCancelControl:
 		f.cancelSaveDialog()
-	case savePreviousControl, saveNextControl:
-		if d.list != nil {
-			delta := -1
-			if c == saveNextControl {
-				delta = 1
-			}
-			d.list.Move(delta)
-			d.setFocus(saveListControl)
-		}
 	}
 }
 
@@ -468,10 +458,11 @@ func (a *App) stepSaveDialog(in appInput) {
 		}
 		a.flow.editSaveText(in)
 		if d.focus == saveListControl && d.list != nil {
-			if in.Up || in.WheelY > 0 {
+			listKey(d.list, in.Up, in.Down, in.PageUp, in.PageDown)
+			if in.WheelY > 0 {
 				d.list.Move(-1)
 			}
-			if in.Down || in.WheelY < 0 {
+			if in.WheelY < 0 {
 				d.list.Move(1)
 			}
 		}
@@ -485,10 +476,20 @@ func (a *App) stepSaveDialog(in appInput) {
 		a.flow.activateSaveControl(d.focus)
 		return
 	}
+	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	if d.prepared == nil && d.remove == nil && d.list != nil {
+		if req, pos := d.bar.step(listBar(a.saveListBox(), d.list), p, ok, in); req != barNone {
+			d.setFocus(saveListControl)
+			listBarRequest(d.list, req, pos)
+			return
+		}
+		if d.bar.active() {
+			return
+		}
+	}
 	if !in.PrimaryPressed && !in.PrimaryReleased {
 		return
 	}
-	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
 	if !ok {
 		d.pressed = false
 		return
@@ -499,7 +500,7 @@ func (a *App) stepSaveDialog(in appInput) {
 		if hit {
 			d.setFocus(c)
 			if c == saveListControl {
-				row, rowOK := d.rowAt(p)
+				row, rowOK := a.saveRowAt(p)
 				d.pressRow, d.pressed = row, rowOK
 				if rowOK {
 					d.list.Select(row)
@@ -510,7 +511,7 @@ func (a *App) stepSaveDialog(in appInput) {
 	if in.PrimaryReleased {
 		activate := hit && d.pressed && d.press == c
 		if activate && c == saveListControl {
-			row, rowOK := d.rowAt(p)
+			row, rowOK := a.saveRowAt(p)
 			activate = rowOK && row == d.pressRow
 		}
 		d.pressed = false
@@ -524,25 +525,20 @@ func (a *App) stepSaveDialog(in appInput) {
 func (d *saveDialog) controlAt(p image.Point) (saveControl, bool) {
 	for _, c := range d.controls() {
 		if p.In(saveControlRect(c)) {
-			if c == saveListControl && p.X >= saveScrollX {
-				if p.Y < saveListRect.Min.Y+saveListRect.Dy()/2 {
-					return savePreviousControl, true
-				}
-				return saveNextControl, true
-			}
 			return c, true
 		}
 	}
 	return 0, false
 }
 
-func (d *saveDialog) rowAt(p image.Point) (int, bool) {
-	if d.list == nil {
+func (a *App) saveRowAt(p image.Point) (int, bool) {
+	d := a.flow.saveDialog
+	if d == nil || d.list == nil {
 		return 0, false
 	}
-	i := (p.Y - saveListRect.Min.Y - 4) / saveRowHeight
+	i, ok := a.saveListBox().RowAt(p)
 	top, n := d.list.Visible()
-	if p.Y >= saveListRect.Min.Y+4 && i >= 0 && i < n {
+	if ok && i < n {
 		return top + i, true
 	}
 	return 0, false

@@ -1923,6 +1923,15 @@ package storyguard
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
+// CommentBytes rises for the shared widget kit: the docs of the new push
+// button, bar, list, slider, radio and checkbox, edit field and hover box
+// builders in pkg/ui, of their focused and per-screen tests, of the notice
+// picture accessor, the hover corner accessor, the Load double-click
+// release and the EN/RU widget screen witness, and the release witnesses
+// restated to the shared bar, new code, including this paragraph.
+// CommentBytes rises for the widget kit's input corrections: the widget
+// latch reset on focus loss, checkbox press and Space, radio arrows and Tab,
+// the Save caret paint order and their tests, new code, including this paragraph.
 // CommentBytes rises for the Skrakan portal-part release witness's comments,
 // new code, including this paragraph.
 var Committed = Baseline{
@@ -1946,7 +1955,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1817,
+		"longcommentgroups":      1816,
 	},
-	CommentBytes: 8489279,
+	CommentBytes: 8511012,
 }

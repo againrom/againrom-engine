@@ -113,21 +113,30 @@ func (w *helpScrollbarStyleWitness) capture(t *testing.T, f *FrontEnd, name stri
 	return pic
 }
 
+// check compares the bar against the shared bar's composition (MENU-117,
+// MENU-119) at position first of total-11: top frame 18, track frame 19
+// tiles, bottom frame 20 and the fixed thumb frame 22 at T+W+q-4 with
+// q=trunc(first*(H-3W+8)/(N-1)). Only opaque frame pixels no later part or
+// its (+4,+4) shadow covers are compared.
 func (w *helpScrollbarStyleWitness) check(t *testing.T, pic *image.RGBA, first, total int) map[int]int {
 	t.Helper()
-	height := max(163*12/total, 24)
-	thumbY := 80 + (163-height)*first/(total-12)
+	n := total - 12 + 1
+	thumbY := 56 + 24 + first*(211-72+8)/(n-1) - 4
+	shadowed := image.Rect(422, thumbY, 450, thumbY+28)
 	counts := map[int]int{}
 	for y := 56; y < 267; y++ {
 		for x := 422; x < 446; x++ {
 			index, sy := 19, (y-80)%24
 			switch {
+			case y >= thumbY && y < thumbY+24:
+				index, sy = 22, y-thumbY
 			case y < 80:
 				index, sy = 18, y-56
 			case y >= 243:
 				index, sy = 20, y-243
-			case y >= thumbY && y < thumbY+height:
-				index, sy = 16, (y-thumbY)*24/height
+			}
+			if index != 22 && index != 18 && image.Pt(x, y).In(shadowed) {
+				continue
 			}
 			want := w.frames[index].RGBAAt(x-422, sy)
 			if want.A != 255 {
@@ -139,7 +148,7 @@ func (w *helpScrollbarStyleWitness) check(t *testing.T, pic *image.RGBA, first, 
 			counts[index]++
 		}
 	}
-	for _, index := range []int{16, 18, 19, 20} {
+	for _, index := range []int{18, 19, 20, 22} {
 		if counts[index] < 100 {
 			t.Fatal("unqualified installed help source pixels", index, counts)
 		}
@@ -160,21 +169,25 @@ func (w *helpScrollbarStyleWitness) run(t *testing.T, f *FrontEnd, a *ui.App) {
 	tick, hash := f.live.world.Tick(), f.live.world.Hash()
 	initial := w.capture(t, f, "help-initial")
 	t.Run("installed-initial-bar", func(t *testing.T) { w.manifest["initial_frames"] = w.check(t, initial, 0, lines) })
-	height := max(163*12/lines, 24)
-	travel := 163 - height
 	x, y, err := a.HeadlessHelpBarPoint("thumb")
 	if err != nil {
 		t.Fatal(err)
 	}
+	ex, ey, err := a.HeadlessHelpBarPoint("track")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The drag maps the pointer row, not the grab offset (MENU-119): back
+	// at the thumb's first centre, row T+32, it reads trunc(8*(N-1)/151).
 	for _, point := range []struct {
 		edge string
-		y    int
-	}{{"press", y}, {"move", y + travel/2}} {
-		if err := a.HeadlessPointer(point.edge, x, point.y); err != nil {
+		x, y int
+	}{{"press", x, y}, {"move", ex, ey}, {"move", x, y}} {
+		if err := a.HeadlessPointer(point.edge, point.x, point.y); err != nil {
 			t.Fatal(err)
 		}
 	}
-	first := (travel/2*(lines-12) + travel/2) / travel
+	first := 8 * (lines - 12) / 151
 	if got, _ := v.HelpScroll(); got != first {
 		t.Fatalf("ordinary held midpoint is%d want%d", got, first)
 	}
@@ -182,7 +195,8 @@ func (w *helpScrollbarStyleWitness) run(t *testing.T, f *FrontEnd, a *ui.App) {
 	t.Run("installed-proportional-thumb", func(t *testing.T) { w.manifest["midpoint_frames"] = w.check(t, mid, first, lines) })
 	a.SetCutsceneScrollArt(nil)
 	fallback := w.capture(t, f, "help-missing-art")
-	bar := image.Rect(76+422, 60+56, 76+446, 60+267)
+	// Each bar part casts its shadow 4 pixels right and down (MENU-117).
+	bar := image.Rect(76+422, 60+56, 76+446+4, 60+267+4)
 	different := 0
 	for yy := 0; yy < 480; yy++ {
 		for xx := 0; xx < 640; xx++ {
@@ -194,7 +208,7 @@ func (w *helpScrollbarStyleWitness) run(t *testing.T, f *FrontEnd, a *ui.App) {
 			}
 		}
 	}
-	if different == 0 || fallback.RGBAAt(500, 116) != (color.RGBA{41, 68, 57, 255}) {
+	if different == 0 || fallback.RGBAAt(500, 116) != (color.RGBA{7, 12, 9, 255}) {
 		t.Fatal("missing-art loss control did not restore the bevel painter")
 	}
 	w.manifest["bar_pixels_changed_without_art"] = different
@@ -203,7 +217,7 @@ func (w *helpScrollbarStyleWitness) run(t *testing.T, f *FrontEnd, a *ui.App) {
 	if got, _ := v.HelpScroll(); got != first || !bytes.Equal(mid.Pix, restored.Pix) {
 		t.Fatal("art replacement reset help scroll or failed to restore paint")
 	}
-	if err := a.HeadlessPointer("move", x, y+travel); err != nil {
+	if err := a.HeadlessPointer("move", ex, ey); err != nil {
 		t.Fatal(err)
 	}
 	if got, last := v.HelpScroll(); got != lines-12 || got != last {
@@ -223,7 +237,6 @@ func (w *helpScrollbarStyleWitness) run(t *testing.T, f *FrontEnd, a *ui.App) {
 	}
 	w.manifest["world_hash_tick_unchanged"] = true
 	w.manifest["held_midpoint_before_release"] = first
-	w.manifest["thumb_height"] = height
 	w.manifest["all_pixels_outside_bar_unchanged"] = true
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)

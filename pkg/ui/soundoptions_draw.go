@@ -6,14 +6,17 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/text"
 )
 
-// soundTrackRows is how many track titles the list shows at once, and
-// soundTrackRowH the height of one.
-const (
-	soundTrackRows = 4
-	soundTrackRowH = 22
-)
+// soundTrackRows is how many track titles the list shows at once.
+const soundTrackRows = 4
+
+// soundTrackBox is the track list: the shared list at the list box's
+// argument rectangle, with its bar at the right edge (MENU-121).
+func soundTrackBox(f *text.Font) listBox {
+	return newListBox(soundOptionsDialog.Rect(40, 80, soundOptionsDialog.W()-64, 170), soundTrackRows, f)
+}
 
 // soundOptionRect is a control's rectangle in frame coordinates, placed from
 // the Sound Options dialog's snapped origin (MENU-075, MENU-077). The
@@ -28,13 +31,14 @@ func soundOptionRect(action gameMenuAction) image.Rectangle {
 	}
 	switch action {
 	case gameMenuMusicTracks:
-		return g.Rect(40, 80, w-64, 170)
+		return soundTrackBox(nil).Rect
 	case gameMenuMusicUp:
-		return g.Rect(w-64, 80, w-40, 104)
+		return soundTrackBar(nil).top()
 	case gameMenuMusicScroll:
-		return g.Rect(w-64, 104, w-40, 146)
+		b := soundTrackBar(nil)
+		return image.Rect(b.Rect.Min.X, b.top().Max.Y, b.Rect.Max.X, b.bottom().Min.Y)
 	case gameMenuMusicDown:
-		return g.Rect(w-64, 146, w-40, 170)
+		return soundTrackBar(nil).bottom()
 	case gameMenuMusicRandom:
 		return g.Rect(40, 190, 252, 214)
 	case gameMenuAcknowledgments:
@@ -62,10 +66,11 @@ func soundSliderRect(channel audio.Channel) image.Rectangle {
 	return image.Rect(r.Min.X, r.Min.Y+15, r.Max.X, r.Max.Y)
 }
 
-// soundSliderValue is the slider position, 0..soundSliderRange, under frame x.
-func soundSliderValue(channel audio.Channel, x int) int {
-	r := soundSliderRect(channel)
-	return min(max((x-r.Min.X)*soundSliderRange/max(1, r.Dx()-1), 0), soundSliderRange)
+// soundSlider is a channel's volume control: the shared slider over
+// positions 0..soundSliderRange (MENU-118).
+func (a *App) soundSlider(channel audio.Channel, position int) hSlider {
+	p, ok := a.pointerFrame()
+	return hSlider{Rect: soundSliderRect(channel), Pos: position, Max: soundSliderRange}.withPointer(p, ok)
 }
 
 func (a *App) soundOptionsPicture() *image.RGBA {
@@ -77,6 +82,7 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 	title := gameMenuLabelText(words.Title)
 	font.Draw(dst, title, g.Min.X+(g.W()-font.Advance(title))/2, g.Min.Y+20, gameMenuText)
 	values := f.soundOptions.Read()
+	pointer, pointerOK := a.pointerFrame()
 	for i, row := range f.menuRows() {
 		r := soundOptionRect(row.Action)
 		focused := f.menuList.Selection() == i
@@ -91,29 +97,34 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 			label := gameMenuLabelText(words.Labels[channel])
 			font.Draw(dst.SubImage(r).(*image.RGBA), label, r.Min.X, r.Min.Y, tone)
 			position := soundPercentSlider(values[channel])
-			if f.soundPointer.pressed && f.soundPointer.action == row.Action {
+			if f.soundPointer.slider.active() && f.soundPointer.action == row.Action {
 				position = f.soundPointer.value
 			}
-			drawSlider(dst, soundSliderRect(channel), position, soundSliderRange, focused)
-		} else if row.Action == gameMenuAcknowledgments || row.Action == gameMenuMusicRandom {
-			if focused {
-				drawMovieBox(dst, r, true)
+			s := a.soundSlider(channel, position)
+			s.Disabled = !row.Enabled
+			drawHSlider(dst, a.media.scroll, s)
+			if !row.Enabled {
+				dimDisabledRow(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, s.Rect.Min.Y), since)
 			}
+			continue
+		} else if isSoundCheck(row.Action) {
 			on := f.soundOptions.acknowledgments
 			if row.Action == gameMenuMusicRandom {
 				on = f.soundOptions.ReadPlayback().RandomOrder
 			}
-			a.drawGameOption(dst, r, row.Label, on, false)
+			a.drawGameOption(dst, r, row.Label, on, focused, !row.Enabled)
+			continue
 		} else {
-			drawMovieBox(dst, r, focused || f.soundPointer.pressed && f.soundPointer.action == row.Action)
-			label := row.text()
+			label, literal := row.Label, row.Literal
 			if row.Action == gameMenuVolumeDown {
-				label = "-"
+				label, literal = "-", true
 			} else if row.Action == gameMenuVolumeUp {
-				label = "+"
+				label, literal = "+", true
 			}
-			font.Draw(dst.SubImage(r).(*image.RGBA), label, r.Min.X+(r.Dx()-font.Advance(label))/2,
-				r.Min.Y+(r.Dy()-font.Height())/2, gameMenuText)
+			inside := pointerOK && pointer.In(r)
+			drawPushButton(dst, font, pushButton{Rect: r, Label: label, Literal: literal, Hover: inside, Inside: inside, Focus: focused,
+				Pressed: f.soundPointer.pressed && f.soundPointer.action == row.Action, Disabled: !row.Enabled})
+			continue
 		}
 		if !row.Enabled {
 			dimDisabledRow(dst, r, since)
@@ -134,44 +145,17 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 	return dst
 }
 
+// soundTrackBar is the track list's bar, for geometry only.
+func soundTrackBar(f *text.Font) vScrollBar { return vScrollBar{Rect: soundTrackBox(f).Bar()} }
+
 func (a *App) drawSoundTracks(dst *image.RGBA, focused bool) {
 	f := a.flow
 	g := soundOptionsDialog
 	r := soundOptionRect(gameMenuMusicTracks)
 	f.menuFont.Draw(dst, gameMenuLabelText(f.soundOptions.Words.Tracks), r.Min.X, g.Min.Y+60, loadSelectedText)
 	list := f.soundOptions.list
-	top, count := 0, 0
-	if list != nil {
-		top, count = list.Visible()
-	}
-	for i := 0; i < soundTrackRows; i++ {
-		row := image.Rect(r.Min.X, r.Min.Y+i*soundTrackRowH, r.Max.X, r.Min.Y+(i+1)*soundTrackRowH)
-		selected := i < count && list.Selection() == top+i
-		drawMovieBox(dst, row, selected && focused)
-		if i < count {
-			tone := gameMenuText
-			if selected {
-				tone = loadSelectedText
-			}
-			label := list.Rows()[top+i].Text
-			f.menuFont.Draw(dst.SubImage(row).(*image.RGBA), label, row.Min.X+3, row.Min.Y+2, tone)
-		}
-	}
-	track := soundOptionRect(gameMenuMusicScroll)
-	if len(a.media.scroll) < 26 {
-		for _, action := range []gameMenuAction{gameMenuMusicUp, gameMenuMusicDown, gameMenuMusicScroll} {
-			drawMovieBox(dst, soundOptionRect(action), false)
-		}
-		return
-	}
-	for y := track.Min.Y; y < track.Max.Y; y += 24 {
-		copyNativeOver(dst, a.media.scroll[19], image.Pt(track.Min.X, y), track)
-	}
-	copyNativeOver(dst, a.media.scroll[18], soundOptionRect(gameMenuMusicUp).Min, dst.Bounds())
-	copyNativeOver(dst, a.media.scroll[20], soundOptionRect(gameMenuMusicDown).Min, dst.Bounds())
-	y := track.Min.Y
-	if list != nil && list.Len() > 1 {
-		y += list.Selection() * (track.Dy() - 24) / (list.Len() - 1)
-	}
-	copyNativeOver(dst, a.media.scroll[16], image.Pt(track.Min.X, y), dst.Bounds())
+	pointer, pointerOK := a.pointerFrame()
+	drawListBox(dst, f.menuFont, a.media.scroll, soundTrackBox(f.menuFont), list, func(row, _ int) string {
+		return list.Rows()[row].Text
+	}, pointer, pointerOK)
 }

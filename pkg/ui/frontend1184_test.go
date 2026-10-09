@@ -118,11 +118,11 @@ func TestCutsceneLibraryScrollAndPressCapture1184(t *testing.T) {
 	a.SetCutsceneLibrary(entries, seen, nil, CutsceneLibraryWords{})
 	a.openCutsceneLibrary()
 	a.stepMedia(appInput{End: true}, time.Time{})
-	if a.media.selection != 13 || a.media.top != 4 {
+	if top, _ := a.movieList().Visible(); a.movieList().Selection() != 13 || top != 4 {
 		t.Fatal("last movie not visible")
 	}
 	a.stepMedia(appInput{Home: true}, time.Time{})
-	if a.media.selection != 0 || a.media.top != 0 {
+	if top, _ := a.movieList().Visible(); a.movieList().Selection() != 0 || top != 0 {
 		t.Fatal("first movie not visible")
 	}
 	p := movieCancel.Min.Add(image.Pt(3, 3))

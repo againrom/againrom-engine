@@ -41,18 +41,20 @@ func (a *App) mediaMessages() mediaMessages {
 }
 
 type mediaUI struct {
-	catalog               []CutsceneEntry
-	seen                  map[string]bool
-	record                func(string) error
-	words                 CutsceneLibraryWords
-	selection, top, press int
-	message               string
-	credits               func() CreditsView
-	roll                  CreditsView
-	scroll                []*image.RGBA
-	back                  Screen
-	at                    time.Time // last roll step; zero before the first
-	steps                 int       // pixels the roll has advanced
+	catalog []CutsceneEntry
+	seen    map[string]bool
+	record  func(string) error
+	words   CutsceneLibraryWords
+	list    *Picker
+	press   buttonLatch
+	bar     scrollBarInput
+	message string
+	credits func() CreditsView
+	roll    CreditsView
+	scroll  []*image.RGBA
+	back    Screen
+	at      time.Time // last roll step; zero before the first
+	steps   int       // pixels the roll has advanced
 }
 
 func (a *App) SetCutsceneLibrary(entries []CutsceneEntry, seen []string, record func(string) error, words CutsceneLibraryWords) {
@@ -73,6 +75,10 @@ func (a *App) SetCutsceneScrollArt(frames []*image.RGBA) {
 		a.flow.viewer.setHelpScrollArt(frames)
 	}
 }
+
+// SetHoverArt installs interface/Ball.bmp, the hover box's corner picture
+// (MENU-128). Nil leaves the corners unpainted.
+func (a *App) SetHoverArt(ball image.Image) { a.tooltip.ball = ball }
 
 func (a *App) seenCutscenes() []CutsceneEntry {
 	var entries []CutsceneEntry
@@ -107,17 +113,44 @@ func (a *App) encounterCutscene(name string) {
 }
 
 var moviePanel = image.Rect(120, 62, 520, 424)
-var movieList = image.Rect(170, 134, 464, 334)
+var movieListArg = image.Rect(170, 134, 466, 334)
 var movieOK = image.Rect(172, 376, 296, 400)
 var movieCancel = image.Rect(348, 376, 472, 400)
-var movieUp = image.Rect(466, 134, 490, 158)
-var movieDown = image.Rect(466, 310, 490, 334)
-var movieTrack = image.Rect(466, 158, 490, 310)
 
 const movieVisibleRows = 10
 
+// The library's two buttons, as button latch ids.
+const (
+	movieOKButton = iota
+	movieCancelButton
+)
+
+// movieListBox is the library's shared list.
+func (a *App) movieListBox() listBox {
+	return newListBox(movieListArg, movieVisibleRows, a.flow.menuFont)
+}
+
+// movieList is the shared list over the seen entries, rebuilt when the seen
+// set changes and keeping the selected index.
+func (a *App) movieList() *Picker {
+	entries := a.seenCutscenes()
+	if a.media.list == nil || a.media.list.Len() != len(entries) {
+		sel := 0
+		if a.media.list != nil {
+			sel = max(a.media.list.Selection(), 0)
+		}
+		rows := make([]PickerRow, len(entries))
+		for i, e := range entries {
+			rows[i] = PickerRow{Text: e.Title, Choosable: true}
+		}
+		a.media.list = NewPicker(rows).SetWindow(movieVisibleRows)
+		a.media.list.Select(clampIndex(sel, len(rows)))
+	}
+	return a.media.list
+}
+
 func (a *App) openCutsceneLibrary() {
-	a.media.selection, a.media.top, a.media.press = 0, 0, -1
+	a.media.list, a.media.press, a.media.bar = nil, buttonLatch{}, scrollBarInput{}
 	a.flow.setScreen(ScreenCutsceneLibrary)
 	if a.media.words.Title == "" {
 		a.media.words.Title = "View Cutscenes"
@@ -132,14 +165,8 @@ func (a *App) openCutsceneLibrary() {
 }
 
 func (a *App) selectMovie(index int) {
-	n := len(a.seenCutscenes())
-	a.media.selection = min(max(0, index), max(0, n-1))
-	if a.media.selection < a.media.top {
-		a.media.top = a.media.selection
-	}
-	if a.media.selection >= a.media.top+movieVisibleRows {
-		a.media.top = a.media.selection - movieVisibleRows + 1
-	}
+	l := a.movieList()
+	l.Select(clampIndex(index, l.Len()))
 }
 
 func (a *App) replayMovie() {
@@ -148,29 +175,26 @@ func (a *App) replayMovie() {
 		return
 	}
 	a.media.message = ""
-	if !a.PlayCutsceneSequence(numberedCutscenes(entries[a.media.selection].Directory)) {
+	if !a.PlayCutsceneSequence(numberedCutscenes(entries[max(a.movieList().Selection(), 0)].Directory)) {
 		a.media.message = a.mediaMessages().Unavailable
 	}
 }
 
-func movieHit(p image.Point, top, count int) int {
-	for i, r := range []image.Rectangle{movieOK, movieCancel, movieUp, movieDown, movieTrack} {
-		if p.In(r) {
-			return 100 + i
-		}
+// movieButtonAt is the library button under p.
+func movieButtonAt(p image.Point) (int, bool) {
+	switch {
+	case p.In(movieOK):
+		return movieOKButton, true
+	case p.In(movieCancel):
+		return movieCancelButton, true
 	}
-	if p.In(movieList) {
-		i := top + (p.Y-movieList.Min.Y)/20
-		if i < count {
-			return i
-		}
-	}
-	return -1
+	return 0, false
 }
 
 func (a *App) stepMedia(in appInput, now time.Time) {
 	if in.Unfocused {
-		a.media.press = -1
+		a.media.press.clear()
+		a.media.bar.reset()
 		a.media.at = time.Time{}
 		return
 	}
@@ -202,56 +226,52 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 		a.flow.toMenu()
 		return
 	}
-	if in.Up {
-		a.selectMovie(a.media.selection - 1)
-	}
-	if in.Down {
-		a.selectMovie(a.media.selection + 1)
-	}
+	list := a.movieList()
+	listKey(list, in.Up, in.Down, in.PageUp, in.PageDown)
 	if in.Home {
 		a.selectMovie(0)
 	}
 	if in.End {
-		a.selectMovie(len(a.seenCutscenes()) - 1)
+		a.selectMovie(list.Len() - 1)
 	}
 	if in.WheelY > 0 {
-		a.selectMovie(a.media.selection - 3)
+		list.Move(-3)
 	}
 	if in.WheelY < 0 {
-		a.selectMovie(a.media.selection + 3)
+		list.Move(3)
 	}
 	if in.Enter {
 		a.replayMovie()
 		return
 	}
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	hit := -1
-	if ok {
-		hit = movieHit(p, a.media.top, len(a.seenCutscenes()))
+	box := a.movieListBox()
+	if req, pos := a.media.bar.step(listBar(box, list), p, ok, in); req != barNone {
+		listBarRequest(list, req, pos)
+		return
+	}
+	if a.media.bar.active() {
+		return
 	}
 	if in.PrimaryPressed {
-		a.media.press = hit
+		a.media.press.press(movieButtonAt(p))
+		if row, hit := box.RowAt(p); ok && hit {
+			top, _ := list.Visible()
+			a.selectMovie(top + row)
+		}
 	}
 	if in.PrimaryReleased {
-		pressed := a.media.press
-		a.media.press = -1
-		if hit < 0 || hit != pressed {
+		at, inside := movieButtonAt(p)
+		button, activated := a.media.press.release(at, ok && inside)
+		if !activated {
 			return
 		}
 		a.playUISound(UISoundCommonControl)
-		switch hit {
-		case 100:
+		switch button {
+		case movieOKButton:
 			a.replayMovie()
-		case 101:
+		case movieCancelButton:
 			a.flow.toMenu()
-		case 102:
-			a.selectMovie(a.media.selection - 1)
-		case 103:
-			a.selectMovie(a.media.selection + 1)
-		case 104:
-			a.selectMovie((p.Y - movieTrack.Min.Y) * max(0, len(a.seenCutscenes())-1) / movieTrack.Dy())
-		default:
-			a.selectMovie(hit)
 		}
 	}
 }
@@ -268,44 +288,19 @@ func (a *App) composeCutsceneLibrary() *image.RGBA {
 	}
 	drawTownShellText(dst, font, a.media.words.Title, image.Rect(148, 88, 492, 116), townShellText)
 	entries := a.seenCutscenes()
-	for i := 0; i < movieVisibleRows; i++ {
-		r := image.Rect(movieList.Min.X, movieList.Min.Y+i*20, movieList.Max.X, movieList.Min.Y+(i+1)*20)
-		drawMovieBox(dst, r, a.media.top+i == a.media.selection && len(entries) > 0)
-		index := a.media.top + i
-		if index < len(entries) {
-			c := townShellText
-			if index == a.media.selection {
-				c = color.RGBA{218, 183, 71, 255}
-			}
-			clip := dst.SubImage(r.Inset(2)).(*image.RGBA)
-			font.Draw(clip, entries[index].Title, r.Min.X+4, r.Min.Y+2, c)
-		}
-	}
+	list := a.movieList()
+	pointer, pointerOK := a.pointerFrame()
+	drawListBox(dst, font, a.media.scroll, a.movieListBox(), list, func(row, _ int) string { return entries[row].Title }, pointer, pointerOK)
 	if len(entries) == 0 {
-		font.Draw(dst, a.flow.menuDisplayText(a.mediaMessages().Empty), movieList.Min.X+4, 350, townShellText)
+		font.Draw(dst, a.flow.menuDisplayText(a.mediaMessages().Empty), movieListArg.Min.X+4, 350, townShellText)
 	}
-	for i, r := range []image.Rectangle{movieOK, movieCancel, movieUp, movieDown} {
-		drawMovieBox(dst, r, a.media.press == 100+i)
-		label := []string{a.media.words.OK, a.media.words.Cancel, "^", "v"}[i]
-		drawTownShellText(dst, font, label, r, townShellText)
-	}
-	drawMovieBox(dst, movieTrack, false)
-	y := movieTrack.Min.Y
-	if len(entries) > 1 {
-		y += a.media.selection * (movieTrack.Dy() - 24) / (len(entries) - 1)
-	}
-	if len(a.media.scroll) >= 26 {
-		for y := movieTrack.Min.Y; y < movieTrack.Max.Y; y += 24 {
-			copyNativeOver(dst, a.media.scroll[19], image.Pt(movieTrack.Min.X, y), movieTrack)
-		}
-		copyNativeOver(dst, a.media.scroll[18], movieUp.Min, dst.Bounds())
-		copyNativeOver(dst, a.media.scroll[20], movieDown.Min, dst.Bounds())
-		copyNativeOver(dst, a.media.scroll[16], image.Pt(movieTrack.Min.X, y), dst.Bounds())
-	} else {
-		drawMovieBox(dst, image.Rect(468, y, 488, y+24), true)
+	for i, r := range []image.Rectangle{movieOK, movieCancel} {
+		inside := pointerOK && pointer.In(r)
+		drawPushButton(dst, font, pushButton{Rect: r, Label: []string{a.media.words.OK, a.media.words.Cancel}[i],
+			Hover: inside, Pressed: a.media.press.pressed(i), Inside: inside})
 	}
 	if a.media.message != "" {
-		font.Draw(dst, a.flow.menuDisplayText(a.media.message), movieList.Min.X, 350, townShellText)
+		font.Draw(dst, a.flow.menuDisplayText(a.media.message), movieListArg.Min.X, 350, townShellText)
 	}
 	return dst
 }
@@ -382,9 +377,9 @@ func (a *App) headlessCutscene(target string) error {
 		if !strings.EqualFold(target, entry.Title) && !(target == "@first" && i == 0) {
 			continue
 		}
-		for n := 0; n < len(a.seenCutscenes()) && a.media.selection != i; n++ {
+		for n := 0; n < len(a.seenCutscenes()) && a.movieList().Selection() != i; n++ {
 			key := "down"
-			if a.media.selection > i {
+			if a.movieList().Selection() > i {
 				key = "up"
 			}
 			if err := a.HeadlessKey(key); err != nil {

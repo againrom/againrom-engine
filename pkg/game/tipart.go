@@ -25,16 +25,16 @@ const (
 	tipGemPath    = graphicsPrefix + "interface/radiob.256"
 )
 
-// tipGemOffFrame and tipGemOnFrame select two of radiob.256's six shipped
-// frames (24x24 round off/on, 24x24 square off/on, 16x16 small-square
-// off/on — the contract's own "The shipped texts" table). AUTHORED: no
-// claim or photograph says which pair a checkbox this size uses; the
-// small-square pair is taken as the closest fit to a line of text (file doc,
-// ui.TipPanelArt).
+// tipGemOffFrame and tipGemOnFrame are the tip checkbox's 16x16 clear and
+// checked frames of radiob.256 (MENU-125).
 const (
 	tipGemOffFrame = 4
 	tipGemOnFrame  = 5
 )
+
+// checkGemFrame is the standard checkbox's clear frame; its set frame
+// follows (MENU-124).
+const checkGemFrame = 2
 
 // LoadTipPanelArt resolves the tip panel's install-backed art. Cosmetic on
 // LoadTownSquareArt's own rule: a missing or mis-sized node carries its own

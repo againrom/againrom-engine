@@ -205,7 +205,7 @@ func renderDialogueNotice(l NoticeLayout, f *text.Font, s string, face *image.RG
 		drawDialoguePortrait(img, l, face)
 	}
 	if b := l.Button; b.Dx() > 0 && b.Dy() > 0 {
-		drawDialogueButton(img, b, l.ButtonLabel, f, l)
+		drawPushButton(img, f, dialogueButton(b, l.ButtonLabel, l))
 	}
 	pitch := f.Height() + l.Pitch
 	if pitch <= 0 {
@@ -219,7 +219,7 @@ func renderDialogueNotice(l NoticeLayout, f *text.Font, s string, face *image.RG
 		lines = lines[:visible]
 	}
 	if !l.Scrollbar.Empty() {
-		drawHelpScrollbar(img, f, l, first, total, visible)
+		drawHelpScrollbar(img, l, first, total, visible, l.ScrollbarTopHot, l.ScrollbarBottomHot)
 	}
 	ink := dialogueInk
 	if l.Ink.A != 0 {

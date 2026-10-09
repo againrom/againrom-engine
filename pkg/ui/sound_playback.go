@@ -4,7 +4,7 @@ import "image"
 
 func (f *flow) initSoundTracks() {
 	c := &f.soundOptions
-	c.list = NewPicker(nil).SetWindow(4)
+	c.list = NewPicker(nil).SetWindow(soundTrackRows)
 	if c.music == nil || c.music() == nil {
 		return
 	}
@@ -16,16 +16,16 @@ func (f *flow) initSoundTracks() {
 		}
 		rows = append(rows, PickerRow{Text: label, Choosable: true})
 	}
-	c.list = NewPicker(rows).SetWindow(4)
+	c.list = NewPicker(rows).SetWindow(soundTrackRows)
 }
 
 func (f *flow) soundTrackAt(p image.Point) int {
-	if f.soundOptions.list == nil || !p.In(soundOptionRect(gameMenuMusicTracks)) {
+	if f.soundOptions.list == nil {
 		return -1
 	}
+	row, ok := soundTrackBox(f.menuFont).RowAt(p)
 	top, count := f.soundOptions.list.Visible()
-	row := (p.Y - soundOptionRect(gameMenuMusicTracks).Min.Y) / soundTrackRowH
-	if row >= count {
+	if !ok || row >= count {
 		return -1
 	}
 	return top + row

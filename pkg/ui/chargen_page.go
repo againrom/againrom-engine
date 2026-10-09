@@ -697,15 +697,6 @@ func detailedSkillArt(states [3]image.Image) detailedSkillPictures {
 	}
 }
 
-func drawTextControl(dst *image.RGBA, f *text.Font, label string, r image.Rectangle) {
-	drawBorder(dst, r, color.RGBA{180, 145, 75, 255})
-	if f == nil {
-		return
-	}
-	w, h := f.Measure(label)
-	f.Draw(dst, label, r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-h)/2, color.RGBA{255, 230, 150, 255})
-}
-
 func drawChargenFrame(dst *image.RGBA, r image.Rectangle) {
 	draw.Draw(dst, r, &image.Uniform{C: color.RGBA{16, 18, 24, 255}}, image.Point{}, draw.Src)
 	drawBorder(dst, r, color.RGBA{138, 116, 70, 255})

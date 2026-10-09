@@ -24,6 +24,8 @@ type tooltipController struct {
 	since    time.Time
 	now      time.Time
 	baseFont *text.Font
+	// ball is interface/Ball.bmp, the hover box's corner (MENU-128).
+	ball image.Image
 }
 
 // Hover help uses the character card's font without resampling its glyphs.
@@ -31,7 +33,7 @@ func (h *tooltipController) picture(t tooltipTarget, p image.Point, bounds image
 	if h.baseFont != nil && t.font != nil {
 		t.font = h.baseFont
 	}
-	return tooltipPicture(t, p, bounds)
+	return tooltipPicture(t, p, bounds, h.ball)
 }
 
 func (h *tooltipController) reset() {
@@ -100,14 +102,14 @@ func tooltipLines(s string) []string {
 	return strings.Split(s, "#")
 }
 
-func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle) (*image.RGBA, image.Point, bool) {
+func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball image.Image) (*image.RGBA, image.Point, bool) {
 	if t.key() == "" || bounds.Empty() {
 		return nil, image.Point{}, false
 	}
 	// Bound all hover help to a readable column, including item and spell
 	// descriptions. Source-authored breaks remain intact and height may grow.
 	var lines []string
-	width := min(tooltipMaxWidth, bounds.Dx()) - 2*(1+itemPopupBorderPad) - popupShadow
+	width := min(tooltipMaxWidth, bounds.Dx()) - hoverExtraW
 	for _, line := range t.lines {
 		for _, part := range strings.Split(line, "#") {
 			part = strings.TrimSpace(part)
@@ -117,7 +119,7 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle) (*im
 			lines = append(lines, wrapTooltipLine(part, t.font, width)...)
 		}
 	}
-	pic := composeItemPopup(lines, t.font)
+	pic := composeHoverBox(lines, t.font, ball)
 	if pic == nil {
 		return nil, image.Point{}, false
 	}
@@ -138,9 +140,10 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle) (*im
 // painted (tooltipPicture, above), positioned within bounds from the anchor
 // point p. It exists for an install-gated witness that has no live App or
 // Viewer to hover through and needs production's own paint for one screen's
-// hint, not the screen beneath it — see cmd/tooltipshot.
-func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle) (*image.RGBA, image.Point, bool) {
-	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds)
+// hint, not the screen beneath it — see cmd/tooltipshot. ball is the
+// installed corner picture the App was given (FrontEnd.HoverBall).
+func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle, ball image.Image) (*image.RGBA, image.Point, bool) {
+	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, ball)
 }
 
 func wrapTooltipLine(s string, font *text.Font, width int) []string {
