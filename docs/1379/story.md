@@ -10,7 +10,7 @@ sees, hears or saves changes. A third profile or a mod profile is an edition
 value and, at most, one more service implementation; it adds no arm to shared
 code.
 
-Base: `af6c6a09` (game 0.105.0), reconciled with main `6f05571d`. Knowledge
+Base: `af6c6a09` (game 0.105.0), reconciled with main `dfb84f0f`. Knowledge
 pin: k208.
 
 ## Authority
