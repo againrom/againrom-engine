@@ -24,7 +24,7 @@ func TestBuilding1145WitnessDetectsLostState(t *testing.T) {
 	if len(wants) != 2 || len(links) != 4 || links[0x0c0c] != 0 || links[0x0c0d] != 701 || links[0x0c0e] != 700 {
 		t.Fatalf("independent roster/cell read: %d %+v", len(wants), links)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestBuilding1145WitnessReadsSubclassTails(t *testing.T) {
 		wants[2].source.OutpostRecords[0] != rows[2].OutpostRecords[0] {
 		t.Fatal("literal subclass tails changed")
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

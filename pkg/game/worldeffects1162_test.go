@@ -131,7 +131,7 @@ func TestWorldEffects1162StagedAppChangedDocumentAndNative(t *testing.T) {
 func TestWorldEffects1162BindingSuppressionAndCounterControls(t *testing.T) {
 	raw := ring1162Source(t, 4, 2, 0)
 	f := spell1152FixtureFront(t)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

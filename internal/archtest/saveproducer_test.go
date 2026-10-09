@@ -31,6 +31,50 @@ func TestCurrentSaveProducerHasNoLegacyDispatch(t *testing.T) {
 	}
 }
 
+func TestSaveProducerGuardRejectsUncalledSAVWriter(t *testing.T) {
+	fset := token.NewFileSet()
+	savFile, err := parser.ParseFile(fset, "sav.go", `package sav; type DocumentData struct{}; type CityUpdate struct{}; type CityProvenance struct{}; type File struct{}; func EncodeDocumentData(DocumentData) ([]byte, error) { return nil, nil }; func (*CityProvenance) Marshal(CityUpdate) ([]byte, error) { return nil, nil }; func (*File) Marshal() []byte { return nil }`, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	savPkg, err := (&types.Config{}).Check("againrom/pkg/formats/sav", fset, []*ast.File{savFile}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, source string
+		bad          bool
+	}{
+		{"current producer", `func (f *FrontEnd) ExportCurrentSave() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, false},
+		{"equipment load re-encoding", `func (f *FrontEnd) ExportCurrentSave() {}; func repairLoadedEquipmentRows() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, false},
+		{"mod load re-encoding", `func (f *FrontEnd) ExportCurrentSave() {}; func applyModMark() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, false},
+		{"uncalled town writer", `func (f *FrontEnd) ExportCurrentSave() {}; func (f *FrontEnd) exportMissionCity(p *s.CityProvenance) ([]byte, error) { return p.Marshal(s.CityUpdate{}) }`, true},
+		{"renamed town writer", `func (f *FrontEnd) ExportCurrentSave() {}; func writeTown(p *s.CityProvenance) ([]byte, error) { return p.Marshal(s.CityUpdate{}) }`, true},
+		{"uncalled document writer", `func (f *FrontEnd) ExportCurrentSave() {}; func writeDocument() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, true},
+		{"uncalled file writer", `func (f *FrontEnd) ExportCurrentSave() {}; func writeFile(p *s.File) []byte { return p.Marshal() }`, true},
+		{"callback town writer", `func (f *FrontEnd) ExportCurrentSave() {}; func writeTown(p *s.CityProvenance) func(s.CityUpdate) ([]byte, error) { return p.Marshal }`, true},
+		{"package encoder alias", `var writeDocument = s.EncodeDocumentData; func (f *FrontEnd) ExportCurrentSave() {}`, true},
+		{"city interface writer", `type originalCityDocument interface { Marshal(s.CityUpdate) ([]byte, error) }; func (f *FrontEnd) ExportCurrentSave() {}; func writeTown(p originalCityDocument) ([]byte, error) { return p.Marshal(s.CityUpdate{}) }`, true},
+		{"load name on another receiver", `type Other struct{}; func (f *FrontEnd) ExportCurrentSave() {}; func (Other) applyModMark() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			file, err := parser.ParseFile(fset, "game.go", `package game; import s "againrom/pkg/formats/sav"; type FrontEnd struct{}; var _ s.DocumentData; `+tc.source, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			info := &types.Info{Defs: map[*ast.Ident]types.Object{}, Uses: map[*ast.Ident]types.Object{}}
+			config := types.Config{Importer: fixedImporter{path: "againrom/pkg/formats/sav", pkg: savPkg}}
+			if _, err := config.Check("againrom/pkg/game", fset, []*ast.File{file}, info); err != nil {
+				t.Fatal(err)
+			}
+			p := &CheckedPackage{ImportPath: "againrom/pkg/game", Files: []*ast.File{file}, NumProd: 1, Info: info}
+			if got := CheckSaveProducer(p); (len(got) != 0) != tc.bad {
+				t.Fatalf("findings %v, want bad=%v", got, tc.bad)
+			}
+		})
+	}
+}
+
 func TestSaveProducerGuardRejectsDispatchMigrationAndCallbackFallback(t *testing.T) {
 	for _, tc := range []struct {
 		name, source string

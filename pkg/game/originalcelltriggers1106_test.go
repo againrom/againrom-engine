@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -92,7 +91,7 @@ func TestOriginalCellTriggers1106BothLoadDoorsAndAppNativeSave(t *testing.T) {
 					t.Fatal("native continuation changed")
 				}
 			}
-			ms, r, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+			ms, r, err := loadOriginalMission(f, payload)
 			if err != nil || ms == nil || !r.CellTriggersApplied || r.CellTriggerRecords != 3 {
 				t.Fatalf("diagnostic LOAD %+v %v", r, err)
 			}
@@ -150,7 +149,7 @@ func TestOriginalCellTriggers1106LateMalformedLoadKeepsSnapshot(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(before, after) || f.live != oldLive || f.Town != oldTown || f.live.world.Hash() != oldHash {
 		t.Fatal("malformed LOAD changed old session")
 	}
-	if ms, _, err := ResumeOriginalSave(f.Archives.Containers, bad, nil, mapload.DifficultyNormal, nil, nil); err == nil || ms != nil {
+	if ms, _, err := loadOriginalMission(f, bad); err == nil || ms != nil {
 		t.Fatal("diagnostic LOAD accepted short last cell")
 	}
 	sf, err := sav.Open(valid)

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 func TestSpellEffectCorpusAudit1132(t *testing.T) {
@@ -68,9 +67,9 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 				nonEmpty++
 			}
 
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			if !report.SpellEffectsApplied {
 				t.Fatal("spell effects were not applied")
@@ -81,7 +80,7 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 			}
 
 			// The live comparison value is the world's own carried state before
-			// any tick: ResumeOriginalSave advances none. This walk never calls
+			// any tick: RestoreOriginal advances none. This walk never calls
 			// spellEffectConverter/applyOriginalSpellEffects, so a bug shared
 			// with the production conversion would not silently pass both this
 			// and the byte-level check below.

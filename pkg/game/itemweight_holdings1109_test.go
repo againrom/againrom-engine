@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -61,7 +60,7 @@ func TestInstanceWeightNonpartyBothLoadDoorsAndNewTransfer(t *testing.T) {
 		}
 	}
 	f := currentPoolFixtureFront(t, 91, 92)
-	diagnostic, _, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+	diagnostic, _, err := loadOriginalMission(f, payload)
 	if err != nil {
 		t.Fatal(err)
 	}

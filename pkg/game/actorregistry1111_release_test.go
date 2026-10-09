@@ -23,7 +23,7 @@ func TestReleaseActorRegistry1111AuthoredGroupsSurviveOriginalAndNativeLoad(t *t
 		t.Run(tc.path, func(t *testing.T) {
 			f := releaseFront(t)
 			path, raw := groundCorpusFile(t, tc.path, tc.sha)
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatal(err)
 			}

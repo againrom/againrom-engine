@@ -247,7 +247,7 @@ func mover1160LiveFixture(t *testing.T, stage byte) (*Mission, mover1160Source) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +346,7 @@ func TestMover1160LiveListLossControls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

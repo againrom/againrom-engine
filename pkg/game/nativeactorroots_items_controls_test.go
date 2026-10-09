@@ -92,7 +92,7 @@ func nativeActorNativeItemFixture(t *testing.T) ([]byte, *FrontEnd, *Mission, si
 		t.Fatal("real producer did not establish unregistered/absent and known carrier modes", pack, equipment)
 	}
 	raw, _, _ := saveCurrentEffect(t, f)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestActorRootsNativeItemOrdinaryByteLossControls(t *testing.T) {
 			if len(nativeActorItemCheck(t, back, ms)) == 0 {
 				t.Fatal("accepted ordinary raw edit against stale World/retained carrier", name)
 			}
-			cold, _, err := ResumeOriginalSave(source.Archives.Containers, back, source.Table, source.Difficulty, nil, source.Bodies)
+			cold, _, err := loadOriginalMission(source, back)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -338,7 +338,7 @@ func TestActorRootsNativeItemOrdinaryByteLossControls(t *testing.T) {
 func TestActorRootsItemExactTypedBindingControls(t *testing.T) {
 	f := currentSharedItemFront(t)
 	raw, _, _ := saveCurrentEffect(t, f)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -576,7 +576,7 @@ func TestActorRootsLegacyNativeItemIdentityModes(t *testing.T) {
 	}{{"omitted", nil}, {"version0", &zero}, {"version1", &one}} {
 		t.Run(test.name, func(t *testing.T) {
 			legacy := nativeActorLegacyItemLeaf(t, raw, test.version)
-			cold, _, err := ResumeOriginalSave(source.Archives.Containers, legacy, source.Table, source.Difficulty, nil, source.Bodies)
+			cold, _, err := loadOriginalMission(source, legacy)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -658,7 +658,7 @@ func TestActorRootsLegacyNativeItemModeCorruptionControls(t *testing.T) {
 func TestActorRootsLegacyNativeItemOrdinaryLossControls(t *testing.T) {
 	raw, source, _, id := nativeActorNativeItemFixture(t)
 	legacy := nativeActorLegacyItemLeaf(t, raw, nil)
-	cold, _, err := ResumeOriginalSave(source.Archives.Containers, legacy, source.Table, source.Difficulty, nil, source.Bodies)
+	cold, _, err := loadOriginalMission(source, legacy)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -708,7 +708,7 @@ func TestActorRootsLegacyNativeItemOrdinaryLossControls(t *testing.T) {
 			if len(nativeActorItemCheck(t, changed, cold)) == 0 {
 				t.Fatal("accepted legacy ordinary item/child loss against stale World", name)
 			}
-			reloaded, _, err := ResumeOriginalSave(source.Archives.Containers, changed, source.Table, source.Difficulty, nil, source.Bodies)
+			reloaded, _, err := loadOriginalMission(source, changed)
 			if name == "E0C" {
 				if err == nil || !strings.Contains(err.Error(), "Effect state") {
 					t.Fatal("invalid owned Effect lifetime was not refused", err)

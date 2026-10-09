@@ -37,7 +37,7 @@ func TestUnit1156MissingLiveSubjectControls(t *testing.T) {
 			if len(want.records) != 2 || want.records[0].values["Stage"] != uint32(stage) || uint16(want.records[0].values["Health"]) != hp {
 				t.Fatal("literal source population or stage/HP changed")
 			}
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatal(err)
 			}

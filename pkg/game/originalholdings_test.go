@@ -196,7 +196,7 @@ func TestOriginalHoldings1108AllPlayerAppLoadSaveFreshLoad(t *testing.T) {
 	if fresh.live.world.Hash() != hash {
 		t.Fatal("fresh native LOAD changed canonical stock")
 	}
-	diagnostic, report, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+	diagnostic, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.Stocked != 2 {
 		t.Fatalf("diagnostic: %+v %v", report, err)
 	}

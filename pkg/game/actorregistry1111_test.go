@@ -167,23 +167,24 @@ func TestActorRegistry1111OriginalDoorsNativeMenuFreshProcess(t *testing.T) {
 		return
 	}
 	payload := actorRegistrySave()
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, _, err := loadOriginalMission(f, payload)
 	if err != nil {
 		t.Fatal(err)
 	}
 	source := registryActors1111(t, ms.World)
-	registryIdentity1111(t, ms.World, 1)
-	if len(ms.Start.IDs) != 0 {
-		t.Fatalf("new allies became initial party: %v", ms.Start.IDs)
+	// The player's LOAD opens this party-less SAV with the fresh hero as ID 1.
+	registryIdentity1111(t, ms.World, 2)
+	if !reflect.DeepEqual(ms.Start.IDs, []sim.EntityID{1, source[33].ID}) {
+		t.Fatalf("initial party is not the fresh hero and the persistent ally: %v", ms.Start.IDs)
 	}
-	if source[35].ID != 1 || source[3].ID != 2 || source[33].ID != 3 || ms.World.Entities()[0].ID != 0 || ms.World.Entities()[0].MapUnitID != 91 {
+	if source[35].ID != 2 || source[3].ID != 3 || source[33].ID != 4 || ms.World.Entities()[0].ID != 0 || ms.World.Entities()[0].MapUnitID != 91 {
 		t.Fatalf("existing placement/new ID namespaces changed: %+v", ms.World.Entities())
 	}
 	if source[35].HP != 7 || source[3].HP != 9 || source[33].HP != 11 || source[33].SourceBinding.DefinitionRow() != 5 {
 		t.Fatal("saved pools/unsigned Human row override lost")
 	}
 	_, carryIDs := mapload.CarryRosterIDs(ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
-	if len(carryIDs) != 1 || carryIDs[0] != source[33].ID {
+	if !reflect.DeepEqual(carryIDs, []sim.EntityID{1, source[33].ID}) {
 		t.Fatalf("temporary actors promoted to party: %v", carryIDs)
 	}
 	originals := t.TempDir()
@@ -287,7 +288,7 @@ func TestActorRegistry1111MappedHumanoidNativeCompatibility(t *testing.T) {
 	binary.LittleEndian.PutUint16(body[a.off+17:], 3)
 	payload := savedContainer(body)
 	f := actorRegistryFront1111(t)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, _, err := loadOriginalMission(f, payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,11 +338,11 @@ func TestActorRegistry1111EffectiveOwnerSupersedesUnresolvedToken(t *testing.T) 
 	body, actors := actorRegistryBody1111()
 	binary.LittleEndian.PutUint32(body[actors[1].off+33:], 0xdeadbeef)
 	f := actorRegistryFront1111(t)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, savedContainer(body), f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, _, err := loadOriginalMission(f, savedContainer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
-	registryIdentity1111(t, ms.World, 1)
+	registryIdentity1111(t, ms.World, 2)
 }
 
 func TestActorRegistry1111SourceOnlyHumanEquipmentNativeNextCommand(t *testing.T) {

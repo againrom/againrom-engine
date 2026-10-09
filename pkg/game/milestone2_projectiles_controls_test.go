@@ -97,7 +97,7 @@ func projectile1157Resume(t *testing.T, raw []byte) (projectile1157Source, *Miss
 		t.Fatal(err)
 	}
 	f := projectile1157Front(t)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

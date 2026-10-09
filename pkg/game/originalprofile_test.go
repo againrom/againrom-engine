@@ -88,7 +88,7 @@ func TestOriginalProfile1107ExactAllPlayerClassesAndAliases(t *testing.T) {
 		}
 	}
 	f := poolFixtureFront(t, 91, 92, 93)
-	ms, r, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+	ms, r, err := loadOriginalMission(f, payload)
 	if err != nil || r.ProfilesRestored != 3 {
 		t.Fatal(r, err)
 	}
@@ -205,20 +205,9 @@ func TestOriginalProfile1107LateRefusalLeavesActiveSession(t *testing.T) {
 				b.mana = b.maxMana
 			}
 			payload := poolFixtureSave(a, b)
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
-			if err == nil || ms != nil {
-				t.Fatal("diagnostic admitted invalid current profile")
-			}
-			switch kind {
-			case "ambiguous source", "bad active":
-				if report.Stocked != 0 || report.StockDead != 0 || report.StockOffMap != 0 || report.StockParty != 0 ||
-					report.StockUnbound != 0 || report.StockUnmatched != 0 || report.Books.Restored != 0 || report.ProfilesRestored != 0 {
-					t.Fatalf("early refusal left a partial stock/book/profile report: %+v %v", report, err)
-				}
-			default:
-				if report.Stocked != 2 || report.Books.Restored != 2 || report.ProfilesRestored != 0 {
-					t.Fatalf("profile refusal did not follow stock and books: %+v %v", report, err)
-				}
+			// A refused LOAD returns no mission and no report.
+			if ms, _, err := loadOriginalMission(f, payload); err == nil || ms != nil {
+				t.Fatal("LOAD admitted invalid current profile")
 			}
 			if _, _, err := f.RestoreOriginal(payload); err == nil {
 				t.Fatal("bad late entry admitted")
@@ -270,7 +259,7 @@ func TestOriginalProfile1107RawHighPoolWordsAreNotLoadArithmetic(t *testing.T) {
 	payload := withClockFixture1112(t, poolFixtureSave(&poolFixtureActor{
 		mapID: 91, cell: 0x0605, hp: 10, maxHP: 65535, mana: 65530, maxMana: 65535, profile: p,
 	}), 80, 4)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+	ms, _, err := loadOriginalMission(f, payload)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -27,15 +27,15 @@ func TestReleaseOriginalCellPlanes1115NativeContinuation(t *testing.T) {
 		t.Fatal("natural M10 source anchors changed")
 	}
 	want, sourceCells, width, height := originalCellPlaneReference1115(t, f, source)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ms.Number != 10 || ms.Map.Width != width || ms.Map.Height != height {
 		t.Fatal("diagnostic LOAD did not use the installed M10 dimensions")
 	}
-	diagnosticPlanes := originalCellPlanesCheck1115(t, "ResumeOriginalSave", ms.World, want)
-	diagnosticCells := originalCellNodesCheck1115(t, "ResumeOriginalSave", ms.World, sourceCells)
+	diagnosticPlanes := originalCellPlanesCheck1115(t, "RestoreOriginal", ms.World, want)
+	diagnosticCells := originalCellNodesCheck1115(t, "RestoreOriginal", ms.World, sourceCells)
 
 	f.SetDeterministicFrames(true)
 	app := f.App("1115 natural raw cell planes")

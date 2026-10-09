@@ -10,7 +10,6 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 func TestOriginalExact1103SparseAppLoadSaveFreshLoad(t *testing.T) {
@@ -89,7 +88,7 @@ func TestOriginalExact1103SparseAppLoadSaveFreshLoad(t *testing.T) {
 					t.Fatalf("continuation diverged at %d", f.live.world.Tick())
 				}
 			}
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, nil, mapload.DifficultyNormal, nil, nil)
+			ms, report, err := loadOriginalMission(f, payload)
 			if err != nil || ms == nil || report.Joined != n || report.Moved != n || !report.SessionApplied {
 				t.Fatalf("diagnostic route: %+v %v", report, err)
 			}

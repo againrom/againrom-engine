@@ -41,7 +41,7 @@ func TestReleaseOriginalCurrentFacingAndNativeContinuation(t *testing.T) {
 					t.Fatalf("found%d of%d literal subjects", found, len(tc.want))
 				}
 			}
-			diagnostic, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+			diagnostic, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatal(err)
 			}

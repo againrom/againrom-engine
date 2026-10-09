@@ -131,7 +131,7 @@ func TestSavedPlayerPurses1115OriginalDoorsNativeSaveAndNextGoldAction(t *testin
 			t.Run(fmt.Sprintf("fromMap=%t/money=%x", fromMap, initial), func(t *testing.T) {
 				f := purseFront1115(t)
 				raw := purseLiteral1115(t, f, [2]uint32{1, 7}, initial)
-				ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+				ms, _, err := loadOriginalMission(f, raw)
 				if err != nil || ms.World.Purse(1) != initial[0] || ms.World.Purse(7) != initial[1] {
 					t.Fatal("low-level original LOAD lost full unsigned Player purses", err)
 				}

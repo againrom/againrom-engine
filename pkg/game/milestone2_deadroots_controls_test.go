@@ -12,6 +12,7 @@ import (
 func dead1163Fixture(t *testing.T) ([]byte, dead1163Source, *Mission) {
 	t.Helper()
 	f := poolFixtureFront(t, 91, 92)
+	f.Campaign = resolved(Campaign{Main: []int{10}, Offered: []int{10}, Chapters: map[int]Chapter{10: {Mission: 10}}}, nil)
 	runtimeID := uint32(73)
 	a := &poolFixtureActor{cell: 0x0807, hp: 0xff13, maxHP: 30, stage: 4, human: true, runtime: &runtimeID}
 	b := *a // Equal values, distinct constructed archive identity.
@@ -26,7 +27,7 @@ func dead1163Fixture(t *testing.T) ([]byte, dead1163Source, *Mission) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
