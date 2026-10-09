@@ -62,8 +62,8 @@ func (mw *mapWorld) spellAtlas() *bmp.Image {
 }
 
 // cutSpellIcon is one slot's 36x36 cell as the drawing tier's own surface,
-// FULLY OPAQUE — portraitRGBA's own reading of a format with no fourth channel,
-// applied to a sub-rectangle instead of a whole picture.
+// FULLY OPAQUE — the bitmap decoder's own reading of a format with no fourth
+// channel, applied to a sub-rectangle instead of a whole picture.
 //
 // The atlas is pre-composited: a cell already carries whatever ground the
 // original's panel shows behind that icon, so there is nothing here to key out
@@ -74,15 +74,7 @@ func cutSpellIcon(im *bmp.Image, slot int) *image.RGBA {
 		return nil
 	}
 	n := data.SpellIconSide
-	pic := image.NewRGBA(image.Rect(0, 0, n, n))
-	for y := 0; y < n; y++ {
-		for x := 0; x < n; x++ {
-			c := im.At(x0+x, y0+y)
-			o := (y*n + x) * 4
-			pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, 0xff
-		}
-	}
-	return pic
+	return im.SubRGBA(image.Rect(x0, y0, x0+n, y0+n))
 }
 
 // spellIcon is the picture for one spell id, or nil for a spell that has none.

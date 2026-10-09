@@ -19,7 +19,9 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | formats | `pkg/formats/spr256` | `.256` paletted sprite decoder |
 | formats | `pkg/formats/spr16` | `.16a`/`.16` 16-bit sprite decoders |
 | formats | `pkg/formats/databin` | the placeable-definition table: eight groups, eleven collections, framed verbatim |
-| formats | `pkg/formats/pal` | the 256-entry colour table a per-class palette file carries |
+| formats | `pkg/formats/pal` | the 256-entry colour table a per-class palette file carries, and the one blue-green-red entry layout every decoder reads |
+| formats | `pkg/formats/bmp` | uncompressed 24-bit and 8-bit Windows bitmaps |
+| formats | `pkg/formats/wav` | the RIFF WAVE chunk walk to PCM samples |
 | formats | `pkg/formats/winicon` | the icon group of a Windows executable: every image of it decoded to pixels, for the window's icon |
 | vfs | `pkg/vfs` | virtual filesystem over `.res` archives |
 | data | `pkg/data` | typed game data (registries, tables) |
@@ -27,12 +29,12 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | mapload | `pkg/mapload` | assemble a playable map from `.alm` |
 | mapedit | `pkg/mapedit` | headless edit model over one `.alm` map: typed mutations, undo/redo, every untargeted byte carried |
 | render | `pkg/render` | draw the world |
-| render | `pkg/render/terrain` | terrain tile graphics: BMP decode, strip slice, tile-word mapping, map composite |
+| render | `pkg/render/terrain` | terrain tile graphics: strip slice, tile-word mapping, map composite |
 | render | `pkg/render/camera` | the map viewer's camera model: position, pan, zoom, clamping, visible tiles |
 | render | `pkg/render/frame` | the fixed 640x480 virtual frame: fit a window, centre, letterbox, map window↔frame coordinates |
-| render | `pkg/render/menu` | the main-menu composition contract: asset set, BMP decode, hit mask, placement tables, selection state, frame composition |
+| render | `pkg/render/menu` | the main-menu composition contract: asset set, hit mask, placement tables, selection state, frame composition |
 | render | `pkg/render/text` | the font model, the placement rule and the blit, as plain data plus arithmetic |
-| audio | `pkg/audio` | WAV decode, resampling, positional gain and stereo mixing, as plain data plus arithmetic |
+| audio | `pkg/audio` | resampling, positional gain and stereo mixing, as plain data plus arithmetic |
 | video | `pkg/video` | bounded presentation-frame transport; decodes in-process through `pkg/video/smacker` as the ordinary path. The windows/386 `cutscenehelper` driving an installed `smackw32.dll` survives only as the `-cutscene-check` gate-time oracle, not an ordinary part of play; no game or simulation dependencies |
 | video | `pkg/video/smacker` | pure-Go port of libsmacker: Smacker (`.smk`) bitstream/Huffman-tree/DPCM video and audio decode; no game or simulation dependencies |
 | ui | `pkg/ui` | user interface |
@@ -57,10 +59,12 @@ allow-map; the two must stay identical.
 | `pkg/formats/res` | — | stdlib + `golang.org/x/text` only |
 | `pkg/formats/reg` | — | **stdlib only**, enforced (`.reg` stores bytes and the parser converts none of them, so it takes no text-encoding dependency) |
 | `pkg/formats/alm` | — | stdlib + `golang.org/x/text` only |
-| `pkg/formats/spr256` | — | **stdlib only** (`.256` carries no strings) |
-| `pkg/formats/spr16` | — | **stdlib only**, enforced (neither 16-bit grammar carries text, so it takes no text-encoding dependency) |
+| `pkg/formats/spr256` | `pkg/formats/pal` | **stdlib only** (`.256` carries no strings) |
+| `pkg/formats/spr16` | `pkg/formats/pal` | **stdlib only**, enforced (neither 16-bit grammar carries text, so it takes no text-encoding dependency) |
 | `pkg/formats/databin` | — | **stdlib only**, enforced (the table's names are handed back as the file's own bytes and no character encoding is applied, so it takes no text-encoding dependency) |
 | `pkg/formats/pal` | — | **stdlib only**, enforced (a colour table carries no strings, so it takes no text-encoding dependency) |
+| `pkg/formats/bmp` | `pkg/formats/pal` | stdlib only |
+| `pkg/formats/wav` | — | **stdlib only**, enforced (a WAV carries no text the engine reads) |
 | `pkg/formats/winicon` | — | **stdlib only**, enforced (an icon carries no strings, so it takes no text-encoding dependency) |
 | `pkg/formats/itemname` | — | **stdlib only**, enforced (0151 T12: a line is stored as the shipped bytes with no code-page conversion — pkg/render/text applies the conversion per drawn byte instead — so this format takes no text-encoding dependency) |
 | `pkg/vfs` | `pkg/formats/res` | |
@@ -69,12 +73,12 @@ allow-map; the two must stay identical.
 | `pkg/mapload` | `pkg/formats/alm`, `pkg/data`, `pkg/sim` | |
 | `pkg/mapedit` | `pkg/formats/alm` | stdlib and that leaf only: **no external module**, the `golang.org/x/text` grant stays the formats tier's, which is where both halves of the `.alm` string-field codecs live |
 | `pkg/render` | `pkg/sim` (read-only), `pkg/vfs` | |
-| `pkg/render/terrain` | — | **stdlib only**: the pure decode/mapping/composite pieces take plain bytes, decoded images and integers, so no `formats` type crosses into the render tier |
+| `pkg/render/terrain` | `pkg/formats/bmp` | the mapping and composite pieces take decoded images and integers; tile bitmaps decode through the bitmap leaf |
 | `pkg/render/camera` | — | **stdlib only**: the camera arithmetic is engine-free and unit-testable without a window |
 | `pkg/render/frame` | — | **stdlib only**: exact integer window↔frame mapping; floats appear only in the draw transform |
-| `pkg/render/menu` | — | **stdlib only**: takes archive bytes through a one-method `EntrySource`, so no `formats` type crosses into the render tier |
+| `pkg/render/menu` | `pkg/formats/bmp` | takes archive bytes through a one-method `EntrySource` and decodes them through the bitmap leaf |
 | `pkg/render/text` | — | **stdlib only**: a LEAF by contract (0050 P-5). It holds the font model, the placement rule and the blit as plain data plus arithmetic, and a loader outside it fills that data, so it gains the graph a node and no outgoing edge — and the empty allow-set is what makes that mechanical rather than a promise |
-| `pkg/audio` | — | **stdlib only**: a LEAF by the same contract `pkg/render/text` carries (0126 plan T1). It holds WAV decode, resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic — no slot, archive, listener or device is a concept this package knows — and pkg/ui supplies the one concrete `Player` this tree ships, so the empty allow-set is what makes "no other tier's type crosses in" mechanical rather than a promise |
+| `pkg/audio` | `pkg/formats/wav` | resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic; no slot, archive, listener or device is a concept this package knows, and pkg/ui supplies the one concrete `Player` this tree ships. WAV bytes decode through the WAV leaf |
 | `pkg/video` | `pkg/video/smacker` | stdlib-only leaf for ARV2 frames and bounded playback, decoding in-process through its own `pkg/video/smacker` port; the windows/386 installed-DLL adapter remains only as the `-cutscene-check` gate-time oracle; no UI, archive, game or simulation types |
 | `pkg/video/smacker` | — | third-party-derived codec leaf (libsmacker port): pure bitstream/Huffman/DPCM decode, no knowledge of a player, a stream protocol or a game; cannot import `pkg/video` back |
 | `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio` and `pkg/video` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state |
@@ -97,7 +101,8 @@ else is:
 
 - `golang.org/x/text` (CP866 decoding) for the `formats` tier — minus
   `pkg/formats/reg`, `pkg/formats/spr16`, `pkg/formats/databin`,
-  `pkg/formats/pal`, `pkg/formats/itemname` and `pkg/formats/winicon`, which
+  `pkg/formats/pal`, `pkg/formats/wav`, `pkg/formats/itemname` and
+  `pkg/formats/winicon`, which
   are denied it by name
   and held to the standard library, so a format that converts no text
   cannot quietly acquire a text-encoding dependency.

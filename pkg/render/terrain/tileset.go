@@ -3,6 +3,8 @@ package terrain
 import (
 	"fmt"
 	"image"
+
+	"againrom/pkg/formats/bmp"
 )
 
 const (
@@ -152,7 +154,7 @@ func LoadTileset(src EntrySource) *Tileset {
 			ts.Missing = append(ts.Missing, path)
 			return nil
 		}
-		img, err := DecodeBMP8(data)
+		img, err := bmp.DecodePaletted(data)
 		if err != nil {
 			ts.Missing = append(ts.Missing, path)
 			return nil
@@ -176,3 +178,7 @@ func LoadTileset(src EntrySource) *Tileset {
 	ts.Dirt = load(DirtPath)
 	return ts
 }
+
+// DecodeBMP8 is bmp.DecodePaletted under its former name, kept only for the
+// world-map loader and cmd/townsquarecheck until the town composer moves them.
+func DecodeBMP8(data []byte) (*image.Paletted, error) { return bmp.DecodePaletted(data) }

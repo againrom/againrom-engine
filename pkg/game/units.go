@@ -51,6 +51,26 @@ const UnitOwnerPalette = graphicsPrefix + "units/humans/human.pal"
 // is arithmetic over the class's resolved scalars, a fact about the class
 // and not about any sheet.
 func LoadUnits(src terrain.EntrySource) (*terrain.UnitSet, error) {
+	classes, err := loadUnitClasses(src)
+	if err != nil {
+		return nil, err
+	}
+	return unitSet(src, classes), nil
+}
+
+// loadUnitRegistry is the unit set and the per-class sound table, both from one
+// read and parse of units.reg.
+func loadUnitRegistry(src terrain.EntrySource) (*terrain.UnitSet, map[int32]UnitSound, error) {
+	classes, err := loadUnitClasses(src)
+	if err != nil {
+		return nil, nil, err
+	}
+	return unitSet(src, classes), unitSounds(classes), nil
+}
+
+// loadUnitClasses reads and parses units.reg: the one parse an install's unit
+// set and its per-class sound table are both derived from.
+func loadUnitClasses(src terrain.EntrySource) (*data.UnitClasses, error) {
 	if src == nil {
 		return nil, fmt.Errorf("%s: no graphics archive", UnitRegistry)
 	}
@@ -66,7 +86,10 @@ func LoadUnits(src terrain.EntrySource) (*terrain.UnitSet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", UnitRegistry, err)
 	}
+	return classes, nil
+}
 
+func unitSet(src terrain.EntrySource, classes *data.UnitClasses) *terrain.UnitSet {
 	sheets := sheetCache{
 		src:       src,
 		decoded:   make(map[string]*spr256.Sprite),
@@ -84,7 +107,7 @@ func LoadUnits(src terrain.EntrySource) (*terrain.UnitSet, error) {
 	if raw, err := src.ReadFile(UnitOwnerPalette); err == nil {
 		if tables, err := pal.DecodeOwnerTables(raw); err == nil {
 			for i, table := range tables {
-				set.OwnerPalettes[i] = tableRGBA(table)
+				set.OwnerPalettes[i] = table.Opaque()
 			}
 			set.HasOwnerPalettes = true
 		}
@@ -138,7 +161,7 @@ func LoadUnits(src terrain.EntrySource) (*terrain.UnitSet, error) {
 		cls.Boundary = sheets.boundaryFrames(cls.Frames, c.SpritePath(), c.OverlayPath())
 	}
 	linkCorpses(set.Classes, dying)
-	return set, nil
+	return set
 }
 
 // classTiers is the class's per-tier frame slices: one entry per tier the
@@ -182,27 +205,11 @@ func (c *sheetCache) tier(memo map[string][]*terrain.StaticFrame, sheetPath, pal
 	if base := c.frames(sheetPath); len(base) > 0 {
 		if raw, err := c.src.ReadFile(graphicsPrefix + palPath); err == nil {
 			if table, err := pal.Decode(raw); err == nil {
-				out = repalette(base, tableRGBA(table))
+				out = repalette(base, table.Opaque())
 			}
 		}
 	}
 	memo[key] = out
-	return out
-}
-
-// tableRGBA is the decoded colour table as the render tier's own palette array:
-// the three read bytes at FULL OPACITY, exactly as a sheet's own palette is
-// converted one file over.
-//
-// The alpha is not the table's — a table has none, its fourth byte being
-// reserved and read by nobody — and it is not a transparency channel here
-// either: which pixels of a frame are holes is that frame's own per-pixel
-// answer, index 0 included.
-func tableRGBA(t pal.Table) [256]color.RGBA {
-	var out [256]color.RGBA
-	for i, e := range t {
-		out[i] = color.RGBA{R: e.R, G: e.G, B: e.B, A: 0xff}
-	}
 	return out
 }
 
