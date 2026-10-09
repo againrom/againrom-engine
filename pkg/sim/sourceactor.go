@@ -332,6 +332,7 @@ func (w *World) publishSource(i int, s SourceActor) {
 	// ROM1's zero-rate lifecycle remains Unknown.
 	if e.RotationSpeed <= 0 && e.Turning() {
 		e.Facing = e.DesiredFacing
+		e.TurnState.Active = false
 		e.clearTurn()
 	}
 	if s.EquipmentRuntimePresent {

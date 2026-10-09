@@ -406,6 +406,8 @@ func StepWithdrawalTraced(w *World, cmds []Command) []WithdrawalDecision {
 }
 
 func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs) {
+	w.beginTurnSubTick()
+	defer w.endTurnSubTick()
 	if obs != nil {
 		w.damageObservation = &damageObservation{}
 		defer func() {
@@ -1123,6 +1125,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 		w.invalidateActorMotion(e.ID, "native cell step supersedes original movement")
 		e.X, e.Y = step[0].x, step[0].y
+		e.replaceDrawnTurn()
 		e.clearStride()
 		// A MOVER FACES THE CELL IT STEPPED TO, written from the step's own delta
 		// — the cell taken less the cell left — and here rather than anywhere

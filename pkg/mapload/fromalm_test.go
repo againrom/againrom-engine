@@ -745,6 +745,13 @@ func TestAWorldBuiltWithATableCarriesTheResolvedHealth(t *testing.T) {
 					t.Errorf("entity %d humanoid = %v, want %v from its resolved definition kind",
 						ents[i].ID, ents[i].Humanoid, wantHumanoid)
 				}
+				wantTurnRate := base[i].RotationSpeed
+				if wantHumanoid {
+					wantTurnRate = 18
+				}
+				if ents[i].RotationSpeed != wantTurnRate {
+					t.Errorf("entity %d turn rate %d, want %d", ents[i].ID, ents[i].RotationSpeed, wantTurnRate)
+				}
 				if ents[i].NativeTraining.Present != wantHumanoid || ents[i].NativeTraining.Levels != ([data.SkillSlots]int32{}) {
 					t.Fatalf("entity %d native training = %+v", ents[i].ID, ents[i].NativeTraining)
 				}
@@ -780,6 +787,7 @@ func TestAWorldBuiltWithATableCarriesTheResolvedHealth(t *testing.T) {
 				a.TokenSize, b.TokenSize = 0, 0
 				a.Capacity, b.Capacity = 0, 0
 				a.Humanoid, b.Humanoid = false, false
+				a.RotationSpeed, b.RotationSpeed = 0, 0
 				if a != b {
 					t.Errorf("entity %d differs outside the health pair, the adjusted pair and the flag:\n got %+v\nwant %+v",
 						ents[i].ID, a, b)

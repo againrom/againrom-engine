@@ -67,6 +67,8 @@ var nstPinned = []struct {
 	{"World", reflect.TypeOf(World{}), []nstField{
 		{"tick", "uint64"},
 		{"damageObservation", "*sim.damageObservation"},
+		{"turnSteps", "map[sim.EntityID]struct {}"},
+		{"turnStepScope", "bool"},
 		{"hasSessionClock", "bool"},
 		{"fullTick", "uint32"},
 		{"rng", "sim.rng"},
@@ -191,6 +193,7 @@ var nstPinned = []struct {
 		{"DesiredFacing", "uint8"},
 		{"TurnRemaining", "uint8"},
 		{"TurnTotal", "uint8"},
+		{"TurnState", "sim.TurnState"},
 		{"PotionStats", "[4]int32"},
 		{"PotionHeadroom", "[4]int32"},
 		{"Group", "uint32"},

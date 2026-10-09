@@ -1889,7 +1889,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 			continue
 		}
-		if w.entities[ci].Turning() {
+		if w.entities[ci].Turning() && c.Target != c.Caster {
 			i++
 			continue
 		}
