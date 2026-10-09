@@ -1985,6 +1985,9 @@ package storyguard
 // CommentBytes rises for the town room pages: the room trace instrument, the
 // reader's refusals, pkg/town's own tests and its page programs, new code,
 // including this paragraph.
+// CommentBytes rises for the random service: the docs of pkg/random, of the
+// World stream's two modes and of every consumer moved onto a named stream,
+// new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2006,7 +2009,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1776,
+		"longcommentgroups":      1774,
 	},
-	CommentBytes: 8510653,
+	CommentBytes: 8516490,
 }

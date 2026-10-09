@@ -76,6 +76,8 @@ func init() {
 	worldMethods = append(worldMethods, "RestoreRandomState")
 	worldMethods = append(worldMethods, "PendingSpellDeliveries")
 	worldWriters = append(worldWriters, "RestoreRandomState")
+	worldMethods = append(worldMethods, "RandomMode", "SetRandom", "OriginalRand")
+	worldWriters = append(worldWriters, "SetRandom", "OriginalRand")
 	worldWriters = append(worldWriters, "ImportOriginalActionClocks")
 	worldMethods = append(worldMethods, "AutoHealing", "ImportAutoHealing", "SetAutoHealing")
 	worldMethods = append(worldMethods, "FrozenGroupAI")

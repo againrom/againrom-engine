@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/random"
+
 // Draws is a standalone sequence over this package's generator, for a caller
 // that must choose before a world exists.
 //
@@ -28,6 +30,18 @@ func NewDraws(seed uint64) *Draws {
 	return &Draws{r: rng{state: seed}}
 }
 
+// NewOriginalDraws is the sequence that continues an original stream at
+// state; Upto is then the original's range wrapper.
+func NewOriginalDraws(state uint32) *Draws {
+	return &Draws{r: rng{state: uint64(state), original: true}}
+}
+
+// Original reports whether the sequence runs on the original's generator.
+func (d *Draws) Original() bool { return d.r.original }
+
+// State answers the sequence's state after the draws taken so far.
+func (d *Draws) State() uint64 { return d.r.state }
+
 // Upto is a uniform value in [0, n] — INCLUSIVE OF n — and 0 for any n below 1.
 //
 // The inclusive bound is the interface's, not an accident of the arithmetic: the
@@ -47,5 +61,11 @@ func (d *Draws) Upto(n int32) int32 {
 	if n < 1 {
 		return 0
 	}
-	return int32(d.r.next() % uint64(n+1))
+	if d.r.original {
+		return d.r.uniform(n)
+	}
+	g := random.SplitMix64{State: d.r.state}
+	v := g.Upto(n)
+	d.r.state = g.State
+	return v
 }

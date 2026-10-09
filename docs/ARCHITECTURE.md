@@ -26,6 +26,7 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | vfs | `pkg/vfs` | virtual filesystem over `.res` archives |
 | data | `pkg/data` | typed game data (registries, tables) |
 | sim | `pkg/sim` | deterministic simulation core |
+| random | `pkg/random` | the session's random service: named streams, the seeded and original generators, the bounded-draw primitives |
 | mapload | `pkg/mapload` | assemble a playable map from `.alm` |
 | mapedit | `pkg/mapedit` | headless edit model over one `.alm` map: typed mutations, undo/redo, every untargeted byte carried |
 | render | `pkg/render` | draw the world |
@@ -69,8 +70,9 @@ allow-map; the two must stay identical.
 | `pkg/formats/itemname` | — | **stdlib only**, enforced (0151 T12: a line is stored as the shipped bytes with no code-page conversion — pkg/render/text applies the conversion per drawn byte instead — so this format takes no text-encoding dependency) |
 | `pkg/vfs` | `pkg/formats/res` | |
 | `pkg/data` | `pkg/vfs`, `pkg/formats/reg` | |
-| `pkg/sim` | — | **stdlib only** (determinism wall) |
-| `pkg/mapload` | `pkg/formats/alm`, `pkg/data`, `pkg/sim` | |
+| `pkg/sim` | `pkg/random` | stdlib and the random leaf (determinism wall) |
+| `pkg/random` | — | **stdlib only**: a leaf that reads no clock and no operating-system state |
+| `pkg/mapload` | `pkg/formats/alm`, `pkg/data`, `pkg/sim`, `pkg/random` | |
 | `pkg/mapedit` | `pkg/formats/alm` | stdlib and that leaf only: **no external module**, the `golang.org/x/text` grant stays the formats tier's, which is where both halves of the `.alm` string-field codecs live |
 | `pkg/render` | `pkg/sim` (read-only), `pkg/vfs` | |
 | `pkg/render/terrain` | `pkg/formats/bmp` | the mapping and composite pieces take decoded images and integers; tile bitmaps decode through the bitmap leaf |
@@ -81,7 +83,7 @@ allow-map; the two must stay identical.
 | `pkg/audio` | `pkg/formats/wav` | resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic; no slot, archive, listener or device is a concept this package knows, and pkg/ui supplies the one concrete `Player` this tree ships. WAV bytes decode through the WAV leaf |
 | `pkg/video` | `pkg/video/smacker` | stdlib-only leaf for ARV2 frames and bounded playback, decoding in-process through its own `pkg/video/smacker` port; the windows/386 installed-DLL adapter remains only as the `-cutscene-check` gate-time oracle; no UI, archive, game or simulation types |
 | `pkg/video/smacker` | — | third-party-derived codec leaf (libsmacker port): pure bitstream/Huffman/DPCM decode, no knowledge of a player, a stream protocol or a game; cannot import `pkg/video` back |
-| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio` and `pkg/video` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state |
+| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video` and `pkg/random` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state |
 | `cmd/cutscenehelper` | `pkg/video` | separately built Windows/386 native adapter; the normal game remains amd64 |
 | `pkg/game` | any `pkg/*` | top library tier |
 | `cmd/againrom` | any `pkg/*` | the game |
