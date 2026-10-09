@@ -1,5 +1,19 @@
 package sim
 
+func (w *World) clearEscort(i int) {
+	e := &w.entities[i]
+	wasEscort := escortState(e.ActorState) || e.HasEscortTarget || e.EscortOrder != escortOrderNone || e.EscortTurnPending
+	w.entities[i].clearEscort()
+	if !wasEscort {
+		return
+	}
+	if o := w.savedOrder(w.entities[i].ID); o != nil {
+		o.State = uint32(w.entities[i].ActorState)
+		o.authorNative()
+		o.Raw[0x54], o.Raw[0x70] = 0, 0
+	}
+}
+
 func (w *World) armDefend(i int) {
 	if w.entities[i].OffMap || w.actorCastBusy(i) || w.stoneCursed(i) {
 		return

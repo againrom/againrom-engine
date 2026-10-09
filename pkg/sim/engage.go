@@ -661,6 +661,11 @@ func (w *World) armSwarm(g aiGroup, cands []int) {
 			// Idle on the commanded cell: left in every field.
 			continue
 		}
+		if escortState(e.ActorState) {
+			w.cancelTurnForTargetChange(mi, cx, cy)
+			w.clearOrder(mi)
+			w.clearEscort(mi)
+		}
 		e.TargetX, e.TargetY, e.HasTarget = cx, cy, true
 		e.clearAttackBetweenCycles()
 		e.clearGroupSpeed()
