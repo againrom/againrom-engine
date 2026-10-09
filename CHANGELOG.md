@@ -13,6 +13,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   carrying capacity 300. Before, it had none of these.
 - [BASE] The town square is built from a town description by one town
   composer; it looks and plays the same.
+- [ROM1] Windows, panels and lists now look alike everywhere. Every window
+  frame is drawn with whole edge tiles as the original draws it, and the
+  cutscene library and Sound Options lists sit in the same sunken well as
+  Save and Load. Every button activates only on a release over it; losing
+  the window's focus drops a held press.
 
 ## 0.105.0
 
