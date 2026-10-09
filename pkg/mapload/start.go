@@ -783,6 +783,13 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	// the no-flag mission path is unchanged; the divergence 0078 disclosed is
 	// closed for a member who carries a profile, and only for one.
 	regen := data.UnitDefaults()
+	var hero PartyMember
+	for _, p := range party {
+		if p.StartingHero {
+			hero = p
+			break
+		}
+	}
 	for i, p := range party {
 		// The first two tavern types are siege CREATURES, not generated
 		// humans (MERC-LEVEL-005). Resolve them through the placement block so
@@ -895,19 +902,23 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		if p.Hired() {
 			typeID = p.Class
 		}
+		dying, err := partyDyingTime(p, hero, typeID, t)
+		if err != nil {
+			return nil, Start{}, err
+		}
 		// A generated member has no row: his numbers are the fold's, his pools
 		// the restored or derived ones, his reach and sight derived like his
 		// rate. He stands on the player's roster slot and in no map group. A
 		// member restored from an original save keeps the record's map unit id.
 		// The treasure values stay zero; the death-gold roll is gated above
-		// the person band.
+		// the person band. His dying time is his bound Humans row's.
 		def := sim.ActorDefinition{
 			Class: p.Class, TypeID: typeID, Humanoid: true, Domain: sim.DomainGround,
 			HP: pool.hp, MaxHP: pool.maxHP, Mana: pool.mana, MaxMana: pool.maxMana,
 			HealthRegenPeriod: pool.healthPeriod, ManaRegenPeriod: pool.manaPeriod,
 			HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
 			Speed: d.Speed, RotationSpeed: d.RotationSpeed, Capacity: d.Capacity,
-			ScanRange: uint8(d.Sight), Reach: reachOf(d.Combat.Reach), TokenSize: 1,
+			ScanRange: uint8(d.Sight), Reach: reachOf(d.Combat.Reach), TokenSize: 1, DyingTime: dying,
 			ToHit: d.Combat.ToHit, Defence: d.Combat.Defence, Absorption: d.Combat.Absorption,
 			DamageBase: d.Combat.DamageBase, DamageSpread: d.Combat.DamageSpread,
 			SecondBase: d.Combat.SecondBase, SecondSpread: d.Combat.SecondSpread,

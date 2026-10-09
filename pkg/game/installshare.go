@@ -24,6 +24,7 @@ type installShare struct {
 	structuresErr error
 	units         *terrain.UnitSet
 	unitsErr      error
+	unitSounds    map[int32]UnitSound
 	townSchool    *ui.TownSchoolArt
 	townSchoolErr error
 	townTavern    *ui.TownTavernArt
@@ -79,7 +80,7 @@ func loadInstallShare(root string) (*installShare, error) {
 	s := &installShare{archives: archives}
 	s.statics, s.staticsErr = LoadStatics(archives.Containers)
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)
-	s.units, s.unitsErr = LoadUnits(archives.Containers)
+	s.units, s.unitSounds, s.unitsErr = loadUnitRegistry(archives.Containers)
 	s.townSchool, s.townSchoolErr = LoadTownSchoolArt(archives.Containers)
 	s.townTavern, s.townTavernErr = LoadTownTavernArt(archives.Containers)
 	s.townSquare, s.townSquareErr = LoadTownSquareArt(archives.Containers)

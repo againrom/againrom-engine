@@ -3,6 +3,8 @@ package spr256
 import (
 	"encoding/binary"
 	"fmt"
+
+	"againrom/pkg/formats/pal"
 )
 
 // Layout constants for the ROM1 .256 sprite (little-endian). See the package doc
@@ -10,8 +12,7 @@ import (
 const (
 	trailerSize     = 4    // [31-bit frameCount][bit31 = has-palette]
 	paletteSize     = 1024 // 256 entries x 4 bytes [B, G, R, reserved]
-	paletteEntries  = 256
-	frameHeaderSize = 12 // [u32 width][u32 height][u32 dataSize]
+	frameHeaderSize = 12   // [u32 width][u32 height][u32 dataSize]
 
 	frameCountMask = 0x7FFFFFFF // trailer & this == frame count
 	hasPaletteBit  = 0x80000000 // trailer & this == has-palette flag
@@ -29,11 +30,9 @@ const (
 // so a crafted near-2^32 width/height pair is an atomic error, not a panic.
 const maxInt = int(^uint(0) >> 1)
 
-// Color is one palette entry as an RGB triple. The on-disk order is BGR with a
-// reserved 4th byte; Decode reorders it to RGB and drops the reserved byte.
-type Color struct {
-	R, G, B uint8
-}
+// Color is one palette entry: pal.Color, the one reading of the
+// [B, G, R, reserved] layout.
+type Color = pal.Color
 
 // Pixel is one decoded grid cell. A transparent cell is the zero value
 // (Opaque == false); Index is meaningful only when Opaque is true. Transparency
@@ -88,7 +87,7 @@ func Decode(data []byte) (*Sprite, error) {
 		if len(data) < paletteSize+trailerSize {
 			return nil, fmt.Errorf("spr256: has-palette stream too small: %d bytes", len(data))
 		}
-		palette = decodePalette(data[:paletteSize])
+		palette = pal.Entries(data[:paletteSize])
 		framesStart = paletteSize
 	}
 	trailerStart := len(data) - trailerSize
@@ -121,17 +120,6 @@ func Decode(data []byte) (*Sprite, error) {
 	}
 
 	return &Sprite{HasPalette: hasPalette, Palette: palette, Frames: frames}, nil
-}
-
-// decodePalette reorders 256 on-disk [B, G, R, reserved] entries to RGB Colors.
-// The input is exactly 1024 bytes (validated by the caller).
-func decodePalette(raw []byte) []Color {
-	pal := make([]Color, paletteEntries)
-	for i := range pal {
-		e := raw[i*4 : i*4+4]
-		pal[i] = Color{R: e[2], G: e[1], B: e[0]} // reserved byte e[3] dropped
-	}
-	return pal
 }
 
 // decodeFrame decodes one RLE block onto a width x height grid. The cursor moves

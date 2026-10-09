@@ -50,11 +50,9 @@ func readPic(src terrain.EntrySource, addr string) (pic, error) {
 	if err != nil {
 		return pic{}, fmt.Errorf("%s: %w", addr, err)
 	}
-	out := pic{img: image.NewRGBA(image.Rect(0, 0, im.Width, im.Height))}
-	for i, c := range im.Pix {
-		o := i * 4
-		out.img.Pix[o], out.img.Pix[o+1], out.img.Pix[o+2], out.img.Pix[o+3] = c.R, c.G, c.B, 0xff
-		if c.R == 0 && c.G == 0 && c.B == 0 {
+	out := pic{img: im.RGBA()}
+	for _, c := range im.Pix {
+		if c == (bmp.Color{}) {
 			out.black++
 		}
 	}

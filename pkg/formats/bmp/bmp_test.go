@@ -2,6 +2,8 @@ package bmp
 
 import (
 	"encoding/binary"
+	"image"
+	"image/color"
 	"testing"
 )
 
@@ -113,7 +115,7 @@ func TestDecodeHonoursTheRowPadding(t *testing.T) {
 	}
 }
 
-func TestDecodeRefusesEveryShapeThisCorpusDoesNotShip(t *testing.T) {
+func TestDecodeRefusesEveryOtherShape(t *testing.T) {
 	ok := build(t, [][]Color{{{R: 1}}}, 0, 0)
 
 	bend := func(f func([]byte)) []byte {
@@ -132,17 +134,20 @@ func TestDecodeRefusesEveryShapeThisCorpusDoesNotShip(t *testing.T) {
 		{"a header version with a longer info block", bend(func(b []byte) {
 			binary.LittleEndian.PutUint32(b[14:], 108)
 		})},
-		{"pixels somewhere other than 54", bend(func(b []byte) {
+		{"pixels past the end of the stream", bend(func(b []byte) {
 			binary.LittleEndian.PutUint32(b[10:], 122)
 		})},
-		{"a top-down bitmap", bend(func(b []byte) {
-			binary.LittleEndian.PutUint32(b[22:], ^uint32(0)) // height -1
+		{"pixels inside the header", bend(func(b []byte) {
+			binary.LittleEndian.PutUint32(b[10:], 50)
 		})},
 		{"no width", bend(func(b []byte) { binary.LittleEndian.PutUint32(b[18:], 0) })},
 		{"two colour planes", bend(func(b []byte) { binary.LittleEndian.PutUint16(b[26:], 2) })},
 		{"eight bits per pixel", bend(func(b []byte) { binary.LittleEndian.PutUint16(b[28:], 8) })},
 		{"run-length compression", bend(func(b []byte) { binary.LittleEndian.PutUint32(b[30:], 1) })},
-		{"a palette", bend(func(b []byte) { binary.LittleEndian.PutUint32(b[46:], 256) })},
+		{"overflowing dimensions", bend(func(b []byte) {
+			binary.LittleEndian.PutUint32(b[18:], 0x7fffffff)
+			binary.LittleEndian.PutUint32(b[22:], 0x7fffffff)
+		})},
 		{"a pixel run cut short", ok[:len(ok)-1]},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -203,5 +208,66 @@ func TestAtIsTotal(t *testing.T) {
 	var nilIm *Image
 	if got := nilIm.At(0, 0); got != (Color{}) {
 		t.Errorf("a nil image answered %+v", got)
+	}
+}
+
+// The public format's own variants are read, not refused: a negative height
+// stores rows top-down, the pixel run may start past the headers, and a 24-bit
+// file may declare a colour table nothing reads.
+func TestDecodeReadsTheFormatsOwnVariants(t *testing.T) {
+	rows := [][]Color{{{R: 1}, {G: 2}}, {{B: 3}, {R: 4, G: 4}}}
+	bottomUp := build(t, rows, 0, 0)
+
+	topDown := append([]byte(nil), bottomUp[:HeaderLen]...)
+	binary.LittleEndian.PutUint32(topDown[22:], ^uint32(1)) // height -2
+	topDown = append(topDown, bottomUp[HeaderLen+8:]...)    // stored row 1 is the top
+	topDown = append(topDown, bottomUp[HeaderLen:HeaderLen+8]...)
+
+	later := append([]byte(nil), bottomUp[:HeaderLen]...)
+	binary.LittleEndian.PutUint32(later[10:], HeaderLen+6)
+	later = append(append(later, 9, 9, 9, 9, 9, 9), bottomUp[HeaderLen:]...)
+
+	table := append([]byte(nil), bottomUp...)
+	binary.LittleEndian.PutUint32(table[46:], 256)
+
+	for name, data := range map[string][]byte{"top-down": topDown, "later pixels": later, "declared table": table} {
+		im, err := Decode(data)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		for y, row := range rows {
+			for x, want := range row {
+				if got := im.At(x, y); got != want {
+					t.Fatalf("%s: pixel (%d,%d) = %+v, want %+v", name, x, y, got, want)
+				}
+			}
+		}
+	}
+}
+
+// RGBA and SubRGBA are the colour grid at full opacity; a cell outside the
+// image is opaque black.
+func TestRGBAIsOpaqueAndSubRGBACutsACell(t *testing.T) {
+	im, err := Decode(build(t, [][]Color{{{R: 1}, {G: 2}}, {{B: 3}, {R: 4}}}, 0, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pic := im.RGBA()
+	if got := pic.RGBAAt(1, 1); got != (color.RGBA{R: 4, A: 0xff}) {
+		t.Fatalf("RGBA (1,1) = %+v", got)
+	}
+	cell := im.SubRGBA(image.Rect(1, 0, 3, 1))
+	if cell.Bounds() != image.Rect(0, 0, 2, 1) {
+		t.Fatalf("cell bounds %v", cell.Bounds())
+	}
+	if a, b := cell.RGBAAt(0, 0), cell.RGBAAt(1, 0); a != (color.RGBA{G: 2, A: 0xff}) || b != (color.RGBA{A: 0xff}) {
+		t.Fatalf("cell = %+v %+v", a, b)
+	}
+	if got, err := DecodeRGBA(build(t, [][]Color{{{R: 7}}}, 0, 0)); err != nil || got.RGBAAt(0, 0) != (color.RGBA{R: 7, A: 0xff}) {
+		t.Fatalf("DecodeRGBA = %v, %v", got, err)
+	}
+	var nilIm *Image
+	if nilIm.RGBA() != nil {
+		t.Fatal("a nil image converted")
 	}
 }

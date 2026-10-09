@@ -3,6 +3,8 @@ package audio
 import (
 	"encoding/binary"
 	"testing"
+
+	"againrom/pkg/formats/wav"
 )
 
 // buildWAV assembles a minimal RIFF/WAVE stream — a fmt chunk and a data
@@ -12,7 +14,7 @@ import (
 // and none is committed anywhere in this repository.
 func buildWAV(channels, bitsPerSample, rate int, data []byte, dataFirst bool) []byte {
 	fmtChunk := make([]byte, 16)
-	binary.LittleEndian.PutUint16(fmtChunk[0:], riffFormatPCM)
+	binary.LittleEndian.PutUint16(fmtChunk[0:], wav.FormatPCM)
 	binary.LittleEndian.PutUint16(fmtChunk[2:], uint16(channels))
 	binary.LittleEndian.PutUint32(fmtChunk[4:], uint32(rate))
 	blockAlign := channels * bitsPerSample / 8
@@ -130,7 +132,7 @@ func TestDecodeWAVRefusesNonPCMFormat(t *testing.T) {
 
 func TestDecodeWAVRefusesMissingDataChunk(t *testing.T) {
 	fmtChunk := make([]byte, 16)
-	binary.LittleEndian.PutUint16(fmtChunk[0:], riffFormatPCM)
+	binary.LittleEndian.PutUint16(fmtChunk[0:], wav.FormatPCM)
 	binary.LittleEndian.PutUint16(fmtChunk[2:], 1)
 	binary.LittleEndian.PutUint32(fmtChunk[4:], DeviceRate)
 	binary.LittleEndian.PutUint16(fmtChunk[12:], 2)

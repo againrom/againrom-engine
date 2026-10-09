@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"image/color"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
@@ -195,12 +194,11 @@ func (c *sheetCache) frame(path string, index int32) *terrain.StaticFrame {
 	// The palette-less exclusion. The bound is the DESTINATION's own length, so
 	// a sheet whose palette is short of the array this fills cannot leave part of
 	// it at the zero colour while the rest is the sheet's.
-	if !s.HasPalette || len(s.Palette) != len(out.Palette) {
+	table, ok := s.Table()
+	if !ok {
 		return nil
 	}
-	for i, e := range s.Palette {
-		out.Palette[i] = color.RGBA{R: e.R, G: e.G, B: e.B, A: 0xff}
-	}
+	out.Palette = *table
 
 	// Copied, never aliased: spr256's grid is the decoder's own memory, and the
 	// cache hands one sheet to every class that names it.

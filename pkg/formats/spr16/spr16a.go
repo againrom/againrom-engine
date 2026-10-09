@@ -3,16 +3,15 @@ package spr16
 import (
 	"encoding/binary"
 	"fmt"
+
+	"againrom/pkg/formats/pal"
 )
 
 // Palette layout for a declared .16a palette: 1024 leading bytes, 256 entries
 // of on-disk [B, G, R, x]; the 4th byte is not decoded. Presence is the
 // caller's declaration, never inferred from stream content, which is why it is
 // a parameter of DecodeA rather than a stream fact.
-const (
-	paletteSize    = 1024
-	paletteEntries = 256
-)
+const paletteSize = 1024
 
 // .16a RLE control word: a u16 cw with op = cw >> 14 and n = cw & 0x3FFF, a
 // 14-bit count.
@@ -26,11 +25,9 @@ const (
 	// 0b11 is decoded identically to opRowsA (blank rows), in the same arm.
 )
 
-// Color is one palette entry as an RGB triple. The on-disk order is
-// [B, G, R, x]; DecodeA reorders it to RGB and drops the 4th byte undecoded.
-type Color struct {
-	R, G, B uint8
-}
+// Color is one palette entry: pal.Color, the one reading of the
+// [B, G, R, x] layout.
+type Color = pal.Color
 
 // PixelA is one decoded .16a grid cell. A transparent cell is the zero value
 // (Painted == false); Index and Level are meaningful only when Painted is true
@@ -85,23 +82,11 @@ func DecodeA(data []byte, palette bool) (*SpriteA, error) {
 		}
 		frames = append(frames, frame)
 	}
-	var pal []Color
+	var colors []Color
 	if palette {
-		pal = decodePalette(data[:paletteSize])
+		colors = pal.Entries(data[:paletteSize])
 	}
-	return &SpriteA{Palette: pal, Frames: frames}, nil
-}
-
-// decodePalette reorders 256 on-disk [B, G, R, x] entries to RGB Colors. The
-// input is exactly 1024 bytes (the walk has already validated the length); the
-// 4th byte of each entry is dropped undecoded.
-func decodePalette(raw []byte) []Color {
-	pal := make([]Color, paletteEntries)
-	for i := range pal {
-		e := raw[i*4 : i*4+4]
-		pal[i] = Color{R: e[2], G: e[1], B: e[0]}
-	}
-	return pal
+	return &SpriteA{Palette: colors, Frames: frames}, nil
 }
 
 // decodeBlockA decodes one .16a RLE block onto its width x height grid. The

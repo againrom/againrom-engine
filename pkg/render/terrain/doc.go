@@ -1,8 +1,7 @@
 // Package terrain turns a ROM1 map's tile grid into terrain pixels.
 //
-// It holds the pure pieces of the terrain render path: an 8-bpp Windows BMP
-// decoder (the container the terrain tiles ship in), a slicer that cuts a tile
-// strip into its 32x32 sub-cells, the research-decoded tile-word -> graphic
+// It holds the pure pieces of the terrain render path: a slicer that cuts a
+// tile strip, decoded by pkg/formats/bmp, into its 32x32 sub-cells, the research-decoded tile-word -> graphic
 // mapping, the relief light, and the compositors that lay a whole map's cells
 // out into one image.
 //

@@ -634,7 +634,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// by the time this line does (main.go's own ordering, mirroring
 	// SetPartySkill's).
 	soundBank := OpenSounds(root)
-	soundClasses := LoadUnitSounds(archives.Containers)
+	soundClasses := share.unitSounds
 	audioSettings := audio.Settings{
 		Master: soundOptions.Volume,
 		Muted:  !soundOptions.Enabled,
@@ -683,15 +683,12 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	townTavernArt, townTavernArtErr := share.townTavern, share.townTavernErr
 	townSquareArt, townSquareArtErr := share.townSquare, share.townSquareErr
 
-	// The attack pointer, off the same container filesystem and under the same
-	// carried-error rule. Assigned as a pair for the font's own reason: a
-	// caller cannot reach the picture without the variable that says why there
-	// is none.
-	pointer, pointerErr := LoadAttackPointer(archives.Containers)
-
-	// The cursor registry, off the same container filesystem and under the
-	// same carried-error rule (docs/1030-cursor-lifecycle B1).
-	cursorRegistry, cursorRegistryErr := LoadCursorRegistry(archives.Containers)
+	// The attack pointer and the cursor registry, off the same container
+	// filesystem and under the same carried-error rule (docs/1030-cursor-lifecycle
+	// B1). The pointer is frame 0 of the registry's own decoded attack sheet.
+	cursors := loadCursorArt(archives.Containers)
+	pointer, pointerErr := cursors.pointer, cursors.pointerErr
+	cursorRegistry, cursorRegistryErr := cursors.registry, cursors.registryErr
 
 	// The command panel's four bitmaps, off the same container filesystem and
 	// under the same carried-error rule (docs/1028-command-panel contract B1).

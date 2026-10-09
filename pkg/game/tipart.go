@@ -57,7 +57,8 @@ func loadTipGemFrame(src entrySource, addr string, frame int) (*image.RGBA, erro
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
-	if !sheet.HasPalette {
+	table, ok := sheet.Table()
+	if !ok {
 		return nil, fmt.Errorf("%s: no palette", addr)
 	}
 	if frame < 0 || frame >= len(sheet.Frames) {
@@ -67,17 +68,7 @@ func loadTipGemFrame(src entrySource, addr string, frame int) (*image.RGBA, erro
 	if f.Width <= 0 || f.Height <= 0 || len(f.Pixels) < f.Width*f.Height {
 		return nil, fmt.Errorf("%s: frame %d is empty", addr, frame)
 	}
-	pic := image.NewRGBA(image.Rect(0, 0, f.Width, f.Height))
-	for i := 0; i < f.Width*f.Height; i++ {
-		p := f.Pixels[i]
-		if !p.Opaque || int(p.Index) >= len(sheet.Palette) {
-			continue
-		}
-		e := sheet.Palette[p.Index]
-		o := i * 4
-		pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = e.R, e.G, e.B, 0xff
-	}
-	return pic, nil
+	return f.RGBA(table), nil
 }
 
 // tipArt is the front end's one copy, loaded on first use and cached the way
