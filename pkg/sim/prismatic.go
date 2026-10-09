@@ -6,7 +6,7 @@ const prismaticSpellID = 14
 // A body is never the primary (owner, DIV-072); a fan already paid at
 // admission has passed this gate and keeps its release.
 func prismaticBodyPrimary(target Entity, rule SpellRule) bool {
-	return rule.ID == prismaticSpellID && target.HP < 1
+	return rule.arm() == prismaticSpellID && target.HP < 1
 }
 
 // prismaticGroup is the group whose shared sight chooses the secondaries:

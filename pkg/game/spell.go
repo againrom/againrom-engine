@@ -57,11 +57,22 @@ func spellSelfOnly(rule sim.SpellRule) bool {
 // row alone does not name it, and it keeps its cell order.
 const fireSacrificeSpellID = 4
 
+// spellArmOf is the first-game arm of the table row id, or id itself when the
+// table carries no such row.
+func spellArmOf(table []sim.SpellRule, id uint32) uint32 {
+	for _, r := range table {
+		if uint32(r.ID) == id {
+			return uint32(r.ArmID())
+		}
+	}
+	return id
+}
+
 // spellSelfKind is the cast cursor's self kind: Shield by its row, Fire
 // Sacrifice by its id. Only the cursor and the click gate read it; the order
 // a click makes follows PointTarget.
 func spellSelfKind(rule sim.SpellRule) bool {
-	return spellSelfOnly(rule) || rule.ID == fireSacrificeSpellID && !rule.TargetsUnit && rule.Area
+	return spellSelfOnly(rule) || rule.ArmID() == fireSacrificeSpellID && !rule.TargetsUnit && rule.Area
 }
 
 func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uint16]string,
@@ -79,7 +90,7 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 		// strings and derives neither.
 		auto := e.AutoSpell != 0 && uint32(e.AutoSpell) == uint32(rule.ID)
 		characteristics := sim.SpellCharacteristicsFor(r, e, rule)
-		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || rule.ID == 26), SelfOnly: spellSelfKind(rule),
+		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || rule.ArmID() == 26), SelfOnly: spellSelfKind(rule),
 			Autocast: auto, Info: spellInfoLines(rule, characteristics, names[rule.ID], &w)}
 		// THE ICON IS OPTIONAL AND ITS ABSENCE IS ORDINARY (0141;
 		// `MAGIC-ICON-024`). Four shipped spells are in no slot of the icon
@@ -142,7 +153,7 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 			knowers = []spellKnower{{rule, sim.SpellCharacteristicsFor(r, selected[0], rule)}}
 		}
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], Unavailable: !known,
-			PointTarget: known && !rule.TargetsUnit && (rule.Area || rule.ID == 26), SelfOnly: known && spellSelfKind(rule),
+			PointTarget: known && !rule.TargetsUnit && (rule.Area || rule.ArmID() == 26), SelfOnly: known && spellSelfKind(rule),
 			Info: spellPopupLines(knowers, names[rule.ID], &w)}
 		// Autocast remains the existing primary-unit gesture, not a new
 		// group policy inferred from the book-command population claim.

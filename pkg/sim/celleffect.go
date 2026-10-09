@@ -178,7 +178,7 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 		case areaModeCloud:
 			e.Phase++
 			if e.Remaining%16 == 0 {
-				w.applyAreaCells(e, rule, w.cloudPulseCells(e.Key, e.Spell, int32(rule.Radius)))
+				w.applyAreaCells(e, rule, w.cloudPulseCells(e.Key, w.spellArm(e.Spell), int32(rule.Radius)))
 			}
 		case areaModeRing:
 			e.Phase++
@@ -188,7 +188,7 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 				e.Cells = canonicalCells(cells)
 				obs.recordPaint(w, e, cells)
 				w.applyAreaCells(e, rule, cells)
-				if stage+1 >= ringStageCount(e.Spell) {
+				if stage+1 >= ringStageCount(w.spellArm(e.Spell)) {
 					w.clearAreaCells(e)
 					return false
 				}
@@ -270,7 +270,7 @@ func areaModeFor(rule SpellRule) uint8 {
 // invented `(Radius + 2) * 2` off a hard-coded id 21.
 func areaLife(rule SpellRule, power uint16) uint16 {
 	if areaModeFor(rule) == areaModeRing {
-		return ringLife(rule.ID)
+		return ringLife(rule.arm())
 	}
 	v := (int64(rule.AreaDuration) << 4)
 	if v > 0 {
@@ -322,7 +322,7 @@ func (w *World) areaLandingRefusal(rule SpellRule, power uint16, x, y int32) str
 		// its current-cell authority before changing that layer or spending.
 		return w.areaPaintIssue(rule, x, y)
 	}
-	if mode == areaModeRing && ringStageCount(rule.ID) == 0 {
+	if mode == areaModeRing && ringStageCount(rule.arm()) == 0 {
 		return "row selects a staged program its spell id has none of"
 	}
 	if areaLife(rule, power) == 0 {
@@ -376,7 +376,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		e.Direction = current.Direction
 		e.Current = &CurrentAreaPayload{Radius: current.Radius, Payload: current.Payload}
 	}
-	if rule.ID == 4 && hasCaster {
+	if rule.arm() == 4 && hasCaster {
 		if ci := indexOfEntity(w.entities, caster); ci >= 0 {
 			base, spread := sacrificeDamage(w.entities[ci], power)
 			e.DamageMin, e.DamageMax = base, base+spread
@@ -430,14 +430,14 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 	// id 19 gave Wall of Fire a 25-cell diamond.
 	if rule.Distribution == distributionWall {
 		e.Cells = w.wallCells(x, y, e.Direction)
-		if rule.ID == 19 {
+		if rule.arm() == 19 {
 			e.Cells = w.skipOccupiedGround(e.Cells)
 		}
 	} else {
 		e.Cells = w.diamondCells(x, y, int32(rule.Radius))
 	}
 	w.resolveLayerConflicts(&e)
-	w.scorchCells(rule.ID, e.Cells)
+	w.scorchCells(rule.arm(), e.Cells)
 	return w.addAreaEffect(e)
 }
 
@@ -466,7 +466,7 @@ func (w *World) addAreaEffect(e cellEffect) bool {
 		release()
 		w.refreshSavedPlaneBlocks()
 	}
-	if e.Spell == 19 {
+	if w.spellArm(e.Spell) == 19 {
 		w.setWallCells(e.Cells, true)
 	}
 	return true
@@ -477,7 +477,7 @@ func (w *World) clearAreaCells(e cellEffect) {
 	if e.Mode != areaModeCloud {
 		return
 	}
-	if e.Spell == 19 {
+	if w.spellArm(e.Spell) == 19 {
 		w.setWallCells(e.Cells, false)
 	}
 	for _, key := range e.Cells {
@@ -634,7 +634,7 @@ func ringStageCount(id uint16) int {
 func (w *World) ringStageCells(e cellEffect, stage int) []uint16 {
 	cx, cy := keyCell(e.Key)
 	var offsets [][2]int32
-	switch e.Spell {
+	switch w.spellArm(e.Spell) {
 	case 4: // Fire Sacrifice: two fixed shells; orientation is ignored.
 		if stage == 0 {
 			offsets = [][2]int32{{-1, 1}, {-1, 0}, {-1, -1}, {0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}}
@@ -866,10 +866,10 @@ func containsKey(a []uint16, k uint16) bool {
 }
 
 func (w *World) resolveLayerConflicts(e *cellEffect) {
-	if !layerSpell(e.Spell) && e.Spell != 2 {
+	if !layerSpell(w.spellArm(e.Spell)) && w.spellArm(e.Spell) != 2 {
 		return
 	}
-	if e.Spell == 8 {
+	if w.spellArm(e.Spell) == 8 {
 		kept := e.Cells[:0]
 		for _, key := range e.Cells {
 			if !w.areaLayerPresent(key, 3) {
@@ -880,7 +880,7 @@ func (w *World) resolveLayerConflicts(e *cellEffect) {
 	}
 	for i := range w.effects {
 		old := &w.effects[i]
-		if old.Mode != areaModeCloud || !areaLayerConflict(e.Spell, old.Spell) {
+		if old.Mode != areaModeCloud || !areaLayerConflict(w.spellArm(e.Spell), w.spellArm(old.Spell)) {
 			continue
 		}
 		kept := old.Cells[:0]
@@ -893,7 +893,7 @@ func (w *World) resolveLayerConflicts(e *cellEffect) {
 	}
 	for _, key := range e.Cells {
 		for layer, spell := range areaLayerSpells {
-			if areaLayerConflict(e.Spell, spell) {
+			if areaLayerConflict(w.spellArm(e.Spell), spell) {
 				w.clearSavedAreaLayer(key, layer)
 			}
 		}
@@ -917,7 +917,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 		w.applySavedAreaPayload(d, SavedSpellEffect{AE44: &e.Current.Payload}, cells, caster...)
 		return
 	}
-	w.scorchCells(rule.ID, cells)
+	w.scorchCells(rule.arm(), cells)
 	power := int32(e.Power)
 	if e.DamageMin != 0 || e.DamageMax != 0 {
 		rule.DamageMin, rule.DamageMax, rule.Damaging = e.DamageMin, e.DamageMax, true
@@ -958,7 +958,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				if !spellTargetable(a, rule) || !w.areaHitAllowed(ci, rule, a) {
 					continue
 				}
-				if rule.ID == 19 {
+				if rule.arm() == 19 {
 					continue
 				}
 				// No walker-level object deduplication. Damage objects apply on
@@ -966,7 +966,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				// replacement/refresh rules (MAGIC-AREAAPPLY-038, UNIT-AREADIRECT-072).
 
 				applied := false
-				if rule.ID == 2 {
+				if rule.arm() == 2 {
 					// MAGIC-FIREDIV-047 divides the copied base and spread bytes
 					// independently by the actor footprint area. Reconstruct the
 					// endpoint only afterwards, so their remainders cannot carry.
@@ -992,12 +992,12 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				// this walk only on a later pulse whose call passed the award over,
 				// and nothing for any area row whose landing reached no unit.
 				// castSpell and castBookAt pay the cast's own single award.
-				if rule.ID == 17 && ci >= 0 && ci != i {
+				if rule.arm() == 17 && ci >= 0 && ci != i {
 					w.orderAttack(i, w.entities[ci].ID)
 				}
 			}
 		}
-		if e.Mode != areaModeCloud && rule.ID != 19 && rule.Damaging {
+		if e.Mode != areaModeCloud && rule.arm() != 19 && rule.Damaging {
 			w.applyStructureSpellAt(x, y, rule, power)
 		}
 	}

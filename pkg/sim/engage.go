@@ -828,7 +828,7 @@ func (w *World) candidates(g aiGroup) []int {
 		if !w.sightShows(stamp, cellOf(c)) {
 			continue
 		}
-		if w.hasAttachedSpell(c.ID, 15) && !w.groupDetectsInvisible(g.members, cellOf(c)) {
+		if w.hasAttachedSpell(c.ID, w.armSpellID(15)) && !w.groupDetectsInvisible(g.members, cellOf(c)) {
 			continue
 		}
 		if !w.hostileTo(decider, c) {

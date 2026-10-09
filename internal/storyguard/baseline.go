@@ -1940,6 +1940,11 @@ package storyguard
 // reads (secondContinues, completeBank, secondCompletionMovie,
 // sim.SpellRuleApplicable), new code, including this paragraph. It rises
 // again for the docs of each departure exit and its bank gates.
+// CommentBytes rises for the second game's spell arms: the docs of
+// SpellRule.Arm and Second, the pkg/sim/secondspell.go helpers, the mapload
+// arm assignment and their focused and release tests, new code, including
+// this paragraph. It rises again for the attached-effect lookups by arm and
+// their tests.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1963,5 +1968,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8509385,
+	CommentBytes: 8516070,
 }

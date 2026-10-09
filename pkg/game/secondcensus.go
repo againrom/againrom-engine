@@ -595,7 +595,7 @@ func secondSpellRules(c *SecondMapCensus, w *sim.World, placed int) {
 	rules := w.Spells()
 	for _, id := range c.Spells {
 		j := slices.IndexFunc(rules, func(r sim.SpellRule) bool { return r.ID == id })
-		if j < 0 || !sim.SpellRuleApplicable(rules[j]) {
+		if j < 0 || !sim.SpellRuleLands(rules[j]) {
 			c.NoSpellRule = insertSorted(c.NoSpellRule, id)
 		}
 	}

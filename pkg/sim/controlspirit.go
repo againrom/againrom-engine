@@ -68,8 +68,8 @@ func (w *World) drainControlSpirit() {
 			continue
 		}
 		if _, raised := w.raiseControlSpirit(ci, ti); raised != 0 {
-			w.markSpellEffect(indexOfEntity(w.entities, r.Caster), controlSpiritSpellID)
-			w.markSpellEffect(indexOfEntity(w.entities, raised), controlSpiritSpellID)
+			w.markSpellEffect(indexOfEntity(w.entities, r.Caster), w.spellIDOfArm(controlSpiritSpellID))
+			w.markSpellEffect(indexOfEntity(w.entities, raised), w.spellIDOfArm(controlSpiritSpellID))
 		}
 	}
 }

@@ -30,6 +30,25 @@ func creatureAimOf(id uint32) creatureAim {
 	return creatureAimNone
 }
 
+// creatureAim is the aim of the table row id. A shared row takes its arm's
+// aim. A row with no singular arm is aimed by its own columns: a unit-target
+// row at the victim, an area row at the victim's cell (DIV-2619).
+func (w *World) creatureAim(id uint32) creatureAim {
+	rule, ok := w.findSpell(id)
+	if !ok {
+		return creatureAimOf(id)
+	}
+	switch arm := rule.arm(); {
+	case arm != ArmNone:
+		return creatureAimOf(uint32(arm))
+	case rule.TargetsUnit:
+		return creatureAimVictim
+	case rule.Area:
+		return creatureAimVictimCell
+	}
+	return creatureAimNone
+}
+
 // creatureStepCell is the cell one step from the caster toward the victim,
 // along the eight-way heading the original's direction helper names for the
 // two positions (MAGIC-238). The original adds the step with no clamp; the
@@ -51,7 +70,7 @@ func (w *World) creatureAimOperands(i int, victim EntityID, id uint32) (target E
 		return 0, 0, 0, false, false
 	}
 	v := w.entities[vi]
-	switch creatureAimOf(id) {
+	switch w.creatureAim(id) {
 	case creatureAimVictim:
 		return victim, v.X, v.Y, false, true
 	case creatureAimCaster:
@@ -93,7 +112,7 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 		w.dropCreatureApproach(i)
 		return false
 	}
-	if !knowsSpell(e, id) || creatureAimOf(id) == creatureAimNone {
+	if !knowsSpell(e, id) || w.creatureAim(id) == creatureAimNone {
 		return true
 	}
 	target, x, y, atCell, ok := w.creatureAimOperands(i, victim, id)

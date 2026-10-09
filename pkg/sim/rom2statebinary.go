@@ -110,6 +110,10 @@ func (w *World) unmarshalROM2ScriptState(data []byte) error {
 		return err
 	}
 	next.script, next.rom2 = script, state
+	// The byte form carries no arm: a second-game world's rows take theirs
+	// from the second game's table again.
+	next.spells = append([]SpellRule(nil), next.spells...)
+	AssignSecondGameArms(next.spells)
 	canonical, err := next.MarshalBinary()
 	if err != nil || !bytes.Equal(canonical, data) {
 		return fail()
