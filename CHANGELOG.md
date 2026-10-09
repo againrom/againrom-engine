@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Lightning and Prismatic Spray draw the bolt the original draws: a
+  random zigzag of curved segments built anew on every tick, one star per
+  point, flickering through the original's thirteen-step brightness ramp.
+  A Lightning or Prismatic Spray cast by a map trigger starts at its own
+  ramp, and a map-triggered Prismatic Spray now draws its rays.
+
 ## 0.101.0
 
 - [ROM1] Spells leave the caster's staff tip or hand, on the side he faces,

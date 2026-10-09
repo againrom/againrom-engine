@@ -178,8 +178,8 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		for d, step := range launchDirections {
 			b := launchObserve(t, mw, hero, launchFacings[d], step)
 			_, _, points := mw.pathFigure(b)
-			want := b.from.Mul(256).Add(c.deltas[d])
-			if len(points) == 0 || points[0] != want {
+			want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[d]))
+			if len(points) == 0 || !withinPixel(points[0], want) {
 				t.Fatalf("%s %s: the figure starts at %v, want %v", c.name, launchDirectionNames[d], points, want)
 			}
 			if dir != "" {
@@ -195,10 +195,10 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		b := launchCast(t, mw, hero)
 		e, _ = mw.entity(hero)
 		_, _, points := mw.pathFigure(b)
-		if want := b.from.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8]); len(points) == 0 || points[0] != want {
+		if want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
 			t.Fatalf("%s: an ordered cast at facing %d starts at %v, want %v", c.name, e.Facing, points, want)
 		}
-		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0].Sub(b.from.Mul(256)))
+		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0])
 	}
 }
 
@@ -316,4 +316,10 @@ func launchAbs(n int) int {
 		return -n
 	}
 	return n
+}
+
+// launchDisplay is a launch point as the figure's native display pixel.
+func launchDisplay(mw *mapWorld, cell, pos image.Point) image.Point {
+	x, y := mw.boltDisplayPoint(pos, cell)
+	return image.Pt(int(x), int(y))
 }

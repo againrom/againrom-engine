@@ -26,6 +26,10 @@ import (
 // projectile drawable's own and the resolved target's, each already carrying
 // its own height term (`MAGIC-BOLTSHAPE-070`).
 //
+// Display marks a path stamp (pictures 34 and 36): Pos is a native display
+// pixel, terrain height already subtracted, and the stamp is centred by the
+// immediate 8 rather than the sheet's halves (ANIM-BOLTDRAW-034).
+//
 // Sheet CARRIES THE CENTRING HALVES and Frame indexes it. The halves are the
 // registry's own Width and Height halved and they are NOT the art's size: the
 // art is centred on the point by subtracting them, and where they disagree with
@@ -36,6 +40,7 @@ type SpellBolt struct {
 	To               image.Point
 	Pos              image.Point
 	AbsolutePosition bool
+	Display          bool
 	Sheet            *terrain.EffectSheet
 	Frame            int
 	Mirror           bool
@@ -80,6 +85,51 @@ func (v *Viewer) SpellBolts() int { return len(v.spellBolts) }
 func EffectGroundPoint(pos image.Point, sheet *terrain.EffectSheet) (px, py int) {
 	point := (SpellBolt{Pos: pos}).groundPoint()
 	return point.X - sheet.CenterX, point.Y - sheet.CenterY
+}
+
+// GroundPixel is a cell-relative ShotScale point's ground pixel: the point
+// every non-display spell object is centred on before relief.
+func GroundPixel(pos image.Point) image.Point {
+	return (SpellBolt{Pos: pos}).groundPoint()
+}
+
+// boltStampCentre is the path drawer's centring immediate (ANIM-BOLTDRAW-034).
+const boltStampCentre = 8
+
+// DisplayHeight is the terrain height a cell's display point subtracts:
+// AnchorHeight in the displaced view, zero in the flat view.
+func (v *Viewer) DisplayHeight(cell image.Point) int {
+	if v.Mode() != ModeDisplaced {
+		return 0
+	}
+	return v.proj.AnchorHeight(cell.X, cell.Y)
+}
+
+// displayLift moves a native display pixel into the camera world.
+func (v *Viewer) displayLift() int {
+	if v.Mode() != ModeDisplaced {
+		return 0
+	}
+	return -v.proj.MinV
+}
+
+// DisplayRow is the ground row under a native display point: the first row,
+// in ascending order, whose corner-edge bounds at x contain y (the ground
+// picker's edge model, TERR-GEOM-036). The flat view answers y>>5.
+func (v *Viewer) DisplayRow(x, y int) (int, bool) {
+	if v.Mode() != ModeDisplaced {
+		return y >> 5, true
+	}
+	col, wy := x>>5, y-v.proj.MinV
+	if col < 0 || col >= v.proj.Width {
+		return 0, false
+	}
+	for row := 0; row < v.proj.Height; row++ {
+		if top, bottom := v.proj.CellColumnBounds(col, row, x); top <= wy && wy <= bottom {
+			return row, true
+		}
+	}
+	return 0, false
 }
 
 func (b SpellBolt) groundPoint() image.Point {
@@ -134,9 +184,12 @@ func (v *Viewer) spellArtPlacements() []effectScreenRect {
 		if f == nil || f.Width <= 0 || f.Height <= 0 {
 			continue
 		}
-		point := b.groundPoint()
+		point, lift := b.groundPoint(), v.spellBoltLift(b)
 		px, py := point.X-b.Sheet.CenterX, point.Y-b.Sheet.CenterY
-		r, ok := v.placeLifted(v.spellBoltLift(b), image.Rect(px, py, px+f.Width, py+f.Height))
+		if b.Display {
+			px, py, lift = b.Pos.X-boltStampCentre, b.Pos.Y-boltStampCentre, v.displayLift()
+		}
+		r, ok := v.placeLifted(lift, image.Rect(px, py, px+f.Width, py+f.Height))
 		if !ok {
 			continue
 		}
