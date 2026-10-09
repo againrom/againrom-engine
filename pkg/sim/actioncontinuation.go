@@ -70,6 +70,8 @@ type ActorContinuation struct {
 	EscortTarget                                                EntityID
 	HasEscortTarget                                             bool
 	EscortRange                                                 uint8
+	EscortOrder                                                 uint8 `json:",omitempty"`
+	EscortTurnPending                                           bool  `json:",omitempty"`
 	CommandGroup                                                uint32
 	Order                                                       *ActionOrderContinuation
 	ProfileBasis                                                *CurrentProfileBasis
@@ -182,6 +184,7 @@ func (w *World) Actions() ActionContinuations {
 			PatrolTailX: e.PatrolTailX, PatrolTailY: e.PatrolTailY, PatrolLeg: e.PatrolLeg,
 			PostX: e.PostX, PostY: e.PostY, EscortTarget: e.EscortTarget,
 			HasEscortTarget: e.HasEscortTarget, EscortRange: e.EscortRange, CommandGroup: e.CommandGroup, Order: order, ProfileBasis: &basis,
+			EscortOrder: e.EscortOrder, EscortTurnPending: e.EscortTurnPending,
 			Current: &ActorCurrentContinuation{Class: &class, AdmittedBookSpell: e.AdmittedBookSpell, RotationSpeed: e.RotationSpeed, WeaponSpell: e.WeaponSpell, WeaponSpellLevel: e.WeaponSpellLevel, WeaponSpellSource: e.WeaponSpellSource, SpellFX: e.SpellFX, SpellFXSpell: e.SpellFXSpell},
 		})
 		if e.NativeBasis.HasValues() {
@@ -435,6 +438,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		e.ActionClock, e.Withdraw, e.Wimpy = v.ActionClock, v.Withdraw, v.Wimpy
 		e.PatrolHeadX, e.PatrolHeadY, e.PatrolTailX, e.PatrolTailY, e.PatrolLeg = v.PatrolHeadX, v.PatrolHeadY, v.PatrolTailX, v.PatrolTailY, v.PatrolLeg
 		e.PostX, e.PostY, e.EscortTarget, e.HasEscortTarget, e.EscortRange, e.CommandGroup = v.PostX, v.PostY, v.EscortTarget, v.HasEscortTarget, v.EscortRange, v.CommandGroup
+		e.EscortOrder, e.EscortTurnPending = v.EscortOrder, v.EscortTurnPending
 		if v.Order != nil {
 			if o := n.savedOrder(e.ID); o != nil {
 				if v.Order.Authored {
@@ -488,6 +492,9 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 			return err
 		}
 		if err := turnFault(*e); err != nil {
+			return err
+		}
+		if err := escortResidueFault(*e); err != nil {
 			return err
 		}
 		if !e.AttackPhase.defined() || e.AttackTargetKind > AttackTargetStructure || !e.ActionClock.Known && e.ActionClock.End != 0 {
