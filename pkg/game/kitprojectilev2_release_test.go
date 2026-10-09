@@ -121,7 +121,8 @@ func checkCarriedCastSave(t *testing.T, source, saved []byte) {
 	if len(want.World.Effects) != len(got.World.Effects) {
 		t.Fatalf("world effect roots %d, source %d", len(got.World.Effects), len(want.World.Effects))
 	}
-	// Each actor that is ordered to attack keeps its order words.
+	// Each actor that is ordered to attack keeps its order words; an order
+	// on a body keeps them while the World has not advanced past the LOAD.
 	for i, r := range want.Objects {
 		if r.Class != "Human" && r.Class != "Unit" {
 			continue

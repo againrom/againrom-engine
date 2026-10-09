@@ -74,9 +74,14 @@ func (b *generatedDocumentBuilder) reserveWorldEffectKeys(loaded *SnapshotSAVDoc
 // record. The rest of each Token comes from the loaded record (DIV-2502).
 func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocument, w *sim.World) error {
 	family, err := worldEffectFamily(loaded, w)
-	if err != nil || len(family) == 0 {
+	if err != nil {
 		return err
 	}
+	drivers := w.SavedWorldEffectDrivers()
+	if loaded == nil || loaded.Document == nil || loaded.WorldEffects == nil || w.SavedSpellGraph() == nil && (drivers == nil || len(drivers.Areas) == 0) {
+		return nil
+	}
+	// A family whose records all retired still binds every graph node.
 	source, err := cloneSavedDocument(loaded)
 	if err != nil {
 		return err
@@ -84,8 +89,17 @@ func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocume
 	moved := map[uint16]uint16{}
 	for _, index := range family {
 		r := source.Document.Objects[index-1]
-		if _, err := savedStructureValue(&r, "RuntimeID"); err == nil {
-			savedObjectSetValue(&r, "RuntimeID", b.runtime())
+		// A runtime handle stays as loaded, zero included, unless another
+		// written object already holds it.
+		if id, err := savedStructureValue(&r, "RuntimeID"); err == nil && id != 0 {
+			if b.runtimeIDs == nil {
+				b.runtimeIDs = savedRuntimeIDs(b.doc.Objects)
+			}
+			if b.runtimeIDs[id] {
+				id = b.runtime()
+			}
+			b.runtimeIDs[id] = true
+			savedObjectSetValue(&r, "RuntimeID", id)
 		}
 		if moved[index], err = b.append(r); err != nil {
 			return err

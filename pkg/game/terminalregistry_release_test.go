@@ -91,7 +91,15 @@ func TestReleaseTerminalRegistryCurrentSAV(t *testing.T) {
 				continue
 			}
 			matched = true
-			for _, field := range []string{"Health", "Stage", "RuntimeID", "T08"} {
+			fields := []string{"Health", "Stage", "T08"}
+			// An actor the World binds to no source record gets a new
+			// RuntimeID (DIV-2504).
+			for _, e := range f.live.world.Entities() {
+				if e.SourceBinding.Class != 0 && e.SourceBinding.Identity == identity {
+					fields = append(fields, "RuntimeID")
+				}
+			}
+			for _, field := range fields {
 				want, _ := savedStructureValue(&r, field)
 				got, _ := savedStructureValue(&other, field)
 				if got != want {

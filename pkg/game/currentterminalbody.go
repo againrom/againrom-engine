@@ -14,42 +14,44 @@ type currentTerminalBody struct {
 	worn   [sim.EquipSlots]sim.ItemInstance
 }
 
-// currentTerminalBodies builds the body of each departed authored actor. The
-// World holds its terminal tuple and native basis; its placement, through the
-// map and the installed tables, constructs the rest as a fresh mission does.
-// A terminal row with no placement has no record.
-func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapload.Difficulty) (map[sim.EntityID]currentTerminalBody, error) {
+// currentTerminalBodies builds the body of each departed authored actor and
+// departed party member. The World holds its terminal tuple and native basis;
+// its placement, or its party member's roster entry, constructs the rest
+// through the map and the installed tables as a fresh mission does. A
+// terminal row with neither has no record.
+func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapload.Difficulty, party map[sim.EntityID]mapload.PartyMember) (map[sim.EntityID]currentTerminalBody, error) {
 	out := map[sim.EntityID]currentTerminalBody{}
 	rows := w.CurrentTerminalActors()
 	placed := false
 	for _, row := range rows {
 		placed = placed || row.MapUnitID != 0
 	}
-	if !placed {
-		return out, nil
-	}
-	spawn, err := mapload.FromALMWith(m, t, diff)
-	if err != nil {
-		return nil, fmt.Errorf("departed actor placements: %w", err)
+	var spawn *sim.World
+	if placed {
+		var err error
+		if spawn, err = mapload.FromALMWith(m, t, diff); err != nil {
+			return nil, fmt.Errorf("departed actor placements: %w", err)
+		}
 	}
 	bases := map[sim.EntityID]sim.NativeActorBasis{}
 	for _, row := range w.RemovedNativeActorBases() {
 		bases[row.ID] = row.Basis
 	}
 	for _, row := range rows {
-		if row.MapUnitID == 0 {
-			continue
-		}
 		var body *currentTerminalBody
-		for _, e := range spawn.Entities() {
-			if e.MapUnitID != row.MapUnitID {
-				continue
+		if row.MapUnitID != 0 {
+			for _, e := range spawn.Entities() {
+				if e.MapUnitID != row.MapUnitID {
+					continue
+				}
+				if body != nil {
+					return nil, fmt.Errorf("departed actor %d has an ambiguous placement", row.ID)
+				}
+				worn, _ := spawn.EquippedItems(e.ID)
+				body = &currentTerminalBody{entity: e, worn: worn}
 			}
-			if body != nil {
-				return nil, fmt.Errorf("departed actor %d has an ambiguous placement", row.ID)
-			}
-			worn, _ := spawn.EquippedItems(e.ID)
-			body = &currentTerminalBody{entity: e, worn: worn}
+		} else if member, ok := party[row.ID]; ok {
+			body = departedMemberBody(m, t, diff, member)
 		}
 		if body == nil {
 			continue
@@ -65,6 +67,21 @@ func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapl
 		out[row.ID] = *body
 	}
 	return out, nil
+}
+
+// departedMemberBody constructs a departed party member as a mission start
+// constructs him, or nothing when the start cannot.
+func departedMemberBody(m *alm.Map, t *mapload.Table, diff mapload.Difficulty, member mapload.PartyMember) *currentTerminalBody {
+	world, start, err := mapload.StartMission(m, t, diff, []mapload.PartyMember{member})
+	if err != nil || len(start.IDs) != 1 {
+		return nil
+	}
+	e, ok := world.Entity(start.IDs[0])
+	if !ok {
+		return nil
+	}
+	worn, _ := world.EquippedItems(e.ID)
+	return &currentTerminalBody{entity: e, worn: worn}
 }
 
 // currentTerminalWorn writes the items a departed actor's body wears and
@@ -95,4 +112,26 @@ func (b *generatedDocumentBuilder) currentTerminalWorn(index uint16, worn [sim.E
 		mustSetRefs(r, "Worn", refs[:])
 	}
 	return nil
+}
+
+// placementActors constructs the map's placed actors as a fresh mission does,
+// keyed by map unit ID. A map unit ID placed twice maps to nothing.
+func placementActors(m *alm.Map, t *mapload.Table, diff mapload.Difficulty) (map[uint16]sim.Entity, error) {
+	spawn, err := mapload.FromALMWith(m, t, diff)
+	if err != nil {
+		return nil, fmt.Errorf("retained dead actor placements: %w", err)
+	}
+	out, seen := map[uint16]sim.Entity{}, map[uint16]int{}
+	for _, e := range spawn.Entities() {
+		if e.MapUnitID != 0 {
+			seen[e.MapUnitID]++
+			out[e.MapUnitID] = e
+		}
+	}
+	for id, n := range seen {
+		if n > 1 {
+			delete(out, id)
+		}
+	}
+	return out, nil
 }

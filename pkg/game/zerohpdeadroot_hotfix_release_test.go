@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"os"
-	"reflect"
 	"slices"
 	"testing"
 
@@ -69,6 +68,34 @@ func roodGroupRecord(t *testing.T, doc sav.DocumentData) sav.DocumentRecordData 
 	}
 	t.Fatal("Rood's Player is absent")
 	return sav.DocumentRecordData{}
+}
+
+// roodComparable is one record as the SAVE contract fixes it: each object
+// reference is the referenced record's class and Identity, and the two
+// pointer words any saved value of which loads alike (SAV-1113) are zero.
+func roodComparable(doc sav.DocumentData, r sav.DocumentRecordData) string {
+	refs := map[string][]string{}
+	for _, slot := range r.RefSlots {
+		for _, object := range slot.Objects {
+			name := "0"
+			if object != 0 && int(object) <= len(doc.Objects) {
+				target := &doc.Objects[object-1]
+				key, _ := savedStructureValue(target, "Identity")
+				name = fmt.Sprintf("%s:%d", target.Class, key)
+			}
+			refs[slot.Name] = append(refs[slot.Name], name)
+		}
+	}
+	r.RefSlots = nil
+	r.Raw = slices.Clone(r.Raw)
+	for i := range r.Raw {
+		at := map[string]int{"G3C": 0x4c, "U158": 0x90}[r.Raw[i].Name]
+		if at != 0 && len(r.Raw[i].Bytes) >= at+4 {
+			r.Raw[i].Bytes = slices.Clone(r.Raw[i].Bytes)
+			clear(r.Raw[i].Bytes[at : at+4])
+		}
+	}
+	return fmt.Sprintf("%+v %v", r, refs)
 }
 
 func requireRoodPlacement(t *testing.T, doc sav.DocumentData, hp int16, stage uint32, rooted bool) {
@@ -177,7 +204,7 @@ func TestReleaseZeroHealthDeadRootBoundary(t *testing.T) {
 		}
 		sourceObject, _ := roodDocumentActor(t, sourceDoc)
 		outObject, _ := roodDocumentActor(t, out)
-		if !reflect.DeepEqual(out.Objects[outObject-1], sourceDoc.Objects[sourceObject-1]) || !reflect.DeepEqual(roodGroupRecord(t, out), roodGroupRecord(t, sourceDoc)) {
+		if roodComparable(out, out.Objects[outObject-1]) != roodComparable(sourceDoc, sourceDoc.Objects[sourceObject-1]) || roodComparable(out, roodGroupRecord(t, out)) != roodComparable(sourceDoc, roodGroupRecord(t, sourceDoc)) {
 			t.Fatal("zero-health SAVE changed Rood's complete Human record or Group 0")
 		}
 		cold := loadRoodMission(t, written)

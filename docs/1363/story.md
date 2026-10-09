@@ -34,8 +34,22 @@ Effect's token, and every actor byte or value its native basis holds.
   `saveorcsdontgo.sav` the input holds 101 Unit records, 54 Weapon records and
   77 dead roots; the SAVE writes 101, 54 and 77, and a cold LOAD of it
   restores the same World hash.
+- A departed party member, such as a companion who turned and died, has no
+  placement; his record is built from his party entry as a mission start
+  constructs him, then the same terminal tuple.
 - An actor Diary is written for a party character and for every actor whose
-  Diary the World holds.
+  Diary the World holds, an original dead actor's included.
+- Actor identity: an actor keeps the Identity that joined it to its loaded
+  record, read to join as a cell record's key is; else the key a World cell
+  record holds for it; else a new key. A key the World holds for a structure,
+  the terrain or a dead actor stays theirs, so a cell that still names a bone
+  gives the actor standing on it no second copy of that key.
+- Two order carriers are filled at LOAD and kept in the Snapshot's document
+  state, beside the restore tick. An attack order on a body below the
+  targetable floor, which the World drops, is written as LOAD read it while
+  the World stays at the restore tick. The attack phase word and the
+  attack-complete flag of an actor LOAD found neither alive nor dying, a late
+  corpse included, are written while it stays so; no order tick runs for it.
 - Original world spell effects the World still runs (a spell graph or
   original areas) are written from their loaded records, and the World writes
   every field it holds over them: spell, payload, timers, references, target,
@@ -127,9 +141,18 @@ The three corpus tests below passed on the EN and the RU install.
 
 ## Open debt
 
-- DIV-2501: a departed actor's record comes from its placement, not its exact
-  body; a departed actor with no map unit has no record and no Diary; its
-  pack and effect contents beyond worn items are not written.
+- DIV-2501: a departed actor's record comes from its placement or party
+  entry, not its exact body; a departed actor with neither has no record and
+  no Diary; its pack and effect contents beyond worn items are not written.
+  An engine SAVE taken after creatures left the world now keeps their
+  placements on LOAD as terminal actors instead of withdrawing them; the
+  withdrawing load is tested on the owner's mission-10 save.
+- DIV-2503: an actor's recipient mask `T18` follows the mask rule, not the
+  loaded record.
+- DIV-2504: an actor the World binds to no source record gets a new RuntimeID
+  on every SAVE.
+- DIV-2505: an original terminal dead actor's worn, carried and effect
+  objects are not written; the World holds none of them.
 - DIV-2502: an original world spell effect's Token, beyond the fields the
   World holds, comes from the loaded file.
 - DIV-2500: town actor mover, order and state words, town actor Diary records
@@ -142,8 +165,8 @@ The three corpus tests below passed on the EN and the RU install.
   reports this on `oldsaves7/game0006.sav`: an item dropped into an original
   sack. The census reports 8 mismatches here and 6 at the base; the other 6
   are the base's.
-- A native actor key is minted per SAVE; an external reference to it does not
-  survive the next SAVE.
+- An actor with no loaded record and no World cell key gets a new key on each
+  SAVE; an external reference to it does not survive the next SAVE.
 - On `saveorcsdontgo.sav` milestone-2 acceptance fails 11 subtests at the base
   and here: the World of that engine-written save lacks the original carriers
   those subtests compare.

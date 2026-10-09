@@ -32,22 +32,9 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 	}
 	// The World drops an attack target that names a body below the targetable
 	// floor. Until the World advances past the restore, such an order keeps the
-	// loaded Document's bytes, so
-	// a save before the first tick does not turn a restored order into a
-	// half-cleared one.
+	// words the LOAD read, so a save before the first tick does not turn a
+	// restored order into a half-cleared one.
 	restored := state.ActionTickSet && state.ActionTick == world.Tick()
-	onBody := func(key uint32) bool {
-		if key == 0 {
-			return false
-		}
-		for _, a := range state.Actors {
-			if id, _ := savedStructureValue(&state.Document.Objects[a.ObjectIndex-1], "Identity"); id == key {
-				body, present := byID[a.EntityID]
-				return present && !body.OrdinaryTargetable()
-			}
-		}
-		return false
-	}
 	for _, b := range state.Actors {
 		if b.Retired {
 			continue
@@ -70,17 +57,26 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 		savedObjectSetValue(r, "U40", credit)
 		savedObjectSetValue(r, "U48", uint32(uint8(e.KillCreditSpell)))
 		if !e.Alive() && !e.Dying() {
+			if frozen, ok := state.FrozenOrders[e.ID]; ok {
+				mustSetRaw(r, "U58", binary.LittleEndian.AppendUint32(nil, frozen.Phase))
+				savedObjectSetValue(r, "U136", frozen.Complete)
+			}
 			continue
 		}
-		keepLoadedOrder := false
-		if restored && !e.HasAttackTarget && !e.HasPendingAttackTarget && !e.Retreat.Known && e.PendingOrder.Kind == sim.PendingNone {
-			loadedTarget, _ := savedStructureValue(r, "U5C")
-			loadedPhase, err := savedMotionRaw(r, "U58", 4)
+		bodyOrder, keepLoadedOrder := state.BodyOrders[e.ID]
+		if keepLoadedOrder {
+			body, present := byID[bodyOrder.Target]
+			keepLoadedOrder = restored && present && !body.OrdinaryTargetable() && !e.HasAttackTarget && !e.HasPendingAttackTarget && !e.Retreat.Known && e.PendingOrder.Kind == sim.PendingNone
+		}
+		if keepLoadedOrder {
+			bodyKey, err := currentActionTargetKey(state, world, bodyOrder.Target, sim.AttackTargetUnit)
 			if err != nil {
-				return err
+				return worldSaveUnsupportedf("actor %d restored order: %v", e.ID, err)
 			}
-			phaseWord := binary.LittleEndian.Uint32(loadedPhase)
-			keepLoadedOrder = onBody(loadedTarget) && (phaseWord == 5 || phaseWord == 7)
+			mustSetRaw(r, "U58", binary.LittleEndian.AppendUint32(nil, bodyOrder.Phase))
+			savedObjectSetValue(r, "U5C", bodyKey)
+			savedObjectSetValue(r, "U6C", bodyOrder.Countdown)
+			savedObjectSetValue(r, "U136", bodyOrder.Complete)
 		}
 		key, phase, complete := uint32(0), uint32(0), uint32(0)
 		if e.HasAttackTarget || e.Retreat.Known {
@@ -291,6 +287,29 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		byIDForTargeting[e.ID] = e
 	}
 	var batch []sim.OriginalActorAction
+	var bodyOrders map[sim.EntityID]SnapshotSAVBodyOrder
+	bodyKeys := map[uint32]sim.EntityID{}
+	for _, d := range ms.World.OriginalDeadActors() {
+		if _, actor := byKey[d.Source.Identity]; !actor && d.Source.Identity != 0 {
+			bodyKeys[d.Source.Identity] = d.ID
+		}
+	}
+	// A late corpse has no action record; its frozen words are read here.
+	frozen := map[sim.EntityID]SnapshotSAVFrozenOrder{}
+	for i := range state.Document.Objects {
+		r := &state.Document.Objects[i]
+		key, err := savedStructureValue(r, "Identity")
+		body, ok := bodyKeys[key]
+		if err != nil || !ok || r.Class != "Human" && r.Class != "Unit" {
+			continue
+		}
+		phase, err := savedMotionRaw(r, "U58", 4)
+		if err != nil {
+			return err
+		}
+		complete, _ := savedStructureValue(r, "U136")
+		frozen[body] = SnapshotSAVFrozenOrder{Phase: binary.LittleEndian.Uint32(phase), Complete: complete}
+	}
 	for _, b := range state.Actors {
 		r := &state.Document.Objects[b.ObjectIndex-1]
 		value := func(name string) uint32 { v, _ := savedStructureValue(r, name); return v }
@@ -335,8 +354,18 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 			a.ActorState, a.PostX, a.PostY = uint8(v), int32(order[0]), int32(order[1])
 		}
 		action, phase := binary.LittleEndian.Uint32(actionRaw), binary.LittleEndian.Uint32(phaseRaw)
+		if source, ok := byIDForTargeting[b.EntityID]; ok && !source.Alive() && !source.Dying() {
+			frozen[b.EntityID] = SnapshotSAVFrozenOrder{Phase: phase, Complete: value("U136")}
+		}
 		if action == 0 || action == 1 || action == 2 || action == 3 {
 			a.Target, a.HasTarget = byKey[value("U5C")]
+			if body, ok := bodyKeys[value("U5C")]; ok && !a.HasTarget && (phase == 5 || phase == 7) {
+				// A late corpse has no action record; its order stays on the body.
+				if bodyOrders == nil {
+					bodyOrders = map[sim.EntityID]SnapshotSAVBodyOrder{}
+				}
+				bodyOrders[b.EntityID] = SnapshotSAVBodyOrder{Target: body, Phase: phase, Countdown: value("U6C"), Complete: value("U136")}
+			}
 			if a.HasTarget && a.Target == b.EntityID {
 				// A boundary-phase idle actor (AreaDamage1164/1111/1170 corpus
 				// fixtures, witnessed at full HP with U54=U58=U6C=0) carries its
@@ -370,6 +399,12 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 					// already carried this body past the finishing-blow floor;
 					// no live attacker keeps a real order on it. Same normal-
 					// isation as the self-reference case above.
+					if ok && (phase == 5 || phase == 7) {
+						if bodyOrders == nil {
+							bodyOrders = map[sim.EntityID]SnapshotSAVBodyOrder{}
+						}
+						bodyOrders[b.EntityID] = SnapshotSAVBodyOrder{Target: a.Target, Phase: phase, Countdown: value("U6C"), Complete: value("U136")}
+					}
 					a.HasTarget = false
 				}
 			}
@@ -403,6 +438,9 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 	if err := ms.World.ImportOriginalActorActions(batch); err != nil {
 		return err
 	}
-	state.ActionTick, state.ActionTickSet = ms.World.Tick(), true
+	state.ActionTick, state.ActionTickSet, state.BodyOrders = ms.World.Tick(), true, bodyOrders
+	if len(frozen) != 0 {
+		state.FrozenOrders = frozen
+	}
 	return nil
 }

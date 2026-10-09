@@ -74,7 +74,10 @@ func consumedCorpseCold(t *testing.T, store SaveStore, name string) (*FrontEnd, 
 	return f, app
 }
 
-func consumedCorpseTuple(t *testing.T, raw []byte, want sim.CurrentTerminalActor, bound bool) uint32 {
+// consumedCorpseTuple checks the consumed body's terminal tuple and, when
+// present is set, its record. The SAVE writes a departed actor's record when
+// its map placement constructs it (DIV-2501).
+func consumedCorpseTuple(t *testing.T, raw []byte, want sim.CurrentTerminalActor, present bool) uint32 {
 	t.Helper()
 	doc, err := sav.DecodeDocumentData(raw)
 	if err != nil {
@@ -91,15 +94,15 @@ func consumedCorpseTuple(t *testing.T, raw []byte, want sim.CurrentTerminalActor
 		if !b.Structure && b.ID == want.ID {
 			bindings++
 			object = b.Object
-			if b.Missing != !bound {
+			if b.Missing == present {
 				t.Fatal("terminal binding changed its native-object presence", b)
 			}
 		}
 	}
-	if bindings != 1 || bound != (object != 0) {
+	if bindings != 1 || present != (object != 0) {
 		t.Fatal("terminal binding is not unique", bindings, object)
 	}
-	if bound {
+	if present {
 		rooted := false
 		for _, root := range doc.DeadActors {
 			rooted = rooted || root == object
@@ -109,7 +112,7 @@ func consumedCorpseTuple(t *testing.T, raw []byte, want sim.CurrentTerminalActor
 		}
 	}
 	var identity uint32
-	if bound {
+	if present {
 		r := &doc.Objects[object-1]
 		stage, e1 := savedStructureValue(r, "Stage")
 		hp, e2 := savedStructureValue(r, "Health")
@@ -206,7 +209,7 @@ func consumedCorpseLoadControl(t *testing.T, f *FrontEnd, app *ui.App, store Sav
 			}
 		}
 		next := consumedCorpseSave(t, f, app, store, "readback-"+name)
-		consumedCorpseTuple(t, next, want, bound)
+		consumedCorpseTuple(t, next, want, true)
 		return
 	}
 	if app.Screen() != ui.ScreenLoad || app.HeadlessMessage() == "" || f.live.world != world || f.live.world.Hash() != hash {
@@ -332,7 +335,7 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(dir, "consumed.sav"), raw, 0600); err != nil {
 				t.Fatal(err)
 			}
-			identity := consumedCorpseTuple(t, raw, want, bound)
+			identity := consumedCorpseTuple(t, raw, want, true)
 			if bound && identity != baselineIdentity || w.Hash() != hash {
 				t.Fatal("SAVE changed identity or live World", identity, baselineIdentity)
 			}
@@ -401,7 +404,7 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(dir, "resaved.sav"), again, 0600); err != nil {
 				t.Fatal(err)
 			}
-			if next := consumedCorpseTuple(t, again, want, bound); next != identity {
+			if next := consumedCorpseTuple(t, again, want, true); next != identity {
 				t.Fatal("resave changed native identity", next, identity)
 			}
 			controlFront, controlApp := consumedCorpseCold(t, store, "consumed")

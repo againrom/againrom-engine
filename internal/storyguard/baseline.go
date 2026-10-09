@@ -1919,9 +1919,10 @@ package storyguard
 // sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
 // includes that new-code documentation and this explanation.
 // CommentBytes rises for the World-built SAVE: the docs of the unknown-span
-// graft, the departed-actor body, the original world spell effects, the town
-// option carrier and the loaded-document census and loss-control tests,
-// including this paragraph.
+// graft, the departed-actor and departed-member bodies, the original world
+// spell effects, the restored and frozen order carriers, the joined actor
+// identity, the town option carrier and the loaded-document census and
+// loss-control tests, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4708,
 	TestFileCount:  265,
@@ -1945,5 +1946,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1831,
 	},
-	CommentBytes: 8528050,
+	CommentBytes: 8532156,
 }

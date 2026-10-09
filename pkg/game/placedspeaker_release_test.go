@@ -16,10 +16,10 @@ import (
 
 // Sarindar, the placed person npc52, is a man mage in his own robe and amulet.
 // Mission 10's Snoot message names him in its parts 2 and 4, and the dialogue
-// window draws him in that worn set (DLG-SPEAKER-022). A SAV load keeps the
-// saved entity ids but withdraws the placements of actors that are gone, so
-// once three placements before his are gone his own id no longer indexes a
-// placement of the loaded map. He must still speak in his worn set.
+// window draws him in that worn set (DLG-SPEAKER-022). The ordinary SAVE
+// writes three departed creatures placed before him as terminal records
+// (DIV-2501), so LOAD keeps their placements; the owner save below withdraws
+// them. He must speak in his worn set after either load.
 //
 // The state is reached through ordinary input (the selection, the attack key
 // and a click on the target, a click on the ground) and ordinary ticks; each
@@ -79,8 +79,8 @@ func TestReleasePlacedSpeakerKeepsHisWornSetAfterLoad(t *testing.T) {
 
 	path, _ := writeOrdinarySAV(t, f, "placed-speaker.sav")
 	g, b, cold := placedSpeakerLoad(t, filepath.Dir(path), filepath.Base(path))
-	if n := len(cold.mission.state.Map.Units); n > int(id) {
-		t.Fatalf("the load kept %d placements; Sarindar's id %d still names one", n, id)
+	if n := len(cold.mission.state.Map.Units); n != len(live.mission.state.Map.Units) {
+		t.Fatalf("the load kept %d placements of %d; a departed creature's record keeps its placement", n, len(live.mission.state.Map.Units))
 	}
 	loaded, after := sarindarSpeaks(t, g, cold, "mission 10 after LOAD")
 	if loaded != id || !bytes.Equal(after.Pix, before.Pix) {

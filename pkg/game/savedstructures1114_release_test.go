@@ -112,12 +112,13 @@ func TestReleaseSavedStructures1114MovedSourceOnlyAndNoGhost(t *testing.T) {
 				}
 			}
 		}
+		// A key must name a written object; the World keeps the key itself,
+		// while the object order is the writer's.
 		canonical := func(key uint32) uint32 {
-			value, ok := keys[key]
-			if !ok {
+			if _, ok := keys[key]; !ok {
 				t.Fatalf("unbound saved structure key %#x", key)
 			}
-			return value
+			return key
 		}
 		for i := range rows {
 			rows[i].SourceKey = canonical(rows[i].SourceKey)

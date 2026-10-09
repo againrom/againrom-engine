@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -42,10 +43,27 @@ type SnapshotSAVDocument struct {
 	ActorEffects  *SnapshotSAVActorEffects
 	WorldEffects  *SnapshotSAVWorldEffects
 	// ActionTick is the World tick at which the actor orders were restored
-	// from the loaded Document. While the World is still at that tick, an
-	// order field the World holds no value for keeps the loaded bytes.
+	// from the loaded Document. While the World is still at that tick, a
+	// BodyOrders entry is written as LOAD read it.
 	ActionTick    uint64
 	ActionTickSet bool
+	// BodyOrders holds, per actor, a restored attack order whose target the
+	// World dropped because it names a body below the targetable floor.
+	BodyOrders map[sim.EntityID]SnapshotSAVBodyOrder `json:",omitempty"`
+	// FrozenOrders holds the attack phase word and attack-complete flag of
+	// an actor the LOAD found neither alive nor dying. No order tick runs for
+	// such an actor, so the words stand until it lives again.
+	FrozenOrders map[sim.EntityID]SnapshotSAVFrozenOrder `json:",omitempty"`
+}
+
+// SnapshotSAVFrozenOrder is the order word pair a fallen or dead actor keeps.
+type SnapshotSAVFrozenOrder struct{ Phase, Complete uint32 }
+
+// SnapshotSAVBodyOrder is one restored attack order on a body: the phase
+// word, the countdown and the attack-complete flag the LOAD read.
+type SnapshotSAVBodyOrder struct {
+	Target                     sim.EntityID
+	Phase, Countdown, Complete uint32
 }
 
 // ObjectIndex is the DTO's local index, NOT SourceBinding.ArchiveIndex. A
@@ -117,7 +135,7 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 	if err != nil {
 		return nil, err
 	}
-	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects, ActionTick: src.ActionTick, ActionTickSet: src.ActionTickSet}
+	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects, ActionTick: src.ActionTick, ActionTickSet: src.ActionTickSet, BodyOrders: maps.Clone(src.BodyOrders), FrozenOrders: maps.Clone(src.FrozenOrders)}
 	if err := remapSavedSackDocument(out, permutation); err != nil {
 		return nil, err
 	}

@@ -168,6 +168,9 @@ func DecodeSave(b []byte) (Snapshot, string, error) {
 	if err := adoptDecodedAGS(&s); err != nil {
 		return Snapshot{}, "", err
 	}
+	// The town's option leaves are captured from its document, as a Snapshot
+	// taken in the town captures them.
+	s.townOptions = townApplicationOptions(s.OriginalCity)
 	return s, label, nil
 }
 

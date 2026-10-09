@@ -169,9 +169,11 @@ func TestReleaseRoodHeroTypeFreshAndContaminated(t *testing.T) {
 			if r.Class != "Human" {
 				continue
 			}
+			// The party Rood's RuntimeID is the one the writer gives him
+			// (DIV-2504); his map placement names him.
 			unit, _ := savedStructureValue(r, "T08")
 			runtime, _ := savedStructureValue(r, "RuntimeID")
-			if unit != 443 || runtime != 125 {
+			if unit != 443 || runtime == 0 {
 				continue
 			}
 			object = uint16(i + 1)

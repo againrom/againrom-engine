@@ -218,6 +218,10 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 		if err := applyCurrentCityHuman(unit, member, table); err != nil {
 			return err
 		}
+		// The member's held placement cell is the cell the town SAVE names.
+		if c := member.Saved; c != nil && c.Cell.X >= 0 && c.Cell.X <= 0xff && c.Cell.Y >= 0 && c.Cell.Y <= 0xff && len(unit.Token) >= 2 {
+			binary.LittleEndian.PutUint16(unit.Token, uint16(c.Cell.Y)<<8|uint16(c.Cell.X))
+		}
 		if _, current := currentCityHumanTails(member); current {
 			return nil
 		}

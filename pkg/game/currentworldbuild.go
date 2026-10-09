@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"slices"
 
 	"againrom/pkg/data"
@@ -39,6 +40,29 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	if err := b.reserveWorldEffectKeys(s.SavedDocument, w); err != nil {
 		return nil, err
 	}
+	// joined is the identity that joins each actor to its loaded record. It
+	// is read to join, as a cell record's key is; a cell key can name a body
+	// another actor stands on. A key the World holds for a structure, the
+	// terrain or a dead actor stays theirs. No minted key takes a joined one.
+	held := map[uint32]bool{currentTerrainKey(w): true}
+	if rows, _, present := w.SavedStructures(); present {
+		for _, row := range rows {
+			held[row.SourceKey] = true
+		}
+	}
+	for _, d := range w.OriginalDeadActors() {
+		held[d.Source.Identity] = true
+	}
+	joined := map[sim.EntityID]uint32{}
+	if l := s.SavedDocument; l != nil && l.Document != nil {
+		for _, a := range l.Actors {
+			if a.ObjectIndex != 0 && int(a.ObjectIndex) <= len(l.Document.Objects) {
+				if key, _ := savedStructureValue(&l.Document.Objects[a.ObjectIndex-1], "Identity"); key != 0 && !held[key] {
+					joined[a.EntityID], b.currentKeys[key] = key, true
+				}
+			}
+		}
+	}
 	terrain := currentTerrainKey(w)
 	if terrain == 0 {
 		terrain = b.identity()
@@ -49,6 +73,12 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	state := &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion,
 		GroupBindings: &SnapshotSAVGroupBindings{Version: 1, PlayersPresent: true}, ActorEffects: &SnapshotSAVActorEffects{Version: 1}, Objects: &SnapshotSAVObjectBindings{Version: 2}}
 	state.Document = &b.doc
+	// A restored order on a body is World-tick state of the LOAD that built
+	// this World; it lapses when the World advances. A frozen order stands
+	// while its actor is neither alive nor dying.
+	if l := s.SavedDocument; l != nil {
+		state.ActionTick, state.ActionTickSet, state.BodyOrders, state.FrozenOrders = l.ActionTick, l.ActionTickSet, maps.Clone(l.BodyOrders), maps.Clone(l.FrozenOrders)
+	}
 	if _, _, groups := w.SavedGroups(); groups {
 		_, players := w.SavedGroupPlayers()
 		state.GroupBindings.PlayersConstructed = !players
@@ -76,7 +106,13 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			roots = append(roots, playerRoot{slot: slot})
 		}
 	}
-	departed, err := currentTerminalBodies(w, ms.Map, t, s.Difficulty)
+	party := map[sim.EntityID]mapload.PartyMember{}
+	for i, id := range s.CurrentPartyIDs {
+		if i < len(s.Party) {
+			party[id] = s.Party[i]
+		}
+	}
+	departed, err := currentTerminalBodies(w, ms.Map, t, s.Difficulty, party)
 	if err != nil {
 		return nil, err
 	}
@@ -185,15 +221,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	}
 	// The player-list dword is one past the list count in every corpus SAV.
 	b.doc.Head.PlayerListField = uint32(len(b.doc.Players) + 1)
-	party := map[sim.EntityID]mapload.PartyMember{}
 	bound := map[sim.EntityID]bool{}
 	for _, a := range state.Actors {
 		bound[a.EntityID] = true
-	}
-	for i, id := range s.CurrentPartyIDs {
-		if i < len(s.Party) {
-			party[id] = s.Party[i]
-		}
 	}
 	ownerKey := func(e sim.Entity) (uint32, uint16) {
 		if id := containers[e.ID]; idObjects[id] != 0 {
@@ -211,7 +241,10 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 				break
 			}
 		}
-		key := heldActorKey(w, e.ID)
+		key := joined[e.ID]
+		if key == 0 {
+			key = heldActorKey(w, e.ID)
+		}
 		if key == 0 || b.claimHeldKey(key) {
 			key = b.identity()
 		}
@@ -268,6 +301,13 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		return index, source.Identity, nil
 	}
 	dead := w.OriginalDeadActors()
+	// A dead actor's identity is its own; a cell record that still names it
+	// gives no other actor that key.
+	for _, d := range dead {
+		if d.Source.Identity != 0 {
+			b.claimHeldKey(d.Source.Identity)
+		}
+	}
 	diaries := map[sim.EntityID]bool{}
 	for _, d := range w.SavedDiaries() {
 		if !d.Owner.Player {
@@ -337,7 +377,16 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		if !held || bound[row.ID] {
 			continue
 		}
-		index, _, err := writeActor(body.entity, mapload.PartyMember{}, nil, diaries[row.ID])
+		// A body the World still holds as an original dead actor keeps that
+		// record's identity and dead tuple.
+		var retained *sim.OriginalDeadRecord
+		for i := range dead {
+			if dead[i].ID == row.ID {
+				retained = &dead[i]
+			}
+		}
+		member, isParty := party[row.ID]
+		index, _, err := writeActor(body.entity, member, retained, isParty || diaries[row.ID])
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +395,7 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			return nil, err
 		}
 	}
-	if _, err := b.appendAbsentDeadRecords(w, ms); err != nil {
+	if _, err := b.appendAbsentDeadRecords(w, ms, nativeCityHeroOf(s.Party), s.Difficulty, diaries, diaryRows); err != nil {
 		return nil, err
 	}
 	slices.SortFunc(state.Actors, func(a, b SnapshotSAVActor) int { return int(a.EntityID) - int(b.EntityID) })
