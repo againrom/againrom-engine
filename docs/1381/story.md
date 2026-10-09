@@ -43,7 +43,10 @@ Sites drawn through the builder:
 
 - Window, snapped: Game Options, Sound Options.
 - Window, unsnapped: Load, Save, the cutscene library, quest objectives, the
-  in-game menu, mod screens, notices, the dialogue window.
+  in-game menu, mod screens, notices, the dialogue window. Of these, the
+  pictures that change are the census list below plus the outcome notice and
+  the mod screens, which the census does not hold; the dialogue window and
+  dialogue-style notices are whole tiles and do not change.
 - Tip: the room tip panel.
 - Panel: notices and dialogue fallbacks, inventory bars, the Drop Gold
   editor, the minimap box, the spellbook, item and unit panels, the
@@ -63,7 +66,11 @@ and the dialogue tile and shadow helpers. DIV-2590 is closed.
 `pkg/render/latch` is the one latch; `buttonLatch` in `pkg/ui` is that type.
 A press latches only when no latch is held, a release inside the latched
 button activates it, and a release elsewhere clears it. A lost or closed
-window clears every latch (`validateWidgetLatches`).
+window clears every latch, and so does leaving the screen or in-game menu
+page the press was made on (`dropWidgetLatches`, called from
+`validateWidgetLatches` and after each step that changes the screen or menu
+page). In the in-game menu a release in the same tick as a key activates
+nothing and drops the latch.
 
 Former screen-local latches now on the kit latch: the main menu selection
 (`pkg/render/menu.Selection`), quest objectives close, the mod main-menu
@@ -99,6 +106,12 @@ and Sound Options did not. The lists now differ in nothing but their data.
   press. Mutating the latch to ignore the release point, to keep a press over
   a lost focus, or to let a second press replace the first fails 4, 9 and 5
   sites respectively.
+- The witness's fifth case presses, leaves the screen by a key, releases
+  elsewhere, returns and clicks once; the click activates on 10 sites. The
+  dialogue (keys advance it and cancel the press) and the ending (no key
+  returns to the page) skip it. `TestMainMenuPressDoesNotOutliveTheMenu`,
+  `TestGameMenuPressDoesNotOutliveTheMenu` and
+  `TestGameMenuReleaseWithAKeyDropsTheLatch` fail without the drop.
 - `TestFramesAndLatchesHaveOneBuilder` (`internal/archtest`) refuses a frame
   painter or press latch outside the kit that its lists do not name, and a
   list entry nothing matches.

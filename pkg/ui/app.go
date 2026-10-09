@@ -1282,33 +1282,43 @@ func (a *App) currentDialoguePointerOwner() (dialoguePointerOwner, bool) {
 func (a *App) validateWidgetLatches(in appInput) {
 	f := a.flow
 	if in.Unfocused || in.Close {
-		a.noticePress.Clear()
-		f.menuPress.Clear()
-		f.loadUI.press.Clear()
-		a.media.press.Clear()
-		a.sel.Clear()
-		a.chargenPress.Clear()
-		f.questPress.Clear()
-		f.endingPress.Clear()
-		f.modUI.backPress.Clear()
-		f.modUI.press.Clear()
-		if f.saveDialog != nil {
-			f.saveDialog.press.Clear()
-		}
-		if f.docPanel != nil {
-			f.docPanel.press.Clear()
-		}
-		if f.viewer != nil {
-			f.viewer.gold.press.Clear()
-		}
-		f.soundPointer = soundOptionPointer{}
-		if d := f.gameOptions.draft; d != nil {
-			d.radio = 0
-		}
+		a.dropWidgetLatches()
 		return
 	}
 	if v := f.viewer; a.noticePress.Holds() && (v == nil || !v.NoticeOpen() || v.noticeSerial != a.noticePressSerial) {
 		a.noticePress.Clear()
+	}
+}
+
+// dropWidgetLatches clears every screen's press latch. A latch belongs to
+// the controls of one screen and goes with them: it is dropped when the
+// window loses focus and when the screen or menu page it was pressed on is
+// left, so a press held across a key that changes screens cannot swallow
+// the next press on the screen it returns to (MENU-116).
+func (a *App) dropWidgetLatches() {
+	f := a.flow
+	a.noticePress.Clear()
+	f.menuPress.Clear()
+	f.loadUI.press.Clear()
+	a.media.press.Clear()
+	a.sel.Clear()
+	a.chargenPress.Clear()
+	f.questPress.Clear()
+	f.endingPress.Clear()
+	f.modUI.backPress.Clear()
+	f.modUI.press.Clear()
+	if f.saveDialog != nil {
+		f.saveDialog.press.Clear()
+	}
+	if f.docPanel != nil {
+		f.docPanel.press.Clear()
+	}
+	if f.viewer != nil {
+		f.viewer.gold.press.Clear()
+	}
+	f.soundPointer = soundOptionPointer{}
+	if d := f.gameOptions.draft; d != nil {
+		d.radio = 0
 	}
 }
 
@@ -1445,6 +1455,11 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	a.tooltipSurface = nil
 	a.validateDialoguePointer(in)
 	a.validateWidgetLatches(in)
+	defer func(screen Screen, page gameMenuPage) {
+		if a.flow.screen != screen || a.flow.menuPage != page {
+			a.dropWidgetLatches()
+		}
+	}(a.flow.screen, a.flow.menuPage)
 	a.validateTownTipPointer(in)
 	defer func(before Screen, viewer *Viewer, tooltipInput appInput) {
 		a.updateTooltip(tooltipInput, now, exit || before != a.flow.screen || viewer != a.flow.viewer)
@@ -3163,6 +3178,11 @@ func (a *App) stepGameMenu(in appInput) bool {
 		} else {
 			a.flow.menuPress.Press(a.gameMenuButtonAt(in))
 		}
+	}
+	if in.PrimaryReleased && (in.Up || in.Down || in.Enter || in.Typed != "") {
+		// A key in the release's tick takes the tick; the release
+		// activates nothing and drops the latch.
+		a.flow.menuPress.Clear()
 	}
 	switch {
 	case in.Up:
