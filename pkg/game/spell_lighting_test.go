@@ -2,7 +2,6 @@ package game
 
 import (
 	"image"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/sim"
@@ -104,12 +103,8 @@ func TestUnitLightSpellKindPopulationIsClosed(t *testing.T) {
 	for id := uint16(1); id <= 28; id++ {
 		got := spellLightingCells([]sim.CellEffect{{
 			Spell: id, Mode: sim.AreaModeCloud, Cells: [][2]int32{{10, 10}},
-		}}, sim.Bounds{Width: 32, Height: 32}, 0)
+		}}, sim.Bounds{Width: 32, Height: 32})
 		switch id {
-		case 3:
-			if len(got) != 9 {
-				t.Errorf("spell %d produced %d unit-light cells, want the radius-one square's 9", id, len(got))
-			}
 		case lightSpellID:
 			if len(got) != 1 || got[0].Terrain != 3 || got[0].Sprite != 2 {
 				t.Errorf("Light plane = %+v, want one terrain/sprite 3/2 cell", got)
@@ -126,55 +121,62 @@ func TestUnitLightSpellKindPopulationIsClosed(t *testing.T) {
 	}
 }
 
-func TestLiveWallOfFireLightsActorsAroundItsCellsAndRestoresOnUpdate(t *testing.T) {
+// TestLiveWallOfFireStampsTheLightGridAndRestoresOnUpdate: each retained wall
+// cell is a radius-1 point stamp at its flicker level 0 or 12
+// (MAGIC-UNITLIGHT-057, MAGIC-271), not a cell-bit plane entry.
+func TestLiveWallOfFireStampsTheLightGridAndRestoresOnUpdate(t *testing.T) {
 	w := liveWallLightingWorld(t)
 	mw := &mapWorld{world: w, scene: 0}
-	oneWall := mw.spellLighting()
-	lit := spellLightCellMap(oneWall)
-
-	// The east-facing wall is the hand-decoded 2x5 block at x=24..25,
-	// y=18..22. Source (24,18) is bright at scene 0 because
-	// (0/2 + 24*18)/5 = 86, whose low bit is zero. Its complete radius-one
-	// square must therefore reach actor cells (23..25,17..19).
-	for y := 17; y <= 19; y++ {
-		for x := 23; x <= 25; x++ {
-			cell, ok := lit[image.Pt(x, y)]
-			if !ok || cell.Terrain != 0 || cell.Sprite != 2 {
-				t.Errorf("wall actor-light cell (%d,%d) = %+v, present=%v; want sprite-only gain 2", x, y, cell, ok)
-			}
+	if got := mw.spellLighting(); len(got) != 0 {
+		t.Fatalf("Wall of Fire wrote %d cell-bit plane cells, want none", len(got))
+	}
+	stamps := mw.objectLightStamps(nil)
+	cells := 0
+	for _, e := range w.CellEffects() {
+		cells += len(e.Cells)
+	}
+	if len(stamps) != 12*cells {
+		t.Fatalf("%d wall cells wrote %d stamps, want 12 each", cells, len(stamps))
+	}
+	grid := map[image.Point]ui.LightStamp{}
+	for _, s := range stamps {
+		if !s.Point {
+			t.Fatalf("wall stamp %+v is not a point-helper stamp", s)
+		}
+		grid[s.Vertex] = s
+	}
+	// Source (24,18) at scene 0: (0/2 + 24*18)/5 = 86, even, level 0. Its
+	// radius-1 footprint holds vertex (23,18) and (24,17).
+	for _, v := range []image.Point{{24, 18}, {25, 19}, {23, 18}, {24, 17}} {
+		if _, ok := grid[v]; !ok {
+			t.Errorf("vertex %v of source (24,18) is unstamped", v)
 		}
 	}
-	if _, ok := lit[image.Pt(10, 10)]; ok {
-		t.Error("a cell outside every radius-one wall splat received actor lighting")
+	if got := wallFireLightLevel(0, image.Pt(24, 18)); got != 0 {
+		t.Errorf("scene 0 source (24,18) level %d, want 0", got)
+	}
+	if got := wallFireLightLevel(10, image.Pt(24, 18)); got != 12 {
+		t.Errorf("scene 10 source (24,18) level %d, want 12", got)
 	}
 
-	// Owner-directed wall stacking remains canonical gameplay state, but two
-	// identical sources do not double a presentation gain: the decoded light
-	// grid retains one value per cell and overlapping splats take the brighter.
 	sim.Step(w, []sim.Command{{Kind: sim.KindCastAt, Entity: 1, X: 24, Y: 20, Spell: 3}})
 	for i := 0; i < 32 && len(w.CellEffects()) < 2; i++ {
 		sim.Step(w, nil)
 	}
-	if len(w.CellEffects()) != 2 {
-		t.Fatalf("the recast retained %d walls, want two overlapping records", len(w.CellEffects()))
+	stacked := map[image.Point]uint8{}
+	for _, s := range mw.objectLightStamps(nil) {
+		stacked[s.Vertex] = s.Level
 	}
-	if got := mw.spellLighting(); !reflect.DeepEqual(got, oneWall) {
-		t.Fatalf("an identical stacked wall changed the derived actor-light plane\none:   %+v\nstack: %+v", oneWall, got)
-	}
-
-	// Ten scene ticks flip the isolated northwest corner source to decoded
-	// level 12: (10/2 + 24*18)/5 = 87. Level 12 cannot darken the normal grid,
-	// so the corner actor cell returns to ordinary lighting.
-	mw.scene = 10
-	if _, ok := spellLightCellMap(mw.spellLighting())[image.Pt(23, 17)]; ok {
-		t.Error("the wall's level-12 half left a brightness override on its isolated corner")
+	for v, s := range grid {
+		if stacked[v] != s.Level {
+			t.Fatalf("a stacked identical wall changed vertex %v from %d to %d", v, s.Level, stacked[v])
+		}
 	}
 
 	for i := 0; i < 300 && len(w.CellEffects()) > 0; i++ {
 		sim.Step(w, nil)
 	}
-	mw.scene = 320
-	if got := mw.spellLighting(); len(got) != 0 {
-		t.Fatalf("expired walls left %d actor-light cells: %+v", len(got), got)
+	if got := mw.objectLightStamps(nil); len(got) != 0 {
+		t.Fatalf("expired walls left %d stamps", len(got))
 	}
 }

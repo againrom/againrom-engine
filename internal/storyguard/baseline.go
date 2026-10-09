@@ -1967,6 +1967,9 @@ package storyguard
 // paragraph. It rises again for the town inn options and TALK: the docs of
 // EnterInn, the speakers and TalkTo, and the focused and installed tests of
 // the stage-30 inn route, new code, including this paragraph.
+// CommentBytes rises for the staff projectile light: the note in
+// objectLightStamps and the doc of its new focused test, new code, including
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  265,
@@ -1988,7 +1991,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1793,
+		"longcommentgroups":      1791,
 	},
-	CommentBytes: 8507799,
+	CommentBytes: 8507804,
 }

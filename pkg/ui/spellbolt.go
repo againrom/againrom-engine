@@ -145,53 +145,11 @@ func (v *Viewer) spellArtPlacements() []effectScreenRect {
 	return out
 }
 
-// spellHandLift is the departure end's own height above the ground point it
-// leaves, in world pixels — HALF A CELL (16), negative because a smaller
-// screen Y is higher (cellLift's own sign, `overlay.go`). No claim states a
-// magnitude or that the original carries a hand-height term at all at this
-// seam; `MAGIC-BOLTSHAPE-070` establishes only that the decoded figure's own
-// two endpoints are screen-space fields of a drawable with that drawable's
-// own height term already subtracted, which is the structure this term is
-// added into, not its size. DIV-083, amended.
-const spellHandLift = -terrain.CellSize / 2
-
-// spellBoltLift is the vertical relief one stamp of one object carries: the
-// TERRAIN lift of the object's own cell at its near end, the terrain lift of
-// its far cell at the far end, a linear interpolation of the two in between,
-// and — at the near end only — the departure's own hand height
-// (spellHandLift), decaying linearly to zero by the far end.
-//
-// THE HAND TERM IS A PROPERTY OF THE CASTER, NOT OF THE TERRAIN, so it is
-// added in BOTH display modes: cellLift already returns 0 for both ends in
-// flat mode (`v.Mode() != ModeDisplaced`), which makes the terrain
-// interpolation 0 there on its own, and nothing else in flat mode reads
-// altitude, so adding the hand term costs no separate mode branch and changes
-// no other flat-mode drawn quantity.
-//
-// THE TERRAIN INTERPOLATION IS OF THE LIFT AND NOT OF THE GROUND, exactly as
-// it was before this term was added. The decoded figure is a straight segment
-// between two screen points, each of them a drawable's position with that
-// drawable's own height term already subtracted (`MAGIC-BOLTSHAPE-070`), so
-// nothing in it re-reads the terrain between the two ends. A bolt therefore
-// crosses a valley in a straight line rather than dipping into it, and a
-// stamp's terrain height is a function of how far along the segment it stands
-// and of nothing else.
-//
-// AN OBJECT THAT STANDS STILL TAKES ONE LIFT AND NO HAND TERM. Its two cells
-// are equal — every burst, every overlay cell and every cast onto the
-// caster's own cell — and both the terrain interpolation and the hand term
-// are skipped: a burst has no departure end to raise, and the previous hotfix
-// in this area (DIV-083) learned that lifting only one end of a same-cell
-// object makes it visibly crawl, so this term takes the same early return
-// that already protects against that.
-//
-// THE FAR END KEEPS ITS PRESENT HEIGHT. This build has no per-target
-// body-height term at this seam; inventing one is not this hotfix.
-//
-// The projection is asked twice and the fraction is formed from the dot product
-// of the stamp's own offset onto the segment, so a stamp off the segment (a
-// figure's own perpendicular excursion) takes the lift of its projection onto
-// it, the hand term included, and no stamp reaches past either end.
+// spellBoltLift is one stamp's relief: the terrain lift of the near cell, of
+// the far cell, or the interpolation by the stamp's projection onto the
+// segment (`MAGIC-BOLTSHAPE-070`). The launch point already carries its
+// height above the caster's ground point (MAGIC-261). A still object takes
+// its one cell's lift.
 func (v *Viewer) spellBoltLift(b SpellBolt) int {
 	from := v.cellLift(b.Cell)
 	if b.To == b.Cell {
@@ -201,15 +159,13 @@ func (v *Viewer) spellBoltLift(b SpellBolt) int {
 	px, py := b.Pos.X-b.Cell.X*ShotScale, b.Pos.Y-b.Cell.Y*ShotScale
 	num, den := px*dx+py*dy, dx*dx+dy*dy
 	if num <= 0 || den <= 0 {
-		return from + spellHandLift
+		return from
 	}
 	to := v.cellLift(b.To)
 	if num >= den {
 		return to
 	}
-	terrainLift := (to - from) * num / den
-	hand := spellHandLift * (den - num) / den
-	return from + terrainLift + hand
+	return from + (to-from)*num/den
 }
 
 // drawSpellArt paints one pass of this frame's already placed spell objects.

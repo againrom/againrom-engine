@@ -5,7 +5,6 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -100,61 +99,21 @@ const boltMaxWalkPoints = 24
 // four and keeps the last figure rather than recursing without a floor.
 const boltMaxAttempts = 4
 
-const (
-	boltHandReach = ui.ShotScale / 2
-	boltHandDiag  = boltHandReach * 3 / 4
-)
-
-// boltHandOffset is the departure point's own displacement from the caster's
-// cell centre, one entry per sim.FacingDir direction, clockwise from north
-// (owner, а примерно от предполагаемого
-// положения его рук/посоха … и еще при
-// правильной ориентации смотреть»).
-//
-// EVERY ENTRY IS AUTHORED BY HAND AND NONE IS DERIVED FROM ANOTHER. The unit
-// sprite sheet folds nine octants across a mirror bit for the other seven
-// (terrain.SelectUnitFrame), a finer and unrelated convention; deriving half
-// this table from the other four by negating one axis under that fold would
-// tie a plain compass offset to a sheet-layout rule that has nothing to do
-// with it, and getting the fold backward would put the offset on the wrong
-// side for every mirrored direction at once. Eight independent entries have no
-// fold to get backward.
-var boltHandOffset = [8]image.Point{
-	{X: 0, Y: -boltHandReach},            // 0 north
-	{X: boltHandDiag, Y: -boltHandDiag},  // 1 north-east
-	{X: boltHandReach, Y: 0},             // 2 east
-	{X: boltHandDiag, Y: boltHandDiag},   // 3 south-east
-	{X: 0, Y: boltHandReach},             // 4 south
-	{X: -boltHandDiag, Y: boltHandDiag},  // 5 south-west
-	{X: -boltHandReach, Y: 0},            // 6 west
-	{X: -boltHandDiag, Y: -boltHandDiag}, // 7 north-west
+// castOrigin is a cast object's start point: the from cell's centre plus its
+// launch offset (castLaunch), in ShotScale units.
+func castOrigin(from, launch image.Point) image.Point {
+	return from.Mul(ui.ShotScale).Add(launch)
 }
 
-func castOrigin(from image.Point, facing uint8) image.Point {
-	off := boltHandOffset[sim.FacingDir(facing)]
-	return image.Point{X: from.X*ui.ShotScale + off.X, Y: from.Y*ui.ShotScale + off.Y}
-}
-
-// castShotPoint is shotPoint's own counterpart for a cast (world.go's
-// shotPoint stays exactly as it was, and keeps serving the archer's mark it
-// was written for): it interpolates from the caster's hand-offset departure
-// point toward the UNMODIFIED target, so an ordinary flying picture — and the
-// smoke trail behind it — leaves the same point a path picture's figure does
-// and still arrives exactly on the target cell shotPoint always gave it.
-//
-// A SAME-CELL OBJECT TAKES NO OFFSET AT ALL, checked on the cells rather than
-// on the resulting vector. boltDraws' own ordinary arm (world.go) calls this
-// for EVERY non-path bolt, which includes a burst and an area-paint cell —
-// both always from==to, both meant to stand dead still at the cell they
-// landed on for their whole life. Offsetting only the num==0 end of a
-// same-cell interpolation would have made a stationary burst drift from a
-// hand-offset point back onto its own cell over its lifetime, which is a
-// burst visibly crawling that was never asked for.
-func castShotPoint(from, to image.Point, num, den int, facing uint8) image.Point {
+// castShotPoint interpolates a cast object from its launch point toward the
+// target cell, so a flying picture, its trail and a path figure leave one
+// point. A same-cell object (a burst, an area-paint cell, a Teleport object)
+// stands at its launch point.
+func castShotPoint(from, to image.Point, num, den int, launch image.Point) image.Point {
+	origin := castOrigin(from, launch)
 	if from == to {
-		return image.Point{X: to.X * ui.ShotScale, Y: to.Y * ui.ShotScale}
+		return origin
 	}
-	origin := castOrigin(from, facing)
 	toPt := image.Point{X: to.X * ui.ShotScale, Y: to.Y * ui.ShotScale}
 	return image.Point{
 		X: origin.X + (toPt.X-origin.X)*num/den,
@@ -162,11 +121,11 @@ func castShotPoint(from, to image.Point, num, den int, facing uint8) image.Point
 	}
 }
 
-// boltPath is one tick's whole figure, in ShotScale units, from the caster's
-// own departure point to the target's.
+// boltPath is one tick's whole figure, in ShotScale units, from the object's
+// launch point to the target's.
 //
-// THE FIRST POINT IS THE CASTER'S DEPARTURE POINT AND THE LAST IS THE
-// TARGET'S, UNCHANGED. The walk's abscissa is a fraction of the segment and
+// THE FIRST POINT IS THE LAUNCH POINT AND THE LAST IS THE TARGET'S,
+// UNCHANGED. The walk's abscissa is a fraction of the segment and
 // its termination bound is the far end, so the figure spans the whole segment
 // on every tick and is never partial. Which of the two endpoints the engine's
 // own list starts from is not established (`MAGIC-BOLTSHAPE-070`'s Unknown);
@@ -179,13 +138,13 @@ func castShotPoint(from, to image.Point, num, den int, facing uint8) image.Point
 // exceeds it, so a bolt is a bolt at every distance. Subdivision moves no
 // existing point, so the walk's own shape is unchanged by it.
 //
-// A SAME-CELL CAST ANSWERS ONE POINT, at the departure point, so a cast onto
+// A SAME-CELL CAST ANSWERS ONE POINT, at the launch point, so a cast onto
 // the caster's own cell still has nothing to rotate onto and nothing to
-// divide by — checked on the CELLS rather than on the departure-to-target
-// vector, because the hand offset alone would otherwise put a false direction
-// between a caster and himself.
-func boltPath(from, to image.Point, seed uint32, stamp int, facing uint8) []image.Point {
-	origin := castOrigin(from, facing)
+// divide by — checked on the CELLS rather than on the launch-to-target
+// vector, because the launch offset alone would otherwise put a false
+// direction between a caster and himself.
+func boltPath(from, to image.Point, seed uint32, stamp int, launch image.Point) []image.Point {
+	origin := castOrigin(from, launch)
 	if from == to {
 		return []image.Point{origin}
 	}
@@ -438,9 +397,23 @@ func boltPhaseBlock(picture, phases int) (ramp, blocks int) {
 // THE OBJECT'S OWN POSITION IS NEVER DRAWN. The engine's two path arms ignore
 // it, and this build gives these two pictures no interpolated sprite at all.
 func (mw *mapWorld) pathDraws(b spellBolt) []ui.SpellBolt {
+	sheet, frame, points := mw.pathFigure(b)
+	out := make([]ui.SpellBolt, 0, len(points))
+	for _, p := range points {
+		out = append(out, ui.SpellBolt{
+			Cell: b.from, To: b.to, Pos: p, Sheet: sheet, Frame: frame, Owner: b.owner,
+		})
+	}
+	return out
+}
+
+// pathFigure is one path object's sheet, frame and figure this tick. The
+// figure is empty when the sheet or its frame is absent. The spell light
+// stamps the same points the draw stamps (objectLightStamps).
+func (mw *mapWorld) pathFigure(b spellBolt) (*terrain.EffectSheet, int, []image.Point) {
 	sheet := mw.projectiles.Sheet(b.picture)
 	if sheet == nil {
-		return nil
+		return nil, 0, nil
 	}
 	ramp, blocks := boltPhaseBlock(b.picture, sheet.Phases)
 	base := boltRampPhase(b.age, b.life, ramp)
@@ -449,23 +422,17 @@ func (mw *mapWorld) pathDraws(b spellBolt) []ui.SpellBolt {
 	}
 	frame, _, ok := terrain.SelectEffectFrame(sheet, 0, base)
 	if !ok {
-		return nil
+		return nil, 0, nil
 	}
 	stamp := 0
 	if f := sheet.Frame(frame); f != nil {
 		stamp = f.Width * boltUnitsPerPixel / boltStampsPerFrame
 	}
-	points := boltPath(b.from, b.to, boltSeed(b), stamp, b.facing)
+	points := boltPath(b.from, b.to, boltSeed(b), stamp, b.launch)
 	if b.centered {
 		points = boltPathFrom(b.from.Mul(ui.ShotScale), b.to, boltSeed(b), stamp)
 	}
-	out := make([]ui.SpellBolt, 0, len(points))
-	for _, p := range points {
-		out = append(out, ui.SpellBolt{
-			Cell: b.from, To: b.to, Pos: p, Sheet: sheet, Frame: frame, Owner: b.owner,
-		})
-	}
-	return out
+	return sheet, frame, points
 }
 
 // trailDraws is the smoke behind a travelling object: at most six PAST
@@ -501,7 +468,7 @@ func (mw *mapWorld) trailDraws(b spellBolt) []ui.SpellBolt {
 			continue
 		}
 		out = append(out, ui.SpellBolt{
-			Cell: b.from, To: b.to, Pos: castShotPoint(b.from, b.to, num, b.life, b.facing),
+			Cell: b.from, To: b.to, Pos: castShotPoint(b.from, b.to, num, b.life, b.launch),
 			Sheet: sheet, Frame: frame, Owner: b.owner,
 		})
 	}
