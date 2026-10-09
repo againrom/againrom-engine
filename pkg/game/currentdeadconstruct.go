@@ -4,7 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -65,8 +67,14 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 	return nil
 }
 
-func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mission) (bool, error) {
+// appendAbsentDeadRecords writes each retained dead actor no written record
+// holds. A dead actor with a map placement takes its actor values from the
+// placement and the tables, as a fresh mission constructs them; its dead
+// tuple, references and held weapon come from the World. A dead actor whose
+// Diary the World holds gets a Diary record of diaryRows entries.
+func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mission, hero mapload.PartyMember, diff mapload.Difficulty, diaries map[sim.EntityID]bool, diaryRows int) (bool, error) {
 	changed := false
+	var placed map[uint16]sim.Entity
 	for _, body := range w.OriginalDeadActors() {
 		found := false
 		for _, r := range b.doc.Objects {
@@ -86,11 +94,45 @@ func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mis
 			flags = append(flags, "HasInventory")
 		}
 		r := mustNewRecord(savedActorClass(body.Source.Class), flags...)
+		if id := body.Source.MapUnitID; id != 0 && ms.Map != nil {
+			if placed == nil {
+				var err error
+				if placed, err = placementActors(ms.Map, b.table, diff); err != nil {
+					return false, err
+				}
+			}
+			if e, ok := placed[id]; ok {
+				var placement *alm.Unit
+				for i := range ms.Map.Units {
+					if ms.Map.Units[i].UnitID == id {
+						placement = &ms.Map.Units[i]
+					}
+				}
+				runtime := body.Current.RuntimeID
+				if runtime == 0 {
+					runtime = b.runtime()
+				}
+				basis, _, err := currentRecordActor(e, mapload.PartyMember{}, hero, placement, b.table, body.Source.Identity, runtime)
+				if err != nil {
+					return false, err
+				}
+				if r, err = savedActorValueRecord(r, basis, true); err != nil {
+					return false, err
+				}
+			}
+		}
 		if err := b.currentDeadRecord(&r, body); err != nil {
 			return false, err
 		}
 		if typeID, present := ms.DeadArt[body.ID]; present {
 			mustSetValue(&r, "T0E", uint32(typeID))
+		}
+		if r.Class != "Unit" && diaries[body.ID] {
+			index, err := b.append(mustNewDiaryRecord(diaryRows, 0))
+			if err != nil {
+				return false, err
+			}
+			mustSetRefs(&r, "Diary", []uint16{index})
 		}
 		if _, err := b.append(r); err != nil {
 			return false, err

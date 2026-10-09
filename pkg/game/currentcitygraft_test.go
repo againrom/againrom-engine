@@ -85,7 +85,7 @@ func TestCurrentCityGraphKeysAvoidProducerReservations(t *testing.T) {
 
 func TestCurrentCityGraftSnapshotUsesPartyIdentity(t *testing.T) {
 	retained := cityfixture.City(false)
-	retained.Objects[1].Unit.Raw154[179] = 0xe5
+	retained.Objects[1].Unit.RawA6[22] = 0xe5
 	p, err := sav.CityFromData(retained)
 	if err != nil {
 		t.Fatal(err)
@@ -108,7 +108,7 @@ func TestCurrentCityGraftSnapshotUsesPartyIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cityGraftRaw(t, &doc.Objects[cityGraftNamed(t, &doc, "Companion")-1], "U154")[179] != 0xe5 {
+	if cityGraftRaw(t, &doc.Objects[cityGraftNamed(t, &doc, "Companion")-1], "UA6")[22] != 0xe5 {
 		t.Fatal("snapshot binding order displaced stable party identity")
 	}
 	s.Party[1].ID = "companion"
@@ -116,7 +116,7 @@ func TestCurrentCityGraftSnapshotUsesPartyIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal("ambiguous optional source blocked current city", err)
 	}
-	if cityGraftRaw(t, &doc.Objects[cityGraftNamed(t, &doc, "Companion")-1], "U154")[179] == 0xe5 {
+	if cityGraftRaw(t, &doc.Objects[cityGraftNamed(t, &doc, "Companion")-1], "UA6")[22] == 0xe5 {
 		t.Fatal("ambiguous party identity selected retained residue")
 	}
 }
@@ -128,14 +128,13 @@ func TestCurrentCityGraftMapUnitIDUsesCurrentSavedValue(t *testing.T) {
 		id      uint16
 		want    uint32
 	}{
-		{"absent", false, 0, 0x39a63185},
 		{"cleared", true, 0, 0x39a60000},
 		{"changed", true, 321, 0x39a60141},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			current := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "T08"}}}
+			current := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "T08", Value: uint32(test.id)}}}
 			source := sav.DocumentRecordData{Class: "Human", Values: []sav.DocumentValueData{{Name: "T08", Value: 0x39a63185}}}
-			mergeCityActorResidue(&current, &source, currentCityActorGraft{CurrentMapUnit: test.current, MapUnitID: test.id})
+			mergeCityActorResidue(&current, &source, currentCityActorGraft{}, unknownRecordSpans())
 			if got := cityGraftValue(t, &current, "T08"); got != test.want {
 				t.Fatalf("T08=%#x, want %#x", got, test.want)
 			}
@@ -274,148 +273,78 @@ func cityGraftValue(t *testing.T, r *sav.DocumentRecordData, name string) uint32
 	return v
 }
 
-func TestCurrentCityGraftCurrentFieldsAndSharedDiary(t *testing.T) {
+// Every loaded value is poisoned; the grafted document may differ from the
+// constructed one only inside an unknown-meaning span.
+func TestCurrentCityGraftTakesOnlyUnknownSpans(t *testing.T) {
 	source, current := cityGraftFixture(t, true), cityGraftFixture(t, false)
 	s1, s2 := cityGraftNamed(t, &source, "Companion"), cityGraftNamed(t, &source, "Leader")
 	c1, c2 := cityGraftNamed(t, &current, "Companion"), cityGraftNamed(t, &current, "Leader")
-	sp, cp := source.Players[0], current.Players[0]
-	oldPlayerKey := cityGraftValue(t, &source.Objects[sp-1], "This")
-	diary := mustNewDiaryRecord(2, oldPlayerKey)
-	binary.LittleEndian.PutUint32(cityGraftRaw(t, &diary, "Journal"), 0x12345678)
-	binary.LittleEndian.PutUint16(cityGraftRaw(t, &diary, "JournalWords")[2:], 0x1234)
-	source.Objects = append(source.Objects, diary)
-	for _, index := range []uint16{s1, s2} {
-		mustSetRefs(&source.Objects[index-1], "Diary", []uint16{uint16(len(source.Objects))})
-	}
-	for i := range source.Objects[sp-1].Inline {
-		if source.Objects[sp-1].Inline[i].Name == "Diary" {
-			source.Objects[sp-1].Inline[i].Record = diary
+	for i := range source.Objects {
+		r := &source.Objects[i]
+		for j := range r.Values {
+			if r.Values[j].Name != "Identity" && r.Values[j].Name != "This" {
+				r.Values[j].Value ^= 0x5a5a5a5a
+			}
+		}
+		for j := range r.Raw {
+			for k := range r.Raw[j].Bytes {
+				r.Raw[j].Bytes[k] ^= 0x5a
+			}
 		}
 	}
-	mustSetValue(&source.Objects[s1-1], "Health", 9)
-	mustSetValue(&source.Objects[s1-1], "U4C", 0xa6)
-	mustSetValue(&source.Objects[s1-1], "U49", 7)
-	mustSetValue(&source.Objects[s1-1], "U64", 0x01000000)
-	cityGraftRaw(t, &source.Objects[s1-1], "U154")[179] = 0xe7
-	cityGraftRaw(t, &source.Objects[s1-1], "U154")[10] = 9
-	binary.LittleEndian.PutUint32(cityGraftRaw(t, &source.Objects[s1-1], "U50"), oldPlayerKey)
-	binary.LittleEndian.PutUint32(cityGraftRaw(t, &source.Objects[s1-1], "U158")[0x0c:], cityGraftValue(t, &source.Objects[s2-1], "Identity"))
-	cityGraftRaw(t, &source.Objects[sp-1], "Raw10")[7] = 0xc1
-	cityGraftRaw(t, &source.Objects[sp-1], "PRaw32")[3] = 0x9a
-	cityGraftRaw(t, &source.Objects[sp-1], "PRaw32")[31] = 0
-	mustSetValue(&source.Objects[sp-1], "F44", 77)
-	mustSetValue(&source.Objects[sp-1], "F58", 81)
-	var err error
-	source, _, err = sav.ReindexDocumentData(source)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s1, s2 = cityGraftNamed(t, &source, "Companion"), cityGraftNamed(t, &source, "Leader")
-	mustSetText(&current.Objects[c1-1], "Name", "Current companion")
-	mustSetValue(&current.Objects[c1-1], "Health", 111)
-	mustSetValue(&current.Objects[c1-1], "U4C", 0)
-	cityGraftRaw(t, &current.Objects[c1-1], "U154")[10] = 33
-	cityGraftRaw(t, &current.Objects[c1-1], "UA6")[23] = 0x63
-	mustSetValue(&current.Objects[cp-1], "Money", 999)
-	mustSetValue(&current.Objects[cp-1], "F58", 95)
-	cityGraftRaw(t, &current.Objects[cp-1], "PRaw32")[31] = 2
-	beforeCurrent, _ := sav.CloneDocumentData(current)
-	beforeSource, _ := sav.CloneDocumentData(source)
 	doc, err := graftCurrentCityResidue(current, source,
-		[]currentCityActorGraft{{Source: s1, Current: c1}, {Source: s2, Current: c2}},
-		[]currentCityPlayerGraft{{Source: source.Players[0], Current: cp, CurrentFormation: true, CurrentAutoheal: true}})
+		[]currentCityActorGraft{{Source: s1, Current: c1, RetainedHumanTails: true}, {Source: s2, Current: c2}},
+		[]currentCityPlayerGraft{{Source: source.Players[0], Current: current.Players[0]}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(source, beforeSource) || !reflect.DeepEqual(current, beforeCurrent) {
-		t.Fatal("graft mutated an input")
+	if len(doc.Objects) != len(current.Objects) {
+		t.Fatal("graft changed the constructed population")
 	}
-	for round := 0; round < 2; round++ {
-		a := &doc.Objects[cityGraftNamed(t, &doc, "Current companion")-1]
-		b := &doc.Objects[cityGraftNamed(t, &doc, "Leader")-1]
-		p := &doc.Objects[doc.Players[0]-1]
-		if cityGraftValue(t, a, "Health") != 111 || cityGraftValue(t, a, "U4C") != 0xa0 || cityGraftValue(t, a, "HasInventory") != 0 || cityGraftValue(t, a, "HasSpellbook") != 0 {
-			t.Fatal("retained fields displaced current values or inactive grammar")
+	spans := unknownRecordSpans()
+	allowed := func(pattern string, at int) bool {
+		for _, span := range spans[pattern] {
+			if slices.Contains(span.offsets, at) {
+				return true
+			}
 		}
-		if cityGraftValue(t, a, "U49") != 7 || cityGraftRaw(t, a, "U154")[179] != 0xe7 || cityGraftRaw(t, a, "U154")[10] != 33 || cityGraftRaw(t, a, "UA6")[23] != 0x63 {
-			t.Fatal("mixed current/retained raw mask is wrong")
-		}
-		if cityGraftValue(t, p, "Money") != 999 || cityGraftValue(t, p, "F44") != 77 || cityGraftValue(t, p, "F58") != 95 || cityGraftRaw(t, p, "Raw10")[7] != 0xc1 || cityGraftRaw(t, p, "PRaw32")[3] != 0x9a || cityGraftRaw(t, p, "PRaw32")[31] != 2 {
-			t.Fatal("Player current/residue ownership is wrong")
-		}
-		da, db := cityGraftRefs(t, a, "Diary")[0], cityGraftRefs(t, b, "Diary")[0]
-		if da == 0 || da != db || len(doc.Objects) != 4 {
-			t.Fatal("shared Diary was lost or duplicated")
-		}
-		d := &doc.Objects[da-1]
-		if binary.LittleEndian.Uint32(cityGraftRaw(t, d, "Journal")) != 0x12345678 || binary.LittleEndian.Uint16(cityGraftRaw(t, d, "JournalWords")[2:]) != 0x1234 || cityGraftValue(t, d, "D2C") != cityGraftValue(t, p, "This") {
-			t.Fatal("Diary arrays or owner reference were lost")
-		}
-		if binary.LittleEndian.Uint32(cityGraftRaw(t, a, "U158")[0x0c:]) != cityGraftValue(t, b, "Identity") || binary.LittleEndian.Uint32(cityGraftRaw(t, a, "U50")) != oldPlayerKey || cityGraftValue(t, a, "U64") != 0x01000000 {
-			t.Fatal("key relocation touched opaque bytes or failed an actual edge")
-		}
-		for i := range doc.Objects {
-			for _, field := range doc.Objects[i].Values {
-				if (field.Name == "Identity" || field.Name == "This") && field.Value == 0x01000000 {
-					t.Fatal("missing retained reference accidentally bound to a fresh object")
+		return false
+	}
+	grafted := 0
+	for i := range doc.Objects {
+		a, b := &doc.Objects[i], &current.Objects[i]
+		for j := range a.Values {
+			var x, y [4]byte
+			binary.LittleEndian.PutUint32(x[:], a.Values[j].Value)
+			binary.LittleEndian.PutUint32(y[:], b.Values[j].Value)
+			for k := range x {
+				if x[k] != y[k] {
+					grafted++
+					if !allowed(a.Class+".v."+a.Values[j].Name, k) {
+						t.Fatalf("%s %s byte %d came from the loaded town", a.Class, a.Values[j].Name, k)
+					}
 				}
 			}
 		}
-		doc, err = sav.RemintDocumentKeys(doc)
-		if err != nil {
-			t.Fatal(err)
-		}
-		wire, err := sav.EncodeDocumentData(doc)
-		if err != nil {
-			t.Fatal(err)
-		}
-		doc, err = sav.DecodeDocumentData(wire)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
-func TestCurrentCityGraftReorderedRemovedActorAndReturn(t *testing.T) {
-	source, current := cityGraftFixture(t, true), cityGraftFixture(t, false)
-	s1 := cityGraftNamed(t, &source, "Companion")
-	c1 := cityGraftNamed(t, &current, "Companion")
-	for _, name := range []string{"Stage", "U5C", "U64", "U44", "U40"} {
-		mustSetValue(&source.Objects[s1-1], name, 3)
-	}
-	cityGraftRaw(t, &source.Objects[s1-1], "U154")[179] = 0xee
-	removed := cityGraftNamed(t, &source, "Leader")
-	cityGraftRaw(t, &source.Objects[removed-1], "U154")[179] = 0xdd
-	mustSetRefs(&source.Objects[s1-1], "U68", []uint16{removed})
-	p := &current.Objects[current.Players[0]-1]
-	for i := range p.Groups {
-		for j := range p.Groups[i].RefSlots {
-			if p.Groups[i].RefSlots[j].Name == "Actors" {
-				slices.Reverse(p.Groups[i].RefSlots[j].Objects)
+		for j := range a.Raw {
+			for k := range a.Raw[j].Bytes {
+				if a.Raw[j].Bytes[k] != b.Raw[j].Bytes[k] {
+					grafted++
+					if !allowed(a.Class+".r."+a.Raw[j].Name, k) {
+						t.Fatalf("%s %s byte %d came from the loaded town", a.Class, a.Raw[j].Name, k)
+					}
+				}
 			}
 		}
-	}
-	var err error
-	current, _, err = sav.ReindexDocumentData(current)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c1 = cityGraftNamed(t, &current, "Companion")
-	doc, err := graftCurrentCityResidue(current, source, []currentCityActorGraft{{Source: s1, Current: c1, Returned: true}}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	a := &doc.Objects[cityGraftNamed(t, &doc, "Companion")-1]
-	for _, name := range []string{"Stage", "U5C", "U64", "U44", "U40"} {
-		if cityGraftValue(t, a, name) != 0 {
-			t.Fatalf("return did not clear %s", name)
+		if !reflect.DeepEqual(a.Texts, b.Texts) || !reflect.DeepEqual(a.RefSlots, b.RefSlots) || !reflect.DeepEqual(a.Inline, b.Inline) {
+			t.Fatalf("%s text, edge or inline record came from the loaded town", a.Class)
 		}
 	}
-	if cityGraftRefs(t, a, "U68")[0] != 0 || cityGraftRaw(t, a, "U154")[179] != 0xee || len(doc.Objects) != len(current.Objects) {
-		t.Fatal("return residue or current population was lost")
+	if grafted == 0 {
+		t.Fatal("no unknown span was grafted")
 	}
-	newActor := &doc.Objects[cityGraftNamed(t, &doc, "Leader")-1]
-	if cityGraftRaw(t, newActor, "U154")[179] != 0 {
-		t.Fatal("equal-looking unbound new actor inherited removed actor residue")
+	tail := cityGraftRaw(t, &doc.Objects[c2-1], "UA6")
+	if tail[22] != cityGraftRaw(t, &current.Objects[c2-1], "UA6")[22] {
+		t.Fatal("a loaded Human tail replaced the party's own")
 	}
 }

@@ -2103,7 +2103,7 @@ func (w *World) encodeInto(b []byte) []byte {
 	w.relations.encodeInto(b[len(b)-relationLen:])
 	payload := w.appendAttackNotices(w.appendSavedWorldEffects(w.appendSavedFormations(w.appendStructureUses(w.appendScorched(w.appendGroupRoam(w.appendActionClocks(w.appendCarriedResumeState(w.appendSavedObjects(w.appendSavedCellPlanes(w.appendSavedMotions(w.appendNativeStrides(w.appendSavedGroupPlayerSection(w.appendSavedStructureSection(w.appendSavedGroups(w.appendSessionClock(b))))))))))))))))
 	payload = w.appendNativeItemRecords(w.appendNativeLiveBlocks(w.appendPlayerParticipants(w.appendNativeActorBases(w.appendBookSelections(w.appendNativeClasses(w.appendROM2ScriptState(w.appendNativeTraining(w.appendAreaCosts(w.appendCreatureSpells(w.appendPendingOrders(w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload))))))))))))))))))
-	return w.appendPursuitSearches(w.appendEscortResidues(w.appendTurnStates(w.appendNativeScalars(payload))))
+	return w.appendHeldOrders(w.appendPursuitSearches(w.appendEscortResidues(w.appendTurnStates(w.appendNativeScalars(payload)))))
 }
 
 // MarshalBinary returns the world's canonical byte form: versioned,
@@ -2123,6 +2123,10 @@ func (w *World) MarshalBinary() ([]byte, error) {
 func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 	for _, e := range w.entities {
 		if err := escortResidueFault(e); err != nil {
+			return nil, err
+		}
+		e.HeldOrder = heldOrder(e)
+		if err := heldOrderFault(e); err != nil {
 			return nil, err
 		}
 	}
@@ -2281,6 +2285,9 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 // record bytes and failing the second, and truncated and over-long stay the same
 // comparison.
 func (w *World) UnmarshalBinary(data []byte) error {
+	if len(data) > 0 && data[0] == heldOrderFormVersion {
+		return w.unmarshalHeldOrders(data)
+	}
 	if len(data) > 0 && data[0] == pursuitSearchFormVersion {
 		return w.unmarshalPursuitSearches(data)
 	}

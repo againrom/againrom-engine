@@ -319,8 +319,14 @@ func (w *World) retireOriginalDead(id EntityID) {
 	e := w.entities[ei]
 	if e.SourceBinding.Class == 0 {
 		if e.HP < decayGoneHP {
+			var worn uint16
+			for slot, item := range w.equipment[ei] {
+				if !item.Empty() {
+					worn |= 1 << slot
+				}
+			}
 			w.currentTerminalActors = append(w.currentTerminalActors, CurrentTerminalActor{
-				ID: id, Cell: uint16(e.Y)<<8 | uint16(e.X), HP: e.HP, Stage: uint8(e.Decay), MapUnitID: e.MapUnitID,
+				ID: id, Cell: uint16(e.Y)<<8 | uint16(e.X), HP: e.HP, Stage: uint8(e.Decay), MapUnitID: e.MapUnitID, Worn: worn,
 			})
 			slices.SortFunc(w.currentTerminalActors, func(a, b CurrentTerminalActor) int {
 				if a.ID < b.ID {

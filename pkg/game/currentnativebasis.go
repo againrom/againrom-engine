@@ -324,15 +324,19 @@ func matchCurrentNativeBasis(doc *sav.DocumentData, a *currentActionData) error 
 	return nil
 }
 
-func projectRemovedNativeBasis(state *SnapshotSAVDocument, w *sim.World) error {
+// removedNativeBasisRecords resolves each removed actor's held basis to the
+// record that carries it: its terminal binding, else its dead source root.
+func removedNativeBasisRecords(state *SnapshotSAVDocument, w *sim.World) ([]*sav.DocumentRecordData, []sim.NativeActorBasis, error) {
 	rows := w.RemovedNativeActorBases()
 	if len(rows) == 0 {
-		return nil
+		return nil, nil, nil
 	}
 	terminal, err := currentTerminalActorBindings(state, w)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
+	var records []*sav.DocumentRecordData
+	var bases []sim.NativeActorBasis
 	for _, row := range rows {
 		var record *sav.DocumentRecordData
 		if object := terminal[row.ID]; object != 0 {
@@ -342,16 +346,26 @@ func projectRemovedNativeBasis(state *SnapshotSAVDocument, w *sim.World) error {
 				if dead.ID == row.ID {
 					record, err = currentDeadSourceRoot(state, dead)
 					if err != nil {
-						return err
+						return nil, nil, err
 					}
 					break
 				}
 			}
 		}
-		if record == nil {
-			continue
+		if record != nil {
+			records, bases = append(records, record), append(bases, row.Basis)
 		}
-		basis := row.Basis
+	}
+	return records, bases, nil
+}
+
+func projectRemovedNativeBasis(state *SnapshotSAVDocument, w *sim.World) error {
+	records, bases, err := removedNativeBasisRecords(state, w)
+	if err != nil {
+		return err
+	}
+	for i, record := range records {
+		basis := bases[i]
 		if err := projectNativeScalars(record, basis); err != nil {
 			return err
 		}

@@ -297,8 +297,10 @@ func TestCurrentPlayerSlotsSharePurseWithoutMergingIdentities(t *testing.T) {
 						t.Fatal("ordinary Money did not supply exact shared/split purses", w.Purse(slot), w.Purse(15), wantMoney)
 					}
 					roots := cold.live.mission.state.savedDocument.Document.Players
-					if len(roots) != 4 || roots[0] == roots[1] || roots[2] != 0 || roots[3] != roots[0] {
-						t.Fatal("LOAD changed null/repeated/distinct Player roots", roots)
+					// The World-built list holds one root per current Player; a
+					// null or repeated root is not World state.
+					if len(roots) != 2 || roots[0] == roots[1] || roots[0] == 0 || roots[1] == 0 {
+						t.Fatal("LOAD changed distinct Player roots", roots)
 					}
 					if cycle == 0 {
 						wantMoney += 31
@@ -323,7 +325,7 @@ func TestCurrentPlayerSlotsSharePurseWithoutMergingIdentities(t *testing.T) {
 	}
 }
 
-func TestCurrentPlayerSlotsRetainUnmodeledDistinctMoney(t *testing.T) {
+func TestCurrentPlayerSlotsWriteSharedPurseForDistinctMoney(t *testing.T) {
 	for _, slot := range []uint32{0, 1} {
 		f, s, _, _ := sharedCurrentPlayerFixture(t, slot)
 		raw, err := f.ExportCurrentSave(s, "unmodeled distinct Money")
@@ -367,10 +369,13 @@ func TestCurrentPlayerSlotsRetainUnmodeledDistinctMoney(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for i, value := range want {
+			// The World holds one purse per Slot. Both roots sharing the Slot
+			// are written with that purse; the distinct file values are not
+			// World state and are not carried.
+			for i := range want {
 				got, err := savedStructureValue(&doc.Objects[doc.Players[i]-1], "Money")
-				if err != nil || got != value {
-					t.Fatal("unmodeled ordinary Money was overwritten", slot, cycle, i, got, value, err)
+				if err != nil || got != cold.live.world.Purse(slot) {
+					t.Fatal("shared-Slot Money is not the current purse", slot, cycle, i, got, err)
 				}
 			}
 		}

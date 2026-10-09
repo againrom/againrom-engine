@@ -118,7 +118,9 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 	e.SourceBinding = sim.SourceBinding{Class: class, Identity: key, RuntimeID: runtime, TokenRow: uint8(row), TypeID: uint16(e.TypeID), Face: face}
 	if e.Humanoid {
 		e.SourceBinding.DisplayBacking = uint32(member.MercenaryType)
-		if face == 0 || member.FigureFace > 127 {
+		// Below TypeID 0x1a the face byte's high bit is the female flag, so a
+		// portrait there is 1..127; a higher TypeID keeps the whole byte.
+		if face == 0 || member.FigureFace > 255 || e.TypeID < 0x1a && member.FigureFace > 127 {
 			return e, "", fmt.Errorf("actor %d lacks valid Human portrait", e.ID)
 		}
 		if e.TypeID < 0x1a && data.FigureDir(member.FigureDir).Female() {

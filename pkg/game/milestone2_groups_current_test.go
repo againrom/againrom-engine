@@ -5,14 +5,15 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 // This comparator is deliberately separate from the source-time oracle.
 // After a real command, the authoritative expectation is the current World.
-// Only the replaced transport pointer tails still come from the source.
+// The replaced list-pointer words are not compared.
 // An Unavailable marker means the retained Document is NOT a current projection.
-func groups1155CurrentDifferences(source groups1155Source, state *SnapshotSAVDocument, world *sim.World) []string {
+func groups1155CurrentDifferences(_ groups1155Source, state *SnapshotSAVDocument, world *sim.World) []string {
 	var c group1155Comparison
 	if state == nil || state.Document == nil || state.GroupBindings == nil || world == nil {
 		return []string{"current Group Document/bindings absent"}
@@ -162,9 +163,9 @@ func groups1155CurrentDifferences(source groups1155Source, state *SnapshotSAVDoc
 		}
 		want := group1155Raw{selector: g.Selector, ai: make([]byte, 80), words: g.Words, path: g.Path}
 		copy(want.ai, g.AI[:])
-		if !g.Authored && g.ID > 0 && int(g.ID) <= len(source.groups) {
-			copy(want.ai[76:], source.groups[g.ID-1].ai[76:])
-		}
+		// AI bytes 0x4c..0x4f are the word-list pointer; any saved value loads
+		// alike (SAV-1113), so the World-built document is not held to them.
+		pointerWord(state.Document.Objects[row.PlayerObject-1].Groups[row.InlineIndex], "G3C", want.ai, 76)
 		want.reference.Key, want.owner.Key = key(g.Reference, row.Reference), key(g.Owner, row.Owner)
 		members := make([]uint16, len(g.Members))
 		for i, m := range g.Members {
@@ -199,13 +200,6 @@ func groups1155CurrentDifferences(source groups1155Source, state *SnapshotSAVDoc
 	}
 	// The registered producer is Move. Imported active patrol remains a
 	// separate list; no Group Path copy/setter is invoked to manufacture it.
-	archives := map[sim.EntityID]uint16{}
-	for _, e := range world.Entities() {
-		archives[e.ID] = e.SourceBinding.ArchiveIndex
-	}
-	for _, d := range world.OriginalDeadActors() {
-		archives[d.ID] = d.Source.ArchiveIndex
-	}
 	for _, order := range orders {
 		index := actorObjects[order.Entity]
 		if index == 0 {
@@ -217,9 +211,7 @@ func groups1155CurrentDifferences(source groups1155Source, state *SnapshotSAVDoc
 		}
 		want := group1155ActorRaw{state: order.State, patrol: order.Patrol, order: make([]byte, 148)}
 		copy(want.order, order.Raw[:])
-		if raw, found := source.actors[archives[order.Entity]]; found {
-			copy(want.order[144:], raw.order[144:])
-		}
+		pointerWord(state.Document.Objects[index-1], "U158", want.order, 144)
 		// An escort's authored pointer operands need a different producer
 		// oracle; this helper must name that boundary rather than compare stale
 		// raw source pointers with typed current Entity targets.
@@ -314,5 +306,15 @@ func TestCurrentGroupRootObserverRejectsChangedTopology(t *testing.T) {
 				t.Fatal("observer concealed changed Group topology", name)
 			}
 		})
+	}
+}
+
+// pointerWord copies a record's saved list-pointer word into want. LOAD
+// replaces that pointer before reading its list (SAV-1113).
+func pointerWord(record sav.DocumentRecordData, name string, want []byte, at int) {
+	for _, raw := range record.Raw {
+		if raw.Name == name && len(raw.Bytes) >= at+4 {
+			copy(want[at:at+4], raw.Bytes[at:at+4])
+		}
 	}
 }

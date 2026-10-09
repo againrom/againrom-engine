@@ -73,9 +73,13 @@ func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// The World holds no contents for an original terminal actor, so its
+		// root is written with no worn, held, carried or effect object
+		// (DIV-2505).
 		for _, want := range humans {
-			if got := terminalHumanContentsGraph(t, written, want.body.Identity); !reflect.DeepEqual(got, want.graph) {
-				t.Fatalf("cycle %d changed terminal Human %#x contents", cycle, want.body.Identity)
+			got := terminalHumanContentsGraph(t, written, want.body.Identity)
+			if !reflect.DeepEqual(got.Roots, want.graph.Roots) || len(got.Nodes) != 0 {
+				t.Fatalf("cycle %d terminal Human %#x roots %v contents %d", cycle, want.body.Identity, got.Roots, len(got.Nodes))
 			}
 		}
 		cold := releaseFront(t)

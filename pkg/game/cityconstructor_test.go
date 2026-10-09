@@ -51,33 +51,20 @@ func TestCurrentCityMovementMissingDefinitionUsesDefaults(t *testing.T) {
 	}
 }
 
-func TestCurrentCityGraftPreservesExplicitMovement(t *testing.T) {
-	for _, tuple := range [][3]byte{{0, 0, 0}, {7, 2, 0x19}} {
-		source, current := cityGraftFixture(t, false), cityGraftFixture(t, false)
-		old := cityGraftNamed(t, &source, "Leader")
-		index := cityGraftNamed(t, &current, "Leader")
-		mustSetValue(&source.Objects[old-1], "U49", uint32(tuple[0]))
-		mustSetValue(&source.Objects[old-1], "U4A", uint32(tuple[1]))
-		cityGraftRaw(t, &source.Objects[old-1], "U154")[5] = tuple[2]
-		mustSetValue(&current.Objects[index-1], "U49", 1)
-		mustSetValue(&current.Objects[index-1], "U4A", 1)
-		cityGraftRaw(t, &current.Objects[index-1], "U154")[5] = 0x41
-		for cycle := 0; cycle < 2; cycle++ {
-			mergeCityActorResidue(&current.Objects[index-1], &source.Objects[old-1], currentCityActorGraft{})
-			wire, err := sav.EncodeDocumentData(current)
-			if err != nil {
-				t.Fatal(err)
-			}
-			current, err = sav.DecodeDocumentData(wire)
-			if err != nil {
-				t.Fatal(err)
-			}
-			index = cityGraftNamed(t, &current, "Leader")
-			r := &current.Objects[index-1]
-			if cityGraftValue(t, r, "U49") != uint32(tuple[0]) || cityGraftValue(t, r, "U4A") != uint32(tuple[1]) || cityGraftRaw(t, r, "U154")[5] != tuple[2] {
-				t.Fatal("constructor replaced explicitly saved movement", cycle, tuple)
-			}
-		}
+func TestCurrentCityGraftMovementComesFromConstructor(t *testing.T) {
+	source, current := cityGraftFixture(t, false), cityGraftFixture(t, false)
+	old := cityGraftNamed(t, &source, "Leader")
+	index := cityGraftNamed(t, &current, "Leader")
+	mustSetValue(&source.Objects[old-1], "U49", 7)
+	mustSetValue(&source.Objects[old-1], "U4A", 2)
+	cityGraftRaw(t, &source.Objects[old-1], "U154")[5] = 0x19
+	mustSetValue(&current.Objects[index-1], "U49", 1)
+	mustSetValue(&current.Objects[index-1], "U4A", 1)
+	cityGraftRaw(t, &current.Objects[index-1], "U154")[5] = 0x41
+	mergeCityActorResidue(&current.Objects[index-1], &source.Objects[old-1], currentCityActorGraft{}, unknownRecordSpans())
+	r := &current.Objects[index-1]
+	if cityGraftValue(t, r, "U49") != 1 || cityGraftValue(t, r, "U4A") != 1 || cityGraftRaw(t, r, "U154")[5] != 0x41 {
+		t.Fatal("loaded town movement replaced the constructed movement")
 	}
 }
 

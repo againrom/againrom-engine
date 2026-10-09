@@ -1223,6 +1223,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	w.settleCostWindow()
 	w.syncAreaCosts()
 
+	w.releaseHeldOrders()
 	if w.hasSessionClock {
 		w.endSessionTick(tr)
 	} else {
@@ -1620,6 +1621,9 @@ func (w *World) restoreAfterHealthGain(i int, before int32) {
 	}
 	e.clearDecay()
 	e.setCurrentDefence(e.Defence << 1)
+	if e.HeldOrder.Kind == HeldOrderFrozen {
+		e.HeldOrder = HeldOrder{}
+	}
 }
 
 // deathGold performs the Units-row death roll (HERO-KILL-027). Only type ids

@@ -31,23 +31,9 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 		}
 	}
 	// The World drops an attack target that names a body below the targetable
-	// floor. Until the World advances past the restore, such an order keeps the
-	// loaded Document's bytes, so
-	// a save before the first tick does not turn a restored order into a
-	// half-cleared one.
-	restored := state.ActionTickSet && state.ActionTick == world.Tick()
-	onBody := func(key uint32) bool {
-		if key == 0 {
-			return false
-		}
-		for _, a := range state.Actors {
-			if id, _ := savedStructureValue(&state.Document.Objects[a.ObjectIndex-1], "Identity"); id == key {
-				body, present := byID[a.EntityID]
-				return present && !body.OrdinaryTargetable()
-			}
-		}
-		return false
-	}
+	// floor. Until the World advances past the restore, it holds the order
+	// words the LOAD read, so a save before the first tick does not turn a
+	// restored order into a half-cleared one.
 	for _, b := range state.Actors {
 		if b.Retired {
 			continue
@@ -70,17 +56,27 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 		savedObjectSetValue(r, "U40", credit)
 		savedObjectSetValue(r, "U48", uint32(uint8(e.KillCreditSpell)))
 		if !e.Alive() && !e.Dying() {
+			if frozen := e.HeldOrder; frozen.Kind == sim.HeldOrderFrozen {
+				mustSetRaw(r, "U58", binary.LittleEndian.AppendUint32(nil, frozen.Phase))
+				savedObjectSetValue(r, "U136", frozen.Complete)
+			}
 			continue
 		}
-		keepLoadedOrder := false
-		if restored && !e.HasAttackTarget && !e.HasPendingAttackTarget && !e.Retreat.Known && e.PendingOrder.Kind == sim.PendingNone {
-			loadedTarget, _ := savedStructureValue(r, "U5C")
-			loadedPhase, err := savedMotionRaw(r, "U58", 4)
+		bodyOrder := e.HeldOrder
+		keepLoadedOrder := bodyOrder.Kind == sim.HeldOrderBody
+		if keepLoadedOrder {
+			body, present := byID[bodyOrder.Target]
+			keepLoadedOrder = present && !body.OrdinaryTargetable() && !e.HasAttackTarget && !e.HasPendingAttackTarget && !e.Retreat.Known && e.PendingOrder.Kind == sim.PendingNone
+		}
+		if keepLoadedOrder {
+			bodyKey, err := currentActionTargetKey(state, world, bodyOrder.Target, sim.AttackTargetUnit)
 			if err != nil {
-				return err
+				return worldSaveUnsupportedf("actor %d restored order: %v", e.ID, err)
 			}
-			phaseWord := binary.LittleEndian.Uint32(loadedPhase)
-			keepLoadedOrder = onBody(loadedTarget) && (phaseWord == 5 || phaseWord == 7)
+			mustSetRaw(r, "U58", binary.LittleEndian.AppendUint32(nil, bodyOrder.Phase))
+			savedObjectSetValue(r, "U5C", bodyKey)
+			savedObjectSetValue(r, "U6C", bodyOrder.Countdown)
+			savedObjectSetValue(r, "U136", bodyOrder.Complete)
 		}
 		key, phase, complete := uint32(0), uint32(0), uint32(0)
 		if e.HasAttackTarget || e.Retreat.Known {
@@ -291,6 +287,34 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		byIDForTargeting[e.ID] = e
 	}
 	var batch []sim.OriginalActorAction
+	held := map[sim.EntityID]sim.HeldOrder{}
+	bodyKeys := map[uint32]sim.EntityID{}
+	for _, d := range ms.World.OriginalDeadActors() {
+		if _, actor := byKey[d.Source.Identity]; !actor && d.Source.Identity != 0 {
+			bodyKeys[d.Source.Identity] = d.ID
+		}
+	}
+	// A dead actor's order words stay as loaded: no order machine runs on it.
+	// A late corpse has no action record; its frozen words are read here.
+	freeze := func(id sim.EntityID, phase, complete uint32) {
+		if e, ok := byIDForTargeting[id]; ok && !e.Alive() && !e.Dying() && (phase != 0 || complete != 0) {
+			held[id] = sim.HeldOrder{Kind: sim.HeldOrderFrozen, Phase: phase, Complete: complete}
+		}
+	}
+	for i := range state.Document.Objects {
+		r := &state.Document.Objects[i]
+		key, err := savedStructureValue(r, "Identity")
+		body, ok := bodyKeys[key]
+		if err != nil || !ok || r.Class != "Human" && r.Class != "Unit" {
+			continue
+		}
+		phase, err := savedMotionRaw(r, "U58", 4)
+		if err != nil {
+			return err
+		}
+		complete, _ := savedStructureValue(r, "U136")
+		freeze(body, binary.LittleEndian.Uint32(phase), complete)
+	}
 	for _, b := range state.Actors {
 		r := &state.Document.Objects[b.ObjectIndex-1]
 		value := func(name string) uint32 { v, _ := savedStructureValue(r, name); return v }
@@ -335,8 +359,13 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 			a.ActorState, a.PostX, a.PostY = uint8(v), int32(order[0]), int32(order[1])
 		}
 		action, phase := binary.LittleEndian.Uint32(actionRaw), binary.LittleEndian.Uint32(phaseRaw)
+		freeze(b.EntityID, phase, value("U136"))
 		if action == 0 || action == 1 || action == 2 || action == 3 {
 			a.Target, a.HasTarget = byKey[value("U5C")]
+			if body, ok := bodyKeys[value("U5C")]; ok && !a.HasTarget && (phase == 5 || phase == 7) {
+				// A late corpse has no action record; its order stays on the body.
+				holdBodyOrder(held, byIDForTargeting, b.EntityID, body, phase, value("U6C"), value("U136"))
+			}
 			if a.HasTarget && a.Target == b.EntityID {
 				// A boundary-phase idle actor (AreaDamage1164/1111/1170 corpus
 				// fixtures, witnessed at full HP with U54=U58=U6C=0) carries its
@@ -370,6 +399,9 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 					// already carried this body past the finishing-blow floor;
 					// no live attacker keeps a real order on it. Same normal-
 					// isation as the self-reference case above.
+					if ok && (phase == 5 || phase == 7) {
+						holdBodyOrder(held, byIDForTargeting, b.EntityID, a.Target, phase, value("U6C"), value("U136"))
+					}
 					a.HasTarget = false
 				}
 			}
@@ -403,6 +435,19 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 	if err := ms.World.ImportOriginalActorActions(batch); err != nil {
 		return err
 	}
-	state.ActionTick, state.ActionTickSet = ms.World.Tick(), true
-	return nil
+	rows := make([]sim.HeldOrderRecord, 0, len(held))
+	for _, e := range ms.World.Entities() {
+		if o, ok := held[e.ID]; ok {
+			rows = append(rows, sim.HeldOrderRecord{ID: e.ID, Order: o})
+		}
+	}
+	return ms.World.RestoreHeldOrders(rows)
+}
+
+// holdBodyOrder keeps a live actor's order on a body the World does not
+// target until the World advances.
+func holdBodyOrder(held map[sim.EntityID]sim.HeldOrder, byID map[sim.EntityID]sim.Entity, id, body sim.EntityID, phase, countdown, complete uint32) {
+	if e, ok := byID[id]; ok && (e.Alive() || e.Dying()) {
+		held[id] = sim.HeldOrder{Kind: sim.HeldOrderBody, Target: body, Phase: phase, Countdown: countdown, Complete: complete}
+	}
 }

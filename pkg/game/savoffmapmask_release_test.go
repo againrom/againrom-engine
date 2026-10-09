@@ -50,6 +50,8 @@ func TestGeneratedMissionSAVOffMapActorHasNoPublicationRecipient(t *testing.T) {
 	}
 }
 
+// An actor's recipient mask is written by the SAV-1093/SAV-678 rule from the
+// current off-map state; a loaded record's other mask is not carried (DIV-2503).
 func TestGeneratedMissionSAVRetainsLoadedOffMapRecipientMask(t *testing.T) {
 	f := releaseFront(t)
 	if err := f.App("off-map mask source").OpenMission(f.MissionOpenerWith(141, MissionParty(nil, nil, nil))); err != nil {
@@ -121,8 +123,8 @@ func TestGeneratedMissionSAVRetainsLoadedOffMapRecipientMask(t *testing.T) {
 		if id == 106 {
 			flags, _ := savedStructureValue(r, "U4C")
 			mask, err := savedStructureValue(r, "T18")
-			if err != nil || flags&sav.ActorOffMapFlag == 0 || mask != 2 {
-				t.Fatalf("loaded off-map map unit 106 has U4C=%#x T18=%d, err=%v; want source mask 2", flags, mask, err)
+			if err != nil || flags&sav.ActorOffMapFlag == 0 || mask != 0 {
+				t.Fatalf("loaded off-map map unit 106 has U4C=%#x T18=%d, err=%v; want the off-map mask 0", flags, mask, err)
 			}
 			return
 		}

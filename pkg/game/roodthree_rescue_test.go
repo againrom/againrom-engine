@@ -23,20 +23,27 @@ func ownerRoodRecord(t *testing.T, doc sav.DocumentData) *sav.DocumentRecordData
 		if r.Class != "Human" {
 			continue
 		}
-		unit, _ := savedStructureValue(r, "T08")
-		identity, _ := savedStructureValue(r, "Identity")
-		if unit != 443 || identity != 1358956592 {
+		// A party actor's Identity is the key the writer gives it, so Rood
+		// is found by his map placement.
+		if unit, _ := savedStructureValue(r, "T08"); unit != 443 {
 			continue
 		}
 		if found != nil {
-			t.Fatal("owner SAV repeats Rood's actor identity")
+			t.Fatal("owner SAV repeats Rood's actor")
 		}
 		found = r
 	}
 	if found == nil {
-		t.Fatal("owner SAV has no Rood actor identity")
+		t.Fatal("owner SAV has no Rood actor")
 	}
 	return found
+}
+
+// ownerRoodRooted reports whether a DeadActors root names Rood's record.
+func ownerRoodRooted(t *testing.T, doc sav.DocumentData) bool {
+	t.Helper()
+	identity, _ := savedStructureValue(ownerRoodRecord(t, doc), "Identity")
+	return slices.Contains(roodRootKeys(t, doc), identity)
 }
 
 func ownerRoodPartyEntity(t *testing.T, f *FrontEnd) sim.Entity {
@@ -77,7 +84,7 @@ func requireRoodSAV(t *testing.T, phase string, raw []byte, hp int32, stage uint
 		t.Fatal(err)
 	}
 	actor := ownerRoodRecord(t, doc)
-	if slices.Contains(roodRootKeys(t, doc), uint32(1358956592)) {
+	if ownerRoodRooted(t, doc) {
 		t.Fatalf("%s SAV roots Rood in DeadActors", phase)
 	}
 	for field, want := range map[string]uint32{"Health": uint32(uint16(hp)), "Stage": stage} {
@@ -349,7 +356,7 @@ func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
 				t.Fatal(err)
 			}
 			inputRecord := ownerRoodRecord(t, inputDoc)
-			if slices.Contains(roodRootKeys(t, inputDoc), uint32(1358956592)) {
+			if ownerRoodRooted(t, inputDoc) {
 				t.Fatal("joined Rood is still a DeadActors root")
 			}
 			for field, want := range map[string]uint32{"Health": tc.hp, "Stage": 1, "RuntimeID": 125} {
@@ -390,7 +397,7 @@ func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
 				t.Fatal(err)
 			}
 			writtenRood := ownerRoodRecord(t, writtenDoc)
-			if slices.Contains(roodRootKeys(t, writtenDoc), uint32(1358956592)) {
+			if ownerRoodRooted(t, writtenDoc) {
 				t.Fatal("SAVE rooted the living party Rood as dead")
 			}
 			for field, want := range map[string]uint32{"Health": uint32(guarding.HP), "Stage": 0} {

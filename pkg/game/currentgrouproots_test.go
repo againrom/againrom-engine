@@ -169,8 +169,10 @@ func TestCurrentPartialGraphRootsOnlyMissingActors(t *testing.T) {
 		t.Fatal("zero entity identity or distinct actor root lost", rootRefs, refs, state.Actors)
 	}
 	players := state.Document.Players
-	if players[len(players)-2] != 0 || players[len(players)-1] != players[0] {
-		t.Fatal("completion changed repeated Player roots", players)
+	// The Player list is built from the World's Players: a null or repeated
+	// root that only the loaded document held is not carried forward.
+	if len(players) != len(state.GroupBindings.Players) || slices.Contains(players, 0) {
+		t.Fatal("Player roots are not the current Players", players)
 	}
 	if err := projectSavedGroups(state, w); err != nil || state.GroupBindings.Unavailable != "" {
 		t.Fatal("repeated projection lost actor roots", err, state.GroupBindings.Unavailable)

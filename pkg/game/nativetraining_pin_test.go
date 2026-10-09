@@ -10,6 +10,7 @@ import (
 
 func beforeNativeTrainingForm(t *testing.T, form []byte) []byte {
 	t.Helper()
+	form = beforeHeldOrderForm(t, form)
 	// A held pursuit search wraps any earlier form; an earlier form never
 	// held one, so its peel drops the records.
 	if end := len(form); end > 0 && form[0] == 117 {

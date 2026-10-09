@@ -113,6 +113,11 @@ func projectSavedDiaries(state *SnapshotSAVDocument, world *sim.World) error {
 	for _, d := range world.SavedDiaries() {
 		r := records[d.Owner]
 		if r == nil {
+			// A departed actor with no written record takes its Diary with
+			// it (DIV-2501); a live owner must have its record.
+			if _, live := world.Entity(d.Owner.Actor); !d.Owner.Player && !live {
+				continue
+			}
 			return worldSaveUnsupportedf("current Diary owner has no exact object binding")
 		}
 		next, err := sav.ProjectDocumentDiary(*r, sav.Diary{Length: d.Length, Entries: savedDiaryEntriesToSav(d.Entries)})

@@ -180,6 +180,9 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err := projectWorldEffectOrder(&doc, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
+	if err := graftUnknownObjects(&doc, state, s.loadedDocument, &world); err != nil {
+		return sav.DocumentData{}, err
+	}
 	projectCurrentTerrain(&doc, &world, fresh)
 	if err := projectTerminalActorRegistry(&doc, removed); err != nil {
 		return sav.DocumentData{}, err

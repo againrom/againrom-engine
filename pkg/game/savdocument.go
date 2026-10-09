@@ -41,11 +41,6 @@ type SnapshotSAVDocument struct {
 	Objects       *SnapshotSAVObjectBindings
 	ActorEffects  *SnapshotSAVActorEffects
 	WorldEffects  *SnapshotSAVWorldEffects
-	// ActionTick is the World tick at which the actor orders were restored
-	// from the loaded Document. While the World is still at that tick, an
-	// order field the World holds no value for keeps the loaded bytes.
-	ActionTick    uint64
-	ActionTickSet bool
 }
 
 // ObjectIndex is the DTO's local index, NOT SourceBinding.ArchiveIndex. A
@@ -117,7 +112,7 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 	if err != nil {
 		return nil, err
 	}
-	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects, ActionTick: src.ActionTick, ActionTickSet: src.ActionTickSet}
+	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects}
 	if err := remapSavedSackDocument(out, permutation); err != nil {
 		return nil, err
 	}

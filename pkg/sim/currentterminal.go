@@ -8,12 +8,15 @@ import (
 // CurrentTerminalActor is a departed native actor's tuple; not OriginalDeadActor.
 // MapUnitID is the authored placement it had, 0 for none; a LOAD that no longer
 // constructs the placement rebinds script references to the row through it.
+// Worn has bit k set when equipment slot k still held an item at departure; a
+// SAVE writes those items of the placement on the departed actor's record.
 type CurrentTerminalActor struct {
 	ID        EntityID
 	Cell      uint16
 	HP        int32
 	Stage     uint8
 	MapUnitID uint16 `json:",omitempty"`
+	Worn      uint16 `json:",omitempty"`
 }
 
 // CurrentTerminalActors returns terminal rows in ID order.
@@ -98,6 +101,12 @@ func (w *World) importCurrentTerminalActors(batch []CurrentTerminalActor, replac
 	for _, row := range rows {
 		if !next.hasCurrentTerminalActor(row) {
 			next.currentTerminalActors = append(next.currentTerminalActors, row)
+			continue
+		}
+		for i := range next.currentTerminalActors {
+			if held := &next.currentTerminalActors[i]; held.ID == row.ID && row.Worn != 0 {
+				held.Worn = row.Worn
+			}
 		}
 	}
 	slices.SortFunc(next.currentTerminalActors, func(a, b CurrentTerminalActor) int {
@@ -125,7 +134,7 @@ func currentTerminalActorsFault(rows []CurrentTerminalActor, bounds Bounds) erro
 	seen := map[EntityID]bool{}
 	for i, row := range rows {
 		if seen[row.ID] || i > 0 && rows[i-1].ID >= row.ID ||
-			row.HP >= decayGoneHP || row.Stage > consumedCorpseStage ||
+			row.HP >= decayGoneHP || row.Stage > consumedCorpseStage || row.Worn >= 1<<EquipSlots ||
 			int32(row.Cell&255) >= bounds.Width || int32(row.Cell>>8) >= bounds.Height {
 			return fmt.Errorf("sim: invalid current terminal actor %d", row.ID)
 		}
@@ -137,6 +146,7 @@ func currentTerminalActorsFault(rows []CurrentTerminalActor, bounds Bounds) erro
 func (w *World) hasCurrentTerminalActor(want CurrentTerminalActor) bool {
 	for _, row := range w.currentTerminalActors {
 		if row.ID == want.ID {
+			row.Worn, want.Worn = 0, 0
 			return row == want
 		}
 	}

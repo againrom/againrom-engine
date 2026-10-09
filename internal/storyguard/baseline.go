@@ -1920,6 +1920,12 @@ package storyguard
 // New native effect-mask controls document their attachment and expiry inputs in
 // sim/nativeeffectmask_test.go and game/savactoreffectcurrent_test.go. This measure
 // includes that new-code documentation and this explanation.
+// CommentBytes rises for the World-built SAVE: the docs of the unknown-span
+// graft, the departed-actor and departed-member bodies, the original world
+// spell effects, the restored and frozen order carriers, the joined actor
+// identity, the town option carrier and the loaded-document census and
+// loss-control tests, and of the World's held orders, the graft's held
+// bases and the consumed-corpse held-byte control, including this paragraph.
 // The pursuit search adds new code documented in pkg/sim/pursuitsearch.go,
 // pickerb.go, pursuitsearchbinary.go and their tests, and the release drives
 // it moved document their new set-ups, as do the structure-order, remap and
@@ -1984,5 +1990,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8535364,
+	CommentBytes: 8552536,
 }

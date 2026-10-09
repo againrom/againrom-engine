@@ -52,6 +52,9 @@ type Snapshot struct {
 	// knowledge is the town's carried Player Diary at capture (UNIT-148,
 	// SAV-847). The town SAV writes it into the Player's Diary record.
 	knowledge []sim.SavedDiary
+	// townOptions are the loaded town's option and view leaves, captured with
+	// the Snapshot as a mission captures its application state.
+	townOptions []sav.CityStateRecordData
 	// NativeMissionTerrain requests the original writer's own scoped
 	// block-plane row set (a delta inside its own sweep window, only where
 	// a cell's dynamic byte exceeds the ingested baseline) instead of the
@@ -68,6 +71,9 @@ type Snapshot struct {
 	// the World so a later save cannot substitute another mission's template.
 	// Nil on older checkpoints uses the installed mission constructor.
 	ghost *sim.GhostTemplate
+	// loadedDocument is the loaded document while the writer replaces
+	// SavedDocument with the World-built one; only unknown spans read it.
+	loadedDocument *SnapshotSAVDocument
 	// Current mission actor labels bind the ordered entry party and per-actor
 	// derive inputs. They are captured with World, never inferred from names.
 	CurrentPartyIDs []sim.EntityID

@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -86,7 +85,7 @@ func TestReleaseHealedActorSAVUsesCurrentStage(t *testing.T) {
 		t.Fatal(err)
 	}
 	object, writtenIdentity := roodDocumentActor(t, written)
-	if writtenIdentity != identity || !reflect.DeepEqual(roodGroupRecord(t, sourceDoc), roodGroupRecord(t, written)) {
+	if writtenIdentity != identity || roodComparable(sourceDoc, roodGroupRecord(t, sourceDoc)) != roodComparable(written, roodGroupRecord(t, written)) {
 		t.Fatal("SAVE changed Rood's actor identity or Group")
 	}
 	requireRoodPlacement(t, written, int16(rood.HP), 0, false)

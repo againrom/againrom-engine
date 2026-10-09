@@ -17,11 +17,13 @@ import (
 )
 
 // A mission SAVE taken after creatures have died and their bodies have left
-// the world is loaded with fewer placements than the ids were minted from, so
-// an entity's id no longer indexes its own placement. Each creature must still
-// carry the sheet of its own placement: on mission 10 three creatures stood
-// after such a load with the person sheet Body 30, Reaction 25, Mind 25,
-// Spirit 25 where their own is Body 5, Reaction 60, Mind 1, Spirit 2.
+// the world writes each departed creature's terminal record (DIV-2501), so
+// the LOAD keeps every placement and the departed creatures stay gone. Each
+// standing creature must carry the sheet of its own placement. A load that
+// withdraws placements, where an entity's id no longer indexes its own
+// placement, is the owner-save case below: on mission 10 three creatures
+// stood after such a load with the person sheet Body 30, Reaction 25, Mind
+// 25, Spirit 25 where their own is Body 5, Reaction 60, Mind 1, Spirit 2.
 //
 // The state is reached through ordinary input (the selection, the attack key
 // and a click on the target, a click on the ground) and ordinary ticks; each
@@ -75,7 +77,15 @@ func TestReleaseLoadedCreaturesKeepTheirSheets(t *testing.T) {
 
 	path, _ := writeOrdinarySAV(t, f, "loaded-sheets.sav")
 	g, b, cold := placedSpeakerLoad(t, filepath.Dir(path), filepath.Base(path))
-	compareLoadedSheets(t, g, fresh, b, cold, "mission 10 after LOAD", true)
+	if n := len(cold.mission.state.Map.Units); n != len(fresh) {
+		t.Fatalf("the load kept %d placements of %d; a departed creature's record keeps its placement", n, len(fresh))
+	}
+	for _, target := range gone {
+		if e, ok := cold.entity(target); ok && e.Alive() {
+			t.Fatalf("departed creature %d stands again after LOAD", target)
+		}
+	}
+	compareLoadedSheets(t, g, fresh, b, cold, "mission 10 after LOAD", false, true)
 }
 
 // The owner's mission-10 save is a real file whose load withdraws placements
@@ -118,10 +128,10 @@ func TestReleaseOwnerSaveCreaturesKeepTheirSheets(t *testing.T) {
 	}
 	fresh := readPlacedSheets(t, a, f.live, "fresh mission 10")
 
-	compareLoadedSheets(t, g, fresh, b, loaded, "owner save", false)
+	compareLoadedSheets(t, g, fresh, b, loaded, "owner save", false, false)
 	resaved, _ := writeOrdinarySAV(t, g, "owner-resaved.sav")
 	h, c, cold := placedSpeakerLoad(t, filepath.Dir(resaved), filepath.Base(resaved))
-	compareLoadedSheets(t, h, fresh, c, cold, "owner save after SAVE and LOAD", false)
+	compareLoadedSheets(t, h, fresh, c, cold, "owner save after SAVE and LOAD", false, false)
 }
 
 // placedSheetRead is what one placed actor of a mission states: the sheet its
@@ -209,11 +219,12 @@ func readPlacedSheets(t *testing.T, a *ui.App, live *mapWorld, when string) map[
 // creatures at another index than their entity id. When tellsPairingsApart is
 // set, an index-keyed lookup over that map, computed here from the map-loading
 // tier's own sheets, must also name another placement's sheet for at least
-// three creatures and ten hovered cards must match at equal health.
-func compareLoadedSheets(t *testing.T, g *FrontEnd, fresh map[uint16]placedSheetRead, a *ui.App, live *mapWorld, when string, tellsPairingsApart bool) {
+// three creatures and ten hovered cards must match at equal health. When kept
+// is set, the load keeps every placement and only the sheets are compared.
+func compareLoadedSheets(t *testing.T, g *FrontEnd, fresh map[uint16]placedSheetRead, a *ui.App, live *mapWorld, when string, tellsPairingsApart, kept bool) {
 	t.Helper()
 	m := live.mission.state.Map
-	if len(m.Units) >= len(fresh) {
+	if !kept && len(m.Units) >= len(fresh) {
 		t.Fatalf("%s: the load kept %d placements of %d; nothing was withdrawn", when, len(m.Units), len(fresh))
 	}
 	byIndex := mapload.PlacedSheets(m, g.Table)
@@ -265,7 +276,7 @@ func compareLoadedSheets(t *testing.T, g *FrontEnd, fresh map[uint16]placedSheet
 	}
 	t.Logf("%s: %d persons and %d creatures read; %d creatures placed at another index than their entity id, %d of them named by that id as another placement's sheet; %d hovered cards compared at equal health",
 		when, persons, creatures, moved, indexWrong, cards)
-	if persons < 10 || creatures < 10 || moved < 3 {
+	if persons < 10 || creatures < 10 || !kept && moved < 3 {
 		t.Errorf("%s: %d persons, %d creatures, %d moved: too few to discriminate", when, persons, creatures, moved)
 	}
 	if tellsPairingsApart && (indexWrong < 3 || cards < 10) {
