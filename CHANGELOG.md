@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Images and sounds are read by one decoder per file format. Nothing
+  on screen or in the sound changes.
+
 ## 0.102.0
 
 - [ROM2] The town inn offers its missions and talk at stages 40 to 110 once
