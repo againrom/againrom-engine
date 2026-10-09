@@ -47,7 +47,7 @@ func actorEffectFixture(t *testing.T) (*FrontEnd, *Mission) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,14 +1,12 @@
 package game
 
 import (
+	"againrom/pkg/sim"
 	"encoding/binary"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
-
-	"againrom/pkg/mapload"
-	"againrom/pkg/sim"
 )
 
 // Literal fixture-writer offsets, not values emitted by the importer. The
@@ -79,7 +77,7 @@ func firstGroupPass1113(t *testing.T, w *sim.World) {
 func TestSavedGroups1113BothDoorsOrdinaryMenuFreshLoadAndNextAction(t *testing.T) {
 	payload := savedGroupPayload1113()
 	f := actorRegistryFront1111(t)
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +209,7 @@ func TestSavedGroups1113IncomingEscortBothDoorsFreshSaveNextStep(t *testing.T) {
 		}{{1006, 3}, {1007, 33}} {
 			payload := savedEscortPayload1113(state, target.key)
 			f := actorRegistryFront1111(t)
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+			ms, _, err := loadOriginalMission(f, payload)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -289,7 +287,7 @@ func TestSavedGroups1113IncomingEscortBothDoorsFreshSaveNextStep(t *testing.T) {
 func TestSavedGroups1113IncomingEscortMissingKeyDoesNotBorrowID(t *testing.T) {
 	for _, key := range []uint32{0, 2, 3, 900, 502, 0xdeadbeef} {
 		f := actorRegistryFront1111(t)
-		ms, report, err := ResumeOriginalSave(f.Archives.Containers, savedEscortPayload1113(8, key), f.Table, mapload.DifficultyNormal, nil, nil)
+		ms, report, err := loadOriginalMission(f, savedEscortPayload1113(8, key))
 		if err != nil {
 			t.Fatal(err)
 		}

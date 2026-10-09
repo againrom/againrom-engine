@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/formats/textinput"
@@ -494,255 +493,6 @@ func fogForMap(m *alm.Map, g *sav.Fog, r *OriginalSaveResume) *originalFog {
 // originalOccupancyBits are bits 6 and 7 of a block record's runtime byte.
 const originalOccupancyBits = 0xc0
 
-// ResumeOriginalSave starts a campaign mission from a save the ORIGINAL GAME wrote.
-//
-// It reads the save, opens the map the save's mission number names through this
-// tree's own mission-to-map table, applies each matched actor's saved cell and
-// fine position TO THAT MAP'S UNIT RECORD, and then starts the mission through
-// exactly the path a fresh start uses. Nothing downstream of the map decode
-// knows a save was involved: passability, placement, the script compile and the
-// party drop all run as they always do.
-//
-// The transfer is one assignment per axis because the save's head and the map's
-// unit record are the SAME FIXED POINT — cell in the high byte, fine position in
-// the low — so there is no arithmetic between them to get wrong.
-//
-// THE PARTY IS THE SAVE'S OWN, and the party argument is what a save whose
-// walk reads no character falls back to. It was the party outright until
-// this story, which is why a resumed drive reported moved map units beside a
-// freshly minted hero.
-//
-// A save taken between missions is refused, naming why: it carries mission
-// number 0 and a map name left over from the previous mission, so there is
-// nothing to resume and the map name would send a caller to the wrong map.
-func ResumeOriginalSave(fsys entrySource, saved []byte, t *mapload.Table, diff mapload.Difficulty,
-	party []mapload.PartyMember, bodies data.BodyList) (*Mission, OriginalSaveResume, error) {
-	saved = repairLoadedEquipmentRows(saved)
-	if err := validateOriginalGame(saved, tableGame(t)); err != nil {
-		return nil, OriginalSaveResume{}, err
-	}
-	saved, modLayers, err := applyModMark(saved, tableModContext(t))
-	if err != nil {
-		return nil, OriginalSaveResume{}, err
-	}
-	f, err := sav.Open(saved)
-	if err != nil {
-		return nil, OriginalSaveResume{}, err
-	}
-	if _, err := f.Party(); errors.Is(err, sav.ErrSpellbook) {
-		return nil, OriginalSaveResume{}, err
-	}
-	// The save, not the caller's diagnostic flag, owns this campaign choice.
-	diff, err = campaignDifficulty(int64(f.Head.Difficulty))
-	if err != nil {
-		return nil, OriginalSaveResume{}, err
-	}
-	r := OriginalSaveResume{
-		Mission:  int(f.Head.Mission),
-		MapName:  f.Head.MapName,
-		Label:    string(f.Label),
-		HasWorld: f.World != nil,
-		Heads:    len(f.Actors),
-	}
-	session, hasSession, err := originalSessionState(f)
-	if err != nil {
-		return nil, r, err
-	}
-	tails, hasTails, err := originalCellTails(f)
-	if err != nil {
-		return nil, r, err
-	}
-	cellRecords, hasCellRecords, err := originalCellRecords(f)
-	if err != nil {
-		return nil, r, err
-	}
-	spellEffects, hasSpellEffects, err := originalSpellEffects(f)
-	if err != nil {
-		return nil, r, err
-	}
-	projectiles, hasProjectiles, err := originalProjectiles(f)
-	if err != nil {
-		return nil, r, err
-	}
-	// A second, independent PartyWalk, on applyOriginalCellRecords' own
-	// "independent reader" standing: RestoreParty above already walked and
-	// discarded its own *Record, kept only the persistent-filtered, reordered
-	// mapload.PartyMember view a Diary owner cannot be resolved from. Its own
-	// walk error is not fatal here, the same tolerance the f.Party() call at
-	// this function's own top already applies to every non-ErrSpellbook walk
-	// failure: applyOriginalDiaries treats a nil diaryPlayerRec/empty
-	// diaryChars as nothing to carry, not a reason to refuse the whole resume.
-	diaryChars, diaryPlayerRec, _ := f.PartyWalk()
-	for _, p := range f.Players {
-		if p.Participant == 0 {
-			r.Outcome, r.Money = p.Outcome, p.Money
-			break
-		}
-	}
-	if f.Head.Mission == 0 {
-		return nil, r, fmt.Errorf("this save was taken BETWEEN missions: mission number 0, " +
-			"and its map name is the previous mission's")
-	}
-	ground, hasGround, groundUnsupported, err := originalGroundState(f)
-	if err != nil {
-		return nil, r, err
-	}
-	document, origins := decodeSavedDocument(saved)
-	currentStructures, err := readCurrentActions(document.Document)
-	if err != nil {
-		return nil, r, err
-	}
-	graph, err := currentActorGraph(f, document, origins)
-	if err != nil {
-		return nil, r, err
-	}
-	buildings, hasBuildings, err := f.Buildings()
-	if err != nil {
-		return nil, r, err
-	}
-	current := currentActorArchives(graph)
-	pools, err := f.ActorPools(current...)
-	if err != nil {
-		return nil, r, err
-	}
-	profiles, err := f.ActorCurrentProfiles(current...)
-	if err != nil {
-		return nil, r, err
-	}
-	holdings, err := f.ActorHoldings(current...)
-	if err != nil {
-		return nil, r, err
-	}
-	books, err := f.ActorSpellbooks(current...)
-	if err != nil {
-		return nil, r, err
-	}
-	dead, err := f.DeadActors()
-	if err != nil {
-		return nil, r, err
-	}
-	r.HasWorld = hasGround
-	addr, ok := MissionMap(r.Mission)
-	if !ok {
-		return nil, r, fmt.Errorf("mission %d: not a campaign mission number", r.Mission)
-	}
-	if fsys == nil {
-		return nil, r, fmt.Errorf("read %s: no archive", addr)
-	}
-	b, err := fsys.ReadFile(addr)
-	if err != nil {
-		return nil, r, fmt.Errorf("read %s: %w", addr, err)
-	}
-	m, err := alm.Open(b)
-	if err != nil {
-		return nil, r, fmt.Errorf("%s: %w", addr, err)
-	}
-	for _, a := range f.Actors {
-		if a.Dead() {
-			r.Dead++
-		}
-	}
-	if graph.CurrentPopulation {
-		party = nil
-	}
-	restored, report := RestoreParty(f, party, bodies, t)
-	if err := applyModLayers(restored, modLayers, tableModContext(t).Items); err != nil {
-		return nil, r, err
-	}
-	// THE WITHDRAWAL RUNS BEFORE THE JOIN, so a placement a restored character
-	// claims is gone before applyOriginalPositions goes looking for it: the
-	// character carries his own position now and the record would be a second
-	// entity for one person.
-	r.Party = report
-	if graph.CurrentPopulation {
-		retainSavedActorPlacements(m, graph, dead, document)
-	}
-	registry, err := prepareOriginalActorRegistry(m, graph, restored, &r)
-	if err != nil {
-		return nil, r, err
-	}
-	censusOriginalBlocks(m, f, &r)
-	// THE EXPLORED MAP IS COUNTED HERE AND NOT APPLIED, because this entry
-	// point returns a Mission and builds no map screen: the fog plane belongs
-	// to the driver openMission builds, and this path has none. The counted
-	// report is therefore the whole of what a caller here gets, and
-	// FogApplied stays false to say so.
-	readOriginalFog(m, f, &r)
-	ms, err := StartMissionFrom(m, addr, r.Mission, t, diff, restored)
-	if err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalCellTails(ms, tails, hasTails, &r); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalStructuresCurrent(ms, buildings, hasBuildings, t, &r, currentStructures, f); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalCellRecords(ms, cellRecords, hasCellRecords, registry, &r); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalSpellEffects(ms, spellEffects, hasSpellEffects, &r); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalProjectiles(ms, projectiles, hasProjectiles, &r); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalGround(ms, ground, hasGround, groundUnsupported, t, &r); err != nil {
-		return nil, r, err
-	}
-	if err := admitOriginalActorRegistry(ms, registry, t, document); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalDiaries(ms, diaryPlayerRec, diaryChars, &r); err != nil {
-		return nil, r, err
-	}
-	// Actor admission requires an unadvanced construction candidate. Overlay
-	// the saved clocks only afterwards, still before any gameplay or adoption.
-	if err := applyOriginalSession(ms, session, hasSession, &r); err != nil {
-		return nil, r, err
-	}
-	if err := restoreOriginalActors(ms, holdings, pools, books, t, &r, profiles); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalFacings(ms, f.Actors, r.Party.SourceOffsets); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalDeadWithOrigins(ms, dead, &r, document, origins); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalGroups(ms, &r); err != nil {
-		return nil, r, err
-	}
-	if err := importSavedDocument(ms, document, origins); err != nil {
-		return nil, r, err
-	}
-	if err := restoreOriginalRandomState(ms); err != nil {
-		return nil, r, err
-	}
-	if err := importOriginalCellPlanes(ms, fsys); err != nil {
-		return nil, r, err
-	}
-	if err := importSavedSackObjects(ms, ms.savedDocument); err != nil {
-		return nil, r, err
-	}
-	if err := applyOriginalDying(ms, &r); err != nil {
-		return nil, r, err
-	}
-	if err := importOriginalActorEffects(ms); err != nil {
-		return nil, r, err
-	}
-	if err := importOriginalWorldEffects(ms, fsys); err != nil {
-		return nil, r, err
-	}
-	if err := restoreOriginalActions(ms, t); err != nil {
-		return nil, r, err
-	}
-	publishSessionEntry(ms)
-	currentGroups, _, _ := ms.World.SavedGroups()
-	r.GroupsRestored, r.GroupIssues = len(currentGroups), ms.World.SavedGroupIssues()
-	return ms, r, nil
-}
-
 func originalPartyCarriesMapUnit(party []mapload.PartyMember, mapUnitID uint16) bool {
 	for _, p := range party {
 		if p.Saved != nil && p.Saved.MapUnitID == mapUnitID {
@@ -990,13 +740,30 @@ func clearRestoredMissionPosition(party []mapload.PartyMember) {
 // Bind the imported baseline before hired-roster growth can replace its slices.
 // SAV-608 excludes rebuilt hired members from bound-record counts; SAV-609's
 // application map flags come from current state rather than a lazy UI cache.
-func (f *FrontEnd) RestoreOriginal(saved []byte) (ui.MapOpener, bool, error) {
-	open, ok, err := f.restoreOriginal(saved)
-	var inn innArrayError
-	if note := f.Base().Profile.Limits.OriginalSaveRefusal; err != nil && note != "" && errors.As(err, &inn) {
-		err = fmt.Errorf("%w (base %s: %s)", err, f.Base().ID(), note)
+func (f *FrontEnd) RestoreOriginal(saved []byte) (open ui.MapOpener, town bool, err error) {
+	defer func() {
+		var inn innArrayError
+		if note := f.Base().Profile.Limits.OriginalSaveRefusal; err != nil && note != "" && errors.As(err, &inn) {
+			err = fmt.Errorf("%w (base %s: %s)", err, f.Base().ID(), note)
+		}
+	}()
+	saved = repairLoadedEquipmentRows(saved)
+	if err := validateOriginalGame(saved, f.Base().Profile.GameOf()); err != nil {
+		return nil, false, err
 	}
-	return open, ok, err
+	src, err := decodeOriginalSource(saved, f.modContext(), f.Campaign.Value())
+	if err != nil {
+		return nil, false, err
+	}
+	selectedMarkers, err := f.campaign().selectedMarkers(f, src)
+	if err != nil {
+		return nil, false, err
+	}
+	in := f.originalInstall()
+	if src.campaign.mission == 0 {
+		return f.restoreOriginalTown(src, in, selectedMarkers)
+	}
+	return f.restoreOriginalMission(src, in, selectedMarkers)
 }
 
 // originalCampaignDecode is what an original SAV says about the campaign: the
@@ -1102,29 +869,6 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 	}
 	return &originalCampaignDecode{difficulty: difficulty, mission: n, town: restoredTown, progress: restoredProgress,
 		session: currentSession, actions: currentActions, document: currentDocument, quickSpells: quickSpells}, nil
-}
-
-// restoreOriginal is RestoreOriginal without the base profile's limit note.
-// It decodes the file from plain values, then hands a between-mission save to
-// a detached session and a mission save to the mission opener.
-func (f *FrontEnd) restoreOriginal(saved []byte) (ui.MapOpener, bool, error) {
-	saved = repairLoadedEquipmentRows(saved)
-	if err := validateOriginalGame(saved, f.Base().Profile.GameOf()); err != nil {
-		return nil, false, err
-	}
-	src, err := decodeOriginalSource(saved, f.modContext(), f.Campaign.Value())
-	if err != nil {
-		return nil, false, err
-	}
-	selectedMarkers, err := f.campaign().selectedMarkers(f, src)
-	if err != nil {
-		return nil, false, err
-	}
-	in := f.originalInstall()
-	if src.campaign.mission == 0 {
-		return f.restoreOriginalTown(src, in, selectedMarkers)
-	}
-	return f.restoreOriginalMission(src, in, selectedMarkers)
 }
 
 // restoreOriginalTown installs the between-mission game an original SAV

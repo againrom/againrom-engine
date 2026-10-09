@@ -30,7 +30,7 @@ func TestReleaseOriginalClock1112NaturalBothDoorsSaveFreshAndNextPhase(t *testin
 			if binary.LittleEndian.Uint32(source.Body[:4]) != tc.sub || binary.LittleEndian.Uint32(source.Body[4:8]) != tc.full {
 				t.Fatal("independent head anchors changed")
 			}
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -95,7 +95,7 @@ func naturalPhase6Clock1112(t *testing.T) {
 	if binary.LittleEndian.Uint32(source.Body[:4]) != 372 || binary.LittleEndian.Uint32(source.Body[4:8]) != 23 {
 		t.Fatal("natural phase6 head anchors changed")
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

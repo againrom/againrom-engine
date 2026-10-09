@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 // DIV-968
@@ -95,9 +94,9 @@ func TestUnitResidualCorpusAudit1138(t *testing.T) {
 				}
 			}
 
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			for _, e := range ms.World.Entities() {
 				if e.MapUnitID == 0 {

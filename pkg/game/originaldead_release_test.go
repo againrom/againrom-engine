@@ -57,7 +57,7 @@ func TestReleaseOriginalDead1100ExactFiveActorsBothDoorsAndNativeContinuation(t 
 	if w.Tick() != rawSavedSubTick1112(t, payload) {
 		t.Fatal("import advanced before publication")
 	}
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.CorpsesRestored != 2 || report.TerminalRestored != 3 {
 		t.Fatalf("diagnostic door: %+v %v", report, err)
 	}
@@ -148,7 +148,7 @@ func TestReleaseOriginalDead1100TerminalUnitWeaponsRemainInert(t *testing.T) {
 	w := f.live.world
 	assertDeadWorld1100(t, w, want)
 	assertTerminalWeapons1100(t, w, source.Body)
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, payload)
 	if err != nil || report.CorpsesRestored != 20 || report.TerminalRestored != 2 {
 		t.Fatalf("diagnostic door: %+v %v", report, err)
 	}

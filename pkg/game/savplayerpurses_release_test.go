@@ -71,7 +71,7 @@ func TestReleaseOriginalPlayerPurses1115NativeContinuation(t *testing.T) {
 			}
 		}
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

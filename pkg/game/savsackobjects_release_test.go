@@ -54,7 +54,7 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 		}
 		return goldID
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal("low-level original LOAD", err)
 	}

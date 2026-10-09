@@ -45,7 +45,7 @@ func projectile1157App(t *testing.T, raw []byte, front func() *FrontEnd) {
 	f := front()
 	f.SetDeterministicFrames(true)
 	// Test the initial retained Document before any Snapshot projection.
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, report, err := loadOriginalMission(f, raw)
 	if err != nil || report.ProjectilesApplied != want.present {
 		t.Fatal("direct resume/presence", report.ProjectilesApplied, want.present, err)
 	}

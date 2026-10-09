@@ -147,7 +147,7 @@ func TestActorRegistry1111PersistentAliasesBothDoorsNativeNextAction(t *testing.
 				group = 2
 			}
 			f := aliasFront1111(t)
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, savedContainer(body), f.Table, mapload.DifficultyNormal, nil, nil)
+			ms, report, err := loadOriginalMission(f, savedContainer(body))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -229,7 +229,7 @@ func TestActorRegistry1111AliasFinalPlayerOwnerAndCityProjection(t *testing.T) {
 	if len(party) != 1 || !party[0].StartingHero || report.LeadRule != LeadNamed || !reflect.DeepEqual(report.SourceOffsets, []int{a.off}) {
 		t.Fatal("shared restore disagrees with source projection", party, report)
 	}
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, savedContainer(body), f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, _, err := loadOriginalMission(f, savedContainer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestActorRegistry1111AliasLateFailuresKeepBindings(t *testing.T) {
 			} else {
 				bad[actors[2].off+510] = 0
 			}
-			if _, _, err := ResumeOriginalSave(f.Archives.Containers, savedContainer(bad), f.Table, mapload.DifficultyNormal, nil, nil); err == nil {
+			if _, _, err := loadOriginalMission(f, savedContainer(bad)); err == nil {
 				t.Fatal("diagnostic door admitted late invalid distinct actor")
 			}
 			open, _, err := f.RestoreOriginal(savedContainer(bad))

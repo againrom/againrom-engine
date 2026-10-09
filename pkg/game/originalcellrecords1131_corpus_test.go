@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -73,9 +72,9 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 				want[c.Key] = c
 			}
 
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			if !report.CellRecordsApplied {
 				t.Fatal("cell records were not applied")

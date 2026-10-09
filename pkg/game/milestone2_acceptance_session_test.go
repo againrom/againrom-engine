@@ -4,8 +4,6 @@ package game
 
 import (
 	"testing"
-
-	"againrom/pkg/mapload"
 )
 
 // Session-block sub-region byte offsets, this instrument's own transcription
@@ -69,7 +67,7 @@ func TestMilestone2SessionBlock(t *testing.T) {
 		if w == nil {
 			t.Fatal("mf.present true but sav.File.World is nil")
 		}
-		ms, _, err := ResumeOriginalSave(fe.Archives.Containers, mf.raw, fe.Table, mapload.DifficultyNormal, nil, fe.Bodies)
+		ms, _, err := loadOriginalMission(fe, mf.raw)
 		if err != nil {
 			refused = append(refused, milestone2ResumeRefusal{mf.rel, err})
 			return

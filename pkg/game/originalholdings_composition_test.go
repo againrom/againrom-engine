@@ -73,7 +73,7 @@ func TestOriginalHoldings1108BooksBothDoorsNewCastAndNativeContinuation(t *testi
 			app := f.App("1108-composed-load")
 			var w *sim.World
 			if door == "diagnostic" {
-				ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
+				ms, report, err := loadOriginalMission(f, payload)
 				if err != nil || report.Stocked != 2 || report.Books.Restored != 2 || report.PoolsRestored != 2 {
 					t.Fatalf("diagnostic %+v %v", report, err)
 				}
@@ -174,7 +174,7 @@ func TestOriginalHoldings1108LatePoolRefusalKeepsStockBookAndLiveSession(t *test
 	a.profile, b.profile = literalProfile1107(), literalProfile1107()
 	// Prove the same holdings/books reach a complete handoff before changing
 	// only the later pool word. No parser error substitutes for staging rollback.
-	ms, report, err := ResumeOriginalSave(f.Archives.Containers, poolFixtureSave(a, b), f.Table, mapload.DifficultyNormal, nil, nil)
+	ms, report, err := loadOriginalMission(f, poolFixtureSave(a, b))
 	if err != nil || ms == nil || report.Stocked != 2 || report.Books.Restored != 2 || report.ProfilesRestored != 2 || report.PoolsRestored != 2 {
 		t.Fatalf("valid control: %+v %v", report, err)
 	}
@@ -182,9 +182,10 @@ func TestOriginalHoldings1108LatePoolRefusalKeepsStockBookAndLiveSession(t *test
 	assertCurrent1107(t, poolEntity(t, ms.World, 92))
 	b.mana = b.maxMana + 1
 	payload := poolFixtureSave(a, b)
-	ms, report, err = ResumeOriginalSave(f.Archives.Containers, payload, f.Table, mapload.DifficultyNormal, nil, nil)
-	if err == nil || ms != nil || !strings.Contains(err.Error(), "pools") || report.Stocked != 2 || report.Books.Restored != 2 || report.ProfilesRestored != 2 {
-		t.Fatalf("refusal did not follow stock, books and profiles: %+v %v", report, err)
+	// A refused LOAD returns no mission and no report; the pool word refuses it.
+	ms, _, err = loadOriginalMission(f, payload)
+	if err == nil || ms != nil || !strings.Contains(err.Error(), "pools") {
+		t.Fatalf("late pool refusal: %v", err)
 	}
 	f.Offered = 77
 	before, _, err := f.Snapshot(true)

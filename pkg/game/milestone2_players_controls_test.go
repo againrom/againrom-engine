@@ -367,7 +367,7 @@ func TestPlayers1154SnapshotOriginsAfterInsertion(t *testing.T) {
 func TestPlayers1154LiveSubsetAndOmissionControls(t *testing.T) {
 	f, raw := players1154Fixture(t, false, false)
 	want, join, _ := players1154Inputs(t, raw)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -512,7 +512,7 @@ func TestPlayers1154RawScopeAndF58Controls(t *testing.T) {
 		}
 	})
 	t.Run("raw F58 differs through exact owner despite equal Slot", func(t *testing.T) {
-		ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+		ms, _, err := loadOriginalMission(f, raw)
 		if err != nil {
 			t.Fatal(err)
 		}

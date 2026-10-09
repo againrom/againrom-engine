@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 func TestGroundContainerCorpusAudit1136(t *testing.T) {
@@ -68,9 +67,9 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 				nonEmpty++
 			}
 
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			if present && len(sacks) > 0 && !report.GroundApplied {
 				t.Fatal("a save with ground Sacks was not reported as having its ground state applied")
@@ -82,7 +81,7 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 			// The single carrier: sim.SavedObjectContainer reaches the same two
 			// fields through an entirely different decode
 			// (sav.DecodeDocumentDataWithOrigins, not GroundSacks) and is populated
-			// by importSavedSackObjects inside the same ResumeOriginalSave call
+			// by importSavedSackObjects inside the same RestoreOriginal call
 			// above. Join on the raw file Identity through liveGroundContainerTail; a
 			// Sack importSavedSackObjects declined to adopt has no registry entry and
 			// is skipped here, not treated as a mismatch.

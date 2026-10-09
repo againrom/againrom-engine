@@ -180,7 +180,7 @@ func TestSpellEffect1152IndependentDAGAndNativeCycle(t *testing.T) {
 			if !reflect.DeepEqual(left.values, right.values) || !reflect.DeepEqual(left.raw, right.raw) {
 				t.Fatal("literal damage children must have equal values")
 			}
-			ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -205,7 +205,7 @@ func TestSpellEffect1152IndependentDAGAndNativeCycle(t *testing.T) {
 
 func TestSpellEffect1152WitnessRejectsLostState(t *testing.T) {
 	f, raw, want := spell1152Fixture(t, true)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, nil)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +294,7 @@ func TestSpellEffect1152WitnessRejectsLostState(t *testing.T) {
 		}
 	}
 	_, distinctRaw, distinct := spell1152Fixture(t, false)
-	distinctMission, _, err := ResumeOriginalSave(f.Archives.Containers, distinctRaw, f.Table, f.Difficulty, nil, nil)
+	distinctMission, _, err := loadOriginalMission(f, distinctRaw)
 	if err != nil {
 		t.Fatal(err)
 	}

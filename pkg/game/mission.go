@@ -81,10 +81,11 @@ type Mission struct {
 	// place both exist.
 	Party []mapload.PartyMember
 
-	ActorManifest  *SnapshotActorManifest
-	actorRegistry  *originalActorRegistry
-	savedDocument  *SnapshotSAVDocument
-	pendingPickups []sim.ItemStack
+	ActorManifest      *SnapshotActorManifest
+	actorRegistry      *originalActorRegistry
+	originalSaveReport *OriginalSaveResume
+	savedDocument      *SnapshotSAVDocument
+	pendingPickups     []sim.ItemStack
 
 	// DeadArt resolves a virtual corpse's TypeID. Original LOAD and the admitted
 	// document on native LOAD both reconstruct this presentation-only map.

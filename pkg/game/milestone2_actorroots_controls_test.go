@@ -179,7 +179,7 @@ func TestActorRoots1161LiveLossControls(t *testing.T) {
 		t.Fatal(err)
 	}
 	f := unit1158FixtureFront(t)
-	ms, _, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, f.Difficulty, nil, f.Bodies)
+	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)
 	}

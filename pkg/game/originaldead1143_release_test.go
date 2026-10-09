@@ -31,9 +31,9 @@ func TestReleaseOriginalDead1143UnboundHirelingAndEarlyDecayStage(t *testing.T) 
 	for _, c := range cases {
 		t.Run(c.rel, func(t *testing.T) {
 			_, payload := groundCorpusFile(t, c.rel, c.hash)
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, payload)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave refused: %v", err)
+				t.Fatalf("RestoreOriginal refused: %v", err)
 			}
 			if report.Mission == 0 {
 				t.Fatal("resume did not carry a mission")
@@ -66,7 +66,7 @@ func TestReleaseOriginalDead1143UnboundHirelingAndEarlyDecayStage(t *testing.T) 
 			}
 			// Determinism: an independent second resume of the identical
 			// bytes must hash identically.
-			ms2, _, err := ResumeOriginalSave(f.Archives.Containers, payload, f.Table, f.Difficulty, nil, f.Bodies)
+			ms2, _, err := loadOriginalMission(f, payload)
 			if err != nil {
 				t.Fatalf("second resume refused: %v", err)
 			}

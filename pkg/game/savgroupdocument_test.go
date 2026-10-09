@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -152,7 +151,7 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 	}
 	front := groupDocumentFront1115(t)
 	raw := groupDocumentLiteral1115(t, front)
-	mission, report, err := ResumeOriginalSave(front.Archives.Containers, raw, front.Table, mapload.DifficultyNormal, nil, nil)
+	mission, report, err := loadOriginalMission(front, raw)
 	if err != nil || report.GroupsRestored != 1 {
 		t.Fatal("production diagnostic import", err, report)
 	}
@@ -280,7 +279,7 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 
 func TestSavedGroupDocument1115LateCoverageGapPublishesNoPartialGraph(t *testing.T) {
 	front := groupDocumentFront1115(t)
-	mission, _, err := ResumeOriginalSave(front.Archives.Containers, groupDocumentLiteral1115(t, front), front.Table, mapload.DifficultyNormal, nil, nil)
+	mission, _, err := loadOriginalMission(front, groupDocumentLiteral1115(t, front))
 	if err != nil {
 		t.Fatal(err)
 	}

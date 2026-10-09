@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 )
 
 func TestSessionCorpusAudit1130(t *testing.T) {
@@ -70,9 +69,9 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 				t.Fatalf("SessionState: %v", err)
 			}
 
-			ms, report, err := ResumeOriginalSave(f.Archives.Containers, raw, f.Table, mapload.DifficultyNormal, nil, f.Bodies)
+			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil {
-				t.Fatalf("ResumeOriginalSave: %v", err)
+				t.Fatalf("RestoreOriginal: %v", err)
 			}
 			if !report.SessionApplied {
 				t.Fatal("session was not applied")
