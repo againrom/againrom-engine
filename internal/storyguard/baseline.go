@@ -1927,6 +1927,7 @@ package storyguard
 // including this explanation. Reconciled with the melee facing turn, the
 // spell graph check names the area drivers it guards, and the release drives
 // that moved again document their set-ups and a new witness, in new code.
+// The acquisition drive documents the Defend arm's release past reach.
 // CommentBytes rises for the melee facing hotfix: the docs of the new melee
 // walking witness, the Kadagan release test's pack note and the skill
 // trainee's heal note, new code, including this paragraph.
@@ -1975,5 +1976,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8527476,
+	CommentBytes: 8527906,
 }

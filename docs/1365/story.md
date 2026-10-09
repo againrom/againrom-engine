@@ -106,6 +106,14 @@ Merged with game 0.93.0, whose melee facing turn moves the same cadence:
 The three adapted drives pass on EN and RU both on this branch and on main
 `5006517a`.
 
+Merged with game 0.97.0, whose Defend arm releases an acquired victim past
+reach at its next pass (`AI-REACH-072`):
+
+- `TestReleaseAcquiredVictimLeavingReachTurnsWithoutWalking`: the victim now
+  leaves reach during a loaded cycle and is released before the hero is ready
+  again, in all 48 rounds. The drive counts those ticks too: the hero keeps
+  its cell through the loaded cycle, and a ready hero turns where it stands.
+
 Gates on `ff84f1ce`: scenarios EN 54 s and RU 32 s pass. The census script set
 is unchanged; the mission 10 drive's escort is lost at tick 800 instead of
 496, with 7 of 36 units moved and 1 fallen. M2 (EN and RU, 214 s) fails the

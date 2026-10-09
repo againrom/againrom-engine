@@ -51,7 +51,7 @@ func TestReleaseAcquiredVictimLeavingReachTurnsWithoutWalking(t *testing.T) {
 		}
 	}
 	if total == 0 {
-		t.Fatal("bounded AGAINROM_ASSETS mission 41 drive: three ranged withdrawers, sixteen start delays each, 2200 contact ticks and 240 Defend ticks; no ready acquisition beyond reach reached")
+		t.Fatal("bounded AGAINROM_ASSETS mission 41 drive: three ranged withdrawers, sixteen start delays each, 2200 contact ticks and 240 Defend ticks; no acquisition beyond reach reached")
 	}
 	if controls == 0 {
 		t.Fatal("player attack never exposed a path control")
@@ -122,12 +122,17 @@ func acquiredVictimRound(t *testing.T, app *ui.App, live *mapWorld, heroID, foeI
 		t.Logf("candidate %d foe %d delay %d: the click queued %v, not Defend", candidate, foeID, delay, live.pending)
 		return 0, control
 	}
-	markers, checked := 0, 0
+	// The Defend arm's scorer refuses a victim past reach, so the victim it
+	// acquired is held beyond reach only until the arm's next pass releases
+	// it (AI-REACH-072); a victim that leaves during a loaded cycle is often
+	// released before the cycle ends. Either way the hero does not walk: a
+	// loaded cycle keeps its cell, and a ready hero turns where it stands.
+	markers, loaded, checked := 0, 0, 0
 	for tick := 0; tick < 240; tick++ {
 		live.tick()
 		h, ok := live.entity(heroID)
 		if !ok || !h.Alive() {
-			return checked, control
+			break
 		}
 		foe, ok := live.entity(h.AttackTarget)
 		if !h.AcquirePursuit || !h.HasAttackTarget || !ok {
@@ -138,27 +143,34 @@ func acquiredVictimRound(t *testing.T, app *ui.App, live *mapWorld, heroID, foeI
 		if h.AttackPhase == sim.AttackReady && distance > int32(h.Reach) && h.HasTarget {
 			t.Fatalf("tick %d: acquisition stored a walk beyond reach", live.world.Tick())
 		}
-		if h.AttackPhase != sim.AttackReady || h.Turning() || h.Transit != 0 || distance <= int32(h.Reach) {
+		if h.Turning() || h.Transit != 0 || distance <= int32(h.Reach) {
 			continue
 		}
 		before := h
 		live.tick()
 		h, _ = live.entity(heroID)
+		if h.X != before.X || h.Y != before.Y || h.HasTarget && (h.TargetX != h.X || h.TargetY != h.Y) {
+			t.Fatalf("tick %d: acquired victim beyond reach, the hero walked (%d,%d)->(%d,%d), target %t (%d,%d)", live.world.Tick(), before.X, before.Y, h.X, h.Y, h.HasTarget, h.TargetX, h.TargetY)
+		}
+		if before.AttackPhase != sim.AttackReady {
+			loaded++
+			continue
+		}
 		foe, _ = live.entity(before.AttackTarget)
 		if !h.AcquirePursuit || h.AttackTarget != before.AttackTarget {
 			continue
 		}
 		checked++
-		if h.X != before.X || h.Y != before.Y || h.HasTarget {
-			t.Fatalf("tick %d: acquired pursuit walked (%d,%d)->(%d,%d), target %t", live.world.Tick(), before.X, before.Y, h.X, h.Y, h.HasTarget)
+		if h.HasTarget {
+			t.Fatalf("tick %d: acquired pursuit stored a target (%d,%d)", live.world.Tick(), h.TargetX, h.TargetY)
 		}
 		want := pursuitReleaseFacing(foe.X-before.X, foe.Y-before.Y)
 		if h.Facing != want && (!h.Turning() || h.DesiredFacing != want) {
 			t.Fatalf("tick %d: facing %d desired %d, want %d", live.world.Tick(), h.Facing, h.DesiredFacing, want)
 		}
 	}
-	t.Logf("candidate %d foe %d delay %d: %d acquisition ticks, %d ready beyond-reach ticks, player path control %t", candidate, foeID, delay, markers, checked, control)
-	return checked, control
+	t.Logf("candidate %d foe %d delay %d: %d acquisition ticks, %d loaded and %d ready beyond-reach ticks, player path control %t", candidate, foeID, delay, markers, loaded, checked, control)
+	return loaded + checked, control
 }
 
 func pursuitReleaseFacing(dx, dy int32) uint8 {
