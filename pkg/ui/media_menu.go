@@ -305,15 +305,6 @@ func (a *App) composeCutsceneLibrary() *image.RGBA {
 	return dst
 }
 
-func drawMovieBox(dst *image.RGBA, r image.Rectangle, selected bool) {
-	c := color.RGBA{0, 0, 0, 45}
-	if selected {
-		c = color.RGBA{0, 7, 6, 220}
-	}
-	draw.Draw(dst, r, &image.Uniform{C: c}, image.Point{}, draw.Over)
-	outline(dst, r, color.RGBA{57, 77, 65, 255})
-}
-
 func (a *App) openCredits(back Screen) {
 	a.media.roll = CreditsView{}
 	if a.media.credits != nil {

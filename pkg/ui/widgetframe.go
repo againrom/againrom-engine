@@ -30,6 +30,9 @@ const (
 	// framePortrait is the notice portrait's t_border.256 border, its
 	// corners unscaled and its edges tiled (DIV-2723).
 	framePortrait
+	// frameTint is a translucent fill over the picture with a one-pixel
+	// border: the choice box drawn where a choice has no sprite art.
+	frameTint
 )
 
 // frameRow is how drawFrame draws one kind.
@@ -43,8 +46,9 @@ type frameRow struct {
 	// shadow is the band right of and below the body that the mask shadows
 	// of pieces 3, 5, 6, 7 and 8 fall into.
 	shadow int
-	// fill paints the panel's interior; border its one-pixel edge.
-	fill, border bool
+	// fill paints the panel's interior; border its one-pixel edge. blend
+	// draws the fill over the picture instead of replacing it.
+	fill, border, blend bool
 	// corner is the portrait border's unscaled corner.
 	corner image.Point
 }
@@ -55,6 +59,7 @@ var frameRows = [...]frameRow{
 	framePanel:    {fill: true, border: true},
 	frameOutline:  {border: true},
 	framePortrait: {corner: image.Pt(22, 27)},
+	frameTint:     {fill: true, border: true, blend: true},
 }
 
 // frameShadowTone is the shadow a frame casts where the destination holds
@@ -81,6 +86,19 @@ type frameSpec struct {
 func windowFrame(body image.Rectangle, art *DialogFrame) frameSpec {
 	return frameSpec{Kind: frameWindow, Rect: image.Rect(body.Min.X, body.Min.Y,
 		body.Max.X+frameRows[frameWindow].shadow, body.Max.Y+frameRows[frameWindow].shadow), Art: art}
+}
+
+// valid reports whether the art holds all nine pieces.
+func (art *DialogFrame) valid() bool {
+	if art == nil {
+		return false
+	}
+	for _, p := range art.Pieces {
+		if p == nil || p.Bounds().Empty() {
+			return false
+		}
+	}
+	return true
 }
 
 // panelFrame is the flat panel over r.
@@ -157,7 +175,11 @@ func drawFrameBody(dst *image.RGBA, s frameSpec) {
 			return
 		}
 		if row.fill {
-			draw.Draw(dst, r, &image.Uniform{C: s.Fill}, image.Point{}, draw.Src)
+			op := draw.Src
+			if row.blend {
+				op = draw.Over
+			}
+			draw.Draw(dst, r, &image.Uniform{C: s.Fill}, image.Point{}, op)
 		}
 		if row.border {
 			for x := r.Min.X; x < r.Max.X; x++ {

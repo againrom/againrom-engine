@@ -21,18 +21,6 @@ type DialogFrame struct {
 // same DialogFrame, including mission notices and town conversations.
 type MenuPanelArt = DialogFrame
 
-func (art *DialogFrame) valid() bool {
-	if art == nil {
-		return false
-	}
-	for _, p := range art.Pieces {
-		if p == nil || p.Bounds().Empty() {
-			return false
-		}
-	}
-	return true
-}
-
 func (art *DialogFrame) DrawPortrait(dst *image.RGBA, r image.Rectangle) {
 	if art == nil || art.Portrait == nil {
 		return
