@@ -234,6 +234,9 @@ var allow = map[string][]string{
 	// adapter without a window. All archive, campaign and UI values cross
 	// through pkg/game, so the command names that tier alone.
 	"cmd/worldmapcheck": {"pkg/game"},
+	// campaigncensus prints the second game's campaign support census. Every
+	// install read, map decode and world run crosses through pkg/game.
+	"cmd/campaigncensus": {"pkg/game"},
 	// mapunitcensus is 1029's own instrument. It opens an install through
 	// pkg/game (OpenArchives, MissionMap) and decodes each campaign map with
 	// pkg/formats/alm to read the one field the story added to the entity

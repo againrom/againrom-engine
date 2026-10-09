@@ -1934,6 +1934,12 @@ package storyguard
 // the Save caret paint order and their tests, new code, including this paragraph.
 // CommentBytes rises for the Skrakan portal-part release witness's comments,
 // new code, including this paragraph.
+// CommentBytes rises for the second game's campaign support census: the docs
+// of pkg/game/secondcensus.go, its focused and release tests, the
+// cmd/campaigncensus package doc and archtest row, and the four helpers it
+// reads (secondContinues, completeBank, secondCompletionMovie,
+// sim.SpellRuleApplicable), new code, including this paragraph. It rises
+// again for the docs of each departure exit and its bank gates.
 var Committed = Baseline{
 	TestIdentCount: 4695,
 	TestFileCount:  265,
@@ -1957,5 +1963,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1809,
 	},
-	CommentBytes: 8501555,
+	CommentBytes: 8509385,
 }

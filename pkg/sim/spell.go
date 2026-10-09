@@ -614,6 +614,9 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 	return e, true
 }
 
+// SpellRuleApplicable reports whether this build has an arm that applies rule.
+func SpellRuleApplicable(rule SpellRule) bool { return spellApplicable(rule) }
+
 func spellApplicable(rule SpellRule) bool {
 	if rule.Area || rule.Damaging || rule.Restorative || rule.EffectKind != EffectNone {
 		return true
