@@ -552,7 +552,8 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 		// schoolNoSelection for the same reason: 0 is a real skill, and a
 		// freshly built town must not open the school with one already
 		// selected and its price quoted.
-		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection})
+		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection,
+			pages: map[string]*town.Page{}, pageRandom: map[string]*rand.Rand{}})
 		// The screen is constructed already at roomSquare (townRoom's own
 		// zero value; atSquare's doc), so this is that room's own entry load
 		// (1018 spec behaviour 2), not a special case of construction.
