@@ -7,7 +7,9 @@ import (
 	"sort"
 )
 
-// CheckSaveProducer admits one SAV serializer and two load re-encoders.
+// CheckSaveProducer admits one SAV serializer and two load re-encoders. Every
+// listed SAV document or part producer is a serializer; a listed reader is not;
+// an unlisted SAV byte producer is a finding.
 // Resolved function references include callbacks. Compatibility names only
 // delegate; construction cannot reach AGS encoding or migration.
 func CheckSaveProducer(p *CheckedPackage) []string {
@@ -51,7 +53,16 @@ func CheckSaveProducer(p *CheckedPackage) []string {
 					return true
 				}
 				called, _ := p.Info.Uses[id].(*types.Func)
-				if !saveSerializer(called, p.ImportPath) {
+				if savByteProducerSignature(called) {
+					entry, listed := savByteProducers[savFuncKey(called)]
+					if !listed {
+						findings = append(findings, path+" calls unlisted SAV byte producer "+savFuncKey(called))
+						return true
+					}
+					if entry.kind == savReader {
+						return true
+					}
+				} else if !saveSerializer(called, p.ImportPath) {
 					return true
 				}
 				if called.Name() == "EncodeDocumentData" && (owner == root || loadReencoder) {

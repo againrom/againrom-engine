@@ -89,6 +89,7 @@ type goListPkg struct {
 	GoFiles      []string
 	TestGoFiles  []string
 	XTestGoFiles []string
+	Imports      []string
 	Export       string
 	Error        *struct{ Err string }
 }
@@ -217,8 +218,9 @@ func checkOnePackage(fset *token.FileSet, root string, imp types.Importer, p goL
 	collect := func(e error) { checkErrs = append(checkErrs, e) }
 
 	if len(cp.Files) > 0 {
-		// The game-profile scan resolves names, fields and methods in every
-		// package.
+		// Every package keeps its names, fields and methods: the game-profile
+		// scan reads them in every package, and the SAV producer guard in
+		// pkg/game, pkg/formats/sav and each production importer of it.
 		cp.Info = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Defs: map[*ast.Ident]types.Object{},
 			Uses: map[*ast.Ident]types.Object{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
 		conf := &types.Config{Importer: imp, Error: collect}

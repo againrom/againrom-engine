@@ -1996,6 +1996,8 @@ package storyguard
 // latch site witness, new code, including this paragraph.
 // CommentBytes rises for the latch drop on a left screen: its doc and the
 // leave witness, new code, including this paragraph.
+// CommentBytes rises for the SAV byte producer list in internal/archtest's
+// saveproducer_list.go and its guard doc, new code, including this paragraph.
 // CommentBytes rises for the game-profile scan's new forms, its mutation
 // cases and debt list in internal/archtest, the edition's Rooms field and
 // the room description reader in pkg/game, new code, including this
@@ -2023,5 +2025,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1776,
 	},
-	CommentBytes: 8534059,
+	CommentBytes: 8535687,
 }
