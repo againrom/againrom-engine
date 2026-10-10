@@ -43,7 +43,7 @@ const (
 	tipPanelInset      = 20
 	tipPanelButtonRowH = 18
 	tipPanelGemSize    = 16
-	tipPanelChromeH    = 69
+	tipPanelChromeH    = 61
 )
 
 var (
@@ -51,11 +51,17 @@ var (
 	TavernTipRect  = image.Rect(160, 0, 472, 200)
 	SchoolTipRect  = image.Rect(0, 0, 456, 200)
 	ChargenTipRect = image.Rect(160, 280, 472, 480)
+	// PreCreateTipRect is the pre-create popup at the page origin (0,0)
+	// (MENU-137; the absolute origin is DIV-2714).
+	PreCreateTipRect = image.Rect(232, 0, 640, 136)
+	// MissionTipRect is the mission popup in the campaign window
+	// (TRIG-TIPS-087).
+	MissionTipRect = image.Rect(10, 20, 370, 188)
 )
 
-func TipPanelTextRect(r image.Rectangle) image.Rectangle {
-	return image.Rectangle{Min: image.Pt(r.Min.X+20, r.Min.Y+24), Max: image.Pt(r.Max.X-28, r.Max.Y-44)}
-}
+// TipPanelTextRect is where the text is drawn and its fit is tested: the
+// list child itself (MENU-137).
+func TipPanelTextRect(r image.Rectangle) image.Rectangle { return TipPanelListRect(r) }
 
 func TipPanelCloseRect(r image.Rectangle) image.Rectangle {
 	return image.Rect(r.Max.X-120, r.Max.Y-40, r.Max.X-40, r.Max.Y-22)
@@ -78,8 +84,10 @@ func TipPanelControlAt(v TipPanelView, p image.Point) (TipControlKind, bool) {
 	return TipControlNone, true
 }
 
+// TipPanelListRect is the popup's list child, (0x14,0x18)-(W-0x1c,H-0x24)
+// of the panel (MENU-137).
 func TipPanelListRect(r image.Rectangle) image.Rectangle {
-	return image.Rect(r.Min.X+20, r.Min.Y+24, r.Max.X-28, r.Max.Y-36)
+	return image.Rectangle{Min: image.Pt(r.Min.X+20, r.Min.Y+24), Max: image.Pt(r.Max.X-28, r.Max.Y-36)}
 }
 
 func TipPanelEventAt(v TipPanelView, p image.Point, down bool) (TipControlKind, bool) {

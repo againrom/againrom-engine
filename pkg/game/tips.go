@@ -25,6 +25,14 @@ const (
 	ChargenDetailTipPath = mainPrefix + "text/tips/chrgen2.txt"
 )
 
+// ChargenSelectTipPaths are the pre-create popup's step texts chrsel1..3
+// (TOWN-518).
+var ChargenSelectTipPaths = [3]string{
+	mainPrefix + "text/tips/chrsel1.txt",
+	mainPrefix + "text/tips/chrsel2.txt",
+	mainPrefix + "text/tips/chrsel3.txt",
+}
+
 // loadTip constructs one room popup and tests the global option once.
 func (t *townScreen) loadTip(room townRoom) {
 	if t == nil || t.sess == nil {
@@ -36,6 +44,9 @@ func (t *townScreen) loadTip(room townRoom) {
 	}
 	t.tipRevision++
 	t.tipClosed[room] = false
+	if room == roomShop {
+		t.shopTipSecond = false
+	}
 	if t.pc.tipsOffNow() {
 		*dst = ""
 		return
@@ -68,8 +79,17 @@ func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	return nil, ""
 }
 
-// roomTip answers a room's tip as the profile's room description gives it.
-func (t *townScreen) roomTip(room townRoom) town.TipSpec { return roomTipIn(t.roomDescription(), room) }
+// roomTip answers a room's tip as the profile's descriptions give it: the
+// square's from the town description, the others from the room description.
+func (t *townScreen) roomTip(room townRoom) town.TipSpec {
+	if room == roomSquare {
+		if d := t.townDescription(); d != nil {
+			return d.Tip
+		}
+		return town.TipSpec{}
+	}
+	return roomTipIn(t.roomDescription(), room)
+}
 
 func roomTipIn(d *town.Description, room townRoom) town.TipSpec {
 	if d == nil {
@@ -84,8 +104,35 @@ func roomTipIn(d *town.Description, room townRoom) town.TipSpec {
 	return town.TipSpec{}
 }
 
-func (t *townScreen) roomTipRect(room townRoom) image.Rectangle {
-	return t.roomTip(room).Rect.Rectangle()
+// roomTipView projects a room's popup at the description's rectangle. The
+// bottom edge follows the text when the description asks for that, and grows
+// when the engine's wrap would cut the text at the rectangle (DIV-2719).
+func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
+	spec := t.roomTip(room)
+	v := t.tipView(room, text, spec.Rect.Rectangle())
+	if spec.Fit || !ui.TipPanelFits(v) {
+		v.Rect = ui.TipPanelShrinkRect(v.Rect, t.in.tipFont(), text)
+	}
+	return v
+}
+
+// advanceShopSecondTip retexts the open shop popup with the description's
+// second text once per shop activation, when the table holds an item
+// (TOWN-517). It reads no TipsMode: the popup exists only if the flag was set
+// at activation.
+func (t *townScreen) advanceShopSecondTip() {
+	if t == nil || t.sess == nil || t.shopTip == "" || t.shopTipSecond {
+		return
+	}
+	if shop := t.sess.Shop; shop == nil || len(shop.Table()) == 0 {
+		return
+	}
+	second := t.roomTip(roomShop).Second
+	if second == "" {
+		return
+	}
+	t.shopTipSecond = true
+	t.readTipText(&t.shopTip, second)
 }
 
 func (t *townScreen) readTipText(dst *string, addr string) {

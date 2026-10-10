@@ -241,7 +241,7 @@ func TestReleaseTownFidelity1192(t *testing.T) {
 		if !ok || state.Stage != ui.ChargenStageDetailed {
 			t.Fatal("detailed generator did not open", state)
 		}
-		for i, r := range []image.Rectangle{image.Rect(486, 69, 617, 111), image.Rect(486, 115, 617, 160), image.Rect(504, 163, 601, 208)} {
+		for i, r := range []image.Rectangle{image.Rect(484, 44, 624, 90), image.Rect(484, 91, 624, 137), image.Rect(484, 138, 624, 184)} {
 			checkPlaquePointer1192(t, gen, fmt.Sprintf("generator%d", i), r)
 		}
 	})

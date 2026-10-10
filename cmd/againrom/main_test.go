@@ -374,7 +374,7 @@ func installChargenGraphics(t *testing.T, omitBackground bool) []synth.File {
 	if !omitBackground {
 		add("graphics/interface/chrgen/precreate/mainarea.bmp", installChargenBitmap(640, 480))
 	}
-	add("graphics/interface/chrgen/precreate/mask.bmp", installChargenMask(640, 480, 80, 140, 100, 120, 160, 180))
+	add("graphics/interface/chrgen/precreate/mask.bmp", installChargenMask(640, 480, 20, 40, 60, 80, 140, 100, 120, 160, 180))
 	add("graphics/interface/chrgen/precreate/amulet.bmp", installChargenBitmap(112, 204))
 	add("graphics/interface/chrgen/precreate/buttonok.bmp", installChargenBitmap(100, 56))
 	for level, size := range [3][2]int{{60, 74}, {76, 112}, {100, 152}} {
@@ -382,7 +382,10 @@ func installChargenGraphics(t *testing.T, omitBackground bool) []synth.File {
 			add(fmt.Sprintf("graphics/interface/chrgen/precreate/levels/level%d%s.bmp", level, suffix), installChargenBitmap(size[0], size[1]))
 		}
 	}
-	add("graphics/interface/chrgen/buttonsarea.bmp", installChargenBitmap(160, 238))
+	add("graphics/interface/inn/buttonsarea.bmp", installChargenBitmap(160, 238))
+	for _, name := range []string{"button1off", "button1on", "button2off", "button2on", "button3off", "button3on"} {
+		add("graphics/interface/inn/"+name+".bmp", installChargenBitmap(140, 46))
+	}
 	// ruover.bmp closes the same 16-column TownWideUpperRegion gap the town
 	// shell's school and tavern close with it (DIV-166, DIV-168); it is
 	// stored under the inn directory, not chrgen's own, and LoadChargenAssets

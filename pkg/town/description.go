@@ -363,11 +363,15 @@ type WhenSpec struct {
 	Cite   []string `json:"cite"`
 }
 
-// TipSpec is the view's tip popup: its text key and rectangle.
+// TipSpec is the view's tip popup: its text key and rectangle. Second is a
+// text that replaces the first once per room activation when the host's
+// condition holds; Fit moves the bottom edge up to the text's own height.
 type TipSpec struct {
-	Text string   `json:"text"`
-	Rect Rect     `json:"rect"`
-	Cite []string `json:"cite"`
+	Text   string   `json:"text"`
+	Second string   `json:"second"`
+	Rect   Rect     `json:"rect"`
+	Fit    bool     `json:"fit"`
+	Cite   []string `json:"cite"`
 }
 
 // MusicSpec is a view's music: one track, or one track per value of a
