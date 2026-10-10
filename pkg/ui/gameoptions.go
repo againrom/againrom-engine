@@ -1,19 +1,9 @@
 package ui
 
 import (
-	_ "embed"
 	"fmt"
 	"image"
-	"strings"
-
-	"againrom/pkg/render/text"
 )
-
-//go:embed pathfinding_ru.txt
-var pathfindingRU string
-
-//go:embed graphicsoptions_ru.txt
-var graphicsOptionsRU string
 
 // GameOption names a working setting shared by the menu and map shortcuts.
 type GameOption uint8
@@ -68,14 +58,10 @@ type GameOptionControls struct {
 
 func (a *App) SetGameOptionControls(c GameOptionControls) {
 	if a != nil && a.flow != nil {
-		c.Words.Labels[GameOptionPathfinding] = "Show pathfinding"
-		authored := [...]string{"Shadows", "Dynamic Lighting", "Object animations"}
-		if a.flow.menuSelector() == text.SelectorConverting {
-			c.Words.Labels[GameOptionPathfinding] = a.flow.menuDisplayText(strings.TrimSpace(pathfindingRU))
-			for i, label := range strings.Split(strings.TrimSpace(graphicsOptionsRU), "\n") {
-				authored[i] = a.flow.menuDisplayText(strings.TrimSpace(label))
-			}
-		}
+		f := a.flow
+		c.Words.Labels[GameOptionPathfinding] = f.menuWord("options.pathfinding")
+		authored := [...]string{f.menuWord("options.shadows"),
+			f.menuWord("options.lighting"), f.menuWord("options.animation")}
 		// The three graphics captions come from the install when it supplies
 		// them; the authored words stand in only for an absent one.
 		for i, label := range authored {

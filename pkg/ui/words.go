@@ -1,5 +1,7 @@
 package ui
 
+import "againrom/pkg/words"
+
 // Words is the set of program-chosen words this build resolves from the
 // install.
 //
@@ -147,7 +149,10 @@ type Words struct {
 	SaveAcknowledgement string
 	// SaveDialog is authored player copy for the explicit save choices. Unlike
 	// installed table fields, its strings are UTF-8 and encoded when drawn.
-	SaveDialog      SaveDialogWords
+	SaveDialog SaveDialogWords
+	// Engine is the engine's own words in the install's language. The zero
+	// Book is English.
+	Engine          words.Book
 	WorldHomeTitle  string
 	WorldHomeDetail string
 	WorldPayment    string
@@ -241,17 +246,18 @@ const (
 // rule: a variable is writable from anywhere, and "two viewers show the same
 // words" would then be true by mutation rather than by construction.
 func AuthoredWords() Words {
+	var english words.Book
 	out := Words{
 		NoticeButton: AuthoredNoticeButton,
 		MissionWon:   MissionWonText,
 		MissionLost:  MissionLostText,
-		ItemMagic:    "MAGIC:",
+		ItemMagic:    english.Text("item.magic"),
 		ItemCasts:    "Casts",
 		ItemDamage:   "Damage",
 		ItemRange:    "Range",
-		ItemRays:     "Rays",
-		ItemSpellOf:  "of",
-		DurationUnit: "sec",
+		ItemRays:     english.Text("item.rays"),
+		ItemSpellOf:  english.Text("item.spell_of"),
+		DurationUnit: english.Text("item.duration_unit"),
 		PauseNotice:  AuthoredPauseNotice,
 		TipClose:     AuthoredTipClose,
 		TipShowNext:  AuthoredTipShowNext,
@@ -289,7 +295,7 @@ func AuthoredWords() Words {
 		TavernFire:  "Fire",
 		TavernTalk:  "Talk",
 		TavernExit:  "EXIT",
-		TavernSleep: "Sleep",
+		TavernSleep: english.Text("tavern.sleep"),
 
 		// The EN root's own resolved main.txt lines 0-7 (docs/1028-command-
 		// panel, measured-at-seat premises), legitimate as the authored
@@ -300,7 +306,7 @@ func AuthoredWords() Words {
 		},
 
 		SaveAcknowledgement: "Your character is saved",
-		SaveDialog:          authoredSaveDialogWords(false),
+		SaveDialog:          saveDialogWords(english),
 		WorldHomeTitle:      "TOWN",
 		WorldHomeDetail:     "Return to town",
 		WorldPayment:        "Reward",
@@ -409,3 +415,21 @@ func (v *Viewer) SetWords(w Words) {
 // for it rather than holding a second copy, so the sentence a notice states and
 // the word its button states cannot come from two different installs.
 func (v *Viewer) Words() Words { return v.words }
+
+// word is the engine's own word id in the install's language, in UTF-8.
+func (f *flow) word(id string) string { return f.words.Engine.Text(id) }
+
+// menuWord is the engine word id converted for the installed menu font.
+func (f *flow) menuWord(id string) string { return f.menuText(f.word(id)) }
+
+// menuText converts s for the installed menu font. Printable ASCII is the same
+// byte in every installed alphabet, so an ASCII string is returned unchanged
+// and only a string holding another rune crosses the install's encoder.
+func (f *flow) menuText(s string) string {
+	for i := 0; i < len(s); i++ {
+		if s[i] < 0x20 || s[i] > 0x7e {
+			return f.menuDisplayText(s)
+		}
+	}
+	return s
+}

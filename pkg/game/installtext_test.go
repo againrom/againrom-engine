@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
+	"againrom/pkg/words"
 )
 
 // installFixture is a synthetic container source: the two text addresses
@@ -129,12 +130,15 @@ func TestInstallWordsWithoutTablesAreAuthored(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			want := ui.AuthoredWords()
+			w := LoadInstallWords(tc.src)
 			if LanguageSelector(tc.src) == 1 {
+				w.Language = "russian"
+				want.Engine = words.For("russian")
 				want.ItemMagic, want.ItemSpellOf = "\x8c\x80\x83\x88\x9f:", "\xe1 \xa7\xa0\xaa\xab\xa8\xad\xa0\xad\xa8\xa5\xac"
 				want.DurationUnit = "\xe1\xa5\xaa"
 				want.ItemRays, want.TavernSleep = "\x8b\xe3\xe7\xa8", "\x91\xaf\xa0\xe2\xec"
 			}
-			if got := LoadInstallWords(tc.src).Words(); got != want {
+			if got := w.Words(); got != want {
 				t.Fatal("missing tables did not retain authored labels for the chosen language")
 			}
 		})
@@ -281,7 +285,9 @@ func TestInstallWordsCarryBuildingNamesAndTheSelectedLanguageItemWords(t *testin
 		BuildingTextPath: textFile(66, map[int]string{20: "installed ogre house"}),
 		StatsTextPath:    textFile(50, map[int]string{38: "range word", 42: "casts word", 43: "damage word"}),
 	}
-	got := LoadInstallWords(src).Words()
+	russian := LoadInstallWords(src)
+	russian.Language = "russian"
+	got := russian.Words()
 	if got.BuildingNames[21] != "installed ogre house" || got.BuildingNames[20] != "" {
 		t.Fatalf("building names are not indexed by structure class ID: %q %q", got.BuildingNames[20], got.BuildingNames[21])
 	}
@@ -293,7 +299,9 @@ func TestInstallWordsCarryBuildingNamesAndTheSelectedLanguageItemWords(t *testin
 		t.Fatalf("selector 1 left the authored English Rays or Sleep: %q %q", got.ItemRays, got.TavernSleep)
 	}
 	src[LanguagePath] = []byte("0")
-	got = LoadInstallWords(src).Words()
+	english := LoadInstallWords(src)
+	english.Language = "english"
+	got = english.Words()
 	if got.ItemCasts != authored.ItemCasts || got.ItemRays != authored.ItemRays || got.TavernSleep != authored.TavernSleep {
 		t.Fatalf("selector 0 changed the authored words: %q %q %q", got.ItemCasts, got.ItemRays, got.TavernSleep)
 	}
@@ -569,7 +577,9 @@ func TestOriginalUITextWordSetExactDifferencesOverBothLawfulInstalls(t *testing.
 		if err != nil {
 			t.Fatalf("OpenArchives(%s): %v", root, err)
 		}
-		return LoadInstallWords(archives.Containers).Words()
+		w := LoadInstallWords(archives.Containers)
+		w.Language = archives.Base.Profile.Language
+		return w.Words()
 	}
 	flatten := func(words ui.Words) map[string]string {
 		out := make(map[string]string)
@@ -585,6 +595,10 @@ func TestOriginalUITextWordSetExactDifferencesOverBothLawfulInstalls(t *testing.
 			case reflect.Struct:
 				t := v.Type()
 				for i := 0; i < v.NumField(); i++ {
+					// The engine's own words are pkg/words' tables, not install text.
+					if t.Field(i).Type.PkgPath() == "againrom/pkg/words" {
+						continue
+					}
 					walk(v.Field(i), t.Field(i).Name)
 				}
 			default:

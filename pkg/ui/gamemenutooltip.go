@@ -1,22 +1,10 @@
 package ui
 
 import (
-	_ "embed"
-	"encoding/json"
 	"strconv"
 
 	"againrom/pkg/render/text"
 )
-
-//go:embed gamemenutooltip_ru.json
-var tooltipRUText string
-
-var tooltipRU = func() (labels struct{ Delay, Unit, NotSaved string }) {
-	if err := json.Unmarshal([]byte(tooltipRUText), &labels); err != nil {
-		panic(err)
-	}
-	return labels
-}()
 
 func (a *App) SetTooltipDelayPreference(ms int, persist func(int) error) {
 	a.tooltip.setDelay(ms)
@@ -37,10 +25,7 @@ func (f *flow) tooltipDelayRow() gameMenuRow {
 	if f.tooltip != nil {
 		ms = f.tooltip.delay
 	}
-	label, unit := "TOOLTIP ~DELAY: ", " ms"
-	if f.menuSelector() == text.SelectorConverting {
-		label, unit = f.menuDisplayText(tooltipRU.Delay), f.menuDisplayText(tooltipRU.Unit)
-	}
+	label, unit := f.menuWord("tooltip.delay"), f.menuWord("tooltip.unit")
 	return gameMenuRow{Label: label + strconv.Itoa(ms) + unit, Fallback: 'D',
 		Action: gameMenuTooltipDelay, Enabled: f.tooltip != nil}
 }

@@ -223,9 +223,17 @@ func LoadStrings(dir, lang string) (Strings, error) {
 // dir and returns the lookup ParseItems takes: the language's own string, else
 // the English one.
 func TextLookup(dir, lang string) (func(key string) (string, bool), error) {
+	return Lookup(lang, func(l string) (Strings, error) { return LoadStrings(dir, l) })
+}
+
+// Lookup is the one text lookup over strings tables in the text/<lang> layout,
+// for a mod's folder and for the engine's own words alike. load returns the
+// table of one language, nil when there is none; a key reads the language's
+// own string, else the English one.
+func Lookup(lang string, load func(lang string) (Strings, error)) (func(key string) (string, bool), error) {
 	var sets []Strings
 	for _, l := range languagesFor(lang) {
-		s, err := LoadStrings(dir, l)
+		s, err := load(l)
 		if err != nil {
 			return nil, err
 		}

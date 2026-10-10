@@ -3,8 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-
-	"againrom/pkg/render/text"
 )
 
 // SaveGame is the legacy automatic-save seam. Applications configuring only
@@ -436,11 +434,7 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 		err := f.cycleTooltipDelay()
 		f.rebuildGameMenu(gameMenuGameOptionsPage, selection)
 		if err != nil {
-			prefix := "Tooltip setting not saved: "
-			if f.menuSelector() == text.SelectorConverting {
-				prefix = f.menuDisplayText(tooltipRU.NotSaved)
-			}
-			f.msg = prefix + err.Error()
+			f.msg = f.menuWord("tooltip.not_saved") + err.Error()
 		}
 	case gameMenuMusicVolume, gameMenuEffectsVolume, gameMenuSpeechVolume:
 		if channel, ok := soundActionChannel(action); ok && f.soundOptions.Read != nil {

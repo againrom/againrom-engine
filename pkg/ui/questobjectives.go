@@ -1,8 +1,6 @@
 package ui
 
 import (
-	_ "embed"
-	"encoding/json"
 	"image"
 	"image/color"
 	"strings"
@@ -18,17 +16,6 @@ import (
 var questPanelRect = image.Rect(80, 130, 560, 350)
 var questButtonRect = image.Rect(270, 304, 370, 328)
 
-//go:embed questobjectives_ru.json
-var questEmptyRussianJSON []byte
-
-var questEmptyRussian = func() string {
-	var s string
-	if err := json.Unmarshal(questEmptyRussianJSON, &s); err != nil {
-		panic(err)
-	}
-	return s
-}()
-
 func (a *App) SetGameMenuArt(art *MenuPanelArt) {
 	a.flow.menuArt = art
 	if a.flow.viewer != nil {
@@ -39,10 +26,7 @@ func (a *App) SetGameMenuArt(art *MenuPanelArt) {
 func (f *flow) questLines() []string {
 	s := strings.TrimSpace(f.menuContext.Objective)
 	if s == "" {
-		s = "No quest objective is recorded for this mission."
-		if f.menuFont != nil && f.menuFont.Selector == text.SelectorConverting {
-			s = questEmptyRussian
-		}
+		s = f.word("quest.empty")
 	}
 	if f.menuFont == nil {
 		return wrapGameMenuText(s)
