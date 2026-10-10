@@ -26,15 +26,15 @@ func MissionObjectivesFor(src entrySource, game base.Game, mission int) string {
 	if !game.Edition().SecondMissionText {
 		return MissionObjectives(src, mission)
 	}
-	payload, ok := readSecondGameMissionText(src, mission)
+	payload, ok := readSecondGameMissionText(src, InstallTextCode(src, game.Edition()), mission)
 	if !ok {
 		return ""
 	}
 	return strings.TrimSpace(vfs.DecodeText([]byte(secondGameTextSection(payload, "briefing"))))
 }
 
-func secondGameObjectiveLabels(src entrySource, mission int) []string {
-	payload, ok := readSecondGameMissionText(src, mission)
+func secondGameObjectiveLabels(src entrySource, code TextCode, mission int) []string {
+	payload, ok := readSecondGameMissionText(src, code, mission)
 	if !ok {
 		return nil
 	}

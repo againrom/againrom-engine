@@ -1,10 +1,12 @@
 package game
 
 import (
+	"againrom/pkg/base"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/locale"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
+	"againrom/pkg/vfs"
 	"againrom/pkg/words"
 	"strings"
 )
@@ -109,10 +111,11 @@ const (
 // file that is the same answer splitting gives; on `A\rXB` it is not, and
 // the walk is what the game does.
 //
-// The bytes are kept exactly as shipped. No code-page pass runs at load in the
-// original and none runs here: a Russian install's CP866 bytes are converted at
-// DRAW, by the font's selector (`TEXT-CHARGEN-029`, `TEXT-DOM-010`), which is
-// where this tree already applies it.
+// The first game's bytes are kept exactly as shipped. No code-page pass runs
+// at load in the original and none runs here: a Russian install's CP866 bytes
+// are converted at DRAW, by the font's selector (`TEXT-CHARGEN-029`,
+// `TEXT-DOM-010`), which is where this tree already applies it. A game whose
+// loaders convert their text reaches the table through TextCode first.
 type TextTable struct {
 	lines []string
 }
@@ -169,9 +172,48 @@ func spellBookRowName(s string) string {
 	return s
 }
 
-// LoadTextTable reads one address out of the container filesystem and splits
-// it. A read failure is no table, which every accessor reports as absent.
-func LoadTextTable(src terrain.EntrySource, addr string) *TextTable {
+// TextCode is how an install's text files reach its font: the code page the
+// install writes them in and the one the font draws. The zero TextCode keeps
+// every byte.
+type TextCode struct {
+	From, To int
+}
+
+// InstallTextCode is the text code of src's install under edition: its
+// language's text code page there, and the language's font code page.
+func InstallTextCode(src terrain.EntrySource, edition base.Edition) TextCode {
+	l, _ := locale.BySelector(LanguageSelector(src))
+	c := TextCode{From: l.CodePage, To: l.CodePage}
+	if edition.TextCodePage != nil {
+		c.From = edition.TextCodePage(l.CodePage, l.WindowsCodePage)
+	}
+	return c
+}
+
+// Bytes is an install text file's bytes in the font's code page. Windows
+// Cyrillic becomes DOS Cyrillic, as the second game's loaders call
+// CharToOemA (R2-ENGINE-052, R2-ENGINE-093; DIV-2378, DIV-2844); any other
+// text keeps its bytes.
+func (c TextCode) Bytes(b []byte) []byte {
+	if c.From != 1251 || c.To != 866 {
+		return b
+	}
+	return vfs.WindowsCyrillicToDOS(b)
+}
+
+// textCode is the install's text code; an install with no archives keeps
+// every byte.
+func (in *InstallResources) textCode() TextCode {
+	if in == nil || in.Archives == nil {
+		return TextCode{}
+	}
+	return InstallTextCode(in.Archives.Containers, in.Archives.Game().Edition())
+}
+
+// LoadTextTable reads one address out of the container filesystem, in the
+// font's code page under code, and splits it. A read failure is no table,
+// which every accessor reports as absent.
+func LoadTextTable(src terrain.EntrySource, addr string, code TextCode) *TextTable {
 	if src == nil {
 		return nil
 	}
@@ -179,7 +221,7 @@ func LoadTextTable(src terrain.EntrySource, addr string) *TextTable {
 	if err != nil {
 		return nil
 	}
-	return SplitTextTable(b)
+	return SplitTextTable(code.Bytes(b))
 }
 
 // Lines is how many lines the table holds. A nil table holds none.
@@ -218,7 +260,7 @@ type InstallWords struct {
 	// Selector is the install's language digit, `main\id`'s last character
 	// minus '0' (`TEXT-CHARGEN-029`). It is carried beside the tables because
 	// the words and the byte conversion that draws them are one property of
-	// one install; nothing here converts anything.
+	// one install; the tables already hold the font's code page (TextCode).
 	Selector int
 
 	// Language is the install's language entry, the base profile's Language
@@ -227,24 +269,25 @@ type InstallWords struct {
 	Language string
 }
 
-// LoadInstallWords reads both tables once. It cannot fail: an install
+// LoadInstallWords reads the tables once, in the font's code page under
+// code. It cannot fail: an install
 // missing either file yields a word set in which every index is absent, and
 // every program-chosen word then stays the authored English one.
-func LoadInstallWords(src terrain.EntrySource) *InstallWords {
+func LoadInstallWords(src terrain.EntrySource, code TextCode) *InstallWords {
 	w := &InstallWords{
-		main:           LoadTextTable(src, MainTextPath),
-		dialogs:        LoadTextTable(src, DialogsTextPath),
-		stats:          LoadTextTable(src, StatsTextPath),
-		unitNames:      LoadTextTable(src, UnitNameTextPath),
-		buildingNames:  LoadTextTable(src, BuildingTextPath),
-		sites:          LoadTextTable(src, SitesTextPath),
-		spellNames:     LoadTextTable(src, SpellNamesTextPath),
-		spellBookNames: LoadTextTable(src, SpellBookNamesTextPath),
+		main:           LoadTextTable(src, MainTextPath, code),
+		dialogs:        LoadTextTable(src, DialogsTextPath, code),
+		stats:          LoadTextTable(src, StatsTextPath, code),
+		unitNames:      LoadTextTable(src, UnitNameTextPath, code),
+		buildingNames:  LoadTextTable(src, BuildingTextPath, code),
+		sites:          LoadTextTable(src, SitesTextPath, code),
+		spellNames:     LoadTextTable(src, SpellNamesTextPath, code),
+		spellBookNames: LoadTextTable(src, SpellBookNamesTextPath, code),
 		Selector:       LanguageSelector(src),
 	}
 	if src != nil {
 		if b, err := src.ReadFile(HelpTextPath); err == nil {
-			w.help = string(b)
+			w.help = string(code.Bytes(b))
 		}
 	}
 	return w

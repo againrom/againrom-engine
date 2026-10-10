@@ -45,7 +45,7 @@ func (f *FrontEnd) endingArt() *ui.EndingView {
 		view.HallFont = f.documentFont()
 		if f.Archives != nil && f.Archives.Containers != nil {
 			if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "text/credits.txt"); err == nil {
-				view.Credits = strings.Split(strings.ReplaceAll(strings.TrimSpace(vfs.DecodeText(raw)), "\r\n", "\n"), "\n")
+				view.Credits = strings.Split(strings.ReplaceAll(strings.TrimSpace(vfs.DecodeText(f.textCode().Bytes(raw))), "\r\n", "\n"), "\n")
 			}
 			if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "graphics/famehall/hall.bmp"); err == nil {
 				if art, err := chargenRGBA(raw, "hall.bmp"); err == nil {

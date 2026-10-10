@@ -98,11 +98,11 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		src = f.Archives.Containers
 	}
 	tip := func(t ui.GeneratorTipText) string {
-		text, _ := ReadShopTip(src, t.File)
+		text, _ := ReadShopTip(src, t.File, f.textCode())
 		if t.Section == "" || text == "" {
 			return text
 		}
-		return secondGameTextSection(secondGameMissionBytes([]byte(text), LanguageSelector(src)), t.Section)
+		return secondGameTextSection([]byte(text), t.Section)
 	}
 	var tipSelect [3]string
 	for i, t := range l.Tips.Select {
@@ -130,8 +130,8 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		TipText:       tip(l.Tips.Fighter),
 		TipTextMage:   tip(l.Tips.Mage),
 		TipTextDetail: tip(l.Tips.After),
-		TipClose:      generatorWord(l, LanguageSelector(src), f.Words.TipClose),
-		TipToggle:     generatorWord(l, LanguageSelector(src), f.Words.TipShowNext),
+		TipClose:      f.Words.TipClose,
+		TipToggle:     f.Words.TipShowNext,
 		TipArt:        f.tipArt(),
 		TipsOn:        !f.TipsOff(),
 		SetTipsOn:     func(on bool) { f.SetTipsOff(!on) },

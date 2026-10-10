@@ -148,8 +148,8 @@ type Table struct {
 	// four, holds four empty strings.
 	HeroNames [4]string
 
-	// NPCNames are the lines of text/npcnames.txt, raw install bytes. The npc
-	// arm names a map placement from them (TRIG-MAPNAME-106).
+	// NPCNames are the lines of text/npcnames.txt in the font's code page.
+	// The npc arm names a map placement from them (TRIG-MAPNAME-106).
 	NPCNames []string
 
 	// composedNPC is the resolved Humans-row index for a composed scenario

@@ -23,7 +23,7 @@ func (mw *mapWorld) observeSecondGameMessages(messages []int32) {
 		case 255:
 			m.announced, m.outcome = true, sim.OutcomeLost
 		case 250:
-			if words := LoadInstallWords(m.src); words != nil {
+			if words := LoadInstallWords(m.src, InstallTextCode(m.src, m.edition())); words != nil {
 				if caption, ok := words.Global(0); ok {
 					mw.view.PostMessage(caption, ui.MessageWhite, 5*time.Second)
 				}

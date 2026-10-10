@@ -28,7 +28,7 @@ const (
 // name; itemName (world.go) already falls back to a code's own weapon
 // recovery and, past that, its seven-digit digits, so a missing table
 // narrows what is named rather than blocking anything.
-func ReadItemNames(src entrySource) (data.ItemNames, bool) {
+func ReadItemNames(src entrySource, code TextCode) (data.ItemNames, bool) {
 	if src == nil {
 		return nil, false
 	}
@@ -40,7 +40,7 @@ func ReadItemNames(src entrySource) (data.ItemNames, bool) {
 	if err != nil {
 		return nil, false
 	}
-	raw := itemname.Parse(bin, txt)
+	raw := itemname.Parse(bin, code.Bytes(txt))
 	names := make(data.ItemNames, len(raw))
 	for k, v := range raw {
 		names[data.ItemCode(k)] = v

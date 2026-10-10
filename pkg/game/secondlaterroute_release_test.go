@@ -274,7 +274,7 @@ func TestReleaseSecondMovieExitAtLaterDeparture(t *testing.T) {
 			if bank[779] != 0 {
 				output = 5
 			}
-			stem, _ := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutpaths.txt").At(output)
+			stem, _ := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutpaths.txt", f.textCode()).At(output)
 			if stem == "" {
 				t.Fatal("installed cutpaths row", output, "is empty")
 			}

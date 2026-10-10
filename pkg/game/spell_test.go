@@ -175,7 +175,7 @@ func TestCustomSpellTableKeepsItsCollectionNames(t *testing.T) {
 	src := installFixture{SpellBookNamesTextPath: textFile(24, map[int]string{
 		0: "installed first#detail", 5: "installed sixth#detail",
 	})}
-	bookNames := LoadInstallWords(src).Words().SpellBookNames
+	bookNames := LoadInstallWords(src, TextCode{}).Words().SpellBookNames
 	if bookNames[23] != "installed sixth" {
 		t.Fatalf("cell mapping was not exercised: %q", bookNames[23])
 	}
@@ -187,7 +187,7 @@ func TestCustomSpellTableKeepsItsCollectionNames(t *testing.T) {
 			t.Fatalf("custom spell %d name = %q, want %q", id, names[id], want)
 		}
 	}
-	partial := LoadInstallWords(installFixture{SpellBookNamesTextPath: textFile(23, map[int]string{0: "partial"})}).Words()
+	partial := LoadInstallWords(installFixture{SpellBookNamesTextPath: textFile(23, map[int]string{0: "partial"})}, TextCode{}).Words()
 	if partial.SpellBookNames != ([29]string{}) {
 		t.Fatalf("incomplete book table imposed fixed cell names: %q", partial.SpellBookNames)
 	}
@@ -253,7 +253,7 @@ func TestSpellDurationIsTicksTimesOneSixteenthWithOneDecimal(t *testing.T) {
 	ru := LoadInstallWords(installFixture{
 		LanguagePath: []byte("russian 1"),
 		MainTextPath: textFile(125, map[int]string{spellLabelDuration: "\x84"}),
-	}).Words()
+	}, TextCode{}).Words()
 	got := spellInfoLines(rule, sim.SpellCharacteristics{Duration: 163}, "Stone Curse", &ru)
 	if want := "\x84:  10.2"; got[len(got)-1] != want {
 		t.Errorf("RU duration = %q, want installed caption and one decimal %q", got[len(got)-1], want)
