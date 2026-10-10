@@ -2,7 +2,7 @@ package sim
 
 import "encoding/binary"
 
-func terminalRegistryActor(e Entity) bool {
+func terminalRegistryActor(e *Entity) bool {
 	return !e.Alive() && e.Decay >= DecayBones
 }
 
@@ -18,7 +18,7 @@ func (w *World) detachTerminalRegistry(id EntityID, removed bool) {
 func (w *World) ReconcileTerminalActorRegistry(bindings map[EntityID]uint32) {
 	ids, keys := map[EntityID]bool{}, map[uint32]bool{}
 	for _, e := range w.entities {
-		if terminalRegistryActor(e) {
+		if terminalRegistryActor(&e) {
 			ids[e.ID], keys[e.SourceBinding.Identity] = true, true
 		}
 	}
@@ -36,7 +36,7 @@ func (w *World) ReconcileTerminalActorRegistry(bindings map[EntityID]uint32) {
 		keys[bindings[id]] = true
 	}
 	for _, e := range w.entities {
-		if !terminalRegistryActor(e) {
+		if !terminalRegistryActor(&e) {
 			delete(ids, e.ID)
 			delete(keys, e.SourceBinding.Identity)
 			delete(keys, bindings[e.ID])
@@ -94,7 +94,7 @@ func (w *World) clearTerminalRegistry(ids map[EntityID]bool, keys map[uint32]boo
 			}
 		}
 		for _, e := range w.entities {
-			if !ids[e.ID] && !e.OffMap && e.OrdinaryTargetable() && entityCoversCell(e, int32(cell&255), int32(cell>>8)) {
+			if !ids[e.ID] && !e.OffMap && e.OrdinaryTargetable() && entityCoversCell(&e, int32(cell&255), int32(cell>>8)) {
 				mask &^= 0x40 << e.Domain.layer()
 			}
 		}

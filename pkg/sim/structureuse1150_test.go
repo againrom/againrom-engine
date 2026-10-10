@@ -77,7 +77,7 @@ func TestStructureUse1150ApproachFacingAndCancellation(t *testing.T) {
 		t.Fatal("distant click did not queue approach")
 	}
 	finishUse1150(t, w)
-	if w.structures[0].Field42 != 1 || cellOf(w.entities[0]).chebyshevTo(cell{12, 12}) > 1 {
+	if w.structures[0].Field42 != 1 || cellOf(&w.entities[0]).chebyshevTo(cell{12, 12}) > 1 {
 		t.Fatal("lever not used at reachable boundary")
 	}
 	for range 70 {

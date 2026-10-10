@@ -147,7 +147,7 @@ func TestAFollowerClosesAndThenStopsWithinItsRange(t *testing.T) {
 	engRun(w, 60)
 
 	e := laEnt(t, w, 2)
-	d := cellOf(e).chebyshevTo(cell{x: 5, y: 5})
+	d := cellOf(&e).chebyshevTo(cell{x: 5, y: 5})
 	if d > 3 {
 		t.Errorf("the follower ended at (%d,%d), %d cells from its subject, want at most its range of 3",
 			e.X, e.Y, d)

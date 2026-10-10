@@ -204,8 +204,22 @@ func savGateFrameHash(fr *terrain.StaticFrame) string {
 	if fr == nil {
 		return "none"
 	}
+	b := make([]byte, 0, 24+2*len(fr.Pixels)+4*len(fr.Palette))
+	for _, n := range []int{fr.Width, fr.Height, len(fr.Pixels)} {
+		b = append(b, byte(n), byte(n>>8), byte(n>>16), byte(n>>24), byte(n>>32), byte(n>>40), byte(n>>48), byte(n>>56))
+	}
+	for _, px := range fr.Pixels {
+		opaque := byte(0)
+		if px.Opaque {
+			opaque = 1
+		}
+		b = append(b, px.Index, opaque)
+	}
+	for _, c := range fr.Palette {
+		b = append(b, c.R, c.G, c.B, c.A)
+	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%d %d %v %v", fr.Width, fr.Height, fr.Pixels, fr.Palette)
+	h.Write(b)
 	return fmt.Sprintf("%016x", h.Sum64())
 }
 

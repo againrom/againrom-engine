@@ -167,7 +167,7 @@ func (w *World) savedRoamReroll(g *SavedGroup, members []int) bool {
 	var far int64
 	dst := cell{x: int32(g.AI[10]), y: int32(g.AI[11])}
 	for _, i := range members {
-		if d := cellOf(w.entities[i]).chebyshevTo(dst); d > far {
+		if d := cellOf(&w.entities[i]).chebyshevTo(dst); d > far {
 			far = d
 		}
 	}

@@ -71,7 +71,7 @@ func (w *World) beginStructureUse(i int, id StructureID) bool {
 	e.clearAttackBetweenCycles()
 	e.clearTurn()
 	e.clearGroupSpeed()
-	w.commandGroup([]int{i}, orderMove, cellOf(*e))
+	w.commandGroup([]int{i}, orderMove, cellOf(e))
 	at, found := w.structureUseIndex(e.ID)
 	use := StructureUse{Entity: e.ID, Structure: id}
 	if found {
@@ -129,7 +129,7 @@ func (w *World) advanceStructureUse(scratch *routeScratch, i int) bool {
 	s := w.structures[si]
 	goal, radius := structureUseGoal(s)
 	a := w.entities[i]
-	if cellOf(a).chebyshevTo(goal) <= radius {
+	if cellOf(&a).chebyshevTo(goal) <= radius {
 		if !w.restAt(scratch, i) {
 			return true
 		}
@@ -152,7 +152,7 @@ func (w *World) advanceStructureUse(scratch *routeScratch, i int) bool {
 		}
 	}
 	sort.SliceStable(candidates, func(i, j int) bool {
-		return candidates[i].chebyshevTo(cellOf(a)) < candidates[j].chebyshevTo(cellOf(a))
+		return candidates[i].chebyshevTo(cellOf(&a)) < candidates[j].chebyshevTo(cellOf(&a))
 	})
 	for _, next := range candidates {
 		if route, found := w.searchRoute(scratch, i, terrainRelation, noWindow, w.farBudgetFor(i), exactGoal, next.x, next.y); found && len(route) > 0 {

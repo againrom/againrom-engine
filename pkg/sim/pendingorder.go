@@ -144,7 +144,7 @@ func (w *World) takePendingOrders() {
 }
 
 func (w *World) settleIdleOrderProgress(i int) {
-	e := w.entities[i]
+	e := &w.entities[i]
 	if e.Retreat.Known || e.AttackPhase != AttackReady || e.AttackCountdown != 0 {
 		return
 	}
@@ -154,7 +154,7 @@ func (w *World) settleIdleOrderProgress(i int) {
 }
 
 func (w *World) observePendingOrderCompletion(i int) {
-	e := w.entities[i]
+	e := &w.entities[i]
 	if e.PendingOrder.Kind == PendingNone || e.Retreat.Known || e.AttackPhase != AttackBoundaryOne {
 		return
 	}

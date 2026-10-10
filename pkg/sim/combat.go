@@ -530,11 +530,11 @@ func (w *World) closedOn(i, ti int) bool {
 // it; the approach is the one writer that runs with a live plane, which is the
 // whole of why this function exists and why it did not before.
 func (w *World) walkTo(s *routeScratch, i int, x, y int32) {
-	before := counted(w.entities[i])
+	before := counted(&w.entities[i])
 	w.cancelTurnForTargetChange(i, x, y)
 	e := &w.entities[i]
 	e.TargetX, e.TargetY, e.HasTarget = x, y, true
-	if !before || counted(w.entities[i]) {
+	if !before || counted(&w.entities[i]) {
 		return
 	}
 	s.addFootprint(w, e.Domain.layer(), e.TokenSize, e.X, e.Y, -1)

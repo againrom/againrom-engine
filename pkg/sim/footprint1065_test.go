@@ -111,9 +111,9 @@ func TestPursuingLargeFlyerDoesNotRestOnAnotherFlyer(t *testing.T) {
 		t.Fatalf("pursuit tick 1 left attacker at (%d,%d), target=%v", got.X, got.Y, got.HasTarget)
 	}
 	Step(w, nil)
-	if got := spAt(t, w, 1); got.X != 2 || got.Y != 2 || !got.HasTarget || counted(got) {
+	if got := spAt(t, w, 1); got.X != 2 || got.Y != 2 || !got.HasTarget || counted(&got) {
 		t.Fatalf("pursuit tick 2 left attacker at (%d,%d), target=%v counted=%v; want a moving crossing",
-			got.X, got.Y, got.HasTarget, counted(got))
+			got.X, got.Y, got.HasTarget, counted(&got))
 	}
 
 	// At this point the attacker is in range but its 2x2 resting footprint
@@ -121,14 +121,14 @@ func TestPursuingLargeFlyerDoesNotRestOnAnotherFlyer(t *testing.T) {
 	// allowing the ordinary mover to close one more cell and rest clear of it.
 	Step(w, nil)
 	got, held := spAt(t, w, 1), spAt(t, w, 2)
-	if got.X != 3 || got.Y != 2 || got.HasTarget || !counted(got) {
+	if got.X != 3 || got.Y != 2 || got.HasTarget || !counted(&got) {
 		t.Fatalf("refused rest stranded attacker at (%d,%d), target=%v counted=%v; want resting at (3,2)",
-			got.X, got.Y, got.HasTarget, counted(got))
+			got.X, got.Y, got.HasTarget, counted(&got))
 	}
 	if !got.HasAttackTarget || got.AttackTarget != 3 {
 		t.Fatalf("refused rest cleared pursuit %v/%d", got.HasAttackTarget, got.AttackTarget)
 	}
-	if counted(held) && footprintsOverlap(got.X, got.Y, got.TokenSize, held.X, held.Y, held.TokenSize) {
+	if counted(&held) && footprintsOverlap(got.X, got.Y, got.TokenSize, held.X, held.Y, held.TokenSize) {
 		t.Fatalf("resting attacker footprint at (%d,%d) overlaps resting flyer at (%d,%d)",
 			got.X, got.Y, held.X, held.Y)
 	}
@@ -149,7 +149,7 @@ func TestPursuingLargeFlyerDoesNotRestOnAnotherFlyer(t *testing.T) {
 		t.Fatalf("corrected pursuit hash after load = %016x, want %016x", gotHash, wantHash)
 	}
 	loaded, loadedHeld := spAt(t, &back, 1), spAt(t, &back, 2)
-	if counted(loaded) && counted(loadedHeld) &&
+	if counted(&loaded) && counted(&loadedHeld) &&
 		footprintsOverlap(loaded.X, loaded.Y, loaded.TokenSize, loadedHeld.X, loadedHeld.Y, loadedHeld.TokenSize) {
 		t.Fatal("corrected pursuit round-tripped a same-layer resting overlap")
 	}
@@ -289,7 +289,7 @@ func TestSameVersionRouteWithABlockedNonAnchorLoadsAndKeepsItsRoute(t *testing.T
 
 	for tick := 0; tick < 63; tick++ {
 		got := loaded.entities[0]
-		if entityCoversCell(got, 3, 2) {
+		if entityCoversCell(&got, 3, 2) {
 			t.Fatalf("tick %d: large actor crossed the blocked non-anchor cell from (%d,%d)", tick+1, got.X, got.Y)
 		}
 		if got.X == 4 && got.Y == 1 {

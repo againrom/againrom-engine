@@ -25,13 +25,13 @@ func TestAcquisitionAndEngagementWritersKeepDistinctPursuits(t *testing.T) {
 		{"refused route", true, func(w *World) { w.reacquireWithinReach(0) }},
 		{"move arrival", true, func(w *World) {
 			w.commandGroup([]int{0}, orderMove, cell{x: 20, y: 20})
-			w.decide(aiGroup{owner: 2, group: effectiveGroup(w.entities[0]), members: []int{0}})
+			w.decide(aiGroup{owner: 2, group: effectiveGroup(&w.entities[0]), members: []int{0}})
 		}},
 		{"player attack", false, func(w *World) { Step(w, []Command{Attack(1, 2)}) }},
 		{"script attack", false, func(w *World) { w.cmdGroupAttack(ScriptInstant{Group: 7, HasGroup: true, Unit: 2, HasUnit: true}) }},
 		{"group guard", false, func(w *World) {
 			w.commandGroup([]int{0}, orderGuard, cell{})
-			w.decide(aiGroup{owner: 2, group: effectiveGroup(w.entities[0]), members: []int{0}})
+			w.decide(aiGroup{owner: 2, group: effectiveGroup(&w.entities[0]), members: []int{0}})
 		}},
 		{"swarm", false, func(w *World) { w.armSwarm(aiGroup{owner: 2, group: 7, members: []int{0}}, []int{1}) }},
 		{"guard post", false, func(w *World) { w.postEngage(0, cell{x: 20, y: 20}) }},

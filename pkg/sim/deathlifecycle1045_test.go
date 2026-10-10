@@ -124,7 +124,7 @@ func TestCadence1045SelfKillingApplicationsDoNotRestoreRecovery(t *testing.T) {
 		DamageMin: 100, DamageMax: 100, Damaging: true}
 	runUntilDead := func(t *testing.T, w *World, first []Command) {
 		t.Helper()
-		for tick := 0; tick < 32 && spAt(t, w, 1).Alive(); tick++ {
+		for tick := 0; tick < 32 && entityRef(spAt(t, w, 1)).Alive(); tick++ {
 			Step(w, first)
 			first = nil
 		}

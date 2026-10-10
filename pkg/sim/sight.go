@@ -404,7 +404,7 @@ func (w *World) groupSight(reader sightReader, members []int) []byte {
 	stamp := make([]byte, len(w.grid))
 	for _, i := range members {
 		e := w.entities[i]
-		w.marchSight(reader, stamp, cellOf(e), int32(e.ScanRange))
+		w.marchSight(reader, stamp, cellOf(&e), int32(e.ScanRange))
 	}
 	return stamp
 }
@@ -418,7 +418,7 @@ func (w *World) Sight(owner uint32) []byte {
 		if e.Owner != owner || e.Decay >= decayDarkStage || e.ScanRange == 0 {
 			continue
 		}
-		w.marchSight(fogSight, stamp, cellOf(e), int32(e.ScanRange))
+		w.marchSight(fogSight, stamp, cellOf(&e), int32(e.ScanRange))
 	}
 	return stamp
 }
@@ -434,7 +434,7 @@ func (w *World) actorSight(i int) []byte {
 		return stamp
 	}
 	e := w.entities[i]
-	w.marchSight(aiSight, stamp, cellOf(e), int32(e.ScanRange))
+	w.marchSight(aiSight, stamp, cellOf(&e), int32(e.ScanRange))
 	w.stampAttackNotices(stamp, []int{i}, false)
 	return stamp
 }
@@ -455,11 +455,11 @@ func (w *World) actorSeesEntity(i, target int) bool {
 		return true
 	}
 	observer, candidate := w.entities[i], w.entities[target]
-	if !w.actorSees(i, cellOf(candidate)) {
+	if !w.actorSees(i, cellOf(&candidate)) {
 		return false
 	}
 	return !w.hasAttachedSpell(candidate.ID, w.armSpellID(15)) ||
-		cellOf(observer).chebyshevTo(cellOf(candidate)) <= int64(observer.SeeInvisible)
+		cellOf(&observer).chebyshevTo(cellOf(&candidate)) <= int64(observer.SeeInvisible)
 }
 
 // invisibleToActor narrows the continuing-order gate to Invisibility itself.
