@@ -166,7 +166,7 @@ func TestWithdrawalDeferredFleeKeepsAStandingFlyerInThePlane(t *testing.T) {
 		t.Fatalf("flyer state at the tail = attack %t phase %d destination %t, want a held move behind a loaded cycle",
 			held.HasAttackTarget, held.AttackPhase, held.HasTarget)
 	}
-	if !counted(held) {
+	if !counted(&held) {
 		t.Error("a flyer standing through its cycle left the occupancy plane")
 	}
 	walked := false
@@ -174,7 +174,7 @@ func TestWithdrawalDeferredFleeKeepsAStandingFlyerInThePlane(t *testing.T) {
 		Step(w, nil)
 		if got := w.entities[0]; got.X != 20 || got.Y != 20 {
 			walked = true
-			if counted(got) {
+			if counted(&got) {
 				t.Error("a flyer walking its flee move is still counted")
 			}
 		}

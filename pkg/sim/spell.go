@@ -380,7 +380,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		// its marks and event are produced; only the health stays unchanged.
 		// A script cast has no caster and no side.
 		if !rule.HealHostile && ci >= 0 && ci < len(w.entities) && w.entities[ti].Owner != w.entities[ci].Owner &&
-			w.hostileTo(w.entities[ci], w.entities[ti]) {
+			w.hostileTo(&w.entities[ci], &w.entities[ti]) {
 			return true
 		}
 		w.applySpellHealing(ti, rule, power)
@@ -2055,7 +2055,7 @@ func (w *World) decaySpellEffects() {
 func (w *World) stepAutoCasts(released map[EntityID]bool) {
 	activity := w.rom2ActivityMask()
 	for i := range w.entities {
-		if !activity.actorActive(w.entities[i]) {
+		if !activity.actorActive(&w.entities[i]) {
 			continue
 		}
 		// AN ARMED ROW AUTOMATIC SELECTION MAY NOT RUN IS CLEARED WHERE IT IS
@@ -2135,7 +2135,7 @@ func (w *World) inCombat(ci int) bool {
 			continue
 		}
 		t := w.entities[i]
-		if t.ID == e.ID || !t.Alive() || !w.hostileTo(e, t) {
+		if t.ID == e.ID || !t.Alive() || !w.hostileTo(&e, &t) {
 			continue
 		}
 		return true
@@ -2369,7 +2369,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 			}
 			key = distance
 		} else if rule.Damaging || !rule.Restorative {
-			if t.ID == caster.ID || !w.hostileTo(caster, t) {
+			if t.ID == caster.ID || !w.hostileTo(&caster, &t) {
 				continue
 			}
 			// A unit fighting the enemy a player ordered it onto casts at that
@@ -2380,7 +2380,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 			// Nearest wins, so the key ascends with the distance.
 			key = distance
 		} else {
-			if t.Owner != caster.Owner && w.hostileTo(caster, t) && !rule.HealHostile || t.MaxHP <= 0 || t.HP >= t.MaxHP {
+			if t.Owner != caster.Owner && w.hostileTo(&caster, &t) && !rule.HealHostile || t.MaxHP <= 0 || t.HP >= t.MaxHP {
 				continue
 			}
 			// Owner priority for idle healing is own team, then declared allies,
@@ -2393,7 +2393,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 				tier = 0
 			case w.relations.Locked(caster.Owner, t.Owner):
 				tier = 1
-			case w.hostileTo(caster, t):
+			case w.hostileTo(&caster, &t):
 				tier = 3
 			default:
 				tier = 2

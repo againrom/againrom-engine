@@ -35,7 +35,7 @@ package sim
 func (w *World) actorPass() {
 	activity := w.rom2ActivityMask()
 	for i := range w.entities {
-		if !activity.actorActive(w.entities[i]) {
+		if !activity.actorActive(&w.entities[i]) {
 			continue
 		}
 		if w.savedGroups != nil && !w.nativePatrol(i) {
@@ -49,7 +49,7 @@ func (w *World) actorPass() {
 		}
 		// Command17 retains the old actor state, but its Group now owns
 		// evaluation. A retained patrol/escort must not decide a second time.
-		if order, _, ok := w.groupState(w.entities[i].Owner, effectiveGroup(w.entities[i])); ok && order == orderRoam {
+		if order, _, ok := w.groupState(w.entities[i].Owner, effectiveGroup(&w.entities[i])); ok && order == orderRoam {
 			continue
 		}
 		switch w.entities[i].ActorState {

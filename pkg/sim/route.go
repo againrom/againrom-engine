@@ -193,7 +193,7 @@ func (s *routeScratch) occupy(w *World) {
 		if m := w.motionFor(e.ID); m != nil && m.Current {
 			continue
 		}
-		if !counted(*e) {
+		if !counted(e) {
 			continue
 		}
 		s.addFootprint(w, e.Domain.layer(), e.TokenSize, e.X, e.Y, 1)
@@ -230,7 +230,7 @@ func (s *routeScratch) occupy(w *World) {
 // this is the one predicate the seed, enterable's self-presence term and the
 // flyer re-seed all read, and a seed rule that disagreed with a subtraction
 // would drive a count negative on the asker's own cell.
-func counted(e Entity) bool {
+func counted(e *Entity) bool {
 	if e.OffMap {
 		return false
 	}
@@ -599,7 +599,7 @@ func (w *World) placementOpen(self int, x, y int32) bool {
 			continue
 		}
 		o := w.entities[j]
-		if counted(o) && o.Domain.layer() == layer &&
+		if counted(&o) && o.Domain.layer() == layer &&
 			footprintsOverlap(x, y, e.TokenSize, o.X, o.Y, o.TokenSize) {
 			return false
 		}
@@ -611,7 +611,7 @@ func (w *World) placementOpen(self int, x, y int32) bool {
 // The asker's own current footprint is subtracted cell by cell so an adjacent
 // step may keep the cells shared by its old and new footprints.
 func (w *World) occupancyOpenFootprint(s *routeScratch, self int, x, y int32) bool {
-	e := w.entities[self]
+	e := &w.entities[self]
 	n := footprintSide(e.TokenSize)
 	layer := e.Domain.layer()
 	m := w.motionFor(e.ID)

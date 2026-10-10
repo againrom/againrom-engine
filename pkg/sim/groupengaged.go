@@ -52,7 +52,7 @@ func (w *World) engagedFoes(owner uint32, members []int) []int {
 		}
 		source := cell{x: int32(n.Cell & 255), y: int32(n.Cell >> 8)}
 		for fi := range w.entities {
-			if cellOf(w.entities[fi]).chebyshevTo(source) <= 1 {
+			if cellOf(&w.entities[fi]).chebyshevTo(source) <= 1 {
 				add(fi)
 			}
 		}

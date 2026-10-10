@@ -981,7 +981,7 @@ func TestADyingPursuersOrderStaysFrozenUntilTeardown(t *testing.T) {
 				n, e.HasAttackTarget, e.AttackTarget, e.AttackPhase)
 		}
 	}
-	if cbAt(t, w, 1).Dying() {
+	if entityRef(cbAt(t, w, 1)).Dying() {
 		t.Fatal("a dwell of 3 is still dying after 3 ticks")
 	}
 }

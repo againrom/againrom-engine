@@ -142,7 +142,7 @@ func signIndex(v int32) int {
 }
 
 // Turning reports the one active shape of the canonical turn state.
-func (e Entity) Turning() bool { return e.TurnRemaining != 0 }
+func (e *Entity) Turning() bool { return e.TurnRemaining != 0 }
 
 // ANIM-136
 func (e Entity) DrawnFacing() uint8 {

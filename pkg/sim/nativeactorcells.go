@@ -74,7 +74,7 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 				continue
 			}
 			e := w.entities[actors[id]]
-			if !e.OffMap && layer == e.Domain.layer() && entityCoversCell(e, int32(c.Cell&255), int32(c.Cell>>8)) {
+			if !e.OffMap && layer == e.Domain.layer() && entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8)) {
 				continue
 			}
 			*slot = SavedActorSlot{}

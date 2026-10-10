@@ -34,7 +34,7 @@ func (w *World) rom2ActivityMask() *rom2Activity {
 		}
 		x, y := int(e.X)>>3, int(e.Y)>>3
 		if e.Owner == SelfSlot || e.HP < e.MaxHP || x >= 0 && x < 32 && y >= 0 && y < 32 && covered[x][y] {
-			a.active[rom2GroupKey{e.Owner, effectiveGroup(e)}] = true
+			a.active[rom2GroupKey{e.Owner, effectiveGroup(&e)}] = true
 		}
 	}
 	return a
@@ -43,7 +43,7 @@ func (w *World) rom2ActivityMask() *rom2Activity {
 func (a *rom2Activity) groupActive(owner, group uint32) bool {
 	return a == nil || a.active[rom2GroupKey{owner, group}]
 }
-func (a *rom2Activity) actorActive(e Entity) bool {
+func (a *rom2Activity) actorActive(e *Entity) bool {
 	return e.CommandGroup != 0 || a.groupActive(e.Owner, effectiveGroup(e))
 }
 
@@ -64,7 +64,7 @@ func (w *World) refreshROM2SavedGroupActivity(a *rom2Activity) {
 			}
 			represented = true
 			e := w.entities[i]
-			active = active || a.groupActive(e.Owner, effectiveGroup(e))
+			active = active || a.groupActive(e.Owner, effectiveGroup(&e))
 		}
 		if represented {
 			g.AI[0x45] = 0

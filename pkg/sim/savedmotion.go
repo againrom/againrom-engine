@@ -654,7 +654,7 @@ func (w *World) refreshMotionBlocks(i int, touched []uint16) {
 	}
 	if m != nil {
 		for _, c := range w.savedMotion.Cells {
-			if !entityCoversCell(e, int32(c.Cell&255), int32(c.Cell>>8)) {
+			if !entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8)) {
 				continue
 			}
 			at := sort.Search(len(w.savedMotion.Blocks), func(k int) bool { return w.savedMotion.Blocks[k].Cell >= c.Cell })
@@ -715,7 +715,7 @@ func (w *World) moveMotionSlots(i int, to uint16) bool {
 	for k := range w.savedMotion.Cells {
 		c := &w.savedMotion.Cells[k]
 		slot := motionSlot(c, layer)
-		if slot.Bound && slot.Entity == e.ID && entityCoversCell(e, int32(c.Cell&255), int32(c.Cell>>8)) {
+		if slot.Bound && slot.Entity == e.ID && entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8)) {
 			*slot = SavedActorSlot{}
 			binary.LittleEndian.PutUint32(c.Payload[4+4*int(layer):], 0)
 			w.syncCurrentCellActor(c.Cell, layer, *slot)

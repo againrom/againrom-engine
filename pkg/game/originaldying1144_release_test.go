@@ -103,7 +103,7 @@ func TestReleaseOriginalDying1144OwnerGraphDoesNotResurrect(t *testing.T) {
 				if driver.world.Hash() != fresh.live.world.Hash() {
 					t.Fatalf("fresh native continuation differs at tick %d", tick)
 				}
-				if poolEntity(t, driver.world, tc.mapID).Alive() {
+				if entityRef(poolEntity(t, driver.world, tc.mapID)).Alive() {
 					t.Fatal("dying actor resurrected during continuation")
 				}
 			}

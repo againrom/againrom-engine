@@ -45,7 +45,7 @@ func (w *World) pointAttribution(ci, ti int, rule SpellRule) {
 	}
 	source := &w.entities[ci]
 	target := &w.entities[ti]
-	if rule.HealHostile && source.Owner != target.Owner && w.hostileTo(*source, *target) {
+	if rule.HealHostile && source.Owner != target.Owner && w.hostileTo(source, target) {
 		return
 	}
 	if !sourceHasDefinition(*source) {

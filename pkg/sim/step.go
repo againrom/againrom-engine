@@ -841,7 +841,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	activity := w.rom2ActivityMask()
 	for i := range w.entities {
 		e := &w.entities[i]
-		if !activity.actorActive(*e) {
+		if !activity.actorActive(e) {
 			continue
 		}
 		heldFirstCall := false
@@ -1144,7 +1144,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	for i := range w.entities {
 		e := &w.entities[i]
 		w.settleIdleOrderProgress(i)
-		if !activity.actorActive(*e) {
+		if !activity.actorActive(e) {
 			continue
 		}
 		if !e.Alive() {
@@ -1415,14 +1415,14 @@ func (w *World) clearOrder(i int) {
 // of the reason now that it has a caller on both sides of the scratch's life,
 // phase 1 running before it exists and phase 3 after it stops being read.
 func (w *World) restAt(s *routeScratch, i int) bool {
-	before := counted(w.entities[i])
+	before := counted(&w.entities[i])
 	after := w.entities[i]
 	after.clearTarget()
-	if !before && counted(after) && !w.enterable(s, i, after.X, after.Y) {
+	if !before && counted(&after) && !w.enterable(s, i, after.X, after.Y) {
 		return false
 	}
 	w.clearOrder(i)
-	if before || !counted(w.entities[i]) {
+	if before || !counted(&w.entities[i]) {
 		return true
 	}
 	e := w.entities[i]
@@ -2158,7 +2158,7 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 	// touches no count — which is what lets two of them cross one cell.
 	if w.savedMotion != nil {
 		scratch.occupy(w)
-	} else if counted(*e) {
+	} else if counted(e) {
 		scratch.moved(w, *e, from, cell{x: e.X, y: e.Y})
 	}
 	// Any advance ends the stall, so the count measures CONSECUTIVE ticks

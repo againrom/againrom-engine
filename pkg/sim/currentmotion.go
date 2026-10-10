@@ -67,7 +67,7 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 	m.Mover[0xb0], m.Mover[0xb1], m.Mover[0x9d], m.Mover[0xa4] = 0, 0, 0, 0
 	binary.LittleEndian.PutUint32(m.Mover[0xa0:], 0)
 	m.ActorAction = 0
-	if terminalRegistryActor(e) {
+	if terminalRegistryActor(&e) {
 		m.ActorAction = 16
 	}
 	m.StaticRoute, m.DynamicRoute = nil, nil

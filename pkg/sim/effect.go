@@ -100,7 +100,7 @@ func (w *World) InvisibleTo(target EntityID, owner uint32) bool {
 	if ti < 0 || !w.hasAttachedSpell(target, w.armSpellID(15)) {
 		return false
 	}
-	at := cellOf(w.entities[ti])
+	at := cellOf(&w.entities[ti])
 	for i := range w.entities {
 		e := w.entities[i]
 		if e.Owner != owner {
@@ -109,7 +109,7 @@ func (w *World) InvisibleTo(target EntityID, owner uint32) bool {
 		if e.ID == target {
 			return false
 		}
-		if cellOf(e).chebyshevTo(at) <= int64(e.SeeInvisible) {
+		if cellOf(&e).chebyshevTo(at) <= int64(e.SeeInvisible) {
 			return false
 		}
 	}

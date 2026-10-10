@@ -80,7 +80,7 @@ func TestHoldPressedDuringARetreatEndsTheRetreat(t *testing.T) {
 					t.Fatalf("after Hold the saved order record holds %+v, want guard %#x", o, actorStateGuard)
 				}
 			} else {
-				order, _, _ = w.groupState(held.Owner, effectiveGroup(held))
+				order, _, _ = w.groupState(held.Owner, effectiveGroup(&held))
 			}
 			if order != orderStandGround {
 				t.Fatalf("after Hold the warrior's group stands at order %d, want Stand Ground (%d)", order, orderStandGround)

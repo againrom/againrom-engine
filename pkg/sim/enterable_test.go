@@ -42,7 +42,7 @@ func (w *World) entNaive(self int, x, y int32) bool {
 		}
 	}
 	for j := range w.entities {
-		if j == self || !counted(w.entities[j]) || w.entities[j].Domain.layer() != e.Domain.layer() {
+		if j == self || !counted(&w.entities[j]) || w.entities[j].Domain.layer() != e.Domain.layer() {
 			continue
 		}
 		o := w.entities[j]

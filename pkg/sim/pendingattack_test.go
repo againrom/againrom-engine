@@ -253,11 +253,11 @@ func TestPendingAttackVictimRemovalAndLethalOldStrike(t *testing.T) {
 		Step(w, []Command{Attack(1, 3), Attack(5, 3)})
 		for range 20 {
 			Step(w, nil)
-			if !laEnt(t, w, 3).OrdinaryTargetable() {
+			if !entityRef(laEnt(t, w, 3)).OrdinaryTargetable() {
 				break
 			}
 		}
-		if laEnt(t, w, 3).OrdinaryTargetable() {
+		if entityRef(laEnt(t, w, 3)).OrdinaryTargetable() {
 			t.Fatal("requested victim did not reach the terminal floor")
 		}
 		if e := laEnt(t, w, 1); e.HasPendingAttackTarget || e.AttackTarget != 2 {

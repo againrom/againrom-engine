@@ -160,7 +160,7 @@ func TestDwellExpiredAuthoredBodyBlocksAMoverThroughRestoration(t *testing.T) {
 			if got := occEntity(t, w, body.ID); got.HP != 0 || got.Decay != DecayFallen || got.Dwell != 0 {
 				t.Fatalf("authored body after dwell = HP %d decay %d dwell %d, want 0/%d/0",
 					got.HP, got.Decay, got.Dwell, DecayFallen)
-			} else if !cellRecordHolds(got) {
+			} else if !cellRecordHolds(&got) {
 				t.Fatal("dwell-expired restorable body left its cell-record actor slot")
 			}
 

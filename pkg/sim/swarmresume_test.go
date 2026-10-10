@@ -32,7 +32,7 @@ func TestSwarm2WalksOnToItsCellAfterTheFight(t *testing.T) {
 		e := entityAt(t, w, 1)
 		fought = fought || e.HasAttackTarget
 		if fought && !e.HasAttackTarget && !ended {
-			ended, shortBy = true, cellOf(e).chebyshevTo(to)
+			ended, shortBy = true, cellOf(&e).chebyshevTo(to)
 		}
 	}
 	if !fought {
@@ -42,7 +42,7 @@ func TestSwarm2WalksOnToItsCellAfterTheFight(t *testing.T) {
 		t.Fatalf("fixture: the fight ended %d cells from the commanded cell, within the arrival distance", shortBy)
 	}
 	final := entityAt(t, w, 1)
-	if d := cellOf(final).chebyshevTo(to); d > formationSpread {
+	if d := cellOf(&final).chebyshevTo(to); d > formationSpread {
 		t.Errorf("after the fight the member stands at (%d,%d), %d cells from the commanded cell (%d,%d), and holds no destination (HasTarget=%v)",
 			final.X, final.Y, d, to.x, to.y, final.HasTarget)
 	}
@@ -76,7 +76,7 @@ func TestScriptedSwarm2GroupWalksOnToItsCellAfterTheFight(t *testing.T) {
 		t.Fatal("fixture: the member never engaged the hostile on its way")
 	}
 	final := entityAt(t, w, 1)
-	if d := cellOf(final).chebyshevTo(to); d > formationSpread {
+	if d := cellOf(&final).chebyshevTo(to); d > formationSpread {
 		t.Errorf("after the fight the scripted member stands at (%d,%d), %d cells from the commanded cell (%d,%d), and holds no destination (HasTarget=%v)",
 			final.X, final.Y, d, to.x, to.y, final.HasTarget)
 	}
@@ -91,11 +91,11 @@ func TestSwarm2GroupThatReachedItsCellStaysOnIt(t *testing.T) {
 	w := engWorld(t, engRel(t), swarmFighter(1, SelfSlot, 5, 10))
 	to := cell{x: 20, y: 10}
 	Step(w, []Command{GroupSwarmTo(1, CellPoint{X: to.x, Y: to.y}, 1)})
-	for n := 0; n < 200 && cellOf(entityAt(t, w, 1)) != to; n++ {
+	for n := 0; n < 200 && cellOf(entityRef(entityAt(t, w, 1))) != to; n++ {
 		Step(w, nil)
 	}
 	held := entityAt(t, w, 1)
-	if cellOf(held) != to {
+	if cellOf(&held) != to {
 		t.Fatalf("fixture: the member reached (%d,%d), not the commanded cell", held.X, held.Y)
 	}
 	for n := 0; n < 200; n++ {
@@ -133,7 +133,7 @@ func TestHoldPressedMidFightEndsTheAttackMoveResume(t *testing.T) {
 		t.Fatal("fixture: the member never engaged the hostile on its way")
 	}
 	final := entityAt(t, w, 1)
-	if d := cellOf(final).chebyshevTo(to); d <= formationSpread || final.HasTarget {
+	if d := cellOf(&final).chebyshevTo(to); d <= formationSpread || final.HasTarget {
 		t.Errorf("a member told to hold its ground mid-fight stands at (%d,%d), %d cells from the attack move's cell, HasTarget=%v; it must stay where the fight left it",
 			final.X, final.Y, d, final.HasTarget)
 	}

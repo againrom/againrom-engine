@@ -81,7 +81,7 @@ func NativeBasisNow(e Entity) NativeActorBasis {
 			}
 		}
 	}
-	if terminalRegistryActor(e) {
+	if terminalRegistryActor(&e) {
 		b = nativeTerminalScalarBasis(b)
 	}
 	return b
@@ -137,7 +137,7 @@ func (w *World) nativeBasisNow(e Entity) NativeActorBasis {
 			b.Scalars[ScalarU54] = action
 		}
 	}
-	if terminalRegistryActor(e) {
+	if terminalRegistryActor(&e) {
 		b = nativeTerminalScalarBasis(b)
 	}
 	return b
