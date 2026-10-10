@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -29,7 +28,8 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 			c.SelectPreChoice(i)
 			c.Forward()
 			r, ok := c.Result()
-			d, _, found := data.ChargenBase(f.Table.Humans, i%2 == 1, i >= 2)
+			h := f.generator().PreCreate.Heroes[i]
+			d, found := f.Table.NPC.HeroArchetype(h.Sex != 0, h.Class != 0)
 			want := []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}
 			if !ok || !found || !reflect.DeepEqual(r.Stats, want) || c.Remaining() != 0 {
 				t.Fatal(i, r.Stats, want, c.Remaining())

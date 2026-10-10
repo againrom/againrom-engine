@@ -164,3 +164,44 @@ func TestNativeHumanSpeedSplitOnLOAD(t *testing.T) {
 		t.Fatal("a speed split on a source Unit was accepted")
 	}
 }
+
+// An engine SAV written before the split holds an overloaded hasted Human's
+// unencumbered sum 19 as its speed word and the former order's byte 6 as its
+// mover byte. LOAD derives once: word 10, turn rate 10. A Human whose word
+// equals its Speed keeps the saved turn rate.
+func TestPreSplitSAVDerivesTheTurnRateAtLOAD(t *testing.T) {
+	loaded := func(speed int32, load int32) Entity {
+		e := Entity{Humanoid: true, Speed: speed, Load: load, Capacity: 261, RotationSpeed: 6}
+		e.ActorLoad = ActorLoad{Present: true, Source: SourceActor{Class: 2}}
+		binary.LittleEndian.PutUint16(e.ActorLoad.Source.Modifier[4:], 4)
+		return e
+	}
+	e := loaded(19, 4680)
+	if err := e.restoreValues(ActorValues{LoadPresent: true}); err != nil {
+		t.Fatal(err)
+	}
+	assertNativeSpeed(t, e, 19, 4, 10, 10)
+	free := loaded(19, 0)
+	if err := free.restoreValues(ActorValues{LoadPresent: true}); err != nil {
+		t.Fatal(err)
+	}
+	if free.RotationSpeed != 6 || free.SpeedWord() != 19 {
+		t.Fatalf("an unencumbered Human re-derived at LOAD: turn %d word %d", free.RotationSpeed, free.SpeedWord())
+	}
+}
+
+// SAV-1116: a negative sum zeroes the stored modifier, so the modifier word a
+// SAVE writes is zero, not the basis byte the cleared modifier came from.
+func TestClearedModifierClearsTheBasisWord(t *testing.T) {
+	w, i := overloadHuman(t, 6020)
+	rearmSpeed(t, w, 20, 0)
+	e := &w.entities[i]
+	e.NativeBasis.ModifierPresent, e.NativeBasis.ModifierKnown = true, 1<<4|1<<5
+	binary.LittleEndian.PutUint16(e.NativeBasis.Modifier[4:], 0)
+	if landed, ok := w.applyEffectDelta(i, EffectSpeed, -9); !ok || landed != -9 {
+		t.Fatal("Slow did not land", landed, ok)
+	}
+	if got := w.entities[i].SpeedModifierWord(); got != 0 || w.entities[i].SpeedModifier != 0 {
+		t.Fatalf("cleared modifier word %#04x, live %d; want 0, 0", got, w.entities[i].SpeedModifier)
+	}
+}

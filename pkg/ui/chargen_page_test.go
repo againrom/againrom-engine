@@ -58,11 +58,6 @@ func chargenTestFont() *text.Font {
 	return &text.Font{Glyphs: glyphs}
 }
 
-func centeredChargenOrigin(f *text.Font, value string, box image.Rectangle) image.Point {
-	w, h := f.Measure(value)
-	return image.Pt(box.Min.X+(box.Dx()-w)/2, box.Min.Y+(box.Dy()-h)/2)
-}
-
 func TestPreCreateControlBoundsAndNativePixels(t *testing.T) {
 	art := &ChargenPresentation{Layout: testGenerator()}
 	for i := range art.Choices {
@@ -221,13 +216,15 @@ func TestDetailedStatTextUsesDecodedPlateBoxes(t *testing.T) {
 	})
 	c.Forward()
 	frame := composeChargenDetailedPage(c, chargenNone, chargenNone)
+	st := &art.Layout.Detail.Stats
 	for row := range chargenStatValueBox {
-		at := centeredChargenOrigin(font, "25", chargenStatValueBox[row])
+		// TOWN-534: each value starts at its box's left + 2, top + 4.
+		at := chargenStatValueBox[row].Min.Add(image.Pt(2, 4))
 		if !(image.Rectangle{Min: at, Max: at.Add(image.Pt(font.Measure("25")))}).In(chargenStatValueBox[row]) {
 			t.Fatalf("row %d value at %v is outside decoded box %v", row, at, chargenStatValueBox[row])
 		}
-		if got := frame.RGBAAt(at.X, at.Y); got != (color.RGBA{R: 255, G: 255, B: 255, A: 255}) {
-			t.Errorf("row %d value pixel at exact centered origin = %#v, want game-font ink", row, got)
+		if got := frame.RGBAAt(at.X, at.Y); got != st.ValueInk.RGBA() {
+			t.Errorf("row %d value pixel at its origin = %#v, want the value ink", row, got)
 		}
 		if got := frame.RGBAAt(chargenStatMinusBox[row].Min.X, chargenStatMinusBox[row].Min.Y); got != buttonColor(0, 0) {
 			t.Errorf("row %d minus rest pixel = %#v, want native mnloff", row, got)
@@ -236,9 +233,12 @@ func TestDetailedStatTextUsesDecodedPlateBoxes(t *testing.T) {
 			t.Errorf("row %d plus rest pixel = %#v, want native pnloff", row, got)
 		}
 	}
-	remaining := centeredChargenOrigin(font, "100", chargenRemainingBox)
-	if got := frame.RGBAAt(remaining.X, remaining.Y); got != (color.RGBA{R: 255, G: 230, B: 150, A: 255}) {
-		t.Errorf("remaining point text at %v = %#v, want game-font ink", remaining, got)
+	// TOWN-534: the counter is centred on the pool box's x centre, 84, its
+	// cell top at 186.
+	w, _ := font.Measure("100")
+	remaining := image.Pt(chargenRemainingBox.Min.X+chargenRemainingBox.Dx()/2-w/2, 186)
+	if got := frame.RGBAAt(remaining.X, remaining.Y); got != st.PoolInk.RGBA() {
+		t.Errorf("remaining point text at %v = %#v, want the counter ink", remaining, got)
 	}
 	if got := composeChargenDetailedPage(c, chargenStatMinus0, chargenNone).RGBAAt(chargenStatMinusBox[0].Min.X, chargenStatMinusBox[0].Min.Y); got != buttonColor(0, 1) {
 		t.Errorf("minus hover pixel = %#v, want native mloff", got)
@@ -423,14 +423,18 @@ func TestDetailedPageDrawsTheProductionCompactCard(t *testing.T) {
 	})
 	c.Forward()
 	frame := composeChargenDetailedPage(c, chargenNone, chargenNone)
-	card := RenderCharacterPanel(CompactPanelLayout(bg), font, c.Preview().Subject)
-	if card.Bounds().Dx() > chargenCardBox.Dx() || card.Bounds().Dy() > chargenCardBox.Dy() {
-		t.Fatalf("native production Card size=%v exceeds destination=%v", card.Bounds().Size(), chargenCardBox.Size())
+	// The card is the town card builder's: its view names the description's
+	// card rectangle and offset, and the page paints exactly its pixels.
+	v := c.CardView()
+	if v.PaneRect != chargenCardBox || v.CardOffset != art.Layout.Detail.CardOffset.Pt() {
+		t.Fatalf("card view at %v offset %v, want %v offset %v", v.PaneRect, v.CardOffset, chargenCardBox, art.Layout.Detail.CardOffset.Pt())
 	}
-	for y := 0; y < card.Bounds().Dy(); y++ {
-		for x := 0; x < card.Bounds().Dx(); x++ {
-			if got, want := frame.RGBAAt(chargenCardBox.Min.X+x, chargenCardBox.Min.Y+y), card.RGBAAt(x, y); got != want {
-				t.Fatalf("generator Card pixel at %v=%#v, shared production pixel=%#v", image.Pt(x, y), got, want)
+	ref := image.NewRGBA(frame.Bounds())
+	drawCharacterPaneBody(ref, v)
+	for y := chargenCardBox.Min.Y; y < chargenCardBox.Max.Y; y++ {
+		for x := chargenCardBox.Min.X; x < chargenCardBox.Max.X; x++ {
+			if got, want := frame.RGBAAt(x, y), ref.RGBAAt(x, y); got != want {
+				t.Fatalf("generator Card pixel at %v=%#v, town builder pixel=%#v", image.Pt(x, y), got, want)
 			}
 		}
 	}

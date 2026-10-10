@@ -256,15 +256,10 @@ func (w *World) recomputeLoads() {
 	}
 }
 
-// humanSpeedWord is the Human derive's speed word for an unencumbered speed
-// and the signed modifier inside it, with the modifier the derive keeps
-// (rules.HumanSpeed). The load is its only consumer (ITEM-LOAD-005). Two
-// guards are this package's: a speed at or below zero has no rate (rated) and
-// is returned whole, and so is an entity with no stated capacity.
+// humanSpeedWord is the Human derive's speed word for a native Human's
+// unencumbered speed and the signed modifier inside it, with the modifier the
+// derive keeps (rules.NativeHumanSpeed). The load is its only consumer
+// (ITEM-LOAD-005), compared in 32 bits.
 func humanSpeedWord(speed, modifier, load, capacity int32) (word, kept int32) {
-	if speed <= 0 || capacity <= 0 {
-		return speed, modifier
-	}
-	w, m, _ := rules.HumanSpeed(int16(speed-modifier), int16(modifier), int16(load), int16(capacity))
-	return int32(w), int32(m)
+	return rules.NativeHumanSpeed(speed, modifier, load, capacity)
 }

@@ -52,6 +52,9 @@ type ChargenSetup struct {
 	// Presets follow the four pre-create portraits. Missing/invalid entries
 	// keep the generic starts used by asset-free/custom generator setups.
 	Presets [4][]int
+	// PresetSkills are the four portraits' skills, one-based: the skill row's
+	// index plus one, as the archetype stores it. Zero keeps the row's start.
+	PresetSkills [4]int
 	// EncodeName turns a typed rune into the install's stored byte. Nil retains
 	// the legacy UTF-8 test seam; real setups always supply it.
 	EncodeName func(rune) (byte, bool)
@@ -435,6 +438,9 @@ func (c *Chargen) Forward() {
 	c.resetStats()
 	if len(c.choiceIndex) > 2 {
 		c.choiceIndex[2] = c.startIndex(2)
+		if s := c.setup.PresetSkills[c.preChoice] - 1; s >= 0 && s < len(c.choiceOptions(2)) {
+			c.choiceIndex[2] = s
+		}
 	}
 	c.focus = 0
 	c.stage = DetailedStage
