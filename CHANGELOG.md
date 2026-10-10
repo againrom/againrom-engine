@@ -14,7 +14,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   companions sends the servant to (13,14) at the win, so he stops following
   the hero. Missions 30, 60, 81, 90, 130, 131 and 151 change the same way
   when their roles are missing; in mission 130 a party without the
-  companion wins at the start.
+  companion wins at the start. When that first action is a message, the
+  message is shown, as in mission 90's win without its companions.
 - [BASE] On the world map the task's flag now stands above the red cross, as in
   the original: it shows while the pointer is over a task and stays on the chosen
   task through the whole journey, waving all the time. The red cross draws

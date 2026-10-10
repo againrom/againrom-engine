@@ -331,6 +331,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	instants := make([]sim.ScriptInstant, 0, len(src.Actions))
 	instantOf := make(map[uint32]int32, len(src.Actions))
 	buildTime := make(map[uint32]bool)
+	unbuilt := make(map[uint32]bool)
 	for _, n := range src.Actions {
 		var args [10]int32
 		var refd bound
@@ -356,6 +357,8 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		if refd.unbuilt(dialect, refs) {
 			if dialect == sim.ScriptROM2 {
 				buildTime[n.ID] = true
+			} else {
+				unbuilt[n.ID] = true
 			}
 			rep.OmittedActions = append(rep.OmittedActions, n.ID)
 			continue
@@ -476,7 +479,14 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			// what the simulation runs; a MISS must not become an announcement,
 			// because subscript 0 is then another action entirely. This is the
 			// only place in the program where the two can still be told apart.
-			if idx, hit := instantOf[t.Acts[k]]; hit && instants[idx].Op == scriptMessageOpcode {
+			// A slot naming an action the ROM1 binder left unbuilt is the one
+			// miss that does run subscript 0 as the original does (DIV-2793), so
+			// it takes instant 0's announcement in its own slot position.
+			idx, hit := instantOf[t.Acts[k]]
+			if !hit && unbuilt[t.Acts[k]] {
+				idx, hit = 0, true
+			}
+			if hit && instants[idx].Op == scriptMessageOpcode {
 				rep.Raises = append(rep.Raises, ScriptRaise{
 					Latch: out.Latch,
 					Event: instants[idx].Args[0],

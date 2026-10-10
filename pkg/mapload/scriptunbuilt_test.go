@@ -79,3 +79,74 @@ func TestWithoutTheRosterEveryRoleNodeIsBuilt(t *testing.T) {
 		t.Errorf("instant 1 %+v, want the take built with no unit", in)
 	}
 }
+
+// mission90Source is 90.alm's two win triggers in miniature: subscript 0 is
+// message 1, T4 runs the win and then takes water from 10001, 10002 and
+// 10003, and T19 takes it from 10005. T5 names an id the map does not hold.
+// Triggers 0..3 and 6..18 are dropped placeholders, so the latches keep the
+// map's positions.
+func mission90Source() alm.Script {
+	src := alm.Script{
+		Actions: []alm.ScriptNode{
+			node("Send message hello", 2, 2, par(1, 1)),
+			node("Force Mission Complete", 4, 8),
+			node("remove water from Danath", 13, 43, par(4, 10001), par(8, 10)),
+			node("remove water from Reniesta", 13, 44, par(4, 10002), par(8, 10)),
+			node("remove water from Naira", 13, 45, par(4, 10003), par(8, 10)),
+			node("remove water from Paladin", 13, 46, par(4, 10005), par(8, 10)),
+		},
+		Conditions: []alm.ScriptNode{
+			node("Constant Value=0", 0x10002, 6, par(1, 0)),
+		},
+	}
+	src.Triggers = make([]alm.ScriptTrigger, 20)
+	src.Triggers[4] = trg("Mission complit", [3]uint32{6, 0, 0}, [3]uint32{6, 0, 0}, [3]uint32{0, 0, 0}, [4]uint32{8, 43, 44, 45}, 1)
+	src.Triggers[5] = trg("names nothing", [3]uint32{6, 0, 0}, [3]uint32{6, 0, 0}, [3]uint32{0, 0, 0}, [4]uint32{99, 0, 0, 0}, 1)
+	src.Triggers[19] = trg("Mission complit 2", [3]uint32{6, 0, 0}, [3]uint32{6, 0, 0}, [3]uint32{0, 0, 0}, [4]uint32{46, 0, 0, 0}, 1)
+	return src
+}
+
+func TestASlotNamingAnUnbuiltNodeRaisesSubscriptZerosMessage(t *testing.T) {
+	refs := mapload.ScriptRefs{Hero: 9, HasHero: true, Roster: true}
+	s, rep := compile(t, mission90Source(), refs)
+	if !slices.Equal(rep.OmittedActions, []uint32{44, 45, 46}) {
+		t.Fatalf("omitted actions %v, want [44 45 46]", rep.OmittedActions)
+	}
+	if in := s.Instants()[0]; in.Op != 2 || in.Args[0] != 1 {
+		t.Fatalf("instant 0 %+v, want message 1", in)
+	}
+	byLatch := map[int32][]int32{}
+	for _, r := range rep.Raises {
+		byLatch[r.Latch] = append(byLatch[r.Latch], r.Event)
+	}
+	if got := byLatch[4]; !slices.Equal(got, []int32{1, 1}) {
+		t.Errorf("T4 raises %v, want message 1 for each of its two unbuilt slots", got)
+	}
+	if got := byLatch[19]; !slices.Equal(got, []int32{1}) {
+		t.Errorf("T19 raises %v, want message 1", got)
+	}
+	if got := byLatch[5]; len(got) != 0 {
+		t.Errorf("T5 raises %v, want none: an id the map does not hold is not an unbuilt node", got)
+	}
+	if len(rep.Raises) != 3 {
+		t.Errorf("raises %+v, want three", rep.Raises)
+	}
+}
+
+func TestAResolvedRosterRaisesNoSubscriptZeroMessage(t *testing.T) {
+	refs := mapload.ScriptRefs{Hero: 9, HasHero: true, Companion: 10, HasCompanion: true,
+		Roles: map[uint32]sim.EntityID{10003: 11, 10005: 12}, Roster: true}
+	_, rep := compile(t, mission90Source(), refs)
+	if len(rep.OmittedActions) != 0 || len(rep.Raises) != 0 {
+		t.Errorf("omitted %v raises %+v, want every node built and no raise", rep.OmittedActions, rep.Raises)
+	}
+}
+
+func TestAnUnbuiltSlotRaisesNothingWhenSubscriptZeroIsNoMessage(t *testing.T) {
+	src := mission90Source()
+	src.Actions[0], src.Actions[1] = src.Actions[1], src.Actions[0]
+	_, rep := compile(t, src, mapload.ScriptRefs{Hero: 9, HasHero: true, Roster: true})
+	if len(rep.Raises) != 0 {
+		t.Errorf("raises %+v, want none: subscript 0 is the win, not a message", rep.Raises)
+	}
+}
