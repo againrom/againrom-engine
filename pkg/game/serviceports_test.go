@@ -146,7 +146,7 @@ func TestTownScreenPlaysThroughASubstitutedAudioService(t *testing.T) {
 	s.sound = fake
 	s.squareLoop = &tavernInteriorVoice{playing: true}
 
-	townSquareHost{s}.StopLoop(rom1Town.Sounds.Loop)
+	townSquareHost{s}.StopLoop(ROM1TownDescription().Sounds.Loop)
 	if !reflect.DeepEqual(fake.ambient.stopped, []ui.AmbientLoop{ui.AmbientTownCrowd}) {
 		t.Fatalf("the crowd loop was stopped on %v", fake.ambient.stopped)
 	}

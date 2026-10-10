@@ -155,7 +155,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/game"
 	"againrom/pkg/render/terrain"
@@ -828,7 +827,7 @@ func resolveArchive(assetsFlag, graphicsFlag string) (string, error) {
 
 func mapOpener(assetsFlag string) func([]byte) (*alm.Map, error) {
 	if root := game.ResolveAssetRoot(assetsFlag, os.Getenv("AGAINROM_ASSETS")); root != "" {
-		if match, err := game.DetectBase(root); err == nil && match.Profile.GameOf() == base.GameROM2 {
+		if match, err := game.DetectBase(root); err == nil && match.Profile.Edition().SecondMaps {
 			return alm.OpenROM2
 		}
 	}

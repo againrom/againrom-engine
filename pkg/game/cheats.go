@@ -133,7 +133,7 @@ func (mw *mapWorld) chatCommand(line string) {
 	if mw == nil || mw.world == nil || mw.view == nil || mw.mission == nil {
 		return
 	}
-	if mw.mission.secondGame() {
+	if !mw.mission.edition().Cheats {
 		return
 	}
 	if !strings.HasPrefix(line, "#") {
@@ -367,7 +367,7 @@ func (mw *mapWorld) cardKnowledge(e sim.Entity) int {
 }
 
 func (mw *mapWorld) debugLetter(letter byte) {
-	if mw == nil || mw.world == nil || mw.mission == nil || mw.mission.secondGame() || mw.cheats.privilege[sim.SelfSlot] <= 50 {
+	if mw == nil || mw.world == nil || mw.mission == nil || !mw.mission.edition().Cheats || mw.cheats.privilege[sim.SelfSlot] <= 50 {
 		return
 	}
 	toggle := func(name string, on bool) {

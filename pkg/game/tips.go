@@ -57,7 +57,7 @@ func (t *townScreen) rereadTip(room townRoom) {
 func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	switch room {
 	case roomSquare:
-		return &t.townTip, rom1Town.Tip.Text
+		return &t.townTip, t.townDescription().Tip.Text
 	case roomShop:
 		return &t.shopTip, roomTip(room).Text
 	case roomSchool:
@@ -71,8 +71,8 @@ func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 // roomTip answers a room's tip as the ROM1 description gives it.
 func roomTip(room townRoom) town.TipSpec {
 	name := townRoomName(room)
-	for i := range rom1Town.Rooms {
-		if r := &rom1Town.Rooms[i]; r.Name == name && r.Tip != nil {
+	for i := range ROM1TownDescription().Rooms {
+		if r := &ROM1TownDescription().Rooms[i]; r.Name == name && r.Tip != nil {
 			return *r.Tip
 		}
 	}

@@ -86,6 +86,7 @@ func (f *FrontEnd) missionPorts() missionPorts {
 		cityBase: cityBaseFrom(f, f.Table),
 		advance:  advanceFrom(frontTransitions{f}),
 		random:   f.Random,
+		campaign: f.campaign(),
 	}
 }
 

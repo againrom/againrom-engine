@@ -23,7 +23,7 @@ func MissionObjectives(src entrySource, mission int) string {
 }
 
 func MissionObjectivesFor(src entrySource, game base.Game, mission int) string {
-	if game != base.GameROM2 {
+	if !game.Edition().SecondMissionText {
 		return MissionObjectives(src, mission)
 	}
 	payload, ok := readSecondGameMissionText(src, mission)
@@ -49,10 +49,15 @@ func secondGameObjectiveLabels(src entrySource, mission int) []string {
 	return labels
 }
 
-func (mw *mapWorld) secondGameObjectives(briefing string) string {
-	if mw.mission == nil || !mw.mission.secondGame() {
-		return briefing
-	}
+// missionObjectives is the objectives panel text: the briefing, extended by
+// the campaign service where its game keeps per-objective state.
+func (mw *mapWorld) missionObjectives(briefing string) string {
+	return mw.mission.campaign().objectives(mw, briefing)
+}
+
+// secondGameObjectivePanel adds each opened sub-objective of the second
+// game's scenario bank, marked done or failed, below the briefing.
+func (mw *mapWorld) secondGameObjectivePanel(briefing string) string {
 	var rows []string
 	if briefing != "" {
 		rows = append(rows, briefing, "")

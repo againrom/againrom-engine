@@ -212,7 +212,7 @@ func secondSaveSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondSaveSampl
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := secondSaveSample{World: raw, Hash: f.live.world.Hash(), View: f.live.view.SaveApplication(), Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Quick: f.quickSpells, Objectives: f.live.secondGameObjectives(""), Explored: bytes.Clone(f.live.fog.explored), Visible: bytes.Clone(f.live.fog.visible), Pending: append([]sim.Command(nil), f.live.pending...), Ignored: append([]bool(nil), f.live.pendingIgnored...), Notices: append([]int32(nil), f.live.mission.pendingMessages...)}
+	s := secondSaveSample{World: raw, Hash: f.live.world.Hash(), View: f.live.view.SaveApplication(), Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Quick: f.quickSpells, Objectives: f.live.missionObjectives(""), Explored: bytes.Clone(f.live.fog.explored), Visible: bytes.Clone(f.live.fog.visible), Pending: append([]sim.Command(nil), f.live.pending...), Ignored: append([]bool(nil), f.live.pendingIgnored...), Notices: append([]int32(nil), f.live.mission.pendingMessages...)}
 	for _, drawn := range f.live.entityDraws() {
 		pose := secondPoseSample{ID: drawn.ID, Name: []byte(drawn.Name), Cell: drawn.Cell, Step: drawn.Step, Mirror: drawn.Mirror, FinePosition: drawn.FinePosition, FineX: drawn.FineX, FineY: drawn.FineY, Transit: drawn.Transit, TransitSpan: drawn.TransitSpan, DamageJolt: drawn.DamageJolt}
 		if drawn.Art != nil {

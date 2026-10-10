@@ -3,7 +3,6 @@ package mapload
 import (
 	"strings"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -142,7 +141,7 @@ func SpellRules(t *Table) []sim.SpellRule {
 	}
 	applyModSpells(spells, t.Mods.Spells)
 	rules := spellRules(spells)
-	if t.Game == base.GameROM2 {
+	if t.Game.Edition().SecondSpellArms {
 		secondGameRules(rules)
 	}
 	applyModSpellTargets(rules, spells, t.Mods.Spells)

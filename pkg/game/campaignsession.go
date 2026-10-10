@@ -37,12 +37,12 @@ func newCampaignCandidate(campaign Campaign, units *terrain.UnitSet, level int64
 // the map it loads. resuming is true for a load, which carries its own
 // mission number and is not held to the restored main progress. The order of
 // the refusals is the entry's order: difficulty, progress, mission number.
-func admitMission(town *Town, n int, resuming bool, level mapload.Difficulty) (address string, difficulty mapload.Difficulty, err error) {
+func admitMission(rules campaignService, town *Town, n int, resuming bool, level mapload.Difficulty) (address string, difficulty mapload.Difficulty, err error) {
 	difficulty, err = campaignDifficulty(int64(level))
 	if err != nil {
 		return "", 0, err
 	}
-	if !resuming && town != nil && town.second != nil && !town.second.canEnter(n) {
+	if !resuming && !rules.canEnter(town, n) {
 		return "", 0, fmt.Errorf("mission %d is not an available campaign destination", n)
 	}
 	if !resuming && !town.canOpenMission(n) {
@@ -103,15 +103,13 @@ func (s *CampaignSession) endLive() *mapWorld {
 //
 // party is the mission's own slice and not a copy: the running mission writes
 // through it and a save must read what it holds now.
-func (s *CampaignSession) activateLive(mw *mapWorld, n int, party []mapload.PartyMember) (outgoing *mapWorld) {
+func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n int, party []mapload.PartyMember) (outgoing *mapWorld) {
 	outgoing = s.live
 	mapload.NameParty(party)
 	s.bindFameObserver(mw)
 	s.Town.activateMission(n)
 	s.live, s.liveMission, s.liveParty = mw, n, party
-	if s.Town != nil && s.Town.second != nil {
-		s.Town.second.current = secondLocation{kind: 1, id: n}
-	}
+	rules.enterMission(s.Town, n)
 	if mw != nil && mw.mission != nil {
 		mw.mission.entryQuickSpells = s.quickSpells
 	}

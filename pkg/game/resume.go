@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
@@ -158,16 +157,15 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 		return Snapshot{}, "", errors.New("return to the city before saving")
 	}
 	var s Snapshot
-	if f.Base().Profile.GameOf() == base.GameROM2 {
-		s.game = base.GameROM2
-	}
+	edition := f.Base().Profile.Edition()
+	s.game = edition.SaveTag
 	s.randomSession = f.randomSessionNow()
 	difficulty, err := campaignDifficulty(int64(f.Difficulty))
 	if err != nil {
 		return Snapshot{}, "", err
 	}
 	s.Difficulty = difficulty
-	if f.Base().Profile.GameOf() == base.GameROM2 && !onMap {
+	if edition.TownDifficulty && !onMap {
 		s.Difficulty = f.Difficulty
 	}
 	fame := cloneFame(f.fame)
@@ -195,12 +193,8 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	// would write a finished mission's world into a save taken in the town
 	// after it.
 	if !onMap || f.live == nil {
-		if s.game == base.GameROM2 {
-			if f.Town == nil || !f.Town.second.savePoint() {
-				return Snapshot{}, "", errSavingUnavailable
-			}
-		} else if !f.Town.Open() {
-			return Snapshot{}, "", errors.New("there is no game to save yet")
+		if err := f.campaign().townSavePoint(f); err != nil {
+			return Snapshot{}, "", err
 		}
 		s.shop = f.captureShop()
 		return s, fmt.Sprintf("town - gold %d", s.Gold), nil
@@ -217,12 +211,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	ghost := f.live.world.Ghost()
 	s.ghost = &ghost
 	s.Residue = f.live.residue()
-	if s.game == base.GameROM2 && f.live.view != nil {
-		animation := f.live.view.SaveAnimation()
-		s.mapAnimation = &animation
-		s.mapMotion = captureCurrentMapMotion(f.live)
-	}
-	s.noticeOpen = s.game == base.GameROM2 && f.live.mission != nil && f.live.mission.open
+	f.campaign().captureMission(f, &s)
 	s.deathAges = f.live.captureCurrentDeathAges()
 	s.ApplicationState, err = f.captureApplicationState(f.live)
 	if err != nil {
@@ -374,10 +363,7 @@ func (f *FrontEnd) installCandidate(c *restoreCandidate) {
 	f.resetTownSurface(c)
 	if c.townOnly {
 		releaseWorldAudio(f.runtimeAudio(), f.endLive())
-		if c.town.second == nil {
-			f.arriveInTown()
-			f.restoreWorldMapReturn(c)
-		}
+		f.campaign().arriveLoaded(f, c)
 		return
 	}
 	// Mission preparation loads any uncached hero bodies into an isolated
@@ -395,7 +381,7 @@ func (f *FrontEnd) installCandidate(c *restoreCandidate) {
 // game's state, then replays the candidate's own record of which world-map
 // missions were selected.
 func (f *FrontEnd) resetTownSurface(c *restoreCandidate) {
-	if c.town != nil && c.town.second != nil {
+	if f.campaign().keepsTownSurface(c) {
 		return
 	}
 	// A genuinely different loaded game must not inherit ANY of the previous
@@ -883,7 +869,7 @@ func resumeWorld(ms *Mission, s *Snapshot, table *mapload.Table) error {
 // identities OwnParty did, in place, so nothing downstream sees a different
 // member id.
 func (f *FrontEnd) liveDriver(mw *mapWorld, n int, party []mapload.PartyMember) {
-	releaseWorldAudio(f.runtimeAudio(), f.activateLive(mw, n, party))
+	releaseWorldAudio(f.runtimeAudio(), f.activateLive(f.campaign(), mw, n, party))
 }
 
 // LiveWorld is the world the open map screen is running, for a developer tool

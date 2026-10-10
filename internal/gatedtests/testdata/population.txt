@@ -973,3 +973,5 @@ pkg/game.TestReleaseTownRoomTraceIsUnchanged
 pkg/game.TestReleaseRandomSessionReplaysFromItsSeed
 pkg/game.TestReleaseOriginalRandomSession
 pkg/game.TestReleaseOriginalRandomMissionOne
+pkg/game.TestReleaseProfileWitnessIsUnchanged
+pkg/game.TestReleaseSecondGameProfileWitnessIsUnchanged

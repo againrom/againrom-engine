@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
@@ -54,6 +52,17 @@ type missionPorts struct {
 	// random is the session's random service; in original mode a fresh
 	// mission's placement and World continue its shared stream.
 	random *random.Service
+	// campaign is the campaign service of the install's profile; none is the
+	// first game's.
+	campaign campaignService
+}
+
+// rules is the entry's campaign service.
+func (p missionPorts) rules() campaignService {
+	if p.campaign == nil {
+		return firstCampaignRules{}
+	}
+	return p.campaign
 }
 
 // missionInstall is every read a mission entry makes of the install. The
@@ -102,7 +111,7 @@ type missionDisplay struct {
 // start, seat the world, dress the viewer, open the driver, settle what a
 // resume restores, commit, and install the seams.
 func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
-	addr, diff, err := admitMission(r.town, r.n, !r.fresh(), r.difficulty)
+	addr, diff, err := admitMission(ports.rules(), r.town, r.n, !r.fresh(), r.difficulty)
 	if err != nil {
 		return preparedMap{}, err
 	}
@@ -121,7 +130,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if err != nil {
 		return preparedMap{}, err
 	}
-	err = seatWorld(r, ports.install.missionTable(), ms, mv.Viewer)
+	err = seatWorld(r, ports.rules(), ports.install.missionTable(), ms, mv.Viewer)
 	if err != nil {
 		return preparedMap{}, err
 	}
@@ -177,7 +186,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 		if r.fresh() && r.town != nil && r.town.progress != nil {
 			r.town.selectMission(r.n)
 		}
-		releaseWorldAudio(ports.audio, ports.session.activateLive(mw, r.n, ms.Party))
+		releaseWorldAudio(ports.audio, ports.session.activateLive(ports.rules(), mw, r.n, ms.Party))
 		mw.mission.resumed = r.snap != nil || r.prepare != nil
 	}
 	if r.activate == nil {
@@ -302,13 +311,9 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 // seatWorld puts the world the mission runs in its starting state: a native
 // resume substitutes the saved world, anything else is seeded with the
 // between-mission purse.
-func seatWorld(r missionRequest, table *mapload.Table, ms *Mission, v *ui.Viewer) error {
-	if r.fresh() && r.town != nil && r.town.second != nil {
-		bank := r.town.second.bank
-		clear(bank[752:768])
-		if !ms.World.SetROM2ScenarioState(bank) {
-			return fmt.Errorf("campaign mission has no ROM2 scenario bank")
-		}
+func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms *Mission, v *ui.Viewer) error {
+	if err := rules.seatWorld(r, ms); err != nil {
+		return err
 	}
 	// THE SAVED WORLD REPLACES THE STARTED ONE HERE, between the start
 	// and openMission (0143 plan D-2): the driver below is then built
