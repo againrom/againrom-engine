@@ -180,6 +180,11 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	if names, err := heroPictureNames(fsys, heroNameGenerator(), InstallTextCode(fsys, g.Edition())); err == nil {
 		d.Table.HeroNames = names
 	}
+	// Not fatal: a table without them names no map placement for the hero
+	// ordinal scan, which then reaches the party alone.
+	if rows := LoadTextTable(fsys, npcNamesPath, InstallTextCode(fsys, g.Edition())); rows != nil {
+		d.Table.NPCNames = rows.lines
+	}
 	return d, nil
 }
 
@@ -235,3 +240,6 @@ func databinLayout(g base.Game) databin.Layout {
 	}
 	return databin.ROM1Layout
 }
+
+// npcNamesPath is the text file the npc arm names a map placement from.
+const npcNamesPath = mainPrefix + "text/npcnames.txt"

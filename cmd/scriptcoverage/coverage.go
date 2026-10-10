@@ -462,12 +462,13 @@ func markReachable(result *coverageResult, m *loadedMap, family string, raw int)
 }
 
 // expectedTotals are the compiled counts for the default primary alone, who
-// leaves 30 checks and 31 actions naming 10002..10006 unbuilt on both roots.
+// leaves 30 checks and 30 actions naming 10002..10006 unbuilt on both roots:
+// 100.alm unit 245 takes 10004, so action 39 is built (TRIG-MAPORD-107).
 func expectedTotals(label string) (checks, instants, triggers int) {
 	if label == "ru" {
-		return 648, 728, 397
+		return 648, 729, 397
 	}
-	return 650, 728, 398
+	return 650, 729, 398
 }
 
 func validateDenominator(result *coverageResult) error {

@@ -59,7 +59,7 @@ func TestReleaseMission130WinsWithoutItsTenThousandTwoCompanion(t *testing.T) {
 				t.Fatal(err)
 			}
 			ms := f.live.mission.state
-			refs := campaignScriptRefs(ms.Map, f.Table, party)
+			refs := campaignScriptRefs(ms.Map, f.Table, party, 130)
 			roles := 0
 			for v := uint32(10003); v <= 10005; v++ {
 				if _, ok := refs.Roles[v]; ok {
