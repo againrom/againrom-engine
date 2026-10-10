@@ -2093,6 +2093,10 @@ package storyguard
 // panelComposition, panelArt, buildButtonPanel and the panels built through
 // it, the keyed and pressed-only generator command and the new tests, new
 // code, including this paragraph.
+// CommentBytes rises for the one double-click detector: the docs of
+// pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
+// archtest double-click scan, the Load list's row press, the roster's pair
+// key and their tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2116,5 +2120,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8644985,
+	CommentBytes: 8652412,
 }

@@ -137,7 +137,10 @@ func TestReleaseSecondGameGeneratorStartsTheFirstTown(t *testing.T) {
 	if h := f.TownScreen().Header(); h != "ROM2 campaign: town 1" {
 		t.Fatalf("Accept showed %q", h)
 	}
-	g := secondGeneratorCampaign
+	g, err := f.secondGeneratorCampaign()
+	if err != nil {
+		t.Fatal(err)
+	}
 	bank := f.Town.second.bank
 	if bank[g.MageSlot] != 1 || bank[g.FemaleSlot] != 1 || f.Town.Gold() != 1000 || f.Difficulty != mapload.DifficultyHard {
 		t.Fatalf("commit: slot %d=%d, slot %d=%d, gold %d, difficulty %d", g.MageSlot, bank[g.MageSlot], g.FemaleSlot, bank[g.FemaleSlot], f.Town.Gold(), f.Difficulty)

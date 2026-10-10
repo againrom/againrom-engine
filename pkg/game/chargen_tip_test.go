@@ -4,32 +4,28 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
 
-// The generator's own tip text and toggle wiring (1018 spec behaviours 1, 2,
-// 3, 4; DIV-160..164): chargenTipPath's own class branch, ChargenSetup's own
-// gate on TipsOff, and the toggle callback ChargenSetup hands the screen.
+// The generator's own tip text and toggle wiring (DIV-160..164): the
+// description's class texts, ChargenSetup's own gate on TipsOff, and the
+// toggle callback ChargenSetup hands the screen.
 //
 // chargen_test.go's own TestChargenSetupBuildsTheDecodedRows already proves
 // the row shapes this file's fixtures reuse.
 
-// chargenTipPath: the class row's own un-cycled opening index (0, Fighter)
-// resolves to the fighter address; any other value resolves to the mage
-// address (TOWN-187's own class-conditional branch). The class row's Start
-// is 0 in every setup ChargenSetup currently builds (chargenTipPath's own
-// doc), so this is the only place the mage branch is exercised at all today.
-func TestChargenTipPathSelectsByClassStart(t *testing.T) {
-	if got := chargenTipPath(0); got != ChargenFighterTipPath {
-		t.Errorf("chargenTipPath(0) = %q, want ChargenFighterTipPath", got)
-	}
-	if got := chargenTipPath(1); got != ChargenMageTipPath {
-		t.Errorf("chargenTipPath(1) = %q, want ChargenMageTipPath", got)
+// The first game's description names the class texts by class, not by sex:
+// chrgen1f.txt is the fighter's text and chrgen1m.txt the mage's (TOWN-187).
+func TestGeneratorTipTextsAreByClass(t *testing.T) {
+	tips := generatorDescriptions[base.GameROM1.Edition().Generator].Tips
+	if tips.Fighter.File != mainPrefix+"text/tips/chrgen1f.txt" || tips.Mage.File != mainPrefix+"text/tips/chrgen1m.txt" {
+		t.Fatalf("class tip texts = %q, %q", tips.Fighter.File, tips.Mage.File)
 	}
 }
 
 // ChargenSetup resolves TipText to the fighter node's own shipped content —
-// the class row's Start is always 0 today (chargenTipPath's own doc) — and
+// the class row's Start is always 0 today — and
 // leaves TipsOn, TipArt and SetTipsOn wired for the screen (spec behaviours
 // 1, 3, 4).
 func TestChargenSetupResolvesTheFighterTip(t *testing.T) {

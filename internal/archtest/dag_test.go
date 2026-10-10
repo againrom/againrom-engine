@@ -346,8 +346,10 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// words leaf, and nothing else in the module. Video transports presentation
 	// frames and has no game/sim dependency; the random service is a leaf every
 	// drawing tier names; pkg/words holds the engine's own word tables; pkg/locale
-	// is the stdlib-only table of install languages.
-	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale"}
+	// is the stdlib-only table of install languages; pkg/ui/systemclick is the
+	// UI tier's own leaf that reads the system's double-click setting.
+	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
+		"pkg/ui/systemclick"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {

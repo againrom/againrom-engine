@@ -11,6 +11,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] In the character generator the four buttons read Accept, Restore,
   Reset and Back from the top and are laid out as in the shop, so the fourth
   no longer covers the panel's ornaments.
+- [BASE] A double click follows the system's double-click speed and distance
+  on every screen, as in the original; the tavern no longer wants a faster
+  double click than the rest of the game, and a hero's double click in the
+  first game's generator wants both clicks on one spot. In the Load list a
+  double click loads the save the first click selected, at the second click.
+  In the tavern a double click on a mercenary or a guest hires, dismisses or
+  talks even when the first click was let go off the card. In the character
+  generator a button held after a double click on + or - no longer keeps
+  stepping.
 
 ## 0.110.0
 

@@ -12,6 +12,7 @@ import (
 
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/ui/systemclick"
 )
 
 // chargenLegalSetup is a small, always-legal-at-Start setup: one choice row
@@ -294,8 +295,10 @@ func TestPreCreateFlow(t *testing.T) {
 	if c.NameText() != "A" {
 		t.Fatalf("NameText = %q, want A", c.NameText())
 	}
-	a.step(appInput{CursorX: preForwardOrigin.X, CursorY: preForwardOrigin.Y, PrimaryPressed: true}, now)
-	a.step(appInput{CursorX: preForwardOrigin.X, CursorY: preForwardOrigin.Y, PrimaryReleased: true}, now)
+	// The test pictures cover OK's origin, so the press that continues is a
+	// double click on the hero picture at the first press's point.
+	a.step(appInput{CursorX: choice.X, CursorY: choice.Y, PrimaryPressed: true}, now)
+	a.step(appInput{CursorX: choice.X, CursorY: choice.Y, PrimaryReleased: true}, now)
 	if c.Stage() != DetailedStage {
 		t.Fatal("Forward did not open detailed shell")
 	}
@@ -343,7 +346,7 @@ func TestPreCreateChoiceDoubleClickMatchesForwardOnce(t *testing.T) {
 	}
 }
 
-func TestPreCreateChoiceDoubleClickRequiresSameChoiceInsideWindow(t *testing.T) {
+func TestPreCreateChoiceDoubleClickRequiresTheDetectorsTimeAndRectangle(t *testing.T) {
 	newArmed := func(t *testing.T) (*App, *Chargen, *int) {
 		t.Helper()
 		setup := chargenNamedSetup()
@@ -372,7 +375,7 @@ func TestPreCreateChoiceDoubleClickRequiresSameChoiceInsideWindow(t *testing.T) 
 	t.Run("expired second click only selects", func(t *testing.T) {
 		a, c, calls := newArmed(t)
 		click(a, c, chargenChoice1, now)
-		click(a, c, chargenChoice1, now.Add(chargenDoubleClickWindow+time.Millisecond))
+		click(a, c, chargenChoice1, now.Add(systemclick.Fallback.Time+time.Millisecond))
 		if c.Stage() != PreCreateStage || c.PreChoice() != 1 || *calls != 0 {
 			t.Fatalf("expired click stage=%v choice=%d preview=%d", c.Stage(), c.PreChoice(), *calls)
 		}

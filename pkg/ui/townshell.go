@@ -367,8 +367,8 @@ type TownSurfaceView struct {
 	HasHover      bool
 
 	// Tip is the room's own tip panel (1018 spec behaviours 1, 2), shared by
-	// school and tavern on one field: SchoolTipRect/TavernTipRect (tippanel.go)
-	// tell them apart, on Kind's own precedent for the rest of this struct.
+	// school and tavern on one field; its rectangle comes from the room's
+	// town description.
 	Tip TipPanelView
 }
 

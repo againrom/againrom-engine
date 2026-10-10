@@ -143,3 +143,16 @@ func TestShopConsumablePendingTapCannotCrossIdentityOrContext(t *testing.T) {
 		})
 	}
 }
+
+// A second tap outside the double-click time is a single tap: it stages
+// another unit and uses none (MENU-145 runs the item action only on the
+// double click).
+func TestShopSecondTapOutsideTheDoubleClickTimeIsASingleTap(t *testing.T) {
+	a, s := shopUseApp(t)
+	now := time.Unix(100, 0)
+	tapShopUse(t, a, now)
+	tapShopUse(t, a, now.Add(501*time.Millisecond))
+	if len(s.clicked) != 2 || len(s.dragged) != 0 {
+		t.Fatalf("late second tap sale=%v use=%v, want two sales and no use", s.clicked, s.dragged)
+	}
+}

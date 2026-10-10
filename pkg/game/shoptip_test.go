@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
-	"againrom/pkg/ui"
 )
 
 // The tip widget's own load (1011 spec; SHOP-TIP-045; DIV-132).
@@ -108,17 +107,17 @@ func TestEnteringTheShopWithNoArchivesDoesNotPanic(t *testing.T) {
 	}
 }
 
-// The room tips the description gives are the panels the ui lays out: the
-// same text addresses and rectangles (TOWN-015, TOWN-021, SHOP-TIP-045).
+// The room tips the description gives are the claimed text addresses and
+// rectangles (TOWN-015, TOWN-021, TOWN-328, TOWN-329, SHOP-TIP-045).
 func TestRoomTipsAreTheDescribedTextsAndRectangles(t *testing.T) {
 	for _, tc := range []struct {
 		room townRoom
 		text string
 		rect image.Rectangle
 	}{
-		{roomTavern, "main/text/tips/inn.txt", ui.TavernTipRect},
-		{roomShop, "main/text/tips/shop1.txt", ui.ShopTipRect()},
-		{roomSchool, "main/text/tips/training.txt", ui.SchoolTipRect},
+		{roomTavern, "main/text/tips/inn.txt", image.Rect(160, 0, 472, 200)},
+		{roomShop, "main/text/tips/shop1.txt", image.Rect(164, 162, 476, 298)},
+		{roomSchool, "main/text/tips/training.txt", image.Rect(0, 0, 456, 200)},
 	} {
 		if tip := roomTipIn(ROM1TownDescription(), tc.room); tip.Text != tc.text || tip.Rect.Rectangle() != tc.rect {
 			t.Errorf("room %d tip = %q %v, want %q %v", tc.room, tip.Text, tip.Rect.Rectangle(), tc.text, tc.rect)

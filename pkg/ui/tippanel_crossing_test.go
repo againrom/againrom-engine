@@ -132,7 +132,7 @@ func (f *fakeTipShopCrossingTown) ShopSuppressDoll(slot int) {
 // moved into the panel and released there, then a press inside the panel
 // released on a live shelf cell.
 func TestShopTipPanelCrossingLeavesNoLatch(t *testing.T) {
-	tip := TipPanelView{Rect: ShopTipRect(), Text: "the shop buys and sells", Art: tipTestArt(), Font: shopTipTestFont()}
+	tip := TipPanelView{Rect: shopTipRect, Text: "the shop buys and sells", Art: tipTestArt(), Font: shopTipTestFont()}
 	if !tip.Showing() {
 		t.Fatal("fixture tip is not Showing()")
 	}
@@ -143,9 +143,9 @@ func TestShopTipPanelCrossingLeavesNoLatch(t *testing.T) {
 		t.Fatal("showTown refused the shop fixture")
 	}
 
-	panelPt, ok := sampleInside(tipBackgroundZone(ShopTipRect()))
+	panelPt, ok := sampleInside(tipBackgroundZone(shopTipRect))
 	if !ok {
-		t.Fatal("fixture error: ShopTipRect's own background zone is empty")
+		t.Fatal("fixture error: shopTipRect's own background zone is empty")
 	}
 	now := time.Unix(1_700_000_000, 0)
 
@@ -285,14 +285,14 @@ func TestPreCreateTipPanelCrossingLeavesNoLatch(t *testing.T) {
 	}
 
 	// Press inside the panel, release on a live choice: this must not
-	// complete either, and must not arm the double-click window — a later,
-	// genuine click at the same point must not read as its second half.
+	// complete either. The detector pairs presses by point, so the panel
+	// press, not the choice, is the first press a later click is paired with.
 	pressAt(a, now, panelPt)
 	releaseAt(a, now, live)
 	if c.PreChoice() != before {
 		t.Fatalf("PreChoice() = %d after a press inside the showing panel and a release on a live choice, want %d (unchanged)", c.PreChoice(), before)
 	}
-	if a.chargenChoiceClick != chargenNone {
-		t.Fatalf("chargenChoiceClick = %v after a press inside the panel and a release on a live choice, want chargenNone: the illegitimate click armed the double-click window", a.chargenChoiceClick)
+	if !a.clicks.armed || a.clicks.point != panelPt {
+		t.Fatalf("detector pair = armed %v at %v, want the panel press at %v", a.clicks.armed, a.clicks.point, panelPt)
 	}
 }

@@ -21,21 +21,20 @@ type loadWindow struct {
 	canDelete     func(string) bool
 	prepareDelete func(string) (func() error, error)
 	remove        func() error
-	lastName      string
-	lastClick     time.Time
-	// doubled is the row a double click's second press landed on, plus one;
-	// the release over it loads, so the release reaches no later screen.
-	doubled int
+	// rowPressed is set by a single press on a save row. A double click
+	// loads only after one; focus loss, a key or wheel step, a scroll bar
+	// gesture, a press off the rows, a load and a closed list clear it
+	// (DIV-2870).
+	rowPressed bool
 	// completed counts the loads that replaced the session, so presentation can
 	// tell a fresh load from an unchanged screen. It is never reset.
 	completed uint32
 }
 
-func (w *loadWindow) resetClick() { w.lastName, w.lastClick, w.doubled = "", time.Time{}, 0 }
-
 func (w *loadWindow) resetPointer() {
 	w.press.Clear()
 	w.bar.reset()
+	w.rowPressed = false
 }
 
 func (a *App) SetLoadWindowWords(w LoadWindowWords) { a.flow.loadUI.words = w }
@@ -92,7 +91,6 @@ func (f *flow) canDeleteLoad() bool {
 func (a *App) acceptLoad() {
 	f := a.flow
 	f.loadUI.resetPointer()
-	f.loadUI.resetClick()
 	if !f.loadUI.confirm {
 		a.activatePicker(f.loadList, f.chooseLoad)
 		a.syncViewerLayout()
@@ -134,7 +132,6 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 	l := f.loadList
 	if in.Unfocused || l == nil {
 		f.loadUI.resetPointer()
-		f.loadUI.resetClick()
 		return
 	}
 	if in.Enter {
@@ -143,13 +140,12 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 	}
 	if in.Delete && f.canDeleteLoad() {
 		f.loadUI.resetPointer()
-		f.loadUI.resetClick()
 		f.confirmDeleteLoad()
 		return
 	}
 	if !f.loadUI.confirm {
 		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || in.WheelY != 0 {
-			f.loadUI.resetClick()
+			f.loadUI.rowPressed = false
 		}
 		listKey(l, in.Up, in.Down, in.PageUp, in.PageDown)
 		switch {
@@ -167,14 +163,12 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 	box := a.loadListBox()
 	if !f.loadUI.confirm {
 		if req, pos := f.loadUI.bar.step(listBar(box, l), p, ok, in); req != barNone {
-			f.loadUI.resetClick()
+			f.loadUI.rowPressed = false
 			listBarRequest(l, req, pos)
 			return
 		}
 		if f.loadUI.bar.active() {
-			// Any bar gesture, a still thumb tap included, ends the
-			// row's double-click history.
-			f.loadUI.resetClick()
+			f.loadUI.rowPressed = false
 			return
 		}
 	}
@@ -182,41 +176,26 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		button, onButton := loadButtonAt(p)
 		f.loadUI.press.Press(button, ok && onButton && !f.loadButtonDisabled(button))
 		if !ok || onButton || f.loadUI.confirm {
-			f.loadUI.resetClick()
+			f.loadUI.rowPressed = false
 			return
 		}
 		row, onRow := box.RowAt(p)
+		if onRow && in.PrimaryDouble && f.loadUI.rowPressed {
+			// The list's double click reads no point: it loads the
+			// selection the first press stored, as the Load button does
+			// (MENU-144). Its release belongs to this press.
+			a.suppressPrimaryRelease = true
+			a.acceptLoad()
+			return
+		}
 		top, count := l.Visible()
-		if !onRow || row >= count {
-			f.loadUI.resetClick()
-			return
+		f.loadUI.rowPressed = onRow && row < count && top+row < len(f.saves)
+		if onRow && row < count {
+			l.Select(top + row)
 		}
-		index := top + row
-		l.Select(index)
-		if index >= len(f.saves) {
-			f.loadUI.resetClick()
-			return
-		}
-		name := f.saves[index].Name
-		elapsed := now.Sub(f.loadUI.lastClick)
-		if name == f.loadUI.lastName && !f.loadUI.lastClick.IsZero() && elapsed >= 0 && elapsed <= 500*time.Millisecond {
-			f.loadUI.resetClick()
-			f.loadUI.doubled = index + 1
-			return
-		}
-		f.loadUI.lastName, f.loadUI.lastClick = name, now
 		return
 	}
 	if !in.PrimaryReleased {
-		return
-	}
-	if doubled := f.loadUI.doubled; doubled != 0 {
-		f.loadUI.doubled = 0
-		row, onRow := box.RowAt(p)
-		top, _ := l.Visible()
-		if ok && onRow && top+row == doubled-1 {
-			a.acceptLoad()
-		}
 		return
 	}
 	at, inside := loadButtonAt(p)

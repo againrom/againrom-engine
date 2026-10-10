@@ -92,14 +92,14 @@ func TestEveryTipRectSitsAtItsResearchedOrigin(t *testing.T) {
 // TestShopTipPanelRectKeepsTheWidgetOrigin pins the original panel rectangle
 // before any text-dependent height adjustment (SHOP-TIP-045).
 func TestShopTipPanelRectKeepsTheWidgetOrigin(t *testing.T) {
-	panel := ShopTipRect()
+	panel := shopTipRect
 	if panel.Min != image.Pt(164, 162) {
-		t.Errorf("ShopTipRect() = %v: origin = %v, want (164,162) (SHOP-TIP-045)", panel, panel.Min)
+		t.Errorf("shopTipRect = %v: origin = %v, want (164,162) (SHOP-TIP-045)", panel, panel.Min)
 	}
 	if panel.Dx() != 312 {
-		t.Errorf("ShopTipRect() = %v: width = %d, want 312 (SHOP-TIP-045)", panel, panel.Dx())
+		t.Errorf("shopTipRect = %v: width = %d, want 312 (SHOP-TIP-045)", panel, panel.Dx())
 	}
 	if panel.Dy() != 136 {
-		t.Errorf("ShopTipRect() = %v: height = %d, want 136 (SHOP-TIP-045)", panel, panel.Dy())
+		t.Errorf("shopTipRect = %v: height = %d, want 136 (SHOP-TIP-045)", panel, panel.Dy())
 	}
 }
