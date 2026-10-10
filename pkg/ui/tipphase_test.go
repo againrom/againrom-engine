@@ -112,7 +112,11 @@ func TestTownTipCloseOwnershipCanceled(t *testing.T) {
 	}
 }
 
-func TestTavernAppDownPairPolicy(t *testing.T) {
+// The tavern roster's double click is the detector's: a second press inside
+// the system's time and rectangle, wherever the first press was released and
+// whatever the cell held, runs the roster press again at its point and acts on
+// the cell it hits (MENU-146, TAVERN-CLICK-019).
+func TestTavernRosterDoubleClick(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		dt     time.Duration
@@ -120,10 +124,10 @@ func TestTavernAppDownPairPolicy(t *testing.T) {
 		key    bool
 		want   bool
 	}{
-		{"strict-inside", 350 * time.Millisecond, false, false, true},
-		{"late", 351 * time.Millisecond, false, false, false},
-		{"outside-release", 100 * time.Millisecond, true, false, false},
-		{"stable-key-replacement", 100 * time.Millisecond, false, true, false},
+		{"inside the fallback time", 500 * time.Millisecond, false, false, true},
+		{"late", 501 * time.Millisecond, false, false, false},
+		{"released off the cell", 100 * time.Millisecond, true, false, true},
+		{"the cell changed between", 100 * time.Millisecond, false, true, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			town := &downPairTown{view: TownSurfaceView{Kind: TownSurfaceTavern, Cells: []TownSurfaceCell{{Portrait: true, Key: "merc:3"}}}}
@@ -152,6 +156,24 @@ func TestTavernAppDownPairPolicy(t *testing.T) {
 				t.Fatalf("actions %v want second double %v", town.actions, tc.want)
 			}
 		})
+	}
+}
+
+// The school takes a double click's second press as a single press.
+func TestSchoolTakesNoDoubleClick(t *testing.T) {
+	town := &downPairTown{view: TownSurfaceView{Kind: TownSurfaceSchool, Cells: []TownSurfaceCell{{Portrait: true, Key: "skill"}}}}
+	a := newTestApp(t, appRows(3), okLoader(t))
+	a.SetTown(town)
+	a.flow.showTown("")
+	p := image.Pt(200, 450)
+	now := time.Unix(1, 0)
+	pressAt(a, now, p)
+	releaseAt(a, now, p)
+	pressAt(a, now.Add(50*time.Millisecond), p)
+	for i, double := range town.actions {
+		if double {
+			t.Fatalf("school action %d of %v was a double click", i, town.actions)
+		}
 	}
 }
 

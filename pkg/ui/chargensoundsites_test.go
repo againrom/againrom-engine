@@ -466,3 +466,55 @@ func TestChargenHeldStatisticRepeatsInTicks(t *testing.T) {
 		t.Fatalf("held difficulty press repeated on ticks %v", got)
 	}
 }
+
+// A double click's second press on a statistic is a second step attempt
+// within the step's own bounds; a refused one is silent, and a button held
+// after the double click posts no repeat until the next press (MENU-146,
+// VIDEO-SFX-059).
+func TestChargenStatisticDoubleClickBoundsAndNoRepeat(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	rec := &memberRecorder{}
+	a, c := openSoundChargen(t, rec)
+	toDetailed(t, a, c, rec, &now, chargenChoice0)
+	for c.statValue[1] > 16 {
+		if !c.AdjustStat(1, -1) {
+			t.Fatalf("fixture: statistic stuck at %d", c.statValue[1])
+		}
+	}
+	rec.endAll()
+	n := len(rec.voices)
+	p := detailedControlRect(c, chargenStatMinus1).Min
+	soundPress(a, &now, time.Second, p)
+	soundRelease(a, &now, p)
+	soundPress(a, &now, 100*time.Millisecond, p)
+	if c.statValue[1] != 15 || len(rec.voices) != n+1 {
+		t.Fatalf("double click at the floor: value %d, %d requests, want 15 and one", c.statValue[1], len(rec.voices)-n)
+	}
+	for tick := 0; tick < 30; tick++ {
+		now = now.Add(time.Second / 60)
+		a.step(appInput{CursorX: p.X, CursorY: p.Y, Viewer: Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}}, now)
+	}
+	soundRelease(a, &now, p)
+
+	plus := detailedControlRect(c, chargenStatPlus1).Min
+	soundPress(a, &now, time.Second, plus)
+	soundRelease(a, &now, plus)
+	before, requests := c.statValue[1], len(rec.voices)
+	soundPress(a, &now, 100*time.Millisecond, plus)
+	for tick := 0; tick < 30; tick++ {
+		now = now.Add(time.Second / 60)
+		a.step(appInput{CursorX: plus.X, CursorY: plus.Y, Viewer: Input{CursorX: plus.X, CursorY: plus.Y, PrimaryDown: true}}, now)
+	}
+	if c.statValue[1] != before+1 || len(rec.voices) != requests+1 {
+		t.Fatalf("held after a double click: value %d -> %d, %d requests, want one step and no repeat", before, c.statValue[1], len(rec.voices)-requests)
+	}
+	soundRelease(a, &now, plus)
+	soundPress(a, &now, time.Second, plus)
+	for tick := 0; tick < 10; tick++ {
+		now = now.Add(time.Second / 60)
+		a.step(appInput{CursorX: plus.X, CursorY: plus.Y, Viewer: Input{CursorX: plus.X, CursorY: plus.Y, PrimaryDown: true}}, now)
+	}
+	if c.statValue[1] != before+3 {
+		t.Fatalf("the next single press held 10 ticks: value %d, want %d (a step and a repeat)", c.statValue[1], before+3)
+	}
+}

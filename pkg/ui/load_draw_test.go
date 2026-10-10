@@ -262,28 +262,52 @@ func TestFramedLoadScrollSkinKeepsExactDoubleClickAndReset(t *testing.T) {
 	if len(loaded) != 0 || a.flow.loadList.Selection() != 13 {
 		t.Fatalf("first LOAD click changed activation/selection: %v / %d", loaded, a.flow.loadList.Selection())
 	}
-	lastName, lastClick := a.flow.loadUI.lastName, a.flow.loadUI.lastClick
+	pair := a.clicks
 	loadScrollTestFrame(t, a)
-	if a.flow.loadUI.lastName != lastName || a.flow.loadUI.lastClick != lastClick {
+	if after := a.clicks; after.armed != pair.armed || after.released != pair.released || after.at != pair.at || after.point != pair.point {
 		t.Fatal("LOAD skin paint changed double-click state")
 	}
 	now = now.Add(200 * time.Millisecond)
-	// The second press selects; the release over the same row loads, so no
-	// release reaches the screen the load opens.
+	// The second press is the list's double click: it loads the stored
+	// selection at once (MENU-144), and its release reaches no screen.
 	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryPressed: true}, now)
-	if len(loaded) != 0 {
-		t.Fatal("the double click's second press loaded before its release")
-	}
-	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryReleased: true}, now.Add(time.Millisecond))
 	if len(loaded) != 1 || loaded[0] != "slot-13.sav" || a.Screen() != ScreenLoad || a.HeadlessMessage() == "" {
 		t.Fatalf("LOAD double click changed token/refusal: %v / %s / %q", loaded, a.Screen(), a.HeadlessMessage())
 	}
-	if a.flow.loadUI.lastName != "" || !a.flow.loadUI.lastClick.IsZero() {
-		t.Fatal("refused LOAD kept stale double-click state")
+	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryReleased: true}, now.Add(time.Millisecond))
+	if len(loaded) != 1 || a.suppressPrimaryRelease {
+		t.Fatalf("the double click's release loaded again or stayed owed: %v / %v", loaded, a.suppressPrimaryRelease)
 	}
 	now = now.Add(50 * time.Millisecond)
 	click()
 	if len(loaded) != 1 {
 		t.Fatalf("stale LOAD click activated again: %v", loaded)
+	}
+}
+
+// The list's double click loads the selection the first press stored and
+// reads no point: a second press inside the double-click rectangle but on the
+// next row loads the first press's row (MENU-144).
+func TestLoadListDoubleClickLoadsTheStoredSelection(t *testing.T) {
+	var loaded []string
+	a := loadScrollTestApp(t, nil, &loaded)
+	box := a.loadListBox()
+	first := image.Pt(box.Rect.Min.X+20, box.Rect.Min.Y+3*box.Pitch-1)
+	second := first.Add(image.Pt(0, 2))
+	if r, _ := box.RowAt(first); r != 2 {
+		t.Fatalf("fixture: first press on row %d", r)
+	}
+	if r, _ := box.RowAt(second); r != 3 {
+		t.Fatalf("fixture: second press on row %d", r)
+	}
+	now := time.Unix(600, 0)
+	a.step(appInput{CursorX: first.X, CursorY: first.Y, PrimaryPressed: true}, now)
+	a.step(appInput{CursorX: first.X, CursorY: first.Y, PrimaryReleased: true}, now)
+	if len(loaded) != 0 || a.flow.loadList.Selection() != 2 {
+		t.Fatalf("first press loaded %v or selected %d", loaded, a.flow.loadList.Selection())
+	}
+	a.step(appInput{CursorX: second.X, CursorY: second.Y, PrimaryPressed: true}, now.Add(100*time.Millisecond))
+	if len(loaded) != 1 || loaded[0] != "slot-02.sav" || a.flow.loadList.Selection() != 2 {
+		t.Fatalf("double click loaded %v with selection %d, want slot-02.sav and 2", loaded, a.flow.loadList.Selection())
 	}
 }

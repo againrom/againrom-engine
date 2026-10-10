@@ -285,14 +285,14 @@ func TestPreCreateTipPanelCrossingLeavesNoLatch(t *testing.T) {
 	}
 
 	// Press inside the panel, release on a live choice: this must not
-	// complete either, and must not arm the double-click window — a later,
-	// genuine click at the same point must not read as its second half.
+	// complete either. The detector pairs presses by point, so the panel
+	// press, not the choice, is the first press a later click is paired with.
 	pressAt(a, now, panelPt)
 	releaseAt(a, now, live)
 	if c.PreChoice() != before {
 		t.Fatalf("PreChoice() = %d after a press inside the showing panel and a release on a live choice, want %d (unchanged)", c.PreChoice(), before)
 	}
-	if a.chargenChoiceClick != chargenNone {
-		t.Fatalf("chargenChoiceClick = %v after a press inside the panel and a release on a live choice, want chargenNone: the illegitimate click armed the double-click window", a.chargenChoiceClick)
+	if !a.clicks.armed || a.clicks.point != panelPt {
+		t.Fatalf("detector pair = armed %v at %v, want the panel press at %v", a.clicks.armed, a.clicks.point, panelPt)
 	}
 }
