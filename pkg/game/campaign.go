@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -346,6 +347,18 @@ func (c Campaign) TownBegins() (int, bool) {
 		return 0, false
 	}
 	return c.Offered[0], true
+}
+
+// townGrants reports whether any chapter's AddHero array names companion npc.
+// Town activation is that array's one consumer (REG-SCN-098, HERO-JOIN-127),
+// so every value it carries is a companion a town grants.
+func (c Campaign) townGrants(npc int) bool {
+	for _, ch := range c.Chapters {
+		if slices.Contains(ch.AddHero, npc) {
+			return true
+		}
+	}
+	return false
 }
 
 // LoadCampaign reads the scenario registry out of the container filesystem.

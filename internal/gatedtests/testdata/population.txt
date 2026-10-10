@@ -998,3 +998,4 @@ pkg/game.TestReleaseSlotZeroStrikeOnCorpusGodActorThroughSaveAndColdLoad
 pkg/game.TestReleasePlaqueButtonCensus
 pkg/game.TestReleaseOneFontLoaderKeepsEveryGlyph
 pkg/game.TestReleaseWorldMapTaskFlagAnimatesAndTheCrossHolds
+pkg/game.TestReleaseTownCompanionIsTheRegistryAddHero

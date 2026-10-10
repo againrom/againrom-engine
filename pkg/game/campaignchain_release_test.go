@@ -56,7 +56,7 @@ func chainTownState(f *FrontEnd, won, chapter, gold int, offers map[TownBuilding
 	if got := f.Town.Documents(); !reflect.DeepEqual(got, documentPairs[:3]) {
 		return fmt.Errorf("collected pages=%v", got)
 	}
-	if got := slices.Contains(chainCarriedNPCs(f), townGrantedCompanion); got != companion {
+	if got := slices.Contains(chainCarriedNPCs(f), shippedTownCompanion); got != companion {
 		return fmt.Errorf("companion carried=%t, want %t (carried NPCs %v)", got, companion, chainCarriedNPCs(f))
 	}
 	for _, building := range []TownBuilding{TownTavern, TownShop, TownSchool} {
@@ -190,7 +190,7 @@ func TestReleaseCampaignChainFromMission10(t *testing.T) {
 	for _, p := range f.live.mission.party {
 		mission30 = append(mission30, p.CompanionNPC)
 	}
-	if !slices.Contains(mission30, townGrantedCompanion) {
+	if !slices.Contains(mission30, shippedTownCompanion) {
 		t.Fatalf("mission 30 party lacks the carried companion: %v", mission30)
 	}
 	requireDocuments(t, f, true, 3)
@@ -200,7 +200,7 @@ func TestReleaseCampaignChainFromMission10(t *testing.T) {
 	if f.Town.Gold() != gold30 || !f.Town.Done(30) || f.Town.Chapter() != 40 || f.Offered != 40 {
 		t.Fatalf("after mission 30: purse=%d want %d done=%t chapter=%d offered=%d", f.Town.Gold(), gold30, f.Town.Done(30), f.Town.Chapter(), f.Offered)
 	}
-	if !slices.Contains(chainCarriedNPCs(f), townGrantedCompanion) {
+	if !slices.Contains(chainCarriedNPCs(f), shippedTownCompanion) {
 		t.Fatal("mission 30 return lost the companion", chainCarriedNPCs(f))
 	}
 	requireDocuments(t, f, false, 3)
@@ -237,7 +237,7 @@ func chainLossControls(t *testing.T, f *FrontEnd, townRaw []byte, gold int, offe
 	t.Run("companion_carry_removed", func(t *testing.T) {
 		saved := f.Carried
 		defer func() { f.Carried = saved }()
-		f.Carried = slices.DeleteFunc(slices.Clone(f.Carried), func(p mapload.PartyMember) bool { return p.CompanionNPC == townGrantedCompanion })
+		f.Carried = slices.DeleteFunc(slices.Clone(f.Carried), func(p mapload.PartyMember) bool { return p.CompanionNPC == shippedTownCompanion })
 		if len(f.Carried) == len(saved) || chainTownState(f, 20, 30, gold, offers, true) == nil {
 			t.Fatal("a party without the companion passed the chain assertions")
 		}
