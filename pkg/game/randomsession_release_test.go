@@ -295,8 +295,8 @@ func loadSessionSave(t *testing.T, saved []byte, original bool, ticks int) (rand
 
 // TestReleaseOriginalRandomSession plays the session on the original
 // generator: the World runs on the shared stream, its SAV records the mode
-// and the seed, a LOAD continues the saved state through the load path's
-// reseeds, and a SAV of either mode loads in the other.
+// the seed and the reseed count, a LOAD continues through the load path's
+// reseeds at that count, and a SAV of either mode loads in the other.
 func TestReleaseOriginalRandomSession(t *testing.T) {
 	first := playRandomSession(t, 7, true)
 	doc, err := sav.DecodeDocumentData(first.save)
@@ -304,19 +304,20 @@ func TestReleaseOriginalRandomSession(t *testing.T) {
 		t.Fatal(err)
 	}
 	leaf, ok, err := sav.ReadNativeSession(doc.State)
-	if err != nil || !ok || leaf.Mode != uint32(random.Original) || leaf.Seed != 7 {
+	if err != nil || !ok || leaf.Mode != uint32(random.Original) || leaf.Seed != 7 || leaf.Reseeds == 0 {
 		t.Fatalf("original SAV session leaf %+v present %t: %v", leaf, ok, err)
 	}
-	// The LOAD reseeds the saved state (SESS-083); the mission screen's own
-	// entry draws, its music among them, then continue that stream.
+	// The LOAD reseeds at the saved count (SESS-083, DIV-2730); the mission
+	// screen's own entry draws, its music among them, then continue that
+	// stream.
 	mode, state, _ := loadSessionSave(t, first.save, true, 60)
-	probe := random.MSVC{State: random.MissionLoadState(7, uint32(first.state))}
+	probe := random.MSVC{State: random.MissionLoadState(7, leaf.Reseeds)}
 	draws := 0
 	for ; draws < 4096 && uint64(probe.State) != state; draws++ {
 		probe.Rand()
 	}
 	if mode != random.Original || uint64(probe.State) != state {
-		t.Fatalf("original SAV loaded as mode %d state %#x, not a continuation of the saved state %#x through the load reseeds", mode, state, first.state)
+		t.Fatalf("original SAV loaded as mode %d state %#x, not a continuation of the load reseeds at the saved count %d", mode, state, leaf.Reseeds)
 	}
 	seeded := playRandomSession(t, 7, false)
 	toSeeded, _, _ := loadSessionSave(t, first.save, false, 60)
@@ -324,7 +325,7 @@ func TestReleaseOriginalRandomSession(t *testing.T) {
 	if toSeeded != random.Seeded || toOriginal != random.Original {
 		t.Fatalf("cross-mode LOADs ran in modes %d and %d", toSeeded, toOriginal)
 	}
-	t.Logf("original World %016x at SAVE; the LOAD continued the reseeded stream after %d entry draws; cross-mode LOADs ran 60 ticks each", first.world[0], draws)
+	t.Logf("original World %016x at SAVE, reseed count %d; the LOAD continued the reseeded stream after %d entry draws; cross-mode LOADs ran 60 ticks each", first.world[0], leaf.Reseeds, draws)
 }
 
 // TestReleaseOriginalRandomMissionOne runs the first mission on the original
