@@ -223,7 +223,7 @@ func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff
 	if edition.SecondScripts {
 		compile = mapload.CompileROM2Script
 	}
-	s, rep, raiseErr := compile(m, campaignScriptRefs(m, t, party))
+	s, rep, raiseErr := compile(m, campaignScriptRefs(m, t, party, n))
 	// Mission 40 is owner-authored to protect the persistent companion added by
 	// scenario NPC 22. The shipped map has no VIP node for her, so this cannot be
 	// recovered from the ALM script; the stable party identity is the campaign
@@ -253,9 +253,14 @@ func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff
 		Raises: rep.Raises, RaiseErr: raiseErr, OmittedActions: rep.OmittedActions, OmittedChecks: rep.OmittedChecks}, nil
 }
 
-// campaignScriptRefs resolves a map script's hero-band references against the party.
-func campaignScriptRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember) mapload.ScriptRefs {
-	refs := campaignScriptPartyRefs(m, table, party, func(i int) sim.EntityID { return mapload.PartyEntity(m, i) })
+// campaignScriptRefs resolves a map script's hero-band references against the
+// party, then the map's named placements, at mission n's start.
+func campaignScriptRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember, n int) mapload.ScriptRefs {
+	var placed []heroScanActor
+	for _, p := range mapload.PlacedHeroes(m, table, party, n) {
+		placed = append(placed, heroScanActor{ID: sim.EntityID(p.Record), Traits: p.Traits})
+	}
+	refs := campaignScriptPartyRefs(m, table, party, func(i int) sim.EntityID { return mapload.PartyEntity(m, i) }, placed)
 	refs.Units, refs.Structures = mapload.ScriptUnits(m, party), mapload.ScriptStructures(m)
 	return refs
 }
@@ -272,11 +277,20 @@ func heroTraits(p mapload.PartyMember) data.HeroTraits {
 	}
 }
 
-// campaignScriptPartyRefs resolves hero ordinal k (value 10001+k) to the first party
-// member in list order that passes its role test (TRIG-HEROORD-075, TRIG-HEROTPL-076).
-// Members count as named; a map with player capacity above one resolves nothing.
-// A party it resolves against is the binding roster (ScriptRefs.Roster).
-func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember, entity func(int) sim.EntityID) mapload.ScriptRefs {
+// heroScanActor is a named map placement the ordinal scan reaches after the
+// party, with the entity it is bound to.
+type heroScanActor struct {
+	ID     sim.EntityID
+	Traits data.HeroTraits
+}
+
+// campaignScriptPartyRefs resolves hero ordinal k (value 10001+k) to the first
+// actor that passes its role test (TRIG-HEROORD-075, TRIG-HEROTPL-076): the
+// party in list order, then placed in scan order (TRIG-MAPORD-105,
+// TRIG-MAPORD-108). Members count as named; a map with player capacity above
+// one resolves nothing. A party it resolves against is the binding roster
+// (ScriptRefs.Roster).
+func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember, entity func(int) sim.EntityID, placed []heroScanActor) mapload.ScriptRefs {
 	var refs mapload.ScriptRefs
 	if len(party) == 0 || m != nil && m.Meta.Word70 > 1 {
 		return refs
@@ -293,9 +307,18 @@ func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.P
 	if table != nil {
 		npc = table.NPC
 	}
-	roster := make([]data.HeroTraits, len(party))
+	roster := make([]data.HeroTraits, len(party), len(party)+len(placed))
 	for i, p := range party {
 		roster[i] = heroTraits(p)
+	}
+	for _, a := range placed {
+		roster = append(roster, a.Traits)
+	}
+	scanned := func(i int) sim.EntityID {
+		if i < len(party) {
+			return entity(i)
+		}
+		return placed[i-len(party)].ID
 	}
 	for k := 0; k <= maxHeroOrdinal; k++ {
 		i, ok := npc.ResolveHero(k, roster[primary], roster)
@@ -304,14 +327,14 @@ func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.P
 		}
 		switch k {
 		case 0:
-			refs.Hero, refs.HasHero = entity(i), true
+			refs.Hero, refs.HasHero = scanned(i), true
 		case 1:
-			refs.Companion, refs.HasCompanion = entity(i), true
+			refs.Companion, refs.HasCompanion = scanned(i), true
 		default:
 			if refs.Roles == nil {
 				refs.Roles = make(map[uint32]sim.EntityID)
 			}
-			refs.Roles[uint32(10001+k)] = entity(i)
+			refs.Roles[uint32(10001+k)] = scanned(i)
 		}
 	}
 	return refs

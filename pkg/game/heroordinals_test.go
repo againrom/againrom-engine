@@ -60,7 +60,7 @@ func TestHeroOrdinalRefsFollowTheRolePredicateNotTheRosterSlot(t *testing.T) {
 		heroMember("brian", false, false, 1),
 	}
 	ids := []sim.EntityID{40, 41, 42, 0, 44}
-	refs := campaignScriptPartyRefs(m, table, party, func(i int) sim.EntityID { return ids[i] })
+	refs := campaignScriptPartyRefs(m, table, party, func(i int) sim.EntityID { return ids[i] }, nil)
 	if !refs.HasHero || refs.Hero != 40 {
 		t.Fatal("ordinal 0 is the primary", refs)
 	}
@@ -83,7 +83,7 @@ func TestHeroOrdinalRefsFollowTheRolePredicateNotTheRosterSlot(t *testing.T) {
 	}
 	party[1] = heroMember("hire", true, false, 1, func(p *mapload.PartyMember) { p.MercenaryType = 1; p.PlayerCharacter = false })
 	party[4] = heroMember("other", true, true, 4)
-	refs = campaignScriptPartyRefs(m, table, party, func(i int) sim.EntityID { return ids[i] })
+	refs = campaignScriptPartyRefs(m, table, party, func(i int) sim.EntityID { return ids[i] }, nil)
 	if got, ok := refs.Roles[10005]; !ok || got != 41 {
 		t.Fatal("hired unit was read as a woman", got, ok)
 	}
@@ -93,24 +93,24 @@ func TestHeroOrdinalRefsUnresolvedAndGatedCases(t *testing.T) {
 	table := shippedHeroTable(t)
 	id := func(i int) sim.EntityID { return sim.EntityID(i) }
 	alone := []mapload.PartyMember{heroMember("hero", false, true, 3, starting)}
-	refs := campaignScriptPartyRefs(&alm.Map{}, table, alone, id)
+	refs := campaignScriptPartyRefs(&alm.Map{}, table, alone, id, nil)
 	if !refs.HasHero || refs.HasCompanion || len(refs.Roles) != 0 {
 		t.Fatal("a party of the primary alone resolved a template ordinal", refs)
 	}
-	if refs := campaignScriptPartyRefs(&alm.Map{}, table, nil, id); refs.HasHero || refs.HasCompanion || refs.Roles != nil {
+	if refs := campaignScriptPartyRefs(&alm.Map{}, table, nil, id, nil); refs.HasHero || refs.HasCompanion || refs.Roles != nil {
 		t.Fatal("an empty party resolved a reference")
 	}
 	multi := &alm.Map{}
 	multi.Meta.Word70 = 4
 	two := []mapload.PartyMember{heroMember("hero", false, true, 3, starting), heroMember("mage", true, true, 1)}
-	if refs := campaignScriptPartyRefs(multi, table, two, id); refs.HasHero || refs.HasCompanion {
+	if refs := campaignScriptPartyRefs(multi, table, two, id, nil); refs.HasHero || refs.HasCompanion {
 		t.Fatal("a map whose player capacity exceeds one resolved a hero ordinal", refs)
 	}
-	if refs := campaignScriptPartyRefs(&alm.Map{}, nil, two, id); !refs.HasHero || refs.HasCompanion {
+	if refs := campaignScriptPartyRefs(&alm.Map{}, nil, two, id, nil); !refs.HasHero || refs.HasCompanion {
 		t.Fatal("without a registry only ordinal 0 resolves", refs)
 	}
 	twin := []mapload.PartyMember{heroMember("twin", false, true, 3), heroMember("hero", false, true, 3, starting)}
-	if refs := campaignScriptPartyRefs(&alm.Map{}, table, twin, id); !refs.HasHero || refs.Hero != 0 {
+	if refs := campaignScriptPartyRefs(&alm.Map{}, table, twin, id, nil); !refs.HasHero || refs.Hero != 0 {
 		t.Fatal("ordinal 0 did not take the first actor sharing the primary's values", refs)
 	}
 }
@@ -124,7 +124,7 @@ func TestLoadReresolvesHeroOrdinalsFromTheLoadedParty(t *testing.T) {
 	saved := currentScriptRoleProgram(t, mapload.ScriptRefs{Units: map[uint16]sim.EntityID{77: 7}, Hero: 0, HasHero: true})
 	world := currentScriptRoleWorld(t, saved)
 	ids := []sim.EntityID{0, 1}
-	refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] })
+	refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] }, nil)
 	// The saved program built every node; the roster leaves 10003 unresolved,
 	// so the roles are compiled in the saved program's shape.
 	roles, err := currentScriptRolesProgram(world, nil, refs, func(_ *alm.Map, r mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error) {
@@ -144,8 +144,35 @@ func TestLoadReresolvesHeroOrdinalsFromTheLoadedParty(t *testing.T) {
 	if err := restoreCurrentScriptRoles(again, roles); err != nil || again.Hash() != world.Hash() {
 		t.Fatal("repeating the load changed the bindings", err)
 	}
-	refs = campaignScriptPartyRefs(&alm.Map{}, table, party[:1], func(i int) sim.EntityID { return ids[i] })
+	refs = campaignScriptPartyRefs(&alm.Map{}, table, party[:1], func(i int) sim.EntityID { return ids[i] }, nil)
 	if refs.HasCompanion {
 		t.Fatal("a party without the role resolved it")
+	}
+}
+
+func TestHeroOrdinalScanReachesNamedPlacementsAfterTheParty(t *testing.T) {
+	table := shippedHeroTable(t)
+	party := []mapload.PartyMember{
+		heroMember("hero", false, true, 3, starting),
+		heroMember("mage", true, true, 1),
+	}
+	ids := []sim.EntityID{100, 101}
+	placed := []heroScanActor{
+		{ID: 7, Traits: data.HeroTraits{Female: true, Mage: true, Face: 1}},
+		{ID: 8, Traits: data.HeroTraits{Female: true, Mage: false, Face: 1}},
+	}
+	refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] }, placed)
+	if !refs.HasCompanion || refs.Companion != 101 {
+		t.Fatal("a member satisfying ordinal 1 lost it to a placement", refs)
+	}
+	if got, ok := refs.Roles[10003]; !ok || got != 8 {
+		t.Fatalf("ordinal 2 = %d/%v, want the placement no member satisfies", got, ok)
+	}
+	refs = campaignScriptPartyRefs(&alm.Map{}, table, party[:1], func(i int) sim.EntityID { return ids[i] }, placed)
+	if !refs.HasCompanion || refs.Companion != 7 {
+		t.Fatal("ordinal 1 did not reach the first satisfying placement", refs)
+	}
+	if refs := campaignScriptPartyRefs(&alm.Map{}, table, party[:1], func(i int) sim.EntityID { return ids[i] }, nil); refs.HasCompanion || len(refs.Roles) != 0 {
+		t.Fatal("an ordinal resolved with no member or placement satisfying it", refs)
 	}
 }

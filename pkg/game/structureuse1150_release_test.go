@@ -48,7 +48,7 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			actor.Transit, actor.TransitTotal = 0, 0
 			actor.HealthRegenPeriod, actor.ManaRegenPeriod = 0, 0
 			m := live.mission.state.Map
-			refs := campaignScriptPartyRefs(m, f.Table, party, func(i int) sim.EntityID { return live.mission.ids[i] })
+			refs := campaignScriptPartyRefs(m, f.Table, party, func(i int) sim.EntityID { return live.mission.ids[i] }, nil)
 			refs.Structures = mapload.ScriptStructures(m)
 			currentScript, _, err := mapload.CompileScript(m, refs)
 			if err != nil {

@@ -117,7 +117,7 @@ func TestCurrentScriptRolesPreserveBoundReferencesAndChangedProgram(t *testing.T
 func TestCurrentScriptPartyRefsUseSuppliedIdentity(t *testing.T) {
 	party := []mapload.PartyMember{heroMember("hero", false, true, 3, starting), heroMember("npc:22", true, true, 1)}
 	ids := []sim.EntityID{91, 0}
-	refs := campaignScriptPartyRefs(&alm.Map{}, shippedHeroTable(t), party, func(i int) sim.EntityID { return ids[i] })
+	refs := campaignScriptPartyRefs(&alm.Map{}, shippedHeroTable(t), party, func(i int) sim.EntityID { return ids[i] }, nil)
 	if !refs.HasHero || refs.Hero != 91 || !refs.HasCompanion || refs.Companion != 0 || refs.Units != nil {
 		t.Fatal("current party role used construction ordinals instead of final IDs", refs)
 	}
@@ -134,7 +134,7 @@ func TestStatueQuestRoleResolvesByTheMaleMageFaceFourPredicate(t *testing.T) {
 			{ID: "another"}, {ID: "last"}, {ID: "sixth"}}
 		party[position] = heroMember("rood", false, true, 4)
 		ids := []sim.EntityID{91, 42, 13, 17, 0, 78}
-		refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] })
+		refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] }, nil)
 		program, _, err := mapload.CompileScriptFrom(src, refs)
 		if err != nil {
 			t.Fatal(err)
@@ -144,7 +144,7 @@ func TestStatueQuestRoleResolvesByTheMaleMageFaceFourPredicate(t *testing.T) {
 			t.Fatalf("position=%d checks=%+v", position, checks)
 		}
 		party[position] = heroMember("rood", false, true, 3)
-		refs = campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] })
+		refs = campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] }, nil)
 		_, rep, err := mapload.CompileScriptFrom(src, refs)
 		if err != nil || !slices.Contains(rep.OmittedChecks, 1) {
 			t.Fatal("a male mage with another face satisfied ordinal 5", err, rep.OmittedChecks)
