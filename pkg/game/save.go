@@ -301,7 +301,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 		return
 	}
 	s.second = captureSecondCampaign(t.second)
-	s.noticeOpen = t.second != nil && (t.second.payload != nil || t.second.part != 0 || t.second.selected != (secondLocation{}))
+	s.noticeOpen = t.second.noticePending()
 	s.Open, s.Gold = t.open, t.gold
 	s.MainMission = t.currentMain()
 	s.SelectedMission = t.selectedMission()

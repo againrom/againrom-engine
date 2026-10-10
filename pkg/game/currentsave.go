@@ -17,41 +17,19 @@ var errSavingUnavailable = fmt.Errorf("saving is not available for this game yet
 // ExportCurrentSave constructs one document from a captured session. The save
 // point determines its shape; provenance supplies only unmodelled residue.
 func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
-	if s.game == "" {
-		s.game = base.GameROM1
-	}
-	if s.game != f.Base().Profile.GameOf() {
+	s.game = s.game.Normal()
+	if !base.SameGame(s.game, f.Base().Profile.GameOf()) {
 		return nil, fmt.Errorf("captured save game differs from installed game")
 	}
-	if s.game == base.GameROM2 {
-		if s.second == nil || s.noticeOpen {
-			return nil, errSavingUnavailable
-		}
-		if s.Mission == 0 {
-			if s.second.validateTown() != nil || len(s.World) != 0 || len(s.Party) == 0 || s.Residue.hasMissionState() {
-				return nil, errSavingUnavailable
-			}
-		} else if !secondSaveMission(int(s.Mission)) || s.second.Current != (currentSecondLocation{1, int(s.Mission)}) || s.Residue.MissionLost || s.Residue.FogVisible == nil {
-			return nil, errSavingUnavailable
-		}
-		if err := s.second.validate(); err != nil {
-			return nil, err
-		}
-		if s.Mission != 0 {
-			var w sim.World
-			if err := w.UnmarshalBinary(s.World); err != nil {
-				return nil, err
-			}
-			if w.Script().Dialect() != sim.ScriptROM2 || w.Outcome() != sim.OutcomeUndecided {
-				return nil, errSavingUnavailable
-			}
-		}
+	rules := campaignOf(s.game)
+	if err := rules.exportable(s); err != nil {
+		return nil, err
 	}
 	if s.WorldMapReturn != nil {
 		return nil, fmt.Errorf("return to the city before saving")
 	}
-	if s.Mission == 0 && s.second == nil && f.Campaign.Value().completedBy(restoreTown(f.Campaign.Value(), s)) {
-		return nil, errCompletedCampaignSave
+	if err := rules.refuseCompleted(f, s); err != nil {
+		return nil, err
 	}
 	s, err := f.resolveShopSnapshot(s)
 	if err != nil {
@@ -155,8 +133,8 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
-	if s.second != nil {
-		s.Campaign = sav.CampaignProjection{Main: sav.CampaignRecord{Mission: uint32(s.Mission)}, SelectedMission: uint32(s.Mission), AutoGetMission: ^uint32(0)}
+	if projection, ok := f.campaign().campaignProjection(s); ok {
+		s.Campaign = projection
 		s.CampaignState = true
 	}
 	if !s.CampaignState {
@@ -319,8 +297,8 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 		return sav.DocumentData{}, err
 	}
 	campaign := s.Campaign
-	if s.second != nil {
-		campaign = sav.CampaignProjection{Main: sav.CampaignRecord{Mission: uint32(s.Mission)}, SelectedMission: uint32(s.Mission), AutoGetMission: ^uint32(0)}
+	if projection, ok := f.campaign().campaignProjection(s); ok {
+		campaign = projection
 		s.CampaignState = true
 	}
 	if !s.CampaignState {

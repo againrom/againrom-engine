@@ -15,6 +15,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   composer; it looks and plays the same.
 - [BASE] The tavern, shop and school are built from the town description by
   the same composer; they look and play the same.
+- [BASE] The game is chosen once, by one profile; nothing changes in play.
 
 ## 0.105.0
 

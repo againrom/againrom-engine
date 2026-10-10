@@ -29,6 +29,15 @@ func (f *FrontEnd) DirectNewGame(n int) ui.MapOpener {
 	}
 }
 
+// profile is the profile the install was detected as; no install is the zero
+// profile, the first game's.
+func (in *InstallResources) profile() base.Profile {
+	if in == nil || in.Archives == nil {
+		return base.Profile{}
+	}
+	return in.Archives.Base.Profile
+}
+
 // directNewGame reports whether NEW GAME opens the profile's first mission
 // without generation.
 func (f *FrontEnd) directNewGame() bool {
@@ -45,7 +54,7 @@ func (f *FrontEnd) BaseLines() []string {
 	lines := []string{"againrom: base " + m.String()}
 	l := m.Profile.Limits
 	if l.NoCharacterGeneration {
-		if m.Profile.GameOf() == base.GameROM2 {
+		if m.Profile.Edition().NewGameInTown {
 			lines = append(lines, "againrom: base limit: native character selection is unavailable; new game opens the initial campaign town with the default hero")
 		} else {
 			lines = append(lines, fmt.Sprintf("againrom: base limit: no character generation; new game opens mission %d with the default party", m.Profile.Mission()))

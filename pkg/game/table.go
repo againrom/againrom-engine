@@ -116,10 +116,11 @@ type Definitions struct {
 // lives in a different archive (main.res, not world.res). LoadTable is this
 // function's first field.
 func LoadDefinitions(fsys *vfs.FS) (*Definitions, error) {
-	return LoadDefinitionsFor(fsys, base.GameROM1)
+	return LoadDefinitionsFor(fsys, "")
 }
 
-// LoadDefinitionsFor is LoadDefinitions over the table layout of g.
+// LoadDefinitionsFor is LoadDefinitions over the table layout of g; the empty
+// game is the first.
 func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	b, err := fsys.ReadFile(tableAddress)
 	if err != nil {
@@ -229,7 +230,7 @@ func LoadNPCFaces(fsys *vfs.FS) map[int32]data.NPCFace {
 }
 
 func databinLayout(g base.Game) databin.Layout {
-	if g == base.GameROM2 {
+	if g.Edition().SecondTable {
 		return databin.ROM2Layout
 	}
 	return databin.ROM1Layout

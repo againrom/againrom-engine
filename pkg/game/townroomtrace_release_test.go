@@ -23,10 +23,10 @@ import (
 func traceStepHooks(t *testing.T, tr *townTrace) {
 	t.Helper()
 	names := map[string]bool{}
-	for _, s := range rom1Town.Square.Enter {
+	for _, s := range ROM1TownDescription().Square.Enter {
 		names[s.Hook] = true
 	}
-	for _, r := range rom1Town.Rooms {
+	for _, r := range ROM1TownDescription().Rooms {
 		for _, s := range append(append([]town.Step{}, r.Enter...), r.Exit...) {
 			names[s.Hook] = true
 		}

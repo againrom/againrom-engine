@@ -20,7 +20,7 @@ func (t *townScreen) roomPage(room string) *town.Page {
 	if t.pages == nil {
 		t.pages = map[string]*town.Page{}
 	}
-	p := town.NewPage(rom1Town, room, roomPageHost{t: t, room: room}, t.townProcess)
+	p := town.NewPage(ROM1TownDescription(), room, roomPageHost{t: t, room: room}, t.townProcess)
 	t.pages[room] = p
 	return p
 }
@@ -34,8 +34,8 @@ func (t *townScreen) shopPage() *town.Page { return t.roomPage("shop") }
 // not load joined into one error. A required entry that fails answers no
 // pictures.
 func loadRoomSceneArt(room string, src terrain.EntrySource) (map[string][]image.Image, error) {
-	for i := range rom1Town.Rooms {
-		r := &rom1Town.Rooms[i]
+	for i := range ROM1TownDescription().Rooms {
+		r := &ROM1TownDescription().Rooms[i]
 		if r.Name != room || r.Scene == nil {
 			continue
 		}

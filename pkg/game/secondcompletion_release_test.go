@@ -24,7 +24,7 @@ import (
 func firstSuccessApp(t *testing.T) (*FrontEnd, *ui.App, *mapWorld) {
 	t.Helper()
 	f := secondGameFront(t)
-	f.Cutscenes = OpenCutscenes(f.Archives.Root, "video4")
+	f.Cutscenes = f.OpenCutscenes("video4")
 	a := f.App("first success")
 	t.Cleanup(a.StopAudio)
 	a.Layout(1024, 768)

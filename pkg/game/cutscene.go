@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"againrom/pkg/base"
 	"againrom/pkg/vfs"
 	"againrom/pkg/video"
 )
@@ -24,17 +23,23 @@ type CutsceneBank struct {
 	logos         *CutsceneBank
 }
 
+// OpenCutscenes is the bank over the named archive of the install at root.
 func OpenCutscenes(root, archive string) *CutsceneBank {
-	if archive == "video4" || archive == "video8" {
-		if match, err := DetectBase(root); err == nil && match.Profile.GameOf() == base.GameROM2 {
-			archive = "video"
-		}
-	}
 	b := &CutsceneBank{root: root, archive: archive}
 	if archive == "video8" {
 		b.logos = &CutsceneBank{root: root, archive: "video4"}
 	}
 	return b
+}
+
+// OpenCutscenes is the bank of this install over the archive a player asked
+// for, video4 or video8, or over the one archive the profile's game plays
+// every cutscene from.
+func (f *FrontEnd) OpenCutscenes(archive string) *CutsceneBank {
+	if only := f.Base().Profile.Edition().CutsceneArchive; only != "" && (archive == "video4" || archive == "video8") {
+		archive = only
+	}
+	return OpenCutscenes(f.Archives.Root, archive)
 }
 
 func (b *CutsceneBank) open() error {
