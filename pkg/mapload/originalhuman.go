@@ -87,6 +87,7 @@ func originalHumanSpawn(p PartyMember, t *Table) (data.Derived, int32, int32, bo
 		if v := s.Inventory.Source; v.EquipmentRuntimePresent {
 			d.Combat.Reach, d.Combat.AttackChargeTime, d.Combat.AttackRelaxTime = int32(v.Reach), int32(v.AttackCharge), int32(v.AttackRelax)
 		}
+		d.SpeedModifier = 0
 		return d, int32(int16(h.Health)), int32(int16(h.Mana)), true
 	}
 	h, ok := p.OriginalHumanState()
@@ -95,6 +96,9 @@ func originalHumanSpawn(p PartyMember, t *Table) (data.Derived, int32, int32, bo
 	}
 	d := h.Derived(MemberWeapon(p, t), int32(h.MoverSpeed))
 	currentHumanWeaponSpell(&d, p, t)
+	// A source-backed Human's modifier lives in its source record, not in a
+	// native SpeedModifier.
+	d.SpeedModifier = 0
 	return d, int32(int16(h.Health)), int32(int16(h.Mana)), true
 }
 

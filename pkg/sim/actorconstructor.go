@@ -15,10 +15,12 @@ type ActorDefinition struct {
 	HealthRegeneration, ManaRegeneration int32
 
 	Speed, RotationSpeed, Capacity int32
-	SpeedModifier                  int32
-	ScanRange, SeeInvisible        uint8
-	Reach, TokenSize               uint8
-	DyingTime, Withdraw, Wimpy     int32
+	// SpeedModifier is a native Human's modifier inside Speed. A persisted
+	// definition written before it existed reads zero.
+	SpeedModifier              int32 `json:",omitempty"`
+	ScanRange, SeeInvisible    uint8
+	Reach, TokenSize           uint8
+	DyingTime, Withdraw, Wimpy int32
 
 	ToHit, Defence, Absorption int32
 	DamageBase, DamageSpread   int32

@@ -440,13 +440,15 @@ func (w *World) restoreActorValues(values map[EntityID]ActorValues) error {
 // restoreSpeedSplit reads a native Human's modifier from its ordinary record's
 // modifier speed word, then applies the split operand while both wires match.
 // A SAV written before the split carries no operand: its speed word is Speed
-// and its modifier word SpeedModifier.
+// and its modifier word SpeedModifier. Any other actor holds no native
+// modifier.
 func (e *Entity) restoreSpeedSplit(v ActorValues) error {
 	native := v.SourceClass == 0 && e.Humanoid && e.ActorLoad.Source.Class == 2
 	if v.SpeedSplit != nil && !native {
 		return fmt.Errorf("sim: speed split lacks a native Human")
 	}
 	if !native {
+		e.SpeedModifier = 0
 		return nil
 	}
 	wire := uint16(e.ActorLoad.Source.Modifier[4]) | uint16(e.ActorLoad.Source.Modifier[5])<<8

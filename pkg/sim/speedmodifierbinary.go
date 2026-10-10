@@ -12,10 +12,16 @@ const speedModifierRecordLen = 8
 // speedModifierFault refuses a speed modifier on an entity whose speed is not
 // a native Human's base plus modifier.
 func speedModifierFault(e Entity) error {
-	if e.SpeedModifier != 0 && (!e.Humanoid || e.ActorLoad.Source.Class != 0) {
-		return fmt.Errorf("sim: speed modifier on an entity that is not a native Humanoid")
+	if e.SpeedModifier != 0 && !e.nativeHumanoid() {
+		return fmt.Errorf("sim: speed modifier %d on entity %d (humanoid %t, source class %d) that is not a native Humanoid", e.SpeedModifier, e.ID, e.Humanoid, e.ActorLoad.Source.Class)
 	}
 	return nil
+}
+
+// nativeHumanoid reports a Humanoid whose speed is its own base plus
+// SpeedModifier. A source-backed Human's modifier lives in its source record.
+func (e *Entity) nativeHumanoid() bool {
+	return e.Humanoid && e.ActorLoad.Source.Class == 0
 }
 
 func (w *World) appendSpeedModifiers(b []byte) []byte {

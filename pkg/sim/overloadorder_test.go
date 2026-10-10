@@ -152,6 +152,13 @@ func TestNativeHumanSpeedSplitOnLOAD(t *testing.T) {
 			}
 		})
 	}
+	// A Human restored as source-backed holds its modifier in the source
+	// record; a modifier left from its spawn is dropped.
+	stale := loaded(22, 5)
+	stale.SpeedModifier = 4
+	if err := stale.restoreValues(ActorValues{LoadPresent: true, SourceClass: 2}); err != nil || stale.SpeedModifier != 0 {
+		t.Fatal("a source-backed restore kept a native modifier", err, stale.SpeedModifier)
+	}
 	unit := Entity{Speed: 10, ActorLoad: ActorLoad{Present: true, Source: SourceActor{Class: 1}}}
 	if unit.restoreValues(ActorValues{LoadPresent: true, SourceClass: 1, SpeedSplit: split}) == nil {
 		t.Fatal("a speed split on a source Unit was accepted")

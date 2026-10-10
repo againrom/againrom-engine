@@ -231,7 +231,7 @@ func effectLanding(e Entity, kind EffectKind, amount int32) (Entity, int32, bool
 		}
 		e.Speed = v
 		landed := v - before
-		if e.Humanoid {
+		if e.nativeHumanoid() {
 			e.SpeedModifier += landed
 			e.deriveNativeHumanSpeed()
 		}

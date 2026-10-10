@@ -97,7 +97,7 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 		speed = minEffectSpeed
 	}
 	e.Speed, e.SpeedModifier = speed, 0
-	if e.Humanoid {
+	if e.nativeHumanoid() {
 		e.SpeedModifier = d.SpeedModifier + speed - d.Speed
 	}
 	nativeModifierEffectDelta(e, EffectSpeed, w.effectDelta(id, EffectSpeed)-priorSpeed)
