@@ -17,7 +17,9 @@
 // registry parser.
 //
 // Each file runs as its own parallel subtest with its own front end, bounded
-// by writerCensusWorkers, so the census fits the seat's chain budget.
+// by writerCensusWorkers. The corpus is split over writerCensusParts part
+// tests, each a separate process in the milestone-2 gate; the census over the
+// whole corpus is checked once, by the part that completes the set.
 package game
 
 import (
@@ -49,6 +51,9 @@ const writerCensusDecayTicks = 24000
 
 // writerCensusWorkers bounds how many files are loaded and changed at once.
 const writerCensusWorkers = 6
+
+// writerCensusParts is how many part tests share the corpus.
+const writerCensusParts = 6
 
 type writerCensusBaselineRow struct {
 	ceiling int
@@ -171,6 +176,13 @@ func newWriterCensusTally() *writerCensusTally {
 // directory rule and returns every readable .sav, logging each unreadable one.
 func writerCensusFiles(t *testing.T) []milestone2File {
 	t.Helper()
+	return writerCensusWalk(t, true)
+}
+
+// writerCensusWalk is writerCensusFiles with the unreadable lines optional,
+// so the parts of one census name each unreadable file once.
+func writerCensusWalk(t *testing.T, logUnreadable bool) []milestone2File {
+	t.Helper()
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Fatal("AGAINROM_SAVE_CORPUS must name gameversions/saves")
@@ -199,7 +211,9 @@ func writerCensusFiles(t *testing.T) []milestone2File {
 		f, err := sav.Open(raw)
 		if err != nil {
 			unreadable++
-			t.Logf("%s: unreadable, skipped: %v", rel, err)
+			if logUnreadable {
+				t.Logf("%s: unreadable, skipped: %v", rel, err)
+			}
 			return nil
 		}
 		out = append(out, milestone2File{rel: rel, raw: raw, body: f.Body, f: f, present: f.World != nil})
@@ -1087,18 +1101,54 @@ func writerCensusOriginalSackAnomalies(mf milestone2File, written []byte, mismat
 	return map[string][]string{writerCensusSackKey: slices.Clone(lines)}, ""
 }
 
-func TestSAVWriterCensusChangedWorlds(t *testing.T) {
+// The census's part tests. Each checks its own files; the whole census runs
+// in the part that completes the set (writerCensusChangedWorlds).
+func TestSAVWriterCensusChangedWorldsPart1(t *testing.T) { writerCensusChangedWorlds(t, 0) }
+func TestSAVWriterCensusChangedWorldsPart2(t *testing.T) { writerCensusChangedWorlds(t, 1) }
+func TestSAVWriterCensusChangedWorldsPart3(t *testing.T) { writerCensusChangedWorlds(t, 2) }
+func TestSAVWriterCensusChangedWorldsPart4(t *testing.T) { writerCensusChangedWorlds(t, 3) }
+func TestSAVWriterCensusChangedWorldsPart5(t *testing.T) { writerCensusChangedWorlds(t, 4) }
+func TestSAVWriterCensusChangedWorldsPart6(t *testing.T) { writerCensusChangedWorlds(t, 5) }
+
+// writerCensusPartSummary is one part's tally and timing, as the part that
+// completes the set reads it.
+type writerCensusPartSummary struct {
+	Discovered, Changed, Written                              int
+	Refused, Mismatches, Known, Debt, Unnamed, Changes, Ruled map[string]int
+	Wall, Sum, SlowestTook                                    time.Duration
+	SlowestRel                                                string
+}
+
+// writerCensusChangedWorlds runs one part's share of the corpus, larger files
+// spread first, and logs each file's lines. The part that completes the set
+// adds every part's tally and checks the whole census, as one process over
+// the whole corpus did. AGAINROM_CENSUS_ONLY narrows each part to the files
+// whose path contains it and reports that part alone, unchecked.
+func writerCensusChangedWorlds(t *testing.T, part int) {
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if assets == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")
 	}
 	only := os.Getenv("AGAINROM_CENSUS_ONLY")
 	start := time.Now()
+	all := writerCensusWalk(t, part == 0)
+	names, sizes := make([]string, len(all)), make([]int64, len(all))
+	for i, mf := range all {
+		names[i], sizes[i] = mf.rel, int64(len(mf.raw))
+	}
+	share := corpusPartOf(names, sizes, writerCensusParts)
 	var files []milestone2File
-	for _, mf := range writerCensusFiles(t) {
+	matched := 0
+	for i, mf := range all {
 		if only == "" || strings.Contains(mf.rel, only) {
-			files = append(files, mf)
+			matched++
+			if share[i] == part {
+				files = append(files, mf)
+			}
 		}
+	}
+	if matched == 0 {
+		t.Fatal("writer census discovered no file; AGAINROM_SAVE_CORPUS is misconfigured")
 	}
 	results := writerCensusEach(t, files, func(t *testing.T, mf milestone2File) writerCensusResult {
 		return writerCensusRun(t, assets, mf)
@@ -1153,26 +1203,49 @@ func TestSAVWriterCensusChangedWorlds(t *testing.T) {
 			t.Logf("SAV-WRITERCENSUS-UNNAMED %s %s differs from the original %d time(s) with no confirmed rule and no debt row", r.rel, k, unnamed[k])
 		}
 	}
-	if tally.discovered == 0 {
-		t.Fatal("writer census discovered no file; AGAINROM_SAVE_CORPUS is misconfigured")
-	}
-	slowest := results[0]
+	mine := writerCensusPartSummary{Discovered: tally.discovered, Changed: tally.changed, Written: tally.written,
+		Refused: tally.refused, Mismatches: tally.mismatches, Known: tally.known, Debt: tally.debt, Unnamed: tally.unnamed,
+		Changes: tally.changes, Ruled: tally.ruled, Wall: time.Since(start), Sum: sum}
 	for _, r := range results {
-		if r.took > slowest.took {
-			slowest = r
+		if r.took > mine.SlowestTook {
+			mine.SlowestTook, mine.SlowestRel = r.took, r.rel
 		}
 	}
-	t.Logf("SAV-WRITERCENSUS-TIME wall=%s per-file sum=%s slowest=%s %s workers=%d",
-		time.Since(start).Round(time.Second), sum.Round(time.Second), slowest.took.Round(100*time.Millisecond), slowest.rel, writerCensusWorkers)
-	writerCensusReport(t, tally, time.Since(start))
-	if only == "" {
-		if tally.known[writerCensusSackKey] != 4 || tally.known[writerCensusItemKey] != 0 || tally.known[writerCensusMissingKey] != 0 {
-			t.Errorf("SAV-WRITERCENSUS-KNOWN expected source T1C 4 and item/missing 0/0; got %d/%d/%d",
-				tally.known[writerCensusSackKey], tally.known[writerCensusItemKey], tally.known[writerCensusMissingKey])
+	t.Logf("SAV-WRITERCENSUS-PART %d of %d: %d file(s) in %s", part+1, writerCensusParts, len(results), mine.Wall.Round(time.Second))
+	if only != "" {
+		writerCensusReport(t, tally, mine.Wall)
+		return
+	}
+	set := corpusPartsCollect(t, "writercensus", part, writerCensusParts, mine)
+	if set == nil {
+		return
+	}
+	whole, slowest := newWriterCensusTally(), writerCensusPartSummary{}
+	for _, p := range corpusPartsDecode[writerCensusPartSummary](t, set) {
+		whole.discovered += p.Discovered
+		whole.changed += p.Changed
+		whole.written += p.Written
+		for _, add := range []struct{ to, from map[string]int }{{whole.refused, p.Refused}, {whole.mismatches, p.Mismatches},
+			{whole.known, p.Known}, {whole.debt, p.Debt}, {whole.unnamed, p.Unnamed}, {whole.changes, p.Changes}, {whole.ruled, p.Ruled}} {
+			for k, n := range add.from {
+				add.to[k] += n
+			}
 		}
-		for _, f := range writerCensusFailures(tally) {
-			t.Error(f)
+		slowest.Sum += p.Sum
+		slowest.Wall = max(slowest.Wall, p.Wall)
+		if p.SlowestTook > slowest.SlowestTook {
+			slowest.SlowestTook, slowest.SlowestRel = p.SlowestTook, p.SlowestRel
 		}
+	}
+	t.Logf("SAV-WRITERCENSUS-TIME wall=%s per-file sum=%s slowest=%s %s workers=%d parts=%d",
+		slowest.Wall.Round(time.Second), slowest.Sum.Round(time.Second), slowest.SlowestTook.Round(100*time.Millisecond), slowest.SlowestRel, writerCensusWorkers, writerCensusParts)
+	writerCensusReport(t, whole, slowest.Wall)
+	if whole.known[writerCensusSackKey] != 4 || whole.known[writerCensusItemKey] != 0 || whole.known[writerCensusMissingKey] != 0 {
+		t.Errorf("SAV-WRITERCENSUS-KNOWN expected source T1C 4 and item/missing 0/0; got %d/%d/%d",
+			whole.known[writerCensusSackKey], whole.known[writerCensusItemKey], whole.known[writerCensusMissingKey])
+	}
+	for _, f := range writerCensusFailures(whole) {
+		t.Error(f)
 	}
 }
 

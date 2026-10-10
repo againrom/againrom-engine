@@ -31,7 +31,7 @@ func areaLayerConflict(incoming, old uint16) bool {
 
 func (w *World) nativeAreaLayerPresent(key, spell uint16) bool {
 	for _, e := range w.effects {
-		if e.Mode == areaModeCloud && w.spellArm(e.Spell) == spell && containsKey(e.Cells, key) {
+		if e.Mode == areaModeCloud && containsKey(e.Cells, key) && w.spellArm(e.Spell) == spell {
 			return true
 		}
 	}
