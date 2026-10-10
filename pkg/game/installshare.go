@@ -81,8 +81,9 @@ func loadInstallShare(root string) (*installShare, error) {
 	s.statics, s.staticsErr = LoadStatics(archives.Containers)
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)
 	s.units, s.unitSounds, s.unitsErr = loadUnitRegistry(archives.Containers)
-	s.townSchool, s.townSchoolErr = LoadTownSchoolArt(archives.Containers)
-	s.townTavern, s.townTavernErr = LoadTownTavernArt(archives.Containers)
+	rooms := RoomDescription(match.Profile)
+	s.townSchool, s.townSchoolErr = LoadTownSchoolArt(rooms, archives.Containers)
+	s.townTavern, s.townTavernErr = LoadTownTavernArt(rooms, archives.Containers)
 	s.townSquare, s.townSquareErr = LoadTownSquareArtFor(TownDescription(match.Profile), archives.Containers)
 	return s, nil
 }

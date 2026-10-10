@@ -21,6 +21,12 @@ type Edition struct {
 	// when the game's town is not a composed square.
 	Town string
 
+	// Rooms names the town description whose rooms the tavern, shop and
+	// school pages, their tips and their scene art are read from. The second
+	// game has no room description of its own and names the first game's, the
+	// description its install has always loaded its room scene art from.
+	Rooms string
+
 	// NewGameInTown: a new game opened without generation starts in the
 	// campaign town with the default hero rather than on the first mission.
 	NewGameInTown bool
@@ -81,6 +87,7 @@ var firstEdition = Edition{
 	Game:                      GameROM1,
 	Campaign:                  CampaignChapters,
 	Town:                      "rom1",
+	Rooms:                     "rom1",
 	CompanionObjectiveMission: 40,
 	Cheats:                    true,
 	FreshPlayers:              true,
@@ -94,6 +101,7 @@ var secondEdition = Edition{
 	Campaign:          CampaignDestinations,
 	NewGameInTown:     true,
 	TownDifficulty:    true,
+	Rooms:             "rom1",
 	SecondMaps:        true,
 	SecondScripts:     true,
 	SecondTable:       true,

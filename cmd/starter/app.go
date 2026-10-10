@@ -1040,7 +1040,7 @@ func baseNote(info game.InstallInfo) string {
 // no argument.
 func withBase(args []string, info game.InstallInfo) []string {
 	id := info.Base.ID()
-	if id == "" || id == basepkg.ROM1 || len(args) < 2 || args[0] != "-assets" {
+	if !basepkg.Nameable(id) || len(args) < 2 || args[0] != "-assets" {
 		return args
 	}
 	out := append([]string{}, args[:2]...)

@@ -97,7 +97,7 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 	// call site this story's own B2 table called unchanged, and
 	// cmd/tippanelcheck measured its own spare at the shipped font as 66
 	// rows on en, 78 on ru, covering table cell 2 at 46.2% (2960 of 6400px).
-	v.TipPanel = t.tipView(roomShop, t.shopTip, ui.TipPanelShrinkRect(roomTipRect(roomShop), t.in.tipFont(), t.shopTip))
+	v.TipPanel = t.tipView(roomShop, t.shopTip, ui.TipPanelShrinkRect(t.roomTipRect(roomShop), t.in.tipFont(), t.shopTip))
 
 	shop := t.sess.Shop
 	if shop != nil {

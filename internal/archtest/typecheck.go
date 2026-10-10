@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"sync"
 )
@@ -219,11 +218,11 @@ func checkOnePackage(fset *token.FileSet, root string, imp types.Importer, p goL
 	collect := func(e error) { checkErrs = append(checkErrs, e) }
 
 	if len(cp.Files) > 0 {
-		cp.Info = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}}
-		if cp.ImportPath == "againrom/pkg/game" || cp.ImportPath == savPackagePath || slices.Contains(p.Imports, savPackagePath) {
-			cp.Info.Defs = map[*ast.Ident]types.Object{}
-			cp.Info.Uses = map[*ast.Ident]types.Object{}
-		}
+		// Every package keeps its names, fields and methods: the game-profile
+		// scan reads them in every package, and the SAV producer guard in
+		// pkg/game, pkg/formats/sav and each production importer of it.
+		cp.Info = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Defs: map[*ast.Ident]types.Object{},
+			Uses: map[*ast.Ident]types.Object{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
 		conf := &types.Config{Importer: imp, Error: collect}
 		conf.Check(p.ImportPath, fset, cp.Files, cp.Info)
 	}

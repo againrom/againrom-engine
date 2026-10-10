@@ -63,7 +63,7 @@ func TestTavernTenderReplacesStaticBodyThroughBlackShadows(t *testing.T) {
 	for _, path := range []string{"tender/breath/br0001.bmp", "tender/drink/dr0001.bmp", "candle/t0000.bmp"} {
 		src[townTavernArtPrefix+path] = synthBMP(32, 12, color.RGBA{A: 255})
 	}
-	art, err := LoadTownTavernArt(src)
+	art, err := LoadTownTavernArt(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func tavernInteriorApp(t *testing.T, f *FrontEnd) *ui.App {
 func tavernInteriorFixture(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *time.Time, *int, *tavernInteriorRecorder) {
 	t.Helper()
 	f := shellFrontEnd()
-	art, err := LoadTownTavernArt(townTavernSource())
+	art, err := LoadTownTavernArt(ROM1TownDescription(), townTavernSource())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestTavernInteriorInteractionsReentryLoadAndMissingFamilies(t *testing.T) {
 	// One malformed family cannot remove its siblings or the room route.
 	src := townTavernSource()
 	delete(src, townTavernArtPrefix+"candle/t0005.bmp")
-	degraded, err := LoadTownTavernArt(src)
+	degraded, err := LoadTownTavernArt(ROM1TownDescription(), src)
 	if err == nil || degraded == nil || len(degraded.Scene["candle"]) != 0 || len(degraded.Scene["cauldron"]) != tavernCauldronLoaded {
 		t.Fatalf("degraded loader = %#v / %v", degraded, err)
 	}
@@ -513,7 +513,7 @@ func TestTavernInteriorMissingSelectedFamilyAndSoundStayLocal(t *testing.T) {
 	// following even delay can still reach the complete Breath sibling.
 	src := townTavernSource()
 	delete(src, townTavernArtPrefix+"tender/drink/dr0020.bmp")
-	degraded, err := LoadTownTavernArt(src)
+	degraded, err := LoadTownTavernArt(ROM1TownDescription(), src)
 	if err == nil || degraded == nil || len(degraded.Scene["drink"]) != 0 || len(degraded.Scene["breath"]) != tavernBreathLoaded {
 		t.Fatalf("drink-local degradation = %#v / %v", degraded, err)
 	}
