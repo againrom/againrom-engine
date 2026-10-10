@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -29,11 +30,25 @@ func TestCurrentSaveProducerHasNoLegacyDispatch(t *testing.T) {
 	for _, finding := range CheckSaveProducer(p) {
 		t.Error(finding)
 	}
+	sav := module.Packages[savPackagePath]
+	if sav == nil {
+		t.Fatal("SAV package absent")
+	}
+	for _, finding := range CheckSaveByteProducers(sav) {
+		t.Error(finding)
+	}
+	var packages []*CheckedPackage
+	for _, pkg := range module.Packages {
+		packages = append(packages, pkg)
+	}
+	for _, finding := range CheckSaveByteCallers(packages) {
+		t.Error(finding)
+	}
 }
 
 func TestSaveProducerGuardRejectsUncalledSAVWriter(t *testing.T) {
 	fset := token.NewFileSet()
-	savFile, err := parser.ParseFile(fset, "sav.go", `package sav; type DocumentData struct{}; type CityUpdate struct{}; type CityProvenance struct{}; type File struct{}; func EncodeDocumentData(DocumentData) ([]byte, error) { return nil, nil }; func (*CityProvenance) Marshal(CityUpdate) ([]byte, error) { return nil, nil }; func (*File) Marshal() []byte { return nil }`, 0)
+	savFile, err := parser.ParseFile(fset, "sav.go", `package sav; type DocumentData struct{}; type CityUpdate struct{}; type CityProvenance struct{}; type File struct{}; func EncodeDocumentData(DocumentData) ([]byte, error) { return nil, nil }; func (*CityProvenance) Marshal(CityUpdate) ([]byte, error) { return nil, nil }; func (*File) Marshal() []byte { return nil }; func ReserveDocumentKeys(DocumentData, int) ([]uint32, error) { return nil, nil }; func ZZReviewWrite(d DocumentData) ([]byte, error) { return EncodeDocumentData(d) }`, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +70,9 @@ func TestSaveProducerGuardRejectsUncalledSAVWriter(t *testing.T) {
 		{"callback town writer", `func (f *FrontEnd) ExportCurrentSave() {}; func writeTown(p *s.CityProvenance) func(s.CityUpdate) ([]byte, error) { return p.Marshal }`, true},
 		{"package encoder alias", `var writeDocument = s.EncodeDocumentData; func (f *FrontEnd) ExportCurrentSave() {}`, true},
 		{"city interface writer", `type originalCityDocument interface { Marshal(s.CityUpdate) ([]byte, error) }; func (f *FrontEnd) ExportCurrentSave() {}; func writeTown(p originalCityDocument) ([]byte, error) { return p.Marshal(s.CityUpdate{}) }`, true},
+		{"review helper in a new file", `func (f *FrontEnd) ExportCurrentSave() {}; func zzReviewHelper() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }; func (f *FrontEnd) zzReviewSave() { zzReviewHelper() }`, true},
+		{"review wrapper in the SAV package", `func (f *FrontEnd) ExportCurrentSave() {}; func (f *FrontEnd) zzReviewSave() ([]byte, error) { return s.ZZReviewWrite(s.DocumentData{}) }`, true},
+		{"listed key reader", `func (f *FrontEnd) ExportCurrentSave() {}; func keys() ([]uint32, error) { return s.ReserveDocumentKeys(s.DocumentData{}, 1) }`, false},
 		{"load name on another receiver", `type Other struct{}; func (f *FrontEnd) ExportCurrentSave() {}; func (Other) applyModMark() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -115,6 +133,103 @@ func TestSaveProducerGuardRejectsDispatchMigrationAndCallbackFallback(t *testing
 			}
 			p := &CheckedPackage{ImportPath: "againrom/pkg/game", Files: []*ast.File{file}, NumProd: 1, Info: info}
 			if got := CheckSaveProducer(p); (len(got) != 0) != tc.bad {
+				t.Fatalf("findings %v, want bad=%v", got, tc.bad)
+			}
+		})
+	}
+}
+
+const syntheticSAV = `package sav
+type DocumentData struct{}; type DocumentStateData struct{}; type CityUpdate struct{}; type CityProvenance struct{}; type File struct{}; type DocPayload struct{}; type DocumentFragment struct{}
+func EncodeDocumentData(DocumentData) ([]byte, error) { return nil, nil }
+func (*File) Marshal() []byte { return nil }
+func (*CityProvenance) Marshal(CityUpdate) ([]byte, error) { return nil, nil }
+func Compress([]byte) []byte { return nil }
+func EncodeDocPayload(*DocPayload) ([]uint32, error) { return nil, nil }
+func Decompress([]byte) ([]byte, error) { return nil, nil }
+func (*File) CellRecord(int) ([]byte, error) { return nil, nil }
+func NativeActions(DocumentStateData) ([]byte, bool, error) { return nil, false, nil }
+func NativeMods(DocumentStateData) ([]byte, bool, error) { return nil, false, nil }
+func ReserveDocumentKeys(DocumentData, int) ([]uint32, error) { return nil, nil }
+func (DocumentFragment) MarshalJSON() ([]byte, error) { return nil, nil }
+func Open([]byte) (*File, error) { return nil, nil }
+func ZZReviewWrite(d DocumentData) ([]byte, error) { return EncodeDocumentData(d) }
+`
+
+func checkSyntheticSAV(t *testing.T, fset *token.FileSet, source string) (*CheckedPackage, *types.Package) {
+	t.Helper()
+	file, err := parser.ParseFile(fset, "sav.go", source, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := &types.Info{Defs: map[*ast.Ident]types.Object{}, Uses: map[*ast.Ident]types.Object{}}
+	pkg, err := (&types.Config{}).Check(savPackagePath, fset, []*ast.File{file}, info)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &CheckedPackage{ImportPath: savPackagePath, Files: []*ast.File{file}, NumProd: 1, Info: info}, pkg
+}
+
+func TestSaveByteProducerListRejectsUnlistedProducer(t *testing.T) {
+	listed := strings.Replace(syntheticSAV, "func ZZReviewWrite(d DocumentData) ([]byte, error) { return EncodeDocumentData(d) }\n", "", 1)
+	for _, tc := range []struct {
+		name, source string
+		bad          bool
+	}{
+		{"listed producers only", listed, false},
+		{"review wrapper", syntheticSAV, true},
+		{"uncalled byte producer", listed + "func ReviewEncode(DocumentData) []byte { return nil }\n", true},
+		{"uncalled writer parameter", listed + "type Sink interface{ Write([]byte) (int, error) }; func ReviewWrite(Sink, DocumentData) error { return nil }\n", true},
+		{"named byte result", listed + "type Blob []byte; func ReviewBlob() Blob { return nil }\n", true},
+		{"uncalled producer method", listed + "func (*File) ReviewBytes() []uint32 { return nil }\n", true},
+		{"unexported helper", listed + "func reviewEncode() []byte { return nil }\n", false},
+		{"listed producer absent", strings.Replace(listed, "func Compress([]byte) []byte { return nil }\n", "", 1), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p, _ := checkSyntheticSAV(t, token.NewFileSet(), tc.source)
+			if got := CheckSaveByteProducers(p); (len(got) != 0) != tc.bad {
+				t.Fatalf("findings %v, want bad=%v", got, tc.bad)
+			}
+		})
+	}
+}
+
+func TestSaveByteCallersRejectsNewCaller(t *testing.T) {
+	const savtool = `package main; import s "againrom/pkg/formats/sav"; func verify(f *s.File) []byte { return f.Marshal() }; func set(f *s.File) []byte { return f.Marshal() }; func info(f *s.File) ([]byte, error) { return f.CellRecord(0) }; func main() {}`
+	const fixture = `package cityfixture; import s "againrom/pkg/formats/sav"; func Original(p *s.CityProvenance) ([]byte, error) { return p.Marshal(s.CityUpdate{}) }`
+	for _, tc := range []struct {
+		name, savtool, other string
+		bad                  bool
+	}{
+		{"listed callers and a reader", savtool, `func read(b []byte) ([]byte, error) { return s.Decompress(b) }`, false},
+		{"new document caller", savtool, `func writeSave() ([]byte, error) { return s.EncodeDocumentData(s.DocumentData{}) }`, true},
+		{"new part caller", savtool, `func pack() []byte { return s.Compress(nil) }`, true},
+		{"method value at package scope", savtool, `var write = (*s.File).Marshal`, true},
+		{"unlisted producer caller", savtool, `func writeSave() ([]byte, error) { return s.ZZReviewWrite(s.DocumentData{}) }`, true},
+		{"listed package, other function", strings.Replace(savtool, "func info(f *s.File) ([]byte, error) { return f.CellRecord(0) }", "func info(f *s.File) []byte { return f.Marshal() }", 1), `var _ s.File`, true},
+		{"stale listed caller", strings.Replace(savtool, "func set(f *s.File) []byte { return f.Marshal() }", "func set(f *s.File) {}", 1), `var _ s.File`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fset := token.NewFileSet()
+			_, savPkg := checkSyntheticSAV(t, fset, syntheticSAV)
+			var packages []*CheckedPackage
+			for _, src := range []struct{ path, source string }{
+				{"againrom/cmd/savtool", tc.savtool},
+				{"againrom/internal/cityfixture", fixture},
+				{"againrom/cmd/other", `package main; import s "againrom/pkg/formats/sav"; ` + tc.other + `; func main() {}`},
+			} {
+				file, err := parser.ParseFile(fset, "src.go", src.source, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				info := &types.Info{Defs: map[*ast.Ident]types.Object{}, Uses: map[*ast.Ident]types.Object{}}
+				config := types.Config{Importer: fixedImporter{path: savPackagePath, pkg: savPkg}}
+				if _, err := config.Check(src.path, fset, []*ast.File{file}, info); err != nil {
+					t.Fatal(err)
+				}
+				packages = append(packages, &CheckedPackage{ImportPath: src.path, Files: []*ast.File{file}, NumProd: 1, Info: info})
+			}
+			if got := CheckSaveByteCallers(packages); (len(got) != 0) != tc.bad {
 				t.Fatalf("findings %v, want bad=%v", got, tc.bad)
 			}
 		})

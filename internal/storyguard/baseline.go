@@ -1996,6 +1996,8 @@ package storyguard
 // latch site witness, new code, including this paragraph.
 // CommentBytes rises for the latch drop on a left screen: its doc and the
 // leave witness, new code, including this paragraph.
+// CommentBytes rises for the SAV byte producer list in internal/archtest's
+// saveproducer_list.go and its guard doc, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2019,5 +2021,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1776,
 	},
-	CommentBytes: 8529623,
+	CommentBytes: 8531130,
 }
