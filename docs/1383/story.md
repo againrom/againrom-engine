@@ -131,3 +131,6 @@ falling debt:
 - A Russian install whose menu font fails to load now selects Russian words,
   converted by the selector-0 encoder; before it drew English. No shipped root
   has this failure.
+- An unrecognised `main.res` whose language is neither english nor russian
+  leaves `Profile.Language` empty, so the engine words fall back to English.
+  No shipped root has such a file.
