@@ -232,8 +232,9 @@ func resolveItemName(slot int, code data.ItemCode, t *mapload.Table) (string, bo
 // (data.HeroBodyFor's own doc), so a reader can check one block's body
 // name against the list that produced it without opening a second tool.
 func printBodyList(out io.Writer, list data.BodyList) {
-	fmt.Fprintf(out, "body list (%d entries; index: name -> drawn class):\n", len(list))
-	for i, name := range list {
+	fmt.Fprintf(out, "body list (%d entries; index: name -> drawn class):\n", list.Len())
+	for i := 0; i < list.Len(); i++ {
+		name := list.Entry(i)
 		class, matched := data.HeroBodyClass(name)
 		if !matched {
 			fmt.Fprintf(out, "  %d: %q -> class %d (no arm matches this name)\n", i, string(name), class)

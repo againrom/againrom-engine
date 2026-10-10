@@ -30,7 +30,7 @@ import (
 // a hired one, and he still composes.
 func TestComposeShopFacesLeavesAHiredMemberAlone(t *testing.T) {
 	c := townCampaign(t)
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: shopTable(), Bodies: data.BodyList{"unarmed"}}, CampaignSession: CampaignSession{Town: NewTown(c), Carried: []mapload.PartyMember{{Name: "Danath", Class: 3, Carry: &mapload.Carry{}}, {Name: "Sarindar", Class: 3, Temporary: true, Carry: &mapload.Carry{}}, {Name: "Catapult", Class: 26, Temporary: true, MercenaryType: 1, Carry: &mapload.Carry{}}, {Name: "Ballista", Class: 27, Temporary: true, MercenaryType: 2, Carry: &mapload.Carry{}}, {Name: "NPC03_1", Class: 24, Temporary: true, MercenaryType: 3, Carry: &mapload.Carry{}}, {Name: "NPC13_1", Class: 5, Temporary: true, MercenaryType: 13, Carry: &mapload.Carry{}}}}}
+	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: shopTable(), Bodies: data.NewBodyList("unarmed")}, CampaignSession: CampaignSession{Town: NewTown(c), Carried: []mapload.PartyMember{{Name: "Danath", Class: 3, Carry: &mapload.Carry{}}, {Name: "Sarindar", Class: 3, Temporary: true, Carry: &mapload.Carry{}}, {Name: "Catapult", Class: 26, Temporary: true, MercenaryType: 1, Carry: &mapload.Carry{}}, {Name: "Ballista", Class: 27, Temporary: true, MercenaryType: 2, Carry: &mapload.Carry{}}, {Name: "NPC03_1", Class: 24, Temporary: true, MercenaryType: 3, Carry: &mapload.Carry{}}, {Name: "NPC13_1", Class: 5, Temporary: true, MercenaryType: 13, Carry: &mapload.Carry{}}}}}
 	s := f.TownScreen().(*townScreen)
 	s.composeShopFaces()
 
@@ -150,7 +150,7 @@ func TestCanonicalizePartyAppearanceLeavesAHiredMemberAlone(t *testing.T) {
 		},
 		Start: mapload.Start{IDs: []sim.EntityID{heroID, mercID, siegeID}}}
 
-	canonicalizePartyAppearance(ms, nil, nil, data.BodyList{"unarmed"})
+	canonicalizePartyAppearance(ms, nil, nil, data.NewBodyList("unarmed"))
 
 	for i, want := range []int32{24, 26} {
 		p := ms.Party[i+1]
@@ -218,7 +218,7 @@ func TestBuildMercenarySquadGivesAHiredHumanHisOwnRowIdentity(t *testing.T) {
 	c := townCampaign(t)
 	table := shopTable()
 	table.Humans = mercenaryHumansRow("NPC03_1", typeID, face, gender)
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: table, Bodies: data.BodyList{"unarmed"}}, CampaignSession: CampaignSession{Town: NewTown(c)}}
+	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: table, Bodies: data.NewBodyList("unarmed")}, CampaignSession: CampaignSession{Town: NewTown(c)}}
 	s := f.TownScreen().(*townScreen)
 
 	members, ok := s.buildMercenarySquad(3, 2)
@@ -297,7 +297,7 @@ func TestBuildMercenarySquadCarriesTheHiredRowsOwnRotationSpeed(t *testing.T) {
 			mercenaryHumanRow(npc11TypeID, 2, 0, npc11Rotation),
 		},
 	}
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: table, Bodies: data.BodyList{"unarmed"}}, CampaignSession: CampaignSession{Town: NewTown(c)}}
+	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: table, Bodies: data.NewBodyList("unarmed")}, CampaignSession: CampaignSession{Town: NewTown(c)}}
 	s := f.TownScreen().(*townScreen)
 
 	members, ok := s.buildMercenarySquad(11, 1)

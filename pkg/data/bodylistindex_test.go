@@ -17,8 +17,8 @@ func TestBodyListCountsTheBlankEntryAndReadsPastTheEnd(t *testing.T) {
 		text += n + "\r\n"
 	}
 	l := ParseBodyList([]byte(text))
-	if len(l) != 26 {
-		t.Fatalf("list holds %d entries, want 26", len(l))
+	if l.Len() != 26 {
+		t.Fatalf("list holds %d entries, want 26", l.Len())
 	}
 	for _, tc := range []struct {
 		row  int

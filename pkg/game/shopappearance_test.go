@@ -9,7 +9,7 @@ import (
 
 func TestBuyingAndWearingInTheShopMovesTheWorldSpriteToo(t *testing.T) {
 	f, s := shopRoom(t, nil)
-	f.Bodies = data.BodyList{data.BodyUnarmed, data.BodySwordsman, data.BodyAxeman2H}
+	f.Bodies = data.NewBodyList(data.BodyUnarmed, data.BodySwordsman, data.BodyAxeman2H)
 	f.Carried[0].Body = string(data.BodyUnarmed)
 	f.Carried[0].BodyDir = data.HeroDirHeroes
 
@@ -49,7 +49,7 @@ func TestBuyingAndWearingInTheShopMovesTheWorldSpriteToo(t *testing.T) {
 // it, because that is exactly what the mission's own partyArt will read.
 func TestTheTownAndTheMapDeriveOneAppearanceFromOneEquipment(t *testing.T) {
 	f, s := shopRoom(t, nil)
-	f.Bodies = data.BodyList{data.BodyUnarmed, data.BodySwordsman, data.BodyAxeman2H}
+	f.Bodies = data.NewBodyList(data.BodyUnarmed, data.BodySwordsman, data.BodyAxeman2H)
 	s.shopWearInto(1, uint16(data.ComposeItemCode(0, 0, 0, 3)))
 	s.shopWearInto(data.HeroArmourSlot, uint16(data.ComposeItemCode(2, 0, 0, 1)))
 

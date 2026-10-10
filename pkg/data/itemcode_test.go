@@ -303,8 +303,8 @@ func stepString(steps []data.FigureStep) string {
 // before slot 8, the second sheets of 4, 9 and 10 after it, then slot 1 or
 // slot 2. Every slot keeps a step either way.
 func TestFigureDrawStepsOfAFighter(t *testing.T) {
-	twoHanded := data.BodyList{"unarmed", "swordsman2h"}
-	oneHanded := data.BodyList{"unarmed", "swordsman2h", "swordsman"}
+	twoHanded := data.NewBodyList("unarmed", "swordsman2h")
+	oneHanded := data.NewBodyList("unarmed", "swordsman2h", "swordsman")
 	for _, dir := range []data.FigureDir{data.FigureDirManFighter, data.FigureDirWomanFighter} {
 		for _, tc := range []struct {
 			name string
@@ -343,7 +343,7 @@ func TestFigureDrawStepsOfAFighter(t *testing.T) {
 func TestFigureDrawStepsOfAMage(t *testing.T) {
 	const want = "8 12 10 10s 4 4s 7 5 9t 1 6 8s"
 	for _, dir := range []data.FigureDir{data.FigureDirManMage, data.FigureDirWomanMage} {
-		for _, l := range []data.BodyList{nil, {"unarmed", "swordsman2h"}, {"unarmed", "swordsman2h", "swordsman"}} {
+		for _, l := range []data.BodyList{{}, data.NewBodyList("unarmed", "swordsman2h"), data.NewBodyList("unarmed", "swordsman2h", "swordsman")} {
 			for row := 0; row < 4; row++ {
 				var eq data.Equipment
 				eq.SetCode(1, data.ItemCode(row))

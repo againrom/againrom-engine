@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 )
@@ -68,9 +69,11 @@ func heroExportedCharacter(t *testing.T, f *FrontEnd, party []mapload.PartyMembe
 // U130.
 func TestReleaseGeneratedHeroAggregateExperienceMatchesItsSkillSlots(t *testing.T) {
 	recipes := map[string]func(table *mapload.Table) []mapload.PartyMember{
-		"table-less":         func(*mapload.Table) []mapload.PartyMember { return MissionParty(nil, nil, nil) },
-		"production-fighter": func(table *mapload.Table) []mapload.PartyMember { return MissionParty(nil, nil, table) },
-		"production-mage":    func(table *mapload.Table) []mapload.PartyMember { return MissionPartyAs(true, nil, nil, table) },
+		"table-less":         func(*mapload.Table) []mapload.PartyMember { return MissionParty(nil, data.BodyList{}, nil) },
+		"production-fighter": func(table *mapload.Table) []mapload.PartyMember { return MissionParty(nil, data.BodyList{}, table) },
+		"production-mage": func(table *mapload.Table) []mapload.PartyMember {
+			return MissionPartyAs(true, nil, data.BodyList{}, table)
+		},
 	}
 	for name, build := range recipes {
 		t.Run(name, func(t *testing.T) {
@@ -102,7 +105,7 @@ func TestReleaseGeneratedHeroHealthMaximumFollowsTheDerivation(t *testing.T) {
 	for _, mission := range []int{10, 20} {
 		t.Run(missionSubtestName(mission), func(t *testing.T) {
 			f := releaseFront(t)
-			party := MissionParty(nil, nil, nil)
+			party := MissionParty(nil, data.BodyList{}, nil)
 			d, wantHealth, _ := mapload.PartySpawn(party[0])
 			if wantHealth != d.HealthMax || wantHealth == mapload.SpawnHP {
 				t.Fatalf("setup: PartySpawn health=%d HealthMax=%d SpawnHP=%d", wantHealth, d.HealthMax, mapload.SpawnHP)

@@ -388,7 +388,7 @@ func spellClassProjectionFixture(t *testing.T) *mapWorld {
 	state := &Mission{}
 	state.Start.Roster = map[sim.EntityID]mapload.PartyMember{7: {ID: "roster", Mage: true, Class: 77}}
 	return &mapWorld{world: w, mission: &missionNotices{
-		list: data.BodyList{"unarmed", "swordsman"}, state: state,
+		list: data.NewBodyList("unarmed", "swordsman"), state: state,
 	}}
 }
 
@@ -464,7 +464,7 @@ func TestSpellClientClassKeepsHiredAndFallbackClasses(t *testing.T) {
 	})
 	t.Run("unresolved body list", func(t *testing.T) {
 		mw := spellClassProjectionFixture(t)
-		mw.mission.list = nil
+		mw.mission.list = data.BodyList{}
 		requireSpellClientClass(t, mw, 77)
 		sim.Step(mw.world, []sim.Command{sim.Equip(7, 0, 1)})
 		requireSpellClientClass(t, mw, 77)

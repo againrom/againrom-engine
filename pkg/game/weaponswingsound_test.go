@@ -54,7 +54,7 @@ func swingSlotsOf(t *testing.T, c swingCase) []int {
 	}
 	mw := newMapWorld(w, nil, &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{1: art}}, v)
 	member := mapload.PartyMember{ID: "hero", Class: 1, Mage: c.mage}
-	mw.mission = &missionNotices{list: data.BodyList{"unarmed", "swordsman"}}
+	mw.mission = &missionNotices{list: data.NewBodyList("unarmed", "swordsman")}
 	if c.party {
 		mw.mission.ids = []sim.EntityID{1}
 		mw.mission.party = []mapload.PartyMember{member}

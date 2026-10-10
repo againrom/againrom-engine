@@ -121,7 +121,7 @@ func TestRestoredCharactersKeepTheirFigureClassAndSex(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			table := &mapload.Table{Humans: dbCollection{{}, {name: tc.name, params: tc.params}}}
 			report := &RestoredParty{}
-			member := restoredMember(sav.Character{Name: "Naira", Class: "Human", DefRow: 1, Hero: true}, nil, table, report)
+			member := restoredMember(sav.Character{Name: "Naira", Class: "Human", DefRow: 1, Hero: true}, data.BodyList{}, table, report)
 			if member.FigureDir != string(tc.dir) || member.FigureFace != tc.face {
 				t.Errorf("figure = %q face %d, want %q face %d", member.FigureDir, member.FigureFace, tc.dir, tc.face)
 			}
@@ -147,7 +147,7 @@ func TestRestoredNPCDefinitionKeepsCorpseLootPolicyWithoutReadingDisplayName(t *
 	table := &mapload.Table{Humans: dbCollection{{}, {name: "NPC14_1", params: params}}}
 	member := restoredMember(sav.Character{
 		Name: "localized mercenary", Class: "Human", DefRow: 1,
-	}, nil, table, &RestoredParty{})
+	}, data.BodyList{}, table, &RestoredParty{})
 	if !member.SuppressCorpseLoot {
 		t.Fatal("restored NPC template lost corpse-loot suppression")
 	}
@@ -232,7 +232,7 @@ func TestADecodedNonPrimaryCompanionSurvivesTheWholeConstructionBoundary(t *test
 	if !persistentOriginalCharacter(c, table) {
 		t.Fatal("a non-primary PC_ companion was filtered out")
 	}
-	member := restoredMember(c, nil, table, &RestoredParty{})
+	member := restoredMember(c, data.BodyList{}, table, &RestoredParty{})
 	owned := mapload.OwnParty([]mapload.PartyMember{member})
 	if owned[0].ID != "player:companion" {
 		t.Fatalf("stable identity = %q, want the generic player identity", owned[0].ID)
@@ -322,7 +322,7 @@ func TestRestoredMemberUsesItsSavedSkillLevelsAndPerSkillXP(t *testing.T) {
 		SkillXP:     [sav.CharacterSkillSlots]uint32{10, 20, 30, 40, 50, 60},
 	}
 
-	member := restoredMember(c, nil, table, &RestoredParty{})
+	member := restoredMember(c, data.BodyList{}, table, &RestoredParty{})
 	wantLevels := [data.SkillSlots]int32{1, 2, 3, 4, 5, 6}
 	wantXP := [data.SkillSlots]int32{10, 20, 30, 40, 50, 60}
 	if member.Hero.Skill != wantLevels {
@@ -374,7 +374,7 @@ func TestARestoredMageStaffRecoversItsAuthoredSpellAttachment(t *testing.T) {
 	member := restoredMember(sav.Character{
 		Name: "restored mage", Class: "Human", DefRow: 1, Hero: true,
 		Worn: []sav.Piece{{Code: uint16(staff.Code), Stack: 1}},
-	}, nil, table, &RestoredParty{})
+	}, data.BodyList{}, table, &RestoredParty{})
 	if member.Weapon == nil || member.Weapon.SpellName != "Fire_Arrow" || member.Weapon.SpellPower != 10 {
 		t.Fatalf("restored staff = %+v, want authored Fire_Arrow:10 attachment", member.Weapon)
 	}
@@ -409,7 +409,7 @@ func TestARestoredMageStaffRecoversItsAuthoredSpellAttachment(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			current := restoredMember(sav.Character{Name: "current mage", Class: "Human", DefRow: 1, Hero: true,
-				Worn: []sav.Piece{{Class: "Weapon", Row: uint8(staff.Row), Code: uint16(staff.Code), Stack: 1, Kind: 2, Effects: tc.effects}}}, nil, table, &RestoredParty{})
+				Worn: []sav.Piece{{Class: "Weapon", Row: uint8(staff.Row), Code: uint16(staff.Code), Stack: 1, Kind: 2, Effects: tc.effects}}}, data.BodyList{}, table, &RestoredParty{})
 			if current.Weapon == nil || current.Weapon.SpellName != tc.spell || current.Weapon.SpellPower != tc.power {
 				t.Fatal("current attachment was replaced by the code template", current.Weapon)
 			}
@@ -556,7 +556,7 @@ func TestARestoredCharacterKnowsItsSavedSpellsNotTheTemplate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			table := &mapload.Table{Humans: dbCollection{{}, {name: "mage", params: row(tc.cell)}}}
 			member := restoredMember(sav.Character{Name: "Naira", Class: "Human", DefRow: 1, Hero: true, HasSpellbook: tc.present, Spells: tc.spells},
-				nil, table, &RestoredParty{})
+				data.BodyList{}, table, &RestoredParty{})
 			if member.KnownSpells != tc.want {
 				t.Errorf("KnownSpells = %#x, want %#x", member.KnownSpells, tc.want)
 			}
@@ -568,7 +568,7 @@ func TestARestoredCharacterKnowsItsSavedSpellsNotTheTemplate(t *testing.T) {
 
 	// A character whose class names no Humans row keeps an empty book rather
 	// than failing to restore.
-	member := restoredMember(sav.Character{Name: "Rat", Class: "Unit"}, nil, &mapload.Table{}, &RestoredParty{})
+	member := restoredMember(sav.Character{Name: "Rat", Class: "Unit"}, data.BodyList{}, &mapload.Table{}, &RestoredParty{})
 	if member.KnownSpells != 0 {
 		t.Errorf("a non-Human record restored KnownSpells = %#x, want 0", member.KnownSpells)
 	}

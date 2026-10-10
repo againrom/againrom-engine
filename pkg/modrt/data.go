@@ -15,11 +15,13 @@ import (
 // dataFiles are the data files game.data.add reads, each with the function
 // that turns its bytes into game data.
 var dataFiles = map[string]func(d *dataValue, rel string, src []byte) error{
-	mod.CharactersFile: (*dataValue).loadCharacters,
-	mod.CompanionsFile: (*dataValue).loadCompanions,
-	mod.ItemsFile:      (*dataValue).loadItems,
-	mod.ScreensFile:    (*dataValue).loadScreens,
-	mod.SpellsFile:     (*dataValue).loadSpells,
+	mod.BodiesFile:       (*dataValue).loadBodies,
+	mod.WeaponBodiesFile: (*dataValue).loadWeaponBodies,
+	mod.CharactersFile:   (*dataValue).loadCharacters,
+	mod.CompanionsFile:   (*dataValue).loadCompanions,
+	mod.ItemsFile:        (*dataValue).loadItems,
+	mod.ScreensFile:      (*dataValue).loadScreens,
+	mod.SpellsFile:       (*dataValue).loadSpells,
 }
 
 func dataFileNames() string {
@@ -97,6 +99,33 @@ func (d *dataValue) loadItems(rel string, src []byte) error {
 	}
 	d.sh.items.Rows = append(d.sh.items.Rows, items.Rows...)
 	d.sh.items.Changes = append(d.sh.items.Changes, items.Changes...)
+	return nil
+}
+
+func (d *dataValue) loadWeaponBodies(rel string, src []byte) error {
+	weapons, err := mod.ParseWeaponBodies(d.id, rel, src)
+	if err != nil {
+		return err
+	}
+	d.sh.bodies.Weapons = append(d.sh.bodies.Weapons, weapons...)
+	return nil
+}
+
+func (d *dataValue) loadBodies(rel string, src []byte) error {
+	bodies, err := mod.ParseBodies(d.id, rel, src)
+	if err != nil {
+		return err
+	}
+	for _, b := range bodies {
+		for _, first := range d.sh.bodies.Bodies {
+			if first.Name == b.Name {
+				return &mod.ItemFileError{File: rel, Line: b.Line, Msg: fmt.Sprintf(
+					"body %q is already supplied by mod %q", b.Name, first.Mod)}
+			}
+		}
+		b.Dir = d.dir
+		d.sh.bodies.Bodies = append(d.sh.bodies.Bodies, b)
+	}
 	return nil
 }
 

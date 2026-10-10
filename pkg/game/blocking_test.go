@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -237,11 +238,11 @@ func TestAMissionsWorldTakesTheSameSecondStage(t *testing.T) {
 	m := blockMap(t, []synth.ALMObject{blockBridge(), blockHut()}, nil)
 	tbl := blockTable(t)
 
-	ms, _, err := mapload.StartMission(m, tbl, openDifficulty, MissionParty(nil, nil, nil))
+	ms, _, err := mapload.StartMission(m, tbl, openDifficulty, MissionParty(nil, data.BodyList{}, nil))
 	if err != nil {
 		t.Fatalf("StartMission: %v", err)
 	}
-	plain, _, err := mapload.StartMission(m, nil, openDifficulty, MissionParty(nil, nil, nil))
+	plain, _, err := mapload.StartMission(m, nil, openDifficulty, MissionParty(nil, data.BodyList{}, nil))
 	if err != nil {
 		t.Fatalf("StartMission with no table: %v", err)
 	}

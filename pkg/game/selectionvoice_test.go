@@ -62,7 +62,7 @@ func selectionVoiceMission(t *testing.T) (*FrontEnd, *ui.App, *acknowledgmentRec
 		RuntimeServices:  RuntimeServices{SpeechPlayer: voices},
 	}
 	f.SetDeterministicFrames(true)
-	party := MissionParty(nil, nil, nil)
+	party := MissionParty(nil, data.BodyList{}, nil)
 	mage := party[0]
 	mage.ID, mage.Name, mage.PlayerCharacter, mage.StartingHero, mage.MercenaryType, mage.Class = "mage", "Mage", false, false, 3, 0x18
 	mage.FigureDir = string(data.FigureDirWomanMage)

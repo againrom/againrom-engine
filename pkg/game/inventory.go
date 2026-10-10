@@ -189,13 +189,13 @@ func composeInventorySubjectLayered(src entrySource, id uint32, eq data.Equipmen
 	// eq.Code read no src at all, so this arm still walks every slot and
 	// lists the SAME addresses per occupied slot, in the SAME order, the
 	// archive arm below would have attempted (FR-10b). data.FigureDrawOrder
-	// is asked with a nil body list (T7): there is no archive here to read
-	// one from, and data.FigureHeldLast(nil, eq) is total over that — it
+	// is asked with an empty body list (T7): there is no archive here to read
+	// one from, and data.FigureHeldLast is total over that — it
 	// answers slot 2 last, the same as an archive that cannot supply the
 	// list would (FigureHeldLast's own doc).
 	if src == nil {
 		unread := []string{baseAddr}
-		steps := data.FigureDrawSteps(figureDir, nil, eq)
+		steps := data.FigureDrawSteps(figureDir, data.BodyList{}, eq)
 		first, _ := figureStepSpans(steps)
 		for i, st := range steps {
 			n := st.Slot

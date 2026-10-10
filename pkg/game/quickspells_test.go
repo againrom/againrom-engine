@@ -135,7 +135,7 @@ func TestQuickSpellsCandidateAndMissionLifetime(t *testing.T) {
 func TestQuickSpellsNewGameCommitsResetOnlyAfterPreparation(t *testing.T) {
 	f := missionFrontEnd(t)
 	f.Table, f.Humans = &mapload.Table{}, fourBaseHumans()
-	f.Bodies, f.Town = data.BodyList{"unarmed", "mage"}, NewTown(Campaign{})
+	f.Bodies, f.Town = data.NewBodyList("unarmed", "mage"), NewTown(Campaign{})
 	want := [4]uint32{16, 1, 6, 19}
 	f.quickSpells = want
 	res := ui.ChargenResult{Choices: []int{1, 1, 2}, Stats: []int{30, 20, 18, 16}}

@@ -39,7 +39,7 @@ func TestKilledPlacedHeroKeepsPCBodyBindingThroughDecay(t *testing.T) {
 	}
 	check := func(stage string) {
 		t.Helper()
-		if got := missionAppearanceArt(ms, set, data.BodyList{data.BodyUnarmed, data.BodySwordsman}, src)[id]; got != want {
+		if got := missionAppearanceArt(ms, set, data.NewBodyList(data.BodyUnarmed, data.BodySwordsman), src)[id]; got != want {
 			t.Fatalf("%s restored binding=%p, want original PC resource %p", stage, got, want)
 		}
 	}

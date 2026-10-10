@@ -20,7 +20,7 @@ import (
 // doubled for the fighter's clear class bit, folded with the trained Blade
 // skill's own experience term.
 func TestMissionPartyHealthMaximumComesFromTheDerivation(t *testing.T) {
-	party := game.MissionParty(nil, nil, nil)
+	party := game.MissionParty(nil, data.BodyList{}, nil)
 	if len(party) != 1 {
 		t.Fatalf("party of %d, want 1", len(party))
 	}

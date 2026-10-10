@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/data"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -333,7 +334,7 @@ func TestStartMissionRunsTheMissionsScript(t *testing.T) {
 		{Path: "10.alm", Data: synth.ALM(synth.ALMOptions{
 			Width: 40, Height: 40, Type7Payload: missionScript()})},
 	})
-	m, err := game.StartMission(fsys, 10, nil, mapload.DifficultyNormal, game.MissionParty(nil, nil, nil))
+	m, err := game.StartMission(fsys, 10, nil, mapload.DifficultyNormal, game.MissionParty(nil, data.BodyList{}, nil))
 	if err != nil {
 		t.Fatalf("StartMission: %v", err)
 	}
@@ -373,7 +374,7 @@ func TestStartMissionWithAnUndecodableScriptRunsNone(t *testing.T) {
 	fsys := missionFS(t, []synth.File{
 		{Path: "10.alm", Data: synth.ALM(synth.ALMOptions{Width: 40, Height: 40})},
 	})
-	m, err := game.StartMission(fsys, 10, nil, mapload.DifficultyNormal, game.MissionParty(nil, nil, nil))
+	m, err := game.StartMission(fsys, 10, nil, mapload.DifficultyNormal, game.MissionParty(nil, data.BodyList{}, nil))
 	if err != nil {
 		t.Fatalf("StartMission: %v", err)
 	}
@@ -483,11 +484,11 @@ func TestAMissionIsWonOnlyWhenTheHeroArrives(t *testing.T) {
 		whyItHolds string
 	}{
 		{name: "hero bound, standing far from the objective",
-			drop: [2]uint32{8, 8}, party: game.MissionParty(nil, nil, nil),
+			drop: [2]uint32{8, 8}, party: game.MissionParty(nil, data.BodyList{}, nil),
 			wantWin: false, wantBound: true,
 			whyItHolds: "the distance is measured and exceeds the radius"},
 		{name: "hero bound, standing on the objective",
-			drop: [2]uint32{heroObjX, heroObjY}, party: game.MissionParty(nil, nil, nil),
+			drop: [2]uint32{heroObjX, heroObjY}, party: game.MissionParty(nil, data.BodyList{}, nil),
 			wantWin: true, wantBound: true,
 			whyItHolds: "the distance is measured and is within the radius"},
 		{name: "no party, standing far from the objective",
@@ -544,7 +545,7 @@ func TestTheBoundHeroIsThePartysFirstMember(t *testing.T) {
 // is why the fence in the contract is a fence and not a gap.
 func TestAnOrdinalAboveOneStaysUnresolved(t *testing.T) {
 	for _, ordinal := range []uint32{10002, 10006, 11000} {
-		m := heroWinMission(t, heroObjX, heroObjY, ordinal, game.MissionParty(nil, nil, nil))
+		m := heroWinMission(t, heroObjX, heroObjY, ordinal, game.MissionParty(nil, data.BodyList{}, nil))
 		if c := m.World.Script().Checks()[0]; c.HasUnit {
 			t.Errorf("ordinal %d resolved to entity %d; only ordinal 1 is bound", ordinal, c.Unit)
 		}

@@ -420,7 +420,7 @@ func TestTheMissionPartyIsOneMemberAtTheStartCell(t *testing.T) {
 	f := missionFrontEnd(t)
 	// A small invented body list (SC-3): index 0 is the bare-handed name a
 	// nil weapon's derivation answers.
-	f.Bodies = data.BodyList{"swordsman"}
+	f.Bodies = data.NewBodyList("swordsman")
 	party := MissionParty(nil, f.Bodies, nil)
 	ms, err := StartMission(f.Archives.Containers, 10, f.Table, openDifficulty, party)
 	if err != nil {
@@ -532,9 +532,9 @@ func missionFrontEndWithBodies(t *testing.T, list data.BodyList) *FrontEnd {
 		{Path: "10.alm", Data: synth.ALM(synth.ALMOptions{Width: 24, Height: 24})},
 		{Path: "npc.reg", Data: synth.NPCReg(nil)},
 	})
-	names := make([]string, len(list))
-	for i, b := range list {
-		names[i] = string(b)
+	names := make([]string, list.Len())
+	for i := range names {
+		names[i] = string(list.Entry(i))
 	}
 	main := synth.Archive([]synth.File{
 		{Path: "text/heropicture.txt", Data: []byte(strings.Join(names, "\n") + "\n")},
@@ -567,7 +567,7 @@ func missionFrontEndWithBodies(t *testing.T, list data.BodyList) *FrontEnd {
 // discriminating case rather than the bare-handed row every empty fixture
 // would agree on for free.
 func TestAMissionsOpenAndItsFirstRefreshAgreeOnOneEquipmentSet(t *testing.T) {
-	list := data.BodyList{"unarmed", "swordsman"}
+	list := data.NewBodyList("unarmed", "swordsman")
 	f := missionFrontEndWithBodies(t, list)
 	table := eqDefsTable(t)
 	weapon := eqMace(t, table)

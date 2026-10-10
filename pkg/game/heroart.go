@@ -61,28 +61,35 @@ func LoadHeroBody(src terrain.EntrySource, set *terrain.UnitSet, dir string, bod
 		return
 	}
 
-	// A STRUCT COPY, not a wrapper.
-	//
-	// THE TIER SLICES ARE CLEARED. A tier is a colour table for the RECORD's own
-	// sheet; carrying them over would recolour a hero's picture through a table
-	// built for a different one. Cleared, TierFrames answers the frames below at
-	// every tier, which is what a class with no tiers has always drawn.
-	//
 	// The corpse link is the hero's own dying body: the original recomposes
 	// the whole appearance for a dying character and forces it into one of two
 	// named bodies (HERO-APPEAR-042), composed from the same directory.
-	drawn := *rec
-	drawn.Frames = frames
-	drawn.Tiers = nil
-	drawn.Boundary = sheets.boundaryFrames(frames, data.HeroSheetPath(dir, body), data.HeroOverlayPath(dir, body))
-	if dying := heroDyingBody(&sheets, set, dir, body); dying != nil {
-		drawn.Corpse = dying
-	}
+	boundary := sheets.boundaryFrames(frames, data.HeroSheetPath(dir, body), data.HeroOverlayPath(dir, body))
+	drawn := composeHeroBody(rec, frames, boundary, heroDyingBody(&sheets, set, dir, body))
 
 	if set.Bodies == nil {
 		set.Bodies = make(map[string]*terrain.UnitClass)
 	}
-	set.Bodies[key] = &drawn
+	set.Bodies[key] = drawn
+}
+
+// composeHeroBody is the one builder of a hero body's drawn class, for a
+// shipped sheet and a mod's alike: rec supplies the geometry and every other
+// field, frames the picture, boundary the second silhouette (nil for none) and
+// corpse the fallen body (nil keeps rec's own link).
+//
+// A STRUCT COPY, not a wrapper. THE TIER SLICES ARE CLEARED: a tier is a
+// colour table for the RECORD's own sheet, and carrying them over would
+// recolour a hero's picture through a table built for a different one.
+func composeHeroBody(rec *terrain.UnitClass, frames, boundary []*terrain.StaticFrame, corpse *terrain.UnitClass) *terrain.UnitClass {
+	drawn := *rec
+	drawn.Frames = frames
+	drawn.Tiers = nil
+	drawn.Boundary = boundary
+	if corpse != nil {
+		drawn.Corpse = corpse
+	}
+	return &drawn
 }
 
 // heroDyingBody is the class a fallen hero is drawn as: the forced dying body's
@@ -102,10 +109,7 @@ func heroDyingBody(sheets *sheetCache, set *terrain.UnitSet, dir string, body da
 	if len(frames) == 0 {
 		return nil
 	}
-	corpse := *rec
-	corpse.Frames = frames
-	corpse.Tiers = nil
+	corpse := composeHeroBody(rec, frames, sheets.boundaryFrames(frames, data.HeroSheetPath(dir, dying), data.HeroOverlayPath(dir, dying)), nil)
 	corpse.Corpse = nil
-	corpse.Boundary = sheets.boundaryFrames(frames, data.HeroSheetPath(dir, dying), data.HeroOverlayPath(dir, dying))
-	return &corpse
+	return corpse
 }

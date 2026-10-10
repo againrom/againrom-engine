@@ -295,7 +295,7 @@ func TestRestoreOriginalMissingMapPreservesSession(t *testing.T) {
 func TestNewGameChargenClearsWorldSession(t *testing.T) {
 	f := missionFrontEnd(t)
 	f.Table, f.Humans = &mapload.Table{}, fourBaseHumans()
-	f.Bodies, f.Town = data.BodyList{"unarmed", "mage"}, NewTown(Campaign{})
+	f.Bodies, f.Town = data.NewBodyList("unarmed", "mage"), NewTown(Campaign{})
 	f.Maps = []MapEntry{{Source: "10.alm", Name: "B", Mission: 10}}
 	seedWorldSession(t, f)
 	shop := seedFrontEndSession(t, f)

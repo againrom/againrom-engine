@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -24,7 +25,7 @@ func TestTheFrontEndIsToldWhichSlotThePlayerHolds(t *testing.T) {
 	if got := v.LocalOwner(); got != 0 {
 		t.Fatalf("a fresh viewer already holds slot %d — then the push below proves nothing", got)
 	}
-	w, st, err := mapload.StartMission(m, nil, mapload.DifficultyNormal, MissionParty(nil, nil, nil))
+	w, st, err := mapload.StartMission(m, nil, mapload.DifficultyNormal, MissionParty(nil, data.BodyList{}, nil))
 	if err != nil {
 		t.Fatalf("StartMission: %v", err)
 	}
