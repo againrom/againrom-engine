@@ -100,11 +100,18 @@ func (w *World) releaseDueBursts() {
 }
 
 func (w *World) insertBurst(cx, cy int32, owner uint32) int {
-	x, y := cx*256+128, cy*256+128
+	return w.insertBurstRecord(AreaBurst{CellX: cx, CellY: cy, Picture: fireBallBurstPicture(),
+		Segments: fireBallBurstSegments, Phases: w.burst.phases, Owner: owner})
+}
+
+// insertBurstRecord adds the record client arm 0x86 builds for an odd picture:
+// at the cell centre, aimed at the same point, no target, actionphase -1.
+func (w *World) insertBurstRecord(b AreaBurst) int {
+	x, y := b.CellX*256+128, b.CellY*256+128
 	return w.insertProjectile(SavedProjectile{
-		X: x, Y: y, Picture: fireBallBurstPicture(), Action: 1,
-		ActionX: x, ActionY: y, ActionPhase: -1, ActionSegments: fireBallBurstSegments,
-	}, SavedProjectileDriver{Phases: w.burst.phases, Owner: owner})
+		X: x, Y: y, Picture: b.Picture, Action: 1,
+		ActionX: x, ActionY: y, ActionPhase: -1, ActionSegments: b.Segments,
+	}, SavedProjectileDriver{Phases: b.Phases, Owner: b.Owner})
 }
 
 // WindUpElapsed is how many ticks have passed since id's current wind-up

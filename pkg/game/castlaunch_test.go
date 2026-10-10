@@ -67,18 +67,25 @@ func TestCastLaunchTeleportTakesTheSelectionFallback(t *testing.T) {
 		}
 	}
 
-	mw := spWorld(t)
-	set := &terrain.EffectSet{Sheets: map[int]*terrain.EffectSheet{
-		teleportPicture: {Frames: spFrames(4, 8), Phases: 4, RotationPhases: 1, CenterX: 4, CenterY: 4}}}
-	mw.projectiles = set
-	mw.spawnCast(image.Pt(3, 3), image.Pt(9, 5), 26, 0, 1, 0, 0, c)
-	if len(mw.bolts) != 2 {
-		t.Fatalf("Teleport spawned %d objects, want 2", len(mw.bolts))
+	const staffClass = 24
+	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil,
+		[]sim.Entity{{ID: 1, X: 3, Y: 3, HP: 10, MaxHP: 10, Class: staffClass}}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for i, want := range []image.Point{{3*256 - 48, 3*256 - 57}, {9*256 - 48, 5*256 - 57}} {
-		b := mw.bolts[i]
-		if got := castShotPoint(b.from, b.to, 1, b.life, b.launch); got != want {
-			t.Errorf("Teleport object %d stands at %v, want %v", i, got, want)
+	mw := spWorld(t)
+	mw.world = w
+	mw.units = &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{staffClass: c}}
+	mw.projectiles = &terrain.EffectSet{Sheets: map[int]*terrain.EffectSheet{
+		teleportPicture: {Frames: spFrames(4, 8), Phases: 4, RotationPhases: 1, CenterX: 4, CenterY: 4}}}
+	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 26, FromX: 3, FromY: 3, ToX: 9, ToY: 5}})
+	records := flightRecords(mw)
+	if len(records) != 2 {
+		t.Fatalf("Teleport built %d records, want 2", len(records))
+	}
+	for i, want := range []image.Point{{3*256 + 128 - 48, 3*256 + 128 - 57}, {9*256 + 128 - 48, 5*256 + 128 - 57}} {
+		if got := image.Pt(int(records[i].X), int(records[i].Y)); got != want {
+			t.Errorf("Teleport record %d stands at %v, want %v", i, got, want)
 		}
 	}
 }
@@ -126,37 +133,36 @@ func TestACastObjectLeavesTheCastersStaffTip(t *testing.T) {
 			{Caster: 1, Target: 2, Spell: spLightning, FromX: 5, FromY: 5, ToX: 11, ToY: 9, Facing: facing},
 			{Caster: 1, Target: 2, Spell: 1, FromX: 5, FromY: 5, ToX: 11, ToY: 9, Facing: facing},
 		})
-		want := image.Pt(5*ui.ShotScale, 5*ui.ShotScale).Add(castLaunch(launchHuman(launchStaffOffsets), facing, 34))
-		if len(mw.bolts) != 2 {
-			t.Fatalf("direction %d: %d objects, want 2", d, len(mw.bolts))
+		launch := castLaunch(launchHuman(launchStaffOffsets), facing, 34)
+		want := image.Pt(5*ui.ShotScale, 5*ui.ShotScale).Add(launch)
+		records := flightRecords(mw)
+		if len(records) != 2 {
+			t.Fatalf("direction %d: %d records, want 2", d, len(records))
 		}
 		display := ui.GroundPixel(want)
-		if _, _, points := mw.pathFigure(mw.bolts[0]); len(points) == 0 || !withinPixel(points[0], display) {
+		paths := mw.recordPaths(records[0], 0)
+		if len(paths) != 1 {
+			t.Fatalf("direction %d: Lightning holds %d figures, want 1", d, len(paths))
+		}
+		if _, _, points := mw.pathFigure(paths[0]); len(points) == 0 || !withinPixel(points[0], display) {
 			t.Errorf("direction %d: Lightning starts at %v, want %v", d, points, display)
 		}
-		if got := castShotPoint(mw.bolts[1].from, mw.bolts[1].to, 0, mw.bolts[1].life, mw.bolts[1].launch); got != want {
-			t.Errorf("direction %d: Fire Arrow starts at %v, want %v", d, got, want)
+		// The record's absolute point is the cell centre plus the launch.
+		start := want.Add(image.Pt(ui.ShotScale/2, ui.ShotScale/2))
+		if trail := mw.shots.trail[records[1].ID]; len(trail) == 0 || trail[0] != start {
+			t.Errorf("direction %d: Fire Arrow starts at %v, want %v", d, trail, start)
 		}
 	}
 }
 
-func TestACastObjectInFlightKeepsItsLaunchAcrossTheVisualSnapshot(t *testing.T) {
+// TestALegacyVisualSnapshotBoltIsDropped: an object in flight is a World
+// record, so a snapshot's legacy bolt list restores nothing.
+func TestALegacyVisualSnapshotBoltIsDropped(t *testing.T) {
 	t.Parallel()
-	mw := spWorld(t)
-	mw.bolts = []spellBolt{{from: image.Pt(2, 2), to: image.Pt(9, 2), picture: 10, life: 9, age: 3,
-		facing: 64, launch: image.Pt(216, -104)}}
-	var r SnapshotResidue
-	mw.actionVisuals(&r)
 	restored := spWorld(t)
-	restored.restoreActionVisuals(r.SpellBolts, r.HealBursts)
-	if len(restored.bolts) != 1 || restored.bolts[0] != mw.bolts[0] {
-		t.Fatalf("restored %+v, want %+v", restored.bolts, mw.bolts)
-	}
-	old := r.SpellBolts[0]
-	old.Launch = image.Point{}
-	restored.restoreActionVisuals([]SnapshotSpellBolt{old}, nil)
-	if restored.bolts[0].launch != (image.Point{}) {
-		t.Fatalf("an envelope without Launch restored %v", restored.bolts[0].launch)
+	restored.restoreActionVisuals([]SnapshotSpellBolt{{From: image.Pt(2, 2), To: image.Pt(9, 2), Picture: 10, Life: 9, Age: 3}}, nil)
+	if got := flightRecords(restored); len(got) != 0 || len(restored.flights) != 0 {
+		t.Fatalf("a legacy bolt restored %+v", got)
 	}
 }
 

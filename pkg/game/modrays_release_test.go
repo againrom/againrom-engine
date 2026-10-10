@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
 
@@ -108,7 +109,7 @@ func TestReleaseModRaysHitAndDrawEveryEnemyAndSurviveSaveAndLoad(t *testing.T) {
 			inFlight = exportSave(t, f)
 		}
 		mw.tick()
-		drawn = max(drawn, len(mw.bolts))
+		drawn = max(drawn, sprayFigures(mw))
 	}
 	if drawn < len(enemies) {
 		t.Errorf("%d ray figures drawn for %d enemies", drawn, len(enemies))
@@ -151,9 +152,20 @@ func TestReleaseWithoutRaysTheSprayStopsAtTheOriginalCap(t *testing.T) {
 	drawn := 0
 	for tick := 0; tick < 12; tick++ {
 		mw.tick()
-		drawn = max(drawn, len(mw.bolts))
+		drawn = max(drawn, sprayFigures(mw))
 	}
 	if drawn < 1 || drawn > 7 {
 		t.Errorf("%d ray figures drawn with no cap, want 1 to 7", drawn)
 	}
+}
+
+// sprayFigures is the figure count of the Prismatic Spray records in flight.
+func sprayFigures(mw *mapWorld) int {
+	n := 0
+	for _, p := range flightRecords(mw) {
+		if int(p.Picture) == data.PicturePathSecond {
+			n += len(mw.recordPaths(p, 0))
+		}
+	}
+	return n
 }

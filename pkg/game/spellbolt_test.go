@@ -51,10 +51,9 @@ func sbWorld(t *testing.T) *mapWorld {
 		projectiles: sbSheets()}
 }
 
-// TestABookCastSpawnsABoltAndAWeaponBorneOneDoesNot is spawnBolts' own fork: a
-// weapon-borne release is drawn live off the attack cycle, and a second bolt for
-// it would draw the same cast twice.
-func TestABookCastSpawnsABoltAndAWeaponBorneOneDoesNot(t *testing.T) {
+// TestABookCastAndAStaffReleaseEachBuildOneRecord: a book cast and a staff's
+// cast-diverted release each reach the cast producer (SAV-1129, ANIM-147).
+func TestABookCastAndAStaffReleaseEachBuildOneRecord(t *testing.T) {
 	t.Parallel()
 
 	mw := sbWorld(t)
@@ -62,85 +61,104 @@ func TestABookCastSpawnsABoltAndAWeaponBorneOneDoesNot(t *testing.T) {
 		{Caster: 1, Target: 2, Spell: 1, School: 1, FromX: 2, FromY: 2, ToX: 5, ToY: 2},
 		{Caster: 3, Target: 4, Spell: 1, School: 1, FromX: 1, FromY: 1, ToX: 2, ToY: 1, Weapon: true},
 	})
-
-	if got := len(mw.bolts); got != 1 {
-		t.Fatalf("the tick spawned %d bolts, want exactly the book cast's one", got)
+	records := flightRecords(mw)
+	if len(records) != 2 {
+		t.Fatalf("the tick built %d records, want the book cast's and the staff's", len(records))
 	}
-	b := mw.bolts[0]
-	if b.from != (image.Point{X: 2, Y: 2}) || b.to != (image.Point{X: 5, Y: 2}) {
-		t.Errorf("the bolt runs %v to %v, want (2,2) to (5,2)", b.from, b.to)
+	// Spell 1's cast picture is 2*1+8 and its flight over three cells is
+	// 3*256/200 calls; the first has run.
+	var book sim.SavedProjectile
+	for _, p := range records {
+		if p.ID == 0 {
+			book = p
+		}
 	}
-	// Spell 1's cast picture is 2*1+8 and its flight length over three cells is
-	// 3*256/200.
-	if b.picture != 10 || b.life != 3 || b.age != 0 {
-		t.Errorf("the bolt is picture %d for %d ticks at age %d, want picture 10 for 3 at 0",
-			b.picture, b.life, b.age)
+	if book.Picture != 10 || book.ActionSegments != 2 || book.ActionX != 5*256+128 || book.ActionY != 2*256+128 {
+		t.Errorf("the book record is %+v, want picture 10 aimed at (5,2) with 2 of 3 calls left", book)
 	}
 }
 
-func TestOnlySevenPicturesFly(t *testing.T) {
+// TestEveryCastTakesACounterIDAndSevenPicturesFly is ANIM-147 and SAV-1204:
+// every cast builds a record and takes its counter id (Teleport two); a
+// picture outside the segment switch retires on its first call.
+func TestEveryCastTakesACounterIDAndSevenPicturesFly(t *testing.T) {
 	t.Parallel()
 
 	flying := map[int]bool{1: true, 2: true, 6: true, 11: true, 13: true, 14: true, 26: true}
-	for spell := range 29 {
+	for spell := 1; spell <= 28; spell++ {
 		mw := sbWorld(t)
 		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: uint16(spell),
 			FromX: 0, FromY: 0, ToX: 5, ToY: 0}})
-		want := 0
+		want, ids := 0, uint16(1)
 		if flying[spell] {
 			want++
 		}
 		if spell == 26 {
-			// Teleport puts a second object at the caster.
-			want++
+			want, ids = 2, 2
 		}
-		// Fire Ball is the one spell in this bundle whose burst picture, 2*2+9,
-		// names a sheet; its burst is a World record built when the area blasts,
-		// so the cast spawns the flying object alone.
-		if got := len(mw.bolts); got != want {
-			t.Errorf("spell %d spawned %d objects, want %d", spell, got, want)
+		// Heal's picture 20 has one segment: the first call spends it.
+		if spell == 6 {
+			want = 1
+		}
+		if got := len(flightRecords(mw)); got != want {
+			t.Errorf("spell %d left %d records armed, want %d", spell, got, want)
+		}
+		if got := mw.world.SavedProjectiles().FreeIndex; got != ids {
+			t.Errorf("spell %d moved the counter to %d, want %d", spell, got, ids)
 		}
 	}
 }
 
-func TestTeleportSpawnsStationaryObjectsAtBothEnds(t *testing.T) {
+// TestTeleportBuildsStationaryRecordsAtBothEnds is MAGIC-265 and ANIM-149: a
+// record at the caster and one at the destination, and the picture-60 arm
+// writes no position.
+func TestTeleportBuildsStationaryRecordsAtBothEnds(t *testing.T) {
 	t.Parallel()
 
 	mw := sbWorld(t)
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 26,
 		FromX: 1, FromY: 1, ToX: 6, ToY: 1}})
-	if len(mw.bolts) != 2 {
-		t.Fatalf("teleport spawned %d objects, want two", len(mw.bolts))
+	records := flightRecords(mw)
+	if len(records) != 2 {
+		t.Fatalf("teleport built %d records, want two", len(records))
 	}
-	want := [2]image.Point{{X: 1, Y: 1}, {X: 6, Y: 1}}
-	for i, b := range mw.bolts {
-		if b.from != want[i] || b.to != want[i] {
-			t.Errorf("object %d runs %v to %v, want a stationary animation at %v",
-				i, b.from, b.to, want[i])
+	start := map[uint16][2]int32{}
+	for _, p := range records {
+		start[p.ID] = [2]int32{p.X, p.Y}
+		if p.Picture != teleportPicture {
+			t.Errorf("record %+v, want picture %d", p, teleportPicture)
 		}
 	}
-	second := mw.bolts[1]
-	if second.life != mw.bolts[0].life || second.picture != teleportPicture {
-		t.Errorf("the second object is picture %d for %d ticks, want %d for %d",
-			second.picture, second.life, teleportPicture, mw.bolts[0].life)
+	if start[0] != [2]int32{1*256 + 128, 1*256 + 128} || start[1] != [2]int32{6*256 + 128, 1*256 + 128} {
+		t.Errorf("the records stand at %v, want the caster's and the destination's cell centres", start)
+	}
+	for range 19 {
+		flightStep(mw)
+		for _, p := range flightRecords(mw) {
+			if [2]int32{p.X, p.Y} != start[p.ID] {
+				t.Fatalf("record %d moved to (%d,%d), want it standing", p.ID, p.X, p.Y)
+			}
+		}
 	}
 }
 
 func TestFireBallBurstHoldsItsLastFrameInsteadOfWrapping(t *testing.T) {
 	t.Parallel()
 	mw := sbWorld(t)
-	at := image.Pt(4, 4)
-	first, ok := mw.spellDraw(fireBallBurstPicture, at, at, at, 0, 1)
-	if !ok || first.Frame != 0 {
-		t.Fatalf("first Fire Ball burst tick = (%+v,%v), want frame 0", first, ok)
+	mw.world.ReleaseAreaBurst(sim.AreaBurst{CellX: 4, CellY: 4, Picture: fireBallBurstPicture, Segments: 22, Phases: 11})
+	var frames []int
+	for range 30 {
+		for _, d := range mw.savedProjectileDraws() {
+			frames = append(frames, d.Frame)
+		}
+		flightStep(mw)
 	}
-	last, ok := mw.spellDraw(fireBallBurstPicture, at, at, at, 21, 1)
-	if !ok || last.Frame != 10 {
-		t.Fatalf("last Fire Ball burst tick = (%+v,%v), want terminal frame 10", last, ok)
+	if len(frames) == 0 || frames[0] != 0 || frames[len(frames)-1] != 10 {
+		t.Fatalf("the burst drew frames %v, want frame 0 first and terminal frame 10 last", frames)
 	}
 }
 
-func TestABurstIsSpawnedOnlyWhereTheGameShipsOne(t *testing.T) {
+func TestABurstIsBuiltOnlyWhereTheGameShipsOne(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range []struct {
@@ -157,20 +175,15 @@ func TestABurstIsSpawnedOnlyWhereTheGameShipsOne(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mw := sbWorld(t)
-			mw.bolts = nil
-			mw.spawnBurst(image.Point{X: 4, Y: 4}, int(tc.spell), 1, 0)
-			if got := len(mw.bolts); got != tc.want {
-				t.Fatalf("spell %d spawned %d bursts, want %d", tc.spell, got, tc.want)
+			mw.releaseAreaBursts(sim.AreaPaint{Spell: tc.spell, Cells: []sim.CellPoint{{X: 4, Y: 4}}})
+			records := flightRecords(mw)
+			if got := len(records); got != tc.want {
+				t.Fatalf("spell %d built %d bursts, want %d", tc.spell, got, tc.want)
 			}
-			if tc.want == 0 {
-				return
-			}
-			b := mw.bolts[0]
-			if b.from != b.to || b.from != (image.Point{X: 4, Y: 4}) {
-				t.Errorf("the burst runs %v to %v, want both ends on the target's (4,4)", b.from, b.to)
-			}
-			if b.life != 22 {
-				t.Errorf("the burst lives %d ticks, want picture 13's own 22", b.life)
+			for _, p := range records {
+				if p.X != 4*256+128 || p.Y != 4*256+128 || p.ActionTarget != 0 {
+					t.Errorf("the burst is %+v, want it at the centre of (4,4) with no target", p)
+				}
 			}
 		})
 	}
@@ -180,19 +193,23 @@ func TestABurstStandsStillForItsWholeLife(t *testing.T) {
 	t.Parallel()
 
 	mw := sbWorld(t)
-	mw.spawnBurst(image.Point{X: 4, Y: 4}, 2, 1, 0)
-	for tick := range 22 {
+	mw.world.ReleaseAreaBurst(sim.AreaBurst{CellX: 4, CellY: 4, Picture: fireBallBurstPicture, Segments: 22, Phases: 11})
+	drawn := 0
+	for range 30 {
 		draws := mw.boltDraws(nil)
-		if len(draws) != 1 {
-			t.Fatalf("at tick %d the burst handed over %d drawables, want one", tick, len(draws))
+		if len(draws) > 1 {
+			t.Fatalf("the burst handed over %d drawables, want one", len(draws))
 		}
-		if draws[0].Pos != (image.Point{X: 4 * ui.ShotScale, Y: 4 * ui.ShotScale}) {
-			t.Errorf("at tick %d the burst stands at %v, want (4,4) in cell units", tick, draws[0].Pos)
+		if len(draws) == 1 {
+			drawn++
+			if draws[0].Pos != (image.Point{X: 4*ui.ShotScale + 128, Y: 4*ui.ShotScale + 128}) {
+				t.Errorf("the burst stands at %v, want the centre of (4,4)", draws[0].Pos)
+			}
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 	}
-	if got := mw.boltDraws(nil); len(got) != 0 {
-		t.Errorf("the burst outlived its own 22 ticks: %+v", got)
+	if drawn == 0 || drawn > 22 {
+		t.Errorf("the burst drew on %d calls, want between 1 and its 22 segments", drawn)
 	}
 }
 
@@ -202,43 +219,37 @@ func TestAFireArrowCrossesInItsPicturesOwnLength(t *testing.T) {
 	mw := sbWorld(t)
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 1,
 		FromX: 0, FromY: 0, ToX: 5, ToY: 0}})
-	const life = 6
 
 	var seen []int
-	for tick := range life {
+	for len(flightRecords(mw)) > 0 {
 		draws := mw.boltDraws(nil)
 		if len(draws) != 1 {
-			t.Fatalf("at age %d the viewer is handed %d drawables, want one", tick, len(draws))
-		}
-		if draws[0].Cell != (image.Point{X: 0, Y: 0}) {
-			t.Errorf("the object is keyed to %v, want the caster's own (0,0)", draws[0].Cell)
+			t.Fatalf("at age %d the viewer is handed %d drawables, want one", len(seen), len(draws))
 		}
 		seen = append(seen, draws[0].Pos.X)
-		mw.advanceBolts()
+		flightStep(mw)
+		if len(seen) > 20 {
+			t.Fatal("the record outlived twenty calls")
+		}
 	}
-	if got := mw.boltDraws(nil); len(got) != 0 {
-		t.Fatalf("the object outlived its own %d ticks: %+v", life, got)
+	// 5 cells of 256 over picture 10's divisor 200 is 6 segments: six calls
+	// move it, and the seventh reaps the record (ANIM-PROJ-025).
+	if len(seen) != 6 {
+		t.Fatalf("the record was drawn %d times, want 6", len(seen))
 	}
-
-	// It reaches the target on its last drawn tick, and it advances on every
-	// one before it: the driver closes the remaining gap over the remaining
-	// ticks, so the rate is constant.
-	if want := 5 * ui.ShotScale; seen[life-1] != want {
-		t.Errorf("at age %d the object stands at %d, want the target's %d", life-1, seen[life-1], want)
-	}
-	if want := 5 * ui.ShotScale / 2; seen[2] != want {
-		t.Errorf("at age 2 the object stands at %d, want halfway at %d", seen[2], want)
+	if want := 5*ui.ShotScale + 128; seen[len(seen)-1] != want {
+		t.Errorf("on its last call the record stands at %d, want the aim's %d", seen[len(seen)-1], want)
 	}
 	for i := 1; i < len(seen); i++ {
 		if seen[i] <= seen[i-1] {
-			t.Errorf("the object stands at %d after %d — it advances", seen[i], seen[i-1])
+			t.Errorf("the record stands at %d after %d, want it advancing", seen[i], seen[i-1])
 		}
 	}
 }
 
-// TestHealsOneTickCastObjectUsesThePublishedNoBlitArm keeps the object lifetime
-// distinct from the target-local positive-Heal feedback: picture 20 exists for
-// one tick, but its ordinary travelling draw arm deliberately submits no art.
+// TestHealsOneTickCastObjectUsesThePublishedNoBlitArm keeps the record
+// distinct from the target-local positive-Heal feedback: picture 20 has one
+// segment, and its ordinary draw arm deliberately submits no art.
 func TestHealsOneTickCastObjectUsesThePublishedNoBlitArm(t *testing.T) {
 	t.Parallel()
 
@@ -248,12 +259,12 @@ func TestHealsOneTickCastObjectUsesThePublishedNoBlitArm(t *testing.T) {
 	if got := mw.boltDraws(nil); len(got) != 0 {
 		t.Fatalf("heal handed over %d ordinary drawables, want the picture-20 no-blit", len(got))
 	}
-	if len(mw.bolts) != 1 {
-		t.Fatalf("Heal retained %d one-tick cast objects, want one", len(mw.bolts))
+	if got := mw.world.SavedProjectiles().FreeIndex; got != 1 {
+		t.Fatalf("Heal took %d counter ids, want one", got)
 	}
-	mw.advanceBolts()
-	if got := mw.boltDraws(nil); len(got) != 0 {
-		t.Errorf("heal outlived its own single tick: %+v", got)
+	flightStep(mw)
+	if got := flightRecords(mw); len(got) != 0 {
+		t.Errorf("heal outlived its single segment: %+v", got)
 	}
 }
 
@@ -264,15 +275,17 @@ func TestAnObjectWithNoSheetIsHandedOverAtAll(t *testing.T) {
 	// Spell 14's picture 36 flies, and this bundle holds no sheet for it.
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 14,
 		FromX: 0, FromY: 0, ToX: 3, ToY: 0}})
-	if len(mw.bolts) != 1 {
-		t.Fatalf("drain life spawned %d objects, want one", len(mw.bolts))
+	if got := len(flightRecords(mw)); got != 1 {
+		t.Fatalf("prismatic spray built %d records, want one", got)
 	}
 	if got := mw.boltDraws(nil); len(got) != 0 {
-		t.Errorf("an object whose picture names no sheet was handed over: %+v", got)
+		t.Errorf("a record whose picture names no sheet was handed over: %+v", got)
 	}
 }
 
-func TestAWeaponBorneCastDrawsABoltAcrossItsOwnWindUp(t *testing.T) {
+// TestAWindUpDrawsNoFlight: a staff's cast record is built at its release, so
+// a caster standing in the casting wind-up has nothing in flight.
+func TestAWindUpDrawsNoFlight(t *testing.T) {
 	t.Parallel()
 
 	mw := sbWorld(t)
@@ -280,59 +293,11 @@ func TestAWeaponBorneCastDrawsABoltAcrossItsOwnWindUp(t *testing.T) {
 		WeaponSpell: 1, HasAttackTarget: true, AttackTarget: 2,
 		AttackPhase: sim.AttackCasting, AttackCharge: 4}
 	victim := sim.Entity{ID: 2, X: 6, Y: 2, HP: 100, MaxHP: 100, Owner: 2}
-	ents := []sim.Entity{caster, victim}
-
-	var seen []int
 	for swing := range 5 {
 		mw.swing[1] = swing
-		draws := mw.weaponBoltDraws(ents)
-		if len(draws) != 1 {
-			t.Fatalf("at swing %d the caster draws %d bolts, want one", swing, len(draws))
+		if got := mw.boltDraws([]sim.Entity{caster, victim}); len(got) != 0 {
+			t.Fatalf("at swing %d the wind-up drew %+v, want nothing in flight", swing, got)
 		}
-		if draws[0].Sheet == nil {
-			t.Errorf("a wind-up bolt carries no sheet, so it would draw nothing")
-		}
-		seen = append(seen, draws[0].Pos.X)
-	}
-	if seen[0] != 2*ui.ShotScale {
-		t.Errorf("at swing 0 the bolt stands at %d, want the caster's own cell", seen[0])
-	}
-	if seen[4] != 6*ui.ShotScale {
-		t.Errorf("at swing 4 the bolt stands at %d, want the victim's own cell", seen[4])
-	}
-	for i := 1; i < len(seen); i++ {
-		if seen[i] <= seen[i-1] {
-			t.Errorf("the bolt stands at %d after %d — it advances with the clock", seen[i], seen[i-1])
-		}
-	}
-}
-
-// TestAnAttackerNotCastingDrawsNoBolt is weaponBoltDraws' own three gates: a
-// charging attacker swings, and a swing is not a cast.
-func TestAnAttackerNotCastingDrawsNoBolt(t *testing.T) {
-	t.Parallel()
-
-	mw := sbWorld(t)
-	for _, tc := range []struct {
-		name string
-		edit func(*sim.Entity)
-	}{
-		{"charging rather than casting", func(e *sim.Entity) { e.AttackPhase = sim.AttackCharging }},
-		{"holding no victim", func(e *sim.Entity) { e.HasAttackTarget = false }},
-		{"a weapon carrying no spell", func(e *sim.Entity) { e.WeaponSpell = 0 }},
-		{"not alive", func(e *sim.Entity) { e.HP = -1 }},
-		{"a weapon spell whose picture does not fly", func(e *sim.Entity) { e.WeaponSpell = 5 }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			caster := sim.Entity{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, Owner: 1,
-				WeaponSpell: 1, HasAttackTarget: true, AttackTarget: 2,
-				AttackPhase: sim.AttackCasting, AttackCharge: 4}
-			tc.edit(&caster)
-			victim := sim.Entity{ID: 2, X: 6, Y: 2, HP: 100, MaxHP: 100, Owner: 2}
-			if got := mw.weaponBoltDraws([]sim.Entity{caster, victim}); len(got) != 0 {
-				t.Errorf("the caster drew %+v, want no bolt", got)
-			}
-		})
 	}
 }
 
@@ -478,13 +443,13 @@ func TestOneFireArrowEventStartsOneSwingAndDoesNotRestartDuringFlight(t *testing
 		castRun: map[sim.EntityID]castRun{}, projectiles: sbSheets()}
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 1, Owner: 1,
 		FromX: 2, FromY: 2, ToX: 42, ToY: 2}})
-	if len(mw.bolts) != 1 || mw.bolts[0].life <= castRunFallbackTicks {
-		t.Fatalf("setup bolt = %+v, want one flight longer than %d ticks", mw.bolts, castRunFallbackTicks)
+	if r := flightRecords(mw); len(r) != 1 || int(r[0].ActionSegments) < castRunFallbackTicks {
+		t.Fatalf("setup record = %+v, want one flight longer than %d ticks", r, castRunFallbackTicks)
 	}
 
 	starts := 0
 	wasCasting := false
-	for len(mw.bolts) > 0 {
+	for len(flightRecords(mw)) > 0 {
 		casting := mw.casting(1)
 		if casting && !wasCasting {
 			starts++
@@ -494,7 +459,7 @@ func TestOneFireArrowEventStartsOneSwingAndDoesNotRestartDuringFlight(t *testing
 		if !casting && mw.swing[1] != 0 {
 			t.Fatalf("projectile still flies after the run, but swing clock restarted at %d", mw.swing[1])
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 		mw.advanceCastRuns()
 	}
 	if starts != 1 {
@@ -535,13 +500,12 @@ func TestTheManualSpellbookPathReleasesOneFireArrowAndStartsOneSwing(t *testing.
 			starts++
 		}
 		wasCasting = casting
-		if len(mw.bolts) > maxBolts {
-			maxBolts = len(mw.bolts)
+		if n := len(flightRecords(mw)); n > maxBolts {
+			maxBolts = n
 		}
 		mw.advanceSwings()
-		mw.advanceBolts()
 		mw.advanceCastRuns()
-		if frame > 12 && len(mw.bolts) == 0 && !mw.casting(1) {
+		if frame > 12 && len(flightRecords(mw)) == 0 && !mw.casting(1) {
 			break
 		}
 	}
@@ -736,8 +700,8 @@ func TestHealSheetIsNotForcedThroughTheTravellingDrawArm(t *testing.T) {
 	mw := sbWorld(t)
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 6,
 		FromX: 1, FromY: 1, ToX: 2, ToY: 1, HealthRestored: 1}})
-	if len(mw.bolts) != 1 {
-		t.Fatalf("Heal made %d decoded cast objects, want one", len(mw.bolts))
+	if got := mw.world.SavedProjectiles().FreeIndex; got != 1 {
+		t.Fatalf("Heal took %d counter ids, want one", got)
 	}
 	if got := mw.boltDraws(nil); len(got) != 0 {
 		t.Fatalf("the ordinary picture-20 arm drew %d objects, want its published no-blit", len(got))

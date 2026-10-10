@@ -226,14 +226,16 @@ func projectile1162RemovedCorpseApp(t *testing.T, raw []byte) {
 			if _, _, err := front.Snapshot(true); err != nil {
 				t.Fatal("removed target current Document", err)
 			}
-			if items := front.live.world.SavedProjectiles().Items; len(items) > 0 {
-				if items[0].ActionX != p.ActionX || items[0].ActionY != p.ActionY || items[0].ActionTarget != 157 {
+			// A cast in this mission builds records of its own (ANIM-147);
+			// the source record is read by its id.
+			if item, ok := savedProjectileByID(front.live.world, p.ID); ok {
+				if item.ActionX != p.ActionX || item.ActionY != p.ActionY || item.ActionTarget != 157 {
 					t.Fatal("detached native target re-aimed or lost source key")
 				}
 			}
 		}
 	}
-	if len(f.live.world.SavedProjectiles().Items) != 0 {
+	if _, ok := savedProjectileByID(f.live.world, p.ID); ok {
 		t.Fatal("removed-target projectile did not complete")
 	}
 	t.Log("native removal policy: captured latest current corpse point before removal, retained source target157, ordinary SAVE/fresh LOAD then local completion")
@@ -304,14 +306,24 @@ func projectileSAVApp(t *testing.T, raw []byte) {
 	}
 	fresh := loadLocalLegacySave(t, store, name)
 	projectileRecordsCheck(t, want, fresh)
+	// The source oracle describes the store until a cast builds a record of
+	// its own (ANIM-147); from then the two continuations answer each other.
+	checked := 0
 	for i := range 20 {
 		before := f.live.world.Tick()
 		freshBefore := fresh.live.world.Tick()
 		want = projectile1162Next(want, bindings, f.live.world)
 		f.live.tick()
 		fresh.live.tick()
-		projectileRecordsCheck(t, want, f)
-		projectileRecordsCheck(t, want, fresh)
+		if built := projectileBuiltSince(f.live.world, want.free); built != nil || checked < i {
+			if built != nil && built.Picture%2 != 0 {
+				t.Fatalf("step %d built %+v, want an even cast picture", i, *built)
+			}
+		} else {
+			projectileRecordsCheck(t, want, f)
+			projectileRecordsCheck(t, want, fresh)
+			checked++
+		}
 		if f.live.world.Tick() != before+1 || fresh.live.world.Tick() != freshBefore+1 {
 			t.Fatalf("driver did not advance exactly one tick at step %d", i)
 		}
@@ -331,7 +343,17 @@ func projectileSAVApp(t *testing.T, raw []byte) {
 	if projectileSeam(lost) == projectileSeam(f) {
 		t.Fatal("loss control: a SAV with Prj266/x altered still matches")
 	}
-	t.Logf("Projectile allocator, %d ordered IDs, %d distinct items and %d raw leaves pass both original LOAD doors, known changed step, menu SAV SAVE, source-free fresh LOAD and 20 independently checked continuation ticks", len(want.ids), len(want.items), len(want.values))
+	t.Logf("Projectile allocator, %d ordered IDs, %d distinct items and %d raw leaves pass both original LOAD doors, known changed step, menu SAV SAVE, source-free fresh LOAD and %d independently checked continuation ticks", len(want.ids), len(want.items), len(want.values), checked)
+}
+
+// projectileBuiltSince is a record whose id the counter gave after free, or nil.
+func projectileBuiltSince(w *sim.World, free uint16) *sim.SavedProjectile {
+	for _, p := range w.SavedProjectiles().Items {
+		if p.ID >= free {
+			return &p
+		}
+	}
+	return nil
 }
 
 func projectileSeam(f *FrontEnd) string {

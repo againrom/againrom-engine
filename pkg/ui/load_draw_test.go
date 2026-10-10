@@ -268,15 +268,17 @@ func TestFramedLoadScrollSkinKeepsExactDoubleClickAndReset(t *testing.T) {
 		t.Fatal("LOAD skin paint changed double-click state")
 	}
 	now = now.Add(200 * time.Millisecond)
-	// The second press is the list's double click: it loads the stored
-	// selection at once (MENU-144), and its release reaches no screen.
+	// The second press is the double click; its release loads (MENU-144).
 	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryPressed: true}, now)
+	if len(loaded) != 0 {
+		t.Fatal("the double click's second press loaded before its release")
+	}
+	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryReleased: true}, now.Add(time.Millisecond))
 	if len(loaded) != 1 || loaded[0] != "slot-13.sav" || a.Screen() != ScreenLoad || a.HeadlessMessage() == "" {
 		t.Fatalf("LOAD double click changed token/refusal: %v / %s / %q", loaded, a.Screen(), a.HeadlessMessage())
 	}
-	a.step(appInput{CursorX: 140, CursorY: 329, PrimaryReleased: true}, now.Add(time.Millisecond))
-	if len(loaded) != 1 || a.suppressPrimaryRelease {
-		t.Fatalf("the double click's release loaded again or stayed owed: %v / %v", loaded, a.suppressPrimaryRelease)
+	if a.flow.loadUI.doubled || a.suppressPrimaryRelease {
+		t.Fatal("refused LOAD kept the double click owed")
 	}
 	now = now.Add(50 * time.Millisecond)
 	click()
@@ -307,6 +309,7 @@ func TestLoadListDoubleClickLoadsTheStoredSelection(t *testing.T) {
 		t.Fatalf("first press loaded %v or selected %d", loaded, a.flow.loadList.Selection())
 	}
 	a.step(appInput{CursorX: second.X, CursorY: second.Y, PrimaryPressed: true}, now.Add(100*time.Millisecond))
+	a.step(appInput{CursorX: second.X, CursorY: second.Y, PrimaryReleased: true}, now.Add(101*time.Millisecond))
 	if len(loaded) != 1 || loaded[0] != "slot-02.sav" || a.flow.loadList.Selection() != 2 {
 		t.Fatalf("double click loaded %v with selection %d, want slot-02.sav and 2", loaded, a.flow.loadList.Selection())
 	}

@@ -67,32 +67,9 @@ func boltSeed(b spellBolt) uint32 {
 	return m.State
 }
 
-// boltRamp is the phase for actionphase 1..13 (ANIM-BOLTRAMP-035).
+// boltRamp is the phase for actionphase 1..13 (ANIM-BOLTRAMP-035); the World
+// driver writes it into the record.
 var boltRamp = [...]int{4, 3, 2, 1, 0, 1, 2, 1, 0, 1, 2, 3, 4}
-
-// boltRampAfter runs calls driver calls from (actionPhase, phase): each call
-// increments actionphase and takes the ramp inside 1..13, otherwise keeps the
-// phase (MAGIC-281).
-func boltRampAfter(actionPhase, phase, calls int) int {
-	for range calls {
-		actionPhase++
-		if actionPhase >= 1 && actionPhase <= len(boltRamp) {
-			phase = boltRamp[actionPhase-1]
-		}
-	}
-	return phase
-}
-
-// boltDriverPhase is the phase of a path object's age+1th call. A cell-source
-// object (the direct 0x8b Lightning and the 0x8c Prismatic Spray) starts at
-// actionphase -1; a caster's starts at 0. Both start at phase 0 (MAGIC-281).
-func boltDriverPhase(b spellBolt) int {
-	start := 0
-	if b.centered {
-		start = -1
-	}
-	return boltRampAfter(start, 0, b.age+1)
-}
 
 // boltChainStride is picture 36's frame stride per link tag (ANIM-BOLTDRAW-034).
 const boltChainStride = 5
@@ -133,14 +110,11 @@ func (mw *mapWorld) pathDraws(b spellBolt) []ui.SpellBolt {
 // absent. The spell light stamps the same points (objectLightStamps).
 func (mw *mapWorld) pathFigure(b spellBolt) (*terrain.EffectSheet, int, []image.Point) {
 	sheet := mw.projectiles.Sheet(b.picture)
-	frame := boltFrame(b.picture, boltDriverPhase(b), b.tag)
+	frame := boltFrame(b.picture, b.phase, b.tag)
 	if sheet.Frame(frame) == nil {
 		return nil, 0, nil
 	}
 	origin := castOrigin(b.from, b.launch)
-	if b.centered {
-		origin = b.from.Mul(ui.ShotScale)
-	}
 	ax, ay := mw.boltDisplayPoint(origin, b.from)
 	bx, by := mw.boltDisplayPoint(b.to.Mul(ui.ShotScale), b.to)
 	rng := boltRNG{state: boltSeed(b)}
@@ -164,46 +138,6 @@ func boltImagePoints(points []boltPoint) []image.Point {
 	out := make([]image.Point, len(points))
 	for i, p := range points {
 		out[i] = image.Pt(int(p.X), int(p.Y))
-	}
-	return out
-}
-
-// trailDraws is the smoke behind a travelling object: at most six PAST
-// positions, oldest first, each stamped with the trail sheet its picture
-// names.
-//
-// THE POSITIONS ARE THE ONES THE OBJECT HELD, not a decoration. The engine saves
-// the object's position at the driver's entry, BEFORE any arm has moved it, and
-// appends that saved value after the switch — so the newest entry is where the
-// object stood one tick ago and the oldest is where it stood six ticks ago. This
-// build recomputes them from the object's own two ends rather than keeping a
-// queue: the interpolation is a pure function of the age, so the queue and the
-// recomputation cannot come apart.
-//
-// THE FRAME IS THE ENTRY'S OWN AGE. Which frame the engine stamps is not
-// published; each trail sheet holds exactly six frames against a queue bounded
-// at exactly six, and the art runs from a small dense puff at frame 0 to a large
-// pale one at frame 5, so the entry appended this tick takes frame 0 and the one
-// about to expire takes frame 5.
-func (mw *mapWorld) trailDraws(b spellBolt) []ui.SpellBolt {
-	sheet := mw.projectiles.SmokeSheet(data.CastTrailSlot(b.picture))
-	if sheet == nil {
-		return nil
-	}
-	out := make([]ui.SpellBolt, 0, data.CastTrailLength)
-	for k := 0; k < data.CastTrailLength; k++ {
-		num := b.age - k
-		if num < 0 {
-			break
-		}
-		frame, _, ok := terrain.SelectEffectFrame(sheet, 0, k)
-		if !ok {
-			continue
-		}
-		out = append(out, ui.SpellBolt{
-			Cell: b.from, To: b.to, Pos: castShotPoint(b.from, b.to, num, b.life, b.launch),
-			Sheet: sheet, Frame: frame, Owner: b.owner,
-		})
 	}
 	return out
 }

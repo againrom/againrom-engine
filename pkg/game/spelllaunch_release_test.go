@@ -58,8 +58,7 @@ func launchRefill(t *testing.T, mw *mapWorld, hero sim.EntityID) {
 }
 
 // launchObserve turns the mage to facing and observes his Lightning cast
-// three cells along dir, then advances the path object to age 4, the phase-0
-// call.
+// three cells along dir, and answers the new record's figure.
 func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, dir image.Point) spellBolt {
 	t.Helper()
 	if err := mw.world.ImportOriginalActorFacings([]sim.OriginalActorFacing{{ID: hero, Facing: facing}}); err != nil {
@@ -67,28 +66,35 @@ func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, 
 	}
 	e, _ := mw.entity(hero)
 	at := image.Pt(int(e.X), int(e.Y)).Add(dir.Mul(3))
-	mw.bolts = nil
+	id := mw.world.SavedProjectiles().FreeIndex
 	mw.observeCasts([]sim.CastEvent{{Caster: hero, Spell: spLightning, Owner: e.Owner, FromX: e.X, FromY: e.Y,
 		ToX: int32(at.X), ToY: int32(at.Y), Facing: e.Facing}})
-	if len(mw.bolts) != 1 || mw.bolts[0].picture != 34 {
-		t.Fatalf("the observed Lightning cast spawned %d objects", len(mw.bolts))
+	// The record's fifth call is the phase-0 call, where the figure starts at
+	// the launch point.
+	for range 8 {
+		for _, p := range flightRecords(mw) {
+			if p.ID == id && p.Picture == 34 && p.ActionPhase == 5 {
+				if paths := mw.recordPaths(p, 0); len(paths) == 1 {
+					return paths[0]
+				}
+			}
+		}
+		flightStep(mw)
 	}
-	for range 4 {
-		mw.advanceBolts()
-	}
-	return mw.bolts[0]
+	t.Fatalf("the observed Lightning cast built no record %d at its fifth call: %+v", id, flightRecords(mw))
+	return spellBolt{}
 }
 
 // launchCast orders Lightning at the nearest unit the book admits and ticks
-// until its path object stands at age 4.
+// until its record makes its fifth call, the phase-0 call.
 func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 	t.Helper()
 	victim := launchIssue(t, mw, hero)
 	for tick := 0; tick < 240; tick++ {
 		mw.tick()
-		for _, b := range mw.bolts {
-			if b.picture == 34 && b.age == 4 {
-				return b
+		for _, p := range flightRecords(mw) {
+			if paths := mw.recordPaths(p, 0); p.Picture == 34 && p.ActionPhase == 5 && len(paths) == 1 {
+				return paths[0]
 			}
 		}
 	}
@@ -99,7 +105,6 @@ func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 // launchIssue orders the hero's Lightning at the nearest admitted victim.
 func launchIssue(t *testing.T, mw *mapWorld, hero sim.EntityID) sim.EntityID {
 	t.Helper()
-	mw.bolts = nil
 	launchRefill(t, mw, hero)
 	h, _ := mw.entity(hero)
 	victim, best := sim.EntityID(0), -1
@@ -186,7 +191,11 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		for d, step := range launchDirections {
 			b := launchObserve(t, mw, hero, launchFacings[d], step)
 			_, _, points := mw.pathFigure(b)
-			want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[d]))
+			// The launch is measured from the caster's cell; the record's own
+			// point names the cell it is drawn from.
+			e, _ := mw.entity(hero)
+			at := image.Pt(int(e.X), int(e.Y))
+			want := launchDisplay(mw, b.from, at.Mul(256).Add(c.deltas[d]))
 			if len(points) == 0 || !withinPixel(points[0], want) {
 				t.Fatalf("%s %s: the figure starts at %v, want %v", c.name, launchDirectionNames[d], points, want)
 			}
@@ -203,7 +212,8 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		b := launchCast(t, mw, hero)
 		e, _ = mw.entity(hero)
 		_, _, points := mw.pathFigure(b)
-		if want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
+		at := image.Pt(int(e.X), int(e.Y))
+		if want := launchDisplay(mw, b.from, at.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
 			t.Fatalf("%s: an ordered cast at facing %d starts at %v, want %v", c.name, e.Facing, points, want)
 		}
 		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0])
