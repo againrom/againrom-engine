@@ -18,6 +18,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   penalty is added after it. His character card shows that speed, and it is
   kept through a save.
 
+- [BASE] Arrows, bolts and rocks turn toward a moving target while they fly
+  and leave the shooter at the point its exact facing gives, as in the
+  original. A smoking projectile loaded from a save grows its smoke trail
+  again as it flies.
+
 ## 0.107.0
 
 - [BASE] The original game's random number generator can be switched on with

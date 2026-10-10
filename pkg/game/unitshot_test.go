@@ -177,9 +177,9 @@ func TestARangedSwingDrawsItsClassShotFromTheInstalledSheet(t *testing.T) {
 		if f.swing != shotArcherDelay-1+k {
 			t.Errorf("flight tick %d stands at swing %d, want %d", k, f.swing, shotArcherDelay-1+k)
 		}
-		if f.bolt.Frame != terrain.EffectFacing(4, 0) || f.bolt.Mirror {
+		if f.bolt.Frame != EffectFacing(4, 0) || f.bolt.Mirror {
 			t.Errorf("flight tick %d draws frame %d mirror %t, want the east facing %d",
-				k, f.bolt.Frame, f.bolt.Mirror, terrain.EffectFacing(4, 0))
+				k, f.bolt.Frame, f.bolt.Mirror, EffectFacing(4, 0))
 		}
 		if at := image.Pt(f.bolt.Pos.X/ui.ShotScale, f.bolt.Pos.Y/ui.ShotScale); f.bolt.Cell != at || f.bolt.To != at {
 			t.Errorf("flight tick %d is drawn on cell %v to %v at %v, want the record's own cell", k, f.bolt.Cell, f.bolt.To, f.bolt.Pos)
@@ -410,7 +410,7 @@ func TestARestoredDelayZeroWindUpBuildsNoSecondRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.ReleaseUnitShot(sim.UnitShot{Shooter: 1, Picture: shotPictureArrow, Phases: 1, Dir: shotDirection, Late: 1}) {
+	if !w.ReleaseUnitShot(sim.UnitShot{Shooter: 1, Picture: shotPictureArrow, Phases: 1, Late: 1}) {
 		t.Fatal("record not released")
 	}
 	restored := shotMapWorld(t, w, units, set)

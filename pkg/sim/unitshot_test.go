@@ -23,8 +23,9 @@ func shotPair(distanceCells int32) []Entity {
 
 func TestReleaseUnitShotBuildsTheRecordTheClaimsDescribe(t *testing.T) {
 	w := shotWorld(t, shotPair(4)...)
+	var premove [][2]int32
 	if !w.ReleaseUnitShot(UnitShot{Shooter: 1, Picture: 3, Phases: 4, OffsetX: 16, OffsetY: -24,
-		Dir: func(dx, dy int) int32 { return int32(dx/100 + dy) }}) {
+		PreMove: func(x, y int32) { premove = append(premove, [2]int32{x, y}) }}) {
 		t.Fatal("no record built")
 	}
 	got := w.SavedProjectiles()
@@ -37,12 +38,15 @@ func TestReleaseUnitShotBuildsTheRecordTheClaimsDescribe(t *testing.T) {
 	startX, startY := int32(1*256+128+16), int32(4*256+128-24)
 	targetX, targetY := int32(5*256+128), int32(4*256+128)
 	want := SavedProjectile{ID: 0, X: startX + (targetX-startX)/5, Y: startY + (targetY-startY)/5, Picture: 3,
-		Dir: int32((targetX-startX)/100 + targetY - startY), Phase: 0, LastAction: 1, Action: 1, ActionTarget: 2,
+		Dir: ProjectileDirection(targetX-startX, targetY-startY), Phase: 0, LastAction: 1, Action: 1, ActionTarget: 2,
 		ActionX: targetX, ActionY: targetY, ActionPhase: 1, ActionSegments: 4}
 	want.ActionDir = want.Dir
 	want.Phase = (want.ActionPhase / 2) % 4
 	if got.Items[0] != want {
 		t.Fatalf("record %+v, want %+v", got.Items[0], want)
+	}
+	if len(premove) != 1 || premove[0] != [2]int32{startX, startY} {
+		t.Fatalf("pre-move points %v, want the start point", premove)
 	}
 	d := w.SavedWorldEffectDrivers()
 	if d == nil || len(d.Projectiles) != 1 || d.Projectiles[0] != (SavedProjectileDriver{ID: 0, Phases: 4, Target: 2, HasTarget: true}) {
@@ -185,5 +189,81 @@ func TestReleaseUnitShotKeepsItemsInIDOrder(t *testing.T) {
 	got = w.SavedProjectiles()
 	if !slices.Equal(got.IDs, []uint16{0, 16}) || got.Items[0].ID != 0 || got.Items[1].ID != 16 {
 		t.Fatalf("IDs %v, items %d then %d", got.IDs, got.Items[0].ID, got.Items[1].ID)
+	}
+}
+
+// ANIM-139: every driver call that resolves the target aims actiondir from the
+// shot's pre-move point at the target's current point and copies it to dir; a
+// detached target leaves the last direction.
+func TestUnitShotDirectionFollowsTheTargetEachCall(t *testing.T) {
+	ents := shotPair(6)
+	w := shotWorld(t, ents...)
+	if !w.ReleaseUnitShot(UnitShot{Shooter: 1, Picture: 1, Phases: 1}) {
+		t.Fatal("no record built")
+	}
+	p, _ := savedProjectileOf(w, 0)
+	if p.Dir != 4 || p.ActionDir != 4 {
+		t.Fatalf("a shot due east carries dir %d actiondir %d, want 4", p.Dir, p.ActionDir)
+	}
+	// The target steps two cells south; the next call aims from where the
+	// shot stands before it moves.
+	at := indexOfEntity(w.entities, 2)
+	w.entities[at].Y += 2
+	before, _ := savedProjectileOf(w, 0)
+	w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[0])
+	p, _ = savedProjectileOf(w, 0)
+	tx, ty := w.savedProjectileTargetPoint(w.entities[at])
+	want := ProjectileDirection(tx-before.X, ty-before.Y)
+	if p.ActionDir != want || p.Dir != want || want == 4 {
+		t.Fatalf("after the target moved: dir %d actiondir %d, want %d (not 4)", p.Dir, p.ActionDir, want)
+	}
+	// A detached target keeps the last direction.
+	w.detachSavedProjectileTargets(2)
+	w.entities[at].Y -= 4
+	w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[0])
+	q, _ := savedProjectileOf(w, 0)
+	if q.ActionDir != want || q.Dir != want {
+		t.Fatalf("detached target: dir %d actiondir %d, want the last %d", q.Dir, q.ActionDir, want)
+	}
+}
+
+// ANIM-139 copies actiondir to dir on an action-1 call even when the target is
+// not resolved; a record of another action keeps both leaves.
+func TestDriverCopiesActionDirToDirOnActionOne(t *testing.T) {
+	w := shotWorld(t, shotPair(4)...)
+	w.SetSavedProjectiles(SavedProjectiles{FreeIndex: 2, IDs: []uint16{0, 1}, Items: []SavedProjectile{
+		{ID: 0, Picture: 1, Action: 1, Dir: 3, ActionDir: 9, ActionSegments: 3},
+		{ID: 1, Picture: 1, Action: 2, Dir: 3, ActionDir: 9, ActionSegments: 3},
+	}})
+	w.savedWorldEffects = &SavedWorldEffects{Projectiles: []SavedProjectileDriver{{ID: 0, Phases: 1}, {ID: 1, Phases: 1}}}
+	w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[0])
+	w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[1])
+	a, _ := savedProjectileOf(w, 0)
+	b, _ := savedProjectileOf(w, 1)
+	if a.Dir != 9 || a.ActionDir != 9 || b.Dir != 3 || b.ActionDir != 9 {
+		t.Fatalf("action 1 dir %d/%d, action 2 dir %d/%d", a.Dir, a.ActionDir, b.Dir, b.ActionDir)
+	}
+}
+
+// SAV-1189, SAV-1191: each insertion takes the counter and adds one, and the
+// binary form carries it.
+func TestProjectileCounterCountsInsertionsAcrossTheBinaryForm(t *testing.T) {
+	w := shotWorld(t, shotPair(6)...)
+	if w.SavedProjectiles().FreeIndex != 0 {
+		t.Fatalf("a world built from a map starts the counter at %d", w.SavedProjectiles().FreeIndex)
+	}
+	w.ReleaseUnitShot(UnitShot{Shooter: 1, Picture: 1, Phases: 1})
+	w.ReleaseUnitShot(UnitShot{Shooter: 1, Picture: 1, Phases: 1})
+	b, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back World
+	if err := back.UnmarshalBinary(b); err != nil {
+		t.Fatal(err)
+	}
+	back.ReleaseUnitShot(UnitShot{Shooter: 1, Picture: 1, Phases: 1})
+	if got := back.SavedProjectiles(); got.FreeIndex != 3 || !slices.Contains(got.IDs, 2) {
+		t.Fatalf("after two insertions, a round trip and a third: allocator %d ids %v", got.FreeIndex, got.IDs)
 	}
 }

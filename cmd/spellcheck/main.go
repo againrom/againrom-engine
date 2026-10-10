@@ -125,7 +125,7 @@ func run(root string, spell, cells int) error {
 		fmt.Printf("picture %d names no sheet\n", picture)
 		return nil
 	}
-	facing := terrain.EffectFacing(cells, 0)
+	facing := game.EffectFacing(cells, 0)
 	for age := range data.CastFlight(picture, cells*data.PictureCellUnits) {
 		phase, ok := terrain.EffectPhase(s.Clock, age, s.Phases)
 		if !ok {

@@ -2022,6 +2022,8 @@ package storyguard
 // CommentBytes rises for the random service remainder: the AI range idiom,
 // the count reseeds, the generator restart, the edition's generator name and
 // the wider randomness scan, new code, including this paragraph.
+// CommentBytes rises for the unit-shot tracking release witness and its
+// helpers, new code, including this paragraph.
 // CommentBytes rises for the Human speed derive: the shared derive in
 // pkg/rules, the native speed modifier, its byte-form section and LOAD split
 // in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
@@ -2048,7 +2050,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1769,
+		"longcommentgroups":      1768,
 	},
-	CommentBytes: 8579422,
+	CommentBytes: 8580440,
 }

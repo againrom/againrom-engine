@@ -642,7 +642,7 @@ func (mw *mapWorld) boltDraws(ents []sim.Entity) []ui.SpellBolt {
 		}
 		out = append(out, mw.trailDraws(b)...)
 	}
-	out = append(out, mw.savedProjectileDraws()...)
+	out = append(out, mw.savedProjectileScene(true)...)
 	out = append(out, mw.weaponBoltDraws(ents)...)
 	out = append(out, mw.unitShotDraws()...)
 	out = append(out, mw.burningSceneryDraws()...)
@@ -850,7 +850,7 @@ func (mw *mapWorld) spellDraw(picture int, from, to, pos image.Point, age int, o
 		phase = sheet.Phases - 1
 	}
 	frame, mirror, ok := terrain.SelectEffectFrame(sheet,
-		terrain.EffectFacing(to.X-from.X, to.Y-from.Y), phase)
+		EffectFacing(to.X-from.X, to.Y-from.Y), phase)
 	if !ok {
 		return ui.SpellBolt{}, false
 	}
@@ -985,19 +985,25 @@ func entityIn(ents []sim.Entity, id sim.EntityID) (sim.Entity, bool) {
 	return sim.Entity{}, false
 }
 
-// savedProjectileFacing is the sheet facing a retained projectile's own `dir`
-// draws at. The draw subtracts 8 and keeps four bits before the sheet's
-// halving fold and the frame index (ANIM-PROJ-026), so the field's 0 is the
-// sheet's north (8) and its 8 the sheet's south (0). The field is carried
-// unchanged in flight and through an engine SAVE, so a LOAD draws the facing
-// the SAVE drew.
+// savedProjectileFacing is the sheet facing a record's `dir` draws at: the
+// draw subtracts 8 and keeps four bits (ANIM-PROJ-026).
 func savedProjectileFacing(dir int32) int {
 	return int(dir-8) & 0xf
 }
 
+// EffectFacing is the sheet facing of a flight running (dx, dy): the one
+// projectile direction helper (ANIM-138) in the sheet's wheel.
+func EffectFacing(dx, dy int) int {
+	return savedProjectileFacing(sim.ProjectileDirection(int32(dx), int32(dy)))
+}
+
 // Bound original projectiles draw directly from their persisted current phase
 // and position; a second cosmetic timer must not restart them after native LOAD.
-func (mw *mapWorld) savedProjectileDraws() []ui.SpellBolt {
+func (mw *mapWorld) savedProjectileDraws() []ui.SpellBolt { return mw.savedProjectileScene(false) }
+
+// savedProjectileScene is the records' draws, each followed by its smoke
+// trail when trails is set.
+func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 	d := mw.world.SavedWorldEffectDrivers()
 	if d == nil {
 		return nil
@@ -1030,13 +1036,16 @@ func (mw *mapWorld) savedProjectileDraws() []ui.SpellBolt {
 			continue
 		}
 		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID]})
-		out = append(out, mw.savedProjectileTrail(p)...)
+		if trails {
+			out = append(out, mw.savedProjectileTrail(p)...)
+		}
 	}
 	return out
 }
 
 // savedProjectileTrail is the smoke behind a record of a smoke-leaving
-// picture: one stamp per remembered position, the frame its age.
+// picture: one stamp per trail point, oldest first (ANIM-140), the frame its
+// age, so the newest point takes frame 0.
 func (mw *mapWorld) savedProjectileTrail(p sim.SavedProjectile) []ui.SpellBolt {
 	slot := data.CastTrailSlot(int(p.Picture))
 	if slot < 0 {
@@ -1047,8 +1056,9 @@ func (mw *mapWorld) savedProjectileTrail(p sim.SavedProjectile) []ui.SpellBolt {
 		return nil
 	}
 	var out []ui.SpellBolt
-	for k, at := range mw.shots.trail[p.ID] {
-		frame, _, ok := terrain.SelectEffectFrame(sheet, 0, k)
+	trail := mw.shots.trail[p.ID]
+	for k, at := range trail {
+		frame, _, ok := terrain.SelectEffectFrame(sheet, 0, len(trail)-1-k)
 		if !ok {
 			continue
 		}

@@ -15,22 +15,21 @@ const projectileBuckets = 17
 
 // UnitShot names one released physical ranged shot. The caller owns what the
 // installed registries decide: the class's projectile picture, its phase
-// count, the release offset from the shooter's own point and the facing the
-// record carries. The World owns the record: id, leaves, driver and flight.
+// count and the release offset from the shooter's own point. The World owns
+// the record: id, leaves, direction, driver and flight.
 type UnitShot struct {
 	Shooter EntityID
 	Picture int32
 	Phases  uint16
 	// OffsetX and OffsetY displace the record from the shooter's point in
-	// 256-per-cell units.
+	// 256-per-cell units (SAV-1188).
 	OffsetX, OffsetY int32
-	// Dir answers the direction leaf, also written to actiondir, for the
-	// vector from the record's start to the target's point. Nil leaves both
-	// leaves zero.
-	Dir func(dx, dy int) int32
 	// Late is the number of driver calls the record owes for ticks that
 	// passed before the caller could build it; each runs after the first.
 	Late int
+	// PreMove, when set, observes the point each of the release's driver
+	// calls starts from, the point a trail appends (ANIM-140).
+	PreMove func(x, y int32)
 }
 
 // hasRuntimeID reports a source runtime identity: an actor without one is
@@ -79,18 +78,18 @@ func (w *World) ReleaseUnitShot(s UnitShot) bool {
 	dx, dy := int64(tx)-int64(sx), int64(ty)-int64(sy)
 	segments := isqrt64(dx*dx+dy*dy) / unitShotSegment
 
-	var dir int32
-	if s.Dir != nil {
-		dir = s.Dir(int(tx-(sx+s.OffsetX)), int(ty-(sy+s.OffsetY)))
-	}
+	// Dir and actiondir start at zero: every driver call aims them (ANIM-139).
 	record := SavedProjectile{
 		X: sx + s.OffsetX, Y: sy + s.OffsetY, Picture: s.Picture,
-		Dir: dir, Action: 1, ActionDir: dir, ActionTarget: key,
-		ActionSegments: int32(segments),
+		Action: 1, ActionTarget: key, ActionSegments: int32(segments),
 	}
 	i := w.insertProjectile(record, SavedProjectileDriver{Phases: s.Phases, Target: target.ID, HasTarget: true})
 	for range 1 + max(s.Late, 0) {
-		w.stepSavedProjectile(&w.savedWorldEffects.Projectiles[i])
+		d := &w.savedWorldEffects.Projectiles[i]
+		if p := w.savedProjectile(d.ID); s.PreMove != nil && !d.Retired && p != nil && p.ActionSegments != 0 {
+			s.PreMove(p.X, p.Y)
+		}
+		w.stepSavedProjectile(d)
 	}
 	return true
 }

@@ -86,7 +86,7 @@ func archerRun(mw *mapWorld, ticks int, order func(n int)) []archerRelease {
 			shot := int(p.ActionDir-8) & 15
 			bearing := -1
 			if t, ok := mw.entity(e.AttackTarget); ok {
-				bearing = terrain.EffectFacing(int(t.X-e.X)*256, int(t.Y-e.Y)*256)
+				bearing = EffectFacing(int(t.X-e.X)*256, int(t.Y-e.Y)*256)
 			}
 			out = append(out, archerRelease{tick: n, body: body, shot: shot, bearingToVictim: bearing,
 				turning: e.Turning(), moved: e.Facing != before.Facing})
