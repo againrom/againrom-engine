@@ -71,7 +71,7 @@ func playRandomSession(t *testing.T, seed uint64, original bool) sessionRun {
 	a := f.App("random session")
 	t.Cleanup(a.StopAudio)
 	a.Layout(640, 480)
-	a.SetMusic(traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
+	a.SetMusic(GameMusic(f.Base().Profile), traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
 	a.SetSaveSeams(nil, func() []ui.SaveEntry { return []ui.SaveEntry{{Name: "town.sav", Label: "Town"}} },
 		func(string) (ui.MapOpener, bool, error) { return nil, true, nil })
 	if err := a.HeadlessKey("load"); err != nil {

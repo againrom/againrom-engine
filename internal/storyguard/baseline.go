@@ -2085,6 +2085,10 @@ package storyguard
 // CommentBytes rises for the generator's Restore button: the docs of
 // Chargen.Restore, returnTo, RestoreFor, the Restore label and the new tests,
 // new code, including this paragraph.
+// CommentBytes rises for the second game's music: the docs of the music
+// description, the controller's request rule, pause seam and area select,
+// the music areas decoder, the mission music wiring, -nomusic and their
+// witnesses, new code, including this paragraph.
 // CommentBytes rises for the one double-click detector: the docs of
 // pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
 // archtest double-click scan, the Load list's row press, the roster's pair
@@ -2112,5 +2116,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8638925,
+	CommentBytes: 8649199,
 }

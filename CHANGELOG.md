@@ -8,10 +8,6 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
-- [ROM1] In the character generator, Reset sets every attribute to 25 and the
-  points to 100 as in the original, and the new Restore button returns the
-  hero's starting attributes and
-  skill.
 - [BASE] A double click follows the system's double-click speed and distance
   on every screen, as in the original; the tavern no longer wants a faster
   double click than the rest of the game, and a hero's double click in the
@@ -21,6 +17,18 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   talks even when the first click was let go off the card. In the character
   generator a button held after a double click on + or - no longer keeps
   stepping.
+
+## 0.110.0
+
+- [ROM1] In the character generator, Reset sets every attribute to 25 and the
+  points to 100 as in the original, and the new Restore button returns the
+  hero's starting attributes and skill.
+- [ROM2] The second game plays its music: the menu, character generation, each
+  town, the world map and the credits have their own tracks, and a mission
+  plays its seventeen tracks with the theme of the area the hero stands in
+  following the current track. A movie pauses the music, and the menu, the
+  generator and a town pick it up where it stopped.
+- [BASE] The `-nomusic` launch option silences all music.
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,

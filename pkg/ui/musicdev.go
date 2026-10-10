@@ -15,6 +15,8 @@ type musicDevice struct {
 	mu  sync.Mutex
 	st  audio.Settings
 	pl  *devicePlayer
+	// paused: pl is held at its position and has not ended.
+	paused bool
 }
 
 // OpenMusic opens a retained player on the process-wide audio context. Failure
@@ -48,7 +50,38 @@ func (d *musicDevice) Stop() {
 	d.mu.Unlock()
 }
 
+// Pause holds the stream at its position.
+func (d *musicDevice) Pause() bool {
+	if d == nil {
+		return false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pl == nil || !d.pl.IsPlaying() {
+		return false
+	}
+	d.pl.Pause()
+	d.paused = true
+	return true
+}
+
+// Resume continues a held stream from its position.
+func (d *musicDevice) Resume() bool {
+	if d == nil {
+		return false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pl == nil || !d.paused {
+		return false
+	}
+	d.paused = false
+	d.pl.Play()
+	return true
+}
+
 func (d *musicDevice) stopLocked() {
+	d.paused = false
 	if d.pl == nil {
 		return
 	}
@@ -63,7 +96,7 @@ func (d *musicDevice) Ended() bool {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.pl != nil && !d.pl.IsPlaying()
+	return d.pl != nil && !d.paused && !d.pl.IsPlaying()
 }
 
 func (d *musicDevice) SetSettings(st audio.Settings) {

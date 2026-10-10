@@ -66,6 +66,7 @@ func TestStaticMusicSceneTable(t *testing.T) {
 	want := map[MusicScene][]string{
 		MusicSilent:   nil,
 		MusicMenu:     {"menu.wav"},
+		MusicCredits:  {"menu.wav"},
 		MusicChargen:  {"chrgen.wav"},
 		MusicCampaign: {"map.wav"},
 		MusicMission: {
@@ -78,11 +79,11 @@ func TestStaticMusicSceneTable(t *testing.T) {
 		MusicSchool: {"schoolw.wav", "schoolm.wav"},
 	}
 	for scene, tracks := range want {
-		if got := staticMusicTracks(scene, false); !slices.Equal(got, tracks) {
+		if got := firstMusic.sceneTracks(scene, false); !slices.Equal(got, tracks) {
 			t.Errorf("scene %d = %v, want %v", scene, got, tracks)
 		}
 	}
-	if got, want := staticMusicTracks(MusicSchool, true), []string{"schoolm.wav", "schoolw.wav"}; !slices.Equal(got, want) {
+	if got, want := firstMusic.sceneTracks(MusicSchool, true), []string{"schoolm.wav", "schoolw.wav"}; !slices.Equal(got, want) {
 		t.Errorf("mage-first school = %v, want %v", got, want)
 	}
 }
@@ -91,7 +92,7 @@ func TestMissionShuffleIsSeededAndVisitsAllBeforeRepeat(t *testing.T) {
 	run := func(seed int64) []string {
 		source := &recordingMusicSource{}
 		device := &recordingMusicDevice{}
-		music := NewMusicController(source, device, random.NewStream(seed))
+		music := NewMusicController(firstMusic, source, device, random.NewStream(seed))
 		music.SetScene(MusicMission, false)
 		for i := 0; i < 12; i++ {
 			device.ended = true
@@ -121,7 +122,7 @@ func TestMissionShuffleIsSeededAndVisitsAllBeforeRepeat(t *testing.T) {
 func TestOneFileEOFRepeats(t *testing.T) {
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
-	music := NewMusicController(source, device, random.NewStream(1))
+	music := NewMusicController(firstMusic, source, device, random.NewStream(1))
 	music.SetScene(MusicMenu, false)
 	device.ended = true
 	music.Update()
@@ -133,7 +134,7 @@ func TestOneFileEOFRepeats(t *testing.T) {
 func TestSceneReplacementStopsBeforeStartAndSameSceneIsIdempotent(t *testing.T) {
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
-	music := NewMusicController(source, device, random.NewStream(2))
+	music := NewMusicController(firstMusic, source, device, random.NewStream(2))
 	music.SetScene(MusicMenu, false)
 	music.SetScene(MusicMenu, false)
 	music.SetScene(MusicShop, false)
@@ -146,7 +147,7 @@ func TestSceneReplacementStopsBeforeStartAndSameSceneIsIdempotent(t *testing.T) 
 func TestMissingDeviceTrackAndMalformedTrackAreSilent(t *testing.T) {
 	t.Run("nil device does not even load", func(t *testing.T) {
 		source := &recordingMusicSource{}
-		NewMusicController(source, nil, random.NewStream(1)).SetScene(MusicMenu, false)
+		NewMusicController(firstMusic, source, nil, random.NewStream(1)).SetScene(MusicMenu, false)
 		if len(source.loads) != 0 {
 			t.Fatalf("nil device loaded %v", source.loads)
 		}
@@ -160,7 +161,7 @@ func TestMissingDeviceTrackAndMalformedTrackAreSilent(t *testing.T) {
 			{oddFrame: map[string]bool{"menu.wav": true}},
 		} {
 			device := &recordingMusicDevice{}
-			music := NewMusicController(source, device, random.NewStream(1))
+			music := NewMusicController(firstMusic, source, device, random.NewStream(1))
 			music.SetScene(MusicMenu, false)
 			music.Update()
 			if len(device.events) != 0 || music.residentTracks() != 0 {
@@ -181,7 +182,7 @@ func TestControllerRetainsAtMostOneCurrentTrack(t *testing.T) {
 	}
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
-	music := NewMusicController(source, device, random.NewStream(3))
+	music := NewMusicController(firstMusic, source, device, random.NewStream(3))
 	music.SetScene(MusicMission, false)
 	for i := 0; i < 30; i++ {
 		if got := music.residentTracks(); got > 1 {
@@ -220,7 +221,7 @@ func TestAppRecordsTheStaticSceneLifecycleWithoutOverlayRestarts(t *testing.T) {
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
 	a := newTestApp(t, appRows(1), okLoader(t))
-	a.SetMusic(source, device, random.NewStream(1070))
+	a.SetMusic(firstMusic, source, device, random.NewStream(1070))
 
 	if err := a.OpenChargen(NewChargen(chargenLegalSetup()), nil); err != nil {
 		t.Fatal(err)
@@ -281,10 +282,10 @@ func TestOriginalReplaceDrawsStartThenOrder(t *testing.T) {
 	for _, randomOrder := range []bool{false, true} {
 		svc := random.NewService(random.Session{Mode: random.Original, Shared: 1})
 		source, device := &recordingMusicSource{}, &recordingMusicDevice{}
-		music := NewMusicController(source, device, svc.Stream(random.Music))
+		music := NewMusicController(firstMusic, source, device, svc.Stream(random.Music))
 		music.preferences.RandomOrder = randomOrder
 		music.SetScene(MusicMission, false)
-		tracks := staticMusicTracks(MusicMission, false)
+		tracks := firstMusic.sceneTracks(MusicMission, false)
 		probe := random.MSVC{State: 1}
 		start := int(probe.Rand()) % len(tracks)
 		draws := 1

@@ -119,7 +119,7 @@ func TestCutsceneSkipConsumesPressAndReleaseAndNeverDispatchesMapTick(t *testing
 func TestCutsceneMissingAndStallAreFailOpenAndMusicReturns(t *testing.T) {
 	a := newTestApp(t, appRows(1), okLoader(t))
 	device := &recordingMusicDevice{}
-	a.SetMusic(&recordingMusicSource{}, device, random.NewStream(1074))
+	a.SetMusic(firstMusic, &recordingMusicSource{}, device, random.NewStream(1074))
 	a.SetCutscenes(&testCutsceneSource{err: errors.New("missing")})
 	if a.PlayCutscene("missing") || a.Screen() != ScreenMenu || a.CutsceneError() == nil {
 		t.Fatal("missing media blocked menu")
@@ -148,7 +148,7 @@ func TestCutsceneMissingAndStallAreFailOpenAndMusicReturns(t *testing.T) {
 func TestCutsceneAudioTeardownDoesNotRestartMusic(t *testing.T) {
 	a := newTestApp(t, appRows(1), okLoader(t))
 	device := &recordingMusicDevice{}
-	a.SetMusic(&recordingMusicSource{}, device, random.NewStream(1074))
+	a.SetMusic(firstMusic, &recordingMusicSource{}, device, random.NewStream(1074))
 	r, w := io.Pipe()
 	a.SetCutscenes(&testCutsceneSource{stream: r})
 	a.PlayCutscene("fixture")
