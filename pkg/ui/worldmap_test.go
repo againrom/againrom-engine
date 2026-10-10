@@ -333,3 +333,57 @@ func TestWorldMapCompositionPlacesMarkersAndPaintsOnesWithoutAScroll(t *testing.
 		t.Fatal("the small marker spilled outside its 3x3 footprint")
 	}
 }
+
+// TestWorldMapTaskFlagFollowsHoverThenStaysOnTheChosenTask checks TOWN-528 and
+// the owner's observation of the original: while the party stands on the first
+// MapObject, Flag1 is drawn at the hovered task before a choice and at the
+// chosen task from the choice through the route, whatever the pointer does. Away
+// from the first MapObject, and on the homeward trip, it is not drawn. Its frame
+// stands with the top-left corner 4 pixels left of and 32 above the anchor.
+func TestWorldMapTaskFlagFollowsHoverThenStaysOnTheChosenTask(t *testing.T) {
+	missions := []WorldMapMission{
+		{Enabled: true, Anchor: image.Pt(200, 300)},
+		{Enabled: true, Anchor: image.Pt(400, 300)},
+		{Enabled: false, Anchor: image.Pt(500, 300)},
+	}
+	route := []image.Point{{320, 240}, {260, 270}, {200, 300}}
+	for _, tc := range []struct {
+		name              string
+		hovered, selected int
+		atHome, returning bool
+		shown             int
+		want              int
+	}{
+		{"nothing hovered or chosen", -1, -1, true, false, 0, -1},
+		{"hover before a choice", 1, -1, true, false, 0, 1},
+		{"hover over a task that cannot be chosen", 2, -1, true, false, 0, -1},
+		{"the choice, before the first step", -1, 0, true, false, 0, 0},
+		{"a route step with the pointer on another task", 1, 0, true, false, 1, 0},
+		{"the route's last step with the pointer away", -1, 0, true, false, len(route), 0},
+		{"after arrival at the task", 1, -1, false, false, 0, -1},
+		{"the homeward trip", 0, -1, false, true, 1, -1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			v := WorldMapView{Missions: missions, Hovered: tc.hovered, Selected: tc.selected, AtHome: tc.atHome,
+				Returning: tc.returning, Route: route, RouteShown: tc.shown, Position: image.Pt(20, 460), HideScrolls: true}
+			if got := worldMapTaskFlag(v); got != tc.want {
+				t.Fatalf("task flag at mission %d, want %d", got, tc.want)
+			}
+		})
+	}
+
+	flag := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	for i := range flag.Pix {
+		flag.Pix[i] = 0xff
+	}
+	v := WorldMapView{Missions: missions, Hovered: 1, Selected: 0, AtHome: true, Available: flag,
+		Route: route, RouteShown: 1, Position: image.Pt(20, 460), HideScrolls: true}
+	got := ComposeWorldMap(v)
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	if c := got.RGBAAt(196, 268); c != white {
+		t.Fatalf("Flag1 corner at the chosen task's anchor + (-4,-32) = %v, want the flag's pixel", c)
+	}
+	if c := got.RGBAAt(396, 268); c == white {
+		t.Fatal("Flag1 drawn at the hovered task while another task is chosen")
+	}
+}

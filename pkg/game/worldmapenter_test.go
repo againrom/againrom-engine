@@ -68,8 +68,8 @@ func TestWorldMapEnterDoesWhatAMissedClickDoes(t *testing.T) {
 				t.Fatalf("Enter after %d ticks left %+v, a missed click at the same moment leaves %+v", tc.ticks, got, want)
 			}
 			skipped := tc.ticks > 0
-			if skipped && got.cross != enter.worldMap.assets.cross[1] {
-				t.Fatalf("Enter after %d ticks drew Cross frame %v, want the frame of counter %d, %v", tc.ticks, got.cross, frames+1, enter.worldMap.assets.cross[1])
+			if skipped && got.cross != enter.worldMap.assets.cross[frames-1] {
+				t.Fatalf("Enter after %d ticks drew Cross frame %v, want the held last frame for counter %d, %v", tc.ticks, got.cross, frames+1, enter.worldMap.assets.cross[frames-1])
 			}
 			wantShown := 0
 			if skipped {
@@ -159,7 +159,7 @@ func TestWorldMapEnterHastensTheHomewardTripAsAMissedClickDoes(t *testing.T) {
 	if act := r.WorldMapChoose(); act.Open != nil || act.Msg != "" {
 		t.Fatalf("Enter after the first homeward tick opened %v with %q", act.Open != nil, act.Msg)
 	}
-	if got := observeTravel(r); got.shown != len(back.Route) || got.cross != r.worldMap.assets.cross[1] || !r.AtWorldMap() {
+	if got := observeTravel(r); got.shown != len(back.Route) || got.cross != r.worldMap.assets.cross[len(r.worldMap.assets.cross)-1] || !r.AtWorldMap() {
 		t.Fatalf("Enter after the first homeward tick: %+v, gates open %v; want %d of %d coordinates drawn, the Cross counter at the frame count plus one and the party still on its way",
 			got, r.AtWorldMap(), len(back.Route), len(back.Route))
 	}

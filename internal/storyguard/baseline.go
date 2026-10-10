@@ -2046,6 +2046,9 @@ package storyguard
 // CommentBytes rises for the one chat command parser, its two game adapters,
 // the second game's completion win predicate and the second game's command
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the world-map task flag and held Cross: the frame
+// pickers, the flag's counter and placement, and their focused and release
+// tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2069,5 +2072,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1762,
 	},
-	CommentBytes: 8596425,
+	CommentBytes: 8599182,
 }

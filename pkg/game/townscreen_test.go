@@ -108,6 +108,7 @@ func nonZeroTownScreen() *townScreen {
 		worldMap:            &worldMapState{},
 		worldPosition:       image.Pt(10, 20),
 		worldPositionSet:    true,
+		worldFlag1Frame:     4,
 		worldSelectedOnce:   map[int]bool{5: true},
 		resolver:            speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}},
 	}
