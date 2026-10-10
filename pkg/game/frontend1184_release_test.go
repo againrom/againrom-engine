@@ -37,8 +37,13 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 			c.AdjustStat(0, -1)
 			c.Reset()
 			r, _ = c.Result()
+			if !reflect.DeepEqual(r.Stats, []int{25, 25, 25, 25}) || c.Remaining() != 100 {
+				t.Fatal("reset is not the original's 25 each and pool 100", i, r.Stats, c.Remaining())
+			}
+			c.Restore()
+			r, _ = c.Result()
 			if !reflect.DeepEqual(r.Stats, want) {
-				t.Fatal("reset lost preset", i)
+				t.Fatal("restore lost preset", i)
 			}
 			t.Logf("portrait %d stats=%v remaining=%d", i, r.Stats, c.Remaining())
 		}

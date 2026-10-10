@@ -2082,6 +2082,9 @@ package storyguard
 // docs of data.HeroArchetype, the preset skills, the value and counter draw,
 // Chargen.CardView, the card report and the new tests, new code,
 // including this paragraph.
+// CommentBytes rises for the generator's Restore button: the docs of
+// Chargen.Restore, returnTo, RestoreFor, the Restore label and the new tests,
+// new code, including this paragraph.
 // CommentBytes rises for the one double-click detector: the docs of
 // pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
 // archtest double-click scan, the Load list's row press and their tests, new
@@ -2109,5 +2112,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8637116,
+	CommentBytes: 8638748,
 }

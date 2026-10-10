@@ -3572,6 +3572,9 @@ func (a *App) activateChargenDetailed(c *Chargen, id chargenControl, pointer boo
 	case id == chargenReset:
 		c.Reset()
 		a.flow.msg, a.chargenHoverText = "", ""
+	case id == chargenRestore:
+		c.Restore()
+		a.flow.msg, a.chargenHoverText = "", ""
 	case id == chargenPlay:
 		a.playChargen(c)
 	}

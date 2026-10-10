@@ -89,5 +89,6 @@
 "item.rays" = "Лучи"
 "item.spell_of" = "с заклинанием"
 "tavern.sleep" = "Спать"
+"chargen.restore" = "Вернуть"
 # The owner's alias for Drain Life on item cards (DIV-2177).
 "item.drain_life_alias" = "Вампиризм"
