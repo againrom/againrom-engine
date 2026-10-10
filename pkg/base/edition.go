@@ -65,6 +65,12 @@ type Edition struct {
 	// StartupCutscenes: the logo and introduction movies play at start.
 	StartupCutscenes bool
 
+	// OriginalGenerator names the original random number generator this
+	// game's evidence establishes, with its start-up, reseeds and draw forms;
+	// empty when no evidence exists, and the launch switch for the original
+	// generator then runs the default mode.
+	OriginalGenerator string
+
 	// MissionTipText is the archive path of a mission's numbered tip text,
 	// formatted with the mission and the tip number. A mission dialogue part's
 	// tips= tag raises that popup when the dialogue closes on its last page;
@@ -93,6 +99,7 @@ var firstEdition = Edition{
 	Cheats:                    true,
 	FreshPlayers:              true,
 	StartupCutscenes:          true,
+	OriginalGenerator:         "msvc",
 	MissionTipText:            "main/text/battle/m%d/tips%02d.txt",
 }
 

@@ -74,3 +74,34 @@ func TestSessionLeafSurvivesCityStateSerializationBesideTheOthers(t *testing.T) 
 		t.Fatal("the session changed in the city state", got, ok, err)
 	}
 }
+
+// TestNativeSessionCountTakesVersionTwo pins the reseed count's framing: a
+// zero count writes the five-dword version 1 unchanged, a count writes the
+// six-dword version 2, and each version refuses the other's length.
+func TestNativeSessionCountTakesVersionTwo(t *testing.T) {
+	for _, tc := range []struct {
+		value   NativeSession
+		version byte
+		length  int
+	}{
+		{NativeSession{Seed: 7, Mode: 1, Shared: 9}, 1, 20},
+		{NativeSession{Seed: 7, Mode: 1, Shared: 9, Reseeds: 5}, 2, 24},
+	} {
+		var state DocumentStateData
+		if err := SetNativeSession(&state, tc.value); err != nil {
+			t.Fatal(err)
+		}
+		b := state.ValueRecords[0].Value.Bytes
+		if b[0] != tc.version || len(b) != tc.length {
+			t.Fatalf("%+v wrote version %d in %d bytes, want %d in %d", tc.value, b[0], len(b), tc.version, tc.length)
+		}
+		got, ok, err := ReadNativeSession(state)
+		if err != nil || !ok || got != tc.value {
+			t.Fatal("round trip", got, ok, err)
+		}
+		b[0] ^= 3
+		if _, _, err := ReadNativeSession(state); err == nil {
+			t.Fatalf("version %d accepted %d bytes", b[0], len(b))
+		}
+	}
+}
