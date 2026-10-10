@@ -923,6 +923,10 @@ import (
 // payment across native saves.
 const formatVersion = 95
 
+// originalRandomBit in the routing-mode byte marks a stream on the original's
+// generator; a seeded stream leaves it clear, so its bytes are unchanged.
+const originalRandomBit = 0x40
+
 // The form's two fixed sizes. A header, then the grid, then one record per
 // entity, then one route per entity in the same order:
 //
@@ -1642,6 +1646,9 @@ func (w *World) encodeInto(b []byte) []byte {
 	b[29] = byte(w.mode)
 	if w.safeMode {
 		b[29] |= 0x80
+	}
+	if w.rng.original {
+		b[29] |= originalRandomBit
 	}
 	binary.LittleEndian.PutUint32(b[30:34], uint32(len(w.grid)))
 	// All three planes are always materialised, so this writes W*H cells apiece
@@ -2453,7 +2460,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 	}
 	data = body
 
-	mode := Mode(data[29] &^ 0x80)
+	mode := Mode(data[29] &^ (0x80 | originalRandomBit))
 	if !mode.defined() {
 		return fmt.Errorf("sim: byte form names routing mode %d, which is not defined", data[29])
 	}
@@ -3237,7 +3244,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		hasSessionClock:     hasClock,
 		fullTick:            fullTick,
 		tick:                binary.LittleEndian.Uint64(data[1:9]),
-		rng:                 rng{state: binary.LittleEndian.Uint64(data[9:17])},
+		rng:                 rng{state: binary.LittleEndian.Uint64(data[9:17]), original: data[29]&originalRandomBit != 0},
 		bounds:              b,
 		mode:                mode,
 		safeMode:            data[29]&0x80 != 0,

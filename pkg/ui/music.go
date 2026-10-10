@@ -1,9 +1,8 @@
 package ui
 
 import (
-	"math/rand"
-
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 )
 
 // MusicScene is one static candidate-list owner. Overlay screens deliberately
@@ -55,7 +54,7 @@ var missionMusicTracks = [...]string{
 type MusicController struct {
 	source MusicSource
 	device MusicDevice
-	rng    *rand.Rand
+	draws  *random.Stream
 
 	request     musicRequest
 	set         bool
@@ -66,8 +65,8 @@ type MusicController struct {
 	log         []string
 }
 
-func NewMusicController(source MusicSource, device MusicDevice, seed int64) *MusicController {
-	return &MusicController{source: source, device: device, rng: rand.New(rand.NewSource(seed)), preferences: DefaultMusicPreferences()}
+func NewMusicController(source MusicSource, device MusicDevice, draws *random.Stream) *MusicController {
+	return &MusicController{source: source, device: device, draws: draws, preferences: DefaultMusicPreferences()}
 }
 
 // TownMusicScreen exposes only the town room's static music identity and the
@@ -84,14 +83,14 @@ type TownMusicTrack interface {
 
 // SetMusic installs the optional source and retained device, then starts the
 // screen already showing. Missing halves remain silent.
-func (a *App) SetMusic(source MusicSource, device MusicDevice, seed int64) {
+func (a *App) SetMusic(source MusicSource, device MusicDevice, draws *random.Stream) {
 	if a == nil {
 		return
 	}
 	if a.music != nil {
 		a.music.Stop()
 	}
-	a.music = NewMusicController(source, device, seed)
+	a.music = NewMusicController(source, device, draws)
 	if a.flow != nil && a.flow.soundOptions.ReadPlayback != nil {
 		a.music.SetPreferences(a.flow.soundOptions.ReadPlayback())
 	}
@@ -218,8 +217,12 @@ func (m *MusicController) replaceRequest(next musicRequest) {
 	}
 	m.record("request:" + sceneKey(next))
 	m.request, m.set, m.active = next, true, false
-	m.order = m.shuffle(requestTracks(next))
-	m.position = 0
+	if m.draws != nil && m.draws.Shared() {
+		m.order, m.position = m.originalOrder(requestTracks(next))
+	} else {
+		m.order = m.shuffle(requestTracks(next))
+		m.position = 0
+	}
 	if m.preferences.Enabled {
 		m.startCurrent()
 	}
@@ -288,14 +291,42 @@ func (m *MusicController) Stop() {
 
 func (m *MusicController) shuffle(tracks []string) []string {
 	out := append([]string(nil), tracks...)
-	if !m.preferences.RandomOrder {
+	if !m.preferences.RandomOrder || m.draws == nil {
 		return out
 	}
 	for range out {
-		x, y := m.rng.Intn(32768)%len(out), m.rng.Intn(32768)%len(out)
+		x, y := m.draws.Raw()%len(out), m.draws.Raw()%len(out)
 		out[x], out[y] = out[y], out[x]
 	}
 	return out
+}
+
+// originalOrder is the original's list replace (MAGIC-286): one start draw
+// rand()%n, then the order build, which swaps n times only in Random Order,
+// and the position of the start track in that order.
+func (m *MusicController) originalOrder(tracks []string) ([]string, int) {
+	if len(tracks) == 0 {
+		return nil, 0
+	}
+	start := m.draws.Raw() % len(tracks)
+	index := make([]int, len(tracks))
+	for i := range index {
+		index[i] = i
+	}
+	if m.preferences.RandomOrder {
+		for range index {
+			x, y := m.draws.Raw()%len(index), m.draws.Raw()%len(index)
+			index[x], index[y] = index[y], index[x]
+		}
+	}
+	out, position := make([]string, len(index)), 0
+	for i, at := range index {
+		out[i] = tracks[at]
+		if at == start {
+			position = i
+		}
+	}
+	return out, position
 }
 
 func (m *MusicController) startCurrent() {

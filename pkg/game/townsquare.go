@@ -3,11 +3,11 @@ package game
 import (
 	_ "embed"
 	"image"
-	"math/rand"
 	"time"
 
 	"againrom/pkg/audio"
 	"againrom/pkg/base"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -200,6 +200,11 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 func (t *townScreen) squareView() *town.View {
 	if t.square == nil {
 		t.square = town.NewView(t.townDescription(), townSquareHost{t}, t.townProcess)
+		// In original mode the wildlife draws are raw draws of the shared
+		// stream instead of the description's own generator (TOWN-505).
+		if st := t.draws.stream(random.TownWildlife); st != nil && st.Shared() {
+			t.square.SetRawDraw("wildlife", st.Raw)
+		}
 	}
 	return t.square
 }
@@ -225,27 +230,14 @@ func (h townSquareHost) Draw(source string, n int) int {
 		if draw := t.draws.animationDraw(); draw != nil {
 			return boundedPresentationRoll(draw, nil, n)
 		}
-		return boundedPresentationRoll(nil, t.squareFallback(0), n)
+		return boundedPresentationRoll(nil, t.draws.stream(random.TownAnimation), n)
 	case "ambient":
-		return boundedPresentationRoll(t.draws.ambientDraw(), t.squareFallback(1), n)
+		return boundedPresentationRoll(t.draws.ambientDraw(), t.draws.stream(random.TownAmbient), n)
 	}
 	return 0
 }
 
-// squareFallback is the screen's own presentation generator for a draw
-// source the runtime did not supply.
-func (t *townScreen) squareFallback(i int) *rand.Rand {
-	if t.squareRandom[i] == nil {
-		seed := t.townAnimationNow().UnixNano()
-		if i == 1 {
-			seed ^= 0x5deece66d
-		}
-		t.squareRandom[i] = rand.New(rand.NewSource(seed))
-	}
-	return t.squareRandom[i]
-}
-
-func (h townSquareHost) Seed() int64 { return h.t.sound.ambientSeed() }
+func (h townSquareHost) Seed() int64 { return h.t.sound.wildlifeSeed() }
 
 func (h townSquareHost) Condition(name string) bool {
 	if c := townConditions[name]; c != nil {
@@ -412,7 +404,7 @@ func (t *townScreen) TownMusicTrack() (string, bool) {
 
 // boundedPresentationRoll is one bounded presentation draw: the runtime's
 // draw when supplied, else the fallback generator, else zero.
-func boundedPresentationRoll(draw func(int) int, fallback *rand.Rand, n int) int {
+func boundedPresentationRoll(draw func(int) int, fallback *random.Stream, n int) int {
 	if n <= 0 {
 		return 0
 	}
@@ -420,7 +412,7 @@ func boundedPresentationRoll(draw func(int) int, fallback *rand.Rand, n int) int
 	if draw != nil {
 		value = draw(n)
 	} else if fallback != nil {
-		value = fallback.Intn(n)
+		value = fallback.Scaled(n)
 	}
 	value %= n
 	if value < 0 {

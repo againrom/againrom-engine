@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 )
 
@@ -162,7 +163,7 @@ func TestAmbientLoopsCoexistMoveWithoutRestartAndStopIndependently(t *testing.T)
 		ambientWallFireSlot: ambientSample(90),
 	}}
 	device := &ambientLoopRecorder{}
-	c := newAmbientController(bank, &ambientOneShot{}, device, 1071)
+	c := newAmbientController(bank, &ambientOneShot{}, device, random.NewStream(1071))
 	now := time.Unix(10, 0)
 	s := ambientSnapshot{
 		geometry: audio.ViewGeometry{Span: image.Pt(10, 10)},
@@ -209,7 +210,7 @@ func TestAmbientDeadlineUsesDecodedCadenceAndMissingSampleIsQuiet(t *testing.T) 
 	now := time.Unix(20, 0)
 	bank := &ambientBank{samples: map[int]audio.Sample{ambientCrowSlot: ambientSample(70)}}
 	ones := &ambientOneShot{}
-	c := newAmbientController(bank, ones, &ambientLoopRecorder{}, seed)
+	c := newAmbientController(bank, ones, &ambientLoopRecorder{}, random.NewStream(seed))
 	c.next = now
 	s := ambientSnapshot{geometry: audio.ViewGeometry{Span: image.Pt(20, 20)}, listener: image.Pt(10, 10), hasView: true, crows: []image.Point{image.Pt(12, 10)}}
 	c.update(now, s)
@@ -222,7 +223,7 @@ func TestAmbientDeadlineUsesDecodedCadenceAndMissingSampleIsQuiet(t *testing.T) 
 		t.Fatalf("deadline play = samples %d reads %v, want one slot-70 play", len(ones.samples), bank.reads)
 	}
 	wantRNG := rand.New(rand.NewSource(seed))
-	_ = ambientBirdWins(wantRNG, 1, 0)
+	_ = wantRNG.Intn(0x8000) // the bird-or-crow draw of one crow
 	wantNext := due.Add(time.Duration(10000+wantRNG.Intn(0x8000)/2) * time.Millisecond)
 	if !c.next.Equal(wantNext) {
 		t.Fatalf("next deadline = %v, want %v", c.next, wantNext)
@@ -230,7 +231,7 @@ func TestAmbientDeadlineUsesDecodedCadenceAndMissingSampleIsQuiet(t *testing.T) 
 
 	// A due source advances the deadline even when its registered leaf is
 	// absent. This is the production path slot 62 takes in both shipped roots.
-	quiet := newAmbientController(&ambientBank{samples: map[int]audio.Sample{}}, ones, nil, seed)
+	quiet := newAmbientController(&ambientBank{samples: map[int]audio.Sample{}}, ones, nil, random.NewStream(seed))
 	quiet.next = now
 	before := len(ones.samples)
 	quiet.update(due, s)
@@ -245,7 +246,7 @@ func TestAmbientScanUsesOriginMovementOrStrictDeadline(t *testing.T) {
 		ambientCrowSlot:  ambientSample(70),
 	}}
 	ones, device := &ambientOneShot{}, &ambientLoopRecorder{}
-	c := newAmbientController(bank, ones, device, 71)
+	c := newAmbientController(bank, ones, device, random.NewStream(71))
 	now := time.Unix(20, 0)
 	deadline := now.Add(time.Second)
 	c.next = deadline
@@ -299,7 +300,7 @@ func TestAmbientStaticSelectorCarriesNegativeTwoAndPotentialNonNegative(t *testi
 func TestExitToMainStopsActiveAmbientWithoutReleasingSession(t *testing.T) {
 	bank := &ambientBank{samples: map[int]audio.Sample{ambientRiverSlot: ambientSample(50)}}
 	device := &ambientLoopRecorder{}
-	viewer := &Viewer{ambient: newAmbientController(bank, &ambientOneShot{}, device, 1071)}
+	viewer := &Viewer{ambient: newAmbientController(bank, &ambientOneShot{}, device, random.NewStream(1071))}
 	viewer.ambient.update(time.Unix(30, 0), ambientSnapshot{
 		geometry: audio.ViewGeometry{Span: image.Pt(10, 10)},
 		listener: image.Pt(5, 5),

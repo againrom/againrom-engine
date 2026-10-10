@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"math/rand"
 	"strings"
 
 	"againrom/pkg/audio"
@@ -148,19 +147,15 @@ type townScreen struct {
 	// schoolSpent marks the teacher speech latches already used since the room
 	// was entered; a zero value is a set latch (TOWN-502).
 	schoolSpent [schoolLatchCount]bool
-	// square is the square's composer view, built on first use. squareRandom
-	// is its fallback presentation generators, squareLoop its entry loop's
-	// voice and squareAction the action a click's hooks left.
+	// square is the square's composer view, built on first use, squareLoop
+	// its entry loop's voice and squareAction the action a click's hooks left.
 	square       *town.View
-	squareRandom [2]*rand.Rand
 	squareLoop   audio.Voice
 	squareAction ui.TownAction
-	// pages are the room pages the composer builds, by room name, and
-	// pageRandom their fallback presentation generators by draw source.
-	pages      map[string]*town.Page
-	pageRandom map[string]*rand.Rand
-	townStats  bool
-	shopBook   bool
+	// pages are the room pages the composer builds, by room name.
+	pages     map[string]*town.Page
+	townStats bool
+	shopBook  bool
 
 	// schoolSounds holds the school's own chrgen skill instances
 	// (VIDEO-SFX-059); presentation only.
@@ -552,7 +547,7 @@ func (f *FrontEnd) chapterTownScreen() ui.TownScreen {
 		// freshly built town must not open the school with one already
 		// selected and its price quoted.
 		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection,
-			pages: map[string]*town.Page{}, pageRandom: map[string]*rand.Rand{}})
+			pages: map[string]*town.Page{}})
 		// The screen is constructed already at roomSquare (townRoom's own
 		// zero value; atSquare's doc), so this is that room's own entry load
 		// (1018 spec behaviour 2), not a special case of construction.

@@ -280,7 +280,11 @@ func TestOriginalCityChangedStateWritesSAV(t *testing.T) {
 func city1095CorruptEnvelope(t *testing.T, s Snapshot) []byte {
 	t.Helper()
 	var body bytes.Buffer
-	if err := gob.NewEncoder(&body).Encode(s); err != nil {
+	enc := gob.NewEncoder(&body)
+	if err := enc.Encode(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := enc.Encode(s.randomSession); err != nil {
 		t.Fatal(err)
 	}
 	out := append([]byte(saveMagic), saveVersion, 0, 0)

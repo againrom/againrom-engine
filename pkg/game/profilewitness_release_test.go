@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -42,8 +43,9 @@ func profileWitnessFront(t *testing.T) *FrontEnd {
 	f.TavernRandom = traceDraw(37)
 	f.ShopRandom = traceDraw(41)
 	f.SchoolRandom = traceDraw(53)
-	f.AmbientSeed = 7
-	f.MusicSeed = 3
+	f.randomService().SetStreamSeed(random.TownWildlife, 7)
+	f.randomService().SetStreamSeed(random.AmbientBirds, 7)
+	f.randomService().SetStreamSeed(random.Music, 3)
 	return f
 }
 

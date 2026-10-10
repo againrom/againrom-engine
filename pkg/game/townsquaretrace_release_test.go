@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -300,8 +301,9 @@ func startTownTrace(t *testing.T, party func(*FrontEnd)) (*townTrace, map[byte][
 	f.TavernRandom = traceDraw(37)
 	f.ShopRandom = traceDraw(41)
 	f.SchoolRandom = traceDraw(53)
-	f.AmbientSeed = 7
-	f.MusicSeed = 3
+	f.randomService().SetStreamSeed(random.TownWildlife, 7)
+	f.randomService().SetStreamSeed(random.AmbientBirds, 7)
+	f.randomService().SetStreamSeed(random.Music, 3)
 	f.PersistenceContext.tipsOff = false
 	sounds := &traceSounds{}
 	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = sounds, sounds, sounds
@@ -315,7 +317,7 @@ func startTownTrace(t *testing.T, party func(*FrontEnd)) (*townTrace, map[byte][
 
 	a := f.App("town-square-trace")
 	a.Layout(640, 480)
-	a.SetMusic(traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.MusicSeed)
+	a.SetMusic(traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
 	a.SetSaveSeams(nil, func() []ui.SaveEntry { return []ui.SaveEntry{{Name: "town.sav", Label: "Town"}} },
 		func(string) (ui.MapOpener, bool, error) { return nil, true, nil })
 	if err := a.HeadlessKey("load"); err != nil {

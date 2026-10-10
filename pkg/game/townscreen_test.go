@@ -2,7 +2,6 @@ package game
 
 import (
 	"image"
-	"math/rand"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -79,11 +78,9 @@ func nonZeroTownScreen() *townScreen {
 		schoolCell:          7,
 		schoolSpent:         [schoolLatchCount]bool{3: true},
 		schoolSounds:        playingSchoolSounds(),
-		squareRandom:        [2]*rand.Rand{rand.New(rand.NewSource(1)), rand.New(rand.NewSource(2))},
 		squareLoop:          &tavernInteriorVoice{},
 		squareAction:        ui.TownAction{Msg: "pending"},
 		tipRevision:         1,
-		pageRandom:          map[string]*rand.Rand{"tender": rand.New(rand.NewSource(3))},
 		townStats:           true,
 		shopBook:            true,
 		tavernDetailType:    6,
@@ -140,8 +137,6 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"resolver":     "rebuilt by composeShopFaces on every entry into a room that can show it",
 		"square":       "the square's composer view; resetForNewGame resets it in place",
 		"pages":        "the room pages the composer builds; resetForNewGame resets each in place",
-		"pageRandom":   "process presentation fallback generators of the room pages; never game state",
-		"squareRandom": "process presentation fallback generators of the square; never game state",
 		"squareLoop":   "the square entry loop's voice, owned by the view's loop state",
 		"squareAction": "set and cleared inside one square click",
 	}

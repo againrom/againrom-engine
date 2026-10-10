@@ -75,11 +75,14 @@ var allow = map[string][]string{
 	"pkg/formats/sav": {"pkg/formats/reg"},
 	"pkg/vfs":         {"pkg/formats/res"},
 	"pkg/data":        {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
-	"pkg/sim":         {"pkg/rules"},
+	"pkg/sim":         {"pkg/rules", "pkg/random"},
 	"pkg/rules":       {},
-	"pkg/mapload":     {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules"},
-	"pkg/mapedit":     {"pkg/formats/alm"},
-	"pkg/render":      {"pkg/sim", "pkg/vfs"},
+	// The random service is a leaf: its generators and named streams import
+	// nothing of this tree, so every tier that draws can name it.
+	"pkg/random":  {},
+	"pkg/mapload": {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
+	"pkg/mapedit": {"pkg/formats/alm"},
+	"pkg/render":  {"pkg/sim", "pkg/vfs"},
 	// The terrain and menu tiers decode their bitmaps through the bitmap
 	// leaf and keep no decoder of their own.
 	"pkg/render/terrain":    {"pkg/formats/bmp"},
@@ -130,7 +133,7 @@ var allow = map[string][]string{
 	// tree ships, and pkg/audio's own empty allow-set (above) is what keeps
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
-	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video"},
+	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random"},
 	"cmd/cutscenehelper": {"pkg/video"},
 	"cmd/audioprobe":     {"pkg/video"},
 	"pkg/game":           {"pkg/"},
