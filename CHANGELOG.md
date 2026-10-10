@@ -10,7 +10,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [ROM1] In the character generator, Reset sets every attribute to 25 and the
   points to 100 as in the original, and the new Restore button returns the
-  hero's starting values.
+  hero's starting attributes and
+  skill.
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,
