@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] A first-town save loads on an install whose town text lacks the inn
+  conversation.
+
 ## 0.110.0
 
 - [ROM1] In the character generator, Reset sets every attribute to 25 and the
