@@ -2045,6 +2045,9 @@ package storyguard
 // CommentBytes rises for the unbuilt script node census, the ROM1 omission
 // rule in pkg/mapload, its real-roster census and the mission-100 servant
 // witness, new code, including this paragraph.
+// CommentBytes rises for the world-map task flag and held Cross: the frame
+// pickers, the flag's counter and placement, and their focused and release
+// tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2068,5 +2071,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8599323,
+	CommentBytes: 8602080,
 }

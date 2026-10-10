@@ -109,12 +109,12 @@ type worldMapAssets struct {
 	path       *image.Paletted
 	graph      *worldMapNodeGraph
 	ball       *image.RGBA
-	// flag and cross hold every decoded frame of the current-position and
-	// destination markers, in stream order: `TOWN-120` (High) states each
-	// carries a frame counter that advances once per paint, so the picker at
-	// paint time needs the whole sheet, not frame 0 alone.
+	// flag, available and cross hold every decoded frame of the
+	// current-position Flag, the task Flag1 and the destination Cross, in
+	// stream order: each is drawn from a frame counter (`TOWN-529`,
+	// `TOWN-530`), so the picker at paint time needs the whole sheet.
 	flag        []*image.RGBA
-	available   *image.RGBA
+	available   []*image.RGBA
 	cross       []*image.RGBA
 	scroll      [3]*image.RGBA
 	pressed     [3]*image.RGBA
@@ -125,11 +125,19 @@ type worldMapAssets struct {
 	reads       map[string]int
 }
 
-// flagFrame and crossFrame pick frame n, wrapping around the sheet's own
-// length; either returns nil for an undecoded or empty sheet, which
-// worldMapOptionalImage reports as absent.
-func (a *worldMapAssets) flagFrame(n int) *image.RGBA  { return worldMapPickFrame(a.flag, n) }
-func (a *worldMapAssets) crossFrame(n int) *image.RGBA { return worldMapPickFrame(a.cross, n) }
+// flagFrame and availableFrame pick frame n, wrapping around the sheet's own
+// length (`TOWN-529`). crossFrame holds the sheet's last frame once n reaches
+// it (`TOWN-530`): the Cross plays once and stays on its last frame, the one
+// with the full cross (`TOWN-531`). Each returns nil for an undecoded or
+// empty sheet, which worldMapOptionalImage reports as absent.
+func (a *worldMapAssets) flagFrame(n int) *image.RGBA      { return worldMapPickFrame(a.flag, n) }
+func (a *worldMapAssets) availableFrame(n int) *image.RGBA { return worldMapPickFrame(a.available, n) }
+func (a *worldMapAssets) crossFrame(n int) *image.RGBA {
+	if last := len(a.cross) - 1; n > last {
+		n = last
+	}
+	return worldMapPickFrame(a.cross, n)
+}
 
 func worldMapPickFrame(frames []*image.RGBA, n int) *image.RGBA {
 	if len(frames) == 0 {
@@ -206,7 +214,7 @@ func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 	// (High) states the own-paint routine never reads it, and the
 	// current-position marker it stood in for is `Flag` (`DIV-130`).
 	a.flag = a.sprite16Frames(src, globalMapGraphics+"flag/sprites.16a")
-	a.available = a.sprite16(src, globalMapGraphics+"flag1/sprites.16a")
+	a.available = a.sprite16Frames(src, globalMapGraphics+"flag1/sprites.16a")
 	a.cross = a.sprite16Frames(src, globalMapGraphics+"cross/sprites.16a")
 	for i := 0; i < 3; i++ {
 		a.scroll[i] = a.bmp(src, fmt.Sprintf("%sscroll0%d.bmp", globalMapGraphics, i+1), true)
@@ -247,28 +255,9 @@ func (a *worldMapAssets) mask(src entrySource, path string) *image.Paletted {
 	return mask
 }
 
-func (a *worldMapAssets) sprite16(src entrySource, path string) *image.RGBA {
-	raw, err := a.read(src, path)
-	if err != nil {
-		return nil
-	}
-	// loadItemIcon and this manifest use the same .16a pixel contract. The
-	// source wrapper records the manifest read without reopening the entry.
-	return decodeWorldMap16(raw, path)
-}
-
-func decodeWorldMap16(raw []byte, path string) *image.RGBA {
-	src := memoryEntrySource{path: path, data: raw}
-	pic, err := loadItemIcon(src, path)
-	if err != nil {
-		return nil
-	}
-	return pic
-}
-
 // sprite16Frames reads the whole .16a sheet rather than frame 0 alone, for
-// the two markers `TOWN-120` (High) states carry a frame counter (`Flag`,
-// `Cross`).
+// the three markers drawn from a frame counter (`Flag`, `Flag1`, `Cross`;
+// `TOWN-529`, `TOWN-530`).
 func (a *worldMapAssets) sprite16Frames(src entrySource, path string) []*image.RGBA {
 	raw, err := a.read(src, path)
 	if err != nil {
@@ -301,18 +290,6 @@ func decodeWorldMap16Frames(raw []byte) []*image.RGBA {
 		out = append(out, pic)
 	}
 	return out
-}
-
-type memoryEntrySource struct {
-	path string
-	data []byte
-}
-
-func (m memoryEntrySource) ReadFile(path string) ([]byte, error) {
-	if path != m.path {
-		return nil, fmt.Errorf("file does not exist: %s", path)
-	}
-	return m.data, nil
 }
 
 func (a *worldMapAssets) marker(src entrySource, mission int, obj globalMapObject) *image.RGBA {
@@ -572,7 +549,7 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 	return ui.WorldMapView{
 		Markers:    markers,
 		Background: worldMapOptionalImage(a.background), Ball: worldMapOptionalImage(a.ball),
-		Flag: worldMapOptionalImage(a.flagFrame(s.frame)), Available: worldMapOptionalImage(a.available),
+		Flag: worldMapOptionalImage(a.flagFrame(s.frame)), Available: worldMapOptionalImage(a.availableFrame(t.worldFlag1Frame)),
 		Cross: worldMapOptionalImage(a.crossFrame(s.cross)),
 		Scroll: [3]image.Image{
 			worldMapOptionalImage(a.scroll[0]), worldMapOptionalImage(a.scroll[1]), worldMapOptionalImage(a.scroll[2]),
@@ -709,6 +686,7 @@ func (t *townScreen) WorldMapTick() ui.TownAction {
 	}
 	s := t.worldMap
 	s.frame++
+	t.worldFlag1Frame++
 	if (s.selected < 0 && s.returnMission == 0) || len(s.route) == 0 {
 		return ui.TownAction{}
 	}
@@ -1090,7 +1068,7 @@ func (f *FrontEnd) WorldMapSweep() (string, error) {
 	fixed := []fixedAsset{
 		{"background", a.background != nil}, {"path mask", a.path != nil},
 		{"route stamp", a.ball != nil},
-		{"current-position flag", len(a.flag) > 0}, {"hover flag", a.available != nil},
+		{"current-position flag", len(a.flag) > 0}, {"hover flag", len(a.available) > 0},
 		{"destination cross", len(a.cross) > 0},
 	}
 	for i := range a.scroll {

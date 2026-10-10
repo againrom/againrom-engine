@@ -15,6 +15,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   the hero. Missions 30, 60, 81, 90, 130, 131 and 151 change the same way
   when their roles are missing; in mission 130 a party without the
   companion wins at the start.
+- [BASE] On the world map the task's flag now stands above the red cross, as in
+  the original: it shows while the pointer is over a task and stays on the chosen
+  task through the whole journey, waving all the time. The red cross draws
+  itself once and then stays whole instead of starting over.
+
 - [BASE] In the tavern after mission 100, the speaker who offers the new
   catapult shows the siege engine's statistics and picture in the upper left
   panel, as in the original. Before, that panel stayed empty.

@@ -84,8 +84,8 @@ func TestReleaseWorldMapEnterHastensTravel(t *testing.T) {
 			w.steady("the tick before Enter", shown)
 			w.key("enter")
 			w.steady("Enter", len(w.route))
-			if got, want := w.screen.WorldMapView().Cross, w.screen.worldMap.assets.cross[1]; got != want {
-				t.Fatalf("Enter drew Cross frame %v, want the frame of counter %d, %v", got, w.frames+1, want)
+			if got, want := w.screen.WorldMapView().Cross, w.screen.worldMap.assets.cross[w.frames-1]; got != want {
+				t.Fatalf("Enter drew Cross frame %v, want the held last frame for counter %d, %v", got, w.frames+1, want)
 			}
 			pressed := w.ticks()
 			opened := w.idleUntil(nil)
