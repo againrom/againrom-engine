@@ -970,3 +970,6 @@ pkg/game.TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath
 pkg/game.TestReleaseRoomTipStyleAndLayoutFromInstall
 pkg/game.TestReleaseFreshPartyBodyKeepsItsRowDwell
 pkg/game.TestReleaseTownRoomTraceIsUnchanged
+pkg/game.TestReleaseRandomSessionReplaysFromItsSeed
+pkg/game.TestReleaseOriginalRandomSession
+pkg/game.TestReleaseOriginalRandomMissionOne
