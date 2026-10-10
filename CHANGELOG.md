@@ -20,6 +20,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   Russian instead of wrong letters, and so do the other words the game reads
   from the install's text tables: menu and option captions, unit, building and
   spell names, the default hero's name and the help text.
+- [ROM1] In the character generator each of the four heroes starts on the
+  original's attributes and skill: Danath enters with Body 41, Agility 35,
+  Mind 20, Spirit 15 and Blade. The card under the attributes is laid out as
+  the town's character card, and the four attribute values and the points
+  left draw in the original's small gold font.
 
 ## 0.109.0
 

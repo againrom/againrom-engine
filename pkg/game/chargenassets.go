@@ -369,6 +369,11 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 	if l.Words.TipFont == "text" {
 		p.TipFont = p.Font
 	}
+	if vf := l.Detail.Stats.ValueFont; vf != nil {
+		if p.ValueFont, err = chargenFont(src, *vf); err != nil {
+			return nil, err
+		}
+	}
 	b, err := src.ReadFile(l.Words.Table)
 	if err != nil {
 		return nil, err
@@ -423,5 +428,8 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 	}
 	p.Font.Selector = a.Selector
 	p.NameFont.Selector = a.Selector
+	if p.ValueFont != nil {
+		p.ValueFont.Selector = a.Selector
+	}
 	return a, nil
 }

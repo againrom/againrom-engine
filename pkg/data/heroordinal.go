@@ -36,12 +36,42 @@ func (t HeroTraits) archetype() int {
 	return i
 }
 
+// HeroArchetype is one of npc.reg's four archetype sections: the four
+// statistics, the skill and the face the generator's Forward loads
+// (HERO-STAT-001, HERO-CHARGEN-083). Skill is stored one-based, the generator
+// skill index plus one (HERO-CHARGEN-082).
+type HeroArchetype struct {
+	Body, Reaction, Mind, Spirit int32
+	Skill, Face                  int32
+}
+
 func (n *NPCDefs) loadHeroDefaults(r *reg.Reg) {
 	for i, section := range []string{"MaleFighter", "FemaleFighter", "MaleMage", "FemaleMage"} {
 		if face, ok := r.GetInt(section, npcFaceKey); ok {
 			n.heroFaces[i] = face
 		}
+		a, complete := HeroArchetype{Face: n.heroFaces[i]}, true
+		for _, k := range []struct {
+			key string
+			to  *int32
+		}{{"Body", &a.Body}, {"Reaction", &a.Reaction}, {"Mind", &a.Mind}, {"Spirit", &a.Spirit}, {"Skill", &a.Skill}} {
+			v, ok := r.GetInt(section, k.key)
+			*k.to, complete = v, complete && ok
+		}
+		if complete {
+			n.archetypes[i], n.hasArchetype[i] = a, true
+		}
 	}
+}
+
+// HeroArchetype is the archetype section for a sex and class; false when the
+// registry lacks one of its five keys.
+func (n *NPCDefs) HeroArchetype(female, mage bool) (HeroArchetype, bool) {
+	if n == nil {
+		return HeroArchetype{}, false
+	}
+	i := HeroTraits{Female: female, Mage: mage}.archetype()
+	return n.archetypes[i], n.hasArchetype[i]
 }
 
 func (n *NPCDefs) loadHeroTemplate(r *reg.Reg, section string, id int32, flags string) {

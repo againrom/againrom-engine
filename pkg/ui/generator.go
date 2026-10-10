@@ -325,6 +325,17 @@ type GeneratorStats struct {
 	Budget       int                  `json:"budget"`
 	Cost         GeneratorCost        `json:"cost"`
 	Cite         []string             `json:"cite"`
+
+	// ValueAt is where a value's text starts inside its box; nil centres it.
+	ValueAt *GeneratorPoint `json:"value-at"`
+	// ValueFont is the values' and the counter's font; nil draws them in the
+	// text font.
+	ValueFont *GeneratorFont `json:"value-font"`
+	// ValueShadow is the ink of a shadow drawn one pixel right and down under
+	// the values and the counter; nil draws none.
+	ValueShadow *GeneratorInk `json:"value-shadow"`
+	// PoolAt is the counter's centre x and top y; nil centres it in Pool.
+	PoolAt *GeneratorPoint `json:"pool-at"`
 }
 
 // GeneratorCommand is one of Accept, Reset and Back.
@@ -412,6 +423,10 @@ type GeneratorDetail struct {
 	Refusals     GeneratorRefusals `json:"refusals"`
 	DefaultSkill *int              `json:"default-skill"`
 	Cite         []string          `json:"cite"`
+
+	// CardOffset moves the statistics card's canvas right of Card's origin,
+	// as TownCharacterView.CardOffset does.
+	CardOffset GeneratorPoint `json:"card-offset"`
 }
 
 // GeneratorTipText is one tip text: a whole file, or one section of a file.
