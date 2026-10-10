@@ -111,7 +111,7 @@ const defaultMarkers = false
 // missionUsage is the -mission flag's own help text. Named beside
 // markersUsage and for its reason: parse discards the flag set's output, so
 // a second copy of this string could drift with nothing anywhere to notice.
-const missionUsage = "override the startup campaign mission (default 10)"
+const missionUsage = "override the startup campaign mission (default: the first mission of the install's campaign registry)"
 
 // pickerUsage names the debug map-picker route (owner reversal: a normal
 // launch opens the main menu and NEW GAME there must not reach the picker
@@ -132,11 +132,16 @@ const pickerUsage = "debug: make NEW GAME open the former map picker (campaign a
 // "inert" is a property of the code and not a promise this comment makes.
 const chargenUsage = "accepted and ignored: character generation now runs whenever a campaign is started"
 
-// defaultCampaignMission is the campaign mission NEW GAME opens character
-// generation for, and -mission's own default when it is not given explicitly.
-// The map picker is reachable only through -picker, and only as what NEW GAME
-// opens instead of generation.
-const defaultCampaignMission = 10
+// startMission is the campaign mission NEW GAME opens character generation
+// for: -mission when given, otherwise front.NewGameMission, read from the
+// installed campaign registry. The map picker is reachable only through
+// -picker, and only as what NEW GAME opens instead of generation.
+func (o options) startMission(front *game.FrontEnd) int {
+	if o.missionSet {
+		return o.mission
+	}
+	return front.NewGameMission()
+}
 
 // skillNone is the resolved -skill value that means the flag was not given:
 // data.SkillGeneral, which is ALREADY not a slot any hero can be trained in
@@ -352,9 +357,9 @@ type options struct {
 	mission        int
 
 	// missionSet is whether -mission was given ON THE COMMAND LINE, distinct
-	// from mission's VALUE: the flag defaults to defaultCampaignMission, so a
-	// bare launch and "-mission 10" parse to the same number and only this
-	// field tells them apart. run() reads it to decide whether -mission
+	// from mission's VALUE: a bare launch leaves mission at zero and
+	// startMission reads the installed campaign instead; only this field
+	// tells a bare launch from an explicit number. run() reads it to decide whether -mission
 	// bypasses the main menu as a direct entry, or a bare launch instead
 	// leaves the number for NEW GAME to open when it is pressed.
 	missionSet bool
@@ -422,7 +427,7 @@ func parse(args []string) (options, error) {
 	})
 	fs.BoolVar(&o.originalRandom, "original-random", false, "draw every placed random consumer from the original game's random number generator")
 	fs.BoolVar(&o.picker, "picker", false, pickerUsage)
-	fs.IntVar(&o.mission, "mission", defaultCampaignMission, missionUsage)
+	fs.IntVar(&o.mission, "mission", 0, missionUsage)
 	// -chargen IS BOUND TO A THROWAWAY (0140). The flag must still PARSE — an
 	// invocation that carries it has to keep working — but nothing may read it,
 	// because generation is unconditional now and a value nobody reads is the
@@ -580,15 +585,15 @@ func startupSoundOptions(store game.OptionsStore, o options) game.SoundOptions {
 	return sound
 }
 
-// armNewGameDoor decides what generation for o.mission is wired to, once app
-// and front are built and o.mission is already known to name a real mission
+// armNewGameDoor decides what generation for o.startMission is wired to, once app
+// and front are built and that mission is already known to name a real mission
 // (run's own MissionMap check at the call site). It is split out of run so a
 // test can drive App.HeadlessActivate("new game") against the exact wiring a
 // window gets, without opening one — see cmd/againrom's own
 // TestNewGameOpensGenerationDirectly.
 //
 // o.missionSet, NOT o.mission's value, decides between the two arms: the flag
-// already defaults to defaultCampaignMission, so the number alone cannot tell
+// value alone does not say whether the flag was given, so the number cannot tell
 // a bare launch from an explicit "-mission 10". SET means -mission is a direct
 // entry for development and bypasses the menu, arming generation before the
 // first window frame exactly as normal startup always did before the owner's
@@ -597,9 +602,9 @@ func startupSoundOptions(store game.OptionsStore, o options) game.SoundOptions {
 // SetNewGameChargen.
 //
 // begin IS ONE CLOSURE SHARED BY BOTH ARMS. Whichever door reaches it, a
-// confirmed spread does what front.NewGameBegin(o.mission) does for the
-// install's game: the first game opens that mission, the second game commits
-// its new campaign and shows its first town.
+// confirmed spread does what front.NewGameBegin(o.startMission(front)) does
+// for the install's game: the first game opens that mission, the second game
+// commits its new campaign and shows its first town.
 func armNewGameDoor(app *ui.App, front *game.FrontEnd, o options) error {
 	// A base that ships no generation art opens its first mission from NEW GAME
 	// (front.App installed that); there is no generation for -mission to open.
@@ -609,7 +614,7 @@ func armNewGameDoor(app *ui.App, front *game.FrontEnd, o options) error {
 		}
 		return nil
 	}
-	begin := front.NewGameBegin(o.mission)
+	begin := front.NewGameBegin(o.startMission(front))
 	if o.missionSet {
 		return app.OpenChargen(ui.NewChargen(front.ChargenSetup()), begin)
 	}
@@ -763,9 +768,6 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 2
 		}
-		if !o.missionSet {
-			o.mission = match.Profile.Mission()
-		}
 	case o.base != "" || errors.As(baseErr, &partial):
 		fmt.Fprintln(stderr, "againrom:", baseErr)
 		return 2
@@ -892,7 +894,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		// a window touches, so the headless run and the windowed one agree about
 		// whether a mission can be started.
 		if !o.picker {
-			line, err := front.MissionLine(o.mission)
+			line, err := front.MissionLine(o.startMission(front))
 			if err != nil {
 				fmt.Fprintln(stderr, "againrom:", err)
 				return 1
@@ -904,7 +906,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			// runs the real decision — starting mission N and, where a successor
 			// comes back, starting that mission too — rather than reporting a guess
 			// (front.AdvanceLine's own doc).
-			advance, err := front.AdvanceLine(o.mission)
+			advance, err := front.AdvanceLine(o.startMission(front))
 			if err != nil {
 				fmt.Fprintln(stderr, "againrom:", err)
 				return 1
@@ -971,7 +973,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	// route front.App already wired above through SetChargenGate.
 	//
 	// -mission N, GIVEN EXPLICITLY (o.missionSet, not o.mission's value: the
-	// flag already defaults to 10, so the number alone cannot tell a bare
+	// flag's value alone does not say it was given, so it cannot tell a bare
 	// launch from "-mission 10"), is the one case that still bypasses the
 	// menu — a direct entry for development, arming generation before the
 	// first window frame exactly as normal startup always did before the
@@ -1005,8 +1007,8 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	if o.picker {
 		app.SetNewGameDirect(nil)
 	} else {
-		if _, ok := game.MissionMap(o.mission); !ok {
-			fmt.Fprintf(stderr, "againrom: %d names no mission\n%s\n", o.mission, usage)
+		if _, ok := game.MissionMap(o.startMission(front)); !ok {
+			fmt.Fprintf(stderr, "againrom: %d names no mission\n%s\n", o.startMission(front), usage)
 			return 2
 		}
 		if err := armNewGameDoor(app, front, o); err != nil {

@@ -187,7 +187,7 @@ func shopOrdinaryEffect(magic data.Collection, kind uint8, budget int64, capacit
 }
 
 func shopCastEffect(fighter bool, budget int64, t *mapload.Table, r shopDrawSource) (generatedEffect, bool) {
-	ids := []uint16{1, 13, 14, 20, 11}
+	ids := []uint16{1, 13, 14, 20, 11} // SHOP-121
 	if fighter {
 		ids = []uint16{20, 11}
 	}

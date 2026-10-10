@@ -82,7 +82,7 @@ func (w *World) initializeROM2Script() {
 		return
 	}
 	w.rom2 = &rom2ScriptState{}
-	w.rom2.Scenario[768] = 10
+	w.rom2.Scenario[768] = 10 // R2-ENGINE-045, R2-SESSION-023
 	for _, g := range w.groups {
 		w.rom2.Groups = append(w.rom2.Groups, rom2GroupActivity{Owner: g.owner, Group: g.group})
 	}
@@ -135,7 +135,7 @@ func (w *World) rom2Check(c ScriptCheck) (int32, bool) {
 		v, _ := w.ROM2ScenarioValue(c.Args[0])
 		return v, true
 	case ScriptCheckObjective:
-		index := int64(752) + int64(c.Args[0])
+		index := int64(752) + int64(c.Args[0]) // R2-ENGINE-045, DIV-2354
 		if index < 0 || index >= 1024 {
 			return 0, true
 		}
@@ -183,7 +183,7 @@ func (w *World) rom2CellEffect(key uint16, layer int32) bool {
 		return false
 	}
 	for _, e := range w.effects {
-		l := int32(-1)
+		l := int32(-1) // R2-ENGINE-053, DIV-2354
 		switch e.Spell {
 		case 3:
 			l = 0
@@ -213,7 +213,7 @@ func (w *World) rom2Instant(in ScriptInstant, obs *castObs) bool {
 	case ScriptInstantSetScenario:
 		w.setROM2Scenario(in.Args[0], in.Args[1])
 	case ScriptInstantObjective:
-		index, mode := int64(752)+int64(in.Args[0]), in.Args[1]
+		index, mode := int64(752)+int64(in.Args[0]), in.Args[1] // R2-ENGINE-046
 		if index < 0 || index >= 1024 {
 			return true
 		}

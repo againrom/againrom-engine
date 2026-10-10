@@ -23,6 +23,7 @@ func TestInstanceWeightLegacyCitySalesKeepImportPolicy(t *testing.T) {
 	// The old snapshot had no city topology, ordered stock or live load carrier.
 	s.OriginalCity.Version, s.CityObjects = 3, nil
 	legacyCityFixtureIdentities(&s)
+	restore := legacyCompanionRegistry(f, 22)
 	for i := range s.Party {
 		clearLegacyItemWeights(&s.Party[i])
 		s.Party[i].Carry.LiveLoad, s.Party[i].Carry.OrderedStacks = nil, nil
@@ -32,7 +33,9 @@ func TestInstanceWeightLegacyCitySalesKeepImportPolicy(t *testing.T) {
 		clearLegacyItemWeights(p)
 		p.Carry.LiveLoad, p.Carry.OrderedStacks = nil, nil
 	}
-	if _, town, err := f.Restore(s); err != nil || !town {
+	_, town, err := f.Restore(s)
+	restore()
+	if err != nil || !town {
 		t.Fatal("legacy city sale LOAD", town, err)
 	}
 	if !reflect.DeepEqual(f.Carried, s.Party) || f.Town.cityObjects != nil {

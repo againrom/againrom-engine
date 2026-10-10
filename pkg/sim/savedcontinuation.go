@@ -173,6 +173,7 @@ func (w *World) savedProjectile(id uint16) *SavedProjectile {
 
 // The default arm includes unused switch entries inside13..64. Picture-specific
 // notification effects stay outside this local coordinate/clock consumer.
+// ANIM-143, DIV-944.
 func savedAttachedProjectile(picture int32) bool {
 	switch picture {
 	case 18, 24, 28, 40, 44, 48, 52, 54, 56, 62, 64, 20, 30:
@@ -494,7 +495,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 			p.Z += (p.ActionZ - p.Z) / p.ActionSegments
 		}
 		p.Phase = 0
-		switch p.Picture {
+		switch p.Picture { // ANIM-PHASECLOCK-028
 		case 60:
 			p.Phase = p.ActionPhase - 1
 		case 51:

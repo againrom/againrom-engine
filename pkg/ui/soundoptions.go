@@ -303,7 +303,7 @@ func (a *App) stepSoundOptions(in appInput) bool {
 	return false
 }
 
-const speechTestSample = "mf_merc/select2.wav"
+const speechTestSample = "mf_merc/select2.wav" // VIDEO-SFX-085, DIV-2122
 
 func (a *App) playSpeechTest() {
 	bank := a.namedSounds()

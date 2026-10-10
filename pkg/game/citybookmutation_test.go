@@ -95,6 +95,11 @@ func cityBookFixture(t *testing.T, oldRange uint8, distinct, second, weapon bool
 	params := make([]int32, 22)
 	params[1], params[2], params[4], params[6], params[8], params[21] = 17, 1, 1, 8, 1, 77
 	resources.Table.Spells = append(rows, dbEntry{name: "second spell", params: params})
+	// The shelf's book code is the installed Book_Fire row, where the shipped
+	// table holds it.
+	items := make(dbCollection, 0x16)
+	items[0x15].name = "Book_Fire"
+	resources.Table.MagicItems = items
 	load := func(raw []byte) *FrontEnd {
 		f := &FrontEnd{InstallResources: resources}
 		if _, town, err := f.RestoreOriginal(raw); err != nil || !town {

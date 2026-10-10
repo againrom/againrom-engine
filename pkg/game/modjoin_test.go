@@ -13,7 +13,7 @@ func joinFixtureFront(t *testing.T) *FrontEnd {
 	t.Helper()
 	c := Campaign{Main: []int{30, 40}, Chapters: map[int]Chapter{
 		30: {Mission: 30, AddHero: []int{22}, Inn: []int{30, 31}, InnNPC: []int{22, 5}},
-		40: {Mission: 40, AddHero: []int{25}, Inn: []int{40}, InnNPC: []int{7}},
+		40: {Mission: 40, AddHero: []int{23}, Inn: []int{40}, InnNPC: []int{7}},
 		50: {Mission: 50, Inn: []int{50}, InnNPC: []int{8}},
 	}}
 	return &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Table: &mapload.Table{}}}
@@ -56,6 +56,33 @@ func TestSetModCompanionsRefusesWhatTheCampaignDoesNotBearOut(t *testing.T) {
 	// SetMods leaves the recorded conditions in place whichever call comes first.
 	if err := f.SetMods(f.Table.Rules, mod.Set{Base: "rom1-en"}, false); err != nil || !f.townInstall().holdsCompanion(30, 22) {
 		t.Fatalf("SetMods dropped the conditions: %v", err)
+	}
+}
+
+// The town companion is whatever the registry's AddHero arrays name: the
+// fixture's chapter 40 grants 23, so a join naming 23 is a town join and 25,
+// which no AddHero names, is not.
+func TestTownCompanionIsTheRegistryAddHero(t *testing.T) {
+	f := joinFixtureFront(t)
+	c := f.Campaign.Value()
+	if !c.townGrants(22) || !c.townGrants(23) || c.townGrants(25) || c.townGrants(0) {
+		t.Fatal("townGrants does not follow the AddHero arrays")
+	}
+	if err := f.SetModCompanions(mod.CompanionData{Joins: []mod.CompanionJoin{joinOf(40, 23, 7)}}); err != nil {
+		t.Fatalf("a join naming the chapter-40 grant was refused: %v", err)
+	}
+	if !f.townInstall().holdsCompanion(40, 23) {
+		t.Fatal("the chapter-40 grant is not held")
+	}
+	var none Campaign
+	if none.townGrants(22) {
+		t.Fatal("a campaign with no AddHero grants a town companion")
+	}
+	// A city document grafts the companion the registry grants, and no other.
+	if !nativeCityGraftableMember(mapload.PartyMember{CompanionNPC: 23}, c) ||
+		nativeCityGraftableMember(mapload.PartyMember{CompanionNPC: 23}, none) ||
+		nativeCityGraftableMember(mapload.PartyMember{CompanionNPC: 25}, c) {
+		t.Fatal("the graftable companion does not follow the AddHero arrays")
 	}
 }
 

@@ -16,6 +16,22 @@ func (f *FrontEnd) Base() base.Match {
 	return f.Archives.Base
 }
 
+// NewGameMission is the mission a new game opens: the base profile's own
+// first mission where it names one, otherwise the installed campaign's first
+// mission, otherwise the profile default.
+func (f *FrontEnd) NewGameMission() int {
+	p := f.Base().Profile
+	if p.Limits.FirstMission > 0 {
+		return p.Limits.FirstMission
+	}
+	if f != nil {
+		if n, ok := f.Campaign.Value().FirstMission(); ok {
+			return n
+		}
+	}
+	return p.Mission()
+}
+
 // DirectNewGame is the new game of a base that ships no character generation:
 // mission n opened on a fresh town with the default party at normal difficulty.
 // Obtaining the opener commits nothing, as NewGameOpener's own.

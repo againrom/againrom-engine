@@ -7,11 +7,6 @@ import (
 	"againrom/pkg/mod"
 )
 
-// townGrantedCompanion is the one campaign companion a town grants on arrival
-// (the AddHero record of the chapter-30 town). The other AddHero values the
-// campaign registry carries are handed over on a map and join there.
-const townGrantedCompanion = 22
-
 // SetModCompanions records the join conditions the mods declare. Each names a
 // companion the campaign's town grants and a tavern conversation of that
 // town's own list; a condition the campaign does not bear out is refused with
@@ -33,8 +28,8 @@ func (f *FrontEnd) SetModCompanions(d mod.CompanionData) error {
 		if !ok {
 			return bad("chapter %d is not a chapter of this install's campaign", j.Chapter)
 		}
-		if j.Companion != townGrantedCompanion {
-			return bad("companion %d joins on a map, not in a town; a town grants companion %d only", j.Companion, townGrantedCompanion)
+		if !c.townGrants(j.Companion) {
+			return bad("companion %d joins on a map, not in a town; no AddHero of this install's campaign grants it", j.Companion)
 		}
 		if !slices.Contains(ch.AddHero, j.Companion) {
 			return bad("the town of chapter %d does not grant companion %d", j.Chapter, j.Companion)

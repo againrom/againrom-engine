@@ -138,7 +138,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 	if h.HasSpellbook {
 		e.SourceBinding.ClassFlags |= 2
 	}
-	if !e.Humanoid && (e.TypeID == 0x47 || e.TypeID == 0x48) {
+	if !e.Humanoid && (e.TypeID == 0x47 || e.TypeID == 0x48) { // UNIT-SPELL-007, DIV-1730
 		e.SourceBinding.ClassFlags |= 6
 	}
 	if e.AlwaysHits {

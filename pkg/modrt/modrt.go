@@ -30,6 +30,7 @@ import (
 	"go.starlark.net/starlarkstruct"
 	"go.starlark.net/syntax"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/rules"
 )
@@ -125,13 +126,13 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells}, nil
 }
 
-// LanguageFor is the language a mod's text is read in on a base: "ru" for the
-// Russian install, "en" for every other.
+// LanguageFor is the language a mod's text is read in on a base: the locale
+// whose code ends the base id, else the reference language.
 func LanguageFor(base string) string {
-	if strings.HasSuffix(base, "-ru") {
-		return "ru"
+	if l, ok := locale.ByBaseSuffix(base); ok {
+		return l.Code
 	}
-	return "en"
+	return locale.Fallback
 }
 
 // shared holds what every mod's game handle edits.

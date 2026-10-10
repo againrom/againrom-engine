@@ -2061,6 +2061,11 @@ package storyguard
 // CommentBytes rises for the shop shelf tests: the plain-shelf pool doc and
 // its class constants and the shelf population, beard and sale witnesses,
 // new code, including this paragraph.
+// CommentBytes rises for the hardcode census: the docs of the new pkg/locale
+// record table and its site tests, the installed-field readers of the town
+// companion, the legacy city companion, the book codes and the first mission,
+// and the claim and divergence IDs cited at the remaining sites, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2084,5 +2089,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8605837,
+	CommentBytes: 8614211,
 }

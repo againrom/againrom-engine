@@ -1391,14 +1391,14 @@ func TestMissionFlag(t *testing.T) {
 		}
 	})
 
-	t.Run("mission 10 is the default, unset, and picker is explicit", func(t *testing.T) {
+	t.Run("mission is unset by default, and picker is explicit", func(t *testing.T) {
 		o, err := parse(nil)
 		if err != nil {
 			t.Fatalf("parse: %v", err)
 		}
-		if o.mission != defaultCampaignMission || o.picker || o.missionSet {
-			t.Errorf("defaults = mission %d, picker %t, missionSet %t; want mission %d, picker false, missionSet false",
-				o.mission, o.picker, o.missionSet, defaultCampaignMission)
+		if o.mission != 0 || o.picker || o.missionSet {
+			t.Errorf("defaults = mission %d, picker %t, missionSet %t; want mission 0, picker false, missionSet false",
+				o.mission, o.picker, o.missionSet)
 		}
 		o, err = parse([]string{"-mission", "7"})
 		if err != nil {
@@ -1414,8 +1414,8 @@ func TestMissionFlag(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parse: %v", err)
 		}
-		if o.mission != defaultCampaignMission || !o.missionSet {
-			t.Errorf("-mission 10 parsed as mission %d, missionSet %t; want %d, true", o.mission, o.missionSet, defaultCampaignMission)
+		if o.mission != 10 || !o.missionSet {
+			t.Errorf("-mission 10 parsed as mission %d, missionSet %t; want 10, true", o.mission, o.missionSet)
 		}
 		o, err = parse([]string{"-picker"})
 		if err != nil {

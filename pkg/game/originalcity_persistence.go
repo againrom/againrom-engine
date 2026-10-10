@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
@@ -217,8 +218,8 @@ func validateCityPartyIDs(dto *SnapshotOriginalCity, document *sav.CityProvenanc
 		}
 		party[i] = binding.Baseline
 		party[i].ID = ""
-		if dto.Version < 7 {
-			party[i].ID, party[i].CompanionNPC = legacyCityPartyIdentity(c)
+		if dto.Version < 7 && c.Hero {
+			party[i].ID, party[i].CompanionNPC = "hero", 0
 		}
 	}
 	mapload.NameParty(party)
@@ -230,12 +231,34 @@ func validateCityPartyIDs(dto *SnapshotOriginalCity, document *sav.CityProvenanc
 	return nil
 }
 
-func legacyCityPartyIdentity(c sav.Character) (string, int) {
+// legacyCityPartyIdentity is the identity a city save before version 7 gave
+// source character c: the starting hero, or the town companion whose npc.reg
+// record selects c's Humans row at the chapter that grants it (REG-SCN-098:
+// [npc22] selects rows 28 and 29). Without an install only the hero is known;
+// validateOriginalCityBaseline settles the companion against the registry.
+func (in townInstall) legacyCityPartyIdentity(c sav.Character) (string, int) {
 	if c.Hero {
 		return "hero", 0
 	}
-	if c.DefRow == 28 || c.DefRow == 29 {
-		return "npc:22", 22
+	if in.table == nil || in.table.Humans == nil {
+		return "", 0
+	}
+	chapters := make([]int, 0, len(in.campaign.Chapters))
+	for n := range in.campaign.Chapters {
+		chapters = append(chapters, n)
+	}
+	sort.Ints(chapters)
+	for _, chapter := range chapters {
+		for _, npc := range in.campaign.Chapters[chapter].AddHero {
+			for _, mage := range []bool{false, true} {
+				for _, female := range []bool{false, true} {
+					server, ok := in.table.NPC.CampaignServerID(int32(npc), chapter, mage, female)
+					if ok && data.FindHumanByServerID(in.table.Humans, server) == int(c.DefRow) {
+						return fmt.Sprintf("npc:%d", npc), npc
+					}
+				}
+			}
+		}
 	}
 	return "", 0
 }
@@ -275,7 +298,7 @@ func (in townInstall) validateOriginalCityBaseline(state *originalCitySaveState)
 	}
 	if state.partyImportVersion < 7 {
 		for i, c := range persistent {
-			restored[i].ID, restored[i].CompanionNPC = legacyCityPartyIdentity(c)
+			restored[i].ID, restored[i].CompanionNPC = in.legacyCityPartyIdentity(c)
 		}
 	}
 	mapload.NameParty(restored)

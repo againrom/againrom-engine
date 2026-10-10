@@ -94,7 +94,7 @@ func modJoinRoster(f *FrontEnd) (out []string) {
 
 func modJoinHas(f *FrontEnd) bool {
 	for _, p := range f.Carried {
-		if p.CompanionNPC == townGrantedCompanion {
+		if p.CompanionNPC == shippedTownCompanion {
 			return true
 		}
 	}
@@ -184,7 +184,7 @@ func TestReleaseModJoinWaitsForTheTavernTalk(t *testing.T) {
 		t.Fatalf("modded arrival: chapter %d roster %v", f.Town.Chapter(), modJoinRoster(f))
 	}
 	before := currentTownSave(t, f)
-	if got := modJoinSavedAddHero(t, before); len(got) != 1 || got[0] != townGrantedCompanion {
+	if got := modJoinSavedAddHero(t, before); len(got) != 1 || got[0] != shippedTownCompanion {
 		t.Fatalf("the SAV before the talk holds AddHero %v, want the pending grant", got)
 	}
 	if _, err := modItemReload(t, before, true); err == nil {

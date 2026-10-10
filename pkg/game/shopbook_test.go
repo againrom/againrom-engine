@@ -47,11 +47,15 @@ func shopBookFixtureTable() *mapload.Table {
 	spells[8] = shopBookSpellRow{name: "Too Dear", school: 1, price: 1001}
 	spells[9] = shopBookSpellRow{name: "Short Row", school: 1, price: 99, short: true}
 	spells[32] = shopBookSpellRow{name: "Outside Mask", school: 1, price: 99}
+	// The Book_<school> rows sit where the shipped table holds them, so the
+	// codes come out non-monotonic in school order.
+	items := make(dbCollection, 0x18)
 	names := data.ItemNames{}
-	for _, code := range shopBookCodeBySchool[1:] {
-		names[code] = "Книга"
+	for row, school := range map[int]string{0x15: "Fire", 0x14: "Water", 0x13: "Air", 0x16: "Earth", 0x17: "Astral"} {
+		items[row].name = "Book_" + school
+		names[data.ItemCode(0x0e00|row)] = "Книга"
 	}
-	return &mapload.Table{Spells: spells, Names: names}
+	return &mapload.Table{Spells: spells, Names: names, MagicItems: items}
 }
 
 func TestBookPoolUsesInstalledCostAndNonMonotonicSchoolCodes(t *testing.T) {
@@ -284,4 +288,31 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 				f.Carried[0].KnownSpells, len(f.Shop.Table()), f.Town.Gold())
 		}
 	})
+}
+
+// A book code is the code of the row the installed MagicItems table names
+// Book_<school>: moving that row moves the code, and a school with no such row
+// stocks no book.
+func TestBookCodeIsTheInstalledBookRow(t *testing.T) {
+	table := shopBookFixtureTable()
+	items := append(dbCollection(nil), table.MagicItems.(dbCollection)...)
+	items[0x15].name, items[3].name = "", "Book_Fire"
+	items[0x17].name = ""
+	table.MagicItems = items
+	codes := shopBookCodes(table)
+	if codes != [6]data.ItemCode{0, 0x0e03, 0x0e14, 0x0e13, 0x0e16, 0} {
+		t.Fatalf("book codes = %#04x", codes)
+	}
+	for _, item := range shopBookPool(table, 1000) {
+		spell, _ := item.Instance().BookSpell()
+		if spell == 5 {
+			t.Fatal("a school with no Book row stocked a book")
+		}
+		if (spell == 10 || spell == 7) && item.Code != 0x0e03 {
+			t.Fatalf("spell %d code = %#04x, want the moved Fire row", spell, item.Code)
+		}
+	}
+	if shopBookLabel(&mapload.Table{}) != "" {
+		t.Fatal("a table with no Book row labels the books shelf")
+	}
 }
