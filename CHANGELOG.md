@@ -16,6 +16,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   spells that have none (3, 7, 8, 12, 17 and 19), a siege rider no longer
   shows a spell bolt, and the smoke trail of a bolt draws its frames in the
   original's order.
+- [ROM2] A first-town save loads on an install whose town text lacks the inn
+  conversation.
 
 ## 0.110.0
 

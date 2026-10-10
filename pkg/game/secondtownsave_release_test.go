@@ -155,9 +155,12 @@ func secondTownNamedSave(t *testing.T, f *FrontEnd, app *ui.App, out, name strin
 	return raw
 }
 
-func secondTownCold(t *testing.T, out, name string) (*FrontEnd, *ui.App) {
+func secondTownCold(t *testing.T, out, name string, prepare ...func(*FrontEnd)) (*FrontEnd, *ui.App) {
 	t.Helper()
 	f := secondGameFront(t)
+	for _, p := range prepare {
+		p(f)
+	}
 	app := f.App("cold first town")
 	app.Layout(1024, 768)
 	f.ConfigureSaveSeams(app, SaveStore{Dir: out}, OriginalStore{}, nil)
