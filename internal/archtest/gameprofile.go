@@ -27,7 +27,7 @@ import (
 // comparison function (strings, bytes, slices, cmp, reflect.DeepEqual) taking
 // one; len of an identity; a switch on an identity or a case naming an
 // identity constant; an index into a map keyed by Game or Campaign, or by an
-// identity; a call answering one bool from a Game or Campaign receiver or
+// identity or an identity constant; a return of an identity constant; a call answering one bool from a Game or Campaign receiver or
 // argument, or such a function taken as a value; a read of a bool Edition
 // field; a non-bool Edition field compared with a constant, a datum used as a
 // flag; a use of a bool variable named for a game (rom1, rom2, first game,
@@ -272,6 +272,14 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 			case *ast.IndexExpr:
 				if m, ok := typeUnder(info.TypeOf(n.X)).(*types.Map); ok && isGameType(m.Key()) || s.identity(n.Index) && !s.dataName(n.Index) {
 					add(n, "looks up a game")
+				} else if s.identityConst(n.Index) {
+					add(n, "looks up a game by a literal key")
+				}
+			case *ast.ReturnStmt:
+				for _, r := range n.Results {
+					if s.identityConst(r) {
+						add(r, "answers a game literal")
+					}
 				}
 			case *ast.CallExpr:
 				s.called[ast.Unparen(n.Fun)] = true

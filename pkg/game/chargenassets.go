@@ -296,12 +296,18 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 	}
 	for i, c := range d.Commands {
 		for j, key := range []string{c.Off, c.On} {
+			if key == "" {
+				continue
+			}
 			pic, err := readChargenBMP(src, key)
 			if err != nil {
 				return nil, err
 			}
 			if err = chargenSize(pic, c.Size[0], c.Size[1], key); err != nil {
 				return nil, err
+			}
+			if c.Keyed {
+				pic = keyBlack(pic)
 			}
 			p.NavButtons[i][j] = pic
 		}

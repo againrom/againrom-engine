@@ -103,6 +103,7 @@ did.
 | `pkg/mapload/spawn.go` `Resolve` | `Table.UnitKeys` |
 | `pkg/mapload/spell.go` `SpellRules` | `Table.SpellArms` |
 | `pkg/mod/order.go` `Applies` (2) | `base.AppliesTo` |
+| `pkg/game/mods.go` `BaseID` fallback | `base.Undetected().ID`: the profile pkg/base gives an install it did not identify |
 | `pkg/game/campaignservice.go` `tableGame` | `tableEdition`: the table's `Edition` |
 
 The scan shapes, `ProfileAllowed` and `CheckProfile` are unchanged.

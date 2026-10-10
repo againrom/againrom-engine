@@ -49,15 +49,33 @@ func decodeSecondGenerator(raw json.RawMessage) (*secondGenerator, error) {
 	return &g, nil
 }
 
-// secondGeneratorCampaign is the campaign part of the second game's
-// description. A part that does not decode is a build defect.
-var secondGeneratorCampaign = func() *secondGenerator {
-	g, err := decodeSecondGenerator(generatorDescriptions["rom2"].Campaign)
-	if err != nil {
-		panic(err)
+// secondGeneratorCampaigns are the decoded campaign parts of the generator
+// descriptions that carry one, by description name. A part that does not
+// decode is a build defect.
+var secondGeneratorCampaigns = func() map[string]*secondGenerator {
+	out := map[string]*secondGenerator{}
+	for name, d := range generatorDescriptions {
+		if len(d.Campaign) == 0 {
+			continue
+		}
+		g, err := decodeSecondGenerator(d.Campaign)
+		if err != nil {
+			panic(err)
+		}
+		out[name] = g
 	}
-	return g
+	return out
 }()
+
+// secondGeneratorCampaign is the campaign part of the generator description
+// the profile's edition names, or an error when that description has none.
+func (f *FrontEnd) secondGeneratorCampaign() (*secondGenerator, error) {
+	name := f.Base().Profile.Edition().Generator
+	if g := secondGeneratorCampaigns[name]; g != nil {
+		return g, nil
+	}
+	return nil, fmt.Errorf("generator %q has no second-game campaign part", name)
+}
 
 // generatorTemplate is the Humans row a hero picture names, by name.
 func generatorTemplate(humans data.Collection, name string) (data.HumanDef, int, bool) {
@@ -125,9 +143,13 @@ func secondGeneratorWeapon(g *secondGenerator, t *mapload.Table, mage, female bo
 // the chosen picture with the result's statistics, school skills cleared,
 // the fifth skill and the chosen skill at their levels, and the chosen
 // skill's weapon in place of the row's own (R2-ENGINE-290). Item modifiers
-// and the experience the original computes are not carried (DIV-2772).
+// and the experience the original computes are not carried (DIV-2772). A
+// description without a campaign part makes no party.
 func secondGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
-	g := secondGeneratorCampaign
+	g, err := f.secondGeneratorCampaign()
+	if err != nil {
+		return nil
+	}
 	female := chargenChoiceIndex(res, chargenChoiceSex) != 0
 	mage := chargenChoiceIndex(res, chargenChoiceClass) != 0
 	skill := chargenChoiceIndex(res, chargenChoiceSkill)
@@ -172,7 +194,10 @@ func secondGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMemb
 // slots set from the class and the sex, the session difficulty and the
 // Player's opening gold (R2-ENGINE-283, R2-SESSION-077, R2-SESSION-131).
 func (f *FrontEnd) startSecondGenerated(res ui.ChargenResult) error {
-	g := secondGeneratorCampaign
+	g, err := f.secondGeneratorCampaign()
+	if err != nil {
+		return err
+	}
 	level, err := campaignDifficulty(int64(res.Difficulty))
 	if err != nil {
 		return err

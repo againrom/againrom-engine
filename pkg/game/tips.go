@@ -8,31 +8,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-// The character generator's tip texts.
-const (
-	// ChargenFighterTipPath and ChargenMageTipPath are chrgen1f.txt and
-	// chrgen1m.txt. THE LETTERS ARE CLASS, NOT SEX (contract's "The 1f/1m
-	// trap"; TOWN-187, corrected at research 8990406, an ancestor of this
-	// story's pin): chrgen1f.txt is the fighter's text and chrgen1m.txt the
-	// mage's, established from both files' own shipped English wording, not
-	// from the filename convention graphics.res's equipment/ tree
-	// coincidentally shares.
-	ChargenFighterTipPath = mainPrefix + "text/tips/chrgen1f.txt"
-	ChargenMageTipPath    = mainPrefix + "text/tips/chrgen1m.txt"
-	// ChargenDetailTipPath is chrgen2.txt, TOWN-187's second popup text
-	// (1022 spec B5): the original replaces the first popup's text with this
-	// node, in place, once the detailed page opens, with no class branch.
-	ChargenDetailTipPath = mainPrefix + "text/tips/chrgen2.txt"
-)
-
-// ChargenSelectTipPaths are the pre-create popup's step texts chrsel1..3
-// (TOWN-518).
-var ChargenSelectTipPaths = [3]string{
-	mainPrefix + "text/tips/chrsel1.txt",
-	mainPrefix + "text/tips/chrsel2.txt",
-	mainPrefix + "text/tips/chrsel3.txt",
-}
-
 // loadTip constructs one room popup and tests the global option once.
 func (t *townScreen) loadTip(room townRoom) {
 	if t == nil || t.sess == nil {

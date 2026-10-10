@@ -136,7 +136,11 @@ var allow = map[string][]string{
 	// tree ships, and pkg/audio's own empty allow-set (above) is what keeps
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
-	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale"},
+	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
+		"pkg/ui/systemclick"},
+	// The system's double-click setting is a platform leaf: it reads the
+	// operating system and knows no screen.
+	"pkg/ui/systemclick": {},
 	"cmd/cutscenehelper": {"pkg/video"},
 	"cmd/audioprobe":     {"pkg/video"},
 	"pkg/game":           {"pkg/"},
@@ -479,6 +483,12 @@ func externalAllowed(pkg, imp string) bool {
 
 	if pkg == "pkg/modrt" {
 		return imp == starlarkModule || strings.HasPrefix(imp, starlarkModule+"/")
+	}
+
+	// The macOS double-click reading calls the Objective-C runtime without
+	// cgo.
+	if pkg == "pkg/ui/systemclick" && imp == "github.com/ebitengine/purego/objc" {
+		return true
 	}
 
 	if pkg == "pkg/render/debugtext" {

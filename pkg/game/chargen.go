@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapload"
@@ -165,13 +166,20 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 	return setup
 }
 
-// generator is the profile's generator description; a front end whose
-// profile names none reads the first game's.
+// generator is the generator description the profile's edition names. Every
+// edition names one.
 func (f *FrontEnd) generator() *ui.GeneratorDescription {
-	if l := GeneratorDescription(f.Base().Profile); l != nil {
-		return l
+	return GeneratorDescription(f.Base().Profile)
+}
+
+// generator is the generator description the install's profile names; an
+// install assembled without archives reads the first game's edition.
+func (in *InstallResources) generator() *ui.GeneratorDescription {
+	var m base.Match
+	if in != nil && in.Archives != nil {
+		m = in.Archives.Base
 	}
-	return heroNameGenerator()
+	return GeneratorDescription(m.Profile)
 }
 
 // generatorCost is the cumulative cost of a statistic standing at v:
@@ -199,22 +207,6 @@ func firstGeneratorPresets(f *FrontEnd, setup *ui.ChargenSetup) {
 			setup.PresetSkills[i] = int(a.Skill)
 		}
 	}
-}
-
-// chargenTipPath is the tip panel's own class-conditional address (1018 spec
-// behaviours 1, 2; TOWN-187, "the class-conditional, not gender-conditional,
-// first popup"): 0 (Fighter, the class row's own un-cycled opening index) to
-// ChargenFighterTipPath, any other value to ChargenMageTipPath. Pulled out of
-// ChargenSetup as its own function because the class row's Start is 0 in
-// every setup this tree currently builds (no caller seeds it, unlike the
-// skill row's own -skill precedent), so the mage branch has no path to it
-// through ChargenSetup alone; this function is what lets a test exercise
-// both branches directly.
-func chargenTipPath(classStart int) string {
-	if classStart != 0 {
-		return ChargenMageTipPath
-	}
-	return ChargenFighterTipPath
 }
 
 // chargenDerivedNames are the labels the consequence block shows, in the

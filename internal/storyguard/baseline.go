@@ -2095,6 +2095,14 @@ package storyguard
 // description, the controller's request rule, pause seam and area select,
 // the music areas decoder, the mission music wiring, -nomusic and their
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the one room button panel builder: the docs of
+// panelComposition, panelArt, buildButtonPanel and the panels built through
+// it, the keyed and pressed-only generator command and the new tests, new
+// code, including this paragraph.
+// CommentBytes rises for the one double-click detector: the docs of
+// pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
+// archtest double-click scan, the Load list's row press, the roster's pair
+// key and their tests, new code, including this paragraph.
 // CommentBytes rises for the game profile switch: the docs of the campaign
 // service's new answers, the file readers, the placement keys, spell arms and
 // Players policy the definition table carries, the edition's cutscene, tip
@@ -2122,5 +2130,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8640381,
+	CommentBytes: 8650846,
 }

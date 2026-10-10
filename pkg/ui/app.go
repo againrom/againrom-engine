@@ -17,6 +17,7 @@ import (
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/render/text"
+	"againrom/pkg/ui/systemclick"
 	"againrom/pkg/video"
 )
 
@@ -101,6 +102,9 @@ type appInput struct {
 	CursorX, CursorY int
 	PrimaryPressed   bool // primary mouse button went down this tick
 	PrimaryReleased  bool // ...and came up this tick
+	// PrimaryDouble marks this tick's press as the second press of a double
+	// click. App.step sets it from the one detector (doubleclick.go).
+	PrimaryDouble bool
 
 	// SecondaryPressed is the secondary mouse button's PRESS EDGE. Its zero
 	// value is "not pressed", so every existing literal that does not name it
@@ -901,18 +905,18 @@ type App struct {
 	// townCursor is the pointer in the 640x480 town frame. It drives the shop
 	// table's hover popup and the click that sends a place home, and has no
 	// meaning on another screen.
-	townCursor          image.Point
-	headlessPointer     image.Point
-	hasHeadlessPointer  bool
-	headlessUnfocused   bool
-	hasTownCursor       bool
-	townSurfacePress    buttonLatch
-	townSurfaceClick    TownSurfaceControl
-	townSurfaceAt       time.Time
-	townSurfaceKey      string
-	townSurfaceReleased bool
-	townSurfaceRevision uint64
-	dialoguePress       dialoguePointerPress
+	townCursor         image.Point
+	headlessPointer    image.Point
+	hasHeadlessPointer bool
+	headlessUnfocused  bool
+	hasTownCursor      bool
+	townSurfacePress   buttonLatch
+	// clicks is the one double-click detector (doubleclick.go).
+	clicks doubleClick
+	// townSurfacePairKey is the occupant key of the cell the previous town
+	// surface press hit.
+	townSurfacePairKey string
+	dialoguePress      dialoguePointerPress
 	// noticePress is an outcome panel's button press latch (MENU-116).
 	noticePress buttonLatch
 	// noticePressSerial is the notice serial the outcome latch was taken on.
@@ -956,6 +960,9 @@ type App struct {
 	// shopButtonPress latches the shop's command buttons by index.
 	shopButtonPress buttonLatch
 	shopUseTap      *shopUseTap
+	// shopPressDouble is whether the shop's held press was the second press
+	// of a double click; its tap release reads it.
+	shopPressDouble bool
 	shopDragOrigin  ShopControl
 	// shopDragOriginBase is the shelf/pack list base at the press. The
 	// visible-cell index may change under a held wheel gesture; retaining the
@@ -988,15 +995,20 @@ type App struct {
 	chargenPress             buttonLatch
 	chargenHover             chargenControl
 	chargenHoverText         string
-	chargenChoiceClick       chargenControl
-	chargenChoiceAt          time.Time
+	// chargenPairControl is the control the generator's previous press hit. A
+	// double click acts as one only on the control its first press hit
+	// (DIV-1493); elsewhere its second press is a single press.
+	chargenPairControl chargenControl
 	// Each surface's own chrgen instances (VIDEO-SFX-058..060). The
 	// pre-create page's close stops its own.
 	preCreateSounds SFXVoices
 	detailedSounds  SFXVoices
 	menuSounds      SFXVoices
 	hallSounds      SFXVoices
-	chargenRepeat   chargenRepeat
+	// interfaceGenerator is the generator description whose ok.wav the main
+	// menu and the Hall of Fame request.
+	interfaceGenerator *GeneratorDescription
+	chargenRepeat      chargenRepeat
 	// tipCycles are the pre-create and detailed guided cycles. Like the
 	// original's statics they outlive every generator page (TOWN-519).
 	tipCycles [2]guidedCycle
@@ -1108,8 +1120,7 @@ func (a *App) OpenChargen(c *Chargen, begin func(ChargenResult) (MapOpener, erro
 	if !a.flow.armChargen(c, begin, ScreenMenu) {
 		return errors.New("OpenChargen: nil model")
 	}
-	a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = buttonLatch{}, chargenNone, "", chargenNone
-	a.chargenChoiceAt = time.Time{}
+	a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenPairControl = buttonLatch{}, chargenNone, "", chargenNone
 	a.chargenRepeat = chargenRepeat{}
 	a.syncMusic()
 	return nil
@@ -1467,6 +1478,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	squareBefore, squareRevision := a.townEntryState()
 	screenBefore := a.flow.screen
 	a.pointer = image.Pt(in.CursorX, in.CursorY)
+	in.PrimaryDouble = a.clicks.observe(in, now)
 	a.blink.tick(now)
 	a.tooltipSurface = nil
 	a.validateDialoguePointer(in)
@@ -1597,7 +1609,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	// then permit the next physical press/release gesture normally.
 	if a.suppressPrimaryRelease {
 		a.suppressPrimaryRelease = !in.PrimaryReleased
-		in.PrimaryPressed, in.PrimaryReleased, in.Viewer.PrimaryDown = false, false, false
+		in.PrimaryPressed, in.PrimaryReleased, in.PrimaryDouble, in.Viewer.PrimaryDown = false, false, false, false
 	}
 	if a.suppressSecondaryRelease {
 		a.suppressSecondaryRelease = !in.SecondaryReleased
@@ -1641,8 +1653,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 				return false
 			case "back":
 				if c.Back() {
-					a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = buttonLatch{}, chargenNone, "", chargenNone
-					a.chargenChoiceAt = time.Time{}
+					a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenPairControl = buttonLatch{}, chargenNone, "", chargenNone
 					return false
 				}
 			}
@@ -2373,7 +2384,7 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		// A press on any of the eight buttons requests the menu's own ok.wav
 		// unless it plays (VIDEO-SFX-060).
 		if hit != 0 {
-			a.menuSounds.RequestFor("main-menu", a.soundPlayer, a.namedSounds(), ChargenSoundOK)
+			a.menuSounds.RequestFor("main-menu", a.soundPlayer, a.namedSounds(), a.interfaceGenerator.OKSound())
 		}
 		a.sel.Press(hit)
 	case in.PrimaryReleased:
@@ -2679,9 +2690,6 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 		return
 	}
 	shopView, inShop := townShopScreen(a.flow.town)
-	if inShop {
-		a.expireShopUseTap(now)
-	}
 	surface, inSurface := townSurfaceScreen(a.flow.town)
 	if inSurface {
 		a.tooltipSurface = &surface
@@ -2756,24 +2764,17 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 						presser.TownSurfacePress(c)
 					}
 					if c.Kind == TownSurfaceControlCell {
+						// The roster's double click runs its press again at
+						// the second press's point, then acts on the cell it
+						// hits (MENU-146, TAVERN-CLICK-019), when that cell
+						// holds the first press's occupant (DIV-2870). The
+						// school takes every press as a single one.
 						key := surface.Cells[c.Index].Key
-						double := surface.Kind == TownSurfaceTavern && a.townSurfaceReleased && surface.Tip.Revision == a.townSurfaceRevision && key == a.townSurfaceKey && c == a.townSurfaceClick && !a.townSurfaceAt.IsZero() && now.Sub(a.townSurfaceAt) >= 0 && now.Sub(a.townSurfaceAt) <= 350*time.Millisecond
-						a.clickTownSurface(c, double)
+						a.clickTownSurface(c, surface.Kind == TownSurfaceTavern && in.PrimaryDouble && key == a.townSurfacePairKey)
+						a.townSurfacePairKey = key
 						a.townSurfaceAnimationTick = 0
-						a.townSurfaceKey, a.townSurfaceReleased = key, false
-						a.townSurfaceRevision = surface.Tip.Revision
-						if double {
-							a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
-						} else {
-							a.townSurfaceClick, a.townSurfaceAt = c, now
-						}
 						a.syncViewerLayout()
-					} else {
-						a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
 					}
-				}
-				if !a.townSurfacePress.Holds() {
-					a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
 				}
 			}
 		}
@@ -2784,11 +2785,6 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 				if fire && c.Kind != TownSurfaceControlCell {
 					a.clickTownSurface(c, false)
 					a.syncViewerLayout()
-				} else if fire {
-					a.townSurfaceReleased = true
-				} else {
-					a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
-					a.townSurfaceReleased = false
 				}
 			} else {
 				a.resetTownSurfacePair()
@@ -2849,6 +2845,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 			// build for it to guard against. It mirrors the release arm's own reset
 			// on the same terms dollSuppressOwner's guard (viewer.go) already stands
 			// on.
+			a.shopPressDouble = in.PrimaryDouble
 			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
 				if c, hit := shopGridControlAt(shopView, p); a.shopUseTap != nil && (!hit || c != a.shopUseTap.control) {
 					a.shopUseTap = nil
@@ -2984,7 +2981,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 					// no notion of a held key; this is the one place a table or pack click
 					// learns whether it moves one unit or the whole stack.
 					c.Shift = in.ShiftHeld
-					if !a.useShopTap(shopView, c, now) {
+					if !a.useShopTap(shopView, c, a.shopPressDouble) {
 						a.clickShop(c)
 					}
 					a.syncViewerLayout()
@@ -3493,9 +3490,6 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 				}
 			}
 			a.chargenPress.Clear()
-			if in.PrimaryPressed {
-				a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
-			}
 			return
 		}
 	}
@@ -3516,14 +3510,16 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 		}
 	}
 	// The statistic and skill panels act on the left press (VIDEO-SFX-059).
-	// The statistic panel also takes a double-click's second click and the
-	// held-button repeat as presses; the skill panel ignores both.
+	// The statistic panel also takes a double click's second press and the
+	// held-button repeat as presses, a second step attempt at that press's
+	// point; the skill panel ignores both (MENU-146).
 	if repeat && chargenStatControl(hit) {
 		a.activateChargenDetailed(c, hit, true)
 	}
 	if in.PrimaryPressed {
 		a.chargenPress.Press(int(hit), hit != chargenNone)
-		double := a.chargenDoubleClick(c, hit, now)
+		double := in.PrimaryDouble && hit == a.chargenPairControl
+		a.chargenPairControl = hit
 		if chargenStatControl(hit) || hit >= chargenSkill0 && hit <= chargenSkill4 && !double {
 			a.activateChargenDetailed(c, hit, true)
 		}
@@ -3579,7 +3575,6 @@ func (a *App) activateChargenDetailed(c *Chargen, id chargenControl, pointer boo
 	case id == chargenBack:
 		c.Back()
 		a.flow.msg, a.chargenHoverText = "", ""
-		a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	case id == chargenReset:
 		c.Reset()
 		a.flow.msg, a.chargenHoverText = "", ""
@@ -3607,10 +3602,6 @@ func chargenStatControl(id chargenControl) bool {
 	return id >= chargenStatMinus0 && id <= chargenStatPlus3
 }
 
-// chargenDoubleClick classifies one pointer press on the showing page and
-// records it. A press on the control the previous single press chose, inside
-// the page's double-click window, is the second click of a double-click; the press
-// after it starts a new pair (DIV-1493).
 // chargenPressed is the generation page control the press latched, or
 // chargenNone.
 func (a *App) chargenPressed() chargenControl {
@@ -3618,16 +3609,6 @@ func (a *App) chargenPressed() chargenControl {
 		return chargenControl(c)
 	}
 	return chargenNone
-}
-
-func (a *App) chargenDoubleClick(c *Chargen, hit chargenControl, now time.Time) bool {
-	double := hit != chargenNone && a.chargenChoiceClick == hit && !a.chargenChoiceAt.IsZero() && now.Sub(a.chargenChoiceAt) <= ms(c.keys().DoubleClickMS)
-	if double || hit == chargenNone {
-		a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
-	} else {
-		a.chargenChoiceClick, a.chargenChoiceAt = hit, now
-	}
-	return double
 }
 
 // Hover explanations use the shared overlay; the message strip keeps the
@@ -3746,20 +3727,12 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 			// boundary in either direction used to leave the latch exactly
 			// as the last un-swallowed event left it, letting a release on
 			// a live control this press never touched call
-			// activatePreCreate — which, for a choice control, also arms
-			// the double-click window and can make a later, genuine click
-			// read as the second half of a double click it was never part
-			// of. Clearing it here mirrors what the un-swallowed release
-			// path already does unconditionally at its own end (below).
+			// activatePreCreate. Clearing it here mirrors what the
+			// un-swallowed release path already does unconditionally at its
+			// own end (below).
 			a.chargenPress.Clear()
-			if in.PrimaryPressed {
-				a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
-			}
 			return
 		}
-	}
-	if a.chargenChoiceClick != chargenNone && (a.chargenChoiceAt.IsZero() || now.Sub(a.chargenChoiceAt) > ms(c.keys().DoubleClickMS)) {
-		a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	}
 	hit := chargenNone
 	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
@@ -3768,9 +3741,11 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 	a.chargenHover = hit
 	if in.PrimaryPressed {
 		a.chargenPress.Press(int(hit), hit != chargenNone)
+		double := in.PrimaryDouble && hit == a.chargenPairControl
+		a.chargenPairControl = hit
 		// Difficulty, hero, OK and the amulet act on the left press
 		// (VIDEO-SFX-058); the name field keeps its completed release.
-		if double := a.chargenDoubleClick(c, hit, now); hit != chargenNone && hit != chargenName {
+		if hit != chargenNone && hit != chargenName {
 			a.activatePreCreate(c, hit, true, double)
 			if a.flow.screen != ScreenChargen || c.Stage() != PreCreateStage {
 				a.chargenPress.Clear()
@@ -3903,7 +3878,6 @@ func (a *App) preCreateForward(c *Chargen, continued bool) {
 		a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), c.buttonSound(chargenForward))
 	}
 	c.Forward()
-	a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	a.flow.msg, a.chargenHoverText = "", ""
 	a.preCreateSounds.Stop()
 }
@@ -3914,7 +3888,6 @@ func (a *App) preCreateBack(c *Chargen, pressed bool) {
 	if pressed {
 		a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), c.buttonSound(chargenBack))
 	}
-	a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	a.flow.escape()
 	a.preCreateSounds.Stop()
 }
@@ -5021,6 +4994,7 @@ func (a *App) Run() error {
 	ebiten.SetWindowClosingHandled(true)
 	defer ebiten.SetWindowClosingHandled(false)
 	ebiten.SetWindowTitle(a.title)
+	a.clicks.read = systemclick.Read
 	w, h := monitorSize()
 	configureStartupWindow(w, h, runtime.GOOS)
 	a.PlayStartupCutscenes()

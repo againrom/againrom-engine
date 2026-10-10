@@ -1,16 +1,34 @@
 package ui
 
-// The chrgen members of sfx.res the main menu, the Hall of Fame and the school
-// room request, named by their archive path under sfx/ (VIDEO-SFX-059,
-// VIDEO-SFX-060). The character generator reads its own sounds from its
-// description.
-const ChargenSoundOK = "chrgen/ok.wav"
+// The generator description names the chrgen members of sfx.res that the main
+// menu, the Hall of Fame and the school room also request (VIDEO-SFX-059,
+// VIDEO-SFX-060). Those screens read them from the description the profile's
+// edition names, so one place names each sound.
 
-// ChargenSkillSounds is the member a skill slot requests, fighter row then
-// mage row; index 0..4 is stored skill slot 1..5 (VIDEO-SFX-059). The ten
-// live in chrgen's skill directory, as the shipped literal
-// SFX\ChrGen\Skill\MAstral.wav in RES-CASE-036 spells.
-var ChargenSkillSounds = [2][5]string{
-	{"chrgen/skill/fsword.wav", "chrgen/skill/faxe.wav", "chrgen/skill/fclub.wav", "chrgen/skill/fpike.wav", "chrgen/skill/fbow.wav"},
-	{"chrgen/skill/mfire.wav", "chrgen/skill/mwater.wav", "chrgen/skill/mair.wav", "chrgen/skill/mearth.wav", "chrgen/skill/mastral.wav"},
+// OKSound is the pre-create page's continue member, ok.wav, which a press on a
+// main menu button and on the Hall of Fame OK also requests. A nil
+// description names none.
+func (d *GeneratorDescription) OKSound() string {
+	if d == nil {
+		return ""
+	}
+	return d.PreCreate.Forward.Sound
 }
+
+// SkillSound is the member the detailed page's skill slot requests for a
+// class, fighter 0 and mage 1; the school room requests the same member for
+// its cell in that class's column. Outside the description it is empty.
+func (d *GeneratorDescription) SkillSound(class, slot int) string {
+	if d == nil || class < 0 || class >= len(d.Detail.Classes) {
+		return ""
+	}
+	skills := d.Detail.Classes[class].Skills
+	if slot < 0 || slot >= len(skills) {
+		return ""
+	}
+	return skills[slot].Sound
+}
+
+// SetInterfaceGenerator names the generator description whose sounds the
+// main menu and the Hall of Fame request.
+func (a *App) SetInterfaceGenerator(d *GeneratorDescription) { a.interfaceGenerator = d }

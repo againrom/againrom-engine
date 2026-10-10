@@ -8,6 +8,19 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.111.0
+
+- [ROM1] In the character generator the four buttons read Accept, Restore,
+  Reset and Back from the top and are laid out as in the shop.
+- [BASE] A double click follows the system's double-click speed and distance
+  on every screen, as in the original; the tavern no longer wants a faster
+  double click than the rest of the game, and a hero's double click in the
+  first game's generator wants both clicks on one spot. In the Load list a
+  double click loads the save the first click selected, at the second click.
+  In the tavern a double click on a mercenary or a guest hires, dismisses or
+  talks even when the first click was let go off the card. In the character
+  generator a button held after a double click on + or - no longer keeps
+  stepping.
 - [BASE] A save taken while a spell, a burst or a shot is in flight keeps it:
   after loading, the spell or the shot flies on and lands with the same
   damage, as in the original. This includes a shot at a building.
@@ -18,8 +31,6 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   original's order.
 - [ROM2] A first-town save loads on an install whose town text lacks the inn
   conversation.
-
-## 0.110.0
 
 - [ROM1] In the character generator, Reset sets every attribute to 25 and the
   points to 100 as in the original, and the new Restore button returns the
@@ -52,6 +63,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   Mind 20, Spirit 15 and Blade. The card under the attributes is laid out as
   the town's character card, and the four attribute values and the points
   left draw in the original's small gold font.
+
+## 0.110.0
+
+Withdrawn; its changes are listed under 0.111.0.
 
 ## 0.109.0
 

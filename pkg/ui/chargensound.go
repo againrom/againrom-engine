@@ -111,12 +111,15 @@ const (
 
 // chargenRepeat counts App ticks on the detailed page while the left button
 // stays down. Its zero value has seen no tick, so the first tick counts as a
-// mouse message.
+// mouse message. A double click's second press leaves the left-button flag
+// clear, so a button held after it posts no repeat until the next press
+// (MENU-146).
 type chargenRepeat struct {
-	seen   bool
-	cursor image.Point
-	quiet  int
-	posted bool
+	seen        bool
+	cursor      image.Point
+	quiet       int
+	posted      bool
+	afterDouble bool
 }
 
 // tick reports whether this tick posts a repeat. A press or release of either
@@ -132,7 +135,10 @@ func (r *chargenRepeat) tickEvery(in appInput, delay, interval int) bool {
 	message := !r.seen || cursor != r.cursor || in.PrimaryPressed || in.PrimaryReleased ||
 		in.SecondaryPressed || in.SecondaryReleased || in.WheelY != 0
 	r.seen, r.cursor = true, cursor
-	if message || !in.Viewer.PrimaryDown {
+	if in.PrimaryPressed {
+		r.afterDouble = in.PrimaryDouble
+	}
+	if message || !in.Viewer.PrimaryDown || r.afterDouble {
 		r.quiet, r.posted = 0, false
 		return false
 	}

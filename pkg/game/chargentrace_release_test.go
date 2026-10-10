@@ -163,7 +163,11 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 		[]byte{255, 191, 152, 127, 102})
 	off := image.Pt(320, 20)
 	name := image.Pt(290, 322)
-	accept, reset, back, restore := image.Pt(554, 67), image.Pt(554, 114), image.Pt(554, 161), image.Pt(554, 208)
+	commands := map[string]image.Point{}
+	for _, c := range f.generator().Detail.Commands {
+		commands[c.Role] = centre(c.Rect.Rectangle())
+	}
+	accept, reset, back, restore := commands["play"], commands["reset"], commands["back"], commands["restore"]
 	tipClose := func(r image.Rectangle) image.Point {
 		c := ui.TipPanelCloseRect(r)
 		return c.Min.Add(c.Size().Div(2))

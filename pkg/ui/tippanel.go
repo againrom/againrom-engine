@@ -58,14 +58,9 @@ const (
 	tipPanelChromeH    = 61
 )
 
-var (
-	TownTipRect   = image.Rect(328, 0, 640, 200)
-	TavernTipRect = image.Rect(160, 0, 472, 200)
-	SchoolTipRect = image.Rect(0, 0, 456, 200)
-	// MissionTipRect is the mission popup in the campaign window
-	// (TRIG-TIPS-087).
-	MissionTipRect = image.Rect(10, 20, 370, 188)
-)
+// MissionTipRect is the mission popup in the campaign window
+// (TRIG-TIPS-087).
+var MissionTipRect = image.Rect(10, 20, 370, 188)
 
 // TipPanelTextRect is where the text is drawn and its fit is tested: the
 // list child itself (MENU-137).
