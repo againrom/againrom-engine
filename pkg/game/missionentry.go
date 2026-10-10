@@ -157,6 +157,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// itself would give one mission two behaviours depending on when it ran.
 	mw := ports.install.openMissionDriver(ms, r.units, mv.Viewer)
 	mw.cheats.difficulty = diff
+	mw.cheats.campaign = ports.rules().chatCampaign(r.town)
 	ports.audio.wireReplies(mw)
 	mw.view.SetPathfinding(ports.display.pathfinding)
 	mw.view.SetGraphicsOptions(ports.display.graphics)
@@ -178,8 +179,8 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if err := settleMission(r, mw, mv.Viewer, ms, fog, ports.profile); err != nil {
 		return preparedMap{}, err
 	}
-	if r.fresh() && ports.display.chicken {
-		mw.chatCommand("#Chicken")
+	if ports.display.chicken {
+		mw.launchUnlock(r.fresh())
 	}
 	// Commit fresh selection with the driver; LOAD keeps its validated campaign.
 	commitDriver := func() {
