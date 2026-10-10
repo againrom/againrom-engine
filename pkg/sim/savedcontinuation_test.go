@@ -153,7 +153,8 @@ func TestRetainedProjectile1162SignedTravelClocksAndCompletion(t *testing.T) {
 				case 60:
 					phase = tick - 1
 				}
-				if got.ActionPhase != tick || got.Phase != phase || got.ActionSegments != steps-tick || got.LastAction != 1 || got.Dir != 9 || got.ActionDir != 11 {
+				if got.ActionPhase != tick || got.Phase != phase || got.ActionSegments != steps-tick || got.LastAction != 1 || got.Dir != 11 || got.ActionDir != 11 {
+					// ANIM-139: an action-1 call with no target keeps actiondir and copies it to dir.
 					t.Fatal("clock/lifetime/retained directions", tick, got)
 				}
 				if picture == 34 || picture == 36 {

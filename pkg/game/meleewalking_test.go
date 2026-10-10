@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"againrom/pkg/mapload"
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 )
 
@@ -97,7 +96,7 @@ func meleeWalkRun(mw *mapWorld, ticks int, order func(n int)) []meleeBlow {
 		if e.AttackPhase == sim.AttackCharging && prev.AttackPhase != sim.AttackCharging {
 			bearing := -1
 			if v, ok := mw.entity(e.AttackTarget); ok {
-				bearing = terrain.EffectFacing(int(v.X-e.X)*256, int(v.Y-e.Y)*256)
+				bearing = EffectFacing(int(v.X-e.X)*256, int(v.Y-e.Y)*256)
 			}
 			out = append(out, meleeBlow{tick: n, body: (sim.FacingDir(e.Facing)*2 + 8) & 15, bearing: bearing, turning: e.Turning()})
 		}

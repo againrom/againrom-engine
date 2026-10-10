@@ -2,11 +2,8 @@ package sim
 
 import "fmt"
 
-// SavedProjectile is one Prj<id> section's sixteen leaves (sav.Projectile),
-// carried opaquely: this build has no live projectile registry —
-// pkg/game/projectiles.go is a cosmetic art loader and cast-event renderer,
-// not a persistent entity — so a restored section is never bound to a live
-// object and never simulated. docs/DIVERGENCES.md names the gap.
+// SavedProjectile is one Prj<id> section's sixteen leaves (sav.Projectile);
+// an armed record is advanced by its driver row (SavedProjectileDriver).
 type SavedProjectile struct {
 	ID uint16
 
