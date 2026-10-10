@@ -184,7 +184,7 @@ func TestTavernInteriorFamiliesDegradeIndependently(t *testing.T) {
 // roomSceneArt answers the art entries of a room scene in the ROM1
 // description.
 func roomSceneArt(room string) []town.ArtSpec {
-	for _, r := range rom1Town.Rooms {
+	for _, r := range ROM1TownDescription().Rooms {
 		if r.Name == room && r.Scene != nil {
 			return r.Scene.Art
 		}

@@ -35,22 +35,7 @@ func companionReportAudience(base EventAudience, mission, event int, defs *data.
 
 func (mw *mapWorld) eventAudience(event int) EventAudience {
 	m := mw.mission
-	if m.secondGame() {
-		audience := m.audience
-		audience.SecondGame = true
-		audience.NPCPresent = func(npc int) bool {
-			if npc < 0 || npc > 65535 {
-				return false
-			}
-			for id, key := range m.npcKeys {
-				if int(key) == npc {
-					if actor, exists := mw.world.Entity(id); exists && !actor.OffMap {
-						return true
-					}
-				}
-			}
-			return false
-		}
+	if audience, ok := m.campaign().eventAudience(mw); ok {
 		return audience
 	}
 	cast := speakerCast{actors: mw.speakerActors, alive: mw.entityAlive}
@@ -60,6 +45,28 @@ func (mw *mapWorld) eventAudience(event int) EventAudience {
 		defs = m.table.NPC
 	}
 	return companionReportAudience(m.audience, m.number, event, defs, mw.npcFaces, cast)
+}
+
+// secondGameAudience is the second game's speaker audience: a speaker is
+// present while an on-map unit carries its key.
+func (mw *mapWorld) secondGameAudience() EventAudience {
+	m := mw.mission
+	audience := m.audience
+	audience.SecondGame = true
+	audience.NPCPresent = func(npc int) bool {
+		if npc < 0 || npc > 65535 {
+			return false
+		}
+		for id, key := range m.npcKeys {
+			if int(key) == npc {
+				if actor, exists := mw.world.Entity(id); exists && !actor.OffMap {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	return audience
 }
 
 func scenarioEventAudience(base EventAudience, ms *Mission, event int, table *mapload.Table, faces map[int32]data.NPCFace) EventAudience {

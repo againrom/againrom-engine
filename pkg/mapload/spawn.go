@@ -330,7 +330,7 @@ const (
 // arm it took and no entry, never with an error: a table and a map are two files
 // that need not have been shipped together.
 func Resolve(u alm.Unit, t *Table) Resolution {
-	if t != nil && t.Game == base.GameROM2 {
+	if t != nil && t.Game.Edition().SecondUnitKeys {
 		return resolveROM2(u, t)
 	}
 	if int32(u.ClassID) >= unitsKeyFloor {

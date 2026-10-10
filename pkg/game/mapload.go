@@ -188,15 +188,15 @@ type MapView struct {
 // this story, so a caller with no bundle says so in the call.
 func LoadMapViewer(tiles *terrain.Tileset, data []byte, fallbackTitle string, markers Markers, layer StaticLayer,
 	structures StructureLayer) (*MapView, error) {
-	return LoadMapViewerFor(base.GameROM1, tiles, data, fallbackTitle, markers, layer, structures)
+	return LoadMapViewerFor("", tiles, data, fallbackTitle, markers, layer, structures)
 }
 
 // LoadMapViewerFor is LoadMapViewer reading the map the way game g's files are
-// laid out.
+// laid out; the empty game is the first.
 func LoadMapViewerFor(g base.Game, tiles *terrain.Tileset, data []byte, fallbackTitle string, markers Markers, layer StaticLayer,
 	structures StructureLayer) (*MapView, error) {
 	open := alm.Open
-	if g == base.GameROM2 {
+	if g.Edition().SecondMaps {
 		open = alm.OpenROM2
 	}
 	m, err := open(data)

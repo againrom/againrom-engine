@@ -114,7 +114,7 @@ func nonZeroTownScreen() *townScreen {
 		worldSelectedOnce:   map[int]bool{5: true},
 		resolver:            speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}},
 	}
-	ts.square = town.NewView(rom1Town, townSquareHost{ts}, ts.townProcess)
+	ts.square = town.NewView(ROM1TownDescription(), townSquareHost{ts}, ts.townProcess)
 	ts.tavernPage().Enter()
 	return ts
 }

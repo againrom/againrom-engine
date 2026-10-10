@@ -6,7 +6,6 @@ import (
 	"slices"
 	"time"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/bmp"
@@ -932,10 +931,7 @@ func missionOutcomeText(v *ui.Viewer, o sim.Outcome) string {
 // give one mission two behaviours depending on when it was called.
 func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Viewer,
 	src entrySource, faces FaceSource, npcFaces map[int32]data.NPCFace) *mapWorld {
-	if t != nil && t.Game == base.GameROM2 {
-		// The departure output selects the movie at acknowledgement.
-		v.SetCompletionCutscene("")
-	}
+	campaignOf(tableGame(t)).openMission(v)
 	normalizeMissionShieldLoadouts(ms, t)
 	// NO SCHEDULE. A mission's units are moved by its script and by the AI, and
 	// by nothing else. The owner saw it and asked for it out; the generator now
@@ -1007,11 +1003,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 			}
 		}
 	}
-	if mw.mission.secondGame() {
-		mw.mission.objectiveLabels = secondGameObjectiveLabels(src, ms.Number)
-		mw.mission.npcKeys = secondGameNPCKeys(ms, t)
-		mw.mission.failureText = secondGameFailureText(src, ms.Number)
-	}
+	mw.mission.campaign().loadMissionText(mw, src, ms, t)
 	// Start.IDs is parallel to the entering party. Later joiners are added by
 	// syncJoinedHeroes; guardedCharacterLost reads their current ownership.
 	mw.mission.guarded = guardedEntities(ms.Party, ms.Start.IDs)
@@ -1692,8 +1684,7 @@ func (mw *mapWorld) settleNotices() {
 	}
 
 	raised := m.ann.Sample(mw.world)
-	if m.secondGame() {
-		mw.settleSecondGameNotices()
+	if m.campaign().settleNotices(mw) {
 		return
 	}
 	if m.open {
@@ -1759,12 +1750,7 @@ func (mw *mapWorld) showOutcome() {
 	m.open, m.kind, m.payload, m.part, m.portrait = true, kind, nil, 0, false
 	m.outcomeShown = true
 	body := missionOutcomeText(mw.view, m.outcome)
-	if m.secondGame() && m.outcome == sim.OutcomeLost {
-		_, reason := mw.world.ScriptCounters()
-		if reason >= 2 && uint64(reason-2) < uint64(len(m.failureText)) && m.failureText[reason-2] != "" {
-			body = m.failureText[reason-2]
-		}
-	}
+	body = m.campaign().outcomeText(mw, body)
 	mw.view.SetNotice(body, kind)
 	// VIDEO-SFX-016 places the fixed cue after the outcome child is created.
 	// SetNotice above is this front end's child creation boundary.
@@ -1788,11 +1774,7 @@ func (mw *mapWorld) showOutcome() {
 // reads any event text when a map is loaded.
 func (mw *mapWorld) openDialogue(event int) bool {
 	m := mw.mission
-	game := base.GameROM1
-	if m.table != nil {
-		game = m.table.Game
-	}
-	payload, ok := ReadEventTextFor(m.src, game, m.number, event)
+	payload, ok := ReadEventTextFor(m.src, tableGame(m.table), m.number, event)
 	if !ok {
 		return false
 	}
@@ -1907,9 +1889,7 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 		return ui.NoticeStay, "", nil
 	}
 	mw.raiseMissionTip()
-	if m.secondGame() {
-		mw.closeNotice()
-		mw.settleSecondGameNotices()
+	if m.campaign().acknowledgeNotice(mw) {
 		return ui.NoticeStay, "", nil
 	}
 	if m.announced && !m.outcomeShown {
@@ -1935,7 +1915,7 @@ func (mw *mapWorld) raiseMissionTip() {
 	m := mw.mission
 	n := m.tips
 	m.tips = 0
-	if n == 0 || m.payload == nil || m.secondGame() || !mw.view.MissionTipsMode() {
+	if n == 0 || m.payload == nil || !m.edition().MissionTips || !mw.view.MissionTipsMode() {
 		return
 	}
 	text, ok := ReadShopTip(m.src, MissionTipPath(m.number, n))

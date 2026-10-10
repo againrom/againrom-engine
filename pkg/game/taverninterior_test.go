@@ -30,7 +30,7 @@ const (
 var tavernSounds = []string{"drink", "glotok", "steam", "water", "chair", "breath", "enter"}
 
 func tavernSoundKey(slot string) string {
-	for _, r := range rom1Town.Rooms {
+	for _, r := range ROM1TownDescription().Rooms {
 		if r.Scene == nil {
 			continue
 		}

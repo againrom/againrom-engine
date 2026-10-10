@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/base"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -18,16 +19,22 @@ import (
 //go:embed towns/rom1.json
 var rom1TownJSON []byte
 
-// rom1Town is the decoded ROM1 town description. A description that does not
-// decode, or names a hook or condition the ROM1 campaign does not answer, is a
-// build defect, so it stops the process at start. It is decoded in init
-// because the hooks it is checked against reach the description themselves.
-var rom1Town *town.Description
+// townDescriptions are the town descriptions a profile's edition can name, by
+// that name. A description that does not decode, or names a hook or condition
+// the campaign does not answer, is a build defect, so it stops the process at
+// start. They are decoded in init because the hooks they are checked against
+// reach the descriptions themselves.
+var townDescriptions map[string]*town.Description
 
 func init() {
-	rom1Town = mustDecodeTown(rom1TownJSON)
-	TownTipPath = rom1Town.Tip.Text
+	townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1TownJSON)}
+	TownTipPath = ROM1TownDescription().Tip.Text
 }
+
+// TownDescription is the town description the profile's edition names, or
+// nil when its game's town is not a composed square. Callers must not change
+// it.
+func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
 
 func mustDecodeTown(data []byte) *town.Description {
 	d, err := town.Decode(data, townVocabulary())
@@ -54,10 +61,11 @@ func townVocabulary() town.Vocabulary {
 }
 
 // ROM1TownDescription answers the ROM1 town description the square is built
-// from. Callers must not change it.
-func ROM1TownDescription() *town.Description { return rom1Town }
+// from: the description of the zero profile, which is the first game's.
+// Callers must not change it.
+func ROM1TownDescription() *town.Description { return TownDescription(base.Profile{}) }
 
-// TownTipPath is the square's tip text, as the description names it.
+// TownTipPath is the ROM1 square's tip text, as its description names it.
 var TownTipPath string
 
 // LoadTownSquareArt resolves the square's art from the install as the ROM1
@@ -65,7 +73,25 @@ var TownTipPath string
 // the error and the square falls back to the row-button layout; an optional
 // family that fails is named in Problems and leaves the others loaded.
 func LoadTownSquareArt(src terrain.EntrySource) (*town.Art, error) {
-	return town.LoadArt(rom1Town, townArtLoader{src})
+	return LoadTownSquareArtFor(ROM1TownDescription(), src)
+}
+
+// LoadTownSquareArtFor is LoadTownSquareArt over description d. A game with
+// no composed square loads no art.
+func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.Art, error) {
+	if d == nil {
+		return nil, nil
+	}
+	return town.LoadArt(d, townArtLoader{src})
+}
+
+// townDescription is the town description of the install's profile; a screen
+// bound to no install is the first game's.
+func (t *townScreen) townDescription() *town.Description {
+	if t == nil {
+		return ROM1TownDescription()
+	}
+	return TownDescription(t.in.profile())
 }
 
 // townArtLoader reads the composer's art keys from the install's containers.
@@ -173,7 +199,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 // over the presentation's process-scoped town state.
 func (t *townScreen) squareView() *town.View {
 	if t.square == nil {
-		t.square = town.NewView(rom1Town, townSquareHost{t}, t.townProcess)
+		t.square = town.NewView(t.townDescription(), townSquareHost{t}, t.townProcess)
 	}
 	return t.square
 }
@@ -381,7 +407,7 @@ func (t *townScreen) TownMusicTrack() (string, bool) {
 	if scene != ui.MusicTown {
 		return "", false
 	}
-	return rom1Town.Music.Track, true
+	return t.townDescription().Music.Track, true
 }
 
 // boundedPresentationRoll is one bounded presentation draw: the runtime's

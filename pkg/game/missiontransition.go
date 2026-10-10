@@ -94,19 +94,7 @@ func (t frontTransitions) clientWon(n int, ms *Mission) bool {
 }
 
 func (t frontTransitions) beforeAdvance(n int, ms *Mission, action ui.NoticeAction) string {
-	town, live := t.f.Town, t.f.live
-	if town == nil || town.second == nil || live == nil || live.mission == nil {
-		return ""
-	}
-	m := live.mission
-	completion := m.kind == ui.NoticeSuccess &&
-		(action == ui.NoticeAdvance && m.open || action == ui.NoticeVictory && (m.open || m.delayedVictory && !m.victoryTaken))
-	if completion {
-		if err := town.second.finish(n, ms.World); err != nil {
-			return err.Error()
-		}
-	}
-	return ""
+	return t.f.campaign().beforeAdvance(t.f, n, ms, action)
 }
 
 func (t frontTransitions) leave(n int, ms *Mission, action ui.NoticeAction) (ui.NoticeDest, string, ui.MapOpener) {
@@ -114,51 +102,13 @@ func (t frontTransitions) leave(n int, ms *Mission, action ui.NoticeAction) (ui.
 }
 
 func (t frontTransitions) finishWon(n int, ms *Mission) (int, string) {
-	if town := t.f.Town; town != nil && town.second != nil {
-		if err := town.second.finish(n, ms.World); err != nil {
-			return -1, err.Error()
-		}
-		if refused := t.f.CampaignSession.carryMissionHome(t.f.townInstall(), n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster); refused != "" {
-			return -1, refused
-		}
-		// The output reads the bank before the case stores (R2-ENGINE-148).
-		output := town.second.complete(ms.World)
-		if live := t.f.live; live != nil && live.view != nil {
-			movie := ""
-			if in := t.f.Archives; in != nil && in.Containers != nil {
-				movie = secondGameCompletionDirectory(in.Containers, output)
-			}
-			live.view.SetCompletionCutscene(movie)
-		}
-		town.won[n] = true
-		t.f.Offered = 0
-		for _, l := range town.second.available {
-			if l.kind == 1 {
-				t.f.Offered = l.id
-				break
-			}
-		}
-		return 0, ""
-	}
-	return t.f.FinishMissionWithRoster(n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster)
+	return t.f.campaign().finishWon(t.f, n, ms)
 }
 
 func (t frontTransitions) route(n, successor int) winRoute {
-	if t.f.Town != nil && t.f.Town.second != nil {
-		if successor < 0 {
-			return winStay
-		}
-		return winTown
-	}
-	return t.f.CampaignSession.routeAfterWin(t.f.Campaign.Value(), n, successor)
+	return t.f.campaign().route(t.f, n, successor)
 }
 
 func (t frontTransitions) opener(n int) ui.MapOpener { return t.f.MissionOpener(n) }
 
-func (t frontTransitions) returnToTown(n int) {
-	if t.f.Town != nil && t.f.Town.second != nil {
-		releaseWorldAudio(t.f.runtimeAudio(), t.f.endLive())
-		return
-	}
-	t.f.TownScreen().(*townScreen).beginWorldMapReturn(n)
-}
+func (t frontTransitions) returnToTown(n int) { t.f.campaign().returnToTown(t.f, n) }

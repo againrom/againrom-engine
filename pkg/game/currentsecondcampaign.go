@@ -9,7 +9,6 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/sim"
 )
 
 type currentSecondLocation struct{ Kind, ID int }
@@ -184,43 +183,21 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 }
 
 func validateAuthoredGame(doc *sav.DocumentData, a *currentActionData, game base.Game) error {
-	authored := base.GameROM1
-	if a != nil && a.Session != nil && a.Session.Game != "" {
+	var authored base.Game
+	if a != nil && a.Session != nil {
 		authored = a.Session.Game
 	}
-	if authored != game {
-		return fmt.Errorf("save game %s does not match installed game %s", authored, game)
+	if !base.SameGame(authored, game) {
+		return fmt.Errorf("save game %s does not match installed game %s", authored.Normal(), game.Normal())
 	}
-	if authored == base.GameROM2 {
-		if doc.Head.Mission == 0 {
-			if a.Session.Difficulty != nil {
-				native, err := campaignDifficulty(int64(*a.Session.Difficulty))
-				if err != nil || uint32(native) != doc.Head.Difficulty {
-					return fmt.Errorf("ROM2 city difficulty disagrees with its header")
-				}
-			}
-			if doc.World != nil || a.Session.Second == nil || a.Session.Second.validateTown() != nil || a.Program != nil || a.Policy != nil || a.Fog != nil || a.Pending != nil || len(a.PendingMessages) != 0 || len(a.Actions.Actors) != 0 || len(a.Held) != 0 || len(a.Bolts) != 0 || len(a.Heals) != 0 || len(a.Runs) != 0 || len(a.Options) != 0 || len(a.Animation) != 0 || len(a.DeathAges) != 0 || a.Manifest != nil || len(a.TerminalMotions) != 0 || len(a.VisualIdentities) != 0 || a.VisualNext != 0 || a.WorldMapReturn != nil || a.Session.MissionGold != nil || len(a.Party) == 0 || len(a.Roster) != 0 {
-				return fmt.Errorf("ROM2 save lacks its current town continuation")
-			}
-			for _, p := range a.Party {
-				if p.City == nil || p.Policy == nil || p.Base == nil {
-					return fmt.Errorf("ROM2 town lacks complete current city party")
-				}
-			}
-		} else if !secondSaveMission(int(doc.Head.Mission)) || doc.World == nil || a.Session.Second == nil || a.Session.Second.Current != (currentSecondLocation{1, int(doc.Head.Mission)}) || a.Session.Second.validate() != nil || a.Program == nil || a.Program.Dialect != sim.ScriptROM2 || a.Policy == nil || a.Policy.ROM2 == nil || a.Fog == nil {
-			return fmt.Errorf("ROM2 save lacks its current mission continuation")
-		}
-	} else if a != nil && (a.Session != nil && a.Session.Second != nil || a.Program != nil && a.Program.Dialect != sim.ScriptROM1 || a.Policy != nil && a.Policy.ROM2 != nil) {
-		return fmt.Errorf("ROM1 save contains ROM2 continuation")
-	}
-	return nil
+	return campaignOf(authored).validateAuthored(doc, a)
 }
 
 func validateOriginalGame(saved []byte, game base.Game) error {
 	doc, err := sav.DecodeDocumentData(saved)
 	if err != nil {
-		if game == base.GameROM2 {
-			return fmt.Errorf("ROM2 LOAD requires an authored current SAV: %w", err)
+		if refusal := campaignOf(game).undecodedSave(err); refusal != nil {
+			return refusal
 		}
 		sf, parseErr := sav.Open(saved)
 		if parseErr != nil {

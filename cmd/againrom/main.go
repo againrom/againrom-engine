@@ -840,7 +840,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		return 0
 	}
 	if o.mediaCheck {
-		front.Cutscenes = game.OpenCutscenes(root, game.CutsceneArchive(o.fourX, o.eightX))
+		front.Cutscenes = front.OpenCutscenes(game.CutsceneArchive(o.fourX, o.eightX))
 		fmt.Fprintf(stdout, "againrom: media witness build=%s assets=%s files=read-only\n", launchStamp(), root)
 		if err := front.WitnessMedia(stdout); err != nil {
 			fmt.Fprintln(stderr, err)
@@ -854,7 +854,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			return 1
 		}
 		helper := filepath.Join(filepath.Dir(executable), "cutscenehelper.exe")
-		front.Cutscenes = game.OpenCutscenes(root, game.CutsceneArchive(o.fourX, o.eightX))
+		front.Cutscenes = front.OpenCutscenes(game.CutsceneArchive(o.fourX, o.eightX))
 		fmt.Fprintf(stdout, "againrom: cutscene witness build=%s helper=%s assets=%s\n", launchStamp(), helper, root)
 		if err := front.WitnessCutscene(root, helper, o.cutsceneCheck, stdout); err != nil {
 			fmt.Fprintln(stderr, err)
@@ -936,7 +936,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		fmt.Fprintf(stderr, "againrom: %d mod(s) active, mod-set %s\n", len(modRun.Ordered), modRun.Set.Digest())
 	}
 	if o.movies {
-		front.Cutscenes = game.OpenCutscenes(root, game.CutsceneArchive(o.fourX, o.eightX))
+		front.Cutscenes = front.OpenCutscenes(game.CutsceneArchive(o.fourX, o.eightX))
 	}
 	app := front.App(fmt.Sprintf("againrom [%s %s]", filepath.Base(source), stamp))
 	app.SetMenuLabel(menuLabel())

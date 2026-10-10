@@ -4,20 +4,20 @@ import (
 	"strings"
 	"time"
 
-	"againrom/pkg/base"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
-func (m *missionNotices) secondGame() bool {
-	return m != nil && m.table != nil && m.table.Game == base.GameROM2
+// observeScriptMessages hands the messages the script raised this step to the
+// campaign service.
+func (mw *mapWorld) observeScriptMessages(messages []int32) {
+	mw.mission.campaign().scriptMessages(mw, messages)
 }
 
-func (mw *mapWorld) observeScriptMessages(messages []int32) {
+// observeSecondGameMessages takes the special message numbers the second
+// game's script raises and queues every other one as a dialogue.
+func (mw *mapWorld) observeSecondGameMessages(messages []int32) {
 	m := mw.mission
-	if !m.secondGame() {
-		return
-	}
 	for _, event := range messages {
 		switch event {
 		case 255:

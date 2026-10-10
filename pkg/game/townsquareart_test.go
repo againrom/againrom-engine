@@ -14,7 +14,7 @@ const townSquareArtPrefix = graphicsPrefix + "interface/town/"
 // squareMaskCodes is the description's required mask bytes.
 func squareMaskCodes() []uint8 {
 	var out []uint8
-	for _, b := range rom1Town.Mask.RequiredBytes {
+	for _, b := range ROM1TownDescription().Mask.RequiredBytes {
 		out = append(out, uint8(b))
 	}
 	return out
