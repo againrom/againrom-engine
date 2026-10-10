@@ -43,15 +43,26 @@ func (w *World) SetRandom(mode random.Mode, state uint64) {
 
 // OriginalRand is one raw rand() draw of an original stream, 0..32767. A
 // seeded stream answers the top 15 bits of one draw.
-func (w *World) OriginalRand() int32 {
-	if !w.rng.original {
-		return int32(w.rng.next() >> 49)
+func (w *World) OriginalRand() int32 { return w.rng.raw() }
+
+// raw is one draw of 0..32767: the original's rand() on an original stream,
+// the top 15 bits of one draw on a seeded stream.
+func (r *rng) raw() int32 {
+	if !r.original {
+		return int32(r.next() >> 49)
 	}
-	m := random.MSVC{State: uint32(w.rng.state)}
+	m := random.MSVC{State: uint32(r.state)}
 	v := m.Rand()
-	w.rng.state = uint64(m.State)
+	r.state = uint64(m.State)
 	return v
 }
+
+// aiRange is the AI module's range idiom, n*rand()/AImgr[0] with AImgr[0] =
+// 0x8000 (AI-RANGE-102, MAGIC-285): one raw draw whatever n is, answered in
+// [0, n). Every AI family site draws through it in both modes; only the raw
+// draw's source differs. n stays at or below 0x10000, where the original's
+// 32-bit product cannot wrap.
+func (r *rng) aiRange(n int32) int32 { return int32(int64(r.raw()) * int64(n) / 0x8000) }
 
 // next advances a seeded stream and returns its next 64-bit value.
 func (r *rng) next() uint64 {

@@ -45,11 +45,13 @@ var ownInOriginal = map[Name]bool{AmbientBirds: true, BoltFigures: true}
 func JoinsShared(name Name) bool { return !ownInOriginal[name] }
 
 // Session is what a save records of the service: the session seed, the mode
-// it ran in and, between missions, the shared stream's state.
+// it ran in, between missions the shared stream's state, and how many reseeds
+// the session has taken (original mode only).
 type Session struct {
-	Seed   uint64
-	Mode   Mode
-	Shared uint32
+	Seed    uint64
+	Mode    Mode
+	Shared  uint32
+	Reseeds uint32
 }
 
 // Shared is the shared stream while a mission holds it: the World's own
@@ -84,12 +86,10 @@ type Launch struct {
 	configured bool
 }
 
-// ItemStarDraws is how many draws the four item-star grids take at start-up.
-const ItemStarDraws = 4 * 1024 * 2
-
 // SetLaunch records the launch settings and begins the process's session.
 // In original mode the shared stream starts at seed 1, the item-star grids
-// take its first draws and sound initialisation reseeds it (SESS-083).
+// take its first draws and sound initialisation reseeds it (SESS-083); the
+// reseed discards the state the grids left.
 func (s *Service) SetLaunch(l Launch, clock uint64) {
 	l.configured = true
 	s.launch = l
@@ -98,11 +98,7 @@ func (s *Service) SetLaunch(l Launch, clock uint64) {
 		session.Seed = l.Seed
 	}
 	if l.Mode == Original {
-		start := MSVC{State: OriginalStartSeed}
-		for range ItemStarDraws {
-			start.Rand()
-		}
-		session.Shared = ReseedValue(session.Seed, SoundInit, start.State)
+		session.reseed(SoundInit)
 	}
 	s.Begin(session)
 }
@@ -136,39 +132,67 @@ func (s *Service) Cancel() { s.pending = nil }
 func (s *Service) LaunchSettings() Launch { return s.launch }
 
 // Fresh is the session a new game begins: the launch seed when one is fixed,
-// otherwise clock, in the launch mode, with the shared stream continuing
-// through the scenario constructor's reseed.
+// otherwise clock, in the launch mode. In original mode its count starts at
+// zero and the scenario constructor's reseed sets the shared stream, so a new
+// game does not depend on what the process drew before it.
 func (s *Service) Fresh(clock uint64) Session {
 	out := Session{Seed: clock, Mode: s.launch.Mode, Shared: s.SharedState()}
 	if s.launch.Fixed || !s.launch.configured {
 		out.Seed = s.launch.Seed
 	}
 	if out.Mode == Original {
-		out.Shared = ReseedValue(out.Seed, ScenarioConstructor, out.Shared)
+		out.Shared = 0
+		out.reseed(ScenarioConstructor)
 	}
 	return out
 }
 
-// Loaded is the session a LOAD begins from a saved session: its seed, the
-// launch mode, and the saved state carried into that mode through the load
-// path's two reseeds (SESS-083). A saved state from the other mode is folded
-// into the current one deterministically; a LOAD is never refused.
+// Loaded is the session a LOAD begins from a saved session: its seed, its
+// reseed count and the launch mode. In seeded mode it carries the saved
+// shared state unchanged. In original mode the load path's two reseeds
+// (SESS-083) set the shared state from the seed and the count. A LOAD is never
+// refused for the mode it was saved in.
 func (s *Service) Loaded(saved Session) Session {
-	out := Session{Seed: saved.Seed, Mode: s.launch.Mode, Shared: saved.Shared}
+	out := Session{Seed: saved.Seed, Mode: s.launch.Mode, Shared: saved.Shared, Reseeds: saved.Reseeds}
 	if out.Mode == Original {
-		out.Shared = MissionLoadState(out.Seed, out.Shared)
+		out.missionLoad()
 	}
 	return out
 }
 
-// MissionLoadState is the shared state after a mission or save load's two
-// reseeds: the mission loader's, then the AI manager's (SESS-083).
-func MissionLoadState(seed uint64, state uint32) uint32 {
-	return ReseedValue(seed, AIManager, ReseedValue(seed, MissionLoader, state))
+// MissionStart takes a mission start's two reseeds in the session being
+// prepared, else the running one, and answers the shared state they leave.
+func (s *Service) MissionStart() uint32 {
+	session := &s.session
+	if s.pending != nil {
+		session = s.pending
+	}
+	session.missionLoad()
+	if session == &s.session {
+		s.shared.State = session.Shared
+	}
+	return session.Shared
 }
 
-// FoldSeeded carries a seeded 64-bit state into an original 32-bit one.
-func FoldSeeded(state uint64) uint32 { return uint32(mix64(state)) }
+// MissionLoadState is the shared state a mission or save load's two reseeds
+// leave at count n: the mission loader's at n, then the AI manager's at n+1
+// (SESS-083).
+func MissionLoadState(seed uint64, n uint32) uint32 {
+	return ReseedValue(seed, AIManager, n+1)
+}
+
+// missionLoad takes the mission loader's and the AI manager's reseeds.
+func (s *Session) missionLoad() {
+	s.reseed(MissionLoader)
+	s.reseed(AIManager)
+}
+
+// reseed takes one reseed at site: the shared state becomes the value the
+// seed, the site and the count give, and the count advances.
+func (s *Session) reseed(site Site) {
+	s.Shared = ReseedValue(s.Seed, site, s.Reseeds)
+	s.Reseeds++
+}
 
 // UnfoldOriginal carries an original 32-bit state into a seeded 64-bit one.
 func UnfoldOriginal(state uint32) uint64 { return mix64(uint64(state) | 1<<32) }
@@ -303,17 +327,13 @@ const (
 	AIManager           Site = "ai-manager"
 )
 
-// Reseed moves the shared stream between missions to the value the session
-// gives site. The original takes it from a clock (DIV-2730).
-func (s *Service) Reseed(site Site) {
-	s.shared.State = ReseedValue(s.session.Seed, site, s.shared.State)
-}
-
 // ReseedValue is the state a reseed at site installs: the mix of the session
-// seed, the site and the state it replaces, so a session replays from its
-// seed and two reseeds at one site differ.
-func ReseedValue(seed uint64, site Site, state uint32) uint32 {
-	return uint32(mix64(DeriveSeed(seed, string(site)) ^ uint64(state)))
+// seed, the site and the session's reseed count n. The original takes it from
+// a clock (DIV-2730). It never reads the state it replaces, so what the
+// session drew between two reseeds, the town's time-paced draws among them,
+// does not reach the next value; two reseeds at one site differ by count.
+func ReseedValue(seed uint64, site Site, n uint32) uint32 {
+	return uint32(mix64(DeriveSeed(seed, string(site)) ^ uint64(n)))
 }
 
 // DeriveSeed mixes a seed with a name: FNV-1a over the name, then the

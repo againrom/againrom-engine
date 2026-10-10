@@ -191,7 +191,7 @@ func TestOriginalIntnIsRangeWrapper(t *testing.T) {
 	}
 }
 
-func TestReseedFollowsSeedSiteAndState(t *testing.T) {
+func TestReseedFollowsSeedSiteAndCount(t *testing.T) {
 	if ReseedValue(1, MissionLoader, 5) != ReseedValue(1, MissionLoader, 5) {
 		t.Fatal("reseed is not a function of its inputs")
 	}
@@ -199,6 +199,56 @@ func TestReseedFollowsSeedSiteAndState(t *testing.T) {
 		ReseedValue(1, MissionLoader, 5) == ReseedValue(1, AIManager, 5) ||
 		ReseedValue(1, MissionLoader, 5) == ReseedValue(1, MissionLoader, 6) {
 		t.Fatal("reseed ignores an input")
+	}
+}
+
+// TestReseedsIgnoreTheDrawsBetweenThem pins the original mode's reseeds to the
+// seed, the site and the count: the draws a session takes between two
+// reseeds, however many, leave the next mission's stream where it was, and
+// two mission starts of one session differ.
+func TestReseedsIgnoreTheDrawsBetweenThem(t *testing.T) {
+	start := func(between int) (Session, uint32, uint32, uint32) {
+		s := &Service{}
+		s.SetLaunch(Launch{Seed: 7, Fixed: true, Mode: Original}, 0)
+		town := s.Stream(TownAnimation)
+		for range between {
+			town.Raw()
+		}
+		fresh := s.Fresh(0)
+		s.Prepare(fresh)
+		first := s.MissionStart()
+		s.Commit()
+		for range between {
+			town.Raw()
+		}
+		before := s.SharedState()
+		second := s.MissionStart()
+		return s.Session(), first, second, before
+	}
+	a, a1, a2, aBefore := start(3)
+	b, b1, b2, bBefore := start(400)
+	if aBefore == bBefore {
+		t.Fatal("the town draws did not move the shared stream; the witness is empty")
+	}
+	if a1 != b1 || a2 != b2 || a != b {
+		t.Fatalf("the draws between reseeds reached the stream: %#x %#x %+v against %#x %#x %+v", a1, a2, a, b1, b2, b)
+	}
+	if a1 == a2 || a.Reseeds != 5 {
+		t.Fatalf("two mission starts gave %#x and %#x at count %d", a1, a2, a.Reseeds)
+	}
+	if a1 != MissionLoadState(7, 1) || a2 != MissionLoadState(7, 3) {
+		t.Fatal("a mission start is not the load reseeds at its count")
+	}
+	// A LOAD continues the saved count through the load path's two reseeds.
+	s := &Service{}
+	s.SetLaunch(Launch{Mode: Original, configured: true}, 0)
+	loaded := s.Loaded(Session{Seed: 7, Mode: Original, Shared: 12345, Reseeds: 5})
+	if loaded.Shared != MissionLoadState(7, 5) || loaded.Reseeds != 7 {
+		t.Fatalf("a LOAD began %+v", loaded)
+	}
+	seeded := NewService(Session{}).Loaded(Session{Seed: 7, Mode: Original, Shared: 12345, Reseeds: 5})
+	if seeded != (Session{Seed: 7, Mode: Seeded, Shared: 12345, Reseeds: 5}) {
+		t.Fatalf("a seeded LOAD changed the saved session: %+v", seeded)
 	}
 }
 

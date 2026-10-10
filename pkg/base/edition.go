@@ -58,6 +58,11 @@ type Edition struct {
 
 	// StartupCutscenes: the logo and introduction movies play at start.
 	StartupCutscenes bool
+
+	// OriginalRandom: evidence for this game's own random number generator
+	// and its draw forms exists, so the original generator can be switched
+	// on. Without it the launch switch runs the default mode.
+	OriginalRandom bool
 }
 
 // Campaign names a campaign model.
@@ -80,6 +85,7 @@ var firstEdition = Edition{
 	Cheats:                    true,
 	FreshPlayers:              true,
 	StartupCutscenes:          true,
+	OriginalRandom:            true,
 }
 
 var secondEdition = Edition{

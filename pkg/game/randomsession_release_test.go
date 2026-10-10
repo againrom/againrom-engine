@@ -328,14 +328,25 @@ func TestReleaseOriginalRandomSession(t *testing.T) {
 }
 
 // TestReleaseOriginalRandomMissionOne runs the first mission on the original
-// generator for a fixed number of ticks.
+// generator for a fixed number of ticks. On a game whose edition has no
+// evidence for its original generator the switch runs the default mode, says
+// so once, and the first mission runs seeded (DIV-2748).
 func TestReleaseOriginalRandomMissionOne(t *testing.T) {
 	f, err := NewFrontEnd(releaseRoot(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	cleanupFrontAudio(t, f)
-	f.SetRandomLaunch(1, true, true)
+	wantMode := random.Original
+	notice := f.SetRandomLaunch(1, true, true)
+	if !f.Base().Profile.Edition().OriginalRandom {
+		wantMode = random.Seeded
+		if notice == "" || f.randomService().Mode() != random.Seeded || f.randomService().LaunchSettings().Mode != random.Seeded {
+			t.Fatalf("the switch on a game without original-generator evidence: notice %q, mode %d", notice, f.randomService().Mode())
+		}
+	} else if notice != "" {
+		t.Fatalf("the first game's switch gave a notice: %q", notice)
+	}
 	t.Cleanup(func() { ui.SetOriginalItemStars(false) })
 	f.SetDeterministicFrames(true)
 	a := f.App("original mission one")
@@ -345,8 +356,8 @@ func TestReleaseOriginalRandomMissionOne(t *testing.T) {
 	if err := a.OpenMission(f.NewGameOpener(f.Base().Profile.Mission(), res)); err != nil {
 		t.Fatal(err)
 	}
-	if f.live.world.RandomMode() != random.Original {
-		t.Fatal("the first mission did not start on the original generator")
+	if f.live.world.RandomMode() != wantMode {
+		t.Fatalf("the first mission started in mode %d, want %d", f.live.world.RandomMode(), wantMode)
 	}
 	const ticks = 2000
 	for i := 0; i < ticks; i++ {
@@ -355,5 +366,5 @@ func TestReleaseOriginalRandomMissionOne(t *testing.T) {
 	if f.live.world.Tick() < ticks {
 		t.Fatalf("the first mission stopped at tick %d", f.live.world.Tick())
 	}
-	t.Logf("the first mission ran %d ticks on the original generator; World %016x", ticks, f.live.world.Hash())
+	t.Logf("the first mission ran %d ticks in mode %d; World %016x", ticks, wantMode, f.live.world.Hash())
 }

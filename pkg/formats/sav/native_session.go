@@ -8,23 +8,27 @@ import (
 )
 
 // NativeSessionPath carries the random session of a save: the session seed,
-// the mode it ran in and the shared stream's state, in an ordinary
-// application-registry dword array beside AgainromRng. The meaning of each
+// the mode it ran in, the shared stream's state and the session's reseed
+// count, in an ordinary application-registry dword array beside AgainromRng.
+// Version 1 holds five dwords and no count; version 2 adds the count as a
+// sixth and is written only when the count is not zero. The meaning of each
 // value belongs to the game package; this package frames and bounds it.
 const NativeSessionPath = "/CurrentState/AgainromSeed"
 
 // NativeSession is the leaf's payload.
 type NativeSession struct {
-	Seed   uint64
-	Mode   uint32
-	Shared uint32
+	Seed    uint64
+	Mode    uint32
+	Shared  uint32
+	Reseeds uint32
 }
 
-const nativeSessionLen = 20
+// nativeSessionLen is each version's length in bytes, by version.
+var nativeSessionLen = map[uint32]int{1: 20, 2: 24}
 
 func validateNativeSession(kind uint32, b []byte) error {
-	if kind != 6 || len(b) != nativeSessionLen || binary.LittleEndian.Uint32(b) != 1 {
-		return fmt.Errorf("sav: AgainromSeed requires version 1 and exactly five dwords")
+	if kind != 6 || len(b) < 4 || nativeSessionLen[binary.LittleEndian.Uint32(b)] != len(b) {
+		return fmt.Errorf("sav: AgainromSeed requires version 1 with five dwords or version 2 with six")
 	}
 	if mode := binary.LittleEndian.Uint32(b[12:]); mode > 1 {
 		return fmt.Errorf("sav: AgainromSeed names random mode %d, which is not defined", mode)
@@ -49,6 +53,9 @@ func ReadNativeSession(state DocumentStateData) (NativeSession, bool, error) {
 		b := r.Value.Bytes
 		out = NativeSession{Seed: binary.LittleEndian.Uint64(b[4:]), Mode: binary.LittleEndian.Uint32(b[12:]),
 			Shared: binary.LittleEndian.Uint32(b[16:])}
+		if len(b) > 20 {
+			out.Reseeds = binary.LittleEndian.Uint32(b[20:])
+		}
 		found = true
 	}
 	return out, found, nil
@@ -62,11 +69,18 @@ func SetNativeSession(state *DocumentStateData, value NativeSession) error {
 	if _, _, err := ReadNativeSession(*state); err != nil {
 		return err
 	}
-	b := make([]byte, nativeSessionLen)
-	binary.LittleEndian.PutUint32(b, 1)
+	version := uint32(1)
+	if value.Reseeds != 0 {
+		version = 2
+	}
+	b := make([]byte, nativeSessionLen[version])
+	binary.LittleEndian.PutUint32(b, version)
 	binary.LittleEndian.PutUint64(b[4:], value.Seed)
 	binary.LittleEndian.PutUint32(b[12:], value.Mode)
 	binary.LittleEndian.PutUint32(b[16:], value.Shared)
+	if version == 2 {
+		binary.LittleEndian.PutUint32(b[20:], value.Reseeds)
+	}
 	r := CityStateRecordData{Path: NativeSessionPath, Value: CityStateValueData{Kind: 6, Bytes: b}}
 	records := slices.Clone(state.ValueRecords)
 	replaced := false
