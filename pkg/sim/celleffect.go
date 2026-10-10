@@ -811,13 +811,13 @@ func (w *World) cellLayerOccupants(x, y int32) (ground, air []int) {
 	}
 	for i := range w.entities {
 		e := &w.entities[i]
-		if !entityCoversCell(*e, x, y) {
+		if !entityCoversCell(e, x, y) {
 			continue
 		}
 		if m := w.motionFor(e.ID); m != nil && m.Current {
 			continue
 		}
-		if !cellRecordHolds(*e) {
+		if !cellRecordHolds(e) {
 			continue
 		}
 		if e.Domain.layer() == 0 {
@@ -842,7 +842,7 @@ func (w *World) cellLayerOccupants(x, y int32) (ground, air []int) {
 // decoded is that the slot holds an actor and that the removal clears it; this
 // build ties terminal removal to Dwell and keeps a restorable body's slot until
 // revival or the finished-body floor.
-func cellRecordHolds(e Entity) bool {
+func cellRecordHolds(e *Entity) bool {
 	if e.OffMap {
 		return false
 	}
@@ -1040,10 +1040,10 @@ func (w *World) areaHitAllowed(ci int, rule SpellRule, target Entity) bool {
 	if target.ID == caster.ID || target.Owner != 0 && target.Owner == caster.Owner {
 		return false
 	}
-	return rule.AreaHits != AreaHitsHostile || w.hostileTo(caster, target)
+	return rule.AreaHits != AreaHitsHostile || w.hostileTo(&caster, &target)
 }
 
-func entityCoversCell(e Entity, x, y int32) bool {
+func entityCoversCell(e *Entity, x, y int32) bool {
 	side := footprintSide(e.TokenSize)
 	return x >= e.X && y >= e.Y && x < e.X+side && y < e.Y+side
 }

@@ -72,11 +72,14 @@ var allow = map[string][]string{
 	// could import the map tier would be one refactor from resolving that delta
 	// itself instead of reporting it. That reasoning is untouched and
 	// pkg/mapload is still denied here.
-	"pkg/formats/sav": {"pkg/formats/reg"},
-	"pkg/vfs":         {"pkg/formats/res"},
-	"pkg/data":        {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
-	"pkg/sim":         {"pkg/rules", "pkg/random"},
-	"pkg/rules":       {},
+	"pkg/formats/sav": {"pkg/formats/reg", "pkg/graphcopy"},
+	// The graph copier is a reflection leaf a decoder uses to hand each
+	// reader its own copy of one decoded value.
+	"pkg/graphcopy": {},
+	"pkg/vfs":       {"pkg/formats/res"},
+	"pkg/data":      {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
+	"pkg/sim":       {"pkg/rules", "pkg/random"},
+	"pkg/rules":     {},
 	// The random service is a leaf: its generators and named streams import
 	// nothing of this tree, so every tier that draws can name it.
 	"pkg/random":  {},

@@ -19,11 +19,11 @@ func (w *World) prismaticGroup(ci int) aiGroup {
 			return aiGroup{owner: c.Owner, group: g.ID, members: members}
 		}
 	}
-	members := w.groupLivingMembers(c.Owner, effectiveGroup(c))
+	members := w.groupLivingMembers(c.Owner, effectiveGroup(&c))
 	if !containsIndex(members, ci) {
 		members = []int{ci}
 	}
-	return aiGroup{owner: c.Owner, group: effectiveGroup(c), members: members}
+	return aiGroup{owner: c.Owner, group: effectiveGroup(&c), members: members}
 }
 
 // footprintCoord is MAGIC-REACH-179's axis coordinate in 1/256 cell, u16 wide.

@@ -67,7 +67,7 @@ func (w *World) approachStructure(scratch *routeScratch, i int) {
 			}
 		}
 	}
-	start := cellOf(a)
+	start := cellOf(&a)
 	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].chebyshevTo(start) < candidates[j].chebyshevTo(start) })
 	for _, goal := range candidates {
 		if route, ok := w.searchRoute(scratch, i, terrainRelation, noWindow, w.farBudgetFor(i), exactGoal, goal.x, goal.y); ok && len(route) > 0 {

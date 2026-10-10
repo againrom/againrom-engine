@@ -1895,7 +1895,7 @@ func (w *World) encodeInto(b []byte) []byte {
 		encodeSpellbook(b[o+341:o+entityLenV71], e.Book)
 		b[o+454], b[o+455] = e.SecondBase, e.SecondSpread
 		b[o+456] = byte(e.CurrentProfileBasis)
-		_, _ = binary.Encode(b[o+entityLenV75:o+entityLen], binary.LittleEndian, e.SourceBinding)
+		putSourceBinding(b[o+entityLenV75:o+entityLen], &e.SourceBinding)
 	}
 
 	// One route per entity, in the same order, each a count and that many cells.
@@ -2744,9 +2744,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		if data[o+entityLen-1] > 1 {
 			return fmt.Errorf("sim: invalid source Group owner presence")
 		}
-		if _, err := binary.Decode(data[o+entityLenV75:o+entityLen], binary.LittleEndian, &e.SourceBinding); err != nil {
-			return err
-		}
+		getSourceBinding(data[o+entityLenV75:o+entityLen], &e.SourceBinding)
 		book, err := decodeSpellbook(data[o+341:o+entityLenV71], e.KnownSpells)
 		if err != nil {
 			return fmt.Errorf("sim: entity %d: %w", e.ID, err)

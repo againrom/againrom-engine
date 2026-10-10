@@ -36,7 +36,7 @@ func (w *World) withdrawalPass() {
 func (w *World) withdrawalPassObserved(obs *withdrawalObs) {
 	activity := w.rom2ActivityMask()
 	for i := range w.entities {
-		if !activity.actorActive(w.entities[i]) {
+		if !activity.actorActive(&w.entities[i]) {
 			continue
 		}
 		if w.savedGroups != nil && !w.nativePatrol(i) {
@@ -146,10 +146,10 @@ func (w *World) withdrawalHostiles(i int, radius int64) []int {
 			continue
 		}
 		candidate := w.entities[ci]
-		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(self, candidate) || w.invisibleToActor(i, ci) {
+		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(&self, &candidate) || w.invisibleToActor(i, ci) {
 			continue
 		}
-		if cellOf(self).chebyshevTo(cellOf(candidate)) <= radius {
+		if cellOf(&self).chebyshevTo(cellOf(&candidate)) <= radius {
 			out = append(out, ci)
 		}
 	}

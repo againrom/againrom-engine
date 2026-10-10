@@ -178,13 +178,23 @@ func Decode(data []byte) (*Image, error) {
 	return im, nil
 }
 
-// DecodeRGBA is Decode at full opacity.
+// DecodeRGBA is Decode at full opacity. It writes the stored blue, green and
+// red bytes straight into the picture, the pixels Decode(data).RGBA() holds,
+// without the intermediate colour grid.
 func DecodeRGBA(data []byte) (*image.RGBA, error) {
-	im, err := Decode(data)
+	h, err := parse(data, BitsPerPixel)
 	if err != nil {
 		return nil, err
 	}
-	return im.RGBA(), nil
+	pic := image.NewRGBA(image.Rect(0, 0, h.width, h.height))
+	for y := 0; y < h.height; y++ {
+		row := h.row(data, y)[:h.width*3]
+		out := pic.Pix[y*pic.Stride : y*pic.Stride+4*h.width]
+		for x := 0; x < h.width; x++ {
+			out[4*x], out[4*x+1], out[4*x+2], out[4*x+3] = row[3*x+2], row[3*x+1], row[3*x], 0xff
+		}
+	}
+	return pic, nil
 }
 
 // DecodePaletted reads one uncompressed 8-bit Windows bitmap and keeps its

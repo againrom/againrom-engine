@@ -23,7 +23,7 @@ func distantSpellWorld(t *testing.T) (*World, SpellRule) {
 
 func TestDistantSpellHitLetsVictimAcquireCaster(t *testing.T) {
 	w, _ := distantSpellWorld(t)
-	if w.actorSees(1, cellOf(w.entities[0])) {
+	if w.actorSees(1, cellOf(&w.entities[0])) {
 		t.Fatal("caster must start outside victim sight")
 	}
 	if events := spRunCast(w, spCast(1, 2, 1)); len(events) == 0 || w.entities[1].HP >= 200 {
@@ -57,7 +57,7 @@ func TestAttackNoticeExpiresByCandidateBuildsAndDoesNotRevealFog(t *testing.T) {
 	w.flipOnBlow(0, 1)
 	before := w.Hash()
 	for range 100 {
-		if !w.actorSees(1, cellOf(w.entities[0])) {
+		if !w.actorSees(1, cellOf(&w.entities[0])) {
 			t.Fatal("AI query lost the attacker cell")
 		}
 	}

@@ -36,7 +36,7 @@ func TestReleaseOriginalDead1100ExactFiveActorsBothDoorsAndNativeContinuation(t 
 		t.Fatal(err)
 	}
 	for _, v := range want {
-		if !poolEntity(t, f.live.world, v.mapID).Alive() {
+		if !entityRef(poolEntity(t, f.live.world, v.mapID)).Alive() {
 			t.Fatal("fresh baseline no longer witnesses resurrection")
 		}
 	}
@@ -138,7 +138,7 @@ func TestReleaseOriginalDead1100TerminalUnitWeaponsRemainInert(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, v := range want {
-		if !poolEntity(t, f.live.world, v.mapID).Alive() {
+		if !entityRef(poolEntity(t, f.live.world, v.mapID)).Alive() {
 			t.Fatal("fresh baseline no longer witnesses resurrection")
 		}
 	}

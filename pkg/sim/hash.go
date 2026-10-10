@@ -1,6 +1,9 @@
 package sim
 
-import "hash/fnv"
+import (
+	"hash/fnv"
+	"sync"
+)
 
 // Hash returns a 64-bit digest of the world's full canonical state: FNV-1a over
 // exactly the bytes MarshalBinary produces.
@@ -21,8 +24,19 @@ import "hash/fnv"
 // story exists — its seed is randomised per process, so the same world would
 // hash differently in the next run.
 func (w *World) Hash() uint64 {
+	// The byte form is only read here, so its buffer returns to a pool for the
+	// next digest; encodeInto clears a reused buffer before writing it.
+	p, _ := hashBuffers.Get().(*[]byte)
+	if p == nil {
+		p = new([]byte)
+	}
+	b := w.encodeInto((*p)[:0])
 	h := fnv.New64a()
 	// hash.Hash's Write never returns an error.
-	h.Write(w.encode())
+	h.Write(b)
+	*p = b
+	hashBuffers.Put(p)
 	return h.Sum64()
 }
+
+var hashBuffers sync.Pool

@@ -108,7 +108,8 @@ func (mw *mapWorld) advanceUnitShots() {
 	mw.shots.flying = live
 
 	ents := mw.world.EntityView()
-	for _, e := range ents {
+	for i := range ents {
+		e := &ents[i]
 		if !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
 			continue
 		}
@@ -119,14 +120,14 @@ func (mw *mapWorld) advanceUnitShots() {
 		if record {
 			at = unitShotSwingTick(delay)
 		}
-		if !drawn || mw.swing[e.ID] != at || !mw.swingTargetInReach(ents, e) {
+		if !drawn || mw.swing[e.ID] != at || !mw.swingTargetInReach(ents, *e) {
 			continue
 		}
 		if record {
-			mw.releaseUnitShot(e, picture, unitShotLate(delay))
+			mw.releaseUnitShot(*e, picture, unitShotLate(delay))
 			continue
 		}
-		to, ok := mw.attackTargetCell(e)
+		to, ok := mw.attackTargetCell(*e)
 		if !ok {
 			continue
 		}

@@ -71,7 +71,7 @@ func (w *World) BoundarySurvivors(owner uint32) []EntityID {
 	}
 	var out []EntityID
 	for i := range w.entities {
-		e := w.entities[i]
+		e := &w.entities[i]
 		if e.Owner != owner || !e.Alive() || !InPersistBand(e.TypeID) {
 			continue
 		}

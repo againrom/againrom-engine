@@ -41,13 +41,14 @@ func (w *World) syncCurrentActionCarriers() {
 			w.syncCurrentCastOperands(cast.Caster, cast.Target, cast.AtCell, cast.X, cast.Y, 0, 0)
 		}
 	}
-	for _, e := range w.entities {
+	for i := range w.entities {
+		e := &w.entities[i]
 		p := e.PendingOrder
 		switch p.Kind {
 		case PendingActorCast, PendingCellCast:
 			key, reach := uint32(0), uint8(0)
 			if p.Spell >= 1 && p.Spell <= 28 {
-				values := BookSlotValues(w.rules, e, w.spells)
+				values := BookSlotValues(w.rules, *e, w.spells)
 				reach = values[p.Spell-1].Range
 				if w.savedObjects != nil {
 					for _, root := range w.savedObjects.BookRoots {
@@ -85,13 +86,13 @@ func (w *World) syncCurrentActionCarriers() {
 }
 
 func (w *World) syncCurrentActorCarriers(i int) {
-	e := w.entities[i]
+	e := &w.entities[i]
 	// Current=false means a native producer superseded the imported motion.
 	// Project that producer even when Issue names why the imported continuation
 	// was invalidated; otherwise SAVE would retain and later resume stale motion.
 	m := w.motionFor(e.ID)
 	if m != nil && !m.Current && !e.OffMap && e.Alive() && m.Issue != "native movement continues the imported route" {
-		next, err := ProjectActorMotion(e, *m, w.Route(e.ID), false)
+		next, err := ProjectActorMotion(*e, *m, w.Route(e.ID), false)
 		if err == nil {
 			next.Current, next.Active, next.Issue = m.Current, m.Active, m.Issue
 			// An attack held in place carries action 3, the value SAVE writes
@@ -133,10 +134,10 @@ func (w *World) currentActionKey(id EntityID, kind AttackTargetKind) uint32 {
 }
 
 func (w *World) syncCurrentActorOrder(i int) {
-	e := w.entities[i]
+	e := &w.entities[i]
 	if order := w.savedOrder(e.ID); order != nil && (!order.Authored || e.HasAttackTarget || order.State == 3 || order.Raw[0xc]|order.Raw[0xd]|order.Raw[0xe]|order.Raw[0xf] != 0) {
 		id, kind, _ := e.RequestedAttackTarget()
-		*order = ProjectActorOrderTargets(e, *order, w.currentActionKey(id, kind), w.currentActionKey(e.EscortTarget, AttackTargetUnit))
+		*order = ProjectActorOrderTargets(*e, *order, w.currentActionKey(id, kind), w.currentActionKey(e.EscortTarget, AttackTargetUnit))
 	}
 }
 
