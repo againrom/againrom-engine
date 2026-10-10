@@ -44,7 +44,8 @@ type ChargenPresentation struct {
 	Font           *text.Font
 	// NameFont draws the pre-create prompt and name. Nil falls back to Font.
 	NameFont *text.Font
-	// TipFont draws the generator's tip panels. Nil falls back to Font.
+	// TipFont is the install's font, which the tip panels draw in when the
+	// description's panel font is "install".
 	TipFont *text.Font
 }
 
@@ -808,7 +809,7 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	} else {
 		copyNativeOver(dst, preview.Doll, doll.Min.Add(d.Preview.FigureOffset.Pt()), doll)
 	}
-	if p.Font != nil {
+	if p.Font != nil && d.Message != nil {
 		drawChargenMessage(dst, p.Font, d.Message.Rectangle(), c.message)
 	}
 	composeChargenTip(dst, c, tipState)

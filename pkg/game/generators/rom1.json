@@ -162,6 +162,7 @@
   "tips": {
     "pre-create-rect": [232, 0, 640, 136],
     "detail-rect": [160, 280, 472, 480],
+    "panel": {"font": "text", "inset": [20, 24, 28, 36], "cite": ["MENU-137", "DIV-191"]},
     "select": [
       {"file": "main/text/tips/chrsel1.txt", "cite": ["TOWN-518"]},
       {"file": "main/text/tips/chrsel2.txt", "cite": ["TOWN-518"]},

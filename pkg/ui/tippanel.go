@@ -31,6 +31,18 @@ type TipPanelView struct {
 	Pointer                  image.Point
 	PointerOK                bool
 	CloseHover, ClosePressed bool
+	// TextInset (left, top, right, bottom) places the text inside Rect; zero
+	// is the list child's own inset (MENU-137).
+	TextInset [4]int
+}
+
+// textRect is where the view's text draws and its fit is tested.
+func (v TipPanelView) textRect() image.Rectangle {
+	if v.TextInset == [4]int{} {
+		return TipPanelTextRect(v.Rect)
+	}
+	in := v.TextInset
+	return image.Rect(v.Rect.Min.X+in[0], v.Rect.Min.Y+in[1], v.Rect.Max.X-in[2], v.Rect.Max.Y-in[3])
 }
 
 func (v TipPanelView) Showing() bool {
@@ -90,7 +102,7 @@ func TipPanelEventAt(v TipPanelView, p image.Point, down bool) (TipControlKind, 
 	if !v.Showing() || !p.In(v.Rect) {
 		return TipControlNone, false
 	}
-	if !down && p.In(TipPanelListRect(v.Rect)) {
+	if !down && p.In(v.textRect()) {
 		return TipControlNone, true
 	}
 	if p.In(TipPanelCloseRect(v.Rect)) {
@@ -103,24 +115,30 @@ func TipPanelEventAt(v TipPanelView, p image.Point, down bool) (TipControlKind, 
 }
 
 func TipPanelFits(v TipPanelView) bool {
-	return !v.Showing() || tipPanelTextFits(v.Font, v.Text, v.Rect)
+	return !v.Showing() || tipTextFitsRect(v.Font, v.Text, v.textRect())
 }
 
 func tipPanelTextFits(font *text.Font, s string, r image.Rectangle) bool {
-	if TipPanelTextRect(r).Dx() <= 0 {
-		return false
-	}
-	return tipPanelLinesFit(font, tipTextLines(font, s, TipPanelTextRect(r).Dx()), r)
+	return tipTextFitsRect(font, s, TipPanelTextRect(r))
 }
 
-func tipPanelLinesFit(font *text.Font, lines []dialogueLine, r image.Rectangle) bool {
+// tipTextFitsRect reports whether s wrapped to text's width draws whole in
+// text.
+func tipTextFitsRect(font *text.Font, s string, text image.Rectangle) bool {
+	if text.Dx() <= 0 {
+		return false
+	}
+	return tipLinesFitRect(font, tipTextLines(font, s, text.Dx()), text)
+}
+
+func tipLinesFitRect(font *text.Font, lines []dialogueLine, text image.Rectangle) bool {
 	if font == nil || font.Height()+2 <= 0 {
 		return false
 	}
 	if len(lines) == 0 {
 		return true
 	}
-	return TipPanelTextRect(r).Min.Y+(len(lines)-1)*(font.Height()+2)+font.Height()+1 <= TipPanelTextRect(r).Max.Y
+	return text.Min.Y+(len(lines)-1)*(font.Height()+2)+font.Height()+1 <= text.Max.Y
 }
 
 func TipPanelFitHeight(font *text.Font, s string, width int) int {
@@ -151,7 +169,7 @@ func ComposeTipPanel(dst *image.RGBA, v TipPanelView) {
 		return
 	}
 	drawFrame(dst, frameSpec{Kind: frameTip, Rect: v.Rect, Art: v.Art.Frame})
-	drawTipText(dst, v.Font, tipTextLines(v.Font, v.Text, TipPanelTextRect(v.Rect).Dx()), TipPanelTextRect(v.Rect))
+	drawTipText(dst, v.Font, tipTextLines(v.Font, v.Text, v.textRect().Dx()), v.textRect())
 	closeLabel := v.CloseLabel
 	if closeLabel == "" {
 		closeLabel = AuthoredTipClose

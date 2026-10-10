@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"os"
 	"path/filepath"
@@ -200,5 +201,63 @@ func secondGeneratorCheckHero(t *testing.T, f *FrontEnd, res ui.ChargenResult, t
 	}
 	if slot, ok := data.EquipSlotFor(p.Weapon.Code); !ok || p.Worn[slot-1] != uint16(p.Weapon.Code) {
 		t.Fatalf("worn %v, want the staff %d worn", p.Worn, p.Weapon.Code)
+	}
+}
+
+// Every tip of the second game's generator draws whole in its panel:
+// the three pre-create texts, the detail page's text for each of the four
+// pictures and the text after a skill click wrap in font2 to the panel
+// width less 48 and fit (height less 60)/12 lines, and the Close and check
+// labels fit their controls (R2-ENGINE-314, R2-ENGINE-274).
+func TestReleaseSecondGameGeneratorTipsDrawWhole(t *testing.T) {
+	f := secondGameFront(t)
+	if f.ChargenAssets == nil || f.ChargenAssets.Presentation == nil || f.ChargenAssets.Presentation.Font == nil {
+		t.Fatal("the second game's install loaded no generator text font")
+	}
+	f.Options = OptionsStore{}
+	f.PersistenceContext.tipsOff = false
+	font := f.ChargenAssets.Presentation.Font
+	whole := func(what string, v ui.TipPanelView) {
+		t.Helper()
+		if !v.Showing() {
+			t.Fatalf("%s: no tip panel", what)
+		}
+		if v.Font != font {
+			t.Errorf("%s: the panel does not draw in the generator's text font", what)
+		}
+		if !ui.TipPanelFits(v) {
+			t.Errorf("%s: the text does not fit %v", what, v.Rect)
+		}
+		if w, room := v.Font.Advance(v.CloseLabel), ui.TipPanelCloseRect(v.Rect).Dx(); w > room {
+			t.Errorf("%s: Close label is %d wide in %d", what, w, room)
+		}
+		if w, room := v.Font.Advance(v.ToggleLabel), ui.TipPanelToggleRect(v.Rect).Dx()-22; w > room {
+			t.Errorf("%s: check label is %d wide in %d", what, w, room)
+		}
+	}
+	for picture := range 4 {
+		setup := f.ChargenSetup()
+		c := ui.NewChargen(setup)
+		c.SelectPreChoice(picture)
+		v := c.TipPanel()
+		for i, s := range setup.TipSelect {
+			v.Text = s
+			whole(fmt.Sprintf("picture %d pre-create step %d", picture, i), v)
+		}
+		c.Forward()
+		if c.Stage() != ui.DetailedStage {
+			t.Fatalf("picture %d: Forward did not open the detail page", picture)
+		}
+		v = c.TipPanel()
+		want := setup.TipText
+		if f.generator().PreCreate.Heroes[picture].Class != 0 {
+			want = setup.TipTextMage
+		}
+		if v.Text != want {
+			t.Errorf("picture %d: the detail page opened on the other class's tip", picture)
+		}
+		whole(fmt.Sprintf("picture %d detail", picture), v)
+		v.Text = setup.TipTextDetail
+		whole(fmt.Sprintf("picture %d after a skill click", picture), v)
 	}
 }

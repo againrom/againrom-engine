@@ -15,7 +15,7 @@ Second-game claims: R2-ENGINE-283 (route and commit), R2-ENGINE-284
 (pre-create), R2-ENGINE-285 (heroes, defaults, names), R2-ENGINE-286
 (detail page, Reset), R2-ENGINE-287 (point buy), R2-ENGINE-288 (skills),
 R2-ENGINE-289 (tips, cycles, cursors), R2-ENGINE-290 (producer),
-R2-ENGINE-274 (tips panel), R2-ASSET-075 and R2-ASSET-076 (art, templates),
+R2-ENGINE-274 and R2-ENGINE-314 (tips panel and its text), R2-ASSET-075 and R2-ASSET-076 (art, templates),
 R2-SESSION-077 (town 1) and R2-SESSION-131 (slots 776 and 781, gold 1000).
 Where they are silent the description states a stand-in and a divergence row
 names it: DIV-2768 to DIV-2773 in
@@ -44,8 +44,9 @@ Data in a description:
   budget and cost curve, the three commands, focus order, key map, optional
   held-button repeat, Reset rules by install language, Accept refusals and
   the default skill.
-- `tips`: both panel rectangles, the tip texts (a file or a `#section` of
-  one), the pre-create cycle's mask bytes and its timings.
+- `tips`: both panel rectangles, the panel's text font and inset, the tip
+  texts (a file or a `#section` of one), the pre-create cycle's mask bytes
+  and its timings.
 - `campaign`: read only by the game's campaign adapter.
 
 The edition names its description (`base.Edition.Generator`): the first
@@ -87,8 +88,11 @@ attributes, the chosen school skill 20, skill 5 10, the skill weapon or
 the staff by sex), sets slot 776 to the class and 781 to the sex, the
 session difficulty to the level, the Player's gold to 1000, and shows
 town 1. Tips: pre-create `#tips8`, `#tips9`, `#tips10` in (232,48)-(640,184);
-detail `#tips5` or `#tips6`, then `#tips7`, in (0,280)-(312,480); both
-cycles are description data. A town-1 SAV carries slots 776 and 781, the
+detail `#tips5` or `#tips6`, then `#tips7`, in (0,280)-(312,480). Tip
+text draws in font2 inside the panel less (20,24,28,36), so it wraps to
+the width less 48 and draws up to 11 lines (R2-ENGINE-314); every shipped
+tip and both labels draw whole. Skill and step texts show as tooltips; the
+page has no message strip. Both cycles are description data. A town-1 SAV carries slots 776 and 781, the
 difficulty and Money 1000 on the first Player, and a cold LOAD restores the
 same town and hero.
 
@@ -97,6 +101,10 @@ same town and hero.
 - `TestReleaseChargenTraceIsUnchanged`, EN and RU: identical traces.
 - `TestReleasePlaqueButtonCensus` and the first game's generator release
   tests.
+- `TestReleaseSecondGameGeneratorTipsDrawWhole`, rom2-ru and rom2-en: the
+  three pre-create tips, the detail tip for each picture and the after-click
+  tip fit their panel in the generator's text font, and the Close and check
+  labels fit their controls.
 - `TestReleaseSecondGameGeneratorStartsTheFirstTown`, rom2-en and rom2-ru:
   New Game, pre-create, a picture, a level, OK, detail on the template,
   a skill and two attribute steps, Accept, town 1; the hero, slots,
@@ -109,8 +117,11 @@ same town and hero.
 
 - DIV-2772: the generated hero's experience (7320), the second game's
   recompute and caps, and item modifiers in the worn set are not carried;
-  the original actor record in the SAV is Unknown.
+  the SAV holds the hero as the first Group member (R2-SESSION-144), and
+  the engine does not write that record.
 - DIV-2768 to DIV-2771 and DIV-2773: input, text, stat-sheet, inventory and
   picture composition stand-ins.
-- Unknown: the detail page's cursor between paints (R2-ENGINE-289 Medium);
-  the music the original starts on pre-create is not played.
+- Unknown: the detail page's cursor between paints (R2-ENGINE-289 Medium).
+- Pre-create music: R2-ENGINE-283 (High) names `music\chrgen.wav`. The
+  engine plays no second-game music anywhere: its music reader reads only
+  the first game's music archive. No row names this yet.

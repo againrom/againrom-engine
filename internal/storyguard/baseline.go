@@ -2039,8 +2039,9 @@ package storyguard
 // paragraph.
 //
 // CommentBytes rises for the second game's generator: the docs of the new
-// secondgenerator.go, its release witness, the description's code page and
-// the pane image loader, new code, including this paragraph.
+// secondgenerator.go, its release witnesses, the description's code page,
+// tip panel and optional message strip, and the pane image loader, new
+// code, including this paragraph.
 // CommentBytes rises for the doc of the mission-100 amulet-after-the-win
 // witness in pkg/game, new code, including this paragraph.
 // CommentBytes rises for the one chat command parser, its two game adapters,
@@ -2072,5 +2073,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8598494,
+	CommentBytes: 8598994,
 }

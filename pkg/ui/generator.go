@@ -388,32 +388,34 @@ type GeneratorNavFrame struct {
 
 // GeneratorDetail is the second page.
 type GeneratorDetail struct {
-	Cursor       string               `json:"cursor"`
-	Plate        GeneratorPane        `json:"plate"`
-	PlateSeam    *GeneratorPane       `json:"plate-seam"`
-	Nav          GeneratorPane        `json:"nav"`
-	NavSeam      *GeneratorPane       `json:"nav-seam"`
-	NavFrame     GeneratorNavFrame    `json:"nav-frame"`
-	Card         GeneratorPane        `json:"card"`
-	CardSeam     *GeneratorPane       `json:"card-seam"`
-	Doll         GeneratorPane        `json:"doll"`
-	DollSeam     *GeneratorPane       `json:"doll-seam"`
-	ColumnRect   GeneratorRect        `json:"column-rect"`
-	SkillClip    GeneratorRect        `json:"skill-clip"`
-	Classes      []GeneratorClass     `json:"classes"`
-	SkillStates  GeneratorSkillStates `json:"skill-states"`
-	Stats        GeneratorStats       `json:"stats"`
-	Commands     []GeneratorCommand   `json:"commands"`
-	CommandInk   GeneratorInk         `json:"command-ink"`
-	Message      GeneratorRect        `json:"message"`
-	Preview      GeneratorPreview     `json:"preview"`
-	Focus        []string             `json:"focus"`
-	Keys         GeneratorKeys        `json:"keys"`
-	Repeat       *GeneratorRepeat     `json:"repeat"`
-	Reset        []GeneratorReset     `json:"reset"`
-	Refusals     GeneratorRefusals    `json:"refusals"`
-	DefaultSkill *int                 `json:"default-skill"`
-	Cite         []string             `json:"cite"`
+	Cursor      string               `json:"cursor"`
+	Plate       GeneratorPane        `json:"plate"`
+	PlateSeam   *GeneratorPane       `json:"plate-seam"`
+	Nav         GeneratorPane        `json:"nav"`
+	NavSeam     *GeneratorPane       `json:"nav-seam"`
+	NavFrame    GeneratorNavFrame    `json:"nav-frame"`
+	Card        GeneratorPane        `json:"card"`
+	CardSeam    *GeneratorPane       `json:"card-seam"`
+	Doll        GeneratorPane        `json:"doll"`
+	DollSeam    *GeneratorPane       `json:"doll-seam"`
+	ColumnRect  GeneratorRect        `json:"column-rect"`
+	SkillClip   GeneratorRect        `json:"skill-clip"`
+	Classes     []GeneratorClass     `json:"classes"`
+	SkillStates GeneratorSkillStates `json:"skill-states"`
+	Stats       GeneratorStats       `json:"stats"`
+	Commands    []GeneratorCommand   `json:"commands"`
+	CommandInk  GeneratorInk         `json:"command-ink"`
+	// Message is the strip a refused or failed Accept writes its line in;
+	// nil when the page has none.
+	Message      *GeneratorRect    `json:"message"`
+	Preview      GeneratorPreview  `json:"preview"`
+	Focus        []string          `json:"focus"`
+	Keys         GeneratorKeys     `json:"keys"`
+	Repeat       *GeneratorRepeat  `json:"repeat"`
+	Reset        []GeneratorReset  `json:"reset"`
+	Refusals     GeneratorRefusals `json:"refusals"`
+	DefaultSkill *int              `json:"default-skill"`
+	Cite         []string          `json:"cite"`
 }
 
 // GeneratorTipText is one tip text: a whole file, or one section of a file.
@@ -423,12 +425,23 @@ type GeneratorTipText struct {
 	Cite    []string `json:"cite"`
 }
 
+// GeneratorTipPanel is how the generator's tip panels draw their text: in
+// the generator's text font ("text") or the install's ("install"), inside
+// the panel less Inset (left, top, right, bottom). The text wraps to that
+// width and draws as many lines of the font's height plus 2 as fit.
+type GeneratorTipPanel struct {
+	Font  string   `json:"font"`
+	Inset [4]int   `json:"inset"`
+	Cite  []string `json:"cite"`
+}
+
 // GeneratorTips are both pages' tip panels and highlight cycles. The
 // pre-create cycle's targets are mask bytes per tip step; the detail cycle
 // walks the selectable skills.
 type GeneratorTips struct {
 	PreCreateRect  GeneratorRect      `json:"pre-create-rect"`
 	DetailRect     GeneratorRect      `json:"detail-rect"`
+	Panel          GeneratorTipPanel  `json:"panel"`
 	Select         []GeneratorTipText `json:"select"`
 	Fighter        GeneratorTipText   `json:"fighter"`
 	Mage           GeneratorTipText   `json:"mage"`
@@ -529,6 +542,14 @@ func (d *GeneratorDescription) validate() error {
 	}
 	if !oneOf(d.Words.TipFont, "text", "install") {
 		return fmt.Errorf("tip font %q", d.Words.TipFont)
+	}
+	if !oneOf(d.Tips.Panel.Font, "text", "install") {
+		return fmt.Errorf("tip panel font %q", d.Tips.Panel.Font)
+	}
+	for _, v := range d.Tips.Panel.Inset {
+		if v < 0 {
+			return fmt.Errorf("tip panel inset %v", d.Tips.Panel.Inset)
+		}
 	}
 	if !oneOf(d.Words.CodePage, "", "windows-1251") {
 		return fmt.Errorf("code page %q", d.Words.CodePage)

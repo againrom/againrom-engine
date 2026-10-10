@@ -874,9 +874,9 @@ func (c *Chargen) TipPanel() TipPanelView {
 	}
 	var font *text.Font
 	if art != nil {
-		font = art.TipFont
-		if font == nil {
-			font = art.Font
+		font = art.Font
+		if l.Tips.Panel.Font == "install" && art.TipFont != nil {
+			font = art.TipFont
 		}
 	}
 	rect, tipText := l.Tips.DetailRect.Rectangle(), ""
@@ -902,6 +902,7 @@ func (c *Chargen) TipPanel() TipPanelView {
 		ToggleLabel: c.setup.TipToggle,
 		Art:         c.setup.TipArt,
 		Font:        font,
+		TextInset:   l.Tips.Panel.Inset,
 	}
 }
 

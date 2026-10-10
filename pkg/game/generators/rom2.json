@@ -5,11 +5,11 @@
   "words": {
     "table": "main/text/main.txt",
     "names": "main/text/npcnames.txt",
-    "text-font": {"name": "font2", "atlas": "16", "cite": ["DIV-2769"]},
+    "text-font": {"name": "font2", "atlas": "16", "cite": ["R2-ENGINE-314", "DIV-2769"]},
     "name-font": {"name": "font4", "atlas": "16a", "cite": ["DIV-2769"]},
     "tip-font": "install",
     "code-page": "windows-1251",
-    "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-286", "R2-ENGINE-274", "DIV-2378"]
+    "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-286", "DIV-2378", "DIV-2770"]
   },
   "pre-create": {
     "cursor": "select",
@@ -151,7 +151,6 @@
       {"role": "back", "slot": 260, "rect": [484, 138, 624, 184], "off": "graphics/interface/inn/button3off.bmp", "on": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]}
     ],
     "command-ink": [255, 230, 150],
-    "message": [484, 462, 636, 476],
     "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-2770"]},
     "keys": {"enter": "play", "escape": "none", "typing": "focused", "double-click-ms": 500, "cite": ["R2-ENGINE-283", "DIV-2771"]},
     "reset": [
@@ -165,6 +164,7 @@
   "tips": {
     "pre-create-rect": [232, 48, 640, 184],
     "detail-rect": [0, 280, 312, 480],
+    "panel": {"font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]},
     "select": [
       {"file": "main/text/town.txt", "section": "tips8", "cite": ["R2-ENGINE-289"]},
       {"file": "main/text/town.txt", "section": "tips9", "cite": ["R2-ENGINE-289"]},

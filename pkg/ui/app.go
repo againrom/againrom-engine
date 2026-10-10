@@ -4927,17 +4927,9 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	if c.setup.PreCreate == nil {
 		return nil, fmt.Errorf("the legacy diagnostic model has no CPU composite (draws through ebitenutil.DebugPrintAt)")
 	}
-	// The detailed page's own black rectangle is removed (1022 spec B4, "the
-	// black rectangle with text"); its former screen space is the centre column
-	// now (spec B1) and drawChargenDetailMessage no longer exists. The COPY
-	// that box carried is not dropped (round-2 adversarial review, closing
-	// DIV-192): a.chargenDetailMessage()'s two sources — a.chargenHoverText
-	// and a.flow.msg — are handed to the model here, and
-	// composeChargenDetailedPage's own drawChargenMessage paints them over the
-	// doll box's backdrop. They are still not moved into the tip panel's own
-	// text area: that area shows the shipped chrgen2.txt text (spec B5), and
-	// swapping shipped copy for transient UI wording would mean the panel no
-	// longer shows what it is named for.
+	// A refused or failed Accept's line goes to the model, which draws it in
+	// the description's message strip when it has one. Hover texts show as
+	// tooltips only.
 	c.SetDetailMessage(a.chargenDetailMessage())
 	c.statHeld = a.chargenHeld
 	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)
