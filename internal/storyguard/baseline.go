@@ -2024,11 +2024,21 @@ package storyguard
 // the wider randomness scan, new code, including this paragraph.
 // CommentBytes rises for the unit-shot tracking release witness and its
 // helpers, new code, including this paragraph.
+// CommentBytes rises for the platoon talk cell: the docs of platoonTalkObject,
+// its constant and tests and the tavern dialogue witness, new code, including
+// this paragraph.
+// CommentBytes rises for the mission-100 amulet witness's docs, new code,
+// including this paragraph.
+// CommentBytes rises for the corpus part tests: the share and summary helpers
+// in pkg/game and the part docs of the writer census, the SAV round-trip gate
+// and the converted-corpus continuation, new code, including this paragraph.
 // CommentBytes rises for the Human speed derive: the shared derive in
 // pkg/rules, the native speed modifier, its byte-form section and LOAD split
 // in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
 // tests in pkg/rules, pkg/sim and pkg/game, new code, including this
 // paragraph.
+// CommentBytes rises for the doc of the mission-100 amulet-after-the-win
+// witness in pkg/game, new code, including this paragraph.
 // CommentBytes rises for the one chat command parser, its two game adapters,
 // the second game's completion win predicate and the second game's command
 // witnesses, new code, including this paragraph.
@@ -2036,7 +2046,7 @@ package storyguard
 // pickers, the flag's counter and placement, and their focused and release
 // tests, new code, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4694,
+	TestIdentCount: 4693,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2058,5 +2068,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8591275,
+	CommentBytes: 8597439,
 }

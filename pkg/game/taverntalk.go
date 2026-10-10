@@ -121,10 +121,15 @@ func (t *townScreen) tavernSpeakerCast() speakerCast {
 
 // resolveTavernTalk answers which object InnNPC value npc stands for.
 //
-// A record carrying `Platoon` never matches a live actor here: the town holds
-// no platoon to compare, and whether a live actor answers that term is
-// Unknown (TAVERN-TALKSTATS-017).
+// A record carrying `Platoon` is the mercenary section of type npc. It stands
+// for a carried unit of that type, else for that type's stock unit, as the
+// talk picture does (platoonTalkPicture). The term's predicate is Unknown
+// (TAVERN-TALKSTATS-017); the owner saw the original show the type-2 stock
+// unit's statistics for npc2 (DIV-2778).
 func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.PartyMember, stock []tavernStockActor) tavernTalkObject {
+	if known && rec.Tokens.Has(data.NPCTokenPlatoon) && npc >= 1 && npc <= tavernMercenaryTypes {
+		return platoonTalkObject(npc, party)
+	}
 	cast := tavernTalkCast(party, stock)
 	if known && !rec.Tokens.Has(data.NPCTokenPlatoon) {
 		if a, ok := cast.resolve(rec); ok {
@@ -148,6 +153,24 @@ func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.Pa
 	if t.Has(data.NPCTokenMyClass) || t.Has(data.NPCTokenNotMyClass) {
 		if cast.hasPlayer {
 			o.mage = cast.playerDir.Mage() == t.Has(data.NPCTokenMyClass)
+		}
+	}
+	return o
+}
+
+// tavernMercenaryTypes is the count of tavern mercenary types, 1..15
+// (TAVERN-ORDER-015).
+const tavernMercenaryTypes = 15
+
+// platoonTalkObject is the object a Platoon record of mercenary type typ
+// stands for: the first carried member of that type, else the stock unit of
+// that type, which counts as live after the party.
+func platoonTalkObject(typ int, party []mapload.PartyMember) tavernTalkObject {
+	o := tavernTalkObject{live: len(party), sheet: typ, stock: typ, human: typ > 2}
+	for i, p := range party {
+		if int(p.MercenaryType) == typ {
+			o.live, o.stock = i, 0
+			break
 		}
 	}
 	return o

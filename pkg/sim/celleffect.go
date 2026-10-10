@@ -811,10 +811,13 @@ func (w *World) cellLayerOccupants(x, y int32) (ground, air []int) {
 	}
 	for i := range w.entities {
 		e := &w.entities[i]
+		if !entityCoversCell(*e, x, y) {
+			continue
+		}
 		if m := w.motionFor(e.ID); m != nil && m.Current {
 			continue
 		}
-		if !cellRecordHolds(*e) || !entityCoversCell(*e, x, y) {
+		if !cellRecordHolds(*e) {
 			continue
 		}
 		if e.Domain.layer() == 0 {

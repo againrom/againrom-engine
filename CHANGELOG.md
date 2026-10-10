@@ -13,6 +13,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   task through the whole journey, waving all the time. The red cross draws
   itself once and then stays whole instead of starting over.
 
+- [BASE] In the tavern after mission 100, the speaker who offers the new
+  catapult shows the siege engine's statistics and picture in the upper left
+  panel, as in the original. Before, that panel stayed empty.
 - [ROM2] The second game's chat cheats work in campaign missions: type the
   second game's unlock line, then `#create`, `#modify`, `#summon`, the kill
   commands, `#pickup all`, `#show map`, `#hide map`, `#victory` and `#event`,

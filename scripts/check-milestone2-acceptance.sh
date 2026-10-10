@@ -197,6 +197,14 @@ seat="$(winpath "$(cd "$here/.." && pwd)")"
 kits="${AGAINROM_SAV_ROUNDTRIP_KITS:-$seat/review/owner-sav-story1226/game9255.sav;$seat/review/owner-sav-story1225/*.sav;$seat/review/owner-saver-terminal86/*.sav}"
 echo "check-milestone2-acceptance: SAV round-trip kits $kits"
 
+# A long instrument runs as part tests; the part that completes a set checks
+# the whole from the summaries the parts leave in AGAINROM_M2_SHARE, a fresh
+# directory per root and run.
+shares=()
+for r in "${!roots[@]}"; do
+	shares[$r]="$(mktemp -d "$work/share-$r.XXXXXX")" || fail "cannot create a part share directory"
+done
+
 run() {
 	local r="$1" t="$2" started=$SECONDS
 	echo "check-milestone2-acceptance: start $(basename "${roots[$r]}") ${tests[$t]} at ${SECONDS}s" >&2
@@ -205,7 +213,7 @@ run() {
 	# reaches this gate.
 	(cd "${dirs[${owners[$t]}]}" &&
 		env -u AGAINROM_CENSUS_ONLY -u AGAINROM_SAV_ROUNDTRIP_ONLY -u AGAINROM_SAV_ROUNDTRIP_WORKERS \
-			AGAINROM_ASSETS="${roots[$r]}" AGAINROM_SAVE_CORPUS="$corpus" AGAINROM_CONVERTED_CORPUS="$(convdir "${roots[$r]}")" AGAINROM_SAV_ROUNDTRIP_KITS="$kits" \
+			AGAINROM_ASSETS="${roots[$r]}" AGAINROM_M2_SHARE="$(winpath "${shares[$r]}")" AGAINROM_SAVE_CORPUS="$corpus" AGAINROM_CONVERTED_CORPUS="$(convdir "${roots[$r]}")" AGAINROM_SAV_ROUNDTRIP_KITS="$kits" \
 			"$work/p${owners[$t]}.test.exe" -test.count=1 -test.v -test.timeout=30m -test.run "^${tests[$t]}\$") \
 		>"$work/$r-$t.out" 2>&1
 	local rc=$?
