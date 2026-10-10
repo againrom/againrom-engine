@@ -245,7 +245,7 @@ func (a *App) stepEnding(in appInput) {
 		// A press on the Hall of Fame's OK, button 0 of page 2, requests the
 		// hall's own ok.wav unless it plays (VIDEO-SFX-060).
 		if hit == 0 && f.endingPage == 2 {
-			a.hallSounds.RequestFor("hall-of-fame", a.soundPlayer, a.namedSounds(), ChargenSoundOK)
+			a.hallSounds.RequestFor("hall-of-fame", a.soundPlayer, a.namedSounds(), a.interfaceGenerator.OKSound())
 		}
 	}
 	if in.PrimaryReleased {

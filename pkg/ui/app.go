@@ -996,7 +996,10 @@ type App struct {
 	detailedSounds  SFXVoices
 	menuSounds      SFXVoices
 	hallSounds      SFXVoices
-	chargenRepeat   chargenRepeat
+	// interfaceGenerator is the generator description whose ok.wav the main
+	// menu and the Hall of Fame request.
+	interfaceGenerator *GeneratorDescription
+	chargenRepeat      chargenRepeat
 	// tipCycles are the pre-create and detailed guided cycles. Like the
 	// original's statics they outlive every generator page (TOWN-519).
 	tipCycles [2]guidedCycle
@@ -2373,7 +2376,7 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		// A press on any of the eight buttons requests the menu's own ok.wav
 		// unless it plays (VIDEO-SFX-060).
 		if hit != 0 {
-			a.menuSounds.RequestFor("main-menu", a.soundPlayer, a.namedSounds(), ChargenSoundOK)
+			a.menuSounds.RequestFor("main-menu", a.soundPlayer, a.namedSounds(), a.interfaceGenerator.OKSound())
 		}
 		a.sel.Press(hit)
 	case in.PrimaryReleased:

@@ -331,6 +331,7 @@ func TestChargenSoundSites(t *testing.T) {
 		a := newTestApp(t, appRows(1), okLoader(t))
 		rec := &memberRecorder{}
 		a.SetAudio(rec, memberBank{})
+		a.SetInterfaceGenerator(testLayout)
 		now := time.Unix(1_700_000_000, 0)
 		off := image.Pt(2, 2)
 		if a.buttonAt(off.X, off.Y) != 0 {
@@ -360,6 +361,7 @@ func TestChargenSoundSites(t *testing.T) {
 		a := newTestApp(t, appRows(1), okLoader(t))
 		rec := &memberRecorder{}
 		a.SetAudio(rec, memberBank{})
+		a.SetInterfaceGenerator(testLayout)
 		now := time.Unix(1_700_000_000, 0)
 		a.SetHallOfFame(func() EndingView { return EndingView{} })
 		a.flow.showHallOfFame()

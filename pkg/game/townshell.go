@@ -405,9 +405,9 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 }
 
 // TownSurfacePress requests the school's skill member on a left press in an
-// enabled skill column, unless that member's instance plays. The member
-// follows the column's skill slot and class, fighter cells 0..4 and mage
-// cells 5..9 (VIDEO-SFX-059). The press changes no state.
+// enabled skill column, unless that member's instance plays. The member is
+// the generator description's for the column's skill slot and class, fighter
+// cells 0..4 and mage cells 5..9 (VIDEO-SFX-059). The press changes no state.
 func (t *townScreen) TownSurfacePress(c ui.TownSurfaceControl) {
 	if t.room != roomSchool || c.Kind != ui.TownSurfaceControlCell || c.Index < 0 || c.Index >= 10 || t.schoolTrainingBusy() {
 		return
@@ -415,7 +415,7 @@ func (t *townScreen) TownSurfacePress(c ui.TownSurfaceControl) {
 	if cells := t.TownSurface().Cells; c.Index >= len(cells) || !cells[c.Index].Enabled {
 		return
 	}
-	t.schoolSounds.RequestFor("school-skill", t.roomSoundPlayer(audio.EffectsChannel), t.in.SoundBank, ui.ChargenSkillSounds[c.Index/5][c.Index%5])
+	t.schoolSounds.RequestFor("school-skill", t.roomSoundPlayer(audio.EffectsChannel), t.in.SoundBank, t.in.generator().SkillSound(c.Index/5, c.Index%5))
 }
 
 // TownSurfaceClick is the shared shell's one mutation door.

@@ -27,7 +27,7 @@ import (
 // comparison function (strings, bytes, slices, cmp, reflect.DeepEqual) taking
 // one; len of an identity; a switch on an identity or a case naming an
 // identity constant; an index into a map keyed by Game or Campaign, or by an
-// identity; a call answering one bool from a Game or Campaign receiver or
+// identity or an identity constant; a return of an identity constant; a call answering one bool from a Game or Campaign receiver or
 // argument, or such a function taken as a value; a read of a bool Edition
 // field; a non-bool Edition field compared with a constant, a datum used as a
 // flag; a use of a bool variable named for a game (rom1, rom2, first game,
@@ -53,9 +53,9 @@ var ProfileAllowed = map[string]string{
 // NewGameInTown, TownDifficulty, StartupCutscenes) each pick one of two code
 // bodies at the site, and pkg/mapload reaches them through Table.Game. The
 // EventAudience.SecondGame flag, the save's game checks (SameGame, Known), the
-// cutscene archive names, the empty mission tip path as a no-tips flag and
-// the mods' "rom1" applies-to word are choices the campaign service or
-// edition data does not yet carry.
+// cutscene archive names, the empty mission tip path as a no-tips flag, the
+// mods' "rom1" applies-to word and BaseID's first-game fallback are choices
+// the campaign service or edition data does not yet carry.
 var ProfileDebt = map[string]int{
 	"cmd/terraintool/main.go":           1,
 	"pkg/game/base.go":                  1,
@@ -69,6 +69,7 @@ var ProfileDebt = map[string]int{
 	"pkg/game/frontend.go":              3,
 	"pkg/game/mapload.go":               1,
 	"pkg/game/mission.go":               2,
+	"pkg/game/mods.go":                  1,
 	"pkg/game/questobjectives.go":       1,
 	"pkg/game/resume.go":                1,
 	"pkg/game/secondcampaign.go":        1,
@@ -301,6 +302,14 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 			case *ast.IndexExpr:
 				if m, ok := typeUnder(info.TypeOf(n.X)).(*types.Map); ok && isGameType(m.Key()) || s.identity(n.Index) && !s.dataName(n.Index) {
 					add(n, "looks up a game")
+				} else if s.identityConst(n.Index) {
+					add(n, "looks up a game by a literal key")
+				}
+			case *ast.ReturnStmt:
+				for _, r := range n.Results {
+					if s.identityConst(r) {
+						add(r, "answers a game literal")
+					}
 				}
 			case *ast.CallExpr:
 				s.called[ast.Unparen(n.Fun)] = true

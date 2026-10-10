@@ -53,7 +53,7 @@ func TestTownTipCloseRequiresRegisteredDown(t *testing.T) {
 }
 
 func TestTownTipEventConsumption(t *testing.T) {
-	for _, r := range []image.Rectangle{TownTipRect, TavernTipRect, SchoolTipRect, ShopTipRect()} {
+	for _, r := range []image.Rectangle{TownTipRect, TavernTipRect, SchoolTipRect, shopTipRect} {
 		v := TipPanelView{Rect: r, Text: "tip", Art: tipTestArt(), Font: shopTipTestFont()}
 		toggle, _ := sampleInside(TipPanelToggleRect(r))
 		close, _ := sampleInside(TipPanelCloseRect(r))

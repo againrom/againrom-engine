@@ -132,7 +132,7 @@ func (f *fakeTipShopCrossingTown) ShopSuppressDoll(slot int) {
 // moved into the panel and released there, then a press inside the panel
 // released on a live shelf cell.
 func TestShopTipPanelCrossingLeavesNoLatch(t *testing.T) {
-	tip := TipPanelView{Rect: ShopTipRect(), Text: "the shop buys and sells", Art: tipTestArt(), Font: shopTipTestFont()}
+	tip := TipPanelView{Rect: shopTipRect, Text: "the shop buys and sells", Art: tipTestArt(), Font: shopTipTestFont()}
 	if !tip.Showing() {
 		t.Fatal("fixture tip is not Showing()")
 	}
@@ -143,9 +143,9 @@ func TestShopTipPanelCrossingLeavesNoLatch(t *testing.T) {
 		t.Fatal("showTown refused the shop fixture")
 	}
 
-	panelPt, ok := sampleInside(tipBackgroundZone(ShopTipRect()))
+	panelPt, ok := sampleInside(tipBackgroundZone(shopTipRect))
 	if !ok {
-		t.Fatal("fixture error: ShopTipRect's own background zone is empty")
+		t.Fatal("fixture error: shopTipRect's own background zone is empty")
 	}
 	now := time.Unix(1_700_000_000, 0)
 

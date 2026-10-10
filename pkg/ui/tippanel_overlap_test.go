@@ -329,13 +329,13 @@ func (f *fakeTipShopEnumTown) ShopDrag(from, to ShopControl) TownAction {
 func (f *fakeTipShopEnumTown) ShopSuppressDoll(slot int) {}
 
 // TestShopTipListReleaseConsumesAndBodyPasses enumerates every DISTINCT
-// ShopControl ShopControlAt names anywhere under ShopTipRect — found by
+// ShopControl ShopControlAt names anywhere under shopTipRect — found by
 // scanning the rect against the same production geometry cmd/tippanelcheck
 // measures (D-2: two shelf picks, the merchant and four table cells, 47422
 // live pixels) — rather than a hardcoded list, so a future geometry change
 // is caught here even if this comment is not updated.
 func TestShopTipListReleaseConsumesAndBodyPasses(t *testing.T) {
-	rect := tipBackgroundZone(ShopTipRect()).Intersect(image.Rect(0, 0, 640, 480))
+	rect := tipBackgroundZone(shopTipRect).Intersect(image.Rect(0, 0, 640, 480))
 	found := map[ShopControl]image.Point{}
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
@@ -348,10 +348,10 @@ func TestShopTipListReleaseConsumesAndBodyPasses(t *testing.T) {
 		}
 	}
 	if len(found) == 0 {
-		t.Fatal("fixture error: no live shop control under ShopTipRect's own background zone — the enumeration below would prove nothing")
+		t.Fatal("fixture error: no live shop control under shopTipRect's own background zone — the enumeration below would prove nothing")
 	}
 
-	tip := TipPanelView{Rect: ShopTipRect(), Text: "the shop buys and sells", Art: tipTestArt(), Font: shopTipTestFont()}
+	tip := TipPanelView{Rect: shopTipRect, Text: "the shop buys and sells", Art: tipTestArt(), Font: shopTipTestFont()}
 	if !tip.Showing() {
 		t.Fatal("fixture tip is not Showing()")
 	}
@@ -385,17 +385,17 @@ func TestShopTipListReleaseConsumesAndBodyPasses(t *testing.T) {
 	}
 
 	closedBefore, toggledBefore := shop.closed, shop.toggled
-	closeAt, ok := sampleInside(TipPanelCloseRect(ShopTipRect()))
+	closeAt, ok := sampleInside(TipPanelCloseRect(shopTipRect))
 	if !ok {
-		t.Fatal("fixture error: TipPanelCloseRect(ShopTipRect()) is empty")
+		t.Fatal("fixture error: TipPanelCloseRect(shopTipRect) is empty")
 	}
 	clickAt(a, now, closeAt)
 	if shop.closed != closedBefore+1 {
 		t.Fatalf("CloseTip() calls = %d after a release on the panel's own Close control, want %d", shop.closed, closedBefore+1)
 	}
-	toggleAt, ok := sampleInside(TipPanelToggleRect(ShopTipRect()))
+	toggleAt, ok := sampleInside(TipPanelToggleRect(shopTipRect))
 	if !ok {
-		t.Fatal("fixture error: TipPanelToggleRect(ShopTipRect()) is empty")
+		t.Fatal("fixture error: TipPanelToggleRect(shopTipRect) is empty")
 	}
 	clickAt(a, now, toggleAt)
 	if shop.toggled != toggledBefore+1 {
