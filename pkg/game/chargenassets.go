@@ -221,9 +221,9 @@ func chargenMaskOf(src terrain.EntrySource, key string, size ui.GeneratorPoint, 
 
 func chargenFont(src terrain.EntrySource, f ui.GeneratorFont) (*text.Font, error) {
 	if f.Atlas == "16a" {
-		return LoadFontA(src, f.Name)
+		return LoadFont(src, f.Name, FontCoverage)
 	}
-	return LoadFont(src, f.Name)
+	return LoadFont(src, f.Name, FontShades)
 }
 
 // LoadChargenAssets reads the generator presentation the description names,

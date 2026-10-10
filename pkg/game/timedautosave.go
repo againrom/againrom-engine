@@ -1,17 +1,13 @@
 package game
 
 import (
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"math"
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
-	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
@@ -48,35 +44,12 @@ func (s OptionsStore) setTimedAutosave(v ui.TimedAutosaveSettings) error {
 	return s.writeAll(m)
 }
 
-type timedSaveOwner struct {
-	Kind     string
-	Slot     int
-	Sequence uint64
-	SHA256   string
-}
-
-func timedSaveBase(slot int) validatedSaveName {
-	return validatedSaveName(fmt.Sprintf("timed-autosave-%d", slot+1))
-}
-
-func validateTimedSavePair(slot int, raw, owner []byte) (uint64, error) {
-	var record timedSaveOwner
-	if len(owner) > 1024 || json.Unmarshal(owner, &record) != nil || record.Kind != "againrom-timed-sav" || record.Slot != slot ||
-		record.Sequence == 0 || record.SHA256 != fmt.Sprintf("%x", sha256.Sum256(raw)) {
-		return 0, fmt.Errorf("timed slot %d has no matching ownership record", slot+1)
-	}
-	if _, err := sav.DecodeDocumentData(raw); err != nil {
-		return 0, fmt.Errorf("timed slot %d is corrupt: %w", slot+1, err)
-	}
-	return record.Sequence, nil
-}
-
 func timedSavePosition(dir string) (int, uint64, error) {
 	var newest uint64
 	next := 0
 	var writable [3]bool
 	for slot := range 3 {
-		base := filepath.Join(dir, string(timedSaveBase(slot)))
+		base := filepath.Join(dir, string(timedSlots.slotBase(slot)))
 		saveInfo, saveErr := os.Lstat(base + ".sav")
 		ownerInfo, ownerStatErr := os.Lstat(base + timedOwnerExtension)
 		if os.IsNotExist(saveErr) && os.IsNotExist(ownerStatErr) {
@@ -91,7 +64,7 @@ func timedSavePosition(dir string) (int, uint64, error) {
 		if err != nil || ownerErr != nil {
 			continue
 		}
-		sequence, err := validateTimedSavePair(slot, raw, owner)
+		sequence, err := timedSlots.validatePair(slot, raw, owner)
 		if err == nil {
 			writable[slot] = true
 			if sequence > newest {
@@ -109,60 +82,6 @@ func timedSavePosition(dir string) (int, uint64, error) {
 		}
 	}
 	return 0, 0, fmt.Errorf("all three timed autosave slots are protected")
-}
-
-func timedDeleteCompanion(path string, raw []byte) (namedSaveTarget, bool) {
-	base := strings.TrimSuffix(path, filepath.Ext(path))
-	for slot := range 3 {
-		if !sameSaveName(filepath.Base(base), string(timedSaveBase(slot))) {
-			continue
-		}
-		target := namedSaveTarget{path: base + timedOwnerExtension}
-		var err error
-		target.before, err = os.Lstat(target.path)
-		if err != nil || !target.before.Mode().IsRegular() {
-			return namedSaveTarget{}, false
-		}
-		target.old, err = ReadSaveFile(target.path)
-		if err != nil {
-			return namedSaveTarget{}, false
-		}
-		if _, err := validateTimedSavePair(slot, raw, target.old); err != nil {
-			return namedSaveTarget{}, false
-		}
-		target.oldHash = sha256.Sum256(target.old)
-		return target, true
-	}
-	return namedSaveTarget{}, false
-}
-
-func writeTimedSave(store SaveStore, fences []string, slot int, sequence uint64, raw []byte, files namedSaveFileOps) error {
-	owner, err := json.Marshal(timedSaveOwner{"againrom-timed-sav", slot, sequence, fmt.Sprintf("%x", sha256.Sum256(raw))})
-	if err != nil {
-		return err
-	}
-	prepared, err := prepareOwnedNamedSave(store.Dir, timedSaveBase(slot), []namedSavePayload{{".sav", raw}, {timedOwnerExtension, owner}}, fences, files,
-		func(targets []namedSaveTarget) error {
-			if targets[0].before == nil && targets[1].before == nil {
-				return nil
-			}
-			if targets[0].before == nil || targets[1].before == nil {
-				return fmt.Errorf("timed slot %d is occupied by an unowned file", slot+1)
-			}
-			previous, err := validateTimedSavePair(slot, targets[0].old, targets[1].old)
-			if err != nil {
-				return err
-			}
-			if previous >= sequence {
-				return fmt.Errorf("timed slot changed after rotation selection")
-			}
-			return nil
-		}, store.profile)
-	if err != nil {
-		return err
-	}
-	_, err = prepared.Commit(true)
-	return err
 }
 
 func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fences []string, clock func() time.Time, q *autosaveQueue, observers ...func(string, Snapshot)) {
@@ -235,7 +154,7 @@ func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fence
 				}
 				raw, _, err := view.playerMissionSave(snapshot, fmt.Sprintf("timed autosave %d", slot+1))
 				if err == nil {
-					err = writeTimedSave(store, fences, slot, sequence, raw, nil)
+					err = timedSlots.write(store, fences, slot, sequence, raw, nil)
 				}
 				return autosaveResult{timed: true, err: err}
 			})

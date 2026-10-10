@@ -666,7 +666,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// CARRIED rather than returned. The two results are assigned together, so a
 	// caller cannot reach the font without the variable that says why there is
 	// none.
-	font, fontErr := LoadFont(archives.Containers, DefaultFont)
+	font, fontErr := LoadFont(archives.Containers, DefaultFont, FontShades)
 
 	// Character generation is now on every ordinary mission-entry route, so its
 	// fixed controls are part of a usable install rather than an optional map

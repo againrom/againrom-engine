@@ -67,7 +67,7 @@ func fpsPaintedZeroControl(t *testing.T, atlas, advances []byte) {
 		t.Fatal("derived raw zero control has no mid-literal operand")
 	}
 	expected := fpsSourceFont(t, changed, advances)
-	font, err := LoadFont(fpsFontInput{"graphics/font1/font1.16": changed, "graphics/font1/font1.dat": advances}, "font1")
+	font, err := LoadFont(fpsFontInput{"graphics/font1/font1.16": changed, "graphics/font1/font1.dat": advances}, "font1", FontShades)
 	if err != nil {
 		t.Fatal(err)
 	}

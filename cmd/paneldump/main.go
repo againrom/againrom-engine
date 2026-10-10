@@ -68,7 +68,7 @@ func run(args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	font, err := game.LoadFont(archives.Containers, game.DefaultFont)
+	font, err := game.LoadFont(archives.Containers, game.DefaultFont, game.FontShades)
 	if err != nil {
 		return err
 	}

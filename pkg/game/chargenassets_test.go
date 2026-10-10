@@ -233,10 +233,10 @@ func TestAlphaAtlasSmoothingBlendsInkWithBackground(t *testing.T) {
 			if alphaAtlas {
 				atlas := synthFont16A()
 				binary.LittleEndian.PutUint16(atlas[1038:], 3<<9|255<<1)
-				font, err = LoadFontA(chargenSource{
+				font, err = LoadFont(chargenSource{
 					FontAtlasPathA(DocumentFont):  atlas,
 					FontAdvancePath(DocumentFont): binary.LittleEndian.AppendUint32(nil, 1),
-				}, DocumentFont)
+				}, DocumentFont, FontCoverage)
 			} else {
 				atlas, advances := synth.Font16([]synth.Font16Glyph{{Width: 1, Height: 1, Advance: 1,
 					Ink: func(_, _ int) (uint8, bool) { return 3, true },
@@ -244,7 +244,7 @@ func TestAlphaAtlasSmoothingBlendsInkWithBackground(t *testing.T) {
 				font, err = LoadFont(chargenSource{
 					FontAtlasPath(DefaultFont):   atlas,
 					FontAdvancePath(DefaultFont): advances,
-				}, DefaultFont)
+				}, DefaultFont, FontShades)
 			}
 			if err != nil {
 				t.Fatal(err)
