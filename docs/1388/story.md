@@ -50,7 +50,10 @@ naming the target Player, and the `#modify` arms with their replies, spell
 count and book test. Each effect is one operation both games call:
 `CheatAddGold`, `CheatAddItem`, `CheatGod`, `CheatSpell`, `CheatSummon`,
 `CheatKillPlayer`, `CheatPickupAll`, the map reveal, the victory panel, the
-event and the unlock.
+event and the unlock. The second game's mission completion takes the front
+end's one win predicate, the script outcome or the announced client outcome,
+as the first game's completion already does; `#victory` announces the client
+outcome and reaches that completion (R2-ENGINE-303).
 
 `pkg/game/chatgames.go` holds the two adapters: the table, the admission rule,
 the debug-letter table, the help lines, chat echo, reply time, the launch line
@@ -82,7 +85,7 @@ Every first-game cheat release test passes unchanged.
 | `#kill name` | the exact-named Player's actors set to -50; reply 7 naming that Player; no match, no reply |
 | `#pickup all` | every sack's gold and items to the hero; reply 7 |
 | `#show map`, `#hide map` | reveal on, every cell explored; reveal off; reply 7 |
-| `#victory` | the ordinary success panel and campaign completion |
+| `#victory` | the ordinary success report; its Victory button runs the ordinary mission completion, so mission 10 returns to the town with the campaign advanced to mission 20 |
 | `#event N` | N raised through the mission's script message route, the same route a script raise takes |
 | `#kick`, `#locate`, `#set latency`, `#show latency` | outside the campaign only; no connection facility, nothing changes |
 
@@ -126,10 +129,12 @@ Release witnesses, run on `rom2-en` and `rom2-ru` in the `TestReleaseSecondCampa
   nothing. Unlock with reply 5; the unlock line again and the first game's
   unlock word do nothing. Each command with its state change and reply,
   including the refusal, two summons (humans and a creature), a pickup over an
-  ordinary gold drop, the kills against a living hostile Player, the event and
-  the victory panel. Alt+D, T, Q toggle and print nothing. SAVE, then cold LOAD
-  through the App: purse, god block, inventory, spells and summons equal;
-  every actor equal field by field; the loaded mission is locked.
+  ordinary gold drop, the kills against a living hostile Player and the event.
+  Alt+D, T, Q toggle and print nothing. SAVE, then cold LOAD through the App:
+  purse, god block, inventory, spells and summons equal; every actor equal
+  field by field; the loaded mission is locked. Unlocked again, `#victory`
+  opens the ordinary success report; its Victory button returns to the town,
+  advances the campaign once to mission 20 and marks mission 10 done.
 - `TestReleaseSecondCampaignCheatLaunchFlag`: flag on, the fresh mission is
   unlocked with reply 5; a LOAD with the flag on is unlocked with reply 5; a
   LOAD with the flag off is locked; a direct mission entry outside the campaign

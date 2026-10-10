@@ -2024,8 +2024,9 @@ package storyguard
 // the wider randomness scan, new code, including this paragraph.
 // CommentBytes rises for the unit-shot tracking release witness and its
 // helpers, new code, including this paragraph.
-// CommentBytes rises for the one chat command parser, its two game adapters
-// and the second game's command witnesses, new code, including this paragraph.
+// CommentBytes rises for the one chat command parser, its two game adapters,
+// the second game's completion win predicate and the second game's command
+// witnesses, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2049,5 +2050,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1768,
 	},
-	CommentBytes: 8583360,
+	CommentBytes: 8583938,
 }

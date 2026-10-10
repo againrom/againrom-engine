@@ -128,10 +128,6 @@ func hit(c Collection, i int, match func(p []int32) bool) bool {
 	return c.EntryName(i) != "" && match(c.EntryParams(i))
 }
 
-// slotEquals reports whether p's slot holds want. A row too short to have that
-// column cannot carry that key and so cannot match — which is how the sixty-odd
-// entries that ship with no parameter array at all stay out of every result
-// without being special-cased anywhere.
 // UnitServerID is the server id column of a units row, the key a second-game
 // placement resolves a creature by; false for a row too short to hold it.
 func UnitServerID(p []int32) (int32, bool) { return slotValue(p, unitServerIDSlot) }
@@ -146,6 +142,10 @@ func slotValue(p []int32, slot int) (int32, bool) {
 	return 0, false
 }
 
+// slotEquals reports whether p's slot holds want. A row too short to have that
+// column cannot carry that key and so cannot match — which is how the sixty-odd
+// entries that ship with no parameter array at all stay out of every result
+// without being special-cased anywhere.
 func slotEquals(p []int32, slot int, want int32) bool {
 	return slot < len(p) && p[slot] == want
 }

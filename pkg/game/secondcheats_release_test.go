@@ -381,7 +381,10 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 	}
 
 	// #event (R2-ENGINE-303, R2-ENGINE-047) raises the event as the script
-	// does; #victory opens the ordinary completion.
+	// does; #victory opens the ordinary success report, and its Victory
+	// button completes mission 10 as an ordinary win does: the completion
+	// movie, the town, the campaign advanced once to mission 20, and
+	// Town.Done(10).
 	cheatChat(t, ca, "#event 1")
 	if !slices.Contains(cw.mission.pendingMessages, 1) && !(cw.mission.open && cw.mission.kind == ui.NoticeDialogue) {
 		t.Fatal("#event 1 raised no event")
@@ -391,6 +394,27 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 	cheatChat(t, ca, "#victory")
 	if !cw.mission.open || cw.mission.kind != ui.NoticeSuccess || cw.mission.outcome != sim.OutcomeWon {
 		t.Fatal("#victory did not open the ordinary completion")
+	}
+	if body, kind, shown := cw.view.NoticeState(); !shown || kind != ui.NoticeSuccess || body != cold.Words.MissionWon {
+		t.Fatalf("#victory report = %q/%v/%v", body, kind, shown)
+	}
+	if err := ca.HeadlessActivate("victory"); err != nil {
+		t.Fatal(err)
+	}
+	if ca.Screen() != ui.ScreenCutscene || ca.CutsceneName() != "teleport/01.smk" {
+		t.Fatalf("#victory Victory did not play the ordinary completion movie: %s %q", ca.Screen(), ca.CutsceneName())
+	}
+	for _, skip := range []string{"key", ""} {
+		if err := ca.HeadlessCutsceneStep(skip); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c := cold.Town.second
+	if ca.Screen() != ui.ScreenTown || cold.live != nil || !cold.Town.Done(10) {
+		t.Fatalf("#victory Victory reached screen=%s live=%v done=%v", ca.Screen(), cold.live != nil, cold.Town.Done(10))
+	}
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+		t.Fatal("#victory did not advance the campaign exactly once", c)
 	}
 }
 
