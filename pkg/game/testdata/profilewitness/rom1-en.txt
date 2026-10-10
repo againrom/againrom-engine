@@ -1,6 +1,6 @@
 menu screen=menu mission=0 place= members=0 purse=100 frame=640x480:99e4b498df3dd745 world=none save=error:there is no game to save yet msg=""
 new-game screen=picker mission=0 place= members=0 purse=100 frame=error:headless frame: picker screen: draws only through ebitenutil, no CPU composite world=none save=error:there is no game to save yet msg=""
-pick screen=chargen mission=0 place= members=0 purse=100 frame=640x480:f5f4c8f82e51b379 world=none save=error:there is no game to save yet msg=""
+pick screen=chargen mission=0 place= members=0 purse=100 frame=640x480:594fac9cf655ffdc world=none save=error:there is no game to save yet msg=""
 generate screen=map mission=10 place= members=1 purse=100 frame=320x224:f6255c23c5f682c4 world=28071300a57cd812/0 save=05b12862280f093e msg=""
 run screen=map mission=10 place= members=1 purse=100 frame=320x224:9aa0dfe9425c8e44 world=5e1f42c2ba811485/7 save=5b4ff3a5a1011a29 msg=""
 mission-notice-0 screen=map mission=10 place= members=1 purse=100 frame=320x224:23b4f954d7132ea4 world=d4b727d4883280bb/8 save=0a57ec7e3ac266c4 msg=""
