@@ -47,7 +47,7 @@ func TestLoadFont(t *testing.T) {
 	atlas, advances := synth.Font16(glyphs)
 	src := openContainers(t, synth.Archive(fontArchiveFiles(t, game.DefaultFont, atlas, advances)))
 
-	font, err := game.LoadFont(src, game.DefaultFont)
+	font, err := game.LoadFont(src, game.DefaultFont, game.FontShades)
 	if err != nil {
 		t.Fatalf("LoadFont: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestLoadFontFailures(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			src := openContainers(t, synth.Archive(fontArchiveFiles(t, game.DefaultFont, tc.atlas, tc.adv)))
-			font, err := game.LoadFont(src, game.DefaultFont)
+			font, err := game.LoadFont(src, game.DefaultFont, game.FontShades)
 			if err == nil {
 				t.Fatalf("loaded %d glyphs, want an error", len(font.Glyphs))
 			}
@@ -151,12 +151,12 @@ func TestLoadFontFailures(t *testing.T) {
 
 	// The mismatch names BOTH counts, since neither node alone is at fault.
 	src := openContainers(t, synth.Archive(fontArchiveFiles(t, game.DefaultFont, short, advances)))
-	_, err := game.LoadFont(src, game.DefaultFont)
+	_, err := game.LoadFont(src, game.DefaultFont, game.FontShades)
 	if err == nil || !strings.Contains(err.Error(), "8 advances") || !strings.Contains(err.Error(), "4 glyph") {
 		t.Fatalf("count mismatch reported as %v; want both counts", err)
 	}
 
-	if _, err := game.LoadFont(nil, game.DefaultFont); err == nil {
+	if _, err := game.LoadFont(nil, game.DefaultFont, game.FontShades); err == nil {
 		t.Fatal("a nil source loaded a font")
 	}
 }

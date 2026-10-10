@@ -46,9 +46,9 @@ func prepareLoadDeleteFiles(dir, token string, fences []string, files namedSaveF
 		return nil, err
 	}
 	targets := []namedSaveTarget{{path: path, before: info, oldHash: sha256.Sum256(raw), old: raw}}
-	if companion, owned := timedDeleteCompanion(path, raw); owned {
+	if companion, owned := timedSlots.deleteCompanion(path, raw); owned {
 		targets = append(targets, companion)
-	} else if companion, owned := quickDeleteCompanion(path, raw); owned {
+	} else if companion, owned := quickSlots.deleteCompanion(path, raw); owned {
 		targets = append(targets, companion)
 	}
 	return func() error {

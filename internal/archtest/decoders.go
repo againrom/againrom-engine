@@ -29,7 +29,7 @@ const decoderRoot = "pkg/formats/"
 // coverage.
 var decoderTranslations = map[string]string{
 	"pkg/game/statics.go": "terrain.StaticPixel keeps the index for the shade table",
-	"pkg/game/docsart.go": "text.Pixel keeps the level as glyph coverage",
+	"pkg/game/font.go":    "text.Pixel keeps the level as glyph coverage",
 }
 
 // DecoderComposerDebt is the files the town composer moves onto the decoders.
