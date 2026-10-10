@@ -2019,6 +2019,9 @@ package storyguard
 // CommentBytes rises for the slot-0 resistance witnesses: the docs of the
 // focused strike tests in pkg/sim and of the corpus release test in
 // pkg/game, new code, including this paragraph.
+// CommentBytes rises for the random service remainder: the AI range idiom,
+// the count reseeds, the generator restart, the edition's generator name and
+// the wider randomness scan, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2042,5 +2045,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1770,
 	},
-	CommentBytes: 8566726,
+	CommentBytes: 8574842,
 }

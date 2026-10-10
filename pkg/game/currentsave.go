@@ -109,7 +109,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	// writes the bytes it wrote before the session existed; a LOAD of an
 	// engine SAV without the leaf begins the zero session again.
 	if rs := s.randomSession; rs != (random.Session{}) {
-		if err := sav.SetNativeSession(&doc.State, sav.NativeSession{Seed: rs.Seed, Mode: uint32(rs.Mode), Shared: rs.Shared}); err != nil {
+		if err := sav.SetNativeSession(&doc.State, sav.NativeSession{Seed: rs.Seed, Mode: uint32(rs.Mode), Shared: rs.Shared, Reseeds: rs.Reseeds}); err != nil {
 			return nil, err
 		}
 	}

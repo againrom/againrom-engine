@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"againrom/pkg/random"
@@ -14,14 +16,22 @@ func clockSessionSeed() uint64 { return uint64(time.Now().UnixNano()) }
 
 // SetRandomLaunch applies the launch settings: a fixed session seed when
 // fixed, and the original generator when original. It begins the process's
-// session; a new game then begins the next one.
-func (f *FrontEnd) SetRandomLaunch(seed uint64, fixed, original bool) {
+// session; a new game then begins the next one. A game whose edition has no
+// evidence for its original generator runs the default mode instead
+// (DIV-2748); the notice saying so is written once and answered.
+func (f *FrontEnd) SetRandomLaunch(seed uint64, fixed, original bool) (notice string) {
 	mode := random.Seeded
 	if original {
 		mode = random.Original
 	}
-	ui.SetOriginalItemStars(original)
-	f.randomService().SetLaunch(random.Launch{Seed: seed, Fixed: fixed, Mode: mode}, clockSessionSeed())
+	svc := f.randomService()
+	launch := random.Launch{Seed: seed, Fixed: fixed, Mode: mode, Generator: f.Base().Profile.Edition().OriginalGenerator}
+	if svc.SetLaunch(launch, clockSessionSeed()) {
+		notice = "original random: this game has no evidence for its original generator; the default mode runs (DIV-2748)"
+		fmt.Fprintln(os.Stderr, notice)
+	}
+	ui.SetOriginalItemStars(svc.Mode() == random.Original)
+	return notice
 }
 
 // randomService answers the runtime's random service, made over seed zero
@@ -53,6 +63,14 @@ func (f *FrontEnd) prepareLoadRandom(saved random.Session) (random.Session, func
 	return loaded, f.Random.Cancel
 }
 
+// beginRandomSession begins session: the service restarts its named streams
+// and the town composer's own generators restart with them, so a LOAD inside
+// a running process draws what a cold LOAD of the same SAV draws.
+func (f *FrontEnd) beginRandomSession(session random.Session) {
+	f.randomService().Begin(session)
+	f.townProcess.RestartGenerators()
+}
+
 // randomSessionNow is the session a save records: the service's session, with
 // the running mission's state as the shared state while one holds it.
 func (f *FrontEnd) randomSessionNow() random.Session {
@@ -76,25 +94,19 @@ func missionRandom(svc *random.Service) *sim.Draws {
 	if svc.Mode() != random.Original {
 		return nil
 	}
-	s := svc.Prepared()
-	return sim.NewOriginalDraws(random.MissionLoadState(s.Seed, s.Shared))
+	return sim.NewOriginalDraws(svc.MissionStart())
 }
 
 // loadedWorldRandom carries a loaded World's saved stream into the current
-// mode. Seeded mode keeps a seeded state as saved; original mode runs the
-// load path's reseeds over it (SESS-083).
+// mode. Seeded mode keeps a seeded state as saved. Original mode installs the
+// shared state the LOAD's reseeds left (random.Service.Loaded), whatever
+// state or mode the World was saved with.
 func loadedWorldRandom(w *sim.World, current random.Session) {
-	state := w.RandomState()
-	saved := w.RandomMode()
 	if current.Mode == random.Seeded {
-		if saved == random.Original {
-			w.SetRandom(random.Seeded, random.UnfoldOriginal(uint32(state)))
+		if w.RandomMode() == random.Original {
+			w.SetRandom(random.Seeded, random.UnfoldOriginal(uint32(w.RandomState())))
 		}
 		return
 	}
-	shared := uint32(state)
-	if saved == random.Seeded {
-		shared = random.FoldSeeded(state)
-	}
-	w.SetRandom(random.Original, uint64(random.MissionLoadState(current.Seed, shared)))
+	w.SetRandom(random.Original, uint64(current.Shared))
 }
