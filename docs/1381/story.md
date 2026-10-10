@@ -91,6 +91,15 @@ around list and bar, for every list (DIV-2645). Before, Save and Load drew
 the well themselves before calling `drawListBox`, and the cutscene library
 and Sound Options did not. The lists now differ in nothing but their data.
 
+### Second game
+
+The windows a second-game root shares with the first game use the same
+builders: Load Game, Save, the in-game menu with its Game Options, Sound
+Options and quest objectives pages, the success and outcome notices and the
+Cut Scenes library draw the kit's window frame and list well and press
+through the one latch. MENU-127 and MENU-121 are first-game evidence; no
+second-game claim covers these frames. DIV-2726 records the difference.
+
 ## Proof
 
 - Release census `TestReleaseFrameAndButtonCensus`
@@ -105,6 +114,13 @@ and Sound Options did not. The lists now differ in nothing but their data.
   lines per root move, `mission-save-open` and `mission-save-name`, and only
   their `frame=` hash (the Save screen above); every other field and line is
   byte-identical to main's witness.
+- `TestReleaseSecondGameProfileWitnessIsUnchanged` was re-recorded on both
+  second-game roots: five lines per root move, `town-save-open`,
+  `town-save-name`, `town-save` (the in-game menu with the saved notice),
+  `mission-save-open` and `mission-save-name`, and only their `frame=` hash;
+  world, save and message fields are unchanged. Second-game Load, Save and
+  in-game menu renders before (`ab0b7bdc`) and after are owner artifacts;
+  the census itself needs a first-game town and does not run there.
 - `TestEveryFormerLocalLatchRunsTheKitCases` runs 13 latch sites through
   press and release inside, a release elsewhere, a lost focus and a double
   press. Mutating the latch to ignore the release point, to keep a press over
@@ -133,3 +149,4 @@ and Sound Options did not. The lists now differ in nothing but their data.
   `townTipPress` and its town-room copy `tipPress`. Same list.
 - DIV-2724 and DIV-2725 (window cover and shadow tone) wait for a claim or an
   owner ruling.
+- DIV-2726: the second game's own window frame and list well are unread.
