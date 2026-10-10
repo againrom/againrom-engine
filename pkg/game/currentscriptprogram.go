@@ -170,7 +170,7 @@ func restoreCurrentScriptProgram(ms *Mission, table *mapload.Table, p *currentSc
 		if err := restoreCurrentScriptBindings(ms, table); err != nil {
 			return err
 		}
-		return restoreTerminalScriptBindings(ms)
+		return restoreTerminalScriptBindings(ms, table)
 	}
 	program, err := p.compile()
 	if err != nil {

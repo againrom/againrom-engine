@@ -8,6 +8,23 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Every hero and person now gets health, mana, speed, sight and combat
+  values from one calculation, whether he was made by the engine or loaded
+  from an original save. A skill bonus from worn items now raises a skill above
+  100 for heroes loaded from an original save too, and a very strong hero's
+  damage no longer exceeds what the original can hold.
+
+## 0.109.0
+
+- [ROM1] A mission script node that names a party role nobody in the party
+  fills is no longer built, and a trigger naming it runs the map's first
+  action instead, as in the original. In mission 100 a party without the
+  companions sends the servant to (13,14) at the win, so he stops following
+  the hero. Missions 30, 60, 81, 90, 130, 131 and 151 change the same way
+  when their roles are missing; in mission 130 a party without the
+  companion wins at the start. When that first action is a message, the
+  message is shown, as in mission 90's win without its companions.
+
 - [ROM1] The armour shelf in the town shop no longer offers plain rings and
   amulets, as in the original; they are sold only enchanted, on the Magic
   Items shelf. No shelf offers either beard.
@@ -30,11 +47,6 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   overload slows his own speed first, to no less than 6, and a speed bonus or
   penalty is added after it. His character card shows that speed for every
   overloaded hero, and it is kept through a save.
-- [BASE] Every hero and person now gets health, mana, speed, sight and combat
-  values from one calculation, whether he was made by the engine or loaded
-  from an original save. A skill bonus from worn items now raises a skill above
-  100 for heroes loaded from an original save too, and a very strong hero's
-  damage no longer exceeds what the original can hold.
 
 ## 0.108.0
 
