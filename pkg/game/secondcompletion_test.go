@@ -9,11 +9,11 @@ func TestSecondCompletionUsesTheSelectedOutputTable(t *testing.T) {
 		if output >= 1 && output <= 5 {
 			want = []string{"", "one", "two", "three", "four", "five"}[output]
 		}
-		if got := secondGameCompletionDirectory(src, output); got != want {
+		if got := secondGameCompletionDirectory(src, TextCode{}, output); got != want {
 			t.Fatalf("output%d selected %q, want %q", output, got, want)
 		}
 	}
-	if got := secondGameCompletionDirectory(nil, 1); got != "" {
+	if got := secondGameCompletionDirectory(nil, TextCode{}, 1); got != "" {
 		t.Fatal("missing table manufactured a movie", got)
 	}
 }

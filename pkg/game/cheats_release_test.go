@@ -415,7 +415,7 @@ func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 			}
 			wantCaption := name
 			if spawn.SourceBinding.ActorClass() == 1 || !sim.InPersistBand(spawn.TypeID) {
-				captions := LoadTextTable(f.Archives.Containers, UnitNameTextPath)
+				captions := LoadTextTable(f.Archives.Containers, UnitNameTextPath, f.textCode())
 				if captions == nil || spawn.TypeID < 0 || int(spawn.TypeID) >= captions.Lines() {
 					t.Fatal("summoned actor has no installed caption index", spawn.TypeID)
 				}

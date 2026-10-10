@@ -16,6 +16,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   party lacks only the companion the map itself places there. A script role
   nobody in the party fills now goes to a named person the map places, as in
   the original.
+- [ROM2] On the Russian install the character generator's tooltips read in
+  Russian instead of wrong letters, and so do the other words the game reads
+  from the install's text tables: menu and option captions, unit, building and
+  spell names, the default hero's name and the help text.
 
 ## 0.109.0
 

@@ -64,7 +64,7 @@ func missionTipText(t *testing.T, f *FrontEnd, mission, n int) string {
 	if !ok {
 		t.Fatalf("the edition has no tip %d of mission %d", n, mission)
 	}
-	text, ok := ReadShopTip(f.Archives.Containers, path)
+	text, ok := ReadShopTip(f.Archives.Containers, path, f.textCode())
 	if !ok || text == "" {
 		t.Fatalf("installed tip %d of mission %d is missing", n, mission)
 	}

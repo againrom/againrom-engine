@@ -14,7 +14,7 @@ import (
 func (f *FrontEnd) wireLoadWindow(a *ui.App) {
 	w := ui.LoadWindowWords{Title: "Load Saved Game", Subtitle: "Load the Game", OK: "OK", Delete: "Delete", Cancel: "Cancel", Confirm: "Delete selected#saved game"}
 	if f.Archives != nil {
-		t := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+		t := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 		for i, p := range map[int]*string{151: &w.Title, 24: &w.Subtitle, 0: &w.OK, 157: &w.Delete, 1: &w.Cancel, 158: &w.Confirm} {
 			if s, ok := t.At(i); ok {
 				*p = s

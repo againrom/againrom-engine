@@ -40,7 +40,7 @@ func TestReadItemNamesPairsBothFiles(t *testing.T) {
 		game.ItemNameKeyAddress:  {0x01, 0x01},
 		game.ItemNameTextAddress: []byte("Sword\r\n"),
 	}
-	got, ok := game.ReadItemNames(src)
+	got, ok := game.ReadItemNames(src, game.TextCode{})
 	if !ok {
 		t.Fatal("both files present: refused, want it read")
 	}
@@ -50,7 +50,7 @@ func TestReadItemNamesPairsBothFiles(t *testing.T) {
 }
 
 func TestReadItemNamesIsSilentWithNoSourceAtAll(t *testing.T) {
-	if got, ok := game.ReadItemNames(nil); ok || got != nil {
+	if got, ok := game.ReadItemNames(nil, game.TextCode{}); ok || got != nil {
 		t.Fatalf("ReadItemNames(nil) = %#v, %v; want nil, false", got, ok)
 	}
 }
@@ -65,7 +65,7 @@ func TestReadItemNamesIsSilentWhenEitherFileIsMissing(t *testing.T) {
 		{"only the text file", mapSource{game.ItemNameTextAddress: []byte("Sword\r\n")}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, ok := game.ReadItemNames(tc.src)
+			got, ok := game.ReadItemNames(tc.src, game.TextCode{})
 			if ok || got != nil {
 				t.Fatalf("ReadItemNames = %#v, %v; want nil, false", got, ok)
 			}

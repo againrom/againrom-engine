@@ -63,7 +63,7 @@ func TestReleaseTerminalDefeat1091AppNativeContinuation(t *testing.T) {
 	if !up || kind != ui.NoticeFailure {
 		t.Fatalf("m10 primary death did not fail: %v/%v tick=%d outcome=%v", kind, up, f.live.world.Tick(), f.live.world.Outcome())
 	}
-	words := LoadInstallWords(f.Archives.Containers)
+	words := LoadInstallWords(f.Archives.Containers, f.textCode())
 	wantTitle, _ := words.Global(141)
 	exit, _ := words.Dialogs(44)
 	load, _ := words.Dialogs(35)

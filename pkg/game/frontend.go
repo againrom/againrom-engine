@@ -678,7 +678,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// payload is never read. The edition's generator description names it.
 	var chargenAssets *ChargenAssets
 	if !archives.Base.Profile.Limits.NoCharacterGeneration {
-		if chargenAssets, err = LoadChargenAssets(archives.Containers, GeneratorDescription(archives.Base.Profile)); err != nil {
+		if chargenAssets, err = LoadChargenAssets(archives.Containers, GeneratorDescription(archives.Base.Profile), archives.Game()); err != nil {
 			return nil, err
 		}
 		// Tips that keep the install's font draw in the font loaded above.
@@ -713,7 +713,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// every index is absent, and every word then stays this build's authored
 	// English. That is the same shape the font, the attack pointer and the spell
 	// art already carry — a cosmetic source does not stop a mission opening.
-	words := LoadInstallWords(archives.Containers)
+	words := LoadInstallWords(archives.Containers, InstallTextCode(archives.Containers, archives.Game().Edition()))
 	// The engine's own words follow the install's language, the detected
 	// profile's; the font's selector only converts bytes.
 	words.Language = archives.Base.Profile.Language
@@ -747,7 +747,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 			// The resolved word set. App hands it to the application, and the town
 			// screen reads its notice-button word directly, because that screen
 			// composes its own dialogue layout.
-			Words: reportWordsFor(words, archives.Game()),
+			Words: words.Words(),
 			// Off the CONTAINER FILESYSTEM, like the menu and the two loaders above:
 			// terrain.TilePathPrefix and DirtPath carry graphics.res's identity
 			// segment now, so the tile strips are named by address and the render
@@ -1608,7 +1608,7 @@ func (in *InstallResources) localizedNPCName(index int, fallback string) string 
 	if err != nil {
 		return fallback
 	}
-	lines := strings.Split(strings.ReplaceAll(string(payload), "\r\n", "\n"), "\n")
+	lines := strings.Split(strings.ReplaceAll(string(in.textCode().Bytes(payload)), "\r\n", "\n"), "\n")
 	if index >= len(lines) || lines[index] == "" {
 		return fallback
 	}

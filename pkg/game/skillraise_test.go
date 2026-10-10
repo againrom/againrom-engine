@@ -114,13 +114,13 @@ func TestSkillRaisedWordsUseMainSlots130To139(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		lines[130+i] = fmt.Sprintf("raised %d", i)
 	}
-	got := LoadInstallWords(installFixture{MainTextPath: textFile(142, lines)}).Words().SkillRaised
+	got := LoadInstallWords(installFixture{MainTextPath: textFile(142, lines)}, TextCode{}).Words().SkillRaised
 	for i, s := range got {
 		if want := fmt.Sprintf("raised %d", i); s != want {
 			t.Errorf("SkillRaised[%d] = %q, want main.txt[%d] %q", i, s, 130+i, want)
 		}
 	}
-	if absent := LoadInstallWords(installFixture{}).Words().SkillRaised; absent != ui.AuthoredWords().SkillRaised {
+	if absent := LoadInstallWords(installFixture{}, TextCode{}).Words().SkillRaised; absent != ui.AuthoredWords().SkillRaised {
 		t.Fatalf("an install without main.txt resolved %q", absent)
 	}
 }

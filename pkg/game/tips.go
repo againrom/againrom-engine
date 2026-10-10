@@ -140,7 +140,7 @@ func (t *townScreen) readTipText(dst *string, addr string) {
 	if t.in.Archives != nil {
 		src = t.in.Archives.Containers
 	}
-	*dst, _ = ReadShopTip(src, addr)
+	*dst, _ = ReadShopTip(src, addr, t.in.textCode())
 }
 
 // tipView projects the constructed popup and the live global checkbox flag.

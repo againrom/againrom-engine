@@ -17,7 +17,7 @@ func TestSecondGameFailureShowsAuthoredReasonBeforeVictory(t *testing.T) {
 	src := missionSource{"main/text/mission7.txt": []byte("#failure2\r\nKeep him alive.\r\n#failure4\r\nOther failure.")}
 	mw, v := missionDriverFor(t, w, nil, src)
 	mw.mission.table = &mapload.Table{Game: base.GameROM2}
-	mw.mission.failureText = secondGameFailureText(src, 7)
+	mw.mission.failureText = secondGameFailureText(src, TextCode{}, 7)
 	missionSteps(mw, 1)
 	if body, kind, shown := v.NoticeState(); !shown || kind != ui.NoticeFailure || body != "Keep him alive.\r\n" {
 		t.Fatalf("failure reason = %q/%v/%v", body, kind, shown)

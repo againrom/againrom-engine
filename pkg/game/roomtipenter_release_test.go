@@ -108,8 +108,8 @@ func TestReleaseRoomTipsAtEveryEnterAndShopSecondText(t *testing.T) {
 	if f.Archives == nil {
 		t.Fatal("install archives did not load")
 	}
-	shop1, ok1 := ReadShopTip(f.Archives.Containers, "main/text/tips/shop1.txt")
-	shop2, ok2 := ReadShopTip(f.Archives.Containers, "main/text/tips/shop2.txt")
+	shop1, ok1 := ReadShopTip(f.Archives.Containers, "main/text/tips/shop1.txt", f.textCode())
+	shop2, ok2 := ReadShopTip(f.Archives.Containers, "main/text/tips/shop2.txt", f.textCode())
 	if !ok1 || !ok2 || shop1 == shop2 {
 		t.Fatalf("shop1 read %v, shop2 read %v; want two different shipped texts", ok1, ok2)
 	}

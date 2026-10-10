@@ -32,9 +32,7 @@ var EngineWordsAllowed = map[string]string{
 // EngineWordsDebt is the selector branches that remain, per file. Each converts
 // bytes for the font's alphabet rather than choosing words. A count may only
 // fall; a file whose count reaches zero leaves the map in the same commit.
-var EngineWordsDebt = map[string]int{
-	"pkg/game/secondgametext.go": 1, // the second game's RU mission text code page
-}
+var EngineWordsDebt = map[string]int{}
 
 // EngineWordsFinding is one site and the shape found there.
 type EngineWordsFinding struct {

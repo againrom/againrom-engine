@@ -193,11 +193,11 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 	if f3.Archives != nil {
 		src = f3.Archives.Containers
 	}
-	fighterText, ok := ReadShopTip(src, ChargenFighterTipPath)
+	fighterText, ok := ReadShopTip(src, ChargenFighterTipPath, f3.textCode())
 	if !ok {
 		t.Fatal("ReadShopTip(ChargenFighterTipPath) reported no shipped node")
 	}
-	mageText, ok := ReadShopTip(src, ChargenMageTipPath)
+	mageText, ok := ReadShopTip(src, ChargenMageTipPath, f3.textCode())
 	if !ok {
 		t.Fatal("ReadShopTip(ChargenMageTipPath) reported no shipped node")
 	}
@@ -213,7 +213,7 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 		}
 	}
 	for i, addr := range ChargenSelectTipPaths {
-		text, ok := ReadShopTip(src, addr)
+		text, ok := ReadShopTip(src, addr, f3.textCode())
 		if !ok {
 			t.Fatalf("%s is not shipped", addr)
 		}

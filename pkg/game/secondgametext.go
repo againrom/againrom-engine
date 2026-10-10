@@ -5,20 +5,19 @@ import (
 	"strings"
 
 	"againrom/pkg/base"
-	"againrom/pkg/vfs"
 )
 
 func ReadEventTextFor(src entrySource, game base.Game, mission, event int) ([]byte, bool) {
 	if !game.Edition().SecondMissionText {
 		return ReadEventText(src, mission, event)
 	}
-	return readSecondGameEventText(src, mission, event)
+	return readSecondGameEventText(src, InstallTextCode(src, game.Edition()), mission, event)
 }
 
 // readSecondGameEventText is event's section of the second game's mission
 // text file.
-func readSecondGameEventText(src entrySource, mission, event int) ([]byte, bool) {
-	payload, ok := readSecondGameMissionText(src, mission)
+func readSecondGameEventText(src entrySource, code TextCode, mission, event int) ([]byte, bool) {
+	payload, ok := readSecondGameMissionText(src, code, mission)
 	if !ok {
 		return nil, false
 	}
@@ -26,7 +25,7 @@ func readSecondGameEventText(src entrySource, mission, event int) ([]byte, bool)
 	return []byte(body), body != ""
 }
 
-func readSecondGameMissionText(src entrySource, mission int) ([]byte, bool) {
+func readSecondGameMissionText(src entrySource, code TextCode, mission int) ([]byte, bool) {
 	if src == nil || mission <= 0 {
 		return nil, false
 	}
@@ -34,15 +33,15 @@ func readSecondGameMissionText(src entrySource, mission int) ([]byte, bool) {
 	if err != nil {
 		return nil, false
 	}
-	return secondGameMissionBytes(payload, LanguageSelector(src)), true
+	return code.Bytes(payload), true
 }
 
-func secondGameFailureText(src entrySource, mission int) []string {
-	payload, ok := readSecondGameMissionText(src, mission)
+func secondGameFailureText(src entrySource, code TextCode, mission int) []string {
+	payload, ok := readSecondGameMissionText(src, code, mission)
 	if !ok {
 		return nil
 	}
-	words := LoadInstallWords(src)
+	words := LoadInstallWords(src, code)
 	var labels []string
 	for reason := 2; reason < 1024; reason++ {
 		label := secondGameTextSection(payload, fmt.Sprintf("failure%d", reason))
@@ -73,12 +72,4 @@ func secondGameTextSection(payload []byte, key string) string {
 		body = body[:end]
 	}
 	return body
-}
-
-// DIV-2378: portable conversion for the installed RU mission text.
-func secondGameMissionBytes(payload []byte, selector int) []byte {
-	if selector != 1 {
-		return payload
-	}
-	return vfs.WindowsCyrillicToDOS(payload)
 }
