@@ -60,7 +60,7 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	aimX, aimY := cellCentre(to)
 	rec := sim.CastRecord{Caster: ev.Caster, Picture: int32(picture), Phases: mw.recordPhases(picture),
 		X: x + int32(launch.X), Y: y + int32(launch.Y), AimX: aimX, AimY: aimY,
-		Dir: int32(ev.Facing >> 4), Segments: int32(data.CastFlight(picture, castDistance(from, to))), Owner: ev.Owner}
+		Dir: sim.ProjectileDirection(int32(to.X-from.X), int32(to.Y-from.Y)), Segments: int32(data.CastFlight(picture, castDistance(from, to))), Owner: ev.Owner}
 	if !ev.AtCell && ev.Target != 0 && mw.projectiles.Homes(picture) {
 		rec.Target, rec.HasTarget = ev.Target, true
 	}

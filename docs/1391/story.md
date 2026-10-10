@@ -71,7 +71,9 @@ visual snapshot's bolt list is read and dropped.
 SAVE and LOAD. A staff's bolt is drawn from its release, not across the
 wind-up. A cast no longer draws a burst at the target for spells 3, 7, 8, 12,
 17 and 19, and a siege rider no longer draws a cast bolt. The trail's newest
-point draws frame 5 of the smoke sheet, not frame 0.
+point draws frame 5 of the smoke sheet, not frame 0. A cast with no
+homing, such as a Fire Ball, carries the direction of its flight as its
+record's dir (DIV-2850), so it is drawn as on main.
 
 ## Rows
 
@@ -79,8 +81,8 @@ Closed: DIV-1786 (trail frame and Palette gate), DIV-1878 (pictures 14 and
 above). Revised: DIV-1783, DIV-1784, DIV-1877, DIV-1879, DIV-944, DIV-1721,
 DIV-1453, DIV-2686, DIV-2658. Added: DIV-2846 (structure aim point), DIV-2847
 (cast segment distance), DIV-2848 (structure target after LOAD), DIV-2849
-(loaded record's derived cell). Reviewed and unchanged: DIV-1782 (the
-remainder is `SAV-1196`'s Unknown), DIV-1876, DIV-939. DIV-2850 to DIV-2853
+(loaded record's derived cell), DIV-2850 (dir of a cast with no homing). Reviewed and unchanged: DIV-1782 (the
+remainder is `SAV-1196`'s Unknown), DIV-1876, DIV-939. DIV-2851 to DIV-2853
 are returned unused.
 
 ## Proof
@@ -124,6 +126,9 @@ second-game witnesses on each locale.
 
 ## Open debt
 
-DIV-2846 to DIV-2849. The installed bow does no damage to a structure, so
+DIV-2846 to DIV-2850. The installed bow does no damage to a structure, so
 the structure witness's effect is the unchanged health and the landing tick
-is the record's retirement.
+is the record's retirement. Fire Sacrifice does not hurt the party fighter, so
+the staged-burst witness's effect check compares a constant hit-point series
+("effect 145 changed on tick -1"); it rests on the record's leaves and
+retirement tick, which are compared on every tick.

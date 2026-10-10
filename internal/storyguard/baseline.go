@@ -2089,6 +2089,8 @@ package storyguard
 // the retired-row drop, the area rows a projectile-only carrier answers, and
 // the release witnesses that read records by id, new code, including this
 // paragraph.
+// CommentBytes rises for the cast record's dir along its flight: the docs of
+// the dir test, new code, including this paragraph.
 // CommentBytes rises for the second game's music: the docs of the music
 // description, the controller's request rule, pause seam and area select,
 // the music areas decoder, the mission music wiring, -nomusic and their
@@ -2116,5 +2118,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8635987,
+	CommentBytes: 8636378,
 }
