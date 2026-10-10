@@ -23,8 +23,8 @@ import (
 
 func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing.T) {
 	f := releaseFront(t)
-	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath)
-	bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath)
+	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
+	bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath, f.textCode())
 	if mainTable == nil || bookTable == nil {
 		t.Fatal("install carries no main.txt or spells.txt to read independently")
 	}

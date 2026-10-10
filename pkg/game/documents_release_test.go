@@ -29,7 +29,7 @@ func TestReleaseShippedCampaignDocumentsAllResolve(t *testing.T) {
 			elements = append(elements, Document{Value: v, Kind: DocumentPicture})
 		}
 		for _, d := range elements {
-			page, ok := LoadDocumentPage(f.Archives.Containers, d)
+			page, ok := LoadDocumentPage(f.Archives.Containers, d, f.textCode())
 			if !ok {
 				t.Errorf("[Mission%d] grants element %+v and it does not resolve", n, d)
 				continue

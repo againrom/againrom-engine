@@ -57,8 +57,8 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 		live.fog.visible[i], live.fog.explored[i] = 1, 1
 	}
 	live.push()
-	buildings := LoadTextTable(f.Archives.Containers, BuildingTextPath)
-	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath)
+	buildings := LoadTextTable(f.Archives.Containers, BuildingTextPath, f.textCode())
+	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	if buildings == nil || mainTable == nil {
 		t.Fatal("install carries no building.txt or main.txt")
 	}

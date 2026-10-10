@@ -221,7 +221,7 @@ func (f *FrontEnd) wireGameOptions(a *ui.App) {
 			Labels:    [11]string{"Day/Night changes", "Show Health", "Show flying damage", "Formation Mode", "Retreat Mode", "Show pathfinding", "Smoothing", "", "", "", "AutoHealing"},
 			Formation: [3]string{"Off", "Auto", "On"}, Retreat: [3]string{"Never", "Low Health", "Medium Health"}, AutoHealing: [3]string{"No", "Standard", "Often"}}}
 	if f.Archives != nil {
-		t := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+		t := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 		for i, p := range map[int]*string{150: &c.Words.Title, 156: &c.Words.Tips, 0: &c.Words.OK, 1: &c.Words.Cancel, 50: &c.Words.Speed,
 			52: &c.Words.Labels[ui.GameOptionSmoothing], 54: &c.Words.Labels[0], 56: &c.Words.Labels[1], 78: &c.Words.Labels[2],
 			58: &c.Words.Labels[3], 63: &c.Words.Labels[4],
@@ -233,7 +233,7 @@ func (f *FrontEnd) wireGameOptions(a *ui.App) {
 			}
 		}
 		if patch, err := OpenContainers(filepath.Join(f.Archives.Root, patchArchive)); err == nil {
-			table := LoadTextTable(patch, patchTextPath)
+			table := LoadTextTable(patch, patchTextPath, f.textCode())
 			for i, o := range [...]ui.GameOption{ui.GameOptionShadows, ui.GameOptionLighting, ui.GameOptionAnimation} {
 				if s, ok := table.At(patchGraphicsRow + i); ok {
 					c.Words.Labels[o] = s

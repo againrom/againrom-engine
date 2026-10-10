@@ -127,7 +127,7 @@ func DocumentTextPath(v int) string    { return fmt.Sprintf("%s%d.txt", docTextP
 // element. The five values the shipped campaign registry carries resolve 5/5
 // on both roots (MISSION-DOC-021), so this arm is reached by authored content
 // alone.
-func LoadDocumentPage(src entrySource, d Document) (ui.DocumentPage, bool) {
+func LoadDocumentPage(src entrySource, d Document, code TextCode) (ui.DocumentPage, bool) {
 	if src == nil {
 		return ui.DocumentPage{}, false
 	}
@@ -144,7 +144,7 @@ func LoadDocumentPage(src entrySource, d Document) (ui.DocumentPage, bool) {
 		}
 		return ui.DocumentPage{Picture: img}, true
 	case DocumentText:
-		s, ok := ReadShopTip(src, DocumentTextPath(d.Value))
+		s, ok := ReadShopTip(src, DocumentTextPath(d.Value), code)
 		if !ok || s == "" {
 			return ui.DocumentPage{}, false
 		}
@@ -174,7 +174,7 @@ func (s documentSource) Documents() []ui.DocumentPage {
 	}
 	out := make([]ui.DocumentPage, 0, len(list))
 	for _, d := range list {
-		if page, ok := LoadDocumentPage(s.f.Archives.Containers, d); ok {
+		if page, ok := LoadDocumentPage(s.f.Archives.Containers, d, s.f.textCode()); ok {
 			out = append(out, page)
 		}
 	}

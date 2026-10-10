@@ -273,7 +273,7 @@ func assertInstalledOptionsContent(t *testing.T, f *FrontEnd, calls []text.DrawC
 	t.Helper()
 	assertInstalledDialogGlyphsInside(t, calls, image.Rect(92, 44, 540, 428), 0)
 	content := image.Rectangle{}
-	title, ok := LoadTextTable(f.Archives.Containers, DialogsTextPath).At(150)
+	title, ok := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode()).At(150)
 	if !ok || title == "" {
 		t.Fatal("installed options title is absent")
 	}
