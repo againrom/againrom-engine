@@ -14,7 +14,7 @@ func (m *MusicController) Candidates() []string {
 	if m == nil || !m.set {
 		return nil
 	}
-	return append([]string(nil), staticMusicTracks(m.request.scene, m.request.mageFirst)...)
+	return m.requestTracks(m.request)
 }
 
 func (m *MusicController) Playing() string {
@@ -39,7 +39,7 @@ func (m *MusicController) SetPreferences(p MusicPreferences) {
 		}
 		m.active = false
 	}
-	if changed && m.set {
+	if changed && m.set && (m.desc == nil || m.desc.List == MusicListShuffled) {
 		m.order, m.position = m.shuffle(m.Candidates()), 0
 		for i, name := range m.order {
 			if name == current {
@@ -83,6 +83,6 @@ func (m *MusicController) startName(name string) bool {
 		return false
 	}
 	m.device.Start(track)
-	m.active = true
+	m.active, m.paused, m.resumeStarts = true, false, false
 	return true
 }

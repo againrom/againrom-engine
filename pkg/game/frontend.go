@@ -646,7 +646,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 		soundChannelVolumes.Settings(audio.SpeechChannel, audioSettings))
 	processAudio := sharedAudio.NewScope()
 	soundPlayer, speechPlayer := processAudio.Player(audio.EffectsChannel), processAudio.Player(audio.SpeechChannel)
-	musicBank := OpenMusic(root)
+	musicBank := OpenMusicFor(root, GameMusic(archives.Base.Profile))
 	musicPlayer, _ := ui.OpenMusic(soundChannelVolumes.Settings(audio.MusicChannel, audioSettings))
 	ambientPlayer := processAudio.Ambient()
 	cutsceneAudioPlayer, _ := ui.OpenCutsceneAudio(audioSettings)
@@ -1055,7 +1055,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	)
 	f.wireGameOptions(a)
 	f.wireSoundOptions(a)
-	a.SetMusic(f.MusicBank, f.MusicPlayer, f.randomService().Stream(random.Music))
+	a.SetMusic(GameMusic(f.Base().Profile), f.MusicBank, f.MusicPlayer, f.randomService().Stream(random.Music))
 	return a
 }
 

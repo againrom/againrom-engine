@@ -1020,3 +1020,7 @@ pkg/game.TestReleaseStagedBurstSurvivesSaveAndLoad
 pkg/game.TestReleaseStructureShotSurvivesSaveAndLoad
 pkg/game.TestReleaseHumanRoutesCompare
 pkg/game.TestReleaseNativeAndOriginalHumanShareOneDerivedBlock
+pkg/game.TestReleaseSecondGameMusicPopulation
+pkg/game.TestReleaseSecondGameMusicScreens
+pkg/game.TestReleaseSecondGameMusicAreas
+pkg/game.TestReleaseSecondGameMusicStops

@@ -147,7 +147,7 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	a := f.App("chargen-trace")
 	a.Layout(640, 480)
-	a.SetMusic(traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
+	a.SetMusic(GameMusic(f.Base().Profile), traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
 	a.SetNewGameChargen(func() *ui.ChargenEntry {
 		return &ui.ChargenEntry{Model: ui.NewChargen(f.ChargenSetup()), Begin: func(res ui.ChargenResult) (ui.MapOpener, error) {
 			return f.NewGameOpener(10, res), nil
