@@ -80,3 +80,20 @@ func TestReleaseLegacyCityCompanionIsTheRegistryRecord(t *testing.T) {
 		t.Fatalf("legacy hero identity = %q/%d", id, npc)
 	}
 }
+
+// TestReleaseNewGameMissionIsTheRegistryFirst binds the mission a new game
+// opens to the installed scenario registry: the first [Mission<n>] section in
+// file order is mission 10 on both shipped roots, and NewGameMission answers it.
+func TestReleaseNewGameMissionIsTheRegistryFirst(t *testing.T) {
+	f := releaseFront(t)
+	first := 0
+	for _, sec := range releaseScenario(t, f).Root.Children {
+		if n, ok := sectionMission(sec.Name); ok {
+			first = n
+			break
+		}
+	}
+	if first != 10 || f.NewGameMission() != first {
+		t.Fatalf("first registry mission %d, NewGameMission %d, want 10", first, f.NewGameMission())
+	}
+}
