@@ -513,7 +513,7 @@ func TestShopRestockOffersTheModItemOnlyByChance(t *testing.T) {
 	if count(s) != 1 {
 		t.Fatalf("arrival stock holds %d", count(s))
 	}
-	pool := len(shopStockPool(shopArmourPool(tab, 5000), false))
+	pool := len(shopPlainShelfPool(shopArmourPool(tab, 5000)))
 	for i := 1; i <= 60; i++ {
 		s.Restock(tab, 11)
 		want := 0

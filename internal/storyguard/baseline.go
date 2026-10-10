@@ -2053,6 +2053,9 @@ package storyguard
 // code, including this paragraph.
 // CommentBytes rises for the script coverage closure admitting the nodes the
 // compile leaves unbuilt, new code, including this paragraph.
+// CommentBytes rises for the shop shelf tests: the plain-shelf pool doc and
+// its class constants and the shelf population, beard and sale witnesses,
+// new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2076,5 +2079,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1766,
 	},
-	CommentBytes: 8604777,
+	CommentBytes: 8606335,
 }

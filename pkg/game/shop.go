@@ -292,13 +292,12 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 
 	allArmour := shopArmourPool(t, s.ceiling)
 	allWeapons := shopWeaponPool(t, s.ceiling)
-	armour := shopStockPool(allArmour, false)
-	weapons := shopStockPool(allWeapons, false)
+	armour := shopPlainShelfPool(allArmour)
+	weapons := shopPlainShelfPool(allWeapons)
 	pools := [numShopShelves][]data.ShopCandidate{
 		ShelfArmour:  armour,
 		ShelfWeapons: weapons,
-		ShelfMagic: shopStockPool(
-			append(append([]data.ShopCandidate{}, allArmour...), allWeapons...), true),
+		ShelfMagic:   append(append([]data.ShopCandidate{}, allArmour...), allWeapons...),
 	}
 
 	for shelf := range pools {
@@ -371,26 +370,28 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	s.shelves[ShelfBooks] = items
 }
 
-// magicBeardItemCode is the installed item-name key whose EN row is "Magic
-// Beard" (text/itemname.bin/.txt). It is special campaign content rather than
-// merchant stock and is excluded from every generated shelf by code so the RU
-// localization receives the same rule.
-const magicBeardItemCode data.ItemCode = 0x0502
+// The Armor class field range the weapons and armour shelves drop (SHOP-118,
+// SHOP-121): an Armors row whose Slot is 3, 4 or 5 never enters either shelf.
+// The range and the sutableFor bit 0 test beside it are program constants.
+const (
+	shopPlainShelfDroppedClassLow  = 3
+	shopPlainShelfDroppedClassHigh = 5
+)
 
-// beardItemCode is the installed item-name key whose EN row is "Beard", the
-// ordinary-material twin of Magic Beard; it is an appearance item and no
-// merchant sells it.
-const beardItemCode data.ItemCode = 0x1502
-
-// shopStockPool applies the owner-facing stock rules after the decoded item
-// tables have produced their full candidate population. A ForcedCast weapon is
-// a staff that is useless on the ordinary weapon shelf without its magic; it
-// remains eligible for the magic shelf, where shopEnchantedItem gives it that
-// spell. Neither beard is generated on either path.
-func shopStockPool(pool []data.ShopCandidate, allowForcedCast bool) []data.ShopCandidate {
+// shopPlainShelfPool is the weapons or armour shelf's candidates: the walk's
+// population less a Weapon whose sutableFor bit 0 (Fighter) is clear and an
+// Armor whose class field is 3..5 (SHOP-118). A Shield takes no test; its
+// class is 2. The Magic Items shelf skips both tests and draws the unfiltered
+// population, where a candidate that can take no first effect is rejected by
+// shopEnchantedItem (SHOP-119).
+func shopPlainShelfPool(pool []data.ShopCandidate) []data.ShopCandidate {
 	out := make([]data.ShopCandidate, 0, len(pool))
 	for _, candidate := range pool {
-		if candidate.Code == magicBeardItemCode || candidate.Code == beardItemCode || candidate.ForcedCast && !allowForcedCast {
+		if candidate.ItemKind == 2 && !candidate.Fighter {
+			continue
+		}
+		if candidate.ItemKind != 2 && candidate.EffectSlot >= shopPlainShelfDroppedClassLow &&
+			candidate.EffectSlot <= shopPlainShelfDroppedClassHigh {
 			continue
 		}
 		out = append(out, candidate)
