@@ -2095,6 +2095,10 @@ package storyguard
 // description, the controller's request rule, pause seam and area select,
 // the music areas decoder, the mission music wiring, -nomusic and their
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the one double-click detector: the docs of
+// pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
+// archtest double-click scan, the Load list's row press, the roster's pair
+// key and their tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2118,5 +2122,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8636304,
+	CommentBytes: 8643692,
 }

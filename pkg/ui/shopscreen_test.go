@@ -806,7 +806,7 @@ func TestWrapShopTipTreatsCRLFAsAParagraphBreak(t *testing.T) {
 }
 
 // longShopTip is n distinct words, enough that shopTipTestFont's own 24px
-// advance wraps them well past ShopTipRect()'s own height at the rect's
+// advance wraps them well past shopTipRect's own height at the rect's
 // width.
 func longShopTip(n int) string {
 	s := ""
@@ -820,7 +820,7 @@ func longShopTip(n int) string {
 }
 
 func TestShopTipRectKeepsPublishedConstructionGeometry(t *testing.T) {
-	if got, want := ShopTipRect(), image.Rect(164, 162, 476, 298); got != want {
+	if got, want := shopTipRect, image.Rect(164, 162, 476, 298); got != want {
 		t.Fatalf("shop tip rect = %v, want %v", got, want)
 	}
 }
@@ -839,7 +839,7 @@ func TestTipPanelOccludesTheMessageStripWhileShowing(t *testing.T) {
 	render := func(tipText, msgText string) *image.RGBA {
 		v := ShopScreenView{Chosen: -1, Font: font, Msg: msgText}
 		if tipText != "" {
-			v.TipPanel = TipPanelView{Rect: ShopTipRect(), Text: tipText, Art: art, Font: font}
+			v.TipPanel = TipPanelView{Rect: shopTipRect, Text: tipText, Art: art, Font: font}
 		}
 		return ComposeShopScreen(v, image.Point{}, false, nil, false)
 	}

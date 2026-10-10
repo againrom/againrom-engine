@@ -35,7 +35,7 @@ func TestFirstGeneratorStatesThePointBuy(t *testing.T) {
 // The second game's campaign part states the commit and the producer's
 // weapons, and a malformed part is refused.
 func TestSecondGeneratorCampaignDecodes(t *testing.T) {
-	g := secondGeneratorCampaign
+	g := secondGeneratorCampaigns["rom2"]
 	if g.MageSlot != 776 || g.FemaleSlot != 781 || g.Gold != 1000 || g.ChosenSkill != 20 || g.FifthSkill != 10 {
 		t.Fatalf("campaign %+v", g)
 	}

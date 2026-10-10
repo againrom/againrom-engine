@@ -215,6 +215,8 @@ type GeneratorLoop struct {
 // (activates the focused control), "forward" or "play"; Escape is "leave"
 // (unwinds to the screen that armed the generator), "back" or "none"; Typing
 // is "focused" (the name takes typing while focused) or "always".
+// DoubleClickForward makes a hero's double click continue as OK does; which
+// presses are a double click is the one detector's (doubleclick.go).
 type GeneratorKeys struct {
 	Enter              string   `json:"enter"`
 	Escape             string   `json:"escape"`
@@ -222,7 +224,6 @@ type GeneratorKeys struct {
 	Typing             string   `json:"typing"`
 	FocusKeys          bool     `json:"focus-keys"`
 	DoubleClickForward bool     `json:"double-click-forward"`
-	DoubleClickMS      int      `json:"double-click-ms"`
 	Cite               []string `json:"cite"`
 }
 

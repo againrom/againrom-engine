@@ -90,7 +90,7 @@
       {"key": "graphics/interface/chrgen/precreate/torch2/t2%04d.bmp", "first": 0, "count": 15, "size": [48, 72], "at": [588, 200], "phase": 8, "period-ms": 67, "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
     ],
     "focus": ["name"],
-    "keys": {"enter": "forward", "escape": "leave", "escape-sound": "chrgen/ok.wav", "typing": "always", "double-click-ms": 500,
+    "keys": {"enter": "forward", "escape": "leave", "escape-sound": "chrgen/ok.wav", "typing": "always",
              "cite": ["R2-ENGINE-283", "DIV-2768"]},
     "cite": ["R2-ENGINE-283", "R2-ENGINE-284"]
   },
@@ -151,7 +151,7 @@
     ],
     "command-ink": [255, 230, 150],
     "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-2770"]},
-    "keys": {"enter": "play", "escape": "none", "typing": "focused", "double-click-ms": 500, "cite": ["R2-ENGINE-283", "DIV-2771"]},
+    "keys": {"enter": "play", "escape": "none", "typing": "focused", "cite": ["R2-ENGINE-283", "DIV-2771"]},
     "reset": [
       {"language": "", "values": "start", "skill": "keep", "cite": ["R2-ENGINE-286"]},
       {"language": "russian", "values": "template", "skill": "default", "cite": ["R2-ENGINE-286"]}

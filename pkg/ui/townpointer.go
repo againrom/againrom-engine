@@ -1,9 +1,6 @@
 package ui
 
-import (
-	"image"
-	"time"
-)
+import "image"
 
 type townTipOwner struct {
 	revision uint64
@@ -186,8 +183,4 @@ func (a *App) paintTownEntry(before bool, revision uint64, active bool) {
 
 func (a *App) resetTownSurfacePair() {
 	a.townSurfacePress.Clear()
-	a.townSurfaceClick = TownSurfaceControl{}
-	a.townSurfaceAt = time.Time{}
-	a.townSurfaceKey, a.townSurfaceReleased = "", false
-	a.townSurfaceRevision = 0
 }

@@ -34,7 +34,7 @@ func TestTownTipClosePresentationFollowsPointerAndLatch(t *testing.T) {
 				}
 				a.SetTown(&fakeTipSurfaceEnumTown{view: TownSurfaceView{Kind: kind, Tip: v}})
 			case "shop":
-				v.Rect = ShopTipRect()
+				v.Rect = shopTipRect
 				a.SetTown(&fakeTipShopCrossingTown{tip: v})
 			}
 			if !a.flow.showTown("") {

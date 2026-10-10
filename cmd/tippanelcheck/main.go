@@ -113,11 +113,9 @@ func run(args []string, w io.Writer) error {
 		return fmt.Errorf("shop: Choose(1) did not open the shop room")
 	}
 	shopView := shop.ShopScreen()
-	// shopRect reads shopView.TipPanel.Rect, not ui.ShopTipRect() (round-2
-	// adversarial review, owner item "shop tip too tall"): pkg/game/shopview.go
-	// now shrinks the shop's tip the same way the surface rooms already do
-	// (see the comment on the surface() closure above), so the raw package
-	// constant no longer matches what production draws and hit-tests.
+	// shopRect reads shopView.TipPanel.Rect, the rectangle production draws
+	// and hit-tests: pkg/game/shopview.go shrinks the shop's tip the same way
+	// the surface rooms do (see the comment on the surface() closure above).
 	shopRect := shopView.TipPanel.Rect
 	report(w, "shop", shopView.TipPanel, shopRect, topAnchor(shopRect.Min.X, shopRect.Min.Y, shopRect.Max.X), func(p image.Point) (string, bool) {
 		c, hit := ui.ShopControlAt(p)

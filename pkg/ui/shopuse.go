@@ -1,9 +1,10 @@
 package ui
 
-import "time"
-
-const shopUseWindow = 500 * time.Millisecond
-
+// shopUseTap is a pack tap that a double click's second tap on the same cell
+// turns into a use: a carried item goes to the doll's route, as the shop
+// backpack's double click runs the character panel's item action (MENU-145,
+// ITEM-USE-112). It names the tapped record, so a second tap after the pack or
+// table changed under it is a single tap.
 type shopUseTap struct {
 	control             ShopControl
 	epoch               *byte
@@ -14,7 +15,6 @@ type shopUseTap struct {
 	table               int
 	stagedKey           string
 	stagedCount         uint32
-	at                  time.Time
 }
 
 func (p *shopUseTap) matches(v ShopScreenView) bool {
@@ -50,17 +50,10 @@ func (a *App) validateShopUseTap() {
 	}
 }
 
-func (a *App) expireShopUseTap(now time.Time) {
-	a.validateShopUseTap()
-	p := a.shopUseTap
-	if p == nil || now.Sub(p.at) <= shopUseWindow {
-		return
-	}
-	a.shopUseTap = nil
-}
-
-func (a *App) useShopTap(v ShopScreenView, c ShopControl, now time.Time) bool {
-	if p := a.shopUseTap; p != nil && p.control == c && p.matches(v) && now.Sub(p.at) <= shopUseWindow {
+// useShopTap judges a tap on c. double is whether its press was the second
+// press of a double click.
+func (a *App) useShopTap(v ShopScreenView, c ShopControl, double bool) bool {
+	if p := a.shopUseTap; p != nil && double && p.control == c && p.matches(v) {
 		a.shopUseTap = nil
 		from := c
 		if p.table >= 0 {
@@ -79,7 +72,7 @@ func (a *App) useShopTap(v ShopScreenView, c ShopControl, now time.Time) bool {
 	if !ok {
 		return true
 	}
-	p := &shopUseTap{control: c, epoch: v.InputEpoch, member: v.Member, base: v.PackOffset, shelf: v.Chosen, statistics: v.Character.Statistics, key: after.Pack[c.Index].UseItemKey, count: after.Pack[c.Index].Count, table: -1, at: now}
+	p := &shopUseTap{control: c, epoch: v.InputEpoch, member: v.Member, base: v.PackOffset, shelf: v.Chosen, statistics: v.Character.Statistics, key: after.Pack[c.Index].UseItemKey, count: after.Pack[c.Index].Count, table: -1}
 	for i, cell := range after.Table {
 		before := v.Table[i]
 		if cell.Mine && cell.UseItemKey != "" && (cell.UseItemKey != before.UseItemKey || cell.Count > before.Count) {

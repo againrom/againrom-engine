@@ -130,14 +130,6 @@ var shopShelfDrawRects = [4]image.Rectangle{
 // serves his hover tooltip.
 var shopMerchantRect = image.Rect(277, 112, 353, 288)
 
-// shopTipRect is the tip widget's own decoded rectangle, panel-relative
-// (0,162,312,298) and so view-relative (164,162,476,298) (SHOP-TIP-045),
-// 136 rows tall. `ShopTipRect` (exported, just below) is the bordered
-// panel's own rect.
-var shopTipRect = image.Rect(164, 162, 476, 298)
-
-func ShopTipRect() image.Rectangle { return shopTipRect }
-
 // The four command buttons, top to bottom (SHOP-SCREEN-035). Each carries one
 // number and one command: purse, buy total, sell total, and the projected purse
 // after those trades (owner-directed, DIV-170).

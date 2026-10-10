@@ -44,7 +44,6 @@ var (
 	chargenStatPlusBox       = rects(testLayout.Detail.Stats.Plus)
 	chargenStatMinusBox      = rects(testLayout.Detail.Stats.Minus)
 	chargenRemainingBox      = testLayout.Detail.Stats.Pool.Rectangle()
-	chargenDoubleClickWindow = ms(testLayout.PreCreate.Keys.DoubleClickMS)
 	PreCreateTipRect         = testLayout.Tips.PreCreateRect.Rectangle()
 	ChargenTipRect           = testLayout.Tips.DetailRect.Rectangle()
 )

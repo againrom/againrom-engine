@@ -193,13 +193,14 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 	if f3.Archives != nil {
 		src = f3.Archives.Containers
 	}
-	fighterText, ok := ReadShopTip(src, ChargenFighterTipPath, f3.textCode())
+	tips := f3.generator().Tips
+	fighterText, ok := ReadShopTip(src, tips.Fighter.File, f3.textCode())
 	if !ok {
-		t.Fatal("ReadShopTip(ChargenFighterTipPath) reported no shipped node")
+		t.Fatalf("ReadShopTip(%s) reported no shipped node", tips.Fighter.File)
 	}
-	mageText, ok := ReadShopTip(src, ChargenMageTipPath, f3.textCode())
+	mageText, ok := ReadShopTip(src, tips.Mage.File, f3.textCode())
 	if !ok {
-		t.Fatal("ReadShopTip(ChargenMageTipPath) reported no shipped node")
+		t.Fatalf("ReadShopTip(%s) reported no shipped node", tips.Mage.File)
 	}
 	art := f3.tipArt()
 	if f3.ChargenAssets == nil || f3.ChargenAssets.Presentation == nil || f3.ChargenAssets.Presentation.Font == nil {
@@ -212,7 +213,8 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 			t.Errorf("chargen %s tip does not fit ChargenTipRect %v", name, v.Rect)
 		}
 	}
-	for i, addr := range ChargenSelectTipPaths {
+	for i, step := range tips.Select {
+		addr := step.File
 		text, ok := ReadShopTip(src, addr, f3.textCode())
 		if !ok {
 			t.Fatalf("%s is not shipped", addr)

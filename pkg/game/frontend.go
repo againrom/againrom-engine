@@ -1016,6 +1016,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	// Interface events have no map Viewer, but resolve through the same
 	// install-backed bank and concrete device as unit and spell sounds.
 	a.SetAudio(f.SoundPlayer, f.SoundBank)
+	a.SetInterfaceGenerator(f.generator())
 	a.SetSpeechAudio(f.SpeechPlayer)
 	a.SetAmbientDevice(f.AmbientPlayer)
 	a.SetCutsceneAudio(f.CutsceneAudioPlayer)

@@ -575,7 +575,6 @@ func (f *flow) takeMenuExit() bool {
 // behind it — and a list rebuilt every frame would move the selection under the
 // player's hand.
 func (f *flow) openLoad(back Screen) {
-	f.loadUI.resetClick()
 	f.loadUI.resetPointer()
 	f.loadUI.confirm = false
 	f.loadUI.remove = nil
@@ -606,7 +605,6 @@ func (f *flow) openLoad(back Screen) {
 // be driven again so its first visible frame holds, rather than repays, the
 // elapsed map and ambient-animation span.
 func (f *flow) closeLoad() {
-	f.loadUI.resetClick()
 	f.loadUI.resetPointer()
 	back := f.loadBack
 	if back == ScreenGameMenu {

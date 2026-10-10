@@ -202,3 +202,42 @@ func TestCrystalSeamIsDrawnAndCapturedWithCentredContent(t *testing.T) {
 		t.Fatal("bevel moves the minimap camera")
 	}
 }
+
+// The Load list's double click leaves the loaded map untouched.
+func TestLoadDoubleClickReachesNothingOfTheLoadedMap(t *testing.T) {
+	a := newTestApp(t, nil, nil)
+	var ticks, orders int
+	var loadedApp SaveApplicationState
+	var viewer *Viewer
+	a.SetSaveSeams(nil, func() []SaveEntry {
+		return []SaveEntry{{Name: "first.sav", Label: "First"}}
+	}, func(string) (MapOpener, bool, error) {
+		return func() (*Viewer, MapTick, MapOrder, MapCadence, MapAffect, MapAdvance, MapAttack, MapGrab, MapStance, MapMarch, error) {
+			v, err := NewViewer("m", grid(60, 60), &terrain.Tileset{})
+			if err != nil {
+				return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, err
+			}
+			v.SetEntities([]MapEntity{{ID: 7, Cell: image.Pt(1, 1)}})
+			v.sel = selection{7}
+			viewer, loadedApp = v, v.SaveApplication()
+			return v, func() { ticks++ }, func(uint32, int, int) { orders++ }, nil, nil, nil, nil, nil, nil, nil, nil
+		}, false, nil
+	})
+	a.flow.openLoad(ScreenMenu)
+	now := time.Unix(500, 0)
+	press := func(edge string, at time.Time) {
+		in := appInput{CursorX: 140, CursorY: 158}
+		in.PrimaryPressed, in.PrimaryReleased = edge == "press", edge == "release"
+		a.step(in, at)
+	}
+	press("press", now)
+	press("release", now.Add(time.Millisecond))
+	press("press", now.Add(200*time.Millisecond))
+	press("release", now.Add(201*time.Millisecond))
+	if a.Screen() != ScreenMap || viewer == nil {
+		t.Fatalf("double click did not load: screen %s", a.Screen())
+	}
+	if ticks != 0 || orders != 0 || !reflect.DeepEqual(loadedApp, viewer.SaveApplication()) {
+		t.Fatalf("the double click reached the loaded map: %d ticks, %d orders, selection %v", ticks, orders, viewer.sel)
+	}
+}

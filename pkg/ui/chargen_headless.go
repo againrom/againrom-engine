@@ -17,10 +17,9 @@ import (
 var headlessNow = time.Unix(0, 0)
 
 // headlessClockStep is how far headlessAt advances App's own headless clock
-// on every call. It stays well under every debounce window this package
-// gates on (townSurfaceAt's 350ms, chargenDoubleClickWindow's 500ms) for any
-// ordinarily-sized run of consecutive headless dispatches between two
-// related presses, while crossing worldMapTickInterval's 100ms floor after a
+// on every call. It stays well under the double-click detector's fallback
+// time (doubleclick.go, 500ms) for any ordinarily-sized run of consecutive
+// headless dispatches between two related presses, while crossing worldMapTickInterval's 100ms floor after a
 // handful of calls, so a scenario drives WorldMapTick to completion with
 // ordinary wait_ticks steps instead of needing one call per elapsed
 // millisecond.
