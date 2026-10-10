@@ -1,0 +1,94 @@
+# The engine's own English words: one message id to its text.
+# This table is the reference set. Every other language falls back to it for
+# an id it lacks. A value keeps its spaces; "~" marks a menu accelerator.
+
+# Campaign ending, Hall of Fame and credits.
+"ending.title" = "Campaign complete"
+"ending.hall" = "Hall of Fame"
+"ending.credits" = "Credits"
+"ending.menu" = "Main menu"
+"ending.back" = "Back"
+"ending.previous" = "Previous"
+"ending.next" = "Next"
+"ending.gold" = "Gold"
+"ending.missing_hall" = "Hall of Fame unavailable"
+"ending.missing_credits" = "Credits unavailable"
+"ending.empty_hall" = "No records"
+"ending.score" = "Score"
+"ending.unknown_score" = "Score unavailable for this save"
+"ending.recorded_hall" = "Result recorded"
+"ending.pending_hall" = "Could not record result"
+"ending.retry_hall" = "Retry result"
+
+# Game speed rows of the game menu and the Game Options page.
+"speed.label" = "GAME SPEED: "
+"speed.slower" = "~SLOWER"
+"speed.faster" = "~FASTER"
+"speed.unpaced_label" = "GAME SPEED: "
+"speed.unpaced" = "UNLIMITED"
+"speed.paused" = "PAUSED"
+
+# Tooltip delay row: the game menu's label, the Game Options page's label.
+"tooltip.delay" = "TOOLTIP ~DELAY: "
+"tooltip.delay_options" = "Tooltip delay: "
+"tooltip.unit" = " ms"
+"tooltip.not_saved" = "Tooltip setting not saved: "
+
+# Game Options captions the engine supplies.
+"options.pathfinding" = "Show pathfinding"
+"options.shadows" = "Shadows"
+"options.lighting" = "Dynamic Lighting"
+"options.animation" = "Object animations"
+
+# Timed autosave rows; %d is the minute count.
+"autosave.toggle" = "Timed autosave"
+"autosave.interval" = "< Minutes: %d >"
+
+# Cutscene library and credits messages.
+"media.empty" = "No cutscenes encountered yet."
+"media.unavailable" = "Movie unavailable."
+"media.history_failed" = "Could not save viewed movies."
+
+# Quest Objectives page of a mission without an objective.
+"quest.empty" = "No quest objective is recorded for this mission."
+
+# Save dialog.
+"save.title" = "Save game"
+"save.directory" = "Folder"
+"save.name" = "Name"
+"save.open" = "Open"
+"save.up" = "Up"
+"save.save" = "Save"
+"save.cancel" = "Cancel"
+"save.back" = "Back"
+"save.overwrite" = "Replace"
+"save.confirm" = "Replace existing files?"
+"save.replace" = "Replace:"
+"save.create" = "Create:"
+"save.empty" = "No saves here"
+"save.unavailable" = "Saving is unavailable"
+"save.delete" = "Delete"
+"save.delete_confirm" = "Delete selected saved game?"
+"save.town_detail" = "Resume in this town."
+"save.map_sav_detail" = "Resume this map at the saved moment."
+"save.scroll_hint" = "Up / down: scroll"
+"save.key_hint" = "Tab: focus   Enter: choose   Esc: cancel"
+"save.latin_name_hint" = "Use characters supported by the game font."
+
+# Sound Options words the install does not state.
+"sound.master" = "Master volume"
+"sound.enabled" = "Sound on"
+"sound.disabled" = "Sound off"
+"sound.test" = "Test sound"
+"sound.not_saved" = "Sound settings not saved: "
+"sound.unavailable" = "Track unavailable"
+
+# Item card and tavern words standing in where the install states none.
+"item.magic" = "MAGIC:"
+"item.duration_unit" = "sec"
+"item.rays" = "Rays"
+"item.spell_of" = "of"
+"tavern.sleep" = "Sleep"
+# The item spell name shown for Drain Life in place of the installed one
+# (DIV-2177); empty keeps the installed name.
+"item.drain_life_alias" = ""

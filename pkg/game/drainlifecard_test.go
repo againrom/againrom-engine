@@ -107,7 +107,8 @@ func TestDrainLifeItemAliasPreservesRawNamesAndSpellbookNames(t *testing.T) {
 		}
 		bookNames := []byte(strings.Join(bookRows, "\r\n") + "\r\n")
 		beforeNames, beforeBooks := bytes.Clone(names), bytes.Clone(bookNames)
-		words := &InstallWords{Selector: selector, spellNames: SplitTextTable(names), spellBookNames: SplitTextTable(bookNames)}
+		language := map[int]string{0: "english", 1: "russian"}[selector]
+		words := &InstallWords{Selector: selector, Language: language, spellNames: SplitTextTable(names), spellBookNames: SplitTextTable(bookNames)}
 		got := words.Words()
 		if got.ItemSpellNames[11] != want || got.ItemSpellNames[6] != "raw Heal" || got.ItemSpellNames[14] != "raw Prismatic" || got.SpellBookNames[1] != "book name" || got.SpellBookNames[11] != "" {
 			t.Fatalf("selector%d changed the alias boundary: drain=%x heal=%q prism=%q book1=%q book11=%q", selector, got.ItemSpellNames[11], got.ItemSpellNames[6], got.ItemSpellNames[14], got.SpellBookNames[1], got.SpellBookNames[11])

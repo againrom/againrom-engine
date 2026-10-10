@@ -1,0 +1,93 @@
+# The engine's own Russian words: one message id to its text, in UTF-8. The
+# front end converts them to the installed font's alphabet when it draws them.
+# An id this table lacks reads the English table's text.
+
+# Campaign ending, Hall of Fame and credits.
+"ending.title" = "Кампания завершена"
+"ending.hall" = "Зал славы"
+"ending.credits" = "Авторы"
+"ending.menu" = "Главное меню"
+"ending.back" = "Назад"
+"ending.previous" = "Ранее"
+"ending.next" = "Далее"
+"ending.gold" = "Золото"
+"ending.missing_hall" = "Зал славы недоступен"
+"ending.missing_credits" = "Титры недоступны"
+"ending.empty_hall" = "Нет записей"
+"ending.score" = "Очки"
+"ending.unknown_score" = "Очки для этого сохранения недоступны"
+"ending.recorded_hall" = "Результат записан"
+"ending.pending_hall" = "Не удалось записать результат"
+"ending.retry_hall" = "Повторить запись"
+
+# Game speed rows of the game menu and the Game Options page.
+"speed.label" = "СКОРОСТЬ ИГРЫ: "
+"speed.slower" = "~МЕДЛЕННЕЕ"
+"speed.faster" = "~БЫСТРЕЕ"
+"speed.unpaced_label" = "СКОРОСТЬ: "
+"speed.unpaced" = "МАКСИМУМ"
+"speed.paused" = "ПАУЗА"
+
+# Tooltip delay row: the game menu's label, the Game Options page's label.
+"tooltip.delay" = "~ПОДСКАЗКИ: "
+"tooltip.delay_options" = "~ПОДСКАЗКИ: "
+"tooltip.unit" = " мс"
+"tooltip.not_saved" = "Настройка подсказок не сохранена: "
+
+# Game Options captions the engine supplies.
+"options.pathfinding" = "Показывать поиск пути"
+"options.shadows" = "Тени"
+"options.lighting" = "Динамическое освещение"
+"options.animation" = "Анимация объектов"
+
+# Timed autosave rows; %d is the minute count.
+"autosave.toggle" = "Автосохранение"
+"autosave.interval" = "< Минут: %d >"
+
+# Cutscene library and credits messages.
+"media.empty" = "Просмотренных роликов пока нет."
+"media.unavailable" = "Ролик недоступен."
+"media.history_failed" = "Не удалось сохранить список роликов."
+
+# Quest Objectives page of a mission without an objective.
+"quest.empty" = "Задание на эту миссию отсутствует."
+
+# Save dialog.
+"save.title" = "Сохранить игру"
+"save.directory" = "Папка"
+"save.name" = "Имя"
+"save.open" = "Открыть"
+"save.up" = "Вверх"
+"save.save" = "Сохранить"
+"save.cancel" = "Отмена"
+"save.back" = "Назад"
+"save.overwrite" = "Заменить"
+"save.confirm" = "Заменить существующие файлы?"
+"save.replace" = "Заменить:"
+"save.create" = "Создать:"
+"save.empty" = "Сохранений нет"
+"save.unavailable" = "Сохранение недоступно"
+"save.delete" = "Удалить"
+"save.delete_confirm" = "Удалить выбранное сохранение?"
+"save.town_detail" = "Продолжить игру в этом городе."
+"save.map_sav_detail" = "Продолжить эту карту с момента сохранения."
+"save.scroll_hint" = "Вверх / вниз: прокрутка"
+"save.key_hint" = "Tab: выбор   Enter: действие   Esc: отмена"
+"save.latin_name_hint" = "Используйте символы игрового шрифта."
+
+# Sound Options words the install does not state.
+"sound.master" = "Общая громкость"
+"sound.enabled" = "Звук включен"
+"sound.disabled" = "Звук выключен"
+"sound.test" = "Проверить звук"
+"sound.not_saved" = "Не удалось сохранить настройки звука: "
+"sound.unavailable" = "Трек недоступен"
+
+# Item card and tavern words standing in where the install states none.
+"item.magic" = "МАГИЯ:"
+"item.duration_unit" = "сек"
+"item.rays" = "Лучи"
+"item.spell_of" = "с заклинанием"
+"tavern.sleep" = "Спать"
+# The owner's alias for Drain Life on item cards (DIV-2177).
+"item.drain_life_alias" = "Вампиризм"
