@@ -386,9 +386,9 @@ func TestShopInteriorLifecycleDegradationAndPresentationBoundary(t *testing.T) {
 func TestShopInteriorMissingMerchantBaseStaysNilSafeOnLiveComposition(t *testing.T) {
 	f, app, s, now := shopInteriorFixture(t)
 
-	// loadShopArt(nil) is the supported no-archive production cache: its art
+	// loadShopArt over no archive is the supported no-archive production cache: its art
 	// object exists while every optional picture, including Merchant, is nil.
-	f.shopArtCache = resolved(loadShopArt(nil), nil)
+	f.shopArtCache = resolved(loadShopArt(ROM1TownDescription(), nil), nil)
 	if got := drawShopInteriorApp(t, app, s, now, 0).RGBAAt(277, 112); got == (color.RGBA{R: 1, G: 2, B: 3, A: 0xff}) {
 		t.Fatalf("no-archive merchant drew the fixture's base %v", got)
 	}

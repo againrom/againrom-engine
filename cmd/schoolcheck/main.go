@@ -461,7 +461,7 @@ func run(args []string, w io.Writer) error {
 	}
 
 	// Instrument B, and production's own hit test over the install's mask.
-	art, err := game.LoadTownSchoolArt(src)
+	art, err := game.LoadTownSchoolArt(game.RoomDescription(arc.Base.Profile), src)
 	if err != nil {
 		return err
 	}

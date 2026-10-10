@@ -28,13 +28,19 @@ var townDescriptions map[string]*town.Description
 
 func init() {
 	townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1TownJSON)}
-	TownTipPath = ROM1TownDescription().Tip.Text
 }
 
 // TownDescription is the town description the profile's edition names, or
 // nil when its game's town is not a composed square. Callers must not change
 // it.
 func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
+
+// RoomDescription is the town description whose rooms the profile reads: the
+// tavern, shop and school pages, their tips and their scene art. A second-game
+// install reads the first game's rooms, as the edition's Rooms names them: its
+// town screen is the campaign list, but its install load resolves the room
+// scene art from that description. Callers must not change it.
+func RoomDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Rooms] }
 
 func mustDecodeTown(data []byte) *town.Description {
 	d, err := town.Decode(data, townVocabulary())
@@ -65,19 +71,11 @@ func townVocabulary() town.Vocabulary {
 // Callers must not change it.
 func ROM1TownDescription() *town.Description { return TownDescription(base.Profile{}) }
 
-// TownTipPath is the ROM1 square's tip text, as its description names it.
-var TownTipPath string
-
-// LoadTownSquareArt resolves the square's art from the install as the ROM1
-// description names it. A required entry that fails carries its address in
+// LoadTownSquareArtFor resolves the square's art from the install as
+// description d names it. A required entry that fails carries its address in
 // the error and the square falls back to the row-button layout; an optional
-// family that fails is named in Problems and leaves the others loaded.
-func LoadTownSquareArt(src terrain.EntrySource) (*town.Art, error) {
-	return LoadTownSquareArtFor(ROM1TownDescription(), src)
-}
-
-// LoadTownSquareArtFor is LoadTownSquareArt over description d. A game with
-// no composed square loads no art.
+// family that fails is named in Problems and leaves the others loaded. A game
+// with no composed square loads no art.
 func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.Art, error) {
 	if d == nil {
 		return nil, nil
@@ -86,12 +84,18 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 }
 
 // townDescription is the town description of the install's profile; a screen
-// bound to no install is the first game's.
-func (t *townScreen) townDescription() *town.Description {
+// bound to no install is the zero profile's, the first game's.
+func (t *townScreen) townDescription() *town.Description { return TownDescription(t.profile()) }
+
+// roomDescription is the description the screen's rooms read, by the
+// install's profile as RoomDescription states it.
+func (t *townScreen) roomDescription() *town.Description { return RoomDescription(t.profile()) }
+
+func (t *townScreen) profile() base.Profile {
 	if t == nil {
-		return ROM1TownDescription()
+		return base.Profile{}
 	}
-	return TownDescription(t.in.profile())
+	return t.in.profile()
 }
 
 // townArtLoader reads the composer's art keys from the install's containers.

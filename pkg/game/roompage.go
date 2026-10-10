@@ -11,8 +11,8 @@ import (
 	"againrom/pkg/town"
 )
 
-// roomPage answers the composer page of a room the ROM1 description gives a
-// scene, building it on first use.
+// roomPage answers the composer page of a room the profile's room description
+// gives a scene, building it on first use.
 func (t *townScreen) roomPage(room string) *town.Page {
 	if p := t.pages[room]; p != nil {
 		return p
@@ -20,7 +20,7 @@ func (t *townScreen) roomPage(room string) *town.Page {
 	if t.pages == nil {
 		t.pages = map[string]*town.Page{}
 	}
-	p := town.NewPage(ROM1TownDescription(), room, roomPageHost{t: t, room: room}, t.townProcess)
+	p := town.NewPage(t.roomDescription(), room, roomPageHost{t: t, room: room}, t.townProcess)
 	t.pages[room] = p
 	return p
 }
@@ -29,13 +29,16 @@ func (t *townScreen) tavernPage() *town.Page { return t.roomPage("tavern") }
 
 func (t *townScreen) shopPage() *town.Page { return t.roomPage("shop") }
 
-// loadRoomSceneArt resolves a room scene's art as the ROM1 description names
+// loadRoomSceneArt resolves a room scene's art as room description d names
 // it: its pictures by entry name, and the problems of the entries that did
 // not load joined into one error. A required entry that fails answers no
-// pictures.
-func loadRoomSceneArt(room string, src terrain.EntrySource) (map[string][]image.Image, error) {
-	for i := range ROM1TownDescription().Rooms {
-		r := &ROM1TownDescription().Rooms[i]
+// pictures, and so does a nil description.
+func loadRoomSceneArt(d *town.Description, room string, src terrain.EntrySource) (map[string][]image.Image, error) {
+	if d == nil {
+		return nil, nil
+	}
+	for i := range d.Rooms {
+		r := &d.Rooms[i]
 		if r.Name != room || r.Scene == nil {
 			continue
 		}

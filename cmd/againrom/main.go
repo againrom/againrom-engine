@@ -463,7 +463,7 @@ func parse(args []string) (options, error) {
 		return o, errors.New("-picker and -mission are mutually exclusive")
 	}
 	if o.base != "" {
-		if _, ok := base.Find(o.base); !ok || o.base == base.ROM1 {
+		if !base.Nameable(o.base) {
 			return o, fmt.Errorf("unknown -base %q; one of: %s", o.base, strings.Join(base.IDs(), ", "))
 		}
 	}

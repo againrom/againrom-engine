@@ -5,6 +5,7 @@ import (
 	"image"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -21,7 +22,7 @@ const (
 // makes the game unusable, while a complete install performs no archive reads
 // in the draw or hit-test path.
 //
-// The school scene's art is the town description's: the required column
+// The school scene's art is room description d's: the required column
 // and diamond series fail the load, and each optional training family is
 // dropped alone. The column's endpoints are the two rest faces.
 //
@@ -31,7 +32,7 @@ const (
 // shipped patches under standard RGB565/RGB555 channel truncation
 // (TERR-LIGHT-019). This is not arbitrary runtime framebuffer-mask support:
 // modded near-black RGB can quantize to zero without being pure black.
-func LoadTownSchoolArt(src terrain.EntrySource) (*ui.TownSchoolArt, error) {
+func LoadTownSchoolArt(d *town.Description, src terrain.EntrySource) (*ui.TownSchoolArt, error) {
 	a := &ui.TownSchoolArt{}
 	var err error
 	if a.Background, err = readChargenBMP(src, townSchoolArtPrefix+"trnhall.bmp"); err != nil {
@@ -40,7 +41,7 @@ func LoadTownSchoolArt(src terrain.EntrySource) (*ui.TownSchoolArt, error) {
 	if err = chargenSize(a.Background, 480, 480, townSchoolArtPrefix+"trnhall.bmp"); err != nil {
 		return nil, err
 	}
-	if a.Scene, err = loadRoomSceneArt("school", src); a.Scene == nil {
+	if a.Scene, err = loadRoomSceneArt(d, "school", src); a.Scene == nil {
 		return nil, err
 	}
 	column := a.Scene["column"]

@@ -285,6 +285,13 @@ func Find(id string) (Profile, bool) {
 	return Profile{}, false
 }
 
+// Nameable reports whether a -base flag may name id: a profile Find knows,
+// except the first game's unrecognised build, which pins no base.
+func Nameable(id string) bool {
+	_, ok := Find(id)
+	return ok && id != ROM1
+}
+
 // IDs lists the profile ids a -base flag accepts.
 func IDs() []string {
 	ids := make([]string, 0, len(Profiles))

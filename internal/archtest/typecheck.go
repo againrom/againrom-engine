@@ -217,11 +217,10 @@ func checkOnePackage(fset *token.FileSet, root string, imp types.Importer, p goL
 	collect := func(e error) { checkErrs = append(checkErrs, e) }
 
 	if len(cp.Files) > 0 {
-		cp.Info = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}}
-		if cp.ImportPath == "againrom/pkg/game" {
-			cp.Info.Defs = map[*ast.Ident]types.Object{}
-			cp.Info.Uses = map[*ast.Ident]types.Object{}
-		}
+		// The game-profile scan resolves names, fields and methods in every
+		// package.
+		cp.Info = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Defs: map[*ast.Ident]types.Object{},
+			Uses: map[*ast.Ident]types.Object{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
 		conf := &types.Config{Importer: imp, Error: collect}
 		conf.Check(p.ImportPath, fset, cp.Files, cp.Info)
 	}
