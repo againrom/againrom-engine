@@ -127,7 +127,7 @@ func (secondCampaignRules) enterMission(town *Town, n int) {
 func (secondCampaignRules) seatWorld(r missionRequest, ms *Mission) error {
 	if r.fresh() && r.town != nil && r.town.second != nil {
 		bank := r.town.second.bank
-		clear(bank[752:768])
+		clear(bank[752:768]) // R2-ENGINE-048
 		if !ms.World.SetROM2ScenarioState(bank) {
 			return fmt.Errorf("campaign mission has no ROM2 scenario bank")
 		}
@@ -144,6 +144,7 @@ func (r secondCampaignRules) selectedMarkers(f *FrontEnd, src *originalSource) (
 
 func (secondCampaignRules) checkTownLoad(f *FrontEnd, src *originalSource) error {
 	if src.campaign.town.second != nil {
+		// R2-ENGINE-073 names the record; the refusal is DIV-2800.
 		if payload, err := readSecondTownTalk(&f.InstallResources, "npc517talk10"); err != nil || payload == nil {
 			if err == nil {
 				err = fmt.Errorf("initial inn conversation is unavailable")

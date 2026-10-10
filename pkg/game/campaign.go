@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -346,6 +347,28 @@ func (c Campaign) TownBegins() (int, bool) {
 		return 0, false
 	}
 	return c.Offered[0], true
+}
+
+// FirstMission is the lowest main mission the registry declares, the one a
+// new campaign opens (REG-SCN-063: the stock scenario's first section is
+// [Mission10]), and whether the registry declares any.
+func (c Campaign) FirstMission() (int, bool) {
+	if len(c.Main) == 0 {
+		return 0, false
+	}
+	return c.Main[0], true
+}
+
+// townGrants reports whether any chapter's AddHero array names companion npc.
+// Town activation is that array's one consumer (REG-SCN-098, HERO-JOIN-127),
+// so every value it carries is a companion a town grants.
+func (c Campaign) townGrants(npc int) bool {
+	for _, ch := range c.Chapters {
+		if slices.Contains(ch.AddHero, npc) {
+			return true
+		}
+	}
+	return false
 }
 
 // LoadCampaign reads the scenario registry out of the container filesystem.

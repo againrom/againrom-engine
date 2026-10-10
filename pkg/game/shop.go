@@ -5,6 +5,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
+	"strings"
 )
 
 // The town shop: four shelves of generated stock, a five-place table both
@@ -58,20 +59,49 @@ var shopShelfDraws = [numShopShelves]int{
 	ShelfBooks:   0,
 }
 
-// The readable book art codes are not monotonic in installed school order.
-// Spells use 1 Fire, 2 Water, 3 Air, 4 Earth and 5 Astral (each school holds
-// its own "Protection from" spell in the installed Spells rows); the five
-// class-14 codes are the shipped generic school-book pictures and names.
-var shopBookCodeBySchool = [6]data.ItemCode{
-	0,
-	0x0e15, // Fire
-	0x0e14, // Water
-	0x0e13, // Air
-	0x0e16, // Earth
-	0x0e17, // Astral
+// shopSchoolNames are the school suffixes of the named Book_ and Scroll_
+// templates the shelf constructor builds (SHOP-CONSUME-073), indexed by the
+// Spells school column: 1 Fire, 2 Water, 3 Air, 4 Earth, 5 Astral.
+var shopSchoolNames = [6]string{"", "Fire", "Water", "Air", "Earth", "Astral"}
+
+// shopSchoolTemplateCode is the class-14 code of the MagicItems row named
+// "<kind> <school>", underscores read as spaces, or zero where the school is
+// out of range or no row carries that name.
+func shopSchoolTemplateCode(t *mapload.Table, kind string, school int32) data.ItemCode {
+	if t == nil || t.MagicItems == nil || school <= 0 || int(school) >= len(shopSchoolNames) {
+		return 0
+	}
+	want := kind + " " + shopSchoolNames[school]
+	// Packed class-14 codes have one byte for the definition index.
+	for row := 1; row < t.MagicItems.Len() && row <= 255; row++ {
+		if strings.ReplaceAll(t.MagicItems.EntryName(row), "_", " ") == want {
+			return data.ItemCode(0x0e00 | row)
+		}
+	}
+	return 0
 }
 
-const shopBookLabelCode data.ItemCode = 0x0e17
+// shopBookCodes is the book code per Spells school, read from the installed
+// Book_<school> rows. The codes are not monotonic in school order.
+func shopBookCodes(t *mapload.Table) [6]data.ItemCode {
+	var codes [6]data.ItemCode
+	for school := range codes {
+		codes[school] = shopSchoolTemplateCode(t, "Book", int32(school))
+	}
+	return codes
+}
+
+// shopBookLabel names the books shelf: the installed name of the first
+// school book the table carries. Every school book shares one generic name
+// (TEXT-090); the label itself is DIV-2802.
+func shopBookLabel(t *mapload.Table) string {
+	for _, code := range shopBookCodes(t) {
+		if code != 0 {
+			return itemName(code, t)
+		}
+	}
+	return ""
+}
 
 // ShopTablePlaces is how many places the table holds (SHOP-TRAY-024: one strip
 // of five 80x80 cells, shared by both sides).
@@ -411,6 +441,7 @@ func shopBookPool(t *mapload.Table, ceiling int32) []ShopItem {
 		limit = 32
 	}
 	pool := make([]ShopItem, 0, limit)
+	codes := shopBookCodes(t)
 	for spell := 1; spell < limit; spell++ {
 		if !shopBookSpellAdmitted(spell) {
 			continue
@@ -421,11 +452,11 @@ func shopBookPool(t *mapload.Table, ceiling int32) []ShopItem {
 			continue
 		}
 		school := params[2]
-		if school <= 0 || int(school) >= len(shopBookCodeBySchool) {
+		if school <= 0 || int(school) >= len(codes) || codes[school] == 0 {
 			continue
 		}
 		item := sim.ItemInstance{
-			Code:  uint16(shopBookCodeBySchool[school]),
+			Code:  uint16(codes[school]),
 			Kind:  5,
 			Price: price,
 			Effects: []sim.ItemEffect{{

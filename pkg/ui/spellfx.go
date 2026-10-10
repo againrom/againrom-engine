@@ -8,7 +8,7 @@ import (
 
 // SpellSchoolColors is the authored diagnostic palette indexed by the marking
 // spell's school. Unknown schools take entry 0. Installed effect sprites draw
-// independently of these cell rims.
+// independently of these cell rims. DIV-2801.
 var SpellSchoolColors = [6]color.RGBA{
 	{R: 0xd8, G: 0xd8, B: 0xd8, A: 0xff}, // 0 — no school stated
 	{R: 0xff, G: 0x7a, B: 0x1e, A: 0xff}, // 1 — fire

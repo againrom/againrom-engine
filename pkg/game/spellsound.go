@@ -14,7 +14,7 @@ const (
 	firstSpellSoundID = 1
 	lastSpellSoundID  = 28
 	spellSoundBase    = 500
-	stormBurstPicture = 51
+	stormBurstPicture = 51 // ANIM-149, DIV-501
 	stormSoundSlot    = 551
 	stormSoundPhase   = 8
 )

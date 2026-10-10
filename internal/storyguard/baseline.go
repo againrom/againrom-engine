@@ -2061,6 +2061,11 @@ package storyguard
 // CommentBytes rises for the shop shelf tests: the plain-shelf pool doc and
 // its class constants and the shelf population, beard and sale witnesses,
 // new code, including this paragraph.
+// CommentBytes rises for the hardcode census: the docs of the new pkg/locale
+// record table and its site tests, the installed-field readers of the town
+// companion, the legacy city companion, the book codes and the first mission,
+// and the claim and divergence IDs cited at the remaining sites, new code,
+// including this paragraph.
 // CommentBytes rises for the hero ordinal scan of map placements: the docs of
 // mapload.PlacedHeroes and its helpers, the loaded-placement scan, the npc
 // name lines and their witnesses, new code, including this paragraph.
@@ -2087,5 +2092,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8611869,
+	CommentBytes: 8620243,
 }

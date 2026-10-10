@@ -971,7 +971,7 @@ func unitRowBlock(class int32, index int, def data.UnitDef, worn [sim.EquipSlots
 	if len(params) > 14 && params[14] >= 0 {
 		skill[data.SkillGeneral] = params[14]
 	}
-	if def.Face == 4 {
+	if def.Face == 4 { // UNIT-SPELL-007
 		for i := 1; i < len(skill); i++ {
 			skill[i] = 30
 		}

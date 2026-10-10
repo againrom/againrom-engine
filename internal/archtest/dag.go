@@ -97,7 +97,7 @@ var allow = map[string][]string{
 	// the blit as plain data plus arithmetic, and a loader outside it fills the
 	// data. So it gains the graph a node and no outgoing edge, and this empty
 	// set is what makes that mechanical rather than a promise.
-	"pkg/render/text":      {},
+	"pkg/render/text":      {"pkg/locale"},
 	"pkg/render/debugtext": {"pkg/render/text"},
 	// The smoothed-text overlay leaf (DIV-1385) resamples and recomposites
 	// the glyphs pkg/render/text's own capture window records, so it names
@@ -133,7 +133,7 @@ var allow = map[string][]string{
 	// tree ships, and pkg/audio's own empty allow-set (above) is what keeps
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
-	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words"},
+	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale"},
 	"cmd/cutscenehelper": {"pkg/video"},
 	"cmd/audioprobe":     {"pkg/video"},
 	"pkg/game":           {"pkg/"},
@@ -366,10 +366,13 @@ var allow = map[string][]string{
 	// are leaves, and pkg/game answers whether a folder is an install. It never
 	// reaches the simulation.
 	"pkg/ini": {},
-	"pkg/mod": {"pkg/rules"},
+	"pkg/mod": {"pkg/rules", "pkg/locale"},
+	// The install languages: one record per language, read by every surface
+	// that depends on the install's language. A stdlib-only leaf.
+	"pkg/locale": {},
 	// The engine's own words: one strings table per language in the mod text
 	// layout, read through the mods' own lookup. pkg/ui and pkg/game read it.
-	"pkg/words": {"pkg/mod"},
+	"pkg/words": {"pkg/mod", "pkg/locale"},
 	// The base profile leaf names the known game installs and detects one from
 	// a directory listing and the main archive's digest. It imports nothing of
 	// this tree; pkg/game and the commands read it.
@@ -377,8 +380,8 @@ var allow = map[string][]string{
 	// The mod runtime runs a mod's Starlark script and hands the simulation
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
-	"pkg/modrt":   {"pkg/mod", "pkg/rules"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/mod", "internal/buildinfo"},
+	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/mod", "pkg/locale", "internal/buildinfo"},
 }
 
 // Violation names one rejected edge.

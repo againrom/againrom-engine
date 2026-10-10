@@ -322,7 +322,7 @@ func TownNPCTextPath(npc, mission int) (string, bool) {
 // its own authored inn dialogue leaf. Types 11 and 15 are intentionally not
 // candidates in either preserved population; npc35 is the gate line
 // (townGateTextPath), a different inn text producer, and does not enter this
-// mapping.
+// mapping. TAVERN-BUTTON-020.
 func TownMercenaryTextPath(typ int) (string, bool) {
 	switch typ {
 	case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14:

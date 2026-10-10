@@ -121,7 +121,7 @@ func takeCastSpell(suffix string) (token string, level int32, ok bool) {
 // 908 — every one of the six is one authored name carrying a double space,
 // which FR-2a's positional rebuild preserves. The trim is why the
 // re-attached word is followed by exactly one space however many the rebuild
-// left standing.
+// left standing. TEXT-PATTERN-020.
 func impliedShapePrefix(materialName, subject string) string {
 	switch {
 	case strings.Contains(materialName, "Leather"):

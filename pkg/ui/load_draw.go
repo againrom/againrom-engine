@@ -6,8 +6,8 @@ import (
 	"image/draw"
 	"strings"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/render/frame"
-	"againrom/pkg/render/text"
 )
 
 // LOAD rows remain UTF-8 until drawing. Its installed font uses the same
@@ -94,7 +94,7 @@ func (a *App) loadMessage() string {
 func (a *App) fitLoadText(value string, width int) string {
 	// The EN font's non-ASCII records do not reproduce Unicode Cyrillic.
 	// Keep its visible fallback while preserving the exact UTF-8 disk token.
-	if a.flow.menuFont.Selector != text.SelectorConverting {
+	if !locale.FontRemaps(a.flow.menuFont.Selector) {
 		var ascii strings.Builder
 		for _, r := range value {
 			if r > 0x7e {

@@ -87,7 +87,7 @@ func (c *currentSecondCampaign) validate() error {
 	if mission.Kind != 1 || !secondSaveMission(mission.ID) || c.Room != nil {
 		return fmt.Errorf("current second campaign requires a supported ordinary mission")
 	}
-	if mission.ID == 10 || mission.ID == 20 {
+	if mission.ID == 10 || mission.ID == 20 { // R2-SESSION-023, DIV-2633
 		if len(c.Available) != 1 || c.Available[0] != mission {
 			return fmt.Errorf("current second campaign requires the selected mission")
 		}
@@ -100,6 +100,7 @@ func (c *currentSecondCampaign) validate() error {
 func secondSaveMission(id int) bool { return id > 0 && id < 128 }
 
 func (c *currentSecondCampaign) validateOrdinaryAvailable() error {
+	// R2-ENGINE-149, R2-ENGINE-330, DIV-2633: bank 775 zero, towns 1..3.
 	if c.Bank[775] != 0 || len(c.Available) == 0 || len(c.Available) > maxSecondAvailable {
 		return fmt.Errorf("current second campaign requires bounded ordinary availability")
 	}
@@ -118,6 +119,7 @@ func (c *currentSecondCampaign) validateOrdinaryAvailable() error {
 }
 
 func (c *currentSecondCampaign) validateTown() error {
+	// R2-ENGINE-231, R2-SESSION-077, DIV-2412, DIV-2633.
 	if c.Current == (currentSecondLocation{2, 2}) || c.Current == (currentSecondLocation{2, 3}) {
 		if c.Room == nil || *c.Room > secondTownInn {
 			return fmt.Errorf("current second campaign requires a quiet later town")

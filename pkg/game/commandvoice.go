@@ -65,7 +65,7 @@ func commandRecording(gesture ui.VoiceGesture, bank string, draw voiceDraw) stri
 		return "idle"
 	}
 	r := draw() >> 13
-	peasant := bank == "m_peasant" || bank == "f_peasant"
+	peasant := bank == "m_peasant" || bank == "f_peasant" // ANIM-119, DIV-1293
 	if r < 3 || peasant {
 		return fmt.Sprintf("command%d", r%3+1)
 	}

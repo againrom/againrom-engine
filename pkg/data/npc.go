@@ -32,7 +32,7 @@ const (
 // It is applied HERE and not at the placement that reads the table, because it is
 // a fact about what the registry's own column means. A consumer handed the raw
 // number back would have to know the sentinel to be correct, and every consumer
-// would have to know it separately.
+// would have to know it separately. MISSION-DEF-007.
 const npcComposed int32 = 26
 
 // NPCDefs is the scenario NPC registry as a placement resolves it: for each NPC
@@ -170,7 +170,7 @@ func (n *NPCDefs) ComposedArchetype(id int32, playerMage, playerFemale bool) (ma
 // male mage, female mage. Mission 30 therefore uses server ids 26..29, mission
 // 70 uses 30..33, mission 100 uses 34..37 and mission 140 uses 38..41. Integer
 // division is intentional; these are the mission-number bands the original
-// uses, not chapter ordinals inferred by a caller.
+// uses, not chapter ordinals inferred by a caller. HERO-JOIN-120.
 func (n *NPCDefs) CampaignServerID(id int32, mission int, playerMage, playerFemale bool) (int32, bool) {
 	if serverID, ok := n.ServerID(id); ok {
 		return serverID, true

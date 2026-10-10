@@ -1,6 +1,7 @@
 package mod
 
 import (
+	"againrom/pkg/locale"
 	"errors"
 	"fmt"
 	"os"
@@ -51,23 +52,24 @@ func (v Value) String() string {
 
 // Setting is one declared knob of a mod.
 type Setting struct {
-	Key      string
-	LabelEN  string
-	LabelRU  string
+	Key string
+	// Labels holds the label per locale code; the reference language's
+	// label is also what a plain string sets.
+	Labels   map[string]string
 	Kind     Kind
 	Default  Value
 	Min, Max int64    // KindInt only
 	Choices  []string // KindChoice only
 }
 
-// Label is the setting's label in lang ("en" or "ru"); any other language, and
-// a language the mod gave no label for, read the English label.
+// Label is the setting's label in lang, a locale code; a language the mod
+// gave no label for reads the reference language's label, then the key.
 func (s Setting) Label(lang string) string {
-	if lang == "ru" && s.LabelRU != "" {
-		return s.LabelRU
+	if v := s.Labels[lang]; v != "" {
+		return v
 	}
-	if s.LabelEN != "" {
-		return s.LabelEN
+	if v := s.Labels[locale.Fallback]; v != "" {
+		return v
 	}
 	return s.Key
 }
@@ -152,20 +154,19 @@ func settingFrom(t tomlTable) (Setting, error) {
 		case "label":
 			switch p.val.kind {
 			case tomlString:
-				s.LabelEN = p.val.str
+				s.Labels = map[string]string{locale.Fallback: p.val.str}
 			case tomlInline:
 				for _, q := range p.val.tbl {
 					if q.val.kind != tomlString {
 						return Setting{}, fmt.Errorf("line %d: label.%s must be a string", p.line, q.key)
 					}
-					switch q.key {
-					case "en":
-						s.LabelEN = q.val.str
-					case "ru":
-						s.LabelRU = q.val.str
-					default:
-						return Setting{}, fmt.Errorf("line %d: label has no language %q (use en and ru)", p.line, q.key)
+					if _, ok := locale.ByCode(q.key); !ok {
+						return Setting{}, fmt.Errorf("line %d: label has no language %q (use %s)", p.line, q.key, labelCodes())
 					}
+					if s.Labels == nil {
+						s.Labels = map[string]string{}
+					}
+					s.Labels[q.key] = q.val.str
 				}
 			default:
 				return Setting{}, fmt.Errorf("line %d: label must be a string or { en = \"...\", ru = \"...\" }", p.line)
@@ -306,4 +307,13 @@ func ParseSettingFlag(arg string) (SettingFlag, error) {
 		return SettingFlag{}, fmt.Errorf("-mod-setting %q: %q is not a valid setting key", arg, f.Key)
 	}
 	return f, nil
+}
+
+// labelCodes lists the locale codes a label table may name.
+func labelCodes() string {
+	var codes []string
+	for _, l := range locale.All() {
+		codes = append(codes, l.Code)
+	}
+	return strings.Join(codes, " and ")
 }

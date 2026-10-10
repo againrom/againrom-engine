@@ -494,7 +494,10 @@ func TestOriginalSpellbook1096LegacyCityProvenanceKeepsNativeProgress(t *testing
 				t.Fatal(err)
 			}
 			fresh := newFront()
-			if _, town, err := fresh.Restore(decoded); err != nil || !town {
+			restore := legacyCompanionRegistry(fresh, 22)
+			_, town, err := fresh.Restore(decoded)
+			restore()
+			if err != nil || !town {
 				t.Fatalf("legacy LOAD must remain readable: %v", err)
 			}
 			back, _, err := fresh.Snapshot(false)

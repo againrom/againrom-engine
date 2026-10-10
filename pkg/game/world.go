@@ -1372,7 +1372,7 @@ func originalPanelActor(playerCharacter bool, typeID int32, xpValue int32) ui.Or
 	if typeID >= 0 && typeID < 0x1a {
 		actor.Flags |= 0x10
 	}
-	if typeID == 0x49 {
+	if typeID == 0x49 { // UNIT-PANEL-010
 		actor.Byte14A = 2
 	}
 	return actor
