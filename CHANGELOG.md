@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The second game plays its music: the menu, character generation, each
+  town, the world map and the credits have their own tracks, and a mission
+  plays its seventeen tracks with the theme of the area the hero stands in
+  following the current track. A movie pauses the music, and the menu, the
+  generator and a town pick it up where it stopped.
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,

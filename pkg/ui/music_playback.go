@@ -83,6 +83,6 @@ func (m *MusicController) startName(name string) bool {
 		return false
 	}
 	m.device.Start(track)
-	m.active = true
+	m.active, m.paused, m.resumeStarts = true, false, false
 	return true
 }

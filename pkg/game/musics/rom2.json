@@ -1,7 +1,7 @@
 {
   "music": "rom2",
-  "cite": ["R2-ENGINE-335", "R2-ENGINE-336", "R2-ENGINE-337", "R2-ENGINE-338"],
-  "archive": {"path": "music.res", "cite": ["R2-ASSET-083", "R2-ENGINE-339"]},
+  "cite": ["R2-ENGINE-335", "R2-ENGINE-336", "R2-ENGINE-337", "R2-ENGINE-338", "DIV-2863", "DIV-2867"],
+  "archive": {"path": "music.res", "cite": ["R2-ASSET-083", "R2-ENGINE-339", "DIV-2860"]},
   "tracks": [
     "b00.wav", "b01.wav", "b02.wav", "b03.wav", "b04.wav", "b05.wav", "b06.wav", "b07.wav", "b08.wav",
     "b09.wav", "b10.wav", "b11.wav", "b12.wav", "b13.wav", "b14.wav", "b15.wav", "b16.wav",
