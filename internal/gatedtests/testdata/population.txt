@@ -983,3 +983,4 @@ pkg/game.TestReleaseGeneratorTipsCycleAndStep
 pkg/game.TestReleaseMissionStartTipRender
 pkg/game.TestReleaseRoomTipsAtEveryEnterAndShopSecondText
 pkg/game.TestReleaseRoomTipRectanglesPerRoot
+pkg/game.TestReleaseSlotZeroStrikeOnCorpusGodActorThroughSaveAndColdLoad
