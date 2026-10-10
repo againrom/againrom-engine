@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
@@ -525,7 +526,11 @@ func EventPart(payload []byte, n int, aud EventAudience) (string, bool) {
 	return body, ok
 }
 
-// MissionTipPath is the mission tip text tip n of mission names (TRIG-TIPS-087).
-func MissionTipPath(mission, n int) string {
-	return fmt.Sprintf("%stext/battle/m%d/tips%02d.txt", mainPrefix, mission, n)
+// MissionTipPath is the edition's text of tip n of the mission
+// (TRIG-TIPS-087); false when the edition has no mission tips.
+func MissionTipPath(e base.Edition, mission, n int) (string, bool) {
+	if e.MissionTipText == "" {
+		return "", false
+	}
+	return fmt.Sprintf(e.MissionTipText, mission, n), true
 }

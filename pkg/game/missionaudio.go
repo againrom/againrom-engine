@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/random"
 	"againrom/pkg/ui"
 )
 
@@ -42,7 +43,7 @@ func (f *FrontEnd) runtimeAudio() runtimeMissionAudio {
 }
 
 func (a runtimeMissionAudio) attach(v *ui.Viewer) {
-	v.SetScopedAudio(a.rt.SoundPlayer, a.rt.SpeechPlayer, a.in.SoundBank, a.rt.AmbientPlayer, a.rt.AmbientSeed)
+	v.SetScopedAudio(a.rt.SoundPlayer, a.rt.SpeechPlayer, a.in.SoundBank, a.rt.AmbientPlayer, a.rt.randomService().Stream(random.AmbientBirds))
 }
 
 func (a runtimeMissionAudio) release(v *ui.Viewer) {
@@ -50,7 +51,7 @@ func (a runtimeMissionAudio) release(v *ui.Viewer) {
 }
 
 func (a runtimeMissionAudio) wireReplies(mw *mapWorld) {
-	command, selection := a.unitReplies(mw, newViewerVoiceDraw())
+	command, selection := a.unitReplies(mw, newViewerVoiceDraw(a.rt.randomService().Stream(random.CommandVoice)))
 	mw.view.SetCommandAcknowledgment(command)
 	mw.view.SetSelectionAcknowledgment(selection)
 }

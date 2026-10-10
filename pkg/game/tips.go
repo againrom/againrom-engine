@@ -70,36 +70,45 @@ func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	case roomSquare:
 		return &t.townTip, t.townDescription().Tip.Text
 	case roomShop:
-		return &t.shopTip, roomTip(room).Text
+		return &t.shopTip, t.roomTip(room).Text
 	case roomSchool:
-		return &t.schoolTip, roomTip(room).Text
+		return &t.schoolTip, t.roomTip(room).Text
 	case roomTavern:
-		return &t.tavernTip, roomTip(room).Text
+		return &t.tavernTip, t.roomTip(room).Text
 	}
 	return nil, ""
 }
 
-// roomTip answers a room's tip as the ROM1 description gives it.
-func roomTip(room townRoom) town.TipSpec {
+// roomTip answers a room's tip as the profile's descriptions give it: the
+// square's from the town description, the others from the room description.
+func (t *townScreen) roomTip(room townRoom) town.TipSpec {
 	if room == roomSquare {
-		return ROM1TownDescription().Tip
+		if d := t.townDescription(); d != nil {
+			return d.Tip
+		}
+		return town.TipSpec{}
+	}
+	return roomTipIn(t.roomDescription(), room)
+}
+
+func roomTipIn(d *town.Description, room townRoom) town.TipSpec {
+	if d == nil {
+		return town.TipSpec{}
 	}
 	name := townRoomName(room)
-	for i := range ROM1TownDescription().Rooms {
-		if r := &ROM1TownDescription().Rooms[i]; r.Name == name && r.Tip != nil {
+	for i := range d.Rooms {
+		if r := &d.Rooms[i]; r.Name == name && r.Tip != nil {
 			return *r.Tip
 		}
 	}
 	return town.TipSpec{}
 }
 
-func roomTipRect(room townRoom) image.Rectangle { return roomTip(room).Rect.Rectangle() }
-
 // roomTipView projects a room's popup at the description's rectangle. The
 // bottom edge follows the text when the description asks for that, and grows
 // when the engine's wrap would cut the text at the rectangle (DIV-2719).
 func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
-	spec := roomTip(room)
+	spec := t.roomTip(room)
 	v := t.tipView(room, text, spec.Rect.Rectangle())
 	if spec.Fit || !ui.TipPanelFits(v) {
 		v.Rect = ui.TipPanelShrinkRect(v.Rect, t.in.tipFont(), text)
@@ -118,7 +127,7 @@ func (t *townScreen) advanceShopSecondTip() {
 	if shop := t.sess.Shop; shop == nil || len(shop.Table()) == 0 {
 		return
 	}
-	second := roomTip(roomShop).Second
+	second := t.roomTip(roomShop).Second
 	if second == "" {
 		return
 	}

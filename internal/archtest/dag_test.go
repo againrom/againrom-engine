@@ -344,7 +344,8 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// dag.go: the UI tier may use pkg/render and everything under it, plus the
 	// audio leaf (0126) and video leaf (1074), and nothing else in the module.
 	// Video transports presentation frames and has no game/sim dependency.
-	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video"}
+	// The random service is a leaf every drawing tier names.
+	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {

@@ -162,6 +162,13 @@ func StartMission(fsys entrySource, n int, t *mapload.Table, diff mapload.Diffic
 // decoded the bytes itself still reports the entry rather than a bare error.
 func StartMissionFrom(m *alm.Map, addr string, n int, t *mapload.Table, diff mapload.Difficulty,
 	party []mapload.PartyMember) (*Mission, error) {
+	return startMissionFromWith(m, addr, n, t, diff, party, nil)
+}
+
+// startMissionFromWith places the party with draws; nil is the placement
+// sequence at its fixed seed.
+func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff mapload.Difficulty,
+	party []mapload.PartyMember, draws *sim.Draws) (*Mission, error) {
 	for _, p := range party {
 		if err := mapload.ValidatePartyLoad(p); err != nil {
 			return nil, err
@@ -233,7 +240,7 @@ func StartMissionFrom(m *alm.Map, addr string, n int, t *mapload.Table, diff map
 			break
 		}
 	}
-	w, st, err := mapload.StartCampaignMissionScripted(m, t, diff, party, n, s)
+	w, st, err := mapload.StartCampaignMissionScriptedWith(m, t, diff, party, n, s, draws)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}

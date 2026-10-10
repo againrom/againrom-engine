@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -19,7 +20,7 @@ func (w *deliveryWitness) installedCombatRoutes() {
 	w.t.Helper()
 	f, a := w.front, w.app
 	previousDraw, previousHold := newViewerVoiceDraw, w.holdOneShots
-	newViewerVoiceDraw = func() voiceDraw { return func() int { return 0 } }
+	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return func() int { return 0 } }
 	w.holdOneShots = false
 	defer func() { newViewerVoiceDraw, w.holdOneShots = previousDraw, previousHold }()
 	groups := map[string]audio.Channel{

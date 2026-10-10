@@ -11,9 +11,10 @@ the original reads, and run its highlight cycles. A mission dialogue tagged
 machine (`ui.guidedCycle`) serves both generator pages, with targets and art
 as data.
 
-Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
-`ab0b7bdc` (release 0.106.0, after the rooms on the town composer and the one
-game profile). The mission tip is ROM1 edition data (`Edition.MissionTips`).
+Base: `6f05571d` (game 0.105.0). Knowledge pin k217. Reconciled main:
+`8ae23481` (after the random service and the profile ratchet; the rooms read
+the profile's room description). The mission tip is ROM1 edition data:
+`Edition.MissionTipText`, the tip text path; empty raises no tip.
 
 ## Authority
 

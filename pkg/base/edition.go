@@ -21,6 +21,12 @@ type Edition struct {
 	// when the game's town is not a composed square.
 	Town string
 
+	// Rooms names the town description whose rooms the tavern, shop and
+	// school pages, their tips and their scene art are read from. The second
+	// game has no room description of its own and names the first game's, the
+	// description its install has always loaded its room scene art from.
+	Rooms string
+
 	// NewGameInTown: a new game opened without generation starts in the
 	// campaign town with the default hero rather than on the first mission.
 	NewGameInTown bool
@@ -59,9 +65,11 @@ type Edition struct {
 	// StartupCutscenes: the logo and introduction movies play at start.
 	StartupCutscenes bool
 
-	// MissionTips: a mission dialogue part's tips= tag raises the mission's
-	// numbered tip popup when the dialogue closes on its last page.
-	MissionTips bool
+	// MissionTipText is the archive path of a mission's numbered tip text,
+	// formatted with the mission and the tip number. A mission dialogue part's
+	// tips= tag raises that popup when the dialogue closes on its last page;
+	// empty when the tag raises nothing.
+	MissionTipText string
 }
 
 // Campaign names a campaign model.
@@ -80,11 +88,12 @@ var firstEdition = Edition{
 	Game:                      GameROM1,
 	Campaign:                  CampaignChapters,
 	Town:                      "rom1",
+	Rooms:                     "rom1",
 	CompanionObjectiveMission: 40,
 	Cheats:                    true,
 	FreshPlayers:              true,
 	StartupCutscenes:          true,
-	MissionTips:               true,
+	MissionTipText:            "main/text/battle/m%d/tips%02d.txt",
 }
 
 var secondEdition = Edition{
@@ -93,6 +102,7 @@ var secondEdition = Edition{
 	Campaign:          CampaignDestinations,
 	NewGameInTown:     true,
 	TownDifficulty:    true,
+	Rooms:             "rom1",
 	SecondMaps:        true,
 	SecondScripts:     true,
 	SecondTable:       true,

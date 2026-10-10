@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The original game's random number generator can be switched on with
+  `-original-random`; `-seed <n>` replays a session from one seed.
 - [ROM1] The character generator's tips work as in the original. The first
   page shows three step tips in the top right corner, advanced by a portrait
   click and then a level click, and highlights the portraits, then the

@@ -3,11 +3,11 @@ package game
 import (
 	_ "embed"
 	"image"
-	"math/rand"
 	"time"
 
 	"againrom/pkg/audio"
 	"againrom/pkg/base"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -28,13 +28,19 @@ var townDescriptions map[string]*town.Description
 
 func init() {
 	townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1TownJSON)}
-	TownTipPath = ROM1TownDescription().Tip.Text
 }
 
 // TownDescription is the town description the profile's edition names, or
 // nil when its game's town is not a composed square. Callers must not change
 // it.
 func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
+
+// RoomDescription is the town description whose rooms the profile reads: the
+// tavern, shop and school pages, their tips and their scene art. A second-game
+// install reads the first game's rooms, as the edition's Rooms names them: its
+// town screen is the campaign list, but its install load resolves the room
+// scene art from that description. Callers must not change it.
+func RoomDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Rooms] }
 
 func mustDecodeTown(data []byte) *town.Description {
 	d, err := town.Decode(data, townVocabulary())
@@ -65,19 +71,11 @@ func townVocabulary() town.Vocabulary {
 // Callers must not change it.
 func ROM1TownDescription() *town.Description { return TownDescription(base.Profile{}) }
 
-// TownTipPath is the ROM1 square's tip text, as its description names it.
-var TownTipPath string
-
-// LoadTownSquareArt resolves the square's art from the install as the ROM1
-// description names it. A required entry that fails carries its address in
+// LoadTownSquareArtFor resolves the square's art from the install as
+// description d names it. A required entry that fails carries its address in
 // the error and the square falls back to the row-button layout; an optional
-// family that fails is named in Problems and leaves the others loaded.
-func LoadTownSquareArt(src terrain.EntrySource) (*town.Art, error) {
-	return LoadTownSquareArtFor(ROM1TownDescription(), src)
-}
-
-// LoadTownSquareArtFor is LoadTownSquareArt over description d. A game with
-// no composed square loads no art.
+// family that fails is named in Problems and leaves the others loaded. A game
+// with no composed square loads no art.
 func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.Art, error) {
 	if d == nil {
 		return nil, nil
@@ -86,12 +84,18 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 }
 
 // townDescription is the town description of the install's profile; a screen
-// bound to no install is the first game's.
-func (t *townScreen) townDescription() *town.Description {
+// bound to no install is the zero profile's, the first game's.
+func (t *townScreen) townDescription() *town.Description { return TownDescription(t.profile()) }
+
+// roomDescription is the description the screen's rooms read, by the
+// install's profile as RoomDescription states it.
+func (t *townScreen) roomDescription() *town.Description { return RoomDescription(t.profile()) }
+
+func (t *townScreen) profile() base.Profile {
 	if t == nil {
-		return ROM1TownDescription()
+		return base.Profile{}
 	}
-	return TownDescription(t.in.profile())
+	return t.in.profile()
 }
 
 // townArtLoader reads the composer's art keys from the install's containers.
@@ -200,6 +204,11 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 func (t *townScreen) squareView() *town.View {
 	if t.square == nil {
 		t.square = town.NewView(t.townDescription(), townSquareHost{t}, t.townProcess)
+		// In original mode the wildlife draws are raw draws of the shared
+		// stream instead of the description's own generator (TOWN-505).
+		if st := t.draws.stream(random.TownWildlife); st != nil && st.Shared() {
+			t.square.SetRawDraw("wildlife", st.Raw)
+		}
 	}
 	return t.square
 }
@@ -225,27 +234,14 @@ func (h townSquareHost) Draw(source string, n int) int {
 		if draw := t.draws.animationDraw(); draw != nil {
 			return boundedPresentationRoll(draw, nil, n)
 		}
-		return boundedPresentationRoll(nil, t.squareFallback(0), n)
+		return boundedPresentationRoll(nil, t.draws.stream(random.TownAnimation), n)
 	case "ambient":
-		return boundedPresentationRoll(t.draws.ambientDraw(), t.squareFallback(1), n)
+		return boundedPresentationRoll(t.draws.ambientDraw(), t.draws.stream(random.TownAmbient), n)
 	}
 	return 0
 }
 
-// squareFallback is the screen's own presentation generator for a draw
-// source the runtime did not supply.
-func (t *townScreen) squareFallback(i int) *rand.Rand {
-	if t.squareRandom[i] == nil {
-		seed := t.townAnimationNow().UnixNano()
-		if i == 1 {
-			seed ^= 0x5deece66d
-		}
-		t.squareRandom[i] = rand.New(rand.NewSource(seed))
-	}
-	return t.squareRandom[i]
-}
-
-func (h townSquareHost) Seed() int64 { return h.t.sound.ambientSeed() }
+func (h townSquareHost) Seed() int64 { return h.t.sound.wildlifeSeed() }
 
 func (h townSquareHost) Condition(name string) bool {
 	if c := townConditions[name]; c != nil {
@@ -412,7 +408,7 @@ func (t *townScreen) TownMusicTrack() (string, bool) {
 
 // boundedPresentationRoll is one bounded presentation draw: the runtime's
 // draw when supplied, else the fallback generator, else zero.
-func boundedPresentationRoll(draw func(int) int, fallback *rand.Rand, n int) int {
+func boundedPresentationRoll(draw func(int) int, fallback *random.Stream, n int) int {
 	if n <= 0 {
 		return 0
 	}
@@ -420,7 +416,7 @@ func boundedPresentationRoll(draw func(int) int, fallback *rand.Rand, n int) int
 	if draw != nil {
 		value = draw(n)
 	} else if fallback != nil {
-		value = fallback.Intn(n)
+		value = fallback.Scaled(n)
 	}
 	value %= n
 	if value < 0 {

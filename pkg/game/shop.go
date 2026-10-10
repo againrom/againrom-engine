@@ -1,10 +1,9 @@
 package game
 
 import (
-	"math/rand"
-
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 )
 
@@ -250,21 +249,33 @@ func (s *Shop) Table() []ShopPlace {
 // rand() from a clock and no assortment is reproducible; this build's stock is
 // reproducible from a seed the caller derives from campaign state, which is
 // provenance A-1's disclosed divergence.
-func (s *Shop) Generate(t *mapload.Table, seed int64) {
+func (s *Shop) Generate(t *mapload.Table, seed int64) { s.GenerateWith(t, seed, nil) }
+
+// GenerateWith is Generate drawing on stock when it is the shared stream of
+// original mode (SHOP-RNG-008); otherwise the stock draws on its own
+// generator at seed.
+func (s *Shop) GenerateWith(t *mapload.Table, seed int64, stock *random.Stream) {
 	s.drawSeed = seed
-	s.generate(t, rand.New(rand.NewSource(seed)))
+	var r shopDrawSource = random.NewGo(seed)
+	if stock != nil && stock.Shared() {
+		r = stock
+	}
+	s.generate(t, r)
 }
 
 // Restock clears and refills an unattended shop with a fresh deterministic
 // draw. A non-empty table is refused: leaving the shop normally clears it, and
 // destroying a staged player item would turn the tavern convenience into an
 // inventory mutation.
-func (s *Shop) Restock(t *mapload.Table, seed int64) bool {
+func (s *Shop) Restock(t *mapload.Table, seed int64) bool { return s.RestockWith(t, seed, nil) }
+
+// RestockWith is Restock drawing as GenerateWith does.
+func (s *Shop) RestockWith(t *mapload.Table, seed int64, stock *random.Stream) bool {
 	if s == nil || t == nil || len(s.table) != 0 {
 		return false
 	}
 	s.restocks++
-	s.Generate(t, shopRestockSeed(seed, s.restocks))
+	s.GenerateWith(t, shopRestockSeed(seed, s.restocks), stock)
 	return true
 }
 

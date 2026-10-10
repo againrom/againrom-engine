@@ -445,3 +445,34 @@ func TestHeldSingletonOmissionKeepsARemainingMissionStack(t *testing.T) {
 		t.Fatalf("remaining stack omit = %d, want -1", got)
 	}
 }
+
+// In original mode the four grids hold draws 1..8192 of seed 1 (SESS-083):
+// grid g, point i takes draws 2048g+2i+1 (x) and 2048g+2i+2 (y), each
+// rand()/511 + 8 (ITEM-STARPIX-098). The first two points are the CRT's own
+// first four values from srand(1): 41, 18467, 6334, 26500.
+func TestOriginalItemStarGridsHoldDrawsOneTo8192OfSeedOne(t *testing.T) {
+	SetOriginalItemStars(true)
+	defer SetOriginalItemStars(false)
+	if got, want := itemStarFields[0].points[0], image.Pt(41/511+8, 18467/511+8); got != want {
+		t.Fatalf("first point %v, want %v", got, want)
+	}
+	if got, want := itemStarFields[0].points[1], image.Pt(6334/511+8, 26500/511+8); got != want {
+		t.Fatalf("second point %v, want %v", got, want)
+	}
+	state, draws := uint32(1), 0
+	next := func() int {
+		state = state*214013 + 2531011
+		draws++
+		return int(state>>16&0x7fff)/511 + 8
+	}
+	for g := range itemStarFields {
+		for i, p := range itemStarFields[g].points {
+			if want := image.Pt(next(), next()); p != want {
+				t.Fatalf("grid %d point %d = %v, want %v", g, i, p, want)
+			}
+		}
+	}
+	if draws != 8192 {
+		t.Fatalf("grids took %d draws, want 8192", draws)
+	}
+}

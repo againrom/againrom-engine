@@ -6,6 +6,7 @@ import (
 	"image/draw"
 
 	"againrom/pkg/formats/spr256"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -47,8 +48,9 @@ var shopButtonFiles = [4]string{"shopbutton1.bmp", "shopbutton2.bmp", "shopbutto
 // and this build has to tell those two apart everywhere but at the blit.
 var shopBackFiles = [4]string{"backinvg.bmp", "backinv.bmp", "backinvs.bmp", "backinvg.bmp"}
 
-// loadShopArt resolves every picture the screen paints with.
-func loadShopArt(src entrySource) *ui.ShopScreenArt {
+// loadShopArt resolves every picture the screen paints with; the scene art is
+// the one room description d names.
+func loadShopArt(d *town.Description, src entrySource) *ui.ShopScreenArt {
 	art := &ui.ShopScreenArt{
 		Shelf: loadShopBMP(src, "shopinv.bmp"),
 		Table: loadShopBMP(src, "shoptable.bmp"),
@@ -74,7 +76,7 @@ func loadShopArt(src entrySource) *ui.ShopScreenArt {
 		art.Back[i] = loadShopBMP(src, name)
 	}
 	if src != nil {
-		art.Scene, _ = loadRoomSceneArt("shop", src)
+		art.Scene, _ = loadRoomSceneArt(d, "shop", src)
 	}
 	art.Coin = loadShopIcon(src, shopMoneyPath)
 	// The seven plaques a side, one per decimal digit count (SHOP-SCREEN-037).
@@ -205,7 +207,7 @@ func (p *Presentation) shopArt(in *InstallResources) *ui.ShopScreenArt {
 	if in.Archives != nil {
 		src = in.Archives.Containers
 	}
-	art := p.shopArtCache.store(loadShopArt(src))
+	art := p.shopArtCache.store(loadShopArt(RoomDescription(in.profile()), src))
 	art.Book = in.BottomHUDArt.Value()
 	return art
 }

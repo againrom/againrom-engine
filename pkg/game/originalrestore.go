@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 )
@@ -49,6 +50,8 @@ type originalSource struct {
 	hasBuildings      bool
 	missionDocument   *SnapshotSAVDocument
 	documentOrigins   []sav.DocumentObjectOrigin
+	// currentRandom is the random session the LOAD begins.
+	currentRandom random.Session
 }
 
 // decodeOriginalSource decodes the complete original SAV in saved over the
@@ -448,7 +451,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := importSavedDocument(ms, missionDocument, documentOrigins); err != nil {
 				return err
 			}
-			if err := restoreOriginalRandomState(ms); err != nil {
+			if err := restoreOriginalRandomState(ms, src.campaign.randomSession, src.currentRandom); err != nil {
 				return err
 			}
 			if err := importOriginalCellPlanes(ms, in.archives.Containers); err != nil {

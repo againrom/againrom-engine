@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/text"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -15,7 +16,7 @@ type townAudio interface {
 	soundDevice() audio.Player
 	speechDevice() audio.Player
 	ambientDevice() ui.AmbientDevice
-	ambientSeed() int64
+	wildlifeSeed() int64
 }
 
 // townDraws is the town screen's presentation clock and bounded draw sources.
@@ -27,6 +28,8 @@ type townDraws interface {
 	tavernDraw() func(n int) int
 	shopDraw() func(n int) int
 	schoolDraw() func(n int) int
+	// stream is the session's named stream a source without a seam draws on.
+	stream(name random.Name) *random.Stream
 }
 
 // townArt is the first-use art the town screen draws with.
@@ -46,7 +49,9 @@ type runtimeTownAudio struct{ rt *RuntimeServices }
 func (a runtimeTownAudio) soundDevice() audio.Player       { return a.rt.SoundPlayer }
 func (a runtimeTownAudio) speechDevice() audio.Player      { return a.rt.SpeechPlayer }
 func (a runtimeTownAudio) ambientDevice() ui.AmbientDevice { return a.rt.AmbientPlayer }
-func (a runtimeTownAudio) ambientSeed() int64              { return a.rt.AmbientSeed }
+func (a runtimeTownAudio) wildlifeSeed() int64 {
+	return a.rt.randomService().StreamSeed(random.TownWildlife)
+}
 
 // runtimeTownDraws is the production townDraws over the process's services.
 type runtimeTownDraws struct{ rt *RuntimeServices }
@@ -57,6 +62,9 @@ func (d runtimeTownDraws) ambientDraw() func(n int) int     { return d.rt.TownAm
 func (d runtimeTownDraws) tavernDraw() func(n int) int      { return d.rt.TavernRandom }
 func (d runtimeTownDraws) shopDraw() func(n int) int        { return d.rt.ShopRandom }
 func (d runtimeTownDraws) schoolDraw() func(n int) int      { return d.rt.SchoolRandom }
+func (d runtimeTownDraws) stream(name random.Name) *random.Stream {
+	return d.rt.randomService().Stream(name)
+}
 
 // installTownArt is the production townArt over the install and the
 // presentation's first-use caches.

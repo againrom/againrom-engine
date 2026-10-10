@@ -5,6 +5,7 @@ import (
 	"image"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -12,8 +13,9 @@ const townTavernArtPrefix = graphicsPrefix + "interface/inn/"
 
 // LoadTownTavernArt resolves the three fixed tavern children and the
 // type-indexed roster pictures once. Like the school surface it is cosmetic and
-// is carried with an error rather than making startup fatal.
-func LoadTownTavernArt(src terrain.EntrySource) (*ui.TownTavernArt, error) {
+// is carried with an error rather than making startup fatal. The scene art is
+// the one room description d names.
+func LoadTownTavernArt(d *town.Description, src terrain.EntrySource) (*ui.TownTavernArt, error) {
 	a := &ui.TownTavernArt{}
 	var err error
 	if a.LeftPicture, err = readChargenBMP(src, townTavernArtPrefix+"leftpicture.bmp"); err != nil {
@@ -135,7 +137,7 @@ func LoadTownTavernArt(src terrain.EntrySource) (*ui.TownTavernArt, error) {
 			a.HeroFrames[i] = frames
 		}
 	}
-	scene, problems := loadRoomSceneArt("tavern", src)
+	scene, problems := loadRoomSceneArt(d, "tavern", src)
 	a.Scene = scene
 	return a, problems
 }

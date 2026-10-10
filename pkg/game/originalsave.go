@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -760,6 +761,11 @@ func (f *FrontEnd) RestoreOriginal(saved []byte) (open ui.MapOpener, town bool, 
 		return nil, false, err
 	}
 	in := f.originalInstall()
+	// The LOAD's random session: the recorded seed in the launch mode, its
+	// state carried through the load path's reseeds (SESS-083).
+	var cancel func()
+	src.currentRandom, cancel = f.prepareLoadRandom(src.campaign.randomSession)
+	defer cancel()
 	if src.campaign.mission == 0 {
 		return f.restoreOriginalTown(src, in, selectedMarkers)
 	}
@@ -778,6 +784,9 @@ type originalCampaignDecode struct {
 	actions     *currentActionData
 	document    *sav.DocumentData
 	quickSpells [4]uint32
+	// randomSession is the random session the file recorded, or one seeded
+	// from the file's own bytes when it recorded none.
+	randomSession random.Session
 }
 
 // decodeOriginalCampaign decodes and validates the complete campaign
@@ -797,12 +806,23 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 	var currentSession *currentSessionData
 	var currentActions *currentActionData
 	var currentDocument *sav.DocumentData
+	savedRandom := random.Session{Seed: random.SeedOf(saved)}
 	if doc, err := sav.DecodeDocumentData(saved); err == nil {
+		recorded, ok, err := sav.ReadNativeSession(doc.State)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			savedRandom = random.Session{Seed: recorded.Seed, Mode: random.Mode(recorded.Mode), Shared: recorded.Shared}
+		}
 		a, err := readCurrentActions(&doc)
 		if err != nil {
 			return nil, err
 		}
 		if a != nil {
+			if !ok {
+				savedRandom = random.Session{}
+			}
 			currentSession = a.Session
 			currentActions, currentDocument = a, &doc
 		}
@@ -868,7 +888,8 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 		return nil, errCompletedCampaignFile
 	}
 	return &originalCampaignDecode{difficulty: difficulty, mission: n, town: restoredTown, progress: restoredProgress,
-		session: currentSession, actions: currentActions, document: currentDocument, quickSpells: quickSpells}, nil
+		session: currentSession, actions: currentActions, document: currentDocument, quickSpells: quickSpells,
+		randomSession: savedRandom}, nil
 }
 
 // restoreOriginalTown installs the between-mission game an original SAV
@@ -888,7 +909,8 @@ func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, 
 	f.Units = cloneCandidateUnits(f.Units)
 	f.installCandidate(&restoreCandidate{fame: draft.fame, quickSpells: src.quickSpells, offered: src.offered(),
 		difficulty: src.campaign.difficulty, town: draft.Town, carried: draft.Carried,
-		originalCity: draft.originalCity, townOnly: true, worldSelectedOnce: selectedMarkers, worldMapReturn: src.worldMapReturn()})
+		originalCity: draft.originalCity, townOnly: true, worldSelectedOnce: selectedMarkers, worldMapReturn: src.worldMapReturn(),
+		randomSession: &src.currentRandom})
 	f.CampaignSession.reportTown(src, report)
 	return nil, true, nil
 }
@@ -901,6 +923,7 @@ func (f *FrontEnd) restoreOriginalMission(src *originalSource, in originalInstal
 		return nil, false, err
 	}
 	candidate := plan.candidate
+	candidate.randomSession = &src.currentRandom
 	open := f.missionOpenerMode(src.campaign.mission, plan.restored, nil, plan.savedPurse, src.prepareMission(in, plan),
 		&candidate.activate, candidate.units, src.campaign.difficulty, candidate.town)
 	candidate.prepared.viewer, candidate.prepared.tick, candidate.prepared.order, candidate.prepared.cadence,

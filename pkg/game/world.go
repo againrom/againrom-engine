@@ -1915,10 +1915,14 @@ func (mw *mapWorld) raiseMissionTip() {
 	m := mw.mission
 	n := m.tips
 	m.tips = 0
-	if n == 0 || m.payload == nil || !m.edition().MissionTips || !mw.view.MissionTipsMode() {
+	if n == 0 || m.payload == nil || !mw.view.MissionTipsMode() {
 		return
 	}
-	text, ok := ReadShopTip(m.src, MissionTipPath(m.number, n))
+	path, ok := MissionTipPath(m.edition(), m.number, n)
+	if !ok {
+		return
+	}
+	text, ok := ReadShopTip(m.src, path)
 	if !ok {
 		return
 	}

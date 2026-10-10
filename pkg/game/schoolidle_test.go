@@ -36,7 +36,7 @@ func TestSchoolShineStepsEveryHalfSecondModuloFive(t *testing.T) {
 // before the first school paint.
 func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 	f := shellFrontEnd()
-	schoolArt, err := LoadTownSchoolArt(townSchoolSource())
+	schoolArt, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolSource())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -60,7 +60,11 @@ func pageMissionDialogue(t *testing.T, app *ui.App, live *mapWorld, what string)
 
 func missionTipText(t *testing.T, f *FrontEnd, mission, n int) string {
 	t.Helper()
-	text, ok := ReadShopTip(f.Archives.Containers, MissionTipPath(mission, n))
+	path, ok := MissionTipPath(f.Base().Profile.Edition(), mission, n)
+	if !ok {
+		t.Fatalf("the edition has no tip %d of mission %d", n, mission)
+	}
+	text, ok := ReadShopTip(f.Archives.Containers, path)
 	if !ok || text == "" {
 		t.Fatalf("installed tip %d of mission %d is missing", n, mission)
 	}

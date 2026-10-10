@@ -84,6 +84,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"againrom/internal/buildinfo"
@@ -96,7 +97,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-chicken] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-chicken] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // markersUsage is the -markers flag's own help text. Named rather than
 // written inline so the wording has ONE home, mirroring cmd/mapview's flag
@@ -342,8 +343,13 @@ type options struct {
 	check   bool
 	markers bool
 	chicken bool
-	picker  bool
-	mission int
+	// seed is -seed, the fixed session seed, when seedSet; originalRandom is
+	// -original-random, the original's random number generator.
+	seed           uint64
+	seedSet        bool
+	originalRandom bool
+	picker         bool
+	mission        int
 
 	// missionSet is whether -mission was given ON THE COMMAND LINE, distinct
 	// from mission's VALUE: the flag defaults to defaultCampaignMission, so a
@@ -406,6 +412,15 @@ func parse(args []string) (options, error) {
 	fs.BoolVar(&o.check, "check", false, "load the assets and the map list, print a summary, and exit without a window")
 	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
 	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
+	fs.Func("seed", "fix the session seed every new game draws from (default: the clock at each new game)", func(v string) error {
+		n, err := strconv.ParseUint(v, 0, 64)
+		if err != nil {
+			return fmt.Errorf("-seed must be an unsigned integer: %w", err)
+		}
+		o.seed, o.seedSet = n, true
+		return nil
+	})
+	fs.BoolVar(&o.originalRandom, "original-random", false, "draw every placed random consumer from the original game's random number generator")
 	fs.BoolVar(&o.picker, "picker", false, pickerUsage)
 	fs.IntVar(&o.mission, "mission", defaultCampaignMission, missionUsage)
 	// -chargen IS BOUND TO A THROWAWAY (0140). The flag must still PARSE — an
@@ -463,7 +478,7 @@ func parse(args []string) (options, error) {
 		return o, errors.New("-picker and -mission are mutually exclusive")
 	}
 	if o.base != "" {
-		if _, ok := base.Find(o.base); !ok || o.base == base.ROM1 {
+		if !base.Nameable(o.base) {
 			return o, fmt.Errorf("unknown -base %q; one of: %s", o.base, strings.Join(base.IDs(), ", "))
 		}
 	}
@@ -545,6 +560,7 @@ func frontEnd(root string, o options, preferences game.OptionsStore) (*game.Fron
 	// path, so -markers=false leaves them on screen and takes the crosses off.
 	front.Markers = game.Markers{Objects: o.markers, Units: o.markers, Statics: o.markers}
 	front.SetChickenAtMissionStart(o.chicken)
+	front.SetRandomLaunch(o.seed, o.seedSet, o.originalRandom)
 	front.Options = preferences
 	front.LoadOptions()
 	return front, nil

@@ -496,7 +496,7 @@ func run(args []string, w io.Writer) error {
 
 	// Instrument B against production, over the install's OWN mask loaded
 	// through the production loader rather than this tool's decoder.
-	art, err := game.LoadTownSquareArt(src)
+	art, err := game.LoadTownSquareArtFor(game.ROM1TownDescription(), src)
 	if err != nil {
 		return err
 	}

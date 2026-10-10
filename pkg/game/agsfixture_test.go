@@ -137,7 +137,13 @@ func EncodeSave(s Snapshot, label string) ([]byte, error) {
 		return nil, err
 	}
 	var payload bytes.Buffer
-	if err := gob.NewEncoder(&payload).Encode(s); err != nil {
+	enc := gob.NewEncoder(&payload)
+	if err := enc.Encode(s); err != nil {
+		return nil, fmt.Errorf("encode save: %w", err)
+	}
+	// The random session follows the snapshot; a file without it decodes
+	// to the zero session.
+	if err := enc.Encode(s.randomSession); err != nil {
 		return nil, fmt.Errorf("encode save: %w", err)
 	}
 	return agsBuild(label, payload.Bytes())
@@ -153,6 +159,11 @@ func DecodeSave(b []byte) (Snapshot, string, error) {
 	var s Snapshot
 	dec := gob.NewDecoder(bytes.NewReader(body))
 	if err := dec.Decode(&s); err != nil {
+		return Snapshot{}, "", fmt.Errorf("save is corrupt: %w", err)
+	}
+	switch err := dec.Decode(&s.randomSession); err {
+	case nil, io.EOF:
+	default:
 		return Snapshot{}, "", fmt.Errorf("save is corrupt: %w", err)
 	}
 	var extra any

@@ -3,16 +3,16 @@ package game
 import (
 	"errors"
 	"image"
-	"math/rand"
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 )
 
-// roomPage answers the composer page of a room the ROM1 description gives a
-// scene, building it on first use.
+// roomPage answers the composer page of a room the profile's room description
+// gives a scene, building it on first use.
 func (t *townScreen) roomPage(room string) *town.Page {
 	if p := t.pages[room]; p != nil {
 		return p
@@ -20,7 +20,7 @@ func (t *townScreen) roomPage(room string) *town.Page {
 	if t.pages == nil {
 		t.pages = map[string]*town.Page{}
 	}
-	p := town.NewPage(ROM1TownDescription(), room, roomPageHost{t: t, room: room}, t.townProcess)
+	p := town.NewPage(t.roomDescription(), room, roomPageHost{t: t, room: room}, t.townProcess)
 	t.pages[room] = p
 	return p
 }
@@ -29,13 +29,16 @@ func (t *townScreen) tavernPage() *town.Page { return t.roomPage("tavern") }
 
 func (t *townScreen) shopPage() *town.Page { return t.roomPage("shop") }
 
-// loadRoomSceneArt resolves a room scene's art as the ROM1 description names
+// loadRoomSceneArt resolves a room scene's art as room description d names
 // it: its pictures by entry name, and the problems of the entries that did
 // not load joined into one error. A required entry that fails answers no
-// pictures.
-func loadRoomSceneArt(room string, src terrain.EntrySource) (map[string][]image.Image, error) {
-	for i := range ROM1TownDescription().Rooms {
-		r := &ROM1TownDescription().Rooms[i]
+// pictures, and so does a nil description.
+func loadRoomSceneArt(d *town.Description, room string, src terrain.EntrySource) (map[string][]image.Image, error) {
+	if d == nil {
+		return nil, nil
+	}
+	for i := range d.Rooms {
+		r := &d.Rooms[i]
 		if r.Name != room || r.Scene == nil {
 			continue
 		}
@@ -84,11 +87,19 @@ func (h roomPageHost) Art() *town.Art {
 
 func (h roomPageHost) Now() time.Time { return h.t.townAnimationNow() }
 
-// roomDraws binds each scene draw source to the runtime's draw service.
+// roomDraws binds each scene draw source to the runtime's draw seam.
 var roomDraws = map[string]func(townDraws) func(int) int{
 	"tender":   townDraws.tavernDraw,
 	"idle":     townDraws.shopDraw,
 	"training": townDraws.schoolDraw,
+}
+
+// roomStreams names the session stream each scene draw source draws on when
+// its seam is unset.
+var roomStreams = map[string]random.Name{
+	"tender":   random.Tavern,
+	"idle":     random.ShopInterior,
+	"training": random.School,
 }
 
 func (h roomPageHost) Draw(source string, n int) int {
@@ -100,19 +111,17 @@ func (h roomPageHost) Draw(source string, n int) int {
 	if draw != nil {
 		return boundedPresentationRoll(draw, nil, n)
 	}
-	if t.pageRandom[source] == nil {
-		h.Reseed(source)
+	name, ok := roomStreams[source]
+	if !ok {
+		name = random.Name(source)
 	}
-	return boundedPresentationRoll(nil, t.pageRandom[source], n)
+	return boundedPresentationRoll(nil, t.draws.stream(name), n)
 }
 
-func (h roomPageHost) Reseed(source string) {
-	t := h.t
-	if t.pageRandom == nil {
-		t.pageRandom = map[string]*rand.Rand{}
-	}
-	t.pageRandom[source] = rand.New(rand.NewSource(t.townAnimationNow().UnixNano()))
-}
+// Reseed keeps the source's session stream running: the original reseeds
+// nothing on a room's entry (TOWN-505), and a stream derived from the
+// session seed replays without a restart.
+func (h roomPageHost) Reseed(string) {}
 
 func (h roomPageHost) PlaySound(source, key string, loop bool) town.Voice {
 	t := h.t
