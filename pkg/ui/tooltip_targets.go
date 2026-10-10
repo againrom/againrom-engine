@@ -351,31 +351,39 @@ func shopTooltip(v ShopScreenView, w Words, p image.Point) tooltipTarget {
 
 func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 	c := a.flow.chargen
-	if c == nil || c.setup.PreCreate == nil || c.setup.PreCreate.Art == nil || c.TipPanel().Covers(p) {
+	l := c.layout()
+	if c == nil || l == nil || c.setup.PreCreate == nil || c.setup.PreCreate.Art == nil || c.TipPanel().Covers(p) {
 		return tooltipTarget{}
 	}
 	font, w := c.setup.PreCreate.Art.Font, a.flow.words
 	slot, id := -1, chargenNone
+	pick := func(n *int) {
+		if n != nil {
+			slot = *n
+		}
+	}
+	pre := &l.PreCreate
 	if c.stage == PreCreateStage {
 		id = preControlAt(c, p)
 		switch {
 		case id == chargenName:
-			slot = 256
+			pick(pre.Name.Tooltip)
 		case id >= chargenLevel0 && id <= chargenLevel2:
-			slot = 247 + int(id-chargenLevel0)
+			pick(pre.Levels[id-chargenLevel0].Tooltip)
 		case id >= chargenChoice0 && id <= chargenChoice3:
-			slot = 250 + int(id-chargenChoice0)
+			pick(pre.Heroes[id-chargenChoice0].Tooltip)
 		case id == chargenForward:
-			slot = 254
+			pick(pre.Forward.Tooltip)
 		case id == chargenBack:
-			slot = 255
+			pick(pre.Back.Tooltip)
 		}
 	} else if c.stage == DetailedStage {
+		d := &l.Detail
 		id = detailedControlAt(c, p)
 		switch {
 		case id >= chargenSkill0 && id <= chargenSkill4:
-			_, class := preChoiceParts(c.preChoice)
-			slot = 171 + class*5 + int(id-chargenSkill0)
+			_, class := c.heroParts(c.preChoice)
+			slot = d.Classes[class].Tooltip + int(id-chargenSkill0)
 		case id >= chargenStatMinus0 && id <= chargenStatMinus3:
 			stat := int(id - chargenStatMinus0)
 			return chargenStatTooltip(c, stat, false, id, font)
@@ -383,24 +391,25 @@ func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 			stat := int(id - chargenStatPlus0)
 			return chargenStatTooltip(c, stat, true, id, font)
 		case id == chargenName:
-			slot = 256
+			pick(pre.Name.Tooltip)
 		}
-		for i, r := range chargenStatValueBox {
+		for i, g := range d.Stats.Value {
+			r := g.Rectangle()
 			if p.In(r) {
 				if lines, ok := chargenAttributeLines(w, c, i); ok {
 					return tooltipTarget{tooltipText, fmt.Sprintf("chargen/%d/value/%d/%d", c.stage, i, c.statValue[i]), lines, font}
 				}
 			}
-			if p.In(image.Rect(8, r.Min.Y, r.Min.X, r.Max.Y)) {
-				slot = 155 + i
+			if p.In(image.Rect(d.Stats.LabelLeft, r.Min.Y, r.Min.X, r.Max.Y)) {
+				slot = d.Stats.LabelTooltip + i
 			}
 		}
-		if p.In(chargenRemainingBox) {
-			slot = 273
+		if p.In(d.Stats.Pool.Rectangle()) {
+			slot = d.Stats.PoolTooltip
 		}
-		if slot == -1 && p.In(chargenCardBox) {
+		if card := d.Card.Rect.Rectangle(); slot == -1 && p.In(card) {
 			view := TownCharacterView{Subject: c.preview.Subject, HasSubject: true, Statistics: true,
-				PaneRect: chargenCardBox, Font: font, StatsPane: TownPane{Body: c.setup.PreCreate.Art.CardBackground}}
+				PaneRect: card, Font: font, StatsPane: TownPane{Body: c.setup.PreCreate.Art.CardBackground}}
 			return characterStatsTooltip(view, w, p)
 		}
 	}
@@ -409,7 +418,11 @@ func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 
 // chargenAttributeLines is "label = value" (TEXT-082).
 func chargenAttributeLines(w Words, c *Chargen, stat int) ([]string, bool) {
-	slot := 15 + stat
+	l := c.layout()
+	if l == nil {
+		return nil, false
+	}
+	slot := l.Detail.Stats.ValueLabel + stat
 	if slot >= len(w.Hover) || w.Hover[slot] == "" || stat < 0 || stat >= len(c.statValue) {
 		return nil, false
 	}

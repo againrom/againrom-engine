@@ -193,7 +193,7 @@ func TestCreditsScrollLogoPauseClose1184(t *testing.T) {
 }
 
 func TestChargenPresetsAndSparkles1184(t *testing.T) {
-	setup := ChargenSetup{Name: "Name", PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{}}, Stats: []ChargenStat{{Floor: 1, Ceiling: 10, Start: 3}}, Cost: triangular(10), Budget: 100}
+	setup := ChargenSetup{Name: "Name", PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}, Stats: []ChargenStat{{Floor: 1, Ceiling: 10, Start: 3}}, Cost: triangular(10), Budget: 100}
 	setup.Presets[0], setup.Presets[3] = []int{6}, []int{8}
 	c := NewChargen(setup)
 	c.Forward()
@@ -255,7 +255,7 @@ func TestTooltipAroundOpenTips1184(t *testing.T) {
 	if a.tooltipTarget().key() != "" {
 		t.Fatal("covered item leaked through panel")
 	}
-	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Font: font}}, TipArt: &TipPanelArt{}, TipSelect: [3]string{"Tips"}, TipsOn: true})
+	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator(), Font: font}}, TipArt: &TipPanelArt{}, TipSelect: [3]string{"Tips"}, TipsOn: true})
 	a.flow.chargen, a.flow.screen = c, ScreenChargen
 	a.flow.words.Hover[255], a.flow.words.Hover[256] = "Back", "Character name"
 	if got := a.chargenTooltip(image.Pt(600, 200)); got.key() == "" {

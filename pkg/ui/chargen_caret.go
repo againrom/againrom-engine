@@ -2,17 +2,13 @@ package ui
 
 import "time"
 
-// nameCaretPhase is the shortest caret phase: a flip needs more than this
-// much time since the last flip or restart (TEXT-076).
-const nameCaretPhase = 500 * time.Millisecond
-
 // nameCaret is the pre-create name field's caret, a `|` appended to the drawn
 // name while it shows (TEXT-076). The field reads no focus state.
 //
 // The original draws a frame first and only then flips the caret when more
-// than 500 ms have passed, stamping that frame's time. The field is built
+// than the caret phase has passed, stamping that frame's time. The field is built
 // once, with the screen, and not on each opening; here its stamp is taken to
-// be older than 500 ms when the page first shows (DIV-1496), so the first
+// be older than the phase when the page first shows (DIV-1496), so the first
 // frame shows the caret and the check after it flips. A character under the
 // cap shows the caret and stamps its own time. Here one App tick composes one
 // frame, and paint runs at the tick's end.
@@ -31,8 +27,9 @@ func (k *nameCaret) visible() bool {
 // paint settles the flip that follows the previous pre-create frame, applies a
 // restart from this tick's characters at now, and records whether this tick's
 // frame is a pre-create frame.
-func (k *nameCaret) paint(now time.Time, preCreate bool) {
-	if !k.frame.IsZero() && (k.stamp.IsZero() || k.frame.Sub(k.stamp) > nameCaretPhase) {
+// A flip needs more than phase since the last flip or restart.
+func (k *nameCaret) paint(now time.Time, preCreate bool, phase time.Duration) {
+	if !k.frame.IsZero() && (k.stamp.IsZero() || k.frame.Sub(k.stamp) > phase) {
 		k.hidden = !k.hidden
 		k.stamp = k.frame
 	}
@@ -58,5 +55,9 @@ func (a *App) paintChargenCaret(now time.Time) {
 	if c == nil {
 		return
 	}
-	c.caret.paint(now, a.flow.screen == ScreenChargen && a.cutscene == nil && c.stage == PreCreateStage)
+	phase := time.Duration(0)
+	if l := c.layout(); l != nil {
+		phase = ms(l.PreCreate.Name.CaretMS)
+	}
+	c.caret.paint(now, a.flow.screen == ScreenChargen && a.cutscene == nil && c.stage == PreCreateStage, phase)
 }

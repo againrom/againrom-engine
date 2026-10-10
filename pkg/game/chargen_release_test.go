@@ -318,7 +318,7 @@ func TestReleaseChargenDetailedSeamColumnsDrawShippedStrips(t *testing.T) {
 			// overlaps it, for the same reason: the tip panel opens by
 			// default (spec B5) and draws last, over
 			// x:[160,176), y:[280,480) of this column.
-			cardSeamTip := cardSeam.Intersect(ui.ChargenTipRect)
+			cardSeamTip := cardSeam.Intersect(chargenTipRect)
 			cardBefore, _, _ := chargenFrame(t, cl.choice, func(a *ui.ChargenPresentation) { a.CardSeam = nil })
 			t.Run("card seam", func(t *testing.T) {
 				assertSeamRegion(t, "card seam", frame, cardBefore, cardSeam, art.CardSeam, cardSeamTip)
@@ -327,12 +327,12 @@ func TestReleaseChargenDetailedSeamColumnsDrawShippedStrips(t *testing.T) {
 			// The doll box's own seam column (x:[464,480)) never overlaps
 			// the doll figure, which draws inside chargenDollBox
 			// (x:[480,640)) alone. It does overlap the tip panel's own rect
-			// (1022 spec B5, ui.ChargenTipRect = (160,280)-(472,480)) at
+			// (1022 spec B5, chargenTipRect = (160,280)-(472,480)) at
 			// x:[464,472), y:[280,480): the panel now opens on the detailed
 			// page by default (not yet closed, not yet suppressed) and
 			// composes last, over this column like everything else on the
 			// page. The excluded rectangle below is exactly that overlap.
-			dollSeamTip := dollSeam.Intersect(ui.ChargenTipRect)
+			dollSeamTip := dollSeam.Intersect(chargenTipRect)
 			dollBefore, _, _ := chargenFrame(t, cl.choice, func(a *ui.ChargenPresentation) { a.DollPane.Seam = nil })
 			t.Run("doll seam", func(t *testing.T) {
 				assertSeamRegion(t, "doll seam", frame, dollBefore, dollSeam, art.DollPane.Seam, dollSeamTip)

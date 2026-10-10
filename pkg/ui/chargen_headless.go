@@ -153,28 +153,28 @@ func (a *App) HeadlessChargenState() (HeadlessChargen, bool) {
 	return state, true
 }
 
-// preCreateControls lists the pre-create page in its own focus order, which is
-// preFocusControl's: the name field, the four combined pictures, Back, Forward.
+// preCreateControls lists the pre-create page: the name field, the hero
+// pictures, Back, Forward and the difficulty pictures, each with its focus
+// position, -1 when the page's focus does not reach it.
 //
-// A PICTURE'S LABEL COMES FROM preChoiceParts, the same helper Forward
-// itself reads. The identity a scenario matched against and the identity the
-// model commits on Forward are therefore one statement read twice rather
-// than two rules that can drift apart.
+// A PICTURE'S LABEL COMES FROM heroParts, the same helper Forward itself
+// reads, so the identity a scenario matched against and the identity the
+// model commits on Forward are one statement read twice.
 func (c *Chargen) preCreateControls() []HeadlessChargenControl {
-	out := []HeadlessChargenControl{{Focus: 0, Kind: ChargenControlName, Label: c.name}}
-	for p := 0; p < 4; p++ {
-		sex, class := preChoiceParts(p)
+	out := []HeadlessChargenControl{{Focus: c.focusIndex(chargenName), Kind: ChargenControlName, Label: c.name}}
+	for p := 0; p < generatorHeroes; p++ {
+		sex, class := c.heroParts(p)
 		out = append(out, HeadlessChargenControl{
-			Focus: 1 + p, Kind: ChargenControlPicture,
+			Focus: c.focusIndex(chargenChoice0 + chargenControl(p)), Kind: ChargenControlPicture,
 			Label:  c.optionLabel(0, sex) + " " + c.optionLabel(1, class),
 			Chosen: c.preChoice == p,
 		})
 	}
 	out = append(out,
-		HeadlessChargenControl{Focus: 5, Kind: ChargenControlBack},
-		HeadlessChargenControl{Focus: 6, Kind: ChargenControlForward})
+		HeadlessChargenControl{Focus: c.focusIndex(chargenBack), Kind: ChargenControlBack},
+		HeadlessChargenControl{Focus: c.focusIndex(chargenForward), Kind: ChargenControlForward})
 	for i, label := range []string{"easy", "normal", "hard"} {
-		out = append(out, HeadlessChargenControl{Focus: 7 + i, Kind: ChargenControlDifficulty,
+		out = append(out, HeadlessChargenControl{Focus: c.focusIndex(chargenLevel0 + chargenControl(i)), Kind: ChargenControlDifficulty,
 			Label: label, Value: i + 1, Chosen: c.preLevel == i})
 	}
 	return out
@@ -195,43 +195,41 @@ func (c *Chargen) optionLabel(row, option int) string {
 	return opts[option]
 }
 
-// detailedControls lists the detailed page in detailedFocus's own order: the
-// five skill positions, then a down and an up control per statistic, then Back,
-// Reset and Play.
+// detailedControls lists the detailed page: the selectable skill positions,
+// then a down and an up control per statistic, then Back, Reset and Play,
+// each with its focus position.
 //
 // A CONTROL WHOSE ROW THE SETUP DOES NOT DECLARE IS OMITTED rather than
-// reported with an empty label. detailedFocus is a fixed sixteen entries and a
-// hand-built setup may declare fewer skills or fewer statistics; a focus index
-// that reaches nothing is one a scenario could navigate to and press with no
-// effect, which is exactly the state this surface exists to make impossible.
+// reported with an empty label: a focus index that reaches nothing is one a
+// scenario could navigate to and press with no effect.
 func (c *Chargen) detailedControls() []HeadlessChargenControl {
 	var out []HeadlessChargenControl
 	var skills []string
 	if len(c.setup.Choices) > 2 {
 		skills = c.choiceOptions(2)
 	}
-	for i := 0; i < 5; i++ {
+	for i := 0; i < c.selectableSkills(); i++ {
 		if i >= len(skills) {
 			continue
 		}
 		chosen := len(c.choiceIndex) > 2 && c.choiceIndex[2] == i
 		out = append(out, HeadlessChargenControl{
-			Focus: i, Kind: ChargenControlSkill, Label: skills[i], Chosen: chosen,
+			Focus: c.focusIndex(chargenSkill0 + chargenControl(i)), Kind: ChargenControlSkill, Label: skills[i], Chosen: chosen,
 		})
 	}
-	for i := 0; i < 4; i++ {
+	for i := 0; i < generatorStats; i++ {
 		if i >= len(c.setup.Stats) {
 			continue
 		}
 		name, value := c.setup.Stats[i].Name, c.statValue[i]
 		out = append(out,
-			HeadlessChargenControl{Focus: 5 + 2*i, Kind: ChargenControlStatDown, Label: name, Value: value},
-			HeadlessChargenControl{Focus: 6 + 2*i, Kind: ChargenControlStatUp, Label: name, Value: value})
+			HeadlessChargenControl{Focus: c.focusIndex(chargenStatMinus0 + chargenControl(i)), Kind: ChargenControlStatDown, Label: name, Value: value},
+			HeadlessChargenControl{Focus: c.focusIndex(chargenStatPlus0 + chargenControl(i)), Kind: ChargenControlStatUp, Label: name, Value: value})
 	}
 	out = append(out,
-		HeadlessChargenControl{Focus: 13, Kind: ChargenControlBack},
-		HeadlessChargenControl{Focus: 14, Kind: ChargenControlReset},
-		HeadlessChargenControl{Focus: 15, Kind: ChargenControlPlay})
+		HeadlessChargenControl{Focus: c.focusIndex(chargenBack), Kind: ChargenControlBack},
+		HeadlessChargenControl{Focus: c.focusIndex(chargenReset), Kind: ChargenControlReset},
+		HeadlessChargenControl{Focus: c.focusIndex(chargenPlay), Kind: ChargenControlPlay})
 	return out
 }
 

@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] New Game opens the character generator: pick one of the four heroes,
+  the difficulty and a name, then set the four attributes and the skill on the
+  second page. Accept starts the campaign in the first town with that hero,
+  the chosen difficulty and 1000 gold, and a save of that town keeps them.
 - [BASE] Every hero and person now gets health, mana, speed, sight and combat
   values from one calculation, whether he was made by the engine or loaded
   from an original save. A skill bonus from worn items now raises a skill above

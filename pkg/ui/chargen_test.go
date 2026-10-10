@@ -8,7 +8,7 @@ import (
 
 func TestChargenPreCreateOwnsIdentityAndStoredName(t *testing.T) {
 	c := NewChargen(ChargenSetup{
-		Name: "Danath", PreCreate: &ChargenPreCreate{},
+		Name: "Danath", PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}},
 		EncodeName: func(r rune) (byte, bool) {
 			if r == 'Ж' {
 				return 0x86, true
@@ -52,7 +52,7 @@ func TestChargenPreCreateOwnsIdentityAndStoredName(t *testing.T) {
 func TestChargenResetPreservesSkillAndReplacesPreview(t *testing.T) {
 	calls := 0
 	c := NewChargen(ChargenSetup{
-		Name: "Danath", PreCreate: &ChargenPreCreate{},
+		Name: "Danath", PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}},
 		Choices: []ChargenChoice{
 			{Options: []string{"male", "female"}, Parent: -1},
 			{Options: []string{"fighter", "mage"}, Parent: -1},
@@ -100,7 +100,7 @@ func TestChargenResetPreservesSkillAndReplacesPreview(t *testing.T) {
 }
 
 func TestChargenNamePreservesCaseAndStopsAtTenBytes(t *testing.T) {
-	c := NewChargen(ChargenSetup{})
+	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}})
 	c.EditName("XyZ123456789", false)
 	if got := c.NameText(); got != "XyZ1234567" {
 		t.Fatalf("NameText = %q, want the first ten bytes with case preserved", got)
@@ -151,7 +151,7 @@ func TestDetailedPointBuyRefusalsKeepTheWholeProjection(t *testing.T) {
 			calls := 0
 			c := NewChargen(ChargenSetup{
 				Name:      "Danath",
-				PreCreate: &ChargenPreCreate{},
+				PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}},
 				Choices: []ChargenChoice{
 					{Options: []string{"male", "female"}, Parent: -1},
 					{Options: []string{"fighter", "mage"}, Parent: -1},
