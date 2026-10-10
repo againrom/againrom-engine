@@ -7,11 +7,10 @@ import (
 	"againrom/pkg/base"
 )
 
+// ReadEventTextFor is the text of the mission's event as game g's files lay it
+// out.
 func ReadEventTextFor(src entrySource, game base.Game, mission, event int) ([]byte, bool) {
-	if !game.Edition().SecondMissionText {
-		return ReadEventText(src, mission, event)
-	}
-	return readSecondGameEventText(src, InstallTextCode(src, game.Edition()), mission, event)
+	return filesOf(game).eventText(src, game.Edition(), mission, event)
 }
 
 // readSecondGameEventText is event's section of the second game's mission

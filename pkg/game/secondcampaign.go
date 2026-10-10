@@ -222,6 +222,8 @@ type secondCampaignScreen struct {
 	open    missionDoor
 	frame   func() *ui.DialogFrame
 	start   func() error
+	// tags is how the town dialogue's tag bodies are read.
+	tags eventTags
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -238,9 +240,9 @@ func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 	f.Carried = party
 }
 
-func (f *FrontEnd) secondCampaignScreen() ui.TownScreen {
+func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
 	return &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
-		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign}
+		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags}
 }
 
 func (t *secondCampaignScreen) StartNewGame() error {
@@ -384,7 +386,7 @@ func (t *secondCampaignScreen) dialogueBody() (string, bool) {
 		return "", false
 	}
 	audience := HeroAudience(t.session.Carried)
-	audience.SecondGame = true
+	audience.tags = t.tags
 	return dialoguePart(c.payload, c.part, audience)
 }
 

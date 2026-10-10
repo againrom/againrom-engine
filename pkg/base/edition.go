@@ -1,5 +1,7 @@
 package base
 
+import "fmt"
+
 // Edition is what the two games differ in, stated as data. A profile selects
 // one through its game, once, when the base is detected; code outside this
 // package reads the fields and never compares a game. Behaviour that is not a
@@ -35,21 +37,9 @@ type Edition struct {
 	// description its install has always loaded its room scene art from.
 	Rooms string
 
-	// NewGameInTown: a new game opened without generation starts in the
-	// campaign town with the default hero rather than on the first mission.
-	NewGameInTown bool
-
-	// TownDifficulty: a save taken in the town carries the session's own
-	// difficulty in its session record.
-	TownDifficulty bool
-
 	// CompanionObjectiveMission is the mission whose persistent companion the
 	// compiled script must keep alive; zero for none.
 	CompanionObjectiveMission int
-
-	// FreshPlayers: a fresh mission builds its players by the engine's own
-	// construction policy.
-	FreshPlayers bool
 
 	// TextCodePage is the code page the install writes a language's text
 	// files in, from the language's font and Windows code pages. The second
@@ -57,23 +47,16 @@ type Edition struct {
 	// font's (R2-ENGINE-052, R2-ENGINE-093).
 	TextCodePage func(font, windows int) int
 
-	// The second game's file layouts: maps, scripts, the definition table,
-	// the per-mission text files, the main menu art, the unit placement keys
-	// and the spell arm table.
-	SecondMaps        bool
-	SecondScripts     bool
-	SecondTable       bool
-	SecondMissionText bool
-	SecondMenu        bool
-	SecondUnitKeys    bool
-	SecondSpellArms   bool
+	// Cutscenes maps each speed route a player may ask for, video4 or
+	// video8, to the archive its cutscenes play from.
+	Cutscenes map[string]CutsceneArchive
 
-	// CutsceneArchive names the archive every cutscene plays from; empty
-	// plays each from the archive its caller names.
-	CutsceneArchive string
+	// DefaultCutscenes is the speed route a session plays from when the
+	// player asked for none; a route Cutscenes does not map plays none.
+	DefaultCutscenes string
 
-	// StartupCutscenes: the logo and introduction movies play at start.
-	StartupCutscenes bool
+	// StartupCutscenes are the movies that play before the menu, in order.
+	StartupCutscenes []string
 
 	// OriginalGenerator names the original random number generator this
 	// game's evidence establishes, with its start-up, reseeds and draw forms;
@@ -81,11 +64,26 @@ type Edition struct {
 	// generator then runs the default mode.
 	OriginalGenerator string
 
-	// MissionTipText is the archive path of a mission's numbered tip text,
-	// formatted with the mission and the tip number. A mission dialogue part's
-	// tips= tag raises that popup when the dialogue closes on its last page;
-	// empty when the tag raises nothing.
-	MissionTipText string
+	// ModFamily are the words a mod's applies-to list names every base of
+	// the game by, beside each base's own id.
+	ModFamily []string
+
+	// MissionTip is the archive path of tip n of a mission. A mission
+	// dialogue part's tips= tag raises that popup when the dialogue closes on
+	// its last page; false when the tag raises nothing.
+	MissionTip func(mission, n int) (string, bool)
+}
+
+// CutsceneArchive is one archive cutscenes play from.
+type CutsceneArchive struct {
+	// Path is the archive file under the install root, its components
+	// separated by slashes.
+	Path string
+	// Name is the directory the archive addresses its members under.
+	Name string
+	// Logos is the speed route whose archive the logos/ movies play from;
+	// a route Cutscenes does not map plays them from this archive.
+	Logos string
 }
 
 // Campaign names a campaign model.
@@ -109,31 +107,60 @@ var firstEdition = Edition{
 	Music:                     "rom1",
 	Rooms:                     "rom1",
 	CompanionObjectiveMission: 40,
-	FreshPlayers:              true,
-	StartupCutscenes:          true,
-	OriginalGenerator:         "msvc",
-	MissionTipText:            "main/text/battle/m%d/tips%02d.txt",
+	Cutscenes: map[string]CutsceneArchive{
+		"video4": {Path: "Allods/video4.res", Name: "video4"},
+		"video8": {Path: "Allods/video8.res", Name: "video8", Logos: "video4"},
+	},
+	StartupCutscenes:  append([]string{"logos/buka.smk", "logos/nival.smk", "logos/1c.smk"}, numberedCutscenes("intro")...),
+	OriginalGenerator: "msvc",
+	ModFamily:         []string{"rom1"},
+	MissionTip:        numberedTips("main/text/battle/m%d/tips%02d.txt"),
 }
 
 var secondEdition = Edition{
-	Game:              GameROM2,
-	SaveTag:           GameROM2,
-	Campaign:          CampaignDestinations,
-	NewGameInTown:     true,
-	TownDifficulty:    true,
-	Generator:         "rom2",
-	Music:             "rom2",
-	Rooms:             "rom1",
-	SecondMaps:        true,
-	SecondScripts:     true,
-	SecondTable:       true,
-	SecondMissionText: true,
-	TextCodePage:      WindowsText,
-	SecondMenu:        true,
-	SecondUnitKeys:    true,
-	SecondSpellArms:   true,
-	CutsceneArchive:   "video",
+	Game:         GameROM2,
+	SaveTag:      GameROM2,
+	Campaign:     CampaignDestinations,
+	Generator:    "rom2",
+	Music:        "rom2",
+	Rooms:        "rom1",
+	TextCodePage: WindowsText,
+	Cutscenes: map[string]CutsceneArchive{
+		"video4": {Path: "video.res", Name: "video"},
+		"video8": {Path: "video.res", Name: "video"},
+	},
+	DefaultCutscenes: "video4",
+	MissionTip:       noTips,
 }
+
+// AppliesTo are the names a base answers to in a mod's applies-to list: its
+// id, then the family words of the edition of the profile carrying that id. An
+// id no profile carries answers to itself alone.
+func AppliesTo(id string) []string {
+	names := []string{id}
+	if p, ok := Find(id); ok {
+		names = append(names, p.Edition().ModFamily...)
+	}
+	return names
+}
+
+// numberedCutscenes are the 99 numbered movies of a directory.
+func numberedCutscenes(directory string) []string {
+	names := make([]string, 99)
+	for n := range names {
+		names[n] = fmt.Sprintf("%s/%02d.smk", directory, n+1)
+	}
+	return names
+}
+
+// numberedTips is the tip path formatted from pattern with the mission and
+// the tip number.
+func numberedTips(pattern string) func(mission, n int) (string, bool) {
+	return func(mission, n int) (string, bool) { return fmt.Sprintf(pattern, mission, n), true }
+}
+
+// noTips raises no tip.
+func noTips(int, int) (string, bool) { return "", false }
 
 // Edition is the game's edition. The empty game and any game this package
 // does not name are the first game, as Profile.GameOf reads them.

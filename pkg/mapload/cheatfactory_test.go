@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -46,7 +45,7 @@ func TestCheatItemKeepsFactoryEffectsAndExactInstalledNames(t *testing.T) {
 			t.Errorf("unsupported item name accepted: %q", name)
 		}
 	}
-	table.Game = base.GameROM2
+	table.UnitKeys, table.SpellArms, table.FreshPlayers = ServerUnitKeys, SecondGameSpellArms, NoFreshPlayers
 	if second, ok := CheatItem("Potion Custom", table); !ok || !reflect.DeepEqual(second, potion) {
 		t.Fatalf("second-game item name = %+v, %t; want the shared factory's item", second, ok)
 	}
@@ -153,7 +152,7 @@ func TestCheatActorUsesItsExactRowAndCompleteConstructor(t *testing.T) {
 	// A second-game placement resolves its row by the server id column. Both
 	// persons carry server id 100; the named row is the one built. A creature
 	// row too short to hold a server id cannot be keyed.
-	table.Game = base.GameROM2
+	table.UnitKeys, table.SpellArms, table.FreshPlayers = ServerUnitKeys, SecondGameSpellArms, NoFreshPlayers
 	e, _, _, err := CheatActor("Named Person", true, table, DifficultyNormal)
 	if err != nil || !e.Humanoid || e.SourceBinding.TokenRow != 2 || e.ActorLoad.Source.Stats[0] != 30 {
 		t.Fatalf("second-game person = row %d body %d humanoid %t, %v; want the named row", e.SourceBinding.TokenRow, e.ActorLoad.Source.Stats[0], e.Humanoid, err)

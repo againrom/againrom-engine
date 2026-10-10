@@ -21,7 +21,7 @@ func TestSecondGameRulesClassifyTheDamagePairByArm(t *testing.T) {
 		t.Fatal("the first-game classification changed")
 	}
 	second := spellRules(rows)
-	secondGameRules(second)
+	SecondGameSpellArms(second)
 	want := map[int][2]bool{5: {true, false}, 6: {true, false}, 11: {true, false}, 24: {false, true}, 26: {false, false}}
 	for id, w := range want {
 		r := second[id-1]

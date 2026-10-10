@@ -213,8 +213,11 @@ func (d SecondDeparture) extraAdds() bool {
 // SecondGameCensus walks every campaign map the archives carry, ascending, and
 // reports each against this build. It writes nothing.
 func SecondGameCensus(archives *Archives) ([]SecondMapCensus, error) {
-	if archives == nil || !archives.Game().Edition().SecondMaps {
+	if archives == nil {
 		return nil, fmt.Errorf("the census needs a second-game root")
+	}
+	if err := campaignOf(archives.Game()).censusRefusal(); err != nil {
+		return nil, err
 	}
 	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
 	if err != nil {
@@ -252,7 +255,7 @@ func secondMapCensus(m *alm.Map, n int, t *mapload.Table, party []mapload.PartyM
 		c.Err = err.Error()
 		return c
 	}
-	secondText(&c, src, InstallTextCode(src, tableGame(t).Edition()))
+	secondText(&c, src, InstallTextCode(src, tableEdition(t)))
 	ms, err := StartMissionFrom(m, "", n, t, mapload.DifficultyNormal, party)
 	if err != nil {
 		c.Err = err.Error()

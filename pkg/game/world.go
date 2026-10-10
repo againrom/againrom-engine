@@ -930,7 +930,7 @@ func missionOutcomeText(v *ui.Viewer, o sim.Outcome) string {
 // give one mission two behaviours depending on when it was called.
 func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Viewer,
 	src entrySource, faces FaceSource, npcFaces map[int32]data.NPCFace) *mapWorld {
-	campaignOf(tableGame(t)).openMission(v)
+	tableCampaign(t).openMission(v)
 	normalizeMissionShieldLoadouts(ms, t)
 	// NO SCHEDULE. A mission's units are moved by its script and by the AI, and
 	// by nothing else. The owner saw it and asked for it out; the generator now
@@ -1774,7 +1774,7 @@ func (mw *mapWorld) showOutcome() {
 // reads any event text when a map is loaded.
 func (mw *mapWorld) openDialogue(event int) bool {
 	m := mw.mission
-	payload, ok := ReadEventTextFor(m.src, tableGame(m.table), m.number, event)
+	payload, ok := m.files().eventText(m.src, m.edition(), m.number, event)
 	if !ok {
 		return false
 	}

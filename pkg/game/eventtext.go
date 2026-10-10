@@ -165,10 +165,13 @@ func indexFold(s, lower string) int {
 // everywhere. A second function that skipped the arms would show a part the
 // player had been refused, and no call site could tell which of the two it
 // wanted.
+//
+// tags is how the game's tag bodies are read, the campaign service's answer;
+// nil reads them as the first game does.
 type EventAudience struct {
 	HeroFemale bool
 	HeroMage   bool
-	SecondGame bool
+	tags       eventTags
 	NPCPresent func(npc int) bool
 
 	Speaker func(npc int) (female, mage, resolved bool)
@@ -273,33 +276,61 @@ var eventArms = []eventArm{
 //
 // The speaker's own facts are resolved AT MOST ONCE per tag and only if a
 // speaker arm is reached, so a file using none of the four costs no lookup.
-func (a EventAudience) accepts(tag string) bool {
-	if a.SecondGame {
-		for _, arm := range eventArms[:4] {
-			if !containsFold(tag, arm.lit) {
-				continue
-			}
-			have := a.HeroFemale
-			if !arm.sex {
-				have = a.HeroMage
-			}
-			if have != arm.want {
+func (a EventAudience) accepts(tag string) bool { return a.tagRules().accepts(a, tag) }
+
+// eventTags is how a game's tag bodies are read: whether a tag survives an
+// audience, and the speaker number a part's tag names.
+type eventTags interface {
+	accepts(a EventAudience, tag string) bool
+	speaker(tag string) (int, bool)
+}
+
+// firstEventTags read the eight arms with the speaker gate.
+type firstEventTags struct{}
+
+// secondEventTags read the four hero arms and the npcalive= and npcdead=
+// gates.
+type secondEventTags struct{}
+
+func (a EventAudience) tagRules() eventTags {
+	if a.tags == nil {
+		return firstEventTags{}
+	}
+	return a.tags
+}
+
+func (secondEventTags) speaker(tag string) (int, bool) { return secondGameTagNumber(tag, speakerTag) }
+
+func (firstEventTags) speaker(tag string) (int, bool) { return tagSpeaker(tag) }
+
+func (secondEventTags) accepts(a EventAudience, tag string) bool {
+	for _, arm := range eventArms[:4] {
+		if !containsFold(tag, arm.lit) {
+			continue
+		}
+		have := a.HeroFemale
+		if !arm.sex {
+			have = a.HeroMage
+		}
+		if have != arm.want {
+			return false
+		}
+	}
+	for _, gate := range []struct {
+		key  string
+		want bool
+	}{{"npcalive=", true}, {"npcdead=", false}} {
+		if npc, named := secondGameTagNumber(tag, gate.key); named {
+			present := a.NPCPresent != nil && a.NPCPresent(npc)
+			if present != gate.want {
 				return false
 			}
 		}
-		for _, gate := range []struct {
-			key  string
-			want bool
-		}{{"npcalive=", true}, {"npcdead=", false}} {
-			if npc, named := secondGameTagNumber(tag, gate.key); named {
-				present := a.NPCPresent != nil && a.NPCPresent(npc)
-				if present != gate.want {
-					return false
-				}
-			}
-		}
-		return true
 	}
+	return true
+}
+
+func (firstEventTags) accepts(a EventAudience, tag string) bool {
 	var sexF, mageF, gate, asked bool
 	for _, arm := range eventArms {
 		if !containsFold(tag, arm.lit) {
@@ -442,10 +473,7 @@ func EventPartSpeaker(payload []byte, n int, aud EventAudience) (speaker int, na
 	if !ok {
 		return 0, false
 	}
-	if aud.SecondGame {
-		return secondGameTagNumber(tag, speakerTag)
-	}
-	return tagSpeaker(tag)
+	return aud.tagRules().speaker(tag)
 }
 
 // ROM2's header scan parses a five-byte substring, rather than the complete
@@ -529,8 +557,5 @@ func EventPart(payload []byte, n int, aud EventAudience) (string, bool) {
 // MissionTipPath is the edition's text of tip n of the mission
 // (TRIG-TIPS-087); false when the edition has no mission tips.
 func MissionTipPath(e base.Edition, mission, n int) (string, bool) {
-	if e.MissionTipText == "" {
-		return "", false
-	}
-	return fmt.Sprintf(e.MissionTipText, mission, n), true
+	return e.MissionTip(mission, n)
 }

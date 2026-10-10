@@ -2,20 +2,24 @@ package mod
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/base"
 )
 
 // SupportedAPI is the mod interface version this build runs.
 const SupportedAPI = 1
 
 // Applies reports whether a manifest's applies-to list names the active base:
-// "common" names every base, "rom1" every base whose id starts with "rom1",
-// and any other entry is an exact base id.
-func Applies(appliesTo []string, base string) bool {
+// "common" names every base, and any other entry a name the base answers to,
+// its id or its edition's family word (base.AppliesTo).
+func Applies(appliesTo []string, id string) bool {
+	names := base.AppliesTo(id)
 	for _, a := range appliesTo {
-		if a == "common" || a == base || a == "rom1" && strings.HasPrefix(base, "rom1") {
+		if a == "common" || slices.Contains(names, a) {
 			return true
 		}
 	}

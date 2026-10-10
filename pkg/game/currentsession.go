@@ -69,10 +69,7 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 		a = &currentActionData{Version: 1}
 	}
 	a.Session = &currentSessionData{Game: s.game, Second: s.second.clone(), Offered: s.Offered, Won: slices.Clone(s.Won), ConsumedHeroGrants: slices.Clone(s.ConsumedHeroGrants)}
-	if s.game.Edition().TownDifficulty && s.Mission == 0 {
-		difficulty := s.Difficulty
-		a.Session.Difficulty = &difficulty
-	}
+	campaignOf(s.game).recordDifficulty(s, a.Session)
 	a.Session.Taken, a.Session.OfferLabels = slices.Clone(s.Taken), cloneOfferLabels(s.OfferLabels)
 	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
 	if err != nil {
@@ -123,9 +120,6 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 func validateCurrentSession(s *currentSessionData) error {
 	if s == nil {
 		return nil
-	}
-	if !s.Game.Known() {
-		return fmt.Errorf("invalid current save game")
 	}
 	if err := campaignOf(s.Game).validateSession(s); err != nil {
 		return err

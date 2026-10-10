@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"slices"
 	"time"
 
 	"againrom/pkg/render/frame"
@@ -20,7 +21,9 @@ type CutsceneSource interface {
 
 func (a *App) SetCutscenes(source CutsceneSource) { a.cutsceneSource = source }
 
-func (a *App) SetStartupCutscenesEnabled(enabled bool) { a.cutsceneStartupOff = !enabled }
+// SetStartupCutscenes names the movies that play before the menu, in order;
+// none plays nothing.
+func (a *App) SetStartupCutscenes(names []string) { a.startupCutscenes = slices.Clone(names) }
 
 // SetMissionCutscene identifies the movie family for a completed mission.
 // Loading or entering that mission does not request its movie.
@@ -48,11 +51,10 @@ func numberedCutscenes(directory string) []string {
 // PlayStartupCutscenes precedes the menu with the installed logos and intro.
 // Missing clips remain optional.
 func (a *App) PlayStartupCutscenes() bool {
-	if a == nil || a.flow.screen != ScreenMenu || a.cutsceneStartupOff {
+	if a == nil || a.flow.screen != ScreenMenu || len(a.startupCutscenes) == 0 {
 		return false
 	}
-	names := []string{"logos/buka.smk", "logos/nival.smk", "logos/1c.smk"}
-	return a.PlayCutsceneSequence(append(names, numberedCutscenes("intro")...))
+	return a.PlayCutsceneSequence(a.startupCutscenes)
 }
 
 func (a *App) startPendingCutscene() {
