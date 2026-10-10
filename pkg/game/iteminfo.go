@@ -155,7 +155,7 @@ func itemInfoLinesWithWeaponDamage(code data.ItemCode, table *mapload.Table, res
 					name = words.ItemSpellNames[spell.SpellID]
 				}
 				lines = append(lines, words.ItemMagic)
-				switch spell.SpellID {
+				switch spell.SpellID { // DIV-1977
 				case 20:
 					lines = append(lines,
 						fmt.Sprintf("%s %s", name, spellDurationText(spell.DurationTicks, &words)),

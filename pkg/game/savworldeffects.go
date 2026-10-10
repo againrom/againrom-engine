@@ -213,6 +213,7 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 			}
 			drivers.Projectiles = append(drivers.Projectiles, d)
 			meta.ProjectileIDs = append(meta.ProjectileIDs, d.ID)
+			// DIV-1814: these sixteen pictures' consumers are not bound.
 			if p.Picture == 13 || p.Picture == 51 || p.Picture == 36 || p.Picture == 18 || p.Picture == 24 || p.Picture == 28 || p.Picture == 40 || p.Picture == 44 || p.Picture == 48 || p.Picture == 52 || p.Picture == 54 || p.Picture == 56 || p.Picture == 62 || p.Picture == 64 || p.Picture == 20 || p.Picture == 30 {
 				meta.unavailable(unboundProjectileConsumers)
 			}

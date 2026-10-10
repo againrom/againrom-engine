@@ -169,7 +169,7 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 			mw.spawnBurst(to, int(ev.Spell), ev.Owner, delay)
 		}
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
-		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 {
+		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 { // MAGIC-089, DIV-076
 			mw.healBursts = append(mw.healBursts, healBurst{at: to,
 				picture: data.CastPicture(int(arm)), owner: ev.TargetOwner,
 				seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
@@ -308,12 +308,13 @@ const fireBallSpell = 2
 
 // fireBallBurstPicture is the stationary explosion behind spell 2. Its
 // decoded 22-tick life over an 11-frame half clock would otherwise wrap its
-// last visible tick from frame 10 back to frame 0.
+// last visible tick from frame 10 back to frame 0 (ANIM-103).
 const fireBallBurstPicture = 13
 
 // healingPicture has a decoded one-tick cast object, but the ordinary
 // projectile draw arm deliberately submits no blit for it. The target-local
-// positive-Heal consumer below is the only path that draws this sheet.
+// positive-Heal consumer below is the only path that draws this sheet
+// (ANIM-CAST-027).
 const healingPicture = 20
 
 // spawnBurst puts the stationary burst object at the cell the cast landed
@@ -719,7 +720,7 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 		if !ok {
 			continue
 		}
-		arm, pass := 0, ui.SpellOverlayA
+		arm, pass := 0, ui.SpellOverlayA // MAGIC-OVERLAYART-051
 		switch e.Spell {
 		case 3:
 		case 19:

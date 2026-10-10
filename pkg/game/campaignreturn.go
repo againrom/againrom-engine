@@ -97,10 +97,10 @@ func (s *CampaignSession) addChapterCompanions(in townInstall, chapter int) {
 }
 
 // carryTownCompanion appends the companion a town grants to the carried party
-// and reports whether it did. Only the grant of npc 22 is a town companion;
-// a companion already carried is not added twice.
+// and reports whether it did. Only a value of the campaign's AddHero arrays is
+// a town companion; a companion already carried is not added twice.
 func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) bool {
-	if npc != townGrantedCompanion {
+	if !in.campaign.townGrants(npc) {
 		return false
 	}
 	for _, p := range s.Carried {

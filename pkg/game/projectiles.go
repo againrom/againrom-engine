@@ -367,7 +367,7 @@ const projectileMaxID = 65
 
 // effectClock is which phase clock a picture runs. The default is one frame
 // per two ticks and it is what every picture but two takes; the two
-// overrides are the engine's own per-picture switch arms.
+// overrides are the engine's own per-picture switch arms (ANIM-PHASECLOCK-028).
 //
 // It sits here, in the tier that reads the registry, because the render tier has
 // no picture ids: the id is resolved into a clock once, at load, and the

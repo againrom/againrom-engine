@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/formats/textinput"
+	"againrom/pkg/locale"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
@@ -313,9 +314,10 @@ func (w *InstallWords) Words() ui.Words {
 		out.ItemSpellOf = encode(book.Text("item.spell_of"))
 		out.ItemRays = encode(book.Text("item.rays"))
 		out.TavernSleep = encode(book.Text("tavern.sleep"))
-		// A non-English install's own stats.txt states these three words for
-		// its language; the English install keeps the engine's.
-		if book.Lang() != words.English {
+		// An install in any language but the engine's reference one states
+		// these three words in its own stats.txt; the reference language keeps
+		// the engine's.
+		if book.Lang() != locale.Fallback {
 			for dst, k := range map[*string]int{&out.ItemCasts: 42, &out.ItemDamage: 43, &out.ItemRange: 38} {
 				if s, ok := w.Stats(k); ok {
 					*dst = s

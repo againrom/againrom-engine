@@ -18,25 +18,26 @@ import (
 	"strings"
 	"sync"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 )
 
 // English is the table language every lookup falls back to, and the
 // reference set of message ids.
-const English = "en"
+const English = locale.Fallback
 
 //go:embed text
 var engineTables embed.FS
 
 // Language is the table language of an install language entry, the base
-// profile's Language: "english" reads "en", "russian" reads "ru", and an empty
-// entry reads English. Any other entry names its table directly.
+// profile's Language: a known entry reads its locale code, an empty entry
+// reads English, and any other entry names its table directly.
 func Language(entry string) string {
-	switch entry {
-	case "", "english":
+	if entry == "" {
 		return English
-	case "russian":
-		return "ru"
+	}
+	if l, ok := locale.ByEntry(entry); ok {
+		return l.Code
 	}
 	return entry
 }

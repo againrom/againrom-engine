@@ -61,7 +61,7 @@ func shopRoomShelfName(room int, table *mapload.Table) string {
 		return ""
 	}
 	if shopRoomShelves[room].shelf == ShelfBooks {
-		return itemName(shopBookLabelCode, table)
+		return shopBookLabel(table)
 	}
 	return shopRoomShelves[room].name
 }

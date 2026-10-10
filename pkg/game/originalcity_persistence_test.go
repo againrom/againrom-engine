@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"againrom/internal/cityfixture"
+	"againrom/pkg/data"
+	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -394,14 +396,61 @@ func TestOriginalCityVersionSixCompanionIdentityStillLoads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cold, _ := city1095Front(t)
-	_, town, err := cold.Restore(decoded)
-	if err != nil || !town {
-		t.Fatalf("legacy LOAD town=%v err=%v", town, err)
+	// The companion identity is the registry's: row 29 is npc 22 only while
+	// the town grants npc 22; with no npc.reg record, or with the town
+	// granting another companion, the legacy LOAD is refused.
+	for _, npc := range []int{22, 0, 23} {
+		cold, _ := city1095Front(t)
+		if npc != 0 {
+			legacyCompanionRegistry(cold, npc)
+		}
+		_, town, err := cold.Restore(decoded)
+		if npc != 22 {
+			if err == nil {
+				t.Fatalf("grant %d: legacy LOAD accepted npc:22 for row 29", npc)
+			}
+			continue
+		}
+		if err != nil || !town {
+			t.Fatalf("legacy LOAD town=%v err=%v", town, err)
+		}
+		if !reflect.DeepEqual(cold.Carried, s.Party) {
+			t.Fatal("legacy LOAD changed saved party progress")
+		}
 	}
-	if !reflect.DeepEqual(cold.Carried, s.Party) {
-		t.Fatal("legacy LOAD changed saved party progress")
+}
+
+// legacyCompanionRegistry gives f the registry a town companion's legacy
+// identity is read from: [Mission30] AddHero = npc and an [npc<npc>] record
+// Mage,!MySex composed from DataBinID 26, whose rows 28 and 29 carry their
+// own server ids. The returned function restores f's table and campaign.
+func legacyCompanionRegistry(f *FrontEnd, npc int) func() {
+	oldTable, oldCampaign := f.Table, f.Campaign
+	humans := append(dbCollection(nil), f.Table.Humans.(dbCollection)...)
+	for _, row := range []int{28, 29} {
+		params := append([]int32(nil), humans[row].params...)
+		for len(params) <= 0x18 {
+			params = append(params, -1)
+		}
+		params[0x18] = int32(row)
+		humans[row].params = params
 	}
+	r := &reg.Reg{Root: &reg.Node{Dir: true, Children: []*reg.Node{{Name: fmt.Sprintf("npc%d", npc), Dir: true, Children: []*reg.Node{
+		{Name: "Flags", Type: reg.TypeString, Str: "Hero,Mage,!MySex,Start"},
+		{Name: "DataBinID", Type: reg.TypeInt, Int: 26},
+	}}}}}
+	table := *f.Table
+	table.Humans, table.NPC = humans, data.LoadNPCDefs(r)
+	f.Table = &table
+	c := f.Campaign.Value()
+	chapters := make(map[int]Chapter, len(c.Chapters)+1)
+	for n, ch := range c.Chapters {
+		chapters[n] = ch
+	}
+	chapters[30] = Chapter{Mission: 30, AddHero: []int{npc}}
+	c.Chapters = chapters
+	f.Campaign = resolved(c, nil)
+	return func() { f.Table, f.Campaign = oldTable, oldCampaign }
 }
 
 func TestCityConversionWriterFencesBothFormats(t *testing.T) {

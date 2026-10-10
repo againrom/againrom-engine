@@ -306,7 +306,7 @@ func (t *secondCampaignScreen) Footer() []string {
 		return nil
 	}
 	var out []string
-	for id := 2; id <= 3; id++ {
+	for id := 2; id <= 3; id++ { // DIV-2438, DIV-2631
 		if town := (secondLocation{2, id}); c.current == town || c.has(town) {
 			out = append(out, fmt.Sprintf("Town %d services are unavailable.", id))
 		}

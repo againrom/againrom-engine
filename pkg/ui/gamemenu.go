@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/render/text"
 )
 
@@ -247,9 +248,9 @@ func gameMenuRowAt(s gameMenuSurface, rows int, p image.Point) (int, bool) {
 // came from — this build's own English or the install's `dialogs.txt`
 // line.
 //
-// selector IS THE INSTALL'S OWN LANGUAGE SELECTOR (text.SelectorConverting
-// for Russian, 0 for English and for every caller with no install font —
-// see gameMenuLower).
+// selector IS THE INSTALL'S OWN LANGUAGE SELECTOR (1 for Russian, 0 for
+// English and for every caller with no install font; its locale record
+// decides the fold — see gameMenuLower).
 //
 // TWO RESIDUES REMAIN, both authored and both DIV rows rather than code paths
 // here: DIV-140 is which physical key a given rune comes from, which this
@@ -272,15 +273,15 @@ func gameMenuAccelerator(label string, fallback byte, selector int) byte {
 }
 
 // gameMenuLower is the decoded routine's own lowercase step (MENU-KEY-013):
-// ASCII 'A'-'Z' always, and — when selector is the install's Russian one,
-// text.SelectorConverting — CP866 uppercase Cyrillic as well: +0x20 over
-// 0x80..0x8f, +0x50 over 0x90..0x9f. Every other byte, and every selector but
-// the Russian one, is unchanged; a byte already in the CP866 lowercase ranges
+// ASCII 'A'-'Z' always, and — when the selector's locale writes code page
+// 866 — CP866 uppercase Cyrillic as well: +0x20 over 0x80..0x8f, +0x50 over
+// 0x90..0x9f. Every other byte, and every other selector, is unchanged; a
+// byte already in the CP866 lowercase ranges
 // (0xa0..0xaf, 0xe0..0xef) is therefore also unchanged, since none of the
 // original's own fold clauses reach it.
 func gameMenuLower(c byte, selector int) byte {
 	c = lowerASCII(c)
-	if selector != text.SelectorConverting {
+	if locale.CodePageOf(selector) != 866 {
 		return c
 	}
 	switch {

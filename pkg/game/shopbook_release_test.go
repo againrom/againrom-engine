@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -46,12 +47,18 @@ func TestReleaseShopBookPurchaseReadAndMissionCarry(t *testing.T) {
 		}
 	}
 
-	label := itemName(shopBookLabelCode, f.Table)
-	if label == "" || label == shopBookLabelCode.Name() {
+	// The codes read from the installed Book_<school> rows are the shipped
+	// ones on both roots.
+	codes := shopBookCodes(f.Table)
+	if codes != [6]data.ItemCode{0, 0x0e15, 0x0e14, 0x0e13, 0x0e16, 0x0e17} {
+		t.Fatalf("installed book codes = %#04x", codes)
+	}
+	label := shopBookLabel(f.Table)
+	if label == "" || label == codes[5].Name() || label != itemName(0x0e17, f.Table) {
 		t.Fatalf("installed generic book name = %q", label)
 	}
-	for school := 1; school < len(shopBookCodeBySchool); school++ {
-		code := shopBookCodeBySchool[school]
+	for school := 1; school < len(codes); school++ {
+		code := codes[school]
 		if got := itemName(code, f.Table); got != label {
 			t.Fatalf("school %d code %#04x name = %q, want installed generic %q", school, code, got, label)
 		}
@@ -63,10 +70,10 @@ func TestReleaseShopBookPurchaseReadAndMissionCarry(t *testing.T) {
 		name := f.Table.Spells.EntryName(spell)
 		element, ok := strings.CutPrefix(name, "Protection from ")
 		params := f.Table.Spells.EntryParams(spell)
-		if !ok || len(params) <= 2 || params[2] <= 0 || int(params[2]) >= len(shopBookCodeBySchool) {
+		if !ok || len(params) <= 2 || params[2] <= 0 || int(params[2]) >= len(codes) {
 			continue
 		}
-		code := shopBookCodeBySchool[params[2]]
+		code := codes[params[2]]
 		if got := strings.ReplaceAll(f.Table.MagicItems.EntryName(int(code)&0xff), "_", " "); got != "Book "+element {
 			t.Fatalf("school %d (%s) book code %#04x is row %q, want %q", params[2], name, code, got, "Book "+element)
 		}

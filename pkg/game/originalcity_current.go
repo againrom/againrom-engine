@@ -27,7 +27,7 @@ func currentCityHuman(member mapload.PartyMember) (data.HumanState, *sav.CityHum
 
 // replayedMember reports whether an unreturned member still equals the
 // replay of its document baseline and admitted school and sale operations.
-func (b originalCityBinding) replayedMember(member mapload.PartyMember) (bool, error) {
+func (b originalCityBinding) replayedMember(member mapload.PartyMember, c Campaign) (bool, error) {
 	if b.returned != nil || b.salesVersion == 0 && len(b.sales) != 0 {
 		return false, nil
 	}
@@ -35,7 +35,7 @@ func (b originalCityBinding) replayedMember(member mapload.PartyMember) (bool, e
 	if err != nil {
 		return false, err
 	}
-	if nativeCityGraftableMember(member) {
+	if nativeCityGraftableMember(member, c) {
 		// A grafted companion never entered a live simulation, so the
 		// replay's derived Carry, Saved, Weapon, Human and Book have no live
 		// counterpart. Worn codes, Carried, KnownSpells, Hero and identity

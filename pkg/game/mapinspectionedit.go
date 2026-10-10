@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
 )
@@ -122,9 +123,7 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 		}
 		// A preserved pair is fenced explicitly, independently of the selected
 		// language and of whether its archives are presently readable.
-		if strings.EqualFold(filepath.Base(filepath.Dir(resolvedRoot)), "gameversions") {
-			roots = append(roots, filepath.Join(filepath.Dir(resolvedRoot), "en"), filepath.Join(filepath.Dir(resolvedRoot), "ru"))
-		}
+		roots = append(roots, preservedPairRoots(resolvedRoot)...)
 	}
 	for _, protected := range roots {
 		if err := refuseOriginalWriteTarget(parent, protected); err != nil {
@@ -193,4 +192,18 @@ func editorOrdinaryFilename(name string) bool {
 		}
 	}
 	return true
+}
+
+// preservedPairRoots are the sibling installs, one per locale code, of an
+// install kept under a gameversions directory; none for any other root.
+func preservedPairRoots(resolvedRoot string) []string {
+	parent := filepath.Dir(resolvedRoot)
+	if !strings.EqualFold(filepath.Base(parent), "gameversions") {
+		return nil
+	}
+	var roots []string
+	for _, l := range locale.All() {
+		roots = append(roots, filepath.Join(parent, l.Code))
+	}
+	return roots
 }
