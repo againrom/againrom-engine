@@ -57,19 +57,16 @@ func mission100Party(t *testing.T, f *FrontEnd, full bool) []mapload.PartyMember
 // party: it takes 10004 for every primary (TRIG-MAPORD-107).
 const mission100Unit245 = 245
 
-// TestReleaseMission100ServantLeavesAtTheWin enters mission 100 with three
-// rosters: the primary alone; the owner's four-member roster, the primary and
-// npc 22, 23 and 25, whose members resolve 10002, 10003 and 10005 but not
-// 10004; and the full campaign roster. T1 starts the servant's Follow
-// (AI-437). At the win T16 runs its four take slots; each role of
-// 10002..10005 the scan leaves unresolved names an unbuilt node and runs
-// instant subscript 0, action 2, group 21's Move to (13,14) (TRIG-M100-096).
-// The scan reaches unit 245 after the party, which takes 10004 when no member
-// does (TRIG-MAPORD-107, TRIG-MAPORD-108). The primary alone therefore ends
-// the Follow, and the four-member and full rosters keep it. The two rosters
-// with an unresolved or map-bound role are saved and cold-loaded before the
-// win: the loaded program equals the one the mission load built, and the
-// LOAD path's role compile keeps its shape.
+// TestReleaseMission100ServantLeavesAtTheWin enters mission 100 with the
+// primary alone; the owner's four-member roster, the primary and npc 22, 23
+// and 25, whose members resolve 10002, 10003 and 10005 but not 10004; and the
+// full roster. T1 starts the servant's Follow (AI-437). At the win each role
+// of 10002..10005 the scan leaves unresolved runs subscript 0, group 21's
+// Move to (13,14) (TRIG-M100-096). Unit 245 takes 10004 when no member does
+// (TRIG-MAPORD-107, TRIG-MAPORD-108), so only the primary alone ends the
+// Follow. The first two rosters are saved and cold-loaded before the win:
+// the loaded program equals the built one and the LOAD role compile keeps
+// its shape.
 func TestReleaseMission100ServantLeavesAtTheWin(t *testing.T) {
 	for _, roster := range []string{"primary", "owner", "full"} {
 		t.Run(roster, func(t *testing.T) {

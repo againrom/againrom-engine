@@ -149,3 +149,30 @@ func TestLoadReresolvesHeroOrdinalsFromTheLoadedParty(t *testing.T) {
 		t.Fatal("a party without the role resolved it")
 	}
 }
+
+func TestHeroOrdinalScanReachesNamedPlacementsAfterTheParty(t *testing.T) {
+	table := shippedHeroTable(t)
+	party := []mapload.PartyMember{
+		heroMember("hero", false, true, 3, starting),
+		heroMember("mage", true, true, 1),
+	}
+	ids := []sim.EntityID{100, 101}
+	placed := []heroScanActor{
+		{ID: 7, Traits: data.HeroTraits{Female: true, Mage: true, Face: 1}},
+		{ID: 8, Traits: data.HeroTraits{Female: true, Mage: false, Face: 1}},
+	}
+	refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] }, placed)
+	if !refs.HasCompanion || refs.Companion != 101 {
+		t.Fatal("a member satisfying ordinal 1 lost it to a placement", refs)
+	}
+	if got, ok := refs.Roles[10003]; !ok || got != 8 {
+		t.Fatalf("ordinal 2 = %d/%v, want the placement no member satisfies", got, ok)
+	}
+	refs = campaignScriptPartyRefs(&alm.Map{}, table, party[:1], func(i int) sim.EntityID { return ids[i] }, placed)
+	if !refs.HasCompanion || refs.Companion != 7 {
+		t.Fatal("ordinal 1 did not reach the first satisfying placement", refs)
+	}
+	if refs := campaignScriptPartyRefs(&alm.Map{}, table, party[:1], func(i int) sim.EntityID { return ids[i] }, nil); refs.HasCompanion || len(refs.Roles) != 0 {
+		t.Fatal("an ordinal resolved with no member or placement satisfying it", refs)
+	}
+}

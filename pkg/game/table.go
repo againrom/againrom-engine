@@ -182,7 +182,7 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	}
 	// Not fatal: a table without them names no map placement for the hero
 	// ordinal scan, which then reaches the party alone.
-	if b, err := fsys.ReadFile(chargenNamesPath); err == nil {
+	if b, err := fsys.ReadFile(npcNamesPath); err == nil {
 		rows := SplitTextTable(b)
 		d.Table.NPCNames = rows.lines
 	}
@@ -241,3 +241,6 @@ func databinLayout(g base.Game) databin.Layout {
 	}
 	return databin.ROM1Layout
 }
+
+// npcNamesPath is the text file the npc arm names a map placement from.
+const npcNamesPath = mainPrefix + "text/npcnames.txt"
