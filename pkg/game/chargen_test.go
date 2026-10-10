@@ -153,7 +153,7 @@ func TestChargenSetupBuildsTheDecodedRows(t *testing.T) {
 }
 
 func TestChargenPreviewUsesTheConfirmedPartyProjection(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	result := ui.ChargenResult{Name: "Hero", Choices: []int{1, 1, 3}, Stats: []int{25, 26, 27, 28}}
 	party := f.ChargenParty(result)
 	if len(party) != 1 {
@@ -188,7 +188,7 @@ func TestChargenPreviewLeavesPersistentFrontEndStateAlone(t *testing.T) {
 		t.Fatalf("SetPartySkill: %v", err)
 	}
 
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	persistent := f.ChargenParty(ui.ChargenResult{Name: "Persist", Choices: []int{0, 0, 0}, Stats: []int{25, 25, 25, 25}})
 	if len(persistent) != 1 {
 		t.Fatalf("persistent fixture party length = %d", len(persistent))
@@ -248,7 +248,7 @@ func TestChargenPreviewCardCoversEveryGeneratedIdentity(t *testing.T) {
 		{name: "Uncommon Wood Short Bow", params: chargenWeaponParams(data.SkillShoot)},
 		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
 	}
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{Weapons: weapons}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{Weapons: weapons}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	fighterWeapons := []string{"Iron Short Sword", "Uncommon Bronze Axe", "Uncommon Bronze Mace", "Bronze Pike", "Uncommon Wood Short Bow"}
 
 	for sex := 0; sex < 2; sex++ {
@@ -324,7 +324,7 @@ func TestChargenPartyResultOverridesTheSkillSeed(t *testing.T) {
 		t.Fatalf("SetPartySkill(SkillPike): %v", err)
 	}
 
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed")}}
 	// Skill choice index 2 -- SkillBlade+2 = SkillBludgen -- CONFIRMED
 	// despite the seed above naming SkillPike.
 	res := ui.ChargenResult{Choices: []int{0, 0, 2}, Stats: []int{25, 25, 25, 25}}
@@ -340,7 +340,7 @@ func TestChargenPartyResultOverridesTheSkillSeed(t *testing.T) {
 }
 
 func TestChargenPartyBuildsAPlayableCharacterFromAConfirmedResult(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	// Female (index 1), mage (index 1), skill index 2 — the THIRD warrior/mage
 	// name, which is SkillBlade+2 = SkillBludgen.
 	res := ui.ChargenResult{
@@ -399,7 +399,7 @@ func TestChargenPartyBuildsAPlayableCharacterFromAConfirmedResult(t *testing.T) 
 // merely "does not crash" but "answers exactly the screen's own opening
 // state", which is a total function's stronger and more useful property.
 func TestChargenPartyIsTotalOverAMalformedResult(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed")}}
 
 	t.Run("empty result", func(t *testing.T) {
 		p := f.ChargenParty(ui.ChargenResult{})
@@ -618,7 +618,7 @@ func TestAC1TheNoFlagPartyMatchesTodaysHeroLiterally(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup: ResolveWeapon(%q): %v", wantWeaponName, err)
 	}
-	list := data.BodyList{"unarmed", "swordsman"}
+	list := data.NewBodyList("unarmed", "swordsman")
 
 	p := MissionParty(&sword, list, tbl)
 	if len(p) != 1 {
@@ -695,7 +695,7 @@ func TestAC1TheNoFlagPartyMatchesTodaysHeroLiterally(t *testing.T) {
 // still gating PartySpawn's health arm shut even though the graph had
 // everything it needed.
 func TestMissionPartyWithNoHumansCollectionCarriesTheRequestedArchetype(t *testing.T) {
-	p := MissionParty(nil, nil, nil)
+	p := MissionParty(nil, data.BodyList{}, nil)
 	if len(p) != 1 {
 		t.Fatalf("party of %d, want 1", len(p))
 	}
@@ -713,7 +713,7 @@ func TestMissionPartyWithNoHumansCollectionCarriesTheRequestedArchetype(t *testi
 }
 
 func TestChargenDerivedShowsTheMintsOwnNumbers(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	res := ui.ChargenResult{Choices: []int{1, 1, 2}, Stats: []int{30, 20, 18, 16}}
 
 	got := f.ChargenDerived(res)
@@ -789,7 +789,7 @@ func TestChargenDerivedUsesTheLiveStaffSpellAsDamage(t *testing.T) {
 	humans := fourBaseHumans()
 	table := &mapload.Table{Humans: humans, Weapons: weapons, Spells: spells,
 		Shapes: emptyScale{}, Materials: emptyScale{}}
-	f := &FrontEnd{InstallResources: InstallResources{Table: table, Humans: humans, Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: table, Humans: humans, Bodies: data.NewBodyList("unarmed", "mage")}}
 	res := ui.ChargenResult{Choices: []int{0, 1, 0}, Stats: []int{25, 25, 25, 25}}
 
 	lines := make(map[string]string)
@@ -826,7 +826,7 @@ func TestChargenDerivedUsesTheLiveStaffSpellAsDamage(t *testing.T) {
 // a property: raising Body raises what the block reports for health, so the
 // player can see what the point he just spent bought him.
 func TestChargenDerivedMovesWithTheSpread(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	low := f.ChargenDerived(ui.ChargenResult{Choices: []int{1, 1, 2}, Stats: []int{20, 20, 18, 16}})
 	high := f.ChargenDerived(ui.ChargenResult{Choices: []int{1, 1, 2}, Stats: []int{40, 20, 18, 16}})
 
@@ -844,7 +844,7 @@ func TestChargenDerivedMovesWithTheSpread(t *testing.T) {
 // short result must not panic, because this is called on every frame the
 // screen paints and a screen that crashes is an incident.
 func TestChargenDerivedIsTotalOverAMalformedResult(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed")}}
 	// Eight authored labels plus the five skill slots either class names. A
 	// malformed result still answers the WHOLE block — the skill labels come
 	// from a class choice read through chargenChoiceIndex's own fallback, so a
@@ -882,7 +882,7 @@ func TestTheChosenBaseRowsBookReachesTheParty(t *testing.T) {
 		{name: "PC_Fergard", params: humansParamsBook(30, 70, 3, 266306)},
 		{name: "PC_Reniesta", params: humansParamsBook(30, 70, 1, 266306)},
 	}
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: humans, Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: humans, Bodies: data.NewBodyList("unarmed", "mage")}}
 
 	for _, tc := range []struct {
 		name  string
@@ -964,7 +964,7 @@ func TestAC3TheHandedWeaponDisplacesTheBaseRowsOwnWeaponCell(t *testing.T) {
 	}
 	tbl := &mapload.Table{Humans: humans, Weapons: weapons, Armors: armors, Shapes: emptyScale{}, Materials: emptyScale{}}
 
-	p := MissionParty(&handed, data.BodyList{"unarmed"}, tbl)
+	p := MissionParty(&handed, data.NewBodyList("unarmed"), tbl)
 	if len(p) != 1 {
 		t.Fatalf("party of %d, want 1", len(p))
 	}
@@ -1012,7 +1012,7 @@ func TestAC4AMageHoldsTheMagesWeaponForEverySkillChoice(t *testing.T) {
 		{},
 		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
 	}
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{Weapons: weapons, Shapes: emptyScale{}, Materials: emptyScale{}}, Bodies: data.BodyList{"unarmed"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{Weapons: weapons, Shapes: emptyScale{}, Materials: emptyScale{}}, Bodies: data.NewBodyList("unarmed")}}
 	const wantName = "Wood Staff {castSpell=Fire_Arrow:10}"
 	for skill := 0; skill < 5; skill++ {
 		res := ui.ChargenResult{Choices: []int{0, 1, skill}, Stats: []int{25, 25, 25, 25}}
@@ -1048,8 +1048,8 @@ func TestAC14NoEquipIsRefusedForAClass(t *testing.T) {
 	}
 	tbl := &mapload.Table{Humans: humans, Armors: armors, Shapes: emptyScale{}, Materials: emptyScale{}}
 
-	fighter := MissionParty(nil, data.BodyList{"unarmed"}, tbl)
-	f := &FrontEnd{InstallResources: InstallResources{Table: tbl, Humans: humans, Bodies: data.BodyList{"unarmed", "mage"}}}
+	fighter := MissionParty(nil, data.NewBodyList("unarmed"), tbl)
+	f := &FrontEnd{InstallResources: InstallResources{Table: tbl, Humans: humans, Bodies: data.NewBodyList("unarmed", "mage")}}
 	mage := f.ChargenParty(ui.ChargenResult{Choices: []int{0, 1, 0}, Stats: []int{25, 25, 25, 25}})
 
 	if fighter[0].Worn[2] == 0 || mage[0].Worn[2] == 0 {
@@ -1079,7 +1079,7 @@ func TestNewGameChargenClaimsExactlyTheMissionRows(t *testing.T) {
 	f := &FrontEnd{InstallResources: InstallResources{
 		Table:  &mapload.Table{},
 		Humans: fourBaseHumans(),
-		Bodies: data.BodyList{"unarmed", "mage"},
+		Bodies: data.NewBodyList("unarmed", "mage"),
 		Maps: []MapEntry{
 			{Source: "loose.alm", Name: "A"},           // 0: a loose map, no mission
 			{Source: "kv1.alm", Name: "B", Mission: 1}, // 1: a campaign mission
@@ -1163,7 +1163,7 @@ func TestNewGameChargenIsTotalOverARowThatIsNotThere(t *testing.T) {
 // display convention papering over the data; it is true, and this is where a
 // change to the mint that broke it would be caught from the screen's side.
 func TestChargenDerivedShowsEverySkillSlot(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 
 	for _, tc := range []struct {
 		name    string
@@ -1247,7 +1247,7 @@ func TestChargenDerivedShowsEverySkillSlot(t *testing.T) {
 // (HERO-RESIST-012), which is asserted below rather than assumed, because it is
 // the reason showing it would be showing a row that can never move.
 func TestChargenDerivedShowsSightAndTheMagicResistances(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	res := ui.ChargenResult{Choices: []int{1, 1, 2}, Stats: []int{30, 20, 18, 16}}
 
 	lines := make(map[string]string)
@@ -1333,7 +1333,7 @@ func TestChargenDerivedShowsSightAndTheMagicResistances(t *testing.T) {
 // occupies [y, y+16), and the message line is at 452, so k <= 15.
 func TestChargenDerivedFitsTheScreensLineBudget(t *testing.T) {
 	const capacity = 16 // pkg/ui: chargenDerivedFit(7)
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 
 	// +1 for ui.Chargen.DerivedText's own title line, which the draw path
 	// counts against the same budget.
@@ -1345,7 +1345,7 @@ func TestChargenDerivedFitsTheScreensLineBudget(t *testing.T) {
 }
 
 func TestAGeneratedCharactersSheetStatesHisCarriedWeight(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.BodyList{"unarmed", "mage"}}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	result := ui.ChargenResult{Name: "Hero", Choices: []int{1, 1, 3}, Stats: []int{25, 26, 27, 28}}
 	s := f.ChargenPreview(result).Subject
 

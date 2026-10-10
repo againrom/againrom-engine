@@ -253,15 +253,32 @@ func HeroBodyKey(dir string, b HeroBody) string {
 	return dir + "/" + string(b)
 }
 
+// HeroAppearance is the drawn body name, its directory, the class key and
+// whether both name and directory resolved.
+//
+// The name is the drawn body, a mod's choice for the weapon row included;
+// the class key is always the shipped entry's (DIV-2912), so a mod changes
+// the picture and no entity, sound or save field. A chosen body, supplied or
+// shipped, takes the shield suffix only when its form exists.
 func HeroAppearance(l BodyList, e Equipment, mage, dying bool) (HeroBody, string, int32, bool) {
 	base, nameOK := HeroBodyFor(l, e)
+	shipped, _ := shippedBodyFor(l, e)
 	shield, _ := e.Occupied(2) // slot 2 always exists; see HeroArmourFacts.
 	name := HeroBodyName(base, shield, mage, dying)
+	if shield && !dying {
+		if _, modded := l.ModBodyOf(base); modded {
+			if _, both := l.ModBodyOf(name); !both {
+				name = base
+			}
+		} else if l.LacksShieldForm(base) {
+			name = base
+		}
+	}
 
 	material, armoured := HeroArmourFacts(e)
 	dir, dirOK := HeroBodyDir(mage, material, armoured)
 
-	class, _ := HeroBodyClass(name) // HeroBodyClass is total; see its own doc.
+	class, _ := HeroBodyClass(HeroBodyName(shipped, shield, mage, dying)) // total; see its own doc.
 
 	return name, dir, class, nameOK && dirOK
 }

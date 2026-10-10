@@ -204,7 +204,7 @@ func TestChargenPartyResolvesTheChosenSlotsOwnWeapon(t *testing.T) {
 // time, so "every mission starts with the same party" holds by design and
 // not by nobody having written to it.
 func TestMissionPartyCarriesTheGeneratedHero(t *testing.T) {
-	list := data.BodyList{"unarmed", "swordsman"}
+	list := data.NewBodyList("unarmed", "swordsman")
 
 	// A REAL, RESOLVABLE TABLE, and not a hand-typed Code (0134 T3):
 	// GeneratedWornSet (mapload/spawn.go) substitutes the handed weapon's
@@ -286,7 +286,7 @@ func TestMissionPartyCarriesTheGeneratedHero(t *testing.T) {
 }
 
 func TestMissionPartyAsResolvesTheMageArmsOwnWeapon(t *testing.T) {
-	list := data.BodyList{"unarmed"}
+	list := data.NewBodyList("unarmed")
 	scale := func(name string, damage float64) synth.DataBinRow {
 		d := make([]float64, 9)
 		d[4], d[5], d[6] = damage, 1, 1
@@ -451,7 +451,7 @@ func TestAnInstalledTableBecomesTheHerosBand(t *testing.T) {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
 
-	p := game.MissionParty(d.StartWeapon, nil, nil)
+	p := game.MissionParty(d.StartWeapon, data.BodyList{}, nil)
 	c := p[0].Hero.Derive(p[0].Weapon)
 	// 10-16 IS ONE OF THE OWNER'S OWN FOUR MEASURED BAND EDGES — the one he read
 	// at Body 43, which is the Body the rule bought. His measurement and this
@@ -487,7 +487,7 @@ func TestAPartyMembersCharacterCarriesTheRecomputesFamilies(t *testing.T) {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
 
-	p := game.MissionParty(d.StartWeapon, nil, nil)
+	p := game.MissionParty(d.StartWeapon, data.BodyList{}, nil)
 	hero, weapon := p[0].Hero, p[0].Weapon
 	// THE SAME CALL partyCharacters MAKES (0113 plan T3): Profile{} because a
 	// generated character has no shipped row to read a class flag or a pool
@@ -532,7 +532,7 @@ func TestSetPartySkillGeneratesAnArmedHero(t *testing.T) {
 		if d.StartWeapon == nil || d.StartWeapon.Name != "Iron Short Sword" {
 			t.Fatalf("StartWeapon = %+v, want today's blade", d.StartWeapon)
 		}
-		p := game.MissionParty(d.StartWeapon, nil, nil)
+		p := game.MissionParty(d.StartWeapon, data.BodyList{}, nil)
 		if p[0].Hero != game.PartyHero() {
 			t.Errorf("hero %+v, want today's generated hero", p[0].Hero)
 		}
@@ -569,7 +569,7 @@ func TestSetPartySkillGeneratesAnArmedHero(t *testing.T) {
 			t.Fatalf("StartWeapon = %+v, want %q", d.StartWeapon, wantName)
 		}
 
-		p := game.MissionParty(d.StartWeapon, nil, nil)
+		p := game.MissionParty(d.StartWeapon, data.BodyList{}, nil)
 		c := p[0].Hero.Derive(p[0].Weapon)
 		if c.Reach <= 1 {
 			t.Errorf("reach %d, want above 1 for a bow-armed hero", c.Reach)

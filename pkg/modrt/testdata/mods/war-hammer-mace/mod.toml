@@ -1,0 +1,8 @@
+id          = "war-hammer-mace"
+title       = "War Hammer as a mace"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Draws a hero holding the two-handed War Hammer with the mace body the install ships."
+api         = 1
+applies-to  = ["rom1", "rom2-en", "rom2-ru"]
+entry       = "main.star"

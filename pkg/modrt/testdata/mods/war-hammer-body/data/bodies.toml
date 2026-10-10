@@ -1,0 +1,14 @@
+# A two-handed body: 8 directions, 16 standing frames on row 0, then one row
+# per direction for each of move, attack and idle.
+[[body]]
+name        = "hammer2h"
+heroes      = "bodies/hammer2h-heroes.png"
+heroes_l    = "bodies/hammer2h-heroes_l.png"
+frame       = [64, 80]
+origin      = [32, 70]
+directions  = 8
+move        = { frames = 6, ticks = 2 }
+attack      = { frames = 5, ticks = [2, 2, 3, 3, 2] }
+idle        = { frames = 2, ticks = 8 }
+weapon-last = true
+selection   = [16, 10, 48, 74]

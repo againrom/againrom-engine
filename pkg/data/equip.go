@@ -1,6 +1,9 @@
 package data
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 // EquipSlots is how many equipment slots a character carries: twelve, the
 // original's own width.
@@ -106,10 +109,147 @@ func (e Equipment) Occupied(n int) (occupied, ok bool) {
 // zero-based; the original addresses it with a definition row LESS ONE,
 // which is HeroBodyFor's whole job below.
 //
-// NO COPY OF A SHIPPED LIST IS HELD IN THIS REPOSITORY. Every BodyList a
-// test builds is a fixture of a handful of synthetic entries; the real
-// payload is read from an install at run time by pkg/game, one tier up.
-type BodyList []HeroBody
+// It also carries the mods' choices (WithWeaponBody, WithModBody); without a
+// mod both are empty. NO COPY OF A SHIPPED LIST IS HELD IN THIS REPOSITORY:
+// the real payload is read from an install at run time by pkg/game.
+type BodyList struct {
+	names  []HeroBody
+	weapon map[int]HeroBody
+	mod    map[HeroBody]ModBody
+	bare   map[HeroBody]bool
+}
+
+// ModBody is what a mod states about a body it supplies a sheet for, beyond
+// the sheet itself: whether the weapon paints over the shield
+// (FigureHeldLast), which a shipped body answers by its name.
+type ModBody struct {
+	WeaponLast bool
+}
+
+// NewBodyList is the list of names, in order, with no mod choice.
+func NewBodyList(names ...HeroBody) BodyList {
+	return BodyList{names: append([]HeroBody(nil), names...)}
+}
+
+// Len is the number of entries of the shipped list.
+func (l BodyList) Len() int { return len(l.names) }
+
+// Entry is the shipped list's entry i, or "" outside it.
+func (l BodyList) Entry(i int) HeroBody {
+	if i < 0 || i >= len(l.names) {
+		return ""
+	}
+	return l.names[i]
+}
+
+// WithWeaponBody is l with weapon definition row drawn as body b. The
+// shipped entry still answers the class key (HeroAppearance).
+func (l BodyList) WithWeaponBody(row int, b HeroBody) BodyList {
+	out := l
+	out.weapon = make(map[int]HeroBody, len(l.weapon)+1)
+	for k, v := range l.weapon {
+		out.weapon[k] = v
+	}
+	out.weapon[row] = b
+	return out
+}
+
+// WithModBody is l knowing b as a body a mod supplies a sheet for.
+func (l BodyList) WithModBody(b HeroBody, m ModBody) BodyList {
+	out := l
+	out.mod = make(map[HeroBody]ModBody, len(l.mod)+1)
+	for k, v := range l.mod {
+		out.mod[k] = v
+	}
+	out.mod[b] = m
+	return out
+}
+
+// WithoutShieldForm is l knowing that the install ships no shield form of the
+// shipped body b, so a hero with a shield drawn as b takes b itself.
+func (l BodyList) WithoutShieldForm(b HeroBody) BodyList {
+	out := l
+	out.bare = make(map[HeroBody]bool, len(l.bare)+1)
+	for k, v := range l.bare {
+		out.bare[k] = v
+	}
+	out.bare[b] = true
+	return out
+}
+
+// LacksShieldForm reports whether b is a chosen shipped body with no shield form.
+func (l BodyList) LacksShieldForm(b HeroBody) bool { return l.bare[b] }
+
+// ShieldlessBodies lists the chosen shipped bodies with no shield form, ascending.
+func (l BodyList) ShieldlessBodies() []HeroBody {
+	out := make([]HeroBody, 0, len(l.bare))
+	for b := range l.bare {
+		out = append(out, b)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
+
+// WeaponBody is the body a mod draws weapon row row with, if one does.
+func (l BodyList) WeaponBody(row int) (HeroBody, bool) {
+	b, ok := l.weapon[row]
+	return b, ok
+}
+
+// WeaponRows lists the rows a mod chose a body for, ascending.
+func (l BodyList) WeaponRows() []int {
+	rows := make([]int, 0, len(l.weapon))
+	for r := range l.weapon {
+		rows = append(rows, r)
+	}
+	sort.Ints(rows)
+	return rows
+}
+
+// ModBodyOf reports whether a mod supplies body b, and what it states.
+func (l BodyList) ModBodyOf(b HeroBody) (ModBody, bool) {
+	m, ok := l.mod[b]
+	return m, ok
+}
+
+// SavedBody is the body name a save records for a hero drawn as drawn whose
+// class key is class. When a mod's choice drew him, it is the shipped entry
+// that choice replaced, composed as the class key was, so a save written
+// under the choice holds the bytes the game without it writes (DIV-2912).
+// Any other name stands, and a list with no choice returns every name as is.
+func (l BodyList) SavedBody(drawn HeroBody, class int32) HeroBody {
+	if len(l.weapon) == 0 {
+		return drawn
+	}
+	if c, ok := HeroBodyClass(drawn); ok && c == class {
+		return drawn
+	}
+	base := HeroBody(strings.TrimSuffix(string(drawn), string(HeroShieldSuffix)))
+	for _, row := range l.WeaponRows() {
+		if b := l.weapon[row]; b != drawn && b != base {
+			continue
+		}
+		for _, shield := range []bool{false, true} {
+			for _, mage := range []bool{false, true} {
+				name := HeroBodyName(l.Entry(row-1), shield, mage, false)
+				if c, _ := HeroBodyClass(name); c == class {
+					return name
+				}
+			}
+		}
+	}
+	return drawn
+}
+
+// ModBodies lists the bodies mods supply, ascending.
+func (l BodyList) ModBodies() []HeroBody {
+	out := make([]HeroBody, 0, len(l.mod))
+	for b := range l.mod {
+		out = append(out, b)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
 
 // ParseBodyList splits data into the ordered list the shipped payload holds,
 // over CRLF or bare LF (the parse half — the read from an install is
@@ -136,25 +276,47 @@ func ParseBodyList(data []byte) BodyList {
 	if n := len(lines); n > 0 && lines[n-1] == "" {
 		lines = lines[:n-1]
 	}
-	list := make(BodyList, len(lines))
+	names := make([]HeroBody, len(lines))
 	for i, l := range lines {
-		list[i] = HeroBody(strings.TrimSuffix(l, "\r"))
+		names[i] = HeroBody(strings.TrimSuffix(l, "\r"))
 	}
-	return list
+	return BodyList{names: names}
 }
 
-func HeroBodyFor(l BodyList, e Equipment) (HeroBody, bool) {
+// weaponRow is the definition row slot 1's code names, the empty slot being
+// row 1: the empty-slot arm and the row-1 arm are the same lookup.
+func weaponRow(e Equipment) int {
 	code, _ := e.Code(1) // slot 1 always exists; the discarded bool is a fact
 	// about the slot number 1, not about this derivation.
-	row := code.D()
-	if row == 0 {
-		row = 1 // the empty-slot arm and the row-1 arm are the same lookup.
+	if row := code.D(); row != 0 {
+		return row
 	}
-	i := row - 1
-	if i < 0 || i >= len(l) || l[i] == "" {
+	return 1
+}
+
+// shippedBodyFor is the shipped list's entry for slot 1's row, with no mod
+// choice: the name the class key is derived from.
+func shippedBodyFor(l BodyList, e Equipment) (HeroBody, bool) {
+	i := weaponRow(e) - 1
+	if i < 0 || i >= len(l.names) || l.names[i] == "" {
 		return "", false
 	}
-	return l[i], true
+	return l.names[i], true
+}
+
+// HeroBodyFor is the body slot 1's weapon is drawn with: a mod's choice for
+// its row, else the shipped entry. A row the shipped list gives no name
+// answers no name whatever a mod chose, so a mod cannot make a body appear
+// where the game without it resolves none.
+func HeroBodyFor(l BodyList, e Equipment) (HeroBody, bool) {
+	shipped, ok := shippedBodyFor(l, e)
+	if !ok {
+		return "", false
+	}
+	if b, chosen := l.weapon[weaponRow(e)]; chosen {
+		return b, true
+	}
+	return shipped, true
 }
 
 // figureHeldLastNames is the six body names HERO-FIGURE-060's own predicate
@@ -196,8 +358,22 @@ var figureHeldLastNames = map[HeroBody]bool{
 // game reaches full character height, so the swap's shield-last arm does not
 // reintroduce the "boots cover the sword" defect T1 fixed — the shield
 // covering part of the weapon is correct, not the same bug.
+//
+// The name is the DRAWN body, a mod's choice included: the paint order
+// belongs to the picture. A body a mod supplies states its own answer
+// (ModBody.WeaponLast), since no literal of the six names can match it.
 func FigureHeldLast(l BodyList, e Equipment) int {
-	if name, ok := HeroBodyFor(l, e); ok && figureHeldLastNames[name] {
+	name, ok := HeroBodyFor(l, e)
+	if !ok {
+		return 2
+	}
+	if m, modded := l.ModBodyOf(name); modded {
+		if m.WeaponLast {
+			return 1
+		}
+		return 2
+	}
+	if figureHeldLastNames[name] {
 		return 1
 	}
 	return 2

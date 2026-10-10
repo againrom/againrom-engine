@@ -21,7 +21,7 @@ func TestReleaseUnitCapacitySAVRule(t *testing.T) {
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
 	app := f.App("unit capacity")
-	if err := app.OpenMission(f.MissionOpenerWith(10, MissionParty(nil, nil, nil))); err != nil {
+	if err := app.OpenMission(f.MissionOpenerWith(10, MissionParty(nil, data.BodyList{}, nil))); err != nil {
 		t.Fatal(err)
 	}
 	for range 8 {

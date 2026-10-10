@@ -234,7 +234,7 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 		_, _, resolved, matched := data.HeroAppearance(mw.mission.list, eq, mage, false)
 		// A name no arm matches leaves class 1 (ANIM-107); with no list loaded
 		// nothing can be derived.
-		if matched || len(mw.mission.list) != 0 {
+		if matched || mw.mission.list.Len() != 0 {
 			return resolved
 		}
 	}

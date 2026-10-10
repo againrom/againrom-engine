@@ -26,7 +26,7 @@ import (
 // class the law derives for the row's own name is a matched arm, not
 // HeroUnmatchedClass.
 func TestThePartyMemberIsNoLongerDrawnAsAnUnarmedMan(t *testing.T) {
-	list := data.BodyList{"unarmed", "swordsman"}
+	list := data.NewBodyList("unarmed", "swordsman")
 
 	// A REAL, RESOLVABLE TABLE, and not a hand-typed Code (0134 T3):
 	// GeneratedWornSet (mapload/spawn.go) substitutes the handed weapon's
@@ -94,7 +94,7 @@ func TestThePartyMemberIsNoLongerDrawnAsAnUnarmedMan(t *testing.T) {
 func TestMovingTheWeaponMovesTheDerivedBody(t *testing.T) {
 	// Invented, not the shipped list (SC-3). The names are the law's own so
 	// that HeroBodyClass matches an arm; the ORDER is this fixture's.
-	list := data.BodyList{data.BodyUnarmed, data.BodyPikeman, data.BodySwordsman, data.BodyArcher}
+	list := data.NewBodyList(data.BodyUnarmed, data.BodyPikeman, data.BodySwordsman, data.BodyArcher)
 
 	// A REAL, RESOLVABLE TABLE (0134 T3): GeneratedWornSet re-resolves the
 	// handed weapon by NAME against the table, so a fixture with no table

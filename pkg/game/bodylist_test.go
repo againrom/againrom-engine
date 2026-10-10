@@ -25,13 +25,13 @@ func TestReadBodyListIsSilentWhenNothingShips(t *testing.T) {
 	if !ok {
 		t.Fatal("a shipped entry: refused, want it read")
 	}
-	want := data.BodyList{"unarmed", "swordsman"}
-	if len(got) != len(want) {
+	want := data.NewBodyList("unarmed", "swordsman")
+	if got.Len() != want.Len() {
 		t.Fatalf("ReadBodyList = %#v, want %#v", got, want)
 	}
-	for i := range want {
-		if got[i] != want[i] {
-			t.Errorf("entry %d = %q, want %q", i, got[i], want[i])
+	for i := 0; i < want.Len(); i++ {
+		if got.Entry(i) != want.Entry(i) {
+			t.Errorf("entry %d = %q, want %q", i, got.Entry(i), want.Entry(i))
 		}
 	}
 
@@ -45,8 +45,8 @@ func TestReadBodyListIsSilentWhenNothingShips(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, ok := game.ReadBodyList(tc.src)
-			if ok || got != nil {
-				t.Fatalf("ReadBodyList = %#v, %v; want nil, false", got, ok)
+			if ok || got.Len() != 0 {
+				t.Fatalf("ReadBodyList = %#v, %v; want an empty list, false", got, ok)
 			}
 		})
 	}

@@ -1027,3 +1027,7 @@ pkg/game.TestReleaseSecondGameMusicPopulation
 pkg/game.TestReleaseSecondGameMusicScreens
 pkg/game.TestReleaseSecondGameMusicAreas
 pkg/game.TestReleaseSecondGameMusicStops
+pkg/game.TestReleaseModBodyDrawsTheWarHammerHero
+pkg/game.TestReleaseModBodyLeavesWorldAndSaveUnchanged
+pkg/game.TestReleaseModBodyRedrawsAfterALoad
+pkg/game.TestReleaseModBodyShieldWithoutAShieldForm

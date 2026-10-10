@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/data"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/vfs"
@@ -56,13 +57,13 @@ func TestMissionPartyNamesTheHeroAfterHisPicture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadDefinitions: %v", err)
 	}
-	if got := game.MissionParty(nil, nil, d.Table)[0].Name; got != maleFighter {
+	if got := game.MissionParty(nil, data.BodyList{}, d.Table)[0].Name; got != maleFighter {
 		t.Errorf("MissionParty names the hero % x, want the male fighter's % x", got, maleFighter)
 	}
-	if got := game.MissionPartyAs(false, nil, nil, d.Table)[0].Name; got != maleFighter {
+	if got := game.MissionPartyAs(false, nil, data.BodyList{}, d.Table)[0].Name; got != maleFighter {
 		t.Errorf("MissionPartyAs(false) names the hero % x, want the male fighter's % x", got, maleFighter)
 	}
-	if got := game.MissionPartyAs(true, nil, nil, d.Table)[0].Name; got != maleMage {
+	if got := game.MissionPartyAs(true, nil, data.BodyList{}, d.Table)[0].Name; got != maleMage {
 		t.Errorf("MissionPartyAs(true) names the hero % x, want the male mage's % x", got, maleMage)
 	}
 }
@@ -86,7 +87,7 @@ func TestMissionPartyNamesTheHeroDanathWithoutInstalledNames(t *testing.T) {
 		"a name file too short": partial.Table,
 	} {
 		for _, mage := range []bool{false, true} {
-			if got := game.MissionPartyAs(mage, nil, nil, table)[0].Name; got != "Danath" {
+			if got := game.MissionPartyAs(mage, nil, data.BodyList{}, table)[0].Name; got != "Danath" {
 				t.Errorf("%s, mage %v: the hero is named %q, want Danath", name, mage, got)
 			}
 		}

@@ -14,6 +14,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   so loading that save gives the same game as playing on.
 - [ROM1] A sack on the ground in an original save whose cell does not name it
   keeps its identity and its items' identities when the game is saved again.
+- [BASE] Mods can choose the body a weapon is drawn with and supply their own
+  body sheets.
 
 ## 0.111.0
 

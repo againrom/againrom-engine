@@ -212,7 +212,7 @@ func TestKilledRosterHumanKeepsItsDrawnBodyAfterEquipmentDrops(t *testing.T) {
 	if e, held := w.Entity(id); !held || e.Decay < sim.DecayBones {
 		t.Fatalf("death did not enter the looted corpse stage: %+v held=%t", e, held)
 	}
-	if after := missionAppearanceArt(ms, set, data.BodyList{data.BodyUnarmed, data.BodySwordsman}, nil)[id]; after != before {
+	if after := missionAppearanceArt(ms, set, data.NewBodyList(data.BodyUnarmed, data.BodySwordsman), nil)[id]; after != before {
 		t.Fatalf("restored body = %v, want pre-save corpse body %v", after, before)
 	}
 }

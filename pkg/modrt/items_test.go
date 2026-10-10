@@ -98,7 +98,7 @@ func TestDataLoadRefusesOtherFilesAndSecondLoads(t *testing.T) {
 			t.Errorf("%q: %v", script, err)
 		}
 	}
-	check("def init(game, settings):\n    game.data.add(\"data/skills.toml\")\n", "no data file of that name is loaded (loadable: data/characters.toml, data/companions.toml, data/items.toml, data/screens.toml, data/spells.toml)")
+	check("def init(game, settings):\n    game.data.add(\"data/skills.toml\")\n", "no data file of that name is loaded (loadable: data/bodies.toml, data/characters.toml, data/companions.toml, data/items.toml, data/screens.toml, data/spells.toml, data/weapon-bodies.toml)")
 	check("def init(game, settings):\n    game.data.add(\"data/items.toml\")\n    game.data.add(\"data/items.toml\")\n", "the file is already loaded")
 	check("def init(game, settings):\n    game.data.add(\"../x.toml\")\n", "not a path inside the mod folder")
 	check("def init(game, settings):\n    game.data.add()\n", "missing argument")

@@ -221,7 +221,7 @@ func TestHeroBodyKeyJoinsDirectoryAndName(t *testing.T) {
 func TestHeroAppearanceComposesTheName(t *testing.T) {
 	// A synthetic list: row 1 (index 0) is the bare hand, row 2 (index 1) a
 	// swordsman. HeroBodyFor reads slot 1's field D as the one-based row.
-	l := data.BodyList{"unarmed", "swordsman", "archer"}
+	l := data.NewBodyList("unarmed", "swordsman", "archer")
 
 	// AC-6: an occupied slot 2 appends the suffix.
 	var e data.Equipment
@@ -247,7 +247,7 @@ func TestHeroAppearanceComposesTheName(t *testing.T) {
 }
 
 func TestHeroAppearanceComposesTheDirectory(t *testing.T) {
-	l := data.BodyList{"unarmed"}
+	l := data.NewBodyList("unarmed")
 
 	// AC-8: slot 8's material, for a non-mage, names that material's own
 	// directory -- every one of the sixteen.
@@ -291,7 +291,7 @@ func TestHeroAppearanceIgnoresSex(t *testing.T) {
 	// exercises it by deriving twice off one equipment set and requiring the
 	// three answers to agree, exactly as two sexes sharing that equipment
 	// would.
-	l := data.BodyList{"unarmed", "swordsman"}
+	l := data.NewBodyList("unarmed", "swordsman")
 	var e data.Equipment
 	e.SetCode(1, itemCode(0, 0, 0, 2))
 	e.SetCode(data.HeroArmourSlot, itemCode(3, 0, 0, 1))
@@ -332,7 +332,7 @@ func TestHeroAppearanceIsTotalAndTheClassMatchesTheName(t *testing.T) {
 		}
 	}
 
-	l := data.BodyList{"unarmed", "swordsman", "axeman", "archer"}
+	l := data.NewBodyList("unarmed", "swordsman", "axeman", "archer")
 	for _, tc := range []struct {
 		row         int
 		shield      bool
@@ -355,5 +355,22 @@ func TestHeroAppearanceIsTotalAndTheClassMatchesTheName(t *testing.T) {
 			t.Errorf("HeroAppearance(row=%d shield=%v mage=%v dying=%v) class = %d, want %d for name %q",
 				tc.row, tc.shield, tc.mage, tc.dying, class, wantClass, name)
 		}
+	}
+}
+
+func TestHeroAppearanceChosenShippedBodyWithoutAShieldForm(t *testing.T) {
+	var e data.Equipment
+	e.SetCode(1, itemCode(0, 0, 0, 2))
+	e.SetCode(2, itemCode(0, 0, 0, 1))
+	l := data.NewBodyList("unarmed", "swordsman", "archer").WithWeaponBody(2, "archer").WithoutShieldForm("archer")
+	name, _, class, ok := data.HeroAppearance(l, e, false, false)
+	if !ok || name != "archer" {
+		t.Errorf("name = %q, ok=%v; want the base form \"archer\"", name, ok)
+	}
+	if want, _ := data.HeroBodyClass("swordsman_"); class != want {
+		t.Errorf("class key %d, want the shipped entry's %d", class, want)
+	}
+	if name, _, _, _ := data.HeroAppearance(data.NewBodyList("unarmed", "swordsman", "archer"), e, false, false); name != "swordsman_" {
+		t.Errorf("without the choice name = %q, want swordsman_", name)
 	}
 }

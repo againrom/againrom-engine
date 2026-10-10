@@ -6,8 +6,8 @@
 // own resolved settings. game.rules holds the declared rule parameters; each is
 // an integer within a declared range and every other type or value is a script
 // error. game.data.add reads one of the mod's data files, which add the items,
-// screens or companion join conditions the file describes, or edit the
-// characters it names. The interpreter is given no file, network, clock or
+// screens, companion join conditions or hero bodies the file describes, or
+// edit the characters it names. The interpreter is given no file, network, clock or
 // randomness: the
 // predeclared names are the Starlark language's own, load() reads only files of
 // the mod's own folder, and a script that runs too long is stopped. After a
@@ -65,6 +65,9 @@ type Result struct {
 	// Companions are the join conditions the mods declare, in load order.
 	Companions mod.CompanionData
 	Spells     mod.SpellData
+	// Bodies are the weapon mappings and body sheets the mods declare, in
+	// load order.
+	Bodies mod.BodyData
 }
 
 // Load orders mods for the base, resolves their settings from given and runs
@@ -123,7 +126,7 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	if err != nil {
 		return Result{}, fmt.Errorf("the mods set rules the game refuses: %w", err)
 	}
-	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells}, nil
+	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells, Bodies: sh.bodies}, nil
 }
 
 // LanguageFor is the language a mod's text is read in on a base: the locale
@@ -144,6 +147,7 @@ type shared struct {
 	screens      mod.ScreenData
 	companions   mod.CompanionData
 	spells       mod.SpellData
+	bodies       mod.BodyData
 	spellGlobals map[string]string
 	spellFields  map[string]string
 }

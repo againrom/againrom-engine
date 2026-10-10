@@ -1,0 +1,5 @@
+# The two-handed War Hammer, drawn with the two-handed axe body by the
+# install, is drawn with the body clubs, maces and morning stars use.
+[[weapon]]
+weapon = "War Hammer"
+body   = "clubman"

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -81,7 +82,7 @@ func TestReleaseGeneratedMissionHeroFighterClassFlags(t *testing.T) {
 	for _, mission := range []int{10, 20} {
 		t.Run(missionSubtestName(mission), func(t *testing.T) {
 			f := releaseFront(t)
-			party := MissionParty(nil, nil, nil)
+			party := MissionParty(nil, data.BodyList{}, nil)
 			got := heroExportedU4C(t, f, party, mission, "generated mission hero fighter class flags")
 			if got != 0 {
 				t.Errorf("hero record U4C=%#x, want 0 (fighter archetype)", got)

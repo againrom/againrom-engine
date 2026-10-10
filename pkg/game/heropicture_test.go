@@ -223,7 +223,7 @@ func TestAStartedMissionDrawsItsMemberFromTheResolvedBody(t *testing.T) {
 	f := missionFrontEnd(t)
 	// A small invented list (SC-3); index 0 is the bare-handed name a nil
 	// weapon's derivation answers.
-	list := data.BodyList{"swordsman"}
+	list := data.NewBodyList("swordsman")
 	bodyName, dir, class, ok := data.HeroAppearance(list, data.Equipment{}, false, false)
 	if !ok {
 		t.Fatal("fixture: the bare-handed row derived no name or no directory")
@@ -297,7 +297,7 @@ func pacedAppearanceMission(t *testing.T, equipped [sim.EquipSlots]uint16, items
 }
 
 func TestPacedMovesTheDrawnClassWhenEquipmentComposesADifferentBody(t *testing.T) {
-	list := data.BodyList{"unarmed", "swordsman"}
+	list := data.NewBodyList("unarmed", "swordsman")
 	oldBody := &terrain.UnitClass{Name: "unarmed body"}
 	newBody := &terrain.UnitClass{Name: "swordsman body"}
 	set := &terrain.UnitSet{Bodies: map[string]*terrain.UnitClass{
@@ -330,7 +330,7 @@ func TestPacedMovesTheDrawnClassWhenEquipmentComposesADifferentBody(t *testing.T
 }
 
 func TestPacedLoadsNothingAndMovesNothingWhenEquipmentDoesNotChange(t *testing.T) {
-	list := data.BodyList{"unarmed"}
+	list := data.NewBodyList("unarmed")
 	set := &terrain.UnitSet{}
 	var eq [sim.EquipSlots]uint16
 	eq[0] = 1
@@ -361,7 +361,7 @@ func TestPacedLoadsNothingAndMovesNothingWhenEquipmentDoesNotChange(t *testing.T
 }
 
 func TestPacedLeavesTheExistingEntryStandingWhenTheBodyCannotResolve(t *testing.T) {
-	list := data.BodyList{"unarmed"}
+	list := data.NewBodyList("unarmed")
 	existing := &terrain.UnitClass{Name: "existing"}
 	set := &terrain.UnitSet{} // no Classes and no Bodies: nothing can resolve
 	var eq [sim.EquipSlots]uint16

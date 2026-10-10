@@ -35,10 +35,17 @@ func ordinaryPartyFace(c sav.DocumentCharacter) int {
 	return int(face)
 }
 
-func capturePartyPolicy(p mapload.PartyMember, c sav.DocumentCharacter) *currentPartyPolicy {
+// capturePartyPolicy records p's policy. The body name is the one the game
+// without mods records for p (data.BodyList.SavedBody over the table's mod
+// bodies); a nil table records p's own.
+func capturePartyPolicy(p mapload.PartyMember, c sav.DocumentCharacter, table *mapload.Table) *currentPartyPolicy {
+	body := p.Body
+	if table != nil {
+		body = string(table.Mods.Bodies.SavedBody(data.HeroBody(p.Body), p.Class))
+	}
 	out := &currentPartyPolicy{
 		Temporary: p.Temporary, PlayerCharacter: p.PlayerCharacter, MercenaryType: p.MercenaryType,
-		CompanionNPC: p.CompanionNPC, Body: []byte(p.Body), BodyDir: []byte(p.BodyDir), FigureDir: []byte(p.FigureDir),
+		CompanionNPC: p.CompanionNPC, Body: []byte(body), BodyDir: []byte(p.BodyDir), FigureDir: []byte(p.FigureDir),
 		Mage: p.Mage, HealthColumn: p.Profile.HealthColumn, ManaColumn: p.Profile.ManaColumn,
 		HiredRotationSpeed: p.HiredRotationSpeed, SpellbookRestored: p.SpellbookRestored,
 		LegacySpellbookPresent: p.SpellbookPresent, StartingWeaponSpent: p.WeaponMaterialized,

@@ -1,0 +1,8 @@
+id          = "war-hammer-body"
+title       = "War Hammer with its own body"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Draws a hero holding the War Hammer with a two-handed body sheet the mod supplies."
+api         = 1
+applies-to  = ["rom1", "rom2-en", "rom2-ru"]
+entry       = "main.star"

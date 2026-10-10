@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -128,7 +129,7 @@ func TestReleaseMissionBridgeBlockingMaskSurvivesSAV(t *testing.T) {
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
 	app := f.App("bridge blocking SAV")
-	if err := app.OpenMission(f.MissionOpenerWith(130, MissionParty(nil, nil, nil))); err != nil {
+	if err := app.OpenMission(f.MissionOpenerWith(130, MissionParty(nil, data.BodyList{}, nil))); err != nil {
 		t.Fatal(err)
 	}
 	w := f.live.world

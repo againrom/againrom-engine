@@ -264,7 +264,7 @@ func TestPrintBlockProbesEachArchetypeFreshly(t *testing.T) {
 // with a name matching no arm disclosed rather than silently given the
 // fallback class and nothing said about it.
 func TestPrintBodyListPrintsIndexAndDrawnClass(t *testing.T) {
-	list := data.BodyList{"unarmed", "not-a-shipped-name", "mage"}
+	list := data.NewBodyList("unarmed", "not-a-shipped-name", "mage")
 	var buf bytes.Buffer
 	printBodyList(&buf, list)
 	out := buf.String()

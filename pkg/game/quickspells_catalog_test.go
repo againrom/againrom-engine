@@ -24,7 +24,7 @@ func TestQuickSpellsCapabilityUsesLiveClientClassWithoutArt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	mw := &mapWorld{world: w, mission: &missionNotices{list: data.BodyList{"unarmed", "swordsman"},
+	mw := &mapWorld{world: w, mission: &missionNotices{list: data.NewBodyList("unarmed", "swordsman"),
 		ids: []sim.EntityID{1, 2, 4, 5}, party: []mapload.PartyMember{
 			{ID: "mage", Mage: true}, {ID: "mage-with-sword", Mage: true},
 			{ID: "hired", MercenaryType: 1, Class: 23}, {ID: "fighter", Class: 23},
@@ -52,7 +52,7 @@ func TestQuickSpellsCapabilityUsesLiveClientClassWithoutArt(t *testing.T) {
 	}
 	// No installed body-name resolution: retain an explicit custom class,
 	// without consulting art success, mana or a guessed server-band mapping.
-	mw.mission.list = nil
+	mw.mission.list = data.BodyList{}
 	mw.mission.party[0].Class = 24
 	if !mw.entityDraws()[0].CastCapable {
 		t.Fatal("explicit unresolved/custom client class was discarded")

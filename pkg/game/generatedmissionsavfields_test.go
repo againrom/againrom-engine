@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -32,7 +33,7 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 	} {
 		t.Run(missionSubtestName(tc.mission), func(t *testing.T) {
 			f := releaseFront(t)
-			party := MissionParty(nil, nil, nil)
+			party := MissionParty(nil, data.BodyList{}, nil)
 			app := f.App("generated mission SAV constraints")
 			if err := app.OpenMission(f.MissionOpenerWith(tc.mission, party)); err != nil {
 				t.Fatal(err)

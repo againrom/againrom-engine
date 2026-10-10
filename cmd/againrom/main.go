@@ -250,6 +250,9 @@ func modLines(res modrt.Result) []string {
 	if !res.Spells.Empty() {
 		lines = append(lines, fmt.Sprintf("againrom: spells edited=%d global=%d", len(res.Spells.Rows), len(res.Spells.Global.Globals())))
 	}
+	if !res.Bodies.Empty() {
+		lines = append(lines, fmt.Sprintf("againrom: weapon bodies=%d body sheets=%d", len(res.Bodies.Weapons), len(res.Bodies.Bodies)))
+	}
 	return lines
 }
 
@@ -843,6 +846,10 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			return 2
 		}
 		if err := front.SetModSpells(modRun.Spells); err != nil {
+			fmt.Fprintln(stderr, "againrom:", err)
+			return 2
+		}
+		if err := front.SetModBodies(modRun.Bodies); err != nil {
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 2
 		}

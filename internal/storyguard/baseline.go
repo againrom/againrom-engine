@@ -2114,6 +2114,10 @@ package storyguard
 // CommentBytes rises for the one school training rule: the docs of
 // pkg/rules/school.go, the archtest school training scan, the plain-member
 // price and their tests, new code, including this paragraph.
+// CommentBytes rises for the mods' hero bodies: the docs of the body list's
+// mod choices, pkg/mod/bodies.go, pkg/game/modbodies.go, the one hero body
+// builder, the saved body name and their unit and release tests, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2137,5 +2141,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8657616,
+	CommentBytes: 8671711,
 }

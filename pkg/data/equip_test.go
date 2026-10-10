@@ -116,7 +116,7 @@ func TestEquipSlotForAnswersFieldBAlone(t *testing.T) {
 // fixtureList is a small, entirely invented body list — never the shipped
 // one (SC-3) — used to exercise the derivation's three arms. Row 1 (the
 // bare-handed row) is entry 0.
-var fixtureList = data.BodyList{"bare", "sword", "axe", "", "bow"}
+var fixtureList = data.NewBodyList("bare", "sword", "axe", "", "bow")
 
 // equipmentWithCode builds a fresh Equipment carrying code in slot 1 — the
 // only slot HeroBodyFor reads.
@@ -161,8 +161,8 @@ func TestAnEmptyFirstSlotDerivesTheBareHandedName(t *testing.T) {
 	if !ok {
 		t.Fatal("an empty first slot: refused, want the bare-handed name produced")
 	}
-	if got != fixtureList[0] {
-		t.Errorf("derived %q, want the list's first entry %q", got, fixtureList[0])
+	if got != fixtureList.Entry(0) {
+		t.Errorf("derived %q, want the list's first entry %q", got, fixtureList.Entry(0))
 	}
 	if got != "bare" {
 		t.Errorf("derived %q, want %q", got, "bare")
@@ -182,7 +182,7 @@ func TestARowNamingNoEntryProducesNoName(t *testing.T) {
 		name string
 		code data.ItemCode
 	}{
-		{"one past the list's end", data.ItemCode(len(fixtureList)) + 1},
+		{"one past the list's end", data.ItemCode(fixtureList.Len()) + 1},
 		{"far past the list's end, at field D's own maximum", 31},
 		{"naming the list's own empty entry", 4}, // fixtureList[3] == ""
 	} {
@@ -224,27 +224,27 @@ func TestParseBodyListSplitsEveryLineIncludingAnEmptyOne(t *testing.T) {
 		want data.BodyList
 	}{
 		{"LF, no trailing newline", []byte("bare\nsword\naxe"),
-			data.BodyList{"bare", "sword", "axe"}},
+			data.NewBodyList("bare", "sword", "axe")},
 		{"LF, trailing newline adds nothing", []byte("bare\nsword\naxe\n"),
-			data.BodyList{"bare", "sword", "axe"}},
+			data.NewBodyList("bare", "sword", "axe")},
 		{"CRLF, trailing newline adds nothing", []byte("bare\r\nsword\r\naxe\r\n"),
-			data.BodyList{"bare", "sword", "axe"}},
+			data.NewBodyList("bare", "sword", "axe")},
 		{"an interior empty line is kept", []byte("bare\n\naxe\n"),
-			data.BodyList{"bare", "", "axe"}},
+			data.NewBodyList("bare", "", "axe")},
 		{"an interior empty CRLF line is kept", []byte("bare\r\n\r\naxe\r\n"),
-			data.BodyList{"bare", "", "axe"}},
-		{"a lone empty line", []byte("\n"), data.BodyList{""}},
+			data.NewBodyList("bare", "", "axe")},
+		{"a lone empty line", []byte("\n"), data.NewBodyList("")},
 		{"empty payload", []byte{}, data.BodyList{}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := data.ParseBodyList(tc.data)
-			if len(got) != len(tc.want) {
+			if got.Len() != tc.want.Len() {
 				t.Fatalf("ParseBodyList(%q) = %#v (%d entries), want %#v (%d entries)",
-					tc.data, got, len(got), tc.want, len(tc.want))
+					tc.data, got, got.Len(), tc.want, tc.want.Len())
 			}
-			for i := range got {
-				if got[i] != tc.want[i] {
-					t.Errorf("entry %d = %q, want %q", i, got[i], tc.want[i])
+			for i := 0; i < got.Len(); i++ {
+				if got.Entry(i) != tc.want.Entry(i) {
+					t.Errorf("entry %d = %q, want %q", i, got.Entry(i), tc.want.Entry(i))
 				}
 			}
 		})
@@ -258,7 +258,7 @@ func TestParseBodyListSplitsEveryLineIncludingAnEmptyOne(t *testing.T) {
 // resolves to no name at all (a row past the list's end).
 func TestFigureHeldLastMatchesTheSixLiteralBodyNames(t *testing.T) {
 	// Row i (1-based, HeroBodyFor's own indexing) resolves to list[i-1].
-	list := data.BodyList{
+	list := data.NewBodyList(
 		data.BodyUnarmed,     // row 1 — also the empty-slot arm's own answer
 		data.BodySwordsman,   // row 2 — one-handed
 		data.BodySwordsman2H, // row 3
@@ -267,7 +267,7 @@ func TestFigureHeldLastMatchesTheSixLiteralBodyNames(t *testing.T) {
 		data.BodyBowman,      // row 6 — HERO-APPEAR-052's own dead arm
 		data.BodyCrossbowman, // row 7
 		data.BodyMageStaff,   // row 8
-	}
+	)
 
 	for _, tc := range []struct {
 		name string
@@ -296,7 +296,7 @@ func TestFigureHeldLastMatchesTheSixLiteralBodyNames(t *testing.T) {
 	t.Run("a nil list resolves no name", func(t *testing.T) {
 		var eq data.Equipment
 		eq.SetCode(1, data.ItemCode(3)) // would be swordsman2h on the list above
-		if got := data.FigureHeldLast(nil, eq); got != 2 {
+		if got := data.FigureHeldLast(data.BodyList{}, eq); got != 2 {
 			t.Errorf("FigureHeldLast(nil list) = %d, want 2 — nothing to resolve a name from", got)
 		}
 	})
