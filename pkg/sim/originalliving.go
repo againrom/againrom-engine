@@ -50,6 +50,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 		if e.ActorLoad.Source.Class != 0 {
 			e.NativeClass = NativeClass{}
 			e.NativeBasis = NativeActorBasis{}
+			e.SpeedModifier = 0
 		}
 		e.liftEffectiveSkills(w.rules)
 		if seen[e.ID] || e.SourceBinding.Class == 0 || (!e.Alive() && !originalDyingEntity(e)) || !e.Domain.defined() || !current[e.ID] && (!e.OffMap && (e.X < 0 || e.Y < 0 || e.X >= w.bounds.Width || e.Y >= w.bounds.Height) || e.TokenSize == 0) {

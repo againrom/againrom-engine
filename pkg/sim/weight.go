@@ -3,6 +3,8 @@ package sim
 import (
 	"fmt"
 	"sort"
+
+	"againrom/pkg/rules"
 )
 
 // ItemWeight is the deterministic code-table fallback for native and legacy
@@ -22,22 +24,6 @@ const (
 	carrySaturation    int32 = 0xfa00
 	carrySaturatedLoad int32 = 0x7d00
 	carryHalving       int32 = 2
-)
-
-// The overload penalty's own two constants (HERO-SPEED-008, High).
-// overloadFloor is the `max(speed, 6)` at L03930, and it
-// sits INSIDE the penalty arm rather than over the whole speed law: it can
-// only be reached by an actor whose load has already met his capacity.
-//
-// THE FLOOR CAN RAISE A SPEED, and that is the original's arithmetic rather
-// than an oversight here. An actor whose unencumbered speed is below six and
-// who is overloaded leaves this function at six, faster than he was. The claim
-// gives the compare as unconditional inside the arm, so reproducing it means
-// reproducing that; narrowing it to "never raise" would be this tree choosing a
-// rule the original does not state.
-const (
-	overloadFloor    int32 = 6
-	overloadDivisorZ int32 = 0 // capacity below which no penalty is evaluated
 )
 
 // normaliseItemWeights is the one legal representation of a weight table:
@@ -270,34 +256,15 @@ func (w *World) recomputeLoads() {
 	}
 }
 
-// overloadedSpeed is HERO-SPEED-008's own penalty and nothing else:
-//
-//	if load >= capacity : speed = max(speed - load/capacity, 6)
-//
-// IT IS THE ONLY CONSUMER OF THE LOAD. ITEM-LOAD-005 states that in as many
-// words, and nothing in this build refuses a pick-up, a purchase, an equip or a
-// sack transfer on weight.
-//
-// BELOW CAPACITY IT DOES NOTHING AT ALL — not a small penalty, not a scaled
-// one. The gate is `load >= capacity` and the arm is skipped entirely below it.
-//
-// TWO GUARDS ARE THIS PACKAGE'S AND NOT THE CLAIM'S, and neither changes a
-// value the claim covers:
-//
-//   - A base at or below zero is returned untouched. Speed is this package's
-//     own "has a rate at all" predicate (rated, world.go), and an entity that
-//     moves at no rate must not be turned into one that moves at six by the
-//     floor. No actor the claim describes has a speed of zero.
-//   - A capacity at or below zero is returned untouched. Capacity is `Body x 10
-//   - 1` and is never zero for a character any recompute ran for, so a zero
-//     here is an entity no spawn path stated a capacity for, a prop —
-//     and it also removes the division.
-func overloadedSpeed(base, load, capacity int32) int32 {
-	if base <= 0 || capacity <= overloadDivisorZ || load < capacity {
-		return base
+// humanSpeedWord is the Human derive's speed word for an unencumbered speed
+// and the signed modifier inside it, with the modifier the derive keeps
+// (rules.HumanSpeed). The load is its only consumer (ITEM-LOAD-005). Two
+// guards are this package's: a speed at or below zero has no rate (rated) and
+// is returned whole, and so is an entity with no stated capacity.
+func humanSpeedWord(speed, modifier, load, capacity int32) (word, kept int32) {
+	if speed <= 0 || capacity <= 0 {
+		return speed, modifier
 	}
-	if v := base - load/capacity; v > overloadFloor {
-		return v
-	}
-	return overloadFloor
+	w, m, _ := rules.HumanSpeed(int16(speed-modifier), int16(modifier), int16(load), int16(capacity))
+	return int32(w), int32(m)
 }

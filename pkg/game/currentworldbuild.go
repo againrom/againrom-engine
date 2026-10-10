@@ -604,8 +604,8 @@ func currentRecordActor(e sim.Entity, member, hero mapload.PartyMember, placemen
 	basis = e
 	basis.SourceBinding = binding
 	basis.ActorLoad.Source, basis.ActorLoad.Present = source, true
-	basis.NativeBasis = sim.NativeActorBasis{}
-	basis.HumanMovement = sim.HumanMovement{Present: true, RawSpeed: int16(e.Speed), NativeSpeed: e.Speed, Load: e.Load, Capacity: e.Capacity}
+	basis.NativeBasis, basis.SpeedModifier = sim.NativeActorBasis{}, 0
+	basis.HumanMovement = sim.HumanMovement{Present: true, RawSpeed: int16(e.SpeedWord()), NativeSpeed: e.Speed, Load: e.Load, Capacity: e.Capacity}
 	if member.Hired() {
 		name = ordinaryActorName(member, t)
 	}
@@ -649,7 +649,7 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 	if e.NativeClass.Present {
 		source.Fighter = e.NativeClass.Fighter
 	}
-	values := map[int]int32{1: e.Reaction, 2: e.Mind, 3: e.Spirit, 4: e.Speed, 5: int32(e.ActorLoad.OwnWeight), 6: e.Load, 7: e.Capacity, 8: e.HP, 9: e.MaxHP, 10: e.HealthRegenPeriod, 11: e.Mana, 12: e.MaxMana, 13: e.ManaRegenPeriod}
+	values := map[int]int32{1: e.Reaction, 2: e.Mind, 3: e.Spirit, 4: e.SpeedWord(), 5: int32(e.ActorLoad.OwnWeight), 6: e.Load, 7: e.Capacity, 8: e.HP, 9: e.MaxHP, 10: e.HealthRegenPeriod, 11: e.Mana, 12: e.MaxMana, 13: e.ManaRegenPeriod}
 	for i, v := range values {
 		source.Stats[i] = uint16(v)
 	}

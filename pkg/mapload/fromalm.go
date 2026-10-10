@@ -719,6 +719,7 @@ type spawnBlock struct {
 	health       int32
 	domain       sim.Domain
 	speed        int32
+	speedMod     int32
 	sight        uint8
 	seeInvisible uint8
 	dying        int32
@@ -902,7 +903,8 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 			nativeBasis: nativeBasis.WithBody(uint16(der.Body)),
 			nativeClass: sim.NativeClass{Present: true, Fighter: h.Profile().Fighter},
 			humanoid:    true,
-			speed:       h.Speed + riderBonus(typeID) + loadout.Mod.Speed, sight: sightOf(h.ScanRange + loadout.Mod.Sight), dying: h.DyingTime,
+			speed:       h.Speed + riderBonus(typeID) + loadout.Mod.Speed, speedMod: loadout.Mod.Speed,
+			sight: sightOf(h.ScanRange + loadout.Mod.Sight), dying: h.DyingTime,
 			combat: der.Combat, protection: der.Protection,
 			resistance: data.DamageKindResistance(der.Resistance), tokenSize: uint8(h.TokenSize), skill: der.Skill, skillXP: skillXP,
 			capacity: der.Capacity,

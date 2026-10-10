@@ -38,9 +38,11 @@ type CombatBlock struct {
 // computes once at the fixed post-award point, and this world stores the result
 // before the next decision, hash, save, or UI projection can read it.
 type DerivedBlock struct {
-	Combat                 CombatBlock
-	MaxHP, MaxMana         int32
-	Speed                  int32
+	Combat         CombatBlock
+	MaxHP, MaxMana int32
+	Speed          int32
+	// SpeedModifier is the signed modifier part of Speed (data.Derived).
+	SpeedModifier          int32
 	ScanRange              uint8
 	Reaction, Mind, Spirit int32
 	// Capacity is the actor's carrying capacity, `Body x 10 + 1`
@@ -94,7 +96,10 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 		w.redistributeShortfall(id, EffectSpeed, -1, minEffectSpeed-speed)
 		speed = minEffectSpeed
 	}
-	e.Speed = speed
+	e.Speed, e.SpeedModifier = speed, 0
+	if e.nativeHumanoid() {
+		e.SpeedModifier = d.SpeedModifier + speed - d.Speed
+	}
 	nativeModifierEffectDelta(e, EffectSpeed, w.effectDelta(id, EffectSpeed)-priorSpeed)
 	e.HumanMovement = HumanMovement{}
 	e.Reaction, e.Mind, e.Spirit = d.Reaction, d.Mind, d.Spirit
@@ -120,7 +125,7 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 	if e.ActorLoad.Present {
 		e.Load = e.ActorLoad.CurrentLoad()
 	}
-	e.refreshHumanTurnRate()
+	e.deriveNativeHumanSpeed()
 	sight := int32(d.ScanRange) + w.effectDelta(id, EffectScanRange)
 	if sight < 0 {
 		sight = 0

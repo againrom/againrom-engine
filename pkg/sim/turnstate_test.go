@@ -85,13 +85,13 @@ func TestTurnStateDecoderRejectsCorruptCountAndTarget(t *testing.T) {
 func TestHumanTurnRateUsesOwnSpeedAndRetainsCreatureRate(t *testing.T) {
 	human := turnActor(1, 3, 3, 0, 99)
 	human.Humanoid, human.Speed, human.GroupSpeed = true, 21, 8
-	human.refreshHumanTurnRate()
+	human.deriveNativeHumanSpeed()
 	if human.RotationSpeed != 21 {
 		t.Fatalf("formation replaced own turn rate with %d", human.RotationSpeed)
 	}
 	creature := turnActor(2, 4, 3, 0, 12)
 	creature.Speed = 24
-	creature.refreshHumanTurnRate()
+	creature.deriveNativeHumanSpeed()
 	if creature.RotationSpeed != 12 {
 		t.Fatalf("creature rate changed to %d", creature.RotationSpeed)
 	}

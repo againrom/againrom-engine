@@ -217,6 +217,11 @@ type Derived struct {
 	HealthRegeneration, ManaRegeneration, RotationSpeed int32
 	SecondaryDamage                                     SecondaryDamage
 
+	// SpeedModifier is the signed modifier part of Speed: the worn items'
+	// speed effects. Speed less this is the base the overload penalty and
+	// its floor act on before the modifier is added (rules.HumanSpeed).
+	SpeedModifier int32
+
 	// Capacity is how much this character may carry before the overload penalty
 	// applies: `Body x 10 + 1` off the CAPPED Body, and never a column
 	// (HERO-SIGHT-007, High; the multiply by ten and the add of one are at
@@ -583,6 +588,7 @@ func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
 		Protection:         protection,
 		Resistance:         resistance,
 		Speed:              speed,
+		SpeedModifier:      l.Mod.Speed,
 		Sight:              sight,
 		HealthRegeneration: l.Mod.HealthRegeneration,
 		ManaRegeneration:   l.Mod.ManaRegeneration,

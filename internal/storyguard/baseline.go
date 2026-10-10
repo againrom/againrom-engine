@@ -2027,6 +2027,11 @@ package storyguard
 // CommentBytes rises for the corpus part tests: the share and summary helpers
 // in pkg/game and the part docs of the writer census, the SAV round-trip gate
 // and the converted-corpus continuation, new code, including this paragraph.
+// CommentBytes rises for the Human speed derive: the shared derive in
+// pkg/rules, the native speed modifier, its byte-form section and LOAD split
+// in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
+// tests in pkg/rules, pkg/sim and pkg/game, new code, including this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2048,7 +2053,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1768,
+		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8579010,
+	CommentBytes: 8583590,
 }

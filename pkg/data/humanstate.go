@@ -3,6 +3,8 @@ package data
 import (
 	"fmt"
 	"math"
+
+	"againrom/pkg/rules"
 )
 
 // HumanAttack retains the three independent live, maintained-base and modifier
@@ -227,12 +229,13 @@ func (h *HumanState) derive() error {
 	} else {
 		h.Load = 32000
 	}
-	if humanSigned(h.Load) >= humanSigned(h.Capacity) {
-		if h.Capacity == 0 {
-			return fmt.Errorf("Human derive would divide by zero capacity")
-		}
-		h.Speed = uint16(max(humanSigned(h.Speed)-humanSigned(h.Load)/humanSigned(h.Capacity), 6))
+	// The modifier joins here rather than in foldModifier: nothing between
+	// reads the speed, and the capacity compared is still the unmodified one.
+	speed16, kept, ok := rules.HumanSpeed(int16(h.Speed), int16(h.Modifier.Speed), int16(h.Load), int16(h.Capacity))
+	if !ok {
+		return fmt.Errorf("Human derive would divide by zero capacity")
 	}
+	h.Speed, h.Modifier.Speed = uint16(speed16), uint16(kept)
 	v, err = humanFTOL(math.Pow(1.1, float64(body)) / 20)
 	if err != nil {
 		return err
@@ -278,10 +281,6 @@ func (h *HumanState) derive() error {
 
 func (h *HumanState) foldModifier() {
 	m := &h.Modifier
-	h.Speed += m.Speed
-	if int16(h.Speed) < 0 {
-		m.Speed = 0
-	}
 	h.Capacity += m.Capacity
 	h.HealthMax += m.HealthMax
 	h.ManaMax += m.ManaMax
@@ -349,7 +348,7 @@ func (h HumanState) Derived(weapon *Weapon, rotation int32) Derived {
 	hero := h.Hero()
 	d := Derived{Body: hero.Body, Reaction: hero.Reaction, Mind: hero.Mind, Spirit: hero.Spirit, Skill: hero.Skill,
 		Experience: int32(h.Experience), HealthMax: humanSigned(h.HealthMax), ManaMax: humanSigned(h.ManaMax),
-		Combat: c, Speed: h.NativeMovementBase(), Sight: int32(h.Sight >> 8), Capacity: humanSigned(h.Capacity),
+		Combat: c, Speed: h.NativeMovementBase(), SpeedModifier: humanSigned(h.Modifier.Speed), Sight: int32(h.Sight >> 8), Capacity: humanSigned(h.Capacity),
 		HealthRegeneration: humanSigned(h.Modifier.HealthRegeneration), ManaRegeneration: humanSigned(h.Modifier.ManaRegeneration),
 		RotationSpeed: rotation, SecondaryDamage: secondary}
 	for i := range d.SkillXP {
