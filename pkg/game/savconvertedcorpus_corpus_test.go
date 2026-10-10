@@ -52,7 +52,25 @@ type convertedManifestDocument struct {
 // The converted corpus measured on both roots: 114 inputs, every one converted.
 var savConvertedBaseline = sav1195Baseline{discovered: 114, accepted: 114, migratedCeiling: 0, refusals: map[string]int{}}
 
-func TestSAVConvertedCorpusContinuation(t *testing.T) {
+// The converted corpus part tests share its files by size, savConvertedParts
+// ways. The first part checks the manifest against the whole corpus; the part
+// that completes the set checks the census of the whole.
+func TestSAVConvertedCorpusContinuationPart1(t *testing.T) { savConvertedContinuation(t, 0) }
+func TestSAVConvertedCorpusContinuationPart2(t *testing.T) { savConvertedContinuation(t, 1) }
+
+const savConvertedParts = 2
+
+// savConvertedRefusal is a refusal as a part summary carries it.
+type savConvertedRefusal struct{ Rel, Stage, Err string }
+
+// savConvertedSummary is one part's census.
+type savConvertedSummary struct {
+	Exact, Mismatches int
+	Refused           []savConvertedRefusal
+	ByReason          map[string]int
+}
+
+func savConvertedContinuation(t *testing.T, part int) {
 	corpus := os.Getenv("AGAINROM_CONVERTED_CORPUS")
 	if corpus == "" {
 		t.Fatal("AGAINROM_CONVERTED_CORPUS must name the directory of converted SAV files and conversion-manifest.json")
@@ -72,42 +90,75 @@ func TestSAVConvertedCorpusContinuation(t *testing.T) {
 	byOutput := map[string]convertedManifestFile{}
 	for _, file := range manifest.Files {
 		if file.Output == "" || file.Status == "failed" {
-			t.Errorf("manifest input %s has no converted output (status %q)", file.Source, file.Status)
+			if part == 0 {
+				t.Errorf("manifest input %s has no converted output (status %q)", file.Source, file.Status)
+			}
 			continue
 		}
 		byOutput[strings.ToLower(file.Output)] = file
 	}
-	if manifest.Summary.Failed != 0 || manifest.Summary.Undisclosed != 0 {
+	if part == 0 && (manifest.Summary.Failed != 0 || manifest.Summary.Undisclosed != 0) {
 		t.Errorf("manifest records %d failed and %d undisclosed conversions", manifest.Summary.Failed, manifest.Summary.Undisclosed)
 	}
 
-	total, exactFiles, mismatches := 0, 0, 0
+	type convertedFile struct{ rel, path string }
+	var files []convertedFile
+	var names []string
+	var sizes []int64
+	seen := map[string]bool{}
+	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.EqualFold(filepath.Ext(d.Name()), ".sav") {
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		rel, relErr := filepath.Rel(corpus, path)
+		if relErr != nil {
+			rel = path
+		}
+		rel = filepath.ToSlash(rel)
+		seen[strings.ToLower(rel)] = true
+		files = append(files, convertedFile{rel, path})
+		names, sizes = append(names, rel), append(sizes, info.Size())
+		return nil
+	})
+	if walkErr != nil {
+		t.Fatal(walkErr)
+	}
+	total := len(files)
+	if total == 0 {
+		t.Fatal("converted corpus is empty; AGAINROM_CONVERTED_CORPUS is misconfigured")
+	}
+	if part == 0 {
+		for output := range byOutput {
+			if !seen[output] {
+				t.Errorf("manifest output %s is missing from the corpus", output)
+			}
+		}
+	}
+	share := corpusPartOf(names, sizes, savConvertedParts)
+
+	exactFiles, mismatches := 0, 0
 	tally := map[string]int{}
 	byReason := map[string]int{}
 	var refused []sav1195Refusal
-	seen := map[string]bool{}
 
 	// Two files at a time: a file is loaded, saved and reloaded alone, and the
 	// shared counters below change under the lock. The group ends only when
-	// every file has, so the census after it reads the whole corpus.
+	// every file has, so the census after it reads the whole share.
 	var mu sync.Mutex
 	workers := make(chan struct{}, 2)
-	var walkErr error
 	t.Run("files", func(t *testing.T) {
-		walkErr = filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-			if err != nil {
-				return err
+		for i, file := range files {
+			if share[i] != part {
+				continue
 			}
-			if d.IsDir() || !strings.EqualFold(filepath.Ext(d.Name()), ".sav") {
-				return nil
-			}
-			total++
-			rel, relErr := filepath.Rel(corpus, path)
-			if relErr != nil {
-				rel = path
-			}
-			rel = filepath.ToSlash(rel)
-			seen[strings.ToLower(rel)] = true
+			rel, path := file.rel, file.path
 			t.Run(rel, func(t *testing.T) {
 				t.Parallel()
 				workers <- struct{}{}
@@ -193,26 +244,33 @@ func TestSAVConvertedCorpusContinuation(t *testing.T) {
 					exactFiles++
 				}
 			})
-			return nil
-		})
+		}
 	})
-	if walkErr != nil {
-		t.Fatal(walkErr)
+	mine := savConvertedSummary{Exact: exactFiles, Mismatches: mismatches, ByReason: byReason}
+	for _, r := range refused {
+		mine.Refused = append(mine.Refused, savConvertedRefusal{Rel: r.rel, Stage: r.stage, Err: r.err.Error()})
 	}
-	if total == 0 {
-		t.Fatal("converted corpus is empty; AGAINROM_CONVERTED_CORPUS is misconfigured")
+	set := corpusPartsCollect(t, "converted", part, savConvertedParts, mine)
+	if set == nil {
+		return
 	}
-	for output := range byOutput {
-		if !seen[output] {
-			t.Errorf("manifest output %s is missing from the corpus", output)
+	whole := savConvertedSummary{ByReason: map[string]int{}}
+	for _, p := range corpusPartsDecode[savConvertedSummary](t, set) {
+		whole.Exact += p.Exact
+		whole.Mismatches += p.Mismatches
+		whole.Refused = append(whole.Refused, p.Refused...)
+		for reason, n := range p.ByReason {
+			whole.ByReason[reason] += n
 		}
 	}
-	sort.Slice(refused, func(i, j int) bool { return refused[i].rel < refused[j].rel })
-	sav1195LogRefusals(t, "converted-corpus", refused)
-	for reason, n := range byReason {
+	sort.Slice(whole.Refused, func(i, j int) bool { return whole.Refused[i].Rel < whole.Refused[j].Rel })
+	for _, r := range whole.Refused {
+		t.Logf("converted-corpus: REFUSED %s stage=%s: %s", r.Rel, r.Stage, r.Err)
+	}
+	for reason, n := range whole.ByReason {
 		t.Logf("SAV-ROUNDTRIP-CONVERTED-REASON %d: %s", n, reason)
 	}
 	t.Logf("SAV-ROUNDTRIP-CONVERTED-CENSUS discovered=%d manifest=%d exact=%d refused=%d mismatched=%d",
-		total, len(manifest.Files), exactFiles, len(refused), mismatches)
-	sav1195CheckBaseline(t, "converted-corpus", savConvertedBaseline, total, exactFiles, 0, byReason)
+		total, len(manifest.Files), whole.Exact, len(whole.Refused), whole.Mismatches)
+	sav1195CheckBaseline(t, "converted-corpus", savConvertedBaseline, total, whole.Exact, 0, whole.ByReason)
 }

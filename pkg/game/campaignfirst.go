@@ -110,3 +110,8 @@ func (firstCampaignRules) eventAudience(*mapWorld) (EventAudience, bool) {
 }
 
 func (firstCampaignRules) objectives(_ *mapWorld, briefing string) string { return briefing }
+
+func (firstCampaignRules) chat() *chatAdapter { return &firstChat }
+
+// chatCampaign: the first game's adapter has no campaign rule.
+func (firstCampaignRules) chatCampaign(*Town) bool { return false }
