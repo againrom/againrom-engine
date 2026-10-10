@@ -11,7 +11,7 @@ import (
 // absent; the terminal row names the placement, and the reference follows the
 // row the dead list still answers for. Bound references, and a placement two
 // rows name, are left as they are.
-func restoreTerminalScriptBindings(ms *Mission) error {
+func restoreTerminalScriptBindings(ms *Mission, table *mapload.Table) error {
 	if ms.Map == nil || ms.World == nil || ms.World.Script() == nil {
 		return nil
 	}
@@ -32,7 +32,13 @@ func restoreTerminalScriptBindings(ms *Mission) error {
 	if len(units) == 0 {
 		return nil
 	}
-	roles, _, err := mapload.CompileScript(ms.Map, mapload.ScriptRefs{Units: units, Structures: mapload.ScriptStructures(ms.Map)})
+	// The party's roster decides the same unbuilt nodes the program omitted.
+	var refs mapload.ScriptRefs
+	if len(ms.Party) == len(ms.Start.IDs) {
+		refs = campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] })
+	}
+	refs.Units, refs.Structures = units, mapload.ScriptStructures(ms.Map)
+	roles, err := currentScriptRolesProgram(ms.World, ms.Map, refs, mapload.CompileScript)
 	if err != nil {
 		return err
 	}

@@ -125,7 +125,14 @@ func TestLoadReresolvesHeroOrdinalsFromTheLoadedParty(t *testing.T) {
 	world := currentScriptRoleWorld(t, saved)
 	ids := []sim.EntityID{0, 1}
 	refs := campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] })
-	roles := currentScriptRoleProgram(t, refs)
+	// The saved program built every node; the roster leaves 10003 unresolved,
+	// so the roles are compiled in the saved program's shape.
+	roles, err := currentScriptRolesProgram(world, nil, refs, func(_ *alm.Map, r mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error) {
+		return mapload.CompileScriptFrom(currentScriptRoleSource(), r)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := restoreCurrentScriptRoles(world, roles); err != nil {
 		t.Fatal(err)
 	}

@@ -2042,8 +2042,9 @@ package storyguard
 // CommentBytes rises for the one chat command parser, its two game adapters,
 // the second game's completion win predicate and the second game's command
 // witnesses, new code, including this paragraph.
-// CommentBytes rises for the unbuilt script node census in pkg/game, new
-// code, including this paragraph.
+// CommentBytes rises for the unbuilt script node census, the ROM1 omission
+// rule in pkg/mapload, its real-roster census and the mission-100 servant
+// witness, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2067,5 +2068,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8596260,
+	CommentBytes: 8599323,
 }

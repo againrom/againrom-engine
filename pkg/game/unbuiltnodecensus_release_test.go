@@ -52,7 +52,8 @@ var unbuiltCensusInstantName = map[uint32]string{4: "Mission Win", 5: "Mission F
 // reference the binder cannot resolve at mission load, every trigger naming
 // it, and what subscript 0 and register 0 are once unbuilt nodes take none
 // (TRIG-BIND-010, TRIG-HEROFAIL-078, TRIG-M100-096). It reads the compile's
-// Unresolved report, so it measures the same lookups the mission start makes.
+// Unresolved report, so it measures the same lookups the mission start makes,
+// and fails when the compile's omitted nodes are not exactly those.
 func censusUnbuiltNodes(m *alm.Map, refs mapload.ScriptRefs) (unbuiltCensusMap, error) {
 	var out unbuiltCensusMap
 	src, err := m.Script()
@@ -88,6 +89,19 @@ func censusUnbuiltNodes(m *alm.Map, refs mapload.ScriptRefs) (unbuiltCensusMap, 
 		}
 	}
 	sort.Slice(out.groupsAbsent, func(i, j int) bool { return out.groupsAbsent[i] < out.groupsAbsent[j] })
+	for id := range failedAction {
+		if !slices.Contains(rep.OmittedActions, id) {
+			return out, fmt.Errorf("action %d does not resolve and the compile built it", id)
+		}
+	}
+	for id := range failedCheck {
+		if !slices.Contains(rep.OmittedChecks, id) {
+			return out, fmt.Errorf("check %d does not resolve and the compile built it", id)
+		}
+	}
+	if len(rep.OmittedActions) != len(failedAction) || len(rep.OmittedChecks) != len(failedCheck) {
+		return out, fmt.Errorf("the compile omitted %v %v beyond the unresolved nodes", rep.OmittedActions, rep.OmittedChecks)
+	}
 	live := func(i int, t alm.ScriptTrigger) bool { return t.Left[0] != 0 }
 	for _, n := range src.Actions {
 		if n.Opcode >= 0x10002 {

@@ -270,11 +270,13 @@ func heroTraits(p mapload.PartyMember) data.HeroTraits {
 // campaignScriptPartyRefs resolves hero ordinal k (value 10001+k) to the first party
 // member in list order that passes its role test (TRIG-HEROORD-075, TRIG-HEROTPL-076).
 // Members count as named; a map with player capacity above one resolves nothing.
+// A party it resolves against is the binding roster (ScriptRefs.Roster).
 func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember, entity func(int) sim.EntityID) mapload.ScriptRefs {
 	var refs mapload.ScriptRefs
 	if len(party) == 0 || m != nil && m.Meta.Word70 > 1 {
 		return refs
 	}
+	refs.Roster = true
 	primary := 0
 	for i, p := range party {
 		if p.StartingHero {
