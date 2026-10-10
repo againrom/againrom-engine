@@ -26,6 +26,8 @@ type loadWindow struct {
 	// gesture, a press off the rows, a load and a closed list clear it
 	// (DIV-2870).
 	rowPressed bool
+	// doubled: a double click's second press; its release loads.
+	doubled bool
 	// completed counts the loads that replaced the session, so presentation can
 	// tell a fresh load from an unchanged screen. It is never reset.
 	completed uint32
@@ -35,6 +37,7 @@ func (w *loadWindow) resetPointer() {
 	w.press.Clear()
 	w.bar.reset()
 	w.rowPressed = false
+	w.doubled = false
 }
 
 func (a *App) SetLoadWindowWords(w LoadWindowWords) { a.flow.loadUI.words = w }
@@ -181,11 +184,8 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		}
 		row, onRow := box.RowAt(p)
 		if onRow && in.PrimaryDouble && f.loadUI.rowPressed {
-			// The list's double click reads no point: it loads the
-			// selection the first press stored, as the Load button does
-			// (MENU-144). Its release belongs to this press.
-			a.suppressPrimaryRelease = true
-			a.acceptLoad()
+			// Loads the first press's selection on this release (MENU-144).
+			f.loadUI.rowPressed, f.loadUI.doubled = false, true
 			return
 		}
 		top, count := l.Visible()
@@ -196,6 +196,10 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		return
 	}
 	if !in.PrimaryReleased {
+		return
+	}
+	if f.loadUI.doubled {
+		a.acceptLoad()
 		return
 	}
 	at, inside := loadButtonAt(p)
