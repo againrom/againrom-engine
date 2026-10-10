@@ -78,6 +78,7 @@ var writerCensusChangeFloor = map[string]int{
 var writerCensusDebt = map[string]string{
 	"registry:/CurrentState/AgainromActions": "engine continuation supplement, DIV-1369; rewritten from current state on every save; no ROM1 rule",
 	"registry:/CurrentState/AgainromRng":     "engine random-stream leaf, DIV-1202; advances with the simulation; no ROM1 rule",
+	"registry:/CurrentState/AgainromSeed":    "engine random-session leaf, DIV-2736; an original SAV's session seed is derived from its bytes; no ROM1 rule",
 	"registry:/Fog/Data": "explored plane written from current state after the party moved; SAV-FOG-061 fixes the encoding and a LOAD that only ORs, " +
 		"checked here as runs covering the loaded extent with no explored cell lost; no rule fixes which new cells are explored",
 	"registry:/Objects/Selection":        "current selection written from state; no rule fixes its value",
@@ -85,6 +86,7 @@ var writerCensusDebt = map[string]string{
 	"registry:/Projectiles/IDs":          "projectile store written from the projectiles in flight; SAV-PROJSTORE-428 fixes the layout, no rule fixes a value",
 	"registry:/SpellBook/Pressed":        "the viewer's current spell after the census's orders, written from state; no rule fixes its value",
 	"town:/CurrentState/AgainromActions": "engine continuation supplement, DIV-1369; rewritten from current state on every save; no ROM1 rule",
+	"town:/CurrentState/AgainromSeed":    "engine random-session leaf, DIV-2736; an original SAV's session seed is derived from its bytes; no ROM1 rule",
 	"town:/Objects/Selection": "the town writer writes an empty selection where the loaded file names objects by index; SAV-914 has LOAD consume Objects, " +
 		"but no claim fixes what a town selection index names in a rebuilt document, so the loaded bytes are not carried",
 }
