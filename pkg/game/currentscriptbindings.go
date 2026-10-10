@@ -20,11 +20,7 @@ func restoreCurrentScriptBindings(ms *Mission, table *mapload.Table) error {
 		return fmt.Errorf("current script party has incomplete entity bindings")
 	}
 	refs := campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] }, loadedPlacedHeroes(ms, table))
-	compile := mapload.CompileScript
-	if tableGame(table).Edition().SecondScripts {
-		compile = mapload.CompileROM2Script
-	}
-	roles, err := currentScriptRolesProgram(ms.World, ms.Map, refs, compile)
+	roles, err := currentScriptRolesProgram(ms.World, ms.Map, refs, tableFiles(table).compileScript)
 	if err != nil {
 		return err
 	}

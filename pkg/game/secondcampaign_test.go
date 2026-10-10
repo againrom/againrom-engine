@@ -225,7 +225,7 @@ func TestSecondCampaignUnclaimedVictoryRetainsPanel(t *testing.T) {
 				w.SetROM2ScenarioState(bank)
 			}
 			mw, view := missionDriverFor(t, w, nil, nil)
-			mw.mission.table = &mapload.Table{Game: base.GameROM2}
+			mw.mission.table = readUnder(base.GameROM2, &mapload.Table{})
 			view.SetGameMenuContext(func() ui.GameMenuContext { return gameMenuContext(mw, true, "") })
 			ms := &Mission{Number: n, World: w}
 			advance := continueMission(frontTransitions{f}, n, ms, mw.advanceNotice)

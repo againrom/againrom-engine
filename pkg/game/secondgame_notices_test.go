@@ -16,7 +16,7 @@ func TestSecondGameFailureShowsAuthoredReasonBeforeVictory(t *testing.T) {
 		[]sim.ScriptTrigger{missionTrigger(3, 1, true, 0, 1)})
 	src := missionSource{"main/text/mission7.txt": []byte("#failure2\r\nKeep him alive.\r\n#failure4\r\nOther failure.")}
 	mw, v := missionDriverFor(t, w, nil, src)
-	mw.mission.table = &mapload.Table{Game: base.GameROM2}
+	mw.mission.table = readUnder(base.GameROM2, &mapload.Table{})
 	mw.mission.failureText = secondGameFailureText(src, TextCode{}, 7)
 	missionSteps(mw, 1)
 	if body, kind, shown := v.NoticeState(); !shown || kind != ui.NoticeFailure || body != "Keep him alive.\r\n" {
@@ -34,7 +34,7 @@ func TestSecondGameProductionAudienceUsesCollectionPresence(t *testing.T) {
 		t.Fatal(err)
 	}
 	mw := &mapWorld{world: w, mission: &missionNotices{
-		table: &mapload.Table{Game: base.GameROM2}, npcKeys: map[sim.EntityID]uint16{0: 7},
+		table: readUnder(base.GameROM2, &mapload.Table{}), npcKeys: map[sim.EntityID]uint16{0: 7},
 	}}
 	payload := []byte("<part=1 npcalive=7 npc=42>\r\nretained\r\n<part=1 npcdead=7 npc=42>\r\nabsent")
 	sim.Step(w, []sim.Command{sim.Kill(0)})
@@ -61,7 +61,7 @@ func TestSecondGameObjectivesReadLiveFlagsWithoutAcknowledging(t *testing.T) {
 		[]sim.ScriptInstant{{Op: 35, Args: [10]int32{752, 3}}, {Op: 35, Args: [10]int32{753, 5}}},
 		[]sim.ScriptTrigger{missionTrigger(3, 1, true, 0, 1)})
 	mw := &mapWorld{world: w, mission: &missionNotices{
-		table: &mapload.Table{Game: base.GameROM2}, objectiveLabels: []string{"first", "second", "hidden"},
+		table: readUnder(base.GameROM2, &mapload.Table{}), objectiveLabels: []string{"first", "second", "hidden"},
 	}}
 	for i := 0; i < 48; i++ {
 		sim.Step(w, nil)
@@ -84,7 +84,7 @@ func TestSecondGameMessagesKeepActionOrderBeforeVictory(t *testing.T) {
 	// Reverse announcement metadata cannot reorder actual script execution.
 	mw, v := missionDriverFor(t, w, []mapload.ScriptRaise{{Latch: 3, Event: 3}, {Latch: 3, Event: 4}},
 		missionSource{"main/text/mission7.txt": []byte("#event3\r\n<part=1>\r\nthree\r\n#event4\r\n<part=1>\r\nfour\r\n")})
-	mw.mission.table = &mapload.Table{Game: base.GameROM2}
+	mw.mission.table = readUnder(base.GameROM2, &mapload.Table{})
 	missionSteps(mw, 1)
 	assert := func(want string, kind ui.NoticeKind) {
 		t.Helper()

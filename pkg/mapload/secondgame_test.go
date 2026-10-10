@@ -3,7 +3,6 @@ package mapload_test
 import (
 	"testing"
 
-	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 )
@@ -28,7 +27,7 @@ func TestSecondGameResolvesByServerID(t *testing.T) {
 		{name: "named", params: wideUnitRow(2001)},
 		{name: "late", params: wideUnitRow(2000)},
 	}
-	tbl.Game = base.GameROM2
+	tbl.UnitKeys, tbl.SpellArms, tbl.FreshPlayers = mapload.ServerUnitKeys, mapload.SecondGameSpellArms, mapload.NoFreshPlayers
 	for _, tc := range []struct {
 		name  string
 		unit  alm.Unit
@@ -47,7 +46,7 @@ func TestSecondGameResolvesByServerID(t *testing.T) {
 			t.Errorf("%s: Resolve = {%v %d}, want {%v %d}", tc.name, got.Arm, got.Index, tc.arm, tc.index)
 		}
 	}
-	tbl.Game = base.GameROM1
+	tbl.UnitKeys, tbl.SpellArms, tbl.FreshPlayers = mapload.ClassUnitKeys, nil, mapload.SlotPlayers
 	if got := mapload.Resolve(alm.Unit{ClassID: 0x40, ClassSubID: 1, ServerID: 2000}, tbl); got.Arm != mapload.ArmUnits {
 		t.Errorf("the first game's table resolved by the second game's key: %+v", got)
 	}

@@ -14,10 +14,10 @@ func TestSecondGameNPCKeysUseDefinitionWordTransforms(t *testing.T) {
 	units[55] = 70000
 	humans := make([]int32, 25)
 	humans[24] = 12340
-	table := &mapload.Table{Game: base.GameROM2,
+	table := readUnder(base.GameROM2, &mapload.Table{
 		Units:  &fixtureCollection{names: []string{"", "unit"}, params: [][]int32{nil, units}},
 		Humans: &fixtureCollection{names: []string{"", "person"}, params: [][]int32{nil, humans}},
-	}
+	})
 	w, err := sim.NewWorld(1, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, make([]byte, 64), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestSecondGameBriefingUsesMissionSection(t *testing.T) {
 func TestSecondGameAudienceUsesControlledPresence(t *testing.T) {
 	payload := []byte("<part=1 npcalive=7 npc=42>\r\nalive\r\n<part=1 npcdead=7 npc=42>\r\nabsent\r\n")
 	for _, present := range []bool{false, true} {
-		audience := EventAudience{SecondGame: true, NPCPresent: func(npc int) bool { return npc == 7 && present }}
+		audience := EventAudience{tags: secondEventTags{}, NPCPresent: func(npc int) bool { return npc == 7 && present }}
 		got, ok := dialoguePart(payload, 1, audience)
 		want := "absent\r\n"
 		if present {
@@ -54,7 +54,7 @@ func TestSecondGameAudienceUsesControlledPresence(t *testing.T) {
 }
 
 func TestSecondGameAudienceIgnoresBareSpeakerClassArms(t *testing.T) {
-	audience := EventAudience{SecondGame: true, Speaker: func(int) (bool, bool, bool) { return false, true, true }}
+	audience := EventAudience{tags: secondEventTags{}, Speaker: func(int) (bool, bool, bool) { return false, true, true }}
 	body, ok := dialoguePart([]byte("<part=1 female fighter npc=7>\r\nline"), 1, audience)
 	if !ok || body != "line" {
 		t.Fatalf("bare speaker-class tags rejected ROM2 page: %q %v", body, ok)
@@ -65,7 +65,7 @@ func TestSecondGameAudienceIgnoresBareSpeakerClassArms(t *testing.T) {
 }
 
 func TestSecondGameSpeakerReadsFiveCharacters(t *testing.T) {
-	npc, named := EventPartSpeaker([]byte("<part=1 npc=123456>\r\nline"), 1, EventAudience{SecondGame: true})
+	npc, named := EventPartSpeaker([]byte("<part=1 npc=123456>\r\nline"), 1, EventAudience{tags: secondEventTags{}})
 	if !named || npc != 12345 {
 		t.Fatalf("speaker=%d named=%v, want 12345 true", npc, named)
 	}

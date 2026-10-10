@@ -21,7 +21,7 @@ func TestSecondCampaignTwentyAcknowledgementProductionRoute(t *testing.T) {
 	w := secondGameScriptWorld(t, []sim.ScriptInstant{{Op: sim.ScriptInstantWin}}, []sim.ScriptTrigger{missionTrigger(3, 1, true, 0)})
 	w.SetROM2ScenarioState(c.bank)
 	mw, view := missionDriverFor(t, w, nil, nil)
-	mw.mission.table = &mapload.Table{Game: base.GameROM2}
+	mw.mission.table = readUnder(base.GameROM2, &mapload.Table{})
 	ms := &Mission{Number: 20, World: w}
 	advance := continueMission(frontTransitions{f}, 20, ms, mw.advanceNotice)
 	f.live, f.liveMission = mw, 20

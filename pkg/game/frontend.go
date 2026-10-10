@@ -597,11 +597,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	}
 	table := defs.Table
 
-	loadMenu := menu.Load
-	if archives.Game().Edition().SecondMenu {
-		loadMenu = menu.LoadSecond
-	}
-	assets, err := loadMenu(archives.Containers)
+	assets, err := filesOf(archives.Game()).loadMenu(archives.Containers)
 	if err != nil {
 		return nil, err
 	}
@@ -989,12 +985,10 @@ func (f *FrontEnd) App(title string) *ui.App {
 	edition := f.Base().Profile.Edition()
 	if f.Cutscenes != nil {
 		a.SetCutscenes(f.Cutscenes)
-	} else if f.Archives != nil && edition.CutsceneArchive != "" {
-		a.SetCutscenes(OpenCutscenes(f.Archives.Root, edition.CutsceneArchive))
+	} else if _, ok := edition.Cutscenes[edition.DefaultCutscenes]; ok && f.Archives != nil {
+		a.SetCutscenes(f.OpenCutscenes(edition.DefaultCutscenes))
 	}
-	if f.Archives != nil && !edition.StartupCutscenes {
-		a.SetStartupCutscenesEnabled(false)
-	}
+	a.SetStartupCutscenes(edition.StartupCutscenes)
 	// GameSpeed is process-local driver state, not campaign/save state. Read it
 	// when this App is built, then let the App retain the chosen normal rung
 	// across every map it opens. The sink writes +/- and Game Options changes; the

@@ -165,9 +165,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 		return Snapshot{}, "", err
 	}
 	s.Difficulty = difficulty
-	if edition.TownDifficulty && !onMap {
-		s.Difficulty = f.Difficulty
-	}
+	f.campaign().captureDifficulty(f, &s, onMap)
 	fame := cloneFame(f.fame)
 	s.Fame = &fame
 	s.QuickSpells = f.quickSpells

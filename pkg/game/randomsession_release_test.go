@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
@@ -43,7 +44,7 @@ func playRandomSession(t *testing.T, seed uint64, original bool) sessionRun {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().NewGameInTown {
+	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().Campaign == base.CampaignDestinations {
 		t.Skip("the base opens without generation; the session walks the first game's town and chargen")
 	}
 	cleanupFrontAudio(t, f)

@@ -52,7 +52,7 @@ func (mw *mapWorld) eventAudience(event int) EventAudience {
 func (mw *mapWorld) secondGameAudience() EventAudience {
 	m := mw.mission
 	audience := m.audience
-	audience.SecondGame = true
+	audience.tags = m.campaign().eventTags()
 	audience.NPCPresent = func(npc int) bool {
 		if npc < 0 || npc > 65535 {
 			return false

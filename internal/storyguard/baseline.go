@@ -2107,6 +2107,10 @@ package storyguard
 // docs of savedSackCellAdmits,
 // SavedSackBinding.Keyless, handOverReference, the retained terminal basis and
 // their tests, new code, including this paragraph.
+// CommentBytes rises for the game profile switch: the docs of the campaign
+// service's new answers, the file readers, the placement keys, spell arms and
+// Players policy the definition table carries, the edition's cutscene, tip
+// and mod data and the event tag readers, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2130,5 +2134,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8649722,
+	CommentBytes: 8653821,
 }

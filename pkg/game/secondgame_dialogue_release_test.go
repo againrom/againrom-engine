@@ -48,7 +48,7 @@ func TestReleaseSecondGameFailureUsesInstalledFallback(t *testing.T) {
 				[]sim.ScriptInstant{{Op: 4}, {Op: 5, Args: [10]int32{int32(tc.reason)}}},
 				[]sim.ScriptTrigger{missionTrigger(3, 1, true, 0, 1)})
 			mw, view := missionDriverFor(t, w, nil, nil)
-			mw.mission.table = &mapload.Table{Game: archives.Game()}
+			mw.mission.table = readUnder(archives.Game(), &mapload.Table{})
 			mw.mission.failureText = secondGameFailureText(archives.Containers, InstallTextCode(archives.Containers, archives.Game().Edition()), 10)
 			missionSteps(mw, 1)
 			body, kind, shown := view.NoticeState()

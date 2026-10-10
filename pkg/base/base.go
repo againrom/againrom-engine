@@ -196,6 +196,11 @@ var rom2Limits = Limits{
 // matches nothing known by language.
 var unrecognised = Profile{ID: ROM1, Title: "Rage of Mages, unrecognised build"}
 
+// Undetected is the profile of an install neither its build nor its language
+// identifies: the first game's unrecognised build, so a mod that applies to
+// the first game's family, as every shipped mod does, still loads on it.
+func Undetected() Profile { return unrecognised }
+
 var unrecognisedROM2 = Profile{ID: ROM2, Title: "Rage of Mages II, unrecognised build", Game: GameROM2, Limits: rom2Limits}
 
 // Match is the profile a root was detected as.

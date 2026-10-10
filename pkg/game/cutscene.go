@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"againrom/pkg/base"
 	"againrom/pkg/vfs"
 	"againrom/pkg/video"
 )
@@ -16,30 +17,38 @@ import (
 // CutsceneBank selects one optional, disk-indexed video archive. The archive
 // choice is explicit: it never searches the process CWD or an unrelated install.
 type CutsceneBank struct {
-	root, archive string
-	once          sync.Once
-	index         *vfs.FS
-	err           error
-	logos         *CutsceneBank
+	// root is the install; path the archive file under it and archive the
+	// directory its members are addressed under; known is false for a route
+	// the edition maps to no archive.
+	root, path, archive string
+	known               bool
+	once                sync.Once
+	index               *vfs.FS
+	err                 error
+	logos               *CutsceneBank
 }
 
-// OpenCutscenes is the bank over the named archive of the install at root.
+// OpenCutscenes is the bank of the install at root over the first game's
+// archive of the named speed route, video4 or video8.
 func OpenCutscenes(root, archive string) *CutsceneBank {
-	b := &CutsceneBank{root: root, archive: archive}
-	if archive == "video8" {
-		b.logos = &CutsceneBank{root: root, archive: "video4"}
+	return openCutscenes(root, base.Game("").Edition().Cutscenes, archive)
+}
+
+// OpenCutscenes is the bank of this install over the archive the profile's
+// edition plays the speed route a player asked for, video4 or video8, from.
+func (f *FrontEnd) OpenCutscenes(archive string) *CutsceneBank {
+	return openCutscenes(f.Archives.Root, f.Base().Profile.Edition().Cutscenes, archive)
+}
+
+// openCutscenes is the bank over the archive archives map route to, its
+// logos read from the archive of the route that archive names.
+func openCutscenes(root string, archives map[string]base.CutsceneArchive, route string) *CutsceneBank {
+	a, known := archives[route]
+	b := &CutsceneBank{root: root, path: a.Path, archive: a.Name, known: known}
+	if logos, ok := archives[a.Logos]; ok {
+		b.logos = &CutsceneBank{root: root, path: logos.Path, archive: logos.Name, known: true}
 	}
 	return b
-}
-
-// OpenCutscenes is the bank of this install over the archive a player asked
-// for, video4 or video8, or over the one archive the profile's game plays
-// every cutscene from.
-func (f *FrontEnd) OpenCutscenes(archive string) *CutsceneBank {
-	if only := f.Base().Profile.Edition().CutsceneArchive; only != "" && (archive == "video4" || archive == "video8") {
-		archive = only
-	}
-	return OpenCutscenes(f.Archives.Root, archive)
 }
 
 func (b *CutsceneBank) open() error {
@@ -47,15 +56,11 @@ func (b *CutsceneBank) open() error {
 		return fmt.Errorf("video: no asset root")
 	}
 	b.once.Do(func() {
-		if b.root == "" || (b.archive != "video4" && b.archive != "video8" && b.archive != "video") {
+		if b.root == "" || !b.known {
 			b.err = fmt.Errorf("video: missing root or unknown archive")
 			return
 		}
-		components := []string{"Allods", b.archive + ".res"}
-		if b.archive == "video" {
-			components = []string{"video.res"}
-		}
-		path, err := cutsceneInstallPath(b.root, components...)
+		path, err := cutsceneInstallPath(b.root, strings.Split(b.path, "/")...)
 		if err != nil {
 			b.err = err
 			return

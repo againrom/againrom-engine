@@ -106,10 +106,10 @@ func spellRules(spells []data.Spell) []sim.SpellRule {
 	return out
 }
 
-// secondGameRules gives each second-game row its arm and classifies its
+// SecondGameSpellArms gives each second-game row its arm and classifies its
 // damage pair by that arm: the second game's Heal and Drain Life are rows 24
 // and 26, not the first game's 6 and 11 (R2-ENGINE-019, R2-ENGINE-024).
-func secondGameRules(rules []sim.SpellRule) {
+func SecondGameSpellArms(rules []sim.SpellRule) {
 	sim.AssignSecondGameArms(rules)
 	for i := range rules {
 		arm := int(rules[i].Arm)
@@ -141,8 +141,8 @@ func SpellRules(t *Table) []sim.SpellRule {
 	}
 	applyModSpells(spells, t.Mods.Spells)
 	rules := spellRules(spells)
-	if t.Game.Edition().SecondSpellArms {
-		secondGameRules(rules)
+	if t.SpellArms != nil {
+		t.SpellArms(rules)
 	}
 	applyModSpellTargets(rules, spells, t.Mods.Spells)
 	return rules

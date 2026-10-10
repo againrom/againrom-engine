@@ -50,7 +50,7 @@ func observeWriterSources(f *FrontEnd, captured Snapshot, route string) map[stri
 		"Second": captured.second, "CityGroups": captured.cityGroups, "WorldPresent": len(captured.World) != 0}
 	result["ConstructionTablePresent"], result["ConstructionInputs"] = observeLootConstruction(f.Table)
 	if f.Table != nil {
-		result["ConstructionGame"] = f.Table.Game
+		result["ConstructionGame"] = tableEdition(f.Table).Game
 	}
 	if len(captured.World) == 0 || f.live == nil || f.live.world == nil {
 		return result

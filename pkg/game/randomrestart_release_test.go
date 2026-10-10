@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/base"
 	"againrom/pkg/random"
 	"againrom/pkg/ui"
 )
@@ -18,7 +19,7 @@ func townFront(t *testing.T, seed uint64, original bool) (*FrontEnd, *ui.App, *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().NewGameInTown || TownDescription(p) == nil {
+	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().Campaign == base.CampaignDestinations || TownDescription(p) == nil {
 		t.Skip("the base has no composed town square to dwell in")
 	}
 	cleanupFrontAudio(t, f)

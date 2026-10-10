@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -19,7 +18,7 @@ var errSavingUnavailable = fmt.Errorf("saving is not available for this game yet
 // point determines its shape; provenance supplies only unmodelled residue.
 func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	s.game = s.game.Normal()
-	if !base.SameGame(s.game, f.Base().Profile.GameOf()) {
+	if f.campaign().ownsGame(s.game) != nil {
 		return nil, fmt.Errorf("captured save game differs from installed game")
 	}
 	rules := campaignOf(s.game)

@@ -12,11 +12,8 @@ import (
 
 // BaseID names the base game an install is, as mods name it in applies-to: the
 // id of the detected profile ("rom1-en", "rom1-ru", "rom1-demo"), else
-// "rom1-en" or "rom1-ru" by the language entry of the install, and else
-// base.ROM1. That last fallback is a choice of game the profile does not
-// make: an install neither detected nor in a known language is taken for the
-// first game, so a mod that applies to "rom1", as every shipped mod does,
-// still loads on it.
+// "rom1-en" or "rom1-ru" by the language entry of the install, and else the id
+// of the profile pkg/base gives an install it did not identify.
 func BaseID(info InstallInfo) string {
 	if id := info.Base.ID(); id != "" {
 		return id
@@ -24,7 +21,7 @@ func BaseID(info InstallInfo) string {
 	if l, ok := locale.ByEntry(info.Language); ok {
 		return l.BaseID
 	}
-	return base.ROM1
+	return base.Undetected().ID
 }
 
 // SetMods applies the rules the mods set and records the mod set. Games the
