@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/base"
+	"againrom/pkg/locale"
 )
 
 // InstallInfo is what a cheap look at a directory says about it as an install.
@@ -34,14 +35,16 @@ func archiveLanguage(path string) string {
 	if err != nil {
 		return ""
 	}
-	switch sel := LanguageSelector(fs); sel {
-	case 0:
-		return "english"
-	case 1:
-		return "russian"
-	default:
-		return fmt.Sprintf("language selector %d", sel)
+	return languageEntry(LanguageSelector(fs))
+}
+
+// languageEntry is the language entry of an install language selector: its
+// locale's entry, else "language selector N".
+func languageEntry(selector int) string {
+	if l, ok := locale.BySelector(selector); ok {
+		return l.Entry
 	}
+	return fmt.Sprintf("language selector %d", selector)
 }
 
 // DetectBase matches root against the known base profiles. It never writes. An

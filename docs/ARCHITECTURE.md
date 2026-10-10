@@ -39,6 +39,7 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | video | `pkg/video` | bounded presentation-frame transport; decodes in-process through `pkg/video/smacker` as the ordinary path. The windows/386 `cutscenehelper` driving an installed `smackw32.dll` survives only as the `-cutscene-check` gate-time oracle, not an ordinary part of play; no game or simulation dependencies |
 | video | `pkg/video/smacker` | pure-Go port of libsmacker: Smacker (`.smk`) bitstream/Huffman-tree/DPCM video and audio decode; no game or simulation dependencies |
 | words | `pkg/words` | the engine's own words: one strings table per language, keyed by message id, in the mod text layout |
+| locale | `pkg/locale` | the install languages: one record per language (archive entry, selector, table code, base id, code page, font remap) |
 | ui | `pkg/ui` | user interface |
 | game | `pkg/game` | wire the engine together; top-level config |
 | cmd | `cmd/againrom` | the game entry point |
@@ -80,12 +81,13 @@ allow-map; the two must stay identical.
 | `pkg/render/camera` | — | **stdlib only**: the camera arithmetic is engine-free and unit-testable without a window |
 | `pkg/render/frame` | — | **stdlib only**: exact integer window↔frame mapping; floats appear only in the draw transform |
 | `pkg/render/menu` | `pkg/formats/bmp` | takes archive bytes through a one-method `EntrySource` and decodes them through the bitmap leaf |
-| `pkg/render/text` | — | **stdlib only**: a LEAF by contract (0050 P-5). It holds the font model, the placement rule and the blit as plain data plus arithmetic, and a loader outside it fills that data, so it gains the graph a node and no outgoing edge — and the empty allow-set is what makes that mechanical rather than a promise |
+| `pkg/render/text` | `pkg/locale` | a LEAF by contract (0050 P-5). It holds the font model, the placement rule and the blit as plain data plus arithmetic, and a loader outside it fills that data. Its one edge is the stdlib-only locale table, which says under which selector the font remaps a byte |
 | `pkg/audio` | `pkg/formats/wav` | resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic; no slot, archive, listener or device is a concept this package knows, and pkg/ui supplies the one concrete `Player` this tree ships. WAV bytes decode through the WAV leaf |
 | `pkg/video` | `pkg/video/smacker` | stdlib-only leaf for ARV2 frames and bounded playback, decoding in-process through its own `pkg/video/smacker` port; the windows/386 installed-DLL adapter remains only as the `-cutscene-check` gate-time oracle; no UI, archive, game or simulation types |
 | `pkg/video/smacker` | — | third-party-derived codec leaf (libsmacker port): pure bitstream/Huffman/DPCM decode, no knowledge of a player, a stream protocol or a game; cannot import `pkg/video` back |
-| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video`, `pkg/random` and `pkg/words` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language |
-| `pkg/words` | `pkg/mod` | reads its embedded tables through the mod text lookup (`mod.Lookup`), the one lookup engine and mod words share; no UI, game or simulation types |
+| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video`, `pkg/random`, `pkg/words` and `pkg/locale` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language; `pkg/locale` the install language's code page and font remap |
+| `pkg/words` | `pkg/mod`, `pkg/locale` | reads its embedded tables through the mod text lookup (`mod.Lookup`), the one lookup engine and mod words share; no UI, game or simulation types |
+| `pkg/locale` | — | **stdlib only**: the table of install languages, one record per language |
 | `cmd/cutscenehelper` | `pkg/video` | separately built Windows/386 native adapter; the normal game remains amd64 |
 | `pkg/game` | any `pkg/*` | top library tier |
 | `cmd/againrom` | any `pkg/*` | the game |

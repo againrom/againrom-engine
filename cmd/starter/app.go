@@ -12,6 +12,7 @@ import (
 	basepkg "againrom/pkg/base"
 	"againrom/pkg/game"
 	"againrom/pkg/ini"
+	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 )
 
@@ -293,13 +294,16 @@ func (a *app) panelMod() (string, bool) {
 	return "", false
 }
 
-// lang is the language of the selected base, as a label language: "ru" for a
-// Russian install and "en" otherwise, including when the base is unknown.
+// lang is the language of the selected base, as a label language: the locale
+// code of its language entry, else the reference language, including when the
+// base is unknown.
 func (a *app) lang() string {
-	if root, ok := a.selectedRoot(); ok && a.infos[root].Language == "russian" {
-		return "ru"
+	if root, ok := a.selectedRoot(); ok {
+		if l, ok := locale.ByEntry(a.infos[root].Language); ok {
+			return l.Code
+		}
 	}
-	return "en"
+	return locale.Fallback
 }
 
 // settingText is the text a setting shows: the stored value, else its default.

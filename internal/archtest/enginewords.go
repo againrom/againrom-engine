@@ -33,8 +33,6 @@ var EngineWordsAllowed = map[string]string{
 // fall; a file whose count reaches zero leaves the map in the same commit.
 var EngineWordsDebt = map[string]int{
 	"pkg/game/secondgametext.go": 1, // the second game's RU mission text code page
-	"pkg/ui/gamemenu.go":         1, // the accelerator's CP866 lowercase fold
-	"pkg/ui/load_draw.go":        1, // the EN font's ASCII fallback for a save name
 }
 
 // EngineWordsFinding is one site and the shape found there.

@@ -1,6 +1,7 @@
 package text
 
 import (
+	"againrom/pkg/locale"
 	"image"
 	"image/color"
 )
@@ -105,7 +106,7 @@ const SelectorConverting = 1
 //
 // It is total: every byte value has an answer at every selector.
 func Convert(b byte, selector int) byte {
-	if selector != SelectorConverting {
+	if !locale.FontRemaps(selector) {
 		return b
 	}
 	switch {

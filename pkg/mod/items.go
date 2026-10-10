@@ -1,6 +1,7 @@
 package mod
 
 import (
+	"againrom/pkg/locale"
 	"errors"
 	"fmt"
 	"os"
@@ -250,10 +251,10 @@ func Lookup(lang string, load func(lang string) (Strings, error)) (func(key stri
 }
 
 func languagesFor(lang string) []string {
-	if lang == "" || lang == "en" {
-		return []string{"en"}
+	if lang == "" || lang == locale.Fallback {
+		return []string{locale.Fallback}
 	}
-	return []string{lang, "en"}
+	return []string{lang, locale.Fallback}
 }
 
 // ParseItems reads data/items.toml of the mod id. text resolves a text key to

@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
@@ -16,11 +17,8 @@ func BaseID(info InstallInfo) string {
 	if id := info.Base.ID(); id != "" {
 		return id
 	}
-	switch info.Language {
-	case "english":
-		return "rom1-en"
-	case "russian":
-		return "rom1-ru"
+	if l, ok := locale.ByEntry(info.Language); ok {
+		return l.BaseID
 	}
 	return "rom1"
 }
