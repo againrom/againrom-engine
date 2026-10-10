@@ -33,7 +33,7 @@ func (w *World) restoreCurrentProjectileTargets(incoming *World) error {
 	}
 	updates := map[int]int32{}
 	for _, d := range w.savedWorldEffects.Projectiles {
-		if d.Retired || !d.HasTarget || d.TargetDetached {
+		if d.Retired || !d.HasTarget || d.TargetDetached || d.TargetStructure {
 			continue
 		}
 		index, present := indices[d.ID]

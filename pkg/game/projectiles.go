@@ -100,15 +100,10 @@ type CastFigureEvidence struct {
 	Frames []int
 }
 
-// InspectCastFigure drives the real cast observation and the real draw over a
-// cast of spell from cell (0,0) to cell (cells,0), on the art this install
-// ships, and answers what the viewer would be handed on each of the object's
-// ticks. It is read-only and opens no window.
-//
-// It exists because everything this story builds is decided on the far side of
-// the seam: the figure, the trail and the burst's wait are all in the tier that
-// hands the viewer a list, so a real-install witness of them is a walk of that
-// list rather than a screenshot.
+// InspectCastFigure releases the World record a cast of spell leaves, from
+// cell (0,0) toward cell (cells,0), on the art this install ships, and answers
+// what the viewer is handed on each tick the record flies. It is read-only and
+// opens no window.
 func InspectCastFigure(src terrain.EntrySource, spell, cells int) ([]CastFigureEvidence, error) {
 	set, err := LoadProjectiles(src)
 	if err != nil {
@@ -121,21 +116,23 @@ func InspectCastFigure(src terrain.EntrySource, spell, cells int) ([]CastFigureE
 	}
 	mw := &mapWorld{world: w, projectiles: set, swing: map[sim.EntityID]int{},
 		phase: map[sim.EntityID]sim.AttackPhase{}, castRun: map[sim.EntityID]castRun{}}
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: uint16(spell),
-		FromX: 0, FromY: 0, ToX: int32(cells), ToY: 0}})
+	mw.releaseCast(sim.CastEvent{Caster: 1, Target: 2, AtCell: true, Spell: uint16(spell),
+		FromX: 0, FromY: 0, ToX: int32(cells), ToY: 0}, 0)
 
 	picture := data.CastPicture(spell)
 	sheet := set.Sheet(picture)
-	burstSheet := set.Sheet(data.BurstPicture(spell))
 	var out []CastFigureEvidence
-	for age := 0; len(mw.bolts) > 0 && age < 64; age++ {
-		row := CastFigureEvidence{Picture: picture, Age: age, Life: mw.bolts[0].life}
-		for _, d := range mw.boltDraws(nil) {
+	for age := 0; age < 64; age++ {
+		records, _ := mw.armedRecords()
+		if len(records) == 0 {
+			break
+		}
+		p := records[0]
+		row := CastFigureEvidence{Picture: picture, Age: age, Life: age + int(p.ActionSegments) + 1}
+		for _, d := range mw.savedProjectileScene(true) {
 			switch {
 			case d.Sheet == set.SmokeSheet(0) || d.Sheet == set.SmokeSheet(1):
 				row.Trail++
-			case burstSheet != nil && d.Sheet == burstSheet:
-				row.Burst++
 			case d.Sheet == sheet:
 				if row.Stamps == 0 {
 					row.First = d.Pos
@@ -149,59 +146,17 @@ func InspectCastFigure(src terrain.EntrySource, spell, cells int) ([]CastFigureE
 			}
 		}
 		out = append(out, row)
-		mw.advanceBolts()
+		mw.noteShotPreMoves()
+		sim.StepReported(w, nil)
+		mw.advanceShotTrails()
 	}
 	return out, nil
 }
 
-// InspectWeaponRelease is InspectCastFigure's other producer. It drives the
-// real weapon-borne draw over an attacker holding a weapon whose castSpell
-// is spell, mid wind-up, with its victim cells away, on the art this install
-// ships. One row per swing position within the attack charge.
-//
-// It exists because a cast picture has two producers and only one of them is a
-// cast object, so a walk of the cast list is not a witness of the other. The two
-// must agree on what a picture draws.
+// InspectWeaponRelease is InspectCastFigure for a staff whose castSpell is
+// spell: its cast-diverted release leaves the same cast record (SAV-1129).
 func InspectWeaponRelease(src terrain.EntrySource, spell, cells int) ([]CastFigureEvidence, error) {
-	set, err := LoadProjectiles(src)
-	if err != nil {
-		return nil, err
-	}
-	const charge = 8
-	ents := []sim.Entity{
-		{ID: 1, X: 0, Y: 0, HP: 100, MaxHP: 100, Owner: 1, WeaponSpell: uint16(spell),
-			HasAttackTarget: true, AttackTarget: 2, AttackPhase: sim.AttackCasting,
-			AttackCharge: charge},
-		{ID: 2, X: int32(cells), Y: 0, HP: 100, MaxHP: 100, Owner: 2},
-	}
-	mw := &mapWorld{projectiles: set, swing: map[sim.EntityID]int{},
-		phase: map[sim.EntityID]sim.AttackPhase{}, castRun: map[sim.EntityID]castRun{}}
-
-	picture := data.CastPicture(spell)
-	sheet := set.Sheet(picture)
-	var out []CastFigureEvidence
-	for swing := 0; swing <= charge; swing++ {
-		mw.swing[1] = swing
-		row := CastFigureEvidence{Picture: picture, Age: swing, Life: charge}
-		for _, d := range mw.weaponBoltDraws(ents) {
-			switch {
-			case d.Sheet == set.SmokeSheet(0) || d.Sheet == set.SmokeSheet(1):
-				row.Trail++
-			case d.Sheet == sheet:
-				if row.Stamps == 0 {
-					row.First = d.Pos
-				}
-				row.Last = d.Pos
-				row.Stamps++
-				row.Frames = append(row.Frames, d.Frame)
-				if o := offsetFromLine(d, row.First); o > row.MaxOffset {
-					row.MaxOffset = o
-				}
-			}
-		}
-		out = append(out, row)
-	}
-	return out, nil
+	return InspectCastFigure(src, spell, cells)
 }
 
 // offsetFromLine is a point's distance from the cast's own straight line, in
@@ -273,6 +228,18 @@ func LoadProjectiles(src terrain.EntrySource) (*terrain.EffectSet, error) {
 			continue
 		}
 		set.Pictures[int(id)] = true
+		if p.Homing != 0 {
+			if set.Homing == nil {
+				set.Homing = make(map[int]bool)
+			}
+			set.Homing[int(id)] = true
+		}
+		if p.Palette == 0 {
+			if set.Unpaletted == nil {
+				set.Unpaletted = make(map[int]bool)
+			}
+			set.Unpaletted[int(id)] = true
+		}
 		path := p.SpritePath()
 		if path == "" {
 			continue

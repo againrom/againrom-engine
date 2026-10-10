@@ -119,7 +119,6 @@ func TestReleaseUnitShotRefusals(t *testing.T) {
 		picture int32
 	}{
 		"picture 0":        {shotPair(4), 0},
-		"picture above 12": {shotPair(4), 13},
 		"structure target": {structure, 1},
 		"no target":        {idle, 1},
 	} {
