@@ -2005,6 +2005,9 @@ package storyguard
 // cases and debt list in internal/archtest, the edition's Rooms field and
 // the room description reader in pkg/game, new code, including this
 // paragraph.
+// CommentBytes rises for the slot-0 resistance witnesses: the docs of the
+// focused strike tests in pkg/sim and of the corpus release test in
+// pkg/game, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2028,5 +2031,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1774,
 	},
-	CommentBytes: 8552227,
+	CommentBytes: 8553884,
 }

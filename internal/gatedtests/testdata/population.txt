@@ -976,3 +976,4 @@ pkg/game.TestReleaseOriginalRandomMissionOne
 pkg/game.TestReleaseProfileWitnessIsUnchanged
 pkg/game.TestReleaseSecondGameProfileWitnessIsUnchanged
 pkg/game.TestReleaseFrameAndButtonCensus
+pkg/game.TestReleaseSlotZeroStrikeOnCorpusGodActorThroughSaveAndColdLoad
