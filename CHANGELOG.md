@@ -12,6 +12,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   catapult shows the siege engine's statistics and picture in the upper left
   panel, as in the original. Before, that panel stayed empty.
 
+- [BASE] An overloaded hero now moves and turns as in the original: the
+  overload slows his own speed first, to no less than 6, and a speed bonus or
+  penalty is added after it. His character card shows that speed for every
+  overloaded hero, and it is kept through a save.
+
 ## 0.108.0
 
 - [BASE] An enemy mage with Mind above 59 now holds back a spell exactly 30

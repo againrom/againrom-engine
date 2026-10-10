@@ -7,15 +7,32 @@ type TurnState struct {
 	Counter, Drawn, DrawTarget, DrawRemaining uint8
 }
 
-// MOVE-106, DIV-1421
-func (e *Entity) refreshHumanTurnRate() {
-	if e.Humanoid && e.ActorLoad.Source.Class == 0 {
-		e.RotationSpeed = int32(uint8(aloneSpeed(*e)))
-		if e.RotationSpeed == 0 && e.Turning() {
-			e.Facing = e.DesiredFacing
-			e.TurnState.Active = false
-			e.clearTurn()
+// deriveNativeHumanSpeed is a native Human's derive at a speed producer
+// (SAV-1116, MOVE-RATE-053, MOVE-106). A negative word clears the modifier
+// and keeps the word, retained as an original Human's is, as is a zero word;
+// the turn rate takes its low byte. A retained word still current is the
+// load quotient unchanged, which runs no derive.
+func (e *Entity) deriveNativeHumanSpeed() {
+	if !e.Humanoid || e.ActorLoad.Source.Class != 0 {
+		return
+	}
+	raw, retained := e.RetainedHumanSpeed()
+	word := int32(raw)
+	if !retained {
+		var kept int32
+		word, kept = humanSpeedWord(e.Speed, e.SpeedModifier, e.Load, e.Capacity)
+		if kept != e.SpeedModifier {
+			e.Speed, e.SpeedModifier = e.Speed-e.SpeedModifier, 0
 		}
+		if word <= 0 && e.Speed > 0 {
+			e.HumanMovement = HumanMovement{true, int16(word), e.Speed, e.Load, e.Capacity}
+		}
+	}
+	e.RotationSpeed = int32(uint8(word))
+	if e.RotationSpeed == 0 && e.Turning() {
+		e.Facing = e.DesiredFacing
+		e.TurnState.Active = false
+		e.clearTurn()
 	}
 }
 

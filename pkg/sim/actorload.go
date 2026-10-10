@@ -57,6 +57,9 @@ type ActorLoadSnapshot struct {
 	Inventory             ActorLoad
 	Load, Capacity, Speed int32
 	Movement              HumanMovement
+	// SpeedModifier is a native Human's Entity.SpeedModifier. Older native
+	// snapshots omit it and read zero, so their whole Speed is the base.
+	SpeedModifier int32 `json:",omitempty"`
 	// Independent source regeneration residues survive the city boundary.
 	// Older native snapshots omit both fields and deterministically read zero.
 	HealthHundredths, ManaHundredths uint8
@@ -78,6 +81,9 @@ func (s ActorLoadSnapshot) Validate() error {
 	if !s.Movement.Present && s.Movement != (HumanMovement{}) {
 		return fmt.Errorf("sim: absent current movement has residue")
 	}
+	if s.Inventory.Source.Class != 0 && s.SpeedModifier != 0 {
+		return fmt.Errorf("sim: source actor load carries a native speed modifier")
+	}
 	if s.Inventory.Source.Class == 0 && (s.HealthHundredths > 99 || s.ManaHundredths > 99) {
 		return fmt.Errorf("sim: native actor load has invalid regeneration residue")
 	}
@@ -90,7 +96,8 @@ func (s ActorLoadSnapshot) DisplaySpeed() int32 {
 	if s.Movement.Present {
 		return int32(s.Movement.RawSpeed)
 	}
-	return overloadedSpeed(s.Speed, s.Load, s.Capacity)
+	word, _ := humanSpeedWord(s.Speed, s.SpeedModifier, s.Load, s.Capacity)
+	return word
 }
 
 func (e Entity) CurrentActorLoad() *ActorLoadSnapshot {
@@ -99,12 +106,13 @@ func (e Entity) CurrentActorLoad() *ActorLoadSnapshot {
 	}
 	a := e.ActorLoad
 	a.Source = e.SourceNow()
-	return &ActorLoadSnapshot{Inventory: a, Load: e.Load, Capacity: e.Capacity, Speed: e.Speed, Movement: e.HumanMovement,
+	return &ActorLoadSnapshot{Inventory: a, Load: e.Load, Capacity: e.Capacity, Speed: e.Speed, Movement: e.HumanMovement, SpeedModifier: e.SpeedModifier,
 		HealthHundredths: e.HealthHundredths, ManaHundredths: e.ManaHundredths}
 }
 
 func (s ActorLoadSnapshot) apply(e *Entity) {
 	e.ActorLoad, e.Load, e.Capacity, e.Speed, e.HumanMovement = s.Inventory, s.Load, s.Capacity, s.Speed, s.Movement
+	e.SpeedModifier = s.SpeedModifier
 	if s.Inventory.Source.Class != 0 {
 		e.NativeBasis = NativeActorBasis{}
 	}
@@ -170,11 +178,11 @@ func (w *World) finishLoadMutation(i int, before loadMutation) bool {
 		} else {
 			e.HumanMovement = HumanMovement{}
 		}
-		e.refreshHumanTurnRate()
+		e.deriveNativeHumanSpeed()
 		return true
 	}
 	w.recomputeLoad(i)
-	w.entities[i].refreshHumanTurnRate()
+	w.entities[i].deriveNativeHumanSpeed()
 	return true
 }
 
