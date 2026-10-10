@@ -11,7 +11,8 @@ import (
 	"strings"
 )
 
-// The widget kit scan: frames and press latches have one builder each.
+// The widget kit scan: frames, push buttons and press latches have one
+// builder each.
 
 // A FRAME PAINTER is a production function in pkg/ui outside the kit files
 // (widget*.go) that is named like one (draw, paint, fill or stamp, then
@@ -19,6 +20,18 @@ import (
 // primitive, or reads a frame art's Pieces. widgetFrameDebt names the
 // painters the kit has not absorbed yet; widgetNotAFrame names the matches
 // that draw no frame, with the reason.
+
+// A PUSH BUTTON PAINTER is a production function in pkg/ui outside the kit
+// that paints a push button's face or press state itself instead of calling
+// drawPushButton: it is named like one (draw, paint, fill or stamp, then
+// Button), calls the plaque ink or press offset (buttonInk,
+// buttonTextOffset), reads a button colour (a name ending in ButtonFill,
+// ButtonSelected, ButtonBorder, ButtonFace or ButtonBevel), or picks a
+// button picture by its state (an index into an index into a set named
+// ...Buttons). A closure counts for the
+// function that declares it, so a canvas painter and its image twin are both
+// found. widgetButtonDebt names the painters the kit has not absorbed yet;
+// widgetNotAButton names the matches that paint no button, with the reason.
 
 // A PRESS LATCH is a struct field in pkg/ui or pkg/render named press or
 // ending in Press. Outside the kit and the latch package its type is the kit
@@ -54,6 +67,24 @@ var widgetNotAFrame = map[string]string{
 	"pkg/ui/dialogueportrait.go:drawFlippedBorder": "the dialogue portrait's art strip, mirrored",
 }
 
+// widgetButtonDebt is every push button painter outside the kit. It may only
+// fall.
+var widgetButtonDebt = map[string]string{
+	"pkg/ui/app.go:drawTownButton":               "second-game town list button on the canvas",
+	"pkg/ui/townlist.go:composeTownList":         "second-game town list button, the image twin in a closure",
+	"pkg/ui/chargen_page.go:drawChargenCommands": "generator Accept, Reset and Back plaques",
+	"pkg/ui/chargen_page.go:detailedStatButton":  "generator stat plus and minus pictures by state",
+	"pkg/ui/save_dialog_draw.go:saveDialogPaint": "save dialog buttons without the menu font",
+	"pkg/ui/shopscreen.go:ComposeShopScreen":     "shop control captions, ink and press offset",
+	"pkg/ui/townshell.go:ComposeTownSurface":     "town surface plaques, ink and press offset",
+}
+
+// widgetNotAButton is every function the push button rule matches that
+// paints no push button.
+var widgetNotAButton = map[string]string{
+	"pkg/ui/modscreens.go:drawModButton": "draws a mod page button through drawPushButton",
+}
+
 // widgetLatchDebt is every press latch outside the kit. It may only fall.
 var widgetLatchDebt = map[string]string{
 	"pkg/ui/app.go:townSurfacePress":  "town surface controls",
@@ -71,8 +102,11 @@ var widgetNotALatch = map[string]string{
 }
 
 var (
-	framePainterName = regexp.MustCompile(`^(draw|paint|fill|stamp)[A-Za-z]*(Frame|Border|Box|Outline|NinePatch)[A-Za-z]*$`)
-	pressFieldName   = regexp.MustCompile(`^(press|[a-z][A-Za-z]*Press)$`)
+	framePainterName  = regexp.MustCompile(`^(draw|paint|fill|stamp)[A-Za-z]*(Frame|Border|Box|Outline|NinePatch)[A-Za-z]*$`)
+	buttonPainterName = regexp.MustCompile(`^(draw|paint|fill|stamp)[A-Za-z]*Button[A-Za-z]*$`)
+	buttonColourName  = regexp.MustCompile(`[bB]utton(Fill|Selected|Border|Face|Bevel)$`)
+	buttonPictureSet  = regexp.MustCompile(`Buttons$`)
+	pressFieldName    = regexp.MustCompile(`^(press|[a-z][A-Za-z]*Press)$`)
 )
 
 func widgetKitFile(name string) bool {
@@ -94,7 +128,7 @@ func CheckWidgetKit(files map[string]string) []Violation {
 	}
 	sort.Strings(names)
 	var vs []Violation
-	seenFrame, seenLatch := map[string]bool{}, map[string]bool{}
+	seenFrame, seenButton, seenLatch := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for _, name := range names {
 		inUI := strings.HasPrefix(name, "pkg/ui/")
 		inRender := strings.HasPrefix(name, "pkg/render/")
@@ -121,6 +155,13 @@ func CheckWidgetKit(files map[string]string) []Violation {
 						vs = append(vs, Violation{From: at(n), Reason: n.Name.Name + " is a frame painter outside the kit (" + why + "); draw it with drawFrame"})
 					}
 				}
+				if why := buttonPainter(n); why != "" {
+					key := name + ":" + n.Name.Name
+					seenButton[key] = true
+					if widgetButtonDebt[key] == "" && widgetNotAButton[key] == "" {
+						vs = append(vs, Violation{From: at(n), Reason: n.Name.Name + " is a push button painter outside the kit (" + why + "); draw it with drawPushButton"})
+					}
+				}
 			case *ast.StructType:
 				for _, field := range n.Fields.List {
 					vs = append(vs, checkPressField(name, field, at, seenLatch)...)
@@ -143,6 +184,8 @@ func CheckWidgetKit(files map[string]string) []Violation {
 	}
 	stale(widgetFrameDebt, seenFrame, "frame debt")
 	stale(widgetNotAFrame, seenFrame, "not a frame")
+	stale(widgetButtonDebt, seenButton, "button debt")
+	stale(widgetNotAButton, seenButton, "not a button")
 	stale(widgetLatchDebt, seenLatch, "latch debt")
 	stale(widgetNotALatch, seenLatch, "not a latch")
 	return vs
@@ -173,6 +216,74 @@ func framePainter(fn *ast.FuncDecl) string {
 		})
 	}
 	return why
+}
+
+// buttonPainter says why fn paints a push button's face or press state, or
+// "" when it does not. A finding inside a closure says so.
+func buttonPainter(fn *ast.FuncDecl) string {
+	if buttonPainterName.MatchString(fn.Name.Name) {
+		return "named as a push button painter"
+	}
+	if fn.Body == nil {
+		return ""
+	}
+	why := ""
+	var walk func(n ast.Node, closure bool)
+	walk = func(n ast.Node, closure bool) {
+		ast.Inspect(n, func(n ast.Node) bool {
+			if why != "" {
+				return false
+			}
+			found := ""
+			switch n := n.(type) {
+			case *ast.FuncLit:
+				if !closure {
+					walk(n.Body, true)
+					return false
+				}
+			case *ast.KeyValueExpr:
+				// A composite literal's key names a field; only its value is read.
+				walk(n.Value, closure)
+				return false
+			case *ast.CallExpr:
+				if id, ok := n.Fun.(*ast.Ident); ok && (id.Name == "buttonInk" || id.Name == "buttonTextOffset") {
+					found = "calls " + id.Name
+				}
+			case *ast.SelectorExpr:
+				if buttonColourName.MatchString(n.Sel.Name) {
+					found = "reads the button colour " + n.Sel.Name
+				}
+			case *ast.Ident:
+				if buttonColourName.MatchString(n.Name) {
+					found = "reads the button colour " + n.Name
+				}
+			case *ast.IndexExpr:
+				if inner, ok := n.X.(*ast.IndexExpr); ok && buttonPictureSet.MatchString(exprName(inner.X)) {
+					found = "picks a button picture by state from " + exprName(inner.X)
+				}
+			}
+			if found != "" {
+				if closure {
+					found += " in a closure"
+				}
+				why = found
+			}
+			return why == ""
+		})
+	}
+	walk(fn.Body, false)
+	return why
+}
+
+// exprName is the name an identifier or selector ends in, or "".
+func exprName(e ast.Expr) string {
+	switch e := e.(type) {
+	case *ast.Ident:
+		return e.Name
+	case *ast.SelectorExpr:
+		return e.Sel.Name
+	}
+	return ""
 }
 
 // checkPressField reports a struct field named as a press latch that is not

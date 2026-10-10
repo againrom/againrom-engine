@@ -28,6 +28,26 @@ func TestCheckWidgetKitNamesEachViolation(t *testing.T) {
 			"package ui\ntype s struct{ okPress buttonLatch; press latch.Latch }\n", ""},
 		{"a field that is not a latch by name", "pkg/ui/a.go",
 			"package ui\ntype s struct{ PrimaryPressed, pressX bool }\n", ""},
+		{"a canvas button painter named as one", "pkg/ui/a.go",
+			"package ui\nfunc drawRowButton(dst *ebiten.Image, x, y, w, h int, selected bool) { ebitenutil.DrawRect(dst, 0, 0, 1, 1, c) }\n",
+			"drawRowButton is a push button painter"},
+		{"a plaque painter choosing its ink", "pkg/ui/a.go",
+			"package ui\nfunc drawCommands(hover bool) { ink := buttonInk(true, hover); _ = ink }\n",
+			"drawCommands is a push button painter outside the kit (calls buttonInk)"},
+		{"a plaque painter moving its pressed caption", "pkg/ui/a.go",
+			"package ui\nfunc drawCommands(down bool) { r = r.Add(buttonTextOffset(down)) }\n",
+			"drawCommands is a push button painter outside the kit (calls buttonTextOffset)"},
+		{"a plaque painter picking its pressed picture", "pkg/ui/a.go",
+			"package ui\nfunc drawCommands(p *P, i, down int) { copyNative(dst, p.NavButtons[i][down], r.Min, r) }\n",
+			"drawCommands is a push button painter outside the kit (picks a button picture by state from NavButtons)"},
+		{"a painter reading a button colour", "pkg/ui/a.go",
+			"package ui\nfunc paintRows(l Layout) { fill := l.ButtonFill; _ = fill }\n",
+			"paintRows is a push button painter outside the kit (reads the button colour ButtonFill)"},
+		{"an image twin of a button in a closure", "pkg/ui/a.go",
+			"package ui\nfunc composeRows() { paint(func(x, y, w, h int, selected bool) { box(r, rowButtonBorder) }) }\n",
+			"composeRows is a push button painter outside the kit (reads the button colour rowButtonBorder in a closure)"},
+		{"a button drawn through the kit", "pkg/ui/a.go",
+			"package ui\nfunc paintRows(l Layout) { drawPushButton(dst, f, pushButton{Rect: r}); _ = Layout{ButtonFill: c} }\n", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -54,7 +74,7 @@ func TestCheckWidgetKitNamesEachViolation(t *testing.T) {
 // entry nothing matches is a violation.
 func TestCheckWidgetKitRefusesAStaleListEntry(t *testing.T) {
 	vs := CheckWidgetKit(map[string]string{"pkg/ui/a.go": "package ui\n"})
-	want := len(widgetFrameDebt) + len(widgetNotAFrame) + len(widgetLatchDebt) + len(widgetNotALatch)
+	want := len(widgetFrameDebt) + len(widgetNotAFrame) + len(widgetButtonDebt) + len(widgetNotAButton) + len(widgetLatchDebt) + len(widgetNotALatch)
 	if len(vs) != want {
 		t.Fatalf("CheckWidgetKit over an empty package = %d violations, want %d stale entries: %v", len(vs), want, vs)
 	}
