@@ -17,6 +17,14 @@ type ActorMovementFallback struct {
 	NativeSpeed int32
 }
 
+// ActorSpeedSplit keeps a native Human's Speed and SpeedModifier where the
+// speed word and modifier word a SAVE writes do not return them. Each pair
+// applies only while its wire still matches the document.
+type ActorSpeedSplit struct {
+	SpeedWire, ModifierWire uint16
+	Speed, Modifier         int32
+}
+
 // ActorRuntimeType retains a distinct gameplay type while its ordinary
 // arithmetic type remains unchanged.
 type ActorRuntimeType struct {
@@ -53,6 +61,7 @@ type ActorValues struct {
 	EquipmentRuntimePresent                                  bool
 	NativeClassPresent                                       bool                    `json:",omitempty"`
 	MovementFallback                                         *ActorMovementFallback  `json:",omitempty"`
+	SpeedSplit                                               *ActorSpeedSplit        `json:",omitempty"`
 	RuntimeType                                              *ActorRuntimeType       `json:",omitempty"`
 	RuntimeID                                                *ActorRuntimeCoordinate `json:",omitempty"`
 	DeadSourceHealth                                         *ActorDeadSourceHealth  `json:",omitempty"`
@@ -119,6 +128,12 @@ func (e Entity) Values() ActorValues {
 	}
 	if e.HumanMovement.Present && e.Speed != int32(e.HumanMovement.RawSpeed) {
 		v.MovementFallback = &ActorMovementFallback{e.HumanMovement.RawSpeed, e.Speed}
+	}
+	if e.Humanoid && e.ActorLoad.Source.Class == 0 {
+		word, modifier := uint16(e.SpeedWord()), e.SpeedModifierWord()
+		if word != uint16(e.Speed) || int32(int16(modifier)) != e.SpeedModifier {
+			v.SpeedSplit = &ActorSpeedSplit{word, modifier, e.Speed, e.SpeedModifier}
+		}
 	}
 	for i, field := range actorNumericFields(&e) {
 		if field.value == &e.TypeID && v.RuntimeType != nil {
@@ -253,6 +268,9 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	e.NativeClass = class
 	if !v.SourceBound {
 		e.SourceBinding = SourceBinding{}
+	}
+	if err := e.restoreSpeedSplit(v); err != nil {
+		return err
 	}
 	if !v.LoadPresent {
 		e.ActorLoad = ActorLoad{}
@@ -416,5 +434,30 @@ func (w *World) restoreActorValues(values map[EntityID]ActorValues) error {
 		}
 	}
 	w.entities, w.originalDead = next, dead
+	return nil
+}
+
+// restoreSpeedSplit reads a native Human's modifier from its ordinary record's
+// modifier speed word, then applies the split operand while both wires match.
+// A SAV written before the split carries no operand: its speed word is Speed
+// and its modifier word SpeedModifier.
+func (e *Entity) restoreSpeedSplit(v ActorValues) error {
+	native := v.SourceClass == 0 && e.Humanoid && e.ActorLoad.Source.Class == 2
+	if v.SpeedSplit != nil && !native {
+		return fmt.Errorf("sim: speed split lacks a native Human")
+	}
+	if !native {
+		return nil
+	}
+	wire := uint16(e.ActorLoad.Source.Modifier[4]) | uint16(e.ActorLoad.Source.Modifier[5])<<8
+	e.SpeedModifier = int32(int16(wire))
+	if s := v.SpeedSplit; s != nil {
+		if uint16(e.Speed) == s.SpeedWire {
+			e.Speed = s.Speed
+		}
+		if wire == s.ModifierWire {
+			e.SpeedModifier = s.Modifier
+		}
+	}
 	return nil
 }

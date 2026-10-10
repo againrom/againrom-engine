@@ -15,6 +15,7 @@ type ActorDefinition struct {
 	HealthRegeneration, ManaRegeneration int32
 
 	Speed, RotationSpeed, Capacity int32
+	SpeedModifier                  int32
 	ScanRange, SeeInvisible        uint8
 	Reach, TokenSize               uint8
 	DyingTime, Withdraw, Wimpy     int32
@@ -72,7 +73,7 @@ func NewActor(d ActorDefinition, at ActorPlacement) Entity {
 		HP: d.HP, MaxHP: d.MaxHP, Mana: d.Mana, MaxMana: d.MaxMana,
 		HealthRegenPeriod: d.HealthRegenPeriod, ManaRegenPeriod: d.ManaRegenPeriod,
 		HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
-		Speed: d.Speed, RotationSpeed: d.RotationSpeed, Capacity: d.Capacity,
+		Speed: d.Speed, SpeedModifier: d.SpeedModifier, RotationSpeed: d.RotationSpeed, Capacity: d.Capacity,
 		ScanRange: d.ScanRange, SeeInvisible: d.SeeInvisible, Reach: d.Reach, TokenSize: d.TokenSize,
 		DyingTime: d.DyingTime, Withdraw: d.Withdraw, Wimpy: d.Wimpy,
 		ToHit: d.ToHit, Defence: d.Defence, Absorption: d.Absorption,
