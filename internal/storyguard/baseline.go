@@ -2034,6 +2034,8 @@ package storyguard
 // in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
 // tests in pkg/rules, pkg/sim and pkg/game, new code, including this
 // paragraph.
+// CommentBytes rises for the doc of the mission-100 amulet-after-the-win
+// witness in pkg/game, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2057,5 +2059,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8582051,
+	CommentBytes: 8582870,
 }
