@@ -1428,6 +1428,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 // the health, not the order's own destination, not the container and not the
 // twelve worn places.
 func (w *World) handOver(i int, player uint32) {
+	w.handOverReference(i, player)
 	if w.savedGroups != nil {
 		w.handOverSaved(i, player)
 		return
@@ -1453,6 +1454,51 @@ func (w *World) handOver(i int, player uint32) {
 		base:  noticeBase(w.entities, members, cx, cy),
 		order: orderNone,
 	})
+}
+
+// handOverReference writes the actor's owner Reference (actor+0x14) as the
+// destination Player, the third write of the hand-over (PARTY-JOIN-025,
+// UNIT-OWNER-009). The World holds a Player's key only where an actor or a
+// saved Group of that slot names it; with none, the stale key stops being a
+// current value.
+func (w *World) handOverReference(i int, player uint32) {
+	b := &w.entities[i].NativeBasis
+	if !b.ScalarIsKnown(ScalarReference) || w.entities[i].Owner == player {
+		return
+	}
+	if key := w.playerReferenceKey(player, w.entities[i].ID); key != 0 {
+		b.Scalars[ScalarReference] = key
+		return
+	}
+	b.ScalarKnown &^= 1 << ScalarReference
+}
+
+// playerReferenceKey is the key the World holds for the Player of one slot:
+// a saved Group's reference to that Player, else the Reference most of the
+// slot's other actors carry, the lower key on a tie. Zero when none does.
+func (w *World) playerReferenceKey(slot uint32, except EntityID) uint32 {
+	if w.savedGroups != nil {
+		for _, g := range w.savedGroups.Groups {
+			for _, ref := range []SavedGroupReference{g.Owner, g.Reference} {
+				if ref.Class == 1 && ref.Owner == slot && ref.Key != 0 {
+					return ref.Key
+				}
+			}
+		}
+	}
+	votes := map[uint32]int{}
+	for _, e := range w.entities {
+		if e.ID != except && e.Owner == slot && e.NativeBasis.ScalarIsKnown(ScalarReference) && e.NativeBasis.Scalars[ScalarReference] != 0 {
+			votes[e.NativeBasis.Scalars[ScalarReference]]++
+		}
+	}
+	var key uint32
+	for k, n := range votes {
+		if n > votes[key] || n == votes[key] && k < key {
+			key = k
+		}
+	}
+	return key
 }
 
 func (w *World) runInstant(in ScriptInstant) {

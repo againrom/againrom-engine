@@ -114,3 +114,26 @@ func TestRemovedNativeBasisRetainedDeadAndConstructionBoundaries(t *testing.T) {
 		}
 	}
 }
+
+// A body torn down before it reached bones (a mover that leaves no corpse)
+// keeps the basis SAVE writes for it: a terminal owner's order and action
+// words read 16, so the retained row is the value a cold LOAD of that SAVE
+// restores and both hash alike.
+func TestRemovedTerminalBasisRetainsItsTerminalOrderWords(t *testing.T) {
+	corpse := spEnt(3, 10, 11)
+	corpse.HP, corpse.Decay = noCorpseHP, DecayFallen
+	corpse.NativeBasis = NativeActorBasis{ScalarsPresent: true, ScalarKnown: nativeScalarKnown}
+	corpse.NativeBasis.Scalars[ScalarU50], corpse.NativeBasis.Scalars[ScalarU58] = 11, 0xfedcba98
+	w := spWorld(t, 9, nil, corpse, spEnt(8, 1, 1))
+	Step(w, nil)
+	if _, exists := w.Entity(3); exists || len(w.removedNativeBases) != 1 {
+		t.Fatal("fixture did not remove its terminal body")
+	}
+	got := w.removedNativeBases[0].Basis
+	if got.Scalars[ScalarU50] != 16 || got.Scalars[ScalarU54] != 16 || got.Scalars[ScalarU58] != 0xfedcba98 {
+		t.Fatalf("retained terminal basis order/action %d/%d, want 16/16 with other words kept", got.Scalars[ScalarU50], got.Scalars[ScalarU54])
+	}
+	if !reflect.DeepEqual(w.RemovedNativeActorBases(), w.removedNativeBases) {
+		t.Fatal("retained terminal basis differs from the basis SAVE reads")
+	}
+}

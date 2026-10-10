@@ -9,6 +9,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 ## Unreleased
 
 - [ROM1] In the character generator's detailed page the statistics card's text stands one pixel further right, and the Experience row stands level with the Weight row.
+- [ROM1] An ally a mission script hands to the player no longer gives the
+  player's own side the key of the side the ally left when the game is saved,
+  so loading that save gives the same game as playing on.
+- [ROM1] A sack on the ground in an original save whose cell does not name it
+  keeps its identity and its items' identities when the game is saved again.
 
 ## 0.111.0
 

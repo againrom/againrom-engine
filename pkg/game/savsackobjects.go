@@ -188,6 +188,18 @@ func savedSackCellOperands(world *sim.World) map[uint16]uint32 {
 	return keys
 }
 
+// savedSackCellAdmits is the cell join of a Sack binding. A cell whose Sack
+// slot names the Sack's Identity admits it; so does a cell with no record or
+// an empty slot. SAV-SACKREMOVE-591 clears a cell's slot without testing which
+// Sack it names, and SAV-TOKEN-034 writes a Sack's Token from the Sack itself,
+// so a Sack whose cell names no Sack keeps its own Token. The caller has
+// already required that no other source Sack shares the cell. A slot naming
+// another key refuses.
+func savedSackCellAdmits(cellOperands map[uint16]uint32, cell uint16, identity uint32) bool {
+	key := cellOperands[cell]
+	return identity != 0 && (key == 0 || key == identity)
+}
+
 // This is original-import only. A native LOAD never calls the allocator.
 func importSavedSackObjects(ms *Mission, state *SnapshotSAVDocument) error {
 	return attachSavedObjectAuthority(ms, state, sim.SavedObjectOriginal)
@@ -248,7 +260,7 @@ func attachSavedObjectAuthority(ms *Mission, state *SnapshotSAVDocument, origin 
 			reason = savedSackCellAmbiguous
 		case token.Identity == 0 || identities[token.Identity] != 1:
 			reason = savedSackIdentityUnavailable
-		case cellOperands[cell] != token.Identity:
+		case !savedSackCellAdmits(cellOperands, cell, token.Identity):
 			reason = savedSackCellUnavailable
 		default:
 			matches := 0
@@ -272,7 +284,7 @@ func attachSavedObjectAuthority(ms *Mission, state *SnapshotSAVDocument, origin 
 		container.Owner = sim.SavedObjectOwner{Kind: sim.SavedOwnerSack, Object: id}
 		registry.Containers = append(registry.Containers, container)
 		metadata.Sacks = append(metadata.Sacks, SnapshotSAVObjectBinding{ID: id, ObjectIndex: index})
-		bindings = append(bindings, sim.SavedSackBinding{ID: id, X: x, Y: y, Gold: gold})
+		bindings = append(bindings, sim.SavedSackBinding{ID: id, X: x, Y: y, Gold: gold, Keyless: cellOperands[cell] == 0})
 	}
 	for _, index := range next.Document.World.Sacks {
 		if id := byObject[index]; id != 0 {
@@ -371,7 +383,7 @@ func validateSavedObjectBindingWorldDecoded(state *SnapshotSAVDocument, world *s
 		if !present || !container.Present || !savedSackEmpty(record) || token != row.Token || gold != row.Gold || expected.InsertIndex != container.InsertIndex || expected.Accumulator != container.Accumulator {
 			return fmt.Errorf("saved SAV Sack Token, Gold or Contents differs from native owner")
 		}
-		if token.Identity == 0 || cellOperands[binary.LittleEndian.Uint16(token.Position[2:])] != token.Identity {
+		if token.Identity == 0 || !savedSackCellAdmits(cellOperands, binary.LittleEndian.Uint16(token.Position[2:]), token.Identity) {
 			return fmt.Errorf("saved SAV Sack lost its exact current native cell key")
 		}
 		reason, err := savedSackBindingCoverage(row, container)

@@ -121,13 +121,17 @@ func (w *World) retainRemovedNativeBasis(e Entity) {
 	if e.ActorLoad.Source.Class != 0 || !e.NativeBasis.HasValues() || !w.hasRemovedNativeBasisOwner(e.ID) {
 		return
 	}
-	for i, row := range w.removedNativeBases {
-		if row.ID == e.ID {
-			w.removedNativeBases[i].Basis = w.nativeBasisNow(e)
+	// The retained row is the basis SAVE writes for the removed owner, so a
+	// terminal owner keeps its terminal order words, not its last living ones.
+	row := NativeActorBasisRecord{ID: e.ID, Basis: w.nativeBasisNow(e)}
+	row.Basis = w.nativeRemovedBasisNow(row)
+	for i := range w.removedNativeBases {
+		if w.removedNativeBases[i].ID == e.ID {
+			w.removedNativeBases[i] = row
 			return
 		}
 	}
-	w.removedNativeBases = append(w.removedNativeBases, NativeActorBasisRecord{ID: e.ID, Basis: w.nativeBasisNow(e)})
+	w.removedNativeBases = append(w.removedNativeBases, row)
 	w.sortRemovedNativeBases()
 }
 
