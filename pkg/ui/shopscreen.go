@@ -1038,13 +1038,10 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 		blit(dst, art.Room, shopRoomOrigin.X, shopRoomOrigin.Y)
 		blit(dst, art.Frame, shopFrameOrigin.X, shopFrameOrigin.Y)
 		blit(dst, art.Table, shopTableRegion.Min.X, shopTableRegion.Min.Y)
-		if art.Menu != nil {
-			draw.Draw(dst, shopButtonRegion, art.Menu, art.Menu.Bounds().Min, draw.Over)
-		}
 	}
-	for i := range shopButtonRects {
-		drawPushButton(dst, v.Font, shopCommandButton(v, i, hover, hasHover))
-	}
+	panel := shopButtonPanel(v, hover, hasHover)
+	panel.drawBody(dst)
+	panel.drawButtons(dst, v.Font)
 	if art != nil {
 		blit(dst, art.Arrow[0], shopArrowUpRect.Min.X, shopArrowUpRect.Min.Y)
 		blit(dst, art.Arrow[1], shopArrowDownRect.Min.X, shopArrowDownRect.Min.Y)
@@ -1118,27 +1115,44 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 	return dst
 }
 
-// shopCommandButton is a shop command plaque: its bitmap draws only while
-// pressed and hovered (TOWN-260); Buy and Sell join caption and number
-// (SHOP-050).
-func shopCommandButton(v ShopScreenView, i int, hover image.Point, hasHover bool) pushButton {
-	r := shopButtonRects[i]
-	face := &plaqueFace{Over: true, Ink: plaqueCommandInk, Sink: plaqueSink}
-	if v.Art != nil && v.Art.Button[i] != nil {
-		face.Pictures[plaqueDown] = v.Art.Button[i]
+// shopPanel is the shop's four-button composition (SHOP-SCREEN-035):
+// shopmenu.bmp over TownWideUpperRegion and four plaques whose bitmaps draw
+// only while pressed and hovered (TOWN-260). The four-command tavern takes it
+// whole (DIV-483).
+var shopPanel = panelComposition{Body: shopButtonRegion, BodyOver: true, Plaques: shopButtonRects[:],
+	FitLine: true, Ink: plaqueCommandInk}
+
+// shopButtonPanel is the shop's command panel; Buy and Sell join caption and
+// number on one line (SHOP-050).
+func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonPanel {
+	var art panelArt
+	if v.Art != nil {
+		if v.Art.Menu != nil {
+			art.Body = v.Art.Menu
+		}
+		art.Plaques = make([][2]image.Image, len(shopButtonRects))
+		for i, pic := range v.Art.Button {
+			if pic != nil {
+				art.Plaques[i][1] = pic
+			}
+		}
 	}
 	labels := [4]string{v.Words.ShopUndo, v.Words.ShopBuy, v.Words.ShopSell, v.Words.ShopExit}
 	numbers := [4]int32{v.Purse, v.Buy, v.Sell, v.Total}
-	n := GroupDigits(int64(numbers[i]))
-	if i == 1 || i == 2 {
-		face.Captions = []plaqueCaption{{Text: labels[i] + " " + n, Rect: r, Fit: true}}
-	} else {
-		face.Captions = []plaqueCaption{{Text: labels[i], Rect: townButtonLabelRect(r), Fit: true},
-			{Text: n, Rect: townButtonValueRect(r), Fit: true}}
+	buttons := make([]panelButton, len(shopButtonRects))
+	for i, r := range shopButtonRects {
+		n := GroupDigits(int64(numbers[i]))
+		b := &buttons[i]
+		if i == 1 || i == 2 {
+			b.Captions = []string{labels[i] + " " + n}
+		} else {
+			b.Captions = []string{labels[i], n}
+		}
+		b.Hover = hasHover && hover.In(r)
+		b.Inside, b.Disabled = b.Hover, !v.Live[i]
+		b.Pressed = v.Press == (ShopControl{Kind: ShopControlButton, Index: i})
 	}
-	inside := hasHover && hover.In(r)
-	return pushButton{Rect: r, Face: face, Hover: inside, Inside: inside, Disabled: !v.Live[i],
-		Pressed: v.Press == (ShopControl{Kind: ShopControlButton, Index: i})}
+	return buildButtonPanel(shopPanel, art, buttons)
 }
 
 // shopMessageRect is where the answer to the last press is written: the bottom
