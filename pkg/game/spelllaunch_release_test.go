@@ -69,14 +69,19 @@ func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, 
 	id := mw.world.SavedProjectiles().FreeIndex
 	mw.observeCasts([]sim.CastEvent{{Caster: hero, Spell: spLightning, Owner: e.Owner, FromX: e.X, FromY: e.Y,
 		ToX: int32(at.X), ToY: int32(at.Y), Facing: e.Facing}})
-	for _, p := range flightRecords(mw) {
-		if p.ID == id && p.Picture == 34 {
-			if paths := mw.recordPaths(p, 0); len(paths) == 1 {
-				return paths[0]
+	// The record's fifth call is the phase-0 call, where the figure starts at
+	// the launch point.
+	for range 8 {
+		for _, p := range flightRecords(mw) {
+			if p.ID == id && p.Picture == 34 && p.ActionPhase == 5 {
+				if paths := mw.recordPaths(p, 0); len(paths) == 1 {
+					return paths[0]
+				}
 			}
 		}
+		flightStep(mw)
 	}
-	t.Fatalf("the observed Lightning cast built no record %d: %+v", id, flightRecords(mw))
+	t.Fatalf("the observed Lightning cast built no record %d at its fifth call: %+v", id, flightRecords(mw))
 	return spellBolt{}
 }
 
@@ -186,7 +191,11 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		for d, step := range launchDirections {
 			b := launchObserve(t, mw, hero, launchFacings[d], step)
 			_, _, points := mw.pathFigure(b)
-			want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[d]))
+			// The launch is measured from the caster's cell; the record's own
+			// point names the cell it is drawn from.
+			e, _ := mw.entity(hero)
+			at := image.Pt(int(e.X), int(e.Y))
+			want := launchDisplay(mw, b.from, at.Mul(256).Add(c.deltas[d]))
 			if len(points) == 0 || !withinPixel(points[0], want) {
 				t.Fatalf("%s %s: the figure starts at %v, want %v", c.name, launchDirectionNames[d], points, want)
 			}
@@ -203,7 +212,8 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		b := launchCast(t, mw, hero)
 		e, _ = mw.entity(hero)
 		_, _, points := mw.pathFigure(b)
-		if want := launchDisplay(mw, b.from, b.from.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
+		at := image.Pt(int(e.X), int(e.Y))
+		if want := launchDisplay(mw, b.from, at.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
 			t.Fatalf("%s: an ordered cast at facing %d starts at %v, want %v", c.name, e.Facing, points, want)
 		}
 		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0])

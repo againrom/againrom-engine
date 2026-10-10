@@ -115,6 +115,9 @@ func (w *World) driveNewRecord(i, calls int, preMove func(x, y int32)) {
 		}
 		w.stepSavedProjectile(d)
 	}
+	if w.savedWorldEffects.Projectiles[i].Retired {
+		w.clearRetiredWorldEffectCarriers()
+	}
 }
 
 // structureTargetPoint is the point a record aims at for a structure: the

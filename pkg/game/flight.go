@@ -61,7 +61,7 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	rec := sim.CastRecord{Caster: ev.Caster, Picture: int32(picture), Phases: mw.recordPhases(picture),
 		X: x + int32(launch.X), Y: y + int32(launch.Y), AimX: aimX, AimY: aimY,
 		Dir: int32(ev.Facing >> 4), Segments: int32(data.CastFlight(picture, castDistance(from, to))), Owner: ev.Owner}
-	if !ev.AtCell && mw.projectiles.Homes(picture) {
+	if !ev.AtCell && ev.Target != 0 && mw.projectiles.Homes(picture) {
 		rec.Target, rec.HasTarget = ev.Target, true
 	}
 	look := flightLook{seed: mw.visualCastSeed(ev.Caster, ev.Target, spell, ev.AtCell), tag: index % chainTagCount}

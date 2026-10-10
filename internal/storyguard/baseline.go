@@ -2072,6 +2072,10 @@ package storyguard
 // CommentBytes rises for the install text code page: the docs of TextCode,
 // its edition and locale fields and the readers that take it, and the new
 // release test's, new code, including this paragraph.
+// CommentBytes rises for the one record kind of objects in flight: the docs of
+// the retired-row drop, the area rows a projectile-only carrier answers, and
+// the release witnesses that read records by id, new code, including this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2095,5 +2099,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1752,
 	},
-	CommentBytes: 8615468,
+	CommentBytes: 8616641,
 }

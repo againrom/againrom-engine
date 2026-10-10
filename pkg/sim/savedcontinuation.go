@@ -534,13 +534,20 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 
 // Once every carried effect has left the world, its retired import ordinals
 // cannot be reached by a later tick. Keep mixed live/retired carriers intact
-// while the live roots still need their stable IDs.
+// while the live roots still need their stable IDs. A retired projectile row
+// leaves at once: a record names itself, and SAVE writes no retired record.
 func (w *World) clearRetiredWorldEffectCarriers() {
 	g, s := w.savedSpellGraph, w.savedWorldEffects
+	dropped := false
+	if s != nil {
+		n := len(s.Projectiles)
+		s.Projectiles = slices.DeleteFunc(s.Projectiles, func(d SavedProjectileDriver) bool { return d.Retired })
+		dropped = len(s.Projectiles) != n
+	}
 	if g != nil && len(g.Roots) != 0 {
 		return
 	}
-	residue := g != nil && len(g.Nodes) != 0
+	residue := dropped || g != nil && len(g.Nodes) != 0
 	if s != nil {
 		residue = residue || len(s.Areas)+len(s.Projectiles) != 0
 		for _, area := range s.Areas {
