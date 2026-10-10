@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/textinput"
@@ -595,7 +594,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	table := defs.Table
 
 	loadMenu := menu.Load
-	if archives.Game() == base.GameROM2 {
+	if archives.Game().Edition().SecondMenu {
 		loadMenu = menu.LoadSecond
 	}
 	assets, err := loadMenu(archives.Containers)
@@ -986,12 +985,13 @@ func (f *FrontEnd) App(title string) *ui.App {
 	a.SetTooltipFont(f.tipFont())
 	a.SetTextSmoothing(!f.smoothingOff.text)
 	a.SetFrameSmoothing(!f.smoothingOff.frame)
+	edition := f.Base().Profile.Edition()
 	if f.Cutscenes != nil {
 		a.SetCutscenes(f.Cutscenes)
-	} else if f.Archives != nil && f.Archives.Game() == base.GameROM2 {
-		a.SetCutscenes(OpenCutscenes(f.Archives.Root, "video"))
+	} else if f.Archives != nil && edition.CutsceneArchive != "" {
+		a.SetCutscenes(OpenCutscenes(f.Archives.Root, edition.CutsceneArchive))
 	}
-	if f.Archives != nil && f.Archives.Game() == base.GameROM2 {
+	if f.Archives != nil && !edition.StartupCutscenes {
 		a.SetStartupCutscenesEnabled(false)
 	}
 	// GameSpeed is process-local driver state, not campaign/save state. Read it

@@ -246,7 +246,7 @@ func TestReleaseSecondMovieExitAtLaterDeparture(t *testing.T) {
 	for _, gate := range []int32{0, 1} {
 		t.Run(map[int32]string{0: "779 zero", 1: "779 nonzero"}[gate], func(t *testing.T) {
 			f := secondGameFront(t)
-			f.Cutscenes = OpenCutscenes(f.Archives.Root, "video4")
+			f.Cutscenes = f.OpenCutscenes("video4")
 			app := f.App("later movie")
 			app.Layout(1024, 768)
 			secondLaterEntry(t, f, app, 110, 100)

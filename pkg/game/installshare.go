@@ -83,7 +83,7 @@ func loadInstallShare(root string) (*installShare, error) {
 	s.units, s.unitSounds, s.unitsErr = loadUnitRegistry(archives.Containers)
 	s.townSchool, s.townSchoolErr = LoadTownSchoolArt(archives.Containers)
 	s.townTavern, s.townTavernErr = LoadTownTavernArt(archives.Containers)
-	s.townSquare, s.townSquareErr = LoadTownSquareArt(archives.Containers)
+	s.townSquare, s.townSquareErr = LoadTownSquareArtFor(TownDescription(match.Profile), archives.Containers)
 	return s, nil
 }
 

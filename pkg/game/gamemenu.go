@@ -16,7 +16,7 @@ func gameMenuContext(mw *mapWorld, campaign bool, objective string) ui.GameMenuC
 	if mw == nil || mw.world == nil {
 		return ctx
 	}
-	ctx.Objective = mw.secondGameObjectives(objective)
+	ctx.Objective = mw.missionObjectives(objective)
 	ctx.VictoryAvailable = campaign && mw.mission != nil &&
 		mw.mission.delayedVictory && !mw.mission.victoryTaken
 	owners := make(map[uint32]struct{})

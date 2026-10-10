@@ -3,14 +3,13 @@ package mapload
 import (
 	"fmt"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/sim"
 )
 
 func CheatItem(name string, t *Table) (sim.ItemInstance, bool) {
-	if t == nil || t.Game == base.GameROM2 || name == "" || len(name) > 4096 {
+	if t == nil || !t.Game.Edition().Cheats || name == "" || len(name) > 4096 {
 		return sim.ItemInstance{}, false
 	}
 	if t.MagicItems != nil {
@@ -65,7 +64,7 @@ func cheatDefinitionRow(name string, c data.Collection) int {
 
 func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, []sim.ItemStack, [sim.EquipSlots]sim.ItemInstance, error) {
 	var worn [sim.EquipSlots]sim.ItemInstance
-	if t == nil || t.Game == base.GameROM2 || name == "" || len(name) > 4096 {
+	if t == nil || !t.Game.Edition().Cheats || name == "" || len(name) > 4096 {
 		return sim.Entity{}, nil, worn, fmt.Errorf("actor name is unavailable")
 	}
 	local := *t

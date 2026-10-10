@@ -19,7 +19,7 @@ func secondGameCompletionDirectory(src entrySource, output int) string {
 
 func reportWordsFor(words *InstallWords, game base.Game) ui.Words {
 	result := words.Words()
-	if game == base.GameROM2 && words != nil {
+	if game.Edition().SecondMissionText && words != nil {
 		for _, value := range []*string{&result.MissionWon, &result.MenuVictory, &result.OutcomeContinue} {
 			*value = string(secondGameMissionBytes([]byte(*value), words.Selector))
 		}

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -214,7 +213,7 @@ func (d SecondDeparture) extraAdds() bool {
 // SecondGameCensus walks every campaign map the archives carry, ascending, and
 // reports each against this build. It writes nothing.
 func SecondGameCensus(archives *Archives) ([]SecondMapCensus, error) {
-	if archives == nil || archives.Game() != base.GameROM2 {
+	if archives == nil || !archives.Game().Edition().SecondMaps {
 		return nil, fmt.Errorf("the census needs a second-game root")
 	}
 	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
@@ -440,7 +439,7 @@ func secondSpecialEvent(e int32) bool { return e == 250 || e >= 253 && e <= 255 
 // mission screen uses.
 func secondText(c *SecondMapCensus, src entrySource) {
 	for _, e := range c.Events {
-		if _, ok := ReadEventTextFor(src, base.GameROM2, c.Mission, int(e)); !ok {
+		if _, ok := readSecondGameEventText(src, c.Mission, int(e)); !ok {
 			c.NoEventText = append(c.NoEventText, e)
 		}
 	}

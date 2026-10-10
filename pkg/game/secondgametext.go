@@ -9,9 +9,15 @@ import (
 )
 
 func ReadEventTextFor(src entrySource, game base.Game, mission, event int) ([]byte, bool) {
-	if game != base.GameROM2 {
+	if !game.Edition().SecondMissionText {
 		return ReadEventText(src, mission, event)
 	}
+	return readSecondGameEventText(src, mission, event)
+}
+
+// readSecondGameEventText is event's section of the second game's mission
+// text file.
+func readSecondGameEventText(src entrySource, mission, event int) ([]byte, bool) {
 	payload, ok := readSecondGameMissionText(src, mission)
 	if !ok {
 		return nil, false

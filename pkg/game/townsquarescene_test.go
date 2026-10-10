@@ -69,7 +69,7 @@ func TestTownSquareLabelsCopyAtTheirOrigins(t *testing.T) {
 		hover  image.Point
 		origin image.Point
 	}{{image.Pt(1, 1), image.Pt(264, 264)}, {image.Pt(2, 1), image.Pt(144, 332)}, {image.Pt(3, 1), image.Pt(436, 300)}} {
-		v := town.NewView(rom1Town, stillHost{art}, nil)
+		v := town.NewView(ROM1TownDescription(), stillHost{art}, nil)
 		v.Pointer(c.hover)
 		dst := image.NewRGBA(image.Rectangle{Max: v.Size()})
 		v.Paint(dst)

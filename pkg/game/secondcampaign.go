@@ -415,6 +415,12 @@ func (c *secondCampaign) savePoint() bool {
 	return c != nil && c.selected == (secondLocation{}) && c.payload == nil && c.part == 0 && captureSecondCampaign(c).validateTown() == nil
 }
 
+// noticePending reports whether the campaign holds an open dialogue or a
+// selected destination; no campaign holds neither.
+func (c *secondCampaign) noticePending() bool {
+	return c != nil && (c.payload != nil || c.part != 0 || c.selected != (secondLocation{}))
+}
+
 // readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a
 // missing section shows no conversation (DIV-2635).
 func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {

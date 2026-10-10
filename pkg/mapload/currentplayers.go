@@ -3,7 +3,6 @@ package mapload
 import (
 	"slices"
 
-	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/sim"
 )
@@ -11,7 +10,7 @@ import (
 // Fresh ROM1 Players use the existing engine construction policy. IDs follow
 // sorted initial Slots, not archive identities. This does not select a Player.
 func initializeCurrentPlayers(w *sim.World, m *alm.Map, t *Table) error {
-	if t != nil && t.Game == base.GameROM2 {
+	if t != nil && !t.Game.Edition().FreshPlayers {
 		return nil
 	}
 	var slots []uint32

@@ -18,7 +18,7 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 	f := releaseFront(t)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	f.SetDeterministicFrames(true)
-	f.Cutscenes = OpenCutscenes(f.Archives.Root, "video4")
+	f.Cutscenes = f.OpenCutscenes("video4")
 	t.Run("generator", func(t *testing.T) {
 		setup := f.ChargenSetup()
 		if len(setup.PreCreate.Art.Sparkles) != 15 {

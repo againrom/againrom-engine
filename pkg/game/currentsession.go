@@ -69,7 +69,7 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 		a = &currentActionData{Version: 1}
 	}
 	a.Session = &currentSessionData{Game: s.game, Second: s.second.clone(), Offered: s.Offered, Won: slices.Clone(s.Won), ConsumedHeroGrants: slices.Clone(s.ConsumedHeroGrants)}
-	if s.game == base.GameROM2 && s.Mission == 0 {
+	if s.game.Edition().TownDifficulty && s.Mission == 0 {
 		difficulty := s.Difficulty
 		a.Session.Difficulty = &difficulty
 	}
@@ -124,19 +124,11 @@ func validateCurrentSession(s *currentSessionData) error {
 	if s == nil {
 		return nil
 	}
-	if s.Game != "" && s.Game != base.GameROM1 && s.Game != base.GameROM2 {
+	if !s.Game.Known() {
 		return fmt.Errorf("invalid current save game")
 	}
-	if (s.Second != nil) != (s.Game == base.GameROM2) {
-		return fmt.Errorf("current save game and campaign disagree")
-	}
-	if s.Second != nil {
-		if err := s.Second.validate(); err != nil {
-			return err
-		}
-	}
-	if s.Difficulty != nil && (s.Game != base.GameROM2 || s.Second == nil || s.Second.Current.Kind != 2 || *s.Difficulty < 0 || *s.Difficulty > mapload.DifficultyHard) {
-		return fmt.Errorf("invalid current city difficulty")
+	if err := campaignOf(s.Game).validateSession(s); err != nil {
+		return err
 	}
 	var ids [4]uint32
 	for _, row := range s.QuickSpells {

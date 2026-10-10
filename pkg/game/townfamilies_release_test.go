@@ -122,7 +122,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	check := func(name string, dt time.Duration, inspect func(exteriorFrame)) {
 		t.Helper()
 		pix := exteriorPaint(t, app, &now, dt)
-		if dt > time.Duration(rom1Town.Clock.PeriodMS)*time.Millisecond {
+		if dt > time.Duration(ROM1TownDescription().Clock.PeriodMS)*time.Millisecond {
 			hubs++
 		}
 		frame := screen.sqExteriorFrame()

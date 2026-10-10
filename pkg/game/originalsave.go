@@ -755,12 +755,9 @@ func (f *FrontEnd) RestoreOriginal(saved []byte) (open ui.MapOpener, town bool, 
 	if err != nil {
 		return nil, false, err
 	}
-	var selectedMarkers map[int]bool
-	if src.campaign.town.second == nil {
-		selectedMarkers, err = worldSelectedOnceFromSnapshot(worldMapMarkerMissions(src.campaign.town, coldWorldMapData(f.worldMapCache, f.Archives)))
-		if err != nil {
-			return nil, false, err
-		}
+	selectedMarkers, err := f.campaign().selectedMarkers(f, src)
+	if err != nil {
+		return nil, false, err
 	}
 	in := f.originalInstall()
 	if src.campaign.mission == 0 {
@@ -817,7 +814,7 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 	var restoredProgress *campaignProgress
 	if projection, ok, err := sf.Campaign(); err != nil {
 		return nil, err
-	} else if ok && currentSession != nil && currentSession.Second != nil {
+	} else if ok && sessionCampaign(currentSession).statesCampaign(currentSession) {
 		restoredTown = NewTown(Campaign{})
 		if projection.Main.Mission != uint32(n) || projection.SelectedMission != uint32(n) {
 			return nil, fmt.Errorf("current second campaign document does not match its mission")
@@ -843,9 +840,7 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 		return nil, err
 	}
 	if currentSession != nil {
-		if currentSession.Second != nil {
-			restoredTown.second = currentSession.Second.restore()
-		}
+		restoredTown.second = currentSession.Second.restore()
 		for _, r := range currentSession.Taken {
 			restoredTown.taken[offerRef{r.Chapter, TownBuilding(r.Building), r.Index}] = true
 		}
@@ -880,13 +875,8 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 // describes. The city is completed on a detached session: a hired-roster
 // refusal must not replace the running campaign, counters or observer.
 func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, selectedMarkers map[int]bool) (ui.MapOpener, bool, error) {
-	if src.campaign.town.second != nil {
-		if payload, err := readSecondTownTalk(&f.InstallResources, "npc517talk10"); err != nil || payload == nil {
-			if err == nil {
-				err = fmt.Errorf("initial inn conversation is unavailable")
-			}
-			return nil, false, err
-		}
+	if err := f.campaign().checkTownLoad(f, src); err != nil {
+		return nil, false, err
 	}
 	draftAudio := ui.NewAudioScope(f.SoundPlayer)
 	defer draftAudio.Destroy()
