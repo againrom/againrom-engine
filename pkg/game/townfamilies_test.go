@@ -116,7 +116,7 @@ func (r *townFamilyRig) enter(t *testing.T, script ...int) {
 	r.draws.script = script
 	r.s.squareView().SetRawDraw("wildlife", r.draws.next)
 	r.s.resetTownExterior()
-	r.s.squareView().SetClockLast(time.Time{})
+	r.s.squareView().SetClock("square", time.Time{})
 	r.s.TownSquareActive(true)
 	if len(r.draws.script) != 0 {
 		t.Fatalf("entry left %d scripted draws", len(r.draws.script))
@@ -414,7 +414,7 @@ func (g *crtRand) next() int {
 // The generator is the CRT rand (AI-RAND-058) and the entry and arm delays
 // stay inside their bounds over a seeded run.
 func TestTownFamilyGeneratorIsTheCRTRandAndDelaysStayInBounds(t *testing.T) {
-	v := town.NewView(ROM1TownDescription(), seedHost{seed: 1}, nil)
+	v := town.NewScene(ROM1TownDescription(), "square", seedHost{seed: 1}, nil)
 	oracle := crtRand{state: 1}
 	for i := 0; i < 5; i++ {
 		raw := oracle.next()
@@ -422,7 +422,7 @@ func TestTownFamilyGeneratorIsTheCRTRandAndDelaysStayInBounds(t *testing.T) {
 			t.Fatalf("draw %d = %d want %d (raw %d)", i, got, want, raw)
 		}
 	}
-	v = town.NewView(ROM1TownDescription(), seedHost{seed: 1234}, nil)
+	v = town.NewScene(ROM1TownDescription(), "square", seedHost{seed: 1234}, nil)
 	loEntry, hiEntry, loArm, hiArm := 1<<30, 0, 1<<30, 0
 	for i := 0; i < 200000; i++ {
 		e := 2000 + v.Pick("wildlife", "scaled", 2000)
@@ -452,7 +452,7 @@ func TestTownFamiliesLeaveEveryOtherGeneratorAlone(t *testing.T) {
 		r := newTownFamilyRig(t, families, families, families)
 		r.s.resetTownExterior()
 		r.s.squareView().ResetDraw("wildlife")
-		r.s.squareView().SetClockLast(time.Time{})
+		r.s.squareView().SetClock("square", time.Time{})
 		r.s.TownSquareActive(true)
 		exteriorPaint(t, r.app, r.now, 0)
 		for i := 0; i < 400; i++ {
@@ -469,7 +469,7 @@ func TestTownFamiliesLeaveEveryOtherGeneratorAlone(t *testing.T) {
 // Position rolls are scaled quotients, not r mod n (TOWN-505).
 func TestTownFamilyPositionRollsAreTheScaledQuotients(t *testing.T) {
 	roll := func(raw int) (horse, baba int) {
-		v := town.NewView(ROM1TownDescription(), stillHost{}, nil)
+		v := town.NewScene(ROM1TownDescription(), "square", stillHost{}, nil)
 		v.SetRawDraw("wildlife", func() int { return raw })
 		return v.Pick("wildlife", "scaled", 5), v.Pick("wildlife", "masked", 4)
 	}

@@ -385,7 +385,7 @@ func writeSchoolTrainingWitness(t *testing.T, f *FrontEnd, name string, pix *ima
 // placements, each side copied at its fixed point inside the content region,
 // and leaves every other group to the page.
 type literalSchoolMovies struct {
-	page          *town.Page
+	page          *town.Scene
 	mage, fighter image.Image
 }
 

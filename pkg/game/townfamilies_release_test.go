@@ -112,7 +112,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	// re-rolled) then 1, baba delay 2000 ms, horse delay 2000 ms.
 	draws.script = []int{rawH(3), rawB(2), rawB(2), 0, rawZero, rawZero}
 	screen.resetTownExterior()
-	screen.squareView().SetClockLast(time.Time{})
+	screen.squareView().SetClock("square", time.Time{})
 	screen.TownSquareActive(true)
 	if len(draws.script) != 0 {
 		t.Fatalf("entry left %v", draws.script)
@@ -303,7 +303,7 @@ func TestReleaseTownFamiliesSeededDelaysFromTheLastStep(t *testing.T) {
 	app, screen := exteriorApp(t, f)
 	screen.resetTownExterior()
 	screen.squareView().ResetDraw("wildlife")
-	screen.squareView().SetClockLast(time.Time{})
+	screen.squareView().SetClock("square", time.Time{})
 	screen.TownSquareActive(true)
 	exteriorPaint(t, app, &now, 0)
 	fam := screen.sqWildlife()

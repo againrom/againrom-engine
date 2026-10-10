@@ -1,5 +1,6 @@
 // Package town is the town composer: one builder that turns a town
-// description into a town view. A description is data. It names the art, the
+// description into scenes, the square and each room page, all run by one
+// runtime, Scene. A description is data. It names the art, the
 // mask, the hotspots, the actor programs, the clock, the sounds, the tips, the
 // music and the rooms of one town, and the hooks a campaign answers. The
 // package holds no fact of any game: no resource key, coordinate, mask byte,
@@ -16,7 +17,9 @@ import (
 
 // Description is one town as data. Every object in the encoded form carries a
 // cite list naming the claim, divergence row or owner ruling behind its values;
-// the composer ignores it.
+// the composer ignores it. The top level from View to Layers is the square's
+// scene in its short form, with one paint clock and three step phases;
+// SquareScene answers it as a SceneSpec.
 type Description struct {
 	Town     string        `json:"town"`
 	Cite     []string      `json:"cite"`
@@ -44,9 +47,10 @@ type ViewSpec struct {
 	Cite []string `json:"cite"`
 }
 
-// ClockSpec is the square's paint clock. A step is admitted when the time
-// since the last admitted step exceeds the period ("greater") or reaches it
-// ("at-least"). The first paint after the view is built only stamps the clock.
+// ClockSpec is the square's paint clock in the short form: a process clock
+// named by the square. A step is admitted when the time since the last
+// admitted step exceeds the period ("greater") or reaches it ("at-least").
+// While it holds no stamp a paint only stamps it.
 type ClockSpec struct {
 	PeriodMS int      `json:"period-ms"`
 	Compare  string   `json:"compare"`
@@ -220,11 +224,10 @@ type CueSpec struct {
 	Cite []string `json:"cite"`
 }
 
-// ActorSpec is one animated element and its program. A town actor's program
-// is one of episode, pendulum, stepper, driven, flock or families; a room
-// scene's is one of loop, alternating, selector, priority, bounce, cycle,
-// target or training. The fields each program reads are named on its runtime
-// type.
+// ActorSpec is one animated element and its program: episode, pendulum,
+// stepper, driven, flock, families, loop, alternating, selector, priority,
+// bounce, cycle, target or training, in any scene. The fields each program
+// reads are named on its runtime type.
 type ActorSpec struct {
 	Name    string `json:"name"`
 	Program string `json:"program"`
@@ -331,9 +334,9 @@ type EntryStep struct {
 	Cite     []string  `json:"cite"`
 }
 
-// StepSpec orders the clock's work. Before runs on every paint, then Admitted
-// when the clock admits a step, then After on every paint. Each entry is
-// "<phase> <actor>".
+// StepSpec orders the square's clock work in the short form. Before runs on
+// every paint, then Admitted when the clock admits a step, then After on
+// every paint. Each entry is "<phase> <actor>" or "sound <slot>".
 type StepSpec struct {
 	Before   []string `json:"before"`
 	Admitted []string `json:"admitted"`
@@ -416,6 +419,44 @@ type Step struct {
 type SaveSpec struct {
 	AdmittedWhen string   `json:"admitted-when"`
 	Cite         []string `json:"cite"`
+}
+
+// SquareScene answers the square's scene: the description's top level, its
+// clock a process clock named by the square, its steps three groups of which
+// the second is bound to that clock, entered each time it is shown, and
+// advanced only while active. The answer shares the description's lists.
+func (d *Description) SquareScene() *SceneSpec {
+	period := d.Clock.PeriodMS
+	clock := d.Square.Name
+	return &SceneSpec{
+		View: d.View, Random: d.Random, Art: d.Art, Mask: d.Mask, Hotspots: d.Hotspots,
+		Pointer: d.Pointer, Sounds: d.Sounds, Actors: d.Actors, Layers: d.Layers,
+		Clocks: []SceneClock{{Name: clock, PeriodMS: &period, Compare: d.Clock.Compare,
+			Process: true, Cite: d.Clock.Cite}},
+		Lifecycle:   LifecycleShown,
+		AdvanceWhen: "active",
+		Steps: []StepGroup{
+			{Run: d.Step.Before, Cite: d.Step.Cite},
+			{Clock: clock, Run: d.Step.Admitted, Cite: d.Step.Cite},
+			{Run: d.Step.After, Cite: d.Step.Cite},
+		},
+		Cite: d.Cite,
+	}
+}
+
+// Scene answers the named room's scene: the square's name answers
+// SquareScene, a room its own scene, and a room without a scene or an
+// unknown name nil.
+func (d *Description) Scene(room string) *SceneSpec {
+	if room == d.Square.Name {
+		return d.SquareScene()
+	}
+	for i := range d.Rooms {
+		if d.Rooms[i].Name == room {
+			return d.Rooms[i].Scene
+		}
+	}
+	return nil
 }
 
 // Point is an x, y pair.

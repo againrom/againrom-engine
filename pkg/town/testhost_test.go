@@ -80,6 +80,7 @@ type fakeHost struct {
 	now        time.Time
 	draws      []int
 	conditions map[string]bool
+	values     map[string]int
 	log        []string
 	voices     []*fakeVoice
 }
@@ -96,7 +97,13 @@ func (h *fakeHost) Draw(source string, n int) int {
 }
 func (h *fakeHost) Seed() int64                { return 1 }
 func (h *fakeHost) Condition(name string) bool { return h.conditions[name] }
-func (h *fakeHost) PlaySound(source, key string) Voice {
+func (h *fakeHost) Value(name string) int {
+	if v, ok := h.values[name]; ok {
+		return v
+	}
+	return -1
+}
+func (h *fakeHost) PlaySound(source, key string, loop bool) Voice {
 	h.log = append(h.log, "play "+source+":"+key)
 	v := &fakeVoice{h: h, key: key, playing: true}
 	h.voices = append(h.voices, v)
@@ -108,8 +115,18 @@ func (h *fakeHost) StopSound(v Voice) {
 }
 func (h *fakeHost) StartLoop(key string) bool { h.log = append(h.log, "loop "+key); return true }
 func (h *fakeHost) StopLoop(key string)       { h.log = append(h.log, "stoploop "+key) }
-func (h *fakeHost) LeaveSquare()              { h.log = append(h.log, "leave") }
+func (h *fakeHost) Leave(room string)         { h.log = append(h.log, "leave") }
 func (h *fakeHost) Hook(name, room string)    { h.log = append(h.log, "hook "+name+"@"+room) }
+
+func (h *fakeHost) plays() int {
+	n := 0
+	for _, l := range h.log {
+		if strings.HasPrefix(l, "play ") {
+			n++
+		}
+	}
+	return n
+}
 
 func (h *fakeHost) take() string {
 	out := strings.Join(h.log, ",")

@@ -69,10 +69,10 @@ func TestTownSquareLabelsCopyAtTheirOrigins(t *testing.T) {
 		hover  image.Point
 		origin image.Point
 	}{{image.Pt(1, 1), image.Pt(264, 264)}, {image.Pt(2, 1), image.Pt(144, 332)}, {image.Pt(3, 1), image.Pt(436, 300)}} {
-		v := town.NewView(ROM1TownDescription(), stillHost{art}, nil)
+		v := town.NewScene(ROM1TownDescription(), "square", stillHost{art}, nil)
 		v.Pointer(c.hover)
 		dst := image.NewRGBA(image.Rectangle{Max: v.Size()})
-		v.Paint(dst)
+		v.Paint(dst, "")
 		if got, want := dst.RGBAAt(c.origin.X+1, c.origin.Y+1).R, uint8(0x60+i); got != want {
 			t.Errorf("label %d inside its origin = %#x, want %#x", i, got, want)
 		}

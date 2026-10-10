@@ -9,50 +9,9 @@ import (
 	"time"
 )
 
-// Room pages run over a host that answers art, time, draws, sounds and named
-// values. Every test picture is a solid colour whose red channel names its
-// entry and green its frame plus one.
-
-type fakePageHost struct {
-	art    *Art
-	now    time.Time
-	draws  []int
-	values map[string]int
-	log    []string
-}
-
-func (h *fakePageHost) Art() *Art      { return h.art }
-func (h *fakePageHost) Now() time.Time { return h.now }
-func (h *fakePageHost) Draw(source string, n int) int {
-	if len(h.draws) == 0 {
-		return 0
-	}
-	v := h.draws[0]
-	h.draws = h.draws[1:]
-	return v % n
-}
-func (h *fakePageHost) Reseed(source string) { h.log = append(h.log, "reseed "+source) }
-func (h *fakePageHost) PlaySound(source, key string, loop bool) Voice {
-	h.log = append(h.log, "play "+source+":"+key)
-	return &fakeVoice{key: key, playing: true}
-}
-func (h *fakePageHost) StopSound(v Voice) { h.log = append(h.log, "stop "+v.(*fakeVoice).key) }
-func (h *fakePageHost) Value(name string) int {
-	if v, ok := h.values[name]; ok {
-		return v
-	}
-	return -1
-}
-
-func (h *fakePageHost) plays() int {
-	n := 0
-	for _, l := range h.log {
-		if strings.HasPrefix(l, "play ") {
-			n++
-		}
-	}
-	return n
-}
+// Room pages run over the test host, which answers art, time, draws, sounds
+// and named values. Every test picture is a solid colour whose red channel
+// names its entry and green its frame plus one.
 
 func pageFrames(entry uint8, n int) []image.Image {
 	out := make([]image.Image, n)
@@ -85,7 +44,7 @@ func decodeScene(t *testing.T, scene obj) (*Description, error) {
 	return Decode(data, pageVocabulary)
 }
 
-func newTestPage(t *testing.T, scene obj, art map[string][]image.Image, host *fakePageHost) *Page {
+func newTestPage(t *testing.T, scene obj, art map[string][]image.Image, host *fakeHost) *Scene {
 	t.Helper()
 	d, err := decodeScene(t, scene)
 	if err != nil {
@@ -95,7 +54,7 @@ func newTestPage(t *testing.T, scene obj, art map[string][]image.Image, host *fa
 	if host.now.IsZero() {
 		host.now = time.Unix(100, 0)
 	}
-	p := NewPage(d, "inn", host, nil)
+	p := NewScene(d, "inn", host, nil)
 	if p == nil {
 		t.Fatal("no page for a room with a scene")
 	}
@@ -120,7 +79,7 @@ func bounceScene() obj {
 }
 
 func TestPageBounceRunsOutAndBackOncePerArm(t *testing.T) {
-	h := &fakePageHost{}
+	h := &fakeHost{}
 	p := newTestPage(t, bounceScene(), map[string][]image.Image{"d": pageFrames(9, 4)}, h)
 	p.Enter()
 	b := p.Actor("d").(*Bounce)
@@ -150,7 +109,7 @@ func TestPageCycleStampsThenCountsOnItsWaitAndOutlivesEntry(t *testing.T) {
 			"wait": obj{"base-ms": 500, "compare": "at-least"}, "order": list{list{0, 1, 2}, list{2, 1, 0}}}},
 		"steps": list{obj{"run": list{"advance c"}}},
 	}
-	h := &fakePageHost{}
+	h := &fakeHost{}
 	p := newTestPage(t, scene, map[string][]image.Image{}, h)
 	c := p.Actor("c").(*Cycle)
 	p.Advance()
@@ -193,7 +152,7 @@ func TestPageSelectorSelectsReleasesStopsAndRaises(t *testing.T) {
 		"on":      list{obj{"event": "pick", "do": "select"}}})
 	scene["actors"].(list)[0].(obj)["on"] = list{obj{"event": "picked", "do": "arm"}}
 	scene["steps"] = list{obj{"run": list{"advance racks", "advance d"}}}
-	h := &fakePageHost{values: map[string]int{"chosen": 0}}
+	h := &fakeHost{values: map[string]int{"chosen": 0}}
 	art := map[string][]image.Image{"d": pageFrames(9, 4), "m0": pageFrames(1, 6), "m1": pageFrames(2, 6)}
 	p := newTestPage(t, scene, art, h)
 	s := p.Actor("racks").(*Selector)
@@ -225,8 +184,8 @@ func TestPageSelectorSelectsReleasesStopsAndRaises(t *testing.T) {
 	}
 	art["m1"][2] = nil
 	dst := image.NewRGBA(image.Rect(0, 0, 4, 4))
-	scene2 := p.scene.Layers
-	p.scene.Layers = append(scene2, LayerSpec{Group: "r", Actor: "r1", Mode: "copy"})
+	scene2 := p.spec.Layers
+	p.spec.Layers = append(scene2, LayerSpec{Group: "r", Actor: "r1", Mode: "copy"})
 	p.Paint(dst, "r")
 	if got := dst.RGBAAt(0, 0); got.R != 2 || got.G != 1 {
 		t.Fatalf("an incomplete member painted %v, want its first frame", got)
@@ -246,7 +205,7 @@ func TestPagePriorityWaitsRunsAStateAndEnds(t *testing.T) {
 		"steps":  list{obj{"run": list{"arm q", "advance q"}}},
 		"layers": list{layer("g", "q")},
 	}
-	h := &fakePageHost{draws: []int{1, 1}}
+	h := &fakeHost{draws: []int{1, 1}}
 	art := map[string][]image.Image{"base": pageFrames(5, 1), "idle": pageFrames(6, 2), "yes": pageFrames(7, 1)}
 	p := newTestPage(t, scene, art, h)
 	p.Enter()
@@ -305,7 +264,7 @@ func trainingArt() map[string][]image.Image {
 }
 
 func TestPageTrainingWaitsForTheTransitionAndWalksTheColumn(t *testing.T) {
-	h := &fakePageHost{values: map[string]int{"class": 0}}
+	h := &fakeHost{values: map[string]int{"class": 0}}
 	p := newTestPage(t, trainingScene(), trainingArt(), h)
 	p.Enter()
 	tr, col := p.Actor("tr").(*Training), p.Actor("col").(*Target)
@@ -335,7 +294,7 @@ func TestPageTrainingWaitsForTheTransitionAndWalksTheColumn(t *testing.T) {
 }
 
 func TestPageTrainingIdlePlaysHoldsAndReturns(t *testing.T) {
-	h := &fakePageHost{values: map[string]int{"class": 0}, draws: []int{0, 50}}
+	h := &fakeHost{values: map[string]int{"class": 0}, draws: []int{0, 50}}
 	scene := trainingScene()
 	scene["actors"].(list)[1].(obj)["variants"].(list)[0].(obj)["idle-count"] = 3
 	scene["art"].(list)[2].(obj)["count"] = 3
@@ -393,10 +352,10 @@ func TestPageLifecycleEntersRebasesAndSkipsWithoutArt(t *testing.T) {
 		"steps":  list{obj{"clock": "tick", "when": "active", "run": list{"publish l", "advance l"}}},
 		"layers": list{layer("g", "l")},
 	}
-	h := &fakePageHost{}
+	h := &fakeHost{}
 	p := newTestPage(t, scene, map[string][]image.Image{"l": pageFrames(4, 3)}, h)
 	l := p.Actor("l").(*Loop)
-	p.SetActive(true)
+	p.SetActive(true, true)
 	if !p.Ready() || !p.Active() {
 		t.Fatal("a page asked to run was not entered")
 	}
@@ -410,13 +369,13 @@ func TestPageLifecycleEntersRebasesAndSkipsWithoutArt(t *testing.T) {
 	if l.Index != 1 {
 		t.Fatalf("the clock did not admit its period: %+v", *l)
 	}
-	p.SetActive(false)
+	p.SetActive(false, true)
 	h.now = h.now.Add(time.Hour)
 	p.Advance()
 	if l.Index != 1 {
 		t.Fatal("a paused page advanced")
 	}
-	p.SetActive(true)
+	p.SetActive(true, true)
 	h.now = h.now.Add(9 * time.Millisecond)
 	p.Advance()
 	if l.Index != 1 {
@@ -496,7 +455,7 @@ func TestPageAlternatingStartsTheStateOfItsWaitsParity(t *testing.T) {
 		"steps":  list{obj{"run": list{"arm a", "publish a", "cue a", "advance a"}}},
 		"layers": list{layer("g", "a")},
 	}
-	h := &fakePageHost{draws: []int{1, 0}}
+	h := &fakeHost{draws: []int{1, 0}}
 	p := newTestPage(t, scene, map[string][]image.Image{"o": pageFrames(1, 3), "e": pageFrames(2, 3)}, h)
 	p.Enter()
 	a := p.Actor("a").(*Alternating)

@@ -14,8 +14,8 @@ type Loader interface {
 	Sprites(key string) []image.Image
 }
 
-// Art is one description's resolved art: every entry's frames by name, the
-// mask, and the problems of optional entries that did not load.
+// Art is one scene's resolved art: every entry's frames by name, the mask,
+// and the problems of optional entries that did not load.
 type Art struct {
 	Frames   map[string][]image.Image
 	Mask     *image.Paletted
@@ -30,15 +30,16 @@ func (a *Art) Pictures(name string) []image.Image {
 	return a.Frames[name]
 }
 
-// LoadArt resolves every art entry of d in order. A required entry that fails
-// fails the whole load with its key in the error; an optional entry that fails
-// is left absent and named in Problems, and never removes another entry. The
-// mask entry is always required.
-func LoadArt(d *Description, src Loader) (*Art, error) {
+// LoadArt resolves every art entry of scene s in order, the square's and a
+// room page's alike. A required entry that fails fails the whole load with
+// its key in the error; an optional entry that fails is left absent and named
+// in Problems, and never removes another entry. The mask entry is always
+// required.
+func LoadArt(s *SceneSpec, src Loader) (*Art, error) {
 	a := &Art{Frames: map[string][]image.Image{}}
-	for _, spec := range d.Art {
+	for _, spec := range s.Art {
 		if spec.Format == "mask" {
-			mask, err := loadMask(spec, d, src)
+			mask, err := loadMask(spec, s, src)
 			if err != nil {
 				return nil, err
 			}
@@ -67,19 +68,19 @@ type artEntry struct {
 
 // loadMask reads the mask entry: its size must be the view's and every
 // required byte must occur in it.
-func loadMask(spec ArtSpec, d *Description, src Loader) (*image.Paletted, error) {
+func loadMask(spec ArtSpec, s *SceneSpec, src Loader) (*image.Paletted, error) {
 	mask, err := src.Mask(spec.Key)
 	if err != nil {
 		return nil, err
 	}
-	if err = checkSize(mask, d.View.Size, spec.Key); err != nil {
+	if err = checkSize(mask, s.View.Size, spec.Key); err != nil {
 		return nil, err
 	}
 	seen := map[int]bool{}
 	for _, index := range mask.Pix {
 		seen[int(index)] = true
 	}
-	for _, b := range d.Mask.RequiredBytes {
+	for _, b := range s.Mask.RequiredBytes {
 		if !seen[b] {
 			return nil, fmt.Errorf("%s: missing required mask index %d", spec.Key, b)
 		}

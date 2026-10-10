@@ -3,31 +3,28 @@ package game
 import (
 	"errors"
 	"image"
-	"time"
 
-	"againrom/pkg/audio"
-	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 )
 
-// roomPage answers the composer page of a room the profile's room description
-// gives a scene, building it on first use.
-func (t *townScreen) roomPage(room string) *town.Page {
+// roomPage answers the composer scene of a room the profile's room
+// description gives a scene, building it on first use.
+func (t *townScreen) roomPage(room string) *town.Scene {
 	if p := t.pages[room]; p != nil {
 		return p
 	}
 	if t.pages == nil {
-		t.pages = map[string]*town.Page{}
+		t.pages = map[string]*town.Scene{}
 	}
-	p := town.NewPage(t.roomDescription(), room, roomPageHost{t: t, room: room}, t.townProcess)
+	p := town.NewScene(t.roomDescription(), room, townSceneHost{t: t, room: room}, t.townProcess)
 	t.pages[room] = p
 	return p
 }
 
-func (t *townScreen) tavernPage() *town.Page { return t.roomPage("tavern") }
+func (t *townScreen) tavernPage() *town.Scene { return t.roomPage("tavern") }
 
-func (t *townScreen) shopPage() *town.Page { return t.roomPage("shop") }
+func (t *townScreen) shopPage() *town.Scene { return t.roomPage("shop") }
 
 // loadRoomSceneArt resolves a room scene's art as room description d names
 // it: its pictures by entry name, and the problems of the entries that did
@@ -42,7 +39,7 @@ func loadRoomSceneArt(d *town.Description, room string, src terrain.EntrySource)
 		if r.Name != room || r.Scene == nil {
 			continue
 		}
-		art, err := town.LoadSceneArt(r.Scene, townArtLoader{src})
+		art, err := town.LoadArt(r.Scene, townArtLoader{src})
 		if err != nil {
 			return nil, err
 		}
@@ -53,98 +50,6 @@ func loadRoomSceneArt(d *town.Description, room string, src terrain.EntrySource)
 		return art.Frames, errors.Join(problems...)
 	}
 	return nil, nil
-}
-
-// roomPageHost is the ROM1 adapter a room page runs over: the room's install
-// art, the screen's clock and draws, its room sound and the values the
-// description names.
-type roomPageHost struct {
-	t    *townScreen
-	room string
-}
-
-func (h roomPageHost) Art() *town.Art {
-	t := h.t
-	if t == nil || t.sess == nil {
-		return nil
-	}
-	switch h.room {
-	case "tavern":
-		if a := t.in.TownTavernArt.Value(); a != nil {
-			return &town.Art{Frames: a.Scene}
-		}
-	case "shop":
-		if a := t.art.shopScreen(); a != nil {
-			return &town.Art{Frames: a.Scene}
-		}
-	case "school":
-		if a := t.in.TownSchoolArt.Value(); a != nil {
-			return &town.Art{Frames: a.Scene}
-		}
-	}
-	return nil
-}
-
-func (h roomPageHost) Now() time.Time { return h.t.townAnimationNow() }
-
-// roomDraws binds each scene draw source to the runtime's draw seam.
-var roomDraws = map[string]func(townDraws) func(int) int{
-	"tender":   townDraws.tavernDraw,
-	"idle":     townDraws.shopDraw,
-	"training": townDraws.schoolDraw,
-}
-
-// roomStreams names the session stream each scene draw source draws on when
-// its seam is unset.
-var roomStreams = map[string]random.Name{
-	"tender":   random.Tavern,
-	"idle":     random.ShopInterior,
-	"training": random.School,
-}
-
-func (h roomPageHost) Draw(source string, n int) int {
-	t := h.t
-	var draw func(int) int
-	if bind := roomDraws[source]; bind != nil {
-		draw = bind(t.draws)
-	}
-	if draw != nil {
-		return boundedPresentationRoll(draw, nil, n)
-	}
-	name, ok := roomStreams[source]
-	if !ok {
-		name = random.Name(source)
-	}
-	return boundedPresentationRoll(nil, t.draws.stream(name), n)
-}
-
-// Reseed keeps the source's session stream running: the original reseeds
-// nothing on a room's entry (TOWN-505), and a stream derived from the
-// session seed replays without a restart.
-func (h roomPageHost) Reseed(string) {}
-
-func (h roomPageHost) PlaySound(source, key string, loop bool) town.Voice {
-	t := h.t
-	if t.sess == nil {
-		return nil
-	}
-	sample, ok := t.in.SoundBank.namedSample(key)
-	if !ok || t.sound.soundDevice() == nil {
-		return nil
-	}
-	v := audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample,
-		audio.FixedRequest(source, key, audio.EffectsChannel, 128, loop,
-			audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
-	if v == nil {
-		return nil
-	}
-	return v
-}
-
-func (h roomPageHost) StopSound(v town.Voice) {
-	if av, ok := v.(audio.Voice); ok {
-		audio.StopReset(av)
-	}
 }
 
 // roomEvents are the events the ROM1 campaign raises on its room pages: a
@@ -158,15 +63,8 @@ var roomValues = map[string]func(t *townScreen) int{
 	"member-class": (*townScreen).schoolMemberClass,
 }
 
-func (h roomPageHost) Value(name string) int {
-	if v := roomValues[name]; v != nil {
-		return v(h.t)
-	}
-	return -1
-}
-
 // roomScene is a page's composed centre as ui paints it.
-type roomScene struct{ p *town.Page }
+type roomScene struct{ p *town.Scene }
 
 func (s roomScene) Paint(dst *image.RGBA, group string) { s.p.Paint(dst, group) }
 
@@ -180,7 +78,7 @@ func (t *townScreen) leaveTavernInterior() {
 	if t == nil {
 		return
 	}
-	t.tavernPage().SetActive(false)
+	t.tavernPage().SetActive(false, t.inTavernInterior())
 	if !t.inTavernInterior() && t.audioRoom == roomTavern {
 		t.destroyRoomAudio()
 	}
@@ -193,7 +91,7 @@ func (t *townScreen) TavernInteriorActive(active bool) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	t.tavernPage().SetActive(active && t.inTavernInterior())
+	t.tavernPage().SetActive(active, t.inTavernInterior())
 }
 
 func (t *townScreen) inShopInterior() bool { return t != nil && t.AtTownShop() }
@@ -206,7 +104,7 @@ func (t *townScreen) ShopInteriorActive(active bool) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	t.shopPage().SetActive(active && t.inShopInterior())
+	t.shopPage().SetActive(active, t.inShopInterior())
 }
 
 // AdvanceShopInteriorAnimation is one paint of the shop page.
