@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"sync"
 )
 
 // DocumentDataVersion versions the complete-document persistence contract,
@@ -444,7 +445,15 @@ func (b *documentDataBudget) check(v reflect.Value, depth int) error {
 			}
 		}
 	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
+		if depth+1 > maxDocumentDataDepth {
+			if v.NumField() > 0 {
+				return fmt.Errorf("sav: document data depth bound exceeded")
+			}
+			return nil
+		}
+		// A field whose check only tests the depth is skipped: depth+1 is
+		// within the bound here.
+		for _, i := range budgetedFields(v.Type()) {
 			if err := b.check(v.Field(i), depth+1); err != nil {
 				return err
 			}
@@ -453,6 +462,38 @@ func (b *documentDataBudget) check(v reflect.Value, depth int) error {
 		return fmt.Errorf("sav: document data cannot contain maps or interfaces")
 	}
 	return nil
+}
+
+var budgetFieldPlans sync.Map // reflect.Type -> []int
+
+// budgetedFields lists the fields of struct type t whose check can add to the
+// budget or fail beyond the depth test: every field but a scalar or an array
+// of scalars.
+func budgetedFields(t reflect.Type) []int {
+	if plan, ok := budgetFieldPlans.Load(t); ok {
+		return plan.([]int)
+	}
+	var plan []int
+	for i := 0; i < t.NumField(); i++ {
+		if budgetVisits(t.Field(i).Type) {
+			plan = append(plan, i)
+		}
+	}
+	budgetFieldPlans.Store(t, plan)
+	return plan
+}
+
+func budgetVisits(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Pointer, reflect.String, reflect.Slice, reflect.Struct, reflect.Map, reflect.Interface:
+		return true
+	case reflect.Array:
+		switch t.Elem().Kind() {
+		case reflect.Struct, reflect.Array, reflect.Slice, reflect.Pointer, reflect.String:
+			return true
+		}
+	}
+	return false
 }
 
 type documentDataBuilder struct {
