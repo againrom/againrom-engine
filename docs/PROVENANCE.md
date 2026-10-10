@@ -28,12 +28,14 @@ None of the following is ever committed or shipped:
   third party whose licence does not permit inclusion in a GPL-3.0-or-later
   work, or whose licence is unknown.
 
-Code and documents cite the research findings by claim ID and, where a finding
-is anchored to the original program, by function address. A citation names a
-location and states the behaviour found there in the project's own words; it
-does not reproduce the original's instructions. Some closed story records
-written earlier quote short instruction fragments inside such citations; they
-are historical records and new work does not add to them.
+Code and documents cite research findings by claim ID. A claim states the
+behaviour found in the project's own words; it does not reproduce the
+original's instructions, and the engine does not cite the original program by
+address. In Go code `internal/storyguard` holds the address and
+disassembly-routine-name comment forms at zero, and the publication guard
+refuses a tree that carries a disassembly routine name. Some closed story
+records written earlier quote short instruction fragments; they are historical
+records and new work does not add to them.
 
 ### Admitted: licensed open-source components
 
@@ -109,6 +111,35 @@ Facts about the game are drawn from this published evidence. A citation shaped
 `experiments/...` in a comment or a work item names a path in the private
 research repository, not in this checkout; see `knowledge/SOURCE.md`.
 
+## Separation of analysis and implementation
+
+The work has three roles with a one-way flow between them.
+
+- **Analysis.** The private research process reads the original program and
+  the lawful installs and publishes each finding as a claim: the behaviour in
+  the project's own words, its confidence and its evidence. A question sent to
+  it is falsifiable and carries no expected answer and no engine conclusion.
+  Engine code is never evidence about the original.
+- **Specification.** The public knowledge snapshot is the specification the
+  engine works from. The engine pins one snapshot; only the pin moves.
+- **Implementation.** Engine work reads the pinned snapshot, not the original
+  program. Each story records its authority, the claim IDs it implements, in
+  `docs/<NNNN>/story.md`; each hotfix has a row in `docs/HOTFIXES.md`; each
+  difference from the original is one row under `docs/divergences/`. An owner
+  direction may set behaviour without a claim; the difference is then a
+  divergence row.
+
+The specification is exact where compatibility needs it: the save format to
+the byte, and arithmetic and ordering where a save or a replay must match the
+original. The engine reproduces that behaviour. Its code is written in the
+project's own structure and is not translated or adapted from the original
+program's code.
+
+The separation is held by procedure: work instructions, review and the guards
+above. The same project runs all three roles, and no mechanism prevents an
+implementer from opening the original program; the rule that implementation
+reads only the specification is upheld in review.
+
 ## Implementation procedure
 
 To add or change a format parser or engine behaviour:
@@ -117,16 +148,18 @@ To add or change a format parser or engine behaviour:
    evidence hierarchy above; cite the observation for each non-obvious claim.
    A general-purpose format or service, such as a movie codec, may instead come
    from an admitted open-source component under the conditions above.
-2. **Write the specification first** (the SDD `spec.md` for the work item),
-   detailed enough that a third party could implement a parser without reading
-   our code — byte-level layout, endianness, string encodings (CP866,
-   represented as bytes/hex, never literal non-ASCII text), and known quirks.
+2. **Write the work item first.** A story's `docs/<NNNN>/story.md` names its
+   intent, authority, as-built behaviour, proof and open debt. A format's layout
+   is specified there or on the knowledge format page, detailed enough that a
+   third party could implement a parser without reading our code: byte-level
+   layout, endianness, string encodings (CP866, represented as bytes/hex, never
+   literal non-ASCII text), and known quirks.
 3. **Implement against synthetic fixtures.** Tests build byte streams in code
    from the documented contract; `go test ./...` stays green with no game
    present.
 4. **Verify against real files with a developer tool** under `cmd/`, and record
-   the evidence (counts, sizes, checksums) in the work item's `verification.md` —
-   the evidence ships, the game bytes never do.
+   the evidence (counts, sizes, checksums) in the work item's proof — the
+   evidence ships, the game bytes never do.
 5. **Keep the boundary green:** run `scripts/check-no-game-assets.sh` (and
    `--history` before publishing). When a component is added, follow the
    procedure in `THIRD_PARTY_NOTICES.md`: its notice row, its licence text, and
