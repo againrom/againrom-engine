@@ -105,20 +105,16 @@ func deepCopyValue(dst, src reflect.Value) bool {
 		}
 	case reflect.Struct:
 		dst.Set(src)
-		for i := 0; i < src.NumField(); i++ {
-			f := t.Field(i)
-			if !holdsReferences(f.Type) {
-				continue
-			}
-			if !f.IsExported() {
-				if !src.Field(i).IsZero() {
+		for _, f := range referenceFields(t) {
+			if !f.exported {
+				if !src.Field(f.index).IsZero() {
 					return false
 				}
 				continue
 			}
-			field := dst.Field(i)
+			field := dst.Field(f.index)
 			field.SetZero()
-			if !deepCopyValue(field, src.Field(i)) {
+			if !deepCopyValue(field, src.Field(f.index)) {
 				return false
 			}
 		}
@@ -127,4 +123,27 @@ func deepCopyValue(dst, src reflect.Value) bool {
 		return src.IsNil()
 	}
 	return true
+}
+
+type referenceField struct {
+	index    int
+	exported bool
+}
+
+var referenceFieldPlans sync.Map // reflect.Type -> []referenceField
+
+// referenceFields lists the fields of struct type t that hold references, in
+// field order: the only fields a struct copy must visit after assignment.
+func referenceFields(t reflect.Type) []referenceField {
+	if v, ok := referenceFieldPlans.Load(t); ok {
+		return v.([]referenceField)
+	}
+	var plan []referenceField
+	for i := 0; i < t.NumField(); i++ {
+		if f := t.Field(i); holdsReferences(f.Type) {
+			plan = append(plan, referenceField{i, f.IsExported()})
+		}
+	}
+	referenceFieldPlans.Store(t, plan)
+	return plan
 }

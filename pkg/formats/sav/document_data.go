@@ -482,7 +482,18 @@ func (b *documentDataBudget) check(v reflect.Value, depth int) error {
 			}
 		}
 		switch v.Type().Elem().Kind() {
-		case reflect.Struct, reflect.Array, reflect.Slice, reflect.Pointer, reflect.String:
+		case reflect.Struct:
+			// One field plan serves every element.
+			if depth+1 > maxDocumentDataDepth && v.Len() > 0 {
+				return fmt.Errorf("sav: document data depth bound exceeded")
+			}
+			plan := budgetedFields(v.Type().Elem())
+			for i := 0; i < v.Len(); i++ {
+				if err := b.checkStruct(v.Index(i), depth+1, plan); err != nil {
+					return err
+				}
+			}
+		case reflect.Array, reflect.Slice, reflect.Pointer, reflect.String:
 			for i := 0; i < v.Len(); i++ {
 				if err := b.check(v.Index(i), depth+1); err != nil {
 					return err
@@ -490,21 +501,28 @@ func (b *documentDataBudget) check(v reflect.Value, depth int) error {
 			}
 		}
 	case reflect.Struct:
-		if depth+1 > maxDocumentDataDepth {
-			if v.NumField() > 0 {
-				return fmt.Errorf("sav: document data depth bound exceeded")
-			}
-			return nil
-		}
-		// A field whose check only tests the depth is skipped: depth+1 is
-		// within the bound here.
-		for _, i := range budgetedFields(v.Type()) {
-			if err := b.check(v.Field(i), depth+1); err != nil {
-				return err
-			}
-		}
+		return b.checkStruct(v, depth, budgetedFields(v.Type()))
 	case reflect.Map, reflect.Interface:
 		return fmt.Errorf("sav: document data cannot contain maps or interfaces")
+	}
+	return nil
+}
+
+// checkStruct is check's struct case at depth, which check's own depth test
+// has admitted, with budgetedFields of v's type in plan.
+func (b *documentDataBudget) checkStruct(v reflect.Value, depth int, plan []int) error {
+	if depth+1 > maxDocumentDataDepth {
+		if v.NumField() > 0 {
+			return fmt.Errorf("sav: document data depth bound exceeded")
+		}
+		return nil
+	}
+	// A field whose check only tests the depth is skipped: depth+1 is
+	// within the bound here.
+	for _, i := range plan {
+		if err := b.check(v.Field(i), depth+1); err != nil {
+			return err
+		}
 	}
 	return nil
 }
