@@ -101,6 +101,10 @@ and Sound Options did not. The lists now differ in nothing but their data.
   notice, quest objectives, Save, Sound Options. 19 hash identically:
   rooms, room tips, the shop dialogue, character generation, mission panels
   and the main menu. The latch and ratchet commits change no hash.
+- `TestReleaseProfileWitnessIsUnchanged` was re-recorded on EN and RU: two
+  lines per root move, `mission-save-open` and `mission-save-name`, and only
+  their `frame=` hash (the Save screen above); every other field and line is
+  byte-identical to main's witness.
 - `TestEveryFormerLocalLatchRunsTheKitCases` runs 13 latch sites through
   press and release inside, a release elsewhere, a lost focus and a double
   press. Mutating the latch to ignore the release point, to keep a press over
