@@ -13,11 +13,20 @@ import (
 )
 
 // Every object of the ROM1 town description that states a value carries a
-// cite, and every cited ID is a claim heading in the pinned knowledge
-// snapshot, a row of the divergence ledger, or "owner".
+// cite, and every cited ID is a claim in the pinned knowledge snapshot, a row
+// of the divergence ledger, or "owner".
 func TestTownDescriptionEveryValueIsCited(t *testing.T) {
+	checkDescriptionCites(t, rom1TownJSON)
+}
+
+// checkDescriptionCites walks one JSON description: every object stating a
+// value carries a cite list, and each cite is a claim heading or claim table
+// row in the pinned snapshot, a ledger row, or "owner". A "when" object is a
+// state condition of the art entry around it and carries that entry's cite.
+func checkDescriptionCites(t *testing.T, data []byte) {
+	t.Helper()
 	var doc any
-	if err := json.Unmarshal(rom1TownJSON, &doc); err != nil {
+	if err := json.Unmarshal(data, &doc); err != nil {
 		t.Fatal(err)
 	}
 	claims := map[string]bool{}
@@ -35,6 +44,11 @@ func TestTownDescriptionEveryValueIsCited(t *testing.T) {
 		for s.Scan() {
 			if id, ok := strings.CutPrefix(s.Text(), "### "); ok {
 				claims[strings.TrimSpace(id)] = true
+			}
+			if row, ok := strings.CutPrefix(s.Text(), "| "); ok {
+				if id, _, found := strings.Cut(row, " |"); found && !strings.ContainsAny(id, " `") {
+					claims[id] = true
+				}
 			}
 		}
 		f.Close()
@@ -63,7 +77,7 @@ func TestTownDescriptionEveryValueIsCited(t *testing.T) {
 			objects++
 			states := false
 			for k, e := range x {
-				if k == "cite" {
+				if k == "cite" || k == "when" {
 					continue
 				}
 				if leafValue(e) {

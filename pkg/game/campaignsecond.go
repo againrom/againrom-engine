@@ -273,6 +273,20 @@ func (secondCampaignRules) objectives(mw *mapWorld, briefing string) string {
 	return mw.secondGameObjectivePanel(briefing)
 }
 
+func (secondCampaignRules) generatorSetup(f *FrontEnd, setup *ui.ChargenSetup) {
+	secondGeneratorSetup(f, setup)
+}
+
+func (secondCampaignRules) generatorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
+	return secondGeneratorParty(f, res)
+}
+
+// generatorBegin commits the new campaign and opens no map: the accepted
+// generator shows the first town (R2-ENGINE-283).
+func (secondCampaignRules) generatorBegin(f *FrontEnd, _ int) func(ui.ChargenResult) (ui.MapOpener, error) {
+	return func(res ui.ChargenResult) (ui.MapOpener, error) { return nil, f.startSecondGenerated(res) }
+}
+
 func (secondCampaignRules) chat() *chatAdapter { return &secondChat }
 
 // chatCampaign: a mission opened while the town holds the destinations

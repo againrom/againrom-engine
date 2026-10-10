@@ -100,7 +100,7 @@ func soundTile(w, h int) *image.RGBA {
 // and apart, so each press lands on exactly one control. The name is not
 // empty, so OK continues.
 func soundChargenSetup() ChargenSetup {
-	art := &ChargenPresentation{Forward: soundTile(96, 74)}
+	art := &ChargenPresentation{Layout: testGenerator(), Forward: soundTile(96, 74)}
 	for choice := range art.Choices {
 		for state := range art.Choices[choice] {
 			art.Choices[choice][state] = soundTile(20, 20)

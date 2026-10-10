@@ -10,7 +10,7 @@ import (
 
 func TestChargenDifficultyDraftInputAndState(t *testing.T) {
 	setup := chargenLegalSetup()
-	art := &ChargenPresentation{}
+	art := &ChargenPresentation{Layout: testGenerator()}
 	for i := range art.Levels {
 		for j := range art.Levels[i] {
 			pic := image.NewRGBA(image.Rect(0, 0, 8, 8))
@@ -87,7 +87,7 @@ func TestChargenDifficultyDraftInputAndState(t *testing.T) {
 
 func TestChargenDifficultyArtStates(t *testing.T) {
 	setup := chargenLegalSetup()
-	art := &ChargenPresentation{}
+	art := &ChargenPresentation{Layout: testGenerator()}
 	for i := range art.Levels {
 		for j := range art.Levels[i] {
 			pic := image.NewRGBA(image.Rect(0, 0, 4, 4))
@@ -118,7 +118,7 @@ func TestChargenDifficultyArtStates(t *testing.T) {
 // portrait draws no overlay over a chosen level (TOWN-521).
 func TestChargenDifficultyHeroOverlapOwnership(t *testing.T) {
 	setup := chargenLegalSetup()
-	art := &ChargenPresentation{PreMask: chargenMask(640, 480)}
+	art := &ChargenPresentation{Layout: testGenerator(), PreMask: chargenMask(640, 480)}
 	hero := image.NewRGBA(image.Rect(0, 0, 26, 10))
 	level := image.NewRGBA(image.Rect(0, 0, 102, 111))
 	hero.SetRGBA(23, 8, color.RGBA{40, 31, 18, 255})

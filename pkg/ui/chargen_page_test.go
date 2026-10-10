@@ -64,7 +64,7 @@ func centeredChargenOrigin(f *text.Font, value string, box image.Rectangle) imag
 }
 
 func TestPreCreateControlBoundsAndNativePixels(t *testing.T) {
-	art := &ChargenPresentation{}
+	art := &ChargenPresentation{Layout: testGenerator()}
 	for i := range art.Choices {
 		pic := image.NewRGBA(image.Rect(0, 0, 8+i, 9+i))
 		for state := range art.Choices[i] {
@@ -81,7 +81,7 @@ func TestPreCreateControlBoundsAndNativePixels(t *testing.T) {
 		if got := preControlAt(c, preControlRect(c, id).Min); got != id {
 			t.Errorf("choice %d hit = %v, want %v", i, got, id)
 		}
-		if got := preControlAt(c, preControlRegion(id).Min); got != chargenNone {
+		if got := preControlAt(c, preControlRegion(testLayout, id).Min); got != chargenNone {
 			t.Errorf("choice %d band padding hit %v", i, got)
 		}
 	}
@@ -103,7 +103,7 @@ func TestPreCreateControlBoundsAndNativePixels(t *testing.T) {
 }
 
 // TestPreCreateNameControlRegionIsPublished pins
-// preControlRegion(chargenName) against a hand-transcribed literal, not
+// preControlRegion(testLayout, chargenName) against a hand-transcribed literal, not
 // against a second call to preControlRect (which would read the same
 // production rect this test is meant to catch a shift in —
 // TestPreCreateControlBoundsAndNativePixels's own choice/forward cases
@@ -112,10 +112,10 @@ func TestPreCreateControlBoundsAndNativePixels(t *testing.T) {
 // chargenName was never enumerated there at all).
 func TestPreCreateNameControlRegionIsPublished(t *testing.T) {
 	want := image.Rect(224, 310, 362, 337) // the field's rect, TEXT-075
-	if got := preControlRegion(chargenName); got != want {
-		t.Errorf("preControlRegion(chargenName) = %v, want %v", got, want)
+	if got := preControlRegion(testLayout, chargenName); got != want {
+		t.Errorf("preControlRegion(testLayout, chargenName) = %v, want %v", got, want)
 	}
-	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{}}})
+	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}})
 	if got := preControlAt(c, want.Min); got != chargenName {
 		t.Errorf("preControlAt(region.Min) = %v, want chargenName: the hit test and the published rect must agree at its own corner", got)
 	}
@@ -138,7 +138,7 @@ func TestPreCreateNameTextDrawsAtItsOwnOrigin(t *testing.T) {
 		t.Fatalf("preCreateNameTextOrigin() = %v, want %v", got, want)
 	}
 
-	art := &ChargenPresentation{Font: chargenTestFont()}
+	art := &ChargenPresentation{Layout: testGenerator(), Font: chargenTestFont()}
 	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Art: art}})
 	c.EditName("M", false)
 
@@ -149,7 +149,7 @@ func TestPreCreateNameTextDrawsAtItsOwnOrigin(t *testing.T) {
 }
 
 func TestDetailedControlBoundsAndDollReplacement(t *testing.T) {
-	art := &ChargenPresentation{Plate: image.NewRGBA(image.Rect(0, 0, 160, 238))}
+	art := &ChargenPresentation{Layout: testGenerator(), Plate: image.NewRGBA(image.Rect(0, 0, 160, 238))}
 	for class := range art.Skills {
 		for skill := range art.Skills[class] {
 			for state := range art.Skills[class][skill] {
@@ -171,7 +171,7 @@ func TestDetailedControlBoundsAndDollReplacement(t *testing.T) {
 	if got := detailedControlAt(c, detailedControlRect(c, id).Min); got != id {
 		t.Fatalf("skill hit = %v, want %v", got, id)
 	}
-	if got := detailedControlAt(c, detailedControlRegion(id).Min); got != chargenNone {
+	if got := detailedControlAt(c, detailedControlRegion(testLayout, id).Min); got != chargenNone {
 		t.Fatalf("skill padding hit = %v", got)
 	}
 	frame := composeChargenPage(c, chargenNone, chargenNone)
@@ -194,7 +194,7 @@ func TestDetailedControlBoundsAndDollReplacement(t *testing.T) {
 
 func TestDetailedStatTextUsesDecodedPlateBoxes(t *testing.T) {
 	font := chargenTestFont()
-	art := &ChargenPresentation{Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), Font: font}
+	art := &ChargenPresentation{Layout: testGenerator(), Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), Font: font}
 	buttonColor := func(direction, state int) color.RGBA {
 		return color.RGBA{R: uint8(30 + direction*80 + state), A: 255}
 	}
@@ -253,7 +253,7 @@ func TestDetailedStatTextUsesDecodedPlateBoxes(t *testing.T) {
 }
 
 func TestDetailedSkillUsesSelectedHoverAndPressedSourceStates(t *testing.T) {
-	art := &ChargenPresentation{Plate: image.NewRGBA(image.Rect(0, 0, 160, 238))}
+	art := &ChargenPresentation{Layout: testGenerator(), Plate: image.NewRGBA(image.Rect(0, 0, 160, 238))}
 	for skill := 0; skill < 5; skill++ {
 		for state := 0; state < 3; state++ {
 			pic := image.NewRGBA(image.Rect(0, 0, 5, 5))
@@ -411,7 +411,7 @@ func TestDetailedSkillPictureIsTwoIndependentBooleans(t *testing.T) {
 func TestDetailedPageDrawsTheProductionCompactCard(t *testing.T) {
 	font := chargenTestFont()
 	bg := image.NewRGBA(image.Rect(0, 0, 160, 242))
-	art := &ChargenPresentation{Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), CardBackground: bg, Font: font}
+	art := &ChargenPresentation{Layout: testGenerator(), Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), CardBackground: bg, Font: font}
 	c := NewChargen(ChargenSetup{
 		PreCreate: &ChargenPreCreate{Art: art},
 		Choices: []ChargenChoice{
@@ -440,6 +440,7 @@ func TestDetailedPageDrawsTheProductionMessageStrip(t *testing.T) {
 	font := chargenTestFont()
 	newSetup := func() (*Chargen, *ChargenPresentation) {
 		art := &ChargenPresentation{
+			Layout:         testGenerator(),
 			Plate:          image.NewRGBA(image.Rect(0, 0, 160, 238)),
 			CardBackground: image.NewRGBA(image.Rect(0, 0, 160, 242)),
 			Font:           font,
@@ -519,6 +520,7 @@ func TestDetailedPageDrawsTheProductionMessageStrip(t *testing.T) {
 
 func TestChargenSourcePlacementsMasksAndFrames(t *testing.T) {
 	art := &ChargenPresentation{
+		Layout:     testGenerator(),
 		Background: image.NewUniform(color.RGBA{R: 9, A: 255}),
 		Plate:      image.NewRGBA(image.Rect(0, 0, 160, 238)),
 		PreMask:    chargenMask(640, 480),

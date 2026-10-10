@@ -154,6 +154,7 @@ copying those counts.
 | `docs/divergences/persistence-original-saves-format.md` |
 | `docs/divergences/rendering.md` |
 | `docs/divergences/rom2.md` |
+| `docs/divergences/rom2-character-generator.md` |
 | `docs/divergences/school.md` |
 | `docs/divergences/shop.md` |
 | `docs/divergences/simulation.md` |

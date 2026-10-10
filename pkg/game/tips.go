@@ -173,11 +173,12 @@ func (f *FrontEnd) tipFont() *text.Font {
 	return f.InstallResources.tipFont()
 }
 
-// tipFont is the font tip and card panels draw in: the generation screen's,
-// else the install's.
+// tipFont is the font tip and card panels draw in: the generation screen's
+// text font when its description says the tips draw in it, else the
+// install's.
 func (in *InstallResources) tipFont() *text.Font {
-	if in.ChargenAssets != nil && in.ChargenAssets.Presentation != nil && in.ChargenAssets.Presentation.Font != nil {
-		return in.ChargenAssets.Presentation.Font
+	if a := in.ChargenAssets; a != nil && a.Presentation != nil && a.Presentation.TipFont != nil {
+		return a.Presentation.TipFont
 	}
 	return in.Font.Value()
 }

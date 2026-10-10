@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] New Game opens the character generator: pick one of the four heroes,
+  the difficulty and a name, then set the four attributes and the skill on the
+  second page. Accept starts the campaign in the first town with that hero,
+  the chosen difficulty and 1000 gold, and a save of that town keeps them.
+
 ## 0.109.0
 
 - [ROM1] A mission script node that names a party role nobody in the party

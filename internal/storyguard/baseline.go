@@ -2037,6 +2037,11 @@ package storyguard
 // in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
 // tests in pkg/rules, pkg/sim and pkg/game, new code, including this
 // paragraph.
+//
+// CommentBytes rises for the second game's generator: the docs of the new
+// secondgenerator.go, its release witnesses, the description's code page,
+// tip panel and optional message strip, and the pane image loader, new
+// code, including this paragraph.
 // CommentBytes rises for the doc of the mission-100 amulet-after-the-win
 // witness in pkg/game, new code, including this paragraph.
 // CommentBytes rises for the one chat command parser, its two game adapters,
@@ -2068,7 +2073,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1877,
 		"scclause":        506,
-		"barestorynumber": 1741,
+		"barestorynumber": 1740,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2077,7 +2082,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1766,
+		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8606335,
+	CommentBytes: 8608578,
 }

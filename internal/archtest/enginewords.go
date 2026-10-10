@@ -26,6 +26,7 @@ var engineWordsPackages = []string{"pkg/ui/", "pkg/game/"}
 // reason.
 var EngineWordsAllowed = map[string]string{
 	"pkg/game/townsquare.go": "embeds the first game's town description, not a word table",
+	"pkg/game/generator.go":  "embeds the character generator descriptions, not a word table",
 }
 
 // EngineWordsDebt is the selector branches that remain, per file. Each converts

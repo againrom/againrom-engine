@@ -6,29 +6,6 @@ import (
 	"againrom/pkg/audio"
 )
 
-// The chrgen members of sfx.res, named by their archive path under sfx/.
-// VIDEO-SFX-058 and VIDEO-SFX-059 name the character generator's request
-// sites; VIDEO-SFX-059 and VIDEO-SFX-060 name the school room, main menu and
-// Hall of Fame requests that reuse them.
-const (
-	ChargenSoundOK   = "chrgen/ok.wav"
-	ChargenSoundHero = "chrgen/char.wav"
-	ChargenSoundStat = "chrgen/+_-.wav"
-)
-
-// ChargenLevelSounds is the member each difficulty button restarts, in
-// button order.
-var ChargenLevelSounds = [3]string{"chrgen/level1.wav", "chrgen/level2.wav", "chrgen/level3.wav"}
-
-// ChargenSkillSounds is the member a skill slot requests, fighter row then
-// mage row; index 0..4 is stored skill slot 1..5 (VIDEO-SFX-059). The ten
-// live in chrgen's skill directory, as the shipped literal
-// SFX\ChrGen\Skill\MAstral.wav in RES-CASE-036 spells.
-var ChargenSkillSounds = [2][5]string{
-	{"chrgen/skill/fsword.wav", "chrgen/skill/faxe.wav", "chrgen/skill/fclub.wav", "chrgen/skill/fpike.wav", "chrgen/skill/fbow.wav"},
-	{"chrgen/skill/mfire.wav", "chrgen/skill/mwater.wav", "chrgen/skill/mair.wav", "chrgen/skill/mearth.wav", "chrgen/skill/mastral.wav"},
-}
-
 // NamedSoundBank answers a sample by its sfx.res member path. pkg/game's
 // SoundBank implements it beside the numbered-slot lookup.
 type NamedSoundBank interface {
@@ -95,7 +72,7 @@ func (s *SFXVoices) index(member string) int {
 // own channel volume. Without a voice device or a named bank the request is
 // silent, as every other retained interface sound here is.
 func (s *SFXVoices) start(source string, p audio.Player, b NamedSoundBank, member string) {
-	if p == nil || b == nil {
+	if p == nil || b == nil || member == "" {
 		return
 	}
 	sample, ok := b.NamedSample(member)
@@ -146,6 +123,11 @@ type chargenRepeat struct {
 // button, wheel movement or a changed cursor position is a mouse message and
 // restores the first delay.
 func (r *chargenRepeat) tick(in appInput) bool {
+	return r.tickEvery(in, chargenRepeatDelayTicks, chargenRepeatIntervalTicks)
+}
+
+// tickEvery is tick with its own first delay and interval.
+func (r *chargenRepeat) tickEvery(in appInput, delay, interval int) bool {
 	cursor := image.Pt(in.CursorX, in.CursorY)
 	message := !r.seen || cursor != r.cursor || in.PrimaryPressed || in.PrimaryReleased ||
 		in.SecondaryPressed || in.SecondaryReleased || in.WheelY != 0
@@ -155,7 +137,7 @@ func (r *chargenRepeat) tick(in appInput) bool {
 		return false
 	}
 	r.quiet++
-	if !r.posted && r.quiet >= chargenRepeatDelayTicks || r.posted && r.quiet >= chargenRepeatIntervalTicks {
+	if !r.posted && r.quiet >= delay || r.posted && r.quiet >= interval {
 		r.quiet, r.posted = 0, true
 		return true
 	}

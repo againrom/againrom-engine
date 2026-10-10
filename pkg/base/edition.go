@@ -21,6 +21,10 @@ type Edition struct {
 	// when the game's town is not a composed square.
 	Town string
 
+	// Generator names the character generator description; empty when the
+	// game has none.
+	Generator string
+
 	// Rooms names the town description whose rooms the tavern, shop and
 	// school pages, their tips and their scene art are read from. The second
 	// game has no room description of its own and names the first game's, the
@@ -90,6 +94,7 @@ var firstEdition = Edition{
 	Game:                      GameROM1,
 	Campaign:                  CampaignChapters,
 	Town:                      "rom1",
+	Generator:                 "rom1",
 	Rooms:                     "rom1",
 	CompanionObjectiveMission: 40,
 	FreshPlayers:              true,
@@ -104,6 +109,7 @@ var secondEdition = Edition{
 	Campaign:          CampaignDestinations,
 	NewGameInTown:     true,
 	TownDifficulty:    true,
+	Generator:         "rom2",
 	Rooms:             "rom1",
 	SecondMaps:        true,
 	SecondScripts:     true,

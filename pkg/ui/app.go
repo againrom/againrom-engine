@@ -1162,6 +1162,13 @@ func (a *App) SetNewGameDirect(g NewGameDirect) {
 func (a *App) activateNewGame() {
 	if a.flow.screen == ScreenMenu {
 		if town, ok := a.flow.town.(interface{ StartNewGame() error }); ok {
+			// A campaign that starts in town opens generation first when the
+			// wiring installed it; its accept starts the campaign.
+			if a.flow.newGameChargen != nil {
+				if e := a.flow.newGameChargen(); e != nil && a.flow.armChargen(e.Model, e.Begin, ScreenMenu) {
+					return
+				}
+			}
 			if err := town.StartNewGame(); err != nil {
 				a.flow.msg = err.Error()
 				return
@@ -1627,21 +1634,29 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		a.clearShopDrag()
 		// Detailed-stage Escape is its own Back transition. Pre-create Escape
 		// keeps the existing flow unwind to the screen that armed generation.
-		if a.flow.screen == ScreenChargen && a.flow.chargen != nil && a.flow.chargen.Back() {
-			a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = buttonLatch{}, chargenNone, "", chargenNone
-			a.chargenChoiceAt = time.Time{}
-			return false
+		// A page whose Escape does nothing swallows it.
+		if c := a.flow.chargen; a.flow.screen == ScreenChargen && c != nil {
+			switch c.keys().Escape {
+			case "none":
+				return false
+			case "back":
+				if c.Back() {
+					a.chargenPress, a.chargenHover, a.chargenHoverText, a.chargenChoiceClick = buttonLatch{}, chargenNone, "", chargenNone
+					a.chargenChoiceAt = time.Time{}
+					return false
+				}
+			}
 		}
 		if a.flow.noticeOpen() {
 			a.flow.advanceNotice(a.flow.viewer.noticeEscapeAction())
 			a.syncViewerLayout()
 			return false
 		}
-		// Pre-create Escape requests the page's ok.wav unless it plays, then
-		// closes the page, and the close stops it (VIDEO-SFX-058).
+		// Pre-create Escape requests the page's escape sound unless it plays,
+		// then closes the page, and the close stops it (VIDEO-SFX-058).
 		preCreate := a.flow.screen == ScreenChargen && a.flow.chargen != nil && a.flow.chargen.Stage() == PreCreateStage
 		if preCreate {
-			a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenSoundOK)
+			a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), a.flow.chargen.keys().EscapeSound)
 		}
 		exit := a.flow.escape()
 		if preCreate {
@@ -3455,13 +3470,16 @@ func (a *App) stepChargen(in appInput, now time.Time) {
 // mutually exclusive in this order, so a frame cannot both edit and launch.
 func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 	a.observeChargenTipPress(in)
-	a.flow.cursor.SetCursor("default")
+	a.flow.cursor.SetCursor(c.pageCursor())
 	a.chargenHeld = in.Viewer.PrimaryDown || in.PrimaryPressed
 	defer a.paintSkillCycle(c, in, now)
-	repeat := a.chargenRepeat.tick(in)
+	repeat := false
+	if l := c.layout(); l != nil && l.Detail.Repeat != nil {
+		repeat = a.chargenRepeat.tickEvery(in, l.Detail.Repeat.DelayTicks, l.Detail.Repeat.IntervalTicks)
+	}
 	// THE SHOWING PANEL SWALLOWS EVERY PRESS AND RELEASE INSIDE ITS OWN RECT
 	// BEFORE THE PAGE (1022 spec B5, stepPreCreate's own precedent above):
-	// ChargenTipRect reaches over the skill column, so a press meant for the
+	// The detail tip rectangle reaches over the skill column, so a press meant for the
 	// panel's own close/toggle controls must not fall through to
 	// detailedControlAt below and land on a skill or stat cell instead.
 	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && (in.PrimaryPressed || in.PrimaryReleased) {
@@ -3488,11 +3506,7 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 	a.chargenHover = hit
 	a.chargenHoverText = ""
 	if c.setup.Detailed != nil && hit >= chargenSkill0 && hit <= chargenSkill4 && !a.chargenPress.Holds() {
-		class := 0
-		if len(c.choiceIndex) > 1 && c.choiceIndex[1] != 0 {
-			class = 1
-		}
-		a.chargenHoverText = c.setup.Detailed.SkillHover[class][int(hit-chargenSkill0)]
+		a.chargenHoverText = c.setup.Detailed.SkillHover[c.columnClass()][int(hit-chargenSkill0)]
 	}
 	if !a.chargenPress.Holds() {
 		if hit >= chargenStatMinus0 && hit <= chargenStatMinus3 {
@@ -3509,7 +3523,7 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 	}
 	if in.PrimaryPressed {
 		a.chargenPress.Press(int(hit), hit != chargenNone)
-		double := a.chargenDoubleClick(hit, now)
+		double := a.chargenDoubleClick(c, hit, now)
 		if chargenStatControl(hit) || hit >= chargenSkill0 && hit <= chargenSkill4 && !double {
 			a.activateChargenDetailed(c, hit, true)
 		}
@@ -3523,15 +3537,20 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 		}
 		return
 	}
+	keys := c.keys()
 	if in.Enter {
-		a.activateChargenDetailed(c, detailedFocusControl(c.Focus()), false)
+		if keys.Enter == "play" {
+			a.playChargen(c)
+		} else {
+			a.activateChargenDetailed(c, c.detailedFocusControl(), false)
+		}
 		return
 	}
-	if in.Up {
+	if keys.FocusKeys && in.Up {
 		c.Move(-1)
 		return
 	}
-	if in.Down {
+	if keys.FocusKeys && in.Down {
 		c.Move(1)
 	}
 }
@@ -3551,11 +3570,7 @@ func (a *App) activateChargenDetailed(c *Chargen, id chargenControl, pointer boo
 		}
 		// No comparison with the previous selection guards the request.
 		if pointer && len(c.choiceIndex) > 2 && skill < len(c.choiceOptions(2)) {
-			class := 0
-			if c.choiceIndex[1] != 0 {
-				class = 1
-			}
-			a.detailedSounds.RequestFor("character-detail", a.soundPlayer, a.namedSounds(), ChargenSkillSounds[class][skill])
+			a.detailedSounds.RequestFor("character-detail", a.soundPlayer, a.namedSounds(), c.skillSound(skill))
 		}
 	case id >= chargenStatMinus0 && id <= chargenStatMinus3:
 		a.stepChargenStat(c, int(id-chargenStatMinus0), -1, pointer)
@@ -3581,7 +3596,7 @@ func (a *App) stepChargenStat(c *Chargen, stat, delta int, pointer bool) {
 	}
 	a.flow.msg = ""
 	if pointer {
-		a.detailedSounds.RestartFor("character-detail", a.soundPlayer, a.namedSounds(), ChargenSoundStat)
+		a.detailedSounds.RestartFor("character-detail", a.soundPlayer, a.namedSounds(), c.statSound())
 	}
 }
 
@@ -3591,7 +3606,7 @@ func chargenStatControl(id chargenControl) bool {
 
 // chargenDoubleClick classifies one pointer press on the showing page and
 // records it. A press on the control the previous single press chose, inside
-// chargenDoubleClickWindow, is the second click of a double-click; the press
+// the page's double-click window, is the second click of a double-click; the press
 // after it starts a new pair (DIV-1493).
 // chargenPressed is the generation page control the press latched, or
 // chargenNone.
@@ -3602,8 +3617,8 @@ func (a *App) chargenPressed() chargenControl {
 	return chargenNone
 }
 
-func (a *App) chargenDoubleClick(hit chargenControl, now time.Time) bool {
-	double := hit != chargenNone && a.chargenChoiceClick == hit && !a.chargenChoiceAt.IsZero() && now.Sub(a.chargenChoiceAt) <= chargenDoubleClickWindow
+func (a *App) chargenDoubleClick(c *Chargen, hit chargenControl, now time.Time) bool {
+	double := hit != chargenNone && a.chargenChoiceClick == hit && !a.chargenChoiceAt.IsZero() && now.Sub(a.chargenChoiceAt) <= ms(c.keys().DoubleClickMS)
 	if double || hit == chargenNone {
 		a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	} else {
@@ -3618,7 +3633,7 @@ func (a *App) chargenDetailMessage() string {
 	return a.flow.msg
 }
 
-func chargenReservedName(name string) bool {
+func chargenReservedName(name string, reservedNames []string) bool {
 	if len(name) == 0 {
 		return false
 	}
@@ -3628,7 +3643,7 @@ func chargenReservedName(name string) bool {
 		}
 		return b
 	}
-	for _, reserved := range []string{"self", "computer"} {
+	for _, reserved := range reservedNames {
 		if len(name) != len(reserved) {
 			continue
 		}
@@ -3656,7 +3671,7 @@ func (a *App) playChargen(c *Chargen) {
 		}
 		return
 	}
-	if chargenReservedName(name) {
+	if chargenReservedName(name, c.reservedNames()) {
 		if c.setup.Detailed != nil {
 			a.flow.msg = c.setup.Detailed.ReservedName
 		} else {
@@ -3678,6 +3693,12 @@ func (a *App) playChargen(c *Chargen) {
 		a.flow.msg = err.Error()
 		return
 	}
+	if open == nil && c.setup.AcceptShowsTown {
+		a.preCreateSounds.Stop()
+		a.detailedSounds.Stop()
+		a.flow.showTown("")
+		return
+	}
 	if open == nil {
 		if a.flow.screen == ScreenTown {
 			a.flow.resetTimedAutosave()
@@ -3693,11 +3714,9 @@ func (a *App) playChargen(c *Chargen) {
 	a.syncViewerLayout()
 }
 
-const chargenDoubleClickWindow = 500 * time.Millisecond
-
 func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 	a.observeChargenTipPress(in)
-	a.flow.cursor.SetCursor("select")
+	a.flow.cursor.SetCursor(c.pageCursor())
 	defer a.paintPreCreateCycle(c, in, now)
 	// THE SHOWING PANEL SWALLOWS EVERY PRESS AND RELEASE INSIDE ITS OWN RECT
 	// BEFORE THE PAGE (1018 spec behaviour 1, restored in round 3 / DIV-162),
@@ -3736,7 +3755,7 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 			return
 		}
 	}
-	if a.chargenChoiceClick != chargenNone && (a.chargenChoiceAt.IsZero() || now.Sub(a.chargenChoiceAt) > chargenDoubleClickWindow) {
+	if a.chargenChoiceClick != chargenNone && (a.chargenChoiceAt.IsZero() || now.Sub(a.chargenChoiceAt) > ms(c.keys().DoubleClickMS)) {
 		a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	}
 	hit := chargenNone
@@ -3748,7 +3767,7 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 		a.chargenPress.Press(int(hit), hit != chargenNone)
 		// Difficulty, hero, OK and the amulet act on the left press
 		// (VIDEO-SFX-058); the name field keeps its completed release.
-		if double := a.chargenDoubleClick(hit, now); hit != chargenNone && hit != chargenName {
+		if double := a.chargenDoubleClick(c, hit, now); hit != chargenNone && hit != chargenName {
 			a.activatePreCreate(c, hit, true, double)
 			if a.flow.screen != ScreenChargen || c.Stage() != PreCreateStage {
 				a.chargenPress.Clear()
@@ -3764,19 +3783,24 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 		}
 		return
 	}
+	keys := c.keys()
 	if in.Enter {
-		a.activatePreCreate(c, preFocusControl(c.Focus()), false, false)
+		if keys.Enter == "forward" {
+			a.preCreateForward(c, true)
+		} else {
+			a.activatePreCreate(c, c.preFocusControl(), false, false)
+		}
 		return
 	}
-	if in.Up {
+	if keys.FocusKeys && in.Up {
 		c.Move(-1)
 		return
 	}
-	if in.Down {
+	if keys.FocusKeys && in.Down {
 		c.Move(1)
 		return
 	}
-	if preFocusControl(c.Focus()) == chargenName && (in.Backspace || in.Typed != "") {
+	if (keys.Typing == "always" || c.preFocusControl() == chargenName) && (in.Backspace || in.Typed != "") {
 		c.EditName(in.Typed, in.Backspace)
 	}
 }
@@ -3791,9 +3815,14 @@ func (a *App) paintPreCreateCycle(c *Chargen, in appInput, now time.Time) {
 	}
 	hovered := -1
 	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
-		hovered = preHoverRegion(preControlAt(c, p))
+		hovered = c.preHoverRegion(preControlAt(c, p))
 	}
-	c.cycleDraw = a.tipCycles[0].paint(now, preCreateCycleSteps, c.preStep, hovered)
+	l := c.layout()
+	if l == nil {
+		c.cycleDraw = -1
+		return
+	}
+	c.cycleDraw = a.tipCycles[0].paint(now, l.Tips.PreCreateCycle, c.preStep, hovered, ms(l.Tips.HoverWaitMS), ms(l.Tips.StepGapMS))
 }
 
 // paintSkillCycle runs the detailed skill cycle while the popup exists and
@@ -3809,7 +3838,16 @@ func (a *App) paintSkillCycle(c *Chargen, in appInput, now time.Time) {
 			hovered = int(id - chargenSkill0)
 		}
 	}
-	c.cycleDraw = a.tipCycles[1].paint(now, detailedSkillCycleSteps, 0, hovered)
+	l := c.layout()
+	if l == nil {
+		c.cycleDraw = -1
+		return
+	}
+	skills := make([]int, c.selectableSkills())
+	for i := range skills {
+		skills[i] = i
+	}
+	c.cycleDraw = a.tipCycles[1].paint(now, [][]int{skills}, 0, hovered, ms(l.Tips.HoverWaitMS), ms(l.Tips.StepGapMS))
 }
 
 // activatePreCreate runs one pre-create control. A pointer activation is the
@@ -3827,24 +3865,24 @@ func (a *App) activatePreCreate(c *Chargen, id chargenControl, pointer, double b
 		c.SelectDifficulty(int(id - chargenLevel0))
 		if pointer {
 			c.tipLevelClicked()
-			a.preCreateSounds.RestartFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenLevelSounds[id-chargenLevel0])
+			a.preCreateSounds.RestartFor("character-precreate", a.soundPlayer, a.namedSounds(), c.levelSound(int(id-chargenLevel0)))
 		}
 	case chargenName:
-		c.focus = 0
+		c.focus = c.focusIndex(chargenName)
 	case chargenChoice0, chargenChoice1, chargenChoice2, chargenChoice3:
 		c.SelectPreChoice(int(id - chargenChoice0))
-		if double {
+		if double && c.keys().DoubleClickForward {
 			a.preCreateForward(c, false)
 			return
 		}
-		if pointer {
+		if pointer && !double {
 			c.tipPortraitClicked()
-			a.preCreateSounds.RestartFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenSoundHero)
+			a.preCreateSounds.RestartFor("character-precreate", a.soundPlayer, a.namedSounds(), c.heroSound())
 		}
 	case chargenForward:
 		a.preCreateForward(c, true)
 	case chargenBack:
-		a.preCreateBack(pointer)
+		a.preCreateBack(c, pointer)
 	}
 }
 
@@ -3859,7 +3897,7 @@ func (a *App) preCreateForward(c *Chargen, continued bool) {
 		return
 	}
 	if continued {
-		a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenSoundOK)
+		a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), c.buttonSound(chargenForward))
 	}
 	c.Forward()
 	a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
@@ -3869,9 +3907,9 @@ func (a *App) preCreateForward(c *Chargen, continued bool) {
 
 // preCreateBack is the amulet: a press requests the page's ok.wav unless it
 // plays before the page closes, and the close stops it (VIDEO-SFX-058).
-func (a *App) preCreateBack(pressed bool) {
+func (a *App) preCreateBack(c *Chargen, pressed bool) {
 	if pressed {
-		a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenSoundOK)
+		a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), c.buttonSound(chargenBack))
 	}
 	a.chargenChoiceClick, a.chargenChoiceAt = chargenNone, time.Time{}
 	a.flow.escape()
@@ -4889,17 +4927,9 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	if c.setup.PreCreate == nil {
 		return nil, fmt.Errorf("the legacy diagnostic model has no CPU composite (draws through ebitenutil.DebugPrintAt)")
 	}
-	// The detailed page's own black rectangle is removed (1022 spec B4, "the
-	// black rectangle with text"); its former screen space is the centre column
-	// now (spec B1) and drawChargenDetailMessage no longer exists. The COPY
-	// that box carried is not dropped (round-2 adversarial review, closing
-	// DIV-192): a.chargenDetailMessage()'s two sources — a.chargenHoverText
-	// and a.flow.msg — are handed to the model here, and
-	// composeChargenDetailedPage's own drawChargenMessage paints them over the
-	// doll box's backdrop. They are still not moved into the tip panel's own
-	// text area: that area shows the shipped chrgen2.txt text (spec B5), and
-	// swapping shipped copy for transient UI wording would mean the panel no
-	// longer shows what it is named for.
+	// A refused or failed Accept's line goes to the model, which draws it in
+	// the description's message strip when it has one. Hover texts show as
+	// tooltips only.
 	c.SetDetailMessage(a.chargenDetailMessage())
 	c.statHeld = a.chargenHeld
 	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)

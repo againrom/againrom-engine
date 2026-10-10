@@ -32,13 +32,15 @@ const (
 	BoltFigures   Name = "bolt-figures"
 	ItemStars     Name = "item-stars"
 	ShopStock     Name = "shop-stock"
+	Generator     Name = "generator"
 )
 
 // ownInOriginal names the streams that keep their own generator in original
 // mode: the claims give the mission ambience no call form (MAGIC-285), and
-// the bolt and heal figures are drawn at paint, not at the original's driver
-// call. Every other stream joins the shared stream.
-var ownInOriginal = map[Name]bool{AmbientBirds: true, BoltFigures: true}
+// the bolt and heal figures and the character generator's sparkle are drawn
+// at paint, not at the original's driver call. Every other stream joins the
+// shared stream.
+var ownInOriginal = map[Name]bool{AmbientBirds: true, BoltFigures: true, Generator: true}
 
 // JoinsShared reports whether name draws from the shared stream in original
 // mode.
