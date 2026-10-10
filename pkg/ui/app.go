@@ -906,7 +906,7 @@ type App struct {
 	hasHeadlessPointer  bool
 	headlessUnfocused   bool
 	hasTownCursor       bool
-	townSurfacePress    TownSurfaceControl
+	townSurfacePress    buttonLatch
 	townSurfaceClick    TownSurfaceControl
 	townSurfaceAt       time.Time
 	townSurfaceKey      string
@@ -919,7 +919,8 @@ type App struct {
 	noticePressSerial int
 	// blink is the edit fields' caret phase (MENU-126).
 	blink              caretBlink
-	townTipPress       townTipPress
+	townTipPress       buttonLatch
+	townTipPressOwner  townTipOwner
 	townPaintAdmission func() bool
 	// townSurfaceAnimationTick is presentation time only. Six client ticks
 	// make one shipped miniature frame; TownSurfaceView applies it only to
@@ -951,9 +952,11 @@ type App struct {
 	// pan to share the same measurement with, and a straight distance from
 	// one fixed point answers the one question this machine asks (has this
 	// gesture crossed TapSlop) exactly as well.
-	shopDragArmed  bool
-	shopUseTap     *shopUseTap
-	shopDragOrigin ShopControl
+	shopDragArmed bool
+	// shopButtonPress latches the shop's command buttons by index.
+	shopButtonPress buttonLatch
+	shopUseTap      *shopUseTap
+	shopDragOrigin  ShopControl
 	// shopDragOriginBase is the shelf/pack list base at the press. The
 	// visible-cell index may change under a held wheel gesture; retaining the
 	// base keeps the origin bound to that one absolute source record.
@@ -2478,6 +2481,7 @@ func (a *App) activatePicker(list *Picker, choose func()) {
 func (a *App) clearShopDrag() {
 	a.shopUseTap = nil
 	a.shopDragArmed, a.shopDragOrigin, a.shopDragMoved = false, ShopControl{}, 0
+	a.shopButtonPress.Clear()
 	a.shopDragOriginBase = 0
 	a.shopDragIcon = nil
 }
@@ -2691,7 +2695,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 	} else if square, ready := townSquareView(a.flow.town); ready {
 		tip = square.Tip
 	}
-	if tip.Showing() || a.townTipPress.armed {
+	if tip.Showing() || a.townTipPress.Holds() {
 		p, inside := a.windowToNativeFrame(in.CursorX, in.CursorY)
 		if a.stepTownTipPointer(in, tip, p, inside) {
 			a.resetTownSurfacePair()
@@ -2720,7 +2724,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 			if in.PaneMode {
 				kind = TownSurfaceControlMode
 			}
-			a.townSurfacePress = TownSurfaceControl{}
+			a.townSurfacePress.Clear()
 			a.clickTownSurface(TownSurfaceControl{Kind: kind}, false)
 			a.syncViewerLayout()
 			return
@@ -2728,10 +2732,11 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 	}
 	if inSurface {
 		if in.PrimaryPressed {
-			a.townSurfacePress = TownSurfaceControl{}
+			// A new press replaces whatever the latch held.
+			a.townSurfacePress.Clear()
 			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
 				if c, hit := TownSurfaceControlAt(surface, p); hit {
-					a.townSurfacePress = c
+					a.townSurfacePress.Press(townSurfaceLatchID(c), true)
 					if presser, ok := a.flow.town.(TownSurfacePresser); ok {
 						presser.TownSurfacePress(c)
 					}
@@ -2752,17 +2757,19 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 						a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
 					}
 				}
-				if a.townSurfacePress.Kind == TownSurfaceControlNone {
+				if !a.townSurfacePress.Holds() {
 					a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
 				}
 			}
 		}
 		if in.PrimaryReleased {
 			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
-				if c, hit := TownSurfaceControlAt(surface, p); hit && c == a.townSurfacePress && c.Kind != TownSurfaceControlCell {
+				c, hit := TownSurfaceControlAt(surface, p)
+				_, fire := a.townSurfacePress.Release(townSurfaceLatchID(c), hit)
+				if fire && c.Kind != TownSurfaceControlCell {
 					a.clickTownSurface(c, false)
 					a.syncViewerLayout()
-				} else if hit && c == a.townSurfacePress && c.Kind == TownSurfaceControlCell {
+				} else if fire {
 					a.townSurfaceReleased = true
 				} else {
 					a.townSurfaceClick, a.townSurfaceAt = TownSurfaceControl{}, time.Time{}
@@ -2771,7 +2778,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 			} else {
 				a.resetTownSurfacePair()
 			}
-			a.townSurfacePress = TownSurfaceControl{}
+			a.townSurfacePress.Clear()
 		}
 		return
 	}
@@ -2833,10 +2840,11 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 				}
 				a.shopPressX, a.shopPressY = p.X, p.Y
 				a.shopDragMoved = 0
+				a.shopButtonPress.Clear()
 				a.shopDragOrigin, a.shopDragArmed = shopGridControlAt(shopView, p)
 				if !a.shopDragArmed {
-					if c, hit := shopScreenControlAt(shopView, p); hit && c.Kind == ShopControlButton && shopView.Live[c.Index] {
-						a.shopDragOrigin, a.shopDragArmed = c, true
+					if c, hit := shopScreenControlAt(shopView, p); hit && c.Kind == ShopControlButton {
+						a.shopButtonPress.Press(c.Index, shopView.Live[c.Index])
 					}
 				}
 				a.shopDragOriginBase = shopDragGridBase(shopView, a.shopDragOrigin)
@@ -2861,8 +2869,9 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 			a.shopDragIcon = nil
 			p, onFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
 			switch {
-			case armed && origin.Kind == ShopControlButton:
-				if c, hit := shopScreenControlAt(shopView, p); onFrame && hit && c == origin {
+			case a.shopButtonPress.Holds():
+				c, hit := shopScreenControlAt(shopView, p)
+				if _, fire := a.shopButtonPress.Release(c.Index, onFrame && hit && c.Kind == ShopControlButton); fire {
 					a.clickShop(c)
 					a.syncViewerLayout()
 				}
@@ -4561,7 +4570,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 	surface, inSurface := townSurfaceScreen(t)
 	switch {
 	case inSurface:
-		surface.Tip = tipPanelWithPointer(surface.Tip, uint8(surface.Kind)+1, cursor, hasCursor, pointer.tipPress)
+		surface.Tip = tipPanelWithPointer(surface.Tip, uint8(surface.Kind)+1, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 		surface.SuppressHover = true
 		surface.Message = msg
 		surface.AnimationFrame = animationFrame
@@ -4583,11 +4592,14 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 		}
 		return ComposeTownSurface(surface), nil
 	case inShop:
-		shop.TipPanel = tipPanelWithPointer(shop.TipPanel, 3, cursor, hasCursor, pointer.tipPress)
+		shop.TipPanel = tipPanelWithPointer(shop.TipPanel, 3, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 		shop.SuppressHover = true
 		shop.Msg = msg
 		if len(pointerState) > 0 {
-			shop.Press = pointer.shopPress
+			shop.Press = ShopControl{}
+			if i, held := pointer.shopPress.Latched(); held {
+				shop.Press = ShopControl{Kind: ShopControlButton, Index: i}
+			}
 		}
 		if stars != nil {
 			visibleOrigin := shopDragOriginAt(shop, dragOrigin, dragOriginBase)
@@ -4607,7 +4619,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 				squareView, _ = townSquareView(t)
 			}
 			squareView.Message = msg
-			squareView.Tip = tipPanelWithPointer(squareView.Tip, 4, cursor, hasCursor, pointer.tipPress)
+			squareView.Tip = tipPanelWithPointer(squareView.Tip, 4, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 			return ComposeTownSquare(squareView), nil
 		}
 		return nil, errTownRowList
@@ -4633,16 +4645,13 @@ func (a *App) composeTownRoom() (*image.RGBA, error) {
 	if atTownSquare(a.flow.town) && !a.townPaintAllowed() {
 		if v, ready := townSquareView(a.flow.town); ready {
 			v.Message = msg
-			v.Tip = tipPanelWithPointer(v.Tip, 4, a.townCursor, a.hasTownCursor, a.townTipPress)
+			v.Tip = tipPanelWithPointer(v.Tip, 4, a.townCursor, a.hasTownCursor, a.townTipPress, a.townTipPressOwner)
 			return ComposeTownSquare(v), nil
 		}
 	}
 	dragIcon, hasDrag := a.shopDragItemPresent()
-	var press ShopControl
-	if a.shopDragArmed {
-		press = a.shopDragOrigin
-	}
-	pix, err := composeTownRoom(a.flow.town, msg, a.townCursor, a.hasTownCursor, a.townSurfacePress, dragIcon, hasDrag, a.townSurfaceAnimationTick/6, &a.shopStars, a.shopDragOrigin, a.shopDragOriginBase, true, townRoomPointerState{shopPress: press, tipPress: a.townTipPress})
+	pix, err := composeTownRoom(a.flow.town, msg, a.townCursor, a.hasTownCursor, a.townSurfacePressed(), dragIcon, hasDrag, a.townSurfaceAnimationTick/6, &a.shopStars, a.shopDragOrigin, a.shopDragOriginBase, true,
+		townRoomPointerState{shopPress: a.shopButtonPress, tipPress: a.townTipPress, tipOwner: a.townTipPressOwner})
 	if errors.Is(err, errTownRowList) {
 		return composeTownList(a.flow.town, a.flow.townList, a.flow.msg), nil
 	}
@@ -4894,7 +4903,7 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	c.SetDetailMessage(a.chargenDetailMessage())
 	c.statHeld = a.chargenHeld
 	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)
-	tip := tipPanelWithPointer(c.TipPanel(), chargenTipRoom, p, inside, a.townTipPress)
+	tip := tipPanelWithPointer(c.TipPanel(), chargenTipRoom, p, inside, a.townTipPress, a.townTipPressOwner)
 	return composeChargenPage(c, a.chargenHover, a.chargenPressed(), tip), nil
 }
 

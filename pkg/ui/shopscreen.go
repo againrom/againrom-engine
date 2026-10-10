@@ -1041,13 +1041,11 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 		if art.Menu != nil {
 			draw.Draw(dst, shopButtonRegion, art.Menu, art.Menu.Bounds().Min, draw.Over)
 		}
-		// ShopMenu.bmp already carries the four plaques. A button's own bitmap
-		// is drawn only while it is pressed and hovered (TOWN-260).
-		for i, r := range shopButtonRects {
-			if shopButtonDown(v, i, hover, hasHover) {
-				blit(dst, art.Button[i], r.Min.X, r.Min.Y)
-			}
-		}
+	}
+	for i := range shopButtonRects {
+		drawPushButton(dst, v.Font, shopCommandButton(v, i, hover, hasHover))
+	}
+	if art != nil {
 		blit(dst, art.Arrow[0], shopArrowUpRect.Min.X, shopArrowUpRect.Min.Y)
 		blit(dst, art.Arrow[1], shopArrowDownRect.Min.X, shopArrowDownRect.Min.Y)
 		blit(dst, art.PackCap[0], shopPackLeftRect.Min.X, shopPackLeftRect.Min.Y)
@@ -1094,24 +1092,6 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 	// to restore the x=464..480 overlap the blanking had covered.
 	character := shopCharacterView(v)
 
-	labels := [4]string{v.Words.ShopUndo, v.Words.ShopBuy, v.Words.ShopSell, v.Words.ShopExit}
-	numbers := [4]int32{v.Purse, v.Buy, v.Sell, v.Total}
-	for i, r := range shopButtonRects {
-		c := buttonInk(v.Live[i], hasHover && hover.In(r))
-		r = r.Add(buttonTextOffset(shopButtonDown(v, i, hover, hasHover)))
-		if v.Font == nil {
-			continue
-		}
-		n := GroupDigits(int64(numbers[i]))
-		if i == 1 || i == 2 {
-			// SHOP-050: Buy and Sell join caption and number into one string.
-			drawTownShellText(dst, v.Font, labels[i]+" "+n, r, c)
-			continue
-		}
-		drawTownShellText(dst, v.Font, labels[i], image.Rect(r.Min.X, r.Min.Y+2, r.Max.X, r.Min.Y+24), c)
-		drawTownShellText(dst, v.Font, n, image.Rect(r.Min.X, r.Min.Y+23, r.Max.X, r.Max.Y-2), c)
-	}
-
 	DrawTownCharacterRegion(dst, character)
 	if !character.Statistics {
 		drawShopMessage(dst, v)
@@ -1138,10 +1118,27 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 	return dst
 }
 
-// shopButtonDown reports whether command button i is pressed and still under
-// the pointer, the one state in which the panel draws its ShopButton bitmap.
-func shopButtonDown(v ShopScreenView, i int, hover image.Point, hasHover bool) bool {
-	return v.Press == (ShopControl{Kind: ShopControlButton, Index: i}) && hasHover && hover.In(shopButtonRects[i])
+// shopCommandButton is a shop command plaque: its bitmap draws only while
+// pressed and hovered (TOWN-260); Buy and Sell join caption and number
+// (SHOP-050).
+func shopCommandButton(v ShopScreenView, i int, hover image.Point, hasHover bool) pushButton {
+	r := shopButtonRects[i]
+	face := &plaqueFace{Over: true, Ink: plaqueCommandInk, Sink: plaqueSink}
+	if v.Art != nil && v.Art.Button[i] != nil {
+		face.Pictures[plaqueDown] = v.Art.Button[i]
+	}
+	labels := [4]string{v.Words.ShopUndo, v.Words.ShopBuy, v.Words.ShopSell, v.Words.ShopExit}
+	numbers := [4]int32{v.Purse, v.Buy, v.Sell, v.Total}
+	n := GroupDigits(int64(numbers[i]))
+	if i == 1 || i == 2 {
+		face.Captions = []plaqueCaption{{Text: labels[i] + " " + n, Rect: r, Fit: true}}
+	} else {
+		face.Captions = []plaqueCaption{{Text: labels[i], Rect: townButtonLabelRect(r), Fit: true},
+			{Text: n, Rect: townButtonValueRect(r), Fit: true}}
+	}
+	inside := hasHover && hover.In(r)
+	return pushButton{Rect: r, Face: face, Hover: inside, Inside: inside, Disabled: !v.Live[i],
+		Pressed: v.Press == (ShopControl{Kind: ShopControlButton, Index: i})}
 }
 
 // shopMessageRect is where the answer to the last press is written: the bottom
