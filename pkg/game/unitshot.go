@@ -6,43 +6,23 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
-	"againrom/pkg/ui"
 )
 
 // A ranged swing's own shot. The shooter's units.reg class names the
 // projectiles.reg picture its swing releases and the swing tick the shot
-// leaves on (ANIM-STATE-023). A shot at a unit is a World projectile record
-// built on that tick (SAV-1129, SAV-1130): the World advances it, SAVE writes
-// it and a LOAD continues it. The world still resolves the blow on its own
-// countdown, which is independent of the record (SAV-1132). A shot at a
-// structure is a presentation object kept by this tier: it lives
-// ftol(distance)/200 ticks and travels toward its target (ANIM-PROJ-025), and
-// it is drawn as a cast's picture is (ANIM-PROJ-026). DIV-1453 names the rules
-// here that no claim states.
-
-// unitShotSegment is the distance, in the engine's 256-per-cell units, that
-// one tick of a unit shot's life stands for (ANIM-PROJ-025).
-const unitShotSegment = 200
+// leaves on (ANIM-STATE-023). The shot is a World projectile record built on
+// that tick (SAV-1129, SAV-1130), at a unit or at a structure (SAV-1197): the
+// World advances it, SAVE writes it and a LOAD continues it. The world still
+// resolves the blow on its own countdown, which is independent of the record
+// (SAV-1132). DIV-1453 names the rules here that no claim states.
 
 const unitShotDeformationPicture = 7
 
-// unitShotRegistryTop is the highest picture whose projectile driver applies
-// no damage (SAV-1132); a shot of a higher picture stays a presentation
-// object.
-const unitShotRegistryTop = 12
-
-// unitShot is one structure-bound shot in flight: a cast object's own fields.
-type unitShot struct {
-	spellBolt
-	target    sim.EntityID
-	structure bool
-}
-
-// unitShots is the map world's memory of ranged swings: the wind-up that
-// opened each entity's current run, and the shots already released.
+// unitShots is the map world's memory of ranged swings and of the records
+// in flight: the wind-up that opened each entity's current run, and each
+// smoke-leaving record's trail.
 type unitShots struct {
-	run    map[sim.EntityID]sim.AttackPhase
-	flying []unitShot
+	run map[sim.EntityID]sim.AttackPhase
 	// trail is each smoke-leaving record's trail, oldest first: the point
 	// each driver call started from, at most six (ANIM-140). No record stores
 	// it, so a LOAD starts it empty (SAV-1193).
@@ -82,68 +62,23 @@ func (mw *mapWorld) classShot(class int32) (picture, delay int, drawn bool) {
 	return c.Projectile, c.ShootDelay, drawn
 }
 
-// advanceUnitShots ages the presentation shots in flight, retires the
-// finished ones and re-aims the rest at their targets' current cells, then
-// releases this tick's: one per physical run, on the tick the swing clock
-// reaches the class's release tick, while the target is in reach. A shot at a
-// unit becomes a World record; a shot at a structure becomes a presentation
-// object. Reach is the swing sound's own gate (advanceSwings): a shot that
-// cannot land is not drawn.
+// advanceUnitShots releases this tick's shots: one per physical run, on the
+// tick the swing clock reaches the class's release tick, while the target is
+// in reach. Reach is the swing sound's own gate (advanceSwings): a shot that
+// cannot land is not built.
 //
 // It runs after advanceSwings, whose clock and run memory it reads.
 func (mw *mapWorld) advanceUnitShots() {
-	live := mw.shots.flying[:0]
-	for _, s := range mw.shots.flying {
-		s.age++
-		if s.age >= s.life {
-			continue
-		}
-		if !s.structure {
-			if t, ok := mw.entity(s.target); ok {
-				s.to = image.Pt(int(t.X), int(t.Y))
-			}
-		}
-		live = append(live, s)
-	}
-	mw.shots.flying = live
-
 	ents := mw.world.EntityView()
 	for _, e := range ents {
 		if !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
 			continue
 		}
-		class := mw.spellClientClass(e.ID, e.Class)
-		picture, delay, drawn := mw.classShot(class)
-		record := e.AttackTargetKind == sim.AttackTargetUnit && picture <= unitShotRegistryTop
-		at := delay
-		if record {
-			at = unitShotSwingTick(delay)
-		}
-		if !drawn || mw.swing[e.ID] != at || !mw.swingTargetInReach(ents, e) {
+		picture, delay, drawn := mw.classShot(mw.spellClientClass(e.ID, e.Class))
+		if !drawn || mw.swing[e.ID] != unitShotSwingTick(delay) || !mw.swingTargetInReach(ents, e) {
 			continue
 		}
-		if record {
-			mw.releaseUnitShot(e, picture, unitShotLate(delay))
-			continue
-		}
-		to, ok := mw.attackTargetCell(e)
-		if !ok {
-			continue
-		}
-		from := image.Pt(int(e.X), int(e.Y))
-		life := castDistance(from, to) / unitShotSegment
-		if life < 1 {
-			life = 1
-		}
-		// A structure shot leaves the release point a unit record leaves from
-		// (shotOffset, SAV-1130).
-		dx, dy := mw.shotOffset(class, e.Facing)
-		mw.shots.flying = append(mw.shots.flying, unitShot{
-			spellBolt: spellBolt{from: from, to: to, picture: picture, owner: e.Owner,
-				life: life, facing: e.Facing, launch: image.Pt(dx, dy)},
-			target:    e.AttackTarget,
-			structure: e.AttackTargetKind == sim.AttackTargetStructure,
-		})
+		mw.releaseUnitShot(e, picture, unitShotLate(delay))
 	}
 	mw.advanceShotTrails()
 }
@@ -246,21 +181,5 @@ func (mw *mapWorld) advanceShotTrails() {
 			delete(mw.shots.trail, id)
 		}
 	}
-}
-
-// unitShotDraws is every presentation shot in flight as the viewer draws it, through the
-// cast object's own sprite and trail producers, so a picture reads the same
-// from a swing as from a book. A shot of life N stands (age+1)/N of the way
-// from the shooter's release point and on its target at its last drawn tick.
-func (mw *mapWorld) unitShotDraws() []ui.SpellBolt {
-	var out []ui.SpellBolt
-	for _, s := range mw.shots.flying {
-		b := s.spellBolt
-		pos := castShotPoint(b.from, b.to, b.age+1, b.life, b.launch)
-		if d, ok := mw.spellDraw(b.picture, b.from, b.to, pos, b.age, b.owner); ok {
-			out = append(out, d)
-		}
-		out = append(out, mw.trailDraws(b)...)
-	}
-	return out
+	mw.forgetFlights(records)
 }

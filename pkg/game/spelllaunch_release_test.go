@@ -58,8 +58,7 @@ func launchRefill(t *testing.T, mw *mapWorld, hero sim.EntityID) {
 }
 
 // launchObserve turns the mage to facing and observes his Lightning cast
-// three cells along dir, then advances the path object to age 4, the phase-0
-// call.
+// three cells along dir, and answers the new record's figure.
 func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, dir image.Point) spellBolt {
 	t.Helper()
 	if err := mw.world.ImportOriginalActorFacings([]sim.OriginalActorFacing{{ID: hero, Facing: facing}}); err != nil {
@@ -67,28 +66,30 @@ func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, 
 	}
 	e, _ := mw.entity(hero)
 	at := image.Pt(int(e.X), int(e.Y)).Add(dir.Mul(3))
-	mw.bolts = nil
+	id := mw.world.SavedProjectiles().FreeIndex
 	mw.observeCasts([]sim.CastEvent{{Caster: hero, Spell: spLightning, Owner: e.Owner, FromX: e.X, FromY: e.Y,
 		ToX: int32(at.X), ToY: int32(at.Y), Facing: e.Facing}})
-	if len(mw.bolts) != 1 || mw.bolts[0].picture != 34 {
-		t.Fatalf("the observed Lightning cast spawned %d objects", len(mw.bolts))
+	for _, p := range flightRecords(mw) {
+		if p.ID == id && p.Picture == 34 {
+			if paths := mw.recordPaths(p, 0); len(paths) == 1 {
+				return paths[0]
+			}
+		}
 	}
-	for range 4 {
-		mw.advanceBolts()
-	}
-	return mw.bolts[0]
+	t.Fatalf("the observed Lightning cast built no record %d: %+v", id, flightRecords(mw))
+	return spellBolt{}
 }
 
 // launchCast orders Lightning at the nearest unit the book admits and ticks
-// until its path object stands at age 4.
+// until its record makes its fifth call, the phase-0 call.
 func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 	t.Helper()
 	victim := launchIssue(t, mw, hero)
 	for tick := 0; tick < 240; tick++ {
 		mw.tick()
-		for _, b := range mw.bolts {
-			if b.picture == 34 && b.age == 4 {
-				return b
+		for _, p := range flightRecords(mw) {
+			if paths := mw.recordPaths(p, 0); p.Picture == 34 && p.ActionPhase == 5 && len(paths) == 1 {
+				return paths[0]
 			}
 		}
 	}
@@ -99,7 +100,6 @@ func launchCast(t *testing.T, mw *mapWorld, hero sim.EntityID) spellBolt {
 // launchIssue orders the hero's Lightning at the nearest admitted victim.
 func launchIssue(t *testing.T, mw *mapWorld, hero sim.EntityID) sim.EntityID {
 	t.Helper()
-	mw.bolts = nil
 	launchRefill(t, mw, hero)
 	h, _ := mw.entity(hero)
 	victim, best := sim.EntityID(0), -1

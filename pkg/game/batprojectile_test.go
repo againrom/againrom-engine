@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -127,14 +128,16 @@ func TestBatProjectileNeedsRegistryEntryButNoSheet(t *testing.T) {
 	if _, _, drawn := mw.classShot(shotClassBat); !drawn {
 		t.Fatal("registered callback depends on sprite art")
 	}
-	if b, ok := mw.spellDraw(7, image.Pt(1, 4), image.Pt(5, 4), image.Pt(2*ui.ShotScale, 4*ui.ShotScale), 100, 1); !ok || b.Sheet != nil || b.Effect != ui.SpellBackgroundDeformation {
-		t.Fatal("registered callback missing", b, ok)
+	mw.world.ReleaseCast(sim.CastRecord{Picture: unitShotDeformationPicture, X: 2*ui.ShotScale + 128, Y: 4*ui.ShotScale + 128,
+		AimX: 5*ui.ShotScale + 128, AimY: 4*ui.ShotScale + 128, Segments: 4})
+	if b := mw.savedProjectileDraws(); len(b) != 1 || b[0].Sheet != nil || b[0].Effect != ui.SpellBackgroundDeformation {
+		t.Fatal("registered callback missing", b)
 	}
 	delete(set.Pictures, 7)
 	if _, _, drawn := mw.classShot(shotClassBat); drawn {
 		t.Fatal("callback admitted missing registry entry")
 	}
-	if _, ok := mw.spellDraw(7, image.Pt(1, 4), image.Pt(5, 4), image.Point{}, 0, 1); ok {
-		t.Fatal("unregistered callback drawn")
+	if b := mw.savedProjectileDraws(); len(b) != 0 {
+		t.Fatal("unregistered callback drawn", b)
 	}
 }

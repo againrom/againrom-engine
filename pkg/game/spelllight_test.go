@@ -37,8 +37,12 @@ func TestLightningAndPrismaticLightTheirPathPerPhase(t *testing.T) {
 					t.Fatalf("spell %d age %d stamp %+v, want path level %d", spell, age, s, 10*wantPhases[age])
 				}
 			}
-			_, _, points := mw.pathFigure(mw.bolts[0])
 			want := map[image.Point]bool{}
+			var points []image.Point
+			for _, b := range mw.recordPaths(flightRecords(mw)[0], 0) {
+				_, _, figure := mw.pathFigure(b)
+				points = append(points, figure...)
+			}
 			for _, p := range points {
 				c, _ := mw.displayLightCell(p)
 				for _, v := range []image.Point{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
@@ -54,7 +58,7 @@ func TestLightningAndPrismaticLightTheirPathPerPhase(t *testing.T) {
 					t.Fatalf("spell %d age %d left path vertex %v unstamped", spell, age, v)
 				}
 			}
-			mw.advanceBolts()
+			flightStep(mw)
 		}
 		if got := mw.objectLightStamps(nil); len(got) != 0 {
 			t.Fatalf("spell %d: an expired path still stamps %d vertices", spell, len(got))
@@ -67,16 +71,15 @@ func TestLightningAndPrismaticLightTheirPathPerPhase(t *testing.T) {
 func TestADirectLightningLightsFivePhases(t *testing.T) {
 	t.Parallel()
 	mw := spWorld(t)
-	mw.bolts = append(mw.bolts, spellBolt{from: image.Pt(2, 2), to: image.Pt(7, 2), picture: 34, life: 5,
-		centered: true, seed: 9})
+	mw.observeScriptCasts([]sim.ScriptCastEvent{{Spell: spLightning, FromX: 2, FromY: 2, ToX: 7, ToY: 2}})
 	for _, phase := range []uint8{0, 4, 3, 2, 1} {
 		stamps := mw.objectLightStamps(nil)
 		if len(stamps) == 0 || stamps[0].Level != 10*phase {
 			t.Fatalf("direct Lightning stamps %v, want level %d", stamps, 10*phase)
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 	}
-	if len(mw.bolts) != 0 {
+	if len(flightRecords(mw)) != 0 {
 		t.Fatal("the direct object outlived five calls")
 	}
 }
@@ -130,8 +133,8 @@ func TestFireArrowFireBallAndExplosionLight(t *testing.T) {
 	if len(arrow) != 4 || len(ball) != 12 {
 		t.Fatalf("Fire Arrow stamped %d and Fire Ball %d vertices, want 4 and 12", len(arrow), len(ball))
 	}
-	b := mw.bolts[0]
-	cell := lightCell(castShotPoint(b.from, b.to, 1, b.life, b.launch))
+	b := flightRecords(mw)[0]
+	cell := image.Pt(floorDiv(int(b.X), ui.ShotScale), floorDiv(int(b.Y), ui.ShotScale))
 	if got := lightGrid(arrow); len(got) != 4 || got[cell] != 16 || got[cell.Add(image.Pt(1, 1))] != 16 {
 		t.Errorf("Fire Arrow stamps %v, want the four corners of drawn cell %v", got, cell)
 	}
@@ -175,30 +178,24 @@ func TestObjectLightLeavesTheWorldUnchanged(t *testing.T) {
 	}
 }
 
-// A staff's Fire Arrow and Fire Ball stamp their light at the cell they are
-// drawn in on every step of the wind-up (MAGIC-271).
-func TestWeaponFlightLightStaysAtTheDrawnPoint(t *testing.T) {
+// A Fire Arrow and a Fire Ball record stamp their light at the cell the
+// record stands in on every call (MAGIC-271).
+func TestFlightLightStaysAtTheRecordsCell(t *testing.T) {
 	t.Parallel()
 	for _, spell := range []uint16{1, 2} {
 		mw := sbWorld(t)
 		mw.projectiles.Sheets[12] = &terrain.EffectSheet{Frames: spFrames(4, 8), Phases: 4, RotationPhases: 1}
-		caster := sim.Entity{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, Owner: 1,
-			WeaponSpell: spell, HasAttackTarget: true, AttackTarget: 2,
-			AttackTargetKind: sim.AttackTargetUnit, AttackPhase: sim.AttackCasting, AttackCharge: 4}
-		victim := sim.Entity{ID: 2, X: 10, Y: 2, HP: 100, MaxHP: 100, Owner: 2}
-		ents := []sim.Entity{caster, victim}
-		for swing := 0; swing <= 4; swing++ {
-			mw.swing[1] = swing
-			draws := mw.weaponBoltDraws(ents)
-			if len(draws) == 0 {
-				t.Fatalf("spell %d swing %d: nothing drawn", spell, swing)
-			}
-			cell := lightCell(draws[0].Pos)
-			got := lightGrid(mw.objectLightStamps(ents))
+		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spell, Weapon: true,
+			FromX: 2, FromY: 2, ToX: 10, ToY: 2}})
+		for call := 0; len(flightRecords(mw)) > 0; call++ {
+			p := flightRecords(mw)[0]
+			cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))
+			got := lightGrid(mw.objectLightStamps(nil))
 			want := lightGrid(pictureLightStamps(nil, data.CastPicture(int(spell)), cell, -1))
 			if len(want) == 0 || fmt.Sprint(got) != fmt.Sprint(want) {
-				t.Errorf("spell %d swing %d: drawn at %v (cell %v), light %v, want %v", spell, swing, draws[0].Pos, cell, got, want)
+				t.Errorf("spell %d call %d: record at %v, light %v, want %v", spell, call, cell, got, want)
 			}
+			flightStep(mw)
 		}
 	}
 }

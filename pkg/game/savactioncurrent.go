@@ -280,6 +280,29 @@ func restoreCurrentDepartedCharacters(mw *mapWorld, rows []uint32, identities ma
 }
 
 // currentTypedIdentityIndex resolves a key within its record class.
+// currentStructureObjects is each live structure's Document object. A world
+// created by the engine can hold live structures before it has any imported
+// SavedStructures provenance; currentSpatial writes those structures to
+// World.Buildings in the world's stable structure order.
+func currentStructureObjects(doc *sav.DocumentData, w *sim.World) (map[sim.EntityID]uint16, error) {
+	byStructure := map[sim.EntityID]uint16{}
+	structures, _, _ := w.SavedStructures()
+	for _, v := range structures {
+		index, err := currentTypedIdentityIndex(doc, savedStructureClass(v.Class), v.SourceKey)
+		if err != nil {
+			return nil, err
+		}
+		byStructure[sim.EntityID(v.ID)] = index
+	}
+	for i, v := range w.Structures() {
+		if _, ok := byStructure[sim.EntityID(v.ID)]; ok || doc.World == nil || i >= len(doc.World.Buildings) {
+			continue
+		}
+		byStructure[sim.EntityID(v.ID)] = doc.World.Buildings[i]
+	}
+	return byStructure, nil
+}
+
 func currentTypedIdentityIndex(doc *sav.DocumentData, class string, key uint32) (uint16, error) {
 	if key == 0 {
 		return 0, nil
@@ -510,24 +533,9 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	if err != nil {
 		return err
 	}
-	byStructure := map[sim.EntityID]uint16{}
-	structures, _, _ := w.SavedStructures()
-	for _, v := range structures {
-		index, err := currentTypedIdentityIndex(doc, savedStructureClass(v.Class), v.SourceKey)
-		if err != nil {
-			return err
-		}
-		byStructure[sim.EntityID(v.ID)] = index
-	}
-	// A world created by the engine can hold live structures before it has any
-	// imported SavedStructures provenance. currentSpatial writes those
-	// structures to World.Buildings in the world's stable structure order, so
-	// bind action endpoints to the records this producer has just written.
-	for i, v := range w.Structures() {
-		if _, ok := byStructure[sim.EntityID(v.ID)]; ok || i >= len(state.Document.World.Buildings) {
-			continue
-		}
-		byStructure[sim.EntityID(v.ID)] = state.Document.World.Buildings[i]
+	byStructure, err := currentStructureObjects(doc, w)
+	if err != nil {
+		return err
 	}
 	for _, dead := range w.OriginalDeadActors() {
 		if dead.Current.Stage >= 2 {

@@ -96,11 +96,14 @@ func TestCurrentVisualContinuationKeepsBirthDelayPathAndExpiry(t *testing.T) {
 				ev.Weapon, ev.Victims = true, []sim.CellPoint{{X: 12, Y: 8}, {X: 10, Y: 9}, {X: 9, Y: 6}}
 			}
 			mw.observeCasts([]sim.CastEvent{ev})
-			if n := len(spPictureBolts(mw, 36)); c.weapon && n != 3 {
-				t.Fatalf("the staff spray spawned %d figures, want 3", n)
+			if c.weapon {
+				records := flightRecords(mw)
+				if len(records) != 1 || len(mw.recordPaths(records[0], 0)) != 3 {
+					t.Fatalf("the staff spray built %+v, want one record with 3 figures", records)
+				}
 			}
 			for range 2 {
-				mw.advanceBolts()
+				flightStep(mw)
 				mw.advanceHealBursts()
 				mw.advanceCastRuns()
 			}
@@ -114,6 +117,11 @@ func TestCurrentVisualContinuationKeepsBirthDelayPathAndExpiry(t *testing.T) {
 			if err = json.Unmarshal(wire, &back); err != nil {
 				t.Fatal(err)
 			}
+			// The object in flight is a World record and leaves through the
+			// SAV; the visual snapshot carries no bolt.
+			if len(saved.SpellBolts) != 0 {
+				t.Fatalf("the visual snapshot carries %d bolts, want none", len(saved.SpellBolts))
+			}
 			cold := spellSoundFireBallWorld(t, 100)
 			cold.restoreActionVisuals(back.SpellBolts, back.HealBursts)
 			cold.restoreCastRuns(back.CastRuns)
@@ -121,17 +129,15 @@ func TestCurrentVisualContinuationKeepsBirthDelayPathAndExpiry(t *testing.T) {
 				var a, b SnapshotResidue
 				mw.actionVisuals(&a)
 				cold.actionVisuals(&b)
-				if !reflect.DeepEqual(a.SpellBolts, b.SpellBolts) || !reflect.DeepEqual(a.HealBursts, b.HealBursts) || !reflect.DeepEqual(a.CastRuns, b.CastRuns) || !reflect.DeepEqual(mw.boltDraws(mw.world.Entities()), cold.boltDraws(cold.world.Entities())) {
+				if !reflect.DeepEqual(a.HealBursts, b.HealBursts) || !reflect.DeepEqual(a.CastRuns, b.CastRuns) || !reflect.DeepEqual(mw.healSpriteDraws(), cold.healSpriteDraws()) {
 					t.Fatalf("spell%d visual cut differs at%d", spell, tick)
 				}
-				mw.advanceBolts()
 				mw.advanceHealBursts()
 				mw.advanceCastRuns()
-				cold.advanceBolts()
 				cold.advanceHealBursts()
 				cold.advanceCastRuns()
 			}
-			if len(cold.bolts)+len(cold.healBursts)+len(cold.castRun) != 0 {
+			if len(cold.healBursts)+len(cold.castRun) != 0 {
 				t.Fatal("visual did not expire")
 			}
 		})

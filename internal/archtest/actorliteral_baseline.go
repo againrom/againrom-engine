@@ -13,7 +13,6 @@ var CommittedActorLiterals = map[string]int{
 	"pkg/game/chargen.go":            1,
 	"pkg/game/iteminfo.go":           2,
 	"pkg/game/originalspellbook.go":  3,
-	"pkg/game/projectiles.go":        2,
 	"pkg/game/shopview.go":           1,
 	"pkg/game/world.go":              1,
 	"pkg/mapload/potion.go":          3,

@@ -309,12 +309,11 @@ type mapWorld struct {
 	swing map[sim.EntityID]int
 	phase map[sim.EntityID]sim.AttackPhase
 
-	// bolts is this tier's own memory of the spells in flight (spellbolt.go).
-	// Not canonical either: not in the world, the byte form or the digest,
-	// beside the two maps above.
-	bolts []spellBolt
+	// flights is each World record's look a record has no field for
+	// (flight.go): presentation only, not in the byte form or the digest.
+	flights map[uint16]flightLook
 
-	// shots is the memory of ranged swings and the shots they released
+	// shots is the memory of ranged swings and of the records' trails
 	// (unitshot.go), presentation only and not saved.
 	shots unitShots
 
@@ -4086,7 +4085,6 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// observe an in-between state.
 	mw.syncJoinedHeroes()
 	events := report.Casts
-	born := len(mw.bolts)
 	mw.observeScriptCasts(report.ScriptCasts)
 	// A successful spell can raise a school level inside StepObserved. Fold
 	// that new level through the complete installed character graph before any
@@ -4122,10 +4120,6 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// the viewer receives is selected from the count this tick produced.
 	mw.advanceSwings()
 	mw.advanceUnitShots()
-	// The bolts age in the same window and for the same reason: after the step,
-	// so the age read is the age the push will select on, and before the push,
-	// so the viewer receives this tick's own.
-	mw.advanceBoltsBornFrom(born)
 	mw.advanceHealBursts()
 	mw.advanceSpellSoundCues()
 	// And the effect-mark elements, in the same window and for the same
@@ -5110,8 +5104,8 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		// THE ORANGE MARK IS THE FALLBACK for a shot this build cannot draw: a
 		// physical ranged swing whose class names no projectile, or one whose
 		// sheet did not load. Every other ranged swing draws its class's own
-		// shot (unitshot.go), and a casting wind-up draws its spell's picture
-		// (weaponBoltDraws). The remaining gates are the contract's own: an
+		// shot (unitshot.go), and a cast leaves a World record at its release
+		// (flight.go). The remaining gates are the contract's own: an
 		// actual attack target held, a reach past plain adjacency, and a victim
 		// the world still answers for at two or more cells away by
 		// chebyshevDist's own simplified test.
