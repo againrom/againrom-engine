@@ -134,6 +134,7 @@ type Viewer struct {
 	playerPauseLabel    string
 	editorView          bool // read-only authored map canvas; no mission HUD
 	missionCutscene     int  // movie family, requested only by an accepted completion
+	musicAreas          musicAreaSource
 	completionCutscene  string
 	entryCampaignStart  bool // character creation precedes the first mission
 	title               string

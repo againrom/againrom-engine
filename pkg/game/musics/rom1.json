@@ -1,0 +1,31 @@
+{
+  "music": "rom1",
+  "cite": ["VIDEO-076", "VIDEO-MUSIC-005", "VIDEO-MUSIC-006", "VIDEO-MUSIC-007", "DIV-245"],
+  "archive": {"path": "Allods/MUSIC.RES", "cite": ["VIDEO-MUSIC-001", "VIDEO-MUSIC-004"]},
+  "tracks": [
+    "B00.wav", "B01.wav", "B02.wav", "B03.wav", "B04.wav", "B05.wav",
+    "B06.wav", "B07.wav", "B08.wav", "B09.wav", "B10.wav", "B11.wav",
+    "chrgen.wav", "inn.wav", "inn_ssi.wav", "map.wav", "menu.wav",
+    "schoolm.wav", "schoolw.wav", "shop.wav", "town.wav"
+  ],
+  "list": "shuffled",
+  "silence": "clear",
+  "unlisted": "silence",
+  "scenes": {
+    "menu": {"tracks": ["menu.wav"], "keep": true, "cite": ["VIDEO-076", "VIDEO-MUSIC-066"]},
+    "credits": {"tracks": ["menu.wav"], "keep": true, "cite": ["DIV-245"]},
+    "chargen": {"tracks": ["chrgen.wav"], "keep": true, "cite": ["VIDEO-076"]},
+    "campaign": {"tracks": ["map.wav"], "keep": true, "cite": ["VIDEO-076"]},
+    "mission": {"tracks": [
+      "B00.wav", "B01.wav", "B02.wav", "B03.wav", "B04.wav", "B05.wav",
+      "B06.wav", "B07.wav", "B08.wav", "B09.wav", "B10.wav", "B11.wav"
+    ], "keep": false, "cite": ["VIDEO-076", "VIDEO-MUSIC-064", "VIDEO-MUSIC-066"]},
+    "town": {"tracks": ["town.wav"], "keep": true, "cite": ["VIDEO-076", "VIDEO-MUSIC-065", "VIDEO-MUSIC-066"]},
+    "shop": {"tracks": ["shop.wav"], "keep": true, "cite": ["VIDEO-076"]},
+    "tavern": {"tracks": ["inn.wav"], "keep": true, "cite": ["VIDEO-076"]},
+    "school": {"tracks": ["schoolw.wav", "schoolm.wav"], "mage-first": ["schoolm.wav", "schoolw.wav"], "keep": true,
+               "cite": ["VIDEO-076", "VIDEO-MUSIC-008"]}
+  },
+  "towns": {},
+  "areas": null
+}

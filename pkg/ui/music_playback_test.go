@@ -9,10 +9,10 @@ import (
 
 func TestMusic1189SequentialPlayStopAndRandomOrder(t *testing.T) {
 	source, device := &recordingMusicSource{}, &recordingMusicDevice{}
-	m := NewMusicController(source, device, random.NewStream(1189))
+	m := NewMusicController(firstMusic, source, device, random.NewStream(1189))
 	m.SetPreferences(MusicPreferences{Enabled: true})
 	m.SetScene(MusicMission, false)
-	if !slices.Equal(m.Candidates(), missionMusicTracks[:]) || m.Playing() != "B00.wav" {
+	if !slices.Equal(m.Candidates(), firstMusic.sceneTracks(MusicMission, false)) || m.Playing() != "B00.wav" {
 		t.Fatal("sequential bank/start", m.Candidates(), m.Playing())
 	}
 	if !m.Play(3) || m.Playing() != "B03.wav" {
@@ -54,7 +54,7 @@ func TestMusic1189SequentialPlayStopAndRandomOrder(t *testing.T) {
 
 func TestMusic1189MissingManualSelectionDoesNotPlayAnotherTrack(t *testing.T) {
 	source := &recordingMusicSource{missing: map[string]bool{"B03.wav": true}}
-	m := NewMusicController(source, &recordingMusicDevice{}, random.NewStream(1189))
+	m := NewMusicController(firstMusic, source, &recordingMusicDevice{}, random.NewStream(1189))
 	m.SetPreferences(MusicPreferences{Enabled: true})
 	m.SetScene(MusicMission, false)
 	if m.Play(3) || m.Playing() != "" || source.loads[len(source.loads)-1] != "B03.wav" {

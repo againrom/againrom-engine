@@ -317,7 +317,7 @@ func startTownTrace(t *testing.T, party func(*FrontEnd)) (*townTrace, map[byte][
 
 	a := f.App("town-square-trace")
 	a.Layout(640, 480)
-	a.SetMusic(traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
+	a.SetMusic(GameMusic(f.Base().Profile), traceMusicSource{inner: f.MusicBank, log: sounds}, traceMusicDevice{log: sounds}, f.randomService().Stream(random.Music))
 	a.SetSaveSeams(nil, func() []ui.SaveEntry { return []ui.SaveEntry{{Name: "town.sav", Label: "Town"}} },
 		func(string) (ui.MapOpener, bool, error) { return nil, true, nil })
 	if err := a.HeadlessKey("load"); err != nil {

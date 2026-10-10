@@ -947,6 +947,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	mw.installActorManifest(ms.ActorManifest)
 	mw.installCharacterDerivations(ms, t)
 	v.SetItemCastSink(mw.useScroll)
+	v.SetMusicAreas(missionMusicAreas(ms.Map), mw.musicHero)
 	// The human band's own lookup, beside the creature band's tier and resolved
 	// from the same map and table (figures.go). It is assigned rather than
 	// passed because the constructor's parameter list already carries seven and

@@ -127,3 +127,33 @@ func (m *Map) decodeUnitsROM2(p []byte) error {
 	m.AuthoredUnits = slices.Clone(units)
 	return nil
 }
+
+// MusicArea is one type-12 record: centre and radius in tiles and four
+// themes, each an index into the mission list or -1 for none (R2-ASSET-084).
+type MusicArea struct {
+	X, Y, Radius int32
+	Themes       [4]int32
+}
+
+// MusicAreas decodes the type-12 extension: the head record, then the area
+// records in file order. ok is false when the map carries no type-12 record
+// or its length is not a whole number of records.
+func (m *Map) MusicAreas() (head MusicArea, areas []MusicArea, ok bool) {
+	p := m.Extension[2]
+	if len(p) < rom2Type12Head || (len(p)-rom2Type12Head)%rom2Type12Elem != 0 {
+		return MusicArea{}, nil, false
+	}
+	read := func(rec []byte) MusicArea {
+		le := binary.LittleEndian
+		a := MusicArea{X: int32(le.Uint32(rec)), Y: int32(le.Uint32(rec[4:])), Radius: int32(le.Uint32(rec[8:]))}
+		for i := range a.Themes {
+			a.Themes[i] = int32(le.Uint32(rec[12+4*i:]))
+		}
+		return a
+	}
+	head = read(p[:rom2Type12Head])
+	for at := rom2Type12Head; at < len(p); at += rom2Type12Elem {
+		areas = append(areas, read(p[at:at+rom2Type12Elem]))
+	}
+	return head, areas, true
+}
