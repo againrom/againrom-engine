@@ -264,10 +264,11 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 	}
 	// TAVERN-TALKPIC-016 over every InnNPC element at its own stage, with no
 	// party: the Hero records take the synthesised arm, npc90 and npc59 the
-	// live stock mercenary their record admits (Medium in the claim), and the
-	// rest their own Unit<id> sheet.
+	// live stock mercenary their record admits (Medium in the claim), the
+	// Platoon record npc2 its own type's stock unit (DIV-2778), and the rest
+	// their own Unit<id> sheet.
 	heroSheet := map[int]int{22: 1, 23: 0, 25: 0}
-	stockType := map[int]int{90: 10, 59: 8}
+	stockType := map[int]int{90: 10, 59: 8, 2: 2}
 	maxTalkProducers := 0
 	carried := f.Carried
 	f.Carried = nil
