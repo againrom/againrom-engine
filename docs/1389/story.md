@@ -8,7 +8,7 @@ Human through `HumanState.derive`: two producers of one state, each step
 written twice. Owner decision 2 of the architecture audit at `34ae6dac`
 (row 2): one derive, building on `rules.HumanSpeed`. One builder per kind; a
 loaded state and an engine-made state are one kind of state. Base: `055e3936`,
-merged with main `6fd070b1`.
+merged with main `6e752c3a`.
 
 ## Authority
 
