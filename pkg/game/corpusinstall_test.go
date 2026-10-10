@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -97,6 +98,35 @@ func decodedInstallFront(root string) (*FrontEnd, error) {
 	}, nil
 }
 
+func viewTable(t *mapload.Table) *mapload.Table {
+	if t == nil {
+		return nil
+	}
+	v := *t
+	v.SpellArms, v.FreshPlayers = nil, nil
+	if t.Edition != nil {
+		e := *t.Edition
+		e.TextCodePage, e.MissionTip = nil, nil
+		v.Edition = &e
+	}
+	return &v
+}
+
+func tableFuncCodes(t *mapload.Table) []uintptr {
+	code := func(fn any) uintptr {
+		if v := reflect.ValueOf(fn); v.IsNil() {
+			return 0
+		} else {
+			return v.Pointer()
+		}
+	}
+	out := []uintptr{code(t.SpellArms), code(t.FreshPlayers)}
+	if t.Edition != nil {
+		out = append(out, code(t.Edition.TextCodePage), code(t.Edition.MissionTip))
+	}
+	return out
+}
+
 func TestReleaseDecodedInstallFixtureIsolation(t *testing.T) {
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
@@ -118,8 +148,10 @@ func TestReleaseDecodedInstallFixtureIsolation(t *testing.T) {
 	resources := func(f *FrontEnd) InstallResources {
 		in := f.InstallResources
 		in.SoundBank, in.MusicBank, in.SpeechBank = nil, nil, nil
+		in.Table = viewTable(in.Table)
 		return in
 	}
+	codes := func(f *FrontEnd) []uintptr { return tableFuncCodes(f.Table) }
 	runtime := func(f *FrontEnd) RuntimeServices {
 		r := f.RuntimeServices
 		r.SoundPlayer, r.SpeechPlayer, r.MusicPlayer, r.AmbientPlayer, r.CutsceneAudioPlayer = nil, nil, nil, nil, nil
@@ -129,7 +161,8 @@ func TestReleaseDecodedInstallFixtureIsolation(t *testing.T) {
 	defaults := func(f *FrontEnd) {
 		if !reflect.DeepEqual(resources(f), resources(fresh)) || !reflect.DeepEqual(runtime(f), runtime(fresh)) ||
 			!reflect.DeepEqual(f.CampaignSession, fresh.CampaignSession) || !reflect.DeepEqual(f.Presentation, fresh.Presentation) ||
-			!reflect.DeepEqual(f.PersistenceContext, fresh.PersistenceContext) {
+			!reflect.DeepEqual(f.PersistenceContext, fresh.PersistenceContext) ||
+			!reflect.DeepEqual(codes(f), codes(fresh)) {
 			t.Fatal("decoded install fixture differs from a fresh front end")
 		}
 	}
