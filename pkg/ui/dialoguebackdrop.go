@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"image"
 	"image/color"
-	"math"
 	"slices"
 
 	"againrom/pkg/render/backdrop"
@@ -128,44 +127,6 @@ var dialogueShadowProgram *ebiten.Shader
 
 var submitDialogueShadow = func(dst *ebiten.Image, vertices []ebiten.Vertex, shader *ebiten.Shader, op *ebiten.DrawTrianglesShaderOptions) {
 	dst.DrawTrianglesShader(vertices, []uint16{0, 1, 2, 1, 2, 3}, shader, op)
-}
-
-func dialogueShadowMask(art *DialogFrame, body image.Rectangle, at image.Point, scale float64, clip image.Rectangle) *image.RGBA {
-	if !art.valid() || scale <= 0 {
-		return nil
-	}
-	tiles := art.dialogueShadows(body)
-	transform := func(r image.Rectangle) image.Rectangle {
-		return image.Rect(at.X+int(math.Floor(float64(r.Min.X)*scale)), at.Y+int(math.Floor(float64(r.Min.Y)*scale)), at.X+int(math.Ceil(float64(r.Max.X)*scale)), at.Y+int(math.Ceil(float64(r.Max.Y)*scale)))
-	}
-	var bounds image.Rectangle
-	for _, tile := range tiles {
-		bounds = bounds.Union(transform(image.Rectangle{Min: tile.at, Max: tile.at.Add(art.Pieces[tile.piece].Bounds().Size())}))
-	}
-	bounds = bounds.Intersect(clip)
-	if bounds.Empty() {
-		return nil
-	}
-	mask := image.NewRGBA(bounds)
-	for _, tile := range tiles {
-		pic := art.Pieces[tile.piece]
-		r := transform(image.Rectangle{Min: tile.at, Max: tile.at.Add(pic.Bounds().Size())}).Intersect(bounds)
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				sx := int(math.Floor((float64(x-at.X)+0.5)/scale)) - tile.at.X
-				sy := int(math.Floor((float64(y-at.Y)+0.5)/scale)) - tile.at.Y
-				if sx < 0 || sy < 0 || sx >= pic.Rect.Dx() || sy >= pic.Rect.Dy() || pic.RGBAAt(pic.Rect.Min.X+sx, pic.Rect.Min.Y+sy).A == 0 {
-					continue
-				}
-				i := mask.PixOffset(x, y) + 3
-				if mask.Pix[i] == 255 {
-					panic("dialogue shadow mask overlap exceeds 255")
-				}
-				mask.Pix[i]++
-			}
-		}
-	}
-	return mask
 }
 
 func (s *dialogueBackdropState) applyFrameShadows(dst *image.RGBA, art *DialogFrame, body image.Rectangle, at image.Point, calls []text.DrawCall) {

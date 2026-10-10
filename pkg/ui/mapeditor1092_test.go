@@ -285,7 +285,7 @@ func (d *editorDraw1092) DrawImage(img *ebiten.Image, _ *ebiten.DrawImageOptions
 
 func TestMapEditor1092ActualFourArtLayersReachDrawAndPreview(t *testing.T) {
 	frame := func(index byte) *terrain.StaticFrame {
-		f := drawFrame(8, 8)
+		f := syntheticStaticFrame(8, 8)
 		f.Palette[index] = color.RGBA{index, byte(255 - index), 20, 255}
 		for i := range f.Pixels {
 			f.Pixels[i] = terrain.StaticPixel{Index: index, Opaque: true}

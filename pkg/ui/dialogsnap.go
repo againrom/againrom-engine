@@ -2,8 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/color"
-	"image/draw"
 
 	"againrom/pkg/render/frame"
 )
@@ -55,19 +53,10 @@ func (g dialogGeometry) Body() image.Rectangle {
 	return image.Rect(g.Min.X, g.Min.Y, g.Max.X-dialogShadowBand, g.Max.Y-dialogShadowBand)
 }
 
-var dialogShadowTone = color.RGBA{0, 0, 0, 96}
-
-// drawSnappedDialog paints the shadow band and then the frame art over the
-// body.
-func drawSnappedDialog(dst *image.RGBA, art *DialogFrame, g dialogGeometry) {
-	body := g.Body()
-	for _, band := range []image.Rectangle{
-		image.Rect(body.Max.X, body.Min.Y+dialogShadowBand, g.Max.X, g.Max.Y),
-		image.Rect(body.Min.X+dialogShadowBand, body.Max.Y, body.Max.X, g.Max.Y),
-	} {
-		draw.Draw(dst, band, &image.Uniform{C: dialogShadowTone}, image.Point{}, draw.Over)
-	}
-	art.Draw(dst, body)
+// frame is the dialog's window frame: the base's snap rule over the
+// argument rectangle, which the geometry already holds snapped.
+func (g dialogGeometry) frame(art *DialogFrame) frameSpec {
+	return frameSpec{Kind: frameWindow, Rect: g.Rectangle, Snap: true, Art: art}
 }
 
 // The three argument rectangles that reach the base from the options builders

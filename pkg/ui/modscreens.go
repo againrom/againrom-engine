@@ -21,9 +21,9 @@ type modScreenState struct {
 	back      Screen
 	returnRow int
 	top       int
-	backPress bool
+	backPress buttonLatch
 	hover     int
-	press     int
+	press     buttonLatch
 	bar       scrollBarInput
 	// pending is the 1-based index of the action entry whose confirming page is
 	// open, zero for none.
@@ -138,7 +138,7 @@ func (f *flow) openModScreen(i int, back Screen, row int) {
 		return
 	}
 	f.modUI.open, f.modUI.back, f.modUI.returnRow = i, back, row
-	f.modUI.top, f.modUI.backPress, f.modUI.bar = 0, false, scrollBarInput{}
+	f.modUI.top, f.modUI.backPress, f.modUI.bar = 0, buttonLatch{}, scrollBarInput{}
 	f.msg = ""
 	f.setScreen(ScreenMod)
 }
@@ -146,8 +146,8 @@ func (f *flow) openModScreen(i int, back Screen, row int) {
 // closeModScreen returns to the screen the mod screen was opened from.
 func (f *flow) closeModScreen() {
 	back := f.modUI.back
-	f.modUI.open, f.modUI.top, f.modUI.backPress = -1, 0, false
-	f.modUI.hover, f.modUI.press = 0, 0
+	f.modUI.open, f.modUI.top, f.modUI.backPress = -1, 0, buttonLatch{}
+	f.modUI.hover, f.modUI.press = 0, buttonLatch{}
 	f.msg = ""
 	if back == ScreenGameMenu {
 		f.setScreen(ScreenGameMenu)
@@ -353,7 +353,7 @@ func (a *App) composeModScreen() (*image.RGBA, error) {
 	if a.assets != nil {
 		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
-	f.menuArt.Draw(pix, modPanel)
+	drawFrame(pix, windowFrame(modPanel, f.menuArt))
 	a.drawModCentered(pix, s.Title, modTitleBox)
 
 	lines := a.modLines(s)
@@ -387,7 +387,7 @@ func (a *App) composeModScreen() (*image.RGBA, error) {
 	}
 	inside := pointerOK && pointer.In(modBackButton)
 	a.drawModButton(pix, pushButton{Rect: modBackButton, Label: a.modBackCaption(), Literal: true,
-		Hover: inside, Inside: inside, Pressed: f.modUI.backPress}, false)
+		Hover: inside, Inside: inside, Pressed: f.modUI.backPress.Pressed(0)}, false)
 	return pix, nil
 }
 
@@ -462,12 +462,10 @@ func (a *App) stepModScreen(in appInput) {
 	}
 	onBack := inFrame && p.In(modBackButton)
 	if in.PrimaryPressed {
-		f.modUI.backPress = onBack
+		f.modUI.backPress.Press(0, onBack)
 	}
 	if in.PrimaryReleased {
-		pressed := f.modUI.backPress
-		f.modUI.backPress = false
-		if pressed && onBack {
+		if _, activated := f.modUI.backPress.Release(0, onBack); activated {
 			a.playUISound(UISoundCommonControl)
 			f.closeModScreen()
 			a.syncViewerLayout()
@@ -494,7 +492,7 @@ func (a *App) drawModMenuEntries(pix *image.RGBA) {
 		over := f.modUI.hover == k+1
 		label := a.fitModText(f.modUI.screens[idx[k]].MenuLabel, r.Dx()-12)
 		a.drawModButton(pix, pushButton{Rect: r, Label: label, Literal: true, Hover: over, Inside: over,
-			Pressed: f.modUI.press == k+1}, true)
+			Pressed: f.modUI.press.Pressed(k + 1)}, true)
 	}
 }
 
@@ -532,15 +530,14 @@ func (a *App) stepModMenu(in appInput) bool {
 	}
 	switch {
 	case in.PrimaryPressed && hit != 0:
-		f.modUI.press = hit
+		f.modUI.press.Press(hit, true)
 		a.hasMenu = false
 		a.sel.Move(0)
 		return true
-	case in.PrimaryReleased && f.modUI.press != 0:
-		pressed := f.modUI.press
-		f.modUI.press = 0
+	case in.PrimaryReleased && f.modUI.press.Holds():
+		_, activated := f.modUI.press.Release(hit, hit != 0)
 		a.hasMenu = false
-		if pressed == hit {
+		if activated {
 			a.playUISound(UISoundCommonControl)
 			f.openModScreen(idx[hit-1], ScreenMenu, 0)
 		}

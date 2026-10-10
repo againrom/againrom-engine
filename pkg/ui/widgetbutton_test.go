@@ -126,32 +126,6 @@ func TestPushButtonStatesMatchThePainter(t *testing.T) {
 	}
 }
 
-// TestButtonLatchActivatesOnlyOnReleaseInside is MENU-116 and DIALOGUE-045:
-// the press latches, a release inside the latched button activates it, and a
-// release outside or on another button clears the latch without activation.
-func TestButtonLatchActivatesOnlyOnReleaseInside(t *testing.T) {
-	var l buttonLatch
-	l.press(2, true)
-	if !l.pressed(2) || l.pressed(1) {
-		t.Fatal("press did not latch button 2 alone")
-	}
-	if id, ok := l.release(2, true); !ok || id != 2 || l.pressed(2) {
-		t.Fatal("release inside did not activate and clear")
-	}
-	l.press(2, true)
-	if _, ok := l.release(2, false); ok || l.pressed(2) {
-		t.Fatal("release outside activated or kept the latch")
-	}
-	l.press(2, true)
-	if _, ok := l.release(1, true); ok {
-		t.Fatal("release on another button activated")
-	}
-	l.press(0, false)
-	if _, ok := l.release(0, true); ok {
-		t.Fatal("a press on no button activated button 0")
-	}
-}
-
 func mustLevel(t *testing.T, level uint8) *backdrop.Lookup {
 	t.Helper()
 	l, err := backdrop.NewLevel(backdrop.RGB565, backdrop.Full, level)

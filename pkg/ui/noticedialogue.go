@@ -197,9 +197,9 @@ func renderDialogueNotice(l NoticeLayout, f *text.Font, s string, face *image.RG
 	if l.Frame.valid() {
 		localPolicy := l.DialogueBackdrop
 		localPolicy.FrameClipped = false
-		l.Frame.paintDialogueBody(img, body, localPolicy)
+		drawFrameBody(img, l.Frame.dialogueFrame(body, localPolicy))
 	} else {
-		fillPanelFrame(img, body.Size(), l.Fill, l.Border)
+		drawFrame(img, panelFrame(image.Rectangle{Max: body.Size()}, l.Fill, l.Border))
 	}
 	if p := l.Portrait; p.Dx() > 0 && p.Dy() > 0 {
 		drawDialoguePortrait(img, l, face)

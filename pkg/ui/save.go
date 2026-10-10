@@ -393,7 +393,7 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 	case gameMenuSoundOptions:
 		f.rebuildGameMenu(gameMenuSoundOptionsPage, 0)
 	case gameMenuQuestObjectives:
-		f.questTop, f.questPress, f.questBar = 0, false, scrollBarInput{}
+		f.questTop, f.questPress, f.questBar = 0, buttonLatch{}, scrollBarInput{}
 		f.rebuildGameMenu(gameMenuQuestObjectivesPage, 0)
 	case gameMenuDiplomacy:
 		f.rebuildGameMenu(gameMenuDiplomacyPage, 0)

@@ -32,9 +32,7 @@ type saveDialog struct {
 	remove       func() error
 	removePath   string
 	confirmTop   int
-	press        saveControl
-	pressRow     int
-	pressed      bool
+	press        buttonLatch
 	bar          scrollBarInput
 }
 
@@ -431,7 +429,7 @@ func (a *App) stepSaveDialog(in appInput) {
 	d := a.flow.saveDialog
 	if d == nil || in.Unfocused {
 		if d != nil {
-			d.pressed = false
+			d.press.Clear()
 		}
 		return
 	}
@@ -491,35 +489,38 @@ func (a *App) stepSaveDialog(in appInput) {
 		return
 	}
 	if !ok {
-		d.pressed = false
+		d.press.Clear()
 		return
 	}
 	c, hit := d.controlAt(p)
+	row, rowOK := 0, hit && c != saveListControl
+	if hit && c == saveListControl {
+		row, rowOK = a.saveRowAt(p)
+	}
 	if in.PrimaryPressed {
-		d.press, d.pressed = c, hit
 		if hit {
 			d.setFocus(c)
-			if c == saveListControl {
-				row, rowOK := a.saveRowAt(p)
-				d.pressRow, d.pressed = row, rowOK
-				if rowOK {
-					d.list.Select(row)
-				}
+			if c == saveListControl && rowOK {
+				d.list.Select(row)
 			}
 		}
+		d.press.Press(saveLatchID(c, row), rowOK)
 	}
 	if in.PrimaryReleased {
-		activate := hit && d.pressed && d.press == c
-		if activate && c == saveListControl {
-			row, rowOK := a.saveRowAt(p)
-			activate = rowOK && row == d.pressRow
-		}
-		d.pressed = false
+		_, activate := d.press.Release(saveLatchID(c, row), rowOK)
 		if activate && c != saveDirectoryControl && c != saveNameControl {
 			a.playUISound(UISoundCommonControl)
 			a.flow.activateSaveControl(c)
 		}
 	}
+}
+
+// saveLatchID is the latch's button: a control, or one row of the list.
+func saveLatchID(c saveControl, row int) int {
+	if c == saveListControl {
+		return int(c) + (row+1)<<8
+	}
+	return int(c)
 }
 
 func (d *saveDialog) controlAt(p image.Point) (saveControl, bool) {

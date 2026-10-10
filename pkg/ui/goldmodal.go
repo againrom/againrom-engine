@@ -48,7 +48,7 @@ type goldState struct {
 	selStart  int
 	selEnd    int
 	focus     goldFocus
-	press     int
+	press     buttonLatch
 	held      uint32
 	request   GoldDrop
 	requested bool
@@ -147,7 +147,7 @@ func (v *Viewer) openGoldModal() {
 	}
 	v.gold.open, v.gold.text = true, "0"
 	v.gold.caret, v.gold.selStart, v.gold.selEnd = 0, 0, 0
-	v.gold.focus, v.gold.press = goldFocusEdit, 0
+	v.gold.focus, v.gold.press = goldFocusEdit, buttonLatch{}
 }
 
 // cancelGold drops every unsubmitted gold draft: the open editor, a held drag
@@ -377,15 +377,13 @@ func (v *Viewer) stepGoldPointer(x, y int, pressed, released bool) {
 	fx, fy := v.windowToFrame(x, y)
 	c, hit := v.goldControlAt(image.Pt(fx, fy))
 	if pressed {
-		v.gold.press = 0
 		if hit {
-			v.gold.focus, v.gold.press = c, int(c)+1
+			v.gold.focus = c
 		}
+		v.gold.press.Press(int(c), hit)
 	}
 	if released {
-		armed := v.gold.press - 1
-		v.gold.press = 0
-		if hit && armed == int(c) {
+		if _, activated := v.gold.press.Release(int(c), hit); activated {
 			switch c {
 			case goldFocusAction:
 				v.submitGold()
@@ -437,7 +435,7 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 	}
 	box := v.goldModalBox()
 	img := image.NewRGBA(image.Rect(0, 0, box.Dx(), box.Dy()))
-	fillPanelFrame(img, box.Size(), goldFill, invBorder)
+	drawFrame(img, panelFrame(image.Rectangle{Max: box.Size()}, goldFill, invBorder))
 	edit, action, cancel := v.goldModalControls()
 	edit, action, cancel = edit.Sub(box.Min), action.Sub(box.Min), cancel.Sub(box.Min)
 	f := v.cardFont()
@@ -471,7 +469,7 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 	}{{action, ok}, {cancel, goldCancelWord}} {
 		inside := pointerOK && pointer.In(b.r)
 		drawPushButton(img, f, pushButton{Rect: b.r, Label: b.s, Literal: true, Hover: inside, Inside: inside,
-			Focus: g.focus == goldFocusAction+goldFocus(i), Pressed: g.press == int(goldFocusAction)+i+1})
+			Focus: g.focus == goldFocusAction+goldFocus(i), Pressed: g.press.Pressed(int(goldFocusAction) + i)})
 	}
 	return img, box.Min, true
 }

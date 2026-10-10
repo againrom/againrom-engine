@@ -3,6 +3,8 @@ package menu
 import (
 	"image"
 	"image/draw"
+
+	"againrom/pkg/render/latch"
 )
 
 // State is what the menu shows in one frame: which button is selected, and
@@ -29,8 +31,8 @@ type State struct {
 // "is the mouse down" flag would make that case suppress hover, which is exactly
 // what the specification forbids.
 type Selection struct {
-	hit     int // button under the cursor, 0 for none
-	latched int // button the press latched onto, 0 for none
+	hit   int         // button under the cursor, 0 for none
+	press latch.Latch // the button the press latched onto
 }
 
 // Move records the button under the cursor.
@@ -40,7 +42,7 @@ func (s *Selection) Move(hit int) { s.hit = hit }
 // button latches nothing.
 func (s *Selection) Press(hit int) {
 	s.hit = hit
-	s.latched = hit
+	s.press.Press(hit, hit != 0)
 }
 
 // Release records the primary mouse button coming up over hit, and reports which
@@ -52,15 +54,20 @@ func (s *Selection) Press(hit int) {
 // release on any of the others is consumed here and does nothing further.
 func (s *Selection) Release(hit int) (activated int) {
 	s.hit = hit
-	if s.latched != 0 && hit == s.latched {
-		activated = s.latched
+	if at, ok := s.press.Release(hit, true); ok {
+		activated = at
 	}
-	s.latched = 0
 	return activated
 }
 
+// Clear drops the latch without activating anything, as on a lost focus.
+func (s *Selection) Clear() { s.press.Clear() }
+
 // Latched reports the button the primary mouse button is currently held on, or 0.
-func (s *Selection) Latched() int { return s.latched }
+func (s *Selection) Latched() int {
+	b, _ := s.press.Latched()
+	return b
+}
 
 // State resolves the pointer state to what the frame should show:
 //
@@ -70,9 +77,9 @@ func (s *Selection) Latched() int { return s.latched }
 //     cursor, and not the latched button either. The frame equals the base until
 //     the pointer comes back or the button is released.
 func (s *Selection) State() State {
-	if s.latched != 0 {
-		if s.hit == s.latched {
-			return State{Selected: s.latched, Pressed: true}
+	if s.press.Holds() {
+		if s.press.Pressed(s.hit) {
+			return State{Selected: s.hit, Pressed: true}
 		}
 		return State{}
 	}

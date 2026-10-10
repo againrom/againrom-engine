@@ -104,7 +104,7 @@ func (f *flow) showHallOfFame() {
 	}
 	f.ending = f.endingSeams.hallSource()
 	f.hallFromMenu = true
-	f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 2, 0, 0, -1
+	f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 2, 0, 0, buttonLatch{}
 	f.msg = ""
 	f.setScreen(ScreenEnding)
 }
@@ -119,7 +119,7 @@ func (f *flow) showCampaignEnding() bool {
 	}
 	f.ending = view
 	f.hallFromMenu = false
-	f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 2, 0, 0, -1
+	f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 2, 0, 0, buttonLatch{}
 	f.msg = ""
 	// The ending runs the credits and then the hall (FAME-029). Without a
 	// credits roll the ending's own text page stands in for it.
@@ -154,7 +154,7 @@ func (f *flow) endingToHall() {
 			f.ending = view
 		}
 	}
-	f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 2, 0, 0, -1
+	f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 2, 0, 0, buttonLatch{}
 }
 
 // endingLeave ends the campaign: the terminal route resets it and returns to
@@ -204,7 +204,7 @@ func (f *flow) endingButtonRect(index int) image.Rectangle {
 }
 
 func (f *flow) endingActivate(index int) {
-	f.endingPress = -1
+	f.endingPress.Clear()
 	rows, count := f.endingRows()
 	switch index {
 	case 0:
@@ -219,7 +219,7 @@ func (f *flow) endingActivate(index int) {
 func (a *App) stepEnding(in appInput) {
 	f := a.flow
 	if in.Unfocused {
-		f.endingPress = -1
+		f.endingPress.Clear()
 		return
 	}
 	buttons := f.endingButtons()
@@ -248,7 +248,7 @@ func (a *App) stepEnding(in appInput) {
 		}
 	}
 	if in.PrimaryPressed {
-		f.endingPress = hit
+		f.endingPress.Press(hit, hit >= 0)
 		if hit >= 0 {
 			f.endingFocus = hit
 		}
@@ -260,13 +260,12 @@ func (a *App) stepEnding(in appInput) {
 	}
 	if in.PrimaryReleased {
 		if ok && f.hallHasArtButton() && p.In(hallEndRect) {
-			f.endingPress = -1
+			f.endingPress.Clear()
 			a.playUISound(UISoundCommonControl)
 			a.activateEnding(0)
 			return
 		}
-		activate := hit >= 0 && f.endingPress == hit
-		f.endingPress = -1
+		_, activate := f.endingPress.Release(hit, hit >= 0)
 		if activate {
 			a.playUISound(UISoundCommonControl)
 			a.activateEnding(hit)
@@ -287,7 +286,7 @@ func (a *App) endingPaint() *savePaint {
 		draw.Draw(p.pix, p.pix.Bounds(), f.ending.HallBackground, image.Point{}, draw.Src)
 		ink = color.RGBA{R: 40, G: 22, B: 8, A: 255}
 	} else {
-		p.box(image.Rect(20, 20, 620, 416), pickerBackground, saveFocusColor)
+		drawFrame(p.pix, panelFrame(image.Rect(20, 20, 620, 416), pickerBackground, saveFocusColor))
 		title := w.Title
 		if f.endingPage == 1 {
 			title = w.Credits
@@ -337,7 +336,7 @@ func (a *App) endingPaint() *savePaint {
 		if i == f.endingFocus {
 			border = saveFocusColor
 		}
-		p.box(r, pickerBackground, border)
+		drawFrame(p.pix, panelFrame(r, pickerBackground, border))
 		p.label(a.fitEndingText(name, r.Dx()-12), r.Min.X+6, r.Min.Y+8, gameMenuText)
 	}
 	return p

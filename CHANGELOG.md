@@ -8,6 +8,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Windows, panels and lists now look alike everywhere. Every window
+  frame is drawn with whole edge tiles as the original draws it, and the
+  cutscene library and Sound Options lists sit in the same sunken well as
+  Save and Load. Every button activates only on a release over it; losing
+  the window's focus drops a held press.
+- [ROM2] The windows shared with the first game (Load Game, Save, the in-game
+  menu with its options and objectives pages, notices and the cutscene
+  library) now draw the same frame and list well as in the first game, and
+  their buttons follow the same press rule.
+
 ## 0.106.0
 
 - [ROM1] A Ghost raised by Control Spirit now takes its whole Ghost row: it

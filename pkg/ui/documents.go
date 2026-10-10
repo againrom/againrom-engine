@@ -148,7 +148,15 @@ type documentPanel struct {
 	// held press began on, or docNoControl. They select the bitmap state and
 	// nothing else.
 	hover int
-	press int
+	press buttonLatch
+}
+
+// pressed is the control the press latched, or docNoControl.
+func (p *documentPanel) pressed() int {
+	if c, ok := p.press.Latched(); ok {
+		return c
+	}
+	return docNoControl
 }
 
 // The three controls, and the absence of one.
@@ -165,7 +173,7 @@ const (
 // A NIL FONT WRAPS NOTHING and every text element then pages as a single
 // empty page, which is what a front end with no font atlas would draw anyway.
 func newDocumentPanel(art *DocumentPanelArt, font *text.Font, pages []DocumentPage) *documentPanel {
-	p := &documentPanel{art: art, font: font, pages: pages, hover: docNoControl, press: docNoControl}
+	p := &documentPanel{art: art, font: font, pages: pages, hover: docNoControl}
 	p.lines = make([][]docLine, len(pages))
 	for i, page := range pages {
 		if page.Text == "" || font == nil {
@@ -483,11 +491,11 @@ func composeDocumentsPanel(p *documentPanel) *image.RGBA {
 	}
 	if p.art != nil {
 		copyNative(dst, p.art.Sheet, docSheetRect.Min, docSheetRect)
-		copyNative(dst, p.art.Left[docArrowFrame(docControlLeft, p.hover, p.press)],
+		copyNative(dst, p.art.Left[docArrowFrame(docControlLeft, p.hover, p.pressed())],
 			docLeftRect.Min, docSheetRect)
-		copyNative(dst, p.art.Right[docArrowFrame(docControlRight, p.hover, p.press)],
+		copyNative(dst, p.art.Right[docArrowFrame(docControlRight, p.hover, p.pressed())],
 			docRightRect.Min, docSheetRect)
-		copyNative(dst, p.art.OK[docOKFrame(p.hover, p.press)], docOKRect.Min, docSheetRect)
+		copyNative(dst, p.art.OK[docOKFrame(p.hover, p.pressed())], docOKRect.Min, docSheetRect)
 	}
 	if len(p.pages) == 0 {
 		return dst

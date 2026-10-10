@@ -356,8 +356,8 @@ var authoredMinimapCorner = PanelLayout{Corner: PanelTopRight, Margin: image.Pt(
 // (0,0) sometimes a fog answer and sometimes a border colour depending on
 // which test asked. Framing it out here keeps that function's contract to
 // "cells and marks, nothing else" while still giving the box the same
-// bordered look the readout and the panel have, reusing fillPanelFrame
-// (panel.go) rather than re-deriving it.
+// bordered look the readout and the panel have, reusing the kit's panel
+// frame rather than re-deriving it.
 func (v *Viewer) minimapPresent() (*image.RGBA, image.Point, bool) {
 	g, ok := v.minimapGeometry()
 	if !ok {
@@ -383,7 +383,7 @@ func (v *Viewer) minimapPresent() (*image.RGBA, image.Point, bool) {
 		}
 		copyNativeKeyed(pic, v.dialogFrame.Minimap, image.Pt(seam, 0), pic.Bounds())
 	} else {
-		fillPanelFrame(pic, box, minimapFill, minimapBorder)
+		drawFrame(pic, panelFrame(image.Rectangle{Max: box}, minimapFill, minimapBorder))
 	}
 	// The content's offset INSIDE the box, which is g.Content taken back to the
 	// box's own origin: one pixel down from the border, and horizontally
