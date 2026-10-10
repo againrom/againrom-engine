@@ -2071,7 +2071,8 @@ package storyguard
 // name lines and their witnesses, new code, including this paragraph.
 // CommentBytes rises for the chain CPU cuts: the docs of the new graphcopy
 // leaf, the kept current-action and document decodes, the native remap memo,
-// the budget field plan, the record capacity hint, the card pixel rows and
+// the budget field plan, the record capacity hint, the card pixel rows, the
+// fixed-layout source, saved-object and Group codecs, the hash buffer pool and
 // their witnesses, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
@@ -2096,5 +2097,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8624139,
+	CommentBytes: 8625779,
 }

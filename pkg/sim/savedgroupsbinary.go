@@ -11,41 +11,53 @@ import (
 const savedGroupSpanLen = 4
 
 func (w *World) appendSavedGroups(b []byte) []byte {
-	var payload bytes.Buffer
-	put := func(v any) { _ = binary.Write(&payload, binary.LittleEndian, v) }
-	words := func(v []uint16) { put(uint32(len(v))); put(v) }
+	// The fields are appended one by one in the little-endian widths
+	// encoding/binary gives them; savedgroupslayout_test.go holds the two
+	// forms equal.
+	le := binary.LittleEndian
+	start := len(b)
+	words := func(v []uint16) {
+		b = le.AppendUint32(b, uint32(len(v)))
+		for _, x := range v {
+			b = le.AppendUint16(b, x)
+		}
+	}
+	reference := func(r SavedGroupReference) {
+		b = le.AppendUint32(b, r.Key)
+		b = le.AppendUint16(b, r.Archive)
+		b = le.AppendUint32(append(b, r.Class), r.Owner)
+	}
 	if s := w.savedGroups; s != nil {
-		put(uint32(len(s.Groups)))
+		b = le.AppendUint32(b, uint32(len(s.Groups)))
 		for _, g := range s.Groups {
-			put(g.ID)
-			put(g.Selector)
-			put(g.Authored)
-			put(g.Reference)
-			put(g.Owner)
-			put(g.AI)
+			b = le.AppendUint32(b, g.ID)
+			b = le.AppendUint32(b, g.Selector)
+			b = append(b, layoutBool(g.Authored))
+			reference(g.Reference)
+			reference(g.Owner)
+			b = append(b, g.AI[:]...)
 			words(g.Words)
 			words(g.Path)
-			put(uint32(len(g.Members)))
+			b = le.AppendUint32(b, uint32(len(g.Members)))
 			for _, m := range g.Members {
-				put(m.Archive)
-				put(m.Entity)
-				put(m.Bound)
+				b = le.AppendUint16(b, m.Archive)
+				b = le.AppendUint32(b, uint32(m.Entity))
+				b = append(b, layoutBool(m.Bound))
 			}
 		}
-		put(uint32(len(s.Orders)))
+		b = le.AppendUint32(b, uint32(len(s.Orders)))
 		for _, o := range s.Orders {
-			put(o.Entity)
-			put(o.State)
-			put(o.Authored)
-			put(o.RepairStage)
-			put(o.EscortTarget)
-			put(o.EscortBound)
-			put(w.maskedOrderRaw(o))
+			b = le.AppendUint32(b, uint32(o.Entity))
+			b = le.AppendUint32(b, o.State)
+			b = append(b, layoutBool(o.Authored), o.RepairStage)
+			b = le.AppendUint32(b, uint32(o.EscortTarget))
+			b = append(b, layoutBool(o.EscortBound))
+			raw := w.maskedOrderRaw(o)
+			b = append(b, raw[:]...)
 			words(o.Patrol)
 		}
 	}
-	b = append(b, payload.Bytes()...)
-	return binary.LittleEndian.AppendUint32(b, uint32(payload.Len()))
+	return le.AppendUint32(b, uint32(len(b)-start))
 }
 
 func splitSavedGroups(b []byte) ([]byte, *savedGroupState, error) {

@@ -77,7 +77,7 @@ func (w *World) encodeSourceEquipment(b []byte, off int) int {
 			return
 		}
 		binary.LittleEndian.PutUint32(b[off:], o)
-		_, _ = binary.Encode(b[off+4:off+4+sourceEquipmentLen], binary.LittleEndian, *s)
+		putSourceEquipment(b[off+4:off+4+sourceEquipmentLen], s)
 		off += 4 + sourceEquipmentLen
 	})
 	return off
@@ -99,10 +99,7 @@ func (w *World) decodeSourceEquipment(b []byte) error {
 		if off == len(b) || binary.LittleEndian.Uint32(b[off:]) != o {
 			return
 		}
-		_, err := binary.Decode(b[off+4:off+recordLen], binary.LittleEndian, s)
-		if err != nil {
-			fault = err
-		}
+		getSourceEquipment(b[off+4:off+recordLen], s)
 		if code == 0 || s.Class == 0 {
 			fault = fmt.Errorf("sim: source equipment ordinal %d is empty", o)
 		}
