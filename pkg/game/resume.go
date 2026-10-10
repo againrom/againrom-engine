@@ -357,7 +357,7 @@ type restoreCandidate struct {
 
 func (f *FrontEnd) installCandidate(c *restoreCandidate) {
 	if c.randomSession != nil {
-		f.randomService().Begin(*c.randomSession)
+		f.beginRandomSession(*c.randomSession)
 	}
 	f.CampaignSession.adopt(c)
 	f.resetTownSurface(c)

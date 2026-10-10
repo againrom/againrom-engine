@@ -58,5 +58,7 @@ func (f *FrontEnd) prepareNewGameWith(n int, level int64, party []mapload.PartyM
 	if err != nil {
 		return nil, err
 	}
+	// The mission start's reseeds counted in the prepared session.
+	fresh = f.randomService().Prepared()
 	return openPrepared(c.prepared, func() { f.installCandidate(c) }), nil
 }

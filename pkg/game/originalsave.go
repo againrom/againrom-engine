@@ -813,7 +813,7 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 			return nil, err
 		}
 		if ok {
-			savedRandom = random.Session{Seed: recorded.Seed, Mode: random.Mode(recorded.Mode), Shared: recorded.Shared}
+			savedRandom = random.Session{Seed: recorded.Seed, Mode: random.Mode(recorded.Mode), Shared: recorded.Shared, Reseeds: recorded.Reseeds}
 		}
 		a, err := readCurrentActions(&doc)
 		if err != nil {
