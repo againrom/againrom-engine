@@ -22,11 +22,16 @@ func MissionObjectives(src entrySource, mission int) string {
 	return strings.TrimSpace(vfs.DecodeText(raw))
 }
 
+// MissionObjectivesFor is the objectives text of the mission as game g's files
+// lay it out.
 func MissionObjectivesFor(src entrySource, game base.Game, mission int) string {
-	if !game.Edition().SecondMissionText {
-		return MissionObjectives(src, mission)
-	}
-	payload, ok := readSecondGameMissionText(src, InstallTextCode(src, game.Edition()), mission)
+	return filesOf(game).briefing(src, game.Edition(), mission)
+}
+
+// secondGameBriefing is the briefing section of the second game's mission text
+// file.
+func secondGameBriefing(src entrySource, e base.Edition, mission int) string {
+	payload, ok := readSecondGameMissionText(src, InstallTextCode(src, e), mission)
 	if !ok {
 		return ""
 	}

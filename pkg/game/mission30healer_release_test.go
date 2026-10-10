@@ -83,7 +83,7 @@ func TestReleaseMission30HealerWinRaisesSubscriptZerosMessage(t *testing.T) {
 			}
 			text := map[int][]byte{}
 			for _, event := range []int{4, 16} {
-				payload, ok := ReadEventTextFor(f.live.mission.src, tableGame(f.live.mission.table), 30, event)
+				payload, ok := ReadEventTextFor(f.live.mission.src, tableEdition(f.live.mission.table).Game, 30, event)
 				if !ok {
 					t.Fatalf("mission 30 ships no readable message %d", event)
 				}

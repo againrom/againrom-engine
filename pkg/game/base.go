@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
@@ -70,11 +68,7 @@ func (f *FrontEnd) BaseLines() []string {
 	lines := []string{"againrom: base " + m.String()}
 	l := m.Profile.Limits
 	if l.NoCharacterGeneration {
-		if m.Profile.Edition().NewGameInTown {
-			lines = append(lines, "againrom: base limit: native character selection is unavailable; new game opens the initial campaign town with the default hero")
-		} else {
-			lines = append(lines, fmt.Sprintf("againrom: base limit: no character generation; new game opens mission %d with the default party", m.Profile.Mission()))
-		}
+		lines = append(lines, "againrom: base limit: "+f.campaign().newGameLimit(m.Profile))
 	}
 	if l.OriginalSaveRefusal != "" {
 		lines = append(lines, "againrom: base limit: loading an original save is refused: "+l.OriginalSaveRefusal)

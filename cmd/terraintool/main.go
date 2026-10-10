@@ -827,8 +827,8 @@ func resolveArchive(assetsFlag, graphicsFlag string) (string, error) {
 
 func mapOpener(assetsFlag string) func([]byte) (*alm.Map, error) {
 	if root := game.ResolveAssetRoot(assetsFlag, os.Getenv("AGAINROM_ASSETS")); root != "" {
-		if match, err := game.DetectBase(root); err == nil && match.Profile.Edition().SecondMaps {
-			return alm.OpenROM2
+		if match, err := game.DetectBase(root); err == nil {
+			return game.MapOpener(match.Profile.GameOf())
 		}
 	}
 	return alm.Open

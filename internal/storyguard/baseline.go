@@ -2089,6 +2089,10 @@ package storyguard
 // description, the controller's request rule, pause seam and area select,
 // the music areas decoder, the mission music wiring, -nomusic and their
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the game profile switch: the docs of the campaign
+// service's new answers, the file readers, the placement keys, spell arms and
+// Players policy the definition table carries, the edition's cutscene, tip
+// and mod data and the event tag readers, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2112,5 +2116,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8641772,
+	CommentBytes: 8645849,
 }

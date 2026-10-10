@@ -7,12 +7,27 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Fresh ROM1 Players use the existing engine construction policy. IDs follow
-// sorted initial Slots, not archive identities. This does not select a Player.
-func initializeCurrentPlayers(w *sim.World, m *alm.Map, t *Table) error {
-	if t != nil && !t.Game.Edition().FreshPlayers {
-		return nil
+// PlayerPolicy builds a fresh world's Players record from its map.
+type PlayerPolicy func(w *sim.World, m *alm.Map) error
+
+func (t *Table) freshPlayers() PlayerPolicy {
+	if t == nil || t.FreshPlayers == nil {
+		return SlotPlayers
 	}
+	return t.FreshPlayers
+}
+
+func initializeCurrentPlayers(w *sim.World, m *alm.Map, t *Table) error {
+	return t.freshPlayers()(w, m)
+}
+
+// NoFreshPlayers builds no Players record.
+func NoFreshPlayers(*sim.World, *alm.Map) error { return nil }
+
+// SlotPlayers is the engine's construction policy: one Player per initial
+// Slot, IDs following the sorted Slots, not archive identities. This does not
+// select a Player.
+func SlotPlayers(w *sim.World, m *alm.Map) error {
 	var slots []uint32
 	if m != nil {
 		for i := range m.Groups {

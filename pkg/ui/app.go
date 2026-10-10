@@ -817,7 +817,7 @@ type App struct {
 	ambientDevice          AmbientDevice
 	cutscene               *video.Player
 	cutsceneSource         CutsceneSource
-	cutsceneStartupOff     bool
+	startupCutscenes       []string
 	media                  mediaUI
 	cutsceneError          error
 	cutsceneCanvas         *ebiten.Image

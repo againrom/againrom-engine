@@ -191,15 +191,14 @@ func LoadMapViewer(tiles *terrain.Tileset, data []byte, fallbackTitle string, ma
 	return LoadMapViewerFor("", tiles, data, fallbackTitle, markers, layer, structures)
 }
 
+// MapOpener is the decoder of game g's maps; the empty game is the first.
+func MapOpener(g base.Game) func([]byte) (*alm.Map, error) { return filesOf(g).openMap }
+
 // LoadMapViewerFor is LoadMapViewer reading the map the way game g's files are
 // laid out; the empty game is the first.
 func LoadMapViewerFor(g base.Game, tiles *terrain.Tileset, data []byte, fallbackTitle string, markers Markers, layer StaticLayer,
 	structures StructureLayer) (*MapView, error) {
-	open := alm.Open
-	if g.Edition().SecondMaps {
-		open = alm.OpenROM2
-	}
-	m, err := open(data)
+	m, err := MapOpener(g)(data)
 	if err != nil {
 		return nil, err
 	}

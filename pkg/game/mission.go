@@ -141,11 +141,7 @@ func StartMission(fsys entrySource, n int, t *mapload.Table, diff mapload.Diffic
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", addr, err)
 	}
-	open := alm.Open
-	if tableGame(t).Edition().SecondMaps {
-		open = alm.OpenROM2
-	}
-	m, err := open(b)
+	m, err := tableFiles(t).openMap(b)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
@@ -218,12 +214,8 @@ func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff
 	// The hero band is resolved here from the party, before the world is built,
 	// because the world is built to run the compiled program. A party of none
 	// binds nobody.
-	edition := tableGame(t).Edition()
-	compile := mapload.CompileScript
-	if edition.SecondScripts {
-		compile = mapload.CompileROM2Script
-	}
-	s, rep, raiseErr := compile(m, campaignScriptRefs(m, t, party, n))
+	edition := tableEdition(t)
+	s, rep, raiseErr := tableFiles(t).compileScript(m, campaignScriptRefs(m, t, party, n))
 	// Mission 40 is owner-authored to protect the persistent companion added by
 	// scenario NPC 22. The shipped map has no VIP node for her, so this cannot be
 	// recovered from the ALM script; the stable party identity is the campaign

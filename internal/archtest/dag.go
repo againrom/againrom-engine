@@ -367,9 +367,10 @@ var allow = map[string][]string{
 	"knowledge/tools/claim": {},
 	// The launcher edits an ini file and lists mod folders: pkg/ini and pkg/mod
 	// are leaves, and pkg/game answers whether a folder is an install. It never
-	// reaches the simulation.
+	// reaches the simulation. pkg/mod reads the names a base answers to in a
+	// mod's applies-to list from pkg/base.
 	"pkg/ini": {},
-	"pkg/mod": {"pkg/rules", "pkg/locale"},
+	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base"},
 	// The install languages: one record per language, read by every surface
 	// that depends on the install's language. A stdlib-only leaf.
 	"pkg/locale": {},

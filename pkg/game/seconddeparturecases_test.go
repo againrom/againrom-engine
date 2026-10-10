@@ -274,7 +274,7 @@ func TestSecondDepartureMovieAtAcknowledgement(t *testing.T) {
 			}
 			w.SetROM2ScenarioState(bank)
 			mw, view := missionDriverFor(t, w, nil, nil)
-			mw.mission.table = &mapload.Table{Game: base.GameROM2}
+			mw.mission.table = readUnder(base.GameROM2, &mapload.Table{})
 			ms := &Mission{Number: tc.n, World: w}
 			advance := continueMission(frontTransitions{f}, tc.n, ms, mw.advanceNotice)
 			f.live, f.liveMission = mw, tc.n

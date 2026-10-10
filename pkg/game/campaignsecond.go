@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -16,7 +17,9 @@ import (
 // the embedded rules give.
 type secondCampaignRules struct{ firstCampaignRules }
 
-func (secondCampaignRules) townScreen(f *FrontEnd) ui.TownScreen { return f.secondCampaignScreen() }
+func (r secondCampaignRules) townScreen(f *FrontEnd) ui.TownScreen {
+	return f.secondCampaignScreen(r.eventTags())
+}
 
 func (secondCampaignRules) townSavePoint(f *FrontEnd) error {
 	if f.Town == nil || !f.Town.second.savePoint() {
@@ -235,7 +238,7 @@ func (r secondCampaignRules) returnToTown(f *FrontEnd, n int) {
 func (secondCampaignRules) openMission(v *ui.Viewer) { v.SetCompletionCutscene("") }
 
 func (secondCampaignRules) loadMissionText(mw *mapWorld, src entrySource, ms *Mission, t *mapload.Table) {
-	code := InstallTextCode(src, tableGame(t).Edition())
+	code := InstallTextCode(src, tableEdition(t))
 	mw.mission.objectiveLabels = secondGameObjectiveLabels(src, code, ms.Number)
 	mw.mission.npcKeys = secondGameNPCKeys(ms, t)
 	mw.mission.failureText = secondGameFailureText(src, code, ms.Number)
@@ -294,3 +297,33 @@ func (secondCampaignRules) chat() *chatAdapter { return &secondChat }
 // chatCampaign: a mission opened while the town holds the destinations
 // campaign runs in campaign mode (R2-ENGINE-296).
 func (secondCampaignRules) chatCampaign(town *Town) bool { return town != nil && town.second != nil }
+
+func (secondCampaignRules) files() *gameFiles { return &secondGameFiles }
+
+func (secondCampaignRules) eventTags() eventTags { return secondEventTags{} }
+
+func (secondCampaignRules) newGameLimit(base.Profile) string {
+	return "native character selection is unavailable; new game opens the initial campaign town with the default hero"
+}
+
+func (secondCampaignRules) captureDifficulty(f *FrontEnd, s *Snapshot, onMap bool) {
+	if !onMap {
+		s.Difficulty = f.Difficulty
+	}
+}
+
+func (secondCampaignRules) recordDifficulty(s Snapshot, record *currentSessionData) {
+	if s.Mission == 0 {
+		difficulty := s.Difficulty
+		record.Difficulty = &difficulty
+	}
+}
+
+func (secondCampaignRules) ownsGame(g base.Game) error {
+	if base.SameGame(g, base.GameROM2) {
+		return nil
+	}
+	return errOtherGame
+}
+
+func (secondCampaignRules) censusRefusal() error { return nil }

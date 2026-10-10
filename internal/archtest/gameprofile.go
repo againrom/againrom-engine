@@ -42,45 +42,16 @@ const basePath = "againrom/pkg/base"
 // file#function. The two campaign service implementations, and the one
 // picker that chooses between them from the edition's campaign model.
 var ProfileAllowed = map[string]string{
-	"pkg/game/campaignfirst.go":              "the first game's campaign service refuses a second-campaign record",
-	"pkg/game/campaignsecond.go":             "the second game's campaign service guards its own state",
+	"pkg/game/campaignfirst.go":              "the first game's campaign service refuses a second-campaign record and another game's save",
+	"pkg/game/campaignsecond.go":             "the second game's campaign service guards its own state and refuses another game's save",
 	"pkg/game/campaignservice.go#campaignOf": "the one picker of the campaign service",
 }
 
 // ProfileDebt is the findings not yet moved, per file. A count may only
-// fall; a file whose count reaches zero leaves the map in the same commit.
-// The edition flags (the Second* layouts, FreshPlayers,
-// NewGameInTown, TownDifficulty, StartupCutscenes) each pick one of two code
-// bodies at the site, and pkg/mapload reaches them through Table.Game. The
-// EventAudience.SecondGame flag, the save's game checks (SameGame, Known), the
-// cutscene archive names, the empty mission tip path as a no-tips flag and
-// the mods' "rom1" applies-to word are choices the campaign service or
-// edition data does not yet carry.
-var ProfileDebt = map[string]int{
-	"cmd/terraintool/main.go":           1,
-	"pkg/game/base.go":                  1,
-	"pkg/game/companionreport.go":       1,
-	"pkg/game/currentsave.go":           1,
-	"pkg/game/currentscriptbindings.go": 1,
-	"pkg/game/currentsecondcampaign.go": 1,
-	"pkg/game/currentsession.go":        2,
-	"pkg/game/cutscene.go":              3,
-	"pkg/game/eventtext.go":             3,
-	"pkg/game/frontend.go":              3,
-	"pkg/game/mapload.go":               1,
-	"pkg/game/mission.go":               2,
-	"pkg/game/questobjectives.go":       1,
-	"pkg/game/resume.go":                1,
-	"pkg/game/secondcampaign.go":        1,
-	"pkg/game/secondcensus.go":          1,
-	"pkg/game/secondgametext.go":        1,
-	"pkg/game/table.go":                 1,
-	"pkg/mapload/cheatfactory.go":       1,
-	"pkg/mapload/currentplayers.go":     1,
-	"pkg/mapload/spawn.go":              1,
-	"pkg/mapload/spell.go":              1,
-	"pkg/mod/order.go":                  2,
-}
+// fall; a file whose count reaches zero leaves the map in the same commit. It
+// is empty: every choice reads the edition's data or calls the campaign
+// service, and CheckProfile runs with the empty table so any new choice fails.
+var ProfileDebt = map[string]int{}
 
 // ProfileFinding is one site and the shape found there. Func is the
 // enclosing function declaration's name, empty at package level.

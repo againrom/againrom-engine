@@ -189,7 +189,7 @@ func validateAuthoredGame(doc *sav.DocumentData, a *currentActionData, game base
 	if a != nil && a.Session != nil {
 		authored = a.Session.Game
 	}
-	if !base.SameGame(authored, game) {
+	if campaignOf(game).ownsGame(authored) != nil {
 		return fmt.Errorf("save game %s does not match installed game %s", authored.Normal(), game.Normal())
 	}
 	return campaignOf(authored).validateAuthored(doc, a)

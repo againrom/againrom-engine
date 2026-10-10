@@ -57,8 +57,22 @@ type Table struct {
 	Units  data.Collection
 	Humans data.Collection
 
-	// Game selects how a placement resolves; the zero value is ROM1.
-	Game base.Game
+	// Edition is the edition the table was read under, carried for the
+	// caller; nil is the first game's. This package reads none of it: the
+	// caller sets the three values below from the same edition.
+	Edition *base.Edition
+
+	// UnitKeys is how a placement's keys select its definition; nil is
+	// ClassUnitKeys.
+	UnitKeys UnitKeys
+
+	// SpellArms gives the converted spell table's rows their arms; nil
+	// leaves them as converted.
+	SpellArms func([]sim.SpellRule)
+
+	// FreshPlayers builds a fresh world's Players record; nil is
+	// SlotPlayers.
+	FreshPlayers PlayerPolicy
 
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
@@ -334,9 +348,37 @@ const (
 // arm it took and no entry, never with an error: a table and a map are two files
 // that need not have been shipped together.
 func Resolve(u alm.Unit, t *Table) Resolution {
-	if t != nil && t.Game.Edition().SecondUnitKeys {
-		return resolveROM2(u, t)
+	return t.unitKeys().resolve(u, t)
+}
+
+// UnitKeys is how a placement's keys select its definition, and how a cheat
+// keys a placement to a named row.
+type UnitKeys interface {
+	resolve(u alm.Unit, t *Table) Resolution
+	cheatPlacement(name string, t, local *Table, placement alm.Unit) (int, alm.Unit, error)
+}
+
+type classKeys struct{}
+
+type serverKeys struct{}
+
+var (
+	// ClassUnitKeys select a definition by the placement's class and
+	// secondary keys, its npc flag and its definition id.
+	ClassUnitKeys UnitKeys = classKeys{}
+	// ServerUnitKeys select a creature or, under the person flag, a human by
+	// the placement's server id.
+	ServerUnitKeys UnitKeys = serverKeys{}
+)
+
+func (t *Table) unitKeys() UnitKeys {
+	if t == nil || t.UnitKeys == nil {
+		return ClassUnitKeys
 	}
+	return t.UnitKeys
+}
+
+func (classKeys) resolve(u alm.Unit, t *Table) Resolution {
 	if int32(u.ClassID) >= unitsKeyFloor {
 		return Resolution{Arm: ArmUnits,
 			Index: data.FindUnit(t.units(), int32(uint8(u.ClassID)), int32(uint8(u.ClassSubID)))}
@@ -366,7 +408,7 @@ func Resolve(u alm.Unit, t *Table) Resolution {
 
 const rom2PersonFlag = 0x10
 
-func resolveROM2(u alm.Unit, t *Table) Resolution {
+func (serverKeys) resolve(u alm.Unit, t *Table) Resolution {
 	if u.Flags&rom2PersonFlag != 0 {
 		return Resolution{Arm: ArmServerID, Index: data.FindHumanByServerID(t.humans(), int32(u.ServerID))}
 	}

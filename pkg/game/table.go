@@ -126,7 +126,7 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", tableAddress, err)
 	}
-	f, err := databin.ParseWith(b, databinLayout(g))
+	f, err := databin.ParseWith(b, filesOf(g).table)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", tableAddress, err)
 	}
@@ -134,8 +134,7 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := &Definitions{Table: &mapload.Table{
-		Game:      g,
+	d := &Definitions{Table: readUnder(g, &mapload.Table{
 		Units:     f.Collection(databin.Units),
 		Humans:    f.Collection(databin.Humans),
 		Buildings: f.Collection(databin.Buildings),
@@ -162,7 +161,7 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		Spells:     f.Collection(databin.Spells),
 		Magic:      f.Collection(databin.Magic),
 		MagicItems: f.Collection(databin.MagicItems),
-	}}
+	})}
 	d.StartWeapon, d.StartWeaponErr = resolveStartingWeapon(f, PartySkillSlot())
 	// Not fatal, and reported by nothing beyond the field itself — see
 	// Definitions.Bodies.
@@ -186,6 +185,15 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		d.Table.NPCNames = rows.lines
 	}
 	return d, nil
+}
+
+// readUnder gives t the edition of game g and the placement decoder's values
+// its campaign service's files carry, and returns it.
+func readUnder(g base.Game, t *mapload.Table) *mapload.Table {
+	edition, files := g.Edition(), filesOf(g)
+	t.Edition = &edition
+	t.UnitKeys, t.SpellArms, t.FreshPlayers = files.unitKeys, files.spellArms, files.freshPlayers
+	return t
 }
 
 // LoadNPCDefs reads the scenario NPC table out of the container filesystem.
@@ -232,13 +240,6 @@ func LoadNPCFaces(fsys *vfs.FS) map[int32]data.NPCFace {
 		return nil
 	}
 	return data.LoadNPCFaces(r)
-}
-
-func databinLayout(g base.Game) databin.Layout {
-	if g.Edition().SecondTable {
-		return databin.ROM2Layout
-	}
-	return databin.ROM1Layout
 }
 
 // npcNamesPath is the text file the npc arm names a map placement from.

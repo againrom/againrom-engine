@@ -734,7 +734,7 @@ func TestReleaseCheatClientCommandsAndChickenColdReset(t *testing.T) {
 			if kind == "event" {
 				event := -1
 				for n := 0; n < 256; n++ {
-					if _, ok := ReadEventTextFor(f.live.mission.src, f.Table.Game, 10, n); ok {
+					if _, ok := ReadEventTextFor(f.live.mission.src, tableEdition(f.Table).Game, 10, n); ok {
 						event = n
 						break
 					}

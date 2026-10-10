@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -36,7 +35,7 @@ func TestCurrentPlayersConstructInitialPolicyWithoutCommandGroups(t *testing.T) 
 			t.Fatal("Player constructor installed command Group dispatch")
 		}
 	}
-	w, err := mapload.FromALMWith(m, &mapload.Table{Game: base.GameROM2}, mapload.DifficultyNormal)
+	w, err := mapload.FromALMWith(m, &mapload.Table{UnitKeys: mapload.ServerUnitKeys, SpellArms: mapload.SecondGameSpellArms, FreshPlayers: mapload.NoFreshPlayers}, mapload.DifficultyNormal)
 	if err != nil {
 		t.Fatal(err)
 	}

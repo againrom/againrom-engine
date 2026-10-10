@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/base"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -139,7 +140,7 @@ func (w *profileWitness) saveAndLoad(tag string) {
 
 func TestReleaseProfileWitnessIsUnchanged(t *testing.T) {
 	f := profileWitnessFront(t)
-	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().NewGameInTown {
+	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().Campaign == base.CampaignDestinations {
 		t.Skip("the base's new game does not open a mission through generation; TestReleaseSecondGameProfileWitnessIsUnchanged covers the town start")
 	}
 	runProfileWitness(t, f)
@@ -154,7 +155,7 @@ func runProfileWitness(t *testing.T, f *FrontEnd) {
 	saves := t.TempDir()
 	w := newProfileWitness(t, f, saves)
 	w.record("menu")
-	if f.Base().Profile.Edition().NewGameInTown {
+	if f.Base().Profile.Edition().Campaign == base.CampaignDestinations {
 		// A town-start campaign with no generator wired opens its town.
 		w.do("new-game", HeadlessStep{Command: "activate", Target: "new game"})
 		w.saveAndLoad("town")

@@ -1,6 +1,8 @@
 package game
 
 import (
+	"errors"
+
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -79,7 +81,32 @@ type campaignService interface {
 	// in the campaign that adapter admits commands in.
 	chat() *chatAdapter
 	chatCampaign(town *Town) bool
+
+	// files are the readers of the installed files the two games lay out
+	// differently.
+	files() *gameFiles
+	// censusRefusal refuses a census of the campaign's maps: the census
+	// reports each map of a destination bank.
+	censusRefusal() error
+	// eventTags is how the game's event text tag bodies are read.
+	eventTags() eventTags
+
+	// newGameLimit states where a new game opens on profile p when p has no
+	// character generation.
+	newGameLimit(p base.Profile) string
+	// captureDifficulty gives a save s taken off the map the difficulty the
+	// campaign records there: the second game's, the session's own.
+	captureDifficulty(f *FrontEnd, s *Snapshot, onMap bool)
+	// recordDifficulty writes the difficulty a save of s carries in its
+	// session record: the second game's town save, its own; the first's, none.
+	recordDifficulty(s Snapshot, record *currentSessionData)
+	// ownsGame refuses a save whose engine record names a game other than
+	// this campaign's.
+	ownsGame(g base.Game) error
 }
+
+// errOtherGame is a campaign service's refusal of a game not its own.
+var errOtherGame = errors.New("the game is not the campaign's")
 
 // campaignOf is the campaign service of game g. It is the one place a service
 // implementation is picked.
@@ -93,22 +120,16 @@ func campaignOf(g base.Game) campaignService {
 // campaign is the campaign service of the profile the install was detected as.
 func (f *FrontEnd) campaign() campaignService { return campaignOf(f.Base().Profile.GameOf()) }
 
-// tableGame is the game whose layout a definition table was read in; a nil
-// table is the first game's.
-func tableGame(t *mapload.Table) base.Game {
-	if t == nil {
-		return ""
-	}
-	return t.Game
-}
-
 // campaign is the campaign service of the game the mission's table belongs to.
 func (m *missionNotices) campaign() campaignService {
 	if m == nil {
 		return campaignOf("")
 	}
-	return campaignOf(tableGame(m.table))
+	return tableCampaign(m.table)
 }
+
+// files are the file readers of the game the mission's table belongs to.
+func (m *missionNotices) files() *gameFiles { return m.campaign().files() }
 
 // sessionCampaign is the campaign service of the game a decoded session
 // record names; no record is the first game's.
@@ -124,5 +145,5 @@ func (m *missionNotices) edition() base.Edition {
 	if m == nil {
 		return base.Game("").Edition()
 	}
-	return tableGame(m.table).Edition()
+	return tableEdition(m.table)
 }

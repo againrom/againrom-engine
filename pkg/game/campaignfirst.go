@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -39,7 +40,10 @@ func (firstCampaignRules) campaignProjection(Snapshot) (sav.CampaignProjection, 
 	return sav.CampaignProjection{}, false
 }
 
-func (firstCampaignRules) validateSession(s *currentSessionData) error {
+func (r firstCampaignRules) validateSession(s *currentSessionData) error {
+	if r.ownsGame(s.Game) != nil {
+		return fmt.Errorf("invalid current save game")
+	}
 	if s.Second != nil {
 		return fmt.Errorf("current save game and campaign disagree")
 	}
@@ -127,3 +131,26 @@ func (firstCampaignRules) chat() *chatAdapter { return &firstChat }
 
 // chatCampaign: the first game's adapter has no campaign rule.
 func (firstCampaignRules) chatCampaign(*Town) bool { return false }
+
+func (firstCampaignRules) files() *gameFiles { return &firstGameFiles }
+
+func (firstCampaignRules) eventTags() eventTags { return firstEventTags{} }
+
+func (firstCampaignRules) newGameLimit(p base.Profile) string {
+	return fmt.Sprintf("no character generation; new game opens mission %d with the default party", p.Mission())
+}
+
+func (firstCampaignRules) captureDifficulty(*FrontEnd, *Snapshot, bool) {}
+
+func (firstCampaignRules) recordDifficulty(Snapshot, *currentSessionData) {}
+
+func (firstCampaignRules) ownsGame(g base.Game) error {
+	if base.SameGame(g, base.GameROM1) {
+		return nil
+	}
+	return errOtherGame
+}
+
+func (firstCampaignRules) censusRefusal() error {
+	return errors.New("the census needs a second-game root")
+}
