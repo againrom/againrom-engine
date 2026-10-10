@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"math"
+	"slices"
+
 	"againrom/pkg/audio"
 	"againrom/pkg/random"
 )
@@ -19,6 +22,11 @@ const (
 	MusicShop
 	MusicTavern
 	MusicSchool
+	MusicCredits
+
+	// musicUnlisted is a screen no scene owns. The description's Unlisted
+	// rule makes it silent or leaves the held list alone.
+	musicUnlisted MusicScene = 0xff
 )
 
 // MusicSource reads and decodes one named track. Implementations may refuse any
@@ -36,6 +44,26 @@ type MusicDevice interface {
 	SetSettings(audio.Settings)
 }
 
+// MusicPauser is a device that can hold its stream at its position. Pause
+// answers false when nothing is held; Resume answers false when no paused
+// stream remains, and the controller then starts the entry again.
+type MusicPauser interface {
+	Pause() bool
+	Resume() bool
+}
+
+// MusicArea is one music-area record of a map: centre and radius in tiles and
+// four themes, each an index into the mission list or -1 for none. A record
+// at (0, 0) is the map's default.
+type MusicArea struct {
+	X, Y, Radius int32
+	Themes       [4]int32
+}
+
+// MusicHero answers the hero's position in 1/256 tile, the mission tick and
+// whether the mission has a hero.
+type MusicHero func() (x, y int32, tick uint64, ok bool)
+
 type musicRequest struct {
 	scene     MusicScene
 	mageFirst bool
@@ -43,30 +71,44 @@ type musicRequest struct {
 	track string
 }
 
-var missionMusicTracks = [...]string{
-	"B00.wav", "B01.wav", "B02.wav", "B03.wav", "B04.wav", "B05.wav",
-	"B06.wav", "B07.wav", "B08.wav", "B09.wav", "B10.wav", "B11.wav",
+// musicAreaSource is the mission's areas and hero, as the map screen holds them.
+type musicAreaSource struct {
+	areas []MusicArea
+	hero  MusicHero
 }
 
 // MusicController owns the current ordinary list and no archive. A source is
 // consulted only for the track about to start, and no decoded track is retained
-// here after Start returns.
+// here after Start returns. Every list, keep rule, order rule and area rule is
+// the description's.
 type MusicController struct {
+	desc   *MusicDescription
 	source MusicSource
 	device MusicDevice
 	draws  *random.Stream
 
-	request     musicRequest
-	set         bool
-	order       []string
-	position    int
-	active      bool
-	preferences MusicPreferences
-	log         []string
+	// last is the request the shown screen made at the last sync.
+	last    musicRequest
+	lastSet bool
+	// request owns the list the player holds.
+	request  musicRequest
+	set      bool
+	order    []string
+	position int
+	active   bool
+	// paused: the device holds the entry at its position. resumeStarts: the
+	// entry was stopped without a hold and a resume starts it again.
+	paused       bool
+	resumeStarts bool
+	pick         int
+	areas        musicAreaSource
+	areaTick     uint64
+	preferences  MusicPreferences
+	log          []string
 }
 
-func NewMusicController(source MusicSource, device MusicDevice, draws *random.Stream) *MusicController {
-	return &MusicController{source: source, device: device, draws: draws, preferences: DefaultMusicPreferences()}
+func NewMusicController(desc *MusicDescription, source MusicSource, device MusicDevice, draws *random.Stream) *MusicController {
+	return &MusicController{desc: desc, source: source, device: device, draws: draws, pick: -1, preferences: DefaultMusicPreferences()}
 }
 
 // TownMusicScreen exposes only the town room's static music identity and the
@@ -81,16 +123,17 @@ type TownMusicTrack interface {
 	TownMusicTrack() (string, bool)
 }
 
-// SetMusic installs the optional source and retained device, then starts the
-// screen already showing. Missing halves remain silent.
-func (a *App) SetMusic(source MusicSource, device MusicDevice, draws *random.Stream) {
+// SetMusic installs the game's description, the optional source and the
+// retained device, then starts the screen already showing. Missing halves
+// remain silent.
+func (a *App) SetMusic(desc *MusicDescription, source MusicSource, device MusicDevice, draws *random.Stream) {
 	if a == nil {
 		return
 	}
 	if a.music != nil {
 		a.music.Stop()
 	}
-	a.music = NewMusicController(source, device, draws)
+	a.music = NewMusicController(desc, source, device, draws)
 	if a.flow != nil && a.flow.soundOptions.ReadPlayback != nil {
 		a.music.SetPreferences(a.flow.soundOptions.ReadPlayback())
 	}
@@ -109,6 +152,7 @@ func (a *App) updateMusic() {
 		return
 	}
 	a.syncMusic()
+	a.music.observeAreas()
 	a.music.Update()
 }
 
@@ -116,24 +160,33 @@ func (a *App) syncMusic() {
 	if a == nil || a.music == nil {
 		return
 	}
+	a.music.areas = a.missionMusicAreas()
 	next, replace := a.musicRequest()
+	if next.scene == musicUnlisted {
+		if a.music.desc != nil && a.music.desc.Unlisted == MusicUnlistedKeep {
+			replace = false
+		}
+		next.scene = MusicSilent
+	}
 	if !replace {
 		return
 	}
-	scene := next.scene
-	// A completed mission load always re-requests; any other surface keeps
-	// an equal list running.
+	// A completed load always makes a fresh request; the scene's keep rule
+	// then decides between keeping the held list and setting its own.
+	fresh := false
 	if a.flow != nil && a.flow.loadUI.completed != a.musicLoads {
 		a.musicLoads = a.flow.loadUI.completed
-		if scene == MusicMission {
-			a.music.replaceRequest(next)
-			return
-		}
-		if a.music.set && a.music.request == next {
-			a.music.record("skip:" + sceneKey(a.music.request))
-		}
+		fresh = true
 	}
-	a.music.setRequest(next)
+	a.music.requestFrom(next, fresh)
+}
+
+// missionMusicAreas is the shown map's areas and hero; other screens have none.
+func (a *App) missionMusicAreas() musicAreaSource {
+	if a == nil || a.flow == nil || a.flow.screen != ScreenMap || a.flow.viewer == nil {
+		return musicAreaSource{}
+	}
+	return a.flow.viewer.musicAreas
 }
 
 // musicRequest is the request the shown screen makes: its scene, the
@@ -162,7 +215,7 @@ func (a *App) musicScene() (MusicScene, bool, bool) {
 	case ScreenMenu, ScreenCutsceneLibrary:
 		return MusicMenu, false, true
 	case ScreenCredits:
-		return MusicMenu, false, true
+		return MusicCredits, false, true
 	case ScreenPicker:
 		return MusicCampaign, false, true
 	case ScreenMap:
@@ -180,21 +233,39 @@ func (a *App) musicScene() (MusicScene, bool, bool) {
 		// the controller already on the restored scene and is idempotent.
 		return MusicSilent, false, false
 	default:
-		return MusicSilent, false, true
+		return musicUnlisted, false, true
 	}
 }
 
-// SetScene replaces the ordinary candidate list once. Repeating the same
-// scene, including the same school class order, is an exact no-op.
+// SetScene makes the request a screen showing scene makes. Repeating the
+// same request, including the same school class order, is an exact no-op.
 func (m *MusicController) SetScene(scene MusicScene, mageFirst bool) {
 	if m == nil {
 		return
 	}
-	m.setRequest(musicRequest{scene: scene, mageFirst: mageFirst})
+	m.requestFrom(musicRequest{scene: scene, mageFirst: mageFirst}, false)
 }
 
-func (m *MusicController) setRequest(next musicRequest) {
-	if m.set && m.request == next {
+// requestFrom applies the shown screen's request. An unchanged request does
+// nothing unless fresh. A silent request clears or pauses as the description
+// says; a scene that keeps holds an equal list, resuming it when paused; any
+// other request sets its list.
+func (m *MusicController) requestFrom(next musicRequest, fresh bool) {
+	if !fresh && m.lastSet && m.last == next {
+		return
+	}
+	m.last, m.lastSet = next, true
+	tracks := m.requestTracks(next)
+	if len(tracks) == 0 && m.desc != nil && m.desc.Silence == MusicSilencePause {
+		m.pause()
+		return
+	}
+	if len(tracks) != 0 && m.set && m.desc.sceneSpec(next.scene).Keep && slices.Equal(tracks, m.requestTracks(m.request)) {
+		if fresh {
+			m.record("skip:" + m.sceneKey(next))
+		}
+		m.request = next
+		m.resume()
 		return
 	}
 	m.replaceRequest(next)
@@ -202,12 +273,14 @@ func (m *MusicController) setRequest(next musicRequest) {
 
 // RequestScene replaces the ordinary candidate list whether or not the scene
 // changed, as a fresh request does: the current stream stops, the list is
-// reshuffled and its first entry starts. A one-file list restarts its file.
+// reordered and its first entry starts. A one-file list restarts its file.
 func (m *MusicController) RequestScene(scene MusicScene, mageFirst bool) {
 	if m == nil {
 		return
 	}
-	m.replaceRequest(musicRequest{scene: scene, mageFirst: mageFirst})
+	next := musicRequest{scene: scene, mageFirst: mageFirst}
+	m.last, m.lastSet = next, true
+	m.replaceRequest(next)
 }
 
 func (m *MusicController) replaceRequest(next musicRequest) {
@@ -215,29 +288,156 @@ func (m *MusicController) replaceRequest(next musicRequest) {
 		m.device.Stop()
 		m.record("stop")
 	}
-	m.record("request:" + sceneKey(next))
-	m.request, m.set, m.active = next, true, false
-	if m.draws != nil && m.draws.Shared() {
-		m.order, m.position = m.originalOrder(requestTracks(next))
-	} else {
-		m.order = m.shuffle(requestTracks(next))
+	m.record("request:" + m.sceneKey(next))
+	m.request, m.set, m.active, m.paused, m.resumeStarts, m.pick = next, true, false, false, false, -1
+	tracks := m.requestTracks(next)
+	switch {
+	case m.desc != nil && m.desc.List == MusicListOrdered:
+		m.order, m.position = tracks, 0
+		if m.draws != nil && len(tracks) != 0 {
+			m.position = m.draws.Raw() % len(tracks)
+		}
+	case m.draws != nil && m.draws.Shared():
+		m.order, m.position = m.originalOrder(tracks)
+	default:
+		m.order = m.shuffle(tracks)
 		m.position = 0
+	}
+	if next.scene == MusicMission {
+		m.enterAreas()
 	}
 	if m.preferences.Enabled {
 		m.startCurrent()
 	}
 }
 
-// Update advances the ordinary list after EOF. A one-entry list therefore
-// reloads the same file; longer lists repeat only after every shuffled entry.
+// pause stops the player and keeps its list and position. A device that
+// cannot hold its stream is stopped, and the next resume starts the held
+// entry again.
+func (m *MusicController) pause() {
+	if !m.active {
+		return
+	}
+	held := false
+	if p, ok := m.device.(MusicPauser); ok {
+		held = p.Pause()
+	} else if m.device != nil {
+		m.device.Stop()
+	}
+	m.record("pause")
+	m.active, m.paused, m.resumeStarts = false, held, !held
+}
+
+// resume continues a paused entry, or starts the held entry again when the
+// device kept no paused stream.
+func (m *MusicController) resume() {
+	if m.active || !m.preferences.Enabled {
+		return
+	}
+	if m.paused {
+		m.paused = false
+		if p, ok := m.device.(MusicPauser); ok && p.Resume() {
+			m.active = true
+			m.record("resume:" + m.Playing())
+			return
+		}
+	}
+	if !m.resumeStarts {
+		return
+	}
+	m.resumeStarts = false
+	m.startCurrent()
+	m.record("resume:" + m.Playing())
+}
+
+// Update advances the ordinary list after EOF: to the area pick when one is
+// set, else to the next entry. A one-entry list therefore reloads the same
+// file; a shuffled list repeats only after every entry.
 func (m *MusicController) Update() {
 	if m == nil || !m.active || m.device == nil || !m.device.Ended() {
 		return
 	}
 	m.active = false
 	if len(m.order) != 0 {
-		m.position = (m.position + 1) % len(m.order)
+		if m.pick >= 0 && m.pick < len(m.order) {
+			m.position = m.pick
+		} else {
+			m.position = (m.position + 1) % len(m.order)
+		}
 		m.startCurrent()
+	}
+}
+
+// enterAreas is the mission list's own area select: with a hero the area
+// holding it picks a theme, and a pick replaces the drawn start entry.
+func (m *MusicController) enterAreas() {
+	if m.desc == nil || m.desc.Areas == nil || m.areas.hero == nil {
+		return
+	}
+	x, y, tick, ok := m.areas.hero()
+	m.areaTick = tick
+	if !ok {
+		return
+	}
+	m.selectArea(x, y)
+	if m.pick >= 0 && m.pick < len(m.order) {
+		m.position = m.pick
+	}
+}
+
+// observeAreas runs the area select once when the mission tick has passed a
+// multiple of the description's period since the last observation.
+func (m *MusicController) observeAreas() {
+	if m == nil || m.desc == nil || m.desc.Areas == nil || m.areas.hero == nil || !m.set || m.request.scene != MusicMission {
+		return
+	}
+	x, y, tick, ok := m.areas.hero()
+	period := uint64(m.desc.Areas.Period)
+	crossed := tick > m.areaTick && tick/period != m.areaTick/period
+	m.areaTick = tick
+	if crossed && ok {
+		m.selectArea(x, y)
+	}
+}
+
+// selectArea walks the records in order. The default record is taken while
+// no closer record has been; another record with no theme is skipped; any
+// other is taken when the position lies inside its radius and nearer than
+// the last taken. Each taken record draws its pick from its themes.
+func (m *MusicController) selectArea(x, y int32) {
+	best := 1e20
+	for _, area := range m.areas.areas {
+		if area.X == 0 && area.Y == 0 {
+			if best > 1e15 {
+				best = 1e10
+				m.drawTheme(area)
+			}
+			continue
+		}
+		if area.Themes == [4]int32{-1, -1, -1, -1} {
+			continue
+		}
+		dx, dy := float64(x)-float64(area.X)*256, float64(y)-float64(area.Y)*256
+		d := math.Sqrt(dx*dx + dy*dy)
+		if d < float64(area.Radius)*256 && d < best {
+			best = d
+			m.drawTheme(area)
+		}
+	}
+}
+
+// drawTheme draws one of the record's four themes, drawing again while it
+// names none.
+func (m *MusicController) drawTheme(area MusicArea) {
+	if m.draws == nil || area.Themes == [4]int32{-1, -1, -1, -1} {
+		return
+	}
+	for {
+		theme := area.Themes[(m.draws.Raw()*4)>>15]
+		if theme >= 0 {
+			m.pick = int(theme)
+			return
+		}
 	}
 }
 
@@ -251,15 +451,15 @@ func (m *MusicController) record(event string) {
 }
 
 // requestTracks is a request's list: its own track, else its scene's.
-func requestTracks(r musicRequest) []string {
+func (m *MusicController) requestTracks(r musicRequest) []string {
 	if r.track != "" {
 		return []string{r.track}
 	}
-	return staticMusicTracks(r.scene, r.mageFirst)
+	return m.desc.sceneTracks(r.scene, r.mageFirst)
 }
 
-func sceneKey(r musicRequest) string {
-	tracks := requestTracks(r)
+func (m *MusicController) sceneKey(r musicRequest) string {
+	tracks := m.requestTracks(r)
 	if len(tracks) == 0 {
 		return "silent"
 	}
@@ -269,12 +469,21 @@ func sceneKey(r musicRequest) string {
 	return tracks[0] + ".." + tracks[len(tracks)-1]
 }
 
-// RequestLog is the bounded witness log: stop, request:<list>, skip:<list>.
+// RequestLog is the bounded witness log: stop, request:<list>, skip:<list>,
+// pause and resume:<track>.
 func (m *MusicController) RequestLog() []string {
 	if m == nil {
 		return nil
 	}
 	return append([]string(nil), m.log...)
+}
+
+// AreaPick is the mission list index the next track end opens, or -1.
+func (m *MusicController) AreaPick() int {
+	if m == nil {
+		return -1
+	}
+	return m.pick
 }
 
 // Stop tears down the current stream and clears the list.
@@ -286,7 +495,7 @@ func (m *MusicController) Stop() {
 		m.device.Stop()
 		m.record("stop")
 	}
-	m.order, m.active, m.set = nil, false, false
+	m.order, m.active, m.set, m.paused, m.resumeStarts, m.lastSet, m.pick = nil, false, false, false, false, false, -1
 }
 
 func (m *MusicController) shuffle(tracks []string) []string {
@@ -347,30 +556,4 @@ func (m *MusicController) residentTracks() int {
 		return 1
 	}
 	return 0
-}
-
-func staticMusicTracks(scene MusicScene, mageFirst bool) []string {
-	switch scene {
-	case MusicMenu:
-		return []string{"menu.wav"}
-	case MusicChargen:
-		return []string{"chrgen.wav"}
-	case MusicCampaign:
-		return []string{"map.wav"}
-	case MusicMission:
-		return append([]string(nil), missionMusicTracks[:]...)
-	case MusicTown:
-		return []string{"town.wav"}
-	case MusicShop:
-		return []string{"shop.wav"}
-	case MusicTavern:
-		return []string{"inn.wav"}
-	case MusicSchool:
-		if mageFirst {
-			return []string{"schoolm.wav", "schoolw.wav"}
-		}
-		return []string{"schoolw.wav", "schoolm.wav"}
-	default:
-		return nil
-	}
 }

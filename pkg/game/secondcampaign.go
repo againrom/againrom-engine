@@ -444,3 +444,23 @@ func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 	}
 	return []byte(body), nil
 }
+
+// TownMusic is the scene the campaign screen requests: a town while one is
+// current, else the destination map (R2-ENGINE-335).
+func (t *secondCampaignScreen) TownMusic() (ui.MusicScene, bool) {
+	if c := t.state(); c != nil && c.current.kind == 2 {
+		return ui.MusicTown, false
+	}
+	return ui.MusicCampaign, false
+}
+
+// TownMusicTrack is the current town's own track, as the game's music
+// description names it by town ID (R2-ENGINE-231). The tavern keeps it: no
+// tavern body requests music (R2-ENGINE-335).
+func (t *secondCampaignScreen) TownMusicTrack() (string, bool) {
+	c := t.state()
+	if c == nil || c.current.kind != 2 {
+		return "", false
+	}
+	return GameMusic(t.install.profile()).TownTrack(c.current.id)
+}

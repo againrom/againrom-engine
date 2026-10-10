@@ -1,0 +1,30 @@
+{
+  "music": "rom2",
+  "cite": ["R2-ENGINE-335", "R2-ENGINE-336", "R2-ENGINE-337", "R2-ENGINE-338"],
+  "archive": {"path": "music.res", "cite": ["R2-ASSET-083", "R2-ENGINE-339"]},
+  "tracks": [
+    "b00.wav", "b01.wav", "b02.wav", "b03.wav", "b04.wav", "b05.wav", "b06.wav", "b07.wav", "b08.wav",
+    "b09.wav", "b10.wav", "b11.wav", "b12.wav", "b13.wav", "b14.wav", "b15.wav", "b16.wav",
+    "chrgen.wav", "credit.wav", "map.wav", "menu.wav"
+  ],
+  "list": "ordered",
+  "silence": "pause",
+  "unlisted": "keep",
+  "scenes": {
+    "menu": {"tracks": ["menu.wav"], "keep": true, "cite": ["R2-ENGINE-335"]},
+    "credits": {"tracks": ["credit.wav"], "keep": false, "cite": ["R2-ENGINE-335"]},
+    "chargen": {"tracks": ["chrgen.wav"], "keep": true, "cite": ["R2-ENGINE-335"]},
+    "campaign": {"tracks": ["map.wav"], "keep": false, "cite": ["R2-ENGINE-335"]},
+    "mission": {"tracks": [
+      "B00.wav", "B01.wav", "B02.wav", "B03.wav", "B04.wav", "B05.wav", "B06.wav", "B07.wav", "B08.wav",
+      "B09.wav", "B10.wav", "B11.wav", "B12.wav", "B13.wav", "B14.wav", "B15.wav", "B16.wav"
+    ], "keep": false, "cite": ["R2-ENGINE-335", "R2-ENGINE-336"]},
+    "town": {"tracks": [], "keep": true, "cite": ["R2-ENGINE-335", "DIV-2862"]}
+  },
+  "towns": {
+    "1": {"track": "b14.wav", "cite": ["R2-ENGINE-231"]},
+    "2": {"track": "b16.wav", "cite": ["R2-ENGINE-231"]},
+    "3": {"track": "b15.wav", "cite": ["R2-ENGINE-231"]}
+  },
+  "areas": {"period": 16, "cite": ["R2-ASSET-084", "R2-ENGINE-336", "DIV-2861"]}
+}

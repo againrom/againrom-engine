@@ -386,6 +386,9 @@ type options struct {
 	soundCheck    string
 	fidelityCheck string
 	movies        bool
+	// noMusic is -nomusic: no music archive is opened, so every music
+	// request is silent.
+	noMusic       bool
 	fourX, eightX bool
 
 	// mods names the mods to load, in order; modsDir is the directory holding
@@ -459,6 +462,7 @@ func parse(args []string) (options, error) {
 	fs.BoolVar(&o.modsAcceptUnmarked, "mods-accept-unmarked", false, modsAcceptUnmarkedUsage)
 	fs.StringVar(&o.headless, "headless", "", "run a versioned JSON scenario through the production controller without opening a window")
 	fs.BoolVar(&o.movies, "movies", true, "play installed startup, new-game and mission movies")
+	fs.BoolVar(&o.noMusic, "nomusic", false, "play no music: every music request is silent")
 	fs.BoolVar(&o.fourX, "4x", false, "select VIDEO4 mission movies (overrides -8x)")
 	fs.BoolVar(&o.eightX, "8x", false, "select VIDEO8 mission movies")
 	fs.StringVar(&o.cutsceneCheck, "cutscene-check", "", "read-only native/App witness; write frames only to this existing private directory")
@@ -568,6 +572,10 @@ func frontEnd(root string, o options, preferences game.OptionsStore) (*game.Fron
 	front.SetRandomLaunch(o.seed, o.seedSet, o.originalRandom)
 	front.Options = preferences
 	front.LoadOptions()
+	if o.noMusic {
+		// DIV-2860: the original's -nomusic clears music availability.
+		front.MusicBank = nil
+	}
 	return front, nil
 }
 
