@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/rules"
+	"againrom/pkg/sim"
 )
 
 // humanRouteCase is one Human fed to both derived-stat routes: the native
@@ -119,7 +121,7 @@ func nativeSpeedWord(d data.Derived, load int32) (word, kept int32) {
 	if d.Speed <= 0 || d.Capacity <= 0 {
 		return d.Speed, d.SpeedModifier
 	}
-	w, m, _ := rules.HumanSpeed(int16(d.Speed-d.SpeedModifier), int16(d.SpeedModifier), int16(load), int16(d.Capacity))
+	w, m, _ := rules.HumanSpeed(int16(d.Speed-d.SpeedModifier), int16(d.SpeedModifier), load, d.Capacity)
 	return int32(w), int32(m)
 }
 
@@ -170,14 +172,14 @@ type humanRouteTally struct {
 	fields map[string][]string
 }
 
-func (r *humanRouteTally) add(t *testing.T, c humanRouteCase, stored *data.HumanState) {
+func (r *humanRouteTally) add(t *testing.T, c humanRouteCase, stored *data.HumanState) []humanRouteDiff {
 	t.Helper()
 	r.cases++
 	diffs, err := compareHumanRoutes(c, stored)
 	if err != nil {
 		r.failed++
 		t.Logf("%s: stored derive refused: %v", c.label, err)
-		return
+		return nil
 	}
 	if r.fields == nil {
 		r.fields = map[string][]string{}
@@ -185,6 +187,7 @@ func (r *humanRouteTally) add(t *testing.T, c humanRouteCase, stored *data.Human
 	for _, d := range diffs {
 		r.fields[d.field] = append(r.fields[d.field], fmt.Sprintf("%s native=%d stored=%d", c.label, d.native, d.stored))
 	}
+	return diffs
 }
 
 func (r *humanRouteTally) report(t *testing.T, population string) int {
@@ -257,7 +260,12 @@ func humanRouteSyntheticCases() []humanRouteCase {
 func TestHumanRoutesCompareSynthetic(t *testing.T) {
 	var tally humanRouteTally
 	for _, c := range humanRouteSyntheticCases() {
-		tally.add(t, c, nil)
+		for _, d := range tally.add(t, c, nil) {
+			// DIV-2784: only a native hero's General level carries its bonus.
+			if c.label != "General bonus" || d.field != "Skill0" {
+				t.Errorf("%s: %s native=%d stored=%d", c.label, d.field, d.native, d.stored)
+			}
+		}
 	}
 	tally.report(t, "synthetic")
 }
@@ -307,7 +315,9 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 			templates.add(t, o, nil)
 		}
 	}
-	templates.report(t, "Humans templates")
+	if templates.report(t, "Humans templates") != 0 || templates.failed != 0 {
+		t.Error("the two routes differ on a Humans template")
+	}
 	t.Logf("Humans templates whose starting items carry a General skill bonus: %d", itemBonus)
 
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
@@ -316,7 +326,7 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 		return
 	}
 	var stored, unmapped humanRouteTally
-	files, refused := 0, 0
+	files, refused, experienceInput := 0, 0, 0
 	err := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -334,11 +344,13 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 		source, err := sav.Open(raw)
 		if err != nil {
 			refused++
+			t.Logf("%s: %v", path, err)
 			return nil
 		}
 		holdings, err := source.ActorHoldings()
 		if err != nil {
 			refused++
+			t.Logf("%s: %v", path, err)
 			return nil
 		}
 		files++
@@ -350,7 +362,17 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 			}
 			h := basisHumanState(*b)
 			c := storedHumanCase(fmt.Sprintf("%s actor %d", filepath.ToSlash(rel), a.MapUnitID), h)
-			unmapped.add(t, c, &h)
+			sum := uint32(0)
+			for _, xp := range h.SkillXP {
+				sum += xp
+			}
+			// The pools read the stored experience dword (HERO-HP-005); a
+			// native Human's experience is the sum of its six counters.
+			if diffs := unmapped.add(t, c, &h); len(diffs) != 0 && h.Experience == sum {
+				t.Errorf("%s differs with equal experience inputs: %v", c.label, diffs)
+			} else if len(diffs) != 0 {
+				experienceInput++
+			}
 			stored.add(t, c, nil)
 		}
 		return nil
@@ -360,11 +382,146 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 	}
 	t.Logf("save corpus: %d file(s) read, %d refused", files, refused)
 	unmapped.report(t, "corpus Humans, stored state as loaded")
-	stored.report(t, "corpus Humans, stored state rebuilt from the native inputs")
+	t.Logf("corpus Humans whose stored experience differs from the sum of their six counters, and whose pools differ for that input: %d", experienceInput)
+	if stored.report(t, "corpus Humans, stored state rebuilt from the native inputs") != 0 || stored.failed != 0 || unmapped.failed != 0 {
+		t.Error("the two routes differ on a corpus Human")
+	}
 }
 
 // basisHumanState is a SAV actor basis as the stored-state derive reads it.
 func basisHumanState(b sav.ActorBasis) data.HumanState {
 	c := sav.CityCharacter{Stats: b.Stats, SkillXP: b.SkillXP, Experience: b.Experience}
 	return cityHumanState(c, b.Human)
+}
+
+// humanBlock is the derived block a Human acts with.
+type humanBlock struct {
+	MaxHP, MaxMana, Word, Turn, Sight        int32
+	ToHit, DamageBase, DamageSpread, Defence int32
+	Absorption                               int32
+}
+
+func entityHumanBlock(e sim.Entity) humanBlock {
+	return humanBlock{e.MaxHP, e.MaxMana, e.SpeedWord(), e.RotationSpeed, int32(e.ScanRange),
+		e.ToHit, e.DamageBase, e.DamageSpread, e.Defence, e.Absorption}
+}
+
+func stateHumanBlock(h data.HumanState) humanBlock {
+	s := func(v uint16) int32 { return int32(int16(v)) }
+	return humanBlock{s(h.HealthMax), s(h.ManaMax), s(h.Speed), int32(h.MoverSpeed), s(h.Sight) >> 8,
+		s(h.Attack.ToHit), int32(h.Attack.DamageBase), int32(h.Attack.DamageSpread), s(h.Defence.Defence), s(h.Defence.Absorption)}
+}
+
+func humanByReaction(t *testing.T, f *FrontEnd, reaction int32) sim.Entity {
+	t.Helper()
+	var found []sim.Entity
+	for _, e := range f.live.world.Entities() {
+		if e.Humanoid && e.Reaction == reaction {
+			found = append(found, e)
+		}
+	}
+	if len(found) != 1 {
+		t.Fatalf("Humans with Reaction %d: %d, want one", reaction, len(found))
+	}
+	return found[0]
+}
+
+// A native hero and the same Human loaded from an original SAV act with one
+// derived block: pools, speed word and turn rate, sight, to-hit, damage and
+// defence. SAVE, cold LOAD and the next ticks keep it, and the stored-state
+// derive of the original-loaded Human gives it again.
+func TestReleaseNativeAndOriginalHumanShareOneDerivedBlock(t *testing.T) {
+	f := releaseFront(t)
+	f.SetDeterministicFrames(true)
+	party := overloadOrderParty(t, f)
+	// The members start at their derived pools, not the fixture's overrides.
+	for i := range party {
+		d := party[i].Hero.Recompute(party[i].Profile, mapload.PartyLoadout(party[i], f.Table))
+		s := party[i].Saved
+		s.HP, s.MaxHP, s.Mana, s.MaxMana = d.HealthMax, d.HealthMax, d.ManaMax, d.ManaMax
+		s.HealthRegenPeriod, s.ManaRegenPeriod = 100, 50
+	}
+	if err := f.App("one derive").OpenMission(f.MissionOpenerWith(101, party)); err != nil {
+		t.Fatal(err)
+	}
+	reactions := []int32{50, 15}
+	native := map[int32]humanBlock{}
+	for _, r := range reactions {
+		native[r] = entityHumanBlock(humanByReaction(t, f, r))
+		t.Logf("native Reaction %d: %+v", r, native[r])
+	}
+	store := SaveStore{Dir: t.TempDir()}
+	name, _ := deadPatrolSave(t, f, store)
+	cold := deadPatrolLoad(t, store, name)
+	for tick := range 24 {
+		f.live.tick()
+		cold.live.tick()
+		for _, r := range reactions {
+			if a, b := entityHumanBlock(humanByReaction(t, f, r)), entityHumanBlock(humanByReaction(t, cold, r)); a != native[r] || b != native[r] {
+				t.Fatalf("tick %d Reaction %d: live %+v cold %+v, want %+v", tick, r, a, b, native[r])
+			}
+		}
+	}
+
+	// The same file without its engine-state leaf is an original SAV.
+	raw := mustReadSave(t, store, name)
+	odoc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	odoc.State.ValueRecords = slices.DeleteFunc(odoc.State.ValueRecords, func(row sav.CityStateRecordData) bool {
+		return row.Path == sav.NativeActionsPath
+	})
+	hero := humanByReaction(t, f, 15)
+	pack, _ := f.live.world.CarriedStacks(hero.ID)
+	var carried int32
+	for _, st := range pack {
+		for _, iw := range f.live.world.ItemWeights() {
+			if iw.Code == st.Code {
+				carried += iw.Weight * int32(st.Count)
+			}
+		}
+	}
+	// DIV-2761: the control writes the pack's running weight the original keeps.
+	overloadOrderSetAccumulator(t, &odoc, uint32(carried))
+	for i := range odoc.Objects {
+		r := &odoc.Objects[i]
+		if r.Class == "Human" && humanSpeedValue(t, r, "ManaMax") != 0 && humanSpeedValue(t, r, "ManaRegen") == 0 {
+			savedObjectSetValue(r, "ManaRegen", 1)
+		}
+	}
+	if raw, err = sav.EncodeDocumentData(odoc); err != nil {
+		t.Fatal(err)
+	}
+	g := releaseFront(t)
+	g.SetDeterministicFrames(true)
+	mission, town, err := g.RestoreOriginal(raw)
+	if err != nil || town {
+		t.Fatalf("original SAV LOAD: town=%t err=%v", town, err)
+	}
+	if err := g.App("one derive original").OpenMission(mission); err != nil {
+		t.Fatal(err)
+	}
+	for tick := 0; tick <= 24; tick++ {
+		for _, r := range reactions {
+			e := humanByReaction(t, g, r)
+			if e.ActorLoad.Source.Class != 2 {
+				t.Fatalf("Reaction %d loaded as source class %d, want a Human", r, e.ActorLoad.Source.Class)
+			}
+			if got := entityHumanBlock(e); got != native[r] {
+				t.Fatalf("tick %d Reaction %d: original-loaded %+v, native %+v", tick, r, got, native[r])
+			}
+			if tick == 0 {
+				h := mapload.SourceHumanState(e.ActorLoad.Source, e.ActorLoad.Accumulator)
+				n, err := h.Derive()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := stateHumanBlock(n); got != native[r] {
+					t.Fatalf("Reaction %d: stored-state derive %+v, native %+v", r, got, native[r])
+				}
+			}
+		}
+		g.live.tick()
+	}
 }

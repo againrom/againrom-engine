@@ -26,6 +26,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   overload slows his own speed first, to no less than 6, and a speed bonus or
   penalty is added after it. His character card shows that speed for every
   overloaded hero, and it is kept through a save.
+- [BASE] Every hero and person now gets health, mana, speed, sight and combat
+  values from one calculation, whether he was made by the engine or loaded
+  from an original save. A skill bonus from worn items now raises a skill above
+  100 for heroes loaded from an original save too, and a very strong hero's
+  damage no longer exceeds what the original can hold.
 
 ## 0.108.0
 

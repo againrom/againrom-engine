@@ -23,6 +23,7 @@ func (e *Entity) deriveNativeHumanSpeed() {
 		word, kept = humanSpeedWord(e.Speed, e.SpeedModifier, e.Load, e.Capacity)
 		if kept != e.SpeedModifier {
 			e.Speed, e.SpeedModifier = e.Speed-e.SpeedModifier, 0
+			e.clearSpeedModifierBasis()
 		}
 		if word <= 0 && e.Speed > 0 {
 			e.HumanMovement = HumanMovement{true, int16(word), e.Speed, e.Load, e.Capacity}
@@ -33,6 +34,16 @@ func (e *Entity) deriveNativeHumanSpeed() {
 		e.Facing = e.DesiredFacing
 		e.TurnState.Active = false
 		e.clearTurn()
+	}
+}
+
+// clearSpeedModifierBasis zeroes the modifier speed word wherever the native
+// basis knows it, as the derive's clear zeroes the stored modifier (SAV-1116).
+func (e *Entity) clearSpeedModifierBasis() {
+	for n := 4; n < 6; n++ {
+		if e.NativeBasis.ModifierByteKnown(n) {
+			e.NativeBasis.Modifier[n] = 0
+		}
 	}
 }
 
