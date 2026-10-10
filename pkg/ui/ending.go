@@ -1,8 +1,6 @@
 package ui
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
@@ -49,22 +47,14 @@ type endingWords struct {
 	Score, UnknownScore, RecordedHall, PendingHall, RetryHall string
 }
 
-//go:embed ending_ru.json
-var endingRussianJSON []byte
-
-var endingRussian = func() endingWords {
-	var w endingWords
-	if err := json.Unmarshal(endingRussianJSON, &w); err != nil {
-		panic(err)
-	}
-	return w
-}()
-
 func (f *flow) endingWords() endingWords {
-	if f.menuFont != nil && f.menuFont.Selector == text.SelectorConverting {
-		return endingRussian
-	}
-	return endingWords{Title: "Campaign complete", Hall: "Hall of Fame", Credits: "Credits", Menu: "Main menu", Back: "Back", Previous: "Previous", Next: "Next", Gold: "Gold", MissingHall: "Hall of Fame unavailable", MissingCredits: "Credits unavailable", EmptyHall: "No records", Score: "Score", UnknownScore: "Score unavailable for this save", RecordedHall: "Result recorded", PendingHall: "Could not record result", RetryHall: "Retry result"}
+	return endingWords{Title: f.word("ending.title"), Hall: f.word("ending.hall"), Credits: f.word("ending.credits"),
+		Menu: f.word("ending.menu"), Back: f.word("ending.back"), Previous: f.word("ending.previous"),
+		Next: f.word("ending.next"), Gold: f.word("ending.gold"), MissingHall: f.word("ending.missing_hall"),
+		MissingCredits: f.word("ending.missing_credits"), EmptyHall: f.word("ending.empty_hall"),
+		Score: f.word("ending.score"), UnknownScore: f.word("ending.unknown_score"),
+		RecordedHall: f.word("ending.recorded_hall"), PendingHall: f.word("ending.pending_hall"),
+		RetryHall: f.word("ending.retry_hall")}
 }
 
 // SetCampaignEndingExit installs the campaign reset that runs when the hall

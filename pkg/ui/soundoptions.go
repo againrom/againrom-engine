@@ -1,27 +1,12 @@
 package ui
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 	"image"
 
 	"againrom/pkg/audio"
-	"againrom/pkg/render/text"
+	"againrom/pkg/words"
 )
-
-// Authored translations use the same catalog and installed-font conversion
-// boundary as game speed and tooltip preferences.
-//
-//go:embed soundoptions_ru.json
-var soundOptionsRUText string
-
-var soundOptionsRU = func() (words struct{ Master, Enabled, Disabled, Test, NotSaved, Unavailable string }) {
-	if err := json.Unmarshal([]byte(soundOptionsRUText), &words); err != nil {
-		panic(err)
-	}
-	return words
-}()
 
 type SoundOptionWords struct {
 	Title, OK, Master, Enabled, Disabled, Test, NotSaved string
@@ -32,10 +17,12 @@ type SoundOptionWords struct {
 }
 
 func DefaultSoundOptionWords() SoundOptionWords {
-	return SoundOptionWords{Title: "Sound Options", OK: "OK", Master: "Master volume",
-		Enabled: "Sound on", Disabled: "Sound off", Test: "Test sound", NotSaved: "Sound settings not saved: ",
-		Labels: [audio.ChannelCount]string{"Music volume", "SFX volume", "Speech volume"}, Acknowledgments: "Acknowledgments",
-		Tracks: "Tracks", RandomOrder: "Random Order", Play: "Play", Stop: "Stop", Unavailable: "Track unavailable"}
+	var english words.Book
+	return SoundOptionWords{Title: "Sound Options", OK: "OK", Master: english.Text("sound.master"),
+		Enabled: english.Text("sound.enabled"), Disabled: english.Text("sound.disabled"), Test: english.Text("sound.test"),
+		NotSaved: english.Text("sound.not_saved"),
+		Labels:   [audio.ChannelCount]string{"Music volume", "SFX volume", "Speech volume"}, Acknowledgments: "Acknowledgments",
+		Tracks: "Tracks", RandomOrder: "Random Order", Play: "Play", Stop: "Stop", Unavailable: english.Text("sound.unavailable")}
 }
 
 type SoundOptionControls struct {
@@ -64,14 +51,15 @@ func (a *App) SetSoundOptionControls(c SoundOptionControls) {
 	if a == nil || a.flow == nil {
 		return
 	}
-	if a.flow.menuSelector() == text.SelectorConverting {
-		c.Words.Master = a.flow.menuDisplayText(soundOptionsRU.Master)
-		c.Words.Enabled = a.flow.menuDisplayText(soundOptionsRU.Enabled)
-		c.Words.Disabled = a.flow.menuDisplayText(soundOptionsRU.Disabled)
-		c.Words.Test = a.flow.menuDisplayText(soundOptionsRU.Test)
-		c.Words.NotSaved = soundOptionsRU.NotSaved
-		c.Words.Unavailable = soundOptionsRU.Unavailable
-	}
+	// The install states none of these six; they are the engine's own words in
+	// the install's language.
+	f := a.flow
+	c.Words.Master = f.menuWord("sound.master")
+	c.Words.Enabled = f.menuWord("sound.enabled")
+	c.Words.Disabled = f.menuWord("sound.disabled")
+	c.Words.Test = f.menuWord("sound.test")
+	c.Words.NotSaved = f.word("sound.not_saved")
+	c.Words.Unavailable = f.word("sound.unavailable")
 	a.flow.soundOptions = c
 	a.flow.soundOptions.music = func() *MusicController { return a.music }
 	if a.music != nil && c.ReadPlayback != nil {

@@ -710,6 +710,9 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// English. That is the same shape the font, the attack pointer and the spell
 	// art already carry — a cosmetic source does not stop a mission opening.
 	words := LoadInstallWords(archives.Containers)
+	// The engine's own words follow the install's language, the detected
+	// profile's; the font's selector only converts bytes.
+	words.Language = archives.Base.Profile.Language
 
 	// THE LANGUAGE SELECTOR IS READ ONCE, HERE, and written onto the one font
 	// this front-end keeps. It is read at startup rather than per draw because

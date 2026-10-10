@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/render/text"
 )
 
 // The slider adds player pause before the nine shipped positive speeds.
@@ -183,14 +182,11 @@ func (f *flow) gameOptionsPageRows() []gameMenuRow {
 	}
 	rows := []gameMenuRow{
 		{Label: speed + ": " + strconv.Itoa(d.speed), Literal: true, Status: true},
-		{Label: "~SLOWER", Fallback: 'S', Action: gameMenuSpeedDown, Enabled: d.speed > 0},
-		{Label: "~FASTER", Fallback: 'F', Action: gameMenuSpeedUp, Enabled: d.speed < gameSpeedLevels},
+		{Label: f.menuWord("speed.slower"), Fallback: 'S', Action: gameMenuSpeedDown, Enabled: d.speed > 0},
+		{Label: f.menuWord("speed.faster"), Fallback: 'F', Action: gameMenuSpeedUp, Enabled: d.speed < gameSpeedLevels},
 	}
 	if d.speed == 0 {
 		rows[0].Label = speed + ": " + f.pauseLabel()
-	}
-	if f.menuSelector() == text.SelectorConverting {
-		rows[1].Label, rows[2].Label = f.menuDisplayText(gameSpeedRU.Slower), f.menuDisplayText(gameSpeedRU.Faster)
 	}
 	enabled := f.gameOptions.Write != nil
 	option := func(o GameOption) gameMenuRow {
@@ -218,10 +214,7 @@ func (f *flow) gameOptionsPageRows() []gameMenuRow {
 		rows = append(rows, option(o))
 	}
 	delay := f.tooltipDelayRow()
-	label, unit := "Tooltip delay: ", " ms"
-	if f.menuSelector() == text.SelectorConverting {
-		label, unit = f.menuDisplayText(tooltipRU.Delay), f.menuDisplayText(tooltipRU.Unit)
-	}
+	label, unit := f.menuWord("tooltip.delay_options"), f.menuWord("tooltip.unit")
 	delay.Label = label + strconv.Itoa(d.delay) + unit
 	rows = append(rows, delay, option(GameOptionHealth), option(GameOptionDamage))
 	tips := gameMenuRow{Label: w.Tips + ": " + onOff(d.tips), Literal: true, Action: gameMenuToggleTips,

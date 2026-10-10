@@ -4,14 +4,9 @@ import (
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
-	_ "embed"
+	"againrom/pkg/words"
 	"strings"
 )
-
-// Authored fallback labels are encoded into the selected game font alphabet.
-//
-//go:embed itemlabels_ru.txt
-var itemLabelsRU string
 
 // The two install text tables this build reads by index, and the decoded
 // line numbers it reads out of them.
@@ -224,6 +219,11 @@ type InstallWords struct {
 	// the words and the byte conversion that draws them are one property of
 	// one install; nothing here converts anything.
 	Selector int
+
+	// Language is the install's language entry, the base profile's Language
+	// ("english", "russian"); empty reads English. It chooses the engine's own
+	// words (pkg/words); Selector only converts bytes.
+	Language string
 }
 
 // LoadInstallWords reads both tables once. It cannot fail: an install
@@ -297,7 +297,9 @@ func (w *InstallWords) Dialogs(i int) (string, bool) {
 // is the case a fallback exists for.
 func (w *InstallWords) Words() ui.Words {
 	out := ui.AuthoredWords()
-	if w != nil && w.Selector == 1 {
+	if w != nil {
+		book := words.For(w.Language)
+		out.Engine = book
 		encode := func(s string) string {
 			var b []byte
 			for _, r := range s {
@@ -306,24 +308,18 @@ func (w *InstallWords) Words() ui.Words {
 			}
 			return string(b)
 		}
-		labels := strings.Split(strings.TrimSpace(itemLabelsRU), "\n")
-		if len(labels) >= 2 {
-			out.ItemMagic = encode(strings.TrimSpace(labels[0]))
-		}
-		if len(labels) >= 3 {
-			out.DurationUnit = encode(strings.TrimSpace(labels[2]))
-		}
-		if len(labels) >= 6 {
-			out.ItemSpellOf = encode(strings.TrimSpace(labels[5]))
-		}
-		if len(labels) >= 5 {
-			out.ItemRays = encode(strings.TrimSpace(labels[3]))
-			out.TavernSleep = encode(strings.TrimSpace(labels[4]))
-		}
-		// The install's own stats.txt states these three words for its language.
-		for dst, k := range map[*string]int{&out.ItemCasts: 42, &out.ItemDamage: 43, &out.ItemRange: 38} {
-			if s, ok := w.Stats(k); ok {
-				*dst = s
+		out.ItemMagic = encode(book.Text("item.magic"))
+		out.DurationUnit = encode(book.Text("item.duration_unit"))
+		out.ItemSpellOf = encode(book.Text("item.spell_of"))
+		out.ItemRays = encode(book.Text("item.rays"))
+		out.TavernSleep = encode(book.Text("tavern.sleep"))
+		// A non-English install's own stats.txt states these three words for
+		// its language; the English install keeps the engine's.
+		if book.Lang() != words.English {
+			for dst, k := range map[*string]int{&out.ItemCasts: 42, &out.ItemDamage: 43, &out.ItemRange: 38} {
+				if s, ok := w.Stats(k); ok {
+					*dst = s
+				}
 			}
 		}
 	}
@@ -333,8 +329,9 @@ func (w *InstallWords) Words() ui.Words {
 				out.ItemSpellNames[id] = s
 			}
 		}
-		if w.Selector == 1 {
-			out.ItemSpellNames[11] = EncodeInstallText(string([]rune{'В', 'а', 'м', 'п', 'и', 'р', 'и', 'з', 'м'}), w.Selector)
+		// DIV-2177: a language may name Drain Life by its own alias.
+		if alias := out.Engine.Text("item.drain_life_alias"); alias != "" {
+			out.ItemSpellNames[11] = EncodeInstallText(alias, w.Selector)
 		}
 	}
 	if w != nil && w.spellBookNames.Lines() == len(originalBookIDs) {

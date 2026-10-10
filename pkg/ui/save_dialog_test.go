@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/words"
 )
 
 type saveDialogSpy struct {
@@ -501,7 +502,9 @@ func TestSaveDialogWrapPreservesWholePathsAndLocalizesMissionMeaning(t *testing.
 	a := newSaveDialogApp(t, s, ScreenMap)
 	font := chargenTestFont()
 	font.Selector = text.SelectorConverting
-	a.SetWords(AuthoredWords(), font, nil)
+	russian := AuthoredWords()
+	russian.Engine = words.For("russian")
+	a.SetWords(russian, font, nil)
 	if err := a.HeadlessSaveEdit("", "", SaveSAV); err != nil {
 		t.Fatal(err)
 	}
