@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.109.0
+
 - [ROM1] A mission script node that names a party role nobody in the party
   fills is no longer built, and a trigger naming it runs the map's first
   action instead, as in the original. In mission 100 a party without the
