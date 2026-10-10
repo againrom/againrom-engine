@@ -200,20 +200,8 @@ type Combat struct {
 	SpellPower int32
 }
 
-// Derive is a thin accessor over Hero.Recompute: it builds the recompute
-// with a zero Profile -- which reaches only the two pools, never Combat --
-// and this weapon as the Loadout's own weapon, and returns the combat block
-// alone. A nil weapon is a BARE hero, which is a state of the original and
-// not a hole in this one; the zero-value Hero derives without a special
-// case, the same as every other input to Recompute.
-//
-// It reads nothing but its two arguments: no clock, no generator, no global,
-// no file. The same pair yields the same eight numbers in every process.
-//
-// THE GRAPH ITSELF IS Recompute's OWN DOC, in recompute.go: the order, every
-// term, the equipment fold and why absorption has no source but armour.
-// Nothing about it is restated here, so there is exactly one place it can
-// drift from.
+// Derive is the combat block of Hero.Recompute with a zero Profile and this
+// weapon alone. A nil weapon is a bare hero.
 func (h Hero) Derive(w *Weapon) Combat {
 	return h.Recompute(Profile{}, Loadout{Weapon: w}).Combat
 }
@@ -225,19 +213,8 @@ const (
 	speedDivisor int32 = 5
 )
 
-// Speed is a thin accessor over Hero.Recompute: it builds the recompute with
-// a zero Profile and an empty Loadout -- neither reaches this field -- and
-// returns Speed alone.
-//
-// IT IS NOT ONE OF THE EIGHT and it is deliberately not on Combat. Those are
-// the numbers a BLOW reads; this is the number a STEP reads, and folding it
-// in would make every consumer of a blow's numbers carry a movement term it
-// has no use for.
-//
-// THE LAW ITSELF -- the branch, the two published terms this tree omits and
-// why, and the divergence between where the publishing row says the result
-// lands and where this tree's own single speed field consumes it -- is
-// Recompute's own step 5 doc, in recompute.go, beside Sight's.
+// Speed is the unencumbered speed of Hero.Recompute with a zero Profile and
+// an empty Loadout. A step reads it; a blow does not.
 func (h Hero) Speed() int32 {
 	return h.Recompute(Profile{}, Loadout{}).Speed
 }
@@ -250,19 +227,8 @@ const (
 	sightBase    int32 = 4
 )
 
-// Sight is a thin accessor over Hero.Recompute: it builds the recompute with
-// a zero Profile and an empty Loadout -- neither reaches this field -- and
-// returns Sight alone.
-//
-// IT IS NOT ONE OF THE EIGHT and is deliberately not on Combat, for Speed's
-// reason exactly: those are the numbers a BLOW reads and this is a number
-// the ACQUISITION reads, so folding it in would hand every consumer of a
-// blow's numbers a term it has no use for.
-//
-// THE LAW ITSELF -- the integer-vs-floating-point argument for why this
-// division gives the same answer as the original's scaled one, and the
-// sub-cell remainder this tree drops -- is Recompute's own step 5 doc, in
-// recompute.go, beside Speed's.
+// Sight is the whole-cell sight of Hero.Recompute with a zero Profile and an
+// empty Loadout.
 func (h Hero) Sight() int32 {
 	return h.Recompute(Profile{}, Loadout{}).Sight
 }

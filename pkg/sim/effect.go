@@ -174,6 +174,9 @@ func (w *World) applyEffectDelta(i int, kind EffectKind, amount int32) (int32, b
 		return 0, false
 	}
 	nativeModifierEffectDelta(&next, kind, landed)
+	if kind == EffectSpeed && next.nativeHumanoid() && next.SpeedModifier != before.SpeedModifier+landed {
+		next.clearSpeedModifierBasis()
+	}
 	w.entities[i] = next
 	if kind != EffectHealth || amount <= 0 {
 		w.reportHealthLoss(before, i)

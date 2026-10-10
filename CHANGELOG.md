@@ -20,6 +20,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   Russian instead of wrong letters, and so do the other words the game reads
   from the install's text tables: menu and option captions, unit, building and
   spell names, the default hero's name and the help text.
+- [BASE] Every hero and person now gets health, mana, speed, sight and combat
+  values from one calculation, whether he was made by the engine or loaded
+  from an original save. A skill bonus from worn items now raises a skill above
+  100 for heroes loaded from an original save too, and a very strong hero's
+  damage no longer exceeds what the original can hold.
 
 ## 0.109.0
 

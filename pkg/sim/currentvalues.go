@@ -320,6 +320,14 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	}
 	e.Decay, e.Dwell = v.Decay, v.Dwell
 	e.attackNotice = attackNotice{Cell: v.AttackNoticeCell, Scans: v.AttackNoticeScans}
+	// A SAV without the split operand whose derived word differs from the
+	// speed word predates the split: its mover byte follows the former
+	// order. One derive makes the turn rate agree from the first tick.
+	if v.SpeedSplit == nil && e.nativeHumanoid() {
+		if word, _ := humanSpeedWord(e.Speed, e.SpeedModifier, e.Load, e.Capacity); word != e.Speed {
+			e.deriveNativeHumanSpeed()
+		}
+	}
 	return nil
 }
 
