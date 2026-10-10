@@ -173,7 +173,7 @@ func (secondCampaignRules) beforeAdvance(f *FrontEnd, n int, ms *Mission, action
 	completion := m.kind == ui.NoticeSuccess &&
 		(action == ui.NoticeAdvance && m.open || action == ui.NoticeVictory && (m.open || m.delayedVictory && !m.victoryTaken))
 	if completion {
-		if err := town.second.finish(n, ms.World); err != nil {
+		if err := town.second.finish(n, ms.World, frontTransitions{f}.won(n, ms)); err != nil {
 			return err.Error()
 		}
 	}
@@ -185,7 +185,7 @@ func (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, st
 	if town == nil || town.second == nil {
 		return r.firstCampaignRules.finishWon(f, n, ms)
 	}
-	if err := town.second.finish(n, ms.World); err != nil {
+	if err := town.second.finish(n, ms.World, frontTransitions{f}.won(n, ms)); err != nil {
 		return -1, err.Error()
 	}
 	if refused := f.CampaignSession.carryMissionHome(f.townInstall(), n, ms.Party, ms.World, ms.Start.IDs, ms.Start.Roster); refused != "" {
@@ -272,3 +272,9 @@ func (secondCampaignRules) eventAudience(mw *mapWorld) (EventAudience, bool) {
 func (secondCampaignRules) objectives(mw *mapWorld, briefing string) string {
 	return mw.secondGameObjectivePanel(briefing)
 }
+
+func (secondCampaignRules) chat() *chatAdapter { return &secondChat }
+
+// chatCampaign: a mission opened while the town holds the destinations
+// campaign runs in campaign mode (R2-ENGINE-296).
+func (secondCampaignRules) chatCampaign(town *Town) bool { return town != nil && town.second != nil }
