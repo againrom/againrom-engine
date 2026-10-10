@@ -21,17 +21,14 @@ import (
 // painters the kit has not absorbed yet; widgetNotAFrame names the matches
 // that draw no frame, with the reason.
 
-// A PUSH BUTTON PAINTER is a production function in pkg/ui outside the kit
-// that paints a push button's face or press state itself instead of calling
-// drawPushButton: it is named like one (draw, paint, fill or stamp, then
-// Button), calls the plaque ink or press offset (buttonInk,
-// buttonTextOffset), reads a button colour (a name ending in ButtonFill,
-// ButtonSelected, ButtonBorder, ButtonFace or ButtonBevel), or picks a
-// button picture by its state (an index into an index into a set named
-// ...Buttons). A closure counts for the
-// function that declares it, so a canvas painter and its image twin are both
-// found. widgetButtonDebt names the painters the kit has not absorbed yet;
-// widgetNotAButton names the matches that paint no button, with the reason.
+// A PUSH BUTTON PAINTER is a pkg/ui function outside the kit that paints a
+// button's face or press state itself: it is named draw, paint, fill or
+// stamp ...Button; picks a plaque ink by state (...Ink.Rest, .Hover,
+// .Disabled, or a plaqueInk literal); uses plaqueSink other than as a
+// literal's field value; reads a ...ButtonFill, Selected, Border, Face or
+// Bevel colour; or indexes twice into a ...Buttons set. A closure counts for
+// its function. widgetButtonDebt names the painters not yet absorbed;
+// widgetNotAButton the matches that paint no button.
 
 // A PRESS LATCH is a struct field in pkg/ui or pkg/render named press or
 // ending in Press. Outside the kit and the latch package its type is the kit
@@ -70,13 +67,8 @@ var widgetNotAFrame = map[string]string{
 // widgetButtonDebt is every push button painter outside the kit. It may only
 // fall.
 var widgetButtonDebt = map[string]string{
-	"pkg/ui/app.go:drawTownButton":               "second-game town list button on the canvas",
-	"pkg/ui/townlist.go:composeTownList":         "second-game town list button, the image twin in a closure",
-	"pkg/ui/chargen_page.go:drawChargenCommands": "generator Accept, Reset and Back plaques",
-	"pkg/ui/chargen_page.go:detailedStatButton":  "generator stat plus and minus pictures by state",
-	"pkg/ui/save_dialog_draw.go:saveDialogPaint": "save dialog buttons without the menu font",
-	"pkg/ui/shopscreen.go:ComposeShopScreen":     "shop control captions, ink and press offset",
-	"pkg/ui/townshell.go:ComposeTownSurface":     "town surface plaques, ink and press offset",
+	"pkg/ui/app.go:drawTownButton":       "second-game town list button on the canvas",
+	"pkg/ui/townlist.go:composeTownList": "second-game town list button, the image twin in a closure",
 }
 
 // widgetNotAButton is every function the push button rule matches that
@@ -86,12 +78,7 @@ var widgetNotAButton = map[string]string{
 }
 
 // widgetLatchDebt is every press latch outside the kit. It may only fall.
-var widgetLatchDebt = map[string]string{
-	"pkg/ui/app.go:townSurfacePress":  "town surface controls",
-	"pkg/ui/app.go:townTipPress":      "room tip close button",
-	"pkg/ui/townpointer.go:tipPress":  "room tip close button, as the town room draws it",
-	"pkg/ui/townpointer.go:shopPress": "shop controls",
-}
+var widgetLatchDebt = map[string]string{}
 
 // widgetNotALatch is every field the latch rule matches that is not a push
 // button latch, or that holds the kit latch inside a wider record.
@@ -107,7 +94,14 @@ var (
 	buttonColourName  = regexp.MustCompile(`[bB]utton(Fill|Selected|Border|Face|Bevel)$`)
 	buttonPictureSet  = regexp.MustCompile(`Buttons$`)
 	pressFieldName    = regexp.MustCompile(`^(press|[a-z][A-Za-z]*Press)$`)
+	plaqueInkName     = regexp.MustCompile(`^[a-z][A-Za-z]*Ink$`)
 )
+
+// plaqueSinkName is the kit's sunk caption offset; plaqueInkState the ink
+// fields named by state.
+const plaqueSinkName = "plaqueSink"
+
+var plaqueInkState = map[string]bool{"Rest": true, "Hover": true, "Disabled": true}
 
 func widgetKitFile(name string) bool {
 	base := path.Base(name)
@@ -242,20 +236,29 @@ func buttonPainter(fn *ast.FuncDecl) string {
 					return false
 				}
 			case *ast.KeyValueExpr:
-				// A composite literal's key names a field; only its value is read.
+				// A literal's key names a field; a bare sink value is data.
+				if id, ok := n.Value.(*ast.Ident); ok && id.Name == plaqueSinkName {
+					return false
+				}
 				walk(n.Value, closure)
 				return false
-			case *ast.CallExpr:
-				if id, ok := n.Fun.(*ast.Ident); ok && (id.Name == "buttonInk" || id.Name == "buttonTextOffset") {
-					found = "calls " + id.Name
+			case *ast.CompositeLit:
+				if id, ok := n.Type.(*ast.Ident); ok && id.Name == "plaqueInk" {
+					found = "builds a plaqueInk"
 				}
 			case *ast.SelectorExpr:
 				if buttonColourName.MatchString(n.Sel.Name) {
 					found = "reads the button colour " + n.Sel.Name
 				}
+				if x, ok := n.X.(*ast.Ident); ok && plaqueInkName.MatchString(x.Name) && plaqueInkState[n.Sel.Name] {
+					found = "picks the plaque ink " + x.Name + "." + n.Sel.Name
+				}
 			case *ast.Ident:
 				if buttonColourName.MatchString(n.Name) {
 					found = "reads the button colour " + n.Name
+				}
+				if n.Name == plaqueSinkName {
+					found = "moves a caption by " + plaqueSinkName
 				}
 			case *ast.IndexExpr:
 				if inner, ok := n.X.(*ast.IndexExpr); ok && buttonPictureSet.MatchString(exprName(inner.X)) {

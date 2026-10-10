@@ -60,8 +60,8 @@ func TestSchoolTipPanelCrossingLeavesNoLatch(t *testing.T) {
 	if len(town.surfaceClicks) != 0 {
 		t.Fatalf("surfaceClicks = %v after a press on a live button and a release inside the showing panel, want none", town.surfaceClicks)
 	}
-	if a.townSurfacePress != (TownSurfaceControl{}) {
-		t.Fatalf("townSurfacePress = %+v after the release the panel swallowed, want the zero value: the latch is still armed", a.townSurfacePress)
+	if a.townSurfacePress.Holds() {
+		t.Fatalf("townSurfacePress holds %+v after the release the panel swallowed, want it clear: the latch is still armed", a.townSurfacePressed())
 	}
 	// The next release on that same button, with no new press between, must
 	// activate nothing either.

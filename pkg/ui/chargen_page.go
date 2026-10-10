@@ -720,39 +720,28 @@ func detailedSkillArt(states [3]image.Image) detailedSkillPictures {
 	}
 }
 
-// drawChargenCommands draws Accept, Reset and Back (MENU-139): a button
+// chargenCommandInk is pale gold at rest.
+var chargenCommandInk = plaqueInk{
+	Rest:     color.RGBA{255, 230, 150, 255},
+	Hover:    plaqueCommandInk.Hover,
+	Disabled: plaqueCommandInk.Disabled,
+}
+
+// chargenCommandButtons are Accept, Reset and Back (MENU-139): a button
 // shows its on picture, with the label 1 px lower, only while pressed and
 // hovered, and its off picture otherwise. The labels are font4.
-func drawChargenCommands(dst *image.RGBA, p *ChargenPresentation, detail *ChargenDetailed, hover, pressed chargenControl) {
-	font := p.NameFont
-	if font == nil {
-		font = p.Font
-	}
+func chargenCommandButtons(p *ChargenPresentation, detail *ChargenDetailed, hover, pressed chargenControl) [3]pushButton {
+	var out [3]pushButton
 	for i, control := range []struct {
 		id    chargenControl
 		label string
 	}{{chargenPlay, detail.Play}, {chargenReset, detail.Reset}, {chargenBack, detail.Back}} {
 		r := detailedControlRegion(control.id)
-		down := pressed == control.id && hover == control.id
-		pic := p.NavButtons[i][0]
-		if down {
-			pic = p.NavButtons[i][1]
-		}
-		copyNative(dst, pic, r.Min, r)
-		if font == nil {
-			continue
-		}
-		ink := color.RGBA{255, 230, 150, 255}
-		if hover == control.id {
-			ink = buttonInk(true, true)
-		}
-		w, h := font.Measure(control.label)
-		y := r.Min.Y + (r.Dy()-h)/2
-		if down {
-			y++
-		}
-		font.Draw(dst, control.label, r.Min.X+(r.Dx()-w)/2, y, ink)
+		out[i] = pushButton{Rect: r, Hover: hover == control.id, Pressed: pressed == control.id, Inside: hover == control.id,
+			Face: &plaqueFace{Pictures: plaquePair(p.NavButtons[i]), Ink: chargenCommandInk, Sink: plaqueSink,
+				Captions: []plaqueCaption{{Text: control.label, Rect: r}}}}
 	}
+	return out
 }
 
 // chargenMessageRect is where the detailed page's own transient
@@ -769,9 +758,7 @@ var chargenMessageRect = image.Rect(
 	chargenDollBox.Max.X-4, chargenDollBox.Max.Y-4)
 
 // drawChargenMessage writes msg centred in chargenMessageRect with a
-// one-pixel shadow, trimming from the end until it fits — drawShopMessage's
-// own rule, restated here rather than shared because the two message rects
-// are unrelated sizes and neither page holds a reference to the other's.
+// one-pixel shadow, trimmed from the end to fit.
 func drawChargenMessage(dst *image.RGBA, f *text.Font, msg string) {
 	if f == nil || msg == "" {
 		return
@@ -799,31 +786,21 @@ func drawChargenCentered(dst *image.RGBA, f *text.Font, value string, box image.
 	f.Draw(dst, value, box.Min.X+(box.Dx()-w)/2, box.Min.Y+(box.Dy()-h)/2, c)
 }
 
-// detailedStatButton picks a stat button's art (MENU-138): disabled, then
-// pressed light while hovered with the left button held, light while
-// hovered, else rest. The nl-on pictures are never drawn.
-func detailedStatButton(p *ChargenPresentation, c *Chargen, plus bool, stat int, hover, pressed chargenControl) image.Image {
-	if p == nil || stat < 0 || stat >= 4 {
-		return nil
-	}
+// detailedStatButton is a stat button (MENU-138): disabled, then pressed
+// light while hovered with the left button held, light while hovered, else
+// rest. The nl-on pictures are never drawn.
+func detailedStatButton(p *ChargenPresentation, c *Chargen, plus bool, stat int, hover, pressed chargenControl) pushButton {
 	direction := 0
 	id := chargenStatMinus0 + chargenControl(stat)
+	box := chargenStatMinusBox[stat]
 	if plus {
-		direction, id = 1, chargenStatPlus0+chargenControl(stat)
+		direction, id, box = 1, chargenStatPlus0+chargenControl(stat), chargenStatPlusBox[stat]
 	}
-	state := 0 // nl-off
-	switch {
-	case !detailedStatAvailable(c, plus, stat):
-		state = 4 // disable
-	case hover == id && (pressed == id || c != nil && c.statHeld):
-		state = 2 // l-on
-	case hover == id:
-		state = 1 // l-off
-	}
-	if pic := p.StatButtons[direction][state]; pic != nil {
-		return pic
-	}
-	return p.StatButtons[direction][0]
+	pictures := p.StatButtons[direction]
+	return pushButton{Rect: box, Hover: hover == id, Inside: hover == id,
+		Pressed: pressed == id || c != nil && c.statHeld, Disabled: !detailedStatAvailable(c, plus, stat),
+		Face: &plaqueFace{Pictures: [plaqueStates]image.Image{
+			plaqueRest: pictures[0], plaqueHover: pictures[1], plaqueDown: pictures[2], plaqueDisabled: pictures[4]}}}
 }
 
 func detailedStatAvailable(c *Chargen, plus bool, stat int) bool {
@@ -873,9 +850,6 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	} else {
 		drawFrame(dst, panelFrame(chargenNavBox, color.RGBA{16, 18, 24, 255}, color.RGBA{138, 116, 70, 255}))
 	}
-	// chargenDollBox's own frame drew here in round 1; it is fully overdrawn
-	// by drawTownPane's own DollPane body below (round-2 adversarial review
-	// item 4), and the call was dead. Removed rather than left inert.
 	platePane := TownPane{Body: p.Plate, Seam: p.PlateSeam}
 	drawTownPane(dst, TownPane{Body: platePane.Body}, chargenPlateBox, image.Rectangle{})
 	cardPane := TownPane{Seam: p.CardSeam}
@@ -891,13 +865,10 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	// chargenColumnDestination from x:[300,480) to x:[160,480) (1022 spec
 	// B1), which brought x:[160,176) inside it for the first time; drawing
 	// both seams here, before that widening landed, erased neither.
-	// TestReleaseChargenDetailedSeamColumnsDrawShippedStrips (an install-
-	// gated test, not run by go test ./... per golden rule 2) caught the
-	// erasure against a real install.
 	for stat := 0; stat < len(c.statValue) && stat < 4; stat++ {
-		copyNative(dst, detailedStatButton(p, c, false, stat, hover, pressed), chargenStatMinusBox[stat].Min, chargenStatMinusBox[stat])
+		drawPushButton(dst, nil, detailedStatButton(p, c, false, stat, hover, pressed))
 		drawChargenCentered(dst, p.Font, fmt.Sprintf("%d", c.statValue[stat]), chargenStatValueBox[stat], color.RGBA{255, 255, 255, 255})
-		copyNative(dst, detailedStatButton(p, c, true, stat, hover, pressed), chargenStatPlusBox[stat].Min, chargenStatPlusBox[stat])
+		drawPushButton(dst, nil, detailedStatButton(p, c, true, stat, hover, pressed))
 	}
 	drawChargenCentered(dst, p.Font, GroupDigits(int64(c.Remaining())), chargenRemainingBox, color.RGBA{255, 230, 150, 255})
 	class := 0
@@ -951,7 +922,13 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 		copyNativeKeyed(dst, pic, detailedSkillOrigin[class][k].Add(chargenColumnOffset), chargenColumnSkillClip)
 	}
 	if detail := c.setup.Detailed; detail != nil {
-		drawChargenCommands(dst, p, detail, hover, pressed)
+		font := p.NameFont
+		if font == nil {
+			font = p.Font
+		}
+		for _, b := range chargenCommandButtons(p, detail, hover, pressed) {
+			drawPushButton(dst, font, b)
+		}
 	}
 	preview := c.Preview()
 	if p.Font != nil {
@@ -982,11 +959,8 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	} else {
 		copyNativeOver(dst, preview.Doll, chargenDollBox.Min.Add(image.Pt(0, 2)), chargenDollBox)
 	}
-	// The message strip draws over the doll box's own backdrop, after the doll
-	// and before the tip panel (1022 round-2): restoring DIV-192's dropped
-	// channel does not move the tip panel's own draw order, and the strip sits
-	// entirely right of ChargenTipRect so neither can cover the other
-	// regardless of which draws last.
+	// The message strip draws over the doll box's backdrop, right of
+	// ChargenTipRect (DIV-192).
 	if p.Font != nil {
 		drawChargenMessage(dst, p.Font, c.message)
 	}
