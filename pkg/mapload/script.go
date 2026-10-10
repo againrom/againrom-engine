@@ -64,6 +64,11 @@ const scriptMessageOpcode int32 = 2
 // identified hero-band subjects; none is a raw party subscript. Presence
 // flags and map membership distinguish entity zero from absence.
 //
+// Roster says the hero band was resolved against the roster the binder sees at
+// mission load. Under it a ROM1 node naming a hero-band value the roster
+// leaves unresolved is not built (TRIG-HEROFAIL-078); without it every ROM1
+// node is built, which is what a compile that only patches endpoints needs.
+//
 // Structures maps a type-4 record's own +0x12 word (`alm.Object.Field12`,
 // `ALM-TRIG-046`) to the structure it became, on Units' own terms (1033 B3):
 // a Target_Structure parameter names one of these words and nothing else,
@@ -75,6 +80,7 @@ type ScriptRefs struct {
 	Companion    sim.EntityID
 	HasCompanion bool
 	Roles        map[uint32]sim.EntityID
+	Roster       bool
 	Structures   map[uint16]sim.StructureID
 }
 
@@ -220,9 +226,10 @@ type ScriptUnresolved struct {
 // object-construction form, and anything else at or above the build-time floor,
 // which the engine drops with no message.
 //
-// Unresolved names every reference the binder could not resolve. The node is
-// still built and still takes its register — see the note on the compile — but
-// it measures nothing, and this is where a consumer finds out.
+// Unresolved names every reference the binder could not resolve. A node the
+// compile omits is also in OmittedActions or OmittedChecks; a node it builds
+// measures nothing through that reference, and this is where a consumer finds
+// out.
 //
 // IT IS NOT COVERED BY THE INERT-TRIGGER REPORT, and reading one for the other is
 // how this goes unnoticed. Inertness is derived from UNIMPLEMENTED ARMS: a
@@ -272,23 +279,13 @@ func (r ScriptReport) Empty() bool {
 //  3. the TRIGGERS, each becoming a pattern, resolving its slots to the
 //     subscripts the first two passes assigned.
 //
-// A NODE THAT CANNOT RESOLVE ITS REFERENCE IS STILL BUILT AND STILL TAKES ITS
-// REGISTER, and that is a choice with a rival. The original refuses to build such
-// a node and its register goes to the next one instead, which shifts every later
-// subscript. Whether that shift ever happens is a question about THE ORIGINAL's
-// builder, which resolves every reference all 38 maps make once the Target_Unit
-// bands are honoured — it has a live player list, so the hero band costs it
-// nothing (ALM-TRIG-046, whose count spans all four reference kinds).
-//
-// THAT IS NOT A STATEMENT ABOUT THIS BUILD, and this comment used to compress it
-// into one — "nothing in the shipped corpus fails to resolve" — which read as a
-// claim that the divergence is unreachable here. It is not. This build resolves
-// the hero band only when its caller supplies a hero, so a caller that does not
-// leaves 196 of the corpus's references unresolved. The sentence is named here
-// rather than merely deleted, because for as long as it stood nobody looked.
-//
-// The divergence is reported rather than hidden: every such node is in
-// ScriptReport.Unresolved.
+// A NODE THE BINDER DOES NOT BUILD takes no subscript and no register, so
+// every later node takes the one before it, and a slot or pair naming it
+// resolves to subscript or register 0 (TRIG-BIND-010, TRIG-M100-096). Which
+// nodes those are is bound.unbuilt's one rule. A ROM1 node is unbuilt only
+// when refs.Roster says the hero band was resolved against the binding
+// roster; a ROM1 below-band unit or structure miss is reported in
+// ScriptReport.Unresolved and the node is still built (DIV-2792).
 func CompileScript(m *alm.Map, refs ScriptRefs) (*sim.Script, ScriptReport, error) {
 	if m == nil {
 		return nil, ScriptReport{}, nil
@@ -334,6 +331,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	instants := make([]sim.ScriptInstant, 0, len(src.Actions))
 	instantOf := make(map[uint32]int32, len(src.Actions))
 	buildTime := make(map[uint32]bool)
+	unbuilt := make(map[uint32]bool)
 	for _, n := range src.Actions {
 		var args [10]int32
 		var refd bound
@@ -356,8 +354,12 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			}
 			continue
 		}
-		if dialect == sim.ScriptROM2 && refd.failed {
-			buildTime[n.ID] = true
+		if refd.unbuilt(dialect, refs) {
+			if dialect == sim.ScriptROM2 {
+				buildTime[n.ID] = true
+			} else {
+				unbuilt[n.ID] = true
+			}
 			rep.OmittedActions = append(rep.OmittedActions, n.ID)
 			continue
 		}
@@ -385,7 +387,7 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		} else {
 			args, refd = bindScriptParams(n, refs, &rep, true, dialect)
 		}
-		if dialect == sim.ScriptROM2 && n.Opcode != scriptConstOpcode && refd.failed {
+		if !(dialect == sim.ScriptROM2 && n.Opcode == scriptConstOpcode) && refd.unbuilt(dialect, refs) {
 			rep.OmittedChecks = append(rep.OmittedChecks, n.ID)
 			omittedChecks[n.ID] = true
 			continue
@@ -477,7 +479,14 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			// what the simulation runs; a MISS must not become an announcement,
 			// because subscript 0 is then another action entirely. This is the
 			// only place in the program where the two can still be told apart.
-			if idx, hit := instantOf[t.Acts[k]]; hit && instants[idx].Op == scriptMessageOpcode {
+			// A slot naming an action the ROM1 binder left unbuilt is the one
+			// miss that does run subscript 0 as the original does (DIV-2793), so
+			// it takes instant 0's announcement in its own slot position.
+			idx, hit := instantOf[t.Acts[k]]
+			if !hit && unbuilt[t.Acts[k]] {
+				idx, hit = 0, true
+			}
+			if hit && instants[idx].Op == scriptMessageOpcode {
 				rep.Raises = append(rep.Raises, ScriptRaise{
 					Latch: out.Latch,
 					Event: instants[idx].Args[0],
@@ -518,9 +527,22 @@ func lookupOr0(tbl map[uint32]int32, id uint32) int32 {
 	return 0
 }
 
+// unbuilt is the one omission rule: a node the binder does not build takes no
+// subscript and no register, and a ROM1 slot or pair naming it resolves to 0
+// (TRIG-BIND-010). ROM2 omits a node any of whose references fails. ROM1
+// omits one whose hero-band value the binding roster leaves unresolved;
+// a below-band unit or structure miss stays built (DIV-2792).
+func (b bound) unbuilt(dialect sim.ScriptDialect, refs ScriptRefs) bool {
+	if dialect == sim.ScriptROM2 {
+		return b.failed
+	}
+	return refs.Roster && b.roleFailed
+}
+
 // bound is the reference half of one node's parameter block.
 type bound struct {
 	failed            bool
+	roleFailed        bool
 	unit, unit2       sim.EntityID
 	hasUnit, hasUnit2 bool
 	seenUnit          int
@@ -618,6 +640,7 @@ func bindParamsDialect(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, con
 			}
 			if !ok {
 				b.failed = true
+				b.roleFailed = b.roleFailed || v >= scriptHeroBandLow && v <= scriptHeroBandHigh
 				rep.Unresolved = append(rep.Unresolved, ScriptUnresolved{
 					Condition: cond, Kind: ScriptRefUnit, NodeID: n.ID, Opcode: n.Opcode, Value: v})
 			}

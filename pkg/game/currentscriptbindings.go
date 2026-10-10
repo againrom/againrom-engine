@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -23,7 +24,7 @@ func restoreCurrentScriptBindings(ms *Mission, table *mapload.Table) error {
 	if tableGame(table).Edition().SecondScripts {
 		compile = mapload.CompileROM2Script
 	}
-	roles, _, err := compile(ms.Map, refs)
+	roles, err := currentScriptRolesProgram(ms.World, ms.Map, refs, compile)
 	if err != nil {
 		return err
 	}
@@ -31,6 +32,24 @@ func restoreCurrentScriptBindings(ms *Mission, table *mapload.Table) error {
 		return err
 	}
 	return restoreMission40CompanionObjective(ms)
+}
+
+// currentScriptRolesProgram compiles refs in the shape of the world's program.
+// A program saved before unbuilt role nodes were omitted built every node, so
+// when the roster's shape does not match it the roles are compiled that way.
+func currentScriptRolesProgram(w *sim.World, m *alm.Map, refs mapload.ScriptRefs,
+	compile func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)) (*sim.Script, error) {
+	roles, _, err := compile(m, refs)
+	if err != nil || !refs.Roster || roles == nil {
+		return roles, err
+	}
+	current := w.Script()
+	if current == nil || len(current.Checks()) == len(roles.Checks()) && len(current.Instants()) == len(roles.Instants()) {
+		return roles, nil
+	}
+	refs.Roster = false
+	roles, _, err = compile(m, refs)
+	return roles, err
 }
 
 func restoreMission40CompanionObjective(ms *Mission) error {
