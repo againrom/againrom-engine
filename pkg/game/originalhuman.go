@@ -307,7 +307,7 @@ func memberSchoolPrice(m mapload.PartyMember, slot int) int {
 		}
 		return 0
 	}
-	return heroSkillPrice(m.Hero.Skill[slot])
+	return schoolPrice(m.Hero.Skill[slot])
 }
 
 func originalCityUpgradeParty(party []mapload.PartyMember, state *originalCitySaveState) []mapload.PartyMember {
