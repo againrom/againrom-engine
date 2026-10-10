@@ -1011,18 +1011,43 @@ func savGateNewGames() []savGateCase {
 	return cases
 }
 
-// TestSAVRoundTripGateNewGameKits runs the New Game save points and the owner
-// kits named by AGAINROM_SAV_ROUNDTRIP_KITS.
-func TestSAVRoundTripGateNewGameKits(t *testing.T) {
+// The New Game and kit part tests run the New Game save points and the owner
+// kits named by AGAINROM_SAV_ROUNDTRIP_KITS, split over savGateKitParts.
+func TestSAVRoundTripGateNewGameKitsPart1(t *testing.T) { savGateNewGameKits(t, 0) }
+func TestSAVRoundTripGateNewGameKitsPart2(t *testing.T) { savGateNewGameKits(t, 1) }
+func TestSAVRoundTripGateNewGameKitsPart3(t *testing.T) { savGateNewGameKits(t, 2) }
+
+// The corpus part tests run every original under AGAINROM_SAVE_CORPUS: a town
+// saved off the map; a mission resaved as loaded, and played to full decay or
+// on the dying route. The cases are split over savGateCorpusParts.
+func TestSAVRoundTripGateCorpusPart1(t *testing.T) { savGateCorpusPart(t, 0) }
+func TestSAVRoundTripGateCorpusPart2(t *testing.T) { savGateCorpusPart(t, 1) }
+func TestSAVRoundTripGateCorpusPart3(t *testing.T) { savGateCorpusPart(t, 2) }
+func TestSAVRoundTripGateCorpusPart4(t *testing.T) { savGateCorpusPart(t, 3) }
+
+const (
+	savGateKitParts    = 3
+	savGateCorpusParts = 4
+)
+
+func savGateNewGameKits(t *testing.T, part int) {
 	kits, absent := savGateKits(t)
-	savGateCensus(t, "newgamekits", []string{"newgame", "kit resave", "kit played", "kit cycled"}, append(savGateNewGames(), kits...), absent)
+	savGateCensus(t, "newgamekits", part, savGateKitParts, []string{"newgame", "kit resave", "kit played", "kit cycled"}, append(savGateNewGames(), kits...), absent)
 }
 
-// TestSAVRoundTripGateCorpus runs every original under AGAINROM_SAVE_CORPUS:
-// a town saved off the map; a mission resaved as loaded, and played to full
-// decay or on the dying route.
-func TestSAVRoundTripGateCorpus(t *testing.T) {
-	savGateCensus(t, "corpus", []string{"corpus town", "corpus resave", "corpus played", "corpus dying"}, savGateCorpus(t), nil)
+func savGateCorpusPart(t *testing.T, part int) {
+	savGateCensus(t, "corpus", part, savGateCorpusParts, []string{"corpus town", "corpus resave", "corpus played", "corpus dying"}, savGateCorpus(t), nil)
+}
+
+// savGateShareCost is a case's weight when the cases are shared among parts:
+// its file size, a New Game counted as a typical file, times its route's
+// cost.
+func savGateShareCost(c savGateCase) int64 {
+	size := int64(len(c.raw))
+	if c.raw == nil {
+		size = 65536
+	}
+	return size * int64(savGateCost(c)+1)
 }
 
 // savGateCost orders cases longest first so the workers finish together.
@@ -1083,7 +1108,16 @@ func savGateReadBaseline(t *testing.T, name string) map[string]*savGateRecord {
 
 // savGateWriteBaseline writes the observed outcomes as a baseline file under
 // dir, for AGAINROM_SAV_ROUNDTRIP_RECORD.
-func savGateWriteBaseline(t *testing.T, dir, name string, cases []savGateCase, outcomes []savGateOutcome) {
+func savGateWriteBaseline(t *testing.T, dir, name string, lines []string) {
+	sort.Strings(lines)
+	body := "# population\tcase\toutcome\tkey; written by AGAINROM_SAV_ROUNDTRIP_RECORD\n" + strings.Join(lines, "\n") + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "savroundtripgate-"+name+".txt"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// savGateBaselineLines are the baseline lines of the outcomes.
+func savGateBaselineLines(cases []savGateCase, outcomes []savGateOutcome) []string {
 	var lines []string
 	for i, c := range cases {
 		o := outcomes[i]
@@ -1092,14 +1126,27 @@ func savGateWriteBaseline(t *testing.T, dir, name string, cases []savGateCase, o
 			lines = append(lines, fmt.Sprintf("%s\t%s\t%s\t%s", c.population, c.name, o.kind(), k))
 		}
 	}
-	sort.Strings(lines)
-	body := "# population\tcase\toutcome\tkey; written by AGAINROM_SAV_ROUNDTRIP_RECORD\n" + strings.Join(lines, "\n") + "\n"
-	if err := os.WriteFile(filepath.Join(dir, "savroundtripgate-"+name+".txt"), []byte(body), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	return lines
 }
 
-// savGateCensus runs the cases, at most savGateWorkers at once (or
+// savGateCensusCounts is one population's census.
+type savGateCensusCounts struct {
+	Discovered, Accepted, Unreadable, Refused, Mismatched, Absent int
+}
+
+// savGateCensusSummary is one part's census, as the part that completes the
+// set reads it.
+type savGateCensusSummary struct {
+	Pops     map[string]*savGateCensusCounts
+	Keys     map[string]map[string]int
+	Lines    []string
+	Cases    int
+	Workers  int
+	Wall     time.Duration
+	Recorded bool
+}
+
+// savGateCensus runs one part's share of the cases, at most savGateWorkers at once (or
 // AGAINROM_SAV_ROUNDTRIP_WORKERS), logs every outcome in case order and the
 // census of each named population, and checks each case against the
 // baseline:
@@ -1112,9 +1159,12 @@ func savGateWriteBaseline(t *testing.T, dir, name string, cases []savGateCase, o
 //     defects passes;
 //   - a recorded case that did not run fails, so an emptied corpus fails.
 //
+// The first part also checks the baseline's causes, the absent kits and the
+// missing cases, over every discovered case. The part that completes the set
+// logs the census of the whole and writes a recorded baseline.
 // AGAINROM_SAV_ROUNDTRIP_ONLY keeps only the cases whose name contains it and
 // then skips the missing-case check.
-func savGateCensus(t *testing.T, name string, populations []string, cases []savGateCase, absent []string) {
+func savGateCensus(t *testing.T, name string, part, parts int, populations []string, cases []savGateCase, absent []string) {
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if assets == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install")
@@ -1129,6 +1179,18 @@ func savGateCensus(t *testing.T, name string, populations []string, cases []savG
 			}
 		}
 		cases = kept
+	}
+	discovered := cases
+	names, costs := make([]string, len(cases)), make([]int64, len(cases))
+	for i, c := range cases {
+		names[i], costs[i] = c.name, savGateShareCost(c)
+	}
+	share := corpusPartOf(names, costs, parts)
+	cases = nil
+	for i, c := range discovered {
+		if share[i] == part {
+			cases = append(cases, c)
+		}
 	}
 	workers := savGateWorkers
 	if n, err := strconv.Atoi(os.Getenv("AGAINROM_SAV_ROUNDTRIP_WORKERS")); err == nil && n > 0 {
@@ -1162,16 +1224,14 @@ func savGateCensus(t *testing.T, name string, populations []string, cases []savG
 	}
 	close(next)
 	wg.Wait()
+	mine := savGateCensusSummary{Pops: map[string]*savGateCensusCounts{}, Keys: map[string]map[string]int{}, Cases: len(cases), Workers: workers}
 	if dir := os.Getenv("AGAINROM_SAV_ROUNDTRIP_RECORD"); dir != "" {
-		savGateWriteBaseline(t, dir, name, cases, outcomes)
+		mine.Lines, mine.Recorded = savGateBaselineLines(cases, outcomes), true
 	}
 
-	type census struct {
-		discovered, accepted, unreadable, refused, mismatched, absent int
-	}
-	pops := map[string]*census{}
+	pops := mine.Pops
 	for _, p := range populations {
-		pops[p] = &census{}
+		pops[p] = &savGateCensusCounts{}
 	}
 	named := map[string]map[string]bool{}
 	for key, r := range baseline {
@@ -1180,30 +1240,34 @@ func savGateCensus(t *testing.T, name string, populations []string, cases []savG
 		}
 		for k := range r.keys {
 			named[r.population][k] = true
-			if _, ok := savGateCause(k); !ok {
+			if _, ok := savGateCause(k); !ok && part == 0 {
 				t.Errorf("SAV-ROUNDTRIP-GATE UNNAMED %s: baselined key %q has no cause in savGateCauses", key, k)
 			}
 		}
 	}
-	for _, p := range absent {
-		t.Errorf("SAV-ROUNDTRIP-GATE ABSENT kit %s", p)
-		pops["kit resave"].absent++
+	if part == 0 {
+		for _, p := range absent {
+			t.Errorf("SAV-ROUNDTRIP-GATE ABSENT kit %s", p)
+			pops["kit resave"].Absent++
+		}
 	}
 	ran := map[string]bool{}
+	for _, c := range discovered {
+		ran[c.name] = true
+	}
 	for i, c := range cases {
 		o, p := outcomes[i], pops[c.population]
-		ran[c.name] = true
-		p.discovered++
+		p.Discovered++
 		switch o.kind() {
 		case "unreadable":
-			p.unreadable++
+			p.Unreadable++
 		case "refused":
-			p.refused++
+			p.Refused++
 			t.Logf("SAV-ROUNDTRIP-GATE REFUSED %s: %s", c.name, o.refusal)
 		case "mismatched":
-			p.mismatched++
+			p.Mismatched++
 		default:
-			p.accepted++
+			p.Accepted++
 		}
 		if len(o.mismatches) > 0 {
 			t.Logf("SAV-ROUNDTRIP-GATE MISMATCHED %s: %s", c.name, strings.Join(o.mismatches, ", "))
@@ -1241,7 +1305,7 @@ func savGateCensus(t *testing.T, name string, populations []string, cases []savG
 			t.Logf("SAV-ROUNDTRIP-GATE FIXED %s: %s no longer occurs; record the baseline again", c.name, k)
 		}
 	}
-	if only == "" {
+	if only == "" && part == 0 {
 		var missing []string
 		for key := range baseline {
 			if !ran[key] {
@@ -1253,7 +1317,7 @@ func savGateCensus(t *testing.T, name string, populations []string, cases []savG
 			t.Errorf("SAV-ROUNDTRIP-GATE MISSING %s: recorded in the baseline, not run", key)
 		}
 	}
-	keys := map[string]map[string]int{}
+	keys := mine.Keys
 	for i, c := range cases {
 		if keys[c.population] == nil {
 			keys[c.population] = map[string]int{}
@@ -1262,19 +1326,60 @@ func savGateCensus(t *testing.T, name string, populations []string, cases []savG
 			keys[c.population][k]++
 		}
 	}
+	mine.Wall = time.Since(start)
+	t.Logf("SAV-ROUNDTRIP-GATE PART %d of %d: %d case(s) in %s", part+1, parts, len(cases), mine.Wall.Round(time.Second))
+	set := corpusPartsCollect(t, "savgate-"+name, part, parts, mine)
+	if set == nil {
+		return
+	}
+	whole := savGateCensusSummary{Pops: map[string]*savGateCensusCounts{}, Keys: map[string]map[string]int{}}
 	for _, p := range populations {
-		c := pops[p]
+		whole.Pops[p] = &savGateCensusCounts{}
+	}
+	for _, s := range corpusPartsDecode[savGateCensusSummary](t, set) {
+		for p, c := range s.Pops {
+			w := whole.Pops[p]
+			if w == nil {
+				w = &savGateCensusCounts{}
+				whole.Pops[p] = w
+			}
+			w.Discovered += c.Discovered
+			w.Accepted += c.Accepted
+			w.Unreadable += c.Unreadable
+			w.Refused += c.Refused
+			w.Mismatched += c.Mismatched
+			w.Absent += c.Absent
+		}
+		for p, ks := range s.Keys {
+			if whole.Keys[p] == nil {
+				whole.Keys[p] = map[string]int{}
+			}
+			for k, n := range ks {
+				whole.Keys[p][k] += n
+			}
+		}
+		whole.Lines = append(whole.Lines, s.Lines...)
+		whole.Recorded = whole.Recorded || s.Recorded
+		whole.Cases += s.Cases
+		whole.Workers = max(whole.Workers, s.Workers)
+		whole.Wall = max(whole.Wall, s.Wall)
+	}
+	if dir := os.Getenv("AGAINROM_SAV_ROUNDTRIP_RECORD"); dir != "" && whole.Recorded {
+		savGateWriteBaseline(t, dir, name, whole.Lines)
+	}
+	for _, p := range populations {
+		c := whole.Pops[p]
 		t.Logf("SAV-ROUNDTRIP-GATE CENSUS %s: discovered %d, accepted %d, unreadable %d, refused %d, mismatched %d, absent %d",
-			p, c.discovered, c.accepted, c.unreadable, c.refused, c.mismatched, c.absent)
-		sorted := make([]string, 0, len(keys[p]))
-		for k := range keys[p] {
+			p, c.Discovered, c.Accepted, c.Unreadable, c.Refused, c.Mismatched, c.Absent)
+		sorted := make([]string, 0, len(whole.Keys[p]))
+		for k := range whole.Keys[p] {
 			sorted = append(sorted, k)
 		}
 		sort.Strings(sorted)
 		for _, k := range sorted {
 			cause, _ := savGateCause(k)
-			t.Logf("SAV-ROUNDTRIP-GATE KEY %s: %s: %d case(s); %s", p, k, keys[p][k], cause)
+			t.Logf("SAV-ROUNDTRIP-GATE KEY %s: %s: %d case(s); %s", p, k, whole.Keys[p][k], cause)
 		}
 	}
-	t.Logf("SAV-ROUNDTRIP-GATE RUNTIME %d case(s) in %s on %d worker(s)", len(cases), time.Since(start).Round(time.Second), workers)
+	t.Logf("SAV-ROUNDTRIP-GATE RUNTIME %d case(s) in %s on %d worker(s) in each of %d part(s)", whole.Cases, whole.Wall.Round(time.Second), whole.Workers, parts)
 }
