@@ -33,15 +33,17 @@ type ChargenPresentation struct {
 	Skills      [generatorClasses][generatorSkills][3]image.Image
 	StatButtons [2][statArtStates]image.Image // minus/plus × rest, hover, down, unused, disabled
 	// NavArt is the command panel's background and NavButtons are Accept,
-	// Reset and Back, off and on.
+	// Reset, Back and Restore, off and on.
 	NavArt         image.Image
-	NavButtons     [3][2]image.Image
+	NavButtons     [generatorCommandsMax][2]image.Image
 	NavSeam        image.Image
 	PlateSeam      image.Image
 	DollPane       TownPane
 	CardSeam       image.Image
 	CardBackground *image.RGBA
 	Font           *text.Font
+	// ValueFont draws the four statistic values. Nil falls back to Font.
+	ValueFont *text.Font
 	// NameFont draws the pre-create prompt and name. Nil falls back to Font.
 	NameFont *text.Font
 	// TipFont is the install's font, which the tip panels draw in when the
@@ -78,6 +80,7 @@ const (
 	chargenLevel0
 	chargenLevel1
 	chargenLevel2
+	chargenRestore
 )
 
 // art is the presentation the model draws from, or nil.
@@ -298,7 +301,7 @@ var detailedHitOrder = func() []chargenControl {
 	for i := 0; i < generatorStats; i++ {
 		out = append(out, chargenStatMinus0+chargenControl(i), chargenStatPlus0+chargenControl(i))
 	}
-	return append(out, chargenBack, chargenReset, chargenPlay)
+	return append(out, chargenBack, chargenReset, chargenRestore, chargenPlay)
 }()
 
 func detailedControlRegion(l *GeneratorDescription, id chargenControl) image.Rectangle {
@@ -311,7 +314,7 @@ func detailedControlRegion(l *GeneratorDescription, id chargenControl) image.Rec
 		return s.Minus[id-chargenStatMinus0].Rectangle()
 	case id >= chargenStatPlus0 && id <= chargenStatPlus3:
 		return s.Plus[id-chargenStatPlus0].Rectangle()
-	case id == chargenPlay, id == chargenReset, id == chargenBack:
+	case id == chargenPlay, id == chargenReset, id == chargenBack, id == chargenRestore:
 		for _, cmd := range l.Detail.Commands {
 			if role, _ := generatorControlNamed(cmd.Role); role == id {
 				return cmd.Rect.Rectangle()
@@ -523,15 +526,19 @@ func ComposeChargenFrame(c *Chargen) *image.RGBA {
 	return composeChargenPage(c, chargenNone, chargenNone)
 }
 
-// ChargenDetailedNavLabelRects returns the three rectangles the detailed page
-// draws a command label into, in Back/Reset/Play order. Meaningful only once
-// c has reached DetailedStage.
-func ChargenDetailedNavLabelRects(c *Chargen) [3]image.Rectangle {
-	return [3]image.Rectangle{
+// ChargenDetailedNavLabelRects returns the rectangles the detailed page draws
+// a command label into, in Back, Reset, Play order and then Restore when the
+// description lists it. Meaningful only once c has reached DetailedStage.
+func ChargenDetailedNavLabelRects(c *Chargen) []image.Rectangle {
+	out := []image.Rectangle{
 		detailedControlRect(c, chargenBack),
 		detailedControlRect(c, chargenReset),
 		detailedControlRect(c, chargenPlay),
 	}
+	if l := c.layout(); l != nil && len(l.Detail.Commands) == generatorCommandsMax {
+		out = append(out, detailedControlRect(c, chargenRestore))
+	}
+	return out
 }
 
 // promptOrigin is where the pre-create prompt's first cell draws: its own
@@ -632,14 +639,14 @@ func detailedSkillArt(states [3]image.Image) detailedSkillPictures {
 	return detailedSkillPictures{hover: states[1], selected: states[2], selectedAtRest: states[0]}
 }
 
-// chargenCommandButtons are Accept, Reset and Back: a button shows its on
-// picture, with the label 1 px lower, only while pressed and hovered.
-func chargenCommandButtons(c *Chargen, detail *ChargenDetailed, hover, pressed chargenControl) [3]pushButton {
-	var out [3]pushButton
+// chargenCommandButtons are the description's command buttons: a button shows
+// its on picture, with the label 1 px lower, only while pressed and hovered.
+func chargenCommandButtons(c *Chargen, detail *ChargenDetailed, hover, pressed chargenControl) []pushButton {
+	out := make([]pushButton, len(c.layout().Detail.Commands))
 	l, p := c.layout(), c.art()
 	ink := plaqueCommandInk
 	ink.Rest = l.Detail.CommandInk.RGBA()
-	labels := map[chargenControl]string{chargenPlay: detail.Play, chargenReset: detail.Reset, chargenBack: detail.Back}
+	labels := map[chargenControl]string{chargenPlay: detail.Play, chargenReset: detail.Reset, chargenBack: detail.Back, chargenRestore: detail.Restore}
 	for i, cmd := range l.Detail.Commands {
 		id, _ := generatorControlNamed(cmd.Role)
 		r := cmd.Rect.Rectangle()
@@ -669,6 +676,70 @@ func drawChargenMessage(dst *image.RGBA, f *text.Font, box image.Rectangle, msg 
 	y := box.Min.Y + (box.Dy()-h)/2
 	f.Draw(dst, s, x+1, y+1, shopShadowColor)
 	f.Draw(dst, s, x, y, shopTextColor)
+}
+
+// drawChargenValue draws one statistic value at the description's offset
+// inside its box, or centred when it names none (TOWN-534).
+func drawChargenValue(dst *image.RGBA, p *ChargenPresentation, st *GeneratorStats, stat int, value string) {
+	f := chargenValueFont(p)
+	box := st.Value[stat].Rectangle()
+	if st.ValueAt == nil || f == nil {
+		drawChargenCentered(dst, f, value, box, st.ValueInk.RGBA())
+		return
+	}
+	at := box.Min.Add(st.ValueAt.Pt())
+	drawChargenShadowed(dst, f, value, at, st.ValueInk.RGBA(), st.ValueShadow)
+}
+
+// drawChargenPool draws the remaining-points counter centred on the
+// description's point, or centred in the pool box when it names none
+// (TOWN-534).
+func drawChargenPool(dst *image.RGBA, p *ChargenPresentation, st *GeneratorStats, value string) {
+	f := chargenValueFont(p)
+	if st.PoolAt == nil || f == nil {
+		drawChargenCentered(dst, f, value, st.Pool.Rectangle(), st.PoolInk.RGBA())
+		return
+	}
+	w, _ := f.Measure(value)
+	at := st.PoolAt.Pt().Sub(image.Pt(w/2, 0))
+	drawChargenShadowed(dst, f, value, at, st.PoolInk.RGBA(), st.ValueShadow)
+}
+
+func chargenValueFont(p *ChargenPresentation) *text.Font {
+	if p.ValueFont != nil {
+		return p.ValueFont
+	}
+	return p.Font
+}
+
+// drawChargenShadowed draws s at at, over its shadow one pixel right and down
+// when shadow is named.
+func drawChargenShadowed(dst *image.RGBA, f *text.Font, s string, at image.Point, ink color.RGBA, shadow *GeneratorInk) {
+	if shadow != nil {
+		f.Draw(dst, s, at.X+1, at.Y+1, shadow.RGBA())
+	}
+	f.Draw(dst, s, at.X, at.Y, ink)
+}
+
+// CardView is the detailed page's statistics card as the town's card builder
+// draws it: the card pane, its seam, the card font and the preview subject.
+func (c *Chargen) CardView() TownCharacterView {
+	if c == nil {
+		return TownCharacterView{}
+	}
+	l, p := c.layout(), c.art()
+	v := TownCharacterView{Subject: c.preview.Subject, HasSubject: true, Statistics: true}
+	if l == nil || p == nil {
+		return v
+	}
+	v.PaneRect, v.CardOffset = l.Detail.Card.Rect.Rectangle(), l.Detail.CardOffset.Pt()
+	v.Font, v.CardFont = p.Font, p.Font
+	// A nil picture must stay a nil image, not a nil picture inside one.
+	if p.CardBackground != nil {
+		v.StatsPane.Body = p.CardBackground
+	}
+	v.StatsPane.Seam = p.CardSeam
+	return v
 }
 
 func drawChargenCentered(dst *image.RGBA, f *text.Font, value string, box image.Rectangle, c color.RGBA) {
@@ -745,10 +816,10 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	drawTownPane(dst, TownPane{Body: p.Plate}, d.Plate.Rect.Rectangle(), image.Rectangle{})
 	for stat := 0; stat < len(c.statValue) && stat < generatorStats; stat++ {
 		drawPushButton(dst, nil, detailedStatButton(c, false, stat, hover, pressed))
-		drawChargenCentered(dst, p.Font, fmt.Sprintf("%d", c.statValue[stat]), d.Stats.Value[stat].Rectangle(), d.Stats.ValueInk.RGBA())
+		drawChargenValue(dst, p, &d.Stats, stat, fmt.Sprintf("%d", c.statValue[stat]))
 		drawPushButton(dst, nil, detailedStatButton(c, true, stat, hover, pressed))
 	}
-	drawChargenCentered(dst, p.Font, GroupDigits(int64(c.Remaining())), d.Stats.Pool.Rectangle(), d.Stats.PoolInk.RGBA())
+	drawChargenPool(dst, p, &d.Stats, GroupDigits(int64(c.Remaining())))
 	class := c.columnClass()
 	column := d.ColumnRect.Rectangle()
 	copyNative(dst, p.Columns[class], column.Min, column)
@@ -787,13 +858,9 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 			drawPushButton(dst, font, b)
 		}
 	}
-	preview, card := c.Preview(), d.Card.Rect.Rectangle()
+	preview := c.Preview()
 	if p.Font != nil {
-		first := text.CapturedLen()
-		if pic := RenderCharacterPanel(CompactPanelLayout(p.CardBackground), p.Font, preview.Subject); pic != nil {
-			copyNative(dst, pic, card.Min, card)
-			text.ShiftCaptured(first, card.Min.X, card.Min.Y)
-		}
+		drawCharacterPaneBody(dst, c.CardView())
 	}
 	doll := d.Doll.Rect.Rectangle()
 	if p.DollPane.Body != nil {

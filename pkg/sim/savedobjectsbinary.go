@@ -117,6 +117,9 @@ func (w *World) savedObjectsBinarySize() (uint64, error) {
 }
 
 func appendSavedObjectFixed(dst []byte, value any) []byte {
+	if out, ok := appendSavedObjectLayout(dst, value); ok {
+		return out
+	}
 	out, err := binary.Append(dst, binary.LittleEndian, value)
 	if err != nil {
 		panic(err) // Only statically declared fixed-width structures reach here.
@@ -283,6 +286,9 @@ func (r *savedObjectReader) take(n uint64) []byte {
 }
 
 func (r *savedObjectReader) fixed(dst any) {
+	if r.readSavedObjectLayout(dst) {
+		return
+	}
 	n := binary.Size(dst)
 	if n < 0 {
 		r.err = fmt.Errorf("sim: invalid fixed saved object type")
@@ -351,7 +357,7 @@ func (r *savedObjectReader) stack() ItemStack {
 		if b[49] > 1 || b[70] > 1 || b[76] > 1 {
 			r.err = fmt.Errorf("sim: noncanonical saved object equipment boolean")
 		} else {
-			_, r.err = binary.Decode(b, binary.LittleEndian, &item.SourceEquipment)
+			getSourceEquipment(b, &item.SourceEquipment)
 		}
 	}
 	return StackItem(item, count)

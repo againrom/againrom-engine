@@ -102,7 +102,7 @@ func TestReviewStructureUse1150PostCompletion(t *testing.T) {
 			if saved {
 				savedTacticalRegistry(t, w, true)
 			}
-			origin := cellOf(w.entities[0])
+			origin := cellOf(&w.entities[0])
 			Step(w, []Command{{Kind: KindUseStructure, Entity: 1, X: 0}})
 			for n := 0; n < 500 && len(w.StructureUses()) > 0; n++ {
 				Step(w, nil)
@@ -110,7 +110,7 @@ func TestReviewStructureUse1150PostCompletion(t *testing.T) {
 			if len(w.StructureUses()) != 0 || w.structures[0].Field42 != 0 {
 				t.Fatal("use did not complete")
 			}
-			finished := cellOf(w.entities[0])
+			finished := cellOf(&w.entities[0])
 			cold := retreatRoundTrip1089(t, w)
 			for n := 0; n < 500; n++ {
 				Step(w, nil)
@@ -119,8 +119,8 @@ func TestReviewStructureUse1150PostCompletion(t *testing.T) {
 					t.Fatal("cold mismatch")
 				}
 			}
-			t.Logf("saved=%v origin=%+v completed=%+v after500=%+v pending=%+v", saved, origin, finished, cellOf(w.entities[0]), w.StructureUses())
-			if cellOf(w.entities[0]) != finished {
+			t.Logf("saved=%v origin=%+v completed=%+v after500=%+v pending=%+v", saved, origin, finished, cellOf(&w.entities[0]), w.StructureUses())
+			if cellOf(&w.entities[0]) != finished {
 				t.Fatal("actor walked away without a new command after using structure")
 			}
 		})

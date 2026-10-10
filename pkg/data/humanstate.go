@@ -3,8 +3,6 @@ package data
 import (
 	"fmt"
 	"math"
-
-	"againrom/pkg/rules"
 )
 
 // HumanAttack retains the three independent live, maintained-base and modifier
@@ -152,12 +150,7 @@ func (h HumanState) RefreshInventoryLoad() (HumanState, bool, error) {
 		return h, false, fmt.Errorf("Human load refresh would divide by zero capacity")
 	}
 	n := h
-	n.Load = n.Weight
-	if n.InventoryWeight < 64000 {
-		n.Load += uint16(n.InventoryWeight / 2)
-	} else {
-		n.Load = 32000
-	}
+	n.Load = humanLoad(n.Weight, n.InventoryWeight)
 	derived := humanSigned(h.Load)/humanSigned(h.Capacity) != humanSigned(n.Load)/humanSigned(h.Capacity)
 	if derived {
 		if err := n.derive(); err != nil {
@@ -178,91 +171,51 @@ func (h HumanState) Derive() (HumanState, error) {
 }
 
 func (h *HumanState) derive() error {
-	stats := []*uint16{&h.Body, &h.Reaction, &h.Mind, &h.Spirit}
-	for i, p := range stats {
-		*p = uint16(min(humanSigned(*p), 50+int32(h.Modifier.StatCap[i])))
+	m := &h.Modifier
+	in := HumanInput{Active: int32(h.Attack.Active), Experience: int32(h.Experience), Fighter: h.Fighter,
+		ManaPool: h.ManaMax != 0, Rider: RiderTypeID(int32(h.TypeID)), TrainingCap: h.skillCap}
+	for i, v := range []uint16{h.Body, h.Reaction, h.Mind, h.Spirit} {
+		in.Stat[i], in.StatCap[i] = humanSigned(v), int32(m.StatCap[i])
 	}
-	body, reaction, mind, spirit := humanSigned(h.Body), humanSigned(h.Reaction), humanSigned(h.Mind), humanSigned(h.Spirit)
-	pool := func(base int32, stat int32, multiplier float64) (uint16, error) {
-		v, err := humanFTOL(float64(base) + math.Log(float64(int32(h.Experience))/5000+1)/math.Log(1.1)*multiplier)
-		if err != nil {
-			return 0, err
+	in.Skill[SkillGeneral] = humanSigned(h.Attack.Skill[SkillGeneral])
+	for i := range in.Skill {
+		if i != int(SkillGeneral) {
+			in.Skill[i] = humanSigned(h.Base.Skill[i])
 		}
-		v, err = humanFTOL(float64(int16(v)) * (math.Pow(1.1, float64(stat))/100 + 1))
-		return uint16(v), err
+		in.Terms.SkillBonus[i] = humanSigned(m.Attack.Skill[i])
 	}
-	var err error
-	healthMultiplier, manaMultiplier := float64(1), float64(2)
-	if h.Fighter {
-		healthMultiplier, manaMultiplier = 2, 1
+	h.Load = humanLoad(h.Weight, h.InventoryWeight)
+	in.Load = humanSigned(h.Load)
+	in.Terms = HumanTerms{Speed: humanSigned(m.Speed), Capacity: humanSigned(m.Capacity), HealthMax: humanSigned(m.HealthMax),
+		ManaMax: humanSigned(m.ManaMax), Sight: humanSigned(m.Sight), SkillBonus: in.Terms.SkillBonus,
+		ToHit: humanSigned(m.Attack.ToHit), DamageBase: int32(m.Attack.DamageBase), DamageSpread: int32(m.Attack.DamageSpread),
+		Defence: humanSigned(m.Defence.Defence), Absorption: humanSigned(m.Defence.Absorption)}
+	for i := range in.Terms.Protection {
+		in.Terms.Protection[i], in.Terms.Resistance[i] = humanSigned(m.Defence.Protection[i+1]), int32(m.Defence.Resistance[i+1])
 	}
-	h.HealthMax = uint16(body * int32(healthMultiplier))
-	if h.HealthMax != 0 {
-		h.HealthMax, err = pool(humanSigned(h.HealthMax), body, healthMultiplier)
-		if err != nil {
-			return err
-		}
+	out, err := DeriveHuman(in)
+	if err != nil {
+		return err
 	}
-	if h.ManaMax != 0 {
-		h.ManaMax, err = pool(humanSigned(uint16(spirit*2)), spirit, manaMultiplier)
-		if err != nil {
-			return err
-		}
-	} else {
+	h.Body, h.Reaction, h.Mind, h.Spirit = uint16(out.Stat[0]), uint16(out.Stat[1]), uint16(out.Stat[2]), uint16(out.Stat[3])
+	h.HealthMax, h.ManaMax, h.Sight, h.Capacity = uint16(out.HealthMax), uint16(out.ManaMax), uint16(out.Sight), uint16(out.Capacity)
+	if !in.ManaPool {
 		h.Mana = 0
 	}
-	v, err := humanFTOL((float64(mind+reaction)/25 + 4) * 256)
-	if err != nil {
-		return err
+	h.Speed, m.Speed = uint16(out.Speed), uint16(out.SpeedModifier)
+	for i := range h.Attack.Skill {
+		h.Attack.Skill[i] = uint16(out.Skill[i])
 	}
-	h.Sight, h.Capacity = uint16(v), uint16(body*10+1)
-	speed := reaction
-	if reaction >= 12 {
-		speed = reaction/5 + 12
+	h.Attack.ToHit, h.Attack.DamageBase, h.Attack.DamageSpread = uint16(out.ToHit), out.DamageBase, out.DamageSpread
+	// The modifier's second pair and elemental triple are the derived
+	// block's own: the derive clears both and the fold adds them.
+	h.Attack.SecondBase, h.Attack.SecondSpread = m.Attack.SecondBase, m.Attack.SecondSpread
+	h.Attack.ElementalBase, h.Attack.ElementalSpread, h.Attack.ElementalKind = m.Attack.ElementalBase, m.Attack.ElementalSpread, m.Attack.ElementalKind
+	h.Defence = HumanDefence{Defence: uint16(out.Defence), Absorption: uint16(out.Absorption)}
+	h.Defence.Protection[0], h.Defence.Resistance[0] = m.Defence.Protection[0], m.Defence.Resistance[0]
+	for i := range out.Protection {
+		h.Defence.Protection[i+1], h.Defence.Resistance[i+1] = uint16(out.Protection[i]), uint8(out.Resistance[i])
 	}
-	if h.TypeID == 0x13 || h.TypeID == 0x15 {
-		speed += 10
-	}
-	h.Speed, h.Load = uint16(speed), h.Weight
-	if h.InventoryWeight < 64000 {
-		h.Load += uint16(h.InventoryWeight / 2)
-	} else {
-		h.Load = 32000
-	}
-	// The modifier joins here rather than in foldModifier: nothing between
-	// reads the speed, and the capacity compared is still the unmodified one.
-	speed16, kept, ok := rules.HumanSpeed(int16(h.Speed), int16(h.Modifier.Speed), int16(h.Load), int16(h.Capacity))
-	if !ok {
-		return fmt.Errorf("Human derive would divide by zero capacity")
-	}
-	h.Speed, h.Modifier.Speed = uint16(speed16), uint16(kept)
-	v, err = humanFTOL(math.Pow(1.1, float64(body)) / 20)
-	if err != nil {
-		return err
-	}
-	h.Attack.DamageBase, h.Attack.DamageSpread = uint8(v), uint8(v)
-	v, err = humanFTOL((math.Pow(1.1, float64(body)) + math.Pow(1.1, float64(reaction))) / 5)
-	if err != nil {
-		return err
-	}
-	h.Attack.ToHit = uint16(v)
-	for i := 1; i <= 5; i++ {
-		// Word ADD precedes the signed clamps; General is in neither loop.
-		level := h.Base.Skill[i] + h.Modifier.Attack.Skill[i]
-		h.Attack.Skill[i] = uint16(max(0, min(h.skillLimit(), humanSigned(level))))
-	}
-	if h.Attack.Active != 0 {
-		level := humanSigned(h.Attack.Skill[h.Attack.Active])
-		h.Attack.ToHit += uint16(3 * level)
-		h.Attack.DamageBase += uint8(level / 5)
-	}
-	h.Attack.SecondBase, h.Attack.SecondSpread = 0, 0
-	h.Attack.ElementalBase, h.Attack.ElementalSpread = 0, 0
-	h.Defence = HumanDefence{Defence: uint16(reaction / 3)}
-	for i := 1; i <= 5; i++ {
-		h.Defence.Protection[i] = uint16(spirit / 2)
-	}
-	h.foldModifier()
 	h.Health = uint16(min(humanSigned(h.Health), humanSigned(h.HealthMax)))
 	h.Mana = uint16(max(0, min(humanSigned(h.Mana), humanSigned(h.ManaMax))))
 	h.ManaFloor = h.ManaMax
@@ -270,35 +223,17 @@ func (h *HumanState) derive() error {
 		h.ManaFloor = uint16(int32(h.ManaReservePercent) * humanSigned(h.ManaMax) / 100)
 	}
 	h.MoverSpeed = uint8(h.Speed)
-	h.Defence.Defence = uint16(max(0, humanSigned(h.Defence.Defence)))
-	h.Defence.Absorption = uint16(max(0, humanSigned(h.Defence.Absorption)))
 	h.Load = uint16(max(0, humanSigned(h.Load)))
-	for i := 1; i <= 5; i++ {
-		h.Defence.Protection[i] = uint16(max(0, min(100, spirit/2+70, humanSigned(h.Defence.Protection[i]))))
-	}
 	return nil
 }
 
-func (h *HumanState) foldModifier() {
-	m := &h.Modifier
-	h.Capacity += m.Capacity
-	h.HealthMax += m.HealthMax
-	h.ManaMax += m.ManaMax
-	h.Sight += m.Sight
-	h.Defence.Defence += m.Defence.Defence
-	h.Defence.Absorption += m.Defence.Absorption
-	for i := range h.Defence.Protection {
-		h.Defence.Protection[i] += m.Defence.Protection[i]
-		h.Defence.Resistance[i] += m.Defence.Resistance[i]
+// humanLoad is the carried load: own weight plus half the container's
+// running weight, or 32000 from a running weight of 64000 (HERO-SIGHT-007).
+func humanLoad(weight uint16, inventory int32) uint16 {
+	if inventory >= 64000 {
+		return 32000
 	}
-	h.Attack.ToHit += m.Attack.ToHit
-	h.Attack.DamageBase += m.Attack.DamageBase
-	h.Attack.DamageSpread += m.Attack.DamageSpread
-	h.Attack.SecondBase += m.Attack.SecondBase
-	h.Attack.SecondSpread += m.Attack.SecondSpread
-	h.Attack.ElementalBase += m.Attack.ElementalBase
-	h.Attack.ElementalSpread += m.Attack.ElementalSpread
-	h.Attack.ElementalKind = m.Attack.ElementalKind
+	return weight + uint16(inventory/2)
 }
 
 func (h HumanState) Hero() Hero {
@@ -310,14 +245,7 @@ func (h HumanState) Hero() Hero {
 }
 
 func (h HumanState) NativeMovementBase() int32 {
-	speed := humanSigned(h.Reaction)
-	if speed >= 12 {
-		speed = speed/5 + 12
-	}
-	if h.TypeID == 0x13 || h.TypeID == 0x15 {
-		speed += 10
-	}
-	return humanSigned(uint16(speed) + h.Modifier.Speed)
+	return humanSigned(uint16(HumanBaseSpeed(humanSigned(h.Reaction), RiderTypeID(int32(h.TypeID)))) + h.Modifier.Speed)
 }
 
 // Derived projects stored current values. It does not run derive on LOAD.

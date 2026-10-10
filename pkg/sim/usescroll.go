@@ -236,7 +236,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 			continue
 		}
 		if !c.Started {
-			if cellOf(*e).chebyshevTo(cell{x: c.X, y: c.Y}) > spellRangeUnder(w.rules, rule, power) {
+			if cellOf(e).chebyshevTo(cell{x: c.X, y: c.Y}) > spellRangeUnder(w.rules, rule, power) {
 				if !e.HasTarget {
 					// A prior search gave up. Preserve the item on this authored
 					// failure boundary rather than inventing original destruction.

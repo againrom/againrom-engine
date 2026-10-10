@@ -80,7 +80,7 @@ func (w *World) stepPickupCompletions() {
 					e.ActorState = actorStateGuard
 					continue
 				}
-			} else if order, _, ok := w.groupState(e.Owner, effectiveGroup(*e)); !ok || order != orderNone {
+			} else if order, _, ok := w.groupState(e.Owner, effectiveGroup(e)); !ok || order != orderNone {
 				e.ActorState = actorStateGuard
 				continue
 			}
@@ -110,7 +110,7 @@ func pickupCompletionGroupsFault(ents []Entity, groups []groupAI, saved *savedGr
 			}
 			continue
 		}
-		id := effectiveGroup(e)
+		id := effectiveGroup(&e)
 		i := sort.Search(len(groups), func(i int) bool {
 			return groups[i].owner > e.Owner || groups[i].owner == e.Owner && groups[i].group >= id
 		})

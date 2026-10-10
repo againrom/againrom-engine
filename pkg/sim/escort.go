@@ -159,7 +159,7 @@ func (w *World) escortSubject(i int) (ti int, stop, dist int64, ok bool) {
 	if stop == 0 {
 		stop = int64(e.ScanRange)
 	}
-	return ti, stop, cellOf(e).chebyshevTo(cellOf(w.entities[ti])), true
+	return ti, stop, cellOf(&e).chebyshevTo(cellOf(&w.entities[ti])), true
 }
 
 func (w *World) escortClose(i, ti int) {
@@ -181,10 +181,10 @@ func (w *World) coverEngage(i, ti int) {
 		if ci == i || ci == ti || c.OffMap {
 			continue
 		}
-		if cellOf(c).chebyshevTo(cellOf(subject)) > coverRadius {
+		if cellOf(&c).chebyshevTo(cellOf(&subject)) > coverRadius {
 			continue
 		}
-		if !w.hostileTo(subject, c) {
+		if !w.hostileTo(&subject, &c) {
 			continue
 		}
 		if !c.OrdinaryTargetable() {
@@ -209,7 +209,7 @@ func (w *World) coverEngage(i, ti int) {
 		if w.targetVetoed(i, ci) {
 			continue
 		}
-		d := cellOf(w.entities[i]).chebyshevTo(cellOf(w.entities[ci]))
+		d := cellOf(&w.entities[i]).chebyshevTo(cellOf(&w.entities[ci]))
 		switch {
 		case at < 0:
 		case coverPreferred(w.entities[at]) && !coverPreferred(w.entities[ci]):
@@ -259,7 +259,7 @@ func (w *World) actorCandidates(i int) []int {
 	var live, dead []int
 	for ci := range w.entities {
 		c := w.entities[ci]
-		if c.OffMap || !w.sightShows(stamp, cellOf(c)) || !w.hostileTo(decider, c) {
+		if c.OffMap || !w.sightShows(stamp, cellOf(&c)) || !w.hostileTo(&decider, &c) {
 			continue
 		}
 		if !c.OrdinaryTargetable() {

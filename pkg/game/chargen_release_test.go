@@ -9,7 +9,7 @@ import (
 )
 
 // TestReleaseChargenDetailedNavArtIsDrawnUnmodified: the command panel is
-// Inn\ButtonsArea.bmp with the three Inn off buttons over it at MENU-139's
+// Inn\ButtonsArea.bmp with the Inn off buttons over it at MENU-139's
 // rectangles; inside a button a pixel is its art or label ink.
 func TestReleaseChargenDetailedNavArtIsDrawnUnmodified(t *testing.T) {
 	f := releaseFront(t)
@@ -26,9 +26,16 @@ func TestReleaseChargenDetailedNavArtIsDrawnUnmodified(t *testing.T) {
 	}
 	frame := ui.ComposeChargenFrame(c)
 	labels := ui.ChargenDetailedNavLabelRects(c)
-	buttons := [3]image.Rectangle{labels[2], labels[1], labels[0]} // Accept, Reset, Back
+	buttons := []image.Rectangle{labels[2], labels[1], labels[0]} // Accept, Reset, Back
 	if buttons[0] != image.Rect(484, 44, 624, 90) || buttons[1] != image.Rect(484, 91, 624, 137) || buttons[2] != image.Rect(484, 138, 624, 184) {
 		t.Fatalf("command rectangles %v, want MENU-139's", buttons)
+	}
+	if len(labels) == 4 {
+		// Restore is the fourth button, one 47 px step below Back.
+		if labels[3] != image.Rect(484, 185, 624, 231) {
+			t.Fatalf("Restore rectangle %v, want (484,185)-(624,231)", labels[3])
+		}
+		buttons = append(buttons, labels[3])
 	}
 	region := ui.TownUpperRegion
 	ink := color.RGBA{R: 255, G: 230, B: 150, A: 255}
@@ -119,7 +126,7 @@ func TestReleaseChargenDetailedNavLabelsAreDrawn(t *testing.T) {
 
 	frame := ui.ComposeChargenFrame(c)
 	rects := ui.ChargenDetailedNavLabelRects(c)
-	want := [3]string{setup.Detailed.Back, setup.Detailed.Reset, setup.Detailed.Play}
+	want := []string{setup.Detailed.Back, setup.Detailed.Reset, setup.Detailed.Play, setup.Detailed.Restore}[:len(rects)]
 	label := color.RGBA{R: 255, G: 230, B: 150, A: 255}
 
 	for i, r := range rects {

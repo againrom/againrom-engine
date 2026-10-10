@@ -70,15 +70,16 @@ func (mw *mapWorld) classShot(class int32) (picture, delay int, drawn bool) {
 // It runs after advanceSwings, whose clock and run memory it reads.
 func (mw *mapWorld) advanceUnitShots() {
 	ents := mw.world.EntityView()
-	for _, e := range ents {
+	for i := range ents {
+		e := &ents[i]
 		if !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
 			continue
 		}
 		picture, delay, drawn := mw.classShot(mw.spellClientClass(e.ID, e.Class))
-		if !drawn || mw.swing[e.ID] != unitShotSwingTick(delay) || !mw.swingTargetInReach(ents, e) {
+		if !drawn || mw.swing[e.ID] != unitShotSwingTick(delay) || !mw.swingTargetInReach(ents, *e) {
 			continue
 		}
-		mw.releaseUnitShot(e, picture, unitShotLate(delay))
+		mw.releaseUnitShot(*e, picture, unitShotLate(delay))
 	}
 	mw.advanceShotTrails()
 }

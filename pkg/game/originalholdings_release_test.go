@@ -261,7 +261,7 @@ func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
 			} else {
 				releaseTerminalDeath(t, w, actor.ID)
 			}
-			if poolEntity(t, w, tc.mapID).Alive() {
+			if entityRef(poolEntity(t, w, tc.mapID)).Alive() {
 				t.Fatal("death control did not kill subject")
 			}
 			if tc.mapID == 21 {

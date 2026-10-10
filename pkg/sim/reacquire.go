@@ -46,7 +46,7 @@ func (w *World) reacquisitionVictim(i int) int {
 		if ci == i || c.OffMap {
 			continue
 		}
-		d := cellOf(self).chebyshevTo(cellOf(c))
+		d := cellOf(&self).chebyshevTo(cellOf(&c))
 		if d > reach || d > nearest {
 			continue
 		}
@@ -56,7 +56,7 @@ func (w *World) reacquisitionVictim(i int) int {
 	var living, bodies []int
 	for _, ci := range admitted {
 		c := w.entities[ci]
-		if !c.OrdinaryTargetable() || !w.hostileTo(self, c) || w.invisibleToActor(i, ci) || w.targetVetoed(i, ci) {
+		if !c.OrdinaryTargetable() || !w.hostileTo(&self, &c) || w.invisibleToActor(i, ci) || w.targetVetoed(i, ci) {
 			continue
 		}
 		if c.HP > 0 {

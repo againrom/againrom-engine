@@ -7,9 +7,10 @@ import "testing"
 // and a negative sum clears the modifier rather than the speed.
 func TestHumanSpeedAppliesTheOverloadBeforeTheModifier(t *testing.T) {
 	for _, tc := range []struct {
-		name                           string
-		base, modifier, load, capacity int16
-		speed, kept                    int16
+		name           string
+		base, modifier int16
+		load, capacity int32
+		speed, kept    int16
 	}{
 		{"zero load keeps base plus modifier", 20, 5, 0, 301, 25, 5},
 		{"one below capacity is free", 20, 5, 300, 301, 25, 5},
@@ -20,6 +21,7 @@ func TestHumanSpeedAppliesTheOverloadBeforeTheModifier(t *testing.T) {
 		{"a zero sum keeps the modifier", 20, -6, 6020, 301, 0, -6},
 		{"a negative modifier above the floor stays", 20, -15, 0, 301, 5, -15},
 		{"the word add wraps", 32767, 1, 0, 301, -32768, 0},
+		{"a load above a word is compared whole", 20, 5, 40000, 301, 11, 5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			speed, kept, ok := HumanSpeed(tc.base, tc.modifier, tc.load, tc.capacity)
@@ -37,5 +39,22 @@ func TestHumanSpeedRefusesAnOverloadedZeroCapacity(t *testing.T) {
 	}
 	if speed, kept, ok := HumanSpeed(20, 5, -1, 0); !ok || speed != 25 || kept != 5 {
 		t.Fatal("a load below a zero capacity was refused", speed, kept, ok)
+	}
+}
+
+func TestNativeHumanSpeedReadsTheUnencumberedSum(t *testing.T) {
+	for _, tc := range []struct {
+		name                            string
+		speed, modifier, load, capacity int32
+		word, kept                      int32
+	}{
+		{"overload under haste", 19, 4, 4680, 261, 10, 4},
+		{"a negative sum clears the modifier", 6, -9, 4680, 261, -3, 0},
+		{"no rate at zero speed", 0, 3, 4680, 261, 0, 3},
+		{"no capacity stated", 15, 2, 4680, 0, 15, 2},
+	} {
+		if word, kept := NativeHumanSpeed(tc.speed, tc.modifier, tc.load, tc.capacity); word != tc.word || kept != tc.kept {
+			t.Errorf("%s: NativeHumanSpeed = %d, %d; want %d, %d", tc.name, word, kept, tc.word, tc.kept)
+		}
 	}
 }

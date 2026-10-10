@@ -9,17 +9,32 @@ const HumanOverloadFloor int32 = 6
 // HumanOverloadFloor, then adds the modifier as a word. A negative sum keeps
 // the speed and clears the modifier. ok is false only for an overloaded
 // actor with zero capacity, the division the derive cannot perform.
-func HumanSpeed(base, modifier, load, capacity int16) (speed, kept int16, ok bool) {
+//
+// Load and capacity are compared and divided in 32 bits; no claim states the
+// width of the original's compare. A stored Human passes its signed words.
+func HumanSpeed(base, modifier int16, load, capacity int32) (speed, kept int16, ok bool) {
 	v := int32(base)
 	if load >= capacity {
 		if capacity == 0 {
 			return base, modifier, false
 		}
-		v = max(v-int32(load)/int32(capacity), HumanOverloadFloor)
+		v = max(v-load/capacity, HumanOverloadFloor)
 	}
 	speed = int16(uint16(v) + uint16(modifier))
 	if speed < 0 {
 		modifier = 0
 	}
 	return speed, modifier, true
+}
+
+// NativeHumanSpeed is HumanSpeed for a native Human, which holds the
+// unencumbered sum speed with the signed modifier inside it. A speed at or
+// below zero has no rate and is returned whole, and so is an actor with no
+// stated capacity.
+func NativeHumanSpeed(speed, modifier, load, capacity int32) (word, kept int32) {
+	if speed <= 0 || capacity <= 0 {
+		return speed, modifier
+	}
+	w, m, _ := HumanSpeed(int16(speed-modifier), int16(modifier), load, capacity)
+	return int32(w), int32(m)
 }

@@ -111,6 +111,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		}
 	}
 	reset := l.Detail.ResetFor(f.Base().Profile.Language)
+	restore := l.Detail.RestoreFor(f.Base().Profile.Language)
 
 	setup := ui.ChargenSetup{
 		Title:   chargenTitle,
@@ -137,7 +138,10 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		SetTipsOn:     func(on bool) { f.SetTipsOff(!on) },
 
 		ResetStart: reset.Values == "start",
-		ResetSkill: reset.Skill == "default",
+		ResetSkill: reset.Skill,
+
+		RestoreStart: restore.Values == "start",
+		RestoreSkill: restore.Skill,
 	}
 	if s := l.PreCreate.Sparkle; s != nil && len(s.Within) > 0 {
 		setup.Draws = f.randomService().Stream(random.Generator)
@@ -152,6 +156,9 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		setup.EncodeName = func(r rune) (byte, bool) { return textinput.EncodeRune(r, a.Selector) }
 		setup.Detailed = &ui.ChargenDetailed{Back: a.Back, Reset: a.Reset, Play: a.Play,
 			EmptyName: a.EmptyName, ReservedName: a.ReservedName, SkillHover: a.SkillHover}
+		if len(l.Detail.Commands) == 4 {
+			setup.Detailed.Restore = encodeEngineWord(f.Words.Engine.Text("chargen.restore"), a.Selector)
+		}
 		setup.Preview = f.ChargenPreview
 	}
 	f.campaign().generatorSetup(f, &setup)
@@ -173,17 +180,23 @@ func generatorCost(c ui.GeneratorCost, v int) int {
 	return int(math.Trunc(c.Factor*math.Pow(c.Base, float64(v-1)) + c.Round))
 }
 
-// firstGeneratorPresets are the four pictures' statistic presets: the
-// definition table's base row for each sex and class.
+// firstGeneratorPresets are the four pictures' statistic and skill presets:
+// npc.reg's archetype section for each picture's sex and class, which the
+// original's Forward loads (HERO-STAT-001, HERO-CHARGEN-083; DIV-1277). A
+// section missing a key or holding an illegal spread keeps the generic start.
 func firstGeneratorPresets(f *FrontEnd, setup *ui.ChargenSetup) {
-	if f.Table == nil || f.Table.Humans == nil {
+	if f.Table == nil {
 		return
 	}
-	for i := range setup.Presets {
-		d, _, ok := data.ChargenBase(f.Table.Humans, i%2 == 1, i >= 2)
-		spread := data.Spread{Body: d.Body, Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit}
+	for i, h := range f.generator().PreCreate.Heroes {
+		if i >= len(setup.Presets) {
+			break
+		}
+		a, ok := f.Table.NPC.HeroArchetype(h.Sex != 0, h.Class != 0)
+		spread := data.Spread{Body: a.Body, Reaction: a.Reaction, Mind: a.Mind, Spirit: a.Spirit}
 		if ok && spread.Legal() {
-			setup.Presets[i] = []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}
+			setup.Presets[i] = []int{int(a.Body), int(a.Reaction), int(a.Mind), int(a.Spirit)}
+			setup.PresetSkills[i] = int(a.Skill)
 		}
 	}
 }
@@ -471,4 +484,15 @@ func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMembe
 		Table:     f.Table,
 		Documents: true,
 	})
+}
+
+// encodeEngineWord is an engine word in the install's code page, the form the
+// fonts draw.
+func encodeEngineWord(word string, selector int) string {
+	var b []byte
+	for _, r := range word {
+		c, _ := textinput.EncodeRune(r, selector)
+		b = append(b, c)
+	}
+	return string(b)
 }

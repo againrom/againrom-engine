@@ -53,7 +53,7 @@ const postRadius = coverRadius
 func (w *World) postEngage(i int, post cell) bool {
 	for ci, candidate := range w.entities {
 		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() ||
-			!w.hostileTo(w.entities[i], candidate) || post.chebyshevTo(cellOf(candidate)) > postRadius {
+			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {
 			continue
 		}
 		w.orderAttack(i, candidate.ID)
@@ -144,6 +144,6 @@ func (w *World) guardWalkHome(i int) {
 // the same back-door derivation that rule removes.
 func (w *World) actorLayerDecides(i int) bool {
 	e := w.entities[i]
-	order, _, ok := w.groupState(e.Owner, effectiveGroup(e))
+	order, _, ok := w.groupState(e.Owner, effectiveGroup(&e))
 	return ok && order == orderNone
 }

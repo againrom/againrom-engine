@@ -94,9 +94,9 @@ func TestTheBaseFollowsTheGreatestDistancePlusRangeNotEitherAlone(t *testing.T) 
 		t.Fatalf("fixture's own centroid is (%d,%d), want (100,0) — the arithmetic this test explains "+
 			"no longer holds", cx, cy)
 	}
-	d0 := cellOf(ents[0]).chebyshevTo(cell{x: cx, y: cy})
-	d1 := cellOf(ents[1]).chebyshevTo(cell{x: cx, y: cy})
-	d2 := cellOf(ents[2]).chebyshevTo(cell{x: cx, y: cy})
+	d0 := cellOf(&ents[0]).chebyshevTo(cell{x: cx, y: cy})
+	d1 := cellOf(&ents[1]).chebyshevTo(cell{x: cx, y: cy})
+	d2 := cellOf(&ents[2]).chebyshevTo(cell{x: cx, y: cy})
 	if d0 != 30 || d1 != 5 || d2 != 25 {
 		t.Fatalf("fixture's own distances are %d, %d, %d, want 30, 5, 25", d0, d1, d2)
 	}
@@ -190,7 +190,7 @@ func TestAGeometryPastAByteIsNarrowedNotClamped(t *testing.T) {
 	if cx != 1000 || cy != 0 {
 		t.Fatalf("fixture's own centroid is (%d,%d), want (1000,0)", cx, cy)
 	}
-	d := cellOf(ents[0]).chebyshevTo(cell{x: cx, y: cy})
+	d := cellOf(&ents[0]).chebyshevTo(cell{x: cx, y: cy})
 	if d != 250 {
 		t.Fatalf("fixture's own distance is %d, want 250", d)
 	}

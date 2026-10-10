@@ -89,6 +89,7 @@
 "item.rays" = "Rays"
 "item.spell_of" = "of"
 "tavern.sleep" = "Sleep"
+"chargen.restore" = "Restore"
 # The item spell name shown for Drain Life in place of the installed one
 # (DIV-2177); empty keeps the installed name.
 "item.drain_life_alias" = ""

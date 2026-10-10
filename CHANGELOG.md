@@ -11,6 +11,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [BASE] A save taken while a spell, a burst or a shot is in flight keeps it:
   after loading, the spell or the shot flies on and lands with the same
   damage, as in the original. This includes a shot at a building.
+- [ROM1] In the character generator, Reset sets every attribute to 25 and the
+  points to 100 as in the original, and the new Restore button returns the
+  hero's starting attributes and
+  skill.
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,
@@ -23,6 +27,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   Russian instead of wrong letters, and so do the other words the game reads
   from the install's text tables: menu and option captions, unit, building and
   spell names, the default hero's name and the help text.
+- [BASE] Every hero and person now gets health, mana, speed, sight and combat
+  values from one calculation, whether he was made by the engine or loaded
+  from an original save. A skill bonus from worn items now raises a skill above
+  100 for heroes loaded from an original save too, and a very strong hero's
+  damage no longer exceeds what the original can hold.
+- [ROM1] In the character generator each of the four heroes starts on the
+  original's attributes and skill: Danath enters with Body 41, Agility 35,
+  Mind 20, Spirit 15 and Blade. The card under the attributes is laid out as
+  the town's character card, and the four attribute values and the points
+  left draw in the original's small gold font.
 
 ## 0.109.0
 

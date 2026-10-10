@@ -53,6 +53,7 @@ const (
 	ChargenControlStatDown   = "stat_down"
 	ChargenControlStatUp     = "stat_up"
 	ChargenControlReset      = "reset"
+	ChargenControlRestore    = "restore"
 	ChargenControlPlay       = "play"
 )
 
@@ -228,9 +229,11 @@ func (c *Chargen) detailedControls() []HeadlessChargenControl {
 	}
 	out = append(out,
 		HeadlessChargenControl{Focus: c.focusIndex(chargenBack), Kind: ChargenControlBack},
-		HeadlessChargenControl{Focus: c.focusIndex(chargenReset), Kind: ChargenControlReset},
-		HeadlessChargenControl{Focus: c.focusIndex(chargenPlay), Kind: ChargenControlPlay})
-	return out
+		HeadlessChargenControl{Focus: c.focusIndex(chargenReset), Kind: ChargenControlReset})
+	if l := c.layout(); l != nil && len(l.Detail.Commands) == generatorCommandsMax {
+		out = append(out, HeadlessChargenControl{Focus: c.focusIndex(chargenRestore), Kind: ChargenControlRestore})
+	}
+	return append(out, HeadlessChargenControl{Focus: c.focusIndex(chargenPlay), Kind: ChargenControlPlay})
 }
 
 // HeadlessType dispatches typed characters and backspace edges through App.step,

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -29,7 +28,8 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 			c.SelectPreChoice(i)
 			c.Forward()
 			r, ok := c.Result()
-			d, _, found := data.ChargenBase(f.Table.Humans, i%2 == 1, i >= 2)
+			h := f.generator().PreCreate.Heroes[i]
+			d, found := f.Table.NPC.HeroArchetype(h.Sex != 0, h.Class != 0)
 			want := []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}
 			if !ok || !found || !reflect.DeepEqual(r.Stats, want) || c.Remaining() != 0 {
 				t.Fatal(i, r.Stats, want, c.Remaining())
@@ -37,8 +37,13 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 			c.AdjustStat(0, -1)
 			c.Reset()
 			r, _ = c.Result()
+			if !reflect.DeepEqual(r.Stats, []int{25, 25, 25, 25}) || c.Remaining() != 100 {
+				t.Fatal("reset is not the original's 25 each and pool 100", i, r.Stats, c.Remaining())
+			}
+			c.Restore()
+			r, _ = c.Result()
 			if !reflect.DeepEqual(r.Stats, want) {
-				t.Fatal("reset lost preset", i)
+				t.Fatal("restore lost preset", i)
 			}
 			t.Logf("portrait %d stats=%v remaining=%d", i, r.Stats, c.Remaining())
 		}

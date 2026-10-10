@@ -1,10 +1,8 @@
 package game
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"maps"
 	"slices"
 
@@ -115,16 +113,11 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	if err != nil || !present {
 		return nil, err
 	}
-	var a currentActionData
-	d := json.NewDecoder(bytes.NewReader(b))
-	d.DisallowUnknownFields()
-	if err := d.Decode(&a); err != nil {
-		return nil, fmt.Errorf("current actions: %w", err)
+	decoded, err := decodeCurrentActions(b)
+	if err != nil {
+		return nil, err
 	}
-	var tail any
-	if err := d.Decode(&tail); err != io.EOF {
-		return nil, fmt.Errorf("current actions contain trailing data")
-	}
+	a := *decoded
 	if a.Version != 1 || a.NativeHistoryVersion > 1 || len(a.Bindings) > 131072 || len(a.Actions.Actors) > 32767 || len(a.Groups) > 65534 || len(a.CellCosts) > 65536 || len(a.SpellCasters) > 65534 || len(a.AbsentStructureCells) > 65536 {
 		return nil, fmt.Errorf("current action version/population is invalid")
 	}

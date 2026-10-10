@@ -1465,6 +1465,14 @@ func shiftedCardBackground(body *image.RGBA, seam image.Image, dx int) *image.RG
 	return out
 }
 
+// CardReport is the statistics card's laid-out rows in card canvas pixels.
+func (v TownCharacterView) CardReport() []PanelLineReport {
+	return CharacterPanelReport(v.statsLayout(), v.cardFont(), v.Subject)
+}
+
+// CardRect is where the statistics card's canvas stands on the screen.
+func (v TownCharacterView) CardRect() image.Rectangle { return v.cardRect() }
+
 // statsLayout is shared by card paint and hover geometry.
 func (v TownCharacterView) statsLayout() PanelLayout {
 	bg, _ := v.StatsPane.Body.(*image.RGBA)

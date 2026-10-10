@@ -69,14 +69,14 @@ func TestPrismaticSprayFlipsThePrimaryOwnerBeforeSelecting(t *testing.T) {
 	mate := prismaticFoeAt(3, 3, 3)
 	mate.Owner = 3
 	w := hlWorld(t, 0x5e1ec8, rel, []SpellRule{prismaticTestRule}, caster, primary, mate)
-	if w.hostileTo(w.entities[0], w.entities[1]) {
+	if w.hostileTo(&w.entities[0], &w.entities[1]) {
 		t.Fatal("fixture owner is already hostile")
 	}
 	_, ids := prismaticCast(t, w, 2)
 	if want := []EntityID{2, 3}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("victims %v, want the primary and its owner's other member %v", ids, want)
 	}
-	if !w.hostileTo(w.entities[0], w.entities[1]) {
+	if !w.hostileTo(&w.entities[0], &w.entities[1]) {
 		t.Fatal("selector did not flip the primary owner hostile")
 	}
 }

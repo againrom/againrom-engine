@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
+	"sync"
+
+	"againrom/pkg/graphcopy"
 )
 
 // DocumentDataVersion versions the complete-document persistence contract,
@@ -120,11 +124,8 @@ type DocumentStateData struct {
 // DecodeDocumentData reads a complete supported city or world SAV into an
 // independently owned persistence DTO; no File/body/store/tail replay remains.
 func DecodeDocumentData(raw []byte) (DocumentData, error) {
-	d, err := parseSaveDocument(raw)
-	if err != nil {
-		return DocumentData{}, err
-	}
-	return saveDocumentToData(d)
+	data, _, err := decodeDocumentDataKept(raw, false)
+	return data, err
 }
 
 // DocumentObjectOrigin is a transient import binding, not persisted state.
@@ -139,14 +140,59 @@ type DocumentObjectOrigin struct {
 // join. Consumers must bind current objects before discarding these rows;
 // never preserve ArchiveIndex as an identity in native persistence.
 func DecodeDocumentDataWithOrigins(raw []byte) (DocumentData, []DocumentObjectOrigin, error) {
+	return decodeDocumentDataKept(raw, true)
+}
+
+// decodedDocuments keeps the last few decoded containers by their exact
+// bytes. A load parses one file several times over (equipment repair, game
+// validation, campaign and document import); each reader gets its own copy.
+var decodedDocuments struct {
+	mu      sync.Mutex
+	entries []decodedDocument
+}
+
+type decodedDocument struct {
+	raw         string
+	withOrigins bool
+	data        *DocumentData
+	origins     []DocumentObjectOrigin
+}
+
+const decodedDocumentEntries = 4
+
+func decodeDocumentDataKept(raw []byte, withOrigins bool) (DocumentData, []DocumentObjectOrigin, error) {
+	decodedDocuments.mu.Lock()
+	for i, e := range decodedDocuments.entries {
+		if e.withOrigins == withOrigins && e.raw == string(raw) {
+			if data, ok := graphcopy.Clone(e.data); ok {
+				copy(decodedDocuments.entries[1:i+1], decodedDocuments.entries[:i])
+				decodedDocuments.entries[0] = e
+				decodedDocuments.mu.Unlock()
+				return *data, slices.Clone(e.origins), nil
+			}
+			break
+		}
+	}
+	decodedDocuments.mu.Unlock()
 	d, err := parseSaveDocument(raw)
 	if err != nil {
 		return DocumentData{}, nil, err
 	}
 	var origins []DocumentObjectOrigin
-	data, err := documentDataFromDocument(d, &origins)
+	var data DocumentData
+	if withOrigins {
+		data, err = documentDataFromDocument(d, &origins)
+	} else {
+		data, err = documentDataFromDocument(d, nil)
+	}
 	if err != nil {
 		return DocumentData{}, nil, err
+	}
+	if kept, ok := graphcopy.Clone(&data); ok {
+		decodedDocuments.mu.Lock()
+		entries := append([]decodedDocument{{raw: string(raw), withOrigins: withOrigins, data: kept, origins: slices.Clone(origins)}}, decodedDocuments.entries...)
+		decodedDocuments.entries = entries[:min(len(entries), decodedDocumentEntries)]
+		decodedDocuments.mu.Unlock()
 	}
 	return data, origins, nil
 }
@@ -230,7 +276,7 @@ func shapeDocumentRecord(r *Record, group bool) (*documentRecordShape, error) {
 	if len(r.Value)+len(r.Text)+len(r.Raw)+len(r.Counts)+len(r.RefSlots)+len(r.Refs) > maxDocumentRecordFields*2 {
 		return nil, fmt.Errorf("sav: document record field bound exceeded")
 	}
-	s := &documentRecordShape{values: map[string]bool{}, texts: map[string]bool{}, raw: map[string]bool{}, counts: map[string]int{}, slots: map[string]int{}, inline: map[string]string{}}
+	s := &documentRecordShape{values: make(map[string]bool, len(r.Value)), texts: make(map[string]bool, len(r.Text)), raw: make(map[string]bool, len(r.Raw)), counts: make(map[string]int, len(r.Counts)), slots: make(map[string]int, len(r.RefSlots)), inline: map[string]string{}}
 	value := func(name string) (uint32, error) {
 		v, found := r.Value[name]
 		if !found {
@@ -436,7 +482,18 @@ func (b *documentDataBudget) check(v reflect.Value, depth int) error {
 			}
 		}
 		switch v.Type().Elem().Kind() {
-		case reflect.Struct, reflect.Array, reflect.Slice, reflect.Pointer, reflect.String:
+		case reflect.Struct:
+			// One field plan serves every element.
+			if depth+1 > maxDocumentDataDepth && v.Len() > 0 {
+				return fmt.Errorf("sav: document data depth bound exceeded")
+			}
+			plan := budgetedFields(v.Type().Elem())
+			for i := 0; i < v.Len(); i++ {
+				if err := b.checkStruct(v.Index(i), depth+1, plan); err != nil {
+					return err
+				}
+			}
+		case reflect.Array, reflect.Slice, reflect.Pointer, reflect.String:
 			for i := 0; i < v.Len(); i++ {
 				if err := b.check(v.Index(i), depth+1); err != nil {
 					return err
@@ -444,15 +501,62 @@ func (b *documentDataBudget) check(v reflect.Value, depth int) error {
 			}
 		}
 	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			if err := b.check(v.Field(i), depth+1); err != nil {
-				return err
-			}
-		}
+		return b.checkStruct(v, depth, budgetedFields(v.Type()))
 	case reflect.Map, reflect.Interface:
 		return fmt.Errorf("sav: document data cannot contain maps or interfaces")
 	}
 	return nil
+}
+
+// checkStruct is check's struct case at depth, which check's own depth test
+// has admitted, with budgetedFields of v's type in plan.
+func (b *documentDataBudget) checkStruct(v reflect.Value, depth int, plan []int) error {
+	if depth+1 > maxDocumentDataDepth {
+		if v.NumField() > 0 {
+			return fmt.Errorf("sav: document data depth bound exceeded")
+		}
+		return nil
+	}
+	// A field whose check only tests the depth is skipped: depth+1 is
+	// within the bound here.
+	for _, i := range plan {
+		if err := b.check(v.Field(i), depth+1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var budgetFieldPlans sync.Map // reflect.Type -> []int
+
+// budgetedFields lists the fields of struct type t whose check can add to the
+// budget or fail beyond the depth test: every field but a scalar or an array
+// of scalars.
+func budgetedFields(t reflect.Type) []int {
+	if plan, ok := budgetFieldPlans.Load(t); ok {
+		return plan.([]int)
+	}
+	var plan []int
+	for i := 0; i < t.NumField(); i++ {
+		if budgetVisits(t.Field(i).Type) {
+			plan = append(plan, i)
+		}
+	}
+	budgetFieldPlans.Store(t, plan)
+	return plan
+}
+
+func budgetVisits(t reflect.Type) bool {
+	switch t.Kind() {
+	case reflect.Pointer, reflect.String, reflect.Slice, reflect.Struct, reflect.Map, reflect.Interface:
+		return true
+	case reflect.Array:
+		switch t.Elem().Kind() {
+		case reflect.Struct, reflect.Array, reflect.Slice, reflect.Pointer, reflect.String:
+			return true
+		}
+	}
+	return false
 }
 
 type documentDataBuilder struct {
