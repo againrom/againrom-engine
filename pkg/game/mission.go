@@ -104,6 +104,11 @@ type Mission struct {
 	// mission still starts, and an install whose map holds a script this build
 	// cannot read is a fact about that install that should not vanish.
 	RaiseErr error
+
+	// OmittedActions and OmittedChecks are the authored node ids the compile
+	// left unbuilt for this party (DIV-1658); no compiled instant or register
+	// stands for them.
+	OmittedActions, OmittedChecks []uint32
 }
 
 // StartMission reads campaign mission n out of the opened archives and builds its
@@ -245,7 +250,7 @@ func startMissionFromWith(m *alm.Map, addr string, n int, t *mapload.Table, diff
 		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
 	return &Mission{Number: n, Address: addr, Map: m, World: w, Start: st, Party: mapload.OwnParty(party),
-		Raises: rep.Raises, RaiseErr: raiseErr}, nil
+		Raises: rep.Raises, RaiseErr: raiseErr, OmittedActions: rep.OmittedActions, OmittedChecks: rep.OmittedChecks}, nil
 }
 
 // campaignScriptRefs resolves a map script's hero-band references against the party.
