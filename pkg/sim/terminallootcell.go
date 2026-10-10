@@ -62,7 +62,7 @@ func (w *World) terminalLootFree(self int, x, y int32) bool {
 			if w.motionOwnsCell(e.ID, DomainGround.layer(), x, y) {
 				return false
 			}
-		} else if counted(e) && entityCoversCell(e, x, y) {
+		} else if counted(&e) && entityCoversCell(&e, x, y) {
 			return false
 		}
 	}

@@ -474,7 +474,7 @@ func newRecord(class string, off int, index uint16) *Record {
 		Class:    class,
 		Off:      off,
 		Index:    index,
-		Value:    map[string]uint32{},
+		Value:    make(map[string]uint32, recordValueHint(class)),
 		Text:     map[string]string{},
 		Raw:      map[string][]byte{},
 		Refs:     map[string][]*Record{},

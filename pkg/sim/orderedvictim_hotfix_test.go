@@ -25,7 +25,7 @@ func adjacentStrikers(w *World) int {
 	n := 0
 	for _, e := range w.entities {
 		if e.Owner == 9 && e.HasAttackTarget && e.AttackTarget == warrior.ID &&
-			cellOf(e).chebyshevTo(cellOf(warrior)) <= 1 {
+			cellOf(&e).chebyshevTo(cellOf(&warrior)) <= 1 {
 			n++
 		}
 	}
@@ -63,7 +63,7 @@ func TestAnOrderedVictimIsKeptWhileOtherEnemiesStrike(t *testing.T) {
 		crowded, fallen := 0, false
 		for n := 0; n < 400 && !fallen; n++ {
 			if got := cmdEntity(t, w, 1); !got.HasAttackTarget || got.AttackTarget != 4 {
-				if cmdEntity(t, w, 4).OrdinaryTargetable() {
+				if entityRef(cmdEntity(t, w, 4)).OrdinaryTargetable() {
 					t.Fatalf("tick %d: the warrior ordered onto entity 4 holds victim %v/%d while it stands",
 						w.Tick(), got.HasAttackTarget, got.AttackTarget)
 				}
@@ -92,10 +92,10 @@ func TestAWarriorTakesTheStanceBackWhenItsOrderedVictimIsGone(t *testing.T) {
 
 	w := orderedVictimWorld(t)
 	Step(w, []Command{Attack(1, 4)})
-	for n := 0; n < 400 && cmdEntity(t, w, 4).OrdinaryTargetable(); n++ {
+	for n := 0; n < 400 && entityRef(cmdEntity(t, w, 4)).OrdinaryTargetable(); n++ {
 		Step(w, nil)
 	}
-	if cmdEntity(t, w, 4).OrdinaryTargetable() {
+	if entityRef(cmdEntity(t, w, 4)).OrdinaryTargetable() {
 		t.Fatal("the warrior never brought the first hostile down in 400 ticks")
 	}
 	for range 2 * scriptCycle {

@@ -2072,6 +2072,12 @@ package storyguard
 // CommentBytes rises for the install text code page: the docs of TextCode,
 // its edition and locale fields and the readers that take it, and the new
 // release test's, new code, including this paragraph.
+// CommentBytes rises for the chain CPU cuts: the docs of the new graphcopy
+// leaf, the kept current-action and document decodes, the native remap memo,
+// the budget field plan, the record capacity hint, the card pixel rows, the
+// fixed-layout source, saved-object and Group codecs, the hash buffer pool,
+// the direct bitmap picture, the per-type copy and budget plans and
+// their witnesses, new code, including this paragraph.
 // CommentBytes rises for the generator's archetype presets and its card: the
 // docs of data.HeroArchetype, the preset skills, the value and counter draw,
 // Chargen.CardView, the card report and the new tests, new code,
@@ -2086,9 +2092,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1877,
+		"acclause":        1875,
 		"scclause":        506,
-		"barestorynumber": 1740,
+		"barestorynumber": 1738,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2097,7 +2103,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1761,
+		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8626179,
+	CommentBytes: 8629866,
 }

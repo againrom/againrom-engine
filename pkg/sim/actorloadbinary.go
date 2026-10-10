@@ -15,8 +15,8 @@ const actorLoadRecordLen = 15 + sourceActorLen
 
 func (w *World) actorLoadSectionLen() int {
 	n := 4 + w.sourceEquipmentSectionLen()
-	for _, e := range w.entities {
-		if e.ActorLoad.Present {
+	for i := range w.entities {
+		if w.entities[i].ActorLoad.Present {
 			n += actorLoadRecordLen
 		}
 	}
@@ -30,8 +30,9 @@ func (w *World) encodeActorLoads(dst []byte, off int) int {
 		binary.LittleEndian.PutUint32(dst[off:], uint32(itemsLen-4))
 		off = w.encodeSourceEquipment(dst, off+4)
 	}
-	for _, e := range w.entities {
-		a := e.ActorLoad
+	for i := range w.entities {
+		e := &w.entities[i]
+		a := &e.ActorLoad
 		if !a.Present {
 			continue
 		}
@@ -42,7 +43,7 @@ func (w *World) encodeActorLoads(dst []byte, off int) int {
 		}
 		binary.LittleEndian.PutUint32(dst[off+7:], a.InsertIndex)
 		binary.LittleEndian.PutUint32(dst[off+11:], uint32(a.Accumulator))
-		_, _ = binary.Encode(dst[off+15:off+actorLoadRecordLen], binary.LittleEndian, a.Source)
+		putSourceActor(dst[off+15:off+actorLoadRecordLen], &a.Source)
 		off += actorLoadRecordLen
 	}
 	span := uint32(off - start)
@@ -72,9 +73,7 @@ func decodeActorLoads(data []byte, entities []Entity) error {
 		}
 		entities[i].ActorLoad = ActorLoad{Present: true, OwnWeight: int16(binary.LittleEndian.Uint16(data[off+4:])),
 			ContainerPresent: data[off+6] != 0, InsertIndex: binary.LittleEndian.Uint32(data[off+7:]), Accumulator: int32(binary.LittleEndian.Uint32(data[off+11:]))}
-		if _, err := binary.Decode(data[off+15:off+actorLoadRecordLen], binary.LittleEndian, &entities[i].ActorLoad.Source); err != nil {
-			return err
-		}
+		getSourceActor(data[off+15:off+actorLoadRecordLen], &entities[i].ActorLoad.Source)
 		if err := entities[i].CurrentActorLoad().Validate(); err != nil {
 			return err
 		}

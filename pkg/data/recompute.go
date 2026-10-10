@@ -307,46 +307,10 @@ func SightWord(mind, reaction int32, cells int32) uint16 {
 	return uint16(raw)
 }
 
-// Recompute is the one implementation of the derived-stat graph in this
-// tree: a character's four statistics, his six skill levels, the profile he
-// carries and what he is wearing, to the whole Derived set. In the original
-// it is a single virtual method; Hero.Derive, Hero.Speed and Hero.Sight are
-// now one-line accessors over this and compute nothing of their own.
-//
-// It reads nothing but its three arguments: no clock, no generator, no
-// global, no file. The same three arguments yield the same Derived value in
-// every process.
-//
-// THE ORDER IS NORMATIVE, and four points in it are load-bearing:
-//
-//  1. the statistic CAPS run first, so every later term in this function
-//     reads the capped value rather than the raw one;
-//  2. the two POOLS are computed before the SKILLS ARE RESTORED, so a
-//     bonus that raises a level reaches a pool only through the next
-//     recompute -- the restore, and the damage/to-hit terms that read it,
-//     both run afterwards (FR-6a);
-//  3. the protection/resistance/defence/absorption BLOCK IS CLEARED after
-//     defence's own input (Reaction) is read and before defence is
-//     written, so nothing here accumulates across two recomputes over the
-//     same Hero (AC-3);
-//  4. the EQUIPMENT FOLD runs between the bare values and the final
-//     protection clamp, so the clamp bounds the equipped character and not
-//     the bare statistics.
-//
-// ABSORPTION HAS NO SOURCE BUT ARMOUR. No weapon term writes it -- see the
-// equipment fold below -- and the block clears it to zero, so a character
-// carrying only a weapon absorbs nothing. That is the value this routine
-// produces for him, not a gap in it.
-//
-// HealthMax AND ManaMax ARE WIRED, AS OF 0119-chargen, OFF A GENERATED
-// CHARACTER'S BASE ROW, and as of 0133-person-health off a PLACED PERSON'S
-// row too: see Derived's own doc for what supplies the three inputs Profile
-// states, and for the health arm's own gate below, which reads no column at
-// either end.
-//
-// EACH OF Protection AND Resistance IS FIVE WIDE, matching data.UnitDef,
-// because the block's own sixth slot is filled by no column and derived by
-// nothing: see Derived's own doc.
+// Recompute is a native character's derived set: his four statistics, his
+// six skill levels, his profile and what he is wearing, through DeriveHuman.
+// It reads nothing but its arguments. The speed it reports is the
+// unencumbered sum; pkg/sim applies the load (rules.NativeHumanSpeed).
 func (h Hero) Recompute(p Profile, l Loadout) Derived {
 	return h.recompute(p, l, nil)
 }
@@ -361,27 +325,8 @@ func (h Hero) RecomputeWithSkillXP(p Profile, l Loadout, live [SkillSlots]int32)
 }
 
 func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
-	// Step 1: every later term reads the CAPPED statistic, so capping runs
-	// first and destructively -- capStat is the same routine Hero.Derive,
-	// Hero.Speed and Hero.Sight used to call separately, each carrying its own
-	// copy of this step; here there is exactly one.
-	body := effectStat(h.Body, l.Mod.Body)
-	reaction := effectStat(h.Reaction, l.Mod.Reaction)
-	mind := effectStat(h.Mind, l.Mod.Mind)
-	spirit := effectStat(h.Spirit, l.Mod.Spirit)
-
-	// Step 2: the level-to-experience direction. Slot n at level L accounts for
-	// ftol((1.1^L - 1) * 1000); a level of 0 needs no special case, because
-	// pow11(0) is 1 and (1 - 1) * 1000 truncates to 0 on its own. All six slots
-	// are summed, slot 0 included -- see Derived.SkillXP for why that differs
-	// from the restore's own 1..5, and for the inverse direction this tree does
-	// not carry.
-	//
-	// IT READS THE INCOMING LEVELS, NOT THE RESTORED ONES, and that is the
-	// order rather than an oversight: the restore is step 6 below, and the
-	// pools that consume this sum are steps 3 and 4, so a bonus that raises a
-	// level reaches the pools only through the NEXT recompute. That is the
-	// second load-bearing ordering point.
+	// A slot at level L accounts for S(L) experience unless the caller holds
+	// the live per-slot counters; all six slots are summed, slot 0 included.
 	var skillXP [SkillSlots]int32
 	var experienceSum int64
 	for i, level := range h.Skill {
@@ -394,207 +339,53 @@ func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
 	}
 	experience := int32(min(experienceSum, math.MaxInt32))
 
-	healthClassMult := float64(1)
-	if p.Fighter {
-		healthClassMult = classMult
+	// The weapon's additive part joins the worn items' terms before the
+	// clamps, as the original's modifier block holds both (HERO-MOD-016);
+	// its cadence, reach and ranged component stay FoldWeapon's.
+	bare := Combat{AttackChargeTime: BareChargeTime, AttackRelaxTime: BareRelaxTime, Reach: 1, SkillSlot: activeSkill(l.Weapon)}
+	combat := FoldWeapon(bare, l.Weapon, h.Skill[SkillGeneral])
+	mod := l.Mod
+	in := HumanInput{Skill: h.Skill, Active: activeSkill(l.Weapon), Experience: experience,
+		Fighter: p.Fighter, ManaPool: p.ManaColumn, Rider: p.Rider, TrainingCap: l.Rules.SkillCap(),
+		Terms: HumanTerms{HealthMax: mod.HealthMax, ManaMax: mod.ManaMax, Sight: mod.Sight << 8, SkillBonus: mod.SkillBonus,
+			ToHit: mod.ToHit + combat.ToHit, DamageBase: mod.DamageBase + combat.DamageBase, DamageSpread: mod.DamageSpread + combat.DamageSpread,
+			Defence: mod.Defence + combat.Defence, Absorption: mod.Absorption + combat.Absorption,
+			Protection: mod.Protection, Resistance: mod.Resistance}}
+	// A native stat already holds its bonus, at most 100, as an effect writes
+	// it; the bonus raises the cap by the same amount (HERO-CAP-015).
+	for i, pair := range [4][2]int32{{h.Body, mod.Body}, {h.Reaction, mod.Reaction}, {h.Mind, mod.Mind}, {h.Spirit, mod.Spirit}} {
+		in.Stat[i], in.StatCap[i] = effectStat(pair[0], pair[1]), pair[1]
 	}
-	healthMax := int32(0)
-	if gate := float64(body) * healthClassMult; gate != 0 {
-		health := float64(ftol(gate + logBase11(float64(experience)/poolXPDivisor+1)*healthClassMult))
-		healthMax = ftol(health * (pow11(body)/poolGrowthDivisor + 1))
-	}
+	// A native Human holds the unencumbered sum; pkg/sim applies the load at
+	// its own speed producer (rules.NativeHumanSpeed).
+	out, _ := DeriveHuman(in)
+	skill := out.Skill
+	// DIV-2784: the General bonus raises a native hero's live General level.
+	skill[SkillGeneral] += mod.SkillBonus[SkillGeneral]
 
-	// Step 4: the mana maximum, the same three steps on Spirit -- with three
-	// asymmetries against health, each the original's rather than a convenience
-	// of ours.
-	manaMax := int32(0)
-	if p.ManaColumn {
-		manaXPMult := float64(classMult)
-		if p.Fighter {
-			manaXPMult = 1
-		}
-		mana := float64(spirit) * classMult
-		mana = float64(ftol(mana + logBase11(float64(experience)/poolXPDivisor+1)*manaXPMult))
-		manaMax = ftol(mana * (pow11(spirit)/poolGrowthDivisor + 1))
+	combat.ToHit, combat.DamageBase, combat.DamageSpread = out.ToHit, int32(out.DamageBase), int32(out.DamageSpread)
+	combat.Defence, combat.Absorption = out.Defence, out.Absorption
+	if mod.HasSecondaryDamage {
+		combat.SecondaryDamage = mod.SecondaryDamage
 	}
-	healthMax += l.Mod.HealthMax
-	manaMax += l.Mod.ManaMax
-
-	// Step 5: speed and sight, from the already-capped statistics. No ordering
-	// point past step 1 constrains them; they are placed where the original
-	// reads their inputs.
-	//
-	// SPEED is `Reaction` below 12 and `Reaction/5 + 12` at 12 and above, plus
-	// RiderSpeedBonus for a rider class (Profile.Rider). The overload penalty
-	// is not here: this graph is handed no container, so the unencumbered
-	// speed is produced and pkg/sim applies the penalty where the mover's rate
-	// is read (moverSpeed, pkg/sim/world.go).
-	speed := reaction
-	if reaction >= speedBranch {
-		speed = reaction/speedDivisor + speedBranch
-	}
-	speed += p.SpeedBonus()
-
-	// SIGHT is `(Mind + Reaction)/25 + 4`. IT IS AN INTEGER DIVISION HERE AND A
-	// FLOATING-POINT ONE THERE, and the two give the SAME answer rather than
-	// nearly the same. The published expression is `ftol(((mind + reaction)/25
-	// + 4) * 256)` stored as a sixteen-bit value in SUB-CELL units, of which
-	// the whole-cell radius is the HIGH BYTE -- and `floor(trunc(256x)/256) ==
-	// floor(x)` for a non-negative x, so taking the high byte of the scaled
-	// truncation is taking the floor of the unscaled expression; the addend is
-	// an integer, so the floor distributes over it. That is why this package's
-	// stay outside the determinism wall costs nothing here: there is no
-	// rounding case where the FPU sequence and this integer one part company.
-	//
-	// THE SUB-CELL REMAINDER IS DROPPED, which is the divergence rather
-	// than a simplification: the low byte of that word is a real value
-	// with no decoded consumer; a story that finds one carries it, and
-	// until then a field for it would be state nothing can exercise.
-	sight := (mind+reaction)/sightDivisor + sightBase
-	speed += l.Mod.Speed
-	sight += l.Mod.Sight
-
-	// Step 6: the damage pair, to-hit and the active-skill terms, unchanged in
-	// value from what Hero.Derive already produced. The spread is ftol(1.1^Body
-	// / 20) and the base is a COPY of it, so the bare pair is equal and the
-	// roll is [d, 2d]; to-hit is built from Body and Reaction together. The
-	// active skill, when there is one, adds three times its level to to-hit and
-	// a FIFTH of its level to the base ALONE -- the asymmetry is the reason the
-	// two ends of the pair do not carry the same terms.
-	spread := ftol(pow11(body) / damageDivisor)
-	base := spread
-	toHit := ftol((pow11(body) + pow11(reaction)) / toHitDivisor)
-
-	// Step 6a (FR-6a): the SKILL RESTORE, and it lands here -- after the
-	// bare to-hit and before the active-skill terms that read it -- because
-	// that is where the original puts it. Slots 1 to 5 are the incoming
-	// level plus the loadout's bonus, clamped to [SkillFloor, SkillCap];
-	// SLOT 0 IS IN NEITHER LOOP and passes through whatever it arrived as,
-	// which is the original's own asymmetry and not a shortcut (see
-	// SkillFloor's doc for the second clamp this tree folds into this one).
-	//
-	// A LEVEL IS AN INTEGER. There is nothing fractional to carry, so the
-	// arithmetic is integer end to end and no truncation question arises
-	// here the way it does everywhere the exponential is involved.
-	skill := h.Skill
-	skill[SkillGeneral] += l.Mod.SkillBonus[SkillGeneral]
-	for i := SkillGeneral + 1; i < SkillSlots; i++ {
-		skill[i] = l.Rules.EffectiveSkill(h.Skill[i], l.Mod.SkillBonus[i])
-	}
-
-	if slot := activeSkill(l.Weapon); slot > SkillGeneral && slot < SkillSlots {
-		toHit += skillToHitMult * skill[slot]
-		base += skill[slot] / skillDamageDiv
-	}
-
-	// Step 7 (AC-3): the block clears here. In the original this is a literal
-	// memset that runs between defence's own input (Reaction, already captured
-	// above as `reaction`) being read and defence being written next, in step 8
-	// -- so on a SECOND recompute over the same Hero, nothing from the first
-	// pass survives into this one. Declaring fresh zero-valued locals
-	// reproduces exactly that: there is nothing here to accumulate onto.
-	defence := int32(0)
-	absorption := int32(0)
-	var protection, resistance [5]int32
-
-	// Step 8: defence and the five protections are written; absorption and the
-	// five resistances are left at the block's cleared zero -- absorption
-	// because no weapon term writes it (see step 9), the resistances because
-	// they are NEVER RE-DERIVED for a character at all; the block's clear above
-	// is their only writer.
-	defence = reaction / defenceDivisor
-	for i := range protection {
-		// Go's integer division already truncates toward zero for a
-		// non-negative operand, which spirit always is once capped --
-		// the same rounding control ftol enforces explicitly everywhere
-		// else in this graph.
-		protection[i] = spirit / spiritHalfDivisor
-	}
-
-	// Step 9: the equipment fold. l.Mod's additive fields fold in first,
-	// including the two arrays. Its replacement-only SecondaryDamage waits
-	// until after the weapon. The weapon folds through FoldWeapon, whose own
-	// doc carries which of its two arms adds what: melee joins the physical
-	// fields, while ranged uses General and may build the third component. A
-	// later elemental item effect then replaces that complete triple, following
-	// Weapon::Equip's base-before-effect order. A nil weapon leaves the bare
-	// pair (BareChargeTime, BareRelaxTime) standing and Reach at its own floor
-	// of 1, which is FoldWeapon's own no-op.
-	toHit += l.Mod.ToHit
-	base += l.Mod.DamageBase
-	spread += l.Mod.DamageSpread
-	defence += l.Mod.Defence
-	absorption += l.Mod.Absorption
-	if defence < 0 {
-		defence = 0
-	}
-	if absorption < 0 {
-		absorption = 0
-	}
-	for i := range protection {
-		protection[i] += l.Mod.Protection[i]
-		resistance[i] += l.Mod.Resistance[i]
-	}
-
-	combat := Combat{
-		DamageBase:       base,
-		DamageSpread:     spread,
-		ToHit:            toHit,
-		Defence:          defence,
-		Absorption:       absorption,
-		AlwaysHits:       false,
-		AttackChargeTime: BareChargeTime,
-		AttackRelaxTime:  BareRelaxTime,
-		Reach:            1,
-		// A nil weapon needs this seed because FoldWeapon's nil arm is a
-		// complete no-op. A resolved weapon assigns SkillSlot again inside
-		// FoldWeapon from the same activeSkill helper; that shared assignment
-		// is also what the UnitDef creature path uses.
-		SkillSlot: activeSkill(l.Weapon),
-	}
-	// HERO-GENERAL-092: the General bonus block is not restored onto live slot
-	// 0. Pass the Hero's live General level, not l.Mod.SkillBonus[0].
-	combat = FoldWeapon(combat, l.Weapon, h.Skill[SkillGeneral])
-	if l.Mod.HasSecondaryDamage {
-		combat.SecondaryDamage = l.Mod.SecondaryDamage
-	}
-
-	// Step 10: each of the five protections clamps to the smaller of Spirit/2 +
-	// 70 and 100, and then floors at 0. Two guards, because the first alone
-	// does nothing for a protection an EquipMod pushed negative -- it is
-	// already below the ceiling -- and the second alone would not bound a
-	// character whose Spirit is high enough to raise the ceiling past 100 in
-	// principle (StatCap's own cap tops out at 50 ordinarily, 100 through an
-	// effect no hero this tree builds has met).
-	for i := range protection {
-		if ceiling := spirit/spiritHalfDivisor + protectionClampBase; protection[i] > ceiling {
-			protection[i] = ceiling
-		}
-		if protection[i] < 0 {
-			protection[i] = 0
-		} else if protection[i] > protectionClampCeiling {
-			protection[i] = protectionClampCeiling
-		}
-	}
-
 	return Derived{
-		Body: body, Reaction: reaction, Mind: mind, Spirit: spirit,
+		Body: out.Stat[0], Reaction: out.Stat[1], Mind: out.Stat[2], Spirit: out.Stat[3],
 		Skill:              skill,
 		SkillXP:            skillXP,
 		Experience:         experience,
-		HealthMax:          healthMax,
-		ManaMax:            manaMax,
+		HealthMax:          out.HealthMax,
+		ManaMax:            out.ManaMax,
 		Combat:             combat,
-		Protection:         protection,
-		Resistance:         resistance,
-		Speed:              speed,
-		SpeedModifier:      l.Mod.Speed,
-		Sight:              sight,
-		HealthRegeneration: l.Mod.HealthRegeneration,
-		ManaRegeneration:   l.Mod.ManaRegeneration,
-		RotationSpeed:      l.RotationSpeed + l.Mod.RotationSpeed,
+		Protection:         out.Protection,
+		Resistance:         out.Resistance,
+		Speed:              out.BaseSpeed + mod.Speed,
+		SpeedModifier:      mod.Speed,
+		Sight:              out.Sight >> 8,
+		HealthRegeneration: mod.HealthRegeneration,
+		ManaRegeneration:   mod.ManaRegeneration,
+		RotationSpeed:      l.RotationSpeed + mod.RotationSpeed,
 		SecondaryDamage:    combat.SecondaryDamage,
-		Capacity:           body*capacityMultiplier + capacityAddend,
+		Capacity:           out.Capacity,
 	}
 }
 

@@ -304,7 +304,7 @@ func (w *World) stanceMembers(members []int) []int {
 
 // effectiveGroup selects the temporary command group while an explicit order
 // holds, otherwise the placed group. All AI membership reads use this choice.
-func effectiveGroup(e Entity) uint32 {
+func effectiveGroup(e *Entity) uint32 {
 	if e.CommandGroup != 0 {
 		return e.CommandGroup
 	}
@@ -363,7 +363,7 @@ func (w *World) aiGroups() []aiGroup {
 	activity := w.rom2ActivityMask()
 	for i := range w.entities {
 		e := w.entities[i]
-		if !activity.groupActive(e.Owner, effectiveGroup(e)) {
+		if !activity.groupActive(e.Owner, effectiveGroup(&e)) {
 			continue
 		}
 		// AN OFF-MAP UNIT IS NOT DECIDED FOR. THIS is the set a decision walks —
@@ -378,18 +378,18 @@ func (w *World) aiGroups() []aiGroup {
 		if _, using := w.structureUseIndex(e.ID); using {
 			continue
 		}
-		if underCommand(e) && !w.groupOrderIssuesDestinations(e.Owner, effectiveGroup(e)) {
+		if underCommand(e) && !w.groupOrderIssuesDestinations(e.Owner, effectiveGroup(&e)) {
 			continue
 		}
 		at := -1
 		for k := range out {
-			if out[k].owner == e.Owner && out[k].group == effectiveGroup(e) {
+			if out[k].owner == e.Owner && out[k].group == effectiveGroup(&e) {
 				at = k
 				break
 			}
 		}
 		if at < 0 {
-			out = append(out, aiGroup{owner: e.Owner, group: effectiveGroup(e)})
+			out = append(out, aiGroup{owner: e.Owner, group: effectiveGroup(&e)})
 			at = len(out) - 1
 		}
 		out[at].members = append(out[at].members, i)
@@ -625,7 +625,7 @@ func (w *World) resumeSwarm(g aiGroup) {
 	var idle []int
 	for _, mi := range g.members {
 		e := w.entities[mi]
-		if arrived(e) && !e.HasAttackTarget && cellOf(e).chebyshevTo(to) > formationSpread {
+		if arrived(e) && !e.HasAttackTarget && cellOf(&e).chebyshevTo(to) > formationSpread {
 			idle = append(idle, mi)
 		}
 	}
@@ -773,7 +773,7 @@ func (w *World) groupLivingMembers(owner, group uint32) []int {
 	var members []int
 	for i := range w.entities {
 		e := w.entities[i]
-		if e.Owner == owner && effectiveGroup(e) == group && e.Alive() && !e.OffMap {
+		if e.Owner == owner && effectiveGroup(&e) == group && e.Alive() && !e.OffMap {
 			members = append(members, i)
 		}
 	}
@@ -817,7 +817,7 @@ func (w *World) candidates(g aiGroup) []int {
 	w.stampAttackNotices(stamp, g.members, true)
 	var live, dead []int
 	for i := range w.entities {
-		c := w.entities[i]
+		c := &w.entities[i]
 		// AN OFF-MAP UNIT IS NOT A CANDIDATE. This sweep is this package's
 		// spelling of the law's own head-to-tail walk of the global on-map actor
 		// list, and the removal arm's whole effect on acquisition is that the
@@ -833,7 +833,7 @@ func (w *World) candidates(g aiGroup) []int {
 		if w.hasAttachedSpell(c.ID, w.armSpellID(15)) && !w.groupDetectsInvisible(g.members, cellOf(c)) {
 			continue
 		}
-		if !w.hostileTo(decider, c) {
+		if !w.hostileTo(&decider, c) {
 			continue
 		}
 		if !c.OrdinaryTargetable() {
@@ -858,7 +858,7 @@ func (w *World) candidates(g aiGroup) []int {
 func (w *World) groupDetectsInvisible(members []int, candidate cell) bool {
 	for _, i := range members {
 		if i >= 0 && i < len(w.entities) &&
-			cellOf(w.entities[i]).chebyshevTo(candidate) <= int64(w.entities[i].SeeInvisible) {
+			cellOf(&w.entities[i]).chebyshevTo(candidate) <= int64(w.entities[i].SeeInvisible) {
 			return true
 		}
 	}
@@ -899,7 +899,7 @@ func noticeBase(ents []Entity, members []int, cx, cy int32) uint8 {
 	centre := cell{x: cx, y: cy}
 	var widest uint8
 	for _, i := range members {
-		if v := uint8(cellOf(ents[i]).chebyshevTo(centre) + int64(ents[i].ScanRange)); v > widest {
+		if v := uint8(cellOf(&ents[i]).chebyshevTo(centre) + int64(ents[i].ScanRange)); v > widest {
 			widest = v
 		}
 	}
@@ -975,13 +975,13 @@ func groupKeys(ents []Entity) []groupAI {
 		}
 		found := false
 		for k := range out {
-			if out[k].owner == e.Owner && out[k].group == effectiveGroup(e) {
+			if out[k].owner == e.Owner && out[k].group == effectiveGroup(&e) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			out = append(out, groupAI{owner: e.Owner, group: effectiveGroup(e)})
+			out = append(out, groupAI{owner: e.Owner, group: effectiveGroup(&e)})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -1012,7 +1012,7 @@ func freezeGroups(ents []Entity) []groupAI {
 		var members []int
 		for k := range ents {
 			e := ents[k]
-			if e.Owner == out[i].owner && effectiveGroup(e) == out[i].group && e.Alive() {
+			if e.Owner == out[i].owner && effectiveGroup(&e) == out[i].group && e.Alive() {
 				members = append(members, k)
 			}
 		}
@@ -1044,7 +1044,7 @@ func clipToNotice(cands []int, ents []Entity, cx, cy int32, r int64) []int {
 	centre := cell{x: cx, y: cy}
 	out := cands[:0:0]
 	for _, i := range cands {
-		if cellOf(ents[i]).chebyshevTo(centre) <= r {
+		if cellOf(&ents[i]).chebyshevTo(centre) <= r {
 			out = append(out, i)
 		}
 	}
@@ -1150,7 +1150,7 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 
 	// The distance is read as a BYTE, which is the width the law reads it at. No
 	// map this tree can load is wide enough for the narrowing to bite.
-	d := int32(uint8(cellOf(m).chebyshevTo(cellOf(c))))
+	d := int32(uint8(cellOf(&m).chebyshevTo(cellOf(&c))))
 
 	if order == orderStandGround && m.Owner == SelfSlot && (footprintSide(m.TokenSize) > 1 || footprintSide(c.TokenSize) > 1) {
 		d = min(d, strikeDistance(m, c))
@@ -1258,7 +1258,7 @@ func (w *World) candidateCost(mi, ci int, order uint8) int32 {
 // cellOf is e's cell. It is one function so that "where is this unit" cannot come
 // to be spelled two ways on a path where a transposed pair would read as a
 // plausible distance.
-func cellOf(e Entity) cell { return cell{x: e.X, y: e.Y} }
+func cellOf(e *Entity) cell { return cell{x: e.X, y: e.Y} }
 
 // orderAttack serves active-target writers and a ready pending transfer.
 // Reissuing the active endpoint preserves its cycle (AI-REISSUE-077).

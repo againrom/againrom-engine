@@ -1243,7 +1243,7 @@ func (e *Entity) clearTransit() {
 // — and it IS eventually removed from the world, on the tick its decay reaches
 // the bottom of the ladder; until then dying changes its health, its stage and
 // its dwell, and nothing else about who the world holds.
-func (e Entity) Dead() bool { return e.HP < 0 }
+func (e *Entity) Dead() bool { return e.HP < 0 }
 
 // Downed reports whether e stands at exactly zero health with a health system —
 // the state between alive and dead.
@@ -1253,7 +1253,7 @@ func (e Entity) Dead() bool { return e.HP < 0 }
 // script health write can restore it above zero. An entity whose MaxHP is not
 // positive is never downed, because zero health is not a wound to a unit that
 // has no health system.
-func (e Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 }
+func (e *Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 }
 
 // Alive reports whether e is neither dead nor downed, which is what the third
 // state IS rather than a third comparison beside the other two.
@@ -1262,13 +1262,13 @@ func (e Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 }
 // construction: Dead and Downed cannot both hold — one wants a negative health
 // and the other exactly zero — and this one is the complement of their union, so
 // no pair of integers can be in two states or in none.
-func (e Entity) Alive() bool { return e.HP >= 0 && (e.HP != 0 || e.MaxHP <= 0) }
+func (e *Entity) Alive() bool { return e.HP >= 0 && (e.HP != 0 || e.MaxHP <= 0) }
 
 // OrdinaryTargetable reports whether an ordinary weapon, attack order or spell
 // may still name e. Bodies remain finishable through -9; -10 is the first decay
 // threshold at which they stop being combat subjects. Control Spirit owns its
 // separate bones-only exception at the spell call sites.
-func (e Entity) OrdinaryTargetable() bool { return e.HP > decayBonesHP }
+func (e *Entity) OrdinaryTargetable() bool { return e.HP > decayBonesHP }
 
 // restorativeTargetable is the health population an ordinary restorative row
 // may raise. It is shared by spell admission and occupancy: a body which can
@@ -1277,7 +1277,7 @@ func (e Entity) OrdinaryTargetable() bool { return e.HP > decayBonesHP }
 // at one hashed position. The finished-body floor remains the ordinary target
 // floor, and a unit without a positive health maximum has no health system to
 // restore.
-func (e Entity) restorativeTargetable() bool {
+func (e *Entity) restorativeTargetable() bool {
 	return e.MaxHP > 0 && e.OrdinaryTargetable()
 }
 
@@ -1292,14 +1292,14 @@ func (e Entity) restorativeTargetable() bool {
 // This is the minimum occupancy window. A restorable body may keep its cell
 // longer, through restorativeTargetable, so expiring Dwell cannot let a mover
 // take the coordinates before Heal revives it.
-func (e Entity) Dying() bool {
+func (e *Entity) Dying() bool {
 	return !e.Alive() && e.Decay == DecayFallen && e.Dwell > 0
 }
 
 // Restorable reports whether e has fallen and Heal can still raise it: health
 // 0 through -9 with a health system (MAGIC-TARGET-017, HERO-REVIVE-068). It
 // outlasts Dying and ends when a blow or the corpse walk reaches -10.
-func (e Entity) Restorable() bool { return !e.Alive() && e.restorativeTargetable() }
+func (e *Entity) Restorable() bool { return !e.Alive() && e.restorativeTargetable() }
 
 // stallLimit is the count at which a unit gives up: the target is cleared and
 // the count returns to zero inside that same tick, so this value is a bound a
@@ -2554,7 +2554,7 @@ func (w *World) Relations() Relations { return w.relations.materialised() }
 // hostileTo reports whether me's roster slot treats him's as an enemy. It is the
 // one bridge from an entity to the relation, so the two places that could
 // differ about which of the pair indexes the row cannot.
-func (w *World) hostileTo(me, him Entity) bool {
+func (w *World) hostileTo(me, him *Entity) bool {
 	return w.relations.Hostile(me.Owner, him.Owner)
 }
 

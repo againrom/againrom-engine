@@ -150,7 +150,7 @@ func (w *World) stepRetreatExecutors() []bool {
 	holds := make([]bool, len(w.entities))
 	for i := range w.entities {
 		holds[i] = w.stepRetreatExecutor(i)
-		e := w.entities[i]
+		e := &w.entities[i]
 		if e.PendingOrder.Kind == PendingNone && e.ActorState == actorStateRetreat && e.Retreat.Known && e.Retreat.Progress == 0 && e.HasAttackTarget && (e.Retreat.Pending || !e.AcquirePursuit) {
 			holds[i] = true
 		}

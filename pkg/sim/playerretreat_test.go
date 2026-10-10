@@ -497,7 +497,7 @@ func TestRetreatFromFinePositionsRunsManyTicksAndEveryTenthTickReloadsIdenticall
 	if end.ActorState != actorStateRetreat {
 		t.Fatalf("the unit left Retreat for state %d", end.ActorState)
 	}
-	if d := cellOf(end).chebyshevTo(cellOf(start)); d < 8 {
+	if d := cellOf(&end).chebyshevTo(cellOf(&start)); d < 8 {
 		t.Fatalf("the unit moved %d cells from (%d,%d) to (%d,%d) in 300 ticks, want a sustained retreat", d, start.X, start.Y, end.X, end.Y)
 	}
 }

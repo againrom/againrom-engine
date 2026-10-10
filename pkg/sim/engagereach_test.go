@@ -196,7 +196,7 @@ func TestAReachOneMemberReadsThePlainDistanceAtZeroSeparation(t *testing.T) {
 		engReachFighter(1, 2, 5, 5, DomainAir, 1),
 		engReachFighter(2, 3, 5, 5, DomainGround, 1))
 	mi, ci := indexOfEntity(w.entities, 1), indexOfEntity(w.entities, 2)
-	if d := cellOf(w.entities[mi]).chebyshevTo(cellOf(w.entities[ci])); d != 0 {
+	if d := cellOf(&w.entities[mi]).chebyshevTo(cellOf(&w.entities[ci])); d != 0 {
 		t.Fatalf("fixture assumption broken: the two are %d cells apart, want 0", d)
 	}
 

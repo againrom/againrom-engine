@@ -363,7 +363,7 @@ func (w *World) freeCommandGroup() uint32 {
 	for {
 		taken := false
 		for i := range w.entities {
-			if effectiveGroup(w.entities[i]) == id {
+			if effectiveGroup(&w.entities[i]) == id {
 				taken = true
 				break
 			}

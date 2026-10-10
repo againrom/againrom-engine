@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 )
 
 // NativeActionsPath carries the typed native continuation supplement in an
@@ -95,6 +96,10 @@ func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16
 	if len(permutation) == 0 || permutation[0] != 0 {
 		return fmt.Errorf("sav: current action remap lacks the null slot")
 	}
+	if out, ok := nativeRemaps.lookup(data, permutation, dropRetiredOwnership); ok {
+		return SetNativeActions(state, out)
+	}
+	in := data
 	var root map[string]json.RawMessage
 	if err := json.Unmarshal(data, &root); err != nil {
 		return fmt.Errorf("sav: current action remap: %w", err)
@@ -228,7 +233,11 @@ func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16
 	if err != nil {
 		return err
 	}
-	return SetNativeActions(state, data)
+	if err := SetNativeActions(state, data); err != nil {
+		return err
+	}
+	nativeRemaps.store(in, permutation, dropRetiredOwnership, data)
+	return nil
 }
 
 func remapPendingCommandObjects(raw json.RawMessage, permutation []uint16) (json.RawMessage, error) {
@@ -285,4 +294,50 @@ func remapPendingCommandObjects(raw json.RawMessage, permutation []uint16) (json
 	queue["Commands"], _ = json.Marshal(commands)
 	queue["Commanded"], _ = json.Marshal(commanded)
 	return json.Marshal(queue)
+}
+
+// nativeRemaps keeps the last few remaps by their exact input. A remap is a
+// pure function of the supplement bytes, the permutation and the mode, and a
+// load or save path relocates the same supplement many times over.
+var nativeRemaps nativeRemapMemo
+
+type nativeRemapMemo struct {
+	mu      sync.Mutex
+	entries []nativeRemapEntry
+}
+
+type nativeRemapEntry struct {
+	in, permutation string
+	drop            bool
+	out             []byte
+}
+
+const nativeRemapEntries = 8
+
+func remapPermutationKey(permutation []uint16) string {
+	b := make([]byte, 2*len(permutation))
+	for i, v := range permutation {
+		binary.LittleEndian.PutUint16(b[2*i:], v)
+	}
+	return string(b)
+}
+
+func (m *nativeRemapMemo) lookup(in []byte, permutation []uint16, drop bool) ([]byte, bool) {
+	key := remapPermutationKey(permutation)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, e := range m.entries {
+		if e.drop == drop && e.permutation == key && e.in == string(in) {
+			return e.out, true
+		}
+	}
+	return nil, false
+}
+
+func (m *nativeRemapMemo) store(in []byte, permutation []uint16, drop bool, out []byte) {
+	e := nativeRemapEntry{in: string(in), permutation: remapPermutationKey(permutation), drop: drop, out: bytes.Clone(out)}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	entries := append([]nativeRemapEntry{e}, m.entries...)
+	m.entries = entries[:min(len(entries), nativeRemapEntries)]
 }

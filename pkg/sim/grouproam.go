@@ -69,7 +69,7 @@ func (w *World) stopRoamMember(i int) {
 func (w *World) rollRoamCell(dst cell, members []int, counter uint8) (cell, uint8, bool) {
 	var far int64
 	for _, i := range members {
-		far = max(far, cellOf(w.entities[i]).chebyshevTo(dst))
+		far = max(far, cellOf(&w.entities[i]).chebyshevTo(dst))
 	}
 	if far >= 10 && counter <= 50 {
 		return dst, counter, true

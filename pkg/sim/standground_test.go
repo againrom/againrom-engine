@@ -232,7 +232,7 @@ func TestStandGroundMemberDropsAVictimPastReachAtTheNextDecision(t *testing.T) {
 	stepUntilTick(w, scriptPassPhase+scriptCycle)
 	before := entityAt(t, w, 1)
 	victim := entityAt(t, w, 2)
-	if !before.HasAttackTarget || before.X <= 5 || cellOf(before).chebyshevTo(cellOf(victim)) < 3 {
+	if !before.HasAttackTarget || before.X <= 5 || cellOf(&before).chebyshevTo(cellOf(&victim)) < 3 {
 		t.Fatalf("fixture: member %+v, victim at (%d,%d)", before, victim.X, victim.Y)
 	}
 	Step(w, nil)
