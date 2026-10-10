@@ -2010,6 +2010,9 @@ package storyguard
 // note that the mission start tip covers its click, the room tip witnesses,
 // the edition's mission tip field and the tip list rectangle's doc, new code,
 // including this paragraph.
+// CommentBytes rises for the game-profile scan's further forms and the widget
+// kit scan's push button rule in internal/archtest, their mutation cases and
+// debt lists, new code, including this paragraph.
 // CommentBytes rises for the slot-0 resistance witnesses: the docs of the
 // focused strike tests in pkg/sim and of the corpus release test in
 // pkg/game, new code, including this paragraph.
@@ -2036,5 +2039,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1770,
 	},
-	CommentBytes: 8557490,
+	CommentBytes: 8560393,
 }

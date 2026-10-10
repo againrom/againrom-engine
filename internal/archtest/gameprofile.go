@@ -17,17 +17,22 @@ import (
 //
 // A game identity is a base.Game or base.Campaign value, an Edition identity
 // field (Game, SaveTag, Campaign, CutsceneArchive, Town), a conversion of one,
-// a local defined from one, or a string constant some edition carries as an
-// identity. Reading Edition data that is not an identity is not a choice.
+// its string form (fmt.Sprint, String, a case or space change), a
+// concatenation holding one, a local defined from one, or a string constant
+// some edition carries as an identity. Reading Edition data that is not an
+// identity is not a choice.
 
-// The shapes, type-checked: a Game or Campaign constant named; == or != on an
-// identity or against an identity constant, or a strings comparison taking
-// one; a switch on an identity or a case naming an identity constant; an index
-// into a map keyed by Game or Campaign; a call answering one bool from a Game
-// or Campaign receiver or argument; a read of a bool Edition field; a use of
-// a bool variable named for a game (rom1, rom2, first game, second game); and
-// == or != against nil on a field named second or Second, a second-campaign
-// state used as a game flag.
+// The shapes, type-checked: a Game or Campaign constant named; an equality
+// or order comparison on an identity or against an identity constant, or a
+// comparison function (strings, bytes, slices, cmp, reflect.DeepEqual) taking
+// one; len of an identity; a switch on an identity or a case naming an
+// identity constant; an index into a map keyed by Game or Campaign, or by an
+// identity; a call answering one bool from a Game or Campaign receiver or
+// argument, or such a function taken as a value; a read of a bool Edition
+// field; a non-bool Edition field compared with a constant, a datum used as a
+// flag; a use of a bool variable named for a game (rom1, rom2, first game,
+// second game); and == or != against nil on a field named second or Second, a
+// second-campaign state used as a game flag.
 const profilePackage = "pkg/base/"
 
 const basePath = "againrom/pkg/base"
@@ -48,8 +53,9 @@ var ProfileAllowed = map[string]string{
 // NewGameInTown, TownDifficulty, StartupCutscenes) each pick one of two code
 // bodies at the site, and pkg/mapload reaches them through Table.Game. The
 // EventAudience.SecondGame flag, the save's game checks (SameGame, Known), the
-// cutscene archive names and the mods' "rom1" applies-to word are choices
-// the campaign service or edition data does not yet carry.
+// cutscene archive names, the empty mission tip path as a no-tips flag and
+// the mods' "rom1" applies-to word are choices the campaign service or
+// edition data does not yet carry.
 var ProfileDebt = map[string]int{
 	"cmd/terraintool/main.go":           1,
 	"pkg/game/base.go":                  1,
@@ -60,7 +66,7 @@ var ProfileDebt = map[string]int{
 	"pkg/game/currentsecondcampaign.go": 1,
 	"pkg/game/currentsession.go":        2,
 	"pkg/game/cutscene.go":              3,
-	"pkg/game/eventtext.go":             2,
+	"pkg/game/eventtext.go":             3,
 	"pkg/game/frontend.go":              3,
 	"pkg/game/mapload.go":               1,
 	"pkg/game/mission.go":               2,
@@ -203,14 +209,34 @@ var stringsComparisons = map[string]bool{
 	"TrimPrefix": true, "TrimSuffix": true, "Count": true, "Equal": true,
 }
 
+// profileComparisons are the standard functions, by package, that compare
+// their arguments.
+var profileComparisons = map[string]map[string]bool{
+	"strings": stringsComparisons,
+	"bytes":   stringsComparisons,
+	"reflect": {"DeepEqual": true},
+	"slices":  {"Contains": true, "Index": true, "Equal": true, "Compare": true},
+	"cmp":     {"Compare": true, "Less": true},
+}
+
+// profileStringForms are the standard functions, by package, whose result
+// is the string form of their game argument.
+var profileStringForms = map[string]map[string]bool{
+	"fmt":     {"Sprint": true, "Sprintf": true, "Sprintln": true},
+	"strings": {"ToLower": true, "ToUpper": true, "TrimSpace": true, "Clone": true},
+}
+
 type profileScan struct {
 	info    *types.Info
 	ids     map[string]bool
 	derived map[types.Object]bool
+	// called holds each call's function expression, so a game question is
+	// found once: as a call, or as a value when it is not called.
+	called map[ast.Expr]bool
 }
 
 func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel string, ids map[string]bool) []ProfileFinding {
-	s := &profileScan{info: info, ids: ids, derived: map[types.Object]bool{}}
+	s := &profileScan{info: info, ids: ids, derived: map[types.Object]bool{}, called: map[ast.Expr]bool{}}
 	s.markDerived(f)
 	var out []ProfileFinding
 	var fn string
@@ -228,6 +254,10 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 				if s.editionFlag(n) {
 					add(n, "reads an edition flag")
 				}
+				if !s.called[n] && s.gameQuestion(s.info.Uses[n.Sel]) {
+					add(n, "takes a game question as a value")
+				}
+				s.called[n.Sel] = true
 			case *ast.Ident:
 				if s.namesGame(n) {
 					add(n, "names a game")
@@ -235,12 +265,21 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 				if s.gameFlag(n) {
 					add(n, "reads a game flag")
 				}
+				if !s.called[n] && s.gameQuestion(s.info.Uses[n]) {
+					add(n, "takes a game question as a value")
+				}
 			case *ast.BinaryExpr:
-				if n.Op != token.EQL && n.Op != token.NEQ {
+				if !profileComparison(n.Op) {
 					return true
 				}
 				if s.identity(n.X) || s.identity(n.Y) || s.identityConst(n.X) || s.identityConst(n.Y) {
 					add(n, "compares a game")
+				}
+				if s.editionDatum(n.X) && s.constant(n.Y) || s.editionDatum(n.Y) && s.constant(n.X) {
+					add(n, "tests edition data as a flag")
+				}
+				if n.Op != token.EQL && n.Op != token.NEQ {
+					return true
 				}
 				if isNil(info, n.Y) && isSecondField(n.X) || isNil(info, n.X) && isSecondField(n.Y) {
 					add(n, "tests a second-campaign state for nil")
@@ -262,15 +301,19 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 					}
 				}
 			case *ast.IndexExpr:
-				if m, ok := typeUnder(info.TypeOf(n.X)).(*types.Map); ok && isGameType(m.Key()) {
+				if m, ok := typeUnder(info.TypeOf(n.X)).(*types.Map); ok && isGameType(m.Key()) || s.identity(n.Index) && !s.dataName(n.Index) {
 					add(n, "looks up a game")
 				}
 			case *ast.CallExpr:
+				s.called[ast.Unparen(n.Fun)] = true
 				if s.stringsCompare(n) {
 					add(n, "compares a game")
 				}
 				if s.asksGame(n) {
 					add(n, "asks a game")
+				}
+				if s.measuresGame(n) {
+					add(n, "measures a game")
 				}
 			}
 			return true
@@ -338,9 +381,108 @@ func (s *profileScan) identity(e ast.Expr) bool {
 		return profileIdentityFields[e.Sel.Name] && s.editionField(e)
 	case *ast.Ident:
 		return s.derived[s.info.ObjectOf(e)]
+	case *ast.BinaryExpr:
+		return e.Op == token.ADD && (s.identity(e.X) || s.identity(e.Y))
 	case *ast.CallExpr:
 		if tv, ok := s.info.Types[e.Fun]; ok && tv.IsType() && len(e.Args) == 1 {
 			return s.identity(e.Args[0])
+		}
+		if sel, ok := ast.Unparen(e.Fun).(*ast.SelectorExpr); ok && sel.Sel.Name == "String" {
+			if selection := s.info.Selections[sel]; selection != nil && selection.Kind() == types.MethodVal && isGameType(selection.Recv()) {
+				return true
+			}
+		}
+		if fn := s.stdFunc(e.Fun); fn != nil && profileStringForms[fn.Pkg().Path()][fn.Name()] {
+			for _, a := range e.Args {
+				if s.identity(a) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// stdFunc is the package-level or method function fun names, or nil.
+func (s *profileScan) stdFunc(fun ast.Expr) *types.Func {
+	sel, ok := ast.Unparen(fun).(*ast.SelectorExpr)
+	if !ok {
+		return nil
+	}
+	fn, ok := s.info.Uses[sel.Sel].(*types.Func)
+	if !ok || fn.Pkg() == nil {
+		return nil
+	}
+	return fn
+}
+
+func profileComparison(op token.Token) bool {
+	switch op {
+	case token.EQL, token.NEQ, token.LSS, token.GTR, token.LEQ, token.GEQ:
+		return true
+	}
+	return false
+}
+
+// constant reports whether e is a constant value.
+func (s *profileScan) constant(e ast.Expr) bool {
+	tv, ok := s.info.Types[ast.Unparen(e)]
+	return ok && tv.Value != nil
+}
+
+// editionDatum reports whether e reads a non-bool Edition field that is not
+// an identity: data, which a comparison with a constant turns into a flag.
+func (s *profileScan) editionDatum(e ast.Expr) bool {
+	sel, ok := ast.Unparen(e).(*ast.SelectorExpr)
+	if !ok || !s.editionField(sel) || profileIdentityFields[sel.Sel.Name] {
+		return false
+	}
+	b, ok := typeUnder(s.info.TypeOf(sel)).(*types.Basic)
+	return !ok || b.Kind() != types.Bool
+}
+
+// profileDataNames are the identity fields that name data: a lookup keyed by
+// one reads the data the edition names.
+var profileDataNames = map[string]bool{"Town": true, "CutsceneArchive": true}
+
+// dataName reports whether e is an Edition field naming data, read as is.
+func (s *profileScan) dataName(e ast.Expr) bool {
+	sel, ok := ast.Unparen(e).(*ast.SelectorExpr)
+	return ok && profileDataNames[sel.Sel.Name] && s.editionField(sel)
+}
+
+// measuresGame reports whether call is len of an identity.
+func (s *profileScan) measuresGame(call *ast.CallExpr) bool {
+	id, ok := ast.Unparen(call.Fun).(*ast.Ident)
+	if !ok || len(call.Args) != 1 {
+		return false
+	}
+	if b, ok := s.info.Uses[id].(*types.Builtin); !ok || b.Name() != "len" {
+		return false
+	}
+	return s.identity(call.Args[0])
+}
+
+// gameQuestion reports whether obj is a function or method answering one
+// bool from a Game or Campaign receiver or parameter.
+func (s *profileScan) gameQuestion(obj types.Object) bool {
+	fn, ok := obj.(*types.Func)
+	if !ok {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Results().Len() != 1 {
+		return false
+	}
+	if b, ok := typeUnder(sig.Results().At(0).Type()).(*types.Basic); !ok || b.Kind() != types.Bool {
+		return false
+	}
+	if sig.Recv() != nil && isGameType(sig.Recv().Type()) {
+		return true
+	}
+	for i := 0; i < sig.Params().Len(); i++ {
+		if isGameType(sig.Params().At(i).Type()) {
+			return true
 		}
 	}
 	return false
@@ -388,15 +530,11 @@ func (s *profileScan) gameFlag(id *ast.Ident) bool {
 	return ok && b.Kind() == types.Bool
 }
 
-// stringsCompare reports whether call is a strings or bytes comparison taking
-// an identity or an identity constant.
+// stringsCompare reports whether call is a standard comparison function
+// taking an identity or an identity constant.
 func (s *profileScan) stringsCompare(call *ast.CallExpr) bool {
-	sel, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-	fn, ok := s.info.Uses[sel.Sel].(*types.Func)
-	if !ok || fn.Pkg() == nil || (fn.Pkg().Path() != "strings" && fn.Pkg().Path() != "bytes") || !stringsComparisons[fn.Name()] {
+	fn := s.stdFunc(call.Fun)
+	if fn == nil || !profileComparisons[fn.Pkg().Path()][fn.Name()] {
 		return false
 	}
 	for _, a := range call.Args {
