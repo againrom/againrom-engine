@@ -1982,6 +1982,9 @@ package storyguard
 // CommentBytes rises for the town composer: the docs of pkg/town's description
 // format, actor programs and view, which replace the square's per-actor code,
 // new code, including this paragraph.
+// CommentBytes rises for the town room pages: the room trace instrument, the
+// reader's refusals, pkg/town's own tests and its page programs, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2005,5 +2008,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1776,
 	},
-	CommentBytes: 8503778,
+	CommentBytes: 8510653,
 }

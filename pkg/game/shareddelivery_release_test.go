@@ -241,7 +241,7 @@ func (w *deliveryWitness) fixedAppRoutes() {
 	}
 	if !water {
 		w.receipt("water-instrument-failure")
-		w.t.Fatal("water did not enter true repeat delivery", s.room, s.tavernInterior.ready, s.tavernInterior.active, a.Screen())
+		w.t.Fatal("water did not enter true repeat delivery", s.room, s.tavernPage().Ready(), s.tavernPage().Active(), a.Screen())
 	}
 	w.check(a.HeadlessKey("escape"))
 	w.check(a.HeadlessActivate("SCHOOL"))

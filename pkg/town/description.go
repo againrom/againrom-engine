@@ -81,7 +81,12 @@ type ArtSpec struct {
 	MaxSize     *Point      `json:"max-size"`
 	Required    bool        `json:"required"`
 	Transparent string      `json:"transparent"`
-	Cite        []string    `json:"cite"`
+	// First is the number the first member of a series is printed with.
+	First int `json:"first"`
+	// KeepMissing loads a series member by member: a member that does not
+	// load is a nil frame, and the series is kept.
+	KeepMissing bool     `json:"keep-missing"`
+	Cite        []string `json:"cite"`
 }
 
 // IndexSpec is one dimension of an indexed key.
@@ -170,13 +175,19 @@ type WaitSpec struct {
 	Cite    []string `json:"cite"`
 }
 
-// PickSpec is base plus draw(n) in the named arithmetic form.
+// PickSpec is base plus draw(n) in the named arithmetic form. With Raw set,
+// the draw is a raw value r in [0,Raw) from a host source and the value is
+// base plus r/Divide, or base plus (r*n/(Raw-1))%n in the "scaled" form. With
+// Times set, the drawn value is multiplied by it.
 type PickSpec struct {
-	Draw string   `json:"draw"`
-	Form string   `json:"form"`
-	N    int      `json:"n"`
-	Base int      `json:"base"`
-	Cite []string `json:"cite"`
+	Draw   string   `json:"draw"`
+	Form   string   `json:"form"`
+	N      int      `json:"n"`
+	Base   int      `json:"base"`
+	Raw    int      `json:"raw"`
+	Divide int      `json:"divide"`
+	Times  int      `json:"times"`
+	Cite   []string `json:"cite"`
 }
 
 // SoundSpec is the view's sound slots, in release order, and its entry loop.
@@ -189,9 +200,16 @@ type SoundSpec struct {
 // SlotSpec is one retained voice: a slot holds at most one sound, and a
 // request while its sound plays is no request.
 type SlotSpec struct {
-	Name   string   `json:"name"`
-	Source string   `json:"source"`
-	Cite   []string `json:"cite"`
+	Name   string `json:"name"`
+	Source string `json:"source"`
+	// Key is the sound a page's "sound <slot>" step requests.
+	Key string `json:"key"`
+	// Loop asks the host for a looping voice.
+	Loop bool `json:"loop"`
+	// Untracked plays every request and keeps no voice: a later request does
+	// not wait for it and a silence does not stop it.
+	Untracked bool     `json:"untracked"`
+	Cite      []string `json:"cite"`
 }
 
 // CueSpec is one sound request on a slot, after stopping other slots.
@@ -202,9 +220,11 @@ type CueSpec struct {
 	Cite []string `json:"cite"`
 }
 
-// ActorSpec is one animated element and its program. Program is one of
-// episode, pendulum, stepper, driven, flock or families; the fields each
-// program reads are named on its runtime type.
+// ActorSpec is one animated element and its program. A town actor's program
+// is one of episode, pendulum, stepper, driven, flock or families; a room
+// scene's is one of loop, alternating, selector, priority, bounce, cycle,
+// target or training. The fields each program reads are named on its runtime
+// type.
 type ActorSpec struct {
 	Name    string `json:"name"`
 	Program string `json:"program"`
@@ -243,6 +263,27 @@ type ActorSpec struct {
 	Entry      []EntryStep `json:"entry"`
 	StepOrder  []string    `json:"step-order"`
 	PaintOrder []string    `json:"paint-order"`
+
+	// page programs: loop, alternating, selector, priority, bounce, cycle,
+	// target and training
+	Loop      int           `json:"loop"`
+	Clock     string        `json:"clock"`
+	Delay     *PickSpec     `json:"delay"`
+	DelayMS   int           `json:"delay-ms"`
+	States    []StateSpec   `json:"states"`
+	On        []EventSpec   `json:"on"`
+	LoopAt    int           `json:"loop-at"`
+	LoopTo    int           `json:"loop-to"`
+	StopAt    int           `json:"stop-at"`
+	Release   int           `json:"release"`
+	Selected  string        `json:"selected"`
+	Raise     string        `json:"raise"`
+	Endpoints []int         `json:"endpoints"`
+	Order     [][]int       `json:"order"`
+	Variants  []VariantSpec `json:"variants"`
+	HoldPick  *PickSpec     `json:"hold-pick"`
+	Column    string        `json:"column"`
+	Value     string        `json:"value"`
 
 	Cite []string `json:"cite"`
 }
@@ -301,13 +342,17 @@ type StepSpec struct {
 }
 
 // LayerSpec is one paint in order: an art picture or an actor's frame, copied
-// or composited over, at a view-relative point, when its condition holds.
+// or composited over, at a view-relative point, when its condition holds. A
+// room scene's layers belong to named groups the page draws between its own
+// widgets, and may be clipped to a rectangle.
 type LayerSpec struct {
 	Art   string    `json:"art"`
 	Actor string    `json:"actor"`
 	Mode  string    `json:"mode"`
 	At    Point     `json:"at"`
 	When  *WhenSpec `json:"when"`
+	Group string    `json:"group"`
+	Clip  *Rect     `json:"clip"`
 	Cite  []string  `json:"cite"`
 }
 
@@ -325,10 +370,13 @@ type TipSpec struct {
 	Cite []string `json:"cite"`
 }
 
-// MusicSpec is the square's music track.
+// MusicSpec is a view's music: one track, or one track per value of a
+// variant the host answers, the shown variant's track first.
 type MusicSpec struct {
-	Track string   `json:"track"`
-	Cite  []string `json:"cite"`
+	Track  string   `json:"track"`
+	Tracks []string `json:"tracks"`
+	By     string   `json:"by"`
+	Cite   []string `json:"cite"`
 }
 
 // SquareSpec names the square as a room and orders the steps that return to
@@ -342,11 +390,14 @@ type SquareSpec struct {
 // RoomSpec is one room reached from the square: the page that draws it and
 // the ordered steps of its entry and its exit.
 type RoomSpec struct {
-	Name  string   `json:"name"`
-	Page  string   `json:"page"`
-	Enter []Step   `json:"enter"`
-	Exit  []Step   `json:"exit"`
-	Cite  []string `json:"cite"`
+	Name  string     `json:"name"`
+	Page  string     `json:"page"`
+	Enter []Step     `json:"enter"`
+	Exit  []Step     `json:"exit"`
+	Scene *SceneSpec `json:"scene"`
+	Music *MusicSpec `json:"music"`
+	Tip   *TipSpec   `json:"tip"`
+	Cite  []string   `json:"cite"`
 }
 
 // Step is one entry or exit step: a composer step ("reset" the square view)
@@ -375,20 +426,49 @@ type Rect [4]int
 // Rectangle is the image rectangle.
 func (r Rect) Rectangle() image.Rectangle { return image.Rect(r[0], r[1], r[2], r[3]) }
 
-// Decode reads a description strictly: an unknown field, a trailing value or a
-// description that fails Validate is a named error.
-func Decode(data []byte) (*Description, error) {
+// Vocabulary is the hook, condition, value and event names a game answers. A
+// description that names any other is refused when it is read.
+type Vocabulary struct {
+	Hooks      []string
+	Conditions []string
+	Values     []string
+	Events     []string
+}
+
+func (v Vocabulary) has(list []string, name string) bool {
+	for _, n := range list {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
+// Decode reads a description strictly: an unknown field, any data after the
+// description, a hook or condition outside vocab, or a description that fails
+// Validate is a named error.
+func Decode(data []byte, vocab Vocabulary) (*Description, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var d Description
 	if err := dec.Decode(&d); err != nil {
 		return nil, fmt.Errorf("town description: %w", err)
 	}
-	if dec.More() {
-		return nil, fmt.Errorf("town description: trailing data")
+	if rest := bytes.TrimSpace(data[dec.InputOffset():]); len(rest) > 0 {
+		return nil, fmt.Errorf("town description: trailing data %q", firstBytes(rest))
 	}
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
+	if err := d.checkVocabulary(vocab); err != nil {
+		return nil, err
+	}
 	return &d, nil
+}
+
+func firstBytes(b []byte) []byte {
+	if len(b) > 16 {
+		return b[:16]
+	}
+	return b
 }

@@ -87,9 +87,9 @@ func townAmbientFrames(n int, c color.RGBA) []image.Image {
 
 func installTownAmbientTestArt(a *town.Art) {
 	for family := 0; family < 9; family++ {
-		a.Frames[fmt.Sprintf("birds/%d", family)] = townAmbientFrames(townBirdFrameCount, color.RGBA{R: byte(20 + family), A: 255})
+		a.Frames[fmt.Sprintf("birds/%d", family)] = townAmbientFrames(townBirdFrameCount(), color.RGBA{R: byte(20 + family), A: 255})
 	}
-	a.Frames["stars"] = townAmbientFrames(townStarFrameCount, color.RGBA{G: 90, A: 255})
+	a.Frames["stars"] = townAmbientFrames(townStarFrameCount(), color.RGBA{G: 90, A: 255})
 }
 
 func townAmbientFixture(t *testing.T, crowdSample bool) (*FrontEnd, *ui.App, *townScreen, *time.Time, *townAmbientRolls, *exteriorRecorder, *townCrowdRecorder) {
@@ -163,7 +163,7 @@ func TestTownAmbientBirdDelayPrefixProgressTerminalAndSound(t *testing.T) {
 	if screen.sqProgress() != "[2 2 2]" {
 		t.Fatal("long paint gap caught up more than once")
 	}
-	for screen.sqBirds().Progress[0] < townBirdFrameCount {
+	for screen.sqBirds().Progress[0] < townBirdFrameCount() {
 		exteriorPaint(t, app, now, 68*time.Millisecond)
 	}
 	terminal := screen.sqExteriorFrame()

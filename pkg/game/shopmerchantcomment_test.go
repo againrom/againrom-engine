@@ -50,8 +50,8 @@ func shopCommentFixture(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavernI
 		t.Fatal(err)
 	}
 	s := f.townUI
-	if s.room != roomShop || !s.shopInterior.ready {
-		t.Fatalf("shop entry = room %d, interior ready %v", s.room, s.shopInterior.ready)
+	if s.room != roomShop || !s.shopPage().Ready() {
+		t.Fatalf("shop entry = room %d, interior ready %v", s.room, s.shopPage().Ready())
 	}
 	closeShopTip(t, a, s)
 	return f, a, s, r
@@ -133,8 +133,8 @@ func TestShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		if len(r.samples) != samples {
 			t.Fatalf("%s: merchant started %d recording(s), want %d", action, len(r.samples), samples)
 		}
-		if s.shopInterior.merchantModes != 0 {
-			t.Fatalf("%s armed merchant modes %#x", action, s.shopInterior.merchantModes)
+		if shopModes(s) != 0 {
+			t.Fatalf("%s armed merchant modes %#x", action, shopModes(s))
 		}
 	}
 	places := func(action string, want ...bool) {
@@ -196,8 +196,8 @@ func TestShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	}
 
 	point("shelf_pick", roomWeapons, "press", "release")
-	if len(r.samples) != 1 || s.shopInterior.merchantModes != shopMerchantYes {
-		t.Fatalf("changed rack: recordings %d, modes %#x; want 1 and Yes", len(r.samples), s.shopInterior.merchantModes)
+	if len(r.samples) != 1 || shopModes(s) != shopMerchantYes {
+		t.Fatalf("changed rack: recordings %d, modes %#x; want 1 and Yes", len(r.samples), shopModes(s))
 	}
 }
 

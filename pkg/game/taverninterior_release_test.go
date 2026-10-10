@@ -73,8 +73,8 @@ func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T
 		}
 	}
 	production := map[string][]image.Image{
-		"candle": f.TownTavernArt.Value().Interior.Candle, "cauldron": f.TownTavernArt.Value().Interior.Cauldron,
-		"breath": f.TownTavernArt.Value().Interior.Breath, "drink": f.TownTavernArt.Value().Interior.Drink,
+		"candle": f.TownTavernArt.Value().Scene["candle"], "cauldron": f.TownTavernArt.Value().Scene["cauldron"],
+		"breath": f.TownTavernArt.Value().Scene["breath"], "drink": f.TownTavernArt.Value().Scene["drink"],
 	}
 	for name, want := range oracle {
 		got := production[name]
@@ -139,11 +139,11 @@ func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T
 	}
 	recorder := &tavernInteriorRecorder{}
 	f.SoundPlayer = recorder
-	countInstalledRequest := func(slot int) int {
+	countInstalledRequest := func(slot string) int {
 		t.Helper()
-		want, ok := f.SoundBank.namedSample(tavernInteriorSoundPaths[slot])
+		want, ok := f.SoundBank.namedSample(tavernSoundKey(slot))
 		if !ok {
-			t.Fatalf("installed sound unavailable for slot %d", slot)
+			t.Fatalf("installed sound unavailable for slot %s", slot)
 		}
 		n := 0
 		for _, got := range recorder.samples {
@@ -206,7 +206,7 @@ func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T
 		t.Helper()
 		view := s.TownSurface()
 		without := view
-		without.TavernInterior = ui.TavernInteriorFrame{}
+		without.Scene = nil
 		expected := ui.ComposeTownSurface(without)
 		layers := []struct {
 			pic image.Image
@@ -301,7 +301,7 @@ func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T
 	}
 	frame = drawTavernApp(t, app, s, &now, 0)
 	writeFrame("selected", frame)
-	if s.tavernInterior.mode != 1 || s.tavernSelection.kind != tavernCandidateMercenary {
+	if tavernTender(s).State != 1 || s.tavernSelection.kind != tavernCandidateMercenary {
 		t.Fatal("selected-card animation displaced keeper state or selection")
 	}
 
@@ -309,23 +309,23 @@ func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T
 	// paints, and witness the indexed installed request without a one-shot
 	// substitute.
 	oneShotsBefore := recorder.ones
-	s.tavernInterior.delay = time.Hour
-	for s.tavernInterior.drinkIndex < 30 {
+	tavernTender(s).Delay = time.Hour
+	for tavernTender(s).Index[tavernDrink] < 30 {
 		drawTavernApp(t, app, s, &now, 84*time.Millisecond)
 	}
 	drawTavernApp(t, app, s, &now, 0)
-	if countInstalledRequest(tavernSoundDrink) != 1 || recorder.ones != oneShotsBefore {
+	if countInstalledRequest("drink") != 1 || recorder.ones != oneShotsBefore {
 		t.Fatalf("drink request = %d retained / %d new one-shot",
-			countInstalledRequest(tavernSoundDrink), recorder.ones-oneShotsBefore)
+			countInstalledRequest("drink"), recorder.ones-oneShotsBefore)
 	}
 	drawTavernApp(t, app, s, &now, 11*time.Second)
-	if countInstalledRequest(tavernSoundSteam) == 0 || countInstalledRequest(tavernSoundWater) == 0 ||
-		countInstalledRequest(tavernSoundChair) == 0 || countInstalledRequest(tavernSoundBreath) == 0 ||
-		countInstalledRequest(tavernSoundEnter) != 2 {
+	if countInstalledRequest("steam") == 0 || countInstalledRequest("water") == 0 ||
+		countInstalledRequest("chair") == 0 || countInstalledRequest("breath") == 0 ||
+		countInstalledRequest("enter") != 2 {
 		t.Fatalf("installed requests = steam%d water%d chair%d breath%d enter%d",
-			countInstalledRequest(tavernSoundSteam), countInstalledRequest(tavernSoundWater),
-			countInstalledRequest(tavernSoundChair), countInstalledRequest(tavernSoundBreath),
-			countInstalledRequest(tavernSoundEnter))
+			countInstalledRequest("steam"), countInstalledRequest("water"),
+			countInstalledRequest("chair"), countInstalledRequest("breath"),
+			countInstalledRequest("enter"))
 	}
 
 	after, _, err := f.Snapshot(false)

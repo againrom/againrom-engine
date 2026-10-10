@@ -30,24 +30,6 @@ import (
 
 const shopArtPrefix = graphicsPrefix + "interface/"
 
-// shopMoviesMerchant is where the merchant's own static picture lives:
-// moviesPrefix (archives.go) plus the shipped `shopanim\Pose2-3` folder
-// SHOP-MERCHANT-046 names (`movies\shopanim\Pose2-3\1.bmp`, 76x176 on both
-// roots). It is the one shop asset MoviesArchive carries; everything else the
-// shop paints comes out of graphics.res.
-const shopMoviesMerchant = moviesPrefix + "shopanim/pose2-3/1.bmp"
-
-// shopRackFolders is folder `4-i`, index for index with the researched hit and
-// draw rectangles. Each family has eleven members. The controller decides
-// which of those members reaches a paint; this loader only owns immutable art.
-var shopRackFolders = [4]string{"04", "03", "02", "01"}
-
-const (
-	shopRackFrameCount     = 11
-	shopMerchantIdleCount  = 28 // Pose2-3 files 2..29; file 29 is terminal-before-draw.
-	shopMerchantReactCount = 11 // Yes/No files 2..12; base pose is slot zero.
-)
-
 // The two arrow pictures the grid draws. SHOP-SCREEN-032 names four —
 // ShopArrow1 and ShopArrow3 into one pair of slots, ShopArrow2 and ShopArrow4
 // into the other — and does not say which of a pair is the resting state. The
@@ -68,12 +50,11 @@ var shopBackFiles = [4]string{"backinvg.bmp", "backinv.bmp", "backinvs.bmp", "ba
 // loadShopArt resolves every picture the screen paints with.
 func loadShopArt(src entrySource) *ui.ShopScreenArt {
 	art := &ui.ShopScreenArt{
-		Shelf:    loadShopBMP(src, "shopinv.bmp"),
-		Table:    loadShopBMP(src, "shoptable.bmp"),
-		Room:     loadShopBMP(src, "shopanim/shopmain.bmp"),
-		Frame:    loadShopSprite(src, "shopframe.256"),
-		Menu:     loadShopBMP(src, "shopmenu.bmp"),
-		Merchant: loadShopBMPAddr(src, shopMoviesMerchant),
+		Shelf: loadShopBMP(src, "shopinv.bmp"),
+		Table: loadShopBMP(src, "shoptable.bmp"),
+		Room:  loadShopBMP(src, "shopanim/shopmain.bmp"),
+		Frame: loadShopSprite(src, "shopframe.256"),
+		Menu:  loadShopBMP(src, "shopmenu.bmp"),
 	}
 	for i, name := range shopArrowFiles {
 		art.Arrow[i] = loadShopBMP(src, name)
@@ -92,21 +73,8 @@ func loadShopArt(src entrySource) *ui.ShopScreenArt {
 	for i, name := range shopBackFiles {
 		art.Back[i] = loadShopBMP(src, name)
 	}
-	for i, folder := range shopRackFolders {
-		frames, complete := loadShopAnimationFamily(src, shopArtPrefix+"shopanim/"+folder+"/%d.bmp", 1, shopRackFrameCount)
-		art.ShelfAnim[i] = frames[0]
-		if complete {
-			art.RackAnimation[i] = frames
-		}
-	}
-	if frames, complete := loadShopAnimationFamily(src, moviesPrefix+"shopanim/pose2-3/%d.bmp", 2, shopMerchantIdleCount); complete {
-		art.MerchantIdle = frames
-	}
-	if frames, complete := loadShopAnimationFamily(src, moviesPrefix+"shopanim/yes/%d.bmp", 2, shopMerchantReactCount); complete {
-		art.MerchantYes = frames
-	}
-	if frames, complete := loadShopAnimationFamily(src, moviesPrefix+"shopanim/no/%d.bmp", 2, shopMerchantReactCount); complete {
-		art.MerchantNo = frames
+	if src != nil {
+		art.Scene, _ = loadRoomSceneArt("shop", src)
 	}
 	art.Coin = loadShopIcon(src, shopMoneyPath)
 	// The seven plaques a side, one per decimal digit count (SHOP-SCREEN-037).
@@ -117,22 +85,6 @@ func loadShopArt(src entrySource) *ui.ShopScreenArt {
 		art.Plaque[1][i] = loadShopBMP(src, fmt.Sprintf("costm%d.bmp", i+1))
 	}
 	return art
-}
-
-// loadShopAnimationFamily reads one family without letting a partial load
-// masquerade as a sequence. It returns every attempted slot so callers can
-// retain a first-frame static fallback, plus a complete bit that alone admits
-// progression. One missing member affects no sibling family.
-func loadShopAnimationFamily(src entrySource, pattern string, first, count int) ([]*image.RGBA, bool) {
-	frames := make([]*image.RGBA, count)
-	complete := count > 0
-	for i := range frames {
-		frames[i] = loadShopBMPAddr(src, fmt.Sprintf(pattern, first+i))
-		if frames[i] == nil {
-			complete = false
-		}
-	}
-	return frames, complete
 }
 
 // shopMoneyPath is the money cell's coin: one 80x80 frame, the same size as a

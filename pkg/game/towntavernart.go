@@ -1,7 +1,6 @@
 package game
 
 import (
-	"errors"
 	"fmt"
 	"image"
 
@@ -136,9 +135,9 @@ func LoadTownTavernArt(src terrain.EntrySource) (*ui.TownTavernArt, error) {
 			a.HeroFrames[i] = frames
 		}
 	}
-	interior, problems := loadTavernInteriorArt(src)
-	a.Interior = interior
-	return a, errors.Join(problems...)
+	scene, problems := loadRoomSceneArt("tavern", src)
+	a.Scene = scene
+	return a, problems
 }
 
 // tavernTalkSheets are the Unit<n> inn sheets above the fifteen mercenary

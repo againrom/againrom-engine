@@ -1,61 +1,56 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"testing"
 )
 
-func TestSchoolDiamondComposesOpaqueAtClaimedLiteralRectangle(t *testing.T) {
-	art := &TownSchoolArt{Background: uniform(480, 480, color.RGBA{R: 61, A: 255})}
-	for i := 0; i < 9; i++ {
-		// Nonzero source origins catch a blit that assumes every image starts
-		// at (0,0). Black corners must overwrite the room, not key through it.
-		pic := image.NewRGBA(image.Rect(7, 11, 87, 87))
-		for y := 11; y < 87; y++ {
-			for x := 7; x < 87; x++ {
-				pic.SetRGBA(x, y, color.RGBA{G: uint8(i + 1), B: uint8(x + y), A: 255})
-			}
-		}
-		pic.SetRGBA(7, 11, color.RGBA{A: 255})
-		pic.SetRGBA(86, 86, color.RGBA{A: 255})
-		art.Diamond[i] = pic
-	}
-	for _, class := range []int{-1, 0, 1} {
-		for frame := 0; frame < 9; frame++ {
-			t.Run(fmt.Sprintf("class=%d/frame=%d", class, frame), func(t *testing.T) {
-				v := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: class,
-					HoverCell: -1, SchoolDiamondFrame: frame}
-				before := ComposeTownSurface(v)
-				v.SchoolDiamondActive = true
-				got := ComposeTownSurface(v)
-				for y := 0; y < 480; y++ {
-					for x := 0; x < 640; x++ {
-						want := before.RGBAAt(x, y)
-						if x >= 200 && x < 280 && y >= 60 && y < 136 {
-							want = color.RGBAModel.Convert(art.Diamond[frame].At(x-200+7, y-60+11)).(color.RGBA)
-						}
-						if c := got.RGBAAt(x, y); c != want {
-							t.Fatalf("pixel %d,%d: %v, want %v", x, y, c, want)
-						}
-					}
-				}
-			})
-		}
+// groupScene paints each named group with its own function; it stands for a
+// room page in composer tests.
+type groupScene map[string]func(dst *image.RGBA)
+
+func (g groupScene) Paint(dst *image.RGBA, group string) {
+	if paint := g[group]; paint != nil {
+		paint(dst)
 	}
 }
 
-func TestSchoolDiamondMissingAndInvalidFramesLeaveTheRoomVisible(t *testing.T) {
+// TestSchoolPaintsTheSceneGroupsInOrder: the school composer asks its room
+// scene for the movies, the column and the diamond, once each and in that
+// order (TOWN-428, TOWN-154).
+func TestSchoolPaintsTheSceneGroupsInOrder(t *testing.T) {
+	var order []string
+	record := func(name string) func(*image.RGBA) {
+		return func(*image.RGBA) { order = append(order, name) }
+	}
 	art := &TownSchoolArt{Background: uniform(480, 480, color.RGBA{R: 61, A: 255})}
-	for _, frame := range []int{-1, 0, 8, 9} {
-		v := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1,
-			HoverCell: -1, SchoolDiamondFrame: frame, SchoolDiamondActive: true}
-		got := ComposeTownSurface(v)
-		if got.RGBAAt(200, 60) != (color.RGBA{R: 61, A: 255}) {
-			t.Fatalf("frame %d obscured the background without art", frame)
-		}
+	scene := groupScene{"movies": record("movies"), "column": record("column"), "diamond": record("diamond"), "centre": record("centre")}
+	ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, HoverCell: -1, Scene: scene})
+	if len(order) != 3 || order[0] != "movies" || order[1] != "column" || order[2] != "diamond" {
+		t.Fatalf("painted groups = %v, want movies, column, diamond", order)
+	}
+}
+
+func TestSchoolWithoutASceneLeavesTheRoomVisible(t *testing.T) {
+	art := &TownSchoolArt{Background: uniform(480, 480, color.RGBA{R: 61, A: 255})}
+	got := ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: -1, HoverCell: -1})
+	if got.RGBAAt(200, 60) != (color.RGBA{R: 61, A: 255}) {
+		t.Fatal("a school without a scene obscured the background")
 	}
 	// Optional art still permits fixture and damaged-install text fallbacks.
-	ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, SchoolDiamondActive: true})
+	ComposeTownSurface(TownSurfaceView{Kind: TownSurfaceSchool, Scene: groupScene{}})
+}
+
+// fill paints a uniform picture at a point.
+func fill(pic image.Image, at image.Point) func(*image.RGBA) {
+	return func(dst *image.RGBA) {
+		b := pic.Bounds()
+		r := b.Add(at.Sub(b.Min)).Intersect(TownContentRegion)
+		for y := r.Min.Y; y < r.Max.Y; y++ {
+			for x := r.Min.X; x < r.Max.X; x++ {
+				dst.Set(x, y, pic.At(b.Min.X+x-r.Min.X, b.Min.Y+y-r.Min.Y))
+			}
+		}
+	}
 }

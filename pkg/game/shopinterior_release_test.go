@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -65,19 +66,20 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 		no = append(no, decode(fmt.Sprintf("movies/shopanim/no/%d.bmp", file)))
 	}
 	for rack := range racks {
-		if len(art.RackAnimation[rack]) != len(racks[rack]) {
-			t.Fatalf("installed rack %d count = %d, want %d", rack, len(art.RackAnimation[rack]), len(racks[rack]))
+		got := art.Scene[fmt.Sprintf("rack%d", rack)]
+		if len(got) != len(racks[rack]) {
+			t.Fatalf("installed rack %d count = %d, want %d", rack, len(got), len(racks[rack]))
 		}
 		for i := range racks[rack] {
-			if !imagesEqual(art.RackAnimation[rack][i], racks[rack][i]) {
+			if !imagesEqual(got[i], racks[rack][i]) {
 				t.Fatalf("installed rack %d frame %d differs from literal decode", rack, i+1)
 			}
 		}
 	}
 	for name, pair := range map[string]struct {
-		got  []*image.RGBA
+		got  []image.Image
 		want []image.Image
-	}{"idle": {art.MerchantIdle, idle}, "yes": {art.MerchantYes, yes}, "no": {art.MerchantNo, no}} {
+	}{"idle": {art.Scene["idle"], idle}, "yes": {art.Scene["yes"], yes}, "no": {art.Scene["no"], no}} {
 		if len(pair.got) != len(pair.want) {
 			t.Fatalf("installed merchant %s count = %d, want %d", name, len(pair.got), len(pair.want))
 		}
@@ -87,7 +89,7 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 			}
 		}
 	}
-	if !imagesEqual(art.Merchant, base) {
+	if merchant := art.Scene["merchant"]; len(merchant) != 1 || !imagesEqual(merchant[0], base) {
 		t.Fatal("installed merchant base differs from literal decode")
 	}
 
@@ -185,11 +187,11 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	check := func(name string, actual *image.RGBA, visible map[int]int, merchant image.Image) {
 		t.Helper()
 		view := s.ShopScreen()
-		view.Interior = ui.ShopInteriorFrame{Animated: true, Merchant: merchant}
+		scene := literalShopScene{merchant: merchant}
 		for rack, index := range visible {
-			view.Interior.RackVisible[rack] = true
-			view.Interior.Rack[rack] = racks[rack][index]
+			scene.racks[rack] = racks[rack][index]
 		}
+		view.Scene = scene
 		want := ui.ComposeShopScreen(view, image.Point{}, false, nil, false)
 		if !imagesEqual(actual, want) {
 			for y := 0; y < actual.Bounds().Dy(); y++ {
@@ -214,12 +216,15 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	frame = drawShopInteriorApp(t, app, s, &now, shopInteriorStep)
 	check("rack2-file2-yes2", frame, map[int]int{2: 1}, yes[0])
 
-	s.shopInterior.merchantModes, s.shopInterior.merchantIndex = 0, 0
-	s.shopInterior.idleLast, s.shopInterior.last = now.Add(-shopInteriorIdleBase), now.Add(-shopInteriorStep)
+	setShopModes(s, 0)
+	shopMerchant(s).Index = 0
+	s.shopPage().SetClock("idle", now.Add(-shopInteriorIdleBase))
+	s.shopPage().SetClock("step", now.Add(-shopInteriorStep))
 	frame = drawShopInteriorApp(t, app, s, &now, 0)
 	check("idle-file2", frame, map[int]int{2: 2}, idle[0])
-	s.shopInterior.merchantModes, s.shopInterior.merchantIndex = shopMerchantNo, 0
-	s.shopInterior.last = now.Add(-shopInteriorStep)
+	setShopModes(s, shopMerchantNo)
+	shopMerchant(s).Index = 0
+	s.shopPage().SetClock("step", now.Add(-shopInteriorStep))
 	frame = drawShopInteriorApp(t, app, s, &now, 0)
 	check("no-file2", frame, map[int]int{2: 3}, no[0])
 
@@ -239,4 +244,28 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	}
 	t.Logf("installed shop: racks 4x%d; merchant base + idle%d yes%d no%d; five App paints matched literal independent frames; no sound-name or audible-output claim",
 		len(racks[0]), len(idle), len(yes), len(no))
+}
+
+// literalShopScene composes the shop centre from literal ROM1 placements:
+// four racks and the merchant, each composited over at its fixed point.
+type literalShopScene struct {
+	racks    [4]image.Image
+	merchant image.Image
+}
+
+func (l literalShopScene) Paint(dst *image.RGBA, group string) {
+	if group != "interior" {
+		return
+	}
+	at := []image.Point{{353, 108}, {197, 108}, {313, 20}, {201, 20}}
+	for rack, pic := range l.racks {
+		if pic != nil {
+			b := pic.Bounds()
+			draw.Draw(dst, b.Add(at[rack].Sub(b.Min)), pic, b.Min, draw.Over)
+		}
+	}
+	if l.merchant != nil {
+		b := l.merchant.Bounds()
+		draw.Draw(dst, b.Add(image.Pt(277, 112).Sub(b.Min)), l.merchant, b.Min, draw.Over)
+	}
 }
