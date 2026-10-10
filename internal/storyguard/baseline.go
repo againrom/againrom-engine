@@ -2013,6 +2013,9 @@ package storyguard
 // CommentBytes rises for the engine words: the docs of the new pkg/words and its
 // tests and the engine-words scan in internal/archtest, new code, including
 // this paragraph.
+// CommentBytes rises for the game-profile scan's further forms and the widget
+// kit scan's push button rule in internal/archtest, their mutation cases and
+// debt lists, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2036,5 +2039,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1770,
 	},
-	CommentBytes: 8562166,
+	CommentBytes: 8565069,
 }
