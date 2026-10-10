@@ -2029,6 +2029,9 @@ package storyguard
 // in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
 // tests in pkg/rules, pkg/sim and pkg/game, new code, including this
 // paragraph.
+// CommentBytes rises for the one chat command parser, its two game adapters,
+// the second game's completion win predicate and the second game's command
+// witnesses, new code, including this paragraph.
 // CommentBytes rises for the world-map task flag and held Cross: the frame
 // pickers, the flag's counter and placement, and their focused and release
 // tests, new code, including this paragraph.
@@ -2055,5 +2058,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8582905,
+	CommentBytes: 8591275,
 }

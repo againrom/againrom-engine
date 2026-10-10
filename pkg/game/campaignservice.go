@@ -68,6 +68,10 @@ type campaignService interface {
 	outcomeText(mw *mapWorld, body string) string
 	eventAudience(mw *mapWorld) (EventAudience, bool)
 	objectives(mw *mapWorld, briefing string) string
+	// The chat command adapter, and whether a mission opened from town runs
+	// in the campaign that adapter admits commands in.
+	chat() *chatAdapter
+	chatCampaign(town *Town) bool
 }
 
 // campaignOf is the campaign service of game g. It is the one place a service

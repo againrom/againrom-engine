@@ -39,10 +39,6 @@ type Edition struct {
 	// compiled script must keep alive; zero for none.
 	CompanionObjectiveMission int
 
-	// Cheats: the chat cheat line, the debug letters and the cheat item and
-	// actor names exist.
-	Cheats bool
-
 	// FreshPlayers: a fresh mission builds its players by the engine's own
 	// construction policy.
 	FreshPlayers bool
@@ -96,7 +92,6 @@ var firstEdition = Edition{
 	Town:                      "rom1",
 	Rooms:                     "rom1",
 	CompanionObjectiveMission: 40,
-	Cheats:                    true,
 	FreshPlayers:              true,
 	StartupCutscenes:          true,
 	OriginalGenerator:         "msvc",
