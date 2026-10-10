@@ -266,8 +266,8 @@ func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 	text.Append(calls, 0, 0)
 }
 
-// drawPlaque draws the picture for the state (disabled, sunk, hovered, else
-// rest), then the captions. A disabled plaque never sinks (MENU-116).
+// drawPlaque draws the state's picture (disabled if it has one, sunk,
+// hovered, else rest), then captions; disabled captions never sink.
 func drawPlaque(dst *image.RGBA, f *text.Font, b pushButton) {
 	if dst == nil {
 		return
@@ -276,9 +276,9 @@ func drawPlaque(dst *image.RGBA, f *text.Font, b pushButton) {
 	down := b.sunk() && !b.Disabled
 	state := plaqueRest
 	switch {
-	case b.Disabled:
+	case b.Disabled && face.Pictures[plaqueDisabled] != nil:
 		state = plaqueDisabled
-	case down:
+	case b.sunk():
 		state = plaqueDown
 	case b.Hover:
 		state = plaqueHover

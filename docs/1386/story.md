@@ -40,8 +40,11 @@ Data in `plaqueFace`:
 - `Sink`: the caption displacement while sunk. `plaqueSink` is the former
   `buttonTextOffset`.
 
-The picture is chosen disabled first, then sunk, then hovered, else rest. A
-disabled plaque never sinks. `pkg/ui/buttonfeedback.go` is removed.
+The picture is the disabled picture when the button is disabled and the
+face has one, else the down picture while sunk, else the hover picture
+while hovered, else rest. A disabled plaque's captions never sink. The
+four-command tavern passes its press only for an enabled button, as its
+painter drew its bitmap only then. `pkg/ui/buttonfeedback.go` is removed.
 
 Kind: press latch. Its one builder is `latch.Latch` (`buttonLatch`).
 
@@ -117,11 +120,10 @@ base by `TestTownLatchesRunTheKitCases`).
 - Without the install font the Save dialog's buttons now draw the kit bevel
   with the debug-font label, as the mod screens do, instead of a filled box.
   Only hand-assembled debug apps lack the font.
-- A disabled plaque never sinks. The base drew the pressed picture of a
-  school or tavern pair, or of a shop plaque, while its button was disabled
-  and still pressed; App input cannot reach that state, because a press
-  latches only an enabled button and nothing changes a button's state while
-  it is held.
+- A disabled shop plaque's captions no longer sink while it is pressed; the
+  base moved them one pixel. App input cannot reach that state: a press
+  latches only a live button and nothing changes a button's state while it
+  is held. The town plaques already kept a disabled caption still.
 
 - The second game's town list button (`drawTownButton`, `pkg/ui/app.go`) and
   its image twin in `composeTownList` (`pkg/ui/townlist.go`) stay outside

@@ -1427,8 +1427,12 @@ func townSurfaceButton(v TownSurfaceView, i int, artSchool, artTavern, commandTa
 	default:
 		face.Bare = true
 	}
+	pressed := v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i
+	if face.Over {
+		pressed = pressed && b.Enabled
+	}
 	return pushButton{Rect: r, Face: face, Hover: v.HasHover && v.Hover.In(r), Disabled: !b.Enabled,
-		Pressed: v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i, Inside: true}
+		Pressed: pressed, Inside: true}
 }
 
 func schoolPanelVisible(v TownSurfaceView) bool {
