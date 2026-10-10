@@ -75,22 +75,34 @@ type Service struct {
 }
 
 // Launch is what the launch settings choose: a fixed session seed, or none so
-// that each new game takes the caller's clock value, and the mode.
+// that each new game takes the caller's clock value, and the mode. Generator
+// names the original generator the game's evidence establishes; original
+// mode runs only over one this package implements.
 type Launch struct {
-	Seed  uint64
-	Fixed bool
-	Mode  Mode
+	Seed      uint64
+	Fixed     bool
+	Mode      Mode
+	Generator string
 	// configured is set by SetLaunch. A service whose launch was never set
 	// begins every new game at seed zero, so a session built without launch
 	// settings replays without a clock.
 	configured bool
 }
 
+// MSVCGenerator names the original's CRT generator (MAGIC-279), the one
+// original generator this package implements.
+const MSVCGenerator = "msvc"
+
 // SetLaunch records the launch settings and begins the process's session.
 // In original mode the shared stream starts at seed 1, the item-star grids
 // take its first draws and sound initialisation reseeds it (SESS-083); the
-// reseed discards the state the grids left.
-func (s *Service) SetLaunch(l Launch, clock uint64) {
+// reseed discards the state the grids left. Original mode over a generator
+// this package does not implement runs seeded instead, and SetLaunch reports
+// that it fell back.
+func (s *Service) SetLaunch(l Launch, clock uint64) (fellBack bool) {
+	if l.Mode == Original && l.Generator != MSVCGenerator {
+		l.Mode, fellBack = Seeded, true
+	}
 	l.configured = true
 	s.launch = l
 	session := Session{Seed: clock, Mode: l.Mode}
@@ -101,6 +113,7 @@ func (s *Service) SetLaunch(l Launch, clock uint64) {
 		session.reseed(SoundInit)
 	}
 	s.Begin(session)
+	return fellBack
 }
 
 // Prepare holds session for a game being prepared: a new game or a LOAD

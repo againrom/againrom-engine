@@ -209,7 +209,7 @@ func TestReseedFollowsSeedSiteAndCount(t *testing.T) {
 func TestReseedsIgnoreTheDrawsBetweenThem(t *testing.T) {
 	start := func(between int) (Session, uint32, uint32, uint32) {
 		s := &Service{}
-		s.SetLaunch(Launch{Seed: 7, Fixed: true, Mode: Original}, 0)
+		s.SetLaunch(Launch{Seed: 7, Fixed: true, Mode: Original, Generator: MSVCGenerator}, 0)
 		town := s.Stream(TownAnimation)
 		for range between {
 			town.Raw()
@@ -241,7 +241,7 @@ func TestReseedsIgnoreTheDrawsBetweenThem(t *testing.T) {
 	}
 	// A LOAD continues the saved count through the load path's two reseeds.
 	s := &Service{}
-	s.SetLaunch(Launch{Mode: Original, configured: true}, 0)
+	s.SetLaunch(Launch{Mode: Original, Generator: MSVCGenerator}, 0)
 	loaded := s.Loaded(Session{Seed: 7, Mode: Original, Shared: 12345, Reseeds: 5})
 	if loaded.Shared != MissionLoadState(7, 5) || loaded.Reseeds != 7 {
 		t.Fatalf("a LOAD began %+v", loaded)
@@ -262,4 +262,23 @@ func equal(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// TestOriginalModeNeedsAnImplementedGenerator pins the launch fallback: the
+// original mode over no named generator, or one this package does not
+// implement, runs seeded and reports it.
+func TestOriginalModeNeedsAnImplementedGenerator(t *testing.T) {
+	for _, tc := range []struct {
+		generator string
+		want      Mode
+	}{{MSVCGenerator, Original}, {"", Seeded}, {"other", Seeded}} {
+		s := &Service{}
+		fell := s.SetLaunch(Launch{Seed: 3, Fixed: true, Mode: Original, Generator: tc.generator}, 0)
+		if s.Mode() != tc.want || s.LaunchSettings().Mode != tc.want || fell != (tc.want == Seeded) {
+			t.Fatalf("generator %q: mode %d, launch %d, fell back %v", tc.generator, s.Mode(), s.LaunchSettings().Mode, fell)
+		}
+	}
+	if (&Service{}).SetLaunch(Launch{Mode: Seeded}, 0) {
+		t.Fatal("the seeded mode reported a fallback")
+	}
 }
