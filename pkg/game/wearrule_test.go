@@ -174,7 +174,7 @@ func TestAnUnreadableRowDoesNotRefuseAnEquip(t *testing.T) {
 func wrShopTable() *mapload.Table {
 	table := shopTable()
 	table.Armors = shopCollection{
-		{}, {name: "helm", price: 25, slot: 5, suit: wrFighterOnly,
+		{}, {name: "helm", price: 25, slot: 6, suit: wrFighterOnly,
 			masks: [data.ShopShapes]uint16{1<<2 | 1<<3}},
 	}
 	table.Shields = shopCollection{

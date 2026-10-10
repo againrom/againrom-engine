@@ -103,7 +103,7 @@ func shopTable() *mapload.Table {
 		Shapes:    unitScale(data.ShopShapes),
 		Materials: unitScale(data.ShopMaterials),
 		Weapons:   shopCollection{{}, {name: "axe", price: 40, masks: [data.ShopShapes]uint16{1<<0 | 1<<1}}},
-		Armors:    shopCollection{{}, {name: "helm", price: 25, slot: 5, masks: [data.ShopShapes]uint16{1<<2 | 1<<3}}},
+		Armors:    shopCollection{{}, {name: "helm", price: 25, slot: 6, masks: [data.ShopShapes]uint16{1<<2 | 1<<3}}},
 		Shields:   shopCollection{{}, {name: "targe", price: 15, slot: 2, masks: [data.ShopShapes]uint16{1 << 4}}},
 		Magic:     shopMagicCollection(3),
 	}
