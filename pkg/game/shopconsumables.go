@@ -3,7 +3,6 @@ package game
 import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
-	"strings"
 )
 
 // SHOP-GEN-005 supplies names, not a numeric row range. Resolve each against
@@ -19,20 +18,13 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 	if t == nil || t.Spells == nil || t.MagicItems == nil || r == nil || ceiling <= 0 {
 		return nil
 	}
-	schools := [6]string{"", "Fire", "Water", "Air", "Earth", "Astral"}
 	var out []ShopItem
 	for spell := 1; spell < t.Spells.Len() && spell <= 27; spell++ {
 		params := t.Spells.EntryParams(spell)
 		if len(params) <= 20 || params[20] <= 0 || params[20] > ceiling || params[2] <= 0 || params[2] >= 6 {
 			continue
 		}
-		var code uint16
-		for row := 1; row < t.MagicItems.Len() && row <= 255; row++ {
-			if strings.ReplaceAll(t.MagicItems.EntryName(row), "_", " ") == "Scroll "+schools[params[2]] {
-				code = uint16(0xe00 | row)
-				break
-			}
-		}
+		code := uint16(shopSchoolTemplateCode(t, "Scroll", params[2]))
 		if code == 0 {
 			continue
 		}
