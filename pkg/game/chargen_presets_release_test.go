@@ -2,6 +2,7 @@ package game
 
 import (
 	"image"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/reg"
@@ -132,5 +133,54 @@ func TestReleaseChargenCardRowsShareTheTownCardPens(t *testing.T) {
 	}
 	if bad != 0 {
 		t.Errorf("%d card pixel(s) differ from the town builder's card", bad)
+	}
+}
+
+// TestReleaseChargenResetIsTheOriginalsAndRestoreReturnsThePreset: on every
+// hero portrait, Reset gives pool 100 and every statistic 25 (MENU-139,
+// HERO-CHARGEN-082) after any preset or spend and keeps the chosen skill;
+// Restore gives the portrait's preset after any spend or a Reset.
+func TestReleaseChargenResetIsTheOriginalsAndRestoreReturnsThePreset(t *testing.T) {
+	f := releaseFront(t)
+	setup := f.ChargenSetup()
+	if got := len(f.generator().Detail.Commands); got != 4 {
+		t.Fatalf("%d detailed commands, want Accept, Reset, Back and Restore", got)
+	}
+	for i := range f.generator().PreCreate.Heroes {
+		c := ui.NewChargen(setup)
+		c.SelectPreChoice(i)
+		c.Forward()
+		preset, ok := c.Result()
+		if !ok {
+			t.Fatalf("hero %d: no result after Forward", i)
+		}
+		presetStats := append([]int(nil), preset.Stats...)
+		presetPool := c.Remaining()
+		skill := (preset.Choices[2] + 1) % 5
+		c.SelectSkill(skill)
+
+		c.Reset()
+		r, _ := c.Result()
+		if want := []int{25, 25, 25, 25}; !slices.Equal(r.Stats, want) || c.Remaining() != 100 || r.Choices[2] != skill {
+			t.Errorf("hero %d: Reset gave %v, pool %d, skill %d; want 25 each, pool 100, skill %d", i, r.Stats, c.Remaining(), r.Choices[2], skill)
+		}
+		c.Restore()
+		r, _ = c.Result()
+		if !slices.Equal(r.Stats, presetStats) || c.Remaining() != presetPool || r.Choices[2] != skill {
+			t.Errorf("hero %d: Restore after Reset gave %v, pool %d; want %v, pool %d", i, r.Stats, c.Remaining(), presetStats, presetPool)
+		}
+		c.AdjustStat(0, -1)
+		c.AdjustStat(1, -1)
+		c.Restore()
+		r, _ = c.Result()
+		if !slices.Equal(r.Stats, presetStats) || c.Remaining() != presetPool {
+			t.Errorf("hero %d: Restore after a spend gave %v, pool %d; want %v, pool %d", i, r.Stats, c.Remaining(), presetStats, presetPool)
+		}
+		c.AdjustStat(0, 1)
+		c.Reset()
+		r, _ = c.Result()
+		if want := []int{25, 25, 25, 25}; !slices.Equal(r.Stats, want) || c.Remaining() != 100 {
+			t.Errorf("hero %d: Reset after a spend gave %v, pool %d", i, r.Stats, c.Remaining())
+		}
 	}
 }

@@ -33,9 +33,9 @@ type ChargenPresentation struct {
 	Skills      [generatorClasses][generatorSkills][3]image.Image
 	StatButtons [2][statArtStates]image.Image // minus/plus × rest, hover, down, unused, disabled
 	// NavArt is the command panel's background and NavButtons are Accept,
-	// Reset and Back, off and on.
+	// Reset, Back and Restore, off and on.
 	NavArt         image.Image
-	NavButtons     [3][2]image.Image
+	NavButtons     [generatorCommandsMax][2]image.Image
 	NavSeam        image.Image
 	PlateSeam      image.Image
 	DollPane       TownPane
@@ -80,6 +80,7 @@ const (
 	chargenLevel0
 	chargenLevel1
 	chargenLevel2
+	chargenRestore
 )
 
 // art is the presentation the model draws from, or nil.
@@ -300,7 +301,7 @@ var detailedHitOrder = func() []chargenControl {
 	for i := 0; i < generatorStats; i++ {
 		out = append(out, chargenStatMinus0+chargenControl(i), chargenStatPlus0+chargenControl(i))
 	}
-	return append(out, chargenBack, chargenReset, chargenPlay)
+	return append(out, chargenBack, chargenReset, chargenRestore, chargenPlay)
 }()
 
 func detailedControlRegion(l *GeneratorDescription, id chargenControl) image.Rectangle {
@@ -313,7 +314,7 @@ func detailedControlRegion(l *GeneratorDescription, id chargenControl) image.Rec
 		return s.Minus[id-chargenStatMinus0].Rectangle()
 	case id >= chargenStatPlus0 && id <= chargenStatPlus3:
 		return s.Plus[id-chargenStatPlus0].Rectangle()
-	case id == chargenPlay, id == chargenReset, id == chargenBack:
+	case id == chargenPlay, id == chargenReset, id == chargenBack, id == chargenRestore:
 		for _, cmd := range l.Detail.Commands {
 			if role, _ := generatorControlNamed(cmd.Role); role == id {
 				return cmd.Rect.Rectangle()
@@ -525,15 +526,19 @@ func ComposeChargenFrame(c *Chargen) *image.RGBA {
 	return composeChargenPage(c, chargenNone, chargenNone)
 }
 
-// ChargenDetailedNavLabelRects returns the three rectangles the detailed page
-// draws a command label into, in Back/Reset/Play order. Meaningful only once
-// c has reached DetailedStage.
-func ChargenDetailedNavLabelRects(c *Chargen) [3]image.Rectangle {
-	return [3]image.Rectangle{
+// ChargenDetailedNavLabelRects returns the rectangles the detailed page draws
+// a command label into, in Back, Reset, Play order and then Restore when the
+// description lists it. Meaningful only once c has reached DetailedStage.
+func ChargenDetailedNavLabelRects(c *Chargen) []image.Rectangle {
+	out := []image.Rectangle{
 		detailedControlRect(c, chargenBack),
 		detailedControlRect(c, chargenReset),
 		detailedControlRect(c, chargenPlay),
 	}
+	if l := c.layout(); l != nil && len(l.Detail.Commands) == generatorCommandsMax {
+		out = append(out, detailedControlRect(c, chargenRestore))
+	}
+	return out
 }
 
 // promptOrigin is where the pre-create prompt's first cell draws: its own
@@ -634,14 +639,14 @@ func detailedSkillArt(states [3]image.Image) detailedSkillPictures {
 	return detailedSkillPictures{hover: states[1], selected: states[2], selectedAtRest: states[0]}
 }
 
-// chargenCommandButtons are Accept, Reset and Back: a button shows its on
-// picture, with the label 1 px lower, only while pressed and hovered.
-func chargenCommandButtons(c *Chargen, detail *ChargenDetailed, hover, pressed chargenControl) [3]pushButton {
-	var out [3]pushButton
+// chargenCommandButtons are the description's command buttons: a button shows
+// its on picture, with the label 1 px lower, only while pressed and hovered.
+func chargenCommandButtons(c *Chargen, detail *ChargenDetailed, hover, pressed chargenControl) []pushButton {
+	out := make([]pushButton, len(c.layout().Detail.Commands))
 	l, p := c.layout(), c.art()
 	ink := plaqueCommandInk
 	ink.Rest = l.Detail.CommandInk.RGBA()
-	labels := map[chargenControl]string{chargenPlay: detail.Play, chargenReset: detail.Reset, chargenBack: detail.Back}
+	labels := map[chargenControl]string{chargenPlay: detail.Play, chargenReset: detail.Reset, chargenBack: detail.Back, chargenRestore: detail.Restore}
 	for i, cmd := range l.Detail.Commands {
 		id, _ := generatorControlNamed(cmd.Role)
 		r := cmd.Rect.Rectangle()

@@ -759,3 +759,36 @@ func TestChargenMalformedSetupDoesNotPanic(t *testing.T) {
 		c.Adjust(-1)
 	})
 }
+
+// Reset returns every statistic to its Start and Restore to the chosen
+// picture's preset; each keeps the chosen skill under the keep rule.
+func TestChargenRestoreReturnsThePresetAndResetTheStart(t *testing.T) {
+	setup := ChargenSetup{
+		Name: "Danath", PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}},
+		Choices: []ChargenChoice{
+			{Options: []string{"male", "female"}, Parent: -1},
+			{Options: []string{"fighter", "mage"}, Parent: -1},
+			{Options: []string{"one", "two", "three"}, Parent: -1},
+		},
+		Stats: []ChargenStat{{Floor: 15, Ceiling: 45, Start: 25}, {Floor: 15, Ceiling: 45, Start: 25}}, Cost: triangular(45), Budget: 2000,
+		Presets:    [4][]int{{30, 20}, {20, 30}, {35, 15}, {15, 35}},
+		ResetStart: true,
+	}
+	for pic, preset := range setup.Presets {
+		c := NewChargen(setup)
+		c.SelectPreChoice(pic)
+		c.Forward()
+		c.SelectSkill(1)
+		for _, edit := range []func(){func() {}, func() { c.AdjustStat(0, 1) }, func() { c.Reset() }} {
+			edit()
+			c.Reset()
+			if r, _ := c.Result(); r.Stats[0] != 25 || r.Stats[1] != 25 || r.Choices[2] != 1 {
+				t.Fatalf("picture %d: Reset gave %v skill %d, want 25 each and skill 1", pic, r.Stats, r.Choices[2])
+			}
+			c.Restore()
+			if r, _ := c.Result(); r.Stats[0] != preset[0] || r.Stats[1] != preset[1] || r.Choices[2] != 1 {
+				t.Fatalf("picture %d: Restore gave %v skill %d, want %v and skill 1", pic, r.Stats, r.Choices[2], preset)
+			}
+		}
+	}
+}
