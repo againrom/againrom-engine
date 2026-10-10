@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The original game's random number generator can be switched on with
+  `-original-random`; `-seed <n>` replays a session from one seed.
 - [ROM1] A Ghost raised by Control Spirit now takes its whole Ghost row: it
   regenerates health, sees invisible creatures within two cells and has
   carrying capacity 300. Before, it had none of these.
