@@ -999,3 +999,4 @@ pkg/game.TestReleasePlaqueButtonCensus
 pkg/game.TestReleaseOneFontLoaderKeepsEveryGlyph
 pkg/game.TestReleaseWorldMapTaskFlagAnimatesAndTheCrossHolds
 pkg/game.TestReleaseTownCompanionIsTheRegistryAddHero
+pkg/game.TestReleaseLegacyCityCompanionIsTheRegistryRecord
