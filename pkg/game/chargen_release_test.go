@@ -8,66 +8,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-// TestReleaseChargenDetailedNavArtIsDrawnUnmodified: the command panel is
-// Inn\ButtonsArea.bmp with the Inn off buttons over it at MENU-139's
-// rectangles; inside a button a pixel is its art or label ink.
-func TestReleaseChargenDetailedNavArtIsDrawnUnmodified(t *testing.T) {
-	f := releaseFront(t)
-	setup := f.ChargenSetup()
-	if setup.PreCreate == nil || setup.PreCreate.Art == nil || setup.PreCreate.Art.NavArt == nil {
-		t.Fatalf("production chargen art did not resolve NavArt")
-	}
-	art := setup.PreCreate.Art
-	c := ui.NewChargen(setup)
-	c.SelectPreChoice(0)
-	c.Forward()
-	if c.Stage() != ui.DetailedStage {
-		t.Fatalf("Forward did not reach DetailedStage")
-	}
-	frame := ui.ComposeChargenFrame(c)
-	labels := ui.ChargenDetailedNavLabelRects(c)
-	buttons := []image.Rectangle{labels[2], labels[1], labels[0]} // Accept, Reset, Back
-	if buttons[0] != image.Rect(484, 44, 624, 90) || buttons[1] != image.Rect(484, 91, 624, 137) || buttons[2] != image.Rect(484, 138, 624, 184) {
-		t.Fatalf("command rectangles %v, want MENU-139's", buttons)
-	}
-	if len(labels) == 4 {
-		// Restore is the fourth button, one 47 px step below Back.
-		if labels[3] != image.Rect(484, 185, 624, 231) {
-			t.Fatalf("Restore rectangle %v, want (484,185)-(624,231)", labels[3])
-		}
-		buttons = append(buttons, labels[3])
-	}
-	region := ui.TownUpperRegion
-	ink := color.RGBA{R: 255, G: 230, B: 150, A: 255}
-	mismatches := 0
-	for y := region.Min.Y; y < region.Max.Y; y++ {
-		for x := region.Min.X; x < region.Max.X; x++ {
-			p := image.Pt(x, y)
-			src, at := art.NavArt, region.Min
-			for i, r := range buttons {
-				if p.In(r) {
-					src, at = art.NavButtons[i][0], r.Min
-				}
-			}
-			got := frame.RGBAAt(x, y)
-			r, g, b, a := src.At(x-at.X, y-at.Y).RGBA()
-			want := color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
-			if src != art.NavArt && inkShade(got, ink) {
-				continue
-			}
-			if got != want {
-				mismatches++
-				if mismatches <= 5 {
-					t.Errorf("nav region %v: composed pixel %#v != art pixel %#v", p, got, want)
-				}
-			}
-		}
-	}
-	if mismatches > 0 {
-		t.Fatalf("%d pixel(s) in the nav region are neither the shipped art nor label ink", mismatches)
-	}
-}
-
 // inkShade reports whether c is ink scaled by one glyph coverage factor.
 func inkShade(c, ink color.RGBA) bool {
 	if c.R == 0 {
@@ -303,14 +243,21 @@ func TestReleaseChargenDetailedSeamColumnsDrawShippedStrips(t *testing.T) {
 	for _, cl := range classes {
 		t.Run(cl.name, func(t *testing.T) {
 			frame, art, preview := chargenFrame(t, cl.choice, nil)
-			if art.NavSeam == nil || art.PlateSeam == nil || art.DollPane.Body == nil || art.DollPane.Seam == nil {
+			if art.PlateSeam == nil || art.DollPane.Body == nil || art.DollPane.Seam == nil {
 				t.Fatalf("production chargen art did not resolve every seam/pane field: %+v", art)
 			}
+			if (art.NavSeam == nil) != (f.generator().Detail.NavSeam == nil) {
+				t.Fatalf("nav seam resolved %t, described %t", art.NavSeam != nil, f.generator().Detail.NavSeam != nil)
+			}
 
-			navBefore, _, _ := chargenFrame(t, cl.choice, func(a *ui.ChargenPresentation) { a.NavSeam = nil })
-			t.Run("nav seam", func(t *testing.T) {
-				assertSeamRegion(t, "nav seam", frame, navBefore, upperSeam, art.NavSeam)
-			})
+			// A 176-wide command body covers the strip itself
+			// (TestReleaseChargenCommandPanelIsTheShopComposition).
+			if art.NavSeam != nil {
+				navBefore, _, _ := chargenFrame(t, cl.choice, func(a *ui.ChargenPresentation) { a.NavSeam = nil })
+				t.Run("nav seam", func(t *testing.T) {
+					assertSeamRegion(t, "nav seam", frame, navBefore, upperSeam, art.NavSeam)
+				})
+			}
 
 			plateBefore, _, _ := chargenFrame(t, cl.choice, func(a *ui.ChargenPresentation) { a.PlateSeam = nil })
 			t.Run("plate seam", func(t *testing.T) {

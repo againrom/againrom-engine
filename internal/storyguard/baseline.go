@@ -2085,6 +2085,10 @@ package storyguard
 // CommentBytes rises for the generator's Restore button: the docs of
 // Chargen.Restore, returnTo, RestoreFor, the Restore label and the new tests,
 // new code, including this paragraph.
+// CommentBytes rises for the one room button panel builder: the docs of
+// panelComposition, panelArt, buildButtonPanel and the panels built through
+// it, the keyed and pressed-only generator command and the new tests, new
+// code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2108,5 +2112,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8631498,
+	CommentBytes: 8634711,
 }

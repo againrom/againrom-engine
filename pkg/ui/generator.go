@@ -338,15 +338,19 @@ type GeneratorStats struct {
 	PoolAt *GeneratorPoint `json:"pool-at"`
 }
 
-// GeneratorCommand is one of Accept, Reset, Back and Restore.
+// GeneratorCommand is one of Accept, Reset, Back and Restore: a plaque of
+// the command panel. With Off and On it is an off/on pair; with On alone
+// the picture draws over the panel body only while pressed. Keyed makes
+// pure black transparent in both pictures.
 type GeneratorCommand struct {
-	Role string         `json:"role"`
-	Slot int            `json:"slot"` // the main.txt line of the label; Restore names none
-	Rect GeneratorRect  `json:"rect"`
-	Off  string         `json:"off"`
-	On   string         `json:"on"`
-	Size GeneratorPoint `json:"size"`
-	Cite []string       `json:"cite"`
+	Role  string         `json:"role"`
+	Slot  int            `json:"slot"` // the main.txt line of the label; Restore names none
+	Rect  GeneratorRect  `json:"rect"`
+	Off   string         `json:"off"`
+	On    string         `json:"on"`
+	Size  GeneratorPoint `json:"size"`
+	Keyed bool           `json:"keyed"`
+	Cite  []string       `json:"cite"`
 }
 
 // GeneratorReset is what Reset or Restore returns to for one install language:
@@ -547,6 +551,14 @@ func (d *GeneratorDescription) validate() error {
 	for i, c := range t.Commands {
 		if c.Role != generatorCommandRoles[i] {
 			return fmt.Errorf("command %d is %q, want %q", i, c.Role, generatorCommandRoles[i])
+		}
+		if c.On == "" {
+			return fmt.Errorf("command %s has no on picture", c.Role)
+		}
+		for j, o := range t.Commands[:i] {
+			if c.Rect.Rectangle().Overlaps(o.Rect.Rectangle()) {
+				return fmt.Errorf("command %s overlaps command %d", c.Role, j)
+			}
 		}
 	}
 	for _, k := range []GeneratorKeys{p.Keys, t.Keys} {
