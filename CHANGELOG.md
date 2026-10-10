@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.108.0
+
 - [BASE] An enemy mage with Mind above 59 now holds back a spell exactly 30
   times in 100, as in the original, instead of 30 in 101. With
   `-original-random`, the time spent in town no longer changes the next
