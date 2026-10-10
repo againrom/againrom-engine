@@ -102,7 +102,39 @@ constants from data.
 
 ## Proof
 
-PENDING
+- Seeded pins: no pinned literal moved. The town square and room traces and
+  the profile witness (`rom1-en`, `rom1-ru`, `rom2-en`, `rom2-ru`) pass
+  unchanged on their installs: the zero session writes no session leaf.
+- Determinism (`TestReleaseRandomSessionReplaysFromItsSeed`, EN and RU): one
+  headless session from launch seed 7 covers the town square, tavern, shop and
+  school with idle extras, Random Order music, a new game on mission 41, a
+  selection and command voice, a Lightning bolt, a Meteor Storm, SAVE, LOAD
+  and 120 further ticks. Two runs give 1599 identical lines of frame hash,
+  sound log and World hash, and identical SAV bytes. The World hash is
+  equal at SAVE and after LOAD. Seed 8 changes 629 presentation lines on
+  EN and leaves every World hash equal.
+- Original mode (`pkg/random` tests; `TestReleaseOriginalRandomSession` and
+  `TestReleaseOriginalRandomMissionOne`, EN and RU):
+  - from seed 1 the first ten MSVC outputs are 41, 18467, 6334, 26500, 19169,
+    15724, 11478, 29358, 26962, 24464;
+  - the item-star grids hold draws 1..8192 of seed 1;
+  - a zero-width range draws nothing;
+  - two consumers interleave on one stream, and a running mission takes the
+    draws;
+  - the SAV leaf records mode 1 and seed 7, and a LOAD continues the saved
+    state through the load reseeds;
+  - SAVs of either mode load in the other;
+  - the first mission runs 2000 ticks with no refusal or panic, also on both
+    ROM2 roots.
+- Guard: `internal/archtest` `TestLiveRandomnessMatchesItsDebt` with an empty
+  debt list; synthetic cases fail on each banned form.
+- Gates on the merge: `gofmt -l` clean; `go test -trimpath -count=1 ./...`
+  ok; release set ok on RU and EN (926 of 972 ran, 46 lacked a subject);
+  headless scenarios 54 of 54 on EN and RU; `check-no-game-assets.sh`
+  clean; `check-div-claims.sh` exit 0. `check-milestone2-acceptance.sh`
+  exits 1 on both roots with the same 13 failing instruments per root as
+  current main, with equal summary counts; the writer census names
+  `AgainromSeed` as engine debt.
 
 ## Open debt
 
