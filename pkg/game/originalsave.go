@@ -820,6 +820,9 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 			return nil, err
 		}
 		if a != nil {
+			if !ok {
+				savedRandom = random.Session{}
+			}
 			currentSession = a.Session
 			currentActions, currentDocument = a, &doc
 		}
