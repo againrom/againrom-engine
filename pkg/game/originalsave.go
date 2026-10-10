@@ -896,9 +896,6 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 // describes. The city is completed on a detached session: a hired-roster
 // refusal must not replace the running campaign, counters or observer.
 func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, selectedMarkers map[int]bool) (ui.MapOpener, bool, error) {
-	if err := f.campaign().checkTownLoad(f, src); err != nil {
-		return nil, false, err
-	}
 	draftAudio := ui.NewAudioScope(f.SoundPlayer)
 	defer draftAudio.Destroy()
 	var draft CampaignSession

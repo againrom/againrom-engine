@@ -46,8 +46,6 @@ type campaignService interface {
 	seatWorld(r missionRequest, ms *Mission) error
 	// selectedMarkers is the world-map record a loaded save restores.
 	selectedMarkers(f *FrontEnd, src *originalSource) (map[int]bool, error)
-	// checkTownLoad refuses a town save the install cannot continue.
-	checkTownLoad(f *FrontEnd, src *originalSource) error
 	// arriveLoaded enters the town a loaded town save describes.
 	arriveLoaded(f *FrontEnd, c *restoreCandidate)
 	// keepsTownSurface reports whether a load leaves the town screen as it is.

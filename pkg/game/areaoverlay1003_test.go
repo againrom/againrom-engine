@@ -247,8 +247,8 @@ func TestAHealStarStandsOnItsCellsCentre(t *testing.T) {
 }
 
 // TestAStagedStageSpawnsOneBurstPerAcceptedCell is `MAGIC-AREADRAW-049`'s staged
-// arm: one message per accepted cell, each building one transient object of 16
-// ticks, 18 for Acid Stream's picture.
+// arm: one message per accepted cell, each building one World record of 16
+// segments, 18 for Acid Stream's picture (ANIM-148).
 func TestAStagedStageSpawnsOneBurstPerAcceptedCell(t *testing.T) {
 	t.Parallel()
 
@@ -257,24 +257,26 @@ func TestAStagedStageSpawnsOneBurstPerAcceptedCell(t *testing.T) {
 		Spell: 4, Owner: 1,
 		Cells: []sim.CellPoint{{X: 3, Y: 4}, {X: 4, Y: 3}, {X: 5, Y: 4}},
 	}})
-	if got := len(mw.bolts); got != 3 {
-		t.Fatalf("a three-cell stage spawned %d objects, want one per cell", got)
+	records := flightRecords(mw)
+	if got := len(records); got != 3 {
+		t.Fatalf("a three-cell stage built %d records, want one per cell", got)
 	}
-	for _, b := range mw.bolts {
-		if b.from != b.to {
-			t.Errorf("a staged cell's object runs %v to %v, want both ends on its own cell", b.from, b.to)
+	for _, p := range records {
+		if p.X != p.ActionX || p.Y != p.ActionY {
+			t.Errorf("a staged cell's record runs (%d,%d) to (%d,%d), want both ends on its own cell", p.X, p.Y, p.ActionX, p.ActionY)
 		}
-		if b.life != 16 {
-			t.Errorf("a staged cell's object lives %d ticks, want the decoded 16", b.life)
+		// The release call spends one of the decoded 16 segments.
+		if p.ActionSegments != 15 || p.ActionPhase != 0 {
+			t.Errorf("a staged cell's record holds %d segments at actionphase %d, want 15 at 0", p.ActionSegments, p.ActionPhase)
 		}
-		if b.picture != 17 {
-			t.Errorf("a Fire Sacrifice cell drew picture %d, want 2*4+9", b.picture)
+		if p.Picture != 17 {
+			t.Errorf("a Fire Sacrifice cell built picture %d, want 2*4+9", p.Picture)
 		}
 	}
-	// A spell whose burst picture names no sheet spawns nothing.
-	mw.bolts = nil
+	// A spell whose burst picture names no sheet builds nothing.
+	before := len(flightRecords(mw))
 	mw.observeAreaPaints([]sim.AreaPaint{{Spell: 6, Cells: []sim.CellPoint{{X: 1, Y: 1}}}})
-	if got := len(mw.bolts); got != 0 {
+	if got := len(flightRecords(mw)) - before; got != 0 {
 		t.Errorf("a spell with no burst sheet spawned %d objects, want none", got)
 	}
 }
@@ -293,7 +295,7 @@ func TestAnEarlierStageIsStillDrawnWhenALaterOneLights(t *testing.T) {
 	mw := aoWorld(t)
 	mw.observeAreaPaints([]sim.AreaPaint{{Spell: 4, Cells: []sim.CellPoint{{X: 3, Y: 3}}}})
 	for range 3 {
-		mw.advanceBolts()
+		flightStep(mw)
 	}
 	mw.observeAreaPaints([]sim.AreaPaint{{Spell: 4, Cells: []sim.CellPoint{{X: 5, Y: 5}}}})
 
@@ -306,8 +308,8 @@ func TestAnEarlierStageIsStillDrawnWhenALaterOneLights(t *testing.T) {
 		at[d.Pos] = true
 	}
 	for _, want := range []image.Point{
-		{X: 3 * ui.ShotScale, Y: 3 * ui.ShotScale},
-		{X: 5 * ui.ShotScale, Y: 5 * ui.ShotScale},
+		{X: 3*ui.ShotScale + 128, Y: 3*ui.ShotScale + 128},
+		{X: 5*ui.ShotScale + 128, Y: 5*ui.ShotScale + 128},
 	} {
 		if !at[want] {
 			t.Errorf("no object stands at %v; the two stages do not overlap", want)

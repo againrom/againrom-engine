@@ -36,6 +36,9 @@ func (w *World) appendSavedWorldEffects(b []byte) []byte {
 			if p.TargetDetached {
 				flags |= 4
 			}
+			if p.TargetStructure {
+				flags |= 8
+			}
 			b = append(b, flags)
 		}
 	}
@@ -82,10 +85,10 @@ func splitSavedWorldEffects(data []byte) ([]byte, *SavedWorldEffects, error) {
 	for range n {
 		p := SavedProjectileDriver{ID: r.u16(), Phases: r.u16(), Target: EntityID(r.u32())}
 		flags := r.u8()
-		if flags&^byte(7) != 0 {
+		if flags&^byte(15) != 0 {
 			return fail()
 		}
-		p.HasTarget, p.Retired, p.TargetDetached = flags&1 != 0, flags&2 != 0, flags&4 != 0
+		p.HasTarget, p.Retired, p.TargetDetached, p.TargetStructure = flags&1 != 0, flags&2 != 0, flags&4 != 0, flags&8 != 0
 		s.Projectiles = append(s.Projectiles, p)
 	}
 	if r.err != nil || len(r.data) != 0 {

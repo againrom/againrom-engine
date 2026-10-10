@@ -14,7 +14,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-// 1004: the bolt path, the smoke trail and the burst's wait.
+// The cast records' path figures and smoke trails.
 //
 // Every fixture here is synthetic. The frame counts are the shipped ones —
 // picture 34 holds five, picture 36 thirty-five and each trail sheet six — so a
@@ -54,7 +54,7 @@ func spWorld(t *testing.T) *mapWorld {
 const spLightning, spPrismatic, spFireBall = 13, 14, 2
 
 // TestAPathPictureStandsStillAndSpansItsWholeSegment is the whole of the
-// owner's report, walked: a Lightning object never moves, and the figure it
+// owner's report, walked: a Lightning record never moves, and the figure it
 // draws reaches the target from its first frame rather than growing toward it.
 func TestAPathPictureStandsStillAndSpansItsWholeSegment(t *testing.T) {
 	t.Parallel()
@@ -62,24 +62,29 @@ func TestAPathPictureStandsStillAndSpansItsWholeSegment(t *testing.T) {
 	mw := spWorld(t)
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning,
 		FromX: 2, FromY: 2, ToX: 8, ToY: 5}})
-	if len(mw.bolts) != 1 || mw.bolts[0].picture != 34 || mw.bolts[0].life != 13 {
-		t.Fatalf("lightning spawned %+v, want one picture-34 object of 13 ticks", mw.bolts)
+	records := flightRecords(mw)
+	if len(records) != 1 || records[0].Picture != 34 || records[0].ActionSegments != 12 {
+		t.Fatalf("lightning built %+v, want one picture-34 record after its first of 13 calls", records)
 	}
+	x, y := records[0].X, records[0].Y
 
 	// The world holds no caster class, so the launch point is the caster's
 	// cell centre (castLaunch); both ends are display pixels.
 	from, to := image.Pt(2*32+16, 2*32+16), image.Pt(8*32+16, 5*32+16)
 	for age := range 13 {
 		spCheckFigure(t, fmt.Sprintf("age %d", age), mw.boltDraws(nil), from, to)
-		mw.advanceBolts()
+		if r := flightRecords(mw); len(r) != 1 || r[0].X != x || r[0].Y != y {
+			t.Fatalf("at age %d the record is %+v, want it standing at (%d,%d)", age, r, x, y)
+		}
+		flightStep(mw)
 	}
 	if got := mw.boltDraws(nil); len(got) != 0 {
-		t.Errorf("the object outlived its own 13 ticks: %d stamps", len(got))
+		t.Errorf("the record outlived its own 13 calls: %d stamps", len(got))
 	}
 }
 
 // TestAPathIsRegeneratedWholeOnEveryTick is `MAGIC-BOLTLIST-071`'s replace: the
-// engine rebuilds the point list on every driver tick, so no kink holds still.
+// engine rebuilds the point list on every driver call, so no kink holds still.
 func TestAPathIsRegeneratedWholeOnEveryTick(t *testing.T) {
 	t.Parallel()
 
@@ -90,7 +95,7 @@ func TestAPathIsRegeneratedWholeOnEveryTick(t *testing.T) {
 	var same int
 	first := spPositions(mw.boltDraws(nil))
 	for age := 1; age < 13; age++ {
-		mw.advanceBolts()
+		flightStep(mw)
 		next := spPositions(mw.boltDraws(nil))
 		if spEqual(first, next) {
 			same++
@@ -119,7 +124,7 @@ func TestAPathLeavesTheStraightLine(t *testing.T) {
 				off++
 			}
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 	}
 	if off == 0 {
 		t.Error("every stamp of every tick stood on the straight line — the figure is an interpolation")
@@ -127,8 +132,8 @@ func TestAPathLeavesTheStraightLine(t *testing.T) {
 }
 
 // TestAPathObjectIsDeterministic keeps the figure out of the determinism story:
-// it is drawn from the observation and the age, so one replay draws one picture
-// and nothing here reads a clock.
+// it is drawn from the observation and the driver calls, so one replay draws
+// one picture and nothing here reads a clock.
 func TestAPathObjectIsDeterministic(t *testing.T) {
 	t.Parallel()
 
@@ -136,8 +141,8 @@ func TestAPathObjectIsDeterministic(t *testing.T) {
 		mw := spWorld(t)
 		mw.observeCasts([]sim.CastEvent{{Caster: 3, Target: 7, Spell: spPrismatic,
 			FromX: 1, FromY: 1, ToX: 6, ToY: 4}})
-		mw.advanceBolts()
-		mw.advanceBolts()
+		flightStep(mw)
+		flightStep(mw)
 		return spPositions(mw.boltDraws(nil))
 	}
 	if !spEqual(run(), run()) {
@@ -155,15 +160,11 @@ func TestTheSecondPathPictureOffsetsItsPhaseByTheRecordTag(t *testing.T) {
 		{Caster: 1, Target: 2, Spell: spPrismatic, FromX: 0, FromY: 0, ToX: 5, ToY: 0},
 		{Caster: 3, Target: 4, Spell: spPrismatic, FromX: 0, FromY: 0, ToX: 5, ToY: 0},
 	})
-	if len(mw.bolts) != 2 {
-		t.Fatalf("two observations spawned %d objects", len(mw.bolts))
+	if got := len(flightRecords(mw)); got != 2 {
+		t.Fatalf("two observations built %d records", got)
 	}
-	if mw.bolts[0].tag != 0 || mw.bolts[1].tag != 1 {
-		t.Fatalf("the tags are %d and %d, want 0 and 1", mw.bolts[0].tag, mw.bolts[1].tag)
-	}
-	draws := mw.boltDraws(nil)
 	byTag := map[int]bool{}
-	for _, d := range draws {
+	for _, d := range mw.boltDraws(nil) {
 		byTag[d.Frame] = true
 	}
 	// Call 1 of the normal route is phase 4; tag 1 adds five.
@@ -172,44 +173,44 @@ func TestTheSecondPathPictureOffsetsItsPhaseByTheRecordTag(t *testing.T) {
 	}
 }
 
-// TestATravellingObjectLeavesSixPastPositions is `MAGIC-TRAIL-073`: a queue of
-// at most six PAST positions, oldest first, each on the sheet frame its own age
-// names.
+// TestATravellingObjectLeavesSixPastPositions is `ANIM-140` and `ANIM-142`: a
+// queue of at most six points each driver call started from, oldest first,
+// point i drawing frame i, so the newest of six draws frame 5.
 func TestATravellingObjectLeavesSixPastPositions(t *testing.T) {
 	t.Parallel()
 
 	mw := spWorld(t)
-	// Fire Arrow over nine cells: picture 10 divides by 200, so the object is
-	// drawn for eleven ticks and the queue fills.
+	// Fire Arrow over nine cells: picture 10 divides by 200, so the record
+	// flies eleven calls and the queue fills.
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: 1,
 		FromX: 0, FromY: 0, ToX: 9, ToY: 0}})
-	life := mw.bolts[0].life
-	if life < 7 {
-		t.Fatalf("the object lives %d ticks, too short to fill a six-entry queue", life)
+	records := flightRecords(mw)
+	if len(records) != 1 || records[0].ActionSegments < 6 {
+		t.Fatalf("the cast built %+v, want one record that flies long enough to fill a six-entry queue", records)
 	}
 
-	for age := range life {
+	for age := 0; len(flightRecords(mw)) > 0; age++ {
 		draws := mw.boltDraws(nil)
-		want := min(age+1, 6) + 1 // the trail entries plus the object's own sprite
+		want := min(age+1, 6) + 1 // the trail points plus the record's own sprite
 		if len(draws) != want {
-			t.Fatalf("at age %d the object handed over %d drawables, want %d", age, len(draws), want)
+			t.Fatalf("at age %d the record handed over %d drawables, want %d", age, len(draws), want)
 		}
 		head := draws[0]
 		trail := draws[1:]
 		for i, e := range trail {
 			if e.Frame != i {
-				t.Errorf("at age %d trail entry %d is frame %d, want its own age", age, i, e.Frame)
+				t.Errorf("at age %d trail point %d is frame %d, want %d", age, i, e.Frame, i)
 			}
 			if e.Pos.X >= head.Pos.X {
-				t.Errorf("at age %d trail entry %d stands at %d, not behind the object's %d",
+				t.Errorf("at age %d trail point %d stands at %d, not behind the record's %d",
 					age, i, e.Pos.X, head.Pos.X)
 			}
-			if i > 0 && e.Pos.X >= trail[i-1].Pos.X {
-				t.Errorf("at age %d the trail is not ordered newest first: %d after %d",
+			if i > 0 && e.Pos.X <= trail[i-1].Pos.X {
+				t.Errorf("at age %d the trail is not ordered oldest first: %d after %d",
 					age, e.Pos.X, trail[i-1].Pos.X)
 			}
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 	}
 }
 
@@ -227,164 +228,287 @@ func TestOnlyTheTwoTravellingPicturesLeaveATrail(t *testing.T) {
 				t.Fatal("a path picture left a smoke trail")
 			}
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 	}
 }
 
-// TestFireBallsBurstIsNotAPresentationObject: the burst is a World record built
-// when the area blasts (ANIM-111), drawn from the record. The cast spawns its
-// flying object alone, and no burst stamp is drawn from the cast's own list.
-func TestFireBallsBurstIsNotAPresentationObject(t *testing.T) {
+// TestFireBallsCastBuildsItsFlightAlone: the burst is a World record built
+// when the area blasts (ANIM-111), not at the cast. The cast builds its flying
+// record alone.
+func TestFireBallsCastBuildsItsFlightAlone(t *testing.T) {
 	t.Parallel()
 
-	mw := spWorld(t)
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spFireBall,
-		FromX: 0, FromY: 0, ToX: 9, ToY: 0}})
-	if len(mw.bolts) != 1 {
-		t.Fatalf("fire ball spawned %d objects, want the cast alone", len(mw.bolts))
-	}
-	flight := mw.bolts[0].life
-	for age := range flight + 22 {
-		for _, d := range mw.boltDraws(nil) {
-			if d.Sheet == mw.projectiles.Sheet(13) {
-				t.Fatalf("at age %d the cast's list drew a burst stamp", age)
-			}
+	for _, weapon := range []bool{false, true} {
+		mw := spWorld(t)
+		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spFireBall, Weapon: weapon,
+			FromX: 0, FromY: 0, ToX: 9, ToY: 0}})
+		records := flightRecords(mw)
+		if len(records) != 1 || records[0].Picture != 12 {
+			t.Fatalf("weapon %v: fire ball built %+v, want the picture-12 flight alone", weapon, records)
 		}
-		mw.advanceBolts()
-	}
-}
-
-// TestAWeaponBorneFireBallSpawnsNoBurstObject: a weapon-borne cast is drawn off
-// the swing, and its burst is the World record built at the blast like any
-// other Fire_Ball burst, so the release spawns no object.
-func TestAWeaponBorneFireBallSpawnsNoBurstObject(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spFireBall, Weapon: true,
-		FromX: 0, FromY: 0, ToX: 9, ToY: 0}})
-	if len(mw.bolts) != 0 {
-		t.Fatalf("a weapon-borne fire ball spawned %d objects, want none", len(mw.bolts))
-	}
-}
-
-// spStaff is an actor releasing spell through a weapon, mid wind-up, with its
-// victim four cells east.
-func spStaff(spell uint16) []sim.Entity {
-	return []sim.Entity{
-		{ID: 1, X: 2, Y: 2, HP: 100, MaxHP: 100, Owner: 1, WeaponSpell: spell,
-			HasAttackTarget: true, AttackTarget: 2, AttackPhase: sim.AttackCasting, AttackCharge: 4},
-		{ID: 2, X: 6, Y: 2, HP: 100, MaxHP: 100, Owner: 2},
-	}
-}
-
-// TestAWeaponBorneLightningDrawsTheSameFigureABookCastDoes is the review's own
-// counterexample. A staff-borne release is not a spellBolt in this tier's list —
-// it is rebuilt from the attack cycle every frame — so before this it took a
-// second draw path with no figure on it, and a staff Lightning still drew one
-// travelling sprite. Thirteen shipped staves cast Lightning.
-func TestAWeaponBorneLightningDrawsTheSameFigureABookCastDoes(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	ents := spStaff(spLightning)
-	// The world holds no caster class, so the launch point is the cell centre.
-	from, to := image.Pt(2*32+16, 2*32+16), image.Pt(6*32+16, 2*32+16)
-	for swing := range 5 {
-		mw.swing[1] = swing
-		spCheckFigure(t, fmt.Sprintf("swing %d", swing), mw.weaponBoltDraws(ents), from, to)
-	}
-}
-
-// TestAWeaponBorneFigureIsRegeneratedAcrossTheSwing is the swing clock standing
-// in for the object's own age: the figure has no life of its own here, so the
-// clock is what has to move it.
-func TestAWeaponBorneFigureIsRegeneratedAcrossTheSwing(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	ents := spStaff(spLightning)
-	var same int
-	mw.swing[1] = 0
-	prev := spInterior(mw.weaponBoltDraws(ents))
-	for swing := 1; swing < 5; swing++ {
-		mw.swing[1] = swing
-		next := spInterior(mw.weaponBoltDraws(ents))
-		if spEqual(prev, next) {
-			same++
-		}
-		prev = next
-	}
-	if same > 1 {
-		t.Errorf("%d of 4 swing ticks redrew the previous figure unchanged", same)
-	}
-}
-
-// spInterior is a draw list's positions with the two endpoints dropped. The
-// endpoints are the caster and the victim and do not move across a swing, so
-// comparing them would report a figure where a single travelling sprite also
-// changes position. A draw list too short to have an interior yields nothing,
-// which compares equal to the next tick's nothing.
-func spInterior(d []ui.SpellBolt) []image.Point {
-	if len(d) < 3 {
-		return nil
-	}
-	return spPositions(d[1 : len(d)-1])
-}
-
-// TestAWeaponBorneTravellingPictureLeavesItsTrail is the other half of the same
-// wiring: the two pictures that travel leave a trail from a staff for the same
-// reason they leave one from a book.
-func TestAWeaponBorneTravellingPictureLeavesItsTrail(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	ents := spStaff(1) // Fire Arrow, picture 10
-	for swing := range 5 {
-		mw.swing[1] = swing
-		var trail int
-		for _, d := range mw.weaponBoltDraws(ents) {
-			if d.Sheet == mw.projectiles.SmokeSheet(0) {
-				trail++
-			}
-		}
-		if want := min(swing+1, 6); trail != want {
-			t.Errorf("at swing %d the staff left %d trail puffs, want %d", swing, trail, want)
+		// Not homing (MAGIC-288): aimed at the target cell's centre, no target.
+		if r := records[0]; r.ActionTarget != 0 || r.ActionX != 9*256+128 || r.ActionY != 128 {
+			t.Errorf("weapon %v: the flight aims at %d (%d,%d), want the cell centre and no target", weapon, r.ActionTarget, r.ActionX, r.ActionY)
 		}
 	}
 }
 
-// TestAWeaponBorneReleaseAgreesWithABookCastOnWhatEachPictureDraws is the
-// property the fix is really about: the two producers must not disagree about
-// whether a picture is a figure, a sprite, or a sprite with a trail.
-func TestAWeaponBorneReleaseAgreesWithABookCastOnWhatEachPictureDraws(t *testing.T) {
+// TestAStaffReleaseLeavesTheRecordABookCastLeaves is SAV-1129's cast divert:
+// a staff's release reaches the cast producer, so each picture is built, flown
+// and drawn the same from a staff as from a book.
+func TestAStaffReleaseLeavesTheRecordABookCastLeaves(t *testing.T) {
 	t.Parallel()
 
 	for _, spell := range []uint16{1, spFireBall, spLightning, spPrismatic} {
-		// Both sides run through their own production producer, and neither
-		// restates the other's arithmetic: the staff through weaponBoltDraws
-		// and the book through boltDraws, each after one tick of its clock.
-		staffWorld := spWorld(t)
-		staffWorld.swing[1] = 1
-		staff := spSheetKinds(staffWorld, spell, staffWorld.weaponBoltDraws(spStaff(spell)))
-
-		bookWorld := spWorld(t)
-		bookWorld.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spell,
-			FromX: 2, FromY: 2, ToX: 6, ToY: 2}})
-		bookWorld.advanceBolts()
-		book := spSheetKinds(bookWorld, spell, bookWorld.boltDraws(nil))
-
-		wantFigure := data.CastDrawsPath(data.CastPicture(int(spell)))
-		if got := staff["cast"] > 1; got != wantFigure {
-			t.Errorf("spell %d: a staff drew %d cast stamps, figure=%v, want figure=%v",
-				spell, staff["cast"], got, wantFigure)
-		}
-		for _, kind := range []string{"cast", "trail"} {
-			if (staff[kind] > 0) != (book[kind] > 0) {
-				t.Errorf("spell %d: a staff drew %d %s stamps and a book drew %d",
-					spell, staff[kind], kind, book[kind])
+		var runs [2][][16]int32
+		var kinds [2]map[string]int
+		for k, weapon := range []bool{false, true} {
+			mw := spWorld(t)
+			mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spell, Weapon: weapon,
+				FromX: 2, FromY: 2, ToX: 6, ToY: 2}})
+			kinds[k] = spSheetKinds(mw, spell, mw.boltDraws(nil))
+			for range 16 {
+				for _, p := range flightRecords(mw) {
+					runs[k] = append(runs[k], shotLeaves(p))
+				}
+				flightStep(mw)
 			}
 		}
+		if len(runs[0]) == 0 || !reflect.DeepEqual(runs[0], runs[1]) {
+			t.Errorf("spell %d: a book flew %v and a staff %v", spell, runs[0], runs[1])
+		}
+		if !reflect.DeepEqual(kinds[0], kinds[1]) {
+			t.Errorf("spell %d: a book drew %v and a staff %v", spell, kinds[0], kinds[1])
+		}
+	}
+}
+
+// TestARiderReleaseLeavesNoCastRecord is ANIM-115: a siege or weapon-spell
+// rider builds its area effect and transport only, so its release builds no
+// cast record; the shot the carrier throws is its own unit-shot record.
+func TestARiderReleaseLeavesNoCastRecord(t *testing.T) {
+	t.Parallel()
+
+	mw := spWorld(t)
+	mw.observeCasts(spRiderWorld(t, spFireBall, false))
+	if got := flightRecords(mw); len(got) != 0 {
+		t.Fatalf("a rider release built %+v, want no cast record", got)
+	}
+	if free := mw.world.SavedProjectiles().FreeIndex; free != 0 {
+		t.Fatalf("a rider release took counter %d, want none taken", free)
+	}
+}
+
+// TestARiderCarrierPlaysNoCastRun is the other half of the same wiring. A rider
+// carrier is swinging a weapon, not casting: it is already playing its attack
+// run, so replacing that with a cast run would animate a blow as a spell.
+func TestARiderCarrierPlaysNoCastRun(t *testing.T) {
+	t.Parallel()
+
+	mw := spWorld(t)
+	mw.observeCasts(spRiderWorld(t, spFireBall, false))
+	if _, ok := mw.castRun[1]; ok {
+		t.Error("a rider carrier started a cast run, want none — it is mid swing")
+	}
+}
+
+// TestABoltsExcursionStaysInsideTheBand: an accepted figure keeps every
+// sample within 0.15 of the length of the projectile ordinate (MAGIC-278);
+// rotation and truncation add at most one pixel on a horizontal segment.
+func TestABoltsExcursionStaysInsideTheBand(t *testing.T) {
+	t.Parallel()
+
+	const length = 384
+	off := 0
+	for s := uint32(1); s <= 256; s++ {
+		for _, p := range boltFigure(0, 100, length, 100, 34, (&boltRNG{state: s}).next) {
+			d := max(int(p.Y)-100, 100-int(p.Y))
+			off = max(off, d)
+			if float64(d) > 0.15*length+1 {
+				t.Fatalf("seed %d drew a point %d px off the line, past the band", s, d)
+			}
+		}
+	}
+	if off == 0 {
+		t.Fatal("no seed left the straight line")
+	}
+}
+
+// spCheckFigure checks one drawn link: display stamps on one frame, the first
+// within a pixel of the launch point, every stamp inside the band, and the
+// last within one sampling step of the target end (MAGIC-277, MAGIC-278).
+func spCheckFigure(t *testing.T, at string, draws []ui.SpellBolt, from, to image.Point) {
+	t.Helper()
+	if len(draws) < 3 {
+		t.Fatalf("%s: the figure is %d stamps, want a path", at, len(draws))
+	}
+	d := to.Sub(from)
+	length := math.Hypot(float64(d.X), float64(d.Y))
+	for i, s := range draws {
+		if !s.Display || s.Frame != draws[0].Frame {
+			t.Fatalf("%s: stamp %d is %+v, want a display stamp on one frame", at, i, s)
+		}
+		r := s.Pos.Sub(from)
+		perp := math.Abs(float64(r.X*d.Y-r.Y*d.X)) / length
+		if perp > 0.15*length+2 {
+			t.Fatalf("%s: stamp %d is %v px off the segment", at, i, perp)
+		}
+	}
+	if p := draws[0].Pos.Sub(from); max(p.X, -p.X, p.Y, -p.Y) > 1 {
+		t.Errorf("%s: the figure starts at %v, want the launch point %v", at, draws[0].Pos, from)
+	}
+	r := draws[len(draws)-1].Pos.Sub(from)
+	if along := float64(r.X*d.X+r.Y*d.Y) / length; along < length-8 || along > length {
+		t.Errorf("%s: the last stamp is %v along a %v segment, want within one sampling step of the end", at, along, length)
+	}
+}
+
+// TestAPrismaticSprayDrawsOneFigurePerVictimInItsOwnColour: one record, as the
+// cast producer builds one (ANIM-147), drawing one figure per victim the cast
+// reached, each in its own colour block.
+func TestAPrismaticSprayDrawsOneFigurePerVictimInItsOwnColour(t *testing.T) {
+	t.Parallel()
+
+	for _, weapon := range []bool{false, true} {
+		mw := spWorld(t)
+		victims := []sim.CellPoint{{X: 8, Y: 5}, {X: 9, Y: 6}, {X: 7, Y: 3}}
+		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spPrismatic, Weapon: weapon,
+			FromX: 2, FromY: 2, ToX: 8, ToY: 5, Victims: victims}})
+		if got := flightRecords(mw); len(got) != 1 || got[0].Picture != 36 {
+			t.Fatalf("weapon %v: a spray built %+v, want one picture-36 record", weapon, got)
+		}
+
+		// The drawables are read, not the record: a stamp carries the far cell of
+		// the figure it belongs to, so the whole spray can be sorted into figures.
+		sheet := mw.projectiles.Sheet(36)
+		blocksSeen := make([]map[int]bool, len(victims))
+		for k := range blocksSeen {
+			blocksSeen[k] = map[int]bool{}
+		}
+		for age := range 13 {
+			reached := make([]bool, len(victims))
+			for _, d := range mw.boltDraws(nil) {
+				if d.Frame < 0 || d.Frame >= len(sheet.Frames) {
+					t.Fatalf("at age %d a stamp names frame %d, past the sheet's %d", age, d.Frame, len(sheet.Frames))
+				}
+				k := spVictimIndex(victims, d.To)
+				if k < 0 {
+					t.Fatalf("at age %d a stamp runs to %v, which is no victim's cell", age, d.To)
+				}
+				blocksSeen[k][d.Frame/boltChainStride] = true
+				if e := d.Pos.Sub(d.To.Mul(32).Add(image.Pt(16, 16))); max(e.X, -e.X, e.Y, -e.Y) <= 12 {
+					reached[k] = true
+				}
+			}
+			for k, v := range victims {
+				if !reached[k] {
+					t.Errorf("at age %d no stamp of figure %d ends near its own victim's cell %v", age, k, v)
+				}
+			}
+			flightStep(mw)
+		}
+		// Each figure holds ONE colour block for its whole life, and no two
+		// figures hold the same one.
+		taken := map[int]int{}
+		for k, seen := range blocksSeen {
+			if len(seen) != 1 {
+				t.Fatalf("figure %d drew blocks %v over its life, want one colour", k, seen)
+			}
+			for b := range seen {
+				if prev, dup := taken[b]; dup {
+					t.Errorf("figures %d and %d both drew colour block %d", prev, k, b)
+				}
+				taken[b] = k
+			}
+		}
+	}
+}
+
+// TestALoadedSprayDrawsNoFigure is SAV-1202: LOAD loses the record's word list,
+// so a loaded picture-36 record draws no segment, while a loaded picture-34
+// record draws one figure to its aim point.
+func TestALoadedSprayDrawsNoFigure(t *testing.T) {
+	t.Parallel()
+
+	for spell, want := range map[uint16]bool{spPrismatic: false, spLightning: true} {
+		mw := spWorld(t)
+		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spell,
+			FromX: 2, FromY: 2, ToX: 8, ToY: 5}})
+		clear(mw.flights)
+		if got := len(mw.boltDraws(nil)) > 0; got != want {
+			t.Errorf("spell %d without its look drew %v, want %v", spell, got, want)
+		}
+	}
+}
+
+// TestAStaffSprayDrawsItsVictimsOnceEachAcrossTheRelease drives the real step.
+// A mage whose weapon carries Prismatic Spray attacks one foe while two more
+// stand in view. Nothing is drawn during the wind-up; each release builds one
+// record whose figures run to every victim, in victim order.
+func TestAStaffSprayDrawsItsVictimsOnceEachAcrossTheRelease(t *testing.T) {
+	t.Parallel()
+
+	rule := sim.SpellRule{ID: spPrismatic, ManaCost: 4, School: 1, MaxRange: 15, TargetsUnit: true,
+		Damaging: true, DamageMin: 5, DamageMax: 5, Delivery: 2, EffectSpeed: 128}
+	mage := sim.Entity{ID: 1, X: 1, Y: 1, HP: 100, MaxHP: 100, Owner: 1, MaxMana: 100, Mana: 100,
+		WeaponSpell: spPrismatic, WeaponSpellLevel: 40, AttackCharge: 3, Reach: 1,
+		DamageBase: 5, AlwaysHits: true, ScanRange: 10, TokenSize: 1}
+	foe := func(id sim.EntityID, x, y int32) sim.Entity {
+		return sim.Entity{ID: id, X: x, Y: y, HP: 100, MaxHP: 100, Owner: 2, TokenSize: 1}
+	}
+	var rel sim.Relations
+	rel.Set(1, 2, 1) // bit 0: hostile
+	rel.Set(2, 1, 1)
+	w, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, sim.Terrain{},
+		[]sim.Entity{mage, foe(2, 7, 1), foe(3, 3, 3), foe(4, 2, 5)}, nil, rel, nil, nil, []sim.SpellRule{rule})
+	if err != nil {
+		t.Fatalf("world: %v", err)
+	}
+	mw := spWorld(t)
+	mw.world = w
+	sheet := mw.projectiles.Sheet(36)
+	releases := 0
+	for tick := 0; tick < 80 && releases < 2; tick++ {
+		mw.noteShotPreMoves()
+		evs := sim.StepObserved(w, []sim.Command{sim.Attack(1, 2)})
+		mw.observeCasts(evs)
+		mw.advanceShotTrails()
+		cells := spFigureCells(mw.boltDraws(w.Entities()), sheet)
+		var victims []sim.CellPoint
+		for _, ev := range evs {
+			if ev.Spell == spPrismatic && ev.Weapon {
+				victims = ev.Victims
+			}
+		}
+		if victims == nil {
+			continue
+		}
+		releases++
+		if len(victims) < 3 {
+			t.Fatalf("the release reached %v, want all three foes", victims)
+		}
+		want := make([]image.Point, len(victims))
+		for k, v := range victims {
+			want[k] = image.Pt(int(v.X), int(v.Y))
+		}
+		// An earlier release's record may still fly; this one's is the newest.
+		records := flightRecords(mw)
+		newest := records[0]
+		for _, p := range records {
+			if p.ID > newest.ID {
+				newest = p
+			}
+		}
+		var got []image.Point
+		for _, b := range mw.recordPaths(newest, 0) {
+			got = append(got, b.to)
+		}
+		if !reflect.DeepEqual(got, want) || len(cells) < len(want) {
+			t.Fatalf("the release built figures to %v (drawn %v), want one per victim in order %v", got, cells, want)
+		}
+	}
+	if releases < 2 {
+		t.Errorf("releases %d, want 2", releases)
 	}
 }
 
@@ -485,212 +609,6 @@ func TestTheSimulationSeparatesTheTwoWeaponArms(t *testing.T) {
 	}
 }
 
-// TestARiderReleaseSpawnsAnObjectThatFlies is the review's second
-// counterexample. A rider carrier never reaches AttackCasting, so
-// weaponBoltDraws never draws it; before this it was skipped by observeCasts
-// with the caster's release too, so nothing flew and the burst appeared at the
-// target on its own. Three shipped Boulder Throwers carry Fire Ball on this arm.
-func TestARiderReleaseSpawnsAnObjectThatFlies(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	mw.observeCasts(spRiderWorld(t, spFireBall, false))
-
-	if len(mw.bolts) == 0 {
-		t.Fatal("a rider release put no object on the map")
-	}
-	var flew bool
-	var prev image.Point
-	for tick := 0; len(mw.bolts) > 0 && tick < 32; tick++ {
-		for _, d := range mw.boltDraws(nil) {
-			if d.Sheet == mw.projectiles.Sheet(data.CastPicture(spFireBall)) {
-				if tick > 0 && d.Pos != prev {
-					flew = true
-				}
-				prev = d.Pos
-			}
-		}
-		mw.advanceBolts()
-	}
-	if !flew {
-		t.Error("the rider's object never moved — it is a travelling picture and must cross")
-	}
-}
-
-// TestARiderCarrierPlaysNoCastRun is the other half of the same wiring. A rider
-// carrier is swinging a weapon, not casting: it is already playing its attack
-// run, so replacing that with a cast run would animate a blow as a spell.
-func TestARiderCarrierPlaysNoCastRun(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	mw.observeCasts(spRiderWorld(t, spFireBall, false))
-	if _, ok := mw.castRun[1]; ok {
-		t.Error("a rider carrier started a cast run, want none — it is mid swing")
-	}
-}
-
-// TestARiderBurstWaitsForItsProjectile is the second half of the counterexample.
-// A caster's replacement release is already at the victim on the release tick
-// and waits nothing; a rider's object has to cross first, so its burst waits
-// exactly as a book cast's does.
-func TestARiderBurstWaitsForItsProjectile(t *testing.T) {
-	t.Parallel()
-
-	rider := spRiderWorld(t, spFireBall, false)[0]
-	caster := spRiderWorld(t, spFireBall, true)[0]
-	mw := spWorld(t)
-	from := image.Point{X: int(rider.FromX), Y: int(rider.FromY)}
-	to := image.Point{X: int(rider.ToX), Y: int(rider.ToY)}
-
-	if got := mw.burstDelay(rider, from, to); got <= 0 {
-		t.Errorf("a rider burst waits %d ticks, want its projectile's flight", got)
-	}
-	if got := mw.burstDelay(caster, from, to); got != 0 {
-		t.Errorf("a caster's replacement release waits %d ticks, want 0", got)
-	}
-}
-
-// TestAWeaponBornePrismaticSprayVariesItsPhaseBlockByCarrier is the tag the
-// constructed object never set. Picture 36's sheet holds seven blocks of five
-// phases and the block is chosen by the record tag; with the field left unset
-// every staff on the map drew block 0.
-func TestAWeaponBornePrismaticSprayVariesItsPhaseBlockByCarrier(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	seen := map[int]bool{}
-	for id := sim.EntityID(1); id <= 3; id++ {
-		ents := spStaff(spPrismatic)
-		ents[0].ID = id
-		mw.swing[id] = 1
-		for _, d := range mw.weaponBoltDraws(ents) {
-			seen[d.Frame] = true
-		}
-	}
-	if len(seen) < 2 {
-		t.Errorf("three carriers drew frames %v — the phase block does not vary by carrier", seen)
-	}
-}
-
-// TestABoltsExcursionStaysInsideTheBand: an accepted figure keeps every
-// sample within 0.15 of the length of the projectile ordinate (MAGIC-278);
-// rotation and truncation add at most one pixel on a horizontal segment.
-func TestABoltsExcursionStaysInsideTheBand(t *testing.T) {
-	t.Parallel()
-
-	const length = 384
-	off := 0
-	for s := uint32(1); s <= 256; s++ {
-		for _, p := range boltFigure(0, 100, length, 100, 34, (&boltRNG{state: s}).next) {
-			d := max(int(p.Y)-100, 100-int(p.Y))
-			off = max(off, d)
-			if float64(d) > 0.15*length+1 {
-				t.Fatalf("seed %d drew a point %d px off the line, past the band", s, d)
-			}
-		}
-	}
-	if off == 0 {
-		t.Fatal("no seed left the straight line")
-	}
-}
-
-// spCheckFigure checks one drawn link: display stamps on one frame, the first
-// within a pixel of the launch point, every stamp inside the band, and the
-// last within one sampling step of the target end (MAGIC-277, MAGIC-278).
-func spCheckFigure(t *testing.T, at string, draws []ui.SpellBolt, from, to image.Point) {
-	t.Helper()
-	if len(draws) < 3 {
-		t.Fatalf("%s: the figure is %d stamps, want a path", at, len(draws))
-	}
-	d := to.Sub(from)
-	length := math.Hypot(float64(d.X), float64(d.Y))
-	for i, s := range draws {
-		if !s.Display || s.Frame != draws[0].Frame {
-			t.Fatalf("%s: stamp %d is %+v, want a display stamp on one frame", at, i, s)
-		}
-		r := s.Pos.Sub(from)
-		perp := math.Abs(float64(r.X*d.Y-r.Y*d.X)) / length
-		if perp > 0.15*length+2 {
-			t.Fatalf("%s: stamp %d is %v px off the segment", at, i, perp)
-		}
-	}
-	if p := draws[0].Pos.Sub(from); max(p.X, -p.X, p.Y, -p.Y) > 1 {
-		t.Errorf("%s: the figure starts at %v, want the launch point %v", at, draws[0].Pos, from)
-	}
-	r := draws[len(draws)-1].Pos.Sub(from)
-	if along := float64(r.X*d.X+r.Y*d.Y) / length; along < length-8 || along > length {
-		t.Errorf("%s: the last stamp is %v along a %v segment, want within one sampling step of the end", at, along, length)
-	}
-}
-
-func TestAPrismaticSprayDrawsOneFigurePerVictimInItsOwnColour(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	victims := []sim.CellPoint{{X: 8, Y: 5}, {X: 9, Y: 6}, {X: 7, Y: 3}}
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spPrismatic,
-		FromX: 2, FromY: 2, ToX: 8, ToY: 5, Victims: victims}})
-
-	if len(mw.bolts) != len(victims) {
-		t.Fatalf("a spray over %d victims spawned %d objects, want one each", len(victims), len(mw.bolts))
-	}
-	for k, v := range victims {
-		if got, want := mw.bolts[k].to, image.Pt(int(v.X), int(v.Y)); got != want {
-			t.Errorf("figure %d runs to %v, want its own victim's %v", k, got, want)
-		}
-		if mw.bolts[k].tag != k {
-			t.Errorf("figure %d carries tag %d, want the victim's own loop index", k, mw.bolts[k].tag)
-		}
-	}
-
-	// The drawables are read, not the objects: a stamp carries the far cell of
-	// the figure it belongs to, so the whole spray can be sorted into figures
-	// without the producer being asked which stamp it just emitted.
-	sheet := mw.projectiles.Sheet(36)
-	blocksSeen := make([]map[int]bool, len(victims))
-	for k := range blocksSeen {
-		blocksSeen[k] = map[int]bool{}
-	}
-	for age := range 13 {
-		reached := make([]bool, len(victims))
-		for _, d := range mw.boltDraws(nil) {
-			if d.Frame < 0 || d.Frame >= len(sheet.Frames) {
-				t.Fatalf("at age %d a stamp names frame %d, past the sheet's %d", age, d.Frame, len(sheet.Frames))
-			}
-			k := spVictimIndex(victims, d.To)
-			if k < 0 {
-				t.Fatalf("at age %d a stamp runs to %v, which is no victim's cell", age, d.To)
-			}
-			blocksSeen[k][d.Frame/boltChainStride] = true
-			if e := d.Pos.Sub(d.To.Mul(32).Add(image.Pt(16, 16))); max(e.X, -e.X, e.Y, -e.Y) <= 12 {
-				reached[k] = true
-			}
-		}
-		for k, v := range victims {
-			if !reached[k] {
-				t.Errorf("at age %d no stamp of figure %d ends near its own victim's cell %v", age, k, v)
-			}
-		}
-		mw.advanceBolts()
-	}
-	// Each figure holds ONE colour block for its whole life — the ramp walks the
-	// five phases inside the block and the block does not move — and no two
-	// figures hold the same one.
-	taken := map[int]int{}
-	for k, seen := range blocksSeen {
-		if len(seen) != 1 {
-			t.Fatalf("figure %d drew blocks %v over its life, want one colour", k, seen)
-		}
-		for b := range seen {
-			if prev, dup := taken[b]; dup {
-				t.Errorf("figures %d and %d both drew colour block %d", prev, k, b)
-			}
-			taken[b] = k
-		}
-	}
-}
-
 // spVictimIndex is which victim a stamp's far cell names, or -1.
 func spVictimIndex(victims []sim.CellPoint, to image.Point) int {
 	for k, v := range victims {
@@ -699,147 +617,6 @@ func spVictimIndex(victims []sim.CellPoint, to image.Point) int {
 		}
 	}
 	return -1
-}
-
-// TestAWeaponBornePrismaticReleaseDrawsOneFigurePerVictim is the owner's
-// staff spray: the release reported three victims and only the aimed one was
-// drawn. A caster's release that reports a list now spawns the same set a
-// book cast of the same list spawns — same count, cells, tags and life.
-func TestAWeaponBornePrismaticReleaseDrawsOneFigurePerVictim(t *testing.T) {
-	t.Parallel()
-
-	victims := []sim.CellPoint{{X: 8, Y: 5}, {X: 9, Y: 6}, {X: 7, Y: 3}}
-	ev := sim.CastEvent{Caster: 1, Target: 2, Spell: spPrismatic, Weapon: true,
-		FromX: 2, FromY: 2, ToX: 8, ToY: 5, Victims: victims}
-	staff, book := spWorld(t), spWorld(t)
-	staff.observeCasts([]sim.CastEvent{ev})
-	ev.Weapon = false
-	book.observeCasts([]sim.CastEvent{ev})
-
-	got, want := spPictureBolts(staff, 36), spPictureBolts(book, 36)
-	if len(got) != len(victims) {
-		t.Fatalf("a staff spray over %d victims spawned %d figures, want one each", len(victims), len(got))
-	}
-	for k, v := range victims {
-		if got[k].to != image.Pt(int(v.X), int(v.Y)) || got[k].tag != k {
-			t.Errorf("figure %d runs to %v with tag %d, want %v and tag %d", k, got[k].to, got[k].tag, v, k)
-		}
-		if got[k].life != want[k].life {
-			t.Errorf("figure %d lives %d ticks, want the book cast's %d", k, got[k].life, want[k].life)
-		}
-	}
-}
-
-// TestAWeaponBorneReleaseWithNoVictimListSpawnsNothing keeps every other
-// caster release on the live wind-up draw alone.
-func TestAWeaponBorneReleaseWithNoVictimListSpawnsNothing(t *testing.T) {
-	t.Parallel()
-
-	for _, spell := range []uint16{spPrismatic, spLightning, spFireBall} {
-		mw := spWorld(t)
-		mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spell, Weapon: true,
-			FromX: 2, FromY: 2, ToX: 8, ToY: 5}})
-		if got := spPictureBolts(mw, data.CastPicture(int(spell))); len(got) != 0 {
-			t.Errorf("spell %d: a listless caster release spawned %d cast objects, want none", spell, len(got))
-		}
-	}
-}
-
-// TestARiderReleaseSpawnsOneObjectAsBefore pins the rider arm's own set: one
-// cast object at the observation's tick index, whatever the caster arm does.
-func TestARiderReleaseSpawnsOneObjectAsBefore(t *testing.T) {
-	t.Parallel()
-
-	mw := spWorld(t)
-	ev := spRiderWorld(t, spFireBall, false)[0]
-	mw.observeCasts([]sim.CastEvent{ev})
-	got := spPictureBolts(mw, data.CastPicture(spFireBall))
-	if len(got) != 1 || got[0].tag != 0 || got[0].to != image.Pt(int(ev.ToX), int(ev.ToY)) {
-		t.Fatalf("a rider release spawned %+v, want one object with tag 0 to its target", got)
-	}
-}
-
-// spPictureBolts is the live objects of one picture, in spawn order.
-func spPictureBolts(mw *mapWorld, picture int) []spellBolt {
-	var out []spellBolt
-	for _, b := range mw.bolts {
-		if b.picture == picture {
-			out = append(out, b)
-		}
-	}
-	return out
-}
-
-// TestAStaffSprayDrawsItsVictimsOnceEachAcrossTheRelease drives the real step.
-// A mage whose weapon carries Prismatic Spray attacks one foe while two more
-// stand in view. Until the release the live wind-up draws one figure to the
-// aimed foe; on the release tick the phase leaves casting, the wind-up stops,
-// and the release's set draws one figure per victim in victim order. The next
-// wind-up starts while that set still lives and is not drawn until it ends,
-// so no tick draws a wind-up figure beside a set.
-func TestAStaffSprayDrawsItsVictimsOnceEachAcrossTheRelease(t *testing.T) {
-	t.Parallel()
-
-	rule := sim.SpellRule{ID: spPrismatic, ManaCost: 4, School: 1, MaxRange: 15, TargetsUnit: true,
-		Damaging: true, DamageMin: 5, DamageMax: 5, Delivery: 2, EffectSpeed: 128}
-	mage := sim.Entity{ID: 1, X: 1, Y: 1, HP: 100, MaxHP: 100, Owner: 1, MaxMana: 100, Mana: 100,
-		WeaponSpell: spPrismatic, WeaponSpellLevel: 40, AttackCharge: 3, Reach: 1,
-		DamageBase: 5, AlwaysHits: true, ScanRange: 10, TokenSize: 1}
-	foe := func(id sim.EntityID, x, y int32) sim.Entity {
-		return sim.Entity{ID: id, X: x, Y: y, HP: 100, MaxHP: 100, Owner: 2, TokenSize: 1}
-	}
-	var rel sim.Relations
-	rel.Set(1, 2, 1) // bit 0: hostile
-	rel.Set(2, 1, 1)
-	w, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, sim.Terrain{},
-		[]sim.Entity{mage, foe(2, 7, 1), foe(3, 3, 3), foe(4, 2, 5)}, nil, rel, nil, nil, []sim.SpellRule{rule})
-	if err != nil {
-		t.Fatalf("world: %v", err)
-	}
-	mw := spWorld(t)
-	sheet := mw.projectiles.Sheet(36)
-	releases, windUp, held := 0, 0, 0
-	for tick := 0; tick < 80 && releases < 2; tick++ {
-		evs := sim.StepObserved(w, []sim.Command{sim.Attack(1, 2)})
-		mw.observeCasts(evs)
-		ents := w.Entities()
-		cells := spFigureCells(mw.boltDraws(ents), sheet)
-		live := spFigureCells(mw.weaponBoltDraws(ents), sheet)
-		if len(live) != 0 && len(cells) != len(live) {
-			t.Fatalf("tick %d drew the wind-up %v beside a live set: %v", tick, live, cells)
-		}
-		var victims []sim.CellPoint
-		for _, ev := range evs {
-			if ev.Spell == spPrismatic && ev.Weapon {
-				victims = ev.Victims
-			}
-		}
-		switch {
-		case victims != nil:
-			releases++
-			if len(victims) < 3 {
-				t.Fatalf("the release reached %v, want all three foes", victims)
-			}
-			want := make([]image.Point, len(victims))
-			for k, v := range victims {
-				want[k] = image.Pt(int(v.X), int(v.Y))
-			}
-			// An earlier release's set may still live; this one's is appended last.
-			if len(cells) < len(want) || !reflect.DeepEqual(cells[len(cells)-len(want):], want) || len(live) != 0 {
-				t.Fatalf("the release tick drew figures to %v (wind-up %v), want one per victim in order %v",
-					cells, live, want)
-			}
-		case ents[0].AttackPhase == sim.AttackCasting && len(live) == 0:
-			held++
-		case ents[0].AttackPhase == sim.AttackCasting:
-			windUp++
-		}
-		mw.advanceBolts()
-	}
-	if releases < 2 || windUp == 0 || held == 0 {
-		t.Errorf("releases %d, wind-up ticks drawn %d, held behind a live set %d: want 2 and both kinds of tick",
-			releases, windUp, held)
-	}
 }
 
 // spFigureCells is the far cell of every figure among draws on sheet, in first

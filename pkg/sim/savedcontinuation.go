@@ -33,8 +33,11 @@ type SavedProjectileDriver struct {
 	Target         EntityID
 	HasTarget      bool
 	Retired        bool
-	TargetDetached bool   // native removal policy; source actiontarget remains carried
-	Owner          uint32 // draw-only: the burst caster's owner slot; no SAV field carries it
+	TargetDetached bool // native removal policy; source actiontarget remains carried
+	// TargetStructure marks Target as a StructureID: a shot at a structure
+	// homes on it like a unit (SAV-1197).
+	TargetStructure bool
+	Owner           uint32 // draw-only: the caster's owner slot; no SAV field carries it
 }
 
 func cloneSavedWorldEffects(src *SavedWorldEffects) *SavedWorldEffects {
@@ -122,7 +125,7 @@ func (w *World) savedWorldEffectsFault() error {
 		}
 	}
 	for i, d := range s.Projectiles {
-		if i > 0 && s.Projectiles[i-1].ID >= d.ID || !d.HasTarget && (d.Target != 0 || d.TargetDetached) {
+		if i > 0 && s.Projectiles[i-1].ID >= d.ID || !d.HasTarget && (d.Target != 0 || d.TargetDetached || d.TargetStructure) || d.TargetStructure && d.TargetDetached {
 			return fail()
 		}
 		p := w.savedProjectile(d.ID)
@@ -134,6 +137,12 @@ func (w *World) savedWorldEffectsFault() error {
 		}
 		if p == nil || p.Picture < 0 || p.ActionSegments < 0 || p.ActionSegments > 65535 || p.ActionPhase < 0 || int64(p.ActionPhase)+int64(p.ActionSegments) >= 2147483647 || p.ActionZ != 0 || p.Z != 0 || (p.ActionTarget != 0) != d.HasTarget {
 			return fail()
+		}
+		if d.TargetStructure {
+			if indexOfStructure(w.structures, StructureID(d.Target)) < 0 {
+				return fail()
+			}
+			continue
 		}
 		if d.HasTarget {
 			i := indexOfEntity(w.entities, d.Target)
@@ -448,7 +457,12 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 		return
 	}
 	resolved := false
-	if d.HasTarget && !d.TargetDetached {
+	if d.TargetStructure {
+		if at := indexOfStructure(w.structures, StructureID(d.Target)); at >= 0 {
+			p.ActionX, p.ActionY = structureTargetPoint(w.structures[at])
+			resolved = true
+		}
+	} else if d.HasTarget && !d.TargetDetached {
 		deadTarget := false
 		for _, dead := range w.OriginalDeadActors() {
 			if dead.ID == d.Target {
@@ -489,7 +503,8 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 	default:
 		if savedAttachedProjectile(p.Picture) {
 			p.X, p.Y, p.Z = p.ActionX, p.ActionY, p.ActionZ
-		} else {
+		} else if p.Picture != teleportProjectilePicture {
+			// ANIM-149: the picture-60 arm writes no position.
 			p.X += (p.ActionX - p.X) / p.ActionSegments
 			p.Y += (p.ActionY - p.Y) / p.ActionSegments
 			p.Z += (p.ActionZ - p.Z) / p.ActionSegments
@@ -500,6 +515,13 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 			p.Phase = p.ActionPhase - 1
 		case 51:
 			p.Phase = p.ActionPhase
+		case 20, 30:
+			// ANIM-149: a call that finds its target sets phase 1.
+			if resolved {
+				p.Phase = 1
+			} else if d.Phases > 0 {
+				p.Phase = (p.ActionPhase / 2) % int32(d.Phases)
+			}
 		default:
 			if d.Phases > 0 {
 				p.Phase = (p.ActionPhase / 2) % int32(d.Phases)
@@ -512,13 +534,20 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 
 // Once every carried effect has left the world, its retired import ordinals
 // cannot be reached by a later tick. Keep mixed live/retired carriers intact
-// while the live roots still need their stable IDs.
+// while the live roots still need their stable IDs. A retired projectile row
+// leaves at once: a record names itself, and SAVE writes no retired record.
 func (w *World) clearRetiredWorldEffectCarriers() {
 	g, s := w.savedSpellGraph, w.savedWorldEffects
+	dropped := false
+	if s != nil {
+		n := len(s.Projectiles)
+		s.Projectiles = slices.DeleteFunc(s.Projectiles, func(d SavedProjectileDriver) bool { return d.Retired })
+		dropped = len(s.Projectiles) != n
+	}
 	if g != nil && len(g.Roots) != 0 {
 		return
 	}
-	residue := g != nil && len(g.Nodes) != 0
+	residue := dropped || g != nil && len(g.Nodes) != 0
 	if s != nil {
 		residue = residue || len(s.Areas)+len(s.Projectiles) != 0
 		for _, area := range s.Areas {
@@ -573,7 +602,7 @@ func (w *World) detachSavedProjectileTargets(id EntityID) {
 	}
 	for i := range w.savedWorldEffects.Projectiles {
 		d := &w.savedWorldEffects.Projectiles[i]
-		if !d.Retired && d.HasTarget && !d.TargetDetached && d.Target == id {
+		if !d.Retired && d.HasTarget && !d.TargetDetached && !d.TargetStructure && d.Target == id {
 			if p := w.savedProjectile(d.ID); p != nil {
 				p.ActionX, p.ActionY = x, y
 			}

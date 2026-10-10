@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // The scroll and the book must release the installed Fire Arrow picture from
@@ -103,12 +104,13 @@ func releaseFireArrowProjectile(t *testing.T, fromScroll bool) (sim.CastEvent, s
 				continue
 			}
 			from, to := image.Pt(int(ev.FromX), int(ev.FromY)), image.Pt(int(ev.ToX), int(ev.ToY))
-			for _, bolt := range mw.bolts {
-				if bolt.picture == data.CastPicture(1) && bolt.from == from && bolt.to == to {
-					return ev, bolt
+			for _, p := range flightRecords(mw) {
+				aim := image.Pt(floorDiv(int(p.ActionX), ui.ShotScale), floorDiv(int(p.ActionY), ui.ShotScale))
+				if int(p.Picture) == data.CastPicture(1) && aim == to {
+					return ev, spellBolt{from: from, to: aim, picture: int(p.Picture)}
 				}
 			}
-			t.Fatalf("Fire Arrow released on tick %d but drew no source-to-target projectile: scroll=%t event=%+v bolts=%+v", tick, fromScroll, ev, mw.bolts)
+			t.Fatalf("Fire Arrow released on tick %d but built no record aimed at its target: scroll=%t event=%+v records=%+v", tick, fromScroll, ev, flightRecords(mw))
 		}
 	}
 	t.Fatalf("Fire Arrow did not release within 160 ticks: scroll=%t mage=%+v target=%+v", fromScroll, caster, target)
