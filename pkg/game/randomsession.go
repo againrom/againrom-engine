@@ -20,7 +20,7 @@ func clockSessionSeed() uint64 { return uint64(time.Now().UnixNano()) }
 // evidence for its original generator runs the default mode instead
 // (DIV-2748); the notice saying so is written once and answered.
 func (f *FrontEnd) SetRandomLaunch(seed uint64, fixed, original bool) (notice string) {
-	if original && !f.Base().Profile.Edition().OriginalRandom {
+	if original && f.Base().Profile.Edition().OriginalGenerator == "" {
 		original = false
 		notice = "original random: this game has no evidence for its original generator; the default mode runs (DIV-2748)"
 		fmt.Fprintln(os.Stderr, notice)

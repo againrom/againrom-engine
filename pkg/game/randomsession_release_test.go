@@ -339,7 +339,7 @@ func TestReleaseOriginalRandomMissionOne(t *testing.T) {
 	cleanupFrontAudio(t, f)
 	wantMode := random.Original
 	notice := f.SetRandomLaunch(1, true, true)
-	if !f.Base().Profile.Edition().OriginalRandom {
+	if f.Base().Profile.Edition().OriginalGenerator == "" {
 		wantMode = random.Seeded
 		if notice == "" || f.randomService().Mode() != random.Seeded || f.randomService().LaunchSettings().Mode != random.Seeded {
 			t.Fatalf("the switch on a game without original-generator evidence: notice %q, mode %d", notice, f.randomService().Mode())

@@ -10,6 +10,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [BASE] The original game's random number generator can be switched on with
   `-original-random`; `-seed <n>` replays a session from one seed.
+- [BASE] An enemy mage with Mind above 59 now holds back a spell exactly 30
+  times in 100, as in the original, instead of 30 in 101. With
+  `-original-random`, the time spent in town no longer changes the next
+  mission's combat rolls; on the second game the switch runs the default
+  generator and says so.
 - [ROM1] Windows, panels and lists now look alike everywhere. Every window
   frame is drawn with whole edge tiles as the original draws it, and the
   cutscene library and Sound Options lists sit in the same sunken well as
