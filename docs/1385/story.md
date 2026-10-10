@@ -39,7 +39,10 @@ the derive keeps. Three routes call it:
 
 A native Humanoid's `Entity.Speed` stays the unencumbered sum, base plus
 modifier; `Entity.SpeedModifier` is the signed modifier inside it. A Unit and
-a source-backed Human hold zero. The base is `Speed - SpeedModifier`.
+a source-backed Human hold zero: rearm and speed effects write it only on a
+native Humanoid, and an actor that becomes source-backed (original-living
+import, a source-class LOAD restore, the original-Human spawn route) drops it.
+The base is `Speed - SpeedModifier`.
 
 `deriveNativeHumanSpeed` (`pkg/sim/turnstate.go`) runs after every producer.
 It derives the word, sets the turn rate to the word's low byte, and on a
@@ -64,7 +67,9 @@ rate floor and turns at the low byte, as a source Human does.
   writes no section; corrupt records and a modifier on a non-native or
   non-Humanoid entity are refused.
 - SAV: a native Human's speed word holds the derived word (`Entity.SpeedWord`);
-  its mover byte holds the low byte. The modifier speed word holds each byte
+  its mover byte holds the low byte. A word retained from an imported record
+  does not replace the derive there; only a non-positive word the derive
+  itself kept does. The modifier speed word holds each byte
   the native basis knows, else the live modifier (`Entity.SpeedModifierWord`).
   When either word differs from the live `Speed` or `SpeedModifier`, the
   engine-state leaf carries the operand `SpeedSplit` with both wires and both
