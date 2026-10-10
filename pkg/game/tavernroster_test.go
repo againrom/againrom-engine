@@ -179,6 +179,27 @@ func TestTavernTalkResolvesOverTheStockUnits(t *testing.T) {
 	}
 }
 
+// TestPlatoonTalkResolvesToItsMercenaryType: a Platoon record stands for the
+// unit of its own mercenary type, a carried one first, else the stock unit, and
+// either shows statistics and draws Unit<type> (DIV-2778).
+func TestPlatoonTalkResolvesToItsMercenaryType(t *testing.T) {
+	art := &ui.TownTavernArt{}
+	art.UnitFrames[2] = []image.Image{image.NewRGBA(image.Rect(0, 0, 1, 1))}
+	rec := data.NPCFace{Tokens: data.NPCTokens(data.NPCTokenPlatoon)}
+	o := resolveTavernTalk(2, rec, true, brianParty(), nil)
+	if o.stock != 2 || !o.statistics() || o.hero || &tavernTalkFrames(art, o)[0] != &art.UnitFrames[2][0] {
+		t.Fatalf("npc2 = %+v, want the type-2 stock unit", o)
+	}
+	hired := append(brianParty(), mapload.PartyMember{Name: "Catapult", MercenaryType: 1},
+		mapload.PartyMember{Name: "Ballista", MercenaryType: 2})
+	if o := resolveTavernTalk(2, rec, true, hired, nil); o.live != 3 || o.stock != 0 || !o.statistics() {
+		t.Fatalf("npc2 over a carried ballista = %+v, want member 3", o)
+	}
+	if o := resolveTavernTalk(41, rec, true, brianParty(), nil); o.live >= 0 {
+		t.Fatalf("a Platoon record outside the mercenary types = %+v, want the synthesised object", o)
+	}
+}
+
 // TestHumanTermExcludesHeroes: a Hero party member of the record's sex and
 // face does not answer a Human record; the Human bit is never set on a hero.
 func TestHumanTermExcludesHeroes(t *testing.T) {
