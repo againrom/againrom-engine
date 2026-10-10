@@ -68,9 +68,10 @@ type campaignService interface {
 	outcomeText(mw *mapWorld, body string) string
 	eventAudience(mw *mapWorld) (EventAudience, bool)
 	objectives(mw *mapWorld, briefing string) string
-	// The character generator's campaign hooks: the pictures' statistic
-	// presets, the party a result makes, and what an accepted result opens.
-	generatorPresets(f *FrontEnd, setup *ui.ChargenSetup)
+	// The character generator's campaign hooks: what the setup takes from the
+	// campaign (the pictures' statistic presets), the party a result makes,
+	// and what an accepted result opens or commits.
+	generatorSetup(f *FrontEnd, setup *ui.ChargenSetup)
 	generatorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember
 	generatorBegin(f *FrontEnd, mission int) func(ui.ChargenResult) (ui.MapOpener, error)
 }

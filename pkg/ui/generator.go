@@ -69,8 +69,12 @@ type GeneratorWords struct {
 	NameFont GeneratorFont `json:"name-font"`
 	// TipFont is "text" when the install's tip panels draw in the
 	// generator's text font, "install" when they keep the install's font.
-	TipFont string   `json:"tip-font"`
-	Cite    []string `json:"cite"`
+	TipFont string `json:"tip-font"`
+	// CodePage is "windows-1251" when a converting install's tables hold
+	// Windows Cyrillic, which the generator converts to the fonts' code page;
+	// empty when the tables are in the fonts' code page.
+	CodePage string   `json:"code-page"`
+	Cite     []string `json:"cite"`
 }
 
 // GeneratorFont names a font and its atlas format, "16" or "16a".
@@ -525,6 +529,9 @@ func (d *GeneratorDescription) validate() error {
 	}
 	if !oneOf(d.Words.TipFont, "text", "install") {
 		return fmt.Errorf("tip font %q", d.Words.TipFont)
+	}
+	if !oneOf(d.Words.CodePage, "", "windows-1251") {
+		return fmt.Errorf("code page %q", d.Words.CodePage)
 	}
 	if len(t.Reset) == 0 {
 		return fmt.Errorf("no reset rule")

@@ -31,3 +31,20 @@ func TestFirstGeneratorStatesThePointBuy(t *testing.T) {
 		}
 	}
 }
+
+// The second game's campaign part states the commit and the producer's
+// weapons, and a malformed part is refused.
+func TestSecondGeneratorCampaignDecodes(t *testing.T) {
+	g := secondGeneratorCampaign
+	if g.MageSlot != 776 || g.FemaleSlot != 781 || g.Gold != 1000 || g.ChosenSkill != 20 || g.FifthSkill != 10 {
+		t.Fatalf("campaign %+v", g)
+	}
+	for _, bad := range []string{`{"mage-slot": 1024}`, `{"gold": -1}`, `{"unknown": 1}`} {
+		if _, err := decodeSecondGenerator([]byte(bad)); err == nil {
+			t.Errorf("%s accepted", bad)
+		}
+	}
+	if heroTemplate(generatorDescriptions["rom2"], true, true) != "Start_FM" || heroTemplate(generatorDescriptions["rom2"], false, false) != "Start_MF" {
+		t.Fatal("template by sex and class")
+	}
+}

@@ -130,8 +130,8 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		TipText:       tip(l.Tips.Fighter),
 		TipTextMage:   tip(l.Tips.Mage),
 		TipTextDetail: tip(l.Tips.After),
-		TipClose:      f.Words.TipClose,
-		TipToggle:     f.Words.TipShowNext,
+		TipClose:      generatorWord(l, LanguageSelector(src), f.Words.TipClose),
+		TipToggle:     generatorWord(l, LanguageSelector(src), f.Words.TipShowNext),
 		TipArt:        f.tipArt(),
 		TipsOn:        !f.TipsOff(),
 		SetTipsOn:     func(on bool) { f.SetTipsOff(!on) },
@@ -154,7 +154,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 			EmptyName: a.EmptyName, ReservedName: a.ReservedName, SkillHover: a.SkillHover}
 		setup.Preview = f.ChargenPreview
 	}
-	f.campaign().generatorPresets(f, &setup)
+	f.campaign().generatorSetup(f, &setup)
 	return setup
 }
 
@@ -428,6 +428,13 @@ func (f *FrontEnd) tableWeapons() (shapes, materials data.ScaleTable, weapons da
 // slot on class's own arm, exactly as StartingWeaponName states.
 func (f *FrontEnd) ChargenParty(res ui.ChargenResult) []mapload.PartyMember {
 	return f.campaign().generatorParty(f, res)
+}
+
+// NewGameBegin is what an accepted new-game generator result does: the first
+// game opens mission n with the generated party; the second game commits its
+// new campaign and opens no map, so the generator shows the first town.
+func (f *FrontEnd) NewGameBegin(n int) func(ui.ChargenResult) (ui.MapOpener, error) {
+	return f.campaign().generatorBegin(f, n)
 }
 
 // firstGeneratorParty is the first game's party for a result.

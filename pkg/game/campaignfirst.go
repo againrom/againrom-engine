@@ -111,7 +111,7 @@ func (firstCampaignRules) eventAudience(*mapWorld) (EventAudience, bool) {
 
 func (firstCampaignRules) objectives(_ *mapWorld, briefing string) string { return briefing }
 
-func (firstCampaignRules) generatorPresets(f *FrontEnd, setup *ui.ChargenSetup) {
+func (firstCampaignRules) generatorSetup(f *FrontEnd, setup *ui.ChargenSetup) {
 	firstGeneratorPresets(f, setup)
 }
 

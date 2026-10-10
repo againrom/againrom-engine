@@ -5,6 +5,7 @@ import (
 	"image"
 	"strings"
 
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -221,11 +222,17 @@ type secondCampaignScreen struct {
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
+	f.startSecondCampaignWith(MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table))
+	return nil
+}
+
+// startSecondCampaignWith drops the session and starts a new campaign at its
+// first town with party.
+func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 	releaseWorldAudio(f.runtimeAudio(), f.endLive())
 	f.CampaignSession.clear(Campaign{})
 	f.Town.second = newSecondCampaign()
-	f.Carried = MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table)
-	return nil
+	f.Carried = party
 }
 
 func (f *FrontEnd) secondCampaignScreen() ui.TownScreen {

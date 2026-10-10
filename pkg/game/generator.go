@@ -14,9 +14,15 @@ import (
 //go:embed generators/rom1.json
 var rom1GeneratorJSON []byte
 
+// rom2GeneratorJSON is the second game's character generator as data, cited
+// the same way.
+//
+//go:embed generators/rom2.json
+var rom2GeneratorJSON []byte
+
 // generatorJSON are the encoded generator descriptions an edition can name,
 // by that name.
-var generatorJSON = map[string][]byte{"rom1": rom1GeneratorJSON}
+var generatorJSON = map[string][]byte{"rom1": rom1GeneratorJSON, "rom2": rom2GeneratorJSON}
 
 // generatorDescriptions are the decoded descriptions. A description that does
 // not decode is a build defect, so it stops the process at start.

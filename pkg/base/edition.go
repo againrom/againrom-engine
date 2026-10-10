@@ -114,6 +114,7 @@ var secondEdition = Edition{
 	Campaign:          CampaignDestinations,
 	NewGameInTown:     true,
 	TownDifficulty:    true,
+	Generator:         "rom2",
 	Rooms:             "rom1",
 	SecondMaps:        true,
 	SecondScripts:     true,

@@ -139,8 +139,19 @@ func heroPictureNames(src entrySource, l *ui.GeneratorDescription) ([4]string, e
 		if names[i], err = chargenTextAt(rows, l.Words.Names, hero.NameLine); err != nil {
 			return [4]string{}, err
 		}
+		names[i] = generatorWord(l, LanguageSelector(src), names[i])
 	}
 	return names, nil
+}
+
+// generatorWord is a word of the description's tables in the fonts' code
+// page: Windows Cyrillic converted on a converting install whose tables hold
+// it (DIV-2378), else the word unchanged.
+func generatorWord(l *ui.GeneratorDescription, selector int, s string) string {
+	if l == nil || l.Words.CodePage != "windows-1251" {
+		return s
+	}
+	return string(secondGameMissionBytes([]byte(s), selector))
 }
 
 // chargenArt reads one described picture: its size when the description
@@ -176,6 +187,16 @@ func chargenPane(src terrain.EntrySource, pane *ui.GeneratorPane) (*image.RGBA, 
 	}
 	if pane.Keyed {
 		pic = keyBlack(pic)
+	}
+	return pic, nil
+}
+
+// chargenPaneImage is a pane as an image: nil, not a nil picture
+// inside an image, when the description names none.
+func chargenPaneImage(src terrain.EntrySource, pane *ui.GeneratorPane) (image.Image, error) {
+	pic, err := chargenPane(src, pane)
+	if pic == nil || err != nil {
+		return nil, err
 	}
 	return pic, nil
 }
@@ -270,16 +291,16 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*Ch
 		}
 		p.Loops = append(p.Loops, members)
 	}
-	if p.Plate, err = chargenPane(src, &d.Plate); err != nil {
+	if p.Plate, err = chargenPaneImage(src, &d.Plate); err != nil {
 		return nil, err
 	}
-	if p.PlateSeam, err = chargenPane(src, d.PlateSeam); err != nil {
+	if p.PlateSeam, err = chargenPaneImage(src, d.PlateSeam); err != nil {
 		return nil, err
 	}
-	if p.NavArt, err = chargenPane(src, &d.Nav); err != nil {
+	if p.NavArt, err = chargenPaneImage(src, &d.Nav); err != nil {
 		return nil, err
 	}
-	if p.NavSeam, err = chargenPane(src, d.NavSeam); err != nil {
+	if p.NavSeam, err = chargenPaneImage(src, d.NavSeam); err != nil {
 		return nil, err
 	}
 	for i, c := range d.Commands {
@@ -294,16 +315,16 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*Ch
 			p.NavButtons[i][j] = pic
 		}
 	}
-	if p.DollPane.Body, err = chargenPane(src, &d.Doll); err != nil {
+	if p.DollPane.Body, err = chargenPaneImage(src, &d.Doll); err != nil {
 		return nil, err
 	}
-	if p.DollPane.Seam, err = chargenPane(src, d.DollSeam); err != nil {
+	if p.DollPane.Seam, err = chargenPaneImage(src, d.DollSeam); err != nil {
 		return nil, err
 	}
 	if p.CardBackground, err = chargenPane(src, &d.Card); err != nil {
 		return nil, err
 	}
-	if p.CardSeam, err = chargenPane(src, d.CardSeam); err != nil {
+	if p.CardSeam, err = chargenPaneImage(src, d.CardSeam); err != nil {
 		return nil, err
 	}
 	column := image.Rectangle{Max: d.ColumnRect.Rectangle().Size()}
@@ -362,8 +383,11 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*Ch
 		return nil, err
 	}
 	rows := SplitTextTable(b)
-	get := func(slot int) (string, error) { return chargenTextAt(rows, l.Words.Table, slot) }
 	a := &ChargenAssets{Presentation: p, Selector: LanguageSelector(src)}
+	get := func(slot int) (string, error) {
+		s, err := chargenTextAt(rows, l.Words.Table, slot)
+		return generatorWord(l, a.Selector, s), err
+	}
 	if a.HeroNames, err = heroPictureNames(src, l); err != nil {
 		return nil, err
 	}
@@ -374,6 +398,7 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*Ch
 	if a.EnterName, err = chargenTextAt(SplitTextTable(nameRows), l.Words.Names, pre.Name.EnterLine); err != nil {
 		return nil, err
 	}
+	a.EnterName = generatorWord(l, a.Selector, a.EnterName)
 	if a.Prompt, err = get(pre.Name.Prompt.Slot); err != nil {
 		return nil, err
 	}
