@@ -43,6 +43,9 @@ func playRandomSession(t *testing.T, seed uint64, original bool) sessionRun {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if f.Base().Profile.Limits.NoCharacterGeneration {
+		t.Skip("the base opens without generation; the session walks the first game's town and chargen")
+	}
 	cleanupFrontAudio(t, f)
 	f.SetRandomLaunch(seed, true, original)
 	t.Cleanup(func() { ui.SetOriginalItemStars(false) })

@@ -7,7 +7,7 @@ replays from one seed: the same seed gives the same frames, sounds, World and
 SAV. A launch setting switches the original game's generator on: every
 consumer the original runs on its one main-thread stream then draws from one
 shared MSVC stream, in the original's draw form. Seeded mode is the default
-and changes nothing pinned except the SAV bytes that now carry the session.
+and changes nothing pinned.
 
 Base: `458e07e2` (game 0.105.0). Knowledge pin: k208, moved to k217.
 
@@ -25,7 +25,7 @@ Base: `458e07e2` (game 0.105.0). Knowledge pin: k208, moved to k217.
   to join the shared stream.
 - Divergence rows updated to state both modes: DIV-027, DIV-076, DIV-370,
   DIV-497, DIV-789, DIV-790, DIV-835, DIV-843, DIV-851, DIV-859, DIV-869,
-  DIV-1022, DIV-1295, DIV-1942, DIV-2038, DIV-2681. New rows: DIV-2730..2736.
+  DIV-1022, DIV-1202, DIV-1295, DIV-1942, DIV-2038, DIV-2681. New rows: DIV-2730..2736.
   DIV-2737..2739 are unused.
 
 ## As built
@@ -80,9 +80,13 @@ mode in byte 29 (bit 0x40) and keeps the 32-bit state in the rng field.
 
 ### SAV
 
-Every SAV carries `/CurrentState/AgainromSeed` (DIV-2736): version 1, the
-seed, the mode and the shared state. A LOAD begins the saved seed in the
-launch mode. A SAV without the leaf takes `SeedOf` its bytes. A SAV of the
+A SAV carries `/CurrentState/AgainromSeed` (DIV-2736): version 1, the seed,
+the mode and the shared state. The zero session (seed 0, seeded, state 0),
+the session of a runtime built without launch settings, writes no leaf, so
+every SAV hash pinned before this story holds. A LOAD begins the saved seed
+in the launch mode. An engine SAV without the leaf (it carries the
+current-session supplement) begins the zero session; any other SAV without
+the leaf takes `SeedOf` its bytes. A SAV of the
 other mode loads: a seeded state is folded into an original one, an original
 state unfolded into a seeded one. A LOAD is never refused for it.
 
