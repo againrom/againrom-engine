@@ -93,22 +93,27 @@ func TestReleaseChargenCardRowsShareTheTownCardPens(t *testing.T) {
 	}
 	for i := range gen {
 		g, w := gen[i], town[i]
+		if i == 14 {
+			if g.At.X != gen[13].At.X || g.At.Y != w.At.Y {
+				t.Errorf("XP row at %v, want the Weight row's pen %d at y %d", g.At, gen[13].At.X, w.At.Y)
+			}
+			continue
+		}
 		if g.At != w.At || g.ValueX != w.ValueX || g.Value != w.Value || g.RightX != w.RightX || g.RightValueX != w.RightValueX {
 			t.Errorf("row %d %q: generator at %v value %q+%d right %d+%d, town at %v value %q+%d right %d+%d",
 				i, g.Label, g.At, g.Value, g.ValueX, g.RightX, g.RightValueX, w.At, w.Value, w.ValueX, w.RightX, w.RightValueX)
 		}
 	}
 	// Rows by their place on the card: name, four attribute rows, damage,
-	// attack, headings, five skill rows, weight, XP, sight, speed. The XP row's
-	// glyph band meets the lower ornament, and the builder's writable-face
-	// clamp moves it one pixel in on each side, on the town card as here.
+	// attack, headings, five skill rows, weight, XP, sight, speed. The XP
+	// row is clamped on the town card and not on this card (DIV-2855).
 	if len(gen) != 17 {
 		t.Fatalf("generator card has %d rows, want 17", len(gen))
 	}
 	font := f.ChargenAssets.Presentation.Font
 	for _, row := range []struct{ i, pen, end int }{
 		{1, 6, 80}, {2, 6, 80}, {3, 6, 80}, {4, 6, 80}, {8, 6, 70}, {12, 6, 70},
-		{13, 16, 127}, {14, 17, 126}, {15, 40, 106}, {16, 40, 106},
+		{13, 16, 127}, {14, 16, 125}, {15, 40, 106}, {16, 40, 106},
 	} {
 		g := gen[row.i]
 		w, _ := font.Measure(g.Value)
@@ -189,4 +194,36 @@ func TestReleaseChargenResetIsTheOriginalsAndRestoreReturnsThePreset(t *testing.
 			t.Errorf("hero %d: Reset after a spend gave %v, pool %d, skill %d; want skill %d kept", i, r.Stats, c.Remaining(), r.Choices[2], skill)
 		}
 	}
+}
+
+// TOWN-539: canvas (12,238)-(172,480), first row at x 84, y 256.
+func TestReleaseChargenCardStandsWhereTheOriginalDrawsIt(t *testing.T) {
+	f := releaseFront(t)
+	c := ui.NewChargen(f.ChargenSetup())
+	c.Forward()
+	v := c.CardView()
+	if want := image.Rect(12, 238, 172, 480); v.CardRect() != want {
+		t.Errorf("card text canvas %v, want %v", v.CardRect(), want)
+	}
+	rows := v.CardReport()
+	if len(rows) == 0 || rows[0].Label == "" && rows[0].Value == "" {
+		t.Fatalf("card has no name row: %+v", rows)
+	}
+	if y := v.CardRect().Min.Y + rows[0].At.Y; y != 256 {
+		t.Errorf("first row stands at y %d, want 256", y)
+	}
+	page := ui.ComposeChargenFrame(c)
+	full := v.PaneRect
+	bg := cardBackgroundFrame(f.ChargenAssets.Presentation.CardBackground, full)
+	box := full
+	box.Max.Y = box.Min.Y + cardRowBand
+	mask := cardInkMask(page, bg, box, nil)
+	band, ok := inkBounds(firstInkBand(mask))
+	if !ok {
+		t.Fatal("the composed card painted no name row")
+	}
+	if got := band.Min.X + band.Max.X; got < 2*84-2 || got > 2*84+2 {
+		t.Errorf("first row ink spans x=[%d,%d), centre %.1f, want 84", band.Min.X, band.Max.X, float64(got)/2)
+	}
+	t.Logf("first row ink x=[%d,%d) y=[%d,%d); report row 0 at %v", band.Min.X, band.Max.X, band.Min.Y, band.Max.Y, rows[0].At)
 }
