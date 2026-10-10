@@ -272,3 +272,9 @@ func (secondCampaignRules) eventAudience(mw *mapWorld) (EventAudience, bool) {
 func (secondCampaignRules) objectives(mw *mapWorld, briefing string) string {
 	return mw.secondGameObjectivePanel(briefing)
 }
+
+func (secondCampaignRules) chat() *chatAdapter { return &secondChat }
+
+// chatCampaign: a mission opened while the town holds the destinations
+// campaign runs in campaign mode (R2-ENGINE-296).
+func (secondCampaignRules) chatCampaign(town *Town) bool { return town != nil && town.second != nil }
