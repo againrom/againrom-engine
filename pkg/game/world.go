@@ -3146,7 +3146,9 @@ func (mw *mapWorld) seedSkillBaseline() {
 func (mw *mapWorld) skillRises() []string {
 	var rows []string
 	var words *ui.Words
-	for _, e := range mw.world.EntityView() {
+	ents := mw.world.EntityView()
+	for i := range ents {
+		e := &ents[i]
 		char := mw.chars[e.ID]
 		if !char.Known {
 			continue
@@ -4190,7 +4192,9 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 // tick 0. Writing it anywhere else would be a second reading of the same
 // condition, free to disagree with this one.
 func (mw *mapWorld) recordCells() {
-	for _, e := range mw.world.EntityView() {
+	ents := mw.world.EntityView()
+	for i := range ents {
+		e := &ents[i]
 		w := mw.walk[e.ID]
 		if e.Transit > 0 {
 			w.tick++
@@ -4278,7 +4282,8 @@ func (mw *mapWorld) advanceSwings() {
 	// instant, or a swing could be judged against a cell one of them no
 	// longer stands on.
 	ents := mw.world.EntityView()
-	for _, e := range ents {
+	for i := range ents {
+		e := &ents[i]
 		was := mw.phase[e.ID]
 		mw.phase[e.ID] = e.AttackPhase
 
@@ -4336,10 +4341,10 @@ func (mw *mapWorld) advanceSwings() {
 				// swing. Its selector is emitted at the class AttackDelay
 				// even when the spell's own range exceeds weapon reach.
 				if e.AttackPhase == sim.AttackCasting {
-					mw.playActorSound("weapon-cast-animation", castSpellSoundSlot(e.WeaponSpell), e)
+					mw.playActorSound("weapon-cast-animation", castSpellSoundSlot(e.WeaponSpell), *e)
 					continue
 				}
-				if mw.swingSound == nil && mw.semanticSound == nil || !mw.swingTargetInReach(ents, e) {
+				if mw.swingSound == nil && mw.semanticSound == nil || !mw.swingTargetInReach(ents, *e) {
 					continue
 				}
 				// A SLOT OF 0 OR LESS IS SILENCE, and this is where that is
@@ -4350,7 +4355,7 @@ func (mw *mapWorld) advanceSwings() {
 				// AC-14's "once per run" would otherwise count a silent tick
 				// as an emission it is not.
 				if slot := swingSlot(snd); slot > 0 {
-					mw.playActorSound("unit-swing", slot, e)
+					mw.playActorSound("unit-swing", slot, *e)
 				}
 			}
 		}
@@ -4456,7 +4461,9 @@ func (mw *mapWorld) setSwingSound(sounds map[int32]UnitSound, play func(slot int
 // skips the projection still runs these, so the state after a run of skipped
 // ticks and one projection equals the state after a projection every tick.
 func (mw *mapWorld) pushHeldState() {
-	for _, e := range mw.world.EntityView() {
+	ents := mw.world.EntityView()
+	for i := range ents {
+		e := &ents[i]
 		if e.Alive() {
 			delete(mw.died, e.ID)
 		} else {

@@ -470,7 +470,7 @@ func (w *World) occupySavedMotions(s *routeScratch) {
 		if !m.Current || !m.Active || at < 0 {
 			continue
 		}
-		e := w.entities[at]
+		e := &w.entities[at]
 		seen := map[uint16]bool{}
 		for _, offset := range []int{0x80, 0xa6} {
 			key := binary.LittleEndian.Uint16(m.Mover[offset:])

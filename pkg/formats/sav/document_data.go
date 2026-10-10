@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"sync"
+
+	"againrom/pkg/graphcopy"
 )
 
 // DocumentDataVersion versions the complete-document persistence contract,
@@ -121,11 +124,8 @@ type DocumentStateData struct {
 // DecodeDocumentData reads a complete supported city or world SAV into an
 // independently owned persistence DTO; no File/body/store/tail replay remains.
 func DecodeDocumentData(raw []byte) (DocumentData, error) {
-	d, err := parseSaveDocument(raw)
-	if err != nil {
-		return DocumentData{}, err
-	}
-	return saveDocumentToData(d)
+	data, _, err := decodeDocumentDataKept(raw, false)
+	return data, err
 }
 
 // DocumentObjectOrigin is a transient import binding, not persisted state.
@@ -140,14 +140,59 @@ type DocumentObjectOrigin struct {
 // join. Consumers must bind current objects before discarding these rows;
 // never preserve ArchiveIndex as an identity in native persistence.
 func DecodeDocumentDataWithOrigins(raw []byte) (DocumentData, []DocumentObjectOrigin, error) {
+	return decodeDocumentDataKept(raw, true)
+}
+
+// decodedDocuments keeps the last few decoded containers by their exact
+// bytes. A load parses one file several times over (equipment repair, game
+// validation, campaign and document import); each reader gets its own copy.
+var decodedDocuments struct {
+	mu      sync.Mutex
+	entries []decodedDocument
+}
+
+type decodedDocument struct {
+	raw         string
+	withOrigins bool
+	data        *DocumentData
+	origins     []DocumentObjectOrigin
+}
+
+const decodedDocumentEntries = 4
+
+func decodeDocumentDataKept(raw []byte, withOrigins bool) (DocumentData, []DocumentObjectOrigin, error) {
+	decodedDocuments.mu.Lock()
+	for i, e := range decodedDocuments.entries {
+		if e.withOrigins == withOrigins && e.raw == string(raw) {
+			if data, ok := graphcopy.Clone(e.data); ok {
+				copy(decodedDocuments.entries[1:i+1], decodedDocuments.entries[:i])
+				decodedDocuments.entries[0] = e
+				decodedDocuments.mu.Unlock()
+				return *data, slices.Clone(e.origins), nil
+			}
+			break
+		}
+	}
+	decodedDocuments.mu.Unlock()
 	d, err := parseSaveDocument(raw)
 	if err != nil {
 		return DocumentData{}, nil, err
 	}
 	var origins []DocumentObjectOrigin
-	data, err := documentDataFromDocument(d, &origins)
+	var data DocumentData
+	if withOrigins {
+		data, err = documentDataFromDocument(d, &origins)
+	} else {
+		data, err = documentDataFromDocument(d, nil)
+	}
 	if err != nil {
 		return DocumentData{}, nil, err
+	}
+	if kept, ok := graphcopy.Clone(&data); ok {
+		decodedDocuments.mu.Lock()
+		entries := append([]decodedDocument{{raw: string(raw), withOrigins: withOrigins, data: kept, origins: slices.Clone(origins)}}, decodedDocuments.entries...)
+		decodedDocuments.entries = entries[:min(len(entries), decodedDocumentEntries)]
+		decodedDocuments.mu.Unlock()
 	}
 	return data, origins, nil
 }

@@ -3,6 +3,8 @@ package game
 import (
 	"reflect"
 	"testing"
+
+	"againrom/pkg/graphcopy"
 )
 
 // fillValue gives every exported field reachable from v a non-zero value:
@@ -111,7 +113,7 @@ func clonedShares(a, b reflect.Value, path string) string {
 func TestCurrentActionCloneIsCompleteAndDisjoint(t *testing.T) {
 	var src currentActionData
 	fillCloneSource(reflect.ValueOf(&src).Elem(), 0)
-	out, ok := cloneDecoded(&src)
+	out, ok := graphcopy.Clone(&src)
 	if !ok {
 		t.Fatal("a decoded supplement must be copyable")
 	}
@@ -122,26 +124,8 @@ func TestCurrentActionCloneIsCompleteAndDisjoint(t *testing.T) {
 		t.Fatalf("copy shares %s with its source", p)
 	}
 	var empty currentActionData
-	if out, ok := cloneDecoded(&empty); !ok || !reflect.DeepEqual(&empty, out) {
+	if out, ok := graphcopy.Clone(&empty); !ok || !reflect.DeepEqual(&empty, out) {
 		t.Fatal("empty supplement copy differs")
-	}
-}
-
-func TestCloneDecodedRefusesASetUnexportedReference(t *testing.T) {
-	type hidden struct {
-		Shown []int
-		kept  *int
-	}
-	n := 1
-	if _, ok := cloneDecoded(&hidden{kept: &n}); ok {
-		t.Fatal("a set unexported reference cannot be copied")
-	}
-	if out, ok := cloneDecoded(&hidden{Shown: []int{1}}); !ok || out.Shown[0] != 1 {
-		t.Fatal("an unset unexported reference is copyable")
-	}
-	type held struct{ Any any }
-	if _, ok := cloneDecoded(&held{Any: 1}); ok {
-		t.Fatal("an interface value cannot be copied")
 	}
 }
 

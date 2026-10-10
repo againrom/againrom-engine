@@ -13,7 +13,8 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 	actors := map[EntityID]int{}
 	keys := map[EntityID]uint32{}
 	unresolved := false
-	for i, e := range w.entities {
+	for i := range w.entities {
+		e := &w.entities[i]
 		m := w.motionFor(e.ID)
 		if m == nil || m.Current || !e.Alive() {
 			continue
