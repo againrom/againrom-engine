@@ -912,8 +912,11 @@ type App struct {
 	hasTownCursor      bool
 	townSurfacePress   buttonLatch
 	// clicks is the one double-click detector (doubleclick.go).
-	clicks        doubleClick
-	dialoguePress dialoguePointerPress
+	clicks doubleClick
+	// townSurfacePairKey is the occupant key of the cell the previous town
+	// surface press hit.
+	townSurfacePairKey string
+	dialoguePress      dialoguePointerPress
 	// noticePress is an outcome panel's button press latch (MENU-116).
 	noticePress buttonLatch
 	// noticePressSerial is the notice serial the outcome latch was taken on.
@@ -2763,9 +2766,12 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 					if c.Kind == TownSurfaceControlCell {
 						// The roster's double click runs its press again at
 						// the second press's point, then acts on the cell it
-						// hits (MENU-146, TAVERN-CLICK-019). The school takes
-						// every press as a single one.
-						a.clickTownSurface(c, surface.Kind == TownSurfaceTavern && in.PrimaryDouble)
+						// hits (MENU-146, TAVERN-CLICK-019), when that cell
+						// holds the first press's occupant (DIV-2870). The
+						// school takes every press as a single one.
+						key := surface.Cells[c.Index].Key
+						a.clickTownSurface(c, surface.Kind == TownSurfaceTavern && in.PrimaryDouble && key == a.townSurfacePairKey)
+						a.townSurfacePairKey = key
 						a.townSurfaceAnimationTick = 0
 						a.syncViewerLayout()
 					}

@@ -127,7 +127,7 @@ func TestTavernRosterDoubleClick(t *testing.T) {
 		{"inside the fallback time", 500 * time.Millisecond, false, false, true},
 		{"late", 501 * time.Millisecond, false, false, false},
 		{"released off the cell", 100 * time.Millisecond, true, false, true},
-		{"the cell changed between", 100 * time.Millisecond, false, true, true},
+		{"another occupant under the second press", 100 * time.Millisecond, false, true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			town := &downPairTown{view: TownSurfaceView{Kind: TownSurfaceTavern, Cells: []TownSurfaceCell{{Portrait: true, Key: "merc:3"}}}}

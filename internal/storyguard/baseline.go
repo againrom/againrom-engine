@@ -2087,8 +2087,8 @@ package storyguard
 // new code, including this paragraph.
 // CommentBytes rises for the one double-click detector: the docs of
 // pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
-// archtest double-click scan, the Load list's row press and their tests, new
-// code, including this paragraph.
+// archtest double-click scan, the Load list's row press, the roster's pair
+// key and their tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2112,5 +2112,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8638748,
+	CommentBytes: 8638925,
 }
