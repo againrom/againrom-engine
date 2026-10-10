@@ -20,8 +20,8 @@ package game
 //
 // A missing file answers false and draws nothing, matching every other
 // install text reader in this tree: a widget with nothing to show is a widget
-// that is not there.
-func ReadShopTip(src entrySource, addr string) (string, bool) {
+// that is not there. The text is in the font's code page under code.
+func ReadShopTip(src entrySource, addr string, code TextCode) (string, bool) {
 	if src == nil {
 		return "", false
 	}
@@ -29,5 +29,5 @@ func ReadShopTip(src entrySource, addr string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	return string(b), true
+	return string(code.Bytes(b)), true
 }

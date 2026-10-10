@@ -79,7 +79,7 @@ func cardCaptionCheck(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID, w
 func TestReleaseSavedCreatureCardsUseInstalledClassCaptions(t *testing.T) {
 	f := releaseFront(t)
 	app := cardCaptionMission(t, f, f.DirectNewGame(120))
-	unitNames := LoadTextTable(f.Archives.Containers, UnitNameTextPath)
+	unitNames := LoadTextTable(f.Archives.Containers, UnitNameTextPath, f.textCode())
 	if unitNames == nil {
 		t.Fatal("install has no unit-name table")
 	}
@@ -209,7 +209,7 @@ func TestReleaseSavedCreatureCardsUseInstalledClassCaptions(t *testing.T) {
 		if !e.Alive() || !e.Humanoid || sim.InPersistBand(e.TypeID) || controls.live.missionPartyMember(e.ID) != nil {
 			continue
 		}
-		name, ok := LoadTextTable(controls.Archives.Containers, UnitNameTextPath).At(int(e.TypeID))
+		name, ok := LoadTextTable(controls.Archives.Containers, UnitNameTextPath, controls.textCode()).At(int(e.TypeID))
 		if ok && name != "" {
 			cardCaptionCheck(t, controls, controlsApp, e.ID, name, "human")
 			checkedPerson = true
@@ -219,7 +219,7 @@ func TestReleaseSavedCreatureCardsUseInstalledClassCaptions(t *testing.T) {
 	if !checkedPerson {
 		t.Fatal("mission 20 provides no ordinary Human name control")
 	}
-	buildings := LoadTextTable(controls.Archives.Containers, BuildingTextPath)
+	buildings := LoadTextTable(controls.Archives.Containers, BuildingTextPath, controls.textCode())
 	checkedStructure := false
 	for _, structure := range controls.live.world.Structures() {
 		if structure.MaxHealth == 0 {

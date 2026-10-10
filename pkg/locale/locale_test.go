@@ -39,7 +39,7 @@ func TestShippedRecords(t *testing.T) {
 	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en"}) {
 		t.Fatalf("english = %+v", en)
 	}
-	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, FontRemap: true}) {
+	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true}) {
 		t.Fatalf("russian = %+v", ru)
 	}
 }

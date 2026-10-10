@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
 	"againrom/pkg/ui"
@@ -134,7 +135,7 @@ func synthGeneratorSource(l *ui.GeneratorDescription) chargenSource {
 func TestLoadChargenAssets(t *testing.T) {
 	l := generatorDescriptions["rom1"]
 	src := synthGeneratorSource(l)
-	got, err := LoadChargenAssets(src, l)
+	got, err := LoadChargenAssets(src, l, base.GameROM1)
 	if err != nil {
 		t.Fatalf("LoadChargenAssets: %v", err)
 	}
@@ -157,25 +158,25 @@ func TestLoadChargenAssets(t *testing.T) {
 	names := l.Words.Names
 	full := src[names]
 	src[names] = stringJoinBytes(bytesRows(23))
-	if _, err := LoadChargenAssets(src, l); err == nil || !strings.Contains(err.Error(), names+" slot 2") {
+	if _, err := LoadChargenAssets(src, l, base.GameROM1); err == nil || !strings.Contains(err.Error(), names+" slot 2") {
 		t.Fatalf("missing name entry error = %v, want %s slot 2x", err, names)
 	}
 	src[names] = full
 	nameFont := FontAtlasPathA(l.Words.NameFont.Name)
 	atlas := src[nameFont]
 	delete(src, nameFont)
-	if _, err := LoadChargenAssets(src, l); err == nil {
+	if _, err := LoadChargenAssets(src, l, base.GameROM1); err == nil {
 		t.Fatal("missing prompt and name font was accepted")
 	}
 	src[nameFont] = atlas
 	mask := src[l.PreCreate.Mask.Key]
 	src[l.PreCreate.Mask.Key] = synthBMP8(640, 480)
-	if _, err := LoadChargenAssets(src, l); err == nil || !strings.Contains(err.Error(), "missing required mask index 20") {
+	if _, err := LoadChargenAssets(src, l, base.GameROM1); err == nil || !strings.Contains(err.Error(), "missing required mask index 20") {
 		t.Fatalf("blank pre-create mask error = %v, want missing required mask index", err)
 	}
 	src[l.PreCreate.Mask.Key] = mask
 	delete(src, l.PreCreate.Heroes[0].Art[0].Key)
-	if _, err := LoadChargenAssets(src, l); err == nil {
+	if _, err := LoadChargenAssets(src, l, base.GameROM1); err == nil {
 		t.Fatal("missing required picture was accepted")
 	}
 }

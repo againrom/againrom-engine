@@ -47,6 +47,12 @@ type Edition struct {
 	// construction policy.
 	FreshPlayers bool
 
+	// TextCodePage is the code page the install writes a language's text
+	// files in, from the language's font and Windows code pages. The second
+	// game's are in the Windows one and its loaders convert them to the
+	// font's (R2-ENGINE-052, R2-ENGINE-093).
+	TextCodePage func(font, windows int) int
+
 	// The second game's file layouts: maps, scripts, the definition table,
 	// the per-mission text files, the main menu art, the unit placement keys
 	// and the spell arm table.
@@ -91,6 +97,7 @@ const (
 )
 
 var firstEdition = Edition{
+	TextCodePage:              FontText,
 	Game:                      GameROM1,
 	Campaign:                  CampaignChapters,
 	Town:                      "rom1",
@@ -115,6 +122,7 @@ var secondEdition = Edition{
 	SecondScripts:     true,
 	SecondTable:       true,
 	SecondMissionText: true,
+	TextCodePage:      WindowsText,
 	SecondMenu:        true,
 	SecondUnitKeys:    true,
 	SecondSpellArms:   true,
@@ -148,3 +156,15 @@ func (g Game) Normal() Game {
 // SameGame reports whether a and b name one game, the empty game being the
 // first.
 func SameGame(a, b Game) bool { return a.Normal() == b.Normal() }
+
+// FontText is the font's code page: the text is written as the font draws it.
+func FontText(font, _ int) int { return font }
+
+// WindowsText is the Windows code page, the font's when the language names
+// none.
+func WindowsText(font, windows int) int {
+	if windows == 0 {
+		return font
+	}
+	return windows
+}

@@ -90,7 +90,7 @@ func (f *FrontEnd) wireSoundOptions(a *ui.App) {
 		Words: ui.DefaultSoundOptionWords(),
 	}
 	if f.Archives != nil {
-		table := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+		table := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 		for i, target := range map[int]*string{7: &controls.Words.Title, 0: &controls.Words.OK,
 			16: &controls.Words.Labels[audio.MusicChannel], 17: &controls.Words.Labels[audio.EffectsChannel],
 			18: &controls.Words.Labels[audio.SpeechChannel], 165: &controls.Words.Acknowledgments,

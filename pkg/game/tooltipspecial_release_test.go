@@ -80,8 +80,8 @@ func captionFormula(id uint16, level int) (label int, text string, ok bool) {
 func TestReleaseSpellbookCaptionHoverIsBuiltFromTheClaim(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath)
-	bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath)
+	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
+	bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath, f.textCode())
 	if mainTable == nil || bookTable == nil {
 		t.Fatal("install carries no main.txt or spells.txt")
 	}
@@ -227,7 +227,7 @@ func costTotal(n int) int { return int(0.349*math.Pow(1.15, float64(n-1)) + 0.5)
 func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath)
+	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	if mainTable == nil {
 		t.Fatal("install carries no main.txt")
 	}
@@ -304,7 +304,7 @@ func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 func TestReleaseMapListHoverChoosesByColumn(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	dialogs := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+	dialogs := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 	if dialogs == nil {
 		t.Fatal("install carries no dialogs.txt")
 	}

@@ -57,7 +57,7 @@ func (f *FrontEnd) wireMusicPreferences(c *ui.SoundOptionControls) {
 	}
 	var table *TextTable
 	if f.Archives != nil {
-		table = LoadTextTable(f.Archives.Containers, mainPrefix+"text/tunes.txt")
+		table = LoadTextTable(f.Archives.Containers, mainPrefix+"text/tunes.txt", f.textCode())
 	}
 	titles := musicTitles(table)
 	c.TrackTitle = func(name string) string {

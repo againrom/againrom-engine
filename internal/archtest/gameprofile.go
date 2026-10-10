@@ -73,7 +73,6 @@ var ProfileDebt = map[string]int{
 	"pkg/game/resume.go":                1,
 	"pkg/game/secondcampaign.go":        1,
 	"pkg/game/secondcensus.go":          1,
-	"pkg/game/secondcompletion.go":      1,
 	"pkg/game/secondgametext.go":        1,
 	"pkg/game/table.go":                 1,
 	"pkg/mapload/cheatfactory.go":       1,

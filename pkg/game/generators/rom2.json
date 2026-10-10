@@ -8,8 +8,7 @@
     "text-font": {"name": "font2", "atlas": "16", "cite": ["R2-ENGINE-314", "DIV-2769"]},
     "name-font": {"name": "font4", "atlas": "16a", "cite": ["DIV-2769"]},
     "tip-font": "install",
-    "code-page": "windows-1251",
-    "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-286", "DIV-2378", "DIV-2770"]
+    "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-286", "DIV-2378", "DIV-2770", "DIV-2844"]
   },
   "pre-create": {
     "cursor": "select",

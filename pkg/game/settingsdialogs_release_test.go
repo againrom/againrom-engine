@@ -13,7 +13,7 @@ import (
 // (TEXT-099, TEXT-100); the cutscene and tune tables hold their counts.
 func TestReleaseSettingsDialogsReadInstalledRows(t *testing.T) {
 	f := releaseFront(t)
-	dialogs := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+	dialogs := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 	if dialogs.Lines() != 166 {
 		t.Fatalf("dialogs.txt has %d rows, want 166", dialogs.Lines())
 	}
@@ -38,7 +38,7 @@ func TestReleaseSettingsDialogsReadInstalledRows(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	table := LoadTextTable(patch, patchTextPath)
+	table := LoadTextTable(patch, patchTextPath, f.textCode())
 	if table.Lines() != 67 {
 		t.Fatalf("patch.txt has %d rows, want 67", table.Lines())
 	}
@@ -47,7 +47,7 @@ func TestReleaseSettingsDialogsReadInstalledRows(t *testing.T) {
 			t.Errorf("patch.txt row %d is absent", i)
 		}
 	}
-	tunes := musicTitles(LoadTextTable(f.Archives.Containers, mainPrefix+"text/tunes.txt"))
+	tunes := musicTitles(LoadTextTable(f.Archives.Containers, mainPrefix+"text/tunes.txt", f.textCode()))
 	if len(tunes) != 21 {
 		t.Fatalf("tunes.txt names %d tracks, want 21", len(tunes))
 	}
@@ -56,8 +56,8 @@ func TestReleaseSettingsDialogsReadInstalledRows(t *testing.T) {
 			t.Errorf("tune key %q is not a lowercase .wav name", key)
 		}
 	}
-	titles := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutscene.txt")
-	paths := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutpaths.txt")
+	titles := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutscene.txt", f.textCode())
+	paths := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutpaths.txt", f.textCode())
 	for i := 0; i < 14; i++ {
 		if _, ok := titles.At(i); !ok {
 			t.Errorf("cutscene.txt row %d is absent", i)
@@ -110,7 +110,7 @@ func TestReleaseSettingsDialogsFrameCaptionsAndMissionTracks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	table := LoadTextTable(patch, patchTextPath)
+	table := LoadTextTable(patch, patchTextPath, f.textCode())
 	rows := a.HeadlessRows()
 	for i, row := range []int{5, 6, 7} {
 		word, _ := table.At(patchGraphicsRow + i)
@@ -128,7 +128,7 @@ func TestReleaseSettingsDialogsFrameCaptionsAndMissionTracks(t *testing.T) {
 		t.Fatalf("Sound Options paints %v, want the 488x360 frame at (76,60)", box)
 	}
 	candidates, _ := a.MusicPlaybackState()
-	titles := musicTitles(LoadTextTable(f.Archives.Containers, mainPrefix+"text/tunes.txt"))
+	titles := musicTitles(LoadTextTable(f.Archives.Containers, mainPrefix+"text/tunes.txt", f.textCode()))
 	if len(candidates) != 12 || candidates[0] != "B00.wav" || candidates[11] != "B11.wav" {
 		t.Fatalf("a mission lists %v, want B00..B11", candidates)
 	}

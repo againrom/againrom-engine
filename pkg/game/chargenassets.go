@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
@@ -124,8 +125,9 @@ func chargenTextAt(t *TextTable, path string, slot int) (string, error) {
 // heroPictureNames is the four pictures' names-table lines in picture order,
 // or the address-bearing error a missing one is. The name field's hero press
 // and the party a hero started without the generator carries both read their
-// names here, so the two cannot name one picture differently.
-func heroPictureNames(src entrySource, l *ui.GeneratorDescription) ([4]string, error) {
+// names here, so the two cannot name one picture differently. The names are
+// in the font's code page under code.
+func heroPictureNames(src entrySource, l *ui.GeneratorDescription, code TextCode) ([4]string, error) {
 	var names [4]string
 	if l == nil {
 		return names, fmt.Errorf("no generator description")
@@ -134,24 +136,13 @@ func heroPictureNames(src entrySource, l *ui.GeneratorDescription) ([4]string, e
 	if err != nil {
 		return names, err
 	}
-	rows := SplitTextTable(b)
+	rows := SplitTextTable(code.Bytes(b))
 	for i, hero := range l.PreCreate.Heroes {
 		if names[i], err = chargenTextAt(rows, l.Words.Names, hero.NameLine); err != nil {
 			return [4]string{}, err
 		}
-		names[i] = generatorWord(l, LanguageSelector(src), names[i])
 	}
 	return names, nil
-}
-
-// generatorWord is a word of the description's tables in the fonts' code
-// page: Windows Cyrillic converted on a converting install whose tables hold
-// it (DIV-2378), else the word unchanged.
-func generatorWord(l *ui.GeneratorDescription, selector int, s string) string {
-	if l == nil || l.Words.CodePage != "windows-1251" {
-		return s
-	}
-	return string(secondGameMissionBytes([]byte(s), selector))
 }
 
 // chargenArt reads one described picture: its size when the description
@@ -229,8 +220,8 @@ func chargenFont(src terrain.EntrySource, f ui.GeneratorFont) (*text.Font, error
 // LoadChargenAssets reads the generator presentation the description names,
 // once. Required controls and words fail as address-bearing construction
 // errors: presenting a partial source UI would look like an authored
-// fallback.
-func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*ChargenAssets, error) {
+// fallback. The words are in the font's code page under game's edition.
+func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game base.Game) (*ChargenAssets, error) {
 	if l == nil {
 		return nil, fmt.Errorf("character generator: no description")
 	}
@@ -382,23 +373,22 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*Ch
 	if err != nil {
 		return nil, err
 	}
-	rows := SplitTextTable(b)
+	code := InstallTextCode(src, game.Edition())
+	rows := SplitTextTable(code.Bytes(b))
 	a := &ChargenAssets{Presentation: p, Selector: LanguageSelector(src)}
 	get := func(slot int) (string, error) {
-		s, err := chargenTextAt(rows, l.Words.Table, slot)
-		return generatorWord(l, a.Selector, s), err
+		return chargenTextAt(rows, l.Words.Table, slot)
 	}
-	if a.HeroNames, err = heroPictureNames(src, l); err != nil {
+	if a.HeroNames, err = heroPictureNames(src, l, code); err != nil {
 		return nil, err
 	}
 	nameRows, err := src.ReadFile(l.Words.Names)
 	if err != nil {
 		return nil, err
 	}
-	if a.EnterName, err = chargenTextAt(SplitTextTable(nameRows), l.Words.Names, pre.Name.EnterLine); err != nil {
+	if a.EnterName, err = chargenTextAt(SplitTextTable(code.Bytes(nameRows)), l.Words.Names, pre.Name.EnterLine); err != nil {
 		return nil, err
 	}
-	a.EnterName = generatorWord(l, a.Selector, a.EnterName)
 	if a.Prompt, err = get(pre.Name.Prompt.Slot); err != nil {
 		return nil, err
 	}

@@ -155,6 +155,7 @@ copying those counts.
 | `docs/divergences/rendering.md` |
 | `docs/divergences/rom2.md` |
 | `docs/divergences/rom2-character-generator.md` |
+| `docs/divergences/rom2-text.md` |
 | `docs/divergences/school.md` |
 | `docs/divergences/shop.md` |
 | `docs/divergences/simulation.md` |
