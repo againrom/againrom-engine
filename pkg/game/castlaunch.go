@@ -20,12 +20,22 @@ func castLaunch(c *terrain.UnitClass, facing uint8, picture int) image.Point {
 		return image.Point{}
 	}
 	a := (max(c.TileSize, 1) - 1) * ui.ShotScale / 2
-	at := castLaunchPair(facing)
-	if picture != teleportPicture && len(c.ShootOffset) >= at+2 {
-		return image.Pt(a+castLaunchScale*(c.ShootOffset[at]-c.CenterX),
-			a+castLaunchScale*(c.ShootOffset[at+1]-c.CenterY))
+	if off, ok := classShootOffset(c, facing); ok && picture != teleportPicture {
+		return image.Pt(a, a).Add(off)
 	}
 	return image.Pt(a, a).Add(castSelectionDelta(c))
+}
+
+// classShootOffset is 8*(ShootOffset pair-Center) for the facing, the
+// displacement both shot producers add to their own base (MAGIC-261,
+// SAV-1188); false for a class with no complete array.
+func classShootOffset(c *terrain.UnitClass, facing uint8) (image.Point, bool) {
+	at := castLaunchPair(facing)
+	if c == nil || len(c.ShootOffset) < at+2 {
+		return image.Point{}, false
+	}
+	return image.Pt(castLaunchScale*(c.ShootOffset[at]-c.CenterX),
+		castLaunchScale*(c.ShootOffset[at+1]-c.CenterY)), true
 }
 
 // castLaunchPair is (facing>>4-8)&14; odd facings share the even pair before.

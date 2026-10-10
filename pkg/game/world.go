@@ -4063,6 +4063,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.pending = mw.pending[:0]
 	mw.pendingIgnored = mw.pendingIgnored[:0]
 	mw.recordCells()
+	mw.noteShotPreMoves()
 	deadBefore := mw.world.OriginalDeadActorCount()
 	// THE STEP REPORTS ITS APPLIED CASTS. StepObserved is the same step Step is
 	// — the same code path with a sink handed down — and what comes back is

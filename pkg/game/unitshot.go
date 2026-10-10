@@ -2,9 +2,9 @@ package game
 
 import (
 	"image"
+	"slices"
 
 	"againrom/pkg/data"
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -31,10 +31,6 @@ const unitShotDeformationPicture = 7
 // object.
 const unitShotRegistryTop = 12
 
-// unitShotOffsetScale is the 256-per-cell units that one sprite pixel of a
-// class's release offset stands for (SAV-1130).
-const unitShotOffsetScale = 8
-
 // unitShot is one structure-bound shot in flight: a cast object's own fields.
 type unitShot struct {
 	spellBolt
@@ -47,9 +43,12 @@ type unitShot struct {
 type unitShots struct {
 	run    map[sim.EntityID]sim.AttackPhase
 	flying []unitShot
-	// trail is the last positions of each record whose picture leaves smoke,
-	// newest first. It is presentation only: no record stores it.
+	// trail is each smoke-leaving record's trail, oldest first: the point
+	// each driver call started from, at most six (ANIM-140). No record stores
+	// it, so a LOAD starts it empty (SAV-1193).
 	trail map[uint16][]image.Point
+	// premove is each smoke-leaving record's point before this tick's step.
+	premove map[uint16]image.Point
 }
 
 // begin records the wind-up phase that opened id's run; end forgets it.
@@ -164,68 +163,88 @@ func unitShotLate(delay int) int {
 }
 
 // releaseUnitShot builds the World record of e's shot: the class's picture and
-// phase count, the release offset its facing selects and the direction the
-// shot starts toward.
+// phase count and the release offset its facing selects. The World aims it.
 func (mw *mapWorld) releaseUnitShot(e sim.Entity, picture, late int) {
 	var phases uint16
 	if sheet := mw.projectiles.Sheet(picture); sheet != nil && sheet.Phases > 0 && sheet.Phases <= 65535 {
 		phases = uint16(sheet.Phases)
 	}
 	dx, dy := mw.shotOffset(mw.spellClientClass(e.ID, e.Class), e.Facing)
+	id := mw.world.SavedProjectiles().FreeIndex
+	var start []image.Point
+	premove := func(x, y int32) { start = append(start, image.Pt(int(x), int(y))) }
 	if !mw.world.ReleaseUnitShot(sim.UnitShot{Shooter: e.ID, Picture: int32(picture), Phases: phases,
-		OffsetX: int32(dx), OffsetY: int32(dy), Dir: shotDirection, Late: late}) {
+		OffsetX: int32(dx), OffsetY: int32(dy), Late: late, PreMove: premove}) {
 		return
 	}
 	if data.CastTrailSlot(picture) >= 0 {
-		if mw.shots.trail == nil {
-			mw.shots.trail = make(map[uint16][]image.Point)
+		for _, at := range start {
+			mw.shots.appendTrail(id, at)
 		}
-		mw.shots.trail[mw.world.SavedProjectiles().FreeIndex-1] = nil
 	}
-}
-
-// shotDirection is the direction leaf of a shot starting along (dx, dy): the
-// sheet facing that vector selects, in the leaf's own bias (the draw subtracts
-// 8 and keeps four bits).
-func shotDirection(dx, dy int) int32 {
-	return int32(terrain.EffectFacing(dx, dy)+8) & 0xf
 }
 
 // shotOffset is the displacement of a class's release point from its
-// shooter's own point, in 256-per-cell units (SAV-1130): the class's offset
-// pair for the facing, less the class centre, eight units per pixel. A class
-// declaring no complete offset array releases from the shooter's point.
+// shooter's own point, in 256-per-cell units (SAV-1188): the cast producer's
+// own class offset for the facing. A class with no ShootOffset array releases
+// from the shooter's point.
 func (mw *mapWorld) shotOffset(class int32, facing uint8) (dx, dy int) {
-	c := mw.units.Classes[class]
-	if c == nil {
-		return 0, 0
-	}
-	at := 2 * ((sim.FacingDir(facing) + 4) & 7)
-	if len(c.ShootOffset) < at+2 {
-		return 0, 0
-	}
-	return (c.ShootOffset[at] - c.CenterX) * unitShotOffsetScale, (c.ShootOffset[at+1] - c.CenterY) * unitShotOffsetScale
+	off, _ := classShootOffset(mw.units.Classes[class], facing)
+	return off.X, off.Y
 }
 
-// advanceShotTrails appends this tick's position of every record released
-// here whose picture leaves smoke to its trail, bounded at the trail length,
-// and forgets retired records. A record restored from a SAV has no history.
-func (mw *mapWorld) advanceShotTrails() {
-	records := map[uint16]sim.SavedProjectile{}
-	for _, p := range mw.world.SavedProjectiles().Items {
-		records[p.ID] = p
+// noteShotPreMoves records, before the world steps, the point each armed
+// record of a smoke-leaving picture will start this tick's driver call from.
+func (mw *mapWorld) noteShotPreMoves() {
+	clear(mw.shots.premove)
+	d := mw.world.SavedWorldEffectDrivers()
+	if d == nil {
+		return
 	}
-	for id, trail := range mw.shots.trail {
-		p, ok := records[id]
-		if !ok {
+	armed := map[uint16]bool{}
+	for _, row := range d.Projectiles {
+		armed[row.ID] = !row.Retired
+	}
+	for _, p := range mw.world.SavedProjectiles().Items {
+		if armed[p.ID] && data.CastTrailSlot(int(p.Picture)) >= 0 {
+			if mw.shots.premove == nil {
+				mw.shots.premove = make(map[uint16]image.Point)
+			}
+			mw.shots.premove[p.ID] = image.Pt(int(p.X), int(p.Y))
+		}
+	}
+}
+
+// appendTrail appends one point to a record's trail, dropping the oldest at
+// the trail length (ANIM-140).
+func (s *unitShots) appendTrail(id uint16, at image.Point) {
+	if s.trail == nil {
+		s.trail = make(map[uint16][]image.Point)
+	}
+	points := s.trail[id]
+	if len(points) >= data.CastTrailLength {
+		points = slices.Delete(points, 0, 1)
+	}
+	s.trail[id] = append(points, at)
+}
+
+// advanceShotTrails appends the pre-move point of each record that made a
+// driver call this tick and forgets the trails of retired records.
+func (mw *mapWorld) advanceShotTrails() {
+	records := map[uint16]bool{}
+	for _, p := range mw.world.SavedProjectiles().Items {
+		records[p.ID] = true
+	}
+	for id, at := range mw.shots.premove {
+		if records[id] {
+			mw.shots.appendTrail(id, at)
+		}
+	}
+	clear(mw.shots.premove)
+	for id := range mw.shots.trail {
+		if !records[id] {
 			delete(mw.shots.trail, id)
-			continue
 		}
-		points := append([]image.Point{{X: int(p.X), Y: int(p.Y)}}, trail...)
-		if len(points) > data.CastTrailLength {
-			points = points[:data.CastTrailLength]
-		}
-		mw.shots.trail[id] = points
 	}
 }
 

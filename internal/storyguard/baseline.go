@@ -2022,6 +2022,8 @@ package storyguard
 // CommentBytes rises for the random service remainder: the AI range idiom,
 // the count reseeds, the generator restart, the edition's generator name and
 // the wider randomness scan, new code, including this paragraph.
+// CommentBytes rises for the unit-shot tracking release witness and its
+// helpers, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2043,7 +2045,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1769,
+		"longcommentgroups":      1768,
 	},
-	CommentBytes: 8574665,
+	CommentBytes: 8575683,
 }
