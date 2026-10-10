@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] An overloaded hero with a speed bonus or penalty now moves and turns
+  as in the original: the overload slows his own speed first and the bonus or
+  penalty is added after it. His character card shows that speed, and it is
+  kept through a save.
+
 ## 0.107.0
 
 - [BASE] The original game's random number generator can be switched on with
