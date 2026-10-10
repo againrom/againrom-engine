@@ -482,7 +482,7 @@ func TestTavernOfferRequiresMissionUnlockAndStockAndUnaffordableHireIsAtomic(t *
 
 func TestSchoolPricesAndTrainingPersistThroughSave(t *testing.T) {
 	for level, want := range map[int32]int{0: 200, 10: 518, 30: 3489, 50: 23478} {
-		if got := heroSkillPrice(level); got != want {
+		if got := schoolPrice(level); got != want {
 			t.Errorf("price(%d) = %d, want %d", level, got, want)
 		}
 	}

@@ -4,20 +4,21 @@ import (
 	"encoding/binary"
 
 	"againrom/pkg/data"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
-func repairNativeSkills(skill *[data.SkillSlots]int32, xp [data.SkillSlots]int32, rules sim.Rules) bool {
+func repairNativeSkills(skill *[data.SkillSlots]int32, xp [data.SkillSlots]int32, r sim.Rules) bool {
 	repaired := false
 	for i := 1; i < data.SkillSlots; i++ {
 		if xp[i] <= 0 {
 			continue
 		}
 		// A native school purchase stores the purchased rank's threshold plus one.
-		if skill[i] > 0 && xp[i] == rules.SkillXP(skill[i])+1 {
+		if bought, err := rules.SchoolTrainedXP(skill[i]); skill[i] > 0 && err == nil && xp[i] == bought {
 			continue
 		}
-		level := rules.ClampSkill(rules.SkillLevelFor(xp[i]-1) + 1)
+		level := r.ClampSkill(r.SkillLevelFor(xp[i]-1) + 1)
 		if skill[i] < level {
 			skill[i], repaired = level, true
 		}
