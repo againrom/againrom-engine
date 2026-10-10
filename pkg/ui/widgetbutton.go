@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"slices"
 
 	"againrom/pkg/render/backdrop"
@@ -73,10 +74,73 @@ type pushButton struct {
 	// LabelRaise replaces the default vertical anchor when positive.
 	LabelRaise int
 	Policy     DialogueBackdrop
+	// Face, when set, makes the button a picture plaque.
+	Face *plaqueFace
+}
+
+type plaqueState uint8
+
+const (
+	plaqueRest plaqueState = iota
+	plaqueHover
+	plaqueDown
+	plaqueDisabled
+	plaqueStates
+)
+
+// plaqueFace is a push button's picture face. A state with no picture
+// shows the rest picture; with none, Bare draws the town shell box. A
+// picture is copied at the button's corner, clipped to it, or over it.
+type plaqueFace struct {
+	Pictures [plaqueStates]image.Image
+	Over     bool
+	Bare     bool
+	Captions []plaqueCaption
+	Ink      plaqueInk
+	// Sink moves every caption while the button is sunk.
+	Sink image.Point
+}
+
+// plaqueCaption is a caption line centred in Rect; Fit trims it to fit.
+type plaqueCaption struct {
+	Text string
+	Rect image.Rectangle
+	Fit  bool
+}
+
+// plaqueInk is a plaque caption's colour by state.
+type plaqueInk struct {
+	Rest, Hover, Disabled color.RGBA
+}
+
+// plaqueCommandInk is the command plaques' ink; the hover brightening is
+// owner-requested (DIV-1404).
+var plaqueCommandInk = plaqueInk{
+	Rest:     color.RGBA{200, 184, 144, 255},
+	Hover:    color.RGBA{255, 255, 224, 255},
+	Disabled: townShellDisabled,
+}
+
+// plaqueSink moves a held command's captions one pixel down (TOWN-392,
+// DIV-1404).
+var plaqueSink = image.Pt(0, 1)
+
+// plaquePair is a face from an off and an on picture.
+func plaquePair(pair [2]image.Image) [plaqueStates]image.Image {
+	return [plaqueStates]image.Image{plaqueRest: pair[0], plaqueDown: pair[1]}
 }
 
 // ink is the label colour the ramp selects for the button's state.
 func (b pushButton) ink() color.RGBA {
+	if f := b.Face; f != nil {
+		switch {
+		case b.Disabled:
+			return f.Ink.Disabled
+		case b.Hover:
+			return f.Ink.Hover
+		}
+		return f.Ink.Rest
+	}
 	if b.Ramp == pushButtonDialogue {
 		if b.Hover {
 			return pushButtonHoverInk
@@ -100,6 +164,10 @@ func (b pushButton) sunk() bool { return b.Pressed && b.Inside }
 // next character in the ink (TEXT-079).
 func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 	recordWidget(widgetPushButton, b.Rect, b)
+	if b.Face != nil {
+		drawPlaque(dst, f, b)
+		return
+	}
 	r := b.Rect
 	if dst == nil || r.Dx() < 4 || r.Dy() < 4 {
 		return
@@ -196,6 +264,63 @@ func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 		}
 	}
 	text.Append(calls, 0, 0)
+}
+
+// drawPlaque draws the picture for the state (disabled, sunk, hovered, else
+// rest), then the captions. A disabled plaque never sinks (MENU-116).
+func drawPlaque(dst *image.RGBA, f *text.Font, b pushButton) {
+	if dst == nil {
+		return
+	}
+	face, r := b.Face, b.Rect
+	down := b.sunk() && !b.Disabled
+	state := plaqueRest
+	switch {
+	case b.Disabled:
+		state = plaqueDisabled
+	case down:
+		state = plaqueDown
+	case b.Hover:
+		state = plaqueHover
+	}
+	pic := face.Pictures[state]
+	if pic == nil {
+		pic = face.Pictures[plaqueRest]
+	}
+	switch {
+	case pic != nil:
+		op := draw.Src
+		if face.Over {
+			op = draw.Over
+		}
+		draw.Draw(dst, r, pic, pic.Bounds().Min, op)
+	case face.Bare:
+		drawTownShellBox(dst, r, false)
+	}
+	if f == nil {
+		return
+	}
+	ink := b.ink()
+	var offset image.Point
+	if down {
+		offset = face.Sink
+	}
+	for _, c := range face.Captions {
+		s := c.Text
+		if s == "" {
+			continue
+		}
+		for c.Fit {
+			w, _ := f.Measure(s)
+			if w <= c.Rect.Dx()-6 || len(s) <= 1 {
+				break
+			}
+			s = s[:len(s)-1]
+		}
+		w, h := f.Measure(s)
+		at := c.Rect.Min.Add(offset)
+		f.Draw(dst, s, at.X+(c.Rect.Dx()-w)/2, at.Y+(c.Rect.Dy()-h)/2, ink)
+	}
 }
 
 // dialogueButton is the dialogue pager's button: the shared painter with

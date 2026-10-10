@@ -70,13 +70,8 @@ var widgetNotAFrame = map[string]string{
 // widgetButtonDebt is every push button painter outside the kit. It may only
 // fall.
 var widgetButtonDebt = map[string]string{
-	"pkg/ui/app.go:drawTownButton":               "second-game town list button on the canvas",
-	"pkg/ui/townlist.go:composeTownList":         "second-game town list button, the image twin in a closure",
-	"pkg/ui/chargen_page.go:drawChargenCommands": "generator Accept, Reset and Back plaques",
-	"pkg/ui/chargen_page.go:detailedStatButton":  "generator stat plus and minus pictures by state",
-	"pkg/ui/save_dialog_draw.go:saveDialogPaint": "save dialog buttons without the menu font",
-	"pkg/ui/shopscreen.go:ComposeShopScreen":     "shop control captions, ink and press offset",
-	"pkg/ui/townshell.go:ComposeTownSurface":     "town surface plaques, ink and press offset",
+	"pkg/ui/app.go:drawTownButton":       "second-game town list button on the canvas",
+	"pkg/ui/townlist.go:composeTownList": "second-game town list button, the image twin in a closure",
 }
 
 // widgetNotAButton is every function the push button rule matches that
@@ -86,12 +81,7 @@ var widgetNotAButton = map[string]string{
 }
 
 // widgetLatchDebt is every press latch outside the kit. It may only fall.
-var widgetLatchDebt = map[string]string{
-	"pkg/ui/app.go:townSurfacePress":  "town surface controls",
-	"pkg/ui/app.go:townTipPress":      "room tip close button",
-	"pkg/ui/townpointer.go:tipPress":  "room tip close button, as the town room draws it",
-	"pkg/ui/townpointer.go:shopPress": "shop controls",
-}
+var widgetLatchDebt = map[string]string{}
 
 // widgetNotALatch is every field the latch rule matches that is not a push
 // button latch, or that holds the kit latch inside a wider record.
