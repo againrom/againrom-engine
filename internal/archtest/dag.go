@@ -130,7 +130,7 @@ var allow = map[string][]string{
 	// tree ships, and pkg/audio's own empty allow-set (above) is what keeps
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
-	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video"},
+	"pkg/ui":             {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/words"},
 	"cmd/cutscenehelper": {"pkg/video"},
 	"cmd/audioprobe":     {"pkg/video"},
 	"pkg/game":           {"pkg/"},
@@ -364,6 +364,9 @@ var allow = map[string][]string{
 	// reaches the simulation.
 	"pkg/ini": {},
 	"pkg/mod": {"pkg/rules"},
+	// The engine's own words: one strings table per language in the mod text
+	// layout, read through the mods' own lookup. pkg/ui and pkg/game read it.
+	"pkg/words": {"pkg/mod"},
 	// The base profile leaf names the known game installs and detects one from
 	// a directory listing and the main archive's digest. It imports nothing of
 	// this tree; pkg/game and the commands read it.

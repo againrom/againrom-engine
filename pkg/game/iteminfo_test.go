@@ -276,7 +276,9 @@ func TestMagicStaffTooltipsDescribeStoneAndPrismaticAcrossEveryProducer(t *testi
 
 func TestStoneCurseStaffDurationUsesInstallLanguage(t *testing.T) {
 	table, weapon := staffTooltipTable(t, 20, "Stone Curse", 1, 5, 0, 0, 10)
-	w := LoadInstallWords(installFixture{LanguagePath: []byte("russian 1")}).Words()
+	russian := LoadInstallWords(installFixture{LanguagePath: []byte("russian 1")})
+	russian.Language = "russian"
+	w := russian.Words()
 	got := itemInfoLinesWithWeaponDamage(weapon.Code, table,
 		func(code data.ItemCode) (weaponDamageInterval, bool) {
 			return storedWeaponSpellDamage(code, weapon, true, table)

@@ -1,16 +1,9 @@
 package ui
 
 import (
-	_ "embed"
 	"fmt"
-	"strings"
 	"time"
-
-	"againrom/pkg/render/text"
 )
-
-//go:embed timedautosave_ru.txt
-var timedAutosaveRU string
 
 type TimedAutosaveSettings struct {
 	Enabled bool
@@ -93,11 +86,7 @@ func (a *App) postAutosaveMessage(message string) {
 }
 
 func (f *flow) timedAutosaveLabels(d *gameOptionsDraft) (string, string) {
-	toggle, interval := "Timed autosave", "< Minutes: %d >"
-	if f.menuSelector() == text.SelectorConverting {
-		words := strings.Split(strings.TrimSpace(timedAutosaveRU), "\n")
-		toggle = f.menuDisplayText(words[0])
-		interval = f.menuDisplayText(words[1])
-	}
+	toggle := f.menuWord("autosave.toggle")
+	interval := f.menuWord("autosave.interval")
 	return toggle, fmt.Sprintf(interval, d.autosave.Minutes)
 }

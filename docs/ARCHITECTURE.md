@@ -37,6 +37,7 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | audio | `pkg/audio` | resampling, positional gain and stereo mixing, as plain data plus arithmetic |
 | video | `pkg/video` | bounded presentation-frame transport; decodes in-process through `pkg/video/smacker` as the ordinary path. The windows/386 `cutscenehelper` driving an installed `smackw32.dll` survives only as the `-cutscene-check` gate-time oracle, not an ordinary part of play; no game or simulation dependencies |
 | video | `pkg/video/smacker` | pure-Go port of libsmacker: Smacker (`.smk`) bitstream/Huffman-tree/DPCM video and audio decode; no game or simulation dependencies |
+| words | `pkg/words` | the engine's own words: one strings table per language, keyed by message id, in the mod text layout |
 | ui | `pkg/ui` | user interface |
 | game | `pkg/game` | wire the engine together; top-level config |
 | cmd | `cmd/againrom` | the game entry point |
@@ -81,7 +82,8 @@ allow-map; the two must stay identical.
 | `pkg/audio` | `pkg/formats/wav` | resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic; no slot, archive, listener or device is a concept this package knows, and pkg/ui supplies the one concrete `Player` this tree ships. WAV bytes decode through the WAV leaf |
 | `pkg/video` | `pkg/video/smacker` | stdlib-only leaf for ARV2 frames and bounded playback, decoding in-process through its own `pkg/video/smacker` port; the windows/386 installed-DLL adapter remains only as the `-cutscene-check` gate-time oracle; no UI, archive, game or simulation types |
 | `pkg/video/smacker` | — | third-party-derived codec leaf (libsmacker port): pure bitstream/Huffman/DPCM decode, no knowledge of a player, a stream protocol or a game; cannot import `pkg/video` back |
-| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio` and `pkg/video` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state |
+| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video` and `pkg/words` | audio devices and video-frame players are presentation leaves; neither can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language |
+| `pkg/words` | `pkg/mod` | reads its embedded tables through the mod text lookup (`mod.Lookup`), the one lookup engine and mod words share; no UI, game or simulation types |
 | `cmd/cutscenehelper` | `pkg/video` | separately built Windows/386 native adapter; the normal game remains amd64 |
 | `pkg/game` | any `pkg/*` | top library tier |
 | `cmd/againrom` | any `pkg/*` | the game |

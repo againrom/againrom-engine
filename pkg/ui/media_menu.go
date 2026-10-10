@@ -1,8 +1,6 @@
 package ui
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
@@ -11,7 +9,6 @@ import (
 	"time"
 
 	"againrom/pkg/render/frame"
-	"againrom/pkg/render/text"
 )
 
 type CutsceneEntry struct{ Directory, Title string }
@@ -23,21 +20,9 @@ type CreditsView struct {
 
 type mediaMessages struct{ Empty, Unavailable, HistoryFailed string }
 
-//go:embed media_ru.json
-var mediaRussianJSON []byte
-var mediaRussian = func() mediaMessages {
-	var w mediaMessages
-	if err := json.Unmarshal(mediaRussianJSON, &w); err != nil {
-		panic(err)
-	}
-	return w
-}()
-
 func (a *App) mediaMessages() mediaMessages {
-	if a.flow.menuFont != nil && a.flow.menuFont.Selector == text.SelectorConverting {
-		return mediaRussian
-	}
-	return mediaMessages{"No cutscenes encountered yet.", "Movie unavailable.", "Could not save viewed movies."}
+	f := a.flow
+	return mediaMessages{f.word("media.empty"), f.word("media.unavailable"), f.word("media.history_failed")}
 }
 
 type mediaUI struct {
