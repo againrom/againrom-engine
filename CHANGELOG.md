@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.106.0
+
 - [ROM1] A Ghost raised by Control Spirit now takes its whole Ghost row: it
   regenerates health, sees invisible creatures within two cells and has
   carrying capacity 300. Before, it had none of these.
