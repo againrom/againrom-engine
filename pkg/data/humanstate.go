@@ -3,6 +3,8 @@ package data
 import (
 	"fmt"
 	"math"
+
+	"againrom/pkg/rules"
 )
 
 // HumanAttack retains the three independent live, maintained-base and modifier
@@ -86,7 +88,7 @@ func (h HumanState) TrainingPrice(slot int) (int32, error) {
 	if slot < 1 || slot > 5 {
 		return 0, fmt.Errorf("school training requires slot 1 through 5")
 	}
-	return humanFTOL(math.Pow(1.1, float64(humanSigned(h.Base.Skill[slot]))) * 200)
+	return rules.SchoolPrice(humanSigned(h.Base.Skill[slot]))
 }
 
 // ProjectionError validates the source-backed current combat projection.
@@ -124,11 +126,11 @@ func (h HumanState) Train(slot int) (HumanState, error) {
 		n.Attack.Skill[i] = n.Base.Skill[i]
 	}
 	n.Attack.Skill[slot]++
-	xp, err := humanFTOL((math.Pow(1.1, float64(humanSigned(n.Attack.Skill[slot]))) - 1) * 1000)
+	xp, err := rules.SchoolTrainedXP(humanSigned(n.Attack.Skill[slot]))
 	if err != nil {
 		return h, err
 	}
-	nextXP := uint32(xp) + 1
+	nextXP := uint32(xp)
 	n.Experience += nextXP - n.SkillXP[slot]
 	n.SkillXP[slot] = nextXP
 	for i := 1; i <= 5; i++ {

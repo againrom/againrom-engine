@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"againrom/pkg/audio"
@@ -10,6 +9,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/render/text"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -273,7 +273,7 @@ func (t *townScreen) schoolSurfaceCells() []ui.TownSurfaceCell {
 			if member != nil {
 				level = member.Hero.Skill[slot+1]
 			}
-			price := heroSkillPrice(level)
+			price := schoolPrice(level)
 			if member != nil {
 				price = memberSchoolPrice(*member, slot+1)
 			}
@@ -550,8 +550,14 @@ func (t *townScreen) restockShop() bool {
 	return t.sess.Shop.RestockWith(t.in.Table, seed, t.draws.stream(random.ShopStock))
 }
 
-func heroSkillPrice(level int32) int {
-	return int(math.Pow(1.1, float64(level)) * 200)
+// schoolPrice is the school's price for a member without a Human state, 0 when
+// the rule refuses the level or prices it below 1.
+func schoolPrice(level int32) int {
+	price, err := rules.SchoolPrice(level)
+	if err != nil || price <= 0 {
+		return 0
+	}
+	return int(price)
 }
 
 func (t *townScreen) trainHeroSkill(slot int) string {
@@ -586,8 +592,12 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 		t.composeShopFaces()
 		return fmt.Sprintf("trained %s to %d for %d", schoolSkillName(m.Mage, slot), m.Hero.Skill[slot], price)
 	}
-	price := heroSkillPrice(m.Hero.Skill[slot])
-	if t.room == roomSchool && price > 0 && price <= t.sess.Town.Gold() {
+	price := schoolPrice(m.Hero.Skill[slot])
+	xp, err := rules.SchoolTrainedXP(m.Hero.Skill[slot] + 1)
+	if price <= 0 || err != nil {
+		return "cannot train that skill"
+	}
+	if t.room == roomSchool && price <= t.sess.Town.Gold() {
 		// TOWN-379: local admission arms before the purchase, not on a
 		// successful reply. A refusal leaves any running animation alone.
 		t.schoolPage().Event("train")
@@ -617,7 +627,7 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 			Equipped: wornCodes, EquippedItems: worn}
 	}
 	m.Hero.Skill[slot]++
-	m.Carry.SkillXP[slot] = data.SkillXPFor(m.Hero.Skill[slot]) + 1
+	m.Carry.SkillXP[slot] = xp
 	m.RetireOriginalHuman()
 	mapload.UpdatePartyLoad(mapload.CloneParty([]mapload.PartyMember{*m})[0], m, t.in.Table, true, true)
 	refreshDerivedPartyBook(m, t.in.Table)
