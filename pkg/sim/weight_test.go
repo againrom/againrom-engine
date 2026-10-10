@@ -141,7 +141,7 @@ func TestOnlyALoadAtOrAboveCapacityCostsSpeed(t *testing.T) {
 		{"an unrated actor stays unrated", 0, 100000, 301, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := overloadedSpeed(tc.base, tc.load, tc.capacity); got != tc.want {
+			if got, _ := humanSpeedWord(tc.base, 0, tc.load, tc.capacity); got != tc.want {
 				t.Errorf("base %d, load %d, capacity %d gives %d, want %d",
 					tc.base, tc.load, tc.capacity, got, tc.want)
 			}

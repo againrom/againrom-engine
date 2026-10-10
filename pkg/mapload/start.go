@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/random"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
@@ -507,6 +508,7 @@ func PartySpawnWithTable(p PartyMember, t *Table) (d data.Derived, health, mana 
 	loadout := PartyLoadout(p, t)
 	ApplyItemEffects(&loadout, equipped, p.Profile.Fighter)
 	d, health, mana = partySpawn(p, loadout)
+	d.RotationSpeed = HumanTurnRate(spawnSpeedWord(d, PartyLoad(p, t)))
 	directHealth, directMana, _ := EquippedPoolEffects(equipped)
 	return d, adjustedSpawnPool(health, directHealth, p.Profile.HealthColumn, d.HealthMax),
 		adjustedSpawnPool(mana, directMana, p.Profile.ManaColumn, d.ManaMax)
@@ -583,6 +585,17 @@ func MemberCarriedItems(p PartyMember, t *Table) []sim.ItemInstance {
 		out[i] = ItemInstanceFromCode(code, t)
 	}
 	return out
+}
+
+// spawnSpeedWord is a native member's derived speed word at spawn: his
+// unencumbered speed less the overload penalty, then his modifier
+// (rules.HumanSpeed). The turn rate takes its low byte.
+func spawnSpeedWord(d data.Derived, load int32) int32 {
+	if d.Speed <= 0 || d.Capacity <= 0 {
+		return d.Speed
+	}
+	word, _, _ := rules.HumanSpeed(int16(d.Speed-d.SpeedModifier), int16(d.SpeedModifier), int16(load), int16(d.Capacity))
+	return int32(word)
 }
 
 func partySpawn(p PartyMember, loadout data.Loadout) (d data.Derived, health, mana int32) {
@@ -923,7 +936,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			HP: pool.hp, MaxHP: pool.maxHP, Mana: pool.mana, MaxMana: pool.maxMana,
 			HealthRegenPeriod: pool.healthPeriod, ManaRegenPeriod: pool.manaPeriod,
 			HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
-			Speed: d.Speed, RotationSpeed: d.RotationSpeed, Capacity: d.Capacity,
+			Speed: d.Speed, SpeedModifier: d.SpeedModifier, RotationSpeed: d.RotationSpeed, Capacity: d.Capacity,
 			ScanRange: uint8(d.Sight), Reach: reachOf(d.Combat.Reach), TokenSize: 1, DyingTime: dying,
 			ToHit: d.Combat.ToHit, Defence: d.Combat.Defence, Absorption: d.Combat.Absorption,
 			DamageBase: d.Combat.DamageBase, DamageSpread: d.Combat.DamageSpread,

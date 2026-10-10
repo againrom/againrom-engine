@@ -343,10 +343,7 @@ func originalCityUpgradeParty(party []mapload.PartyMember, state *originalCitySa
 }
 
 func humanSpeedStat(e sim.Entity) int {
-	if raw, ok := e.RetainedHumanSpeed(); ok {
-		return int(raw)
-	}
-	return int(e.Speed)
+	return int(e.SpeedWord())
 }
 
 // The original aggregate is independent stored state, not an assertion that

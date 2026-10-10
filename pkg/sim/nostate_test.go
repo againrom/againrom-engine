@@ -185,6 +185,7 @@ var nstPinned = []struct {
 		{"Wimpy", "int32"},
 		{"Domain", "sim.Domain"},
 		{"Speed", "int32"},
+		{"SpeedModifier", "int32"},
 		{"Transit", "uint16"},
 		{"TransitTotal", "uint16"},
 		{"Stride", "sim.NativeStride"},

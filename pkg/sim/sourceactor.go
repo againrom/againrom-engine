@@ -338,7 +338,7 @@ func (w *World) publishSource(i int, s SourceActor) {
 	if s.EquipmentRuntimePresent {
 		e.Reach, e.AttackCharge, e.AttackRelax = s.Reach, int32(s.AttackCharge), int32(s.AttackRelax)
 	}
-	e.Load, e.Capacity, e.Speed = int32(int16(s.Stats[6])), int32(int16(s.Stats[7])), int32(int16(s.Stats[4]))
+	e.Load, e.Capacity, e.Speed, e.SpeedModifier = int32(int16(s.Stats[6])), int32(int16(s.Stats[7])), int32(int16(s.Stats[4])), 0
 	e.HumanMovement = HumanMovement{Present: true, RawSpeed: int16(s.Stats[4]), NativeSpeed: e.Speed, Load: e.Load, Capacity: e.Capacity}
 	e.HP, e.MaxHP, e.Mana, e.MaxMana = int32(int16(s.Stats[8])), int32(int16(s.Stats[9])), int32(int16(s.Stats[11])), int32(int16(s.Stats[12]))
 	e.HealthRegenPeriod, e.ManaRegenPeriod = int32(int16(s.Stats[10])), int32(int16(s.Stats[13]))

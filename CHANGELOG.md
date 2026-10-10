@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] An overloaded hero now moves and turns as in the original: the
+  overload slows his own speed first, to no less than 6, and a speed bonus or
+  penalty is added after it. His character card shows that speed for every
+  overloaded hero, and it is kept through a save.
+
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,

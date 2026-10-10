@@ -21,7 +21,7 @@ func (b spawnBlock) actorDefinition(t *Table) sim.ActorDefinition {
 		HP: b.health, MaxHP: b.health, Mana: b.mana, MaxMana: b.manaMax,
 		HealthRegenPeriod: b.healthPeriod, ManaRegenPeriod: b.manaPeriod,
 		HealthRegeneration: b.healthRegeneration, ManaRegeneration: b.manaRegeneration,
-		Speed: b.speed, RotationSpeed: b.rotationSpeed, Capacity: b.capacity,
+		Speed: b.speed, SpeedModifier: b.speedMod, RotationSpeed: b.rotationSpeed, Capacity: b.capacity,
 		ScanRange: b.sight, SeeInvisible: b.seeInvisible,
 		Reach: reachOf(b.combat.Reach), TokenSize: b.tokenSize,
 		DyingTime: b.dying, Withdraw: b.withdraw, Wimpy: b.wimpy,

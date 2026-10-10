@@ -223,11 +223,16 @@ type Entity struct {
 	Withdraw, Wimpy int32
 	Domain          Domain
 	Speed           int32
-	Transit         uint16
-	TransitTotal    uint16
-	Stride          NativeStride
-	GroupSpeed      uint8
-	Facing          uint8
+	// SpeedModifier is a native Humanoid's signed speed modifier, the part of
+	// Speed that worn items and speed effects added (an original Human's
+	// +0xd8 word). Speed less it is the base the overload penalty acts on
+	// (deriveNativeHumanSpeed). It is zero on every other entity.
+	SpeedModifier int32
+	Transit       uint16
+	TransitTotal  uint16
+	Stride        NativeStride
+	GroupSpeed    uint8
+	Facing        uint8
 	// TurnRemaining is the last call's pre-step estimate. A completed call keeps
 	// one interval until the next actor update. TurnTotal is the message count;
 	// later rate changes affect the server step, not the client message run.
@@ -368,7 +373,7 @@ type Entity struct {
 	//
 	// CAPACITY IS SUPPLIED AND NEVER DERIVED HERE: `Body x 10 + 1` for a
 	// character (data.Derived.Capacity), data.UnitCapacity for a Unit. Zero is
-	// an entity no spawn path stated a capacity for; overloadedSpeed leaves it
+	// an entity no spawn path stated a capacity for; humanSpeedWord leaves it
 	// alone.
 	//
 	// BOTH ARE IN THE BYTE FORM AND THEREFORE IN THE DIGEST, and Load reaches
@@ -1047,9 +1052,8 @@ func (e *Entity) clearDecay() { e.Decay, e.Dwell = DecayNone, 0 }
 // aloneSpeed rather than Entity.Speed.
 //
 // WITH NO GROUP TERM the mover moves at its own speed: a current retained
-// source Human speed as it stands, a Unit's Speed (UNIT-DERIVE-003 derives no
-// penalty), and a native Humanoid's Speed with overloadedSpeed applied after
-// its modifier (DIV-1421).
+// Human speed word as it stands, a Unit's Speed (UNIT-DERIVE-003 derives no
+// penalty), and a native Humanoid's derived speed word (humanSpeedWord).
 func moverSpeed(e Entity) int32 {
 	if e.GroupSpeed != 0 {
 		return int32(e.GroupSpeed)
@@ -1084,7 +1088,8 @@ func aloneSpeed(e Entity) int32 {
 	if !e.Humanoid {
 		return e.Speed
 	}
-	return overloadedSpeed(e.Speed, e.Load, e.Capacity)
+	word, _ := humanSpeedWord(e.Speed, e.SpeedModifier, e.Load, e.Capacity)
+	return word
 }
 
 // rated reports whether e moves at a rate at all, which is the whole of the

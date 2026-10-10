@@ -99,6 +99,13 @@ func projectSavedActorValues(document *sav.DocumentData, bindings []SnapshotSAVA
 			if err := projectNativeModifierWords(document, &next, modifierEffects[e.ID], e.NativeBasis, &record); err != nil {
 				return fmt.Errorf("saved SAV actor %d: %w", e.ID, err)
 			}
+			if e.Humanoid {
+				block, err := savedActorRaw(&next, "UD4", 64)
+				if err != nil {
+					return err
+				}
+				binary.LittleEndian.PutUint16(block[4:], e.SpeedModifierWord())
+			}
 		}
 		if err := projectCurrentDeadOwner(document, &next, world, e); err != nil {
 			return err
