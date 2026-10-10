@@ -2024,6 +2024,8 @@ package storyguard
 // the wider randomness scan, new code, including this paragraph.
 // CommentBytes rises for the unit-shot tracking release witness and its
 // helpers, new code, including this paragraph.
+// CommentBytes rises for the platoon talk cell: the docs of platoonTalkObject,
+// its constant and tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2047,5 +2049,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1768,
 	},
-	CommentBytes: 8575568,
+	CommentBytes: 8576735,
 }
