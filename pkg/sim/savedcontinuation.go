@@ -446,6 +446,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 		d.Retired = true
 		return
 	}
+	resolved := false
 	if d.HasTarget && !d.TargetDetached {
 		deadTarget := false
 		for _, dead := range w.OriginalDeadActors() {
@@ -453,6 +454,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 				deadTarget = true
 				if dead.Current.RuntimeID != 0 {
 					p.ActionX, p.ActionY = int32(dead.Current.Cell&255)*256+int32(dead.Current.FineX), int32(dead.Current.Cell>>8)*256+int32(dead.Current.FineY)
+					resolved = true
 				}
 				break
 			}
@@ -460,7 +462,17 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 		if at := indexOfEntity(w.entities, d.Target); !deadTarget && at >= 0 {
 			target := w.entities[at]
 			p.ActionX, p.ActionY = w.savedProjectileTargetPoint(target)
+			resolved = true
 		}
+	}
+	// ANIM-139: an action-1 call that resolves its target aims actiondir from
+	// the shot's pre-move point at the target, and every action-1 call copies
+	// actiondir to dir; an unresolved target keeps the last actiondir.
+	if p.Action == 1 {
+		if resolved {
+			p.ActionDir = ProjectileDirection(p.ActionX-p.X, p.ActionY-p.Y)
+		}
+		p.Dir = p.ActionDir
 	}
 	// ANIM-PROJ-025: signed division truncates toward zero; the final
 	// positive segment reaches the current target, the next tick reaps it.

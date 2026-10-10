@@ -2013,6 +2013,8 @@ package storyguard
 // CommentBytes rises for the game-profile scan's further forms and the widget
 // kit scan's push button rule in internal/archtest, their mutation cases and
 // debt lists, new code, including this paragraph.
+// CommentBytes rises for the unit-shot tracking release witness and its
+// helpers, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2034,7 +2036,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1770,
+		"longcommentgroups":      1769,
 	},
-	CommentBytes: 8558736,
+	CommentBytes: 8559765,
 }

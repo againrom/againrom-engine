@@ -93,6 +93,7 @@ pkg/game.TestKitOwnerReceiveM10
 pkg/game.TestKitOwnerResaveMission120Release
 pkg/game.TestKitProjectileBuild
 pkg/game.TestReleaseFreshShotWritesProjectileRecord
+pkg/game.TestReleaseUnitShotTracksAMovingTarget
 pkg/game.TestReleaseCityRosterMultipleHiredSquadsF2SAV
 pkg/game.TestReleaseConfiguredGateMainSAVContinuation
 pkg/game.TestReleaseCitySAVAddsAHireGroupAfterTheLoadedGroups

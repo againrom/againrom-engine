@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"againrom/pkg/mapload"
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 )
 
@@ -69,7 +68,7 @@ func walkRun(mw *mapWorld, ticks int, order func(n int)) []walkRelease {
 			p := items[len(items)-1]
 			bearing := -1
 			if t, ok := mw.entity(e.AttackTarget); ok {
-				bearing = terrain.EffectFacing(int(t.X-e.X)*256, int(t.Y-e.Y)*256)
+				bearing = EffectFacing(int(t.X-e.X)*256, int(t.Y-e.Y)*256)
 			}
 			out = append(out, walkRelease{tick: n, body: (sim.FacingDir(e.DrawnFacing())*2 + 8) & 15, shot: int(p.ActionDir-8) & 15,
 				bearing: bearing, state: e.ActorState, moving: e.X != prev.X || e.Y != prev.Y || e.Transit != 0,

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/ui"
 )
 
 // The owner corpus holds one original SAV with a projectile in flight, the
@@ -47,7 +48,7 @@ func TestReleaseRestoredProjectileDrawsItsSavedFacing(t *testing.T) {
 	if len(items) != 1 || items[0].ID != 266 || items[0].Picture != 10 || items[0].Dir != 5 || items[0].ActionSegments != 3 {
 		t.Fatalf("the release subject changed: %+v", items)
 	}
-	if got := terrain.EffectFacing(int(items[0].ActionX-items[0].X), int(items[0].ActionY-items[0].Y)); got != 13 {
+	if got := EffectFacing(int(items[0].ActionX-items[0].X), int(items[0].ActionY-items[0].Y)); got != 13 {
 		t.Fatalf("Prj266 flies at sheet facing %d, not 13", got)
 	}
 	digest := fnv.New64a()
@@ -56,7 +57,14 @@ func TestReleaseRestoredProjectileDrawsItsSavedFacing(t *testing.T) {
 		t.Helper()
 		fmt.Fprintf(digest, "%s %d %x\n", when, front.live.world.Tick(), front.live.world.Hash())
 		items := front.live.world.SavedProjectiles().Items
-		draws := front.live.savedProjectileDraws()
+		// The smoke trail (ANIM-140) is drawn beside the record; it is not
+		// saved, so it is compared apart (SAV-1193).
+		var draws []ui.SpellBolt
+		for _, d := range front.live.savedProjectileDraws() {
+			if d.Sheet == front.Projectiles.Sheet(10) {
+				draws = append(draws, d)
+			}
+		}
 		if len(items) == 0 && len(draws) == 0 {
 			return "landed"
 		}
@@ -84,6 +92,9 @@ func TestReleaseRestoredProjectileDrawsItsSavedFacing(t *testing.T) {
 	fresh := loadLocalLegacySave(t, store, name)
 	if after := check(fresh, "LOAD of the engine SAVE"); after != before {
 		t.Fatalf("Prj266 drew %s before the SAVE and %s after its LOAD", before, after)
+	}
+	if a, b := len(f.live.shots.trail[266]), len(fresh.live.shots.trail[266]); a != 1 || b != 0 {
+		t.Fatalf("Prj266 trail holds %d points before the SAVE and %d after its LOAD, want 1 and 0", a, b)
 	}
 	frames = append(frames, before)
 	for tick := 2; tick <= 4; tick++ {
