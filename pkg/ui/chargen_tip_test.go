@@ -13,7 +13,7 @@ import (
 func chargenTipSetup() ChargenSetup {
 	return ChargenSetup{
 		Name:      "Danath",
-		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Font: shopTipTestFont()}},
+		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator(), Font: shopTipTestFont()}},
 		Choices: []ChargenChoice{{Options: []string{"male", "female"}, Parent: -1},
 			{Options: []string{"fighter", "mage"}, Parent: -1},
 			{Options: []string{"a", "b", "c", "d", "e"}, Parent: -1}},
@@ -161,7 +161,7 @@ func TestGuidedCycleTiming(t *testing.T) {
 		{2210, 0, -1, 3}, {2511, 0, -1, 3}, {2512, 0, -1, 0},
 		{2600, 1, -1, 0}, {2812, 1, -1, 0}, {2813, 1, -1, 1}, {3200, 2, -1, 1}, {3201, 2, -1, 0}, {3300, 7, -1, -1},
 	} {
-		if got := g.paint(at(f.ms), steps, f.step, f.hover); got != f.want {
+		if got := g.paint(at(f.ms), steps, f.step, f.hover, 500*time.Millisecond, 300*time.Millisecond); got != f.want {
 			t.Fatalf("paint at %d ms step %d hover %d = %d, want %d", f.ms, f.step, f.hover, got, f.want)
 		}
 	}

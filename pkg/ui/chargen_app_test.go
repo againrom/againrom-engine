@@ -261,7 +261,7 @@ func TestChargenAppDispatch(t *testing.T) {
 func TestPreCreateFlow(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	setup := chargenLegalSetup()
-	art := &ChargenPresentation{Forward: image.NewRGBA(image.Rect(0, 0, 96, 74))}
+	art := &ChargenPresentation{Layout: testGenerator(), Forward: image.NewRGBA(image.Rect(0, 0, 96, 74))}
 	for choice := range art.Choices {
 		for state := range art.Choices[choice] {
 			art.Choices[choice][state] = image.NewRGBA(image.Rect(0, 0, 160, 240))
@@ -317,7 +317,7 @@ func TestPreCreateChoiceDoubleClickMatchesForwardOnce(t *testing.T) {
 		calls++
 		return ChargenPreview{}
 	}
-	art := &ChargenPresentation{}
+	art := &ChargenPresentation{Layout: testGenerator()}
 	for choice := range art.Choices {
 		for state := range art.Choices[choice] {
 			art.Choices[choice][state] = image.NewRGBA(image.Rect(0, 0, 8, 8))
@@ -349,7 +349,7 @@ func TestPreCreateChoiceDoubleClickRequiresSameChoiceInsideWindow(t *testing.T) 
 		setup := chargenNamedSetup()
 		calls := 0
 		setup.Preview = func(ChargenResult) ChargenPreview { calls++; return ChargenPreview{} }
-		art := &ChargenPresentation{}
+		art := &ChargenPresentation{Layout: testGenerator()}
 		for choice := range art.Choices {
 			for state := range art.Choices[choice] {
 				art.Choices[choice][state] = image.NewRGBA(image.Rect(0, 0, 8, 8))
@@ -399,7 +399,7 @@ func TestPreCreateKeyboardChoiceDoesNotBecomePointerDoubleClick(t *testing.T) {
 		previewCalls++
 		return ChargenPreview{}
 	}
-	setup.PreCreate = &ChargenPreCreate{Art: &ChargenPresentation{}}
+	setup.PreCreate = &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}
 	c := NewChargen(setup)
 	// Focus the fourth class/sex picture. The first Enter selects it; the
 	// second is deliberately inside the pointer double-click interval.
@@ -419,7 +419,7 @@ func TestPreCreateKeyboardChoiceDoesNotBecomePointerDoubleClick(t *testing.T) {
 func TestDetailedSkillClicksMoveTheOneSelectedSourceState(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	font := chargenTestFont()
-	art := &ChargenPresentation{Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), Font: font}
+	art := &ChargenPresentation{Layout: testGenerator(), Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), Font: font}
 	art.ColumnMask[0] = chargenMask(320, 480)
 	for skill := 0; skill < 5; skill++ {
 		for state := 0; state < 3; state++ {
@@ -485,7 +485,7 @@ func TestDetailedPlayUsesSourceRefusalsAndLaunchesOnce(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	setup := chargenLegalSetup()
 	setup.Name = ""
-	setup.PreCreate = &ChargenPreCreate{Art: &ChargenPresentation{}}
+	setup.PreCreate = &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}
 	setup.Detailed = &ChargenDetailed{EmptyName: "EMPTY", ReservedName: "RESERVED", Play: "PLAY"}
 	c := NewChargen(setup)
 	c.Forward()
@@ -522,7 +522,7 @@ func TestDetailedPlayUsesSourceRefusalsAndLaunchesOnce(t *testing.T) {
 
 func TestDetailedHoverIsTransientAndAcceptedEditsClearRefusals(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
-	art := &ChargenPresentation{}
+	art := &ChargenPresentation{Layout: testGenerator()}
 	for skill := range art.Skills[0] {
 		art.Skills[0][skill][0] = image.NewRGBA(image.Rect(0, 0, 300, 80))
 	}

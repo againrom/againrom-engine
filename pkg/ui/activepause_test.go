@@ -312,7 +312,7 @@ func TestActivePauseTextAndOutsideMissionZero(t *testing.T) {
 		t.Fatal("Zero changed typed name", state.Request.Name)
 	}
 	a = newTestApp(t, appRows(0), okLoader(t))
-	c := NewChargen(ChargenSetup{Name: "Hero", PreCreate: &ChargenPreCreate{}})
+	c := NewChargen(ChargenSetup{Name: "Hero", PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}})
 	if err := a.OpenChargen(c, nil); err != nil {
 		t.Fatal(err)
 	}

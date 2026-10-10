@@ -275,7 +275,7 @@ func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 	}
 	centre := func(r image.Rectangle) image.Point { return r.Min.Add(r.Size().Div(2)) }
 	for stat := 0; stat < 4; stat++ {
-		plate, value, lower, raise, ok := ui.DetailedAttributeBoxes(stat)
+		plate, value, lower, raise, ok := ui.DetailedAttributeBoxes(f.generator(), stat)
 		if !ok {
 			t.Fatal("no attribute row", stat)
 		}

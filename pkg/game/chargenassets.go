@@ -6,43 +6,9 @@ import (
 
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
-
-const (
-	chargenPlatePath     = mainPrefix + "graphics/chrgen/leftup.bmp"
-	chargenPrecreatePath = graphicsPrefix + "interface/chrgen/precreate/"
-	chargenTextPath      = mainPrefix + "text/main.txt"
-	chargenPromptSlot    = 125
-	chargenSkillSlot     = 171
-	chargenEmptyNameSlot = 193
-	chargenReservedSlot  = 194
-	chargenPlaySlot      = 238
-	chargenResetSlot     = 239
-	chargenBackSlot      = 260
-	chargenNamesPath     = mainPrefix + "text/npcnames.txt"
-	// chargenUnnamed is the name field's seed when no name was given; the
-	// page's enter turns it into the first picture's name (TEXT-073).
-	chargenUnnamed = "Unnamed"
-)
-
-// chargenPictureNameEntries are the npcnames.txt entries a hero press writes,
-// in the picture order male fighter, male mage, female fighter, female mage
-// (TEXT-074).
-var chargenPictureNameEntries = [4]int{20, 22, 21, 23}
-
-var chargenPreChoiceOrigins = [...]image.Point{{16, 273}, {416, 190}, {124, 166}, {288, 130}}
-var chargenPreMaskCodes = [...]uint8{20, 40, 60, 80, 140, 100, 120, 160, 180}
-
-var chargenDetailedSkillOrigins = [2][5]image.Point{
-	{{88, 93}, {92, 126}, {88, 182}, {84, 225}, {88, 250}},
-	{{200, 150}, {72, 165}, {132, 98}, {140, 228}, {136, 158}},
-}
-
-var chargenDetailedMaskCodes = [2][5]uint8{
-	{255, 191, 152, 127, 102},
-	{127, 102, 255, 152, 191},
-}
 
 // ChargenAssets is the startup-resolved source payload for character
 // generation. Strings retain their original bytes; render/text applies the
@@ -57,8 +23,10 @@ type ChargenAssets struct {
 	ReservedName string
 	SkillHover   [2][5]string
 	Selector     int
-	// HeroNames are the pictures' npcnames.txt entries, in picture order.
+	// HeroNames are the pictures' names-table lines, in picture order, and
+	// EnterName is the line the page's enter writes.
 	HeroNames [4]string
+	EnterName string
 }
 
 func chargenRGBA(data []byte, addr string) (*image.RGBA, error) {
@@ -153,291 +121,315 @@ func chargenTextAt(t *TextTable, path string, slot int) (string, error) {
 	return s, nil
 }
 
-// heroPictureNames is the four pictures' npcnames.txt entries in picture
-// order, or the address-bearing error a missing one is. The name field's hero
-// press and the party a hero started without the generator carries both read
-// their names here, so the two cannot name one picture differently.
-func heroPictureNames(src entrySource) ([4]string, error) {
+// heroPictureNames is the four pictures' names-table lines in picture order,
+// or the address-bearing error a missing one is. The name field's hero press
+// and the party a hero started without the generator carries both read their
+// names here, so the two cannot name one picture differently.
+func heroPictureNames(src entrySource, l *ui.GeneratorDescription) ([4]string, error) {
 	var names [4]string
-	b, err := src.ReadFile(chargenNamesPath)
+	if l == nil {
+		return names, fmt.Errorf("no generator description")
+	}
+	b, err := src.ReadFile(l.Words.Names)
 	if err != nil {
 		return names, err
 	}
 	rows := SplitTextTable(b)
-	for i, entry := range chargenPictureNameEntries {
-		if names[i], err = chargenTextAt(rows, chargenNamesPath, entry); err != nil {
+	for i, hero := range l.PreCreate.Heroes {
+		if names[i], err = chargenTextAt(rows, l.Words.Names, hero.NameLine); err != nil {
 			return [4]string{}, err
 		}
+		names[i] = generatorWord(l, LanguageSelector(src), names[i])
 	}
 	return names, nil
 }
 
-// LoadChargenAssets reads the fixed generator presentation once. Required
-// controls and words fail as address-bearing construction errors: presenting a
-// partial source UI would look like an authored fallback.
-func LoadChargenAssets(src terrain.EntrySource) (*ChargenAssets, error) {
-	p := &ui.ChargenPresentation{}
+// generatorWord is a word of the description's tables in the fonts' code
+// page: Windows Cyrillic converted on a converting install whose tables hold
+// it (DIV-2378), else the word unchanged.
+func generatorWord(l *ui.GeneratorDescription, selector int, s string) string {
+	if l == nil || l.Words.CodePage != "windows-1251" {
+		return s
+	}
+	return string(secondGameMissionBytes([]byte(s), selector))
+}
+
+// chargenArt reads one described picture: its size when the description
+// states one, and that it lies inside bounds when drawn at its origin.
+func chargenArt(src terrain.EntrySource, key string, size *ui.GeneratorPoint, at ui.GeneratorPoint, bounds image.Rectangle) (*image.RGBA, error) {
+	pic, err := readChargenBMP(src, key)
+	if err != nil {
+		return nil, err
+	}
+	if size != nil {
+		if err = chargenSize(pic, size[0], size[1], key); err != nil {
+			return nil, err
+		}
+	}
+	if err = chargenPatchFits(pic, at.Pt(), bounds, key); err != nil {
+		return nil, err
+	}
+	return pic, nil
+}
+
+// chargenPane reads one detail-page pane picture at its stated size; a keyed
+// pane's pure black becomes a hole. A nil pane is none.
+func chargenPane(src terrain.EntrySource, pane *ui.GeneratorPane) (*image.RGBA, error) {
+	if pane == nil || pane.Key == "" {
+		return nil, nil
+	}
+	pic, err := readChargenBMP(src, pane.Key)
+	if err != nil {
+		return nil, err
+	}
+	if err = chargenSize(pic, pane.Size[0], pane.Size[1], pane.Key); err != nil {
+		return nil, err
+	}
+	if pane.Keyed {
+		pic = keyBlack(pic)
+	}
+	return pic, nil
+}
+
+// chargenPaneImage is a pane as an image: nil, not a nil picture
+// inside an image, when the description names none.
+func chargenPaneImage(src terrain.EntrySource, pane *ui.GeneratorPane) (image.Image, error) {
+	pic, err := chargenPane(src, pane)
+	if pic == nil || err != nil {
+		return nil, err
+	}
+	return pic, nil
+}
+
+func chargenMaskOf(src terrain.EntrySource, key string, size ui.GeneratorPoint, want []int) (*image.Paletted, error) {
+	mask, err := readChargenMask(src, key)
+	if err != nil {
+		return nil, err
+	}
+	if err = chargenSize(mask, size[0], size[1], key); err != nil {
+		return nil, err
+	}
+	codes := make([]uint8, len(want))
+	for i, w := range want {
+		codes[i] = uint8(w)
+	}
+	if err = chargenMaskCodes(mask, codes, key); err != nil {
+		return nil, err
+	}
+	return mask, nil
+}
+
+func chargenFont(src terrain.EntrySource, f ui.GeneratorFont) (*text.Font, error) {
+	if f.Atlas == "16a" {
+		return LoadFont(src, f.Name, FontCoverage)
+	}
+	return LoadFont(src, f.Name, FontShades)
+}
+
+// LoadChargenAssets reads the generator presentation the description names,
+// once. Required controls and words fail as address-bearing construction
+// errors: presenting a partial source UI would look like an authored
+// fallback.
+func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription) (*ChargenAssets, error) {
+	if l == nil {
+		return nil, fmt.Errorf("character generator: no description")
+	}
+	p := &ui.ChargenPresentation{Layout: l}
+	page := image.Rectangle{Max: l.Page.Size.Pt()}
+	pre, d := &l.PreCreate, &l.Detail
 	var err error
 	// TOWN-223 names this independent animated decoration. It is optional
-	// for incomplete diagnostic archives; a full install supplies 15 frames.
-	if src != nil {
-		if raw, readErr := src.ReadFile(chargenPrecreatePath + "blind/sprites.16a"); readErr == nil {
-			p.Sparkles, _ = decodeCursor16AFrames(chargenPrecreatePath+"blind/sprites.16a", raw)
+	// for incomplete diagnostic archives; a full install supplies its frames.
+	if s := pre.Sparkle; s != nil && src != nil {
+		if raw, readErr := src.ReadFile(s.Key); readErr == nil {
+			p.Sparkles, _ = decodeCursor16AFrames(s.Key, raw)
 		}
 	}
-	for level, size := range [3]image.Point{{60, 74}, {76, 112}, {100, 152}} {
-		for state, suffix := range []string{"on", "l", "lon"} {
-			addr := fmt.Sprintf("%slevels/level%d%s.bmp", chargenPrecreatePath, level, suffix)
-			if p.Levels[level][state], err = readChargenBMP(src, addr); err != nil {
-				return nil, err
-			}
-			if err = chargenSize(p.Levels[level][state], size.X, size.Y, addr); err != nil {
+	for i, level := range pre.Levels {
+		for j, art := range level.Art {
+			if p.Levels[i][j], err = chargenArt(src, art.Key, art.Size, art.At, page); err != nil {
 				return nil, err
 			}
 		}
 	}
-	if p.Background, err = readChargenBMP(src, chargenPrecreatePath+"mainarea.bmp"); err != nil {
+	bg := pre.Background
+	if p.Background, err = chargenArt(src, bg.Key, bg.Size, bg.At, page); err != nil {
 		return nil, err
 	}
-	if err = chargenSize(p.Background, 640, 480, chargenPrecreatePath+"mainarea.bmp"); err != nil {
+	if p.PreMask, err = chargenMaskOf(src, pre.Mask.Key, pre.Mask.Size, pre.Mask.Required); err != nil {
 		return nil, err
 	}
-	if p.PreMask, err = readChargenMask(src, chargenPrecreatePath+"mask.bmp"); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.PreMask, 640, 480, chargenPrecreatePath+"mask.bmp"); err != nil {
-		return nil, err
-	}
-	if err = chargenMaskCodes(p.PreMask, chargenPreMaskCodes[:], chargenPrecreatePath+"mask.bmp"); err != nil {
-		return nil, err
-	}
-	if p.Amulet, err = readChargenBMP(src, chargenPrecreatePath+"amulet.bmp"); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.Amulet, 112, 204, chargenPrecreatePath+"amulet.bmp"); err != nil {
-		return nil, err
-	}
-	if err = chargenPatchFits(p.Amulet, image.Pt(528, 140), image.Rect(0, 0, 640, 480), chargenPrecreatePath+"amulet.bmp"); err != nil {
-		return nil, err
-	}
-	if p.Forward, err = readChargenBMP(src, chargenPrecreatePath+"buttonok.bmp"); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.Forward, 100, 56, chargenPrecreatePath+"buttonok.bmp"); err != nil {
-		return nil, err
-	}
-	if err = chargenPatchFits(p.Forward, image.Pt(468, 373), image.Rect(0, 0, 640, 480), chargenPrecreatePath+"buttonok.bmp"); err != nil {
-		return nil, err
-	}
-	if p.Plate, err = readChargenBMP(src, chargenPlatePath); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.Plate, 160, 238, chargenPlatePath); err != nil {
-		return nil, err
-	}
-	plateSeamPath := graphicsPrefix + "interface/chrgen/rollstatsr.bmp"
-	plateSeam, err := readChargenBMP(src, plateSeamPath)
-	if err != nil {
-		return nil, err
-	}
-	if err = chargenSize(plateSeam, 16, 238, plateSeamPath); err != nil {
-		return nil, err
-	}
-	p.PlateSeam = keyBlack(plateSeam)
-	// The command panel is Inn\ButtonsArea.bmp with the three Inn button
-	// pictures, off and on, for Accept, Reset and Back (MENU-139).
-	navArtPath := graphicsPrefix + "interface/inn/buttonsarea.bmp"
-	if p.NavArt, err = readChargenBMP(src, navArtPath); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.NavArt, 160, 238, navArtPath); err != nil {
-		return nil, err
-	}
-	for i := range p.NavButtons {
-		for j, state := range []string{"off", "on"} {
-			addr := fmt.Sprintf("%sinterface/inn/button%d%s.bmp", graphicsPrefix, i+1, state)
-			if p.NavButtons[i][j], err = readChargenBMP(src, addr); err != nil {
-				return nil, err
-			}
-			if err = chargenSize(p.NavButtons[i][j], 140, 46, addr); err != nil {
-				return nil, err
-			}
+	for _, b := range []struct {
+		art *ui.GeneratorArt
+		dst *image.Image
+	}{{&pre.Back.Art, &p.Amulet}, {&pre.Forward.Art, &p.Forward}} {
+		if b.art.Key == "" {
+			continue
 		}
-	}
-	// NavSeam closes NavArt's own 16-column gap against TownWideUpperRegion,
-	// the same strip and the same rendering evidence as the school and
-	// tavern rooms (DIV-166, DIV-168; pkg/game/townschoolart.go).
-	navSeamPath := graphicsPrefix + "interface/inn/ruover.bmp"
-	navSeam, err := readChargenBMP(src, navSeamPath)
-	if err != nil {
-		return nil, err
-	}
-	if err = chargenSize(navSeam, 16, 238, navSeamPath); err != nil {
-		return nil, err
-	}
-	p.NavSeam = keyBlack(navSeam)
-	dollBodyPath := graphicsPrefix + "interface/humanbackr.bmp"
-	if p.DollPane.Body, err = readChargenBMP(src, dollBodyPath); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.DollPane.Body, 160, 242, dollBodyPath); err != nil {
-		return nil, err
-	}
-	// CardBackground/CardSeam are the two halves of the card's own left-column
-	// slot, and only one of them is decoded (D-8, round-2 adversarial
-	// review: the prior comment here cited TOWN-312 for both, and TOWN-312
-	// names no body field at all).
-	//
-	// chrgen/fullstatsl.bmp, the card's own BACKGROUND, is chosen on a size
-	// match alone: its 160x242 dimensions equal TOWN-234's card-body rect
-	// exactly, but no claim names the archive entry any load or paint call
-	// site reads for that rect. This is `DIV-190`, the same open row the
-	// plate body and both class columns carry.
-	//
-	// chrgen/fullstatsr.bmp, the card's own SEAM, IS decoded: TOWN-312 names
-	// it as the `+0x6c` source and TOWN-234 gives that field's own blit as
-	// `(160,238,16,242)`. Loading and drawing it closes the left column's
-	// lower-half border pair (`DIV-189`) the way PlateSeam closes its upper
-	// half.
-	cardBackgroundPath := graphicsPrefix + "interface/chrgen/fullstatsl.bmp"
-	if p.CardBackground, err = readChargenBMP(src, cardBackgroundPath); err != nil {
-		return nil, err
-	}
-	if err = chargenSize(p.CardBackground, 160, 242, cardBackgroundPath); err != nil {
-		return nil, err
-	}
-	cardSeamPath := graphicsPrefix + "interface/chrgen/fullstatsr.bmp"
-	cardSeam, err := readChargenBMP(src, cardSeamPath)
-	if err != nil {
-		return nil, err
-	}
-	if err = chargenSize(cardSeam, 16, 242, cardSeamPath); err != nil {
-		return nil, err
-	}
-	p.CardSeam = keyBlack(cardSeam)
-	dollSeamPath := graphicsPrefix + "interface/humanbackl.bmp"
-	dollSeam, err := readChargenBMP(src, dollSeamPath)
-	if err != nil {
-		return nil, err
-	}
-	if err = chargenSize(dollSeam, 16, 242, dollSeamPath); err != nil {
-		return nil, err
-	}
-	p.DollPane.Seam = keyBlack(dollSeam)
-	for i, hero := range []string{"mf", "mm", "ff", "fm"} {
-		for j, state := range []string{"on", "l", "lon"} {
-			addr := chargenPrecreatePath + "heroes/" + hero + state + ".bmp"
-			if p.Choices[i][j], err = readChargenBMP(src, addr); err != nil {
-				return nil, err
-			}
-			if err = chargenPatchFits(p.Choices[i][j], chargenPreChoiceOrigins[i], image.Rect(0, 0, 640, 480), addr); err != nil {
-				return nil, err
-			}
-		}
-	}
-	for class, dir := range []string{"fighter", "mag"} {
-		column := graphicsPrefix + "interface/chrgen/" + dir + "/column.bmp"
-		if p.Columns[class], err = readChargenBMP(src, column); err != nil {
+		pic, err := chargenArt(src, b.art.Key, b.art.Size, b.art.At, page)
+		if err != nil {
 			return nil, err
 		}
-		if err = chargenSize(p.Columns[class], 320, 480, column); err != nil {
-			return nil, err
-		}
-		mask := graphicsPrefix + "interface/chrgen/" + dir + "/mask.bmp"
-		if p.ColumnMask[class], err = readChargenMask(src, mask); err != nil {
-			return nil, err
-		}
-		if err = chargenSize(p.ColumnMask[class], 320, 480, mask); err != nil {
-			return nil, err
-		}
-		if err = chargenMaskCodes(p.ColumnMask[class], chargenDetailedMaskCodes[class][:], mask); err != nil {
-			return nil, err
+		*b.dst = pic
+	}
+	for i, hero := range pre.Heroes {
+		for j, art := range hero.Art {
+			if p.Choices[i][j], err = chargenArt(src, art.Key, art.Size, art.At, page); err != nil {
+				return nil, err
+			}
 		}
 	}
-	// The detailed stage's ten families are required at startup as well, even
-	// though T1 only opens its shell. Reading them here makes a missing source
-	// node a construction failure instead of a later, half-drawn screen.
-	//
-	// p.Skills[class][skill] holds three of a skill cell's four pictures, in
-	// this load order: index 0 is `on.bmp` (selected, not hovered — pressed
-	// dark), index 1 is `shine_off.bmp` (not selected, hovered — raised
-	// light), index 2 is `shine_on.bmp` (selected, hovered — pressed light).
-	// This is a load order, not "rest/hover/selected": the fourth corner
-	// (not selected, not hovered — raised dark) has no picture here at all
-	// because it is the column canvas's own baked art, read separately
-	// above as p.Columns[class]. The read site (pkg/ui/chargen_page.go,
-	// detailedSkillArt) is where these three indices are named by role.
-	for class, skills := range [][]string{{"sword", "axe", "mace", "pike", "bow"}, {"fire", "water", "air", "earth", "astral"}} {
-		classDir := []string{"fighter", "mag"}[class]
-		for skill, name := range skills {
-			for _, state := range []string{"on", "shine_off", "shine_on"} {
-				addr := graphicsPrefix + "interface/chrgen/" + classDir + "/" + name + "/" + state + ".bmp"
-				stateIndex := map[string]int{"on": 0, "shine_off": 1, "shine_on": 2}[state] // load order only, see above
-				if p.Skills[class][skill][stateIndex], err = readChargenBMP(src, addr); err != nil {
-					return nil, err
-				}
-				if err = chargenPatchFits(p.Skills[class][skill][stateIndex], chargenDetailedSkillOrigins[class][skill], image.Rect(0, 0, 320, 480), addr); err != nil {
+	for _, loop := range pre.Loops {
+		var members []image.Image
+		for k := 0; k < loop.Count; k++ {
+			key := fmt.Sprintf(loop.Key, loop.First+k)
+			pic, err := chargenArt(src, key, &loop.Size, loop.At, page)
+			if err != nil {
+				return nil, err
+			}
+			members = append(members, pic)
+		}
+		p.Loops = append(p.Loops, members)
+	}
+	if p.Plate, err = chargenPaneImage(src, &d.Plate); err != nil {
+		return nil, err
+	}
+	if p.PlateSeam, err = chargenPaneImage(src, d.PlateSeam); err != nil {
+		return nil, err
+	}
+	if p.NavArt, err = chargenPaneImage(src, &d.Nav); err != nil {
+		return nil, err
+	}
+	if p.NavSeam, err = chargenPaneImage(src, d.NavSeam); err != nil {
+		return nil, err
+	}
+	for i, c := range d.Commands {
+		for j, key := range []string{c.Off, c.On} {
+			pic, err := readChargenBMP(src, key)
+			if err != nil {
+				return nil, err
+			}
+			if err = chargenSize(pic, c.Size[0], c.Size[1], key); err != nil {
+				return nil, err
+			}
+			p.NavButtons[i][j] = pic
+		}
+	}
+	if p.DollPane.Body, err = chargenPaneImage(src, &d.Doll); err != nil {
+		return nil, err
+	}
+	if p.DollPane.Seam, err = chargenPaneImage(src, d.DollSeam); err != nil {
+		return nil, err
+	}
+	if p.CardBackground, err = chargenPane(src, &d.Card); err != nil {
+		return nil, err
+	}
+	if p.CardSeam, err = chargenPaneImage(src, d.CardSeam); err != nil {
+		return nil, err
+	}
+	column := image.Rectangle{Max: d.ColumnRect.Rectangle().Size()}
+	for class, c := range d.Classes {
+		if p.Columns[class], err = chargenArt(src, c.Column.Key, c.Column.Size, c.Column.At, column); err != nil {
+			return nil, err
+		}
+		var codes []int
+		for _, skill := range c.Skills[:c.Selectable] {
+			codes = append(codes, skill.Mask)
+		}
+		size := ui.GeneratorPoint{column.Dx(), column.Dy()}
+		if c.Mask.Size != nil {
+			size = *c.Mask.Size
+		}
+		if p.ColumnMask[class], err = chargenMaskOf(src, c.Mask.Key, size, codes); err != nil {
+			return nil, err
+		}
+		// Each cell's three pictures load in the order the page reads them:
+		// selected at rest, hovered, selected and hovered. The fourth state
+		// is the column's own art.
+		states := []string{d.SkillStates.SelectedAtRest, d.SkillStates.Hover, d.SkillStates.Selected}
+		for skill, s := range c.Skills[:c.Selectable] {
+			for state, name := range states {
+				if p.Skills[class][skill][state], err = chargenArt(src, s.Dir+name, nil, s.At, column); err != nil {
 					return nil, err
 				}
 			}
 		}
 	}
-	for direction, names := range [2][5]string{
-		{"mnloff", "mloff", "mlon", "mnlon", "mdisable"},
-		{"pnloff", "ploff", "plon", "pnlon", "pdisable"},
-	} {
-		for state, name := range names {
-			addr := graphicsPrefix + "interface/chrgen/buttons/" + name + ".bmp"
-			if p.StatButtons[direction][state], err = readChargenBMP(src, addr); err != nil {
+	st := &d.Stats
+	for direction, names := range []ui.GeneratorStatButtons{st.MinusArt, st.PlusArt} {
+		for state, name := range []string{names.Rest, names.Hover, names.Down, names.Unused, names.Disabled} {
+			key := st.ButtonDir + name
+			pic, err := readChargenBMP(src, key)
+			if err != nil {
 				return nil, err
 			}
-			if err = chargenSize(p.StatButtons[direction][state], 20, 20, addr); err != nil {
+			if err = chargenSize(pic, st.ButtonSize[0], st.ButtonSize[1], key); err != nil {
 				return nil, err
 			}
+			p.StatButtons[direction][state] = pic
 		}
 	}
-	font, err := LoadFont(src, "font2", FontShades)
-	if err != nil {
+	if p.Font, err = chargenFont(src, l.Words.TextFont); err != nil {
 		return nil, err
 	}
-	p.Font = font
-	if p.NameFont, err = LoadFont(src, DocumentFont, FontCoverage); err != nil {
+	if p.NameFont, err = chargenFont(src, l.Words.NameFont); err != nil {
 		return nil, err
 	}
-	b, err := src.ReadFile(chargenTextPath)
+	if l.Words.TipFont == "text" {
+		p.TipFont = p.Font
+	}
+	b, err := src.ReadFile(l.Words.Table)
 	if err != nil {
 		return nil, err
 	}
 	rows := SplitTextTable(b)
-	get := func(slot int) (string, error) { return chargenTextAt(rows, chargenTextPath, slot) }
 	a := &ChargenAssets{Presentation: p, Selector: LanguageSelector(src)}
-	if a.HeroNames, err = heroPictureNames(src); err != nil {
+	get := func(slot int) (string, error) {
+		s, err := chargenTextAt(rows, l.Words.Table, slot)
+		return generatorWord(l, a.Selector, s), err
+	}
+	if a.HeroNames, err = heroPictureNames(src, l); err != nil {
 		return nil, err
 	}
-	if a.Prompt, err = get(chargenPromptSlot); err != nil {
+	nameRows, err := src.ReadFile(l.Words.Names)
+	if err != nil {
 		return nil, err
 	}
-	if a.EmptyName, err = get(chargenEmptyNameSlot); err != nil {
+	if a.EnterName, err = chargenTextAt(SplitTextTable(nameRows), l.Words.Names, pre.Name.EnterLine); err != nil {
 		return nil, err
 	}
-	if a.ReservedName, err = get(chargenReservedSlot); err != nil {
+	a.EnterName = generatorWord(l, a.Selector, a.EnterName)
+	if a.Prompt, err = get(pre.Name.Prompt.Slot); err != nil {
 		return nil, err
 	}
-	for class := range a.SkillHover {
-		for skill := range a.SkillHover[class] {
-			if a.SkillHover[class][skill], err = get(chargenSkillSlot + class*5 + skill); err != nil {
+	if s := d.Refusals.EmptySlot; s != nil {
+		if a.EmptyName, err = get(*s); err != nil {
+			return nil, err
+		}
+	}
+	if s := d.Refusals.ReservedSlot; s != nil {
+		if a.ReservedName, err = get(*s); err != nil {
+			return nil, err
+		}
+	}
+	for class, c := range d.Classes {
+		for skill := 0; skill < c.Selectable; skill++ {
+			if a.SkillHover[class][skill], err = get(c.Tooltip + skill); err != nil {
 				return nil, err
 			}
 		}
 	}
-	if a.Back, err = get(chargenBackSlot); err != nil {
-		return nil, err
-	}
-	if a.Play, err = get(chargenPlaySlot); err != nil {
-		return nil, err
-	}
-	if a.Reset, err = get(chargenResetSlot); err != nil {
-		return nil, err
+	for _, c := range []struct {
+		role string
+		dst  *string
+	}{{"play", &a.Play}, {"reset", &a.Reset}, {"back", &a.Back}} {
+		for _, command := range d.Commands {
+			if command.Role == c.role {
+				if *c.dst, err = get(command.Slot); err != nil {
+					return nil, err
+				}
+			}
+		}
 	}
 	p.Font.Selector = a.Selector
 	p.NameFont.Selector = a.Selector

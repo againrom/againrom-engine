@@ -18,6 +18,9 @@ func namedPreCreate() *Chargen {
 		PreCreate: &ChargenPreCreate{
 			HeroNames: [4]string{"Danath", "Fergard", "Naira", "Reniesta"},
 			Unnamed:   "Unnamed",
+			EnterName: "Danath",
+			LastPress: true,
+			Art:       &ChargenPresentation{Layout: testGenerator()},
 		},
 		EncodeName: func(r rune) (byte, bool) { return byte(r), r < 0x80 },
 		Choices:    []ChargenChoice{{Options: []string{"male", "female"}, Parent: -1}, {Options: []string{"fighter", "mage"}, Parent: -1}},
@@ -232,7 +235,7 @@ func TestPreCreatePromptAndNameDrawLeftAlignedInTheirInks(t *testing.T) {
 	for i := range narrow.Glyphs {
 		narrow.Glyphs[i] = text.Glyph{Width: 1, Height: 1, Advance: 1, Pixels: []text.Pixel{{Level: text.MaxLevel, Painted: true}}}
 	}
-	art := &ChargenPresentation{Font: narrow, NameFont: chargenTestFont()}
+	art := &ChargenPresentation{Layout: testGenerator(), Font: narrow, NameFont: chargenTestFont()}
 	c := NewChargen(ChargenSetup{PreCreate: &ChargenPreCreate{Prompt: "P", Art: art}})
 	prompt := color.RGBA{65, 47, 20, 255}
 	name := color.RGBA{101, 39, 61, 255}
