@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -207,6 +208,16 @@ func (c unbuiltCensusMap) lines() []string {
 	return out
 }
 
+// censusMissionNumber is the mission a campaign map name such as 100.alm
+// starts, or 0 for a name that is not a number.
+func censusMissionNumber(name string) int {
+	n, err := strconv.Atoi(strings.TrimSuffix(strings.ToLower(name), ".alm"))
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
 // unbuiltCensusRosters is the primary alone in each of the four archetypes,
 // and a full roster in which every hero-band value the script names resolves.
 func unbuiltCensusRosters(f *FrontEnd) []unbuiltCensusRoster {
@@ -245,7 +256,7 @@ func TestReleaseScriptUnbuiltNodeCensus(t *testing.T) {
 		}
 		mapload.WithdrawBorderPlacements(m)
 		for _, roster := range unbuiltCensusRosters(f) {
-			refs := campaignScriptRefs(m, f.Table, roster.party)
+			refs := campaignScriptRefs(m, f.Table, roster.party, censusMissionNumber(name))
 			if roster.full {
 				src, err := m.Script()
 				if err != nil {

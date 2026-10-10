@@ -129,7 +129,7 @@ func TestReleaseSecondGameAuthoredNewTriggersHaveNoGaps(t *testing.T) {
 			t.Fatal(err)
 		}
 		opened++
-		_, report, err := mapload.CompileROM2Script(mission.Map, campaignScriptRefs(mission.Map, defs.Table, party))
+		_, report, err := mapload.CompileROM2Script(mission.Map, campaignScriptRefs(mission.Map, defs.Table, party, number))
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -27,7 +27,7 @@ type secondLaterProof struct {
 func secondScriptAdmissionReport(t *testing.T, f *FrontEnd) mapload.ScriptReport {
 	t.Helper()
 	m := f.live.mission.state
-	_, rep, err := mapload.CompileROM2Script(m.Map, campaignScriptRefs(m.Map, f.Table, m.Party))
+	_, rep, err := mapload.CompileROM2Script(m.Map, campaignScriptRefs(m.Map, f.Table, m.Party, m.Number))
 	if err != nil {
 		t.Fatal(err)
 	}

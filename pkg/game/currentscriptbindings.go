@@ -19,7 +19,7 @@ func restoreCurrentScriptBindings(ms *Mission, table *mapload.Table) error {
 	if len(ms.Party) != len(ms.Start.IDs) {
 		return fmt.Errorf("current script party has incomplete entity bindings")
 	}
-	refs := campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] })
+	refs := campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] }, loadedPlacedHeroes(ms, table))
 	compile := mapload.CompileScript
 	if tableGame(table).Edition().SecondScripts {
 		compile = mapload.CompileROM2Script
@@ -32,6 +32,35 @@ func restoreCurrentScriptBindings(ms *Mission, table *mapload.Table) error {
 		return err
 	}
 	return restoreMission40CompanionObjective(ms)
+}
+
+// loadedPlacedHeroes is the named placements the restore arm's scan reaches
+// after the party (TRIG-HEROBIND-077): each one bound to the single loaded
+// actor carrying its unit id. A placement no loaded actor carries, or two
+// carry, is not scanned.
+func loadedPlacedHeroes(ms *Mission, table *mapload.Table) []heroScanActor {
+	placed := mapload.PlacedHeroes(ms.Map, table, ms.Party, ms.Number)
+	if len(placed) == 0 || ms.World == nil {
+		return nil
+	}
+	ids := map[uint16]sim.EntityID{}
+	shared := map[uint16]bool{}
+	for _, e := range ms.World.EntityView() {
+		if e.MapUnitID == 0 {
+			continue
+		}
+		if _, seen := ids[e.MapUnitID]; seen {
+			shared[e.MapUnitID] = true
+		}
+		ids[e.MapUnitID] = e.ID
+	}
+	var out []heroScanActor
+	for _, p := range placed {
+		if id, ok := ids[p.UnitID]; ok && !shared[p.UnitID] {
+			out = append(out, heroScanActor{ID: id, Traits: p.Traits})
+		}
+	}
+	return out
 }
 
 // currentScriptRolesProgram compiles refs in the shape of the world's program.

@@ -384,7 +384,7 @@ func secondScript(c *SecondMapCensus, m *alm.Map, authored []alm.Unit, t *maploa
 		return err
 	}
 	c.Checks, c.Instants, c.Triggers = len(src.Conditions), len(src.Actions), len(src.Triggers)
-	refs := campaignScriptRefs(m, t, party)
+	refs := campaignScriptRefs(m, t, party, 0)
 	_, fixture, err := mapload.CompileROM2ScriptFrom(src, refs)
 	if err != nil {
 		return err

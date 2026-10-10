@@ -842,7 +842,7 @@ func resumeWorld(ms *Mission, s *Snapshot, table *mapload.Table) error {
 	// its exact missing-companion signature, preserving execution state and
 	// all existing bindings. Original-SAV reconstruction has a separate path.
 	if (ms.Number == 30 || ms.Number == 130) && ms.Map != nil {
-		refs := campaignScriptRefs(ms.Map, table, ms.Party)
+		refs := campaignScriptRefs(ms.Map, table, ms.Party, ms.Number)
 		if refs.HasCompanion {
 			// The old program built every node; so does this compile.
 			refs.Companion, refs.HasCompanion, refs.Roster = 0, false, false

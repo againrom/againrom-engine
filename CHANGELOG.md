@@ -12,6 +12,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,
   the chosen difficulty and 1000 gold, and a save of that town keeps them.
+- [ROM1] In mission 100 the servant no longer runs off at the win when the
+  party lacks only the companion the map itself places there. A script role
+  nobody in the party fills now goes to a named person the map places, as in
+  the original.
 
 ## 0.109.0
 
