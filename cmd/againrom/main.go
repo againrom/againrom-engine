@@ -602,9 +602,9 @@ func startupSoundOptions(store game.OptionsStore, o options) game.SoundOptions {
 // SetNewGameChargen.
 //
 // begin IS ONE CLOSURE SHARED BY BOTH ARMS. Whichever door reaches it, a
-// confirmed spread opens the same mission through the same
-// front.NewGameOpener(o.startMission(front), res) — the number and the route are not two
-// facts to keep in step, because there is only one statement of either.
+// confirmed spread does what front.NewGameBegin(o.startMission(front)) does
+// for the install's game: the first game opens that mission, the second game
+// commits its new campaign and shows its first town.
 func armNewGameDoor(app *ui.App, front *game.FrontEnd, o options) error {
 	// A base that ships no generation art opens its first mission from NEW GAME
 	// (front.App installed that); there is no generation for -mission to open.
@@ -614,9 +614,7 @@ func armNewGameDoor(app *ui.App, front *game.FrontEnd, o options) error {
 		}
 		return nil
 	}
-	begin := func(res ui.ChargenResult) (ui.MapOpener, error) {
-		return front.NewGameOpener(o.startMission(front), res), nil
-	}
+	begin := front.NewGameBegin(o.startMission(front))
 	if o.missionSet {
 		return app.OpenChargen(ui.NewChargen(front.ChargenSetup()), begin)
 	}

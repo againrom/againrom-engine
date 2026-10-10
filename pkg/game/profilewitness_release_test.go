@@ -139,8 +139,8 @@ func (w *profileWitness) saveAndLoad(tag string) {
 
 func TestReleaseProfileWitnessIsUnchanged(t *testing.T) {
 	f := profileWitnessFront(t)
-	if f.Base().Profile.Limits.NoCharacterGeneration {
-		t.Skip("the base opens without generation; TestReleaseSecondGameProfileWitnessIsUnchanged covers it")
+	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().NewGameInTown {
+		t.Skip("the base's new game does not open a mission through generation; TestReleaseSecondGameProfileWitnessIsUnchanged covers the town start")
 	}
 	runProfileWitness(t, f)
 }
@@ -154,8 +154,8 @@ func runProfileWitness(t *testing.T, f *FrontEnd) {
 	saves := t.TempDir()
 	w := newProfileWitness(t, f, saves)
 	w.record("menu")
-	if f.Base().Profile.Limits.NoCharacterGeneration {
-		// A profile without generation opens its campaign town on NEW GAME.
+	if f.Base().Profile.Edition().NewGameInTown {
+		// A town-start campaign with no generator wired opens its town.
 		w.do("new-game", HeadlessStep{Command: "activate", Target: "new game"})
 		w.saveAndLoad("town")
 		for _, target := range []string{"TAVERN", "TALK 517"} {

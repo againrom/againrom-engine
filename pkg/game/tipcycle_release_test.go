@@ -157,13 +157,13 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	}
 	for step, press := range []string{"choice 3", "difficulty 1", ""} {
 		v := c.TipPanel()
-		if !v.Showing() || v.Rect != ui.PreCreateTipRect || v.Text != setup.TipSelect[step] || c.TipStep() != step {
+		if !v.Showing() || v.Rect != preCreateTipRect || v.Text != setup.TipSelect[step] || c.TipStep() != step {
 			t.Fatalf("pre-create step %d popup %q at %v (step %d)", step, v.Text, v.Rect, c.TipStep())
 		}
 		if err := app.HeadlessPointer("hover", rest.X, rest.Y); err != nil {
 			t.Fatal(err)
 		}
-		frames, at := tipCycleFrames(t, app, 80, image.Rect(0, 0, 640, 480), ui.PreCreateTipRect, preCreateNameRect)
+		frames, at := tipCycleFrames(t, app, 80, image.Rect(0, 0, 640, 480), preCreateTipRect, preCreateNameRect)
 		if len(frames) < 2 || at[1]-at[0] < 15 {
 			t.Fatalf("pre-create step %d cycle frames at steps %v, want two after the 500 ms wait", step, at)
 		}
@@ -180,7 +180,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 		t.Fatal("OK did not open the detailed page")
 	}
 	v := c.TipPanel()
-	if !v.Showing() || v.Rect != ui.ChargenTipRect || (v.Text != setup.TipText && v.Text != setup.TipTextMage) {
+	if !v.Showing() || v.Rect != chargenTipRect || (v.Text != setup.TipText && v.Text != setup.TipTextMage) {
 		t.Fatalf("detailed enter popup %q at %v", v.Text, v.Rect)
 	}
 	if err := app.HeadlessPointer("hover", 300, 470); err != nil {

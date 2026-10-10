@@ -844,7 +844,8 @@ func resumeWorld(ms *Mission, s *Snapshot, table *mapload.Table) error {
 	if (ms.Number == 30 || ms.Number == 130) && ms.Map != nil {
 		refs := campaignScriptRefs(ms.Map, table, ms.Party)
 		if refs.HasCompanion {
-			refs.Companion, refs.HasCompanion = 0, false
+			// The old program built every node; so does this compile.
+			refs.Companion, refs.HasCompanion, refs.Roster = 0, false, false
 			if legacy, _, err := mapload.CompileScript(ms.Map, refs); err == nil {
 				ms.World.RestoreScriptBindings(legacy, freshScript)
 			}

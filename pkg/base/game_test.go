@@ -38,7 +38,7 @@ func TestSecondGameProfilesStateTheirLimits(t *testing.T) {
 		if !ok || p.GameOf() != GameROM2 {
 			t.Fatalf("Find(%s) = %+v, %v", id, p, ok)
 		}
-		if p.Mission() != 10 || !p.Limits.NoCharacterGeneration || p.Limits.OriginalSaveRefusal == "" || len(p.Limits.Notes) == 0 {
+		if p.Mission() != 10 || p.Limits.NoCharacterGeneration || p.Limits.OriginalSaveRefusal == "" || len(p.Limits.Notes) == 0 {
 			t.Errorf("%s: limits %+v", id, p.Limits)
 		}
 	}

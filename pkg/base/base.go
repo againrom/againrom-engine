@@ -184,11 +184,11 @@ var Profiles = []Profile{
 }
 
 var rom2Limits = Limits{
-	NoCharacterGeneration: true,
-	FirstMission:          10,
-	OriginalSaveRefusal:   "native ROM2 SAV import is unavailable; authored first-mission SAV requires its current continuation",
+	FirstMission:        10,
+	OriginalSaveRefusal: "native ROM2 SAV import is unavailable; authored first-mission SAV requires its current continuation",
 	Notes: []string{
-		"supports the initial town TALK, mission 10 victory and selection of mission 20; later campaign continuation and native party construction are unavailable",
+		"supports the initial town TALK, mission 10 victory and selection of mission 20; later campaign continuation is unavailable",
+		"the generated hero's SAV record and item modifiers are not written",
 	},
 }
 

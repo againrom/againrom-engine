@@ -85,7 +85,7 @@ func detailedChargen(t *testing.T) *Chargen {
 	}
 	c := NewChargen(ChargenSetup{
 		Name:      "Danath",
-		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Font: messageFont()}},
+		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator(), Font: messageFont()}},
 		Choices:   []ChargenChoice{{Options: []string{"male", "female"}, Parent: -1}},
 		Stats:     stats, Cost: triangular(50), Budget: 5000,
 	})

@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"againrom/pkg/random"
 	"fmt"
 	"image"
+	"math"
 	"time"
 
 	"againrom/pkg/render/text"
@@ -105,6 +107,19 @@ type ChargenSetup struct {
 	// cross itself: nil in a hand-built test setup leaves the toggle a no-op,
 	// on Preview/Derive's own "may be nil" precedent.
 	SetTipsOn func(bool)
+
+	// ResetStart makes Reset restore every statistic's Start rather than the
+	// chosen picture's preset, and ResetSkill makes it restore the skill row's
+	// Start as well. Both false keep the preset and the chosen skill.
+	ResetStart, ResetSkill bool
+
+	// Draws is the presentation stream a randomly placed sparkle reads; nil
+	// draws zero.
+	Draws *random.Stream
+
+	// AcceptShowsTown makes an accept whose begin opens no map show the town:
+	// the begin started a campaign that starts in town.
+	AcceptShowsTown bool
 }
 
 // ChargenStage identifies the visible half of the generator.
@@ -128,13 +143,18 @@ type ChargenPreCreate struct {
 	// texts a hero press and the page's enter rewrite; an empty one is none.
 	HeroNames [4]string
 	Unnamed   string
+	// EnterName is the text the page's enter writes over a default text, and
+	// LastPress keeps a hero press from writing when it repeats the last
+	// pressed picture.
+	EnterName string
+	LastPress bool
 }
 
 // ChargenDetailed is the source wording and hover text for the detailed page.
 type ChargenDetailed struct {
 	Back, Reset, Play       string
 	EmptyName, ReservedName string
-	SkillHover              [2][5]string
+	SkillHover              [generatorClasses][generatorSkills]string
 }
 
 // ChargenPreview is one atomically replaced detailed-page projection. Doll is
@@ -204,7 +224,7 @@ type ChargenResult struct {
 	Stats      []int
 }
 
-const chargenMissingCost = 1_000_000
+const chargenMissingCost = math.MaxInt32
 
 // Chargen is the generation screen's model: which row has the focus, which
 // option each choice row currently shows, and what each statistic currently
@@ -240,6 +260,10 @@ type Chargen struct {
 	cycleDraw           int
 	// statHeld is whether the left button is held this frame (MENU-138).
 	statHeld bool
+	// The loop layers' members and paint stamps, and the sparkle's run.
+	loopCount []int
+	loopAt    []time.Time
+	spark     sparkleRun
 
 	// message is the detailed page's own transient hover/refusal copy (1022
 	// round-2), set by SetDetailMessage and drawn by
@@ -329,11 +353,11 @@ func (c *Chargen) PreChoice() int {
 // remembered whether or not it wrote. The page presses on the left
 // button-down and on keyboard Enter (DIV-1495).
 func (c *Chargen) SelectPreChoice(choice int) {
-	if c == nil || c.stage != PreCreateStage || choice < 0 || choice > 3 {
+	if c == nil || c.stage != PreCreateStage || choice < 0 || choice >= generatorHeroes {
 		return
 	}
 	c.preChoice = choice
-	if pre := c.setup.PreCreate; pre != nil && choice != c.lastPressed && c.defaultName() && pre.HeroNames[choice] != "" {
+	if pre := c.setup.PreCreate; pre != nil && (!pre.LastPress || choice != c.lastPressed) && c.defaultName() && pre.HeroNames[choice] != "" {
 		c.name = pre.HeroNames[choice]
 	}
 	c.lastPressed = choice
@@ -346,8 +370,8 @@ func (c *Chargen) SelectPreChoice(choice int) {
 func (c *Chargen) enterPreCreate() {
 	c.preChoice, c.lastPressed = 0, 0
 	c.preTip, c.preStep, c.cycleDraw = c.setup.TipsOn, 0, -1
-	if pre := c.setup.PreCreate; pre != nil && c.defaultName() && pre.HeroNames[0] != "" {
-		c.name = pre.HeroNames[0]
+	if pre := c.setup.PreCreate; pre != nil && c.defaultName() && pre.EnterName != "" {
+		c.name = pre.EnterName
 	}
 }
 
@@ -372,7 +396,7 @@ func (c *Chargen) defaultName() bool {
 // SelectDifficulty changes only the pre-create draft. Forward, Back and the
 // detailed stat Reset preserve it; a newly opened generator starts at Normal.
 func (c *Chargen) SelectDifficulty(level int) {
-	if c != nil && c.stage == PreCreateStage && level >= 0 && level < 3 {
+	if c != nil && c.stage == PreCreateStage && level >= 0 && level < generatorLevels {
 		c.preLevel = level
 	}
 }
@@ -384,25 +408,16 @@ func (c *Chargen) Difficulty() int {
 	return c.preLevel + 1
 }
 
-// preChoiceParts is which sex option and which class option one combined
-// picture stands for: male fighter, male mage, female fighter, female mage, in
-// that order.
-//
-// IT IS A FUNCTION AND NOT A SWITCH INSIDE Forward because the headless
-// generation surface reports the same identity as a label. The label a
-// scenario matches against and the identity Forward commits are then one
-// statement read twice; two copies of a four-arm switch is exactly the shape
-// that drifts when a fifth picture is added.
-func preChoiceParts(choice int) (sex, class int) {
-	switch choice {
-	case 1:
-		return 0, 1
-	case 2:
-		return 1, 0
-	case 3:
-		return 1, 1
+// heroParts is which sex option and which class option one hero picture
+// stands for, as the description names it. The headless surface's label and
+// the identity Forward commits read this one statement.
+func (c *Chargen) heroParts(choice int) (sex, class int) {
+	l := c.layout()
+	if l == nil || choice < 0 || choice >= len(l.PreCreate.Heroes) {
+		return 0, 0
 	}
-	return 0, 0
+	h := l.PreCreate.Heroes[choice]
+	return h.Sex, h.Class
 }
 
 // Forward enters a fresh detailed draft without validating the name.
@@ -410,7 +425,7 @@ func (c *Chargen) Forward() {
 	if c == nil || c.stage != PreCreateStage {
 		return
 	}
-	sex, class := preChoiceParts(c.preChoice)
+	sex, class := c.heroParts(c.preChoice)
 	if len(c.choiceIndex) > 0 {
 		c.choiceIndex[0] = sex
 	}
@@ -450,20 +465,31 @@ func (c *Chargen) Back() bool {
 	return true
 }
 
-// Reset restores the detailed fields to their setup starts. It is deliberately
+// Reset restores the detailed fields as the setup's reset rule says. It is
 // idempotent and does not alter the stored pre-create identity.
 func (c *Chargen) Reset() {
 	if c == nil || c.stage != DetailedStage {
 		return
 	}
-	c.resetStats()
+	if c.setup.ResetStart {
+		c.startStats()
+	} else {
+		c.resetStats()
+	}
+	if c.setup.ResetSkill && len(c.choiceIndex) > 2 {
+		c.choiceIndex[2] = c.startIndex(2)
+	}
 	c.rebuildPreview()
 }
 
-func (c *Chargen) resetStats() {
+func (c *Chargen) startStats() {
 	for i, s := range c.setup.Stats {
 		c.statValue[i] = s.Start
 	}
+}
+
+func (c *Chargen) resetStats() {
+	c.startStats()
 	if c.preChoice < 0 || c.preChoice >= len(c.setup.Presets) {
 		return
 	}
@@ -574,8 +600,14 @@ func (c *Chargen) startIndex(i int) int {
 // statistic row.
 func (c *Chargen) Rows() int { return len(c.setup.Choices) + len(c.setup.Stats) }
 
-// nameCap is the name field's byte cap for typing (TEXT-075).
-const nameCap = 10
+// nameCap is the name field's byte cap for typing; a setup without a
+// description has none.
+func (c *Chargen) nameCap() int {
+	if l := c.layout(); l != nil {
+		return l.PreCreate.Name.Cap
+	}
+	return int(^uint(0) >> 1)
+}
 
 // EditName applies typed characters and one backspace edge (TEXT-075). The
 // field only appends: under the cap a character's byte goes to the end unless
@@ -590,7 +622,7 @@ func (c *Chargen) EditName(typed string, backspace bool) {
 		c.name = c.name[:len(c.name)-1]
 	}
 	for _, r := range typed {
-		if len(c.name) >= nameCap {
+		if len(c.name) >= c.nameCap() {
 			continue
 		}
 		c.caret.restart = true
@@ -630,10 +662,13 @@ func (c *Chargen) Focus() int { return c.focus }
 // focus untouched rather than wrapping over nothing.
 func (c *Chargen) Move(d int) {
 	n := c.Rows()
-	if c.stage == PreCreateStage && c.setup.PreCreate != nil {
-		n = 10 // name, four pictures, Back, Forward, three difficulty pictures
-	} else if c.stage == DetailedStage && c.setup.PreCreate != nil {
-		n = detailedFocusCount
+	if l := c.layout(); c.setup.PreCreate != nil {
+		n = 0
+		if l != nil && c.stage == PreCreateStage {
+			n = len(l.PreCreate.Focus)
+		} else if l != nil {
+			n = len(l.Detail.Focus)
+		}
 	}
 	if n == 0 {
 		return
@@ -649,7 +684,7 @@ func (c *Chargen) Move(d int) {
 // which cannot be cycled onto anything and so is left exactly where it stood.
 func (c *Chargen) Adjust(d int) {
 	if c.stage == DetailedStage && c.setup.PreCreate != nil {
-		id := detailedFocusControl(c.focus)
+		id := c.detailedFocusControl()
 		switch {
 		case id >= chargenStatMinus0 && id <= chargenStatMinus3:
 			c.AdjustStat(int(id-chargenStatMinus0), d)
@@ -828,22 +863,26 @@ func (c *Chargen) Result() (ChargenResult, bool) {
 	return ChargenResult{Name: c.name, Choices: choices, Stats: stats, Difficulty: c.Difficulty()}, true
 }
 
-// TipPanel is the showing page's tip popup: pre-create at PreCreateTipRect
-// with its step's chrsel text (TOWN-518), the detailed page at ChargenTipRect
-// with chrgen1f or chrgen1m, then chrgen2 after the first skill click
-// (TOWN-522, MENU-137).
+// TipPanel is the showing page's tip popup: pre-create with its step's
+// select text (TOWN-518), the detailed page with the class's text, then the
+// after-click text once a skill was clicked (TOWN-522, MENU-137), each at the
+// description's rectangle.
 func (c *Chargen) TipPanel() TipPanelView {
-	if c == nil || c.setup.TipArt == nil {
+	l, art := c.layout(), c.art()
+	if c == nil || c.setup.TipArt == nil || l == nil {
 		return TipPanelView{}
 	}
 	var font *text.Font
-	if c.setup.PreCreate != nil && c.setup.PreCreate.Art != nil {
-		font = c.setup.PreCreate.Art.Font
+	if art != nil {
+		font = art.Font
+		if l.Tips.Panel.Font == "install" && art.TipFont != nil {
+			font = art.TipFont
+		}
 	}
-	rect, tipText := ChargenTipRect, ""
+	rect, tipText := l.Tips.DetailRect.Rectangle(), ""
 	switch {
 	case c.stage == PreCreateStage && c.preTip && c.preStep >= 0 && c.preStep < len(c.setup.TipSelect):
-		rect, tipText = PreCreateTipRect, c.setup.TipSelect[c.preStep]
+		rect, tipText = l.Tips.PreCreateRect.Rectangle(), c.setup.TipSelect[c.preStep]
 	case c.stage == DetailedStage && c.detailTip && c.detailStep != 0:
 		tipText = c.setup.TipTextDetail
 	case c.stage == DetailedStage && c.detailTip:
@@ -863,6 +902,7 @@ func (c *Chargen) TipPanel() TipPanelView {
 		ToggleLabel: c.setup.TipToggle,
 		Art:         c.setup.TipArt,
 		Font:        font,
+		TextInset:   l.Tips.Panel.Inset,
 	}
 }
 

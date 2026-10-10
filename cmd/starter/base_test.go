@@ -119,7 +119,7 @@ func TestSecondGameRootIsSelectableAndLaunches(t *testing.T) {
 		t.Fatalf("rows = %q", rows)
 	}
 	do(t, a, action{aSelectBase, 1})
-	for _, want := range []string{"rom2-ru (Rage of Mages II, Russian; exact build)", "new game opens mission 10", "original saves refused"} {
+	for _, want := range []string{"rom2-ru (Rage of Mages II, Russian; exact build)", "original saves refused", "SAV record"} {
 		if !strings.Contains(a.status, want) || a.statusBad {
 			t.Fatalf("status %q lacks %q", a.status, want)
 		}

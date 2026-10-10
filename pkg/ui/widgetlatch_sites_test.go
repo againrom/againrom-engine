@@ -207,7 +207,7 @@ var latchSites = []struct {
 	}},
 	{"character generation name", func(t *testing.T) latchSite {
 		setup := chargenLegalSetup()
-		art := &ChargenPresentation{Forward: image.NewRGBA(image.Rect(0, 0, 96, 74))}
+		art := &ChargenPresentation{Layout: testGenerator(), Forward: image.NewRGBA(image.Rect(0, 0, 96, 74))}
 		for choice := range art.Choices {
 			for state := range art.Choices[choice] {
 				art.Choices[choice][state] = image.NewRGBA(image.Rect(0, 0, 160, 240))
@@ -238,7 +238,7 @@ var latchSites = []struct {
 	{"character generation play", func(t *testing.T) latchSite {
 		setup := chargenLegalSetup()
 		setup.Name = ""
-		setup.PreCreate = &ChargenPreCreate{Art: &ChargenPresentation{}}
+		setup.PreCreate = &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}}
 		setup.Detailed = &ChargenDetailed{EmptyName: "EMPTY", ReservedName: "RESERVED", Play: "PLAY"}
 		c := NewChargen(setup)
 		c.Forward()

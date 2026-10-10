@@ -2037,14 +2037,27 @@ package storyguard
 // in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
 // tests in pkg/rules, pkg/sim and pkg/game, new code, including this
 // paragraph.
+//
+// CommentBytes rises for the second game's generator: the docs of the new
+// secondgenerator.go, its release witnesses, the description's code page,
+// tip panel and optional message strip, and the pane image loader, new
+// code, including this paragraph.
 // CommentBytes rises for the doc of the mission-100 amulet-after-the-win
 // witness in pkg/game, new code, including this paragraph.
 // CommentBytes rises for the one chat command parser, its two game adapters,
 // the second game's completion win predicate and the second game's command
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the unbuilt script node census, the ROM1 omission
+// rule in pkg/mapload, its real-roster census and the mission-100 servant
+// witness, new code, including this paragraph.
 // CommentBytes rises for the world-map task flag and held Cross: the frame
 // pickers, the flag's counter and placement, and their focused and release
 // tests, new code, including this paragraph.
+// CommentBytes rises for the subscript-0 announcement of an unbuilt slot in
+// pkg/mapload, its tests and the mission-30 and mission-130 witnesses, new
+// code, including this paragraph.
+// CommentBytes rises for the script coverage closure admitting the nodes the
+// compile leaves unbuilt, new code, including this paragraph.
 // CommentBytes rises for the shop shelf tests: the plain-shelf pool doc and
 // its class constants and the shelf population, beard and sale witnesses,
 // new code, including this paragraph.
@@ -2060,7 +2073,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1877,
 		"scclause":        506,
-		"barestorynumber": 1741,
+		"barestorynumber": 1740,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2069,7 +2082,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1766,
+		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8598309,
+	CommentBytes: 8608578,
 }

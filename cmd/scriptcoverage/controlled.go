@@ -147,10 +147,17 @@ func controlNode(m *loadedMap, row nodeCoverage) (controlledResult, error) {
 
 func controlCheck(m *loadedMap, raw int) (controlledResult, error) {
 	checks := m.Started.World.Script().Checks()
-	if raw < 0 || raw >= len(checks) {
-		return controlledResult{}, fmt.Errorf("compiled check index outside program")
+	ci := -1
+	for i, r := range m.checkRawOf {
+		if r == raw {
+			ci = i
+			break
+		}
 	}
-	return controlExactCheck(m, checks[raw], "fresh production mission state; exact compiled check unchanged")
+	if ci < 0 || ci >= len(checks) {
+		return controlledResult{}, fmt.Errorf("authored check has no compiled check")
+	}
+	return controlExactCheck(m, checks[ci], "fresh production mission state; exact compiled check unchanged")
 }
 
 // controlExactCheck drives one supplied check through the production script
