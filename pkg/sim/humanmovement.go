@@ -37,3 +37,33 @@ func (w *World) SetHumanMovement(id EntityID, raw int16, load int32) bool {
 	e.HumanMovement = HumanMovement{true, raw, e.Speed, load, e.Capacity}
 	return true
 }
+
+// SpeedWord is the actor's speed word as the original stores it: a native
+// Human's derived word, a retained Human word, else Speed. A native Human's
+// retained word counts only where its derive kept a non-positive sum; a word
+// retained from an imported record leaves the derive in charge.
+func (e Entity) SpeedWord() int32 {
+	if e.nativeHumanoid() {
+		if raw, ok := e.RetainedHumanSpeed(); ok && raw <= 0 {
+			return int32(raw)
+		}
+		word, _ := humanSpeedWord(e.Speed, e.SpeedModifier, e.Load, e.Capacity)
+		return word
+	}
+	if raw, ok := e.RetainedHumanSpeed(); ok {
+		return int32(raw)
+	}
+	return e.Speed
+}
+
+// SpeedModifierWord is the modifier speed word a SAVE writes for a native
+// Human: each byte the native basis knows, else SpeedModifier's byte.
+func (e Entity) SpeedModifierWord() uint16 {
+	b := [2]byte{byte(e.SpeedModifier), byte(e.SpeedModifier >> 8)}
+	for n := range b {
+		if e.NativeBasis.ModifierByteKnown(4 + n) {
+			b[n] = e.NativeBasis.Modifier[4+n]
+		}
+	}
+	return uint16(b[0]) | uint16(b[1])<<8
+}

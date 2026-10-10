@@ -2024,6 +2024,11 @@ package storyguard
 // the wider randomness scan, new code, including this paragraph.
 // CommentBytes rises for the unit-shot tracking release witness and its
 // helpers, new code, including this paragraph.
+// CommentBytes rises for the Human speed derive: the shared derive in
+// pkg/rules, the native speed modifier, its byte-form section and LOAD split
+// in pkg/sim, the spawn speed word in pkg/mapload, and the overload order
+// tests in pkg/rules, pkg/sim and pkg/game, new code, including this
+// paragraph.
 // CommentBytes rises for the one chat command parser, its two game adapters,
 // the second game's completion win predicate and the second game's command
 // witnesses, new code, including this paragraph.
@@ -2048,7 +2053,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1768,
+		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8583938,
+	CommentBytes: 8588518,
 }

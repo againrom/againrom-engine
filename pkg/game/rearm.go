@@ -220,7 +220,7 @@ func simDerivedBlock(d data.Derived, spellID uint16, source sim.WeaponSpellSourc
 		source = sim.WeaponSpellNone
 	}
 	return sim.DerivedBlock{
-		MaxHP: d.HealthMax, MaxMana: d.ManaMax, Speed: d.Speed, ScanRange: derivedByte(d.Sight),
+		MaxHP: d.HealthMax, MaxMana: d.ManaMax, Speed: d.Speed, SpeedModifier: d.SpeedModifier, ScanRange: derivedByte(d.Sight),
 		Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit, Capacity: d.Capacity,
 		Skill: d.Skill, SkillSet: true,
 		Body: d.Body, BodyPresent: true,
