@@ -172,7 +172,7 @@ func assertReleaseTipFrame(t *testing.T, v roomTipRaster, pieces [9]*image.RGBA)
 		pic := pieces[tile.piece]
 		draw.Draw(want, pic.Bounds().Add(tile.at), pic, pic.Bounds().Min, draw.Over)
 	}
-	textRect := image.Rect(v.view.Rect.Min.X+20, v.view.Rect.Min.Y+24, v.view.Rect.Max.X-28, v.view.Rect.Max.Y-44)
+	textRect := image.Rect(v.view.Rect.Min.X+20, v.view.Rect.Min.Y+24, v.view.Rect.Max.X-28, v.view.Rect.Max.Y-36)
 	closeRect := image.Rect(v.view.Rect.Max.X-120, v.view.Rect.Max.Y-40, v.view.Rect.Max.X-40, v.view.Rect.Max.Y-22)
 	toggleRect := image.Rect(v.view.Rect.Min.X+40, v.view.Rect.Max.Y-40, v.view.Rect.Max.X-124, v.view.Rect.Max.Y-24)
 	if ui.TipPanelTextRect(v.view.Rect) != textRect || ui.TipPanelCloseRect(v.view.Rect) != closeRect || ui.TipPanelToggleRect(v.view.Rect) != toggleRect {
@@ -303,7 +303,10 @@ func assertReleaseTipText(t *testing.T, v roomTipRaster) {
 		if c.Color == shadow && c.Flat {
 			seen[key{c.Glyph, c.X - 1, c.Y - 1}] = i
 		}
-		if c.Color != ink || c.Flat || !fontGlyphs[c.Glyph] || c.Y < r.Min.Y || c.Y >= r.Max.Y {
+		// The claimed list overlaps the control row; captions are not body text.
+		at := image.Pt(c.X, c.Y)
+		if c.Color != ink || c.Flat || !fontGlyphs[c.Glyph] || c.Y < r.Min.Y || c.Y >= r.Max.Y ||
+			at.In(ui.TipPanelCloseRect(v.view.Rect)) || at.In(ui.TipPanelToggleRect(v.view.Rect)) {
 			continue
 		}
 		if prior, ok := seen[key{c.Glyph, c.X, c.Y}]; !ok || prior >= i {
@@ -429,7 +432,7 @@ func assertReleaseTipText(t *testing.T, v roomTipRaster) {
 	// TOWN-516's heights; a text the engine's wrap cannot fit grows the
 	// panel to the tile-aligned height (DIV-2719).
 	claimed := map[string]int{"town-square": 200, "tavern": 200, "school": 200, "shop": 136}[v.name]
-	minHeight := ys[len(ys)-1] - v.view.Rect.Min.Y + v.view.Font.Height() + 1 + 44
+	minHeight := ys[len(ys)-1] - v.view.Rect.Min.Y + v.view.Font.Height() + 1 + 36
 	wantHeight := claimed
 	if minHeight > claimed {
 		wantHeight = max(104, 72+((max(0, minHeight-72)+31)/32)*32)

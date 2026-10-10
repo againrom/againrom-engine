@@ -43,7 +43,7 @@ const (
 	tipPanelInset      = 20
 	tipPanelButtonRowH = 18
 	tipPanelGemSize    = 16
-	tipPanelChromeH    = 69
+	tipPanelChromeH    = 61
 )
 
 var (
@@ -59,9 +59,9 @@ var (
 	MissionTipRect = image.Rect(10, 20, 370, 188)
 )
 
-func TipPanelTextRect(r image.Rectangle) image.Rectangle {
-	return image.Rectangle{Min: image.Pt(r.Min.X+20, r.Min.Y+24), Max: image.Pt(r.Max.X-28, r.Max.Y-44)}
-}
+// TipPanelTextRect is where the text is drawn and its fit is tested: the
+// list child itself (MENU-137).
+func TipPanelTextRect(r image.Rectangle) image.Rectangle { return TipPanelListRect(r) }
 
 func TipPanelCloseRect(r image.Rectangle) image.Rectangle {
 	return image.Rect(r.Max.X-120, r.Max.Y-40, r.Max.X-40, r.Max.Y-22)
@@ -84,8 +84,10 @@ func TipPanelControlAt(v TipPanelView, p image.Point) (TipControlKind, bool) {
 	return TipControlNone, true
 }
 
+// TipPanelListRect is the popup's list child, (0x14,0x18)-(W-0x1c,H-0x24)
+// of the panel (MENU-137).
 func TipPanelListRect(r image.Rectangle) image.Rectangle {
-	return image.Rect(r.Min.X+20, r.Min.Y+24, r.Max.X-28, r.Max.Y-36)
+	return image.Rectangle{Min: image.Pt(r.Min.X+20, r.Min.Y+24), Max: image.Pt(r.Max.X-28, r.Max.Y-36)}
 }
 
 func TipPanelEventAt(v TipPanelView, p image.Point, down bool) (TipControlKind, bool) {

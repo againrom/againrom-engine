@@ -187,3 +187,43 @@ func TestReleaseRoomTipsAtEveryEnterAndShopSecondText(t *testing.T) {
 		t.Fatalf("TipsMode clear at the enter: popup showing %q", v.Text)
 	}
 }
+
+// Every room popup's rectangle per root, for the first text and for shop2:
+// the description's rectangle (TOWN-516, MENU-137) unless the text overflows
+// the claimed list, which only the RU town text does (DIV-2719).
+func TestReleaseRoomTipRectanglesPerRoot(t *testing.T) {
+	f := missionTipFront(t)
+	want := map[string]image.Rectangle{
+		"town":   image.Rect(328, 0, 640, 200),
+		"tavern": image.Rect(160, 0, 472, 200),
+		"school": image.Rect(0, 0, 456, 200),
+		"shop":   image.Rect(164, 162, 476, 298),
+		"shop2":  image.Rect(164, 162, 476, 298),
+	}
+	if f.Base().Profile.ID == "rom1-ru" {
+		want["town"] = image.Rect(328, 0, 640, 232)
+	}
+	check := func(name string, v ui.TipPanelView) {
+		t.Helper()
+		if !v.Showing() || v.Rect != want[name] {
+			t.Errorf("%s popup showing %v at %v, want %v", name, v.Showing(), v.Rect, want[name])
+		}
+	}
+	for _, room := range []struct {
+		name   string
+		choose int
+	}{{"tavern", 0}, {"school", 2}} {
+		g := missionTipFront(t)
+		s := g.TownScreen().(*townScreen)
+		s.Choose(room.choose)
+		check(room.name, s.TownSurface().Tip)
+	}
+	app := roomTipTownApp(t, f)
+	check("town", f.TownScreen().(*townScreen).TownSquareView().Tip)
+	s := roomTipEnterShop(t, f, app)
+	roomTipSteps(t, app, 1)
+	check("shop", s.ShopScreen().TipPanel)
+	roomTipPutOnTable(t, s)
+	roomTipSteps(t, app, 1)
+	check("shop2", s.ShopScreen().TipPanel)
+}
