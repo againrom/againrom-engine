@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -264,16 +263,14 @@ func savConvertedContinuation(t *testing.T, part int) {
 			whole.ByReason[reason] += n
 		}
 	}
-	refused = refused[:0]
+	sort.Slice(whole.Refused, func(i, j int) bool { return whole.Refused[i].Rel < whole.Refused[j].Rel })
 	for _, r := range whole.Refused {
-		refused = append(refused, sav1195Refusal{rel: r.Rel, stage: r.Stage, err: errors.New(r.Err)})
+		t.Logf("converted-corpus: REFUSED %s stage=%s: %s", r.Rel, r.Stage, r.Err)
 	}
-	sort.Slice(refused, func(i, j int) bool { return refused[i].rel < refused[j].rel })
-	sav1195LogRefusals(t, "converted-corpus", refused)
 	for reason, n := range whole.ByReason {
 		t.Logf("SAV-ROUNDTRIP-CONVERTED-REASON %d: %s", n, reason)
 	}
 	t.Logf("SAV-ROUNDTRIP-CONVERTED-CENSUS discovered=%d manifest=%d exact=%d refused=%d mismatched=%d",
-		total, len(manifest.Files), whole.Exact, len(refused), whole.Mismatches)
+		total, len(manifest.Files), whole.Exact, len(whole.Refused), whole.Mismatches)
 	sav1195CheckBaseline(t, "converted-corpus", savConvertedBaseline, total, whole.Exact, 0, whole.ByReason)
 }
