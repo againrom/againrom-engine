@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] An overloaded hero with a speed bonus or penalty now moves and turns
+  as in the original: the overload slows his own speed first and the bonus or
+  penalty is added after it. His character card shows that speed, and it is
+  kept through a save.
+
 ## 0.108.0
 
 - [BASE] An enemy mage with Mind above 59 now holds back a spell exactly 30
@@ -15,10 +20,6 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   `-original-random`, the time spent in town no longer changes the next
   mission's combat rolls; on the second game the switch runs the default
   generator and says so.
-- [BASE] An overloaded hero with a speed bonus or penalty now moves and turns
-  as in the original: the overload slows his own speed first and the bonus or
-  penalty is added after it. His character card shows that speed, and it is
-  kept through a save.
 
 - [BASE] Arrows, bolts and rocks turn toward a moving target while they fly
   and leave the shooter at the point its exact facing gives, as in the
