@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] On the world map the task's flag now stands above the red cross, as in
+  the original: it shows while the pointer is over a task and stays on the chosen
+  task through the whole journey, waving all the time. The red cross draws
+  itself once and then stays whole instead of starting over.
+
 - [BASE] An overloaded hero now moves and turns as in the original: the
   overload slows his own speed first, to no less than 6, and a speed bonus or
   penalty is added after it. His character card shows that speed for every

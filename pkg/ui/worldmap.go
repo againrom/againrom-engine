@@ -44,9 +44,9 @@ type WorldMapView struct {
 	Background image.Image
 	Ball       image.Image
 	// Flag is the party's own current-position marker (`TOWN-120`, High),
-	// drawn at Position. Available is the Flag1 hover marker, drawn at a
-	// hovered mission's own anchor only while AtHome and no travel is in
-	// progress. Cross is the animated destination marker.
+	// drawn at Position. Available is the task Flag1, drawn while AtHome at
+	// the hovered mission's anchor, or the selected mission's from the choice
+	// until arrival (`TOWN-528`). Cross is the destination marker.
 	Flag          image.Image
 	Available     image.Image
 	Cross         image.Image
@@ -231,6 +231,25 @@ var (
 	worldMapMark     = color.RGBA{R: 190, G: 41, B: 31, A: 255}
 )
 
+// worldMapTaskFlag is the mission whose anchor carries the task Flag1, or -1.
+// The flag is drawn only while the party stands on the first MapObject
+// (`TOWN-528`). Before a choice it follows the hovered task; a chosen task
+// keeps it from the choice through the route until arrival, whatever the
+// pointer does.
+func worldMapTaskFlag(v WorldMapView) int {
+	if !v.AtHome || v.Returning {
+		return -1
+	}
+	i := v.Hovered
+	if v.Selected >= 0 {
+		i = v.Selected
+	}
+	if i < 0 || i >= len(v.Missions) || !v.Missions[i].Enabled {
+		return -1
+	}
+	return i
+}
+
 // ComposeWorldMap creates one native-size frame. It is CPU-only and therefore
 // testable without an Ebitengine window or a lawful install.
 func ComposeWorldMap(v WorldMapView) *image.RGBA {
@@ -241,8 +260,8 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 	}
 
 	// Paint order follows `TOWN-120` (High): cached mission markers, route
-	// stamps, the animated destination cross, the hovered-scroll Flag1 while
-	// at home and idle, the animated current-position flag, then scroll
+	// stamps, the animated destination cross, the task Flag1 while at home,
+	// the animated current-position flag, then scroll
 	// cards below. `DIV-128`: a mission with no cached marker (never
 	// selected, or its own Picture is "nothing") paints nothing here — no
 	// placeholder dot.
@@ -265,14 +284,13 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 	for i := 0; i < shown; i += worldMapBallStride {
 		stampAt(dst, v.Ball, v.Route[i], worldMapRoute, 2)
 	}
-	traveling := (v.Selected >= 0 || v.Returning) && shown < len(v.Route)
 	if v.Returning {
 		stampAt(dst, v.Cross, v.Destination, worldMapMark, 4)
 	} else if v.Selected >= 0 && v.Selected < len(v.Missions) && v.Missions[v.Selected].Enabled {
 		stampAt(dst, v.Cross, v.Missions[v.Selected].Anchor, worldMapMark, 4)
 	}
-	if v.AtHome && !traveling && v.Hovered >= 0 && v.Hovered < len(v.Missions) && v.Missions[v.Hovered].Enabled {
-		stampAt(dst, v.Available, v.Missions[v.Hovered].Anchor, color.RGBA{R: 220, G: 210, B: 175, A: 255}, 3)
+	if i := worldMapTaskFlag(v); i >= 0 {
+		drawTaskFlag(dst, v.Available, v.Missions[i].Anchor)
 	}
 	stampAt(dst, v.Flag, v.Position, color.RGBA{R: 242, G: 235, B: 211, A: 255}, 4)
 
@@ -379,6 +397,20 @@ func stampAt(dst *image.RGBA, pic image.Image, p image.Point, fallback color.RGB
 			}
 		}
 	}
+}
+
+// drawTaskFlag places Flag1's frame with its top-left corner 4 pixels left of
+// and 32 above the task's anchor, the paint's own offsets (`TOWN-528`), so the
+// flag stands over the destination Cross instead of covering it. With no
+// sheet the fallback dot stays centred on the anchor.
+func drawTaskFlag(dst *image.RGBA, pic image.Image, anchor image.Point) {
+	if !worldMapImagePresent(pic) {
+		stampAt(dst, pic, anchor, color.RGBA{R: 220, G: 210, B: 175, A: 255}, 3)
+		return
+	}
+	b := pic.Bounds()
+	at := anchor.Add(image.Pt(-4, -32))
+	draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, draw.Over)
 }
 
 // drawMarker places a marker picture. A picture that covers the whole map is
