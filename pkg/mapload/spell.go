@@ -15,7 +15,7 @@ func unitSpellbook(params []int32, t *Table, typeID int32) (uint32, sim.Spellboo
 	var slots [sim.CreatureSpellSlots]sim.CreatureSpell
 	const firstSpell = 48
 	book := sim.Spellbook{}
-	if typeID == 0x47 || typeID == 0x48 {
+	if typeID == 0x47 || typeID == 0x48 { // UNIT-SPELL-007
 		book.State = sim.BookPresent
 	}
 	if len(params) <= firstSpell || params[firstSpell] <= 0 {

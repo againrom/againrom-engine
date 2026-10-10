@@ -9,11 +9,11 @@ import (
 
 // nativeCityGraftableMember is exactly the shape the fully native branch of
 // missionCityProvenance already admits with no live entity: no retained Carry,
-// and the one companion identity a town-chapter grant can add
-// (addChapterCompanions). Any other unbound member is refused by name rather
-// than silently guessed at.
-func nativeCityGraftableMember(member mapload.PartyMember) bool {
-	return member.Carry == nil && member.CompanionNPC == 22
+// and a companion identity a town-chapter grant can add (addChapterCompanions:
+// a value of the campaign's AddHero arrays). Any other unbound member is
+// refused by name rather than silently guessed at.
+func nativeCityGraftableMember(member mapload.PartyMember, c Campaign) bool {
+	return member.Carry == nil && c.townGrants(member.CompanionNPC)
 }
 
 // graftNativeCityMember appends one natively constructed Human object, and its

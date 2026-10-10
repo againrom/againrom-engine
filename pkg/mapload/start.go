@@ -1060,7 +1060,8 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	// same campaign surface: wherever a carried party member arrived holding
 	// them, collect the stack onto the explicitly marked starting hero before
 	// the mission is exposed. This is independent of selection and leaves every
-	// other item with its own carrier.
+	// other item with its own carrier. ITEM-DOC-053 names the code; the move
+	// is DIV-2798.
 	primary := QuestDocumentHolder(party)
 	if primary >= 0 && primary < len(st.IDs) {
 		for i, id := range st.IDs {
@@ -1117,7 +1118,7 @@ func tableForPartyNPCs(t *Table, party []PartyMember, mission int) *Table {
 	playerMage := primary.Mage
 	playerFemale := data.FigureDir(primary.FigureDir).Female()
 	resolved := make(map[int32]int)
-	for id := int32(21); id <= 24; id++ {
+	for id := int32(21); id <= 24; id++ { // REG-SCN-098: the npc21..24 branch
 		serverID, ok := t.NPC.CampaignServerID(id, mission, playerMage, playerFemale)
 		if ok {
 			index := data.FindHumanByServerID(t.Humans, serverID)

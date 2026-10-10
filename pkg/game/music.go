@@ -13,6 +13,7 @@ import (
 // selected asset root. It is not one of RequiredArchives: absence is silence.
 const MusicArchive = "MUSIC.RES"
 
+// musicTrackNames are the owner lists' tracks (VIDEO-076, DIV-245).
 var musicTrackNames = []string{
 	"B00.wav", "B01.wav", "B02.wav", "B03.wav", "B04.wav", "B05.wav",
 	"B06.wav", "B07.wav", "B08.wav", "B09.wav", "B10.wav", "B11.wav",

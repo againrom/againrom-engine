@@ -59,8 +59,8 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 		}
 		// A city.Party member the mission never carried in has no object the
 		// frozen source document could ever bind. The one production route
-		// here is a town-chapter companion grant (addChapterCompanions,
-		// npc:22): it appends straight to s.Carried after the document was
+		// here is a town-chapter companion grant (addChapterCompanions, the
+		// campaign's AddHero): it appends straight to s.Carried after the document was
 		// already frozen at mission entry, so no amount of searching finds her
 		// there. She is appended the same way the native branch below already
 		// builds this exact companion when it has no live entity either: fresh,
@@ -73,7 +73,7 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 				if bound[member.ID] {
 					continue
 				}
-				if !nativeCityGraftableMember(member) {
+				if !nativeCityGraftableMember(member, in.campaign) {
 					return nil, originalCityUnsupportedf("mission city member %q has no exact source binding and no native construction path", member.ID)
 				}
 				var gerr error
@@ -99,7 +99,7 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 		apply := func(unit *sav.CityUnitData, member mapload.PartyMember, table *mapload.Table) error {
 			e, ok := current[member.ID]
 			if !ok {
-				if member.Carry == nil && member.CompanionNPC == 22 {
+				if nativeCityGraftableMember(member, in.campaign) {
 					return nativeCityApplyHuman(unit, member, table)
 				}
 				return originalCityUnsupportedf("native mission city lacks current member %s", member.ID)
@@ -107,7 +107,7 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 			return nativeMissionHuman(unit, member, table, e)
 		}
 		attach := func(objects []sav.CityObjectData, unit *sav.CityUnitData, member mapload.PartyMember, table *mapload.Table, owner uint32, seq *int) ([]sav.CityObjectData, error) {
-			if _, exists := current[member.ID]; !exists && member.Carry == nil && member.CompanionNPC == 22 {
+			if _, exists := current[member.ID]; !exists && nativeCityGraftableMember(member, in.campaign) {
 				return nativeCityAttachItems(objects, unit, member, table, owner, seq)
 			}
 			stacks, _ := world.CarriedStacks(current[member.ID].ID)

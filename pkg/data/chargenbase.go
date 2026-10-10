@@ -9,7 +9,8 @@ package data
 // It is a FUNCTION and not a package variable, for ChargenSpread's own
 // reason (chargen.go): a slice returned off a variable is aliased and
 // mutable from anywhere, and "these four names in this order" would then be
-// true by convention rather than by construction.
+// true by convention rather than by construction. SESS-HERO-014; the
+// fallback is DIV-2799.
 func ChargenBaseNames() []string {
 	return []string{"PC_Danath", "PC_Naira", "PC_Fergard", "PC_Reniesta"}
 }

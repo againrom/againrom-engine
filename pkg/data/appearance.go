@@ -57,7 +57,7 @@ const HeroUnmatchedClass int32 = 1
 //
 // It is read by lookup only, never ranged, so its order is not a fact about
 // anything. The keys are class ids of the unit registry, the same domain a
-// placed record's key lives in.
+// placed record's key lives in. HERO-APPEAR-042.
 var heroBodyClass = map[HeroBody]int32{
 	"unarmed": 1, "unarmed_": 2,
 	"swordsman": 3, "swordsman_": 4, "swordsman2h": 5,
@@ -125,7 +125,8 @@ const (
 )
 
 // heroMaterialDir is the directory each armour material block names, in block
-// order. Both shipped roots carry these sixteen values identically.
+// order. Both shipped roots carry these sixteen values identically
+// (HERO-APPEAR-043).
 var heroMaterialDir = [HeroMaterials]string{
 	HeroDirHeroes, HeroDirHeroes, HeroDirHeroes, HeroDirHeroes,
 	HeroDirHeroes, HeroDirHeroes, HeroDirHeroes, HeroDirHeroes,

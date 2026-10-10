@@ -44,7 +44,7 @@ func shopScrollPool(t *mapload.Table, ceiling int32, r shopDrawSource) []ShopIte
 }
 
 // The constructor's school boundary exclusions are ROM1 data-independent
-// rules. Slow lies outside the 1..27 generator, even on a longer custom table.
+// rules (SHOP-CONSUME-073). Slow lies outside the 1..27 generator, even on a longer custom table.
 func shopBookSpellAdmitted(id int) bool {
 	return id >= 2 && id <= 27 && id != 6 && id != 11 && id != 12 && id != 17 && id != 18 && id != 27
 }

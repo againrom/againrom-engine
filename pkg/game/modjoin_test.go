@@ -78,6 +78,12 @@ func TestTownCompanionIsTheRegistryAddHero(t *testing.T) {
 	if none.townGrants(22) {
 		t.Fatal("a campaign with no AddHero grants a town companion")
 	}
+	// A city document grafts the companion the registry grants, and no other.
+	if !nativeCityGraftableMember(mapload.PartyMember{CompanionNPC: 23}, c) ||
+		nativeCityGraftableMember(mapload.PartyMember{CompanionNPC: 23}, none) ||
+		nativeCityGraftableMember(mapload.PartyMember{CompanionNPC: 25}, c) {
+		t.Fatal("the graftable companion does not follow the AddHero arrays")
+	}
 }
 
 func TestAHeldGrantStaysPendingUntilItsOwnTake(t *testing.T) {

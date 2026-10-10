@@ -106,7 +106,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 
 	setup := ui.ChargenSetup{
 		Title:   chargenTitle,
-		Name:    "Danath",
+		Name:    fallbackHeroName, // DIV-1508
 		Choices: choices,
 		Stats:   stats,
 		Cost:    cost,

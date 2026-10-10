@@ -22,7 +22,7 @@ import (
 // renaming of the container moves both.
 const StructureRegistry = graphicsPrefix + "structures/structures.reg"
 
-const verticalWoodenBridgeClass = 33
+const verticalWoodenBridgeClass = 33 // TERR-STRUCT-105
 
 // LoadStructures decodes the structure classes and their sheets out of the
 // graphics container into the render tier's bundle.

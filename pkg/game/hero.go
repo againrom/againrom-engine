@@ -122,7 +122,7 @@ func PartyHero() data.Hero { return data.NewHero(PartySpread(), PartySkillSlot()
 // class axis: the axis exists now, StartingWeaponName's own leading flag,
 // and it is the axis that decides which of this file's TWO weapon sources a
 // trained slot reaches at all. What is still missing is the spell — see
-// mageWeaponName's own doc, beside StartingWeaponName below.
+// mageWeaponName's own doc, beside StartingWeaponName below. HERO-START-039.
 var startingWeapons = [data.SkillSlots]string{
 	data.SkillBlade:   "Iron Short Sword",
 	data.SkillAxe:     "Uncommon Bronze Axe",
@@ -521,7 +521,8 @@ func missionTableWeapons(t *mapload.Table) (shapes, materials data.ScaleTable, w
 }
 
 // fallbackHeroName names a default hero whose table carries no installed name
-// for his picture: the male fighter's name in the shipped English install.
+// for his picture: the male fighter's name in the shipped English install
+// (TEXT-073, DIV-1508).
 const fallbackHeroName = "Danath"
 
 // defaultHeroName is the installed name of the picture a default hero is drawn

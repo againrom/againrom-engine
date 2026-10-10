@@ -92,7 +92,8 @@ func shopBookCodes(t *mapload.Table) [6]data.ItemCode {
 }
 
 // shopBookLabel names the books shelf: the installed name of the first
-// school book the table carries. Every school book shares one generic name.
+// school book the table carries. Every school book shares one generic name
+// (TEXT-090); the label itself is DIV-2802.
 func shopBookLabel(t *mapload.Table) string {
 	for _, code := range shopBookCodes(t) {
 		if code != 0 {

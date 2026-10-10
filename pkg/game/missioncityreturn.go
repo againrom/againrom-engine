@@ -66,7 +66,7 @@ func (s *CampaignSession) retainMissionCity(in townInstall, mission int, world *
 		if member.Carry == nil {
 			// The graph just constructed this town grant. Bind its complete
 			// source basis before the next mission's strict entry join.
-			if exact, err := binding.replayedMember(*member); err != nil || !exact {
+			if exact, err := binding.replayedMember(*member, in.campaign); err != nil || !exact {
 				return fmt.Errorf("new city grant %s differs from its constructor: %v", member.ID, err)
 			}
 			*member = mapload.CloneParty([]mapload.PartyMember{binding.baseline})[0]
