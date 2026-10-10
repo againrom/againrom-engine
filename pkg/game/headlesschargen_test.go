@@ -162,13 +162,13 @@ func TestCreateCharacterMatchesTheHandDrivenScreen(t *testing.T) {
 	press(1) // focus 1: the Male Fighter picture
 	press(5) // focus 6: FORWARD
 	// Detailed focus order is five skills (0-4), then a down and an up control
-	// per statistic (5-12), then back, reset and play (13-15). Pike is skill
+	// per statistic (5-12), then back, reset, restore and play (13-16). Pike is skill
 	// position 3; Spirit is statistic 3, so its up control is focus 12.
 	press(3) // focus 3: Pike
 	press(9) // focus 12: Spirit up, 25 -> 26
 	press(0) // 26 -> 27
 	press(0) // 27 -> 28
-	press(3) // focus 15: PLAY
+	press(4) // focus 16: PLAY
 
 	if !reflect.DeepEqual(*byStep, *byHand) {
 		t.Fatalf("create_character produced %+v; the same keys by hand produced %+v", *byStep, *byHand)
