@@ -88,6 +88,7 @@ Base: `6f05571d` (game 0.105.0). Knowledge pin k216. Reconciled main:
 | `TestReleaseMissionStartTipDoesNotReturnAfterSaveAndLoad`: F2 SAVE, cold LOAD, no start dialogue or tip | EN, RU | pass |
 | `TestReleaseRoomTipsAtEveryEnterAndShopSecondText`: tavern, shop and school popups at their rectangles on two enters each, after Close; the town popup at its rectangle unless its text overflows; shop1 with an empty table, shop2 after a place, again after a new entry and with `TipsMode` cleared after the entry; no popup with `TipsMode` clear at the entry | EN, RU | pass |
 | `TestReleaseRoomTipStyleAndLayoutFromInstall`: the four popups at the claimed heights, the RU town grown for its text | EN, RU | pass |
+| `TestReleaseTownRoomTraceIsUnchanged`, `TestReleaseTownSquareTraceIsUnchanged`: re-recorded; only frame hashes move (the shop after a table item, the RU school popup), every save hash, message and sound line is unchanged | EN, RU | pass |
 | `TestReleaseChargenSoundsThroughAppInput`, `TestReleaseDifficultyLevelsInstalledArtAndPointer`, `TestReleaseChargenDetailedNavLabelsAreDrawn` updated to the claimed rectangles and mask | EN, RU | pass |
 
 Owner renders: `TestReleaseMissionStartTipRender` and the generator witness
