@@ -131,7 +131,11 @@ func drawChoiceGroup(dst *image.RGBA, f *text.Font, g choiceGroup) {
 			drawWidgetSprite(dst, pic, at.Sub(pic.Bounds().Min), dst.Bounds())
 		} else {
 			box := image.Rect(at.X+2, at.Y+2, at.X+size-2, at.Y+size-2)
-			drawMovieBox(dst, box, g.on(i))
+			tint := color.RGBA{0, 0, 0, 45}
+			if g.on(i) {
+				tint = color.RGBA{0, 7, 6, 220}
+			}
+			drawFrame(dst, frameSpec{Kind: frameTint, Rect: box, Fill: tint, Border: color.RGBA{57, 77, 65, 255}})
 		}
 		if f == nil || label == "" {
 			continue

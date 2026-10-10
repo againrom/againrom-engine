@@ -41,7 +41,7 @@ func TestDrawNinePatchBorderTilesFourDistinctEdges(t *testing.T) {
 	// caught. Interior rows/columns exist on every edge (30 > 2*8, 20 > 2*4).
 	panel := image.Rect(5, 5, 35, 25)
 	dst := image.NewRGBA(image.Rect(0, 0, 40, 30))
-	drawNinePatchBorder(dst, panel, src, cw, ch)
+	drawFrameCorners(dst, panel, src, cw, ch)
 
 	at := func(p image.Point) color.RGBA { return dst.RGBAAt(p.X, p.Y) }
 
@@ -103,9 +103,9 @@ func TestDrawNinePatchBorderRefusesADegenerateCornerOrPanel(t *testing.T) {
 	dst := image.NewRGBA(image.Rect(0, 0, 20, 20))
 	before := append([]byte(nil), dst.Pix...)
 
-	drawNinePatchBorder(dst, image.Rect(0, 0, 20, 20), nil, 2, 2)
-	drawNinePatchBorder(dst, image.Rect(0, 0, 20, 20), src, 0, 2)
-	drawNinePatchBorder(dst, image.Rect(0, 0, 1, 1), src, 2, 2)
+	drawFrameCorners(dst, image.Rect(0, 0, 20, 20), nil, 2, 2)
+	drawFrameCorners(dst, image.Rect(0, 0, 20, 20), src, 0, 2)
+	drawFrameCorners(dst, image.Rect(0, 0, 1, 1), src, 2, 2)
 
 	for i, b := range dst.Pix {
 		if b != before[i] {

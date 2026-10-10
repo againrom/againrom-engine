@@ -60,11 +60,6 @@ type savePaint struct {
 	texts []savePaintText
 }
 
-func (s *savePaint) box(r image.Rectangle, fill, border color.RGBA) {
-	draw.Draw(s.pix, r, image.NewUniform(border), image.Point{}, draw.Src)
-	draw.Draw(s.pix, r.Inset(1), image.NewUniform(fill), image.Point{}, draw.Src)
-}
-
 func (s *savePaint) label(value string, x, y int, c color.RGBA) {
 	s.texts = append(s.texts, savePaintText{text: value, at: image.Pt(x, y), color: c})
 }
@@ -160,9 +155,9 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	w := a.flow.saveWords()
 	s := &savePaint{pix: image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))}
 	draw.Draw(s.pix, s.pix.Bounds(), image.NewUniform(color.RGBA{R: 8, G: 10, B: 14, A: 255}), image.Point{}, draw.Src)
-	s.box(savePanelRect, layout.Fill, layout.Border)
+	drawFrame(s.pix, panelFrame(savePanelRect, layout.Fill, layout.Border))
 	if a.flow.menuArt != nil {
-		a.flow.menuArt.Draw(s.pix, image.Rect(8, 0, 632, 480))
+		drawFrame(s.pix, windowFrame(image.Rect(8, 0, 632, 480), a.flow.menuArt))
 	}
 	s.label(w.Title, 38, 23, layout.TextColor)
 	pointer, pointerOK := a.pointerFrame()
@@ -173,7 +168,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 		if font := a.flow.menuFont; font != nil {
 			inside := pointerOK && pointer.In(r)
 			drawPushButton(s.pix, font, pushButton{Rect: r, Label: a.flow.menuDisplayText(label), Hover: inside,
-				Focus: d.focus == c, Pressed: d.pressed && d.press == c, Inside: inside, Disabled: disabled})
+				Focus: d.focus == c, Pressed: d.press.Pressed(saveLatchID(c, 0)), Inside: inside, Disabled: disabled})
 			return
 		}
 		fill, border := layout.ButtonFill, layout.ButtonBorder
@@ -183,7 +178,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 		if d.focus == c {
 			border = saveFocusColor
 		}
-		s.box(r, fill, border)
+		drawFrame(s.pix, panelFrame(r, fill, border))
 		x := r.Min.X + (r.Dx()-a.saveTextWidth(label))/2
 		textColor := layout.TextColor
 		if disabled {
@@ -253,13 +248,13 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	button(saveUpControl, w.Up, false)
 	if d.list != nil {
 		box := a.saveListBox()
-		drawEditField(s.pix, editField{Rect: box.Rect.Inset(-1)}, nil)
 		pointer, pointerOK := a.pointerFrame()
 		if font := a.flow.menuFont; font != nil {
 			drawListBox(s.pix, font, a.media.scroll, box, d.list, func(row, width int) string {
 				return a.flow.menuDisplayText(a.saveTextFit(d.list.Rows()[row].Text, width))
 			}, pointer, pointerOK)
 		} else {
+			drawEditField(s.pix, listWell(box), nil)
 			top, count := d.list.Visible()
 			for i := 0; i < count; i++ {
 				s.label(a.saveTextFit(d.list.Rows()[top+i].Text, box.Rect.Dx()-2*listTextX), box.Row(i).Min.X+listTextX, box.Row(i).Min.Y+listTextY, townShellText)

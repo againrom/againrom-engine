@@ -1985,6 +1985,17 @@ package storyguard
 // CommentBytes rises for the town room pages: the room trace instrument, the
 // reader's refusals, pkg/town's own tests and its page programs, new code,
 // including this paragraph.
+// CommentBytes rises for the frame builder: the docs of the frame rows, the
+// tiling and the shadow tone in the new widget kit file, which replace the
+// separate window, tip, panel and border painters, new code, including this
+// paragraph.
+// CommentBytes rises for the one press latch: the latch package docs and
+// the notes on the dialogue capture and the generation page latch, new code,
+// including this paragraph.
+// CommentBytes rises for the widget kit scan in internal/archtest and the
+// latch site witness, new code, including this paragraph.
+// CommentBytes rises for the latch drop on a left screen: its doc and the
+// leave witness, new code, including this paragraph.
 // CommentBytes rises for the random service: the docs of pkg/random, of the
 // World stream's two modes and of every consumer moved onto a named stream,
 // new code, including this paragraph.
@@ -2011,5 +2022,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1774,
 	},
-	CommentBytes: 8537135,
+	CommentBytes: 8546160,
 }

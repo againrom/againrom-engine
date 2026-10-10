@@ -28,10 +28,10 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-// drawFrame builds one synthetic frame of the given size. Only its SIZE and its
+// syntheticStaticFrame builds one synthetic frame of the given size. Only its SIZE and its
 // pointer identity reach anything under test here: the size is the world
 // rectangle's own extent, and the identity is the texture cache's key.
-func drawFrame(w, h int) *terrain.StaticFrame {
+func syntheticStaticFrame(w, h int) *terrain.StaticFrame {
 	f := &terrain.StaticFrame{Width: w, Height: h, Pixels: make([]terrain.StaticPixel, w*h)}
 	for i := range f.Pixels {
 		f.Pixels[i] = terrain.StaticPixel{Index: uint8(i % 251), Opaque: true}
@@ -43,9 +43,9 @@ func drawFrame(w, h int) *terrain.StaticFrame {
 // cullFrameA, so the survivor list must carry that one pointer twice — nothing
 // here merges two cells of a class into one entry.
 var (
-	cullFrameA = drawFrame(10, 6)
-	cullFrameB = drawFrame(20, 20)
-	cullFrameC = drawFrame(40, 380)
+	cullFrameA = syntheticStaticFrame(10, 6)
+	cullFrameB = syntheticStaticFrame(20, 20)
+	cullFrameC = syntheticStaticFrame(40, 380)
 )
 
 // cullPlacement builds one placement at a chosen world top-left, with the anchor

@@ -395,19 +395,20 @@ type MapAdvance func(action ...NoticeAction) (NoticeDest, string, MapOpener)
 // transitions are decidable in a test and the engine layer above it holds no
 // branching of its own.
 type flow struct {
-	endingSeams                                     endingSeams
-	hallFromMenu                                    bool
-	menuArt                                         *MenuPanelArt
-	helpScroll                                      *helpScrollArt
-	questPress                                      bool
-	questTop                                        int
-	questBar                                        scrollBarInput
-	ending                                          EndingView
-	endingPage, endingTop, endingFocus, endingPress int
-	screen                                          Screen
-	picker                                          *Picker
-	load                                            MapLoader
-	viewer                                          *Viewer
+	endingSeams                        endingSeams
+	hallFromMenu                       bool
+	menuArt                            *MenuPanelArt
+	helpScroll                         *helpScrollArt
+	questPress                         buttonLatch
+	questTop                           int
+	questBar                           scrollBarInput
+	ending                             EndingView
+	endingPage, endingTop, endingFocus int
+	endingPress                        buttonLatch
+	screen                             Screen
+	picker                             *Picker
+	load                               MapLoader
+	viewer                             *Viewer
 
 	cursor *CursorManager
 
@@ -963,7 +964,7 @@ func screenExitCursor(s Screen) (string, bool) {
 func (f *flow) setScreen(s Screen) {
 	if s == ScreenMap {
 		f.ending = EndingView{}
-		f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 0, 0, 0, -1
+		f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 0, 0, 0, buttonLatch{}
 	}
 	if exit, ok := screenExitCursor(s); ok {
 		f.surfaceTransition(exit)

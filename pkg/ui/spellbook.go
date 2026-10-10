@@ -229,7 +229,7 @@ func (v *Viewer) spellbookCaptures(x, y int) bool {
 func composeSpellBar(f *text.Font, entries []SpellEntry, selected uint32, cols int, bar image.Rectangle, phase int) *image.RGBA {
 	size := bar.Size()
 	img := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
-	fillPanelFrame(img, size, spellbookFill, spellbookBorder)
+	drawFrame(img, panelFrame(image.Rectangle{Max: size}, spellbookFill, spellbookBorder))
 
 	for i, box := range bookCellRects(bar, cols) {
 		box = box.Sub(bar.Min)
@@ -260,7 +260,7 @@ func composeSpellBar(f *text.Font, entries []SpellEntry, selected uint32, cols i
 			}
 		}
 		if e.ID == selected {
-			drawBorder(img, box, border)
+			drawFrame(img, frameSpec{Kind: frameOutline, Rect: box, Border: border})
 		}
 		if e.Icon == nil {
 			drawSpellLabel(img, f, box, spellAbbrev(e.Name), ink)

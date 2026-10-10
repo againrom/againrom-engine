@@ -65,7 +65,7 @@ func (f *flow) questRows() []gameMenuRow {
 func (a *App) questPicture() *image.RGBA {
 	f := a.flow
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawMenuPanel(pix, questPanelRect, f.menuArt)
+	drawFrame(pix, windowFrame(questPanelRect, f.menuArt))
 	font := f.menuFont
 	if font == nil {
 		return pix
@@ -89,7 +89,7 @@ func (a *App) questPicture() *image.RGBA {
 	rows := f.questRows()
 	inside := pointerOK && pointer.In(questButtonRect)
 	drawPushButton(pix, font, pushButton{Rect: questButtonRect, Label: rows[len(rows)-1].Label, Literal: true,
-		Hover: inside, Inside: inside, Pressed: f.questPress})
+		Hover: inside, Inside: inside, Pressed: f.questPress.Pressed(0)})
 	return pix
 }
 
@@ -138,12 +138,12 @@ func (a *App) paintCurrentGameMenu(dst *ebiten.Image) {
 func (a *App) stepQuestObjectives(in appInput) {
 	f := a.flow
 	if in.Unfocused {
-		f.questPress, f.questBar = false, scrollBarInput{}
+		f.questPress, f.questBar = buttonLatch{}, scrollBarInput{}
 		return
 	}
 	if in.Enter {
 		f.rebuildGameMenu(gameMenuRoot, 0)
-		f.questPress = false
+		f.questPress.Clear()
 		return
 	}
 	if in.Up {
@@ -184,11 +184,10 @@ func (a *App) stepQuestObjectives(in appInput) {
 	}
 	hit := valid && p.In(questButtonRect)
 	if in.PrimaryPressed {
-		f.questPress = hit
+		f.questPress.Press(0, hit)
 	}
 	if in.PrimaryReleased {
-		activate := f.questPress && hit
-		f.questPress = false
+		_, activate := f.questPress.Release(0, hit)
 		if activate {
 			a.playUISound(UISoundCommonControl)
 			f.rebuildGameMenu(gameMenuRoot, 0)

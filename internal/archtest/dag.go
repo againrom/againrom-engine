@@ -90,7 +90,9 @@ var allow = map[string][]string{
 	"pkg/render/backdrop":   {},
 	"pkg/render/camera":     {},
 	"pkg/render/frame":      {},
-	"pkg/render/menu":       {"pkg/formats/bmp"},
+	"pkg/render/menu":       {"pkg/formats/bmp", "pkg/render/latch"},
+	// latch is the one press latch every push button uses; it imports nothing.
+	"pkg/render/latch": {},
 	// The text tier is a LEAF: it holds the font model, the placement rule and
 	// the blit as plain data plus arithmetic, and a loader outside it fills the
 	// data. So it gains the graph a node and no outgoing edge, and this empty

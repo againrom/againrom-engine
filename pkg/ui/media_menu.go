@@ -193,7 +193,7 @@ func movieButtonAt(p image.Point) (int, bool) {
 
 func (a *App) stepMedia(in appInput, now time.Time) {
 	if in.Unfocused {
-		a.media.press.clear()
+		a.media.press.Clear()
 		a.media.bar.reset()
 		a.media.at = time.Time{}
 		return
@@ -254,7 +254,7 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 		return
 	}
 	if in.PrimaryPressed {
-		a.media.press.press(movieButtonAt(p))
+		a.media.press.Press(movieButtonAt(p))
 		if row, hit := box.RowAt(p); ok && hit {
 			top, _ := list.Visible()
 			a.selectMovie(top + row)
@@ -262,7 +262,7 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 	}
 	if in.PrimaryReleased {
 		at, inside := movieButtonAt(p)
-		button, activated := a.media.press.release(at, ok && inside)
+		button, activated := a.media.press.Release(at, ok && inside)
 		if !activated {
 			return
 		}
@@ -281,7 +281,7 @@ func (a *App) composeCutsceneLibrary() *image.RGBA {
 	if a.assets != nil {
 		draw.Draw(dst, dst.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
-	drawMenuPanel(dst, moviePanel, a.flow.menuArt)
+	drawFrame(dst, windowFrame(moviePanel, a.flow.menuArt))
 	font := a.flow.menuFont
 	if font == nil {
 		return dst
@@ -297,21 +297,12 @@ func (a *App) composeCutsceneLibrary() *image.RGBA {
 	for i, r := range []image.Rectangle{movieOK, movieCancel} {
 		inside := pointerOK && pointer.In(r)
 		drawPushButton(dst, font, pushButton{Rect: r, Label: []string{a.media.words.OK, a.media.words.Cancel}[i],
-			Hover: inside, Pressed: a.media.press.pressed(i), Inside: inside})
+			Hover: inside, Pressed: a.media.press.Pressed(i), Inside: inside})
 	}
 	if a.media.message != "" {
 		font.Draw(dst, a.flow.menuDisplayText(a.media.message), movieListArg.Min.X, 350, townShellText)
 	}
 	return dst
-}
-
-func drawMovieBox(dst *image.RGBA, r image.Rectangle, selected bool) {
-	c := color.RGBA{0, 0, 0, 45}
-	if selected {
-		c = color.RGBA{0, 7, 6, 220}
-	}
-	draw.Draw(dst, r, &image.Uniform{C: c}, image.Point{}, draw.Over)
-	outline(dst, r, color.RGBA{57, 77, 65, 255})
 }
 
 func (a *App) openCredits(back Screen) {
