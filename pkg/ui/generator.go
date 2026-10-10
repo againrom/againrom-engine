@@ -338,10 +338,10 @@ type GeneratorStats struct {
 	PoolAt *GeneratorPoint `json:"pool-at"`
 }
 
-// GeneratorCommand is one of Accept, Reset and Back.
+// GeneratorCommand is one of Accept, Reset, Back and Restore.
 type GeneratorCommand struct {
 	Role string         `json:"role"`
-	Slot int            `json:"slot"`
+	Slot int            `json:"slot"` // the main.txt line of the label; Restore names none
 	Rect GeneratorRect  `json:"rect"`
 	Off  string         `json:"off"`
 	On   string         `json:"on"`
@@ -349,9 +349,9 @@ type GeneratorCommand struct {
 	Cite []string       `json:"cite"`
 }
 
-// GeneratorReset is what Reset restores for one install language: "template"
-// values or every attribute's "start"; the skill is kept or set to the
-// default.
+// GeneratorReset is what Reset or Restore returns to for one install language:
+// "template" values or every attribute's "start"; the skill is kept or set to
+// the default.
 type GeneratorReset struct {
 	Language string   `json:"language"`
 	Values   string   `json:"values"`
@@ -414,12 +414,15 @@ type GeneratorDetail struct {
 	CommandInk  GeneratorInk         `json:"command-ink"`
 	// Message is the strip a refused or failed Accept writes its line in;
 	// nil when the page has none.
-	Message      *GeneratorRect    `json:"message"`
-	Preview      GeneratorPreview  `json:"preview"`
-	Focus        []string          `json:"focus"`
-	Keys         GeneratorKeys     `json:"keys"`
-	Repeat       *GeneratorRepeat  `json:"repeat"`
-	Reset        []GeneratorReset  `json:"reset"`
+	Message *GeneratorRect   `json:"message"`
+	Preview GeneratorPreview `json:"preview"`
+	Focus   []string         `json:"focus"`
+	Keys    GeneratorKeys    `json:"keys"`
+	Repeat  *GeneratorRepeat `json:"repeat"`
+	Reset   []GeneratorReset `json:"reset"`
+	// Restore is the rule of the Restore command; a description with no
+	// Restore command names none.
+	Restore      []GeneratorReset  `json:"restore"`
 	Refusals     GeneratorRefusals `json:"refusals"`
 	DefaultSkill *int              `json:"default-skill"`
 	Cite         []string          `json:"cite"`
@@ -472,10 +475,13 @@ const (
 	generatorStats    = int(chargenStatPlus3-chargenStatPlus0) + 1
 	generatorClasses  = 2
 	generatorCommands = 3
+	// generatorCommandsMax is the commands a description may list: the three
+	// every page has and the optional Restore after them.
+	generatorCommandsMax = 4
 )
 
 // The command roles, in the order a description lists them.
-var generatorCommandRoles = [generatorCommands]string{"play", "reset", "back"}
+var generatorCommandRoles = [generatorCommandsMax]string{"play", "reset", "back", "restore"}
 
 // DecodeGenerator reads one description strictly: an unknown field, a
 // trailing value or a failed check is an error naming the description.
@@ -510,8 +516,8 @@ func (d *GeneratorDescription) validate() error {
 		return fmt.Errorf("%d classes, want %d", len(t.Classes), generatorClasses)
 	case len(t.Stats.Value) != generatorStats || len(t.Stats.Plus) != generatorStats || len(t.Stats.Minus) != generatorStats:
 		return fmt.Errorf("attribute boxes are not %d each", generatorStats)
-	case len(t.Commands) != generatorCommands:
-		return fmt.Errorf("%d commands, want %d", len(t.Commands), generatorCommands)
+	case len(t.Commands) != generatorCommands && len(t.Commands) != generatorCommandsMax:
+		return fmt.Errorf("%d commands, want %d or %d", len(t.Commands), generatorCommands, generatorCommandsMax)
 	case len(d.Tips.Select) != len(d.Tips.PreCreateCycle):
 		return fmt.Errorf("%d pre-create tip texts for %d cycle steps", len(d.Tips.Select), len(d.Tips.PreCreateCycle))
 	case p.Name.Cap <= 0 || p.Name.CaretMS <= 0:
@@ -565,8 +571,11 @@ func (d *GeneratorDescription) validate() error {
 	if len(t.Reset) == 0 {
 		return fmt.Errorf("no reset rule")
 	}
-	for _, r := range t.Reset {
-		if !oneOf(r.Values, "template", "start") || !oneOf(r.Skill, "keep", "default") {
+	if (len(t.Restore) != 0) != (len(t.Commands) == generatorCommandsMax) {
+		return fmt.Errorf("%d restore rules for %d commands", len(t.Restore), len(t.Commands))
+	}
+	for _, r := range append(append([]GeneratorReset(nil), t.Reset...), t.Restore...) {
+		if !oneOf(r.Values, "template", "start") || !oneOf(r.Skill, "keep", "default", "preset") {
 			return fmt.Errorf("reset %q/%q", r.Values, r.Skill)
 		}
 	}
@@ -619,8 +628,8 @@ func oneOf(s string, options ...string) bool {
 }
 
 // generatorControlNamed is the control a description names: "name", "back",
-// "forward", "hero/i", "level/i", "skill/i", "minus/i", "plus/i", "reset" or
-// "play".
+// "forward", "hero/i", "level/i", "skill/i", "minus/i", "plus/i", "reset",
+// "restore" or "play".
 func generatorControlNamed(name string) (chargenControl, bool) {
 	switch name {
 	case "name":
@@ -631,6 +640,8 @@ func generatorControlNamed(name string) (chargenControl, bool) {
 		return chargenForward, true
 	case "reset":
 		return chargenReset, true
+	case "restore":
+		return chargenRestore, true
 	case "play":
 		return chargenPlay, true
 	}
@@ -658,8 +669,18 @@ func ms(n int) time.Duration { return time.Duration(n) * time.Millisecond }
 // ResetFor is the reset rule for an install language: the rule naming it, else
 // the rule naming no language.
 func (d *GeneratorDetail) ResetFor(language string) GeneratorReset {
+	return ruleFor(d.Reset, language)
+}
+
+// RestoreFor is the Restore rule for an install language, chosen as ResetFor
+// chooses; it is empty for a description with no Restore command.
+func (d *GeneratorDetail) RestoreFor(language string) GeneratorReset {
+	return ruleFor(d.Restore, language)
+}
+
+func ruleFor(rules []GeneratorReset, language string) GeneratorReset {
 	var fallback GeneratorReset
-	for _, r := range d.Reset {
+	for _, r := range rules {
 		if r.Language == language {
 			return r
 		}

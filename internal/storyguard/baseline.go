@@ -2082,6 +2082,9 @@ package storyguard
 // docs of data.HeroArchetype, the preset skills, the value and counter draw,
 // Chargen.CardView, the card report and the new tests, new code,
 // including this paragraph.
+// CommentBytes rises for the generator's Restore button: the docs of
+// Chargen.Restore, returnTo, RestoreFor, the Restore label and the new tests,
+// new code, including this paragraph.
 // CommentBytes rises for the second game's music: the docs of the music
 // description, the controller's request rule, pause seam and area select,
 // the music areas decoder, the mission music wiring, -nomusic and their
@@ -2109,5 +2112,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8640140,
+	CommentBytes: 8641772,
 }

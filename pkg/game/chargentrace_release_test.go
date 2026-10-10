@@ -163,7 +163,7 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 		[]byte{255, 191, 152, 127, 102})
 	off := image.Pt(320, 20)
 	name := image.Pt(290, 322)
-	accept, reset, back := image.Pt(554, 67), image.Pt(554, 114), image.Pt(554, 161)
+	accept, reset, back, restore := image.Pt(554, 67), image.Pt(554, 114), image.Pt(554, 161), image.Pt(554, 208)
 	tipClose := func(r image.Rectangle) image.Point {
 		c := ui.TipPanelCloseRect(r)
 		return c.Min.Add(c.Size().Div(2))
@@ -269,13 +269,14 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 	}
 	tr.hover(image.Pt(80, 360), 4)
 	tr.hover(image.Pt(560, 360), 4)
-	for _, p := range []image.Point{accept, reset, back} {
+	for _, p := range []image.Point{accept, reset, back, restore} {
 		tr.hover(p, 3)
 		tr.edge("press", p)
 		tr.hover(off, 2)
 		tr.edge("release", off)
 	}
 	tr.click(reset)
+	tr.click(restore)
 	tr.hover(tipToggle(chargenTipRect), 3)
 	tr.click(tipClose(chargenTipRect))
 	tr.hover(off, 10)

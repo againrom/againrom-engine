@@ -111,10 +111,14 @@ type ChargenSetup struct {
 	// on Preview/Derive's own "may be nil" precedent.
 	SetTipsOn func(bool)
 
-	// ResetStart makes Reset restore every statistic's Start rather than the
-	// chosen picture's preset, and ResetSkill makes it restore the skill row's
-	// Start as well. Both false keep the preset and the chosen skill.
-	ResetStart, ResetSkill bool
+	// ResetStart makes Reset restore every statistic's Start, not the
+	// picture's preset. ResetSkill: "keep" (or empty), "default" (the skill
+	// row's Start) or "preset" (the picture's starting skill).
+	ResetStart bool
+	ResetSkill string
+	// RestoreStart and RestoreSkill are the same two choices for Restore.
+	RestoreStart bool
+	RestoreSkill string
 
 	// Draws is the presentation stream a randomly placed sparkle reads; nil
 	// draws zero.
@@ -155,7 +159,9 @@ type ChargenPreCreate struct {
 
 // ChargenDetailed is the source wording and hover text for the detailed page.
 type ChargenDetailed struct {
-	Back, Reset, Play       string
+	Back, Reset, Play string
+	// Restore is the Restore button's label, empty for a page with none.
+	Restore                 string
 	EmptyName, ReservedName string
 	SkillHover              [generatorClasses][generatorSkills]string
 }
@@ -474,16 +480,38 @@ func (c *Chargen) Back() bool {
 // Reset restores the detailed fields as the setup's reset rule says. It is
 // idempotent and does not alter the stored pre-create identity.
 func (c *Chargen) Reset() {
+	c.returnTo(c.setup.ResetStart, c.setup.ResetSkill)
+}
+
+// Restore returns the draft to the chosen picture's starting values by its
+// own rule.
+func (c *Chargen) Restore() {
+	c.returnTo(c.setup.RestoreStart, c.setup.RestoreSkill)
+}
+
+// returnTo rebuilds the detailed draft: every statistic's Start or the chosen
+// picture's preset, and the skill kept, defaulted or preset.
+func (c *Chargen) returnTo(start bool, skill string) {
 	if c == nil || c.stage != DetailedStage {
 		return
 	}
-	if c.setup.ResetStart {
+	if start {
 		c.startStats()
 	} else {
 		c.resetStats()
 	}
-	if c.setup.ResetSkill && len(c.choiceIndex) > 2 {
-		c.choiceIndex[2] = c.startIndex(2)
+	if len(c.choiceIndex) > 2 {
+		switch skill {
+		case "default":
+			c.choiceIndex[2] = c.startIndex(2)
+		case "preset":
+			c.choiceIndex[2] = c.startIndex(2)
+			if c.preChoice >= 0 && c.preChoice < len(c.setup.PresetSkills) {
+				if s := c.setup.PresetSkills[c.preChoice] - 1; s >= 0 && s < len(c.choiceOptions(2)) {
+					c.choiceIndex[2] = s
+				}
+			}
+		}
 	}
 	c.rebuildPreview()
 }
