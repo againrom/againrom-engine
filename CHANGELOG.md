@@ -8,10 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
-- [BASE] An overloaded hero with a speed bonus or penalty now moves and turns
-  as in the original: the overload slows his own speed first and the bonus or
-  penalty is added after it. His character card shows that speed, and it is
-  kept through a save.
+- [BASE] An overloaded hero now moves and turns as in the original: the
+  overload slows his own speed first, to no less than 6, and a speed bonus or
+  penalty is added after it. His character card shows that speed for every
+  overloaded hero, and it is kept through a save.
 
 ## 0.108.0
 
