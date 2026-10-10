@@ -31,13 +31,13 @@ func TestBoltRoutesDrawTheirPublishedPhaseSequences(t *testing.T) {
 		mw := spWorld(t)
 		c.spawn(mw)
 		var got []int
-		for len(mw.bolts) > 0 {
+		for len(flightRecords(mw)) > 0 {
 			draws := mw.boltDraws(nil)
 			if len(draws) == 0 {
 				t.Fatalf("%s: call %d drew nothing", c.name, len(got)+1)
 			}
 			got = append(got, draws[0].Frame)
-			mw.advanceBolts()
+			flightStep(mw)
 		}
 		if !slices.Equal(got, c.want) {
 			t.Errorf("%s: frames %v, want %v", c.name, got, c.want)
@@ -55,19 +55,19 @@ func TestPrismaticFrameAddsFiveTimesTheVictimIndex(t *testing.T) {
 		victims[k] = sim.CellPoint{X: int32(4 + k%5), Y: int32(6 + k/5)}
 	}
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spPrismatic, FromX: 1, FromY: 1, ToX: 4, ToY: 6, Victims: victims}})
-	b := mw.bolts[9]
-	if b.tag != 2 {
+	link := func() spellBolt { return mw.recordPaths(flightRecords(mw)[0], 0)[9] }
+	if b := link(); b.tag != 2 {
 		t.Fatalf("victim 9 carries tag %d, want 9%%7=2", b.tag)
 	}
 	for range 4 {
-		mw.advanceBolts() // call 5: phase 0
+		flightStep(mw) // call 5: phase 0
 	}
-	_, frame, points := mw.pathFigure(mw.bolts[9])
+	_, frame, points := mw.pathFigure(link())
 	if frame != 0+5*2 || len(points) == 0 {
 		t.Fatalf("victim 9 at call 5 draws frame %d, want 10", frame)
 	}
-	mw.advanceBolts() // call 6: phase 1
-	if _, frame, _ = mw.pathFigure(mw.bolts[9]); frame != 1+5*2 {
+	flightStep(mw) // call 6: phase 1
+	if _, frame, _ = mw.pathFigure(link()); frame != 1+5*2 {
 		t.Fatalf("victim 9 at call 6 draws frame %d, want 11", frame)
 	}
 }
@@ -78,7 +78,7 @@ func TestABoltStampsEachStoredPointOnceInListOrder(t *testing.T) {
 	t.Parallel()
 	mw := spWorld(t)
 	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
-	b := mw.bolts[0]
+	b := mw.recordPaths(flightRecords(mw)[0], 0)[0]
 	ax, ay := mw.boltDisplayPoint(castOrigin(b.from, b.launch), b.from)
 	bx, by := mw.boltDisplayPoint(b.to.Mul(256), b.to)
 	want := boltFigure(ax, ay, bx, by, 34, (&boltRNG{state: boltSeed(b)}).next)
@@ -93,49 +93,33 @@ func TestABoltStampsEachStoredPointOnceInListOrder(t *testing.T) {
 	}
 }
 
-// TestALoadedBoltContinuesItsCounterAndPhase: the visual snapshot keeps age,
-// life and route, so a restored object draws the uninterrupted sequence.
-func TestALoadedBoltContinuesItsCounterAndPhase(t *testing.T) {
+// TestABoltRecordWithoutItsLookKeepsItsCounterAndPhase: a LOAD loses the
+// look (SAV-1202), and the frame is the record's own phase, so the record
+// draws the uninterrupted phase sequence.
+func TestABoltRecordWithoutItsLookKeepsItsCounterAndPhase(t *testing.T) {
 	t.Parallel()
 	run := func(cut int) []int {
 		mw := spWorld(t)
 		mw.observeScriptCasts([]sim.ScriptCastEvent{{Spell: spLightning, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
 		var frames []int
-		for i := 0; len(mw.bolts) > 0; i++ {
+		for i := 0; len(flightRecords(mw)) > 0; i++ {
 			if i == cut {
-				var r SnapshotResidue
-				mw.actionVisuals(&r)
-				fresh := spWorld(t)
-				fresh.restoreActionVisuals(r.SpellBolts, r.HealBursts)
-				mw = fresh
+				clear(mw.flights)
 			}
-			_, frame, _ := mw.pathFigure(mw.bolts[0])
+			paths := mw.recordPaths(flightRecords(mw)[0], 0)
+			if len(paths) != 1 {
+				t.Fatalf("cut %d call %d: %d figures, want 1", cut, i, len(paths))
+			}
+			_, frame, _ := mw.pathFigure(paths[0])
 			frames = append(frames, frame)
-			mw.advanceBolts()
+			flightStep(mw)
 		}
 		return frames
 	}
 	whole := run(-1)
 	for cut := 1; cut < 5; cut++ {
 		if got := run(cut); !slices.Equal(got, whole) {
-			t.Errorf("restored at call %d: frames %v, want %v", cut+1, got, whole)
+			t.Errorf("look lost at call %d: frames %v, want %v", cut+1, got, whole)
 		}
-	}
-}
-
-// A path object spawned this tick keeps age 0 for its first push.
-func TestABoltSpawnedThisTickIsNotAgedBeforeItsFirstPush(t *testing.T) {
-	t.Parallel()
-	mw := spWorld(t)
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
-	born := len(mw.bolts)
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spLightning, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
-	mw.observeCasts([]sim.CastEvent{{Caster: 1, Target: 2, Spell: spFireBall, FromX: 2, FromY: 2, ToX: 9, ToY: 6}})
-	if len(mw.bolts) != 3 {
-		t.Fatalf("spawned %d objects, want 3", len(mw.bolts))
-	}
-	mw.advanceBoltsBornFrom(born)
-	if got := []int{mw.bolts[0].age, mw.bolts[1].age, mw.bolts[2].age}; !slices.Equal(got, []int{1, 0, 1}) {
-		t.Fatalf("ages after the spawn tick %v, want [1 0 1]", got)
 	}
 }

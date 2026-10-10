@@ -4,7 +4,6 @@ import (
 	"image"
 
 	"againrom/pkg/data"
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -117,40 +116,6 @@ func pictureLightStamps(out []ui.LightStamp, picture int, cell image.Point, phas
 	return out
 }
 
-// boltLightStamps stamps one spellBolt where and as it is drawn.
-func (mw *mapWorld) boltLightStamps(out []ui.LightStamp, b spellBolt, bounds sim.Bounds) []ui.LightStamp {
-	if b.picture == healingPicture || b.age < b.delay {
-		return out
-	}
-	if data.CastDrawsPath(b.picture) {
-		_, _, points := mw.pathFigure(b)
-		return mw.pathLightStamps(out, points, boltDriverPhase(b), bounds)
-	}
-	age, life := b.age-b.delay, b.life-b.delay
-	num := min(age+1, life)
-	phase := -1
-	if b.picture == fireBallBurstPicture {
-		phase = mw.burstLightPhase(age)
-	}
-	return pictureLightStamps(out, b.picture, lightCell(castShotPoint(b.from, b.to, num, life, b.launch)), phase)
-}
-
-// burstLightPhase is the explosion phase spellDraw draws at age, or -1.
-func (mw *mapWorld) burstLightPhase(age int) int {
-	sheet := mw.projectiles.Sheet(fireBallBurstPicture)
-	if sheet == nil {
-		return -1
-	}
-	phase, ok := terrain.EffectPhase(sheet.Clock, age, sheet.Phases)
-	if !ok {
-		return -1
-	}
-	if age == data.BurstLife(fireBallBurstPicture)-1 {
-		phase = sheet.Phases - 1
-	}
-	return phase
-}
-
 // objectLightStamps is this push's stamps: objects in draw order, then Wall
 // of Fire, written after the object calls (MAGIC-272).
 func (mw *mapWorld) objectLightStamps(ents []sim.Entity) []ui.LightStamp {
@@ -159,39 +124,20 @@ func (mw *mapWorld) objectLightStamps(ents []sim.Entity) []ui.LightStamp {
 	}
 	bounds := mw.world.Bounds()
 	var out []ui.LightStamp
-	for _, b := range mw.bolts {
-		out = mw.boltLightStamps(out, b, bounds)
-	}
-	out = mw.savedProjectileLightStamps(out)
-	for _, b := range mw.weaponBolts(ents) {
-		if data.CastDrawsPath(b.picture) {
-			out = mw.boltLightStamps(out, b, bounds)
-			continue
-		}
-		// weaponBoltDraws draws a flying picture at swing/charge, not (age+1).
-		out = pictureLightStamps(out, b.picture, lightCell(castShotPoint(b.from, b.to, b.age, b.life, b.launch)), -1)
-	}
-	for _, s := range mw.shots.flying {
-		b := s.spellBolt
-		out = pictureLightStamps(out, b.picture, lightCell(castShotPoint(b.from, b.to, b.age+1, b.life, b.launch)), -1)
-	}
+	out = mw.savedProjectileLightStamps(out, bounds)
 	return mw.wallFireLightStamps(out)
 }
 
-// savedProjectileLightStamps stamps the armed World projectile records.
-func (mw *mapWorld) savedProjectileLightStamps(out []ui.LightStamp) []ui.LightStamp {
-	d := mw.world.SavedWorldEffectDrivers()
-	if d == nil {
-		return out
-	}
-	armed := map[uint16]bool{}
-	for _, row := range d.Projectiles {
-		if !row.Retired {
-			armed[row.ID] = true
-		}
-	}
-	for _, p := range mw.world.SavedProjectiles().Items {
-		if !armed[p.ID] {
+// savedProjectileLightStamps stamps the armed World projectile records, a
+// path record at each of its figures' points.
+func (mw *mapWorld) savedProjectileLightStamps(out []ui.LightStamp, bounds sim.Bounds) []ui.LightStamp {
+	records, owners := mw.armedRecords()
+	for _, p := range records {
+		if data.CastDrawsPath(int(p.Picture)) {
+			for _, b := range mw.recordPaths(p, owners[p.ID]) {
+				_, _, points := mw.pathFigure(b)
+				out = mw.pathLightStamps(out, points, int(p.Phase), bounds)
+			}
 			continue
 		}
 		cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))

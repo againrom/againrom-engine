@@ -8,6 +8,14 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] A save taken while a spell, a burst or a shot is in flight keeps it:
+  after loading, the spell or the shot flies on and lands with the same
+  damage, as in the original. This includes a shot at a building.
+- [BASE] A staff's bolt is drawn from the moment of the release, not across the
+  wind-up. A spell's bolt no longer ends in a burst at the target for the
+  spells that have none (3, 7, 8, 12, 17 and 19), a siege rider no longer
+  shows a spell bolt, and the smoke trail of a bolt draws its frames in the
+  original's order.
 - [ROM2] A first-town save loads on an install whose town text lacks the inn
   conversation.
 

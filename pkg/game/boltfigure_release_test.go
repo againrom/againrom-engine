@@ -25,14 +25,16 @@ func TestReleaseLightningFigureOverItsLife(t *testing.T) {
 		t.Fatalf("installed bolt sheets hold %v/%v frames, want 5 and 35", sheet, chain)
 	}
 	victim := launchIssue(t, mw, hero)
-	var seed uint32
+	var id uint16
 	var frames []int
 	for tick := 0; tick < 240; tick++ {
 		mw.tick()
 		var obj *spellBolt
-		for i := range mw.bolts {
-			if b := &mw.bolts[i]; b.picture == 34 && (len(frames) == 0 || b.seed == seed) {
-				obj = b
+		for _, p := range flightRecords(mw) {
+			if p.Picture == 34 && (len(frames) == 0 || p.ID == id) {
+				if paths := mw.recordPaths(p, 0); len(paths) == 1 {
+					obj, id = &paths[0], p.ID
+				}
 			}
 		}
 		if obj == nil {
@@ -41,7 +43,6 @@ func TestReleaseLightningFigureOverItsLife(t *testing.T) {
 			}
 			continue
 		}
-		seed = obj.seed
 		ax, ay := mw.boltDisplayPoint(castOrigin(obj.from, obj.launch), obj.from)
 		bx, by := mw.boltDisplayPoint(obj.to.Mul(256), obj.to)
 		stored := boltFigure(ax, ay, bx, by, 34, (&boltRNG{state: boltSeed(*obj)}).next)
@@ -91,10 +92,9 @@ func boltRenders(t *testing.T, f *FrontEnd, hero sim.EntityID) {
 		t.Fatal(err)
 	}
 	at := image.Pt(int(e.X)+5, int(e.Y)+2)
-	mw.bolts = nil
 	mw.observeCasts([]sim.CastEvent{{Caster: hero, Spell: spLightning, Owner: e.Owner, FromX: e.X, FromY: e.Y,
 		ToX: int32(at.X), ToY: int32(at.Y), Facing: launchFacings[2]}})
-	for call := 1; len(mw.bolts) > 0; call++ {
+	for call := 1; len(flightRecords(mw)) > 0 && call <= 40; call++ {
 		if call%3 == 1 {
 			mw.push()
 			pix, _, err := mw.view.HeadlessMapFrame(image.Pt(int(e.X)+2, int(e.Y)+1), 320, 224)
@@ -103,6 +103,6 @@ func boltRenders(t *testing.T, f *FrontEnd, hero sim.EntityID) {
 			}
 			launchWritePNG(t, dir, fmt.Sprintf("call-%02d.png", call), pix)
 		}
-		mw.advanceBolts()
+		flightStep(mw)
 	}
 }

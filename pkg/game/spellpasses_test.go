@@ -48,10 +48,11 @@ func TestRetainedOverlayPassesAndCellArmPriority(t *testing.T) {
 
 func TestOrdinaryObjectUsingRetainedArtStaysInProjectilePass(t *testing.T) {
 	mw := aoWorld(t)
-	at := image.Pt(4, 4)
-	draw, ok := mw.spellDraw(15, at, at, image.Pt(4*ui.ShotScale, 4*ui.ShotScale), 0, 1)
-	if !ok || draw.Pass != ui.SpellProjectiles {
-		t.Fatalf("ordinary object was classified by shared picture 15: ok=%v pass=%d", ok, draw.Pass)
+	at := int32(4*ui.ShotScale + 128)
+	mw.world.ReleaseCast(sim.CastRecord{Picture: 15, Phases: 1, X: at, Y: at, AimX: at, AimY: at, Segments: 3})
+	draws := mw.savedProjectileDraws()
+	if len(draws) != 1 || draws[0].Pass != ui.SpellProjectiles {
+		t.Fatalf("ordinary record was classified by shared picture 15: %+v", draws)
 	}
 }
 
