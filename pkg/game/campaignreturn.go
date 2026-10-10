@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 )
 
@@ -23,6 +24,8 @@ type townInstall struct {
 	bodies   data.BodyList
 	campaign Campaign
 	npcName  func(index int, fallback string) string
+	// stock is the shop-stock stream; nil draws on the campaign seed.
+	stock *random.Stream
 }
 
 // townInstall is the install's definitions for a town operation.
@@ -70,7 +73,7 @@ func (s *CampaignSession) arriveInTown(in townInstall) {
 	s.Town.Arrive()
 	ceiling := int32(s.Town.ChapterData().ShopMax)
 	s.Shop = NewShop(ceiling)
-	s.Shop.Generate(in.table, shopSeed(s.Town.Chapter(), s.Town.finishedCount(), ceiling))
+	s.Shop.GenerateWith(in.table, shopSeed(s.Town.Chapter(), s.Town.finishedCount(), ceiling), in.stock)
 	if s.Town.restoredCampaign() {
 		s.addChapterCompanions(in, s.Town.Chapter())
 	}

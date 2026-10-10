@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -394,7 +395,7 @@ func TestSelectionReplyNeedsAnOwnedPrimaryAndTheOption(t *testing.T) {
 
 // TestViewerVoiceDrawStaysInRange checks the generator spans 0..32767.
 func TestViewerVoiceDrawStaysInRange(t *testing.T) {
-	draw := newVoiceDraw()
+	draw := newVoiceDraw(random.NewStream(1))
 	lo, hi := voiceDrawRange, 0
 	for range 20000 {
 		d := draw()

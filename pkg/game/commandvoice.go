@@ -3,9 +3,9 @@ package game
 import (
 	"fmt"
 	"image"
-	"math/rand"
 	"time"
 
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -18,17 +18,14 @@ const (
 	voiceDrawRange = 0x7fff
 )
 
-// voiceDraw returns one value of 0 to voiceDrawRange from a viewer-owned
-// generator; the original shares its generator with the simulation (DIV-2038).
+// voiceDraw returns one value of 0 to voiceDrawRange from the command-voice
+// stream; in original mode that is the shared stream (DIV-2038).
 type voiceDraw func() int
 
 // newViewerVoiceDraw is replaced by tests to script the draws.
 var newViewerVoiceDraw = newVoiceDraw
 
-func newVoiceDraw() voiceDraw {
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return func() int { return rng.Intn(voiceDrawRange + 1) }
-}
+func newVoiceDraw(st *random.Stream) voiceDraw { return st.Raw }
 
 // speakerOf chooses one living member with a voice bank from the first
 // non-empty tier by the index draw*n/32767 (VIDEO-068). A draw of 32767 names

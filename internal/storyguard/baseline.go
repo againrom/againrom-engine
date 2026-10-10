@@ -1998,6 +1998,9 @@ package storyguard
 // leave witness, new code, including this paragraph.
 // CommentBytes rises for the SAV byte producer list in internal/archtest's
 // saveproducer_list.go and its guard doc, new code, including this paragraph.
+// CommentBytes rises for the random service: the docs of pkg/random, of the
+// World stream's two modes and of every consumer moved onto a named stream,
+// new code, including this paragraph.
 // CommentBytes rises for the engine words: the docs of the new pkg/words and its
 // tests and the engine-words scan in internal/archtest, new code, including
 // this paragraph.
@@ -2022,7 +2025,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1776,
+		"longcommentgroups":      1774,
 	},
-	CommentBytes: 8537377,
+	CommentBytes: 8554000,
 }

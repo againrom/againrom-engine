@@ -2,11 +2,11 @@ package ui
 
 import (
 	"image"
-	"math/rand"
 	"strconv"
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 )
 
@@ -67,15 +67,15 @@ type ambientController struct {
 	bank        SoundBank
 	ones        audio.Player
 	device      AmbientDevice
-	rng         *rand.Rand
+	draws       *random.Stream
 	next        time.Time
 	loop        [ambientLoopCount]ambientLoopState
 	origin      image.Point
 	originReady bool
 }
 
-func newAmbientController(bank SoundBank, ones audio.Player, device AmbientDevice, seed int64) *ambientController {
-	return &ambientController{bank: bank, ones: ones, device: device, rng: rand.New(rand.NewSource(seed))}
+func newAmbientController(bank SoundBank, ones audio.Player, device AmbientDevice, draws *random.Stream) *ambientController {
+	return &ambientController{bank: bank, ones: ones, device: device, draws: draws}
 }
 
 func (c *ambientController) update(now time.Time, s ambientSnapshot) {
@@ -113,10 +113,10 @@ func (c *ambientController) update(now time.Time, s ambientSnapshot) {
 	}
 
 	slot := ambientCrowSlot
-	if ambientBirdWins(c.rng, total, len(s.birds)) {
+	if ambientBirdWins(c.draws, total, len(s.birds)) {
 		// The executable divides a 0..32767 draw by 16383. Slot 62 is therefore
 		// possible but rare, and its absent archive entry lawfully yields silence.
-		slot = ambientBirdSlot + c.rng.Intn(0x8000)/0x3fff
+		slot = ambientBirdSlot + c.draws.Raw()/0x3fff
 	}
 	all := make([]image.Point, 0, total)
 	all = append(all, s.birds...)
@@ -191,20 +191,20 @@ func (c *ambientController) stop() {
 }
 
 func (c *ambientController) nextDelay() time.Duration {
-	return time.Duration(10000+c.rng.Intn(0x8000)/2) * time.Millisecond
+	return time.Duration(10000+c.draws.Raw()/2) * time.Millisecond
 }
 
 // ambientBirdWins mirrors the executable's count-ratio draw. FireObject is a
 // two-way class flag here, never a weight or an object-class subscript.
-func ambientBirdWins(rng *rand.Rand, total, birds int) bool {
-	if rng == nil || total <= 0 {
+func ambientBirdWins(draws *random.Stream, total, birds int) bool {
+	if draws == nil || total <= 0 {
 		return false
 	}
 	divisor := 0x7fff / total
 	if divisor < 1 {
 		divisor = 1
 	}
-	return rng.Intn(0x8000)/divisor < birds
+	return draws.Raw()/divisor < birds
 }
 
 func ambientCentroid(cells []image.Point) image.Point {
@@ -282,12 +282,12 @@ func (v *Viewer) ambientSnapshot() ambientSnapshot {
 
 // SetAmbientAudio installs mission ambience. The ordinary sound player owns
 // deadline one-shots; the retained device owns river and Wall of Fire loops.
-func (v *Viewer) SetAmbientAudio(ones audio.Player, bank SoundBank, device AmbientDevice, seed int64) {
+func (v *Viewer) SetAmbientAudio(ones audio.Player, bank SoundBank, device AmbientDevice, draws *random.Stream) {
 	if v == nil {
 		return
 	}
 	v.StopAmbient()
-	v.ambient = newAmbientController(bank, ones, device, seed)
+	v.ambient = newAmbientController(bank, ones, device, draws)
 }
 
 // SetAmbientWallFire replaces the live Wall of Fire source cells. The copy and

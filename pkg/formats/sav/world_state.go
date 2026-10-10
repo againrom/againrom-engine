@@ -95,6 +95,10 @@ func worldStateShape(state *cityState) ([]stateDirectory, error) {
 			}
 		}
 	}
+	shape, err := withSessionLeaf(state, shape)
+	if err != nil {
+		return nil, err
+	}
 	mods, err := modsLeaf(state)
 	if err != nil {
 		return nil, err

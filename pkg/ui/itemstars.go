@@ -1,12 +1,16 @@
 package ui
 
-import "image"
+import (
+	"image"
+
+	"againrom/pkg/random"
+)
 
 // The item-cell star trail is a presentation layer. ITEM-STARPIX-098 gives
-// the CRT recurrence and the complete point kernel, but leaves the process
-// seed and the draws made before each grid constructor Unknown. This build
-// therefore normalises only that unknown starting state to zero (DIV-497).
-// The recurrence, coordinate range, phase lookup and colour remain decoded.
+// the CRT recurrence and the complete point kernel. Seeded mode starts the
+// grids at state zero (DIV-497); original mode starts them at seed 1, where
+// the four grids take draws 1..8192 (SESS-083). The recurrence, coordinate
+// range, phase lookup and colour remain decoded.
 const (
 	itemStarPointCount = 1024
 	itemStarPointMask  = itemStarPointCount - 1
@@ -19,28 +23,36 @@ type itemStarField struct {
 // Four grids are enough for the complete measured production population:
 // mission pack, shop shelf, shop table and shop shown-member pack. Keeping
 // one table per grid preserves ITEM-STARPIX-098's constructor ownership.
-var itemStarFields = func() [4]itemStarField {
+var itemStarFields = itemStarGrids(0)
+
+// itemStarGrids builds the four grids in order from one stream at seed.
+func itemStarGrids(seed uint32) [4]itemStarField {
 	var fields [4]itemStarField
-	var state uint32 // normalised Unknown CRT state; see DIV-497 above.
+	r := random.MSVC{State: seed}
 	for i := range fields {
-		fields[i] = makeItemStarField(&state)
+		fields[i] = makeItemStarField(&r)
 	}
 	return fields
-}()
+}
 
-func makeItemStarField(state *uint32) itemStarField {
+// SetOriginalItemStars builds the grids from the original's start seed when
+// on, and from the seeded mode's state zero otherwise.
+func SetOriginalItemStars(on bool) {
+	seed := uint32(0)
+	if on {
+		seed = random.OriginalStartSeed
+	}
+	itemStarFields = itemStarGrids(seed)
+}
+
+func makeItemStarField(r *random.MSVC) itemStarField {
 	var field itemStarField
 	for i := range field.points {
-		x := int(itemStarRand(state)/0x1ff) + 8
-		y := int(itemStarRand(state)/0x1ff) + 8
+		x := int(r.Rand()/0x1ff) + 8
+		y := int(r.Rand()/0x1ff) + 8
 		field.points[i] = image.Pt(x, y)
 	}
 	return field
-}
-
-func itemStarRand(state *uint32) uint32 {
-	*state = *state*0x343fd + 0x269ec3
-	return (*state >> 16) & 0x7fff
 }
 
 var itemStarAlpha = [...]uint8{63, 127, 191, 255, 191, 127, 63}

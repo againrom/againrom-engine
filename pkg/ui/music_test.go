@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 )
 
 type recordingMusicSource struct {
@@ -90,7 +91,7 @@ func TestMissionShuffleIsSeededAndVisitsAllBeforeRepeat(t *testing.T) {
 	run := func(seed int64) []string {
 		source := &recordingMusicSource{}
 		device := &recordingMusicDevice{}
-		music := NewMusicController(source, device, seed)
+		music := NewMusicController(source, device, random.NewStream(seed))
 		music.SetScene(MusicMission, false)
 		for i := 0; i < 12; i++ {
 			device.ended = true
@@ -120,7 +121,7 @@ func TestMissionShuffleIsSeededAndVisitsAllBeforeRepeat(t *testing.T) {
 func TestOneFileEOFRepeats(t *testing.T) {
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
-	music := NewMusicController(source, device, 1)
+	music := NewMusicController(source, device, random.NewStream(1))
 	music.SetScene(MusicMenu, false)
 	device.ended = true
 	music.Update()
@@ -132,7 +133,7 @@ func TestOneFileEOFRepeats(t *testing.T) {
 func TestSceneReplacementStopsBeforeStartAndSameSceneIsIdempotent(t *testing.T) {
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
-	music := NewMusicController(source, device, 2)
+	music := NewMusicController(source, device, random.NewStream(2))
 	music.SetScene(MusicMenu, false)
 	music.SetScene(MusicMenu, false)
 	music.SetScene(MusicShop, false)
@@ -145,7 +146,7 @@ func TestSceneReplacementStopsBeforeStartAndSameSceneIsIdempotent(t *testing.T) 
 func TestMissingDeviceTrackAndMalformedTrackAreSilent(t *testing.T) {
 	t.Run("nil device does not even load", func(t *testing.T) {
 		source := &recordingMusicSource{}
-		NewMusicController(source, nil, 1).SetScene(MusicMenu, false)
+		NewMusicController(source, nil, random.NewStream(1)).SetScene(MusicMenu, false)
 		if len(source.loads) != 0 {
 			t.Fatalf("nil device loaded %v", source.loads)
 		}
@@ -159,7 +160,7 @@ func TestMissingDeviceTrackAndMalformedTrackAreSilent(t *testing.T) {
 			{oddFrame: map[string]bool{"menu.wav": true}},
 		} {
 			device := &recordingMusicDevice{}
-			music := NewMusicController(source, device, 1)
+			music := NewMusicController(source, device, random.NewStream(1))
 			music.SetScene(MusicMenu, false)
 			music.Update()
 			if len(device.events) != 0 || music.residentTracks() != 0 {
@@ -180,7 +181,7 @@ func TestControllerRetainsAtMostOneCurrentTrack(t *testing.T) {
 	}
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
-	music := NewMusicController(source, device, 3)
+	music := NewMusicController(source, device, random.NewStream(3))
 	music.SetScene(MusicMission, false)
 	for i := 0; i < 30; i++ {
 		if got := music.residentTracks(); got > 1 {
@@ -219,7 +220,7 @@ func TestAppRecordsTheStaticSceneLifecycleWithoutOverlayRestarts(t *testing.T) {
 	source := &recordingMusicSource{}
 	device := &recordingMusicDevice{}
 	a := newTestApp(t, appRows(1), okLoader(t))
-	a.SetMusic(source, device, 1070)
+	a.SetMusic(source, device, random.NewStream(1070))
 
 	if err := a.OpenChargen(NewChargen(chargenLegalSetup()), nil); err != nil {
 		t.Fatal(err)
@@ -270,5 +271,35 @@ func TestAppRecordsTheStaticSceneLifecycleWithoutOverlayRestarts(t *testing.T) {
 	a.StopMusic()
 	if got := device.events[len(device.events)-1]; got != "stop" {
 		t.Fatalf("teardown ended with %q, want stop", got)
+	}
+}
+
+// In original mode a list replace draws its start track rand()%n, and the
+// order build swaps n times only in Random Order (MAGIC-286), all on the one
+// shared stream.
+func TestOriginalReplaceDrawsStartThenOrder(t *testing.T) {
+	for _, randomOrder := range []bool{false, true} {
+		svc := random.NewService(random.Session{Mode: random.Original, Shared: 1})
+		source, device := &recordingMusicSource{}, &recordingMusicDevice{}
+		music := NewMusicController(source, device, svc.Stream(random.Music))
+		music.preferences.RandomOrder = randomOrder
+		music.SetScene(MusicMission, false)
+		tracks := staticMusicTracks(MusicMission, false)
+		probe := random.MSVC{State: 1}
+		start := int(probe.Rand()) % len(tracks)
+		draws := 1
+		if randomOrder {
+			for range tracks {
+				probe.Rand()
+				probe.Rand()
+				draws += 2
+			}
+		}
+		if svc.SharedState() != probe.State {
+			t.Fatalf("random order %v: shared state %#x, want %#x after %d draws", randomOrder, svc.SharedState(), probe.State, draws)
+		}
+		if len(source.loads) == 0 || source.loads[0] != tracks[start] {
+			t.Fatalf("random order %v: first track %v, want %s", randomOrder, source.loads, tracks[start])
+		}
 	}
 }

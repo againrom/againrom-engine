@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 )
 
@@ -22,7 +23,7 @@ var releaseVoiceLeaves = []string{"select1", "select2", "command1", "command2", 
 func TestReleaseUnitRepliesPlayInstalledRecordings(t *testing.T) {
 	script := &scriptedDraw{}
 	previous := newViewerVoiceDraw
-	newViewerVoiceDraw = func() voiceDraw { return script.draw }
+	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return script.draw }
 	t.Cleanup(func() { newViewerVoiceDraw = previous })
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

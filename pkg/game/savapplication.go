@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -713,17 +714,19 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 }
 
 // Legacy bounded imports without complete Document authority keep their old
-// bootstrap. Only an exact authored leaf can install a different native stream.
-func restoreOriginalRandomState(ms *Mission) error {
-	if ms.savedDocument == nil || ms.savedDocument.Document == nil {
-		return nil
+// bootstrap. Only an exact authored leaf can install a different native stream,
+// in the mode the file recorded; the stream is then carried into the current
+// mode (loadedWorldRandom).
+func restoreOriginalRandomState(ms *Mission, saved, current random.Session) error {
+	if ms.savedDocument != nil && ms.savedDocument.Document != nil {
+		value, present, err := sav.NativeRandomState(ms.savedDocument.Document.State)
+		if err != nil {
+			return err
+		}
+		if present {
+			ms.World.SetRandom(saved.Mode, value)
+		}
 	}
-	value, present, err := sav.NativeRandomState(ms.savedDocument.Document.State)
-	if err != nil {
-		return err
-	}
-	if present {
-		ms.World.RestoreRandomState(value)
-	}
+	loadedWorldRandom(ms.World, current)
 	return nil
 }

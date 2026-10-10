@@ -3,6 +3,7 @@ package game
 import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -48,6 +49,9 @@ type missionPorts struct {
 	// advance wraps the driver's own advance seam with what a finished
 	// mission does next: the party carry, the successor and the screen change.
 	advance func(n int, ms *Mission, advance ui.MapAdvance) ui.MapAdvance
+	// random is the session's random service; in original mode a fresh
+	// mission's placement and World continue its shared stream.
+	random *random.Service
 	// campaign is the campaign service of the install's profile; none is the
 	// first game's.
 	campaign campaignService
@@ -243,7 +247,11 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 			entryParty[i] = mapload.MaterializePartyCarry(member, table)
 		}
 	}
-	ms, err := StartMissionFrom(mv.Map, addr, r.n, table, diff, entryParty)
+	var draws *sim.Draws
+	if r.fresh() {
+		draws = missionRandom(ports.random)
+	}
+	ms, err := startMissionFromWith(mv.Map, addr, r.n, table, diff, entryParty, draws)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The original game's random number generator can be switched on with
+  `-original-random`; `-seed <n>` replays a session from one seed.
 - [ROM1] Windows, panels and lists now look alike everywhere. Every window
   frame is drawn with whole edge tiles as the original draws it, and the
   cutscene library and Sound Options lists sit in the same sunken well as

@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -38,15 +39,17 @@ const maxSaveGobDepth = 128
 // below is the mutable projection imported from an original save: a save
 // carries the player's progress through that definition, not a second registry.
 type Snapshot struct {
-	game         base.Game
-	second       *currentSecondCampaign
-	noticeOpen   bool
-	shop         *Shop
-	terrainBase  *sim.Terrain
-	deathAges    []currentDeathAge
-	mapAnimation *ui.AnimationState
-	mapMotion    []currentAnimationClock
-	CityObjects  *cityObjectTopology
+	game base.Game
+	// randomSession is the random session at capture; the SAV records it.
+	randomSession random.Session
+	second        *currentSecondCampaign
+	noticeOpen    bool
+	shop          *Shop
+	terrainBase   *sim.Terrain
+	deathAges     []currentDeathAge
+	mapAnimation  *ui.AnimationState
+	mapMotion     []currentAnimationClock
+	CityObjects   *cityObjectTopology
 	// cityGroups is the town's live Player group membership at capture.
 	cityGroups []cityLiveGroup
 	// knowledge is the town's carried Player Diary at capture (UNIT-148,

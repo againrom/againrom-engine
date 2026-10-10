@@ -342,10 +342,11 @@ func TestLoadSkipsNestedModule(t *testing.T) {
 func TestUITierAllowanceIsPinned(t *testing.T) {
 	// Transcribed from docs/ARCHITECTURE.md's tier table, not read back out of
 	// dag.go: the UI tier may use pkg/render and everything under it, plus the
-	// audio leaf (0126), the video leaf (1074) and the engine words leaf, and
-	// nothing else in the module. Video transports presentation frames and has
-	// no game/sim dependency; pkg/words holds the engine's own word tables.
-	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/words"}
+	// audio leaf (0126), the video leaf (1074), the random service and the engine
+	// words leaf, and nothing else in the module. Video transports presentation
+	// frames and has no game/sim dependency; the random service is a leaf every
+	// drawing tier names; pkg/words holds the engine's own word tables.
+	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {

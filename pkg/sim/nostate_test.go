@@ -324,6 +324,7 @@ var nstPinned = []struct {
 	}},
 	{"rng", reflect.TypeOf(rng{}), []nstField{
 		{"state", "uint64"},
+		{"original", "bool"},
 	}},
 	{"groupAI", reflect.TypeOf(groupAI{}), []nstField{
 		{"owner", "uint32"},

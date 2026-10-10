@@ -35,6 +35,6 @@ package archtest
 // 16 to 15: restoreOriginal is a decode, a detached-session operation and two
 // short coordinators, and none of them reaches three components alone.
 var CommittedComposition = CompositionBaseline{
-	Fields:       80,
+	Fields:       79,
 	Coordinators: 15,
 }

@@ -2,6 +2,10 @@ package sim
 
 import "testing"
 
+// gamma is SplitMix64's additive step; a seeded stream's state after k draws
+// is seed + k*gamma.
+const gamma = 0x9E3779B97F4A7C15
+
 // seed0 pins the first four values our generator produces from seed 0. It is a
 // change detector for OUR OWN generator: SplitMix64 is a fixed published
 // function, so anyone holding no code of ours can recompute these, and a change
@@ -88,4 +92,79 @@ func TestRNGZeroSeedIsNotAFixedPoint(t *testing.T) {
 			t.Fatalf("state returned to zero after %d draws", k+1)
 		}
 	}
+}
+
+// An original stream is the MSVC recurrence drawn through the range wrapper,
+// and its mode and state survive the byte form.
+func TestOriginalStreamRoundTripsAndDrawsAsTheRangeWrapper(t *testing.T) {
+	w, err := NewWorld(7, Bounds{Width: 4, Height: 4}, ModeCanonical, make([]byte, 16), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seeded, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.SetRandom(originalMode, 1)
+	probe := crtProbe{state: 1}
+	if got, want := w.rng.uniform(0), int32(0); got != want || w.RandomState() != 1 {
+		t.Fatalf("uniform(0) = %d at state %d, want no draw", got, w.RandomState())
+	}
+	for _, n := range []int32{5, 100, 0x7fff} {
+		if got, want := w.rng.uniform(n), probe.rangeOf(n); got != want {
+			t.Fatalf("uniform(%d) = %d, want %d", n, got, want)
+		}
+	}
+	if got, want := w.OriginalRand(), probe.rand(); got != want {
+		t.Fatalf("OriginalRand = %d, want %d", got, want)
+	}
+	b, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b[29]&0x40 == 0 || seeded[29]&0x40 != 0 {
+		t.Fatalf("mode bit seeded %#x original %#x", seeded[29], b[29])
+	}
+	var back World
+	if err := back.UnmarshalBinary(b); err != nil {
+		t.Fatal(err)
+	}
+	if back.RandomMode() != originalMode || back.RandomState() != uint64(probe.state) {
+		t.Fatalf("decoded mode %d state %d, want original %d", back.RandomMode(), back.RandomState(), probe.state)
+	}
+	if back.Hash() != w.Hash() {
+		t.Fatal("round trip changed the digest")
+	}
+}
+
+func TestOriginalDrawsAreTheRangeWrapper(t *testing.T) {
+	d := NewOriginalDraws(1)
+	probe := crtProbe{state: 1}
+	for _, n := range []int32{0, 3, 70, 32767} {
+		if got, want := d.Upto(n), probe.rangeOf(n); got != want {
+			t.Fatalf("Upto(%d) = %d, want %d", n, got, want)
+		}
+	}
+	if !d.Original() || d.State() != uint64(probe.state) {
+		t.Fatal("original draws lost their state")
+	}
+}
+
+// originalMode is random.Original; sim tests import only the standard library.
+const originalMode = 1
+
+// crtProbe is an independent CRT rand() oracle: the recurrence and the range
+// wrapper written out from AI-RAND-058 and MAGIC-284.
+type crtProbe struct{ state uint32 }
+
+func (p *crtProbe) rand() int32 {
+	p.state = p.state*214013 + 2531011
+	return int32(p.state>>16) & 0x7fff
+}
+
+func (p *crtProbe) rangeOf(n int32) int32 {
+	if n == 0 {
+		return 0
+	}
+	return int32(int64(p.rand()) * int64(n+1) / 32768)
 }

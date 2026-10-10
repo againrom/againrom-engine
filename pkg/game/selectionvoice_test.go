@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -39,7 +40,7 @@ func selectionVoiceMission(t *testing.T) (*FrontEnd, *ui.App, *acknowledgmentRec
 	t.Helper()
 	script := &scriptedDraw{}
 	previous := newViewerVoiceDraw
-	newViewerVoiceDraw = func() voiceDraw { return script.draw }
+	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return script.draw }
 	t.Cleanup(func() { newViewerVoiceDraw = previous })
 	dir := t.TempDir()
 	raw := synth.Archive([]synth.File{

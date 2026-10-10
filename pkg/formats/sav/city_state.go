@@ -193,7 +193,10 @@ func validateCityState(state *cityState) error {
 }
 
 func currentCityStateShape(state *cityState) ([]stateDirectory, error) {
-	shape := append([]stateDirectory(nil), cityStateShape...)
+	shape, err := withSessionLeaf(state, append([]stateDirectory(nil), cityStateShape...))
+	if err != nil {
+		return nil, err
+	}
 	mods, err := modsLeaf(state)
 	if err != nil {
 		return nil, err
