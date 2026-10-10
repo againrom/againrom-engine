@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 
-	"againrom/pkg/formats/spr16"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
@@ -107,69 +106,6 @@ const DocumentFont = "font4"
 // `font4/font4.16`. The sidecar's address is unchanged, which is why
 // FontAdvancePath is reused rather than restated.
 func FontAtlasPathA(base string) string { return graphicsPrefix + base + "/" + base + ".16a" }
-
-// LoadFontA is LoadFont for a `.16a` atlas. Every rule in LoadFont's own
-// header holds here unchanged: it does not set the selector, every failure is
-// an error and none is a partial font, and an atlas with no records is
-// refused.
-//
-// The output overlay uses .16a levels as alpha, unlike .16 opaque shades.
-// Palette indices are still dropped: the installed font uses near-white
-// entries 254 and 255. Multicolour atlases remain outside this loader's seam.
-// Native Draw retains its raster contract. DIV-303.
-func LoadFontA(src terrain.EntrySource, base string) (*text.Font, error) {
-	if src == nil {
-		return nil, fmt.Errorf("%s: no graphics archive", FontAtlasPathA(base))
-	}
-
-	atlasPath := FontAtlasPathA(base)
-	atlasBytes, err := src.ReadFile(atlasPath)
-	if err != nil {
-		return nil, err
-	}
-	// The stream leads with a 1024-byte palette, declared and never inferred
-	// (spr16.DecodeA's own contract). Both shipped roots decode to 224
-	// records under this declaration, which is the record count
-	// SPR16A-FONT-018 gives for font4 and the count its 896-byte sidecar
-	// carries; a wrong declaration does not decode at all.
-	sprite, err := spr16.DecodeA(atlasBytes, true)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", atlasPath, err)
-	}
-	if len(sprite.Frames) == 0 {
-		return nil, fmt.Errorf("%s: font atlas holds no glyph record", atlasPath)
-	}
-
-	advPath := FontAdvancePath(base)
-	advBytes, err := src.ReadFile(advPath)
-	if err != nil {
-		return nil, err
-	}
-	advances, err := spr16.Advances(advBytes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", advPath, err)
-	}
-	if len(advances) != len(sprite.Frames) {
-		return nil, fmt.Errorf("%s has %d advances for %s's %d glyph records",
-			advPath, len(advances), atlasPath, len(sprite.Frames))
-	}
-
-	font := &text.Font{Spacing: FontSpacing, Glyphs: make([]text.Glyph, len(sprite.Frames))}
-	for i, f := range sprite.Frames {
-		pixels := make([]text.Pixel, len(f.Pixels))
-		for j, p := range f.Pixels {
-			pixels[j] = text.Pixel{Level: p.Level, Painted: p.Painted}
-		}
-		font.Glyphs[i] = text.Glyph{
-			Width:          f.Width,
-			Height:         f.Height,
-			Pixels:         pixels,
-			Advance:        advances[i],
-			CoverageLevels: true,
-		}
-	}
-	return font, nil
-}
 
 // DocumentPicturePath and DocumentTextPath are MISSION-DOC-021's two
 // per-element addresses, the element's own value formatted into the path.
@@ -287,7 +223,11 @@ func (p *Presentation) documentFont(in *InstallResources) *text.Font {
 	if in.Archives == nil {
 		return nil
 	}
-	font, err := LoadFontA(in.Archives.Containers, DocumentFont)
+	// Share the generator's name font: same font, same selector.
+	if in.ChargenAssets != nil && in.ChargenAssets.Presentation != nil && in.ChargenAssets.Presentation.NameFont != nil {
+		return p.docFontCache.store(in.ChargenAssets.Presentation.NameFont)
+	}
+	font, err := LoadFont(in.Archives.Containers, DocumentFont, FontCoverage)
 	if err != nil {
 		return nil
 	}

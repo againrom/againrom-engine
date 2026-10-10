@@ -51,7 +51,7 @@ func NewMapInspector(root string) (*MapInspector, error) {
 	x.sacks = LoadSackFrames(a.Containers)
 	// Shipped font1 keeps catalogue/body text legible at the small supported
 	// window size. It carries the install's byte conversion selector too.
-	if x.font, err = LoadFont(a.Containers, DefaultFont); err != nil {
+	if x.font, err = LoadFont(a.Containers, DefaultFont, FontShades); err != nil {
 		return nil, err
 	}
 	x.font.Selector = LanguageSelector(a.Containers)
