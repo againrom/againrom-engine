@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] An enemy mage with Mind above 59 now holds back a spell exactly 30
+  times in 100, as in the original, instead of 30 in 101. With
+  `-original-random`, the time spent in town no longer changes the next
+  mission's combat rolls; on the second game the switch runs the default
+  generator and says so.
+
 - [BASE] Arrows, bolts and rocks turn toward a moving target while they fly
   and leave the shooter at the point its exact facing gives, as in the
   original. A smoking projectile loaded from a save grows its smoke trail

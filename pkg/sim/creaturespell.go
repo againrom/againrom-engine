@@ -60,7 +60,7 @@ func (w *World) creatureSpellPick(e Entity) uint32 {
 		if s.ID == 0 {
 			continue
 		}
-		if w.rng.uniform(creatureDrawMax) < int32(s.Threshold) {
+		if w.rng.raw() < int32(s.Threshold) {
 			pick = s.ID
 		}
 	}

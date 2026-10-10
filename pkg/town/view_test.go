@@ -1,6 +1,7 @@
 package town
 
 import (
+	"fmt"
 	"image"
 	"strings"
 	"testing"
@@ -205,5 +206,40 @@ func TestPendulumSwingsUnderOneEnable(t *testing.T) {
 	}
 	if p.Enabled {
 		t.Fatal("the pendulum never cleared its shared enable")
+	}
+}
+
+// TestRestartGeneratorsReseedsInPlace pins a session restart of the
+// description's generators: the next draws repeat the first ones from the
+// host's seed, and a replacement raw source survives the restart.
+func TestRestartGeneratorsReseedsInPlace(t *testing.T) {
+	d := baseTown()
+	d["random"] = append(d["random"].(list), obj{"name": "g", "source": "lcg", "multiplier": 3, "increment": 1, "mask": 32767})
+	desc := mustDecode(t, d)
+	art, err := LoadArt(desc, testLoader())
+	if err != nil {
+		t.Fatal(err)
+	}
+	proc := &Process{}
+	v := NewView(desc, &fakeHost{art: art, now: time.Unix(100, 0), conditions: map[string]bool{}}, proc)
+	draws := func() []int {
+		var out []int
+		for range 6 {
+			out = append(out, v.Pick("g", "scaled", 1000))
+		}
+		return out
+	}
+	first := draws()
+	if fmt.Sprint(draws()) == fmt.Sprint(first) {
+		t.Fatal("the generator repeated without a restart")
+	}
+	proc.RestartGenerators()
+	if again := draws(); fmt.Sprint(again) != fmt.Sprint(first) {
+		t.Fatalf("after the restart %v, want %v", again, first)
+	}
+	v.SetRawDraw("g", func() int { return 500 })
+	proc.RestartGenerators()
+	if got := v.Pick("g", "scaled", 1000); got != 500*1000/32767%1000 {
+		t.Fatalf("the replacement raw source was dropped: %d", got)
 	}
 }

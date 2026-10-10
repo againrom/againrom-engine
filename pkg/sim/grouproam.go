@@ -62,8 +62,8 @@ func (w *World) stopRoamMember(i int) {
 	w.entities[i].clearGroupSpeed()
 }
 
-// AI-ROAM-025: update a Group cell/counter, then evaluate Swarm2. The
-// original random stream is not reproduced. DIV-1022 also bounds reroll
+// AI-ROAM-025: update a Group cell/counter, then evaluate Swarm2. Each roll
+// is the AI range idiom over the eight directions. DIV-1022 also bounds reroll
 // work: after 32 rejected draws choose the first valid direction; if none
 // exists, withhold this primary evaluation without mutating the state.
 func (w *World) rollRoamCell(dst cell, members []int, counter uint8) (cell, uint8, bool) {
@@ -90,7 +90,7 @@ func (w *World) rollRoamCell(dst cell, members []int, counter uint8) (cell, uint
 		return dst, counter, false
 	}
 	for range 32 {
-		d := savedRoamDirections[w.rng.uniform(7)]
+		d := savedRoamDirections[w.rng.aiRange(8)]
 		c := cell{dst.x + 20*d.x, dst.y + 20*d.y}
 		if valid(c) {
 			return c, 0, true

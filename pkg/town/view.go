@@ -557,6 +557,15 @@ func (v *View) SetEndCount(name string, n int) { v.proc.ends[name] = n }
 // ResetDraw returns a generator to unseeded; its next draw seeds it again.
 func (v *View) ResetDraw(source string) { delete(v.proc.lcg, source) }
 
+// RestartGenerators returns every generator the description keeps to
+// unseeded, in place: a new session's next draw seeds each again from the
+// host's seed. A replacement raw source stays.
+func (p *Process) RestartGenerators() {
+	for _, g := range p.lcg {
+		g.seeded = false
+	}
+}
+
 // ClockLast is the clock's last admitted step.
 func (v *View) ClockLast() time.Time { return v.proc.last }
 

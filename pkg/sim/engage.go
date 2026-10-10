@@ -223,10 +223,12 @@ func (w *World) aiCast(i int, _ *castObs) bool {
 		}
 		choices = append(choices, rule)
 	}
-	if len(choices) == 0 || (e.Mind > 59 && w.rng.uniform(100) < 30) {
+	// Both draws are the AI range idiom (MAGIC-AI-012): the hand-back is
+	// exactly 30 in 100, and the pick draws once even over one choice.
+	if len(choices) == 0 || (e.Mind > 59 && w.rng.aiRange(100) < 30) {
 		return false
 	}
-	rule := choices[w.rng.uniform(int32(len(choices)-1))]
+	rule := choices[w.rng.aiRange(int32(len(choices)))]
 	target, ok := w.autoCastTarget(i, rule)
 	return ok && w.beginBookSpell(i, target, uint32(rule.ID))
 }

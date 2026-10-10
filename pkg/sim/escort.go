@@ -124,14 +124,14 @@ func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 		if o := w.savedOrder(e.ID); o != nil {
 			pending = pending || o.Raw[0x54] != 0
 		}
-		if !pending && w.rng.uniform(0x7fff) >= 0xcd {
+		if !pending && w.rng.raw() >= 0xcd {
 			return true
 		}
 		e.EscortTurnPending = false
 		if o := w.savedOrder(e.ID); o != nil {
 			o.Raw[0x54] = 0
 		}
-		desired := e.Facing + 0x21 + uint8(190*w.rng.uniform(0x7fff)/32768)
+		desired := e.Facing + 0x21 + uint8(w.rng.aiRange(190))
 		oldRemaining, oldDesired := e.TurnRemaining, e.DesiredFacing
 		already := w.turnAlreadyStepped(e.ID)
 		if e.requestFacing(desired, already) {
