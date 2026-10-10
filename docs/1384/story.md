@@ -34,6 +34,7 @@ Base: `398b5fe4` (game 0.107.0). Knowledge pin k217.
 | Counter | LOAD from FreeIndex low u16, SAVE writes it, each insertion adds one; a mission built from a map starts at 0 | unchanged; the mission boundary is DIV-1784 |
 | Dead shooter | the tick skips an actor that is not alive and the death clears its attack, so a pending blow never lands | unchanged; now witnessed |
 | Trail | presentation positions after each move, newest first, kept only for shots released in this session | the pre-move point of every driver call, oldest first, at most six, for every armed record of picture 10 or 12, restored records included; a LOAD starts empty. The draw takes frame 0 for the newest point |
+| Record draws | one list of record and trail draws | `savedProjectileDraws` is the records alone, the persisted seam the M2 projectile instrument compares; the scene interleaves each record's trail |
 | Off-map actor | the attack loop and the turn step skip an off-map actor, so its countdown stands | unchanged; matches SAV-1194 |
 
 One direction helper: `sim.ProjectileDirection`. Callers: the projectile
@@ -98,7 +99,21 @@ Install witnesses (EN and RU):
 
 Hashes: no World golden moved in `go test ./...`.
 
-GATES
+Gates on the merged head:
+
+- `gofmt -l` clean; `go test -trimpath -count=1 ./...` exit 0.
+- `check-release-tests.sh`, RU then EN: 937 of 983 ran and passed on each
+  root; 46 lacked a subject (ROM2 subjects on a ROM1 root, cold-process
+  children).
+- `check-milestone2-acceptance.sh`: the same 48 FAIL lines as main
+  `2884d094` on each root (the saveorcsdontgo subtests,
+  `TestSAVRoundTripGateNewGameKits`, `TestSAVWriterCensusChangedWorlds`),
+  and the same 16 writer-census mismatches.
+- `TestReleaseSecond*` on rom2-en and rom2-ru, eight groups: 42 pass, 0 fail,
+  0 skip per locale.
+- Headless scenarios 1194, 0155 (three), 1193, 1087, 1089: 7 of 7 on EN and
+  RU.
+- `check-no-game-assets.sh` clean.
 
 ## Open debt
 
