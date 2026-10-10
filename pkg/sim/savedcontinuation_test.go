@@ -165,6 +165,11 @@ func TestRetainedProjectile1162SignedTravelClocksAndCompletion(t *testing.T) {
 					if got.X != -4 || got.Y != -5 {
 						t.Fatal("attached picture did not snap")
 					}
+				} else if picture == 60 {
+					// ANIM-149: the picture-60 arm writes no position.
+					if got.X != 10 || got.Y != 2 {
+						t.Fatal("picture 60 moved", got)
+					}
 				} else if tick == 1 && (got.X != 6 || got.Y != 0) {
 					t.Fatal("signed division does not truncate toward zero", got)
 				}

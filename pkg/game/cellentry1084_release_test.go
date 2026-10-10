@@ -242,16 +242,21 @@ func entryApp1084(t *testing.T, f *FrontEnd, binding sim.CellTail, want []sim.Ce
 		t.Fatal("Lightning release must prepare one child without applying damage")
 	}
 	found := false
-	for _, b := range live.bolts {
-		if b.picture == 34 && b.from == from && b.to == image.Pt(x, y) {
-			if b.life != 5 || !b.centered || len(live.pathDraws(b)) == 0 {
-				t.Fatalf("direct Lightning has no installed-art path: %+v", b)
+	for _, p := range flightRecords(live) {
+		if p.Picture != 34 {
+			continue
+		}
+		for _, b := range live.recordPaths(p, 0) {
+			if b.from == from && b.to == image.Pt(x, y) {
+				if p.ActionSegments != 4 || len(live.pathDraws(b)) == 0 {
+					t.Fatalf("direct Lightning has no installed-art path: %+v", p)
+				}
+				found = true
 			}
-			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("no source-to-target Lightning presentation: %+v", live.bolts)
+		t.Fatalf("no source-to-target Lightning presentation: %+v", flightRecords(live))
 	}
 	checkEntryNative1084(t, f, "in-flight")
 	launchTick := live.world.Tick()

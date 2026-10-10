@@ -48,12 +48,13 @@ func ProjectileTargetKey(target Entity) int32 {
 }
 
 // ReleaseUnitShot builds the record a physical ranged swing's shot leaves as
-// (SAV-1129, SAV-1130, SAV-1131) and runs its first driver call. The shooter
-// must hold a unit as its attack target and the picture must be one of the
-// pictures 1..12 whose driver applies no damage (SAV-1132): damage stays with
-// the swing's own countdown. It reports whether a record was built.
+// (SAV-1129, SAV-1130, SAV-1131) and runs its first driver call. The target is
+// the shooter's attack target: a unit, or a structure, which the original
+// finds in the same client hash and measures and homes on like a unit
+// (SAV-1197). Any picture above 0 is admitted (SAV-1198); damage stays with the
+// swing's own countdown (SAV-1132). It reports whether a record was built.
 func (w *World) ReleaseUnitShot(s UnitShot) bool {
-	if s.Picture < 1 || s.Picture > 12 {
+	if s.Picture < 1 {
 		return false
 	}
 	at := indexOfEntity(w.entities, s.Shooter)
@@ -61,20 +62,36 @@ func (w *World) ReleaseUnitShot(s UnitShot) bool {
 		return false
 	}
 	shooter := w.entities[at]
-	if !shooter.HasAttackTarget || shooter.AttackTargetKind != AttackTargetUnit {
+	if !shooter.HasAttackTarget {
 		return false
 	}
-	to := indexOfEntity(w.entities, shooter.AttackTarget)
-	if to < 0 {
+	var tx, ty int32
+	driver := SavedProjectileDriver{Phases: s.Phases, Target: shooter.AttackTarget, HasTarget: true}
+	key := int32(0)
+	switch shooter.AttackTargetKind {
+	case AttackTargetUnit:
+		to := indexOfEntity(w.entities, shooter.AttackTarget)
+		if to < 0 {
+			return false
+		}
+		target := w.entities[to]
+		key = ProjectileTargetKey(target)
+		tx, ty = w.savedProjectileTargetPoint(target)
+	case AttackTargetStructure:
+		to := indexOfStructure(w.structures, StructureID(shooter.AttackTarget))
+		if to < 0 {
+			return false
+		}
+		key = int32(shooter.AttackTarget)
+		tx, ty = structureTargetPoint(w.structures[to])
+		driver.TargetStructure = true
+	default:
 		return false
 	}
-	target := w.entities[to]
-	key := ProjectileTargetKey(target)
 	if key == 0 {
 		return false
 	}
 	sx, sy := w.savedProjectileTargetPoint(shooter)
-	tx, ty := w.savedProjectileTargetPoint(target)
 	dx, dy := int64(tx)-int64(sx), int64(ty)-int64(sy)
 	segments := isqrt64(dx*dx+dy*dy) / unitShotSegment
 
@@ -83,15 +100,32 @@ func (w *World) ReleaseUnitShot(s UnitShot) bool {
 		X: sx + s.OffsetX, Y: sy + s.OffsetY, Picture: s.Picture,
 		Action: 1, ActionTarget: key, ActionSegments: int32(segments),
 	}
-	i := w.insertProjectile(record, SavedProjectileDriver{Phases: s.Phases, Target: target.ID, HasTarget: true})
-	for range 1 + max(s.Late, 0) {
+	i := w.insertProjectile(record, driver)
+	w.driveNewRecord(i, 1+max(s.Late, 0), s.PreMove)
+	return true
+}
+
+// driveNewRecord runs a just-built record's first driver calls, observing each
+// call's starting point through preMove (ANIM-140).
+func (w *World) driveNewRecord(i, calls int, preMove func(x, y int32)) {
+	for range calls {
 		d := &w.savedWorldEffects.Projectiles[i]
-		if p := w.savedProjectile(d.ID); s.PreMove != nil && !d.Retired && p != nil && p.ActionSegments != 0 {
-			s.PreMove(p.X, p.Y)
+		if p := w.savedProjectile(d.ID); preMove != nil && !d.Retired && p != nil && p.ActionSegments != 0 {
+			preMove(p.X, p.Y)
 		}
 		w.stepSavedProjectile(d)
 	}
-	return true
+	if w.savedWorldEffects.Projectiles[i].Retired {
+		w.clearRetiredWorldEffectCarriers()
+	}
+}
+
+// structureTargetPoint is the point a record aims at for a structure: the
+// centre of its anchor cell. The original derives the point as for any
+// drawable; whether a structure's anchor equals a unit's is open (SAV-1197,
+// DIV-2846).
+func structureTargetPoint(s Structure) (int32, int32) {
+	return s.Col*256 + 128, s.Row*256 + 128
 }
 
 // insertProjectile adds one record to the carried store and its driver row: it

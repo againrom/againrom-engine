@@ -95,6 +95,12 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 			reserveSavedRuntimeID(placeableIDs, "Sack", id)
 		}
 	}
+	structures := map[sim.EntityID]uint16{}
+	if drivers != nil {
+		if structures, err = currentStructureObjects(doc, &w); err != nil {
+			return err
+		}
+	}
 	targets := map[int]uint16{}
 	for i, leaf := range doc.State.ValueRecords {
 		if !strings.HasPrefix(leaf.Path, "/Prj") || !strings.HasSuffix(leaf.Path, "/actiontarget") {
@@ -113,6 +119,9 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 			for _, d := range drivers.Projectiles {
 				if d.ID == uint16(id) && d.HasTarget && !d.TargetDetached {
 					object = actors[d.Target]
+					if d.TargetStructure {
+						object = structures[d.Target]
+					}
 				}
 			}
 		} else if len(oldObjects[old]) == 1 {
@@ -330,7 +339,7 @@ func pinNativeProjectileTargets(w *sim.World, drivers *sim.SavedWorldEffects, ac
 		records[p.ID] = p.ActionTarget
 	}
 	for _, d := range drivers.Projectiles {
-		if d.Retired || !d.HasTarget || d.TargetDetached {
+		if d.Retired || !d.HasTarget || d.TargetDetached || d.TargetStructure {
 			continue
 		}
 		var target sim.Entity

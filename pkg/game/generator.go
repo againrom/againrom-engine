@@ -2,6 +2,7 @@ package game
 
 import (
 	_ "embed"
+	"fmt"
 
 	"againrom/pkg/base"
 	"againrom/pkg/ui"
@@ -48,6 +49,24 @@ func GeneratorDescription(p base.Profile) *ui.GeneratorDescription {
 	return generatorDescriptions[p.Edition().Generator]
 }
 
-// heroNameGenerator is the description whose hero name lines a hero started
-// without the generator is named from.
-func heroNameGenerator() *ui.GeneratorDescription { return generatorDescriptions["rom1"] }
+// heroNames are the hero name lines of the edition's generator description,
+// as defaultHeroName indexes them: class plus twice sex, so male fighter,
+// male mage, female fighter, female mage, whatever order the description
+// gives its pictures.
+func heroNames(src entrySource, e base.Edition, code TextCode) ([4]string, error) {
+	l := generatorDescriptions[e.Generator]
+	pictures, err := heroPictureNames(src, l, code)
+	if err != nil {
+		return pictures, err
+	}
+	var names [4]string
+	var seen [4]bool
+	for i, h := range l.PreCreate.Heroes {
+		at := h.Class + 2*h.Sex
+		if at < 0 || at >= len(names) || i >= len(pictures) || seen[at] {
+			return [4]string{}, fmt.Errorf("generator %s: hero %d is not one of four sex and class pictures", e.Generator, i)
+		}
+		names[at], seen[at] = pictures[i], true
+	}
+	return names, nil
+}

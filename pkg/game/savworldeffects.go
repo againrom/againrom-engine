@@ -186,12 +186,12 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 					}
 				}
 			}
-			if definitions == nil {
-				meta.unavailable("projectile phase registry unavailable; continuation is not armed")
-				continue
-			}
 			d := sim.SavedProjectileDriver{ID: p.ID}
-			if definition, found := definitions.ByID(p.Picture); found {
+			if definitions == nil {
+				// Without the registry a record is armed with no phase count,
+				// as the live cast producer builds it from the same install.
+				meta.unavailable("projectile phase registry unavailable; continuation is armed without a phase count")
+			} else if definition, found := definitions.ByID(p.Picture); found {
 				if definition.Phases <= 0 || definition.Phases > 65535 {
 					meta.unavailable("projectile registry phase domain is unsupported")
 					continue
@@ -428,6 +428,17 @@ func validateSavedWorldEffectsWorld(state *SnapshotSAVDocument, world *sim.World
 			return fmt.Errorf("native projectile missing")
 		}
 		found := false
+		if d.TargetStructure {
+			// A structure keeps its World id as the key until the writer
+			// gives the leaf the structure's runtime identity.
+			for _, s := range world.Structures() {
+				found = found || sim.EntityID(s.ID) == d.Target && int32(s.ID) == target.ActionTarget
+			}
+			if !found {
+				return fmt.Errorf("native projectile structure target differs")
+			}
+			continue
+		}
 		if e, live := entityIn(world.Entities(), d.Target); live && (e.SourceBinding.Class == 0 || e.SourceBinding.RuntimeID == 0) {
 			// A native actor holds no source runtime identity; the writer
 			// assigns its wire identity at SAVE and rewrites the leaf.
@@ -505,8 +516,9 @@ func onlyNativeProjectiles(world *sim.World, drivers *sim.SavedWorldEffects) boo
 		if d.Retired {
 			continue
 		}
-		if !d.HasTarget {
-			// A burst record names no target; a loaded one has a Document.
+		if !d.HasTarget || d.TargetStructure {
+			// A burst record names no target, and a structure is no actor; a
+			// loaded record has a Document.
 			continue
 		}
 		e, live := entityIn(world.Entities(), d.Target)

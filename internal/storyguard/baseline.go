@@ -2085,10 +2085,24 @@ package storyguard
 // CommentBytes rises for the generator's Restore button: the docs of
 // Chargen.Restore, returnTo, RestoreFor, the Restore label and the new tests,
 // new code, including this paragraph.
+// CommentBytes rises for the one record kind of objects in flight: the docs of
+// the retired-row drop, the area rows a projectile-only carrier answers, and
+// the release witnesses that read records by id, new code, including this
+// paragraph.
+// CommentBytes rises for the cast record's dir along its flight: the docs of
+// the dir test, new code, including this paragraph.
 // CommentBytes rises for the second game's music: the docs of the music
 // description, the controller's request rule, pause seam and area select,
 // the music areas decoder, the mission music wiring, -nomusic and their
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the one room button panel builder: the docs of
+// panelComposition, panelArt, buildButtonPanel and the panels built through
+// it, the keyed and pressed-only generator command and the new tests, new
+// code, including this paragraph.
+// CommentBytes rises for the one double-click detector: the docs of
+// pkg/ui/doubleclick.go, the pkg/ui/systemclick platform readers, the
+// archtest double-click scan, the Load list's row press, the roster's pair
+// key and their tests, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2101,7 +2115,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1875,
 		"scclause":        506,
-		"barestorynumber": 1738,
+		"barestorynumber": 1737,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2110,7 +2124,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1756,
+		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8641698,
+	CommentBytes: 8646732,
 }

@@ -110,7 +110,11 @@ func (s *EffectSheet) Frame(i int) *EffectFrame {
 // here is the engine's own subscript.
 type EffectSet struct {
 	Pictures map[int]bool
-	Sheets   map[int]*EffectSheet
+	Homing   map[int]bool
+	// Unpaletted holds the rows whose Palette is 0; such a row draws no
+	// smoke trail (ANIM-142).
+	Unpaletted map[int]bool
+	Sheets     map[int]*EffectSheet
 
 	// Smoke is the two trail sheets, and they are NOT keyed by a picture id
 	// because they have none: projectiles.reg does not name them, and the
@@ -137,6 +141,19 @@ func (s *EffectSet) Sheet(picture int) *EffectSheet {
 		return nil
 	}
 	return s.Sheets[picture]
+}
+
+// Homes reports whether a picture's registry row sets Homing: a cast record
+// of that picture aims at its caster's target actor, any other at a cell
+// (MAGIC-288).
+func (s *EffectSet) Homes(picture int) bool {
+	return s != nil && s.Homing[picture]
+}
+
+// Smokes reports whether a picture's row admits its smoke trail: every row
+// but one whose Palette is 0 (ANIM-142).
+func (s *EffectSet) Smokes(picture int) bool {
+	return s != nil && !s.Unpaletted[picture]
 }
 
 func (s *EffectSet) HasPicture(picture int) bool {

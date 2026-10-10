@@ -58,7 +58,9 @@ func projectSavedWorldEffects(state *SnapshotSAVDocument, world *sim.World) erro
 	if err := projectSavedSpellGraph(state, world); err != nil {
 		return err
 	}
-	if drivers != nil {
+	// A World that carries projectile records and no area driver answers its
+	// Document's area rows as a World with no drivers does.
+	if drivers != nil && (len(drivers.Areas) > 0 || len(state.WorldEffects.Areas) == 0) {
 		if len(drivers.Areas) != len(state.WorldEffects.Areas) {
 			return fmt.Errorf("current area binding count differs")
 		}

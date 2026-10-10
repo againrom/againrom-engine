@@ -276,14 +276,18 @@ func (w *shotWitness) observe(tick int) {
 func (w *shotWitness) release(tick int, e sim.Entity, picture int, from, to image.Point, draws []ui.MapEntity, bolts []ui.SpellBolt) {
 	w.checked[picture]++
 	sheet := w.mw.projectiles.Sheet(picture)
-	// The record the release tick just built is the newest id: its point is
-	// where the frame draws the sprite.
+	// The record the release tick just built is the newest id of its picture: a
+	// cast released on the same tick takes an id of the same counter. Its point
+	// is where the frame draws the sprite.
 	var at image.Point
-	released := w.mw.world.SavedProjectiles()
-	if p, ok := savedProjectileByID(w.mw.world, released.FreeIndex-1); ok && int(p.Picture) == picture {
-		at = image.Pt(int(p.X), int(p.Y))
-	} else {
-		w.t.Errorf("%s tick %d: entity %d released picture %d and no record %d of that picture is in the World", w.name, tick, e.ID, picture, released.FreeIndex-1)
+	newest := -1
+	for _, p := range w.mw.world.SavedProjectiles().Items {
+		if int(p.Picture) == picture && int(p.ID) > newest {
+			newest, at = int(p.ID), image.Pt(int(p.X), int(p.Y))
+		}
+	}
+	if newest < 0 {
+		w.t.Errorf("%s tick %d: entity %d released picture %d and no record of that picture is in the World", w.name, tick, e.ID, picture)
 	}
 	var own []ui.SpellBolt
 	for _, b := range bolts {
@@ -410,7 +414,8 @@ func sameEffectFrame(a, b *terrain.EffectFrame) bool {
 	return true
 }
 
-// cast checks one tick of a staff's Fire Arrow wind-up.
+// cast checks one tick of a staff's Fire Arrow wind-up. The cast record is
+// built at the release (SAV-1129), so the wind-up draws no firebolt.
 func (w *shotWitness) cast(tick int, e sim.Entity, from, to image.Point, draws []ui.MapEntity, bolts []ui.SpellBolt) {
 	w.casts++
 	sheet := w.mw.projectiles.Sheet(data.CastPicture(1))
@@ -424,8 +429,8 @@ func (w *shotWitness) cast(tick int, e sim.Entity, from, to image.Point, draws [
 	if mark := shotMarkOf(draws, e.ID); mark != nil {
 		w.t.Errorf("%s tick %d: entity %d's Fire Arrow wind-up draws the orange mark at %v", w.name, tick, e.ID, *mark)
 	}
-	if drawn != 1 {
-		w.t.Errorf("%s tick %d: entity %d's Fire Arrow wind-up carries %d firebolt sprite(s), want 1", w.name, tick, e.ID, drawn)
+	if drawn != 0 {
+		w.t.Errorf("%s tick %d: entity %d's Fire Arrow wind-up carries %d firebolt sprite(s), want none", w.name, tick, e.ID, drawn)
 	}
 }
 

@@ -177,7 +177,7 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	// none, and MissionPartyAs then names a hero started without the generator's
 	// name field itself. The generator reads the same four through the same
 	// reader and refuses to open without them.
-	if names, err := heroPictureNames(fsys, heroNameGenerator(), InstallTextCode(fsys, g.Edition())); err == nil {
+	if names, err := heroNames(fsys, g.Edition(), InstallTextCode(fsys, g.Edition())); err == nil {
 		d.Table.HeroNames = names
 	}
 	// Not fatal: a table without them names no map placement for the hero

@@ -7,8 +7,10 @@ import (
 	"slices"
 )
 
-// SnapshotSpellBolt and SnapshotHealBurst are the frontend's current visual
-// records, independent of spell gameplay deliveries and actor action clocks.
+// SnapshotSpellBolt is the wire form of a cast object an earlier build kept
+// outside the World. Every object in flight is now a World record that SAVE
+// writes as a Prj section, so nothing writes this form; an old envelope's rows
+// are read and dropped. SnapshotHealBurst is the frontend's current shower.
 type SnapshotSpellBolt struct {
 	From, To         image.Point
 	Picture          int
@@ -40,9 +42,6 @@ type SnapshotVisualIdentity struct{ Entity, Label sim.EntityID }
 
 func (mw *mapWorld) actionVisuals(r *SnapshotResidue) {
 	r.VisualIdentities, r.VisualNext = mw.currentVisualIdentities()
-	for _, b := range mw.bolts {
-		r.SpellBolts = append(r.SpellBolts, SnapshotSpellBolt{b.from, b.to, b.picture, b.owner, b.age, b.life, b.delay, b.seed, b.tag, b.facing, b.centered, b.launch})
-	}
 	for _, b := range mw.healBursts {
 		r.HealBursts = append(r.HealBursts, SnapshotHealBurst{b.at, b.picture, b.owner, b.seed, b.tile, b.drain, b.age})
 	}
@@ -164,11 +163,8 @@ func validateActionVisuals(bolts []SnapshotSpellBolt, heals []SnapshotHealBurst)
 	}
 	return nil
 }
-func (mw *mapWorld) restoreActionVisuals(bolts []SnapshotSpellBolt, heals []SnapshotHealBurst) {
-	mw.bolts, mw.healBursts = nil, nil
-	for _, b := range bolts {
-		mw.bolts = append(mw.bolts, spellBolt{b.From, b.To, b.Picture, b.Owner, b.Age, b.Life, b.Delay, b.Seed, b.Tag, b.Facing, b.Centered, b.Launch})
-	}
+func (mw *mapWorld) restoreActionVisuals(_ []SnapshotSpellBolt, heals []SnapshotHealBurst) {
+	mw.healBursts = nil
 	for _, b := range heals {
 		mw.healBursts = append(mw.healBursts, healBurst{b.At, b.Picture, b.Owner, b.Seed, b.Tile, b.Drain, b.Age})
 	}
