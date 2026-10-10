@@ -242,6 +242,12 @@ type townScreen struct {
 	worldPosition    image.Point
 	worldPositionSet bool
 
+	// worldFlag1Frame is the task Flag1's frame counter. It advances on every
+	// world-map paint whether the flag is drawn or not, and wraps modulo the
+	// sheet; only the view's construction zeroes it, not an entry (`TOWN-529`),
+	// which here is a new game.
+	worldFlag1Frame int
+
 	// worldSelectedOnce is which missions have been registered or selected
 	// at least once this loaded game (`DIV-128`/`DIV-138`; `TOWN-123`/
 	// `TOWN-040`, High): the persisted marker cache's own selection gate. A
@@ -300,7 +306,7 @@ func (t *townScreen) resetForNewGame() {
 	t.shopSuppressFigure, t.shopSuppressMask = nil, nil
 	t.resetWorldMarkers()
 	t.resetWorldPosition()
-	t.worldMap = nil
+	t.worldMap, t.worldFlag1Frame = nil, 0
 	t.tipClosed = [roomTalk + 1]bool{}
 }
 

@@ -119,7 +119,7 @@ func TestWorldMapCrossAnimationStartsWithEachRoute(t *testing.T) {
 // counters past their ends, so the next tick opens the mission whether the
 // reveal is still running or has finished and the Cross animation has not. The
 // Cross counter becomes the sheet's frame count plus one (TOWN-486), so the
-// frame on screen is the sheet's second frame until the next tick.
+// frame on screen is the sheet's held last frame until the next tick (TOWN-530).
 func TestWorldMapMissedClickSkipsTheCrossAnimationToo(t *testing.T) {
 	const frames = 12
 	home, anchor := image.Pt(320, 240), image.Pt(0, 0)
@@ -151,8 +151,8 @@ func TestWorldMapMissedClickSkipsTheCrossAnimationToo(t *testing.T) {
 			if shown := s.WorldMapView().RouteShown; shown != len(route) {
 				t.Fatalf("the click left %d of %d coordinates revealed, want the route's own end", shown, len(route))
 			}
-			if got, want := s.WorldMapView().Cross, s.worldMap.assets.cross[1]; got != want {
-				t.Fatalf("after the click the drawn Cross frame is %v, want the frame of counter %d, %v", got, frames+1, want)
+			if got, want := s.WorldMapView().Cross, s.worldMap.assets.cross[frames-1]; got != want {
+				t.Fatalf("after the click the drawn Cross frame is %v, want the held last frame for counter %d, %v", got, frames+1, want)
 			}
 			if act := s.WorldMapTick(); act.Open == nil || act.Msg != "travelling to mission 30" || s.worldPosition != anchor {
 				t.Fatalf("tick after the skip: opened %v with %q at %v, want mission 30 at %v", act.Open != nil, act.Msg, s.worldPosition, anchor)
