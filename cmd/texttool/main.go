@@ -73,7 +73,7 @@ func loadFont(assets, base string) (*text.Font, error) {
 	if err != nil {
 		return nil, err
 	}
-	return game.LoadFont(src, base)
+	return game.LoadFont(src, base, game.FontShades)
 }
 
 func census(args []string, out io.Writer) error {

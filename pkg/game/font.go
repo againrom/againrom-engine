@@ -83,42 +83,73 @@ func (f *FrontEnd) textSelector() int {
 	return 0
 }
 
-// LoadFont reads the two nodes of font base out of src and joins them into a
-// drawable font.
-//
-// IT DOES NOT SET THE SELECTOR. A font is two nodes of graphics.res and the
-// selector is one node of main.res, so joining them here would give this
-// function a second archive to know about and would make a font that draws
-// correctly depend on which call site built it. The front end sets it once, on
-// the font it keeps.
-//
-// Every failure is an error and none is a partial font. A read error comes back
-// UNWRAPPED, so the source's own path error still names the address a caller can
-// test with errors.Is; a decode error is wrapped with the address, since neither
-// decoder knows which node it was handed. The count mismatch is its own error
-// naming both nodes and both counts — it is the only failure that is a property
-// of the pair rather than of one file.
-//
-// AN ATLAS WITH NO RECORDS IS REFUSED. The container accepts one (the count is
-// read from the trailer, and a zero count walks nothing and reports nothing),
-// and a zero-entry sidecar is well-formed, so the two counts agree at 0 and the
-// pair would otherwise load as a font that draws nothing and says nothing —
-// with no record 0 for the missing-byte rule to fall back on.
-func LoadFont(src terrain.EntrySource, base string) (*text.Font, error) {
+// FontAtlasClass is how a font's atlas ships: its extension and its decoder.
+type FontAtlasClass int
+
+const (
+	FontShades   FontAtlasClass = iota // `.16` opaque shades
+	FontCoverage                       // `.16a` alpha levels as coverage (DIV-303)
+)
+
+func (c FontAtlasClass) AtlasPath(base string) string {
+	if c == FontCoverage {
+		return FontAtlasPathA(base)
+	}
+	return FontAtlasPath(base)
+}
+
+// glyphs decodes an atlas without advances. A `.16a` stream declares its
+// 1024-byte palette (SPR16A-FONT-018); its indices are dropped.
+func (c FontAtlasClass) glyphs(atlas []byte) ([]text.Glyph, error) {
+	var out []text.Glyph
+	if c == FontCoverage {
+		sprite, err := spr16.DecodeA(atlas, true)
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range sprite.Frames {
+			pixels := make([]text.Pixel, len(f.Pixels))
+			for j, p := range f.Pixels {
+				pixels[j] = text.Pixel{Level: p.Level, Painted: p.Painted}
+			}
+			out = append(out, text.Glyph{Width: f.Width, Height: f.Height, Pixels: pixels, CoverageLevels: true})
+		}
+		return out, nil
+	}
+	frames, err := spr16.DecodeG(atlas)
+	if err != nil {
+		return nil, err
+	}
+	for _, f := range frames {
+		pixels := make([]text.Pixel, len(f.Pixels))
+		for j, p := range f.Pixels {
+			pixels[j] = text.Pixel{Level: p.Value, Painted: p.Painted}
+		}
+		out = append(out, text.Glyph{Width: f.Width, Height: f.Height, Pixels: pixels})
+	}
+	return out, nil
+}
+
+// LoadFont is the one font loader: it joins font base's atlas, decoded as
+// class, with its advance sidecar. It does not set the selector, which lives
+// in another archive; the caller sets it. Every failure is an error, never a
+// partial font: a read error comes back unwrapped, a decode error names its
+// node, a count mismatch names both, and an atlas with no record is refused.
+func LoadFont(src terrain.EntrySource, base string, class FontAtlasClass) (*text.Font, error) {
+	atlasPath := class.AtlasPath(base)
 	if src == nil {
-		return nil, fmt.Errorf("%s: no graphics archive", FontAtlasPath(base))
+		return nil, fmt.Errorf("%s: no graphics archive", atlasPath)
 	}
 
-	atlasPath := FontAtlasPath(base)
 	atlasBytes, err := src.ReadFile(atlasPath)
 	if err != nil {
 		return nil, err
 	}
-	frames, err := spr16.DecodeG(atlasBytes)
+	glyphs, err := class.glyphs(atlasBytes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", atlasPath, err)
 	}
-	if len(frames) == 0 {
+	if len(glyphs) == 0 {
 		return nil, fmt.Errorf("%s: font atlas holds no glyph record", atlasPath)
 	}
 
@@ -131,23 +162,12 @@ func LoadFont(src terrain.EntrySource, base string) (*text.Font, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", advPath, err)
 	}
-	if len(advances) != len(frames) {
+	if len(advances) != len(glyphs) {
 		return nil, fmt.Errorf("%s has %d advances for %s's %d glyph records",
-			advPath, len(advances), atlasPath, len(frames))
+			advPath, len(advances), atlasPath, len(glyphs))
 	}
-
-	font := &text.Font{Spacing: FontSpacing, Glyphs: make([]text.Glyph, len(frames))}
-	for i, f := range frames {
-		pixels := make([]text.Pixel, len(f.Pixels))
-		for j, p := range f.Pixels {
-			pixels[j] = text.Pixel{Level: p.Value, Painted: p.Painted}
-		}
-		font.Glyphs[i] = text.Glyph{
-			Width:   f.Width,
-			Height:  f.Height,
-			Pixels:  pixels,
-			Advance: advances[i],
-		}
+	for i := range glyphs {
+		glyphs[i].Advance = advances[i]
 	}
-	return font, nil
+	return &text.Font{Spacing: FontSpacing, Glyphs: glyphs}, nil
 }

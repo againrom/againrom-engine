@@ -396,12 +396,12 @@ func LoadChargenAssets(src terrain.EntrySource) (*ChargenAssets, error) {
 			}
 		}
 	}
-	font, err := LoadFont(src, "font2")
+	font, err := LoadFont(src, "font2", FontShades)
 	if err != nil {
 		return nil, err
 	}
 	p.Font = font
-	if p.NameFont, err = LoadFontA(src, DocumentFont); err != nil {
+	if p.NameFont, err = LoadFont(src, DocumentFont, FontCoverage); err != nil {
 		return nil, err
 	}
 	b, err := src.ReadFile(chargenTextPath)
