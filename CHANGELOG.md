@@ -8,10 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.110.0
+
 - [ROM1] In the character generator, Reset sets every attribute to 25 and the
   points to 100 as in the original, and the new Restore button returns the
-  hero's starting attributes and
-  skill.
+  hero's starting attributes and skill.
 - [ROM2] The second game plays its music: the menu, character generation, each
   town, the world map and the credits have their own tracks, and a mission
   plays its seventeen tracks with the theme of the area the hero stands in
