@@ -99,6 +99,29 @@ the Fire_Ball burst keep their witnesses
 (`TestReleaseFreshShotWritesProjectileRecord`,
 `TestReleaseNativeFireBallBurstSurvivesSaveAndLoad`).
 
+A retired record's driver row leaves the World at once, so a SAVE and its
+LOAD hold the same rows. A World that carries projectile records and no area
+driver retires its Document's area rows, as a World with no drivers does.
+Without the projectile registry a loaded record is armed with no phase count,
+as the live producer builds it from the same install.
+
+Release witnesses moved by a named cause:
+
+| Witness | Cause |
+|---|---|
+| `TestReleaseMilestone2Projectiles1157` | a Heal cast in mission 18 builds its own record (`ANIM-147`); the source oracle stops at the first new record and the source record is read by its id |
+| `TestReleaseRangedShotsDrawTheirInstalledSprites/staff` | a staff's record is built at the release (`SAV-1129`), so the wind-up draws no firebolt; a cast on the same tick takes the newest id, so the shot is read by picture |
+| `TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections` | the figure is drawn from the record's fifth call and the record's cell; the launch is measured from the caster's cell |
+| `TestItemObjects1115ScrollSessionNativeContinuation` | the scroll's cast builds a record; the fixture has no registry and LOAD now arms it as the live producer does |
+| `TestEveryMapWorldFieldIsRuled` | `mapWorld.bolts` is gone; `flights` is ruled cosmetic in `docs/0143-save-and-load/spec.md` FR-5 |
+
+Gates on the candidate before the last main merge: the full asset-free
+suite; the ROM1 release set on RU and EN (1011 gated tests; no failure but
+the environment-gated tavern witnesses); 53 of 54 headless scenarios on each
+root, the remaining `1060-campaign-130-reachable` failing on main with the
+same hash; the milestone-2 instruments with main's failure set; 47 of 47
+second-game witnesses on each locale.
+
 ## Open debt
 
 DIV-2846 to DIV-2849. The installed bow does no damage to a structure, so
