@@ -93,7 +93,7 @@ Evidence directory: `review/story1394-m2-zero/`.
 | `TestReleaseSackWithoutCellKeyKeepsItsToken` | RU, EN | PASS | `final-sav-{ru,en}.txt` |
 | `TestRelease.*(Sack\|Handover\|HandOver\|Join\|Corpse\|Terminal\|Ground\|ItemObjects\|Handoff\|Dead\|Removed)` | RU, EN | 63 PASS each, no fail or skip | `final-rel-{ru,en}.txt` |
 | `TestReleaseSecond*` | rom2-en, rom2-ru | 52 PASS each; `TestReleaseSecondPhysicalSyntheticCityAppRoute` is a ROM1 test and passes on RU and EN | `final-rom2-{en,ru}.txt`, `final-rom2-physical-{ru,en}.txt` |
-| `scripts/check-milestone2-acceptance.sh` (includes `TestSAVRoundTripGateNewGameKits*` and `TestSAVWriterCensusChangedWorlds*`) | EN, RU | M2-RESULT | `final-m2.txt` |
+| `scripts/check-milestone2-acceptance.sh` (includes `TestSAVRoundTripGateNewGameKits*` and `TestSAVWriterCensusChangedWorlds*`) | EN, RU | FAIL on each root, only on `2026-10-07/saveorcsdontgo.sav`: the eleven `TestMilestone2*` instruments of `DIV-2885` and `TestSAVWriterCensusChangedWorldsPart6` (two `sack\|missing original`, runtime ids 132 and 133, `DIV-2884`). Every other instrument passes, `TestSAVRoundTripGateNewGameKits` Part1-3 included; `oldsaves7/game0006.sav` has no census mismatch | `final-m2.txt` |
 
 No golden, trace or witness hash moved.
 
