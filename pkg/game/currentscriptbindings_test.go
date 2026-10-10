@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -144,8 +145,9 @@ func TestStatueQuestRoleResolvesByTheMaleMageFaceFourPredicate(t *testing.T) {
 		}
 		party[position] = heroMember("rood", false, true, 3)
 		refs = campaignScriptPartyRefs(&alm.Map{}, table, party, func(i int) sim.EntityID { return ids[i] })
-		if program, _, err = mapload.CompileScriptFrom(src, refs); err != nil || program.Checks()[0].HasUnit {
-			t.Fatal("a male mage with another face satisfied ordinal 5", err)
+		_, rep, err := mapload.CompileScriptFrom(src, refs)
+		if err != nil || !slices.Contains(rep.OmittedChecks, 1) {
+			t.Fatal("a male mage with another face satisfied ordinal 5", err, rep.OmittedChecks)
 		}
 	}
 }

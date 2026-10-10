@@ -2042,9 +2042,17 @@ package storyguard
 // CommentBytes rises for the one chat command parser, its two game adapters,
 // the second game's completion win predicate and the second game's command
 // witnesses, new code, including this paragraph.
+// CommentBytes rises for the unbuilt script node census, the ROM1 omission
+// rule in pkg/mapload, its real-roster census and the mission-100 servant
+// witness, new code, including this paragraph.
 // CommentBytes rises for the world-map task flag and held Cross: the frame
 // pickers, the flag's counter and placement, and their focused and release
 // tests, new code, including this paragraph.
+// CommentBytes rises for the subscript-0 announcement of an unbuilt slot in
+// pkg/mapload, its tests and the mission-30 and mission-130 witnesses, new
+// code, including this paragraph.
+// CommentBytes rises for the script coverage closure admitting the nodes the
+// compile leaves unbuilt, new code, including this paragraph.
 // CommentBytes rises for the shop shelf tests: the plain-shelf pool doc and
 // its class constants and the shelf population, beard and sale witnesses,
 // new code, including this paragraph.
@@ -2071,5 +2079,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1766,
 	},
-	CommentBytes: 8598309,
+	CommentBytes: 8606335,
 }

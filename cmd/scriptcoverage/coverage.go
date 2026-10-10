@@ -295,27 +295,43 @@ func indexMap(result *coverageResult, m *loadedMap) error {
 	result.Instants += len(instants)
 	result.Triggers += len(triggers)
 
-	if len(checks) != len(m.Source.Conditions) {
-		return fmt.Errorf("builder produced %d checks from %d authored nodes", len(checks), len(m.Source.Conditions))
+	// A node the compile reports unbuilt for this party has no compiled
+	// counterpart (DIV-1658). Every other authored node must have one.
+	omittedCheck, err := omittedSet(m.Started.OmittedChecks, m.Source.Conditions, "check")
+	if err != nil {
+		return err
+	}
+	omittedAction, err := omittedSet(m.Started.OmittedActions, m.Source.Actions, "action")
+	if err != nil {
+		return err
+	}
+	if len(checks) != len(m.Source.Conditions)-len(omittedCheck) {
+		return fmt.Errorf("builder produced %d checks from %d authored nodes, %d unbuilt", len(checks), len(m.Source.Conditions), len(omittedCheck))
 	}
 	for i, n := range m.Source.Conditions {
 		family := "check"
 		if n.Opcode == buildTimeOpcode {
 			family = "check-build"
 		}
-		if checks[i].Op != int32(n.Opcode) {
-			return fmt.Errorf("check %d compiled as opcode %d, authored %d", i, checks[i].Op, n.Opcode)
+		if omittedCheck[n.ID] {
+			addNode(result, m, unbuiltNode(family, i, n))
+			continue
+		}
+		ci := len(m.checkRawOf)
+		if checks[ci].Op != int32(n.Opcode) {
+			return fmt.Errorf("check %d compiled as opcode %d, authored %d", i, checks[ci].Op, n.Opcode)
 		}
 		m.checkRawOf = append(m.checkRawOf, i)
 		row := nodeCoverage{Family: family, Node: i, Opcode: int32(n.Opcode), Accepted: true, Reachable: true}
 		if family == "check-build" {
+			c := checks[ci]
 			row.Source, row.Dispatched = "builder", false
-			row.Effect = m.Started.World.ScriptRegister(checks[i].Register) == checks[i].Args[0]
+			row.Effect = m.Started.World.ScriptRegister(c.Register) == c.Args[0]
 			row.Disposition = "PASS"
 			row.Oracle = "owned register equals the authored preset after mission construction"
 			if !row.Effect {
-				return fmt.Errorf("constant check %d register %d is %d, want preset %d", i, checks[i].Register,
-					m.Started.World.ScriptRegister(checks[i].Register), checks[i].Args[0])
+				return fmt.Errorf("constant check %d register %d is %d, want preset %d", i, c.Register,
+					m.Started.World.ScriptRegister(c.Register), c.Args[0])
 			}
 		}
 		addNode(result, m, row)
@@ -333,6 +349,10 @@ func indexMap(result *coverageResult, m *loadedMap) error {
 				row.Disposition = "PASS"
 			}
 			addNode(result, m, row)
+			continue
+		}
+		if omittedAction[n.ID] {
+			addNode(result, m, unbuiltNode("instant", i, n))
 			continue
 		}
 		ci := len(m.instantRawOf)
@@ -380,6 +400,18 @@ func indexMap(result *coverageResult, m *loadedMap) error {
 				}
 				continue
 			}
+			if omittedAction[id] {
+				// The slot runs subscript 0 (TRIG-M100-096).
+				if ct.Instants[slot] != 0 {
+					return fmt.Errorf("trigger %d slot %d names unbuilt action %d and compiled instant %d, want 0",
+						raw, slot, rawAction, ct.Instants[slot])
+				}
+				markReachable(result, m, "instant", m.instantRawOf[0])
+				if m.Source.Actions[m.instantRawOf[0]].Opcode == uint32(sim.ScriptInstantGroupOrder) {
+					markReachable(result, m, "group", m.instantRawOf[0])
+				}
+				continue
+			}
 			ci := compiledOfAction[rawAction]
 			if ct.Instants[slot] != int32(ci) {
 				return fmt.Errorf("trigger %d slot %d compiled instant %d, want %d", raw, slot, ct.Instants[slot], ci)
@@ -397,17 +429,45 @@ func indexMap(result *coverageResult, m *loadedMap) error {
 	return nil
 }
 
+// omittedSet is the compile's unbuilt ids, each of which must name exactly one
+// authored node of its family.
+func omittedSet(ids []uint32, nodes []alm.ScriptNode, family string) (map[uint32]bool, error) {
+	out := make(map[uint32]bool, len(ids))
+	for _, id := range ids {
+		n := 0
+		for _, node := range nodes {
+			if node.ID == id {
+				n++
+			}
+		}
+		if n != 1 || out[id] {
+			return nil, fmt.Errorf("unbuilt %s id %d names %d authored nodes", family, id, n)
+		}
+		out[id] = true
+	}
+	return out, nil
+}
+
+// unbuiltNode is an authored node the compile left unbuilt: present, neither
+// accepted nor reachable, and closed by the binder's own report.
+func unbuiltNode(family string, raw int, n alm.ScriptNode) nodeCoverage {
+	return nodeCoverage{Family: family, Node: raw, Opcode: int32(n.Opcode), Disposition: "UNBUILT",
+		Source: "builder", Oracle: "listed unbuilt by the compile for this party; no compiled node stands for it"}
+}
+
 func markReachable(result *coverageResult, m *loadedMap, family string, raw int) {
 	if i, ok := m.rows[nodeKey{m.Mission, family, raw}]; ok {
 		result.Nodes[i].Reachable = true
 	}
 }
 
+// expectedTotals are the compiled counts for the default primary alone, who
+// leaves 30 checks and 31 actions naming 10002..10006 unbuilt on both roots.
 func expectedTotals(label string) (checks, instants, triggers int) {
 	if label == "ru" {
-		return 678, 759, 397
+		return 648, 728, 397
 	}
-	return 680, 759, 398
+	return 650, 728, 398
 }
 
 func validateDenominator(result *coverageResult) error {
