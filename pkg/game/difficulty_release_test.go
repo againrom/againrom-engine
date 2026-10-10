@@ -295,12 +295,10 @@ func TestReleaseDifficultyLevelsInstalledArtAndPointer(t *testing.T) {
 	if overlap != 175 {
 		t.Fatalf("independent installed overlap census=%d want175", overlap)
 	}
-	frame, _, err := app.HeadlessFrame()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := frame.RGBAAt(147, 174); got != (color.RGBA{40, 31, 18, 255}) {
-		t.Fatalf("visible hero counterexample pixel=%v", got)
+	// Only the mask decides the hit (TOWN-523): (147,174) is the female
+	// fighter's region whatever art draws there.
+	if code := mask.ColorIndexAt(147, 174); code != 100 {
+		t.Fatalf("mask code at the hero counterexample = %d, want 100", code)
 	}
 	for _, action := range []string{"press", "release"} {
 		if err := app.HeadlessPointer(action, 147, 174); err != nil {

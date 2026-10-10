@@ -8,55 +8,56 @@ import (
 	"againrom/pkg/ui"
 )
 
+// TestReleaseChargenDetailedNavArtIsDrawnUnmodified: the command panel is
+// Inn\ButtonsArea.bmp with the three Inn off buttons over it at MENU-139's
+// rectangles; inside a button a pixel is its art or label ink.
 func TestReleaseChargenDetailedNavArtIsDrawnUnmodified(t *testing.T) {
 	f := releaseFront(t)
 	setup := f.ChargenSetup()
 	if setup.PreCreate == nil || setup.PreCreate.Art == nil || setup.PreCreate.Art.NavArt == nil {
 		t.Fatalf("production chargen art did not resolve NavArt")
 	}
-	navArt := setup.PreCreate.Art.NavArt
-
+	art := setup.PreCreate.Art
 	c := ui.NewChargen(setup)
 	c.SelectPreChoice(0)
 	c.Forward()
 	if c.Stage() != ui.DetailedStage {
 		t.Fatalf("Forward did not reach DetailedStage")
 	}
-
 	frame := ui.ComposeChargenFrame(c)
 	labels := ui.ChargenDetailedNavLabelRects(c)
+	buttons := [3]image.Rectangle{labels[2], labels[1], labels[0]} // Accept, Reset, Back
+	if buttons[0] != image.Rect(484, 44, 624, 90) || buttons[1] != image.Rect(484, 91, 624, 137) || buttons[2] != image.Rect(484, 138, 624, 184) {
+		t.Fatalf("command rectangles %v, want MENU-139's", buttons)
+	}
 	region := ui.TownUpperRegion
-
-	// Inside the three label rectangles a pixel is either NavArt or a shade
-	// of the label ink: no plaque is drawn under the navigation text.
 	ink := color.RGBA{R: 255, G: 230, B: 150, A: 255}
 	mismatches := 0
 	for y := region.Min.Y; y < region.Max.Y; y++ {
 		for x := region.Min.X; x < region.Max.X; x++ {
 			p := image.Pt(x, y)
-			inLabel := false
-			for _, l := range labels {
-				if p.In(l) {
-					inLabel = true
-					break
+			src, at := art.NavArt, region.Min
+			for i, r := range buttons {
+				if p.In(r) {
+					src, at = art.NavButtons[i][0], r.Min
 				}
 			}
 			got := frame.RGBAAt(x, y)
-			r, g, b, a := navArt.At(x-region.Min.X, y-region.Min.Y).RGBA()
+			r, g, b, a := src.At(x-at.X, y-at.Y).RGBA()
 			want := color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
-			if inLabel && inkShade(got, ink) {
+			if src != art.NavArt && inkShade(got, ink) {
 				continue
 			}
 			if got != want {
 				mismatches++
 				if mismatches <= 5 {
-					t.Errorf("nav region %v: composed pixel %#v != NavArt pixel %#v", p, got, want)
+					t.Errorf("nav region %v: composed pixel %#v != art pixel %#v", p, got, want)
 				}
 			}
 		}
 	}
 	if mismatches > 0 {
-		t.Fatalf("%d pixel(s) in the nav region are neither NavArt nor label ink", mismatches)
+		t.Fatalf("%d pixel(s) in the nav region are neither the shipped art nor label ink", mismatches)
 	}
 }
 
@@ -103,14 +104,8 @@ func TestReleaseChargenDetailedNavLabelsAreDrawn(t *testing.T) {
 	if setup.Detailed == nil {
 		t.Fatalf("production chargen setup carries no detailed wording")
 	}
-	// The three nav labels draw with NavFont, not this page's own Font
-	// (DIV-169). composeChargenDetailedPage (pkg/ui/chargen_page.go) measures
-	// and draws each label with the same font object -- "navFont := p.NavFont;
-	// if navFont == nil { navFont = p.Font }" -- so this test's own expected
-	// width has to come from that same font, not this page's Font, or a
-	// mismatch between the two would be invisible to it in one direction and
-	// invented in the other. Mirrors production's own fallback exactly.
-	font := setup.PreCreate.Art.NavFont
+	// The three labels draw with font4, NameFont (MENU-139).
+	font := setup.PreCreate.Art.NameFont
 	if font == nil {
 		font = setup.PreCreate.Art.Font
 	}
@@ -151,7 +146,9 @@ func TestReleaseChargenDetailedNavLabelsAreDrawn(t *testing.T) {
 		measured, _ := font.Measure(want[i])
 		t.Logf("control %d (%q): %d px, box %v in rect %v, font measures %d", i, want[i], count, box, r, measured)
 
-		if got, exp := box.Dx(), measured; got > exp || got < exp-4 {
+		// font4's measure carries its trailing advance, so the inked box is
+		// narrower by at most a quarter.
+		if got, exp := box.Dx(), measured; got > exp || got < exp*3/4 {
 			t.Errorf("control %d (%q): drawn width %d, font measures %d for this string", i, want[i], got, exp)
 		}
 		leftGap, rightGap := box.Min.X-r.Min.X, r.Max.X-box.Max.X

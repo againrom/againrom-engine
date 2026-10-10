@@ -994,6 +994,12 @@ type App struct {
 	menuSounds      SFXVoices
 	hallSounds      SFXVoices
 	chargenRepeat   chargenRepeat
+	// tipCycles are the pre-create and detailed guided cycles. Like the
+	// original's statics they outlive every generator page (TOWN-519).
+	tipCycles [2]guidedCycle
+	// chargenHeld is whether the left button is down this frame, for the
+	// stat buttons' held-and-hovered art (MENU-138).
+	chargenHeld bool
 }
 
 // NewApp builds the front-end over a validated menu asset set, the picker's rows
@@ -3440,6 +3446,9 @@ func (a *App) stepChargen(in appInput, now time.Time) {
 // mutually exclusive in this order, so a frame cannot both edit and launch.
 func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 	a.observeChargenTipPress(in)
+	a.flow.cursor.SetCursor("default")
+	a.chargenHeld = in.Viewer.PrimaryDown || in.PrimaryPressed
+	defer a.paintSkillCycle(c, in, now)
 	repeat := a.chargenRepeat.tick(in)
 	// THE SHOWING PANEL SWALLOWS EVERY PRESS AND RELEASE INSIDE ITS OWN RECT
 	// BEFORE THE PAGE (1022 spec B5, stepPreCreate's own precedent above):
@@ -3527,6 +3536,9 @@ func (a *App) activateChargenDetailed(c *Chargen, id chargenControl, pointer boo
 		skill := int(id - chargenSkill0)
 		if c.SelectSkill(skill) {
 			a.flow.msg = ""
+		}
+		if pointer {
+			c.tipSkillClicked()
 		}
 		// No comparison with the previous selection guards the request.
 		if pointer && len(c.choiceIndex) > 2 && skill < len(c.choiceOptions(2)) {
@@ -3676,6 +3688,8 @@ const chargenDoubleClickWindow = 500 * time.Millisecond
 
 func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 	a.observeChargenTipPress(in)
+	a.flow.cursor.SetCursor("select")
+	defer a.paintPreCreateCycle(c, in, now)
 	// THE SHOWING PANEL SWALLOWS EVERY PRESS AND RELEASE INSIDE ITS OWN RECT
 	// BEFORE THE PAGE (1018 spec behaviour 1, restored in round 3 / DIV-162),
 	// on the town screens' own precedent (stepShop/stepTownSurface /square
@@ -3758,6 +3772,37 @@ func (a *App) stepPreCreate(c *Chargen, in appInput, now time.Time) {
 	}
 }
 
+// paintPreCreateCycle runs the pre-create guided cycle once per frame while
+// TipsMode is set and the popup exists (TOWN-519). Its hovered region is the
+// Mask.bmp code under the pointer.
+func (a *App) paintPreCreateCycle(c *Chargen, in appInput, now time.Time) {
+	if a.flow.screen != ScreenChargen || c.Stage() != PreCreateStage || !c.setup.TipsOn || !c.preTip {
+		c.cycleDraw = -1
+		return
+	}
+	hovered := -1
+	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
+		hovered = preHoverRegion(preControlAt(c, p))
+	}
+	c.cycleDraw = a.tipCycles[0].paint(now, preCreateCycleSteps, c.preStep, hovered)
+}
+
+// paintSkillCycle runs the detailed skill cycle while the popup exists and
+// its step is 0; it reads no TipsMode (TOWN-522, MENU-136).
+func (a *App) paintSkillCycle(c *Chargen, in appInput, now time.Time) {
+	if a.flow.screen != ScreenChargen || c.Stage() != DetailedStage || !c.detailTip || c.detailStep != 0 {
+		c.cycleDraw = -1
+		return
+	}
+	hovered := -1
+	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
+		if id := detailedControlAt(c, p); id >= chargenSkill0 && id <= chargenSkill4 {
+			hovered = int(id - chargenSkill0)
+		}
+	}
+	c.cycleDraw = a.tipCycles[1].paint(now, detailedSkillCycleSteps, 0, hovered)
+}
+
 // activatePreCreate runs one pre-create control. A pointer activation is the
 // control's left press and requests its chrgen member; double marks the
 // second click of a pointer double-click, which requests none and turns a
@@ -3772,6 +3817,7 @@ func (a *App) activatePreCreate(c *Chargen, id chargenControl, pointer, double b
 		}
 		c.SelectDifficulty(int(id - chargenLevel0))
 		if pointer {
+			c.tipLevelClicked()
 			a.preCreateSounds.RestartFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenLevelSounds[id-chargenLevel0])
 		}
 	case chargenName:
@@ -3783,6 +3829,7 @@ func (a *App) activatePreCreate(c *Chargen, id chargenControl, pointer, double b
 			return
 		}
 		if pointer {
+			c.tipPortraitClicked()
 			a.preCreateSounds.RestartFor("character-precreate", a.soundPlayer, a.namedSounds(), ChargenSoundHero)
 		}
 	case chargenForward:
@@ -4845,6 +4892,7 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	// swapping shipped copy for transient UI wording would mean the panel no
 	// longer shows what it is named for.
 	c.SetDetailMessage(a.chargenDetailMessage())
+	c.statHeld = a.chargenHeld
 	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)
 	tip := tipPanelWithPointer(c.TipPanel(), chargenTipRoom, p, inside, a.townTipPress)
 	return composeChargenPage(c, a.chargenHover, a.chargenPressed(), tip), nil

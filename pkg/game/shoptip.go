@@ -6,15 +6,8 @@ package game
 // widget of a different class than the merchant panel's own children, at
 // merchant-panel-relative (0,162,312,298) — view-relative
 // (164,162,476,298) — holding the whole of `main/text/tips/shop1.txt`, and
-// hands it to the merchant panel as a child.
-//
-// TWO FACTS THE CLAIM LEAVES OPEN ARE AUTHORED HERE, and both are recorded as
-// divergence rows rather than left in a comment (`DIV-132`):
-const (
-	// ShopTip2Path is main/text/tips/shop2.txt; the shop room's entry text is
-	// its tip in the ROM1 description (SHOP-TIP-045).
-	ShopTip2Path = mainPrefix + "text/tips/shop2.txt"
-)
+// hands it to the merchant panel as a child. Both texts are the shop's tip in
+// the ROM1 description.
 
 // ReadShopTip reads one tip file whole and reports whether it is there.
 //

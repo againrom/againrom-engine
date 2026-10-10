@@ -122,6 +122,7 @@ func (m Mode) String() string {
 // or, for a map that also carries a static-object layer, NewViewerWithStatics —
 // and hand it to Run.
 type Viewer struct {
+	mtip                missionTip
 	graphics            GraphicsOptions
 	sackBoundaries      map[*terrain.StaticFrame]*terrain.StaticFrame
 	sackHighlight       bool
@@ -3643,6 +3644,8 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		blitColumnLayer(screen, v.minimapImg, &op, "minimap")
 		v.canvasLog.over(pic, at)
 	}
+
+	v.paintMissionTip(screen)
 
 	if _, shows, _ := v.DialogueBackdropPlan(); shows == 0 {
 		if r, c, ok := v.noticeBackdropOf(); ok {

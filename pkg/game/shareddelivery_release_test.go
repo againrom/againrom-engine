@@ -204,7 +204,7 @@ func (w *deliveryWitness) fixedAppRoutes() {
 	w.click(find("choice 0"))
 	w.click(find("forward"))
 	w.requireSource("character-precreate")
-	w.click(image.Pt(117, 64))
+	w.click(image.Pt(142, 64))
 	w.requireSource("character-detail")
 	w.openTown()
 	s := f.townUI

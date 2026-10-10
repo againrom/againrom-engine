@@ -56,7 +56,7 @@ func TestTipChildrenMatchPublishedRoomOffsets(t *testing.T) {
 		{"list", TipPanelListRect(r), image.Rect(348, 24, 612, 164)},
 		{"Close", TipPanelCloseRect(r), image.Rect(520, 160, 600, 178)},
 		{"checkbox", TipPanelToggleRect(r), image.Rect(368, 160, 516, 176)},
-		{"text", TipPanelTextRect(r), image.Rect(348, 24, 612, 156)},
+		{"text", TipPanelTextRect(r), image.Rect(348, 24, 612, 164)},
 	} {
 		if tc.got != tc.want {
 			t.Errorf("%s = %v, want %v", tc.name, tc.got, tc.want)

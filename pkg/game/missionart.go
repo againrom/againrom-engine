@@ -30,6 +30,7 @@ type viewerArt struct {
 	paneFiller     ui.TownPane
 	sackFrames     []*terrain.StaticFrame
 	sackBoundaries []*terrain.StaticFrame
+	missionTip     ui.MissionTipDress
 }
 
 // viewerArtSource resolves a viewer's art from the install and the
@@ -38,6 +39,7 @@ type viewerArt struct {
 type viewerArtSource struct {
 	in *InstallResources
 	pr *Presentation
+	pc *PersistenceContext
 }
 
 // resolve reads the art a mission viewer needs from the install and warms the
@@ -54,6 +56,16 @@ func (s viewerArtSource) resolve() viewerArt {
 	art.paneCorners = s.pr.characterPaneCorners(s.in)
 	art.paneFiller = s.pr.characterPaneFiller(s.in)
 	art.sackFrames, art.sackBoundaries = s.in.SackFrames, s.in.SackBoundaries
+	art.missionTip = ui.MissionTipDress{
+		Art:         s.pr.tipArt(s.in),
+		Font:        art.cardFont,
+		CloseLabel:  s.in.Words.TipClose,
+		ToggleLabel: s.in.Words.TipShowNext,
+	}
+	if pc := s.pc; pc != nil {
+		art.missionTip.TipsOn = func() bool { return !pc.tipsOffNow() }
+		art.missionTip.SetTipsOn = func(on bool) { pc.setTipsOff(!on) }
+	}
 	return art
 }
 
@@ -72,6 +84,7 @@ func (a viewerArt) apply(v *ui.Viewer) {
 	v.SetCharacterPaneFillerArt(a.paneFiller)
 	v.SetSackFrames(a.sackFrames)
 	v.SetSackBoundaries(a.sackBoundaries)
+	v.SetMissionTipDress(a.missionTip)
 }
 
 // pickerArt is the art a debug picker map is dressed with: viewerArt without

@@ -83,32 +83,14 @@ type ChargenSetup struct {
 	// health as the one he is about to get.
 	Derive func(ChargenResult) []ChargenDerived
 
-	// TipText is the generator's own tip-panel text for the FIGHTER branch
-	// (1018 spec behaviours 1, 2), and TipTextMage is the same for the mage
-	// branch (round 2 / DIV-162 correction) — both resolved once by the far
-	// side (chrgen1f.txt / chrgen1m.txt; TOWN-187's "class bit, not sex bit"
-	// reading), since this package has no class of its own to read (AC-11).
-	// TipPanel picks between the two using preChoiceParts' own class half of
-	// c.preChoice — the SAME field Forward already reads to commit the choice
-	// row, so the shown text tracks whichever portrait the player currently has
-	// selected, live, rather than a class this package cannot otherwise
-	// observe. TipTextMage empty falls back to TipText, which keeps every setup
-	// built before this field existed drawing exactly what it drew before.
-	// TOWN-187's own second popup, which replaces this text in place once the
-	// detailed page opens (chrgen2.txt) on a once-only latch and reads an
-	// unrelated text node, is a different mechanism and stays out of this
-	// story's scope; TipPanel only ever shows one of these two strings, and
-	// only on the pre-create page. Both empty draws nothing.
+	// TipSelect are the pre-create popup's three step texts, chrsel1..3
+	// (TOWN-518). TipText and TipTextMage are the detailed page's enter
+	// texts, chrgen1f and chrgen1m, chosen by the hero's class, and
+	// TipTextDetail is chrgen2, its text after the first skill click
+	// (TOWN-522). An empty text draws no popup.
+	TipSelect            [3]string
 	TipText, TipTextMage string
-	// TipTextDetail is TOWN-187's second popup text (chrgen2.txt), shown on
-	// the detailed page (1022 spec B5). The original replaces the SAME
-	// popup's text in place on a once-only latch rather than building a
-	// second one; this package models that as the same TipPanel/tipClosed
-	// state carrying a different string once c.stage reaches DetailedStage,
-	// which is the same "one popup, one text per stage" shape. Empty draws
-	// nothing on the detailed page, the same degrade TipText/TipTextMage
-	// already have on the pre-create one.
-	TipTextDetail string
+	TipTextDetail        string
 	// TipClose and TipToggle are main.txt[127] and main.txt[128], already
 	// resolved by the game side. Empty keeps the exact EN fallback for a
 	// diagnostic setup assembled without an install.
@@ -116,8 +98,8 @@ type ChargenSetup struct {
 	// TipArt is the panel's own shared art (tippanel.go), resolved once by
 	// the wiring tier on shopArt's own precedent.
 	TipArt *TipPanelArt
-	// TipsOn is the permanent-suppression toggle's own current drawn state
-	// (1018 spec behaviour 4), read once at setup construction.
+	// TipsOn is TipsMode (MENU-135) as the setup was built; the popup
+	// checkbox writes it through SetTipsOn.
 	TipsOn bool
 	// SetTipsOn persists a toggle press across the seam this package may not
 	// cross itself: nil in a hand-built test setup leaves the toggle a no-op,
@@ -237,21 +219,27 @@ const chargenMissingCost = 1_000_000
 // sense of is a row that never moves, and every read stays inside the bounds
 // of the slice it reads.
 type Chargen struct {
-	sparkAt       time.Time
-	sparkElapsed  time.Duration
-	setup         ChargenSetup
-	name          string
-	lastPressed   int // the picture the last hero press chose (TEXT-074)
-	caret         nameCaret
-	choiceIndex   []int // current option index, one per Choices row
-	statValue     []int // current value, one per Stats row
-	focus         int   // row index into the combined list, choices then stats
-	stage         ChargenStage
-	preChoice     int
-	preLevel      int // three-picture difficulty index; starts at Normal (1)
-	preview       ChargenPreview
-	tipClosed     bool // 1018 spec behaviour 3, this generator's own visit
-	tipSuppressed bool
+	sparkAt      time.Time
+	sparkElapsed time.Duration
+	setup        ChargenSetup
+	name         string
+	lastPressed  int // the picture the last hero press chose (TEXT-074)
+	caret        nameCaret
+	choiceIndex  []int // current option index, one per Choices row
+	statValue    []int // current value, one per Stats row
+	focus        int   // row index into the combined list, choices then stats
+	stage        ChargenStage
+	preChoice    int
+	preLevel     int // three-picture difficulty index; starts at Normal (1)
+	preview      ChargenPreview
+	// The two pages' tip state: whether each page's popup exists and its
+	// step (TOWN-518, TOWN-522), and the guided-cycle highlight the last
+	// step answered, -1 for none (TOWN-519).
+	preTip, detailTip   bool
+	preStep, detailStep int
+	cycleDraw           int
+	// statHeld is whether the left button is held this frame (MENU-138).
+	statHeld bool
 
 	// message is the detailed page's own transient hover/refusal copy (1022
 	// round-2), set by SetDetailMessage and drawn by
@@ -293,6 +281,7 @@ func (c *Chargen) SetDetailMessage(msg string) {
 func NewChargen(setup ChargenSetup) *Chargen {
 	c := &Chargen{
 		preLevel:    1,
+		cycleDraw:   -1,
 		setup:       setup,
 		name:        setup.Name,
 		choiceIndex: make([]int, len(setup.Choices)),
@@ -303,6 +292,7 @@ func NewChargen(setup ChargenSetup) *Chargen {
 		c.enterPreCreate()
 	} else {
 		c.stage = DetailedStage
+		c.enterDetailed()
 	}
 	for i := range setup.Choices {
 		c.choiceIndex[i] = c.startIndex(i)
@@ -355,6 +345,7 @@ func (c *Chargen) SelectPreChoice(choice int) {
 // name. A typed name is kept. The difficulty is not touched.
 func (c *Chargen) enterPreCreate() {
 	c.preChoice, c.lastPressed = 0, 0
+	c.preTip, c.preStep, c.cycleDraw = c.setup.TipsOn, 0, -1
 	if pre := c.setup.PreCreate; pre != nil && c.defaultName() && pre.HeroNames[0] != "" {
 		c.name = pre.HeroNames[0]
 	}
@@ -432,7 +423,15 @@ func (c *Chargen) Forward() {
 	}
 	c.focus = 0
 	c.stage = DetailedStage
+	c.preTip = false
+	c.enterDetailed()
 	c.rebuildPreview()
+}
+
+// enterDetailed is the detailed page's enter (TOWN-522): the popup exists
+// while TipsMode is set, and its step restarts at 0.
+func (c *Chargen) enterDetailed() {
+	c.detailTip, c.detailStep, c.cycleDraw = c.setup.TipsOn, 0, -1
 }
 
 // Back returns true when detailed state was discarded and pre-create is now
@@ -444,10 +443,10 @@ func (c *Chargen) Back() bool {
 		return false
 	}
 	c.stage = PreCreateStage
+	c.detailTip = false
 	c.enterPreCreate()
 	c.focus = 0
 	c.preview = ChargenPreview{}
-	c.tipSuppressed = !c.setup.TipsOn
 	return true
 }
 
@@ -829,38 +828,35 @@ func (c *Chargen) Result() (ChargenResult, bool) {
 	return ChargenResult{Name: c.name, Choices: choices, Stats: stats, Difficulty: c.Difficulty()}, true
 }
 
-// TipPanel is the generator's own tip panel (1018 spec behaviours 1, 2, 3,
-// 4; 1022 spec B5): TOWN-187's popup, at ChargenTipRect, on both stages now.
-// It draws nothing once closed or once tipSuppressed is set. A toggle press
-// mid-visit does not reach this guard at all until the next entry, which is
-// the "does not retroactively hide an open panel" half of behaviour 4.
-//
-// THE DETAILED PAGE SHOWS TipTextDetail, TOWN-187's second popup text
-// (chrgen2.txt), with no class branch: the original's own second call site
-// replaces the popup's text unconditionally once the detailed page opens,
-// not by class the way the first popup's text is. tipClosed/tipSuppressed
-// still gate it — a player who closed the panel on the pre-create page does
-// not see it re-open on the detailed one, the same "one popup" reading
-// TipTextDetail's own doc gives.
+// TipPanel is the showing page's tip popup: pre-create at PreCreateTipRect
+// with its step's chrsel text (TOWN-518), the detailed page at ChargenTipRect
+// with chrgen1f or chrgen1m, then chrgen2 after the first skill click
+// (TOWN-522, MENU-137).
 func (c *Chargen) TipPanel() TipPanelView {
-	if c == nil || c.tipClosed || c.tipSuppressed || c.setup.TipArt == nil {
+	if c == nil || c.setup.TipArt == nil {
 		return TipPanelView{}
 	}
 	var font *text.Font
 	if c.setup.PreCreate != nil && c.setup.PreCreate.Art != nil {
 		font = c.setup.PreCreate.Art.Font
 	}
-	tipText := c.setup.TipText
-	if c.stage == DetailedStage {
+	rect, tipText := ChargenTipRect, ""
+	switch {
+	case c.stage == PreCreateStage && c.preTip && c.preStep >= 0 && c.preStep < len(c.setup.TipSelect):
+		rect, tipText = PreCreateTipRect, c.setup.TipSelect[c.preStep]
+	case c.stage == DetailedStage && c.detailTip && c.detailStep != 0:
 		tipText = c.setup.TipTextDetail
-	} else if _, class := preChoiceParts(c.preChoice); class != 0 && c.setup.TipTextMage != "" {
-		tipText = c.setup.TipTextMage
+	case c.stage == DetailedStage && c.detailTip:
+		tipText = c.setup.TipText
+		if len(c.choiceIndex) > 1 && c.choiceIndex[1] != 0 && c.setup.TipTextMage != "" {
+			tipText = c.setup.TipTextMage
+		}
 	}
 	if tipText == "" {
 		return TipPanelView{}
 	}
 	return TipPanelView{
-		Rect:        ChargenTipRect,
+		Rect:        rect,
 		Text:        tipText,
 		ToggleOn:    c.setup.TipsOn,
 		CloseLabel:  c.setup.TipClose,
@@ -870,13 +866,50 @@ func (c *Chargen) TipPanel() TipPanelView {
 	}
 }
 
-// CloseTip dismisses the panel for the rest of this generator's own visit
-// (spec behaviour 3).
+// CloseTip deletes the showing page's popup (MENU-137). The page's next
+// enter builds it again while TipsMode is set.
 func (c *Chargen) CloseTip() {
 	if c == nil {
 		return
 	}
-	c.tipClosed = true
+	if c.stage == PreCreateStage {
+		c.preTip = false
+	} else {
+		c.detailTip = false
+	}
+	c.cycleDraw = -1
+}
+
+// TipStep is the showing page's tip step: 0..2 on pre-create, 0..1 on the
+// detailed page.
+func (c *Chargen) TipStep() int {
+	if c == nil {
+		return 0
+	}
+	if c.stage == PreCreateStage {
+		return c.preStep
+	}
+	return c.detailStep
+}
+
+// tipPortraitClicked and tipLevelClicked are the pre-create step routine
+// (TOWN-518): a pointer click on a portrait at step 0 or on a level at step 1
+// advances the step while TipsMode is set and the popup exists.
+func (c *Chargen) tipPortraitClicked() { c.advancePreTip(0) }
+func (c *Chargen) tipLevelClicked()    { c.advancePreTip(1) }
+
+func (c *Chargen) advancePreTip(from int) {
+	if c != nil && c.stage == PreCreateStage && c.setup.TipsOn && c.preTip && c.preStep == from {
+		c.preStep = from + 1
+	}
+}
+
+// tipSkillClicked is the detailed step routine (TOWN-522): the first skill
+// click retexts chrgen2 while TipsMode is set and the popup exists.
+func (c *Chargen) tipSkillClicked() {
+	if c != nil && c.stage == DetailedStage && c.setup.TipsOn && c.detailTip && c.detailStep == 0 {
+		c.detailStep = 1
+	}
 }
 
 // ToggleTips flips the permanent suppression store through the callback the

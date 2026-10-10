@@ -90,35 +90,19 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 	stats[chargenStatMind] = stat("Mind")
 	stats[chargenStatSpirit] = stat("Spirit")
 
-	// BOTH THE FIGHTER AND THE MAGE TIP TEXT ARE RESOLVED HERE, ONCE (1018
-	// spec behaviours 1, 2; TOWN-187; round 2 / DIV-162 correction).
-	// TOWN-187 reads the original's own popup off the entity's class bit at
-	// the generator's own ENTER routine — round 1 read that as "the class
-	// row's own opening Start," which nothing in this tree ever seeds away
-	// from 0 (no `.Start =` write reaches chargenChoiceClass, confirmed by a
-	// grep over pkg/ and cmd/, tests excluded), so the mage branch was
-	// unreachable through any player action: every player saw the fighter
-	// text, including one who goes on to pick a mage portrait. Both texts
-	// are resolved here, still with no re-parsing per frame and no new text
-	// node, and ui.Chargen.TipPanel picks between them by the player's own
-	// LIVE pre-create portrait selection (preChoiceParts' own class half),
-	// the entity's actual class bit once one exists. TOWN-187's own second
-	// popup (chrgen2.txt, a once-only latch replacing this text with an
-	// unrelated node once the detailed page opens) is a different mechanism
-	// and stays out of this story's scope.
-	tipText, tipTextMage, tipTextDetail := "", "", ""
-	if !f.TipsOff() {
-		var src entrySource
-		if f.Archives != nil {
-			src = f.Archives.Containers
-		}
-		tipText, _ = ReadShopTip(src, chargenTipPath(0))
-		tipTextMage, _ = ReadShopTip(src, chargenTipPath(1))
-		// The detailed page's own tip text (1022 spec B5; TOWN-187's second
-		// popup, chrgen2.txt), resolved here on the fighter/mage texts' own
-		// precedent: once, with no re-parsing per frame.
-		tipTextDetail, _ = ReadShopTip(src, ChargenDetailTipPath)
+	// Every generator tip text is read once here; each page's enter tests
+	// TipsMode itself (TOWN-518, TOWN-522).
+	var src entrySource
+	if f.Archives != nil {
+		src = f.Archives.Containers
 	}
+	var tipSelect [3]string
+	for i, addr := range ChargenSelectTipPaths {
+		tipSelect[i], _ = ReadShopTip(src, addr)
+	}
+	tipText, _ := ReadShopTip(src, chargenTipPath(0))
+	tipTextMage, _ := ReadShopTip(src, chargenTipPath(1))
+	tipTextDetail, _ := ReadShopTip(src, ChargenDetailTipPath)
 
 	setup := ui.ChargenSetup{
 		Title:   chargenTitle,
@@ -134,6 +118,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		// above, art on shopArt's own cached-once precedent, and the toggle
 		// read from and written through the same store every room's own tip
 		// reads (tipstore.go).
+		TipSelect:     tipSelect,
 		TipText:       tipText,
 		TipTextMage:   tipTextMage,
 		TipTextDetail: tipTextDetail,

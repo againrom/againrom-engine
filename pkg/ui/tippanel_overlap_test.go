@@ -432,7 +432,7 @@ func TestPreCreateTipPanelSwallowsEveryPortraitItCovers(t *testing.T) {
 	setup.PreCreate = &ChargenPreCreate{Art: art}
 	setup.TipsOn = true
 	setup.TipArt = tipTestArt()
-	setup.TipText = "pick a hero"
+	setup.TipSelect[0] = "pick a hero"
 	a := newTestApp(t, appRows(1), okLoader(t))
 	c := NewChargen(setup)
 	if err := a.OpenChargen(c, func(ChargenResult) (MapOpener, error) { return nil, nil }); err != nil {
@@ -448,27 +448,29 @@ func TestPreCreateTipPanelSwallowsEveryPortraitItCovers(t *testing.T) {
 	// zone built from the unshrunk ceiling can claim overlap the shrunk
 	// panel no longer covers.
 	bg := tipBackgroundZone(c.TipPanel().Rect)
+	// Mask.bmp decides every hit (TOWN-520): the fixture's mask names
+	// portrait 1 under the whole panel, so a press there would choose it.
+	art.PreMask = chargenMask(640, 480)
+	for y := 0; y < 480; y++ {
+		for x := 0; x < 640; x++ {
+			art.PreMask.SetColorIndex(x, y, preMaskCode[1])
+		}
+	}
 	type coveredChoice struct {
 		choice int
 		at     image.Point
 	}
-	var covered []coveredChoice
-	for i := 0; i < 4; i++ {
-		id := chargenChoice0 + chargenControl(i)
-		r := preControlRect(c, id)
-		p, ok := sampleInside(r.Intersect(bg))
-		if !ok {
-			continue
-		}
-		if k, consumed := TipPanelControlAt(c.TipPanel(), p); !consumed || k != TipControlNone {
-			t.Fatalf("fixture error: choice %d's own sample %v, TipPanelControlAt = %v,%v, want TipControlNone,true", i, p, k, consumed)
-		}
-		covered = append(covered, coveredChoice{choice: i, at: p})
+	p, ok := sampleInside(bg)
+	if !ok {
+		t.Fatal("fixture error: the panel's background zone is empty")
 	}
-	if len(covered) != 4 {
-		t.Fatalf("fixture error: %d of 4 pre-create choices are covered by the panel %v at this fixture's own 160x240 portraits, want all 4 -- the enumeration no longer sweeps what it claims to", len(covered), c.TipPanel().Rect)
+	if k, consumed := TipPanelControlAt(c.TipPanel(), p); !consumed || k != TipControlNone {
+		t.Fatalf("fixture error: sample %v, TipPanelControlAt = %v,%v, want TipControlNone,true", p, k, consumed)
 	}
-
+	if preControlAt(c, p) != chargenChoice1 {
+		t.Fatal("fixture error: the mask does not name portrait 1 under the panel")
+	}
+	covered := []coveredChoice{{choice: 1, at: p}}
 	for _, cc := range covered {
 		pin := (cc.choice + 1) % 4
 		c.SelectPreChoice(pin)

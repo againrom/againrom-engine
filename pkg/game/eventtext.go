@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
@@ -523,4 +524,13 @@ func tagSpeaker(tag string) (speaker int, named bool) {
 func EventPart(payload []byte, n int, aud EventAudience) (string, bool) {
 	_, body, ok := eventPartTag(payload, n, aud)
 	return body, ok
+}
+
+// MissionTipPath is the edition's text of tip n of the mission
+// (TRIG-TIPS-087); false when the edition has no mission tips.
+func MissionTipPath(e base.Edition, mission, n int) (string, bool) {
+	if e.MissionTipText == "" {
+		return "", false
+	}
+	return fmt.Sprintf(e.MissionTipText, mission, n), true
 }

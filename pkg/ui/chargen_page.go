@@ -24,11 +24,11 @@ type ChargenPresentation struct {
 	ColumnMask  [2]*image.Paletted
 	Skills      [2][5][3]image.Image
 	StatButtons [2][5]image.Image // minus/plus × native source states
-	// NavArt is interface/chrgen/buttonsarea.bmp, the same shipped 160x238
-	// frame the town shell draws for the school and the tavern (1017). It
-	// replaces the authored flat nav box; the three nav actions are still
-	// drawn as text, since there is no per-button bitmap to draw instead.
-	NavArt image.Image
+	// NavArt is the command panel's background, Inn\ButtonsArea.bmp at
+	// (480,0), and NavButtons are Accept, Reset and Back, off and on
+	// (MENU-139).
+	NavArt     image.Image
+	NavButtons [3][2]image.Image
 	// NavSeam is interface/inn/ruover.bmp, the same strip
 	// ui.TownSchoolArt.UpperSeam carries, closing the same 16-column gap
 	// beside NavArt (DIV-166, DIV-168).
@@ -53,10 +53,6 @@ type ChargenPresentation struct {
 	// NameFont is font4, which draws the pre-create prompt and name
 	// (TEXT-077). Nil falls back to Font.
 	NameFont *text.Font
-	// NavFont draws the three nav labels (Back/Reset/Play) on the shared NavArt
-	// plaque. Nil falls back to Font, so a front end that never sets it keeps
-	// this page's previous single-font behaviour.
-	NavFont *text.Font
 }
 
 type chargenControl uint8
@@ -122,6 +118,93 @@ const (
 )
 
 var preForwardOrigin = image.Pt(468, 373)
+var preAmuletOrigin = image.Pt(528, 140)
+
+// preCycleChoices is the portrait slot order mf, ff, fm, mm (TOWN-520) as
+// choice indexes; the cycle and the paint loop walk it.
+var preCycleChoices = [...]int{0, 2, 3, 1}
+
+// preCreateCycleSteps are the guided cycle's targets per tip step as mask
+// region codes: portraits, levels, then amulet and OK (TOWN-519, TOWN-520).
+var preCreateCycleSteps = [][]int{{80, 100, 120, 140}, {20, 40, 60}, {preBackMaskCode, preForwardMaskCode}}
+
+// detailedSkillCycleSteps is the skill cycle's one step over the five skills.
+var detailedSkillCycleSteps = [][]int{{0, 1, 2, 3, 4}}
+
+// preStateArt is TOWN-521's state art: 1 on, 2 l, 3 lon, 0 none.
+func preStateArt(states [3]image.Image, state int) image.Image {
+	if state < 1 || state > 3 {
+		return nil
+	}
+	return states[state-1]
+}
+
+// preChoiceState and preLevelState are the state bits: bit 0 chosen, bit 1
+// under the pointer or the keyboard focus.
+func (c *Chargen) preChoiceState(i int, hover chargenControl) int {
+	id := chargenChoice0 + chargenControl(i)
+	return preStateBits(c.preChoice == i, hover == id || preFocusControl(c.focus) == id)
+}
+
+func (c *Chargen) preLevelState(i int, hover chargenControl) int {
+	id := chargenLevel0 + chargenControl(i)
+	return preStateBits(c.preLevel == i, hover == id || preFocusControl(c.focus) == id)
+}
+
+func preStateBits(chosen, hovered bool) int {
+	state := 0
+	if chosen {
+		state |= 1
+	}
+	if hovered {
+		state |= 2
+	}
+	return state
+}
+
+// preHoverRegion is the mask region code of the control under the pointer,
+// -1 when none is a cycle target.
+func preHoverRegion(hover chargenControl) int {
+	switch {
+	case hover >= chargenChoice0 && hover <= chargenChoice3:
+		return int(preMaskCode[hover-chargenChoice0])
+	case hover >= chargenLevel0 && hover <= chargenLevel2:
+		return 20 * int(hover-chargenLevel0+1)
+	case hover == chargenBack:
+		return preBackMaskCode
+	case hover == chargenForward:
+		return preForwardMaskCode
+	}
+	return -1
+}
+
+// composePreCreateCycle draws the guided cycle's target (TOWN-519): lon on a
+// chosen portrait or level and l otherwise; Amulet or OK at step 2.
+func composePreCreateCycle(dst *image.RGBA, c *Chargen, p *ChargenPresentation) {
+	k := c.cycleDraw
+	if k < 0 || c.preStep < 0 || c.preStep >= len(preCreateCycleSteps) || k >= len(preCreateCycleSteps[c.preStep]) {
+		return
+	}
+	pick := func(states [3]image.Image, chosen bool) image.Image {
+		if chosen {
+			return states[2]
+		}
+		return states[1]
+	}
+	switch c.preStep {
+	case 0:
+		i := preCycleChoices[k]
+		copyNativeKeyed(dst, pick(p.Choices[i], c.preChoiceState(i, chargenNone) == 1), preChoiceOrigin[i], dst.Bounds())
+	case 1:
+		copyNativeKeyed(dst, pick(p.Levels[k], c.preLevelState(k, chargenNone) == 1), preLevelOrigin[k], dst.Bounds())
+	case 2:
+		if k == 0 {
+			copyNativeKeyed(dst, p.Amulet, preAmuletOrigin, dst.Bounds())
+		} else {
+			copyNativeKeyed(dst, p.Forward, preForwardOrigin, dst.Bounds())
+		}
+	}
+}
 
 var detailedSkillOrigin = [2][5]image.Point{
 	{{88, 93}, {92, 126}, {88, 182}, {84, 225}, {88, 250}},
@@ -205,12 +288,12 @@ var chargenStatValueBox = [...]image.Rectangle{
 	image.Rect(82, 118, 102, 138), image.Rect(82, 150, 102, 170),
 }
 
-var chargenStatMinusBox = [...]image.Rectangle{
+var chargenStatPlusBox = [...]image.Rectangle{
 	image.Rect(107, 54, 127, 74), image.Rect(107, 86, 127, 106),
 	image.Rect(107, 118, 127, 138), image.Rect(107, 150, 127, 170),
 }
 
-var chargenStatPlusBox = [...]image.Rectangle{
+var chargenStatMinusBox = [...]image.Rectangle{
 	image.Rect(132, 54, 152, 74), image.Rect(132, 86, 152, 106),
 	image.Rect(132, 118, 152, 138), image.Rect(132, 150, 152, 170),
 }
@@ -245,26 +328,13 @@ func detailedControlRegion(id chargenControl) image.Rectangle {
 	case id >= chargenStatPlus0 && id <= chargenStatPlus3:
 		i := int(id - chargenStatPlus0)
 		return chargenStatPlusBox[i]
-	// buttonsarea.bmp ships FOUR evenly stacked wells (1017 round 2;
-	// DIV-156), not three: cmd/buttonframecheck segments the shipped
-	// picture by row and column brightness at threshold 40 (chosen because
-	// it is the value that resolves all four visually identical plaques on
-	// the picture itself; threshold 33 missed the topmost well by one row
-	// under its own minimum run and was read, wrongly, as agreeing with
-	// this build's three existing nav actions instead of being checked
-	// against the art). This build has only three nav actions, so the
-	// topmost well is drawn as shipped art (composeChargenDetailedPage) and
-	// wired to none of them; which of the four the original wires a fourth
-	// action to is undecoded. Play/Reset/Back are assigned to the other
-	// three top to bottom, the order the pre-1017 authored rectangles
-	// already used, and each rectangle now matches its own well exactly
-	// rather than an undersized guess at it.
+	// Accept, Reset and Back (MENU-139).
 	case id == chargenPlay:
-		return image.Rect(486, 69, 617, 111)
+		return image.Rect(484, 44, 624, 90)
 	case id == chargenReset:
-		return image.Rect(486, 115, 617, 160)
+		return image.Rect(484, 91, 624, 137)
 	case id == chargenBack:
-		return image.Rect(504, 163, 601, 208)
+		return image.Rect(484, 138, 624, 184)
 	}
 	return image.Rectangle{}
 }
@@ -349,56 +419,48 @@ func preControlRect(c *Chargen, id chargenControl) image.Rectangle {
 	return b.Add(preChoiceOrigin[i])
 }
 
+// preControlAt is the pre-create hit-test. The name field is its own child
+// (TEXT-075); every other control is the Mask.bmp region code under the point
+// (TOWN-520). A setup without a mask falls back to the art rectangles.
 func preControlAt(c *Chargen, p image.Point) chargenControl {
-	hasMask := false
-	maskControl := chargenNone
+	if p.In(preControlRegion(chargenName)) {
+		return chargenName
+	}
 	if c != nil && c.setup.PreCreate != nil && c.setup.PreCreate.Art != nil {
-		if mask := c.setup.PreCreate.Art.PreMask; mask != nil && p.In(mask.Bounds()) {
-			hasMask = true
-			code := mask.ColorIndexAt(p.X, p.Y)
-			for choice, want := range preMaskCode {
-				if code == want {
-					maskControl = chargenChoice0 + chargenControl(choice)
-					// Heroes are painted over Levels. Their visible mask pixels
-					// own the click; keyed holes still expose the piece below.
-					pic := c.setup.PreCreate.Art.Choices[choice][0]
-					src := p.Sub(preChoiceOrigin[choice])
-					if pic != nil && src.In(pic.Bounds()) {
-						r, g, b, _ := pic.At(src.X, src.Y).RGBA()
-						if r|g|b != 0 {
-							return maskControl
-						}
-					}
-					break
-				}
+		if mask := c.setup.PreCreate.Art.PreMask; mask != nil {
+			if !p.In(mask.Bounds()) {
+				return chargenNone
 			}
-			switch code {
-			case preBackMaskCode:
-				maskControl = chargenBack
-			case preForwardMaskCode:
-				maskControl = chargenForward
-			}
+			return preMaskControl(mask.ColorIndexAt(p.X, p.Y))
 		}
 	}
 	for id := chargenLevel0; id <= chargenLevel2; id++ {
 		if p.In(preControlRect(c, id)) {
-			i := int(id - chargenLevel0)
-			src := p.Sub(preLevelOrigin[i])
-			r, g, b, a := c.setup.PreCreate.Art.Levels[i][0].At(src.X, src.Y).RGBA()
-			if a != 0 && r|g|b != 0 {
-				return id
-			}
+			return id
 		}
 	}
-	if maskControl != chargenNone {
-		return maskControl
-	}
-	for id := chargenName; id <= chargenForward; id++ {
-		if hasMask && id >= chargenChoice0 && id <= chargenForward {
-			continue
-		}
+	for id := chargenChoice0; id <= chargenForward; id++ {
 		if p.In(preControlRect(c, id)) {
 			return id
+		}
+	}
+	return chargenNone
+}
+
+// preMaskControl maps a Mask.bmp region code to its control: levels 20, 40
+// and 60, portraits 80..140, amulet 160 and OK 180 (TOWN-520).
+func preMaskControl(code uint8) chargenControl {
+	switch code {
+	case 20, 40, 60:
+		return chargenLevel0 + chargenControl(code/20-1)
+	case preBackMaskCode:
+		return chargenBack
+	case preForwardMaskCode:
+		return chargenForward
+	}
+	for choice, want := range preMaskCode {
+		if code == want {
+			return chargenChoice0 + chargenControl(choice)
 		}
 	}
 	return chargenNone
@@ -542,37 +604,12 @@ func composeChargenPage(c *Chargen, hover, pressed chargenControl, tipState ...T
 	}
 	copyNative(dst, p.Background, image.Point{}, dst.Bounds())
 	for i, states := range p.Levels {
-		id := chargenLevel0 + chargenControl(i)
-		selected := c.preLevel == i
-		hot := hover == id || preFocusControl(c.focus) == id || pressed == id
-		state := -1
-		if selected {
-			state = 0
-		}
-		if hot {
-			state = 1
-			if selected || pressed == id {
-				state = 2
-			}
-		}
-		if state >= 0 {
-			copyNativeKeyed(dst, states[state], preLevelOrigin[i], dst.Bounds())
+		if pic := preStateArt(states, c.preLevelState(i, hover)); pic != nil {
+			copyNativeKeyed(dst, pic, preLevelOrigin[i], dst.Bounds())
 		}
 	}
-	for i := range p.Choices {
-		id := chargenChoice0 + chargenControl(i)
-		state := 0
-		if pressed == id || (pressed == chargenNone && (hover == id || preFocusControl(c.focus) == id)) || c.preChoice == i {
-			state = 2
-			if pressed == chargenNone && hover == id && c.preChoice != i && preFocusControl(c.focus) != id {
-				state = 1
-			}
-		}
-		pic := p.Choices[i][state]
-		if pic == nil {
-			pic = p.Choices[i][0]
-		}
-		if pic != nil {
+	for _, i := range preCycleChoices {
+		if pic := preStateArt(p.Choices[i], c.preChoiceState(i, hover)); pic != nil {
 			copyNativeKeyed(dst, pic, preChoiceOrigin[i], dst.Bounds())
 		}
 	}
@@ -580,11 +617,12 @@ func composeChargenPage(c *Chargen, hover, pressed chargenControl, tipState ...T
 		return hover == id || pressed == id || preFocusControl(c.focus) == id
 	}
 	if active(chargenBack) {
-		copyNativeKeyed(dst, p.Amulet, image.Pt(528, 140), dst.Bounds())
+		copyNativeKeyed(dst, p.Amulet, preAmuletOrigin, dst.Bounds())
 	}
 	if active(chargenForward) {
 		copyNativeKeyed(dst, p.Forward, preForwardOrigin, dst.Bounds())
 	}
+	composePreCreateCycle(dst, c, p)
 	font := p.NameFont
 	if font == nil {
 		font = p.Font
@@ -682,6 +720,41 @@ func detailedSkillArt(states [3]image.Image) detailedSkillPictures {
 	}
 }
 
+// drawChargenCommands draws Accept, Reset and Back (MENU-139): a button
+// shows its on picture, with the label 1 px lower, only while pressed and
+// hovered, and its off picture otherwise. The labels are font4.
+func drawChargenCommands(dst *image.RGBA, p *ChargenPresentation, detail *ChargenDetailed, hover, pressed chargenControl) {
+	font := p.NameFont
+	if font == nil {
+		font = p.Font
+	}
+	for i, control := range []struct {
+		id    chargenControl
+		label string
+	}{{chargenPlay, detail.Play}, {chargenReset, detail.Reset}, {chargenBack, detail.Back}} {
+		r := detailedControlRegion(control.id)
+		down := pressed == control.id && hover == control.id
+		pic := p.NavButtons[i][0]
+		if down {
+			pic = p.NavButtons[i][1]
+		}
+		copyNative(dst, pic, r.Min, r)
+		if font == nil {
+			continue
+		}
+		ink := color.RGBA{255, 230, 150, 255}
+		if hover == control.id {
+			ink = buttonInk(true, true)
+		}
+		w, h := font.Measure(control.label)
+		y := r.Min.Y + (r.Dy()-h)/2
+		if down {
+			y++
+		}
+		font.Draw(dst, control.label, r.Min.X+(r.Dx()-w)/2, y, ink)
+	}
+}
+
 // chargenMessageRect is where the detailed page's own transient
 // hover/refusal line is written (1022 round-2, restoring the channel
 // `DIV-192` recorded as dropped): the bottom strip of the doll box, entirely
@@ -726,9 +799,9 @@ func drawChargenCentered(dst *image.RGBA, f *text.Font, value string, box image.
 	f.Draw(dst, value, box.Min.X+(box.Dx()-w)/2, box.Min.Y+(box.Dy()-h)/2, c)
 }
 
-// detailedStatButton picks an install-supplied control image. Its five states
-// preserve the source's pointer/capture distinction; keyboard focus is only
-// input routing and never paints an invented highlight.
+// detailedStatButton picks a stat button's art (MENU-138): disabled, then
+// pressed light while hovered with the left button held, light while
+// hovered, else rest. The nl-on pictures are never drawn.
 func detailedStatButton(p *ChargenPresentation, c *Chargen, plus bool, stat int, hover, pressed chargenControl) image.Image {
 	if p == nil || stat < 0 || stat >= 4 {
 		return nil
@@ -739,14 +812,12 @@ func detailedStatButton(p *ChargenPresentation, c *Chargen, plus bool, stat int,
 		direction, id = 1, chargenStatPlus0+chargenControl(stat)
 	}
 	state := 0 // nl-off
-	if !detailedStatAvailable(c, plus, stat) {
+	switch {
+	case !detailedStatAvailable(c, plus, stat):
 		state = 4 // disable
-	} else if pressed == id {
-		state = 3 // nl-on while capture remains after leaving
-		if hover == id {
-			state = 2 // l-on while captured under the pointer
-		}
-	} else if hover == id {
+	case hover == id && (pressed == id || c != nil && c.statHeld):
+		state = 2 // l-on
+	case hover == id:
 		state = 1 // l-off
 	}
 	if pic := p.StatButtons[direction][state]; pic != nil {
@@ -870,27 +941,17 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 			copyNativeKeyed(dst, pic, detailedSkillOrigin[class][skill].Add(chargenColumnOffset), chargenColumnSkillClip)
 		}
 	}
-	detail := c.setup.Detailed
-	if detail != nil {
-		navFont := p.NavFont
-		if navFont == nil {
-			navFont = p.Font
+	if k := c.cycleDraw; k >= 0 && k < 5 {
+		// The skill cycle draws shine_on on the chosen skill and shine_off
+		// on the others (TOWN-522).
+		pic := p.Skills[class][k][1]
+		if len(c.choiceIndex) > 2 && c.choiceIndex[2] == k {
+			pic = p.Skills[class][k][2]
 		}
-		if navFont != nil {
-			for _, control := range []struct {
-				id    chargenControl
-				label string
-			}{{chargenBack, detail.Back}, {chargenReset, detail.Reset}, {chargenPlay, detail.Play}} {
-				r := detailedControlRect(c, control.id)
-				r = r.Add(buttonTextOffset(pressed == control.id && hover == control.id))
-				ink := color.RGBA{255, 230, 150, 255}
-				if hover == control.id {
-					ink = buttonInk(true, true)
-				}
-				w, h := navFont.Measure(control.label)
-				navFont.Draw(dst, control.label, r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-h)/2, ink)
-			}
-		}
+		copyNativeKeyed(dst, pic, detailedSkillOrigin[class][k].Add(chargenColumnOffset), chargenColumnSkillClip)
+	}
+	if detail := c.setup.Detailed; detail != nil {
+		drawChargenCommands(dst, p, detail, hover, pressed)
 	}
 	preview := c.Preview()
 	if p.Font != nil {

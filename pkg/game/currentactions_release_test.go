@@ -340,6 +340,9 @@ func TestReleaseCurrentActionScrollSAV(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// The mission start tip covers the actor's map point and takes its
+			// click; this witness is about the scroll, so the tip is closed.
+			f.live.view.ClearMissionTip()
 			for _, edge := range []string{"press", "release"} {
 				if err = app.HeadlessPointer(edge, x, y); err != nil {
 					t.Fatal(err)

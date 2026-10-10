@@ -148,7 +148,8 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 		t.Helper()
 		for y := 0; y < 480; y++ {
 			for x := 0; x < 640; x++ {
-				if got, ok := ui.PreCreateControlAt(c, image.Pt(x, y)); ok && got == owner {
+				// Back rebuilds the tip popup (TOWN-518); a press there is the popup's.
+				if got, ok := ui.PreCreateControlAt(c, image.Pt(x, y)); ok && got == owner && !c.TipPanel().Covers(image.Pt(x, y)) {
 					return image.Pt(x, y)
 				}
 			}
@@ -236,7 +237,7 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 		if !mage {
 			break
 		}
-		click(image.Pt(552, 185)) // the detailed page's Back well
+		click(image.Pt(552, 160)) // the detailed page's Back button (MENU-139)
 		if s := state(); s.Stage != ui.ChargenStagePreCreate {
 			t.Fatalf("detailed Back left stage %q", s.Stage)
 		}
@@ -259,9 +260,9 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 	if v0 < 17 {
 		t.Fatalf("statistic 0 starts at %d, too near the floor for two decreases", v0)
 	}
-	click(image.Pt(117, 64)) // statistic 0 down
-	click(image.Pt(142, 64)) // statistic 0 up
-	click(image.Pt(117, 64))
+	click(image.Pt(142, 64)) // statistic 0 down
+	click(image.Pt(117, 64)) // statistic 0 up
+	click(image.Pt(142, 64))
 	if got := stat(0); got != v0-1 {
 		t.Fatalf("statistic 0 %d after down, up, down; want %d", got, v0-1)
 	}
@@ -273,7 +274,7 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 	if v1 < 20 {
 		t.Fatalf("statistic 1 starts at %d, too near the floor for five decreases", v1)
 	}
-	held := image.Pt(117, 96) // statistic 1 down
+	held := image.Pt(142, 96) // statistic 1 down
 	if err := app.HeadlessPointer("press", held.X, held.Y); err != nil {
 		t.Fatal(err)
 	}
