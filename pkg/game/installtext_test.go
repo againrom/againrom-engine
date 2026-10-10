@@ -577,7 +577,9 @@ func TestOriginalUITextWordSetExactDifferencesOverBothLawfulInstalls(t *testing.
 		if err != nil {
 			t.Fatalf("OpenArchives(%s): %v", root, err)
 		}
-		return LoadInstallWords(archives.Containers).Words()
+		w := LoadInstallWords(archives.Containers)
+		w.Language = archives.Base.Profile.Language
+		return w.Words()
 	}
 	flatten := func(words ui.Words) map[string]string {
 		out := make(map[string]string)
@@ -593,6 +595,10 @@ func TestOriginalUITextWordSetExactDifferencesOverBothLawfulInstalls(t *testing.
 			case reflect.Struct:
 				t := v.Type()
 				for i := 0; i < v.NumField(); i++ {
+					// The engine's own words are pkg/words' tables, not install text.
+					if t.Field(i).Type.PkgPath() == "againrom/pkg/words" {
+						continue
+					}
 					walk(v.Field(i), t.Field(i).Name)
 				}
 			default:
