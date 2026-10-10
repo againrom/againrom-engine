@@ -111,10 +111,9 @@ type ChargenSetup struct {
 	// on Preview/Derive's own "may be nil" precedent.
 	SetTipsOn func(bool)
 
-	// ResetStart makes Reset restore every statistic's Start rather than the
-	// chosen picture's preset. ResetSkill is "keep" (the chosen skill, also
-	// the empty value), "default" (the skill row's Start) or "preset" (the
-	// chosen picture's starting skill).
+	// ResetStart makes Reset restore every statistic's Start, not the
+	// picture's preset. ResetSkill: "keep" (or empty), "default" (the skill
+	// row's Start) or "preset" (the picture's starting skill).
 	ResetStart bool
 	ResetSkill string
 	// RestoreStart and RestoreSkill are the same two choices for Restore.
@@ -491,8 +490,7 @@ func (c *Chargen) Restore() {
 }
 
 // returnTo rebuilds the detailed draft: every statistic's Start or the chosen
-// picture's preset, and the kept skill, the skill row's Start ("default") or the chosen
-// picture's starting skill ("preset").
+// picture's preset, and the skill kept, defaulted or preset.
 func (c *Chargen) returnTo(start bool, skill string) {
 	if c == nil || c.stage != DetailedStage {
 		return
