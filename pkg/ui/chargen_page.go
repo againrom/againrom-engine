@@ -42,6 +42,8 @@ type ChargenPresentation struct {
 	CardSeam       image.Image
 	CardBackground *image.RGBA
 	Font           *text.Font
+	// ValueFont draws the four statistic values. Nil falls back to Font.
+	ValueFont *text.Font
 	// NameFont draws the pre-create prompt and name. Nil falls back to Font.
 	NameFont *text.Font
 	// TipFont is the install's font, which the tip panels draw in when the
@@ -671,6 +673,70 @@ func drawChargenMessage(dst *image.RGBA, f *text.Font, box image.Rectangle, msg 
 	f.Draw(dst, s, x, y, shopTextColor)
 }
 
+// drawChargenValue draws one statistic value at the description's offset
+// inside its box, or centred when it names none (TOWN-534).
+func drawChargenValue(dst *image.RGBA, p *ChargenPresentation, st *GeneratorStats, stat int, value string) {
+	f := chargenValueFont(p)
+	box := st.Value[stat].Rectangle()
+	if st.ValueAt == nil || f == nil {
+		drawChargenCentered(dst, f, value, box, st.ValueInk.RGBA())
+		return
+	}
+	at := box.Min.Add(st.ValueAt.Pt())
+	drawChargenShadowed(dst, f, value, at, st.ValueInk.RGBA(), st.ValueShadow)
+}
+
+// drawChargenPool draws the remaining-points counter centred on the
+// description's point, or centred in the pool box when it names none
+// (TOWN-534).
+func drawChargenPool(dst *image.RGBA, p *ChargenPresentation, st *GeneratorStats, value string) {
+	f := chargenValueFont(p)
+	if st.PoolAt == nil || f == nil {
+		drawChargenCentered(dst, f, value, st.Pool.Rectangle(), st.PoolInk.RGBA())
+		return
+	}
+	w, _ := f.Measure(value)
+	at := st.PoolAt.Pt().Sub(image.Pt(w/2, 0))
+	drawChargenShadowed(dst, f, value, at, st.PoolInk.RGBA(), st.ValueShadow)
+}
+
+func chargenValueFont(p *ChargenPresentation) *text.Font {
+	if p.ValueFont != nil {
+		return p.ValueFont
+	}
+	return p.Font
+}
+
+// drawChargenShadowed draws s at at, over its shadow one pixel right and down
+// when shadow is named.
+func drawChargenShadowed(dst *image.RGBA, f *text.Font, s string, at image.Point, ink color.RGBA, shadow *GeneratorInk) {
+	if shadow != nil {
+		f.Draw(dst, s, at.X+1, at.Y+1, shadow.RGBA())
+	}
+	f.Draw(dst, s, at.X, at.Y, ink)
+}
+
+// CardView is the detailed page's statistics card as the town's card builder
+// draws it: the card pane, its seam, the card font and the preview subject.
+func (c *Chargen) CardView() TownCharacterView {
+	if c == nil {
+		return TownCharacterView{}
+	}
+	l, p := c.layout(), c.art()
+	v := TownCharacterView{Subject: c.preview.Subject, HasSubject: true, Statistics: true}
+	if l == nil || p == nil {
+		return v
+	}
+	v.PaneRect, v.CardOffset = l.Detail.Card.Rect.Rectangle(), l.Detail.CardOffset.Pt()
+	v.Font, v.CardFont = p.Font, p.Font
+	// A nil picture must stay a nil image, not a nil picture inside one.
+	if p.CardBackground != nil {
+		v.StatsPane.Body = p.CardBackground
+	}
+	v.StatsPane.Seam = p.CardSeam
+	return v
+}
+
 func drawChargenCentered(dst *image.RGBA, f *text.Font, value string, box image.Rectangle, c color.RGBA) {
 	if f == nil || box.Empty() {
 		return
@@ -745,10 +811,10 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	drawTownPane(dst, TownPane{Body: p.Plate}, d.Plate.Rect.Rectangle(), image.Rectangle{})
 	for stat := 0; stat < len(c.statValue) && stat < generatorStats; stat++ {
 		drawPushButton(dst, nil, detailedStatButton(c, false, stat, hover, pressed))
-		drawChargenCentered(dst, p.Font, fmt.Sprintf("%d", c.statValue[stat]), d.Stats.Value[stat].Rectangle(), d.Stats.ValueInk.RGBA())
+		drawChargenValue(dst, p, &d.Stats, stat, fmt.Sprintf("%d", c.statValue[stat]))
 		drawPushButton(dst, nil, detailedStatButton(c, true, stat, hover, pressed))
 	}
-	drawChargenCentered(dst, p.Font, GroupDigits(int64(c.Remaining())), d.Stats.Pool.Rectangle(), d.Stats.PoolInk.RGBA())
+	drawChargenPool(dst, p, &d.Stats, GroupDigits(int64(c.Remaining())))
 	class := c.columnClass()
 	column := d.ColumnRect.Rectangle()
 	copyNative(dst, p.Columns[class], column.Min, column)
@@ -787,13 +853,9 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 			drawPushButton(dst, font, b)
 		}
 	}
-	preview, card := c.Preview(), d.Card.Rect.Rectangle()
+	preview := c.Preview()
 	if p.Font != nil {
-		first := text.CapturedLen()
-		if pic := RenderCharacterPanel(CompactPanelLayout(p.CardBackground), p.Font, preview.Subject); pic != nil {
-			copyNative(dst, pic, card.Min, card)
-			text.ShiftCaptured(first, card.Min.X, card.Min.Y)
-		}
+		drawCharacterPaneBody(dst, c.CardView())
 	}
 	doll := d.Doll.Rect.Rectangle()
 	if p.DollPane.Body != nil {

@@ -2078,6 +2078,10 @@ package storyguard
 // fixed-layout source, saved-object and Group codecs, the hash buffer pool,
 // the direct bitmap picture, the per-type copy and budget plans and
 // their witnesses, new code, including this paragraph.
+// CommentBytes rises for the generator's archetype presets and its card: the
+// docs of data.HeroArchetype, the preset skills, the value and counter draw,
+// Chargen.CardView, the card report and the new tests, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2101,5 +2105,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8626113,
+	CommentBytes: 8629866,
 }

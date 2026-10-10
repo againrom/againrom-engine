@@ -25,6 +25,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   from an original save. A skill bonus from worn items now raises a skill above
   100 for heroes loaded from an original save too, and a very strong hero's
   damage no longer exceeds what the original can hold.
+- [ROM1] In the character generator each of the four heroes starts on the
+  original's attributes and skill: Danath enters with Body 41, Agility 35,
+  Mind 20, Spirit 15 and Blade. The card under the attributes is laid out as
+  the town's character card, and the four attribute values and the points
+  left draw in the original's small gold font.
 
 ## 0.109.0
 

@@ -408,9 +408,7 @@ func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 			slot = d.Stats.PoolTooltip
 		}
 		if card := d.Card.Rect.Rectangle(); slot == -1 && p.In(card) {
-			view := TownCharacterView{Subject: c.preview.Subject, HasSubject: true, Statistics: true,
-				PaneRect: card, Font: font, StatsPane: TownPane{Body: c.setup.PreCreate.Art.CardBackground}}
-			return characterStatsTooltip(view, w, p)
+			return characterStatsTooltip(c.CardView(), w, p)
 		}
 	}
 	return mainTooltip(w, slot, fmt.Sprintf("chargen/%d/%d/%d", c.stage, id, slot), font)
