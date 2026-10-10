@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The armour shelf in the town shop no longer offers plain rings and
+  amulets, as in the original; they are sold only enchanted, on the Magic
+  Items shelf. No shelf offers either beard.
+
 - [BASE] On the world map the task's flag now stands above the red cross, as in
   the original: it shows while the pointer is over a task and stays on the chosen
   task through the whole journey, waving all the time. The red cross draws
