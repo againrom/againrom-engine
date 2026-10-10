@@ -12,6 +12,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   points to 100 as in the original, and the new Restore button returns the
   hero's starting attributes and
   skill.
+- [BASE] A double click follows the system's double-click speed and distance
+  on every screen, as in the original; the tavern no longer wants a faster
+  double click than the rest of the game, and a hero's double click in the
+  first game's generator wants both clicks on one spot. In the Load list a
+  double click loads the save the first click selected, at the second click.
+  In the tavern a double click on a mercenary or a guest hires, dismisses or
+  talks even when the first click was let go off the card. In the character
+  generator a button held after a double click on + or - no longer keeps
+  stepping.
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,
