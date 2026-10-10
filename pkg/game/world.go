@@ -3533,9 +3533,9 @@ func (mw *mapWorld) orderPickup(id sim.EntityID, x, y int32) {
 // Removal, refusal or arrival disarms the request; a failed transfer never loops.
 func (mw *mapWorld) settlePickup() {
 	mw.pickup = pickupIntent{}
-	for _, actor := range mw.world.Entities() {
-		if p := actor.PendingOrder; p.Kind == sim.PendingPickup {
-			mw.pickup = pickupIntent{id: actor.ID, x: p.X, y: p.Y, set: true}
+	for i, actors := 0, mw.world.EntityView(); i < len(actors); i++ {
+		if p := actors[i].PendingOrder; p.Kind == sim.PendingPickup {
+			mw.pickup = pickupIntent{id: actors[i].ID, x: p.X, y: p.Y, set: true}
 			break
 		}
 	}
