@@ -276,7 +276,7 @@ func shapeDocumentRecord(r *Record, group bool) (*documentRecordShape, error) {
 	if len(r.Value)+len(r.Text)+len(r.Raw)+len(r.Counts)+len(r.RefSlots)+len(r.Refs) > maxDocumentRecordFields*2 {
 		return nil, fmt.Errorf("sav: document record field bound exceeded")
 	}
-	s := &documentRecordShape{values: map[string]bool{}, texts: map[string]bool{}, raw: map[string]bool{}, counts: map[string]int{}, slots: map[string]int{}, inline: map[string]string{}}
+	s := &documentRecordShape{values: make(map[string]bool, len(r.Value)), texts: make(map[string]bool, len(r.Text)), raw: make(map[string]bool, len(r.Raw)), counts: make(map[string]int, len(r.Counts)), slots: make(map[string]int, len(r.RefSlots)), inline: map[string]string{}}
 	value := func(name string) (uint32, error) {
 		v, found := r.Value[name]
 		if !found {

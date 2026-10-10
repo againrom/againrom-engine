@@ -14,7 +14,7 @@ func forgetDecodedDocuments() {
 // A decode answered from the kept copy equals a fresh parse of the bytes, in
 // both modes, and a reader's edit reaches no later reader.
 func TestKeptDocumentDecodeEqualsAFreshParse(t *testing.T) {
-	source, _, _, _ := saveDocument1115Literal(t)
+	source := cityTestSource(t)
 	forgetDecodedDocuments()
 	fresh, err := DecodeDocumentData(source)
 	if err != nil {

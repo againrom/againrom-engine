@@ -2069,6 +2069,10 @@ package storyguard
 // CommentBytes rises for the hero ordinal scan of map placements: the docs of
 // mapload.PlacedHeroes and its helpers, the loaded-placement scan, the npc
 // name lines and their witnesses, new code, including this paragraph.
+// CommentBytes rises for the chain CPU cuts: the docs of the new graphcopy
+// leaf, the kept current-action and document decodes, the native remap memo,
+// the budget field plan, the record capacity hint, the card pixel rows and
+// their witnesses, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2092,5 +2096,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8620243,
+	CommentBytes: 8624139,
 }

@@ -24,14 +24,29 @@ func characterCardBackground(src *image.RGBA) *image.RGBA {
 	fill := src.RGBAAt(b.Min.X+b.Dx()/2, b.Min.Y+b.Dy()/2)
 	dst := image.NewRGBA(b)
 	draw.Draw(dst, b, src, b.Min, draw.Src)
+	// dst holds src's pixels; each is compared before it is the one rewritten.
 	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			if src.RGBAAt(x, y) == fill {
-				dst.SetRGBA(x, y, characterCardFill)
+		row := cardPixelRow(dst, b.Min.X, b.Max.X, y)
+		for i := 0; i+3 < len(row); i += 4 {
+			if row[i] == fill.R && row[i+1] == fill.G && row[i+2] == fill.B && row[i+3] == fill.A {
+				row[i], row[i+1], row[i+2], row[i+3] = characterCardFill.R, characterCardFill.G, characterCardFill.B, characterCardFill.A
 			}
 		}
 	}
 	return dst
+}
+
+// cardPixelRow is the Pix bytes of img's row y over columns x0..x1, clipped to
+// its bounds; a row or columns outside them yield nothing, as RGBAAt there
+// yields the zero color no card test accepts.
+func cardPixelRow(img *image.RGBA, x0, x1, y int) []byte {
+	b := img.Bounds()
+	x0, x1 = max(x0, b.Min.X), min(x1, b.Max.X)
+	if y < b.Min.Y || y >= b.Max.Y || x1 <= x0 {
+		return nil
+	}
+	off := img.PixOffset(x0, y)
+	return img.Pix[off : off+4*(x1-x0)]
 }
 
 func fitCharacterCardLines(l PanelLayout, f *text.Font, lines []panelLine, items []panelItem) {
@@ -191,8 +206,11 @@ func characterCardRowExtent(l PanelLayout, bg *image.RGBA, y, h int) (left, righ
 	left, right = 0, l.Size.X
 	for ; h > 0; y, h = y+1, h-1 {
 		lo, hi := l.Size.X, 0
-		for x := 0; x < l.Size.X; x++ {
-			if bg.RGBAAt(bg.Bounds().Min.X+x, bg.Bounds().Min.Y+y) == characterCardFill {
+		min0 := bg.Bounds().Min
+		row := cardPixelRow(bg, min0.X, min0.X+l.Size.X, min0.Y+y)
+		for i := 0; i+3 < len(row); i += 4 {
+			if row[i] == characterCardFill.R && row[i+1] == characterCardFill.G && row[i+2] == characterCardFill.B && row[i+3] == characterCardFill.A {
+				x := i / 4
 				lo, hi = min(lo, x), max(hi, x+1)
 			}
 		}
@@ -300,8 +318,11 @@ func characterCardWritableExtent(l PanelLayout, bg *image.RGBA, y, h int) (left,
 	left, right = 0, l.Size.X
 	for ; h > 0; y, h = y+1, h-1 {
 		lo, hi := l.Size.X, 0
-		for x := 0; x < l.Size.X; x++ {
-			if characterCardWritable(bg.RGBAAt(bg.Bounds().Min.X+x, bg.Bounds().Min.Y+y)) {
+		min0 := bg.Bounds().Min
+		row := cardPixelRow(bg, min0.X, min0.X+l.Size.X, min0.Y+y)
+		for i := 0; i+3 < len(row); i += 4 {
+			if characterCardWritable(color.RGBA{row[i], row[i+1], row[i+2], row[i+3]}) {
+				x := i / 4
 				lo, hi = min(lo, x), max(hi, x+1)
 			}
 		}
