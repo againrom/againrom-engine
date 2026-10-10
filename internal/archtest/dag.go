@@ -291,7 +291,7 @@ var allow = map[string][]string{
 	// hands it. It names no simulation type.
 	"cmd/buttonframecheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain"},
 	// townsquarecheck is 1016's own instrument, on schoolcheck's own pattern:
-	// it opens an install through pkg/game (OpenArchives, LoadTownSquareArt,
+	// it opens an install through pkg/game (OpenArchives, LoadTownSquareArtFor,
 	// NewFrontEnd) and asks pkg/ui for the production town square constants
 	// and the production hit test, so the correlation it measures off the
 	// shipped art is compared against the code the game runs. It names

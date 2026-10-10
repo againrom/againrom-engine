@@ -281,7 +281,7 @@ func traceMaskPoints(t *testing.T, f *FrontEnd) (map[byte][2]image.Point, image.
 // English and Russian editions.
 func traceKey(t *testing.T, f *FrontEnd) string {
 	t.Helper()
-	raw, err := f.Archives.Containers.ReadFile(TownTipPath)
+	raw, err := f.Archives.Containers.ReadFile(ROM1TownDescription().Tip.Text)
 	if err != nil {
 		t.Fatal(err)
 	}

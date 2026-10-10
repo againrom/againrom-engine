@@ -82,7 +82,7 @@ func townTavernSource() chargenSource {
 // reports.
 func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 	src := townTavernSource()
-	got, err := LoadTownTavernArt(src)
+	got, err := LoadTownTavernArt(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 	}
 	talk[townTavernArtPrefix+"herofighter/sprites.16a"] = tavernUnitSheet()
 	talk[townTavernArtPrefix+"heromage/sprites.16a"] = tavernUnitSheet()
-	withTalk, err := LoadTownTavernArt(talk)
+	withTalk, err := LoadTownTavernArt(ROM1TownDescription(), talk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 	for _, missing := range cases {
 		partial := townTavernSource()
 		delete(partial, missing)
-		if _, err := LoadTownTavernArt(partial); err == nil {
+		if _, err := LoadTownTavernArt(ROM1TownDescription(), partial); err == nil {
 			t.Errorf("missing %s: LoadTownTavernArt returned no error", missing)
 		} else if !strings.Contains(err.Error(), missing) {
 			t.Errorf("missing %s: error %v does not name it", missing, err)
@@ -161,7 +161,7 @@ func TestTavernInteriorFamiliesDegradeIndependently(t *testing.T) {
 			src := townTavernSource()
 			missing := fmt.Sprintf(spec.Key, spec.First+spec.Count/2)
 			delete(src, missing)
-			got, err := LoadTownTavernArt(src)
+			got, err := LoadTownTavernArt(ROM1TownDescription(), src)
 			if err == nil || !strings.Contains(err.Error(), missing) {
 				t.Fatalf("diagnostic = %v, want %s", err, missing)
 			}

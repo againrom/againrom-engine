@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -73,7 +74,7 @@ func clean(t *town, g base.Game) (base.Game, *campaign) { return g, t.second }
 		t.Fatal(err)
 	}
 	got := map[string]int{}
-	for _, f := range profileFindings(fset, files["user.go"], info, "pkg/user/user.go") {
+	for _, f := range profileFindings(fset, files["user.go"], info, "pkg/user/user.go", nil) {
 		got[f.Shape]++
 	}
 	want := map[string]int{"names a game": 1, "compares a game": 1, "tests a second-campaign state for nil": 1}
@@ -92,5 +93,151 @@ func clean(t *town, g base.Game) (base.Game, *campaign) { return g, t.second }
 	}
 	if v := CheckProfile(found, map[string]int{"pkg/game/a.go": 1, "pkg/game/b.go": 2}); len(v) != 1 {
 		t.Errorf("a debt above its findings must fail once, got %v", v)
+	}
+}
+
+// profileMutationBase is a game profile package shaped like pkg/base: the
+// games, the campaign models, an edition with identity fields, data and a
+// flag, and the bool questions a game answers.
+const profileMutationBase = `package base
+type Game string
+const (
+	GameROM1 Game = "rom1"
+	GameROM2 Game = "rom2"
+)
+type Campaign int
+const (
+	CampaignChapters Campaign = iota
+	CampaignDestinations
+)
+type Edition struct {
+	Game Game
+	SaveTag Game
+	Campaign Campaign
+	Town string
+	Rooms string
+	CutsceneArchive string
+	CompanionObjectiveMission int
+	SecondMaps bool
+}
+var first = Edition{Game: GameROM1, Town: "rom1", Rooms: "rom1", CompanionObjectiveMission: 40}
+var second = Edition{Game: GameROM2, SaveTag: GameROM2, Campaign: CampaignDestinations, Rooms: "rom1", CutsceneArchive: "video", SecondMaps: true}
+func (g Game) Edition() Edition {
+	if g == GameROM2 {
+		return second
+	}
+	return first
+}
+func (g Game) Known() bool { return g == "" || g == GameROM1 || g == GameROM2 }
+func SameGame(a, b Game) bool { return a == b }
+`
+
+// profileMutationStrings stands in for the standard strings package.
+const profileMutationStrings = `package strings
+func HasPrefix(s, prefix string) bool { return len(s) >= len(prefix) && s[:len(prefix)] == prefix }
+`
+
+// profileMutationScan type-checks body as one file of a package importing
+// the profile package, and answers its findings.
+func profileMutationScan(t *testing.T, body string) []ProfileFinding {
+	t.Helper()
+	fset := token.NewFileSet()
+	check := func(path, name, src string, imp types.Importer, info *types.Info) (*ast.File, *types.Package) {
+		f, err := parser.ParseFile(fset, name, src, 0)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		p, err := (&types.Config{Importer: imp}).Check(path, fset, []*ast.File{f}, info)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		return f, p
+	}
+	newInfo := func() *types.Info {
+		return &types.Info{Types: map[ast.Expr]types.TypeAndValue{}, Defs: map[*ast.Ident]types.Object{},
+			Uses: map[*ast.Ident]types.Object{}, Selections: map[*ast.SelectorExpr]*types.Selection{}}
+	}
+	baseInfo := newInfo()
+	baseFile, basePkg := check("againrom/pkg/base", "base.go", profileMutationBase, nil, baseInfo)
+	_, stringsPkg := check("strings", "strings.go", profileMutationStrings, nil, newInfo())
+	imp := importerFunc(func(path string) (*types.Package, error) {
+		if path == "strings" {
+			return stringsPkg, nil
+		}
+		return basePkg, nil
+	})
+	src := "package user\n\nimport \"againrom/pkg/base\"\n"
+	if strings.Contains(body, "strings.") {
+		src += "import \"strings\"\n"
+	}
+	src += "var _ base.Game\n\n" + body + "\n"
+	info := newInfo()
+	f, _ := check("againrom/user", "user.go", src, imp, info)
+	ids := profileIdentityStrings([]*ast.File{baseFile}, baseInfo)
+	return profileFindings(fset, f, info, "pkg/user/user.go", ids)
+}
+
+// TestProfileFindingsRejectEveryForm holds the scan against each way of
+// choosing a game: the ten a review placed in a production file, of which the
+// scan once saw only the first, and the forms the live tree held beside them.
+// Each must be found with its shape; reading edition data must not be.
+func TestProfileFindingsRejectEveryForm(t *testing.T) {
+	mutations := []struct{ name, shape, body string }{
+		{"case naming a game constant", "names a game",
+			`func f(g base.Game) int { switch g { case base.GameROM2: return 2 }; return 1 }`},
+		{"switch on a game with a string case", "branches on a game",
+			`func f(g base.Game) int { switch g { case "rom2": return 2 }; return 1 }`},
+		{"save tag string compared", "compares a game",
+			`func f(tag string) bool { return tag == "rom2" }`},
+		{"archive name compared", "compares a game",
+			`func f(archive string) bool { return archive == "video" }`},
+		{"string form of a game compared", "compares a game",
+			`func f(g base.Game) bool { return string(g) == "rom2" }`},
+		{"strings prefix of a game", "compares a game",
+			`func f(g base.Game) bool { return strings.HasPrefix(string(g), "rom2") }`},
+		{"map keyed by game", "looks up a game",
+			`var m = map[base.Game]int{}
+func f(g base.Game) int { return m[g] }`},
+		{"edition campaign compared", "compares a game",
+			`func f(g base.Game) bool { return g.Edition().Campaign == base.CampaignDestinations }`},
+		{"edition flag", "reads an edition flag",
+			`func f(g base.Game) bool { return g.Edition().SecondMaps }`},
+		{"bool method on a game", "asks a game",
+			`func f(g base.Game) bool { return g.Known() }`},
+		{"bool function of two games", "asks a game",
+			`func f(a, b base.Game) bool { return base.SameGame(a, b) }`},
+		{"local defined from an edition archive", "compares a game",
+			`func f(g base.Game, archive string) string { if only := g.Edition().CutsceneArchive; only != "" { return only }; return archive }`},
+		{"switch on a string tag with a game case", "branches on a game",
+			`func f(tag string) int { switch tag { case "rom1": return 1 }; return 0 }`},
+		{"bool field named for a game", "reads a game flag",
+			`type audience struct{ SecondGame bool }
+func f(a audience) bool { return a.SecondGame }`},
+	}
+	for _, m := range mutations {
+		got := profileMutationScan(t, m.body)
+		found := false
+		for _, f := range got {
+			found = found || f.Shape == m.shape
+		}
+		if !found {
+			t.Errorf("%s: no %q finding (all: %v)", m.name, m.shape, got)
+		}
+	}
+	clean := `func f(g base.Game, rooms map[string]int) (string, int, base.Game) {
+	e := g.Edition()
+	return e.CutsceneArchive + ".res", rooms[e.Rooms] + e.CompanionObjectiveMission, e.SaveTag
+}`
+	if got := profileMutationScan(t, clean); len(got) != 0 {
+		t.Errorf("reading edition data was found as a choice: %v", got)
+	}
+}
+
+// TestProfileAllowedNamesAFunction: an allowed file and function admits only
+// that function's findings.
+func TestProfileAllowedNamesAFunction(t *testing.T) {
+	found := []ProfileFinding{{File: "pkg/game/campaignservice.go", Line: 1, Func: "campaignOf"}, {File: "pkg/game/campaignservice.go", Line: 2, Func: "other"}}
+	if v := CheckProfile(found, nil); len(v) != 1 {
+		t.Errorf("only the picker's finding is allowed, got %v", v)
 	}
 }

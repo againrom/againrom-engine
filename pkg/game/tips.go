@@ -59,27 +59,34 @@ func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
 	case roomSquare:
 		return &t.townTip, t.townDescription().Tip.Text
 	case roomShop:
-		return &t.shopTip, roomTip(room).Text
+		return &t.shopTip, t.roomTip(room).Text
 	case roomSchool:
-		return &t.schoolTip, roomTip(room).Text
+		return &t.schoolTip, t.roomTip(room).Text
 	case roomTavern:
-		return &t.tavernTip, roomTip(room).Text
+		return &t.tavernTip, t.roomTip(room).Text
 	}
 	return nil, ""
 }
 
-// roomTip answers a room's tip as the ROM1 description gives it.
-func roomTip(room townRoom) town.TipSpec {
+// roomTip answers a room's tip as the profile's room description gives it.
+func (t *townScreen) roomTip(room townRoom) town.TipSpec { return roomTipIn(t.roomDescription(), room) }
+
+func roomTipIn(d *town.Description, room townRoom) town.TipSpec {
+	if d == nil {
+		return town.TipSpec{}
+	}
 	name := townRoomName(room)
-	for i := range ROM1TownDescription().Rooms {
-		if r := &ROM1TownDescription().Rooms[i]; r.Name == name && r.Tip != nil {
+	for i := range d.Rooms {
+		if r := &d.Rooms[i]; r.Name == name && r.Tip != nil {
 			return *r.Tip
 		}
 	}
 	return town.TipSpec{}
 }
 
-func roomTipRect(room townRoom) image.Rectangle { return roomTip(room).Rect.Rectangle() }
+func (t *townScreen) roomTipRect(room townRoom) image.Rectangle {
+	return t.roomTip(room).Rect.Rectangle()
+}
 
 func (t *townScreen) readTipText(dst *string, addr string) {
 	var src entrySource

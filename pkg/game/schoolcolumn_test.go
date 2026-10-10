@@ -42,7 +42,7 @@ func columnSchool(t *testing.T) (*FrontEnd, *townScreen, *time.Time, *schoolRota
 	f.Carried = append(f.Carried, member, f.Carried[0])
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
-	schoolArt, err := LoadTownSchoolArt(townSchoolSource())
+	schoolArt, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolSource())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestSchoolColumnBackwardClockAndDegradedArt(t *testing.T) {
 }
 
 func TestLoadSchoolColumnAllFramesOrderedOpaqueAndValidated(t *testing.T) {
-	art, err := LoadTownSchoolArt(townSchoolSource())
+	art, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolSource())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +256,7 @@ func TestLoadSchoolColumnAllFramesOrderedOpaqueAndValidated(t *testing.T) {
 			} else {
 				delete(src, path)
 			}
-			if got, err := LoadTownSchoolArt(src); got != nil || err == nil || !strings.Contains(err.Error(), path) {
+			if got, err := LoadTownSchoolArt(ROM1TownDescription(), src); got != nil || err == nil || !strings.Contains(err.Error(), path) {
 				t.Fatalf("bad frame %d: art=%v err=%v", frame, got, err)
 			}
 		}
@@ -267,7 +267,7 @@ func TestLoadSchoolColumnAllFramesOrderedOpaqueAndValidated(t *testing.T) {
 	// Black is real column paint, not the key used for skill overlays.
 	src := townSchoolSource()
 	src[townSchoolArtPrefix+"column/rt0007.bmp"] = synthBMP(148, 208, color.RGBA{A: 255})
-	art, err = LoadTownSchoolArt(src)
+	art, err = LoadTownSchoolArt(ROM1TownDescription(), src)
 	if err != nil || art.Scene["column"][7].At(70, 90) != (color.RGBA{A: 255}) {
 		t.Fatal("a pure-black rotation pixel lost its opaque alpha")
 	}

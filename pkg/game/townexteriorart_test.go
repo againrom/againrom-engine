@@ -29,7 +29,7 @@ func TestTownExteriorArtDropsOnlyIncompleteFamily(t *testing.T) {
 		src[townSquareArtPrefix+fmt.Sprintf("sign/v%02d.bmp", i)] = synthBMP(40, 32, color.RGBA{A: 255})
 	}
 	src[townSquareArtPrefix+"sign/v04.bmp"] = []byte("corrupt")
-	a, err := LoadTownSquareArt(src)
+	a, err := LoadTownSquareArtFor(ROM1TownDescription(), src)
 	if err != nil || len(a.Pictures("base")) != 1 || a.Mask == nil || len(a.Pictures("door")) != 9 || len(a.Pictures("sign")) != 0 {
 		t.Fatalf("independent fallback: %v / %+v", err, a)
 	}
@@ -46,7 +46,7 @@ func TestTownAmbientArtLoadsBirdFamiliesLocallyAndStarsAtomically(t *testing.T) 
 		src[townSquareArtPrefix+fmt.Sprintf("stars/s%02d.bmp", i)] = synthBMP(64, 44, color.RGBA{R: byte(i + 1), A: 255})
 	}
 	src[townSquareArtPrefix+"stars/s04.bmp"] = []byte("corrupt")
-	a, err := LoadTownSquareArt(src)
+	a, err := LoadTownSquareArtFor(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestTownAmbientArtLoadsBirdFamiliesLocallyAndStarsAtomically(t *testing.T) 
 	}
 
 	src[townSquareArtPrefix+"stars/s04.bmp"] = synthBMP(64, 44, color.RGBA{R: 5, A: 255})
-	a, err = LoadTownSquareArt(src)
+	a, err = LoadTownSquareArtFor(ROM1TownDescription(), src)
 	if err != nil || len(a.Pictures("stars")) != 9 {
 		t.Fatalf("complete star family = %d, %v", len(a.Pictures("stars")), err)
 	}

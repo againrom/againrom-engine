@@ -2001,6 +2001,10 @@ package storyguard
 // CommentBytes rises for the random service: the docs of pkg/random, of the
 // World stream's two modes and of every consumer moved onto a named stream,
 // new code, including this paragraph.
+// CommentBytes rises for the game-profile scan's new forms, its mutation
+// cases and debt list in internal/archtest, the edition's Rooms field and
+// the room description reader in pkg/game, new code, including this
+// paragraph.
 // CommentBytes rises for the engine words: the docs of the new pkg/words and its
 // tests and the engine-words scan in internal/archtest, new code, including
 // this paragraph.
@@ -2027,5 +2031,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1774,
 	},
-	CommentBytes: 8554000,
+	CommentBytes: 8558560,
 }

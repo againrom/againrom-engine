@@ -34,7 +34,7 @@ func townSquareSource() chargenSource {
 
 func TestLoadTownSquareArtReadsTheCompletePicture(t *testing.T) {
 	src := townSquareSource()
-	got, err := LoadTownSquareArt(src)
+	got, err := LoadTownSquareArtFor(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestLoadTownSquareArtReadsTheCompletePicture(t *testing.T) {
 func TestLoadTownSquareArtMissingNodeIsAddressBearing(t *testing.T) {
 	src := townSquareSource()
 	delete(src, townSquareArtPrefix+"trener_l.bmp")
-	if _, err := LoadTownSquareArt(src); err == nil || !strings.Contains(err.Error(), "trener_l.bmp") {
+	if _, err := LoadTownSquareArtFor(ROM1TownDescription(), src); err == nil || !strings.Contains(err.Error(), "trener_l.bmp") {
 		t.Fatalf("missing label error = %v, want an error naming trener_l.bmp", err)
 	}
 }
@@ -77,7 +77,7 @@ func TestLoadTownSquareArtMissingNodeIsAddressBearing(t *testing.T) {
 func TestLoadTownSquareArtMisSizedNodeIsRefused(t *testing.T) {
 	src := townSquareSource()
 	src[townSquareArtPrefix+"townmain.bmp"] = synthBMP(640, 400, color.RGBA{A: 0xff})
-	if _, err := LoadTownSquareArt(src); err == nil || !strings.Contains(err.Error(), "townmain.bmp") ||
+	if _, err := LoadTownSquareArtFor(ROM1TownDescription(), src); err == nil || !strings.Contains(err.Error(), "townmain.bmp") ||
 		!strings.Contains(err.Error(), "640x400") {
 		t.Fatalf("mis-sized background error = %v, want an error naming townmain.bmp and its wrong size", err)
 	}
@@ -89,7 +89,7 @@ func TestLoadTownSquareArtMisSizedNodeIsRefused(t *testing.T) {
 func TestLoadTownSquareArtRefusesAMaskMissingASignificantCode(t *testing.T) {
 	src := townSquareSource()
 	src[townSquareArtPrefix+"townmask.bmp"] = synthBMP8(640, 480, squareMaskCodes()[1:]...)
-	if _, err := LoadTownSquareArt(src); err == nil || !strings.Contains(err.Error(), "missing required mask index") {
+	if _, err := LoadTownSquareArtFor(ROM1TownDescription(), src); err == nil || !strings.Contains(err.Error(), "missing required mask index") {
 		t.Fatalf("incomplete mask error = %v, want a missing-index error", err)
 	}
 }
