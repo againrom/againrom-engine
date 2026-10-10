@@ -35,7 +35,7 @@ func restoreTerminalScriptBindings(ms *Mission, table *mapload.Table) error {
 	// The party's roster decides the same unbuilt nodes the program omitted.
 	var refs mapload.ScriptRefs
 	if len(ms.Party) == len(ms.Start.IDs) {
-		refs = campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] })
+		refs = campaignScriptPartyRefs(ms.Map, table, ms.Party, func(i int) sim.EntityID { return ms.Start.IDs[i] }, loadedPlacedHeroes(ms, table))
 	}
 	refs.Units, refs.Structures = units, mapload.ScriptStructures(ms.Map)
 	roles, err := currentScriptRolesProgram(ms.World, ms.Map, refs, mapload.CompileScript)
