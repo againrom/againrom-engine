@@ -25,6 +25,10 @@ type Edition struct {
 	// game has none.
 	Generator string
 
+	// Music names the music description: the archive, the scene lists and
+	// the rules the music controller plays them by.
+	Music string
+
 	// Rooms names the town description whose rooms the tavern, shop and
 	// school pages, their tips and their scene art are read from. The second
 	// game has no room description of its own and names the first game's, the
@@ -102,6 +106,7 @@ var firstEdition = Edition{
 	Campaign:                  CampaignChapters,
 	Town:                      "rom1",
 	Generator:                 "rom1",
+	Music:                     "rom1",
 	Rooms:                     "rom1",
 	CompanionObjectiveMission: 40,
 	FreshPlayers:              true,
@@ -117,6 +122,7 @@ var secondEdition = Edition{
 	NewGameInTown:     true,
 	TownDifficulty:    true,
 	Generator:         "rom2",
+	Music:             "rom2",
 	Rooms:             "rom1",
 	SecondMaps:        true,
 	SecondScripts:     true,

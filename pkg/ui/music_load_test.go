@@ -15,7 +15,7 @@ func loadMusicApp(t *testing.T, load LoadGame) (*App, *recordingMusicSource, *re
 	t.Helper()
 	source, device := &recordingMusicSource{}, &recordingMusicDevice{}
 	a := newTestApp(t, appRows(1), okLoader(t))
-	a.SetMusic(source, device, random.NewStream(35))
+	a.SetMusic(firstMusic, source, device, random.NewStream(35))
 	a.SetSaveSeams(
 		func(bool) (string, error) { return "saved.sav", nil },
 		func() []SaveEntry { return []SaveEntry{{Name: "game.sav", Label: "game"}} },
@@ -26,7 +26,7 @@ func loadMusicApp(t *testing.T, load LoadGame) (*App, *recordingMusicSource, *re
 
 func TestRequestSceneReplacesTheListForTheSameScene(t *testing.T) {
 	source, device := &recordingMusicSource{}, &recordingMusicDevice{}
-	music := NewMusicController(source, device, random.NewStream(5))
+	music := NewMusicController(firstMusic, source, device, random.NewStream(5))
 	music.SetScene(MusicTown, false)
 	music.RequestScene(MusicTown, false)
 	music.SetScene(MusicTown, false)
@@ -61,7 +61,7 @@ func TestCompletedLoadRequestsTheMissionListAgain(t *testing.T) {
 	if len(source.loads) != loadsBefore+1 {
 		t.Fatalf("track reads after the load = %d, want one", len(source.loads)-loadsBefore)
 	}
-	if want := staticMusicTracks(MusicMission, false); !slices.Equal(a.music.Candidates(), want) {
+	if want := firstMusic.sceneTracks(MusicMission, false); !slices.Equal(a.music.Candidates(), want) {
 		t.Fatalf("candidates = %v, want the mission list", a.music.Candidates())
 	}
 	if err := a.HeadlessStep(); err != nil {

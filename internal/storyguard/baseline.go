@@ -2085,6 +2085,10 @@ package storyguard
 // CommentBytes rises for the generator's Restore button: the docs of
 // Chargen.Restore, returnTo, RestoreFor, the Restore label and the new tests,
 // new code, including this paragraph.
+// CommentBytes rises for the second game's music: the docs of the music
+// description, the controller's request rule, pause seam and area select,
+// the music areas decoder, the mission music wiring, -nomusic and their
+// witnesses, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2108,5 +2112,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1756,
 	},
-	CommentBytes: 8631498,
+	CommentBytes: 8641772,
 }
