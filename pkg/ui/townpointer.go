@@ -12,26 +12,50 @@ type townTipOwner struct {
 	text     string
 }
 
-type townTipPress struct {
-	owner townTipOwner
-	armed bool
-}
-
 const chargenTipRoom uint8 = 5
 
+// townRoomPointerState is the press state a room composes with.
 type townRoomPointerState struct {
-	shopPress ShopControl
-	tipPress  townTipPress
+	shopPress buttonLatch
+	tipPress  buttonLatch
+	tipOwner  townTipOwner
+}
+
+// townSurfaceLatchID is a town surface control's id in the surface latch:
+// its kind above its index.
+func townSurfaceLatchID(c TownSurfaceControl) int {
+	return int(c.Kind)<<16 | c.Index&0xffff
+}
+
+// townSurfacePressed is the control the surface latch holds.
+func (a *App) townSurfacePressed() TownSurfaceControl {
+	id, held := a.townSurfacePress.Latched()
+	if !held {
+		return TownSurfaceControl{}
+	}
+	return TownSurfaceControl{Kind: TownSurfaceControlKind(id >> 16), Index: id & 0xffff}
+}
+
+// latchTownTip latches owner's tip close button; clearTownTip drops it.
+func (a *App) latchTownTip(owner townTipOwner) {
+	a.townTipPress.Clear()
+	a.townTipPress.Press(0, true)
+	a.townTipPressOwner = owner
+}
+
+func (a *App) clearTownTip() {
+	a.townTipPress.Clear()
+	a.townTipPressOwner = townTipOwner{}
 }
 
 func tipPanelOwner(v TipPanelView, room uint8) townTipOwner {
 	return townTipOwner{revision: v.Revision, room: room, rect: v.Rect, text: v.Text}
 }
 
-func tipPanelWithPointer(v TipPanelView, room uint8, p image.Point, inside bool, press townTipPress) TipPanelView {
+func tipPanelWithPointer(v TipPanelView, room uint8, p image.Point, inside bool, press buttonLatch, owner townTipOwner) TipPanelView {
 	v.Pointer, v.PointerOK = p, inside
 	v.CloseHover = inside && p.In(TipPanelCloseRect(v.Rect))
-	v.ClosePressed = press.armed && press.owner == tipPanelOwner(v, room)
+	v.ClosePressed = press.Holds() && owner == tipPanelOwner(v, room)
 	return v
 }
 
@@ -56,31 +80,31 @@ func (a *App) currentTownTip() (TipPanelView, townTipOwner) {
 }
 
 func (a *App) cancelTownTipPointer() {
-	if a.townTipPress.armed && a.townTipPress.owner.room != chargenTipRoom {
+	if a.townTipPress.Holds() && a.townTipPressOwner.room != chargenTipRoom {
 		a.suppressPrimaryRelease = true
 	}
-	a.townTipPress = townTipPress{}
+	a.clearTownTip()
 }
 
 func (a *App) observeChargenTipPress(in appInput) {
 	if in.PrimaryPressed {
-		a.townTipPress = townTipPress{}
+		a.clearTownTip()
 		v, owner := a.currentTownTip()
 		if p, inside := a.windowToNativeFrame(in.CursorX, in.CursorY); inside && v.Showing() && p.In(TipPanelCloseRect(v.Rect)) {
-			a.townTipPress = townTipPress{owner: owner, armed: true}
+			a.latchTownTip(owner)
 		}
 	}
 	if in.PrimaryReleased {
-		a.townTipPress = townTipPress{}
+		a.clearTownTip()
 	}
 }
 
 func (a *App) validateTownTipPointer(in appInput) {
-	if !a.townTipPress.armed {
+	if !a.townTipPress.Holds() {
 		return
 	}
 	v, owner := a.currentTownTip()
-	if in.Unfocused || in.Close || in.Escape || in.Enter || in.SecondaryPressed || a.cutscene != nil || !v.Showing() || owner != a.townTipPress.owner {
+	if in.Unfocused || in.Close || in.Escape || in.Enter || in.SecondaryPressed || a.cutscene != nil || !v.Showing() || owner != a.townTipPressOwner {
 		a.cancelTownTipPointer()
 	}
 }
@@ -91,21 +115,21 @@ func (a *App) stepTownTipPointer(in appInput, v TipPanelView, p image.Point, ins
 	}
 	_, owner := a.currentTownTip()
 	if in.PrimaryPressed {
-		a.townTipPress = townTipPress{}
+		a.clearTownTip()
 		if inside {
 			kind, consumed := TipPanelEventAt(v, p, true)
 			switch kind {
 			case TipControlToggle:
 				a.flow.toggleTips()
 			case TipControlClose:
-				a.townTipPress = townTipPress{owner: owner, armed: true}
+				a.latchTownTip(owner)
 			}
 			return consumed
 		}
 	}
 	if in.PrimaryReleased {
-		armed := a.townTipPress.armed && a.townTipPress.owner == owner
-		a.townTipPress = townTipPress{}
+		_, armed := a.townTipPress.Release(0, a.townTipPressOwner == owner)
+		a.townTipPressOwner = townTipOwner{}
 		if inside {
 			kind, consumed := TipPanelEventAt(v, p, false)
 			if kind == TipControlClose {
@@ -161,7 +185,8 @@ func (a *App) paintTownEntry(before bool, revision uint64, active bool) {
 }
 
 func (a *App) resetTownSurfacePair() {
-	a.townSurfacePress, a.townSurfaceClick = TownSurfaceControl{}, TownSurfaceControl{}
+	a.townSurfacePress.Clear()
+	a.townSurfaceClick = TownSurfaceControl{}
 	a.townSurfaceAt = time.Time{}
 	a.townSurfaceKey, a.townSurfaceReleased = "", false
 	a.townSurfaceRevision = 0

@@ -23,7 +23,7 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 	}
 	if (in.QuickSave || in.QuickLoad) && phase2 && (a.flow.screen != ScreenTown || townCanSave(a.flow.town)) {
 		a.clearShopDrag()
-		a.townSurfacePress = TownSurfaceControl{}
+		a.townSurfacePress.Clear()
 		if v := a.flow.viewer; v != nil {
 			v.cancelPointerGesture()
 		}
@@ -48,7 +48,7 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 		return false
 	}
 	a.clearShopDrag()
-	a.townSurfacePress = TownSurfaceControl{}
+	a.townSurfacePress.Clear()
 	a.flow.viewer.cancelGold()
 	// Navigation also owns a gesture that began on an earlier frame. The
 	// physical level is sampled for every screen, including town; looking

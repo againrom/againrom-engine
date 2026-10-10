@@ -8,6 +8,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The second game's chat cheats work in campaign missions: type the
+  second game's unlock line, then `#create`, `#modify`, `#summon`, the kill
+  commands, `#pickup all`, `#show map`, `#hide map`, `#victory` and `#event`,
+  with the original's replies. Alt+D, Alt+T and Alt+Q toggle tracing and safe
+  mode. The starter's cheat checkbox and `-chicken` unlock every campaign
+  mission start and every load into a mission.
+
+## 0.108.0
+
 - [BASE] An enemy mage with Mind above 59 now holds back a spell exactly 30
   times in 100, as in the original, instead of 30 in 101. With
   `-original-random`, the time spent in town no longer changes the next
@@ -18,13 +27,6 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   and leave the shooter at the point its exact facing gives, as in the
   original. A smoking projectile loaded from a save grows its smoke trail
   again as it flies.
-
-- [ROM2] The second game's chat cheats work in campaign missions: type the
-  second game's unlock line, then `#create`, `#modify`, `#summon`, the kill
-  commands, `#pickup all`, `#show map`, `#hide map`, `#victory` and `#event`,
-  with the original's replies. Alt+D, Alt+T and Alt+Q toggle tracing and safe
-  mode. The starter's cheat checkbox and `-chicken` unlock every campaign
-  mission start and every load into a mission.
 
 ## 0.107.0
 

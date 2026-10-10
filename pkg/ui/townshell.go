@@ -1371,65 +1371,8 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// TOWN-154 paint step 6, independent of the class column.
 		v.Scene.Paint(dst, "diamond")
 	}
-	for i, b := range v.Buttons {
-		r := townSurfaceButtonRect(v.Kind, i)
-		// The button's shipped art, when its room supplies it. School and the
-		// original tavern panel have off/on pairs; the shop-derived four-
-		// command tavern has one keyed native bitmap per position. Draw
-		// position and hit rectangle are the same RECT, which
-		// TOWN-183 reads at instruction level: the paint's own walking
-		// pointer lands on the same +0x88/+0x98 RECT that TOWN-182's PtInRect
-		// hit test reads. State is off unless this control is the one
-		// currently pressed AND under the cursor where an ON pair exists.
-		var pic [2]image.Image
-		var commandPic image.Image
-		switch {
-		case artSchool && i < len(v.SchoolArt.Buttons):
-			pic = v.SchoolArt.Buttons[i]
-		case commandTavern && i < len(v.TavernArt.CommandButtons):
-			commandPic = v.TavernArt.CommandButtons[i]
-		case artTavern:
-			artIndex := i
-			if len(v.Buttons) == 4 {
-				if i == 0 {
-					artIndex = 0
-				} else {
-					artIndex = i - 1
-				}
-			}
-			if artIndex >= 0 && artIndex < len(v.TavernArt.Buttons) {
-				pic = v.TavernArt.Buttons[artIndex]
-			}
-		}
-		if commandPic != nil {
-			// CommandUpper already carries the plaque. As in the shop
-			// (TOWN-260), the button's own bitmap is drawn only while it is
-			// pressed and hovered.
-			if b.Enabled && v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i {
-				draw.Draw(dst, r, commandPic, commandPic.Bounds().Min, draw.Over)
-			}
-		} else if pic[0] != nil && pic[1] != nil {
-			state := 0
-			if v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i {
-				state = 1
-			}
-			// Exactly one of ON/OFF is blitted per button, never both
-			// (TOWN-183): drawing OFF then painting ON over it would be its
-			// own divergence even where the resulting pixels agree.
-			draw.Draw(dst, r, pic[state], pic[state].Bounds().Min, draw.Src)
-		} else {
-			drawTownShellBox(dst, r, false)
-		}
-		// Captions are separate from the unlabelled plaque art. The model
-		// resolves the school's and tavern's install words (TOWN-383/391);
-		// this renderer keeps their raw bytes and draws caption and value
-		// separately. Source fidelity does not certify the shell's own font
-		// metrics or layout. DIV-159 retains the button-action boundary.
-		ink := buttonInk(b.Enabled, v.HasHover && v.Hover.In(r))
-		down := b.Enabled && v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i
-		offset := buttonTextOffset(down)
-		drawTownShellText(dst, v.Font, b.Label, townButtonLabelRect(r).Add(offset), ink)
-		drawTownShellText(dst, v.Font, b.Value, townButtonValueRect(r).Add(offset), ink)
+	for i := range v.Buttons {
+		drawPushButton(dst, v.Font, townSurfaceButton(v, i, artSchool, artTavern, commandTavern))
 	}
 	DrawTownCharacterRegion(dst, v.Hero)
 	// The bottom message no longer suppresses during Statistics (1022 spec
@@ -1448,6 +1391,48 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		}
 	}
 	return dst
+}
+
+// townSurfaceButton is a room command plaque. School and the three-plaque
+// tavern draw one of an off/on pair (TOWN-183); the four-command tavern
+// draws its bitmap only while pressed, as the shop does (TOWN-260). The draw
+// and hit rectangles are one (TOWN-182). Captions are the model's install
+// words (TOWN-383/391; DIV-159). v.Press is the pressed control under the
+// cursor.
+func townSurfaceButton(v TownSurfaceView, i int, artSchool, artTavern, commandTavern bool) pushButton {
+	r := townSurfaceButtonRect(v.Kind, i)
+	b := v.Buttons[i]
+	face := &plaqueFace{Ink: plaqueCommandInk, Sink: plaqueSink, Captions: []plaqueCaption{
+		{Text: b.Label, Rect: townButtonLabelRect(r), Fit: true},
+		{Text: b.Value, Rect: townButtonValueRect(r), Fit: true}}}
+	var pair [2]image.Image
+	switch {
+	case artSchool && i < len(v.SchoolArt.Buttons):
+		pair = v.SchoolArt.Buttons[i]
+	case commandTavern && i < len(v.TavernArt.CommandButtons):
+		face.Pictures[plaqueDown], face.Over = v.TavernArt.CommandButtons[i], true
+	case artTavern:
+		artIndex := i
+		if len(v.Buttons) == 4 && i > 0 {
+			artIndex = i - 1
+		}
+		if artIndex < len(v.TavernArt.Buttons) {
+			pair = v.TavernArt.Buttons[artIndex]
+		}
+	}
+	switch {
+	case face.Pictures[plaqueDown] != nil:
+	case pair[0] != nil && pair[1] != nil:
+		face.Pictures = plaquePair(pair)
+	default:
+		face.Bare = true
+	}
+	pressed := v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i
+	if face.Over {
+		pressed = pressed && b.Enabled
+	}
+	return pushButton{Rect: r, Face: face, Hover: v.HasHover && v.Hover.In(r), Disabled: !b.Enabled,
+		Pressed: pressed, Inside: true}
 }
 
 func schoolPanelVisible(v TownSurfaceView) bool {

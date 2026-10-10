@@ -16,11 +16,10 @@ const (
 )
 
 var (
-	savePanelRect      = image.Rect(24, 12, 616, 468)
-	saveListRect       = image.Rect(38, 88, 602, 235)
-	saveListArg        = image.Rect(38, 88, 578, 235)
-	saveFocusColor     = color.RGBA{R: 0xc8, G: 0xa2, B: 0x56, A: 0xff}
-	saveSelectionColor = color.RGBA{R: 0x48, G: 0x3b, B: 0x27, A: 0xff}
+	savePanelRect  = image.Rect(24, 12, 616, 468)
+	saveListRect   = image.Rect(38, 88, 602, 235)
+	saveListArg    = image.Rect(38, 88, 578, 235)
+	saveFocusColor = color.RGBA{R: 0xc8, G: 0xa2, B: 0x56, A: 0xff}
 )
 
 func saveControlRect(c saveControl) image.Rectangle {
@@ -161,30 +160,26 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	}
 	s.label(w.Title, 38, 23, layout.TextColor)
 	pointer, pointerOK := a.pointerFrame()
-	button := func(c saveControl, label string, selected bool) {
+	// Without the install font the label is queued for the debug font.
+	button := func(c saveControl, label string) {
 		r := saveControlRect(c)
 		disabled := c == saveDeleteControl && d.remove == nil && !a.flow.canDeleteSave()
 		label = a.saveTextFit(label, r.Dx()-10)
-		if font := a.flow.menuFont; font != nil {
-			inside := pointerOK && pointer.In(r)
-			drawPushButton(s.pix, font, pushButton{Rect: r, Label: a.flow.menuDisplayText(label), Hover: inside,
-				Focus: d.focus == c, Pressed: d.press.Pressed(saveLatchID(c, 0)), Inside: inside, Disabled: disabled})
+		inside := pointerOK && pointer.In(r)
+		b := pushButton{Rect: r, Hover: inside, Focus: d.focus == c, Pressed: d.press.Pressed(saveLatchID(c, 0)),
+			Inside: inside, Disabled: disabled}
+		font := a.flow.menuFont
+		if font == nil {
+			drawPushButton(s.pix, nil, b)
+			textColor := layout.TextColor
+			if disabled {
+				textColor = loadDisabledText
+			}
+			s.label(label, r.Min.X+(r.Dx()-a.saveTextWidth(label))/2, r.Min.Y+5, textColor)
 			return
 		}
-		fill, border := layout.ButtonFill, layout.ButtonBorder
-		if selected {
-			fill = saveSelectionColor
-		}
-		if d.focus == c {
-			border = saveFocusColor
-		}
-		drawFrame(s.pix, panelFrame(r, fill, border))
-		x := r.Min.X + (r.Dx()-a.saveTextWidth(label))/2
-		textColor := layout.TextColor
-		if disabled {
-			textColor = loadDisabledText
-		}
-		s.label(label, x, r.Min.Y+5, textColor)
+		b.Label = a.flow.menuDisplayText(label)
+		drawPushButton(s.pix, font, b)
 	}
 	if d.prepared != nil || d.remove != nil {
 		confirm := w.Confirm
@@ -201,11 +196,11 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 			s.label(w.ScrollHint, 38, 408, layout.TextColor)
 		}
 		if d.remove != nil {
-			button(saveDeleteControl, w.Delete, false)
+			button(saveDeleteControl, w.Delete)
 		} else {
-			button(saveWriteControl, w.Overwrite, false)
+			button(saveWriteControl, w.Overwrite)
 		}
-		button(saveCancelControl, w.Back, false)
+		button(saveCancelControl, w.Back)
 		return s, nil
 	}
 	s.label(w.Directory, 38, 58, layout.TextColor)
@@ -244,8 +239,8 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 			s.label(shown, at.X, at.Y, layout.TextColor)
 		})
 	}
-	button(saveOpenControl, w.Open, false)
-	button(saveUpControl, w.Up, false)
+	button(saveOpenControl, w.Open)
+	button(saveUpControl, w.Up)
 	if d.list != nil {
 		box := a.saveListBox()
 		pointer, pointerOK := a.pointerFrame()
@@ -290,9 +285,9 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 		}
 		s.label(line, 38, 388+i*16, layout.TextColor)
 	}
-	button(saveWriteControl, w.Save, false)
-	button(saveDeleteControl, w.Delete, false)
-	button(saveCancelControl, w.Cancel, false)
+	button(saveWriteControl, w.Save)
+	button(saveDeleteControl, w.Delete)
+	button(saveCancelControl, w.Cancel)
 	return s, nil
 }
 
