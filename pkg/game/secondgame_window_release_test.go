@@ -20,6 +20,7 @@ func secondGameFront(t *testing.T) *FrontEnd {
 		t.Fatal(err)
 	}
 	cleanupFrontAudio(t, f)
+	f.MusicPlayer = &secondTestMusic{}
 	f.randomService().SetStreamSeed(random.TownWildlife, 1)
 	f.randomService().SetStreamSeed(random.AmbientBirds, 1)
 	f.SetDeterministicFrames(true)

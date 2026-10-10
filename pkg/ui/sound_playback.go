@@ -88,3 +88,12 @@ func (a *App) MusicRequestLog() []string {
 	}
 	return a.music.RequestLog()
 }
+
+// MusicAreaPick is the mission list index the next track end opens, or -1,
+// for witnesses.
+func (a *App) MusicAreaPick() int {
+	if a == nil || a.music == nil {
+		return -1
+	}
+	return a.music.AreaPick()
+}
