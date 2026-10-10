@@ -2026,6 +2026,8 @@ package storyguard
 // helpers, new code, including this paragraph.
 // CommentBytes rises for the platoon talk cell: the docs of platoonTalkObject,
 // its constant and tests, new code, including this paragraph.
+// CommentBytes rises for the mission-100 amulet witness's docs, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4694,
 	TestFileCount:  264,
@@ -2049,5 +2051,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1768,
 	},
-	CommentBytes: 8576735,
+	CommentBytes: 8577376,
 }
