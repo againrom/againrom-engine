@@ -8,7 +8,7 @@ Human through `HumanState.derive`: two producers of one state, each step
 written twice. Owner decision 2 of the architecture audit at `34ae6dac`
 (row 2): one derive, building on `rules.HumanSpeed`. One builder per kind; a
 loaded state and an engine-made state are one kind of state. Base: `055e3936`,
-merged with main `10381cbe`.
+merged with main `5bcc4640`.
 
 ## Authority
 
@@ -81,7 +81,8 @@ adds whole cells).
 ### Callers
 
 - `Hero.Recompute` and `RecomputeWithSkillXP` (`pkg/data/recompute.go`):
-  native heroes, the party (`mapload.partySpawn`, `PartyDisplayWithTable`),
+  native heroes, the party (`mapload.partySpawn`, `PartyDisplayWithTable`;
+  the second game's generated hero comes this way, `DIV-2772`),
   rearm (`pkg/game/rearm.go`), placed persons (`HumanDef.DerivedWithLoadout`,
   `blockFor`), chargen previews, the town Human's native projection
   (`missioncity.go`, `savnativeattributes.go`). It sums the six experience
@@ -178,7 +179,8 @@ and scenario sets and the milestone-2 family ran unchanged (see Proof).
 
 - `DIV-2784`: the General bonus leaves a native hero's derived block only with
   the training inverse.
-- `DIV-2785`, `DIV-2786`: the ROM2 derive's caps and load term.
+- `DIV-2785`, `DIV-2786`: the ROM2 derive's caps and load term; a ROM2
+  generated hero (`DIV-2772`) takes the ROM1 caps until a per-game cap input.
 - Placed persons keep their spawn speed from the row's Speed column and their
   sight from its ScanRange column; the derive's values reach their combat
   block, pools and capacity only.
