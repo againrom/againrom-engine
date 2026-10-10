@@ -1207,32 +1207,12 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// crop, and no character-pane corner controls are painted over it.
 		drawInventoryPictureShifted(dst, tavernCandidateDollRect, v.Candidate.Figure, tavernCandidateDollShift)
 	}
-	if artSchool && v.SchoolArt.Upper != nil {
-		// No outline here (round 3): the school's shipped upper picture is 160
-		// pixels wide, covering TownUpperRegion (480..640) exactly.
-		// TownWideUpperRegion's own 464..640 widget rect is 16 pixels wider,
-		// x:[464,480). TOWN-183 reads this widget's own paint routine whole and it
-		// issues exactly three blits per call, the 160x238 background once and one
-		// of ON/OFF per button, with no border primitive among them, so no
-		// authored line is drawn — the gap is closed with UpperSeam instead, the
-		// shipped strip DIV-166/DIV-168 identify by rendering, not with an
-		// authored border colour. Composed through drawTownPane (1021 spec B1):
-		// this room no longer computes the seam rectangle itself, only supplies
-		// the two shipped bitmaps.
-		drawTownPane(dst, TownPane{Body: v.SchoolArt.Upper, Seam: v.SchoolArt.UpperSeam}, TownUpperRegion, townUpperSeamRegion)
-	} else if commandTavern {
-		// Sleep made this a four-command panel. Use the shop composition
-		// whole: its 176-wide body already owns both edge ornaments, and its
-		// narrower first and fourth plaques are positioned around them.
-		draw.Draw(dst, TownWideUpperRegion, v.TavernArt.CommandUpper, v.TavernArt.CommandUpper.Bounds().Min, draw.Over)
-	} else if artTavern && v.TavernArt.Upper != nil {
-		// Same seam, same strip (DIV-166, DIV-168): the tavern's own
-		// buttonsarea.bmp is 160 wide and TownWideUpperRegion is 176, so
-		// UpperSeam closes the same x:[464,480) gap here.
-		drawTownPane(dst, TownPane{Body: v.TavernArt.Upper, Seam: v.TavernArt.UpperSeam}, TownUpperRegion, townUpperSeamRegion)
-	} else {
-		drawTownShellBox(dst, townSurfaceUpperRect(v.Kind), false)
-	}
+	// The school's and the three-command tavern's 160-wide bodies are copied
+	// at TownUpperRegion with the shipped seam strip closing x:[464,480)
+	// (DIV-166, DIV-168); TOWN-183 issues no border primitive. The
+	// four-command tavern draws the shop's whole 176-wide composition.
+	panel := townSurfacePanel(v, artSchool, artTavern, commandTavern)
+	panel.drawBody(dst)
 	if !artTavern && !artSchool {
 		drawTownShellText(dst, v.Font, v.Title, image.Rect(176, 12, 470, 44), townShellText)
 	}
@@ -1371,9 +1351,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// TOWN-154 paint step 6, independent of the class column.
 		v.Scene.Paint(dst, "diamond")
 	}
-	for i := range v.Buttons {
-		drawPushButton(dst, v.Font, townSurfaceButton(v, i, artSchool, artTavern, commandTavern))
-	}
+	panel.drawButtons(dst, v.Font)
 	DrawTownCharacterRegion(dst, v.Hero)
 	// The bottom message no longer suppresses during Statistics (1022 spec
 	// B6, merge resolution round 2: master's own !statistics guard here
@@ -1393,46 +1371,68 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 	return dst
 }
 
-// townSurfaceButton is a room command plaque. School and the three-plaque
-// tavern draw one of an off/on pair (TOWN-183); the four-command tavern
-// draws its bitmap only while pressed, as the shop does (TOWN-260). The draw
-// and hit rectangles are one (TOWN-182). Captions are the model's install
-// words (TOWN-383/391; DIV-159). v.Press is the pressed control under the
-// cursor.
-func townSurfaceButton(v TownSurfaceView, i int, artSchool, artTavern, commandTavern bool) pushButton {
-	r := townSurfaceButtonRect(v.Kind, i)
-	b := v.Buttons[i]
-	face := &plaqueFace{Ink: plaqueCommandInk, Sink: plaqueSink, Captions: []plaqueCaption{
-		{Text: b.Label, Rect: townButtonLabelRect(r), Fit: true},
-		{Text: b.Value, Rect: townButtonValueRect(r), Fit: true}}}
-	var pair [2]image.Image
+// townSurfacePanel is a room's command panel. School and the three-plaque
+// tavern draw one of an off/on pair (TOWN-183) on the room's own body; the
+// four-command tavern takes the shop's composition, whose bitmaps draw only
+// while pressed (TOWN-260, DIV-483). The draw and hit rectangles are one
+// (TOWN-182). Captions are the model's install words (TOWN-383/391;
+// DIV-159). v.Press is the pressed control under the cursor.
+func townSurfacePanel(v TownSurfaceView, artSchool, artTavern, commandTavern bool) buttonPanel {
+	comp := panelComposition{Body: TownUpperRegion, Seam: townUpperSeamRegion,
+		MissingBox: townSurfaceUpperRect(v.Kind), Bare: true, Ink: plaqueCommandInk}
+	var art panelArt
 	switch {
-	case artSchool && i < len(v.SchoolArt.Buttons):
-		pair = v.SchoolArt.Buttons[i]
-	case commandTavern && i < len(v.TavernArt.CommandButtons):
-		face.Pictures[plaqueDown], face.Over = v.TavernArt.CommandButtons[i], true
-	case artTavern:
-		artIndex := i
-		if len(v.Buttons) == 4 && i > 0 {
-			artIndex = i - 1
+	case artSchool && v.SchoolArt.Upper != nil:
+		art.Body, art.Seam = v.SchoolArt.Upper, v.SchoolArt.UpperSeam
+	case commandTavern:
+		comp = shopPanel
+		comp.Bare = true
+		art.Body = v.TavernArt.CommandUpper
+	case artTavern && v.TavernArt.Upper != nil:
+		art.Body, art.Seam = v.TavernArt.Upper, v.TavernArt.UpperSeam
+	}
+	n := len(v.Buttons)
+	if !commandTavern {
+		comp.Plaques = make([]image.Rectangle, n)
+		for i := range comp.Plaques {
+			comp.Plaques[i] = townSurfaceButtonRect(v.Kind, i)
 		}
-		if artIndex < len(v.TavernArt.Buttons) {
-			pair = v.TavernArt.Buttons[artIndex]
+	}
+	art.Plaques = make([][2]image.Image, n)
+	buttons := make([]panelButton, n)
+	for i, b := range v.Buttons {
+		pressedOnly := false
+		switch {
+		case artSchool && i < len(v.SchoolArt.Buttons):
+			art.Plaques[i] = wholePair(v.SchoolArt.Buttons[i])
+		case commandTavern && i < len(v.TavernArt.CommandButtons):
+			art.Plaques[i][1], pressedOnly = v.TavernArt.CommandButtons[i], true
+		case artTavern:
+			artIndex := i
+			if n == 4 && i > 0 {
+				artIndex = i - 1
+			}
+			if artIndex < len(v.TavernArt.Buttons) {
+				art.Plaques[i] = wholePair(v.TavernArt.Buttons[artIndex])
+			}
 		}
+		pressed := v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i
+		if pressedOnly {
+			pressed = pressed && b.Enabled
+		}
+		r := townSurfaceButtonRect(v.Kind, i)
+		buttons[i] = panelButton{Captions: []string{b.Label, b.Value}, Hover: v.HasHover && v.Hover.In(r),
+			Pressed: pressed, Inside: true, Disabled: !b.Enabled}
 	}
-	switch {
-	case face.Pictures[plaqueDown] != nil:
-	case pair[0] != nil && pair[1] != nil:
-		face.Pictures = plaquePair(pair)
-	default:
-		face.Bare = true
+	return buildButtonPanel(comp, art, buttons)
+}
+
+// wholePair is an off/on pair when both pictures are present, else none.
+func wholePair(pair [2]image.Image) [2]image.Image {
+	if pair[0] == nil || pair[1] == nil {
+		return [2]image.Image{}
 	}
-	pressed := v.Press.Kind == TownSurfaceControlButton && v.Press.Index == i
-	if face.Over {
-		pressed = pressed && b.Enabled
-	}
-	return pushButton{Rect: r, Face: face, Hover: v.HasHover && v.Hover.In(r), Disabled: !b.Enabled,
-		Pressed: pressed, Inside: true}
+	return pair
 }
 
 func schoolPanelVisible(v TownSurfaceView) bool {

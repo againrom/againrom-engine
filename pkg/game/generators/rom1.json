@@ -94,8 +94,7 @@
     "cursor": "default",
     "plate": {"key": "main/graphics/chrgen/leftup.bmp", "size": [160, 238], "rect": [0, 0, 160, 238], "cite": ["TOWN-232", "DIV-190"]},
     "plate-seam": {"key": "graphics/interface/chrgen/rollstatsr.bmp", "size": [16, 238], "rect": [160, 0, 176, 238], "keyed": true, "cite": ["TOWN-234", "TOWN-312"]},
-    "nav": {"key": "graphics/interface/inn/buttonsarea.bmp", "size": [160, 238], "rect": [480, 0, 640, 238], "cite": ["MENU-139"]},
-    "nav-seam": {"key": "graphics/interface/inn/ruover.bmp", "size": [16, 238], "rect": [464, 0, 480, 238], "keyed": true, "cite": ["DIV-166", "DIV-168"]},
+    "nav": {"key": "graphics/interface/shopmenu.bmp", "size": [176, 238], "rect": [464, 0, 640, 238], "keyed": true, "cite": ["SHOP-SCREEN-035", "DIV-483", "DIV-2868"]},
     "nav-frame": {"fill": [16, 18, 24], "edge": [138, 116, 70], "cite": ["DIV-115"]},
     "card": {"key": "graphics/interface/chrgen/fullstatsl.bmp", "size": [160, 242], "rect": [0, 238, 160, 480], "cite": ["TOWN-232", "DIV-190", "DIV-2855"]},
     "card-offset": [11, 0],
@@ -150,10 +149,10 @@
       "cite": ["MENU-138", "HERO-BUY-003", "TEXT-082", "TOWN-469", "TOWN-235", "TOWN-534", "TOWN-535", "TOWN-536", "DIV-2854", "VIDEO-SFX-059"]
     },
     "commands": [
-      {"role": "play", "slot": 238, "rect": [484, 44, 624, 90], "off": "graphics/interface/inn/button1off.bmp", "on": "graphics/interface/inn/button1on.bmp", "size": [140, 46], "cite": ["MENU-139"]},
-      {"role": "reset", "slot": 239, "rect": [484, 91, 624, 137], "off": "graphics/interface/inn/button2off.bmp", "on": "graphics/interface/inn/button2on.bmp", "size": [140, 46], "cite": ["MENU-139"]},
-      {"role": "back", "slot": 260, "rect": [484, 138, 624, 184], "off": "graphics/interface/inn/button3off.bmp", "on": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "cite": ["MENU-139"]},
-      {"role": "restore", "rect": [484, 185, 624, 231], "off": "graphics/interface/inn/button2off.bmp", "on": "graphics/interface/inn/button2on.bmp", "size": [140, 46], "cite": ["DIV-2868"]}
+      {"role": "play", "slot": 238, "rect": [494, 15, 614, 67], "on": "graphics/interface/shopbutton1.bmp", "size": [120, 52], "keyed": true, "cite": ["MENU-139", "SHOP-SCREEN-035", "DIV-2868"]},
+      {"role": "reset", "slot": 239, "rect": [483, 114, 623, 160], "on": "graphics/interface/shopbutton3.bmp", "size": [140, 46], "keyed": true, "cite": ["MENU-139", "SHOP-SCREEN-035", "DIV-2868"]},
+      {"role": "back", "slot": 260, "rect": [494, 160, 614, 212], "on": "graphics/interface/shopbutton4.bmp", "size": [120, 52], "keyed": true, "cite": ["MENU-139", "SHOP-SCREEN-035", "DIV-2868"]},
+      {"role": "restore", "rect": [483, 67, 623, 113], "on": "graphics/interface/shopbutton2.bmp", "size": [140, 46], "keyed": true, "cite": ["SHOP-SCREEN-035", "DIV-2868"]}
     ],
     "command-ink": [255, 230, 150],
     "message": [484, 462, 636, 476],

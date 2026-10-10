@@ -639,22 +639,31 @@ func detailedSkillArt(states [3]image.Image) detailedSkillPictures {
 	return detailedSkillPictures{hover: states[1], selected: states[2], selectedAtRest: states[0]}
 }
 
-// chargenCommandButtons are the description's command buttons: a button shows
-// its on picture, with the label 1 px lower, only while pressed and hovered.
-func chargenCommandButtons(c *Chargen, detail *ChargenDetailed, hover, pressed chargenControl) []pushButton {
-	out := make([]pushButton, len(c.layout().Detail.Commands))
+// chargenCommandPanel is the description's command panel: its body and seam,
+// and a plaque per command at the command's rectangle. A command with an off
+// picture shows its on picture, with the label 1 px lower, only while pressed
+// and hovered; one with only an on picture draws it over the body then.
+func chargenCommandPanel(c *Chargen, hover, pressed chargenControl) buttonPanel {
 	l, p := c.layout(), c.art()
+	d := &l.Detail
 	ink := plaqueCommandInk
-	ink.Rest = l.Detail.CommandInk.RGBA()
-	labels := map[chargenControl]string{chargenPlay: detail.Play, chargenReset: detail.Reset, chargenBack: detail.Back, chargenRestore: detail.Restore}
-	for i, cmd := range l.Detail.Commands {
-		id, _ := generatorControlNamed(cmd.Role)
-		r := cmd.Rect.Rectangle()
-		out[i] = pushButton{Rect: r, Hover: hover == id, Pressed: pressed == id, Inside: hover == id,
-			Face: &plaqueFace{Pictures: plaquePair(p.NavButtons[i]), Ink: ink, Sink: plaqueSink,
-				Captions: []plaqueCaption{{Text: labels[id], Rect: r}}}}
+	ink.Rest = d.CommandInk.RGBA()
+	missing := panelFrame(d.Nav.Rect.Rectangle(), d.NavFrame.Fill.RGBA(), d.NavFrame.Edge.RGBA())
+	comp := panelComposition{Body: d.Nav.Rect.Rectangle(), BodyOver: d.Nav.Keyed, Seam: paneRect(d.NavSeam),
+		MissingFrame: &missing, Plaques: make([]image.Rectangle, len(d.Commands)), Ink: ink}
+	art := panelArt{Body: p.NavArt, Seam: p.NavSeam, Plaques: make([][2]image.Image, len(d.Commands))}
+	var labels map[chargenControl]string
+	if detail := c.setup.Detailed; detail != nil {
+		labels = map[chargenControl]string{chargenPlay: detail.Play, chargenReset: detail.Reset, chargenBack: detail.Back, chargenRestore: detail.Restore}
 	}
-	return out
+	buttons := make([]panelButton, len(d.Commands))
+	for i, cmd := range d.Commands {
+		id, _ := generatorControlNamed(cmd.Role)
+		comp.Plaques[i] = cmd.Rect.Rectangle()
+		art.Plaques[i] = p.NavButtons[i]
+		buttons[i] = panelButton{Captions: []string{labels[id]}, Hover: hover == id, Pressed: pressed == id, Inside: hover == id}
+	}
+	return buildButtonPanel(comp, art, buttons)
 }
 
 // drawChargenMessage writes msg centred in the message strip with a
@@ -808,11 +817,6 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 		return dst
 	}
 	d := &l.Detail
-	if p.NavArt != nil {
-		drawTownPane(dst, TownPane{Body: p.NavArt}, d.Nav.Rect.Rectangle(), image.Rectangle{})
-	} else {
-		drawFrame(dst, panelFrame(d.Nav.Rect.Rectangle(), d.NavFrame.Fill.RGBA(), d.NavFrame.Edge.RGBA()))
-	}
 	drawTownPane(dst, TownPane{Body: p.Plate}, d.Plate.Rect.Rectangle(), image.Rectangle{})
 	for stat := 0; stat < len(c.statValue) && stat < generatorStats; stat++ {
 		drawPushButton(dst, nil, detailedStatButton(c, false, stat, hover, pressed))
@@ -829,9 +833,10 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 	if p.CardSeam != nil {
 		drawTownPane(dst, TownPane{Seam: p.CardSeam}, image.Rectangle{}, paneRect(d.CardSeam))
 	}
-	if p.NavSeam != nil {
-		drawTownPane(dst, TownPane{Seam: p.NavSeam}, image.Rectangle{}, paneRect(d.NavSeam))
-	}
+	// The command panel draws over the column: a 176-wide body covers the
+	// column's last 16 columns as a seam does.
+	panel := chargenCommandPanel(c, hover, pressed)
+	panel.drawBody(dst)
 	clip, skills := d.SkillClip.Rectangle(), d.Classes[class].Skills
 	for skill := 0; skill < c.selectableSkills(); skill++ {
 		id := chargenSkill0 + chargenControl(skill)
@@ -849,14 +854,12 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 		}
 		copyNativeKeyed(dst, pic, skills[k].At.Pt().Add(column.Min), clip)
 	}
-	if detail := c.setup.Detailed; detail != nil {
+	if c.setup.Detailed != nil {
 		font := p.NameFont
 		if font == nil {
 			font = p.Font
 		}
-		for _, b := range chargenCommandButtons(c, detail, hover, pressed) {
-			drawPushButton(dst, font, b)
-		}
+		panel.drawButtons(dst, font)
 	}
 	preview := c.Preview()
 	if p.Font != nil {

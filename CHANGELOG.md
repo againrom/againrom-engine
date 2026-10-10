@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] In the character generator the four buttons read Accept, Restore,
+  Reset and Back from the top and are laid out as in the shop, so the fourth
+  no longer covers the panel's ornaments.
 - [BASE] A double click follows the system's double-click speed and distance
   on every screen, as in the original; the tavern no longer wants a faster
   double click than the rest of the game, and a hero's double click in the

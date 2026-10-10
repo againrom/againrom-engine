@@ -382,15 +382,12 @@ func installChargenGraphics(t *testing.T, omitBackground bool) []synth.File {
 			add(fmt.Sprintf("graphics/interface/chrgen/precreate/levels/level%d%s.bmp", level, suffix), installChargenBitmap(size[0], size[1]))
 		}
 	}
-	add("graphics/interface/inn/buttonsarea.bmp", installChargenBitmap(160, 238))
-	for _, name := range []string{"button1off", "button1on", "button2off", "button2on", "button3off", "button3on"} {
-		add("graphics/interface/inn/"+name+".bmp", installChargenBitmap(140, 46))
+	// The command panel is the shop's four-button composition (DIV-2868):
+	// its body and the pressed-only plaque of each command.
+	add("graphics/interface/shopmenu.bmp", installChargenBitmap(176, 238))
+	for i, size := range [4][2]int{{120, 52}, {140, 46}, {140, 46}, {120, 52}} {
+		add(fmt.Sprintf("graphics/interface/shopbutton%d.bmp", i+1), installChargenBitmap(size[0], size[1]))
 	}
-	// ruover.bmp closes the same 16-column TownWideUpperRegion gap the town
-	// shell's school and tavern close with it (DIV-166, DIV-168); it is
-	// stored under the inn directory, not chrgen's own, and LoadChargenAssets
-	// requires it on the same atomic footing as every other chargen node.
-	add("graphics/interface/inn/ruover.bmp", installChargenBitmap(16, 238))
 	add("graphics/interface/chrgen/rollstatsr.bmp", installChargenBitmap(16, 238))
 	add("graphics/interface/humanbackr.bmp", installChargenBitmap(160, 242))
 	add("graphics/interface/humanbackl.bmp", installChargenBitmap(16, 242))
