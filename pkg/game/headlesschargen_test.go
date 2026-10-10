@@ -55,7 +55,7 @@ func chargenTestSetup() ui.ChargenSetup {
 		Cost:      cost,
 		Budget:    4*cost[25] + chargenTestSurplus,
 		Confirm:   "ENTER: begin",
-		PreCreate: &ui.ChargenPreCreate{Prompt: "choose", Back: "BACK"},
+		PreCreate: &ui.ChargenPreCreate{Prompt: "choose", Back: "BACK", Art: &ui.ChargenPresentation{Layout: generatorDescriptions["rom1"]}},
 		Detailed: &ui.ChargenDetailed{Back: "BACK", Reset: "RESET", Play: "PLAY",
 			EmptyName: "a hero needs a name", ReservedName: "that name is reserved"},
 	}

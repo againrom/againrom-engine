@@ -675,11 +675,15 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	//
 	// A base whose profile states it ships no generation art (the demo) skips the
 	// load: its new game opens the first mission with the default party, so the
-	// payload is never read.
+	// payload is never read. The edition's generator description names it.
 	var chargenAssets *ChargenAssets
 	if !archives.Base.Profile.Limits.NoCharacterGeneration {
-		if chargenAssets, err = LoadChargenAssets(archives.Containers); err != nil {
+		if chargenAssets, err = LoadChargenAssets(archives.Containers, GeneratorDescription(archives.Base.Profile)); err != nil {
 			return nil, err
+		}
+		// Tips that keep the install's font draw in the font loaded above.
+		if p := chargenAssets.Presentation; p.TipFont == nil && fontErr == nil {
+			p.TipFont = font
 		}
 	}
 	townSchoolArt, townSchoolArtErr := share.townSchool, share.townSchoolErr

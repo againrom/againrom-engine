@@ -114,7 +114,7 @@ func TestReleasePlaqueButtonCensus(t *testing.T) {
 			census.press(t, app, fmt.Sprintf("generator-command%d", i), centreOf(r), away)
 		}
 		for stat := 0; stat < 4; stat++ {
-			_, _, lower, raise, ok := ui.DetailedAttributeBoxes(stat)
+			_, _, lower, raise, ok := ui.DetailedAttributeBoxes(f.generator(), stat)
 			if !ok {
 				t.Fatal("no attribute row", stat)
 			}
@@ -122,7 +122,7 @@ func TestReleasePlaqueButtonCensus(t *testing.T) {
 			census.press(t, app, fmt.Sprintf("generator-stat%d-plus", stat), centreOf(raise), away)
 		}
 		// Freed points keep the raise enabled while held.
-		_, _, lower, raise, _ := ui.DetailedAttributeBoxes(0)
+		_, _, lower, raise, _ := ui.DetailedAttributeBoxes(f.generator(), 0)
 		for i := 0; i < 2; i++ {
 			census.pointer(t, app, fmt.Sprintf("generator-free%d-press", i), "press", centreOf(lower))
 			census.pointer(t, app, fmt.Sprintf("generator-free%d-release", i), "release", centreOf(lower))

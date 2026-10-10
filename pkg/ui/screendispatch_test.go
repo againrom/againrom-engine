@@ -31,7 +31,7 @@ func TestComposeScreenSelectsMenuComposer(t *testing.T) {
 func chargenDispatchSetup() ChargenSetup {
 	return ChargenSetup{
 		Title:     "t",
-		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{}},
+		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Layout: testGenerator()}},
 		Stats:     []ChargenStat{{Name: "A", Floor: 0, Ceiling: 10, Start: 3}},
 		Cost:      triangular(10),
 		Budget:    100,

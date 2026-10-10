@@ -155,7 +155,7 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 	})
 	tr := chargenTrace{&townTrace{t: t, f: f, a: a, sound: sounds}}
 
-	pre := chargenTraceMaskPoints(t, f, chargenPrecreatePath+"mask.bmp", image.Point{},
+	pre := chargenTraceMaskPoints(t, f, f.generator().PreCreate.Mask.Key, image.Point{},
 		[]byte{20, 40, 60, 80, 100, 120, 140, 160, 180})
 	fighter := chargenTraceMaskPoints(t, f, graphicsPrefix+"interface/chrgen/fighter/mask.bmp", image.Pt(160, 0),
 		[]byte{255, 191, 152, 127, 102})
@@ -219,10 +219,10 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 		tr.key(k)
 	}
 	// The toggle and close of the pre-create popup.
-	tr.hover(tipToggle(ui.PreCreateTipRect), 4)
-	tr.click(tipToggle(ui.PreCreateTipRect))
-	tr.click(tipToggle(ui.PreCreateTipRect))
-	tr.click(tipClose(ui.PreCreateTipRect))
+	tr.hover(tipToggle(preCreateTipRect), 4)
+	tr.click(tipToggle(preCreateTipRect))
+	tr.click(tipToggle(preCreateTipRect))
+	tr.click(tipClose(preCreateTipRect))
 	tr.hover(off, 20)
 	tr.click(pre[100])
 	tr.click(pre[180])
@@ -241,7 +241,7 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 	tr.hover(off, 4)
 	// Every stat button: hovered, pressed, released.
 	for stat := 0; stat < 4; stat++ {
-		_, value, lower, raise, ok := ui.DetailedAttributeBoxes(stat)
+		_, value, lower, raise, ok := ui.DetailedAttributeBoxes(f.generator(), stat)
 		if !ok {
 			t.Fatal("no attribute box")
 		}
@@ -251,19 +251,19 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 			tr.click(p)
 			tr.click(p)
 		}
-		plate, _, _, _, _ := ui.DetailedAttributeBoxes(stat)
+		plate, _, _, _, _ := ui.DetailedAttributeBoxes(f.generator(), stat)
 		tr.hover(plate.Min.Add(plate.Size().Div(2)), 3)
 	}
 	tr.hover(image.Pt(84, 192), 3)
 	// The held raise repeats until the pool or the bound refuses it.
-	_, _, _, raise, _ := ui.DetailedAttributeBoxes(0)
+	_, _, _, raise, _ := ui.DetailedAttributeBoxes(f.generator(), 0)
 	hold := raise.Min.Add(raise.Size().Div(2))
 	tr.edge("press", hold)
 	for i := 0; i < 60; i++ {
 		tr.edge("move", hold)
 	}
 	tr.edge("release", hold)
-	_, _, lower, _, _ := ui.DetailedAttributeBoxes(1)
+	_, _, lower, _, _ := ui.DetailedAttributeBoxes(f.generator(), 1)
 	for i := 0; i < 20; i++ {
 		tr.click(lower.Min.Add(lower.Size().Div(2)))
 	}
@@ -276,8 +276,8 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 		tr.edge("release", off)
 	}
 	tr.click(reset)
-	tr.hover(tipToggle(ui.ChargenTipRect), 3)
-	tr.click(tipClose(ui.ChargenTipRect))
+	tr.hover(tipToggle(chargenTipRect), 3)
+	tr.click(tipClose(chargenTipRect))
 	tr.hover(off, 10)
 	for _, k := range []string{"down", "down", "enter", "down", "down", "down", "down", "down", "enter", "up"} {
 		tr.key(k)

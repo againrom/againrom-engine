@@ -12,6 +12,7 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
+	"againrom/pkg/ui"
 )
 
 type chargenSource map[string][]byte
@@ -29,73 +30,111 @@ func TestChargenTextRowsRetainRawBytes(t *testing.T) {
 	if got, ok := rows.At(1); !ok || got != "two" {
 		t.Fatalf("line 1 = %q, %v", got, ok)
 	}
-	if _, err := chargenTextAt(rows, chargenTextPath, 3); err == nil {
+	if _, err := chargenTextAt(rows, "main/text/main.txt", 3); err == nil {
 		t.Fatal("missing slot accepted")
 	}
 }
 
-func TestLoadChargenAssets(t *testing.T) {
+// synthGeneratorSource is an archive holding every picture, mask, font and
+// text line description l names, at the sizes it states.
+func synthGeneratorSource(l *ui.GeneratorDescription) chargenSource {
 	src := chargenSource{}
-	for level, size := range [3]image.Point{{60, 74}, {76, 112}, {100, 152}} {
-		for _, suffix := range []string{"on", "l", "lon"} {
-			src[fmt.Sprintf("%slevels/level%d%s.bmp", chargenPrecreatePath, level, suffix)] = synthBMP(size.X, size.Y, color.RGBA{R: 0x44, A: 0xff})
+	fill := color.RGBA{R: 0x44, A: 0xff}
+	put := func(key string, size *ui.GeneratorPoint) {
+		w, h := 2, 2
+		if size != nil {
+			w, h = size[0], size[1]
+		}
+		src[key] = synthBMP(w, h, fill)
+	}
+	pre, d := &l.PreCreate, &l.Detail
+	for _, h := range pre.Heroes {
+		for _, a := range h.Art {
+			put(a.Key, a.Size)
 		}
 	}
-	putBMP := func(addr string) { src[addr] = synthBMP(2, 2, color.RGBA{R: 0x44, A: 0xff}) }
-	src[chargenPrecreatePath+"mainarea.bmp"] = synthBMP(640, 480, color.RGBA{R: 0x44, A: 0xff})
-	src[chargenPrecreatePath+"mask.bmp"] = synthBMP8(640, 480, chargenPreMaskCodes[:]...)
-	src[chargenPrecreatePath+"amulet.bmp"] = synthBMP(112, 204, color.RGBA{R: 0x44, A: 0xff})
-	src[chargenPrecreatePath+"buttonok.bmp"] = synthBMP(100, 56, color.RGBA{R: 0x44, A: 0xff})
-	src[chargenPlatePath] = synthBMP(160, 238, color.RGBA{R: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/inn/buttonsarea.bmp"] = synthBMP(160, 238, color.RGBA{G: 0x44, A: 0xff})
-	for _, name := range []string{"button1off", "button1on", "button2off", "button2on", "button3off", "button3on"} {
-		src[graphicsPrefix+"interface/inn/"+name+".bmp"] = synthBMP(140, 46, color.RGBA{R: 0x33, A: 0xff})
-	}
-	src[graphicsPrefix+"interface/inn/ruover.bmp"] = synthBMP(16, 238, color.RGBA{B: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/chrgen/rollstatsr.bmp"] = synthBMP(16, 238, color.RGBA{B: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/humanbackr.bmp"] = synthBMP(160, 242, color.RGBA{B: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/humanbackl.bmp"] = synthBMP(16, 242, color.RGBA{B: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/chrgen/fullstatsl.bmp"] = synthBMP(160, 242, color.RGBA{G: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/chrgen/fullstatsr.bmp"] = synthBMP(16, 242, color.RGBA{G: 0x44, A: 0xff})
-	for _, hero := range []string{"mf", "mm", "ff", "fm"} {
-		for _, state := range []string{"on", "l", "lon"} {
-			putBMP(chargenPrecreatePath + "heroes/" + hero + state + ".bmp")
+	for _, v := range pre.Levels {
+		for _, a := range v.Art {
+			put(a.Key, a.Size)
 		}
 	}
-	for class, classDir := range []string{"fighter", "mag"} {
-		src[graphicsPrefix+"interface/chrgen/"+classDir+"/column.bmp"] = synthBMP(320, 480, color.RGBA{R: 0x44, A: 0xff})
-		src[graphicsPrefix+"interface/chrgen/"+classDir+"/mask.bmp"] = synthBMP8(320, 480, chargenDetailedMaskCodes[class][:]...)
+	put(pre.Background.Key, pre.Background.Size)
+	var preCodes []uint8
+	for _, c := range pre.Mask.Required {
+		preCodes = append(preCodes, uint8(c))
 	}
-	for class, skills := range [][]string{{"sword", "axe", "mace", "pike", "bow"}, {"fire", "water", "air", "earth", "astral"}} {
-		classDir := []string{"fighter", "mag"}[class]
-		for _, skill := range skills {
-			for _, state := range []string{"on", "shine_off", "shine_on"} {
-				putBMP(graphicsPrefix + "interface/chrgen/" + classDir + "/" + skill + "/" + state + ".bmp")
+	src[pre.Mask.Key] = synthBMP8(pre.Mask.Size[0], pre.Mask.Size[1], preCodes...)
+	for _, b := range []ui.GeneratorArt{pre.Back.Art, pre.Forward.Art} {
+		if b.Key != "" {
+			put(b.Key, b.Size)
+		}
+	}
+	for _, loop := range pre.Loops {
+		for k := 0; k < loop.Count; k++ {
+			put(fmt.Sprintf(loop.Key, loop.First+k), &loop.Size)
+		}
+	}
+	for _, pane := range []*ui.GeneratorPane{&d.Plate, d.PlateSeam, &d.Nav, d.NavSeam, &d.Doll, d.DollSeam, &d.Card, d.CardSeam} {
+		if pane != nil && pane.Key != "" {
+			put(pane.Key, &pane.Size)
+		}
+	}
+	for _, c := range d.Commands {
+		put(c.Off, &c.Size)
+		put(c.On, &c.Size)
+	}
+	for _, c := range d.Classes {
+		put(c.Column.Key, c.Column.Size)
+		var codes []uint8
+		for _, skill := range c.Skills {
+			codes = append(codes, uint8(skill.Mask))
+			for _, name := range []string{d.SkillStates.SelectedAtRest, d.SkillStates.Hover, d.SkillStates.Selected} {
+				put(skill.Dir+name, nil)
 			}
 		}
+		size := c.Column.Size
+		if c.Mask.Size != nil {
+			size = c.Mask.Size
+		}
+		src[c.Mask.Key] = synthBMP8(size[0], size[1], codes...)
 	}
-	for _, name := range []string{"mnloff", "mloff", "mlon", "mnlon", "mdisable", "pnloff", "ploff", "plon", "pnlon", "pdisable"} {
-		src[graphicsPrefix+"interface/chrgen/buttons/"+name+".bmp"] = synthBMP(20, 20, color.RGBA{R: 0x44, A: 0xff})
+	st := &d.Stats
+	for _, b := range []ui.GeneratorStatButtons{st.MinusArt, st.PlusArt} {
+		for _, name := range []string{b.Rest, b.Hover, b.Down, b.Unused, b.Disabled} {
+			put(st.ButtonDir+name, &st.ButtonSize)
+		}
 	}
 	glyphs := []synth.Font16Glyph{{Width: 8, Height: 10, Advance: 8}}
 	atlas, advances := synth.Font16(glyphs)
-	src[FontAtlasPath("font2")], src[FontAdvancePath("font2")] = atlas, advances
-	src[FontAtlasPathA(DocumentFont)], src[FontAdvancePath(DocumentFont)] = synthFont16A(), advances
-	names := make([][]byte, 24)
+	for _, f := range []ui.GeneratorFont{l.Words.TextFont, l.Words.NameFont} {
+		if f.Atlas == "16a" {
+			src[FontAtlasPathA(f.Name)], src[FontAdvancePath(f.Name)] = synthFont16A(), advances
+		} else {
+			src[FontAtlasPath(f.Name)], src[FontAdvancePath(f.Name)] = atlas, advances
+		}
+	}
+	names := make([][]byte, 40)
 	for i := range names {
 		names[i] = []byte(fmt.Sprintf("npc%d", i))
 	}
-	src[chargenNamesPath] = stringJoinBytes(names)
-	rows := make([][]byte, chargenBackSlot+1)
+	src[l.Words.Names] = stringJoinBytes(names)
+	rows := make([][]byte, 400)
 	for i := range rows {
 		rows[i] = []byte("x")
 	}
-	rows[chargenPromptSlot] = []byte("Character name:")
-	rows[chargenPlaySlot], rows[chargenResetSlot], rows[chargenBackSlot] = []byte("Accept"), []byte("Reset"), []byte("Back")
-	src[chargenTextPath] = stringJoinBytes(rows)
+	rows[pre.Name.Prompt.Slot] = []byte("Character name:")
+	for i, word := range []string{"Accept", "Reset", "Back"} {
+		rows[d.Commands[i].Slot] = []byte(word)
+	}
+	src[l.Words.Table] = stringJoinBytes(rows)
 	src[LanguagePath] = []byte("english 0")
+	return src
+}
 
-	got, err := LoadChargenAssets(src)
+func TestLoadChargenAssets(t *testing.T) {
+	l := generatorDescriptions["rom1"]
+	src := synthGeneratorSource(l)
+	got, err := LoadChargenAssets(src, l)
 	if err != nil {
 		t.Fatalf("LoadChargenAssets: %v", err)
 	}
@@ -109,31 +148,44 @@ func TestLoadChargenAssets(t *testing.T) {
 		t.Fatal("detailed skill presentation was not retained")
 	}
 	// Picture order is male fighter, male mage, female fighter, female mage.
-	if want := [4]string{"npc20", "npc22", "npc21", "npc23"}; got.HeroNames != want {
-		t.Fatalf("HeroNames = %q, want %q", got.HeroNames, want)
+	if want := [4]string{"npc20", "npc22", "npc21", "npc23"}; got.HeroNames != want || got.EnterName != "npc20" {
+		t.Fatalf("HeroNames = %q, enter %q; want %q, npc20", got.HeroNames, got.EnterName, want)
 	}
 	if got.Presentation.NameFont == nil || len(got.Presentation.NameFont.Glyphs) != 1 {
 		t.Fatal("the prompt and name font was not retained")
 	}
-	src[chargenNamesPath] = stringJoinBytes(names[:23])
-	if _, err := LoadChargenAssets(src); err == nil || !strings.Contains(err.Error(), chargenNamesPath+" slot 23") {
-		t.Fatalf("missing name entry error = %v, want %s slot 23", err, chargenNamesPath)
+	names := l.Words.Names
+	full := src[names]
+	src[names] = stringJoinBytes(bytesRows(23))
+	if _, err := LoadChargenAssets(src, l); err == nil || !strings.Contains(err.Error(), names+" slot 2") {
+		t.Fatalf("missing name entry error = %v, want %s slot 2x", err, names)
 	}
-	src[chargenNamesPath] = stringJoinBytes(names)
-	delete(src, FontAtlasPathA(DocumentFont))
-	if _, err := LoadChargenAssets(src); err == nil {
+	src[names] = full
+	nameFont := FontAtlasPathA(l.Words.NameFont.Name)
+	atlas := src[nameFont]
+	delete(src, nameFont)
+	if _, err := LoadChargenAssets(src, l); err == nil {
 		t.Fatal("missing prompt and name font was accepted")
 	}
-	src[FontAtlasPathA(DocumentFont)] = synthFont16A()
-	src[chargenPrecreatePath+"mask.bmp"] = synthBMP8(640, 480)
-	if _, err := LoadChargenAssets(src); err == nil || !strings.Contains(err.Error(), "missing required mask index 20") {
+	src[nameFont] = atlas
+	mask := src[l.PreCreate.Mask.Key]
+	src[l.PreCreate.Mask.Key] = synthBMP8(640, 480)
+	if _, err := LoadChargenAssets(src, l); err == nil || !strings.Contains(err.Error(), "missing required mask index 20") {
 		t.Fatalf("blank pre-create mask error = %v, want missing required mask index", err)
 	}
-	src[chargenPrecreatePath+"mask.bmp"] = synthBMP8(640, 480, chargenPreMaskCodes[:]...)
-	delete(src, chargenPrecreatePath+"heroes/mfon.bmp")
-	if _, err := LoadChargenAssets(src); err == nil {
+	src[l.PreCreate.Mask.Key] = mask
+	delete(src, l.PreCreate.Heroes[0].Art[0].Key)
+	if _, err := LoadChargenAssets(src, l); err == nil {
 		t.Fatal("missing required picture was accepted")
 	}
+}
+
+func bytesRows(n int) [][]byte {
+	rows := make([][]byte, n)
+	for i := range rows {
+		rows[i] = []byte(fmt.Sprintf("npc%d", i))
+	}
+	return rows
 }
 
 func synthBMP8(w, h int, hot ...uint8) []byte {

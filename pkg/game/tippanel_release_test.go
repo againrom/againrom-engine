@@ -150,12 +150,12 @@ func TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt(t *testin
 		c.SelectPreChoice(choice)
 		c.Forward()
 		want := map[int]string{0: setup.TipText, 1: setup.TipTextMage}[choice]
-		if v := c.TipPanel(); v.Text != want || v.Rect != ui.ChargenTipRect {
+		if v := c.TipPanel(); v.Text != want || v.Rect != chargenTipRect {
 			t.Fatalf("choice %d detailed popup = %q at %v", choice, v.Text, v.Rect)
 		}
 		frames[choice] = ui.ComposeChargenFrame(c)
 	}
-	if n := diffPixelCount(frames[0], frames[1], ui.TipPanelTextRect(ui.ChargenTipRect)); n == 0 {
+	if n := diffPixelCount(frames[0], frames[1], ui.TipPanelTextRect(chargenTipRect)); n == 0 {
 		t.Error("the mage and fighter detailed popups composed the same text pixels")
 	}
 }
@@ -207,7 +207,7 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 	}
 	font := f3.ChargenAssets.Presentation.Font
 	for name, text := range map[string]string{"fighter": fighterText, "mage": mageText} {
-		v := ui.TipPanelView{Rect: ui.ChargenTipRect, Text: text, Art: art, Font: font}
+		v := ui.TipPanelView{Rect: chargenTipRect, Text: text, Art: art, Font: font}
 		if !ui.TipPanelFits(v) {
 			t.Errorf("chargen %s tip does not fit ChargenTipRect %v", name, v.Rect)
 		}
@@ -217,7 +217,7 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s is not shipped", addr)
 		}
-		if v := (ui.TipPanelView{Rect: ui.PreCreateTipRect, Text: text, Art: art, Font: font}); !ui.TipPanelFits(v) {
+		if v := (ui.TipPanelView{Rect: preCreateTipRect, Text: text, Art: art, Font: font}); !ui.TipPanelFits(v) {
 			t.Errorf("pre-create step %d tip does not fit PreCreateTipRect %v", i, v.Rect)
 		}
 	}

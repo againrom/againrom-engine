@@ -8,12 +8,14 @@ package game
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -54,15 +56,15 @@ const (
 // "The spread"), decoded and not a taste, and the order chargenStatBody
 // through chargenStatSpirit names above.
 func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
-	cost := make([]int, int(data.StatCeiling)+1)
-	for v := int32(0); v <= data.StatCeiling; v++ {
-		cost[v] = int(data.PointCost(v))
+	l := f.generator()
+	st := &l.Detail.Stats
+	cost := make([]int, st.Ceiling+1)
+	for v := range cost {
+		cost[v] = generatorCost(st.Cost, v)
 	}
 
 	stat := func(name string) ui.ChargenStat {
-		return ui.ChargenStat{
-			Name: name, Floor: int(data.StatFloor), Ceiling: int(data.StatCeiling), Start: int(data.ChargenStat),
-		}
+		return ui.ChargenStat{Name: name, Floor: st.Floor, Ceiling: st.Ceiling, Start: st.Start}
 	}
 
 	choices := make([]ui.ChargenChoice, chargenChoiceCount)
@@ -72,16 +74,15 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		Name:       "Skill",
 		OptionsFor: [][]string{data.SkillNames(false), data.SkillNames(true)},
 		Parent:     chargenChoiceClass,
-		// THE ROW'S OWN OPENING INDEX. -skill (0120) already sets PartySkillSlot
-		// before this front end ever loads, and the screen must not become a
-		// SECOND WRITER of the field it sets: it SEEDS the row instead, at the
-		// position PartySkillSlot's own slot holds in SkillNames' own order
-		// (SkillBlade is position 0), and ui.NewChargen clamps it exactly as a
-		// dependent row's held index is already clamped. The player's own first
-		// move still wins from there — Start is an opening index, not a lock —
-		// and -skill given with no -chargen at all never reaches this line, so it
-		// keeps behaving exactly as it does today.
+		// THE ROW'S OWN OPENING INDEX: the description's default skill, else
+		// the position -skill's PartySkillSlot holds in SkillNames' own order
+		// (SkillBlade is position 0). The screen seeds the row rather than
+		// becoming a second writer of that field, and ui.NewChargen clamps it
+		// as a dependent row's held index is clamped.
 		Start: int(PartySkillSlot() - data.SkillBlade),
+	}
+	if d := l.Detail.DefaultSkill; d != nil {
+		choices[chargenChoiceSkill].Start = *d
 	}
 
 	stats := make([]ui.ChargenStat, chargenStatCount)
@@ -96,13 +97,20 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 	if f.Archives != nil {
 		src = f.Archives.Containers
 	}
-	var tipSelect [3]string
-	for i, addr := range ChargenSelectTipPaths {
-		tipSelect[i], _ = ReadShopTip(src, addr)
+	tip := func(t ui.GeneratorTipText) string {
+		text, _ := ReadShopTip(src, t.File)
+		if t.Section == "" || text == "" {
+			return text
+		}
+		return secondGameTextSection(secondGameMissionBytes([]byte(text), LanguageSelector(src)), t.Section)
 	}
-	tipText, _ := ReadShopTip(src, chargenTipPath(0))
-	tipTextMage, _ := ReadShopTip(src, chargenTipPath(1))
-	tipTextDetail, _ := ReadShopTip(src, ChargenDetailTipPath)
+	var tipSelect [3]string
+	for i, t := range l.Tips.Select {
+		if i < len(tipSelect) {
+			tipSelect[i] = tip(t)
+		}
+	}
+	reset := l.Detail.ResetFor(f.Base().Profile.Language)
 
 	setup := ui.ChargenSetup{
 		Title:   chargenTitle,
@@ -110,7 +118,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		Choices: choices,
 		Stats:   stats,
 		Cost:    cost,
-		Budget:  int(data.ChargenBudget),
+		Budget:  st.Budget,
 		Confirm: chargenConfirm,
 		Derive:  f.ChargenDerived,
 
@@ -119,36 +127,65 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		// read from and written through the same store every room's own tip
 		// reads (tipstore.go).
 		TipSelect:     tipSelect,
-		TipText:       tipText,
-		TipTextMage:   tipTextMage,
-		TipTextDetail: tipTextDetail,
+		TipText:       tip(l.Tips.Fighter),
+		TipTextMage:   tip(l.Tips.Mage),
+		TipTextDetail: tip(l.Tips.After),
 		TipClose:      f.Words.TipClose,
 		TipToggle:     f.Words.TipShowNext,
 		TipArt:        f.tipArt(),
 		TipsOn:        !f.TipsOff(),
 		SetTipsOn:     func(on bool) { f.SetTipsOff(!on) },
+
+		ResetStart: reset.Values == "start",
+		ResetSkill: reset.Skill == "default",
+	}
+	if s := l.PreCreate.Sparkle; s != nil && len(s.Within) > 0 {
+		setup.Draws = f.randomService().Stream(random.Generator)
 	}
 	if a := f.ChargenAssets; a != nil {
 		// The field opens from the no-name seed, which the page's enter turns
-		// into the first picture's installed name (TEXT-073).
-		setup.Name = chargenUnnamed
+		// into the enter line's installed name (TEXT-073).
+		name := l.PreCreate.Name
+		setup.Name = name.Unnamed
 		setup.PreCreate = &ui.ChargenPreCreate{Prompt: a.Prompt, Back: a.Back, Art: a.Presentation,
-			HeroNames: a.HeroNames, Unnamed: chargenUnnamed}
+			HeroNames: a.HeroNames, Unnamed: name.Unnamed, EnterName: a.EnterName, LastPress: name.LastPress}
 		setup.EncodeName = func(r rune) (byte, bool) { return textinput.EncodeRune(r, a.Selector) }
 		setup.Detailed = &ui.ChargenDetailed{Back: a.Back, Reset: a.Reset, Play: a.Play,
 			EmptyName: a.EmptyName, ReservedName: a.ReservedName, SkillHover: a.SkillHover}
 		setup.Preview = f.ChargenPreview
 	}
-	if f.Table != nil && f.Table.Humans != nil {
-		for i := range setup.Presets {
-			d, _, ok := data.ChargenBase(f.Table.Humans, i%2 == 1, i >= 2)
-			spread := data.Spread{Body: d.Body, Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit}
-			if ok && spread.Legal() {
-				setup.Presets[i] = []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}
-			}
+	f.campaign().generatorPresets(f, &setup)
+	return setup
+}
+
+// generator is the profile's generator description; a front end whose
+// profile names none reads the first game's.
+func (f *FrontEnd) generator() *ui.GeneratorDescription {
+	if l := GeneratorDescription(f.Base().Profile); l != nil {
+		return l
+	}
+	return heroNameGenerator()
+}
+
+// generatorCost is the cumulative cost of a statistic standing at v:
+// trunc(factor * base^(v-1) + round).
+func generatorCost(c ui.GeneratorCost, v int) int {
+	return int(math.Trunc(c.Factor*math.Pow(c.Base, float64(v-1)) + c.Round))
+}
+
+// firstGeneratorPresets are the four pictures' statistic presets: the
+// definition table's base row for each sex and class.
+func firstGeneratorPresets(f *FrontEnd, setup *ui.ChargenSetup) {
+	if f.Table == nil || f.Table.Humans == nil {
+		return
+	}
+	for i := range setup.Presets {
+		d, _, ok := data.ChargenBase(f.Table.Humans, i%2 == 1, i >= 2)
+		spread := data.Spread{Body: d.Body, Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit}
+		if ok && spread.Legal() {
+			setup.Presets[i] = []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}
 		}
 	}
-	return setup
 }
 
 // chargenTipPath is the tip panel's own class-conditional address (1018 spec
@@ -390,6 +427,11 @@ func (f *FrontEnd) tableWeapons() (shapes, materials data.ScaleTable, weapons da
 // routine and never two that could disagree — class leads over the trained
 // slot on class's own arm, exactly as StartingWeaponName states.
 func (f *FrontEnd) ChargenParty(res ui.ChargenResult) []mapload.PartyMember {
+	return f.campaign().generatorParty(f, res)
+}
+
+// firstGeneratorParty is the first game's party for a result.
+func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
 	female := chargenChoiceIndex(res, chargenChoiceSex) != 0
 	class := chargenChoiceIndex(res, chargenChoiceClass) != 0
 	slot := data.SkillBlade + int32(chargenChoiceIndex(res, chargenChoiceSkill))

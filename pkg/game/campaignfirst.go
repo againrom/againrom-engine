@@ -110,3 +110,15 @@ func (firstCampaignRules) eventAudience(*mapWorld) (EventAudience, bool) {
 }
 
 func (firstCampaignRules) objectives(_ *mapWorld, briefing string) string { return briefing }
+
+func (firstCampaignRules) generatorPresets(f *FrontEnd, setup *ui.ChargenSetup) {
+	firstGeneratorPresets(f, setup)
+}
+
+func (firstCampaignRules) generatorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
+	return firstGeneratorParty(f, res)
+}
+
+func (firstCampaignRules) generatorBegin(f *FrontEnd, mission int) func(ui.ChargenResult) (ui.MapOpener, error) {
+	return func(res ui.ChargenResult) (ui.MapOpener, error) { return f.NewGameOpener(mission, res), nil }
+}

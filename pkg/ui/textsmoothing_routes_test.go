@@ -96,7 +96,7 @@ func frameOracle(frame *image.RGBA) textsmooth.Oracle {
 func TestDetailedPageCardGlyphsAreCapturedWhereThePageShowsThem(t *testing.T) {
 	font := chargenTestFont()
 	bg := logTestPic(image.Rect(0, 0, 160, 242), color.RGBA{R: 40, G: 30, B: 20, A: 255})
-	art := &ChargenPresentation{Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), CardBackground: bg, Font: font}
+	art := &ChargenPresentation{Layout: testGenerator(), Plate: image.NewRGBA(image.Rect(0, 0, 160, 238)), CardBackground: bg, Font: font}
 	c := NewChargen(ChargenSetup{
 		PreCreate: &ChargenPreCreate{Art: art},
 		Choices: []ChargenChoice{

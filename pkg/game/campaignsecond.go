@@ -272,3 +272,13 @@ func (secondCampaignRules) eventAudience(mw *mapWorld) (EventAudience, bool) {
 func (secondCampaignRules) objectives(mw *mapWorld, briefing string) string {
 	return mw.secondGameObjectivePanel(briefing)
 }
+
+func (secondCampaignRules) generatorPresets(f *FrontEnd, setup *ui.ChargenSetup) {}
+
+func (secondCampaignRules) generatorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
+	return firstGeneratorParty(f, res)
+}
+
+func (secondCampaignRules) generatorBegin(f *FrontEnd, mission int) func(ui.ChargenResult) (ui.MapOpener, error) {
+	return nil
+}

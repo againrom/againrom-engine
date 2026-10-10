@@ -423,7 +423,7 @@ func TestShopTipListReleaseConsumesAndBodyPasses(t *testing.T) {
 func TestPreCreateTipPanelSwallowsEveryPortraitItCovers(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	setup := chargenLegalSetup()
-	art := &ChargenPresentation{Forward: image.NewRGBA(image.Rect(0, 0, 96, 74)), Font: shopTipTestFont()}
+	art := &ChargenPresentation{Layout: testGenerator(), Forward: image.NewRGBA(image.Rect(0, 0, 96, 74)), Font: shopTipTestFont()}
 	for choice := range art.Choices {
 		for state := range art.Choices[choice] {
 			art.Choices[choice][state] = image.NewRGBA(image.Rect(0, 0, 160, 240))

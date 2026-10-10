@@ -2,13 +2,6 @@ package ui
 
 import "time"
 
-// The two guided-cycle constants (TOWN-519): a hover freezes the cycle for
-// 500 ms, then a step lands at the first paint more than 300 ms after the last.
-const (
-	guidedCycleHoverWait = 500 * time.Millisecond
-	guidedCycleStepGap   = 300 * time.Millisecond
-)
-
 // guidedCycle is the one highlight cycle both generator pages run while their
 // tip popup shows: pre-create over portraits, levels, then amulet and OK
 // (TOWN-519), the detailed page over its five skills (TOWN-522). Targets are
@@ -23,12 +16,14 @@ type guidedCycle struct {
 
 // paint runs one paint of the cycle and returns the index into steps[step]
 // to highlight, or -1 for no highlight. hovered is the region under the
-// pointer, or -1. A step outside steps draws nothing and stops stepping.
-func (g *guidedCycle) paint(now time.Time, steps [][]int, step, hovered int) int {
+// pointer, or -1. A step outside steps draws nothing and stops stepping. A
+// hover freezes the cycle for hoverWait; a step lands at the first paint more
+// than stepGap after the last (TOWN-519).
+func (g *guidedCycle) paint(now time.Time, steps [][]int, step, hovered int, hoverWait, stepGap time.Duration) int {
 	if !g.started {
 		g.started, g.hoverAt, g.stepAt, g.length, g.lastHovered = true, now, now, 1, -1
 	}
-	if now.Sub(g.hoverAt) < guidedCycleHoverWait {
+	if now.Sub(g.hoverAt) < hoverWait {
 		g.stepAt = now
 		return -1
 	}
@@ -51,7 +46,7 @@ func (g *guidedCycle) paint(now time.Time, steps [][]int, step, hovered int) int
 		g.length = -1
 	}
 	g.lastHovered = -1
-	if now.Sub(g.stepAt) > guidedCycleStepGap && g.length > 0 {
+	if now.Sub(g.stepAt) > stepGap && g.length > 0 {
 		g.index = (g.index + 1) % g.length
 		g.stepAt = now
 	}

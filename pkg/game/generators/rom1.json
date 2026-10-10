@@ -1,0 +1,177 @@
+{
+  "generator": "rom1",
+  "cite": ["TOWN-216", "TOWN-232"],
+  "page": {"size": [640, 480], "backdrop": [18, 18, 18], "cite": ["TOWN-232", "DIV-115"]},
+  "words": {
+    "table": "main/text/main.txt",
+    "names": "main/text/npcnames.txt",
+    "text-font": {"name": "font2", "atlas": "16", "cite": ["DIV-191"]},
+    "name-font": {"name": "font4", "atlas": "16a", "cite": ["TEXT-077"]},
+    "tip-font": "text",
+    "cite": ["TEXT-073", "TEXT-077", "MENU-137"]
+  },
+  "pre-create": {
+    "cursor": "select",
+    "background": {"key": "graphics/interface/chrgen/precreate/mainarea.bmp", "size": [640, 480], "at": [0, 0], "cite": ["TOWN-216", "TOWN-223"]},
+    "mask": {"key": "graphics/interface/chrgen/precreate/mask.bmp", "size": [640, 480],
+             "required": [20, 40, 60, 80, 140, 100, 120, 160, 180], "cite": ["TOWN-520"]},
+    "name": {
+      "rect": [224, 310, 362, 337], "text-at": [224, 321], "ink": [101, 39, 61], "cap": 10, "caret-ms": 500, "tooltip": 256,
+      "prompt": {"slot": 125, "at": [224, 305], "align": "left", "ink": [65, 47, 20], "cite": ["TEXT-077"]},
+      "enter-line": 20, "unnamed": "Unnamed", "last-press": true,
+      "cite": ["TEXT-073", "TEXT-074", "TEXT-075", "TEXT-076", "TEXT-077", "DIV-1496"]
+    },
+    "heroes": [
+      {"sex": 0, "class": 0, "mask": 80, "name-line": 20, "tooltip": 250,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/heroes/mfon.bmp", "at": [16, 273], "cite": ["TOWN-521"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/mfl.bmp", "at": [16, 273], "cite": ["TOWN-521"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/mflon.bmp", "at": [16, 273], "cite": ["TOWN-521"]}
+       ],
+       "cite": ["TOWN-520", "TEXT-074", "DIV-1495"]},
+      {"sex": 0, "class": 1, "mask": 140, "name-line": 22, "tooltip": 251,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/heroes/mmon.bmp", "at": [416, 190], "cite": ["TOWN-521"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/mml.bmp", "at": [416, 190], "cite": ["TOWN-521"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/mmlon.bmp", "at": [416, 190], "cite": ["TOWN-521"]}
+       ],
+       "cite": ["TOWN-520", "TEXT-074", "DIV-1495"]},
+      {"sex": 1, "class": 0, "mask": 100, "name-line": 21, "tooltip": 252,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/heroes/ffon.bmp", "at": [124, 166], "cite": ["TOWN-521"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/ffl.bmp", "at": [124, 166], "cite": ["TOWN-521"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/fflon.bmp", "at": [124, 166], "cite": ["TOWN-521"]}
+       ],
+       "cite": ["TOWN-520", "TEXT-074", "DIV-1495"]},
+      {"sex": 1, "class": 1, "mask": 120, "name-line": 23, "tooltip": 253,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/heroes/fmon.bmp", "at": [288, 130], "cite": ["TOWN-521"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/fml.bmp", "at": [288, 130], "cite": ["TOWN-521"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/fmlon.bmp", "at": [288, 130], "cite": ["TOWN-521"]}
+       ],
+       "cite": ["TOWN-520", "TEXT-074", "DIV-1495"]}
+    ],
+    "hero-order": [0, 2, 3, 1],
+    "hero-sound": "chrgen/char.wav",
+    "levels": [
+      {"mask": 20, "sound": "chrgen/level1.wav", "tooltip": 247,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/levels/level0on.bmp", "at": [60, 196], "size": [60, 74], "cite": ["TOWN-521", "DIV-532"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level0l.bmp", "at": [60, 196], "size": [60, 74], "cite": ["TOWN-521", "DIV-532"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level0lon.bmp", "at": [60, 196], "size": [60, 74], "cite": ["TOWN-521", "DIV-532"]}
+       ],
+       "cite": ["TOWN-520", "VIDEO-SFX-058"]},
+      {"mask": 40, "sound": "chrgen/level2.wav", "tooltip": 248,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/levels/level1on.bmp", "at": [0, 110], "size": [76, 112], "cite": ["TOWN-521", "DIV-532"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level1l.bmp", "at": [0, 110], "size": [76, 112], "cite": ["TOWN-521", "DIV-532"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level1lon.bmp", "at": [0, 110], "size": [76, 112], "cite": ["TOWN-521", "DIV-532"]}
+       ],
+       "cite": ["TOWN-520", "VIDEO-SFX-058"]},
+      {"mask": 60, "sound": "chrgen/level3.wav", "tooltip": 249,
+       "art": [
+         {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/levels/level2on.bmp", "at": [48, 65], "size": [100, 152], "cite": ["TOWN-521", "DIV-532"]},
+         {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level2l.bmp", "at": [48, 65], "size": [100, 152], "cite": ["TOWN-521", "DIV-532"]},
+         {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level2lon.bmp", "at": [48, 65], "size": [100, 152], "cite": ["TOWN-521", "DIV-532"]}
+       ],
+       "cite": ["TOWN-520", "VIDEO-SFX-058"]}
+    ],
+    "back": {"mask": 160, "region": [536, 133, 640, 328], "sound": "chrgen/ok.wav", "tooltip": 255,
+             "art": {"key": "graphics/interface/chrgen/precreate/amulet.bmp", "size": [112, 204], "at": [528, 140], "cite": ["TOWN-216"]},
+             "cite": ["TOWN-520", "VIDEO-SFX-058"]},
+    "forward": {"mask": 180, "region": [463, 354, 580, 451], "sound": "chrgen/ok.wav", "tooltip": 254,
+                "art": {"key": "graphics/interface/chrgen/precreate/buttonok.bmp", "size": [100, 56], "at": [468, 373], "cite": ["TOWN-216"]},
+                "cite": ["TOWN-520", "VIDEO-SFX-058"]},
+    "sparkle": {"key": "graphics/interface/chrgen/precreate/blind/sprites.16a", "step-ms": 63, "clamp-ms": 100, "gap-steps": 20,
+                "tour": [[80, 74], [104, 144], [336, 163], [174, 191], [74, 310], [466, 225], [622, 178], [290, 365]],
+                "cite": ["TOWN-223", "DIV-1276"]},
+    "focus": ["name", "hero/0", "hero/1", "hero/2", "hero/3", "back", "forward", "level/0", "level/1", "level/2"],
+    "keys": {"enter": "focused", "escape": "leave", "escape-sound": "chrgen/ok.wav", "typing": "focused", "focus-keys": true,
+             "double-click-forward": true, "double-click-ms": 500, "cite": ["VIDEO-SFX-058", "DIV-1493", "DIV-1507"]},
+    "cite": ["TOWN-520", "TOWN-523"]
+  },
+  "detail": {
+    "cursor": "default",
+    "plate": {"key": "main/graphics/chrgen/leftup.bmp", "size": [160, 238], "rect": [0, 0, 160, 238], "cite": ["TOWN-232", "DIV-190"]},
+    "plate-seam": {"key": "graphics/interface/chrgen/rollstatsr.bmp", "size": [16, 238], "rect": [160, 0, 176, 238], "keyed": true, "cite": ["TOWN-234", "TOWN-312"]},
+    "nav": {"key": "graphics/interface/inn/buttonsarea.bmp", "size": [160, 238], "rect": [480, 0, 640, 238], "cite": ["MENU-139"]},
+    "nav-seam": {"key": "graphics/interface/inn/ruover.bmp", "size": [16, 238], "rect": [464, 0, 480, 238], "keyed": true, "cite": ["DIV-166", "DIV-168"]},
+    "nav-frame": {"fill": [16, 18, 24], "edge": [138, 116, 70], "cite": ["DIV-115"]},
+    "card": {"key": "graphics/interface/chrgen/fullstatsl.bmp", "size": [160, 242], "rect": [0, 238, 160, 480], "cite": ["TOWN-232", "DIV-190"]},
+    "card-seam": {"key": "graphics/interface/chrgen/fullstatsr.bmp", "size": [16, 242], "rect": [160, 238, 176, 480], "keyed": true, "cite": ["TOWN-234", "TOWN-312"]},
+    "doll": {"key": "graphics/interface/humanbackr.bmp", "size": [160, 242], "rect": [480, 238, 640, 480], "cite": ["DIV-115", "DIV-190"]},
+    "doll-seam": {"key": "graphics/interface/humanbackl.bmp", "size": [16, 242], "rect": [464, 238, 480, 480], "keyed": true, "cite": ["DIV-168"]},
+    "column-rect": [160, 0, 480, 480],
+    "skill-clip": [160, 0, 464, 480],
+    "classes": [
+      {"column": {"key": "graphics/interface/chrgen/fighter/column.bmp", "size": [320, 480], "cite": ["TOWN-234", "DIV-190"]},
+       "mask": {"key": "graphics/interface/chrgen/fighter/mask.bmp", "size": [320, 480], "cite": ["TOWN-234"]},
+       "skills": [
+         {"dir": "graphics/interface/chrgen/fighter/sword/", "mask": 255, "at": [88, 93], "sound": "chrgen/skill/fsword.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/fighter/axe/", "mask": 191, "at": [92, 126], "sound": "chrgen/skill/faxe.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/fighter/mace/", "mask": 152, "at": [88, 182], "sound": "chrgen/skill/fclub.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/fighter/pike/", "mask": 127, "at": [84, 225], "sound": "chrgen/skill/fpike.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/fighter/bow/", "mask": 102, "at": [88, 250], "sound": "chrgen/skill/fbow.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]}
+       ],
+       "selectable": 5, "tooltip": 171, "cite": ["TOWN-522", "TEXT-082"]},
+      {"column": {"key": "graphics/interface/chrgen/mag/column.bmp", "size": [320, 480], "cite": ["TOWN-234", "DIV-190"]},
+       "mask": {"key": "graphics/interface/chrgen/mag/mask.bmp", "size": [320, 480], "cite": ["TOWN-234"]},
+       "skills": [
+         {"dir": "graphics/interface/chrgen/mag/fire/", "mask": 127, "at": [200, 150], "sound": "chrgen/skill/mfire.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/mag/water/", "mask": 102, "at": [72, 165], "sound": "chrgen/skill/mwater.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/mag/air/", "mask": 255, "at": [132, 98], "sound": "chrgen/skill/mair.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/mag/earth/", "mask": 152, "at": [140, 228], "sound": "chrgen/skill/mearth.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
+         {"dir": "graphics/interface/chrgen/mag/astral/", "mask": 191, "at": [136, 158], "sound": "chrgen/skill/mastral.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]}
+       ],
+       "selectable": 5, "tooltip": 176, "cite": ["TOWN-522", "TEXT-082"]}
+    ],
+    "skill-states": {"selected-at-rest": "on.bmp", "hover": "shine_off.bmp", "selected": "shine_on.bmp", "cite": ["TOWN-522"]},
+    "stats": {
+      "value": [[82, 54, 102, 74], [82, 86, 102, 106], [82, 118, 102, 138], [82, 150, 102, 170]],
+      "plus": [[107, 54, 127, 74], [107, 86, 127, 106], [107, 118, 127, 138], [107, 150, 127, 170]],
+      "minus": [[132, 54, 152, 74], [132, 86, 152, 106], [132, 118, 152, 138], [132, 150, 152, 170]],
+      "label-left": 8,
+      "pool": [46, 181, 123, 203],
+      "value-ink": [255, 255, 255],
+      "pool-ink": [255, 230, 150],
+      "button-size": [20, 20],
+      "button-dir": "graphics/interface/chrgen/buttons/",
+      "minus-art": {"rest": "mnloff.bmp", "hover": "mloff.bmp", "down": "mlon.bmp", "unused": "mnlon.bmp", "disabled": "mdisable.bmp", "cite": ["MENU-138"]},
+      "plus-art": {"rest": "pnloff.bmp", "hover": "ploff.bmp", "down": "plon.bmp", "unused": "pnlon.bmp", "disabled": "pdisable.bmp", "cite": ["MENU-138"]},
+      "sound": "chrgen/+_-.wav",
+      "label-tooltip": 155, "pool-tooltip": 273, "value-label": 15,
+      "floor": 15, "ceiling": 45, "start": 25, "budget": 140,
+      "cost": {"factor": 0.349, "base": 1.15, "round": 0.5, "cite": ["HERO-COST-002"]},
+      "cite": ["MENU-138", "HERO-BUY-003", "TEXT-082", "TOWN-469", "VIDEO-SFX-059"]
+    },
+    "commands": [
+      {"role": "play", "slot": 238, "rect": [484, 44, 624, 90], "off": "graphics/interface/inn/button1off.bmp", "on": "graphics/interface/inn/button1on.bmp", "size": [140, 46], "cite": ["MENU-139"]},
+      {"role": "reset", "slot": 239, "rect": [484, 91, 624, 137], "off": "graphics/interface/inn/button2off.bmp", "on": "graphics/interface/inn/button2on.bmp", "size": [140, 46], "cite": ["MENU-139"]},
+      {"role": "back", "slot": 260, "rect": [484, 138, 624, 184], "off": "graphics/interface/inn/button3off.bmp", "on": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "cite": ["MENU-139"]}
+    ],
+    "command-ink": [255, 230, 150],
+    "message": [484, 462, 636, 476],
+    "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-115"]},
+    "focus": ["skill/0", "skill/1", "skill/2", "skill/3", "skill/4", "minus/0", "plus/0", "minus/1", "plus/1", "minus/2", "plus/2", "minus/3", "plus/3", "back", "reset", "play"],
+    "keys": {"enter": "focused", "escape": "back", "typing": "focused", "focus-keys": true, "double-click-ms": 500, "cite": ["DIV-1493"]},
+    "repeat": {"delay-ticks": 10, "interval-ticks": 4, "cite": ["VIDEO-SFX-059", "DIV-1493"]},
+    "reset": [{"language": "", "values": "template", "skill": "keep", "cite": ["DIV-1277"]}],
+    "refusals": {"empty-slot": 193, "reserved-slot": 194, "reserved": ["self", "computer"], "cite": ["DIV-116"]},
+    "cite": ["TOWN-232", "TOWN-523", "DIV-2717"]
+  },
+  "tips": {
+    "pre-create-rect": [232, 0, 640, 136],
+    "detail-rect": [160, 280, 472, 480],
+    "select": [
+      {"file": "main/text/tips/chrsel1.txt", "cite": ["TOWN-518"]},
+      {"file": "main/text/tips/chrsel2.txt", "cite": ["TOWN-518"]},
+      {"file": "main/text/tips/chrsel3.txt", "cite": ["TOWN-518"]}
+    ],
+    "fighter": {"file": "main/text/tips/chrgen1f.txt", "cite": ["TOWN-187", "TOWN-522"]},
+    "mage": {"file": "main/text/tips/chrgen1m.txt", "cite": ["TOWN-187", "TOWN-522"]},
+    "after": {"file": "main/text/tips/chrgen2.txt", "cite": ["TOWN-187", "TOWN-522"]},
+    "pre-create-cycle": [[80, 100, 120, 140], [20, 40, 60], [160, 180]],
+    "hover-wait-ms": 500, "step-gap-ms": 300,
+    "cite": ["MENU-137", "TOWN-518", "TOWN-519", "TOWN-520", "TOWN-522", "DIV-2714"]
+  }
+}
