@@ -162,7 +162,7 @@
     "keys": {"enter": "focused", "escape": "back", "typing": "focused", "focus-keys": true, "double-click-ms": 500, "cite": ["DIV-1493"]},
     "repeat": {"delay-ticks": 10, "interval-ticks": 4, "cite": ["VIDEO-SFX-059", "DIV-1493"]},
     "reset": [{"language": "", "values": "start", "skill": "keep", "cite": ["MENU-139", "HERO-CHARGEN-082", "DIV-1277"]}],
-    "restore": [{"language": "", "values": "template", "skill": "keep", "cite": ["DIV-2868"]}],
+    "restore": [{"language": "", "values": "template", "skill": "preset", "cite": ["DIV-2868"]}],
     "refusals": {"empty-slot": 193, "reserved-slot": 194, "reserved": ["self", "computer"], "cite": ["DIV-116"]},
     "cite": ["TOWN-232", "TOWN-523", "DIV-2717"]
   },

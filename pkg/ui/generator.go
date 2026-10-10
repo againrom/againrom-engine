@@ -575,7 +575,7 @@ func (d *GeneratorDescription) validate() error {
 		return fmt.Errorf("%d restore rules for %d commands", len(t.Restore), len(t.Commands))
 	}
 	for _, r := range append(append([]GeneratorReset(nil), t.Reset...), t.Restore...) {
-		if !oneOf(r.Values, "template", "start") || !oneOf(r.Skill, "keep", "default") {
+		if !oneOf(r.Values, "template", "start") || !oneOf(r.Skill, "keep", "default", "preset") {
 			return fmt.Errorf("reset %q/%q", r.Values, r.Skill)
 		}
 	}

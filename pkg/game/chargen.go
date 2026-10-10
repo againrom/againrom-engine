@@ -138,10 +138,10 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		SetTipsOn:     func(on bool) { f.SetTipsOff(!on) },
 
 		ResetStart: reset.Values == "start",
-		ResetSkill: reset.Skill == "default",
+		ResetSkill: reset.Skill,
 
 		RestoreStart: restore.Values == "start",
-		RestoreSkill: restore.Skill == "default",
+		RestoreSkill: restore.Skill,
 	}
 	if s := l.PreCreate.Sparkle; s != nil && len(s.Within) > 0 {
 		setup.Draws = f.randomService().Stream(random.Generator)

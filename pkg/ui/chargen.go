@@ -112,11 +112,14 @@ type ChargenSetup struct {
 	SetTipsOn func(bool)
 
 	// ResetStart makes Reset restore every statistic's Start rather than the
-	// chosen picture's preset, and ResetSkill makes it restore the skill row's
-	// Start as well. Both false keep the preset and the chosen skill.
-	ResetStart, ResetSkill bool
+	// chosen picture's preset. ResetSkill is "keep" (the chosen skill, also
+	// the empty value), "default" (the skill row's Start) or "preset" (the
+	// chosen picture's starting skill).
+	ResetStart bool
+	ResetSkill string
 	// RestoreStart and RestoreSkill are the same two choices for Restore.
-	RestoreStart, RestoreSkill bool
+	RestoreStart bool
+	RestoreSkill string
 
 	// Draws is the presentation stream a randomly placed sparkle reads; nil
 	// draws zero.
@@ -488,8 +491,9 @@ func (c *Chargen) Restore() {
 }
 
 // returnTo rebuilds the detailed draft: every statistic's Start or the chosen
-// picture's preset, and the kept skill or the skill row's Start.
-func (c *Chargen) returnTo(start, skill bool) {
+// picture's preset, and the kept skill, the skill row's Start ("default") or the chosen
+// picture's starting skill ("preset").
+func (c *Chargen) returnTo(start bool, skill string) {
 	if c == nil || c.stage != DetailedStage {
 		return
 	}
@@ -498,8 +502,18 @@ func (c *Chargen) returnTo(start, skill bool) {
 	} else {
 		c.resetStats()
 	}
-	if skill && len(c.choiceIndex) > 2 {
-		c.choiceIndex[2] = c.startIndex(2)
+	if len(c.choiceIndex) > 2 {
+		switch skill {
+		case "default":
+			c.choiceIndex[2] = c.startIndex(2)
+		case "preset":
+			c.choiceIndex[2] = c.startIndex(2)
+			if c.preChoice >= 0 && c.preChoice < len(c.setup.PresetSkills) {
+				if s := c.setup.PresetSkills[c.preChoice] - 1; s >= 0 && s < len(c.choiceOptions(2)) {
+					c.choiceIndex[2] = s
+				}
+			}
+		}
 	}
 	c.rebuildPreview()
 }

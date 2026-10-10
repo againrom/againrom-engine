@@ -156,7 +156,11 @@ func TestReleaseChargenResetIsTheOriginalsAndRestoreReturnsThePreset(t *testing.
 		}
 		presetStats := append([]int(nil), preset.Stats...)
 		presetPool := c.Remaining()
-		skill := (preset.Choices[2] + 1) % 5
+		startSkill := preset.Choices[2]
+		if startSkill != setup.PresetSkills[i]-1 {
+			t.Fatalf("hero %d: opens with skill %d, PresetSkills says %d", i, startSkill, setup.PresetSkills[i]-1)
+		}
+		skill := (startSkill + 1) % 5
 		c.SelectSkill(skill)
 
 		c.Reset()
@@ -166,21 +170,23 @@ func TestReleaseChargenResetIsTheOriginalsAndRestoreReturnsThePreset(t *testing.
 		}
 		c.Restore()
 		r, _ = c.Result()
-		if !slices.Equal(r.Stats, presetStats) || c.Remaining() != presetPool || r.Choices[2] != skill {
-			t.Errorf("hero %d: Restore after Reset gave %v, pool %d; want %v, pool %d", i, r.Stats, c.Remaining(), presetStats, presetPool)
+		if !slices.Equal(r.Stats, presetStats) || c.Remaining() != presetPool || r.Choices[2] != startSkill {
+			t.Errorf("hero %d: Restore after Reset gave %v, pool %d, skill %d; want %v, pool %d, skill %d", i, r.Stats, c.Remaining(), r.Choices[2], presetStats, presetPool, startSkill)
 		}
+		c.SelectSkill(skill)
 		c.AdjustStat(0, -1)
 		c.AdjustStat(1, -1)
 		c.Restore()
 		r, _ = c.Result()
-		if !slices.Equal(r.Stats, presetStats) || c.Remaining() != presetPool {
-			t.Errorf("hero %d: Restore after a spend gave %v, pool %d; want %v, pool %d", i, r.Stats, c.Remaining(), presetStats, presetPool)
+		if !slices.Equal(r.Stats, presetStats) || c.Remaining() != presetPool || r.Choices[2] != startSkill {
+			t.Errorf("hero %d: Restore after a spend gave %v, pool %d, skill %d; want %v, pool %d, skill %d", i, r.Stats, c.Remaining(), r.Choices[2], presetStats, presetPool, startSkill)
 		}
+		c.SelectSkill(skill)
 		c.AdjustStat(0, 1)
 		c.Reset()
 		r, _ = c.Result()
-		if want := []int{25, 25, 25, 25}; !slices.Equal(r.Stats, want) || c.Remaining() != 100 {
-			t.Errorf("hero %d: Reset after a spend gave %v, pool %d", i, r.Stats, c.Remaining())
+		if want := []int{25, 25, 25, 25}; !slices.Equal(r.Stats, want) || c.Remaining() != 100 || r.Choices[2] != skill {
+			t.Errorf("hero %d: Reset after a spend gave %v, pool %d, skill %d; want skill %d kept", i, r.Stats, c.Remaining(), r.Choices[2], skill)
 		}
 	}
 }
