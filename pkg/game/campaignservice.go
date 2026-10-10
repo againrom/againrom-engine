@@ -74,6 +74,11 @@ type campaignService interface {
 	generatorSetup(f *FrontEnd, setup *ui.ChargenSetup)
 	generatorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember
 	generatorBegin(f *FrontEnd, mission int) func(ui.ChargenResult) (ui.MapOpener, error)
+
+	// The chat command adapter, and whether a mission opened from town runs
+	// in the campaign that adapter admits commands in.
+	chat() *chatAdapter
+	chatCampaign(town *Town) bool
 }
 
 // campaignOf is the campaign service of game g. It is the one place a service

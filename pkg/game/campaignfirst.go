@@ -122,3 +122,8 @@ func (firstCampaignRules) generatorParty(f *FrontEnd, res ui.ChargenResult) []ma
 func (firstCampaignRules) generatorBegin(f *FrontEnd, mission int) func(ui.ChargenResult) (ui.MapOpener, error) {
 	return func(res ui.ChargenResult) (ui.MapOpener, error) { return f.NewGameOpener(mission, res), nil }
 }
+
+func (firstCampaignRules) chat() *chatAdapter { return &firstChat }
+
+// chatCampaign: the first game's adapter has no campaign rule.
+func (firstCampaignRules) chatCampaign(*Town) bool { return false }

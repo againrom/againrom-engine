@@ -18,7 +18,8 @@ R2-ENGINE-289 (tips, cycles, cursors), R2-ENGINE-290 (producer),
 R2-ENGINE-274 (tips panel), R2-ASSET-075 and R2-ASSET-076 (art, templates),
 R2-SESSION-077 (town 1) and R2-SESSION-131 (slots 776 and 781, gold 1000).
 Where they are silent the description states a stand-in and a divergence row
-names it: DIV-2768 to DIV-2773.
+names it: DIV-2768 to DIV-2773 in
+`docs/divergences/rom2-character-generator.md`.
 
 ## One builder
 

@@ -82,8 +82,11 @@ func (c *secondCampaign) canEnter(n int) bool {
 	return c.current == (secondLocation{}) && c.has(secondLocation{kind: 1, id: n})
 }
 
-func (c *secondCampaign) finish(n int, w *sim.World) error {
-	if !secondContinues(n) || c.current != (secondLocation{kind: 1, id: n}) || !c.has(c.current) || w == nil || w.Outcome() != sim.OutcomeWon {
+// finish admits the ordinary completion of mission n. won is the front end's
+// one win predicate: the script outcome or the announced client outcome, which
+// the victory command reaches through the same completion (R2-ENGINE-303).
+func (c *secondCampaign) finish(n int, w *sim.World, won bool) error {
+	if !secondContinues(n) || c.current != (secondLocation{kind: 1, id: n}) || !c.has(c.current) || w == nil || !won {
 		return fmt.Errorf("campaign continuation after mission %d is unavailable", n)
 	}
 	bank, ok := w.ROM2ScenarioState()

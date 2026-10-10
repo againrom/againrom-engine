@@ -93,6 +93,12 @@ func (t frontTransitions) clientWon(n int, ms *Mission) bool {
 		live.mission.number == n && live.mission.outcome == sim.OutcomeWon
 }
 
+// won is the one win predicate of a mission's completion: the world's script
+// outcome, or the client outcome clientWon accepts.
+func (t frontTransitions) won(n int, ms *Mission) bool {
+	return ms.World != nil && ms.World.Outcome() == sim.OutcomeWon || t.clientWon(n, ms)
+}
+
 func (t frontTransitions) beforeAdvance(n int, ms *Mission, action ui.NoticeAction) string {
 	return t.f.campaign().beforeAdvance(t.f, n, ms, action)
 }

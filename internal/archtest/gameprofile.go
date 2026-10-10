@@ -49,7 +49,7 @@ var ProfileAllowed = map[string]string{
 
 // ProfileDebt is the findings not yet moved, per file. A count may only
 // fall; a file whose count reaches zero leaves the map in the same commit.
-// The edition flags (the Second* layouts, Cheats, FreshPlayers,
+// The edition flags (the Second* layouts, FreshPlayers,
 // NewGameInTown, TownDifficulty, StartupCutscenes) each pick one of two code
 // bodies at the site, and pkg/mapload reaches them through Table.Game. The
 // EventAudience.SecondGame flag, the save's game checks (SameGame, Known), the
@@ -59,7 +59,6 @@ var ProfileAllowed = map[string]string{
 var ProfileDebt = map[string]int{
 	"cmd/terraintool/main.go":           1,
 	"pkg/game/base.go":                  1,
-	"pkg/game/cheats.go":                2,
 	"pkg/game/companionreport.go":       1,
 	"pkg/game/currentsave.go":           1,
 	"pkg/game/currentscriptbindings.go": 1,
@@ -77,7 +76,7 @@ var ProfileDebt = map[string]int{
 	"pkg/game/secondcompletion.go":      1,
 	"pkg/game/secondgametext.go":        1,
 	"pkg/game/table.go":                 1,
-	"pkg/mapload/cheatfactory.go":       2,
+	"pkg/mapload/cheatfactory.go":       1,
 	"pkg/mapload/currentplayers.go":     1,
 	"pkg/mapload/spawn.go":              1,
 	"pkg/mapload/spell.go":              1,

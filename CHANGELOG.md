@@ -8,11 +8,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The second game's chat cheats work in campaign missions: type the
+  second game's unlock line, then `#create`, `#modify`, `#summon`, the kill
+  commands, `#pickup all`, `#show map`, `#hide map`, `#victory` and `#event`,
+  with the original's replies. Alt+D, Alt+T and Alt+Q toggle tracing and safe
+  mode. The starter's cheat checkbox and `-chicken` unlock every campaign
+  mission start and every load into a mission.
 - [BASE] An overloaded hero now moves and turns as in the original: the
   overload slows his own speed first, to no less than 6, and a speed bonus or
   penalty is added after it. His character card shows that speed for every
   overloaded hero, and it is kept through a save.
-
 - [ROM2] New Game opens the character generator: pick one of the four heroes,
   the difficulty and a name, then set the four attributes and the skill on the
   second page. Accept starts the campaign in the first town with that hero,
