@@ -105,3 +105,31 @@ func TestModBodyShieldForm(t *testing.T) {
 		t.Fatalf("WeaponRows = %v", rows)
 	}
 }
+
+// A save records the shipped body for a hero a choice drew, from the drawn name
+// and the class key alone, and every other name as it is.
+func TestSavedBodyIsTheShippedEntryAChoiceReplaced(t *testing.T) {
+	l := choiceList.WithWeaponBody(2, "hammer").WithModBody("hammer", data.ModBody{}).WithWeaponBody(3, data.BodyClubman)
+	for _, shield := range []bool{false, true} {
+		for row := 0; row <= 5; row++ {
+			e := wielding(row, shield)
+			drawn, _, class, ok := data.HeroAppearance(l, e, false, false)
+			plain, _, plainClass, _ := data.HeroAppearance(choiceList, e, false, false)
+			if !ok {
+				continue
+			}
+			if class != plainClass {
+				t.Fatalf("row %d shield %v: class %d, want %d", row, shield, class, plainClass)
+			}
+			if got := l.SavedBody(drawn, class); got != plain {
+				t.Errorf("row %d shield %v: drawn %q saves as %q, want %q", row, shield, drawn, got, plain)
+			}
+		}
+	}
+	if got := choiceList.SavedBody("anything", 9); got != "anything" {
+		t.Fatalf("a list with no choice saved %q", got)
+	}
+	if got := l.SavedBody(data.BodyClubman, 10); got != data.BodyClubman {
+		t.Fatalf("a mace hero's own body saved as %q", got)
+	}
+}

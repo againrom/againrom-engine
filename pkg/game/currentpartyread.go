@@ -126,7 +126,7 @@ func stripCurrentPartyValues(a *currentActionData, w *sim.World, tables ...*mapl
 				return fmt.Errorf("current party actor %d has no current equipment", p.Entity)
 			}
 			p.Weapon = captureNamedPartyWeapon(member, equipment[0])
-			p.Policy = capturePartyPolicy(member, *p.ordinary)
+			p.Policy = capturePartyPolicy(member, *p.ordinary, table)
 			if e.Book.State != sim.BookLegacy {
 				p.Policy.LegacySpellbookPresent = false
 			}

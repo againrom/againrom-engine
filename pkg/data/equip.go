@@ -186,6 +186,35 @@ func (l BodyList) ModBodyOf(b HeroBody) (ModBody, bool) {
 	return m, ok
 }
 
+// SavedBody is the body name a save records for a hero drawn as drawn whose
+// class key is class. When a mod's choice drew him, it is the shipped entry
+// that choice replaced, composed as the class key was, so a save written
+// under the choice holds the bytes the game without it writes (DIV-2912).
+// Any other name stands, and a list with no choice returns every name as is.
+func (l BodyList) SavedBody(drawn HeroBody, class int32) HeroBody {
+	if len(l.weapon) == 0 {
+		return drawn
+	}
+	if c, ok := HeroBodyClass(drawn); ok && c == class {
+		return drawn
+	}
+	base := HeroBody(strings.TrimSuffix(string(drawn), string(HeroShieldSuffix)))
+	for _, row := range l.WeaponRows() {
+		if b := l.weapon[row]; b != drawn && b != base {
+			continue
+		}
+		for _, shield := range []bool{false, true} {
+			for _, mage := range []bool{false, true} {
+				name := HeroBodyName(l.Entry(row-1), shield, mage, false)
+				if c, _ := HeroBodyClass(name); c == class {
+					return name
+				}
+			}
+		}
+	}
+	return drawn
+}
+
 // ModBodies lists the bodies mods supply, ascending.
 func (l BodyList) ModBodies() []HeroBody {
 	out := make([]HeroBody, 0, len(l.mod))

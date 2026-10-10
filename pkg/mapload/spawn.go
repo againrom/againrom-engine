@@ -1132,6 +1132,9 @@ type ModContext struct {
 	// Companions are the join conditions the mods declare.
 	Companions mod.CompanionData
 	Spells     mod.SpellData
+	// Bodies is the body list carrying the mods' weapon bodies, the list a
+	// save projects a drawn body name through (data.BodyList.SavedBody).
+	Bodies data.BodyList
 }
 
 // ModItem is an item a mod added, in the form the save writer and the shop

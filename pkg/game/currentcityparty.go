@@ -62,7 +62,7 @@ func projectCurrentCityParty(doc *sav.DocumentData, party []mapload.PartyMember,
 func captureOrdinaryPartyMember(id sim.EntityID, member mapload.PartyMember, c sav.DocumentCharacter, table *mapload.Table) (currentPartyMember, error) {
 	p := captureCurrentParty(id, member)
 	p.ordinary = &c
-	p.Policy = capturePartyPolicy(member, c)
+	p.Policy = capturePartyPolicy(member, c, table)
 	p.City = &currentCityPartyPolicy{ClassWire: c.Character.Basis.Human.TypeID, Class: member.Class,
 		SuppressCorpseLoot: member.SuppressCorpseLoot, BookMode: uint8(member.Book.State),
 		ExtraSpells: member.KnownSpells & ^uint32(0x1ffffffe), Potion: member.PotionEffect}

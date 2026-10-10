@@ -46,6 +46,7 @@ func (f *FrontEnd) SetModBodies(bodies mod.BodyData) error {
 	choice := encodeBodyChoice(list)
 	fs.Overlay(ModBodyChoiceAddress, func() ([]byte, error) { return append([]byte(nil), choice...), nil })
 	f.Bodies = list
+	f.Table.Mods.Bodies = list
 
 	units := cloneCandidateUnits(f.Units)
 	if units.Bodies == nil {

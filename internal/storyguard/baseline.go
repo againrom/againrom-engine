@@ -2113,7 +2113,8 @@ package storyguard
 // and mod data and the event tag readers, new code, including this paragraph.
 // CommentBytes rises for the mods' hero bodies: the docs of the body list's
 // mod choices, pkg/mod/bodies.go, pkg/game/modbodies.go, the one hero body
-// builder and their tests, new code, including this paragraph.
+// builder, the saved body name and their unit and release tests, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2137,5 +2138,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1747,
 	},
-	CommentBytes: 8663173,
+	CommentBytes: 8666574,
 }
