@@ -145,19 +145,6 @@ func (r secondCampaignRules) selectedMarkers(f *FrontEnd, src *originalSource) (
 	return nil, nil
 }
 
-func (secondCampaignRules) checkTownLoad(f *FrontEnd, src *originalSource) error {
-	if src.campaign.town.second != nil {
-		// R2-ENGINE-073 names the record; the refusal is DIV-2800.
-		if payload, err := readSecondTownTalk(&f.InstallResources, "npc517talk10"); err != nil || payload == nil {
-			if err == nil {
-				err = fmt.Errorf("initial inn conversation is unavailable")
-			}
-			return err
-		}
-	}
-	return nil
-}
-
 func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 	if c.town.second == nil {
 		r.firstCampaignRules.arriveLoaded(f, c)

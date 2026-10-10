@@ -74,8 +74,6 @@ func (firstCampaignRules) selectedMarkers(f *FrontEnd, src *originalSource) (map
 	return worldSelectedOnceFromSnapshot(worldMapMarkerMissions(src.campaign.town, coldWorldMapData(f.worldMapCache, f.Archives)))
 }
 
-func (firstCampaignRules) checkTownLoad(*FrontEnd, *originalSource) error { return nil }
-
 func (firstCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 	f.arriveInTown()
 	f.restoreWorldMapReturn(c)
