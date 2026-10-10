@@ -357,3 +357,20 @@ func TestHeroAppearanceIsTotalAndTheClassMatchesTheName(t *testing.T) {
 		}
 	}
 }
+
+func TestHeroAppearanceChosenShippedBodyWithoutAShieldForm(t *testing.T) {
+	var e data.Equipment
+	e.SetCode(1, itemCode(0, 0, 0, 2))
+	e.SetCode(2, itemCode(0, 0, 0, 1))
+	l := data.NewBodyList("unarmed", "swordsman", "archer").WithWeaponBody(2, "archer").WithoutShieldForm("archer")
+	name, _, class, ok := data.HeroAppearance(l, e, false, false)
+	if !ok || name != "archer" {
+		t.Errorf("name = %q, ok=%v; want the base form \"archer\"", name, ok)
+	}
+	if want, _ := data.HeroBodyClass("swordsman_"); class != want {
+		t.Errorf("class key %d, want the shipped entry's %d", class, want)
+	}
+	if name, _, _, _ := data.HeroAppearance(data.NewBodyList("unarmed", "swordsman", "archer"), e, false, false); name != "swordsman_" {
+		t.Errorf("without the choice name = %q, want swordsman_", name)
+	}
+}

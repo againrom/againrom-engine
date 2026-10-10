@@ -258,15 +258,19 @@ func HeroBodyKey(dir string, b HeroBody) string {
 //
 // The name is the drawn body, a mod's choice for the weapon row included;
 // the class key is always the shipped entry's (DIV-2912), so a mod changes
-// the picture and no entity, sound or save field. A body a mod supplies takes
-// the shield suffix only when the mod supplies that form too.
+// the picture and no entity, sound or save field. A chosen body, supplied or
+// shipped, takes the shield suffix only when its form exists.
 func HeroAppearance(l BodyList, e Equipment, mage, dying bool) (HeroBody, string, int32, bool) {
 	base, nameOK := HeroBodyFor(l, e)
 	shipped, _ := shippedBodyFor(l, e)
 	shield, _ := e.Occupied(2) // slot 2 always exists; see HeroArmourFacts.
 	name := HeroBodyName(base, shield, mage, dying)
-	if _, modded := l.ModBodyOf(base); modded && shield && !dying {
-		if _, both := l.ModBodyOf(name); !both {
+	if shield && !dying {
+		if _, modded := l.ModBodyOf(base); modded {
+			if _, both := l.ModBodyOf(name); !both {
+				name = base
+			}
+		} else if l.LacksShieldForm(base) {
 			name = base
 		}
 	}

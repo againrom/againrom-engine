@@ -116,6 +116,7 @@ type BodyList struct {
 	names  []HeroBody
 	weapon map[int]HeroBody
 	mod    map[HeroBody]ModBody
+	bare   map[HeroBody]bool
 }
 
 // ModBody is what a mod states about a body it supplies a sheet for, beyond
@@ -161,6 +162,31 @@ func (l BodyList) WithModBody(b HeroBody, m ModBody) BodyList {
 		out.mod[k] = v
 	}
 	out.mod[b] = m
+	return out
+}
+
+// WithoutShieldForm is l knowing that the install ships no shield form of the
+// shipped body b, so a hero with a shield drawn as b takes b itself.
+func (l BodyList) WithoutShieldForm(b HeroBody) BodyList {
+	out := l
+	out.bare = make(map[HeroBody]bool, len(l.bare)+1)
+	for k, v := range l.bare {
+		out.bare[k] = v
+	}
+	out.bare[b] = true
+	return out
+}
+
+// LacksShieldForm reports whether b is a chosen shipped body with no shield form.
+func (l BodyList) LacksShieldForm(b HeroBody) bool { return l.bare[b] }
+
+// ShieldlessBodies lists the chosen shipped bodies with no shield form, ascending.
+func (l BodyList) ShieldlessBodies() []HeroBody {
+	out := make([]HeroBody, 0, len(l.bare))
+	for b := range l.bare {
+		out = append(out, b)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
 	return out
 }
 

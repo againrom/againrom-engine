@@ -276,7 +276,7 @@ func ParseBodies(id, file string, data []byte) ([]BodySheet, error) {
 				return nil, bad(t.line, "[[body]] has no %s", need)
 			}
 		}
-		if b.OriginX > b.Width || b.OriginY > b.Height {
+		if b.OriginX >= b.Width || b.OriginY >= b.Height {
 			return nil, bad(b.OriginLine, "origin (%d, %d) is outside the %dx%d frame", b.OriginX, b.OriginY, b.Width, b.Height)
 		}
 		if b.HasSelection {

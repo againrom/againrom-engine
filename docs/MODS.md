@@ -26,9 +26,9 @@ with another body.
 | `body` | a body the install ships under both `heroes` and `heroes_l`, or a body a loaded mod supplies |
 
 A table gives `weapon`, `row` or both; both must name the same row. `body`
-names the base body. A hero with a shield takes the `_` form of a shipped body,
-as without the mod; a supplied body's `_` form is used when a mod supplies it,
-else the body itself. A row the shipped body list leaves blank, two choices for one
+names the base body. A hero with a shield takes the `_` form of a chosen body when a `_` sheet
+exists (under both directories for a shipped body, supplied by the mod for a
+supplied one), else the body itself. A row the shipped body list leaves blank, two choices for one
 row, and an unknown weapon, row or body are refused.
 
 The choice changes the picture only: the sheet, its geometry and the order the
@@ -53,7 +53,7 @@ directories, one PNG per directory.
 | `name` | the body's name, 1 to 32 of `a-z`, `0-9` and `_`, starting with a letter; a name the install ships is refused |
 | `heroes`, `heroes_l` | the PNG paths inside the mod folder, for the plain and the light armour directory |
 | `frame` | `[width, height]` of one frame, each 1 to 512 pixels |
-| `origin` | `[x, y]` of the pixel that stands on the ground point, inside the frame |
+| `origin` | `[x, y]` of the pixel that stands on the ground point, inside the frame (`x` below its width, `y` below its height) |
 | `directions` | `8`, or `5` with directions 5 to 7 drawn mirrored |
 | `move`, `attack` | `{ frames = n, ticks = t }`: 1 to 64 frames; `ticks` is one count for every frame or an array of one count per frame, each 1 to 255 |
 | `idle` | optional, as `move`, with 0 to 64 frames |

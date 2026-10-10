@@ -51,7 +51,7 @@ games lists `rom1`, `rom2-en` and `rom2-ru`.
 | doll and map figure paint order (`FigureHeldLast`, `FigureDrawSteps`; inventory, figures) | the drawn body's six-name test; a supplied body's `weapon-last` |
 | class key: entity `Class` (hashed), `UnitNameIndex`, `FindHumanByType`, potion and siege-hire blocks, `ComposesFigure` | unchanged, the shipped entry's |
 | swing sound, attack delay, cast and shot class (`spellClientClass`) | unchanged, the class key's |
-| fallen hero body (`HeroBodyName` dying arm, corpse link) | unchanged, the shipped dying body of the directory |
+| fallen hero body (`HeroBodyName` dying arm, corpse link) | the shipped dying body of the directory, except across the mage line (open debt) |
 | SAV party policy `Body` (`capturePartyPolicy`) | unchanged: `BodyList.SavedBody` writes the shipped entry's name |
 | bones art of a placed roster hero (`missionAppearanceArt`) | a supplied name matches no class and takes the equipment path, drawn with the supplied body |
 
@@ -94,3 +94,13 @@ games lists `rom1`, `rom2-en` and `rom2-ru`.
   an owner decision.
 - `applies-to` has no word for both ROM2 editions; a mod lists `rom2-en` and
   `rom2-ru`.
+- A mapping that moves a staff row onto a fighter body, or a fighter row onto
+  `mage` or `mage_st`, changes which dying body is drawn (`heroDyingBody` reads
+  the drawn name). A LOAD redraws the corpse from the wire axes, so the live
+  and the loaded pictures differ. Drawing only.
+- The SAV party policy `Body` is reconstructed from the class key
+  (`BodyList.SavedBody`). Class key 1 is shared by `unarmed` and by names no
+  arm matches, so a mod that maps two such rows to one body can save the other
+  name. Storing the shipped name would remove the ambiguity.
+- A shipped chosen body with no `_` sheet under both directories is drawn in its
+  base form for a hero with a shield, as a supplied body is.

@@ -1030,3 +1030,4 @@ pkg/game.TestReleaseSecondGameMusicStops
 pkg/game.TestReleaseModBodyDrawsTheWarHammerHero
 pkg/game.TestReleaseModBodyLeavesWorldAndSaveUnchanged
 pkg/game.TestReleaseModBodyRedrawsAfterALoad
+pkg/game.TestReleaseModBodyShieldWithoutAShieldForm

@@ -101,6 +101,9 @@ func resolveModBodies(src entrySource, units *terrain.UnitSet, weapons data.Coll
 		if _, modded := list.ModBodyOf(body); !modded && !shippedBodyInBoth(src, body) {
 			return list, nil, itemFileError(w.Mod, w.File, w.BodyLine, "body %q is not a body the install ships under both %s and %s, nor one a loaded mod supplies", w.Body, data.HeroDirHeroes, data.HeroDirHeroesLight)
 		}
+		if _, modded := list.ModBodyOf(body); !modded && !shippedShieldFormInBoth(src, body) {
+			list = list.WithoutShieldForm(body)
+		}
 		chosen[row] = w
 		list = list.WithWeaponBody(row, body)
 	}
@@ -131,6 +134,12 @@ func shippedBodyInBoth(src entrySource, name data.HeroBody) bool {
 		}
 	}
 	return true
+}
+
+// shippedShieldFormInBoth reports whether the install carries the shield form
+// of name under both body directories.
+func shippedShieldFormInBoth(src entrySource, name data.HeroBody) bool {
+	return shippedBodyInBoth(src, name+data.HeroShieldSuffix)
 }
 
 // modWeaponRow resolves a mapping's weapon to its definition row: the row

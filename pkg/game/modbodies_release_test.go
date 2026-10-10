@@ -41,6 +41,12 @@ func modBodyFront(t *testing.T, id string, launcher bool) *FrontEnd {
 	if err := os.CopyFS(filepath.Join(dir, id), os.DirFS(filepath.Join(modBodiesDir, id))); err != nil {
 		t.Fatal(err)
 	}
+	return modBodyFrontIn(t, f, dir, id, launcher)
+}
+
+// modBodyFrontIn is modBodyFront for a mod folder id already under dir.
+func modBodyFrontIn(t *testing.T, f *FrontEnd, dir, id string, launcher bool) *FrontEnd {
+	t.Helper()
 	entries, err := mod.Resolve(dir, []string{id})
 	if err != nil {
 		t.Fatal(err)
@@ -398,4 +404,123 @@ func TestReleaseModBodyRedrawsAfterALoad(t *testing.T) {
 			checkModBodyArt(t, g.live, equipmentReturnHero(t, g), c.body)
 		})
 	}
+}
+
+// shieldMapping maps the Short Sword (row 3) to axeman2h, a shipped body the
+// install holds no shield form of.
+const shieldMapping = "[[weapon]]\nrow = 3\nbody = \"axeman2h\"\n"
+
+// shieldMod writes a mod folder that holds shieldMapping under a temporary
+// directory and returns the directory and the mod id.
+func shieldMod(t *testing.T) (string, string) {
+	t.Helper()
+	dir := t.TempDir()
+	root := filepath.Join(dir, "short-sword-axeman")
+	if err := os.MkdirAll(filepath.Join(root, "data"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{
+		"mod.toml": "id = \"short-sword-axeman\"\ntitle = \"Short Sword as an axeman\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\n" +
+			"description = \"Draws the Short Sword with the two-handed axe body.\"\napi = 1\n" +
+			"applies-to = [\"rom1\", \"rom2-en\", \"rom2-ru\"]\nentry = \"main.star\"\n",
+		"main.star":               "def init(game, settings):\n    game.data.add(\"data/weapon-bodies.toml\")\n",
+		"data/weapon-bodies.toml": shieldMapping,
+	}
+	for name, text := range files {
+		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir, "short-sword-axeman"
+}
+
+// shieldHeroSession opens mission 10 with a hero wearing the Short Sword
+// (0x103) and the shield 0x1222, runs 40 ticks and writes a mission SAVE at a
+// fixed clock. A mod front takes the body data only, so the SAV carries no mod mark.
+func shieldHeroSession(t *testing.T, modded bool) (modBodyRun, data.HeroBody, sim.EntityID, int32) {
+	t.Helper()
+	f := releaseFront(t)
+	f.SetDeterministicFrames(true)
+	if modded {
+		dir, id := shieldMod(t)
+		entries, err := mod.Resolve(dir, []string{id})
+		if err != nil {
+			t.Fatal(err)
+		}
+		res, err := modrt.Load(entries, BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))), nil, modrt.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.SetModBodies(res.Bodies); err != nil {
+			t.Fatal(err)
+		}
+	}
+	party := f.ChargenParty(ui.ChargenResult{Name: "Shield", Choices: []int{0, 0, 0}, Stats: []int{31, 27, 24, 29}})
+	hero := &party[0]
+	hero.Worn[0], hero.Worn[1] = 0x103, 0x1222
+	hero.WornItems[0] = mapload.ItemInstanceFromCode(0x103, f.Table)
+	hero.WornItems[1] = mapload.ItemInstanceFromCode(0x1222, f.Table)
+	hero.Weapon = nil
+	name, dir, class, ok := data.HeroAppearance(f.Bodies, equipmentFromSlots(hero.Worn), false, false)
+	if !ok {
+		t.Fatal("the shielded hero resolves no body")
+	}
+	hero.Class, hero.Body, hero.BodyDir = class, string(name), dir
+	a := f.App("mod body shield")
+	t.Cleanup(a.StopAudio)
+	a.SetCutscenes(nil)
+	if err := a.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
+		t.Fatal(err)
+	}
+	mw, id := f.live, equipmentReturnHero(t, f)
+	mw.refreshAppearance()
+	for tick := 0; tick < 40; tick++ {
+		mw.tick()
+	}
+	run := modBodyRun{hash: mw.world.Hash(), world: marshalWorld(t, mw.world), art: mw.art[id]}
+	store := SaveStore{Dir: t.TempDir()}
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, func() time.Time { return time.Unix(100, 0) })
+	saved, err := save(true)
+	if errors.Is(err, errSavingUnavailable) {
+		return run, name, id, class
+	}
+	if err != nil || !IsOriginal(saved) {
+		t.Fatalf("mission SAVE wrote %q: %v", saved, err)
+	}
+	if run.sav, err = store.Read(saved); err != nil {
+		t.Fatal(err)
+	}
+	return run, name, id, class
+}
+
+// TestReleaseModBodyShieldWithoutAShieldForm maps the Short Sword to a shipped
+// body the install holds no shield form of. A hero with the sword and a shield
+// is drawn with that body's base form, never the registry record of his class
+// key, and the class key, World hash and mission SAV equal the run without the
+// mod. Without the mod he is drawn as swordsman_.
+func TestReleaseModBodyShieldWithoutAShieldForm(t *testing.T) {
+	plain, plainName, plainID, plainClass := shieldHeroSession(t, false)
+	if plainName != "swordsman_" {
+		t.Fatalf("without the mod the shielded hero is %q, want swordsman_", plainName)
+	}
+	got, name, id, class := shieldHeroSession(t, true)
+	if name != "axeman2h" {
+		t.Fatalf("under the mapping the shielded hero resolves to %q, want axeman2h", name)
+	}
+	if got.art == nil {
+		t.Fatalf("hero %d is drawn with the registry record, not a body", id)
+	}
+	if class != plainClass {
+		t.Errorf("class key %d, want %d as without the mod", class, plainClass)
+	}
+	if got.art == plain.art || terrainBodyFramesEqual(got.art, plain.art) {
+		t.Error("the hero is drawn as without the mod")
+	}
+	if got.hash != plain.hash || !bytes.Equal(got.world, plain.world) {
+		t.Errorf("World hash %#x, want %#x", got.hash, plain.hash)
+	}
+	if !bytes.Equal(got.sav, plain.sav) {
+		t.Errorf("mission SAV bytes differ (%d against %d bytes)", len(got.sav), len(plain.sav))
+	}
+	_ = plainID
 }

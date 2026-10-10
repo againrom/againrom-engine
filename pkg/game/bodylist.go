@@ -61,6 +61,9 @@ func encodeBodyChoice(list data.BodyList) []byte {
 		}
 		fmt.Fprintf(&b, "body %s %d\n", name, last)
 	}
+	for _, name := range list.ShieldlessBodies() {
+		fmt.Fprintf(&b, "bare %s 1\n", name)
+	}
 	return []byte(b.String())
 }
 
@@ -77,6 +80,8 @@ func applyBodyChoice(list data.BodyList, text []byte) data.BodyList {
 			if row, err := strconv.Atoi(f[1]); err == nil {
 				list = list.WithWeaponBody(row, data.HeroBody(f[2]))
 			}
+		case "bare":
+			list = list.WithoutShieldForm(data.HeroBody(f[1]))
 		case "body":
 			list = list.WithModBody(data.HeroBody(f[1]), data.ModBody{WeaponLast: f[2] == "1"})
 		}
