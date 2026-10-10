@@ -273,7 +273,7 @@ func TestPreCreateTipPanelCrossingLeavesNoLatch(t *testing.T) {
 	if c.PreChoice() != 1 {
 		t.Fatalf("PreChoice() = %d after the release inside the showing panel, want 1 (unchanged)", c.PreChoice())
 	}
-	if a.chargenPress != chargenNone {
+	if a.chargenPress.Holds() {
 		t.Fatalf("chargenPress = %v after the release the panel swallowed, want chargenNone: the latch is still armed", a.chargenPress)
 	}
 	// The next release on that same choice, with no new press between, must

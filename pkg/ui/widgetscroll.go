@@ -350,10 +350,16 @@ var (
 // encoder and fitting.
 type listRowText func(row int, width int) string
 
-// drawListBox paints the shared list's visible rows and its bar. The
-// selected row is filled and outlined and drawn in the selected ink.
+// listWell is the sunken well every list sits in, the edit field's bevel one
+// pixel outside the list and its bar (DIV-2645): Save, Load, the cutscene
+// library and the Sound Options track list draw it alike.
+func listWell(l listBox) editField { return editField{Rect: l.Rect.Inset(-1)} }
+
+// drawListBox paints the shared list's well, its visible rows and its bar.
+// The selected row is filled and outlined and drawn in the selected ink.
 func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox, m *Picker, rowText listRowText, pointer image.Point, pointerOK bool) {
 	recordWidget(widgetListBox, l.Rect, l)
+	drawEditField(dst, listWell(l), nil)
 	if m != nil && f != nil {
 		top, count := m.Visible()
 		for i := 0; i < count && i < l.Rows; i++ {

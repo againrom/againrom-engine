@@ -552,21 +552,6 @@ func copyNativeKeyed(dst *image.RGBA, src image.Image, at image.Point, clip imag
 	}
 }
 
-func drawBorder(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
-	r = r.Intersect(dst.Bounds())
-	if r.Empty() {
-		return
-	}
-	for x := r.Min.X; x < r.Max.X; x++ {
-		dst.SetRGBA(x, r.Min.Y, c)
-		dst.SetRGBA(x, r.Max.Y-1, c)
-	}
-	for y := r.Min.Y; y < r.Max.Y; y++ {
-		dst.SetRGBA(r.Min.X, y, c)
-		dst.SetRGBA(r.Max.X-1, y, c)
-	}
-}
-
 // ComposeChargenFrame composes c's current stage (pre-create or detailed)
 // with no hover or press state. It exists for the install-gated release
 // witness in pkg/game (composeChargenPage itself, and the chargenControl
@@ -770,11 +755,6 @@ func drawChargenCommands(dst *image.RGBA, p *ChargenPresentation, detail *Charge
 	}
 }
 
-func drawChargenFrame(dst *image.RGBA, r image.Rectangle) {
-	draw.Draw(dst, r, &image.Uniform{C: color.RGBA{16, 18, 24, 255}}, image.Point{}, draw.Src)
-	drawBorder(dst, r, color.RGBA{138, 116, 70, 255})
-}
-
 // chargenMessageRect is where the detailed page's own transient
 // hover/refusal line is written (1022 round-2, restoring the channel
 // `DIV-192` recorded as dropped): the bottom strip of the doll box, entirely
@@ -891,7 +871,7 @@ func composeChargenDetailedPage(c *Chargen, hover, pressed chargenControl, tipSt
 		// plaque art with a flat fill that follows no edge in the picture.
 		drawTownPane(dst, TownPane{Body: navPane.Body}, chargenNavBox, image.Rectangle{})
 	} else {
-		drawChargenFrame(dst, chargenNavBox)
+		drawFrame(dst, panelFrame(chargenNavBox, color.RGBA{16, 18, 24, 255}, color.RGBA{138, 116, 70, 255}))
 	}
 	// chargenDollBox's own frame drew here in round 1; it is fully overdrawn
 	// by drawTownPane's own DollPane body below (round-2 adversarial review

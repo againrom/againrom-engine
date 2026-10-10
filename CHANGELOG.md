@@ -26,6 +26,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] The tavern, shop and school tips keep the original's size at every
   visit. The shop tip changes to its second text once you put an item on the
   table, as in the original.
+- [ROM1] Windows, panels and lists now look alike everywhere. Every window
+  frame is drawn with whole edge tiles as the original draws it, and the
+  cutscene library and Sound Options lists sit in the same sunken well as
+  Save and Load. Every button activates only on a release over it; losing
+  the window's focus drops a held press.
+- [ROM2] The windows shared with the first game (Load Game, Save, the in-game
+  menu with its options and objectives pages, notices and the cutscene
+  library) now draw the same frame and list well as in the first game, and
+  their buttons follow the same press rule.
 
 ## 0.106.0
 

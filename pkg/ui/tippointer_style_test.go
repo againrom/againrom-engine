@@ -113,7 +113,7 @@ func TestChargenTipKeepsOriginalRectAndClosePresentation(t *testing.T) {
 			if sameTipControlPixels(hover, pressed, control) {
 				t.Fatal("generator Close press did not reach the shared painter")
 			}
-			if a.chargenPress != chargenNone {
+			if a.chargenPress.Holds() {
 				t.Fatal("tip press armed a page control")
 			}
 			outside := paint(appInput{CursorX: 0, CursorY: 479})

@@ -152,7 +152,7 @@ func ComposeTipPanel(dst *image.RGBA, v TipPanelView) {
 	if dst == nil || !v.Showing() {
 		return
 	}
-	drawTipFrame(dst, v.Art.Frame, v.Rect)
+	drawFrame(dst, frameSpec{Kind: frameTip, Rect: v.Rect, Art: v.Art.Frame})
 	drawTipText(dst, v.Font, tipTextLines(v.Font, v.Text, TipPanelTextRect(v.Rect).Dx()), TipPanelTextRect(v.Rect))
 	closeLabel := v.CloseLabel
 	if closeLabel == "" {
@@ -181,27 +181,6 @@ func ComposeTipPanel(dst *image.RGBA, v TipPanelView) {
 	v.Font.Draw(dst.SubImage(clip).(*image.RGBA), toggleLabel, r.Min.X+22, r.Min.Y+3, ink)
 }
 
-// tileBlitSrc repeats opaque source tiles inside target.
-func tileBlitSrc(dst *image.RGBA, target image.Rectangle, src image.Image) {
-	if src == nil {
-		return
-	}
-	b := src.Bounds()
-	sw, sh := b.Dx(), b.Dy()
-	if sw <= 0 || sh <= 0 {
-		return
-	}
-	for y := target.Min.Y; y < target.Max.Y; y += sh {
-		for x := target.Min.X; x < target.Max.X; x += sw {
-			tile := image.Rect(x, y, x+sw, y+sh).Intersect(target)
-			if tile.Empty() {
-				continue
-			}
-			draw.Draw(dst, tile, src, b.Min, draw.Src)
-		}
-	}
-}
-
 // tileBlitOver repeats a keyed source rectangle inside target.
 func tileBlitOver(dst *image.RGBA, target image.Rectangle, src image.Image, srcRect image.Rectangle) {
 	sw, sh := srcRect.Dx(), srcRect.Dy()
@@ -217,33 +196,4 @@ func tileBlitOver(dst *image.RGBA, target image.Rectangle, src image.Image, srcR
 			draw.Draw(dst, tile, src, srcRect.Min, draw.Over)
 		}
 	}
-}
-
-// drawNinePatchBorder tiles the edges between unscaled corners.
-func drawNinePatchBorder(dst *image.RGBA, panel image.Rectangle, border image.Image, cw, ch int) {
-	if border == nil {
-		return
-	}
-	b := border.Bounds()
-	if cw <= 0 || ch <= 0 || 2*cw >= b.Dx() || 2*ch >= b.Dy() || panel.Dx() < 2*cw || panel.Dy() < 2*ch {
-		return
-	}
-	tl := image.Rect(b.Min.X, b.Min.Y, b.Min.X+cw, b.Min.Y+ch)
-	tr := image.Rect(b.Max.X-cw, b.Min.Y, b.Max.X, b.Min.Y+ch)
-	bl := image.Rect(b.Min.X, b.Max.Y-ch, b.Min.X+cw, b.Max.Y)
-	br := image.Rect(b.Max.X-cw, b.Max.Y-ch, b.Max.X, b.Max.Y)
-	top := image.Rect(b.Min.X+cw, b.Min.Y, b.Max.X-cw, b.Min.Y+ch)
-	bottom := image.Rect(b.Min.X+cw, b.Max.Y-ch, b.Max.X-cw, b.Max.Y)
-	left := image.Rect(b.Min.X, b.Min.Y+ch, b.Min.X+cw, b.Max.Y-ch)
-	right := image.Rect(b.Max.X-cw, b.Min.Y+ch, b.Max.X, b.Max.Y-ch)
-
-	draw.Draw(dst, image.Rect(panel.Min.X, panel.Min.Y, panel.Min.X+cw, panel.Min.Y+ch), border, tl.Min, draw.Over)
-	draw.Draw(dst, image.Rect(panel.Max.X-cw, panel.Min.Y, panel.Max.X, panel.Min.Y+ch), border, tr.Min, draw.Over)
-	draw.Draw(dst, image.Rect(panel.Min.X, panel.Max.Y-ch, panel.Min.X+cw, panel.Max.Y), border, bl.Min, draw.Over)
-	draw.Draw(dst, image.Rect(panel.Max.X-cw, panel.Max.Y-ch, panel.Max.X, panel.Max.Y), border, br.Min, draw.Over)
-
-	tileBlitOver(dst, image.Rect(panel.Min.X+cw, panel.Min.Y, panel.Max.X-cw, panel.Min.Y+ch), border, top)
-	tileBlitOver(dst, image.Rect(panel.Min.X+cw, panel.Max.Y-ch, panel.Max.X-cw, panel.Max.Y), border, bottom)
-	tileBlitOver(dst, image.Rect(panel.Min.X, panel.Min.Y+ch, panel.Min.X+cw, panel.Max.Y-ch), border, left)
-	tileBlitOver(dst, image.Rect(panel.Max.X-cw, panel.Min.Y+ch, panel.Max.X, panel.Max.Y-ch), border, right)
 }

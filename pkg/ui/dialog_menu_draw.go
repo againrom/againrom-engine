@@ -75,7 +75,7 @@ func (a *App) menuPointer() gameMenuPointer {
 // and literal rows are text, not buttons.
 func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	art.Draw(dst, gameMenuPanelRectFor(s, rows))
+	drawFrame(dst, windowFrame(gameMenuPanelRectFor(s, rows), art))
 	if list == nil {
 		return dst
 	}
@@ -86,7 +86,7 @@ func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow
 		if !row.Status && !row.Literal {
 			inside := pointer.ok && pointer.at.In(r)
 			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Hover: inside,
-				Focus: top+slot == list.Selection(), Pressed: pointer.press.pressed(top + slot),
+				Focus: top+slot == list.Selection(), Pressed: pointer.press.Pressed(top + slot),
 				Inside: inside, Disabled: !row.Enabled})
 			continue
 		}

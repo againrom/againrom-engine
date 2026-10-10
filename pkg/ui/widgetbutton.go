@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"againrom/pkg/render/backdrop"
+	"againrom/pkg/render/latch"
 	"againrom/pkg/render/text"
 )
 
@@ -205,30 +206,9 @@ func dialogueButton(b image.Rectangle, label string, l NoticeLayout) pushButton 
 		Pressed: s.Pressed, Inside: s.Inside, Disabled: s.Disabled, Policy: l.DialogueBackdrop}
 }
 
-// buttonLatch is the shared button input (MENU-116, DIALOGUE-045): a press
-// on an enabled button latches it, and the release activates it only when
-// it lands inside the latched button. A release elsewhere clears the latch.
-type buttonLatch struct {
-	held bool
-	id   int
-}
-
-// press latches id. A press on no button (ok false) clears the latch.
-func (l *buttonLatch) press(id int, ok bool) { l.held, l.id = ok, id }
-
-// pressed reports whether id holds the latch.
-func (l buttonLatch) pressed(id int) bool { return l.held && l.id == id }
-
-// release clears the latch and reports the button it activates: the latched
-// one, when the release lands inside it.
-func (l *buttonLatch) release(id int, inside bool) (int, bool) {
-	held, latched := l.held, l.id
-	l.held, l.id = false, 0
-	return latched, held && inside && latched == id
-}
-
-// clear drops the latch without activating anything.
-func (l *buttonLatch) clear() { l.held, l.id = false, 0 }
+// buttonLatch is the one press latch (MENU-116, DIALOGUE-045): every push
+// button latches on the press and activates on a release inside.
+type buttonLatch = latch.Latch
 
 // pointerFrame is the pointer's last frame position, the hover source every
 // widget painter reads.

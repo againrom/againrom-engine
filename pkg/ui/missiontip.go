@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 
+	"againrom/pkg/render/latch"
 	"againrom/pkg/render/text"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -15,7 +16,7 @@ import (
 type missionTip struct {
 	text        string
 	dress       MissionTipDress
-	closeArmed  bool
+	closePress  latch.Latch
 	pic         *ebiten.Image
 	glyphs      []text.DrawCall
 	rgba        *image.RGBA
@@ -40,12 +41,14 @@ func (v *Viewer) SetMissionTipDress(d MissionTipDress) {
 
 // ShowMissionTip shows text in the mission popup, replacing an open one.
 func (v *Viewer) ShowMissionTip(text string) {
-	v.mtip.text, v.mtip.closeArmed = text, false
+	v.mtip.text = text
+	v.mtip.closePress.Clear()
 }
 
 // ClearMissionTip deletes the mission popup.
 func (v *Viewer) ClearMissionTip() {
-	v.mtip.text, v.mtip.closeArmed = "", false
+	v.mtip.text = ""
+	v.mtip.closePress.Clear()
 }
 
 // MissionTip is the mission popup as it would draw now.
@@ -74,7 +77,7 @@ func (v *Viewer) MissionTip() TipPanelView {
 	if v.hasCursor {
 		view.Pointer, view.PointerOK = image.Pt(v.cursorX, v.cursorY), true
 		view.CloseHover = view.Pointer.In(TipPanelCloseRect(view.Rect))
-		view.ClosePressed = view.CloseHover && v.mtip.closeArmed
+		view.ClosePressed = view.CloseHover && v.mtip.closePress.Pressed(int(TipControlClose))
 	}
 	return view
 }
@@ -86,11 +89,11 @@ func (v *Viewer) MissionTip() TipPanelView {
 func (v *Viewer) missionTipGesture(p image.Point, pressed, released bool) bool {
 	view := v.MissionTip()
 	if !view.Showing() {
-		v.mtip.closeArmed = false
+		v.mtip.closePress.Clear()
 		return false
 	}
 	if pressed {
-		v.mtip.closeArmed = false
+		v.mtip.closePress.Clear()
 		kind, consumed := TipPanelEventAt(view, p, true)
 		switch kind {
 		case TipControlToggle:
@@ -98,15 +101,14 @@ func (v *Viewer) missionTipGesture(p image.Point, pressed, released bool) bool {
 				v.mtip.dress.SetTipsOn(!view.ToggleOn)
 			}
 		case TipControlClose:
-			v.mtip.closeArmed = true
+			v.mtip.closePress.Press(int(TipControlClose), true)
 		}
 		return consumed
 	}
 	if released {
-		armed := v.mtip.closeArmed
-		v.mtip.closeArmed = false
+		armed := v.mtip.closePress.Holds()
 		kind, consumed := TipPanelEventAt(view, p, false)
-		if kind == TipControlClose && armed {
+		if _, activate := v.mtip.closePress.Release(int(TipControlClose), kind == TipControlClose); activate {
 			v.ClearMissionTip()
 			return true
 		}

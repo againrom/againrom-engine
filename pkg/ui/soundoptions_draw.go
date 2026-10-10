@@ -77,7 +77,7 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 	f := a.flow
 	g := soundOptionsDialog
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawSnappedDialog(dst, f.menuArt, g)
+	drawFrame(dst, g.frame(f.menuArt))
 	font, words := f.menuFont, f.soundOptions.Words
 	title := gameMenuLabelText(words.Title)
 	font.Draw(dst, title, g.Min.X+(g.W()-font.Advance(title))/2, g.Min.Y+20, gameMenuText)
@@ -123,7 +123,7 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 			}
 			inside := pointerOK && pointer.In(r)
 			drawPushButton(dst, font, pushButton{Rect: r, Label: label, Literal: literal, Hover: inside, Inside: inside, Focus: focused,
-				Pressed: f.soundPointer.pressed && f.soundPointer.action == row.Action, Disabled: !row.Enabled})
+				Pressed: f.soundPointer.press.Pressed(int(row.Action)), Disabled: !row.Enabled})
 			continue
 		}
 		if !row.Enabled {

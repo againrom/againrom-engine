@@ -670,9 +670,9 @@ func RenderNotice(l NoticeLayout, f *text.Font, s string, face *image.RGBA) *ima
 	}
 	img := image.NewRGBA(image.Rect(0, 0, box.X, box.Y))
 	if l.Frame.valid() {
-		l.Frame.Draw(img, img.Bounds())
+		drawFrame(img, windowFrame(img.Bounds(), l.Frame))
 	} else {
-		fillPanelFrame(img, box, l.Fill, l.Border)
+		drawFrame(img, panelFrame(image.Rectangle{Max: box}, l.Fill, l.Border))
 	}
 
 	if p := l.Portrait; p.Dx() > 0 && p.Dy() > 0 {

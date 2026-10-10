@@ -139,7 +139,7 @@ func TestSaveButtonsKeepClearOfTheOrnateFrame(t *testing.T) {
 				a.flow.saveDialog.removePath = "saves/slot.sav"
 			}
 			bare := image.NewRGBA(image.Rect(0, 0, 640, 480))
-			art.Draw(bare, image.Rect(8, 0, 632, 480))
+			drawFrameBody(bare, windowFrame(image.Rect(8, 0, 632, 480), art))
 			calls := recordWidgets(t, func() { dialogContentHeadlessFrame(t, a) })
 			buttons := 0
 			for _, call := range calls {
@@ -189,7 +189,7 @@ func TestGameOptionsContentHasEqualMarginsAndClearsItsFrame(t *testing.T) {
 	a.SetGameMenuArt(art)
 	bare := image.NewRGBA(image.Rect(0, 0, 640, 480))
 	body := image.Rect(76, 28, 556, 444)
-	art.Draw(bare, body)
+	drawFrameBody(bare, windowFrame(body, art))
 	var calls []widgetCall
 	glyphs := text.Record(func() {
 		calls = recordWidgets(t, func() {
