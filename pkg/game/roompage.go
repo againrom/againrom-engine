@@ -214,5 +214,6 @@ func (t *townScreen) AdvanceShopInteriorAnimation() {
 	if t == nil || !t.inShopInterior() {
 		return
 	}
+	t.advanceShopSecondTip()
 	t.shopPage().Advance()
 }

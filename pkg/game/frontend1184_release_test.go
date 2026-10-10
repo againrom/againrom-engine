@@ -70,7 +70,7 @@ func TestReleaseFrontendFidelity1184(t *testing.T) {
 		probe := ui.NewChargen(f.ChargenSetup())
 		for p := image.Pt(0, 0); back.X < 0 && p.Y < 480; p.Y++ {
 			for p.X = 0; p.X < 640; p.X++ {
-				if owner, ok := ui.PreCreateControlAt(probe, p); ok && owner == "back" {
+				if owner, ok := ui.PreCreateControlAt(probe, p); ok && owner == "back" && !probe.TipPanel().Covers(p) {
 					back = p
 					break
 				}

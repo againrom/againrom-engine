@@ -103,7 +103,7 @@ func TestChargenDifficultyArtStates(t *testing.T) {
 		state        int
 	}{
 		{1, chargenNone, chargenNone, 0}, {0, chargenLevel0, chargenNone, 1},
-		{1, chargenLevel1, chargenNone, 2}, {0, chargenLevel0, chargenLevel0, 2},
+		{1, chargenLevel1, chargenNone, 2}, {0, chargenLevel0, chargenLevel0, 1},
 	} {
 		frame := composeChargenPage(c, tc.hover, tc.press)
 		p := preLevelOrigin[tc.level].Add(image.Pt(1, 1))
@@ -113,20 +113,21 @@ func TestChargenDifficultyArtStates(t *testing.T) {
 	}
 }
 
+// TestChargenDifficultyHeroOverlapOwnership: only Mask.bmp decides what a
+// press hits (TOWN-520), whatever art lies under the point, and an unchosen
+// portrait draws no overlay over a chosen level (TOWN-521).
 func TestChargenDifficultyHeroOverlapOwnership(t *testing.T) {
 	setup := chargenLegalSetup()
 	art := &ChargenPresentation{PreMask: chargenMask(640, 480)}
 	hero := image.NewRGBA(image.Rect(0, 0, 26, 10))
 	level := image.NewRGBA(image.Rect(0, 0, 102, 111))
-	// Authored fixture pixels, independent of the production hit-test helpers.
-	// The hero is above Hard, with a black-key gap and an alpha-zero gap.
 	hero.SetRGBA(23, 8, color.RGBA{40, 31, 18, 255})
-	hero.SetRGBA(24, 8, color.RGBA{0, 0, 0, 255})
-	hero.SetRGBA(25, 8, color.RGBA{})
 	for x := 147; x <= 149; x++ {
 		art.PreMask.SetColorIndex(x, 174, 100)
 		level.SetRGBA(x-48, 174-65, color.RGBA{90, 80, 70, 255})
 	}
+	art.PreMask.SetColorIndex(146, 174, 60)
+	level.SetRGBA(146-48, 174-65, color.RGBA{90, 80, 70, 255})
 	for state := 0; state < 3; state++ {
 		art.Choices[2][state] = hero
 		art.Levels[2][state] = level
@@ -138,14 +139,9 @@ func TestChargenDifficultyHeroOverlapOwnership(t *testing.T) {
 	for _, tc := range []struct {
 		x    int
 		want chargenControl
-		rgb  color.RGBA
-	}{
-		{147, chargenChoice2, color.RGBA{40, 31, 18, 255}},
-		{148, chargenLevel2, color.RGBA{90, 80, 70, 255}},
-		{149, chargenLevel2, color.RGBA{90, 80, 70, 255}},
-	} {
-		if got := frame.RGBAAt(tc.x, 174); got != tc.rgb {
-			t.Fatalf("composed pixel (%d,174)=%v want%v", tc.x, got, tc.rgb)
+	}{{147, chargenChoice2}, {148, chargenChoice2}, {149, chargenChoice2}, {146, chargenLevel2}} {
+		if got := frame.RGBAAt(tc.x, 174); got != (color.RGBA{90, 80, 70, 255}) {
+			t.Fatalf("composed pixel (%d,174)=%v, want the chosen level's art", tc.x, got)
 		}
 		if got := preControlAt(c, image.Pt(tc.x, 174)); got != tc.want {
 			t.Errorf("hit (%d,174)=%v want%v", tc.x, got, tc.want)
@@ -157,7 +153,7 @@ func TestChargenDifficultyHeroOverlapOwnership(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, action := range []string{"press", "release"} {
-		if err := a.HeadlessPointer(action, 147, 174); err != nil {
+		if err := a.HeadlessPointer(action, 148, 174); err != nil {
 			t.Fatal(err)
 		}
 	}

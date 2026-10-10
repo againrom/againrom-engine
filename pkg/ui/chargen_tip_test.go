@@ -1,133 +1,136 @@
 package ui
 
 import (
-	"image"
 	"testing"
 	"time"
 )
 
-// The generator's own tip panel (1018 spec behaviours 1, 2, 3, 4): shown
-// only on the pre-create page (TOWN-187's own "chrgen2.txt is a separate,
-// once-only-latch mechanism, out of this story's scope" — TipPanel must
-// never show past Forward), closeable for the visit, and its toggle
-// round-tripped through the setup's own SetTipsOn callback rather than
-// computed here (AC-11: this package has no store of its own). TipPanel's
-// own TEXT tracks the player's live pre-create portrait selection (round 2 /
-// DIV-162 correction, TestPreCreateTipTextFollowsTheLiveClassChoice below):
-// TipText is the fighter branch, TipTextMage the mage branch, and
-// c.preChoice's own class half (preChoiceParts) picks between them.
+// The generator's two tip popups (TOWN-518, TOWN-522, MENU-136, MENU-137):
+// the pre-create popup at PreCreateTipRect steps chrsel1..3 on portrait and
+// level clicks; the detailed popup at ChargenTipRect shows the class text,
+// then chrgen2 after the first skill click.
 
 func chargenTipSetup() ChargenSetup {
 	return ChargenSetup{
 		Name:      "Danath",
 		PreCreate: &ChargenPreCreate{Art: &ChargenPresentation{Font: shopTipTestFont()}},
-		Choices:   []ChargenChoice{{Options: []string{"male", "female"}, Parent: -1}},
-		Stats:     []ChargenStat{{Floor: 0, Ceiling: 50, Start: 25}},
-		Cost:      triangular(50),
-		Budget:    1000,
-		TipText:   "the mage draws power from the well",
-		TipArt:    tipTestArt(),
-		TipsOn:    true,
+		Choices: []ChargenChoice{{Options: []string{"male", "female"}, Parent: -1},
+			{Options: []string{"fighter", "mage"}, Parent: -1},
+			{Options: []string{"a", "b", "c", "d", "e"}, Parent: -1}},
+		Stats:         []ChargenStat{{Floor: 0, Ceiling: 50, Start: 25}},
+		Cost:          triangular(50),
+		Budget:        1000,
+		TipSelect:     [3]string{"choose a hero", "choose a level", "press OK"},
+		TipText:       "fighter text",
+		TipTextMage:   "mage text",
+		TipTextDetail: "after the skill",
+		TipArt:        tipTestArt(),
+		TipsOn:        true,
 	}
 }
 
-// TipPanel shows during PreCreateStage, with the setup's own text, art and
-// toggle state carried through unchanged.
 func TestChargenTipPanelShowsOnPreCreate(t *testing.T) {
 	c := NewChargen(chargenTipSetup())
 	v := c.TipPanel()
-	if !v.Showing() {
-		t.Fatal("TipPanel on a fresh pre-create stage is not Showing()")
-	}
-	if v.Text != "the mage draws power from the well" {
-		t.Fatalf("TipPanel.Text = %q, want the setup's own TipText", v.Text)
-	}
-	if !v.ToggleOn {
-		t.Fatal("TipPanel.ToggleOn = false, want the setup's own TipsOn (true)")
+	if !v.Showing() || v.Text != "choose a hero" || v.Rect != PreCreateTipRect || !v.ToggleOn {
+		t.Fatalf("pre-create enter popup = %+v, want chrsel1 at %v", v, PreCreateTipRect)
 	}
 }
 
-// Forward leaves PreCreateStage; TipPanel then answers a zero, non-Showing
-// view, never a stale panel drawn over the detailed page (TOWN-187's own
-// chrgen2.txt second popup is out of scope, so the pre-create panel must not
-// persist past it).
-func TestChargenTipPanelHidesPastPreCreate(t *testing.T) {
+// TestPreCreateTipStepsOnlyOnTheNamedClicks: a portrait click at step 0 and a
+// level click at step 1 advance the step; a level click at step 0, a second
+// portrait click and the closed popup do not (TOWN-518).
+func TestPreCreateTipStepsOnlyOnTheNamedClicks(t *testing.T) {
 	c := NewChargen(chargenTipSetup())
-	c.Forward()
-	if c.Stage() != DetailedStage {
-		t.Fatal("fixture did not reach DetailedStage")
+	c.tipLevelClicked()
+	if c.TipStep() != 0 {
+		t.Fatal("a level click at step 0 advanced the step")
 	}
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatalf("TipPanel() on DetailedStage = %+v, want a zero view", v)
+	c.tipPortraitClicked()
+	if c.TipStep() != 1 || c.TipPanel().Text != "choose a level" {
+		t.Fatalf("portrait click: step %d text %q", c.TipStep(), c.TipPanel().Text)
 	}
-}
-
-// A nil TipArt (no setup) answers a zero view rather than a panel with a
-// blank picture — the same "no art, not Showing" contract tippanel_test.go
-// already proves for TipPanelView.Showing.
-func TestChargenTipPanelWithNoArtDoesNotShow(t *testing.T) {
-	setup := chargenTipSetup()
-	setup.TipArt = nil
-	c := NewChargen(setup)
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatalf("TipPanel() with no TipArt = %+v, want a zero view", v)
+	c.tipPortraitClicked()
+	if c.TipStep() != 1 {
+		t.Fatal("a portrait click at step 1 advanced the step")
 	}
-}
-
-// CloseTip dismisses the panel for the rest of this generator's own visit
-// (spec behaviour 3): a fresh Chargen is unaffected by another instance's
-// close, and Forward/Back does not reopen it.
-func TestChargenCloseTipDismissesForTheVisit(t *testing.T) {
-	c := NewChargen(chargenTipSetup())
-	c.CloseTip()
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatal("TipPanel() after CloseTip is still Showing()")
+	c.tipLevelClicked()
+	if c.TipStep() != 2 || c.TipPanel().Text != "press OK" {
+		t.Fatalf("level click: step %d text %q", c.TipStep(), c.TipPanel().Text)
 	}
 	c.Forward()
 	c.Back()
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatal("TipPanel() after CloseTip, Forward and Back is still Showing()")
+	if c.TipStep() != 0 || c.TipPanel().Text != "choose a hero" {
+		t.Fatal("the page enter did not restart the step at chrsel1")
+	}
+	c.CloseTip()
+	c.tipPortraitClicked()
+	if c.TipStep() != 0 || c.TipPanel().Showing() {
+		t.Fatal("a click after Close advanced the step or showed the popup")
 	}
 }
 
-// ToggleTips flips the setup's own TipsOn and calls SetTipsOn with the new
-// value (spec behaviour 4) — the persistence itself is the caller's
-// responsibility, proved here only by the callback's own argument.
-func TestChargenToggleTipsCallsSetTipsOn(t *testing.T) {
+func TestChargenDetailedTipFollowsClassThenFirstSkillClick(t *testing.T) {
+	for class, want := range []string{"fighter text", "mage text"} {
+		c := NewChargen(chargenTipSetup())
+		c.SelectPreChoice([]int{0, 1}[class])
+		c.Forward()
+		v := c.TipPanel()
+		if v.Text != want || v.Rect != ChargenTipRect {
+			t.Fatalf("class %d detailed enter popup = %q at %v", class, v.Text, v.Rect)
+		}
+		c.tipSkillClicked()
+		if c.TipPanel().Text != "after the skill" || c.TipStep() != 1 {
+			t.Fatalf("first skill click: %q step %d", c.TipPanel().Text, c.TipStep())
+		}
+	}
+}
+
+// TestChargenTipsModeOffStopsOnlyWhatTheClaimsSay: clearing TipsMode leaves
+// the open popup and stops its steps; the next enter builds no popup
+// (MENU-136, TOWN-518, TOWN-522).
+func TestChargenTipsModeOffStopsOnlyWhatTheClaimsSay(t *testing.T) {
 	setup := chargenTipSetup()
 	var calls []bool
 	setup.SetTipsOn = func(on bool) { calls = append(calls, on) }
 	c := NewChargen(setup)
-
 	c.ToggleTips()
-	if len(calls) != 1 || calls[0] != false {
-		t.Fatalf("SetTipsOn calls after one ToggleTips = %v, want [false]", calls)
+	if len(calls) != 1 || calls[0] {
+		t.Fatalf("SetTipsOn calls %v, want [false]", calls)
 	}
-	if v := c.TipPanel(); v.ToggleOn {
-		t.Fatal("TipPanel.ToggleOn after ToggleTips is still true")
+	if v := c.TipPanel(); !v.Showing() || v.ToggleOn {
+		t.Fatal("clearing TipsMode deleted the open popup or kept the checkbox on")
 	}
-
+	c.tipPortraitClicked()
+	if c.TipStep() != 0 {
+		t.Fatal("a portrait click with TipsMode clear advanced the step")
+	}
+	c.Forward()
+	if c.TipPanel().Showing() {
+		t.Fatal("the detailed enter with TipsMode clear built a popup")
+	}
+	c.Back()
+	if c.TipPanel().Showing() {
+		t.Fatal("the pre-create enter with TipsMode clear built a popup")
+	}
 	c.ToggleTips()
-	if len(calls) != 2 || calls[1] != true {
-		t.Fatalf("SetTipsOn calls after a second ToggleTips = %v, want [false true]", calls)
+	if c.TipPanel().Showing() {
+		t.Fatal("setting TipsMode showed a popup without an enter")
+	}
+	c.Forward()
+	if !c.TipPanel().Showing() {
+		t.Fatal("the next enter with TipsMode set built no popup")
 	}
 }
 
-// ToggleTips with no SetTipsOn callback (a hand-built test setup, on
-// Preview/Derive's own "may be nil" precedent) does not panic, and leaves
-// TipsOn unchanged since there is nowhere to persist a flip.
-func TestChargenToggleTipsWithNoCallbackIsANoOp(t *testing.T) {
+func TestChargenTipPanelWithNoArtDoesNotShow(t *testing.T) {
 	setup := chargenTipSetup()
-	setup.SetTipsOn = nil
-	c := NewChargen(setup)
-	c.ToggleTips()
-	if v := c.TipPanel(); !v.ToggleOn {
-		t.Fatal("ToggleTips with no SetTipsOn callback changed ToggleOn")
+	setup.TipArt = nil
+	if v := NewChargen(setup).TipPanel(); v.Showing() {
+		t.Fatalf("TipPanel() with no TipArt = %+v, want a zero view", v)
 	}
 }
 
-// A nil *Chargen's TipPanel, CloseTip and ToggleTips do not panic, on the
-// rest of this file's own defensive-nil-receiver convention.
 func TestNilChargenTipMethodsDoNotPanic(t *testing.T) {
 	var c *Chargen
 	if v := c.TipPanel(); v.Showing() {
@@ -135,104 +138,31 @@ func TestNilChargenTipMethodsDoNotPanic(t *testing.T) {
 	}
 	c.CloseTip()
 	c.ToggleTips()
+	c.tipPortraitClicked()
+	c.tipSkillClicked()
 }
 
-func TestChargenTipSuppressionSurvivesForwardAndBack(t *testing.T) {
-	setup := chargenTipSetup()
-	setup.SetTipsOn = func(on bool) {}
-	c := NewChargen(setup)
-	if v := c.TipPanel(); !v.Showing() {
-		t.Fatal("TipPanel() on a fresh pre-create stage is not Showing()")
+// TestGuidedCycleTiming drives the cycle on a synthetic clock: nothing for
+// 500 ms, then one step at the first paint more than 300 ms after the last;
+// a hover freezes it and it resumes after the hovered target (TOWN-519).
+func TestGuidedCycleTiming(t *testing.T) {
+	steps := [][]int{{80, 100, 120, 140}, {20, 40, 60}, {160, 180}}
+	var g guidedCycle
+	t0 := time.Unix(1000, 0)
+	at := func(ms int) time.Time { return t0.Add(time.Duration(ms) * time.Millisecond) }
+	type frame struct {
+		ms, step, hover, want int
 	}
-
-	c.ToggleTips()
-	if v := c.TipPanel(); !v.Showing() {
-		t.Fatal("TipPanel() right after ToggleTips is not Showing() — toggling must not retroactively hide an open panel")
-	}
-	if v := c.TipPanel(); v.ToggleOn {
-		t.Fatal("TipPanel().ToggleOn after ToggleTips is still true")
-	}
-
-	c.Forward()
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatal("TipPanel() on DetailedStage is Showing()")
-	}
-	if !c.Back() {
-		t.Fatal("Back() returned false with PreCreate set")
-	}
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatal("TipPanel() after Forward and Back, tips off, is Showing() — suppression did not survive re-entry")
-	}
-
-	// Toggling back on mid-visit does not retroactively reopen it either
-	// (the same rule, the other direction): only the NEXT entry re-reads it.
-	c.ToggleTips()
-	if v := c.TipPanel(); v.Showing() {
-		t.Fatal("TipPanel() right after re-toggling on, still on pre-create from the suppressed entry, is Showing()")
-	}
-	c.Forward()
-	if !c.Back() {
-		t.Fatal("second Back() returned false with PreCreate set")
-	}
-	if v := c.TipPanel(); !v.Showing() {
-		t.Fatal("TipPanel() after a further Forward/Back with tips back on is not Showing()")
-	}
-}
-
-// TestPreCreateTipTextFollowsTheLiveClassChoice is round 2's Finding B
-// witness (DIV-162): a fresh Chargen shows the fighter text (preChoice's own
-// zero value, class 0); clicking the male-mage portrait (choice 1,
-// preChoiceParts(1) = sex 0, class 1) through the real dispatch
-// (stepPreCreate, on TestPreCreateFlow's own pattern, chargen_app_test.go)
-// switches TipPanel().Text to the mage text; clicking the female-fighter
-// portrait (choice 2, class 0) switches it back. Before this fix, TipText
-// was resolved once at ChargenSetup() construction and never read again
-// past that; SelectPreChoice never touched it, so this test would see the
-// fighter text at every step, including after the mage portrait was chosen.
-func TestPreCreateTipTextFollowsTheLiveClassChoice(t *testing.T) {
-	now := time.Unix(1_700_000_000, 0)
-	setup := chargenLegalSetup()
-	art := &ChargenPresentation{Forward: image.NewRGBA(image.Rect(0, 0, 96, 74)), Font: shopTipTestFont()}
-	for choice := range art.Choices {
-		for state := range art.Choices[choice] {
-			art.Choices[choice][state] = image.NewRGBA(image.Rect(0, 0, 40, 40))
+	for _, f := range []frame{
+		{0, 0, -1, -1}, {499, 0, -1, -1},
+		{500, 0, -1, 0}, {800, 0, -1, 0}, {801, 0, -1, 1},
+		{1101, 0, -1, 1}, {1102, 0, -1, 2}, {1403, 0, -1, 2}, {1404, 0, -1, 3}, {1704, 0, -1, 3}, {1705, 0, -1, 0},
+		{1710, 0, 120, -1}, {2000, 0, -1, -1}, {2209, 0, -1, -1},
+		{2210, 0, -1, 3}, {2511, 0, -1, 3}, {2512, 0, -1, 0},
+		{2600, 1, -1, 0}, {2812, 1, -1, 0}, {2813, 1, -1, 1}, {3200, 2, -1, 1}, {3201, 2, -1, 0}, {3300, 7, -1, -1},
+	} {
+		if got := g.paint(at(f.ms), steps, f.step, f.hover); got != f.want {
+			t.Fatalf("paint at %d ms step %d hover %d = %d, want %d", f.ms, f.step, f.hover, got, f.want)
 		}
-	}
-	setup.PreCreate = &ChargenPreCreate{Art: art}
-	setup.TipsOn = true
-	setup.TipArt = tipTestArt()
-	setup.TipText = "fighter: five weapon skills"
-	setup.TipTextMage = "mage: five magic spheres"
-	a := newTestApp(t, appRows(1), okLoader(t))
-	c := NewChargen(setup)
-	if err := a.OpenChargen(c, func(ChargenResult) (MapOpener, error) { return nil, nil }); err != nil {
-		t.Fatal(err)
-	}
-
-	if got := c.TipPanel().Text; got != setup.TipText {
-		t.Fatalf("TipPanel().Text on a fresh generator = %q, want the fighter text %q", got, setup.TipText)
-	}
-
-	click := func(choice chargenControl) {
-		t.Helper()
-		at := preControlRect(c, choice).Min
-		a.step(appInput{CursorX: at.X, CursorY: at.Y, PrimaryPressed: true}, now)
-		a.step(appInput{CursorX: at.X, CursorY: at.Y, PrimaryReleased: true}, now)
-	}
-
-	click(chargenChoice1) // male mage
-	if c.PreChoice() != 1 {
-		t.Fatalf("PreChoice() after the mage portrait click = %d, want 1", c.PreChoice())
-	}
-	if got := c.TipPanel().Text; got != setup.TipTextMage {
-		t.Fatalf("TipPanel().Text after picking the mage portrait = %q, want the mage text %q", got, setup.TipTextMage)
-	}
-
-	click(chargenChoice2) // female fighter
-	if c.PreChoice() != 2 {
-		t.Fatalf("PreChoice() after the fighter portrait click = %d, want 2", c.PreChoice())
-	}
-	if got := c.TipPanel().Text; got != setup.TipText {
-		t.Fatalf("TipPanel().Text after picking the fighter portrait = %q, want the fighter text %q", got, setup.TipText)
 	}
 }

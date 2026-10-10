@@ -47,7 +47,10 @@ func TestLoadChargenAssets(t *testing.T) {
 	src[chargenPrecreatePath+"amulet.bmp"] = synthBMP(112, 204, color.RGBA{R: 0x44, A: 0xff})
 	src[chargenPrecreatePath+"buttonok.bmp"] = synthBMP(100, 56, color.RGBA{R: 0x44, A: 0xff})
 	src[chargenPlatePath] = synthBMP(160, 238, color.RGBA{R: 0x44, A: 0xff})
-	src[graphicsPrefix+"interface/chrgen/buttonsarea.bmp"] = synthBMP(160, 238, color.RGBA{G: 0x44, A: 0xff})
+	src[graphicsPrefix+"interface/inn/buttonsarea.bmp"] = synthBMP(160, 238, color.RGBA{G: 0x44, A: 0xff})
+	for _, name := range []string{"button1off", "button1on", "button2off", "button2on", "button3off", "button3on"} {
+		src[graphicsPrefix+"interface/inn/"+name+".bmp"] = synthBMP(140, 46, color.RGBA{R: 0x33, A: 0xff})
+	}
 	src[graphicsPrefix+"interface/inn/ruover.bmp"] = synthBMP(16, 238, color.RGBA{B: 0x44, A: 0xff})
 	src[graphicsPrefix+"interface/chrgen/rollstatsr.bmp"] = synthBMP(16, 238, color.RGBA{B: 0x44, A: 0xff})
 	src[graphicsPrefix+"interface/humanbackr.bmp"] = synthBMP(160, 242, color.RGBA{B: 0x44, A: 0xff})
@@ -123,7 +126,7 @@ func TestLoadChargenAssets(t *testing.T) {
 	}
 	src[FontAtlasPathA(DocumentFont)] = synthFont16A()
 	src[chargenPrecreatePath+"mask.bmp"] = synthBMP8(640, 480)
-	if _, err := LoadChargenAssets(src); err == nil || !strings.Contains(err.Error(), "missing required mask index 80") {
+	if _, err := LoadChargenAssets(src); err == nil || !strings.Contains(err.Error(), "missing required mask index 20") {
 		t.Fatalf("blank pre-create mask error = %v, want missing required mask index", err)
 	}
 	src[chargenPrecreatePath+"mask.bmp"] = synthBMP8(640, 480, chargenPreMaskCodes[:]...)

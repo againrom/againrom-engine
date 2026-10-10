@@ -64,6 +64,12 @@ type Edition struct {
 
 	// StartupCutscenes: the logo and introduction movies play at start.
 	StartupCutscenes bool
+
+	// MissionTipText is the archive path of a mission's numbered tip text,
+	// formatted with the mission and the tip number. A mission dialogue part's
+	// tips= tag raises that popup when the dialogue closes on its last page;
+	// empty when the tag raises nothing.
+	MissionTipText string
 }
 
 // Campaign names a campaign model.
@@ -87,6 +93,7 @@ var firstEdition = Edition{
 	Cheats:                    true,
 	FreshPlayers:              true,
 	StartupCutscenes:          true,
+	MissionTipText:            "main/text/battle/m%d/tips%02d.txt",
 }
 
 var secondEdition = Edition{

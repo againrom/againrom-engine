@@ -77,14 +77,10 @@ func run(args []string, w io.Writer) error {
 		return squareLabel(c), true
 	})
 
-	// surface reports against v.Tip.Rect itself, not against
-	// ui.TavernTipRect/ui.SchoolTipRect: since 1021 (spec B2) production
-	// shrinks each room's rect to that root's own minimum-plus-margin
-	// height, so the outer package constant and the rect this room actually
-	// draws and hit-tests against can differ. The shrink keeps the left
-	// edge, width and top edge fixed (pkg/ui.TipPanelShrinkRect's own doc),
-	// so an anchor built from the resolved rect's own corners is still a
-	// top anchor.
+	// surface reports against v.Tip.Rect itself: production keeps the
+	// room's description rectangle and moves only its bottom edge when the
+	// text overflows it, so an anchor built from the resolved rect's own
+	// corners is still a top anchor.
 	surface := func(door int, name string) error {
 		scr.Back()
 		scr.Choose(door)
@@ -133,22 +129,22 @@ func run(args []string, w io.Writer) error {
 
 	setup := f.ChargenSetup()
 	c := ui.NewChargen(setup)
-	c.SelectPreChoice(0) // male fighter
-	fighter := c.TipPanel()
-	c.SelectPreChoice(1) // male mage
-	mage := c.TipPanel()
-	c.SelectPreChoice(0) // restore, so chargenID's own hit test below reads the default state
-	// fighter.Rect and mage.Rect are each production's own resolved rect for
-	// that pre-choice (round-2 adversarial review, owner item "shop tip too
-	// tall", same class of defect as the shop, at lower severity):
-	// pkg/ui/chargen.go's own Chargen.TipPanel shrinks against WHICHEVER
-	// text c.preChoice currently selects (TipText or TipTextMage), so
-	// fighter's and mage's own rects can differ, unlike before this fix
-	// where both shared one call to ui.ChargenTipRect. Reporting them as one
-	// shared "chosen" figure, computed from only one of the two calls, would
-	// read as a defect at the OTHER one's own text whenever the two
-	// resolved heights differ (observed on the ru root, chargen fighter=148
-	// mage=160 rows): this report keeps them separate instead.
+	pre := c.TipPanel()
+	report(w, "chargen pre-create", pre, pre.Rect, topAnchor(pre.Rect.Min.X, pre.Rect.Min.Y, pre.Rect.Max.X), func(p image.Point) (string, bool) {
+		return ui.PreCreateControlAt(c, p)
+	})
+	// The detailed page's popup carries the class text the pre-create choice
+	// selects; fighter's and mage's own rects are reported apart because each
+	// shrinks against its own text.
+	detailed := func(choice int) ui.TipPanelView {
+		c.SelectPreChoice(choice)
+		c.Forward()
+		v := c.TipPanel()
+		c.Back()
+		return v
+	}
+	fighter, mage := detailed(0), detailed(1)
+	c.SelectPreChoice(0)
 	chosen := fighter.Rect
 	fighterRectAt := bottomAnchor(fighter.Rect.Min.X, fighter.Rect.Max.X, fighter.Rect.Max.Y)
 	mageRectAt := bottomAnchor(mage.Rect.Min.X, mage.Rect.Max.X, mage.Rect.Max.Y)

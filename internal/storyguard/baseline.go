@@ -2005,6 +2005,11 @@ package storyguard
 // cases and debt list in internal/archtest, the edition's Rooms field and
 // the room description reader in pkg/game, new code, including this
 // paragraph.
+// CommentBytes rises for the tip witnesses: the docs of the new release test
+// file for the generator cycles and the tip renders, the scroll witness's
+// note that the mission start tip covers its click, the room tip witnesses,
+// the edition's mission tip field and the tip list rectangle's doc, new code,
+// including this paragraph.
 // CommentBytes rises for the engine words: the docs of the new pkg/words and its
 // tests and the engine-words scan in internal/archtest, new code, including
 // this paragraph.
@@ -2018,7 +2023,7 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1879,
+		"acclause":        1877,
 		"scclause":        506,
 		"barestorynumber": 1741,
 	},
@@ -2029,7 +2034,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1774,
+		"longcommentgroups":      1770,
 	},
-	CommentBytes: 8558560,
+	CommentBytes: 8562166,
 }
