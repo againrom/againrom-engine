@@ -95,7 +95,8 @@ func TestReleaseTavernDialogueDressesTheStockUnitItsSpeakerAnswersFor(t *testing
 				if !found || !imagesEqual(pic, want) {
 					t.Errorf("%s: dialogue figure is not the unit's own composed figure", where())
 				}
-				if bare, _ := composeUnitFigure(src, data.Equipment{}, figureID{Dir: rec.Dir, Face: rec.Face}); imagesEqual(pic, bare) {
+				// A Platoon record names no figure, so it has no bare sheet.
+				if bare, _ := composeUnitFigure(src, data.Equipment{}, figureID{Dir: rec.Dir, Face: rec.Face}); rec.Kind == data.NPCFigure && imagesEqual(pic, bare) {
 					t.Errorf("%s: dialogue figure is the bare sheet", where())
 				}
 				got, ok := s.TownDialogue()

@@ -2025,7 +2025,8 @@ package storyguard
 // CommentBytes rises for the unit-shot tracking release witness and its
 // helpers, new code, including this paragraph.
 // CommentBytes rises for the platoon talk cell: the docs of platoonTalkObject,
-// its constant and tests, new code, including this paragraph.
+// its constant and tests and the tavern dialogue witness, new code, including
+// this paragraph.
 // CommentBytes rises for the mission-100 amulet witness's docs, new code,
 // including this paragraph.
 // CommentBytes rises for the Human speed derive: the shared derive in
@@ -2056,5 +2057,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1767,
 	},
-	CommentBytes: 8581956,
+	CommentBytes: 8582051,
 }
