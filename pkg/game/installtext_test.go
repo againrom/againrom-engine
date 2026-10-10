@@ -130,7 +130,7 @@ func TestInstallWordsWithoutTablesAreAuthored(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			want := ui.AuthoredWords()
-			w := LoadInstallWords(tc.src)
+			w := LoadInstallWords(tc.src, TextCode{})
 			if LanguageSelector(tc.src) == 1 {
 				w.Language = "russian"
 				want.Engine = words.For("russian")
@@ -144,7 +144,7 @@ func TestInstallWordsWithoutTablesAreAuthored(t *testing.T) {
 		})
 	}
 	// A nil source and a nil word set take the same arm.
-	if got := LoadInstallWords(nil).Words(); got != ui.AuthoredWords() {
+	if got := LoadInstallWords(nil, TextCode{}).Words(); got != ui.AuthoredWords() {
 		t.Fatal("a nil source resolved something")
 	}
 	var nilWords *InstallWords
@@ -194,7 +194,7 @@ func TestInstallWordsResolveEveryDecodedIndex(t *testing.T) {
 			dialogsSlotExitWindows:     "Exit to ~Windows",
 		}),
 	}
-	got := LoadInstallWords(src).Words()
+	got := LoadInstallWords(src, TextCode{}).Words()
 	want := ui.AuthoredWords()
 	want.NoticeButton = "Ok"
 	want.MissionWon = "Mission Completed"
@@ -242,7 +242,7 @@ func TestTipPanelWordsUseMainSlots127And128(t *testing.T) {
 	src := installFixture{MainTextPath: textFile(130, map[int]string{
 		126: "before", 127: "Close", 128: "Show tips next time", 129: "after",
 	})}
-	got := LoadInstallWords(src).Words()
+	got := LoadInstallWords(src, TextCode{}).Words()
 	if got.TipClose != "Close" || got.TipShowNext != "Show tips next time" {
 		t.Fatalf("tip captions = %q / %q, want main.txt[127] / [128]", got.TipClose, got.TipShowNext)
 	}
@@ -252,7 +252,7 @@ func TestMercenaryRoleUsesMainSlot84(t *testing.T) {
 	src := installFixture{MainTextPath: textFile(86, map[int]string{
 		83: "before", 84: "Mercenary", 85: "after",
 	})}
-	if got := LoadInstallWords(src).Words().PanelCaptions[mainSlotMercenary]; got != "Mercenary" {
+	if got := LoadInstallWords(src, TextCode{}).Words().PanelCaptions[mainSlotMercenary]; got != "Mercenary" {
 		t.Fatalf("mercenary role = %q, want main.txt[84]", got)
 	}
 }
@@ -267,7 +267,7 @@ func TestInstallWordsRetainsTheThreeNewLocalTables(t *testing.T) {
 			mainSlotSaveAcknowledgement: "saved", mainSlotWorldReturn: "return", mainSlotWorldPayment: "payment",
 		}),
 	}
-	w := LoadInstallWords(src)
+	w := LoadInstallWords(src, TextCode{})
 	got := w.Words()
 	if got.UnitNames[23] != "installed unit" || got.ItemStats[43] != "installed damage" ||
 		got.WorldHomeTitle != "installed home" || got.PanelCaptions[15] != "installed body" {
@@ -285,7 +285,7 @@ func TestInstallWordsCarryBuildingNamesAndTheSelectedLanguageItemWords(t *testin
 		BuildingTextPath: textFile(66, map[int]string{20: "installed ogre house"}),
 		StatsTextPath:    textFile(50, map[int]string{38: "range word", 42: "casts word", 43: "damage word"}),
 	}
-	russian := LoadInstallWords(src)
+	russian := LoadInstallWords(src, TextCode{})
 	russian.Language = "russian"
 	got := russian.Words()
 	if got.BuildingNames[21] != "installed ogre house" || got.BuildingNames[20] != "" {
@@ -299,7 +299,7 @@ func TestInstallWordsCarryBuildingNamesAndTheSelectedLanguageItemWords(t *testin
 		t.Fatalf("selector 1 left the authored English Rays or Sleep: %q %q", got.ItemRays, got.TavernSleep)
 	}
 	src[LanguagePath] = []byte("0")
-	english := LoadInstallWords(src)
+	english := LoadInstallWords(src, TextCode{})
 	english.Language = "english"
 	got = english.Words()
 	if got.ItemCasts != authored.ItemCasts || got.ItemRays != authored.ItemRays || got.TavernSleep != authored.TavernSleep {
@@ -313,7 +313,7 @@ func TestDiplomacyUsesDialogsLocalIndex4C(t *testing.T) {
 	src := installFixture{DialogsTextPath: textFile(0x4e, map[int]string{
 		0x4b: "before", 0x4c: "Diplomacy", 0x4d: "Abort Game",
 	})}
-	if got := LoadInstallWords(src).Words().MenuDiplomacy; got != "Diplomacy" {
+	if got := LoadInstallWords(src, TextCode{}).Words().MenuDiplomacy; got != "Diplomacy" {
 		t.Fatalf("MenuDiplomacy = %q, want dialogs.txt local index 0x4c", got)
 	}
 }
@@ -330,7 +330,7 @@ func TestConfirmationWordsUseDialogsLocalIndices2ATo2D(t *testing.T) {
 		0x2d: "Exit to ~Windows",
 		0x2e: "after",
 	})}
-	w := LoadInstallWords(src).Words()
+	w := LoadInstallWords(src, TextCode{}).Words()
 	got := []string{w.MenuChangeMap, w.MenuVictory, w.MenuExitMain, w.MenuExitWindows}
 	want := []string{"Change Map", "~Victory!", "~Exit to Main Menu", "Exit to ~Windows"}
 	for i := range want {
@@ -344,7 +344,7 @@ func TestSuccessContinueUsesDialogsLocalIndex154(t *testing.T) {
 	src := installFixture{DialogsTextPath: textFile(156, map[int]string{
 		153: "before", 154: "Continue", 155: "after",
 	})}
-	if got := LoadInstallWords(src).Words().OutcomeContinue; got != "Continue" {
+	if got := LoadInstallWords(src, TextCode{}).Words().OutcomeContinue; got != "Continue" {
 		t.Fatalf("OutcomeContinue = %q, want dialogs.txt local index 154", got)
 	}
 }
@@ -356,7 +356,7 @@ func TestInstallWordsResolvePerIndex(t *testing.T) {
 		MainTextPath:    textFile(274, map[int]string{mainSlotMissionWon: "done"}),
 		DialogsTextPath: textFile(166, map[int]string{dialogsSlotAbort: "stop"}),
 	}
-	got := LoadInstallWords(src).Words()
+	got := LoadInstallWords(src, TextCode{}).Words()
 	authored := ui.AuthoredWords()
 	if got.MissionWon != "done" || got.MenuAbort != "stop" {
 		t.Fatalf("stated lines did not resolve: %#v", got)
@@ -377,7 +377,7 @@ func TestGlobalAndDialogsAreDifferentIndexSpaces(t *testing.T) {
 		MainTextPath:    textFile(274, map[int]string{34: "main line 34"}),
 		DialogsTextPath: textFile(166, map[int]string{34: "dialogs line 34"}),
 	}
-	w := LoadInstallWords(src)
+	w := LoadInstallWords(src, TextCode{})
 	if s, ok := w.Global(34); !ok || s != "main line 34" {
 		t.Fatalf("Global(34) = %q, %v", s, ok)
 	}
@@ -406,7 +406,7 @@ func TestInstallWordsOverALawfulInstall(t *testing.T) {
 		if err != nil {
 			t.Fatalf("OpenArchives(%s): %v", root, err)
 		}
-		w := LoadInstallWords(archives.Containers)
+		w := LoadInstallWords(archives.Containers, InstallTextCode(archives.Containers, archives.Game().Edition()))
 		got := w.Words()
 		authored := ui.AuthoredWords()
 		resolved := 0
@@ -538,7 +538,7 @@ func TestOriginalSixteenTextTableCountsOverBothLawfulInstalls(t *testing.T) {
 		}
 		total := 0
 		for i, path := range paths {
-			table := LoadTextTable(fsys, path)
+			table := LoadTextTable(fsys, path, TextCode{})
 			want := credits
 			if i < len(common) {
 				want = common[i]
@@ -577,7 +577,7 @@ func TestOriginalUITextWordSetExactDifferencesOverBothLawfulInstalls(t *testing.
 		if err != nil {
 			t.Fatalf("OpenArchives(%s): %v", root, err)
 		}
-		w := LoadInstallWords(archives.Containers)
+		w := LoadInstallWords(archives.Containers, InstallTextCode(archives.Containers, archives.Game().Edition()))
 		w.Language = archives.Base.Profile.Language
 		return w.Words()
 	}
@@ -732,7 +732,7 @@ func TestMissionOutcomeTextComesOffTheViewer(t *testing.T) {
 			mainSlotMissionWon:  "Mission Completed",
 			mainSlotMissionLost: "Mission Failed",
 		}),
-	}).Words())
+	}, TextCode{}).Words())
 	if got := missionOutcomeText(v, sim.OutcomeWon); got != "Mission Completed" {
 		t.Fatalf("installed won = %q", got)
 	}
@@ -748,7 +748,7 @@ func TestMissionOutcomeTextComesOffTheViewer(t *testing.T) {
 func TestTownDialogueButtonComesFromTheWordSet(t *testing.T) {
 	installed := LoadInstallWords(installFixture{
 		MainTextPath: textFile(274, map[int]string{mainSlotNoticeButton: "Ok"}),
-	}).Words()
+	}, TextCode{}).Words()
 	for _, tc := range []struct {
 		name  string
 		words ui.Words

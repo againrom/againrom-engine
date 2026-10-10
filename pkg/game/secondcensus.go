@@ -252,7 +252,7 @@ func secondMapCensus(m *alm.Map, n int, t *mapload.Table, party []mapload.PartyM
 		c.Err = err.Error()
 		return c
 	}
-	secondText(&c, src)
+	secondText(&c, src, InstallTextCode(src, tableGame(t).Edition()))
 	ms, err := StartMissionFrom(m, "", n, t, mapload.DifficultyNormal, party)
 	if err != nil {
 		c.Err = err.Error()
@@ -437,13 +437,13 @@ func secondSpecialEvent(e int32) bool { return e == 250 || e >= 253 && e <= 255 
 // secondText checks every ordinary event and failure reason against the
 // mission's own text, the failure reason with the installed fallback the
 // mission screen uses.
-func secondText(c *SecondMapCensus, src entrySource) {
+func secondText(c *SecondMapCensus, src entrySource, code TextCode) {
 	for _, e := range c.Events {
-		if _, ok := readSecondGameEventText(src, c.Mission, int(e)); !ok {
+		if _, ok := readSecondGameEventText(src, code, c.Mission, int(e)); !ok {
 			c.NoEventText = append(c.NoEventText, e)
 		}
 	}
-	labels := secondGameFailureText(src, c.Mission)
+	labels := secondGameFailureText(src, code, c.Mission)
 	for _, r := range c.Reasons {
 		if r != 0 && (r < 2 || int(r-2) >= len(labels) || labels[r-2] == "") {
 			c.NoReasonText = append(c.NoReasonText, r)

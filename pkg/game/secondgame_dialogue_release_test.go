@@ -36,7 +36,7 @@ func TestReleaseSecondGameMissionTenAuthoredDialogueIsReadable(t *testing.T) {
 
 func TestReleaseSecondGameFailureUsesInstalledFallback(t *testing.T) {
 	archives := secondGameRoot(t)
-	words := LoadInstallWords(archives.Containers)
+	words := LoadInstallWords(archives.Containers, InstallTextCode(archives.Containers, archives.Game().Edition()))
 	for _, tc := range []struct{ reason, slot int }{{3, 283}, {4, 284}} {
 		t.Run(fmt.Sprintf("reason%d", tc.reason), func(t *testing.T) {
 			want, found := words.Global(tc.slot)
@@ -49,7 +49,7 @@ func TestReleaseSecondGameFailureUsesInstalledFallback(t *testing.T) {
 				[]sim.ScriptTrigger{missionTrigger(3, 1, true, 0, 1)})
 			mw, view := missionDriverFor(t, w, nil, nil)
 			mw.mission.table = &mapload.Table{Game: archives.Game()}
-			mw.mission.failureText = secondGameFailureText(archives.Containers, 10)
+			mw.mission.failureText = secondGameFailureText(archives.Containers, InstallTextCode(archives.Containers, archives.Game().Edition()), 10)
 			missionSteps(mw, 1)
 			body, kind, shown := view.NoticeState()
 			if !shown || kind != ui.NoticeFailure || body != want || w.Outcome() != sim.OutcomeLost {

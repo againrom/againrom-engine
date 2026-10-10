@@ -197,7 +197,7 @@ func (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, st
 	if live := f.live; live != nil && live.view != nil {
 		movie := ""
 		if in := f.Archives; in != nil && in.Containers != nil {
-			movie = secondGameCompletionDirectory(in.Containers, output)
+			movie = secondGameCompletionDirectory(in.Containers, InstallTextCode(in.Containers, in.Game().Edition()), output)
 		}
 		live.view.SetCompletionCutscene(movie)
 	}
@@ -235,9 +235,10 @@ func (r secondCampaignRules) returnToTown(f *FrontEnd, n int) {
 func (secondCampaignRules) openMission(v *ui.Viewer) { v.SetCompletionCutscene("") }
 
 func (secondCampaignRules) loadMissionText(mw *mapWorld, src entrySource, ms *Mission, t *mapload.Table) {
-	mw.mission.objectiveLabels = secondGameObjectiveLabels(src, ms.Number)
+	code := InstallTextCode(src, tableGame(t).Edition())
+	mw.mission.objectiveLabels = secondGameObjectiveLabels(src, code, ms.Number)
 	mw.mission.npcKeys = secondGameNPCKeys(ms, t)
-	mw.mission.failureText = secondGameFailureText(src, ms.Number)
+	mw.mission.failureText = secondGameFailureText(src, code, ms.Number)
 }
 
 func (secondCampaignRules) scriptMessages(mw *mapWorld, messages []int32) {

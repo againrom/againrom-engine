@@ -438,7 +438,7 @@ func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("initial campaign town: %w", err)
 	}
-	body := secondGameTextSection(secondGameMissionBytes(payload, LanguageSelector(install.Archives.Containers)), key)
+	body := secondGameTextSection(install.textCode().Bytes(payload), key)
 	if body == "" {
 		return nil, nil
 	}

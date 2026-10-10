@@ -44,7 +44,7 @@ func TestReleaseSoundOptions1187InstalledControls(t *testing.T) {
 	if len(rows) != 13 {
 		t.Fatal("channel panel absent", rows)
 	}
-	table := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+	table := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 	for i := 0; i < 3; i++ {
 		word, ok := table.At(16 + i)
 		if !ok || !strings.HasPrefix(rows[i].Text, drawnMenuLabel(word)) {

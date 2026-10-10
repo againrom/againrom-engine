@@ -172,12 +172,12 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	// from opening. It reads a different archive (main.res text, not
 	// world.res), so it rides beside the table rather than inside the walk
 	// above.
-	d.Table.Names, _ = ReadItemNames(fsys)
+	d.Table.Names, _ = ReadItemNames(fsys, InstallTextCode(fsys, g.Edition()))
 	// NOT FATAL either: a table that read fewer than the four hero names carries
 	// none, and MissionPartyAs then names a hero started without the generator's
 	// name field itself. The generator reads the same four through the same
 	// reader and refuses to open without them.
-	if names, err := heroPictureNames(fsys, heroNameGenerator()); err == nil {
+	if names, err := heroPictureNames(fsys, heroNameGenerator(), InstallTextCode(fsys, g.Edition())); err == nil {
 		d.Table.HeroNames = names
 	}
 	return d, nil

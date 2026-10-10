@@ -17,12 +17,12 @@ func TestSchoolCaptionSourcesAndFallbacks(t *testing.T) {
 		}),
 		DialogsTextPath: textFile(234, map[int]string{231: "wrong-table", 232: "wrong-table"}),
 	}
-	w := LoadInstallWords(src).Words()
+	w := LoadInstallWords(src, TextCode{}).Words()
 	if w.SchoolTrain != string([]byte{0x93, 0xe7, 0xa8}) || w.SchoolExit != "school-leave" {
 		t.Fatalf("school captions: %q / %q", w.SchoolTrain, w.SchoolExit)
 	}
 	for _, lines := range []int{0, 231, 232, 234} {
-		w = LoadInstallWords(installFixture{MainTextPath: textFile(lines, map[int]string{231: "resolved-train"})}).Words()
+		w = LoadInstallWords(installFixture{MainTextPath: textFile(lines, map[int]string{231: "resolved-train"})}, TextCode{}).Words()
 		want := ui.AuthoredWords()
 		if lines > 231 {
 			want.SchoolTrain = "resolved-train"
@@ -41,12 +41,12 @@ func TestTavernCaptionSourcesAndFallbacks(t *testing.T) {
 		257: "before-hire", 258: string([]byte{0x8d, 0xa0, 0xad}),
 		259: "dismiss", 260: "after-fire",
 	}), DialogsTextPath: textFile(261, map[int]string{242: "wrong-table", 258: "wrong-table", 259: "wrong-table"})}
-	w := LoadInstallWords(src).Words()
+	w := LoadInstallWords(src, TextCode{}).Words()
 	if w.TavernHire != string([]byte{0x8d, 0xa0, 0xad}) || w.TavernFire != "dismiss" || w.TavernTalk != "speak" || w.TavernExit != "leave" {
 		t.Fatalf("tavern caption resolution: %q / %q / %q / %q", w.TavernHire, w.TavernFire, w.TavernTalk, w.TavernExit)
 	}
 	for _, lines := range []int{0, 242, 243, 258, 259, 261} {
-		w = LoadInstallWords(installFixture{MainTextPath: textFile(lines, map[int]string{258: "resolved-hire"})}).Words()
+		w = LoadInstallWords(installFixture{MainTextPath: textFile(lines, map[int]string{258: "resolved-hire"})}, TextCode{}).Words()
 		want := ui.AuthoredWords()
 		if lines > 258 {
 			want.TavernHire = "resolved-hire"

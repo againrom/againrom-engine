@@ -21,7 +21,7 @@ import (
 
 func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 	f := releaseFront(t)
-	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath)
+	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	if mainTable == nil {
 		t.Fatal("install carries no main.txt")
 	}
@@ -171,7 +171,7 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 			t.Fatalf("fixture actor reads record power %d, want the wrapped 100", power)
 		}
 		lo, hi := recordDamage(heal, power)
-		bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath)
+		bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath, f.textCode())
 		row, _ := bookTable.At(12)
 		want := []string{strings.SplitN(row, "#", 2)[0],
 			fmt.Sprintf("%s: %d", label(spellLabelManaCost), heal.ManaCost),

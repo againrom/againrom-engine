@@ -20,6 +20,10 @@ type Locale struct {
 	// CodePage is the code page the install's text is written in; zero is
 	// ASCII with no further characters the engine can name.
 	CodePage int
+	// WindowsCodePage is the Windows code page a converting game's install
+	// writes this language's text files in (base.Edition.TextCodePage); zero
+	// when the engine names none.
+	WindowsCodePage int
 	// FontRemap reports that the installed font moves a byte before it
 	// selects a record (text.Convert).
 	FontRemap bool
@@ -31,7 +35,7 @@ const Fallback = "en"
 
 var table = [...]Locale{
 	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en"},
-	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, FontRemap: true},
+	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true},
 }
 
 // All is every known language, in table order.

@@ -1922,7 +1922,7 @@ func (mw *mapWorld) raiseMissionTip() {
 	if !ok {
 		return
 	}
-	text, ok := ReadShopTip(m.src, path)
+	text, ok := ReadShopTip(m.src, path, InstallTextCode(m.src, m.edition()))
 	if !ok {
 		return
 	}

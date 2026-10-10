@@ -67,8 +67,8 @@ func (f *FrontEnd) movieCatalog() []ui.CutsceneEntry {
 	if f.Archives == nil || f.Archives.Containers == nil {
 		return nil
 	}
-	paths := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutpaths.txt")
-	titles := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutscene.txt")
+	paths := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutpaths.txt", f.textCode())
+	titles := LoadTextTable(f.Archives.Containers, mainPrefix+"text/cutscene.txt", f.textCode())
 	var out []ui.CutsceneEntry
 	for i := 0; i < 99; i++ {
 		path, ok := paths.At(i)
@@ -87,7 +87,7 @@ func (f *FrontEnd) movieCatalog() []ui.CutsceneEntry {
 func (f *FrontEnd) wireMediaMenu(a *ui.App) {
 	words := ui.CutsceneLibraryWords{Title: "View Cutscenes", OK: "OK", Cancel: "Cancel"}
 	if f.Archives != nil && f.Archives.Containers != nil {
-		t := LoadTextTable(f.Archives.Containers, DialogsTextPath)
+		t := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 		for i, p := range map[int]*string{153: &words.Title, 0: &words.OK, 1: &words.Cancel} {
 			if s, ok := t.At(i); ok {
 				*p = s
@@ -131,7 +131,7 @@ func (f *FrontEnd) creditsView() ui.CreditsView {
 	// The preserved credits nodes use LF internally, unlike the positional
 	// interface tables. Keep empty lines: they reserve space for logos.
 	if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "text/credits.txt"); err == nil && len(raw) <= 256*1024 {
-		v.Lines = strings.Split(strings.TrimSuffix(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n"), "\n")
+		v.Lines = strings.Split(strings.TrimSuffix(strings.ReplaceAll(string(f.textCode().Bytes(raw)), "\r\n", "\n"), "\n"), "\n")
 		if len(v.Lines) > 4096 {
 			v.Lines = v.Lines[:4096]
 		}

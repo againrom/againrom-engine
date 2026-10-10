@@ -14,7 +14,7 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 	payload := []byte("Buy low\rand sell high.")
 	fsys := townTextFS(t, []synth.File{{Path: "text/tips/shop1.txt", Data: payload}})
 
-	got, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text)
+	got, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text, TextCode{})
 	if !ok {
 		t.Fatal("ReadShopTip reported the file absent")
 	}
@@ -27,10 +27,10 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 // there is nothing to draw (matching every other install text reader).
 func TestReadShopTipMissingFileAnswersFalse(t *testing.T) {
 	fsys := townTextFS(t, nil)
-	if _, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text); ok {
+	if _, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text, TextCode{}); ok {
 		t.Error("ReadShopTip found a file that was never shipped")
 	}
-	if _, ok := ReadShopTip(nil, roomTipIn(ROM1TownDescription(), roomShop).Text); ok {
+	if _, ok := ReadShopTip(nil, roomTipIn(ROM1TownDescription(), roomShop).Text, TextCode{}); ok {
 		t.Error("ReadShopTip with a nil source answered true")
 	}
 }

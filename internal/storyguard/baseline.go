@@ -2066,6 +2066,9 @@ package storyguard
 // companion, the legacy city companion, the book codes and the first mission,
 // and the claim and divergence IDs cited at the remaining sites, new code,
 // including this paragraph.
+// CommentBytes rises for the install text code page: the docs of TextCode,
+// its edition and locale fields and the readers that take it, and the new
+// release test's, new code, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2089,5 +2092,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1761,
 	},
-	CommentBytes: 8616952,
+	CommentBytes: 8619130,
 }
