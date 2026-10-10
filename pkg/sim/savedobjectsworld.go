@@ -7,10 +7,13 @@ import (
 
 // SavedSackBinding is an exact import request, not a value-based lookup or
 // allocation rule. The caller has already joined the source root and cell key.
+// Keyless states that the source cell names no Sack: it has no record or an
+// empty Sack slot.
 type SavedSackBinding struct {
-	ID   SavedObjectID
-	X, Y int32
-	Gold uint32
+	ID      SavedObjectID
+	X, Y    int32
+	Gold    uint32
+	Keyless bool
 }
 
 func (w *World) SavedObjects() *SavedObjects {
@@ -75,7 +78,18 @@ func (w *World) ImportSavedObjects(registry *SavedObjects, bindings []SavedSackB
 		source := w.motionCell(cell)
 		// Collection identity comes from the explicit cell operand. Static
 		// bit five controls gameplay lookup visibility, not this exact join.
-		if binary.LittleEndian.Uint16(row.Token.Position[2:]) != cell || source == nil || binary.LittleEndian.Uint32(source.Payload[16:]) != row.Token.Identity {
+		// A keyless binding requires a cell with no record or an empty Sack
+		// slot (SAV-SACKREMOVE-591 clears a slot without testing its Sack);
+		// the caller joined such a Sack by its unique source cell and gold.
+		key := row.Token.Identity
+		if b.Keyless {
+			key = 0
+		}
+		slot := uint32(0)
+		if source != nil {
+			slot = binary.LittleEndian.Uint32(source.Payload[16:])
+		}
+		if binary.LittleEndian.Uint16(row.Token.Position[2:]) != cell || slot != key || source == nil && !b.Keyless {
 			return fmt.Errorf("sim: saved Sack cell key differs from its exact source object")
 		}
 		found := false

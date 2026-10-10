@@ -356,7 +356,7 @@ func validateSavedItemBindingWorldDecoded(state *SnapshotSAVDocument, world *sim
 			if reason != savedSackConstructorUnavailable && savedCurrentContainerCoverage(c, indices) == savedContainerDetachedUnavailable {
 				reason = savedSackContentsUnavailable
 			}
-			if row.Coverage.Unknown&sim.SavedUnknownIdentity == 0 && (row.Token.Identity == 0 || cellOperands[binary.LittleEndian.Uint16(row.Token.Position[2:])] != row.Token.Identity) {
+			if row.Coverage.Unknown&sim.SavedUnknownIdentity == 0 && !savedSackCellAdmits(cellOperands, binary.LittleEndian.Uint16(row.Token.Position[2:]), row.Token.Identity) {
 				return fmt.Errorf("saved SAV Sack lost exact cell identity")
 			}
 			byObject[m.Sacks[i].ObjectIndex] = row.ID
