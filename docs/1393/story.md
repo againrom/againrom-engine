@@ -6,8 +6,8 @@ No production code outside `pkg/base` and the campaign service chooses by
 game. `ProfileDebt` in `internal/archtest/gameprofile.go` is empty, and
 `base.Edition` holds no bool that picks one of two code bodies. Nothing a
 player sees or a save holds changes. No CHANGELOG line: nothing is
-player-visible. Base: public main `a2bd04f6` (release 0.110.0); the knowledge
-pin stays.
+player-visible. Base: public main `a2bd04f6` (release 0.110.0), reconciled
+with main `0e73dad9` (release 0.111.0); the knowledge pin is main's.
 
 ## Authority
 
@@ -118,7 +118,8 @@ The scan shapes, `ProfileAllowed` and `CheckProfile` are unchanged.
   instead of `t.Game`; `SecondGameSpellArms` for `secondGameRules`; three
   release tests skip on `Campaign == base.CampaignDestinations` instead of
   `NewGameInTown`; the `ui` startup test names its movies with
-  `SetStartupCutscenes`.
+  `SetStartupCutscenes`; the mapload Players test keys its expected rows so
+  `go vet` passes.
 - Release filters, scenarios and gates: the lane return lists each with its
   count and result.
 
