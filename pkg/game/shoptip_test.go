@@ -14,7 +14,7 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 	payload := []byte("Buy low\rand sell high.")
 	fsys := townTextFS(t, []synth.File{{Path: "text/tips/shop1.txt", Data: payload}})
 
-	got, ok := ReadShopTip(fsys, roomTip(roomShop).Text)
+	got, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text)
 	if !ok {
 		t.Fatal("ReadShopTip reported the file absent")
 	}
@@ -27,16 +27,16 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 // there is nothing to draw (matching every other install text reader).
 func TestReadShopTipMissingFileAnswersFalse(t *testing.T) {
 	fsys := townTextFS(t, nil)
-	if _, ok := ReadShopTip(fsys, roomTip(roomShop).Text); ok {
+	if _, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text); ok {
 		t.Error("ReadShopTip found a file that was never shipped")
 	}
-	if _, ok := ReadShopTip(nil, roomTip(roomShop).Text); ok {
+	if _, ok := ReadShopTip(nil, roomTipIn(ROM1TownDescription(), roomShop).Text); ok {
 		t.Error("ReadShopTip with a nil source answered true")
 	}
 }
 
 func TestShopTipPathIsMainTextTipsShop1(t *testing.T) {
-	if got := roomTip(roomShop).Text; got != "main/text/tips/shop1.txt" {
+	if got := roomTipIn(ROM1TownDescription(), roomShop).Text; got != "main/text/tips/shop1.txt" {
 		t.Fatalf("shop room tip = %q, want main/text/tips/shop1.txt", got)
 	}
 	if ShopTip2Path != "main/text/tips/shop2.txt" {
@@ -120,7 +120,7 @@ func TestRoomTipsAreTheDescribedTextsAndRectangles(t *testing.T) {
 		{roomShop, "main/text/tips/shop1.txt", ui.ShopTipRect()},
 		{roomSchool, "main/text/tips/training.txt", ui.SchoolTipRect},
 	} {
-		if tip := roomTip(tc.room); tip.Text != tc.text || tip.Rect.Rectangle() != tc.rect {
+		if tip := roomTipIn(ROM1TownDescription(), tc.room); tip.Text != tc.text || tip.Rect.Rectangle() != tc.rect {
 			t.Errorf("room %d tip = %q %v, want %q %v", tc.room, tip.Text, tip.Rect.Rectangle(), tc.text, tc.rect)
 		}
 	}

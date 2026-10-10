@@ -22,7 +22,7 @@ func schoolTrainingFixture(t *testing.T) (*FrontEnd, *townScreen, *time.Time, *s
 	mage := fighter
 	mage.Name, mage.Mage = "Training mage", true
 	f.Carried = []mapload.PartyMember{fighter, mage}
-	schoolArt, err := LoadTownSchoolArt(townSchoolTrainingSource())
+	schoolArt, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolTrainingSource())
 	if err != nil {
 		t.Fatal(err)
 	}

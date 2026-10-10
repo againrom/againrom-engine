@@ -12,7 +12,7 @@ import (
 func diamondSchool(t *testing.T) (*FrontEnd, *townScreen) {
 	t.Helper()
 	f := shellFrontEnd()
-	schoolArt, err := LoadTownSchoolArt(townSchoolSource())
+	schoolArt, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolSource())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -49,7 +49,7 @@ var exteriorSoundPaths = []string{"town/shop/enter.wav", "town/school/point.wav"
 
 func exteriorTestArt(t *testing.T) *town.Art {
 	t.Helper()
-	a, err := LoadTownSquareArt(townSquareSource())
+	a, err := LoadTownSquareArtFor(ROM1TownDescription(), townSquareSource())
 	if err != nil {
 		t.Fatal(err)
 	}

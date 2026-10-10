@@ -105,7 +105,7 @@ func shopArtFixtureFS(t *testing.T) *vfs.FS {
 // The merchant's own picture comes out of MoviesArchive, at the address
 // SHOP-MERCHANT-046 gives, and not out of graphics.res.
 func TestLoadShopArtReadsTheMerchantOutOfMoviesArchive(t *testing.T) {
-	art := loadShopArt(shopArtFixtureFS(t))
+	art := loadShopArt(ROM1TownDescription(), shopArtFixtureFS(t))
 	merchant := art.Scene["merchant"]
 	if len(merchant) != 1 || merchant[0] == nil {
 		t.Fatal("merchant is missing with movies.res present")
@@ -118,7 +118,7 @@ func TestLoadShopArtReadsTheMerchantOutOfMoviesArchive(t *testing.T) {
 // The four rack series' first frames come out of graphics.res, folder `4-i`
 // for hit/draw index i (SHOP-SHELF-047), and each folder is distinct.
 func TestLoadShopArtReadsTheShelfAnimationsFolderFourMinusI(t *testing.T) {
-	art := loadShopArt(shopArtFixtureFS(t))
+	art := loadShopArt(ROM1TownDescription(), shopArtFixtureFS(t))
 	want := [4]color.RGBA{{R: 0x10, A: 0xff}, {R: 0x11, A: 0xff}, {R: 0x12, A: 0xff}, {R: 0x13, A: 0xff}}
 	for i, w := range want {
 		frames := art.Scene[fmt.Sprintf("rack%d", i)]
@@ -132,13 +132,13 @@ func TestLoadShopArtReadsTheShelfAnimationsFolderFourMinusI(t *testing.T) {
 }
 
 func TestLoadShopArtLeavesTheSceneEmptyWithNoArchive(t *testing.T) {
-	if art := loadShopArt(nil); len(art.Scene) != 0 {
+	if art := loadShopArt(ROM1TownDescription(), nil); len(art.Scene) != 0 {
 		t.Errorf("scene = %d entries with no archive", len(art.Scene))
 	}
 }
 
 func TestLoadShopArtCachesEveryAcceptedAnimationFamily(t *testing.T) {
-	art := loadShopArt(shopAnimationFixtureFS(t, ""))
+	art := loadShopArt(ROM1TownDescription(), shopAnimationFixtureFS(t, ""))
 	for i := 0; i < 4; i++ {
 		frames := art.Scene[fmt.Sprintf("rack%d", i)]
 		if len(frames) != shopRackFrameCount {
@@ -163,7 +163,7 @@ func TestLoadShopArtCachesEveryAcceptedAnimationFamily(t *testing.T) {
 // A rack series keeps its loaded members and leaves a missing one empty; a
 // merchant series with a missing member is dropped alone.
 func TestLoadShopArtDropsOnlyTheIncompleteAnimationFamily(t *testing.T) {
-	art := loadShopArt(shopAnimationFixtureFS(t, "interface/shopanim/03/7.bmp"))
+	art := loadShopArt(ROM1TownDescription(), shopAnimationFixtureFS(t, "interface/shopanim/03/7.bmp"))
 	rack := art.Scene["rack1"]
 	if len(rack) != shopRackFrameCount || rack[0] == nil || rack[6] != nil {
 		t.Fatalf("incomplete rack = %d frames, first %v, missing member %v", len(rack), rack[0] != nil, rack[6] == nil)
@@ -172,7 +172,7 @@ func TestLoadShopArtDropsOnlyTheIncompleteAnimationFamily(t *testing.T) {
 		t.Fatal("missing rack member removed a complete sibling")
 	}
 
-	art = loadShopArt(shopAnimationFixtureFS(t, "shopanim/yes/6.bmp"))
+	art = loadShopArt(ROM1TownDescription(), shopAnimationFixtureFS(t, "shopanim/yes/6.bmp"))
 	if art.Scene["yes"] != nil || len(art.Scene["no"]) != shopMerchantReactCount || len(art.Scene["idle"]) != shopMerchantIdleCount {
 		t.Fatal("missing Yes member removed another merchant family")
 	}

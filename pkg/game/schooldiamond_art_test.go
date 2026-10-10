@@ -17,7 +17,7 @@ func addSchoolDiamondFixture(src chargenSource) {
 func TestLoadSchoolDiamondFramesInArchiveOrderAndOpaque(t *testing.T) {
 	src := townSchoolSource()
 	addSchoolDiamondFixture(src)
-	art, err := LoadTownSchoolArt(src)
+	art, err := LoadTownSchoolArt(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestLoadSchoolDiamondRejectsMissingAndWrongSizeFrames(t *testing.T) {
 				} else {
 					delete(src, name)
 				}
-				art, err := LoadTownSchoolArt(src)
+				art, err := LoadTownSchoolArt(ROM1TownDescription(), src)
 				if art != nil || err == nil || !strings.Contains(err.Error(), name) {
 					t.Fatalf("bad frame: art=%v error=%v, want nil art and path %q", art, err, name)
 				}

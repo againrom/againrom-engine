@@ -85,7 +85,7 @@ func townSchoolTrainingSource() chargenSource {
 }
 
 func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testing.T) {
-	art, err := LoadTownSchoolArt(townSchoolTrainingSource())
+	art, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolTrainingSource())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testin
 	} {
 		src := townSchoolTrainingSource()
 		delete(src, missing.path)
-		got, err := LoadTownSchoolArt(src)
+		got, err := LoadTownSchoolArt(ROM1TownDescription(), src)
 		if err != nil {
 			t.Fatalf("optional missing %s failed base room: %v", missing.path, err)
 		}
@@ -149,7 +149,7 @@ func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testin
 
 	src := townSchoolTrainingSource()
 	src[townSchoolMoviesPrefix+"mage/m0009.bmp"] = synthBMP(171, 224, color.RGBA{A: 0xff})
-	got, err := LoadTownSchoolArt(src)
+	got, err := LoadTownSchoolArt(ROM1TownDescription(), src)
 	if err != nil || got.Scene["mage-m"] != nil || len(got.Scene["mage-tr"]) != 23 || len(got.Scene["fighter-m"]) != 9 {
 		t.Fatalf("malformed mage/m degraded outside its family: err=%v art=%d entries", err, len(got.Scene))
 	}
@@ -157,7 +157,7 @@ func TestLoadTownSchoolTrainingAllSixtyTwoFramesAndIndependentFamilies(t *testin
 
 func TestLoadTownSchoolArtReadsBothClassMappings(t *testing.T) {
 	src := townSchoolSource()
-	got, err := LoadTownSchoolArt(src)
+	got, err := LoadTownSchoolArt(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestLoadTownSchoolArtReadsBothClassMappings(t *testing.T) {
 		t.Fatal("complete school art was not retained")
 	}
 	delete(src, townSchoolArtPrefix+"column/mage/astral/shine_on.bmp")
-	if _, err := LoadTownSchoolArt(src); err == nil || !strings.Contains(err.Error(), "astral/shine_on.bmp") {
+	if _, err := LoadTownSchoolArt(ROM1TownDescription(), src); err == nil || !strings.Contains(err.Error(), "astral/shine_on.bmp") {
 		t.Fatalf("missing art error = %v", err)
 	}
 }
@@ -178,7 +178,7 @@ func TestLoadTownSchoolArtReadsBothClassMappings(t *testing.T) {
 // keep a broken install playable.
 func TestLoadTownSchoolArtReadsOneRestFacePerClass(t *testing.T) {
 	src := townSchoolSource()
-	got, err := LoadTownSchoolArt(src)
+	got, err := LoadTownSchoolArt(ROM1TownDescription(), src)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,12 +195,12 @@ func TestLoadTownSchoolArtReadsOneRestFacePerClass(t *testing.T) {
 	}
 
 	src[townSchoolArtPrefix+"column/rt0015.bmp"] = synthBMP(148, 200, color.RGBA{A: 0xff})
-	if _, err := LoadTownSchoolArt(src); err == nil || !strings.Contains(err.Error(), "rt0015.bmp") ||
+	if _, err := LoadTownSchoolArt(ROM1TownDescription(), src); err == nil || !strings.Contains(err.Error(), "rt0015.bmp") ||
 		!strings.Contains(err.Error(), "148x200") {
 		t.Fatalf("mis-sized face error = %v", err)
 	}
 	delete(src, townSchoolArtPrefix+"column/rt0000.bmp")
-	if _, err := LoadTownSchoolArt(src); err == nil || !strings.Contains(err.Error(), "rt0000.bmp") {
+	if _, err := LoadTownSchoolArt(ROM1TownDescription(), src); err == nil || !strings.Contains(err.Error(), "rt0000.bmp") {
 		t.Fatalf("missing face error = %v", err)
 	}
 }
@@ -210,7 +210,7 @@ func TestLoadTownSchoolArtReadsOneRestFacePerClass(t *testing.T) {
 // black pixel of a skill patch loses its alpha; the rest faces stand in for the
 // background where they are drawn and keep every pixel opaque.
 func TestLoadTownSchoolArtKeysPureBlackOnThePatchesOnly(t *testing.T) {
-	got, err := LoadTownSchoolArt(townSchoolSource())
+	got, err := LoadTownSchoolArt(ROM1TownDescription(), townSchoolSource())
 	if err != nil {
 		t.Fatal(err)
 	}

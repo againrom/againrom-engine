@@ -210,3 +210,18 @@ func TestMatchString(t *testing.T) {
 		t.Fatalf("statements are not distinct: %q %q %q", exact, loose, generic)
 	}
 }
+
+// TestNameable: a -base flag names every profile Find knows except the first
+// game's unrecognised build.
+func TestNameable(t *testing.T) {
+	for _, id := range IDs() {
+		if !Nameable(id) {
+			t.Errorf("Nameable(%q) = false, want true", id)
+		}
+	}
+	for id, want := range map[string]bool{ROM2: true, ROM1: false, "": false, "rom3": false} {
+		if got := Nameable(id); got != want {
+			t.Errorf("Nameable(%q) = %v, want %v", id, got, want)
+		}
+	}
+}
