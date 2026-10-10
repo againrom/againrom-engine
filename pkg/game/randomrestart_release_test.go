@@ -18,7 +18,7 @@ func townFront(t *testing.T, seed uint64, original bool) (*FrontEnd, *ui.App, *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Base().Profile.Limits.NoCharacterGeneration || TownDescription(f.Base().Profile) == nil {
+	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().NewGameInTown || TownDescription(p) == nil {
 		t.Skip("the base has no composed town square to dwell in")
 	}
 	cleanupFrontAudio(t, f)
