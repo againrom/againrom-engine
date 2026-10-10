@@ -65,7 +65,7 @@ func TestReleaseMission30HealerWinRaisesSubscriptZerosMessage(t *testing.T) {
 				t.Fatal(err)
 			}
 			ms := f.live.mission.state
-			if refs := campaignScriptRefs(ms.Map, f.Table, party); refs.HasCompanion != companion {
+			if refs := campaignScriptRefs(ms.Map, f.Table, party, 30); refs.HasCompanion != companion {
 				t.Fatalf("10002 resolved %v, want %v", refs.HasCompanion, companion)
 			}
 			var raised []int32

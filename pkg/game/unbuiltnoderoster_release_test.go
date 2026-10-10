@@ -35,8 +35,8 @@ func engineWrittenSAV(raw []byte) bool {
 }
 
 // rosterRoles names the hero ordinals 10002..10006 a party resolves on m.
-func rosterRoles(m *alm.Map, f *FrontEnd, party []mapload.PartyMember) []uint32 {
-	refs := campaignScriptRefs(m, f.Table, party)
+func rosterRoles(m *alm.Map, n int, f *FrontEnd, party []mapload.PartyMember) []uint32 {
+	refs := campaignScriptRefs(m, f.Table, party, n)
 	var out []uint32
 	if refs.HasCompanion {
 		out = append(out, 10002)
@@ -152,11 +152,11 @@ func TestReleaseScriptUnbuiltNodeRealRosters(t *testing.T) {
 			}
 			for _, n := range targets {
 				m := maps[n]
-				c, err := censusUnbuiltNodes(m, campaignScriptRefs(m, f.Table, party))
+				c, err := censusUnbuiltNodes(m, campaignScriptRefs(m, f.Table, party, n))
 				if err != nil {
 					t.Fatal(err)
 				}
-				c.address, c.roster = fmt.Sprintf("%d.alm", n), fmt.Sprintf("%s (%s, party %d, roles %v)", path, kind, len(party), rosterRoles(m, f, party))
+				c.address, c.roster = fmt.Sprintf("%d.alm", n), fmt.Sprintf("%s (%s, party %d, roles %v)", path, kind, len(party), rosterRoles(m, n, f, party))
 				text = append(text, c.lines()...)
 				if c.visible {
 					changed[c.address] = true

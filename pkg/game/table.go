@@ -180,6 +180,12 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	if names, err := heroPictureNames(fsys); err == nil {
 		d.Table.HeroNames = names
 	}
+	// Not fatal: a table without them names no map placement for the hero
+	// ordinal scan, which then reaches the party alone.
+	if b, err := fsys.ReadFile(chargenNamesPath); err == nil {
+		rows := SplitTextTable(b)
+		d.Table.NPCNames = rows.lines
+	}
 	return d, nil
 }
 

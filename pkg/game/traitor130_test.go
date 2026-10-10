@@ -17,11 +17,11 @@ func TestCampaignCompanionBindingUsesRoleInsteadOfPartyPosition(t *testing.T) {
 		heroMember("another", false, false, 5),
 		heroMember("npc:22", true, true, 1),
 	}
-	refs := campaignScriptRefs(m, table, party)
+	refs := campaignScriptRefs(m, table, party, 130)
 	if !refs.HasCompanion || refs.Companion != mapload.PartyEntity(m, 3) {
 		t.Fatalf("companion = %+v", refs)
 	}
-	if absent := campaignScriptRefs(m, table, party[:3]); absent.HasCompanion {
+	if absent := campaignScriptRefs(m, table, party[:3], 130); absent.HasCompanion {
 		t.Fatal("bound an unrelated second member")
 	}
 }
