@@ -3,6 +3,7 @@ package mapload
 import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 )
 
@@ -675,7 +676,7 @@ func restoredPools(p PartyMember, health, mana int32, regen data.UnitDef) pools 
 // there, so a start's report says the same thing for a party of none as for a
 // party of one.
 func StartMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember) (*sim.World, Start, error) {
-	return startMission(m, t, diff, party, 0)
+	return startMission(m, t, diff, party, 0, nil)
 }
 
 // StartCampaignMission is StartMission with the campaign mission number that
@@ -683,11 +684,14 @@ func StartMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember) (*
 // point for standalone maps and synthetic callers that have no campaign.
 func StartCampaignMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int) (*sim.World, Start, error) {
-	return startMission(m, t, diff, party, mission)
+	return startMission(m, t, diff, party, mission, nil)
 }
 
+// startMission places the party with draws, or with a sequence at StartSeed
+// when draws is nil. Draws on the original's generator continue into the
+// World, which then starts from their state instead of Seed.
 func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
-	mission int) (*sim.World, Start, error) {
+	mission int, draws *sim.Draws) (*sim.World, Start, error) {
 	// The loader owns the roster it is about to mint. In particular, no Carry
 	// pointer or item slice held by a town/save caller remains writable through
 	// this mission's member values.
@@ -706,7 +710,9 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		return nil, Start{}, err
 	}
 
-	draws := sim.NewDraws(StartSeed)
+	if draws == nil {
+		draws = sim.NewDraws(StartSeed)
+	}
 	cells := DropCells(m)
 	// The map's person roster travels with the start (0159 D-9). It keys on
 	// placement ids, which the party append below never reuses: the party takes
@@ -1067,6 +1073,9 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		return nil, Start{}, err
 	}
 	DeclareSourceConstructors(out, t)
+	if draws.Original() {
+		out.SetRandom(random.Original, draws.State())
+	}
 	return out, st, nil
 }
 
@@ -1155,7 +1164,7 @@ func tableForPartyNPCs(t *Table, party []PartyMember, mission int) *Table {
 // through the plain load still passed.
 func StartMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	s *sim.Script) (*sim.World, Start, error) {
-	return startMissionScripted(m, t, diff, party, 0, s)
+	return startMissionScripted(m, t, diff, party, 0, s, nil)
 }
 
 // StartCampaignMissionScripted is StartMissionScripted with campaign-tier NPC
@@ -1163,12 +1172,19 @@ func StartMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 // map tools which deliberately have no mission number.
 func StartCampaignMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int, s *sim.Script) (*sim.World, Start, error) {
-	return startMissionScripted(m, t, diff, party, mission, s)
+	return startMissionScripted(m, t, diff, party, mission, s, nil)
+}
+
+// StartCampaignMissionScriptedWith is StartCampaignMissionScripted placing
+// the party with draws; nil is the sequence at StartSeed.
+func StartCampaignMissionScriptedWith(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
+	mission int, s *sim.Script, draws *sim.Draws) (*sim.World, Start, error) {
+	return startMissionScripted(m, t, diff, party, mission, s, draws)
 }
 
 func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
-	mission int, s *sim.Script) (*sim.World, Start, error) {
-	base, st, err := startMission(m, t, diff, party, mission)
+	mission int, s *sim.Script, draws *sim.Draws) (*sim.World, Start, error) {
+	base, st, err := startMission(m, t, diff, party, mission, draws)
 	if err != nil {
 		return nil, Start{}, err
 	}
@@ -1212,6 +1228,9 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 		return nil, Start{}, err
 	}
 	DeclareSourceConstructors(out, t)
+	if base.RandomMode() == random.Original {
+		out.SetRandom(random.Original, base.RandomState())
+	}
 	return out, st, nil
 }
 

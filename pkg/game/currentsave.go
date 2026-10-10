@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 )
 
@@ -103,6 +104,14 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	}
 	if err := markDocumentForMods(&doc, f.ModSet(), f.modContext().Items, modMarkLayers(s.Party, f.Table)); err != nil {
 		return nil, err
+	}
+	// The zero session writes no leaf, so a game that never chose a seed
+	// writes the bytes it wrote before the session existed; a LOAD of an
+	// engine SAV without the leaf begins the zero session again.
+	if rs := s.randomSession; rs != (random.Session{}) {
+		if err := sav.SetNativeSession(&doc.State, sav.NativeSession{Seed: rs.Seed, Mode: uint32(rs.Mode), Shared: rs.Shared}); err != nil {
+			return nil, err
+		}
 	}
 	clampOriginalLevels(&doc)
 	return sav.EncodeDocumentData(doc)

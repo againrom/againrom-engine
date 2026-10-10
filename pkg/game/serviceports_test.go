@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -137,7 +138,7 @@ func (a *fakeTownAudio) ambientDevice() ui.AmbientDevice {
 	return a.ambient
 }
 
-func (a *fakeTownAudio) ambientSeed() int64 { a.asked = append(a.asked, "seed"); return 99 }
+func (a *fakeTownAudio) wildlifeSeed() int64 { a.asked = append(a.asked, "seed"); return 99 }
 
 func TestTownScreenPlaysThroughASubstitutedAudioService(t *testing.T) {
 	fake := &fakeTownAudio{ambient: &recordingAmbient{}}
@@ -179,6 +180,9 @@ func (d fakeTownDraws) ambientDraw() func(int) int   { return nil }
 func (d fakeTownDraws) tavernDraw() func(int) int    { return nil }
 func (d fakeTownDraws) shopDraw() func(int) int      { return nil }
 func (d fakeTownDraws) schoolDraw() func(int) int    { return nil }
+func (d fakeTownDraws) stream(random.Name) *random.Stream {
+	return nil
+}
 
 func TestTownScreenReadsASubstitutedDrawService(t *testing.T) {
 	s := bareTownScreen(t)

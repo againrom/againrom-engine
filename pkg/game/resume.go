@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -158,6 +159,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	var s Snapshot
 	edition := f.Base().Profile.Edition()
 	s.game = edition.SaveTag
+	s.randomSession = f.randomSessionNow()
 	difficulty, err := campaignDifficulty(int64(f.Difficulty))
 	if err != nil {
 		return Snapshot{}, "", err
@@ -348,9 +350,15 @@ type restoreCandidate struct {
 	prepared preparedMap
 	activate func()
 	units    *terrain.UnitSet
+	// randomSession is the random session the candidate's game begins; nil
+	// keeps the running one.
+	randomSession *random.Session
 }
 
 func (f *FrontEnd) installCandidate(c *restoreCandidate) {
+	if c.randomSession != nil {
+		f.randomService().Begin(*c.randomSession)
+	}
 	f.CampaignSession.adopt(c)
 	f.resetTownSurface(c)
 	if c.townOnly {

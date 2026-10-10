@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -546,7 +547,7 @@ func (t *townScreen) restockShop() bool {
 		return false
 	}
 	seed := shopSeed(t.sess.Town.Chapter(), t.sess.Town.finishedCount(), t.sess.Shop.Ceiling())
-	return t.sess.Shop.Restock(t.in.Table, seed)
+	return t.sess.Shop.RestockWith(t.in.Table, seed, t.draws.stream(random.ShopStock))
 }
 
 func heroSkillPrice(level int32) int {

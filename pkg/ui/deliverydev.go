@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 )
 
 type DeliveryDevicePlayer interface {
@@ -263,7 +264,7 @@ func DestroyAudioScope(player audio.Player) {
 	}
 }
 
-func (v *Viewer) SetScopedAudio(effects, speech audio.Player, bank SoundBank, ambient AmbientDevice, seed int64) {
+func (v *Viewer) SetScopedAudio(effects, speech audio.Player, bank SoundBank, ambient AmbientDevice, draws *random.Stream) {
 	v.DestroyAudio()
 	v.audioScope = NewAudioScope(effects)
 	if v.audioScope != nil {
@@ -271,7 +272,7 @@ func (v *Viewer) SetScopedAudio(effects, speech audio.Player, bank SoundBank, am
 	}
 	v.SetAudio(effects, bank)
 	v.SetSpeechAudio(speech)
-	v.SetAmbientAudio(effects, bank, ambient, seed)
+	v.SetAmbientAudio(effects, bank, ambient, draws)
 }
 
 func (v *Viewer) DestroyAudio() {

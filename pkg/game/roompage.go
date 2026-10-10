@@ -3,10 +3,10 @@ package game
 import (
 	"errors"
 	"image"
-	"math/rand"
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 )
@@ -87,11 +87,19 @@ func (h roomPageHost) Art() *town.Art {
 
 func (h roomPageHost) Now() time.Time { return h.t.townAnimationNow() }
 
-// roomDraws binds each scene draw source to the runtime's draw service.
+// roomDraws binds each scene draw source to the runtime's draw seam.
 var roomDraws = map[string]func(townDraws) func(int) int{
 	"tender":   townDraws.tavernDraw,
 	"idle":     townDraws.shopDraw,
 	"training": townDraws.schoolDraw,
+}
+
+// roomStreams names the session stream each scene draw source draws on when
+// its seam is unset.
+var roomStreams = map[string]random.Name{
+	"tender":   random.Tavern,
+	"idle":     random.ShopInterior,
+	"training": random.School,
 }
 
 func (h roomPageHost) Draw(source string, n int) int {
@@ -103,19 +111,17 @@ func (h roomPageHost) Draw(source string, n int) int {
 	if draw != nil {
 		return boundedPresentationRoll(draw, nil, n)
 	}
-	if t.pageRandom[source] == nil {
-		h.Reseed(source)
+	name, ok := roomStreams[source]
+	if !ok {
+		name = random.Name(source)
 	}
-	return boundedPresentationRoll(nil, t.pageRandom[source], n)
+	return boundedPresentationRoll(nil, t.draws.stream(name), n)
 }
 
-func (h roomPageHost) Reseed(source string) {
-	t := h.t
-	if t.pageRandom == nil {
-		t.pageRandom = map[string]*rand.Rand{}
-	}
-	t.pageRandom[source] = rand.New(rand.NewSource(t.townAnimationNow().UnixNano()))
-}
+// Reseed keeps the source's session stream running: the original reseeds
+// nothing on a room's entry (TOWN-505), and a stream derived from the
+// session seed replays without a restart.
+func (h roomPageHost) Reseed(string) {}
 
 func (h roomPageHost) PlaySound(source, key string, loop bool) town.Voice {
 	t := h.t

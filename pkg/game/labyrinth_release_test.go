@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -341,7 +342,7 @@ func labyrinthRescue(t *testing.T, f *FrontEnd, app *ui.App, mercs []sim.EntityI
 func TestReleaseRescuedVillagersReplyAndHurtInThePeasantBank(t *testing.T) {
 	script := &scriptedDraw{}
 	previous := newViewerVoiceDraw
-	newViewerVoiceDraw = func() voiceDraw { return script.draw }
+	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return script.draw }
 	t.Cleanup(func() { newViewerVoiceDraw = previous })
 	f, app := labyrinthFront(t)
 	mercs := labyrinthMercenaries(t, f)

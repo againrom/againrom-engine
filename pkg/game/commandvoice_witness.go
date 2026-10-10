@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -111,7 +112,7 @@ func (f *FrontEnd) witnessCommandAcknowledgmentsWithClockControl(report io.Write
 	// A fixed draw keeps the witness off the one-in-32768 draw that names no
 	// speaker.
 	previous := newViewerVoiceDraw
-	newViewerVoiceDraw = func() voiceDraw { return func() int { return 0 } }
+	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return func() int { return 0 } }
 	defer func() { newViewerVoiceDraw = previous }()
 	var hashes [2]uint64
 	var ticks [2]uint64

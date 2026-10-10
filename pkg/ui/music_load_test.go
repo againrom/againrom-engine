@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"againrom/pkg/random"
 )
 
 // loadMusicApp opens the menu over recording music seams and installs a save
@@ -13,7 +15,7 @@ func loadMusicApp(t *testing.T, load LoadGame) (*App, *recordingMusicSource, *re
 	t.Helper()
 	source, device := &recordingMusicSource{}, &recordingMusicDevice{}
 	a := newTestApp(t, appRows(1), okLoader(t))
-	a.SetMusic(source, device, 35)
+	a.SetMusic(source, device, random.NewStream(35))
 	a.SetSaveSeams(
 		func(bool) (string, error) { return "saved.sav", nil },
 		func() []SaveEntry { return []SaveEntry{{Name: "game.sav", Label: "game"}} },
@@ -24,7 +26,7 @@ func loadMusicApp(t *testing.T, load LoadGame) (*App, *recordingMusicSource, *re
 
 func TestRequestSceneReplacesTheListForTheSameScene(t *testing.T) {
 	source, device := &recordingMusicSource{}, &recordingMusicDevice{}
-	music := NewMusicController(source, device, 5)
+	music := NewMusicController(source, device, random.NewStream(5))
 	music.SetScene(MusicTown, false)
 	music.RequestScene(MusicTown, false)
 	music.SetScene(MusicTown, false)

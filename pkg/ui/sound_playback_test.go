@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 )
 
 func TestSound1189SelectionFocusPlayStopAndFailedWrite(t *testing.T) {
@@ -25,7 +26,7 @@ func TestSound1189SelectionFocusPlayStopAndFailedWrite(t *testing.T) {
 		},
 		TrackTitle: func(name string) string { return "Title " + name }})
 	source, device := &recordingMusicSource{}, &recordingMusicDevice{}
-	a.SetMusic(source, device, 1189)
+	a.SetMusic(source, device, random.NewStream(1189))
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
