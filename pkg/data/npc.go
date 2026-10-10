@@ -54,6 +54,9 @@ type NPCDefs struct {
 	flags     map[int32]NPCTokens
 	hero      map[int32]heroTemplate
 	heroFaces [4]int32
+	// archetypes are the four archetype sections in heroFaces' order.
+	archetypes   [4]HeroArchetype
+	hasArchetype [4]bool
 }
 
 // MercenaryTerms is the pair used by the tavern's whole-squad price.

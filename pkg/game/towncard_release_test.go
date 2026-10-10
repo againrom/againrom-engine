@@ -281,11 +281,15 @@ func TestReleaseStatisticsCardFitsAtTheProductionFont(t *testing.T) {
 		box.Max.Y = box.Min.Y + cardRowBand
 		mask := cardInkMask(frame, cardBackgroundFrame(p.CardBackground, full), box, nil)
 		lg := ui.CompactPanelLayout(p.CardBackground)
+		// The card canvas stands the description's card offset right of the
+		// box (the town card builder's CardOffset); the name axis is the
+		// canvas's.
+		off := cf.generator().Detail.CardOffset.Pt()
+		for i := range mask {
+			mask[i][0] -= off.X
+		}
 		bb, _ := inkBounds(mask)
-		// Logged rather than asserted: the generator's own card composes on
-		// fullstatsl.bmp, whose settled inset differs from the town pane's, so
-		// this line is what says which of the two backgrounds was measured.
-		t.Logf("generator card: pad=%v text ink %v over %d pixel(s)", lg.Pad, bb, len(mask))
+		t.Logf("generator card: offset=%v text ink %v over %d pixel(s)", off, bb, len(mask))
 		checkNameCentred(t, "generator statistics card", lg, mask)
 	})
 }
