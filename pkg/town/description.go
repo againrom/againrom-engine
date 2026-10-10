@@ -206,7 +206,7 @@ type SoundSpec struct {
 type SlotSpec struct {
 	Name   string `json:"name"`
 	Source string `json:"source"`
-	// Key is the sound a page's "sound <slot>" step requests.
+	// Key is the sound a "sound <slot>" step requests.
 	Key string `json:"key"`
 	// Loop asks the host for a looping voice.
 	Loop bool `json:"loop"`
@@ -267,7 +267,7 @@ type ActorSpec struct {
 	StepOrder  []string    `json:"step-order"`
 	PaintOrder []string    `json:"paint-order"`
 
-	// page programs: loop, alternating, selector, priority, bounce, cycle,
+	// room programs: loop, alternating, selector, priority, bounce, cycle,
 	// target and training
 	Loop      int           `json:"loop"`
 	Clock     string        `json:"clock"`

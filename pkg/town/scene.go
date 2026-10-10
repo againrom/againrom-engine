@@ -251,10 +251,6 @@ func (s *Scene) Actor(name string) any {
 	return nil
 }
 
-func (s *Scene) Description() *Description { return s.desc }
-
-func (s *Scene) Spec() *SceneSpec { return s.spec }
-
 // Reset stops the entry loop and every slot, then returns every actor, latch,
 // hover and scene-scoped clock to a scene never entered. It reads no art: an
 // actor whose rest frame depends on its art takes it when the scene is next
