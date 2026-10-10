@@ -1,33 +1,14 @@
 package ui
 
 import (
-	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/render/text"
 )
 
-// Authored translations enter the same UTF-8-to-installed-font conversion as
-// map prose. Production Go literals remain ASCII under the drawn-text guard.
-//
-//go:embed gamemenuspeed_ru.json
-var gameSpeedRUText string
-
-var gameSpeedRU = func() (labels struct{ Speed, Slower, Faster, UnpacedSpeed, Unpaced, Paused string }) {
-	if err := json.Unmarshal([]byte(gameSpeedRUText), &labels); err != nil {
-		panic(err)
-	}
-	return labels
-}()
-
 func (f *flow) pauseLabel() string {
-	if f.menuSelector() == text.SelectorConverting {
-		return f.menuDisplayText(gameSpeedRU.Paused)
-	}
-	return "PAUSED"
+	return f.menuWord("speed.paused")
 }
 
 func (f *flow) menuSpeedRung() int {
@@ -54,18 +35,11 @@ func (f *flow) gameOptionsRows() []gameMenuRow {
 	rung := f.menuSpeedRung()
 	value := strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", float64(terrain.CadencePeriod(terrain.DefaultCadenceRung))/float64(terrain.CadencePeriod(rung))), "0"), ".") + "x"
 	unpaced := f.menuBack == ScreenMap && f.unpaced
-	label, down, up := "GAME SPEED: ", "~SLOWER", "~FASTER"
+	label, down, up := f.word("speed.label"), f.word("speed.slower"), f.word("speed.faster")
 	if unpaced {
-		value = "UNLIMITED"
+		label, value = f.word("speed.unpaced_label"), f.word("speed.unpaced")
 	}
-	if f.menuSelector() == text.SelectorConverting {
-		label, down, up = gameSpeedRU.Speed, gameSpeedRU.Slower, gameSpeedRU.Faster
-		if unpaced {
-			label, value = gameSpeedRU.UnpacedSpeed, gameSpeedRU.Unpaced
-		}
-		label, down, up = f.menuDisplayText(label), f.menuDisplayText(down), f.menuDisplayText(up)
-		value = f.menuDisplayText(value)
-	}
+	label, down, up, value = f.menuText(label), f.menuText(down), f.menuText(up), f.menuText(value)
 	rows := []gameMenuRow{
 		tips,
 		{Label: label + value, Literal: true, Status: true},

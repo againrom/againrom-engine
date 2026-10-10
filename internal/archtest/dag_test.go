@@ -342,10 +342,11 @@ func TestLoadSkipsNestedModule(t *testing.T) {
 func TestUITierAllowanceIsPinned(t *testing.T) {
 	// Transcribed from docs/ARCHITECTURE.md's tier table, not read back out of
 	// dag.go: the UI tier may use pkg/render and everything under it, plus the
-	// audio leaf (0126) and video leaf (1074), and nothing else in the module.
-	// Video transports presentation frames and has no game/sim dependency.
-	// The random service is a leaf every drawing tier names.
-	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random"}
+	// audio leaf (0126), the video leaf (1074), the random service and the engine
+	// words leaf, and nothing else in the module. Video transports presentation
+	// frames and has no game/sim dependency; the random service is a leaf every
+	// drawing tier names; pkg/words holds the engine's own word tables.
+	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {
@@ -372,7 +373,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	}
 	for _, rel := range []string{
 		"pkg/render", "pkg/render/terrain", "pkg/render/camera",
-		"pkg/render/frame", "pkg/render/menu", "pkg/audio", "pkg/video",
+		"pkg/render/frame", "pkg/render/menu", "pkg/audio", "pkg/video", "pkg/words",
 	} {
 		if vs := Check(map[string][]string{"pkg/ui": {ModulePath + "/" + rel}}); len(vs) != 0 {
 			t.Errorf("pkg/ui -> %s: got %v, want no violation — the render tier and the audio leaf are the UI's grant", rel, vs)

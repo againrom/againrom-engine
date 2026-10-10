@@ -60,7 +60,7 @@ func TestWordsHoldsExactlyTheNamedVocabularyFields(t *testing.T) {
 		"ItemMagic": false, "ItemSpellOf": false, "ItemSpellOfSuffix": false, "ItemSpellNames": false, "SpellBookNames": false,
 		"DurationUnit": false,
 		"MapListSize":  false, "MapListColumns": false,
-		"SaveAcknowledgement": false, "SaveDialog": false, "WorldHomeTitle": false,
+		"SaveAcknowledgement": false, "SaveDialog": false, "Engine": false, "WorldHomeTitle": false,
 		"WorldHomeDetail": false, "WorldPayment": false, "SelectionStatus": false,
 		"SkillRaised": false,
 		"PickedUp":    false, "PickedUpNow": false, "PickedUpPieces": false,
