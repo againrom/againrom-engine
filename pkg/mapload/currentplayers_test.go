@@ -22,7 +22,7 @@ func TestCurrentPlayersConstructInitialPolicyWithoutCommandGroups(t *testing.T) 
 		if got, present := w.CurrentPlayers(); !present || !reflect.DeepEqual(got, players) {
 			t.Fatal("fresh Player IDs/Slots did not reach current state", got, present)
 		}
-		want := []sim.PlayerParticipant{{1, 1}, {2, 0}, {3, 0xf1234567}, {4, 1}}
+		want := []sim.PlayerParticipant{{PlayerID: 1, Value: 1}, {PlayerID: 2, Value: 0}, {PlayerID: 3, Value: 0xf1234567}, {PlayerID: 4, Value: 1}}
 		if got, present := w.PlayerParticipants(); !present || !reflect.DeepEqual(got, want) {
 			t.Fatal("fresh Participant did not use explicit map/owned/fallback policy", got)
 		}
