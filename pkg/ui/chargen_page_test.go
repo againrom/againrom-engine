@@ -586,15 +586,16 @@ func TestChargenSourcePlacementsMasksAndFrames(t *testing.T) {
 	c := NewChargen(setup)
 	pre := composeChargenPage(c, chargenNone, chargenNone)
 	for choice, at := range preChoiceOrigin {
-		want := uint8(50 + 10*choice)
+		// Only the opening chosen portrait draws, its on state (TOWN-521).
+		want, placements := uint8(50+10*choice), 0
 		if choice == 0 {
-			want += 2 // opening selected state
+			placements = 1
+			if got := pre.RGBAAt(at.X+1, at.Y+1).R; got != want {
+				t.Errorf("pre choice %d native patch at %v = %d, want %d", choice, at, got, want)
+			}
 		}
-		if got := pre.RGBAAt(at.X+1, at.Y+1).R; got != want {
-			t.Errorf("pre choice %d native patch at %v = %d, want %d", choice, at, got, want)
-		}
-		if got := countChargenPixel(pre, color.RGBA{R: want, A: 255}); got != 1 {
-			t.Errorf("pre choice %d sentinel appears %d times, want exactly one native placement", choice, got)
+		if got := countChargenPixel(pre, color.RGBA{R: want, A: 255}); got != placements {
+			t.Errorf("pre choice %d sentinel appears %d times, want %d", choice, got, placements)
 		}
 		if got := preControlAt(c, image.Pt(at.X+1, at.Y+1)); got != chargenChoice0+chargenControl(choice) {
 			t.Errorf("pre mask choice %d hit = %v", choice, got)

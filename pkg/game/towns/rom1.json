@@ -214,7 +214,7 @@
     {"actor": "baba", "mode": "over", "cite": ["TOWN-489", "TOWN-490"]},
     {"actor": "dervish", "mode": "over", "cite": ["TOWN-489", "TOWN-490"]}
   ],
-  "tip": {"text": "main/text/tips/town.txt", "rect": [328, 0, 640, 200], "cite": ["TOWN-165"]},
+  "tip": {"text": "main/text/tips/town.txt", "rect": [328, 0, 640, 200], "cite": ["TOWN-165", "TOWN-516"]},
   "music": {"track": "town.wav", "cite": ["VIDEO-MUSIC-065"]},
   "square": {
     "name": "square",
@@ -233,7 +233,7 @@
   },
   "rooms": [
     {"name": "tavern", "page": "tavern",
-     "tip": {"text": "main/text/tips/inn.txt", "rect": [160, 0, 472, 200], "cite": ["TOWN-015"]},
+     "tip": {"text": "main/text/tips/inn.txt", "rect": [160, 0, 472, 200], "cite": ["TOWN-015", "TOWN-516"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -302,7 +302,7 @@
        "cite": ["TOWN-407", "TOWN-412", "DIV-842", "DIV-844"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "shop", "page": "shop",
-     "tip": {"text": "main/text/tips/shop1.txt", "rect": [164, 162, 476, 298], "cite": ["SHOP-TIP-045", "DIV-132"]},
+     "tip": {"text": "main/text/tips/shop1.txt", "second": "main/text/tips/shop2.txt", "rect": [164, 162, 476, 298], "cite": ["SHOP-TIP-045", "TOWN-516", "TOWN-517", "DIV-132"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -378,7 +378,7 @@
        "cite": ["SHOP-ANIMATION-081", "DIV-850", "DIV-852", "DIV-855"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "school", "page": "school",
-     "tip": {"text": "main/text/tips/training.txt", "rect": [0, 0, 456, 200], "cite": ["TOWN-021", "TOWN-188"]},
+     "tip": {"text": "main/text/tips/training.txt", "rect": [0, 0, 456, 200], "cite": ["TOWN-021", "TOWN-188", "TOWN-516"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},

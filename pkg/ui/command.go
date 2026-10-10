@@ -959,6 +959,19 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		}
 		return nil, false
 	}
+	// The mission tip popup takes the presses on its own controls and the
+	// release over its list (MENU-137); the rest of its body passes through.
+	if v.missionTipGesture(image.Pt(in.CursorX, in.CursorY), in.PrimaryPressed, in.PrimaryReleased) {
+		if in.PrimaryReleased {
+			v.held = false
+			v.dragActive = false
+			v.dragCandKind = dragNone
+			v.dragIcon = nil
+			v.invEquipTap = false
+			v.invGrab = false
+		}
+		return nil, false
+	}
 	if v.commandPanelCaptures(in.CursorX, in.CursorY) {
 		cell, cellOK := v.commandCellAt(in.CursorX, in.CursorY)
 		if in.PrimaryPressed {

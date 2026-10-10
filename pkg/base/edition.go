@@ -70,6 +70,12 @@ type Edition struct {
 	// empty when no evidence exists, and the launch switch for the original
 	// generator then runs the default mode.
 	OriginalGenerator string
+
+	// MissionTipText is the archive path of a mission's numbered tip text,
+	// formatted with the mission and the tip number. A mission dialogue part's
+	// tips= tag raises that popup when the dialogue closes on its last page;
+	// empty when the tag raises nothing.
+	MissionTipText string
 }
 
 // Campaign names a campaign model.
@@ -94,6 +100,7 @@ var firstEdition = Edition{
 	FreshPlayers:              true,
 	StartupCutscenes:          true,
 	OriginalGenerator:         "msvc",
+	MissionTipText:            "main/text/battle/m%d/tips%02d.txt",
 }
 
 var secondEdition = Edition{

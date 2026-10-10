@@ -32,7 +32,7 @@ const (
 var chargenPictureNameEntries = [4]int{20, 22, 21, 23}
 
 var chargenPreChoiceOrigins = [...]image.Point{{16, 273}, {416, 190}, {124, 166}, {288, 130}}
-var chargenPreMaskCodes = [...]uint8{80, 140, 100, 120, 160, 180}
+var chargenPreMaskCodes = [...]uint8{20, 40, 60, 80, 140, 100, 120, 160, 180}
 
 var chargenDetailedSkillOrigins = [2][5]image.Point{
 	{{88, 93}, {92, 126}, {88, 182}, {84, 225}, {88, 250}},
@@ -244,12 +244,25 @@ func LoadChargenAssets(src terrain.EntrySource) (*ChargenAssets, error) {
 		return nil, err
 	}
 	p.PlateSeam = keyBlack(plateSeam)
-	navArtPath := graphicsPrefix + "interface/chrgen/buttonsarea.bmp"
+	// The command panel is Inn\ButtonsArea.bmp with the three Inn button
+	// pictures, off and on, for Accept, Reset and Back (MENU-139).
+	navArtPath := graphicsPrefix + "interface/inn/buttonsarea.bmp"
 	if p.NavArt, err = readChargenBMP(src, navArtPath); err != nil {
 		return nil, err
 	}
 	if err = chargenSize(p.NavArt, 160, 238, navArtPath); err != nil {
 		return nil, err
+	}
+	for i := range p.NavButtons {
+		for j, state := range []string{"off", "on"} {
+			addr := fmt.Sprintf("%sinterface/inn/button%d%s.bmp", graphicsPrefix, i+1, state)
+			if p.NavButtons[i][j], err = readChargenBMP(src, addr); err != nil {
+				return nil, err
+			}
+			if err = chargenSize(p.NavButtons[i][j], 140, 46, addr); err != nil {
+				return nil, err
+			}
+		}
 	}
 	// NavSeam closes NavArt's own 16-column gap against TownWideUpperRegion,
 	// the same strip and the same rendering evidence as the school and

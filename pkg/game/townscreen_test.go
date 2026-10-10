@@ -100,6 +100,7 @@ func nonZeroTownScreen() *townScreen {
 		shopSpellAtlasTried: true,
 		shopSpellIcons:      map[uint16]*image.RGBA{1: {}},
 		shopTip:             "a previous game's own tip",
+		shopTipSecond:       true,
 		townTip:             "a previous game's own town tip",
 		schoolTip:           "a previous game's own school tip",
 		tavernTip:           "a previous game's own tavern tip",
@@ -131,6 +132,7 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"shopSpellAtlasTried": "spell-atlas load attempt belongs to the install, not a game",
 		"shopSpellIcons":      "spell pictures keyed by spell id, resolved from the install's own atlas",
 		"shopTip":             "re-read from the install's own shop1.txt on every shop-room entry",
+		"shopTipSecond":       "cleared on every shop-room entry with the popup it belongs to",
 
 		"schoolTip":    "re-read from the install's own training.txt on every school entry",
 		"tavernTip":    "re-read from the install's own inn.txt on every tavern entry",

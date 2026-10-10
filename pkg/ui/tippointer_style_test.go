@@ -82,8 +82,12 @@ func TestChargenTipKeepsOriginalRectAndClosePresentation(t *testing.T) {
 			if detail {
 				c.Forward()
 			}
-			if got := c.TipPanel().Rect; got != ChargenTipRect {
-				t.Errorf("generator tip rect = %v, want unchanged %v", got, ChargenTipRect)
+			want := PreCreateTipRect
+			if detail {
+				want = ChargenTipRect
+			}
+			if got := c.TipPanel().Rect; got != want {
+				t.Errorf("generator tip rect = %v, want %v", got, want)
 			}
 			a := newTestApp(t, appRows(3), okLoader(t))
 			if err := a.OpenChargen(c, nil); err != nil {
