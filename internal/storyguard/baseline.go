@@ -1996,6 +1996,8 @@ package storyguard
 // latch site witness, new code, including this paragraph.
 // CommentBytes rises for the latch drop on a left screen: its doc and the
 // leave witness, new code, including this paragraph.
+// CommentBytes rises for the SAV byte producer list in internal/archtest's
+// saveproducer_list.go and its guard doc, new code, including this paragraph.
 // CommentBytes rises for the tip witnesses: the docs of the new release test
 // file for the generator cycles and the tip renders, the scroll witness's
 // note that the mission start tip covers its click, the room tip witness and
@@ -2023,5 +2025,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1772,
 	},
-	CommentBytes: 8532459,
+	CommentBytes: 8533966,
 }

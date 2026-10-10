@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -89,6 +90,7 @@ type goListPkg struct {
 	GoFiles      []string
 	TestGoFiles  []string
 	XTestGoFiles []string
+	Imports      []string
 	Export       string
 	Error        *struct{ Err string }
 }
@@ -218,7 +220,7 @@ func checkOnePackage(fset *token.FileSet, root string, imp types.Importer, p goL
 
 	if len(cp.Files) > 0 {
 		cp.Info = &types.Info{Types: map[ast.Expr]types.TypeAndValue{}}
-		if cp.ImportPath == "againrom/pkg/game" {
+		if cp.ImportPath == "againrom/pkg/game" || cp.ImportPath == savPackagePath || slices.Contains(p.Imports, savPackagePath) {
 			cp.Info.Defs = map[*ast.Ident]types.Object{}
 			cp.Info.Uses = map[*ast.Ident]types.Object{}
 		}
