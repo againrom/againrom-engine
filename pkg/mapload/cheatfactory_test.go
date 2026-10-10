@@ -47,8 +47,8 @@ func TestCheatItemKeepsFactoryEffectsAndExactInstalledNames(t *testing.T) {
 		}
 	}
 	table.Game = base.GameROM2
-	if _, ok := CheatItem("Potion Custom", table); ok {
-		t.Fatal("ROM2 item name accepted")
+	if second, ok := CheatItem("Potion Custom", table); !ok || !reflect.DeepEqual(second, potion) {
+		t.Fatalf("second-game item name = %+v, %t; want the shared factory's item", second, ok)
 	}
 }
 
@@ -150,9 +150,16 @@ func TestCheatActorUsesItsExactRowAndCompleteConstructor(t *testing.T) {
 			t.Errorf("unsupported actor accepted: %+v", tc)
 		}
 	}
+	// A second-game placement resolves its row by the server id column. Both
+	// persons carry server id 100; the named row is the one built. A creature
+	// row too short to hold a server id cannot be keyed.
 	table.Game = base.GameROM2
-	if _, _, _, err := CheatActor("Named Person", true, table, DifficultyNormal); err == nil {
-		t.Fatal("ROM2 actor name accepted")
+	e, _, _, err := CheatActor("Named Person", true, table, DifficultyNormal)
+	if err != nil || !e.Humanoid || e.SourceBinding.TokenRow != 2 || e.ActorLoad.Source.Stats[0] != 30 {
+		t.Fatalf("second-game person = row %d body %d humanoid %t, %v; want the named row", e.SourceBinding.TokenRow, e.ActorLoad.Source.Stats[0], e.Humanoid, err)
+	}
+	if _, _, _, err := CheatActor("Named Creature", false, table, DifficultyNormal); err == nil {
+		t.Fatal("second-game creature without a server id accepted")
 	}
 }
 

@@ -65,7 +65,7 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		for range 16 {
 			sim.Step(w, nil)
 		}
-		if err := c.finish(20, w); err != nil {
+		if err := c.finish(20, w, w.Outcome() == sim.OutcomeWon); err != nil {
 			t.Fatal(err)
 		}
 		c.complete(w)
@@ -101,7 +101,7 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		if !reflect.DeepEqual(c.available, want) {
 			t.Fatal("native append order", c.available, want)
 		}
-		if err := c.finish(20, w); err == nil {
+		if err := c.finish(20, w, w.Outcome() == sim.OutcomeWon); err == nil {
 			t.Fatal("duplicate departure admitted")
 		}
 		completedBank := c.bank
@@ -213,7 +213,7 @@ func TestSecondCampaignOptionalMissionDepartureRetainsTown(t *testing.T) {
 	for range 16 {
 		sim.Step(w, nil)
 	}
-	if err := c.finish(21, w); err != nil {
+	if err := c.finish(21, w, w.Outcome() == sim.OutcomeWon); err != nil {
 		t.Fatal(err)
 	}
 	c.complete(w)

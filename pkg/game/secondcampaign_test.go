@@ -166,7 +166,7 @@ func TestSecondCampaignLeaveBankAlgebraAndUnknownBoundary(t *testing.T) {
 	}
 	c := newSecondCampaign()
 	c.current, c.available = secondLocation{kind: 1, id: 10}, []secondLocation{{kind: 1, id: 10}}
-	if err := c.finish(10, w); err != nil {
+	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err != nil {
 		t.Fatal(err)
 	}
 	c.complete(w)
@@ -191,17 +191,17 @@ func TestSecondCampaignLeaveBankAlgebraAndUnknownBoundary(t *testing.T) {
 			t.Fatalf("Leave bank[%d]=%d want%d", i, value, want)
 		}
 	}
-	if err := c.finish(10, w); err == nil {
+	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err == nil {
 		t.Fatal("duplicate Leave admitted")
 	}
 	c.current = secondLocation{kind: 1, id: 30}
-	if err := c.finish(30, w); err == nil {
+	if err := c.finish(30, w, w.Outcome() == sim.OutcomeWon); err == nil {
 		t.Fatal("unclaimed successor inferred")
 	}
 	c.current = secondLocation{kind: 1, id: 10}
 	incoming[775] = 1
 	w.SetROM2ScenarioState(incoming)
-	if err := c.finish(10, w); err == nil {
+	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err == nil {
 		t.Fatal("unknown restored availability branch admitted")
 	}
 }

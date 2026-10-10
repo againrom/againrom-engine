@@ -27,6 +27,9 @@ type cheatConsole struct {
 	safe        bool
 	difficulty  mapload.Difficulty
 	failure     error
+	// campaign: the town the mission opened from holds a destinations
+	// campaign; the second game's adapter admits cheat commands only there.
+	campaign bool
 }
 
 func (f *FrontEnd) SetChickenAtMissionStart(on bool) { f.runtime.chicken = on }
@@ -77,7 +80,14 @@ func (mw *mapWorld) cheatDisplayPlayerName(owner uint32) string {
 }
 
 func (mw *mapWorld) cheatNotice(code int) {
-	if mw.mission == nil || mw.mission.src == nil {
+	mw.cheatReply(code, sim.SelfSlot)
+}
+
+// cheatReply posts reply code for the Player in owner's slot: that Player's
+// name between the two main.txt lines the code selects (5 the unlock, 6 a
+// refusal, 7 a success), shown for the adapter's reply time.
+func (mw *mapWorld) cheatReply(code int, owner uint32) {
+	if code == 0 || mw.mission == nil || mw.mission.src == nil {
 		return
 	}
 	raw, err := mw.mission.src.ReadFile(MainTextPath)
@@ -89,7 +99,7 @@ func (mw *mapWorld) cheatNotice(code int) {
 	if index < 0 || index+1 >= len(lines) {
 		return
 	}
-	mw.cheatMessage(lines[index] + mw.cheatDisplayPlayerName(sim.SelfSlot) + lines[index+1])
+	mw.view.PostMessage(lines[index]+mw.cheatDisplayPlayerName(owner)+lines[index+1], ui.MessageWhite, mw.chatGame().replyTime)
 }
 
 func (mw *mapWorld) cheatAllowed() bool {
@@ -127,158 +137,6 @@ func cheatCount(s string) (uint32, string) {
 		}
 	}
 	return 1, s
-}
-
-func (mw *mapWorld) chatCommand(line string) {
-	if mw == nil || mw.world == nil || mw.view == nil || mw.mission == nil {
-		return
-	}
-	if !mw.mission.edition().Cheats {
-		return
-	}
-	if !strings.HasPrefix(line, "#") {
-		mw.cheatMessage(mw.cheatDisplayPlayerName(sim.SelfSlot) + ": " + EncodeInstallText(line, mw.view.TextSelector()))
-		return
-	}
-	if mw.mission.state != nil && mw.mission.state.Map != nil && int32(mw.mission.state.Map.Meta.Word70) > 1 {
-		return
-	}
-	hero, hasHero := mw.cheatHero()
-	switch {
-	case strings.HasPrefix(line, "#create "):
-		if !mw.cheatAllowed() {
-			return
-		}
-		if !hasHero || hero.Decay != 0 {
-			mw.cheatNotice(6)
-			return
-		}
-		count, name := cheatCount(line[len("#create "):])
-		ok := false
-		if name == "Gold" {
-			ok = mw.world.CheatAddGold(hero.Owner, count)
-		} else if item, found := mapload.CheatItem(EncodeInstallText(name, mw.view.TextSelector()), mw.mission.table); found {
-			ok = mw.world.CheatAddItem(hero.ID, sim.StackItem(item, count))
-		}
-		if !ok {
-			mw.cheatNotice(6)
-			return
-		}
-		mw.cheatNotice(7)
-	case strings.HasPrefix(line, "#modify "):
-		mw.cheatModify(line[len("#modify "):], hero, hasHero)
-	case strings.HasPrefix(line, "#summon "):
-		mw.cheats.failure = nil
-		if !mw.cheatAllowed() || !hasHero {
-			return
-		}
-		arg := line[len("#summon "):]
-		asHero := strings.HasPrefix(arg, "hero ")
-		count := uint32(1)
-		if asHero {
-			arg = arg[len("hero "):]
-		} else {
-			count, arg = cheatCount(arg)
-		}
-		if count > 4096 {
-			return
-		}
-		difficulty := mw.cheats.difficulty
-		if difficulty == 0 {
-			difficulty = mapload.DifficultyNormal
-		}
-		template, pack, worn, err := mapload.CheatActor(EncodeInstallText(arg, mw.view.TextSelector()), asHero, mw.mission.table, difficulty)
-		if err != nil {
-			mw.cheats.failure = err
-			return
-		}
-		template.Owner = hero.Owner
-		template.ActorLoad.Source.HasOwner = true
-		for range count {
-			id, err := mw.world.CheatSummon(template, pack, worn, hero.X, hero.Y)
-			if err != nil {
-				mw.cheats.failure = err
-				break
-			}
-			mw.rememberCheatActor(id, arg)
-		}
-	case strings.HasPrefix(line, "#killall") || strings.HasPrefix(line, "#kill all"):
-		if !mw.cheatAllowed() {
-			return
-		}
-		relations := mw.world.Relations()
-		for owner := uint32(0); owner < 50; owner++ {
-			if relations.Hostile(owner, sim.SelfSlot) {
-				mw.world.CheatKillPlayer(owner)
-			}
-		}
-		mw.cheatNotice(7)
-	case strings.HasPrefix(line, "#kill cheaters"):
-		if !mw.cheatAllowed() {
-			return
-		}
-		for owner := uint32(0); owner < 50; owner++ {
-			if owner != sim.SelfSlot && mw.cheats.privilege[owner] > 50 {
-				mw.cheats.privilege[owner] = 0
-				mw.world.CheatKillPlayer(owner)
-			}
-		}
-	case strings.HasPrefix(line, "#kill "):
-		if !mw.cheatAllowed() {
-			return
-		}
-		name := line[len("#kill "):]
-		for owner := uint32(0); owner < 50; owner++ {
-			if mw.cheatDisplayPlayerName(owner) == EncodeInstallText(name, mw.view.TextSelector()) {
-				mw.world.CheatKillPlayer(owner)
-				break
-			}
-		}
-		mw.cheatNotice(7)
-	case strings.HasPrefix(line, "#pickup all"):
-		if !mw.cheatAllowed() || !hasHero {
-			return
-		}
-		if err := mw.world.CheatPickupAll(hero.ID); err != nil {
-			return
-		}
-		mw.cheatNotice(7)
-		mw.cheatMessage("All sacks picked up")
-	case strings.HasPrefix(line, "#show map"):
-		if !mw.cheatAllowed() {
-			return
-		}
-		mw.cheats.showMap = true
-		for i := range mw.fog.explored {
-			mw.fog.explored[i] = 1
-		}
-		mw.view.SetCheatMapReveal(true)
-		mw.cheatNotice(7)
-	case strings.HasPrefix(line, "#hide map"):
-		if !mw.cheatAllowed() {
-			return
-		}
-		mw.cheats.showMap = false
-		mw.view.SetCheatMapReveal(false)
-		mw.cheatNotice(7)
-	case strings.HasPrefix(line, "#victory"):
-		if !mw.cheatAllowed() {
-			return
-		}
-		mw.mission.announced = true
-		mw.mission.outcome = sim.OutcomeWon
-		mw.showOutcome()
-	case strings.HasPrefix(line, "#event "):
-		mw.openDialogue(int(cheatInteger(line[len("#event "):])))
-	case strings.HasPrefix(line, "#Chicken"):
-		mw.cheats.privilege[sim.SelfSlot] = 255
-		mw.cheatMessage("Player " + mw.cheatDisplayPlayerName(sim.SelfSlot) + " enable cheating.")
-		mw.cheatNotice(5)
-	default:
-		return
-	}
-	mw.refreshPack()
-	mw.push()
 }
 
 func (mw *mapWorld) rememberCheatActor(id sim.EntityID, name string) {
@@ -323,42 +181,6 @@ func (mw *mapWorld) rememberCheatCharacter(id sim.EntityID, name string) {
 	}
 }
 
-func (mw *mapWorld) cheatModify(arg string, hero sim.Entity, hasHero bool) {
-	army := strings.HasPrefix(arg, "army")
-	if !army && !strings.HasPrefix(arg, "self") {
-		return
-	}
-	arg = strings.TrimLeft(arg[4:], " ")
-	switch {
-	case strings.HasPrefix(arg, "+god"):
-		if army {
-			for _, e := range mw.world.Entities() {
-				if e.Owner == sim.SelfSlot {
-					mw.world.CheatGod(e.ID)
-				}
-			}
-		} else if hasHero {
-			mw.world.CheatGod(hero.ID)
-		}
-	case strings.HasPrefix(arg, "+spell "):
-		id := cheatInteger(arg[len("+spell "):])
-		if !army && hasHero && id > 0 && mw.mission.table != nil && mw.mission.table.Spells != nil && int(id) < mw.mission.table.Spells.Len() {
-			mw.world.CheatSpell(hero.ID, uint16(id))
-		}
-	case strings.HasPrefix(arg, "+spells"):
-		if !army && hasHero {
-			for id := uint16(1); id <= 28; id++ {
-				mw.world.CheatSpell(hero.ID, id)
-			}
-		}
-	case strings.HasPrefix(arg, "+knowledge"):
-		mw.cheats.knowledge = mw.cheats.privilege[sim.SelfSlot] > 10
-	default:
-		return
-	}
-	mw.cheatNotice(7)
-}
-
 func (mw *mapWorld) cardKnowledge(e sim.Entity) int {
 	if mw.cheats.knowledge {
 		return 15
@@ -366,40 +188,10 @@ func (mw *mapWorld) cardKnowledge(e sim.Entity) int {
 	return mw.world.KnowledgeLevel(e)
 }
 
-func (mw *mapWorld) debugLetter(letter byte) {
-	if mw == nil || mw.world == nil || mw.mission == nil || !mw.mission.edition().Cheats || mw.cheats.privilege[sim.SelfSlot] <= 50 {
-		return
-	}
-	toggle := func(name string, on bool) {
-		state := "off"
-		if on {
-			state = "on"
-		}
-		mw.cheatMessage(name + " turned " + state + ".")
-	}
-	switch letter {
-	case 'D':
-		mw.cheats.turnTrace = !mw.cheats.turnTrace
-		toggle("Turn tracing", mw.cheats.turnTrace)
-	case 'T':
-		mw.cheats.scriptTrace = !mw.cheats.scriptTrace
-		toggle("Script tracing", mw.cheats.scriptTrace)
-	case 'Q':
-		mw.cheats.safe = !mw.cheats.safe
-		mw.world.SetSafeMode(mw.cheats.safe)
-		toggle("Safe mode", mw.cheats.safe)
-	case 'H':
-		for _, line := range []string{"<Alt-h> Help", "<Alt-q> Safe mode", "<Alt-t> Script tracing", "<Alt-i> Turn statistics", "<Alt-d> Turn tracing", "<Alt-u> Mission units stats"} {
-			mw.cheatMessage(line)
-		}
-	case 'I':
-		mw.cheatMessage("Last Turn Statistics:")
-		mw.cheatMessage(fmt.Sprintf("Turn: %d; active: %d", mw.world.Tick(), len(mw.world.Entities())))
-		mw.cheatMessage("Average Turn Statistics:")
-	case 'U':
-		mw.cheatMessage("Mission units stats:")
-		mw.cheatUnitStatistics()
-	}
+func (mw *mapWorld) cheatTurnStatistics() {
+	mw.cheatMessage("Last Turn Statistics:")
+	mw.cheatMessage(fmt.Sprintf("Turn: %d; active: %d", mw.world.Tick(), len(mw.world.Entities())))
+	mw.cheatMessage("Average Turn Statistics:")
 }
 
 func (mw *mapWorld) cheatUnitStatistics() {

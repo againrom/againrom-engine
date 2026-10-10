@@ -9,7 +9,7 @@ import (
 )
 
 func CheatItem(name string, t *Table) (sim.ItemInstance, bool) {
-	if t == nil || !t.Game.Edition().Cheats || name == "" || len(name) > 4096 {
+	if t == nil || name == "" || len(name) > 4096 {
 		return sim.ItemInstance{}, false
 	}
 	if t.MagicItems != nil {
@@ -64,13 +64,19 @@ func cheatDefinitionRow(name string, c data.Collection) int {
 
 func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, []sim.ItemStack, [sim.EquipSlots]sim.ItemInstance, error) {
 	var worn [sim.EquipSlots]sim.ItemInstance
-	if t == nil || !t.Game.Edition().Cheats || name == "" || len(name) > 4096 {
+	if t == nil || name == "" || len(name) > 4096 {
 		return sim.Entity{}, nil, worn, fmt.Errorf("actor name is unavailable")
 	}
+	serverKeys := t.Game.Edition().SecondUnitKeys
 	local := *t
 	placement := alm.Unit{X: 12<<8 | 128, Y: 12<<8 | 128}
 	row := cheatDefinitionRow(name, t.Units)
-	if row >= 0 {
+	if serverKeys {
+		row, placement = secondCheatPlacement(name, t, &local, placement)
+		if row < 0 {
+			return sim.Entity{}, nil, worn, fmt.Errorf("actor name is unknown")
+		}
+	} else if row >= 0 {
 		def, err := data.NewUnitDef(name, t.Units.EntryParams(row))
 		if err != nil {
 			return sim.Entity{}, nil, worn, fmt.Errorf("actor definition is unavailable")
@@ -85,7 +91,7 @@ func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, 
 			placement.ClassID, placement.ClassSubID = int16(def.TypeID), uint16(def.Face)
 		}
 	}
-	if row < 0 {
+	if row < 0 && !serverKeys {
 		row = cheatDefinitionRow(name, t.Humans)
 		if row < 0 {
 			return sim.Entity{}, nil, worn, fmt.Errorf("actor name is unknown")
@@ -125,6 +131,28 @@ func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, 
 	e.NativeClass = sim.NativeClass{}
 	e.NativeTraining = sim.NativeTraining{}
 	return e, pack, worn, nil
+}
+
+// secondCheatPlacement keys a second-game placement to the creature row named
+// name, else the human row: the placement resolves a row by its server id
+// (R2-ENGINE-301 tries a creature by name, then a human). local sees only that
+// row, so the server id cannot reach another row carrying the same id.
+func secondCheatPlacement(name string, t *Table, local *Table, placement alm.Unit) (int, alm.Unit) {
+	if row := cheatDefinitionRow(name, t.Units); row >= 0 {
+		if id, ok := data.UnitServerID(t.Units.EntryParams(row)); ok && id > 0 {
+			local.Units = cheatDefinition{Collection: t.Units, row: row}
+			placement.ServerID = uint32(id)
+			return row, placement
+		}
+	}
+	if row := cheatDefinitionRow(name, t.Humans); row >= 0 {
+		if id, ok := data.HumanServerID(t.Humans.EntryParams(row)); ok && id > 0 {
+			local.Humans = cheatDefinition{Collection: t.Humans, row: row}
+			placement.ServerID, placement.Flags = uint32(id), rom2PersonFlag
+			return row, placement
+		}
+	}
+	return -1, placement
 }
 
 func cheatHumanState(e sim.Entity) data.HumanState {
