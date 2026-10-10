@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.107.0
+
 - [BASE] The original game's random number generator can be switched on with
   `-original-random`; `-seed <n>` replays a session from one seed.
 - [ROM1] The character generator's tips work as in the original. The first
