@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/ui"
 )
 
 // The owner corpus holds one original SAV with a projectile in flight, the
@@ -57,14 +56,7 @@ func TestReleaseRestoredProjectileDrawsItsSavedFacing(t *testing.T) {
 		t.Helper()
 		fmt.Fprintf(digest, "%s %d %x\n", when, front.live.world.Tick(), front.live.world.Hash())
 		items := front.live.world.SavedProjectiles().Items
-		// The smoke trail (ANIM-140) is drawn beside the record; it is not
-		// saved, so it is compared apart (SAV-1193).
-		var draws []ui.SpellBolt
-		for _, d := range front.live.savedProjectileDraws() {
-			if d.Sheet == front.Projectiles.Sheet(10) {
-				draws = append(draws, d)
-			}
-		}
+		draws := front.live.savedProjectileDraws()
 		if len(items) == 0 && len(draws) == 0 {
 			return "landed"
 		}

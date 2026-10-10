@@ -642,7 +642,7 @@ func (mw *mapWorld) boltDraws(ents []sim.Entity) []ui.SpellBolt {
 		}
 		out = append(out, mw.trailDraws(b)...)
 	}
-	out = append(out, mw.savedProjectileDraws()...)
+	out = append(out, mw.savedProjectileScene(true)...)
 	out = append(out, mw.weaponBoltDraws(ents)...)
 	out = append(out, mw.unitShotDraws()...)
 	out = append(out, mw.burningSceneryDraws()...)
@@ -999,7 +999,11 @@ func EffectFacing(dx, dy int) int {
 
 // Bound original projectiles draw directly from their persisted current phase
 // and position; a second cosmetic timer must not restart them after native LOAD.
-func (mw *mapWorld) savedProjectileDraws() []ui.SpellBolt {
+func (mw *mapWorld) savedProjectileDraws() []ui.SpellBolt { return mw.savedProjectileScene(false) }
+
+// savedProjectileScene is the records' draws, each followed by its smoke
+// trail when trails is set.
+func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 	d := mw.world.SavedWorldEffectDrivers()
 	if d == nil {
 		return nil
@@ -1032,7 +1036,9 @@ func (mw *mapWorld) savedProjectileDraws() []ui.SpellBolt {
 			continue
 		}
 		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID]})
-		out = append(out, mw.savedProjectileTrail(p)...)
+		if trails {
+			out = append(out, mw.savedProjectileTrail(p)...)
+		}
 	}
 	return out
 }
