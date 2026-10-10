@@ -120,7 +120,8 @@ field named `second` or `Second`. Allowed: `campaignfirst.go` (2 findings) and
   each in the session and a LOAD from a fresh start. Each step records the
   screen, the frame hash (the map window composed on the CPU around the
   party), the World hash and tick, and the SAV hash. EN 14 lines, RU 14
-  lines, ROM2 RU 30 lines: identical after the change.
+  lines, ROM2 EN 30 lines, ROM2 RU 30 lines, each recorded on unchanged main
+  and reproduced byte for byte by the change.
 - Town square trace: identical on EN and RU.
 - Release, scenario, ROM2 save and milestone-2 gates: see the lane return.
 
