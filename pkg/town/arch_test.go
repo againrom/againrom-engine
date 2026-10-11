@@ -12,7 +12,8 @@ import (
 )
 
 // The composer holds no fact of any game: its non-test source imports only
-// the standard library, carries no integer literal beyond the counting,
+// the standard library and the one screen art loader, which holds none either
+// by its own copy of this test, carries no integer literal beyond the counting,
 // channel and bit-width values below, no float or rune literal, and no string
 // literal that could name a resource, a sound or a path. The entry-name
 // formats ("%s/%d") are the only strings with a slash.
@@ -45,8 +46,8 @@ func TestComposerHoldsNoGameFact(t *testing.T) {
 		checked++
 		for _, imp := range f.Imports {
 			path, _ := strconv.Unquote(imp.Path.Value)
-			if first, _, _ := strings.Cut(path, "/"); strings.Contains(first, ".") || first == "againrom" {
-				t.Errorf("%s imports %s; the composer imports only the standard library", name, path)
+			if first, _, _ := strings.Cut(path, "/"); (strings.Contains(first, ".") || first == "againrom") && path != "againrom/pkg/screenart" {
+				t.Errorf("%s imports %s; the composer imports only the standard library and the screen art loader", name, path)
 			}
 		}
 		ast.Inspect(f, func(n ast.Node) bool {

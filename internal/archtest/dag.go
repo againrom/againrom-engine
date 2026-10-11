@@ -118,8 +118,13 @@ var allow = map[string][]string{
 	"pkg/audio": {"pkg/formats/wav"},
 	// The town composer builds a town view from a description. It holds no
 	// game fact and imports only the standard library; a game supplies its
-	// descriptions, art and hooks.
-	"pkg/town": {},
+	// descriptions, art and hooks. Its art is read by the one screen art
+	// loader.
+	"pkg/town": {"pkg/screenart"},
+	// The screen art loader reads a screen's art manifest through a source
+	// a game supplies. It holds no game fact and imports only the standard
+	// library.
+	"pkg/screenart": {},
 	// Video is a presentation/transport leaf; it cannot import game or sim.
 	// It reads a movie's sidecar registry through the reg format leaf.
 	"pkg/video": {"pkg/video/smacker", "pkg/formats/reg"},

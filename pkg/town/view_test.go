@@ -6,12 +6,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"againrom/pkg/screenart"
 )
 
 func newTestView(t *testing.T, d obj, loader fakeLoader) (*Scene, *fakeHost) {
 	t.Helper()
 	desc := mustDecode(t, d)
-	art, err := LoadArt(desc.SquareScene(), loader)
+	art, err := LoadArt(desc.SquareScene(), screenart.NewLibrary(loader))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +25,7 @@ func TestLoadArtRefusesARequiredEntryAndSkipsAnOptionalOne(t *testing.T) {
 	desc := mustDecode(t, baseTown())
 	l := testLoader()
 	delete(l.sizes, "sprite.16a")
-	art, err := LoadArt(desc.SquareScene(), l)
+	art, err := LoadArt(desc.SquareScene(), screenart.NewLibrary(l))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +33,7 @@ func TestLoadArtRefusesARequiredEntryAndSkipsAnOptionalOne(t *testing.T) {
 		t.Fatalf("optional sprite: frames %v problems %v", art.Pictures("sprite"), art.Problems)
 	}
 	delete(l.sizes, "base.bmp")
-	if _, err := LoadArt(desc.SquareScene(), l); err == nil || !strings.Contains(err.Error(), "base.bmp") {
+	if _, err := LoadArt(desc.SquareScene(), screenart.NewLibrary(l)); err == nil || !strings.Contains(err.Error(), "base.bmp") {
 		t.Fatalf("required base: %v", err)
 	}
 }
@@ -216,7 +218,7 @@ func TestRestartGeneratorsReseedsInPlace(t *testing.T) {
 	d := baseTown()
 	d["random"] = append(d["random"].(list), obj{"name": "g", "source": "lcg", "multiplier": 3, "increment": 1, "mask": 32767})
 	desc := mustDecode(t, d)
-	art, err := LoadArt(desc.SquareScene(), testLoader())
+	art, err := LoadArt(desc.SquareScene(), screenart.NewLibrary(testLoader()))
 	if err != nil {
 		t.Fatal(err)
 	}

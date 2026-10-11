@@ -93,7 +93,6 @@ func TestReleaseKargallasWorldMapObjectBuildsNoMarker(t *testing.T) {
 	if a == nil || a.data == nil {
 		t.Fatal("no world-map registry")
 	}
-	src := f.Archives.Containers
 	object, ok := a.data.Missions[90]
 	if !ok {
 		t.Fatal("mission 90 has no world-map object")
@@ -102,14 +101,14 @@ func TestReleaseKargallasWorldMapObjectBuildsNoMarker(t *testing.T) {
 	if row.Picture != "" || row.Point != image.Pt(478, 298) {
 		t.Fatalf("mission 90 object %d = picture %q point %v, want no picture at (478,298)", object, row.Picture, row.Point)
 	}
-	if m := a.marker(src, 90, row); m != nil {
+	if m := a.marker(90, row); m != nil {
 		t.Fatalf("mission 90 built a %v marker without a picture", m.Bounds())
 	}
 	if path, built := nativeCityMarkerPicture(f, 90); built {
 		t.Fatalf("mission 90 resolved marker path %q", path)
 	}
 	control := a.data.Objects[a.data.Missions[100]]
-	if control.Picture == "" || a.marker(src, 100, control) == nil {
+	if control.Picture == "" || a.marker(100, control) == nil {
 		t.Fatalf("control mission 100 object %+v built no marker", control)
 	}
 }

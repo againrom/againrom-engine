@@ -13,7 +13,7 @@ import (
 // once per root (en, then ru), which is how every other TestRelease* test in
 // this package reaches both installs (G1).
 //
-// WHY IT EXISTS. `readChargenBMP` and `LoadInstallWords` are exercised
+// WHY IT EXISTS. `readInstallBMP` and `LoadInstallWords` are exercised
 // against synthetic fixtures elsewhere in this package (commandpanelart_test.go,
 // installtext_test.go); neither fixture can carry the shipped install's own
 // byte geometry or its own main.txt content, so a defect in either — the

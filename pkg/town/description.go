@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+
+	"againrom/pkg/screenart"
 )
 
 // Description is one town as data. Every object in the encoded form carries a
@@ -70,35 +72,11 @@ type RandomSpec struct {
 	Cite       []string `json:"cite"`
 }
 
-// ArtSpec is one named art entry. Format "picture" is one bitmap; "series" is
-// numbered bitmaps loaded as one atomic family; "sprites" is one sprite sheet.
-// Index expands the key over one or two zero-based indices, each printed with
-// its base added; each expansion is its own entry named name/i or name/i/j.
-type ArtSpec struct {
-	Name        string      `json:"name"`
-	Format      string      `json:"format"`
-	Key         string      `json:"key"`
-	Index       []IndexSpec `json:"index"`
-	Count       int         `json:"count"`
-	Counts      []int       `json:"counts"`
-	Size        *Point      `json:"size"`
-	MaxSize     *Point      `json:"max-size"`
-	Required    bool        `json:"required"`
-	Transparent string      `json:"transparent"`
-	// First is the number the first member of a series is printed with.
-	First int `json:"first"`
-	// KeepMissing loads a series member by member: a member that does not
-	// load is a nil frame, and the series is kept.
-	KeepMissing bool     `json:"keep-missing"`
-	Cite        []string `json:"cite"`
-}
+// ArtSpec is one named art entry of the one screen art loader's manifest.
+type ArtSpec = screenart.Entry
 
 // IndexSpec is one dimension of an indexed key.
-type IndexSpec struct {
-	Count int      `json:"count"`
-	Base  int      `json:"base"`
-	Cite  []string `json:"cite"`
-}
+type IndexSpec = screenart.Index
 
 // MaskSpec names the mask art and the byte of each hotspot. RequiredBytes
 // must all be present for the art to load.
@@ -402,6 +380,9 @@ type RoomSpec struct {
 	Enter []Step     `json:"enter"`
 	Exit  []Step     `json:"exit"`
 	Scene *SceneSpec `json:"scene"`
+	// Art is the page's own art outside its scene: the panels, controls and
+	// sheets its page kind draws, read by the one screen art loader.
+	Art   []ArtSpec  `json:"art"`
 	Music *MusicSpec `json:"music"`
 	Tip   *TipSpec   `json:"tip"`
 	Cite  []string   `json:"cite"`

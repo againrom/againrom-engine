@@ -48,7 +48,7 @@ func (f *FrontEnd) endingArt() *ui.EndingView {
 				view.Credits = strings.Split(strings.ReplaceAll(strings.TrimSpace(vfs.DecodeText(f.textCode().Bytes(raw))), "\r\n", "\n"), "\n")
 			}
 			if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "graphics/famehall/hall.bmp"); err == nil {
-				if art, err := chargenRGBA(raw, "hall.bmp"); err == nil {
+				if art, err := decodeInstallBMP(raw, "hall.bmp"); err == nil {
 					view.HallBackground = art
 				}
 			}

@@ -116,7 +116,7 @@ func (f *FrontEnd) HoverBall() image.Image {
 	if f.Archives == nil || f.Archives.Containers == nil {
 		return nil
 	}
-	pic, err := readChargenBMP(f.Archives.Containers, graphicsPrefix+"interface/Ball.bmp")
+	pic, err := readInstallBMP(f.Archives.Containers, graphicsPrefix+"interface/Ball.bmp")
 	if err != nil || pic.Bounds().Size() != image.Pt(4, 4) {
 		return nil
 	}
@@ -137,7 +137,7 @@ func (f *FrontEnd) creditsView() ui.CreditsView {
 		}
 	}
 	for _, name := range []string{"nival", "buka", "monolith", "1c"} {
-		if pic, err := readChargenBMP(f.Archives.Containers, graphicsPrefix+"interface/logo/"+name+".bmp"); err == nil {
+		if pic, err := readInstallBMP(f.Archives.Containers, graphicsPrefix+"interface/logo/"+name+".bmp"); err == nil {
 			v.Logos[name] = pic
 		}
 	}

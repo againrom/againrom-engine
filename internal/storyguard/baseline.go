@@ -2122,6 +2122,10 @@ package storyguard
 // archtest heading scan, the attack heading release witness and the slot-0
 // witness target placed beside its attacker, new code,
 // including this paragraph.
+// CommentBytes rises for the one screen art loader: the docs of
+// pkg/screenart, its install source in pkg/game/screenart.go, the archtest
+// screen-art scan and their tests, new code net of the per-screen loaders it
+// replaced, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2143,7 +2147,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1743,
+		"longcommentgroups":      1742,
 	},
-	CommentBytes: 8670438,
+	CommentBytes: 8677646,
 }

@@ -674,7 +674,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// payload is never read. The edition's generator description names it.
 	var chargenAssets *ChargenAssets
 	if !archives.Base.Profile.Limits.NoCharacterGeneration {
-		if chargenAssets, err = LoadChargenAssets(archives.Containers, GeneratorDescription(archives.Base.Profile), archives.Game()); err != nil {
+		if chargenAssets, err = LoadChargenAssets(archives.artSource(), GeneratorDescription(archives.Base.Profile), archives.Game()); err != nil {
 			return nil, err
 		}
 		// Tips that keep the install's font draw in the font loaded above.
@@ -691,8 +691,9 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 
 	// The command panel's four bitmaps, off the same container filesystem and
 	// under the same carried-error rule (docs/1028-command-panel contract B1).
-	commandPanelArt, commandPanelArtErr := LoadCommandPanelArt(archives.Containers)
-	bottomHUDArt, bottomHUDArtErr := LoadBottomHUDArt(archives.Containers)
+	screens := ScreensDescription(archives.Base.Profile)
+	commandPanelArt, commandPanelArtErr := LoadCommandPanelArt(archives.artSource(), screens)
+	bottomHUDArt, bottomHUDArtErr := LoadBottomHUDArt(archives.artSource(), screens)
 
 	sackFrames := LoadSackFrames(archives.Containers)
 

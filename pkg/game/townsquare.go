@@ -78,7 +78,7 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 	if d == nil {
 		return nil, nil
 	}
-	return town.LoadArt(d.SquareScene(), townArtLoader{src})
+	return town.LoadArt(d.SquareScene(), screenArtOf(src))
 }
 
 // townDescription is the town description of the install's profile; a screen
@@ -94,34 +94,6 @@ func (t *townScreen) profile() base.Profile {
 		return base.Profile{}
 	}
 	return t.in.profile()
-}
-
-// townArtLoader reads the composer's art keys from the install's containers.
-type townArtLoader struct{ src terrain.EntrySource }
-
-func (l townArtLoader) Picture(key string) (image.Image, error) {
-	pic, err := readChargenBMP(l.src, key)
-	if err != nil {
-		return nil, err
-	}
-	return pic, nil
-}
-
-func (l townArtLoader) Mask(key string) (*image.Paletted, error) { return readChargenMask(l.src, key) }
-
-func (l townArtLoader) Sprites(key string) []image.Image {
-	if l.src == nil {
-		return nil
-	}
-	frames := effectFrames(l.src, key)
-	out := make([]image.Image, 0, len(frames))
-	for _, f := range frames {
-		if f.Width <= 0 || f.Height <= 0 {
-			return nil
-		}
-		out = append(out, f.RGBA())
-	}
-	return out
 }
 
 // townRoomNames binds the description's room names to the screen's rooms.

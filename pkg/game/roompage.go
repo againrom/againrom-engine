@@ -2,9 +2,11 @@ package game
 
 import (
 	"errors"
+	"fmt"
 	"image"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/screenart"
 	"againrom/pkg/town"
 )
 
@@ -39,7 +41,7 @@ func loadRoomSceneArt(d *town.Description, room string, src terrain.EntrySource)
 		if r.Name != room || r.Scene == nil {
 			continue
 		}
-		art, err := town.LoadArt(r.Scene, townArtLoader{src})
+		art, err := town.LoadArt(r.Scene, screenArtOf(src))
 		if err != nil {
 			return nil, err
 		}
@@ -50,6 +52,20 @@ func loadRoomSceneArt(d *town.Description, room string, src terrain.EntrySource)
 		return art.Frames, errors.Join(problems...)
 	}
 	return nil, nil
+}
+
+// roomPageArt resolves a room page's own art, outside its scene, as room
+// description d names it. A nil description, or a room it does not name, is
+// an error.
+func roomPageArt(d *town.Description, room string, src terrain.EntrySource) (*screenart.Set, error) {
+	if d != nil {
+		for i := range d.Rooms {
+			if r := &d.Rooms[i]; r.Name == room {
+				return screenArtOf(src).Load(room, r.Art)
+			}
+		}
+	}
+	return nil, fmt.Errorf("room %s: no page art", room)
 }
 
 // roomEvents are the events the ROM1 campaign raises on its room pages: a

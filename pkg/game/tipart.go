@@ -2,73 +2,25 @@ package game
 
 import (
 	"fmt"
-	"image"
 
-	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
-const (
-	tipBackPath    = graphicsPrefix + "interface/t_back.bmp"
-	tipFramePath   = graphicsPrefix + "interface/lm.256"
-	tipGemPath     = graphicsPrefix + "interface/radiob.256"
-	tipGemOffFrame = 4
-	tipGemOnFrame  = 5
-	checkGemFrame  = 2
-)
-
-func LoadTipPanelArt(src terrain.EntrySource) (*ui.TipPanelArt, error) {
+// LoadTipPanelArt resolves the tip panel's frame pieces and its checkbox gem
+// pair from the tip-panel manifest of description d. Any piece failing fails
+// the whole call.
+func LoadTipPanelArt(src terrain.EntrySource, d *Screens) (*ui.TipPanelArt, error) {
+	set, err := loadScreen(src, d, "tip-panel")
+	if err != nil {
+		return nil, err
+	}
 	a := &ui.TipPanelArt{Frame: &ui.DialogFrame{}}
-	for i, size := range []image.Point{{48, 32}, {32, 32}, {48, 32}, {32, 32}, {32, 32}, {32, 32}, {32, 32}, {48, 32}, {32, 32}} {
-		pic, err := loadTipGemFrame(src, tipFramePath, 9+i)
-		if err != nil {
-			return nil, err
-		}
-		if err = chargenSize(pic, size.X, size.Y, tipFramePath); err != nil {
-			return nil, err
-		}
-		a.Frame.Pieces[i] = pic
+	for i := range a.Frame.Pieces {
+		a.Frame.Pieces[i] = rgbaOf(set.Picture(fmt.Sprintf("piece/%d", i)))
 	}
-	var err error
-	if a.GemOff, err = loadTipGemFrame(src, tipGemPath, tipGemOffFrame); err != nil {
-		return nil, err
-	}
-	if a.GemOn, err = loadTipGemFrame(src, tipGemPath, tipGemOnFrame); err != nil {
-		return nil, err
-	}
+	a.GemOff, a.GemOn = rgbaOf(set.Picture("gem-off")), rgbaOf(set.Picture("gem-on"))
 	return a, nil
-}
-
-// loadTipGemFrame reads one frame of a .256 sheet as an RGBA, carrying the
-// sheet's own structural transparency into the alpha channel — loadShopSprite
-// (shopart.go)'s own reader, generalized to a frame index instead of always
-// frame 0, since radiob.256 packs six gem pictures in one stream and this
-// story needs two of them.
-func loadTipGemFrame(src entrySource, addr string, frame int) (*image.RGBA, error) {
-	if src == nil {
-		return nil, fmt.Errorf("%s: no archive", addr)
-	}
-	raw, err := src.ReadFile(addr)
-	if err != nil {
-		return nil, err
-	}
-	sheet, err := spr256.Decode(raw)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", addr, err)
-	}
-	table, ok := sheet.Table()
-	if !ok {
-		return nil, fmt.Errorf("%s: no palette", addr)
-	}
-	if frame < 0 || frame >= len(sheet.Frames) {
-		return nil, fmt.Errorf("%s: frame %d, sheet carries %d", addr, frame, len(sheet.Frames))
-	}
-	f := sheet.Frames[frame]
-	if f.Width <= 0 || f.Height <= 0 || len(f.Pixels) < f.Width*f.Height {
-		return nil, fmt.Errorf("%s: frame %d is empty", addr, frame)
-	}
-	return f.RGBA(table), nil
 }
 
 // tipArt is the front end's one copy, loaded on first use and cached the way
@@ -88,7 +40,7 @@ func (p *Presentation) tipArt(in *InstallResources) *ui.TipPanelArt {
 	if in.Archives == nil {
 		return nil
 	}
-	a, err := LoadTipPanelArt(in.Archives.Containers)
+	a, err := LoadTipPanelArt(in.Archives.artSource(), ScreensDescription(in.profile()))
 	if err != nil {
 		return nil
 	}

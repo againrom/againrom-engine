@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/screenart"
 	"againrom/pkg/vfs"
 )
 
@@ -90,6 +91,10 @@ type Archives struct {
 	// A root no profile matches leaves it zero, which states no limit and is
 	// the first game.
 	Base base.Match
+
+	// art is the library every screen of this install reads its art
+	// through: one picture is read and validated once (screenart.go).
+	art *screenart.Library
 }
 
 // Game is the game of the profile the root was detected as.
@@ -145,7 +150,7 @@ func OpenArchives(root string) (*Archives, error) {
 		return nil, err
 	}
 
-	a := &Archives{Root: root, Containers: containers, Loose: loose}
+	a := &Archives{Root: root, Containers: containers, Loose: loose, art: screenart.NewLibrary(screenArtSource{containers})}
 	if match, err := DetectBase(root); err == nil {
 		a.Base = match
 	}

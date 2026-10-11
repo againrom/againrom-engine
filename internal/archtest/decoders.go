@@ -36,8 +36,6 @@ var decoderTranslations = map[string]string{
 // The list may only fall: each entry must still hold a finding, and a file
 // that holds none must leave the list in the same commit.
 var DecoderComposerDebt = map[string]bool{
-	"pkg/game/shopart.go":         true,
-	"pkg/game/worldmap.go":        true,
 	"cmd/schoolcheck/main.go":     true,
 	"cmd/townsquarecheck/main.go": true,
 }

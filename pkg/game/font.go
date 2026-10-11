@@ -34,6 +34,15 @@ const (
 func FontAtlasPath(base string) string   { return graphicsPrefix + base + "/" + base + ".16" }
 func FontAdvancePath(base string) string { return graphicsPrefix + base + "/" + base + ".dat" }
 
+// FontAtlasPathA is FontAtlasPath for a font whose atlas ships as `.16a`.
+//
+// FONT4 IS THE ONLY ONE (SPR16A-FONT-018: the construction site names
+// font1/2/3 through the `.16` class and font4 through the `.16a` class), and
+// both shipped roots carry `font4/font4.16a` and `font4/font4.dat` and no
+// `font4/font4.16`. The sidecar's address is unchanged, which is why
+// FontAdvancePath is reused rather than restated.
+func FontAtlasPathA(base string) string { return graphicsPrefix + base + "/" + base + ".16a" }
+
 // LanguagePath is the entry an install names its own language in.
 var LanguagePath = mainPrefix + "id"
 

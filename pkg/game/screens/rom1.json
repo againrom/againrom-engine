@@ -1,0 +1,89 @@
+{
+  "screens": "rom1",
+  "cite": ["owner"],
+  "manifests": [
+    {"screen": "bottom-hud",
+     "art": [
+       {"name": "book", "format": "picture", "key": "graphics/interface/spellbook.bmp", "size": [480, 85], "transparent": "black", "required": true, "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025"]},
+       {"name": "unknown-spell", "format": "picture", "key": "graphics/interface/spellback.bmp", "size": [36, 36], "transparent": "black", "required": true, "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025"]},
+       {"name": "book-left-800", "format": "picture", "key": "graphics/interface/spb800l.bmp", "size": [80, 85], "transparent": "black", "required": true, "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025"]},
+       {"name": "book-right-800", "format": "picture", "key": "graphics/interface/spb800r.bmp", "size": [96, 85], "transparent": "black", "required": true, "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025"]},
+       {"name": "book-left-1024", "format": "picture", "key": "graphics/interface/spb1024l.bmp", "size": [192, 85], "transparent": "black", "required": true, "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025"]},
+       {"name": "book-right-1024", "format": "picture", "key": "graphics/interface/spb1024r.bmp", "size": [208, 85], "transparent": "black", "required": true, "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025"]},
+       {"name": "pack", "format": "picture", "key": "graphics/interface/invframe.bmp", "size": [480, 90], "transparent": "black", "required": true, "cite": ["owner"]},
+       {"name": "pack-item", "format": "picture", "key": "graphics/interface/backinv.bmp", "size": [80, 80], "transparent": "black", "required": true, "cite": ["owner"]},
+       {"name": "pack-left", "format": "picture", "key": "graphics/interface/inv1024l.bmp", "size": [32, 90], "transparent": "black", "required": true, "cite": ["owner"]},
+       {"name": "pack-right", "format": "picture", "key": "graphics/interface/inv1024r.bmp", "size": [48, 90], "transparent": "black", "required": true, "cite": ["owner"]},
+       {"name": "pack-arrow", "format": "picture", "key": "graphics/interface/invarrow%d.bmp", "index": [{"count": 4, "base": 1, "cite": ["owner"]}], "size": [32, 88], "transparent": "black", "required": true, "cite": ["owner"]}
+     ],
+     "cite": ["MAGIC-ICON-024", "MAGIC-ICON-025", "owner"]},
+    {"screen": "command-panel",
+     "art": [
+       {"name": "heads", "format": "picture", "key": "graphics/interface/headsr.bmp", "size": [160, 80], "required": true, "cite": ["MENU-COMBAT-018"]},
+       {"name": "heads-seam", "format": "picture", "key": "graphics/interface/headsl.bmp", "size": [16, 80], "transparent": "black", "required": true, "cite": ["MENU-COMBAT-018"]},
+       {"name": "active", "format": "picture", "key": "graphics/interface/commandbarr.bmp", "size": [160, 80], "required": true, "cite": ["MENU-COMBAT-018"]},
+       {"name": "active-seam", "format": "picture", "key": "graphics/interface/commandbarl.bmp", "size": [16, 80], "transparent": "black", "required": true, "cite": ["MENU-COMBAT-018"]},
+       {"name": "disabled", "format": "picture", "key": "graphics/interface/commandempr.bmp", "size": [160, 80], "required": true, "cite": ["MENU-COMBAT-018"]},
+       {"name": "selected", "format": "picture", "key": "graphics/interface/commanddnr.bmp", "size": [160, 80], "required": true, "cite": ["MENU-COMBAT-018"]}
+     ],
+     "cite": ["MENU-COMBAT-018"]},
+    {"screen": "character-pane",
+     "art": [
+       {"name": "figure-body", "format": "picture", "key": "graphics/interface/humanbackr.bmp", "size": [160, 242], "required": true, "cite": ["DIV-175"]},
+       {"name": "figure-seam", "format": "picture", "key": "graphics/interface/humanbackl.bmp", "size": [16, 242], "transparent": "black", "required": true, "cite": ["DIV-175"]},
+       {"name": "stats-body", "format": "picture", "key": "graphics/interface/textbackr.bmp", "size": [160, 242], "required": true, "cite": ["DIV-175"]},
+       {"name": "stats-seam", "format": "picture", "key": "graphics/interface/textbackl.bmp", "size": [16, 242], "transparent": "black", "required": true, "cite": ["DIV-175"]}
+     ],
+     "cite": ["DIV-175"]},
+    {"screen": "character-pane-corners",
+     "art": [
+       {"name": "backpack-open", "format": "picture", "key": "graphics/interface/backpackop.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "backpack-closed", "format": "picture", "key": "graphics/interface/backpackcl.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "book-opened", "format": "picture", "key": "graphics/interface/bookopened.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "book-closed", "format": "picture", "key": "graphics/interface/bookclosed.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "human-mode", "format": "picture", "key": "graphics/interface/humanmode.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "text-mode", "format": "picture", "key": "graphics/interface/textmode.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "diskette", "format": "picture", "key": "graphics/interface/diskette.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "ar1", "format": "picture", "key": "graphics/interface/ar1.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]},
+       {"name": "ar2", "format": "picture", "key": "graphics/interface/ar2.bmp", "transparent": "black", "required": true, "cite": ["TOWN-356", "TOWN-354"]}
+     ],
+     "cite": ["TOWN-356", "TOWN-354", "DIV-175"]},
+    {"screen": "character-pane-filler",
+     "art": [
+       {"name": "body", "format": "picture", "key": "graphics/interface/extra1024r.bmp", "size": [160, 46], "required": true, "cite": ["TOWN-093"]},
+       {"name": "seam", "format": "picture", "key": "graphics/interface/extra1024l.bmp", "size": [16, 46], "transparent": "black", "required": true, "cite": ["TOWN-093"]}
+     ],
+     "cite": ["TOWN-093"]},
+    {"screen": "tip-panel",
+     "art": [
+       {"name": "piece/0", "format": "frame", "key": "graphics/interface/lm.256", "frame": 9, "size": [48, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/1", "format": "frame", "key": "graphics/interface/lm.256", "frame": 10, "size": [32, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/2", "format": "frame", "key": "graphics/interface/lm.256", "frame": 11, "size": [48, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/3", "format": "frame", "key": "graphics/interface/lm.256", "frame": 12, "size": [32, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/4", "format": "frame", "key": "graphics/interface/lm.256", "frame": 13, "size": [32, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/5", "format": "frame", "key": "graphics/interface/lm.256", "frame": 14, "size": [32, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/6", "format": "frame", "key": "graphics/interface/lm.256", "frame": 15, "size": [32, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/7", "format": "frame", "key": "graphics/interface/lm.256", "frame": 16, "size": [48, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "piece/8", "format": "frame", "key": "graphics/interface/lm.256", "frame": 17, "size": [32, 32], "required": true, "cite": ["DLG-PANEL-035"]},
+       {"name": "gem-off", "format": "frame", "key": "graphics/interface/radiob.256", "frame": 4, "required": true, "cite": ["MENU-125"]},
+       {"name": "gem-on", "format": "frame", "key": "graphics/interface/radiob.256", "frame": 5, "required": true, "cite": ["MENU-125"]}
+     ],
+     "cite": ["DLG-PANEL-035", "MENU-125"]},
+    {"screen": "documents",
+     "art": [
+       {"name": "sheet", "format": "picture", "key": "graphics/interface/docs/sheet.bmp", "size": [640, 480], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "left/0", "format": "picture", "key": "graphics/interface/docs/arrows/00_l.bmp", "size": [56, 40], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "right/0", "format": "picture", "key": "graphics/interface/docs/arrows/00_r.bmp", "size": [60, 40], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "left/1", "format": "picture", "key": "graphics/interface/docs/arrows/01_l.bmp", "size": [56, 40], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "right/1", "format": "picture", "key": "graphics/interface/docs/arrows/01_r.bmp", "size": [60, 40], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "left/2", "format": "picture", "key": "graphics/interface/docs/arrows/11_l.bmp", "size": [56, 40], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "right/2", "format": "picture", "key": "graphics/interface/docs/arrows/11_r.bmp", "size": [60, 40], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "ok/0", "format": "picture", "key": "graphics/interface/docs/ok/ok_off.bmp", "size": [44, 32], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "ok/1", "format": "picture", "key": "graphics/interface/docs/ok/ok_on.bmp", "size": [44, 32], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "ok/2", "format": "picture", "key": "graphics/interface/docs/ok/ok_l_off.bmp", "size": [44, 32], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "ok/3", "format": "picture", "key": "graphics/interface/docs/ok/ok_l_on.bmp", "size": [44, 32], "required": true, "cite": ["MENU-DOC-009"]},
+       {"name": "page", "format": "picture", "key": "graphics/interface/docs/%d.bmp", "bound": true, "cite": ["MISSION-DOC-021"]}
+     ],
+     "cite": ["MENU-DOC-009", "MISSION-DOC-021", "TEXT-API-007"]}
+  ]
+}

@@ -68,7 +68,7 @@ func releaseBottomHUDPixels(t *testing.T, f *FrontEnd, output string) {
 }
 
 func releaseCurvedCharacterCard(t *testing.T, f *FrontEnd) {
-	art, err := LoadTownCharacterPaneArt(f.Archives.Containers)
+	art, err := LoadTownCharacterPaneArt(f.Archives.Containers, rom1Screens)
 	if err != nil {
 		t.Fatal(err)
 	}

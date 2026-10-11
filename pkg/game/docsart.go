@@ -9,88 +9,33 @@ import (
 )
 
 // The campaign documents panel's install-backed inputs (B3, MENU-DOC-009,
-// MISSION-DOC-021, TEXT-API-007, SPR16A-FONT-018).
-//
-// Three things are read here and nowhere else in this tree: the panel's eleven
-// bitmaps, the two per-element resource paths, and font4.
+// MISSION-DOC-021, TEXT-API-007, SPR16A-FONT-018): the panel's eleven
+// bitmaps and the per-element picture, named by the documents manifest of
+// the screen art description; the per-element text; and font4.
 
-const (
-	docSheetPath = graphicsPrefix + "interface/docs/sheet.bmp"
+// docTextPrefix is MISSION-DOC-021's text format string with the value
+// removed: kind 1 formats `main\text\Docs\%d.txt`.
+const docTextPrefix = mainPrefix + "text/docs/"
 
-	// docArrowDir and docOKDir are the two directories the arrays at `+0x74`,
-	// `+0x88` and `+0x9c` name.
-	docArrowDir = graphicsPrefix + "interface/docs/arrows/"
-	docOKDir    = graphicsPrefix + "interface/docs/ok/"
-
-	// docPicturePrefix and docTextPrefix are MISSION-DOC-021's two format
-	// strings with the value removed: kind 0 formats
-	// `graphics\interface\Docs\%d.bmp` and kind 1 `main\text\Docs\%d.txt`,
-	// the first component naming the archive. Address separators are `/` and
-	// lower case in this tree, which is the container filesystem's own
-	// normalisation and not a change of address.
-	docPicturePrefix = graphicsPrefix + "interface/docs/"
-	docTextPrefix    = mainPrefix + "text/docs/"
-)
-
-// docArrowFiles and docOKFiles are the two arrays in the original's own order.
-//
-// THE ORDER IS LOAD-BEARING and it is the selection index (MENU-DOC-009:
-// element 1 on hover, 2 on press, 3 for OK, 0 on leave). Sorting these by name
-// would swap `11` and `01` on the arrows.
-var (
-	docArrowFiles = [3]string{"00_", "01_", "11_"}
-	docOKFiles    = [4]string{"ok_off.bmp", "ok_on.bmp", "ok_l_off.bmp", "ok_l_on.bmp"}
-)
-
-// The eleven bitmaps' own pixel sizes, checked at load. MENU-DOC-009 gives
-// each control's hit rectangle as EQUAL to its bitmap, so a bitmap that is not
-// this size would move a control's picture off its hit test without anything
-// else failing.
-const (
-	docSheetW, docSheetH = 640, 480
-	docLeftW, docLeftH   = 56, 40
-	docRightW, docRightH = 60, 40
-	docOKW, docOKH       = 44, 32
-)
-
-// LoadDocumentPanelArt resolves the documents panel's eleven bitmaps.
+// LoadDocumentPanelArt resolves the documents panel's eleven bitmaps from
+// the documents manifest of description d. MENU-DOC-009 gives each control's
+// hit rectangle as equal to its bitmap, so each is held to its size.
 //
 // Cosmetic on LoadTipPanelArt's own rule: a missing or mis-sized node carries
 // its own address in the returned error, and the front end then installs no
 // panel art at all rather than making the game unusable.
-func LoadDocumentPanelArt(src terrain.EntrySource) (*ui.DocumentPanelArt, error) {
-	a := &ui.DocumentPanelArt{}
-	var err error
-	if a.Sheet, err = readChargenBMP(src, docSheetPath); err != nil {
+func LoadDocumentPanelArt(src terrain.EntrySource, d *Screens) (*ui.DocumentPanelArt, error) {
+	set, err := loadScreen(src, d, "documents")
+	if err != nil {
 		return nil, err
 	}
-	if err = chargenSize(a.Sheet, docSheetW, docSheetH, docSheetPath); err != nil {
-		return nil, err
+	a := &ui.DocumentPanelArt{Sheet: rgbaOf(set.Picture("sheet"))}
+	for i := range a.Left {
+		a.Left[i] = rgbaOf(set.Picture(fmt.Sprintf("left/%d", i)))
+		a.Right[i] = rgbaOf(set.Picture(fmt.Sprintf("right/%d", i)))
 	}
-	for i, stem := range docArrowFiles {
-		lp := docArrowDir + stem + "l.bmp"
-		if a.Left[i], err = readChargenBMP(src, lp); err != nil {
-			return nil, err
-		}
-		if err = chargenSize(a.Left[i], docLeftW, docLeftH, lp); err != nil {
-			return nil, err
-		}
-		rp := docArrowDir + stem + "r.bmp"
-		if a.Right[i], err = readChargenBMP(src, rp); err != nil {
-			return nil, err
-		}
-		if err = chargenSize(a.Right[i], docRightW, docRightH, rp); err != nil {
-			return nil, err
-		}
-	}
-	for i, name := range docOKFiles {
-		p := docOKDir + name
-		if a.OK[i], err = readChargenBMP(src, p); err != nil {
-			return nil, err
-		}
-		if err = chargenSize(a.OK[i], docOKW, docOKH, p); err != nil {
-			return nil, err
-		}
+	for i := range a.OK {
+		a.OK[i] = rgbaOf(set.Picture(fmt.Sprintf("ok/%d", i)))
 	}
 	return a, nil
 }
@@ -98,19 +43,19 @@ func LoadDocumentPanelArt(src terrain.EntrySource) (*ui.DocumentPanelArt, error)
 // TEXT-API-007
 const DocumentFont = "font4"
 
-// FontAtlasPathA is FontAtlasPath for a font whose atlas ships as `.16a`.
-//
-// FONT4 IS THE ONLY ONE (SPR16A-FONT-018: the construction site names
-// font1/2/3 through the `.16` class and font4 through the `.16a` class), and
-// both shipped roots carry `font4/font4.16a` and `font4/font4.dat` and no
-// `font4/font4.16`. The sidecar's address is unchanged, which is why
-// FontAdvancePath is reused rather than restated.
-func FontAtlasPathA(base string) string { return graphicsPrefix + base + "/" + base + ".16a" }
-
 // DocumentPicturePath and DocumentTextPath are MISSION-DOC-021's two
-// per-element addresses, the element's own value formatted into the path.
-func DocumentPicturePath(v int) string { return fmt.Sprintf("%s%d.bmp", docPicturePrefix, v) }
-func DocumentTextPath(v int) string    { return fmt.Sprintf("%s%d.txt", docTextPrefix, v) }
+// per-element addresses, the element's own value formatted into the path;
+// the picture's is the bound page entry of description d's documents
+// manifest.
+func DocumentPicturePath(d *Screens, v int) string {
+	for _, e := range d.Art("documents") {
+		if e.Name == "page" {
+			return fmt.Sprintf(e.Key, v)
+		}
+	}
+	return ""
+}
+func DocumentTextPath(v int) string { return fmt.Sprintf("%s%d.txt", docTextPrefix, v) }
 
 // LoadDocumentPage resolves one collection element to what the panel draws.
 //
@@ -127,22 +72,17 @@ func DocumentTextPath(v int) string    { return fmt.Sprintf("%s%d.txt", docTextP
 // element. The five values the shipped campaign registry carries resolve 5/5
 // on both roots (MISSION-DOC-021), so this arm is reached by authored content
 // alone.
-func LoadDocumentPage(src entrySource, d Document, code TextCode) (ui.DocumentPage, bool) {
+func LoadDocumentPage(src terrain.EntrySource, screens *Screens, d Document, code TextCode) (ui.DocumentPage, bool) {
 	if src == nil {
 		return ui.DocumentPage{}, false
 	}
 	switch d.Kind {
 	case DocumentPicture:
-		addr := DocumentPicturePath(d.Value)
-		b, err := src.ReadFile(addr)
-		if err != nil {
+		frames, err := screenArtOf(src).Bind("documents", screens.Art("documents"), "page", d.Value)
+		if err != nil || len(frames) == 0 {
 			return ui.DocumentPage{}, false
 		}
-		img, err := chargenRGBA(b, addr)
-		if err != nil {
-			return ui.DocumentPage{}, false
-		}
-		return ui.DocumentPage{Picture: img}, true
+		return ui.DocumentPage{Picture: rgbaOf(frames[0])}, true
 	case DocumentText:
 		s, ok := ReadShopTip(src, DocumentTextPath(d.Value), code)
 		if !ok || s == "" {
@@ -174,7 +114,7 @@ func (s documentSource) Documents() []ui.DocumentPage {
 	}
 	out := make([]ui.DocumentPage, 0, len(list))
 	for _, d := range list {
-		if page, ok := LoadDocumentPage(s.f.Archives.Containers, d, s.f.textCode()); ok {
+		if page, ok := LoadDocumentPage(s.f.Archives.artSource(), ScreensDescription(s.f.profile()), d, s.f.textCode()); ok {
 			out = append(out, page)
 		}
 	}
@@ -194,7 +134,7 @@ func (f *FrontEnd) documentArt() *ui.DocumentPanelArt {
 	if f.Archives == nil {
 		return nil
 	}
-	a, err := LoadDocumentPanelArt(f.Archives.Containers)
+	a, err := LoadDocumentPanelArt(f.Archives.artSource(), ScreensDescription(f.profile()))
 	if err != nil {
 		return nil
 	}

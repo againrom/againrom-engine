@@ -22,7 +22,7 @@ func commandPanelSource() chargenSource {
 }
 
 func TestLoadCommandPanelArtReadsBodiesAndClosingSeams(t *testing.T) {
-	got, err := LoadCommandPanelArt(commandPanelSource())
+	got, err := LoadCommandPanelArt(commandPanelSource(), rom1Screens)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,14 +87,14 @@ func TestLoadCommandPanelArtMissingNodeIsAddressBearing(t *testing.T) {
 	} {
 		src := commandPanelSource()
 		delete(src, addr)
-		if _, err := LoadCommandPanelArt(src); err == nil || !strings.Contains(err.Error(), addr) {
+		if _, err := LoadCommandPanelArt(src, rom1Screens); err == nil || !strings.Contains(err.Error(), addr) {
 			t.Errorf("missing %s: error = %v, want an error naming %s", addr, err, addr)
 		}
 	}
 }
 
 func TestLoadCommandPanelArtNoSource(t *testing.T) {
-	if _, err := LoadCommandPanelArt(nil); err == nil {
+	if _, err := LoadCommandPanelArt(nil, rom1Screens); err == nil {
 		t.Error("a nil source loaded a picture")
 	}
 }

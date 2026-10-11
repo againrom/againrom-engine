@@ -8,17 +8,13 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/reg"
-	"againrom/pkg/formats/spr16"
-	"againrom/pkg/formats/spr256"
-	"againrom/pkg/render/terrain"
+	"againrom/pkg/screenart"
 	"againrom/pkg/ui"
 )
 
 var globalMapRegistry = scenarioPrefix + "globalmap.reg"
 
 const (
-	globalMapMain     = mainPrefix + "graphics/global.map/"
-	globalMapGraphics = graphicsPrefix + "global.map/"
 	// worldMapFallbackStep spaces the DIV-129 straight-line fallback used
 	// when the node graph cannot route an endpoint. The graph route itself
 	// is the concatenation of `PathMap.bmp` corridor pixels and needs no
@@ -123,6 +119,9 @@ type worldMapAssets struct {
 	texts       map[int]worldMapText
 	problem     string
 	reads       map[string]int
+	// art reads the gates room's page art and each marker it binds.
+	art      *screenart.Library
+	manifest []screenart.Entry
 }
 
 // flagFrame and availableFrame pick frame n, wrapping around the sheet's own
@@ -182,8 +181,9 @@ func coldWorldMapData(cache lazy[*worldMapAssets], archives *Archives) *globalMa
 	return nil
 }
 
-// loadWorldMapAssets reads the campaign map's manifest and pictures from the
-// install's archives.
+// loadWorldMapAssets reads the campaign map's registry, and its pictures as
+// the gates room of the install's room description names them. Every picture
+// is optional: one that does not read is absent and drawn as nothing.
 func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 	a := &worldMapAssets{
 		markers: make(map[int]*image.RGBA), markerTried: make(map[int]bool),
@@ -206,21 +206,44 @@ func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 	} else {
 		a.problem = err.Error()
 	}
-	a.background = a.bmp(src, globalMapMain+"gmap.bmp", false)
-	a.path = a.mask(src, globalMapGraphics+"pathmap.bmp")
+	a.art = screenart.NewLibrary(screenArtSource{countedSource{src, a.reads}})
+	for _, r := range RoomDescription(archives.Base.Profile).Rooms {
+		if r.Name == "gates" {
+			a.manifest = r.Art
+		}
+	}
+	set, _ := a.art.Load("world-map", a.manifest)
+	pic := func(name string) *image.RGBA { return rgbaOf(set.Picture(name)) }
+	a.background, a.ball = pic("background"), pic("ball")
+	a.path = set.Mask("path")
 	a.graph = buildWorldMapNodeGraph(a.path)
-	a.ball = a.bmp(src, globalMapGraphics+"ballmap.bmp", true)
 	// Hero.bmp is read by no path this build follows any more: `TOWN-120`
 	// (High) states the own-paint routine never reads it, and the
 	// current-position marker it stood in for is `Flag` (`DIV-130`).
-	a.flag = a.sprite16Frames(src, globalMapGraphics+"flag/sprites.16a")
-	a.available = a.sprite16Frames(src, globalMapGraphics+"flag1/sprites.16a")
-	a.cross = a.sprite16Frames(src, globalMapGraphics+"cross/sprites.16a")
+	frames := func(name string) []*image.RGBA {
+		var out []*image.RGBA
+		for _, f := range set.Pictures(name) {
+			out = append(out, rgbaOf(f))
+		}
+		return out
+	}
+	a.flag, a.available, a.cross = frames("flag"), frames("available"), frames("cross")
 	for i := 0; i < 3; i++ {
-		a.scroll[i] = a.bmp(src, fmt.Sprintf("%sscroll0%d.bmp", globalMapGraphics, i+1), true)
-		a.pressed[i] = a.bmp(src, fmt.Sprintf("%sscrollp%d.bmp", globalMapGraphics, i+1), true)
+		a.scroll[i] = pic(fmt.Sprintf("scroll/%d", i))
+		a.pressed[i] = pic(fmt.Sprintf("pressed/%d", i))
 	}
 	return a
+}
+
+// countedSource counts each address read through it.
+type countedSource struct {
+	src   entrySource
+	reads map[string]int
+}
+
+func (c countedSource) ReadFile(path string) ([]byte, error) {
+	c.reads[path]++
+	return c.src.ReadFile(path)
 }
 
 func (a *worldMapAssets) read(src entrySource, path string) ([]byte, error) {
@@ -228,100 +251,21 @@ func (a *worldMapAssets) read(src entrySource, path string) ([]byte, error) {
 	return src.ReadFile(path)
 }
 
-func (a *worldMapAssets) bmp(src entrySource, path string, transparent bool) *image.RGBA {
-	raw, err := a.read(src, path)
-	if err != nil {
-		return nil
-	}
-	pic, err := chargenRGBA(raw, path)
-	if err != nil {
-		return nil
-	}
-	if transparent {
-		return keyBlack(pic)
-	}
-	return pic
-}
-
-func (a *worldMapAssets) mask(src entrySource, path string) *image.Paletted {
-	raw, err := a.read(src, path)
-	if err != nil {
-		return nil
-	}
-	mask, err := terrain.DecodeBMP8(raw)
-	if err != nil {
-		return nil
-	}
-	return mask
-}
-
-// sprite16Frames reads the whole .16a sheet rather than frame 0 alone, for
-// the three markers drawn from a frame counter (`Flag`, `Flag1`, `Cross`;
-// `TOWN-529`, `TOWN-530`).
-func (a *worldMapAssets) sprite16Frames(src entrySource, path string) []*image.RGBA {
-	raw, err := a.read(src, path)
-	if err != nil {
-		return nil
-	}
-	return decodeWorldMap16Frames(raw)
-}
-
-// decodeWorldMap16Frames shares loadItemIcon's own pixel-and-palette
-// resolution (cursorPixel, cursor.go) over every frame instead of frame 0.
-func decodeWorldMap16Frames(raw []byte) []*image.RGBA {
-	sprite, err := spr16.DecodeA(raw, true)
-	if err != nil {
-		return nil
-	}
-	out := make([]*image.RGBA, 0, len(sprite.Frames))
-	for _, f := range sprite.Frames {
-		if f.Width <= 0 || f.Height <= 0 {
-			continue
-		}
-		pic := image.NewRGBA(image.Rect(0, 0, f.Width, f.Height))
-		for i, p := range f.Pixels {
-			if !p.Painted {
-				continue
-			}
-			c := cursorPixel(sprite.Palette, p)
-			o := i * 4
-			pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, c.A
-		}
-		out = append(out, pic)
-	}
-	return out
-}
-
-func (a *worldMapAssets) marker(src entrySource, mission int, obj globalMapObject) *image.RGBA {
+// marker is mission's own picture: frame 0 of the sheet its registry row
+// names, bound into the gates room's marker entry, read once.
+func (a *worldMapAssets) marker(mission int, obj globalMapObject) *image.RGBA {
 	if a.markerTried[mission] {
 		return a.markers[mission]
 	}
 	a.markerTried[mission] = true
-	if obj.Picture == "" || strings.EqualFold(obj.Picture, "nothing") {
+	if obj.Picture == "" || strings.EqualFold(obj.Picture, "nothing") || a.art == nil {
 		return nil
 	}
-	path := globalMapMain + obj.Picture + ".256"
-	raw, err := a.read(src, path)
-	if err != nil {
+	frames, err := a.art.Bind("world-map", a.manifest, "marker", obj.Picture)
+	if err != nil || len(frames) == 0 {
 		return nil
 	}
-	sheet, err := spr256.Decode(raw)
-	if err != nil || !sheet.HasPalette || len(sheet.Frames) == 0 {
-		return nil
-	}
-	frame := sheet.Frames[0]
-	if frame.Width <= 0 || frame.Height <= 0 || len(frame.Pixels) != frame.Width*frame.Height {
-		return nil
-	}
-	pic := image.NewRGBA(image.Rect(0, 0, frame.Width, frame.Height))
-	for i, p := range frame.Pixels {
-		if !p.Opaque || int(p.Index) >= len(sheet.Palette) {
-			continue
-		}
-		c := sheet.Palette[p.Index]
-		o := i * 4
-		pic.Pix[o], pic.Pix[o+1], pic.Pix[o+2], pic.Pix[o+3] = c.R, c.G, c.B, 0xff
-	}
+	pic := rgbaOf(frames[0])
 	a.markers[mission] = pic
 	return pic
 }
@@ -526,7 +470,7 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 		// `TOWN-040`, High).
 		if missions[i].Enabled && src != nil && t.worldSelectedOnce[missions[i].Number] {
 			obj := a.data.Objects[missions[i].Object]
-			missions[i].Marker = worldMapOptionalImage(a.marker(src, missions[i].Number, obj))
+			missions[i].Marker = worldMapOptionalImage(a.marker(missions[i].Number, obj))
 		}
 	}
 	var markers []ui.WorldMapMarker
@@ -541,7 +485,7 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 				continue
 			}
 			obj := a.data.Objects[object]
-			if picture := worldMapOptionalImage(a.marker(src, mission, obj)); picture != nil {
+			if picture := worldMapOptionalImage(a.marker(mission, obj)); picture != nil {
 				markers = append(markers, ui.WorldMapMarker{Anchor: obj.Point, Picture: picture})
 			}
 		}

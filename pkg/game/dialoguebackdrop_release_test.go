@@ -141,7 +141,7 @@ func checkDialogueBackdrop(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen
 	if !named || !found || face == nil {
 		t.Fatalf("%s: speaker npc%d named %v found %v", wantPath, speaker, named, found)
 	}
-	back, err := readChargenBMP(f.Archives.Containers, tipBackPath)
+	back, err := readInstallBMP(f.Archives.Containers, tipBackPath)
 	if err != nil {
 		t.Fatal(err)
 	}

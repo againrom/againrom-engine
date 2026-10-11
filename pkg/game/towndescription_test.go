@@ -127,3 +127,10 @@ func leafValue(v any) bool {
 	}
 	return true
 }
+
+// Every object of each screen art description that states a value carries a
+// cite, by the town description's rule.
+func TestScreenArtDescriptionsEveryValueIsCited(t *testing.T) {
+	checkDescriptionCites(t, rom1ScreensJSON)
+	checkDescriptionCites(t, rom2ScreensJSON)
+}

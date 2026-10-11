@@ -29,7 +29,7 @@ func TestReleaseShippedCampaignDocumentsAllResolve(t *testing.T) {
 			elements = append(elements, Document{Value: v, Kind: DocumentPicture})
 		}
 		for _, d := range elements {
-			page, ok := LoadDocumentPage(f.Archives.Containers, d, f.textCode())
+			page, ok := LoadDocumentPage(f.Archives.Containers, rom1Screens, d, f.textCode())
 			if !ok {
 				t.Errorf("[Mission%d] grants element %+v and it does not resolve", n, d)
 				continue
@@ -48,7 +48,7 @@ func TestReleaseShippedCampaignDocumentsAllResolve(t *testing.T) {
 				pictures++
 				if page.Picture == nil || page.Picture.Bounds().Empty() {
 					t.Errorf("[Mission%d] picture element %d resolved to no image (%s)",
-						n, d.Value, DocumentPicturePath(d.Value))
+						n, d.Value, DocumentPicturePath(rom1Screens, d.Value))
 				}
 				if page.Text != "" {
 					t.Errorf("[Mission%d] picture element %d also carried text", n, d.Value)

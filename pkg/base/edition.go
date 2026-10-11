@@ -37,6 +37,10 @@ type Edition struct {
 	// description its install has always loaded its room scene art from.
 	Rooms string
 
+	// Screens names the screen art description: the art manifest of every
+	// screen no town or generator description names.
+	Screens string
+
 	// CompanionObjectiveMission is the mission whose persistent companion the
 	// compiled script must keep alive; zero for none.
 	CompanionObjectiveMission int
@@ -106,6 +110,7 @@ var firstEdition = Edition{
 	Generator:                 "rom1",
 	Music:                     "rom1",
 	Rooms:                     "rom1",
+	Screens:                   "rom1",
 	CompanionObjectiveMission: 40,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "Allods/video4.res", Name: "video4"},
@@ -124,6 +129,7 @@ var secondEdition = Edition{
 	Generator:    "rom2",
 	Music:        "rom2",
 	Rooms:        "rom1",
+	Screens:      "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "video.res", Name: "video"},

@@ -79,7 +79,7 @@ func loadInstallShare(root string) (*installShare, error) {
 	s.statics, s.staticsErr = LoadStatics(archives.Containers)
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)
 	s.units, s.unitSounds, s.unitsErr = loadUnitRegistry(archives.Containers)
-	rooms, square, src := RoomDescription(match.Profile), TownDescription(match.Profile), archives.Containers
+	rooms, square, src := RoomDescription(match.Profile), TownDescription(match.Profile), archives.artSource()
 	s.townSchool = deferredRead(func() (*ui.TownSchoolArt, error) { return LoadTownSchoolArt(rooms, src) })
 	s.townTavern = deferredRead(func() (*ui.TownTavernArt, error) { return LoadTownTavernArt(rooms, src) })
 	s.townSquare = deferredRead(func() (*town.Art, error) { return LoadTownSquareArtFor(square, src) })

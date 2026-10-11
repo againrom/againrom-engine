@@ -4,6 +4,8 @@ import (
 	"image"
 	"testing"
 	"time"
+
+	"againrom/pkg/screenart"
 )
 
 // A room program runs on the square and a square program in a room page.
@@ -28,7 +30,7 @@ func TestEveryProgramRunsOnTheSquareAndInARoomPage(t *testing.T) {
 
 	l := testLoader()
 	l.sizes["l0.bmp"], l.sizes["l1.bmp"] = image.Pt(2, 2), image.Pt(2, 2)
-	art, err := LoadArt(desc.SquareScene(), l)
+	art, err := LoadArt(desc.SquareScene(), screenart.NewLibrary(l))
 	if err != nil {
 		t.Fatal(err)
 	}

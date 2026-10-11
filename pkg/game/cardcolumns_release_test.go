@@ -17,7 +17,7 @@ import (
 // their half, sight with one decimal, and nothing shortened.
 func TestReleaseStatisticsCardColumnsAreFlush(t *testing.T) {
 	f := releaseFront(t)
-	art, err := LoadTownCharacterPaneArt(f.Archives.Containers)
+	art, err := LoadTownCharacterPaneArt(f.Archives.Containers, rom1Screens)
 	if err != nil {
 		t.Fatal(err)
 	}

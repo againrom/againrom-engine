@@ -619,7 +619,7 @@ func (g *Families) sheetLen(s *Scene, i int) int {
 	spec := g.spec.Members[i]
 	for _, a := range s.spec.Art {
 		if a.Name == spec.Art {
-			return a.countAt(g.Members[i].Sheet)
+			return a.CountAt(g.Members[i].Sheet)
 		}
 	}
 	return 0

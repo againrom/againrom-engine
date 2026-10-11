@@ -3,6 +3,8 @@ package town
 import (
 	"fmt"
 	"strings"
+
+	"againrom/pkg/screenart"
 )
 
 // Validate checks that every name a description uses resolves: art, actors,
@@ -61,7 +63,7 @@ func validateStep(s Step, where string, fail func(string, ...any) error) error {
 	return nil
 }
 
-// validateRoom checks a room's music, tip and scene.
+// validateRoom checks a room's music, tip, page art and scene.
 func (d *Description) validateRoom(r RoomSpec, rooms map[string]bool) error {
 	fail := func(format string, args ...any) error {
 		return fmt.Errorf("town %s: room %s: %s", d.Town, r.Name, fmt.Sprintf(format, args...))
@@ -76,6 +78,9 @@ func (d *Description) validateRoom(r RoomSpec, rooms map[string]bool) error {
 	}
 	if t := r.Tip; t != nil && t.Rect.Rectangle().Empty() {
 		return fail("tip rectangle %v is empty", t.Rect)
+	}
+	if err := screenart.Check(r.Art); err != nil {
+		return fail("page %v", err)
 	}
 	if r.Scene == nil {
 		return nil

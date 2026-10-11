@@ -2,12 +2,11 @@ package game
 
 import (
 	"fmt"
-	"image"
 
 	"againrom/pkg/base"
-	"againrom/pkg/formats/bmp"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
+	"againrom/pkg/screenart"
 	"againrom/pkg/ui"
 )
 
@@ -28,79 +27,6 @@ type ChargenAssets struct {
 	// EnterName is the line the page's enter writes.
 	HeroNames [4]string
 	EnterName string
-}
-
-func chargenRGBA(data []byte, addr string) (*image.RGBA, error) {
-	pic, err := bmp.DecodeRGBA(data)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", addr, err)
-	}
-	return pic, nil
-}
-
-func readChargenBMP(src terrain.EntrySource, addr string) (*image.RGBA, error) {
-	if src == nil {
-		return nil, fmt.Errorf("%s: no archive", addr)
-	}
-	b, err := src.ReadFile(addr)
-	if err != nil {
-		return nil, err
-	}
-	return chargenRGBA(b, addr)
-}
-
-func readChargenMask(src terrain.EntrySource, addr string) (*image.Paletted, error) {
-	if src == nil {
-		return nil, fmt.Errorf("%s: no archive", addr)
-	}
-	b, err := src.ReadFile(addr)
-	if err != nil {
-		return nil, err
-	}
-	mask, err := bmp.DecodePaletted(b)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", addr, err)
-	}
-	return mask, nil
-}
-
-func chargenSize(pic image.Image, wantW, wantH int, addr string) error {
-	if pic == nil || pic.Bounds().Dx() != wantW || pic.Bounds().Dy() != wantH {
-		if pic == nil {
-			return fmt.Errorf("%s: missing image", addr)
-		}
-		return fmt.Errorf("%s: size %dx%d, want %dx%d", addr, pic.Bounds().Dx(), pic.Bounds().Dy(), wantW, wantH)
-	}
-	return nil
-}
-
-func chargenPatchFits(pic image.Image, at image.Point, bounds image.Rectangle, addr string) error {
-	if pic == nil || !pic.Bounds().Add(at).In(bounds) {
-		if pic == nil {
-			return fmt.Errorf("%s: missing patch", addr)
-		}
-		return fmt.Errorf("%s: patch %v at %v lies outside %v", addr, pic.Bounds(), at, bounds)
-	}
-	return nil
-}
-
-// chargenMaskCodes makes the source mask part of the mandatory presentation
-// contract. A correctly sized but blank mask would otherwise load and leave
-// every pictorial choice inert at runtime.
-func chargenMaskCodes(mask *image.Paletted, want []uint8, addr string) error {
-	if mask == nil {
-		return fmt.Errorf("%s: missing mask", addr)
-	}
-	seen := [256]bool{}
-	for _, index := range mask.Pix {
-		seen[index] = true
-	}
-	for _, index := range want {
-		if !seen[index] {
-			return fmt.Errorf("%s: missing required mask index %d", addr, index)
-		}
-	}
-	return nil
 }
 
 // chargenTextAt is one required generator slot, or the address-bearing error a
@@ -145,69 +71,108 @@ func heroPictureNames(src entrySource, l *ui.GeneratorDescription, code TextCode
 	return names, nil
 }
 
-// chargenArt reads one described picture: its size when the description
-// states one, and that it lies inside bounds when drawn at its origin.
-func chargenArt(src terrain.EntrySource, key string, size *ui.GeneratorPoint, at ui.GeneratorPoint, bounds image.Rectangle) (*image.RGBA, error) {
-	pic, err := readChargenBMP(src, key)
-	if err != nil {
-		return nil, err
+// generatorArt is the generator description's art as the one screen art
+// loader's manifest, in the order the generator reads it. Every entry is
+// required but the sparkle, which incomplete diagnostic archives may lack
+// (TOWN-223). A picture with an origin must lie inside its page or column.
+func generatorArt(l *ui.GeneratorDescription) []screenart.Entry {
+	var out []screenart.Entry
+	pt := func(p ui.GeneratorPoint) *screenart.Point { q := screenart.Point(p); return &q }
+	opt := func(p *ui.GeneratorPoint) *screenart.Point {
+		if p == nil {
+			return nil
+		}
+		return pt(*p)
 	}
-	if size != nil {
-		if err = chargenSize(pic, size[0], size[1], key); err != nil {
-			return nil, err
+	page := &screenart.Rect{0, 0, l.Page.Size[0], l.Page.Size[1]}
+	art := func(name, key string, size *screenart.Point, at ui.GeneratorPoint, inside *screenart.Rect) {
+		out = append(out, screenart.Entry{Name: name, Format: "picture", Key: key, Size: size, At: pt(at), Inside: inside, Required: true})
+	}
+	pane := func(name string, p *ui.GeneratorPane) {
+		if p == nil || p.Key == "" {
+			return
+		}
+		e := screenart.Entry{Name: name, Format: "picture", Key: p.Key, Size: pt(p.Size), Required: true}
+		if p.Keyed {
+			e.Transparent = "black"
+		}
+		out = append(out, e)
+	}
+	mask := func(name, key string, size ui.GeneratorPoint, want []int) {
+		out = append(out, screenart.Entry{Name: name, Format: "mask", Key: key, Size: pt(size), RequiredBytes: want, Required: true})
+	}
+	pre, d := &l.PreCreate, &l.Detail
+	if s := pre.Sparkle; s != nil {
+		out = append(out, screenart.Entry{Name: "sparkle", Format: "sprites", Key: s.Key})
+	}
+	for i, level := range pre.Levels {
+		for j, a := range level.Art {
+			art(fmt.Sprintf("level/%d/%d", i, j), a.Key, opt(a.Size), a.At, page)
 		}
 	}
-	if err = chargenPatchFits(pic, at.Pt(), bounds, key); err != nil {
-		return nil, err
+	art("background", pre.Background.Key, opt(pre.Background.Size), pre.Background.At, page)
+	mask("pre-mask", pre.Mask.Key, pre.Mask.Size, pre.Mask.Required)
+	for _, b := range []struct {
+		name string
+		art  *ui.GeneratorArt
+	}{{"back", &pre.Back.Art}, {"forward", &pre.Forward.Art}} {
+		if b.art.Key != "" {
+			art(b.name, b.art.Key, opt(b.art.Size), b.art.At, page)
+		}
 	}
-	return pic, nil
-}
-
-// chargenPane reads one detail-page pane picture at its stated size; a keyed
-// pane's pure black becomes a hole. A nil pane is none.
-func chargenPane(src terrain.EntrySource, pane *ui.GeneratorPane) (*image.RGBA, error) {
-	if pane == nil || pane.Key == "" {
-		return nil, nil
+	for i, hero := range pre.Heroes {
+		for j, a := range hero.Art {
+			art(fmt.Sprintf("hero/%d/%d", i, j), a.Key, opt(a.Size), a.At, page)
+		}
 	}
-	pic, err := readChargenBMP(src, pane.Key)
-	if err != nil {
-		return nil, err
+	for i, loop := range pre.Loops {
+		out = append(out, screenart.Entry{Name: fmt.Sprintf("loop/%d", i), Format: "series", Key: loop.Key, First: loop.First,
+			Count: loop.Count, Size: pt(loop.Size), At: pt(loop.At), Inside: page, Required: true})
 	}
-	if err = chargenSize(pic, pane.Size[0], pane.Size[1], pane.Key); err != nil {
-		return nil, err
+	pane("plate", &d.Plate)
+	pane("plate-seam", d.PlateSeam)
+	pane("nav", &d.Nav)
+	pane("nav-seam", d.NavSeam)
+	for i, c := range d.Commands {
+		for j, key := range []string{c.Off, c.On} {
+			pane(fmt.Sprintf("command/%d/%d", i, j), &ui.GeneratorPane{Key: key, Size: c.Size, Keyed: c.Keyed})
+		}
 	}
-	if pane.Keyed {
-		pic = keyBlack(pic)
+	pane("doll", &d.Doll)
+	pane("doll-seam", d.DollSeam)
+	pane("card", &d.Card)
+	pane("card-seam", d.CardSeam)
+	column := d.ColumnRect.Rectangle().Size()
+	inColumn := &screenart.Rect{0, 0, column.X, column.Y}
+	// Each cell's three pictures load in the order the page reads them:
+	// selected at rest, hovered, selected and hovered. The fourth state is
+	// the column's own art.
+	states := []string{d.SkillStates.SelectedAtRest, d.SkillStates.Hover, d.SkillStates.Selected}
+	for class, c := range d.Classes {
+		art(fmt.Sprintf("column/%d", class), c.Column.Key, opt(c.Column.Size), c.Column.At, inColumn)
+		var codes []int
+		for _, skill := range c.Skills[:c.Selectable] {
+			codes = append(codes, skill.Mask)
+		}
+		size := ui.GeneratorPoint{column.X, column.Y}
+		if c.Mask.Size != nil {
+			size = *c.Mask.Size
+		}
+		mask(fmt.Sprintf("column-mask/%d", class), c.Mask.Key, size, codes)
+		for skill, sk := range c.Skills[:c.Selectable] {
+			for state, name := range states {
+				art(fmt.Sprintf("skill/%d/%d/%d", class, skill, state), sk.Dir+name, nil, sk.At, inColumn)
+			}
+		}
 	}
-	return pic, nil
-}
-
-// chargenPaneImage is a pane as an image: nil, not a nil picture
-// inside an image, when the description names none.
-func chargenPaneImage(src terrain.EntrySource, pane *ui.GeneratorPane) (image.Image, error) {
-	pic, err := chargenPane(src, pane)
-	if pic == nil || err != nil {
-		return nil, err
+	st := &d.Stats
+	for direction, names := range []ui.GeneratorStatButtons{st.MinusArt, st.PlusArt} {
+		for state, name := range []string{names.Rest, names.Hover, names.Down, names.Unused, names.Disabled} {
+			out = append(out, screenart.Entry{Name: fmt.Sprintf("stat/%d/%d", direction, state), Format: "picture",
+				Key: st.ButtonDir + name, Size: pt(st.ButtonSize), Required: true})
+		}
 	}
-	return pic, nil
-}
-
-func chargenMaskOf(src terrain.EntrySource, key string, size ui.GeneratorPoint, want []int) (*image.Paletted, error) {
-	mask, err := readChargenMask(src, key)
-	if err != nil {
-		return nil, err
-	}
-	if err = chargenSize(mask, size[0], size[1], key); err != nil {
-		return nil, err
-	}
-	codes := make([]uint8, len(want))
-	for i, w := range want {
-		codes[i] = uint8(w)
-	}
-	if err = chargenMaskCodes(mask, codes, key); err != nil {
-		return nil, err
-	}
-	return mask, nil
+	return out
 }
 
 func chargenFont(src terrain.EntrySource, f ui.GeneratorFont) (*text.Font, error) {
@@ -226,144 +191,49 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 		return nil, fmt.Errorf("character generator: no description")
 	}
 	p := &ui.ChargenPresentation{Layout: l}
-	page := image.Rectangle{Max: l.Page.Size.Pt()}
+	set, err := screenArtOf(src).Load("generator", generatorArt(l))
+	if err != nil {
+		return nil, err
+	}
 	pre, d := &l.PreCreate, &l.Detail
-	var err error
-	// TOWN-223 names this independent animated decoration. It is optional
-	// for incomplete diagnostic archives; a full install supplies its frames.
-	if s := pre.Sparkle; s != nil && src != nil {
-		if raw, readErr := src.ReadFile(s.Key); readErr == nil {
-			p.Sparkles, _ = decodeCursor16AFrames(s.Key, raw)
-		}
+	for _, f := range set.Pictures("sparkle") {
+		p.Sparkles = append(p.Sparkles, rgbaOf(f))
 	}
 	for i, level := range pre.Levels {
-		for j, art := range level.Art {
-			if p.Levels[i][j], err = chargenArt(src, art.Key, art.Size, art.At, page); err != nil {
-				return nil, err
-			}
+		for j := range level.Art {
+			p.Levels[i][j] = set.Picture(fmt.Sprintf("level/%d/%d", i, j))
 		}
 	}
-	bg := pre.Background
-	if p.Background, err = chargenArt(src, bg.Key, bg.Size, bg.At, page); err != nil {
-		return nil, err
-	}
-	if p.PreMask, err = chargenMaskOf(src, pre.Mask.Key, pre.Mask.Size, pre.Mask.Required); err != nil {
-		return nil, err
-	}
-	for _, b := range []struct {
-		art *ui.GeneratorArt
-		dst *image.Image
-	}{{&pre.Back.Art, &p.Amulet}, {&pre.Forward.Art, &p.Forward}} {
-		if b.art.Key == "" {
-			continue
-		}
-		pic, err := chargenArt(src, b.art.Key, b.art.Size, b.art.At, page)
-		if err != nil {
-			return nil, err
-		}
-		*b.dst = pic
-	}
+	p.Background, p.PreMask = set.Picture("background"), set.Mask("pre-mask")
+	p.Amulet, p.Forward = set.Picture("back"), set.Picture("forward")
 	for i, hero := range pre.Heroes {
-		for j, art := range hero.Art {
-			if p.Choices[i][j], err = chargenArt(src, art.Key, art.Size, art.At, page); err != nil {
-				return nil, err
-			}
+		for j := range hero.Art {
+			p.Choices[i][j] = set.Picture(fmt.Sprintf("hero/%d/%d", i, j))
 		}
 	}
-	for _, loop := range pre.Loops {
-		var members []image.Image
-		for k := 0; k < loop.Count; k++ {
-			key := fmt.Sprintf(loop.Key, loop.First+k)
-			pic, err := chargenArt(src, key, &loop.Size, loop.At, page)
-			if err != nil {
-				return nil, err
-			}
-			members = append(members, pic)
-		}
-		p.Loops = append(p.Loops, members)
+	for i := range pre.Loops {
+		p.Loops = append(p.Loops, set.Pictures(fmt.Sprintf("loop/%d", i)))
 	}
-	if p.Plate, err = chargenPaneImage(src, &d.Plate); err != nil {
-		return nil, err
-	}
-	if p.PlateSeam, err = chargenPaneImage(src, d.PlateSeam); err != nil {
-		return nil, err
-	}
-	if p.NavArt, err = chargenPaneImage(src, &d.Nav); err != nil {
-		return nil, err
-	}
-	if p.NavSeam, err = chargenPaneImage(src, d.NavSeam); err != nil {
-		return nil, err
-	}
-	for i, c := range d.Commands {
-		for j, key := range []string{c.Off, c.On} {
-			if key == "" {
-				continue
-			}
-			pic, err := readChargenBMP(src, key)
-			if err != nil {
-				return nil, err
-			}
-			if err = chargenSize(pic, c.Size[0], c.Size[1], key); err != nil {
-				return nil, err
-			}
-			if c.Keyed {
-				pic = keyBlack(pic)
-			}
-			p.NavButtons[i][j] = pic
+	p.Plate, p.PlateSeam = set.Picture("plate"), set.Picture("plate-seam")
+	p.NavArt, p.NavSeam = set.Picture("nav"), set.Picture("nav-seam")
+	for i := range d.Commands {
+		for j := range p.NavButtons[i] {
+			p.NavButtons[i][j] = set.Picture(fmt.Sprintf("command/%d/%d", i, j))
 		}
 	}
-	if p.DollPane.Body, err = chargenPaneImage(src, &d.Doll); err != nil {
-		return nil, err
-	}
-	if p.DollPane.Seam, err = chargenPaneImage(src, d.DollSeam); err != nil {
-		return nil, err
-	}
-	if p.CardBackground, err = chargenPane(src, &d.Card); err != nil {
-		return nil, err
-	}
-	if p.CardSeam, err = chargenPaneImage(src, d.CardSeam); err != nil {
-		return nil, err
-	}
-	column := image.Rectangle{Max: d.ColumnRect.Rectangle().Size()}
+	p.DollPane.Body, p.DollPane.Seam = set.Picture("doll"), set.Picture("doll-seam")
+	p.CardBackground, p.CardSeam = rgbaOf(set.Picture("card")), set.Picture("card-seam")
 	for class, c := range d.Classes {
-		if p.Columns[class], err = chargenArt(src, c.Column.Key, c.Column.Size, c.Column.At, column); err != nil {
-			return nil, err
-		}
-		var codes []int
-		for _, skill := range c.Skills[:c.Selectable] {
-			codes = append(codes, skill.Mask)
-		}
-		size := ui.GeneratorPoint{column.Dx(), column.Dy()}
-		if c.Mask.Size != nil {
-			size = *c.Mask.Size
-		}
-		if p.ColumnMask[class], err = chargenMaskOf(src, c.Mask.Key, size, codes); err != nil {
-			return nil, err
-		}
-		// Each cell's three pictures load in the order the page reads them:
-		// selected at rest, hovered, selected and hovered. The fourth state
-		// is the column's own art.
-		states := []string{d.SkillStates.SelectedAtRest, d.SkillStates.Hover, d.SkillStates.Selected}
-		for skill, s := range c.Skills[:c.Selectable] {
-			for state, name := range states {
-				if p.Skills[class][skill][state], err = chargenArt(src, s.Dir+name, nil, s.At, column); err != nil {
-					return nil, err
-				}
+		p.Columns[class], p.ColumnMask[class] = set.Picture(fmt.Sprintf("column/%d", class)), set.Mask(fmt.Sprintf("column-mask/%d", class))
+		for skill := range c.Skills[:c.Selectable] {
+			for state := range p.Skills[class][skill] {
+				p.Skills[class][skill][state] = set.Picture(fmt.Sprintf("skill/%d/%d/%d", class, skill, state))
 			}
 		}
 	}
-	st := &d.Stats
-	for direction, names := range []ui.GeneratorStatButtons{st.MinusArt, st.PlusArt} {
-		for state, name := range []string{names.Rest, names.Hover, names.Down, names.Unused, names.Disabled} {
-			key := st.ButtonDir + name
-			pic, err := readChargenBMP(src, key)
-			if err != nil {
-				return nil, err
-			}
-			if err = chargenSize(pic, st.ButtonSize[0], st.ButtonSize[1], key); err != nil {
-				return nil, err
-			}
-			p.StatButtons[direction][state] = pic
+	for direction := range p.StatButtons {
+		for state := range p.StatButtons[direction] {
+			p.StatButtons[direction][state] = set.Picture(fmt.Sprintf("stat/%d/%d", direction, state))
 		}
 	}
 	if p.Font, err = chargenFont(src, l.Words.TextFont); err != nil {

@@ -183,6 +183,11 @@ func installSharesWritten() []string {
 
 // matchReads reads what the shared share read and takes its unread loads.
 func (s *installShare) matchReads(shared *installShare) {
+	// The art library first, so each picture is read for the screen that
+	// read it first.
+	if s.archives.art != nil && shared.archives.art != nil {
+		s.archives.art.Reread(shared.archives.art)
+	}
 	s.townSchool = matchRead(s.townSchool, shared.townSchool)
 	s.townTavern = matchRead(s.townTavern, shared.townTavern)
 	s.townSquare = matchRead(s.townSquare, shared.townSquare)

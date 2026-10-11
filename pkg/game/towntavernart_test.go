@@ -117,7 +117,7 @@ func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 	// The talk sheets TOWN-470 lists and the two Hero sheets load when present
 	// and are optional: the atomic loop below never deletes one.
 	talk := townTavernSource()
-	for _, typ := range tavernTalkSheets {
+	for _, typ := range tavernTalkSheets() {
 		talk[fmt.Sprintf("%sunit%d/sprites.16a", townTavernArtPrefix, typ)] = tavernUnitSheet()
 	}
 	talk[townTavernArtPrefix+"herofighter/sprites.16a"] = tavernUnitSheet()
@@ -126,7 +126,7 @@ func TestLoadTownTavernArtIsAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, typ := range tavernTalkSheets {
+	for _, typ := range tavernTalkSheets() {
 		if withTalk.Units[typ] == nil || len(withTalk.UnitFrames[typ]) != 1 || got.Units[typ] != nil {
 			t.Fatalf("talk-only sheet Unit%d did not load, or loaded from nothing", typ)
 		}

@@ -254,7 +254,7 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 		t.Fatalf("installed candidate type population = %v, want %v", installedTypes, shippedMercenaryTalkTypes)
 	}
 	art := f.TownTavernArt.Value()
-	for _, typ := range tavernTalkSheets {
+	for _, typ := range tavernTalkSheets() {
 		if len(art.UnitFrames[typ]) == 0 {
 			t.Fatalf("shipped talk sheet Unit%d did not load", typ)
 		}

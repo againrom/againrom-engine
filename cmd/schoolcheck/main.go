@@ -30,7 +30,7 @@
 // each offset, count the patch pixels whose per-channel absolute differences
 // sum to at most matchTolerance. Pure-black patch pixels are excluded from both
 // the numerator and the denominator, because pure black is this art's
-// transparent colour (DIV-013's rule, keyBlack in pkg/game/shopart.go) and the
+// transparent colour (DIV-013's rule, keyBlack in pkg/game/screenart.go) and the
 // build does not draw those pixels. A match is reported with the best fraction
 // anywhere else in the offset space, so separation is a number rather than an
 // assertion. The three lit states of one skill are an internal control: they

@@ -1,17 +1,8 @@
 package game
 
 import (
-	"image"
-
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
-)
-
-const (
-	characterPaneFigureBodyPath = graphicsPrefix + "interface/humanbackr.bmp"
-	characterPaneFigureSeamPath = graphicsPrefix + "interface/humanbackl.bmp"
-	characterPaneStatsBodyPath  = graphicsPrefix + "interface/textbackr.bmp"
-	characterPaneStatsSeamPath  = graphicsPrefix + "interface/textbackl.bmp"
 )
 
 // TownCharacterPaneArt is the shared character panel's two shipped
@@ -21,132 +12,58 @@ type TownCharacterPaneArt struct {
 	Stats  ui.TownPane
 }
 
-// loadCharacterPanePair resolves one 160x242 body and its 16x242 seam.
-// Cosmetic on LoadTipPanelArt's own rule: a missing or mis-sized node
-// carries its own address in the returned error and every caller falls
-// back to the authored fill DrawTownCharacterRegion drew before this story.
-func loadCharacterPanePair(src terrain.EntrySource, bodyPath, seamPath string) (ui.TownPane, error) {
-	var p ui.TownPane
-	body, err := readChargenBMP(src, bodyPath)
-	if err != nil {
-		return ui.TownPane{}, err
-	}
-	if err = chargenSize(body, 160, 242, bodyPath); err != nil {
-		return ui.TownPane{}, err
-	}
-	seam, err := readChargenBMP(src, seamPath)
-	if err != nil {
-		return ui.TownPane{}, err
-	}
-	if err = chargenSize(seam, 16, 242, seamPath); err != nil {
-		return ui.TownPane{}, err
-	}
-	p.Body, p.Seam = body, keyBlack(seam)
-	return p, nil
-}
-
 // LoadTownCharacterPaneArt resolves both of the shared character panel's
-// mode-switched presentations. Either failing fails the whole call, so a
-// caller never receives one mode wired and the other not.
-func LoadTownCharacterPaneArt(src terrain.EntrySource) (TownCharacterPaneArt, error) {
-	var a TownCharacterPaneArt
-	var err error
-	if a.Figure, err = loadCharacterPanePair(src, characterPaneFigureBodyPath, characterPaneFigureSeamPath); err != nil {
+// mode-switched presentations, each a 160x242 body and its keyed 16x242
+// seam, from the character-pane manifest of description d. Any picture
+// failing fails the whole call, so a caller never receives one mode wired
+// and the other not, and falls back to the authored fill.
+func LoadTownCharacterPaneArt(src terrain.EntrySource, d *Screens) (TownCharacterPaneArt, error) {
+	set, err := loadScreen(src, d, "character-pane")
+	if err != nil {
 		return TownCharacterPaneArt{}, err
 	}
-	if a.Stats, err = loadCharacterPanePair(src, characterPaneStatsBodyPath, characterPaneStatsSeamPath); err != nil {
-		return TownCharacterPaneArt{}, err
-	}
-	return a, nil
+	return TownCharacterPaneArt{
+		Figure: ui.TownPane{Body: set.Picture("figure-body"), Seam: set.Picture("figure-seam")},
+		Stats:  ui.TownPane{Body: set.Picture("stats-body"), Seam: set.Picture("stats-seam")},
+	}, nil
 }
 
-// The six corner controls' own nine shipped bitmaps.
+// LoadCharacterPaneCornerArt resolves the nine corner bitmaps of the six
+// corner controls, every one colour-keyed, from the character-pane-corners
+// manifest of description d.
 //
-// EVERY PATH IS `TOWN-356`'s (High).
-//
-// THE SAME ROW CONFIRMS DIV-175's AUTHORED PAIRING.
-//
-// EVERY ONE IS COLOUR-KEYED. `TOWN-354` reads all six corner blits through
-// `obj->vt+0x38`, the primitive `TOWN-282` identifies as colour-keyed — the
-// same distinction loadCharacterPanePair's own doc already draws between the
-// keyed seam (`vt+0x38`) and the opaque body (`vt+0x18`). keyBlack is applied
-// to each on the load-time-keying convention this front end already uses.
-const (
-	cornerBackpackOpenPath   = graphicsPrefix + "interface/backpackop.bmp"
-	cornerBackpackClosedPath = graphicsPrefix + "interface/backpackcl.bmp"
-	cornerBookOpenedPath     = graphicsPrefix + "interface/bookopened.bmp"
-	cornerBookClosedPath     = graphicsPrefix + "interface/bookclosed.bmp"
-	cornerHumanModePath      = graphicsPrefix + "interface/humanmode.bmp"
-	cornerTextModePath       = graphicsPrefix + "interface/textmode.bmp"
-	cornerDiskettePath       = graphicsPrefix + "interface/diskette.bmp"
-	cornerAr1Path            = graphicsPrefix + "interface/ar1.bmp"
-	cornerAr2Path            = graphicsPrefix + "interface/ar2.bmp"
-)
-
-// LoadCharacterPaneCornerArt resolves the nine corner bitmaps.
-//
-// NO SIZE IS ASSERTED, deliberately, and that is a departure from
-// loadCharacterPanePair's own rule one function up. The body and the seam have
-// exactly one size each and a wrong one would mis-tile the pane; a corner's
-// own BLIT SIZE is an operand of the paint routine rather than the file's own
-// extent (`TOWN-354` gives rect A 32x31 out of a 32-row file and rect B 28x38
-// out of a 40-row one), so asserting the file size here would fail on nodes
-// that are correct. The composer draws each into its own decoded destination
-// rectangle and clips there.
-//
-// Any node failing fails the whole call, so a caller never receives four
-// corners wired and five not.
-func LoadCharacterPaneCornerArt(src terrain.EntrySource) (*ui.CharacterPaneCornerArt, error) {
-	var a ui.CharacterPaneCornerArt
-	for _, bind := range []struct {
-		path string
-		dst  *image.Image
-	}{
-		{cornerBackpackOpenPath, &a.BackpackOpen},
-		{cornerBackpackClosedPath, &a.BackpackClosed},
-		{cornerBookOpenedPath, &a.BookOpened},
-		{cornerBookClosedPath, &a.BookClosed},
-		{cornerHumanModePath, &a.HumanMode},
-		{cornerTextModePath, &a.TextMode},
-		{cornerDiskettePath, &a.Diskette},
-		{cornerAr1Path, &a.Ar1},
-		{cornerAr2Path, &a.Ar2},
-	} {
-		pic, err := readChargenBMP(src, bind.path)
-		if err != nil {
-			return nil, err
-		}
-		*bind.dst = keyBlack(pic)
+// NO SIZE IS ASSERTED: a corner's blit size is an operand of the paint
+// routine rather than the file's own extent (TOWN-354), so the composer draws
+// each into its own decoded destination rectangle and clips there. Any node
+// failing fails the whole call, so a caller never receives four corners
+// wired and five not.
+func LoadCharacterPaneCornerArt(src terrain.EntrySource, d *Screens) (*ui.CharacterPaneCornerArt, error) {
+	set, err := loadScreen(src, d, "character-pane-corners")
+	if err != nil {
+		return nil, err
 	}
-	return &a, nil
+	return &ui.CharacterPaneCornerArt{
+		BackpackOpen:   set.Picture("backpack-open"),
+		BackpackClosed: set.Picture("backpack-closed"),
+		BookOpened:     set.Picture("book-opened"),
+		BookClosed:     set.Picture("book-closed"),
+		HumanMode:      set.Picture("human-mode"),
+		TextMode:       set.Picture("text-mode"),
+		Diskette:       set.Picture("diskette"),
+		Ar1:            set.Picture("ar1"),
+		Ar2:            set.Picture("ar2"),
+	}, nil
 }
-
-const (
-	characterPaneFillerBodyPath = graphicsPrefix + "interface/extra1024r.bmp"
-	characterPaneFillerSeamPath = graphicsPrefix + "interface/extra1024l.bmp"
-)
 
 // LoadCharacterPaneFillerArt resolves the fourth column child's own
-// background strip. `TOWN-093`'s own shared block (`L08007`) blits it
-// opaque, not colour-keyed — the same distinction loadCharacterPanePair's
-// own doc draws for the third child's body, and unlike the corner bitmaps
-// (colour-keyed, `TOWN-354`) this is not composited over anything.
-func LoadCharacterPaneFillerArt(src terrain.EntrySource) (ui.TownPane, error) {
-	body, err := readChargenBMP(src, characterPaneFillerBodyPath)
+// background strip, an opaque body and its keyed seam (TOWN-093), from the
+// character-pane-filler manifest of description d.
+func LoadCharacterPaneFillerArt(src terrain.EntrySource, d *Screens) (ui.TownPane, error) {
+	set, err := loadScreen(src, d, "character-pane-filler")
 	if err != nil {
 		return ui.TownPane{}, err
 	}
-	if err = chargenSize(body, 160, 46, characterPaneFillerBodyPath); err != nil {
-		return ui.TownPane{}, err
-	}
-	seam, err := readChargenBMP(src, characterPaneFillerSeamPath)
-	if err != nil {
-		return ui.TownPane{}, err
-	}
-	if err = chargenSize(seam, 16, 46, characterPaneFillerSeamPath); err != nil {
-		return ui.TownPane{}, err
-	}
-	return ui.TownPane{Body: body, Seam: keyBlack(seam)}, nil
+	return ui.TownPane{Body: set.Picture("body"), Seam: set.Picture("seam")}, nil
 }
 
 // characterPaneFiller is the front end's one copy of the fourth column
@@ -168,7 +85,7 @@ func (p *Presentation) characterPaneFiller(in *InstallResources) ui.TownPane {
 	if in.Archives == nil || in.Archives.Containers == nil {
 		return ui.TownPane{}
 	}
-	pic, err := LoadCharacterPaneFillerArt(in.Archives.Containers)
+	pic, err := LoadCharacterPaneFillerArt(in.Archives.artSource(), ScreensDescription(in.profile()))
 	if err != nil {
 		return ui.TownPane{}
 	}
@@ -198,7 +115,7 @@ func (p *Presentation) characterPaneCorners(in *InstallResources) *ui.CharacterP
 	if in.Archives == nil || in.Archives.Containers == nil {
 		return nil
 	}
-	a, err := LoadCharacterPaneCornerArt(in.Archives.Containers)
+	a, err := LoadCharacterPaneCornerArt(in.Archives.artSource(), ScreensDescription(in.profile()))
 	if err != nil {
 		return nil
 	}
@@ -227,7 +144,7 @@ func (p *Presentation) characterPanes(in *InstallResources) TownCharacterPaneArt
 	if in.Archives == nil || in.Archives.Containers == nil {
 		return TownCharacterPaneArt{}
 	}
-	art, err := LoadTownCharacterPaneArt(in.Archives.Containers)
+	art, err := LoadTownCharacterPaneArt(in.Archives.artSource(), ScreensDescription(in.profile()))
 	if err != nil {
 		return TownCharacterPaneArt{}
 	}

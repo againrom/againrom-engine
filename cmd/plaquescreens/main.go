@@ -199,7 +199,7 @@ func characterPanes(f *game.FrontEnd) game.TownCharacterPaneArt {
 	if f == nil || f.Archives == nil {
 		return game.TownCharacterPaneArt{}
 	}
-	p, err := game.LoadTownCharacterPaneArt(f.Archives.Containers)
+	p, err := game.LoadTownCharacterPaneArt(f.Archives.Containers, game.ScreensDescription(f.Archives.Base.Profile))
 	if err != nil {
 		return game.TownCharacterPaneArt{}
 	}
