@@ -33,7 +33,13 @@ func acApp(t *testing.T, book []SpellEntry) (*App, *[][2]uint32) {
 	a := spellbookTestApp(t)
 	mapAtScaleOne(a)
 	v := a.flow.viewer
-	v.SetEntities(sbEntities())
+	ents := sbEntities()
+	for _, e := range book {
+		if e.Autocast {
+			ents[0].AutoSpell = e.ID
+		}
+	}
+	v.SetEntities(ents)
 	v.sel = selection{sbUnitID}
 	v.SetSpellbook(sbUnitID, book)
 	var sent [][2]uint32

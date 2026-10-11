@@ -198,6 +198,14 @@ func (a *App) HeadlessKey(name string) error {
 		in.End = true
 	case "ctrl-a":
 		in.SelectText = true
+	case "autocast":
+		in.Autocast, in.SelectText, in.Viewer.Ctrl = true, true, true
+	case "w", "weapon-swap":
+		in.WeaponSwap = true
+	case "zoom-reset":
+		in.ZoomReset = true
+	case "speed-reset":
+		in.SpeedReset = true
 	case "book", "b", "q":
 		in.Book = true
 	case "inventory", "i", "backquote", "`":

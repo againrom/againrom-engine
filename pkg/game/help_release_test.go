@@ -136,7 +136,9 @@ func TestReleaseHelpPanelOverTheMap(t *testing.T) {
 		t.Fatal("F1 over the map opened no help panel")
 	}
 	text := v.Words().HelpText
-	wantBytes, wantLines := map[string]int{"en": 965, "ru": 1313}[locale], map[string]int{"en": 35, "ru": 48}[locale]
+	// The install text wraps to 35 (EN) and 48 (RU) lines (TEXT-088); the
+	// engine's added keys (DIV-2951) wrap to 7 and 6 more.
+	wantBytes, wantLines := map[string]int{"en": 965, "ru": 1313}[locale], map[string]int{"en": 35 + 7, "ru": 48 + 6}[locale]
 	if wantBytes == 0 {
 		t.Fatalf("unexpected install %q", locale)
 	}
@@ -145,7 +147,7 @@ func TestReleaseHelpPanelOverTheMap(t *testing.T) {
 	}
 	lines, visible := v.HelpLines()
 	if lines != wantLines || visible != 12 {
-		t.Errorf("help body wraps to %d lines with %d visible, TEXT-088 gives %d and 12", lines, visible, wantLines)
+		t.Errorf("help body wraps to %d lines with %d visible, want %d and 12", lines, visible, wantLines)
 	}
 	first, last := v.HelpScroll()
 	if first != 0 || last != lines-visible {

@@ -459,6 +459,13 @@ type appInput struct {
 	// DIV-231
 	Autocast bool
 
+	// WeaponSwap, ZoomReset and SpeedReset are the base game's own
+	// quality-of-life keys: W, Home and End on the map arm. Each changes
+	// nothing until pressed (DIV-2948, DIV-2950).
+	WeaponSwap bool
+	ZoomReset  bool
+	SpeedReset bool
+
 	Guard         bool
 	PlayerRetreat bool
 	StandGround   bool
@@ -715,6 +722,13 @@ func readAppInput() appInput {
 		// changes what the letter means rather than the letter being spent on
 		// one of the two.
 		Autocast: inpututil.IsKeyJustPressed(ebiten.KeyA) && ctrlHeld(),
+		// BARE W, HOME AND END. The original's W arm acts only with Ctrl held
+		// (MENU-057), as its F and L arms do under Grab and Chip above;
+		// AI-KEY-125 names neither Home nor End on the mission map, and inside
+		// the help text both do nothing (MENU-078).
+		WeaponSwap: inpututil.IsKeyJustPressed(ebiten.KeyW) && !ctrlHeld(),
+		ZoomReset:  inpututil.IsKeyJustPressed(ebiten.KeyHome) && !ctrlHeld() && !shiftHeld,
+		SpeedReset: inpututil.IsKeyJustPressed(ebiten.KeyEnd) && !ctrlHeld() && !shiftHeld,
 		// EITHER Shift key, the two being one modifier and not two — the same
 		// reading Viewer.Input already gives Shift (readInput, viewer.go).
 		ShiftHeld: shiftHeld,
@@ -1787,6 +1801,9 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		if stepped && in.Faster != in.Slower && !in.AttackHeld && a.flow.viewer != nil {
 			a.flow.viewer.postSpeedNotice(a.flow.rung)
 		}
+		if in.SpeedReset && a.flow.resetCadence() && a.flow.viewer != nil {
+			a.flow.viewer.postSpeedNotice(a.flow.rung)
+		}
 
 		// ONE advance, here and nowhere else in the front-end. The call is
 		// unconditional on this arm and absent from every other, so "once per
@@ -2017,7 +2034,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// F1'S HELP PANEL (MENU-051): below the popup gate, so every popup
 			// ignores the key, and on the map arm alone, so the town ignores it.
 			if in.Help {
-				a.flow.showHelp(v.Words().HelpText)
+				a.flow.showHelp(a.flow.helpBody(v.Words().HelpText))
 			}
 
 			// THE FOG-OF-WAR DEBUG REVEAL, beside the four diagnostics above and
@@ -2044,6 +2061,15 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// there is no second gate written out here.
 			if in.Autocast {
 				v.toggleAutocast()
+			}
+			// The quality-of-life keys sit under the same fence: W hands the
+			// selection to the weapon swap and Home restores the default zoom;
+			// End is read beside the cadence keys (DIV-2948, DIV-2950).
+			if in.WeaponSwap {
+				v.swapWeapons()
+			}
+			if in.ZoomReset {
+				v.resetZoom()
 			}
 
 			if in.Inventory {

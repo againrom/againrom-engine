@@ -8,6 +8,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] W on the mission map takes back the weapon each selected unit held
+  before, from its own backpack; a shield or bow that went with it comes back
+  too, and the current weapon goes to the backpack.
+- [BASE] Ctrl+A turns autocast on for every selected caster when any of them
+  has it off, and off for all otherwise.
+- [BASE] Home returns the map zoom to its default and End returns the game
+  speed to its default.
+- [BASE] The F1 help lists these keys in English and Russian.
+- [BASE] Equipment put on while the game is paused now changes the unit's
+  combat values also when the selection changes before the game resumes.
 - [BASE] Double clicks on the mission pack use the system's
   double-click setting and keep the same timing at different frame rates.
 - [BASE] An inventory item dropped onto a cell that cannot hold its sack lands

@@ -97,7 +97,9 @@ func prepareHelpScrollbarStyleWitness(t *testing.T, f *FrontEnd) *helpScrollbarS
 func (w *helpScrollbarStyleWitness) capture(t *testing.T, f *FrontEnd, name string) *image.RGBA {
 	t.Helper()
 	layout, body, ok := f.live.view.HelpPanel()
-	if !ok || !bytes.Equal([]byte(body), w.body) || layout.Box != image.Rect(76, 60, 564, 420) || layout.Scrollbar != image.Rect(422, 56, 446, 267) {
+	// The panel shows the install body, then the engine's added keys (DIV-2951).
+	install := bytes.TrimRight(w.body, " \t\r\n")
+	if !ok || !bytes.HasPrefix([]byte(body), install) || len(body) <= len(w.body) || layout.Box != image.Rect(76, 60, 564, 420) || layout.Scrollbar != image.Rect(422, 56, 446, 267) {
 		t.Fatal("ordinary F1 body or geometry changed")
 	}
 	pic := helpFrame(t, f)
@@ -162,7 +164,8 @@ func (w *helpScrollbarStyleWitness) run(t *testing.T, f *FrontEnd, a *ui.App) {
 	helpKeys(t, a, "escape", "f1")
 	v := f.live.view
 	lines, visible := v.HelpLines()
-	wantLines := map[string]int{"en": 35, "ru": 48}[filepath.Base(f.Archives.Root)]
+	// The install text's lines (TEXT-088) and the engine's added keys (DIV-2951).
+	wantLines := map[string]int{"en": 35 + 7, "ru": 48 + 6}[filepath.Base(f.Archives.Root)]
 	if lines != wantLines || visible != 12 {
 		t.Fatal("installed help line qualification", lines, visible, wantLines)
 	}

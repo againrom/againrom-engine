@@ -515,32 +515,66 @@ type MapAutocast func(entity, spell uint32)
 // armAttack's own unexported-ness gives it no attack mode.
 func (v *Viewer) SetAutocastSink(fn MapAutocast) { v.autocastSink = fn }
 
-// toggleAutocast is the key's whole effect: the spell SELECTED in the book
-// becomes the SELECTED unit's autocast spell, and pressing it again on the
-// same spell clears it.
+// toggleAutocast is Ctrl+A over the whole selection (DIV-2949). The casters
+// are the selected units the local player owns that are alive and know the
+// spell selected in the book. When any caster is not autocasting that spell,
+// each caster is set to it; otherwise each caster is cleared. With no spell
+// selected the key only clears, and only when every caster that can cast is
+// autocasting something.
 //
-// FOUR THINGS MAKE IT A NO-OP, and each is a state the player can be in rather
-// than an error: no sink, no unit selected, no spell selected in the book, and
-// a unit the local player does not own. The ownership test is canArmAttack's
-// own gate, borrowed rather than restated — putting an enemy's spell on repeat
-// is exactly the class of order that gate exists to refuse.
-//
-// WHAT IT SENDS IS THE NEW SETTING AND NOT A TOGGLE, so the far side stores a
-// value rather than interpreting one: the id when it is being turned on, 0 when
-// it is being turned off. Which of the two this press is comes from the book
-// entry's own Autocast flag, which the far side set on the previous push — so
-// the state the player sees is the state the toggle reads, and the two cannot
-// come apart across a frame.
+// What it sends is the new setting for each caster, in selection order,
+// through the same sink the spell cell's right-click uses, so the far side
+// sees ordinary autocast commands and nothing else.
 func (v *Viewer) toggleAutocast() {
-	if v.autocastSink == nil || v.selectedSpell == 0 {
+	if v.autocastSink == nil {
 		return
 	}
-	for i := range v.spellbook {
-		if v.spellbook[i].ID == v.selectedSpell {
-			v.toggleAutocastAt(i)
-			return
+	var owned []MapEntity
+	for _, e := range presentSelected(v.sel, v.entities) {
+		if e.Life != LifeDead && (v.localOwner == 0 || e.Owner == v.localOwner) {
+			owned = append(owned, e)
 		}
 	}
+	spell := v.selectedSpell
+	if spell != 0 && !v.bookOffers(spell) {
+		return
+	}
+	var casters []MapEntity
+	if spell != 0 {
+		casters = bookCasters(owned, spell)
+	} else {
+		for _, e := range owned {
+			if e.CastCapable || !e.SpellStateKnown && e.MaxMana > 0 {
+				casters = append(casters, e)
+			}
+		}
+	}
+	turnOn := false
+	for _, e := range casters {
+		if e.AutoSpell == 0 || spell != 0 && e.AutoSpell != spell {
+			turnOn = true
+		}
+	}
+	if turnOn && spell == 0 {
+		return
+	}
+	next := spell
+	if !turnOn {
+		next = 0
+	}
+	for _, e := range casters {
+		v.autocastSink(e.ID, next)
+	}
+}
+
+// bookOffers reports whether the book holds spell as an available entry.
+func (v *Viewer) bookOffers(spell uint32) bool {
+	for _, e := range v.spellbook {
+		if e.ID == spell {
+			return !e.Unavailable
+		}
+	}
+	return false
 }
 
 // toggleAutocastAt is the spell-cell gesture's simulation boundary. The cell

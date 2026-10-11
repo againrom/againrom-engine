@@ -92,3 +92,10 @@
 "chargen.restore" = "Вернуть"
 # The owner's alias for Drain Life on item cards (DIV-2177).
 "item.drain_life_alias" = "Вампиризм"
+
+# The F1 help panel's lines for the keys this build adds (DIV-2951).
+"help.keys" = "Дополнительные клавиши:"
+"help.swap" = "W - взять прежнее оружие из рюкзака"
+"help.autocast" = "Ctrl+A - автоприменение у всех выбранных магов вкл/выкл"
+"help.zoom" = "Home - масштаб по умолчанию"
+"help.speed" = "End - скорость игры по умолчанию"

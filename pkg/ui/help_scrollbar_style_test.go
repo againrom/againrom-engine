@@ -19,9 +19,12 @@ type helpStyleCalls struct {
 	stopped                                                                               bool
 }
 
+// helpStyleBody is the install text; the panel appends the engine's key
+// lines, which wrap to five more, so the panel body stays the 60 lines the
+// geometry below is built on.
 func helpStyleBody() string {
 	var body strings.Builder
-	for i := 0; i < 60; i++ {
+	for i := 0; i < 55; i++ {
 		fmt.Fprintf(&body, "Help %02d %s\r\n", i, strings.Repeat("x", 1+i%9))
 	}
 	return body.String()
@@ -81,7 +84,7 @@ func helpStyleApp(t *testing.T, frames []*image.RGBA, width, height int) (*App, 
 		t.Fatalf("F1 initial range = %d/%d, want 0/48", first, last)
 	}
 	l, body, ok := v.HelpPanel()
-	if !ok || body != helpStyleBody() || l.Box != image.Rect(76, 60, 564, 420) || l.Text != image.Rect(40, 56, 422, 267) || l.Scrollbar != image.Rect(422, 56, 446, 267) || l.Button != image.Rect(196, 300, 292, 324) {
+	if !ok || body != a.flow.helpBody(helpStyleBody()) || l.Box != image.Rect(76, 60, 564, 420) || l.Text != image.Rect(40, 56, 422, 267) || l.Scrollbar != image.Rect(422, 56, 446, 267) || l.Button != image.Rect(196, 300, 292, 324) {
 		t.Fatalf("F1 layout/body changed: %v / %v / %v / %v / %t", l.Box, l.Text, l.Scrollbar, l.Button, ok)
 	}
 	now = helpStyleQualifyPostOpen(t, a, calls, now)
@@ -378,7 +381,7 @@ func assertHelpStyleHeldMiddle(t *testing.T, v *Viewer) {
 	t.Helper()
 	_, body, ok := v.HelpPanel()
 	first, last := v.HelpScroll()
-	if !ok || body != helpStyleBody() || first != 24 || last != 48 || !v.help.bar.drag {
+	if !ok || body != newFlow(nil, nil).helpBody(helpStyleBody()) || first != 24 || last != 48 || !v.help.bar.drag {
 		t.Fatalf("F1 setters changed body, position or held capture: %t/%d/%d/%v", ok, first, last, v.help.bar.drag)
 	}
 }

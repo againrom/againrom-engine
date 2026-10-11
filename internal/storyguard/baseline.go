@@ -2126,6 +2126,12 @@ package storyguard
 // pkg/screenart, its install source in pkg/game/screenart.go, the archtest
 // screen-art scan and their tests, new code net of the per-screen loaders it
 // replaced, including this paragraph.
+// CommentBytes rises for the quality-of-life keys: the docs of
+// pkg/game/weaponswap.go, pkg/ui/qolkeys.go and their tests, the Ctrl+A
+// selection rule in pkg/ui/spellbook.go and the three bindings in
+// pkg/ui/app.go and the installed witnesses, the pending-order re-derivation
+// in pkg/game/weaponswap.go and its tests, new code net of the primary-unit
+// toggle doc it replaced, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2147,7 +2153,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1736,
+		"longcommentgroups":      1735,
 	},
-	CommentBytes: 8661393,
+	CommentBytes: 8674204,
 }

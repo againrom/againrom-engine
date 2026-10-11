@@ -1307,6 +1307,7 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	audio.wireEffects(mw, mv.Viewer)
 	// The autocast toggle rides a viewer method and not the tuple.
 	mv.Viewer.SetAutocastSink(mw.setAutocast)
+	mv.Viewer.SetWeaponSwapSink(mw.swapWeapons)
 	mv.Viewer.SetQuickSpells(&f.quickSpells)
 	// Ctrl+F is a setting key whose far side appends to this world's queue.
 	mv.Viewer.SetFormationSink(mw.cycleFormation)

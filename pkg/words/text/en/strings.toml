@@ -93,3 +93,11 @@
 # The item spell name shown for Drain Life in place of the installed one
 # (DIV-2177); empty keeps the installed name.
 "item.drain_life_alias" = ""
+
+# The F1 help panel's lines for the keys this build adds, after the install's
+# own help text (DIV-2951).
+"help.keys" = "Additional keys:"
+"help.swap" = "W - take the previous weapon back from the backpack"
+"help.autocast" = "Ctrl+A - autocast on or off for every selected caster"
+"help.zoom" = "Home - default zoom"
+"help.speed" = "End - default game speed"

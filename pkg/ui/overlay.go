@@ -381,8 +381,10 @@ type MapEntity struct {
 	SpellStateKnown bool
 	KnownSpells     uint32
 	CastCapable     bool
-	Cell            image.Point
-	Art             *terrain.UnitClass
+	// AutoSpell is the spell the unit autocasts, 0 for none; Ctrl+A reads it.
+	AutoSpell uint32
+	Cell      image.Point
+	Art       *terrain.UnitClass
 	// DrawCategory belongs to the original class and corpse stage, independent
 	// of a composed or substituted Art (ANIM-CATEGORY-084).
 	DrawCategory terrain.UnitCategory

@@ -1108,6 +1108,8 @@ type Viewer struct {
 	// autocastSink is SetAutocastSink's own value (spellbook.go): where the
 	// autocast toggle leaves this package, nil for a viewer never given one.
 	autocastSink MapAutocast
+	// weaponSwapSink is SetWeaponSwapSink's own value (qolkeys.go).
+	weaponSwapSink MapWeaponSwap
 	// formationSink is SetFormationSink's own value (formationcommand.go):
 	// where Ctrl+F leaves this package, nil for a standalone viewer.
 	formationSink    MapFormation
@@ -2744,7 +2746,7 @@ func (v *Viewer) applyStartView() {
 	if cols := AuthoredStartColumns(); cols > 0 {
 		// The opening zoom is pinned to the 1024-arm viewport. Extra logical
 		// width reveals more map; it must not zoom up to preserve 27 columns.
-		v.cam.SetZoom(float64(MissionViewportSize().X) / float64(cols*camera.CellSize))
+		v.cam.SetZoom(defaultMapZoom())
 	}
 	v.cam.CenterOn(v.cellWorldCentre(v.startCell))
 	if v.startSAV {

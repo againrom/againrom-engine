@@ -197,6 +197,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	}
 	// THE AUTOCAST SINK, on loadMap's own terms.
 	mv.Viewer.SetAutocastSink(mw.setAutocast)
+	mv.Viewer.SetWeaponSwapSink(mw.swapWeapons)
 	mv.Viewer.SetQuickSpells(&ports.session.quickSpells)
 	mv.Viewer.SetFormationSink(mw.cycleFormation)
 	mv.Viewer.SetDefendSink(mw.defend)

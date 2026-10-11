@@ -541,6 +541,9 @@ type mapWorld struct {
 	skillPosted map[sim.EntityID][data.SkillSlots]int32
 
 	bodyEquipment data.Equipment
+	// weaponSwap is the weapon swap key's memory and unfinished swaps
+	// (weaponswap.go).
+	weaponSwap weaponSwapState
 
 	// invParty is everything T4's recompute and resolvability test need about
 	// the subject and the installed definitions, beyond the equipment array
@@ -2208,6 +2211,8 @@ func (mw *mapWorld) deterministicFrame() {
 
 func (mw *mapWorld) frameAdvance(advance func()) {
 	mw.refreshInventorySelection()
+	mw.observeWeapons()
+	mw.advanceWeaponSwaps()
 	mw.equipFromPack()
 	mw.unequipFromWorn()
 	mw.unequipFromDoll()
@@ -2984,7 +2989,7 @@ func (mw *mapWorld) refreshAppearance() {
 		return
 	}
 	eq := mw.currentFigureEquipment()
-	if eq == mw.bodyEquipment {
+	if eq == mw.bodyEquipment && !mw.weaponSwap.forced {
 		return
 	}
 	mw.bodyEquipment = eq
@@ -3034,10 +3039,11 @@ func (mw *mapWorld) rearm() {
 	eq := mw.currentEquipment()
 	items := mw.currentEquipmentItems()
 	layers := mw.activeLayers(id)
-	if eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && !levelMoved && slices.Equal(layers, mw.invLayers) {
+	forced := mw.weaponSwap.forced
+	if !forced && eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && !levelMoved && slices.Equal(layers, mw.invLayers) {
 		return
 	}
-	if eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && slices.Equal(layers, mw.invLayers) &&
+	if !forced && eq == mw.invEquipment && itemEquipmentStateEqual(items, mw.invEquipmentItems) && slices.Equal(layers, mw.invLayers) &&
 		(mw.world.NativeTrainingNeedsProducer(id) || held && e.NativeTraining.Present && !trainingMoved) {
 		return
 	}
@@ -4056,6 +4062,7 @@ func (mw *mapWorld) tickWithCastSink(sink func([]sim.CastEvent)) int {
 // instrument advancing several ticks before it reads the viewer.
 func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSink ...func(sim.Report)) int {
 	cmds := mw.commands()
+	equipped := mw.queuedEquipActors()
 	applied := len(mw.pending)
 	mw.pending = mw.pending[:0]
 	mw.pendingIgnored = mw.pendingIgnored[:0]
@@ -4094,6 +4101,8 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	}
 	mw.rearm()
 	mw.refreshAppearance()
+	mw.rearmEquipped(equipped)
+	mw.observeWeapons()
 	mw.skillRises()
 	// THE NOTICES ARE SETTLED HERE, once per step and immediately after it.
 	// This is the granularity the latch array answers at: the pass writes it
@@ -4965,6 +4974,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			DrawCategory:    category,
 			SpellStateKnown: true, KnownSpells: e.KnownSpells,
 			CastCapable: (clientClass == 0x17 || clientClass == 0x18) && e.KnownSpells != 0,
+			AutoSpell:   uint32(e.AutoSpell),
 			Cell:        cell, Step: step, Route: mw.routeOf(e.ID),
 			Name: name, Life: lifeOf(e), HP: int(e.HP), MaxHP: int(e.MaxHP),
 			Untargetable: !e.OrdinaryTargetable(),
