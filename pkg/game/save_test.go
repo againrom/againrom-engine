@@ -909,7 +909,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 	cosmetic := map[string]bool{"prev": true, "walk": true, "died": true, "hurt": true, "blows": true, "strikes": true, "scene": true,
 		"pendingDamage": true, "soundEntities": true,
 		"spellSoundCues": true,
-		"markElements":   true, "stoneHold": true, "pickup": true, "shots": true, "flights": true, "drawnMoving": true}
+		"markElements":   true, "pickup": true, "shots": true, "flights": true, "drawnMoving": true}
 
 	ft := reflect.TypeOf(mapWorld{})
 	for i := 0; i < ft.NumField(); i++ {

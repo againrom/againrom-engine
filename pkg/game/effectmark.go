@@ -120,26 +120,3 @@ func (mw *mapWorld) markDraws(id sim.EntityID, tileSize int) []ui.UnitMark {
 	}
 	return out
 }
-
-// stoneHeld reports whether this actor's animation frame is held, and marks the
-// tick the hold began (1002; MAGIC-ACTOR-066).
-//
-// The unit draw tests for kind `0x30`, `stone_curse`, twice on its own account
-// outside the mark passes, and the arm it gates holds the actor's animation
-// frame. The live-selection clock stops at the value it had when the effect
-// landed, while simulation supplies the owner-directed movement and attack
-// gate and MapEntity.Stone supplies the decoded grayscale draw.
-func (mw *mapWorld) stoneHeld(id sim.EntityID) (int, bool) {
-	if !mw.world.HasEffectArm(id, 20) {
-		delete(mw.stoneHold, id)
-		return 0, false
-	}
-	if at, ok := mw.stoneHold[id]; ok {
-		return at, true
-	}
-	if mw.stoneHold == nil {
-		mw.stoneHold = make(map[sim.EntityID]int)
-	}
-	mw.stoneHold[id] = mw.scene
-	return mw.scene, true
-}

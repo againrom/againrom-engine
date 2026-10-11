@@ -342,6 +342,9 @@ func scaleRun(elapsed, span, track int) int {
 // which is where the frame counter those runs index is advanced.
 func (mw *mapWorld) advanceCastRuns() {
 	for id, r := range mw.castRun {
+		if mw.world.HasEffectArm(id, 20) {
+			continue
+		}
 		if r.left <= 1 {
 			delete(mw.castRun, id)
 			continue

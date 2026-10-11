@@ -347,10 +347,6 @@ type mapWorld struct {
 	// world, the byte form or the digest.
 	markElements []markElement
 
-	// stoneHold is the scene tick each stone-cursed actor's animation was held
-	// at (1002; MAGIC-ACTOR-066). Cosmetic beside markElements.
-	stoneHold map[sim.EntityID]int
-
 	// sounds, swingSound and spellSound are the map's class-timed and
 	// positional sound seam, installed together by setSwingSound: sounds is
 	// LoadUnitSounds' own per-class table (sound.go), holding the sound-slot
@@ -4230,6 +4226,14 @@ func (mw *mapWorld) advanceOdometers() {
 	}
 	for _, e := range mw.world.EntityView() {
 		w := mw.walk[e.ID]
+		if mw.world.HasEffectArm(e.ID, 20) {
+			// recordCells counted the proposed tick before the simulation held it.
+			if e.Transit > 0 && w.tick > 0 {
+				w.tick--
+			}
+			mw.walk[e.ID] = w
+			continue
+		}
 
 		var step image.Point
 		if was, seen := mw.prev[e.ID]; seen {
@@ -4275,6 +4279,9 @@ func (mw *mapWorld) advanceSwings() {
 	ents := mw.world.EntityView()
 	for i := range ents {
 		e := &ents[i]
+		if mw.world.HasEffectArm(e.ID, 20) {
+			continue
+		}
 		was := mw.phase[e.ID]
 		mw.phase[e.ID] = e.AttackPhase
 
@@ -4826,6 +4833,15 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 		cell := image.Point{X: int(e.X), Y: int(e.Y)}
 		fineX, fineY, finePosition := mw.world.ActorFinePosition(e.ID)
+		stone := mw.world.HasEffectArm(e.ID, 20)
+		if stone && !finePosition {
+			// The held body and a cold LOAD use the same canonical SAV position.
+			fineX, fineY, finePosition = 128, 128, true
+			if motion, err := sim.ProjectActorMotion(e, sim.SavedActorMotion{}, nil, false); err == nil {
+				cell = image.Pt(int(motion.Position.Cell&0xff), int(motion.Position.Cell>>8))
+				fineX, fineY = motion.Position.FineX, motion.Position.FineY
+			}
+		}
 
 		var step image.Point
 		if was, seen := mw.prev[e.ID]; seen {
@@ -4962,7 +4978,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// drops a fallen unit's mark once this is false (DIV-1455).
 			Restorable: e.MaxHP > 0 && e.OrdinaryTargetable(),
 			DamageJolt: mw.damageJolt(e.ID),
-			Stone:      mw.world.HasEffectArm(e.ID, 20), Translucent: mw.world.HasEffectArm(e.ID, 15),
+			Stone:      stone, Translucent: mw.world.HasEffectArm(e.ID, 15),
 			// The mana pair beside it, read off the same copy-handing entity read as
 			// everything else here and carried whole — no period, no remainder: the
 			// panel states a pool, not a rate.
@@ -5103,7 +5119,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		// `MAGIC-CASTANIM-029` fixes that a cast plays the caster's own Attack
 		// run, once, one frame per tick, and that run is the same track
 		// SelectAttackFrame already indexes for a swing.
-		swinging := e.Alive() && !e.Turning() && (e.HasAttackTarget || mw.casting(e.ID)) && !moving
+		swinging := !stone && e.Alive() && !e.Turning() && (e.HasAttackTarget || mw.casting(e.ID)) && !moving
 
 		// THE ORANGE MARK IS THE FALLBACK for a shot this build cannot draw: a
 		// physical ranged swing whose class names no projectile, or one whose
@@ -5207,15 +5223,8 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 
 		if len(frames) > 0 {
-			// THE STONE-CURSE ANIMATION HOLD (1002; MAGIC-ACTOR-066): the
-			// clock stops at the scene tick the effect landed on and the
-			// actor keeps that pose, walk cycle included, until it expires.
-			clock, held := mw.scene, false
-			if at, ok := mw.stoneHeld(e.ID); ok {
-				clock, held = at, true
-			}
-			frame, mirror := terrain.SelectUnitFacingFrame(c.Anim, len(frames), moving && !held, facing,
-				clock+int(e.ID), mw.walk[e.ID].dist)
+			frame, mirror := terrain.SelectUnitFacingFrame(c.Anim, len(frames), moving, facing,
+				mw.scene+int(e.ID), mw.walk[e.ID].dist)
 			draws[i].Art = c
 			draws[i].Frame = frames[frame]
 			draws[i].Mirror = mirror
@@ -5255,7 +5264,6 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			continue
 		}
 		draw := draws[i]
-		draw.Boundary = draw.Art.BoundaryOf(draw.Frame)
 		// STONE OVERRIDES THE OWNER SHADE ONLY THROUGH THE FIRST BONE STAGE
 		// (MAGIC-STONEDRAW-084, REG-UNITS-050, PAL-BLIT-024). Both original
 		// Stone draw overrides share the drawable+0x15a <= 2 gate; that field is
@@ -5271,6 +5279,19 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		// viewer's fixed neutral grayscale path from the selected base frame; an
 		// entry outside the gate keeps the ordinary owner rule below.
 		draw.Stone = draw.Stone && e.Decay <= sim.DecayBones
+		if draw.Stone {
+			// MAGIC-STONEDRAW-084
+			draw.DamageJolt = image.Point{}
+			if draw.Art != nil {
+				frames := draw.Art.TierFrames(mw.tiers[e.ID])
+				if len(frames) > 0 {
+					facing := ((int(e.DrawnFacing()) >> 4) + 8) & 15
+					frame, mirror := terrain.SelectStandingFrame(draw.Art.Anim, len(frames), facing)
+					draw.Frame, draw.Mirror = frames[frame], mirror
+				}
+			}
+		}
+		draw.Boundary = draw.Art.BoundaryOf(draw.Frame)
 		if !draw.Stone {
 			draw.Frame = mw.ownerFrame(draw.Art, draw.Frame, e.Owner)
 		}

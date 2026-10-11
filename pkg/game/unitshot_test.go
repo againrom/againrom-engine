@@ -464,3 +464,61 @@ func TestAUnitShotOffsetFollowsChargeShootDelayAndDistance(t *testing.T) {
 		}
 	}
 }
+
+func TestStoneHeldSwingDoesNotReleaseUnitShots(t *testing.T) {
+	units, set := shotArchive(t)
+	shooter := shotShooter(1, shotClassArcher, 1, 4, 1000)
+	shooter.Facing, shooter.DesiredFacing = 64, 64
+	shooter.HasAttackTarget, shooter.AttackTarget, shooter.AttackTargetKind = true, 2, sim.AttackTargetUnit
+	shooter.AttackPhase, shooter.AttackCountdown = sim.AttackCharging, 1000
+	caster := sim.Entity{ID: 3, X: 1, Y: 3, Class: shotClassPlain, HP: 200, MaxHP: 200, Owner: 1,
+		Mind: 60, Mana: 50, MaxMana: 50, KnownSpells: 1 << 20, ScanRange: 19,
+		Speed: 10, AttackCharge: 4, AttackRelax: 2}
+	rule := sim.SpellRule{ID: 20, ManaCost: 1, School: 4, MaxRange: 8, TargetsUnit: true,
+		SpellDuration: 1, EffectKind: sim.EffectAbsorption, EffectMode: sim.EffectDuration, EffectMagnitude: 5}
+	mw := shotWorld(t, units, set, []sim.SpellRule{rule}, shooter, shotVictim(2, 5, 4), caster)
+	if why := mw.world.BookSpellRefusal(3, 1, 20); why != "" {
+		t.Fatalf("Stone Curse refused before admission: %s", why)
+	}
+	sim.Step(mw.world, []sim.Command{sim.Cast(3, 1, 20)})
+	for tick := 0; tick < 64 && !mw.world.HasEffectArm(1, 20); tick++ {
+		sim.Step(mw.world, nil)
+	}
+	if !mw.world.HasEffectArm(1, 20) {
+		t.Fatal("Stone Curse did not attach to the shooter")
+	}
+	if held, _ := mw.world.Entity(1); !held.HasAttackTarget || held.AttackTarget != 2 || held.AttackPhase != sim.AttackCharging {
+		t.Fatalf("Stone Curse did not retain the admitted physical swing: %+v", held)
+	}
+	mw.shots.begin(1, sim.AttackCharging)
+	mw.swing[1], mw.phase[1] = unitShotSwingTick(shotArcherDelay), sim.AttackCharging
+	before := mw.world.Hash()
+	for call := 0; call < 8; call++ {
+		mw.advanceUnitShots()
+		if got := mw.world.SavedProjectiles(); got.FreeIndex != 0 || len(got.Items) != 0 || mw.world.Hash() != before {
+			t.Fatalf("held release call %d changed the World: allocator %d, %d projectiles, hash %016x; want %016x",
+				call, got.FreeIndex, len(got.Items), mw.world.Hash(), before)
+		}
+	}
+	for tick := 0; tick < 64 && mw.world.HasEffectArm(1, 20); tick++ {
+		sim.Step(mw.world, nil)
+	}
+	if mw.world.HasEffectArm(1, 20) {
+		t.Fatal("Stone Curse did not expire")
+	}
+	if resumed, _ := mw.world.Entity(1); !resumed.HasAttackTarget || resumed.AttackTarget != 2 || resumed.AttackPhase != sim.AttackCharging {
+		t.Fatalf("expiry did not retain the admitted physical swing: %+v", resumed)
+	}
+	mw.advanceUnitShots()
+	if got := mw.world.SavedProjectiles(); got.FreeIndex != 1 || len(got.Items) != 1 {
+		t.Fatalf("released swing built allocator %d and %d projectiles, want one", got.FreeIndex, len(got.Items))
+	}
+	for call := 0; call < 4; call++ {
+		mw.advanceSwings()
+		mw.advanceUnitShots()
+		if got := mw.world.SavedProjectiles(); got.FreeIndex != 1 || len(got.Items) != 1 {
+			t.Fatalf("resumed swing call %d built allocator %d and %d projectiles, want the one released shot",
+				call, got.FreeIndex, len(got.Items))
+		}
+	}
+}

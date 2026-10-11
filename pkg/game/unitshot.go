@@ -72,7 +72,7 @@ func (mw *mapWorld) advanceUnitShots() {
 	ents := mw.world.EntityView()
 	for i := range ents {
 		e := &ents[i]
-		if !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
+		if mw.world.HasEffectArm(e.ID, 20) || !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
 			continue
 		}
 		picture, delay, drawn := mw.classShot(mw.spellClientClass(e.ID, e.Class))

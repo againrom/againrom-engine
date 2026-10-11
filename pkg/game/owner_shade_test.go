@@ -216,9 +216,9 @@ func TestStoneOwnerClassesFollowTheResearchedDecayGate(t *testing.T) {
 		stone     bool
 	}{
 		{name: "live", stage: sim.DecayNone, frame: 0, stone: true},
-		{name: "attack", attacking: true, stage: sim.DecayNone, frame: 1, stone: true},
-		{name: "fallen", damage: 101, stage: sim.DecayFallen, frame: 2, stone: true},
-		{name: "first bone", damage: 110, stage: sim.DecayBones, frame: 3, stone: true},
+		{name: "attack", attacking: true, stage: sim.DecayNone, frame: 0, stone: true},
+		{name: "fallen", damage: 101, stage: sim.DecayFallen, frame: 0, stone: true},
+		{name: "first bone", damage: 110, stage: sim.DecayBones, frame: 0, stone: true},
 		{name: "second bone", damage: 120, stage: 3, frame: 4},
 		{name: "third bone", damage: 140, stage: 4, frame: 5},
 	}
