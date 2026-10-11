@@ -99,15 +99,6 @@ func TestADeltaNamesItsDirectionAndAZeroDeltaNamesNone(t *testing.T) {
 	if f, ok := facingToward(0, 0); ok {
 		t.Errorf("a zero delta named the facing %d; it must name none", f)
 	}
-	// And the world-level producer leaves a facing alone where the delta names
-	// none, which is what movement, approach and cast admission share.
-	w := &World{entities: []Entity{{Facing: 0x77}}, routes: make([][]cell, 1)}
-	if w.turnToward(0, 0, 0) {
-		t.Error("a zero delta began a turn")
-	}
-	if got := w.entities[0].Facing; got != 0x77 {
-		t.Errorf("a zero delta moved the facing to %d", got)
-	}
 }
 
 // TestAMoverFacesTheCellItSteppedTo is AC-3, over all eight directions: a unit

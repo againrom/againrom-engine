@@ -112,7 +112,7 @@ func (w *World) stepEscortOrder(s *routeScratch, i int) bool {
 				return true
 			}
 			e.EscortOrder = escortOrderClose
-			w.turnTowardActor(i, target.X-e.X, target.Y-e.Y)
+			w.turnToActor(i, ti)
 			return true
 		}
 		if !e.HasTarget || e.TargetX != target.X || e.TargetY != target.Y {

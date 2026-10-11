@@ -16,6 +16,12 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 	for _, e := range entities {
 		byID[e.ID] = e
 	}
+	// A body joined to an original dead record has its words written by the
+	// dead record.
+	recorded := map[sim.EntityID]bool{}
+	for _, d := range world.OriginalDeadActors() {
+		recorded[d.ID] = true
+	}
 	boundaryIdleMotion := map[sim.EntityID]bool{}
 	motions, _, _, _ := world.SavedActorMotions()
 	for _, motion := range motions {
@@ -56,6 +62,9 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 		savedObjectSetValue(r, "U40", credit)
 		savedObjectSetValue(r, "U48", uint32(uint8(e.KillCreditSpell)))
 		if !e.Alive() && !e.Dying() {
+			if !recorded[e.ID] {
+				writeBodyReferences(state.Document, r, e.BodyReferences)
+			}
 			if frozen := e.HeldOrder; frozen.Kind == sim.HeldOrderFrozen {
 				mustSetRaw(r, "U58", binary.LittleEndian.AppendUint32(nil, frozen.Phase))
 				savedObjectSetValue(r, "U136", frozen.Complete)
@@ -441,7 +450,23 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 			rows = append(rows, sim.HeldOrderRecord{ID: e.ID, Order: o})
 		}
 	}
-	return ms.World.RestoreHeldOrders(rows)
+	if err := ms.World.RestoreHeldOrders(rows); err != nil {
+		return err
+	}
+	// A body keeps its order words as loaded; its dead record takes them
+	// when it is retired. A body joined to an original dead record already
+	// carries them there.
+	recorded := map[sim.EntityID]bool{}
+	for _, d := range ms.World.OriginalDeadActors() {
+		recorded[d.ID] = true
+	}
+	var bodies []sim.BodyReferenceRecord
+	for _, b := range state.Actors {
+		if e, ok := byIDForTargeting[b.EntityID]; ok && !e.Alive() && !e.Dying() && !recorded[b.EntityID] {
+			bodies = append(bodies, sim.BodyReferenceRecord{ID: b.EntityID, References: bodyRecordReferences(state.Document, &state.Document.Objects[b.ObjectIndex-1])})
+		}
+	}
+	return ms.World.RestoreBodyReferences(bodies)
 }
 
 // holdBodyOrder keeps a live actor's order on a body the World does not

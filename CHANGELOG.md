@@ -10,6 +10,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [ROM1] A companion who arrives at a mission holding Quest Documents keeps
   them; they no longer move to the main hero when the mission starts.
+- [BASE] A unit that turns to strike, shoot or cast at another unit faces it
+  along the line between their body centres, as in the original, so a slinger
+  no longer shoots at an ogre facing a diagonal beside it. A cast at a ground
+  cell, a building use and a wall spell's direction follow the original's
+  whole-cell rule.
 
 ## 0.112.0
 

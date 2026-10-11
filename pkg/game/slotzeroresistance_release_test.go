@@ -125,7 +125,8 @@ func slotZeroLockstepBlow(t *testing.T, loadedAttacker, loadedTarget sim.Entity)
 	t.Helper()
 	attacker := cleanResistanceWitnessEntity(loadedAttacker, 1, 5, 5)
 	attacker.Owner = sim.SelfSlot
-	target := cleanResistanceWitnessEntity(loadedTarget, 2, 6, 5)
+	// The target stands beside the attacker's footprint, not inside it.
+	target := cleanResistanceWitnessEntity(loadedTarget, 2, 5+int32(max(loadedAttacker.TokenSize, 1)), 5)
 	target.Owner = 0
 	controlTarget := target
 	controlTarget.ActorLoad.Source.Defence[16] = 0

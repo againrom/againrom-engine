@@ -6,41 +6,41 @@ import (
 	"fmt"
 )
 
-func (mw *mapWorld) retainNewSourceDeadReferences(first int) {
-	if mw.mission == nil || mw.mission.state == nil || mw.mission.state.savedDocument == nil || mw.mission.state.savedDocument.Document == nil {
-		return
+// bodyRecordReferences reads a body's order words from its loaded record:
+// U5C, U64 and the identity U68 names. U44 is the book selection and U40 the
+// kill credit, each written from its own World state.
+func bodyRecordReferences(doc *sav.DocumentData, record *sav.DocumentRecordData) [3]uint32 {
+	var references [3]uint32
+	for i, name := range []string{"U5C", "U64"} {
+		references[i], _ = savedStructureValue(record, name)
 	}
-	doc := mw.mission.state.savedDocument.Document
-	for _, dead := range mw.world.OriginalDeadActors()[first:] {
-		var record *sav.DocumentRecordData
+	if refs, _ := savedObjectRefs(record, "U68"); len(refs) != 0 && refs[0] != 0 && int(refs[0]) <= len(doc.Objects) {
+		references[2], _ = savedStructureValue(&doc.Objects[refs[0]-1], "Identity")
+	}
+	return references
+}
+
+// writeBodyReferences writes a body's order words from the World. A body the
+// World holds no loaded words for, one made in play, is written with
+// none: no order machine ran on it. A U68 identity no object of this
+// document holds is written as no object.
+func writeBodyReferences(doc *sav.DocumentData, record *sav.DocumentRecordData, references [3]uint32) {
+	savedObjectSetValue(record, "U5C", references[0])
+	savedObjectSetValue(record, "U64", references[1])
+	var object uint16
+	if references[2] != 0 {
 		for i := range doc.Objects {
-			r := &doc.Objects[i]
-			if r.Class != savedActorClass(dead.Source.Class) {
-				continue
-			}
-			identity, _ := savedStructureValue(r, "Identity")
-			if identity != dead.Source.Identity {
-				continue
-			}
-			if record != nil {
-				record = nil
-				break
-			}
-			record = r
-		}
-		if record == nil {
-			continue
-		}
-		var references [5]uint32
-		for i, name := range []string{"U5C", "U64", "U44", "", "U40"} {
-			if name != "" {
-				references[i], _ = savedStructureValue(record, name)
+			if key, err := savedStructureValue(&doc.Objects[i], "Identity"); err == nil && key == references[2] {
+				if object != 0 {
+					object = 0
+					break
+				}
+				object = uint16(i + 1)
 			}
 		}
-		if refs, _ := savedObjectRefs(record, "U68"); len(refs) != 0 && refs[0] != 0 && int(refs[0]) <= len(doc.Objects) {
-			references[3], _ = savedStructureValue(&doc.Objects[refs[0]-1], "Identity")
-		}
-		mw.world.RetainOriginalDeadReferences(dead.ID, dead.Source.Identity, references)
+	}
+	if refs, _ := savedObjectRefs(record, "U68"); object != 0 || len(refs) != 0 && refs[0] != 0 {
+		savedObjectSetRefs(record, "U68", []uint16{object}, false)
 	}
 }
 

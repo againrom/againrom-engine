@@ -684,7 +684,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 					w.acquireInPlace(i)
 					w.syncSavedActorCommand(i)
 					w.syncSavedPost(i)
-					w.turnTowardActor(i, w.entities[ti].X-e.X, w.entities[ti].Y-e.Y)
+					w.turnToActor(i, ti)
 					claim(e.ID)
 					continue
 				}
@@ -1224,6 +1224,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	w.syncAreaCosts()
 
 	w.releaseHeldOrders()
+	w.releaseBodyReferences()
 	if w.hasSessionClock {
 		w.endSessionTick(tr)
 	} else {
@@ -2099,7 +2100,7 @@ func (w *World) advanceStep(scratch *routeScratch, i int, next cell, heldFirstCa
 	// unit resolved would route straight onto an occupied cell.
 	from := cell{x: e.X, y: e.Y}
 	facingBefore := e.Facing
-	if w.turnToward(i, next.x-from.x, next.y-from.y) {
+	if w.turnToStep(i, next.x, next.y) {
 		return stepTurned
 	}
 	// The walk's first call after a held cycle steps in that call only when

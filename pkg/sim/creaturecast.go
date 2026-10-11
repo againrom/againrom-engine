@@ -201,9 +201,9 @@ func (w *World) startApproachedCast(i int, c *bookCast) {
 	c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging, castWindupTicks(caster), 0, false
 	c.Retained = c.Retained && caster.Owner != SelfSlot
 	if c.AtCell {
-		w.turnToward(i, c.X-caster.X, c.Y-caster.Y)
+		w.turnToCell(i, c.X, c.Y)
 	} else if ti := indexOfEntity(w.entities, c.Target); ti >= 0 {
-		w.turnTowardActor(i, w.entities[ti].X-caster.X, w.entities[ti].Y-caster.Y)
+		w.turnToActor(i, ti)
 	}
 	w.admitBookPayment(i, rule)
 	w.startSpellAction(i)

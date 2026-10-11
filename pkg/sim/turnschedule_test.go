@@ -39,7 +39,7 @@ func TestRepeatedFacingRequestsRewriteTheTargetWithoutASecondStep(t *testing.T) 
 	w := &World{entities: []Entity{turnActor(1, 4, 4, 0, 16)}}
 	w.beginTurnSubTick()
 	defer w.endTurnSubTick()
-	if !w.turnToward(0, 0, 1) || !w.turnToward(0, 1, 0) {
+	if !w.turnTo(0, 128) || !w.turnTo(0, 64) {
 		t.Fatal("facing request did not hold the actor")
 	}
 	e := w.entities[0]
@@ -58,7 +58,7 @@ func TestTurnHeadPassDoesNotRepeatAnEarlierProducerStep(t *testing.T) {
 	w := &World{entities: []Entity{turnActor(1, 4, 4, 0, 16)}}
 	w.beginTurnSubTick()
 	defer w.endTurnSubTick()
-	w.turnToward(0, 0, 1)
+	w.turnTo(0, 128)
 	w.advanceTurns()
 	if got := w.entities[0].Facing; got != 16 {
 		t.Fatalf("producer and head pass advanced facing to %d, want one rate step 16", got)

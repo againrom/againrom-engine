@@ -389,9 +389,9 @@ func (w *World) approach(s *routeScratch, i int) int {
 		return -1
 	}
 	latched := w.entities[i].AttackPhase != AttackReady
-	if t := w.entities[ti]; w.closedOn(i, ti) {
+	if w.closedOn(i, ti) {
 		if !latched {
-			w.turnTowardActor(i, t.X-w.entities[i].X, t.Y-w.entities[i].Y)
+			w.turnToActor(i, ti)
 		}
 		w.restAt(s, i)
 		return -1
@@ -400,7 +400,7 @@ func (w *World) approach(s *routeScratch, i int) int {
 		return -1
 	}
 	if w.entities[i].AcquirePursuit {
-		w.turnTowardActor(i, w.entities[ti].X-w.entities[i].X, w.entities[ti].Y-w.entities[i].Y)
+		w.turnToActor(i, ti)
 		w.restAt(s, i)
 		return -1
 	}
@@ -656,7 +656,11 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		if e.HasTarget || !closed || e.Turning() || e.PursuitIdle {
 			return
 		}
-		if !structure && w.turnTowardActor(i, position.X-e.X, position.Y-e.Y) {
+		if structure {
+			if s, ok := w.attackStructure(*e); ok && w.turnToStructure(i, s) {
+				return
+			}
+		} else if w.turnToActor(i, ti) {
 			return
 		}
 		_, weaponSpellEligible := w.weaponSpell(*e)

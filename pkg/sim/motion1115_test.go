@@ -238,7 +238,7 @@ func TestSavedMotion1115CommandRateAndFacingDoNotReplaceAcceptedStep(t *testing.
 		t.Fatal("replacement did not retain active with explicit route coverage gap")
 	}
 	w.entities[0].Speed = 1
-	if !w.turnToward(0, 0, -1) || w.entities[0].Facing != 64 {
+	if !w.turnTo(0, 0) || w.entities[0].Facing != 64 {
 		t.Fatal("cast/turn stole active facing authority")
 	}
 	for range 4 {

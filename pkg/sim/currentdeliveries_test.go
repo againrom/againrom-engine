@@ -241,7 +241,7 @@ func sacrificeDeliveryWorld(t *testing.T, hasCaster bool) *World {
 		t.Fatal(err)
 	}
 	w.relations.turnHostile(SelfSlot, 2)
-	e := cellEffect{Key: 0x1010, Spell: 4, Direction: areaDirection(15, 15)}
+	e := cellEffect{Key: 0x1010, Spell: 4, Direction: areaDirection(0, 0, 15, 15)}
 	first, second := w.ringStageCells(e, 0), w.ringStageCells(e, 1)
 	if len(first) == 0 || len(second) == 0 {
 		t.Fatal("sacrifice ring fixture")

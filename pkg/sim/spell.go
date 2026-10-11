@@ -1590,7 +1590,7 @@ func (w *World) beginBookSpellMode(ci int, victim EntityID, spellID uint32, reta
 	w.entities[ci].AdmittedBookSpell = uint16(spellID)
 	// Facing is part of admission: a refusal above writes nothing, and target
 	// movement during wind-up cannot restart or retarget this action.
-	w.turnTowardActor(ci, target.X-caster.X, target.Y-caster.Y)
+	w.turnToActor(ci, indexOfEntity(w.entities, victim))
 	if c.Phase == bookCharging {
 		w.admitBookPayment(ci, rule)
 		w.startSpellAction(ci)
@@ -1827,7 +1827,7 @@ func (w *World) beginBookSpellAtMode(ci int, x, y int32, spellID uint32, retaine
 		return false
 	}
 	w.entities[ci].AdmittedBookSpell = uint16(spellID)
-	w.turnToward(ci, x-caster.X, y-caster.Y)
+	w.turnToCell(ci, x, y)
 	if c.Phase == bookCharging {
 		w.admitBookPayment(ci, rule)
 		w.startSpellAction(ci)

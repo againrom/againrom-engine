@@ -4066,7 +4066,6 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.pendingIgnored = mw.pendingIgnored[:0]
 	mw.recordCells()
 	mw.noteShotPreMoves()
-	deadBefore := mw.world.OriginalDeadActorCount()
 	// THE STEP REPORTS ITS APPLIED CASTS. StepObserved is the same step Step is
 	// — the same code path with a sink handed down — and what comes back is
 	// a value this tier keeps, never state on the world.
@@ -4074,9 +4073,6 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.observeScriptMessages(report.ScriptMessages)
 	for _, observe := range reportSink {
 		observe(report)
-	}
-	if deadAfter := mw.world.OriginalDeadActorCount(); deadAfter > deadBefore {
-		mw.retainNewSourceDeadReferences(deadBefore)
 	}
 	mw.observeFame()
 	// Damage observation is consumed before the scene clock advances. The

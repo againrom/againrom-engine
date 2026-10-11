@@ -368,7 +368,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		return false
 	}
 	e := cellEffect{Key: cellKey(anchorX, anchorY), Spell: rule.ID, Caster: caster, HasCaster: hasCaster, Power: power, Mode: mode,
-		Direction: areaDirection(x-fromX, y-fromY)}
+		Direction: areaDirection(fromX, fromY, x, y)}
 	if fixedFacing {
 		e.Direction = uint8(FacingDir(facing))
 	}
@@ -502,25 +502,13 @@ func (w *World) setWallCells(cells []uint16, set bool) {
 	}
 }
 
-// areaDirection is `effect+0x4a`, the one direction byte every area program
-// reads.
-//
-// THERE IS ONE CONVENTION AND NOT TWO. The builder writes the field once, at
-// `L05428`, as `(bearing(caster, targetCell) & 0xff) >> 5` — the bearing byte
-// truncated to one of eight (`MAGIC-AREACELL-039`), which is the same 0..7
-// index `MAGIC-RING-048` reads as Acid Stream's orientation and the same one
-// the wall switch at `L05427` indexes with. This build's own facing byte is
-// `d << 5` for direction d (facing.go), so the shift recovers d exactly:
-// 0 north, 2 east, 4 south, 6 west.
-//
-// A zero delta names no direction and answers 0, which is what facingToward
-// refuses to invent; a cast at the caster's own cell has no bearing.
-func areaDirection(dx, dy int32) uint8 {
-	f, ok := facingToward(dx, dy)
-	if !ok {
-		return 0
-	}
-	return f >> 5
+// areaDirection is the one direction byte every area program reads: the
+// heading from the caster's cell to the target cell truncated to one of eight
+// (MAGIC-AREACELL-039), the same 0..7 index MAGIC-RING-048 reads as Acid
+// Stream's orientation. The heading is cellHeading's whole-cell law (AI-446),
+// so a cast on the caster's own cell gives 224, index 7.
+func areaDirection(fromX, fromY, x, y int32) uint8 {
+	return cellHeading(fromX, fromY, x, y) >> 5
 }
 
 // canonicalCells is a cell list in the byte form's own order: ascending key,

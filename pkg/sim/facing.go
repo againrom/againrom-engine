@@ -43,10 +43,8 @@ var stepOf = [directions][2]int32{
 // and it is the one cell of this table that is not a direction.
 //
 // It is a sign table and not a bearing: the magnitudes never enter, so a step
-// of one cell and a victim standing three cells away on the same diagonal name
-// the same direction. That is exact where the deltas this package feeds it are
-// one cell in each axis, which is every step a mover takes and every position a
-// victim in reach can stand in.
+// of one cell and a cell three away on the same diagonal name the same
+// direction.
 var dirOfSigns = [3][3]int{
 	{7, 0, 1},           // dy < 0, north:  NW, N, NE
 	{6, noDirection, 2}, // dy == 0:         W,  —, E
@@ -67,65 +65,15 @@ func FacingDir(f uint8) int { return ((int(f) + facingRound) >> 5) & (directions
 // directions, and it is written only with a d this file produced.
 func facingOfDir(d int) uint8 { return uint8(d * facingStep) }
 
-// facingToward is the facing that points along the delta (dx, dy), and whether
-// there is one at all.
-//
-// A ZERO DELTA HAS NO ANSWER and says so. Every caller leaves the facing it
-// found in that case, so a mover that did not move and an attacker standing on
-// its victim keep pointing where they pointed — which is the behaviour, not a
-// fallback: there is no direction from a cell to itself, and answering north
-// would be inventing one.
+// facingToward is the facing the signs of the delta (dx, dy) name, and
+// whether there is one: the step law's table (MOVE-115). A zero delta names
+// none; stepHeading answers that vector itself.
 func facingToward(dx, dy int32) (uint8, bool) {
 	d := dirOfSigns[signIndex(dy)][signIndex(dx)]
 	if d == noDirection {
 		return 0, false
 	}
 	return facingOfDir(d), true
-}
-
-// bearingFacing is the facing of the eight headings nearest the bearing of the
-// delta (dx, dy) from an actor to its target actor, and whether there is one.
-// Its law is the replayed outputs of AI-361's direction helper: a heading wins
-// within 22.5 degrees of the bearing, so a victim at (1,-4) lies due north and
-// one at (2,-4) north-east, where facingToward's signs name north-east for both.
-// The boundary tan(22.5 degrees) = sqrt(2)-1 is tested exactly in integers as
-// (max-min)^2 > 2*min^2, which no integer delta can tie. A zero delta has no
-// answer. The law is replayed for deltas within 4 cells; beyond them it is the
-// same nearest-heading rule, unreplayed.
-func bearingFacing(dx, dy int32) (uint8, bool) {
-	const bound = 1 << 30
-	clamp := func(v int32) int64 {
-		x := int64(v)
-		if x > bound {
-			return bound
-		}
-		if x < -bound {
-			return -bound
-		}
-		return x
-	}
-	x, y := clamp(dx), clamp(dy)
-	if x == 0 && y == 0 {
-		return 0, false
-	}
-	ax, ay := x, y
-	if ax < 0 {
-		ax = -ax
-	}
-	if ay < 0 {
-		ay = -ay
-	}
-	lo, hi := ax, ay
-	if lo > hi {
-		lo, hi = hi, lo
-	}
-	if (hi-lo)*(hi-lo) <= 2*lo*lo {
-		return facingToward(dx, dy)
-	}
-	if ax > ay {
-		return facingOfDir(dirOfSigns[1][signIndex(dx)]), true
-	}
-	return facingOfDir(dirOfSigns[signIndex(dy)][1]), true
 }
 
 // signIndex maps a delta's sign onto its row or column of dirOfSigns: 0
@@ -241,27 +189,14 @@ func (e *Entity) requestFacing(desired uint8, deferStep ...bool) bool {
 	return true
 }
 
-// turnToward applies requestFacing to a cell delta. A turn does not destroy
-// the stored route (MOVE-TURN-044 corrects MOVE-TURN-031). A zero delta names
-// no direction and changes nothing.
-func (w *World) turnToward(i int, dx, dy int32) bool {
-	return w.turnFacing(i, dx, dy, facingToward)
-}
-
-// turnTowardActor is turnToward for a target actor, whose heading is the
-// bearing's nearest of the eight (bearingFacing) and not the delta's signs.
-func (w *World) turnTowardActor(i int, dx, dy int32) bool {
-	return w.turnFacing(i, dx, dy, bearingFacing)
-}
-
-func (w *World) turnFacing(i int, dx, dy int32, heading func(dx, dy int32) (uint8, bool)) bool {
+// turnTo starts or preserves the turn to h, a byte one of the heading laws
+// produced (heading.go). A turn does not destroy the stored route
+// (MOVE-TURN-044 corrects MOVE-TURN-031). Its result says the act must wait.
+func (w *World) turnTo(i int, h heading) bool {
 	if w.motionActive(w.entities[i].ID) {
 		return true
 	}
-	desired, ok := heading(dx, dy)
-	if !ok {
-		return false
-	}
+	desired := uint8(h)
 	if desired != w.entities[i].Facing {
 		w.invalidateActorMotion(w.entities[i].ID, "native turn supersedes original mover")
 	}

@@ -133,7 +133,7 @@ func (w *World) advanceStructureUse(scratch *routeScratch, i int) bool {
 		if !w.restAt(scratch, i) {
 			return true
 		}
-		if w.turnToward(i, goal.x-a.X, goal.y-a.Y) {
+		if w.turnToCell(i, goal.x, goal.y) {
 			return true
 		}
 		w.finishStructureUse(i)

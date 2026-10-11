@@ -85,19 +85,18 @@ func TestAnAttackerOutOfReachKeepsItsWalksFacing(t *testing.T) {
 	t.Fatal("the attacker never came into reach")
 }
 
-// TestAVictimOnTheAttackersOwnCellLeavesTheFacingAlone is AC-4's last clause.
-// Two units may share a cell — a world holding such a pair is advanced, not
-// repaired — and the delta between them names no direction.
-func TestAVictimOnTheAttackersOwnCellLeavesTheFacingAlone(t *testing.T) {
+// TestAVictimOnTheAttackersOwnCellIsFacedNorthWest: two units may share a
+// cell, a world holding such a pair is advanced, not repaired, and coincident
+// centres are the actor law's zero vector, which gives 224 (AI-444, AI-361).
+func TestAVictimOnTheAttackersOwnCellIsFacedNorthWest(t *testing.T) {
 	const mark = 0xa0
 	w := mustWorldGrid(t, 1, turnBounds, ModeCanonical, openGrid(turnBounds), []Entity{
 		armed(1, 5, 5, mark),
 		armed(2, 5, 5, 0),
 	})
 	Step(w, []Command{{Kind: KindAttack, Entity: 1, X: 2}})
-	if got := w.Entities()[0].Facing; got != mark {
-		t.Errorf("the attacker faces %d, want the %d it held: a victim on its own cell names no direction",
-			got, mark)
+	if got := w.Entities()[0].DesiredFacing; got != 224 {
+		t.Errorf("the attacker desires %d, want 224 toward a victim on its own cell", got)
 	}
 }
 

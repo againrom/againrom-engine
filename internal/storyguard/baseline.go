@@ -2118,6 +2118,10 @@ package storyguard
 // mod choices, pkg/mod/bodies.go, pkg/game/modbodies.go, the one hero body
 // builder, the saved body name and their unit and release tests, new code,
 // including this paragraph.
+// CommentBytes rises for the heading laws: the docs of pkg/sim/heading.go, the
+// archtest heading scan, the attack heading release witness and the slot-0
+// witness target placed beside its attacker, new code,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4693,
 	TestFileCount:  264,
@@ -2128,7 +2132,7 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1875,
+		"acclause":        1874,
 		"scclause":        506,
 		"barestorynumber": 1734,
 	},
@@ -2139,7 +2143,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1744,
+		"longcommentgroups":      1743,
 	},
-	CommentBytes: 8668011,
+	CommentBytes: 8671148,
 }

@@ -229,21 +229,6 @@ func (w *World) OriginalDeadActors() []OriginalDeadRecord {
 	return out
 }
 
-func (w *World) OriginalDeadActorCount() int {
-	return len(w.originalDead)
-}
-
-func (w *World) RetainOriginalDeadReferences(id EntityID, identity uint32, references [5]uint32) bool {
-	for i := range w.originalDead {
-		r := &w.originalDead[i]
-		if r.ID == id && r.Source.Identity == identity && r.terminal.Stage == 5 {
-			r.Source.References = references
-			return true
-		}
-	}
-	return false
-}
-
 // decayHeldDead applies the dead-list ladder to records without an authored
 // entity. It never replays teardown, drops, rewards or live-actor actions.
 func (w *World) decayHeldDead(decrement bool) {
@@ -347,7 +332,8 @@ func (w *World) retireOriginalDead(id EntityID) {
 	source := OriginalDeadSource{Identity: e.SourceBinding.Identity, ArchiveIndex: e.SourceBinding.ArchiveIndex,
 		MapUnitID: e.MapUnitID, Class: e.SourceBinding.Class, OwnerKey: e.SourceBinding.GroupOwnerKey,
 		ContainerPresent: e.ActorLoad.ContainerPresent,
-		ContainerTail:    [2]uint32{e.ActorLoad.InsertIndex, uint32(e.ActorLoad.Accumulator)}, State: state}
+		ContainerTail:    [2]uint32{e.ActorLoad.InsertIndex, uint32(e.ActorLoad.Accumulator)}, State: state,
+		References: deadReferences(e)}
 	if m := w.motionFor(id); m != nil {
 		source.TerrainKey = m.Position.TerrainKey
 		if e.Decay < DecayBones || e.HP >= decayGoneHP {

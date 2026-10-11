@@ -241,6 +241,9 @@ type Entity struct {
 	TurnTotal     uint8
 	TurnState     TurnState
 	HeldOrder     HeldOrder
+	// BodyReferences are a body's order words as loaded: U5C, U64 and the
+	// identity U68 names. A body keeps them until it is retired.
+	BodyReferences [3]uint32
 	// PotionStats are permanent single-use gains in Body, Reaction, Mind,
 	// Spirit order. Headroom is the derived sheet's remaining capacity to the
 	// effective attribute cap; the post-step derive owns its refresh.
