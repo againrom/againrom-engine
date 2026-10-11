@@ -161,7 +161,7 @@ func TestItemPopupPresentDrawsOverAHoveredWornCell(t *testing.T) {
 // The item popup is the shared hover box (MENU-128): its interior is the
 // hover fill and its outer bevel row the light gold.
 func TestItemPopupIsTheHoverBox(t *testing.T) {
-	pic := composeHoverBox([]string{"Sword"}, messageFont(), nil)
+	pic := composeHoverBox([]string{"Sword"}, messageFont(), nil, nil)
 	if pic == nil {
 		t.Fatal("composeHoverBox returned nil")
 	}

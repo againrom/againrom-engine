@@ -101,7 +101,19 @@ func (a *App) tooltipPresent(bounds image.Rectangle) (*image.RGBA, image.Point, 
 	if !ok {
 		return nil, image.Point{}, false
 	}
-	return a.tooltip.picture(target, point, bounds)
+	return a.tooltip.styled(target, point, bounds, a.hoverStyle())
+}
+
+// hoverStyle is the generator description's hover style while the generator
+// shows, nil on every other screen.
+func (a *App) hoverStyle() *hoverStyle {
+	if a.flow == nil || a.flow.screen != ScreenChargen {
+		return nil
+	}
+	if l := a.flow.chargen.layout(); l != nil {
+		return l.Hover.style()
+	}
+	return nil
 }
 
 func (a *App) drawTooltip(dst *ebiten.Image) {

@@ -16,72 +16,72 @@
     "mask": {"key": "graphics/interface/chrgen/precreate/mask.bmp", "size": [640, 480],
              "required": [20, 40, 60, 80, 100, 120, 140, 160, 180], "cite": ["R2-ASSET-075"]},
     "name": {
-      "rect": [300, 433, 464, 449], "text-at": [300, 434], "ink": [101, 39, 61], "cap": 10, "caret-ms": 500,
-      "prompt": {"slot": 365, "at": [290, 434], "align": "right", "ink": [65, 47, 20], "cite": ["R2-ENGINE-284", "DIV-2769"]},
+      "rect": [300, 433, 464, 449], "text-at": [300, 434], "ink": [255, 255, 116], "cap": 10, "caret-ms": 500, "tooltip": 256,
+      "prompt": {"slot": 365, "at": [290, 434], "align": "right", "ink": [185, 159, 73], "cite": ["R2-ENGINE-284", "R2-ENGINE-386", "DIV-2769"]},
       "enter-line": 20, "unnamed": "Unnamed", "last-press": false,
-      "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "DIV-2769"]
+      "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-384", "R2-ENGINE-386", "DIV-2769"]
     },
     "heroes": [
-      {"sex": 0, "class": 0, "template": "Start_MF", "mask": 80, "name-line": 23, "neighbour": 1,
+      {"sex": 0, "class": 0, "template": "Start_MF", "mask": 80, "tooltip": 250, "name-line": 23, "neighbour": 1,
        "art": [
          {"when": {"selected": false, "hovered": true, "neighbour-selected": false}, "key": "graphics/interface/chrgen/precreate/heroes/h1on.bmp", "at": [116, 44], "size": [64, 244], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "neighbour-hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/h1sel2.bmp", "at": [112, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true}, "key": "graphics/interface/chrgen/precreate/heroes/h1sel.bmp", "at": [112, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "DIV-2773"]},
-      {"sex": 1, "class": 0, "template": "Start_FF", "mask": 100, "name-line": 24, "neighbour": 0,
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-384", "DIV-2773"]},
+      {"sex": 1, "class": 0, "template": "Start_FF", "mask": 100, "tooltip": 252, "name-line": 24, "neighbour": 0,
        "art": [
          {"when": {"selected": false, "hovered": true, "neighbour-selected": false}, "key": "graphics/interface/chrgen/precreate/heroes/h2on.bmp", "at": [180, 44], "size": [64, 244], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "neighbour-hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/h2sel1.bmp", "at": [112, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true}, "key": "graphics/interface/chrgen/precreate/heroes/h2sel.bmp", "at": [112, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "DIV-2773"]},
-      {"sex": 1, "class": 1, "template": "Start_FM", "mask": 120, "name-line": 26, "neighbour": 3,
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-384", "DIV-2773"]},
+      {"sex": 1, "class": 1, "template": "Start_FM", "mask": 120, "tooltip": 253, "name-line": 26, "neighbour": 3,
        "art": [
          {"when": {"selected": false, "hovered": true, "neighbour-selected": false}, "key": "graphics/interface/chrgen/precreate/heroes/h3on.bmp", "at": [392, 44], "size": [64, 244], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "neighbour-hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/h3sel4.bmp", "at": [260, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true}, "key": "graphics/interface/chrgen/precreate/heroes/h3sel.bmp", "at": [260, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "DIV-2773"]},
-      {"sex": 0, "class": 1, "template": "Start_MM", "mask": 140, "name-line": 25, "neighbour": 2,
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-384", "DIV-2773"]},
+      {"sex": 0, "class": 1, "template": "Start_MM", "mask": 140, "tooltip": 251, "name-line": 25, "neighbour": 2,
        "art": [
          {"when": {"selected": false, "hovered": true, "neighbour-selected": false}, "key": "graphics/interface/chrgen/precreate/heroes/h4on.bmp", "at": [456, 44], "size": [64, 244], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "neighbour-hovered": true}, "key": "graphics/interface/chrgen/precreate/heroes/h4sel3.bmp", "at": [260, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true}, "key": "graphics/interface/chrgen/precreate/heroes/h4sel.bmp", "at": [260, 44], "size": [268, 340], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "DIV-2773"]}
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-384", "DIV-2773"]}
     ],
     "hero-order": [0, 1, 2, 3],
     "hero-sound": "chrgen/char.wav",
     "levels": [
-      {"mask": 20, "sound": "chrgen/level1.wav",
+      {"mask": 20, "sound": "chrgen/level1.wav", "tooltip": 247,
        "art": [
          {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/levels/level0on.bmp", "at": [8, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level0l.bmp", "at": [8, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level0lon.bmp", "at": [8, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284"]},
-      {"mask": 40, "sound": "chrgen/level2.wav",
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-384"]},
+      {"mask": 40, "sound": "chrgen/level2.wav", "tooltip": 248,
        "art": [
          {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/levels/level1on.bmp", "at": [296, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level1l.bmp", "at": [296, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level1lon.bmp", "at": [296, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284"]},
-      {"mask": 60, "sound": "chrgen/level3.wav",
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-384"]},
+      {"mask": 60, "sound": "chrgen/level3.wav", "tooltip": 249,
        "art": [
          {"when": {"selected": true, "hovered": false}, "key": "graphics/interface/chrgen/precreate/levels/level2on.bmp", "at": [580, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": false, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level2l.bmp", "at": [580, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
          {"when": {"selected": true, "hovered": true}, "key": "graphics/interface/chrgen/precreate/levels/level2lon.bmp", "at": [580, 0], "size": [48, 72], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]}
        ],
-       "cite": ["R2-ENGINE-284"]}
+       "cite": ["R2-ENGINE-284", "R2-ENGINE-384"]}
     ],
-    "back": {"mask": 160, "region": [16, 400, 80, 476], "sound": "chrgen/ok.wav",
+    "back": {"mask": 160, "region": [16, 400, 80, 476], "sound": "chrgen/ok.wav", "tooltip": 255,
              "art": {"key": "graphics/interface/chrgen/precreate/cancell.bmp", "size": [64, 76], "at": [16, 400], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
-             "cite": ["R2-ENGINE-283", "R2-ENGINE-284", "R2-ASSET-075"]},
-    "forward": {"mask": 180, "region": [548, 400, 628, 476], "sound": "chrgen/ok.wav",
+             "cite": ["R2-ENGINE-283", "R2-ENGINE-284", "R2-ENGINE-384", "R2-ASSET-075"]},
+    "forward": {"mask": 180, "region": [548, 400, 628, 476], "sound": "chrgen/ok.wav", "tooltip": 254,
                 "art": {"key": "graphics/interface/chrgen/precreate/okl.bmp", "size": [80, 76], "at": [548, 400], "cite": ["R2-ENGINE-284", "R2-ASSET-075"]},
-                "cite": ["R2-ENGINE-283", "R2-ENGINE-284", "R2-ASSET-075"]},
+                "cite": ["R2-ENGINE-283", "R2-ENGINE-284", "R2-ENGINE-384", "R2-ASSET-075"]},
     "sparkle": {"key": "graphics/interface/chrgen/precreate/blind/sprites.16a", "step-ms": 63, "clamp-ms": 100, "gap-ms": 500, "gap-draw-divisor": 65,
                 "within": ["level/0", "level/1", "level/2", "back", "forward"],
                 "cite": ["R2-ENGINE-284", "DIV-2768"]},
@@ -97,12 +97,14 @@
   "detail": {
     "cursor": "default",
     "plate": {"key": "main/graphics/chrgen/leftup.bmp", "size": [160, 238], "rect": [0, 0, 160, 238], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]},
-    "nav": {"key": "graphics/interface/inn/buttonsarea.bmp", "size": [160, 238], "rect": [480, 0, 640, 238], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]},
+    "nav": {"key": "graphics/interface/shopmenu.bmp", "size": [176, 238], "rect": [464, 0, 640, 238], "keyed": true, "cite": ["R2-ENGINE-249", "DIV-3014"]},
     "nav-frame": {"fill": [16, 18, 24], "edge": [138, 116, 70], "cite": ["DIV-2770"]},
-    "card": {"key": "graphics/interface/chrgen/fullstatsl.bmp", "size": [160, 242], "rect": [0, 238, 160, 480], "cite": ["R2-ENGINE-286", "R2-ASSET-075", "DIV-2770"]},
+    "card": {"key": "graphics/interface/chrgen/fullstatsl.bmp", "size": [160, 242], "rect": [0, 238, 160, 480], "cite": ["R2-ENGINE-286", "R2-ENGINE-388", "R2-ASSET-075", "DIV-2770"]},
+    "card-offset": [12, 0],
+    "card-seam": {"key": "graphics/interface/chrgen/fullstatsr.bmp", "size": [16, 242], "rect": [160, 238, 176, 480], "keyed": true, "cite": ["R2-ENGINE-388", "DIV-3017"]},
     "doll": {"key": "graphics/interface/humanbackr.bmp", "size": [160, 242], "rect": [480, 238, 640, 480], "cite": ["R2-ENGINE-286", "DIV-2770"]},
     "column-rect": [160, 0, 480, 480],
-    "skill-clip": [160, 0, 480, 480],
+    "skill-clip": [160, 0, 464, 480],
     "classes": [
       {"column": {"key": "graphics/interface/chrgen/fighter/column.bmp", "size": [320, 480], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]},
        "mask": {"key": "graphics/interface/chrgen/fighter/mask.bmp", "size": [320, 480], "cite": ["R2-ENGINE-288", "R2-ASSET-075"]},
@@ -140,29 +142,35 @@
       "label-tooltip": 155, "pool-tooltip": 273, "value-label": 15,
       "floor": 15, "ceiling": 45, "start": 25, "budget": 140,
       "cost": {"factor": 0.349, "base": 1.15, "round": 0.5, "cite": ["R2-ENGINE-287"]},
-      "value-ink": [255, 255, 255],
-      "pool-ink": [255, 230, 150],
-      "cite": ["R2-ENGINE-286", "R2-ENGINE-287", "R2-ENGINE-289", "DIV-2770"]
+      "value-ink": [185, 159, 73],
+      "value-at": [2, 4],
+      "value-font": {"name": "font4", "atlas": "16a", "cite": ["R2-ENGINE-387"]},
+      "value-shadow": [0, 0, 0],
+      "pool-ink": [185, 159, 73],
+      "pool-at": [84, 186],
+      "cite": ["R2-ENGINE-286", "R2-ENGINE-287", "R2-ENGINE-289", "R2-ENGINE-387", "DIV-2770"]
     },
     "commands": [
-      {"role": "play", "slot": 238, "rect": [484, 44, 624, 90], "off": "graphics/interface/inn/button1off.bmp", "on": "graphics/interface/inn/button1on.bmp", "size": [140, 46], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]},
-      {"role": "reset", "slot": 239, "rect": [484, 91, 624, 137], "off": "graphics/interface/inn/button2off.bmp", "on": "graphics/interface/inn/button2on.bmp", "size": [140, 46], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]},
-      {"role": "back", "slot": 260, "rect": [484, 138, 624, 184], "off": "graphics/interface/inn/button3off.bmp", "on": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "cite": ["R2-ENGINE-286", "R2-ASSET-075"]}
+      {"role": "play", "slot": 238, "rect": [494, 15, 614, 67], "on": "graphics/interface/shopbutton1.bmp", "size": [120, 52], "keyed": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-286", "DIV-3014"]},
+      {"role": "reset", "slot": 239, "rect": [483, 114, 623, 160], "on": "graphics/interface/shopbutton3.bmp", "size": [140, 46], "keyed": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-286", "DIV-3014"]},
+      {"role": "back", "slot": 260, "rect": [494, 160, 614, 212], "on": "graphics/interface/shopbutton4.bmp", "size": [120, 52], "keyed": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-286", "DIV-3014"]},
+      {"role": "restore", "rect": [483, 67, 623, 113], "on": "graphics/interface/shopbutton2.bmp", "size": [140, 46], "keyed": true, "cite": ["R2-ENGINE-249", "DIV-3014"]}
     ],
-    "command-ink": [255, 230, 150],
+    "command-ink": [185, 159, 73],
     "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-2770"]},
     "keys": {"enter": "play", "escape": "none", "typing": "focused", "cite": ["R2-ENGINE-283", "DIV-2771"]},
     "reset": [
       {"language": "", "values": "start", "skill": "keep", "cite": ["R2-ENGINE-286"]},
       {"language": "russian", "values": "template", "skill": "default", "cite": ["R2-ENGINE-286"]}
     ],
+    "restore": [{"language": "", "values": "template", "skill": "preset", "cite": ["DIV-3014"]}],
     "refusals": {},
     "default-skill": 0,
     "cite": ["R2-ENGINE-283", "R2-ENGINE-286", "R2-ENGINE-288", "DIV-2770", "DIV-2771"]
   },
   "tips": {
     "pre-create-rect": [232, 48, 640, 184],
-    "detail-rect": [0, 280, 312, 480],
+    "detail-rect": [160, 280, 472, 480],
     "panel": {"font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]},
     "select": [
       {"file": "main/text/town.txt", "section": "tips8", "cite": ["R2-ENGINE-289"]},
@@ -174,8 +182,9 @@
     "after": {"file": "main/text/town.txt", "section": "tips7", "cite": ["R2-ENGINE-289"]},
     "pre-create-cycle": [[80, 100, 120, 140], [20, 40, 60], [160, 180]],
     "hover-wait-ms": 500, "step-gap-ms": 300,
-    "cite": ["R2-ENGINE-289", "R2-ENGINE-274"]
+    "cite": ["R2-ENGINE-289", "R2-ENGINE-274", "R2-ENGINE-389", "DIV-3015"]
   },
+  "hover": {"font": "text", "ink": [160, 120, 50], "shadow": [8, 8, 8], "lines": "authored", "cite": ["R2-ENGINE-385", "DIV-3016"]},
   "campaign": {
     "chosen-skill": 20, "fifth-skill": 10,
     "fighter-weapons": ["Iron Long Sword", "Iron Axe", "Iron Mace", "Iron Pike", "Uncommon Wood Long Bow"],

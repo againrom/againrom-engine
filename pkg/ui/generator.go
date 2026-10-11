@@ -30,6 +30,9 @@ type GeneratorDescription struct {
 	PreCreate GeneratorPreCreate `json:"pre-create"`
 	Detail    GeneratorDetail    `json:"detail"`
 	Tips      GeneratorTips      `json:"tips"`
+	// Hover is how the generator's hover help draws; nil draws it as every
+	// other hover help draws.
+	Hover *GeneratorHover `json:"hover"`
 	// Campaign is the part only the game's campaign adapter reads: the hero
 	// a result makes and what the commit writes. The builder never decodes it.
 	Campaign json.RawMessage `json:"campaign"`
@@ -437,6 +440,31 @@ type GeneratorDetail struct {
 	CardOffset GeneratorPoint `json:"card-offset"`
 }
 
+// GeneratorHover is how the generator's hover help draws in the one hover
+// box (widgethover.go): in the generator's text font ("text"), in Ink over
+// Shadow one pixel right and down, and with Lines "authored", every '#' line
+// as written, blank lines kept and none wrapped.
+type GeneratorHover struct {
+	Font   string        `json:"font"`
+	Ink    GeneratorInk  `json:"ink"`
+	Shadow *GeneratorInk `json:"shadow"`
+	Lines  string        `json:"lines"`
+	Cite   []string      `json:"cite"`
+}
+
+// style is the hover box style the description names.
+func (h *GeneratorHover) style() *hoverStyle {
+	if h == nil {
+		return nil
+	}
+	s := &hoverStyle{ink: h.Ink.RGBA(), authored: h.Lines == "authored"}
+	if h.Shadow != nil {
+		shadow := h.Shadow.RGBA()
+		s.shadow = &shadow
+	}
+	return s
+}
+
 // GeneratorTipText is one tip text: a whole file, or one section of a file.
 type GeneratorTipText struct {
 	File    string   `json:"file"`
@@ -572,6 +600,9 @@ func (d *GeneratorDescription) validate() error {
 	}
 	if !oneOf(d.Words.TipFont, "text", "install") {
 		return fmt.Errorf("tip font %q", d.Words.TipFont)
+	}
+	if h := d.Hover; h != nil && (h.Font != "text" || !oneOf(h.Lines, "authored", "wrapped")) {
+		return fmt.Errorf("hover font %q, lines %q", h.Font, h.Lines)
 	}
 	if !oneOf(d.Tips.Panel.Font, "text", "install") {
 		return fmt.Errorf("tip panel font %q", d.Tips.Panel.Font)

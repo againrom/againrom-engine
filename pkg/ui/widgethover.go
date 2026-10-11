@@ -39,8 +39,9 @@ func hoverBoxSize(lines []string, f *text.Font) image.Point {
 // the two-colour gold bevel, Ball.bmp at the four corners and each line at
 // (L+5,T+4+14i). The picture's right edge R is its last column and its
 // bottom B one past its last row, so every side keeps a one-pixel margin
-// outside the bevel. Without a ball picture the corners stay unpainted.
-func composeHoverBox(lines []string, f *text.Font, ball image.Image) *image.RGBA {
+// outside the bevel. Without a ball picture the corners stay unpainted. The
+// text draws in style s, or popupTextColor without a shadow when s is nil.
+func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverStyle) *image.RGBA {
 	if f == nil || f.Height() <= 0 || len(lines) == 0 {
 		return nil
 	}
@@ -77,8 +78,16 @@ func composeHoverBox(lines []string, f *text.Font, ball image.Image) *image.RGBA
 			draw.Draw(img, dst, ball, src.Min, draw.Over)
 		}
 	}
+	ink := popupTextColor
+	if s != nil {
+		ink = s.ink
+	}
 	for i, ln := range lines {
-		f.Draw(img, ln, hoverTextX, hoverTextY+i*hoverPitch, popupTextColor)
+		x, y := hoverTextX, hoverTextY+i*hoverPitch
+		if s != nil && s.shadow != nil {
+			f.DrawFlat(img, ln, x+1, y+1, *s.shadow)
+		}
+		f.Draw(img, ln, x, y, ink)
 	}
 	return img
 }

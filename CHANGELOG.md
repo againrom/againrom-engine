@@ -8,8 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The character creation screen looks more like the original: pointing at a difficulty, a portrait, the name, OK or Cancel shows its hint; "Name:" and the typed name are gold and yellow; the attribute numbers and the points left are gold on their boxes; the statistics card stays inside its frame; and weapon hints show in the original's dark box with gold text and their own line breaks.
+- [ROM2] The tip on the second page of character creation now sits at the bottom centre, between the statistics card and the portrait.
+- [ROM2] The second page of character creation has a fourth button, Restore, which returns the hero's starting attributes and skill, as in the first game.
 - [BASE] Mods can set spell damage above 255: a value of 300 stays 300 before power scaling, and the spellbook shows the whole damage range. Saving a spell already in flight still limits its saved base and spread to 255 each.
-
 - [ROM1] Spells deal the damage the original deals: before resistance a hit lands inside the damage range the spellbook shows, a negative resistance now increases spell damage instead of being ignored, Heal and Drain Life always give at least one point more than the lowest number shown, Fire Sacrifice follows the original's figures, and Stone Curse lasts longer on a target with negative earth protection.
 
 ## 0.115.0

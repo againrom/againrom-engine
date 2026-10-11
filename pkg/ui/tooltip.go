@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"image/color"
 	"strings"
 	"time"
 
@@ -30,10 +31,25 @@ type tooltipController struct {
 
 // Hover help uses the character card's font without resampling its glyphs.
 func (h *tooltipController) picture(t tooltipTarget, p image.Point, bounds image.Rectangle) (*image.RGBA, image.Point, bool) {
-	if h.baseFont != nil && t.font != nil {
+	return h.styled(t, p, bounds, nil)
+}
+
+// styled is picture in style s; a styled target keeps its own font.
+func (h *tooltipController) styled(t tooltipTarget, p image.Point, bounds image.Rectangle, s *hoverStyle) (*image.RGBA, image.Point, bool) {
+	if s == nil && h.baseFont != nil && t.font != nil {
 		t.font = h.baseFont
 	}
-	return tooltipPicture(t, p, bounds, h.ball)
+	return tooltipPicture(t, p, bounds, h.ball, s)
+}
+
+// hoverStyle is how a hover box draws its text: the ink, a shadow one pixel
+// right and down when named, and, when authored, every '#' line as written,
+// blank ones kept and none wrapped. A nil style is the shared hover help:
+// popupTextColor, no shadow, lines trimmed, blank ones dropped and wrapped.
+type hoverStyle struct {
+	ink      color.RGBA
+	shadow   *color.RGBA
+	authored bool
 }
 
 func (h *tooltipController) reset() {
@@ -102,7 +118,7 @@ func tooltipLines(s string) []string {
 	return strings.Split(s, "#")
 }
 
-func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball image.Image) (*image.RGBA, image.Point, bool) {
+func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball image.Image, s *hoverStyle) (*image.RGBA, image.Point, bool) {
 	if t.key() == "" || bounds.Empty() {
 		return nil, image.Point{}, false
 	}
@@ -112,6 +128,10 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 	width := min(tooltipMaxWidth, bounds.Dx()) - hoverExtraW
 	for _, line := range t.lines {
 		for _, part := range strings.Split(line, "#") {
+			if s != nil && s.authored {
+				lines = append(lines, part)
+				continue
+			}
 			part = strings.TrimSpace(part)
 			if part == "" {
 				continue
@@ -119,7 +139,7 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 			lines = append(lines, wrapTooltipLine(part, t.font, width)...)
 		}
 	}
-	pic := composeHoverBox(lines, t.font, ball)
+	pic := composeHoverBox(lines, t.font, ball, s)
 	if pic == nil {
 		return nil, image.Point{}, false
 	}
@@ -143,7 +163,7 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 // hint, not the screen beneath it — see cmd/tooltipshot. ball is the
 // installed corner picture the App was given (FrontEnd.HoverBall).
 func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle, ball image.Image) (*image.RGBA, image.Point, bool) {
-	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, ball)
+	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, ball, nil)
 }
 
 func wrapTooltipLine(s string, font *text.Font, width int) []string {

@@ -133,7 +133,7 @@ func TestGoldEditorDrawsThroughTheSharedBuilders(t *testing.T) {
 func TestTooltipsDrawThroughTheSharedHoverBox(t *testing.T) {
 	for _, kind := range []uint8{tooltipText, tooltipItem, tooltipSpell, tooltipCommand} {
 		target := tooltipTarget{kind, "k", []string{"Sword"}, messageFont()}
-		calls := recordWidgets(t, func() { tooltipPicture(target, image.Pt(100, 100), image.Rect(0, 0, 640, 480), nil) })
+		calls := recordWidgets(t, func() { tooltipPicture(target, image.Pt(100, 100), image.Rect(0, 0, 640, 480), nil, nil) })
 		wantWidgets(t, "tooltip", calls, map[widgetKind]int{widgetHoverBox: 1})
 	}
 }

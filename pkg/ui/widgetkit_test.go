@@ -263,7 +263,7 @@ func TestHoverBoxPixels(t *testing.T) {
 	ball := image.NewRGBA(image.Rect(0, 0, 4, 4))
 	red := color.RGBA{255, 0, 0, 255}
 	draw.Draw(ball, ball.Bounds(), &image.Uniform{C: red}, image.Point{}, draw.Src)
-	pic := composeHoverBox([]string{"AB", "C"}, f, ball)
+	pic := composeHoverBox([]string{"AB", "C"}, f, ball, nil)
 	w, _ := f.Measure("AB")
 	if pic.Bounds().Size() != image.Pt(max(w, f.Advance("AB"))+11, 2*14+5) {
 		t.Fatalf("size %v", pic.Bounds().Size())
