@@ -355,7 +355,8 @@ func (f *FrontEnd) LoadOptions() {
 	f.acknowledgmentsOff = !acknowledgments
 	options, present, _ := f.Options.gameOptions()
 	defaults := defaultGraphicsValues()
-	for o := ui.GameOptionSmoothing; o <= ui.GameOptionAnimation; o++ {
+	for _, o := range [...]ui.GameOption{ui.GameOptionSmoothing, ui.GameOptionShadows, ui.GameOptionLighting,
+		ui.GameOptionAnimation, ui.GameOptionLootDots} {
 		if !present[o] {
 			options[o] = defaults[o]
 		}

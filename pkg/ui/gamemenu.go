@@ -72,6 +72,7 @@ const (
 	gameMenuLighting
 	gameMenuAnimation
 	gameMenuAutoHealing
+	gameMenuLootDots
 	gameMenuMusicVolume
 	gameMenuEffectsVolume
 	gameMenuSpeechVolume

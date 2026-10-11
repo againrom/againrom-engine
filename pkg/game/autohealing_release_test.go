@@ -58,7 +58,7 @@ func TestReleaseAutoHealing1191MenuNativeAndOriginalSave(t *testing.T) {
 	}
 	hash := f.live.world.Hash()
 	for _, edge := range []string{"press", "release"} {
-		if err := a.HeadlessPointer(edge, 404, 192); err != nil {
+		if err := a.HeadlessPointer(edge, 404, 164); err != nil {
 			t.Fatal(err)
 		}
 	}

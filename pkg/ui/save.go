@@ -407,7 +407,7 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 			f.setMenuTips(!f.menuTips())
 			f.rebuildGameMenu(gameMenuGameOptionsPage, selection)
 		}
-	case gameMenuDayNight, gameMenuHealth, gameMenuDamage, gameMenuFormation, gameMenuRetreat, gameMenuPathfinding, gameMenuSmoothing, gameMenuShadows, gameMenuLighting, gameMenuAnimation, gameMenuAutoHealing:
+	case gameMenuDayNight, gameMenuHealth, gameMenuDamage, gameMenuFormation, gameMenuRetreat, gameMenuPathfinding, gameMenuSmoothing, gameMenuShadows, gameMenuLighting, gameMenuAnimation, gameMenuAutoHealing, gameMenuLootDots:
 		if f.gameOptions.draft != nil {
 			f.cycleDraftOption(GameOption(action - gameMenuDayNight))
 			f.rebuildGameMenu(gameMenuGameOptionsPage, selection)

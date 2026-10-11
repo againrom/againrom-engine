@@ -148,7 +148,7 @@ func (f *flow) commitGameOptions() error {
 	}
 	for _, o := range []GameOption{GameOptionDayNight, GameOptionSmoothing, GameOptionShadows, GameOptionLighting,
 		GameOptionAnimation, GameOptionHealth, GameOptionDamage, GameOptionPathfinding,
-		GameOptionFormation, GameOptionRetreat, GameOptionAutoHealing} {
+		GameOptionFormation, GameOptionRetreat, GameOptionAutoHealing, GameOptionLootDots} {
 		write(o)
 	}
 	if f.tooltip != nil && d.delay != d.delayStart {
@@ -227,6 +227,7 @@ func (f *flow) gameOptionsPageRows() []gameMenuRow {
 			gameMenuRow{Label: toggle + ": " + onOff(d.autosave.Enabled), Literal: true, Action: gameMenuTimedAutosave, Enabled: f.gameOptions.Autosave.Write != nil},
 			gameMenuRow{Label: interval, Literal: true, Action: gameMenuAutosaveMinutes, Enabled: f.gameOptions.Autosave.Write != nil})
 	}
+	rows = append(rows, option(GameOptionLootDots))
 	ok, cancel := w.OK, w.Cancel
 	if ok == "" {
 		ok = "OK"

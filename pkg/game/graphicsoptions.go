@@ -9,7 +9,7 @@ import (
 func graphicsValues(v ui.GameOptionValues) ui.GraphicsOptions {
 	return ui.GraphicsOptions{Smoothing: v[ui.GameOptionSmoothing] != 0,
 		HideShadows: v[ui.GameOptionShadows] == 0, DisableLighting: v[ui.GameOptionLighting] == 0,
-		StaticObjects: v[ui.GameOptionAnimation] == 0}
+		StaticObjects: v[ui.GameOptionAnimation] == 0, HideLootDots: v[ui.GameOptionLootDots] == 0}
 }
 
 func defaultGraphicsValues() ui.GameOptionValues {
@@ -18,6 +18,7 @@ func defaultGraphicsValues() ui.GameOptionValues {
 	v[ui.GameOptionShadows] = 1
 	v[ui.GameOptionLighting] = 1
 	v[ui.GameOptionAnimation] = 1
+	v[ui.GameOptionLootDots] = 1
 	return v
 }
 
@@ -26,6 +27,7 @@ func (f *FrontEnd) graphicsValues(v *ui.GameOptionValues) {
 	v[ui.GameOptionShadows] = boolOption(!f.graphics.HideShadows)
 	v[ui.GameOptionLighting] = boolOption(!f.graphics.DisableLighting)
 	v[ui.GameOptionAnimation] = boolOption(!f.graphics.StaticObjects)
+	v[ui.GameOptionLootDots] = boolOption(!f.graphics.HideLootDots)
 }
 
 func (f *FrontEnd) setGraphicsOption(onMap bool, option ui.GameOption, value int) error {
@@ -43,6 +45,7 @@ func (f *FrontEnd) setGraphicsOption(onMap bool, option ui.GameOption, value int
 		for o := ui.GameOptionSmoothing; o <= ui.GameOptionAnimation; o++ {
 			m[gameOptionKeys[o]] = strconv.Itoa(v[o])
 		}
+		m[gameOptionKeys[ui.GameOptionLootDots]] = strconv.Itoa(v[ui.GameOptionLootDots])
 		if err := f.Options.writeAll(m); err != nil {
 			return err
 		}

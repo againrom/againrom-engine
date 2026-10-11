@@ -34,7 +34,7 @@ func optionsApp(t *testing.T, values *GameOptionValues, log *[]optionWrite, fail
 			return nil
 		},
 		Words: GameOptionWords{Title: "Game Options", Tips: "Tips", OK: "OK", Cancel: "Cancel", Speed: "Game Speed",
-			Labels:    [11]string{"Day/Night", "Health", "Damage", "Formation", "Retreat", "Pathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoHealing"},
+			Labels:    [12]string{"Day/Night", "Health", "Damage", "Formation", "Retreat", "Pathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoHealing", "Loot dots"},
 			Formation: [3]string{"Off", "Auto", "On"}, Retreat: [3]string{"Never", "Low", "Medium"}, AutoHealing: [3]string{"No", "Standard", "Often"}},
 	})
 	if err := a.HeadlessKey("escape"); err != nil {
@@ -78,7 +78,7 @@ func TestGameOptionsClicksWriteNothingUntilOK(t *testing.T) {
 	values := GameOptionValues{1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1}
 	var log []optionWrite
 	a := optionsApp(t, &values, &log, nil)
-	if got := len(a.HeadlessRows()); got != 18 || a.GameMenuPanel() == nil {
+	if got := len(a.HeadlessRows()); got != 19 || a.GameMenuPanel() == nil {
 		t.Fatal("complete options panel unavailable", got)
 	}
 	clickRect(t, a, gameOptionChoiceRect(gameMenuFormation, 0))
@@ -124,7 +124,7 @@ func TestGameOptionsOKWritesInOrderAndForcesLighting(t *testing.T) {
 	}
 	want := []optionWrite{{GameOptionDayNight, 1}, {GameOptionSmoothing, 1}, {GameOptionShadows, 1},
 		{GameOptionLighting, 0}, {GameOptionAnimation, 0}, {GameOptionHealth, 1}, {GameOptionDamage, 1},
-		{GameOptionPathfinding, 0}, {GameOptionFormation, 1}, {GameOptionRetreat, 0}, {GameOptionAutoHealing, 1}}
+		{GameOptionPathfinding, 0}, {GameOptionFormation, 1}, {GameOptionRetreat, 0}, {GameOptionAutoHealing, 1}, {GameOptionLootDots, 0}}
 	if !reflect.DeepEqual(log, want) {
 		t.Fatalf("OK wrote %v want %v", log, want)
 	}

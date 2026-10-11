@@ -18,7 +18,7 @@ const (
 	patchGraphicsRow = 52
 )
 
-var gameOptionKeys = [...]string{"ShowTimeFlow", "ShowAllHitPoints", "ShowFlyingHP", "FormationMode", wimpyModeKey, "ShowPathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoCasting"}
+var gameOptionKeys = [...]string{"ShowTimeFlow", "ShowAllHitPoints", "ShowFlyingHP", "FormationMode", wimpyModeKey, "ShowPathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoCasting", "LootDots"}
 
 // Missing or malformed values are unspecified: an old profile must not reset
 // the map's existing defaults merely because it predates a new control.
@@ -85,7 +85,7 @@ func (f *FrontEnd) setGameOption(onMap bool, o ui.GameOption, value int) error {
 	if value < 0 || value >= o.Choices() {
 		return fmt.Errorf("invalid game option %d value %d", o, value)
 	}
-	if o >= ui.GameOptionSmoothing && o <= ui.GameOptionAnimation {
+	if o >= ui.GameOptionSmoothing && o <= ui.GameOptionAnimation || o == ui.GameOptionLootDots {
 		return f.setGraphicsOption(onMap, o, value)
 	}
 	if o == ui.GameOptionAutoHealing && onMap && f.live != nil {
@@ -218,7 +218,7 @@ func (mw *mapWorld) formationSetting() int {
 func (f *FrontEnd) wireGameOptions(a *ui.App) {
 	c := ui.GameOptionControls{Read: f.gameOptionValues, Write: f.setGameOption,
 		Words: ui.GameOptionWords{Title: "Game Options", Tips: "Tips", OK: "OK", Cancel: "Cancel", Speed: "Game Speed",
-			Labels:    [11]string{"Day/Night changes", "Show Health", "Show flying damage", "Formation Mode", "Retreat Mode", "Show pathfinding", "Smoothing", "", "", "", "AutoHealing"},
+			Labels:    [12]string{"Day/Night changes", "Show Health", "Show flying damage", "Formation Mode", "Retreat Mode", "Show pathfinding", "Smoothing", "", "", "", "AutoHealing", "Loot dots on minimap"},
 			Formation: [3]string{"Off", "Auto", "On"}, Retreat: [3]string{"Never", "Low Health", "Medium Health"}, AutoHealing: [3]string{"No", "Standard", "Often"}}}
 	if f.Archives != nil {
 		t := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())

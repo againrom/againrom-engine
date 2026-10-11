@@ -6,6 +6,9 @@ import "againrom/pkg/render/terrain"
 // previous renderer. They never enter the simulation or imported SAV carriers.
 type GraphicsOptions struct {
 	Smoothing, HideShadows, DisableLighting, StaticObjects bool
+	// HideLootDots switches off the minimap's ground-sack marks. The zero
+	// value shows them. It is presentation only and never enters the World.
+	HideLootDots bool
 }
 
 func (v *Viewer) SetGraphicsOptions(options GraphicsOptions) {

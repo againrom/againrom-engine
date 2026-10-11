@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The mission minimap marks every ground sack in sight with an amber dot,
+  under a new Game Options entry, on by default. A sack hidden by fog has no dot,
+  and a unit standing on a sack shows its own colour.
+
 ## 0.113.1
 
 - [ROM1] The witch brought to the village in the first mission stays there

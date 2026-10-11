@@ -517,6 +517,35 @@ func (a *App) HeadlessMinimapMarkAt(col, row int) (local, other bool, err error)
 	return local, other, nil
 }
 
+// HeadlessMinimapLootAt reports whether the framed minimap uploaded by
+// Viewer.Draw holds the loot colour on the pixels a mark on cell (col, row)
+// fills. It reads the composed picture, so the fog test, the option and any
+// unit painted over the cell all count.
+func (a *App) HeadlessMinimapLootAt(col, row int) (bool, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return false, err
+	}
+	g, geomOK := v.minimapGeometry()
+	pic, at, ok := v.minimapPresent()
+	if !geomOK || !ok {
+		return false, fmt.Errorf("headless minimap loot: minimap has no drawable map")
+	}
+	r := minimapMarkRect(image.Pt(col, row).Sub(g.Origin), g.Cols, g.Rows, g.Num, g.Den, image.Rectangle{Max: g.Content.Size()})
+	if r.Empty() {
+		return false, fmt.Errorf("headless minimap loot: cell (%d,%d) has no mark pixel", col, row)
+	}
+	r = r.Add(g.Content.Min.Sub(at))
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			if pic.RGBAAt(x, y) == minimapLootColor {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 // HeadlessStructureReadout is widget 8's readout as this frame draws it: the
 // composed picture, the frame pixel its top-left corner stands on and the
 // three lines, or an error for a frame with no readout.
@@ -682,6 +711,8 @@ func (a *App) HeadlessGameMenuAction(name string) error {
 		want = gameMenuAutoHealing
 	case "pathfinding":
 		want = gameMenuPathfinding
+	case "loot-dots":
+		want = gameMenuLootDots
 	case "test-sound":
 		want = gameMenuTestSound
 	case "confirm-end":

@@ -271,7 +271,7 @@ func assertInstalledDialogGlyphsInside(t *testing.T, calls []text.DrawCall, well
 
 func assertInstalledOptionsContent(t *testing.T, f *FrontEnd, calls []text.DrawCall) {
 	t.Helper()
-	assertInstalledDialogGlyphsInside(t, calls, image.Rect(92, 44, 540, 428), 0)
+	assertInstalledDialogGlyphsInside(t, calls, image.Rect(92, 16, 540, 464), 0)
 	content := image.Rectangle{}
 	title, ok := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode()).At(150)
 	if !ok || title == "" {
@@ -280,13 +280,13 @@ func assertInstalledOptionsContent(t *testing.T, f *FrontEnd, calls []text.DrawC
 	wantTitleX := 76 + (480-f.Font.Value().Advance(strings.ReplaceAll(title, "~", "")))/2
 	titleFound := false
 	for _, call := range calls {
-		if call.Y == 48 && !call.Flat && !titleFound {
+		if call.Y == 20 && !call.Flat && !titleFound {
 			titleFound = true
 			if call.X != wantTitleX {
 				t.Fatalf("options title starts at %d, want centred pen %d", call.X, wantTitleX)
 			}
 		}
-		if call.Y >= 70 && call.Y < 400 && call.Clip.Dx() > 50 && call.Clip.Dx() < 480 {
+		if call.Y >= 42 && call.Y < 372 && call.Clip.Dx() > 50 && call.Clip.Dx() < 480 {
 			content = content.Union(call.Clip)
 		}
 	}

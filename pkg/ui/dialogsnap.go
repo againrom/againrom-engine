@@ -39,6 +39,14 @@ func newDialogGeometry(w, h int) dialogGeometry {
 	return dialogGeometry{image.Rect(x, y, x+sw, y+sh)}
 }
 
+// newTopDialogGeometry snaps the argument size like newDialogGeometry and
+// puts the frame's top edge on the screen's top edge: a dialog as tall as the
+// screen has no room to centre.
+func newTopDialogGeometry(w, h int) dialogGeometry {
+	g := newDialogGeometry(w, h)
+	return dialogGeometry{g.Rectangle.Sub(image.Pt(0, g.Min.Y))}
+}
+
 // W is the snapped width, the value the builders' right-edge offsets use.
 func (g dialogGeometry) W() int { return g.Dx() }
 
@@ -62,6 +70,6 @@ func (g dialogGeometry) frame(art *DialogFrame) frameSpec {
 // The three argument rectangles that reach the base from the options builders
 // (MENU-073, MENU-075).
 var (
-	gameOptionsDialog  = newDialogGeometry(560, 480)
+	gameOptionsDialog  = newTopDialogGeometry(560, 544)
 	soundOptionsDialog = newDialogGeometry(540, 420)
 )

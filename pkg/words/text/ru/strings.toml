@@ -36,6 +36,7 @@
 
 # Game Options captions the engine supplies.
 "options.pathfinding" = "Показывать поиск пути"
+"options.loot_dots" = "Добыча на миникарте"
 "options.shadows" = "Тени"
 "options.lighting" = "Динамическое освещение"
 "options.animation" = "Анимация объектов"

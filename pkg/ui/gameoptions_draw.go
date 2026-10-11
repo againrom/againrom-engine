@@ -8,7 +8,10 @@ import (
 
 // gameOptionRect places controls inside the snapped Game Options frame.
 // The checkboxes, radio groups and slider keep MENU-073's 24-pixel rows; the
-// engine's own controls fit around them.
+// engine's own controls fit around them. The page's frame is one tile row
+// taller than the original's for the loot-dot row; every other control keeps
+// its offset from the frame's top edge and OK and Cancel keep the frame's
+// bottom margin.
 func gameOptionRect(action gameMenuAction) image.Rectangle {
 	g := gameOptionsDialog
 	w := g.Body().Dx()
@@ -45,10 +48,12 @@ func gameOptionRect(action gameMenuAction) image.Rectangle {
 		return g.Rect(24, 340, 234, 364)
 	case gameMenuAutosaveMinutes:
 		return g.Rect(240, 340, 456, 364)
+	case gameMenuLootDots:
+		return g.Rect(24, 364, 234, 388)
 	case gameMenuPageReturn:
-		return g.Rect(w/7, 372, 3*w/7, 396)
+		return g.Rect(w/7, 436, 3*w/7, 460)
 	case gameMenuOptionsCancel:
-		return g.Rect(4*w/7, 372, 6*w/7, 396)
+		return g.Rect(4*w/7, 436, 6*w/7, 460)
 	}
 	return image.Rectangle{}
 }
@@ -85,7 +90,7 @@ func isGameOptionCheck(a gameMenuAction) bool {
 	if a == gameMenuToggleTips || a == gameMenuTimedAutosave {
 		return true
 	}
-	return a >= gameMenuDayNight && a <= gameMenuAutoHealing && !isRadioAction(a)
+	return a >= gameMenuDayNight && a <= gameMenuLootDots && !isRadioAction(a)
 }
 
 func isRadioAction(a gameMenuAction) bool {

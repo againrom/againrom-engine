@@ -52,7 +52,7 @@ func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
 	// after Ctrl+O and Escape have finished their normal map processing.
 	hash := f.live.world.Hash()
 	before := bytes.Clone(a.GameMenuPanel().Pix)
-	for _, p := range [][2]int{{164, 172}, {164, 198}, {164, 224}, {164, 250}} {
+	for _, p := range [][2]int{{164, 144}, {164, 170}, {164, 196}, {164, 222}} {
 		for _, edge := range []string{"press", "release"} {
 			if err := a.HeadlessPointer(edge, p[0], p[1]); err != nil {
 				t.Fatal(err)

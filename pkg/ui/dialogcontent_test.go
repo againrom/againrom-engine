@@ -188,7 +188,7 @@ func TestGameOptionsContentHasEqualMarginsAndClearsItsFrame(t *testing.T) {
 	art := dialogContentArt()
 	a.SetGameMenuArt(art)
 	bare := image.NewRGBA(image.Rect(0, 0, 640, 480))
-	body := image.Rect(76, 28, 556, 444)
+	body := gameOptionsDialog.Body()
 	drawFrameBody(bare, windowFrame(body, art))
 	var calls []widgetCall
 	glyphs := text.Record(func() {

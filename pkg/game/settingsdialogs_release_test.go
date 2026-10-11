@@ -103,8 +103,8 @@ func TestReleaseSettingsDialogsFrameCaptionsAndMissionTracks(t *testing.T) {
 	if err := a.HeadlessGameMenuAction("game-options"); err != nil {
 		t.Fatal(err)
 	}
-	if box := opaqueBox(a.GameMenuPanel()); box != image.Rect(76, 28, 564, 452) {
-		t.Fatalf("Game Options paints %v, want the 488x424 frame at (76,28)", box)
+	if box := opaqueBox(a.GameMenuPanel()); box != image.Rect(76, 0, 564, 480) {
+		t.Fatalf("Game Options paints %v, want the 488x488 frame at (76,0), clipped to the screen", box)
 	}
 	patch, err := vfs.Open([]string{filepath.Join(f.Archives.Root, patchArchive)}, nil)
 	if err != nil {

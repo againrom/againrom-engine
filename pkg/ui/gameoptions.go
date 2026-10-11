@@ -20,6 +20,7 @@ const (
 	GameOptionLighting
 	GameOptionAnimation
 	GameOptionAutoHealing
+	GameOptionLootDots
 	gameOptionCount
 )
 
@@ -60,6 +61,7 @@ func (a *App) SetGameOptionControls(c GameOptionControls) {
 	if a != nil && a.flow != nil {
 		f := a.flow
 		c.Words.Labels[GameOptionPathfinding] = f.menuWord("options.pathfinding")
+		c.Words.Labels[GameOptionLootDots] = f.menuWord("options.loot_dots")
 		authored := [...]string{f.menuWord("options.shadows"),
 			f.menuWord("options.lighting"), f.menuWord("options.animation")}
 		// The three graphics captions come from the install when it supplies

@@ -36,6 +36,7 @@
 
 # Game Options captions the engine supplies.
 "options.pathfinding" = "Show pathfinding"
+"options.loot_dots" = "Loot dots on minimap"
 "options.shadows" = "Shadows"
 "options.lighting" = "Dynamic Lighting"
 "options.animation" = "Object animations"

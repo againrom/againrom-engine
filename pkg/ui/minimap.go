@@ -30,6 +30,10 @@ var (
 
 	minimapUnseenColor = color.RGBA{A: 0xff}
 
+	// minimapLootColor marks a ground sack. It is amber, apart from the local
+	// green, the other red and the pale green view outline.
+	minimapLootColor = color.RGBA{R: 0xff, G: 0xc8, B: 0x20, A: 0xff}
+
 	// minimapViewColor outlines what the camera can see (0140, owner: "a
 	// green square showing how much of the camera we see"). It is a PALER
 	// green than minimapLocalColor above rather than a different hue, because
@@ -40,9 +44,13 @@ var (
 	minimapViewColor = color.RGBA{R: 0xa8, G: 0xff, B: 0xa8, A: 0xff}
 )
 
+// minimapMark is one coloured cell on the minimap. Loot marks a ground sack
+// and takes precedence over Local; composeMinimapLayer draws every loot mark
+// before any unit mark, so a unit standing on a sack shows the unit's colour.
 type minimapMark struct {
 	Cell  image.Point
 	Local bool
+	Loot  bool
 }
 
 func composeMinimap(colours []color.RGBA, cols, rows int, fog func(col, row int) uint8, marks []minimapMark, view image.Rectangle, box image.Point) *image.RGBA {
@@ -101,16 +109,23 @@ func composeMinimapLayer(colours []color.RGBA, cols, rows int, fog func(col, row
 		}
 		return min(b.Max.X, ceilDiv(col*num, den)), min(b.Max.Y, ceilDiv(row*num, den))
 	}
-	for _, m := range marks {
-		r := minimapMarkRect(m.Cell, cols, rows, num, den, b)
-		if r.Empty() {
-			continue
+	for _, loot := range [...]bool{true, false} {
+		for _, m := range marks {
+			if m.Loot != loot {
+				continue
+			}
+			r := minimapMarkRect(m.Cell, cols, rows, num, den, b)
+			if r.Empty() {
+				continue
+			}
+			c := minimapOtherColor
+			if m.Loot {
+				c = minimapLootColor
+			} else if m.Local {
+				c = minimapLocalColor
+			}
+			fillBlock(img, r.Min.X, r.Min.Y, r.Dx(), r.Dy(), c)
 		}
-		c := minimapOtherColor
-		if m.Local {
-			c = minimapLocalColor
-		}
-		fillBlock(img, r.Min.X, r.Min.Y, r.Dx(), r.Dy(), c)
 	}
 
 	drawMinimapView(img, view, outAt, outEnd)
@@ -314,6 +329,30 @@ func (v *Viewer) minimapMarks() []minimapMark {
 		}
 		out = append(out, minimapMark{Cell: e.Cell, Local: e.Owner == v.localOwner})
 	}
+	return append(out, v.minimapLootMarks()...)
+}
+
+// minimapLootMarks is one loot mark per ground sack the mission map draws now:
+// the cell is inside the grid, FogVisible (fogGateSack) and the sack's frame
+// resolves, the three tests sackLayer applies. It is empty when the option is
+// off. Unlike a unit, a sack under fog the map hides is never marked.
+func (v *Viewer) minimapLootMarks() []minimapMark {
+	if v.graphics.HideLootDots {
+		return nil
+	}
+	var out []minimapMark
+	for _, s := range v.sacks {
+		if s.Cell.X < 0 || s.Cell.Y < 0 || s.Cell.X >= v.grid.Width || s.Cell.Y >= v.grid.Height {
+			continue
+		}
+		if !v.fogGateSack(s.Cell.X, s.Cell.Y) {
+			continue
+		}
+		if s.FrameIndex < 0 || s.FrameIndex >= len(v.sackFrames) || v.sackFrames[s.FrameIndex] == nil {
+			continue
+		}
+		out = append(out, minimapMark{Cell: s.Cell, Loot: true})
+	}
 	return out
 }
 
@@ -425,7 +464,7 @@ func (v *Viewer) minimapWindowed(g minimapGeom) ([]color.RGBA, func(col, row int
 	var marks []minimapMark
 	for _, m := range v.minimapMarks() {
 		if m.Cell.In(win) {
-			marks = append(marks, minimapMark{Cell: m.Cell.Sub(win.Min), Local: m.Local})
+			marks = append(marks, minimapMark{Cell: m.Cell.Sub(win.Min), Local: m.Local, Loot: m.Loot})
 		}
 	}
 	return cut, fog, marks, v.minimapViewCells().Intersect(win).Sub(win.Min)
