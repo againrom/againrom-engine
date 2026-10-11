@@ -38,21 +38,7 @@ func thrownHeld(w *sim.World, hero sim.EntityID) int {
 	return n
 }
 
-func thrownLivingAt(w *sim.World, x, y int32) bool {
-	for _, e := range w.Entities() {
-		if e.Alive() && !e.OffMap && e.X == x && e.Y == y {
-			return true
-		}
-	}
-	return false
-}
-
-// A thrown item lies in a sack the player can see. A sack on the thrower's own
-// cell is drawn beneath the thrower, so a throw beyond the 5x5 window, onto the
-// thrower, or onto another unit used to leave nothing visible. The sack now lies
-// on a free neighbour of the thrower; SAVE and a cold LOAD keep it, and the
-// ordinary pickup order returns the items.
-func TestReleaseThrownItemLiesBesideTheThrowerAndSurvivesSaveLoad(t *testing.T) {
+func TestReleaseThrownItemLiesAtFeetAndSurvivesSaveLoad(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("thrown item")
@@ -75,13 +61,9 @@ func TestReleaseThrownItemLiesBesideTheThrowerAndSurvivesSaveLoad(t *testing.T) 
 		if got := thrownHeld(mw.world, hero); got != total {
 			t.Fatalf("%s: items held or on the ground %d, want %d", label, got, total)
 		}
-		for _, s := range mw.world.Sacks() {
-			if s.X == at.X && s.Y == at.Y {
-				t.Fatalf("%s: a sack lies on the thrower's own cell %d,%d", label, s.X, s.Y)
-			}
-			if thrownLivingAt(mw.world, s.X, s.Y) {
-				t.Fatalf("%s: a sack lies beneath a living unit at %d,%d", label, s.X, s.Y)
-			}
+		ground := groundAt(mw.world.Sacks(), at.X, at.Y)
+		if ground == nil {
+			t.Fatalf("%s: no sack at the thrower's feet: %+v", label, mw.world.Sacks())
 		}
 		if len(mw.world.Sacks()) < before {
 			t.Fatalf("%s: a sack vanished", label)
@@ -92,9 +74,9 @@ func TestReleaseThrownItemLiesBesideTheThrowerAndSurvivesSaveLoad(t *testing.T) 
 	if got := len(mw.world.Sacks()); got != startSacks+1 {
 		t.Fatalf("a throw beyond the window made %d new sacks, want 1", got-startSacks)
 	}
-	south := groundAt(mw.world.Sacks(), at.X, at.Y+1)
-	if south == nil || len(south.Items) != 1 {
-		t.Fatalf("the far throw did not land on the south neighbour %d,%d: %+v", at.X, at.Y+1, mw.world.Sacks())
+	feet := groundAt(mw.world.Sacks(), at.X, at.Y)
+	if feet == nil || len(feet.Items) != 1 {
+		t.Fatalf("the far throw did not land at the feet %d,%d: %+v", at.X, at.Y, mw.world.Sacks())
 	}
 	throw("worn item released on the thrower", true, 0, at.X, at.Y)
 	throw("second worn item thrown off the map", true, 1, 1<<20, 1<<20)
@@ -104,10 +86,8 @@ func TestReleaseThrownItemLiesBesideTheThrowerAndSurvivesSaveLoad(t *testing.T) 
 	if held, _ := mw.world.CarriedStacks(hero); len(held) != 0 {
 		t.Fatalf("the hero still carries %+v", held)
 	}
-	for _, s := range mw.world.Sacks() {
-		if s.X == at.X && s.Y == at.Y {
-			t.Fatal("a thrown item lies under the thrower")
-		}
+	if got := len(mw.world.Sacks()); got != startSacks+1 {
+		t.Fatalf("successive fallback drops made %d sacks, want %d", got, startSacks+1)
 	}
 	want := thrownSackItems(mw.world)
 
@@ -123,6 +103,10 @@ func TestReleaseThrownItemLiesBesideTheThrowerAndSurvivesSaveLoad(t *testing.T) 
 	}
 	ch := cold.live.mission.ids[0]
 	for tick := 0; tick < 20; tick++ {
+		if cold.live.world.Hash() != mw.world.Hash() {
+			t.Fatalf("tick %d: cold World hash differs", tick)
+		}
+		mw.tick()
 		cold.live.tick()
 	}
 	if got := thrownHeld(cold.live.world, ch); got != total {
@@ -133,14 +117,13 @@ func TestReleaseThrownItemLiesBesideTheThrowerAndSurvivesSaveLoad(t *testing.T) 
 		t.Fatal("SAVE after LOAD", err)
 	}
 
-	// The sack beside the thrower is reachable through the ordinary pickup order.
-	target := south
+	target := feet
 	cold.live.orderPickup(ch, target.X, target.Y)
 	for tick := 0; tick < 400 && cold.live.pickup.set; tick++ {
 		cold.live.tick()
 	}
 	if cold.live.pickup.set {
-		t.Fatal("the hero never took the sack beside the thrower")
+		t.Fatal("the hero never took the sack at its feet")
 	}
 	if left := groundAt(cold.live.world.Sacks(), target.X, target.Y); left != nil {
 		t.Fatalf("the sack still lies at %d,%d: %+v", target.X, target.Y, left)

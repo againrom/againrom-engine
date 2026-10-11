@@ -123,12 +123,7 @@ func TestEnqueueDropCarriedDoesNothingForANegativeIndex(t *testing.T) {
 	}
 }
 
-// TestEnqueueDropAimsAThrowBeyondTheWindowBesideTheThrower: a release outside
-// the 5x5 window, or on the thrower, would plant the sack on the thrower's own
-// cell, beneath the thrower, where it cannot be seen. The command is aimed at
-// the neighbour south of the thrower instead; a release on an open cell inside
-// the window is aimed where it was released.
-func TestEnqueueDropAimsAThrowBeyondTheWindowBesideTheThrower(t *testing.T) {
+func TestEnqueueDropAimsAThrowBeyondTheWindowAtFeet(t *testing.T) {
 	for _, release := range [][2]int32{{9, 9}, {3, 3}, {1 << 20, 1 << 20}} {
 		w, err := sim.NewStockedWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, sim.Terrain{},
 			[]sim.Entity{{ID: 7, X: 3, Y: 3, HP: 10, MaxHP: 10}}, nil, sim.Relations{}, nil,
@@ -140,14 +135,14 @@ func TestEnqueueDropAimsAThrowBeyondTheWindowBesideTheThrower(t *testing.T) {
 
 		mw.enqueueDrop(false, 0, release[0], release[1])
 
-		want := sim.DropCarried(7, 0, sim.CellPoint{X: 3, Y: 4})
+		want := sim.DropCarried(7, 0, sim.CellPoint{X: 3, Y: 3})
 		if len(mw.pending) != 1 || mw.pending[0] != want {
 			t.Errorf("release %v: pending = %+v, want %+v", release, mw.pending, want)
 		}
 		mw.tick()
 		sacks := w.Sacks()
-		if len(sacks) != 1 || sacks[0].X != 3 || sacks[0].Y != 4 {
-			t.Errorf("release %v: sacks %+v, want one sack at 3,4 beside the thrower at 3,3", release, sacks)
+		if len(sacks) != 1 || sacks[0].X != 3 || sacks[0].Y != 3 {
+			t.Errorf("release %v: sacks %+v, want one sack at 3,3 under the thrower", release, sacks)
 		}
 	}
 }

@@ -372,21 +372,17 @@ func TestDropOntoGroundBlockedCellLandsAtTheDroppersOwnCell(t *testing.T) {
 
 // ---------------------------------------------------------------- DropLanding
 
-// TestDropLandingAimsBesideTheDropperWhereAPlainDropWouldHideTheSack: the window
-// plants a drop beyond it, off the map, on a blocked cell or on the dropper at
-// the dropper's own cell, beneath the dropper. DropLanding names the south
-// neighbour instead, and a command aimed there lands there.
-func TestDropLandingAimsBesideTheDropperWhereAPlainDropWouldHideTheSack(t *testing.T) {
+func TestDropLandingKeepsTheDroppersOwnCell(t *testing.T) {
 	const a = 0x101
 	for _, req := range []CellPoint{{X: 8, Y: 5}, {X: 5, Y: 5}, {X: -1_000_000, Y: 1_000_000}} {
 		w := mustStockedWorld(t, 1, []Entity{{ID: 1, X: 5, Y: 5}}, []Stock{{ID: 1, Items: []uint16{a}}})
 		at, ok := w.DropLanding(1, req.X, req.Y)
-		if !ok || at != (CellPoint{X: 5, Y: 6}) {
-			t.Fatalf("request %v: DropLanding = %v, %v, want 5,6", req, at, ok)
+		if !ok || at != (CellPoint{X: 5, Y: 5}) {
+			t.Fatalf("request %v: DropLanding = %v, %v, want 5,5", req, at, ok)
 		}
 		Step(w, []Command{DropCarried(1, 0, at)})
-		if sacks := w.Sacks(); len(sacks) != 1 || sacks[0].X != 5 || sacks[0].Y != 6 || !equalCodes(sacks[0].Items, []uint16{a}) {
-			t.Fatalf("request %v: sacks %+v, want one sack holding the item at 5,6", req, sacks)
+		if sacks := w.Sacks(); len(sacks) != 1 || sacks[0].X != 5 || sacks[0].Y != 5 || !equalCodes(sacks[0].Items, []uint16{a}) {
+			t.Fatalf("request %v: sacks %+v, want one sack holding the item at 5,5", req, sacks)
 		}
 	}
 }
@@ -402,13 +398,10 @@ func TestDropLandingKeepsAFreeRequestInsideTheWindow(t *testing.T) {
 	}
 }
 
-// TestDropLandingAvoidsAnotherLivingUnitButNotACorpse: a sack beneath another
-// living unit is as hidden as one beneath the dropper; a dead body lies beneath
-// its sack, so it hides nothing.
 func TestDropLandingAvoidsAnotherLivingUnitButNotACorpse(t *testing.T) {
 	w := mustStockedWorld(t, 1, []Entity{{ID: 1, X: 5, Y: 5}, {ID: 2, X: 6, Y: 5}, {ID: 3, X: 4, Y: 5, HP: -3, MaxHP: 10}}, nil)
-	if at, _ := w.DropLanding(1, 6, 5); at != (CellPoint{X: 5, Y: 6}) {
-		t.Errorf("onto a living unit: DropLanding = %v, want 5,6", at)
+	if at, _ := w.DropLanding(1, 6, 5); at != (CellPoint{X: 5, Y: 5}) {
+		t.Errorf("onto a living unit: DropLanding = %v, want 5,5", at)
 	}
 	if at, _ := w.DropLanding(1, 4, 5); at != (CellPoint{X: 4, Y: 5}) {
 		t.Errorf("onto a corpse: DropLanding = %v, want the request", at)
@@ -428,28 +421,11 @@ func TestDropLandingPoursIntoASackUnderTheDropper(t *testing.T) {
 	}
 }
 
-// TestDropLandingPrefersAnEmptyNeighbourToASackedOne: a free neighbour is used
-// before merging into a sack, a sacked neighbour when every free one is closed,
-// and the dropper's own cell, with the item still on the ground, when all are.
-func TestDropLandingPrefersAnEmptyNeighbourToASackedOne(t *testing.T) {
+func TestDropLandingIgnoresNeighbourSacks(t *testing.T) {
 	w := mustStockedWorld(t, 1, []Entity{{ID: 1, X: 5, Y: 5}}, nil)
 	w.pourSack(5, 6, 0, plainItems([]uint16{0x101}))
-	if at, _ := w.DropLanding(1, 5, 5); at != (CellPoint{X: 6, Y: 5}) {
-		t.Errorf("south holds a sack: DropLanding = %v, want 6,5", at)
-	}
-	for _, d := range dropRing {
-		if d != [2]int32{0, 1} {
-			i, _ := w.cellIndex(5+d[0], 5+d[1])
-			w.grid[i] |= blockGround
-		}
-	}
-	if at, _ := w.DropLanding(1, 5, 5); at != (CellPoint{X: 5, Y: 6}) {
-		t.Errorf("only the sacked south is open: DropLanding = %v, want 5,6", at)
-	}
-	i, _ := w.cellIndex(5, 6)
-	w.grid[i] |= blockGround
 	if at, _ := w.DropLanding(1, 5, 5); at != (CellPoint{X: 5, Y: 5}) {
-		t.Errorf("every neighbour closed: DropLanding = %v, want the dropper's own cell", at)
+		t.Errorf("south holds a sack: DropLanding = %v, want the dropper's own cell", at)
 	}
 }
 

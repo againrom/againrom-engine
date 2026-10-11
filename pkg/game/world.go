@@ -2638,9 +2638,8 @@ func (mw *mapWorld) dropFromInventory() {
 // (pkg/ui's own groundCellAt). `pkg/sim`'s own dropToGround (drop.go) applies
 // ITEM-DROP-008's Chebyshev window and the bounds fallback against the
 // entity's OWN position at application time, so this function states no
-// window of its own. It aims the command through sim.DropLanding alone, so
-// that a sack which the window would plant beneath a living unit, where it
-// cannot be seen, is commanded to a visible cell beside the thrower.
+// window of its own. sim.DropLanding shares that rule with the command,
+// including the fallback to the dropper's own cell for a refused aim.
 func (mw *mapWorld) enqueueDrop(worn bool, idx int, x, y int32) {
 	if !mw.invSubjectSet {
 		return

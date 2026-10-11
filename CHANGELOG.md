@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] An inventory item dropped onto a cell that cannot hold its sack lands
+  at the hero's feet, joining the sack already there.
 - [ROM1] A Stone Cursed unit stands completely still until the curse ends.
 - [ROM1] A companion who arrives at a mission holding Quest Documents keeps
   them; they no longer move to the main hero when the mission starts.

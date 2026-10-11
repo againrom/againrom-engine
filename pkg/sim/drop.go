@@ -1,32 +1,10 @@
 package sim
 
-// dropToGround is ITEM-DROP-008's own geometry, shared by both drop sources
-// (1005 round 2): the caller's requested cell (destX, destY) is honoured
-// only within a Chebyshev distance of 2 of the ENTITY'S OWN CURRENT CELL,
-// read here at APPLICATION TIME rather than at the time the drag was
-// released — the same "read fresh, not from the request" rule equip.go
-// already applies to a container index. Outside that window, on a cell
-// sackFault refuses, or on a cell Sack registration refuses
-// (groundBlockedSackCell), the drop lands at the entity's own cell.
-// That own cell is used even when it is itself ground-blocked (DIV-1413).
-//
-// THE TEST IS TWO INDEPENDENT abs(...) > 2 COMPARISONS (ITEM-DROP-008), so
-// the window is a 5x5 square centred on the entity and not a circle: a
-// request 2 cells east and 2 cells north of the entity is inside it, one 3
-// cells east and 0 north is not.
-//
-// IT IS NEVER REFUSED FOR A REQUESTED DESTINATION (ITEM-DROP-008). A
-// destination this world cannot encode falls back to the entity's own cell
-// rather than dropping nothing.
-//
-// THE FALLBACK IS ITSELF RE-CHECKED: placeAt and the move step keep a live
-// entity inside the map, but a Sack is never planted where decodeSacks would
-// refuse it. On that branch the item, already taken off the entity, is
-// discarded: a corrupt entity position, not a requested destination.
-//
-// GOLD IS ALWAYS ZERO. ITEM-DROP-008 puts gold on a different opcode
-// (destination 3 pairs only with a container element or an equipment slot
-// here); the purse drops through KindPlayerDropGold (dropgold.go).
+import "encoding/binary"
+
+// dropToGround shares ITEM-DROP-008's landing rule between both item sources.
+// A refused aim falls back to the dropper's current cell, including when that
+// cell is ground-blocked (DIV-1413). Gold uses its separate command.
 func (w *World) dropToGround(i int, item ItemInstance, destX, destY int32) {
 	x, y, ok := w.dropWindowCell(i, destX, destY)
 	if !ok {
@@ -39,60 +17,59 @@ func (w *World) dropToGround(i int, item ItemInstance, destX, destY int32) {
 // stand there: the request inside the window, else the entity's own cell.
 func (w *World) dropWindowCell(i int, destX, destY int32) (int32, int32, bool) {
 	x, y := w.entities[i].X, w.entities[i].Y
-	dx, dy := destX-x, destY-y
+	dx, dy := int64(destX)-int64(x), int64(destY)-int64(y)
 	if dx < 0 {
 		dx = -dx
 	}
 	if dy < 0 {
 		dy = -dy
 	}
-	if dx > 2 || dy > 2 || w.groundBlockedSackCell(destX, destY) || sackFault(w.bounds, Sack{X: destX, Y: destY}) != nil {
+	if dx > 2 || dy > 2 || w.refusedDropCell(destX, destY) {
 		destX, destY = x, y
 	}
 	return destX, destY, sackFault(w.bounds, Sack{X: destX, Y: destY}) == nil
 }
 
-// dropRing is the order DropLanding searches a dropper's eight neighbours:
-// south first, because a sack on a later row is drawn in front of the dropper,
-// then the sides, then the rows behind it.
-var dropRing = [8][2]int32{{0, 1}, {1, 0}, {-1, 0}, {1, 1}, {-1, 1}, {0, -1}, {1, -1}, {-1, -1}}
-
-// DropLanding is the cell a drop aimed at (x, y) should be commanded to, so
-// that the thrown item lies in a sack the player can see. dropToGround would
-// plant the sack on the cell dropWindowCell names; a new sack on a cell a
-// living unit occupies is drawn beneath that unit and cannot be seen. In that
-// case the landing is the first neighbour of the dropper, in dropRing order,
-// that holds no living unit, is not ground-blocked and holds no sack; failing
-// that, the first that holds a sack; with none, the cell dropWindowCell names,
-// so the item is never lost. A cell that already holds a sack is kept: a drop
-// pours into it, one sack per cell. The answer is false for an entity the world
-// does not hold or one whose own cell is off the map, with the request echoed.
+// DropLanding previews the same landing rule the item command applies.
+// An absent or off-map dropper echoes the request with a false answer.
 func (w *World) DropLanding(id EntityID, x, y int32) (CellPoint, bool) {
 	i := indexOfEntity(w.entities, id)
-	if i < 0 {
+	if i < 0 || !w.dropperOnMap(i) {
 		return CellPoint{X: x, Y: y}, false
 	}
 	cx, cy, ok := w.dropWindowCell(i, x, y)
 	if !ok {
 		return CellPoint{X: x, Y: y}, false
 	}
-	if w.savedGroundIndex(cx, cy) >= 0 || !w.livingUnitAt(cx, cy) {
-		return CellPoint{X: cx, Y: cy}, true
+	return CellPoint{X: cx, Y: cy}, true
+}
+
+func (w *World) refusedDropCell(x, y int32) bool {
+	if sackFault(w.bounds, Sack{X: x, Y: y}) != nil || w.groundBlockedSackCell(x, y) {
+		return true
 	}
-	ox, oy := w.entities[i].X, w.entities[i].Y
-	for _, empty := range [2]bool{true, false} {
-		for _, d := range dropRing {
-			nx, ny := ox+d[0], oy+d[1]
-			if sackFault(w.bounds, Sack{X: nx, Y: ny}) != nil || w.groundBlockedSackCell(nx, ny) || w.livingUnitAt(nx, ny) {
-				continue
-			}
-			if empty && w.savedGroundIndex(nx, ny) >= 0 {
-				continue
-			}
-			return CellPoint{X: nx, Y: ny}, true
+	if w.savedGroundIndex(x, y) >= 0 {
+		return false
+	}
+	if w.livingUnitAt(x, y) {
+		return true
+	}
+	key, ok := savedPlaneKey(x, y)
+	if !ok {
+		return false
+	}
+	if _, occupied := w.structureSlots[key]; occupied {
+		return true
+	}
+	if cell := w.motionCell(key); cell != nil && binary.LittleEndian.Uint32(cell.Payload[16:]) != 0 {
+		return true
+	}
+	for _, cell := range w.savedCellRecords {
+		if cell.Cell == key && cell.Sack != 0 {
+			return true
 		}
 	}
-	return CellPoint{X: cx, Y: cy}, true
+	return false
 }
 
 // dropperOnMap reports whether entity i's own cell can hold a Sack. A drop from
