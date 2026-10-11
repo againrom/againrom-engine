@@ -77,6 +77,7 @@ var roomEvents = []string{"rack", "merchant-yes", "merchant-no", "train", "class
 var roomValues = map[string]func(t *townScreen) int{
 	"shop-chosen":  func(t *townScreen) int { return t.shopChosen },
 	"member-class": (*townScreen).schoolMemberClass,
+	"school-hover": func(t *townScreen) int { return t.schoolHover },
 }
 
 // roomScene is a page's composed centre as ui paints it.

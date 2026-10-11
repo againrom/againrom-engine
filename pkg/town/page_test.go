@@ -144,6 +144,46 @@ func TestPageCycleStampsThenCountsOnItsWaitAndOutlivesEntry(t *testing.T) {
 	}
 }
 
+func TestPageIdleCycleAdmissionRememberedHoverAndPostDrawCount(t *testing.T) {
+	scene := obj{
+		"actors": list{obj{"name": "c", "program": "cycle", "frames": 5,
+			"delay-ms": 500, "value": "chosen", "wait": obj{"base-ms": 300, "compare": "greater"},
+			"order": list{list{0, 1, 2, 3, 4}, list{0, 1, 3, 2, 4}}}},
+		"steps": list{obj{"run": list{"advance c"}}},
+	}
+	h := &fakeHost{values: map[string]int{"chosen": -1}}
+	p := newTestPage(t, scene, map[string][]image.Image{}, h)
+	c := p.Actor("c").(*Cycle)
+	at := h.now
+	for _, tc := range []struct {
+		ms, hover, next, fighter, mage int
+		shown                          bool
+	}{
+		{0, -1, 0, 0, 0, false}, {499, -1, 0, 0, 0, false},
+		{500, -1, 0, 0, 0, true}, {799, -1, 0, 0, 0, true},
+		{800, -1, 1, 0, 0, true}, {1101, 2, 1, 0, 0, false},
+		{1600, -1, 1, 0, 0, false}, {1601, -1, 3, 3, 2, true},
+		{1900, -1, 3, 3, 2, true}, {1901, -1, 4, 3, 2, true},
+		{10000, -1, 0, 4, 4, true},
+	} {
+		h.now = at.Add(time.Duration(tc.ms) * time.Millisecond)
+		h.values["chosen"] = tc.hover
+		p.Advance()
+		if c.Stamped != tc.shown || c.Index != tc.next || tc.shown && (c.Slot(0) != tc.fighter || c.Slot(1) != tc.mage) {
+			t.Fatalf("at %dms: shown=%v next=%d slots=%d/%d, want %v/%d/%d/%d", tc.ms,
+				c.Stamped, c.Index, c.Slot(0), c.Slot(1), tc.shown, tc.next, tc.fighter, tc.mage)
+		}
+	}
+}
+
+func TestPageIdleCycleRequiresItsHoverValue(t *testing.T) {
+	scene := obj{"actors": list{obj{"name": "c", "program": "cycle", "frames": 5,
+		"delay-ms": 500, "wait": obj{"base-ms": 300, "compare": "greater"}}}}
+	if _, err := decodeScene(t, scene); err == nil || !strings.Contains(err.Error(), "hover value") {
+		t.Fatalf("idle cycle without a hover value: %v", err)
+	}
+}
+
 func TestPageSelectorSelectsReleasesStopsAndRaises(t *testing.T) {
 	scene := bounceScene()
 	scene["art"] = append(scene["art"].(list), series("m0", 6), series("m1", 6))

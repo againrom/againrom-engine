@@ -381,23 +381,34 @@ func (b *Bounce) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 	}
 }
 
-// Cycle counts modulo Frames, one count each time its wait has elapsed since
-// its last count. Its first step, and a step that reads a time before its
-// stamp, only stamps it. Its state outlives every entry. Order maps the
-// count to a slot per variant.
+// Cycle counts modulo Frames. A positive DelayMS adds idle admission after
+// that delay, remembers the hovered Value and publishes before counting.
+// Its state outlives entry. Order maps the published count to a variant slot.
 type Cycle struct {
 	still
-	spec    *ActorSpec
-	Index   int
-	Last    time.Time
-	Stamped bool
+	spec                *ActorSpec
+	Index               int
+	Last                time.Time
+	Stamped             bool
+	idleLast            time.Time
+	ready               bool
+	remembered, painted int
 }
 
-func (c *Cycle) resume(s *Scene, now time.Time)              { c.Last = now }
+func (c *Cycle) resume(s *Scene, now time.Time) {
+	c.Last = now
+	if c.spec.DelayMS > 0 {
+		c.idleLast, c.Stamped = now, false
+	}
+}
 func (c *Cycle) draw(s *Scene, dst *image.RGBA, l LayerSpec) {}
 
 func (c *Cycle) phase(s *Scene, phase, name string, now time.Time) {
 	if phase != "advance" {
+		return
+	}
+	if c.spec.DelayMS > 0 {
+		c.idle(s, now)
 		return
 	}
 	if !c.Stamped || now.Before(c.Last) {
@@ -410,13 +421,42 @@ func (c *Cycle) phase(s *Scene, phase, name string, now time.Time) {
 	}
 }
 
+func (c *Cycle) idle(s *Scene, now time.Time) {
+	if !c.ready || now.Before(c.idleLast) || now.Before(c.Last) {
+		c.ready, c.Stamped = true, false
+		c.idleLast, c.Last, c.remembered = now, now, -1
+		return
+	}
+	if now.Sub(c.idleLast) < time.Duration(c.spec.DelayMS)*time.Millisecond {
+		c.Last, c.Stamped = now, false
+		return
+	}
+	if c.remembered >= 0 {
+		c.Index = (c.remembered + 1) % c.spec.Frames
+	}
+	if hover := s.host.Value(c.spec.Value); hover >= 0 && hover < c.spec.Frames {
+		c.remembered, c.idleLast, c.Last, c.Stamped = hover, now, now, false
+		return
+	}
+	c.Index %= c.spec.Frames
+	c.painted, c.Stamped, c.remembered = c.Index, true, -1
+	if elapsed(now.Sub(c.Last), time.Duration(c.spec.Wait.BaseMS)*time.Millisecond, c.spec.Wait.Compare) {
+		c.Index = (c.Index + 1) % c.spec.Frames
+		c.Last = now
+	}
+}
+
 // Slot answers the count's slot for a variant; a variant outside Order
 // answers the count itself.
 func (c *Cycle) Slot(variant int) int {
-	if variant < 0 || variant >= len(c.spec.Order) || c.Index >= len(c.spec.Order[variant]) {
-		return c.Index
+	index := c.Index
+	if c.spec.DelayMS > 0 && c.Stamped {
+		index = c.painted
 	}
-	return c.spec.Order[variant][c.Index]
+	if variant < 0 || variant >= len(c.spec.Order) || index >= len(c.spec.Order[variant]) {
+		return index
+	}
+	return c.spec.Order[variant][index]
 }
 
 // Target walks one frame per step toward the endpoint of its variant. Entry

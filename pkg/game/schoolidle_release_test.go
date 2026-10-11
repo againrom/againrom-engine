@@ -74,11 +74,12 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 			t.Fatal("production school entry failed")
 		}
 		s.CloseTip()
-		now = now.Add(time.Hour)
+		s.AdvanceTownSurfaceAnimation()
+		now = now.Add(500 * time.Millisecond)
 		s.AdvanceTownSurfaceAnimation()
 		for c := 0; c < 5; c++ {
 			if c > 0 {
-				now = now.Add(500 * time.Millisecond)
+				now = now.Add(301 * time.Millisecond)
 				s.AdvanceTownSurfaceAnimation()
 			}
 			v := s.TownSurface()

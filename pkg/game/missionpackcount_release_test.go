@@ -6,11 +6,18 @@ import (
 	"testing"
 
 	"againrom/pkg/mapload"
+	"againrom/pkg/render/text"
 )
 
 // missionPackLayer is the mission pack bar the production App draws while the
 // first party member carries a stack of potions of the given size.
 func missionPackLayer(t *testing.T, count int) *image.RGBA {
+	t.Helper()
+	pic, _ := missionPackReadout(t, count)
+	return pic
+}
+
+func missionPackReadout(t *testing.T, count int) (*image.RGBA, []text.DrawCall) {
 	t.Helper()
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
@@ -45,13 +52,47 @@ func missionPackLayer(t *testing.T, count int) *image.RGBA {
 	if !found {
 		t.Fatalf("pack counts = %v, want a stack of %d", live.invSubject.PackCount, count)
 	}
-	pack, err := app.HeadlessInventoryPack()
+	var pack *image.RGBA
+	var err error
+	calls := text.Record(func() { pack, err = app.HeadlessInventoryPack() })
 	if err != nil {
 		t.Fatal(err)
 	}
 	out := image.NewRGBA(pack.Bounds())
 	copy(out.Pix, pack.Pix)
-	return out
+	return out, calls
+}
+
+func TestReleaseMissionPackReadoutUsesIconLeftAndMappedBottom(t *testing.T) {
+	_, calls := missionPackReadout(t, 12)
+	starts := 0
+	maxRow := 0
+	for i, call := range calls {
+		for p, pixel := range call.Glyph.Pixels {
+			if pixel.Painted {
+				maxRow = max(maxRow, p/call.Glyph.Width)
+				if !image.Pt(call.X+p%call.Glyph.Width, call.Y+p/call.Glyph.Width).In(call.Clip) {
+					t.Fatalf("installed count glyph at (%d,%d) loses painted cell %d to clip %v", call.X, call.Y, p, call.Clip)
+				}
+			}
+		}
+		if call.Flat {
+			continue
+		}
+		if call.Y != 90-14 || call.Color != (color.RGBA{185, 159, 73, 255}) {
+			t.Fatalf("pack readout glyph at (%d,%d) in %v, want mapped-bottom-14 and gold ramp", call.X, call.Y, call.Color)
+		}
+		if i > 0 && calls[i-1].Flat {
+			starts++
+			if call.X%80 != 32+((1024-240)%80)/2+3 {
+				t.Fatalf("pack readout starts at x=%d, want icon-left+3", call.X)
+			}
+		}
+	}
+	if starts == 0 {
+		t.Fatal("mission pack emitted no count readout")
+	}
+	t.Logf("installed readout: %d runs, maximum painted glyph row %d, origin y 76, shadow y 77, mapped bottom 90", starts, maxRow)
 }
 
 // packCountClassification sorts the pixels in which two pack layers differ.

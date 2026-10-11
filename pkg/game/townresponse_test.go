@@ -37,11 +37,20 @@ func TestSchoolLatchesShareDwordsAcrossClasses(t *testing.T) {
 	}
 }
 
-// TestSchoolTeacherSpeaksAfterAPaidStepOncePerLatch is TOWN-502: selecting a
-// skill requests no speech; a paid training step requests the speech of the
-// trained skill's tier (up to 20, up to 50, above) once per latch, then posts
-// the teaching sound; an unpaid step requests nothing; entering the room sets
-// every latch again.
+func TestSchoolSpeechByteTierEdges(t *testing.T) {
+	for _, tc := range []struct {
+		level int32
+		tier  int
+	}{{0, 0}, {20, 0}, {21, 1}, {50, 1}, {51, 2}, {255, 2}} {
+		if got := schoolSpeechTier(tc.level); got != tc.tier {
+			t.Errorf("skill byte %d: tier %d, want %d", tc.level, got, tc.tier)
+		}
+	}
+}
+
+// Engine training reads the returned skill before choosing TOWN-544's tier
+// and keeps teach.wav on a used latch. Paid-step admission and entry reset
+// remain the engine's policy.
 func TestSchoolTeacherSpeaksAfterAPaidStepOncePerLatch(t *testing.T) {
 	f := shellFrontEnd()
 	f.Town.gold = 1 << 20

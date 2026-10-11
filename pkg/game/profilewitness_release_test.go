@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"image"
+	"image/draw"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,23 +15,108 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/random"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
-// The profile witness records what a player meets on each game profile from
-// the main menu: a new game up to its first mission, a SAVE there, a LOAD of
-// that file in the same session and a LOAD of it from a fresh start. Each step
-// records the screen, the composed frame's hash, the World hash when a mission
-// runs and the hash of the SAV the session would write. The recorded lines
-// live in testdata/profilewitness, one file per install text, and a run must
-// reproduce them exactly. AGAINROM_PROFILE_WITNESS_WRITE=1 rewrites the file.
+// The profile witness records new game, mission SAVE and same-session/cold
+// LOAD. ROM1 SAVE hashes exclude only the temporary-directory field interior.
+// AGAINROM_PROFILE_WITNESS_WRITE=1 rewrites the per-install recorded trace.
 
 type profileWitness struct {
-	t     *testing.T
-	f     *FrontEnd
-	a     *ui.App
-	lines []string
+	t                 *testing.T
+	f                 *FrontEnd
+	a                 *ui.App
+	lines             []string
+	maskSaveDirectory bool
+}
+
+func profileWitnessFrameHash(pix *image.RGBA, screen ui.Screen) [32]byte {
+	if screen != ui.ScreenSave {
+		return sha256.Sum256(pix.Pix)
+	}
+	normalized := *pix
+	normalized.Pix = append([]byte(nil), pix.Pix...)
+	draw.Draw(&normalized, image.Rect(107, 53, 435, 78), image.Transparent, image.Point{}, draw.Src)
+	return sha256.Sum256(normalized.Pix)
+}
+
+func TestProfileWitnessSaveDirectoryMaskPreservesOtherPixels(t *testing.T) {
+	render := func(directory string) *image.RGBA {
+		t.Helper()
+		a := ui.NewApp("profile witness", nil, nil, nil)
+		a.Layout(640, 480)
+		a.SetWords(ui.AuthoredWords(), loadNoticeFont(), nil)
+		a.SetSaveDialogSeams(ui.SaveDialogSeams{
+			Directory: directory,
+			List: func(path string) (ui.SaveDirectory, error) {
+				return ui.SaveDirectory{Path: path}, nil
+			},
+			Prepare: func(ui.SaveRequest) (ui.PreparedSave, error) {
+				return ui.PreparedSave{}, fmt.Errorf("frame fixture cannot write")
+			},
+		})
+		v, err := ui.NewViewer("profile witness", terrain.Grid{Width: 1, Height: 1, Tiles: []uint16{0}}, &terrain.Tileset{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		advance := func(...ui.NoticeAction) (ui.NoticeDest, string, ui.MapOpener) {
+			return ui.NoticeStay, "", nil
+		}
+		if err := a.OpenMission(func() (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.MapCadence, ui.MapAffect, ui.MapAdvance, ui.MapAttack, ui.MapGrab, ui.MapStance, ui.MapMarch, error) {
+			return v, nil, nil, nil, nil, advance, nil, nil, nil, nil, nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.HeadlessKey("escape"); err != nil {
+			t.Fatal(err)
+		}
+		if err := a.HeadlessGameMenuAction("save"); err != nil {
+			t.Fatal(err)
+		}
+		state, open := a.HeadlessSaveState()
+		if !open || state.Request.Directory != directory || state.Focus != "name" {
+			t.Fatalf("SAVE state = %+v, open=%t", state, open)
+		}
+		pix, _, err := a.HeadlessFrame()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return pix
+	}
+	left := render(`C:\FirstTemporaryRoot\profile-saves`)
+	right := render(`D:\AnotherTemporaryRoot\profile-saves`)
+	leftBytes, rightBytes := append([]byte(nil), left.Pix...), append([]byte(nil), right.Pix...)
+	if sha256.Sum256(left.Pix) == sha256.Sum256(right.Pix) {
+		t.Fatal("different SAVE directory spellings produced identical raw frames")
+	}
+	masked := profileWitnessFrameHash(left, ui.ScreenSave)
+	if masked != profileWitnessFrameHash(right, ui.ScreenSave) {
+		t.Fatal("SAVE directory spelling changed the normalized frame")
+	}
+	if !bytes.Equal(left.Pix, leftBytes) || !bytes.Equal(right.Pix, rightBytes) {
+		t.Fatal("normalizing a frame changed its original pixels")
+	}
+	for _, at := range []image.Point{
+		image.Pt(107, 53), image.Pt(434, 77),
+		image.Pt(106, 60), image.Pt(435, 60), image.Pt(110, 52), image.Pt(110, 78),
+		image.Pt(38, 23), image.Pt(110, 272), image.Pt(270, 440),
+	} {
+		changed := *left
+		changed.Pix = append([]byte(nil), left.Pix...)
+		changed.Pix[changed.PixOffset(at.X, at.Y)] ^= 0xff
+		inside := at.X >= 107 && at.X < 435 && at.Y >= 53 && at.Y < 78
+		if equal := masked == profileWitnessFrameHash(&changed, ui.ScreenSave); equal != inside {
+			t.Errorf("pixel %v normalized equality=%t, want %t", at, equal, inside)
+		}
+		if profileWitnessFrameHash(&changed, ui.ScreenMenu) != sha256.Sum256(changed.Pix) {
+			t.Errorf("non-SAVE frame at %v was normalized", at)
+		}
+	}
+	if profileWitnessFrameHash(left, ui.ScreenMenu) == profileWitnessFrameHash(right, ui.ScreenMenu) {
+		t.Fatal("non-SAVE directory pixels stopped affecting the hash")
+	}
 }
 
 func profileWitnessFront(t *testing.T) *FrontEnd {
@@ -50,12 +136,12 @@ func profileWitnessFront(t *testing.T) *FrontEnd {
 	return f
 }
 
-func newProfileWitness(t *testing.T, f *FrontEnd, saves string) *profileWitness {
+func newProfileWitness(t *testing.T, f *FrontEnd, saves string, maskSaveDirectory bool) *profileWitness {
 	a := f.App("profile-witness")
 	a.Layout(640, 480)
 	fixed := func() time.Time { return time.Unix(1700000000, 0).UTC() }
 	f.ConfigureSaveSeams(a, SaveStore{Dir: saves}, OriginalStore{Dir: filepath.Join(saves, "original")}, fixed)
-	return &profileWitness{t: t, f: f, a: a}
+	return &profileWitness{t: t, f: f, a: a, maskSaveDirectory: maskSaveDirectory}
 }
 
 func (w *profileWitness) record(name string) {
@@ -66,7 +152,13 @@ func (w *profileWitness) record(name string) {
 	frame := "error:" + fmt.Sprint(err)
 	if err == nil {
 		sum := sha256.Sum256(pix.Pix)
+		if w.maskSaveDirectory {
+			sum = profileWitnessFrameHash(pix, w.a.Screen())
+		}
 		frame = fmt.Sprintf("%dx%d:%s", pix.Bounds().Dx(), pix.Bounds().Dy(), hex.EncodeToString(sum[:8]))
+		if w.maskSaveDirectory && w.a.Screen() == ui.ScreenSave {
+			frame += ":directory-masked"
+		}
 	}
 	world := "none"
 	if w.f.live != nil && w.f.live.world != nil {
@@ -143,17 +235,17 @@ func TestReleaseProfileWitnessIsUnchanged(t *testing.T) {
 	if p := f.Base().Profile; p.Limits.NoCharacterGeneration || p.Edition().Campaign == base.CampaignDestinations {
 		t.Skip("the base's new game does not open a mission through generation; TestReleaseSecondGameProfileWitnessIsUnchanged covers the town start")
 	}
-	runProfileWitness(t, f)
+	runProfileWitness(t, f, true)
 }
 
 func TestReleaseSecondGameProfileWitnessIsUnchanged(t *testing.T) {
 	secondGameRoot(t)
-	runProfileWitness(t, profileWitnessFront(t))
+	runProfileWitness(t, profileWitnessFront(t), false)
 }
 
-func runProfileWitness(t *testing.T, f *FrontEnd) {
+func runProfileWitness(t *testing.T, f *FrontEnd, maskSaveDirectory bool) {
 	saves := t.TempDir()
-	w := newProfileWitness(t, f, saves)
+	w := newProfileWitness(t, f, saves, maskSaveDirectory)
 	w.record("menu")
 	if f.Base().Profile.Edition().Campaign == base.CampaignDestinations {
 		// A town-start campaign with no generator wired opens its town.
@@ -186,7 +278,7 @@ func runProfileWitness(t *testing.T, f *FrontEnd) {
 
 	// A fresh start loads the newest save from the main menu.
 	fresh := profileWitnessFront(t)
-	cold := newProfileWitness(t, fresh, saves)
+	cold := newProfileWitness(t, fresh, saves, maskSaveDirectory)
 	cold.record("fresh-menu")
 	if cold.do("fresh-load", HeadlessStep{Command: "load", Target: "Witness mission"}) && cold.a.Screen() == ui.ScreenMap {
 		cold.do("fresh-load-run", HeadlessStep{Command: "wait_ticks", Ticks: 48})

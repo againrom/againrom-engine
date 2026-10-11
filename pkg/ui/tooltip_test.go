@@ -67,12 +67,17 @@ func TestTooltipSchoolUsesBothClassesAndSemanticMaskOrder(t *testing.T) {
 
 func TestTooltipShopStockSelectorsUseTheirInstalledTextSlots(t *testing.T) {
 	w := AuthoredWords()
-	v := ShopScreenView{Font: messageFont(), Live: [4]bool{true, true, true, true}, Chosen: 0}
+	v := ShopScreenView{Font: messageFont(), Live: [4]bool{true, true, true, true}, ShelfName: "unrelated selected-shelf name"}
 	for i, r := range shopShelfPickRects {
 		w.Hover[62+i] = fmt.Sprintf("stock %d", i)
-		tip := shopTooltip(v, w, r.Min.Add(image.Pt(4, 4)))
-		if tip.key() == "" || tip.lines[0] != w.Hover[62+i] {
-			t.Fatal(i, tip)
+		for chosen := -1; chosen < 4; chosen++ {
+			v.Chosen = chosen
+			for _, p := range []image.Point{r.Min, r.Max.Sub(image.Pt(1, 1))} {
+				tip := shopTooltip(v, w, p)
+				if tip.key() == "" || len(tip.lines) != 1 || tip.lines[0] != w.Hover[62+i] {
+					t.Fatalf("shelf %d chosen %d point %v: %+v, want main slot %d", i, chosen, p, tip, 62+i)
+				}
+			}
 		}
 	}
 }

@@ -222,8 +222,6 @@ var (
 	hudArrowSpent = color.RGBA{R: 0x4a, G: 0x44, B: 0x38, A: 0xff}
 )
 
-const invCountPad = 2
-
 // wornSlotRects is the twelve slot cells in SLOT ORDER, in the WORN BOX's own
 // pixels, wrapped at invSlotColumns and CENTRED across the box.
 func wornSlotRects() [12]image.Rectangle {
@@ -329,9 +327,9 @@ func drawInventoryCell(dst *image.RGBA, box image.Rectangle, pic *image.RGBA, bo
 	drawInventoryPicture(dst, box.Inset(1), pic)
 }
 
-// drawInventoryPackCount keeps the small gold quantity inside the lower-left
-// corner. The subimage clips even a long quantity to its own inventory cell.
-func drawInventoryPackCount(dst *image.RGBA, box image.Rectangle, count uint32, purse bool, f *text.Font) {
+// drawInventoryPackCount uses icon-left+3 and mapped-bottom-14.
+// It clips to the cell width and readout height.
+func drawInventoryPackCount(dst *image.RGBA, box image.Rectangle, bottom int, count uint32, purse bool, f *text.Font) {
 	if f == nil || count < 2 {
 		return
 	}
@@ -343,9 +341,10 @@ func drawInventoryPackCount(dst *image.RGBA, box image.Rectangle, count uint32, 
 	if w <= 0 || h <= 0 {
 		return
 	}
-	x := box.Min.X + invCountPad
-	y := box.Max.Y - invCountPad - h
-	clipped := dst.SubImage(box.Intersect(dst.Bounds())).(*image.RGBA)
+	x := box.Min.X + 3
+	y := bottom - 14
+	clip := image.Rect(box.Min.X, 0, box.Max.X, bottom).Intersect(dst.Bounds())
+	clipped := dst.SubImage(clip).(*image.RGBA)
 	f.DrawFlat(clipped, s, x+shopPriceShadow, y+shopPriceShadow, messageShadowColor)
 	f.Draw(clipped, s, x, y, shopPriceInk)
 }
@@ -468,7 +467,7 @@ func renderPackBarArt(s InventorySubject, scroll, cols int, bar image.Rectangle,
 		}
 		drawInventoryPicture(img, box, pic)
 		if pic != nil && idx >= 0 && idx < len(s.PackCount) {
-			drawInventoryPackCount(img, box, s.PackCount[idx], idx < len(s.PackPurse) && s.PackPurse[idx], f)
+			drawInventoryPackCount(img, box, bar.Dy(), s.PackCount[idx], idx < len(s.PackPurse) && s.PackPurse[idx], f)
 		}
 		// Mission order is base, quantity, trail. The trail receives the
 		// decoded icon origin and the full-width layer carries it to the

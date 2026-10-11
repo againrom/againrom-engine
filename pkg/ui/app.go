@@ -4617,6 +4617,15 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 		}
 	}
 	if atTownSurface(t) {
+		if hover, ok := t.(interface{ TownSurfaceHover(int) }); ok {
+			cell := -1
+			if surface, shown := townSurfaceScreen(t); shown && hasCursor {
+				if control, hit := TownSurfaceControlAt(surface, cursor); hit && control.Kind == TownSurfaceControlCell {
+					cell = control.Index
+				}
+			}
+			hover.TownSurfaceHover(cell)
+		}
 		if animator, ok := t.(TownSurfaceAnimator); ok {
 			animator.AdvanceTownSurfaceAnimation()
 		}

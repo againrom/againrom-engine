@@ -76,6 +76,7 @@ func nonZeroTownScreen() *townScreen {
 		tavernSelection:     tavernCandidateKey{kind: tavernCandidateMercenary, id: 6},
 		tavernSlotRequests:  map[int]int{tavernSlotHireRefused: 2},
 		schoolCell:          7,
+		schoolHover:         2,
 		schoolSpent:         [schoolLatchCount]bool{3: true},
 		schoolSounds:        playingSchoolSounds(),
 		squareLoop:          &tavernInteriorVoice{},
@@ -195,7 +196,7 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 			want = ""
 		case "shopChosen":
 			want = shopNoShelf
-		case "schoolCell":
+		case "schoolCell", "schoolHover":
 			want = schoolNoSelection
 		}
 		if !reflect.DeepEqual(got, want) {

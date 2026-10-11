@@ -632,6 +632,9 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		if a.Frames <= 0 || a.Wait == nil || a.Wait.BaseMS <= 0 {
 			return fail("needs frames and a wait")
 		}
+		if a.DelayMS < 0 || a.DelayMS > 0 && a.Value == "" {
+			return fail("idle delay needs a nonnegative delay and a hover value")
+		}
 		for _, order := range a.Order {
 			if len(order) != a.Frames {
 				return fail("order %v does not map its %d counts", order, a.Frames)

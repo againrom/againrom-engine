@@ -144,6 +144,7 @@ type townScreen struct {
 	// is recorded and no sample plays.
 	tavernSlotRequests map[int]int
 	schoolCell         int
+	schoolHover        int
 	// schoolSpent marks the teacher speech latches already used since the room
 	// was entered; a zero value is a set latch (TOWN-502).
 	schoolSpent [schoolLatchCount]bool
@@ -295,6 +296,7 @@ func (t *townScreen) resetForNewGame() {
 	t.shopMember, t.tavernSelection, t.schoolCell = 0, tavernCandidateKey{}, schoolNoSelection
 	t.tavernSlotRequests = nil
 	t.schoolSpent = [schoolLatchCount]bool{}
+	t.schoolHover = -1
 	t.schoolSounds.Stop()
 	t.schoolPage().Reset()
 	t.tavernPage().Reset()

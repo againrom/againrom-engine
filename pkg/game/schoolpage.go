@@ -52,11 +52,19 @@ func (t *townScreen) inSchoolTraining() bool {
 // enterSchoolPage enters the school page; without a session it only returns
 // the page to one never entered.
 func (t *townScreen) enterSchoolPage() {
+	t.schoolHover = -1
 	if t.sess == nil {
 		t.schoolPage().Reset()
 		return
 	}
 	t.schoolPage().Enter()
+}
+
+func (t *townScreen) TownSurfaceHover(cell int) {
+	t.schoolHover = -1
+	if t.inSchoolTraining() && cell >= 0 && cell < 10 && cell/5 == t.schoolMemberClass() && !t.schoolTrainingBusy() {
+		t.schoolHover = cell % 5
+	}
 }
 
 func (t *townScreen) leaveSchoolTraining() {
