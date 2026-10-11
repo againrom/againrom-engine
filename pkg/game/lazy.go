@@ -1,32 +1,59 @@
 package game
 
+import (
+	"sync"
+	"sync/atomic"
+)
+
 // lazy is one resolved value, the reason there is none, and whether resolution
-// was attempted.
-//
-// It replaces two idioms FrontEnd wrote out by hand nineteen times. One is an
-// exported `X`/`XErr` pair resolved once at construction: a cosmetic asset that
-// may be absent, where the reason is kept because an install whose art will not
-// read is a fact about that install. The other is an unexported
-// `xCache`/`xLoaded` pair resolved on first use, where the FLAG and not the
-// value says the load was attempted, so an install missing a picture is read
-// once and not once a frame.
-//
-// Both need the same three facts, so both are this type. Neither is safe for
-// concurrent use and neither was before: every caller is on the frame
-// goroutine.
+// was attempted: resolved at construction, filled on first use through begin
+// and store, or read once through a lazyLoad every copy shares. Only lazyLoad
+// is safe for concurrent use.
 type lazy[T any] struct {
 	value T
 	err   error
 	tried bool
+	load  *lazyLoad[T]
+}
+
+// lazyLoad runs its read on the first Value or Err.
+type lazyLoad[T any] struct {
+	once  sync.Once
+	read  func() (T, error)
+	done  atomic.Bool
+	value T
+	err   error
+}
+
+func deferredRead[T any](read func() (T, error)) *lazyLoad[T] {
+	return &lazyLoad[T]{read: read}
+}
+
+func (d *lazyLoad[T]) resolve() *lazyLoad[T] {
+	d.once.Do(func() {
+		d.value, d.err = d.read()
+		d.done.Store(true)
+	})
+	return d
 }
 
 // Value is the resolved value, or T's zero when resolution failed or has not
 // run. A caller that must tell those two apart reads Err or Tried.
-func (l lazy[T]) Value() T { return l.value }
+func (l lazy[T]) Value() T {
+	if l.load != nil {
+		return l.load.resolve().value
+	}
+	return l.value
+}
 
 // Err is why there is no value. Nil covers both a resolution that succeeded
 // and one that has not run.
-func (l lazy[T]) Err() error { return l.err }
+func (l lazy[T]) Err() error {
+	if l.load != nil {
+		return l.load.resolve().err
+	}
+	return l.err
+}
 
 // Tried reports whether resolution has been attempted. A FAILED ATTEMPT IS
 // STILL AN ATTEMPT: the first-use caches set this before they read, so a load
@@ -38,6 +65,8 @@ func (l lazy[T]) Tried() bool { return l.tried }
 // eagerly loaded fields are filled, so a caller cannot reach the value without
 // the variable that says why there is not one.
 func resolved[T any](v T, err error) lazy[T] { return lazy[T]{value: v, err: err, tried: true} }
+
+func onFirstRead[T any](d *lazyLoad[T]) lazy[T] { return lazy[T]{tried: true, load: d} }
 
 // begin records that resolution is being attempted, before it runs. The
 // first-use caches call it on their way in, which is what makes a failure

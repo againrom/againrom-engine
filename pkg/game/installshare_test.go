@@ -173,11 +173,26 @@ func installSharesWritten() []string {
 			problems = append(problems, fmt.Sprintf("%s: fresh read: %v", key, err))
 			continue
 		}
+		fresh.matchReads(slot.share)
 		for _, p := range installShareDiff(slot.share, fresh) {
 			problems = append(problems, key+": "+p)
 		}
 	}
 	return problems
+}
+
+// matchReads reads what the shared share read and takes its unread loads.
+func (s *installShare) matchReads(shared *installShare) {
+	s.townSchool = matchRead(s.townSchool, shared.townSchool)
+	s.townTavern = matchRead(s.townTavern, shared.townTavern)
+	s.townSquare = matchRead(s.townSquare, shared.townSquare)
+}
+
+func matchRead[T any](fresh, shared *lazyLoad[T]) *lazyLoad[T] {
+	if shared.done.Load() {
+		return fresh.resolve()
+	}
+	return shared
 }
 
 // installShareDiff walks a shared and a fresh share side by side, unexported
@@ -372,6 +387,8 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	share.townSquare.resolve()
+	fresh.matchReads(share)
 	if diff := installShareDiff(share, fresh); len(diff) != 0 {
 		t.Fatalf("a fresh read differs from the share: %v", diff)
 	}
@@ -379,7 +396,7 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Archives != share.archives || f.TownSquareArt.Value() != share.townSquare || f.Units == share.units {
+	if f.Archives != share.archives || f.TownSquareArt.Value() != share.townSquare.value || f.Units == share.units {
 		t.Fatal("the front end does not take the archives and pictures from the share, or holds the shared unit set itself")
 	}
 	var class int32 = -1
@@ -396,13 +413,54 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 	if diff := installShareDiff(share, fresh); len(diff) != 0 {
 		t.Fatalf("the restored unit class still differs: %v", diff)
 	}
-	img, ok := fresh.townSquare.Pictures("base")[0].(draw.Image)
+	img, ok := fresh.townSquare.value.Pictures("base")[0].(draw.Image)
 	if !ok {
-		t.Fatalf("the town square background is a %T", fresh.townSquare.Pictures("base")[0])
+		t.Fatalf("the town square background is a %T", fresh.townSquare.value.Pictures("base")[0])
 	}
 	r, g, b, _ := img.At(0, 0).RGBA()
 	img.Set(0, 0, color.RGBA{R: ^uint8(r >> 8), G: ^uint8(g >> 8), B: ^uint8(b >> 8), A: 0xff})
 	if diff := installShareDiff(share, fresh); len(diff) == 0 {
 		t.Fatal("a town pixel written after the read is not named")
+	}
+}
+
+// TestInstallShareReadsTownArtOnFirstUse: no town picture before the first
+// read, then exactly what the loaders return.
+func TestInstallShareReadsTownArtOnFirstUse(t *testing.T) {
+	root := os.Getenv("AGAINROM_ASSETS")
+	if root == "" {
+		t.Skip("AGAINROM_ASSETS is not set")
+	}
+	share, err := loadInstallShare(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if share.townSchool.done.Load() || share.townTavern.done.Load() || share.townSquare.done.Load() {
+		t.Fatal("a fresh share read a town picture before any front end asked")
+	}
+	profile := share.archives.Base.Profile
+	rooms, src := RoomDescription(profile), share.archives.Containers
+	school, schoolErr := LoadTownSchoolArt(rooms, src)
+	tavern, tavernErr := LoadTownTavernArt(rooms, src)
+	square, squareErr := LoadTownSquareArtFor(TownDescription(profile), src)
+	for _, c := range []struct {
+		name      string
+		got, want any
+	}{
+		{"school", share.townSchool.resolve().value, school},
+		{"school error", share.townSchool.err, schoolErr},
+		{"tavern", share.townTavern.resolve().value, tavern},
+		{"tavern error", share.townTavern.err, tavernErr},
+		{"square", share.townSquare.resolve().value, square},
+		{"square error", share.townSquare.err, squareErr},
+	} {
+		d := &installShareDiffer{seen: map[[2]uintptr]bool{}}
+		d.walk(c.name, reflect.ValueOf(&c.got).Elem(), reflect.ValueOf(&c.want).Elem())
+		if len(d.out) != 0 {
+			t.Errorf("the deferred %s differs from the loader's: %v", c.name, d.out)
+		}
+	}
+	if square == nil || squareErr != nil {
+		t.Fatalf("the install's town square does not read: %v", squareErr)
 	}
 }

@@ -25,12 +25,10 @@ type installShare struct {
 	units         *terrain.UnitSet
 	unitsErr      error
 	unitSounds    map[int32]UnitSound
-	townSchool    *ui.TownSchoolArt
-	townSchoolErr error
-	townTavern    *ui.TownTavernArt
-	townTavernErr error
-	townSquare    *town.Art
-	townSquareErr error
+	// Read on a front end's first town.
+	townSchool *lazyLoad[*ui.TownSchoolArt]
+	townTavern *lazyLoad[*ui.TownTavernArt]
+	townSquare *lazyLoad[*town.Art]
 }
 
 // installShareSlot builds one share at most once, even under concurrent
@@ -81,10 +79,10 @@ func loadInstallShare(root string) (*installShare, error) {
 	s.statics, s.staticsErr = LoadStatics(archives.Containers)
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)
 	s.units, s.unitSounds, s.unitsErr = loadUnitRegistry(archives.Containers)
-	rooms := RoomDescription(match.Profile)
-	s.townSchool, s.townSchoolErr = LoadTownSchoolArt(rooms, archives.Containers)
-	s.townTavern, s.townTavernErr = LoadTownTavernArt(rooms, archives.Containers)
-	s.townSquare, s.townSquareErr = LoadTownSquareArtFor(TownDescription(match.Profile), archives.Containers)
+	rooms, square, src := RoomDescription(match.Profile), TownDescription(match.Profile), archives.Containers
+	s.townSchool = deferredRead(func() (*ui.TownSchoolArt, error) { return LoadTownSchoolArt(rooms, src) })
+	s.townTavern = deferredRead(func() (*ui.TownTavernArt, error) { return LoadTownTavernArt(rooms, src) })
+	s.townSquare = deferredRead(func() (*town.Art, error) { return LoadTownSquareArtFor(square, src) })
 	return s, nil
 }
 

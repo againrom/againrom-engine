@@ -195,10 +195,15 @@ func TestReleaseGeneratedCityConversion1166(t *testing.T) {
 		})
 	}
 	if dir := os.Getenv("AGAINROM_1166_ARTIFACTS"); dir != "" {
-		for name, b := range map[string][]byte{"generated.ags": input, "converted.sav": output} {
-			if err := WriteConvertedSave(filepath.Join(dir, name), b, root); err != nil {
-				t.Fatal(err)
-			}
+		ags := filepath.Join(dir, "generated.ags")
+		if err := CheckConvertedSaveTarget(ags, root); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(ags, input, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := WriteConvertedSave(filepath.Join(dir, "converted.sav"), output, root); err != nil {
+			t.Fatal(err)
 		}
 	}
 	t.Logf("generated city with ordinary hire and school action: %d members, gold%d; source-free LOAD, next school action and ordinary SAV; source label bytes retained", len(want.Party), want.Gold)

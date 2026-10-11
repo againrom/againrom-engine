@@ -38,6 +38,7 @@ pkg/game.TestGeneratedMissionSAVRetainsLoadedOffMapRecipientMask
 pkg/game.TestImportedLoot1172ColdProcess
 pkg/game.TestImportedReturn1169ColdProcess
 pkg/game.TestInstallShareDiffSeesAWrite
+pkg/game.TestInstallShareReadsTownArtOnFirstUse
 pkg/game.TestInstallWordsOverALawfulInstall
 pkg/game.TestInstanceWeightFrozenCityV3
 pkg/game.TestMageSpellbookProcess1101

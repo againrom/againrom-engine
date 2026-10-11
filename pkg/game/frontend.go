@@ -682,10 +682,6 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 			p.TipFont = font
 		}
 	}
-	townSchoolArt, townSchoolArtErr := share.townSchool, share.townSchoolErr
-	townTavernArt, townTavernArtErr := share.townTavern, share.townTavernErr
-	townSquareArt, townSquareArtErr := share.townSquare, share.townSquareErr
-
 	// The attack pointer and the cursor registry, off the same container
 	// filesystem and under the same carried-error rule (docs/1030-cursor-lifecycle
 	// B1). The pointer is frame 0 of the registry's own decoded attack sheet.
@@ -779,9 +775,9 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 			Maps:          WithMissions(BuildMapList(loose, ArchiveMaps(archives.Containers))),
 			Font:          resolved(font, fontErr),
 			ChargenAssets: chargenAssets,
-			TownSchoolArt: resolved(townSchoolArt, townSchoolArtErr),
-			TownTavernArt: resolved(townTavernArt, townTavernArtErr),
-			TownSquareArt: resolved(townSquareArt, townSquareArtErr),
+			TownSchoolArt: onFirstRead(share.townSchool),
+			TownTavernArt: onFirstRead(share.townTavern),
+			TownSquareArt: onFirstRead(share.townSquare),
 			Table:         table,
 
 			AttackPointer: resolved(pointer, pointerErr),
