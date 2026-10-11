@@ -8,7 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
-- [ROM1] The witch stays at the town when delivered in the first mission; script ownership changes now apply Stand Ground at the current cell.
+## 0.113.1
+
+- [ROM1] The witch brought to the village in the first mission stays there
+  instead of running back to where she stood at the start. A unit a mission
+  script hands to another side now holds its ground where it stands, as in
+  the original.
 
 ## 0.113.0
 
