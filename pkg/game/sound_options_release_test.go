@@ -4,6 +4,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -13,11 +14,13 @@ import (
 
 type speechRecorder struct {
 	menuSettingsPlayer
-	samples []audio.Sample
+	samples  []audio.Sample
+	requests []audio.Request
 }
 
-func (p *speechRecorder) RequestSample(s audio.Sample, _ audio.Request) audio.Voice {
+func (p *speechRecorder) RequestSample(s audio.Sample, request audio.Request) audio.Voice {
 	p.samples = append(p.samples, s)
+	p.requests = append(p.requests, request)
 	return nil
 }
 
@@ -27,8 +30,9 @@ func TestReleaseSoundOptions1187InstalledControls(t *testing.T) {
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	f.Sound, f.SoundChannels = SoundOptions{Enabled: true, Volume: 100}, audio.FullChannelVolumes()
 	speechRec := &speechRecorder{}
-	effects, speech, music, ambient := &menuSettingsPlayer{}, &speechRec.menuSettingsPlayer, &menuSettingsPlayer{}, &menuSettingsPlayer{}
-	f.SoundPlayer, f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer = effects, speechRec, music, ambient
+	effectsRec := &speechRecorder{}
+	effects, speech, music, ambient := &effectsRec.menuSettingsPlayer, &speechRec.menuSettingsPlayer, &menuSettingsPlayer{}, &menuSettingsPlayer{}
+	f.SoundPlayer, f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer = effectsRec, speechRec, music, ambient
 	a := f.App("installed sound controls")
 	defer a.StopAudio()
 	a.SetCutscenes(nil)
@@ -58,17 +62,50 @@ func TestReleaseSoundOptions1187InstalledControls(t *testing.T) {
 	}
 	hash, tick := f.live.world.Hash(), f.live.world.Tick()
 	want := audio.ChannelVolumes{25, 50, 75}
+	if path := f.SoundBank.entries[100]; path != "units/sword.wav" {
+		t.Fatalf("effects preview registry:100 = %q, want units/sword.wav", path)
+	}
+	sword, ok := f.SoundBank.NamedSample("units/sword.wav")
+	if !ok || len(sword.PCM) == 0 {
+		t.Fatal("installed sword recording absent")
+	}
 	for channel, value := range want {
+		effectsRec.samples, effectsRec.requests = nil, nil
+		speechRec.samples, speechRec.requests = nil, nil
 		for _, edge := range []string{"press", "release"} {
 			at := ui.SoundSliderPoint(audio.Channel(channel), value)
 			if err := a.HeadlessPointer(edge, at.X, at.Y); err != nil {
 				t.Fatal(err)
 			}
 		}
+		wantEffects, wantSpeech := 1, 0
+		if audio.Channel(channel) == audio.EffectsChannel {
+			wantEffects = 2
+			if len(effectsRec.samples) != wantEffects || !slices.Equal(effectsRec.samples[1].PCM, sword.PCM) {
+				t.Fatal("effects release did not request the complete installed sword sample", len(effectsRec.samples))
+			}
+		}
+		if audio.Channel(channel) == audio.SpeechChannel {
+			wantSpeech = 1
+		}
+		if len(effectsRec.samples) != wantEffects || len(speechRec.samples) != wantSpeech {
+			t.Fatal("wrong release request population", channel, len(effectsRec.samples), len(speechRec.samples))
+		}
+		for _, device := range []struct {
+			player *speechRecorder
+			group  audio.Channel
+		}{{effectsRec, audio.EffectsChannel}, {speechRec, audio.SpeechChannel}} {
+			for _, request := range device.player.requests {
+				if request.Group != device.group || request.Priority != 220 || request.Repeat || request.Pan != 0 || request.Frequency != 0 ||
+					request.Placement != (audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}) {
+					t.Fatalf("installed release request = %+v", request)
+				}
+			}
+		}
 	}
 	voice, ok := f.SoundBank.NamedSample("mf_merc/select2.wav")
 	if !ok || len(voice.PCM) == 0 || len(speechRec.samples) != 1 ||
-		len(speechRec.samples[0].PCM) != len(voice.PCM) || speechRec.samples[0].PCM[len(voice.PCM)/2] != voice.PCM[len(voice.PCM)/2] {
+		!slices.Equal(speechRec.samples[0].PCM, voice.PCM) {
 		t.Fatal("speech release did not play the installed voice test once", ok, len(speechRec.samples))
 	}
 	if f.SoundChannels != want || f.live.world.Hash() != hash || f.live.world.Tick() != tick {
