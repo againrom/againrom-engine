@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/render/menu"
 )
 
@@ -70,12 +71,12 @@ var stHotIndices = [8]byte{0x80, 0x90, 0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0}
 // stLoad builds the eighteen 640x480-scale bitmaps once: they are the expensive
 // part, and every case here derives from the same set.
 var stLoad = sync.OnceValues(func() (*menu.Assets, error) {
-	return menu.Load(mapSource(synth.MenuFiles(synth.MenuOptions{
+	return loadMenu(mapSource(synth.MenuFiles(synth.MenuOptions{
 		Prefix:    stPrefix,
 		Hover:     stHover,
 		Pressed:   stPressedRects,
 		MaskIndex: stHotIndices,
-	})))
+	})), base.GameROM1)
 })
 
 func stAssets(t *testing.T) *menu.Assets {

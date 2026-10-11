@@ -6,6 +6,7 @@ import (
 	"againrom/pkg/formats/databin"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/menu"
+	"againrom/pkg/screenart"
 	"againrom/pkg/sim"
 )
 
@@ -16,7 +17,7 @@ type gameFiles struct {
 	table         databin.Layout
 	openMap       func([]byte) (*alm.Map, error)
 	compileScript func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
-	loadMenu      func(menu.EntrySource) (*menu.Assets, error)
+	loadMenu      func(*screenart.Set) (*menu.Assets, error)
 	briefing      func(src entrySource, e base.Edition, mission int) string
 	eventText     func(src entrySource, e base.Edition, mission, event int) ([]byte, bool)
 	unitKeys      mapload.UnitKeys

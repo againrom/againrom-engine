@@ -56,7 +56,9 @@
      "cite": ["TOWN-093"]},
     {"screen": "mission-minimap",
      "art": [
-       {"name": "colours", "format": "picture", "key": "graphics/interface/minimapdata.bmp", "size": [52, 14], "required": true, "cite": ["MISSION-083"]}
+       {"name": "colours", "format": "picture", "key": "graphics/interface/minimapdata.bmp", "size": [52, 14], "required": true, "cite": ["MISSION-083"]},
+       {"name": "background", "format": "picture", "key": "graphics/interface/crystalr.bmp", "cite": ["owner"]},
+       {"name": "seam", "format": "picture", "key": "graphics/interface/crystall.bmp", "cite": ["owner"]}
      ],
      "cite": ["MISSION-083", "MISSION-088"]},
     {"screen": "tip-panel",
@@ -89,6 +91,70 @@
        {"name": "ok/3", "format": "picture", "key": "graphics/interface/docs/ok/ok_l_on.bmp", "size": [44, 32], "required": true, "cite": ["MENU-DOC-009"]},
        {"name": "page", "format": "picture", "key": "graphics/interface/docs/%d.bmp", "bound": true, "cite": ["MISSION-DOC-021"]}
      ],
-     "cite": ["MENU-DOC-009", "MISSION-DOC-021", "TEXT-API-007"]}
+     "cite": ["MENU-DOC-009", "MISSION-DOC-021", "TEXT-API-007"]},
+    {"screen": "main-menu",
+     "art": [
+       {"name": "base", "format": "picture", "key": "main/graphics/mainmenu/menu_.bmp", "size": [640, 480], "required": true, "cite": ["owner"]},
+       {"name": "mask", "format": "mask", "key": "main/graphics/mainmenu/menumask.bmp", "size": [640, 480], "required": true, "cite": ["owner"]},
+       {"name": "hover/0", "format": "picture", "key": "main/graphics/mainmenu/button1.bmp", "size": [212, 136], "required": true, "cite": ["owner"]},
+       {"name": "pressed/0", "format": "picture", "key": "main/graphics/mainmenu/button1p.bmp", "size": [208, 138], "required": true, "cite": ["owner"]},
+       {"name": "hover/1", "format": "picture", "key": "main/graphics/mainmenu/button2.bmp", "size": [236, 148], "required": true, "cite": ["owner"]},
+       {"name": "pressed/1", "format": "picture", "key": "main/graphics/mainmenu/button2p.bmp", "size": [236, 152], "required": true, "cite": ["owner"]},
+       {"name": "hover/2", "format": "picture", "key": "main/graphics/mainmenu/button3.bmp", "size": [236, 152], "required": true, "cite": ["owner"]},
+       {"name": "pressed/2", "format": "picture", "key": "main/graphics/mainmenu/button3p.bmp", "size": [236, 152], "required": true, "cite": ["owner"]},
+       {"name": "hover/3", "format": "picture", "key": "main/graphics/mainmenu/button4.bmp", "size": [212, 136], "required": true, "cite": ["owner"]},
+       {"name": "pressed/3", "format": "picture", "key": "main/graphics/mainmenu/button4p.bmp", "size": [208, 140], "required": true, "cite": ["owner"]},
+       {"name": "hover/4", "format": "picture", "key": "main/graphics/mainmenu/button5.bmp", "size": [212, 140], "required": true, "cite": ["owner"]},
+       {"name": "pressed/4", "format": "picture", "key": "main/graphics/mainmenu/button5p.bmp", "size": [212, 140], "required": true, "cite": ["owner"]},
+       {"name": "hover/5", "format": "picture", "key": "main/graphics/mainmenu/button6.bmp", "size": [236, 148], "required": true, "cite": ["owner"]},
+       {"name": "pressed/5", "format": "picture", "key": "main/graphics/mainmenu/button6p.bmp", "size": [232, 152], "required": true, "cite": ["owner"]},
+       {"name": "hover/6", "format": "picture", "key": "main/graphics/mainmenu/button7.bmp", "size": [236, 152], "required": true, "cite": ["owner"]},
+       {"name": "pressed/6", "format": "picture", "key": "main/graphics/mainmenu/button7p.bmp", "size": [236, 152], "required": true, "cite": ["owner"]},
+       {"name": "hover/7", "format": "picture", "key": "main/graphics/mainmenu/button8.bmp", "size": [208, 136], "required": true, "cite": ["owner"]},
+       {"name": "pressed/7", "format": "picture", "key": "main/graphics/mainmenu/button8p.bmp", "size": [212, 140], "required": true, "cite": ["owner"]}
+     ],
+     "cite": ["owner"]},
+    {"screen": "menu-panel",
+     "art": [
+       {"name": "piece/0", "format": "frame", "key": "graphics/interface/lm.256", "frame": 0, "required": true, "cite": ["owner"]},
+       {"name": "piece/1", "format": "frame", "key": "graphics/interface/lm.256", "frame": 1, "required": true, "cite": ["owner"]},
+       {"name": "piece/2", "format": "frame", "key": "graphics/interface/lm.256", "frame": 2, "required": true, "cite": ["owner"]},
+       {"name": "piece/3", "format": "frame", "key": "graphics/interface/lm.256", "frame": 3, "required": true, "cite": ["owner"]},
+       {"name": "piece/4", "format": "frame", "key": "graphics/interface/lm.256", "frame": 4, "required": true, "cite": ["owner"]},
+       {"name": "piece/5", "format": "frame", "key": "graphics/interface/lm.256", "frame": 5, "required": true, "cite": ["owner"]},
+       {"name": "piece/6", "format": "frame", "key": "graphics/interface/lm.256", "frame": 6, "required": true, "cite": ["owner"]},
+       {"name": "piece/7", "format": "frame", "key": "graphics/interface/lm.256", "frame": 7, "required": true, "cite": ["owner"]},
+       {"name": "piece/8", "format": "frame", "key": "graphics/interface/lm.256", "frame": 8, "required": true, "cite": ["owner"]},
+       {"name": "portrait", "format": "frame", "key": "graphics/interface/t_border.256", "frame": 0, "cite": ["owner"]},
+       {"name": "portrait-back", "format": "picture", "key": "graphics/interface/t_back.bmp", "size": [160, 240], "cite": ["owner"]}
+     ],
+     "cite": ["owner"]},
+    {"screen": "game-options",
+     "art": [
+       {"name": "check/0", "format": "frame", "key": "graphics/interface/radiob.256", "frame": 2, "cite": ["owner"]},
+       {"name": "radio/0", "format": "frame", "key": "graphics/interface/radiob.256", "frame": 0, "cite": ["owner"]},
+       {"name": "check/1", "format": "frame", "key": "graphics/interface/radiob.256", "frame": 3, "cite": ["owner"]},
+       {"name": "radio/1", "format": "frame", "key": "graphics/interface/radiob.256", "frame": 1, "cite": ["owner"]}
+     ],
+     "cite": ["owner"]},
+    {"screen": "menu-media",
+     "art": [
+       {"name": "scroll", "format": "sprites", "key": "graphics/interface/scrlbars.256", "cite": ["owner"]},
+       {"name": "hover", "format": "picture", "key": "graphics/interface/Ball.bmp", "size": [4, 4], "transparent": "black", "cite": ["owner"]}
+     ],
+     "cite": ["owner"]},
+    {"screen": "credits",
+     "art": [
+       {"name": "logo/nival", "format": "picture", "key": "graphics/interface/logo/nival.bmp", "cite": ["owner"]},
+       {"name": "logo/buka", "format": "picture", "key": "graphics/interface/logo/buka.bmp", "cite": ["owner"]},
+       {"name": "logo/monolith", "format": "picture", "key": "graphics/interface/logo/monolith.bmp", "cite": ["owner"]},
+       {"name": "logo/1c", "format": "picture", "key": "graphics/interface/logo/1c.bmp", "cite": ["owner"]}
+     ],
+     "cite": ["owner"]},
+    {"screen": "hall-of-fame",
+     "art": [
+       {"name": "background", "format": "picture", "key": "main/graphics/famehall/hall.bmp", "cite": ["owner"]}
+     ],
+     "cite": ["owner"]}
   ]
 }

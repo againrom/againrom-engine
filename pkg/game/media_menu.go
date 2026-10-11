@@ -5,6 +5,7 @@ import (
 	"image"
 	"strings"
 
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
@@ -97,30 +98,31 @@ func (f *FrontEnd) wireMediaMenu(a *ui.App) {
 	seen, _ := f.Options.EncounteredCutscenes()
 	a.SetCutsceneLibrary(f.movieCatalog(), seen, f.Options.EncounterCutscene, words)
 	if f.Archives != nil && f.Archives.Containers != nil {
-		const path = graphicsPrefix + "interface/scrlbars.256"
-		if raw, err := f.Archives.Containers.ReadFile(path); err == nil {
-			if frames, err := decodeCursor256Frames(path, raw); err == nil {
-				a.SetCutsceneScrollArt(frames)
-			}
-		}
-		if ball := f.HoverBall(); ball != nil {
+		scroll, ball := loadMenuMediaArt(f.Archives.artSource(), ScreensDescription(f.profile()))
+		a.SetCutsceneScrollArt(scroll)
+		if ball != nil {
 			a.SetHoverArt(ball)
 		}
 	}
 	a.SetCredits(f.creditsView)
 }
 
-// HoverBall is interface/Ball.bmp keyed on black, the hover box's corner
-// (MENU-128), or nil when the install lacks a 4x4 picture there.
+func loadMenuMediaArt(src terrain.EntrySource, d *Screens) ([]*image.RGBA, image.Image) {
+	set, _ := loadScreen(src, d, "menu-media")
+	var scroll []*image.RGBA
+	for _, pic := range set.Pictures("scroll") {
+		scroll = append(scroll, rgbaOf(pic))
+	}
+	return scroll, set.Picture("hover")
+}
+
+// HoverBall is the menu-media manifest's hover corner, or nil when absent.
 func (f *FrontEnd) HoverBall() image.Image {
 	if f.Archives == nil || f.Archives.Containers == nil {
 		return nil
 	}
-	pic, err := readInstallBMP(f.Archives.Containers, graphicsPrefix+"interface/Ball.bmp")
-	if err != nil || pic.Bounds().Size() != image.Pt(4, 4) {
-		return nil
-	}
-	return keyBlack(pic)
+	_, ball := loadMenuMediaArt(f.Archives.artSource(), ScreensDescription(f.profile()))
+	return ball
 }
 
 func (f *FrontEnd) creditsView() ui.CreditsView {
@@ -136,8 +138,9 @@ func (f *FrontEnd) creditsView() ui.CreditsView {
 			v.Lines = v.Lines[:4096]
 		}
 	}
+	set, _ := loadScreen(f.Archives.artSource(), ScreensDescription(f.profile()), "credits")
 	for _, name := range []string{"nival", "buka", "monolith", "1c"} {
-		if pic, err := readInstallBMP(f.Archives.Containers, graphicsPrefix+"interface/logo/"+name+".bmp"); err == nil {
+		if pic := rgbaOf(set.Picture("logo/" + name)); pic != nil {
 			v.Logos[name] = pic
 		}
 	}

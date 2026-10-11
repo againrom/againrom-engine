@@ -194,7 +194,7 @@ func writeInstall(t *testing.T, o installOptions) string {
 		menuEdits[mainEntry(t, address)] = data
 	}
 	write(game.MainArchive, synth.MenuArchive(synth.MenuOptions{
-		Prefix:      mainEntry(t, menu.EntryPrefix),
+		Prefix:      mainEntry(t, "main/graphics/mainmenu/"),
 		Hover:       menu.HoverRects,
 		Pressed:     menu.PressedRects,
 		MaskIndex:   hotIndex,
@@ -1094,22 +1094,22 @@ func TestStartupFailures(t *testing.T) {
 		},
 		{
 			"a menu asset is absent",
-			installOptions{menuEdits: map[string][]byte{menu.EntryPrefix + menu.BaseEntry: nil}},
-			menu.BaseEntry,
+			installOptions{menuEdits: map[string][]byte{"main/graphics/mainmenu/menu_.bmp": nil}},
+			"menu_.bmp",
 		},
 		{
 			"the base screen is not 640x480",
 			installOptions{menuEdits: map[string][]byte{
-				menu.EntryPrefix + menu.BaseEntry: synth.BMP24(image.NewRGBA(image.Rect(0, 0, 320, 240))),
+				"main/graphics/mainmenu/menu_.bmp": synth.BMP24(image.NewRGBA(image.Rect(0, 0, 320, 240))),
 			}},
-			menu.BaseEntry,
+			"menu_.bmp",
 		},
 		{
 			"an overlay disagrees with its own placement row",
 			installOptions{menuEdits: map[string][]byte{
-				menu.EntryPrefix + menu.HoverEntry(2): synth.BMP24(image.NewRGBA(image.Rect(0, 0, 7, 9))),
+				"main/graphics/mainmenu/button2.bmp": synth.BMP24(image.NewRGBA(image.Rect(0, 0, 7, 9))),
 			}},
-			menu.HoverEntry(2),
+			"button2.bmp",
 		},
 	}
 

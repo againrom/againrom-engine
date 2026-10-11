@@ -240,13 +240,10 @@ func (f *FrontEnd) wireGameOptions(a *ui.App) {
 				}
 			}
 		}
-		for i := 0; i < 2; i++ {
-			if pic, err := loadTipGemFrame(f.Archives.Containers, tipGemPath, checkGemFrame+i); err == nil {
-				c.Checks[i] = pic
-			}
-			if pic, err := loadTipGemFrame(f.Archives.Containers, tipGemPath, i); err == nil {
-				c.Radios[i] = pic
-			}
+		set, _ := loadScreen(f.Archives.artSource(), ScreensDescription(f.profile()), "game-options")
+		for i := range c.Checks {
+			c.Checks[i] = set.Picture(fmt.Sprintf("check/%d", i))
+			c.Radios[i] = set.Picture(fmt.Sprintf("radio/%d", i))
 		}
 	}
 	a.SetGameOptionControls(c)

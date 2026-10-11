@@ -597,7 +597,8 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	}
 	table := defs.Table
 
-	assets, err := filesOf(archives.Game()).loadMenu(archives.Containers)
+	screens := ScreensDescription(archives.Base.Profile)
+	assets, err := LoadMainMenuArt(archives.artSource(), archives.Base.Profile)
 	if err != nil {
 		return nil, err
 	}
@@ -691,7 +692,6 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 
 	// The command panel's four bitmaps, off the same container filesystem and
 	// under the same carried-error rule (docs/1028-command-panel contract B1).
-	screens := ScreensDescription(archives.Base.Profile)
 	commandPanelArt, commandPanelArtErr := LoadCommandPanelArt(archives.artSource(), screens)
 	bottomHUDArt, bottomHUDArtErr := LoadBottomHUDArt(archives.artSource(), screens)
 

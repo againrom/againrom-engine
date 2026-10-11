@@ -8,8 +8,7 @@ import (
 
 // TestLiveScreensReadArtThroughTheOneLoader measures the real tree: no
 // production file under pkg/ outside the one screen art loader names or
-// opens an install picture, except the files of another kind and the
-// falling debt list, each entry of which must still hold a finding.
+// opens a screen picture.
 func TestLiveScreensReadArtThroughTheOneLoader(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -34,6 +33,52 @@ func TestLiveScreensReadArtThroughTheOneLoader(t *testing.T) {
 		if _, ok := files[name]; !ok {
 			t.Errorf("%s is listed as another kind of picture reader and no longer exists", name)
 		}
+	}
+}
+
+func TestScreenArtDebtIsZero(t *testing.T) {
+	if len(ScreenArtDebt) != 0 {
+		t.Fatalf("ScreenArtDebt has %d entries, want zero", len(ScreenArtDebt))
+	}
+}
+
+func TestScreenArtFindingsSeeAliasedDecoders(t *testing.T) {
+	found, err := ScreenArtFindings(map[string]string{
+		"pkg/game/panel.go": `package game
+import (
+ raster "againrom/pkg/formats/bmp"
+ sprites "againrom/pkg/formats/spr16"
+ tiles "againrom/pkg/render/terrain"
+)
+func load() { raster.DecodeRGBA(nil); sprites.DecodeA(nil, true); tiles.DecodeBMP8(nil); raster.Encode(nil) }
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, f := range found {
+		got = append(got, f.Shape)
+	}
+	want := []string{"opens a picture through bmp.DecodeRGBA", "opens a picture through spr16.DecodeA", "opens a picture through terrain.DecodeBMP8"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("findings = %q, want %q", got, want)
+	}
+}
+
+func TestScreenArtFindingsSeeDotImportedDecoder(t *testing.T) {
+	found, err := ScreenArtFindings(map[string]string{
+		"pkg/game/panel.go": `package game
+import . "againrom/pkg/formats/bmp"
+func other() {}
+func load() { DecodeRGBA(nil); Encode(nil); other() }
+`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(found) != 1 || found[0].Shape != "opens a picture through bmp.DecodeRGBA" {
+		t.Fatalf("findings = %v", found)
 	}
 }
 

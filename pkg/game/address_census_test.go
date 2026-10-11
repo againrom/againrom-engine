@@ -5,7 +5,7 @@ package game_test
 // identity of the container it lives in.
 //
 // WHERE THE ADDRESSES COME FROM IS THE TEST. Each one enters through the surface
-// its own consumer reads — menu.Entries(), the tile grid as LoadTileset walks it,
+// its own consumer reads — the screen manifest, the tile grid as LoadTileset walks it,
 // the addresses the two loaders and their sheet cache actually ask for, the
 // enumeration's own rows — and THIS FILE SPELLS NO ADDRESS OF ITS OWN. A census
 // listing addresses it wrote itself would witness only that the test agrees with
@@ -40,9 +40,9 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/formats/res"
 	"againrom/pkg/game"
-	"againrom/pkg/render/menu"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/vfs"
 )
@@ -108,6 +108,14 @@ func censusOpen(t *testing.T, path string) *vfs.FS {
 
 // censusRecorded is pass one: every name a library caller asks a container for,
 // collected from the caller itself.
+func censusMenuEntries() []string {
+	var entries []string
+	for _, e := range game.ScreensDescription(base.Profile{}).Art("main-menu") {
+		entries = append(entries, e.Keys()...)
+	}
+	return entries
+}
+
 func censusRecorded(t *testing.T) []string {
 	t.Helper()
 	dir := t.TempDir()
@@ -126,9 +134,8 @@ func censusRecorded(t *testing.T) []string {
 	}))
 	sfs := censusOpen(t, spath)
 
-	// The menu enumerates its own eighteen entries, so nothing has to be read to
-	// learn them and no fixture stands in for main.res here.
-	got := append([]string{}, menu.Entries()...)
+	// The screen description supplies the menu's eighteen installed entries.
+	got := append([]string{}, censusMenuEntries()...)
 
 	// The tileset grid, recorded as LoadTileset walks it rather than rebuilt: the
 	// count is checked against the render tier's own slot constant, so a grid that
@@ -220,7 +227,7 @@ func TestAddressCensus(t *testing.T) {
 	sort.Strings(addresses)
 	t.Logf("censused %d addresses over %d containers, plus %d identity with no remainder",
 		len(addresses), len(identities), len(bare))
-	if min := terrain.SlotCount + 1 + len(menu.Entries()); len(addresses) < min {
+	if min := terrain.SlotCount + 1 + len(censusMenuEntries()); len(addresses) < min {
 		t.Fatalf("the census holds %d addresses, fewer than the tile grid and the menu alone (%d)", len(addresses), min)
 	}
 

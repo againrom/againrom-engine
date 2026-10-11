@@ -1,40 +1,11 @@
-// Package menu is the main-menu composition contract: which main.res bitmaps
-// make up the brooch screen, what the hit mask's byte values mean, where each
-// button overlay is placed, and how a frame is composed from them.
-//
-// That contract is decoded by the research submodule from the game's own files
-// and executable, not re-derived here. This package holds it as data plus the
-// behaviour the specification defines over it, and nothing else: it decodes no
-// container (the archive is 0001's), invents no format fact, and reads no game
-// path — its input is a one-method entry source the caller supplies.
-//
-// It imports only the bitmap decoder and is engine-free, so the whole selection/compositing contract
-// is unit-testable with no window.
-//
-// # Two things a reader should know before changing anything here
-//
-// The hit mask is consumed as RAW 8-BIT INDICES, never through palette colours.
-// The mask's 256-entry palette is an identity grayscale ramp, so it carries no
-// meaning of its own and the index value is the semantic; a colour-based reading
-// is wrong by construction rather than merely slower. bmp.DecodePaletted keeps
-// the indices and ButtonAt reads them straight out of Pix.
-//
-// The mask's stored ROW ORDER is *inferred* by the research, not read directly:
-// it was concluded from each button's placement rectangle bracketing its mask
-// region, and the brooch layout is nearly symmetric about the horizontal midline,
-// so a vertically flipped read would very nearly satisfy that same check. This is
-// why NewGameButton is computed from the placement table and never from a mask
-// index literal — under one row order the visually top-left button answers to the
-// first index, under the other to the fourth, and no layout evidence can tell
-// them apart. Anchoring the action to geometry makes the question falsifiable the
-// first time anyone hovers the top-left button in the real game.
+// Package menu holds main-menu layout, hit-mask rules and frame composition.
 package menu
 
 import (
 	"fmt"
 	"image"
 
-	"againrom/pkg/formats/bmp"
+	"againrom/pkg/screenart"
 )
 
 // Frame size. The menu is composed in the game's fixed 640x480 frame, and the
@@ -48,40 +19,6 @@ const (
 // overlay arrays in a loop over exactly this many, so it is a decoded constant
 // rather than a count of whatever art happens to be present.
 const ButtonCount = 8
-
-// EntryPrefix is the address prefix the menu assets live under: main.res's own
-// identity segment, then the subtree inside it, in the folded form every address
-// is compared in (lower case, '/' separators). The prefix is part of the key:
-// lookup folds case but not directories.
-//
-// The identity segment is part of the prefix BECAUSE it is part of the name:
-// one address identifies an entry across every container an install ships,
-// so this package's constants say which container the menu art comes from
-// instead of leaving the caller to know it out of band.
-const EntryPrefix = "main/graphics/mainmenu/"
-
-// Asset entry names, relative to EntryPrefix. Eighteen in total: the base brooch
-// screen, the hit mask, and a hover and a pressed overlay per button.
-const (
-	BaseEntry = "menu_.bmp"
-	MaskEntry = "menumask.bmp"
-)
-
-// HoverEntry and PressedEntry name button n's two overlays, n in [1, ButtonCount].
-func HoverEntry(n int) string   { return fmt.Sprintf("button%d.bmp", n) }
-func PressedEntry(n int) string { return fmt.Sprintf("button%dp.bmp", n) }
-
-// Entries returns every address the menu requires, in the order Load validates
-// them: the base, the mask, then each button's hover and pressed overlay in
-// button order.
-func Entries() []string {
-	out := make([]string, 0, 2+2*ButtonCount)
-	out = append(out, EntryPrefix+BaseEntry, EntryPrefix+MaskEntry)
-	for n := 1; n <= ButtonCount; n++ {
-		out = append(out, EntryPrefix+HoverEntry(n), EntryPrefix+PressedEntry(n))
-	}
-	return out
-}
 
 // placement is one {x, y, w, h} row of a static placement table.
 type placement struct{ x, y, w, h int }
@@ -260,20 +197,11 @@ var maskButton = func() [256]uint8 {
 	return t
 }()
 
-// EntrySource supplies raw entry bytes by address. It is the whole of this
-// package's dependency on the container tier: a single archive reader and a
-// filesystem over a set of them both satisfy it, so nothing below the render
-// tier has to cross into it.
-type EntrySource interface {
-	ReadFile(name string) ([]byte, error)
-}
-
 // Assets is a validated main-menu asset set: the base screen, the hit mask, and
 // both overlays for every button.
 //
-// A value of this type only ever exists fully populated and dimension-consistent
-// — Load returns nil alongside any error rather than a partial set — so no caller
-// can show a menu whose hit regions or overlays are only partly defined.
+// Load returns nil on a missing or mistyped art entry. The screen art loader
+// validates each picture and mask against the manifest before binding.
 type Assets struct {
 	Base    *image.RGBA              // 640x480 brooch background, drawn first
 	Mask    *image.Paletted          // 640x480 hit mask, raw indices
@@ -284,88 +212,34 @@ type Assets struct {
 	place *secondPlacement
 }
 
-// Load reads and validates the eighteen menu bitmaps from src.
-//
-// Validation is in a fixed order — base, mask, then each button's hover and
-// pressed overlay — and stops at the FIRST defect, so a broken install produces
-// one message naming one entry, and the windowed and headless modes cannot
-// disagree about which failure to report. The checks are: the entry is present,
-// it decodes, and its dimensions are right — 640x480 for the base and the mask,
-// and for each overlay exactly the (w, h) of its own row of the corresponding
-// placement table. That last check is the decoded 1:1 draw rule turned into a
-// startup assertion: the tables' sizes are the bitmaps' own sizes, so a
-// disagreement means the asset set and the geometry are not the pair the contract
-// describes.
-func Load(src EntrySource) (*Assets, error) {
-	return load(src, HoverRects, PressedRects)
-}
-
-func load(src EntrySource, hover, pressed [ButtonCount]image.Rectangle) (*Assets, error) {
+// Load binds the first game's resolved main-menu art to its layout.
+func Load(set *screenart.Set) (*Assets, error) {
 	a := &Assets{}
-
-	base, err := loadRGBA(src, EntryPrefix+BaseEntry)
-	if err != nil {
+	var err error
+	if a.Base, err = picture(set, "base"); err != nil {
 		return nil, err
 	}
-	if err := checkSize(EntryPrefix+BaseEntry, base.Bounds(), FrameW, FrameH); err != nil {
-		return nil, err
+	a.Mask = set.Mask("mask")
+	if a.Mask == nil {
+		return nil, fmt.Errorf("menu: art entry %q is missing", "mask")
 	}
-	a.Base = base
-
-	maskName := EntryPrefix + MaskEntry
-	maskData, err := src.ReadFile(maskName)
-	if err != nil {
-		return nil, fmt.Errorf("menu: %s: %w", maskName, err)
-	}
-	mask, err := bmp.DecodePaletted(maskData)
-	if err != nil {
-		return nil, fmt.Errorf("menu: %s: %w", maskName, err)
-	}
-	if err := checkSize(maskName, mask.Bounds(), FrameW, FrameH); err != nil {
-		return nil, err
-	}
-	a.Mask = mask
-
-	for i := 0; i < ButtonCount; i++ {
-		n := i + 1
-		for _, o := range []struct {
-			name string
-			want image.Rectangle
-			dst  *[ButtonCount]*image.RGBA
-		}{
-			{EntryPrefix + HoverEntry(n), hover[i], &a.Hover},
-			{EntryPrefix + PressedEntry(n), pressed[i], &a.Pressed},
-		} {
-			img, err := loadRGBA(src, o.name)
-			if err != nil {
-				return nil, err
-			}
-			if err := checkSize(o.name, img.Bounds(), o.want.Dx(), o.want.Dy()); err != nil {
-				return nil, err
-			}
-			o.dst[i] = img
+	for i := range a.Hover {
+		if a.Hover[i], err = picture(set, fmt.Sprintf("hover/%d", i)); err != nil {
+			return nil, err
+		}
+		if a.Pressed[i], err = picture(set, fmt.Sprintf("pressed/%d", i)); err != nil {
+			return nil, err
 		}
 	}
 	return a, nil
 }
 
-func loadRGBA(src EntrySource, name string) (*image.RGBA, error) {
-	data, err := src.ReadFile(name)
-	if err != nil {
-		return nil, fmt.Errorf("menu: %s: %w", name, err)
-	}
-	img, err := bmp.DecodeRGBA(data)
-	if err != nil {
-		return nil, fmt.Errorf("menu: %s: %w", name, err)
+func picture(set *screenart.Set, name string) (*image.RGBA, error) {
+	img, ok := set.Picture(name).(*image.RGBA)
+	if !ok || img == nil {
+		return nil, fmt.Errorf("menu: art entry %q is not an RGBA picture", name)
 	}
 	return img, nil
-}
-
-func checkSize(name string, b image.Rectangle, w, h int) error {
-	if b.Dx() != w || b.Dy() != h {
-		return fmt.Errorf("menu: %s is %dx%d, want %dx%d", name, b.Dx(), b.Dy(), w, h)
-	}
-	return nil
 }
 
 // ButtonAt reports which button the frame position p selects: 1..ButtonCount, or

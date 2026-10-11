@@ -60,8 +60,9 @@ with its own pixel rule.
   owner's unit its own cell visible. Structures draw first, then loot dots,
   then units. A structure's owner is its map record's owner field
   (`structureOwnerSlots`, `pkg/game/world.go`).
-- Outline: white, near edges at the scaled `scroll-8`, far edges at the scaled
-  `scroll-8+span` minus one, clipped per pixel to the picture.
+- Outline: white, near edges at `P(origin)` with `origin=scroll-8`, far edges
+  at `P(origin)+max(1,P(span))-1`, clipped per pixel to the picture. `P` is
+  the integer `num/den` projection; origin and span scale separately.
 - Repaint: `minimapRepaint` keeps the last picture while the presentation-tick
   counter has moved fewer than 11 steps and no repaint key (box, frame, paint,
   outlined cells, reveal, loot option) changed.

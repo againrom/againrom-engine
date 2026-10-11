@@ -10,6 +10,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/bmp"
+	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/screenart"
 )
@@ -87,12 +88,31 @@ func mustDecodeScreens(data []byte) *Screens {
 // names. Callers must not change it.
 func ScreensDescription(p base.Profile) *Screens { return screensDescriptions[p.Edition().Screens] }
 
-// loadScreen reads screen's manifest of description d from src through the
-// install's library. A description that names no such screen is an error.
-func loadScreen(src terrain.EntrySource, d *Screens, screen string) (*screenart.Set, error) {
+// loadScreen reads a manifest through the install's library. Names selects
+// entries in manifest order; no names reads the whole manifest.
+func loadScreen(src terrain.EntrySource, d *Screens, screen string, names ...string) (*screenart.Set, error) {
 	art := d.Art(screen)
 	if art == nil {
 		return nil, fmt.Errorf("screen %s: no art manifest", screen)
+	}
+	if len(names) > 0 {
+		wanted := map[string]bool{}
+		for _, name := range names {
+			wanted[name] = true
+		}
+		var selected []screenart.Entry
+		for _, e := range art {
+			if wanted[e.Name] {
+				selected = append(selected, e)
+				delete(wanted, e.Name)
+			}
+		}
+		for _, name := range names {
+			if wanted[name] {
+				return nil, fmt.Errorf("screen %s: no art entry %q", screen, name)
+			}
+		}
+		art = selected
 	}
 	return screenArtOf(src).Load(screen, art)
 }
@@ -114,8 +134,7 @@ func (s screenArtSource) Mask(key string) (*image.Paletted, error) {
 	return readInstallMask(s.src, key)
 }
 
-// Sprites answers every frame of a .256 or .16a sheet, nil when the sheet
-// does not read or a frame has no positive size.
+// Sprites decodes a sheet; the library validates the frames each entry uses.
 func (s screenArtSource) Sprites(key string) []image.Image {
 	if s.src == nil {
 		return nil
@@ -125,13 +144,17 @@ func (s screenArtSource) Sprites(key string) []image.Image {
 		if err != nil {
 			return nil
 		}
-		frames, err := decodeCursor256Frames(key, raw)
+		sheet, err := spr256.Decode(raw)
 		if err != nil {
 			return nil
 		}
-		out := make([]image.Image, len(frames))
-		for i, f := range frames {
-			out[i] = f
+		table, ok := sheet.Table()
+		if !ok {
+			return nil
+		}
+		out := make([]image.Image, len(sheet.Frames))
+		for i, f := range sheet.Frames {
+			out[i] = f.RGBA(table)
 		}
 		return out
 	}
@@ -192,7 +215,7 @@ func readInstallBMP(src terrain.EntrySource, addr string) (*image.RGBA, error) {
 	}
 	b, err := src.ReadFile(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
 	return decodeInstallBMP(b, addr)
 }
@@ -204,7 +227,7 @@ func readInstallMask(src terrain.EntrySource, addr string) (*image.Paletted, err
 	}
 	b, err := src.ReadFile(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", addr, err)
 	}
 	mask, err := bmp.DecodePaletted(b)
 	if err != nil {

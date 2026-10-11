@@ -146,8 +146,8 @@ const minimapShadeEntry = 164
 
 // missionMinimapPaint reads the minimap data the edition's mission-minimap
 // manifest names, or nil when the description names none, the lookup does not
-// read, or the install has no owner palettes. Only the first game's
-// description names the manifest; the second game keeps the symbolic picture.
+// read, or the install has no owner palettes. A manifest without colours
+// keeps the symbolic picture.
 func missionMinimapPaint(in *InstallResources) *ui.MinimapPaint {
 	if in == nil || in.Archives == nil || in.Units == nil || !in.Units.HasOwnerPalettes {
 		return nil

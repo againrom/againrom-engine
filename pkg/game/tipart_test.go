@@ -1,13 +1,46 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/formats/spr256"
 	"againrom/pkg/ui"
 )
+
+const (
+	tipBackPath = graphicsPrefix + "interface/t_back.bmp"
+	tipGemPath  = graphicsPrefix + "interface/radiob.256"
+)
+
+func loadTipGemFrame(src entrySource, addr string, frame int) (*image.RGBA, error) {
+	if src == nil {
+		return nil, fmt.Errorf("%s: no archive", addr)
+	}
+	raw, err := src.ReadFile(addr)
+	if err != nil {
+		return nil, err
+	}
+	sheet, err := spr256.Decode(raw)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", addr, err)
+	}
+	table, ok := sheet.Table()
+	if !ok {
+		return nil, fmt.Errorf("%s: no palette", addr)
+	}
+	if frame < 0 || frame >= len(sheet.Frames) {
+		return nil, fmt.Errorf("%s: frame %d, sheet carries %d", addr, frame, len(sheet.Frames))
+	}
+	f := sheet.Frames[frame]
+	if f.Width <= 0 || f.Height <= 0 || len(f.Pixels) < f.Width*f.Height {
+		return nil, fmt.Errorf("%s: frame %d is empty", addr, frame)
+	}
+	return f.RGBA(table), nil
+}
 
 func tipGemSheet() []byte {
 	frame := synth.Frame256{Width: 2, Height: 2, Pixels: []synth.Pixel256{{Index: 1, Opaque: true}, {}, {}, {Index: 1, Opaque: true}}}

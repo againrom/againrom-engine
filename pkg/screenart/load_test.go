@@ -266,3 +266,67 @@ func TestIndexedSeriesTakesItsFirstNumberByIndex(t *testing.T) {
 		t.Fatalf("series %d and %d frames, s2000 read %d times", len(set.Pictures("girl/0")), len(set.Pictures("girl/1")), src.reads["s2000.bmp"])
 	}
 }
+
+func TestSpritesRejectsAnyEmptyFrame(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		frame image.Image
+	}{
+		{"zero-width", image.NewRGBA(image.Rect(0, 0, 0, 2))},
+		{"zero-height", image.NewRGBA(image.Rect(0, 0, 2, 0))},
+		{"zero-area", image.NewRGBA(image.Rectangle{})},
+		{"nil", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := newFakeSource()
+			good := solid(2, 2, color.RGBA{R: 7, A: 255})
+			src.sheets["sheet.256"] = []image.Image{good, tc.frame, good}
+			lib := NewLibrary(src)
+			set, err := lib.Load("whole", []Entry{{Name: "whole", Format: "sprites", Key: "sheet.256", Required: true}})
+			if err == nil || set != nil || !strings.Contains(err.Error(), "sheet.256") {
+				t.Errorf("empty sheet member returned set %v, error %v", set, err)
+			}
+			set, err = lib.Load("selected", []Entry{{Name: "one", Format: "frame", Key: "sheet.256", Frame: 2, Required: true}})
+			if err != nil || set.Picture("one") != good {
+				t.Fatalf("whole-sheet rejection removed a readable selected frame: %v", err)
+			}
+			if src.reads["sheet.256"] != 1 {
+				t.Fatalf("sheet reads = %d, want 1", src.reads["sheet.256"])
+			}
+		})
+	}
+}
+
+func TestFrameValidatesOnlyItsSelectedFrame(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		frame image.Image
+	}{
+		{"zero-area", image.NewRGBA(image.Rectangle{})},
+		{"nil", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := newFakeSource()
+			good := solid(2, 2, color.RGBA{R: 7, A: 255})
+			src.sheets["sheet.256"] = []image.Image{good, tc.frame}
+			lib := NewLibrary(src)
+			set, err := lib.Load("optional", []Entry{
+				{Name: "empty", Format: "frame", Key: "sheet.256", Frame: 1},
+				{Name: "good", Format: "frame", Key: "sheet.256", Frame: 0, Required: true},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if set.Picture("empty") != nil || set.Picture("good") != good || len(set.Problems) != 1 || !strings.Contains(set.Problems[0], "sheet.256") {
+				t.Fatalf("optional frame results: empty %v, good %v, problems %v", set.Picture("empty"), set.Picture("good"), set.Problems)
+			}
+			set, err = lib.Load("required", []Entry{{Name: "empty", Format: "frame", Key: "sheet.256", Frame: 1, Required: true}})
+			if err == nil || set != nil || !strings.Contains(err.Error(), "sheet.256") {
+				t.Fatalf("empty required frame returned set %v, error %v", set, err)
+			}
+			if src.reads["sheet.256"] != 1 {
+				t.Fatalf("sheet reads = %d, want 1", src.reads["sheet.256"])
+			}
+		})
+	}
+}

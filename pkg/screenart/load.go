@@ -9,8 +9,7 @@ import (
 )
 
 // Source decodes an install's art. Picture and Mask return an error that
-// names the key; Sprites returns nil for a sheet it cannot read or whose
-// frames are not all of a positive size.
+// names the key; Sprites returns nil for an unreadable sheet.
 type Source interface {
 	Picture(key string) (image.Image, error)
 	Mask(key string) (*image.Paletted, error)
@@ -340,7 +339,12 @@ func (l *Library) entry(screen string, spec Entry, e expanded) ([]image.Image, e
 		}
 		valid := len(frames) > 0 && (e.count == 0 || len(frames) == e.count)
 		for _, f := range frames {
+			if f == nil {
+				valid = false
+				continue
+			}
 			b := f.Bounds()
+			valid = valid && b.Dx() > 0 && b.Dy() > 0
 			if spec.MaxSize != nil {
 				valid = valid && b.Dx() <= spec.MaxSize[0] && b.Dy() <= spec.MaxSize[1]
 			}
@@ -361,6 +365,9 @@ func (l *Library) entry(screen string, spec Entry, e expanded) ([]image.Image, e
 			return nil, fmt.Errorf("%s: frame %d, sheet carries %d", e.key, spec.Frame, len(frames))
 		}
 		pic := frames[spec.Frame]
+		if pic == nil || pic.Bounds().Dx() <= 0 || pic.Bounds().Dy() <= 0 {
+			return nil, fmt.Errorf("%s: frame %d is empty", e.key, spec.Frame)
+		}
 		if spec.Size != nil {
 			if err = checkSize(pic, *spec.Size, e.key); err != nil {
 				return nil, err

@@ -12,6 +12,7 @@ package ui
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"slices"
 	"testing"
@@ -20,9 +21,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"againrom/internal/synth"
+	"againrom/pkg/formats/bmp"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/screenart"
 )
 
 // hotIndex is the mask index the decoded contract assigns to each button.
@@ -57,28 +60,28 @@ func appAssets(t *testing.T) *menu.Assets {
 	}
 
 	files := synth.MenuFiles(synth.MenuOptions{
-		Prefix:  menu.EntryPrefix,
+		Prefix:  "main/graphics/mainmenu/",
 		Hover:   menu.HoverRects,
 		Pressed: menu.PressedRects,
-		Edits: map[string][]byte{
-			menu.EntryPrefix + menu.MaskEntry: synth.BMP8(mask),
-		},
 	})
-	a, err := menu.Load(appSource(files))
+	set := &screenart.Set{Frames: map[string][]image.Image{}, Masks: map[string]*image.Paletted{"mask": mask}}
+	decode := func(name, key string) {
+		pic, err := bmp.DecodeRGBA(files[key])
+		if err != nil {
+			t.Fatal(err)
+		}
+		set.Frames[name] = []image.Image{pic}
+	}
+	decode("base", "main/graphics/mainmenu/menu_.bmp")
+	for i := 0; i < menu.ButtonCount; i++ {
+		decode(fmt.Sprintf("hover/%d", i), fmt.Sprintf("main/graphics/mainmenu/button%d.bmp", i+1))
+		decode(fmt.Sprintf("pressed/%d", i), fmt.Sprintf("main/graphics/mainmenu/button%dp.bmp", i+1))
+	}
+	a, err := menu.Load(set)
 	if err != nil {
 		t.Fatalf("menu.Load: %v", err)
 	}
 	return a
-}
-
-type appSource map[string][]byte
-
-func (s appSource) ReadFile(name string) ([]byte, error) {
-	b, ok := s[name]
-	if !ok {
-		return nil, errors.New("absent")
-	}
-	return b, nil
 }
 
 func appRows(n int) []PickerRow {

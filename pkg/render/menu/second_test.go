@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/render/menu"
 )
 
@@ -43,7 +44,7 @@ func secondFiles(edits map[string][]byte) mapSource {
 }
 
 func TestLoadSecondPlacesOverlaysAndCaptions(t *testing.T) {
-	a, err := menu.LoadSecond(secondFiles(nil))
+	a, err := loadMenu(secondFiles(nil), base.GameROM2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +110,7 @@ func TestLoadSecondRefuses(t *testing.T) {
 		{"wrong caption size", secondFiles(map[string][]byte{specPrefix + "text2.bmp": synth.BMP24(image.NewRGBA(image.Rect(0, 0, 100, 80)))}), "text2.bmp"},
 	}
 	for _, c := range cases {
-		a, err := menu.LoadSecond(c.files)
+		a, err := loadMenu(c.files, base.GameROM2)
 		if err == nil || a != nil {
 			t.Errorf("%s: loaded", c.name)
 			continue
@@ -118,7 +119,7 @@ func TestLoadSecondRefuses(t *testing.T) {
 			t.Errorf("%s: error %q does not name %s", c.name, err, c.want)
 		}
 	}
-	if _, err := menu.Load(secondFiles(nil)); err == nil {
+	if _, err := loadMenu(secondFiles(nil), base.GameROM1); err == nil {
 		t.Error("the first game's loader accepted the second game's overlay sizes")
 	}
 }

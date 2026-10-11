@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
+	"againrom/pkg/game"
 	"againrom/pkg/render/menu"
 )
 
@@ -156,9 +158,13 @@ func filesWith(edits map[string][]byte) mapSource {
 	return out
 }
 
+func loadMenu(files mapSource, edition base.Game) (*menu.Assets, error) {
+	return game.LoadMainMenuArt(files, base.Profile{Game: edition})
+}
+
 func mustLoad(t *testing.T, files mapSource) *menu.Assets {
 	t.Helper()
-	a, err := menu.Load(files)
+	a, err := loadMenu(files, base.GameROM1)
 	if err != nil {
 		t.Fatalf("Load of a complete, consistent set failed: %v", err)
 	}
@@ -452,53 +458,33 @@ func TestNewGameButton(t *testing.T) {
 	})
 
 	t.Run("entries", func(t *testing.T) {
-		if menu.EntryPrefix != specPrefix {
-			t.Errorf("EntryPrefix = %q, want %q", menu.EntryPrefix, specPrefix)
+		var got []string
+		for _, entry := range game.ScreensDescription(base.Profile{}).Art("main-menu") {
+			got = append(got, entry.Keys()...)
 		}
-		if menu.BaseEntry != specBaseName {
-			t.Errorf("BaseEntry = %q, want %q", menu.BaseEntry, specBaseName)
-		}
-		if menu.MaskEntry != specMaskName {
-			t.Errorf("MaskEntry = %q, want %q", menu.MaskEntry, specMaskName)
-		}
-
-		// HoverEntry/PressedEntry: the spec fixes the *name*; whether the
-		// accessor carries the prefix is not stated (BaseEntry/MaskEntry are
-		// bare, Entries() is documented as full paths), so both forms pass.
-		for n := 1; n <= 8; n++ {
-			hv, pr := menu.HoverEntry(n), menu.PressedEntry(n)
-			if hv != hoverName(n) && hv != specPrefix+hoverName(n) {
-				t.Errorf("HoverEntry(%d) = %q, want %q or %q", n, hv, hoverName(n), specPrefix+hoverName(n))
-			}
-			if pr != pressedName(n) && pr != specPrefix+pressedName(n) {
-				t.Errorf("PressedEntry(%d) = %q, want %q or %q", n, pr, pressedName(n), specPrefix+pressedName(n))
-			}
-		}
-
-		got := menu.Entries()
 		if len(got) != 18 {
-			t.Fatalf("Entries() returned %d paths, want 18", len(got))
+			t.Fatalf("main-menu manifest returned %d paths, want 18", len(got))
 		}
 		seen := make(map[string]bool, len(got))
 		for _, e := range got {
 			if seen[e] {
-				t.Errorf("Entries() repeats %q", e)
+				t.Errorf("main-menu manifest repeats %q", e)
 			}
 			seen[e] = true
 			if !strings.HasPrefix(e, specPrefix) {
-				t.Errorf("Entries() holds %q, which lacks the prefix %q", e, specPrefix)
+				t.Errorf("main-menu manifest holds %q, which lacks the prefix %q", e, specPrefix)
 			}
 		}
 		for _, want := range specEntries {
 			if !seen[want] {
-				t.Errorf("Entries() is missing %q", want)
+				t.Errorf("main-menu manifest is missing %q", want)
 			}
 		}
 		// plan DD28: base, mask, then per button the hover then the pressed
 		// overlay — the order Load validates in.
 		for i, want := range specEntries {
 			if i < len(got) && got[i] != want {
-				t.Errorf("Entries()[%d] = %q, want %q (DD28 validation order)", i, got[i], want)
+				t.Errorf("main-menu manifest[%d] = %q, want %q (DD28 validation order)", i, got[i], want)
 			}
 		}
 	})
@@ -639,7 +625,7 @@ func TestLoadRejects(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			a, err := menu.Load(filesWith(tc.edits))
+			a, err := loadMenu(filesWith(tc.edits), base.GameROM1)
 			if err == nil {
 				t.Fatalf("Load succeeded on a defective set (%s); want a non-nil error", tc.name)
 			}
@@ -652,7 +638,7 @@ func TestLoadRejects(t *testing.T) {
 				t.Errorf("error %q does not name the offending entry %q", msg, tc.named)
 			}
 			if tc.unnamed != "" && strings.Contains(msg, tc.unnamed) {
-				t.Errorf("error %q names %q; the first failure in Entries() order is %q",
+				t.Errorf("error %q names %q; the first failure in main-menu manifest order is %q",
 					msg, tc.unnamed, tc.named)
 			}
 		})

@@ -3,9 +3,9 @@ package menu
 import (
 	"fmt"
 	"image"
-)
 
-func CaptionEntry(n int) string { return fmt.Sprintf("text%d.bmp", n) }
+	"againrom/pkg/screenart"
+)
 
 // Overlay and caption offsets: where each bitmap equals the base bitmap.
 var (
@@ -27,21 +27,17 @@ type secondPlacement struct {
 	caption        [ButtonCount]*image.RGBA
 }
 
-// LoadSecond is Load at the second game's sizes, plus the captions.
-func LoadSecond(src EntrySource) (*Assets, error) {
+// LoadSecond binds the second game's resolved art to its layout and captions.
+func LoadSecond(set *screenart.Set) (*Assets, error) {
 	r := rects(secondPlace)
-	a, err := load(src, r, r)
+	a, err := Load(set)
 	if err != nil {
 		return nil, err
 	}
 	p := &secondPlacement{hover: r, pressed: r}
-	for i := 0; i < ButtonCount; i++ {
-		name := EntryPrefix + CaptionEntry(i+1)
-		img, err := loadRGBA(src, name)
+	for i := range p.caption {
+		img, err := picture(set, fmt.Sprintf("caption/%d", i))
 		if err != nil {
-			return nil, err
-		}
-		if err := checkSize(name, img.Bounds(), captionRect.Dx(), captionRect.Dy()); err != nil {
 			return nil, err
 		}
 		p.caption[i] = img

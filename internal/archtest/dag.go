@@ -86,14 +86,13 @@ var allow = map[string][]string{
 	"pkg/mapload": {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
 	"pkg/mapedit": {"pkg/formats/alm"},
 	"pkg/render":  {"pkg/sim", "pkg/vfs"},
-	// The terrain and menu tiers decode their bitmaps through the bitmap
-	// leaf and keep no decoder of their own.
+	// Terrain decodes bitmaps through the format leaf; menus bind loader sets.
 	"pkg/render/terrain":    {"pkg/formats/bmp"},
 	"pkg/render/refraction": {},
 	"pkg/render/backdrop":   {},
 	"pkg/render/camera":     {},
 	"pkg/render/frame":      {},
-	"pkg/render/menu":       {"pkg/formats/bmp", "pkg/render/latch"},
+	"pkg/render/menu":       {"pkg/screenart", "pkg/render/latch"},
 	// latch is the one press latch every push button uses; it imports nothing.
 	"pkg/render/latch": {},
 	// The text tier is a LEAF: it holds the font model, the placement rule and

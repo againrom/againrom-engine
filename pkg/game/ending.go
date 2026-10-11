@@ -47,11 +47,8 @@ func (f *FrontEnd) endingArt() *ui.EndingView {
 			if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "text/credits.txt"); err == nil {
 				view.Credits = strings.Split(strings.ReplaceAll(strings.TrimSpace(vfs.DecodeText(f.textCode().Bytes(raw))), "\r\n", "\n"), "\n")
 			}
-			if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "graphics/famehall/hall.bmp"); err == nil {
-				if art, err := decodeInstallBMP(raw, "hall.bmp"); err == nil {
-					view.HallBackground = art
-				}
-			}
+			set, _ := loadScreen(f.Archives.artSource(), ScreensDescription(f.profile()), "hall-of-fame")
+			view.HallBackground = rgbaOf(set.Picture("background"))
 		}
 	}
 	return f.endingAssets

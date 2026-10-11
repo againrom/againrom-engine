@@ -17,11 +17,8 @@ import (
 // pkg/formats and are not scanned; the loader is pkg/screenart and its
 // install source pkg/game/screenart.go.
 //
-// Files that read pictures of another kind than a screen's (unit and static
-// sheets, fonts, cursors, item icons, spell effects, terrain) are listed with
-// their kind. ScreenArtDebt is the screens still opening their own pictures;
-// it may only fall: each entry must still hold a finding, and a file that
-// holds none must leave the list in the same commit.
+// Files that read non-screen pictures are listed with their kind. Every
+// screen reads its pictures through the loader; ScreenArtDebt stays empty.
 
 // screenArtLoader are the files of the one loader.
 var screenArtLoader = []string{"pkg/screenart/", "pkg/game/screenart.go", "pkg/formats/"}
@@ -47,17 +44,8 @@ var screenArtOtherKinds = map[string]string{
 	"pkg/render/terrain/tileset.go": "terrain tiles",
 }
 
-// ScreenArtDebt are the screens that still open their own pictures: the hall
-// of fame, the options screen, the menu media, the menu panels and the main
-// menu renderer. None is a screen this loader was built for.
-var ScreenArtDebt = map[string]bool{
-	"pkg/game/ending.go":        true,
-	"pkg/game/gameoptions.go":   true,
-	"pkg/game/media_menu.go":    true,
-	"pkg/game/menupanel.go":     true,
-	"pkg/render/menu/menu.go":   true,
-	"pkg/render/menu/second.go": true,
-}
+// ScreenArtDebt stays empty: every screen uses the one loader.
+var ScreenArtDebt = map[string]bool{}
 
 // screenArtReaders are the calls that read or decode an install picture
 // besides the picture decoders' own Decode functions.
@@ -127,6 +115,7 @@ func ScreenArtFindings(files map[string]string) ([]ScreenArtFinding, error) {
 		if err != nil {
 			return nil, err
 		}
+		aliases, dots := pictureReaderAliases(f)
 		add := func(n ast.Node, shape string) {
 			out = append(out, ScreenArtFinding{File: name, Line: fset.Position(n.Pos()).Line, Shape: shape})
 		}
@@ -141,7 +130,18 @@ func ScreenArtFindings(files map[string]string) ([]ScreenArtFinding, error) {
 					}
 				}
 			case *ast.CallExpr:
-				if name := callName(x.Fun); pictureReader(name) {
+				name := callName(x.Fun)
+				if qualifier, fn, ok := strings.Cut(name, "."); ok && aliases[qualifier] != "" {
+					name = aliases[qualifier] + "." + fn
+				} else if !ok {
+					for _, pkg := range dots {
+						if qualified := pkg + "." + name; pictureReader(qualified) {
+							name = qualified
+							break
+						}
+					}
+				}
+				if pictureReader(name) {
 					add(x, "opens a picture through "+name)
 				}
 			}
@@ -155,6 +155,40 @@ func ScreenArtFindings(files map[string]string) ([]ScreenArtFinding, error) {
 		return out[i].Line < out[j].Line
 	})
 	return out, nil
+}
+
+func pictureReaderAliases(f *ast.File) (map[string]string, []string) {
+	out := map[string]string{}
+	var dots []string
+	for _, imp := range f.Imports {
+		path, err := strconv.Unquote(imp.Path.Value)
+		if err != nil {
+			continue
+		}
+		var name string
+		switch path {
+		case "againrom/pkg/formats/bmp":
+			name = "bmp"
+		case "againrom/pkg/formats/spr256":
+			name = "spr256"
+		case "againrom/pkg/formats/spr16":
+			name = "spr16"
+		case "againrom/pkg/render/terrain":
+			name = "terrain"
+		default:
+			continue
+		}
+		alias := name
+		if imp.Name != nil {
+			alias = imp.Name.Name
+		}
+		if alias == "." {
+			dots = append(dots, name)
+		} else {
+			out[alias] = name
+		}
+	}
+	return out, dots
 }
 
 // callName is a called function's name: f or pkg.f.
