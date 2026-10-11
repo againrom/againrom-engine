@@ -34,7 +34,7 @@ func decodedInstallFront(root string) (*FrontEnd, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, ok := installShareKey(abs)
+	key, ok := installShareKey(root)
 	if !ok {
 		return NewFrontEnd(root)
 	}
@@ -50,7 +50,7 @@ func decodedInstallFront(root string) (*FrontEnd, error) {
 	decodedInstalls.Unlock()
 	slot.once.Do(func() {
 		var f *FrontEnd
-		f, slot.err = NewFrontEnd(abs)
+		f, slot.err = NewFrontEnd(root)
 		if slot.err != nil {
 			return
 		}
@@ -135,6 +135,19 @@ func TestReleaseDecodedInstallFixtureIsolation(t *testing.T) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		t.Fatal(err)
+	}
+	ordinary, err := NewFrontEnd(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanupFrontAudio(t, ordinary)
+	fixture, err := decodedInstallFront(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanupFrontAudio(t, fixture)
+	if fixture.Archives != ordinary.Archives {
+		t.Fatal("decoded install fixture loaded another archive share for the same root")
 	}
 	front := func(build func(string) (*FrontEnd, error)) *FrontEnd {
 		f, err := build(abs)
