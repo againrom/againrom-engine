@@ -34,8 +34,10 @@ type Entry struct {
 	Index  []Index `json:"index"`
 	Count  int     `json:"count"`
 	Counts []int   `json:"counts"`
-	// First is the number the first member of a series is printed with.
-	First int `json:"first"`
+	// First is the number the first member of a series is printed with;
+	// Firsts gives it by the entry's last index, as Counts gives the count.
+	First  int   `json:"first"`
+	Firsts []int `json:"firsts"`
 	// Frame is the frame a "frame" entry takes from its sheet.
 	Frame   int    `json:"frame"`
 	Size    *Point `json:"size"`

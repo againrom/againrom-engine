@@ -14,7 +14,7 @@ import (
 
 // secondTownDescriptions names the composed description of each second-game
 // town by its ID. A town without one keeps the row list.
-var secondTownDescriptions = map[int]string{1: "rom2-town1"}
+var secondTownDescriptions = map[int]string{1: "rom2-town1", 2: "rom2-town2"}
 
 // secondTownPages are the page kinds the second game's town screen draws.
 var secondTownPages = []string{"inn"}
@@ -24,12 +24,19 @@ var secondTownPages = []string{"inn"}
 var secondTownRooms = map[string]secondTownRoom{"square": secondTownSquare, "inn": secondTownInn}
 
 // secondTownRowText is the list fallback's text for a square hotspot's row.
-var secondTownRowText = map[string]string{"inn": "TAVERN", "gate": "GATES"}
+var secondTownRowText = map[string]string{"inn": "TAVERN", "gate": "GATES",
+	"girl1": "GIRL 1", "girl2": "GIRL 2", "guard": "GUARD", "dervish": "DERVISH"}
 
 // secondTownConditions answers the conditions the second game's town
 // descriptions name.
 var secondTownConditions = map[string]func(c *secondCampaign) bool{
 	"gate-open": (*secondCampaign).gateOpen,
+}
+
+// secondTownValues answers the values the second game's town descriptions
+// name: the stage is Scenario variable 0x300, bank slot 768 (R2-ENGINE-234).
+var secondTownValues = map[string]func(c *secondCampaign) int{
+	"stage": func(c *secondCampaign) int { return int(c.bank[768]) },
 }
 
 // secondTownHooks are the second game's campaign hooks, each run for the
@@ -55,8 +62,8 @@ const secondGateText = "plagatguard"
 // secondInnExit is the list fallback's row that leaves the composed inn.
 const secondInnExit = "EXIT"
 
-// secondTownVocabulary is the hook, condition and page names the second
-// game's campaign answers.
+// secondTownVocabulary is the hook, condition, value and page names the
+// second game's campaign answers.
 func secondTownVocabulary() town.Vocabulary {
 	v := town.Vocabulary{Pages: secondTownPages}
 	for name := range secondTownHooks {
@@ -64,6 +71,9 @@ func secondTownVocabulary() town.Vocabulary {
 	}
 	for name := range secondTownConditions {
 		v.Conditions = append(v.Conditions, name)
+	}
+	for name := range secondTownValues {
+		v.Values = append(v.Values, name)
 	}
 	return v
 }
@@ -518,7 +528,16 @@ func (t *secondCampaignScreen) sceneCondition(name string) bool {
 	return false
 }
 
-func (t *secondCampaignScreen) sceneValue(string) int { return -1 }
+func (t *secondCampaignScreen) sceneValue(name string) int {
+	if v := secondTownValues[name]; v != nil && t.state() != nil {
+		return v(t.state())
+	}
+	return -1
+}
+
+// sceneDialogue opens a town text section in place, as a click on a person
+// of the square does (R2-ENGINE-234).
+func (t *secondCampaignScreen) sceneDialogue(key string) { t.composed.action = t.openTownText(key) }
 
 // roomPlayer is the room's audio scope, built for the room on first use and
 // replaced when another room plays.

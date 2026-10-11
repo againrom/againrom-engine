@@ -126,6 +126,7 @@ func (h stillHost) StartLoop(string) bool                     { return false }
 func (h stillHost) StopLoop(string)                           {}
 func (h stillHost) Leave(string)                              {}
 func (h stillHost) Hook(string, string)                       {}
+func (h stillHost) Dialogue(string)                           {}
 
 // staticSquareArt keeps only the square's still pictures and mask.
 func staticSquareArt(full *town.Art) *town.Art {

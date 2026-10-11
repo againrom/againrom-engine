@@ -425,8 +425,12 @@ func (n *sceneNames) checkOps(where string, ops []Op) error {
 				}
 			}
 		case op.Latch != "":
-			if err := n.needSlot(where, op.Slot); err != nil {
-				return err
+			if op.Slot != "" {
+				if err := n.needSlot(where, op.Slot); err != nil {
+					return err
+				}
+			} else if op.Sound != "" {
+				return n.fail("%s latches sound %q on no slot", where, op.Sound)
 			}
 			for _, s := range op.Stop {
 				if err := n.needSlot(where, s); err != nil {
@@ -438,6 +442,14 @@ func (n *sceneNames) checkOps(where string, ops []Op) error {
 				return n.fail("%s drives %q, which is no driven actor", where, op.Drive)
 			}
 		case len(op.ClearLatch) > 0, op.Hook != "", op.Menu != "":
+		case op.Dialogue != "":
+			want := 0
+			if op.Value != "" {
+				want = 1
+			}
+			if strings.Count(op.Dialogue, "%") != want || strings.Count(op.Dialogue, "%d") != want {
+				return n.fail("%s opens dialogue %q with value %q", where, op.Dialogue, op.Value)
+			}
 		case op.Room != "":
 			if !n.rooms[op.Room] {
 				return n.fail("%s enters unknown room %q", where, op.Room)
@@ -527,6 +539,9 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		}
 		if a.HoldUnless != "" && a.Hold != "first" && a.Hold != "last" {
 			return fail("unknown hold frame %q", a.Hold)
+		}
+		if a.TowardFirstOnHover != "" && a.TowardLastOnHover != "" {
+			return fail("moves toward both ends on hover")
 		}
 		return n.needSlot(where, a.Slot)
 	case "flock":
@@ -678,8 +693,22 @@ func (n *sceneNames) validateFamilies(a ActorSpec, where string, fail func(strin
 		if m.Mode != "episode" && m.Mode != "loop" {
 			return fail("member %q has unknown mode %q", m.Name, m.Mode)
 		}
-		if m.Mode == "episode" && (m.Later == nil || m.SheetPick == nil) {
-			return fail("member %q needs later and sheet-pick", m.Name)
+		if m.Mode == "episode" && (m.Later == nil || m.Sheets > 0 && m.SheetPick == nil) {
+			return fail("member %q needs later, and sheet-pick when it has sheets", m.Name)
+		}
+		if m.Stamp != "" && m.Stamp != "start" {
+			return fail("member %q has unknown stamp %q", m.Name, m.Stamp)
+		}
+		if i := m.IdleSheet; i != nil && (*i < 0 || *i >= max(m.Sheets, 1)) {
+			return fail("member %q idles on sheet %d of %d", m.Name, *i, m.Sheets)
+		}
+		if len(m.Positions) == 0 {
+			return fail("member %q has no position", m.Name)
+		}
+		for _, f := range m.FramePositions {
+			if f.From < 0 || f.To < f.From {
+				return fail("member %q moves over frames %d to %d", m.Name, f.From, f.To)
+			}
 		}
 		longest := n.longest[m.Art]
 		for _, c := range m.FrameCues {
@@ -850,6 +879,7 @@ func (d *Description) uses() []nameUse {
 			use("hook", where, op.Hook)
 			use("condition", where, op.If)
 			use("condition", where, op.Unless)
+			use("value", where, op.Value)
 			ops(where, op.Then)
 			ops(where, op.Else)
 		}

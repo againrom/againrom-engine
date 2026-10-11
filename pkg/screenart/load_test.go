@@ -245,3 +245,24 @@ func TestCheckRefusesMalformedManifests(t *testing.T) {
 		}
 	}
 }
+
+// An indexed series takes its first number by its last index: member 0 of
+// series 1 is s1000.bmp and member 0 of series 2 is s2001.bmp.
+func TestIndexedSeriesTakesItsFirstNumberByIndex(t *testing.T) {
+	src := newFakeSource()
+	for _, k := range []string{"s1000.bmp", "s1001.bmp", "s1002.bmp", "s2001.bmp", "s2002.bmp"} {
+		src.pictures[k] = solid(2, 2, color.RGBA{A: 255})
+	}
+	e := Entry{Name: "girl", Format: "series", Key: "s%d%%03d.bmp", Index: []Index{{Count: 2, Base: 1}},
+		Counts: []int{3, 2}, Firsts: []int{0, 1}, Required: true}
+	if got := strings.Join(e.Keys(), ","); got != "s1000.bmp,s1001.bmp,s1002.bmp,s2001.bmp,s2002.bmp" {
+		t.Fatalf("keys = %s", got)
+	}
+	set, err := Load("screen", []Entry{e}, src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(set.Pictures("girl/0")) != 3 || len(set.Pictures("girl/1")) != 2 || src.reads["s2000.bmp"] != 0 {
+		t.Fatalf("series %d and %d frames, s2000 read %d times", len(set.Pictures("girl/0")), len(set.Pictures("girl/1")), src.reads["s2000.bmp"])
+	}
+}

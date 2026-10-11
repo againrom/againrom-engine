@@ -1,0 +1,201 @@
+{
+  "town": "rom2-town2",
+  "cite": ["R2-ENGINE-231", "R2-ENGINE-237"],
+  "view": {"size": [640, 480], "cite": ["R2-ENGINE-238"]},
+  "clock": {"period-ms": 100, "compare": "greater", "cite": ["R2-ENGINE-235"]},
+  "random": [
+    {"name": "persons", "source": "lcg", "multiplier": 214013, "increment": 2531011, "shift": 16, "mask": 32767,
+     "cite": ["R2-ENGINE-235", "DIV-2970"]}
+  ],
+  "art": [
+    {"name": "base", "format": "picture", "key": "graphics/interface/town_kaarg/townmain.bmp", "size": [640, 480], "required": true,
+     "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "mask", "format": "mask", "key": "graphics/interface/town_kaarg/townmask.bmp", "required": true,
+     "cite": ["R2-ENGINE-231", "R2-ASSET-050"]},
+    {"name": "hili-shop", "format": "picture", "key": "graphics/interface/town_kaarg/hili_shop.bmp", "size": [40, 76], "required": true,
+     "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "hili-inn", "format": "picture", "key": "graphics/interface/town_kaarg/hili_tavern.bmp", "size": [140, 128], "required": true,
+     "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "girl1", "format": "series", "key": "graphics/interface/town_kaarg/girl1/g%d%%03d.bmp", "size": [44, 108],
+     "index": [{"count": 2, "base": 1, "cite": ["R2-ASSET-051"]}], "counts": [31, 30], "firsts": [0, 1], "required": true,
+     "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "girl2", "format": "series", "key": "graphics/interface/town_kaarg/girl2/g%d%%03d.bmp", "size": [68, 104],
+     "index": [{"count": 2, "base": 1, "cite": ["R2-ASSET-051"]}], "counts": [31, 30], "firsts": [0, 1], "required": true,
+     "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "guard", "format": "series", "key": "graphics/interface/town_kaarg/guard/g%04d.bmp", "count": 55, "max-size": [76, 68],
+     "required": true, "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "dervish", "format": "series", "key": "graphics/interface/town_kaarg/dervish/d%04d.bmp", "count": 30, "size": [112, 148],
+     "required": true, "cite": ["R2-ENGINE-231", "R2-ASSET-051"]},
+    {"name": "gates", "format": "series", "key": "graphics/interface/town_kaarg/maingates/m%04d.bmp", "count": 11, "size": [60, 84],
+     "required": true, "cite": ["R2-ENGINE-231", "R2-ENGINE-236", "R2-ASSET-051"]}
+  ],
+  "mask": {
+    "art": "mask",
+    "required-bytes": [32, 64, 96, 128, 144, 160, 176, 192],
+    "bytes": [
+      {"byte": 32, "hotspot": "dervish", "cite": ["R2-ENGINE-233"]},
+      {"byte": 64, "hotspot": "guard", "cite": ["R2-ENGINE-233"]},
+      {"byte": 96, "hotspot": "girl1", "cite": ["R2-ENGINE-233", "R2-ENGINE-235"]},
+      {"byte": 128, "hotspot": "inn", "cite": ["R2-ENGINE-233"]},
+      {"byte": 144, "hotspot": "shop", "cite": ["R2-ENGINE-233"]},
+      {"byte": 160, "hotspot": "gate", "cite": ["R2-ENGINE-233"]},
+      {"byte": 176, "hotspot": "menu", "cite": ["R2-ENGINE-233"]},
+      {"byte": 192, "hotspot": "girl2", "cite": ["R2-ENGINE-233", "R2-ENGINE-235"]}
+    ],
+    "cite": ["R2-ENGINE-233", "R2-ASSET-050"]
+  },
+  "hotspots": [
+    {"name": "inn", "row": 0, "tip": 236,
+     "click": [{"room": "inn", "cite": ["R2-ENGINE-234", "R2-ENGINE-237"]}],
+     "hover": [{"latch": "inn", "slot": "inn", "sound": "town_kaarg/kenter1.wav", "stop": ["shop"], "cite": ["R2-ENGINE-233", "R2-ENGINE-280"]}],
+     "cite": ["R2-ENGINE-234"]},
+    {"name": "shop", "tip": 233,
+     "hover": [{"latch": "shop", "slot": "shop", "sound": "town_kaarg/kenter2.wav", "stop": ["inn"], "cite": ["R2-ENGINE-233", "R2-ENGINE-280"]}],
+     "cite": ["R2-ENGINE-234", "R2-ENGINE-237", "DIV-2963"]},
+    {"name": "gate", "row": 1, "tip": 237,
+     "click": [{"hook": "navigate", "cite": ["R2-ENGINE-234", "R2-ENGINE-144"]}],
+     "hover": [{"latch": "gate", "stop": ["shop", "inn"], "cite": ["R2-ENGINE-233"]}],
+     "cite": ["R2-ENGINE-234", "DIV-2966"]},
+    {"name": "menu", "tip": 235,
+     "click": [{"menu": "game-menu", "cite": ["R2-ENGINE-234"]}],
+     "cite": ["R2-ENGINE-234"]},
+    {"name": "girl1", "row": 2, "tip": 359,
+     "click": [{"dialogue": "kaargwoman%d", "value": "stage", "cite": ["R2-ENGINE-234"]}],
+     "cite": ["R2-ENGINE-234", "DIV-2971"]},
+    {"name": "girl2", "row": 3, "tip": 360,
+     "click": [{"dialogue": "kaargwoman%d", "value": "stage", "cite": ["R2-ENGINE-234"]}],
+     "cite": ["R2-ENGINE-234", "DIV-2971"]},
+    {"name": "guard", "row": 4, "tip": 361,
+     "click": [{"dialogue": "kaargguard%d", "value": "stage", "cite": ["R2-ENGINE-234"]}],
+     "cite": ["R2-ENGINE-234", "DIV-2971"]},
+    {"name": "dervish", "row": 5, "tip": 362,
+     "click": [{"dialogue": "kaargman%d", "value": "stage", "cite": ["R2-ENGINE-234"]}],
+     "cite": ["R2-ENGINE-234", "DIV-2971"]}
+  ],
+  "pointer": {
+    "off": [{"clear-latch": ["shop", "inn", "gate"], "cite": ["R2-ENGINE-233"]}],
+    "cite": ["R2-ENGINE-233"]
+  },
+  "sounds": {
+    "slots": [
+      {"name": "shop", "source": "town-exterior", "cite": ["R2-ENGINE-233", "R2-ENGINE-280"]},
+      {"name": "inn", "source": "town-exterior", "cite": ["R2-ENGINE-233", "R2-ENGINE-280"]},
+      {"name": "gate", "source": "town-exterior", "cite": ["R2-ENGINE-236"]}
+    ],
+    "loop": "town_kaarg/kvox1.wav",
+    "cite": ["R2-ENGINE-280", "DIV-2972"]
+  },
+  "actors": [
+    {"name": "gate", "program": "stepper", "art": "gates", "rest": "first", "toward-last-on-hover": "gate",
+     "first-sound": "town_kaarg/kdoor2.wav", "last-sound": "town_kaarg/kdoor1.wav", "slot": "gate",
+     "cite": ["R2-ENGINE-236", "DIV-2972"]},
+    {"name": "persons", "program": "families",
+     "members": [
+       {"name": "girl1", "art": "girl1", "mode": "episode", "sheets": 2, "positions": [[216, 284]], "stamp": "start", "idle-sheet": 0,
+        "later": {"draw": "persons", "base-ms": 3500, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]},
+        "sheet-pick": {"draw": "persons", "form": "scaled", "n": 2, "base": 0, "cite": ["R2-ENGINE-235"]},
+        "cite": ["R2-ENGINE-232", "R2-ENGINE-235"]},
+       {"name": "girl2", "art": "girl2", "mode": "episode", "sheets": 2, "positions": [[260, 284]], "stamp": "start", "idle-sheet": 0,
+        "later": {"draw": "persons", "base-ms": 3500, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]},
+        "sheet-pick": {"draw": "persons", "form": "scaled", "n": 2, "base": 0, "cite": ["R2-ENGINE-235"]},
+        "cite": ["R2-ENGINE-232", "R2-ENGINE-235"]},
+       {"name": "guard", "art": "guard", "mode": "episode", "positions": [[184, 156]], "stamp": "start", "idle-sheet": 0,
+        "frame-positions": [{"from": 13, "to": 37, "at": [140, 152], "cite": ["R2-ENGINE-232"]}],
+        "later": {"draw": "persons", "base-ms": 7500, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]},
+        "cite": ["R2-ENGINE-232", "R2-ENGINE-235"]},
+       {"name": "dervish", "art": "dervish", "mode": "episode", "positions": [[416, 328]], "stamp": "start", "idle-sheet": 0,
+        "later": {"draw": "persons", "base-ms": 3700, "span-ms": 500, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]},
+        "cite": ["R2-ENGINE-232", "R2-ENGINE-235"]}
+     ],
+     "entry": [
+       {"wait": "girl1", "after": {"draw": "persons", "base-ms": 2000, "span-ms": 2000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]}, "cite": ["R2-ENGINE-235", "DIV-2970"]},
+       {"wait": "girl2", "after": {"draw": "persons", "base-ms": 2000, "span-ms": 2000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]}, "cite": ["R2-ENGINE-235", "DIV-2970"]},
+       {"wait": "guard", "after": {"draw": "persons", "base-ms": 2000, "span-ms": 2000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]}, "cite": ["R2-ENGINE-235", "DIV-2970"]},
+       {"wait": "dervish", "after": {"draw": "persons", "base-ms": 4000, "span-ms": 500, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-235"]}, "cite": ["R2-ENGINE-235", "DIV-2970"]}
+     ],
+     "step-order": ["girl1", "girl2", "guard", "dervish"],
+     "paint-order": ["girl1", "girl2", "guard", "dervish"],
+     "cite": ["R2-ENGINE-235", "DIV-2970"]}
+  ],
+  "step": {
+    "admitted": ["advance gate", "advance persons"],
+    "after": ["schedule persons"],
+    "cite": ["R2-ENGINE-235", "R2-ENGINE-236", "DIV-2970"]
+  },
+  "layers": [
+    {"art": "base", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-232"]},
+    {"art": "hili-shop", "mode": "copy", "at": [328, 256], "when": {"hover": "shop", "cite": ["R2-ENGINE-232"]}, "cite": ["R2-ENGINE-232"]},
+    {"art": "hili-inn", "mode": "copy", "at": [480, 196], "when": {"hover": "inn", "cite": ["R2-ENGINE-232"]}, "cite": ["R2-ENGINE-232"]},
+    {"actor": "girl1", "mode": "copy", "cite": ["R2-ENGINE-232"]},
+    {"actor": "girl2", "mode": "copy", "cite": ["R2-ENGINE-232"]},
+    {"actor": "guard", "mode": "copy", "cite": ["R2-ENGINE-232"]},
+    {"actor": "dervish", "mode": "copy", "cite": ["R2-ENGINE-232"]},
+    {"actor": "gate", "mode": "copy", "at": [152, 256], "cite": ["R2-ENGINE-232", "R2-ENGINE-236"]}
+  ],
+  "music": {"track": "b16.wav", "cite": ["R2-ENGINE-231"]},
+  "square": {
+    "name": "square",
+    "enter": [
+      {"hook": "set-room", "cite": ["R2-ENGINE-250"]},
+      {"composer": "reset", "cite": ["R2-ENGINE-250", "R2-ENGINE-280"]}
+    ],
+    "cite": ["R2-ENGINE-250", "DIV-2966"]
+  },
+  "rooms": [
+    {"name": "inn", "page": "inn",
+     "enter": [
+       {"composer": "reset", "cite": ["R2-ENGINE-250"]},
+       {"hook": "set-room", "cite": ["R2-ENGINE-250"]}
+     ],
+     "art": [
+       {"name": "back", "format": "picture", "key": "graphics/interface/inn/manbacktalk.bmp", "size": [48, 64], "required": true,
+        "cite": ["R2-ENGINE-237", "R2-ENGINE-246", "DIV-2964"]},
+       {"name": "actor", "format": "sprites", "key": "graphics/interface/inn/unit1/sprites.16a", "max-size": [48, 64],
+        "cite": ["R2-ENGINE-247", "DIV-2964"]},
+       {"name": "button/0/0", "format": "picture", "key": "graphics/interface/inn/button1off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       {"name": "button/0/1", "format": "picture", "key": "graphics/interface/inn/button1on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       {"name": "button/1/0", "format": "picture", "key": "graphics/interface/inn/button2off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       {"name": "button/1/1", "format": "picture", "key": "graphics/interface/inn/button2on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       {"name": "button/2/0", "format": "picture", "key": "graphics/interface/inn/button3off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       {"name": "button/2/1", "format": "picture", "key": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]}
+     ],
+     "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
+               "back": "back", "actor": "actor", "select": "helper", "frame-ms": 125, "compare": "greater",
+               "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "R2-ENGINE-353", "DIV-2973"]},
+     "buttons": [
+       {"name": "hire", "rect": [484, 44, 624, 90], "off": "button/0/0", "on": "button/0/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-353", "DIV-2636"]},
+       {"name": "talk", "rect": [484, 91, 624, 137], "off": "button/1/0", "on": "button/1/1", "caption": 242, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       {"name": "exit", "rect": [484, 138, 624, 184], "off": "button/2/0", "on": "button/2/1", "caption": 232, "cite": ["R2-ENGINE-246", "R2-ENGINE-250", "R2-ENGINE-353"]}
+     ],
+     "scene": {
+       "view": {"size": [640, 480], "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+       "art": [
+         {"name": "left-stats", "format": "picture", "key": "graphics/interface/inn/leftstats.bmp", "size": [160, 238], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+         {"name": "left-picture", "format": "picture", "key": "graphics/interface/inn/leftpicture.bmp", "size": [160, 242], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+         {"name": "center", "format": "picture", "key": "graphics/interface/inn_kaarg/tavernmain.bmp", "size": [320, 480], "required": true, "cite": ["R2-ENGINE-237", "R2-ASSET-052", "R2-ENGINE-353"]},
+         {"name": "taverner", "format": "series", "key": "graphics/interface/inn_kaarg/taverner/a1%04d.bmp", "first": 1, "count": 1, "size": [248, 296],
+          "required": true, "cite": ["R2-ENGINE-277", "R2-ASSET-052", "DIV-2974"]},
+         {"name": "left-stats-seam", "format": "picture", "key": "graphics/interface/inn/luover.bmp", "size": [16, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-237", "R2-ENGINE-246", "DIV-2964"]},
+         {"name": "left-picture-seam", "format": "picture", "key": "graphics/interface/inn/ldover.bmp", "size": [16, 242], "transparent": "black", "required": true, "cite": ["R2-ENGINE-237", "R2-ENGINE-246", "DIV-2964"]},
+         {"name": "upper-seam", "format": "picture", "key": "graphics/interface/inn/ruover.bmp", "size": [16, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-237", "R2-ENGINE-246", "DIV-2964"]},
+         {"name": "upper", "format": "picture", "key": "graphics/interface/inn/buttonsarea.bmp", "size": [160, 238], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]}
+       ],
+       "sounds": {"slots": [
+         {"name": "helper", "source": "inn-interior", "key": "town/inn/helper.wav", "cite": ["R2-ENGINE-247", "R2-ENGINE-353"]}
+       ], "cite": ["R2-ENGINE-247", "DIV-2975"]},
+       "lifecycle": "shown",
+       "advance-when": "active",
+       "layers": [
+         {"group": "back", "art": "left-stats", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+         {"group": "back", "art": "left-picture", "mode": "copy", "at": [0, 238], "cite": ["R2-ENGINE-246", "R2-ENGINE-353"]},
+         {"group": "back", "art": "center", "mode": "copy", "at": [160, 0], "cite": ["R2-ENGINE-353"]},
+         {"group": "back", "art": "taverner", "mode": "copy", "at": [232, 88], "clip": [160, 0, 480, 480], "cite": ["R2-ENGINE-277", "R2-ENGINE-353", "DIV-2974"]},
+         {"group": "front", "art": "left-stats-seam", "mode": "over", "at": [160, 0], "cite": ["R2-ENGINE-246"]},
+         {"group": "front", "art": "left-picture-seam", "mode": "over", "at": [160, 238], "cite": ["R2-ENGINE-246"]},
+         {"group": "front", "art": "upper-seam", "mode": "over", "at": [464, 0], "cite": ["R2-ENGINE-246"]},
+         {"group": "front", "art": "upper", "mode": "copy", "at": [480, 0], "cite": ["R2-ENGINE-246", "R2-ENGINE-353", "DIV-2964"]}
+       ],
+       "cite": ["R2-ENGINE-237", "R2-ENGINE-353"]},
+     "cite": ["R2-ENGINE-237", "R2-ENGINE-353", "DIV-2973"]}
+  ]
+}

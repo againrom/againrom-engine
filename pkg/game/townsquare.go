@@ -24,6 +24,13 @@ var rom1TownJSON []byte
 //go:embed towns/rom2-town1.json
 var rom2Town1JSON []byte
 
+// rom2Town2JSON is the second game's second town, Kaarg, as data for the
+// town composer: its square and its inn page, every value beside the
+// second-game claim or divergence row behind it.
+//
+//go:embed towns/rom2-town2.json
+var rom2Town2JSON []byte
+
 // townDescriptions are the town descriptions a profile's edition can name, by
 // that name. A description that does not decode, or names a hook or condition
 // the campaign does not answer, is a build defect, so it stops the process at
@@ -35,6 +42,7 @@ func init() {
 	townDescriptions = map[string]*town.Description{
 		"rom1":       mustDecodeTown(rom1TownJSON, townVocabulary()),
 		"rom2-town1": mustDecodeTown(rom2Town1JSON, secondTownVocabulary()),
+		"rom2-town2": mustDecodeTown(rom2Town2JSON, secondTownVocabulary()),
 	}
 }
 

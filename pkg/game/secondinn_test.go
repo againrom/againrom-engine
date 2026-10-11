@@ -276,7 +276,7 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	f.Town.second = c
 	app.SetTown(screen)
 	screen.Choose(0)
-	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "GATES", Choosable: true}}
+	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "EXIT", Choosable: true}}
 	if c.room != secondTownInn || !reflect.DeepEqual(screen.Rows(), want) {
 		t.Fatal("inn rows", screen.Rows())
 	}
@@ -297,8 +297,12 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 		t.Fatal("quiet town 2 inn is not a save point")
 	}
 	screen.Choose(3)
+	if c.room != secondTownSquare || c.current != (secondLocation{2, 2}) {
+		t.Fatal("EXIT from the inn", c)
+	}
+	screen.Choose(1)
 	if c.current != (secondLocation{}) || c.room != secondTownSquare || len(c.available) != 4 {
-		t.Fatal("GATES from the inn", c)
+		t.Fatal("GATES from the square", c)
 	}
 }
 

@@ -283,10 +283,12 @@ func (p *Pendulum) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 	}
 }
 
-// Stepper moves one frame per admitted step toward its first frame while its
-// hotspot is hovered and toward its last frame otherwise. A change of target
-// stops its slot and requests the target's sound. While its hold condition is
-// false it shows its hold frame and keeps its target latch.
+// Stepper moves one frame per admitted step toward one end while its hotspot
+// is hovered and toward the other end otherwise: toward its first frame on
+// hover, or with TowardLastOnHover toward its last. It starts moving toward
+// its rest end. A change of target stops its slot and requests the target's
+// sound. While its hold condition is false it shows its hold frame and keeps
+// its target latch.
 type Stepper struct {
 	still
 	spec        *ActorSpec
@@ -294,7 +296,16 @@ type Stepper struct {
 	TowardFirst bool
 }
 
-func (st *Stepper) reset(s *Scene) { st.Frame, st.TowardFirst = 0, false }
+func (st *Stepper) reset(s *Scene) { st.Frame, st.TowardFirst = 0, st.spec.Rest == "first" }
+
+// towardFirst reports whether the pointer's hotspot sends the stepper toward
+// its first frame.
+func (st *Stepper) towardFirst(s *Scene) bool {
+	if name := st.spec.TowardLastOnHover; name != "" {
+		return s.hover == nil || s.hover.Name != name
+	}
+	return s.hover != nil && s.hover.Name == st.spec.TowardFirstOnHover
+}
 
 func (st *Stepper) prepare(s *Scene) { st.Frame = restFrame(st.spec.Rest, len(s.frames(st.spec.Art))) }
 
@@ -307,7 +318,7 @@ func (st *Stepper) phase(s *Scene, phase, name string, now time.Time) {
 		st.Frame = restFrame(st.spec.Hold, count)
 		return
 	}
-	first := s.hover != nil && s.hover.Name == st.spec.TowardFirstOnHover
+	first := st.towardFirst(s)
 	if first != st.TowardFirst {
 		s.stop(st.spec.Slot)
 		key := st.spec.LastSound
@@ -602,25 +613,41 @@ func (g *Families) enter(s *Scene, now time.Time) {
 
 func (g *Families) activeNow() bool { return g.Entered }
 
-func (g *Families) sheetName(i int) string {
+func (g *Families) sheetName(s *Scene, i int) string { return g.sheetOf(s, i, g.Members[i].Sheet) }
+
+// sheetOf names sheet n of member i's art, by the art's indices: position
+// then sheet, or sheet alone when one index carries the sheets.
+func (g *Families) sheetOf(s *Scene, i, n int) string {
 	spec, m := g.spec.Members[i], g.Members[i]
-	if spec.Sheets > 0 {
-		return spec.Art + "/" + strconv.Itoa(m.Position) + "/" + strconv.Itoa(m.Sheet)
+	art := g.art(s, i)
+	switch {
+	case art == nil || len(art.Index) == 0:
+		return spec.Art
+	case spec.Sheets > 0 && len(art.Index) == 1:
+		return spec.Art + "/" + strconv.Itoa(n)
+	case spec.Sheets > 0:
+		return spec.Art + "/" + strconv.Itoa(m.Position) + "/" + strconv.Itoa(n)
 	}
 	return spec.Art + "/" + strconv.Itoa(m.Position)
+}
+
+func (g *Families) art(s *Scene, i int) *ArtSpec {
+	for k := range s.spec.Art {
+		if s.spec.Art[k].Name == g.spec.Members[i].Art {
+			return &s.spec.Art[k]
+		}
+	}
+	return nil
 }
 
 // sheetLen is the loaded length of a member's sheet, or its declared length
 // when the sheet did not load.
 func (g *Families) sheetLen(s *Scene, i int) int {
-	if n := len(s.frames(g.sheetName(i))); n > 0 {
+	if n := len(s.frames(g.sheetName(s, i))); n > 0 {
 		return n
 	}
-	spec := g.spec.Members[i]
-	for _, a := range s.spec.Art {
-		if a.Name == spec.Art {
-			return a.CountAt(g.Members[i].Sheet)
-		}
+	if a := g.art(s, i); a != nil {
+		return a.CountAt(g.Members[i].Sheet)
 	}
 	return 0
 }
@@ -638,7 +665,7 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 			}
 			m := &g.Members[i]
 			if g.spec.Members[i].Mode == "loop" {
-				if frames := s.frames(g.sheetName(i)); len(frames) == 0 {
+				if frames := s.frames(g.sheetName(s, i)); len(frames) == 0 {
 					m.Current = -1
 				} else {
 					m.Current = (m.Current + 1) % len(frames)
@@ -646,7 +673,9 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 				continue
 			}
 			m.Current++
-			m.Clock = now
+			if g.spec.Members[i].Stamp == "" {
+				m.Clock = now
+			}
 			if m.Current >= g.sheetLen(s, i) {
 				m.Current, m.Active = -1, false
 			}
@@ -663,10 +692,13 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 			}
 			m.Clock, m.Current, m.Active = now, 0, true
 			m.Wait = s.wait(*spec.Later)
-			m.Sheet = s.amount(*spec.SheetPick)
+			m.Sheet = 0
+			if spec.SheetPick != nil {
+				m.Sheet = s.amount(*spec.SheetPick)
+			}
 		}
 		for i, spec := range g.spec.Members {
-			if len(spec.FrameCues) == 0 || len(s.frames(g.sheetName(i))) == 0 {
+			if len(spec.FrameCues) == 0 || len(s.frames(g.sheetName(s, i))) == 0 {
 				continue
 			}
 			m := g.Members[i]
@@ -682,17 +714,41 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 
 func (g *Families) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 	i := g.index(layer.Actor)
-	if i < 0 || !g.Entered || !s.present {
+	if i < 0 || !s.present {
 		return
+	}
+	if spec, m := g.spec.Members[i], g.Members[i]; spec.Sheets > 0 && (m.Sheet < 0 || m.Sheet >= spec.Sheets) {
+		return
+	}
+	sheet, frame, at, ok := g.Shown(s, layer.Actor)
+	if !ok {
+		return
+	}
+	layer.At = Point{at.X, at.Y}
+	place(dst, frameAt(s.frames(sheet), frame), layer)
+}
+
+// Shown answers the named member's drawn sheet name, frame and position, as
+// draw places it; ok is false for an unknown or undrawn member.
+func (g *Families) Shown(s *Scene, name string) (sheet string, frame int, at image.Point, ok bool) {
+	i := g.index(name)
+	if i < 0 || !g.Entered {
+		return "", 0, image.Point{}, false
 	}
 	spec, m := g.spec.Members[i], g.Members[i]
 	if m.Position < 0 || m.Position >= len(spec.Positions) {
-		return
+		return "", 0, image.Point{}, false
 	}
-	if spec.Sheets > 0 && (m.Sheet < 0 || m.Sheet >= spec.Sheets) {
-		return
+	at = spec.Positions[m.Position].Pt()
+	if !m.Active && spec.IdleSheet != nil {
+		return g.sheetOf(s, i, *spec.IdleSheet), 0, at, true
 	}
-	at := layer
-	at.At = spec.Positions[m.Position]
-	place(dst, frameAt(s.frames(g.sheetName(i)), max(m.Current, 0)), at)
+	if m.Active {
+		for _, f := range spec.FramePositions {
+			if m.Current >= f.From && m.Current <= f.To {
+				at = f.At.Pt()
+			}
+		}
+	}
+	return g.sheetName(s, i), max(m.Current, 0), at, true
 }

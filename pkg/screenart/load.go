@@ -211,9 +211,9 @@ func (l *Library) Bind(screen string, entries []Entry, name string, args ...any)
 }
 
 type expanded struct {
-	name, key string
-	count     int
-	number    *int
+	name, key    string
+	count, first int
+	number       *int
 }
 
 // expand lists the entries one spec names: itself, or one entry per index
@@ -221,7 +221,7 @@ type expanded struct {
 func expand(spec Entry) []expanded {
 	switch len(spec.Index) {
 	case 0:
-		return []expanded{{name: spec.Name, key: spec.Key, count: spec.Count}}
+		return []expanded{{name: spec.Name, key: spec.Key, count: spec.Count, first: spec.First}}
 	case 1:
 		var out []expanded
 		x := spec.Index[0]
@@ -231,6 +231,7 @@ func expand(spec Entry) []expanded {
 				name:   fmt.Sprintf("%s/%d", spec.Name, i),
 				key:    fmt.Sprintf(spec.Key, n),
 				count:  spec.CountAt(i),
+				first:  spec.FirstAt(i),
 				number: &n,
 			})
 		}
@@ -244,6 +245,7 @@ func expand(spec Entry) []expanded {
 					name:  fmt.Sprintf("%s/%d/%d", spec.Name, i, j),
 					key:   fmt.Sprintf(spec.Key, x.number(i), y.number(j)),
 					count: spec.CountAt(j),
+					first: spec.FirstAt(j),
 				})
 			}
 		}
@@ -264,7 +266,7 @@ func (s Entry) Keys() []string {
 			continue
 		}
 		for i := 0; i < e.count; i++ {
-			out = append(out, fmt.Sprintf(e.key, i+s.First))
+			out = append(out, fmt.Sprintf(e.key, i+e.first))
 		}
 	}
 	return out
@@ -293,6 +295,15 @@ func (s Entry) CountAt(i int) int {
 	return s.Count
 }
 
+// FirstAt is the first series number of the entry whose last index is i:
+// Firsts by that index when given, else First.
+func (s Entry) FirstAt(i int) int {
+	if i >= 0 && i < len(s.Firsts) {
+		return s.Firsts[i]
+	}
+	return s.First
+}
+
 func (l *Library) entry(screen string, spec Entry, e expanded) ([]image.Image, error) {
 	switch spec.Format {
 	case "picture":
@@ -307,7 +318,7 @@ func (l *Library) entry(screen string, spec Entry, e expanded) ([]image.Image, e
 	case "series":
 		var frames []image.Image
 		for i := 0; i < e.count; i++ {
-			key := fmt.Sprintf(e.key, i+spec.First)
+			key := fmt.Sprintf(e.key, i+e.first)
 			pic, err := l.picture(screen, spec, key)
 			if err == nil {
 				pic, err = place(pic, spec, key)

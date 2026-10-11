@@ -88,7 +88,7 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 	if c.bank[533] != 1 || c.bank[553] != 2 {
 		t.Fatal("TALK 22 did not store slots 533 and 553")
 	}
-	secondLaterChoose(t, app, "GATES")
+	secondLaterChoose(t, app, "EXIT", "GATES")
 	if c.current != (secondLocation{}) || app.Screen() != ui.ScreenTown {
 		t.Fatal("town 2 GATES did not depart", c.current)
 	}

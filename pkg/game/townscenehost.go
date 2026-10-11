@@ -24,6 +24,7 @@ type sceneCampaign interface {
 	sceneStopLoop()
 	sceneLeave(room string)
 	sceneHook(name, room string)
+	sceneDialogue(key string)
 }
 
 // townSceneHost is the one adapter the square and each room page of every
@@ -47,6 +48,7 @@ func (h townSceneHost) StartLoop(key string) bool     { return h.t.sceneStartLoo
 func (h townSceneHost) StopLoop(string)               { h.t.sceneStopLoop() }
 func (h townSceneHost) Leave(room string)             { h.t.sceneLeave(room) }
 func (h townSceneHost) Hook(name, room string)        { h.t.sceneHook(name, room) }
+func (h townSceneHost) Dialogue(key string)           { h.t.sceneDialogue(key) }
 func (h townSceneHost) PlaySound(source, key string, loop bool) town.Voice {
 	return h.t.scenePlay(h.room, source, key, loop)
 }
@@ -197,3 +199,7 @@ func (t *townScreen) sceneHook(name, room string) {
 		hook(t, r)
 	}
 }
+
+// sceneDialogue opens nothing: no first-game description opens a dialogue in
+// place.
+func (t *townScreen) sceneDialogue(string) {}

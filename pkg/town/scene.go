@@ -1,6 +1,7 @@
 package town
 
 import (
+	"fmt"
 	"image"
 	"strings"
 	"time"
@@ -144,6 +145,8 @@ type Host interface {
 	Leave(room string)
 	// Hook runs one named campaign hook for the named room.
 	Hook(name, room string)
+	// Dialogue opens the conversation a click names by its key.
+	Dialogue(key string)
 }
 
 // Process is the state that outlives every reset of a scene: the process
@@ -597,6 +600,12 @@ func (s *Scene) run(ops []Op) string {
 			s.host.Hook(op.Hook, "")
 		case op.Menu != "":
 			menu = op.Menu
+		case op.Dialogue != "":
+			key := op.Dialogue
+			if op.Value != "" {
+				key = fmt.Sprintf(key, s.host.Value(op.Value))
+			}
+			s.host.Dialogue(key)
 		}
 	}
 	return menu

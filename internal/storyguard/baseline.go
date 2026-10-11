@@ -2136,6 +2136,11 @@ package storyguard
 // pkg/game/secondtown.go, the seat grid and buttons in pkg/town/seats.go, the
 // one scene adapter's sceneCampaign interface, the composer's added refusals,
 // the second-game town witnesses and their tests, including this paragraph.
+// CommentBytes rises for the second game's second town: the docs of the
+// composer's dialogue verb, the stepper's hover direction, the family
+// member's stamp, idle sheet and frame positions, the screen art's series
+// first numbers, the town 2 witnesses and their tests, including this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2159,5 +2164,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8685327,
+	CommentBytes: 8690734,
 }

@@ -114,7 +114,10 @@ type PointerSpec struct {
 }
 
 // Op is one instruction of a click or hover program. Exactly one verb field is
-// set: arm, latch, drive, clear-latch, room, hook, menu or if.
+// set: arm, latch, drive, clear-latch, room, hook, menu, dialogue or if. A
+// latch with no slot requests no sound. A dialogue opens the conversation
+// whose key is its template formatted with the named value, or the template
+// itself when no value is named.
 type Op struct {
 	Arm        string      `json:"arm"`
 	Chance     *ChanceSpec `json:"chance"`
@@ -130,6 +133,8 @@ type Op struct {
 	Room       string      `json:"room"`
 	Hook       string      `json:"hook"`
 	Menu       string      `json:"menu"`
+	Dialogue   string      `json:"dialogue"`
+	Value      string      `json:"value"`
 	If         string      `json:"if"`
 	Then       []Op        `json:"then"`
 	Else       []Op        `json:"else"`
@@ -228,6 +233,7 @@ type ActorSpec struct {
 	Hold               string `json:"hold"`
 	HoldUnless         string `json:"hold-unless"`
 	TowardFirstOnHover string `json:"toward-first-on-hover"`
+	TowardLastOnHover  string `json:"toward-last-on-hover"`
 	FirstSound         string `json:"first-sound"`
 	LastSound          string `json:"last-sound"`
 	Slot               string `json:"slot"`
@@ -277,17 +283,34 @@ type CountCue struct {
 	Cite  []string `json:"cite"`
 }
 
-// MemberSpec is one member of a pendulum group or a family group.
+// MemberSpec is one member of a pendulum group or a family group. A family
+// member's art is indexed by position then sheet; art with one index and
+// sheets is indexed by sheet alone. Stamp "start" keeps the wait's clock from
+// the episode's start, where by default every advance restamps it. IdleSheet
+// shows that sheet's first frame while no episode runs. FramePositions move
+// a running member while its frame lies in a range.
 type MemberSpec struct {
-	Name      string     `json:"name"`
-	Art       string     `json:"art"`
-	Mode      string     `json:"mode"`
-	Sheets    int        `json:"sheets"`
-	Positions []Point    `json:"positions"`
-	Later     *WaitSpec  `json:"later"`
-	SheetPick *PickSpec  `json:"sheet-pick"`
-	FrameCues []FrameCue `json:"frame-cues"`
-	Cite      []string   `json:"cite"`
+	Name           string          `json:"name"`
+	Art            string          `json:"art"`
+	Mode           string          `json:"mode"`
+	Sheets         int             `json:"sheets"`
+	Positions      []Point         `json:"positions"`
+	Later          *WaitSpec       `json:"later"`
+	SheetPick      *PickSpec       `json:"sheet-pick"`
+	Stamp          string          `json:"stamp"`
+	IdleSheet      *int            `json:"idle-sheet"`
+	FramePositions []FramePosition `json:"frame-positions"`
+	FrameCues      []FrameCue      `json:"frame-cues"`
+	Cite           []string        `json:"cite"`
+}
+
+// FramePosition draws a running member at At while its frame lies in
+// [From, To].
+type FramePosition struct {
+	From int      `json:"from"`
+	To   int      `json:"to"`
+	At   Point    `json:"at"`
+	Cite []string `json:"cite"`
 }
 
 // FrameCue requests a sound while a member shows Frame of Sheet; a negative

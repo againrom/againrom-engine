@@ -17,6 +17,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   talk to on their seats and the Talk and Exit buttons. The gate stays shut,
   and the guard says so, until the first inn talk; Exit or Escape leaves the
   inn for the square.
+- [ROM2] Kaarg, the second town, is a picture too: the square shows its gates,
+  which open while the pointer rests on them, the guard on his rounds, two
+  girls and a sleeping man, with hover hints and the shop and inn highlights.
+  Clicking a girl, the guard or the sleeping man opens what that person says
+  at this point of the campaign. The inn is the same page as the first town's,
+  with Kaarg's own room and taverner; the shop still opens nothing.
 
 ## 0.113.1
 

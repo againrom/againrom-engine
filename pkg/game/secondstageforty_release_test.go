@@ -73,7 +73,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 	c := secondStageFortyInn(t, f, app)
 	rows := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true},
 		{Text: "TALK 2015", Choosable: true}, {Text: "TALK 2111", Choosable: true}, {Text: "TALK 2004", Choosable: true},
-		{Text: "GATES", Choosable: true}}
+		{Text: "EXIT", Choosable: true}}
 	if got := f.TownScreen().Rows(); !reflect.DeepEqual(got, rows) {
 		t.Fatal("stage 40 inn rows", got)
 	}
@@ -106,7 +106,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 		f   *FrontEnd
 		app *ui.App
 	}{{f, app}, {cold, a}} {
-		secondLaterChoose(t, run.app, "GATES")
+		secondLaterChoose(t, run.app, "EXIT", "GATES")
 		secondLaterEnter(t, run.f, run.app, 40)
 	}
 	// The source camera carries scroll state from missions 10 and 20, so the

@@ -117,6 +117,7 @@ func (h *fakeHost) StartLoop(key string) bool { h.log = append(h.log, "loop "+ke
 func (h *fakeHost) StopLoop(key string)       { h.log = append(h.log, "stoploop "+key) }
 func (h *fakeHost) Leave(room string)         { h.log = append(h.log, "leave") }
 func (h *fakeHost) Hook(name, room string)    { h.log = append(h.log, "hook "+name+"@"+room) }
+func (h *fakeHost) Dialogue(key string)       { h.log = append(h.log, "dialogue "+key) }
 
 func (h *fakeHost) plays() int {
 	n := 0
@@ -146,6 +147,7 @@ func (h *fakeHost) tick(d time.Duration) { h.now = h.now.Add(d) }
 var testVocabulary = Vocabulary{
 	Hooks:      []string{"enter-hook", "leave-hook", "closed"},
 	Conditions: []string{"open", "admitted"},
+	Values:     []string{"stage"},
 	Pages:      []string{"inn"},
 }
 
