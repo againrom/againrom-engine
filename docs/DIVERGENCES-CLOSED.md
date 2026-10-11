@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## Script ownership changes
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-2266 | AI / an unarmed actor handed to the player on a script hand-over | Match the original ownership-change stance; the delivered mission-10 witch must stay at the town | `PARTY-JOIN-025`: instants 19 and 22 construct a singleton Group. `AI-351`: the ownership-change caller reaches the Stand Ground setter, which clears pending orders and writes group order 3. `AI-STANCE-098`: that setter anchors the current cell. `AI-STAND-076`: the group arm issues no walk | Both ownership-change routes give the new Group Stand Ground, clear replaced patrol/escort intent and anchor the current post. The shared stance policy decides whether an in-flight cycle can continue | FIDELITY-DEBT | Closed: the former order-0 inference used the Group constructor and omitted the reachable Stand Ground setter. Mission-10 delivery stays through 512 ticks and SAVE/cold LOAD on EN and RU | Reopen if an ownership change resumes the previous guard post or a replaced movement order | CLOSED |
+
 ## Turn rate and standing facing
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

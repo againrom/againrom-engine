@@ -8,9 +8,8 @@ import (
 )
 
 // The mission 70 crossbowmen join the party when a party unit comes within 6 of
-// (38,108). A joined actor stands in a new group at group order 0 and acts on
-// its own guard state (AI-CMD-033, PARTY-JOIN-025), so a monk that walks up to
-// one is engaged without an order.
+// (38,108). The new group receives Stand Ground (AI-351, PARTY-JOIN-025),
+// so a monk within reach is engaged without a player order.
 func TestReleaseMission70JoinedCrossbowmenEngageAMonkWithoutAnOrder(t *testing.T) {
 	f := openCampaignMission(t, 70)
 	mw := f.live

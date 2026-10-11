@@ -1389,44 +1389,8 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	// there is deliberately no default that writes a value.
 }
 
-// runInstant runs one instant.
-//
-// An arm this build does not run reaches no case and does nothing. It does NOT
-// stop the trigger: a trigger that fires runs the instants this build has and
-// skips the ones it does not, so the half of a mission chain that can be
-// reproduced is not held hostage by the half that cannot. Which arms were
-// skipped is Script.Unsupported's answer, given before the first tick.
-//
-// THE TWO HAND-OVER ARMS ARE THE ONLY WRITERS OF AN ENTITY'S OWNER anywhere in
-// this package, and neither reads one.
-// handOver is what BOTH hand-over arms do to one actor, and the only writer of
-// an entity's owner in this package.
-//
-// THREE WRITES, IN THIS ORDER, and the order is the original routine's own: the
-// actor leaves the group it stood in, it is moved to the new owner, and it is
-// placed alone in a group of its own. The routine the original dispatches both
-// instants to removes the actor from its current group first, then rewrites its
-// owner, then allocates a fresh group and inserts the actor into it. It writes
-// no primary-character pointer and allocates no fresh runtime id, which is what
-// separates it from a character being installed at a mission's start — so a
-// handed-over actor is a member of the new owner's roster and never that
-// roster's primary character, and it keeps the runtime id it already had.
-//
-// THE FRESH GROUP COMES FROM freeCommandGroup (0159 D-4), which already answers
-// "the lowest id at or above every script-named group that no actor's EFFECTIVE
-// group names". That is exactly a group nobody else stands in. The command
-// group is cleared BEFORE the id is taken, on commandGroup's own ground: an id
-// only this actor held reads free again the moment the scan runs.
-//
-// THE COMMAND GROUP IS CLEARED RATHER THAN CARRIED (0159 D-6). It is a second
-// group word layered over the placed one, and leaving it standing would keep
-// the actor inside the group it was just removed from for every reader that
-// asks the effective group — including the next call to this function, which
-// would then hand the next member the same id.
-//
-// The three writes are all it does. Nothing else moves: not the position, not
-// the health, not the order's own destination, not the container and not the
-// twelve worn places.
+// handOver moves an actor to a new owner's singleton Group and applies
+// Stand Ground, including the current post and pending-order reset (AI-351).
 func (w *World) handOver(i int, player uint32) {
 	w.handOverReference(i, player)
 	if w.savedGroups != nil {
@@ -1441,19 +1405,30 @@ func (w *World) handOver(i int, player uint32) {
 	if id == 0 {
 		return
 	}
-	// The group the hand-over builds is a new group at group order 0, the
-	// state every freshly constructed group holds (AI-CMD-033, PARTY-JOIN-025).
-	// Without a record the pair takes no decision at all, so the member stood
-	// idle beside an enemy; with one, order 0 hands the member to its own actor
-	// state, which for the constructor default is guard.
+	// The ownership-change route applies Stand Ground to the new Group.
+	// AI-351, AI-STANCE-098.
 	members := []int{i}
 	cx, cy := groupCentroid(w.entities, members)
 	w.upsertGroup(groupAI{
 		owner: player,
 		group: id,
 		base:  noticeBase(w.entities, members, cx, cy),
-		order: orderNone,
+		order: orderStandGround,
 	})
+	w.standHandedOverMember(i)
+}
+
+func (w *World) standHandedOverMember(i int) {
+	if !w.entities[i].Alive() {
+		return
+	}
+	w.clearTurnUnlessCasting(i)
+	w.standScriptedMembers([]int{i})
+	e := &w.entities[i]
+	e.ActorState = actorStateAcquire
+	e.PostX, e.PostY = e.X, e.Y
+	w.syncSavedActorCommand(i)
+	w.syncSavedPost(i)
 }
 
 // handOverReference writes the actor's owner Reference (actor+0x14) as the

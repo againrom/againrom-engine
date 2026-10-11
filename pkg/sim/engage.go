@@ -441,7 +441,7 @@ func (w *World) walkHome(members []int) {
 // A GROUP NO RECORD NAMES TAKES NO DECISION. groupState's third return says
 // so, and this is its one caller: a pair with no record is left in every
 // field rather than falling back to a derivation from its owner. The
-// hand-over arms build a record for each new group (order 0), so they do not
+// hand-over arms build a Stand Ground record for each new group, so they do not
 // reach this case.
 //
 // A GROUP UNDER ORDER 0 TAKES NO DECISION EITHER, AND NEEDS ITS OWN CLAUSE

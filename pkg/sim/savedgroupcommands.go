@@ -198,16 +198,15 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 }
 
 func (w *World) handOverSaved(i int, player uint32) {
-	// A handover is a membership/ownership mutation, not a fresh movement or
-	// patrol setter. The current actor order and raw operands survive.
 	// PARTY-JOIN-025 constructs directly in the destination Player; it does
 	// not call the ordinary command wrapper's first-rejected cleanup.
-	if !w.newSavedCommandGroup([]int{i}, orderNone, cell{}, false, w.uniqueSavedPlayerSlot(player), false) {
+	if !w.newSavedCommandGroup([]int{i}, orderStandGround, cell{}, false, w.uniqueSavedPlayerSlot(player), false) {
 		return
 	}
 	w.entities[i].Owner = player
 	w.inheritAutoHealing(i)
 	w.savedGroupFor(w.entities[i].ID).Owner = SavedGroupReference{Class: 1, Owner: player}
+	w.standHandedOverMember(i)
 }
 
 func (w *World) freeSavedSelector() uint32 {

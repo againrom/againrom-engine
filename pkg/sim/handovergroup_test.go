@@ -161,9 +161,7 @@ func TestAFreshGroupIsAboveEveryGroupTheScriptNames(t *testing.T) {
 	}
 }
 
-// A handed-over actor stands in a new group at order 0, and order 0 gives the
-// member to its own actor state: an enemy inside the guard block is engaged
-// without an order from the player.
+// A handed-over actor engages an enemy in reach under Stand Ground.
 func TestAHandedOverGuardEngagesAnEnemyWithoutAnOrder(t *testing.T) {
 	t.Parallel()
 
@@ -195,26 +193,27 @@ func TestAHandedOverGuardEngagesAnEnemyWithoutAnOrder(t *testing.T) {
 		w := build(t)
 		w.handOver(indexOfEntity(w.entities, 1), 1)
 		e := entityAt(t, w, 1)
-		if order, _, ok := w.groupState(1, e.Group); !ok || order != orderNone {
-			t.Fatalf("the new group (1,%d) holds order %d, record %v; want a record at order 0", e.Group, order, ok)
+		if order, _, ok := w.groupState(1, e.Group); !ok || order != orderStandGround {
+			t.Fatalf("the new group (1,%d) holds order %d, record %v; want Stand Ground", e.Group, order, ok)
 		}
 		if !engaged(w) {
 			t.Error("a handed-over guard did not engage an enemy three cells away within 40 ticks")
 		}
 	})
 
-	t.Run("loss control: no record for the new group", func(t *testing.T) {
+	t.Run("loss control: no record and retained Guard", func(t *testing.T) {
 		t.Parallel()
 		w := build(t)
 		w.handOver(indexOfEntity(w.entities, 1), 1)
 		e := entityAt(t, w, 1)
+		w.entities[indexOfEntity(w.entities, 1)].ActorState = actorStateGuard
 		for i := len(w.groups) - 1; i >= 0; i-- {
 			if w.groups[i].owner == 1 && w.groups[i].group == e.Group {
 				w.groups = append(w.groups[:i], w.groups[i+1:]...)
 			}
 		}
 		if engaged(w) {
-			t.Error("the actor engaged with no group record, so the test does not measure the record")
+			t.Error("the retained Guard engaged with no group record")
 		}
 	})
 }

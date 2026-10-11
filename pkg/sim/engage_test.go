@@ -480,12 +480,10 @@ func TestAPairNoRecordNamesDecidesNothing(t *testing.T) {
 	if got := owners(w)[1]; got != toOwner {
 		t.Fatalf("the hand-over left entity 1 at owner %d, want %d", got, toOwner)
 	}
-	// The hand-over builds a record for the member's new group at order 0
-	// (AI-CMD-033). The pair under test is the one no record names, so that
-	// record is removed here.
+	// Remove the new Stand Ground record to exercise the pair no record names.
 	nowGrp := entityAt(t, w, 1).Group
-	if order, _, ok := w.groupState(toOwner, nowGrp); !ok || order != orderNone {
-		t.Fatalf("(%d,%d) holds order %d, record %v after the hand-over, want a record at order 0",
+	if order, _, ok := w.groupState(toOwner, nowGrp); !ok || order != orderStandGround {
+		t.Fatalf("(%d,%d) holds order %d, record %v after the hand-over, want Stand Ground",
 			toOwner, nowGrp, order, ok)
 	}
 	for i := len(w.groups) - 1; i >= 0; i-- {

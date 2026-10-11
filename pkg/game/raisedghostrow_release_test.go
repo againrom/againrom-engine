@@ -48,9 +48,6 @@ func requireGhostRowColumns(t *testing.T, label string, e sim.Entity, def data.U
 	}
 }
 
-// TestReleaseRaisedGhostTakesItsWholeUnitsRow: a Ghost raised in mission 20
-// regenerates after a Fire Arrow, alone reveals an invisible creature and has
-// capacity 300; SAVE, cold LOAD and 256 ticks keep the live World hash.
 func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
@@ -226,6 +223,12 @@ func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 	}
 	t.Logf("invisible creature %d cell(s) from the Ghost revealed by see-invisible %d alone; capacity %d", cheb(ghost, target), ghost.SeeInvisible, ghost.Capacity)
 
+	// Remove the revealed hostile before SAVE. Mission-20 joiners hold their
+	// posts (PARTY-M20-030, PARTY-JOIN-025, AI-351, AI-STAND-076); they cannot
+	// chase it to protect the Ghost during the persistence check.
+	if err := w.HeadlessKill(hidden.ID); err != nil {
+		t.Fatal(err)
+	}
 	path, _ := writeOrdinarySAV(t, f, "ghost-row.sav")
 	cold := loadAreaContinuation(t, path)
 	coldGhost := raisedGhostEntity(t, cold, typ)
@@ -240,7 +243,9 @@ func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 			cold.live.tick()
 		}
 	}
-	requireGhostRowColumns(t, "cold +256", raisedGhostEntity(t, cold, typ), def, general)
+	coldGhost = raisedGhostEntity(t, cold, typ)
+	requireGhostRowColumns(t, "cold +256", coldGhost, def, general)
+	t.Logf("cold +256: Ghost id=%d owner=%d HP=%d/%d, all row columns retained, World hash=%016x", coldGhost.ID, coldGhost.Owner, coldGhost.HP, coldGhost.MaxHP, cold.live.world.Hash())
 }
 
 func ghostRowAbs(v int32) int32 {

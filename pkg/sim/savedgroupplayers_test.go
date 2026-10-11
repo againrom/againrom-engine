@@ -380,7 +380,10 @@ func TestSavedGroupPlayers1115HandoverUsesDestinationWithoutCleanup(t *testing.T
 			o.State, o.Patrol = 0xa, []uint16{0x1111, 0x1212}
 			o.Raw[8], o.Raw[10], o.Raw[11], o.Raw[0x70] = 7, 25, 26, 13
 			beforeOrder := *o
-			beforeOrder.Patrol = slices.Clone(o.Patrol)
+			beforeOrder.State, beforeOrder.Authored, beforeOrder.Patrol = 0xc, true, nil
+			beforeOrder.Raw[0], beforeOrder.Raw[1] = 8, 8
+			beforeOrder.Raw[8], beforeOrder.Raw[0x70] = 0, 0
+			beforeOrder.Raw[0x14] = 1
 			beforeGroup := *w.savedGroupByID(72)
 			w.handOver(0, tc.dest)
 			g := w.savedGroupFor(10)
@@ -388,14 +391,14 @@ func TestSavedGroupPlayers1115HandoverUsesDestinationWithoutCleanup(t *testing.T
 				t.Fatal("handover reused source container or ignored destination owner", g, w.entities[0])
 			}
 			if !reflect.DeepEqual(*w.savedOrder(10), beforeOrder) || !reflect.DeepEqual(*w.savedGroupByID(72), beforeGroup) {
-				t.Fatal("handover changed actor-order policy or cleaned destination empty Group")
+				t.Fatalf("handover order got %+v, want %+v; destination empty Group changed=%v", *w.savedOrder(10), beforeOrder, !reflect.DeepEqual(*w.savedGroupByID(72), beforeGroup))
 			}
 			w.handOver(0, tc.dest)
 			if got := savedGroupIDs1115(w); !slices.Equal(got, []uint32{71, 72, 73, 74}) || w.savedGroupFor(10).ContainerID != tc.want {
 				t.Fatal("repeated handover cleaned empty Groups or reused identity", got)
 			}
 			if !reflect.DeepEqual(*w.savedOrder(10), beforeOrder) {
-				t.Fatal("repeated handover reset retained actor order")
+				t.Fatal("repeated handover changed the stood actor order")
 			}
 			roundTripSavedGroupPlayers1115(t, w)
 		})

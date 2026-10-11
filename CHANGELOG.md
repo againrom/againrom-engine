@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The witch stays at the town when delivered in the first mission; script ownership changes now apply Stand Ground at the current cell.
+
 ## 0.113.0
 
 - [BASE] W on the mission map takes back the weapon each selected unit held
