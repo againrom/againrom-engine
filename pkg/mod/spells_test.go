@@ -95,7 +95,7 @@ func TestParseSpellsRefusalsNameFileAndLine(t *testing.T) {
 		"damage one column":      {row + "damage = { max = 5 }\n", "data/spells.toml:3: damage needs both min and max"},
 		"damage reversed":        {row + "damage = { min = 6, max = 5 }\n", "data/spells.toml:3: damage.min 6 is above damage.max 5"},
 		"damage zero":            {row + "damage = { min = 0, max = 0 }\n", "data/spells.toml:3: damage is 0 to 0"},
-		"damage high":            {row + "damage = { min = 1, max = 256 }\n", "data/spells.toml:3: damage.max is 256, outside 0..255"},
+		"damage high":            {row + "damage = { min = 1, max = 6899 }\n", "data/spells.toml:3: damage.max is 6899, outside 0..6898"},
 		"damage key":             {row + "damage = { min = 1, max = 2, mean = 3 }\n", `data/spells.toml:3: unknown key "mean" in damage`},
 		"effect kind":            {row + "effect = { kind = \"fear\" }\n", `data/spells.toml:3: effect.kind is "fear" (use none, health`},
 		"effect mode":            {row + "effect = { mode = \"always\" }\n", `data/spells.toml:3: effect.mode is "always" (use duration`},
@@ -119,6 +119,13 @@ func TestParseSpellsRefusalsNameFileAndLine(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want %q", name, err, c.want)
 		}
+	}
+}
+
+func TestParseSpellsAcceptsWholeDamageColumnsAtTheBound(t *testing.T) {
+	d, err := ParseSpells("large", SpellsFile, []byte("[[spell]]\ntarget = \"Fire Arrow\"\ndamage = { min = 300, max = 6898 }\n"), nil)
+	if err != nil || len(d.Rows) != 1 || d.Rows[0].DamageMin.Val != 300 || d.Rows[0].DamageMax.Val != SpellMaxDamage {
+		t.Fatalf("whole damage columns: %+v, %v", d.Rows, err)
 	}
 }
 

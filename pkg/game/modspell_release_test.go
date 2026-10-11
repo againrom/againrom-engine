@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -215,6 +216,11 @@ func TestReleaseModSpellEditsReachACastAndTheSave(t *testing.T) {
 	plain := spellModFront(t, "")
 	if _, _, err := plain.RestoreOriginal(raw); err == nil {
 		t.Error("a game without the mod loaded the SAV written under it")
+	}
+	for _, power := range []int32{0, 100} {
+		t.Run(fmt.Sprintf("whole_columns_power%d", power), func(t *testing.T) {
+			releaseWholeModDamage(t, power)
+		})
 	}
 }
 

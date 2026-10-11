@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -40,6 +41,23 @@ func castDamageResisted(v int64, r int32) int64 {
 // Earth resistance is D*(100-r)/100 (MAGIC-303).
 func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
 	f := releaseFront(t)
+	installed := mapload.SpellRules(f.Table)
+	if len(installed) != 28 {
+		t.Fatalf("installed row census has %d rows, want 28", len(installed))
+	}
+	for _, rule := range installed {
+		if rule.Second {
+			t.Fatal("first-game row census contains a second-game rule")
+		}
+		for power := int32(0); power <= 255; power++ {
+			b, s := sim.SpellColumnDamage(rule.DamageMin, rule.DamageMax, power)
+			wb, ws := castDamageRecord(rule.DamageMin, rule.DamageMax, power)
+			if b != wb || s != ws {
+				t.Fatalf("spell %d power %d: pair %d/%d differs from former %d/%d", rule.ID, power, b, s, wb, ws)
+			}
+		}
+	}
+	t.Logf("%s: all %d installed rows x 256 powers = %d unchanged pairs", os.Getenv("AGAINROM_ASSETS"), len(installed), len(installed)*256)
 	party := MissionPartyAs(true, f.StartWeapon.Value(), f.Bodies, f.Table)
 	mission, err := StartMission(f.Archives.Containers, 10, f.Table, openDifficulty, party)
 	if err != nil {

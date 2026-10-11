@@ -176,6 +176,33 @@ func TestGlobalMultipliersRoundTowardZeroAndClamp(t *testing.T) {
 	}
 }
 
+func TestModDamageDomainWidensOnlyTheFirstGame(t *testing.T) {
+	d, err := mod.ParseSpells("large", mod.SpellsFile, []byte("[[spell]]\ntarget = \"Fire Arrow\"\ndamage = { min = 300, max = 600 }\n"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	table := withSpells(d)
+	if _, msg := mapload.ModSpellRefusal(table, d.Rows[0]); msg != "" {
+		t.Fatal(msg)
+	}
+	table.SpellArms = mapload.SecondGameSpellArms
+	if line, msg := mapload.ModSpellRefusal(table, d.Rows[0]); line != 3 || !strings.Contains(msg, "second game's 0..255") {
+		t.Fatalf("second-game refusal line %d: %q", line, msg)
+	}
+	global := mod.SpellData{Global: mod.SpellGlobal{Damage: ratio(100, 1), Heal: ratio(100, 1)}}
+	first := withSpells(global)
+	second := withSpells(global)
+	second.SpellArms = mapload.SecondGameSpellArms
+	if r := ruleByID(t, mapload.SpellRules(first), 1); r.DamageMin != 400 || r.DamageMax != 800 {
+		t.Fatalf("first-game global damage %+v", r)
+	}
+	for _, r := range mapload.SpellRules(second) {
+		if r.DamageMin > 255 || r.DamageMax > 255 || !r.Second {
+			t.Fatalf("second-game multiplier left its old byte domain: %+v", r)
+		}
+	}
+}
+
 func TestAZeroMultiplierThatEmptiesTheDamagePairClearsTheFlag(t *testing.T) {
 	r := ruleByID(t, mapload.SpellRules(withSpells(mod.SpellData{Global: mod.SpellGlobal{Damage: ratio(0, 1)}})), 1)
 	if r.Damaging || r.DamageMax != 0 {

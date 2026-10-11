@@ -158,7 +158,7 @@ func (w *World) RestoreCurrentSpellDeliveries(rows []CurrentDeliveryRestore) err
 			expected := SavedEffect{Class: "Effect", E0C: uint8(child.Spell)}
 			probe := cellEffect{Spell: child.Spell, Power: uint16(d.Power)}
 			expected = areaSavePayload(&n, probe, baseRule)
-			if d.Current.Radius == baseRule.Radius && d.Current.Payload == expected {
+			if !spellDamageExceedsPayload(n.rules, baseRule, d.Power) && d.Current.Radius == baseRule.Radius && d.Current.Payload == expected {
 				d.Current = nil
 			}
 		}

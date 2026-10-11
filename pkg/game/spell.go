@@ -355,17 +355,16 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 	return lines
 }
 
-// spellRecordDamage is the record's bytes +0xe and +0xf at a power: the
-// minimum, and the maximum as the minimum plus the spread. Each is the low
-// byte of a column times f = power/30 + 1 truncated, formed in double
-// arithmetic, the spread from the maximum column's product less the minimum
-// byte (TEXT-096). A column at or below zero leaves its byte 0. A first-game
-// row reads the pair a cast copies (sim.SpellRecordDamage).
+// spellRecordDamage states minimum and minimum plus spread at record power.
+// First-game columns share the cast's pair, including whole mod values.
 func spellRecordDamage(rule sim.SpellRule, c sim.SpellCharacteristics) (minimum, maximum int64) {
 	dmin, dmax := rule.DamageMin, rule.DamageMax
+	if c.HasDamageFactor && !rule.Second && (dmin > 255 || dmax > 255) {
+		return int64(dmin) * int64(c.DamageFactor) / 30, int64(dmax) * int64(c.DamageFactor) / 30
+	}
 	if !c.HasDamageFactor && !rule.Second {
-		base, spread := sim.SpellRecordDamage(dmin, dmax, c.RecordPower)
-		return int64(base), int64(base) + int64(spread)
+		base, spread := sim.SpellColumnDamage(dmin, dmax, c.RecordPower)
+		return base, base + spread
 	}
 	product := func(column int32) int {
 		if c.HasDamageFactor {

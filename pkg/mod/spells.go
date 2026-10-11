@@ -13,7 +13,7 @@ const (
 	SpellMaxMana      = 32767
 	SpellMaxRange     = 255
 	SpellMaxRadius    = 255
-	SpellMaxDamage    = 255
+	SpellMaxDamage    = 6898
 	SpellMaxDuration  = 4095
 	SpellMaxAreaLife  = 4000
 	SpellMaxMagnitude = 32767

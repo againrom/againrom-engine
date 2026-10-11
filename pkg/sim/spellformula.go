@@ -30,13 +30,24 @@ func spellDamageUnder(r Rules, rule SpellRule, power int32) (base, spread int64)
 	f, ok := r.SpellFormulaAt(rules.FormulaDamage, rule.ID, power)
 	if !ok {
 		if !rule.Second {
-			b, s := SpellRecordDamage(rule.DamageMin, rule.DamageMax, power)
-			return int64(b), int64(s)
+			return SpellColumnDamage(rule.DamageMin, rule.DamageMax, power)
 		}
 		return spellDamage(rule.DamageMin, rule.DamageMax, power)
 	}
 	base = int64(rule.DamageMin) * int64(f) / 30
 	return base, int64(rule.DamageMax)*int64(f)/30 - base
+}
+
+func (rule SpellRule) wholeDamageColumns() bool {
+	return !rule.Second && (rule.DamageMin > 255 || rule.DamageMax > 255)
+}
+
+func spellDamageExceedsPayload(r Rules, rule SpellRule, power int32) bool {
+	if !rule.Damaging || !rule.wholeDamageColumns() {
+		return false
+	}
+	base, spread := spellDamageUnder(r, rule, power)
+	return base > 255 || spread > 255
 }
 
 func rangeBonusFor(r Rules, rule SpellRule, power int32) (int64, bool) {

@@ -926,6 +926,23 @@ func SpellRecordDamage(dmin, dmax, power int32) (base, spread uint8) {
 	return base, spread
 }
 
+// SpellColumnDamage keeps mod columns above 255 whole (DIV-3002). Byte
+// columns retain the original record pair, including binary64 rounding.
+func SpellColumnDamage(dmin, dmax, power int32) (base, spread int64) {
+	if dmin <= 255 && dmax <= 255 {
+		b, s := SpellRecordDamage(dmin, dmax, power)
+		return int64(b), int64(s)
+	}
+	f := doubleQuo(int64(uint8(power)), 30).add(doubleFromInt(1))
+	if dmin > 0 {
+		base = doubleFromInt(int64(dmin)).mul(f).trunc()
+	}
+	if dmax > 0 {
+		spread = doubleFromInt(int64(dmax)).mul(f).sub(doubleFromInt(base)).trunc()
+	}
+	return base, spread
+}
+
 // PoisonMagnitude is the first game's Poison Cloud magnitude at power: the
 // low word of trunc(magnitude * (power/30 + 1)) in binary64 on the full
 // signed power (MAGIC-302).

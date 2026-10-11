@@ -97,7 +97,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 					e.DamageMin = int32(e.Current.Payload.DirectDamage[19])
 					e.DamageMax = e.DamageMin + int32(e.Current.Payload.DirectDamage[20])
 				}
-				if !e.Current.Stopped && e.Current.Radius == rule.Radius && e.Current.Payload == areaSavePayload(&n, e, rule) {
+				if !spellDamageExceedsPayload(n.rules, rule, int32(e.Power)) && !e.Current.Stopped && e.Current.Radius == rule.Radius && e.Current.Payload == areaSavePayload(&n, e, rule) {
 					e.Current = nil
 				}
 			}

@@ -85,18 +85,38 @@ func TestAnAreaCastCoversTheEditedRadius(t *testing.T) {
 	}
 }
 
-func TestAQueuedPointCastSaturatesAtThePayloadByte(t *testing.T) {
-	table := castTable()
-	table.Spells.(defCollection)[1].params[5], table.Spells.(defCollection)[1].params[7] = 2, 200
-	table.Mods.Spells = mod.SpellData{Rows: []mod.SpellRow{{Target: "Fire Arrow", DamageMin: spellInt(mod.SpellMaxDamage), DamageMax: spellInt(mod.SpellMaxDamage)}}}
-	w, err := sim.NewSpelledWorld(7, sim.Bounds{Width: 24, Height: 24}, sim.ModeCanonical, nil,
-		[]sim.Entity{castMage(1, 0, 0), castEnt(2, 3, 0)}, nil, mapload.SpellRules(table))
-	if err != nil {
-		t.Fatal(err)
-	}
-	castRun(w, sim.Cast(1, 2, 1))
-	lost := 100 - entityOf(t, w, 2).HP
-	if lost < 255 || lost > 300 {
-		t.Errorf("victim lost %d, want the saturated 255 to 300", lost)
+func TestModDamageColumnsReachImmediateAndQueuedCasts(t *testing.T) {
+	for _, delivery := range []int32{1, 2} {
+		for _, power := range []int32{0, 100} {
+			d, err := mod.ParseSpells("large", mod.SpellsFile, []byte("[[spell]]\ntarget = \"Fire Arrow\"\ndamage = { min = 300, max = 600 }\n"), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			table := castTable()
+			table.Spells.(defCollection)[1].params[5], table.Spells.(defCollection)[1].params[7] = delivery, 200
+			table.Mods.Spells = d
+			caster, target := castMage(1, 0, 0), castEnt(2, 3, 0)
+			caster.Mind = 30 + power
+			target.HP, target.MaxHP = 10000, 10000
+			w, err := sim.NewSpelledWorld(7, sim.Bounds{Width: 24, Height: 24}, sim.ModeCanonical, nil,
+				[]sim.Entity{caster, target}, nil, mapload.SpellRules(table))
+			if err != nil {
+				t.Fatal(err)
+			}
+			commands := []sim.Command{sim.Cast(1, 2, 1)}
+			lost := int32(0)
+			for tick := 0; tick < 400 && lost == 0; tick++ {
+				sim.Step(w, commands)
+				commands = nil
+				lost = 10000 - entityOf(t, w, 2).HP
+			}
+			lo, hi := int32(300), int32(600)
+			if power == 100 {
+				lo, hi = 1300, 2600
+			}
+			if lost < lo || lost > hi {
+				t.Errorf("delivery %d power %d: damage %d, want whole range %d..%d", delivery, power, lost, lo, hi)
+			}
+		}
 	}
 }

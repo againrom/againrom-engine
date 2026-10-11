@@ -82,8 +82,10 @@ func (w *World) queueSpellDelivery(d spellDelivery) {
 	}
 	d.Rule.bookInstance, d.Rule.bookDefensive = false, 0
 	d.Rule.Delivery = 1 // the child is already delivered when consumed
-	payload := w.preparedSpellPayload(d.Rule, d.Power, indexOfEntity(w.entities, d.Target))
-	d.Payload = &payload
+	if !d.Rule.Damaging || !d.Rule.wholeDamageColumns() {
+		payload := w.preparedSpellPayload(d.Rule, d.Power, indexOfEntity(w.entities, d.Target))
+		d.Payload = &payload
+	}
 	w.prepareEffectAppend()
 	w.deliveries = append(w.deliveries, d)
 	w.noteEffectAppend(WorldEffectRef{Kind: EffectNativeDelivery, Index: uint32(len(w.deliveries) - 1)})

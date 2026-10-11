@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
@@ -139,7 +140,11 @@ func SpellRules(t *Table) []sim.SpellRule {
 	if err != nil {
 		return nil
 	}
-	applyModSpells(spells, t.Mods.Spells)
+	maxDamage := int64(mod.SpellMaxDamage)
+	if t.SpellArms != nil {
+		maxDamage = 255
+	}
+	applyModSpells(spells, t.Mods.Spells, maxDamage)
 	rules := spellRules(spells)
 	if t.SpellArms != nil {
 		t.SpellArms(rules)

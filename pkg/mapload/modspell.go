@@ -43,6 +43,9 @@ func ModSpellRefusal(t *Table, r mod.SpellRow) (line int, msg string) {
 		return r.Line, fmt.Sprintf("spell %q is not a row of the spell table", r.Target)
 	}
 	sp := spells[i]
+	if t.SpellArms != nil && r.DamageMax.Set && r.DamageMax.Val > 255 {
+		return r.DamageMax.Line, fmt.Sprintf("%s damage.max is %d, outside the second game's 0..255", sp.Name, r.DamageMax.Val)
+	}
 	if r.DamageMax.Set && sp.DamageMin <= 0 && sp.DamageMax <= 0 {
 		return r.DamageMax.Line, fmt.Sprintf("%s has no damage or healing pair to edit", sp.Name)
 	}
@@ -152,7 +155,7 @@ func applyModSpellTargets(rules []sim.SpellRule, spells []data.Spell, d mod.Spel
 	}
 }
 
-func applyModSpells(spells []data.Spell, d mod.SpellData) {
+func applyModSpells(spells []data.Spell, d mod.SpellData, maxDamage int64) {
 	if d.Empty() {
 		return
 	}
@@ -225,8 +228,8 @@ func applyModSpells(spells []data.Spell, d mod.SpellData) {
 				ratio = g.Heal
 			}
 			if ratio.Set {
-				sp.DamageMin = scaleSpell(int64(sp.DamageMin), ratio, mod.SpellMaxDamage)
-				sp.DamageMax = scaleSpell(int64(sp.DamageMax), ratio, mod.SpellMaxDamage)
+				sp.DamageMin = scaleSpell(int64(sp.DamageMin), ratio, maxDamage)
+				sp.DamageMax = scaleSpell(int64(sp.DamageMax), ratio, maxDamage)
 			}
 		}
 		sp.Damaging, sp.Restorative = data.ClassifySpell(i+1, sp.DamageMin, sp.DamageMax)

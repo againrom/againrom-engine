@@ -2,6 +2,7 @@ package game
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -23,6 +24,32 @@ func modSpellFront() *FrontEnd {
 	f := &FrontEnd{}
 	f.Table = &mapload.Table{Spells: rows}
 	return f
+}
+
+func TestModDamageColumnsStateWholePopupPair(t *testing.T) {
+	f := modSpellFront()
+	d, err := mod.ParseSpells("large", mod.SpellsFile, []byte("[[spell]]\ntarget = \"Fire Arrow\"\ndamage = { min = 300, max = 600 }\n"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.SetModSpells(d); err != nil {
+		t.Fatal(err)
+	}
+	rules := mapload.SpellRules(f.Table)
+	for _, tc := range []struct {
+		power int32
+		line  string
+	}{{0, "Damage: 300-600"}, {100, "Damage: 1300-2600"}, {255, "Damage: 2850-5700"}} {
+		e := sim.Entity{Mind: 30 + tc.power, Book: sim.Spellbook{State: sim.BookPresent}}
+		sim.LearnBookSpell(&e, 1, rules)
+		book := spellbookOf(sim.Rules{}, e, rules, map[uint16]string{1: "Fire Arrow"}, testSpellPopupWords(), nil)
+		if len(book) != 1 || !slices.Contains(book[0].Info, tc.line) {
+			t.Fatalf("power %d popup %v lacks %q", tc.power, book, tc.line)
+		}
+	}
+	if lo, hi := spellRecordDamage(rules[0], sim.SpellCharacteristics{HasDamageFactor: true, DamageFactor: 60}); lo != 600 || hi != 1200 {
+		t.Fatalf("wide columns with a factor table: popup %d..%d, want 600..1200", lo, hi)
+	}
 }
 
 func spellEdits(rows ...mod.SpellRow) mod.SpellData {

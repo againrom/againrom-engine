@@ -31,9 +31,9 @@ func TestSpellRecordDamageEqualsBinary64(t *testing.T) {
 	for power := int32(0); power <= 255; power++ {
 		for dmin := int32(0); dmin <= 255; dmin++ {
 			for dmax := int32(0); dmax <= 255; dmax++ {
-				gb, gs := sim.SpellRecordDamage(dmin, dmax, power)
+				gb, gs := sim.SpellColumnDamage(dmin, dmax, power)
 				wb, ws := recordDamageBinary64(dmin, dmax, power)
-				if gb != wb || gs != ws {
+				if gb != int64(wb) || gs != int64(ws) {
 					failures++
 					if failures <= 10 {
 						t.Errorf("power %d columns %d/%d: integer %d/%d, binary64 %d/%d", power, dmin, dmax, gb, gs, wb, ws)
@@ -51,6 +51,23 @@ func TestSpellRecordDamageEqualsBinary64(t *testing.T) {
 		if gb != wb || gs != ws {
 			t.Errorf("columns %d/%d power %d: integer %d/%d, binary64 %d/%d", c[0], c[1], c[2], gb, gs, wb, ws)
 		}
+	}
+}
+
+func TestModDamageColumnsKeepBinary64Rounding(t *testing.T) {
+	for power := int32(0); power <= 255; power++ {
+		f := float64(float64(power)/30.0) + 1.0
+		for _, columns := range [][2]int32{{300, 600}, {45, 300}, {0, 300}, {255, 256}, {256, 256}, {6898, 6898}, {0, 6898}} {
+			b, s := sim.SpellColumnDamage(columns[0], columns[1], power)
+			wb := int64(float64(float64(columns[0]) * f))
+			ws := int64(float64(float64(float64(columns[1])*f) - float64(wb)))
+			if b != wb || s != ws {
+				t.Fatalf("columns %v power %d: %d/%d, want binary64 %d/%d", columns, power, b, s, wb, ws)
+			}
+		}
+	}
+	if b, _ := sim.SpellColumnDamage(45, 300, 12); b != 62 {
+		t.Fatalf("whole row rounded base %d, want 62 instead of integer 63", b)
 	}
 }
 

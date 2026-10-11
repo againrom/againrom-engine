@@ -971,8 +971,11 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 					}
 					adjusted := rule
 					base, spread := spellDamageUnder(w.rules, rule, power)
-					adjusted.DamageMin = int32(int64(uint8(base)) / (side * side))
-					adjusted.DamageMax = adjusted.DamageMin + int32(int64(uint8(spread))/(side*side))
+					if !rule.wholeDamageColumns() {
+						base, spread = int64(uint8(base)), int64(uint8(spread))
+					}
+					adjusted.DamageMin = int32(base / (side * side))
+					adjusted.DamageMax = adjusted.DamageMin + int32(spread/(side*side))
 					applied = w.ordinaryAreaEffect(ci, i, adjusted, 0)
 				} else {
 					applied = w.ordinaryAreaEffect(ci, i, rule, power)
@@ -1007,12 +1010,13 @@ func (w *World) applyStructureSpellAt(x, y int32, rule SpellRule, power int32) b
 	}
 	s := &w.structures[i]
 	base, spread := spellDamageUnder(w.rules, rule, power)
-	// The direct effect carries byte combat components. The Building resolver
-	// ignores even a positive base when the spread byte is zero, consumes no
-	// roll in that arm, and subtracts five after a positive-spread roll.
+	if !rule.wholeDamageColumns() {
+		base, spread = int64(uint8(base)), int64(uint8(spread))
+	}
+	// A zero spread suppresses the base; a positive spread rolls then loses five.
 	damage := int32(0)
-	if s.MaxHealth != 0 && uint8(spread) != 0 {
-		damage = max(int32(uint8(base))+w.rng.uniform(int32(uint8(spread)))-5, 0)
+	if s.MaxHealth != 0 && spread != 0 {
+		damage = max(int32(base)+w.rng.uniform(int32(spread))-5, 0)
 	}
 	// Subtract as a word, then clamp a negative signed word. Do not refuse
 	// HP zero: retained aliases still reach the resolver on later visits.

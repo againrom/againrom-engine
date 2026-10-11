@@ -14,6 +14,24 @@ Every refusal stops the launch and names the mod, the file and the line.
 | `data/weapon-bodies.toml` | the body a weapon is drawn with | below, `DIV-2912` |
 | `data/bodies.toml` | body sheets the mod supplies | below, `DIV-2913`, `DIV-2914` |
 
+## Spell damage columns
+
+For the first game, `data/spells.toml` accepts `damage = { min = N, max = N }`
+with each column in 0..6898, ordered and not both zero. The second game retains
+its 0..255 column domain. Global damage and healing multipliers clamp their
+columns to the corresponding game's bound. At power 255, 6898 scales to 65531,
+inside the original random wrapper's non-overflowing spread domain.
+
+For first-game rows without a `damage_factor` table, columns at or below
+255 retain the original binary64 record bytes. If either column is above
+255, both scaled products and their spread stay whole, with the same
+binary64 rounding. A `damage_factor` table keeps its integer formula.
+For a row with either column above 255, the popup states the whole pair and
+fresh immediate, queued and area casts apply it. Byte-column factor-table
+rows retain their existing delivery and popup routes. SAVE saturates an
+in-flight base or spread above 255 to 255;
+cold LOAD applies those saved bytes (`DIV-3002`, `DIV-2224`, `DIV-2327`).
+
 ## Weapon bodies
 
 `data/weapon-bodies.toml` holds `[[weapon]]` tables. Each draws one weapon row

@@ -109,15 +109,16 @@ func TestStructureDamageBytePairAndSignedWordClamp(t *testing.T) {
 		name      string
 		hp, max   uint16
 		base, top int32
+		power     int32
 		want      uint16
 		draws     int
 	}{
-		{"zero spread ignores base", 100, 100, 20, 20, 100, 0},
-		{"zero max", 100, 0, 20, 21, 100, 0},
-		{"nonpositive result", 100, 100, 1, 2, 100, 1},
-		{"byte spread wraps to zero", 100, 100, 10, 266, 100, 0},
-		{"negative signed HP clamps", 0xffff, 100, 0, 0, 0, 0},
-		{"zero HP stays zero after damage", 0, 100, 10, 11, 0, 1},
+		{"zero spread ignores base", 100, 100, 20, 20, 0, 100, 0},
+		{"zero max", 100, 0, 20, 21, 0, 100, 0},
+		{"nonpositive result", 100, 100, 1, 2, 0, 100, 1},
+		{"byte spread wraps to zero", 100, 100, 0, 128, 30, 100, 0},
+		{"negative signed HP clamps", 0xffff, 100, 0, 0, 0, 0, 0},
+		{"zero HP stays zero after damage", 0, 100, 10, 11, 0, 0, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w := structureAreaWorld(t, []Structure{{ID: 1, Field42: tc.hp, MaxHealth: tc.max, Width: 1, Height: 1, Attach: 1}})
@@ -125,7 +126,7 @@ func TestStructureDamageBytePairAndSignedWordClamp(t *testing.T) {
 			for n := 0; n < tc.draws; n++ {
 				r.next()
 			}
-			w.applyStructureSpellAt(0, 0, SpellRule{DamageMin: tc.base, DamageMax: tc.top}, 0)
+			w.applyStructureSpellAt(0, 0, SpellRule{DamageMin: tc.base, DamageMax: tc.top}, tc.power)
 			if w.structures[0].Field42 != tc.want || w.rng != r {
 				t.Fatalf("HP/RNG=%d/%v want %d/%v", w.structures[0].Field42, w.rng, tc.want, r)
 			}
