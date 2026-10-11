@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.113.0
+
 - [BASE] W on the mission map takes back the weapon each selected unit held
   before, from its own backpack; a shield or bow that went with it comes back
   too, and the current weapon goes to the backpack.
