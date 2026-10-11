@@ -59,7 +59,7 @@ func TestMilestone2SessionBlock(t *testing.T) {
 	diplomacyRosterZeroNonzero := 0
 	var refused []milestone2ResumeRefusal
 
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierSessionBlock, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

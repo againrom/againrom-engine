@@ -991,9 +991,11 @@ func writerCensusWriteOne(t *testing.T, assets string, mf milestone2File) (write
 	return w, "", nil
 }
 
-// writerCensusRun writes and checks one original, mutate standing in for a
-// writer with one fix disabled.
 func writerCensusRun(t *testing.T, assets string, mf milestone2File) writerCensusResult {
+	if !milestone2CarrierApplies(t, mf, currentCarrierSacks) {
+		changes := milestone2WriterRoundTrip(t, assets, mf, true)
+		return writerCensusResult{changes: changes}
+	}
 	w, stage, err := writerCensusWriteOne(t, assets, mf)
 	r := writerCensusResult{town: w.town, changes: w.changes, stage: stage, err: err}
 	if err != nil {

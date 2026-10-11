@@ -58,7 +58,7 @@ func group1155Bytes(words []uint16) []byte {
 // bytes, the u32 member count and trailing G1C/G40/G44. The following Group or
 // Player raw-tail START locates the suffix; no decoded Group end or member
 // list supplies a count, value or expected traversal order.
-func groups1155Expected(f *sav.File) (groups1155Source, error) {
+func expectedNativeGroups(f *sav.File) (groups1155Source, error) {
 	s := groups1155Source{actors: map[uint16]group1155ActorRaw{}}
 	var err error
 	s.players, err = nativeExpectedPlayers(f)

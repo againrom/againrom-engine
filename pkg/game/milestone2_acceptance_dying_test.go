@@ -19,7 +19,7 @@ import (
 func TestMilestone2DyingOwnerActors(t *testing.T) {
 	files, subjects, checked, mismatches := 0, 0, 0, 0
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierDyingOwnerActors, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

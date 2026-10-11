@@ -3,8 +3,11 @@ package game
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"sync"
 
 	"againrom/pkg/graphcopy"
@@ -26,6 +29,47 @@ var currentActionDecodes struct {
 	entries []currentActionDecoded
 }
 
+var errInvalidWriterCarriers = errors.New("current actions: invalid WriterCarriers record")
+
+func checkCurrentWriterCarriers(b []byte) error {
+	d := json.NewDecoder(bytes.NewReader(b))
+	d.UseNumber()
+	start, err := d.Token()
+	if err != nil {
+		return fmt.Errorf("current actions: %w", err)
+	}
+	if start != json.Delim('{') {
+		return nil
+	}
+	found := false
+	var value json.RawMessage
+	for d.More() {
+		key, err := d.Token()
+		if err != nil {
+			return fmt.Errorf("current actions: %w", err)
+		}
+		if err := d.Decode(&value); err != nil {
+			return fmt.Errorf("current actions: %w", err)
+		}
+		name, _ := key.(string)
+		if !strings.EqualFold(name, "WriterCarriers") {
+			continue
+		}
+		if found {
+			return fmt.Errorf("%w: duplicate member", errInvalidWriterCarriers)
+		}
+		found = true
+		bits, err := strconv.ParseUint(string(bytes.TrimSpace(value)), 10, 32)
+		if err != nil {
+			return fmt.Errorf("%w: expected an unsigned integer", errInvalidWriterCarriers)
+		}
+		if uint32(bits)&^currentCarrierAll != 0 {
+			return fmt.Errorf("%w: unknown bits", errInvalidWriterCarriers)
+		}
+	}
+	return nil
+}
+
 // decodeCurrentActions decodes b strictly into a fresh value that shares no
 // memory with any other caller's value.
 func decodeCurrentActions(b []byte) (*currentActionData, error) {
@@ -42,6 +86,9 @@ func decodeCurrentActions(b []byte) (*currentActionData, error) {
 		}
 	}
 	currentActionDecodes.mu.Unlock()
+	if err := checkCurrentWriterCarriers(b); err != nil {
+		return nil, err
+	}
 	var a currentActionData
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()

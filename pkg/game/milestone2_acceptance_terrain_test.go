@@ -15,7 +15,7 @@ func TestMilestone2TerrainBlockPlane(t *testing.T) {
 	filesChecked, recordsChecked, differences := 0, 0, 0
 	widths := map[int]int{}
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierTerrainBlockPlane, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

@@ -13,7 +13,7 @@ import (
 func TestMilestone2CellRecords(t *testing.T) {
 	filesChecked, recordsChecked, uniqueChecked, differences := 0, 0, 0, 0
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierCellRecords, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

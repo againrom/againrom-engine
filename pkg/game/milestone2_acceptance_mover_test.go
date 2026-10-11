@@ -10,7 +10,7 @@ func TestMilestone2MoverRoutes(t *testing.T) {
 	unsupported := 0
 	var nonempty, elements [3]int
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierMoverRoutes, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		want, err := mover1160Expected(mf.f, mf.raw)
 		if err != nil {
 			mismatches++

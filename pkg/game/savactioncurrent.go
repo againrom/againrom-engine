@@ -41,6 +41,22 @@ type currentNativeDelivery struct {
 	Object uint16
 	Policy sim.CurrentDeliveryPolicy
 }
+
+const (
+	currentCarrierBuildings uint32 = 1 << iota
+	currentCarrierCellRecords
+	currentCarrierDeadRoots
+	currentCarrierDyingOwnerActors
+	currentCarrierGroups
+	currentCarrierMoverRoutes
+	currentCarrierPlayers
+	currentCarrierSacks
+	currentCarrierSessionBlock
+	currentCarrierSpellEffects
+	currentCarrierTerrainBlockPlane
+	currentCarrierAll = (currentCarrierTerrainBlockPlane << 1) - 1
+)
+
 type currentActionData struct {
 	structureGenerated   map[uint32]bool
 	StructureBindings    *[]currentStructureBinding   `json:",omitempty"`
@@ -48,6 +64,7 @@ type currentActionData struct {
 	HeldNativeBasisWires bool                         `json:",omitempty"`
 	RemovedNativeBases   []sim.NativeActorBasisRecord `json:",omitempty"`
 	Version              uint32
+	WriterCarriers       uint32
 	NativeHistoryVersion uint8              `json:",omitempty"`
 	WorldMapReturn       *SnapshotMapReturn `json:",omitempty"`
 	Bindings             []currentActionBinding
@@ -120,6 +137,9 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	a := *decoded
 	if a.Version != 1 || a.NativeHistoryVersion > 1 || len(a.Bindings) > 131072 || len(a.Actions.Actors) > 32767 || len(a.Groups) > 65534 || len(a.CellCosts) > 65536 || len(a.SpellCasters) > 65534 || len(a.AbsentStructureCells) > 65536 {
 		return nil, fmt.Errorf("current action version/population is invalid")
+	}
+	if a.WriterCarriers & ^currentCarrierAll != 0 {
+		return nil, fmt.Errorf("current action writer carriers contain unknown bits")
 	}
 	if a.Program != nil && (doc.World == nil || a.Policy == nil) {
 		return nil, fmt.Errorf("current script program lacks world/register policy")
@@ -338,7 +358,7 @@ func sourceActorDocumentClass(class uint8) string {
 // layer relocates these addresses with every reindex/retirement; final key
 // completion is independent. Constructor objects may still have a zero wire key.
 func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w *sim.World, s Snapshot, table *mapload.Table, captured ...sim.CurrentWorldPolicy) error {
-	a := currentActionData{Version: 1, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases(), Options: s.Residue.PendingGameOptions,
+	a := currentActionData{Version: 1, WriterCarriers: 0, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases(), Options: s.Residue.PendingGameOptions,
 		Bolts: s.Residue.SpellBolts, Heals: s.Residue.HealBursts, Runs: s.Residue.CastRuns, GroupTag: s.Residue.GroupTag, VisualIdentities: s.Residue.VisualIdentities, VisualNext: s.Residue.VisualNext}
 	if w.Script().Dialect() == sim.ScriptROM2 {
 		a.Fog = captureCurrentMissionFog(s.Residue)

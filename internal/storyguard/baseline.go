@@ -2133,7 +2133,7 @@ package storyguard
 // in pkg/game/weaponswap.go and its tests, new code net of the primary-unit
 // toggle doc it replaced, including this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4672,
+	TestIdentCount: 4669,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2155,5 +2155,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8675639,
+	CommentBytes: 8675561,
 }

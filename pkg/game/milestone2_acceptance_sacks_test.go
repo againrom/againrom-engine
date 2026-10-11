@@ -8,7 +8,7 @@ func TestMilestone2Sacks(t *testing.T) {
 	files, roots, documentRecords, liveRecords, retiredRecords, mismatches, gaps, weightDifferences := 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Sack": 0, "Item": 0, "Weapon": 0, "Armor": 0, "Shield": 0, "Effect": 0, "Spell": 0}
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierSacks, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

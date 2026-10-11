@@ -9,7 +9,7 @@ func TestMilestone2DeadRoots(t *testing.T) {
 	classes := map[uint8]int{}
 	stages := map[uint8]int{}
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierDeadRoots, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		want, err := dead1163Expected(mf.f, mf.raw)
 		if err != nil {
 			mismatches++

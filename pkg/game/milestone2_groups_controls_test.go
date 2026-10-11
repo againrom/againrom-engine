@@ -113,7 +113,7 @@ func groups1155Inputs(t *testing.T, raw []byte) (groups1155Source, map[uint16]ui
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := groups1155Expected(f)
+	want, err := expectedNativeGroups(f)
 	if err != nil {
 		t.Fatal(err)
 	}

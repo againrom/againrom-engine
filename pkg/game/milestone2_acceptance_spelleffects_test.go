@@ -12,7 +12,7 @@ func TestMilestone2SpellEffects(t *testing.T) {
 	classes := map[string]int{"SpellEffect": 0, "PointEffect": 0, "AreaEffect": 0, "SpellTransport": 0, "Effect": 0, "Effect_DirectDamage": 0}
 	var refused []milestone2ResumeRefusal
 	var nonempty []string
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierSpellEffects, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

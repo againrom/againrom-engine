@@ -8,7 +8,7 @@ func TestMilestone2Buildings(t *testing.T) {
 	files, records, cells, nonzero, normalized, mismatches := 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Building": 0, "Outpost": 0, "Tavern": 0, "Shop": 0}
 	var refused []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierBuildings, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

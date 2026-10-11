@@ -24,4 +24,9 @@ func seatPath(rel string) string {
 	}
 }
 
-func reviewDirRoot(name string) string { return seatPath("review/" + name) }
+func reviewDirRoot(name string) string {
+	if root := os.Getenv("AGAINROM_REVIEW_ROOT"); root != "" {
+		return filepath.Join(root, name)
+	}
+	return seatPath("review/" + name)
+}

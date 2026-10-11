@@ -8,7 +8,7 @@ func TestMilestone2Players(t *testing.T) {
 	files, slots, identities, diaries, elements, entries, tailBytes, mismatches := 0, 0, 0, 0, 0, 0, 0, 0
 	var live players1154LivePopulation
 	var refused, unreadable []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierPlayers, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}

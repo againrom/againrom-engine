@@ -8,11 +8,11 @@ func TestMilestone2Groups(t *testing.T) {
 	files, groups, members, normalized, words, paths, actors, patrol, mismatches := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	var population groups1155Population
 	var refused, unreadable, projectionUnavailable []milestone2ResumeRefusal
-	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
+	milestone2CarrierCorpus(t, currentCarrierGroups, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
 		if !mf.present {
 			return
 		}
-		want, err := groups1155Expected(mf.f)
+		want, err := expectedNativeGroups(mf.f)
 		if err != nil {
 			unreadable = append(unreadable, milestone2ResumeRefusal{mf.rel, err})
 			return
