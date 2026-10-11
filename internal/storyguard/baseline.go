@@ -2221,6 +2221,11 @@ package storyguard
 // guest itself: pkg/game/modmission.go and modassemble.go, cmd/modmission,
 // the guest fields of the town, snapshot and session record, the restore
 // override in originalsave.go and its archtest row, including these lines.
+// CommentBytes rises for the popup that states the cast's damage: the docs of
+// SpellCharacteristics and SpellDamagePair in pkg/sim, the popup, cast and
+// factor-table witnesses in pkg/game/spellrecord_release_test.go and
+// castdamage_release_test.go, the sim popup test and the unmodded Heal popup
+// note in modformulas_release_test.go, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2244,5 +2249,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8764342,
+	CommentBytes: 8766580,
 }

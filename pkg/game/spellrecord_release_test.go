@@ -1,10 +1,12 @@
 package game
 
-// The spellbook popup states the spell record's own values at the actor's
-// power (TEXT-096, TEXT-097), on the installed Data.bin spell rows and the
+// The spellbook popup states the spell record's own values (TEXT-096) at the
+// power the actor's cast takes, on the installed Data.bin spell rows and the
 // installed main.txt labels, on either root. The expectations are the claims'
 // formulas applied to the installed columns here, not the simulation's own
-// projection. This is a release witness: it skips without AGAINROM_ASSETS.
+// projection. The original's record level reads 100 for a skill and Mind sum
+// below 30 (TEXT-097); the owner's popup states the cast instead (DIV-1882).
+// This is a release witness: it skips without AGAINROM_ASSETS.
 
 import (
 	"bytes"
@@ -19,7 +21,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
+func TestReleaseSpellbookPopupStatesTheCastAtTheActorsPower(t *testing.T) {
 	f := releaseFront(t)
 	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	if mainTable == nil {
@@ -59,35 +61,46 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 		}
 		return lo, lo + hi
 	}
+	damageLine := func(lo, hi int) string {
+		if hi == 0 {
+			return ""
+		}
+		return label(spellLabelDamage) + ": " + spellPair(int64(lo), int64(hi), "%d", "-")
+	}
+	rangeLine := func(rg int) string {
+		if rg == 0 {
+			return ""
+		}
+		return label(spellLabelRange) + ": " + fmt.Sprint(rg)
+	}
+	// Every skill and Mind sum from 0 to 290: below 30 the cast takes power
+	// 0, from 30 to 285 the sum less 30, above that the ceiling 255. From 30
+	// up the expected lines are also the former popup's, which filled the
+	// record at that same power. Loss control: below 30 the former popup
+	// filled it at 100, and its lines differ.
 	var damageIDs []uint16
-	for _, tc := range []struct {
-		name        string
-		skill, mind int32
-		power       int
-	}{
-		{"skill plus mind below thirty", 4, 10, 100},
-		{"power zero", 0, 30, 0},
-		{"power fifty", 30, 50, 50},
-		{"skill plus mind of 286", 186, 100, 255},
-	} {
+	formerDiffers := map[uint16]bool{}
+	for sum := 0; sum <= 290; sum++ {
+		power := min(max(sum-30, 0), 255)
 		for _, r := range rules {
-			e := sim.Entity{Mind: tc.mind}
-			if r.School < 8 {
-				e.Skill[r.School] = tc.skill
+			e := sim.Entity{Mind: int32(sum)}
+			if r.School < 6 {
+				e.Mind, e.Skill[r.School] = 30, int32(sum-30)
 			}
-			lines := spellInfoLines(r, sim.SpellCharacteristicsFor(sim.Rules{}, e, r), "x", &f.Words)
+			c := sim.SpellCharacteristicsFor(sim.Rules{}, e, r)
+			if c.Power != int32(power) {
+				t.Fatalf("skill plus Mind %d, spell %d: cast power %d, want %d", sum, r.ID, c.Power, power)
+			}
+			lo, hi := recordDamage(r, power)
+			if castLo, castHi := sim.SpellDamagePair(sim.Rules{}, r, c.Power); castLo != int64(lo) || castHi != int64(hi) {
+				t.Fatalf("skill plus Mind %d, spell %d: the cast's pair %d-%d, the record %d-%d", sum, r.ID, castLo, castHi, lo, hi)
+			}
+			lines := spellInfoLines(r, c, "x", &f.Words)
 			joined := "\n" + strings.Join(lines, "\n") + "\n"
-			var wantDamage, wantRange string
-			if lo, hi := recordDamage(r, tc.power); hi != 0 {
-				wantDamage = label(spellLabelDamage) + ": " + spellPair(int64(lo), int64(hi), "%d", "-")
-				if tc.name == "power zero" && r.DamageMin > 0 {
-					damageIDs = append(damageIDs, r.ID)
-				}
+			if sum == 30 && r.DamageMin > 0 {
+				damageIDs = append(damageIDs, r.ID)
 			}
-			if rg := recordRange(r, tc.power); rg != 0 {
-				wantRange = label(spellLabelRange) + ": " + fmt.Sprint(rg)
-			}
-			for _, pair := range [][2]string{{wantDamage, label(spellLabelDamage) + ":"}, {wantRange, label(spellLabelRange) + ":"}} {
+			for _, pair := range [][2]string{{damageLine(lo, hi), label(spellLabelDamage) + ":"}, {rangeLine(recordRange(r, power)), label(spellLabelRange) + ":"}} {
 				got := ""
 				for _, l := range lines {
 					if strings.HasPrefix(l, pair[1]) {
@@ -95,7 +108,13 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 					}
 				}
 				if got != pair[0] {
-					t.Errorf("%s, spell %d: line %q, want %q in %q", tc.name, r.ID, got, pair[0], joined)
+					t.Errorf("skill plus Mind %d, spell %d: line %q, want %q in %q", sum, r.ID, got, pair[0], joined)
+				}
+			}
+			if sum < 30 {
+				flo, fhi := recordDamage(r, 100)
+				if damageLine(flo, fhi) != damageLine(lo, hi) || rangeLine(recordRange(r, 100)) != rangeLine(recordRange(r, power)) {
+					formerDiffers[r.ID] = true
 				}
 			}
 		}
@@ -103,6 +122,10 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 	if fmt.Sprint(damageIDs) != "[1 2 3 6 9 11 13 14 21]" {
 		t.Errorf("installed rows with a damage minimum = %v, want TEXT-096's [1 2 3 6 9 11 13 14 21]", damageIDs)
 	}
+	if len(formerDiffers) == 0 {
+		t.Error("loss control: below 30 the former record level 100 states every row as the cast does")
+	}
+	t.Logf("%d installed rows x 291 sums; below 30 the former popup differed on %d rows", len(rules), len(formerDiffers))
 
 	// The same through the mission hover: Heal, a row with damage columns and
 	// a restorative arm, on an actor whose skill plus Mind is below thirty.
@@ -161,16 +184,16 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 		if heal.ID != 6 || heal.DamageMax <= 0 {
 			t.Fatalf("installed heal row = %+v", heal)
 		}
-		// The actor's own skill and Mind, summed in a byte as the fold does.
-		sum := int(entity.Skill[heal.School]) + int(entity.Mind) - 30
-		power := sum & 0xff
-		if power > 100 {
-			power = 100
+		// The actor's skill plus Mind is below 30: the cast takes power 0,
+		// where the original's byte fold reads 100 (TEXT-097).
+		if sum := int(entity.Skill[heal.School]) + int(entity.Mind); sum >= 30 {
+			t.Fatalf("fixture actor's skill plus Mind is %d, want below 30", sum)
 		}
-		if power < 100 {
-			t.Fatalf("fixture actor reads record power %d, want the wrapped 100", power)
-		}
+		const power = 0
 		lo, hi := recordDamage(heal, power)
+		if flo, fhi := recordDamage(heal, 100); flo == lo && fhi == hi {
+			t.Fatalf("loss control: Heal states %d-%d at both levels", lo, hi)
+		}
 		bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath, f.textCode())
 		row, _ := bookTable.At(12)
 		want := []string{strings.SplitN(row, "#", 2)[0],
@@ -182,4 +205,120 @@ func TestReleaseSpellbookPopupStatesTheRecordAtTheActorsPower(t *testing.T) {
 			t.Fatalf("heal hover did not paint %q", want)
 		}
 	})
+}
+
+// TestReleaseSecondGameSpellbookPopupStatesTheCastPair holds the popup's
+// damage pair on every installed second-game row to the second game's cast
+// arithmetic, column times (power + 30) / 30 in integers with the spread
+// above the base, for every skill and Mind sum from 0 to 290. The popup is the
+// one composer for both games (spellbookOf). Loss control: the former popup's
+// binary64 byte fold states a different pair on some installed row and power.
+func TestReleaseSecondGameSpellbookPopupStatesTheCastPair(t *testing.T) {
+	archives := secondGameRoot(t)
+	defs, err := LoadDefinitionsFor(archives.Containers, archives.Game())
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := mapload.SpellRules(defs.Table)
+	if len(rules) != 29 {
+		t.Fatalf("SpellRules = %d rows, want 29", len(rules))
+	}
+	formerDiffers := 0
+	for sum := 0; sum <= 290; sum++ {
+		power := int64(min(max(sum-30, 0), 255))
+		for _, r := range rules {
+			e := sim.Entity{Mind: int32(sum)}
+			if r.School < 6 {
+				e.Mind, e.Skill[r.School] = 30, int32(sum-30)
+			}
+			c := sim.SpellCharacteristicsFor(sim.Rules{}, e, r)
+			base := int64(r.DamageMin) * (power + 30) / 30
+			top := max(int64(r.DamageMax)*(power+30)/30, base)
+			if int64(c.Power) != power || c.DamageMin != base || c.DamageMax != top {
+				t.Fatalf("skill plus Mind %d, spell %d: power %d pair %d-%d, want power %d pair %d-%d", sum, r.ID, c.Power, c.DamageMin, c.DamageMax, power, base, top)
+			}
+			if lo, hi := sim.SpellDamagePair(sim.Rules{}, r, c.Power); lo != c.DamageMin || hi != c.DamageMax {
+				t.Fatalf("skill plus Mind %d, spell %d: the cast's pair %d-%d, the popup %d-%d", sum, r.ID, lo, hi, c.DamageMin, c.DamageMax)
+			}
+			if sum < 30 || sum > 285 {
+				continue
+			}
+			product := func(column int32) int {
+				return int(float64(float64(column) * (float64(power)/30.0 + 1.0)))
+			}
+			var lo, spread int
+			if r.DamageMin > 0 {
+				lo = int(uint8(product(r.DamageMin)))
+			}
+			if r.DamageMax > 0 {
+				spread = int(uint8(product(r.DamageMax) - lo))
+			}
+			if int64(lo) != base || int64(lo+spread) != top {
+				formerDiffers++
+			}
+		}
+	}
+	if formerDiffers == 0 {
+		t.Error("loss control: the former byte fold states every installed row and power as the cast does")
+	}
+	t.Logf("29 installed rows x 291 sums; at sums 30..285 the former popup differed at %d row and power pairs", formerDiffers)
+}
+
+// TestReleaseSpellbookPopupStatesTheCastPairUnderADamageFactorTable gives every
+// installed first-game row one damage factor table, 30 + 10 * power, and holds
+// the popup's pair to the cast's arithmetic for every skill and Mind sum from
+// 0 to 290: base column * factor / 30 and top the same on the maximum column,
+// whole. Loss control: the former popup folded byte-column factor products to
+// bytes and states a different pair where a product passes 255.
+func TestReleaseSpellbookPopupStatesTheCastPairUnderADamageFactorTable(t *testing.T) {
+	f := releaseFront(t)
+	rules := mapload.SpellRules(f.Table)
+	if len(rules) != 28 {
+		t.Fatalf("install names %d spells, want 28", len(rules))
+	}
+	factor := make([]int32, 256)
+	for p := range factor {
+		factor[p] = 30 + 10*int32(p)
+	}
+	var set sim.SpellFormulaSet
+	set.Global[sim.FormulaDamage] = factor
+	tabled, err := sim.Rules{}.WithSpellFormulas(set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	formerDiffers := 0
+	for sum := 0; sum <= 290; sum++ {
+		power := min(max(sum-30, 0), 255)
+		for _, r := range rules {
+			e := sim.Entity{Mind: int32(sum)}
+			if r.School < 6 {
+				e.Mind, e.Skill[r.School] = 30, int32(sum-30)
+			}
+			c := sim.SpellCharacteristicsFor(tabled, e, r)
+			fp := int64(factor[power])
+			base := int64(r.DamageMin) * fp / 30
+			top := max(int64(r.DamageMax)*fp/30, base)
+			if int(c.Power) != power || c.DamageMin != base || c.DamageMax != top {
+				t.Fatalf("skill plus Mind %d, spell %d: power %d pair %d-%d, want power %d pair %d-%d", sum, r.ID, c.Power, c.DamageMin, c.DamageMax, power, base, top)
+			}
+			if lo, hi := sim.SpellDamagePair(tabled, r, c.Power); lo != c.DamageMin || hi != c.DamageMax {
+				t.Fatalf("skill plus Mind %d, spell %d: the cast's pair %d-%d, the popup %d-%d", sum, r.ID, lo, hi, c.DamageMin, c.DamageMax)
+			}
+			lo := int64(0)
+			if r.DamageMin > 0 {
+				lo = int64(uint8(base))
+			}
+			spread := int64(0)
+			if r.DamageMax > 0 {
+				spread = int64(uint8(int64(r.DamageMax)*fp/30 - lo))
+			}
+			if lo != base || lo+spread != top {
+				formerDiffers++
+			}
+		}
+	}
+	if formerDiffers == 0 {
+		t.Error("loss control: the former byte fold states every row and power as the cast does")
+	}
+	t.Logf("28 installed rows x 291 sums under one factor table; the former popup differed at %d row and sum pairs", formerDiffers)
 }

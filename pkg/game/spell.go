@@ -284,9 +284,9 @@ func spellInfoLines(rule sim.SpellRule, c sim.SpellCharacteristics, name string,
 // every selected knower: damage summed, range, duration and caption minima
 // and maxima, mana the last knower's. A zero maximum omits a line and an equal
 // pair shows one number. Numbers come from SpellCharacteristicsFor, rebuilt on
-// every display push: the spell record's own values at the actor's power
-// (TEXT-096), so a row that carries damage columns states them whatever its
-// effect arm (DIV-1882).
+// every display push at the power the actor's cast takes: the damage pair the
+// cast rolls in, and the record's range and duration (TEXT-096), so a row that
+// carries damage columns states them whatever its effect arm (DIV-1882).
 func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 	if name == "" {
 		name = "spell"
@@ -312,9 +312,8 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 	rangeMin, rangeMax := knowers[0].c.Range, knowers[0].c.Range
 	durMin, durMax := knowers[0].c.Duration, knowers[0].c.Duration
 	for _, k := range knowers {
-		lo, hi := spellRecordDamage(k.rule, k.c)
-		damageMin += lo
-		damageMax += hi
+		damageMin += k.c.DamageMin
+		damageMax += k.c.DamageMax
 		rangeMin, rangeMax = min(rangeMin, k.c.Range), max(rangeMax, k.c.Range)
 		durMin, durMax = min(durMin, k.c.Duration), max(durMax, k.c.Duration)
 	}
@@ -353,33 +352,6 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 		lines = append(lines, caption)
 	}
 	return lines
-}
-
-// spellRecordDamage states minimum and minimum plus spread at record power.
-// First-game columns share the cast's pair, including whole mod values.
-func spellRecordDamage(rule sim.SpellRule, c sim.SpellCharacteristics) (minimum, maximum int64) {
-	dmin, dmax := rule.DamageMin, rule.DamageMax
-	if c.HasDamageFactor && !rule.Second && (dmin > 255 || dmax > 255) {
-		return int64(dmin) * int64(c.DamageFactor) / 30, int64(dmax) * int64(c.DamageFactor) / 30
-	}
-	if !c.HasDamageFactor && !rule.Second {
-		base, spread := sim.SpellColumnDamage(dmin, dmax, c.RecordPower)
-		return base, base + spread
-	}
-	product := func(column int32) int {
-		if c.HasDamageFactor {
-			return int(int64(column) * int64(c.DamageFactor) / 30)
-		}
-		return int(float64(float64(column) * (float64(c.RecordPower)/30.0 + 1.0)))
-	}
-	var lo, spread int
-	if dmin > 0 {
-		lo = int(uint8(product(dmin)))
-	}
-	if dmax > 0 {
-		spread = int(uint8(product(dmax) - lo))
-	}
-	return int64(lo), int64(lo + spread)
 }
 
 // spellPair formats an equal pair as one number and a differing pair as

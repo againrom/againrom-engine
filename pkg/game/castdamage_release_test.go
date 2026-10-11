@@ -76,11 +76,12 @@ func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
 	worn, _ := mission.World.EquippedItems(mage.ID)
 	const power = 20
 	const resistance = -20
+	mind := int32(30)
 	world := func(seed uint64, rule sim.SpellRule, protection [5]int32) *sim.World {
 		caster := cleanResistanceWitnessEntity(mage, 1, 5, 5)
 		caster.Owner = sim.SelfSlot
 		caster.KnownSpells = 1 << rule.ID
-		caster.Mind = 30
+		caster.Mind = mind
 		caster.Skill[rule.School] = power
 		caster.Mana, caster.MaxMana = 1000, 1000
 		caster.ScanRange = 20
@@ -155,6 +156,45 @@ func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
 		t.Logf("spell %d at power %d, %s resistance %d: record %d..%d, landed %d..%d over 96 casts: %v",
 			id, power, os.Getenv("AGAINROM_ASSETS"), resistance, base, base+spread, lo, hi, seen)
 	}
+
+	// A caster whose skill plus Mind is below 30 casts at power 0, and the
+	// spellbook popup states that cast's pair: every landed amount lies in it
+	// and both ends are reached (DIV-1882). Loss control: the original's record
+	// level 100 states a top no cast reaches.
+	mind = 5
+	for _, id := range []uint16{1, 13} {
+		rule := byID[id]
+		w := world(1, rule, [5]int32{})
+		c := sim.SpellCharacteristicsFor(w.Rules(), entityByID(t, w, 1), rule)
+		if c.Power != 0 {
+			t.Fatalf("spell %d: the weak caster's power is %d, want 0", id, c.Power)
+		}
+		seen := map[int64]int{}
+		for seed := uint64(1); seed <= 96; seed++ {
+			w := world(seed, rule, [5]int32{})
+			commands := []sim.Command{sim.Cast(1, 2, sim.SpellID(id))}
+			landed := int64(0)
+			for tick := 0; tick < 256 && landed == 0; tick++ {
+				sim.Step(w, commands)
+				commands = nil
+				landed = int64(1<<19) - int64(entityByID(t, w, 2).HP)
+			}
+			if landed < c.DamageMin || landed > c.DamageMax {
+				t.Fatalf("spell %d seed %d: the weak caster landed %d outside the popup's %d-%d", id, seed, landed, c.DamageMin, c.DamageMax)
+			}
+			seen[landed]++
+		}
+		if seen[c.DamageMin] == 0 || seen[c.DamageMax] == 0 {
+			t.Fatalf("spell %d: the weak caster's amounts %v do not reach the popup's ends %d and %d", id, seen, c.DamageMin, c.DamageMax)
+		}
+		fb, fs := castDamageRecord(rule.DamageMin, rule.DamageMax, 100)
+		if fb+fs <= c.DamageMax {
+			t.Fatalf("spell %d: loss control: the record level 100 top %d does not exceed the cast's %d", id, fb+fs, c.DamageMax)
+		}
+		t.Logf("spell %d, skill plus Mind %d: popup %d-%d, landed %v over 96 casts; record level 100 would state %d-%d",
+			id, int32(power)+mind, c.DamageMin, c.DamageMax, seen, fb, fb+fs)
+	}
+	mind = 30
 
 	stone := byID[20]
 	var earth [5]int32

@@ -95,8 +95,8 @@ func TestSpellPopupFoldsDamageRangeDurationAndMana(t *testing.T) {
 	ruleA, ruleB := rule, rule
 	ruleA.DamageMin, ruleA.DamageMax = 2, 4
 	ruleB.DamageMin, ruleB.DamageMax = 3, 4
-	a := spellKnower{ruleA, sim.SpellCharacteristics{ManaCost: 5, Range: 6, Duration: 16}}
-	b := spellKnower{ruleB, sim.SpellCharacteristics{ManaCost: 9, Range: 8, Duration: 32}}
+	a := spellKnower{ruleA, sim.SpellCharacteristics{ManaCost: 5, Range: 6, Duration: 16, DamageMin: 2, DamageMax: 4}}
+	b := spellKnower{ruleB, sim.SpellCharacteristics{ManaCost: 9, Range: 8, Duration: 32, DamageMin: 3, DamageMax: 4}}
 	got := spellPopupLines([]spellKnower{a, b}, "Fire", &w)
 	want := []string{"Fire", "Mana cost: 9", "Damage: 5-8", "Range: 6-8", "Duration:   1.0-  2.0"}
 	if !reflect.DeepEqual(got, want) {

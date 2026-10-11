@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/bits"
 	"sort"
-
-	"againrom/pkg/rules"
 )
 
 // EffectKind is the installed spell-effect vocabulary this simulation
@@ -798,11 +796,8 @@ func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpe
 
 	out := WeaponSpellCharacteristics{SpellID: rule.ID, MaxRange: rule.MaxRange}
 	if rule.Damaging || rule.arm() == 11 {
-		base, spread := spellDamageUnder(r, rule, power)
-		if spread < 0 {
-			spread = 0
-		}
-		out.DamageMin, out.DamageMax, out.HasDamage = base, base+spread, true
+		out.DamageMin, out.DamageMax = SpellDamagePair(r, rule, power)
+		out.HasDamage = true
 	}
 	if rule.arm() == 20 {
 		out.DurationTicks = spellPointDurationUnder(r, rule, power)
@@ -967,21 +962,23 @@ func ResistedSpellDamage(v int64, r int16) int64 {
 // immutable spell row; no UI cache or second copy of power/range/damage
 // arithmetic can become stale after training, equipment or an attached effect.
 //
-// Power is the signed level the caption formulas take. RecordPower is the
-// level the popup's spell record is filled at, which differs from Power only
-// for a skill and Mind sum below 30 (TEXT-097); Range and Duration are the record's own byte and
-// word at RecordPower (TEXT-096). The record's damage bytes are floating-point
-// products the presentation tier forms from the row's columns and RecordPower.
+// Power is the level a cast by this actor takes, and every figure here is
+// formed at it. Range and Duration are the spell record's byte and word at
+// that power (TEXT-096). DamageMin and DamageMax are the pair the cast's
+// damage roll takes, from the cast's own spellDamageUnder; the original's
+// record level reads 100 for a sum below 30 (TEXT-097), the owner's popup
+// states the cast instead (DIV-1882).
 type SpellCharacteristics struct {
-	SkillLevel, SkillXP           int32
-	Power                         int32
-	RecordPower                   int32
-	ManaCost                      int32
-	Range                         int64
-	Duration                      uint16
-	Radius                        uint8
-	DamageFactor, Magnitude       int32
-	HasDamageFactor, HasMagnitude bool
+	SkillLevel, SkillXP int32
+	Power               int32
+	ManaCost            int32
+	Range               int64
+	Duration            uint16
+	Radius              uint8
+	DamageMin           int64
+	DamageMax           int64
+	Magnitude           int32
+	HasMagnitude        bool
 }
 
 func SpellCharacteristicsFor(r Rules, e Entity, rule SpellRule) SpellCharacteristics {
@@ -993,28 +990,12 @@ func SpellCharacteristicsFor(r Rules, e Entity, rule SpellRule) SpellCharacteris
 		level, xp = e.Skill[rule.School], e.SkillXP[rule.School]
 	}
 	power := spellPowerUnder(r, rule, level, e.Mind)
-	record := spellRecordPowerUnder(r, rule, level, e.Mind)
-	c := SpellCharacteristics{SkillLevel: level, SkillXP: xp, Power: power, RecordPower: record,
-		ManaCost: rule.ManaCost, Range: spellRecordRangeUnder(r, rule, record),
-		Duration: spellRecordDurationUnder(r, rule, record), Radius: rule.Radius}
-	c.DamageFactor, c.HasDamageFactor = r.SpellFormulaAt(rules.FormulaDamage, rule.ID, record)
+	c := SpellCharacteristics{SkillLevel: level, SkillXP: xp, Power: power,
+		ManaCost: rule.ManaCost, Range: spellRecordRangeUnder(r, rule, power),
+		Duration: spellRecordDurationUnder(r, rule, power), Radius: rule.Radius}
+	c.DamageMin, c.DamageMax = SpellDamagePair(r, rule, power)
 	c.Magnitude, c.HasMagnitude = magnitudeUnder(r, rule, power)
 	return c
-}
-
-// spellRecordPower is the level the spellbook fold fills a spell record at:
-// skill plus mind minus 30, clamped to spellPowerMax like a cast's power. A
-// sum below 30 keeps the original byte fold, which wraps it to 226..255 and
-// reads 100 (TEXT-097).
-func spellRecordPower(level, mind int32) int32 {
-	p := level + mind - 30
-	switch {
-	case p < 0:
-		return 100
-	case p > spellPowerMax:
-		return spellPowerMax
-	}
-	return p
 }
 
 // spellRecordRange is the record's byte +9: the row's range column plus

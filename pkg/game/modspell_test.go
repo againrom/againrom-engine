@@ -47,8 +47,14 @@ func TestModDamageColumnsStateWholePopupPair(t *testing.T) {
 			t.Fatalf("power %d popup %v lacks %q", tc.power, book, tc.line)
 		}
 	}
-	if lo, hi := spellRecordDamage(rules[0], sim.SpellCharacteristics{HasDamageFactor: true, DamageFactor: 60}); lo != 600 || hi != 1200 {
-		t.Fatalf("wide columns with a factor table: popup %d..%d, want 600..1200", lo, hi)
+	var set sim.SpellFormulaSet
+	set.Spell[sim.FormulaDamage][1] = []int32{60}
+	tabled, err := sim.Rules{}.WithSpellFormulas(set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c := sim.SpellCharacteristicsFor(tabled, sim.Entity{}, rules[0]); c.DamageMin != 600 || c.DamageMax != 1200 {
+		t.Fatalf("wide columns with a factor table: popup %d..%d, want 600..1200", c.DamageMin, c.DamageMax)
 	}
 }
 

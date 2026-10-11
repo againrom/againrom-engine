@@ -2,23 +2,29 @@ package sim
 
 import "testing"
 
-// TestSpellRecordPowerFollowsCastPower holds the popup record's level to the
-// cast power up to 255. Only a sum below 30 keeps the byte fold of the
-// spellbook, which reads 100 (TEXT-097).
-func TestSpellRecordPowerFollowsCastPower(t *testing.T) {
-	for _, tc := range []struct{ sum, record, cast int32 }{
-		{0, 100, 0}, {29, 100, 0}, {30, 0, 0}, {31, 1, 1}, {80, 50, 50},
-		{130, 100, 100}, {131, 101, 101}, {285, 255, 255},
-		{286, 255, 255}, {287, 255, 255}, {316, 255, 255}, {400, 255, 255},
+// TestSpellPopupFiguresAreTheCastsAtItsPower holds every power-formed popup
+// figure to the cast power, on both sides of a skill and Mind sum of 30. The
+// original's record level reads 100 below 30 (TEXT-097); the owner's popup
+// states the cast instead (DIV-1882). Loss control: at that level the pair
+// and the range differ from the cast's.
+func TestSpellPopupFiguresAreTheCastsAtItsPower(t *testing.T) {
+	rule := SpellRule{ID: 1, School: 1, MaxRange: 6, DamageMin: 4, DamageMax: 8}
+	for _, tc := range []struct{ sum, cast int32 }{
+		{0, 0}, {15, 0}, {29, 0}, {30, 0}, {31, 1}, {80, 50},
+		{130, 100}, {131, 101}, {285, 255}, {286, 255}, {400, 255},
 	} {
 		e := Entity{Mind: 30}
 		e.Skill[1] = tc.sum - 30
-		rule := SpellRule{ID: 1, School: 1, MaxRange: 6, DamageMin: 4, DamageMax: 8}
 		c := SpellCharacteristicsFor(Rules{}, e, rule)
-		if c.RecordPower != tc.record || c.Power != tc.cast {
-			t.Errorf("skill+mind %d: record power %d, cast power %d, want %d and %d",
-				tc.sum, c.RecordPower, c.Power, tc.record, tc.cast)
+		lo, hi := SpellDamagePair(Rules{}, rule, tc.cast)
+		if c.Power != tc.cast || c.DamageMin != lo || c.DamageMax != hi ||
+			c.Range != spellRecordRange(rule, tc.cast) || c.Duration != spellRecordDuration(rule, tc.cast) {
+			t.Errorf("skill+mind %d: %+v, want power %d damage %d-%d", tc.sum, c, tc.cast, lo, hi)
 		}
+	}
+	lo, hi := SpellDamagePair(Rules{}, rule, 0)
+	if flo, fhi := SpellDamagePair(Rules{}, rule, 100); flo == lo || fhi == hi || spellRecordRange(rule, 100) == spellRecordRange(rule, 0) {
+		t.Errorf("loss control: level 100 states %d-%d, the cast %d-%d", flo, fhi, lo, hi)
 	}
 }
 

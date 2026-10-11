@@ -106,19 +106,20 @@ func TestTheFrozenRulesDriveTheBookAndTheTooltip(t *testing.T) {
 	}
 	arrow := ruleByID(t, spells, 1)
 	c := sim.SpellCharacteristicsFor(r, mage, arrow)
-	if c.Power != 1 || !c.HasDamageFactor || c.DamageFactor != 90 || c.Range != 12 {
+	if c.Power != 1 || c.DamageMin != int64(arrow.DamageMin)*90/30 || c.DamageMax != int64(arrow.DamageMax)*90/30 || c.Range != 12 {
 		t.Errorf("fire arrow %+v", c)
 	}
 	legacy := mage
 	legacy.Book = sim.Spellbook{}
-	if plain := sim.SpellCharacteristicsFor(sim.Rules{}, legacy, arrow); plain.HasDamageFactor || plain.Range != 7+100/30 {
+	lo, hi := sim.SpellDamagePair(sim.Rules{}, arrow, 0)
+	if plain := sim.SpellCharacteristicsFor(sim.Rules{}, legacy, arrow); plain.DamageMin != lo || plain.DamageMax != hi || plain.Range != 7 {
 		t.Errorf("without the tables %+v", plain)
 	}
 	if tabled := sim.SpellCharacteristicsFor(r, legacy, arrow); tabled.Range != 12 {
 		t.Errorf("tabled range without a book cache %+v", tabled)
 	}
 	protection := sim.SpellCharacteristicsFor(r, mage, ruleByID(t, spells, 5))
-	if !protection.HasMagnitude || protection.Magnitude != 5 || protection.Duration != 30*16*3000/1000 {
+	if !protection.HasMagnitude || protection.Magnitude != 5 || protection.Duration != 30*16*1000/1000 {
 		t.Errorf("protection %+v", protection)
 	}
 	weapon := sim.Entity{MaxMana: 1, WeaponSpell: 1, WeaponSpellLevel: 1}

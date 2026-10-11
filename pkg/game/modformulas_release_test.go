@@ -261,7 +261,8 @@ func TestReleaseWithoutFormulaTablesTheCastKeepsTheOriginalNumbers(t *testing.T)
 	}
 	book := popupOf(mw, casterID)
 	w := mw.view.Words()
-	if line := w.Hover[spellLabelDamage] + ": " + spellPair(int64(r.heal.DamageMin*130/30), int64(r.heal.DamageMax*130/30), "%d", "-"); !slices.Contains(book[healSpellID], line) {
+	// The popup states the power-0 cast the Heal below restores (DIV-1882).
+	if line := w.Hover[spellLabelDamage] + ": " + spellPair(int64(r.healLow), int64(r.healHigh), "%d", "-"); !slices.Contains(book[healSpellID], line) {
 		t.Errorf("the Heal popup lacks %q: %s", line, linesOf(book[healSpellID]))
 	}
 	if line := w.Hover[spellLabelRange] + ": " + fmt.Sprint(r.arrow.MaxRange); !slices.Contains(book[fireArrowID], line) {

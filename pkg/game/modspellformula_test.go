@@ -87,7 +87,9 @@ func TestThePopupStatesTheTabledDamageRangeDurationAndMagnitude(t *testing.T) {
 		t.Errorf("tabled popup %q, want %q", got, want)
 	}
 	got = spellbookOf(sim.Rules{}, mage, rules[:1], names, testSpellPopupWords(), nil)[0].Info
-	if want := []string{"Fire Arrow", "Mana cost: 3", "Damage: 17-34", "Range: 13"}; !reflect.DeepEqual(got, want) {
+	// Skill plus Mind of 2 casts at power 0: the cast's 4-8, where the
+	// original's record level 100 would state 17-34 (DIV-1882).
+	if want := []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 13"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("the same book without the tables %q, want %q", got, want)
 	}
 }

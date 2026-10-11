@@ -46,9 +46,6 @@ func TestFormulasWithoutTablesAreTheOriginalArithmetic(t *testing.T) {
 		if got, want := spellPowerUnder(r, rule, sum, 0), spellPower(sum, 0); got != want {
 			t.Errorf("power at %d: %d, want %d", sum, got, want)
 		}
-		if got, want := spellRecordPowerUnder(r, rule, sum, 0), spellRecordPower(sum, 0); got != want {
-			t.Errorf("record power at %d: %d, want %d", sum, got, want)
-		}
 	}
 }
 
@@ -66,9 +63,6 @@ func TestPowerTableIsReadAtSkillPlusMindPerSpell(t *testing.T) {
 	}{{-9, 0, 0}, {0, 0, 0}, {0, 1, 10}, {1, 1, 250}, {200, 300, 250}} {
 		if got := spellPowerUnder(r, fire, c.level, c.mind); got != c.want {
 			t.Errorf("sum %d: power %d, want %d", c.level+c.mind, got, c.want)
-		}
-		if got := spellRecordPowerUnder(r, fire, c.level, c.mind); got != c.want {
-			t.Errorf("sum %d: record power %d, want %d", c.level+c.mind, got, c.want)
 		}
 	}
 	if got := spellPowerUnder(r, SpellRule{ID: 3}, 200, 50); got != 7 {
@@ -301,14 +295,14 @@ func TestSpellCharacteristicsCarryTheTablesForThePopup(t *testing.T) {
 	e := spEnt(1, 0, 0)
 	e.Skill[1], e.Mind = 40, 30
 	c := SpellCharacteristicsFor(r, e, rule)
-	if c.Power != 120 || c.RecordPower != 120 || !c.HasDamageFactor || c.DamageFactor != 60 || !c.HasMagnitude || c.Magnitude != 11 {
+	if c.Power != 120 || c.DamageMin != 6 || c.DamageMax != 12 || !c.HasMagnitude || c.Magnitude != 11 {
 		t.Errorf("%+v", c)
 	}
 	if c.Range != 7 || c.Duration != 160 {
 		t.Errorf("range %d duration %d, want 7 and 160", c.Range, c.Duration)
 	}
 	plain := SpellCharacteristicsFor(Rules{}, e, rule)
-	if plain.HasDamageFactor || plain.HasMagnitude || plain.Power != 40 {
+	if plain.DamageMin != 6 || plain.DamageMax != 13 || plain.HasMagnitude || plain.Power != 40 {
 		t.Errorf("unmodded %+v", plain)
 	}
 	rule.Damaging, rule.TargetsUnit = true, true

@@ -426,7 +426,7 @@ func TestAC7ACastRaisesTheSpellsOwnSchool(t *testing.T) {
 			t.Errorf("slot %d moved to %d, want untouched", i, lvl)
 		}
 	}
-	if after.Power <= before.Power || after.RecordPower <= before.RecordPower || after.Range < before.Range {
+	if after.Power <= before.Power || after.Range < before.Range {
 		t.Errorf("live popup projection did not follow level-up: before %+v after %+v", before, after)
 	}
 	if after.ManaCost != before.ManaCost {
@@ -447,7 +447,7 @@ func TestSpellCharacteristicsAreAProjectionOfTheCurrentActor(t *testing.T) {
 	if pa.SkillLevel != 4 || pa.SkillXP != 90 || pb.SkillLevel != 12 || pb.SkillXP != 240 {
 		t.Fatalf("hero switch leaked projection state: A %+v B %+v", pa, pb)
 	}
-	if pb.Power <= pa.Power || pb.RecordPower <= pa.RecordPower || pb.Range < pa.Range {
+	if pb.Power <= pa.Power || pb.Range < pa.Range {
 		t.Errorf("Mind/skill change did not move canonical characteristics: A %+v B %+v", pa, pb)
 	}
 	if again := SpellCharacteristicsFor(Rules{}, a, rule); again != pa {

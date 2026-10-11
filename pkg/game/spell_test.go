@@ -485,9 +485,9 @@ func TestSpellClientClassPrefersPartyBeforeRoster(t *testing.T) {
 	requireSpellClientClass(t, mw, 24)
 }
 
-// The popup states the spell record's values at the record power, which
-// follows the cast power up to 255. An actor whose skill plus Mind is below 30
-// keeps the original byte fold and reads power 100 (TEXT-097).
+// The popup states the spell record's values at the cast power. An actor whose
+// skill plus Mind is below 30 casts at power 0, where the original's byte fold
+// reads 100 (TEXT-097, DIV-1882).
 func TestThePopupStatesTheRecordAtTheCastPower(t *testing.T) {
 	rule := sim.SpellRule{ID: 1, ManaCost: 3, School: 1, MaxRange: 7, DamageMin: 4, DamageMax: 8,
 		TargetsUnit: true, Damaging: true}
@@ -498,7 +498,7 @@ func TestThePopupStatesTheRecordAtTheCastPower(t *testing.T) {
 		damage     string
 		rng        string
 	}{
-		{"below thirty", 5, 10, "Damage: 17-34", "Range: 10"},
+		{"below thirty", 5, 10, "Damage: 4-8", "Range: 7"},
 		{"thirty", 0, 30, "Damage: 4-8", "Range: 7"},
 		{"above one hundred", 100, 100, "Damage: 26-53", "Range: 12"},
 		{"two hundred eighty-six", 186, 100, "Damage: 38-76", "Range: 15"},

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The spellbook shows the damage, range and duration a cast actually uses. A mage whose skill plus Mind is below 30 no longer sees much larger figures than the spell deals, a mod's damage table shows its whole damage, and in the second game the top of a few spells' damage range is no longer one point too low.
+
 ## 0.116.0
 
 - [ROM1] Mods can add a mission that another character plays alone between two campaign missions (`data/missions.toml`). The party waits unchanged; when that character wins, the game goes on to the town, where the character joins the party with the experience, skills, spells and items gained. A save made inside such a mission loads only with the same mod. The repository's example mod `reniesta` lets the mage of Plagat play a copy of the first mission's map after mission 20; `modmission` copies that map from an install into the mod.

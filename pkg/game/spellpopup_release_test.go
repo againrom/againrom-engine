@@ -67,7 +67,7 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 	rule := rules[0]
 	rule.Damaging = true
 	rule.DamageMin, rule.DamageMax = 2, 5
-	c := sim.SpellCharacteristics{ManaCost: 7, Range: 4, Duration: 3}
+	c := sim.SpellCharacteristics{ManaCost: 7, Range: 4, Duration: 3, DamageMin: 2, DamageMax: 5}
 	lines := spellInfoLines(rule, c, names[rule.ID], &f.Words)
 	want := []string{names[rule.ID], manaLabel + ": 7", damageLabel + ": 2-5", rangeLabel + ": 4", durationLabel + ": " + fmt.Sprintf("%5.1f", 3*0.0625)}
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
@@ -78,7 +78,7 @@ func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing
 	// rather than composing one with an empty value.
 	rule.Damaging = false
 	rule.DamageMin, rule.DamageMax = 0, 0
-	c.Duration = 0
+	c.DamageMin, c.DamageMax, c.Duration = 0, 0, 0
 	lines = spellInfoLines(rule, c, names[rule.ID], &f.Words)
 	want = []string{names[rule.ID], manaLabel + ": 7", rangeLabel + ": 4"}
 	if strings.Join(lines, "|") != strings.Join(want, "|") {
