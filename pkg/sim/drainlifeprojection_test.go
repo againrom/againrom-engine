@@ -57,8 +57,9 @@ func TestDrainLifeWeaponReleaseKeepsTransferResistanceAndRawRange(t *testing.T) 
 	victim.Resistance = [5]uint8{255, 255, 255, 255, 255}
 	w := spWorld(t, 1, []SpellRule{rule}, caster, victim)
 	Step(w, []Command{cbOrder(1, 2)})
-	if gotCaster, gotVictim := spAt(t, w, 1), spAt(t, w, 2); gotCaster.HP != 56 || gotVictim.HP != 94 {
-		t.Fatalf("Drain weapon release caster/target HP = %d/%d, want 56/94", gotCaster.HP, gotVictim.HP)
+	// Pair 6/0 at power 30; the first game's Drain draws base+1 (MAGIC-302).
+	if gotCaster, gotVictim := spAt(t, w, 1), spAt(t, w, 2); gotCaster.HP != 57 || gotVictim.HP != 93 {
+		t.Fatalf("Drain weapon release caster/target HP = %d/%d, want 57/93", gotCaster.HP, gotVictim.HP)
 	}
 	if w.Spells()[0].Damaging {
 		t.Fatal("Drain release changed the damaging flag")

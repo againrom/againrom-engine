@@ -2190,6 +2190,18 @@ package storyguard
 // sub-command, StepTracedAt and the instruments that read the registry and
 // the instant's own postcondition, the rate byte of a test's Move fixture,
 // including this paragraph.
+// CommentBytes rises for the first game's cast damage from the spell record:
+// the integer binary64 in pkg/sim/binary64.go, the record pair, the unit
+// resolver, the Heal and Drain draw, the Poison magnitude and resistance
+// helpers in pkg/sim/spell.go, Fire Sacrifice in pkg/sim/celleffect.go, the
+// popup's reading of the pair in pkg/game/spell.go, the new tests in
+// pkg/sim/castdamage_test.go, pkg/game/spellbinary64_test.go and
+// pkg/game/castdamage_release_test.go, the causes beside the repinned tests,
+// the re-ordering attack click in pkg/game/placedspeaker_release_test.go,
+// including this paragraph.
+// Merging origin/main (the shop and school hotfix, 8723902) into the cast
+// damage branch (8733539) is re-measured on the merged tree, including this
+// paragraph.
 // CommentBytes rises for the second game's third town: the docs of the
 // composer's hover sheet, idle-only start, sheet positions, route program,
 // residue states, held motion, any and running conditions and no-tip
@@ -2226,5 +2238,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8745188,
+	CommentBytes: 8754265,
 }

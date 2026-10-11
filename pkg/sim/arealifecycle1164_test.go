@@ -134,7 +134,9 @@ func TestAreas1164FinalZeroAndFootprintVisits(t *testing.T) {
 			if spell == 8 && (w.entities[0].HP != 992 || len(w.attached) != 1 || w.attached[0].Remaining != 127) {
 				t.Fatal("per-cell refresh stacked magnitude, or same-tick actor pulse absent", w.entities[0].HP, w.attached)
 			}
-			if spell == 3 && w.rng.state != seed+uint64(target.TokenSize*target.TokenSize)*gamma {
+			// Each direct-damage call takes the physical step's spread and
+			// accuracy draws before its own spread draw (MAGIC-301).
+			if spell == 3 && w.rng.state != seed+3*uint64(target.TokenSize*target.TokenSize)*gamma {
 				t.Fatal("Fire must make four direct-damage calls, without footprint division/dedup", w.rng.state-seed)
 			}
 			Step(w, nil)

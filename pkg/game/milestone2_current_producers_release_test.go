@@ -506,7 +506,9 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 		// the controlled pool subcase with a fighter's zero mana maximum before
 		// the separate physical-XP action. The installed weapon rider still runs
 		// after the physical component: its prepared child now lands separately.
-		// This controlled first attack removes5 physical HP and then7 rider HP.
+		// This controlled first attack removes5 physical HP and then9 rider HP:
+		// the rider payload's resolver takes the physical step's draws before
+		// its spread draw (MAGIC-301), so the spread reads a later word.
 		if err := f.live.world.ImportOriginalActorPools([]sim.OriginalActorPools{{ID: actor, HP: 30, MaxHP: 123}}); err != nil {
 			t.Fatal(err)
 		}
@@ -537,7 +539,7 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 		}
 		e = producerEntity(t, f.live.world, actor)
 		victim = producerEntity(t, f.live.world, target)
-		if e.SkillXP != ([6]int32{11, 22, 33, 4, 55, 66}) || e.ActorLoad.Source.Experience != 0x12340004 || binary.LittleEndian.Uint16(e.ActorLoad.Source.Base[8:]) != 1 || victim.HP != beforeTarget.HP-12 {
+		if e.SkillXP != ([6]int32{11, 22, 33, 4, 55, 66}) || e.ActorLoad.Source.Experience != 0x12340004 || binary.LittleEndian.Uint16(e.ActorLoad.Source.Base[8:]) != 1 || victim.HP != beforeTarget.HP-14 {
 			t.Fatalf("first blow XP/base/HP: XP%v base%d target%d->%d type%d band%v relation%d fighter%v phase%d credit%d/%v", e.SkillXP, binary.LittleEndian.Uint16(e.ActorLoad.Source.Base[8:]), beforeTarget.HP, victim.HP, e.TypeID, sim.InPersistBand(e.TypeID), f.live.world.Relations().Byte(1, 5), e.ActorLoad.Source.Fighter, e.AttackPhase, victim.KillCreditSource, victim.HasKillCredit)
 		}
 		current := producer1162Snapshot(t, f)

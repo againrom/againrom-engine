@@ -891,11 +891,14 @@ func (w *World) resolveLayerConflicts(e *cellEffect) {
 	}
 }
 
+// sacrificeDamage is Fire Sacrifice's pair from the caster's signed HP and
+// mana words: base min(sum, 255), spread min(min(sum+power, 512)-base, 255),
+// with no lower clamp, each kept as its low byte (MAGIC-302).
 func sacrificeDamage(caster Entity, power uint16) (int32, int32) {
-	total := int64(caster.HP) + int64(caster.Mana)
-	base := max(0, min(255, total))
-	spread := max(0, min(255, min(512, total+int64(power))-base))
-	return int32(base), int32(spread)
+	total := int64(int16(caster.HP)) + int64(int16(caster.Mana))
+	base := min(255, total)
+	spread := min(255, min(512, total+int64(power))-base)
+	return int32(uint8(base)), int32(uint8(spread))
 }
 
 func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {

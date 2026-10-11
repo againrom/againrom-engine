@@ -278,8 +278,27 @@ func (r placedSpeakerRoute) selectHero() {
 }
 
 // kill orders the hero to attack target with the attack key and a click on
-// it, and advances until the target is dead.
+// it, and advances until the target is dead. A hero that turned to another
+// attacker and stands idle after felling it is ordered again, as a player
+// would click again.
 func (r placedSpeakerRoute) kill(target sim.EntityID) {
+	r.t.Helper()
+	r.order(target)
+	for i := 0; i < 1500; i++ {
+		r.advance()
+		if c, ok := r.live.entity(target); !ok || !c.Alive() {
+			r.t.Logf("target %d down at tick %d", target, r.live.world.Tick())
+			return
+		}
+		if h, ok := r.live.entity(r.hero); ok && h.Alive() && !h.HasAttackTarget && len(r.live.pending) == 0 {
+			r.order(target)
+		}
+	}
+	r.t.Fatalf("target %d still alive at tick %d", target, r.live.world.Tick())
+}
+
+// order is the attack key and a click on target with the hero selected.
+func (r placedSpeakerRoute) order(target sim.EntityID) {
 	r.t.Helper()
 	r.selectHero()
 	e, ok := r.live.entity(target)
@@ -308,14 +327,6 @@ func (r placedSpeakerRoute) kill(target sim.EntityID) {
 		r.live.pending[n].X != int32(target) {
 		r.t.Fatalf("the click on %d queued %+v, want the hero's attack", target, r.live.pending[n:])
 	}
-	for i := 0; i < 1500; i++ {
-		r.advance()
-		if c, ok := r.live.entity(target); !ok || !c.Alive() {
-			r.t.Logf("target %d down at tick %d", target, r.live.world.Tick())
-			return
-		}
-	}
-	r.t.Fatalf("target %d still alive at tick %d", target, r.live.world.Tick())
 }
 
 // walk orders the hero to the ground cell (col, row) with a click on it and

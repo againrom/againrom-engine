@@ -18,21 +18,21 @@ func TestFireballDividesEachByteComponent(t *testing.T) {
 		wantHP    int32
 		wantDraws int
 	}{
-		{"review regression", 20, 2, 11, 17, 0, full, 992, 4},
-		{"nonzero spread rolls", 0, 2, 11, 17, 0, full, 990, 4},
-		{"half coverage", 20, 2, 11, 17, 0, []uint16{0x0a09, 0x0a0a, 0x0b0a}, 996, 2},
-		{"quarter coverage", 20, 2, 11, 17, 0, []uint16{0x0909, 0x0a0a}, 998, 1},
+		{"review regression", 20, 2, 11, 17, 0, full, 991, 12},
+		{"nonzero spread rolls", 0, 2, 11, 17, 0, full, 991, 12},
+		{"half coverage", 20, 2, 11, 17, 0, []uint16{0x0a09, 0x0a0a, 0x0b0a}, 996, 6},
+		{"quarter coverage", 20, 2, 11, 17, 0, []uint16{0x0909, 0x0a0a}, 998, 3},
 		{"outside footprint", 20, 2, 11, 17, 0, []uint16{0x090a, 0x0a0c}, 1000, 0},
-		{"remainders do not carry", 0, 2, 3, 4, 0, full, 1000, 4},
-		{"exact component division", 20, 2, 8, 16, 0, full, 991, 4},
-		{"three cell side", 0, 3, 17, 27, 0, full, 994, 4},
-		{"one cell side", 20, 1, 11, 17, 0, full[:1], 988, 1},
-		{"legacy zero side", 20, 0, 11, 17, 0, full[:1], 988, 1},
-		{"base narrowed before divide", 20, 2, 267, 273, 0, full, 992, 4},
-		{"spread narrowed before divide", 20, 2, 11, 273, 0, full, 992, 4},
-		{"power before divide", 20, 2, 11, 17, 30, full, 978, 4},
-		{"power before byte narrowing", 20, 2, 100, 200, 60, full, 947, 4},
-		{"footprint exceeds each byte", 0, 16, 255, 510, 0, full, 1000, 4},
+		{"remainders do not carry", 0, 2, 3, 4, 0, full, 1000, 8},
+		{"exact component division", 20, 2, 8, 16, 0, full, 990, 12},
+		{"three cell side", 0, 3, 17, 27, 0, full, 995, 12},
+		{"one cell side", 20, 1, 11, 17, 0, full[:1], 988, 3},
+		{"legacy zero side", 20, 0, 11, 17, 0, full[:1], 988, 3},
+		{"base narrowed before divide", 20, 2, 267, 273, 0, full, 991, 12},
+		{"spread narrowed before divide", 20, 2, 11, 273, 0, full, 991, 12},
+		{"power before divide", 20, 2, 11, 17, 30, full, 976, 12},
+		{"power before byte narrowing", 20, 2, 100, 200, 60, full, 942, 12},
+		{"footprint exceeds each byte", 0, 16, 255, 510, 0, full, 1000, 8},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			target := Entity{ID: 1, X: 10, Y: 10, HP: 1000, MaxHP: 1000, TokenSize: tc.side}
@@ -43,8 +43,9 @@ func TestFireballDividesEachByteComponent(t *testing.T) {
 			// MAGIC-FIREDIV-047 divides the copied base/spread bytes separately.
 			// Literal HP expectations use independently reduced SplitMix words,
 			// not spellDamage, the area walker, or the production RNG helper.
-			// At seed 20 the first four rolls with spread 1 are all zero;
-			// at seed 0 they are 1, 0, 0, 1. Zero spread still takes one draw.
+			// Each application takes the physical step's two draws; a nonzero
+			// pair then draws its spread as the third (MAGIC-301), so every
+			// third word is the roll and a zero pair takes two draws.
 			w.applyAreaCells(cellEffect{Mode: areaModeBlast, Power: tc.power},
 				SpellRule{ID: 2, Damaging: true, DamageMin: tc.min, DamageMax: tc.max}, tc.cells)
 			if got := w.entities[0].HP; got != tc.wantHP {
@@ -100,8 +101,8 @@ func TestFireballComponentDivisionNativeCastContinuation(t *testing.T) {
 			checkpoint() // Pending cast must use the corrected rule after loading.
 		}
 		if releasedAt < 0 && w.entities[1].HP != 1000 {
-			if got := w.entities[1].HP; got != 992 {
-				t.Fatalf("book-cast Fire Ball HP = %d, want 992", got)
+			if got := w.entities[1].HP; got != 991 {
+				t.Fatalf("book-cast Fire Ball HP = %d, want 991", got)
 			}
 			releasedAt = tick
 			checkpoint() // Corrected HP and advanced RNG must persist together.

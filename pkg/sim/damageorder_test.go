@@ -44,8 +44,10 @@ func TestDamageMessagesKeepDrainVictimAndExcludeCasterRestoration(t *testing.T) 
 	caster := wpnCaster(1, 0, 0, 11, 30, 1, 0)
 	caster.HP = 50
 	w := spWorld(t, 1, []SpellRule{rule}, caster, spEnt(2, 1, 0))
-	want := []DamageEvent{{Target: 2, BeforeHP: 100, AfterHP: 94}}
-	if got := StepReported(w, []Command{Attack(1, 2)}).Damages; !slices.Equal(got, want) || cbAt(t, w, 1).HP != 56 {
+	// The pair is 6/0 at power 30; the first game's Drain draws base+1
+	// (MAGIC-302), so 7 moves.
+	want := []DamageEvent{{Target: 2, BeforeHP: 100, AfterHP: 93}}
+	if got := StepReported(w, []Command{Attack(1, 2)}).Damages; !slices.Equal(got, want) || cbAt(t, w, 1).HP != 57 {
 		t.Fatalf("Drain victim/caster=%+v HP=%d", got, cbAt(t, w, 1).HP)
 	}
 }
@@ -140,7 +142,7 @@ func TestDamageMessagesIsolateRefusedSourceReplacement(t *testing.T) {
 		t.Fatal("seed attachment")
 	}
 	w.damageObservation = &damageObservation{}
-	w.applySpellDamage(0, SpellRule{DamageMin: 3, DamageMax: 3}, 0)
+	w.applySpellDamage(-1, 0, SpellRule{DamageMin: 3, DamageMax: 3}, 0)
 	w.BindSourceDerive(func(s SourceActor, _ int32, _ Rules) (SourceActor, error) {
 		if s.Stats[8] == 49 {
 			return s, fmt.Errorf("refused replacement")

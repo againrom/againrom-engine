@@ -35,9 +35,10 @@ func TestCurrentPoolsFollowRuntimeMutations(t *testing.T) {
 				}
 				Step(w, []Command{Damage(1, 7)})
 				check(53, 20)
-				w.applySpellDamage(0, SpellRule{DamageMin: 3, DamageMax: 3}, 0)
+				w.applySpellDamage(-1, 0, SpellRule{DamageMin: 3, DamageMax: 3}, 0)
 				check(50, 20)
-				w.applySpellHealing(0, SpellRule{DamageMin: 6, DamageMax: 6}, 0)
+				// A zero spread still requests base+1 (MAGIC-302): 5 heals 6.
+				w.applySpellHealing(0, SpellRule{DamageMin: 5, DamageMax: 5}, 0)
 				check(56, 20)
 				w.regenerateActors(true)
 				check(58, 21)

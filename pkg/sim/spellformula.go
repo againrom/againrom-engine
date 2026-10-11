@@ -29,6 +29,10 @@ func spellRecordPowerUnder(r Rules, rule SpellRule, level, mind int32) int32 {
 func spellDamageUnder(r Rules, rule SpellRule, power int32) (base, spread int64) {
 	f, ok := r.SpellFormulaAt(rules.FormulaDamage, rule.ID, power)
 	if !ok {
+		if !rule.Second {
+			b, s := SpellRecordDamage(rule.DamageMin, rule.DamageMax, power)
+			return int64(b), int64(s)
+		}
 		return spellDamage(rule.DamageMin, rule.DamageMax, power)
 	}
 	base = int64(rule.DamageMin) * int64(f) / 30

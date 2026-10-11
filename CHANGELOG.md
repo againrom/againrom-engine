@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Spells deal the damage the original deals: before resistance a hit lands inside the damage range the spellbook shows, a negative resistance now increases spell damage instead of being ignored, Heal and Drain Life always give at least one point more than the lowest number shown, Fire Sacrifice follows the original's figures, and Stone Curse lasts longer on a target with negative earth protection.
+
 ## 0.115.0
 
 - [ROM1] Enemy groups away from the party wait at their posts until the party comes near, as in the original; a group the mission's script names acts wherever the party is.

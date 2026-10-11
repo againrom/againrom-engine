@@ -252,11 +252,14 @@ func TestCadence1045AreaReleaseRebindsTheBookSweepAfterEveryRemovalShape(t *test
 				t.Errorf("released[%d] = %v, want %v", releasing, got, !tc.felled[releasing])
 			}
 			wantRNG := seed
-			for range 9 { // Eight area applications and one unconditional recovery draw.
+			// Eight area applications of three draws each (the physical
+			// step's spread and accuracy draws, then the spread, MAGIC-301)
+			// and one unconditional recovery draw.
+			for range 25 {
 				wantRNG += gamma
 			}
 			if w.rng.state != wantRNG {
-				t.Errorf("rng state = %#x, want %#x after nine draws", w.rng.state, wantRNG)
+				t.Errorf("rng state = %#x, want %#x after 25 draws", w.rng.state, wantRNG)
 			}
 			form := mustMarshal(t, w)
 			var back World

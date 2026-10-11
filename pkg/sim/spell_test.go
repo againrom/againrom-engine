@@ -103,15 +103,17 @@ func TestACastSpendsManaOnceAndDamagesTheVictimByAnExactAmount(t *testing.T) {
 	if got := spAt(t, w, 1).Mana; got != 15 {
 		t.Errorf("caster's mana is %d after the cast, want exactly 15 (20 - the row's own cost of 5)", got)
 	}
+	// The physical step's two draws precede the spread draw (MAGIC-301), so
+	// the roll is the third SplitMix word from seed 42: 2 of 0..8.
 	gotHP := spAt(t, w, 2).HP
-	if gotHP != 86 {
-		t.Errorf("victim's health is %d after the cast, want exactly 86 (100 - the roll's own 14)", gotHP)
+	if gotHP != 90 {
+		t.Errorf("victim's health is %d after the cast, want exactly 90 (100 - the roll's own 10)", gotHP)
 	}
 	if amount := 100 - gotHP; amount < 8 || amount > 16 {
 		t.Errorf("the amount taken, %d, falls outside [base, base+spread] = [8, 16]", amount)
 	}
-	if n := cbDraws(t, before, w.rng.state); n != 2 {
-		t.Errorf("the generator drew %d time(s), want exactly 2 (damage and recovery jitter)", n)
+	if n := cbDraws(t, before, w.rng.state); n != 4 {
+		t.Errorf("the generator drew %d time(s), want exactly 4 (spread and accuracy of the physical step, damage, recovery jitter)", n)
 	}
 }
 
@@ -126,8 +128,8 @@ func TestAVictimExactlyAtMaxRangeIsInReach(t *testing.T) {
 	if got := spAt(t, w, 1).Mana; got != 15 {
 		t.Errorf("caster's mana is %d, want exactly 15 — a victim exactly at MaxRange must still be castable", got)
 	}
-	if got := spAt(t, w, 2).HP; got != 86 {
-		t.Errorf("victim's health is %d, want exactly 86 — a victim exactly at MaxRange must still be castable", got)
+	if got := spAt(t, w, 2).HP; got != 90 {
+		t.Errorf("victim's health is %d, want exactly 90 — a victim exactly at MaxRange must still be castable", got)
 	}
 }
 
@@ -350,17 +352,19 @@ func TestTheCadenceFloorHoldsASecondCastOffForCastPeriodTicks(t *testing.T) {
 	if got := spAt(t, w, 1).Mana; got != 15 {
 		t.Fatalf("caster's mana is %d after one released cast, want 15", got)
 	}
-	if got := spAt(t, w, 2).HP; got != 86 {
-		t.Fatalf("victim's health is %d after the release, want exactly 86 (100 - 14)", got)
+	if got := spAt(t, w, 2).HP; got != 90 {
+		t.Fatalf("victim's health is %d after the release, want exactly 90 (100 - 10)", got)
 	}
 	// The wait comes down at the TOP of a tick and a command is applied after
 	// it, so a cast made this tick leaves the full period standing.
-	if got := spAt(t, w, 1).CastWait; got != 4 {
-		t.Fatalf("the caster's wait is %d after the release, want the decoded recovery 4", got)
+	// The recovery jitter is the fourth SplitMix word from seed 42, 1 of
+	// 0..3, behind the damage payload's three draws (MAGIC-301).
+	if got := spAt(t, w, 1).CastWait; got != 5 {
+		t.Fatalf("the caster's wait is %d after the release, want the decoded recovery 4 plus jitter 1", got)
 	}
 
 	// And the same command applies again once the floor has run out.
-	for range 4 {
+	for range 5 {
 		Step(w, nil)
 	}
 	spRunCast(w, cast)

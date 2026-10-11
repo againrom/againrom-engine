@@ -396,7 +396,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		if rule.Second {
 			amount = secondDrainAmount(base, w.entities[ti].Protection[4], w.rng.uniform(secondDrawSpan(spread)))
 		} else {
-			amount = base + int64(w.rng.uniform(int32(max(0, spread))))
+			amount = int64(int16(base + w.firstFromOne(spread)))
 		}
 		amount = min(amount, int64(w.entities[ti].HP)+10)
 		if amount <= 0 {
@@ -419,7 +419,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 	if rule.Damaging {
 		w.flipOnBlow(ci, ti)
 		before := w.entities[ti].HP
-		w.applySpellDamage(ti, rule, power)
+		w.applySpellDamage(ci, ti, rule, power)
 		// The direct-damage resolver precedes the envelope tail. The temporary
 		// kind is the spell's damage/school kind; a normal point or area tail
 		// replaces it with the actual spell id after this payload returns.
@@ -520,7 +520,7 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 		if rule.Second {
 			mag = mag * (power + 45) / 45
 		} else {
-			mag = mag * (power + 30) / 30
+			mag = PoisonMagnitude(mag, power)
 		}
 	case 12:
 		mag = power/30 + 1
@@ -537,7 +537,15 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 		// THE DURATION IS SCALED BY protectionEarth (MAGIC-SING-019 (d)),
 		// floored at one tick: the only place a resistance shortens an
 		// effect instead of reducing damage.
-		if p := int32(0); ti >= 0 && ti < len(w.entities) {
+		if ti >= 0 && ti < len(w.entities) && !rule.Second {
+			// MAGIC-303: the word times 100 less the signed Earth resistance
+			// in signed 32 bits, divided by 100, kept as a word; zero is one.
+			r := int32(int16(w.entities[ti].Protection[3]))
+			duration = uint16(int32(duration) * (100 - r) / 100)
+			if duration == 0 {
+				duration = 1
+			}
+		} else if p := int32(0); ti >= 0 && ti < len(w.entities) {
 			p = w.entities[ti].Protection[3]
 			if p <= 0 {
 				break
@@ -829,11 +837,12 @@ func WeaponSpellDamageFor(r Rules, e Entity, spells []SpellRule) (base, spread i
 		characteristics.DamageMax - characteristics.DamageMin, true
 }
 
-// WeaponSpellDamage reports the exact damage interval used when id's current
+// WeaponSpellDamage reports the record damage pair used when id's current
 // attack is replaced by its weapon-borne spell. It reaches the same
-// weaponSpell lookup and spellDamage arithmetic as releaseWeaponSpell, including
-// the live path's negative-spread fold and Drain Life's transfer interval.
-// A physical attack or a spell without a projected interval answers false.
+// weaponSpell lookup and record arithmetic as releaseWeaponSpell, including
+// the live path's negative-spread fold; the first game's Drain Life draws
+// one above this base. A physical attack or a spell without a projected
+// interval answers false.
 func (w *World) WeaponSpellDamage(id EntityID) (base, spread int64, ok bool) {
 	i := indexOfEntity(w.entities, id)
 	if i < 0 {
@@ -892,11 +901,48 @@ func clampByte(v int64) uint8 {
 	return uint8(v)
 }
 
+// spellDamage is the second game's cast damage in 64-bit integers.
 func spellDamage(dmin, dmax, power int32) (base, spread int64) {
 	f := int64(power) + 30
 	base = int64(dmin) * f / 30
 	spread = int64(dmax)*f/30 - base
 	return base, spread
+}
+
+// SpellRecordDamage is the first game's spell record damage pair at power:
+// with f = power/30 + 1 in binary64 on the power's low byte, the base is the
+// low byte of trunc(dmin*f) and the spread the low byte of trunc(dmax*f -
+// base), each zero for a column at or below zero (TEXT-096, MAGIC-301). A
+// first-game cast copies this pair into its damage payload (MAGIC-300) and
+// the spellbook popup states it (DIV-1882).
+func SpellRecordDamage(dmin, dmax, power int32) (base, spread uint8) {
+	f := doubleQuo(int64(uint8(power)), 30).add(doubleFromInt(1))
+	if dmin > 0 {
+		base = uint8(doubleFromInt(int64(dmin)).mul(f).trunc())
+	}
+	if dmax > 0 {
+		spread = uint8(doubleFromInt(int64(dmax)).mul(f).sub(doubleFromInt(int64(base))).trunc())
+	}
+	return base, spread
+}
+
+// PoisonMagnitude is the first game's Poison Cloud magnitude at power: the
+// low word of trunc(magnitude * (power/30 + 1)) in binary64 on the full
+// signed power (MAGIC-302).
+func PoisonMagnitude(magnitude, power int32) int32 {
+	f := doubleQuo(int64(power), 30).add(doubleFromInt(1))
+	return int32(int16(doubleFromInt(int64(magnitude)).mul(f).trunc()))
+}
+
+// ResistedSpellDamage is the first game's elemental component v after the
+// signed resistance r: v itself at r zero, else trunc(v*(100-r)/100 + 0.75).
+// The integer form is exact: the binary64 quotient lands on a quarter or
+// stays at least a hundredth away from an integer (MAGIC-301).
+func ResistedSpellDamage(v int64, r int16) int64 {
+	if r == 0 {
+		return v
+	}
+	return (v*(100-int64(r)) + 75) / 100
 }
 
 // SpellCharacteristics is the actor-dependent projection consumed by the
@@ -1225,23 +1271,18 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	return true
 }
 
-func (w *World) applySpellDamage(vi int, rule SpellRule, power int32) {
+func (w *World) applySpellDamage(ci, vi int, rule SpellRule, power int32) {
 	target := &w.entities[vi]
 	before := *target
 	base, spread := spellDamageUnder(w.rules, rule, power)
 	if spread < 0 {
 		spread = 0
 	}
-	amount := base + int64(w.rng.uniform(int32(spread)))
-	if rule.School >= 1 && rule.School <= 5 {
-		p := target.Protection[rule.School-1]
-		if p < 0 {
-			p = 0
-		}
-		if p > 100 {
-			p = 100
-		}
-		amount = (amount*int64(100-p) + 75) / 100
+	var amount int64
+	if !rule.Second {
+		amount = w.directDamage(ci, vi, base, spread, rule.School)
+	} else {
+		amount = w.secondSpellDamage(vi, base, spread, rule.School)
 	}
 	if hp := int64(target.HP) - amount; hp < int64(minHP) {
 		target.setCurrentHealth(minHP)
@@ -1253,6 +1294,54 @@ func (w *World) applySpellDamage(vi int, rule SpellRule, power int32) {
 	// does — clearFelled is the one rule for that, called here on its own
 	// terms (step.go).
 	w.clearFelled(vi)
+}
+
+// directDamage is the first game's unit resolver for a damage payload
+// (MAGIC-301). The physical step runs on the payload's empty pair and takes
+// its draws: the spread draw, the source's Bless and Curse rolls and the
+// accuracy roll. None of them vetoes or changes the elemental part. A
+// nonzero pair then draws base plus 0..spread inclusive, and a nonzero
+// signed resistance of the school scales it by (100-r)/100 with the 0.75
+// bias; a negative result lands as zero.
+func (w *World) directDamage(ci, vi int, base, spread int64, school uint8) int64 {
+	w.rng.uniform(0)
+	if ci >= 0 && ci < len(w.entities) {
+		source := w.entities[ci].ID
+		blessed := false
+		if chance, ok := w.attachedMagnitude(source, w.armSpellID(23)); ok {
+			blessed = w.rng.uniform(100) < chance
+		}
+		if _, ok := w.attachedMagnitude(source, w.armSpellID(27)); ok && !blessed {
+			w.rng.uniform(100)
+		}
+	}
+	w.rng.uniform(hitRollSpan)
+	if base == 0 && spread == 0 {
+		return 0
+	}
+	v := base + int64(w.rng.uniform(int32(spread)))
+	if school >= 1 && school <= 5 {
+		v = ResistedSpellDamage(v, int16(w.entities[vi].Protection[school-1]))
+	}
+	return max(v, 0)
+}
+
+// secondSpellDamage is the second game's roll: base plus the spread draw,
+// with the school's protection held to 0..100.
+func (w *World) secondSpellDamage(vi int, base, spread int64, school uint8) int64 {
+	target := &w.entities[vi]
+	amount := base + int64(w.rng.uniform(int32(spread)))
+	if school >= 1 && school <= 5 {
+		p := target.Protection[school-1]
+		if p < 0 {
+			p = 0
+		}
+		if p > 100 {
+			p = 100
+		}
+		amount = (amount*int64(100-p) + 75) / 100
+	}
+	return amount
 }
 
 func (w *World) weaponSpellApply(ai, ti int, rule SpellRule, power int32, obs *castObs) bool {
@@ -1360,9 +1449,8 @@ func (w *World) weaponRiderApply(ai, ti int, positiveLivingHit bool, obs *castOb
 }
 
 // applySpellHealing is applySpellDamage's counterpart for a restorative row:
-// the same roll, the same one draw, and the same shared position at the tail
-// of a cast — so the two arms cannot come to compute a different number
-// for the same row and the same power.
+// the same record pair and the same shared position at the tail of a cast.
+// The first game's Heal draws base+1..base+spread (MAGIC-302).
 //
 // IT DRAWS EXACTLY ONCE, on applySpellDamage's own convention: the spread
 // alone, since the base is deterministic at a fixed power and rule. That keeps
@@ -1390,7 +1478,7 @@ func (w *World) applySpellHealing(vi int, rule SpellRule, power int32) {
 	if rule.Second {
 		amount = base + 1 + int64(w.rng.uniform(secondDrawSpan(spread)))
 	} else {
-		amount = base + int64(w.rng.uniform(int32(spread)))
+		amount = base + w.firstFromOne(spread)
 	}
 	if target.MaxHP <= 0 {
 		return
@@ -1401,6 +1489,12 @@ func (w *World) applySpellHealing(vi int, rule SpellRule, power int32) {
 		target.setCurrentHealth(int32(hp))
 	}
 	w.restoreAfterHealthGain(vi, before)
+}
+
+// firstFromOne is the first game's 1..spread draw of Heal and Drain Life,
+// 1 + R(spread-1): a spread of zero still draws and answers one (MAGIC-302).
+func (w *World) firstFromOne(spread int64) int64 {
+	return 1 + int64(w.rng.uniform(int32(max(spread, 0))-1))
 }
 
 // spellFXLife is how many ticks a spell effect mark stands. It is AUTHORED:

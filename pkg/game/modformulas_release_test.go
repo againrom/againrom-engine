@@ -202,8 +202,10 @@ func TestReleaseModFormulaTablesReachTheCastTheBookAndTheSave(t *testing.T) {
 	}
 	checkBook("mission", mw)
 
-	if gain := healAlly(t, mw, casterID, allyID, healAmount+20); gain != healAmount {
-		t.Errorf("the Heal restored %d health, want the table's exact %d (installed pair %d-%d)", gain, healAmount, r.healLow, r.healHigh)
+	// The popup states the table's pair, healAmount with no spread; the first
+	// game's Heal arm requests base+1 for a zero spread (MAGIC-302, DIV-3002).
+	if gain := healAlly(t, mw, casterID, allyID, healAmount+20); gain != healAmount+1 {
+		t.Errorf("the Heal restored %d health, want the table's %d plus one (installed pair %d-%d)", gain, healAmount, r.healLow, r.healHigh)
 	}
 	live := castBless(t, mw, casterID, allyID)
 	if live.Magnitude != formulaBlessMagnit || int32(live.Remaining) != blessTicks {
@@ -235,8 +237,8 @@ func TestReleaseModFormulaTablesReachTheCastTheBookAndTheSave(t *testing.T) {
 	if got, ok := blessOf(late, allyID); !ok || got != saved {
 		t.Errorf("the restored Bless is %+v %v, saved %+v", got, ok, saved)
 	}
-	if gain := healAlly(t, late, casterID, allyID, healAmount+20); gain != healAmount {
-		t.Errorf("after the cold LOAD the Heal restored %d health, want %d", gain, healAmount)
+	if gain := healAlly(t, late, casterID, allyID, healAmount+20); gain != healAmount+1 {
+		t.Errorf("after the cold LOAD the Heal restored %d health, want %d", gain, healAmount+1)
 	}
 	if stated, booked := arrowReach(t, late, casterID); stated != reach || booked != reach {
 		t.Errorf("after the cold LOAD the Fire Arrow reach is %d (book %d), want %d", stated, booked, reach)

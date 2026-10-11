@@ -109,6 +109,9 @@ func TestCurrentDeliveryRetainsOrdinaryTimerTargetAndFutureImpact(t *testing.T) 
 func TestCurrentDeliveryKeepsClockAboveOrdinaryTickWidth(t *testing.T) {
 	w := deliveryTestWorld(t, 1)
 	asSecondGame(t, w)
+	// A cold second-game World marks its rows second-game; the native one
+	// must too, since the two games' damage resolvers draw differently.
+	AssignSecondGameArms(w.spells)
 	w.tick = 1<<32 | 17
 	w.queuePointDelivery(0, 1, w.spells[0], 0)
 	cold := transferCurrentDelivery(t, w, nil)

@@ -176,7 +176,7 @@ func TestProtectionUsesTheDecodedRoundedResistanceAndDrainBypassesIt(t *testing.
 	target.Resistance = [5]uint8{255, 255, 255, 255, 255}
 	w := hlWorld(t, 2, Relations{}, nil, caster, target)
 	rule := SpellRule{ID: 1, School: 1, DamageMin: 10, DamageMax: 10, Damaging: true, TargetsUnit: true}
-	w.applySpellDamage(1, rule, 0)
+	w.applySpellDamage(-1, 1, rule, 0)
 	if got := w.entities[1].HP; got != 92 { // ftol(10*0.75+0.75) = 8
 		t.Fatalf("protected damage left %d health, want 92", got)
 	}
@@ -186,8 +186,9 @@ func TestProtectionUsesTheDecodedRoundedResistanceAndDrainBypassesIt(t *testing.
 	if !w.ordinaryEffect(0, 1, drain, 0) {
 		t.Fatal("drain did not apply")
 	}
-	if w.entities[1].HP != 90 || w.entities[0].HP != 60 {
-		t.Fatalf("Drain should bypass the direct-damage resolver: caster=%d target=%d, want 60/90", w.entities[0].HP, w.entities[1].HP)
+	// Pair 10/0; the first game's Drain draws base+1, 11 (MAGIC-302).
+	if w.entities[1].HP != 89 || w.entities[0].HP != 61 {
+		t.Fatalf("Drain should bypass the direct-damage resolver: caster=%d target=%d, want 61/89", w.entities[0].HP, w.entities[1].HP)
 	}
 }
 

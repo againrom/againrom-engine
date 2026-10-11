@@ -14,10 +14,11 @@ func TestDrainStaffTrainsFromVictimAmountBeforeHealing(t *testing.T) {
 		w := spWorld(t, 1, []SpellRule{rule}, caster, victim)
 		Step(w, []Command{cbOrder(1, 2)})
 		got := spAt(t, w, 1)
-		if got.SkillXP[2] != caster.SkillXP[2]+13 || got.HP != min(100, hp+10) || got.Mana != caster.Mana {
+		// Pair 10/0; the first game's Drain draws base+1, 11 (MAGIC-302).
+		if got.SkillXP[2] != caster.SkillXP[2]+13 || got.HP != min(100, hp+11) || got.Mana != caster.Mana {
 			t.Fatalf("starting HP%d: Water XP%d health%d mana%d", hp, got.SkillXP[2], got.HP, got.Mana)
 		}
-		if spAt(t, w, 2).HP != 90 {
+		if spAt(t, w, 2).HP != 89 {
 			t.Fatal("Drain entered the resisted direct-damage resolver")
 		}
 		for i := range got.SkillXP {
