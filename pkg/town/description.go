@@ -95,15 +95,20 @@ type MaskByte struct {
 }
 
 // HotspotSpec is one region of the view: its row in the list fallback, its
-// tooltip text slot, its click program and its hover reactions.
+// tooltip text slot, or no tip, its click program and its hover reactions.
 type HotspotSpec struct {
 	Name  string   `json:"name"`
 	Row   *int     `json:"row"`
 	Tip   int      `json:"tip"`
+	NoTip bool     `json:"no-tip"`
 	Click []Op     `json:"click"`
 	Hover []Op     `json:"hover"`
 	Cite  []string `json:"cite"`
 }
+
+// TipSlot answers the hotspot's tooltip text slot, and false for a hotspot
+// that shows no tip.
+func (h *HotspotSpec) TipSlot() (int, bool) { return h.Tip, !h.NoTip }
 
 // PointerSpec holds the reactions to every pointer update and to an update
 // over no hotspot.
@@ -117,7 +122,8 @@ type PointerSpec struct {
 // set: arm, latch, drive, clear-latch, room, hook, menu, dialogue or if. A
 // latch with no slot requests no sound. A dialogue opens the conversation
 // whose key is its template formatted with the named value, or the template
-// itself when no value is named.
+// itself when no value is named. A hover operation marked Changed runs only on
+// the pointer update that changed the hovered hotspot.
 type Op struct {
 	Arm        string      `json:"arm"`
 	Chance     *ChanceSpec `json:"chance"`
@@ -138,6 +144,7 @@ type Op struct {
 	If         string      `json:"if"`
 	Then       []Op        `json:"then"`
 	Else       []Op        `json:"else"`
+	Changed    bool        `json:"changed"`
 	Cite       []string    `json:"cite"`
 }
 
@@ -208,8 +215,8 @@ type CueSpec struct {
 }
 
 // ActorSpec is one animated element and its program: episode, pendulum,
-// stepper, driven, flock, families, loop, alternating, selector, priority,
-// bounce, cycle, target or training, in any scene. The fields each program
+// stepper, driven, flock, families, route, loop, alternating, selector,
+// priority, bounce, cycle, target or training, in any scene. The fields each program
 // reads are named on its runtime type.
 type ActorSpec struct {
 	Name    string `json:"name"`
@@ -251,10 +258,15 @@ type ActorSpec struct {
 	StepOrder  []string    `json:"step-order"`
 	PaintOrder []string    `json:"paint-order"`
 
+	// route: its first wait, then Wait, and the route each start picks
+	First *WaitSpec `json:"first"`
+	Route *PickSpec `json:"route"`
+
 	// room programs: loop, alternating, selector, priority, bounce, cycle,
 	// target and training
 	Loop      int           `json:"loop"`
 	Clock     string        `json:"clock"`
+	Modulus   int           `json:"modulus"`
 	Delay     *PickSpec     `json:"delay"`
 	DelayMS   int           `json:"delay-ms"`
 	States    []StateSpec   `json:"states"`
@@ -288,7 +300,11 @@ type CountCue struct {
 // sheets is indexed by sheet alone. Stamp "start" keeps the wait's clock from
 // the episode's start, where by default every advance restamps it. IdleSheet
 // shows that sheet's first frame while no episode runs. FramePositions move
-// a running member while its frame lies in a range.
+// a running member while its frame lies in a range. HoverSheet is the sheet
+// a member starts on and idles on while its hotspot is hovered, and a hover
+// arm starts it there at once. SheetPositions place a member by the sheet it
+// draws, in place of Positions. StartWhen "idle" starts a member only when no
+// episode runs: an elapsed wait still restamps its clock and draws the next.
 type MemberSpec struct {
 	Name           string          `json:"name"`
 	Art            string          `json:"art"`
@@ -301,7 +317,17 @@ type MemberSpec struct {
 	IdleSheet      *int            `json:"idle-sheet"`
 	FramePositions []FramePosition `json:"frame-positions"`
 	FrameCues      []FrameCue      `json:"frame-cues"`
+	HoverSheet     *HoverSheet     `json:"hover-sheet"`
+	SheetPositions []Point         `json:"sheet-positions"`
+	StartWhen      string          `json:"start-when"`
 	Cite           []string        `json:"cite"`
+}
+
+// HoverSheet names the hotspot whose hover chooses a member's sheet.
+type HoverSheet struct {
+	Hotspot string   `json:"hotspot"`
+	Sheet   int      `json:"sheet"`
+	Cite    []string `json:"cite"`
 }
 
 // FramePosition draws a running member at At while its frame lies in
@@ -360,11 +386,16 @@ type LayerSpec struct {
 	Cite  []string  `json:"cite"`
 }
 
-// WhenSpec is a layer condition: the hovered hotspot, or an active actor.
+// WhenSpec is a layer condition: the hovered hotspot, an active actor, a
+// family member running an episode on a sheet, or any one of a list of
+// conditions.
 type WhenSpec struct {
-	Hover  string   `json:"hover"`
-	Active string   `json:"active"`
-	Cite   []string `json:"cite"`
+	Hover   string     `json:"hover"`
+	Active  string     `json:"active"`
+	Running string     `json:"running"`
+	Sheet   *int       `json:"sheet"`
+	Any     []WhenSpec `json:"any"`
+	Cite    []string   `json:"cite"`
 }
 
 // TipSpec is the view's tip popup: its text key and rectangle. Second is a

@@ -14,7 +14,7 @@ import (
 
 // secondTownDescriptions names the composed description of each second-game
 // town by its ID. A town without one keeps the row list.
-var secondTownDescriptions = map[int]string{1: "rom2-town1", 2: "rom2-town2"}
+var secondTownDescriptions = map[int]string{1: "rom2-town1", 2: "rom2-town2", 3: "rom2-town3"}
 
 // secondTownPages are the page kinds the second game's town screen draws.
 var secondTownPages = []string{"inn"}
@@ -25,7 +25,8 @@ var secondTownRooms = map[string]secondTownRoom{"square": secondTownSquare, "inn
 
 // secondTownRowText is the list fallback's text for a square hotspot's row.
 var secondTownRowText = map[string]string{"inn": "TAVERN", "gate": "GATES",
-	"girl1": "GIRL 1", "girl2": "GIRL 2", "guard": "GUARD", "dervish": "DERVISH"}
+	"girl1": "GIRL 1", "girl2": "GIRL 2", "guard": "GUARD", "dervish": "DERVISH",
+	"innkeeper": "INNKEEPER", "shopkeeper": "SHOPKEEPER"}
 
 // secondTownConditions answers the conditions the second game's town
 // descriptions name.
@@ -494,7 +495,7 @@ func (v secondTownView) TipAt(p image.Point) (int, bool) {
 	if h == nil {
 		return 0, false
 	}
-	return h.Tip, true
+	return h.TipSlot()
 }
 
 // The second game's campaign screen answers the one scene adapter

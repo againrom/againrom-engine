@@ -34,10 +34,12 @@ func (l *Loop) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 }
 
 // Alternating rests for a drawn wait, then starts the state whose parity
-// matches the wait's millisecond count when that state's art is complete;
-// otherwise it draws a new wait. A started state steps on its clock's period:
+// matches the wait's millisecond count, or with a Modulus whose residues hold
+// its remainder, when that state's art is complete; otherwise it draws a new
+// wait. A started state steps on its clock's period:
 // "forward" to its last frame, after which the index returns to zero while
-// the shown frame stays; "ping-pong" forward then back to the first frame.
+// the shown frame stays; "ping-pong" forward then back to the first frame;
+// "hold" on its first frame until its index reaches its Steps.
 // Each state keeps its own index and the last frame it showed.
 type Alternating struct {
 	still
@@ -77,12 +79,8 @@ func (a *Alternating) phase(s *Scene, phase, name string, now time.Time) {
 		if now.Sub(s.Clock(a.spec.Clock)) <= a.Delay {
 			return
 		}
-		parity := "even"
-		if a.Delay/time.Millisecond%2 != 0 {
-			parity = "odd"
-		}
 		for i, st := range a.spec.States {
-			if st.When != parity {
+			if !a.chooses(st) {
 				continue
 			}
 			if s.Complete(st.Art, st.Complete) {
@@ -120,6 +118,25 @@ func (a *Alternating) phase(s *Scene, phase, name string, now time.Time) {
 	}
 }
 
+// chooses reports whether the resting wait chooses state st: by parity, or
+// by the wait's remainder under the actor's Modulus.
+func (a *Alternating) chooses(st StateSpec) bool {
+	ms := int(a.Delay / time.Millisecond)
+	if m := a.spec.Modulus; m > 0 {
+		for _, r := range st.Residues {
+			if ms%m == r {
+				return true
+			}
+		}
+		return false
+	}
+	parity := "even"
+	if ms%2 != 0 {
+		parity = "odd"
+	}
+	return st.When == parity
+}
+
 func (a *Alternating) advance(s *Scene, now time.Time) {
 	if a.State == 0 || now.Sub(s.Clock(a.spec.Clock)) <= s.period(a.spec.Clock) {
 		return
@@ -128,6 +145,13 @@ func (a *Alternating) advance(s *Scene, now time.Time) {
 	i := a.State - 1
 	st := a.spec.States[i]
 	frames := s.frames(st.Art)
+	if st.Motion == "hold" {
+		if a.Index[i]++; a.Index[i] >= st.Steps {
+			a.Index[i] = 0
+			a.end(s, now, st, false)
+		}
+		return
+	}
 	if st.Motion == "forward" {
 		if !stepFrame(&a.Index[i], &a.Cached[i], frames, 1) {
 			a.Index[i] = 0
@@ -169,7 +193,11 @@ func stepFrame(index, cached *int, frames []image.Image, dir int) bool {
 
 func (a *Alternating) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 	if s.ready && a.ShownState > 0 {
-		place(dst, frameAt(s.frames(a.spec.States[a.ShownState-1].Art), a.ShownFrame), layer)
+		st := a.spec.States[a.ShownState-1]
+		if st.At != nil {
+			layer.At = *st.At
+		}
+		place(dst, frameAt(s.frames(st.Art), a.ShownFrame), layer)
 	}
 }
 

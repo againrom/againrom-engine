@@ -31,6 +31,13 @@ var rom2Town1JSON []byte
 //go:embed towns/rom2-town2.json
 var rom2Town2JSON []byte
 
+// rom2Town3JSON is the second game's third town, the druid town, as data for
+// the town composer: its square and its inn page, every value beside the
+// second-game claim or divergence row behind it.
+//
+//go:embed towns/rom2-town3.json
+var rom2Town3JSON []byte
+
 // townDescriptions are the town descriptions a profile's edition can name, by
 // that name. A description that does not decode, or names a hook or condition
 // the campaign does not answer, is a build defect, so it stops the process at
@@ -43,6 +50,7 @@ func init() {
 		"rom1":       mustDecodeTown(rom1TownJSON, townVocabulary()),
 		"rom2-town1": mustDecodeTown(rom2Town1JSON, secondTownVocabulary()),
 		"rom2-town2": mustDecodeTown(rom2Town2JSON, secondTownVocabulary()),
+		"rom2-town3": mustDecodeTown(rom2Town3JSON, secondTownVocabulary()),
 	}
 }
 
@@ -279,7 +287,7 @@ func (s townSquareScene) TipAt(p image.Point) (int, bool) {
 	if h == nil {
 		return 0, false
 	}
-	return h.Tip, true
+	return h.TipSlot()
 }
 
 // TownMusicTrack answers the square's own track from the description.

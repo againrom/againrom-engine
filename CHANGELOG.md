@@ -15,6 +15,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   backpack.
 - [ROM1] The school's idle skill shine starts after half a second and cycles
   faster. Hovering a skill pauses it and restarts the idle delay.
+- [ROM2] The third town, the druids' town, is a picture instead of a list: the square shows its shop and tavern, the woman and the man who step out when the pointer rests on the shop or the tavern, the lizard and the bug, with hover hints, and the innkeeper and the shopkeeper speak when clicked. The inn shows its water and taverner beside the people to talk to; Exit or Escape returns to the square, and a save made on the square or in the inn loads back into the same place. The shop still opens nothing.
 
 ## 0.114.0
 

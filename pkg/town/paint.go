@@ -33,6 +33,20 @@ func (s *Scene) when(w *WhenSpec) bool {
 	if w == nil {
 		return true
 	}
+	if len(w.Any) > 0 {
+		for i := range w.Any {
+			if s.when(&w.Any[i]) {
+				return true
+			}
+		}
+		return false
+	}
+	if w.Running != "" {
+		a := s.byName[w.Running]
+		if a == nil || !a.runsSheet(w.Running, *w.Sheet) {
+			return false
+		}
+	}
 	if w.Hover != "" && (s.hover == nil || s.hover.Name != w.Hover) {
 		return false
 	}

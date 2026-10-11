@@ -349,7 +349,7 @@ func TestCurrentSecondAuxiliaryArrayPersists(t *testing.T) {
 	}
 }
 
-// Town 3 is a quiet later town: GATES only, a save point, and its type-2
+// Town 3 is the composed druid town, a save point, and its type-2
 // departure keeps its node (R2-ENGINE-144).
 func TestSecondCampaignThirdTown(t *testing.T) {
 	f, app, screen := secondCampaignFixture(t, true)
@@ -374,7 +374,7 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 	}
 	choose("town 3")
 	choose("ENTER")
-	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}}) {
+	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}, {Text: "INNKEEPER", Choosable: true}, {Text: "SHOPKEEPER", Choosable: true}}) {
 		t.Fatal("town 3 screen", c.current, screen.Header(), screen.Rows())
 	}
 	if got := screen.Footer(); !reflect.DeepEqual(got, []string{"Town 2 services are unavailable.", "Town 3 services are unavailable."}) {

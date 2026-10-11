@@ -2190,6 +2190,14 @@ package storyguard
 // sub-command, StepTracedAt and the instruments that read the registry and
 // the instant's own postcondition, the rate byte of a test's Move fixture,
 // including this paragraph.
+// CommentBytes rises for the second game's third town: the docs of the
+// composer's hover sheet, idle-only start, sheet positions, route program,
+// residue states, held motion, any and running conditions and no-tip
+// hotspots in pkg/town/{actors,description,paint,roomactors,scene,
+// validate}.go and hoversheet_test.go; the bank-770 talk store in
+// pkg/game/secondinn.go; the town 3 witnesses in
+// pkg/game/secondtowndruid_release_test.go and secondtown_test.go,
+// including this paragraph.
 // CommentBytes rises for the first game's mission minimap: the docs of
 // pkg/ui/minimaporiginal.go and its tests, the one minimap plan builder in
 // pkg/ui/minimap.go, the structure owner slots in pkg/game/world.go, the
@@ -2218,5 +2226,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8736573,
+	CommentBytes: 8745188,
 }

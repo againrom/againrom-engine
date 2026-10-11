@@ -84,13 +84,17 @@ type StateSpec struct {
 	Art      string `json:"art"`
 	Complete int    `json:"complete"`
 	// When is the wait parity that chooses an alternating state: "odd" or
-	// "even".
-	When string `json:"when"`
+	// "even". With the actor's Modulus, Residues are the remainders of the
+	// wait's milliseconds that choose it instead.
+	When     string `json:"when"`
+	Residues []int  `json:"residues"`
+	// At draws the state's frame at this point in place of the layer's.
+	At *Point `json:"at"`
 	// Motion is "ping-pong" (forward to the last frame, then back to the
-	// first) or "forward" (to the last frame, then the index returns to zero
-	// and the shown frame stays).
+	// first), "forward" (to the last frame, then the index returns to zero
+	// and the shown frame stays) or "hold" (the first frame for Steps steps).
 	Motion string `json:"motion"`
-	// Steps is the index at which a priority state ends.
+	// Steps is the index at which a priority or held state ends.
 	Steps       int        `json:"steps"`
 	StartSounds []string   `json:"start-sounds"`
 	FrameSounds []FrameCue `json:"frame-sounds"`
@@ -180,6 +184,7 @@ type Scene struct {
 
 	ready, present, active, started bool
 	hover                           *HotspotSpec
+	hoverChanged                    bool
 	latches                         map[string]bool
 	voices                          []Voice
 	loopOn                          bool
@@ -528,7 +533,10 @@ func (s *Scene) Hover() *HotspotSpec { return s.hover }
 // Pointer is one delivered pointer update at p. The every-update reactions run
 // first, then the hovered hotspot's or the off-hotspot reactions.
 func (s *Scene) Pointer(p image.Point) {
+	prev := s.hover
 	s.hover = s.HotspotAt(p)
+	s.hoverChanged = s.hover != prev
+	defer func() { s.hoverChanged = false }()
 	s.run(s.spec.Pointer.Every)
 	if s.hover == nil {
 		s.run(s.spec.Pointer.Off)
@@ -558,6 +566,9 @@ func Menu(ops []Op) string {
 func (s *Scene) run(ops []Op) string {
 	menu := ""
 	for _, op := range ops {
+		if op.Changed && !s.hoverChanged {
+			continue
+		}
 		switch {
 		case op.Arm != "":
 			if op.Chance == nil || s.chance(*op.Chance) {

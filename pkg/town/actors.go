@@ -10,8 +10,8 @@ import (
 // and prepare to a scene just made ready; enter runs on each entry and leave
 // on each hiding of a shown scene; resume runs when a paused scene runs
 // again; phase runs one named step; arm and drive are hover reactions; event
-// runs one bound action and answers whether it changed state; activeNow is a
-// layer condition; draw paints the layer's actor or member.
+// runs one bound action and answers whether it changed state; activeNow and
+// runsSheet are layer conditions; draw paints the layer's actor or member.
 type actor interface {
 	members() []string
 	reset(s *Scene)
@@ -24,6 +24,7 @@ type actor interface {
 	drive(s *Scene, dir int)
 	event(s *Scene, do string, args []int) bool
 	activeNow() bool
+	runsSheet(name string, sheet int) bool
 	draw(s *Scene, dst *image.RGBA, layer LayerSpec)
 }
 
@@ -40,9 +41,10 @@ func (still) arm(s *Scene, name string)                  {}
 func (still) drive(s *Scene, dir int)                    {}
 func (still) event(s *Scene, do string, args []int) bool { return false }
 func (still) activeNow() bool                            { return false }
+func (still) runsSheet(name string, sheet int) bool      { return false }
 
 // programs are the program names an actor may run, in either scene.
-var programs = []string{"episode", "pendulum", "stepper", "driven", "flock", "families",
+var programs = []string{"episode", "pendulum", "stepper", "driven", "flock", "families", "route",
 	"loop", "alternating", "selector", "priority", "bounce", "cycle", "target", "training"}
 
 func newActor(spec *ActorSpec) actor {
@@ -59,6 +61,8 @@ func newActor(spec *ActorSpec) actor {
 		return &Flock{spec: spec, Progress: make([]int, spec.GroupSize)}
 	case "families":
 		return &Families{spec: spec, Members: make([]FamilyMember, len(spec.Members))}
+	case "route":
+		return &Route{spec: spec}
 	case "loop":
 		return &Loop{spec: spec}
 	case "alternating":
@@ -613,6 +617,36 @@ func (g *Families) enter(s *Scene, now time.Time) {
 
 func (g *Families) activeNow() bool { return g.Entered }
 
+func (g *Families) runsSheet(name string, sheet int) bool {
+	m := g.Member(name)
+	return g.Entered && m != nil && m.Active && m.Sheet == sheet
+}
+
+// hoverSheet answers member i's hover sheet while its hotspot is hovered.
+func (g *Families) hoverSheet(s *Scene, i int) (int, bool) {
+	h := g.spec.Members[i].HoverSheet
+	if h == nil || s.hover == nil || s.hover.Name != h.Hotspot {
+		return 0, false
+	}
+	return h.Sheet, true
+}
+
+// arm starts the named member on its hover sheet at once, unless it already
+// runs that sheet: its clock restamps, its frame rewinds and it advances one
+// frame, to its first.
+func (g *Families) arm(s *Scene, name string) {
+	i := g.index(name)
+	if i < 0 || !g.Entered || g.spec.Members[i].HoverSheet == nil {
+		return
+	}
+	m, sheet := &g.Members[i], g.spec.Members[i].HoverSheet.Sheet
+	if m.Active && m.Sheet == sheet {
+		return
+	}
+	m.Clock, m.Sheet, m.Current, m.Active = s.host.Now(), sheet, -1, true
+	g.step(s, i, m.Clock)
+}
+
 func (g *Families) sheetName(s *Scene, i int) string { return g.sheetOf(s, i, g.Members[i].Sheet) }
 
 // sheetOf names sheet n of member i's art, by the art's indices: position
@@ -672,13 +706,7 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 				}
 				continue
 			}
-			m.Current++
-			if g.spec.Members[i].Stamp == "" {
-				m.Clock = now
-			}
-			if m.Current >= g.sheetLen(s, i) {
-				m.Current, m.Active = -1, false
-			}
+			g.step(s, i, now)
 		}
 	case "schedule":
 		for _, n := range g.spec.PaintOrder {
@@ -690,10 +718,17 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 			if !elapsed(now.Sub(m.Clock), m.Wait, spec.Later.Compare) {
 				continue
 			}
-			m.Clock, m.Current, m.Active = now, 0, true
+			busy := m.Active && spec.StartWhen == "idle"
+			m.Clock = now
 			m.Wait = s.wait(*spec.Later)
+			if busy {
+				continue
+			}
+			m.Current, m.Active = 0, true
 			m.Sheet = 0
-			if spec.SheetPick != nil {
+			if sheet, ok := g.hoverSheet(s, i); ok {
+				m.Sheet = sheet
+			} else if spec.SheetPick != nil {
 				m.Sheet = s.amount(*spec.SheetPick)
 			}
 		}
@@ -709,6 +744,19 @@ func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 				}
 			}
 		}
+	}
+}
+
+// step advances episode member i one frame; past its sheet's last frame the
+// episode ends.
+func (g *Families) step(s *Scene, i int, now time.Time) {
+	m := &g.Members[i]
+	m.Current++
+	if g.spec.Members[i].Stamp == "" {
+		m.Clock = now
+	}
+	if m.Current >= g.sheetLen(s, i) {
+		m.Current, m.Active = -1, false
 	}
 }
 
@@ -736,6 +784,23 @@ func (g *Families) Shown(s *Scene, name string) (sheet string, frame int, at ima
 		return "", 0, image.Point{}, false
 	}
 	spec, m := g.spec.Members[i], g.Members[i]
+	if len(spec.SheetPositions) > 0 {
+		sheet := m.Sheet
+		if !m.Active && spec.IdleSheet != nil {
+			sheet = *spec.IdleSheet
+			if h, ok := g.hoverSheet(s, i); ok {
+				sheet = h
+			}
+		}
+		if sheet < 0 || sheet >= len(spec.SheetPositions) {
+			return "", 0, image.Point{}, false
+		}
+		at = spec.SheetPositions[sheet].Pt()
+		if !m.Active {
+			return g.sheetOf(s, i, sheet), 0, at, true
+		}
+		return g.sheetName(s, i), max(m.Current, 0), at, true
+	}
 	if m.Position < 0 || m.Position >= len(spec.Positions) {
 		return "", 0, image.Point{}, false
 	}
@@ -751,4 +816,64 @@ func (g *Families) Shown(s *Scene, name string) (sheet string, frame int, at ima
 		}
 	}
 	return g.sheetName(s, i), max(m.Current, 0), at, true
+}
+
+// Route is a scheduled sprite route: after its first wait, and then after each
+// later wait, it picks a route and runs; each admitted step moves its cursor
+// one frame, and past Frames the route ends with the cursor back at zero. A
+// start keeps the cursor it finds, so a start while running changes the route
+// without rewinding, and the cursor -1 of entry first reaches frame zero. It
+// draws frame Frames*route+cursor while both are nonnegative.
+type Route struct {
+	still
+	spec   *ActorSpec
+	Route  int
+	Cursor int
+	Active bool
+	Clock  time.Time
+	Wait   time.Duration
+}
+
+func (r *Route) reset(s *Scene) {
+	r.Route, r.Cursor, r.Active, r.Clock, r.Wait = -1, -1, false, time.Time{}, 0
+}
+
+func (r *Route) enter(s *Scene, now time.Time) {
+	r.reset(s)
+	r.Clock, r.Wait = now, s.wait(*r.spec.First)
+}
+
+func (r *Route) activeNow() bool { return r.Active }
+
+func (r *Route) phase(s *Scene, phase, name string, now time.Time) {
+	switch phase {
+	case "schedule":
+		if r.Clock.IsZero() || !elapsed(now.Sub(r.Clock), r.Wait, r.spec.Wait.Compare) {
+			return
+		}
+		r.Route, r.Active, r.Clock = s.amount(*r.spec.Route), true, now
+		r.Wait = s.wait(*r.spec.Wait)
+	case "advance":
+		if !r.Active {
+			return
+		}
+		r.Cursor++
+		if r.Cursor >= r.spec.Frames {
+			r.Cursor, r.Route, r.Active = 0, -1, false
+		}
+	}
+}
+
+// Shown answers the frame the route draws, and false while it draws none.
+func (r *Route) Shown() (int, bool) {
+	if r.Route < 0 || r.Cursor < 0 {
+		return 0, false
+	}
+	return r.spec.Frames*r.Route + r.Cursor, true
+}
+
+func (r *Route) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	if frame, ok := r.Shown(); ok {
+		place(dst, frameAt(s.frames(r.spec.Art), frame), layer)
+	}
 }

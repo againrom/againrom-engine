@@ -235,7 +235,8 @@ func TestSecondInnDynamicTail(t *testing.T) {
 
 // TALK: kind 3 admits mission topic; NPC 22 topic 30 stores 533 and 553;
 // topic 10 stores 769; kind 0 changes nothing (R2-ENGINE-219,
-// R2-SESSION-110).
+// R2-SESSION-110) except NPC 675 topic 78, which stores 2 in 770
+// (R2-ENGINE-367).
 func TestSecondInnTalkEffects(t *testing.T) {
 	for _, tc := range []struct {
 		o     secondInnOption
@@ -251,6 +252,9 @@ func TestSecondInnTalkEffects(t *testing.T) {
 		{secondInnOption{kind: 1, topic: 0, npc: 1}, nil, nil},
 		{secondInnOption{kind: 0, topic: 48, npc: 2108}, nil, nil},
 		{secondInnOption{kind: 0, topic: 49, npc: 23}, nil, nil},
+		{secondInnOption{kind: 0, topic: 78, npc: 675}, nil, map[int]int32{770: 2}},
+		{secondInnOption{kind: 3, topic: 78, npc: 675}, []secondLocation{{1, 78}}, nil},
+		{secondInnOption{kind: 0, topic: 79, npc: 5}, nil, nil},
 	} {
 		c := innAt(2, 30, nil)
 		c.bank[533], c.bank[553] = -9, -9

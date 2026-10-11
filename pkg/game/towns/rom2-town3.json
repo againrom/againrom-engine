@@ -1,0 +1,227 @@
+{
+  "town": "rom2-town3",
+  "cite": ["R2-ENGINE-251", "R2-ENGINE-257", "R2-SESSION-123"],
+  "view": {"size": [640, 480], "cite": ["R2-ENGINE-253", "R2-ASSET-065"]},
+  "clock": {"period-ms": 100, "compare": "greater", "cite": ["R2-ENGINE-256"]},
+  "random": [
+    {"name": "rand", "source": "lcg", "multiplier": 214013, "increment": 2531011, "shift": 16, "mask": 32767,
+     "cite": ["R2-ENGINE-256", "DIV-2982"]}
+  ],
+  "art": [
+    {"name": "base", "format": "picture", "key": "graphics/interface/town_druid/townmain.bmp", "size": [640, 480], "required": true,
+     "cite": ["R2-ENGINE-253", "R2-ASSET-065"]},
+    {"name": "mask", "format": "mask", "key": "graphics/interface/town_druid/townmask.bmp", "required": true,
+     "cite": ["R2-ENGINE-254", "R2-ASSET-064"]},
+    {"name": "hili-shop", "format": "picture", "key": "graphics/interface/town_druid/hili_shop.bmp", "size": [152, 164], "required": true,
+     "cite": ["R2-ENGINE-253", "R2-ASSET-065"]},
+    {"name": "hili-inn", "format": "picture", "key": "graphics/interface/town_druid/hili_tavern.bmp", "size": [152, 96], "required": true,
+     "cite": ["R2-ENGINE-253", "R2-ASSET-065"]},
+    {"name": "woman", "format": "series", "key": "graphics/interface/town_druid/woman/a%d%%04d.bmp", "max-size": [84, 148],
+     "index": [{"count": 3, "base": 1, "cite": ["R2-ENGINE-253", "R2-ASSET-065"]}], "counts": [15, 20, 20], "first": 1, "required": true,
+     "cite": ["R2-ENGINE-256", "R2-ASSET-065"]},
+    {"name": "man", "format": "series", "key": "graphics/interface/town_druid/man/a%d%%04d.bmp", "max-size": [60, 88],
+     "index": [{"count": 3, "base": 1, "cite": ["R2-ENGINE-253", "R2-ASSET-065"]}], "counts": [19, 19, 20], "first": 1, "required": true,
+     "cite": ["R2-ENGINE-256", "R2-ASSET-065"]},
+    {"name": "lizard", "format": "sprites", "key": "graphics/interface/town_druid/lizard/sprites.16a", "count": 42, "max-size": [100, 120],
+     "required": true, "cite": ["R2-ENGINE-253", "R2-ASSET-065", "R2-ASSET-066", "DIV-2984"]},
+    {"name": "bug", "format": "sprites", "key": "graphics/interface/town_druid/bug/sprites.16a", "count": 183, "max-size": [640, 268],
+     "required": true, "cite": ["R2-ENGINE-253", "R2-ENGINE-256", "R2-ASSET-065", "R2-ASSET-066"]}
+  ],
+  "mask": {
+    "art": "mask",
+    "required-bytes": [80, 96, 128, 144, 160],
+    "bytes": [
+      {"byte": 80, "hotspot": "shopkeeper", "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "R2-ASSET-064"]},
+      {"byte": 96, "hotspot": "innkeeper", "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "R2-ASSET-064"]},
+      {"byte": 128, "hotspot": "inn", "cite": ["R2-ENGINE-254", "R2-ASSET-064"]},
+      {"byte": 144, "hotspot": "shop", "cite": ["R2-ENGINE-254", "R2-ASSET-064"]},
+      {"byte": 160, "hotspot": "gate", "cite": ["R2-ENGINE-254", "R2-ASSET-064"]}
+    ],
+    "cite": ["R2-ENGINE-254", "R2-ASSET-064"]
+  },
+  "hotspots": [
+    {"name": "inn", "row": 0, "tip": 236,
+     "click": [{"room": "inn", "cite": ["R2-ENGINE-255", "R2-ENGINE-257"]}],
+     "hover": [
+       {"latch": "inn", "slot": "inn", "sound": "town_druid/denter1.wav", "stop": ["shop", "gate"], "cite": ["R2-ENGINE-254"]},
+       {"arm": "man", "changed": true, "cite": ["R2-ENGINE-254", "DIV-2983"]}
+     ],
+     "cite": ["R2-ENGINE-255"]},
+    {"name": "shop", "tip": 233,
+     "hover": [
+       {"latch": "shop", "slot": "shop", "sound": "town_druid/denter2.wav", "stop": ["inn", "gate"], "cite": ["R2-ENGINE-254"]},
+       {"arm": "woman", "changed": true, "cite": ["R2-ENGINE-254", "DIV-2983"]}
+     ],
+     "cite": ["R2-ENGINE-255", "R2-ENGINE-369", "DIV-2963"]},
+    {"name": "gate", "row": 1, "tip": 237,
+     "click": [{"hook": "navigate", "cite": ["R2-ENGINE-255", "R2-SESSION-123"]}],
+     "hover": [{"latch": "gate", "slot": "gate", "sound": "town_druid/dout.wav", "cite": ["R2-ENGINE-254"]}],
+     "cite": ["R2-ENGINE-255", "DIV-2966"]},
+    {"name": "menu", "tip": 235,
+     "click": [{"menu": "game-menu", "cite": ["R2-ENGINE-255"]}],
+     "cite": ["R2-ENGINE-255", "R2-ASSET-064"]},
+    {"name": "innkeeper", "row": 2, "no-tip": true,
+     "click": [{"dialogue": "druidinnkeeper%d", "value": "stage", "cite": ["R2-ENGINE-255"]}],
+     "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "DIV-2971"]},
+    {"name": "shopkeeper", "row": 3, "no-tip": true,
+     "click": [{"dialogue": "druidshopkeeper%d", "value": "stage", "cite": ["R2-ENGINE-255"]}],
+     "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "DIV-2971"]}
+  ],
+  "pointer": {
+    "off": [{"clear-latch": ["shop", "inn", "gate"], "cite": ["R2-ENGINE-254"]}],
+    "cite": ["R2-ENGINE-254"]
+  },
+  "sounds": {
+    "slots": [
+      {"name": "shop", "source": "town-exterior", "cite": ["R2-ENGINE-254"]},
+      {"name": "inn", "source": "town-exterior", "cite": ["R2-ENGINE-254"]},
+      {"name": "gate", "source": "town-exterior", "cite": ["R2-ENGINE-254"]}
+    ],
+    "cite": ["R2-ENGINE-254", "R2-ENGINE-256", "DIV-2983"]
+  },
+  "actors": [
+    {"name": "persons", "program": "families",
+     "members": [
+       {"name": "woman", "art": "woman", "mode": "episode", "sheets": 3, "stamp": "start", "start-when": "idle", "idle-sheet": 0,
+        "hover-sheet": {"hotspot": "shop", "sheet": 2, "cite": ["R2-ENGINE-253", "R2-ENGINE-254", "R2-ENGINE-256"]},
+        "sheet-positions": [[336, 244], [336, 244], [340, 224]],
+        "later": {"draw": "rand", "base-ms": 3500, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-256"]},
+        "sheet-pick": {"draw": "rand", "form": "scaled", "n": 2, "base": 0, "cite": ["R2-ENGINE-256"]},
+        "cite": ["R2-ENGINE-253", "R2-ENGINE-256"]},
+       {"name": "man", "art": "man", "mode": "episode", "sheets": 3, "stamp": "start", "start-when": "idle", "idle-sheet": 0,
+        "hover-sheet": {"hotspot": "inn", "sheet": 2, "cite": ["R2-ENGINE-253", "R2-ENGINE-254", "R2-ENGINE-256"]},
+        "sheet-positions": [[164, 200], [164, 200], [152, 184]],
+        "later": {"draw": "rand", "base-ms": 3500, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-256"]},
+        "sheet-pick": {"draw": "rand", "form": "scaled", "n": 2, "base": 0, "cite": ["R2-ENGINE-256"]},
+        "cite": ["R2-ENGINE-253", "R2-ENGINE-256"]}
+     ],
+     "entry": [
+       {"wait": "woman", "after": {"draw": "rand", "base-ms": 2000, "span-ms": 2000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-256"]}, "cite": ["R2-ENGINE-256", "DIV-2982"]},
+       {"wait": "man", "after": {"draw": "rand", "base-ms": 2000, "span-ms": 2000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-256"]}, "cite": ["R2-ENGINE-256", "DIV-2982"]}
+     ],
+     "step-order": ["woman", "man"],
+     "paint-order": ["woman", "man"],
+     "cite": ["R2-ENGINE-256", "DIV-2982"]},
+    {"name": "bug", "program": "route", "art": "bug", "frames": 61,
+     "first": {"draw": "rand", "base-ms": 7000, "span-ms": 5000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-256"]},
+     "wait": {"draw": "rand", "base-ms": 10000, "span-ms": 10000, "form": "scaled", "compare": "greater", "cite": ["R2-ENGINE-256"]},
+     "route": {"draw": "rand", "form": "scaled", "n": 3, "base": 0, "cite": ["R2-ENGINE-256"]},
+     "cite": ["R2-ENGINE-253", "R2-ENGINE-256", "DIV-2982"]}
+  ],
+  "step": {
+    "admitted": ["advance persons", "advance bug"],
+    "after": ["schedule persons", "schedule bug"],
+    "cite": ["R2-ENGINE-256", "DIV-2982"]
+  },
+  "layers": [
+    {"art": "base", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-253"]},
+    {"art": "hili-shop", "mode": "copy", "at": [420, 224],
+     "when": {"any": [{"hover": "shop", "cite": ["R2-ENGINE-253"]}, {"running": "woman", "sheet": 2, "cite": ["R2-ENGINE-253"]}], "cite": ["R2-ENGINE-253"]},
+     "cite": ["R2-ENGINE-253"]},
+    {"actor": "woman", "mode": "copy", "cite": ["R2-ENGINE-253"]},
+    {"art": "hili-inn", "mode": "copy", "at": [0, 184],
+     "when": {"any": [{"hover": "inn", "cite": ["R2-ENGINE-253"]}, {"running": "man", "sheet": 2, "cite": ["R2-ENGINE-253"]}], "cite": ["R2-ENGINE-253"]},
+     "cite": ["R2-ENGINE-253"]},
+    {"actor": "man", "mode": "copy", "cite": ["R2-ENGINE-253"]},
+    {"art": "lizard", "mode": "over", "at": [0, 300], "cite": ["R2-ENGINE-253", "R2-ASSET-066", "DIV-2984"]},
+    {"actor": "bug", "mode": "over", "at": [0, 212], "cite": ["R2-ENGINE-253", "R2-ASSET-066"]}
+  ],
+  "music": {"track": "b15.wav", "cite": ["R2-ENGINE-231"]},
+  "square": {
+    "name": "square",
+    "enter": [
+      {"hook": "set-room", "cite": ["R2-ENGINE-250"]},
+      {"composer": "reset", "cite": ["R2-ENGINE-250", "DIV-2982"]}
+    ],
+    "cite": ["R2-ENGINE-250", "DIV-2966"]
+  },
+  "rooms": [
+    {"name": "inn", "page": "inn",
+     "enter": [
+       {"composer": "reset", "cite": ["R2-ENGINE-250"]},
+       {"hook": "set-room", "cite": ["R2-ENGINE-250"]}
+     ],
+     "art": [
+       {"name": "back", "format": "picture", "key": "graphics/interface/inn/manbacktalk.bmp", "size": [48, 64], "required": true,
+        "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
+       {"name": "actor", "format": "sprites", "key": "graphics/interface/inn/unit1/sprites.16a", "max-size": [48, 64],
+        "cite": ["R2-ENGINE-247", "DIV-2964"]},
+       {"name": "button/0/0", "format": "picture", "key": "graphics/interface/inn/button1off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
+       {"name": "button/0/1", "format": "picture", "key": "graphics/interface/inn/button1on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
+       {"name": "button/1/0", "format": "picture", "key": "graphics/interface/inn/button2off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
+       {"name": "button/1/1", "format": "picture", "key": "graphics/interface/inn/button2on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
+       {"name": "button/2/0", "format": "picture", "key": "graphics/interface/inn/button3off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
+       {"name": "button/2/1", "format": "picture", "key": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]}
+     ],
+     "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
+               "back": "back", "actor": "actor", "select": "helper", "frame-ms": 125, "compare": "greater",
+               "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "R2-ENGINE-258", "DIV-2973"]},
+     "buttons": [
+       {"name": "hire", "rect": [484, 44, 624, 90], "off": "button/0/0", "on": "button/0/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-260", "DIV-2636"]},
+       {"name": "talk", "rect": [484, 91, 624, 137], "off": "button/1/0", "on": "button/1/1", "caption": 242, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
+       {"name": "exit", "rect": [484, 138, 624, 184], "off": "button/2/0", "on": "button/2/1", "caption": 232, "cite": ["R2-ENGINE-246", "R2-ENGINE-250", "R2-ENGINE-260"]}
+     ],
+     "scene": {
+       "view": {"size": [640, 480], "cite": ["R2-ENGINE-246", "R2-ENGINE-258"]},
+       "random": [{"name": "tender", "source": "host", "cite": ["R2-ENGINE-258", "DIV-2985"]}],
+       "art": [
+         {"name": "left-stats", "format": "picture", "key": "graphics/interface/inn/leftstats.bmp", "size": [160, 238], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-258"]},
+         {"name": "left-picture", "format": "picture", "key": "graphics/interface/inn/leftpicture.bmp", "size": [160, 242], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-258"]},
+         {"name": "center", "format": "picture", "key": "graphics/interface/inn_druid/tavernmain.bmp", "size": [320, 480], "required": true, "cite": ["R2-ENGINE-258", "R2-ASSET-065"]},
+         {"name": "water", "format": "series", "key": "graphics/interface/inn_druid/waterdrop/d%04d.bmp", "first": 1, "count": 10, "size": [116, 96],
+          "cite": ["R2-ENGINE-258", "R2-ASSET-065"]},
+         {"name": "a1", "format": "series", "key": "graphics/interface/inn_druid/taverner/a1%04d.bmp", "first": 1, "count": 40, "size": [128, 196],
+          "cite": ["R2-ENGINE-258", "R2-ASSET-065"]},
+         {"name": "a2", "format": "series", "key": "graphics/interface/inn_druid/taverner/a2%04d.bmp", "first": 1, "count": 30, "size": [128, 196],
+          "cite": ["R2-ENGINE-258", "R2-ASSET-065"]},
+         {"name": "a3", "format": "series", "key": "graphics/interface/inn_druid/taverner/a3%04d.bmp", "first": 1, "count": 1, "size": [32, 24],
+          "cite": ["R2-ENGINE-258", "R2-ASSET-065"]},
+         {"name": "left-stats-seam", "format": "picture", "key": "graphics/interface/inn/luover.bmp", "size": [16, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
+         {"name": "left-picture-seam", "format": "picture", "key": "graphics/interface/inn/ldover.bmp", "size": [16, 242], "transparent": "black", "required": true, "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
+         {"name": "upper-seam", "format": "picture", "key": "graphics/interface/inn/ruover.bmp", "size": [16, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
+         {"name": "lower-seam", "format": "picture", "key": "graphics/interface/textbackl.bmp", "size": [16, 242], "transparent": "black", "required": true,
+          "cite": ["R2-ENGINE-368", "R2-ASSET-089", "DIV-2986"]},
+         {"name": "upper", "format": "picture", "key": "graphics/interface/inn/buttonsarea.bmp", "size": [160, 238], "required": true, "cite": ["R2-ENGINE-246", "DIV-2964"]}
+       ],
+       "sounds": {"slots": [
+         {"name": "helper", "source": "inn-interior", "key": "town/inn/helper.wav", "cite": ["R2-ENGINE-247", "R2-ENGINE-260"]}
+       ], "cite": ["R2-ENGINE-247", "DIV-2985"]},
+       "clocks": [
+         {"name": "cycle", "period-ms": 100, "compare": "greater", "rebase": "every", "cite": ["R2-ENGINE-258", "DIV-2985"]},
+         {"name": "taverner", "period-ms": 100, "compare": "greater", "rebase": "every", "cite": ["R2-ENGINE-258", "DIV-2985"]}
+       ],
+       "lifecycle": "shown",
+       "advance-when": "active",
+       "actors": [
+         {"name": "water", "program": "loop", "art": "water", "frames": 10, "loop": 9, "cite": ["R2-ENGINE-258"]},
+         {"name": "taverner", "program": "alternating", "clock": "taverner", "modulus": 4,
+          "delay": {"draw": "tender", "raw": 32768, "divide": 16, "base": 3200, "cite": ["R2-ENGINE-258"]},
+          "states": [
+            {"name": "a1", "art": "a1", "complete": 40, "residues": [0], "motion": "forward", "cite": ["R2-ENGINE-258"]},
+            {"name": "a2", "art": "a2", "complete": 30, "residues": [1], "motion": "forward", "cite": ["R2-ENGINE-258"]},
+            {"name": "still", "art": "a3", "complete": 1, "residues": [2, 3], "motion": "hold", "steps": 2, "at": [264, 152],
+             "cite": ["R2-ENGINE-258", "DIV-2985"]}
+          ],
+          "cite": ["R2-ENGINE-258", "DIV-2985"]}
+       ],
+       "steps": [
+         {"when": "active", "run": ["arm taverner", "publish water", "publish taverner"], "cite": ["R2-ENGINE-258", "DIV-2985"]},
+         {"when": "active", "clock": "cycle", "run": ["advance water"], "cite": ["R2-ENGINE-258"]},
+         {"when": "active", "run": ["advance taverner"], "cite": ["R2-ENGINE-258"]}
+       ],
+       "layers": [
+         {"group": "back", "art": "left-stats", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-246", "R2-ENGINE-258"]},
+         {"group": "back", "art": "left-picture", "mode": "copy", "at": [0, 238], "cite": ["R2-ENGINE-246", "R2-ENGINE-258"]},
+         {"group": "back", "art": "center", "mode": "copy", "at": [160, 0], "cite": ["R2-ENGINE-258"]},
+         {"group": "back", "actor": "water", "mode": "copy", "at": [328, 144], "clip": [160, 0, 480, 480], "cite": ["R2-ENGINE-258"]},
+         {"group": "back", "actor": "taverner", "mode": "copy", "at": [200, 128], "clip": [160, 0, 480, 480], "cite": ["R2-ENGINE-258", "DIV-2985"]},
+         {"group": "front", "art": "left-stats-seam", "mode": "over", "at": [160, 0], "cite": ["R2-ENGINE-258", "R2-ENGINE-246"]},
+         {"group": "front", "art": "left-picture-seam", "mode": "over", "at": [160, 238], "cite": ["R2-ENGINE-258", "R2-ENGINE-246"]},
+         {"group": "front", "art": "upper-seam", "mode": "over", "at": [464, 0], "cite": ["R2-ENGINE-258", "R2-ENGINE-246"]},
+         {"group": "front", "art": "lower-seam", "mode": "over", "at": [464, 238], "cite": ["R2-ENGINE-368", "DIV-2986"]},
+         {"group": "front", "art": "upper", "mode": "copy", "at": [480, 0], "cite": ["R2-ENGINE-246", "DIV-2964"]}
+       ],
+       "cite": ["R2-ENGINE-258", "R2-ENGINE-260"]},
+     "cite": ["R2-ENGINE-257", "R2-ENGINE-258", "DIV-2973"]}
+  ]
+}

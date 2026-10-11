@@ -152,7 +152,7 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 // phases are the steps each program runs.
 var phases = map[string][]string{
 	"episode": {"trigger", "advance"}, "pendulum": {"advance"}, "stepper": {"advance"},
-	"driven": {"advance"}, "flock": {"settle", "arm", "advance"}, "families": {"advance", "schedule"},
+	"driven": {"advance"}, "flock": {"settle", "arm", "advance"}, "families": {"advance", "schedule"}, "route": {"schedule", "advance"},
 	"loop": {"publish", "advance"}, "alternating": {"arm", "publish", "cue", "advance"},
 	"selector": {"advance"}, "priority": {"arm", "advance"}, "bounce": {"advance"},
 	"cycle": {"advance"}, "target": {}, "training": {"advance"},
@@ -182,6 +182,7 @@ type sceneNames struct {
 	spots    map[string]bool
 	clocks   map[string]*SceneClock
 	programs map[string]string
+	armable  map[string]bool
 	rooms    map[string]bool
 	fail     func(string, ...any) error
 }
@@ -234,7 +235,7 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 	n := &sceneNames{
 		random: map[string]bool{}, art: map[string]bool{}, longest: map[string]int{}, slots: map[string]bool{}, keyed: map[string]bool{},
 		spots: map[string]bool{}, clocks: map[string]*SceneClock{}, programs: map[string]string{},
-		rooms: rooms, fail: fail,
+		armable: map[string]bool{}, rooms: rooms, fail: fail,
 	}
 	switch s.Lifecycle {
 	case "", LifecycleShown:
@@ -285,6 +286,9 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 		n.spots[h.Name] = true
 		if h.Tip < 0 {
 			return fail("hotspot %q has negative tip slot %d", h.Name, h.Tip)
+		}
+		if h.NoTip && h.Tip != 0 {
+			return fail("hotspot %q has tip slot %d and no tip", h.Name, h.Tip)
 		}
 	}
 	if s.Mask.Art != "" && !n.art[s.Mask.Art] {
@@ -381,13 +385,39 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 			return fail("%s has unknown mode %q", where, l.Mode)
 		}
 		if l.When != nil {
-			if l.When.Hover != "" && !n.spots[l.When.Hover] {
-				return fail("%s waits on unknown hotspot %q", where, l.When.Hover)
-			}
-			if _, ok := n.programs[l.When.Active]; l.When.Active != "" && !ok {
-				return fail("%s waits on unknown actor %q", where, l.When.Active)
+			if err := n.checkWhen(where, *l.When); err != nil {
+				return err
 			}
 		}
+	}
+	return nil
+}
+
+// checkWhen checks a layer condition: its hotspot, actor or running member
+// known, and a list of alternatives that names nothing else.
+func (n *sceneNames) checkWhen(where string, w WhenSpec) error {
+	if len(w.Any) > 0 {
+		if w.Hover != "" || w.Active != "" || w.Running != "" {
+			return n.fail("%s mixes alternatives with a condition", where)
+		}
+		for _, a := range w.Any {
+			if err := n.checkWhen(where, a); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if w.Hover != "" && !n.spots[w.Hover] {
+		return n.fail("%s waits on unknown hotspot %q", where, w.Hover)
+	}
+	if _, ok := n.programs[w.Active]; w.Active != "" && !ok {
+		return n.fail("%s waits on unknown actor %q", where, w.Active)
+	}
+	if (w.Running == "") != (w.Sheet == nil) {
+		return n.fail("%s names a running member and its sheet only together", where)
+	}
+	if w.Running != "" && n.programs[w.Running] != "families" {
+		return n.fail("%s waits on %q, which is no family member", where, w.Running)
 	}
 	return nil
 }
@@ -416,8 +446,12 @@ func (n *sceneNames) checkOps(where string, ops []Op) error {
 	for _, op := range ops {
 		switch {
 		case op.Arm != "":
-			if _, ok := n.programs[op.Arm]; !ok {
+			program, ok := n.programs[op.Arm]
+			if !ok {
 				return n.fail("%s arms unknown actor %q", where, op.Arm)
+			}
+			if program == "families" && !n.armable[op.Arm] {
+				return n.fail("%s arms %q, which has no hover sheet", where, op.Arm)
 			}
 			if op.Chance != nil {
 				if err := n.needDraw(where, op.Chance.Draw); err != nil {
@@ -559,6 +593,16 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		return n.needSlot(where, a.Slot)
 	case "families":
 		return n.validateFamilies(a, where, fail)
+	case "route":
+		if a.Frames <= 0 || a.First == nil || a.Wait == nil || a.Route == nil {
+			return fail("a route needs frames, first, wait and route")
+		}
+		for _, s := range []string{a.First.Draw, a.Wait.Draw, a.Route.Draw} {
+			if err := n.needDraw(where, s); err != nil {
+				return err
+			}
+		}
+		return n.needArt(where, a.Art)
 	case "loop":
 		if a.Frames <= 0 || a.Loop <= 0 || a.Loop > a.Frames {
 			return fail("needs frames and a loop no longer than them")
@@ -574,12 +618,27 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		if len(a.States) == 0 {
 			return fail("has no states")
 		}
+		if a.Modulus < 0 {
+			return fail("negative modulus %d", a.Modulus)
+		}
 		for _, s := range a.States {
-			if s.When != "odd" && s.When != "even" {
+			if a.Modulus > 0 {
+				if s.When != "" || len(s.Residues) == 0 {
+					return fail("state %q needs residues and no parity under a modulus", s.Name)
+				}
+				for _, r := range s.Residues {
+					if r < 0 || r >= a.Modulus {
+						return fail("state %q residue %d outside modulus %d", s.Name, r, a.Modulus)
+					}
+				}
+			} else if s.When != "odd" && s.When != "even" {
 				return fail("state %q has unknown parity %q", s.Name, s.When)
 			}
-			if s.Motion != "forward" && s.Motion != "ping-pong" {
+			if s.Motion != "forward" && s.Motion != "ping-pong" && s.Motion != "hold" {
 				return fail("state %q has unknown motion %q", s.Name, s.Motion)
+			}
+			if s.Motion == "hold" && s.Steps <= 0 {
+				return fail("state %q holds for no steps", s.Name)
 			}
 			if err := n.checkState(where, s); err != nil {
 				return err
@@ -705,7 +764,22 @@ func (n *sceneNames) validateFamilies(a ActorSpec, where string, fail func(strin
 		if i := m.IdleSheet; i != nil && (*i < 0 || *i >= max(m.Sheets, 1)) {
 			return fail("member %q idles on sheet %d of %d", m.Name, *i, m.Sheets)
 		}
-		if len(m.Positions) == 0 {
+		if m.StartWhen != "" && m.StartWhen != "idle" {
+			return fail("member %q has unknown start-when %q", m.Name, m.StartWhen)
+		}
+		if h := m.HoverSheet; h != nil {
+			if !n.spots[h.Hotspot] {
+				return fail("member %q takes its hover sheet from unknown hotspot %q", m.Name, h.Hotspot)
+			}
+			if h.Sheet < 0 || h.Sheet >= m.Sheets {
+				return fail("member %q hovers on sheet %d of %d", m.Name, h.Sheet, m.Sheets)
+			}
+			n.armable[m.Name] = true
+		}
+		if len(m.SheetPositions) > 0 && len(m.SheetPositions) != m.Sheets {
+			return fail("member %q places %d sheets of %d", m.Name, len(m.SheetPositions), m.Sheets)
+		}
+		if len(m.Positions) == 0 && len(m.SheetPositions) == 0 {
 			return fail("member %q has no position", m.Name)
 		}
 		for _, f := range m.FramePositions {
@@ -791,8 +865,8 @@ func (n *sceneNames) checkState(where string, s StateSpec) error {
 func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) error {
 	var waits []*WaitSpec
 	var picks []*PickSpec
-	waits = append(waits, a.Wait)
-	picks = append(picks, a.Delay, a.HoldPick, a.Group, a.Count)
+	waits = append(waits, a.Wait, a.First)
+	picks = append(picks, a.Delay, a.HoldPick, a.Group, a.Count, a.Route)
 	for _, m := range a.Members {
 		waits = append(waits, m.Later)
 		picks = append(picks, m.SheetPick)
