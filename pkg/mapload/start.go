@@ -1053,32 +1053,9 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	if err := initializeCurrentPlayers(out, m, t); err != nil {
 		return nil, Start{}, err
 	}
-	// Money is already participant-owned in sim. Quest documents follow the
-	// same campaign surface: wherever a carried party member arrived holding
-	// them, collect the stack onto the explicitly marked starting hero before
-	// the mission is exposed. This is independent of selection and leaves every
-	// other item with its own carrier. ITEM-DOC-053 names the code; the move
-	// is DIV-2798.
-	primary := QuestDocumentHolder(party)
-	if primary >= 0 && primary < len(st.IDs) {
-		for i, id := range st.IDs {
-			if i == primary {
-				continue
-			}
-			stacks, ok := out.CarriedStacks(id)
-			if !ok {
-				continue
-			}
-			for _, stack := range stacks {
-				if stack.Code == uint16(data.QuestDocumentCode) {
-					if err := out.MoveCarried(id, st.IDs[primary], stack.Code, stack.Count); err != nil {
-						return nil, Start{}, err
-					}
-					break
-				}
-			}
-		}
-	}
+	// No item moves between party members here: each member keeps the
+	// container it arrived with, Quest Documents included (PARTY-037,
+	// PARTY-038).
 	initializePotions(out, party, st, t)
 	if err := initializeOriginalHumanMovement(out, party, st); err != nil {
 		return nil, Start{}, err
@@ -1088,17 +1065,6 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		out.SetRandom(random.Original, draws.State())
 	}
 	return out, st, nil
-}
-
-// QuestDocumentHolder is the index of the marked starting hero that mission
-// start collects every member's quest document onto, or -1.
-func QuestDocumentHolder(party []PartyMember) int {
-	for i, p := range party {
-		if p.PlayerCharacter && p.StartingHero && p.MercenaryType == 0 {
-			return i
-		}
-	}
-	return -1
 }
 
 func tableForPartyNPCs(t *Table, party []PartyMember, mission int) *Table {

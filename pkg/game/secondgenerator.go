@@ -157,7 +157,7 @@ func secondGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMemb
 
 	humans := missionHumans(f.Table)
 	base, i, ok := generatorTemplate(humans, heroTemplate(f.generator(), female, mage))
-	profile, face, book, cells := chargenProfile(base, ok, humans, i, mage)
+	profile, face, book, cells := chargenProfile(base, ok, humans, i, data.Profile{Fighter: !mage, HealthColumn: true})
 	spread := data.Spread{
 		Body:     chargenStatValue(res, chargenStatBody),
 		Reaction: chargenStatValue(res, chargenStatReaction),

@@ -227,46 +227,31 @@ func partyBody(w *data.Weapon, list data.BodyList) (data.HeroBody, bool) {
 	return data.HeroBodyFor(list, eq)
 }
 
-// chargenProfile is the profile, the figure face and the resolved base row's
-// own ten equipment cell strings a base-row search's own answer states —
-// HumanDef.Profile(), the row's own Face column, and humans.EntryStrings(i)
-// when a row resolved, the zero Profile, face 1 and no cells at all when
-// none did. It is the ONE place both MissionParty and ChargenParty
-// (chargen.go) read those facts off a data.ChargenBase result, so a later
-// story cannot make the two party builders come to disagree about what "no
-// base row" means.
+// chargenProfile is the profile, the figure face, the book and the resolved
+// base row's own ten equipment cell strings a data.ChargenBase answer
+// states. It is the one place MissionParty and ChargenParty (chargen.go) read
+// those facts, so the two party builders agree on what "no base row" means.
 //
-// humans AND i ARE THE SEARCH'S OWN COLLECTION AND INDEX (0134 D-13): the
-// equipment cells are not a HumanDef field at all, they are the resolved
-// entry's own TRAILING STRINGS (data.Collection.EntryStrings), which only
-// the collection and the index the search actually landed on can still
-// answer — a second search by the archetype's own name could, after
-// ChargenBase's own fallback, name a different row from the one base and ok
-// came off (plan D-13's own rejection). i is meaningless when ok is false
-// and is never read in that arm.
-// class is the archetype axis the caller already asked ChargenBase for
-// (true mage, false fighter, the same bool archetypeSlot indexes with): when
-// no row resolves, DIV-1389 has this arm fall back to the requested
-// archetype's own Fighter bit rather than Go's silent zero Profile, whose
-// Fighter field would have named every unresolvable install a mage
-// regardless of which axis was requested.
+// humans and i are the search's own collection and index: the equipment
+// cells are the resolved entry's trailing strings. i is never read when ok
+// is false.
 //
-// HealthColumn IS NOW TRUE HERE TOO, which DIV-1389 left false on the R-3
-// "less accurate" reading that no row means no column to read. HERO-HP-072's
-// own health derivation reads Body and the class bit alone — no shipped row
-// gates it — and a member built on this arm already carries a real,
-// authored Body (PartySpread) and a resolved class bit, so the graph has
-// everything it needs whether or not a row resolved. Before this story the
-// one caller of this arm, `MissionParty(nil, nil, nil)`, minted its hero at
-// the provisional constant (mapload.SpawnHP) instead of a derived maximum —
-// the owner's own witnessed 100-vs-137 mismatch. ManaColumn stays false:
-// this story's scope is the health maximum alone, and DIV-1390 records the
-// derived number's own remaining gap against an original resave.
-func chargenProfile(base data.HumanDef, ok bool, humans data.Collection, i int, class bool) (data.Profile, int, uint32, []string) {
+// With no row the hero carries no row equipment and no book, face 1 and the
+// caller's missing profile.
+func chargenProfile(base data.HumanDef, ok bool, humans data.Collection, i int, missing data.Profile) (data.Profile, int, uint32, []string) {
 	if !ok {
-		return data.Profile{Fighter: !class, HealthColumn: true}, 1, 0, nil
+		return missing, 1, 0, nil
 	}
 	return base.Profile(), int(base.Face), base.KnownSpells, humans.EntryStrings(i)
+}
+
+// constructorDefaultProfile is the first game's hero built without his
+// Humans row: the original builds him from constructor defaults with mana 0
+// and the mage bit clear, so Fighter is set whichever archetype was chosen
+// (HERO-163, HERO-164, Medium). HealthColumn stays set: the health derive
+// reads Body and the class bit (HERO-HP-072). DIV-2799 records what remains.
+func constructorDefaultProfile() data.Profile {
+	return data.Profile{Fighter: true, HealthColumn: true}
 }
 
 // equipmentFromSlots is the ONE conversion in this package from a
@@ -577,7 +562,7 @@ func MissionPartyAs(mage bool, w *data.Weapon, list data.BodyList, t *mapload.Ta
 	}
 	humans := missionHumans(t)
 	base, i, ok := data.ChargenBase(humans, class, female)
-	profile, face, book, cells := chargenProfile(base, ok, humans, i, class)
+	profile, face, book, cells := chargenProfile(base, ok, humans, i, constructorDefaultProfile())
 	return assembleParty(partyInputs{
 		Name:    defaultHeroName(t, class, female),
 		Spread:  PartySpread(),

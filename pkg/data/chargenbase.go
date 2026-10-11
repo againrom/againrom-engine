@@ -2,15 +2,12 @@ package data
 
 // ChargenBaseNames is the four shipped Humans rows a generated character may
 // start from, in ARCHETYPE order — fighter male, fighter female, mage
-// male, mage female: the order archetypeSlot indexes into directly, and the
-// order ChargenBase falls back through, name by name, when the archetype's
-// own slot does not resolve.
+// male, mage female: the order archetypeSlot indexes into directly.
 //
 // It is a FUNCTION and not a package variable, for ChargenSpread's own
 // reason (chargen.go): a slice returned off a variable is aliased and
 // mutable from anywhere, and "these four names in this order" would then be
-// true by convention rather than by construction. SESS-HERO-014; the
-// fallback is DIV-2799.
+// true by convention rather than by construction. SESS-HERO-014.
 func ChargenBaseNames() []string {
 	return []string{"PC_Danath", "PC_Naira", "PC_Fergard", "PC_Reniesta"}
 }
@@ -33,42 +30,25 @@ func archetypeSlot(class, female bool) int {
 }
 
 // ChargenBase is the base row a generated character with archetype (class,
-// female) starts from:
+// female) starts from, and its collection index: a caller reading the
+// starting clothes needs the row's own trailing strings, c.EntryStrings(i).
 //
-// THE COLLECTION INDEX COMES BACK TOO, beside the parsed row (0134 D-13):
-// both arms report the index they actually landed on, the archetype's own
-// slot and the published-order fallback alike, because a caller reading a
-// generated character's starting CLOTHES needs the row's own trailing
-// strings — c.EntryStrings(i) — and those live on the entry the search
-// resolved, not on anything NewHumanDef parsed off it. A second search by
-// the archetype's own NAME would not do: after this function's own
-// fallback, the name that resolved and the archetype that was asked for can
-// be two different rows, and re-searching by name would silently read the
-// wrong one's equipment. i is NotFound (0) exactly when the bool is false,
-// and is meaningless — never read — in that arm.
+// ONLY THE ARCHETYPE'S OWN NAME IS LOOKED UP. When that name has no row the
+// original takes no other row and reports no error: it builds the hero from
+// constructor defaults (HERO-163, HERO-164). ok is then false and i is
+// NotFound; the caller's no-row arm is that hero. A row too short to parse
+// answers the same way.
 //
 // NOTHING HERE WALKS A TYPE ID.
 func ChargenBase(c Collection, class, female bool) (HumanDef, int, bool) {
-	names := ChargenBaseNames()
-	if d, i, ok := resolveHumanByName(c, names[archetypeSlot(class, female)]); ok {
-		return d, i, true
-	}
-	for _, name := range names {
-		if d, i, ok := resolveHumanByName(c, name); ok {
-			return d, i, true
-		}
-	}
-	return HumanDef{}, NotFound, false
+	return resolveHumanByName(c, ChargenBaseNames()[archetypeSlot(class, female)])
 }
 
-// resolveHumanByName folds FindHumanByName and NewHumanDef into the one
-// question ChargenBase asks twice — at the archetype's own slot and, on
-// fallback, at each of the four names in turn: does this name resolve to a
-// row this tree can parse? A name not present in c, or a row too short for
-// NewHumanDef to accept, answers false rather than an error or a panic
-// (R-3). ITS SECOND RETURN IS THE INDEX THE NAME RESOLVED AT (0134 D-13),
-// NotFound in either failing arm, so ChargenBase's own two call sites can
-// report exactly the entry they parsed rather than search for it again.
+// resolveHumanByName folds FindHumanByName and NewHumanDef into one
+// question: does this name resolve to a row this tree can parse? A name not
+// present in c, or a row too short for NewHumanDef to accept, answers false
+// rather than an error or a panic. Its second return is the index the name
+// resolved at, NotFound in either failing arm.
 func resolveHumanByName(c Collection, name string) (HumanDef, int, bool) {
 	i := FindHumanByName(c, name)
 	if i == NotFound {

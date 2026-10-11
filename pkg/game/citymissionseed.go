@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -78,9 +77,6 @@ func currentCityMissionObjects(graph *cityObjectTopology, party []mapload.PartyM
 	}
 	p, err := newCityObjectProjection(city.graph, currentParty, table)
 	if err != nil {
-		return nil, nil, err
-	}
-	if err := p.followQuestDocumentCollection(party, ids, world); err != nil {
 		return nil, nil, err
 	}
 	r := &sim.SavedObjects{Version: sim.SavedObjectsVersion, NextID: p.graph.NextID}
@@ -240,107 +236,4 @@ func currentCityMissionObjects(graph *cityObjectTopology, party []mapload.PartyM
 		return nil, nil, err
 	}
 	return r, bindings, nil
-}
-
-// followQuestDocumentCollection moves the projected pack roots to where mission
-// start put the quest documents. The projection is built from the party as it
-// entered; mapload then moved each other member's first quest-document stack
-// onto the starting hero, merging it into a held stack or inserting it. The
-// world's packs are the authority: a companion's pack must be its entry pack
-// less that stack, and the hero's pack its entry pack with document stacks
-// grown or inserted. A merged stack's node is no longer held.
-func (p *cityObjectProjection) followQuestDocumentCollection(party []mapload.PartyMember, ids []sim.EntityID, world *sim.World) error {
-	primary := mapload.QuestDocumentHolder(party)
-	if primary < 0 || primary >= len(ids) || primary >= len(party) {
-		return nil
-	}
-	code := uint16(data.QuestDocumentCode)
-	roots := map[string]int{}
-	for i, row := range p.graph.Roots {
-		roots[string(row.PartyID)] = i
-	}
-	value := func(id sim.SavedObjectID) sim.ItemStack { return p.items[id] }
-	same := func(a, b sim.ItemStack) bool { return a.Code == b.Code && a.Count == b.Count }
-	var moved []sim.SavedObjectID
-	for i, member := range party {
-		r, ok := roots[member.ID]
-		if i == primary || !ok || i >= len(ids) {
-			continue
-		}
-		pack := p.graph.Roots[r].Pack
-		at := slices.IndexFunc(pack, func(id sim.SavedObjectID) bool { return id != 0 && value(id).Code == code })
-		if at < 0 {
-			continue
-		}
-		moved = append(moved, pack[at])
-		pack = slices.Delete(slices.Clone(pack), at, at+1)
-		stacks, _ := world.CarriedStacks(ids[i])
-		if len(stacks) != len(pack) {
-			return fmt.Errorf("current city mission quest document collection differs from the world")
-		}
-		for k, id := range pack {
-			if !same(value(id), stacks[k]) {
-				return fmt.Errorf("current city mission quest document collection differs from the world")
-			}
-		}
-		p.graph.Roots[r].Pack = pack
-	}
-	if len(moved) == 0 {
-		return nil
-	}
-	r, ok := roots[party[primary].ID]
-	if !ok {
-		return fmt.Errorf("current city mission quest document holder has no pack root")
-	}
-	entry := p.graph.Roots[r].Pack
-	stacks, _ := world.CarriedStacks(ids[primary])
-	var pack []sim.SavedObjectID
-	j := 0
-	for _, stack := range stacks {
-		switch {
-		case j < len(entry) && same(value(entry[j]), stack):
-			pack = append(pack, entry[j])
-			j++
-		case j < len(entry) && stack.Code == code && value(entry[j]).Code == code && stack.Count > value(entry[j]).Count:
-			grown := value(entry[j])
-			for grown.Count < stack.Count && len(moved) != 0 {
-				grown.Count += value(moved[0]).Count
-				if err := p.retireCollectedDocument(moved[0]); err != nil {
-					return err
-				}
-				moved = moved[1:]
-			}
-			if grown.Count != stack.Count {
-				return fmt.Errorf("current city mission quest document collection differs from the world")
-			}
-			p.items[entry[j]] = grown
-			pack = append(pack, entry[j])
-			j++
-		case stack.Code == code && len(moved) != 0 && same(value(moved[0]), stack):
-			pack = append(pack, moved[0])
-			moved = moved[1:]
-		default:
-			return fmt.Errorf("current city mission quest document collection differs from the world")
-		}
-	}
-	if j != len(entry) || len(moved) != 0 {
-		return fmt.Errorf("current city mission quest document collection differs from the world")
-	}
-	p.graph.Roots[r].Pack = pack
-	for i := range p.graph.Items {
-		if v, live := p.items[p.graph.Items[i].ID]; live {
-			p.graph.Items[i].WornCount = v.Count
-		}
-	}
-	return nil
-}
-
-// retireCollectedDocument drops a quest-document node merged into another
-// stack. A node with children would leave them unowned, so it is refused.
-func (p *cityObjectProjection) retireCollectedDocument(id sim.SavedObjectID) error {
-	if node := cityItemTopologyByID(p.graph.Items, id); node != nil && (len(node.Effects) != 0 || node.Spell != 0) {
-		return fmt.Errorf("current city mission quest document %d has child objects", id)
-	}
-	delete(p.items, id)
-	return nil
 }

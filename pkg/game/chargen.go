@@ -418,9 +418,9 @@ func (f *FrontEnd) tableWeapons() (shapes, materials data.ScaleTable, weapons da
 // own default axes, off the same walk of the same file. Its profile, its
 // face and its own ten equipment cell strings are chargenProfile's own
 // answer (hero.go), read off f.Humans at the search's own index (0134 D-13):
-// the zero profile, face 1 and no cells at all when nothing resolved, so a
-// Humans collection this tree cannot read still yields a playable, if less
-// accurate and less dressed, character rather than a refusal (R-3).
+// the constructor-default profile, face 1 and no cells at all when the
+// chosen archetype's row is absent, the hero the original builds there
+// (HERO-163, HERO-164).
 //
 // THE WEAPON IS RESOLVED FRESH, for the CHOSEN CLASS AND SKILL SLOT, off
 // f.Table's own three item collections rather than off f.StartWeapon —
@@ -449,7 +449,7 @@ func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMembe
 	slot := data.SkillBlade + int32(chargenChoiceIndex(res, chargenChoiceSkill))
 
 	base, i, ok := data.ChargenBase(f.Humans, class, female)
-	profile, face, book, cells := chargenProfile(base, ok, f.Humans, i, class)
+	profile, face, book, cells := chargenProfile(base, ok, f.Humans, i, constructorDefaultProfile())
 
 	spread := data.Spread{
 		Body:     chargenStatValue(res, chargenStatBody),

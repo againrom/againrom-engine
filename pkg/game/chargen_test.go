@@ -541,45 +541,42 @@ func TestAC7BaseRowSelectionReachesThePartysProfile(t *testing.T) {
 		}
 	})
 
-	t.Run("none matches, first that resolved wins", func(t *testing.T) {
-		// Neither PC_Fergard nor PC_Reniesta — slots 2 and 3 — is present, so
-		// the request below (class=true, female=true, slot 3) falls back to
-		// the first of the four NAMES that resolves, in ChargenBaseNames' own
-		// order: PC_Danath, at index 1.
+	t.Run("own row absent, constructor defaults", func(t *testing.T) {
+		// PC_Reniesta (slot 3) is absent while the other names resolve. The
+		// original takes no other row: the hero is built from constructor
+		// defaults with no error (HERO-163, HERO-164), mana 0 and the mage bit
+		// clear, so Fighter is set although a mage was chosen.
 		humans := dbCollection{
 			{},
-			{name: "PC_Danath", params: humansParams(40, 0, 1)},
+			{name: "PC_Danath", params: humansParams(40, 0, 5)},
 			{name: "PC_Naira", params: humansParams(41, 0, 2)},
+			{name: "PC_Fergard", params: humansParams(42, 70, 3)},
 		}
 		f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: humans}}
-		p := f.ChargenParty(resultFor(true, true)) // wants slot 3, PC_Reniesta — absent
-		if !p[0].Profile.HealthColumn || p[0].FigureFace != 1 {
-			t.Errorf("profile/face = %+v/%d, want PC_Danath's own — the first NAME that resolved, "+
-				"in ChargenBaseNames' own order", p[0].Profile, p[0].FigureFace)
+		p := f.ChargenParty(resultFor(true, true)) // wants slot 3, PC_Reniesta
+		want := data.Profile{Fighter: true, HealthColumn: true}
+		if p[0].Profile != want || p[0].FigureFace != 1 || p[0].KnownSpells != 0 {
+			t.Errorf("profile/face/book = %+v/%d/%d, want %+v/1/0 -- no other row", p[0].Profile, p[0].FigureFace, p[0].KnownSpells, want)
 		}
-		if p[0].FigureDir != string(data.FigureDirWomanMage) {
-			t.Errorf("FigureDir = %q, want %q — the player's own choice", p[0].FigureDir, data.FigureDirWomanMage)
+		if p[0].FigureDir != string(data.FigureDirWomanMage) || !p[0].Mage {
+			t.Errorf("FigureDir/Mage = %q/%v, want %q/true -- the player's own choice", p[0].FigureDir, p[0].Mage, data.FigureDirWomanMage)
 		}
 	})
 
-	t.Run("none resolves, requested archetype's fighter bit", func(t *testing.T) {
-		// DIV-1389: chargenProfile's own fallback used to return Go's zero
-		// Profile regardless of which archetype (class) the caller asked
-		// ChargenBase for, silently naming every unresolvable request a
-		// mage. class=false here requests the fighter axis, so the fallback
-		// now keeps Fighter=true. HealthColumn now reads true here too: the
-		// health graph needs only Body and the class bit, both already
-		// resolved on this arm, and ManaColumn stays false because this
-		// story's scope is the health maximum alone.
+	t.Run("none resolves, constructor defaults", func(t *testing.T) {
+		// No name resolves: the same constructor-default hero for either
+		// archetype (HERO-163, HERO-164; DIV-1389 closed on them).
 		for _, humans := range []dbCollection{nil, {}, {{name: "Someone Else", params: humansParams(1, 1, 9)}}} {
-			f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: humans}}
-			p := f.ChargenParty(resultFor(false, false))
-			want := data.Profile{Fighter: true, HealthColumn: true}
-			if p[0].Profile != want {
-				t.Errorf("humans=%v: profile = %+v, want %+v", humans, p[0].Profile, want)
-			}
-			if p[0].FigureFace != 1 {
-				t.Errorf("humans=%v: FigureFace = %d, want 1", humans, p[0].FigureFace)
+			for _, class := range []bool{false, true} {
+				f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{}, Humans: humans}}
+				p := f.ChargenParty(resultFor(false, class))
+				want := data.Profile{Fighter: true, HealthColumn: true}
+				if p[0].Profile != want {
+					t.Errorf("humans=%v class=%v: profile = %+v, want %+v", humans, class, p[0].Profile, want)
+				}
+				if p[0].FigureFace != 1 {
+					t.Errorf("humans=%v class=%v: FigureFace = %d, want 1", humans, class, p[0].FigureFace)
+				}
 			}
 		}
 	})

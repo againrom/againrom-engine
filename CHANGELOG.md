@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A companion who arrives at a mission holding Quest Documents keeps
+  them; they no longer move to the main hero when the mission starts.
+
 ## 0.112.0
 
 - [ROM1] In the character generator's detailed page the statistics card's text stands one pixel further right, and the Experience row stands level with the Weight row.

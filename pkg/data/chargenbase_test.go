@@ -97,40 +97,34 @@ func TestChargenBaseReachesItsOwnSlot(t *testing.T) {
 	}
 }
 
-func TestChargenBaseFallsBackToFirstResolvedWhenItsOwnSlotDoesNotResolve(t *testing.T) {
+// The original looks up the archetype's own name only and takes no other row
+// when it is absent (HERO-163): the other three names resolving changes
+// nothing.
+func TestChargenBaseTakesNoOtherRowWhenItsOwnIsAbsent(t *testing.T) {
 	c := testCollection{
 		{},
-		{name: "PC_Danath", params: chargenRow(0, 10, 0, 0)}, // slot 0
-		{name: "PC_Naira", params: chargenRow(0, 20, 0, 0)},  // slot 1
-		// PC_Fergard (slot 2) and PC_Reniesta (slot 3) are absent.
+		{name: "PC_Danath", params: chargenRow(0, 10, 0, 0)},   // slot 0
+		{name: "PC_Naira", params: chargenRow(0, 20, 0, 0)},    // slot 1
+		{name: "PC_Reniesta", params: chargenRow(0, 30, 0, 0)}, // slot 3
+		// PC_Fergard (slot 2) is absent.
 	}
-	d, i, ok := ChargenBase(c, true, false) // wants slot 2, PC_Fergard — absent
-	if !ok {
-		t.Fatalf("ChargenBase reported not found, want the first resolved name")
+	d, i, ok := ChargenBase(c, true, false) // wants slot 2, PC_Fergard
+	if ok || d != (HumanDef{}) || i != NotFound {
+		t.Fatalf("ChargenBase = %+v, %d, %v; want no row, NotFound, false", d, i, ok)
 	}
-	if d.HealthMax != 10 {
-		t.Errorf("ChargenBase fell back to HealthMax %d, want 10 — PC_Danath, the first name that resolves", d.HealthMax)
-	}
-	if i != 1 {
-		t.Errorf("ChargenBase index = %d, want 1 — PC_Danath's own collection index, not the requested slot's", i)
+	if _, i, ok := ChargenBase(c, true, true); !ok || i != 3 {
+		t.Fatalf("ChargenBase(mage, female) = %d, %v; want PC_Reniesta at 3", i, ok)
 	}
 }
 
-func TestChargenBaseSkipsARowThatFailsToParse(t *testing.T) {
+func TestChargenBaseUnparseableRowIsNoRow(t *testing.T) {
 	c := testCollection{
 		{},
 		{name: "PC_Danath", params: []int32{1, 2, 3}}, // far too short to parse
 		{name: "PC_Naira", params: chargenRow(0, 20, 0, 0)},
 	}
-	d, i, ok := ChargenBase(c, false, false) // wants slot 0, PC_Danath — unparseable
-	if !ok {
-		t.Fatalf("ChargenBase reported not found; PC_Naira should have resolved")
-	}
-	if d.HealthMax != 20 {
-		t.Errorf("ChargenBase returned HealthMax %d, want PC_Naira's 20 — PC_Danath's unparseable row must be skipped, not matched", d.HealthMax)
-	}
-	if i != 2 {
-		t.Errorf("ChargenBase index = %d, want 2 — PC_Naira's own collection index, the row that actually resolved", i)
+	if d, i, ok := ChargenBase(c, false, false); ok || d != (HumanDef{}) || i != NotFound {
+		t.Fatalf("ChargenBase = %+v, %d, %v; want no row", d, i, ok)
 	}
 }
 

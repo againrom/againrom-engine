@@ -93,27 +93,30 @@ func TestStartMissionPutsThePartyOnTheMapsOwnCell(t *testing.T) {
 
 // A script authorising nothing, and a cell with a zero coordinate, both fall
 // back — and the fallback's range is closed at both ends on both axes.
-// Quest documents are campaign state presented through the explicitly marked
-// primary hero. A carried companion can arrive holding them, but the mission
-// boundary consolidates only that code and leaves her ordinary items alone.
-func TestStartMissionConsolidatesQuestDocumentsOntoThePrimaryHero(t *testing.T) {
+// A carried companion keeps the Quest Documents she arrived with: mission
+// start moves no item between party members (PARTY-037, PARTY-038). The
+// starting hero keeps his own stack and every item stays with its carrier.
+func TestStartMissionLeavesQuestDocumentsWithTheirCarrier(t *testing.T) {
 	const ordinary = uint16(0x1111)
+	doc := uint16(data.QuestDocumentCode)
 	p := []mapload.PartyMember{
 		{Name: "Danath", Class: 100, PlayerCharacter: true, StartingHero: true,
-			Carried: []uint16{uint16(data.QuestDocumentCode)}},
+			Carried: []uint16{doc}},
 		{Name: "Reniesta", Class: 101, PlayerCharacter: true, CompanionNPC: 22,
-			Carried: []uint16{ordinary, uint16(data.QuestDocumentCode), uint16(data.QuestDocumentCode)}},
+			Carried: []uint16{ordinary, doc, doc}},
 	}
 	w, st := mustStart(t, startMap(t, 40, 40, mapload.Cell{X: 17, Y: 20}), p)
 	primary, ok := w.Carried(st.IDs[0])
-	if !ok || !reflect.DeepEqual(primary, []uint16{
-		uint16(data.QuestDocumentCode), uint16(data.QuestDocumentCode), uint16(data.QuestDocumentCode),
-	}) {
-		t.Fatalf("primary carried = %#v, %v; want the three-document campaign stack", primary, ok)
+	if !ok || !reflect.DeepEqual(primary, []uint16{doc}) {
+		t.Fatalf("primary carried = %#v, %v; want his own one document", primary, ok)
 	}
 	companion, ok := w.Carried(st.IDs[1])
-	if !ok || !reflect.DeepEqual(companion, []uint16{ordinary}) {
-		t.Fatalf("companion carried = %#v, %v; want only ordinary item %#04x", companion, ok, ordinary)
+	if !ok || !reflect.DeepEqual(companion, []uint16{ordinary, doc, doc}) {
+		t.Fatalf("companion carried = %#v, %v; want her ordinary item and her two documents", companion, ok)
+	}
+	stacks, _ := w.CarriedStacks(st.IDs[1])
+	if len(stacks) != 2 || stacks[1].Code != doc || stacks[1].Count != 2 {
+		t.Fatalf("companion stacks = %+v, want the ordinary item and one document stack of 2", stacks)
 	}
 }
 
