@@ -1,0 +1,8 @@
+id          = "reniesta"
+title       = "Reniesta"
+version     = "1.0.0"
+author      = "Againrom"
+description = "After mission 20 the mage Reniesta plays a mission of her own while the party waits; in Plagat she joins the party with what she gained. Assemble the map with cmd/modmission first."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

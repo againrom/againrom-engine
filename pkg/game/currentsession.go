@@ -26,6 +26,7 @@ type currentSessionData struct {
 	Fame               *currentFamePolicy  `json:",omitempty"`
 	Taken              []SnapshotOffer     `json:",omitempty"`
 	OfferLabels        *currentOfferLabels `json:",omitempty"`
+	Guest              *currentGuest       `json:",omitempty"`
 }
 
 type currentQuickSpell struct {
@@ -71,6 +72,7 @@ func projectCurrentSession(doc *sav.DocumentData, s Snapshot) error {
 	a.Session = &currentSessionData{Game: s.game, Second: s.second.clone(), Offered: s.Offered, Won: slices.Clone(s.Won), ConsumedHeroGrants: slices.Clone(s.ConsumedHeroGrants)}
 	campaignOf(s.game).recordDifficulty(s, a.Session)
 	a.Session.Taken, a.Session.OfferLabels = slices.Clone(s.Taken), cloneOfferLabels(s.OfferLabels)
+	a.Session.Guest = s.guest.record()
 	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
 	if err != nil {
 		return err

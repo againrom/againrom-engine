@@ -1,0 +1,16 @@
+# After mission 20 is won, companion 22, as the town of chapter 30 (Plagat)
+# would grant her, plays mission 25 alone. Its map and texts are files of this
+# mod: cmd/modmission copies them out of an install. When she wins, the party
+# goes on to Plagat, where she joins with what she gained.
+[[mission]]
+key      = "prologue"
+number   = 25
+map      = "mission/{lang}/map.alm"
+texts    = "mission/{lang}/text"
+title    = "prologue.title"
+briefing = "prologue.briefing"
+after    = 20
+guest    = 22
+chapter  = 30
+gold     = 0
+carry    = "join"

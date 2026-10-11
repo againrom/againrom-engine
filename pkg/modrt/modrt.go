@@ -68,6 +68,9 @@ type Result struct {
 	// Bodies are the weapon mappings and body sheets the mods declare, in
 	// load order.
 	Bodies mod.BodyData
+	// Missions are the missions the mods add, in load order, with their map
+	// and texts read.
+	Missions mod.MissionData
 }
 
 // Load orders mods for the base, resolves their settings from given and runs
@@ -126,7 +129,7 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	if err != nil {
 		return Result{}, fmt.Errorf("the mods set rules the game refuses: %w", err)
 	}
-	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells, Bodies: sh.bodies}, nil
+	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells, Bodies: sh.bodies, Missions: sh.missions}, nil
 }
 
 // LanguageFor is the language a mod's text is read in on a base: the locale
@@ -148,6 +151,7 @@ type shared struct {
 	companions   mod.CompanionData
 	spells       mod.SpellData
 	bodies       mod.BodyData
+	missions     mod.MissionData
 	spellGlobals map[string]string
 	spellFields  map[string]string
 }

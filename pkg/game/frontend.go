@@ -1533,6 +1533,9 @@ func (f *FrontEnd) continuity(n int, ms *Mission, advance ui.MapAdvance) ui.MapA
 // screen — cmd/againrom absent -chargen, cmd/missionrun, every test that
 // has no result to hand over — still goes through this name, unchanged.
 func (f *FrontEnd) MissionOpener(n int) ui.MapOpener {
+	if party, purse, ok := f.Town.guestMission().guestEntry(n); ok {
+		return f.missionOpener(n, party, nil, &purse, nil)
+	}
 	return f.MissionOpenerWith(n, f.NextParty())
 }
 
@@ -1703,8 +1706,12 @@ func withoutFallenBodies(party []mapload.PartyMember, ids []sim.EntityID, w *sim
 
 func (f *FrontEnd) FinishMissionWithRoster(n int, party []mapload.PartyMember,
 	w *sim.World, ids []sim.EntityID, roster map[sim.EntityID]mapload.PartyMember) (next int, message string) {
+	if f.Town.guestMission().playing(n) {
+		return f.finishGuestMission(n, party, w, ids, roster)
+	}
 	return f.finishMission(f.townInstall(), n, party, w, ids, roster,
-		townArrival{arrive: f.arriveInTown, welcome: f.addChapterCompanions})
+		townArrival{arrive: f.arriveInTown, welcome: f.addChapterCompanions,
+			guest: func(won int) (int, string) { return f.startGuestMission(won, w) }})
 }
 
 // AdvanceLine is the headless report of what winning mission n does, printed

@@ -853,6 +853,10 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 2
 		}
+		if err := front.SetModMissions(modRun.Missions); err != nil {
+			fmt.Fprintln(stderr, "againrom:", err)
+			return 2
+		}
 	}
 	if o.fidelityCheck != "" {
 		fmt.Fprintf(stdout, "againrom: owner fidelity witness build=%s assets=%s\n", launchStamp(), root)

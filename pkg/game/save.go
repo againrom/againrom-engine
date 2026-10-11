@@ -40,6 +40,8 @@ const maxSaveGobDepth = 128
 // carries the player's progress through that definition, not a second registry.
 type Snapshot struct {
 	game base.Game
+	// guest is the session's mod mission or waiting guest.
+	guest *guestMission
 	// randomSession is the random session at capture; the SAV records it.
 	randomSession random.Session
 	second        *currentSecondCampaign
@@ -405,6 +407,7 @@ func restoreTown(c Campaign, s Snapshot) *Town {
 		t.open = s.Open
 	}
 	t.cityObjects = s.CityObjects.Clone()
+	t.guest = s.guest.clone()
 	t.cityGroups = slices.Clone(s.cityGroups)
 	t.knowledge = slices.Clone(s.knowledge)
 	t.gold = s.Gold

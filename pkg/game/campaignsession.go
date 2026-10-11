@@ -86,6 +86,9 @@ func (s *CampaignSession) adopt(c *restoreCandidate) {
 	// Only a fully validated candidate may supply provenance. Old native and
 	// mission candidates supply nil, never the previous session's document.
 	s.originalCity = c.originalCity
+	if s.Town != nil {
+		s.Town.guest = c.guest
+	}
 }
 
 // endLive forgets the live map and returns it, so the caller can release what
@@ -107,7 +110,10 @@ func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n in
 	outgoing = s.live
 	mapload.NameParty(party)
 	s.bindFameObserver(mw)
-	s.Town.activateMission(n)
+	// A guest's mission is no mission of the waiting town's campaign.
+	if !s.Town.guestMission().playing(n) {
+		s.Town.activateMission(n)
+	}
 	s.live, s.liveMission, s.liveParty = mw, n, party
 	rules.enterMission(s.Town, n)
 	if mw != nil && mw.mission != nil {
@@ -131,10 +137,13 @@ func (s *CampaignSession) nextParty(fallback func() []mapload.PartyMember) []map
 // townArrival is how a win reaches the town screen, supplied by the caller
 // because opening the town spans the shop, the screen and the party: arrive
 // is the economic arrival that stocks the merchant, and welcome grants the
-// companions a chapter's town hands out.
+// companions a chapter's town hands out. guest, when set, starts the mod
+// mission that plays after won mission n before the town: it answers the
+// mission to open, or zero and why it could not start.
 type townArrival struct {
 	arrive  func()
 	welcome func(chapter int)
+	guest   func(n int) (next int, refused string)
 }
 
 // recordWin is what winning mission n does to the campaign: the town's record
@@ -217,11 +226,22 @@ func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.Pa
 		if s.Town.progress != nil {
 			s.Town.progress.firstMapPoint = true
 		}
+		skipped := ""
+		if arrival.guest != nil {
+			next, refused := arrival.guest(n)
+			if next > 0 {
+				s.Offered = 0
+				return next, completed(fmt.Sprintf("the party waits; guest mission %d opens now", next))
+			}
+			if refused != "" {
+				skipped = " (the guest mission did not start: " + refused + ")"
+			}
+		}
 		arrival.arrive()
 		if !s.Town.restoredCampaign() {
 			arrival.welcome(offer.Mission)
 		}
-		return 0, completed("your party carries over; the town takes it from here")
+		return 0, completed("your party carries over; the town takes it from here" + skipped)
 	}
 	return 0, completed(fmt.Sprintf("your party carries over; mission %d follows: choose its row", offer.Mission))
 }

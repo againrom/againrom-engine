@@ -168,7 +168,11 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 				s.Campaign.Children = append(s.Campaign.Children, child)
 			}
 		}
-		s.Campaign.SelectedMission, s.CampaignState = uint32(s.Mission), true
+		s.CampaignState = true
+		// A guest's mission is no mission of the waiting campaign.
+		if !s.guest.playing(mission) {
+			s.Campaign.SelectedMission = uint32(s.Mission)
+		}
 		// SAV-1094/REG-SCN-063: every original mission-10 save carries the
 		// next mission (20) under AutoGetMission (Campaign+0x110); every
 		// other mission, including 20 and every mission from 30 on, carries

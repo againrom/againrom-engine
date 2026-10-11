@@ -2215,6 +2215,12 @@ package storyguard
 // pkg/ui/minimap.go, the structure owner slots in pkg/game/world.go, the
 // minimap paint in pkg/game/missionart.go, the installed-picture witness and
 // the minimap release tests it rewrote, including this paragraph.
+// CommentBytes rises for the mod missions a guest party plays: the docs of
+// the new pkg/mod/missions.go and the missions file in pkg/modrt, all
+// genuinely new code, including this paragraph. It rises again for the
+// guest itself: pkg/game/modmission.go and modassemble.go, cmd/modmission,
+// the guest fields of the town, snapshot and session record, the restore
+// override in originalsave.go and its archtest row, including these lines.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2238,5 +2244,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8753860,
+	CommentBytes: 8764342,
 }

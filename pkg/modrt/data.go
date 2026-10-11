@@ -20,6 +20,7 @@ var dataFiles = map[string]func(d *dataValue, rel string, src []byte) error{
 	mod.CharactersFile:   (*dataValue).loadCharacters,
 	mod.CompanionsFile:   (*dataValue).loadCompanions,
 	mod.ItemsFile:        (*dataValue).loadItems,
+	mod.MissionsFile:     (*dataValue).loadMissions,
 	mod.ScreensFile:      (*dataValue).loadScreens,
 	mod.SpellsFile:       (*dataValue).loadSpells,
 }
@@ -153,6 +154,35 @@ func (d *dataValue) loadCompanions(rel string, src []byte) error {
 				"companion %d of chapter %d already has a join condition from mod %q", j.Companion, j.Chapter, first.Mod)}
 		}
 		d.sh.companions.Joins = append(d.sh.companions.Joins, j)
+	}
+	return nil
+}
+
+func (d *dataValue) loadMissions(rel string, src []byte) error {
+	look, err := mod.TextLookup(d.dir, d.sh.lang)
+	if err != nil {
+		return err
+	}
+	missions, err := mod.ParseMissions(d.id, rel, src, look, d.sh.lang)
+	if err != nil {
+		return err
+	}
+	for _, m := range missions.Missions {
+		bad := func(format string, args ...any) error {
+			return &mod.ItemFileError{File: rel, Line: m.Line, Msg: fmt.Sprintf(format, args...)}
+		}
+		for _, first := range d.sh.missions.Missions {
+			switch {
+			case first.Number == m.Number:
+				return bad("mission number %d is already used by mod %q", m.Number, first.Mod)
+			case first.After == m.After:
+				return bad("mod %q already plays a mission after mission %d", first.Mod, m.After)
+			}
+		}
+		if err := m.ReadFiles(d.dir); err != nil {
+			return err
+		}
+		d.sh.missions.Missions = append(d.sh.missions.Missions, m)
 	}
 	return nil
 }

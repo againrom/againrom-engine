@@ -9,6 +9,7 @@ Every refusal stops the launch and names the mod, the file and the line.
 | `data/items.toml` | items in free code rows and edits of shipped rows | `DIV-1861`, `docs/1272/story.md` |
 | `data/characters.toml` | tavern characters | `docs/1278/story.md` |
 | `data/companions.toml` | join conditions | `docs/1280/story.md` |
+| `data/missions.toml` | missions a guest party plays between two campaign missions | below, `docs/1408/story.md` |
 | `data/screens.toml` | information screens and menu actions | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | `data/spells.toml` | spell values and formula tables | `docs/1341/story.md`, `DIV-2364` |
 | `data/weapon-bodies.toml` | the body a weapon is drawn with | below, `DIV-2912` |
@@ -117,3 +118,46 @@ body   = "hammer2h"
 
 A mod that loads on both games lists `"rom1"`, `"rom2-en"` and `"rom2-ru"` in
 `applies-to`. `-check` prints `againrom: weapon bodies=N body sheets=M`.
+
+## Missions
+
+`data/missions.toml` holds `[[mission]]` tables. Each adds one mission that a
+guest party plays after a campaign mission is won and before the town that win
+opens. The party waits: it is kept as the town SAV of that moment and comes
+back through the town LOAD when the guest wins.
+
+| key | value |
+|---|---|
+| `key` | required; 1 to 32 of a-z, 0-9 and `_`, starting with a letter |
+| `number` | required; the mission number the mission runs as, 1..65535; neither the campaign nor the install's `scenario` container may use it |
+| `map` | required; the map file inside the mod folder (at most 1 MiB) |
+| `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files in install encoding: `eventNN.txt`, `tipsNN.txt` |
+| `title`, `briefing` | optional; text keys of the mod's `text/<lang>/strings.toml`, written into the mission's `title.txt` and `briefing.txt` |
+| `after` | required; the campaign mission whose win starts this mission; its successor must be a town |
+| `guest` | required; the campaign companion who plays it, as the town of `chapter` would grant him or her over the party |
+| `chapter` | required; a town chapter whose `AddHero` grants `guest` |
+| `gold` | optional, 0..1000000, default 0; the guest's purse |
+| `carry` | optional; only `"join"`: the guest joins in the town of `chapter` through its own grant, as he or she ended the mission |
+
+`{lang}` in `map` or `texts` becomes the language the game runs in (`en`,
+`ru`). One mod or two cannot add two missions under one number or after one
+win. Nothing but the guest's own state carries back: the mission's purse,
+loot and payment stay behind. A SAVE inside the mission names the mod and the
+mission; a LOAD without that mod refuses.
+
+```toml
+[[mission]]
+key      = "prologue"
+number   = 25
+map      = "mission/{lang}/map.alm"
+texts    = "mission/{lang}/text"
+title    = "prologue.title"
+briefing = "prologue.briefing"
+after    = 20
+guest    = 22
+chapter  = 30
+```
+
+The repository holds no map. `cmd/modmission -install <root> -map <n> -out
+<mod folder>` copies an installed map and its event and tip texts into
+`mission/<lang>/` of a mod folder and writes nothing else.

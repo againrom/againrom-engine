@@ -742,6 +742,12 @@ func clearRestoredMissionPosition(party []mapload.PartyMember) {
 // SAV-608 excludes rebuilt hired members from bound-record counts; SAV-609's
 // application map flags come from current state rather than a lazy UI cache.
 func (f *FrontEnd) RestoreOriginal(saved []byte) (open ui.MapOpener, town bool, err error) {
+	return f.restoreOriginal(saved, nil)
+}
+
+// restoreOriginal is RestoreOriginal; a non-nil guest replaces the guest
+// record the save carries, as a guest's win brings her back to the stash.
+func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.MapOpener, town bool, err error) {
 	defer func() {
 		var inn innArrayError
 		if note := f.Base().Profile.Limits.OriginalSaveRefusal; err != nil && note != "" && errors.As(err, &inn) {
@@ -755,6 +761,9 @@ func (f *FrontEnd) RestoreOriginal(saved []byte) (open ui.MapOpener, town bool, 
 	src, err := decodeOriginalSource(saved, f.modContext(), f.Campaign.Value())
 	if err != nil {
 		return nil, false, err
+	}
+	if guest != nil {
+		src.guest = guest
 	}
 	selectedMarkers, err := f.campaign().selectedMarkers(f, src)
 	if err != nil {
@@ -881,7 +890,13 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 			restoredTown.heroGrants[chapter] = true
 		}
 	}
-	if err := validateCampaignLocation(campaign, restoredProgress, n, "original save"); err != nil {
+	// A guest's mission is no record of the waiting campaign; the guest record
+	// is checked against the active mods after this decode (restoreGuest).
+	location := n
+	if restoredProgress != nil && currentSession != nil && currentSession.Guest != nil && currentSession.Guest.Number == n && n != 0 {
+		location = restoredProgress.selected
+	}
+	if err := validateCampaignLocation(campaign, restoredProgress, location, "original save"); err != nil {
 		return nil, err
 	}
 	if n == 0 && campaign.completedBy(restoredTown) {
@@ -907,7 +922,7 @@ func (f *FrontEnd) restoreOriginalTown(src *originalSource, in originalInstall, 
 	f.installCandidate(&restoreCandidate{fame: draft.fame, quickSpells: src.quickSpells, offered: src.offered(),
 		difficulty: src.campaign.difficulty, town: draft.Town, carried: draft.Carried,
 		originalCity: draft.originalCity, townOnly: true, worldSelectedOnce: selectedMarkers, worldMapReturn: src.worldMapReturn(),
-		randomSession: &src.currentRandom})
+		randomSession: &src.currentRandom, guest: src.guest})
 	f.CampaignSession.reportTown(src, report)
 	return nil, true, nil
 }
@@ -921,6 +936,7 @@ func (f *FrontEnd) restoreOriginalMission(src *originalSource, in originalInstal
 	}
 	candidate := plan.candidate
 	candidate.randomSession = &src.currentRandom
+	candidate.guest = src.guest
 	open := f.missionOpenerMode(src.campaign.mission, plan.restored, nil, plan.savedPurse, src.prepareMission(in, plan),
 		&candidate.activate, candidate.units, src.campaign.difficulty, candidate.town)
 	candidate.prepared.viewer, candidate.prepared.tick, candidate.prepared.order, candidate.prepared.cadence,

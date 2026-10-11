@@ -111,9 +111,23 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 	if len(s.Carried) == 0 {
 		return false
 	}
-	member, ok := mapload.CampaignNPCMember(in.table, int32(npc), chapter, s.Carried)
-	if !ok {
+	member, ok := s.Town.guestMission().joining(chapter, npc)
+	if ok {
+		s.Town.guest = nil
+	} else if member, ok = townCompanion(in, chapter, npc, s.Carried); !ok {
 		return false
+	}
+	s.Carried = mapload.OwnParty(append(s.Carried, member))
+	return true
+}
+
+// townCompanion is the member the town of chapter grants as companion npc to
+// party: the campaign's definition row for that party, named and drawn as the
+// install names and draws it.
+func townCompanion(in townInstall, chapter, npc int, party []mapload.PartyMember) (mapload.PartyMember, bool) {
+	member, ok := mapload.CampaignNPCMember(in.table, int32(npc), chapter, party)
+	if !ok {
+		return mapload.PartyMember{}, false
 	}
 	selector := 0
 	if data.FigureDir(member.FigureDir).Female() {
@@ -134,8 +148,7 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 	if matched {
 		member.Body, member.BodyDir, member.Class = string(body), dir, class
 	}
-	s.Carried = mapload.OwnParty(append(s.Carried, member))
-	return true
+	return member, true
 }
 
 // settleCompanionArrival gives a party grown by a town companion the city

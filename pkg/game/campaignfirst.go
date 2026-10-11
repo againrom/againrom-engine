@@ -92,7 +92,7 @@ func (firstCampaignRules) route(f *FrontEnd, n, successor int) winRoute {
 }
 
 func (firstCampaignRules) returnToTown(f *FrontEnd, n int) {
-	f.TownScreen().(*townScreen).beginWorldMapReturn(n)
+	f.TownScreen().(*townScreen).beginWorldMapReturn(f.Town.guestMission().returnMission(n))
 }
 
 func (firstCampaignRules) openMission(*ui.Viewer) {}

@@ -190,6 +190,9 @@ var allow = map[string][]string{
 	// scenariofixture prepares explicit native UI-regression input through
 	// the frontend and changes only a detached world's controlled endpoint.
 	"cmd/scenariofixture": {"pkg/game", "pkg/sim"},
+	// modmission copies an installed mission map and its texts into a mod
+	// folder; the front end knows the install's addresses, modrt its language.
+	"cmd/modmission": {"pkg/game", "pkg/modrt"},
 	// presenceprobe censuses the five map-presence instant opcodes (0164)
 	// against a real install: how many nodes each shipped mission's own script
 	// compiles, and how many of their unit and group references resolve

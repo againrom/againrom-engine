@@ -169,6 +169,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	fame := cloneFame(f.fame)
 	s.Fame = &fame
 	s.QuickSpells = f.quickSpells
+	s.guest = f.Town.guestMission().clone()
 	snapshotTown(f.Town, &s)
 	if s.CampaignState {
 		s.Campaign.MissionTime = fame.Time
@@ -296,7 +297,10 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 				}
 				s.CampaignState = true
 				s.HeroGrantState, s.ConsumedHeroGrants = false, nil
-				s.Campaign.SelectedMission = uint32(s.Mission)
+				// A guest's mission is no mission of the waiting campaign.
+				if !s.guest.playing(s.Mission) {
+					s.Campaign.SelectedMission = uint32(s.Mission)
+				}
 				break
 			}
 		}
@@ -344,6 +348,8 @@ type restoreCandidate struct {
 	worldSelectedOnce map[int]bool
 	worldMapReturn    *SnapshotMapReturn
 	originalCity      *originalCitySaveState
+	// guest is the mod mission or the waiting guest the loaded save carries.
+	guest *guestMission
 
 	prepared preparedMap
 	activate func()

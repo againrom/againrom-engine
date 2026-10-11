@@ -1135,6 +1135,8 @@ type ModContext struct {
 	// Bodies is the body list carrying the mods' weapon bodies, the list a
 	// save projects a drawn body name through (data.BodyList.SavedBody).
 	Bodies data.BodyList
+	// Missions are the missions the mods add, played by a guest party.
+	Missions mod.MissionData
 }
 
 // ModItem is an item a mod added, in the form the save writer and the shop

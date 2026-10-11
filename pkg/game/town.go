@@ -82,7 +82,10 @@ type TownOffer struct {
 // the resources that survive a mission. The current main also exists before
 // any town building has opened; entering a side mission does not replace it.
 type Town struct {
-	second      *secondCampaign
+	second *secondCampaign
+	// guest is the mod mission a guest plays while the town waits, or the
+	// guest who won it and waits for the town's grant; nil when there is none.
+	guest       *guestMission
 	camp        Campaign
 	cityObjects *cityObjectTopology
 	// progress holds ordinary current campaign records when present.

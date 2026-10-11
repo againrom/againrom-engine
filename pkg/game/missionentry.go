@@ -184,7 +184,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	}
 	// Commit fresh selection with the driver; LOAD keeps its validated campaign.
 	commitDriver := func() {
-		if r.fresh() && r.town != nil && r.town.progress != nil {
+		if r.fresh() && r.town != nil && r.town.progress != nil && !r.town.guestMission().playing(r.n) {
 			r.town.selectMission(r.n)
 		}
 		releaseWorldAudio(ports.audio, ports.session.activateLive(ports.rules(), mw, r.n, ms.Party))

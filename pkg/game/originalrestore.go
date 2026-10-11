@@ -52,6 +52,8 @@ type originalSource struct {
 	documentOrigins   []sav.DocumentObjectOrigin
 	// currentRandom is the random session the LOAD begins.
 	currentRandom random.Session
+	// guest is the mod mission or waiting guest the save records.
+	guest *guestMission
 }
 
 // decodeOriginalSource decodes the complete original SAV in saved over the
@@ -98,6 +100,13 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	if err != nil {
 		return nil, err
 	}
+	guest, err := restoreGuest(decoded.session, mods)
+	if err != nil {
+		return nil, err
+	}
+	if m, ok := mods.Missions.ByNumber(decoded.mission); ok && guest == nil {
+		return nil, fmt.Errorf("this save is mission %d of mod %q and carries no guest record; it cannot be loaded", decoded.mission, m.Mod)
+	}
 	n := decoded.mission
 	quickSpells = decoded.quickSpells
 	session, hasSession, err := originalSessionState(sf)
@@ -108,7 +117,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 		tails: tails, hasTails: hasTails, cellRecords: cellRecords, hasCellRecords: hasCellRecords,
 		spellEffects: spellEffects, hasSpellEffects: hasSpellEffects, projectiles: projectiles,
 		hasProjectiles: hasProjectiles, diaryChars: diaryChars, diaryPlayerRec: diaryPlayerRec,
-		session: session, hasSession: hasSession}
+		session: session, hasSession: hasSession, guest: guest}
 	if n != 0 {
 		src.missionDocument, src.documentOrigins = decodeSavedDocument(saved)
 		if err := validateOriginalApplicationSource(src.missionDocument.Document); err != nil {

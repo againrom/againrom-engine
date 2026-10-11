@@ -36,7 +36,8 @@ func (f *FrontEnd) SetMods(r sim.Rules, set mod.Set, acceptUnmarked bool) error 
 	// The items, characters and conditions the other calls added stay: the
 	// order of the calls does not matter.
 	f.Table.Mods = mapload.ModContext{Set: set, AcceptUnmarked: acceptUnmarked,
-		Items: f.Table.Mods.Items, Characters: f.Table.Mods.Characters, Companions: f.Table.Mods.Companions, Spells: f.Table.Mods.Spells}
+		Items: f.Table.Mods.Items, Characters: f.Table.Mods.Characters, Companions: f.Table.Mods.Companions, Spells: f.Table.Mods.Spells,
+		Missions: f.Table.Mods.Missions}
 	if f.Table.Mods.Spells.Empty() {
 		return nil
 	}

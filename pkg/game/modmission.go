@@ -1,0 +1,278 @@
+package game
+
+import (
+	"errors"
+	"fmt"
+	"slices"
+	"strconv"
+
+	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
+	"againrom/pkg/sim"
+)
+
+// A mod mission is played by a guest party while the party waits. When the
+// declared win is recorded and the town would open, the campaign is written
+// as the town SAV the one producer writes at that point (the stash) and the
+// guest opens the mod's mission alone. When the guest wins, the stash comes
+// back through the one town LOAD with the guest as she ended the mission
+// recorded beside it, and the town's own grant of that companion takes her
+// in that state (DIV-3023).
+
+// guestMission returns the town's guest; nil for a nil town.
+func (t *Town) guestMission() *guestMission {
+	if t == nil {
+		return nil
+	}
+	return t.guest
+}
+
+// guestMission is the session's record of a mod mission and its guest.
+type guestMission struct {
+	mission mod.Mission
+	// stash is the town SAV of the waiting party; nil once the guest has won.
+	stash []byte
+	// start is the guest as the town would grant her when the mission began.
+	start mapload.PartyMember
+	// member is the guest as she ended the mission, waiting for the town's
+	// grant; nil while the mission runs.
+	member *mapload.PartyMember
+}
+
+// playing reports that mission n is the guest's mission, still under way.
+func (g *guestMission) playing(n int) bool {
+	return g != nil && g.stash != nil && g.mission.Number == n
+}
+
+// joining is the guest the town of chapter grants as companion npc, as she
+// ended her mission, when one is waiting.
+func (g *guestMission) joining(chapter, npc int) (mapload.PartyMember, bool) {
+	if g == nil || g.member == nil || g.mission.Chapter != chapter || g.mission.Guest != npc {
+		return mapload.PartyMember{}, false
+	}
+	m := mapload.CloneParty([]mapload.PartyMember{*g.member})[0]
+	m.StartingHero = false
+	return m, true
+}
+
+// returnMission is the mission whose return the world map shows after mission
+// n: for the guest's mission, the win that started it.
+func (g *guestMission) returnMission(n int) int {
+	if g != nil && g.mission.Number == n {
+		return g.mission.After
+	}
+	return n
+}
+
+func (g *guestMission) clone() *guestMission {
+	if g == nil {
+		return nil
+	}
+	c := *g
+	c.stash = slices.Clone(g.stash)
+	c.start = mapload.CloneParty([]mapload.PartyMember{g.start})[0]
+	if g.member != nil {
+		m := mapload.CloneParty([]mapload.PartyMember{*g.member})[0]
+		c.member = &m
+	}
+	return &c
+}
+
+// SetModMissions records the missions the mods add and serves each one's map
+// and texts under its own mission number on this front end's filesystem. A
+// declaration the campaign or the install does not bear out is refused with
+// the mod, the file and the line. It runs once, after SetMods and before any
+// game is opened.
+func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
+	if d.Empty() {
+		return nil
+	}
+	if f == nil || f.Table == nil || f.Archives == nil || f.Archives.Containers == nil {
+		return errors.New("the front end has no definition table or archives to carry the mods' missions")
+	}
+	c := f.Campaign.Value()
+	src := f.Archives.Containers
+	for _, m := range d.Missions {
+		bad := func(format string, args ...any) error {
+			return itemFileError(m.Mod, m.File, m.Line, format, args...)
+		}
+		address, _ := MissionMap(m.Number)
+		switch {
+		case m.Number%mainMissionStride == 0:
+			return bad("number %d is a multiple of %d, the numbers of the campaign's main missions", m.Number, mainMissionStride)
+		case slices.Contains(c.Side, m.Number) || slices.Contains(c.Offered, m.Number):
+			return bad("number %d is a mission of this install's campaign", m.Number)
+		}
+		if _, err := src.ReadFile(address); err == nil {
+			return bad("number %d is a map of this install (%s)", m.Number, address)
+		}
+		if !slices.Contains(c.Main, m.After) {
+			return bad("after %d is not a main mission of this install's campaign", m.After)
+		}
+		if next, ok := c.AutoAdvance(m.After); ok {
+			return bad("mission %d is followed by mission %d, not by a town", m.After, next)
+		}
+		offer, ok := c.NextMission(m.After)
+		if !ok || !offer.Town {
+			return bad("the win of mission %d opens no town", m.After)
+		}
+		if offer.Mission != m.Chapter {
+			return bad("the win of mission %d opens the town of chapter %d, not chapter %d", m.After, offer.Mission, m.Chapter)
+		}
+		if !slices.Contains(c.Chapters[m.Chapter].AddHero, m.Guest) {
+			return bad("the town of chapter %d does not grant companion %d", m.Chapter, m.Guest)
+		}
+	}
+	fs := src.Fork()
+	own := *f.Archives
+	own.Containers = fs
+	f.Archives = &own
+	selector := LanguageSelector(src)
+	serve := func(address string, b []byte) {
+		fs.Overlay(address, func() ([]byte, error) { return slices.Clone(b), nil })
+	}
+	for _, m := range d.Missions {
+		address, _ := MissionMap(m.Number)
+		serve(address, m.MapBytes)
+		dir := mainPrefix + "text/battle/m" + strconv.Itoa(m.Number) + "/"
+		for name, b := range m.TextFiles {
+			serve(dir+name, b)
+		}
+		if m.Title != "" {
+			serve(dir+"title.txt", []byte(EncodeInstallText(m.Title, selector)))
+		}
+		if m.Brief != "" {
+			serve(dir+"briefing.txt", []byte(EncodeInstallText(m.Brief, selector)))
+		}
+	}
+	f.Table.Mods.Missions = d
+	return nil
+}
+
+// startGuestMission is the guest half of the win of mission n: when a mod
+// mission plays after it, the campaign is written as the town SAV of this
+// moment and the guest is built as the town would grant her. It answers the
+// mission to open, or zero and the reason none opens.
+func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
+	if f.Table == nil {
+		return 0, ""
+	}
+	m, ok := f.Table.Mods.Missions.AfterWin(n)
+	if !ok {
+		return 0, ""
+	}
+	in := f.townInstall()
+	start, ok := townCompanion(in, m.Chapter, m.Guest, f.Carried)
+	if !ok {
+		return 0, fmt.Sprintf("mod %q: companion %d of chapter %d is not built for this party", m.Mod, m.Guest, m.Chapter)
+	}
+	// She leads her own party: the mission's player character is she.
+	start.StartingHero = true
+	f.Town.Arrive()
+	f.retainReturnCity(in, n, w)
+	s, _, err := f.Snapshot(false)
+	if err == nil {
+		var stash []byte
+		if stash, err = f.ExportCurrentSave(s, "guest"); err == nil {
+			f.Town.guest = &guestMission{mission: m, stash: stash, start: start}
+			return m.Number, ""
+		}
+	}
+	return 0, fmt.Sprintf("mod %q: the waiting party could not be written: %v", m.Mod, err)
+}
+
+// guestEntry is the party and purse the guest's mission n opens with: the
+// guest alone with the declared purse.
+func (g *guestMission) guestEntry(n int) ([]mapload.PartyMember, uint32, bool) {
+	if !g.playing(n) {
+		return nil, 0, false
+	}
+	return mapload.CloneParty([]mapload.PartyMember{g.start}), uint32(g.mission.Gold), true
+}
+
+// finishGuestMission is the win of the guest's mission n. The guest comes
+// home through the carry every won mission uses; nothing else of the mission
+// carries back. The waiting party comes back through the one town LOAD of the
+// stash, which records the guest beside it so the town's grant takes her as
+// she is now.
+func (f *FrontEnd) finishGuestMission(n int, party []mapload.PartyMember,
+	w *sim.World, ids []sim.EntityID, roster map[sim.EntityID]mapload.PartyMember) (int, string) {
+	g := f.Town.guestMission()
+	if refused := f.carryMissionHome(f.townInstall(), n, party, w, ids, roster); refused != "" {
+		return -1, refused
+	}
+	var member *mapload.PartyMember
+	for _, p := range f.Carried {
+		if p.CompanionNPC == g.mission.Guest {
+			c := mapload.CloneParty([]mapload.PartyMember{p})[0]
+			member = &c
+			break
+		}
+	}
+	if member == nil {
+		return -1, fmt.Sprintf("mission %d won - companion %d did not come home", n, g.mission.Guest)
+	}
+	back := &guestMission{mission: g.mission, start: g.start, member: member}
+	if _, _, err := f.restoreOriginal(g.stash, back); err != nil {
+		return -1, fmt.Sprintf("mission %d won - the waiting party did not come back: %v", n, err)
+	}
+	return 0, fmt.Sprintf("mission %d won - %s returns; the party goes on to the town", n, member.Name)
+}
+
+// currentGuest is the supplement's record of a guest: the mod and mission,
+// the stash while the mission runs, the guest at its start and as she ended
+// it once it is won.
+type currentGuest struct {
+	Mod    string
+	Key    string
+	Number int
+	Stash  []byte              `json:",omitempty"`
+	Start  *currentPartyMember `json:",omitempty"`
+	Member *currentPartyMember `json:",omitempty"`
+}
+
+func (g *guestMission) record() *currentGuest {
+	if g == nil {
+		return nil
+	}
+	start := captureCurrentParty(0, g.start)
+	r := &currentGuest{Mod: g.mission.Mod, Key: g.mission.Key, Number: g.mission.Number, Stash: slices.Clone(g.stash), Start: &start}
+	if g.member != nil {
+		m := captureCurrentParty(0, *g.member)
+		r.Member = &m
+	}
+	return r
+}
+
+// restoreGuest is the guest a save records, checked against the missions the
+// active mods declare. A save of a mod mission or of a waiting guest loads
+// only under the mod that declares that mission.
+func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission, error) {
+	if s == nil || s.Guest == nil {
+		return nil, nil
+	}
+	r := s.Guest
+	m, ok := mods.Missions.Find(r.Mod, r.Key)
+	if !ok {
+		return nil, modMarkRefusal("this save plays mission %q of mod %q, which no active mod declares; start with that mod to load it", r.Key, r.Mod)
+	}
+	if m.Number != r.Number {
+		return nil, modMarkRefusal("this save plays mission %q of mod %q as mission %d; the active mod declares mission %d", r.Key, r.Mod, r.Number, m.Number)
+	}
+	if r.Start == nil || (r.Stash == nil) == (r.Member == nil) {
+		return nil, fmt.Errorf("invalid current guest record of mod %q", r.Mod)
+	}
+	if len(r.Stash) > sav.MaxNativeActions {
+		return nil, fmt.Errorf("current guest record of mod %q is too large", r.Mod)
+	}
+	g := &guestMission{mission: m, stash: slices.Clone(r.Stash), start: r.Start.restore()}
+	if r.Member != nil {
+		member := r.Member.restore()
+		if member.CompanionNPC != m.Guest {
+			return nil, fmt.Errorf("current guest record of mod %q names companion %d, not %d", r.Mod, member.CompanionNPC, m.Guest)
+		}
+		g.member = &member
+	}
+	return g, nil
+}
