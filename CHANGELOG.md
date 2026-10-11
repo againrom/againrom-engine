@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.115.0
+
 - [ROM1] Enemy groups away from the party wait at their posts until the party comes near, as in the original; a group the mission's script names acts wherever the party is.
 - [ROM1] A new mission keeps the original's time as a loaded save already did: regeneration and the decay of bodies run on the original's full-tick cadence, a fallen body's health drains more slowly while it lies on the field, the script's time counter runs even on maps without a script, and a mission's outcome is announced one moment sooner.
 - [ROM1] The mission minimap now shows the original's picture: the real ground colours with the map's light and shadow, the crystal showing through where nothing has been explored and half through where the fog has returned, buildings at their real size and units in their owner's colour where the party can see them, and a white frame around the part of the map on screen. It still fills the whole crystal, and clicking it still only moves the camera.
