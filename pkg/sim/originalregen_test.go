@@ -52,8 +52,10 @@ func TestOriginalProfile1107HealthCrossingStillRunsManaAndNativeDeath(t *testing
 		Step(w, nil)
 	}
 	e := w.Entities()[0]
-	if e.HP != -1 || e.HealthHundredths != 254 || e.Mana != -1 || e.ManaHundredths != 255 || e.HasTarget || e.Transit != 0 || e.Decay != DecayFallen {
-		t.Fatalf("signed health/mana and native death: %+v", e)
+	// The phase-12 pass that takes health to -1 also admits HERO-DECAY-069's
+	// live-negative arm on a fourth full tick, so the body stands at -2.
+	if e.HP != -2 || e.HealthHundredths != 254 || e.Mana != -1 || e.ManaHundredths != 255 || e.HasTarget || e.Transit != 0 || e.Decay != DecayFallen {
+		t.Fatalf("signed health/mana and native death: HP %d/%d mana %d/%d target %v transit %d decay %d", e.HP, e.HealthHundredths, e.Mana, e.ManaHundredths, e.HasTarget, e.Transit, e.Decay)
 	}
 	var back World
 	if err := back.UnmarshalBinary(mustMarshal(t, w)); err != nil {

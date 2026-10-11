@@ -18,6 +18,7 @@ func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values ma
 		if err := restoreAttachedEffectWidths(&next, values); err != nil {
 			return err
 		}
+		next.syncConstructedMemberArchives()
 	}
 	if err := next.restoreCurrentProjectileTargets(w); err != nil {
 		return err

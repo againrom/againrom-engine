@@ -10,16 +10,20 @@ func groupCheck(reg int32, group uint32) ScriptCheck {
 	return ScriptCheck{Op: ScriptCheckGroupCount, Register: reg, Group: group, HasGroup: true}
 }
 
-// killGroupMember puts one entity below zero health, which is dead by every
-// reading. It writes the field rather than resolving a blow, because what is
-// under test is the count and not the fight.
+// killGroupMember puts one entity past teardown, a body on the dead list,
+// which is dead by every reading. It writes the fields rather than resolving a
+// blow, because what is under test is the count and not the fight. A body
+// merely below zero is still on the live list, whose ladder makes it a fallen
+// body the count holds until teardown (HERO-DECAY-069).
 func killGroupMember(t *testing.T, w *World, id EntityID) {
 	t.Helper()
 	i := indexOfEntity(w.entities, id)
 	if i < 0 {
 		t.Fatalf("no entity %d", id)
 	}
-	w.entities[i].HP = -1
+	w.entities[i].HP, w.entities[i].Decay = decayBonesHP-1, DecayBones
+	// The teardown at bones leaves the Group (step.go's decay pass).
+	w.detachSavedMember(id)
 }
 
 // downGroupMember puts one entity at exactly zero against a positive maximum:

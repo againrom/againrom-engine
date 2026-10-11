@@ -43,7 +43,7 @@ func TestTheGroupTermReplacesTheClassSpeedInEveryDomain(t *testing.T) {
 		groupSpeed = 8
 	)
 	for _, d := range []Domain{DomainGround, DomainGhost, DomainAir} {
-		w := mustWorld(t, 1, grBounds, []Entity{grEntity(classSpeed, groupSpeed, d)})
+		w := grWorld(t, 1, grBounds, []Entity{grEntity(classSpeed, groupSpeed, d)})
 		Step(w, nil)
 
 		got := w.Entities()[0]
@@ -71,7 +71,7 @@ func TestTheGroupTermReplacesTheClassSpeedInEveryDomain(t *testing.T) {
 // negative is exactly how a group can carry a term its bearer could not.
 func TestAGroupTermIsARateEvenWithNoClassSpeed(t *testing.T) {
 	for _, speed := range []int32{0, -1, -3} {
-		w := mustWorld(t, 1, grBounds, []Entity{grEntity(speed, 19, DomainGround)})
+		w := grWorld(t, 1, grBounds, []Entity{grEntity(speed, 19, DomainGround)})
 		Step(w, nil)
 
 		got := w.Entities()[0]
@@ -87,7 +87,7 @@ func TestAGroupTermIsARateEvenWithNoClassSpeed(t *testing.T) {
 }
 
 func TestNoTermIsStillTheClassSpeed(t *testing.T) {
-	w := mustWorld(t, 1, grBounds, []Entity{grEntity(19, 0, DomainGround)})
+	w := grWorld(t, 1, grBounds, []Entity{grEntity(19, 0, DomainGround)})
 	Step(w, nil)
 
 	got := w.Entities()[0]
@@ -103,7 +103,7 @@ func TestNoTermIsStillTheClassSpeed(t *testing.T) {
 // so that the day someone lifts it — one call to clearGroupSpeed at restAt —
 // this test fails and the change has to be argued for rather than noticed.
 func TestArrivingDoesNotClearTheGroupTerm(t *testing.T) {
-	w := mustWorld(t, 1, grBounds, []Entity{{
+	w := grWorld(t, 1, grBounds, []Entity{{
 		ID: 1, X: 0, Y: 0, TargetX: 1, TargetY: 0, HasTarget: true, Speed: 63, GroupSpeed: 19,
 	}})
 	for tick := 0; tick < 40 && w.Entities()[0].HasTarget; tick++ {
@@ -129,7 +129,7 @@ func TestArrivingDoesNotClearTheGroupTerm(t *testing.T) {
 // terrain, so the failure is a NEAR search's — the one that stalls — and not a
 // far search's, which would end the order in its first tick.
 func TestGivingUpDoesNotClearTheGroupTerm(t *testing.T) {
-	w := mustWorld(t, 1, Bounds{Width: 3, Height: 1}, []Entity{
+	w := grWorld(t, 1, Bounds{Width: 3, Height: 1}, []Entity{
 		{ID: 1, X: 0, Y: 0, TargetX: 2, TargetY: 0, HasTarget: true, Speed: 19, GroupSpeed: 8},
 		{ID: 2, X: 1, Y: 0},
 	})
@@ -151,7 +151,7 @@ func TestGivingUpDoesNotClearTheGroupTerm(t *testing.T) {
 // allocates a group, and a fresh group's term is zero — so a plain move-to
 // dropping the term is that order's own behaviour rather than a rule of ours.
 func TestAPlainOrderClearsTheGroupTerm(t *testing.T) {
-	w := mustWorld(t, 1, grBounds, []Entity{{ID: 1, X: 0, Y: 0, Speed: 19, GroupSpeed: 8}})
+	w := grWorld(t, 1, grBounds, []Entity{{ID: 1, X: 0, Y: 0, Speed: 19, GroupSpeed: 8}})
 	Step(w, []Command{{Entity: 1, X: 5, Y: 0}})
 
 	if got := w.Entities()[0]; got.GroupSpeed != 0 {
@@ -177,7 +177,7 @@ func TestBeingFelledClearsTheGroupTerm(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			w := mustWorld(t, 1, grBounds, []Entity{
+			w := grWorld(t, 1, grBounds, []Entity{
 				{ID: 1, X: 0, Y: 0, HP: 10, MaxHP: 10, Speed: 19, GroupSpeed: 8},
 				{ID: 2, X: 2, Y: 0, HP: 10, MaxHP: 10, Speed: 40, GroupSpeed: 8},
 			})
@@ -210,7 +210,7 @@ func TestTheConstructorNormalisesATermOnAUnitThatIsNotAlive(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			w := mustWorld(t, 1, grBounds, []Entity{
+			w := grWorld(t, 1, grBounds, []Entity{
 				{ID: 1, X: 0, Y: 0, HP: c.hp, MaxHP: c.mx, Speed: 19, GroupSpeed: 8},
 			})
 			if got := w.Entities()[0]; got.GroupSpeed != 0 {
@@ -222,7 +222,7 @@ func TestTheConstructorNormalisesATermOnAUnitThatIsNotAlive(t *testing.T) {
 
 func TestTheGroupTermSurvivesARoundTripAndDistinguishesTwoWorlds(t *testing.T) {
 	build := func(term uint8) *World {
-		return mustWorld(t, 7, grBounds, []Entity{
+		return grWorld(t, 7, grBounds, []Entity{
 			{ID: 1, X: 0, Y: 0, TargetX: 20, TargetY: 0, HasTarget: true, Speed: 40, GroupSpeed: term},
 			{ID: 2, X: 5, Y: 0, Speed: 40, GroupSpeed: term},
 		})
@@ -255,5 +255,24 @@ func TestTheGroupTermSurvivesARoundTripAndDistinguishesTwoWorlds(t *testing.T) {
 	if got, want := int32(back.Entities()[0].TransitTotal),
 		transitOf(rateOf(DomainGround, 8, 0, 0, 0, 0), false); got != want {
 		t.Errorf("the decoded mover crossed in %d tick(s), want the term's %d", got, want)
+	}
+}
+
+// grWorld is mustWorld with each fixture term moved into the rate byte of the
+// mover's Group, the byte a step reads (AI +0x44, MOVE-GATE-035).
+func grWorld(t *testing.T, seed uint64, b Bounds, ents []Entity) *World {
+	t.Helper()
+	w := mustWorld(t, seed, b, ents)
+	fixtureGroupRates(w)
+	return w
+}
+
+// fixtureGroupRates writes each entity's nonzero GroupSpeed into its Group's
+// rate byte, as a formation order would have.
+func fixtureGroupRates(w *World) {
+	for _, e := range w.entities {
+		if g := w.savedGroupFor(e.ID); g != nil && e.GroupSpeed != 0 {
+			g.AI[0x44] = e.GroupSpeed
+		}
 	}
 }

@@ -17,7 +17,13 @@ func TestCurrentPlayerSourceImportWithoutGroupCarrier(t *testing.T) {
 	state.GroupBindings, state.PlayerPurses, state.PlayerRoots = nil, nil, nil
 	state.Actors, state.Objects, state.ActorEffects, state.WorldEffects = nil, nil, nil, nil
 	state.Document.Head.CounterA, state.Document.Head.CounterB = 0, 0
-	w, err := sim.NewWorld(1, f.live.world.Bounds(), sim.ModeCanonical, nil, nil)
+	// Every first-game World holds a Group registry; the World without a
+	// Group carrier is the second game's.
+	script, err := sim.NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := sim.NewScriptedWorld(1, f.live.world.Bounds(), sim.ModeCanonical, nil, nil, script)
 	if err != nil {
 		t.Fatal(err)
 	}

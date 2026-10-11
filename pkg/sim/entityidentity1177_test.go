@@ -19,6 +19,7 @@ func TestDepartedCompanionIdentityReservationSurvivesColdLoadAndFreshSummon(t *t
 	// provenance, while reserving the departed native identity across LOAD.
 	w.entities[2].HP, w.entities[2].Decay = decayGoneHP-1, DecayBones
 
+	toLadderSubTick(w)
 	Step(w, nil)
 	if indexOfEntity(w.entities, 3) >= 0 {
 		t.Fatal("fixture did not remove the departed companion")

@@ -220,7 +220,7 @@ func (w *World) CheatSummon(template Entity, pack []ItemStack, worn [EquipSlots]
 	if template.ActorLoad.Source.Class != 0 && !n.deriveSource(i) {
 		return 0, fmt.Errorf("sim: cheat summon source actor cannot derive owned state")
 	}
-	if n.savedGroups != nil {
+	if !n.groupDialectNative() {
 		container, owner := w.cheatSummonOwner(template.Owner, x, y)
 		if !n.newSavedCommandGroup([]int{i}, orderNone, cell{x: px, y: py}, true, container, false) {
 			return 0, fmt.Errorf("sim: cheat summon saved group identity space exhausted")

@@ -76,7 +76,7 @@ func TestCmdGroupStandGroundAnchorsEveryLivingMembersCurrentCell(t *testing.T) {
 	w.runInstant(ScriptInstant{Op: ScriptInstantGroupOrder, Group: group, HasGroup: true,
 		Args: [scriptParams]int32{int32(orderStandGround)}})
 
-	if order, _, ok := w.groupState(owner, group); !ok || order != orderStandGround {
+	if order, _, ok := regState(w, owner, group); !ok || order != orderStandGround {
 		t.Fatalf("the fixture's own command did not set Stand Ground — order=%d ok=%v, "+
 			"this test would pass for the wrong reason", order, ok)
 	}

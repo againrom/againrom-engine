@@ -24,6 +24,7 @@ func reacquireWall(t *testing.T, owner uint32, reach uint8, victimX int32, bodyX
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	return w
 }
 
@@ -101,6 +102,7 @@ func gapWorld(t *testing.T, owner uint32) *World {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	return w
 }
 
@@ -150,6 +152,7 @@ func corridorAllyWorld(t *testing.T, owner uint32) *World {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	return w
 }
 
@@ -210,6 +213,7 @@ func islandWorld(t *testing.T, hostileBeside bool, reach uint8, mage bool) *Worl
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	return w
 }
 

@@ -50,13 +50,11 @@ func TestCurrentDeadMirrorChangesOnlyOnDeathMutation(t *testing.T) {
 	if loaded.originalDead[0].Source.State.HP != -237 {
 		t.Fatal("LOAD rewrote historical mirror")
 	}
-	loaded.tick = decayPhase - 1
-	loaded.decayPass()
+	loaded.decaySessionActors(SessionClock{SubTick: 12, FullTick: 1})
 	if loaded.originalDead[0].Source.State.HP != -237 {
 		t.Fatal("non-death tick rewrote historical mirror")
 	}
-	loaded.tick = decayPhase
-	loaded.decayPass()
+	loaded.decaySessionActors(SessionClock{SubTick: 12})
 	if loaded.originalDead[0].Source.State.HP != -239 || loaded.OriginalDeadActors()[0].Current.HP != -239 {
 		t.Fatal("death mutation failed to publish current mirror")
 	}

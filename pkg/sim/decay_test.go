@@ -131,14 +131,11 @@ func TestTheWalkTakesOneHealthPerPeriodAndSaturates(t *testing.T) {
 	hp := occEntity(t, w, 1).HP
 	falls, walks := 0, 0
 	// THE PERIOD AND THE PHASE ARE LITERALS HERE, not the constants the pass
-	// reads: a test computing what it expects from the same two numbers the code
-	// uses cannot notice either of them moving. Thirty-two is a full tick taken
-	// twice and twelve is the slot within it.
-	const wantCycle, wantPhase = 32, 12
-	if decayCycle != wantCycle || decayPhase != wantPhase {
-		t.Fatalf("the walk runs at phase %d of %d, want %d of %d",
-			decayPhase, decayCycle, wantPhase, wantCycle)
-	}
+	// reads: a test computing what it expects from the same numbers the code
+	// uses cannot notice either of them moving. A fallen body is on the live
+	// list, whose ladder walks on phase 12 of every fourth full tick
+	// (HERO-DECAY-069): sixty-four sub-ticks.
+	const wantCycle, wantPhase = 64, 12
 	for tick := uint64(1); tick < 3*wantCycle; tick++ {
 		want := tick%wantCycle == wantPhase
 		if want {
@@ -160,6 +157,34 @@ func TestTheWalkTakesOneHealthPerPeriodAndSaturates(t *testing.T) {
 	}
 	if falls != walks || falls < 2 {
 		t.Errorf("%d fall(s) over %d walk tick(s) in three periods", falls, walks)
+	}
+
+	// A body past the first rung is on the dead list, whose ladder walks on
+	// phase 12 of every second full tick (HERO-DEATH-026): thirty-two
+	// sub-ticks.
+	bones := dcEnt(3, 3, 3, 0)
+	bones.HP, bones.MaxHP, bones.Decay = -15, 100, DecayBones
+	w3 := mustWorld(t, 5, Bounds{Width: 8, Height: 8}, []Entity{bones})
+	const deadCycle = 32
+	hp, falls, walks = -15, 0, 0
+	for tick := uint64(0); tick < 3*deadCycle; tick++ {
+		want := tick%deadCycle == wantPhase
+		if want {
+			walks++
+		}
+		Step(w3, nil)
+		got := occEntity(t, w3, 3).HP
+		if (got != hp) != want {
+			t.Errorf("dead list, tick %d: health went %d to %d, want a fall on this tick: %v",
+				tick, hp, got, want)
+		}
+		if got != hp {
+			falls++
+		}
+		hp = got
+	}
+	if falls != walks || falls < 2 {
+		t.Errorf("dead list: %d fall(s) over %d walk tick(s) in three periods", falls, walks)
 	}
 
 	// The floor, on a body already at the least health there is: a decrement that
@@ -218,7 +243,7 @@ func TestTheStageIsTheLadderOfHealthAndNeverFalls(t *testing.T) {
 	Step(w, []Command{{Kind: KindKill, Entity: 1}})
 	last := occEntity(t, w, 1).Decay
 	reached := []DecayStage{last}
-	for k := 0; k < 45*decayCycle; k++ {
+	for k := 0; k < 100*decayCycle; k++ {
 		Step(w, nil)
 		if len(w.Entities()) == 0 {
 			break
@@ -270,6 +295,7 @@ func TestTheBottomOfTheLadderTakesTheBodyOutOfTheWorld(t *testing.T) {
 				t.Fatal("the fixture's attacker holds no order")
 			}
 			w.entities[indexOfEntity(w.entities, 1)].HP = tc.hp
+			toLadderSubTick(w)
 			Step(w, nil)
 			if got := indexOfEntity(w.entities, 1); (got < 0) != tc.gone {
 				t.Fatalf("the body is present: %v, want gone: %v", got >= 0, tc.gone)

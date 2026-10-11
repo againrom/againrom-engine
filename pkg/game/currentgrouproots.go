@@ -35,14 +35,20 @@ func bindCurrentSavedGroup(state *SnapshotSAVDocument, world *sim.World, g sim.S
 		}
 		if v.ObjectIndex == 0 && ref.Class == 1 {
 			// A document built from the World mints its own Player keys. The
-			// Player owner reference names its slot, which is current state.
+			// Player owner reference names its slot, which is current state,
+			// and takes the minted key of the Player it names.
 			for _, p := range state.GroupBindings.Players {
-				slot, err := savedStructureValue(&state.Document.Objects[p.ObjectIndex-1], "Slot")
+				player := &state.Document.Objects[p.ObjectIndex-1]
+				slot, err := savedStructureValue(player, "Slot")
 				if err == nil && uint32(uint16(slot)) == ref.Owner {
 					if v.ObjectIndex != 0 {
 						return v, fmt.Errorf("current Group Player reference has repeated slot")
 					}
-					v.ObjectIndex = p.ObjectIndex
+					key, err := savedStructureValue(player, "This")
+					if err != nil || key == 0 {
+						return v, fmt.Errorf("current Group Player reference names a Player without identity")
+					}
+					v.ObjectIndex, v.Key = p.ObjectIndex, key
 				}
 			}
 		}

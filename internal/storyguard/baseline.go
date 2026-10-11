@@ -2132,6 +2132,48 @@ package storyguard
 // pkg/ui/app.go and the installed witnesses, the pending-order re-derivation
 // in pkg/game/weaponswap.go and its tests, new code net of the primary-unit
 // toggle doc it replaced, including this paragraph.
+// CommentBytes rises for one kind of World from mission start, over the merged
+// main: the docs of the session clock, the empty effect driver, the Group
+// registry built at mission start with its activity gate, SAVE and LOAD, the
+// replaced basis scalars and the Stone-held step, which are new code, and the
+// claim notes of the tests whose pins those carriers changed. The files:
+// cmd/missionrun: trace_test.go; pkg/game: attackmove_release_test.go,
+// currentgrouproots.go, currentgrouproots_test.go, currentnativebasis.go,
+// currentorderabsence.go, currentplayerroots_test.go,
+// footprint_release_test.go, gameoptions_test.go,
+// groupcarriersave_release_test.go, groupconstructor_release_test.go,
+// holdposition_release_test.go, idleregen1146_release_test.go,
+// midstrikeorders_test.go, nativescalarwire_test.go,
+// nativeterminalsubject_controls_test.go, originalgroups.go, readout_test.go,
+// savactioncurrent.go, savgroupbindings.go, savgroupdocument.go,
+// savworldeffects.go, savworldeffects_project.go,
+// scriptstandground_release_test.go, stone_still_test.go,
+// terminalfine_hotfix_release_test.go, world.go, worldeffects1162_test.go;
+// pkg/mapload: currentplayers_test.go; pkg/sim: actioncontinuation.go,
+// activity1146_test.go, binary.go, binary_test.go, carriers.go,
+// carriers_test.go, commanded_test.go, commandgroup_test.go,
+// corpse_target_hotfix_test.go, currentcontinuation_test.go,
+// currentdeliveries_test.go, currentvalues_test.go, currentworldpolicy.go,
+// damagereaction_test.go, damagereactionbinary_test.go, decay_test.go,
+// engage.go, engage_test.go, escort_test.go, farbudgetlarge_test.go, group.go,
+// groupactivity_test.go, groupconstructedform_test.go,
+// groupconstructor_test.go, groupcontinuation.go, groupengaged.go,
+// grouprate_test.go, groupregistry_helpers_test.go, grouproam1148_test.go,
+// handovergroup_test.go, hash_test.go, instant30_hotfix_test.go,
+// nostate_test.go, originalregen_test.go, patrolfight1141_test.go,
+// pendingorder.go, pickupcompletion.go, playerparticipants.go,
+// playerparticipantsbinary.go, regen_test.go, relaxation_test.go,
+// release_test.go, rom2statebinary_test.go, routeform_test.go,
+// savedcontinuationbinary.go, savedgroupcommands.go,
+// savedgroupplayers_test.go, savedgroups.go, savedgroupsai.go,
+// savedgroupsbinary.go, script.go, script_test.go, scriptcast_test.go,
+// scriptclock_hotfix_test.go, scriptcontrol.go, scriptgroup_test.go,
+// scriptgrouptrace.go, secondgamescript_test.go, sessionclock.go,
+// sessionclock_binary_test.go, sessionclock_construct_test.go,
+// spellpointfix1001_test.go, structureuse1150_test.go, training_test.go,
+// turnstate_test.go, unitshot.go, withdraw_test.go, zeroblow_test.go.
+// pkg/game/spellbolt.go and pkg/sim/groupcmd_test.go fall. This paragraph
+// replaces the four that recorded parts of the same rise.
 // CommentBytes rises for the second game's first town: the docs of
 // pkg/game/secondtown.go, the seat grid and buttons in pkg/town/seats.go, the
 // one scene adapter's sceneCampaign interface, the composer's added refusals,
@@ -2141,6 +2183,13 @@ package storyguard
 // member's stamp, idle sheet and frame positions, the screen art's series
 // first numbers, the town 2 witnesses and their tests, including this
 // paragraph.
+// CommentBytes rises for the release-gate fixes of one kind of World: the
+// Move arm's rate-byte gate, the settled far-search destination, the
+// Stone-held Move members, the constructed spell slot window, the placement
+// block bytes, the missing orders an older SAV's registry builds, the inert group
+// sub-command, StepTracedAt and the instruments that read the registry and
+// the instant's own postcondition, the rate byte of a test's Move fixture,
+// including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2151,7 +2200,7 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1868,
+		"acclause":        1865,
 		"scclause":        506,
 		"barestorynumber": 1725,
 	},
@@ -2164,5 +2213,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8690734,
+	CommentBytes: 8724625,
 }

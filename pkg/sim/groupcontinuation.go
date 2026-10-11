@@ -6,10 +6,13 @@ type GroupContinuation struct {
 	Group, ID uint32
 	Authored  bool
 	RootOnly  bool
+	// KeylessOwner is the minted Player key the file names for an owner
+	// reference the World held by slot alone; zero when the World held a key.
+	KeylessOwner uint32
 }
 
 func (w *World) GroupHighWater() uint32 {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return 0
 	}
 	return w.savedGroups.HighWater
@@ -18,7 +21,7 @@ func (w *World) GroupHighWater() uint32 {
 // The archive owns membership and AI. These local identities preserve the
 // current dispatch order, command lifetime and next insertion cursor.
 func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater uint32, absentPlayers ...uint32) error {
-	if w.savedGroups == nil || len(rows) != len(w.savedGroups.Groups) {
+	if w.groupDialectNative() || len(rows) != len(w.savedGroups.Groups) {
 		return fmt.Errorf("sim: incomplete current Group continuation")
 	}
 	n := cloneSavedGroups(w.savedGroups)
@@ -46,6 +49,8 @@ func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater ui
 			if g.Reference != (SavedGroupReference{}) || g.Owner.Class != 1 {
 				return fmt.Errorf("sim: authored Group lacks its current owner")
 			}
+			g.Owner.Key, g.Owner.Archive = 0, 0
+		} else if row.KeylessOwner != 0 && g.Owner.Class == 1 && g.Owner.Key == row.KeylessOwner {
 			g.Owner.Key, g.Owner.Archive = 0, 0
 		}
 		n.Groups = append(n.Groups, g)
@@ -114,7 +119,7 @@ func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater ui
 // Ordinary Players own the transported actor graph even when the native
 // registry has never acquired exact container or formation identities.
 func (w *World) RestoreGroupCarrierPresence(players, formations bool) error {
-	if w.savedGroups == nil || formations && !players {
+	if w.groupDialectNative() || formations && !players {
 		return fmt.Errorf("sim: invalid current Group carrier presence")
 	}
 	n := cloneSavedGroups(w.savedGroups)

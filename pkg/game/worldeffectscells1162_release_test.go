@@ -97,7 +97,7 @@ func worldEffects1162ExpiryCuts(t *testing.T, raw []byte, source spell1152Graph)
 			}
 			check := func(front *FrontEnd, state *SnapshotSAVDocument) {
 				t.Helper()
-				if len(front.live.world.SavedSpellEffects()) != 0 || len(state.Document.World.Effects) != 0 || front.live.world.SavedWorldEffectDrivers() != nil || len(state.WorldEffects.Areas) != 0 {
+				if len(front.live.world.SavedSpellEffects()) != 0 || len(state.Document.World.Effects) != 0 || heldEffectDriverRows(front.live.world) != 0 || len(state.WorldEffects.Areas) != 0 {
 					t.Fatal("root/child retirement did not finish")
 				}
 				if d := cellProducer1162Differences(front.live.world, state); len(d) != 0 {

@@ -189,27 +189,16 @@ func (mw *mapWorld) seedRestoredRuns() {
 			continue
 		}
 		mw.phase[e.ID] = e.AttackPhase
+		// Every first-game World stamps its action clock from the session
+		// sub-tick the command drain reads (SESS-TICK-006), so the elapsed
+		// count is the swing count a fresh run reached.
 		n, ok := mw.world.WindUpElapsed(e.ID)
 		if !ok {
 			n = 1
-		} else {
-			// The action clock counts from the original's swing start, the tick
-			// before the clock's own zero reading.
-			n--
-			// The record is already in the document (SAV-1153).
-			if n < 0 && mw.holdsDelayZeroRecord(e) {
-				n = 0
-			}
 		}
 		mw.swing[e.ID] = n
 		mw.shots.begin(e.ID, e.AttackPhase)
 	}
-}
-
-// holdsDelayZeroRecord: e's swing builds its record on the start tick.
-func (mw *mapWorld) holdsDelayZeroRecord(e sim.Entity) bool {
-	picture, delay, drawn := mw.classShot(mw.spellClientClass(e.ID, e.Class))
-	return drawn && delay == 0 && picture > 0 && e.HasAttackTarget && e.Reach > 1
 }
 
 // castDistance is the caster-to-target distance in the engine's own position

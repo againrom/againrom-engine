@@ -234,12 +234,10 @@ func (w *World) stepWorldSpellEffects(obs *castObs) {
 }
 
 func (w *World) tickSavedAreaID(id uint32, obs *castObs) {
-	if w.savedWorldEffects != nil {
-		for i, d := range w.savedWorldEffects.Areas {
-			if d.ID == id {
-				w.tickSavedArea(i, obs)
-				return
-			}
+	for i, d := range w.savedWorldEffects.Areas {
+		if d.ID == id {
+			w.tickSavedArea(i, obs)
+			return
 		}
 	}
 }
@@ -262,7 +260,7 @@ func (w *World) retireUnreachableSpellNodes() {
 	}
 	for i := range g.Nodes {
 		if !live[uint32(i+1)] {
-			if !g.Nodes[i].Retired && g.Nodes[i].Value.Class == "AreaEffect" && w.savedWorldEffects != nil {
+			if !g.Nodes[i].Retired && g.Nodes[i].Value.Class == "AreaEffect" {
 				for j, d := range w.savedWorldEffects.Areas {
 					if d.ID == uint32(i+1) {
 						w.retireSavedArea(j)

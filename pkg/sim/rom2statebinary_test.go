@@ -114,6 +114,8 @@ func TestROM2FormPreservesROM1LegacyIdentity(t *testing.T) {
 func TestROM2FormWrapsNativeTraining(t *testing.T) {
 	w := trainingWorld(t, 40, -100)
 	w.DeclareStructures([]Structure{{ID: 1, Col: 6, Row: 6, Width: 1, Height: 1, Attach: 1, Blocking: 2}})
+	// The inner form a second-game World writes holds no session clock.
+	w.hasSessionClock, w.fullTick = false, 0
 	base, err := w.MarshalBinary()
 	if err != nil || base[0] != 105 || !HasStructureBlockingForm(base) {
 		t.Fatal("training fixture is not form 105", err)
@@ -122,7 +124,9 @@ func TestROM2FormWrapsNativeTraining(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.script, w.rom2 = s, &rom2ScriptState{}
+	// A second-game World builds no first-game Group registry.
+	w.script, w.rom2, w.savedGroups = s, &rom2ScriptState{}, nil
+	w.constructSessionClock()
 	raw, err := w.MarshalBinary()
 	if err != nil || raw[0] != 106 || raw[len(raw)-5] != 105 {
 		t.Fatal("ROM2 did not wrap native training", err)

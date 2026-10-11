@@ -71,7 +71,8 @@ func offsetWorld(t *testing.T) *World {
 				MapUnitID: 0x00f5, Resistance: [5]uint8{0xb6, 0xb7, 0xb8, 0xb9, 0xba},
 				Withdraw: -0x11121314, Wimpy: 0x45464748},
 		})
-	w.tick = 0x0102030405060708
+	// A first-game World's session sub-tick is a uint32 in the uint64 field.
+	w.tick = 0x05060708
 	return w
 }
 
@@ -85,7 +86,7 @@ var offsetCases = []struct {
 	want  []byte
 }{
 	{"format version", 0, 1, []byte{0x32}},
-	{"tick", 1, 8, []byte{0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01}},
+	{"tick", 1, 8, []byte{0x08, 0x07, 0x06, 0x05, 0x00, 0x00, 0x00, 0x00}},
 	{"rng state", 9, 8, []byte{0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11}},
 	{"bounds.Width", 17, 4, []byte{0x04, 0x03, 0x02, 0x01}},
 	{"bounds.Height", 21, 4, []byte{0xf8, 0xf8, 0xf9, 0xfa}},
@@ -809,8 +810,10 @@ func TestMarshalPutsEveryFieldAtItsDocumentedOffsetAndWidth(t *testing.T) {
 		}
 		next += len(rest)
 	}
-	if !bytes.Equal(b[next:next+5], []byte{0, 0, 0, 0, 0}) {
-		t.Error("native legacy clock suffix is not absent with zero FullTick")
+	// Every first-game World is constructed with its session clock; this
+	// fixture's FullTick is the constructed zero.
+	if !bytes.Equal(b[next:next+5], []byte{1, 0, 0, 0, 0}) {
+		t.Error("session clock suffix is not present with zero FullTick")
 	}
 	next += 5
 	// Forms78..91 append independent span footers. This fixture has no saved
@@ -973,7 +976,12 @@ var pinBytesV76 = widenedSourceBindingPin(pinBytesV75)
 
 // pinWorld's own highest entity id is 9 (entity list above); no originalDead
 // and no script, so its floor is exactly that plus one.
-var pinBytes = widenedEntityIDFloorPin(widenedSessionClockPin(pinBytesV76), 10)
+var pinBytes = widenedEntityIDFloorPin(constructedSessionClockPin(pinBytesV76), 10)
+
+// pinBytesHistorical is the same world's form written before the session clock
+// was constructed with every first-game World: the clock suffix is absent. The
+// frozen digests of forms 77 through 93 are of its predecessors.
+var pinBytesHistorical = widenedEntityIDFloorPin(widenedSessionClockPin(pinBytesV76), 10)
 
 func widenedCurrentProfilePin(old []byte, cells, records int) []byte {
 	base := 34 + 3*cells
@@ -2290,6 +2298,10 @@ func TestAReachedTargetEncodesLikeATargetNeverSet(t *testing.T) {
 	// this one difference, which is not what this test is about, is closed by
 	// hand.
 	placed.entities[0].PostX, placed.entities[0].PostY = 3, 3
+	// The move command leaves the actor's order record in its Group registry
+	// (AI-449); the record outlives the arrival, as the post does, so the
+	// placed world takes the same registry.
+	placed.savedGroups = cloneSavedGroups(walked.savedGroups)
 
 	wf, err := walked.MarshalBinary()
 	if err != nil {

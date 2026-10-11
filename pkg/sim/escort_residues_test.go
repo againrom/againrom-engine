@@ -75,7 +75,7 @@ func TestClosingEscortReaimsAndStopsBetweenActorPasses(t *testing.T) {
 	for _, sub := range []int32{subCommandDefend, subCommandFollow} {
 		w := esWorld(t, sub, 3, engRel(t),
 			laFighter(1, 2, 7, 20, 20), laFighter(2, 2, 7, 12, 20))
-		w.actorPass()
+		esPass(w)
 		w.entities[0].Y = 24
 		Step(w, nil)
 		if e := w.entities[1]; !e.HasTarget || e.TargetY != 24 {
@@ -115,7 +115,7 @@ func TestEscortIdleBlowBypassesRandomGateAndClearsAlarm(t *testing.T) {
 func TestEscortCloseDoesNotReaimDuringTransitOrCast(t *testing.T) {
 	w := esWorld(t, subCommandFollow, 3, engRel(t),
 		laFighter(1, 2, 7, 20, 20), laFighter(2, 2, 7, 12, 20))
-	w.actorPass()
+	esPass(w)
 	w.entities[1].Transit, w.entities[1].TransitTotal = 2, 3
 	w.entities[0].Y = 24
 	Step(w, nil)

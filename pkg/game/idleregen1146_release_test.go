@@ -74,7 +74,9 @@ func TestReleaseIdleRegenerationAfterManualCast(t *testing.T) {
 		live.tick()
 		e, _ := live.entity(id)
 		if live.world.Tick() == 9 {
-			if e.X != 30 || e.Y != 50 || e.Mana >= 1000 || e.ActionClock.End != 12 {
+			// The command reads the sub-tick the session tick has already
+			// advanced, so the deadline is one higher (SESS-TICK-006).
+			if e.X != 30 || e.Y != 50 || e.Mana >= 1000 || e.ActionClock.End != 13 {
 				t.Fatalf("ordinary Teleport did not create the 8+4 action deadline: at%d,%d mana%d end%d", e.X, e.Y, e.Mana, e.ActionClock.End)
 			}
 			afterCastMana = e.Mana

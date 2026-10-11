@@ -115,6 +115,7 @@ func TestSecondGameActivityDoesNotChangeFirstGameGroups(t *testing.T) {
 	w := secondGameActivityWorld(t, 1, 1)
 	w.script = nil
 	w.rom2 = nil
+	w.constructSessionClock()
 	scriptTicks(w, 40, nil)
 	victim, _ := w.Entity(3)
 	if victim.HP == 20 {

@@ -227,8 +227,9 @@ func TestDecayFromMinusNineClearsRoutesAndOrdinaryCastsButKeepsControlSpirit(t *
 		{Spell: 1, Power: 1, Target: 2, AtUnit: true},
 		{Spell: controlSpiritSpellID, Power: 1, Target: 2, AtUnit: true},
 	}
-	w.tick = decayPhase
-	w.decayPass()
+	// The live-list ladder walks a fallen body on phase 12 of a fourth full
+	// tick (HERO-DECAY-069).
+	w.decaySessionActors(SessionClock{SubTick: 12})
 
 	if hp := cbAt(t, w, 2).HP; hp != -10 {
 		t.Fatalf("decay left body at %d, want -10", hp)

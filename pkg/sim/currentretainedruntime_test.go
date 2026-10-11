@@ -17,6 +17,7 @@ func currentRetainedRuntimeWorld(t *testing.T, runtime uint32, bound, sourceBoun
 		e := &w.entities[0]
 		e.SourceBinding = SourceBinding{Class: 1, ArchiveIndex: d.Source.ArchiveIndex, Identity: d.Source.Identity, RuntimeID: runtime}
 		e.ActorLoad = ActorLoad{Present: true, Source: SourceActor{Class: 1}}
+		w.syncConstructedMemberArchives()
 	}
 	if err := w.ImportOriginalDeadActors([]OriginalDeadActor{d}); err != nil {
 		t.Fatal(err)

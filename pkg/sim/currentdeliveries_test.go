@@ -61,7 +61,7 @@ func transferCurrentDelivery(t *testing.T, native *World, mutate func(*SavedSpel
 	if err := cold.RestoreCurrentContinuation(&p, nil, cold.Actions(), nil); err != nil {
 		t.Fatal(err)
 	}
-	if cold.savedSpellGraph != nil || cold.savedWorldEffects != nil || len(cold.deliveries) != 1 {
+	if cold.savedSpellGraph != nil || heldDriverRows(cold) != 0 || len(cold.deliveries) != 1 {
 		t.Fatal("ownership transfer retained temporary carriers or lost pending delivery")
 	}
 	requireSpellGraphBinary(t, cold)
@@ -104,8 +104,11 @@ func TestCurrentDeliveryRetainsOrdinaryTimerTargetAndFutureImpact(t *testing.T) 
 	}
 }
 
+// Only a second-game World keeps the native uint64 tick; a first-game World's
+// session sub-tick is a uint32.
 func TestCurrentDeliveryKeepsClockAboveOrdinaryTickWidth(t *testing.T) {
 	w := deliveryTestWorld(t, 1)
+	asSecondGame(t, w)
 	w.tick = 1<<32 | 17
 	w.queuePointDelivery(0, 1, w.spells[0], 0)
 	cold := transferCurrentDelivery(t, w, nil)

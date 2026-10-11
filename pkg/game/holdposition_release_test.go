@@ -40,35 +40,37 @@ func holdChase(t *testing.T, arena *loadedCycleArena, hero, victim sim.EntityID)
 	}
 }
 
-// holdGroupOrder is the order of the group a warrior is decided for: his
-// command group when he holds one, the group the map placed him in otherwise.
-func holdGroupOrder(w *sim.World, e sim.Entity) (uint8, bool) {
-	group := e.CommandGroup
-	if group == 0 {
-		group = e.Group
+// holdGroupOrder is the order of the Group a warrior belongs to in the
+// World's Group registry (AI +0x20), with that Group's identity. A command
+// moves its actors into a new Group (AI-449).
+func holdGroupOrder(w *sim.World, e sim.Entity) (uint8, uint32, bool) {
+	groups, _, _ := w.SavedGroups()
+	for _, g := range groups {
+		for _, m := range g.Members {
+			if m.Bound && m.Entity == e.ID {
+				return g.AI[0x20], g.ID, true
+			}
+		}
 	}
-	order, _, known := w.FrozenGroupAI(e.Owner, group)
-	return order, known
+	return 0, 0, false
 }
 
 // holdPress presses the panel's Hold Position cell with the selection standing.
 // The press queues the stance and the frame's own tick applies it, so the proof
-// that it arrived is the warrior's group standing at Stand Ground after a
-// command group or a group order that was not there before.
+// that it arrived is the warrior's Group standing at Stand Ground after a
+// Group or a Group order that was not there before.
 func holdPress(t *testing.T, arena *loadedCycleArena, hero sim.EntityID) {
 	t.Helper()
 	x, y, err := arena.app.HeadlessCommandPoint(holdPanelCell)
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := arena.get(hero)
-	beforeOrder, _ := holdGroupOrder(arena.live.world, before)
+	beforeOrder, beforeGroup, _ := holdGroupOrder(arena.live.world, arena.get(hero))
 	arena.tap(t, x, y)
-	after := arena.get(hero)
-	order, known := holdGroupOrder(arena.live.world, after)
-	if !known || order != uint8(sim.OrderStandGround) || after.CommandGroup == before.CommandGroup && order == beforeOrder {
-		t.Fatalf("the panel's Hold Position cell left warrior %d in command group %d at order %d (known %v); he was in %d at order %d",
-			hero, after.CommandGroup, order, known, before.CommandGroup, beforeOrder)
+	order, group, known := holdGroupOrder(arena.live.world, arena.get(hero))
+	if !known || order != uint8(sim.OrderStandGround) || group == beforeGroup && order == beforeOrder {
+		t.Fatalf("the panel's Hold Position cell left warrior %d in Group %d at order %d (known %v); he was in %d at order %d",
+			hero, group, order, known, beforeGroup, beforeOrder)
 	}
 }
 

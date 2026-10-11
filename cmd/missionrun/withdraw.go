@@ -66,6 +66,11 @@ func driveWithdrawal(ms *game.Mission, table *mapload.Table, out io.Writer) erro
 			if err := world.UnmarshalBinary(form); err != nil {
 				return err
 			}
+			// A Group the party's coverage does not reach skips its whole
+			// dispatch, the withdrawal tail included (AI-ACTIVITY-324). The
+			// witness runs in safe mode, which dispatches every Group, so a
+			// candidate far from the party still reaches the tail.
+			world.SetSafeMode(true)
 			before, ok := withdrawalEntity(world.Entities(), candidate.ID)
 			if !ok || before.HP <= 0 || before.MaxHP <= 0 {
 				continue

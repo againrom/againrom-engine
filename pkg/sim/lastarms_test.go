@@ -508,7 +508,7 @@ func TestSubCommandTenEngagesEveryOtherMember(t *testing.T) {
 			t.Errorf("member %d still holds a destination (%d,%d)", id, e.TargetX, e.TargetY)
 		}
 	}
-	if got, _, _ := w.groupState(2, 7); got != orderNone {
+	if got, _, _ := regState(w, 2, 7); got != orderNone {
 		t.Errorf("the group's stored order is %d, want none (%d)", got, orderNone)
 	}
 }

@@ -547,7 +547,7 @@ func nstForm(t *testing.T, w *World) []byte {
 	return b
 }
 
-func nstShape(t *testing.T, tick int, form []byte, cells, units, routeCells, groups int) {
+func nstShape(t *testing.T, tick int, form []byte, cells, units, routeCells, groups, registry int) {
 	t.Helper()
 	// sackCountLen is added unconditionally and nothing more: no world this
 	// file builds ever holds a sack (0103 added the type and the constructor
@@ -560,8 +560,8 @@ func nstShape(t *testing.T, tick int, form []byte, cells, units, routeCells, gro
 	// equipment section is one bare EquipSlots-wide zero record per unit, no
 	// count at all. spellCountLen is added the same way once more: no world
 	// this file builds ever names a spell table, so the section is always its
-	// own bare two-byte zero count.
-	if want := 61 + 34 + 3*cells + relationLen + 492*units + 4*units + 8*routeCells +
+	// own bare two-byte zero count. registry: registryFormGrowth.
+	if want := registry + 61 + 34 + 3*cells + relationLen + 492*units + 4*units + 8*routeCells +
 		groupCountLen + groupRecordLen*groups + sackCountLen + carryCountLen*units + equipRecordLen*units + treasureRecordLen*units + purseLen + spellCountLen + itemWeightCountLen + 2*castingCountLen + relationSlots + tailCountLen + structureCountLen + len(emptyItemStatePin(units)) + 4 + 4 + 4 + 4 + 4 + scriptStateLen + scriptCountsLen + entityIDFloorLen + spellDeliverySpanLen; len(form) != want {
 		t.Fatalf("tick %d: the form of a %d-unit world over %d cell(s) carrying %d route cell(s) and "+
 			"%d group record(s) is "+
@@ -586,7 +586,7 @@ func nstRouteCells(w *World) int {
 func TestTheByteFormAndItsDigestAreTheOnesAlreadyPinned(t *testing.T) {
 	w := pinWorld(t)
 	form := nstForm(t, w)
-	nstShape(t, 0, form, 20, 3, 0, len(w.groups))
+	nstShape(t, 0, form, 20, 3, 0, len(w.groups), registryFormGrowth(w))
 	if !bytes.Equal(form, pinBytes) {
 		t.Errorf("the pinned world marshals to\n % x\npinned as\n % x", form, pinBytes)
 	}
@@ -716,11 +716,11 @@ func nstRecord(t *testing.T) nstRun {
 	t.Helper()
 	w := mustWorld(t, 1, conBounds, nstStart)
 	out := nstRun{forms: [][]byte{nstForm(t, w)}, digests: []uint64{w.Hash()}}
-	nstShape(t, 0, out.forms[0], nstCells, len(nstStart), nstRouteCells(w), len(w.groups))
+	nstShape(t, 0, out.forms[0], nstCells, len(nstStart), nstRouteCells(w), len(w.groups), registryFormGrowth(w))
 	for tick, cmds := range nstSchedule {
 		Step(w, cmds)
 		form := nstForm(t, w)
-		nstShape(t, tick+1, form, nstCells, len(nstStart), nstRouteCells(w), len(w.groups))
+		nstShape(t, tick+1, form, nstCells, len(nstStart), nstRouteCells(w), len(w.groups), registryFormGrowth(w))
 		out.forms = append(out.forms, form)
 		out.digests = append(out.digests, w.Hash())
 		out.cells = append(out.cells, w.Entities())

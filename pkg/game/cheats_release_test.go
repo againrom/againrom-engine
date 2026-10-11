@@ -479,8 +479,11 @@ func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 			if cold.live.actorNames[loaded.ID] != name || !cold.live.chars[loaded.ID].Known || cold.live.chars[loaded.ID].Name != name {
 				t.Fatal("cold LOAD lost summoned actor name or character metadata")
 			}
-			if order, _, found := cold.live.world.FrozenGroupAI(loaded.Owner, loaded.Group); !found || order != 0 {
-				t.Fatalf("cold summoned guard group: found=%t order=%d group=%d", found, order, loaded.Group)
+			// The summon builds the actor its own command Group in the
+			// registry (AI-449); cold LOAD keeps it at the same order.
+			liveOrder, _, liveFound := holdGroupOrder(f.live.world, spawn)
+			if order, group, found := holdGroupOrder(cold.live.world, loaded); !found || !liveFound || order != 0 || liveOrder != 0 {
+				t.Fatalf("cold summoned guard group: found=%t order=%d group=%d; live found=%t order=%d", found, order, group, liveFound, liveOrder)
 			}
 			if err := coldApp.HeadlessSelectEntity(uint32(loaded.ID)); err != nil {
 				t.Fatal(err)

@@ -85,6 +85,9 @@ func TestAttackNoticeExpiresByCandidateBuildsAndDoesNotRevealFog(t *testing.T) {
 
 func TestAttackNoticeUsesOriginalOrderFieldsAndTransfersNativeOwnership(t *testing.T) {
 	w, _ := distantSpellWorld(t)
+	// The transfer from the actor's own notice into an imported order: a
+	// World without a registry, as a second-game World before its import.
+	nativeGroupArm(w)
 	w.flipOnBlow(0, 1)
 	if err := w.ImportSavedGroups(nil, nil); err != nil {
 		t.Fatal(err)
@@ -174,6 +177,9 @@ func TestAttackNoticeDoesNotOverrideStandGroundOrHealing(t *testing.T) {
 	w, rule := distantSpellWorld(t)
 	for i := range w.groups {
 		w.groups[i].order = orderStandGround
+	}
+	for i := range w.savedGroups.Groups {
+		w.savedGroups.Groups[i].AI[0x20] = orderStandGround
 	}
 	w.ordinaryAreaEffect(0, 1, rule, 0)
 	engRun(w, 1)

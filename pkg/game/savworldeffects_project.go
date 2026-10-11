@@ -41,7 +41,7 @@ func projectSavedWorldEffects(state *SnapshotSAVDocument, world *sim.World) erro
 		state.WorldEffects.bindProjectileDrivers(drivers.Projectiles)
 	}
 	if state.WorldEffects == nil {
-		if drivers != nil {
+		if drivers != nil && len(drivers.Areas)+len(drivers.Projectiles) != 0 {
 			return fmt.Errorf("current world-effect Document bindings lost")
 		}
 		if len(world.SavedSpellEffects())+len(world.SavedProjectiles().Items) > 0 {
@@ -59,8 +59,9 @@ func projectSavedWorldEffects(state *SnapshotSAVDocument, world *sim.World) erro
 		return err
 	}
 	// A World that carries projectile records and no area driver answers its
-	// Document's area rows as a World with no drivers does.
-	if drivers != nil && (len(drivers.Areas) > 0 || len(state.WorldEffects.Areas) == 0) {
+	// Document's area rows as a World with no drivers does. Without a
+	// Document there is no cell row to recompute.
+	if drivers != nil && (len(drivers.Areas) > 0 || len(state.WorldEffects.Areas) == 0 && state.Document != nil) {
 		if len(drivers.Areas) != len(state.WorldEffects.Areas) {
 			return fmt.Errorf("current area binding count differs")
 		}

@@ -453,7 +453,7 @@ func TestSavedCellPlanes1115Historical82LiteralPinDigests(t *testing.T) {
 	for _, tc := range []struct {
 		form []byte
 		hash uint64
-	}{{pinBytes, 0x6146553a6b832a65}, {rtfBytes, 0x81b722e3112d3074}} {
+	}{{pinBytesHistorical, 0x6146553a6b832a65}, {rtfBytesHistorical, 0x81b722e3112d3074}} {
 		if old := strippedCellPlanePin(tc.form); old[0] != 82 || fnv1a(old) != tc.hash {
 			t.Fatal("changed literal predecessor82 bytes")
 		}
@@ -464,7 +464,7 @@ func TestSavedCellPlanes1115Historical83LiteralPinDigests(t *testing.T) {
 	for _, tc := range []struct {
 		form []byte
 		hash uint64
-	}{{pinBytes, 0x603e43cc48d5bb6e}, {rtfBytes, 0x7c3db8d18e5c0a77}} {
+	}{{pinBytesHistorical, 0x603e43cc48d5bb6e}, {rtfBytesHistorical, 0x7c3db8d18e5c0a77}} {
 		old := strippedCurrentObjectsPin(tc.form)
 		if old[0] != 83 || fnv1a(old) != tc.hash {
 			t.Fatal("changed literal predecessor83 bytes")

@@ -27,7 +27,7 @@ func (w *World) appendSavedGroups(b []byte) []byte {
 		b = le.AppendUint16(b, r.Archive)
 		b = le.AppendUint32(append(b, r.Class), r.Owner)
 	}
-	if s := w.savedGroups; s != nil {
+	if s := w.groupsForm(); s != nil {
 		b = le.AppendUint32(b, uint32(len(s.Groups)))
 		for _, g := range s.Groups {
 			b = le.AppendUint32(b, g.ID)
@@ -55,6 +55,13 @@ func (w *World) appendSavedGroups(b []byte) []byte {
 			raw := w.maskedOrderRaw(o)
 			b = append(b, raw[:]...)
 			words(o.Patrol)
+		}
+		// A constructed registry written because it no longer equals the
+		// constructed one keeps that mark, so the decoded World omits it
+		// again exactly when the live one does. A form without the byte
+		// holds an imported registry.
+		if s.fresh && !w.SecondGame() {
+			b = append(b, 1+layoutBool(s.native))
 		}
 	}
 	return le.AppendUint32(b, uint32(len(b)-start))
@@ -153,6 +160,14 @@ func splitSavedGroups(b []byte) ([]byte, *savedGroupState, error) {
 		o.EscortBound = bound == 1
 		get(&o.Raw)
 		o.Patrol = words()
+	}
+	if err == nil && r.Len() == 1 {
+		var fresh uint8
+		get(&fresh)
+		if fresh != 1 && fresh != 2 {
+			err = fmt.Errorf("sim: invalid saved Group construction mark")
+		}
+		s.fresh, s.native = true, fresh == 2
 	}
 	if err != nil || r.Len() != 0 {
 		return nil, nil, fmt.Errorf("sim: invalid saved Group payload: %v; remaining %d", err, r.Len())

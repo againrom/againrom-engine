@@ -56,7 +56,7 @@ func TestGuardPutsTheSelectionInOneGroupAndAnchorsItsPosts(t *testing.T) {
 	})
 
 	id := commandGroupOf(t, w, 1, 2, 3)
-	order, base, ok := w.groupState(SelfSlot, id)
+	order, base, ok := regState(w, SelfSlot, id)
 	if !ok || order != orderGuard {
 		t.Fatalf("the command group reads order=%d ok=%v, want Guard (%d)", order, ok, orderGuard)
 	}
@@ -83,7 +83,7 @@ func TestStandGroundIsItsOwnOrderOverTheSameShape(t *testing.T) {
 	})
 
 	id := commandGroupOf(t, w, 1, 2)
-	if order, _, ok := w.groupState(SelfSlot, id); !ok || order != orderStandGround {
+	if order, _, ok := regState(w, SelfSlot, id); !ok || order != orderStandGround {
 		t.Fatalf("the command group reads order=%d ok=%v, want Stand Ground (%d)", order, ok, orderStandGround)
 	}
 }
@@ -142,10 +142,10 @@ func TestMarchIsMoveWithTheOtherOrderByte(t *testing.T) {
 	march, move := build(KindGroupSwarmTo), build(KindGroupMoveTo)
 
 	id := commandGroupOf(t, march, 1, 2)
-	if order, _, ok := march.groupState(SelfSlot, id); !ok || order != orderSwarm2 {
+	if order, _, ok := regState(march, SelfSlot, id); !ok || order != orderSwarm2 {
 		t.Fatalf("the marched group reads order=%d ok=%v, want Swarm 2 (%d)", order, ok, orderSwarm2)
 	}
-	if x, y, ok := march.groupCommandedCell(SelfSlot, id); !ok || x != 20 || y != 20 {
+	if x, y, ok := regCommandedCell(march, SelfSlot, id); !ok || x != 20 || y != 20 {
 		t.Fatalf("the marched group's commanded cell is (%d,%d) ok=%v, want (20,20)", x, y, ok)
 	}
 	for k := range march.entities {
@@ -170,7 +170,7 @@ func TestPatrolBuildsARingFromWhereEachMemberStands(t *testing.T) {
 	})
 
 	id := commandGroupOf(t, w, 1, 2)
-	if order, _, ok := w.groupState(SelfSlot, id); !ok || order != orderNone {
+	if order, _, ok := regState(w, SelfSlot, id); !ok || order != orderNone {
 		t.Fatalf("the patrolling group reads order=%d ok=%v, want none (%d)", order, ok, orderNone)
 	}
 	want := []struct{ hx, hy int32 }{{5, 5}, {8, 12}}
@@ -285,10 +285,10 @@ func TestAGroupOrderCollectsByKindAndTag(t *testing.T) {
 	if one == two {
 		t.Fatalf("both units landed in command group %d — a stance and a move sharing a tag must not merge", one)
 	}
-	if order, _, ok := w.groupState(SelfSlot, one); !ok || order != orderGuard {
+	if order, _, ok := regState(w, SelfSlot, one); !ok || order != orderGuard {
 		t.Fatalf("the stance group reads order=%d ok=%v, want Guard", order, ok)
 	}
-	if order, _, ok := w.groupState(SelfSlot, two); !ok || order != orderMove {
+	if order, _, ok := regState(w, SelfSlot, two); !ok || order != orderMove {
 		t.Fatalf("the move group reads order=%d ok=%v, want Move", order, ok)
 	}
 }

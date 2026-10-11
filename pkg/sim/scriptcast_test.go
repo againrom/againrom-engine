@@ -78,19 +78,23 @@ func timeNode(x, y, spell, duration int32) ScriptInstant {
 		Args: [scriptParams]int32{x, y, spell, duration}}
 }
 
-// scPass runs the script pass and stops on the tick it fired, BEFORE the pending
-// cast has been resolved: the pass is on phase 6 and the resolve is at the head
-// of the next tick, so seven ticks reach one and not the other. It is what every
-// case measuring the pending record itself uses.
+// scPass runs the script pass alone on the tick it is due, BEFORE the pending
+// cast has been resolved. Under the session clock the pass is the entry arm of
+// the phase-6 sub-tick and the world body of that same sub-tick resolves the
+// cast (SESS-TICK-006: the script arm precedes actor dispatch; TRIG-CASTACTOR-044:
+// the temporary caster joins the actor list). So the helper steps to phase 6
+// and runs the pass itself; the next Step's body resolves the record. It is
+// what every case measuring the pending record itself uses.
 func scPass(t *testing.T, w *World) {
 	t.Helper()
-	scriptTicks(w, scriptPassPhase+1, nil)
+	scriptTicks(w, scriptPassPhase, nil)
+	w.scriptPass(nil)
 	if !w.ScriptLatched(0) {
 		t.Fatal("the trigger did not fire; every case here measures what happens when it does")
 	}
-	if w.Tick() != scriptPassPhase+1 {
+	if w.Tick() != scriptPassPhase {
 		t.Fatalf("the world is at tick %d, want %d — this helper must stop before the resolve",
-			w.Tick(), scriptPassPhase+1)
+			w.Tick(), scriptPassPhase)
 	}
 }
 

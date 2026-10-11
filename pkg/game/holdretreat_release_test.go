@@ -60,7 +60,7 @@ func TestReleaseHoldPositionEndsARetreat(t *testing.T) {
 	control := holdControl(t, arena)
 	holdPress(t, arena, runner)
 	pressed := arena.now()
-	if order, known := holdGroupOrder(arena.live.world, arena.get(idle)); !known || order != uint8(sim.OrderStandGround) {
+	if order, _, known := holdGroupOrder(arena.live.world, arena.get(idle)); !known || order != uint8(sim.OrderStandGround) {
 		t.Fatalf("the second warrior stands in a group at order %d (known %v), want Stand Ground", order, known)
 	}
 	after := arena.get(runner)

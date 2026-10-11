@@ -80,7 +80,7 @@ func TestWorldEffects1162StagedAppChangedDocumentAndNative(t *testing.T) {
 					terminal = 1
 				}
 				if tick >= terminal {
-					if len(front.live.world.SavedSpellEffects()) != 0 || front.live.world.SavedWorldEffectDrivers() != nil || len(snapshot.SavedDocument.Document.World.Effects) != 0 || len(snapshot.SavedDocument.WorldEffects.Areas) != 0 {
+					if len(front.live.world.SavedSpellEffects()) != 0 || heldEffectDriverRows(front.live.world) != 0 || len(snapshot.SavedDocument.Document.World.Effects) != 0 || len(snapshot.SavedDocument.WorldEffects.Areas) != 0 {
 						t.Fatal("terminal world/Document roots or exclusive child retained", tick)
 					}
 					return
@@ -229,4 +229,15 @@ func TestWorldEffects1162ProjectionPreservesOpaqueStoreRows(t *testing.T) {
 	if err := validateSavedProjectileDocument(&doc, current, []uint16{7}); err != nil {
 		t.Fatal("current retirement Document", err)
 	}
+}
+
+// heldEffectDriverRows counts the rows of a World's world-effect driver table.
+// A first-game World holds the table from construction, so a retired effect
+// leaves it empty rather than absent.
+func heldEffectDriverRows(w *sim.World) int {
+	d := w.SavedWorldEffectDrivers()
+	if d == nil {
+		return 0
+	}
+	return len(d.Areas) + len(d.Projectiles)
 }

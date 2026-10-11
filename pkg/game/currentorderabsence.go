@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -99,6 +100,64 @@ func matchCurrentOrderSpellAbsence(doc *sav.DocumentData, a *currentActionData) 
 		}
 		if wire != anchor || key != anchor {
 			row.Order.AbsentSpellKey = nil
+		}
+	}
+	return nil
+}
+
+// finalizeCurrentOrderProjection records, per actor order, the bytes the
+// emitted U158 holds where the World's order differs: the writer projects a
+// victim's minted key or a reach from typed current state. The continuation
+// restores the inner order, progress and retry bytes and the absent spell
+// key itself, so those are not listed.
+func finalizeCurrentOrderProjection(doc *sav.DocumentData, a *currentActionData, world *sim.World) error {
+	_, orders, present := world.SavedGroups()
+	if !present {
+		return nil
+	}
+	byEntity := make(map[sim.EntityID]*sim.SavedActorOrder, len(orders))
+	for i := range orders {
+		byEntity[orders[i].Entity] = &orders[i]
+	}
+	restored := func(at int, spellAbsent bool) bool {
+		return at == 8 || at == 9 || at == 0x15 || spellAbsent && at >= 0x30 && at < 0x34
+	}
+	for i := range a.Actions.Actors {
+		row := &a.Actions.Actors[i]
+		if row.Order == nil {
+			continue
+		}
+		row.Order.Projected = nil
+		o := byEntity[row.Entity]
+		if o == nil {
+			continue
+		}
+		var object uint16
+		for _, b := range a.Bindings {
+			if b.ID == row.Entity && !b.Structure && !b.Missing {
+				object = b.Object
+				break
+			}
+		}
+		if object == 0 || int(object) > len(doc.Objects) {
+			continue
+		}
+		wire, err := savedMotionRaw(&doc.Objects[object-1], "U158", 148)
+		if err != nil {
+			continue
+		}
+		spellAbsent := row.Order.AbsentSpellKey != nil
+		for at := 0; at < len(o.Raw); {
+			if wire[at] == o.Raw[at] || restored(at, spellAbsent) {
+				at++
+				continue
+			}
+			end := at
+			for end < len(o.Raw) && wire[end] != o.Raw[end] && !restored(end, spellAbsent) {
+				end++
+			}
+			row.Order.Projected = append(row.Order.Projected, sim.ActionOrderBytes{At: uint8(at), Wire: slices.Clone(wire[at:end]), World: slices.Clone(o.Raw[at:end])})
+			at = end
 		}
 	}
 	return nil

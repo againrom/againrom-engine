@@ -149,8 +149,7 @@ corpus resave	2026-10-02/projectiles-original-en/game0024.sav resave	accepted	-
 corpus resave	2026-10-06/game0000-from-9280-original-resave.sav resave	accepted	-
 corpus resave	2026-10-06/game0001-from-9281-original-resave.sav resave	accepted	-
 corpus resave	2026-10-06/game0007-original-m70-boltcoming.sav resave	accepted	-
-corpus resave	2026-10-06/game0008-original-m70-dying.sav resave	mismatched	-
-corpus resave	2026-10-06/game0008-original-m70-dying.sav resave	mismatched	mismatch world.savedGroups.Orders.Raw
+corpus resave	2026-10-06/game0008-original-m70-dying.sav resave	accepted	-
 corpus resave	2027-09-07/game0005.sav resave	accepted	-
 corpus resave	2027-09-07/game0011.sav resave	accepted	-
 corpus resave	2027-09-07/game0028.sav resave	accepted	-

@@ -15,21 +15,16 @@ func secondGameScript(t *testing.T, checks []ScriptCheck, instants []ScriptInsta
 	return s
 }
 
+// A second-game World holds no session clock: its native tick is the only
+// cadence it runs.
 func TestSecondGameMessageExecutionOrderAndObserverParity(t *testing.T) {
-	for _, sourceClock := range []bool{false, true} {
-		t.Run(map[bool]string{false: "legacy clock", true: "source clock"}[sourceClock], func(t *testing.T) {
-			testSecondGameMessageExecutionOrder(t, sourceClock)
-		})
-	}
-}
-
-func testSecondGameMessageExecutionOrder(t *testing.T, sourceClock bool) {
-	t.Helper()
 	s := secondGameScript(t, nil, []ScriptInstant{
 		{Op: 2, Args: [10]int32{4}}, {Op: 36, Args: [10]int32{1, 2}}, {Op: 2, Args: [10]int32{3}},
 	}, []ScriptTrigger{{Instants: acts(2, 1, 0)}})
 	w := scriptWorld(t, s, nil)
-	w.hasSessionClock = sourceClock
+	if _, clocked := w.SessionClock(); clocked {
+		t.Fatal("a second-game World holds a session clock")
+	}
 	form, err := w.MarshalBinary()
 	if err != nil {
 		t.Fatal(err)
@@ -256,4 +251,32 @@ func TestSecondGameDeclaredArmsExecute(t *testing.T) {
 	if got := w.ScriptRegister(1); got != 3 {
 		t.Fatalf("check24 objective result=%d, want 3", got)
 	}
+}
+
+// asSecondGame turns a first-game test World into a second-game one with an
+// empty program, the way its constructor would have built it.
+func asSecondGame(t *testing.T, w *World) {
+	t.Helper()
+	w.script = secondGameScript(t, nil, nil, nil)
+	w.rom2 = nil
+	w.initializeROM2Script()
+	w.constructSessionClock()
+}
+
+// toLadderSubTick puts a first-game World's session clock on the phase-12
+// sub-tick of an odd full tick. The next Step runs the dead-list ladder there,
+// which moves a finished body's stage and removes it (SESS-TICK-006), without
+// the dead-list walk HERO-DEATH-026 filters to even full ticks.
+func toLadderSubTick(w *World) {
+	w.tick, w.fullTick = 28, 1
+}
+
+// commandBeforePass issues cmds on the sub-tick before a phase-6 pass and steps
+// through that pass. Under the session clock the pass is the entry arm of its
+// sub-tick, ahead of the command drain (SESS-TICK-006), so the pass that first
+// acts on a command is the one of the following sub-tick.
+func commandBeforePass(w *World, cmds []Command) {
+	w.tick, w.fullTick = scriptPassPhase-1, 0
+	Step(w, cmds)
+	Step(w, nil)
 }

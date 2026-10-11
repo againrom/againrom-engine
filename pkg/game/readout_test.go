@@ -219,8 +219,16 @@ func TestDrawnEntityCarriesTheSpeed(t *testing.T) {
 // term, and this says so.
 func TestDrawnEntityCarriesTheGroupRate(t *testing.T) {
 	mw, _ := readoutWorld(t,
-		sim.Entity{ID: 1, X: 2, Y: 3, HP: 10, MaxHP: 10, Speed: 40, GroupSpeed: 12},
-		sim.Entity{ID: 2, X: 4, Y: 5, HP: 10, MaxHP: 10, Speed: 40})
+		sim.Entity{ID: 1, X: 2, Y: 3, HP: 10, MaxHP: 10, Speed: 40, Group: 1},
+		sim.Entity{ID: 2, X: 4, Y: 5, HP: 10, MaxHP: 10, Speed: 40, Group: 2})
+	// A first-game World reads the group rate from its Group registry: entity
+	// 1's Group holds the slow rate, entity 2's none.
+	slow := sim.SavedGroup{ID: 1, Selector: 1, Owner: sim.SavedGroupReference{Class: 1}, Members: []sim.SavedGroupMember{{Entity: 1, Bound: true}}}
+	slow.AI[0x44] = 12
+	free := sim.SavedGroup{ID: 2, Selector: 2, Owner: sim.SavedGroupReference{Class: 1}, Members: []sim.SavedGroupMember{{Entity: 2, Bound: true}}}
+	if err := mw.world.ImportSavedGroups([]sim.SavedGroup{slow, free}, nil); err != nil {
+		t.Fatal(err)
+	}
 
 	draws := mw.entityDraws()
 	if len(draws) != 2 {

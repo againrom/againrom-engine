@@ -43,8 +43,7 @@ func worldRoundTripForTest(t *testing.T, w *World) *World {
 
 func TestPlayerRetreat1089PersistsRecomputesAndLeavesThresholdsAlone(t *testing.T) {
 	w := retreatWorld1089(t)
-	w.tick = scriptPassPhase
-	Step(w, retreat1089(1, 3, 1, 999))
+	commandBeforePass(w, retreat1089(1, 3, 1, 999))
 	e, other := w.entities[0], w.entities[2]
 	if e.ActorState != 0x16 || other.ActorState != 0x16 || e.CommandGroup == 0 || e.CommandGroup != other.CommandGroup {
 		t.Fatalf("Retreat state/group = %d/%d %d/%d", e.ActorState, other.ActorState, e.CommandGroup, other.CommandGroup)
@@ -111,8 +110,10 @@ func TestPlayerRetreat1089FirstMemberScopeAndBoundedRefusals(t *testing.T) {
 func TestPlayerRetreat1089LoadedAttackFinishesOnceBeforeFleeing(t *testing.T) {
 	w := retreatWorld1089(t)
 	w.entities[2].Owner = 0 // Only the commanded actor may damage this victim.
+	w.detachSavedMember(3)
 	w.entities[1].X = 21
 	w.entities[1].PostX = 21
+	w.syncSavedPost(1)
 	w.entities[0].AttackCharge = 4
 	w.orderAttack(0, 2)
 	Step(w, nil)

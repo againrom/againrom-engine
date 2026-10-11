@@ -174,15 +174,20 @@ type aiGroup struct {
 // plane it has to keep level. Here there is no plane yet.
 func (w *World) engagementPass() { w.engagementPassObserved(nil) }
 
-func (w *World) engagementPassObserved(obs *castObs) {
+func (w *World) engagementPassObserved(obs *castObs) { w.engagementPassTraced(obs, nil) }
+
+// engagementPassTraced is the engagement pass with the withdrawal observer the
+// registry dispatch's withdrawal tail reports to.
+func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 	w.engageDrew = w.engageDrew[:0]
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		if w.rom2 == nil {
 			w.refreshSavedGroupActivity()
 		} else {
 			w.refreshROM2SavedGroupActivity(w.rom2ActivityMask())
 		}
-		w.savedGroupPass(obs)
+		w.savedGroupPassTraced(obs, withdrawals)
+		w.joinSavedEngagedGroups()
 		return
 	}
 	for _, g := range w.aiGroups() {

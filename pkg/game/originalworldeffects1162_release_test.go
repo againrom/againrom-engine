@@ -233,11 +233,11 @@ func TestReleaseRetiredWorldEffectsColdLoad(t *testing.T) {
 			retired := false
 			for range 64 {
 				graph := front.live.world.SavedSpellGraph()
-				drivers := front.live.world.SavedWorldEffectDrivers()
+				drivers := heldEffectDriverRows(front.live.world)
 				if tc.graph {
-					retired = graph == nil && drivers == nil && len(front.live.world.SavedSpellEffects()) == 0
+					retired = graph == nil && drivers == 0 && len(front.live.world.SavedSpellEffects()) == 0
 				} else {
-					retired = drivers == nil && len(front.live.world.SavedSpellEffects()) == 0
+					retired = drivers == 0 && len(front.live.world.SavedSpellEffects()) == 0
 				}
 				if retired {
 					break

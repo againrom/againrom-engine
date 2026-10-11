@@ -81,14 +81,17 @@ func TestIdleRegen1146ActionProducersAndReload(t *testing.T) {
 				t.Fatal("fixture is not idle")
 			}
 			var cmd Command
-			wantEnd := uint32(1020) // wind-up8 plus base recovery12
+			// The session sub-tick increments before commands run
+			// (SESS-TICK-006), so a command on entry sub-tick 1000 measures
+			// its deadline from 1001.
+			wantEnd := uint32(1021) // wind-up8 plus base recovery12
 			switch kind {
 			case "move", "turn":
 				cmd = Command{Entity: e.ID, X: 3, Y: 8}
-				wantEnd = 1001
+				wantEnd = 1002
 				if kind == "turn" {
 					e.Facing, e.DesiredFacing, e.RotationSpeed = 0, 0, 16
-					wantEnd = 1008 // half-turn128 at speed16
+					wantEnd = 1009 // half-turn128 at speed16
 				}
 			case "attack":
 				cmd = Command{Kind: KindAttack, Entity: e.ID, X: 2}
@@ -98,7 +101,7 @@ func TestIdleRegen1146ActionProducersAndReload(t *testing.T) {
 				cmd = Command{Kind: KindCastAt, Entity: e.ID, Spell: 26, X: 6, Y: 3}
 			case "scroll":
 				cmd = Command{Kind: KindUseScroll, Entity: e.ID, X: 2}
-				wantEnd = 1011 // next-tick admission, minimum wind-up8 plus recovery2
+				wantEnd = 1012 // next-tick admission, minimum wind-up8 plus recovery2
 			}
 			for n := 0; n < 20 && w.entities[0].ActionClock.End == 0; n++ {
 				var cmds []Command

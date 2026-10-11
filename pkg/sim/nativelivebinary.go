@@ -61,7 +61,7 @@ func (w *World) unmarshalNativeLiveBlocks(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.UnmarshalBinary(base); err != nil {
+	if err := next.unmarshalForm(base); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)+len(next.originalDead)+len(next.currentTerminalActors)) {

@@ -86,7 +86,7 @@ func (w *World) beginStructureUse(i int, id StructureID) bool {
 func (w *World) finishStructureUse(i int) {
 	e := w.entities[i]
 	w.cancelStructureUse(e.ID)
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return
 	}
 	// The click origin was only a provisional movement destination. Retire

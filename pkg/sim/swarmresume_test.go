@@ -65,7 +65,7 @@ func TestScriptedSwarm2GroupWalksOnToItsCellAfterTheFight(t *testing.T) {
 	foe.Group = 1
 	w := engWorld(t, rel, swarmFighter(1, ai, 5, 10), foe)
 	to := cell{x: 30, y: 10}
-	w.cmdGroupCommandedMove(0, orderSwarm2, to.x, to.y)
+	w.cmdGroupOrder(ScriptInstant{HasGroup: true, Args: [scriptParams]int32{int32(orderSwarm2), to.x, to.y}})
 
 	fought := false
 	for n := 0; n < 600; n++ {

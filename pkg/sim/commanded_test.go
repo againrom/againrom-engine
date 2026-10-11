@@ -370,11 +370,16 @@ func TestACommandedWorldRoundTripsAndHashesToTheSameDigest(t *testing.T) {
 	// version-62 value this replaces was 0x9f2db1d0f3f0d645.
 	// 1052 moves the form version; this fixture has no structure records. 1063
 	// moves it again for raw cloud counters; this fixture has no area record.
-	requireStructureLegacyDigest(t, w, 0x3f39c912b3932741)
-	requireOriginalDeadLegacyDigest(t, w, 0x9de05436bbfafd74)
-	requireSpellbookLegacyDigest(t, w, 0xeb5ca5cb437d67ed)
-	const wantDigest uint64 = 0x4cc680b6ab9204f6
-	requireHumanMovementLegacyDigest(t, w, 0xab0f9871795a63bf)
+	// The Group carrier moves every pin below: the command builds its Group in
+	// the registry (AI-449), so the native group section holds two 18-byte
+	// records instead of three. The entities and the route are unchanged.
+	// The values these replace were 0x3f39c912b3932741, 0x9de05436bbfafd74,
+	// 0xeb5ca5cb437d67ed, 0x4cc680b6ab9204f6 and 0xab0f9871795a63bf.
+	requireStructureLegacyDigest(t, w, 0xec15314dbaa208cd)
+	requireOriginalDeadLegacyDigest(t, w, 0x287446c144e5f400)
+	requireSpellbookLegacyDigest(t, w, 0xd1d3b0b4151197b1)
+	const wantDigest uint64 = 0x3f0cda5d2b1a3d42
+	requireHumanMovementLegacyDigest(t, w, 0x90a3dd3cf8e02b63)
 	if got := fnv1a(strippedWorldOfSecondPhysical(mustMarshal(t, w))); got != wantDigest {
 		t.Errorf("a commanded world's digest is %#x, want the literal %#x pinned from this fixture "+
 			"— a later change to the byte form or the digest must fail this loudly rather than "+

@@ -31,6 +31,7 @@ func roamWorld1148(t *testing.T) *World {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wakeGroups(w)
 	return w
 }
 
@@ -39,11 +40,11 @@ func TestGroupRoam1148CommandAndColdContinuation(t *testing.T) {
 	if !groupOrderSupported(17) || groupOrderSupported(18) {
 		t.Fatal("wrong support table")
 	}
-	w.groups[0].roamCounter = 50
+	regGroup(t, w, 9, 19).AI[0x15] = 50
 	w.entities[0].HasTarget, w.entities[0].TargetX, w.entities[0].TargetY = true, 50, 50
 	w.cmdGroupOrder(ScriptInstant{Op: ScriptInstantGroupOrder, HasGroup: true, Group: 19, Args: [10]int32{17, 70, 60}})
-	g := w.groups[0]
-	if g.order != 17 || g.commandedX != 30 || g.commandedY != 30 || g.roamCounter != 50 || w.entities[0].HasTarget {
+	g := regGroup(t, w, 9, 19)
+	if g.AI[0x20] != 17 || g.AI[10] != 30 || g.AI[11] != 30 || g.AI[0x15] != 50 || w.entities[0].HasTarget {
 		t.Fatal("command17 seed/stop/counter", g)
 	}
 	for range 130 {
@@ -59,7 +60,7 @@ func TestGroupRoam1148CommandAndColdContinuation(t *testing.T) {
 			}
 		}
 	}
-	if w.groups[0].roamCounter == 50 || w.groups[0].commandedX == 30 && w.groups[0].commandedY == 30 {
+	if g := regGroup(t, w, 9, 19); g.AI[0x15] == 50 || g.AI[10] == 30 && g.AI[11] == 30 {
 		t.Fatal("Roam never evaluated")
 	}
 }
@@ -134,7 +135,7 @@ func TestGroupRoam1148Historical86Pins(t *testing.T) {
 	for _, tc := range []struct {
 		form []byte
 		hash uint64
-	}{{pinBytes, 0x346cf600ac185ef1}, {rtfBytes, 0x285c8ca36b96e898}} {
+	}{{pinBytesHistorical, 0x346cf600ac185ef1}, {rtfBytesHistorical, 0x285c8ca36b96e898}} {
 		old := strippedGroupRoamPin(tc.form)
 		// pinBytes and rtfBytes both close on entityIDFloorLen=10 (see their own
 		// var declarations); the widen chain up to widenedAttackNoticePin stops
@@ -174,7 +175,7 @@ func TestGroupRoam1148CompiledTriggerAndPersistence(t *testing.T) {
 			t.Fatal("compiled command17 still reports a gap")
 		}
 		w.scriptPass(nil)
-		if w.latches[0] == 0 || !imported && w.groups[0].order != 17 || imported && w.savedGroups.Groups[0].AI[0x20] != 17 {
+		if w.latches[0] == 0 || w.savedGroups.Groups[0].AI[0x20] != 17 {
 			t.Fatal("trigger did not reach command17", imported)
 		}
 		for range 130 {
@@ -214,6 +215,9 @@ func TestGroupRoam1148RefusedSelectorIsAtomic(t *testing.T) {
 
 func TestGroupRoam1148KeepsActorStateButSupersedesPatrol(t *testing.T) {
 	w := roamWorld1148(t)
+	// A dormant Group (no party unit near, AI-ACTIVITY-324): only the actor
+	// layer could move the old patroller, and Roam supersedes it.
+	clear(w.savedGroups.Groups[0].AI[0x48:0x4c])
 	w.cmdGroupOrder(ScriptInstant{HasGroup: true, Group: 19, Args: [10]int32{14, 50, 50}})
 	before := w.entities[0]
 	w.cmdGroupRoam(19)
@@ -308,26 +312,16 @@ func TestGroupRoam1148SameSelectorAcrossNativeOwners(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.groups[0].roamCounter, w.groups[1].roamCounter = 33, 44
+	early, late := regGroup(t, w, 2, 19), regGroup(t, w, 3, 19)
+	early.AI[0x15], late.AI[0x15] = 33, 44
 	w.cmdGroupRoam(19)
-	if w.groups[0].commandedX != 0 || w.groups[0].order == 17 || w.groups[1].commandedX != 50 || w.groups[1].order != 17 {
+	early, late = regGroup(t, w, 2, 19), regGroup(t, w, 3, 19)
+	if early.AI[10] != 0 || early.AI[0x20] == 17 || late.AI[10] != 50 || late.AI[0x20] != 17 {
 		t.Fatal("selector reached the earlier owner or missed the later owner's own first member")
 	}
 	cold := retreatRoundTrip1089(t, w)
-	if !reflect.DeepEqual(w.groups, cold.groups) {
+	if !reflect.DeepEqual(cloneSavedGroups(w.savedGroups).Groups, cloneSavedGroups(cold.savedGroups).Groups) {
 		t.Fatal("owner/group counter binding changed on LOAD")
-	}
-	b := mustMarshal(t, w)
-	for _, edit := range []func([]byte){
-		func(b []byte) { copy(b[len(b)-29:len(b)-21], b[len(b)-38:len(b)-30]) },
-		func(b []byte) { b[len(b)-29] = 1 },
-	} {
-		bad := bytes.Clone(b)
-		edit(bad)
-		before := cold.Hash()
-		if err := cold.UnmarshalBinary(bad); err == nil || before != cold.Hash() {
-			t.Fatal("late duplicate/descending counter partly adopted")
-		}
 	}
 }
 
@@ -341,6 +335,7 @@ func TestGroupRoam1148WithdrawalKeepsEvaluationAcrossSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wakeGroups(w)
 	w.script = mustScript(t,
 		[]ScriptCheck{constCheck(0, 1), constCheck(1, 1)},
 		[]ScriptInstant{{Op: ScriptInstantGroupOrder, HasGroup: true,
@@ -352,7 +347,7 @@ func TestGroupRoam1148WithdrawalKeepsEvaluationAcrossSave(t *testing.T) {
 	if w.latches[0] == 0 || !w.entities[0].HasTarget || w.entities[0].HasAttackTarget {
 		t.Fatal("command17 did not reach automatic withdrawal")
 	}
-	before := w.groups[0].roamCounter
+	before := regGroup(t, w, 2, 19).AI[0x15]
 	cold := retreatRoundTrip1089(t, w)
 	for range 16 {
 		Step(w, nil)
@@ -361,7 +356,7 @@ func TestGroupRoam1148WithdrawalKeepsEvaluationAcrossSave(t *testing.T) {
 			t.Fatal("withdrawal Roam changed after cold reload")
 		}
 	}
-	if w.groups[0].roamCounter == before {
+	if regGroup(t, w, 2, 19).AI[0x15] == before {
 		t.Fatal("withdrawal removed the live Roam group from evaluation")
 	}
 }

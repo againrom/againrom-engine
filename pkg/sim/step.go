@@ -356,6 +356,16 @@ func StepTraced(w *World, cmds []Command) ScriptTrace {
 	return tr
 }
 
+// StepTracedAt is StepTraced with at called on the World right after each
+// instant the script pass runs, before the rest of the tick moves the state
+// the instant wrote. at observes; it must not change the World.
+func StepTracedAt(w *World, cmds []Command, at func(*World)) ScriptTrace {
+	tr := ScriptTrace{at: at}
+	stepWorld(w, cmds, &tr, nil, nil)
+	tr.at = nil
+	return tr
+}
+
 // StepObserved is Step with the tick's APPLIED CASTS reported: the same
 // tick, advanced the same way, returning who cast what at whom.
 //
@@ -427,7 +437,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	}
 	w.initializeActionClocks()
 	w.takePendingOrders()
-	if w.hasSessionClock {
+	if !w.SecondGame() {
 		w.beginSessionTick(tr, obs, withdrawals)
 	}
 	// A world with no layer at the start of a tick has nothing to recompute for
@@ -795,17 +805,17 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// arithmetic above is done on — the pre-increment tick — and the three
 	// script values are read after the phase because that is where they mean
 	// "what the script just did"; nothing later in a step moves any of them.
-	if tr != nil && !w.hasSessionClock {
+	if tr != nil && w.SecondGame() {
 		tr.Tick = w.tick
 	}
-	if !w.hasSessionClock {
+	if w.SecondGame() {
 		switch w.tick % scriptCycle {
 		case scriptPassPhase:
 			if tr != nil {
 				tr.Pass = true
 			}
 			w.scriptPassObserved(tr, obs)
-			w.engagementPassObserved(obs)
+			w.engagementPassTraced(obs, withdrawals)
 			w.actorPass()
 			w.withdrawalPassObserved(withdrawals)
 		case scriptReportPhase:
@@ -1045,6 +1055,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// that the mover settles for the FIRST substitute rather than the
 			// one its later position would have chosen.
 			last := route[len(route)-1]
+			w.settleSavedDestination(e.ID, cell{x: e.TargetX, y: e.TargetY}, last)
 			e.TargetX, e.TargetY = last.x, last.y
 			// Every cell of a fresh route is at most its own index of steps from
 			// the mover, so this sub-goal is at most four cells off and cannot be
@@ -1196,7 +1207,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// this one — runs first. It is called every sub-tick, exactly as
 	// decayPass is below, and phase-gates only itself: there is no dispatch
 	// here for it to join.
-	if !w.hasSessionClock {
+	if w.SecondGame() {
 		w.regenPass()
 	}
 
@@ -1225,7 +1236,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 
 	w.releaseHeldOrders()
 	w.releaseBodyReferences()
-	if w.hasSessionClock {
+	if !w.SecondGame() {
 		w.endSessionTick(tr)
 	} else {
 		w.tick++
@@ -1877,7 +1888,7 @@ const (
 // kept anyway so that the one walk order in this file is the walk order in every
 // other.
 func (w *World) decayPass() {
-	if !w.hasSessionClock {
+	if w.SecondGame() {
 		w.decayHeldDead(w.tick%decayCycle == decayPhase)
 	}
 	var gone []EntityID
@@ -1889,7 +1900,7 @@ func (w *World) decayPass() {
 		}
 		// Already torn-down bodies belong to the pre-body phase-12 loop in
 		// source-clock sessions; their ladder is not an actor-body action.
-		if w.hasSessionClock && e.Decay >= DecayBones {
+		if !w.SecondGame() && e.Decay >= DecayBones {
 			continue
 		}
 		wasTargetable := e.OrdinaryTargetable()
@@ -1911,7 +1922,7 @@ func (w *World) decayPass() {
 		// representation's and not the ladder's, so a health already at it is a
 		// state this leaves alone rather than one it turns back into a living
 		// unit.
-		if !w.hasSessionClock && w.tick%decayCycle == decayPhase && e.HP < 0 && e.HP > minHP {
+		if w.SecondGame() && w.tick%decayCycle == decayPhase && e.HP < 0 && e.HP > minHP {
 			e.setCurrentHealth(e.HP - 1)
 		}
 		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {
@@ -1921,7 +1932,7 @@ func (w *World) decayPass() {
 			e = &w.entities[i]
 			// HERO-DEATH-026: teardown itself calls the dead ladder once,
 			// independently of the ordinary phase-12 dead-list walk.
-			if w.hasSessionClock && w.fullTick&1 == 0 {
+			if !w.SecondGame() && w.fullTick&1 == 0 {
 				decaySessionHealth(e)
 			}
 		}
@@ -2011,7 +2022,7 @@ func (w *World) remove(gone []EntityID) bool {
 		w.invalidateActorMotion(id, "native actor removal supersedes original movement")
 		w.detachTerminalRegistry(id, true)
 		w.detachSavedMember(id)
-		if w.savedGroups != nil {
+		if !w.groupDialectNative() {
 			w.savedGroups.Orders = slices.DeleteFunc(w.savedGroups.Orders, func(o SavedActorOrder) bool { return o.Entity == id })
 			for i := range w.savedGroups.Orders {
 				o := &w.savedGroups.Orders[i]

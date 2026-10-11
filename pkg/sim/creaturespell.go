@@ -105,7 +105,7 @@ func (w *World) maskedOrderRaw(o SavedActorOrder) [144]byte {
 // fillOrderSlotWindows restores the window of each held order whose holder has
 // slots and whose window was written as zero.
 func (w *World) fillOrderSlotWindows() {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return
 	}
 	for k := range w.savedGroups.Orders {

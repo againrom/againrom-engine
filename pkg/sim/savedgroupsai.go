@@ -38,6 +38,27 @@ func savedEscortBindingValid(o SavedActorOrder, entities []Entity, dead []origin
 	return len(matches) == 1 && matches[o.EscortTarget]
 }
 
+// constructMissingOrders gives a member of an older engine's registry the
+// order the stance setter builds (constructedOrder) when its Group's order
+// needs one: an older engine SAV carries no member order, and LOAD keeps the
+// state word its file holds until the Group first decides.
+func (w *World) constructMissingOrders(g *SavedGroup, members []int) {
+	if order := g.AI[0x20]; !w.savedGroups.native || order != 0 && order != 1 && order != 4 && order != 5 && order != 0x11 {
+		return
+	}
+	for _, i := range members {
+		e := w.entities[i]
+		if e.Owner == 0 || w.savedOrder(e.ID) != nil {
+			continue
+		}
+		state := uint32(actorStateGuard)
+		if e.Owner == SelfSlot {
+			state = uint32(actorStateAcquire)
+		}
+		w.savedGroups.Orders = append(w.savedGroups.Orders, constructedOrder(e, state))
+	}
+}
+
 // This is an operation admission check, not a whole-file LOAD refusal. In
 // particular absent order payloads on dead members do not invent live state.
 func (w *World) savedPrimaryIssue(g *SavedGroup) string {
@@ -149,8 +170,15 @@ func (w *World) savedGuard(i int, o *SavedActorOrder) {
 
 // AI-MOVE-023's group arm has its own arrival/acquire latch. The actor-state
 // move and Patrol's issue-move do not run this group-level latch protocol.
-func (w *World) savedGroupMove(i int, o *SavedActorOrder) {
+func (w *World) savedGroupMove(i int, o *SavedActorOrder, move bool) {
 	e := w.entities[i]
+	// An order that was never sent anywhere holds the constructor's zero
+	// destination (SAV-1220); the member acquires where it stands rather than
+	// walking to cell (0, 0) (DIV-2894).
+	if o.Raw[10] == 0 && o.Raw[11] == 0 {
+		w.savedAcquire(i, o)
+		return
+	}
 	if e.X == int32(o.Raw[10]) && e.Y == int32(o.Raw[11]) && e.Transit == 0 && binary.LittleEndian.Uint32(o.Raw[0x50:]) == 0 {
 		o.Raw[0x14] = uint8(e.Reach)
 		binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
@@ -158,6 +186,12 @@ func (w *World) savedGroupMove(i int, o *SavedActorOrder) {
 	}
 	if binary.LittleEndian.Uint32(o.Raw[0x50:]) != 0 {
 		w.savedAcquire(i, o)
+		return
+	}
+	// The Move arm re-issues the move only for a Group holding a rate byte
+	// (AI-MOVE-023); a member of any other Move Group keeps the walk or the
+	// action it holds. The Swarm 2 fallback keeps its re-issue.
+	if g := w.savedGroupFor(e.ID); move && (g == nil || g.AI[0x44] == 0) {
 		return
 	}
 	w.savedMove(i, o)
@@ -230,7 +264,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			}
 		}
 		if order == orderMove || order == orderSwarm2 && len(cands) == 0 {
-			w.savedGroupMove(i, o)
+			w.savedGroupMove(i, o, order == orderMove)
 			return
 		}
 		best, at := scoreSeed, -1
@@ -293,5 +327,25 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	})
 	if roam {
 		w.savedGroupByID(id).AI[0x15]++
+	} else if order == orderSwarm2 && len(cands) == 0 {
+		w.resumeSavedSwarm(w.savedGroupByID(id), members)
+	}
+}
+
+// resumeSavedSwarm is resumeSwarm over a registry Group: the idle members of a
+// commanded Swarm 2 Group that sees nothing walk on toward the Group's
+// commanded cell (AI +0x0a, +0x0b) through the group move writer, and a member
+// within formationSpread of it counts as arrived (DIV-1517).
+func (w *World) resumeSavedSwarm(g *SavedGroup, members []int) {
+	to := cell{x: int32(g.AI[10]), y: int32(g.AI[11])}
+	var idle []int
+	for _, mi := range members {
+		e := w.entities[mi]
+		if e.Alive() && !e.OffMap && arrived(e) && !e.HasAttackTarget && cellOf(&e).chebyshevTo(to) > formationSpread {
+			idle = append(idle, mi)
+		}
+	}
+	if len(idle) > 0 {
+		w.issueSavedGroupDestination(g, idle, to)
 	}
 }

@@ -23,7 +23,7 @@ func (w *World) playerFirstActor(slot uint32) int {
 		e := w.entities[i]
 		return e.Owner == slot && !e.OffMap && e.Alive()
 	}
-	if w.savedGroups != nil && w.savedGroups.PlayersPresent {
+	if !w.groupDialectNative() && w.savedGroups.PlayersPresent {
 		var player uint32
 		for _, p := range w.savedGroups.Players {
 			if p.Slot != slot {

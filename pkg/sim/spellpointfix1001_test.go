@@ -278,6 +278,12 @@ func TestPrismaticSprayPassesOverCorpses(t *testing.T) {
 	bare, dead := build(false), build(true)
 	spRunCast(bare, Command{Kind: KindCast, Entity: 1, X: 2, Y: 14})
 	spRunCast(dead, Command{Kind: KindCast, Entity: 1, X: 2, Y: 14})
+	// The control for the corpses is the same corpses with no cast: the ladder
+	// itself takes health at teardown (HERO-DEATH-026), the spray must not.
+	idle := build(true)
+	for idle.Tick() < dead.Tick() {
+		Step(idle, nil)
+	}
 
 	if spAt(t, bare, 2).HP == 100 {
 		t.Fatal("the spray did not damage its living victim — the comparison below would witness nothing")
@@ -287,8 +293,8 @@ func TestPrismaticSprayPassesOverCorpses(t *testing.T) {
 			"the corpses took rolls and moved the generator", got, want)
 	}
 	for id := EntityID(3); id <= 6; id++ {
-		if got := spAt(t, dead, id).HP; got != -10 {
-			t.Errorf("corpse %d is at %d health, want the untouched -10", id, got)
+		if got, want := spAt(t, dead, id).HP, spAt(t, idle, id).HP; got != want {
+			t.Errorf("corpse %d is at %d health, want the %d it holds with no spray", id, got, want)
 		}
 	}
 	if got, want := spAt(t, dead, 1).SkillXP[1], spAt(t, bare, 1).SkillXP[1]; got != want {

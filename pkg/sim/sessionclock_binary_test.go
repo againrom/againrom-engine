@@ -14,6 +14,15 @@ func widenedSessionClockPin(old []byte) []byte {
 	return widenedSavedGroupPin(out)
 }
 
+// constructedSessionClockPin is widenedSessionClockPin for a first-game World,
+// which is constructed holding the session clock: the presence byte is 1 and
+// FullTick the constructed zero.
+func constructedSessionClockPin(old []byte) []byte {
+	out := widenedSessionClockPin(old)
+	out[len(old)] = 1
+	return out
+}
+
 func strippedSessionClockPin(form []byte) []byte {
 	out := strippedNativeStridePin(form)
 	if out[0] >= 80 {

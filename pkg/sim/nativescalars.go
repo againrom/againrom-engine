@@ -105,10 +105,8 @@ func (w *World) nativeBasisNow(e Entity) NativeActorBasis {
 				o.State = uint32(e.ActorState)
 			}
 			b.Scalars[ScalarU50] = ProjectActorRetreatOrder(e, o).State
-		} else if w.savedGroups == nil {
-			if order, patrol := PatrolOrder(e, [144]byte{}); patrol {
-				b.Scalars[ScalarU50] = order.State
-			}
+		} else if order, patrol := PatrolOrder(e, [144]byte{}); patrol {
+			b.Scalars[ScalarU50] = order.State
 		}
 		if !e.Alive() && LivingOnlyActorState(b.Scalars[ScalarU50]) {
 			b.Scalars[ScalarU50] = uint32(e.ActorState)

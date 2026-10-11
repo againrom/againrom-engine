@@ -225,7 +225,8 @@ func fnv1a(b []byte) uint64 {
 // TestSavedCellPlanes1115Historical83LiteralPinDigests's own predecessor
 // check on strippedCurrentObjectsPin/widenedCurrentObjectsPin. Form87 adds
 // only its four zero counter-footer bytes and version tag.
-const pinDigestV91 uint64 = 0xa6bc7f477735bfd6
+// Repinned: the session clock is constructed with the World.
+const pinDigestV91 uint64 = 0x62256160d0d00ed9
 
 var pinDigest = entityIDFloorDigest1177(pinBytes, pinDigestV91, 10)
 

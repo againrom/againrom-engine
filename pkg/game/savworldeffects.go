@@ -326,7 +326,10 @@ func validateSavedWorldEffectsWorld(state *SnapshotSAVDocument, world *sim.World
 		return err
 	}
 	drivers := world.SavedWorldEffectDrivers()
-	if drivers == nil {
+	// A first-game World holds the driver table from construction; an empty
+	// one with no area or projectile binding answers as a World without
+	// effects.
+	if drivers == nil || len(drivers.Areas)+len(drivers.Projectiles) == 0 && (state == nil || state.WorldEffects == nil || len(state.WorldEffects.Areas)+len(state.WorldEffects.ProjectileIDs) == 0) {
 		if state != nil && state.WorldEffects != nil && len(state.WorldEffects.Areas)+len(state.WorldEffects.ProjectileIDs) > 0 &&
 			(len(world.SavedSpellEffects()) != 0 || len(world.SavedProjectiles().Items) != 0) {
 			return fmt.Errorf("native world-effect drivers lost")

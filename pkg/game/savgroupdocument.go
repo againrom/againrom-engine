@@ -186,7 +186,10 @@ func projectSavedPlayerCounts(doc *sav.DocumentData) {
 }
 
 func savedGroupReferenceKey(doc *sav.DocumentData, binding SnapshotSAVGroupReferenceBinding, ref sim.SavedGroupReference) (uint32, error) {
-	if binding.Key != ref.Key || binding.Class != ref.Class || binding.Owner != ref.Owner {
+	// A constructed Player reference names its slot with no key; the
+	// document mints the Player's key (bindCurrentSavedGroup).
+	minted := ref.Class == 1 && ref.Key == 0 && binding.Key != 0
+	if binding.Key != ref.Key && !minted || binding.Class != ref.Class || binding.Owner != ref.Owner {
 		return 0, fmt.Errorf("current Group reference requires a new exact binding")
 	}
 	if binding.Class == 0 {

@@ -33,6 +33,9 @@ func fireballReachWorld(t *testing.T, dx, dy int32, observer, ground byte) *Worl
 	for i := range w.groups {
 		w.groups[i].order = orderStandGround
 	}
+	for i := range w.savedGroups.Groups {
+		w.savedGroups.Groups[i].AI[0x20] = orderStandGround
+	}
 	return w
 }
 

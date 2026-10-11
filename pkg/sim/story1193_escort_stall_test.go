@@ -47,6 +47,7 @@ func TestAnAttackerBlockedByItsTargetsEscortHoldsTheOrderAndNeverAdvances(t *tes
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 
 	engRun(w, 1)
 	if v, held := engVictim(w, 1); !held || v != 2 {

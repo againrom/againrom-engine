@@ -160,8 +160,9 @@ func TestReleaseMission100ServantLeavesAtTheWin(t *testing.T) {
 			if w.Outcome() != sim.OutcomeWon {
 				t.Fatal("mission 100 did not reach script victory")
 			}
-			order, _, _ := w.FrozenGroupAI(mission100ServantOwner, mission100ServantGroup)
 			servant, _ = w.Entity(units[mission100Servant])
+			// Group 21's order is its registry Group's AI +0x20 (AI-449).
+			order, _, _ := holdGroupOrder(w, servant)
 			moved := order == 4 && servant.ActorState != 0x11 && !servant.HasEscortTarget &&
 				servant.HasTarget && servant.TargetX == 13 && servant.TargetY == 14
 			if moved != (roster == "primary") {

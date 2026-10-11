@@ -35,15 +35,28 @@ func TestCurrentActorOrdinaryValuesRemainAuthoritative(t *testing.T) {
 }
 
 func TestCurrentClockOrdinaryCounterRemainsAuthoritative(t *testing.T) {
-	w := scrollFixtureWorld(t, 2, 1)
-	p := w.CurrentPolicy()
+	native := scrollFixtureWorld(t, 2, 1)
+	asSecondGame(t, native)
+	p := native.CurrentPolicy()
 	p.TickHigh = 7
+	native.tick = 19
+	if err := native.restoreCurrentPolicy(p); err != nil {
+		t.Fatal(err)
+	}
+	if native.tick != uint64(7)<<32|19 || native.hasSessionClock {
+		t.Fatal("second-game low counter was replaced")
+	}
+	// A first-game World keeps its session clock under an older policy that
+	// marked it unknown; the high word has no place in a uint32 sub-tick.
+	w := scrollFixtureWorld(t, 2, 1)
+	p = w.CurrentPolicy()
+	p.TickHigh, p.ClockKnown = 7, false
 	w.tick = 19
 	if err := w.restoreCurrentPolicy(p); err != nil {
 		t.Fatal(err)
 	}
-	if w.tick != uint64(7)<<32|19 {
-		t.Fatal("ordinary low counter was replaced")
+	if w.tick != 19 || !w.hasSessionClock {
+		t.Fatal("first-game session clock was dropped or widened")
 	}
 	w.tick, w.fullTick = 23, 91
 	p.TickHigh, p.ClockKnown = 0, true

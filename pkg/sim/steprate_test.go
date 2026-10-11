@@ -133,6 +133,7 @@ func TestStepRateTakesTheGroupTermOverTheUnitsOwnSpeed(t *testing.T) {
 
 	rateOf := func(e Entity) int32 {
 		w := srWorld(t, srPlane(8), nil, []Entity{e})
+		fixtureGroupRates(w)
 		r, _, _, ok := w.StepRate(e.ID, 2, 1)
 		if !ok {
 			t.Fatal("the query refused a rated live mover and its neighbour")

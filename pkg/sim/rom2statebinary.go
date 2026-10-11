@@ -96,7 +96,7 @@ func (w *World) unmarshalROM2ScriptState(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.UnmarshalBinary(base); err != nil {
+	if err := next.unmarshalForm(base); err != nil {
 		return err
 	}
 	var checks []ScriptCheck

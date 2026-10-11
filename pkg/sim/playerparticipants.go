@@ -37,6 +37,14 @@ func (w *World) RestoreCurrentPlayers(players []SavedGroupPlayer, rows []PlayerP
 	if err := currentPlayersFault(n); err != nil {
 		return err
 	}
+	if !w.groupDialectNative() && w.savedGroups.fresh {
+		// A constructed registry takes its Player containers from the
+		// current Players.
+		next := *w
+		next.currentPlayers = n
+		w.savedGroups, w.currentPlayers = next.constructedGroups(w.savedGroups.native), n
+		return nil
+	}
 	if groups, available := w.SavedGroupPlayers(); available && !slices.Equal(groups, players) {
 		return fmt.Errorf("sim: current Player identities differ from command containers")
 	}

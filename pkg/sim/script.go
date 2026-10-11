@@ -824,10 +824,10 @@ func (w *World) scriptPass(tr *ScriptTrace) { w.scriptPassObserved(tr, nil) }
 func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 	s := w.script
 	// The native byte form represents absent and empty programs identically.
-	// Original sessions own this clock even when no checks are compiled; a
-	// legacy native world without a program keeps its inert register bank.
+	// The session clock runs this slot even when no checks are compiled; a
+	// second-game World without a program keeps its inert register bank.
 	hasProgram := s != nil && (len(s.checks) != 0 || len(s.instants) != 0 || len(s.triggers) != 0)
-	if !w.hasSessionClock && !hasProgram {
+	if w.SecondGame() && !hasProgram {
 		return
 	}
 	// SAV-650: slot93 increments before both evaluators. Authored time
@@ -1047,7 +1047,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 				n++
 			}
 		}
-		if w.savedGroups != nil {
+		if !w.groupDialectNative() {
 			groups, err := w.resolveSavedGroups(c.Group)
 			if err != nil {
 				silence = ScriptSilenceUnsupported
@@ -1056,7 +1056,12 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 			}
 			n = 0
 			for _, g := range groups {
-				n += int32(len(g.Members))
+				for _, m := range g.Members {
+					// A downed member is out of the count, as above.
+					if k := indexOfEntity(w.entities, m.Entity); !m.Bound || k < 0 || !w.entities[k].Downed() {
+						n++
+					}
+				}
 			}
 		}
 		write(n)
@@ -1393,7 +1398,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 // Stand Ground, including the current post and pending-order reset (AI-351).
 func (w *World) handOver(i int, player uint32) {
 	w.handOverReference(i, player)
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		w.handOverSaved(i, player)
 		return
 	}
@@ -1452,7 +1457,7 @@ func (w *World) handOverReference(i int, player uint32) {
 // a saved Group's reference to that Player, else the Reference most of the
 // slot's other actors carry, the lower key on a tie. Zero when none does.
 func (w *World) playerReferenceKey(slot uint32, except EntityID) uint32 {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		for _, g := range w.savedGroups.Groups {
 			for _, ref := range []SavedGroupReference{g.Owner, g.Reference} {
 				if ref.Class == 1 && ref.Owner == slot && ref.Key != 0 {
@@ -1957,7 +1962,7 @@ func (w *World) cmdGroupOrder(in ScriptInstant) {
 		w.cmdGroupRoam(in.Group)
 		return
 	}
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		w.cmdSavedGroupOrder(in)
 		return
 	}
@@ -2002,7 +2007,7 @@ func (w *World) cmdGroupOrder(in ScriptInstant) {
 // The group parameter names a raw id, which groupsNamed resolves to the one
 // record of its single owner.
 func (w *World) stopGroupMembers(group uint32) []int {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		return w.stopSavedGroupMembers(group)
 	}
 	var stopped []int
@@ -2498,7 +2503,7 @@ func (w *World) SetRawSessionMid(v [sessionRawMidLen]byte)   { w.rawSessionMid =
 
 // ScriptPassJustRan reports whether the step just completed ran the script pass.
 func (w *World) ScriptPassJustRan() bool {
-	if w.hasSessionClock {
+	if !w.SecondGame() {
 		return int32(uint32(w.tick)-1)%scriptCycle == scriptPassPhase
 	}
 	return w.tick > 0 && (w.tick-1)%scriptCycle == scriptPassPhase

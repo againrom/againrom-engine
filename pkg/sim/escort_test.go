@@ -26,7 +26,17 @@ func esWorld(t *testing.T, sub int32, span int32, rel Relations, ents ...Entity)
 // esPass runs one actor pass over w without stepping the world, so that a test
 // can read what an arm decided rather than what a tick's move loop then did with
 // it. The move loop is exercised separately, by the tests that call engRun.
-func esPass(w *World) { w.actorPass() }
+//
+// A World with the Group registry runs its carrier dispatch, which reaches each
+// escort through its Group's order-0 arm; the native actor pass serves a World
+// without one.
+func esPass(w *World) {
+	if w.savedGroups != nil {
+		w.savedGroupPass(nil)
+		return
+	}
+	w.actorPass()
+}
 
 // 1087 activates the previously deferred 0xc arm for the same script-produced
 // state as player Defend. No enemy means no standing pick and no old walk.
@@ -80,28 +90,23 @@ func TestAnEscortOfAUnitTheWorldDoesNotHoldIsLeftAlone(t *testing.T) {
 	}
 }
 
-func TestAnEscortRangeOfZeroTestsAgainstTheScanRange(t *testing.T) {
+func TestAnEscortRangeOfZeroComparesTheStoredZero(t *testing.T) {
 	t.Parallel()
 
-	// engSight is 5. A subject 4 cells away is inside the scan range and outside
-	// any smaller stored range, so the fallback is what decides.
+	// The registry dispatch compares the stored range byte, zero included, and
+	// only the stop operand falls back to the scan range (AI-DEFEND-111,
+	// AI-FOLLOW-112): a subject 4 cells away is past a stored 0, so the escort
+	// closes on it.
 	w := esWorld(t, subCommandFollow, 1, engRel(t),
 		laFighter(1, 2, 7, 5, 5), laFighter(2, 2, 7, 9, 5))
 	i := indexOfEntity(w.entities, 2)
 	w.entities[i].EscortRange = 0
+	w.savedOrder(2).Raw[0x70] = 0
 
 	esPass(w)
-	if e := laEnt(t, w, 2); e.HasTarget {
-		t.Errorf("the escort was sent to (%d,%d) with a stored range of 0, want no destination: "+
-			"4 cells is inside its scan range of %d", e.TargetX, e.TargetY, engSight)
-	}
-
-	// The control: the same distance with the stored range in force closes.
-	c := esWorld(t, subCommandFollow, 1, engRel(t),
-		laFighter(1, 2, 7, 5, 5), laFighter(2, 2, 7, 9, 5))
-	esPass(c)
-	if e := laEnt(t, c, 2); !e.HasTarget {
-		t.Error("the control escort holds no destination at range 1 and distance 4, want the subject's cell")
+	if e := laEnt(t, w, 2); !e.HasTarget || e.TargetX != 5 || e.TargetY != 5 {
+		t.Errorf("the escort holds destination %v (%d,%d) with a stored range of 0, want the subject's cell (5,5)",
+			e.HasTarget, e.TargetX, e.TargetY)
 	}
 }
 

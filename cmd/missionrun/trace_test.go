@@ -72,7 +72,7 @@ func TestTheReadoutNamesEachEventInTheMapsOwnTerms(t *testing.T) {
 		"->  1 == 1  = true",                         // the values actually compared
 		"instant 0 LOSE",                             // what the firing ran
 		"check 2 vip(u9) COUNTED A LOSS",             // a loss belonging to no trigger
-		"(-10 hp)",                                   // reached the completed-body boundary
+		"(-11 hp)",                                   // past the completed-body boundary: teardown takes one rung (HERO-DEATH-026)
 		"check 3 groupcount(NO GROUP) WROTE NOTHING", // the silent check
 		"it names no group",                          // and why
 		"counters won=0 lost=2",                      // the firing's LOSE and the check's own

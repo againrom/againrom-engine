@@ -8,7 +8,7 @@ const orderRoam uint8 = 17
 // then writes the Group order and first member's cell. It neither builds
 // Patrol's ring nor copies the new Group cell to a member destination.
 func (w *World) cmdGroupRoam(group uint32) {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		groups, err := w.resolveSavedGroups(group)
 		if err != nil {
 			return

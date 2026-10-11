@@ -66,7 +66,7 @@ func (w *World) unmarshalSavedSpellGraph(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.UnmarshalBinary(base); err != nil {
+	if err := next.unmarshalForm(base); err != nil {
 		return err
 	}
 	next.savedSpellGraph, next.effectOrder = continuation.Graph, continuation.Order

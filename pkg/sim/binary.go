@@ -2298,6 +2298,20 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 // record bytes and failing the second, and truncated and over-long stay the same
 // comparison.
 func (w *World) UnmarshalBinary(data []byte) error {
+	if err := w.unmarshalForm(data); err != nil {
+		return err
+	}
+	// The byte form is decoded as written; a form without a carrier then
+	// takes the carrier every first-game World holds. A form without the
+	// session clock is an older engine's (constructGroups).
+	w.constructCarriers(!w.hasSessionClock)
+	return nil
+}
+
+// unmarshalForm decodes one byte form exactly as written. Each wrapper form
+// decodes its base through it, so a wrapper's canonical re-encoding compares
+// the form it read.
+func (w *World) unmarshalForm(data []byte) error {
 	if len(data) > 0 && data[0] == bodyReferenceFormVersion {
 		return w.unmarshalBodyReferences(data)
 	}

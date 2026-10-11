@@ -248,7 +248,9 @@ func TestReleaseAttackMoveWalksOnAfterTheFight(t *testing.T) {
 			ended, shortBy = true, attackMoveDist(e, dx, dy)
 			t.Logf("step %d: fight over at (%d,%d), %d cells from (%d,%d)", step, e.X, e.Y, shortBy, dx, dy)
 		}
-		arrived = ended && !e.HasTarget && attackMoveDist(e, dx, dy) <= attackMoveArrival
+		// Arrival waits for the last step to finish: the Group's move arm
+		// may name the commanded cell again while the hero is still in transit.
+		arrived = ended && !e.HasTarget && e.Transit == 0 && attackMoveDist(e, dx, dy) <= attackMoveArrival
 	}
 	if !engaged {
 		t.Fatal("the hero never engaged the hostile on its way")

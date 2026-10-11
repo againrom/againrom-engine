@@ -287,7 +287,7 @@ func roodFallAndHeal(t *testing.T, input []byte, fallenHP int32) {
 	cold.live.tick()
 	guard := ownerRoodPartyEntity(t, cold)
 	checkTraining("cold next Guard", guard)
-	order, _, ok := cold.live.world.FrozenGroupAI(guard.Owner, guard.CommandGroup)
+	order, _, ok := holdGroupOrder(cold.live.world, guard)
 	if !ok || order != uint8(sim.OrderGuard) || !guard.Alive() || guard.Defence != roodHealedDefence {
 		t.Fatalf("recovered Rood did not accept Guard after walking: order=%d ok=%t actor=%+v", order, ok, guard)
 	}
@@ -387,9 +387,9 @@ func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
 			f.live.stance(uint32(rood.ID), true)
 			f.live.tick()
 			guarding := ownerRoodPartyEntity(t, f)
-			order, _, ok := f.live.world.FrozenGroupAI(guarding.Owner, guarding.CommandGroup)
+			order, group, ok := holdGroupOrder(f.live.world, guarding)
 			if !ok || order != uint8(sim.OrderGuard) {
-				t.Fatalf("restored Rood did not accept Guard: order=%d group=%d ok=%t", order, guarding.CommandGroup, ok)
+				t.Fatalf("restored Rood did not accept Guard: order=%d group=%d ok=%t", order, group, ok)
 			}
 			written := saveRoodMission(t, f)
 			writtenDoc, err := sav.DecodeDocumentData(written)
@@ -414,7 +414,7 @@ func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
 			cold.live.stance(uint32(resumed.ID), false)
 			cold.live.tick()
 			next := ownerRoodPartyEntity(t, cold)
-			order, _, ok = cold.live.world.FrozenGroupAI(next.Owner, next.CommandGroup)
+			order, _, ok = holdGroupOrder(cold.live.world, next)
 			if !ok || order != uint8(sim.OrderStandGround) || next.HP <= 0 || next.Decay != sim.DecayNone || next.Defence != resumed.Defence {
 				t.Fatalf("Rood's next action or lifecycle failed: order=%d ok=%t actor=%+v", order, ok, next)
 			}

@@ -102,6 +102,7 @@ func creatureWorld(t *testing.T, spells []SpellRule, slots [CreatureSpellSlots]C
 	if err != nil {
 		t.Fatal(err)
 	}
+	wakeGroups(w)
 	return w
 }
 

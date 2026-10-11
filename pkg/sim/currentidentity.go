@@ -175,7 +175,7 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 	for i := range w.removedNativeBases {
 		ref(&w.removedNativeBases[i].ID)
 	}
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		for i := range w.savedGroups.Groups {
 			for j := range w.savedGroups.Groups[i].Members {
 				m := &w.savedGroups.Groups[i].Members[j]

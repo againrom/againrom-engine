@@ -112,7 +112,7 @@ func TestRetainedAreas1162KnownStagePrograms(t *testing.T) {
 					}
 				}
 			}
-			if len(w.SavedSpellEffects()) != 0 || w.SavedWorldEffectDrivers() != nil {
+			if len(w.SavedSpellEffects()) != 0 || heldDriverRows(w) != 0 {
 				t.Fatal("terminal stage did not reap on same tick")
 			}
 		})

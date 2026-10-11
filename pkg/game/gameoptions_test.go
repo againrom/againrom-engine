@@ -52,6 +52,12 @@ func TestGameOptions1186StoredValuesPreserveUnrelatedKeys(t *testing.T) {
 func TestGameOptions1186QueueAndFailureKeepStoppedWorld(t *testing.T) {
 	m := worldFixtureMap()
 	mw := newMapWorld(mapload.FromALM(m), nil, nil, worldFixtureViewer(t, m))
+	// The fixture map names no Player group, so its one Player holds slot 0.
+	// Every first-game World holds its Players in the Group registry, and
+	// the autohealing setting belongs to the Self slot's Player.
+	if err := mw.world.RestoreCurrentPlayers([]sim.SavedGroupPlayer{{ID: 1, Slot: 0}, {ID: 2, Slot: sim.SelfSlot}}, []sim.PlayerParticipant{{PlayerID: 1, Value: 1}, {PlayerID: 2}}, true); err != nil {
+		t.Fatal(err)
+	}
 	f := &FrontEnd{CampaignSession: CampaignSession{live: mw}, PersistenceContext: PersistenceContext{Options: OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}}}
 	before := mw.world.Hash()
 	for i, v := range (ui.GameOptionValues{0, 0, 0, 2, 2}) {
@@ -114,6 +120,12 @@ func TestGameOptions1186QueueAndFailureKeepStoppedWorld(t *testing.T) {
 func TestGameOptions1186TownDoesNotChangeRetainedMission(t *testing.T) {
 	m := worldFixtureMap()
 	mw := newMapWorld(mapload.FromALM(m), nil, nil, worldFixtureViewer(t, m))
+	// The fixture map names no Player group, so its one Player holds slot 0.
+	// Every first-game World holds its Players in the Group registry, and
+	// the autohealing setting belongs to the Self slot's Player.
+	if err := mw.world.RestoreCurrentPlayers([]sim.SavedGroupPlayer{{ID: 1, Slot: 0}, {ID: 2, Slot: sim.SelfSlot}}, []sim.PlayerParticipant{{PlayerID: 1, Value: 1}, {PlayerID: 2}}, true); err != nil {
+		t.Fatal(err)
+	}
 	f := &FrontEnd{CampaignSession: CampaignSession{live: mw}, PersistenceContext: PersistenceContext{Options: OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}}}
 	before := mw.world.Hash()
 	for i, v := range (ui.GameOptionValues{0, 0, 0, 0, 2}) {

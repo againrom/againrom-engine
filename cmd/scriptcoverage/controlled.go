@@ -608,7 +608,11 @@ func executeProbeInstant(base *sim.World, in sim.ScriptInstant) (*sim.World, ins
 	}
 	advanceToScriptPass(w)
 	before := observeInstant(w, in)
-	trace := sim.StepTraced(w, nil)
+	// The postcondition is read where the instant ran: a session-clock tick
+	// runs the script pass before its body resolves casts and ages effects
+	// (SESS-TICK-006).
+	var after instantObservation
+	trace := sim.StepTracedAt(w, nil, func(w *sim.World) { after = observeInstant(w, in) })
 	if !trace.Pass || len(trace.Firings) != 1 || len(trace.Firings[0].Instants) != 1 {
 		return nil, instantObservation{}, instantObservation{}, sim.ScriptInstantRun{}, fmt.Errorf("StepTraced did not return the one probe dispatch")
 	}
@@ -628,7 +632,6 @@ func executeProbeInstant(base *sim.World, in sim.ScriptInstant) (*sim.World, ins
 		return nil, instantObservation{}, instantObservation{}, sim.ScriptInstantRun{},
 			fmt.Errorf("StepTraced invented group subcommand %d for opcode %d", run.SubCommand, in.Op)
 	}
-	after := observeInstant(w, in)
 	return w, before, after, run, nil
 }
 
@@ -702,6 +705,9 @@ type instantObservation struct {
 	Attached   []sim.ActiveEffect
 	Structures []sim.Structure
 	Groups     []sim.ScriptGroupState
+	// Registry maps each registry Group member to its Group's ID and size; it
+	// is nil for a World without a Group registry.
+	Registry map[sim.EntityID][2]uint32
 }
 
 func observeInstant(w *sim.World, in sim.ScriptInstant) instantObservation {
@@ -709,6 +715,16 @@ func observeInstant(w *sim.World, in sim.ScriptInstant) instantObservation {
 		Hash: w.Hash(), Entities: map[sim.EntityID]sim.Entity{}, Carried: map[sim.EntityID]map[uint16]uint32{},
 		Sacks: w.Sacks(), Casts: w.ScriptCasts(), Tails: w.CellTails(), Cell: w.CellEffects(),
 		Attached: w.ActiveEffects(), Structures: w.Structures(), Groups: sim.ObserveScriptGroups(w, in.Group),
+	}
+	if groups, _, held := w.SavedGroups(); held {
+		o.Registry = map[sim.EntityID][2]uint32{}
+		for _, g := range groups {
+			for _, m := range g.Members {
+				if m.Bound {
+					o.Registry[m.Entity] = [2]uint32{g.ID, uint32(len(g.Members))}
+				}
+			}
+		}
 	}
 	o.Won, o.Lost = w.ScriptCounters()
 	o.Register = w.ScriptRegister(in.Args[0])
@@ -970,6 +986,11 @@ func giveUnit(in sim.ScriptInstant, before, after instantObservation, run sim.Sc
 	if !in.HasPlayer || !in.HasUnit || !bok || !aok {
 		return instantUnchanged(run)
 	}
+	if after.Registry != nil {
+		// A registry World builds the unit one Group of its own (AI-449).
+		ga, gb := after.Registry[in.Unit], before.Registry[in.Unit]
+		return a.Owner == in.Player && ga[1] == 1 && (b.Owner == in.Player || ga[0] != gb[0])
+	}
 	return a.Owner == in.Player && a.CommandGroup == 0 && (b.Owner == in.Player || a.Group != b.Group)
 }
 
@@ -1003,13 +1024,21 @@ func giveGroup(in sim.ScriptInstant, before, after instantObservation, run sim.S
 	}
 	found := false
 	owner, _ := resolvedGroupOwner(before, in.Group)
+	// A registry World builds each member one Group of its own (AI-449).
+	fresh := map[uint32]bool{}
 	for id, b := range before.Entities {
 		if b.Group != in.Group || b.Owner != owner {
 			continue
 		}
 		found = true
 		a := after.Entities[id]
-		if a.Owner != in.Player || a.CommandGroup != 0 {
+		if after.Registry != nil {
+			g := after.Registry[id]
+			if a.Owner != in.Player || g[1] != 1 || fresh[g[0]] {
+				return false
+			}
+			fresh[g[0]] = true
+		} else if a.Owner != in.Player || a.CommandGroup != 0 {
 			return false
 		}
 	}

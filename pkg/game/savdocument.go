@@ -341,10 +341,7 @@ func snapshotSavedDocument(ms *Mission, fresh ...bool) (*SnapshotSAVDocument, er
 	clock, present := ms.World.SessionClock()
 	if !present {
 		clock.SubTick = uint32(ms.World.Tick())
-		clock.FullTick = clock.SubTick / 16
-		if clock.SubTick%16 == 15 {
-			clock.FullTick++
-		}
+		clock.FullTick = sim.DerivedFullTick(clock.SubTick)
 	}
 	state.Document.Head.CounterA, state.Document.Head.CounterB = clock.SubTick, clock.FullTick
 	state.Document.World.Session.Raw08 = savedSessionHead(ms.World.RawSessionHead(), state.Document.World.Session.Raw08)

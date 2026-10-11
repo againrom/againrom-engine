@@ -14,6 +14,7 @@ func TestNativeBasisSurvivesActualTerminalCompaction(t *testing.T) {
 		corpse.NativeBasis = NativeActorBasis{BasePresent: true, BaseKnown: 1 << 22, ModifierPresent: true, ModifierKnown: 1 << 40, BodyPresent: true, BodyKnown: true}
 		corpse.NativeBasis.Base[22], corpse.NativeBasis.Modifier[40] = 96, 100
 		w := spWorld(t, 9, nil, corpse, spEnt(8, 1, 1))
+		toLadderSubTick(w)
 		Step(w, nil)
 		if _, exists := w.Entity(id); exists || len(w.CurrentTerminalActors()) != 1 {
 			t.Fatal("fixture did not actually remove its native corpse")
@@ -51,6 +52,7 @@ func TestRemovedNativeBasisRetainedDeadAndConstructionBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.entities[0].HP, w.entities[0].Decay = decayGoneHP-1, decayLast
+	toLadderSubTick(w)
 	Step(w, nil)
 	want := []NativeActorBasisRecord{{ID: 1, Basis: basis}}
 	if _, exists := w.Entity(1); exists || !reflect.DeepEqual(w.RemovedNativeActorBases(), want) || len(w.CurrentTerminalActors()) != 0 {

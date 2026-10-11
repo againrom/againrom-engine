@@ -159,7 +159,9 @@ func (w *World) insertProjectile(record SavedProjectile, d SavedProjectileDriver
 			return slices.Index(order, a.ID) - slices.Index(order, b.ID)
 		})
 	}
-	if w.savedWorldEffects == nil {
+	// A first-game World holds the table from construction; a second-game
+	// World's first projectile creates it.
+	if w.SecondGame() && w.savedWorldEffects == nil {
 		w.savedWorldEffects = &SavedWorldEffects{}
 	}
 	drivers := w.savedWorldEffects.Projectiles

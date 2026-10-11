@@ -122,7 +122,7 @@ func TestWithdrawalTurnsAwayBeforeMovingAndTurnsBackBeforeAttacking(t *testing.T
 	self.Withdraw, self.Facing, self.DesiredFacing, self.RotationSpeed = 10, facingOfDir(2), facingOfDir(2), 32
 	hostile := withdrawalFighter(2, 3, 21, 20, 100)
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
-	w.withdrawalPass()
+	regWithdrawalPass(w, nil)
 
 	// The retreat is west, opposite the hostile and the actor's original east
 	// facing. Movement admission owns the first physical reverse.

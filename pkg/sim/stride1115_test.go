@@ -96,7 +96,7 @@ func TestNativeStride1115IndependentWireAndHistoricalPin(t *testing.T) {
 	for _, tc := range []struct {
 		form []byte
 		hash uint64
-	}{{pinBytes, 0x299d72ec65c850c3}, {rtfBytes, 0xe8f1f827f4cec622}} {
+	}{{pinBytesHistorical, 0x299d72ec65c850c3}, {rtfBytesHistorical, 0xe8f1f827f4cec622}} {
 		if fnv1a(strippedNativeStridePin(tc.form)) != tc.hash {
 			t.Fatal("form81 changed the immutable form80 historical pin")
 		}

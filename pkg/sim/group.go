@@ -198,7 +198,7 @@ func (w *World) commandStance(members []int, order int32) {
 }
 
 func (w *World) commandPatrol(members []int, ordered cell) {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		w.commandSavedGroup(members, 0, ordered)
 		w.setSavedPatrol(members, ordered)
 		return
@@ -312,6 +312,10 @@ func (w *World) issueSavedGroupDestination(g *SavedGroup, members []int, ordered
 			x += formationOffset(e.X - cx)
 			y += formationOffset(e.Y - cy)
 			e.GroupSpeed = term
+			if g := w.savedGroupFor(e.ID); g != nil {
+				// A formation order writes its Group's rate byte (MOVE-GATE-035).
+				g.AI[0x44] = term
+			}
 		}
 		tx, ty := w.bounds.clamp(x, y)
 		// Same rule and same reason as the plain move writer in step.go
@@ -383,7 +387,7 @@ func (w *World) commandGroup(members []int, order uint8, ordered cell) {
 		w.cancelStructureUse(w.entities[i].ID)
 		w.noteActorMotionOrder(w.entities[i].ID)
 	}
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		w.commandSavedGroup(members, order, ordered)
 		return
 	}

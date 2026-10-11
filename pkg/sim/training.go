@@ -62,7 +62,7 @@ func (w *World) nativeSkillBonuses(i int) [skillSlots]int32 {
 // cannot reproduce from its known base. It infers no missing bonus.
 func (w *World) NativeTrainingNeedsProducer(id EntityID) bool {
 	i := indexOfEntity(w.entities, id)
-	if i < 0 || !w.hasSessionClock && w.savedObjects == nil {
+	if i < 0 || w.SecondGame() && w.savedObjects == nil {
 		return false
 	}
 	e := &w.entities[i]

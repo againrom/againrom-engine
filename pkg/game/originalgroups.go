@@ -73,6 +73,11 @@ func applyOriginalGroups(ms *Mission, report *OriginalSaveResume) error {
 		if id, bound := bindings[a.ArchiveIndex]; bound && a.HasOrder {
 			o := sim.SavedActorOrder{Entity: id, State: a.ActorState, Patrol: a.Patrol, RepairStage: a.Stage}
 			copy(o.Raw[:], a.Order[:144])
+			if e, held := ms.World.Entity(id); held && !e.Alive() && sim.LivingOnlyActorState(o.State) {
+				// A body in a living-only state holds no ring: the writer writes none
+				// (DIV-1432) and the reader drops a retained one (DIV-1433).
+				o.Patrol = nil
+			}
 			if a.Stage == 0 && (o.State == 8 || o.State == 0x11) {
 				if target, ok := targets[binary.LittleEndian.Uint32(o.Raw[0x10:])]; ok && target != id {
 					o.EscortTarget, o.EscortBound = target, true
@@ -81,7 +86,7 @@ func applyOriginalGroups(ms *Mission, report *OriginalSaveResume) error {
 			orders = append(orders, o)
 		}
 	}
-	if err := ms.World.ImportSavedGroups(groups, orders); err != nil {
+	if err := ms.World.ImportOriginalGroups(groups, orders); err != nil {
 		return err
 	}
 	ms.World.RebuildLoadedActorTraversal()

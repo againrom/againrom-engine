@@ -30,9 +30,37 @@ func (c SessionClock) healthDue() bool    { return int32(c.FullTick)%4 == 0 }
 func (c SessionClock) liveDecayDue() bool { return c.FullTick&3 == 0 }
 func (c SessionClock) deadDecayDue() bool { return c.FullTick&1 == 0 }
 
-// SessionClock returns the independent original-session pair when present.
-// False identifies the legacy native clock policy; it does not fabricate an
-// absent historical FullTick from Tick(). The returned value owns no state.
+// SecondGame reports a World running the second game's dialect. It is the one
+// dialect accessor for the carriers a first-game World always holds: a
+// second-game World keeps its native uint64 tick and carrier-free paths until
+// second-game evidence describes its carriers.
+func (w *World) SecondGame() bool { return w.rom2 != nil }
+
+// DerivedFullTick is the FullTick a World that started at 0/0 holds at
+// SubTick sub: (sub + 1) >> 4 (SAV-1210, SESS-086).
+func DerivedFullTick(sub uint32) uint32 {
+	return uint32((uint64(sub) + 1) >> 4)
+}
+
+// constructSessionClock gives every first-game World the session clock its
+// original-save importer gives (0/0, SESS-085). A World that
+// does not hold one yet, an older byte form or an older engine SAV, takes the
+// clock DerivedFullTick derives from its sub-tick. A second-game World holds
+// none.
+func (w *World) constructSessionClock() {
+	if w.SecondGame() {
+		w.hasSessionClock, w.fullTick = false, 0
+		return
+	}
+	if w.hasSessionClock {
+		return
+	}
+	w.tick = uint64(uint32(w.tick))
+	w.hasSessionClock, w.fullTick = true, DerivedFullTick(uint32(w.tick))
+}
+
+// SessionClock returns the session pair. False names a second-game World,
+// which keeps the native tick. The returned value owns no state.
 func (w *World) SessionClock() (SessionClock, bool) {
 	if !w.hasSessionClock {
 		return SessionClock{}, false
@@ -54,7 +82,7 @@ func (w *World) beginSessionTick(tr *ScriptTrace, obs *castObs, withdrawals *wit
 			tr.Pass = true
 		}
 		w.scriptPassObserved(tr, obs)
-		w.engagementPassObserved(obs)
+		w.engagementPassTraced(obs, withdrawals)
 		w.actorPass()
 		w.withdrawalPassObserved(withdrawals)
 	}

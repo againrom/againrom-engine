@@ -31,8 +31,10 @@ func TestCurrentPlayersConstructInitialPolicyWithoutCommandGroups(t *testing.T) 
 			t.Fatal("constructed Participant still aliases input Map")
 		}
 		m.Groups[1].Participant--
-		if _, _, present := w.SavedGroups(); present {
-			t.Fatal("Player constructor installed command Group dispatch")
+		// A first-game World holds the mission-start Group registry (AI-449);
+		// the Player constructor adds nothing to it.
+		if _, _, present := w.SavedGroups(); !present || !w.GroupsConstructed() {
+			t.Fatal("Player constructor changed the constructed Group registry")
 		}
 	}
 	w, err := mapload.FromALMWith(m, &mapload.Table{UnitKeys: mapload.ServerUnitKeys, SpellArms: mapload.SecondGameSpellArms, FreshPlayers: mapload.NoFreshPlayers}, mapload.DifficultyNormal)

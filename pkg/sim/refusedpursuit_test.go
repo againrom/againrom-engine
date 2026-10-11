@@ -28,6 +28,7 @@ func refusedPursuitWorldAt(t *testing.T, owner uint32, vx int32) *World {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	return w
 }
 
@@ -144,6 +145,7 @@ func TestAnAttackerHeldUpByATrafficJamKeepsAttackingOnceItClears(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	stalled := false
 	for k := 0; k < 600; k++ {
 		var cmds []Command

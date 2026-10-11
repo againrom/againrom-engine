@@ -50,7 +50,7 @@ func TestAFreshWorldsPostIsEveryEntitysOwnCell(t *testing.T) {
 
 	// And the fixture actually exercises what it claims to: entity 4's group
 	// really is under a non-stance order at the point its post was checked.
-	if order, _, ok := w.groupState(2, 1); !ok || order != orderSwarm {
+	if order, _, ok := regState(w, 2, 1); !ok || order != orderSwarm {
 		t.Fatalf("fixture: (owner 2, group 1)'s order is %d ok=%v, want orderSwarm (%d) — "+
 			"this case does not test a non-stance order", order, ok, orderSwarm)
 	}

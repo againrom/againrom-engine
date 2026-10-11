@@ -47,7 +47,7 @@ func TestScriptStandGroundStandsAMemberOnAWalk(t *testing.T) {
 			if o := w.savedOrder(lcArcherID); o == nil || o.Raw[8] != 0 || o.State != uint32(actorStateGuard) {
 				t.Fatalf("saved order after Stand Ground: %+v", o)
 			}
-		} else if order, _, ok := w.groupState(3, lcGroup); !ok || order != orderStandGround {
+		} else if order, _, ok := regState(w, 3, lcGroup); !ok || order != orderStandGround {
 			t.Fatalf("group order %d known %t, want Stand Ground", order, ok)
 		}
 		at := e.X

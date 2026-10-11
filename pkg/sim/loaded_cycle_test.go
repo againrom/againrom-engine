@@ -254,13 +254,11 @@ func lcGuardWorld(t *testing.T) *World {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
-	for gi := range w.groups {
-		if w.groups[gi].owner == 2 && w.groups[gi].group == 1 {
-			w.groups[gi].order = orderNone
-		}
-	}
+	setGroupOrder(t, w, 2, 1, orderNone)
 	i := indexOfEntity(w.entities, lcArcherID)
 	w.entities[i].PostX, w.entities[i].PostY = 17, 20
+	w.syncSavedPost(i)
+	wakeGroups(w)
 	return w
 }
 

@@ -115,7 +115,11 @@ var rtfBytesV76 = widenedSourceBindingPin(rtfBytesV75)
 
 // rtfEnts' own highest id is 9 too (rtfEnts above); no originalDead and no
 // script, so its floor is exactly that plus one, the same as pinBytes'.
-var rtfBytes = widenedEntityIDFloorPin(widenedSessionClockPin(rtfBytesV76), 10)
+var rtfBytes = widenedEntityIDFloorPin(constructedSessionClockPin(rtfBytesV76), 10)
+
+// rtfBytesHistorical is rtfBytes before the session clock was constructed with
+// every first-game World, on pinBytesHistorical's own terms.
+var rtfBytesHistorical = widenedEntityIDFloorPin(widenedSessionClockPin(rtfBytesV76), 10)
 
 // rtfTailAfterItemWeights is pinTailAfterItemWeights for the routed world: the
 // same four sections, with this world's own script-state and script sections,
@@ -759,7 +763,8 @@ func rtfHead() []byte {
 // this routed world carries no resume state either, so the span stays
 // explicitly absent. Form87 adds only its four zero counter-footer bytes and
 // version tag.
-const rtfDigestV91 uint64 = 0x45063a17eec8d78f
+// Repinned: the session clock is constructed with the World.
+const rtfDigestV91 uint64 = 0x899d57fe952e888c
 
 var rtfDigest = entityIDFloorDigest1177(rtfBytes, rtfDigestV91, 10)
 
@@ -1211,7 +1216,12 @@ func rtfBuild(version byte, tick uint64, seed uint64, b Bounds, mode Mode, grid 
 	}
 	out = append(out, make([]byte, relationLen)...)
 	if version >= 77 {
-		out = append(out, 0, 0, 0, 0, 0)
+		// A World this build constructs holds the session clock.
+		present := byte(0)
+		if version == formatVersion {
+			present = 1
+		}
+		out = append(out, present, 0, 0, 0, 0)
 	}
 	if version >= 78 {
 		out = append(out, 0, 0, 0, 0)

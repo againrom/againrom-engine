@@ -40,7 +40,7 @@ func (w *World) SetAutoHealing(player uint32, value int32) bool {
 	if player >= relationSlots {
 		return false
 	}
-	if w.savedGroups != nil && w.savedGroups.PlayersPresent && w.uniqueSavedPlayerSlot(player) == 0 {
+	if !w.groupDialectNative() && w.savedGroups.PlayersPresent && w.uniqueSavedPlayerSlot(player) == 0 {
 		return false
 	}
 	percent, present := w.AutoHealing(player)

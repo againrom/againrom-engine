@@ -29,7 +29,7 @@ func (w *World) RestoreCurrentPlayerIdentities(ids map[uint32]uint32) error {
 			p.PlayerID = ids[p.PlayerID]
 		}
 	}
-	if next.savedGroups != nil && next.savedGroups.PlayersPresent {
+	if !next.groupDialectNative() && next.savedGroups.PlayersPresent {
 		for i := range next.savedGroups.Players {
 			p := &next.savedGroups.Players[i]
 			p.ID = ids[p.ID]

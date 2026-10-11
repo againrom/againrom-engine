@@ -13,7 +13,7 @@ func TestCurrentContinuationRestoreIsAtomic(t *testing.T) {
 	for _, fault := range []string{"policy", "clock", "population", "action", "identity floor"} {
 		t.Run(fault, func(t *testing.T) {
 			policy := w.CurrentPolicy()
-			policy.TickHigh, policy.ObjectCarrier = 1, false
+			policy.TickHigh, policy.ClockKnown, policy.ObjectCarrier = 1, false, false
 			values := map[EntityID]ActorValues{}
 			for _, e := range w.entities {
 				values[e.ID] = e.Values()
@@ -42,11 +42,13 @@ func TestCurrentContinuationRestoreIsAtomic(t *testing.T) {
 	}
 }
 
-func TestCurrentContinuationKeepsNativeClockAndCarrierAbsence(t *testing.T) {
+// An older engine SAV marks the clock unknown: a first-game World keeps the
+// session clock it was loaded with, and its sub-tick stays a uint32.
+func TestCurrentContinuationConstructsTheClockAndKeepsCarrierAbsence(t *testing.T) {
 	w := scrollFixtureWorld(t, 2, 1)
 	bindOperationsPack(t, w, 0)
 	policy := w.CurrentPolicy()
-	policy.TickHigh, policy.ObjectCarrier = 1, false
+	policy.TickHigh, policy.ClockKnown, policy.ObjectCarrier = 1, false, false
 	values := map[EntityID]ActorValues{}
 	for _, e := range w.entities {
 		values[e.ID] = e.Values()
@@ -57,7 +59,7 @@ func TestCurrentContinuationKeepsNativeClockAndCarrierAbsence(t *testing.T) {
 	if err := w.RestoreCurrentContinuation(&policy, values, actionCopy(t, w.Actions()), nil); err != nil {
 		t.Fatal(err)
 	}
-	if w.tick != 1<<32 || w.hasSessionClock || w.savedObjects != nil || w.carried[0][0].ObjectID != 0 || w.entities[0].SeeInvisible != changed.SeeInvisible {
+	if w.tick != 0 || !w.hasSessionClock || w.savedObjects != nil || w.carried[0][0].ObjectID != 0 || w.entities[0].SeeInvisible != changed.SeeInvisible {
 		t.Fatal("current policy was replaced by imported clock, registry or actor values")
 	}
 	if _, err := w.MarshalBinary(); err != nil {
@@ -111,6 +113,7 @@ func TestCurrentContinuationKeepsStoredFloorBelowLivingSummon(t *testing.T) {
 	}
 	i := indexOfEntity(cold.entities, 3)
 	cold.entities[i].HP, cold.entities[i].Decay = decayGoneHP-1, DecayBones
+	toLadderSubTick(&cold)
 	Step(&cold, nil)
 	if indexOfEntity(cold.entities, 3) >= 0 || cold.entityIDFloor != 4 {
 		t.Fatal("removal did not retain the departed summon's identity")

@@ -4855,6 +4855,15 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		if was, seen := mw.prev[e.ID]; seen {
 			step = cell.Sub(was)
 		}
+		if stone {
+			// A Stone-held unit keeps the crossing it was parked in
+			// (DIV-073); its origin is the World's stride, which a SAV
+			// carries, not the view's memory, which it does not.
+			step = image.Point{}
+			if e.Transit > 0 && e.Stride.Present {
+				step = cell.Sub(image.Pt(int(e.Stride.FromX), int(e.Stride.FromY)))
+			}
+		}
 		moving := step != image.Point{} || mw.world.ActorMotionActive(e.ID)
 		if mw.drawnMoving == nil {
 			mw.drawnMoving = make(map[sim.EntityID]bool)

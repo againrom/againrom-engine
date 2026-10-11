@@ -148,11 +148,9 @@ func (g *SavedSpellGraph) values() []SavedSpellEffect {
 func (w *World) refreshSavedSpellGraph() {
 	g := w.savedSpellGraph
 	w.savedSpellEffects = g.values()
-	if w.savedWorldEffects != nil {
-		for i := range w.savedWorldEffects.Areas {
-			d := &w.savedWorldEffects.Areas[i]
-			d.Root = int32(slices.Index(g.Roots, d.ID))
-		}
+	for i := range w.savedWorldEffects.Areas {
+		d := &w.savedWorldEffects.Areas[i]
+		d.Root = int32(slices.Index(g.Roots, d.ID))
 	}
 }
 
@@ -286,7 +284,7 @@ func (w *World) applyFrozenPoint(ci, ti int, rule SpellRule, payload *SavedEffec
 }
 
 func (w *World) captureSavedGraphAreas() {
-	if w.savedSpellGraph == nil || w.savedWorldEffects == nil {
+	if w.savedSpellGraph == nil {
 		return
 	}
 	for _, d := range w.savedWorldEffects.Areas {

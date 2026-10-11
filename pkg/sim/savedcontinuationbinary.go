@@ -7,7 +7,9 @@ import (
 
 func (w *World) appendSavedWorldEffects(b []byte) []byte {
 	start := len(b)
-	if s := w.savedWorldEffects; s != nil {
+	// An empty table writes nothing: every first-game World holds one, so
+	// its presence carries no state, and the decoder constructs it again.
+	if s := w.savedWorldEffects; s != nil && len(s.Areas)+len(s.Projectiles) != 0 {
 		b = binary.LittleEndian.AppendUint32(b, uint32(len(s.Areas)))
 		for _, a := range s.Areas {
 			b = binary.LittleEndian.AppendUint32(b, a.ID)

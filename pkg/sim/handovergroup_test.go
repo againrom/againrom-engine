@@ -6,11 +6,14 @@ import "testing"
 // The owner half is scriptowner_test.go's; nothing here re-measures it except
 // where a case would otherwise pass by writing nothing at all.
 
-// groupsOf reads the placed group and the command-group overlay back by id.
+// groupsOf reads back by id the selector and the id of the registry Group
+// that holds each actor.
 func groupsOf(w *World) map[EntityID][2]uint32 {
 	out := make(map[EntityID][2]uint32, len(w.entities))
 	for _, e := range w.Entities() {
-		out[e.ID] = [2]uint32{e.Group, e.CommandGroup}
+		if g := w.savedGroupFor(e.ID); g != nil {
+			out[e.ID] = [2]uint32{g.Selector, g.ID}
+		}
 	}
 	return out
 }
@@ -79,13 +82,13 @@ func TestAHandOverClearsTheCommandGroup(t *testing.T) {
 	runPass(t, w)
 
 	got := groupsOf(w)
-	if got[2][1] != 0 {
-		t.Errorf("entity 2 kept command group %d across the hand-over", got[2][1])
+	if got[2][0] == 77 {
+		t.Errorf("entity 2 kept command group %d across the hand-over", got[2][0])
 	}
 	if got[2][0] == 4 {
 		t.Error("entity 2 is still in group 4 after the hand-over")
 	}
-	if got[1] != [2]uint32{4, 0} {
+	if got[1][0] != 4 {
 		t.Errorf("entity 1 is at %v and the arm never named it", got[1])
 	}
 }
@@ -127,9 +130,9 @@ func TestASecondHandOverKeepsTheSlotAndTakesASecondGroup(t *testing.T) {
 		{ID: 1, HP: 5, MaxHP: 5, Group: 4, Owner: 1},
 	})
 	w.handOver(0, 9)
-	first := w.entities[0].Group
+	first := w.savedGroupFor(1).Selector
 	w.handOver(0, 9)
-	second := w.entities[0].Group
+	second := w.savedGroupFor(1).Selector
 
 	if w.entities[0].Owner != 9 {
 		t.Errorf("after two hand-overs the slot is %d, want 9", w.entities[0].Owner)
@@ -156,7 +159,7 @@ func TestAFreshGroupIsAboveEveryGroupTheScriptNames(t *testing.T) {
 	w := scriptWorld(t, s, []Entity{{ID: 1, HP: 5, MaxHP: 5, Group: 4, Owner: 1}})
 	runPass(t, w)
 
-	if g := w.entities[0].Group; g <= 4242 {
+	if g := w.savedGroupFor(1).Selector; g <= 4242 {
 		t.Errorf("the fresh group is %d, which the script's own nodes reach; want above 4242", g)
 	}
 }
@@ -192,9 +195,8 @@ func TestAHandedOverGuardEngagesAnEnemyWithoutAnOrder(t *testing.T) {
 		t.Parallel()
 		w := build(t)
 		w.handOver(indexOfEntity(w.entities, 1), 1)
-		e := entityAt(t, w, 1)
-		if order, _, ok := w.groupState(1, e.Group); !ok || order != orderStandGround {
-			t.Fatalf("the new group (1,%d) holds order %d, record %v; want Stand Ground", e.Group, order, ok)
+		if order, ok := registryOrder(w, indexOfEntity(w.entities, 1)); !ok || order != orderStandGround {
+			t.Fatalf("the new group holds order %d, record %v; want Stand Ground", order, ok)
 		}
 		if !engaged(w) {
 			t.Error("a handed-over guard did not engage an enemy three cells away within 40 ticks")
@@ -205,13 +207,8 @@ func TestAHandedOverGuardEngagesAnEnemyWithoutAnOrder(t *testing.T) {
 		t.Parallel()
 		w := build(t)
 		w.handOver(indexOfEntity(w.entities, 1), 1)
-		e := entityAt(t, w, 1)
 		w.entities[indexOfEntity(w.entities, 1)].ActorState = actorStateGuard
-		for i := len(w.groups) - 1; i >= 0; i-- {
-			if w.groups[i].owner == 1 && w.groups[i].group == e.Group {
-				w.groups = append(w.groups[:i], w.groups[i+1:]...)
-			}
-		}
+		w.detachSavedMember(1)
 		if engaged(w) {
 			t.Error("the retained Guard engaged with no group record")
 		}

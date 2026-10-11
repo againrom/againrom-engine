@@ -59,6 +59,13 @@ type savedGroupState struct {
 	Formations        []SavedPlayerFormation
 	FormationsPresent bool
 	HighWater         uint32
+	// fresh marks a registry constructGroups built that no import has
+	// replaced. An import replaces it whole; the byte form omits it while it
+	// equals the constructed one.
+	fresh bool
+	// native marks a constructed registry built from an older engine's
+	// native Group records; the byte form always writes it.
+	native bool
 }
 
 func (o *SavedActorOrder) authorNative() {
@@ -103,9 +110,22 @@ func (w *World) SavedGroups() ([]SavedGroup, []SavedActorOrder, bool) {
 	return s.Groups, s.Orders, true
 }
 
+// ImportOriginalGroups installs the Groups an original LOAD reads. They
+// replace the World's registry whole: nothing of the constructed or stepped
+// registry the mission World held before the LOAD carries over.
+func (w *World) ImportOriginalGroups(groups []SavedGroup, orders []SavedActorOrder) error {
+	prior := w.savedGroups
+	w.savedGroups = nil
+	if err := w.ImportSavedGroups(groups, orders); err != nil {
+		w.savedGroups = prior
+		return err
+	}
+	return nil
+}
+
 func (w *World) ImportSavedGroups(groups []SavedGroup, orders []SavedActorOrder) error {
 	s := cloneSavedGroups(&savedGroupState{Groups: groups, Orders: orders})
-	if prior := w.savedGroups; prior != nil {
+	if prior := w.savedGroups; prior != nil && !prior.fresh {
 		s.Players, s.PlayersPresent, s.HighWater = slices.Clone(prior.Players), prior.PlayersPresent, prior.HighWater
 		s.Formations, s.FormationsPresent = slices.Clone(prior.Formations), prior.FormationsPresent
 		old := make(map[uint32]bool, len(prior.Groups))
@@ -217,7 +237,7 @@ func (w *World) savedGroupByID(id uint32) *SavedGroup {
 }
 
 func (w *World) groupRateEntity(e Entity) Entity {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		e.GroupSpeed = 0
 		if g := w.savedGroupFor(e.ID); g != nil {
 			e.GroupSpeed = g.AI[0x44]
@@ -227,7 +247,7 @@ func (w *World) groupRateEntity(e Entity) Entity {
 }
 
 func (w *World) savedOrder(id EntityID) *SavedActorOrder {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		for i := range w.savedGroups.Orders {
 			if w.savedGroups.Orders[i].Entity == id {
 				return &w.savedGroups.Orders[i]
@@ -241,7 +261,7 @@ func (w *World) savedOrder(id EntityID) *SavedActorOrder {
 // values and membership remain saveable; a new supported player order can
 // replace an unsupported continuation without discarding the source Group.
 func (w *World) SavedGroupIssues() []string {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return nil
 	}
 	var out []string
@@ -293,9 +313,6 @@ func (w *World) SavedGroupIssues() []string {
 			if _, err := w.resolveSavedGroups(in.Group); err != nil {
 				out = append(out, "command: "+err.Error())
 			}
-			if in.Op == ScriptInstantGroupOrder && !savedGroupCommandSupported(in.Args[0]) {
-				out = append(out, fmt.Sprintf("Group command %d: saved continuation unsupported", in.Args[0]))
-			}
 		}
 	}
 	var unique []string
@@ -309,7 +326,7 @@ func (w *World) SavedGroupIssues() []string {
 
 func (w *World) detachSavedMember(id EntityID) {
 	w.detachTerminalRegistry(id, false)
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return
 	}
 	for i := range w.savedGroups.Groups {
@@ -485,8 +502,10 @@ func (w *World) savedActorDispatch(i int) {
 	}
 }
 
-func (w *World) savedGroupPass(obs *castObs) {
-	if w.savedGroups == nil {
+func (w *World) savedGroupPass(obs *castObs) { w.savedGroupPassTraced(obs, nil) }
+
+func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
+	if w.groupDialectNative() {
 		return
 	}
 	// This build visits the registry in retained LOAD/append order. Original
@@ -506,6 +525,7 @@ func (w *World) savedGroupPass(obs *castObs) {
 		if !complete {
 			continue
 		}
+		w.constructMissingOrders(g, members)
 		if w.savedPrimaryIssue(g) != "" {
 			// Refuse the whole primary operation before changing any member.
 			// The independently supported common tail still runs below.
@@ -527,16 +547,21 @@ func (w *World) savedGroupPass(obs *castObs) {
 			w.savedDecision(g, order, obs)
 		}
 		// Every byte reaches a fresh current-head withdrawal stage.
-		g = w.savedGroupByID(id)
-		w.walkSavedMembers(g, func(i int) {
-			if w.nativePatrol(i) {
-				return
-			}
-			before := w.entities[i]
-			w.withdrawalActor(i, nil)
-			if after := w.entities[i]; after.HasTarget && (after.TargetX != before.TargetX || after.TargetY != before.TargetY || !before.HasTarget) {
-				w.syncSavedDestination(i)
-			}
-		})
+		w.savedWithdrawalTail(w.savedGroupByID(id), withdrawals)
 	}
+}
+
+// savedWithdrawalTail is the dispatch's common withdrawal stage over one
+// Group's current members.
+func (w *World) savedWithdrawalTail(g *SavedGroup, withdrawals *withdrawalObs) {
+	w.walkSavedMembers(g, func(i int) {
+		if w.nativePatrol(i) {
+			return
+		}
+		before := w.entities[i]
+		w.withdrawalActor(i, withdrawals)
+		if after := w.entities[i]; after.HasTarget && (after.TargetX != before.TargetX || after.TargetY != before.TargetY || !before.HasTarget) {
+			w.syncSavedDestination(i)
+		}
+	})
 }

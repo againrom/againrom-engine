@@ -116,10 +116,7 @@ func (w *World) RestoreCurrentSpellDeliveries(rows []CurrentDeliveryRestore) err
 		payload := child.Value.PE48
 		if d.AtCell {
 			payload = child.Value.AE44
-			at := -1
-			if n.savedWorldEffects != nil {
-				at = slices.IndexFunc(n.savedWorldEffects.Areas, func(v SavedAreaDriver) bool { return v.ID == childNodeID(n.savedSpellGraph, row.Node) })
-			}
+			at := slices.IndexFunc(n.savedWorldEffects.Areas, func(v SavedAreaDriver) bool { return v.ID == childNodeID(n.savedSpellGraph, row.Node) })
 			if at < 0 {
 				return fmt.Errorf("sim: current area delivery lost its driver")
 			}
@@ -216,11 +213,9 @@ func (w *World) detachCurrentSpellNodes(removed map[uint32]bool, replacements ma
 		}
 	}
 	w.savedSpellGraph.Nodes, w.savedSpellGraph.Roots = nodes, roots
-	if w.savedWorldEffects != nil {
-		w.savedWorldEffects.Areas = slices.DeleteFunc(w.savedWorldEffects.Areas, func(d SavedAreaDriver) bool { return removed[d.ID] })
-		for i := range w.savedWorldEffects.Areas {
-			w.savedWorldEffects.Areas[i].ID = indices[w.savedWorldEffects.Areas[i].ID]
-		}
+	w.savedWorldEffects.Areas = slices.DeleteFunc(w.savedWorldEffects.Areas, func(d SavedAreaDriver) bool { return removed[d.ID] })
+	for i := range w.savedWorldEffects.Areas {
+		w.savedWorldEffects.Areas[i].ID = indices[w.savedWorldEffects.Areas[i].ID]
 	}
 	w.refreshSavedSpellGraph()
 	w.effectOrder = nil

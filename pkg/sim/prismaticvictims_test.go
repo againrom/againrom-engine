@@ -216,7 +216,7 @@ func TestPrismaticSpraySecondariesComeFromTheWholeGroupsSight(t *testing.T) {
 		t.Errorf("without the member, victims %v, want %v", got, want)
 	}
 	commanded := build(true)
-	commanded.entities[0].CommandGroup = 77
+	commanded.commandGroup([]int{0}, orderNone, cell{})
 	if got, want := ids(commanded, 1), []EntityID{2, 3}; !reflect.DeepEqual(got, want) {
 		t.Errorf("a caster in a command group of its own: victims %v, want %v", got, want)
 	}

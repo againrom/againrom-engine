@@ -44,8 +44,7 @@ func blowsOn(w *World, victim int) int32 { return (sturdyHP - w.entities[victim]
 func TestExplicitRetreatWhoseFleeCellHasNoRouteKeepsItsPickAcrossCycles(t *testing.T) {
 	const span = 320
 	w := pocketWorld(t, retreatFighter(1, 20, 20), sturdy(retreatIntruder(2, 21, 20), sturdyHP), retreatRelations(t))
-	w.tick = scriptPassPhase
-	Step(w, []Command{GroupRetreat(1, SelfSlot, 91)})
+	commandBeforePass(w, []Command{GroupRetreat(1, SelfSlot, 91)})
 	idle := stepIdle(t, w, span, 20, 20)
 	if idle != 0 {
 		t.Errorf("unit held no order for %d consecutive ticks beside its hostile, want none", idle)
@@ -132,8 +131,7 @@ func TestExplicitRetreatOfAHumanMageOfReachTwoTakesThePick(t *testing.T) {
 	mage := mageOf(retreatFighter(1, 20, 20))
 	mage.Reach = 2
 	w := pocketWorld(t, mage, sturdy(retreatIntruder(2, 21, 20), sturdyHP), retreatRelations(t))
-	w.tick = scriptPassPhase
-	Step(w, []Command{GroupRetreat(1, SelfSlot, 91)})
+	commandBeforePass(w, []Command{GroupRetreat(1, SelfSlot, 91)})
 	if e := w.entities[0]; !e.HasAttackTarget || e.AttackTarget != 2 {
 		t.Fatalf("mage of reach two holds attack %t on %d, want its victim 2", e.HasAttackTarget, e.AttackTarget)
 	}

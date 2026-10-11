@@ -36,7 +36,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 	n.savedMotion = cloneActorMotions(w.savedMotion)
 	n.savedCellRecords = slices.Clone(w.savedCellRecords)
 	n.effects = slices.Clone(w.effects)
-	if n.savedSpellGraph == nil || n.savedWorldEffects == nil {
+	if n.savedSpellGraph == nil {
 		return fmt.Errorf("sim: native areas lack decoded nodes")
 	}
 	order := n.CurrentWorldEffectOrder()

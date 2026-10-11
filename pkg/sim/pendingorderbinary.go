@@ -62,7 +62,7 @@ func (w *World) unmarshalPendingOrders(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.UnmarshalBinary(base); err != nil {
+	if err := next.unmarshalForm(base); err != nil {
 		return err
 	}
 	var prior EntityID

@@ -205,8 +205,8 @@ func TestCurrentPlayerRegistryIndependentScopeAndTransport(t *testing.T) {
 		t.Fatal("exact current IDs or valid zero Slot were lost", got)
 	}
 	got[1].Slot = 7
-	if _, _, present := w.SavedGroups(); present {
-		t.Fatal("current Player registry installed command/Group state")
+	if !w.groupsAsConstructed() {
+		t.Fatal("current Player registry installed command/Group state beyond the constructed registry")
 	}
 	form, err := w.MarshalBinary()
 	if err != nil || form[0] != currentPlayerFormVersion || CheckSaveForm(form) != nil {

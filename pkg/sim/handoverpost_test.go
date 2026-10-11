@@ -44,13 +44,9 @@ func TestHandOverStandsAtTheCurrentPost(t *testing.T) {
 				if e.Owner != 3 || e.ActorState != actorStateAcquire || e.PostX != 20 || e.PostY != 20 || e.HasTarget || e.HasEscortTarget || e.PatrolLeg != 0 {
 					t.Fatalf("handover did not stand at the current post: %+v", e)
 				}
-				if saved {
-					g, o := w.savedGroupFor(10), w.savedOrder(10)
-					if g.AI[0x20] != orderStandGround || o.State != 0xc || o.Raw[8] != 0 || binary.LittleEndian.Uint16(o.Raw[:]) != 0x1414 || len(o.Patrol) != 0 {
-						t.Fatalf("SAV order did not stand: group=%+v order=%+v", g, o)
-					}
-				} else if order, _, ok := w.groupState(3, e.Group); !ok || order != orderStandGround {
-					t.Fatal("new Group did not receive Stand Ground")
+				g, o := w.savedGroupFor(10), w.savedOrder(10)
+				if g == nil || o == nil || g.Owner.Owner != 3 || g.AI[0x20] != orderStandGround || o.State != 0xc || o.Raw[8] != 0 || binary.LittleEndian.Uint16(o.Raw[:]) != 0x1414 || len(o.Patrol) != 0 {
+					t.Fatalf("registry order did not stand: group=%+v order=%+v", g, o)
 				}
 				form, err := w.MarshalBinary()
 				if err != nil {
@@ -99,17 +95,9 @@ func TestHandOverStandsAtTheCurrentPost(t *testing.T) {
 			w.handOver(0, 3)
 			e := &w.entities[0]
 			e.ActorState, e.PostX, e.PostY = actorStateGuard, 4, 4
-			if saved {
-				w.savedGroupFor(10).AI[0x20] = orderNone
-				o := w.savedOrder(10)
-				o.State, o.Raw[0], o.Raw[1] = 0xb, 4, 4
-			} else {
-				for i := range w.groups {
-					if w.groups[i].owner == 3 && w.groups[i].group == e.Group {
-						w.groups[i].order = orderNone
-					}
-				}
-			}
+			w.savedGroupFor(10).AI[0x20] = orderNone
+			o := w.savedOrder(10)
+			o.State, o.Raw[0], o.Raw[1] = 0xb, 4, 4
 			for range 512 {
 				Step(w, nil)
 			}

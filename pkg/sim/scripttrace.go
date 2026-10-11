@@ -230,6 +230,8 @@ type ScriptTrace struct {
 	Won      uint32
 	Lost     uint32
 	Outcome  Outcome
+	// at sees the World after each instant the pass runs (StepTracedAt).
+	at func(*World)
 }
 
 // Empty reports whether this trace observed nothing at all: no phase ran on the
@@ -364,6 +366,9 @@ func (tr *ScriptTrace) instantDone(w *World, firing int, slot int32, instant int
 		r.Outcome = ScriptInstantStateChanged
 	}
 	tr.Firings[firing].Instants = append(tr.Firings[firing].Instants, r)
+	if tr.at != nil {
+		tr.at(w)
+	}
 }
 
 // RegisterOwner is the check that writes register r, and whether any check owns

@@ -339,7 +339,8 @@ func pxGuard(t *testing.T, x, y int32, others ...Entity) *World {
 			w.groups[gi].order = orderNone
 		}
 	}
-	return w
+	// The per-actor guard arm these tests drive is the native one.
+	return nativeGroupArm(w)
 }
 
 // TestTheGuardCaseRunsOnlyForAGroupUnderOrderZero is the gate `AI-ORDER-010`

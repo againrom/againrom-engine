@@ -77,11 +77,11 @@ func TestACommandedGuardIsNotWalkedHomeButAnUncommandedOneIs(t *testing.T) {
 
 // -------------------------------------------------------------------- AC-3
 
-// TestACommandedActorsPlacedGroupIsUnchangedAndItsAliveCountHolds is AC-3: a
-// move order does not move Group, and the mission script's alive-count check
-// — which reads Group and not effectiveGroup, script.go's own corrected note
-// — counts the commanded actor exactly as it did before the order.
-func TestACommandedActorsPlacedGroupIsUnchangedAndItsAliveCountHolds(t *testing.T) {
+// TestACommandedActorLeavesItsPlacedGroup: a
+// move order moves the actor into a new Group, which detaches it from its old
+// one (AI-449), so the script's count over the placed Group falls with it. The
+// actor's placed group word stays as the map wrote it.
+func TestACommandedActorLeavesItsPlacedGroup(t *testing.T) {
 	t.Parallel()
 
 	const owner, placedGroup, reg = uint32(9), uint32(4), int32(0)
@@ -89,38 +89,33 @@ func TestACommandedActorsPlacedGroupIsUnchangedAndItsAliveCountHolds(t *testing.
 	a.Group = placedGroup
 	w := engWorld(t, Relations{}, a)
 
-	before := w.entities[indexOfEntity(w.entities, 1)].Group
 	w.runCheck(ScriptCheck{Op: ScriptCheckGroupCount, Group: placedGroup, HasGroup: true, Register: reg}, 0, nil)
-	countBefore := w.registerAt(reg)
-	if countBefore != 1 {
-		t.Fatalf("fixture: the alive count over the placed group is %d before any order, want 1", countBefore)
+	if n := w.registerAt(reg); n != 1 {
+		t.Fatalf("fixture: the count over the placed group is %d before any order, want 1", n)
 	}
 
 	Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: 5, Y: 20}})
 
 	after := w.entities[indexOfEntity(w.entities, 1)]
-	if after.Group != before {
-		t.Errorf("the placed group moved from %d to %d after a move order — FR-3 says nothing writes it", before, after.Group)
+	if after.Group != placedGroup {
+		t.Errorf("the placed group word moved from %d to %d after a move order", placedGroup, after.Group)
 	}
-	if after.CommandGroup == 0 {
-		t.Fatalf("fixture: the order built no command group at all")
+	g := w.savedGroupFor(1)
+	if g == nil || g.Selector == placedGroup {
+		t.Fatalf("the order left the actor outside a new Group: %+v", g)
 	}
-
 	w.runCheck(ScriptCheck{Op: ScriptCheckGroupCount, Group: placedGroup, HasGroup: true, Register: reg}, 0, nil)
-	countAfter := w.registerAt(reg)
-	if countAfter != countBefore {
-		t.Errorf("the alive count over the placed group moved from %d to %d after a command — FR-3 "+
-			"says a player's click may not reach it", countBefore, countAfter)
+	if n := w.registerAt(reg); n != 0 {
+		t.Errorf("the count over the placed group is %d after the actor left it, want 0", n)
 	}
 }
 
 // -------------------------------------------------------------------- AC-4
 
-// TestAGroupMoveBuildsOneCommandGroupWithARecordPerOwner is AC-4: two actors
-// of two DIFFERENT owners, commanded by one group move, end in the SAME
-// command group id, both records at the move order, one record per distinct
-// owner.
-func TestAGroupMoveBuildsOneCommandGroupWithARecordPerOwner(t *testing.T) {
+// TestAGroupMoveBuildsOneCommandGroup: two
+// actors commanded by one group move end in the same new Group, at the move
+// order and the ordered cell.
+func TestAGroupMoveBuildsOneCommandGroup(t *testing.T) {
 	t.Parallel()
 
 	a := engFighter(1, 9, 5, 5)
@@ -132,67 +127,42 @@ func TestAGroupMoveBuildsOneCommandGroupWithARecordPerOwner(t *testing.T) {
 		{Kind: KindGroupMoveTo, Entity: 2, X: 20, Y: 20, Group: 7},
 	})
 
-	e1 := w.entities[indexOfEntity(w.entities, 1)]
-	e2 := w.entities[indexOfEntity(w.entities, 2)]
-	if e1.CommandGroup == 0 || e2.CommandGroup == 0 {
-		t.Fatalf("fixture: the group move built no command group at all: e1=%d e2=%d", e1.CommandGroup, e2.CommandGroup)
+	g1, g2 := w.savedGroupFor(1), w.savedGroupFor(2)
+	if g1 == nil || g1 != g2 {
+		t.Fatalf("two actors commanded by one group move stand in different Groups: %+v vs %+v", g1, g2)
 	}
-	if e1.CommandGroup != e2.CommandGroup {
-		t.Errorf("two actors commanded by one group move hold different command groups: %d vs %d", e1.CommandGroup, e2.CommandGroup)
+	if !g1.Authored || g1.AI[0x20] != orderMove {
+		t.Errorf("the command Group holds order %d (authored %v), want orderMove (%d)", g1.AI[0x20], g1.Authored, orderMove)
 	}
-
-	var records []groupAI
-	for _, g := range w.groups {
-		if g.group == e1.CommandGroup {
-			records = append(records, g)
-		}
-	}
-	if len(records) != 2 {
-		t.Fatalf("the command group has %d record(s), want one per distinct owner (2): %+v", len(records), records)
-	}
-	seenOwners := map[uint32]bool{}
-	for _, rec := range records {
-		if rec.order != orderMove {
-			t.Errorf("the record for owner %d holds order %d, want orderMove (%d)", rec.owner, rec.order, orderMove)
-		}
-		if rec.commandedX != 20 || rec.commandedY != 20 {
-			t.Errorf("the record for owner %d holds cell (%d,%d), want the ordered (20,20)", rec.owner, rec.commandedX, rec.commandedY)
-		}
-		seenOwners[rec.owner] = true
-	}
-	if !seenOwners[9] || !seenOwners[11] {
-		t.Errorf("the two records are keyed by owners %v, want 9 and 11", seenOwners)
+	if g1.AI[10] != 20 || g1.AI[11] != 20 {
+		t.Errorf("the command Group holds cell (%d,%d), want the ordered (20,20)", g1.AI[10], g1.AI[11])
 	}
 }
 
 // -------------------------------------------------------------------- AC-5
 
-func TestACommandedTwiceActorKeepsTheSameIDAndNothingAccumulates(t *testing.T) {
+// TestARepeatedlyCommandedActorAccumulatesNoGroups: each order builds the
+// actor a new Group in its Player, and the command wrapper first removes that
+// Player's first empty Group, so repeated orders to one lone actor leave the
+// Group count where the first order put it.
+func TestARepeatedlyCommandedActorAccumulatesNoGroups(t *testing.T) {
 	t.Parallel()
 
 	w := engWorld(t, Relations{}, engFighter(1, 9, 5, 5))
-	before := len(w.groups)
+	if err := w.RestoreCurrentPlayers([]SavedGroupPlayer{{ID: 101, Slot: 9}}, nil, false); err != nil {
+		t.Fatal(err)
+	}
 
 	Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: 8, Y: 5}})
-	firstID := w.entities[indexOfEntity(w.entities, 1)].CommandGroup
-	if firstID == 0 {
+	if w.entities[indexOfEntity(w.entities, 1)].CommandGroup == 0 {
 		t.Fatalf("fixture: the first order built no command group at all")
 	}
-	afterFirst := len(w.groups)
-	if afterFirst != before+1 {
-		t.Fatalf("the first order added %d record(s) (%d -> %d), want exactly one", afterFirst-before, before, afterFirst)
+	afterFirst := len(w.savedGroups.Groups)
+	for _, x := range []int32{9, 10, 11} {
+		Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: x, Y: 6}})
 	}
-
-	Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: 9, Y: 6}})
-	secondID := w.entities[indexOfEntity(w.entities, 1)].CommandGroup
-	afterSecond := len(w.groups)
-
-	if secondID != firstID {
-		t.Errorf("a second order gave the actor id %d, want the same id %d released by the first (DD-4)", secondID, firstID)
-	}
-	if afterSecond != afterFirst {
-		t.Errorf("the group record count moved from %d to %d on a second order to the same lone actor "+
-			"— DD-4 says nothing should accumulate", afterFirst, afterSecond)
+	if n := len(w.savedGroups.Groups); n != afterFirst {
+		t.Errorf("the Group count moved from %d to %d over three more orders to the same lone actor", afterFirst, n)
 	}
 }
 

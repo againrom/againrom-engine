@@ -14,8 +14,10 @@ func TestGeneratedMissionSAVFullTickFollowsSubTick(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.LiveAdvance(113)
-	if _, present := f.live.world.SessionClock(); present {
-		t.Fatal("generated mission unexpectedly has an imported session clock")
+	// A first-game World holds the session clock from construction (SESS-084,
+	// SESS-085); its full tick follows the sub-tick (SAV-1210, SESS-086).
+	if clock, present := f.live.world.SessionClock(); !present || clock.SubTick != 113 || clock.FullTick != 7 {
+		t.Fatalf("generated mission session clock=%+v present=%v, want 113/7 held", clock, present)
 	}
 	snapshot, label, err := f.Snapshot(true)
 	if err != nil {

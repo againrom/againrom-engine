@@ -94,7 +94,7 @@ func (w *World) CurrentPolicy() CurrentWorldPolicy {
 		EntityIDFloor: &floor, Ghost: &ghost,
 		ItemWeights:  &weights,
 		Terrain:      Terrain{Block: slices.Clone(w.grid), Cost: slices.Clone(w.cost), Height: slices.Clone(w.height)},
-		GroupCarrier: w.savedGroups != nil, MotionCarrier: w.savedMotion != nil, PlaneCarrier: w.savedCellPlanes != nil,
+		GroupCarrier: !w.groupDialectNative(), MotionCarrier: w.savedMotion != nil, PlaneCarrier: w.savedCellPlanes != nil,
 		StructureCarrier: w.hasSavedStructures, ObjectCarrier: w.savedObjects != nil, Formations: w.formations,
 		Scorched: slices.Clone(w.scorchedCells), SpellGraphCarrier: &graph, EffectDriverCarrier: &drivers}
 	p.ROM2 = w.currentROM2Policy()
@@ -133,9 +133,16 @@ func (w *World) RestoreCurrentSpellDurations(rows []CurrentSpellPolicy) error {
 
 // RestoreCurrentClock completes the ordinary session tick before pending
 // deliveries validate their creation time. It does not advance the simulation.
+// A first-game World keeps the session clock its Document import gave it; an
+// older engine SAV that marked the clock unknown keeps it too, so one cadence
+// runs after every LOAD. A second-game World takes the saved native tick.
 func (w *World) RestoreCurrentClock(high uint32, known bool) error {
 	if known && high != 0 {
 		return fmt.Errorf("sim: invalid current clock")
+	}
+	if !w.SecondGame() {
+		w.constructSessionClock()
+		return nil
 	}
 	w.tick, w.hasSessionClock = uint64(high)<<32|uint64(uint32(w.tick)), known
 	if !known {
@@ -205,7 +212,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		}
 	}
 	w.formations = p.Formations
-	if !p.GroupCarrier && w.savedGroups != nil && w.savedGroups.FormationsPresent {
+	if !p.GroupCarrier && !w.groupDialectNative() && w.savedGroups.FormationsPresent {
 		for _, f := range w.savedGroups.Formations {
 			if f.TriggerID < relationSlots {
 				w.formations[f.TriggerID] = f.Mode
@@ -218,7 +225,10 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		w.groups = append(w.groups, groupAI{owner: g.Owner, group: g.Selector, base: g.Base, order: g.Order, commandedX: g.CommandedX, commandedY: g.CommandedY, roamCounter: g.RoamCounter})
 	}
 	if !p.GroupCarrier {
+		// An older engine SAV without the Group carrier takes the registry
+		// constructed from its loaded native state.
 		w.savedGroups = nil
+		w.constructGroups(true)
 	}
 	if !p.MotionCarrier {
 		w.savedMotion = nil
@@ -270,8 +280,12 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 		}
 	}
 	order := w.CurrentWorldEffectOrder()
+	// An older engine SAV that marked the driver table absent held no
+	// projectile row, and its areas continue as the native areas: a
+	// first-game World takes the empty table it is constructed with.
 	if p.EffectDriverCarrier != nil && !*p.EffectDriverCarrier {
 		w.savedWorldEffects = nil
+		w.constructEffectDriver()
 	}
 	if p.SpellGraphCarrier != nil && !*p.SpellGraphCarrier {
 		w.savedSpellGraph = nil

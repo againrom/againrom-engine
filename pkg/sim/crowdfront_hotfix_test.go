@@ -27,6 +27,7 @@ func TestACrowdAtABankFillsTheFirstRingItCanReach(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	for k := 0; k < 600; k++ {
 		Step(w, nil)
 	}

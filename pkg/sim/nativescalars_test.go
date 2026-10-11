@@ -208,6 +208,7 @@ func TestNativeScalarsSurviveActualRemovalAndRetainedDead(t *testing.T) {
 		}
 		i := indexOfEntity(w.entities, id)
 		w.entities[i].HP, w.entities[i].Decay = decayGoneHP-1, decayLast
+		toLadderSubTick(w)
 		Step(w, nil)
 		if _, exists := w.Entity(id); exists || !reflect.DeepEqual(w.RemovedNativeActorBases(), []NativeActorBasisRecord{{ID: id, Basis: basis}}) {
 			t.Fatal("actual native removal lost scalar-only history", retained)
@@ -396,6 +397,7 @@ func TestNativeScalarCreatureExperienceSurvivesActualRemoval(t *testing.T) {
 	basis.Scalars[ScalarReference] = 0xfedcba98
 	e.NativeBasis = basis
 	e.HP, e.Decay = decayGoneHP-1, decayLast
+	toLadderSubTick(w)
 	Step(w, nil)
 	want := basis
 	want.Scalars[ScalarT1C] = 12

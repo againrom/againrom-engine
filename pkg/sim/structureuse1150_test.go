@@ -122,7 +122,9 @@ func TestStructureUse1150ApproachFacingAndCancellation(t *testing.T) {
 
 func TestStructureUse1150RechargeAndRetiredActors(t *testing.T) {
 	w := useWorld1150(t, 15)
-	w.structures[0].Field42, w.tick = 0, 59
+	// The filter reads the session sub-tick after the step's head has
+	// incremented it (SESS-TICK-006): entry 58 reads 59, entry 59 reads 60.
+	w.structures[0].Field42, w.tick = 0, 58
 	Step(w, nil)
 	if w.structures[0].Field42 != 0 {
 		t.Fatal("early recharge")
@@ -153,7 +155,7 @@ func TestStructureUse1150Footer(t *testing.T) {
 	for _, pin := range []struct {
 		raw  []byte
 		hash uint64
-	}{{pinBytes, 0xb8d397ac6da0068b}, {rtfBytes, 0x61ed2031275d899a}} {
+	}{{pinBytesHistorical, 0xb8d397ac6da0068b}, {rtfBytesHistorical, 0x61ed2031275d899a}} {
 		prior := bytes.Clone(pin.raw[:len(pin.raw)-entityIDFloorLen-spellDeliverySpanLen-16])
 		prior[0] = 88
 		if fnv1a(prior) != pin.hash {

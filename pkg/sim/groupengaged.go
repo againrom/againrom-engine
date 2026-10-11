@@ -121,29 +121,59 @@ func (w *World) joinsFight(mi int) bool {
 func (w *World) joinEngagedGroups() {
 	for gi := range w.groups {
 		record := w.groups[gi]
-		if record.owner == 0 || record.owner == SelfSlot || !engagedOrder(record.order) {
+		w.joinEngagedGroup(record.owner, record.order, w.groupLivingMembers(record.owner, record.group), nil)
+	}
+}
+
+// joinSavedEngagedGroups is the same tail over the Group registry: each Group
+// the dispatch reaches (AI +0x45 nonzero) under an order that fights, with its
+// owner read from its first living member as the decision reads it. Roam
+// fights as Swarm 2. A member that takes a foe holds pending order 5, as a
+// decision's engage leaves it.
+func (w *World) joinSavedEngagedGroups() {
+	for gi := range w.savedGroups.Groups {
+		g := &w.savedGroups.Groups[gi]
+		if g.AI[0x45] == 0 && !w.safeMode {
 			continue
 		}
-		members := w.groupLivingMembers(record.owner, record.group)
-		if len(members) == 0 {
+		members, complete := w.savedLiving(g)
+		if !complete || len(members) == 0 {
 			continue
 		}
-		foes := w.engagedFoes(record.owner, members)
-		if len(foes) == 0 {
-			continue
+		order := g.AI[0x20]
+		if order == 0x11 {
+			order = orderSwarm2
 		}
-		for _, mi := range members {
-			if !w.joinsFight(mi) {
-				continue
+		w.joinEngagedGroup(w.entities[members[0]].Owner, order, members, func(i int) {
+			if o := w.savedOrder(w.entities[i].ID); o != nil {
+				o.Raw[8] = 5
 			}
-			best, at := scoreSeed, -1
-			for _, fi := range foes {
-				if cost := w.candidateCost(mi, fi, orderSwarm); cost < best {
-					best, at = cost, fi
-				}
+		})
+	}
+}
+
+func (w *World) joinEngagedGroup(owner uint32, order uint8, members []int, joined func(int)) {
+	if owner == 0 || owner == SelfSlot || !engagedOrder(order) || len(members) == 0 {
+		return
+	}
+	foes := w.engagedFoes(owner, members)
+	if len(foes) == 0 {
+		return
+	}
+	for _, mi := range members {
+		if !w.joinsFight(mi) {
+			continue
+		}
+		best, at := scoreSeed, -1
+		for _, fi := range foes {
+			if cost := w.candidateCost(mi, fi, orderSwarm); cost < best {
+				best, at = cost, fi
 			}
-			if at >= 0 {
-				w.orderAttack(mi, w.entities[at].ID)
+		}
+		if at >= 0 {
+			w.orderAttack(mi, w.entities[at].ID)
+			if joined != nil {
+				joined(mi)
 			}
 		}
 	}

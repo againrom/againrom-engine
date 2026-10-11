@@ -80,11 +80,11 @@ func TestPatrolClearsTheGroupsOrderAndLeavesTheCommandedCellAlone(t *testing.T) 
 	w.runInstant(ScriptInstant{Op: ScriptInstantGroupOrder, Group: 1, HasGroup: true,
 		Args: [scriptParams]int32{subCommandPatrol, 9, 9}})
 
-	order, _, ok := w.groupState(2, 1)
+	order, _, ok := regState(w, 2, 1)
 	if !ok || order != orderNone {
 		t.Fatalf("the group's order is %d ok=%v, want orderNone (0)", order, ok)
 	}
-	cx, cy, ok := w.groupCommandedCell(2, 1)
+	cx, cy, ok := regCommandedCell(w, 2, 1)
 	if !ok || cx != 77 || cy != 88 {
 		t.Errorf("the commanded cell is (%d,%d) ok=%v, want the untouched (77,88)", cx, cy, ok)
 	}
@@ -270,6 +270,7 @@ func TestOrderNoneIsNotDecidedOver(t *testing.T) {
 		m := engFighter(1, 2, 5, 5)
 		cand := engFighter(2, 3, 6, 5) // adjacent: inside reach, well inside sight
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), m, cand)
+		nativeGroupArm(w)
 		setGroupOrder(t, w, 2, 0, orderNone)
 		i := indexOfEntity(w.entities, 1)
 		before := w.entities[i]
@@ -287,6 +288,7 @@ func TestOrderNoneIsNotDecidedOver(t *testing.T) {
 		t.Parallel()
 		m := engFighter(1, 2, 5, 5)
 		w := engWorld(t, engRel(t), m) // no relation at all: candidates() is empty
+		nativeGroupArm(w)
 		setGroupOrder(t, w, 2, 0, orderNone)
 		i := indexOfEntity(w.entities, 1)
 		// A victim it should not hold in this state, poked in directly so a

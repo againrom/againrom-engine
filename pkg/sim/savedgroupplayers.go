@@ -20,7 +20,7 @@ const savedGroupPlayerLimit = 65535
 // SavedGroupPlayers distinguishes old native saves from a present empty
 // registry. It never reconstructs containment from Group.Owner or actors.
 func (w *World) SavedGroupPlayers() ([]SavedGroupPlayer, bool) {
-	if w.savedGroups == nil || !w.savedGroups.PlayersPresent {
+	if w.groupDialectNative() || !w.savedGroups.PlayersPresent {
 		return nil, false
 	}
 	return slices.Clone(w.savedGroups.Players), true
@@ -29,7 +29,7 @@ func (w *World) SavedGroupPlayers() ([]SavedGroupPlayer, bool) {
 // ImportSavedGroupPlayers installs complete initial provenance once, after the
 // source Groups have been imported. Subsequent Group updates retain it.
 func (w *World) ImportSavedGroupPlayers(players []SavedGroupPlayer, containers []SavedGroupContainer) error {
-	if w.savedGroups == nil || w.savedGroups.PlayersPresent {
+	if w.groupDialectNative() || w.savedGroups.PlayersPresent {
 		return fmt.Errorf("sim: initial Player containers require an unbound saved Group registry")
 	}
 	if len(players) > savedGroupPlayerLimit || len(containers) > savedGroupPlayerLimit || len(containers) != len(w.savedGroups.Groups) {
@@ -100,7 +100,7 @@ func savedGroupPlayersFault(s *savedGroupState) error {
 }
 
 func (w *World) savedPlayerByID(id uint32) (SavedGroupPlayer, bool) {
-	if w.savedGroups != nil && w.savedGroups.PlayersPresent {
+	if !w.groupDialectNative() && w.savedGroups.PlayersPresent {
 		for _, p := range w.savedGroups.Players {
 			if p.ID == id {
 				return p, true
@@ -112,7 +112,7 @@ func (w *World) savedPlayerByID(id uint32) (SavedGroupPlayer, bool) {
 
 func (w *World) uniqueSavedPlayerSlot(slot uint32) uint32 {
 	var id uint32
-	if w.savedGroups != nil && w.savedGroups.PlayersPresent {
+	if !w.groupDialectNative() && w.savedGroups.PlayersPresent {
 		for _, p := range w.savedGroups.Players {
 			if p.Slot == slot {
 				if id != 0 {
@@ -126,7 +126,7 @@ func (w *World) uniqueSavedPlayerSlot(slot uint32) uint32 {
 }
 
 func (w *World) savedCommandContainer(members []int) uint32 {
-	if len(members) == 0 || w.savedGroups == nil || !w.savedGroups.PlayersPresent {
+	if len(members) == 0 || w.groupDialectNative() || !w.savedGroups.PlayersPresent {
 		return 0
 	}
 	var container uint32

@@ -14,6 +14,9 @@ func (w *World) appendPlayerParticipants(b []byte) []byte {
 	players, identities := w.CurrentPlayers()
 	rows, present := w.PlayerParticipants()
 	groupPlayers, groups := w.SavedGroupPlayers()
+	// A registry the byte form omits carries no Players; the current Players
+	// travel on their own and the decoder builds the registry from them.
+	groups = groups && w.groupsForm() != nil
 	if identities && (!groups || !slices.Equal(players, groupPlayers)) {
 		return w.appendCurrentPlayers(b, players, rows, present)
 	}
@@ -87,7 +90,7 @@ func (w *World) unmarshalCurrentPlayers(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.UnmarshalBinary(base); err != nil {
+	if err := next.unmarshalForm(base); err != nil {
 		return err
 	}
 	if err := next.RestoreCurrentPlayers(players, rows, present); err != nil {
@@ -119,7 +122,7 @@ func (w *World) unmarshalPlayerParticipants(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.UnmarshalBinary(base); err != nil {
+	if err := next.unmarshalForm(base); err != nil {
 		return err
 	}
 	rows := make([]PlayerParticipant, int(count))

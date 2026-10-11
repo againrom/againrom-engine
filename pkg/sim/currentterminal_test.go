@@ -9,6 +9,7 @@ func TestCurrentTerminalActorRetainsTupleAcrossCompactionAndColdLoad(t *testing.
 	companion := spEnt(3, 10, 11)
 	w := spWorld(t, 1177, nil, spEnt(1, 1, 1), companion)
 	w.entities[1].HP, w.entities[1].Decay = decayGoneHP-1, decayLast
+	toLadderSubTick(w)
 	Step(w, nil)
 	want := CurrentTerminalActor{ID: 3, Cell: uint16(11)<<8 | 10, HP: decayGoneHP - 1, Stage: uint8(decayLast)}
 	if indexOfEntity(w.entities, want.ID) >= 0 {

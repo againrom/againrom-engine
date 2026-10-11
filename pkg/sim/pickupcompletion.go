@@ -20,7 +20,7 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 	w.clearOrder(i)
 	e := &w.entities[i]
 	admitted := e.PendingOrder.RowAdmitted
-	if e.SourceBinding.GroupIndex != 0 && e.SourceBinding.GroupSelector != 0 && w.savedGroups != nil {
+	if e.SourceBinding.GroupIndex != 0 && e.SourceBinding.GroupSelector != 0 && !w.groupDialectNative() {
 		if g := w.savedGroupFor(id); g != nil && g.Authored {
 			e.SourceBinding.GroupSelector = g.Selector
 		}
@@ -37,6 +37,7 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 		e.clearTurn()
 	}
 	e.ActorState = actorStatePickupComplete
+	w.syncSavedOrderState(i)
 	w.syncCurrentActorOrder(i)
 	return true
 }
@@ -74,10 +75,11 @@ func (w *World) stepPickupCompletions() {
 		// a member, by its own AI[0x20] order byte — the saved form's
 		// groupAI.order (newSavedCommandGroup, cmdSavedGroupOrder).
 		if e.Owner != 0 {
-			if w.savedGroups != nil {
+			if !w.groupDialectNative() {
 				g := w.savedGroupFor(e.ID)
 				if g == nil || g.AI[0x20] != orderNone {
 					e.ActorState = actorStateGuard
+					w.syncSavedOrderState(i)
 					continue
 				}
 			} else if order, _, ok := w.groupState(e.Owner, effectiveGroup(e)); !ok || order != orderNone {
@@ -89,6 +91,15 @@ func (w *World) stepPickupCompletions() {
 			continue
 		}
 		e.ActorState = actorStateAcquire
+		w.syncSavedOrderState(i)
+	}
+}
+
+// syncSavedOrderState writes the actor's state into its registry order, the
+// record the Group dispatch reads (savedActorDispatch).
+func (w *World) syncSavedOrderState(i int) {
+	if o := w.savedOrder(w.entities[i].ID); o != nil {
+		o.State = uint32(w.entities[i].ActorState)
 	}
 }
 

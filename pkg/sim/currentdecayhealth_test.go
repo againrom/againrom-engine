@@ -8,8 +8,7 @@ func TestCurrentDecayHealthPublishesOnlyExistingBasis(t *testing.T) {
 		if present {
 			w.entities[0].ActorLoad = ActorLoad{Present: true, Source: SourceActor{Class: 1, Stats: [14]uint16{9, 8, 7, 6, 0, 0, 0, 300, 65516, 31}}}
 		}
-		w.tick = decayPhase
-		w.decayPass()
+		w.decaySessionActors(SessionClock{SubTick: 12})
 		e := w.entities[0]
 		if e.HP != -21 || present && e.ActorLoad.Source.Stats[8] != 65515 || !present && e.ActorLoad.Source != (SourceActor{}) {
 			t.Fatal("native decay left a stale or invented source basis", present, e.ActorLoad.Source, e.HP)

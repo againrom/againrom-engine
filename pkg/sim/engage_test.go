@@ -1,6 +1,9 @@
 package sim
 
-import "testing"
+import (
+	"encoding/binary"
+	"testing"
+)
 
 // engBounds is wide enough for every distance these tests reach out to and for
 // the notice radius to have somewhere to fall short of.
@@ -27,7 +30,20 @@ func engWorld(t *testing.T, rel Relations, ents ...Entity) *World {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	return w
+}
+
+// wakeGroups marks every Group of w as one the script names (AI-452), so the
+// activity rebuild counts each represented member active (AI-ACTIVITY-324)
+// and a fixture with no party unit near its Groups still decides.
+func wakeGroups(w *World) {
+	if w.savedGroups == nil {
+		return
+	}
+	for i := range w.savedGroups.Groups {
+		binary.LittleEndian.PutUint32(w.savedGroups.Groups[i].AI[0x48:], 1)
+	}
 }
 
 // engFighter is a unit that can be hit and can hit back, at the owner and group
@@ -115,7 +131,11 @@ func TestAHostileGroupStartsAFightNobodyOrdered(t *testing.T) {
 	}
 	vi := indexOfEntity(w.entities, got[1].ID)
 	w.entities[vi].HP, w.entities[vi].Dwell = decayGoneHP-1, 0
-	Step(w, nil)
+	// The dead-list ladder removes a finished body on the phase-12 sub-tick
+	// (SESS-TICK-006), so at most one full tick passes.
+	for n := 0; n < 16 && len(w.Entities()) > 1; n++ {
+		Step(w, nil)
+	}
 	if got := w.Entities(); len(got) != 1 || got[0].HasAttackTarget {
 		t.Errorf("target teardown left entities %+v", got)
 	}
@@ -357,7 +377,7 @@ func TestAGuardingGroupClipsAtItsFrozenBaseNotLiveGeometry(t *testing.T) {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
 
-	_, base, _ := w.groupState(owner, group)
+	_, base, _ := regState(w, owner, group)
 	if base != 25 {
 		t.Fatalf("the fixture's own frozen base is %d, want 25 (0+25 from either A or B, above "+
 			"the floor) — this test's arithmetic assumes that number", base)
@@ -410,7 +430,7 @@ func TestAGuardingGroupClipsAtItsFrozenBaseNotLiveGeometry(t *testing.T) {
 	}
 
 	// The frozen base did not move.
-	if _, got, _ := w.groupState(owner, group); got != base {
+	if _, got, _ := regState(w, owner, group); got != base {
 		t.Fatalf("the frozen base moved from %d to %d after the group walked, spread and lost a "+
 			"member", base, got)
 	}
@@ -470,9 +490,10 @@ func TestAPairNoRecordNamesDecidesNothing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	// Before the hand-over the constructor's own freeze left a REAL record for
 	// (fromOwner, grp) — the record the hand-over is about to strand.
-	if _, _, ok := w.groupState(fromOwner, grp); !ok {
+	if _, _, ok := regState(w, fromOwner, grp); !ok {
 		t.Fatalf("the fixture's own construction-time record is missing; this test needs a " +
 			"real record left behind")
 	}
@@ -481,16 +502,12 @@ func TestAPairNoRecordNamesDecidesNothing(t *testing.T) {
 		t.Fatalf("the hand-over left entity 1 at owner %d, want %d", got, toOwner)
 	}
 	// Remove the new Stand Ground record to exercise the pair no record names.
-	nowGrp := entityAt(t, w, 1).Group
-	if order, _, ok := w.groupState(toOwner, nowGrp); !ok || order != orderStandGround {
+	nowGrp := w.savedGroupFor(1).Selector
+	if order, _, ok := regState(w, toOwner, nowGrp); !ok || order != orderStandGround {
 		t.Fatalf("(%d,%d) holds order %d, record %v after the hand-over, want Stand Ground",
 			toOwner, nowGrp, order, ok)
 	}
-	for i := len(w.groups) - 1; i >= 0; i-- {
-		if w.groups[i].owner == toOwner && w.groups[i].group == nowGrp {
-			w.groups = append(w.groups[:i], w.groups[i+1:]...)
-		}
-	}
+	w.detachSavedMember(1)
 	// The member engaged under that record during the pass above; stand it
 	// down so that only the next decision can start a fight.
 	at := indexOfEntity(w.entities, 1)
@@ -836,6 +853,7 @@ func TestARidgeStopsAnEngagementFlatGroundMakes(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewRelatedWorld: %v", err)
 			}
+			wakeGroups(w)
 			engRun(w, 1)
 			if _, held := engVictim(w, 1); held != tc.want {
 				t.Errorf("acquired=%v, want %v", held, tc.want)

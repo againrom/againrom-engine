@@ -98,6 +98,7 @@ func TestNativeClassLegacyDefaultAndOptionalCombinedWire(t *testing.T) {
 		if rom2 {
 			next.script, _ = NewROM2Script(nil, nil, nil)
 			next.rom2 = &rom2ScriptState{}
+			next.constructSessionClock()
 		}
 		base, _ := next.MarshalBinary()
 		next.entities = append([]Entity(nil), w.entities...)

@@ -32,6 +32,10 @@ type currentGroupContinuation struct {
 	RootOnly     bool
 	RootSelector uint32
 	RootMembers  []sim.EntityID
+	// KeylessOwner is the Player key the writer minted for an owner
+	// reference the World holds by slot alone. LOAD restores the keyless
+	// reference while the file still names that key.
+	KeylessOwner uint32 `json:",omitempty"`
 }
 type currentNativeArea struct {
 	Object uint16
@@ -73,23 +77,29 @@ type currentActionData struct {
 	Program              *currentScriptProgram `json:",omitempty"`
 	// A terminal body is owned by SAV's dead list. Its dormant action residue
 	// remains with that exact root; it never resurrects a ticking Entity.
-	Held                 []sim.ActorContinuation
-	TerminalMotions      []currentTerminalMotion `json:",omitempty"`
-	Fog                  *currentMissionFog      `json:",omitempty"`
-	PendingMessages      []int32                 `json:",omitempty"`
-	Options              []PendingGameOption
-	Pending              *currentPendingQueue `json:",omitempty"`
-	Bolts                []SnapshotSpellBolt
-	Heals                []SnapshotHealBurst
-	Runs                 []SnapshotCastRun
-	Animation            []currentAnimationClock `json:",omitempty"`
-	DeathAges            []currentDeathAge       `json:",omitempty"`
-	Manifest             *currentActorManifest   `json:",omitempty"`
-	VisualIdentities     []SnapshotVisualIdentity
-	VisualNext           sim.EntityID
-	GroupTag             uint32
-	Groups               []currentGroupContinuation
-	GroupHighWater       uint32
+	Held             []sim.ActorContinuation
+	TerminalMotions  []currentTerminalMotion `json:",omitempty"`
+	Fog              *currentMissionFog      `json:",omitempty"`
+	PendingMessages  []int32                 `json:",omitempty"`
+	Options          []PendingGameOption
+	Pending          *currentPendingQueue `json:",omitempty"`
+	Bolts            []SnapshotSpellBolt
+	Heals            []SnapshotHealBurst
+	Runs             []SnapshotCastRun
+	Animation        []currentAnimationClock `json:",omitempty"`
+	DeathAges        []currentDeathAge       `json:",omitempty"`
+	Manifest         *currentActorManifest   `json:",omitempty"`
+	VisualIdentities []SnapshotVisualIdentity
+	VisualNext       sim.EntityID
+	GroupTag         uint32
+	Groups           []currentGroupContinuation
+	GroupHighWater   uint32
+	// GroupsConstructed states that the World held the registry its mission
+	// start constructed, as play changed it (sim.World.GroupsConstructed).
+	GroupsConstructed bool `json:",omitempty"`
+	// GroupsNative states that the registry carries an older engine's native
+	// Group records (sim.World.GroupsNative).
+	GroupsNative         bool                             `json:",omitempty"`
 	GroupPlayers         *bool                            `json:",omitempty"`
 	GroupFormations      *bool                            `json:",omitempty"`
 	GroupParticipants    *bool                            `json:",omitempty"`
@@ -460,11 +470,16 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 		a.GroupParticipants = &participants
 		a.Groups = make([]currentGroupContinuation, 0, len(groups))
 		a.GroupHighWater = w.GroupHighWater()
+		a.GroupsConstructed, a.GroupsNative = w.GroupsConstructed(), w.GroupsNative()
 		for _, g := range groups {
 			found := false
 			for _, b := range state.GroupBindings.Groups {
 				if b.ID == g.ID {
-					a.Groups = append(a.Groups, currentGroupContinuation{Object: b.PlayerObject, Inline: b.InlineIndex, ID: g.ID, Authored: g.Authored})
+					row := currentGroupContinuation{Object: b.PlayerObject, Inline: b.InlineIndex, ID: g.ID, Authored: g.Authored}
+					if !g.Authored && g.Owner.Class == 1 && g.Owner.Key == 0 && g.Owner.Archive == 0 && b.Owner.Class == 1 {
+						row.KeylessOwner = b.Owner.Key
+					}
+					a.Groups = append(a.Groups, row)
 					found = true
 					break
 				}
@@ -1242,7 +1257,7 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 							}
 						}
 					}
-					rows = append(rows, sim.GroupContinuation{Group: b.ID, ID: row.ID, Authored: row.Authored, RootOnly: row.RootOnly})
+					rows = append(rows, sim.GroupContinuation{Group: b.ID, ID: row.ID, Authored: row.Authored, RootOnly: row.RootOnly, KeylessOwner: row.KeylessOwner})
 					b.ID, b.Authored, b.RootOnly = row.ID, row.Authored, row.RootOnly
 					if b.RootOnly {
 						if err := validateActorRootGroup(ms.savedDocument.Document, b); err != nil {
@@ -1411,6 +1426,9 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	}
 	if err := bindCurrentPlayerRoots(ms.savedDocument, ms.World); err != nil {
 		return err
+	}
+	if a.GroupsConstructed {
+		ms.World.AdoptConstructedGroups(a.GroupsNative)
 	}
 	*original.World = *ms.World
 	ms.World = original.World

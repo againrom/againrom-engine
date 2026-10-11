@@ -199,7 +199,9 @@ func TestSavedTurnRateChangeKeepsTheMessageDeadline(t *testing.T) {
 	w.savedOrder(7).Raw[8] = 0xb
 	w.entities[0].HealthRegenPeriod = 100
 	w.initializeActionClocks()
-	messageClock := uint32(w.tick)
+	// The session sub-tick increments before the actor dispatch that writes
+	// the deadline (SESS-TICK-006).
+	messageClock := uint32(w.tick) + 1
 	Step(w, nil)
 	deadline := w.entities[0].ActionClock.End
 	if deadline != messageClock+7 {

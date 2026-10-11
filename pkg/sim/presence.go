@@ -153,6 +153,13 @@ func (w *World) placeAt(i int, x, y int32) bool {
 	e.X, e.Y = x, y
 	w.invalidateActorMotion(e.ID, "native placement supersedes original movement")
 	e.clearStride()
+	// The placed body stands at its cell's centre; a known native position
+	// block says so, as the SAV writer writes it.
+	for index, value := range [4]byte{byte(x), byte(y), 128, 128} {
+		if e.NativeBasis.BlockByteKnown(index) {
+			e.NativeBasis.Block[index] = value
+		}
+	}
 	w.appendActorTraversal(e.ID)
 	e.OffMap = false
 	return true
@@ -200,7 +207,7 @@ func (w *World) placeFree(i int, x, y int32) bool {
 // first is what makes the answer the membership as the node found it, whatever
 // a later arm comes to write.
 func (w *World) groupMembers(group uint32) []int {
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		groups, err := w.resolveSavedGroups(group)
 		if err != nil {
 			return nil

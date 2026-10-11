@@ -32,9 +32,14 @@ func nativeTerminalSubjectFixture(t *testing.T) (*FrontEnd, []byte) {
 		}
 	}
 	f.live.world, f.live.mission.state.World = w, w
-	sim.Step(w, nil)
+	// The dead-list ladder removes the body on the first phase-12 sub-tick
+	// (SESS-TICK-006); that full tick is even, so it walks one rung first
+	// (HERO-DEATH-026).
+	for n := 0; n < 16 && len(w.Entities()) != 1; n++ {
+		sim.Step(w, nil)
+	}
 	terminal := w.CurrentTerminalActors()
-	if len(terminal) != 1 || terminal[0].ID != 0 || terminal[0].HP != -601 || terminal[0].Cell != 0x100f || len(w.Entities()) != 1 {
+	if len(terminal) != 1 || terminal[0].ID != 0 || terminal[0].HP != -602 || terminal[0].Cell != 0x100f || len(w.Entities()) != 1 {
 		t.Fatal("actual compaction did not retain the independent terminal tuple", terminal)
 	}
 	raw, _, _ := saveCurrentEffect(t, f)

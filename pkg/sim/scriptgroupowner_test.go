@@ -38,8 +38,8 @@ func TestScriptGroupCommandReachesTheLaterOwnerOnly(t *testing.T) {
 	if len(groups) != 1 || groups[0].Owner != 7 || groups[0].Order != uint8(orderSwarm2) {
 		t.Fatalf("resolved group record: %+v", groups)
 	}
-	if _, base, ok := w.groupState(5, 40); !ok || w.groups[0].order == orderSwarm2 {
-		t.Fatalf("owner 5 record changed or missing: base %d ok %v order %d", base, ok, w.groups[0].order)
+	if order, ok := registryOrder(w, indexOfEntity(w.entities, 1)); !ok || order == orderSwarm2 {
+		t.Fatalf("owner 5 Group changed or missing: ok %v order %d", ok, order)
 	}
 }
 

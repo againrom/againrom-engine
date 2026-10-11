@@ -181,7 +181,7 @@ func TestReleaseAreaDamageLifecycle1164(t *testing.T) {
 	// Pulses at old128/120, then final cloud zero refresh128 before actor phase.
 	check(f, before.HP-12, 126)
 	check(fresh, before.HP-12, 126)
-	if len(f.live.world.SavedSpellEffects()) != 0 || f.live.world.SavedWorldEffectDrivers() != nil {
+	if len(f.live.world.SavedSpellEffects()) != 0 || heldEffectDriverRows(f.live.world) != 0 {
 		t.Fatal("retained Poison root/layers did not retire")
 	}
 	for _, c := range f.live.world.SavedCellRecords() {

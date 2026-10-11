@@ -18,6 +18,9 @@ func savedGroupPayload1113() []byte {
 	group := actors[0].off - 98
 	body[group+2+0x20], body[group+2+0x45] = 4, 1
 	body[group+2+10], body[group+2+11] = 23, 24
+	// A formation Move's rate byte (MOVE-GATE-035): the Move arm re-issues the
+	// members' moves only while it is nonzero (AI-MOVE-023).
+	body[group+2+0x44] = 1
 	for i, a := range actors {
 		ord := a.off + 359
 		body[ord+10], body[ord+11] = 18+byte(i), 16+2*byte(i)

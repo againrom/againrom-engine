@@ -106,6 +106,7 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 	if w == nil || len(w.originalDead) != 0 {
 		return fmt.Errorf("original dead import requires a fresh world")
 	}
+	asBuilt := w.groupsAsConstructed()
 	currentIDs := make(map[EntityID]bool, len(current))
 	for _, id := range current {
 		if currentIDs[id] {
@@ -205,6 +206,9 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 	}
 	if len(gone) != 0 {
 		w.remove(gone)
+	}
+	if asBuilt {
+		w.reconstructFreshGroups()
 	}
 	return nil
 }

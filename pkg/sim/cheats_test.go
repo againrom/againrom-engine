@@ -308,7 +308,7 @@ func TestCheatSummonCreatesNativeGuardGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	e, _ := w.Entity(id)
-	if order, _, found := w.FrozenGroupAI(e.Owner, e.Group); !found || order != orderNone || e.Group != e.CommandGroup || e.CommandGroup == 0 || e.Group == template.Group {
+	if g := w.savedGroupFor(id); g == nil || g.AI[0x20] != orderNone || g.Selector != e.CommandGroup || e.CommandGroup == 0 || g.Selector == template.Group {
 		t.Fatal("summoned native guard has no independent actor dispatch group")
 	}
 	if !reflect.DeepEqual(w.Entities()[:len(before)], before) {
@@ -320,7 +320,7 @@ func TestCheatSummonCreatesNativeGuardGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	e, _ = w.Entity(second)
-	if got, _ := w.Entity(id); !reflect.DeepEqual(got, first) || e.Group == first.Group || e.Group != e.CommandGroup {
+	if got, _ := w.Entity(id); !reflect.DeepEqual(got, first) || w.savedGroupFor(second) == w.savedGroupFor(id) || e.CommandGroup == first.CommandGroup {
 		t.Fatal("later summon reused a group or changed the first actor")
 	}
 	w.tick = scriptPassPhase

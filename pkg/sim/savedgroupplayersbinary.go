@@ -21,7 +21,7 @@ type savedGroupPlayerSection struct {
 
 func (w *World) appendSavedGroupPlayerSection(b []byte) []byte {
 	start := len(b)
-	s := w.savedGroups
+	s := w.groupsForm()
 	if s != nil && (s.PlayersPresent || s.HighWater > maxSavedGroupID(s.Groups)) {
 		flag := byte(0)
 		if s.PlayersPresent {

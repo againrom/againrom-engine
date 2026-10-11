@@ -72,6 +72,7 @@ func TestAReleasedMemberWalksHomeThenStandsThereForeverAfter(t *testing.T) {
 	// same fix engage_test.go's own frozen-base test takes for the same
 	// reason.
 	w.entities[i].PostX, w.entities[i].PostY = 44, 44
+	w.syncSavedPost(i)
 	w.decide(w.aiGroups()[0])
 	if _, held := engVictim(w, 1); held {
 		t.Fatal("the fixture's own release did not fire — this test would pass for the wrong reason")
@@ -336,13 +337,15 @@ func TestTheAlwaysScoringPopulationMatchesTheGoldenDigest(t *testing.T) {
 	if !w.entities[indexOfEntity(w.entities, 1)].HasAttackTarget {
 		t.Fatal("the attacker released its immortal, always-hostile victim — this test would pass for the wrong reason")
 	}
-	requireStructureLegacyDigest(t, w, 16252837679889806636)
-	requireOriginalDeadLegacyDigest(t, w, 5983912820404504995)
-	requireSpellbookLegacyDigest(t, w, 10556649293082217782)
-	if got, want := fnv1a(strippedWorldOfSecondPhysical(mustMarshal(t, w))), uint64(15213618229883190643); got != want {
+	// Repinned: the session clock is constructed with the World, so the run
+	// takes the session cadence (script time register, report, regeneration).
+	requireStructureLegacyDigest(t, w, 1881211566101048953)
+	requireOriginalDeadLegacyDigest(t, w, 11697765275756545610)
+	requireSpellbookLegacyDigest(t, w, 11815885361917630879)
+	if got, want := fnv1a(strippedWorldOfSecondPhysical(mustMarshal(t, w))), uint64(13954382161047777546); got != want {
 		t.Errorf("the digest is %d, want the golden %d captured for this story's own byte form", got, want)
 	}
-	requireHumanMovementLegacyDigest(t, w, 9935559246186814238)
+	requireHumanMovementLegacyDigest(t, w, 4221706790834773623)
 }
 
 func TestTheByteFormsVersionMatchesTheConstantAndAFixedWorldsDigestIsPinned(t *testing.T) {
@@ -409,13 +412,24 @@ func TestACommandedAttackIsNotPrivilegedUnderGuard(t *testing.T) {
 // what its owner would normally be given.
 func setGroupOrder(t *testing.T, w *World, owner, group uint32, order uint8) {
 	t.Helper()
+	// Both records: the registry a first-game World decides from, and the
+	// native record the native group arm reads.
+	found := false
+	if w.savedGroups != nil {
+		if g := regFind(w, owner, group); g != nil {
+			g.AI[0x20] = order
+			found = true
+		}
+	}
 	for i := range w.groups {
 		if w.groups[i].owner == owner && w.groups[i].group == group {
 			w.groups[i].order = order
 			return
 		}
 	}
-	t.Fatalf("no group record for (owner %d, group %d) — this test's fixture is wrong", owner, group)
+	if !found {
+		t.Fatalf("no group record for (owner %d, group %d) — this test's fixture is wrong", owner, group)
+	}
 }
 
 func TestAReleaseKeysOnTheOwnerNotTheOrder(t *testing.T) {

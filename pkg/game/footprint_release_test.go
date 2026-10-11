@@ -59,8 +59,12 @@ func retreatWorld(t *testing.T, r *areaCostRig, side uint8, dying int32) (*sim.W
 		TokenSize: side, HP: 8, MaxHP: 100, Wimpy: 8, ScanRange: 5, Reach: 1, DamageBase: 1, AlwaysHits: true, DyingTime: dying, Speed: 16}
 	foe := sim.Entity{ID: 2, Owner: 3, X: int32(at[0] + 4), Y: int32(at[1]), PostX: int32(at[0] + 4), PostY: int32(at[1]),
 		HP: 100, MaxHP: 100, ScanRange: 5, Reach: 1, DamageBase: 1, AlwaysHits: true, DyingTime: dying, Speed: 16}
+	// A Group decides only with a party unit near (AI-ACTIVITY-324): a
+	// neutral party unit stands within reach of the activity gate.
+	party := sim.Entity{ID: 3, Owner: sim.SelfSlot, X: int32(at[0]), Y: int32(at[1] + 8), PostX: int32(at[0]), PostY: int32(at[1] + 8),
+		HP: 100, MaxHP: 100, DyingTime: dying, Speed: 16}
 	w, err := sim.NewStructuredWorld(2020, sim.Bounds{Width: int32(r.width), Height: int32(r.height)}, sim.ModeCanonical,
-		sim.Terrain{Block: r.block, Cost: r.cost, Height: nil}, []sim.Entity{self, foe}, nil, rel, nil, nil,
+		sim.Terrain{Block: r.block, Cost: r.cost, Height: nil}, []sim.Entity{self, foe, party}, nil, rel, nil, nil,
 		mapload.SpellRules(r.f.Table), sim.GhostTemplate{}, nil)
 	if err != nil {
 		t.Fatal(err)

@@ -221,6 +221,9 @@ func TestACloudPulsesOnItsOwnCounterAndNotOnElapsedTicks(t *testing.T) {
 	for i := range w.groups {
 		w.groups[i].order = orderStandGround
 	}
+	for i := range w.savedGroups.Groups {
+		w.savedGroups.Groups[i].AI[0x20] = orderStandGround
+	}
 	events := spRunCast(w, Command{Kind: KindCastAt, Entity: 1, X: 5, Y: 5, Spell: 7})
 	if len(events) != 1 || events[0].FromX != 2 || events[0].FromY != 2 ||
 		events[0].ToX != 5 || events[0].ToY != 5 || events[0].Target != 0 {

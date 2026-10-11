@@ -22,11 +22,10 @@ func ObserveScriptGroups(w *World, group uint32) []ScriptGroupState {
 		return nil
 	}
 	var out []ScriptGroupState
-	if w.savedGroups != nil {
-		for _, g := range w.savedGroups.Groups {
-			if g.Selector != group {
-				continue
-			}
+	if !w.groupDialectNative() {
+		// The Groups the script reaches by this selector (resolveSavedGroups).
+		groups, _ := w.resolveSavedGroups(group)
+		for _, g := range groups {
 			owner := g.Owner.Owner
 			if p, ok := w.savedPlayerByID(g.OwnerID); ok {
 				owner = p.Slot

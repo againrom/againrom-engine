@@ -164,7 +164,7 @@ func TestSavedTransportAreaHandoffAndIndexShift(t *testing.T) {
 			t.Fatal("area handoff hash")
 		}
 	}
-	if w.entities[1].HP != 991 || len(w.savedSpellEffects) != 0 || w.savedWorldEffects != nil || w.savedSpellGraph != nil {
+	if w.entities[1].HP != 991 || len(w.savedSpellEffects) != 0 || heldDriverRows(w) != 0 || w.savedSpellGraph != nil {
 		t.Fatal("area handoff", w.entities[1].HP, w.savedWorldEffects)
 	}
 	requireSpellGraphBinary(t, w)
@@ -276,7 +276,7 @@ func TestSavedTransportCloudHandoffOwnsCellsAndFinalPulse(t *testing.T) {
 		t.Fatal("cloud zero pulse", w.entities[1].HP)
 	}
 	w.stepSavedWorldEffects(nil)
-	if len(w.savedSpellEffects) != 0 || w.savedWorldEffects != nil || w.savedSpellGraph != nil {
+	if len(w.savedSpellEffects) != 0 || heldDriverRows(w) != 0 || w.savedSpellGraph != nil {
 		t.Fatal("cloud owner not retired")
 	}
 	for _, c := range w.savedCellRecords {
@@ -308,7 +308,7 @@ func TestSavedTransportPrepaintedChildAndDiscardedFallback(t *testing.T) {
 		if discarded {
 			want = 1000
 		}
-		if w.entities[1].HP != want || len(w.savedSpellEffects) != 0 || w.savedWorldEffects != nil || w.savedSpellGraph != nil {
+		if w.entities[1].HP != want || len(w.savedSpellEffects) != 0 || heldDriverRows(w) != 0 || w.savedSpellGraph != nil {
 			t.Fatal("prepainted child continuation", discarded, w.entities[1].HP)
 		}
 		for _, c := range w.savedCellRecords {
@@ -354,7 +354,7 @@ func TestSavedCloudFirstPaintAndEmptyInitializedPhase(t *testing.T) {
 			}
 			w.stepSavedWorldEffects(nil)
 			if tail {
-				if w.savedSpellGraph != nil || w.savedWorldEffects != nil {
+				if w.savedSpellGraph != nil || heldDriverRows(w) != 0 {
 					t.Fatal("terminal cloud carriers remain", counter)
 				}
 			} else if w.savedSpellGraph == nil || !w.savedSpellGraph.Nodes[1].Retired || len(w.savedWorldEffects.Areas[0].Cells) != 0 {

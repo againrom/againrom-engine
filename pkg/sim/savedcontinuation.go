@@ -62,6 +62,7 @@ func (w *World) SavedWorldEffectDrivers() *SavedWorldEffects {
 func (w *World) ImportOriginalWorldEffectDrivers(src *SavedWorldEffects) error {
 	next := *w
 	next.savedWorldEffects = cloneSavedWorldEffects(src)
+	next.constructEffectDriver()
 	if err := next.savedWorldEffectsFault(); err != nil {
 		return err
 	}
@@ -565,6 +566,7 @@ func (w *World) clearRetiredWorldEffectCarriers() {
 		return
 	}
 	w.savedSpellGraph, w.savedWorldEffects = nil, nil
+	w.constructEffectDriver()
 	w.compactEffectOrder()
 }
 

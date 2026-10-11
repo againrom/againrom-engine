@@ -344,7 +344,7 @@ func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms
 	if d := r.town.knowledgeDiaries(); r.fresh() && len(d) != 0 {
 		ms.World.SetSavedDiaries(d)
 	}
-	if _, hasClock := ms.World.SessionClock(); hasClock {
+	if _, hasClock := ms.World.SessionClock(); hasClock && !r.fresh() {
 		// DIV-779: original SAV does not establish the incoming light
 		// cache. Choose the standard scheduled cache at its retained S,
 		// matching native continuation without an invented world tick.

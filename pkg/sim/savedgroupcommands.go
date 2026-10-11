@@ -3,6 +3,7 @@ package sim
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 )
 
 // resolveSavedGroups answers the one saved Group a script selector names. A
@@ -11,7 +12,8 @@ import (
 // winning (AI-366); the earlier is unreachable by selector. Two Groups of one
 // owner, or an owner no Player row names, stay ambiguous and refuse. Whether a
 // SAV restore rebuilds the walk order is open, so the order here is the order
-// the document stores its Players and Groups in.
+// the document stores its Players and Groups in. A selector no Group carries
+// names no Group: a count reads zero and a command changes nothing.
 func (w *World) resolveSavedGroups(selector uint32) ([]*SavedGroup, error) {
 	var found []*SavedGroup
 	var at []int
@@ -24,7 +26,7 @@ func (w *World) resolveSavedGroups(selector uint32) ([]*SavedGroup, error) {
 		at = append(at, i)
 	}
 	if len(found) == 0 {
-		return nil, fmt.Errorf("saved Group selector %d is absent", selector)
+		return nil, nil
 	}
 	if len(found) > 1 {
 		owners := map[uint32]bool{}
@@ -70,7 +72,7 @@ func (w *World) savedWalkRank(g *SavedGroup, index int) int {
 // A refused current count cannot let a stale register fire a trigger. The
 // refusal does not modify either its register or any dependent trigger latch.
 func (w *World) savedTriggerBlocked(t ScriptTrigger) bool {
-	if w.savedGroups == nil || w.script == nil {
+	if w.groupDialectNative() || w.script == nil {
 		return false
 	}
 	for _, c := range w.script.checks {
@@ -94,18 +96,13 @@ func (w *World) savedTriggerBlocked(t ScriptTrigger) bool {
 		if !in.HasGroup {
 			continue
 		}
+		// A sub-command outside opcode 6's ten cases returns without acting
+		// (TRIG-GROUP-005); it does not block its trigger.
 		if _, err := w.resolveSavedGroups(in.Group); err != nil {
-			return true
-		}
-		if in.Op == ScriptInstantGroupOrder && !savedGroupCommandSupported(in.Args[0]) {
 			return true
 		}
 	}
 	return false
-}
-
-func savedGroupCommandSupported(order int32) bool {
-	return groupOrderSupported(order)
 }
 
 func (w *World) ensureSavedOrder(i int) *SavedActorOrder {
@@ -126,7 +123,7 @@ func (w *World) ensureSavedOrder(i int) *SavedActorOrder {
 // source keys never become native escort identities. Action progress remains
 // owned by the entity and is not cancelled by this synchronization.
 func (w *World) syncSavedActorCommand(i int) *SavedActorOrder {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return nil
 	}
 	e := w.entities[i]
@@ -143,11 +140,23 @@ func (w *World) commandSavedGroup(members []int, order uint8, ordered cell) {
 	for _, i := range members {
 		w.noteActorMotionOrder(w.entities[i].ID)
 	}
+	// An actor no Player owns joins no command Group; the order still ends
+	// its patrol or escort, as for every member.
+	members = slices.DeleteFunc(slices.Clone(members), func(i int) bool {
+		if w.entities[i].Owner != 0 {
+			return false
+		}
+		w.entities[i].CommandGroup = 0
+		w.entities[i].clearPatrol()
+		w.clearEscort(i)
+		w.syncSavedOrderState(i)
+		return true
+	})
 	w.newSavedCommandGroup(members, order, ordered, true, w.savedCommandContainer(members), true)
 }
 
 func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, resetOrder bool, container uint32, cleanup bool) bool {
-	if len(members) == 0 || w.savedGroups == nil {
+	if len(members) == 0 || w.groupDialectNative() {
 		return false
 	}
 	high := max(w.savedGroups.HighWater, maxSavedGroupID(w.savedGroups.Groups))
@@ -234,7 +243,7 @@ func (w *World) savedMoveGroup(id EntityID) bool {
 }
 
 func (w *World) syncSavedDestination(i int) {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return
 	}
 	e := w.entities[i]
@@ -249,8 +258,20 @@ func (w *World) syncSavedDestination(i int) {
 	}
 }
 
+// settleSavedDestination moves a registry order's destination from the cell
+// the order named to the cell the far search settled on, so the Group
+// dispatch does not re-issue the cell the order takes over from.
+func (w *World) settleSavedDestination(id EntityID, from, to cell) {
+	if from == to || w.groupDialectNative() {
+		return
+	}
+	if o := w.savedOrder(id); o != nil && int32(o.Raw[10]) == from.x && int32(o.Raw[11]) == from.y {
+		binary.LittleEndian.PutUint16(o.Raw[10:], uint16(to.x)|uint16(to.y)<<8)
+	}
+}
+
 func (w *World) syncSavedPost(i int) {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return
 	}
 	e := w.entities[i]
@@ -349,13 +370,26 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 			x, y := w.bounds.clamp(point.x, point.y)
 			binary.LittleEndian.PutUint16(g.AI[10:], uint16(x)|uint16(y)<<8)
 			if order == 4 || order == 5 {
-				w.issueSavedGroupDestination(g, members, cell{x, y})
+				// The move setter writes every member's destination; a member
+				// Stone holds walks once it thaws.
+				w.issueSavedGroupDestination(g, w.savedOnMap(g), cell{x, y})
 			}
 		case subCommandPatrol:
 			g.AI[0x20] = 0
 			w.setSavedPatrol(members, point)
 		}
 	}
+}
+
+// savedOnMap is the Group's living members on the map, Stone-held or not.
+func (w *World) savedOnMap(g *SavedGroup) []int {
+	var out []int
+	for _, m := range g.Members {
+		if i := indexOfEntity(w.entities, m.Entity); m.Bound && i >= 0 && w.entities[i].Alive() && !w.entities[i].OffMap {
+			out = append(out, i)
+		}
+	}
+	return out
 }
 
 func (w *World) stopSavedGroupMembers(group uint32) []int {

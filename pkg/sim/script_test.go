@@ -863,7 +863,8 @@ func TestTheScriptSectionRefusesTheBytesNoTickCanLeave(t *testing.T) {
 	// here rather than cut off the fixture: a spoiled copy has to differ from a
 	// well-formed one in the one byte this test writes, and a copy missing the
 	// block would be refused for its length before the spoiling was ever read.
-	if len(valid)-entityIDFloorLen-spellDeliverySpanLen-65-base-relationLen-12 != scriptStateLen+scriptCountsLen+2*scriptCheckLen+
+	// The Group registry the activity gate rewrote is written in the tail.
+	if len(valid)-entityIDFloorLen-spellDeliverySpanLen-65-registryFormGrowth(w)-base-relationLen-12 != scriptStateLen+scriptCountsLen+2*scriptCheckLen+
 		scriptInstantLen+scriptTriggerLen {
 		t.Fatalf("the script section is %d byte(s), which is not the shape this test spoils",
 			len(valid)-base-relationLen)

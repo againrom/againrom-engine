@@ -230,7 +230,14 @@ func TestMidStrikeCurrentSAVKeepsRequestedCastActiveVictimAndClock(t *testing.T)
 		}
 		cold := openCurrentEffectSave(t, f, raw)
 		assertCurrentWorldEqual(t, w, cold.live.world, "pending cast cold LOAD")
-		requestedLoss := midStrikeSAVControl(t, f, doc, func(row *sim.ActorContinuation) { row.PendingOrder = sim.PendingOrder{} })
+		// The actor's Group order anchors its absent spell key to the
+		// requested cast, so losing the cast loses that anchor too.
+		requestedLoss := midStrikeSAVControl(t, f, doc, func(row *sim.ActorContinuation) {
+			row.PendingOrder = sim.PendingOrder{}
+			if row.Order != nil {
+				row.Order.AbsentSpellKey = nil
+			}
+		})
 		activeLoss := midStrikeSAVControl(t, f, doc, func(row *sim.ActorContinuation) {
 			row.HasAttackTarget = false
 			row.AttackTarget = 0

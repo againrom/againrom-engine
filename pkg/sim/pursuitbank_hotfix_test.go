@@ -26,6 +26,7 @@ func TestAttackerWalksToTheBankBehindWhichItsVictimStands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
+	wakeGroups(w)
 	reached := false
 	for k := 0; k < 700; k++ {
 		Step(w, nil)

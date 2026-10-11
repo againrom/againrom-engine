@@ -74,7 +74,7 @@ func TestCurrentEffectCarrierAbsencePreservesInactiveTree(t *testing.T) {
 	if err := w.RestoreCurrentContinuation(&p, nil, w.Actions(), nil); err != nil {
 		t.Fatal(err)
 	}
-	if w.savedSpellGraph != nil || w.savedWorldEffects != nil || !reflect.DeepEqual(tree, w.SavedSpellEffects()) {
+	if w.savedSpellGraph != nil || heldDriverRows(w) != 0 || !reflect.DeepEqual(tree, w.SavedSpellEffects()) {
 		t.Fatal("carrier absence erased ordinary carried effects")
 	}
 	for range 3 {

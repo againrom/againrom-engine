@@ -109,7 +109,7 @@ func TestScorched1149Historical87Pins(t *testing.T) {
 	for _, tc := range []struct {
 		form []byte
 		hash uint64
-	}{{pinBytes, 0x3fae55f3e842e5ba}, {rtfBytes, 0xead9319c3c62159b}} {
+	}{{pinBytesHistorical, 0x3fae55f3e842e5ba}, {rtfBytesHistorical, 0xead9319c3c62159b}} {
 		old := strippedScorchedPin(tc.form)
 		// pinBytes and rtfBytes both close on entityIDFloorLen=10 (see their own
 		// var declarations); the widen chain up to widenedAttackNoticePin stops

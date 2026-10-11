@@ -20,7 +20,7 @@ type SavedGroupOwner struct {
 }
 
 func (w *World) SavedPlayerFormations() ([]SavedPlayerFormation, bool) {
-	if w.savedGroups == nil || !w.savedGroups.FormationsPresent {
+	if w.groupDialectNative() || !w.savedGroups.FormationsPresent {
 		return nil, false
 	}
 	return slices.Clone(w.savedGroups.Formations), true
@@ -30,7 +30,7 @@ func (w *World) SavedPlayerFormations() ([]SavedPlayerFormation, bool) {
 // import supplies serializer receivers and resolved owners; the native decoder
 // supplies only its persisted footer, never reconstructed Document values.
 func (w *World) ImportSavedPlayerFormations(players []SavedPlayerFormation, owners []SavedGroupOwner) error {
-	if w.savedGroups == nil || !w.savedGroups.PlayersPresent || w.savedGroups.FormationsPresent {
+	if w.groupDialectNative() || !w.savedGroups.PlayersPresent || w.savedGroups.FormationsPresent {
 		return fmt.Errorf("sim: formation import requires unbound exact Players")
 	}
 	s := cloneSavedGroups(w.savedGroups)
@@ -112,7 +112,7 @@ func (w *World) triggerFormation(player uint32) *SavedPlayerFormation {
 }
 
 func (w *World) hasSavedFormations() bool {
-	return w.savedGroups != nil && w.savedGroups.FormationsPresent
+	return !w.groupDialectNative() && w.savedGroups.FormationsPresent
 }
 
 // CommandFormationMode reads the same target the existing client command will

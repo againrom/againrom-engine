@@ -61,8 +61,11 @@ func TestAZeroStrikeOnAFallenBodyIsReportedAboveTheFloor(t *testing.T) {
 	if len(events) == 0 {
 		t.Fatal("no strike reported on a body at -5")
 	}
+	// The live-list ladder walks a body below zero one health per fourth full
+	// tick (HERO-DECAY-069), so the level a strike reports may have fallen
+	// from -5; each strike itself takes nothing.
 	for _, e := range events {
-		if e != (DamageEvent{Target: 2, BeforeHP: -5, AfterHP: -5}) {
+		if e.Target != 2 || e.BeforeHP != e.AfterHP || e.BeforeHP > -5 || e.BeforeHP <= -10 {
 			t.Fatalf("event %+v", e)
 		}
 	}

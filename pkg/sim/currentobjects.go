@@ -122,7 +122,7 @@ func (w *World) ReplaceCurrentObjects(registry *SavedObjects, identities map[Sav
 	// Order+30 names the same Spell identity as the registry. An anchored
 	// absent native key must replace its ordinary allocation in references too;
 	// a changed ordinary pointer or Spell key has no such identity mapping.
-	if w.savedObjects != nil && n.savedObjects != nil && n.savedGroups != nil {
+	if w.savedObjects != nil && n.savedObjects != nil && !n.groupDialectNative() {
 		keys := map[uint32]uint32{}
 		for _, old := range w.savedObjects.Spells {
 			if current := n.savedObjects.spell(identities[old.ID]); old.This != 0 && current != nil && current.This != old.This {

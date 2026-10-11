@@ -41,7 +41,7 @@ func pickupTransfer1117(t *testing.T, w *World) {
 	if e := w.entities[0]; e.ActorState != 2 || e.HasTarget || e.HasAttackTarget || e.GroupSpeed != 0 || len(w.routes[0]) != 0 {
 		t.Fatalf("transfer retained stale order: %+v", e)
 	}
-	if order, _, ok := w.groupState(1, effectiveGroup(&w.entities[0])); !ok || order != 0 {
+	if order, ok := registryOrder(w, 0); !ok || order != 0 {
 		t.Fatalf("pickup retained group order %d/%v", order, ok)
 	}
 }
@@ -268,11 +268,7 @@ func TestPickup1117RejectsMalformedPendingWithoutChangingReceiver(t *testing.T) 
 	}
 	for _, order := range []uint8{orderGuard, orderMove, orderSwarm2} {
 		bad := pickupRoundTrip1117(t, w)
-		for i := range bad.groups {
-			if bad.groups[i].owner == 1 && bad.groups[i].group == effectiveGroup(&bad.entities[0]) {
-				bad.groups[i].order = order
-			}
-		}
+		bad.savedGroupFor(bad.entities[0].ID).AI[0x20] = order
 		if err := w.UnmarshalBinary(mustMarshal(t, bad)); err == nil || !strings.Contains(err.Error(), "pickup completion") {
 			t.Fatalf("group order%d: wanted pending-group refusal, got %v", order, err)
 		}
@@ -307,7 +303,7 @@ func TestPickup1117PreservesCommittedCrossingAndScriptReplacement(t *testing.T) 
 	}
 	w = pickupWorld1117(t, 8)
 	pickupTransfer1117(t, w)
-	w.cmdGroupCommandedMove(effectiveGroup(&w.entities[0]), orderMove, 25, 20)
+	w.cmdGroupOrder(ScriptInstant{HasGroup: true, Group: effectiveGroup(&w.entities[0]), Args: [scriptParams]int32{int32(orderMove), 25, 20}})
 	Step(w, nil)
 	if w.entities[0].ActorState != actorStateGuard {
 		t.Fatal("script replacement did not cancel pending completion")

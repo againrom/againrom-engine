@@ -29,7 +29,8 @@ func (w *World) retainsOldStrike(i int) bool {
 	if !e.HasAttackTarget {
 		return false
 	}
-	known := e.Retreat.Known || w.savedOrder(e.ID) != nil
+	o := w.savedOrder(e.ID)
+	known := e.Retreat.Known || o != nil && o.Raw[9] != 0
 	// A release marker or pickup completion held beside a recovering cycle does
 	// not retain it for a cast or scroll: those replace the cycle and the marker.
 	held := e.PendingOrder.Kind == PendingRelease || e.PendingOrder.Kind == PendingPickupComplete
@@ -71,6 +72,11 @@ func (w *World) pendingLogicalProgress(i int) uint8 {
 	if o := w.savedOrder(e.ID); o != nil {
 		if o.Raw[9] == 1 && e.AttackPhase == AttackReady && e.AttackCountdown == 0 {
 			return 0
+		}
+		// A cycle the World loaded after the order's progress byte was last
+		// written is in progress until it is ready again.
+		if o.Raw[9] == 0 && e.cycleLoaded() {
+			return 1
 		}
 		return o.Raw[9]
 	}

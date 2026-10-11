@@ -302,7 +302,10 @@ func validateSavedGroupBindingWorld(state *SnapshotSAVDocument, world *sim.World
 			bound   SnapshotSAVGroupReferenceBinding
 			current sim.SavedGroupReference
 		}{{binding.Reference, g.Reference}, {binding.Owner, g.Owner}} {
-			if pair.bound.Key != pair.current.Key || pair.bound.Class != pair.current.Class || pair.bound.Owner != pair.current.Owner {
+			// A Player reference the World holds by slot alone binds the
+			// Player key the document minted (savedGroupReferenceKey).
+			minted := pair.current.Class == 1 && pair.current.Key == 0 && pair.bound.Key != 0
+			if pair.bound.Key != pair.current.Key && !minted || pair.bound.Class != pair.current.Class || pair.bound.Owner != pair.current.Owner {
 				return fmt.Errorf("saved SAV Group %d reference differs from its native registry", binding.ID)
 			}
 		}

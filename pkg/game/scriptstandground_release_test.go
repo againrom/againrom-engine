@@ -104,8 +104,7 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 		for k := 0; k < 40 && !fired; k++ {
 			sim.Step(treated, nil)
 			sim.Step(control, nil)
-			order, _, _ := treated.FrozenGroupAI(owner, a.node.Group)
-			fired = order == 3
+			fired = scriptStandOrder(treated, owner, a.node.Group, a.members[0]) == 3
 		}
 		if !fired {
 			t.Fatalf("group %d: the node never ran", a.node.Group)
@@ -189,4 +188,21 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 	if witnessed == 0 {
 		t.Fatal("no Stand Ground node names a group of two or more members")
 	}
+}
+
+// scriptStandOrder is the order (AI +0x20) of the Group the World's Group
+// registry holds for the member: the Group the script's command named.
+func scriptStandOrder(w *sim.World, owner, selector uint32, member sim.EntityID) uint8 {
+	groups, _, _ := w.SavedGroups()
+	for _, g := range groups {
+		if g.Owner.Owner != owner || g.Selector != selector {
+			continue
+		}
+		for _, m := range g.Members {
+			if m.Bound && m.Entity == member {
+				return g.AI[0x20]
+			}
+		}
+	}
+	return 0
 }

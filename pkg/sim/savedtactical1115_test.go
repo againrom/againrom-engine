@@ -60,8 +60,7 @@ func TestSavedTactical1115DefendSelectedAcquireCloseAndCover(t *testing.T) {
 				laFighter(1, 1, 7, 20, 20), laFighter(2, 2, 8, 10, 20), laFighter(3, 3, 9, 21, 20))
 			w.entities[2].HP, w.entities[2].MaxHP = 10000, 10000
 			savedTacticalRegistry(t, w, withOrders)
-			w.tick = scriptPassPhase
-			Step(w, []Command{
+			commandBeforePass(w, []Command{
 				{Kind: KindGroupDefend, Entity: 2, X: 1, Group: 9},
 				{Kind: KindGroupDefend, Entity: 1, X: 1, Group: 9},
 			})
@@ -107,8 +106,7 @@ func TestSavedTactical1115RetreatDispatchAndOriginalUnknown(t *testing.T) {
 	for _, withOrders := range []bool{false, true} {
 		w := retreatWorld1089(t)
 		savedTacticalRegistry(t, w, withOrders)
-		w.tick = scriptPassPhase
-		Step(w, retreat1089(1, 3))
+		commandBeforePass(w, retreat1089(1, 3))
 		for _, id := range []EntityID{1, 3} {
 			e, o := laEnt(t, w, id), w.savedOrder(id)
 			if o == nil || !o.Authored || o.State != 0x16 || e.ActorState != 0x16 || e.X >= 20 || !e.HasTarget || o.Raw[8] != 1 {

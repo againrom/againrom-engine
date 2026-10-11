@@ -55,6 +55,9 @@ func TestVisibilityIsRecheckedBeforeReleaseButNotAfterCommit(t *testing.T) {
 	for i := range w.groups {
 		w.groups[i].order = orderStandGround
 	}
+	for i := range w.savedGroups.Groups {
+		w.savedGroups.Groups[i].AI[0x20] = orderStandGround
+	}
 
 	Step(w, []Command{spCast(1, 2, 1)})
 	if len(w.bookCasts) != 1 {
@@ -62,6 +65,7 @@ func TestVisibilityIsRecheckedBeforeReleaseButNotAfterCommit(t *testing.T) {
 	}
 	// Still in spell range, but outside the caster's current perception.
 	w.entities[1].X, w.entities[1].PostX = 13, 13
+	w.syncSavedPost(1)
 	for range castPeriod {
 		if events := StepObserved(w, nil); len(events) != 0 {
 			t.Fatalf("pre-release sight loss emitted %+v", events)

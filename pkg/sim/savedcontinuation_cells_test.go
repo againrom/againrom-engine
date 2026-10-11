@@ -90,7 +90,7 @@ func TestRetainedCloud1162RetirementOwnsPayloadPlanesAndRouting(t *testing.T) {
 	Step(w, nil)
 	check := func(world *World) {
 		t.Helper()
-		if len(world.savedSpellEffects) != 0 || world.savedWorldEffects != nil {
+		if len(world.savedSpellEffects) != 0 || heldDriverRows(world) != 0 {
 			t.Fatal("retired wall carrier remained in the world")
 		}
 		for _, original := range before {

@@ -77,7 +77,7 @@ func TestInstantThirtyRunsThroughNewScriptAndStepTraced(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewControlledScriptWorld: %v", err)
 			}
-			trace := sttPass(w)
+			trace := passAlone(w)
 			if !trace.Pass || len(trace.Firings) != 1 || len(trace.Firings[0].Instants) != 1 {
 				t.Fatalf("StepTraced returned %+v, want one instant on one firing", trace)
 			}
@@ -111,7 +111,7 @@ func TestInstantThirtyZeroDurationRoundTripsBeforeNextEffectPass(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewControlledScriptWorld: %v", err)
 	}
-	trace := sttPass(w)
+	trace := passAlone(w)
 	if !trace.Pass || len(trace.Firings) != 1 || len(trace.Firings[0].Instants) != 1 {
 		t.Fatalf("StepTraced returned %+v, want one instant on one firing", trace)
 	}
@@ -353,4 +353,17 @@ func TestInstantThirtyDurationPersistsHashesAndTicksFromAuthoredValue(t *testing
 	if loaded.Hash() != w.Hash() {
 		t.Errorf("next-step hashes differ: loaded=%#016x source=%#016x", loaded.Hash(), w.Hash())
 	}
+}
+
+// passAlone steps to the phase-6 sub-tick and runs only its script pass,
+// traced. Under the session clock the pass is the entry arm of that sub-tick
+// and the world-effect pass of the same sub-tick follows it (SESS-TICK-006),
+// so the state an instant leaves is observable only between the two.
+func passAlone(w *World) ScriptTrace {
+	for w.tick%scriptCycle != scriptPassPhase {
+		Step(w, nil)
+	}
+	tr := ScriptTrace{Tick: w.tick, Pass: true}
+	w.scriptPassObserved(&tr, nil)
+	return tr
 }

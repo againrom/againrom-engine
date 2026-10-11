@@ -103,18 +103,23 @@ func projectNativeScalars(r *sav.DocumentRecordData, b sim.NativeActorBasis) err
 	return nil
 }
 
-func captureNativeScalars(b *sim.NativeActorBasis, r *sav.DocumentRecordData) error {
+func captureNativeScalars(b *sim.NativeActorBasis, r *sav.DocumentRecordData) ([]currentScalarWire, error) {
+	var replaced []currentScalarWire
 	for slot := range b.Scalars {
 		if b.ScalarIsKnown(slot) {
-			if _, err := readNativeScalar(r, slot); err != nil {
-				return err
+			wire, err := readNativeScalar(r, slot)
+			if err != nil {
+				return nil, err
+			}
+			if wire != b.Scalars[slot] {
+				replaced = append(replaced, currentScalarWire{Slot: uint8(slot), Wire: wire, Value: b.Scalars[slot]})
 			}
 			b.Scalars[slot] = 0
 		}
 	}
 	if b.BlockKnown != 0 {
 		if _, err := savedActorRaw(r, "Block12", 12); err != nil {
-			return err
+			return nil, err
 		}
 		for n := range b.Block {
 			if b.BlockByteKnown(n) {
@@ -122,7 +127,7 @@ func captureNativeScalars(b *sim.NativeActorBasis, r *sav.DocumentRecordData) er
 			}
 		}
 	}
-	return nil
+	return replaced, nil
 }
 
 func nativeScalarMetadata(b sim.NativeActorBasis, unbound bool) (sim.NativeActorBasis, error) {
@@ -144,7 +149,14 @@ func nativeScalarMetadata(b sim.NativeActorBasis, unbound bool) (sim.NativeActor
 	return b, nil
 }
 
-func matchNativeScalars(b *sim.NativeActorBasis, r *sav.DocumentRecordData) error {
+func matchNativeScalars(b *sim.NativeActorBasis, r *sav.DocumentRecordData, replaced []currentScalarWire) error {
+	kept := map[int]currentScalarWire{}
+	for i, w := range replaced {
+		if int(w.Slot) >= sim.ScalarCount || !b.ScalarIsKnown(int(w.Slot)) || i > 0 && w.Slot <= replaced[i-1].Slot {
+			return fmt.Errorf("native scalar wire names an unknown or repeated slot")
+		}
+		kept[int(w.Slot)] = w
+	}
 	for slot := range b.Scalars {
 		if !b.ScalarIsKnown(slot) {
 			continue
@@ -155,6 +167,9 @@ func matchNativeScalars(b *sim.NativeActorBasis, r *sav.DocumentRecordData) erro
 		value, err := readNativeScalar(r, slot)
 		if err != nil {
 			return err
+		}
+		if w, ok := kept[slot]; ok && value == w.Wire {
+			value = w.Value
 		}
 		b.Scalars[slot] = value
 	}

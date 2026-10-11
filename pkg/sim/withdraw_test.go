@@ -38,7 +38,7 @@ func TestWimpyPrecedesWithdrawAndEachUsesItsOwnRadius(t *testing.T) {
 		self.Wimpy, self.Withdraw, self.ScanRange = 8, 30, 5
 		hostile := withdrawalFighter(2, 3, 24, 20, 100)
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
-		w.withdrawalPass()
+		regWithdrawalPass(w, nil)
 		if got := w.entities[0]; !got.HasTarget || got.TargetX != 17 || got.TargetY != 20 {
 			t.Fatalf("Wimpy destination = (%d,%d,%t), want (17,20,true)", got.TargetX, got.TargetY, got.HasTarget)
 		}
@@ -49,7 +49,7 @@ func TestWimpyPrecedesWithdrawAndEachUsesItsOwnRadius(t *testing.T) {
 		self.Wimpy, self.Withdraw, self.ScanRange = 8, 30, 5
 		hostile := withdrawalFighter(2, 3, 24, 20, 100)
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
-		w.withdrawalPass()
+		regWithdrawalPass(w, nil)
 		if got := w.entities[0]; got.HasTarget || got.HasAttackTarget {
 			t.Fatalf("fixed-radius Withdraw reached a hostile four cells away: %+v", got)
 		}
@@ -61,7 +61,7 @@ func TestWimpyPrecedesWithdrawAndEachUsesItsOwnRadius(t *testing.T) {
 		corpse := withdrawalFighter(2, 3, 19, 20, -1)
 		live := withdrawalFighter(3, 3, 22, 20, 100)
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, corpse, live)
-		w.withdrawalPass()
+		regWithdrawalPass(w, nil)
 		got := w.entities[0]
 		if !got.HasAttackTarget || got.AttackTarget != corpse.ID || got.HasTarget {
 			t.Fatalf("dead-only Wimpy fallback = target(%d,%t) move(%d,%d,%t), want ordinary corpse acquisition and no Withdraw retreat",
@@ -86,7 +86,7 @@ func TestWithdrawalThresholdsAreAbsoluteInclusiveAndZeroIsInert(t *testing.T) {
 			self.Withdraw = tc.limit
 			hostile := withdrawalFighter(2, 3, 22, 20, 100)
 			w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
-			w.withdrawalPass()
+			regWithdrawalPass(w, nil)
 			if got := w.entities[0].HasTarget; got != tc.want {
 				t.Errorf("HasTarget = %t, want %t", got, tc.want)
 			}
@@ -100,7 +100,7 @@ func TestWithdrawalUsesTheMeanOfTheFilteredListAndDecodedIntegerGeometry(t *test
 	a := withdrawalFighter(2, 3, 18, 18, 100)
 	b := withdrawalFighter(3, 3, 18, 24, 100)
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, a, b)
-	w.withdrawalPass()
+	regWithdrawalPass(w, nil)
 	got := w.entities[0]
 	// Fine mean (18.5,21.5) cells, fine self (20.5,20.5): delta (2,-1): +3 on X
 	// and -1.5 truncated on Y from the centred self, then the signed
@@ -147,7 +147,7 @@ func TestWithdrawalZeroAxesAndPlayableEdgeClamps(t *testing.T) {
 			self.Withdraw = 10
 			hostile := withdrawalFighter(2, 3, tc.hx, tc.hy, 100)
 			w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
-			w.withdrawalPass()
+			regWithdrawalPass(w, nil)
 			got := w.entities[0]
 			if !got.HasTarget || got.TargetX != tc.wantX || got.TargetY != tc.wantY {
 				t.Errorf("destination = (%d,%d,%t), want (%d,%d,true)", got.TargetX, got.TargetY, got.HasTarget, tc.wantX, tc.wantY)
@@ -164,7 +164,7 @@ func TestWithdrawalDropsVictimRouteAndGroupSpeedBeforeWritingTheMove(t *testing.
 	hostile := withdrawalFighter(2, 3, 21, 20, 100)
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
 	w.routes[0] = []cell{{21, 20}}
-	w.withdrawalPass()
+	regWithdrawalPass(w, nil)
 	got := w.entities[0]
 	if got.HasAttackTarget || got.GroupSpeed != 0 || len(w.routes[0]) != 0 {
 		t.Fatalf("replacement retained victim=%t groupSpeed=%d route=%v", got.HasAttackTarget, got.GroupSpeed, w.routes[0])
@@ -194,11 +194,8 @@ func TestEveryGroupAndActorDecisionReachesTheCommonWithdrawalTail(t *testing.T) 
 			hostile := withdrawalFighter(2, 3, 21, 20, 100)
 			w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
 			setGroupOrder(t, w, self.Owner, self.Group, tc.order)
-			w.engagementPass()
-			ordinary := w.entities[0]
-			var obs withdrawalObs
-			w.withdrawalPassObserved(&obs)
-			assertWithdrawalReplacement(t, obs.decisions, ordinary, 17, 20)
+			ordinary, decisions := decisionThenTail(t, w)
+			assertWithdrawalReplacement(t, decisions, ordinary, 17, 20)
 		})
 	}
 
@@ -225,13 +222,28 @@ func TestEveryGroupAndActorDecisionReachesTheCommonWithdrawalTail(t *testing.T) 
 			subject := withdrawalFighter(3, 2, 30, 20, 100)
 			w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile, subject)
 			setGroupOrder(t, w, self.Owner, self.Group, orderNone)
-			w.actorPass()
-			ordinary := w.entities[0]
-			var obs withdrawalObs
-			w.withdrawalPassObserved(&obs)
-			assertWithdrawalReplacement(t, obs.decisions, ordinary, 17, 20)
+			ordinary, decisions := decisionThenTail(t, w)
+			assertWithdrawalReplacement(t, decisions, ordinary, 17, 20)
 		})
 	}
+}
+
+// decisionThenTail runs the script phase's decisions and withdrawal stage on w
+// and returns entity 0's ordinary decision, taken from a control copy whose
+// withdrawal threshold is zero, with the observed tail decisions.
+func decisionThenTail(t *testing.T, w *World) (Entity, []WithdrawalDecision) {
+	t.Helper()
+	control := worldRoundTripForTest(t, w)
+	control.entities[0].Withdraw = 0
+	control.engagementPass()
+	control.actorPass()
+	ordinary := control.entities[0]
+	ordinary.Withdraw = w.entities[0].Withdraw
+	var obs withdrawalObs
+	w.engagementPassTraced(nil, &obs)
+	w.actorPass()
+	w.withdrawalPassObserved(&obs)
+	return ordinary, obs.decisions
 }
 
 func assertWithdrawalReplacement(t *testing.T, got []WithdrawalDecision, ordinary Entity, x, y int32) {
@@ -263,12 +275,17 @@ func TestPlayerCommandedMoveSucceedsOrSurvivesWithTheWithdrawalTail(t *testing.T
 			self.Withdraw = 10
 			hostile := withdrawalFighter(2, 2, tc.hostileX, 20, 100)
 			w := engWorld(t, engRel(t, [3]uint32{SelfSlot, 2, 1}), self, hostile)
-			w.tick = scriptPassPhase
-			decisions := StepWithdrawalTraced(w, []Command{{Kind: KindMoveTo, Entity: self.ID, X: 30, Y: 20}})
+			// The command drains on the sub-tick before the pass: the session
+			// pass is the entry arm of its own sub-tick (SESS-TICK-006). The
+			// unit has stepped once toward its goal when the tail picks its
+			// flee cell, which is then (18,16).
+			w.tick = scriptPassPhase - 1
+			Step(w, []Command{{Kind: KindMoveTo, Entity: self.ID, X: 30, Y: 20}})
+			decisions := StepWithdrawalTraced(w, nil)
 			got := w.entities[0]
 			if tc.wantRetreat {
 				if len(decisions) != 1 || decisions[0].Before.TargetX != 30 || decisions[0].Before.TargetY != 20 ||
-					!decisions[0].Before.HasTarget || decisions[0].After.TargetX != 17 || decisions[0].After.TargetY != 20 {
+					!decisions[0].Before.HasTarget || decisions[0].After.TargetX != 18 || decisions[0].After.TargetY != 16 {
 					t.Fatalf("command/tail boundary = %+v", decisions)
 				}
 				return
@@ -276,8 +293,10 @@ func TestPlayerCommandedMoveSucceedsOrSurvivesWithTheWithdrawalTail(t *testing.T
 			if len(decisions) != 0 {
 				t.Fatalf("failed tail reported decisions: %+v", decisions)
 			}
-			if !got.HasTarget || got.TargetX != 30 || got.TargetY != 20 || got.X != 21 || got.Y != 20 {
-				t.Fatalf("failed tail did not preserve commanded move: %+v", got)
+			// The command's first step was the sub-tick before the pass, so
+			// the unit stands two steps along its route.
+			if !got.HasTarget || got.TargetX != 30 || got.TargetY != 20 || got.X != 22 || got.Y != 19 {
+				t.Fatalf("failed tail did not preserve commanded move: at (%d,%d) goal (%d,%d,%t)", got.X, got.Y, got.TargetX, got.TargetY, got.HasTarget)
 			}
 		})
 	}
@@ -294,7 +313,7 @@ func TestFailedWithdrawalTailPreservesThePriorOrderByteForByte(t *testing.T) {
 		t.Fatal(err)
 	}
 	var obs withdrawalObs
-	w.withdrawalPassObserved(&obs)
+	regWithdrawalPass(w, &obs)
 	after, err := w.MarshalBinary()
 	if err != nil {
 		t.Fatal(err)
@@ -323,7 +342,7 @@ func TestWithdrawalEligibilityAndHostileVisibilityPopulation(t *testing.T) {
 			w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
 			tc.mutate(w)
 			before := w.entities[0]
-			w.withdrawalPass()
+			regWithdrawalPass(w, nil)
 			if !reflect.DeepEqual(w.entities[0], before) {
 				t.Fatalf("excluded actor changed:\n before %+v\n after  %+v", before, w.entities[0])
 			}
@@ -337,12 +356,12 @@ func TestWithdrawalEligibilityAndHostileVisibilityPopulation(t *testing.T) {
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
 		w.attached = []attachedEffect{{Target: hostile.ID, Spell: 15, Kind: EffectInvisible,
 			Mode: EffectDuration, Remaining: 20}}
-		w.withdrawalPass()
+		regWithdrawalPass(w, nil)
 		if got := w.entities[0]; got.HasTarget {
 			t.Fatal("invisible hostile triggered withdrawal")
 		}
 		w.attached = nil
-		w.withdrawalPass()
+		regWithdrawalPass(w, nil)
 		if got := w.entities[0]; !got.HasTarget || got.TargetX != 17 || got.TargetY != 20 {
 			t.Fatal("zero sight prevented spatial withdrawal")
 		}
@@ -355,7 +374,7 @@ func TestWithdrawalEligibilityAndHostileVisibilityPopulation(t *testing.T) {
 		hostile.OffMap = true
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
 		before := w.entities[0]
-		w.withdrawalPass()
+		regWithdrawalPass(w, nil)
 		if !reflect.DeepEqual(w.entities[0], before) {
 			t.Fatalf("off-map hostile triggered withdrawal: %+v", w.entities[0])
 		}
@@ -415,7 +434,7 @@ func TestCanonicalInt32HealthDoesNotWrapAtTheOriginalSignedWordBoundary(t *testi
 		t.Fatalf("form-60 HP = %d, want 65566", got)
 	}
 	before := loaded.entities[0]
-	loaded.withdrawalPass()
+	regWithdrawalPass(&loaded, nil)
 	if !reflect.DeepEqual(loaded.entities[0], before) {
 		t.Fatalf("int32 HP %d wrapped below threshold %d: %+v", before.HP, before.Withdraw, loaded.entities[0])
 	}
@@ -462,7 +481,7 @@ func TestBlockedWithdrawalTargetUsesTheOrdinaryReachableSubstitute(t *testing.T)
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
 	}
-	w.withdrawalPass()
+	regWithdrawalPass(w, nil)
 	Step(w, nil)
 	got := w.entities[0]
 	if got.TargetX != 18 || got.TargetY != 20 || !got.HasTarget {

@@ -19,10 +19,13 @@ func TestMilestone2PlayedTerminalFrozenFineSurvivesCurrentSAV(t *testing.T) {
 		name, hash   string
 		identity     uint32
 		fineX, fineY uint8
+		ticks        int
 	}{
-		{"2026-08-27/EXP-0261-owner-runs/game9999.sav", "d8e6f1d21a7d5f98d8e21d4514faa3741f4793cbf39eebbc57061db58fc84a74", 0x2b58590, 192, 64},
-		{"2027-09-07/game0036.sav", "dd45e761d806ffe5d0ad2104d3dd21cd30f5985dcd5695ac47bdf2ce5348b530", 0x2ff6990, 160, 96},
-		{"2027-09-07/game0043.sav", "f030af255c18fe6f8efd5dabd0cddf0396fbab2f8cb6ff9323a19f0c85e47aaf", 0x301e930, 112, 144},
+		{"2026-08-27/EXP-0261-owner-runs/game9999.sav", "d8e6f1d21a7d5f98d8e21d4514faa3741f4793cbf39eebbc57061db58fc84a74", 0x2b58590, 192, 64, 30},
+		// The engaged-Group tail (DIV-1523) sets this Group on the party two
+		// ticks sooner, so the route stops two ticks sooner, still mid-step.
+		{"2027-09-07/game0036.sav", "dd45e761d806ffe5d0ad2104d3dd21cd30f5985dcd5695ac47bdf2ce5348b530", 0x2ff6990, 160, 96, 28},
+		{"2027-09-07/game0043.sav", "f030af255c18fe6f8efd5dabd0cddf0396fbab2f8cb6ff9323a19f0c85e47aaf", 0x301e930, 112, 144, 30},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
@@ -40,7 +43,7 @@ func TestMilestone2PlayedTerminalFrozenFineSurvivesCurrentSAV(t *testing.T) {
 			if assets == "" {
 				t.Fatal("AGAINROM_ASSETS must name a lawful install")
 			}
-			c := savGateCase{population: "corpus played", name: tc.name + " played", raw: raw, ticks: 30, kill: true}
+			c := savGateCase{population: "corpus played", name: tc.name + " played", raw: raw, ticks: tc.ticks, kill: true}
 			f, _, refusal, town := savGateOpen(t, assets, "terminal fine play", c, raw)
 			if refusal != "" || town {
 				t.Fatalf("source mission LOAD: town=%t refusal=%s", town, refusal)

@@ -20,7 +20,7 @@ func TestAGroupStruckFromBeyondItsNoticeCircleAnswersWithEveryMember(t *testing.
 	shooter.DamageBase = 1
 	w := engWorld(t, Relations{}, append(members, shooter)...)
 
-	_, base, _ := w.groupState(2, 0)
+	_, base, _ := regState(w, 2, 0)
 	if radius := int64(noticeRadius(base)); radius >= 20 {
 		t.Fatalf("the fixture's notice radius is %d, want it under the 20 cells the shooter stands at", radius)
 	}

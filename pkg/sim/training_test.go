@@ -19,12 +19,12 @@ func trainingWorld(t *testing.T, base, bonus int32) *World {
 }
 
 func TestNativeTrainingAwardsAtEffectiveBounds(t *testing.T) {
+	// Every first-game World holds the session clock, so an engine-made World
+	// and an imported one take one producer test.
 	for _, tc := range []struct {
 		base, bonus int32
-		imported    bool
-	}{{100, 200, false}, {90, 200, false}, {40, -100, false}, {100, 200, true}, {90, 200, true}, {40, -100, true}} {
+	}{{100, 200}, {90, 200}, {40, -100}} {
 		w := trainingWorld(t, tc.base, tc.bonus)
-		w.hasSessionClock = tc.imported
 		if w.NativeTrainingNeedsProducer(1) {
 			t.Fatal("known worn producer refused a reproducible sheet")
 		}

@@ -268,8 +268,9 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 			// SAV-1096/AI-POST-042: every AI-owned actor's AI-start order
 			// object and mover both name its own cell as its post, not the
 			// zero construction default that lets a hostile actor fight
-			// early. DIV-1388: the party's own hero is excluded (its post
-			// stays 0,0), matching savactorproject.go's owner gate.
+			// early. The hero's order holds its own cell too: the mission
+			// start's Stand Ground walk stores the post word (AI-351,
+			// SAV-1220); its mover post stays 0,0 (DIV-1388).
 			for _, obj := range doc.Objects {
 				if obj.Class != "Human" && obj.Class != "Unit" {
 					continue
@@ -290,8 +291,8 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 					continue
 				}
 				if isHero(pos) {
-					if order[0] != 0 || order[1] != 0 {
-						t.Errorf("hero record order post=%d,%d, want 0,0", order[0], order[1])
+					if order[0] != pos[0] || order[1] != pos[1] {
+						t.Errorf("hero record order post=%d,%d, want own cell %d,%d", order[0], order[1], pos[0], pos[1])
 					}
 					if mover[0x82] != 0 || mover[0x83] != 0 {
 						t.Errorf("hero record mover post=%d,%d, want 0,0", mover[0x82], mover[0x83])
@@ -320,9 +321,9 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 					}
 				}
 			}
-			// DIV-1388: a Human record naming the party's own hero carries
-			// the raw state word (U50) untouched at 0 — the AI idle-turn
-			// default above is excluded for it, the same as its post above.
+			// A Human record naming the party's own hero carries the Stand
+			// Ground state word (U50) 0x0c the mission start's setter stores
+			// (AI-351), not the AI idle-turn default above.
 			for _, obj := range doc.Objects {
 				if obj.Class != "Human" {
 					continue
@@ -338,8 +339,8 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 				}
 				for _, raw := range obj.Raw {
 					if raw.Name == "U50" && len(raw.Bytes) == 4 {
-						if raw.Bytes[0] != 0 || raw.Bytes[1] != 0 || raw.Bytes[2] != 0 || raw.Bytes[3] != 0 {
-							t.Errorf("hero record U50=%v, want [0 0 0 0]", raw.Bytes)
+						if raw.Bytes[0] != 0x0c || raw.Bytes[1] != 0 || raw.Bytes[2] != 0 || raw.Bytes[3] != 0 {
+							t.Errorf("hero record U50=%v, want [12 0 0 0]", raw.Bytes)
 						}
 					}
 				}

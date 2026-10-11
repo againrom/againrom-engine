@@ -1,6 +1,9 @@
 package sim
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 // This file covers 0096 T2: the script's group command (opcode 6, its five
 // sub-command writers) and the three engagement arms the new orders reach —
@@ -22,6 +25,15 @@ import "testing"
 // order alone; this is its two-field twin.
 func setGroupCommand(t *testing.T, w *World, owner, group uint32, order uint8, cx, cy int32) {
 	t.Helper()
+	// Both records: the registry a first-game World decides from, and the
+	// native record the native group arm reads.
+	found := false
+	if w.savedGroups != nil {
+		if g := regFind(w, owner, group); g != nil {
+			g.AI[0x20], g.AI[10], g.AI[11] = order, uint8(cx), uint8(cy)
+			found = true
+		}
+	}
 	for i := range w.groups {
 		if w.groups[i].owner == owner && w.groups[i].group == group {
 			w.groups[i].order = order
@@ -29,16 +41,16 @@ func setGroupCommand(t *testing.T, w *World, owner, group uint32, order uint8, c
 			return
 		}
 	}
-	t.Fatalf("no group record for (owner %d, group %d) — this test's fixture is wrong", owner, group)
+	if !found {
+		t.Fatalf("no group record for (owner %d, group %d) — this test's fixture is wrong", owner, group)
+	}
 }
 
 // ---------------------------------------------------------------- AC-2, AC-3
 
-// TestAGroupCommandMovesExactlyOneOrder is AC-2: two groups, one command, and
-// the record it names is the only thing that changes — checked over the
-// WHOLE byte form, not just the two touched fields, so a command that leaked
-// into a third field would fail this even if the order and cell alone looked
-// right.
+// TestAGroupCommandMovesExactlyOneOrder: two
+// Groups, one command, and only the named Group and its member's order change;
+// the other Group, its member's order and every actor stay as they were.
 func TestAGroupCommandMovesExactlyOneOrder(t *testing.T) {
 	t.Parallel()
 
@@ -48,39 +60,33 @@ func TestAGroupCommandMovesExactlyOneOrder(t *testing.T) {
 	b.Group = 20
 	w := engWorld(t, engRel(t), a, b)
 
-	before, err := w.MarshalBinary()
-	if err != nil {
-		t.Fatalf("MarshalBinary: %v", err)
-	}
+	other := cloneSavedGroups(&savedGroupState{Groups: []SavedGroup{*regFind(w, 3, 20)}}).Groups[0]
+	otherOrder := *w.savedOrder(2)
+	untouched := w.entities[indexOfEntity(w.entities, 2)]
+	named := *regFind(w, 2, 10)
 
 	w.runInstant(ScriptInstant{Op: ScriptInstantGroupOrder, Group: 10, HasGroup: true,
 		Args: [scriptParams]int32{int32(orderStandGround)}})
 
-	if order, _, ok := w.groupState(2, 10); !ok || order != orderStandGround {
+	if order, _, ok := regState(w, 2, 10); !ok || order != orderStandGround {
 		t.Fatalf("the named record reads order=%d ok=%v, want Stand Ground", order, ok)
 	}
-	if order, _, ok := w.groupState(3, 20); !ok || order != orderGuard {
+	if order, _, ok := regState(w, 3, 20); !ok || order != orderGuard {
 		t.Fatalf("the untouched record moved to order=%d, want Guard (its construction default)", order)
 	}
-
-	// Diff the marshalled bytes against a hand-built "before" world carrying
-	// the SAME single change, so the comparison names more than "the two
-	// bytes I already checked moved" — any other byte moving fails it too.
-	wantAfter := engWorld(t, engRel(t), a, b)
-	setGroupOrder(t, wantAfter, 2, 10, orderStandGround)
-	got, err := w.MarshalBinary()
-	if err != nil {
-		t.Fatalf("MarshalBinary (after): %v", err)
+	after := *regFind(w, 2, 10)
+	after.AI[0x20] = named.AI[0x20]
+	if !reflect.DeepEqual(after.AI, named.AI) {
+		t.Errorf("the command changed a named-Group AI byte other than the order")
 	}
-	want, err := wantAfter.MarshalBinary()
-	if err != nil {
-		t.Fatalf("MarshalBinary (want): %v", err)
+	if got := cloneSavedGroups(&savedGroupState{Groups: []SavedGroup{*regFind(w, 3, 20)}}).Groups[0]; !reflect.DeepEqual(got, other) {
+		t.Errorf("the untouched Group changed: %+v", got)
 	}
-	if string(got) != string(want) {
-		t.Errorf("the command's own bytes are not exactly the hand-built single-field change")
+	if got := *w.savedOrder(2); !reflect.DeepEqual(got, otherOrder) {
+		t.Errorf("the untouched member's order changed")
 	}
-	if string(got) == string(before) {
-		t.Errorf("the command changed nothing at all — this test would pass for the wrong reason")
+	if got := w.entities[indexOfEntity(w.entities, 2)]; got != untouched {
+		t.Errorf("the untouched member changed: %+v", got)
 	}
 }
 
@@ -108,7 +114,7 @@ func TestTheFiveSubCommandsWriteTheOrderTheyName(t *testing.T) {
 			w := engWorld(t, engRel(t), a)
 			w.runInstant(ScriptInstant{Op: ScriptInstantGroupOrder, Group: 1, HasGroup: true,
 				Args: [scriptParams]int32{int32(tc.sub), 9, 9}})
-			if order, _, ok := w.groupState(2, 1); !ok || order != tc.want {
+			if order, _, ok := regState(w, 2, 1); !ok || order != tc.want {
 				t.Errorf("sub-command %d leaves order=%d ok=%v, want %d", tc.sub, order, ok, tc.want)
 			}
 		})
@@ -196,7 +202,7 @@ func TestSubCommandOneReFreezesTheNoticeBase(t *testing.T) {
 	a.Group = group
 	w := engWorld(t, engRel(t), a)
 
-	_, constructedBase, ok := w.groupState(owner, group)
+	_, constructedBase, ok := regState(w, owner, group)
 	if !ok {
 		t.Fatal("the fixture's own construction-time record is missing")
 	}
@@ -214,7 +220,7 @@ func TestSubCommandOneReFreezesTheNoticeBase(t *testing.T) {
 	w.runInstant(ScriptInstant{Op: ScriptInstantGroupOrder, Group: group, HasGroup: true,
 		Args: [scriptParams]int32{int32(orderGuard)}})
 
-	order, gotBase, ok := w.groupState(owner, group)
+	order, gotBase, ok := regState(w, owner, group)
 	if !ok || order != orderGuard {
 		t.Fatalf("sub-command 1 left order=%d ok=%v, want Guard", order, ok)
 	}
@@ -286,7 +292,7 @@ func TestSubCommandsFourAndFiveDistributeLikeThePlayersOwnGroupMove(t *testing.T
 				t.Errorf("id %d carries a term of %d, want the slow member's %d", e.ID, e.GroupSpeed, slow)
 			}
 		}
-		if order, _, ok := w.groupState(owner, group); !ok || order != orderMove {
+		if order, _, ok := regState(w, owner, group); !ok || order != orderMove {
 			t.Errorf("the group's stored order is %d ok=%v, want Move", order, ok)
 		}
 	})
@@ -324,7 +330,7 @@ func TestSubCommandsFourAndFiveDistributeLikeThePlayersOwnGroupMove(t *testing.T
 					e.ID, e.HasTarget, e.TargetX, e.TargetY, want[i][0], want[i][1])
 			}
 		}
-		if order, _, ok := w.groupState(owner, group); !ok || order != orderSwarm2 {
+		if order, _, ok := regState(w, owner, group); !ok || order != orderSwarm2 {
 			t.Errorf("the group's stored order is %d ok=%v, want Swarm 2", order, ok)
 		}
 	})
@@ -359,7 +365,7 @@ func TestASwarmCommandGivesNoDestinationUntilTheNextDecision(t *testing.T) {
 				id, e.TargetX, e.TargetY)
 		}
 	}
-	if order, _, ok := w.groupState(owner, group); !ok || order != orderSwarm {
+	if order, _, ok := regState(w, owner, group); !ok || order != orderSwarm {
 		t.Fatalf("the command left order=%d ok=%v, want Swarm", order, ok)
 	}
 
@@ -402,7 +408,7 @@ func TestSwarmEngagesWhatGuardWouldHaveClipped(t *testing.T) {
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), m, cand)
 		i := indexOfEntity(w.entities, 1)
 		w.entities[i].ScanRange = 18 // sight alone; comfortably inside the march's window
-		if _, base, ok := w.groupState(2, 0); !ok || base != 8 {
+		if _, base, ok := regState(w, 2, 0); !ok || base != 8 {
 			t.Fatalf("the fixture's own frozen base is %d, want 8 (radius 12) — this test's arithmetic assumes it", base)
 		}
 		setGroupOrder(t, w, 2, 0, order)
@@ -627,18 +633,7 @@ func TestAMoveCommandedGroupKeepsDecidingWhileItWalks(t *testing.T) {
 
 	// One tick later, still walking: the group still names it.
 	Step(w, nil)
-	found := false
-	for _, g := range w.aiGroups() {
-		if g.owner != owner || g.group != group {
-			continue
-		}
-		for _, mi := range g.members {
-			if w.entities[mi].ID == 1 {
-				found = true
-			}
-		}
-	}
-	if !found {
+	if g := w.savedGroupFor(1); g == nil || g.Owner.Owner != owner || g.Selector != group || g.AI[0x20] != orderMove {
 		t.Fatal("a member walking under its own group's Move order is excluded from aiGroups — DD-18's skip is too wide")
 	}
 
@@ -682,15 +677,7 @@ func TestAMoveCommandedGroupKeepsDecidingWhileItWalks(t *testing.T) {
 	if e := entityAt(t, pw, 3); !e.HasTarget {
 		t.Fatal("the contrast fixture's own player order did not stick — this test would pass for the wrong reason")
 	}
-	foundPlayerCommanded := false
-	for _, g := range pw.aiGroups() {
-		for _, mi := range g.members {
-			if pw.entities[mi].ID == 3 {
-				foundPlayerCommanded = true
-			}
-		}
-	}
-	if !foundPlayerCommanded {
+	if g := pw.savedGroupFor(3); g == nil || g.AI[0x20] != orderMove {
 		t.Fatal("a unit under a player's own move order is no longer named by aiGroups — 0117 FR-4's " +
 			"command group should keep it visible under the move order, on DD-18's own terms, exactly " +
 			"as the script-commanded group above stays visible")

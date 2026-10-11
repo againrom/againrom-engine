@@ -9,8 +9,7 @@ import (
 
 func (w *World) appendSavedFormations(b []byte) []byte {
 	start := len(b)
-	if w.hasSavedFormations() {
-		s := w.savedGroups
+	if s := w.groupsForm(); s != nil && s.FormationsPresent {
 		b = binary.LittleEndian.AppendUint32(b, uint32(len(s.Formations)))
 		for _, p := range s.Formations {
 			b = binary.LittleEndian.AppendUint32(b, p.PlayerID)

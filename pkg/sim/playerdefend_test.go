@@ -19,8 +19,8 @@ func TestPlayerDefendFreshGroupSelectedSubjectAndAdmission1087(t *testing.T) {
 	w := engWorld(t, engRel(t), laFighter(1, 1, 7, 10, 10), laFighter(2, 1, 8, 20, 10), laFighter(3, 1, 7, 12, 10))
 	outside := laEnt(t, w, 3)
 	defendOrder1087(w, 1, 2, 1, 2, 999)
-	g := commandGroupOf(t, w, 1, 2)
-	if order, _, ok := w.groupState(1, g); !ok || order != 0 {
+	commandGroupOf(t, w, 1, 2)
+	if order, ok := registryOrder(w, indexOfEntity(w.entities, 1)); !ok || order != 0 || w.savedGroupFor(2) != w.savedGroupFor(1) {
 		t.Fatalf("new group order = %d/%v, want none", order, ok)
 	}
 	a, b := laEnt(t, w, 1), laEnt(t, w, 2)
@@ -51,12 +51,12 @@ func TestPlayerDefendCloseCoverAndAcquire1087(t *testing.T) {
 	w := engWorld(t, engRel(t, [3]uint32{1, 3, 1}),
 		laFighter(1, 1, 7, 20, 20), laFighter(2, 2, 8, 10, 20), laFighter(3, 3, 9, 23, 20))
 	defendOrder1087(w, 1, 2)
-	w.actorPass()
+	regActorPass(w)
 	if e := laEnt(t, w, 2); !e.HasTarget || e.TargetX != 20 || e.HasAttackTarget {
 		t.Fatalf("distant defender must close before cover: %+v", e)
 	}
 	w.entities[1].X = 18
-	w.actorPass()
+	regActorPass(w)
 	if e := laEnt(t, w, 2); !e.HasAttackTarget || e.AttackTarget != 3 {
 		t.Fatalf("near defender did not cover protected owner's enemy: %+v", e)
 	}
@@ -64,7 +64,7 @@ func TestPlayerDefendCloseCoverAndAcquire1087(t *testing.T) {
 	// farther enemies may be covered by a defender but cannot pull it away.
 	w.entities[2].X = 21
 	defendOrder1087(w, 1, 1, 2)
-	w.actorPass()
+	regActorPass(w)
 	if e := laEnt(t, w, 1); !e.HasAttackTarget || e.AttackTarget != 3 || e.HasTarget {
 		t.Fatalf("selected protected member is inert: %+v", e)
 	}
@@ -80,7 +80,7 @@ func TestPlayerDefendCloseCoverAndAcquire1087(t *testing.T) {
 		t.Fatal("acquisition never delivered damage")
 	}
 	w.entities[2].X, w.entities[2].Y = 35, 35
-	w.actorPass()
+	regActorPass(w)
 	// The lost target is released beside a loaded cycle: the actor never chases
 	// it, and the attack target clears once the cycle completes.
 	if e := laEnt(t, w, 1); e.HasTarget || e.X != 20 || e.Y != 20 {

@@ -84,8 +84,7 @@ func TestExplicitRetreatWhoseFleeCellHasNoRouteTakesTheStandingPickAndFights(t *
 	if FacingDir(w.entities[0].Facing) == 2 {
 		t.Fatal("fixture: the unit already faces its victim, so its pick would load without a turn")
 	}
-	w.tick = scriptPassPhase
-	Step(w, []Command{GroupRetreat(1, SelfSlot, 91)})
+	commandBeforePass(w, []Command{GroupRetreat(1, SelfSlot, 91)})
 
 	got := w.entities[0]
 	if got.ActorState != actorStateRetreat {

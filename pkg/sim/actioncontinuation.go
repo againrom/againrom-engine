@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -95,6 +96,33 @@ type ActionOrderContinuation struct {
 	RepairStage, Inner, Progress, Retry uint8
 	Ordinal                             *uint32 `json:",omitempty"`
 	AbsentSpellKey                      *uint32 `json:",omitempty"`
+	// Projected lists the order bytes the writer projects from typed
+	// current state (a victim's minted key, a reach) over the World's own
+	// order bytes. LOAD restores the World's bytes while the file still
+	// holds the projected ones; an edited file keeps its own.
+	Projected []ActionOrderBytes `json:",omitempty"`
+}
+
+// ActionOrderBytes is one run of order bytes at At: Wire as the file holds
+// it, World as the World held it.
+type ActionOrderBytes struct {
+	At          uint8
+	Wire, World []byte
+}
+
+// restoreProjected puts back the World's order bytes over a run the file
+// still holds as written.
+func (c *ActionOrderContinuation) restoreProjected(o *SavedActorOrder) error {
+	for _, run := range c.Projected {
+		n := len(run.Wire)
+		if n == 0 || n != len(run.World) || int(run.At)+n > len(o.Raw) {
+			return fmt.Errorf("sim: invalid projected order bytes")
+		}
+		if bytes.Equal(o.Raw[run.At:int(run.At)+n], run.Wire) {
+			copy(o.Raw[run.At:], run.World)
+		}
+	}
+	return nil
 }
 
 // BookPhaseApproach is the BookContinuation phase of a creature's retained
@@ -127,7 +155,7 @@ func (w *World) Actions() ActionContinuations {
 	}
 	a.ActorTraversal = &traversal
 	ordinals := map[EntityID]uint32{}
-	if w.savedGroups != nil {
+	if !w.groupDialectNative() {
 		for i, row := range w.savedGroups.Orders {
 			ordinals[row.Entity] = uint32(i)
 		}
@@ -455,6 +483,9 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		e.EscortOrder, e.EscortTurnPending = v.EscortOrder, v.EscortTurnPending
 		if v.Order != nil {
 			if o := n.savedOrder(e.ID); o != nil {
+				if err := v.Order.restoreProjected(o); err != nil {
+					return err
+				}
 				if v.Order.Authored {
 					o.authorNative()
 				}
@@ -464,7 +495,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 					binary.LittleEndian.PutUint32(o.Raw[0x30:], 0)
 				}
 			}
-		} else if n.savedGroups != nil {
+		} else if !n.groupDialectNative() {
 			n.savedGroups.Orders = slices.DeleteFunc(n.savedGroups.Orders, func(o SavedActorOrder) bool { return o.Entity == e.ID })
 		}
 		n.routes[i] = nil

@@ -18,6 +18,16 @@ type currentNativeBasisWire struct {
 	Attack   []byte  `json:",omitempty"`
 	Defence  []byte  `json:",omitempty"`
 	Unbound  bool    `json:",omitempty"`
+	// Scalars names each known scalar whose file value a later writer (an
+	// action or order word) replaced: Wire is the file value, Value the
+	// World's. LOAD keeps Value while the file still holds Wire.
+	Scalars []currentScalarWire `json:",omitempty"`
+}
+
+type currentScalarWire struct {
+	Slot  uint8
+	Wire  uint32
+	Value uint32
 }
 
 func (a currentActionData) MarshalJSON() ([]byte, error) {
@@ -205,7 +215,7 @@ func captureCurrentNativeBasis(doc *sav.DocumentData, a *currentActionData) erro
 				*block.dst = bytes.Clone(raw)
 			}
 		}
-		if err := captureNativeScalars(b, r); err != nil {
+		if v.Scalars, err = captureNativeScalars(b, r); err != nil {
 			return err
 		}
 		a.NativeBasisWires = append(a.NativeBasisWires, v)
@@ -251,7 +261,7 @@ func matchCurrentNativeBasis(doc *sav.DocumentData, a *currentActionData) error 
 			return err
 		}
 		if r == nil {
-			if !ok || !v.Unbound || len(v.Base) != 0 || len(v.Modifier) != 0 || len(v.Attack) != 0 || len(v.Defence) != 0 || v.Body != nil {
+			if !ok || !v.Unbound || len(v.Base) != 0 || len(v.Modifier) != 0 || len(v.Attack) != 0 || len(v.Defence) != 0 || v.Body != nil || len(v.Scalars) != 0 {
 				return fmt.Errorf("removed native basis has conflicting missing ordinary anchors")
 			}
 			delete(wires, row.Entity)
@@ -313,7 +323,7 @@ func matchCurrentNativeBasis(doc *sav.DocumentData, a *currentActionData) error 
 				}
 			}
 		}
-		if err := matchNativeScalars(b, r); err != nil {
+		if err := matchNativeScalars(b, r, v.Scalars); err != nil {
 			return err
 		}
 		delete(wires, row.Entity)

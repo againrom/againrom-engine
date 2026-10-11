@@ -223,9 +223,17 @@ func TestANotAliveEntityGainsNothing(t *testing.T) {
 				Step(w, nil)
 			}
 			got := occEntity(t, w, 1)
-			if got.HP != tc.hp || got.HealthHundredths != 0 {
-				t.Errorf("%s: HP %d/%d hundredths after 300 ticks, want %d/0 unchanged",
-					tc.name, got.HP, got.HealthHundredths, tc.hp)
+			// Health below zero is the live-list ladder's, not regeneration's:
+			// it falls one point on each phase-12 sub-tick of a fourth full
+			// tick (HERO-DECAY-069), five of them in 300 sub-ticks (12, 76,
+			// 140, 204, 268). Regeneration adds nothing to either arm.
+			wantHP := tc.hp
+			if tc.hp < 0 {
+				wantHP -= 5
+			}
+			if got.HP != wantHP || got.HealthHundredths != 0 {
+				t.Errorf("%s: HP %d/%d hundredths after 300 ticks, want %d/0",
+					tc.name, got.HP, got.HealthHundredths, wantHP)
 			}
 			if got.Mana != 20 || got.ManaHundredths != 0 {
 				t.Errorf("%s: mana %d/%d hundredths after 300 ticks, want 20/0 unchanged",
@@ -285,7 +293,18 @@ func TestAWorldWithNoPeriodMovesNoPinnedDigest(t *testing.T) {
 	for k := 0; k < n; k++ {
 		Step(w, nil)
 	}
-	ref.tick = uint64(n)
+	// The idle steps advance only the session clock and the script's time
+	// register, which the session clock increments on every phase-6 pass
+	// whether or not a program is compiled (SAV-650).
+	ref.tick, ref.fullTick = uint64(n), DerivedFullTick(uint32(n))
+	// The activity gate rewrites each Group's +0x45 from party coverage
+	// (AI-ACTIVITY-324); no party unit is near, so the idle Group goes dormant.
+	ref.refreshSavedGroupActivity()
+	for tick := 0; tick < n; tick++ {
+		if tick%scriptCycle == scriptPassPhase {
+			ref.registers[93]++
+		}
+	}
 
 	if got, want := w.Hash(), ref.Hash(); got != want {
 		t.Errorf("after %d idle ticks with no period the world hashes %#016x, "+

@@ -58,7 +58,7 @@ func (w *World) standScriptedMembers(members []int) {
 		e.clearGroupSpeed()
 		e.clearPatrol()
 		w.clearEscort(mi)
-		if w.savedGroups != nil {
+		if !w.groupDialectNative() {
 			w.syncSavedStandGround(mi)
 			w.ensureSavedOrder(mi).State = uint32(e.ActorState)
 		}
@@ -68,7 +68,7 @@ func (w *World) standScriptedMembers(members []int) {
 // syncSavedStandGround mirrors the setter's stores into the SAV order: pending
 // 0, stop distance the member's reach, completion word 0 (AI-351, AI-370).
 func (w *World) syncSavedStandGround(i int) {
-	if w.savedGroups == nil {
+	if w.groupDialectNative() {
 		return
 	}
 	o := w.ensureSavedOrder(i)

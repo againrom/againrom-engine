@@ -101,14 +101,15 @@ func TestSavedGroupPlayers1115PresenceAndDetachedImport(t *testing.T) {
 
 func TestSavedGroupPlayers1115PresentEmptyIsNotAbsent(t *testing.T) {
 	w := mustWorld(t, 1115, Bounds{8, 8}, nil)
-	before := w.Hash()
-	if err := w.ImportSavedGroupPlayers(nil, nil); err == nil || w.Hash() != before {
-		t.Fatal("Player registry accepted without saved Groups", err)
+	// A first-game World carries the registry the spawner builds, so the
+	// Player containers never meet an absent one (AI-449).
+	if w.savedGroups == nil || !w.groupsAsConstructed() {
+		t.Fatal("a first-game World started without its constructed Group registry")
 	}
 	if err := w.ImportSavedGroups(nil, nil); err != nil {
 		t.Fatal(err)
 	}
-	before = w.Hash()
+	before := w.Hash()
 	importSavedGroupPlayers1115(t, w, nil, nil)
 	if players, present := w.SavedGroupPlayers(); !present || len(players) != 0 || w.Hash() == before {
 		t.Fatal("present-empty Player registry collapsed into absence", players, present)

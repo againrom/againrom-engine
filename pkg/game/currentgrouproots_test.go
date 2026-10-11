@@ -54,15 +54,22 @@ func partialCurrentGraph(t *testing.T, detached ...bool) (*FrontEnd, Snapshot, *
 	if err := w.ImportSavedGroups([]sim.SavedGroup{g}, nil); err != nil {
 		t.Fatal(err)
 	}
+	// The first World holds a Group registry without Players, so the binding
+	// names its Player by object; the container is that Player's identity.
 	var players []sim.SavedGroupPlayer
+	container := b.ContainerID
 	for _, p := range s.SavedDocument.GroupBindings.Players {
 		slot, err := savedStructureValue(&s.SavedDocument.Document.Objects[p.ObjectIndex-1], "Slot")
 		if err != nil {
 			t.Fatal(err)
 		}
 		players = append(players, sim.SavedGroupPlayer{ID: p.ID, Slot: slot})
+		if container == 0 && p.ObjectIndex == b.PlayerObject {
+			container = p.ID
+		}
 	}
-	if err := w.ImportSavedGroupPlayers(players, []sim.SavedGroupContainer{{GroupID: g.ID, PlayerID: b.ContainerID}}); err != nil {
+	b.ContainerID, s.SavedDocument.GroupBindings.PlayersConstructed = container, false
+	if err := w.ImportSavedGroupPlayers(players, []sim.SavedGroupContainer{{GroupID: g.ID, PlayerID: container}}); err != nil {
 		t.Fatal(err)
 	}
 	doc := s.SavedDocument.Document

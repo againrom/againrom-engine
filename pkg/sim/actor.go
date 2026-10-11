@@ -38,7 +38,7 @@ func (w *World) actorPass() {
 		if !activity.actorActive(&w.entities[i]) {
 			continue
 		}
-		if w.savedGroups != nil && !w.nativePatrol(i) {
+		if !w.groupDialectNative() && !w.nativePatrol(i) {
 			continue
 		}
 		if _, using := w.structureUseIndex(w.entities[i].ID); using {

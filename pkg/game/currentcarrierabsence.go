@@ -305,6 +305,9 @@ func finalizeCurrentCarrierAbsence(doc *sav.DocumentData, worldBytes []byte) err
 	if err := finalizeCurrentAbsentPlayers(doc, a); err != nil {
 		return err
 	}
+	if err := finalizeCurrentOrderProjection(doc, a, &world); err != nil {
+		return err
+	}
 	raw, err := json.Marshal(a)
 	if err != nil {
 		return err

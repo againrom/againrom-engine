@@ -19,7 +19,7 @@ func TestSavedGroupPlayers80IndependentHistoricalPin(t *testing.T) {
 	for _, tc := range []struct {
 		form []byte
 		hash uint64
-	}{{pinBytes, prePlayerContainersPinDigest}, {rtfBytes, prePlayerContainersRoutedDigest}} {
+	}{{pinBytesHistorical, prePlayerContainersPinDigest}, {rtfBytesHistorical, prePlayerContainersRoutedDigest}} {
 		tc.form = strippedNativeStridePin(tc.form)
 		old := append([]byte(nil), tc.form[:len(tc.form)-4]...)
 		old[0] = 79

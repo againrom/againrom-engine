@@ -24,6 +24,13 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 	out.script = script
 	out.rom2 = nil
 	out.initializeROM2Script()
+	native := false
+	if !out.groupDialectNative() && out.savedGroups.fresh && (out.savedGroups.native || out.groupsAsConstructed()) {
+		// The trigger binder reads the new script (AI-452). A registry play
+		// has changed is kept whole.
+		native, out.savedGroups = out.savedGroups.native, nil
+	}
+	out.constructCarriers(native)
 	out.reserveScriptEntityIDs()
 	out.registers = [scriptRegisters]int32{}
 	out.latches = [scriptLatches]byte{}
