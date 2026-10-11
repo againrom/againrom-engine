@@ -64,6 +64,8 @@ var fogWalkTable = map[string]struct {
 	"Inspection":           {fogWalkNotADraw, "tagged subject lookup; hover is gated by the draw list and the selected fallback by visiblePanelSelection"},
 	"statusBars":           {fogWalkGated, "the health and mage mana bars — the health bar was the leak the owner reported"},
 	"minimapMarks":         {fogWalkGated, "the minimap dot"},
+	"minimapOriginalMarks": {fogWalkGated, "the first game's minimap unit mark"},
+	"minimapMarkColours":   {fogWalkNotADraw, "the colour set the headless mark witness compares against; it draws nothing"},
 	"shotScreenRects":      {fogWalkGated, "the shot mark"},
 	"ingestDamage":         {fogWalkGated, "the damage numeral's creation half"},
 	"stepSound":            {fogWalkGated, "the blow grunt -- the numeral's other half, and a positional sound carries the direction too"},

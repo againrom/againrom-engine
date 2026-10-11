@@ -10,12 +10,13 @@ import (
 	"againrom/pkg/ui"
 )
 
-// A hired mace mercenary who falls past the point Heal can raise him has no
-// minimap dot: in sight while the party walks away, under fog once it has,
-// and after SAVE and a cold LOAD. The living party keeps its green dots, a
-// hostile in sight keeps its red dot and a hostile under fog stays unmarked
-// (DIV-1455). The fight and the walk are player attack and move orders over
-// ordinary ticks.
+// A hired mace mercenary who falls past the point Heal can raise him keeps a
+// minimap dot only while his corpse stage is at most 1 and a cell of his
+// four-cell quad is in sight (MISSION-085): in sight while the party walks
+// away, under fog once it has, and after SAVE and a cold LOAD. The living
+// party keeps its dots, a hostile in sight keeps its dot and a hostile under
+// fog stays unmarked. The fight and the walk are player attack and move
+// orders over ordinary ticks.
 //
 // The mission's 144-cell map is sampled onto a 128-pixel minimap, so two
 // neighbouring cells can share a pixel. Every absence below is read at a cell
@@ -163,13 +164,28 @@ func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
 	}
 	at := cellOf(body)
 
+	// bodyMarked is the claim's rule for the body's dot: corpse stage at most
+	// 1 and a visible cell in its four-cell quad.
+	bodyMarked := func(fe *FrontEnd) bool {
+		e, ok := fe.live.entity(body.ID)
+		if !ok || e.Decay > 1 {
+			return false
+		}
+		for _, d := range []image.Point{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
+			if fogAt(fe, at.Add(d)) == ui.FogVisible {
+				return true
+			}
+		}
+		return false
+	}
+
 	// In sight: checked on the first tick of the walk away on which the body
 	// is still visible and no living party member stands beside it.
 	checkInSight := func() {
 		t.Helper()
 		green, _ := markAt(a, at)
-		if green {
-			t.Errorf("in sight: the fallen mercenary at %v still has a green minimap dot", at)
+		if want := bodyMarked(f); green != want {
+			t.Errorf("in sight: the fallen mercenary at %v has a local dot %t, want %t", at, green, want)
 		}
 		seen := 0
 		for _, e := range f.live.world.Entities() {
@@ -222,8 +238,8 @@ func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
 			t.Fatalf("%s: living party member %d stands beside the body at %v", stage, id, at)
 		}
 		green, _ := markAt(app, at)
-		if green {
-			t.Errorf("%s: the fallen mercenary at %v still has a green minimap dot under fog %d", stage, at, fogAt(fe, at))
+		if want := bodyMarked(fe); green != want {
+			t.Errorf("%s: the fallen mercenary at %v has a local dot %t under fog %d, want %t", stage, at, green, fogAt(fe, at), want)
 		}
 		living, hidden := 0, 0
 		rel := fe.live.world.Relations()

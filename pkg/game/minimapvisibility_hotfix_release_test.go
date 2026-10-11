@@ -14,7 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
@@ -170,20 +169,26 @@ func minimapVisibleInstalled(t *testing.T, f *FrontEnd, a *ui.App, stage string)
 	if err != nil {
 		t.Fatal(stage, err)
 	}
+	// The first game's terrain is the installed MiniMapData sample of each
+	// tile word times a brightness factor (MISSION-083): every factor the
+	// level range allows is admitted.
+	lookup, err := readInstallBMP(f.Archives.Containers, "graphics/interface/minimapdata.bmp")
+	if err != nil {
+		t.Fatal(stage, err)
+	}
 	palette := make(map[color.RGBA]bool)
+	words := map[int]bool{}
 	for _, word := range f.live.mission.state.Map.Tiles {
-		ref := terrain.Resolve(word)
-		tile := f.Tiles.Slot(ref.Slot).SubCell(ref.Sub)
-		if tile == nil {
-			continue
+		words[int(word&0x1fff)] = true
+	}
+	for w := range words {
+		c := lookup.RGBAAt(w>>4, w&15)
+		for factor := 1; factor <= 96; factor++ {
+			gain := func(v uint8) uint8 { return uint8(min(255, int(v)*factor>>5)) }
+			if g := (color.RGBA{gain(c.R), gain(c.G), gain(c.B), 255}); g != (color.RGBA{A: 255}) {
+				palette[g] = true
+			}
 		}
-		b := tile.Bounds()
-		c := color.RGBAModel.Convert(tile.At(b.Min.X+b.Dx()/2, b.Min.Y+b.Dy()/2)).(color.RGBA)
-		if c.R == 0 && c.G == 0 && c.B == 0 {
-			continue
-		}
-		palette[c] = true
-		palette[color.RGBA{c.R / 2, c.G / 2, c.B / 2, c.A}] = true
 	}
 	count := func(img *image.RGBA) int {
 		n := 0

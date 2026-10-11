@@ -1440,6 +1440,9 @@ type Viewer struct {
 	// texture is rebuilt only when its dimensions change.
 	minimapColours []color.RGBA
 	minimapImg     *ebiten.Image
+	// minimapOriginal is the first game's minimap paint data and repaint
+	// state (minimaporiginal.go).
+	minimapOriginal minimapOriginalState
 
 	// minimapGrab latches a primary gesture that BEGAN on the minimap (0140):
 	// raised by a press landing on its box, lowered by the release, and read by
@@ -2383,6 +2386,12 @@ type MapStructure struct {
 	Health    uint16
 	MaxHealth uint16
 	Cell      image.Point
+	// Kind is the structures.reg class id, Owner the owner roster slot (0 for
+	// none known) and Size the object's own cell extents. The minimap reads
+	// them for a structure's mark (MISSION-085).
+	Kind  uint16
+	Owner uint32
+	Size  image.Point
 }
 
 // SetStructures adopts the current inspection snapshot and destroyed set.

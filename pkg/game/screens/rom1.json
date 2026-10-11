@@ -54,6 +54,11 @@
        {"name": "seam", "format": "picture", "key": "graphics/interface/extra1024l.bmp", "size": [16, 46], "transparent": "black", "required": true, "cite": ["TOWN-093"]}
      ],
      "cite": ["TOWN-093"]},
+    {"screen": "mission-minimap",
+     "art": [
+       {"name": "colours", "format": "picture", "key": "graphics/interface/minimapdata.bmp", "size": [52, 14], "required": true, "cite": ["MISSION-083"]}
+     ],
+     "cite": ["MISSION-083", "MISSION-088"]},
     {"screen": "tip-panel",
      "art": [
        {"name": "piece/0", "format": "frame", "key": "graphics/interface/lm.256", "frame": 9, "size": [48, 32], "required": true, "cite": ["DLG-PANEL-035"]},

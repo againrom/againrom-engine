@@ -1068,3 +1068,4 @@ pkg/game.TestReleaseSecondGameLootDotsLeaveTheSaveUntouched
 pkg/game.TestReleaseMissionTenFreshDeliveryPost
 pkg/game.TestReleaseMissionTenDeliveredActorKeepsDeliveryPost
 pkg/game.TestReleaseOwnerMissionTenDeliveryPost
+pkg/game.TestReleaseMissionMinimapPaintsTheInstalledPicture

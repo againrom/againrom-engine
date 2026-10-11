@@ -2,6 +2,8 @@ package game
 
 import (
 	"image"
+	"image/color"
+	"image/draw"
 
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
@@ -31,6 +33,7 @@ type viewerArt struct {
 	sackFrames     []*terrain.StaticFrame
 	sackBoundaries []*terrain.StaticFrame
 	missionTip     ui.MissionTipDress
+	minimapPaint   *ui.MinimapPaint
 }
 
 // viewerArtSource resolves a viewer's art from the install and the
@@ -46,6 +49,7 @@ type viewerArtSource struct {
 // presentation's caches.
 func (s viewerArtSource) resolve() viewerArt {
 	art := viewerArt{words: s.in.Words, dialogFrame: s.pr.gameMenuArt(s.in)}
+	art.minimapPaint = missionMinimapPaint(s.in)
 	art.font = s.in.Font.Value()
 	art.cardFont = s.in.tipFont()
 	art.attackPointer = s.in.AttackPointer.Value()
@@ -85,6 +89,7 @@ func (a viewerArt) apply(v *ui.Viewer) {
 	v.SetSackFrames(a.sackFrames)
 	v.SetSackBoundaries(a.sackBoundaries)
 	v.SetMissionTipDress(a.missionTip)
+	v.SetMinimapPaint(a.minimapPaint)
 }
 
 // pickerArt is the art a debug picker map is dressed with: viewerArt without
@@ -131,4 +136,40 @@ func (a pickerArt) apply(v *ui.Viewer) {
 	v.SetCharacterPaneArt(a.paneFigure, a.paneStats, a.paneCorners)
 	v.SetSackFrames(a.sackFrames)
 	v.SetSackBoundaries(a.sackBoundaries)
+}
+
+// minimapShadeEntry is the palette entry of the owner shade word the first
+// game's minimap marks take: byte +0x1148 of a sixteen-level mode-2 table is
+// row 8, entry 164, and row 8 is the neutral gain (MISSION-085,
+// TERR-LIGHT-018, TERR-LIGHT-060).
+const minimapShadeEntry = 164
+
+// missionMinimapPaint reads the minimap data the edition's mission-minimap
+// manifest names, or nil when the description names none, the lookup does not
+// read, or the install has no owner palettes. Only the first game's
+// description names the manifest; the second game keeps the symbolic picture.
+func missionMinimapPaint(in *InstallResources) *ui.MinimapPaint {
+	if in == nil || in.Archives == nil || in.Units == nil || !in.Units.HasOwnerPalettes {
+		return nil
+	}
+	d := ScreensDescription(in.profile())
+	if d.Art("mission-minimap") == nil {
+		return nil
+	}
+	set, err := loadScreen(in.Archives.artSource(), d, "mission-minimap")
+	if err != nil {
+		return nil
+	}
+	pic := set.Picture("colours")
+	if pic == nil {
+		return nil
+	}
+	lookup := image.NewRGBA(image.Rectangle{Max: pic.Bounds().Size()})
+	draw.Draw(lookup, lookup.Bounds(), pic, pic.Bounds().Min, draw.Src)
+	p := &ui.MinimapPaint{Colours: lookup}
+	for k := range p.OwnerShades {
+		c := in.Units.OwnerPalettes[k][minimapShadeEntry]
+		p.OwnerShades[k] = color.RGBA{R: c.R, G: c.G, B: c.B, A: 0xff}
+	}
+	return p
 }

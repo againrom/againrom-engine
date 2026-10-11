@@ -44,13 +44,37 @@ var (
 	minimapViewColor = color.RGBA{R: 0xa8, G: 0xff, B: 0xa8, A: 0xff}
 )
 
-// minimapMark is one coloured cell on the minimap. Loot marks a ground sack
-// and takes precedence over Local; composeMinimapLayer draws every loot mark
-// before any unit mark, so a unit standing on a sack shows the unit's colour.
+// minimapMark is one coloured rectangle on the minimap. Loot marks a ground
+// sack and takes precedence over Local. The composer draws Under marks first,
+// then loot marks, then the rest, so a sack shows over a structure and a unit
+// standing on a sack shows the unit's colour. Size is the extent in cells,
+// zero meaning one cell. A nonzero Colour is the mark's own colour; a zero one
+// takes the symbolic local, other or loot colour.
 type minimapMark struct {
-	Cell  image.Point
-	Local bool
-	Loot  bool
+	Cell   image.Point
+	Local  bool
+	Loot   bool
+	Under  bool
+	Size   image.Point
+	Colour color.RGBA
+}
+
+// minimapPlan is the data one minimap picture is composed from: the cell
+// grid, the colour of each output pixel, the marks and the camera outline. The
+// symbolic picture and the first game's picture (minimaporiginal.go) are both
+// plans; composeMinimapPlan is the one builder.
+type minimapPlan struct {
+	cols, rows int
+	// pixel is the colour of output pixel at, which shows cell (col, row).
+	// A zero alpha leaves the pixel transparent.
+	pixel func(col, row int, at image.Point) color.RGBA
+	marks []minimapMark
+	// view is the outlined cell range. With separateOutline the range is not
+	// clipped to the grid: its origin and span are scaled separately and each
+	// outline pixel outside the picture is dropped (MISSION-086).
+	view            image.Rectangle
+	viewColour      color.RGBA
+	separateOutline bool
 }
 
 func composeMinimap(colours []color.RGBA, cols, rows int, fog func(col, row int) uint8, marks []minimapMark, view image.Rectangle, box image.Point) *image.RGBA {
@@ -58,32 +82,41 @@ func composeMinimap(colours []color.RGBA, cols, rows int, fog func(col, row int)
 }
 
 func composeMinimapLayer(colours []color.RGBA, cols, rows int, fog func(col, row int) uint8, marks []minimapMark, view image.Rectangle, box image.Point, crystal bool) *image.RGBA {
+	return composeMinimapPlan(minimapPlan{
+		cols: cols, rows: rows,
+		pixel: func(col, row int, _ image.Point) color.RGBA {
+			if crystal && fog != nil && fog(col, row) == FogUnseen {
+				return color.RGBA{}
+			}
+			return minimapCellColor(colours, cols, col, row, fog)
+		},
+		marks: marks, view: view, viewColour: minimapViewColor,
+	}, box)
+}
+
+func composeMinimapPlan(p minimapPlan, box image.Point) *image.RGBA {
+	cols, rows := p.cols, p.rows
 	if cols <= 0 || rows <= 0 || box.X <= 0 || box.Y <= 0 {
 		return image.NewRGBA(image.Rectangle{})
 	}
 
 	num, den := minimapScale(cols, rows, box)
-	cellColor := func(col, row int) color.RGBA {
-		if crystal && fog != nil && fog(col, row) == FogUnseen {
-			return color.RGBA{}
-		}
-		return minimapCellColor(colours, cols, col, row, fog)
-	}
-
 	size := minimapPixelExtent(cols, rows, num, den)
 	img := image.NewRGBA(image.Rectangle{Max: size})
 	if num >= den {
 		// Per-cell pixel bounds, not a uniform block: minimapCellPixel(cols, ..)
 		// lands exactly on the box's own extent on the constraining axis (R-3,
 		// owner), and every cell's own [start, end) width is at most one pixel
-		// away from every other's, which is the same guarantee a uniform block
-		// gave when num was a multiple of den and simply continues to hold when
-		// it is not.
+		// away from every other's.
 		for row := 0; row < rows; row++ {
 			y0, y1 := minimapCellPixel(row, num, den), minimapCellPixel(row+1, num, den)
 			for col := 0; col < cols; col++ {
 				x0, x1 := minimapCellPixel(col, num, den), minimapCellPixel(col+1, num, den)
-				fillBlock(img, x0, y0, x1-x0, y1-y0, cellColor(col, row))
+				for y := y0; y < y1; y++ {
+					for x := x0; x < x1; x++ {
+						img.SetRGBA(x, y, p.pixel(col, row, image.Pt(x, y)))
+					}
+				}
 			}
 		}
 	} else {
@@ -94,12 +127,38 @@ func composeMinimapLayer(colours []color.RGBA, cols, rows int, fog func(col, row
 			row := min(rows-1, y*den/num)
 			for x := 0; x < size.X; x++ {
 				col := min(cols-1, x*den/num)
-				img.SetRGBA(x, y, cellColor(col, row))
+				img.SetRGBA(x, y, p.pixel(col, row, image.Pt(x, y)))
 			}
 		}
 	}
 
 	b := img.Bounds()
+	for pass := range 3 {
+		for _, m := range p.marks {
+			if (pass == 0) != m.Under || (pass == 1) != (m.Loot && !m.Under) {
+				continue
+			}
+			r := minimapMarkRect(m, cols, rows, num, den, b)
+			if r.Empty() {
+				continue
+			}
+			c := m.Colour
+			if c.A == 0 {
+				c = minimapOtherColor
+				if m.Loot {
+					c = minimapLootColor
+				} else if m.Local {
+					c = minimapLocalColor
+				}
+			}
+			fillBlock(img, r.Min.X, r.Min.Y, r.Dx(), r.Dy(), c)
+		}
+	}
+
+	if p.separateOutline {
+		strokeMinimapView(img, p.view, num, den, p.viewColour)
+		return img
+	}
 	outAt := func(col, row int) (int, int) {
 		return min(b.Max.X-1, minimapCellPixel(col, num, den)), min(b.Max.Y-1, minimapCellPixel(row, num, den))
 	}
@@ -109,34 +168,27 @@ func composeMinimapLayer(colours []color.RGBA, cols, rows int, fog func(col, row
 		}
 		return min(b.Max.X, ceilDiv(col*num, den)), min(b.Max.Y, ceilDiv(row*num, den))
 	}
-	for _, loot := range [...]bool{true, false} {
-		for _, m := range marks {
-			if m.Loot != loot {
-				continue
-			}
-			r := minimapMarkRect(m.Cell, cols, rows, num, den, b)
-			if r.Empty() {
-				continue
-			}
-			c := minimapOtherColor
-			if m.Loot {
-				c = minimapLootColor
-			} else if m.Local {
-				c = minimapLocalColor
-			}
-			fillBlock(img, r.Min.X, r.Min.Y, r.Dx(), r.Dy(), c)
-		}
-	}
-
-	drawMinimapView(img, view, outAt, outEnd)
+	drawMinimapView(img, p.view, outAt, outEnd, p.viewColour)
 	return img
 }
 
 // minimapMarkRect is the pixel rectangle, inside a composed picture of bounds
-// b, that a mark on cell fills: the cell's own block when a cell spans at
-// least one pixel, otherwise the one sampled pixel naming it. A cell outside
-// the grid or the picture has an empty rectangle.
-func minimapMarkRect(cell image.Point, cols, rows, num, den int, b image.Rectangle) image.Rectangle {
+// b, that mark m fills. A one-cell mark fills its cell's own block when a cell
+// spans at least one pixel, otherwise the one sampled pixel naming it, and a
+// one-cell mark outside the grid or the picture has an empty rectangle. A mark
+// with its own Size spans that many cells scaled with the picture; below one
+// pixel per cell its extents stay unscaled pixels, the original's
+// negative-scale branch (MISSION-085). Such a mark may start outside the grid
+// and is clipped to b.
+func minimapMarkRect(m minimapMark, cols, rows, num, den int, b image.Rectangle) image.Rectangle {
+	cell := m.Cell
+	if m.Size != (image.Point{}) {
+		x, y := minimapCellPixel(cell.X, num, den), minimapCellPixel(cell.Y, num, den)
+		if num >= den {
+			return image.Rect(x, y, minimapCellPixel(cell.X+m.Size.X, num, den), minimapCellPixel(cell.Y+m.Size.Y, num, den)).Intersect(b)
+		}
+		return image.Rect(x, y, x+m.Size.X, y+m.Size.Y).Intersect(b)
+	}
 	if cell.X < 0 || cell.Y < 0 || cell.X >= cols || cell.Y >= rows {
 		return image.Rectangle{}
 	}
@@ -176,7 +228,7 @@ func minimapMarkRect(cell image.Point, cols, rows, num, den int, b image.Rectang
 // AN EMPTY OR INVERTED RANGE DRAWS NOTHING. camera.VisibleTiles clips to the
 // world and can return an empty range; a caller handing one in is saying the
 // camera sees no cell, and no cell is what gets outlined.
-func drawMinimapView(img *image.RGBA, view image.Rectangle, outAt, outEnd func(col, row int) (int, int)) {
+func drawMinimapView(img *image.RGBA, view image.Rectangle, outAt, outEnd func(col, row int) (int, int), c color.RGBA) {
 	if view.Empty() {
 		return
 	}
@@ -190,7 +242,6 @@ func drawMinimapView(img *image.RGBA, view image.Rectangle, outAt, outEnd func(c
 	}
 	w, h := x1-x0, y1-y0
 
-	c := minimapViewColor
 	fillBlock(img, x0, y0, w, 1, c)   // top
 	fillBlock(img, x0, y1-1, w, 1, c) // bottom
 	fillBlock(img, x0, y0, 1, h, c)   // left
@@ -311,10 +362,10 @@ func (v *Viewer) minimapTerrainColours() []color.RGBA {
 	return out
 }
 
-// minimapMarks is one mark per unit the minimap shows. A fallen unit keeps its
-// owner's mark only while Heal can still raise it (DIV-1455); a body past that
-// floor is not marked, so a local one does not stay green under fog until the
-// world removes it.
+// minimapMarks is one mark per unit the symbolic minimap shows. A fallen unit
+// keeps its owner's mark only while Heal can still raise it (DIV-1455); a body
+// past that floor is not marked, so a local one does not stay green under fog
+// until the world removes it. The first game's marks are minimapOriginalMarks.
 func (v *Viewer) minimapMarks() []minimapMark {
 	var out []minimapMark
 	for _, e := range v.entities {
@@ -402,9 +453,23 @@ func (v *Viewer) minimapPresent() (*image.RGBA, image.Point, bool) {
 	if !ok {
 		return nil, image.Point{}, false
 	}
-	colours, fog, marks, view := v.minimapWindowed(g)
-	content := composeMinimapLayer(colours, g.Cols, g.Rows, fog, marks,
-		view, g.extent, v.dialogFrame != nil && v.dialogFrame.Minimap != nil)
+	if v.minimapOriginalActive() {
+		return v.minimapRepaint(g)
+	}
+	return v.minimapCompose(g)
+}
+
+// minimapCompose composes the framed minimap for g now, with no repaint gate:
+// the first game's plan when its paint data is present, else the symbolic one.
+func (v *Viewer) minimapCompose(g minimapGeom) (*image.RGBA, image.Point, bool) {
+	var content *image.RGBA
+	if v.minimapOriginalActive() {
+		content = composeMinimapPlan(v.minimapOriginalPlan(g), g.extent)
+	} else {
+		colours, fog, marks, view := v.minimapWindowed(g)
+		content = composeMinimapLayer(colours, g.Cols, g.Rows, fog, marks,
+			view, g.extent, v.dialogFrame != nil && v.dialogFrame.Minimap != nil)
+	}
 	cb := content.Bounds()
 	if cb.Empty() {
 		return nil, image.Point{}, false
@@ -592,6 +657,11 @@ func (v *Viewer) minimapGeometry() (minimapGeom, bool) {
 			seam = v.dialogFrame.MinimapSeam.Bounds().Dx()
 		}
 		at := box.Min.Add(image.Pt(16+(128-cw)/2-seam/2, 18+(128-ch)/2))
+		if v.minimapOriginalActive() {
+			// The first game's picture origin: (72-width/2, 82-height/2) from
+			// the widget's own origin, with arithmetic shifts (MISSION-083).
+			at = box.Min.Add(image.Pt(72-cw>>1, 82-ch>>1))
+		}
 		return minimapGeom{Box: box, Content: image.Rectangle{Min: at, Max: at.Add(contentSize)}, Cols: cols, Rows: rows, Origin: win.Min, Num: num, Den: den, extent: extent}, true
 	}
 

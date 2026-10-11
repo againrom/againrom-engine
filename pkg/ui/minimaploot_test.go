@@ -41,7 +41,7 @@ func lootPixel(t *testing.T, v *Viewer, cell image.Point) bool {
 	}
 	colours, fog, marks, view := v.minimapWindowed(g)
 	img := composeMinimap(colours, g.Cols, g.Rows, fog, marks, view, g.extent)
-	r := minimapMarkRect(cell.Sub(g.Origin), g.Cols, g.Rows, g.Num, g.Den, img.Bounds())
+	r := minimapMarkRect(minimapMark{Cell: cell.Sub(g.Origin)}, g.Cols, g.Rows, g.Num, g.Den, img.Bounds())
 	if r.Empty() {
 		t.Fatalf("cell %v has no pixel", cell)
 	}

@@ -143,11 +143,17 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 	t.Logf("bare F4 loss control wrote SAV %x and ownership %x; fixed clock stayed Unix%d", sha256.Sum256(raw), sha256.Sum256(owner), now.Unix())
 }
 
+// mapRevealTerrainPixel finds a minimap pixel the reveal changes and checks
+// it against the first game's rules from installed inputs and raw fog: the
+// revealed pixel is the cell's MiniMapData sample times a brightness factor,
+// and the hidden one is the CrystalR pixel under it when the block's fog OR is
+// zero, or the per-channel average of that pixel and the revealed terrain when
+// the OR is 0x8000 (MISSION-083, MISSION-084).
 func mapRevealTerrainPixel(t *testing.T, f *FrontEnd, off, on *image.RGBA) (image.Point, image.Point, color.RGBA, color.RGBA) {
 	t.Helper()
 	m := f.live.mission.state.Map
 	g := terrain.Grid{Width: m.Width, Height: m.Height, Block: mapload.PassabilityWith(m, f.Table)}
-	window := image.Rect(m.Width, m.Height, 0, 0)
+	window := image.Rectangle{Min: image.Pt(m.Width, m.Height)}
 	for row := 0; row < m.Height; row++ {
 		for col := 0; col < m.Width; col++ {
 			if !g.BorderCell(col, row) {
@@ -165,8 +171,25 @@ func mapRevealTerrainPixel(t *testing.T, f *FrontEnd, off, on *image.RGBA) (imag
 	if art == nil || art.Minimap == nil || art.MinimapSeam == nil {
 		t.Fatal("installed minimap frame absent")
 	}
+	lookup, err := readInstallBMP(f.Archives.Containers, "graphics/interface/minimapdata.bmp")
+	if err != nil {
+		t.Fatal(err)
+	}
 	seam := art.MinimapSeam.Bounds().Dx()
-	origin := image.Pt(16+seam-seam/2+(128-size.X)/2, 18+(128-size.Y)/2)
+	origin := image.Pt(seam+72-size.X>>1, 82-size.Y>>1)
+	fog := f.live.fog.project()
+	word := func(col, row int) int {
+		if col < 0 || row < 0 || col >= m.Width || row >= m.Height {
+			return 0
+		}
+		switch fog[row*m.Width+col] {
+		case ui.FogVisible:
+			return 0xc000
+		case ui.FogExplored:
+			return 0x8000
+		}
+		return 0
+	}
 	for y := 2; y < size.Y-2; y++ {
 		for x := 2; x < size.X-2; x++ {
 			col, row := x*den/128, y*den/128
@@ -174,27 +197,28 @@ func mapRevealTerrainPixel(t *testing.T, f *FrontEnd, off, on *image.RGBA) (imag
 				col, row = ((x+1)*den-1)/128, ((y+1)*den-1)/128
 			}
 			cell := window.Min.Add(image.Pt(col, row))
-			index := cell.Y*m.Width + cell.X
-			state := f.live.fog.project()[index]
-			if state == ui.FogVisible {
-				continue
-			}
-			ref := terrain.Resolve(m.Tiles[index])
-			input := f.Tiles.Slot(ref.Slot).SubCell(ref.Sub)
-			if input == nil {
-				continue
-			}
-			b := input.Bounds()
-			full := color.RGBAModel.Convert(input.At(b.Min.X+b.Dx()/2, b.Min.Y+b.Dy()/2)).(color.RGBA)
-			if full == (color.RGBA{64, 255, 64, 255}) || full == (color.RGBA{255, 64, 64, 255}) || full == (color.RGBA{168, 255, 168, 255}) {
+			or := word(cell.X, cell.Y) | word(cell.X+1, cell.Y) | word(cell.X+1, cell.Y+1) | word(cell.X+2, cell.Y+1)
+			if or&0x4000 != 0 {
 				continue
 			}
 			pixel := origin.Add(image.Pt(x, y))
-			hidden := color.RGBA{full.R / 2, full.G / 2, full.B / 2, full.A}
-			if state == ui.FogUnseen {
-				hidden = color.RGBAModel.Convert(art.Minimap.At(pixel.X-seam, pixel.Y)).(color.RGBA)
+			full := on.RGBAAt(pixel.X, pixel.Y)
+			tile := int(m.Tiles[cell.Y*m.Width+cell.X] & 0x1fff)
+			sample := lookup.RGBAAt(tile>>4, tile&15)
+			gained := false
+			for factor := 1; factor <= 96 && !gained; factor++ {
+				gain := func(v uint8) uint8 { return uint8(min(255, int(v)*factor>>5)) }
+				gained = full == color.RGBA{gain(sample.R), gain(sample.G), gain(sample.B), 255}
 			}
-			if hidden != full && off.RGBAAt(pixel.X, pixel.Y) == hidden && on.RGBAAt(pixel.X, pixel.Y) == full {
+			if !gained {
+				continue
+			}
+			bg := color.RGBAModel.Convert(art.Minimap.At(pixel.X-seam, pixel.Y)).(color.RGBA)
+			hidden := color.RGBA{bg.R, bg.G, bg.B, 255}
+			if or == 0x8000 {
+				hidden = color.RGBA{bg.R>>1 + full.R>>1, bg.G>>1 + full.G>>1, bg.B>>1 + full.B>>1, 255}
+			}
+			if hidden != full && off.RGBAAt(pixel.X, pixel.Y) == hidden {
 				return cell, pixel, hidden, full
 			}
 		}

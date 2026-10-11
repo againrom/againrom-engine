@@ -177,6 +177,11 @@ type mapWorld struct {
 	// tick merely to carry structure health across the viewer seam.
 	structureStateScratch []ui.MapStructure
 
+	// structureOwners is the owner roster slot of each structure bound to an
+	// ALM placement, built once per mission for the minimap marks. It reaches
+	// no simulation field or digest.
+	structureOwners map[sim.StructureID]uint32
+
 	// fog is the local participant's whole fog-of-war state: which cells
 	// sim.SelfSlot's own living entities can see right now and which cells have
 	// ever been seen, sized from the world's own bounds. It is built and
@@ -4578,12 +4583,50 @@ func wallFireAmbientCells(effects []sim.CellEffect) []image.Point {
 func (mw *mapWorld) structureDraws() []ui.MapStructure {
 	structures := mw.world.Structures()
 	out := mw.structureStateScratch[:0]
+	owners := mw.structureOwnerSlots()
 	for _, s := range structures {
 		out = append(out, ui.MapStructure{ID: uint32(s.ID), Health: s.Field42,
-			MaxHealth: s.MaxHealth, Cell: image.Pt(int(s.Col), int(s.Row))})
+			MaxHealth: s.MaxHealth, Cell: image.Pt(int(s.Col), int(s.Row)),
+			Kind: s.Kind, Owner: owners[s.ID], Size: image.Pt(int(s.Width), int(s.Height))})
 	}
 	mw.structureStateScratch = out
 	return out
+}
+
+// structureOwnerSlots is each structure's owner roster slot, the low word of
+// its ALM type-4 placement's +0x0e field. A structure binds to a placement by
+// its ID when the world holds no saved roster, and through HasAuthored, whose
+// ID equals the placement index, when it does. A structure bound to no
+// placement has no entry and so no owner. The roster never changes inside a
+// mission, so the answer is built once.
+func (mw *mapWorld) structureOwnerSlots() map[sim.StructureID]uint32 {
+	if mw.structureOwners != nil {
+		return mw.structureOwners
+	}
+	if mw.mission == nil || mw.mission.state == nil || mw.mission.state.Map == nil {
+		return nil
+	}
+	owners := map[sim.StructureID]uint32{}
+	mw.structureOwners = owners
+	objects := mw.mission.state.Map.Objects
+	placed := func(id sim.StructureID) {
+		if int(id) >= 0 && int(id) < len(objects) {
+			owners[id] = objects[id].Field0E & 0xffff
+		}
+	}
+	saved, _, present := mw.world.SavedStructures()
+	if !present {
+		for _, s := range mw.world.Structures() {
+			placed(s.ID)
+		}
+		return owners
+	}
+	for _, s := range saved {
+		if s.HasAuthored {
+			placed(s.ID)
+		}
+	}
+	return owners
 }
 
 const (

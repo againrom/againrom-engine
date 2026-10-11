@@ -2190,6 +2190,11 @@ package storyguard
 // sub-command, StepTracedAt and the instruments that read the registry and
 // the instant's own postcondition, the rate byte of a test's Move fixture,
 // including this paragraph.
+// CommentBytes rises for the first game's mission minimap: the docs of
+// pkg/ui/minimaporiginal.go and its tests, the one minimap plan builder in
+// pkg/ui/minimap.go, the structure owner slots in pkg/game/world.go, the
+// minimap paint in pkg/game/missionart.go, the installed-picture witness and
+// the minimap release tests it rewrote, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2213,5 +2218,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8723902,
+	CommentBytes: 8736573,
 }

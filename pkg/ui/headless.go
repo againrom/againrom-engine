@@ -484,32 +484,37 @@ func (a *App) HeadlessMinimap() (*image.RGBA, error) {
 	return pic, nil
 }
 
-// HeadlessMinimapMarkAt reports which mark colours the framed minimap
-// uploaded by Viewer.Draw holds on the pixels a mark on cell (col, row) fills:
-// local is the local participant's colour, other every other owner's. It
-// reads the composed picture, so every mark rule and anything painted over the
-// cell afterwards counts.
+// HeadlessMinimapMarkAt reports which mark colours the framed minimap holds
+// on the pixels a mark on cell (col, row) fills: local is the local
+// participant's colour, other every other owner's. It composes the picture the
+// next repaint draws, so every mark rule and anything painted over the cell
+// afterwards counts.
 func (a *App) HeadlessMinimapMarkAt(col, row int) (local, other bool, err error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return false, false, err
 	}
 	g, geomOK := v.minimapGeometry()
-	pic, at, ok := v.minimapPresent()
-	if !geomOK || !ok {
+	if !geomOK {
 		return false, false, fmt.Errorf("headless minimap mark: minimap has no drawable map")
 	}
-	r := minimapMarkRect(image.Pt(col, row).Sub(g.Origin), g.Cols, g.Rows, g.Num, g.Den, image.Rectangle{Max: g.Content.Size()})
+	pic, at, ok := v.minimapCompose(g)
+	if !ok {
+		return false, false, fmt.Errorf("headless minimap mark: minimap has no drawable map")
+	}
+	r := minimapMarkRect(minimapMark{Cell: image.Pt(col, row).Sub(g.Origin)}, g.Cols, g.Rows, g.Num, g.Den, image.Rectangle{Max: g.Content.Size()})
 	if r.Empty() {
 		return false, false, fmt.Errorf("headless minimap mark: cell (%d,%d) has no mark pixel", col, row)
 	}
 	r = r.Add(g.Content.Min.Sub(at))
+	localColour, others := v.minimapMarkColours()
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		for x := r.Min.X; x < r.Max.X; x++ {
-			switch pic.RGBAAt(x, y) {
-			case minimapLocalColor:
+			c := pic.RGBAAt(x, y)
+			switch {
+			case c == localColour:
 				local = true
-			case minimapOtherColor:
+			case others[c]:
 				other = true
 			}
 		}
@@ -517,8 +522,8 @@ func (a *App) HeadlessMinimapMarkAt(col, row int) (local, other bool, err error)
 	return local, other, nil
 }
 
-// HeadlessMinimapLootAt reports whether the framed minimap uploaded by
-// Viewer.Draw holds the loot colour on the pixels a mark on cell (col, row)
+// HeadlessMinimapLootAt reports whether the framed minimap the next repaint
+// draws holds the loot colour on the pixels a mark on cell (col, row)
 // fills. It reads the composed picture, so the fog test, the option and any
 // unit painted over the cell all count.
 func (a *App) HeadlessMinimapLootAt(col, row int) (bool, error) {
@@ -527,11 +532,14 @@ func (a *App) HeadlessMinimapLootAt(col, row int) (bool, error) {
 		return false, err
 	}
 	g, geomOK := v.minimapGeometry()
-	pic, at, ok := v.minimapPresent()
-	if !geomOK || !ok {
+	if !geomOK {
 		return false, fmt.Errorf("headless minimap loot: minimap has no drawable map")
 	}
-	r := minimapMarkRect(image.Pt(col, row).Sub(g.Origin), g.Cols, g.Rows, g.Num, g.Den, image.Rectangle{Max: g.Content.Size()})
+	pic, at, ok := v.minimapCompose(g)
+	if !ok {
+		return false, fmt.Errorf("headless minimap loot: minimap has no drawable map")
+	}
+	r := minimapMarkRect(minimapMark{Cell: image.Pt(col, row).Sub(g.Origin)}, g.Cols, g.Rows, g.Num, g.Den, image.Rectangle{Max: g.Content.Size()})
 	if r.Empty() {
 		return false, fmt.Errorf("headless minimap loot: cell (%d,%d) has no mark pixel", col, row)
 	}
