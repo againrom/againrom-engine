@@ -911,22 +911,19 @@ func (v *Viewer) groundSurfaceCaptures(x, y int) bool {
 		v.spellbookCaptures(x, y) || v.minimapCaptures(x, y) || v.panelCaptures(x, y)
 }
 
-// InventoryDoubleClickFrames is how many map-screen frames may separate two
-// primary presses on the same pack cell and still count as one double-click
-// — the ONE place that number is written. command runs exactly once per
-// map-screen frame (app.go's map arm calls it once per Update), so a
-// countdown decremented once per call there IS a frame count, with no clock
-// read anywhere near it and nothing else able to disagree with it.
-//
-// THIRTY IS THIS PROJECT'S OWN, DISCLOSED RATHER THAN DERIVED: nothing in
-// what this window reconstructs says how a double-click on a pack cell was
-// ever timed, because the original never drew our window at all (0110's own
-// boundary). It is chosen the way TapSlop's four pixels is (command.go)
-// — a magnitude in the middle of what it stands in for rather than at
-// either edge: small enough that two presses meant as separate do not link
-// up, large enough that two presses a player intends as one double-click do
-// not miss each other.
-const InventoryDoubleClickFrames = 30
+func (v *Viewer) inventoryPairTarget(x, y int) int {
+	x, y = v.windowToFrame(x, y)
+	if _, ok := v.packArrowAt(x, y); ok {
+		return 0
+	}
+	if cell, ok := v.inventoryPackCellAt(x, y); ok {
+		return cell + 1
+	}
+	if slot, ok := v.inventoryWornSlotAt(x, y); ok {
+		return -slot - 1
+	}
+	return 0
+}
 
 // inventoryPackCellAt reports which CARRIED ELEMENT, if any, stands under
 // the window pixel (x, y) — the one geometry this story's hit test is

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Double clicks on the mission pack use the system's
+  double-click setting and keep the same timing at different frame rates.
 - [BASE] An inventory item dropped onto a cell that cannot hold its sack lands
   at the hero's feet, joining the sack already there.
 - [ROM1] A Stone Cursed unit stands completely still until the curse ends.

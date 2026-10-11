@@ -31,6 +31,7 @@ type doubleClick struct {
 	at                    time.Time
 	point                 image.Point
 	pair                  systemclick.Setting
+	target                int
 }
 
 // observe classifies this tick's primary edges at the cursor and reports
@@ -47,7 +48,11 @@ func (d *doubleClick) observe(in appInput, now time.Time) bool {
 	}
 	double := false
 	if in.PrimaryPressed {
+		if d.target != in.primaryTarget {
+			d.armed = false
+		}
 		double = d.press(image.Pt(in.CursorX, in.CursorY), now)
+		d.target = in.primaryTarget
 	}
 	if in.PrimaryReleased && !releaseFirst && d.down {
 		d.release()
@@ -78,6 +83,8 @@ func (d *doubleClick) release() {
 		d.released = true
 	}
 }
+
+func (d *doubleClick) cancelPair() { d.armed = false }
 
 // inside reports whether a press at p and now lies within the pair's time and
 // in its rectangle centred on the first press.

@@ -13,7 +13,7 @@ import (
 //
 // IT IS A HOVER, NOT A PRESS: it reads v.cursorX/v.cursorY/v.hasCursor, the
 // SAME per-frame cursor readout.go's own cell readout already uses, and
-// touches no click state — inventoryCaptures, invClickFrames and every
+// touches no click state — inventoryCaptures, cell pairing and every
 // other field command.go owns are untouched by this file (fence: "the
 // popup gates nothing and issues nothing").
 //

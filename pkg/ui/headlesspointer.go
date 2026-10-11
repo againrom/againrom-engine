@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	"strings"
+
+	"againrom/pkg/render/frame"
 )
 
 // This file is the scenario vocabulary's POINTER half (1005 round 2, seventh
@@ -26,15 +28,8 @@ import (
 // only say "drag" could not express a press that never moved, which is half the
 // behaviour under test.
 
-// frameToWindow converts a mission-frame position, which is what every hit test
-// in this package answers in, into the WINDOW pixel a scenario must send an
-// event at (1026 B4). It is the mirror of the mapping App.step's map arm applies
-// on the way in, and it is the same conversion the town's own shop oracles
-// already do through a.place.
-//
-// A frame pixel with no window pixel is an error rather than a nearby pixel:
-// that happens only below 1:1, where sending the event at a neighbour would
-// resolve to a different surface than the one the scenario named.
+// frameToWindow finds the window pixel naming the exact mission-frame point.
+// A point that the placement cannot represent is an error.
 func (v *Viewer) frameToWindow(p image.Point, what string) (int, int, error) {
 	wx, wy, ok := v.place.FrameToWindow(p)
 	if !ok {
@@ -167,6 +162,37 @@ func (a *App) HeadlessPackCellPoint(cell int) (int, int, error) {
 	}
 	p := hits[len(hits)/2]
 	return v.frameToWindow(p, "headless pack cell")
+}
+
+// HeadlessWornBoxFixture extends a headless frame to include the latent worn
+// grid. Windowed layout always keeps the shipped mission-frame height.
+func (a *App) HeadlessWornBoxFixture() error {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return err
+	}
+	height := MissionFrameH + wornBoxSize().Y
+	a.Layout(MissionFrameW, height)
+	v.frameW, v.frameH = MissionFrameW, height
+	v.place = frame.Fit(v.frameW, v.frameH, a.winW, a.winH)
+	v.syncMapViewport()
+	return nil
+}
+
+// HeadlessWornCellPoint returns a window pixel in a visible worn-box cell.
+func (a *App) HeadlessWornCellPoint(cell int) (int, int, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return 0, 0, err
+	}
+	box, ok := v.wornBox()
+	slots := wornSlotRects()
+	if !ok || cell < 0 || cell >= len(slots) {
+		return 0, 0, fmt.Errorf("headless worn cell %d: no visible cell", cell)
+	}
+	r := slots[cell].Add(box.Min)
+	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
+	return v.frameToWindow(p, "headless worn cell")
 }
 
 // HeadlessDollBoxPoint is a window pixel inside the doll BOX but not on any

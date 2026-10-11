@@ -847,6 +847,10 @@ func (v *Viewer) dropCellAt(x, y int) (int32, int32) {
 // which the modifier was consulted.
 func (v *Viewer) command(in appInput) ([]order, bool) {
 	defer v.syncMapViewport()
+	packCell, wornCell := v.invClickCell, v.invWornClickCell
+	if in.PrimaryPressed || in.SecondaryPressed {
+		v.invClickCell, v.invWornClickCell = 0, 0
+	}
 	// THE SECOND OF THE THREE DOORS (1026 B4). in.CursorX/CursorY arrive in
 	// WINDOW pixels and every hit test below this line reads them as FRAME
 	// pixels: the doll, the worn box, the pack bar and its arrows, the
@@ -1079,74 +1083,14 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		v.invGrab = false
 	}
 	if swallowed {
-		// THE DOUBLE-CLICK COUNT AND THE PRESS TEST LIVE HERE, and that is
-		// deliberate rather than a matter of convenience: a double-click is only
-		// ever a double-click on a window that is already taking the press, so
-		// nothing below can be reached by a frame the map is handling instead —
-		// a press outside the window never runs a single line of it.
-		//
-		// THE COUNT IS DECREMENTED FIRST, unconditionally, once per call —
-		// which is once per map-screen frame, since command is called
-		// exactly once per Update on the map arm (app.go) — before this
-		// frame's own press is even looked at. That ordering is what makes
-		// invClickFrames a frame count and nothing subtler: the frame a
-		// first click lands on spends none of its own window, and every
-		// frame after it, press or not, spends exactly one.
-		if v.invClickFrames > 0 {
-			v.invClickFrames--
-		}
-		// THE WORN BOX RUNS THE SAME COUNTDOWN, ON ITS OWN FIELD (0151,
-		// defect 4): a separate window over a separate box, decremented
-		// unconditionally beside the pack's own count so a press on one box
-		// can never extend or spend the other's.
-		if v.invWornClickFrames > 0 {
-			v.invWornClickFrames--
-		}
 		if in.PrimaryPressed {
-			// THE SCROLL BUTTONS COME FIRST AND THEY ARE NOT CELLS (0140,
-			// owner: "the inventory scrolls with arrows on the right,
-			// potentially endlessly"). A press on one moves the bar by a
-			// cell and touches NEITHER double-click field, which is what
-			// keeps scrolling past an item and then clicking it twice from
-			// reading as a double-click on whatever the first press
-			// happened to be over.
-			// A FRESH PRESS DISCARDS WHATEVER CANDIDATE THE LAST GESTURE LEFT
-			// (1005, "the interactive doll"): dragCandKind is reset to dragNone
-			// before either branch below has a chance to set it, so a press
-			// landing on a scroll button, a worn cell or the doll's own
-			// background — none of which is a drag source in round 1 — leaves no
-			// stale origin for the arm check further down to read.
 			v.dragCandKind = dragNone
 			v.invEquipTap = false
 			if delta, ok := v.packArrowAt(in.CursorX, in.CursorY); ok {
 				v.ScrollPack(delta)
 			} else if cell, ok := v.inventoryPackCellAt(in.CursorX, in.CursorY); ok {
-				if v.invClickFrames > 0 && cell == v.invClickCell {
-					// THE SAME CELL, INSIDE THE WINDOW STILL OPEN ON IT: the
-					// count is spent so a third press in a row starts a fresh
-					// count rather than raising a second request under it, and
-					// the press is REMEMBERED rather than acted on. The request
-					// itself is raised by this press's own release, in the
-					// release arm below, once the gesture is known not to have
-					// become a drag. Raising it here acted before that was
-					// known: App advances the world before command() every
-					// frame, so the drain removed and reindexed the pack while
-					// the still-held press went on to cross TapSlop, and the
-					// drag then carried an index naming the neighbour that had
-					// shifted into it.
-					v.invEquipTap = true
-					v.invClickFrames = 0
-				} else {
-					// EVERY OTHER PRESS ON A PACK CELL RESTARTS THE COUNT ON
-					// THE CELL IT LANDED ON (plan D-4) — a first click on a
-					// cell nothing was counting down on, a click on a
-					// DIFFERENT cell than the one being counted, and a click
-					// that arrives after the count has already run out, are
-					// the same case: this is a fresh first click and nothing
-					// about it is a double-click yet.
-					v.invClickCell = cell
-					v.invClickFrames = InventoryDoubleClickFrames
-				}
+				v.invEquipTap = in.PrimaryDouble && cell+1 == packCell
+				v.invClickCell = cell + 1
 				// THE DRAG MACHINE'S FIRST SOURCE (1005 spec, "sources in round
 				// 1: a pack-bar cell, and a slot on the doll"): every press on a
 				// pack cell is a candidate drag origin, ALONGSIDE the double-
@@ -1156,16 +1100,10 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 				// double-click has already finished being.
 				v.dragCandKind, v.dragCandIdx = dragFromPack, cell
 			} else if slot, ok := v.inventoryWornSlotAt(in.CursorX, in.CursorY); ok {
-				// THE WORN BOX'S OWN MATCH-OR-RESTART, over its own two
-				// fields (0151, defect 4): the pack cell branch's shape,
-				// restated for the box the gesture now also runs on.
-				if v.invWornClickFrames > 0 && slot == v.invWornClickCell {
+				if in.PrimaryDouble && slot+1 == wornCell {
 					v.invUnequipRequest = slot + 1
-					v.invWornClickFrames = 0
-				} else {
-					v.invWornClickCell = slot
-					v.invWornClickFrames = InventoryDoubleClickFrames
 				}
+				v.invWornClickCell = slot + 1
 				// THE WORN BOX IS NOT A DRAG SOURCE IN ROUND 1 (contract "out of
 				// scope": a worn-box drag would need the compositor's own icons
 				// to move, which is a different mechanism from the mask this
@@ -1180,13 +1118,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 				// into a drag (the check right after this block).
 				v.dragCandKind, v.dragCandIdx = dragFromDoll, slot
 			}
-			// A press that names none of the three — a scroll button, an empty
-			// pack cell past the end of the pack, or the doll's own transparent
-			// pixels and background — touches none of the click fields and
-			// leaves dragCandKind at dragNone: it is not a click on a cell of
-			// any box and not a drag source, so a live count on some other cell
-			// keeps counting down underneath it exactly as if this press had
-			// landed on the map instead.
+
 		}
 
 		// THE DRAG ARM, and it runs on EVERY SWALLOWED FRAME rather than only on

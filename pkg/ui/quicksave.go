@@ -20,7 +20,7 @@ func (v *Viewer) cancelPointerGesture() {
 	v.paneSecondaryGrab, v.paneCornerGrab, v.minimapGrab = false, false, false
 	v.cmdDragCell = -1
 	v.invGrab, v.invEquipTap = false, false
-	v.invClickFrames, v.invWornClickFrames = 0, 0
+	v.invClickCell, v.invWornClickCell = 0, 0
 	v.dragActive, v.dragCandKind, v.dragIcon = false, dragNone, nil
 	v.cancelGold()
 	v.SetDollSuppressedFigure(0, 0, nil, nil)

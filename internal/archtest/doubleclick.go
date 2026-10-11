@@ -28,10 +28,8 @@ var doubleClickNotADetector = map[string]string{
 	"pkg/ui/generator.go:DoubleClickForward": "the generator description's datum for what a hero's double click does",
 }
 
-// doubleClickDebt names the detectors not yet absorbed. It may only fall.
-var doubleClickDebt = map[string]string{
-	"pkg/ui/inventory.go:InventoryDoubleClickFrames": "the mission pack's and worn box's double click, counted in map frames",
-}
+// doubleClickDebt is empty. The test refuses a new entry.
+var doubleClickDebt = map[string]string{}
 
 func doubleClickDetectorFile(name string) bool {
 	return name == "pkg/ui/doubleclick.go" || strings.HasPrefix(name, "pkg/ui/systemclick/")

@@ -6,6 +6,12 @@ import (
 	"testing"
 )
 
+func TestDoubleClickDebtIsEmpty(t *testing.T) {
+	if len(doubleClickDebt) != 0 {
+		t.Fatalf("double-click detector debt must stay empty: %v", doubleClickDebt)
+	}
+}
+
 // TestCheckDoubleClickNamesEachViolation drives the scan with synthetic
 // sources, one case per arm.
 func TestCheckDoubleClickNamesEachViolation(t *testing.T) {
@@ -33,7 +39,7 @@ func TestCheckDoubleClickNamesEachViolation(t *testing.T) {
 		{"a time that is no click", "pkg/ui/a.go",
 			"package ui\ntype s struct{ worldMapTickAt time.Time }\n", ""},
 		{"a click that is no time", "pkg/ui/a.go",
-			"package ui\ntype s struct{ invClickFrames int; shopUseTap *shopUseTap }\n", ""},
+			"package ui\ntype s struct{ rowClickCount int; shopUseTap *shopUseTap }\n", ""},
 		{"a test file outside pkg", "cmd/a/a.go",
 			"package main\nfunc listDoubleClick() {}\n", ""},
 	}

@@ -105,6 +105,7 @@ type appInput struct {
 	// PrimaryDouble marks this tick's press as the second press of a double
 	// click. App.step sets it from the one detector (doubleclick.go).
 	PrimaryDouble bool
+	primaryTarget int
 
 	// SecondaryPressed is the secondary mouse button's PRESS EDGE. Its zero
 	// value is "not pressed", so every existing literal that does not name it
@@ -1478,6 +1479,14 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 	squareBefore, squareRevision := a.townEntryState()
 	screenBefore := a.flow.screen
 	a.pointer = image.Pt(in.CursorX, in.CursorY)
+	if a.flow.screen == ScreenMap && a.flow.viewer != nil {
+		v := a.flow.viewer
+		in.primaryTarget = v.inventoryPairTarget(in.CursorX, in.CursorY)
+		if in.PrimaryPressed && (in.primaryTarget > 0 && in.primaryTarget != v.invClickCell ||
+			in.primaryTarget < 0 && -in.primaryTarget != v.invWornClickCell) {
+			a.clicks.cancelPair()
+		}
+	}
 	in.PrimaryDouble = a.clicks.observe(in, now)
 	a.blink.tick(now)
 	a.tooltipSurface = nil

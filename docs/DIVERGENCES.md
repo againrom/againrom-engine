@@ -135,6 +135,7 @@ copying those counts.
 | `docs/divergences/dialogue.md` |
 | `docs/divergences/healing.md` |
 | `docs/divergences/hover-help.md` |
+| `docs/divergences/inventory-input.md` |
 | `docs/divergences/inventory.md` |
 | `docs/divergences/magic-area-movement-cost.md` |
 | `docs/divergences/magic.md` |

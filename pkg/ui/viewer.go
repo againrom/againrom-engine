@@ -997,7 +997,6 @@ type Viewer struct {
 	invGrab bool
 
 	invClickCell    int
-	invClickFrames  int
 	invEquipTap     bool
 	invEquipRequest int
 
@@ -1008,23 +1007,11 @@ type Viewer struct {
 	// and does not open on an element.
 	docRequest bool
 
-	// invWornClickCell/invWornClickFrames/invUnequipRequest are the same
-	// double-click tracking, run over the worn box's twelve cells instead of
-	// the pack (0151, defect 4). They are a separate window and a separate
-	// one-shot request from the three fields above: a press on a worn cell
-	// must not extend or spend a count a pack-cell press started, and the
-	// reverse, so command (command.go) decrements both counts unconditionally
-	// on every swallowed frame and matches a press against only the one whose
-	// box it landed in.
-	//
-	// invUnequipRequest is the worn slot index a matching press named, held
-	// as INDEX PLUS ONE — invEquipRequest's own "zero still means nothing
-	// pending" tilt, needed here for the identical reason: slot index 0 is
-	// itself a real cell. TakeInventoryUnequip (inventory.go) is the one
-	// reader and clears this in the same statement it reads it in.
-	invWornClickCell   int
-	invWornClickFrames int
-	invUnequipRequest  int
+	// Cell identities and one-shot requests store index plus one; zero
+	// means no preceding cell or pending action. TakeInventoryUnequip
+	// drains the worn-box action without changing the pack request.
+	invWornClickCell  int
+	invUnequipRequest int
 
 	// invDollUnequipRequest is the THIRD one-shot request (1005, "the
 	// interactive doll"), TakeInventoryDollUnequip's own value, raised by
