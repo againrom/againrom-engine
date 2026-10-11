@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.116.0
+
 - [ROM1] Mods can add a mission that another character plays alone between two campaign missions (`data/missions.toml`). The party waits unchanged; when that character wins, the game goes on to the town, where the character joins the party with the experience, skills, spells and items gained. A save made inside such a mission loads only with the same mod. The repository's example mod `reniesta` lets the mage of Plagat play a copy of the first mission's map after mission 20; `modmission` copies that map from an install into the mod.
 - [ROM2] The character creation screen looks more like the original: pointing at a difficulty, a portrait, the name, OK or Cancel shows its hint; "Name:" and the typed name are gold and yellow; the attribute numbers and the points left are gold on their boxes; the statistics card stays inside its frame; and weapon hints show in the original's dark box with gold text and their own line breaks.
 - [ROM2] The tip on the second page of character creation now sits at the bottom centre, between the statistics card and the portrait.
