@@ -400,7 +400,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 							break
 						}
 					}
-					secondLaterChoose(t, app, "GATES", "mission 10", "ENTER")
+					secondLaterChoose(t, app, "EXIT", "GATES", "mission 10", "ENTER")
 					enterSecondCampaignNextMission(t, f, app, false)
 					if enriched {
 						f.live.world.SetPurse(sim.SelfSlot, 913)

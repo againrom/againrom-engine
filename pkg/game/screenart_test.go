@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/screenart"
+	"againrom/pkg/town"
 )
 
 // editionArt is every screen art manifest one edition reads, by screen: the
@@ -27,12 +28,22 @@ func editionArt(p base.Profile) map[string][]screenart.Entry {
 	if d := TownDescription(p); d != nil {
 		out["square"] = d.SquareScene().Art
 	}
-	if d := RoomDescription(p); d != nil {
+	rooms := func(prefix string, d *town.Description) {
 		for _, r := range d.Rooms {
-			out[r.Name] = r.Art
+			out[prefix+r.Name] = r.Art
 			if r.Scene != nil {
-				out[r.Name+" scene"] = r.Scene.Art
+				out[prefix+r.Name+" scene"] = r.Scene.Art
 			}
+		}
+	}
+	if d := RoomDescription(p); d != nil {
+		rooms("", d)
+	}
+	if p.GameOf() == base.GameROM2 {
+		for _, name := range secondTownDescriptions {
+			d := townDescriptions[name]
+			out[name+" square"] = d.SquareScene().Art
+			rooms(name+" ", d)
 		}
 	}
 	return out

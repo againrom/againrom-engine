@@ -1,0 +1,604 @@
+package game
+
+import (
+	"fmt"
+	"image"
+	"image/draw"
+	"time"
+
+	"againrom/pkg/audio"
+	"againrom/pkg/screenart"
+	"againrom/pkg/town"
+	"againrom/pkg/ui"
+)
+
+// secondTownDescriptions names the composed description of each second-game
+// town by its ID. A town without one keeps the row list.
+var secondTownDescriptions = map[int]string{1: "rom2-town1"}
+
+// secondTownPages are the page kinds the second game's town screen draws.
+var secondTownPages = []string{"inn"}
+
+// secondTownRooms binds the description's room names to the campaign's
+// rooms, the room the SAV records.
+var secondTownRooms = map[string]secondTownRoom{"square": secondTownSquare, "inn": secondTownInn}
+
+// secondTownRowText is the list fallback's text for a square hotspot's row.
+var secondTownRowText = map[string]string{"inn": "TAVERN", "gate": "GATES"}
+
+// secondTownConditions answers the conditions the second game's town
+// descriptions name.
+var secondTownConditions = map[string]func(c *secondCampaign) bool{
+	"gate-open": (*secondCampaign).gateOpen,
+}
+
+// secondTownHooks are the second game's campaign hooks, each run for the
+// room its step belongs to.
+var secondTownHooks = map[string]func(t *secondCampaignScreen, room string){
+	"set-room": func(t *secondCampaignScreen, room string) {
+		if r, ok := secondTownRooms[room]; ok {
+			t.state().room = r
+		}
+	},
+	"gate-closed": func(t *secondCampaignScreen, _ string) { t.composed.action = t.openTownText(secondGateText) },
+	"navigate": func(t *secondCampaignScreen, _ string) {
+		c := t.state()
+		c.leaveTown()
+		c.room = secondTownSquare
+	},
+}
+
+// secondGateText is the town text section the closed gate shows
+// (R2-ENGINE-241).
+const secondGateText = "plagatguard"
+
+// secondInnExit is the list fallback's row that leaves the composed inn.
+const secondInnExit = "EXIT"
+
+// secondTownVocabulary is the hook, condition and page names the second
+// game's campaign answers.
+func secondTownVocabulary() town.Vocabulary {
+	v := town.Vocabulary{Pages: secondTownPages}
+	for name := range secondTownHooks {
+		v.Hooks = append(v.Hooks, name)
+	}
+	for name := range secondTownConditions {
+		v.Conditions = append(v.Conditions, name)
+	}
+	return v
+}
+
+// secondTownState is the composed town's presentation: its scenes and art,
+// its room audio, the inn's seat selection and the action a hook left. It
+// lives with the screen; the campaign state holds the room.
+type secondTownState struct {
+	process *town.Process
+	sound   townAudio
+	draws   townDraws
+
+	scenes map[string]*town.Scene
+	art    map[string]*secondTownArt
+
+	roomAudio *ui.AudioScope
+	audioRoom string
+	loop      audio.Voice
+
+	seat       int
+	seatFrames []int
+	seatStamp  time.Time
+	innShown   bool
+
+	action ui.TownAction
+}
+
+// secondTownArt is one room's loaded art: its scene's and its page's.
+type secondTownArt struct {
+	scene *town.Art
+	page  *screenart.Set
+	err   error
+}
+
+func newSecondTownState(f *FrontEnd) *secondTownState {
+	return &secondTownState{process: &f.townProcess, sound: runtimeTownAudio{&f.RuntimeServices},
+		draws: runtimeTownDraws{&f.RuntimeServices}, scenes: map[string]*town.Scene{},
+		art: map[string]*secondTownArt{}, seat: -1}
+}
+
+// composedTown answers the description of the current town when it is
+// composed.
+func (t *secondCampaignScreen) composedTown() (*town.Description, bool) {
+	c := t.state()
+	if c == nil || c.current.kind != 2 || t.composed == nil {
+		return nil, false
+	}
+	d := townDescriptions[secondTownDescriptions[c.current.id]]
+	return d, d != nil
+}
+
+// roomName is the description's name of the campaign's current room.
+func (t *secondCampaignScreen) roomName() string {
+	for name, r := range secondTownRooms {
+		if r == t.state().room {
+			return name
+		}
+	}
+	return ""
+}
+
+func (t *secondCampaignScreen) scene(d *town.Description, room string) *town.Scene {
+	key := d.Town + "/" + room
+	if s := t.composed.scenes[key]; s != nil {
+		return s
+	}
+	s := town.NewScene(d, room, townSceneHost{t: t, room: room}, t.composed.process)
+	t.composed.scenes[key] = s
+	return s
+}
+
+// roomArt loads a room's art once for the screen through the install's art
+// library: the scene's, and for a room the page's own.
+func (t *secondCampaignScreen) roomArt(d *town.Description, room string) *secondTownArt {
+	key := d.Town + "/" + room
+	if a := t.composed.art[key]; a != nil {
+		return a
+	}
+	a := &secondTownArt{}
+	t.composed.art[key] = a
+	src := t.install.Archives.artSource()
+	if src == nil {
+		a.err = fmt.Errorf("town %s: no install art", d.Town)
+		return a
+	}
+	spec := d.Scene(room)
+	if spec == nil {
+		a.err = fmt.Errorf("town %s: room %s has no scene", d.Town, room)
+		return a
+	}
+	a.scene, a.err = town.LoadArt(spec, screenArtOf(src))
+	if a.err != nil {
+		return a
+	}
+	if r := d.Room(room); r != nil {
+		a.page, a.err = screenArtOf(src).Load(room, r.Art)
+		if a.err != nil {
+			a.scene = nil
+		}
+	}
+	return a
+}
+
+// composedRoom answers the composed description and room shown now, and
+// whether that room's art is loaded.
+func (t *secondCampaignScreen) composedRoom() (*town.Description, string, bool) {
+	d, ok := t.composedTown()
+	if !ok {
+		return nil, "", false
+	}
+	room := t.roomName()
+	return d, room, t.roomArt(d, room).scene != nil
+}
+
+// AtTownSquare reports whether the composed town is shown: its square or its
+// inn page, with that room's art loaded.
+func (t *secondCampaignScreen) AtTownSquare() bool {
+	_, _, ok := t.composedRoom()
+	return ok
+}
+
+// TownSquareView answers the composed room the ui draws and hit-tests.
+func (t *secondCampaignScreen) TownSquareView() ui.TownSquareView {
+	d, room, ok := t.composedRoom()
+	if !ok {
+		return ui.TownSquareView{}
+	}
+	return ui.TownSquareView{Scene: secondTownView{t: t, d: d, room: room}, Font: t.install.Font.Value()}
+}
+
+// TownSquareActive runs the shown room's scene and pauses and hides every
+// other; leaving the composed town hides them all.
+func (t *secondCampaignScreen) TownSquareActive(active bool) {
+	if t.composed == nil || t.state() == nil {
+		return
+	}
+	d, room, shown := t.composedRoom()
+	for key, s := range t.composed.scenes {
+		show := shown && key == d.Town+"/"+room
+		if show {
+			continue
+		}
+		s.SetActive(false, false)
+	}
+	if !shown {
+		t.composed.innShown = false
+		return
+	}
+	s := t.scene(d, room)
+	if room != d.Square.Name && !s.Present() {
+		// A room page is built afresh at each entry (R2-ENGINE-248).
+		s.Reset()
+	}
+	s.SetActive(active, true)
+	if r := d.Room(room); r != nil && r.Seats != nil {
+		if s.Present() && !t.composed.innShown {
+			t.enterSeats()
+		}
+		t.composed.innShown = s.Present()
+	} else {
+		t.composed.innShown = false
+	}
+}
+
+// TownSquarePointer delivers one pointer update to the shown room's scene.
+func (t *secondCampaignScreen) TownSquarePointer(p image.Point) {
+	d, room, ok := t.composedRoom()
+	if !ok {
+		return
+	}
+	t.TownSquareActive(true)
+	t.scene(d, room).Pointer(p)
+}
+
+// AdvanceTownSquareAnimation is one paint of the shown room: its scene's
+// steps, then the selected seat's frame.
+func (t *secondCampaignScreen) AdvanceTownSquareAnimation() {
+	d, room, ok := t.composedRoom()
+	if !ok {
+		return
+	}
+	s := t.scene(d, room)
+	s.Advance()
+	if r := d.Room(room); r != nil && r.Seats != nil && s.Active() {
+		t.advanceSeats(r.Seats, t.roomArt(d, room).page.Pictures(r.Seats.Actor))
+	}
+}
+
+// SelectTownSquare selects the seat of inn row i and requests the seat
+// grid's selection sound.
+func (t *secondCampaignScreen) SelectTownSquare(i int) {
+	d, room, ok := t.composedRoom()
+	if !ok {
+		return
+	}
+	r := d.Room(room)
+	if r == nil || r.Seats == nil || i < 0 || i >= len(t.state().speakers()) {
+		return
+	}
+	t.selectSeat(t.scene(d, room), r.Seats, i)
+}
+
+func (t *secondCampaignScreen) selectSeat(s *town.Scene, seats *town.SeatSpec, i int) {
+	t.composed.seat = i
+	if seats.Select != "" {
+		s.Sound(seats.Select)
+	}
+}
+
+// enterSeats is the seat state a page entry sets: the first seat selected
+// when the roster is not empty, every frame at zero (R2-ENGINE-247,
+// R2-ENGINE-248).
+func (t *secondCampaignScreen) enterSeats() {
+	t.composed.seat = -1
+	if len(t.state().speakers()) > 0 {
+		t.composed.seat = 0
+	}
+	t.composed.seatFrames = nil
+	t.composed.seatStamp = t.sceneNow()
+}
+
+// advanceSeats advances the selected seat's actor one frame once its period
+// has passed; every other seat keeps its frame (R2-ENGINE-248).
+func (t *secondCampaignScreen) advanceSeats(seats *town.SeatSpec, frames []image.Image) {
+	st := t.composed
+	if st.seat < 0 || len(frames) == 0 {
+		return
+	}
+	now := t.sceneNow()
+	since, period := now.Sub(st.seatStamp), time.Duration(seats.FrameMS)*time.Millisecond
+	if since < period || since == period && seats.Compare == "greater" {
+		return
+	}
+	st.seatStamp = now
+	for len(st.seatFrames) <= st.seat {
+		st.seatFrames = append(st.seatFrames, 0)
+	}
+	st.seatFrames[st.seat] = (st.seatFrames[st.seat] + 1) % len(frames)
+}
+
+// seatFrame is the frame a seat's actor shows.
+func (t *secondCampaignScreen) seatFrame(i int) int {
+	if i < len(t.composed.seatFrames) {
+		return t.composed.seatFrames[i]
+	}
+	return 0
+}
+
+// composedRows are the composed town's list rows: on the square one per
+// hotspot with a row, in row order; in a page with seats one TALK row per
+// speaker, then EXIT.
+func (t *secondCampaignScreen) composedRows(d *town.Description, c *secondCampaign) []ui.TownRow {
+	if r := d.Room(t.roomName()); r != nil {
+		var rows []ui.TownRow
+		for _, o := range c.speakers() {
+			rows = append(rows, ui.TownRow{Text: fmt.Sprintf("TALK %d", o.npc), Choosable: true})
+		}
+		return append(rows, ui.TownRow{Text: secondInnExit, Choosable: true})
+	}
+	s := t.scene(d, d.Square.Name)
+	var rows []ui.TownRow
+	for i := 0; ; i++ {
+		h := s.HotspotForRow(i)
+		if h == nil {
+			return rows
+		}
+		rows = append(rows, ui.TownRow{Text: secondTownRowText[h.Name], Choosable: true})
+	}
+}
+
+// chooseComposed acts on row i of the composed town: a square row runs its
+// hotspot's click program; an inn row selects its seat and talks, or leaves.
+func (t *secondCampaignScreen) chooseComposed(d *town.Description, c *secondCampaign, i int) ui.TownAction {
+	square := t.scene(d, d.Square.Name)
+	room := t.roomName()
+	if r := d.Room(room); r != nil {
+		speakers := c.speakers()
+		if i < len(speakers) {
+			if r.Seats != nil {
+				t.selectSeat(t.scene(d, room), r.Seats, i)
+			}
+			return t.talk(c, speakers[i])
+		}
+		square.LeaveRoom(room)
+		return ui.TownAction{}
+	}
+	h := square.HotspotForRow(i)
+	if h == nil {
+		return ui.TownAction{}
+	}
+	t.composed.action = ui.TownAction{}
+	square.Click(h)
+	action := t.composed.action
+	t.composed.action = ui.TownAction{}
+	return action
+}
+
+// backComposed leaves a composed room for the square, as Exit and Escape do
+// (R2-ENGINE-250).
+func (t *secondCampaignScreen) backComposed(d *town.Description) bool {
+	room := t.roomName()
+	if d.Room(room) == nil {
+		return false
+	}
+	t.scene(d, d.Square.Name).LeaveRoom(room)
+	return true
+}
+
+// openTownText opens a town text section as the town dialogue; a missing
+// section opens nothing.
+func (t *secondCampaignScreen) openTownText(key string) ui.TownAction {
+	payload, err := readSecondTownTalk(t.install, key)
+	if err != nil {
+		return ui.TownAction{Msg: err.Error()}
+	}
+	if payload != nil {
+		c := t.state()
+		c.payload, c.part = payload, 1
+	}
+	return ui.TownAction{}
+}
+
+// secondTownView is a composed room as ui paints and hit-tests it.
+type secondTownView struct {
+	t    *secondCampaignScreen
+	d    *town.Description
+	room string
+}
+
+func (v secondTownView) Size() image.Point { return v.t.scene(v.d, v.room).Size() }
+
+// Paint draws the room: the square's layers, or a page's back layers, its
+// seated speakers, its front layers and its buttons.
+func (v secondTownView) Paint(dst *image.RGBA) {
+	s := v.t.scene(v.d, v.room)
+	r := v.d.Room(v.room)
+	if r == nil {
+		s.Paint(dst, "")
+		return
+	}
+	page := v.t.roomArt(v.d, v.room).page
+	s.Paint(dst, "back")
+	if seats := r.Seats; seats != nil {
+		actor := page.Pictures(seats.Actor)
+		for i := range v.t.state().speakers() {
+			at := seats.Seat(i)
+			if at.Empty() {
+				break
+			}
+			drawAt(dst, page.Picture(seats.Back), at.Min, draw.Src)
+			if len(actor) > 0 {
+				drawAt(dst, actor[v.t.seatFrame(i)%len(actor)], at.Min, draw.Over)
+			}
+		}
+	}
+	s.Paint(dst, "front")
+	words, font := v.t.install.Words, v.t.install.Font.Value()
+	for _, b := range r.Buttons {
+		rect := b.Rect.Rectangle()
+		drawAt(dst, page.Picture(b.Off), rect.Min, draw.Src)
+		if b.Caption != nil && *b.Caption < len(words.Hover) && font != nil {
+			ui.DrawTownCaption(dst, font, words.Hover[*b.Caption], rect)
+		}
+	}
+}
+
+// drawAt draws pic with its top-left corner at at.
+func drawAt(dst *image.RGBA, pic image.Image, at image.Point, op draw.Op) {
+	if pic == nil {
+		return
+	}
+	b := pic.Bounds()
+	draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, op)
+}
+
+// ControlAt answers what a click at p reaches: on the square a hotspot's row
+// or the menu; on a page a seat to select, or the row its talk or exit button
+// acts on.
+func (v secondTownView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
+	r := v.d.Room(v.room)
+	if r == nil {
+		h := v.t.scene(v.d, v.room).HotspotAt(p)
+		switch {
+		case h == nil:
+			return ui.TownSquareControl{}, false
+		case h.Row != nil:
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: *h.Row}, true
+		case town.Menu(h.Click) != "":
+			return ui.TownSquareControl{Kind: ui.TownSquareControlMenu}, true
+		}
+		return ui.TownSquareControl{}, false
+	}
+	speakers := len(v.t.state().speakers())
+	if r.Seats != nil {
+		if i := r.Seats.SeatAt(p, speakers); i >= 0 {
+			return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i}, true
+		}
+	}
+	if i := town.ButtonAt(r.Buttons, p); i >= 0 {
+		switch r.Buttons[i].Name {
+		case "talk":
+			if seat := v.t.composed.seat; seat >= 0 && seat < speakers {
+				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat}, true
+			}
+		case "exit":
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: speakers}, true
+		}
+	}
+	return ui.TownSquareControl{}, false
+}
+
+// TipAt answers the square hotspot's tip slot; a page has no hover tips.
+func (v secondTownView) TipAt(p image.Point) (int, bool) {
+	if v.d.Room(v.room) != nil {
+		return 0, false
+	}
+	h := v.t.scene(v.d, v.room).HotspotAt(p)
+	if h == nil {
+		return 0, false
+	}
+	return h.Tip, true
+}
+
+// The second game's campaign screen answers the one scene adapter
+// (townSceneHost) for the rooms of its composed towns.
+
+func (t *secondCampaignScreen) sceneArt(room string) *town.Art {
+	d, ok := t.composedTown()
+	if !ok {
+		return nil
+	}
+	return t.roomArt(d, room).scene
+}
+
+func (t *secondCampaignScreen) sceneNow() time.Time {
+	if now := t.composed.draws.animationClock(); now != nil {
+		return now()
+	}
+	return time.Now()
+}
+
+func (t *secondCampaignScreen) sceneDraw(source string, n int) int {
+	return sceneDrawFrom(t.composed.draws, source, n)
+}
+
+func (t *secondCampaignScreen) sceneSeed() int64 { return t.composed.sound.wildlifeSeed() }
+
+func (t *secondCampaignScreen) sceneCondition(name string) bool {
+	if c := secondTownConditions[name]; c != nil && t.state() != nil {
+		return c(t.state())
+	}
+	return false
+}
+
+func (t *secondCampaignScreen) sceneValue(string) int { return -1 }
+
+// roomPlayer is the room's audio scope, built for the room on first use and
+// replaced when another room plays.
+func (t *secondCampaignScreen) roomPlayer(room string) audio.Player {
+	st := t.composed
+	device := st.sound.soundDevice()
+	if device == nil {
+		return nil
+	}
+	if st.roomAudio != nil && (st.audioRoom != room || st.roomAudio.Owner() != ui.DeliveryOwner(device)) {
+		st.roomAudio.Destroy()
+		st.roomAudio = nil
+	}
+	if st.roomAudio == nil {
+		st.roomAudio, st.audioRoom = ui.NewAudioScope(device), room
+	}
+	if st.roomAudio != nil {
+		return st.roomAudio.Player(audio.EffectsChannel)
+	}
+	return device
+}
+
+func (t *secondCampaignScreen) scenePlay(room, source, key string, loop bool) town.Voice {
+	sample, ok := t.install.SoundBank.namedSample(key)
+	if !ok {
+		return nil
+	}
+	player := t.roomPlayer(room)
+	if player == nil {
+		return nil
+	}
+	v := audio.Dispatch(player, sample, audio.FixedRequest(source, key, audio.EffectsChannel, 128, loop,
+		audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
+	if v == nil {
+		return nil
+	}
+	return v
+}
+
+func (t *secondCampaignScreen) sceneStartLoop(key string) bool {
+	st := t.composed
+	ambient := st.sound.ambientDevice()
+	if ambient == nil {
+		return false
+	}
+	sample, ok := t.install.SoundBank.namedSample(key)
+	if !ok {
+		return false
+	}
+	request := audio.FixedRequest("town-crowd", key, audio.EffectsChannel, 128, true,
+		audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit})
+	if ui.DeliveryOwner(st.sound.soundDevice()) != nil {
+		st.loop = audio.Dispatch(t.roomPlayer(t.roomName()), sample, request)
+	} else {
+		st.loop = ui.RequestAmbient(ambient, ui.AmbientTownCrowd, sample, request)
+	}
+	return true
+}
+
+func (t *secondCampaignScreen) sceneStopLoop() {
+	st := t.composed
+	if ambient := st.sound.ambientDevice(); ambient != nil {
+		if ui.DeliveryOwner(st.sound.soundDevice()) != nil {
+			audio.StopReset(st.loop)
+		} else {
+			ambient.StopLoop(ui.AmbientTownCrowd)
+		}
+	}
+	st.loop = nil
+}
+
+func (t *secondCampaignScreen) sceneLeave(room string) {
+	if st := t.composed; st.roomAudio != nil && st.audioRoom == room {
+		st.roomAudio.Destroy()
+		st.roomAudio, st.audioRoom = nil, ""
+	}
+}
+
+func (t *secondCampaignScreen) sceneHook(name, room string) {
+	if hook := secondTownHooks[name]; hook != nil {
+		hook(t, room)
+	}
+}

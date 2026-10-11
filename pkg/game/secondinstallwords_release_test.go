@@ -142,7 +142,7 @@ func TestReleaseSecondGameInstallWordsReadInTheFont(t *testing.T) {
 			t.Errorf("item %#x reads %q from %q", code, got, s)
 		}
 	}
-	// The second game names the first game's room description (Edition.Rooms).
+	// The first game's room tip addresses, read through the second game's text code.
 	for _, room := range []townRoom{roomShop, roomTavern, roomSchool} {
 		addr := roomTipIn(ROM1TownDescription(), room).Text
 		shipped, ok := ReadShopTip(src, addr, TextCode{})

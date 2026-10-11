@@ -881,6 +881,12 @@ func townShellTextLayout(font *text.Font, s string, r image.Rectangle) (string, 
 	return s, image.Pt(r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-h)/2), true
 }
 
+// DrawTownCaption draws s centred in r in the town shell's caption colour,
+// cut to fit r.
+func DrawTownCaption(dst *image.RGBA, font *text.Font, s string, r image.Rectangle) {
+	drawTownShellText(dst, font, s, r, townShellText)
+}
+
 func drawTownShellText(dst *image.RGBA, font *text.Font, s string, r image.Rectangle, c color.RGBA) {
 	s, at, ok := townShellTextLayout(font, s, r)
 	if !ok {

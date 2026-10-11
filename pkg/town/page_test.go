@@ -26,6 +26,7 @@ var pageVocabulary = Vocabulary{
 	Conditions: testVocabulary.Conditions,
 	Values:     []string{"chosen", "class"},
 	Events:     []string{"pick", "train", "yes", "change"},
+	Pages:      testVocabulary.Pages,
 }
 
 // sceneTown is baseTown whose room carries scene.

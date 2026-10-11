@@ -55,8 +55,7 @@ func (c *secondCampaign) has(location secondLocation) bool {
 }
 
 // leaveTown is the type-2 departure: town 1 removes its node, a later town
-// keeps it, and both clear current (R2-ENGINE-144). Town 1's gate opens
-// only once mission 10 is available.
+// keeps it, and both clear current (R2-ENGINE-144).
 func (c *secondCampaign) leaveTown() bool {
 	if c.current.kind != 2 || !c.gateOpen() {
 		return false
@@ -74,8 +73,10 @@ func (c *secondCampaign) leaveTown() bool {
 	return true
 }
 
+// gateOpen is town 1's gate rule: open once bank 769 is not zero
+// (R2-SESSION-128); every later town's gate is open.
 func (c *secondCampaign) gateOpen() bool {
-	return c.current.id != 1 || c.has(secondLocation{kind: 1, id: 10})
+	return c.current.id != 1 || c.bank[769] != 0
 }
 
 func (c *secondCampaign) canEnter(n int) bool {
@@ -224,6 +225,8 @@ type secondCampaignScreen struct {
 	start   func() error
 	// tags is how the town dialogue's tag bodies are read.
 	tags eventTags
+	// composed is the composed town's presentation.
+	composed *secondTownState
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -242,7 +245,8 @@ func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 
 func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
 	return &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
-		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags}
+		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
+		composed: newSecondTownState(f)}
 }
 
 func (t *secondCampaignScreen) StartNewGame() error {
@@ -276,6 +280,9 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 	c := t.state()
 	if c == nil {
 		return nil
+	}
+	if d, ok := t.composedTown(); ok {
+		return t.composedRows(d, c)
 	}
 	if c.current.kind == 2 {
 		gates := ui.TownRow{Text: "GATES", Choosable: c.gateOpen()}
@@ -322,6 +329,9 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	c := t.state()
+	if d, ok := t.composedTown(); ok {
+		return t.chooseComposed(d, c, i)
+	}
 	if c.current.kind != 2 {
 		if i < len(c.available) {
 			c.selected = c.available[i]
@@ -345,7 +355,11 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		c.room = secondTownInn
 		return ui.TownAction{}
 	}
-	o := c.speakers()[i]
+	return t.talk(c, c.speakers()[i])
+}
+
+// talk opens a speaker's conversation and runs its TalkTo.
+func (t *secondCampaignScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
 	payload, err := readSecondTownTalk(t.install, secondTalkKey(o))
 	if err != nil {
 		return ui.TownAction{Msg: err.Error()}
@@ -369,6 +383,9 @@ func (t *secondCampaignScreen) Back() bool {
 	if c.selected != (secondLocation{}) {
 		c.selected = secondLocation{}
 		return true
+	}
+	if d, ok := t.composedTown(); ok {
+		return t.backComposed(d)
 	}
 	if c.room == secondTownInn {
 		c.room = secondTownSquare

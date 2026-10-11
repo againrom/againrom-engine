@@ -43,7 +43,7 @@ func secondCheatMission(t *testing.T, mage, chicken bool) (*FrontEnd, *ui.App) {
 			break
 		}
 	}
-	for _, target := range []string{"GATES", "mission 10", "ENTER"} {
+	for _, target := range []string{"EXIT", "GATES", "mission 10", "ENTER"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}

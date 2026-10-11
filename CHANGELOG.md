@@ -11,6 +11,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [BASE] The mission minimap marks every ground sack in sight with an amber dot,
   under a new Game Options entry, on by default. A sack hidden by fog has no dot,
   and a unit standing on a sack shows its own colour.
+- [ROM2] The first town is a picture instead of a list: the square shows its
+  gate, guards, tavern, sign, stars, weather vane, birds and passers-by, with
+  hover hints, and the inn shows its candle, cauldron, taverner, the people to
+  talk to on their seats and the Talk and Exit buttons. The gate stays shut,
+  and the guard says so, until the first inn talk; Exit or Escape leaves the
+  inn for the square.
 
 ## 0.113.1
 

@@ -2132,6 +2132,10 @@ package storyguard
 // pkg/ui/app.go and the installed witnesses, the pending-order re-derivation
 // in pkg/game/weaponswap.go and its tests, new code net of the primary-unit
 // toggle doc it replaced, including this paragraph.
+// CommentBytes rises for the second game's first town: the docs of
+// pkg/game/secondtown.go, the seat grid and buttons in pkg/town/seats.go, the
+// one scene adapter's sceneCampaign interface, the composer's added refusals,
+// the second-game town witnesses and their tests, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2155,5 +2159,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1734,
 	},
-	CommentBytes: 8675561,
+	CommentBytes: 8685327,
 }

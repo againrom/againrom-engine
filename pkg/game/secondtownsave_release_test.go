@@ -40,6 +40,14 @@ func secondTownSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondTownSampl
 	}
 	sample := secondTownSample{Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Offered: f.Offered,
 		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: screen.Rows(), Frame: sha256.Sum256(picture.Pix)}
+	if s, ok := screen.(*secondCampaignScreen); ok {
+		if _, composed := s.composedTown(); composed {
+			// A composed town's picture carries its animation phase and
+			// wildlife variants, presentation the SAV does not hold
+			// (DIV-2962); the campaign capture holds its room.
+			sample.Frame = [32]byte{}
+		}
+	}
 	for _, p := range mapload.CloneParty(f.Carried) {
 		p.WornItems = mapload.MemberItemEquipment(p, f.Table)
 		p.CarriedItems = mapload.MemberCarriedItems(p, f.Table)
@@ -221,8 +229,10 @@ func secondTownEnter(t *testing.T, f *FrontEnd, app *ui.App) {
 	if len(c.available) != 2 {
 		t.Fatal("repeated ordinary TALK duplicated destination")
 	}
-	if err := app.HeadlessActivate("GATES"); err != nil {
-		t.Fatal(err)
+	for _, target := range []string{"EXIT", "GATES"} {
+		if err := app.HeadlessActivate(target); err != nil {
+			t.Fatal(err)
+		}
 	}
 	party := mapload.CloneParty(f.Carried)
 	for _, target := range []string{"mission 10", "CANCEL"} {
@@ -462,7 +472,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	}
 	secondTownDismissAck(t, app)
 	secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
-	for _, target := range []string{"GATES", "mission 10"} {
+	for _, target := range []string{"EXIT", "GATES", "mission 10"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}

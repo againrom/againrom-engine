@@ -146,6 +146,7 @@ func (h *fakeHost) tick(d time.Duration) { h.now = h.now.Add(d) }
 var testVocabulary = Vocabulary{
 	Hooks:      []string{"enter-hook", "leave-hook", "closed"},
 	Conditions: []string{"open", "admitted"},
+	Pages:      []string{"inn"},
 }
 
 // decodeJSON decodes a description written as a Go value.

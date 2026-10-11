@@ -207,9 +207,11 @@ func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 		a.problem = err.Error()
 	}
 	a.art = screenart.NewLibrary(screenArtSource{countedSource{src, a.reads}})
-	for _, r := range RoomDescription(archives.Base.Profile).Rooms {
-		if r.Name == "gates" {
-			a.manifest = r.Art
+	if d := RoomDescription(archives.Base.Profile); d != nil {
+		for _, r := range d.Rooms {
+			if r.Name == "gates" {
+				a.manifest = r.Art
+			}
 		}
 	}
 	set, _ := a.art.Load("world-map", a.manifest)

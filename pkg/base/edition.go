@@ -31,10 +31,10 @@ type Edition struct {
 	// the rules the music controller plays them by.
 	Music string
 
-	// Rooms names the town description whose rooms the tavern, shop and
-	// school pages, their tips and their scene art are read from. The second
-	// game has no room description of its own and names the first game's, the
-	// description its install has always loaded its room scene art from.
+	// Rooms names the town description whose rooms the first game's tavern,
+	// shop and school pages, their tips and their scene art are read from;
+	// empty when the game has no such pages. The second game's towns name
+	// their rooms in their own descriptions.
 	Rooms string
 
 	// Screens names the screen art description: the art manifest of every
@@ -128,7 +128,6 @@ var secondEdition = Edition{
 	Campaign:     CampaignDestinations,
 	Generator:    "rom2",
 	Music:        "rom2",
-	Rooms:        "rom1",
 	Screens:      "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{

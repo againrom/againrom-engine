@@ -385,7 +385,11 @@ type RoomSpec struct {
 	Art   []ArtSpec  `json:"art"`
 	Music *MusicSpec `json:"music"`
 	Tip   *TipSpec   `json:"tip"`
-	Cite  []string   `json:"cite"`
+	// Seats and Buttons are a page's own controls as data: the seat grid its
+	// page draws the campaign's roster in, and its buttons in index order.
+	Seats   *SeatSpec    `json:"seats"`
+	Buttons []ButtonSpec `json:"buttons"`
+	Cite    []string     `json:"cite"`
 }
 
 // Step is one entry or exit step: a composer step ("reset" the square view)
@@ -440,6 +444,16 @@ func (d *Description) Scene(room string) *SceneSpec {
 	return nil
 }
 
+// Room answers the named room, nil for the square or an unknown name.
+func (d *Description) Room(name string) *RoomSpec {
+	for i := range d.Rooms {
+		if d.Rooms[i].Name == name {
+			return &d.Rooms[i]
+		}
+	}
+	return nil
+}
+
 // Point is an x, y pair.
 type Point [2]int
 
@@ -452,13 +466,14 @@ type Rect [4]int
 // Rectangle is the image rectangle.
 func (r Rect) Rectangle() image.Rectangle { return image.Rect(r[0], r[1], r[2], r[3]) }
 
-// Vocabulary is the hook, condition, value and event names a game answers. A
-// description that names any other is refused when it is read.
+// Vocabulary is the hook, condition, value, event and page kind names a game
+// answers. A description that names any other is refused when it is read.
 type Vocabulary struct {
 	Hooks      []string
 	Conditions []string
 	Values     []string
 	Events     []string
+	Pages      []string
 }
 
 func (v Vocabulary) has(list []string, name string) bool {

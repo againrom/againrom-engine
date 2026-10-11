@@ -75,8 +75,10 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 			t.Fatalf("initial bank[%d]=%d want%d", slot, value, want)
 		}
 	}
-	if err := app.HeadlessActivate("GATES"); err == nil {
-		t.Fatal("locked gate was enabled")
+	// The closed gate is a hotspot like any other: it opens the guard's
+	// text and keeps the party in town (R2-ENGINE-241).
+	if err := app.HeadlessActivate("GATES"); err != nil || c.current != (secondLocation{kind: 2, id: 1}) || c.bank[769] != 0 {
+		t.Fatalf("closed gate: err %v, current %v", err, c.current)
 	}
 	for _, target := range []string{"TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {
@@ -111,8 +113,10 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := app.HeadlessActivate("GATES"); err != nil {
-		t.Fatal(err)
+	for _, target := range []string{"EXIT", "GATES"} {
+		if err := app.HeadlessActivate(target); err != nil {
+			t.Fatal(err)
+		}
 	}
 	beforeBank, beforeCurrent := c.bank, c.current
 	beforeAvailable := append([]secondLocation(nil), c.available...)

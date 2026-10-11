@@ -167,7 +167,7 @@ func runProfileWitness(t *testing.T, f *FrontEnd) {
 				break
 			}
 		}
-		for _, target := range []string{"GATES", "mission 10", "ENTER"} {
+		for _, target := range []string{"EXIT", "GATES", "mission 10", "ENTER"} {
 			w.do("activate-"+target, HeadlessStep{Command: "activate", Target: target})
 		}
 	} else {

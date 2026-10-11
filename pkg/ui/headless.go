@@ -913,6 +913,8 @@ func (a *App) headlessChooseTownSquareRow(target string) error {
 	p.Select(match)
 	a.flow.chooseTown()
 	a.syncViewerLayout()
+	// A click reaches the music through Update; this direct door asks too.
+	a.syncMusic()
 	return nil
 }
 

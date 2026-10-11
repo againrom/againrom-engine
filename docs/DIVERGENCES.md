@@ -159,6 +159,7 @@ copying those counts.
 | `docs/divergences/rom2-humans.md` |
 | `docs/divergences/rom2-music.md` |
 | `docs/divergences/rom2-text.md` |
+| `docs/divergences/rom2-town.md` |
 | `docs/divergences/school.md` |
 | `docs/divergences/shop.md` |
 | `docs/divergences/simulation.md` |

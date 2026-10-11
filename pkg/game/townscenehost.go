@@ -9,10 +9,27 @@ import (
 	"againrom/pkg/ui"
 )
 
-// townSceneHost is the one adapter the square and each room page run over,
-// bound to its room by name.
+// sceneCampaign is what a game's town screen answers the one scene adapter
+// for a room of its description: the room's art, the presentation clock and
+// draws, the room's sounds, and the campaign's conditions, values and hooks.
+type sceneCampaign interface {
+	sceneArt(room string) *town.Art
+	sceneNow() time.Time
+	sceneDraw(source string, n int) int
+	sceneSeed() int64
+	sceneCondition(name string) bool
+	sceneValue(name string) int
+	scenePlay(room, source, key string, loop bool) town.Voice
+	sceneStartLoop(key string) bool
+	sceneStopLoop()
+	sceneLeave(room string)
+	sceneHook(name, room string)
+}
+
+// townSceneHost is the one adapter the square and each room page of every
+// game's town run over, bound to its screen and its room by name.
 type townSceneHost struct {
-	t    *townScreen
+	t    sceneCampaign
 	room string
 }
 
@@ -20,12 +37,31 @@ func newSquareScene(t *townScreen, d *town.Description) *town.Scene {
 	return town.NewScene(d, d.Square.Name, townSceneHost{t: t, room: d.Square.Name}, t.townProcess)
 }
 
-func (h townSceneHost) Art() *town.Art {
-	t := h.t
+func (h townSceneHost) Art() *town.Art                { return h.t.sceneArt(h.room) }
+func (h townSceneHost) Now() time.Time                { return h.t.sceneNow() }
+func (h townSceneHost) Draw(source string, n int) int { return h.t.sceneDraw(source, n) }
+func (h townSceneHost) Seed() int64                   { return h.t.sceneSeed() }
+func (h townSceneHost) Condition(name string) bool    { return h.t.sceneCondition(name) }
+func (h townSceneHost) Value(name string) int         { return h.t.sceneValue(name) }
+func (h townSceneHost) StartLoop(key string) bool     { return h.t.sceneStartLoop(key) }
+func (h townSceneHost) StopLoop(string)               { h.t.sceneStopLoop() }
+func (h townSceneHost) Leave(room string)             { h.t.sceneLeave(room) }
+func (h townSceneHost) Hook(name, room string)        { h.t.sceneHook(name, room) }
+func (h townSceneHost) PlaySound(source, key string, loop bool) town.Voice {
+	return h.t.scenePlay(h.room, source, key, loop)
+}
+
+func (h townSceneHost) StopSound(v town.Voice) {
+	if av, ok := v.(audio.Voice); ok {
+		audio.StopReset(av)
+	}
+}
+
+func (t *townScreen) sceneArt(name string) *town.Art {
 	if t == nil || t.sess == nil {
 		return nil
 	}
-	room, ok := townRoomNames[h.room]
+	room, ok := townRoomNames[name]
 	if !ok {
 		return nil
 	}
@@ -48,7 +84,7 @@ func (h townSceneHost) Art() *town.Art {
 	return nil
 }
 
-func (h townSceneHost) Now() time.Time { return h.t.townAnimationNow() }
+func (t *townScreen) sceneNow() time.Time { return t.townAnimationNow() }
 
 // sceneDraw is a draw source's seam and its stream while the seam is unset.
 type sceneDraw struct {
@@ -64,38 +100,40 @@ var sceneDraws = map[string]sceneDraw{
 	"training":  {townDraws.schoolDraw, random.School},
 }
 
-func (h townSceneHost) Draw(source string, n int) int {
-	t := h.t
+func (t *townScreen) sceneDraw(source string, n int) int { return sceneDrawFrom(t.draws, source, n) }
+
+// sceneDrawFrom is one bounded draw of a scene's host source: its seam when
+// set, else its stream, else the session stream of that name.
+func sceneDrawFrom(draws townDraws, source string, n int) int {
 	bind, ok := sceneDraws[source]
 	if !ok {
-		return boundedPresentationRoll(nil, t.draws.stream(random.Name(source)), n)
+		return boundedPresentationRoll(nil, draws.stream(random.Name(source)), n)
 	}
-	if draw := bind.seam(t.draws); draw != nil {
+	if draw := bind.seam(draws); draw != nil {
 		return boundedPresentationRoll(draw, nil, n)
 	}
-	return boundedPresentationRoll(nil, t.draws.stream(bind.stream), n)
+	return boundedPresentationRoll(nil, draws.stream(bind.stream), n)
 }
 
-func (h townSceneHost) Seed() int64 { return h.t.sound.wildlifeSeed() }
+func (t *townScreen) sceneSeed() int64 { return t.sound.wildlifeSeed() }
 
-func (h townSceneHost) Condition(name string) bool {
+func (t *townScreen) sceneCondition(name string) bool {
 	if c := townConditions[name]; c != nil {
-		return c(h.t)
+		return c(t)
 	}
 	return false
 }
 
-func (h townSceneHost) Value(name string) int {
+func (t *townScreen) sceneValue(name string) int {
 	if v := roomValues[name]; v != nil {
-		return v(h.t)
+		return v(t)
 	}
 	return -1
 }
 
 // PlaySound plays through the room's audio scope; without a sound device a
 // room page asks nothing and the square still opens its scope.
-func (h townSceneHost) PlaySound(source, key string, loop bool) town.Voice {
-	t := h.t
+func (t *townScreen) scenePlay(room, source, key string, loop bool) town.Voice {
 	if t.sess == nil {
 		return nil
 	}
@@ -103,7 +141,7 @@ func (h townSceneHost) PlaySound(source, key string, loop bool) town.Voice {
 	if !ok {
 		return nil
 	}
-	if townRoomNames[h.room] != roomSquare && t.sound.soundDevice() == nil {
+	if townRoomNames[room] != roomSquare && t.sound.soundDevice() == nil {
 		return nil
 	}
 	v := audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample,
@@ -115,14 +153,7 @@ func (h townSceneHost) PlaySound(source, key string, loop bool) town.Voice {
 	return v
 }
 
-func (h townSceneHost) StopSound(v town.Voice) {
-	if av, ok := v.(audio.Voice); ok {
-		audio.StopReset(av)
-	}
-}
-
-func (h townSceneHost) StartLoop(key string) bool {
-	t := h.t
+func (t *townScreen) sceneStartLoop(key string) bool {
 	if t.sound.ambientDevice() == nil {
 		return false
 	}
@@ -140,8 +171,7 @@ func (h townSceneHost) StartLoop(key string) bool {
 	return true
 }
 
-func (h townSceneHost) StopLoop(key string) {
-	t := h.t
+func (t *townScreen) sceneStopLoop() {
 	if t.sound.ambientDevice() != nil {
 		if ui.DeliveryOwner(t.sound.soundDevice()) != nil {
 			audio.StopReset(t.squareLoop)
@@ -152,18 +182,18 @@ func (h townSceneHost) StopLoop(key string) {
 	t.squareLoop = nil
 }
 
-func (h townSceneHost) Leave(room string) {
-	if r, ok := townRoomNames[room]; ok && h.t.audioRoom == r {
-		h.t.destroyRoomAudio()
+func (t *townScreen) sceneLeave(room string) {
+	if r, ok := townRoomNames[room]; ok && t.audioRoom == r {
+		t.destroyRoomAudio()
 	}
 }
 
-func (h townSceneHost) Hook(name, room string) {
+func (t *townScreen) sceneHook(name, room string) {
 	if hook := townHooks[name]; hook != nil {
 		r, ok := townRoomNames[room]
 		if !ok {
-			r = h.t.room
+			r = t.room
 		}
-		hook(h.t, r)
+		hook(t, r)
 	}
 }

@@ -82,10 +82,71 @@ func (d *Description) validateRoom(r RoomSpec, rooms map[string]bool) error {
 	if err := screenart.Check(r.Art); err != nil {
 		return fail("page %v", err)
 	}
+	if err := validateControls(r, fail); err != nil {
+		return err
+	}
 	if r.Scene == nil {
 		return nil
 	}
 	return d.validateScene(r.Scene, rooms, fail)
+}
+
+// validateControls checks a page's seats and buttons: a seat grid with
+// seats, its art named in the page art and its selection sound a keyed slot
+// of the page scene; buttons with names, rectangles and page art.
+func validateControls(r RoomSpec, fail func(string, ...any) error) error {
+	art := map[string]bool{}
+	for _, a := range r.Art {
+		art[a.Name] = true
+	}
+	needArt := func(where, name string) error {
+		if name != "" && !art[name] {
+			return fail("%s names unknown page art %q", where, name)
+		}
+		return nil
+	}
+	if s := r.Seats; s != nil {
+		if s.Columns <= 0 || s.Rows <= 0 || s.First.Rectangle().Empty() {
+			return fail("seats need columns, rows and a first seat")
+		}
+		if s.FrameMS <= 0 || s.Compare != "greater" && s.Compare != "at-least" {
+			return fail("seats need a frame period and its compare")
+		}
+		for _, name := range []string{s.Back, s.Actor} {
+			if err := needArt("seats", name); err != nil {
+				return err
+			}
+		}
+		keyed := false
+		if r.Scene != nil {
+			for _, sl := range r.Scene.Sounds.Slots {
+				keyed = keyed || sl.Name == s.Select && sl.Key != ""
+			}
+		}
+		if s.Select != "" && !keyed {
+			return fail("seats request slot %q, which is no keyed slot of the page scene", s.Select)
+		}
+	}
+	names := map[string]bool{}
+	for i, b := range r.Buttons {
+		where := fmt.Sprintf("button %d", i)
+		if b.Name == "" || names[b.Name] {
+			return fail("%s has no name or a repeated one %q", where, b.Name)
+		}
+		names[b.Name] = true
+		if b.Rect.Rectangle().Empty() {
+			return fail("%s rectangle %v is empty", where, b.Rect)
+		}
+		if b.Caption != nil && *b.Caption < 0 {
+			return fail("%s has negative caption slot %d", where, *b.Caption)
+		}
+		for _, name := range []string{b.Off, b.On} {
+			if err := needArt(where, name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // phases are the steps each program runs.
@@ -115,6 +176,7 @@ func listed(list []string, name string) bool {
 type sceneNames struct {
 	random   map[string]bool
 	art      map[string]bool
+	longest  map[string]int
 	slots    map[string]bool
 	keyed    map[string]bool
 	spots    map[string]bool
@@ -170,7 +232,7 @@ func (n *sceneNames) needKeyedSlot(where, slot string) error {
 
 func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail func(string, ...any) error) error {
 	n := &sceneNames{
-		random: map[string]bool{}, art: map[string]bool{}, slots: map[string]bool{}, keyed: map[string]bool{},
+		random: map[string]bool{}, art: map[string]bool{}, longest: map[string]int{}, slots: map[string]bool{}, keyed: map[string]bool{},
 		spots: map[string]bool{}, clocks: map[string]*SceneClock{}, programs: map[string]string{},
 		rooms: rooms, fail: fail,
 	}
@@ -211,6 +273,9 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 			return fail("art %q has %d indices", a.Name, len(a.Index))
 		}
 		n.art[a.Name] = true
+		for _, c := range append([]int{a.Count}, a.Counts...) {
+			n.longest[a.Name] = max(n.longest[a.Name], c)
+		}
 	}
 	for _, sl := range s.Sounds.Slots {
 		n.slots[sl.Name] = true
@@ -403,6 +468,9 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		}
 		return nil
 	}
+	if err := n.checkDraws(a, fail); err != nil {
+		return err
+	}
 	for _, on := range a.On {
 		known := listed(actions[a.Program], on.Do)
 		if a.Program == "priority" {
@@ -516,6 +584,9 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 				return fail("index %d is outside its %d frames", i, a.Frames)
 			}
 		}
+		if a.StopAt < 1 || a.LoopAt < 1 || a.LoopTo >= a.LoopAt {
+			return fail("a member must loop back and stop: loop-at %d, loop-to %d, stop-at %d", a.LoopAt, a.LoopTo, a.StopAt)
+		}
 	case "priority":
 		if err := needClock(false); err != nil {
 			return err
@@ -610,9 +681,13 @@ func (n *sceneNames) validateFamilies(a ActorSpec, where string, fail func(strin
 		if m.Mode == "episode" && (m.Later == nil || m.SheetPick == nil) {
 			return fail("member %q needs later and sheet-pick", m.Name)
 		}
+		longest := n.longest[m.Art]
 		for _, c := range m.FrameCues {
 			if err := n.needSlot(where, c.Slot); err != nil {
 				return err
+			}
+			if c.Frame < 0 || longest > 0 && c.Frame >= longest || c.Sheet >= 0 && m.Sheets > 0 && c.Sheet >= m.Sheets {
+				return fail("member %q cues frame %d of sheet %d beyond its art", m.Name, c.Frame, c.Sheet)
 			}
 		}
 		names[m.Name] = true
@@ -672,6 +747,57 @@ func (n *sceneNames) checkState(where string, s StateSpec) error {
 		if err := n.needKeyedSlot(where, c.Slot); err != nil {
 			return err
 		}
+		if c.Frame < 0 || c.Frame >= s.Complete {
+			return n.fail("%s: state %q cues frame %d beyond its %d frames", where, s.Name, c.Frame, s.Complete)
+		}
+	}
+	return nil
+}
+
+// checkDraws refuses a wait or pick with an unknown compare or form, a
+// negative number, or a draw from an unknown source.
+func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) error {
+	var waits []*WaitSpec
+	var picks []*PickSpec
+	waits = append(waits, a.Wait)
+	picks = append(picks, a.Delay, a.HoldPick, a.Group, a.Count)
+	for _, m := range a.Members {
+		waits = append(waits, m.Later)
+		picks = append(picks, m.SheetPick)
+	}
+	for _, e := range a.Entry {
+		waits = append(waits, e.After)
+		picks = append(picks, e.Pick)
+	}
+	for _, w := range waits {
+		if w == nil {
+			continue
+		}
+		if w.Compare != "greater" && w.Compare != "at-least" {
+			return fail("wait compare %q", w.Compare)
+		}
+		if w.Form != "" && w.Form != "scaled" && w.Form != "masked" {
+			return fail("wait form %q", w.Form)
+		}
+		if w.BaseMS < 0 || w.SpanMS < 0 {
+			return fail("negative wait %d+%d ms", w.BaseMS, w.SpanMS)
+		}
+		if w.SpanMS > 0 || w.Draw != "" {
+			if err := n.needDraw("actor "+a.Name, w.Draw); err != nil {
+				return err
+			}
+		}
+	}
+	for _, p := range picks {
+		if p == nil {
+			continue
+		}
+		if p.Form != "" && p.Form != "scaled" && p.Form != "masked" {
+			return fail("pick form %q", p.Form)
+		}
+		if p.Base < 0 || p.N < 0 || p.Raw < 0 || p.Divide < 0 || p.Times < 0 {
+			return fail("negative pick %+v", *p)
+		}
 	}
 	return nil
 }
@@ -692,10 +818,11 @@ func onlyEqual(p, o PickSpec) bool {
 	return plo == phi && plo >= olo && plo <= ohi
 }
 
-// checkVocabulary refuses a hook, condition, value or event name the game
-// does not answer.
+// checkVocabulary refuses a hook, condition, value, event or page kind name
+// the game does not answer.
 func (d *Description) checkVocabulary(vocab Vocabulary) error {
-	lists := map[string][]string{"hook": vocab.Hooks, "condition": vocab.Conditions, "value": vocab.Values, "event": vocab.Events}
+	lists := map[string][]string{"hook": vocab.Hooks, "condition": vocab.Conditions, "value": vocab.Values,
+		"event": vocab.Events, "page": vocab.Pages}
 	for _, u := range d.uses() {
 		if !vocab.has(lists[u.kind], u.name) {
 			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, u.kind, u.name)
@@ -708,8 +835,8 @@ type nameUse struct {
 	where, name, kind string
 }
 
-// uses lists every hook, condition, value and event name the description
-// uses. An event a scene's own actor raises is the scene's, not the game's.
+// uses lists every hook, condition, value, event and page kind name the
+// description uses. An event a scene's own actor raises is the scene's, not the game's.
 func (d *Description) uses() []nameUse {
 	var out []nameUse
 	use := func(kind, where, name string) {
@@ -755,6 +882,7 @@ func (d *Description) uses() []nameUse {
 		use("hook", "square", s.Hook)
 	}
 	for _, r := range d.Rooms {
+		use("page", "room "+r.Name, r.Page)
 		for _, s := range append(append([]Step{}, r.Enter...), r.Exit...) {
 			use("hook", "room "+r.Name, s.Hook)
 		}

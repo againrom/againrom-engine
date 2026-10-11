@@ -17,6 +17,13 @@ import (
 //go:embed towns/rom1.json
 var rom1TownJSON []byte
 
+// rom2Town1JSON is the second game's first town as data for the town
+// composer: its square and its inn page, every value beside the second-game
+// claim or divergence row behind it.
+//
+//go:embed towns/rom2-town1.json
+var rom2Town1JSON []byte
+
 // townDescriptions are the town descriptions a profile's edition can name, by
 // that name. A description that does not decode, or names a hook or condition
 // the campaign does not answer, is a build defect, so it stops the process at
@@ -25,7 +32,10 @@ var rom1TownJSON []byte
 var townDescriptions map[string]*town.Description
 
 func init() {
-	townDescriptions = map[string]*town.Description{"rom1": mustDecodeTown(rom1TownJSON)}
+	townDescriptions = map[string]*town.Description{
+		"rom1":       mustDecodeTown(rom1TownJSON, townVocabulary()),
+		"rom2-town1": mustDecodeTown(rom2Town1JSON, secondTownVocabulary()),
+	}
 }
 
 // TownDescription is the town description the profile's edition names, or
@@ -34,24 +44,26 @@ func init() {
 func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
 
 // RoomDescription is the town description whose rooms the profile reads: the
-// tavern, shop and school pages, their tips and their scene art. A second-game
-// install reads the first game's rooms, as the edition's Rooms names them: its
-// town screen is the campaign list, but its install load resolves the room
-// scene art from that description. Callers must not change it.
+// first game's tavern, shop and school pages, their tips and their scene art,
+// as the edition's Rooms names them; nil for the second game, whose towns
+// name their rooms in their own descriptions. Callers must not change it.
 func RoomDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Rooms] }
 
-func mustDecodeTown(data []byte) *town.Description {
-	d, err := town.Decode(data, townVocabulary())
+func mustDecodeTown(data []byte, vocab town.Vocabulary) *town.Description {
+	d, err := town.Decode(data, vocab)
 	if err != nil {
 		panic(err)
 	}
 	return d
 }
 
-// townVocabulary is the hook, condition, value and event names the ROM1
-// campaign answers.
+// townPages are the page kinds the ROM1 town screen draws its rooms with.
+var townPages = []string{"tavern", "shop", "school", "world-map"}
+
+// townVocabulary is the hook, condition, value, event and page names the
+// ROM1 campaign answers.
 func townVocabulary() town.Vocabulary {
-	v := town.Vocabulary{Events: roomEvents}
+	v := town.Vocabulary{Events: roomEvents, Pages: townPages}
 	for name := range townHooks {
 		v.Hooks = append(v.Hooks, name)
 	}

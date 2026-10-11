@@ -1,0 +1,73 @@
+package town
+
+import "image"
+
+// SeatSpec is a page's seat grid: Columns seats in a row, Rows rows, the
+// first seat at First, each next seat of a row offset by Step and each next
+// row by RowStep. Seat i is in row i/Columns and column i%Columns. Back is
+// the page art drawn in a populated seat under its actor, Actor the page art
+// of a seated actor's frames. A selection requests the page scene's Select
+// slot; the selected actor alone advances one frame after FrameMS, compared
+// as Compare.
+type SeatSpec struct {
+	First   Rect     `json:"first"`
+	Step    Point    `json:"step"`
+	RowStep Point    `json:"row-step"`
+	Columns int      `json:"columns"`
+	Rows    int      `json:"rows"`
+	Back    string   `json:"back"`
+	Actor   string   `json:"actor"`
+	Select  string   `json:"select"`
+	FrameMS int      `json:"frame-ms"`
+	Compare string   `json:"compare"`
+	Cite    []string `json:"cite"`
+}
+
+// Count is the number of seats.
+func (s *SeatSpec) Count() int { return s.Columns * s.Rows }
+
+// Seat answers seat i's rectangle, empty outside the grid.
+func (s *SeatSpec) Seat(i int) image.Rectangle {
+	if i < 0 || i >= s.Count() {
+		return image.Rectangle{}
+	}
+	at := image.Pt(s.Step[0]*(i%s.Columns)+s.RowStep[0]*(i/s.Columns),
+		s.Step[1]*(i%s.Columns)+s.RowStep[1]*(i/s.Columns))
+	return s.First.Rectangle().Add(at)
+}
+
+// SeatAt answers the first of the first n seats that holds p, -1 for none.
+func (s *SeatSpec) SeatAt(p image.Point, n int) int {
+	for i := 0; i < n && i < s.Count(); i++ {
+		if p.In(s.Seat(i)) {
+			return i
+		}
+	}
+	return -1
+}
+
+// ButtonSpec is one page button: the action its page binds by Name, its hit
+// rectangle, the page art it shows released and pressed, drawn at the
+// rectangle's corner, and the main text slot of its caption, if it has one.
+type ButtonSpec struct {
+	Name    string   `json:"name"`
+	Rect    Rect     `json:"rect"`
+	Off     string   `json:"off"`
+	On      string   `json:"on"`
+	Caption *int     `json:"caption"`
+	Cite    []string `json:"cite"`
+}
+
+// ButtonAt answers the index of the first button of buttons whose rectangle
+// holds p, -1 for none.
+func ButtonAt(buttons []ButtonSpec, p image.Point) int {
+	for i, b := range buttons {
+		if p.In(b.Rect.Rectangle()) {
+			return i
+		}
+	}
+	return -1
+}
+
+// Sound requests a slot's own sound, as a "sound <slot>" step does.
+func (s *Scene) Sound(slot string) { s.sound(slot, "") }

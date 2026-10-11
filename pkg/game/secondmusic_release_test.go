@@ -168,6 +168,10 @@ func TestReleaseSecondGameMusicScreens(t *testing.T) {
 		}
 	}
 	tail.expect(t, "tavern and talk", nil, nil)
+	if err := app.HeadlessActivate("EXIT"); err != nil {
+		t.Fatal(err)
+	}
+	tail.expect(t, "inn exit", nil, nil)
 	if err := app.HeadlessActivate("GATES"); err != nil {
 		t.Fatal(err)
 	}
