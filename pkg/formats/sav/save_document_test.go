@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func saveDocument1115Literal(t *testing.T) ([]byte, []byte, []byte, []byte) {
+func worldDocumentLiteral(t *testing.T) ([]byte, []byte, []byte, []byte) {
 	t.Helper()
 	body, _ := archiveDocument1115Fixture()
 	state := literalStateStore(literalWorldDirectories(266, 7, 266))
@@ -28,7 +28,7 @@ func saveDocument1115Literal(t *testing.T) ([]byte, []byte, []byte, []byte) {
 }
 
 func TestSaveDocument1115CompleteContainerAfterSourceErasure(t *testing.T) {
-	source, _, state, campaign := saveDocument1115Literal(t)
+	source, _, state, campaign := worldDocumentLiteral(t)
 	wantState, _ := literalReadState(state)
 	d, err := parseSaveDocument(source)
 	if err != nil {
@@ -100,7 +100,7 @@ func TestSaveDocument1115SharesCodecWithCity(t *testing.T) {
 }
 
 func TestSaveDocument1115RejectsIncompleteAndOversizedContainers(t *testing.T) {
-	b, _, _, _ := saveDocument1115Literal(t)
+	b, _, _, _ := worldDocumentLiteral(t)
 	for _, n := range []int{0, 19, len(b) - 1, len(b) - 24} {
 		if d, err := parseSaveDocument(b[:n]); err == nil || d != nil {
 			t.Fatalf("accepted truncated container %d", n)

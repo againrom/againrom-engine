@@ -12,7 +12,7 @@ import (
 
 func documentDataFixture(t *testing.T) DocumentData {
 	t.Helper()
-	source, _, _, _ := saveDocument1115Literal(t)
+	source, _, _, _ := worldDocumentLiteral(t)
 	d, err := DecodeDocumentData(source)
 	if err != nil {
 		t.Fatal(err)
@@ -79,7 +79,7 @@ func documentCountForField(t *testing.T, r *DocumentRecordData, name string) *ui
 }
 
 func TestDocumentData1115LiteralErasureGobAndWholeContainer(t *testing.T) {
-	source, body, state, campaign := saveDocument1115Literal(t)
+	source, body, state, campaign := worldDocumentLiteral(t)
 	wantBody := append([]byte(nil), body...)
 	if _, pad := archiveDocument1115Fixture(); pad {
 		wantBody[len(wantBody)-1] = 0
@@ -515,7 +515,7 @@ func TestDocumentData1115RejectsMalformedAndIgnoredFields(t *testing.T) {
 			}
 		})
 	}
-	source, _, _, _ := saveDocument1115Literal(t)
+	source, _, _, _ := worldDocumentLiteral(t)
 	for _, n := range []int{0, 19, len(source) - 1} {
 		if d, err := DecodeDocumentData(source[:n]); err == nil || !reflect.DeepEqual(d, DocumentData{}) {
 			t.Fatal("truncated source returned a partial DTO")
@@ -589,7 +589,7 @@ func TestDocumentData1115PersistenceTypeHasNoMapsOrCustomGob(t *testing.T) {
 // This is a format-only arbitrary-reference fixture, not a claim that a live
 // Sack should contain every possible class. The envelope has one admitted root
 // and gives each independently spelled class body a reachable archive site.
-func documentRootSack1115Literal(t *testing.T, emit func(*stream)) ([]byte, []byte) {
+func rootSackDocumentLiteral(t *testing.T, emit func(*stream)) ([]byte, []byte) {
 	t.Helper()
 	s := newStream()
 	s.u32(11)
@@ -637,7 +637,7 @@ func documentRootSack1115Literal(t *testing.T, emit func(*stream)) ([]byte, []by
 	return out, s.b
 }
 
-func documentClass1115Literal(s *stream, class string) {
+func archiveClassLiteral(s *stream, class string) {
 	switch class {
 	case "Item", "Shield", "Armor", "Weapon":
 		s.item(wantPiece{class: class, code: 0x5432, row: 3, stack: 7})
@@ -746,7 +746,7 @@ func TestDocumentData1115EveryClassHasIndependentLiteralCoverage(t *testing.T) {
 	}
 	for _, class := range classes {
 		t.Run(class, func(t *testing.T) {
-			source, literalBody := documentRootSack1115Literal(t, func(s *stream) { documentClass1115Literal(s, class) })
+			source, literalBody := rootSackDocumentLiteral(t, func(s *stream) { archiveClassLiteral(s, class) })
 			wantBody := append([]byte(nil), literalBody...)
 			d, err := DecodeDocumentData(source)
 			if err != nil {
@@ -777,7 +777,7 @@ func TestDocumentData1115EveryClassHasIndependentLiteralCoverage(t *testing.T) {
 }
 
 func TestDocumentData1115SparseBookAndWornViewsAreDerived(t *testing.T) {
-	source, literal := documentRootSack1115Literal(t, func(s *stream) {
+	source, literal := rootSackDocumentLiteral(t, func(s *stream) {
 		s.human(wantChar{
 			name: "sparse views", runtimeID: 300, journal: 3,
 			worn:  []wantPiece{{class: "Armor", code: 0x1234}},
@@ -918,7 +918,7 @@ func TestDocumentData1115CloneOwnsEveryNestedAllocation(t *testing.T) {
 }
 
 func TestDocumentData1115ExactOriginsExcludeInlineAndIgnoreKeys(t *testing.T) {
-	source, _, _, _ := saveDocument1115Literal(t)
+	source, _, _, _ := worldDocumentLiteral(t)
 	d, origins, err := DecodeDocumentDataWithOrigins(source)
 	if err != nil {
 		t.Fatal(err)
@@ -962,7 +962,7 @@ func TestDocumentData1115ExactOriginsExcludeInlineAndIgnoreKeys(t *testing.T) {
 	// Local IDs deliberately differ from tag order: sorted Diary comes first
 	// in the DTO; inventory/book/worn preceded it on the wire. The same clone
 	// pointer provides each pair, without a numeric-index or key-value join.
-	source, _ = documentRootSack1115Literal(t, func(s *stream) {
+	source, _ = rootSackDocumentLiteral(t, func(s *stream) {
 		s.human(wantChar{
 			name: "origin order", runtimeID: 300, journal: 1, spells: 2,
 			items: []wantPiece{{class: "Shield", code: 0x2345}},
@@ -1017,7 +1017,7 @@ func TestDocumentData1115CloneChecksWireNestingAndDecodedSize(t *testing.T) {
 	// The DTO fits its bounded ownership budget, but these separately owned
 	// Diary arrays exceed the decoded archive cap. Clone refuses without ever
 	// constructing a SAV byte array, even though the source slices alias.
-	source, _ := documentRootSack1115Literal(t, func(s *stream) { documentClass1115Literal(s, "Diary") })
+	source, _ := rootSackDocumentLiteral(t, func(s *stream) { archiveClassLiteral(s, "Diary") })
 	d, err := DecodeDocumentData(source)
 	if err != nil {
 		t.Fatal(err)
@@ -1049,7 +1049,7 @@ func TestDocumentData1115CloneChecksWireNestingAndDecodedSize(t *testing.T) {
 func TestDocumentData1115EmptyCampaignIsCanonicalAcrossNativeGob(t *testing.T) {
 	// Independent complete campaign with zero children and zero markers. The
 	// parser allocates those empty lists; ordinary gob decodes them as nil.
-	source, _, _, campaign := saveDocument1115Literal(t)
+	source, _, _, campaign := worldDocumentLiteral(t)
 	source = append(source[:len(source)-len(campaign)], make([]byte, 104)...)
 	d, err := DecodeDocumentData(source)
 	if err != nil {

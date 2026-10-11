@@ -143,9 +143,7 @@ func DecodeDocumentDataWithOrigins(raw []byte) (DocumentData, []DocumentObjectOr
 	return decodeDocumentDataKept(raw, true)
 }
 
-// decodedDocuments keeps the last few decoded containers by their exact
-// bytes. A load parses one file several times over (equipment repair, game
-// validation, campaign and document import); each reader gets its own copy.
+// decodedDocuments keeps exact-byte decodes by mode and returns owned copies.
 var decodedDocuments struct {
 	mu      sync.Mutex
 	entries []decodedDocument
@@ -714,8 +712,11 @@ func documentDataFromDocument(d *saveDocument, origins *[]DocumentObjectOrigin) 
 			return DocumentData{}, fmt.Errorf("sav: document terrain count exceeds bound")
 		}
 		out.World = &DocumentWorldData{Blocks: cityDataCopy(w.blocks), TerrainIdentity: w.terrainIdentity, Session: DocumentSessionData(w.session)}
-		for _, c := range w.cells {
-			out.World.Cells = append(out.World.Cells, DocumentCellData(c))
+		if len(w.cells) != 0 {
+			out.World.Cells = make([]DocumentCellData, len(w.cells))
+		}
+		for i, c := range w.cells {
+			out.World.Cells[i] = DocumentCellData(c)
 		}
 		for _, list := range []struct {
 			src []*Record
@@ -1005,8 +1006,11 @@ func saveDocumentFromDataIndexedMode(data DocumentData, permutation []uint16, bo
 			return nil, fmt.Errorf("sav: document terrain count exceeds bound")
 		}
 		a.world = &archiveWorld{buildings: refs(w.Buildings), effects: refs(w.Effects), sacks: refs(w.Sacks), blocks: cityDataCopy(w.Blocks), terrainIdentity: w.TerrainIdentity, session: archiveSession(w.Session)}
-		for _, cell := range w.Cells {
-			a.world.cells = append(a.world.cells, archiveCell(cell))
+		if len(w.Cells) != 0 {
+			a.world.cells = make([]archiveCell, len(w.Cells))
+		}
+		for i, cell := range w.Cells {
+			a.world.cells[i] = archiveCell(cell)
 		}
 	}
 	s, err := cityStateFromData(CityStateData{RootKind: data.State.RootKind, DirectoryRecords: data.State.DirectoryRecords, ValueRecords: data.State.ValueRecords}, 2)

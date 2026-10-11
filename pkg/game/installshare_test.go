@@ -388,6 +388,10 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	f, err := NewFrontEnd(root)
+	if err != nil {
+		t.Fatal(err)
+	}
 	fresh, err := loadInstallShare(root)
 	if err != nil {
 		t.Fatal(err)
@@ -396,10 +400,6 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 	fresh.matchReads(share)
 	if diff := installShareDiff(share, fresh); len(diff) != 0 {
 		t.Fatalf("a fresh read differs from the share: %v", diff)
-	}
-	f, err := NewFrontEnd(root)
-	if err != nil {
-		t.Fatal(err)
 	}
 	if f.Archives != share.archives || f.TownSquareArt.Value() != share.townSquare.value || f.Units == share.units {
 		t.Fatal("the front end does not take the archives and pictures from the share, or holds the shared unit set itself")

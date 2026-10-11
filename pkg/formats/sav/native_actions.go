@@ -17,6 +17,11 @@ const NativeActionsPath = "/CurrentState/AgainromActions"
 const MaxNativeActions = 8 << 20
 
 func NativeActions(state DocumentStateData) ([]byte, bool, error) {
+	value, found, err := nativeActionsView(state)
+	return bytes.Clone(value), found, err
+}
+
+func nativeActionsView(state DocumentStateData) ([]byte, bool, error) {
 	var value []byte
 	found := false
 	for _, r := range state.ValueRecords {
@@ -39,7 +44,7 @@ func NativeActions(state DocumentStateData) ([]byte, bool, error) {
 				return nil, false, fmt.Errorf("sav: nonzero native action padding")
 			}
 		}
-		value, found = bytes.Clone(b[8:8+n]), true
+		value, found = b[8:8+n], true
 	}
 	return value, found, nil
 }
@@ -48,7 +53,7 @@ func SetNativeActions(state *DocumentStateData, value []byte) error {
 	if state == nil || len(value) == 0 || len(value) > MaxNativeActions {
 		return fmt.Errorf("sav: native actions require a bounded application leaf")
 	}
-	if _, _, err := NativeActions(*state); err != nil {
+	if _, _, err := nativeActionsView(*state); err != nil {
 		return err
 	}
 	b := make([]byte, (len(value)+11)&^3)
@@ -89,7 +94,7 @@ func remapNativeActionObjectsForCity(state *DocumentStateData, permutation []uin
 }
 
 func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16, dropRetiredOwnership bool) error {
-	data, present, err := NativeActions(*state)
+	data, present, err := nativeActionsView(*state)
 	if err != nil || !present {
 		return err
 	}

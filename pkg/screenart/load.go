@@ -435,13 +435,16 @@ func (l *Library) mask(screen string, spec Entry, key string) (*image.Paletted, 
 	if m.err != nil {
 		return nil, m.err
 	}
-	seen := map[int]bool{}
-	for _, index := range m.mask.Pix {
-		seen[int(index)] = true
-	}
-	for _, b := range spec.RequiredBytes {
-		if !seen[b] {
-			return nil, fmt.Errorf("%s: missing required mask index %d", key, b)
+	pix := m.mask.Pix
+	if len(spec.RequiredBytes) != 0 {
+		var seen [1 << 8]bool
+		for _, index := range pix {
+			seen[index] = true
+		}
+		for _, b := range spec.RequiredBytes {
+			if b < 0 || b >= len(seen) || !seen[b] {
+				return nil, fmt.Errorf("%s: missing required mask index %d", key, b)
+			}
 		}
 	}
 	return m.mask, nil

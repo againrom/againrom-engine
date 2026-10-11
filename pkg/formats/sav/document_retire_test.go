@@ -15,7 +15,7 @@ import (
 // The independently emitted survivor form is A -> C -> D -> E,P.
 func retireDocument1115Literal(t *testing.T, survivors bool) DocumentData {
 	t.Helper()
-	source, _ := documentRootSack1115Literal(t, func(s *stream) {
+	source, _ := rootSackDocumentLiteral(t, func(s *stream) {
 		var effect, spell uint16
 		weapon := func(code uint16, shared bool) {
 			s.obj("Weapon")
@@ -24,7 +24,7 @@ func retireDocument1115Literal(t *testing.T, survivors bool) DocumentData {
 			if shared {
 				s.backref(effect)
 			} else {
-				documentClass1115Literal(s, "Effect")
+				archiveClassLiteral(s, "Effect")
 				effect = s.next - 1
 			}
 			s.u16(code)
@@ -41,7 +41,7 @@ func retireDocument1115Literal(t *testing.T, survivors bool) DocumentData {
 			if shared {
 				s.backref(spell)
 			} else {
-				documentClass1115Literal(s, "Spell")
+				archiveClassLiteral(s, "Spell")
 				spell = s.next - 1
 			}
 		}
@@ -200,7 +200,7 @@ func TestRetireDocument1115ArchiveCyclesAndRetiredOutgoingEdges(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, input := documentDataGobCopy(t, want)
-		source, _ := documentRootSack1115Literal(t, func(s *stream) { documentClass1115Literal(s, "Sack") })
+		source, _ := rootSackDocumentLiteral(t, func(s *stream) { archiveClassLiteral(s, "Sack") })
 		extra, err := DecodeDocumentData(source)
 		if err != nil {
 			t.Fatal(err)
