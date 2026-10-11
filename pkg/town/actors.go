@@ -6,23 +6,44 @@ import (
 	"time"
 )
 
-// actor is one program's runtime. reset returns it to a view just built and
-// prepare to a view just made ready; enter runs on each entry to the visible
-// square and leave on leaving it; phase runs one named clock phase; arm and
-// drive are hover reactions; draw paints the named member of the actor for
-// one layer.
+// actor is one program's runtime. reset returns it to a scene never entered
+// and prepare to a scene just made ready; enter runs on each entry and leave
+// on each hiding of a shown scene; resume runs when a paused scene runs
+// again; phase runs one named step; arm and drive are hover reactions; event
+// runs one bound action and answers whether it changed state; activeNow is a
+// layer condition; draw paints the layer's actor or member.
 type actor interface {
 	members() []string
-	reset(v *View)
-	prepare(v *View)
-	enter(v *View, now time.Time)
-	leave(v *View)
-	phase(v *View, phase, name string, now time.Time)
-	arm(v *View, name string)
-	drive(v *View, dir int)
+	reset(s *Scene)
+	prepare(s *Scene)
+	enter(s *Scene, now time.Time)
+	leave(s *Scene)
+	resume(s *Scene, now time.Time)
+	phase(s *Scene, phase, name string, now time.Time)
+	arm(s *Scene, name string)
+	drive(s *Scene, dir int)
+	event(s *Scene, do string, args []int) bool
 	activeNow() bool
-	draw(v *View, dst *image.RGBA, name string, layer LayerSpec)
+	draw(s *Scene, dst *image.RGBA, layer LayerSpec)
 }
+
+// still is a program's answer to every call it takes no part in.
+type still struct{}
+
+func (still) members() []string                          { return nil }
+func (still) reset(s *Scene)                             {}
+func (still) prepare(s *Scene)                           {}
+func (still) enter(s *Scene, now time.Time)              {}
+func (still) leave(s *Scene)                             {}
+func (still) resume(s *Scene, now time.Time)             {}
+func (still) arm(s *Scene, name string)                  {}
+func (still) drive(s *Scene, dir int)                    {}
+func (still) event(s *Scene, do string, args []int) bool { return false }
+func (still) activeNow() bool                            { return false }
+
+// programs are the program names an actor may run, in either scene.
+var programs = []string{"episode", "pendulum", "stepper", "driven", "flock", "families",
+	"loop", "alternating", "selector", "priority", "bounce", "cycle", "target", "training"}
 
 func newActor(spec *ActorSpec) actor {
 	switch spec.Program {
@@ -38,6 +59,22 @@ func newActor(spec *ActorSpec) actor {
 		return &Flock{spec: spec, Progress: make([]int, spec.GroupSize)}
 	case "families":
 		return &Families{spec: spec, Members: make([]FamilyMember, len(spec.Members))}
+	case "loop":
+		return &Loop{spec: spec}
+	case "alternating":
+		return &Alternating{spec: spec}
+	case "selector":
+		return &Selector{spec: spec}
+	case "priority":
+		return &Priority{spec: spec}
+	case "bounce":
+		return &Bounce{spec: spec}
+	case "cycle":
+		return &Cycle{spec: spec}
+	case "target":
+		return &Target{spec: spec}
+	case "training":
+		return &Training{spec: spec}
 	}
 	return nil
 }
@@ -66,61 +103,57 @@ func restFrame(rule string, n int) int {
 // frame 0 and disarms after its last frame, and is frozen with no frames
 // loaded. A "hold" episode runs a fixed number of frames whatever is loaded,
 // stays on its last count hidden, and rewinds only every RewindEvery ends, a
-// count that outlives the view.
+// count that outlives the scene.
 type Episode struct {
+	still
 	spec    *ActorSpec
 	Frame   int
 	Enabled bool
 	Visible bool
 }
 
-func (e *Episode) members() []string { return nil }
+func (e *Episode) reset(s *Scene) { e.Frame, e.Enabled, e.Visible = 0, false, true }
 
-func (e *Episode) prepare(v *View) {}
-
-func (e *Episode) reset(v *View) { e.Frame, e.Enabled, e.Visible = 0, false, true }
-
-func (e *Episode) enter(v *View, now time.Time) {
+func (e *Episode) enter(s *Scene, now time.Time) {
 	if e.spec.ResetOnEntry {
 		e.Enabled, e.Frame, e.Visible = false, 0, true
 	}
 }
 
-func (e *Episode) leave(v *View) {
+func (e *Episode) leave(s *Scene) {
 	if e.spec.ResetOnEntry {
 		e.Enabled, e.Visible = false, false
 	}
 }
 
-func (e *Episode) arm(v *View, name string) { e.Enabled = true }
-func (e *Episode) drive(v *View, dir int)   {}
-func (e *Episode) activeNow() bool          { return e.Enabled }
+func (e *Episode) arm(s *Scene, name string) { e.Enabled = true }
+func (e *Episode) activeNow() bool           { return e.Enabled }
 
-func (e *Episode) cue(v *View) {
+func (e *Episode) cue(s *Scene) {
 	c := e.spec.StartSound
 	if c == nil {
 		return
 	}
-	for _, s := range c.Stop {
-		v.stop(s)
+	for _, slot := range c.Stop {
+		s.stop(slot)
 	}
-	v.sound(c.Slot, c.Key)
+	s.sound(c.Slot, c.Key)
 }
 
-func (e *Episode) phase(v *View, phase, name string, now time.Time) {
+func (e *Episode) phase(s *Scene, phase, name string, now time.Time) {
 	switch phase {
 	case "trigger":
-		if e.spec.Trigger != nil && v.chance(*e.spec.Trigger) {
+		if e.spec.Trigger != nil && s.chance(*e.spec.Trigger) {
 			e.Enabled = true
 		}
 	case "advance":
 		if e.spec.End == "hold" {
-			e.advanceHeld(v)
+			e.advanceHeld(s)
 			return
 		}
-		count := len(v.frames(e.spec.Art))
+		count := len(s.frames(e.spec.Art))
 		if e.Enabled && count > 0 && e.Frame == 0 {
-			e.cue(v)
+			e.cue(s)
 		}
 		if !e.Enabled || count == 0 {
 			return
@@ -132,41 +165,41 @@ func (e *Episode) phase(v *View, phase, name string, now time.Time) {
 	}
 }
 
-func (e *Episode) loaded(v *View) bool { return len(v.frames(e.spec.Art)) == e.spec.Frames }
+func (e *Episode) loaded(s *Scene) bool { return len(s.frames(e.spec.Art)) == e.spec.Frames }
 
-func (e *Episode) advanceHeld(v *View) {
+func (e *Episode) advanceHeld(s *Scene) {
 	if !e.Enabled {
 		return
 	}
 	if e.Frame == 0 {
-		e.cue(v)
+		e.cue(s)
 	}
 	e.Frame++
 	if e.Frame < e.spec.Frames {
-		e.Visible = e.loaded(v)
+		e.Visible = e.loaded(s)
 		return
 	}
-	n := v.proc.ends[e.spec.Name] + 1
+	n := s.proc.ends[e.spec.Name] + 1
 	if n >= e.spec.RewindEvery {
 		e.Frame, n = 0, 0
 	}
-	v.proc.ends[e.spec.Name] = n
+	s.proc.ends[e.spec.Name] = n
 	e.Visible, e.Enabled = false, false
 }
 
 // Shown reports whether the episode's current frame is drawn.
-func (e *Episode) Shown(v *View) bool {
+func (e *Episode) Shown(s *Scene) bool {
 	if e.spec.End == "hold" {
-		return e.Visible && e.loaded(v)
+		return e.Visible && e.loaded(s)
 	}
 	return true
 }
 
-func (e *Episode) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
-	if !e.Shown(v) {
+func (e *Episode) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	if !e.Shown(s) {
 		return
 	}
-	put(dst, frameAt(v.frames(e.spec.Art), e.Frame), layer)
+	place(dst, frameAt(s.frames(e.spec.Art), e.Frame), layer)
 }
 
 // Pendulum is a group of members swinging between their first and last frames
@@ -174,6 +207,7 @@ func (e *Episode) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
 // a member back at its first frame from a backward swing clears the shared
 // enable, and the members after it still take their step that phase.
 type Pendulum struct {
+	still
 	spec    *ActorSpec
 	Enabled bool
 	Members []Swing
@@ -190,50 +224,45 @@ func (p *Pendulum) members() []string {
 	return out
 }
 
-func (p *Pendulum) prepare(v *View) {}
-
-func (p *Pendulum) reset(v *View) {
+func (p *Pendulum) reset(s *Scene) {
 	p.Enabled = false
 	for i := range p.Members {
 		p.Members[i] = Swing{}
 	}
 }
 
-func (p *Pendulum) enter(v *View, now time.Time) {}
-func (p *Pendulum) leave(v *View)                {}
-func (p *Pendulum) arm(v *View, name string)     { p.Enabled = true }
-func (p *Pendulum) drive(v *View, dir int)       {}
-func (p *Pendulum) activeNow() bool              { return p.Enabled }
+func (p *Pendulum) arm(s *Scene, name string) { p.Enabled = true }
+func (p *Pendulum) activeNow() bool           { return p.Enabled }
 
-func (p *Pendulum) phase(v *View, phase, name string, now time.Time) {
+func (p *Pendulum) phase(s *Scene, phase, name string, now time.Time) {
 	if phase != "advance" || !p.Enabled {
 		return
 	}
 	for i, m := range p.spec.Members {
-		p.swing(v, &p.Members[i], len(v.frames(m.Art)))
+		p.swing(s, &p.Members[i], len(s.frames(m.Art)))
 	}
 }
 
-func (p *Pendulum) swing(v *View, s *Swing, count int) {
+func (p *Pendulum) swing(s *Scene, w *Swing, count int) {
 	if count == 0 {
 		return
 	}
-	if s.Frame == 0 && s.Step == -1 {
-		s.Step = 0
+	if w.Frame == 0 && w.Step == -1 {
+		w.Step = 0
 		p.Enabled = false
 		return
 	}
-	if s.Frame == 0 && s.Step == 0 {
-		if v.chance(*p.spec.Chance) {
-			s.Step = 1
+	if w.Frame == 0 && w.Step == 0 {
+		if s.chance(*p.spec.Chance) {
+			w.Step = 1
 		}
-	} else if s.Frame == count-1 {
-		s.Step = 0
-		if v.chance(*p.spec.Chance) {
-			s.Step = -1
+	} else if w.Frame == count-1 {
+		w.Step = 0
+		if s.chance(*p.spec.Chance) {
+			w.Step = -1
 		}
 	}
-	s.Frame += s.Step
+	w.Frame += w.Step
 }
 
 // Member answers the named member's swing.
@@ -246,10 +275,10 @@ func (p *Pendulum) Member(name string) *Swing {
 	return nil
 }
 
-func (p *Pendulum) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
+func (p *Pendulum) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 	for i, m := range p.spec.Members {
-		if m.Name == name {
-			put(dst, frameAt(v.frames(m.Art), p.Members[i].Frame), layer)
+		if m.Name == layer.Actor {
+			place(dst, frameAt(s.frames(m.Art), p.Members[i].Frame), layer)
 		}
 	}
 }
@@ -259,99 +288,88 @@ func (p *Pendulum) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) 
 // stops its slot and requests the target's sound. While its hold condition is
 // false it shows its hold frame and keeps its target latch.
 type Stepper struct {
+	still
 	spec        *ActorSpec
 	Frame       int
 	TowardFirst bool
 }
 
-func (s *Stepper) members() []string { return nil }
+func (st *Stepper) reset(s *Scene) { st.Frame, st.TowardFirst = 0, false }
 
-func (s *Stepper) reset(v *View) { s.Frame, s.TowardFirst = 0, false }
+func (st *Stepper) prepare(s *Scene) { st.Frame = restFrame(st.spec.Rest, len(s.frames(st.spec.Art))) }
 
-func (s *Stepper) prepare(v *View) { s.Frame = restFrame(s.spec.Rest, len(v.frames(s.spec.Art))) }
-
-func (s *Stepper) enter(v *View, now time.Time) {}
-func (s *Stepper) leave(v *View)                {}
-func (s *Stepper) arm(v *View, name string)     {}
-func (s *Stepper) drive(v *View, dir int)       {}
-func (s *Stepper) activeNow() bool              { return false }
-
-func (s *Stepper) phase(v *View, phase, name string, now time.Time) {
-	count := len(v.frames(s.spec.Art))
+func (st *Stepper) phase(s *Scene, phase, name string, now time.Time) {
+	count := len(s.frames(st.spec.Art))
 	if phase != "advance" || count == 0 {
 		return
 	}
-	if s.spec.HoldUnless != "" && !v.host.Condition(s.spec.HoldUnless) {
-		s.Frame = restFrame(s.spec.Hold, count)
+	if st.spec.HoldUnless != "" && !s.host.Condition(st.spec.HoldUnless) {
+		st.Frame = restFrame(st.spec.Hold, count)
 		return
 	}
-	first := v.hover != nil && v.hover.Name == s.spec.TowardFirstOnHover
-	if first != s.TowardFirst {
-		v.stop(s.spec.Slot)
-		key := s.spec.LastSound
+	first := s.hover != nil && s.hover.Name == st.spec.TowardFirstOnHover
+	if first != st.TowardFirst {
+		s.stop(st.spec.Slot)
+		key := st.spec.LastSound
 		if first {
-			key = s.spec.FirstSound
+			key = st.spec.FirstSound
 		}
-		v.sound(s.spec.Slot, key)
-		s.TowardFirst = first
+		s.sound(st.spec.Slot, key)
+		st.TowardFirst = first
 	}
-	if first && s.Frame > 0 {
-		s.Frame--
+	if first && st.Frame > 0 {
+		st.Frame--
 	}
-	if !first && s.Frame < count-1 {
-		s.Frame++
+	if !first && st.Frame < count-1 {
+		st.Frame++
 	}
 }
 
-// Shown is the frame the stepper draws: its rest frame until the view is
+// Shown is the frame the stepper draws: its rest frame until the scene is
 // made ready.
-func (s *Stepper) Shown(v *View) int {
-	if !v.ready {
-		return restFrame(s.spec.Rest, len(v.frames(s.spec.Art)))
+func (st *Stepper) Shown(s *Scene) int {
+	if !s.ready {
+		return restFrame(st.spec.Rest, len(s.frames(st.spec.Art)))
 	}
-	return s.Frame
+	return st.Frame
 }
 
-func (s *Stepper) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
-	put(dst, frameAt(v.frames(s.spec.Art), s.Shown(v)), layer)
+func (st *Stepper) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	place(dst, frameAt(s.frames(st.spec.Art), st.Shown(s)), layer)
 }
 
 // Driven moves one frame per admitted step in the direction a hover reaction
 // set, until it passes an end: there it clamps, stops and stops its slot. A
 // change of direction stops its slot and requests the direction's sound.
 type Driven struct {
+	still
 	spec    *ActorSpec
 	Frame   int
 	Dir     int
 	Forward bool
 }
 
-func (d *Driven) members() []string { return nil }
+func (d *Driven) reset(s *Scene) { d.Frame, d.Dir, d.Forward = 0, 0, false }
 
-func (d *Driven) reset(v *View) { d.Frame, d.Dir, d.Forward = 0, 0, false }
+func (d *Driven) prepare(s *Scene) { d.Frame = restFrame(d.spec.Rest, len(s.frames(d.spec.Art))) }
 
-func (d *Driven) prepare(v *View) { d.Frame = restFrame(d.spec.Rest, len(v.frames(d.spec.Art))) }
+func (d *Driven) drive(s *Scene, dir int) { d.Dir = dir }
+func (d *Driven) activeNow() bool         { return d.Dir != 0 }
 
-func (d *Driven) enter(v *View, now time.Time) {}
-func (d *Driven) leave(v *View)                {}
-func (d *Driven) arm(v *View, name string)     {}
-func (d *Driven) drive(v *View, dir int)       { d.Dir = dir }
-func (d *Driven) activeNow() bool              { return d.Dir != 0 }
-
-func (d *Driven) phase(v *View, phase, name string, now time.Time) {
-	count := len(v.frames(d.spec.Art))
+func (d *Driven) phase(s *Scene, phase, name string, now time.Time) {
+	count := len(s.frames(d.spec.Art))
 	if phase != "advance" || d.Dir == 0 || count == 0 {
 		return
 	}
 	d.Frame += d.Dir
 	forward := d.Dir > 0
 	if forward != d.Forward {
-		v.stop(d.spec.Slot)
+		s.stop(d.spec.Slot)
 		key := d.spec.FirstSound
 		if forward {
 			key = d.spec.LastSound
 		}
-		v.sound(d.spec.Slot, key)
+		s.sound(d.spec.Slot, key)
 		d.Forward = forward
 	}
 	if d.Frame < 0 || d.Frame >= count {
@@ -361,29 +379,30 @@ func (d *Driven) phase(v *View, phase, name string, now time.Time) {
 			d.Frame = count - 1
 		}
 		d.Dir = 0
-		v.stop(d.spec.Slot)
+		s.stop(d.spec.Slot)
 	}
 }
 
-// Shown is the frame the driven actor draws: its rest frame until the view
+// Shown is the frame the driven actor draws: its rest frame until the scene
 // is made ready.
-func (d *Driven) Shown(v *View) int {
-	if !v.ready {
-		return restFrame(d.spec.Rest, len(v.frames(d.spec.Art)))
+func (d *Driven) Shown(s *Scene) int {
+	if !s.ready {
+		return restFrame(d.spec.Rest, len(s.frames(d.spec.Art)))
 	}
 	return d.Frame
 }
 
-func (d *Driven) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
-	put(dst, frameAt(v.frames(d.spec.Art), d.Shown(v)), layer)
+func (d *Driven) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	place(dst, frameAt(s.frames(d.spec.Art), d.Shown(s)), layer)
 }
 
 // Flock is a scheduled group-and-prefix episode: after its wait it picks one
 // group and a prefix of that group's members, requests the cue for that
 // count, and advances every member one frame per admitted step. When every
 // shown member has passed its last frame the flock stays shown for that one
-// paint and its next wait starts. Its wait latch outlives the view.
+// paint and its next wait starts. Its wait latch outlives the scene.
 type Flock struct {
+	still
 	spec       *ActorSpec
 	Active     bool
 	Terminal   bool
@@ -394,11 +413,7 @@ type Flock struct {
 	TerminalAt time.Time
 }
 
-func (f *Flock) members() []string { return nil }
-
-func (f *Flock) prepare(v *View) {}
-
-func (f *Flock) reset(v *View) {
+func (f *Flock) reset(s *Scene) {
 	f.Active, f.Terminal, f.Group, f.Count = false, false, 0, 0
 	for i := range f.Progress {
 		f.Progress[i] = 0
@@ -406,54 +421,52 @@ func (f *Flock) reset(v *View) {
 	f.Clock, f.TerminalAt = time.Time{}, time.Time{}
 }
 
-func (f *Flock) enter(v *View, now time.Time) {
-	f.reset(v)
+func (f *Flock) enter(s *Scene, now time.Time) {
+	f.reset(s)
 	f.Clock = now
 }
 
-func (f *Flock) leave(v *View)            { f.Active, f.Terminal = false, false }
-func (f *Flock) arm(v *View, name string) {}
-func (f *Flock) drive(v *View, dir int)   {}
-func (f *Flock) activeNow() bool          { return f.Active }
+func (f *Flock) leave(s *Scene)  { f.Active, f.Terminal = false, false }
+func (f *Flock) activeNow() bool { return f.Active }
 
 func (f *Flock) family(i int) string { return f.spec.Art + "/" + strconv.Itoa(i) }
 
-func (f *Flock) loaded(v *View) bool {
+func (f *Flock) loaded(s *Scene) bool {
 	for i := 0; i < f.spec.Groups*f.spec.GroupSize; i++ {
-		if len(v.frames(f.family(i))) == f.spec.Frames {
+		if len(s.frames(f.family(i))) == f.spec.Frames {
 			return true
 		}
 	}
 	return false
 }
 
-func (f *Flock) phase(v *View, phase, name string, now time.Time) {
+func (f *Flock) phase(s *Scene, phase, name string, now time.Time) {
 	switch phase {
 	case "settle":
 		if f.Terminal && !now.Equal(f.TerminalAt) {
 			f.Terminal, f.Active = false, false
 		}
 	case "arm":
-		if !f.loaded(v) || f.Active {
+		if !f.loaded(s) || f.Active {
 			return
 		}
-		w := v.WaitLatch(f.spec.Name)
+		w := s.WaitLatch(f.spec.Name)
 		if !w.Ready {
-			w.Wait, w.Ready = v.wait(*f.spec.Wait), true
+			w.Wait, w.Ready = s.wait(*f.spec.Wait), true
 		}
 		if !elapsed(now.Sub(f.Clock), w.Wait, f.spec.Wait.Compare) {
 			return
 		}
-		f.Group = v.pick(*f.spec.Group)
-		f.Count = v.pick(*f.spec.Count)
+		f.Group = s.amount(*f.spec.Group)
+		f.Count = s.amount(*f.spec.Count)
 		for i := range f.Progress {
 			f.Progress[i] = 0
 		}
 		f.Clock, f.Active = now, true
-		w.Wait = v.wait(*f.spec.Wait)
+		w.Wait = s.wait(*f.spec.Wait)
 		for _, c := range f.spec.CountCues {
 			if c.Count == 0 || c.Count == f.Count {
-				v.sound(f.spec.Slot, c.Key)
+				s.sound(f.spec.Slot, c.Key)
 				break
 			}
 		}
@@ -476,7 +489,7 @@ func (f *Flock) phase(v *View, phase, name string, now time.Time) {
 
 // Shown answers, for each member slot, the family index and frame it shows
 // and whether it is drawn.
-func (f *Flock) Shown(v *View) []FlockFrame {
+func (f *Flock) Shown(s *Scene) []FlockFrame {
 	if !f.Active {
 		return nil
 	}
@@ -484,7 +497,7 @@ func (f *Flock) Shown(v *View) []FlockFrame {
 	for i := 0; i < f.Count && i < len(f.Progress); i++ {
 		family := f.Group*f.spec.GroupSize + i
 		frame := f.Progress[i]
-		frames := v.frames(f.family(family))
+		frames := s.frames(f.family(family))
 		visible := frame >= 0 && frame < f.spec.Frames && family >= 0 &&
 			family < f.spec.Groups*f.spec.GroupSize && frame < len(frames)
 		out = append(out, FlockFrame{Family: family, Frame: frame, Visible: visible})
@@ -498,10 +511,10 @@ type FlockFrame struct {
 	Visible       bool
 }
 
-func (f *Flock) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
-	for _, s := range f.Shown(v) {
-		if s.Visible {
-			put(dst, frameAt(v.frames(f.family(s.Family)), s.Frame), layer)
+func (f *Flock) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	for _, sh := range f.Shown(s) {
+		if sh.Visible {
+			place(dst, frameAt(s.frames(f.family(sh.Family)), sh.Frame), layer)
 		}
 	}
 }
@@ -509,10 +522,11 @@ func (f *Flock) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
 // Families is a group of scheduled members drawn at positions picked on
 // entry. An "episode" member starts on a picked sheet when its wait has
 // elapsed, advances one frame per admitted step and ends after its sheet's
-// last frame. A "loop" member cycles its sheet for as long as the view lives.
-// The group's draws come from its own source in the order the description
-// lists them.
+// last frame. A "loop" member cycles its sheet for as long as the scene
+// lives. The group's draws come from its own source in the order the
+// description lists them.
 type Families struct {
+	still
 	spec    *ActorSpec
 	Entered bool
 	Members []FamilyMember
@@ -552,33 +566,31 @@ func (g *Families) Member(name string) *FamilyMember {
 	return nil
 }
 
-func (g *Families) prepare(v *View) {}
-
-func (g *Families) reset(v *View) {
+func (g *Families) reset(s *Scene) {
 	g.Entered = false
 	for i := range g.Members {
 		g.Members[i] = FamilyMember{}
 	}
 }
 
-func (g *Families) enter(v *View, now time.Time) {
-	g.reset(v)
+func (g *Families) enter(s *Scene, now time.Time) {
+	g.reset(s)
 	g.Entered = true
-	for _, s := range g.spec.Entry {
+	for _, e := range g.spec.Entry {
 		switch {
-		case s.Position != "":
-			m := g.Member(s.Position)
-			other := g.Member(s.Unequal)
+		case e.Position != "":
+			m := g.Member(e.Position)
+			other := g.Member(e.Unequal)
 			for {
-				m.Position = v.pick(*s.Pick)
+				m.Position = s.amount(*e.Pick)
 				if other == nil || m.Position != other.Position {
 					break
 				}
 			}
-		case s.Wait != "":
-			m := g.Member(s.Wait)
+		case e.Wait != "":
+			m := g.Member(e.Wait)
 			m.Current, m.Clock = -1, now
-			m.Wait = v.wait(*s.After)
+			m.Wait = s.wait(*e.After)
 		}
 	}
 	for i, m := range g.spec.Members {
@@ -588,10 +600,7 @@ func (g *Families) enter(v *View, now time.Time) {
 	}
 }
 
-func (g *Families) leave(v *View)            {}
-func (g *Families) arm(v *View, name string) {}
-func (g *Families) drive(v *View, dir int)   {}
-func (g *Families) activeNow() bool          { return g.Entered }
+func (g *Families) activeNow() bool { return g.Entered }
 
 func (g *Families) sheetName(i int) string {
 	spec, m := g.spec.Members[i], g.Members[i]
@@ -603,12 +612,12 @@ func (g *Families) sheetName(i int) string {
 
 // sheetLen is the loaded length of a member's sheet, or its declared length
 // when the sheet did not load.
-func (g *Families) sheetLen(v *View, i int) int {
-	if n := len(v.frames(g.sheetName(i))); n > 0 {
+func (g *Families) sheetLen(s *Scene, i int) int {
+	if n := len(s.frames(g.sheetName(i))); n > 0 {
 		return n
 	}
 	spec := g.spec.Members[i]
-	for _, a := range v.desc.Art {
+	for _, a := range s.spec.Art {
 		if a.Name == spec.Art {
 			return a.countAt(g.Members[i].Sheet)
 		}
@@ -616,7 +625,7 @@ func (g *Families) sheetLen(v *View, i int) int {
 	return 0
 }
 
-func (g *Families) phase(v *View, phase, name string, now time.Time) {
+func (g *Families) phase(s *Scene, phase, name string, now time.Time) {
 	if !g.Entered {
 		return
 	}
@@ -629,7 +638,7 @@ func (g *Families) phase(v *View, phase, name string, now time.Time) {
 			}
 			m := &g.Members[i]
 			if g.spec.Members[i].Mode == "loop" {
-				if frames := v.frames(g.sheetName(i)); len(frames) == 0 {
+				if frames := s.frames(g.sheetName(i)); len(frames) == 0 {
 					m.Current = -1
 				} else {
 					m.Current = (m.Current + 1) % len(frames)
@@ -638,7 +647,7 @@ func (g *Families) phase(v *View, phase, name string, now time.Time) {
 			}
 			m.Current++
 			m.Clock = now
-			if m.Current >= g.sheetLen(v, i) {
+			if m.Current >= g.sheetLen(s, i) {
 				m.Current, m.Active = -1, false
 			}
 		}
@@ -653,17 +662,17 @@ func (g *Families) phase(v *View, phase, name string, now time.Time) {
 				continue
 			}
 			m.Clock, m.Current, m.Active = now, 0, true
-			m.Wait = v.wait(*spec.Later)
-			m.Sheet = v.pick(*spec.SheetPick)
+			m.Wait = s.wait(*spec.Later)
+			m.Sheet = s.amount(*spec.SheetPick)
 		}
 		for i, spec := range g.spec.Members {
-			if len(spec.FrameCues) == 0 || len(v.frames(g.sheetName(i))) == 0 {
+			if len(spec.FrameCues) == 0 || len(s.frames(g.sheetName(i))) == 0 {
 				continue
 			}
 			m := g.Members[i]
 			for _, c := range spec.FrameCues {
 				if (c.Sheet < 0 || c.Sheet == m.Sheet) && c.Frame == m.Current {
-					v.sound(c.Slot, c.Key)
+					s.sound(c.Slot, c.Key)
 					break
 				}
 			}
@@ -671,9 +680,9 @@ func (g *Families) phase(v *View, phase, name string, now time.Time) {
 	}
 }
 
-func (g *Families) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) {
-	i := g.index(name)
-	if i < 0 || !g.Entered || !v.present {
+func (g *Families) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	i := g.index(layer.Actor)
+	if i < 0 || !g.Entered || !s.present {
 		return
 	}
 	spec, m := g.spec.Members[i], g.Members[i]
@@ -685,5 +694,5 @@ func (g *Families) draw(v *View, dst *image.RGBA, name string, layer LayerSpec) 
 	}
 	at := layer
 	at.At = spec.Positions[m.Position]
-	put(dst, frameAt(v.frames(g.sheetName(i)), max(m.Current, 0)), at)
+	place(dst, frameAt(s.frames(g.sheetName(i)), max(m.Current, 0)), at)
 }

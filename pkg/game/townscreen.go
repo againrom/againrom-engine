@@ -149,11 +149,11 @@ type townScreen struct {
 	schoolSpent [schoolLatchCount]bool
 	// square is the square's composer view, built on first use, squareLoop
 	// its entry loop's voice and squareAction the action a click's hooks left.
-	square       *town.View
+	square       *town.Scene
 	squareLoop   audio.Voice
 	squareAction ui.TownAction
 	// pages are the room pages the composer builds, by room name.
-	pages     map[string]*town.Page
+	pages     map[string]*town.Scene
 	townStats bool
 	shopBook  bool
 
@@ -556,7 +556,7 @@ func (f *FrontEnd) chapterTownScreen() ui.TownScreen {
 		// freshly built town must not open the school with one already
 		// selected and its price quoted.
 		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection,
-			pages: map[string]*town.Page{}})
+			pages: map[string]*town.Scene{}})
 		// The screen is constructed already at roomSquare (townRoom's own
 		// zero value; atSquare's doc), so this is that room's own entry load
 		// (1018 spec behaviour 2), not a special case of construction.

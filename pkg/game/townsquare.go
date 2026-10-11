@@ -3,9 +3,7 @@ package game
 import (
 	_ "embed"
 	"image"
-	"time"
 
-	"againrom/pkg/audio"
 	"againrom/pkg/base"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
@@ -80,7 +78,7 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 	if d == nil {
 		return nil, nil
 	}
-	return town.LoadArt(d, townArtLoader{src})
+	return town.LoadArt(d.SquareScene(), townArtLoader{src})
 }
 
 // townDescription is the town description of the install's profile; a screen
@@ -199,11 +197,11 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 	"school-leave": func(t *townScreen, _ townRoom) { t.leaveSchoolTraining() },
 }
 
-// squareView answers the square's composer view, building it on first use
+// squareView answers the square's composer scene, building it on first use
 // over the presentation's process-scoped town state.
-func (t *townScreen) squareView() *town.View {
+func (t *townScreen) squareView() *town.Scene {
 	if t.square == nil {
-		t.square = town.NewView(t.townDescription(), townSquareHost{t}, t.townProcess)
+		t.square = newSquareScene(t, t.townDescription())
 		// In original mode the wildlife draws are raw draws of the shared
 		// stream instead of the description's own generator (TOWN-505).
 		if st := t.draws.stream(random.TownWildlife); st != nil && st.Shared() {
@@ -213,112 +211,7 @@ func (t *townScreen) squareView() *town.View {
 	return t.square
 }
 
-// townSquareHost is the ROM1 adapter the composer runs over: the install's
-// art, the screen's clock and draws, its sound devices and campaign hooks.
-type townSquareHost struct{ t *townScreen }
-
-func (h townSquareHost) Art() *town.Art {
-	t := h.t
-	if t == nil || t.sess == nil {
-		return nil
-	}
-	return t.in.TownSquareArt.Value()
-}
-
-func (h townSquareHost) Now() time.Time { return h.t.townAnimationNow() }
-
-func (h townSquareHost) Draw(source string, n int) int {
-	t := h.t
-	switch source {
-	case "animation":
-		if draw := t.draws.animationDraw(); draw != nil {
-			return boundedPresentationRoll(draw, nil, n)
-		}
-		return boundedPresentationRoll(nil, t.draws.stream(random.TownAnimation), n)
-	case "ambient":
-		return boundedPresentationRoll(t.draws.ambientDraw(), t.draws.stream(random.TownAmbient), n)
-	}
-	return 0
-}
-
-func (h townSquareHost) Seed() int64 { return h.t.sound.wildlifeSeed() }
-
-func (h townSquareHost) Condition(name string) bool {
-	if c := townConditions[name]; c != nil {
-		return c(h.t)
-	}
-	return false
-}
-
-func (h townSquareHost) PlaySound(source, key string) town.Voice {
-	t := h.t
-	sample, ok := t.in.SoundBank.namedSample(key)
-	if !ok {
-		return nil
-	}
-	v := audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample,
-		audio.FixedRequest(source, key, audio.EffectsChannel, 128, false,
-			audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
-	if v == nil {
-		return nil
-	}
-	return v
-}
-
-func (h townSquareHost) StopSound(v town.Voice) {
-	if av, ok := v.(audio.Voice); ok {
-		audio.StopReset(av)
-	}
-}
-
-func (h townSquareHost) StartLoop(key string) bool {
-	t := h.t
-	if t.sound.ambientDevice() == nil {
-		return false
-	}
-	sample, ok := t.in.SoundBank.namedSample(key)
-	if !ok {
-		return false
-	}
-	request := audio.FixedRequest("town-crowd", key, audio.EffectsChannel, 128, true,
-		audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit})
-	if ui.DeliveryOwner(t.sound.soundDevice()) != nil {
-		t.squareLoop = audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample, request)
-	} else {
-		t.squareLoop = ui.RequestAmbient(t.sound.ambientDevice(), ui.AmbientTownCrowd, sample, request)
-	}
-	return true
-}
-
-func (h townSquareHost) StopLoop(key string) {
-	t := h.t
-	if t.sound.ambientDevice() != nil {
-		if ui.DeliveryOwner(t.sound.soundDevice()) != nil {
-			audio.StopReset(t.squareLoop)
-		} else {
-			t.sound.ambientDevice().StopLoop(ui.AmbientTownCrowd)
-		}
-	}
-	t.squareLoop = nil
-}
-
-func (h townSquareHost) LeaveSquare() {
-	if h.t.audioRoom == roomSquare {
-		h.t.destroyRoomAudio()
-	}
-}
-
-func (h townSquareHost) Hook(name, room string) {
-	if hook := townHooks[name]; hook != nil {
-		r, ok := townRoomNames[room]
-		if !ok {
-			r = h.t.room
-		}
-		hook(h.t, r)
-	}
-}
-
-// resetTownExterior returns the square's view to the state of a view just
+// resetTownExterior returns the square's scene to the state of a scene just
 // built; its process-scoped state survives.
 func (t *townScreen) resetTownExterior() {
 	if t.square != nil {
@@ -374,7 +267,7 @@ type townSquareScene struct{ t *townScreen }
 
 func (s townSquareScene) Size() image.Point { return s.t.squareView().Size() }
 
-func (s townSquareScene) Paint(dst *image.RGBA) { s.t.squareView().Paint(dst) }
+func (s townSquareScene) Paint(dst *image.RGBA) { s.t.squareView().Paint(dst, "") }
 
 func (s townSquareScene) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	h := s.t.squareView().HotspotAt(p)

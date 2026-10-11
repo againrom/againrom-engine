@@ -7,7 +7,7 @@ import (
 	"againrom/pkg/town"
 )
 
-func (t *townScreen) schoolPage() *town.Page { return t.roomPage("school") }
+func (t *townScreen) schoolPage() *town.Scene { return t.roomPage("school") }
 
 func (t *townScreen) schoolColumn() *town.Target {
 	return t.schoolPage().Actor("column").(*town.Target)
@@ -75,7 +75,7 @@ func (t *townScreen) SchoolTrainingActive(active bool) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	t.schoolPage().SetActive(active && t.inSchoolTraining())
+	t.schoolPage().SetActive(active, t.inSchoolTraining())
 }
 
 // retargetSchoolColumn raises the class change on the school page when the

@@ -39,7 +39,7 @@ func (t *townScreen) sqHover() string {
 }
 
 // sqPaintLast is the paint clock's last admitted step.
-func (t *townScreen) sqPaintLast() time.Time { return t.squareView().ClockLast() }
+func (t *townScreen) sqPaintLast() time.Time { return t.squareView().Clock("square") }
 
 // sqVoice is a sound slot's retained voice.
 func (t *townScreen) sqVoice(slot string) town.Voice { return t.squareView().Voice(slot) }
@@ -52,7 +52,7 @@ func squareControlAt(f *FrontEnd, p image.Point) (ui.TownSquareControl, bool) {
 // seededTownProcess is a process state with a stamped paint clock.
 func seededTownProcess() town.Process {
 	p := &town.Process{}
-	town.NewView(ROM1TownDescription(), nil, p).SetClockLast(time.Unix(1777, 0))
+	town.NewScene(ROM1TownDescription(), "square", nil, p).SetClock("square", time.Unix(1777, 0))
 	return *p
 }
 
@@ -114,17 +114,18 @@ func (t *townScreen) sqSelector() int {
 // campaign.
 type stillHost struct{ art *town.Art }
 
-func (h stillHost) Art() *town.Art                      { return h.art }
-func (h stillHost) Now() time.Time                      { return time.Time{} }
-func (h stillHost) Draw(string, int) int                { return 0 }
-func (h stillHost) Seed() int64                         { return 0 }
-func (h stillHost) Condition(string) bool               { return false }
-func (h stillHost) PlaySound(string, string) town.Voice { return nil }
-func (h stillHost) StopSound(town.Voice)                {}
-func (h stillHost) StartLoop(string) bool               { return false }
-func (h stillHost) StopLoop(string)                     {}
-func (h stillHost) LeaveSquare()                        {}
-func (h stillHost) Hook(string, string)                 {}
+func (h stillHost) Art() *town.Art                            { return h.art }
+func (h stillHost) Now() time.Time                            { return time.Time{} }
+func (h stillHost) Draw(string, int) int                      { return 0 }
+func (h stillHost) Seed() int64                               { return 0 }
+func (h stillHost) Condition(string) bool                     { return false }
+func (h stillHost) Value(string) int                          { return -1 }
+func (h stillHost) PlaySound(string, string, bool) town.Voice { return nil }
+func (h stillHost) StopSound(town.Voice)                      {}
+func (h stillHost) StartLoop(string) bool                     { return false }
+func (h stillHost) StopLoop(string)                           {}
+func (h stillHost) Leave(string)                              {}
+func (h stillHost) Hook(string, string)                       {}
 
 // staticSquareArt keeps only the square's still pictures and mask.
 func staticSquareArt(full *town.Art) *town.Art {
@@ -137,10 +138,10 @@ func staticSquareArt(full *town.Art) *town.Art {
 
 // paintStill paints a square view of art with the bird overlay shown.
 func paintStill(art *town.Art) *image.RGBA {
-	v := town.NewView(ROM1TownDescription(), stillHost{art}, nil)
+	v := town.NewScene(ROM1TownDescription(), "square", stillHost{art}, nil)
 	v.Actor("birds").(*town.Flock).Active = true
 	dst := image.NewRGBA(image.Rectangle{Max: v.Size()})
-	v.Paint(dst)
+	v.Paint(dst, "")
 	return dst
 }
 

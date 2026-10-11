@@ -5,35 +5,39 @@ import (
 	"image/draw"
 )
 
-// Size is the view's size.
-func (v *View) Size() image.Point { return v.desc.View.Size.Pt() }
+// Size is the scene's view size.
+func (s *Scene) Size() image.Point { return s.spec.View.Size.Pt() }
 
-// Paint draws every layer in order onto dst, whose origin is the view's.
-// Paint changes no state; Advance is the clock.
-func (v *View) Paint(dst *image.RGBA) {
-	for _, layer := range v.desc.Layers {
-		if !v.when(layer.When) {
+// Paint draws the layers of one group in order onto dst, whose origin is the
+// scene's; the square's layers are the group with no name. A layer whose
+// condition fails is skipped. Paint changes no state; Advance is the clock.
+func (s *Scene) Paint(dst *image.RGBA, group string) {
+	if s.host.Art() == nil {
+		return
+	}
+	for _, layer := range s.spec.Layers {
+		if layer.Group != group || !s.when(layer.When) {
 			continue
 		}
 		if layer.Actor != "" {
-			if a := v.byName[layer.Actor]; a != nil {
-				a.draw(v, dst, layer.Actor, layer)
+			if a := s.byName[layer.Actor]; a != nil {
+				a.draw(s, dst, layer)
 			}
 			continue
 		}
-		put(dst, frameAt(v.frames(layer.Art), 0), layer)
+		place(dst, frameAt(s.frames(layer.Art), 0), layer)
 	}
 }
 
-func (v *View) when(w *WhenSpec) bool {
+func (s *Scene) when(w *WhenSpec) bool {
 	if w == nil {
 		return true
 	}
-	if w.Hover != "" && (v.hover == nil || v.hover.Name != w.Hover) {
+	if w.Hover != "" && (s.hover == nil || s.hover.Name != w.Hover) {
 		return false
 	}
 	if w.Active != "" {
-		a := v.byName[w.Active]
+		a := s.byName[w.Active]
 		if a == nil || !a.activeNow() {
 			return false
 		}
@@ -41,9 +45,10 @@ func (v *View) when(w *WhenSpec) bool {
 	return true
 }
 
-// put draws pic with its top-left at the layer's point, copied or composited
-// over by the layer's mode.
-func put(dst *image.RGBA, pic image.Image, layer LayerSpec) {
+// place draws pic with its top-left at the layer's point, copied or
+// composited over by the layer's mode, inside the layer's clip when it has
+// one.
+func place(dst *image.RGBA, pic image.Image, layer LayerSpec) {
 	if pic == nil {
 		return
 	}
@@ -52,5 +57,14 @@ func put(dst *image.RGBA, pic image.Image, layer LayerSpec) {
 		op = draw.Src
 	}
 	b := pic.Bounds()
-	draw.Draw(dst, b.Add(layer.At.Pt().Sub(b.Min)), pic, b.Min, op)
+	placed := b.Add(layer.At.Pt().Sub(b.Min))
+	if layer.Clip == nil {
+		draw.Draw(dst, placed, pic, b.Min, op)
+		return
+	}
+	clip := placed.Intersect(layer.Clip.Rectangle())
+	if clip.Empty() {
+		return
+	}
+	draw.Draw(dst, clip, pic, b.Min.Add(clip.Min.Sub(placed.Min)), op)
 }

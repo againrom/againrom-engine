@@ -8,22 +8,22 @@ import (
 	"time"
 )
 
-func newTestView(t *testing.T, d obj, loader fakeLoader) (*View, *fakeHost) {
+func newTestView(t *testing.T, d obj, loader fakeLoader) (*Scene, *fakeHost) {
 	t.Helper()
 	desc := mustDecode(t, d)
-	art, err := LoadArt(desc, loader)
+	art, err := LoadArt(desc.SquareScene(), loader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	h := &fakeHost{art: art, now: time.Unix(100, 0), conditions: map[string]bool{}}
-	return NewView(desc, h, nil), h
+	return NewScene(desc, desc.Square.Name, h, nil), h
 }
 
 func TestLoadArtRefusesARequiredEntryAndSkipsAnOptionalOne(t *testing.T) {
 	desc := mustDecode(t, baseTown())
 	l := testLoader()
 	delete(l.sizes, "sprite.16a")
-	art, err := LoadArt(desc, l)
+	art, err := LoadArt(desc.SquareScene(), l)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestLoadArtRefusesARequiredEntryAndSkipsAnOptionalOne(t *testing.T) {
 		t.Fatalf("optional sprite: frames %v problems %v", art.Pictures("sprite"), art.Problems)
 	}
 	delete(l.sizes, "base.bmp")
-	if _, err := LoadArt(desc, l); err == nil || !strings.Contains(err.Error(), "base.bmp") {
+	if _, err := LoadArt(desc.SquareScene(), l); err == nil || !strings.Contains(err.Error(), "base.bmp") {
 		t.Fatalf("required base: %v", err)
 	}
 }
@@ -94,7 +94,7 @@ func TestEpisodeArmsOnHoverAndRunsOnTheClock(t *testing.T) {
 		t.Fatalf("after the last frame: frame %d enabled %v", ep.Frame, ep.Enabled)
 	}
 	dst := image.NewRGBA(image.Rect(0, 0, 40, 30))
-	v.Paint(dst)
+	v.Paint(dst, "")
 	if dst.RGBAAt(2, 3).R != 9 || dst.RGBAAt(2, 3).G != 1 {
 		t.Fatalf("episode frame 0 not painted at its layer point: %v", dst.RGBAAt(2, 3))
 	}
@@ -216,12 +216,12 @@ func TestRestartGeneratorsReseedsInPlace(t *testing.T) {
 	d := baseTown()
 	d["random"] = append(d["random"].(list), obj{"name": "g", "source": "lcg", "multiplier": 3, "increment": 1, "mask": 32767})
 	desc := mustDecode(t, d)
-	art, err := LoadArt(desc, testLoader())
+	art, err := LoadArt(desc.SquareScene(), testLoader())
 	if err != nil {
 		t.Fatal(err)
 	}
 	proc := &Process{}
-	v := NewView(desc, &fakeHost{art: art, now: time.Unix(100, 0), conditions: map[string]bool{}}, proc)
+	v := NewScene(desc, desc.Square.Name, &fakeHost{art: art, now: time.Unix(100, 0), conditions: map[string]bool{}}, proc)
 	draws := func() []int {
 		var out []int
 		for range 6 {

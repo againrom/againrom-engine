@@ -6,7 +6,6 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/random"
 	"againrom/pkg/render/text"
-	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -91,6 +90,6 @@ func (t *townScreen) bindServices(rt *RuntimeServices, in *InstallResources, pr 
 	t.sound, t.draws = runtimeTownAudio{rt}, runtimeTownDraws{rt}
 	t.art, t.townProcess = installTownArt{in, pr}, &pr.townProcess
 	if d := t.townDescription(); d != nil {
-		t.square = town.NewView(d, townSquareHost{t}, t.townProcess)
+		t.square = newSquareScene(t, d)
 	}
 }

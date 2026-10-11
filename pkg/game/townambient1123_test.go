@@ -355,18 +355,18 @@ func TestTownAmbientOptionalSoundCapabilityAndSampleRetry(t *testing.T) {
 	plain := &legacySoundRecorder{}
 	f.SoundPlayer = plain
 	delete(f.SoundBank.named, "town/birds1.wav")
-	host := townSquareHost{screen}
-	if v := host.PlaySound("town-exterior", "town/birds1.wav"); len(plain.samples) != 0 || v != nil {
+	host := townSceneHost{t: screen, room: "square"}
+	if v := host.PlaySound("town-exterior", "town/birds1.wav", false); len(plain.samples) != 0 || v != nil {
 		t.Fatal("unretained player became an unlimited one-shot substitute")
 	}
 	recorder := &exteriorRecorder{}
 	f.SoundPlayer = recorder
-	host.PlaySound("town-exterior", "town/birds1.wav")
+	host.PlaySound("town-exterior", "town/birds1.wav", false)
 	if len(recorder.samples) != 0 {
 		t.Fatal("missing sample started a voice")
 	}
 	f.SoundBank.named["town/birds1.wav"] = soundCacheEntry{sample: audio.Sample{Rate: audio.DeviceRate, PCM: []int16{301}}, ok: true}
-	host.PlaySound("town-exterior", "town/birds1.wav")
+	host.PlaySound("town-exterior", "town/birds1.wav", false)
 	if sampleStarts(recorder, 301) != 1 {
 		t.Fatal("newly available retained player/sample was not retried")
 	}
