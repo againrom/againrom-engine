@@ -11,6 +11,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM2] Spells look and sound like the second game's own. A missile, the cells an area spell strikes and the sound of each come from the second game's pictures and sounds instead of those of the first-game spell with the same number; a spell the second game draws without a picture shows none, and one without a sound stays silent. Effects last, flicker and light the ground around them by the second game's tables where those are known.
 - [ROM2] Blizzard's ice pieces fall from above onto each struck cell and then shatter there, as in the original.
 - [ROM2] Item descriptions and spell lists name every spell from the second game's own text, Slow included, and the spellbook names the spells it holds the same way. In the Russian version Prismatic Spray keeps its own name instead of the first game's name for Drain Life.
+- [ROM2] In the inns, the companions ready to join you sit first, before the people you can talk to. Click a companion or press Hire: they agree or refuse in their own words, and a hired companion's seat is marked. Click the companion again or press Fire to let them go. Saving and loading keeps who is hired. After a mission a hired companion rests and refuses to be hired for the next one. Hired companions do not yet follow the hero into a mission.
+- [ROM2] Clicking a person in an inn starts the conversation at once instead of only choosing the seat.
+- [ROM2] A conversation in the druids' inn that changed nothing now does what it does in the original: a companion becomes ready to hire there, the conversation is not offered again, and a later mission in that inn becomes available.
 
 ## 0.118.0
 

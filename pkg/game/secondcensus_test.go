@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -154,7 +155,7 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		}
 	})
 	want := []int{10, 20, 21, 30, 31, 32, 40, 41, 42, 43, 50, 51, 53, 60, 61, 62, 63, 70, 71, 72, 73, 74,
-		80, 82, 84, 90, 91, 92, 93, 100, 101, 102, 103, 110}
+		75, 76, 77, 80, 81, 82, 83, 84, 85, 86, 87, 90, 91, 92, 93, 94, 95, 96, 100, 101, 102, 103, 110}
 	if !slices.Equal(got, want) {
 		t.Fatalf("engine reaches %v, want %v", got, want)
 	}
@@ -174,7 +175,7 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		{n: 41, producer: "stage 40 inn talk", entry: true, win: true},
 		{n: 52, win: true},
 		{n: 70, producer: "stage 60/70/80 inn talk", entry: true, win: true, exits: []string{"movie 3 if 777=0 778!=0:yes"}},
-		{n: 83, producer: "stage 80 inn talk", win: true},
+		{n: 83, producer: "stage 80 inn talk", entry: true, win: true},
 		{n: 101, producer: "stage 100 inn talk", entry: true, win: true},
 		{n: 50, producer: "departure of 40", entry: true, win: true, exits: []string{"town 3:yes", "unresolved record if 780!=0:no"}, engineAdds: []string{"town 3"}},
 		{n: 60, producer: "departure of 40", entry: true, win: true, exits: []string{"mission 80:yes"}, engineAdds: []string{"mission 80"}},
@@ -279,5 +280,31 @@ func TestWriteSecondCensusPrintsRowsAndTotals(t *testing.T) {
 	}
 	if !strings.HasSuffix(lines[2], "\tparty") {
 		t.Errorf("row %q does not end with its blocker", lines[2])
+	}
+}
+
+// Each character choice reaches its own town 2 offers: a fighter male
+// reaches 74, 84 and 93 and none of 75, 81, 85 and 94, and a mage female
+// reaches 76 (R2-ENGINE-283). The union over the four choices is the census.
+func TestSecondEngineReachTakesEachCharacterChoice(t *testing.T) {
+	g := secondGeneratorCampaigns[slices.Sorted(maps.Keys(secondGeneratorCampaigns))[0]]
+	walk := func(mage, female int32) map[int]bool {
+		c := newSecondCampaign()
+		c.bank[g.MageSlot], c.bank[g.FemaleSlot] = mage, female
+		return secondEngineReachFrom(c)
+	}
+	plain := walk(0, 0)
+	for _, n := range []int{74, 84, 93} {
+		if !plain[n] {
+			t.Errorf("fighter male misses mission %d", n)
+		}
+	}
+	for _, n := range []int{75, 81, 85, 94} {
+		if plain[n] {
+			t.Errorf("fighter male reaches mission %d", n)
+		}
+	}
+	if !walk(1, 1)[76] || plain[76] {
+		t.Error("mission 76 is not the mage female's")
 	}
 }

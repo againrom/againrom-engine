@@ -2303,6 +2303,13 @@ package storyguard
 // loaded town arrival, the SAV field helpers of the shop witnesses and the new
 // pkg/game/shopreload_release_test.go, this note included.
 //
+// CommentBytes rises for the second game's inn hire seats: the docs of the
+// hire and fire arms, the seat order and the hire mark in pkg/game/secondinn.go,
+// secondtown.go, secondcampaign.go, pkg/town/seats.go and the new
+// pkg/game/secondinnhire_test.go and secondinnhire_release_test.go, and the
+// census walk per character choice in
+// pkg/game/secondcensus.go and its test, this note included.
+//
 // CommentBytes rises for unit authoring in the map editor: the docs of the new
 // pkg/mapedit/unitfield.go and CloneUnit, the host's clone, delete and field
 // operations, pkg/ui/mapeditorunits.go and their tests, this note included.
@@ -2329,5 +2336,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1731,
 	},
-	CommentBytes: 8865218,
+	CommentBytes: 8870240,
 }

@@ -678,13 +678,28 @@ func secondLocationName(l secondLocation) string {
 	return fmt.Sprintf("mission %d", l.id)
 }
 
-// secondEngineReach walks the engine's own controller from a new game. Each
-// round visits every available town first, talks to each of its speakers
-// and leaves, then wins the first available mission not yet reached, with
-// every departure gate satisfied, so every stage a departure reaches gets
-// its own town visits.
+// secondEngineReach is every mission the engine's own controller reaches
+// from some new game: the union of one walk per character choice the
+// generator commit can write (R2-ENGINE-283).
 func secondEngineReach() map[int]bool {
-	c := newSecondCampaign()
+	reach := map[int]bool{}
+	for _, name := range slices.Sorted(maps.Keys(secondGeneratorCampaigns)) {
+		g := secondGeneratorCampaigns[name]
+		for _, choice := range [][2]int32{{0, 0}, {0, 1}, {1, 0}, {1, 1}} {
+			c := newSecondCampaign()
+			c.bank[g.MageSlot], c.bank[g.FemaleSlot] = choice[0], choice[1]
+			maps.Copy(reach, secondEngineReachFrom(c))
+		}
+	}
+	return reach
+}
+
+// secondEngineReachFrom walks the engine's own controller from new game c.
+// Each round visits every available town first, talks to each of its
+// speakers and leaves, then wins the first available mission not yet
+// reached, with every departure gate satisfied, so every stage a departure
+// reaches gets its own town visits.
+func secondEngineReachFrom(c *secondCampaign) map[int]bool {
 	visit := func() {
 		for _, o := range c.speakers() {
 			c.talkTo(o)

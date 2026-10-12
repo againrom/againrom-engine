@@ -294,8 +294,8 @@ func TestReleaseSecondTownOneEpisodes(t *testing.T) {
 }
 
 // The inn is a page: three panels, the seat grid and three buttons at the
-// rectangles R2-ENGINE-246 and R2-ENGINE-247 measured; a seat click selects,
-// Talk runs TalkTo for the selected seat, and Exit and Escape return to the
+// rectangles R2-ENGINE-246 and R2-ENGINE-247 measured; a seat click selects
+// and talks (R2-ENGINE-496), Talk runs TalkTo for the selected seat, and Exit and Escape return to the
 // square (R2-ENGINE-250).
 func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	f, app, s, now := secondTownOne(t)
@@ -314,7 +314,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	}
 	view := s.TownSquareView().Scene
 	for i, at := range []image.Point{{200, 448}, {248, 448}, {296, 448}} {
-		if ctl, ok := view.ControlAt(at); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != i {
+		if ctl, ok := view.ControlAt(at); !ok || ctl.Kind != ui.TownSquareControlDoor || ctl.Door != i {
 			t.Errorf("seat %d at %v: %+v %v", i, at, ctl, ok)
 		}
 	}

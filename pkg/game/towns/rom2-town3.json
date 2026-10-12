@@ -143,6 +143,8 @@
        {"hook": "set-room", "cite": ["R2-ENGINE-250"]}
      ],
      "art": [
+       {"name": "hire-back", "format": "picture", "key": "graphics/interface/inn/manback.bmp", "size": [48, 64], "required": true,
+        "cite": ["R2-ENGINE-246", "DIV-3109"]},
        {"name": "back", "format": "picture", "key": "graphics/interface/inn/manbacktalk.bmp", "size": [48, 64], "required": true,
         "cite": ["R2-ENGINE-258", "R2-ENGINE-246", "DIV-2964"]},
        {"name": "actor", "format": "sprites", "key": "graphics/interface/inn/unit1/sprites.16a", "max-size": [48, 64],
@@ -155,10 +157,10 @@
        {"name": "button/2/1", "format": "picture", "key": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]}
      ],
      "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
-               "back": "back", "actor": "actor", "select": "helper", "frame-ms": 125, "compare": "greater",
+               "back": "back", "hire-back": "hire-back", "actor": "actor", "select": "helper", "frame-ms": 125, "compare": "greater",
                "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "R2-ENGINE-258", "DIV-2973"]},
      "buttons": [
-       {"name": "hire", "rect": [484, 44, 624, 90], "off": "button/0/0", "on": "button/0/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-260", "DIV-2636"]},
+       {"name": "hire", "rect": [484, 44, 624, 90], "off": "button/0/0", "on": "button/0/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-260", "R2-ENGINE-496", "DIV-3110"]},
        {"name": "talk", "rect": [484, 91, 624, 137], "off": "button/1/0", "on": "button/1/1", "caption": 242, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
        {"name": "exit", "rect": [484, 138, 624, 184], "off": "button/2/0", "on": "button/2/1", "caption": 232, "cite": ["R2-ENGINE-246", "R2-ENGINE-250", "R2-ENGINE-260"]}
      ],

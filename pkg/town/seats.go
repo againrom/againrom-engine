@@ -10,17 +10,19 @@ import "image"
 // slot; the selected actor alone advances one frame after FrameMS, compared
 // as Compare.
 type SeatSpec struct {
-	First   Rect     `json:"first"`
-	Step    Point    `json:"step"`
-	RowStep Point    `json:"row-step"`
-	Columns int      `json:"columns"`
-	Rows    int      `json:"rows"`
-	Back    string   `json:"back"`
-	Actor   string   `json:"actor"`
-	Select  string   `json:"select"`
-	FrameMS int      `json:"frame-ms"`
-	Compare string   `json:"compare"`
-	Cite    []string `json:"cite"`
+	First   Rect   `json:"first"`
+	Step    Point  `json:"step"`
+	RowStep Point  `json:"row-step"`
+	Columns int    `json:"columns"`
+	Rows    int    `json:"rows"`
+	Back    string `json:"back"`
+	// HireBack is the back a hire actor's seat draws; empty draws Back.
+	HireBack string   `json:"hire-back"`
+	Actor    string   `json:"actor"`
+	Select   string   `json:"select"`
+	FrameMS  int      `json:"frame-ms"`
+	Compare  string   `json:"compare"`
+	Cite     []string `json:"cite"`
 }
 
 // Count is the number of seats.

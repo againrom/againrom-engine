@@ -64,14 +64,14 @@ func secondStageFortyTalks(t *testing.T, f *FrontEnd, app *ui.App) [][]secondLoc
 }
 
 // TestReleaseSecondStageFortyInnOffersItsMissions shows the stage 40 inn's
-// speakers, admits missions 40 to 43 by TALK, saves in the inn, cold-loads
+// hires 1 and 2 and its speakers, admits missions 40 to 43 by TALK, saves in the inn, cold-loads
 // the SAV, and runs the same talks and the entry of mission 40 on both.
 func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 	f := secondGameFront(t)
 	app := f.App("stage 40 inn")
 	app.Layout(1024, 768)
 	c := secondStageFortyInn(t, f, app)
-	rows := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true},
+	rows := []ui.TownRow{{Text: "HIRE 1", Choosable: true}, {Text: "HIRE 2", Choosable: true}, {Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true},
 		{Text: "TALK 2015", Choosable: true}, {Text: "TALK 2111", Choosable: true}, {Text: "TALK 2004", Choosable: true},
 		{Text: "EXIT", Choosable: true}}
 	if got := f.TownScreen().Rows(); !reflect.DeepEqual(got, rows) {

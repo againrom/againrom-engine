@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/render/text"
 	"againrom/pkg/screenart"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/town"
@@ -287,7 +288,7 @@ func (t *secondCampaignScreen) SelectTownSquare(i int) {
 		return
 	}
 	r := d.Room(room)
-	if r == nil || r.Seats == nil || i < 0 || i >= len(t.state().speakers()) {
+	if seats, _ := t.state().innSeats(); r == nil || r.Seats == nil || i < 0 || i >= len(seats) {
 		return
 	}
 	t.selectSeat(t.scene(d, room), r.Seats, i)
@@ -304,8 +305,10 @@ func (t *secondCampaignScreen) selectSeat(s *town.Scene, seats *town.SeatSpec, i
 // when the roster is not empty, every frame at zero (R2-ENGINE-247,
 // R2-ENGINE-248).
 func (t *secondCampaignScreen) enterSeats() {
+	c := t.state()
+	c.enterInn()
 	t.composed.seat = -1
-	if len(t.state().speakers()) > 0 {
+	if seats, _ := c.innSeats(); len(seats) > 0 {
 		t.composed.seat = 0
 	}
 	t.composed.seatFrames = nil
@@ -340,17 +343,13 @@ func (t *secondCampaignScreen) seatFrame(i int) int {
 }
 
 // composedRows are the composed town's list rows: on the square one per
-// hotspot with a row, in row order; in a page with seats one TALK row per
-// speaker, then EXIT.
+// hotspot with a row, in row order; in a page with seats one row per seat,
+// then EXIT.
 func (t *secondCampaignScreen) composedRows(d *town.Description, c *secondCampaign) []ui.TownRow {
 	if r := d.Room(t.roomName()); r != nil && r.Page == "shop" {
 		return t.shopRows(c)
 	} else if r != nil {
-		var rows []ui.TownRow
-		for _, o := range c.speakers() {
-			rows = append(rows, ui.TownRow{Text: fmt.Sprintf("TALK %d", o.npc), Choosable: true})
-		}
-		return append(rows, ui.TownRow{Text: secondInnExit, Choosable: true})
+		return append(c.innRows(), ui.TownRow{Text: secondInnExit, Choosable: true})
 	}
 	s := t.scene(d, d.Square.Name)
 	var rows []ui.TownRow
@@ -364,19 +363,19 @@ func (t *secondCampaignScreen) composedRows(d *town.Description, c *secondCampai
 }
 
 // chooseComposed acts on row i of the composed town: a square row runs its
-// hotspot's click program; an inn row selects its seat and talks, or leaves.
+// hotspot's click program; an inn row selects its seat and runs its action,
+// or leaves.
 func (t *secondCampaignScreen) chooseComposed(d *town.Description, c *secondCampaign, i int) ui.TownAction {
 	square := t.scene(d, d.Square.Name)
 	room := t.roomName()
 	if r := d.Room(room); r != nil && r.Page == "shop" {
 		return t.chooseShop(d, c, room, i)
 	} else if r != nil {
-		speakers := c.speakers()
-		if i < len(speakers) {
+		if seats, _ := c.innSeats(); i < len(seats) {
 			if r.Seats != nil {
 				t.selectSeat(t.scene(d, room), r.Seats, i)
 			}
-			return t.talk(c, speakers[i])
+			return t.innAct(c, i)
 		}
 		square.LeaveRoom(room)
 		return ui.TownAction{}
@@ -437,31 +436,82 @@ func (v secondTownView) Paint(dst *image.RGBA) {
 	}
 	page := v.t.roomArt(v.d, v.room).page
 	s.Paint(dst, "back")
+	words, font := v.t.install.Words, v.t.install.Font.Value()
 	if seats := r.Seats; seats != nil {
-		actor := page.Pictures(seats.Actor)
-		for i := range v.t.state().speakers() {
-			at := seats.Seat(i)
-			if at.Empty() {
-				break
-			}
-			drawAt(dst, page.Picture(seats.Back), at.Min, draw.Src)
-			if len(actor) > 0 {
-				drawAt(dst, actor[v.t.seatFrame(i)%len(actor)], at.Min, draw.Over)
-			}
-		}
+		v.paintSeats(dst, seats, page, words, font)
 	}
 	if len(r.Grids) > 0 {
 		v.paintShopGrids(dst, r)
 	}
 	s.Paint(dst, "front")
-	words, font := v.t.install.Words, v.t.install.Font.Value()
 	for _, b := range s.ShownButtons(r.Buttons) {
 		rect := b.Rect.Rectangle()
 		drawAt(dst, page.Picture(b.Off), rect.Min, draw.Src)
-		if b.Caption != nil && *b.Caption < len(words.Hover) && font != nil {
-			ui.DrawTownCaption(dst, font, words.Hover[*b.Caption], rect)
+		caption := b.Caption
+		if b.Name == "hire" {
+			caption = v.hireCaption()
+		}
+		if caption != nil && *caption < len(words.Hover) && font != nil {
+			ui.DrawTownCaption(dst, font, words.Hover[*caption], rect)
 		}
 	}
+}
+
+// Main-text keys of the inn page: the hired mark (R2-ENGINE-497) and the
+// hire button's Hire and Fire captions (R2-ENGINE-246).
+const (
+	secondInnHiredMark   = 257
+	secondInnHireCaption = 258
+	secondInnFireCaption = 259
+)
+
+// paintSeats draws the seats: each hire actor, then each talk actor, its
+// back and then its actor; a hire actor whose copied word has the high bit
+// also shows the hired mark over its seat. No hire actor is drawn while no
+// seat is selected (R2-ENGINE-497, DIV-2964).
+func (v secondTownView) paintSeats(dst *image.RGBA, seats *town.SeatSpec, page *screenart.Set, words ui.Words, font *text.Font) {
+	c := v.t.state()
+	list, hires := c.innSeats()
+	actor := page.Pictures(seats.Actor)
+	for i, o := range list {
+		at := seats.Seat(i)
+		if at.Empty() {
+			break
+		}
+		back := seats.Back
+		if i < hires {
+			if v.t.composed.seat < 0 {
+				continue
+			}
+			if seats.HireBack != "" {
+				back = seats.HireBack
+			}
+		}
+		drawAt(dst, page.Picture(back), at.Min, draw.Src)
+		if len(actor) > 0 {
+			drawAt(dst, actor[v.t.seatFrame(i)%len(actor)], at.Min, draw.Over)
+		}
+		if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) && font != nil {
+			ui.DrawTownCaption(dst, font, words.Hover[secondInnHiredMark], at)
+		}
+	}
+}
+
+// hireCaption is the hire button's caption: Fire on a selected hire actor
+// whose copied word has the high bit, Hire on any other selected hire
+// actor, none on a talk actor or without a selection (R2-ENGINE-246).
+func (v secondTownView) hireCaption() *int {
+	c := v.t.state()
+	list, hires := c.innSeats()
+	seat := v.t.composed.seat
+	if seat < 0 || seat >= hires {
+		return nil
+	}
+	key := secondInnHireCaption
+	if c.hired(list[seat].npc) {
+		key = secondInnFireCaption
+	}
+	return &key
 }
 
 // drawAt draws pic with its top-left corner at at.
@@ -493,20 +543,28 @@ func (v secondTownView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	if r.Page == "shop" {
 		return v.shopControlAt(r, p)
 	}
-	speakers := len(v.t.state().speakers())
+	list, hires := v.t.state().innSeats()
+	seats := len(list)
 	if r.Seats != nil {
-		if i := r.Seats.SeatAt(p, speakers); i >= 0 {
-			return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i}, true
+		if i := r.Seats.SeatAt(p, seats); i >= 0 {
+			// The center click selects the seat and runs its action: Hire
+			// or Fire on a hire actor, TALK on a talk actor (R2-ENGINE-496).
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: i}, true
 		}
 	}
 	if i := town.ButtonAt(r.Buttons, p); i >= 0 {
+		seat := v.t.composed.seat
 		switch r.Buttons[i].Name {
+		case "hire":
+			if seat >= 0 && seat < hires {
+				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat}, true
+			}
 		case "talk":
-			if seat := v.t.composed.seat; seat >= 0 && seat < speakers {
+			if seat >= hires && seat < seats {
 				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat}, true
 			}
 		case "exit":
-			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: speakers}, true
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats}, true
 		}
 	}
 	return ui.TownSquareControl{}, false

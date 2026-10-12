@@ -133,7 +133,7 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		}
 		// The incoming bank holds a nonzero slot 927, which withholds NPC 2108.
 		want21 := c.available
-		if rows := screen.Rows(); !reflect.DeepEqual(rows, []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "EXIT", Choosable: true}}) || c.bank[927] == 0 || !screen.CanSave() {
+		if rows := screen.Rows(); !reflect.DeepEqual(rows, []ui.TownRow{{Text: "HIRE 1", Choosable: true}, {Text: "TALK 22", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "EXIT", Choosable: true}}) || c.bank[927] == 0 || !screen.CanSave() {
 			t.Fatal("stage-30 town2 inn rows", rows)
 		}
 		if !screen.Back() || c.room != secondTownSquare || !reflect.DeepEqual(c.available, want21) {

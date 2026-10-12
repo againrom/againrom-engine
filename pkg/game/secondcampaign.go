@@ -39,6 +39,9 @@ type secondCampaign struct {
 	payload   []byte
 	part      int
 	shop      secondShop
+	// innBits is the inn page's copy of each option's high bit where Hire
+	// or Fire changed it during the current visit (R2-SESSION-191).
+	innBits map[int]bool
 }
 
 func newSecondCampaign() *secondCampaign {
@@ -270,11 +273,7 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 		if c.room != secondTownInn {
 			return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
 		}
-		var rows []ui.TownRow
-		for _, o := range c.speakers() {
-			rows = append(rows, ui.TownRow{Text: fmt.Sprintf("TALK %d", o.npc), Choosable: true})
-		}
-		return append(rows, gates)
+		return append(c.innRows(), gates)
 	}
 	var rows []ui.TownRow
 	for _, location := range c.available {
@@ -334,9 +333,23 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 	}
 	if c.room != secondTownInn {
 		c.room = secondTownInn
+		c.enterInn()
 		return ui.TownAction{}
 	}
-	return t.talk(c, c.speakers()[i])
+	return t.innAct(c, i)
+}
+
+// innAct runs inn seat i: Hire or Fire on a hire actor, TALK on a talk
+// actor (R2-ENGINE-496).
+func (t *secondCampaignScreen) innAct(c *secondCampaign, i int) ui.TownAction {
+	seats, hires := c.innSeats()
+	if i >= hires {
+		return t.talk(c, seats[i])
+	}
+	if key := c.hireOrFire(seats[i].npc); key != "" {
+		return t.openTownText(key)
+	}
+	return ui.TownAction{}
 }
 
 // talk opens a speaker's conversation and runs its TalkTo.

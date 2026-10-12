@@ -249,12 +249,17 @@ func TestSecondInnTalkEffects(t *testing.T) {
 		{secondInnOption{kind: 3, topic: 30, npc: 23}, []secondLocation{{1, 30}}, nil},
 		{secondInnOption{kind: 0, topic: 39, npc: 2110}, nil, nil},
 		{secondInnOption{kind: 0, topic: 30, npc: 22}, nil, nil},
-		{secondInnOption{kind: 1, topic: 0, npc: 1}, nil, nil},
+		{secondInnOption{kind: 1, topic: 0, npc: 1}, nil, map[int]int32{512: 0}},
+		{secondInnOption{kind: 2, topic: 0, npc: 1}, nil, nil},
+		{secondInnOption{kind: 4, topic: 79, npc: 5}, nil, nil},
+		{secondInnOption{kind: 7, topic: 78, npc: 675}, nil, nil},
+		{secondInnOption{kind: 0, topic: 9, npc: 207}, nil, nil},
 		{secondInnOption{kind: 0, topic: 48, npc: 2108}, nil, nil},
 		{secondInnOption{kind: 0, topic: 49, npc: 23}, nil, nil},
 		{secondInnOption{kind: 0, topic: 78, npc: 675}, nil, map[int]int32{770: 2}},
 		{secondInnOption{kind: 3, topic: 78, npc: 675}, []secondLocation{{1, 78}}, nil},
-		{secondInnOption{kind: 0, topic: 79, npc: 5}, nil, nil},
+		{secondInnOption{kind: 0, topic: 79, npc: 5}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
+		{secondInnOption{kind: 0, topic: 3, npc: 5, high: true}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
 	} {
 		c := innAt(2, 30, nil)
 		c.bank[533], c.bank[553] = -9, -9
@@ -298,14 +303,19 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	if _, ok := screen.dialogueBody(); ok || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 21}, {1, 31}, {1, 30}}) || c.bank[533] != 1 || c.bank[553] != 2 {
 		t.Fatal("TALK 22 without a section", c.available)
 	}
-	screen.Choose(2)
+	// Slots 533 and 553 make hire 2 a town 2 hire actor, seated first
+	// (R2-ENGINE-221, R2-ENGINE-497).
+	if rows := screen.Rows(); rows[0] != (ui.TownRow{Text: "HIRE 2", Choosable: true}) || len(rows) != 5 {
+		t.Fatal("inn rows after TALK 22", rows)
+	}
+	screen.Choose(3)
 	if len(c.available) != 4 {
 		t.Fatal("kind 0 TALK changed availability")
 	}
 	if !screen.CanSave() {
 		t.Fatal("quiet town 2 inn is not a save point")
 	}
-	screen.Choose(3)
+	screen.Choose(4)
 	if c.room != secondTownSquare || c.current != (secondLocation{2, 2}) {
 		t.Fatal("EXIT from the inn", c)
 	}
