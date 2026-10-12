@@ -2282,6 +2282,10 @@ package storyguard
 // pkg/ui/sound.go and of the new pkg/ui/soundstream_test.go, including this
 // paragraph.
 //
+// CommentBytes rises for the map report: the docs of pkg/game/mapcheck.go and
+// pkg/ui/mapeditorreport.go, the report key and panel in pkg/ui/mapeditor.go
+// and their tests, including this paragraph.
+//
 // CommentBytes rises for the cell planes carrier: the installed Terrain cost
 // table (readTerrainCosts, Table.TerrainCosts, CostWith), the plane builder
 // and its readers, the native cell slots, the plane Block records and the
@@ -2393,5 +2397,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8924966,
+	CommentBytes: 8931892,
 }

@@ -161,7 +161,26 @@ func run(args []string, out io.Writer) error {
 				}
 			}
 		}
-		return nil
+		return reportFindings(out, d)
 	}
 	return e.Run()
+}
+
+// reportFindings prints the map report the window shows, one line per finding
+// and a count line, and fails when the map holds an error.
+func reportFindings(out io.Writer, d *ui.InspectionDocument) error {
+	c, ok := d.Edits.(ui.InspectionChecker)
+	if !ok {
+		return nil
+	}
+	rows := c.Report()
+	for _, f := range rows {
+		fmt.Fprintln(out, f.Line())
+	}
+	errs, warnings := ui.CountFindings(rows)
+	fmt.Fprintf(out, "report: %d errors, %d warnings\n", errs, warnings)
+	if errs > 0 {
+		return fmt.Errorf("%s holds %d errors", d.Source, errs)
+	}
+	return nil
 }

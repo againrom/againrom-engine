@@ -24,6 +24,9 @@ type mapInspectionEdits struct {
 	model     *mapedit.Editor
 	source    string
 	saved     []byte
+
+	reported    []ui.InspectionFinding // the report of the bytes in reportedFor
+	reportedFor []byte
 }
 
 func (s *mapInspectionEdits) Dirty() bool   { return !bytes.Equal(s.saved, s.model.Bytes()) }
@@ -142,7 +145,7 @@ func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (*ui.Inspecti
 		if item <= 0 || item > math.MaxUint16 {
 			return false, fmt.Errorf("item code %d is outside 1..65535", item)
 		}
-		if err := s.checkItem(item); err != nil {
+		if err := s.inspector.checkItem(item); err != nil {
 			return false, err
 		}
 		x, y := cellWords(cell, newSackFraction, newSackFraction)
@@ -210,10 +213,10 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 		}
 		switch f.Check {
 		case mapedit.CheckStructureKind:
-			err = s.checkStructureKind(value)
+			err = s.inspector.checkStructureKind(value)
 		case mapedit.CheckItemCode:
 			if value != 0 {
-				err = s.checkItem(value)
+				err = s.inspector.checkItem(value)
 			}
 		case mapedit.CheckRosterSlot, mapedit.CheckClassKey, mapedit.CheckDefinitionID:
 			err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
@@ -247,7 +250,7 @@ func (s *mapInspectionEdits) checkPlacement(k mapedit.Kind, m *mapedit.Editor, i
 		return err
 	}
 	st := mapload.Structures(view, s.inspector.table)[index]
-	r := image.Rect(int(st.Col), int(st.Row), int(st.Col)+max(1, int(st.Width)), int(st.Row)+max(1, int(st.Height)))
+	r := structureFootprint(st)
 	if !r.In(image.Rect(0, 0, view.Width, view.Height)) {
 		return fmt.Errorf("structure footprint %d,%d %dx%d leaves the map", r.Min.X, r.Min.Y, r.Dx(), r.Dy())
 	}
@@ -256,8 +259,8 @@ func (s *mapInspectionEdits) checkPlacement(k mapedit.Kind, m *mapedit.Editor, i
 
 // checkStructureKind refuses a kind the installed structures.reg does not
 // hold. A class a mod adds is not consulted.
-func (s *mapInspectionEdits) checkStructureKind(kind int64) error {
-	set := s.inspector.structures
+func (x *MapInspector) checkStructureKind(kind int64) error {
+	set := x.structures
 	if set == nil || kind <= 0 || kind >= int64(len(set.Classes)) || set.Classes[kind] == nil {
 		return fmt.Errorf("structure kind %d is not in the installed structures.reg", kind)
 	}
@@ -266,8 +269,8 @@ func (s *mapInspectionEdits) checkStructureKind(kind int64) error {
 
 // checkItem refuses an item code the installed item-name table does not
 // name (DIV-3134). An item a mod adds is not consulted.
-func (s *mapInspectionEdits) checkItem(code int64) error {
-	t := s.inspector.table
+func (x *MapInspector) checkItem(code int64) error {
+	t := x.table
 	if t == nil {
 		return fmt.Errorf("no installed tables to check item code %d against", code)
 	}
@@ -283,14 +286,7 @@ func (s *mapInspectionEdits) checkItem(code int64) error {
 func checkUnitField(f mapedit.UnitField, m *alm.Map, u alm.Unit, t *mapload.Table) error {
 	switch f.Check {
 	case mapedit.CheckRosterSlot:
-		// A map without a type-5 record plays with one synthesised side (ALM-REQ-056).
-		slots := len(m.Groups)
-		if !m.Present(5) {
-			slots = 1
-		}
-		if u.Owner < 1 || int(u.Owner) > slots {
-			return fmt.Errorf("owner slot %d is not in the map's roster of %d", u.Owner, slots)
-		}
+		return rosterSlotError(m, u.Owner)
 	case mapedit.CheckClassKey:
 		if t == nil {
 			return fmt.Errorf("no installed tables to check class %d against", u.ClassID)
@@ -321,6 +317,9 @@ func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
 }
 
 func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
+	if err := s.gate(); err != nil {
+		return "", err
+	}
 	b := s.model.Bytes()
 	root := ""
 	if s.inspector.archives != nil {

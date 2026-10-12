@@ -102,6 +102,7 @@ type MapEditor struct {
 	window                         image.Point
 	panelImage                     *ebiten.Image
 	focusedReference               int // 1-based on the selected record; 0 means none
+	report                         reportState
 	recordDrag                     *editorRecordDrag
 	cancelledDrag                  bool // consume the remainder of a cancelled press
 	textSmoothingEnabled           bool
@@ -157,6 +158,7 @@ func (e *MapEditor) Open(source string) error {
 	e.listWheel, e.detailWheel = 0, 0
 	e.catalog, e.pathMode = false, false
 	e.message = ""
+	e.report = reportState{}
 	e.cancelRecordDrag()
 	e.Fit()
 	return nil
@@ -199,14 +201,19 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	}
 	r := e.doc.Records[index]
 	if jump && r.Spatial {
-		v := e.doc.Viewer
-		x, y := e.cellCenter(r.Cell)
-		v.cam.SetZoom(1)
-		v.cam.X = x - float64(v.cam.ViewW)/2
-		v.cam.Y = y - float64(v.cam.ViewH)/2
-		v.cam.Clamp()
+		e.centerOn(r.Cell)
 	}
 	return true
+}
+
+// centerOn scrolls the map to cell at full zoom.
+func (e *MapEditor) centerOn(cell image.Point) {
+	v := e.doc.Viewer
+	x, y := e.cellCenter(cell)
+	v.cam.SetZoom(1)
+	v.cam.X = x - float64(v.cam.ViewW)/2
+	v.cam.Y = y - float64(v.cam.ViewH)/2
+	v.cam.Clamp()
 }
 
 func (e *MapEditor) cellCenter(cell image.Point) (float64, float64) {
@@ -286,6 +293,10 @@ func (e *MapEditor) Key(key string) error {
 			e.message = ""
 			return nil
 		}
+		if e.report.open && e.message == "" {
+			e.closeReport()
+			return nil
+		}
 		if e.message != "" {
 			e.message = ""
 			return nil
@@ -303,6 +314,7 @@ func (e *MapEditor) Key(key string) error {
 		return ebiten.Termination
 	case "open":
 		e.cancelRecordDrag()
+		e.closeReport()
 		e.pick, e.fieldMode = "", false
 		e.pathMode = true
 		e.pathSave = false
@@ -310,6 +322,7 @@ func (e *MapEditor) Key(key string) error {
 		e.message = ""
 	case "catalog":
 		e.cancelRecordDrag()
+		e.closeReport()
 		e.catalog = !e.catalog
 		e.offset = 0
 		e.listWheel = 0
@@ -324,12 +337,24 @@ func (e *MapEditor) Key(key string) error {
 			}
 			return e.Open(strings.TrimSpace(e.path))
 		}
+		if e.report.open {
+			e.selectFinding(e.report.sel)
+		}
+	case "report":
+		e.reportKey()
+	case "up", "down":
+		if key == "up" {
+			e.reportStep(-1)
+		} else {
+			e.reportStep(1)
+		}
 	case "saveas":
 		if m, ok := e.modSave(); ok {
 			return e.saveIntoMod(m)
 		}
 		if e.editable() {
 			e.cancelRecordDrag()
+			e.closeReport()
 			e.pick, e.fieldMode = "", false
 			e.pathMode, e.pathSave = true, true
 			e.path, e.message = "", ""
@@ -386,6 +411,9 @@ func (e *MapEditor) Key(key string) error {
 func (e *MapEditor) rowCount() int {
 	if e.catalog {
 		return len(e.maps)
+	}
+	if e.report.open {
+		return len(e.report.rows)
 	}
 	return len(e.rows())
 }
@@ -462,7 +490,7 @@ func (e *MapEditor) railClick(x, y int) {
 		_ = e.Key([]string{"undo", "redo", "saveas"}[min(2, max(0, x/108))])
 		return
 	}
-	if !e.catalog && !e.pathMode && e.message == "" {
+	if !e.catalog && !e.report.open && !e.pathMode && e.message == "" {
 		for _, line := range e.detailLayout(e.window.Y) {
 			if line.Reference > 0 && image.Pt(x, y).In(line.Rect) {
 				e.FocusReference(line.Reference)
@@ -481,7 +509,7 @@ func (e *MapEditor) railClick(x, y int) {
 		}
 		return
 	}
-	if !e.catalog && y >= 128 && y < 176 {
+	if !e.catalog && !e.report.open && y >= 128 && y < 176 {
 		idx := (y-128)/24*4 + x/80
 		if idx < len(editorFilters) {
 			e.filter = idx
@@ -501,6 +529,8 @@ func (e *MapEditor) railClick(x, y int) {
 		if row < len(e.maps) {
 			_ = e.Open(e.maps[row].Key)
 		}
+	} else if e.report.open {
+		e.selectFinding(row)
 	} else {
 		rows := e.rows()
 		if row < len(rows) {
@@ -521,7 +551,7 @@ func (e *MapEditor) Update() error {
 	for _, k := range []struct {
 		key  ebiten.Key
 		name string
-	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}} {
+	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}, {ebiten.KeyArrowUp, "up"}, {ebiten.KeyArrowDown, "down"}} {
 		if inpututil.IsKeyJustPressed(k.key) {
 			if err := e.Key(k.name); err == ebiten.Termination {
 				return err
@@ -557,6 +587,9 @@ func (e *MapEditor) Update() error {
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 			e.Fit()
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyR) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
+			_ = e.Key("report")
 		}
 	} else if e.fieldMode && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		_ = e.Key("tab")
@@ -715,7 +748,9 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 	} else {
 		line("Choose an installed map or open an ALM path.", 10, 75, 300, editorPaper)
 	}
-	if !e.catalog {
+	if e.report.open {
+		line(editorClip(e.font, e.report.note, 300), 10, 143, 300, editorGold)
+	} else if !e.catalog {
 		for i, s := range editorFilters {
 			x, y := (i%4)*80, (i/4)*24+128
 			c := editorPaper
@@ -732,6 +767,8 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 	rowCount := len(rows)
 	if e.catalog {
 		rowCount = len(e.maps)
+	} else if e.report.open {
+		rowCount = len(e.report.rows)
 	}
 	if rowCount == 0 && e.filter == 7 && e.doc != nil {
 		line(e.doc.ScriptNotice, 10, editorListTop, 300, editorPaper)
@@ -746,6 +783,16 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		c := editorPaper
 		if e.catalog {
 			label = e.maps[n].Label
+		} else if e.report.open {
+			f := e.report.rows[n]
+			label = reportLabel(f)
+			if f.Error {
+				c = editorWarning
+			}
+			if n == e.report.sel {
+				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
+				c = editorGold
+			}
 		} else {
 			id := rows[n]
 			r := e.doc.Records[id]
@@ -769,7 +816,19 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 	bottom := e.listBottom()
 	line(editorClip(e.font, fmt.Sprintf("%d-%d / %d   PgUp PgDn", min(e.offset+1, rowCount), min(e.offset+e.visibleRows(), rowCount), rowCount), 300), 10, bottom+4, 300, editorPaper)
 	draw.Draw(pic, image.Rect(8, bottom+29, 312, bottom+30), image.NewUniform(editorGold), image.Point{}, draw.Src)
-	if e.selected >= 0 && e.doc != nil && !e.catalog {
+	if e.report.open && e.report.sel < len(e.report.rows) {
+		f := e.report.rows[e.report.sel]
+		step := 16
+		if e.font != nil {
+			step = max(16, e.font.Height()+2)
+		}
+		text := f.Line()
+		for n, row := range editorWrap(e.font, text, 300) {
+			if y := bottom + 40 + n*step; y+step <= h-45 {
+				line(row, 10, y, 300, editorLight)
+			}
+		}
+	} else if e.selected >= 0 && e.doc != nil && !e.catalog {
 		r := e.doc.Records[e.selected]
 		line(fmt.Sprintf("%s #%d / type %d", r.Kind, r.Index, r.Section), 10, bottom+40, 300, editorGold)
 		if r.Spatial {
@@ -802,7 +861,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			line(row.Text, row.Rect.Min.X, row.Rect.Min.Y, 300, c)
 		}
 	}
-	help := "Drag: move / C: clone / Del / E: fields / S: sack"
+	help := "R: report / Drag: move / C: clone / Del / E: fields / S: sack"
 	switch e.pick {
 	case "clone":
 		help = "Clone: click a cell / Esc: cancel"
@@ -880,7 +939,7 @@ func (e *MapEditor) markerLines() []editorLine {
 		if e.recordDrag != nil && e.recordDrag.moved && i == e.recordDrag.record {
 			r.Cell = e.recordDrag.cell // preview only; no model mutation until release
 		}
-		if !r.Spatial || (r.Warning == "" && i != e.selected) {
+		if !r.Spatial || (r.Warning == "" && i != e.selected && !e.report.flagged[findingKey(r.Kind, r.Index)]) {
 			continue
 		}
 		wx, wy := e.cellCenter(r.Cell)
@@ -907,6 +966,11 @@ func (e *MapEditor) markerLines() []editorLine {
 				}
 			}
 		}
+	}
+	for _, cell := range e.reportCrosses() {
+		wx, wy := e.cellCenter(cell)
+		x, y := v.cam.WorldToScreen(wx, wy)
+		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), editorGold}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), editorGold})
 	}
 	out = append(out, e.referenceMarkerLines()...)
 	return out

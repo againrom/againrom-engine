@@ -88,7 +88,9 @@ func fixture1118(t *testing.T) []byte {
 
 func open1118(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, string) {
 	t.Helper()
-	x := &MapInspector{tiles: &terrain.Tileset{}}
+	// The fixture is a raw byte-level case with a script naming records it lacks;
+	// it proves the save mechanics, so it reports with no rules.
+	x := &MapInspector{tiles: &terrain.Tileset{}, rules: []mapRule{}}
 	path := filepath.Join(t.TempDir(), "source.alm")
 	if err := os.WriteFile(path, b, 0600); err != nil {
 		t.Fatal(err)

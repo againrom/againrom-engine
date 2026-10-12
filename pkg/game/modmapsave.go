@@ -110,6 +110,9 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	if !ok {
 		return "", fmt.Errorf("no mission of mod %q names this map (%s); add its entry to %s", m.id, s.source, mod.MissionsFile)
 	}
+	if err := s.gate(); err != nil {
+		return "", err
+	}
 	b := s.model.Bytes()
 	root := ""
 	if s.inspector.archives != nil {

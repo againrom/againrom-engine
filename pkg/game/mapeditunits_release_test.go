@@ -272,16 +272,8 @@ func TestReleaseMapEditorCloneNeverTakesADeletedScriptedUnitID(t *testing.T) {
 	if d, err := edits.Clone("Unit", src, cell); err != nil || d == nil {
 		t.Fatalf("clone refused: %v", err)
 	}
-	out := filepath.Join(t.TempDir(), "edited.alm")
-	_ = e.Key("saveas")
-	e.TextInput(out)
-	if err := e.Key("enter"); err != nil || e.Dirty() {
-		t.Fatalf("Save As: %v", err)
-	}
-	saved, err := os.ReadFile(out)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// The report refuses to save the dangling reference; the bytes are the model's.
+	saved := edits.(*mapInspectionEdits).model.Bytes()
 	m2, err := alm.Open(saved)
 	if err != nil || len(m2.Units) != len(m.Units) {
 		t.Fatalf("edited map: %v, %d units, want %d", err, len(m2.Units), len(m.Units))

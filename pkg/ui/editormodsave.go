@@ -26,12 +26,17 @@ func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
 	e.pick, e.sackCell, e.fieldMode = "", nil, false
 	source, err := m.SaveIntoMod()
 	if err != nil {
+		if r, ok := refusal(err); ok {
+			e.refuseSave(r)
+			return err
+		}
 		e.message = err.Error()
 		return err
 	}
 	e.doc.Source = source
 	e.pathMode, e.pathSave = false, false
 	e.message = ""
+	e.afterSave()
 	return nil
 }
 

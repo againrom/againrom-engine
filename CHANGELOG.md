@@ -16,6 +16,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] The shopkeeper says one line about an item you take from his shelf instead of running through all of its lines one after another. A magic item gets its effect line, a book or wand its spell line, and other goods one of their own lines, picked anew each time.
 - [ROM1] A game saved after playing on from an original save loads back exactly as it was left: a monster holding an attack keeps it, a monster that moved and died stays where it fell, and heroes sent away from their group keep their new orders.
 - [BASE] A step from one cell to the next completes before a new order acts. Giving a spell order to a walking hero, such as Magic Shield on the hero or a spell at a target, no longer throws the figure to the centre of the cell it was entering: the hero finishes the step, then casts.
+- [ROM1] The map editor checks the map before it saves. Save As, and Ctrl+S into a mod, first list what is wrong: each line names the record and the rule it breaks, and clicking a line selects the record and scrolls the map to it. A map the game could not build or play, such as a unit outside the map, a script that names a unit or group the map no longer holds, or an owner the map's sides do not list, is not saved and the list stays on screen. Things that may only play differently, such as a unit on ground it cannot enter, two structures over the same cells or two sacks on one cell, are listed and the map is saved. R opens the same list at any time; `mapedit -check` prints it.
 
 ## 0.120.0
 

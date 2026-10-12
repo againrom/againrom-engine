@@ -81,12 +81,17 @@ func (e *MapEditor) saveAs(path string) error {
 	}
 	source, err := e.doc.Edits.SaveAs(path)
 	if err != nil {
+		if r, ok := refusal(err); ok {
+			e.refuseSave(r)
+			return err
+		}
 		e.message = err.Error()
 		return err
 	}
 	e.doc.Source = source
 	e.pathMode, e.pathSave = false, false
 	e.message = ""
+	e.afterSave()
 	return nil
 }
 
@@ -111,6 +116,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 		kind, index = r.Kind, r.Index
 	}
 	e.doc = next
+	e.closeReport()
 	e.selected = -1
 	for i, r := range next.Records {
 		if r.Kind == kind && r.Index == index {
