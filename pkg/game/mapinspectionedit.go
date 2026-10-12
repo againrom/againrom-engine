@@ -217,20 +217,8 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 		return "", fmt.Errorf("resolve map output directory: %w", err)
 	}
 	target := filepath.Join(parent, base)
-	roots := []string{root}
-	if root != "" {
-		resolvedRoot, err := editorPhysicalDirectory(root)
-		if err != nil {
-			return "", fmt.Errorf("resolve read-only install: %w", err)
-		}
-		// A preserved pair is fenced explicitly, independently of the selected
-		// language and of whether its archives are presently readable.
-		roots = append(roots, preservedPairRoots(resolvedRoot)...)
-	}
-	for _, protected := range roots {
-		if err := refuseOriginalWriteTarget(parent, protected); err != nil {
-			return "", fmt.Errorf("Save As: %w", err)
-		}
+	if err := fenceEditorWrite(root, parent, "Save As"); err != nil {
+		return "", err
 	}
 	input := source
 	if strings.HasPrefix(source, "scenario/") {
@@ -270,6 +258,27 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 		return "", closeErr
 	}
 	return target, nil
+}
+
+// fenceEditorWrite refuses a map write into the resolved directory parent
+// when it lies in the install at root or in a preserved pair beside it.
+func fenceEditorWrite(root, parent, verb string) error {
+	roots := []string{root}
+	if root != "" {
+		resolvedRoot, err := editorPhysicalDirectory(root)
+		if err != nil {
+			return fmt.Errorf("resolve read-only install: %w", err)
+		}
+		// A preserved pair is fenced explicitly, independently of the selected
+		// language and of whether its archives are presently readable.
+		roots = append(roots, preservedPairRoots(resolvedRoot)...)
+	}
+	for _, protected := range roots {
+		if err := refuseOriginalWriteTarget(parent, protected); err != nil {
+			return fmt.Errorf("%s: %w", verb, err)
+		}
+	}
+	return nil
 }
 
 func editorOrdinaryFilename(name string) bool {

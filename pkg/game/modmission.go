@@ -79,11 +79,12 @@ func (g *guestMission) clone() *guestMission {
 	return &c
 }
 
-// SetModMissions records the missions the mods add and serves each one's map
-// and texts under its own mission number on this front end's filesystem. A
-// declaration the campaign or the install does not bear out is refused with
-// the mod, the file and the line. It runs once, after SetMods and before any
-// game is opened.
+// SetModMissions records the missions the mods declare and serves each one's
+// map and texts under its own mission number on this front end's filesystem:
+// a guest mission under a number of its own, a replacing mission over the
+// install's campaign mission. A declaration the campaign or the install does
+// not bear out is refused with the mod, the file and the line. It runs once,
+// after SetMods and before any game is opened.
 func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 	if d.Empty() {
 		return nil
@@ -98,6 +99,12 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 			return itemFileError(m.Mod, m.File, m.Line, format, args...)
 		}
 		address, _ := MissionMap(m.Number)
+		if m.Kind == mod.MissionReplace {
+			if err := f.checkReplacing(m, address); err != nil {
+				return bad("%v", err)
+			}
+			continue
+		}
 		switch {
 		case m.Number%mainMissionStride == 0:
 			return bad("number %d is a multiple of %d, the numbers of the campaign's main missions", m.Number, mainMissionStride)
@@ -147,6 +154,22 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 		}
 	}
 	f.Table.Mods.Missions = d
+	return nil
+}
+
+// checkReplacing refuses a replacing mission whose number is no mission of
+// this install's campaign or whose map the mission build refuses.
+func (f *FrontEnd) checkReplacing(m mod.Mission, address string) error {
+	c := f.Campaign.Value()
+	if !slices.Contains(c.Main, m.Number) && !slices.Contains(c.Side, m.Number) && !slices.Contains(c.Offered, m.Number) {
+		return fmt.Errorf("number %d is no mission of this install's campaign", m.Number)
+	}
+	if _, err := f.Archives.Containers.ReadFile(address); err != nil {
+		return fmt.Errorf("the install holds no map for mission %d (%s)", m.Number, address)
+	}
+	if _, err := MapOpener(f.Archives.Game())(m.MapBytes); err != nil {
+		return fmt.Errorf("map %s: %v", m.Map, err)
+	}
 	return nil
 }
 
@@ -275,4 +298,29 @@ func restoreGuest(s *currentSessionData, mods mapload.ModContext) (*guestMission
 		g.member = &member
 	}
 	return g, nil
+}
+
+// refuseUnmarkedReplaced refuses a save inside mission n, written without a
+// mod mark, while an active mod replaces that mission's map: its world was
+// built from another map. A marked save passed the mod mark, so the mod that
+// replaces the map now replaced it when the save was written.
+func refuseUnmarkedReplaced(saved []byte, n int, mods mapload.ModContext) error {
+	m, ok := mods.Missions.Replacing(n)
+	if !ok || carriesModMark(saved) {
+		return nil
+	}
+	return modMarkRefusal("this save plays mission %d without a mod mark, and mod %q replaces that mission's map; start without that mod to load it", n, m.Mod)
+}
+
+// carriesModMark reports that saved holds a readable mod mark.
+func carriesModMark(saved []byte) bool {
+	if !sav.MayCarryNativeMods(saved) {
+		return false
+	}
+	doc, err := sav.DecodeDocumentData(saved)
+	if err != nil {
+		return false
+	}
+	_, ok, err := readModMark(doc)
+	return ok && err == nil
 }

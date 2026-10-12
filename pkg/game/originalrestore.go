@@ -60,6 +60,7 @@ type originalSource struct {
 // install's mod context and campaign. A mission number of zero is a
 // between-mission save.
 func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campaign) (*originalSource, error) {
+	raw := saved
 	saved, modLayers, err := applyModMark(saved, mods)
 	if err != nil {
 		return nil, err
@@ -106,6 +107,9 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	}
 	if m, ok := mods.Missions.ByNumber(decoded.mission); ok && guest == nil {
 		return nil, fmt.Errorf("this save is mission %d of mod %q and carries no guest record; it cannot be loaded", decoded.mission, m.Mod)
+	}
+	if err := refuseUnmarkedReplaced(raw, decoded.mission, mods); err != nil {
+		return nil, err
 	}
 	n := decoded.mission
 	quickSpells = decoded.quickSpells

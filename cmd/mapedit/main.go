@@ -35,6 +35,7 @@ func run(args []string, out io.Writer) error {
 	detailScroll := flags.Int("scroll-details", 0, "wheel steps down the selected inspector in a diagnostic snapshot")
 	triggers := flags.Bool("triggers", false, "show the authored trigger filter")
 	focusRef := flags.Int("focus-reference", 0, "focus a selected record's 1-based map reference without changing selection")
+	modDir := flags.String("mod", "", "mod folder Save writes into: Ctrl+S writes the map to the path its data/missions.toml entry names, and refuses a map no entry names")
 	version := flags.Bool("version", false, "print the program name, game version and source revision, and exit")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -67,6 +68,11 @@ func run(args []string, out io.Writer) error {
 	x, err := game.NewMapInspector(game.ResolveAssetRoot(*assets, os.Getenv("AGAINROM_ASSETS")))
 	if err != nil {
 		return err
+	}
+	if *modDir != "" {
+		if err := x.SetMod(*modDir); err != nil {
+			return err
+		}
 	}
 	if *list {
 		for _, m := range x.Maps {

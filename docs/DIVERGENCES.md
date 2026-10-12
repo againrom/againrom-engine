@@ -143,6 +143,7 @@ copying those counts.
 | `docs/divergences/magic-spellbooks-and-quick-spells.md` |
 | `docs/divergences/misc.md` |
 | `docs/divergences/mission-screen.md` |
+| `docs/divergences/mods-missions.md` |
 | `docs/divergences/mods.md` |
 | `docs/divergences/persistence.md` |
 | `docs/divergences/persistence-city-sav-and-imports.md` |

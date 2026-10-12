@@ -2328,6 +2328,9 @@ package storyguard
 //
 // CommentBytes rises for the release script parse tests: the docs of the new
 // internal/buildinfo/releasescripts_test.go, this note included.
+//
+// CommentBytes rises for the directory check before a mod map is written: the
+// docs of checkModMapDirectory in pkg/game/modmapsave.go, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2351,5 +2354,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1730,
 	},
-	CommentBytes: 8884091,
+	CommentBytes: 8889868,
 }

@@ -58,3 +58,27 @@ func TestReniestaFixtureNeedsItsAssembledMap(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+const replacingSrc = "[[mission]]\nkind = \"replace\"\nkey = \"r\"\nnumber = 20\nmap = \"m/{lang}/map.alm\"\n"
+
+func TestTwoModsCannotReplaceOneMission(t *testing.T) {
+	two := strings.Replace(replacingSrc, "number = 20", "number = 10", 1)
+	mods := makeMods(t, map[string]map[string]string{"m1": missionMod(replacingSrc), "m2": missionMod(two)})
+	res, err := Load(mods, "rom1-ru", nil, Options{})
+	if err != nil {
+		t.Fatalf("two mods replacing two missions: %v", err)
+	}
+	if _, ok := res.Missions.Replacing(10); !ok {
+		t.Fatalf("%+v", res.Missions)
+	}
+	mods = makeMods(t, map[string]map[string]string{"m1": missionMod(replacingSrc), "m2": missionMod(replacingSrc)})
+	if _, err := Load(mods, "rom1-ru", nil, Options{}); err == nil ||
+		!strings.Contains(err.Error(), `data/missions.toml:1: mission number 20 is already used by mod "m1"`) {
+		t.Fatalf("two mods replacing mission 20: %v", err)
+	}
+	// A guest after mission 20 and a replacement of mission 20 compose.
+	mods = makeMods(t, map[string]map[string]string{"m1": missionMod(replacingSrc), "m2": missionMod(missionSrc)})
+	if _, err := Load(mods, "rom1-ru", nil, Options{}); err != nil {
+		t.Fatalf("a guest after the replaced mission: %v", err)
+	}
+}

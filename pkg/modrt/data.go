@@ -175,7 +175,7 @@ func (d *dataValue) loadMissions(rel string, src []byte) error {
 			switch {
 			case first.Number == m.Number:
 				return bad("mission number %d is already used by mod %q", m.Number, first.Mod)
-			case first.After == m.After:
+			case first.Kind != mod.MissionReplace && m.Kind != mod.MissionReplace && first.After == m.After:
 				return bad("mod %q already plays a mission after mission %d", first.Mod, m.After)
 			}
 		}

@@ -28,6 +28,7 @@ type MapInspector struct {
 	table      *mapload.Table
 	font       *text.Font
 	Maps       []MapEntry
+	mod        *editorMod // the mod folder Save writes into; nil for Save As
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {

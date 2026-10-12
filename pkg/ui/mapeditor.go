@@ -320,6 +320,9 @@ func (e *MapEditor) Key(key string) error {
 			return e.Open(strings.TrimSpace(e.path))
 		}
 	case "saveas":
+		if m, ok := e.modSave(); ok {
+			return e.saveIntoMod(m)
+		}
 		if e.editable() {
 			e.cancelUnitDrag()
 			e.cloning, e.fieldMode = false, false
@@ -799,7 +802,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		help = "Clone: click a cell / Esc: cancel"
 	}
 	line(editorClip(e.font, help, 300), 10, h-39, 300, editorPaper)
-	line("Ctrl+Z / Ctrl+Y / Ctrl+S", 10, h-21, 300, editorPaper)
+	line(e.saveHelp(), 10, h-21, 300, editorPaper)
 	if e.pathMode || e.message != "" {
 		draw.Draw(pic, image.Rect(0, bottom+30, 320, h-45), image.NewUniform(editorInk), image.Point{}, draw.Src)
 		for _, row := range e.modalLayout(h) {

@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -13,6 +14,15 @@ import (
 // MissionsFile is the data file that declares the missions a mod adds. A mod
 // loads it from its entry script with game.data.add.
 const MissionsFile = "data/missions.toml"
+
+// The kinds of a mission declaration. A guest mission is a new mission a
+// guest party plays between a win and the town it opens; a replacing mission
+// is a campaign mission of the install played on the mod's map. A Mission
+// whose Kind is empty is a guest mission.
+const (
+	MissionGuest   = "guest"
+	MissionReplace = "replace"
+)
 
 // CarryJoin is the one carry rule: the guest member joins the party through
 // the next town's own grant of that companion.
@@ -31,17 +41,21 @@ const (
 // missionTextName is the name of a file a mission's text directory serves.
 var missionTextName = regexp.MustCompile(`^[a-z0-9_]{1,32}\.txt$`)
 
-// Mission is one mission a mod adds: it runs as mission Number with the map
-// Map and the texts of Texts, both inside the mod folder, after the player
-// wins main mission After. Companion Guest, as the town of chapter Chapter
-// would grant her over the party, plays it alone with Gold in her purse; the
-// party waits. When she wins, the party goes on to that town, where she
-// joins as she ended the mission (Carry).
+// Mission is one mission a mod declares: it runs as mission Number with the
+// map Map and the texts of Texts, both inside the mod folder. A guest mission
+// (Kind MissionGuest) plays after the player wins main mission After.
+// Companion Guest, as the town of chapter Chapter would grant her over the
+// party, plays it alone with Gold in her purse; the party waits. When she
+// wins, the party goes on to that town, where she joins as she ended the
+// mission (Carry). A replacing mission (Kind MissionReplace) is the install's
+// campaign mission Number, reached and continued as the campaign does; only
+// its map and texts are the mod's.
 type Mission struct {
 	Mod  string
 	File string
 	Line int
 
+	Kind    string
 	Key     string
 	Number  int
 	Map     string
@@ -68,20 +82,30 @@ type MissionData struct {
 // Empty reports that no mod declares a mission.
 func (d MissionData) Empty() bool { return len(d.Missions) == 0 }
 
-// AfterWin returns the mission that plays after main mission n is won.
+// AfterWin returns the guest mission that plays after main mission n is won.
 func (d MissionData) AfterWin(n int) (Mission, bool) {
 	for _, m := range d.Missions {
-		if m.After == n {
+		if m.Kind != MissionReplace && m.After == n {
 			return m, true
 		}
 	}
 	return Mission{}, false
 }
 
-// ByNumber returns the mission that runs as mission n.
+// ByNumber returns the guest mission that runs as mission n.
 func (d MissionData) ByNumber(n int) (Mission, bool) {
 	for _, m := range d.Missions {
-		if m.Number == n {
+		if m.Kind != MissionReplace && m.Number == n {
+			return m, true
+		}
+	}
+	return Mission{}, false
+}
+
+// Replacing returns the mission that replaces the map of campaign mission n.
+func (d MissionData) Replacing(n int) (Mission, bool) {
+	for _, m := range d.Missions {
+		if m.Kind == MissionReplace && m.Number == n {
 			return m, true
 		}
 	}
@@ -99,8 +123,8 @@ func (d MissionData) Find(id, key string) (Mission, bool) {
 }
 
 // ParseMissions reads data/missions.toml of the mod id: [[mission]] tables
-// with the keys key, number, map, texts, title, briefing, after, guest,
-// chapter, gold and carry. title and briefing are text keys of the mod read
+// with the keys kind, key, number, map, texts, title, briefing, after, guest,
+// chapter, gold and carry. A replacing mission takes no key of the guest. title and briefing are text keys of the mod read
 // through look; "{lang}" in map or texts becomes lang. A refusal names the file
 // and the line.
 func ParseMissions(id, file string, data []byte, look func(string) (string, bool), lang string) (MissionData, error) {
@@ -121,7 +145,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 		if t.name != "mission" || !t.array {
 			return MissionData{}, bad(t.line, "unknown table %q (this file holds [[mission]])", t.name)
 		}
-		m := Mission{Mod: id, File: file, Line: t.line, Carry: CarryJoin}
+		m := Mission{Mod: id, File: file, Line: t.line, Kind: MissionGuest, Carry: CarryJoin}
 		have := map[string]bool{}
 		for _, p := range t.pairs {
 			have[p.key] = true
@@ -167,6 +191,10 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			}
 			var err error
 			switch p.key {
+			case "kind":
+				if m.Kind, err = str(); err == nil && m.Kind != MissionGuest && m.Kind != MissionReplace {
+					err = bad(p.line, "kind is %q; use %q or %q", m.Kind, MissionGuest, MissionReplace)
+				}
 			case "key":
 				if m.Key, err = str(); err == nil && !itemKeyPattern.MatchString(m.Key) {
 					err = bad(p.line, "key %q must be 1 to 32 of a-z, 0-9 and '_', starting with a letter", m.Key)
@@ -200,9 +228,19 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				return MissionData{}, err
 			}
 		}
-		for _, need := range []string{"key", "number", "map", "after", "guest", "chapter"} {
-			if !have[need] {
-				return MissionData{}, bad(t.line, "[[mission]] has no %s", need)
+		need := []string{"key", "number", "map", "after", "guest", "chapter"}
+		if m.Kind == MissionReplace {
+			need = need[:3]
+			for _, p := range t.pairs {
+				if slices.Contains(guestOnly, p.key) {
+					return MissionData{}, bad(p.line, "%s belongs to a guest mission; a replacing mission takes the campaign's", p.key)
+				}
+			}
+			m.Carry = ""
+		}
+		for _, k := range need {
+			if !have[k] {
+				return MissionData{}, bad(t.line, "[[mission]] has no %s", k)
 			}
 		}
 		if first, dup := keys[m.Key]; dup {
@@ -213,6 +251,10 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			return MissionData{}, bad(t.line, "mission number %d is already used at line %d", m.Number, first)
 		}
 		numbers[m.Number] = t.line
+		if m.Kind == MissionReplace {
+			out.Missions = append(out.Missions, m)
+			continue
+		}
 		if first, dup := afters[m.After]; dup {
 			return MissionData{}, bad(t.line, "a mission already plays after mission %d at line %d", m.After, first)
 		}
@@ -224,6 +266,9 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 	}
 	return out, nil
 }
+
+// guestOnly are the keys only a guest mission takes.
+var guestOnly = []string{"after", "guest", "chapter", "gold", "carry"}
 
 // insidePath reports that p is a relative slash path that stays inside the
 // folder it is read from.

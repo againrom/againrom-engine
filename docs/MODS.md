@@ -121,15 +121,18 @@ A mod that loads on both games lists `"rom1"`, `"rom2-en"` and `"rom2-ru"` in
 
 ## Missions
 
-`data/missions.toml` holds `[[mission]]` tables. Each adds one mission that a
-guest party plays after a campaign mission is won and before the town that win
-opens. The party waits: it is kept as the town SAV of that moment and comes
-back through the town LOAD when the guest wins.
+`data/missions.toml` holds `[[mission]]` tables of two kinds. A guest mission
+(`kind = "guest"`, the default) adds one mission that a guest party plays
+after a campaign mission is won and before the town that win opens. The party
+waits: it is kept as the town SAV of that moment and comes back through the
+town LOAD when the guest wins. A replacing mission (`kind = "replace"`) plays
+a campaign mission of the install on the mod's map; see below.
 
 | key | value |
 |---|---|
+| `kind` | optional; `"guest"` (default) or `"replace"` |
 | `key` | required; 1 to 32 of a-z, 0-9 and `_`, starting with a letter |
-| `number` | required; the mission number the mission runs as, 1..65535; neither the campaign nor the install's `scenario` container may use it |
+| `number` | required; the mission number the mission runs as, 1..65535; a `guest` row may not use a campaign number or one of the install's `scenario` container; a `replace` row must (see Replacing a campaign mission) |
 | `map` | required; the map file inside the mod folder (at most 1 MiB) |
 | `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files in install encoding: `eventNN.txt`, `tipsNN.txt` |
 | `title`, `briefing` | optional; text keys of the mod's `text/<lang>/strings.toml`, written into the mission's `title.txt` and `briefing.txt` |
@@ -158,6 +161,42 @@ guest    = 22
 chapter  = 30
 ```
 
+### Replacing a campaign mission
+
+A `kind = "replace"` table takes `key`, `number`, `map` and the optional
+`texts`, `title` and `briefing`, with the meanings above; `after`, `guest`,
+`chapter`, `gold` and `carry` are refused. When the campaign reaches mission
+`number` by ordinary play, the mission is built from the mod's map; the files
+of `texts` and the `title` and `briefing` replace the installed mission's files
+of those names, and the others stay the install's. Everything else stays the
+install's: the scenario rows, the world map, the payment and the town that
+follows. The rules:
+
+- `number` must be a mission of the install's campaign whose map the install
+  holds; another number is refused. The replaced mission is built and proven
+  on the first game; a mod names the bases it applies to in `applies-to`.
+- The map must decode as a map; a map the mission build refuses is refused
+  when the mod loads, naming the file and line.
+- One mission number belongs to one mod: a second mod that replaces the same
+  mission, or uses its number in any way, is refused when it loads. A guest
+  mission never uses a campaign number, so the two kinds cannot collide; a
+  guest after a replaced mission plays after its win.
+- A SAVE inside a replaced mission carries the mod mark, whose content digest
+  covers the map: a LOAD without the mod, or under another mod set, refuses.
+  A save of that mission without a mod mark is refused while the mod is
+  active, even with `-mods-accept-unmarked`: its world was built from another
+  map.
+
+```toml
+[[mission]]
+kind   = "replace"
+key    = "ambush"
+number = 20
+map    = "mission/{lang}/map.alm"
+texts  = "mission/{lang}/text"
+title  = "ambush.title"
+```
+
 The repository holds no map. `cmd/modmission -install <root> -map <n> -out
 <mod folder>` copies an installed map and its event and tip texts into
 `mission/<lang>/` of a mod folder and writes nothing else.
@@ -178,3 +217,8 @@ deletes it, and E edits its fields (Tab: next field, Enter: set); Ctrl+Z
 undoes, Ctrl+Y redoes and Ctrl+S asks for a new `.alm` path to save a copy
 (Enter saves); Enter opens a typed ALM path; Esc goes back. The
 editor never writes into an install.
+
+`mapedit -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
+to the path the mod's mission entry for it names (the entry whose `number` is
+the opened installed map's mission, or whose `map` is the opened file), and
+refuses a map no entry names.
