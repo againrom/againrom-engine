@@ -840,7 +840,7 @@ const (
 func (v *Viewer) SetEntities(entities []MapEntity) {
 	v.entities = entities
 	for _, entity := range entities {
-		v.soundMessages = append(v.soundMessages, soundMessage{entity: entity})
+		v.soundMessages = append(v.soundMessages, soundMessage{entity: soundEntityOf(entity)})
 	}
 }
 

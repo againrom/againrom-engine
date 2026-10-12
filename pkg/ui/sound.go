@@ -201,7 +201,7 @@ func (v *Viewer) PlayEffectAtFine(source string, slot int, owner uint32, cell, f
 		func() (audio.Sample, bool) { return v.soundBank.Sample(slot) })
 }
 
-func entitySoundFine(e MapEntity) image.Point {
+func entitySoundFine(e soundEntity) image.Point {
 	fine := e.Cell.Mul(256).Add(image.Pt(128, 128))
 	if e.FinePosition {
 		fine = e.Cell.Mul(256).Add(image.Pt(int(e.FineX), int(e.FineY)))
@@ -255,7 +255,7 @@ func (v *Viewer) ClaimVoice(id uint32, now time.Time, gap time.Duration) bool {
 // 3 play on the speech device: the named leaf of a bank-voiced entity's voice
 // bank, or for a class-voiced entity index k+1 of its drawn class's Sound
 // array, so its fall plays index 4 (ANIM-094, ANIM-128).
-func (v *Viewer) playHurt(e MapEntity, k int) {
+func (v *Viewer) playHurt(e soundEntity, k int) {
 	source, group := "unit-hurt", audio.SpeechChannel
 	if k == hurtNone {
 		source, group = "unit-strike", audio.EffectsChannel
@@ -290,7 +290,7 @@ func (v *Viewer) beginSoundEntry() {
 	v.voices = nil
 	v.soundMessages = nil
 	for _, e := range v.entities {
-		v.soundMessages = append(v.soundMessages, soundMessage{entity: e})
+		v.soundMessages = append(v.soundMessages, soundMessage{entity: soundEntityOf(e)})
 	}
 	v.entrySounds = v.entrySounds[:0]
 	for _, e := range v.entities {
@@ -308,22 +308,41 @@ type DamageMessage struct {
 }
 
 type soundMessage struct {
-	entity  MapEntity
+	entity  soundEntity
 	damage  bool
 	afterHP int
+}
+
+// soundEntity is the part of a drawable the sound step reads. The queue holds
+// it rather than the whole drawable, because ticks run without a frame between
+// them queue one message per entity per tick.
+type soundEntity struct {
+	ID, Owner    uint32
+	HP, MaxHP    int
+	Life         uint8
+	FinePosition bool
+	FineX, FineY uint8
+	Cell         image.Point
+	Sound        []int
+	Voice        string
+}
+
+func soundEntityOf(e MapEntity) soundEntity {
+	return soundEntity{ID: e.ID, Owner: e.Owner, HP: e.HP, MaxHP: e.MaxHP, Life: e.Life,
+		FinePosition: e.FinePosition, FineX: e.FineX, FineY: e.FineY, Cell: e.Cell, Sound: e.Sound, Voice: e.Voice}
 }
 
 // AppendDamageMessages copies messages into the pending client stream. Snapshot
 // replacement cannot overwrite them; stepSound consumes the stream once.
 func (v *Viewer) AppendDamageMessages(messages []DamageMessage) {
 	for _, message := range messages {
-		v.soundMessages = append(v.soundMessages, soundMessage{entity: message.Entity, damage: true, afterHP: message.AfterHP})
+		v.soundMessages = append(v.soundMessages, soundMessage{entity: soundEntityOf(message.Entity), damage: true, afterHP: message.AfterHP})
 	}
 }
 
 func (v *Viewer) stepSound(now time.Time) {
 	for _, e := range v.entrySounds {
-		v.playHurt(e, hurtDie)
+		v.playHurt(soundEntityOf(e), hurtDie)
 	}
 	v.entrySounds = nil
 	if v.voices == nil {

@@ -2266,6 +2266,14 @@ package storyguard
 // pkg/town's transit program, the priority actor's pick, kept index and cue,
 // the shown-button condition, the shop records' departure and stage writes,
 // the shop events and the new witnesses, genuinely new code, this note included.
+//
+// CommentBytes rises for the test heap returner: the doc of
+// startHeapReturner in the new pkg/game/heapreturn_test.go, including this
+// paragraph.
+//
+// CommentBytes rises for the queued sound fields: the docs of soundEntity in
+// pkg/ui/sound.go and of the new pkg/ui/soundstream_test.go, including this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2289,5 +2297,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8828241,
+	CommentBytes: 8829726,
 }
