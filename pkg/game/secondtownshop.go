@@ -26,6 +26,114 @@ type secondShop struct {
 
 func newSecondShop() secondShop { return secondShop{records: secondshop.NewGameRecords} }
 
+// entry is auxiliary entry i of the departure: record 2's categories 0..3,
+// then record 3's (R2-ENGINE-330, R2-SESSION-050).
+func (s *secondShop) entry(i int) *secondshop.Category { return &s.records[2+i/4][i%4] }
+
+// secondShopMasks are the departures' mask writes (R2-ENGINE-330): by
+// mission, the record and each written category's mask.
+var secondShopMasks = map[int]struct {
+	record int
+	masks  map[int]uint32
+}{
+	30: {2, map[int]uint32{0: 0x1383c22c, 1: 0x2bc3c324, 3: 0x10438324}},
+	40: {2, map[int]uint32{0: 0x1387c26c, 1: 0x2bc7c324, 3: 0x10478264}},
+	50: {3, map[int]uint32{0: 0x13c7d318, 1: 0x2bc7d318, 2: 0x04000000, 3: 0x2bc042f0}},
+	60: {2, map[int]uint32{0: 0x1387c268, 1: 0x2bc7c268, 3: 0x10478260}},
+	80: {2, map[int]uint32{0: 0x138752e0, 1: 0x2bc752e0, 3: 0x104702e0}},
+	90: {2, map[int]uint32{0: 0x138772c0, 1: 0x2bc772c0, 3: 0x104722c0}},
+}
+
+// depart makes the records' writes of the departure from mission n: record
+// 3's minima, draws and bounds after mission 50 (R2-SESSION-050) and the
+// masks (R2-ENGINE-330).
+func (s *secondShop) depart(n int) {
+	defer s.staleIfChanged(s.records)
+	if n == 50 {
+		for i := 4; i < 8; i++ {
+			e := s.entry(i)
+			e.Min, e.Draws, e.Bound = 499, 100, 2
+			if i == 5 || i == 6 {
+				e.Draws, e.Bound = 20, 1
+			}
+		}
+		s.entry(6).Min = 0
+	}
+	if w, ok := secondShopMasks[n]; ok {
+		for c, mask := range w.masks {
+			s.records[w.record][c].Mask = mask
+		}
+	}
+}
+
+// secondStageMaxima are the maxima each stage case stores, and how many
+// auxiliary entries from 0 they cover (R2-SESSION-050, R2-ENGINE-330).
+var secondStageMaxima = map[int32]struct {
+	value   int32
+	entries int
+}{
+	30: {10000, 4}, 40: {22000, 4}, 50: {60000, 8}, 60: {150000, 8}, 70: {400000, 8},
+	80: {800000, 8}, 90: {1500000, 8}, 100: {5000000, 8}, 110: {10000000, 8},
+}
+
+// stage makes the records' writes of stage case st: the maxima, and record
+// 2's minima of categories 0, 1 and 3 at stages 90 and 100.
+func (s *secondShop) stage(st int32) {
+	defer s.staleIfChanged(s.records)
+	maxima, ok := secondStageMaxima[st]
+	if !ok {
+		return
+	}
+	for i := 0; i < maxima.entries; i++ {
+		s.entry(i).Max = maxima.value
+	}
+	if least := map[int32]int32{90: 12000, 100: 40000}[st]; least != 0 {
+		for _, i := range []int{0, 1, 3} {
+			s.entry(i).Min = least
+		}
+	}
+}
+
+// secondShopClass4 is the class-4 bit the druid inn's NPC 675 topic 78 adds
+// to record 3's category 3 (R2-ENGINE-331).
+const secondShopClass4 = 1 << 19
+
+// addClass4 is the druid inn conversation's write to record 3's category 3.
+func (s *secondShop) addClass4() {
+	defer s.staleIfChanged(s.records)
+	s.records[3][3].Mask |= secondShopClass4
+}
+
+// staleIfChanged marks the stock stale when a write changed the record of
+// the location it was drawn for: location 0 is no shop, so the next entry to
+// any shop draws again (DIV-3045). before is the records as the write found
+// them.
+func (s *secondShop) staleIfChanged(before [4]secondshop.Record) {
+	if s.filled != 0 && s.records[s.filled] != before[s.filled] {
+		s.filled = 0
+	}
+}
+
+// replayRecords rebuilds the records from a bank: the new game's, then each
+// completed mission's departure in ID order, each stage case up to the
+// current stage, and the class-4 bit when bank slot 770 holds 2. It reads a
+// current SAV this engine wrote before the campaign carried the records.
+func replayRecords(bank [1024]int32) [4]secondshop.Record {
+	s := newSecondShop()
+	for n := 1; n < 128; n++ {
+		if bank[896+n] != 0 {
+			s.depart(n)
+		}
+	}
+	for st := int32(20); st <= bank[768] && st <= 110; st += 10 {
+		s.stage(st)
+	}
+	if bank[770] == 2 {
+		s.records[3][3].Mask |= secondShopClass4
+	}
+	return s.records
+}
+
 // secondShopTables answers the shop's data.bin collections from the
 // install's table.
 func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {

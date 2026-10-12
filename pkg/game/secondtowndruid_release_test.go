@@ -144,7 +144,7 @@ func TestReleaseSecondTownDruidMaskCensus(t *testing.T) {
 	}
 	for b, w := range map[byte]answer{
 		128: {"inn", 236, true, ui.TownSquareControlDoor, 0, true},
-		144: {"shop", 233, true, 0, 0, false},
+		144: {"shop", 233, true, ui.TownSquareControlDoor, 4, true},
 		160: {"gate", 237, true, ui.TownSquareControlDoor, 1, true},
 		96:  {"innkeeper", 0, false, ui.TownSquareControlDoor, 2, true},
 		80:  {"shopkeeper", 0, false, ui.TownSquareControlDoor, 3, true},
@@ -453,15 +453,18 @@ func TestReleaseSecondTownDruidBugRoutes(t *testing.T) {
 
 // Each keeper opens its section of the town text keyed by Scenario variable
 // 0x300, bank slot 768, by click and by row (R2-ENGINE-255); bank slot 770
-// does not key it. The shop opens nothing (DIV-2963). The square has no gate
+// does not key it. The shop opens the shop page. The square has no gate
 // actor, and GATES leaves town 3 and keeps it available.
 func TestReleaseSecondTownDruidKeeperClicks(t *testing.T) {
 	f, app, s, _ := secondTownThree(t, 60)
 	c := f.Town.second
 	_, sq := druidScene(t, s)
 	sq.Click(sq.Hotspot("shop"))
-	if c.payload != nil || c.room != secondTownSquare {
-		t.Fatal("the shop click acted")
+	if c.payload != nil || c.room != secondTownShop {
+		t.Fatal("the shop click did not open the shop page", c.room)
+	}
+	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
+		t.Fatal("escape from the shop page", err, c.room)
 	}
 	view := s.TownSquareView().Scene
 	for _, stage := range []struct {

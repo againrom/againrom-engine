@@ -165,14 +165,14 @@ var phases = map[string][]string{
 	"episode": {"trigger", "advance"}, "pendulum": {"advance"}, "stepper": {"advance"},
 	"driven": {"advance"}, "flock": {"settle", "arm", "advance"}, "families": {"advance", "schedule"}, "route": {"schedule", "advance"},
 	"loop": {"publish", "advance"}, "alternating": {"arm", "publish", "cue", "advance"},
-	"selector": {"advance"}, "priority": {"arm", "advance"}, "bounce": {"advance"},
-	"cycle": {"advance"}, "target": {}, "training": {"advance"},
+	"selector": {"advance"}, "priority": {"arm", "cue", "advance"}, "bounce": {"advance"},
+	"cycle": {"advance"}, "target": {}, "training": {"advance"}, "transit": {"advance"},
 }
 
 // actions are the event actions each program answers; a priority actor
 // answers the name of each of its states.
 var actions = map[string][]string{
-	"selector": {"select"}, "bounce": {"arm"}, "training": {"change"},
+	"selector": {"select"}, "bounce": {"arm"}, "training": {"change"}, "transit": {"choose"},
 }
 
 func listed(list []string, name string) bool {
@@ -685,6 +685,17 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		if len(a.States) == 0 {
 			return fail("has no states")
 		}
+		if a.End != "" && a.End != "all" {
+			return fail("unknown end %q", a.End)
+		}
+		if a.IdlePick != nil {
+			if err := n.needPick(where, a.IdlePick); err != nil {
+				return err
+			}
+			if lo, hi := pickRange(*a.IdlePick); lo < 0 || hi >= len(a.States) {
+				return fail("idle pick from %d to %d is outside its %d states", lo, hi, len(a.States))
+			}
+		}
 		for _, s := range a.States {
 			if s.Steps <= 0 {
 				return fail("state %q has no steps", s.Name)
@@ -698,6 +709,18 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 			return fail("needs at least two frames")
 		}
 		return n.needArt(where, a.Art)
+	case "transit":
+		if a.Frames <= 0 || len(a.Segments) == 0 || a.Toward == nil || a.Value == "" {
+			return fail("needs frames, segments, a toward value and the value it starts on")
+		}
+		if l := a.Loops; len(l) != 2 || l[0][0] != 0 || l[0][0] > l[0][1] || l[0][1] >= l[1][0] || l[1][0] > l[1][1] || l[1][1] != a.Frames-1 {
+			return fail("needs a first loop from cell 0 and a later last loop to cell %d: %v", a.Frames-1, l)
+		}
+		for _, name := range append(append([]string{}, a.Segments...), a.SelectedSegments...) {
+			if err := n.needArt(where, name); err != nil {
+				return err
+			}
+		}
 	case "cycle":
 		if a.Frames <= 0 || a.Wait == nil || a.Wait.BaseMS <= 0 {
 			return fail("needs frames and a wait")
@@ -877,7 +900,7 @@ func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) er
 	var waits []*WaitSpec
 	var picks []*PickSpec
 	waits = append(waits, a.Wait, a.First)
-	picks = append(picks, a.Delay, a.HoldPick, a.Group, a.Count, a.Route)
+	picks = append(picks, a.Delay, a.HoldPick, a.Group, a.Count, a.Route, a.IdlePick)
 	for _, m := range a.Members {
 		waits = append(waits, m.Later)
 		picks = append(picks, m.SheetPick)
@@ -909,8 +932,11 @@ func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) er
 		if p == nil {
 			continue
 		}
-		if p.Form != "" && p.Form != "scaled" && p.Form != "masked" {
+		if p.Form != "" && p.Form != "scaled" && p.Form != "masked" && p.Form != "modulo" {
 			return fail("pick form %q", p.Form)
+		}
+		if p.Form == "modulo" && (p.Raw <= 0 || p.N <= 0) {
+			return fail("a modulo pick needs raw and n")
 		}
 		if p.Base < 0 || p.N < 0 || p.Raw < 0 || p.Divide < 0 || p.Times < 0 {
 			return fail("negative pick %+v", *p)
@@ -1014,6 +1040,9 @@ func (d *Description) uses() []nameUse {
 	}
 	for _, r := range d.Rooms {
 		use("page", "room "+r.Name, r.Page)
+		for _, b := range r.Buttons {
+			use("condition", "room "+r.Name+" button "+b.Name, b.If)
+		}
 		for _, g := range r.Grids {
 			use("list", "room "+r.Name, g.List)
 		}

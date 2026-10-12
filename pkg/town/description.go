@@ -215,7 +215,7 @@ type CueSpec struct {
 
 // ActorSpec is one animated element and its program: episode, pendulum,
 // stepper, driven, flock, families, route, loop, alternating, selector,
-// priority, bounce, cycle, target or training, in any scene. The fields each program
+// priority, bounce, cycle, target, training or transit, in any scene. The fields each program
 // reads are named on its runtime type.
 type ActorSpec struct {
 	Name    string `json:"name"`
@@ -282,6 +282,18 @@ type ActorSpec struct {
 	HoldPick  *PickSpec     `json:"hold-pick"`
 	Column    string        `json:"column"`
 	Value     string        `json:"value"`
+
+	// priority: the state an elapsed wait raises, and an index that
+	// outlives every entry
+	IdlePick  *PickSpec `json:"idle-pick"`
+	KeepIndex bool      `json:"keep-index"`
+
+	// transit: the cells, the cells shown while Toward is chosen, and the
+	// two loops the cursor rests in
+	Segments         []string `json:"segments"`
+	SelectedSegments []string `json:"selected-segments"`
+	Loops            [][2]int `json:"loops"`
+	Toward           *int     `json:"toward"`
 
 	Cite []string `json:"cite"`
 }

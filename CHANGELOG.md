@@ -8,14 +8,18 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The shops of the second and third towns open from their squares and trade like the first town's shop, with their own pictures and stock. Saving and loading keeps the gold, the items bought and each shop's stock. In the Kaarg shop the fire flares up while weapons are chosen and dies down again.
+- [ROM2] The druids' shop shows its fourth group from the seventieth mission on, and the conversation in the druids' inn fills it with elven goods; before the conversation the group is empty. A shop's goods are also drawn again after a mission or story step changes what that town sells.
+- [ROM2] The shopkeepers move: after a few idle seconds they play a gesture, and they answer a purchase or a sale. In the first town the keeper also nods when you change the group and shakes his head when you cannot afford a purchase; the Kaarg keeper speaks.
+- [ROM1] At the start of a mission every creature and character placed on the map faces the way the original turns it, each its own way, instead of all facing the same direction.
+- [ROM1] A save made during a mission stores more of each creature's movement data as the original holds it at that moment, so the original game and this game go on from such a save more alike.
+
 ## 0.117.0
 
 - [ROM2] Blizzard works: creatures that know it now cast it. The storm strikes 32 times, one cell after another around its target, hurting everyone there (water protection softens it, and the caster's own side is not spared) and damaging buildings. A save made during a Blizzard loads with the storm still going.
 - [ROM2] A save made while a Poison Cloud or another lasting cloud hangs over the map is no longer refused.
 - [ROM1] A save made during a Meteor Storm now loads with the storm exactly as it was saved.
 - [ROM2] In the first town a click on the shop opens the shop. The shelves show the stock in four groups with each item's name in the game's language, its quantity and its price; Buy, Sell and Undo trade at the original's prices, and a sale pays half the price, rounded. Items bought here stay with the campaign and are not yet carried into a mission. Saving and loading keeps the gold, the items bought and the shop's stock. The shops of the second and third towns still do not open.
-- [ROM1] At the start of a mission every creature and character placed on the map faces the way the original turns it, each its own way, instead of all facing the same direction.
-- [ROM1] A save made during a mission stores more of each creature's movement data as the original holds it at that moment, so the original game and this game go on from such a save more alike.
 - [BASE] Game Options has a new AutoCast mode button. It sets how your mages cast support spells by themselves: Minimum heals and shields, Average adds Bless and Haste, Maximum adds the protections and Invisibility. The choice is kept in saves and in your settings.
 - [ROM1] AutoCast mode is Off in a new game and in older saves, so nothing changes until you choose a level. A spell armed in the spellbook, autohealing, Ctrl+U and Ctrl+A work as before; with a level chosen, your mages cast its spells after their armed spell.
 - [ROM2] Items in a mission's sacks and item hints now show their own names, for example "Treasure", instead of numeric codes.

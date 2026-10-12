@@ -145,10 +145,6 @@ func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 		return nil
 	}
 	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop)}
-	if c.aux != (secondAux{}) {
-		aux := c.aux
-		out.Aux = &aux
-	}
 	if c.current.kind == 2 {
 		room := c.room
 		out.Room = &room
@@ -181,7 +177,9 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	}
 	out := &secondCampaign{bank: c.Bank, current: secondLocation{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore()}
 	if c.Aux != nil {
-		out.aux = *c.Aux
+		// A document with the array predates the records in the shop: they
+		// are rebuilt from the bank's departures (R2-ENGINE-330).
+		out.shop.records = replayRecords(c.Bank)
 	}
 	if c.Room != nil {
 		out.room = *c.Room

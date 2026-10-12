@@ -49,13 +49,31 @@ func (s *SeatSpec) SeatAt(p image.Point, n int) int {
 // ButtonSpec is one page button: the action its page binds by Name, its hit
 // rectangle, the page art it shows released and pressed, drawn at the
 // rectangle's corner, and the main text slot of its caption, if it has one.
+// A button with If exists only while the host's condition holds: it is not
+// drawn, hit or chosen otherwise.
 type ButtonSpec struct {
 	Name    string   `json:"name"`
 	Rect    Rect     `json:"rect"`
 	Off     string   `json:"off"`
 	On      string   `json:"on"`
 	Caption *int     `json:"caption"`
+	If      string   `json:"if"`
 	Cite    []string `json:"cite"`
+}
+
+// ButtonShown reports whether button b exists now: it has no condition, or
+// the host's condition holds.
+func (s *Scene) ButtonShown(b ButtonSpec) bool { return b.If == "" || s.host.Condition(b.If) }
+
+// ShownButtons answers the buttons that exist now, in index order.
+func (s *Scene) ShownButtons(buttons []ButtonSpec) []ButtonSpec {
+	var out []ButtonSpec
+	for _, b := range buttons {
+		if s.ButtonShown(b) {
+			out = append(out, b)
+		}
+	}
+	return out
 }
 
 // ButtonAt answers the index of the first button of buttons whose rectangle

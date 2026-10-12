@@ -2261,6 +2261,11 @@ package storyguard
 // CurrentAreaPolicy.RingCells and sampledRingCells, the arm notes of the SAV
 // area import, and the docs of the new pkg/sim/secondblizzard_test.go and
 // pkg/game/secondblizzard_release_test.go, including this paragraph.
+//
+// CommentBytes rises for the second game's town 2 and 3 shops: the docs of
+// pkg/town's transit program, the priority actor's pick, kept index and cue,
+// the shown-button condition, the shop records' departure and stage writes,
+// the shop events and the new witnesses, genuinely new code, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2284,5 +2289,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8819384,
+	CommentBytes: 8828241,
 }

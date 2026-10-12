@@ -162,11 +162,16 @@ type Process struct {
 	lcg    map[string]*lcg
 	waits  map[string]*Wait
 	ends   map[string]int
+	// indexes are the priority actors' indexes that outlive every entry.
+	indexes map[string]int
 }
 
 func (p *Process) init() {
 	if p.lcg == nil {
 		p.lcg, p.waits, p.ends = map[string]*lcg{}, map[string]*Wait{}, map[string]int{}
+	}
+	if p.indexes == nil {
+		p.indexes = map[string]int{}
 	}
 	if p.clocks == nil {
 		p.clocks = map[string]time.Time{}
@@ -250,8 +255,8 @@ func NewScene(d *Description, room string, host Host, proc *Process) *Scene {
 
 // Actor answers the runtime of the named actor or actor member: an *Episode,
 // *Pendulum, *Stepper, *Driven, *Flock, *Families, *Loop, *Alternating,
-// *Selector, *Priority, *Bounce, *Cycle, *Target or *Training; nil for an
-// unknown name.
+// *Selector, *Priority, *Bounce, *Cycle, *Target, *Training or *Transit; nil
+// for an unknown name.
 func (s *Scene) Actor(name string) any {
 	if a, ok := s.byName[name]; ok {
 		return a

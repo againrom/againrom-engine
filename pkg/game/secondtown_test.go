@@ -128,7 +128,7 @@ func TestRom2TownTwoDescriptionShape(t *testing.T) {
 			}
 		}
 	}
-	if strings.Join(rows, ",") != "TAVERN,GATES,GIRL 1,GIRL 2,GUARD,DERVISH" {
+	if strings.Join(rows, ",") != "TAVERN,GATES,GIRL 1,GIRL 2,GUARD,DERVISH,SHOP" {
 		t.Errorf("square rows %v", rows)
 	}
 	for name, want := range map[string]string{"girl1": "kaargwoman%d stage", "girl2": "kaargwoman%d stage",
@@ -195,7 +195,7 @@ func TestRom2TownThreeDescriptionShape(t *testing.T) {
 			t.Errorf("%s shows a tip %v", h.Name, tip)
 		}
 	}
-	if strings.Join(rows, ",") != "TAVERN,GATES,INNKEEPER,SHOPKEEPER" {
+	if strings.Join(rows, ",") != "TAVERN,GATES,INNKEEPER,SHOPKEEPER,SHOP" {
 		t.Errorf("square rows %v", rows)
 	}
 	for name, want := range map[string]string{"innkeeper": "druidinnkeeper%d stage", "shopkeeper": "druidshopkeeper%d stage"} {

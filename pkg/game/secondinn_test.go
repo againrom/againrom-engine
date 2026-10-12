@@ -235,8 +235,8 @@ func TestSecondInnDynamicTail(t *testing.T) {
 
 // TALK: kind 3 admits mission topic; NPC 22 topic 30 stores 533 and 553;
 // topic 10 stores 769; kind 0 changes nothing (R2-ENGINE-219,
-// R2-SESSION-110) except NPC 675 topic 78, which stores 2 in 770
-// (R2-ENGINE-367).
+// R2-SESSION-110) except NPC 675 topic 78, which stores 2 in 770 and adds
+// class 4 to record 3's category 3 (R2-ENGINE-367, R2-ENGINE-331).
 func TestSecondInnTalkEffects(t *testing.T) {
 	for _, tc := range []struct {
 		o     secondInnOption
@@ -262,8 +262,13 @@ func TestSecondInnTalkEffects(t *testing.T) {
 		for slot, value := range tc.slots {
 			want[slot] = value
 		}
+		mask := c.shop.records[3][3].Mask &^ secondShopClass4
+		c.shop.records[3][3].Mask = mask
 		c.talkTo(tc.o)
 		c.talkTo(tc.o)
+		if class4 := c.shop.records[3][3].Mask == mask|secondShopClass4; class4 != (tc.slots[770] == 2) {
+			t.Errorf("%+v: record 3 category 3 mask %#x", tc.o, c.shop.records[3][3].Mask)
+		}
 		if c.bank != want || !reflect.DeepEqual(c.available, append([]secondLocation{{2, 2}}, tc.add...)) {
 			t.Errorf("%+v: available %v", tc.o, c.available)
 		}

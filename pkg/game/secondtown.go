@@ -37,12 +37,16 @@ var secondTownConditions = map[string]func(c *secondCampaign) bool{
 	"shelf-1":   func(c *secondCampaign) bool { return c.shop.category == 1 },
 	"shelf-2":   func(c *secondCampaign) bool { return c.shop.category == 2 },
 	"shelf-3":   func(c *secondCampaign) bool { return c.shop.category == 3 },
+	// bank-770-set is the druid shop's fourth-category gate, Scenario query
+	// 0x302 (R2-ENGINE-259).
+	"bank-770-set": func(c *secondCampaign) bool { return c.bank[770] != 0 },
 }
 
 // secondTownValues answers the values the second game's town descriptions
 // name: the stage is Scenario variable 0x300, bank slot 768 (R2-ENGINE-234).
 var secondTownValues = map[string]func(c *secondCampaign) int{
 	"stage": func(c *secondCampaign) int { return int(c.bank[768]) },
+	"shelf": func(c *secondCampaign) int { return c.shop.category },
 }
 
 // secondTownHooks are the second game's campaign hooks, each run for the
@@ -73,7 +77,7 @@ const secondInnExit = "EXIT"
 // secondTownVocabulary is the hook, condition, value and page names the
 // second game's campaign answers.
 func secondTownVocabulary() town.Vocabulary {
-	v := town.Vocabulary{Pages: secondTownPages, Lists: secondTownLists}
+	v := town.Vocabulary{Pages: secondTownPages, Lists: secondTownLists, Events: secondShopEvents}
 	for name := range secondTownHooks {
 		v.Hooks = append(v.Hooks, name)
 	}
@@ -451,7 +455,7 @@ func (v secondTownView) Paint(dst *image.RGBA) {
 	}
 	s.Paint(dst, "front")
 	words, font := v.t.install.Words, v.t.install.Font.Value()
-	for _, b := range r.Buttons {
+	for _, b := range s.ShownButtons(r.Buttons) {
 		rect := b.Rect.Rectangle()
 		drawAt(dst, page.Picture(b.Off), rect.Min, draw.Src)
 		if b.Caption != nil && *b.Caption < len(words.Hover) && font != nil {

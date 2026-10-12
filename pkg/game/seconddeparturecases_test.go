@@ -10,6 +10,7 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/base"
 	"againrom/pkg/mapload"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -67,6 +68,36 @@ func departureOutput(n int, bank [1024]int32) int {
 	return -1
 }
 
+// auxOf is the departure's auxiliary view of the shop: records 2 and 3.
+func auxOf(s secondShop) secondAux {
+	var aux secondAux
+	for i := range aux {
+		e := s.entry(i)
+		aux[i] = [5]int32{e.Min, e.Max, e.Draws, e.Bound, int32(e.Mask)}
+	}
+	return aux
+}
+
+// shopWithAux is a new game's shop whose records 2 and 3 hold aux.
+func shopWithAux(aux secondAux) secondShop {
+	s := newSecondShop()
+	for i, f := range aux {
+		*s.entry(i) = secondshop.Category{Min: f[0], Max: f[1], Draws: f[2], Bound: f[3], Mask: uint32(f[4])}
+	}
+	return s
+}
+
+// departureMasks are the claim's mask writes by mission: auxiliary entry,
+// field +0x10 (R2-ENGINE-330).
+var departureMasks = map[int]map[int]uint32{
+	30: {0: 0x1383c22c, 1: 0x2bc3c324, 3: 0x10438324},
+	40: {0: 0x1387c26c, 1: 0x2bc7c324, 3: 0x10478264},
+	50: {4: 0x13c7d318, 5: 0x2bc7d318, 6: 0x04000000, 7: 0x2bc042f0},
+	60: {0: 0x1387c268, 1: 0x2bc7c268, 3: 0x10478260},
+	80: {0: 0x138752e0, 1: 0x2bc752e0, 3: 0x104702e0},
+	90: {0: 0x138772c0, 1: 0x2bc772c0, 3: 0x104722c0},
+}
+
 func departureIncoming(stage int32, gates int) ([1024]int32, secondAux) {
 	var bank [1024]int32
 	for i := range bank {
@@ -101,7 +132,7 @@ func TestSecondDepartureCaseBodies(t *testing.T) {
 			for gates := 0; gates < 32; gates++ {
 				incoming, aux := departureIncoming(stage, gates)
 				other := secondLocation{2, 2}
-				c := &secondCampaign{bank: incoming, aux: aux, current: secondLocation{1, n},
+				c := &secondCampaign{bank: incoming, shop: shopWithAux(aux), current: secondLocation{1, n},
 					available: []secondLocation{other, {1, n}}}
 				output := c.completeBank(incoming)
 				want := incoming
@@ -132,6 +163,9 @@ func TestSecondDepartureCaseBodies(t *testing.T) {
 						}
 					}
 				}
+				for i, mask := range departureMasks[n] {
+					wantAux[i][4] = int32(mask)
+				}
 				if value, ok := departureStage[want[768]]; ok {
 					entries := 8
 					if want[768] < 50 {
@@ -156,8 +190,8 @@ func TestSecondDepartureCaseBodies(t *testing.T) {
 						}
 					}
 				}
-				if c.aux != wantAux {
-					t.Fatalf("%s: aux %v want %v", name, c.aux, wantAux)
+				if got := auxOf(c.shop); got != wantAux {
+					t.Fatalf("%s: aux %v want %v", name, got, wantAux)
 				}
 				if !reflect.DeepEqual(c.available, wantAvailable) {
 					t.Fatalf("%s: available %v want %v", name, c.available, wantAvailable)
@@ -192,6 +226,9 @@ func TestSecondDepartureJoinAndStageSwitch(t *testing.T) {
 			t.Fatalf("ID %d from stage %d joined at %d, want %d", tc.n, tc.stage, c.bank[768], tc.joined)
 		}
 		var want secondAux
+		for i, mask := range departureMasks[tc.n] {
+			want[i][4] = int32(mask)
+		}
 		if value, ok := departureStage[tc.joined]; ok {
 			for i := 0; i < 8 && (i < 4 || tc.joined >= 50); i++ {
 				want[i][1] = value
@@ -201,8 +238,8 @@ func TestSecondDepartureJoinAndStageSwitch(t *testing.T) {
 				want[0][0], want[1][0], want[3][0] = extra, extra, extra
 			}
 		}
-		if c.aux != want {
-			t.Fatalf("ID %d at stage %d stored aux %v, want %v", tc.n, tc.joined, c.aux, want)
+		if got := auxOf(c.shop); got != want {
+			t.Fatalf("ID %d at stage %d stored aux %v, want %v", tc.n, tc.joined, got, want)
 		}
 	}
 }
@@ -308,28 +345,38 @@ func TestSecondDepartureMovieAtAcknowledgement(t *testing.T) {
 	}
 }
 
-// The auxiliary array round-trips through the current campaign; malformed
-// arrays refuse without replacing the target.
-func TestCurrentSecondAuxiliaryArrayPersists(t *testing.T) {
-	c := &secondCampaign{current: secondLocation{1, 31}, available: []secondLocation{{2, 2}, {1, 31}}}
+// A current SAV this engine wrote before the shop held the records carries
+// the auxiliary array: it decodes, its records are rebuilt from the bank's
+// departures, and capture writes the records in the shop, not the array.
+// Malformed arrays refuse without replacing the target.
+func TestCurrentSecondLegacyAuxiliaryArrayRebuildsRecords(t *testing.T) {
+	c := &secondCampaign{current: secondLocation{1, 31}, available: []secondLocation{{2, 2}, {1, 31}}, shop: newSecondShop()}
 	c.bank[768] = 30
-	for i := range c.aux {
-		for j := range c.aux[i] {
-			c.aux[i][j] = int32(1000*i - 7*j)
-		}
-	}
-	raw, err := json.Marshal(captureSecondCampaign(c))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var decoded currentSecondCampaign
-	if err := json.Unmarshal(raw, &decoded); err != nil || !reflect.DeepEqual(c, decoded.restore()) {
-		t.Fatal("auxiliary array lost", err)
-	}
-	zero := &secondCampaign{current: c.current, available: c.available, bank: c.bank}
-	plain, err := json.Marshal(captureSecondCampaign(zero))
+	plain, err := json.Marshal(captureSecondCampaign(c))
 	if err != nil || strings.Contains(string(plain), "Aux") {
-		t.Fatal("zero auxiliary array was written", err)
+		t.Fatal("capture wrote the auxiliary array", err)
+	}
+	// The legacy document: departures 10 and 20, stage 30, mission 30 not
+	// yet left; and one that also left 30 and 50 at stage 60.
+	legacy := strings.Replace(string(plain), `"Available"`, `"Aux":[[0,10000,0,0,0],[0,10000,0,0,0],[0,10000,0,0,0],[0,10000,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],"Available"`, 1)
+	var decoded currentSecondCampaign
+	if err := json.Unmarshal([]byte(legacy), &decoded); err != nil || decoded.Aux == nil {
+		t.Fatal("legacy auxiliary array refused", err)
+	}
+	got := decoded.restore().shop.records
+	want := secondshop.NewGameRecords
+	for k := range want[2] {
+		want[2][k].Max = 10000
+	}
+	if got != want {
+		t.Fatalf("stage-30 records %v, want %v", got, want)
+	}
+	bank := c.bank
+	bank[768], bank[896+30], bank[896+50], bank[770] = 60, 1, 1, 2
+	records := replayRecords(bank)
+	if records[2][0].Mask != 0x1383c22c || records[3][0] != (secondshop.Category{Min: 499, Max: 150000, Draws: 100, Bound: 2, Mask: 0x13c7d318}) ||
+		records[3][3].Mask != 0x2bc042f0|1<<19 || records[2][2].Max != 150000 {
+		t.Fatalf("stage-60 records %v", records)
 	}
 	full := strings.Replace(string(plain), `"Available"`, `"Aux":[[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],"Available"`, 1)
 	var explicit currentSecondCampaign
@@ -374,7 +421,7 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 	}
 	choose("town 3")
 	choose("ENTER")
-	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}, {Text: "INNKEEPER", Choosable: true}, {Text: "SHOPKEEPER", Choosable: true}}) {
+	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}, {Text: "INNKEEPER", Choosable: true}, {Text: "SHOPKEEPER", Choosable: true}, {Text: "SHOP", Choosable: true}}) {
 		t.Fatal("town 3 screen", c.current, screen.Header(), screen.Rows())
 	}
 	if got := screen.Footer(); !reflect.DeepEqual(got, []string{"Town 2 services are unavailable.", "Town 3 services are unavailable."}) {

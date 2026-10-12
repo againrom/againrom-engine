@@ -329,8 +329,8 @@ func TestReleaseSecondLaterMissionSaveContinuation(t *testing.T) {
 	}
 	out := secondMissionSaveDirectory(t)
 	before := secondSaveSampleNow(t, f, app)
-	if before.Campaign.Aux == nil || before.Campaign.Aux[0][1] != 10000 {
-		t.Fatal("stage 30 auxiliary stores absent from the saved campaign")
+	if before.Campaign.Shop == nil || before.Campaign.Shop.Records[2][0].Max != 10000 {
+		t.Fatal("stage 30 shop record stores absent from the saved campaign")
 	}
 	raw := secondMissionNamedSave(t, f, app, out, "Later mission")
 	cold, a := secondMissionColdAt(t, out, "Later mission.sav", 32)

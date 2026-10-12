@@ -353,9 +353,41 @@
          {"name": "shelf/1", "format": "picture", "key": "graphics/interface/shopanim/02/1.bmp", "size": [132, 88], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
          {"name": "shelf/2", "format": "picture", "key": "graphics/interface/shopanim/03/1.bmp", "size": [80, 112], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
          {"name": "shelf/3", "format": "picture", "key": "graphics/interface/shopanim/04/1.bmp", "size": [80, 112], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"name": "keeper", "format": "picture", "key": "movies/shopanim/pose2-3/1.bmp", "size": [76, 176], "required": true, "cite": ["R2-ASSET-069", "DIV-3047"]},
+         {"name": "keeper", "format": "picture", "key": "movies/shopanim/pose2-3/1.bmp", "size": [76, 176], "required": true, "cite": ["R2-ASSET-069", "R2-ENGINE-268"]},
+         {"name": "pose", "format": "series", "key": "movies/shopanim/pose2-3/%d.bmp", "first": 2, "count": 27, "size": [76, 176], "required": true,
+          "cite": ["R2-ASSET-069", "R2-ENGINE-268", "DIV-3061"]},
+         {"name": "yes", "format": "series", "key": "movies/shopanim/yes/%d.bmp", "first": 2, "count": 11, "size": [76, 176], "required": true,
+          "cite": ["R2-ASSET-069", "R2-ENGINE-268"]},
+         {"name": "no", "format": "series", "key": "movies/shopanim/no/%d.bmp", "first": 2, "count": 11, "size": [76, 176], "required": true,
+          "cite": ["R2-ASSET-069", "R2-ENGINE-268"]},
          {"name": "menu", "format": "picture", "key": "graphics/interface/shopmenu.bmp", "size": [176, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
          {"name": "table", "format": "picture", "key": "graphics/interface/shoptable.bmp", "size": [472, 87], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]}
+       ],
+       "random": [{"name": "idle", "source": "host", "cite": ["R2-ENGINE-268", "DIV-3061"]}],
+       "clocks": [
+         {"name": "step", "period-ms": 100, "compare": "at-least", "entry-ms": -100, "cite": ["R2-ENGINE-268", "DIV-3061"]},
+         {"name": "generic-keeper", "compare": "at-least", "process": true, "cite": ["R2-ENGINE-268"]}
+       ],
+       "lifecycle": "shown",
+       "advance-when": "active",
+       "actors": [
+         {"name": "keeper", "program": "priority", "art": "keeper", "clock": "generic-keeper", "keep-index": true,
+          "delay": {"draw": "idle", "raw": 32768, "form": "modulo", "n": 5, "times": 1000, "base": 5000, "cite": ["R2-ENGINE-268"]},
+          "states": [
+            {"name": "idle", "art": "pose", "complete": 27, "steps": 28, "cite": ["R2-ENGINE-268", "DIV-3061"]},
+            {"name": "yes", "art": "yes", "complete": 11, "steps": 12, "cite": ["R2-ENGINE-268", "R2-ENGINE-269"]},
+            {"name": "no", "art": "no", "complete": 11, "steps": 12, "cite": ["R2-ENGINE-268", "R2-ENGINE-269"]}
+          ],
+          "on": [
+            {"event": "category-changed", "do": "yes", "cite": ["R2-ENGINE-269"]},
+            {"event": "bought", "do": "yes", "cite": ["R2-ENGINE-269"]},
+            {"event": "refused", "do": "no", "cite": ["R2-ENGINE-269"]},
+            {"event": "sold", "do": "yes", "cite": ["R2-ENGINE-269"]}
+          ],
+          "cite": ["R2-ENGINE-268", "R2-ENGINE-269", "DIV-3061"]}
+       ],
+       "steps": [
+         {"clock": "step", "when": "active", "run": ["arm keeper", "advance keeper"], "cite": ["R2-ENGINE-268", "DIV-3061"]}
        ],
        "layers": [
          {"group": "back", "art": "info", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-249", "DIV-3046"]},
@@ -365,7 +397,7 @@
          {"group": "back", "art": "shelf/1", "mode": "copy", "at": [197, 108], "when": {"if": "shelf-1", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
          {"group": "back", "art": "shelf/2", "mode": "copy", "at": [313, 20], "when": {"if": "shelf-2", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
          {"group": "back", "art": "shelf/3", "mode": "copy", "at": [201, 20], "when": {"if": "shelf-3", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
-         {"group": "back", "art": "keeper", "mode": "copy", "at": [277, 112], "cite": ["R2-ENGINE-249", "R2-ASSET-069", "DIV-3047"]},
+         {"group": "back", "actor": "keeper", "mode": "copy", "at": [277, 112], "cite": ["R2-ENGINE-249", "R2-ASSET-069"]},
          {"group": "back", "art": "menu", "mode": "copy", "at": [464, 0], "cite": ["R2-ENGINE-249", "DIV-3046"]},
          {"group": "back", "art": "table", "mode": "copy", "at": [0, 303], "cite": ["R2-ENGINE-249", "DIV-3046"]}
        ],

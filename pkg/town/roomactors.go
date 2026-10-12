@@ -292,19 +292,37 @@ func (sel *Selector) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 }
 
 // Priority runs at most one of its states at a time, the first raised in
-// list order. Its first state is raised after a wait drawn on every step;
-// the others by events. A running state advances one index per step and ends
-// at its Steps, restamping the actor's clock. Index i above zero shows frame
-// i-1 of a complete state; otherwise the actor shows its base art.
+// list order. An elapsed wait, drawn on every step, raises its first state,
+// or the state IdlePick draws, while none is raised; events raise the
+// others. A running state advances one index per step and ends at its Steps,
+// restamping the actor's clock; End "all" then lowers every raised state.
+// Index i above zero shows frame i-1 of a complete state; otherwise the
+// actor shows its base art. A "cue" step requests the running state's frame
+// sound for the current index. With KeepIndex the index outlives every
+// entry and an ending entry: a state raised later starts from it.
 type Priority struct {
 	still
 	spec   *ActorSpec
 	Raised []bool
 	Index  int
+	key    string
 }
 
 func (q *Priority) reset(s *Scene) {
 	q.Raised, q.Index = make([]bool, len(q.spec.States)), 0
+	if q.spec.KeepIndex {
+		q.key = s.desc.Town + "/" + s.name + "/" + q.spec.Name
+		q.Index = s.proc.indexes[q.key]
+	}
+}
+
+// setIndex moves the index, keeping it in the process when it outlives
+// entry.
+func (q *Priority) setIndex(s *Scene, i int) {
+	q.Index = i
+	if q.spec.KeepIndex {
+		s.proc.indexes[q.key] = i
+	}
 }
 
 func (q *Priority) enter(s *Scene, now time.Time) { q.reset(s) }
@@ -337,7 +355,20 @@ func (q *Priority) phase(s *Scene, phase, name string, now time.Time) {
 	case "arm":
 		wait := s.pickWait(*q.spec.Delay)
 		if q.Running() < 0 && elapsed(now.Sub(s.Clock(q.spec.Clock)), wait, s.compare(q.spec.Clock)) {
-			q.Raised[0] = true
+			i := 0
+			if q.spec.IdlePick != nil {
+				i = max(0, min(s.amount(*q.spec.IdlePick), len(q.Raised)-1))
+			}
+			q.Raised[i] = true
+		}
+	case "cue":
+		if i := q.Running(); i >= 0 {
+			for _, c := range q.spec.States[i].FrameSounds {
+				if c.Frame == q.Index {
+					s.sound(c.Slot, c.Key)
+					break
+				}
+			}
 		}
 	case "advance":
 		i := q.Running()
@@ -345,10 +376,14 @@ func (q *Priority) phase(s *Scene, phase, name string, now time.Time) {
 			return
 		}
 		if next := q.Index + 1; next < q.spec.States[i].Steps {
-			q.Index = next
+			q.setIndex(s, next)
 			return
 		}
-		q.Raised[i], q.Index = false, 0
+		q.Raised[i] = false
+		if q.spec.End == "all" {
+			clear(q.Raised)
+		}
+		q.setIndex(s, 0)
 		s.SetClock(q.spec.Clock, now)
 	}
 }
@@ -364,6 +399,81 @@ func (q *Priority) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 		}
 	}
 	place(dst, pic, layer)
+}
+
+// Transit is a cursor over the cells its segments' frames make in order,
+// resting in one of two loops and running between them. Entry rests it on
+// cell 0 with the chosen value the host value names. Choosing Toward from a
+// cell before the last loop sends it toward the last cell; choosing another
+// value past cell 0 sends it toward cell 0; a moving cursor steps one cell
+// and stops at either end. A resting cursor steps one cell, and stepping
+// past a loop's last cell returns to its first. While Toward is chosen it
+// draws its selected segments' cells.
+type Transit struct {
+	still
+	spec   *ActorSpec
+	Cursor int
+	Dir    int
+	Chosen int
+}
+
+func (x *Transit) reset(s *Scene) { x.Cursor, x.Dir, x.Chosen = 0, 0, -1 }
+
+func (x *Transit) enter(s *Scene, now time.Time) {
+	x.reset(s)
+	x.Chosen = s.host.Value(x.spec.Value)
+}
+
+func (x *Transit) event(s *Scene, do string, args []int) bool {
+	if do != "choose" || len(args) == 0 || !s.ready || args[0] == x.Chosen {
+		return false
+	}
+	first, last := x.spec.Loops[0], x.spec.Loops[1]
+	switch {
+	case args[0] == *x.spec.Toward && x.Cursor < last[0]:
+		x.Dir = 1
+	case args[0] != *x.spec.Toward && x.Cursor > first[0]:
+		x.Dir = -1
+	}
+	x.Chosen = args[0]
+	return true
+}
+
+func (x *Transit) phase(s *Scene, phase, name string, now time.Time) {
+	if phase != "advance" {
+		return
+	}
+	first, last := x.spec.Loops[0], x.spec.Loops[1]
+	if x.Dir != 0 {
+		x.Cursor += x.Dir
+		if x.Cursor <= first[0] || x.Cursor >= last[1] {
+			x.Dir = 0
+		}
+		return
+	}
+	x.Cursor++
+	switch {
+	case x.Cursor == first[1]+1:
+		x.Cursor = first[0]
+	case x.Cursor > last[1]:
+		x.Cursor = last[0]
+	}
+}
+
+// Shown answers the cell the cursor draws and whether the selected cells
+// show.
+func (x *Transit) Shown() (int, bool) { return x.Cursor, x.Chosen == *x.spec.Toward }
+
+func (x *Transit) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
+	segments := x.spec.Segments
+	if x.Chosen == *x.spec.Toward && len(x.spec.SelectedSegments) > 0 {
+		segments = x.spec.SelectedSegments
+	}
+	var cells []image.Image
+	for _, name := range segments {
+		cells = append(cells, s.frames(name)...)
+	}
+	place(dst, frameAt(cells, x.Cursor), layer)
 }
 
 // Bounce runs from its first frame to its last and back once each time it is

@@ -63,14 +63,16 @@ func (s *Scene) chance(c ChanceSpec) bool {
 }
 
 // amount evaluates a pick: base plus a draw of n in the pick's form, times
-// Times; or, with Raw, base plus a raw draw r of [0,Raw) divided by Divide or
-// scaled in the "scaled" form.
+// Times; or, with Raw, base plus a raw draw r of [0,Raw) divided by Divide,
+// scaled in the "scaled" form, or r%n times Times in the "modulo" form.
 func (s *Scene) amount(p PickSpec) int {
 	if p.Raw > 0 {
 		r := s.draw(p.Draw, "", p.Raw)
 		switch {
 		case p.Form == "scaled":
 			return p.Base + (r*p.N/(p.Raw-1))%p.N
+		case p.Form == "modulo":
+			return p.Base + r%p.N*max(p.Times, 1)
 		case p.Divide > 0:
 			return p.Base + r/p.Divide
 		}

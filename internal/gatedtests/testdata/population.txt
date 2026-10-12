@@ -1100,5 +1100,9 @@ pkg/game.TestReleaseMissionMinimapPaintsTheInstalledPicture
 pkg/game.TestReleaseTipFrameDigests
 pkg/game.TestReleaseTipFramesFollowTheirRows
 pkg/game.TestReleaseSecondTownShopDealAndSave
+pkg/game.TestReleaseSecondTownShopKeepers
+pkg/game.TestReleaseSecondTownShopLaterTowns
+pkg/game.TestReleaseSecondTownDruidStaleStockSave
+pkg/game.TestReleaseSecondTownKaargDepartureStale
 pkg/secondshop.TestReleaseSecondShopTownOneFill
 pkg/secondshop.TestReleaseSecondShopTownOnePopulations

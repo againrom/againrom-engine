@@ -45,7 +45,7 @@ func (still) runsSheet(name string, sheet int) bool      { return false }
 
 // programs are the program names an actor may run, in either scene.
 var programs = []string{"episode", "pendulum", "stepper", "driven", "flock", "families", "route",
-	"loop", "alternating", "selector", "priority", "bounce", "cycle", "target", "training"}
+	"loop", "alternating", "selector", "priority", "bounce", "cycle", "target", "training", "transit"}
 
 func newActor(spec *ActorSpec) actor {
 	switch spec.Program {
@@ -79,6 +79,8 @@ func newActor(spec *ActorSpec) actor {
 		return &Target{spec: spec}
 	case "training":
 		return &Training{spec: spec}
+	case "transit":
+		return &Transit{spec: spec}
 	}
 	return nil
 }

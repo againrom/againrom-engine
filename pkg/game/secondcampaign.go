@@ -23,14 +23,15 @@ const (
 	secondTownShop
 )
 
-// secondAux is the eight-entry auxiliary array of five DWORD fields (+0,
-// +4, +8, +0xC, +0x10) the departure stores outside the bank. Its
-// consumers are Unknown; it is only stored and persisted (DIV-2437).
+// secondAux is the eight-entry auxiliary array of five DWORD fields the
+// departure stores outside the bank: the shop assortment records of
+// locations 2 and 3, four categories each, fields minimum, maximum, draws,
+// quantity bound and mask (R2-ENGINE-330). The campaign holds them in its
+// shop; a current SAV this engine wrote before carries the array itself.
 type secondAux [8][5]int32
 
 type secondCampaign struct {
 	bank      [1024]int32
-	aux       secondAux
 	available []secondLocation
 	current   secondLocation
 	room      secondTownRoom
@@ -109,16 +110,6 @@ func (c *secondCampaign) complete(w *sim.World) int {
 	return c.completeBank(bank)
 }
 
-// secondStageAux is field +4 of the auxiliary entries each stage case
-// stores, and how many entries from 0 it covers (R2-SESSION-050).
-var secondStageAux = map[int32]struct {
-	value   int32
-	entries int
-}{
-	30: {10000, 4}, 40: {22000, 4}, 50: {60000, 8}, 60: {150000, 8}, 70: {400000, 8},
-	80: {800000, 8}, 90: {1500000, 8}, 100: {5000000, 8}, 110: {10000000, 8},
-}
-
 // completeBank applies the ordinary departure to the bank a won mission left
 // and answers the output DWORD: -1 unless a case body stores one
 // (R2-ENGINE-145, R2-ENGINE-146, R2-ENGINE-148, R2-SESSION-047..050).
@@ -172,13 +163,6 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 		// not appended (DIV-2629).
 		add(secondLocation{2, 3})
 		c.bank[771], c.bank[534], c.bank[554] = 1, 1, 3
-		for i := 4; i < 8; i++ {
-			c.aux[i][0], c.aux[i][2], c.aux[i][3] = 499, 100, 2
-			if i == 5 || i == 6 {
-				c.aux[i][2], c.aux[i][3] = 20, 1
-			}
-		}
-		c.aux[6][0] = 0
 	case 60:
 		add(secondLocation{1, 80})
 		c.bank[537], c.bank[557], c.bank[774] = 1, 2, 1
@@ -201,19 +185,11 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 			output = 5
 		}
 	}
+	c.shop.depart(n)
 	if n%10 == 0 {
 		c.bank[768] += 10
 	}
-	if stage, ok := secondStageAux[c.bank[768]]; ok {
-		for i := 0; i < stage.entries; i++ {
-			c.aux[i][1] = stage.value
-		}
-		if extra := map[int32]int32{90: 12000, 100: 40000}[c.bank[768]]; extra != 0 {
-			for _, i := range []int{0, 1, 3} {
-				c.aux[i][0] = extra
-			}
-		}
-	}
+	c.shop.stage(c.bank[768])
 	c.current = secondLocation{}
 	c.selected, c.room = secondLocation{}, secondTownSquare
 	return output

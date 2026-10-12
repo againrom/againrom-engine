@@ -164,12 +164,14 @@ func (c *secondCampaign) speakers() []secondInnOption {
 
 // talkTo applies a TALK: kind 3 admits mission topic and kind 0 changes
 // nothing (R2-ENGINE-219, R2-ENGINE-229, R2-ENGINE-230), except the druid
-// inn's NPC 675 topic 78, which stores 2 in slot 770 (R2-ENGINE-367,
-// DIV-2639). Topic 10, the initial record, also stores slot 769
-// (R2-SESSION-110); NPC 22 topic 30 stores slots 533 and 553.
+// inn's NPC 675 topic 78, which stores 2 in slot 770 and adds class 4 to
+// record 3's category 3 (R2-ENGINE-367, R2-ENGINE-331, DIV-2639). Topic
+// 10, the initial record, also stores slot 769 (R2-SESSION-110); NPC 22
+// topic 30 stores slots 533 and 553.
 func (c *secondCampaign) talkTo(o secondInnOption) {
 	if o.kind == 0 && o.npc == 675 && o.topic == 78 {
 		c.bank[770] = 2
+		c.shop.addClass4()
 	}
 	if o.kind != 3 {
 		return

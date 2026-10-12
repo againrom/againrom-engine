@@ -98,7 +98,7 @@ func TestReleaseSecondTownKaargMaskCensus(t *testing.T) {
 	}
 	for b, w := range map[byte]answer{
 		128: {"inn", 236, ui.TownSquareControlDoor, 0, true},
-		144: {"shop", 233, 0, 0, false},
+		144: {"shop", 233, ui.TownSquareControlDoor, 6, true},
 		160: {"gate", 237, ui.TownSquareControlDoor, 1, true},
 		176: {"menu", 235, ui.TownSquareControlMenu, 0, true},
 		96:  {"girl1", 359, ui.TownSquareControlDoor, 2, true},
@@ -337,14 +337,17 @@ func TestReleaseSecondTownKaargPersonWaits(t *testing.T) {
 }
 
 // Each person opens its stage-keyed section from the town text by click and
-// by row, and the shop opens nothing (R2-ENGINE-234, DIV-2963).
+// by row, and the shop opens the shop page (R2-ENGINE-234).
 func TestReleaseSecondTownKaargPersonClicks(t *testing.T) {
 	f, app, s, _ := secondTownTwo(t)
 	c := f.Town.second
 	_, sq := kaargScene(t, s)
 	sq.Click(sq.Hotspot("shop"))
-	if c.payload != nil || c.room != secondTownSquare {
-		t.Fatal("the shop click acted")
+	if c.payload != nil || c.room != secondTownShop {
+		t.Fatal("the shop click did not open the shop page", c.room)
+	}
+	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
+		t.Fatal("escape from the shop page", err, c.room)
 	}
 	view := s.TownSquareView().Scene
 	for _, p := range []struct {

@@ -47,12 +47,13 @@
        {"arm": "man", "changed": true, "cite": ["R2-ENGINE-254", "DIV-2983"]}
      ],
      "cite": ["R2-ENGINE-255"]},
-    {"name": "shop", "tip": 233,
+    {"name": "shop", "row": 4, "tip": 233,
+     "click": [{"room": "shop", "cite": ["R2-ENGINE-255", "R2-ENGINE-257", "R2-ENGINE-373"]}],
      "hover": [
        {"latch": "shop", "slot": "shop", "sound": "town_druid/denter2.wav", "stop": ["inn", "gate"], "cite": ["R2-ENGINE-254"]},
        {"arm": "woman", "changed": true, "cite": ["R2-ENGINE-254", "DIV-2983"]}
      ],
-     "cite": ["R2-ENGINE-255", "R2-ENGINE-369", "DIV-2963"]},
+     "cite": ["R2-ENGINE-255", "R2-ENGINE-369"]},
     {"name": "gate", "row": 1, "tip": 237,
      "click": [{"hook": "navigate", "cite": ["R2-ENGINE-255", "R2-SESSION-123"]}],
      "hover": [{"latch": "gate", "slot": "gate", "sound": "town_druid/dout.wav", "cite": ["R2-ENGINE-254"]}],
@@ -222,6 +223,100 @@
          {"group": "front", "art": "upper", "mode": "copy", "at": [480, 0], "cite": ["R2-ENGINE-246", "DIV-2964"]}
        ],
        "cite": ["R2-ENGINE-258", "R2-ENGINE-260"]},
-     "cite": ["R2-ENGINE-257", "R2-ENGINE-258", "DIV-2973"]}
+     "cite": ["R2-ENGINE-257", "R2-ENGINE-258", "DIV-2973"]},
+    {"name": "shop", "page": "shop",
+     "enter": [
+       {"composer": "reset", "cite": ["R2-ENGINE-250"]},
+       {"hook": "set-room", "cite": ["R2-ENGINE-250"]},
+       {"hook": "shop-open", "cite": ["R2-ENGINE-266", "R2-ENGINE-373", "R2-ENGINE-374", "DIV-3045"]}
+     ],
+     "exit": [{"hook": "shop-leave", "cite": ["R2-ENGINE-266"]}],
+     "art": [
+       {"name": "cell-stock", "format": "frame", "key": "graphics/interface/shopitem.256", "frame": 0, "size": [80, 80], "required": true, "cite": ["R2-ENGINE-249", "R2-ASSET-070"]},
+       {"name": "cell-hero", "format": "frame", "key": "graphics/interface/myitem.256", "frame": 0, "size": [80, 80], "required": true, "cite": ["R2-ENGINE-249", "R2-ASSET-070"]},
+       {"name": "button/undo", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton1.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "button/buy", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton2.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "button/sell", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton3.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "button/exit", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton4.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "arrow/0", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow1.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "arrow/1", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow2.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "arrow/2", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow3.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "arrow/3", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow4.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]}
+     ],
+     "buttons": [
+       {"name": "undo", "rect": [494, 15, 614, 67], "off": "button/undo", "caption": 72, "cite": ["R2-ENGINE-249", "R2-ENGINE-266", "R2-ENGINE-259"]},
+       {"name": "buy", "rect": [483, 67, 623, 113], "off": "button/buy", "caption": 70, "cite": ["R2-ENGINE-249", "R2-ENGINE-266", "R2-ENGINE-259"]},
+       {"name": "sell", "rect": [483, 114, 623, 160], "off": "button/sell", "caption": 71, "cite": ["R2-ENGINE-249", "R2-ENGINE-266", "R2-ENGINE-259"]},
+       {"name": "exit", "rect": [494, 160, 614, 212], "off": "button/exit", "caption": 73, "cite": ["R2-ENGINE-249", "R2-ENGINE-250", "R2-ENGINE-259"]},
+       {"name": "shelf/0", "rect": [169, 112, 257, 224], "cite": ["R2-ENGINE-269", "DIV-3064"]},
+       {"name": "shelf/1", "rect": [169, 52, 265, 112], "cite": ["R2-ENGINE-269", "DIV-3064"]},
+       {"name": "shelf/2", "rect": [285, 36, 357, 148], "cite": ["R2-ENGINE-269", "DIV-3064"]},
+       {"name": "shelf/3", "rect": [257, 172, 353, 276], "if": "bank-770-set", "cite": ["R2-ENGINE-269", "DIV-3064"]},
+       {"name": "stock-back", "rect": [484, 250, 556, 282], "off": "arrow/0", "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "stock-on", "rect": [560, 250, 632, 282], "off": "arrow/1", "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "hero-back", "rect": [484, 400, 556, 432], "off": "arrow/2", "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "hero-on", "rect": [560, 400, 632, 432], "off": "arrow/3", "cite": ["R2-ENGINE-249", "DIV-3046"]}
+     ],
+     "grids": [
+       {"list": "stock", "first": [0, 306, 80, 386], "step": [80, 0], "count": 6, "back": "cell-stock", "cite": ["R2-ENGINE-249", "R2-ENGINE-267", "DIV-3046"]},
+       {"list": "hero", "first": [0, 395, 80, 475], "step": [80, 0], "count": 6, "back": "cell-hero", "cite": ["R2-ENGINE-249", "R2-ENGINE-267", "DIV-3046"]},
+       {"list": "info", "first": [8, 24, 156, 280], "step": [0, 0], "count": 1, "cite": ["R2-ENGINE-249", "R2-ENGINE-267", "DIV-3046"]}
+     ],
+     "scene": {
+       "view": {"size": [640, 480], "cite": ["R2-ENGINE-249"]},
+       "art": [
+         {"name": "info", "format": "picture", "key": "graphics/interface/shop_druid/shopinv.bmp", "size": [164, 303], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+         {"name": "frame", "format": "frame", "key": "graphics/interface/shop_druid/shopframe.256", "frame": 0, "size": [316, 303], "required": true, "cite": ["R2-ENGINE-270", "R2-ENGINE-259"]},
+         {"name": "main", "format": "picture", "key": "graphics/interface/shop_druid/shopmain.bmp", "size": [288, 288], "required": true, "cite": ["R2-ENGINE-259"]},
+         {"name": "menu", "format": "picture", "key": "graphics/interface/shop_druid/shopmenu.bmp", "size": [176, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+         {"name": "table", "format": "picture", "key": "graphics/interface/shop_druid/shoptable.bmp", "size": [472, 87], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+         {"name": "elven", "format": "picture", "key": "graphics/interface/shop_druid/elven.bmp", "size": [96, 104], "required": true, "cite": ["R2-ENGINE-259"]},
+         {"name": "shelf/0", "format": "picture", "key": "graphics/interface/shop_druid/hili_armor.bmp", "size": [88, 112], "required": true, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"name": "shelf/1", "format": "picture", "key": "graphics/interface/shop_druid/hili_magic.bmp", "size": [96, 60], "required": true, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"name": "shelf/2", "format": "picture", "key": "graphics/interface/shop_druid/hili_potion.bmp", "size": [72, 112], "required": true, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"name": "shelf/3", "format": "picture", "key": "graphics/interface/shop_druid/hili_elven.bmp", "size": [96, 104], "required": true, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"name": "keeper", "format": "picture", "key": "movies/shop_druid/a10001.bmp", "size": [72, 164], "required": true, "cite": ["R2-ENGINE-259"]},
+         {"name": "a1", "format": "series", "key": "movies/shop_druid/a1%04d.bmp", "first": 2, "count": 29, "size": [72, 164], "required": true, "cite": ["R2-ENGINE-259"]},
+         {"name": "a2", "format": "series", "key": "movies/shop_druid/a2%04d.bmp", "first": 2, "count": 29, "size": [72, 164], "required": true, "cite": ["R2-ENGINE-259"]}
+       ],
+       "random": [{"name": "idle", "source": "host", "cite": ["R2-ENGINE-259", "DIV-3061"]}],
+       "clocks": [
+         {"name": "step", "period-ms": 100, "compare": "at-least", "entry-ms": -100, "cite": ["R2-ENGINE-259", "DIV-3061"]},
+         {"name": "druid-keeper", "compare": "at-least", "process": true, "cite": ["R2-ENGINE-259", "DIV-3063"]}
+       ],
+       "steps": [
+         {"clock": "step", "when": "active", "run": ["arm keeper", "advance keeper"], "cite": ["R2-ENGINE-259"]}
+       ],
+       "lifecycle": "shown",
+       "advance-when": "active",
+       "actors": [
+         {"name": "keeper", "program": "priority", "art": "keeper", "clock": "druid-keeper", "keep-index": true, "end": "all",
+          "delay": {"draw": "idle", "raw": 32768, "form": "modulo", "n": 5, "times": 1000, "base": 5000, "cite": ["R2-ENGINE-259", "DIV-3063"]},
+          "idle-pick": {"draw": "idle", "raw": 32768, "form": "scaled", "n": 2, "cite": ["R2-ENGINE-259", "DIV-3063"]},
+          "states": [
+            {"name": "a1", "art": "a1", "complete": 29, "steps": 30, "cite": ["R2-ENGINE-259", "DIV-3063"]},
+            {"name": "a2", "art": "a2", "complete": 29, "steps": 30, "cite": ["R2-ENGINE-259", "DIV-3063"]}
+          ],
+          "on": [
+            {"event": "bought", "do": "a2", "cite": ["R2-ENGINE-269", "DIV-3063"]},
+            {"event": "sold", "do": "a2", "cite": ["R2-ENGINE-269", "DIV-3063"]}
+          ],
+          "cite": ["R2-ENGINE-259", "DIV-3063"]}
+       ],
+       "layers": [
+         {"group": "back", "art": "info", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-249", "DIV-3046"]},
+         {"group": "back", "art": "frame", "mode": "over", "at": [164, 0], "cite": ["R2-ENGINE-259"]},
+         {"group": "back", "art": "main", "mode": "copy", "at": [169, 8], "cite": ["R2-ENGINE-259"]},
+         {"group": "back", "art": "elven", "mode": "copy", "at": [257, 172], "when": {"if": "bank-770-set", "cite": ["R2-ENGINE-259"]}, "cite": ["R2-ENGINE-259"]},
+         {"group": "back", "art": "shelf/0", "mode": "copy", "at": [169, 112], "when": {"if": "shelf-0", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "back", "art": "shelf/1", "mode": "copy", "at": [169, 52], "when": {"if": "shelf-1", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "back", "art": "shelf/2", "mode": "copy", "at": [285, 36], "when": {"if": "shelf-2", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "back", "art": "shelf/3", "mode": "copy", "at": [257, 172], "when": {"if": "shelf-3", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "back", "actor": "keeper", "mode": "copy", "at": [361, 92], "cite": ["R2-ENGINE-259"]},
+         {"group": "back", "art": "menu", "mode": "copy", "at": [464, 0], "cite": ["R2-ENGINE-249", "DIV-3046"]},
+         {"group": "back", "art": "table", "mode": "copy", "at": [0, 303], "cite": ["R2-ENGINE-249", "DIV-3046"]}
+       ],
+       "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+     "cite": ["R2-ENGINE-249", "R2-ENGINE-263", "R2-ENGINE-266", "R2-ENGINE-267", "R2-ENGINE-330", "R2-ENGINE-259"]}
   ]
 }

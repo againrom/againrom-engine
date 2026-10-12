@@ -25,6 +25,19 @@ const (
 // secondTownLists are the grid lists the second game's town pages show.
 var secondTownLists = []string{secondShopStock, secondShopHero, secondShopInfo}
 
+// The events a shop page raises for its scene's actors (R2-ENGINE-269): a
+// changed category with its number, a buy the gold covers, a buy it does not,
+// and a sale that credits gold.
+const (
+	secondShopCategoryChanged = "category-changed"
+	secondShopBought          = "bought"
+	secondShopRefused         = "refused"
+	secondShopSold            = "sold"
+)
+
+// secondShopEvents are the events the second game's town pages raise.
+var secondShopEvents = []string{secondShopCategoryChanged, secondShopBought, secondShopRefused, secondShopSold}
+
 // secondShopControl is one row of the shop page: its text and its action.
 type secondShopControl struct {
 	text string
@@ -61,15 +74,48 @@ func (s *secondShop) visibleShelf() []int {
 	return out
 }
 
-// shopControls are the shop page's rows: the four categories, each listed
+// shopEvent raises a page event in the shown room's scene.
+func (t *secondCampaignScreen) shopEvent(name string, args ...int) {
+	if d, room, ok := t.composedRoom(); ok {
+		t.scene(d, room).Event(name, args...)
+	}
+}
+
+// shelfOpen reports whether category k exists on the shown page: a shelf
+// button with a condition admits its category only while the condition
+// holds (R2-ENGINE-259).
+func (t *secondCampaignScreen) shelfOpen(k int) bool {
+	d, room, ok := t.composedRoom()
+	if !ok {
+		return true
+	}
+	r := d.Room(room)
+	if r == nil {
+		return true
+	}
+	name := fmt.Sprintf("shelf/%d", k)
+	for _, b := range r.Buttons {
+		if b.Name == name {
+			return t.scene(d, room).ButtonShown(b)
+		}
+	}
+	return true
+}
+
+// shopControls are the shop page's rows: the open categories, each listed
 // shelf entry and hero item, the two grids' scroll rows and the four
-// buttons in their index order (R2-ENGINE-249).
+// buttons in their index order (R2-ENGINE-249). A changed category, a buy
+// and a credited sale raise the page's events (R2-ENGINE-269).
 func (t *secondCampaignScreen) shopControls(c *secondCampaign) []secondShopControl {
 	var out []secondShopControl
 	for k := range c.shop.stock {
+		if !t.shelfOpen(k) {
+			continue
+		}
 		out = append(out, secondShopControl{fmt.Sprintf("SHELF %d", k+1), func(t *secondCampaignScreen, c *secondCampaign) {
 			if c.shop.choose(k) {
 				t.composed.shopOffsets[0] = 0
+				t.shopEvent(secondShopCategoryChanged, k)
 			}
 		}})
 	}
@@ -96,16 +142,49 @@ func (t *secondCampaignScreen) shopControls(c *secondCampaign) []secondShopContr
 			t.composed.shopOffsets[grid] = max(0, min(t.composed.shopOffsets[grid]+by, n-1))
 		}
 	}
-	gold := func(settle func(*secondShop, *int) bool) func(*secondCampaignScreen, *secondCampaign) {
-		return func(t *secondCampaignScreen, c *secondCampaign) { settle(&c.shop, &t.session.Town.gold) }
+	buy := func(t *secondCampaignScreen, c *secondCampaign) {
+		gold := &t.session.Town.gold
+		if cost := c.shop.cost(); cost > 0 {
+			event := secondShopBought
+			if cost > int64(*gold) {
+				event = secondShopRefused
+			}
+			t.shopEvent(event)
+		}
+		c.shop.buy(gold)
+	}
+	sell := func(t *secondCampaignScreen, c *secondCampaign) {
+		if c.shop.credit() > 0 {
+			t.shopEvent(secondShopSold)
+		}
+		c.shop.sell(&t.session.Town.gold)
 	}
 	return append(out,
 		secondShopControl{"SHELF <", scroll(0, -1)}, secondShopControl{"SHELF >", scroll(0, 1)},
 		secondShopControl{"MINE <", scroll(1, -1)}, secondShopControl{"MINE >", scroll(1, 1)},
 		secondShopControl{"UNDO", func(_ *secondCampaignScreen, c *secondCampaign) { c.shop.undo() }},
-		secondShopControl{"BUY", gold((*secondShop).buy)},
-		secondShopControl{"SELL", gold((*secondShop).sell)},
+		secondShopControl{"BUY", buy},
+		secondShopControl{"SELL", sell},
 		secondShopControl{secondInnExit, nil})
+}
+
+// cost is the open purchase's cost, sum P*q (R2-ENGINE-267).
+func (s *secondShop) cost() int64 {
+	var cost int64
+	for _, it := range s.buying {
+		cost += it.Price * int64(it.Quantity)
+	}
+	return cost
+}
+
+// credit is the open sale's credit as the page shows it, sum ((P+1)/2)*q
+// (R2-ENGINE-267).
+func (s *secondShop) credit() int64 {
+	var credit int64
+	for _, it := range s.selling {
+		credit += secondshop.SaleCell(it.Price) * int64(it.Quantity)
+	}
+	return credit
 }
 
 // shopList answers a grid list's entries in display order.
@@ -172,8 +251,9 @@ func (v secondTownView) shopControlAt(r *town.RoomSpec, p image.Point) (ui.TownS
 			}
 		}
 	}
-	if i := town.ButtonAt(r.Buttons, p); want == "" && i >= 0 {
-		want = secondShopButtons[r.Buttons[i].Name]
+	buttons := v.t.scene(v.d, v.room).ShownButtons(r.Buttons)
+	if i := town.ButtonAt(buttons, p); want == "" && i >= 0 {
+		want = secondShopButtons[buttons[i].Name]
 	}
 	for i, ctl := range v.t.shopControls(c) {
 		if want != "" && ctl.text == want {
@@ -247,14 +327,7 @@ func (s *secondShop) offeredAt(n int) bool { return n >= len(s.visibleShelf()) }
 // shopTotals are the panel's gold and the open deal's cost and credit:
 // sum P*q of the purchase and sum ((P+1)/2)*q of the sale (R2-ENGINE-267).
 func (t *secondCampaignScreen) shopTotals(c *secondCampaign) []string {
-	var cost, credit int64
-	for _, it := range c.shop.buying {
-		cost += it.Price * int64(it.Quantity)
-	}
-	for _, it := range c.shop.selling {
-		credit += secondshop.SaleCell(it.Price) * int64(it.Quantity)
-	}
-	return []string{fmt.Sprintf("%d", t.session.Town.gold), fmt.Sprintf("-%d", cost), fmt.Sprintf("+%d", credit)}
+	return []string{fmt.Sprintf("%d", t.session.Town.gold), fmt.Sprintf("-%d", c.shop.cost()), fmt.Sprintf("+%d", c.shop.credit())}
 }
 
 // shopItemName is an item's name parts, the cell's name first (DIV-3046):
