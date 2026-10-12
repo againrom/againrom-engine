@@ -89,33 +89,57 @@ func (t *townScreen) speakSchoolTraining(slot int) {
 	t.requestSchoolSound(schoolTeachSound)
 }
 
-func shopItemSpeech(item ShopItem) []string {
-	var names []string
-	add := func(name string) {
-		for _, old := range names {
-			if old == name {
-				return
-			}
-		}
-		if len(names) < 16 {
-			names = append(names, name)
-		}
+// shopItemResponse starts the one recording a merchant stack moved onto the
+// table speaks (SHOP-109): its effect description, else its spell
+// description, else one part of its class/row lines drawn from the shop's
+// presentation seam. A recording the install lacks is passed over, and an
+// item with none stops the previous one. DIV-2115 keeps a request on every
+// selection instead of the original's draw gate.
+func (t *townScreen) shopItemResponse(item ShopItem) {
+	present := func(name string) bool {
+		_, found := t.in.SpeechBank.Sample(name)
+		return found
 	}
-	if item.Code.B() > 0 && item.Code.B() < 14 {
-		for part := 1; part <= 3; part++ {
-			add(fmt.Sprintf("speech/shop/s%02di%02dp%d.wav", item.Code.B(), item.Code.D(), part))
+	var names []string
+	if name, ok := shopItemSpeech(item, present, func(n int) int { return t.sceneDraw("idle", n) }); ok {
+		names = []string{name}
+	}
+	t.startTownResponse(names)
+}
+
+// shopItemSpeech names the one recording of an item, or none.
+func shopItemSpeech(item ShopItem, present func(string) bool, draw func(int) int) (string, bool) {
+	for _, effect := range item.Effects {
+		if effect.Kind > 0 && effect.Kind < 41 {
+			if name := fmt.Sprintf("speech/shop/effects/%02d.wav", effect.Kind); present(name) {
+				return name, true
+			}
 		}
 	}
 	instance := item.Instance()
-	if spell, ok := instance.BookSpell(); ok {
-		add(fmt.Sprintf("speech/shop/books/%02d.wav", spell))
-	} else if spell, _, ok := instance.CastSpell(); ok && spell > 0 && spell < 32 {
-		add(fmt.Sprintf("speech/shop/books/%02d.wav", spell))
-	}
-	for _, effect := range item.Effects {
-		if effect.Kind > 0 && effect.Kind < 41 {
-			add(fmt.Sprintf("speech/shop/effects/%02d.wav", effect.Kind))
+	spell, ok := instance.BookSpell()
+	if !ok {
+		var cast uint16
+		if cast, _, ok = instance.CastSpell(); ok {
+			spell, ok = cast, cast > 0 && cast < 32
 		}
 	}
-	return names
+	if ok {
+		if name := fmt.Sprintf("speech/shop/books/%02d.wav", spell); present(name) {
+			return name, true
+		}
+	}
+	if item.Code.B() <= 0 || item.Code.B() >= 14 {
+		return "", false
+	}
+	var parts []string
+	for part := 1; part <= 3; part++ {
+		if name := fmt.Sprintf("speech/shop/s%02di%02dp%d.wav", item.Code.B(), item.Code.D(), part); present(name) {
+			parts = append(parts, name)
+		}
+	}
+	if len(parts) == 0 {
+		return "", false
+	}
+	return parts[draw(len(parts))%len(parts)], true
 }

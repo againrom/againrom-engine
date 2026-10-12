@@ -142,7 +142,7 @@ func TestSchoolTeacherSpeaksAfterAPaidStepOncePerLatch(t *testing.T) {
 	spoke("mage level 4", 1001, 1002, 1003, 1001, 2003, 2001)
 }
 
-func TestShopSelectionSpeaksItemThenEffectsAndNewSelectionReplacesIt(t *testing.T) {
+func TestShopSelectionSpeaksOneRecordingAndNewSelectionReplacesIt(t *testing.T) {
 	f := shellFrontEnd()
 	f.SpeechBank = responseBank(t, []synth.File{
 		{Path: "shop/s01i02p1.wav", Data: speechWAV(1000)},
@@ -162,8 +162,8 @@ func TestShopSelectionSpeaksItemThenEffectsAndNewSelectionReplacesIt(t *testing.
 	s.atSquare()
 	s.Choose(1)
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: 0})
-	if len(r.samples) != 1 || r.samples[0].PCM[0] != 1000 || len(f.Shop.Table()) != 1 {
-		t.Fatal("shelf click did not move the selected item and speak its description")
+	if len(r.samples) != 1 || r.samples[0].PCM[0] != 3000 || len(f.Shop.Table()) != 1 {
+		t.Fatal("shelf click did not move the selected item and speak its effect description")
 	}
 	s.TownDialogueActive(true)
 	if !r.voices[0].Playing() || len(r.samples) != 1 {
@@ -171,29 +171,20 @@ func TestShopSelectionSpeaksItemThenEffectsAndNewSelectionReplacesIt(t *testing.
 	}
 	r.voices[0].playing = false
 	s.TownDialogueActive(true)
-	if len(r.samples) != 2 || r.samples[1].PCM[0] != 2000 {
-		t.Fatal("description did not continue when its first recording ended")
-	}
-	r.voices[1].playing = false
 	s.TownDialogueActive(true)
-	if len(r.samples) != 3 || r.samples[2].PCM[0] != 3000 {
-		t.Fatal("missing optional part blocked the item's effect description")
-	}
-	r.voices[2].playing = false
-	s.TownDialogueActive(true)
-	if len(r.samples) != 3 {
-		t.Fatal("duplicate effect replayed its description")
+	if len(r.samples) != 1 {
+		t.Fatal("a second recording followed the selection's one description")
 	}
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: 0})
-	if len(r.samples) != 4 || r.samples[3].PCM[0] != 4000 {
+	if len(r.samples) != 2 || r.samples[1].PCM[0] != 4000 {
 		t.Fatal("book selection did not describe its actual spell")
 	}
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlMerchant})
-	if !r.voices[3].Playing() || len(r.samples) != 4 {
+	if !r.voices[1].Playing() || len(r.samples) != 2 {
 		t.Fatal("a press on the merchant restarted or stopped the current item's description")
 	}
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: 0})
-	if r.voices[3].Playing() || len(r.samples) != 4 || len(f.Shop.Table()) != 3 {
+	if r.voices[1].Playing() || len(r.samples) != 2 || len(f.Shop.Table()) != 3 {
 		t.Fatal("an unvoiced item kept the previous description or prevented trading")
 	}
 }

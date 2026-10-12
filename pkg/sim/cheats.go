@@ -75,7 +75,11 @@ func (w *World) CheatKillPlayer(owner uint32) int {
 	return killed
 }
 
-func (w *World) CheatPickupAll(hero EntityID) error {
+// CheatPickupAll refuses before any transfer when the hero is absent or the
+// holdings would exceed the bounded item and effect values, then hands every
+// ground sack, first to last, to take: the caller's ordinary pickup of one
+// sack by the hero (MENU-108). A take that leaves the sack stops the command.
+func (w *World) CheatPickupAll(hero EntityID, take func(Sack) error) error {
 	if indexOfEntity(w.entities, hero) < 0 {
 		return fmt.Errorf("sim: cheat pickup names absent entity %d", hero)
 	}
@@ -83,9 +87,12 @@ func (w *World) CheatPickupAll(hero EntityID) error {
 		return fmt.Errorf("sim: cheat pickup holdings exceed bounded item/effect values")
 	}
 	for len(w.sacks) != 0 {
-		sack := w.sacks[0]
-		if err := w.TakeSack(hero, sack.X, sack.Y); err != nil {
+		sack := publicSack(w.sacks[0])
+		if err := take(sack); err != nil {
 			return err
+		}
+		if len(w.sacks) != 0 && w.sacks[0].X == sack.X && w.sacks[0].Y == sack.Y {
+			return fmt.Errorf("sim: cheat pickup left the sack at (%d,%d)", sack.X, sack.Y)
 		}
 	}
 	return nil

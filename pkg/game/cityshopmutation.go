@@ -565,7 +565,7 @@ func (t *townScreen) cityShopStageShelf(index int, whole bool) (ui.TownAction, e
 		return ui.TownAction{}, err
 	}
 	t.shopRevealTradeTable()
-	t.startTownResponse(shopItemSpeech(item))
+	t.shopItemResponse(item)
 	return ui.TownAction{}, nil
 }
 

@@ -3629,6 +3629,20 @@ func (mw *mapWorld) takeSackFor(id sim.EntityID) {
 		return
 	}
 	primary, primaryOK := mw.primaryPartyID()
+	mw.announceTake(id, primary, primaryOK, func() bool {
+		if _, ok := takeSackUnderfoot(mw.world, id, primary, primaryOK); !ok {
+			return false
+		}
+		mw.cancelPickup(id)
+		mw.cancelQueuedPickupPredecessors(id)
+		return true
+	})
+}
+
+// announceTake runs one pickup and, when it took the sack, posts the ordinary
+// pickup lines: the purse gain, then each stack it reached in the taker's pack
+// and in the primary hero's.
+func (mw *mapWorld) announceTake(id, primary sim.EntityID, primaryOK bool, take func() bool) bool {
 	holders := []sim.EntityID{id}
 	if primaryOK && primary != id {
 		holders = append(holders, primary)
@@ -3638,11 +3652,9 @@ func (mw *mapWorld) takeSackFor(id sim.EntityID) {
 		before[k], _ = mw.world.CarriedStacks(holder)
 	}
 	purse := mw.world.Purse(sim.SelfSlot)
-	if _, ok := takeSackUnderfoot(mw.world, id, primary, primaryOK); !ok {
-		return
+	if !take() {
+		return false
 	}
-	mw.cancelPickup(id)
-	mw.cancelQueuedPickupPredecessors(id)
 	var reached []sim.ItemStack
 	for k, holder := range holders {
 		after, _ := mw.world.CarriedStacks(holder)
@@ -3650,6 +3662,24 @@ func (mw *mapWorld) takeSackFor(id sim.EntityID) {
 	}
 	words := mw.view.Words()
 	announce(mw.view, pickupLinesForTake(reached, purseGain(purse, mw.world.Purse(sim.SelfSlot)), mw.invParty.table, &words))
+	return true
+}
+
+// cheatPickupAll is #pickup all: every ground sack, first to last, is the
+// hero's ordinary pickup (MENU-108, R2-ENGINE-301). Quest documents go to the
+// primary hero, the pickup completes on the next Step and each sack posts its
+// pickup lines. Without a primary hero the hero takes the documents.
+func (mw *mapWorld) cheatPickupAll(hero sim.EntityID) error {
+	primary, primaryOK := mw.primaryPartyID()
+	if !primaryOK {
+		primary, primaryOK = hero, true
+	}
+	return mw.world.CheatPickupAll(hero, func(sack sim.Sack) error {
+		if !mw.announceTake(hero, primary, primaryOK, func() bool { return takeSack(mw.world, hero, sack, primary, primaryOK) }) {
+			return fmt.Errorf("game: cheat pickup refused the sack at (%d,%d)", sack.X, sack.Y)
+		}
+		return nil
+	})
 }
 
 // PickUpUnderfoot is the pickup key's world half for a mission driven without
@@ -3674,13 +3704,18 @@ func takeSackUnderfoot(w *sim.World, id, primary sim.EntityID, primaryOK bool) (
 	if !ok || !e.Alive() || e.OffMap || !sackPickupArrived(w, e) {
 		return sim.Sack{}, false
 	}
-	var sack sim.Sack
-	for _, s := range w.Sacks() {
-		if s.X == e.X && s.Y == e.Y {
-			sack = s
-			break
+	for _, sack := range w.Sacks() {
+		if sack.X == e.X && sack.Y == e.Y {
+			return sack, takeSack(w, id, sack, primary, primaryOK)
 		}
 	}
+	return sim.Sack{}, false
+}
+
+// takeSack is the ordinary pickup of one ground sack by id: the take, quest
+// documents moved to the primary hero, and the pickup completion. A sack with
+// documents and no primary hero to hold them is refused.
+func takeSack(w *sim.World, id sim.EntityID, sack sim.Sack, primary sim.EntityID, primaryOK bool) bool {
 	var documents uint32
 	for _, code := range sack.Items {
 		if code == uint16(data.QuestDocumentCode) {
@@ -3689,22 +3724,22 @@ func takeSackUnderfoot(w *sim.World, id, primary sim.EntityID, primaryOK bool) (
 	}
 	if documents > 0 {
 		if !primaryOK {
-			return sim.Sack{}, false
+			return false
 		}
 		if _, ok := w.Carried(primary); !ok {
-			return sim.Sack{}, false
+			return false
 		}
 	}
-	if err := w.TakeSack(id, e.X, e.Y); err != nil {
-		return sim.Sack{}, false
+	if err := w.TakeSack(id, sack.X, sack.Y); err != nil {
+		return false
 	}
 	if documents > 0 && id != primary {
 		if err := w.MoveCarried(id, primary, uint16(data.QuestDocumentCode), documents); err != nil {
-			return sim.Sack{}, false
+			return false
 		}
 	}
 	w.CompleteSackPickup(id)
-	return sack, true
+	return true
 }
 
 func sackPickupArrived(w *sim.World, e sim.Entity) bool {

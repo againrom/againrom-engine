@@ -97,6 +97,12 @@ func (c *ambientController) update(now time.Time, s ambientSnapshot) {
 		return
 	}
 	if !moved && !due {
+		// A Wall of Fire that appears in view, or the last one that burns
+		// out, starts or stops its loop at once rather than at the next
+		// camera move or deadline (DIV-3153).
+		if fire := &c.loop[AmbientWallOfFire]; fire.active != (len(s.wallFire) != 0) {
+			c.updateLoop(AmbientWallOfFire, ambientWallFireSlot, s.geometry, s.hasView, s.wallFire)
+		}
 		return
 	}
 	if moved {

@@ -627,11 +627,36 @@ func TestReleaseCheatPickupAllUsesAppAndOrdinarySAV(t *testing.T) {
 	}
 	sim.Step(f.live.world, []sim.Command{sim.DropCarried(id, sim.ItemSlot(dropSlot), sim.CellPoint{X: hero.X, Y: hero.Y})})
 	sim.Step(f.live.world, []sim.Command{sim.DropGold(sim.SelfSlot, 500, sim.CellPoint{X: hero.X, Y: hero.Y})})
+	// A quest document joins the dropped sack; the pickup hands it to the
+	// starting hero, who is the cheat's hero in this party.
+	if !f.live.world.CheatAddItem(id, sim.StackItem(sim.PlainItem(uint16(data.QuestDocumentCode)), 1)) {
+		t.Fatal("setup quest document refused")
+	}
+	pack, _ = f.live.world.CarriedStacks(id)
+	for i, stack := range pack {
+		if data.ItemCode(stack.Code) == data.QuestDocumentCode {
+			sim.Step(f.live.world, []sim.Command{sim.DropCarried(id, sim.ItemSlot(i), sim.CellPoint{X: hero.X, Y: hero.Y})})
+			break
+		}
+	}
 	f.live.push()
 	sacks := f.live.world.Sacks()
 	if len(sacks) == 0 {
 		t.Fatal("ordinary gold drop produced no Sack")
 	}
+	// Mission 10's trigger with latch 5 waits for the sack at (38,64) to leave
+	// the ground (its one sack check).
+	waited, documented := false, false
+	for _, sack := range sacks {
+		waited = waited || sack.X == 38 && sack.Y == 64
+		for _, item := range sack.ItemInstances {
+			documented = documented || data.ItemCode(item.Code) == data.QuestDocumentCode
+		}
+	}
+	if len(sacks) < 3 || !waited || !documented || f.live.world.ScriptLatched(5) {
+		t.Fatalf("setup sacks %d, waited-for sack %v, document sack %v, latch 5 %v", len(sacks), waited, documented, f.live.world.ScriptLatched(5))
+	}
+	lineCount := len(f.live.view.MessageLines())
 	before := f.live.world.Purse(sim.SelfSlot)
 	want := before
 	wantItems := map[uint16]int{}
@@ -664,6 +689,29 @@ func TestReleaseCheatPickupAllUsesAppAndOrdinarySAV(t *testing.T) {
 	lines := f.live.view.MessageLines()
 	if len(lines) == 0 || lines[len(lines)-1].Text != "All sacks picked up" {
 		t.Fatal("pickup omitted the original frame log line")
+	}
+	// Each sack is an ordinary pickup: its lines precede the reply and the
+	// frame log line, the gold line among them, and the pickup completes.
+	words := f.live.view.Words()
+	gold, posted := pickupGoldLine(&words, int32(want-before)), lines[lineCount:len(lines)-2]
+	hasGold := false
+	for _, line := range posted {
+		hasGold = hasGold || line.Text == gold
+	}
+	if len(posted) < len(sacks) || !hasGold {
+		t.Fatalf("pickup posted %d line(s) over %d sacks, gold line %q present %v", len(posted), len(sacks), gold, hasGold)
+	}
+	if e := releaseEntity(t, f.live, id); e.ActorState != 2 {
+		t.Fatalf("the hero's pickup did not complete: actor state %d", e.ActorState)
+	}
+	for n := 0; n < 8 && !f.live.world.ScriptLatched(5); n++ {
+		sim.Step(f.live.world, nil)
+	}
+	if !f.live.world.ScriptLatched(5) {
+		t.Fatal("the trigger waiting for the (38,64) sack did not fire")
+	}
+	if lines := f.live.view.MessageLines(); lines[len(lines)-1].Text != "All sacks picked up" {
+		t.Fatal("the frame log line did not stay after the pickup completed")
 	}
 	cold, coldID := cheatCold(t, f)
 	if len(cold.live.world.Sacks()) != 0 || cold.live.world.Purse(sim.SelfSlot) != want {

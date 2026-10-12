@@ -186,13 +186,13 @@ func (t *townScreen) shopFromShelf(i int, whole bool) ui.TownAction {
 		if !t.sess.Shop.GrowTablePlace(idx, n) {
 			return ui.TownAction{}
 		}
-		t.startTownResponse(shopItemSpeech(st))
+		t.shopItemResponse(st)
 		return ui.TownAction{}
 	}
 	if !t.sess.Shop.TakeFromShelf(t.shopShelf, i, n) {
 		return ui.TownAction{}
 	}
-	t.startTownResponse(shopItemSpeech(st))
+	t.shopItemResponse(st)
 	return ui.TownAction{}
 }
 

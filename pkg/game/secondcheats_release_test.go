@@ -290,14 +290,20 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 		summoned = append(summoned, added...)
 	}
 
-	// #pickup all (R2-ENGINE-301) over a sack the ordinary drop made.
+	// #pickup all (R2-ENGINE-301) over a sack the ordinary drop made. The
+	// sack is an ordinary pickup: its gold line comes before the reply.
 	hero = releaseEntity(t, mw, id)
 	sim.Step(mw.world, []sim.Command{sim.DropGold(sim.SelfSlot, 40, sim.CellPoint{X: hero.X, Y: hero.Y})})
 	if len(mw.world.Sacks()) == 0 {
 		t.Fatal("the ordinary gold drop made no sack")
 	}
 	purse := mw.world.Purse(sim.SelfSlot)
-	secondCheatWantReply(t, f, secondCheatLines(t, f, a, "#pickup all"), 7, sim.SelfSlot)
+	picked := secondCheatLines(t, f, a, "#pickup all")
+	words := mw.view.Words()
+	if len(picked) == 0 || picked[0].Text != pickupGoldLine(&words, 40) {
+		t.Fatalf("#pickup all lines %+v, want the gold line first", picked)
+	}
+	secondCheatWantReply(t, f, picked[1:], 7, sim.SelfSlot)
 	if len(mw.world.Sacks()) != 0 || mw.world.Purse(sim.SelfSlot) != purse+40 {
 		t.Fatalf("#pickup all left sacks %d purse %d, want 0 and %d", len(mw.world.Sacks()), mw.world.Purse(sim.SelfSlot), purse+40)
 	}

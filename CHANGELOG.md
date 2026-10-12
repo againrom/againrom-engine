@@ -10,6 +10,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [ROM1] A freshly started mission follows the same cell rules as a loaded save. Creatures cross building doorways and bridges at the original's speed for those cells from the start, and no creature at the start of a mission steps onto a cell that would stop it after loading.
 - [ROM1] A mod that changes the terrain movement costs (map.reg) now changes how creatures move on every mission.
+- [BASE] The `#pickup all` cheat picks up every sack as an ordinary pickup: the message line names the gold and each item picked up, quest documents go to the main hero, and a mission event that waits for a sack to be picked up follows as it does after a normal pickup.
+- [BASE] Fire Wall sounds: its fire crackles from the moment the wall rises until it burns out, even when the view stays still. Before, the sound waited for the view to move or for the next bird call.
+- [ROM1] In the tavern, the speaker who offers the mission for the repaired catapult speaks both lines aloud. A tavern speaker with no recording for the hero's sex and class plays the conversation's own recording instead of staying silent.
+- [ROM1] The shopkeeper says one line about an item you take from his shelf instead of running through all of its lines one after another. A magic item gets its effect line, a book or wand its spell line, and other goods one of their own lines, picked anew each time.
 
 ## 0.120.0
 

@@ -170,7 +170,13 @@ func TestTownSpeechHeroVariantFollowsTheNamedSpeaker(t *testing.T) {
 	if !s.openTownDialogue(TownTavern, TownOffer{Mission: 80}, 23) {
 		t.Fatal("dialogue missing")
 	}
+	f.SpeechBank = responseBank(t, []synth.File{{Path: "inn/npc/fm_23m80p1.wav", Data: speechWAV(1000)}})
 	if got, ok := s.townSpeechPath(); !ok || got != "speech/inn/npc/fm_23m80p1.wav" {
 		t.Fatalf("speaker variant = %q %v", got, ok)
+	}
+	// An install without the speaker's variant plays the pager's leaf name.
+	f.SpeechBank = responseBank(t, []synth.File{{Path: "inn/npc/npc23m80p1.wav", Data: speechWAV(1000)}})
+	if got, ok := s.townSpeechPath(); !ok || got != "speech/inn/npc/npc23m80p1.wav" {
+		t.Fatalf("speaker without a variant = %q %v", got, ok)
 	}
 }

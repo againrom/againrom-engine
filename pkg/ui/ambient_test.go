@@ -285,6 +285,40 @@ func TestAmbientScanUsesOriginMovementOrStrictDeadline(t *testing.T) {
 	t.Logf("extent/equality unchanged; moved equality pan=625; strictly due crow calls=%d; empty due deadline=%v", len(ones.samples), c.next)
 }
 
+// With the camera still and the deadline ahead, a Wall of Fire that appears
+// starts its loop on that update and its end stops it (DIV-3153). Loss
+// control: a river appearing under the same predicates stays silent until a
+// move or the deadline.
+func TestAmbientWallFireStartsAndStopsWithItsCoverage(t *testing.T) {
+	bank := &ambientBank{samples: map[int]audio.Sample{
+		ambientRiverSlot:    ambientSample(50),
+		ambientWallFireSlot: ambientSample(90),
+	}}
+	device := &ambientLoopRecorder{}
+	c := newAmbientController(bank, &ambientOneShot{}, device, random.NewStream(71))
+	now := time.Unix(20, 0)
+	s := ambientSnapshot{geometry: audio.ViewGeometry{Span: image.Pt(10, 10)}, listener: image.Pt(5, 5), hasView: true}
+	c.update(now, s)
+	deadline := c.next
+	s.wallFire, s.river = []image.Point{image.Pt(7, 5)}, []image.Point{image.Pt(3, 5)}
+	c.update(now.Add(time.Second), s)
+	if len(device.starts) != 1 || device.starts[0].kind != AmbientWallOfFire || !c.next.Equal(deadline) {
+		t.Fatalf("a new wall with the camera still: starts %+v, deadline moved %v", device.starts, !c.next.Equal(deadline))
+	}
+	c.update(now.Add(2*time.Second), s)
+	if len(device.starts) != 1 || len(device.moves) != 0 {
+		t.Fatalf("a standing wall restarted or moved its loop: %+v %+v", device.starts, device.moves)
+	}
+	s.wallFire = nil
+	c.update(now.Add(3*time.Second), s)
+	if len(device.stops) != 1 || device.stops[0] != AmbientWallOfFire || c.loop[AmbientWallOfFire].active {
+		t.Fatalf("the wall's end stops = %v", device.stops)
+	}
+	if c.loop[AmbientRiver].active {
+		t.Fatal("loss control: the river started without a move or the deadline")
+	}
+}
+
 func TestAmbientStaticSelectorCarriesNegativeTwoAndPotentialNonNegative(t *testing.T) {
 	g := terrain.Grid{Width: 3, Height: 1, Tiles: make([]uint16, 3), Overlay: []uint8{1, 2, 3}}
 	set := new(terrain.StaticSet)

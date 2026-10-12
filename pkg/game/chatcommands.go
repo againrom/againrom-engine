@@ -193,7 +193,7 @@ func (mw *mapWorld) runChatCommand(row chatCommandRow, arg string) bool {
 		if !hasHero {
 			return false
 		}
-		if err := mw.world.CheatPickupAll(hero.ID); err != nil {
+		if err := mw.cheatPickupAll(hero.ID); err != nil {
 			return false
 		}
 		mw.cheatNotice(row.reply)

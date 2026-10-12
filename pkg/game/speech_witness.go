@@ -166,8 +166,8 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 		value ShopItem
 		name  string
 	}{
-		{ShopItem{Code: 0x0102}, "speech/shop/s01i02p1.wav"},
-		{ShopItem{Code: 0x0606}, "speech/shop/s06i06p1.wav"},
+		{ShopItem{Code: 0x0102}, ""},
+		{ShopItem{Code: 0x0606}, ""},
 		{ShopItem{Code: 0x0e15, Kind: 5, Effects: []sim.ItemEffect{{Kind: 42, Operand: 3}}}, "speech/shop/books/03.wav"},
 		{ShopItem{Code: 0x0e01, Effects: []sim.ItemEffect{{Kind: 2}}}, "speech/shop/effects/02.wav"},
 	} {
@@ -181,7 +181,17 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 		if len(f.Shop.Table()) != 1 {
 			return fmt.Errorf("speech response: item selection did not reach trade table")
 		}
-		if err := check("select-item", item.name); err != nil {
+		// An item without an effect or spell recording speaks one of its
+		// class and row parts, drawn by the shop stream (SHOP-116).
+		name := item.name
+		if name == "" {
+			prefix := fmt.Sprintf("speech/shop/s%02di%02dp", value.Code.B(), value.Code.D())
+			name = prefix + "1.wav"
+			if last := f.SpeechBank.last; strings.HasPrefix(last, prefix) {
+				name = last
+			}
+		}
+		if err := check("select-item", name); err != nil {
 			return err
 		}
 	}

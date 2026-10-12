@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -165,7 +166,9 @@ func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		if c, ok := ui.ShopControlAt(r.Min.Add(r.Size().Div(2))); !ok || c.Kind != ui.ShopControlShelfCell || c.Index != i {
 			break
 		}
-		if n, sample, ok := recording(shelf[i].Code); ok {
+		present := func(n string) bool { _, ok := f.SpeechBank.Sample(n); return ok }
+		if n, ok := shopItemSpeech(shelf[i], present, func(int) int { return 0 }); ok {
+			sample, _ := f.SpeechBank.Sample(n)
 			cell, name, want = i, n, sample
 			break
 		}
@@ -198,4 +201,89 @@ func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		t.Fatalf("changed rack: recordings %d, modes %#x; want 1 and Yes", got, shopModes(s))
 	}
 	t.Logf("sale stack %s at armour shelf cell %d", name, cell)
+}
+
+// shopSpeechDrain completes every recorded voice and steps App until no new
+// recording starts, and returns how many started since base.
+func shopSpeechDrain(t *testing.T, app *ui.App, r *tavernInteriorRecorder, base int) int {
+	t.Helper()
+	for n := 0; n < 8; n++ {
+		for _, v := range r.voices {
+			v.playing = false
+		}
+		if err := app.HeadlessStep(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return len(r.samples) - base
+}
+
+// Every installed item recording kind in the entered shop: each class/row
+// key with parts, each spell description and each effect description is one
+// selection, and each selection plays exactly one recording, the one
+// shopItemSpeech names. Loss control: the request a selection made before,
+// every class/row part queued at once, plays more than one recording for
+// every key with two or more parts.
+func TestReleaseShopMerchantSpeaksOneLinePerItem(t *testing.T) {
+	f, app, s, r := releaseQuietShopApp(t)
+	shopSpeechDrain(t, app, r, 0)
+	present := func(n string) bool { _, ok := f.SpeechBank.Sample(n); return ok }
+	var items []ShopItem
+	multi := 0
+	for b := 1; b < 14; b++ {
+		for d := 0; d < 100; d++ {
+			code := data.ItemCode(b<<8 | d)
+			var parts []string
+			for part := 1; part <= 3; part++ {
+				if n := fmt.Sprintf("speech/shop/s%02di%02dp%d.wav", b, d, part); present(n) {
+					parts = append(parts, n)
+				}
+			}
+			if len(parts) == 0 {
+				continue
+			}
+			items = append(items, ShopItem{Code: code, Count: 1})
+			if len(parts) > 1 {
+				multi++
+				base := len(r.samples)
+				s.startTownResponse(parts)
+				if got := shopSpeechDrain(t, app, r, base); got != len(parts) {
+					t.Fatalf("loss control %#04x: the queued %d parts played %d", uint16(code), len(parts), got)
+				}
+			}
+		}
+	}
+	books, effects := 0, 0
+	for spell := 1; spell < 32; spell++ {
+		if present(fmt.Sprintf("speech/shop/books/%02d.wav", spell)) {
+			books++
+			items = append(items, ShopItem{Code: 0x0e01, Kind: 5, Count: 1, Effects: []sim.ItemEffect{{Kind: 42, Operand: uint32(spell)}}})
+		}
+	}
+	for kind := 1; kind < 41; kind++ {
+		if present(fmt.Sprintf("speech/shop/effects/%02d.wav", kind)) {
+			effects++
+			items = append(items, ShopItem{Code: 0x0e01, Count: 1, Effects: []sim.ItemEffect{{Kind: uint8(kind), Operand: 1}}})
+		}
+	}
+	keys := len(items) - books - effects
+	if keys == 0 || books == 0 || effects == 0 || multi == 0 {
+		t.Fatalf("installed shop recordings: %d class/row keys (%d with several parts), %d spells, %d effects", keys, multi, books, effects)
+	}
+	for draw := 0; draw < 3; draw++ {
+		f.ShopRandom = func(int) int { return draw }
+		for _, item := range items {
+			want, ok := shopItemSpeech(item, present, f.ShopRandom)
+			if !ok {
+				t.Fatalf("%#04x names no recording", uint16(item.Code))
+			}
+			sample, _ := f.SpeechBank.Sample(want)
+			base := len(r.samples)
+			s.shopItemResponse(item)
+			if got := shopSpeechDrain(t, app, r, base); got != 1 || !slices.Equal(r.samples[base].PCM, sample.PCM) {
+				t.Fatalf("draw %d, %#04x: one selection played %d recording(s); want one, %s", draw, uint16(item.Code), got, want)
+			}
+		}
+	}
+	t.Logf("%d class/row keys (%d with several parts), %d spells, %d effects: one recording per selection under three draws", keys, multi, books, effects)
 }

@@ -2347,6 +2347,22 @@ package storyguard
 // loot.go, field.go), the host's record operations and checks,
 // pkg/ui/mapeditorrecords.go and their tests, this note included; the unit
 // wrappers' shortened docs pay part of it.
+//
+// CommentBytes rises for the shopkeeper's one recording per selection: the
+// docs of shopItemResponse and shopItemSpeech and of the new shop speech
+// tests and the town media witness's drawn part, this note included.
+//
+// CommentBytes rises for #pickup all as the ordinary pickup: the docs of
+// CheatPickupAll, takeSack, announceTake and cheatPickupAll and the notes of
+// the extended pickup release tests, this note included.
+//
+// CommentBytes rises for the Wall of Fire loop that starts and stops with its
+// coverage: the note in ambientController.update and the docs of the new
+// ambient and Fire Wall sound tests, this note included.
+//
+// CommentBytes rises for the town speaker's installed recording: the docs of
+// SpeechBank.has and the variant note in townSpeechPath and of the new town
+// speaker release test, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2370,5 +2386,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8913826,
+	CommentBytes: 8920660,
 }

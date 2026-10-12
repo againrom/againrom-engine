@@ -23,6 +23,12 @@ type SpeechBank struct {
 
 func OpenSpeech(root string) *SpeechBank { return &SpeechBank{root: root} }
 
+// has reports whether the bank holds name.
+func (b *SpeechBank) has(name string) bool {
+	_, found := b.Sample(name)
+	return found
+}
+
 func (b *SpeechBank) Sample(name string) (audio.Sample, bool) {
 	if b == nil || !strings.HasPrefix(name, "speech/") || path.Clean(name) != name || strings.ContainsAny(name, `\:`) {
 		return audio.Sample{}, false
@@ -140,9 +146,15 @@ func (t *townScreen) townSpeechPath() (string, bool) {
 			class = "m"
 		}
 		leaf := path.Base(name)
-		if strings.HasPrefix(leaf, "npc") {
-			return path.Dir(name) + "/" + sex + class + "_" + strings.TrimPrefix(leaf, "npc"), true
+		if !strings.HasPrefix(leaf, "npc") {
+			break
 		}
+		// A speaker whose sex/class recording the install lacks plays the
+		// pager's own leaf name (DLG-SOUND-028, DLG-VOICE-074).
+		if hero := path.Dir(name) + "/" + sex + class + "_" + strings.TrimPrefix(leaf, "npc"); t.in.SpeechBank.has(hero) {
+			return hero, true
+		}
+		break
 	}
 	return name, true
 }
