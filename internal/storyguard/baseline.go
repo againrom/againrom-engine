@@ -2313,6 +2313,11 @@ package storyguard
 // CommentBytes rises for unit authoring in the map editor: the docs of the new
 // pkg/mapedit/unitfield.go and CloneUnit, the host's clone, delete and field
 // operations, pkg/ui/mapeditorunits.go and their tests, this note included.
+//
+// CommentBytes rises for a paid cast that completes: the docs of paidWindUp,
+// castAfterWindUp and manualCastContinues in pkg/sim/manualcast.go, the queued
+// cast row notes in pendingorder.go and currentactions.go, and the new spell
+// click mana tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2336,5 +2341,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1731,
 	},
-	CommentBytes: 8870240,
+	CommentBytes: 8874267,
 }

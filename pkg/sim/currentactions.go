@@ -61,7 +61,8 @@ func (w *World) syncCurrentActionCarriers() {
 					}
 				}
 			}
-			if p.RowAdmitted {
+			// A running wind-up owns the action; the queued cast owns the order.
+			if _, booked := w.bookCastIndex(e.ID); p.RowAdmitted && !booked {
 				w.syncCurrentCastAction(e.ID, p.Kind == PendingCellCast)
 			}
 			if order := w.savedOrder(e.ID); order != nil {

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Once a spell's mana is spent, the cast completes. Clicking the same spell again while it is being cast spends nothing and does not start the cast over. Choosing another spell or target during the casting no longer cancels it: the new cast follows when the first one is released, and each spends its mana once, when its casting begins. A move or attack ordered during the casting also waits for it.
+
 ## 0.119.0
 
 - [ROM2] Spells look and sound like the second game's own. A missile, the cells an area spell strikes and the sound of each come from the second game's pictures and sounds instead of those of the first-game spell with the same number; a spell the second game draws without a picture shows none, and one without a sound stays silent. Effects last, flicker and light the ground around them by the second game's tables where those are known.

@@ -125,6 +125,9 @@ func (w *World) takePendingOrders() {
 		if p.Kind == PendingNone || p.Kind == PendingPickup || p.Kind == PendingScroll || !e.Alive() || e.OffMap || !w.pendingOrderReady(i) {
 			continue
 		}
+		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && w.bookCastInFlight(e.ID) {
+			continue
+		}
 		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && !p.RowAdmitted {
 			e.PendingOrder.RowAdmitted = true
 			e.AdmittedBookSpell = p.Spell
@@ -186,10 +189,14 @@ func (w *World) pendingOrderFault() error {
 		if p.RowAdmitted && (p.Kind == PendingRelease || progress != 0 && !pickupMoving) {
 			return fmt.Errorf("sim: admitted pending row conflicts with retained progress")
 		}
-		if p.Kind != PendingScroll && (e.CastWait != 0 || w.scrollCastPending(indexOfEntity(w.entities, e.ID))) {
+		// A manual cast queued behind a paid wind-up stands beside it, and beside
+		// the recovery of its release tick, until takePendingOrders runs it.
+		castRow := p.Kind == PendingActorCast || p.Kind == PendingCellCast
+		_, booked := w.bookCastIndex(e.ID)
+		if p.Kind != PendingScroll && (e.CastWait != 0 && !(castRow && !booked) || w.scrollCastPending(indexOfEntity(w.entities, e.ID))) {
 			return fmt.Errorf("sim: pending order conflicts with admitted cast")
 		}
-		if _, ok := w.bookCastIndex(e.ID); ok {
+		if booked && !(castRow && !p.RowAdmitted && w.paidWindUp(e.ID)) {
 			return fmt.Errorf("sim: pending order conflicts with book cast")
 		}
 		switch p.Kind {

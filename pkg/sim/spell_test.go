@@ -426,10 +426,9 @@ func TestManualCastRestartsZeroRecoveryReleaseBoundary(t *testing.T) {
 	caster := spMage(1, 0, 0, 60, 50, 50, 1<<1)
 	caster.AttackRelax = 0
 	victim := spEnt(2, 3, 0)
-	w := spWorld(t, 42, []SpellRule{spell}, caster, victim)
+	w := spWorld(t, 42, []SpellRule{spell}, caster, victim, spEnt(3, 0, 3))
 
-	cast := spCast(1, 2, 1)
-	Step(w, []Command{cast})
+	Step(w, []Command{spCast(1, 2, 1)})
 	if len(w.bookCasts) != 1 {
 		t.Fatalf("the first cast armed %d wind-up(s), want 1", len(w.bookCasts))
 	}
@@ -447,7 +446,7 @@ func TestManualCastRestartsZeroRecoveryReleaseBoundary(t *testing.T) {
 	before := spAt(t, w, 1).Mana
 
 	// A manual replacement takes priority even on the predecessor's release tick.
-	Step(w, []Command{cast})
+	Step(w, []Command{spCast(1, 3, 1)})
 
 	got := spAt(t, w, 1)
 	if got.CastWait != 0 {

@@ -64,7 +64,9 @@ func (w *World) beginStructureUse(i int, id StructureID) bool {
 	if !w.validStructureUse(i, id) || !w.cancelScroll(i) {
 		return false
 	}
-	w.clearActorCast(i)
+	if !w.paidWindUp(w.entities[i].ID) {
+		w.clearActorCast(i)
+	}
 	w.invalidateActorMotion(w.entities[i].ID, "structure use supersedes original movement")
 	w.clearOrder(i)
 	e := &w.entities[i]

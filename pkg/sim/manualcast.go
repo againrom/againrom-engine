@@ -24,10 +24,10 @@ func (w *World) manualCastRefusal(c Command) string {
 func (w *World) manualActionInterruptions(cmds []Command) map[EntityID]bool {
 	var interrupted map[EntityID]bool
 	for _, c := range cmds {
-		admitted := (c.Kind == KindCast || c.Kind == KindCastAt) && (w.manualCastRefusal(c) == "" || w.manualCellApproach(c))
+		admitted := (c.Kind == KindCast || c.Kind == KindCastAt) && !w.paidWindUp(c.Entity) && (w.manualCastRefusal(c) == "" && !w.manualCastContinues(c) || w.manualCellApproach(c))
 		if c.Kind == KindUseStructure {
 			i := indexOfEntity(w.entities, c.Entity)
-			admitted = w.validStructureUse(i, StructureID(uint32(c.X)))
+			admitted = w.validStructureUse(i, StructureID(uint32(c.X))) && !w.paidWindUp(c.Entity)
 			if admitted {
 				if _, pending := w.scrollIndex(c.Entity); pending {
 					// Refund admission can fail in source containers. Probe an
@@ -49,7 +49,22 @@ func (w *World) manualActionInterruptions(cmds []Command) map[EntityID]bool {
 
 func (w *World) beginManualCast(i int, c Command) bool {
 	if w.manualCastRefusal(c) != "" {
-		return w.manualCellApproach(c) && w.beginCellCastApproach(i, c)
+		if !w.manualCellApproach(c) {
+			return false
+		}
+		if w.paidWindUp(c.Entity) {
+			return w.castAfterWindUp(i, c)
+		}
+		return w.beginCellCastApproach(i, c)
+	}
+	if w.manualCastContinues(c) {
+		if p := w.entities[i].PendingOrder.Kind; p == PendingActorCast || p == PendingCellCast {
+			w.entities[i].PendingOrder = PendingOrder{}
+		}
+		return true
+	}
+	if w.paidWindUp(c.Entity) {
+		return w.castAfterWindUp(i, c)
 	}
 	if !w.cancelScroll(i) {
 		return false
@@ -104,6 +119,40 @@ func (w *World) beginManualCast(i int, c Command) bool {
 		return w.beginBookSpellAt(i, c.X, c.Y, uint32(c.Spell))
 	}
 	return w.beginBookSpellOnce(i, EntityID(uint32(c.X)), uint32(c.Y))
+}
+
+// paidWindUp reports a book cast winding up after its cost was spent. Once
+// the mana is spent the cast completes: no order cancels or restarts it.
+func (w *World) paidWindUp(caster EntityID) bool {
+	k, ok := w.bookCastIndex(caster)
+	return ok && w.bookCasts[k].Phase == bookCharging && w.bookCasts[k].Paid
+}
+
+// castAfterWindUp keeps a manual cast as the caster's next order while a paid
+// wind-up runs (AI-356, AI-354). The pending row runs after the release
+// (takePendingOrders).
+func (w *World) castAfterWindUp(i int, c Command) bool {
+	p := PendingOrder{Kind: PendingActorCast, Target: EntityID(uint32(c.X)), Spell: uint16(c.Y)}
+	if c.Kind == KindCastAt {
+		p = PendingOrder{Kind: PendingCellCast, Spell: c.Spell, X: c.X, Y: c.Y}
+	}
+	w.entities[i].PendingOrder = p
+	return true
+}
+
+// manualCastContinues reports a click that repeats the cast still winding up:
+// the same spell at the same unit or cell. It is no new order, so the wind-up
+// runs on without a restart and a cast queued behind it is dropped.
+func (w *World) manualCastContinues(c Command) bool {
+	k, ok := w.bookCastIndex(c.Entity)
+	if !ok || w.bookCasts[k].Phase != bookCharging {
+		return false
+	}
+	b := w.bookCasts[k]
+	if c.Kind == KindCastAt {
+		return b.AtCell && b.Spell == c.Spell && b.X == c.X && b.Y == c.Y
+	}
+	return c.Kind == KindCast && !b.AtCell && b.Target == EntityID(uint32(c.X)) && uint32(b.Spell) == uint32(c.Y)
 }
 
 // manualCellApproach reports a player Teleport refused for range alone: the

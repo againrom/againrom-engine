@@ -35,7 +35,8 @@ func TestManualCastPreemptsCurrentAction(t *testing.T) {
 						t.Fatal("pickup completion refused")
 					}
 				case "book-release":
-					if !w.beginBookSpellOnce(0, 2, 1) {
+					// A different cast: the same one repeated runs on.
+					if !w.beginBookSpellAt(0, 5, 3, 26) {
 						t.Fatal("predecessor cast refused")
 					}
 					w.bookCasts[0].Remaining = 1
