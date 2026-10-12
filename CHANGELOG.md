@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.117.0
+
 - [ROM2] Blizzard works: creatures that know it now cast it. The storm strikes 32 times, one cell after another around its target, hurting everyone there (water protection softens it, and the caster's own side is not spared) and damaging buildings. A save made during a Blizzard loads with the storm still going.
 - [ROM2] A save made while a Poison Cloud or another lasting cloud hangs over the map is no longer refused.
 - [ROM1] A save made during a Meteor Storm now loads with the storm exactly as it was saved.
