@@ -2215,6 +2215,10 @@ package storyguard
 // pkg/ui/minimap.go, the structure owner slots in pkg/game/world.go, the
 // minimap paint in pkg/game/missionart.go, the installed-picture witness and
 // the minimap release tests it rewrote, including this paragraph.
+// CommentBytes rises for the one automatic-casting setting: the docs of
+// pkg/sim/autocastsetting.go and its byte form, the attack-route support gate
+// in pkg/sim/spell.go, the one Game Options table in pkg/ui/gameoptions.go
+// and the docs of their tests, including this paragraph.
 // CommentBytes rises for the mod missions a guest party plays: the docs of
 // the new pkg/mod/missions.go and the missions file in pkg/modrt, all
 // genuinely new code, including this paragraph. It rises again for the
@@ -2249,5 +2253,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8766580,
+	CommentBytes: 8780043,
 }

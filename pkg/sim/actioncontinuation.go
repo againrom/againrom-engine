@@ -24,6 +24,9 @@ type ActionContinuations struct {
 	Healing        []ActionHealingPolicy
 	EffectCasters  []AttachedEffectCaster
 	StructureUses  []StructureUse `json:",omitempty"`
+	// AutoCast holds each Player slot's stored setting byte; zero reads the
+	// default. A supplement without it leaves the World's settings.
+	AutoCast []byte `json:",omitempty"`
 }
 
 type AttachedEffectCaster struct {
@@ -168,6 +171,14 @@ func (w *World) Actions() ActionContinuations {
 	}
 	for _, p := range w.autoHealing {
 		a.Healing = append(a.Healing, ActionHealingPolicy{p.Present, p.Percent})
+	}
+	for _, s := range w.autoCastSetting {
+		if s.Level() != 0 {
+			for _, s := range w.autoCastSetting {
+				a.AutoCast = append(a.AutoCast, byte(s))
+			}
+			break
+		}
 	}
 	for _, e := range w.entities {
 		var retreat *RetreatContinuation
@@ -413,6 +424,17 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 			return fmt.Errorf("sim: absent current autohealing policy has a value")
 		}
 		n.autoHealing[i] = autoHealingPolicy{p.Present, p.Percent}
+	}
+	if len(a.AutoCast) != 0 && len(a.AutoCast) != len(n.autoCastSetting) {
+		return fmt.Errorf("sim: incomplete current automatic-casting settings")
+	}
+	if len(a.AutoCast) != 0 {
+		n.autoCastSetting = [relationSlots]AutoCastSetting{}
+	}
+	for i, b := range a.AutoCast {
+		if b != 0 && !n.SetAutoCast(uint32(i), AutoCastSetting(b)) {
+			return fmt.Errorf("sim: invalid current automatic-casting setting %#x", b)
+		}
 	}
 	n.entities, n.routes = slices.Clone(w.entities), slices.Clone(w.routes)
 	n.savedMotion = cloneActorMotions(w.savedMotion)

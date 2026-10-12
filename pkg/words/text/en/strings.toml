@@ -40,6 +40,11 @@
 "options.shadows" = "Shadows"
 "options.lighting" = "Dynamic Lighting"
 "options.animation" = "Object animations"
+"options.autocast" = "AutoCast mode"
+"options.autocast_off" = "Off"
+"options.autocast_minimum" = "Minimum"
+"options.autocast_average" = "Average"
+"options.autocast_maximum" = "Maximum"
 
 # Timed autosave rows; %d is the minute count.
 "autosave.toggle" = "Timed autosave"

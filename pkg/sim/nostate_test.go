@@ -129,6 +129,7 @@ var nstPinned = []struct {
 		{"attached", "[]sim.attachedEffect"},
 		{"formations", "[50]uint8"},
 		{"autoHealing", "[50]sim.autoHealingPolicy"},
+		{"autoCastSetting", "[50]sim.AutoCastSetting"},
 		{"cellTails", "[]sim.cellTail"},
 		{"scorchedCells", "[]uint16"},
 		{"structureUses", "[]sim.StructureUse"},

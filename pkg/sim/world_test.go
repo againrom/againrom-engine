@@ -83,6 +83,8 @@ func init() {
 	worldWriters = append(worldWriters, "SetRandom", "OriginalRand")
 	worldWriters = append(worldWriters, "ImportOriginalActionClocks")
 	worldMethods = append(worldMethods, "AutoHealing", "ImportAutoHealing", "SetAutoHealing")
+	worldMethods = append(worldMethods, "AutoCast", "AutoCastCasts", "AutoCastLevelOfSpell", "AutoCastStored", "SetAutoCast")
+	worldWriters = append(worldWriters, "SetAutoCast")
 	worldMethods = append(worldMethods, "FrozenGroupAI")
 	worldWriters = append(worldWriters, "ImportAutoHealing", "SetAutoHealing")
 	worldMethods = append(worldMethods, "CurrentWorldEffectOrder", "NativeSpellDeliverySaveStates", "SavedSpellGraph", "ImportSavedSpellGraph")
@@ -116,19 +118,23 @@ func init() {
 // Entity and owner arguments refer to sample's actual population. StepRate's
 // sample has no rated mover; steprate_test.go covers its rated composition.
 var worldArgReaders = map[string][]reflect.Value{
-	"ROM2ScenarioValue":  {reflect.ValueOf(int32(753))},
-	"ActorOrderProgress": {reflect.ValueOf(EntityID(7))},
-	"SackValue":          {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(2))},
-	"Entity":             {reflect.ValueOf(EntityID(7))},
-	"KnowledgeLevel":     {reflect.ValueOf(Entity{})},
-	"AutoHealing":        {reflect.ValueOf(uint32(SelfSlot))},
-	"FrozenGroupAI":      {reflect.ValueOf(uint32(SelfSlot)), reflect.ValueOf(uint32(0))},
-	"AppendCorpseStates": {reflect.ValueOf([]CorpseState(nil))},
-	"ActorFinePosition":  {reflect.ValueOf(EntityID(7))},
-	"ActorMotionActive":  {reflect.ValueOf(EntityID(7))},
-	"WindUpElapsed":      {reflect.ValueOf(EntityID(7))},
-	"ProjectilePoint":    {reflect.ValueOf(EntityID(7))},
-	"BookSpellRefusal":   {reflect.ValueOf(EntityID(7)), reflect.ValueOf(EntityID(9)), reflect.ValueOf(uint32(1))},
+	"ROM2ScenarioValue":    {reflect.ValueOf(int32(753))},
+	"ActorOrderProgress":   {reflect.ValueOf(EntityID(7))},
+	"SackValue":            {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(2))},
+	"Entity":               {reflect.ValueOf(EntityID(7))},
+	"KnowledgeLevel":       {reflect.ValueOf(Entity{})},
+	"AutoHealing":          {reflect.ValueOf(uint32(SelfSlot))},
+	"AutoCast":             {reflect.ValueOf(uint32(SelfSlot))},
+	"AutoCastStored":       {reflect.ValueOf(uint32(SelfSlot))},
+	"AutoCastLevelOfSpell": {reflect.ValueOf(uint16(6))},
+	"AutoCastCasts":        {reflect.ValueOf(DefaultAutoCast), reflect.ValueOf(uint16(6))},
+	"FrozenGroupAI":        {reflect.ValueOf(uint32(SelfSlot)), reflect.ValueOf(uint32(0))},
+	"AppendCorpseStates":   {reflect.ValueOf([]CorpseState(nil))},
+	"ActorFinePosition":    {reflect.ValueOf(EntityID(7))},
+	"ActorMotionActive":    {reflect.ValueOf(EntityID(7))},
+	"WindUpElapsed":        {reflect.ValueOf(EntityID(7))},
+	"ProjectilePoint":      {reflect.ValueOf(EntityID(7))},
+	"BookSpellRefusal":     {reflect.ValueOf(EntityID(7)), reflect.ValueOf(EntityID(9)), reflect.ValueOf(uint32(1))},
 	// The cell form is swept at the caster sample() holds and a cell beside
 	// where it stands, so the call reaches the row and the landing predicate
 	// rather than stopping at "caster absent".

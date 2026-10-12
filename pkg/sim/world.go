@@ -1864,11 +1864,12 @@ type World struct {
 	// above it: the roster is a fixed width in this package and every slot
 	// exists whether or not a player stands on it. Both are in the byte form
 	// and therefore in the digest.
-	formations    [relationSlots]uint8
-	autoHealing   [relationSlots]autoHealingPolicy
-	cellTails     []cellTail
-	scorchedCells []uint16
-	structureUses []StructureUse
+	formations      [relationSlots]uint8
+	autoHealing     [relationSlots]autoHealingPolicy
+	autoCastSetting [relationSlots]AutoCastSetting
+	cellTails       []cellTail
+	scorchedCells   []uint16
+	structureUses   []StructureUse
 
 	// areaCosts is the stored movement-cost byte of every cell holding an
 	// applied area layer, in cell-key order (areacost.go). areaCostLive is

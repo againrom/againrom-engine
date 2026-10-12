@@ -427,6 +427,24 @@ var spellCaptions = []spellCaption{
 	{label: 217, format: "%d", rangeSep: "-", value: spellCaptionByID([]uint16{18}, func(l int64) int64 { return l/10 + 3 }, func(m int64) int64 { return m })},
 }
 
+// autoCastSetting is the Player's setting with any queued change applied.
+func (mw *mapWorld) autoCastSetting(player uint32) sim.AutoCastSetting {
+	s := mw.world.AutoCast(player)
+	for _, c := range mw.pending {
+		if c.Kind == sim.KindPlayerParameter && c.Player == player && sim.PlayerParameter(c.X) == sim.PlayerParameterAutoCast {
+			s = sim.AutoCastSetting(c.Y)
+		}
+	}
+	return s
+}
+
+// setAutoCastLevel queues the human player's setting at level, keeping the
+// target bits; a zero level is Off.
+func (mw *mapWorld) setAutoCastLevel(level sim.AutoCastSetting) {
+	next := mw.autoCastSetting(sim.SelfSlot).WithLevel(level)
+	mw.pending = append(mw.pending, sim.SetPlayerParameter(sim.SelfSlot, sim.PlayerParameterAutoCast, int32(next)))
+}
+
 // setAutocast is the ui.MapAutocast the loader hands the front-end: it turns
 // the toggle into the simulation's own command and appends it to the SAME
 // QUEUE the orders use, and it does NOTHING ELSE.

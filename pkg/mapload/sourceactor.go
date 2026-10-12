@@ -33,8 +33,37 @@ func deriveSourceActor(s sim.SourceActor, accumulator int32, r sim.Rules) (sim.S
 	if err != nil {
 		return s, err
 	}
+	n.Attack = trainingCapAttack(n.Attack, r.SkillCap())
 	return humanSourceWithRuntime(n, s), nil
 }
+
+// trainingCapAttack holds a derived attack block in the domain the source
+// block keeps and a SAVE writes: each skill level at most the training cap,
+// and the to-hit and damage base without the terms the active skill adds
+// above it. The live actor takes the lifted levels and terms back when the
+// block is published (liftEffectiveSkills), as it does on LOAD, so a derive
+// and a SAVE then LOAD leave one source block.
+func trainingCapAttack(a data.HumanAttack, trainingCap int32) data.HumanAttack {
+	for j := 1; j < len(a.Skill); j++ {
+		level := int32(int16(a.Skill[j]))
+		if level <= trainingCap {
+			continue
+		}
+		if int(a.Active) == j {
+			a.ToHit -= uint16(sourceSkillToHitPerLevel * (level - trainingCap))
+			a.DamageBase -= uint8(level/sourceSkillDamageDivisor - trainingCap/sourceSkillDamageDivisor)
+		}
+		a.Skill[j] = uint16(trainingCap)
+	}
+	return a
+}
+
+// The active skill's terms in the attack block: three times the level joins
+// the to-hit and a fifth of it the damage base.
+const (
+	sourceSkillToHitPerLevel = 3
+	sourceSkillDamageDivisor = 5
+)
 
 func humanSourceWithRuntime(h data.HumanState, prior sim.SourceActor) sim.SourceActor {
 	out := HumanSourceActor(h, prior.Class)

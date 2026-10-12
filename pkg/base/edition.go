@@ -41,6 +41,10 @@ type Edition struct {
 	// screen no town or generator description names.
 	Screens string
 
+	// Options names the Game Options column a stepping option row reads its
+	// offered values and its new-game value from.
+	Options string
+
 	// CompanionObjectiveMission is the mission whose persistent companion the
 	// compiled script must keep alive; zero for none.
 	CompanionObjectiveMission int
@@ -111,6 +115,7 @@ var firstEdition = Edition{
 	Music:                     "rom1",
 	Rooms:                     "rom1",
 	Screens:                   "rom1",
+	Options:                   "rom1",
 	CompanionObjectiveMission: 40,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "Allods/video4.res", Name: "video4"},
@@ -129,6 +134,7 @@ var secondEdition = Edition{
 	Generator:    "rom2",
 	Music:        "rom2",
 	Screens:      "rom2",
+	Options:      "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "video.res", Name: "video"},

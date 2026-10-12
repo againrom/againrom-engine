@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -18,7 +19,14 @@ const (
 	patchGraphicsRow = 52
 )
 
-var gameOptionKeys = [...]string{"ShowTimeFlow", "ShowAllHitPoints", "ShowFlyingHP", "FormationMode", wimpyModeKey, "ShowPathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoCasting", "LootDots"}
+// gameOptionKeys are the profile keys of ui's option table, in GameOption
+// order.
+var gameOptionKeys = func() (keys [len(ui.GameOptionValues{})]string) {
+	for _, o := range ui.GameOptions() {
+		keys[o] = o.Key()
+	}
+	return keys
+}()
 
 // Missing or malformed values are unspecified: an old profile must not reset
 // the map's existing defaults merely because it predates a new control.
@@ -54,10 +62,13 @@ func (f *FrontEnd) gameOptionValues(onMap bool) ui.GameOptionValues {
 	values := ui.GameOptionValues{1, 1, 1, 1, f.wimpyMode, boolOption(f.showPathfinding)}
 	f.graphicsValues(&values)
 	values[ui.GameOptionAutoHealing] = 1
+	column := f.optionColumn()
+	values[ui.GameOptionAutoCast] = ui.GameOptionAutoCast.Default(column)
 	if !onMap || f.live == nil {
 		stored, present, _ := f.Options.gameOptions()
 		for i, ok := range present {
-			if ok && (i < int(ui.GameOptionSmoothing) || i == int(ui.GameOptionAutoHealing)) {
+			if ok && (i < int(ui.GameOptionSmoothing) || i == int(ui.GameOptionAutoHealing) ||
+				i == int(ui.GameOptionAutoCast) && ui.GameOptionAutoCast.Offered(column, stored[i])) {
 				values[i] = stored[i]
 			}
 		}
@@ -71,8 +82,13 @@ func (f *FrontEnd) gameOptionValues(onMap bool) ui.GameOptionValues {
 	values[ui.GameOptionFormation] = mw.formationSetting()
 	values[ui.GameOptionPathfinding] = boolOption(mw.view.PathfindingShown())
 	values[ui.GameOptionAutoHealing] = mw.autoHealingSetting()
+	values[ui.GameOptionAutoCast] = mw.autoCastSetting(sim.SelfSlot).LevelNumber()
 	return values
 }
+
+// optionColumn is the edition's Game Options column: the offers and the
+// new-game values of the table's stepping rows.
+func (f *FrontEnd) optionColumn() string { return f.Base().Profile.Edition().Options }
 
 func boolOption(on bool) int {
 	if on {
@@ -82,7 +98,7 @@ func boolOption(on bool) int {
 }
 
 func (f *FrontEnd) setGameOption(onMap bool, o ui.GameOption, value int) error {
-	if value < 0 || value >= o.Choices() {
+	if !o.Offered(f.optionColumn(), value) {
 		return fmt.Errorf("invalid game option %d value %d", o, value)
 	}
 	if o >= ui.GameOptionSmoothing && o <= ui.GameOptionAnimation || o == ui.GameOptionLootDots {
@@ -136,6 +152,11 @@ func (mw *mapWorld) applyGameOption(o ui.GameOption, value int) {
 		mw.enqueueRetreat(value)
 	case ui.GameOptionAutoHealing:
 		mw.pending = append(mw.pending, sim.SetPlayerParameter(sim.SelfSlot, sim.PlayerParameterAutoHealing, int32(value)))
+	case ui.GameOptionAutoCast:
+		// The level the world already reads queues nothing.
+		if mw.autoCastSetting(sim.SelfSlot).LevelNumber() != value {
+			mw.setAutoCastLevel(sim.AutoCastLevel(value))
+		}
 	case ui.GameOptionPathfinding:
 		mw.view.SetPathfinding(on)
 	}
@@ -216,21 +237,36 @@ func (mw *mapWorld) formationSetting() int {
 }
 
 func (f *FrontEnd) wireGameOptions(a *ui.App) {
-	c := ui.GameOptionControls{Read: f.gameOptionValues, Write: f.setGameOption,
+	c := ui.GameOptionControls{Column: f.optionColumn(), Read: f.gameOptionValues, Write: f.setGameOption,
 		Words: ui.GameOptionWords{Title: "Game Options", Tips: "Tips", OK: "OK", Cancel: "Cancel", Speed: "Game Speed",
-			Labels:    [12]string{"Day/Night changes", "Show Health", "Show flying damage", "Formation Mode", "Retreat Mode", "Show pathfinding", "Smoothing", "", "", "", "AutoHealing", "Loot dots on minimap"},
-			Formation: [3]string{"Off", "Auto", "On"}, Retreat: [3]string{"Never", "Low Health", "Medium Health"}, AutoHealing: [3]string{"No", "Standard", "Often"}}}
+			Labels: [len(ui.GameOptionValues{})]string{"Day/Night changes", "Show Health", "Show flying damage", "Formation Mode", "Retreat Mode", "Show pathfinding", "Smoothing", "", "", "", "AutoHealing", "Loot dots on minimap"}}}
+	c.Words.Choices[ui.GameOptionFormation] = [4]string{"Off", "Auto", "On"}
+	c.Words.Choices[ui.GameOptionRetreat] = [4]string{"Never", "Low Health", "Medium Health"}
+	c.Words.Choices[ui.GameOptionAutoHealing] = [4]string{"No", "Standard", "Often"}
 	if f.Archives != nil {
 		t := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 		for i, p := range map[int]*string{150: &c.Words.Title, 156: &c.Words.Tips, 0: &c.Words.OK, 1: &c.Words.Cancel, 50: &c.Words.Speed,
 			52: &c.Words.Labels[ui.GameOptionSmoothing], 54: &c.Words.Labels[0], 56: &c.Words.Labels[1], 78: &c.Words.Labels[2],
 			58: &c.Words.Labels[3], 63: &c.Words.Labels[4],
-			60: &c.Words.Formation[0], 61: &c.Words.Formation[1], 62: &c.Words.Formation[2],
-			65: &c.Words.Retreat[0], 66: &c.Words.Retreat[1], 67: &c.Words.Retreat[2],
-			159: &c.Words.Labels[ui.GameOptionAutoHealing], 160: &c.Words.AutoHealing[0], 161: &c.Words.AutoHealing[1], 162: &c.Words.AutoHealing[2]} {
+			60: &c.Words.Choices[ui.GameOptionFormation][0], 61: &c.Words.Choices[ui.GameOptionFormation][1], 62: &c.Words.Choices[ui.GameOptionFormation][2],
+			65: &c.Words.Choices[ui.GameOptionRetreat][0], 66: &c.Words.Choices[ui.GameOptionRetreat][1], 67: &c.Words.Choices[ui.GameOptionRetreat][2],
+			159: &c.Words.Labels[ui.GameOptionAutoHealing], 160: &c.Words.Choices[ui.GameOptionAutoHealing][0], 161: &c.Words.Choices[ui.GameOptionAutoHealing][1], 162: &c.Words.Choices[ui.GameOptionAutoHealing][2]} {
 			if s, ok := t.At(i); ok {
 				*p = s
 			}
+		}
+		// The second game's dialogs lines name the automatic-casting row and
+		// its three levels (R2-ASSET-085); the first game's root has none and
+		// the page supplies the engine's words (DIV-3011).
+		if lines := filesOf(f.Archives.Game()).autoCastCaptions; len(lines) == 4 {
+			for i, p := range [...]*string{&c.Words.Labels[ui.GameOptionAutoCast], &c.Words.Choices[ui.GameOptionAutoCast][1],
+				&c.Words.Choices[ui.GameOptionAutoCast][2], &c.Words.Choices[ui.GameOptionAutoCast][3]} {
+				if s, ok := t.At(lines[i]); ok {
+					*p = s
+				}
+			}
+			// The label line ends in its own colon; the row adds one.
+			c.Words.Labels[ui.GameOptionAutoCast] = strings.TrimSuffix(strings.TrimSpace(c.Words.Labels[ui.GameOptionAutoCast]), ":")
 		}
 		if patch, err := OpenContainers(filepath.Join(f.Archives.Root, patchArchive)); err == nil {
 			table := LoadTextTable(patch, patchTextPath, f.textCode())

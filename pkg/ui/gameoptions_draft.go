@@ -68,11 +68,11 @@ func (f *flow) cycleDraftOption(o GameOption) {
 	if d == nil || o >= gameOptionCount {
 		return
 	}
-	d.values[o] = (max(d.values[o], -1) + 1) % o.Choices()
+	d.values[o] = o.nextOffer(f.gameOptions.Column, d.values[o])
 }
 
 func (f *flow) setDraftOption(o GameOption, value int) {
-	if d := f.gameOptions.draft; d != nil && value >= 0 && value < o.Choices() {
+	if d := f.gameOptions.draft; d != nil && o.Offered(f.gameOptions.Column, value) {
 		d.values[o] = value
 	}
 }
@@ -114,8 +114,9 @@ func (f *flow) setMenuSpeedRung(rung int) {
 // commitGameOptions is the OK arm (MENU-074). It writes the speed, Tips and the
 // Day/Night flag, then the four graphics flags with Animation 0 forcing
 // Lighting 0, then the party flags, then sends the formation, retreat and
-// autohealing commands on every OK, changed or not. It reports the first
-// failed write and carries on with the rest.
+// autohealing commands on every OK, changed or not, then the loot-dot flag and
+// the automatic-casting level: the option table's commit order. It reports
+// the first failed write and carries on with the rest.
 func (f *flow) commitGameOptions() error {
 	d := f.gameOptions.draft
 	if d == nil {
@@ -146,9 +147,7 @@ func (f *flow) commitGameOptions() error {
 		}
 		note(f.gameOptions.Write(f.gameOptionsOnMap(), o, v[o]))
 	}
-	for _, o := range []GameOption{GameOptionDayNight, GameOptionSmoothing, GameOptionShadows, GameOptionLighting,
-		GameOptionAnimation, GameOptionHealth, GameOptionDamage, GameOptionPathfinding,
-		GameOptionFormation, GameOptionRetreat, GameOptionAutoHealing, GameOptionLootDots} {
+	for _, o := range gameOptionsBy(func(d gameOptionDefinition) int { return d.commit }) {
 		write(o)
 	}
 	if f.tooltip != nil && d.delay != d.delayStart {
@@ -194,40 +193,43 @@ func (f *flow) gameOptionsPageRows() []gameMenuRow {
 		if d.values[o] != 0 {
 			state = "ON"
 		}
-		if d.values[o] >= 0 && d.values[o] < 3 {
-			switch o {
-			case GameOptionFormation:
-				state = w.Formation[d.values[o]]
-			case GameOptionRetreat:
-				state = w.Retreat[d.values[o]]
-			case GameOptionAutoHealing:
-				state = w.AutoHealing[d.values[o]]
-			}
+		if o.Choices() > 2 && d.values[o] >= 0 && d.values[o] < o.Choices() {
+			state = w.Choices[o][d.values[o]]
 		}
 		if o == GameOptionAutoHealing && d.values[o] < 0 {
 			state = "--"
 		}
 		return gameMenuRow{Label: w.Labels[o] + ": " + state, Literal: true, Enabled: enabled, Action: optionAction(o)}
 	}
-	for _, o := range []GameOption{GameOptionDayNight, GameOptionSmoothing, GameOptionShadows,
-		GameOptionLighting, GameOptionAnimation} {
-		rows = append(rows, option(o))
-	}
+	// The engine rows that are not options take their places between the
+	// table's focus values.
 	delay := f.tooltipDelayRow()
 	label, unit := f.menuWord("tooltip.delay_options"), f.menuWord("tooltip.unit")
 	delay.Label = label + strconv.Itoa(d.delay) + unit
-	rows = append(rows, delay, option(GameOptionHealth), option(GameOptionDamage))
 	tips := gameMenuRow{Label: w.Tips + ": " + onOff(d.tips), Literal: true, Action: gameMenuToggleTips,
 		Enabled: f.menuTips != nil && f.setMenuTips != nil}
-	rows = append(rows, tips, option(GameOptionAutoHealing), option(GameOptionPathfinding),
-		option(GameOptionFormation), option(GameOptionRetreat))
+	extra := []struct {
+		focus int
+		rows  []gameMenuRow
+	}{{55, []gameMenuRow{delay}}, {75, []gameMenuRow{tips}}}
 	if f.gameOptions.Autosave.Read != nil {
 		toggle, interval := f.timedAutosaveLabels(d)
-		rows = append(rows,
-			gameMenuRow{Label: toggle + ": " + onOff(d.autosave.Enabled), Literal: true, Action: gameMenuTimedAutosave, Enabled: f.gameOptions.Autosave.Write != nil},
-			gameMenuRow{Label: interval, Literal: true, Action: gameMenuAutosaveMinutes, Enabled: f.gameOptions.Autosave.Write != nil})
+		extra = append(extra, struct {
+			focus int
+			rows  []gameMenuRow
+		}{125, []gameMenuRow{
+			{Label: toggle + ": " + onOff(d.autosave.Enabled), Literal: true, Action: gameMenuTimedAutosave, Enabled: f.gameOptions.Autosave.Write != nil},
+			{Label: interval, Literal: true, Action: gameMenuAutosaveMinutes, Enabled: f.gameOptions.Autosave.Write != nil}}})
 	}
-	rows = append(rows, option(GameOptionLootDots))
+	for _, o := range gameOptionsBy(func(d gameOptionDefinition) int { return d.focus }) {
+		for len(extra) != 0 && extra[0].focus < gameOptionTable[o].focus {
+			rows, extra = append(rows, extra[0].rows...), extra[1:]
+		}
+		rows = append(rows, option(o))
+	}
+	for _, e := range extra {
+		rows = append(rows, e.rows...)
+	}
 	ok, cancel := w.OK, w.Cancel
 	if ok == "" {
 		ok = "OK"

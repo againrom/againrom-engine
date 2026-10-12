@@ -40,6 +40,11 @@
 "options.shadows" = "Тени"
 "options.lighting" = "Динамическое освещение"
 "options.animation" = "Анимация объектов"
+"options.autocast" = "Автокастинг"
+"options.autocast_off" = "Выкл"
+"options.autocast_minimum" = "Минимальный"
+"options.autocast_average" = "Средний"
+"options.autocast_maximum" = "Максимальный"
 
 # Timed autosave rows; %d is the minute count.
 "autosave.toggle" = "Автосохранение"

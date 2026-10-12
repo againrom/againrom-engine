@@ -697,30 +697,6 @@ func (a *App) HeadlessGameMenuAction(name string) error {
 		want = gameMenuSpeedUp
 	case "tooltip-delay":
 		want = gameMenuTooltipDelay
-	case "day-night":
-		want = gameMenuDayNight
-	case "show-health":
-		want = gameMenuHealth
-	case "flying-damage":
-		want = gameMenuDamage
-	case "formation":
-		want = gameMenuFormation
-	case "retreat-mode":
-		want = gameMenuRetreat
-	case "smoothing":
-		want = gameMenuSmoothing
-	case "shadows":
-		want = gameMenuShadows
-	case "lighting":
-		want = gameMenuLighting
-	case "animation":
-		want = gameMenuAnimation
-	case "autohealing":
-		want = gameMenuAutoHealing
-	case "pathfinding":
-		want = gameMenuPathfinding
-	case "loot-dots":
-		want = gameMenuLootDots
 	case "test-sound":
 		want = gameMenuTestSound
 	case "confirm-end":
@@ -734,7 +710,11 @@ func (a *App) HeadlessGameMenuAction(name string) error {
 	case "exit-windows":
 		want = gameMenuExitWindows
 	default:
-		return fmt.Errorf("headless game-menu action: unknown action %q", name)
+		o, ok := gameOptionNamed(name)
+		if !ok {
+			return fmt.Errorf("headless game-menu action: unknown action %q", name)
+		}
+		want = optionAction(o)
 	}
 	for i, row := range a.flow.menuRows() {
 		if row.Action != want {

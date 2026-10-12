@@ -34,8 +34,8 @@ func optionsApp(t *testing.T, values *GameOptionValues, log *[]optionWrite, fail
 			return nil
 		},
 		Words: GameOptionWords{Title: "Game Options", Tips: "Tips", OK: "OK", Cancel: "Cancel", Speed: "Game Speed",
-			Labels:    [12]string{"Day/Night", "Health", "Damage", "Formation", "Retreat", "Pathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoHealing", "Loot dots"},
-			Formation: [3]string{"Off", "Auto", "On"}, Retreat: [3]string{"Never", "Low", "Medium"}, AutoHealing: [3]string{"No", "Standard", "Often"}},
+			Labels:  [gameOptionCount]string{"Day/Night", "Health", "Damage", "Formation", "Retreat", "Pathfinding", "Smoothing", "Shadows", "Lighting", "Animation", "AutoHealing", "Loot dots", "AutoCast"},
+			Choices: [gameOptionCount][4]string{GameOptionFormation: {"Off", "Auto", "On"}, GameOptionRetreat: {"Never", "Low", "Medium"}, GameOptionAutoHealing: {"No", "Standard", "Often"}, GameOptionAutoCast: {"Off", "Minimum", "Average", "Maximum"}}},
 	})
 	if err := a.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func TestGameOptionsClicksWriteNothingUntilOK(t *testing.T) {
 	values := GameOptionValues{1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1}
 	var log []optionWrite
 	a := optionsApp(t, &values, &log, nil)
-	if got := len(a.HeadlessRows()); got != 19 || a.GameMenuPanel() == nil {
+	if got := len(a.HeadlessRows()); got != 20 || a.GameMenuPanel() == nil {
 		t.Fatal("complete options panel unavailable", got)
 	}
 	clickRect(t, a, gameOptionChoiceRect(gameMenuFormation, 0))
@@ -124,7 +124,7 @@ func TestGameOptionsOKWritesInOrderAndForcesLighting(t *testing.T) {
 	}
 	want := []optionWrite{{GameOptionDayNight, 1}, {GameOptionSmoothing, 1}, {GameOptionShadows, 1},
 		{GameOptionLighting, 0}, {GameOptionAnimation, 0}, {GameOptionHealth, 1}, {GameOptionDamage, 1},
-		{GameOptionPathfinding, 0}, {GameOptionFormation, 1}, {GameOptionRetreat, 0}, {GameOptionAutoHealing, 1}, {GameOptionLootDots, 0}}
+		{GameOptionPathfinding, 0}, {GameOptionFormation, 1}, {GameOptionRetreat, 0}, {GameOptionAutoHealing, 1}, {GameOptionLootDots, 0}, {GameOptionAutoCast, 0}}
 	if !reflect.DeepEqual(log, want) {
 		t.Fatalf("OK wrote %v want %v", log, want)
 	}
@@ -214,5 +214,72 @@ func TestGameOptionsSpeedSliderIsStagedAndStepsLevels(t *testing.T) {
 	}
 	if a.flow.rung != 7 || !a.flow.stopped {
 		t.Fatal("OK did not pause while preserving the resume rung", a.flow.rung, a.flow.stopped)
+	}
+}
+
+// TestGameOptionTableBuildsThePageKeysAndCommit is the one option table: the
+// profile keys of the existing options are unchanged, the page lists the
+// options in the table's focus order with each rectangle its row's, and the
+// automatic-casting row is a push button that steps through its game's
+// offers, shows the chosen caption and commits last.
+func TestGameOptionTableBuildsThePageKeysAndCommit(t *testing.T) {
+	keys := []string{"ShowTimeFlow", "ShowAllHitPoints", "ShowFlyingHP", "FormationMode", "WimpyMode", "ShowPathfinding",
+		"Smoothing", "Shadows", "Lighting", "Animation", "AutoCasting", "LootDots", "AutoCastMode"}
+	for i, o := range GameOptions() {
+		if o.Key() != keys[i] {
+			t.Errorf("option %d key %q, want %q", o, o.Key(), keys[i])
+		}
+		if n, ok := gameOptionNamed(gameOptionTable[o].name); !ok || n != o {
+			t.Errorf("option %d headless name %q", o, gameOptionTable[o].name)
+		}
+		if gameOptionRect(optionAction(o)).Sub(gameOptionsDialog.Min) != gameOptionTable[o].rect {
+			t.Errorf("option %d rectangle is not its row's", o)
+		}
+		if o != GameOptionAutoCast && (o.stepping() || !reflect.DeepEqual(o.Offers("rom1"), o.Offers("rom2"))) {
+			t.Errorf("option %d offers differ per game", o)
+		}
+	}
+	if GameOptionAutoCast.Choices() != 4 || !isGameOptionButton(gameMenuAutoCast) || isRadioAction(gameMenuAutoCast) || isGameOptionCheck(gameMenuAutoCast) {
+		t.Fatal("automatic casting is not a four-value push button")
+	}
+	for _, tc := range []struct {
+		column string
+		steps  []int
+	}{{"", []int{2, 3, 0, 1}}, {"rom1", []int{2, 3, 0, 1}}, {"rom2", []int{2, 3, 1, 2}}} {
+		values := GameOptionValues{1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1}
+		var log []optionWrite
+		a := optionsApp(t, &values, &log, nil)
+		a.flow.gameOptions.Column = tc.column
+		var page []gameMenuAction
+		for _, row := range a.flow.menuRows() {
+			if _, ok := actionOption(row.Action); ok {
+				page = append(page, row.Action)
+			}
+		}
+		want := []gameMenuAction{gameMenuDayNight, gameMenuSmoothing, gameMenuShadows, gameMenuLighting, gameMenuAnimation,
+			gameMenuHealth, gameMenuDamage, gameMenuAutoHealing, gameMenuPathfinding, gameMenuFormation, gameMenuRetreat,
+			gameMenuLootDots, gameMenuAutoCast}
+		if !reflect.DeepEqual(page, want) {
+			t.Fatalf("page options %v, want %v", page, want)
+		}
+		captions := [...]string{"Off", "Minimum", "Average", "Maximum"}
+		for _, step := range tc.steps {
+			clickRect(t, a, gameOptionRect(gameMenuAutoCast))
+			if len(log) != 0 || a.flow.optionValues()[GameOptionAutoCast] != step {
+				t.Fatalf("column %q: a click wrote or reached %d, want %d", tc.column, a.flow.optionValues()[GameOptionAutoCast], step)
+			}
+			found := false
+			for _, row := range a.HeadlessRows() {
+				found = found || row.Text == "AutoCast: "+captions[step]
+			}
+			if !found {
+				t.Fatalf("column %q: no row shows %q", tc.column, captions[step])
+			}
+		}
+		clickRect(t, a, gameOptionRect(gameMenuPageReturn))
+		last := tc.steps[len(tc.steps)-1]
+		if len(log) == 0 || log[len(log)-1] != (optionWrite{GameOptionAutoCast, last}) {
+			t.Fatal("OK did not commit the level last", log)
+		}
 	}
 }

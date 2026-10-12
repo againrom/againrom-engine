@@ -9,46 +9,26 @@ import (
 // gameOptionRect places controls inside the snapped Game Options frame.
 // The checkboxes, radio groups and slider keep MENU-073's 24-pixel rows; the
 // engine's own controls fit around them. The page's frame is one tile row
-// taller than the original's for the loot-dot row; every other control keeps
-// its offset from the frame's top edge and OK and Cancel keep the frame's
-// bottom margin.
+// taller than the original's for the engine's rows; every original control
+// keeps its offset from the frame's top edge and OK and Cancel keep the
+// frame's bottom margin. An option's rectangle is its table row's.
 func gameOptionRect(action gameMenuAction) image.Rectangle {
 	g := gameOptionsDialog
 	w := g.Body().Dx()
+	if o, ok := actionOption(action); ok {
+		r := gameOptionTable[o].rect
+		return g.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y)
+	}
 	switch action {
 	case gameMenuSpeedDown, gameMenuSpeedUp:
 		return g.Rect(24, 76, 216, 100)
-	case gameMenuDayNight:
-		return g.Rect(24, 104, 234, 128)
-	case gameMenuSmoothing:
-		return g.Rect(24, 128, 234, 152)
-	case gameMenuShadows:
-		return g.Rect(24, 152, 234, 176)
-	case gameMenuLighting:
-		return g.Rect(24, 176, 234, 200)
-	case gameMenuAnimation:
-		return g.Rect(24, 200, 234, 224)
 	case gameMenuTooltipDelay:
 		return g.Rect(24, 228, 234, 248)
-	case gameMenuFormation:
-		return g.Rect(24, 248, 216, 338)
-	case gameMenuHealth:
-		return g.Rect(240, 48, 456, 72)
-	case gameMenuDamage:
-		return g.Rect(240, 76, 456, 100)
 	case gameMenuToggleTips:
 		return g.Rect(240, 104, 456, 128)
-	case gameMenuAutoHealing:
-		return g.Rect(240, 132, 432, 224)
-	case gameMenuPathfinding:
-		return g.Rect(240, 224, 456, 248)
-	case gameMenuRetreat:
-		return g.Rect(240, 248, 408, 338)
 	case gameMenuTimedAutosave:
 		return g.Rect(24, 340, 234, 364)
 	case gameMenuAutosaveMinutes:
-		return g.Rect(240, 340, 456, 364)
-	case gameMenuLootDots:
 		return g.Rect(24, 364, 234, 388)
 	case gameMenuPageReturn:
 		return g.Rect(w/7, 436, 3*w/7, 460)
@@ -75,6 +55,9 @@ func gameOptionChoiceRect(action gameMenuAction, choice int) image.Rectangle {
 
 // isGameOptionButton reports the push buttons among the page's rows.
 func isGameOptionButton(a gameMenuAction) bool {
+	if o, ok := actionOption(a); ok {
+		return o.stepping()
+	}
 	return a == gameMenuTooltipDelay || a == gameMenuAutosaveMinutes || a == gameMenuPageReturn || a == gameMenuOptionsCancel
 }
 
@@ -90,11 +73,21 @@ func isGameOptionCheck(a gameMenuAction) bool {
 	if a == gameMenuToggleTips || a == gameMenuTimedAutosave {
 		return true
 	}
-	return a >= gameMenuDayNight && a <= gameMenuLootDots && !isRadioAction(a)
+	o, ok := actionOption(a)
+	return ok && o.Choices() == 2
 }
 
 func isRadioAction(a gameMenuAction) bool {
-	return a == gameMenuFormation || a == gameMenuRetreat || a == gameMenuAutoHealing
+	o, ok := actionOption(a)
+	return ok && o.Choices() == 3 && !o.stepping()
+}
+
+// actionOption is the option a page action names.
+func actionOption(a gameMenuAction) (GameOption, bool) {
+	if a < gameMenuDayNight || a >= gameMenuDayNight+gameMenuAction(gameOptionCount) {
+		return 0, false
+	}
+	return GameOption(a - gameMenuDayNight), true
 }
 
 // stepGameOptionsPointer handles the speed slider's keys and drag. It reports
@@ -284,13 +277,8 @@ func (a *App) gameOptionsPicture() *image.RGBA {
 			if !row.Enabled {
 				dimDisabledRow(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, gameOptionRadioRect(row.Action).Min.Y), since)
 			}
-			choices := w.Formation
-			if o == GameOptionRetreat {
-				choices = w.Retreat
-			} else if o == GameOptionAutoHealing {
-				choices = w.AutoHealing
-			}
-			drawChoiceGroup(dst, font, choiceGroup{Kind: choiceRadio, Rect: gameOptionRadioRect(row.Action), Labels: choices[:],
+			choices := w.Choices[o]
+			drawChoiceGroup(dst, font, choiceGroup{Kind: choiceRadio, Rect: gameOptionRadioRect(row.Action), Labels: choices[:3],
 				Selected: values[o], Focus: focused, Disabled: !row.Enabled, Off: f.gameOptions.Radios[0], On: f.gameOptions.Radios[1]})
 		case isGameOptionButton(row.Action):
 			inside := pointerOK && pointer.In(r)

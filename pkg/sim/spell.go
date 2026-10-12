@@ -2315,7 +2315,9 @@ func (w *World) affordsAutoHeal(ci int, rule SpellRule) bool {
 // castSpell — THE SAME ROUTINE A KindCast COMMAND REACHES — so an
 // autocast can do nothing a player could not have ordered by hand, and the
 // two cannot come to disagree about the refusals, the cost, the roll, the
-// mark or the award.
+// mark or the award. The armed row and the idle heal go first; the human
+// player's mage then tries the Player's automatic-casting level, which is Off
+// in a first-game state that stores none (DIV-3006).
 func (w *World) autoCast(ci int) {
 	if !isMage(w.entities[ci]) {
 		return
@@ -2332,6 +2334,34 @@ func (w *World) autoCast(ci int) {
 			return
 		}
 	}
+	if e := w.entities[ci]; e.Owner == SelfSlot && e.KnownSpells != 0 && w.AutoCast(e.Owner).Level() != 0 && e.ActorState != actorStateRetreat && !underCommand(e) && w.supportWhileAttacking(ci) {
+		w.supportCast(ci)
+	}
+}
+
+// supportWhileAttacking is the attack route's support gate: an attacking mage
+// tries support only while its attack range is below 2 (R2-ENGINE-397,
+// DIV-3009). A mage without an attack target passes.
+func (w *World) supportWhileAttacking(ci int) bool {
+	return !w.entities[ci].HasAttackTarget || w.attackRange(ci) < 2
+}
+
+// attackRange is the range an attack order carries: the armed attacking
+// spell's cast range when the mage knows it and its mana covers the cost,
+// otherwise the strike reach the engine writes as the order's range byte
+// (R2-ENGINE-397).
+func (w *World) attackRange(ci int) int64 {
+	e := w.entities[ci]
+	if id := uint32(e.AutoSpell); id != 0 && knowsSpell(e, id) && w.AutoCastLevelOfSpell(e.AutoSpell) == 0 {
+		if rule, ok := w.bookSpell(e, id); ok && e.Mana >= int32(rule.ManaCost) {
+			var level int32
+			if rule.School < skillSlots {
+				level = e.Skill[rule.School]
+			}
+			return spellRangeUnder(w.rules, rule, spellPowerUnder(w.rules, rule, level, e.Mind))
+		}
+	}
+	return int64(e.Reach)
 }
 
 // autoCastRefreshNum and autoCastRefreshDen are the owner's own re-cast

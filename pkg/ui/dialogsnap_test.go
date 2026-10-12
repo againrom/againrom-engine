@@ -61,8 +61,10 @@ func TestOptionsDialogControlsLieInsideTheirFrames(t *testing.T) {
 }
 
 // The Game Options frame is one tile row taller than the original's for the
-// loot-dot row; every control, the speed caption and the frame keep the
-// offsets they had from the frame's top-left corner.
+// engine's rows; every original control, the speed caption and the frame keep
+// the offsets they had from the frame's top-left corner. The engine's timed
+// autosave interval and loot-dot rows stand under the autosave toggle, and the
+// automatic-casting button in the right column.
 func TestGameOptionsPageKeepsEveryOriginalControlOffset(t *testing.T) {
 	g := gameOptionsDialog
 	if g.Min != image.Pt(76, 0) || g.Dx() != 488 || g.Dy() != 488 || g.Body().Dy() != 480 {
@@ -89,7 +91,8 @@ func TestGameOptionsPageKeepsEveryOriginalControlOffset(t *testing.T) {
 		{gameMenuPathfinding, image.Rect(240, 224, 456, 248)},
 		{gameMenuRetreat, image.Rect(240, 248, 408, 338)},
 		{gameMenuTimedAutosave, image.Rect(24, 340, 234, 364)},
-		{gameMenuAutosaveMinutes, image.Rect(240, 340, 456, 364)},
+		{gameMenuAutosaveMinutes, image.Rect(24, 364, 234, 388)},
+		{gameMenuAutoCast, image.Rect(240, 340, 456, 364)},
 		{gameMenuPageReturn, image.Rect(w/7, 372+64, 3*w/7, 396+64)},
 		{gameMenuOptionsCancel, image.Rect(4*w/7, 372+64, 6*w/7, 396+64)},
 	} {
@@ -100,7 +103,7 @@ func TestGameOptionsPageKeepsEveryOriginalControlOffset(t *testing.T) {
 	if got := gameOptionSpeedLabel().Sub(g.Min); got != image.Rect(24, 48, 216, 72) {
 		t.Errorf("speed caption at %v", got)
 	}
-	if got := gameOptionRect(gameMenuLootDots).Sub(g.Min); got != image.Rect(24, 364, 234, 388) {
+	if got := gameOptionRect(gameMenuLootDots).Sub(g.Min); got != image.Rect(24, 388, 234, 412) {
 		t.Errorf("loot dots row at %v", got)
 	}
 }

@@ -30,6 +30,10 @@ func (w *World) applyPlayerParameter(player uint32, selector PlayerParameter, va
 		w.setRetreatMode(player, value)
 	case PlayerParameterAutoHealing:
 		w.SetAutoHealing(player, value)
+	case PlayerParameterAutoCast:
+		if value >= 0 && value <= 0xff {
+			w.SetAutoCast(player, AutoCastSetting(value))
+		}
 	}
 }
 

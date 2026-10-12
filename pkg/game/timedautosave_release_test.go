@@ -85,7 +85,7 @@ func TestReleaseTimedAutosaveCurrentStateAndOptions(t *testing.T) {
 			action("game-options")
 			rows := app.HeadlessRows()
 			font := f.Font.Value()
-			for _, row := range rows[len(rows)-5 : len(rows)-3] {
+			for _, row := range rows[len(rows)-6 : len(rows)-4] {
 				if font == nil || font.Advance(row.Text) > 180 || strings.Contains(row.Text, "?") {
 					t.Fatal("installed timed caption does not fit", row.Text)
 				}
