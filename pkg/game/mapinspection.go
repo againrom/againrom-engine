@@ -221,10 +221,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 			}
 			r.Details = []string{fmt.Sprintf("Owner: %d  Gold: %d", l.Owner, l.Gold), fmt.Sprintf("X/Y raw: %d / %d", l.X, l.Y), fmt.Sprintf("Items: %d", len(l.Elements))}
 			for n, e := range l.Elements {
-				name, known := "", false
-				if x.table != nil {
-					name, known = x.table.Names.NameFor(data.ItemCode(e.ItemCode()))
-				}
+				name, known := mapload.ShippedItemName(x.table, data.ItemCode(e.ItemCode()))
 				if !known {
 					name = "unresolved item name"
 					r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Item %d name unresolved", n))

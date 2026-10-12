@@ -19,13 +19,11 @@ func currentWeapon(item sim.ItemInstance, fallback *data.Weapon, materialized bo
 		weapon := CurrentItemWeapon(item, t)
 		if weapon != nil {
 			weapon.SpellName, weapon.SpellPower = currentItemWeaponSpell(item, fallback, t)
-			if fallback != nil && fallback.Code == data.ItemCode(item.Code) && fallback.Name != "" {
-				weapon.Name = fallback.Name
-			} else if t != nil {
-				if name, ok := t.Names.NameFor(weapon.Code); ok {
-					weapon.Name = name
-				}
+			saved := ""
+			if fallback != nil && fallback.Code == data.ItemCode(item.Code) {
+				saved = fallback.Name
 			}
+			weapon.Name = ItemDisplayName(t, weapon.Code, saved, weapon.Name)
 		}
 		return weapon
 	}

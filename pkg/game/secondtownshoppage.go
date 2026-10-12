@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/town"
@@ -360,7 +361,7 @@ func (t *secondCampaignScreen) shopItemName(it secondshop.Item) []string {
 	shipped := ""
 	if tables, ok := secondShopTables(tab); ok {
 		if key, ok := tables.NameKey(it); ok {
-			shipped, _ = tab.Names.NameFor(data.ItemCode(key))
+			shipped = mapload.ItemDisplayName(tab, data.ItemCode(key), "", "")
 		}
 	}
 	var parts []string
