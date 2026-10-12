@@ -75,7 +75,42 @@ first available record (DIV-3071). SAV content is unchanged.
 
 ## Proof
 
-To be completed with the gates.
+Fixture tests in `pkg/game/secondworldmap_test.go` hold the rules with
+synthetic sheets: the nearest pick and its tie, markers by mode and phase,
+the reveal and Cross end, the skip, route mode's opening travel, arrival at
+the first record at the target, the victory without the map and the text by
+record kind. `secondcampaign_test.go` and `seconddeparture_test.go` drive
+the campaign through the map with fixture points.
+
+Release tests on `rom2-en` and `rom2-ru`
+(`pkg/game/secondworldmap_release_test.go`):
+
+- `TestReleaseSecondCampaignWorldMapRouteMode`: leaving town 1 opens Umoir
+  with Flag at town 1's point, one record (mission 10 at (302,158)), no
+  marker or text, a route from (215,234) to (302,158); the Flag's pixels
+  change only inside its placement (loss control: a transparent sheet of
+  the same size); the travel ends in mission 10.
+- `TestReleaseSecondCampaignWorldMapSkip`: a press during the travel enters
+  on the next paint.
+- `TestReleaseSecondCampaignWorldMapSelectMode`: two targets (town 1,
+  mission 93) move MissionFlag and FlagOnMap, preview their own routes and
+  draw different frames; mission 93's `globalmap.txt` name and description
+  draw only inside the text block; town 1 has no key and draws no text;
+  mission 21 has no public point and is disabled; the travel's end makes
+  town 1 current on its square.
+
+The ROM2 profile witnesses changed in one frame hash, the map at the gate;
+mission 10's world and save hashes after the travel equal the destination
+list's. The first game's world-map tests and the whole release set pass on
+EN and RU unchanged.
+
+### Blocked by the catalog
+
+The ROM2 subject groups (as `pipeline/check-rom2-save-tests.sh` runs them)
+fail 24 tests on each locale, every one because a record it travels to has
+no public point: towns 2 and 3, mission 21 after mission 20, and constructed
+positions at missions 102 and 110. They pass once the catalog's points
+fill `worldmaps/rom2.json` (DIV-3073).
 
 ## Open debt
 
