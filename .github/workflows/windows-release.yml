@@ -74,9 +74,9 @@ jobs:
       - name: Check stamps and build Windows programs
         shell: pwsh
         run: |
-          & go test -trimpath -count=1 ./internal/buildinfo ./internal/versionres
+          & go test -trimpath -count=1 ./internal/buildinfo ./internal/versionres ./cmd/mapedit
           if ($LASTEXITCODE -ne 0) { throw 'Version checks failed.' }
-          & bash scripts/build-tools.sh "$env:RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter
+          & bash scripts/build-tools.sh "$env:RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter ./cmd/mapedit
           if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
       - name: Check the public package boundary
         shell: pwsh

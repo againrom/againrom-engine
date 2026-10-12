@@ -1,5 +1,5 @@
 // Command versionres regenerates the version resource object of every program
-// listed in versionres.Programs from that program's VERSION file.
+// listed in versionres.Programs from the VERSION file that program carries.
 //
 //	go run ./internal/versionres/cmd/versionres
 //
@@ -29,7 +29,7 @@ func main() {
 	}
 	for _, p := range versionres.Programs {
 		dir := filepath.Join(root, filepath.FromSlash(p.Dir))
-		version, err := versionres.ReadVersion(dir)
+		version, err := versionres.ReadVersion(filepath.Join(root, filepath.FromSlash(p.VersionSource())))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "versionres:", p.Describe()+":", err)
 			os.Exit(1)

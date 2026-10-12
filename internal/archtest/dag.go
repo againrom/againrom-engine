@@ -215,7 +215,7 @@ var allow = map[string][]string{
 	"cmd/terraintool": {"pkg/render/terrain", "pkg/formats/res", "pkg/formats/alm", "pkg/game", "pkg/base"},
 	// The read-only editor receives authored content from the game loader and
 	// drives only UI inspection and camera input, not simulation or file formats.
-	"cmd/mapedit": {"pkg/game", "pkg/ui"},
+	"cmd/mapedit": {"pkg/game", "pkg/ui", "internal/buildinfo", "internal/versionres"},
 	// mapview's -blocked tint draws the plane a PLACED STRUCTURE reaches, so
 	// the tool reaches the tier that derives one and the two tiers it takes a
 	// definition table out of an archive with. pkg/data is not on the row: a

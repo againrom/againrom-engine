@@ -161,3 +161,20 @@ chapter  = 30
 The repository holds no map. `cmd/modmission -install <root> -map <n> -out
 <mod folder>` copies an installed map and its event and tip texts into
 `mission/<lang>/` of a mod folder and writes nothing else.
+
+## Map editor
+
+The map editor, `mapedit.exe` (`./mapedit` on macOS), ships beside the game
+and the starter. The starter's **Map editor** button (**Редактор карт** on a
+Russian base) opens it on the selected base. The starter first runs the
+editor's map list on that base; when the editor cannot load it, for example a
+second-game install, the starter shows the editor's error and opens nothing.
+A folder that is not an install and a missing `mapedit` are refused with the
+starter's message. From a terminal, `mapedit -assets <install>` opens the same
+window. It opens with the install's map list. The editor's own help names its
+keys: PgUp and PgDn page the list; dragging a unit moves it and dragging the
+ground pans; C clones the selected unit (click a cell; Esc cancels), Del
+deletes it, and E edits its fields (Tab: next field, Enter: set); Ctrl+Z
+undoes, Ctrl+Y redoes and Ctrl+S asks for a new `.alm` path to save a copy
+(Enter saves); Enter opens a typed ALM path; Esc goes back. The
+editor never writes into an install.

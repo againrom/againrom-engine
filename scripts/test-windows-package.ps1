@@ -16,7 +16,7 @@ if (Test-Path -LiteralPath $evidence) { throw 'Evidence directory already exists
 New-Item -ItemType Directory -Path $evidence | Out-Null
 $inputs = Join-Path $evidence 'inputs'
 New-Item -ItemType Directory -Path $inputs | Out-Null
-foreach ($name in @('againrom.exe', 'starter.exe')) { Copy-Item -LiteralPath (Join-Path $BinariesDirectory $name) -Destination $inputs }
+foreach ($name in @('againrom.exe', 'starter.exe', 'mapedit.exe')) { Copy-Item -LiteralPath (Join-Path $BinariesDirectory $name) -Destination $inputs }
 foreach ($file in @('starter.ini', 'options.txt', 'famehall.dat', 'credential.txt', 'saves/private.sav', 'mods/private/mod.toml', 'main.res')) {
     $path = Join-Path $inputs $file
     New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($path)) -Force | Out-Null
@@ -31,7 +31,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead($package.Zip)
 try {
     $actual = @($archive.Entries.FullName | Sort-Object)
-    $expected = @('againrom/againrom.exe', 'againrom/starter.exe', 'againrom/BUILD-INFO.json',
+    $expected = @('againrom/againrom.exe', 'againrom/starter.exe', 'againrom/mapedit.exe', 'againrom/BUILD-INFO.json',
         'againrom/README.md', 'againrom/LICENSE', 'againrom/THIRD_PARTY_NOTICES.md',
         'againrom/LICENSES/Apache-2.0.txt', 'againrom/LICENSES/BSD-3-Clause.txt',
         'againrom/LICENSES/LGPL-2.1.txt', 'againrom/LICENSES/lz4-BSD-3-Clause.txt',
@@ -42,10 +42,13 @@ $extracted = Join-Path $evidence 'extracted'
 [IO.Compression.ZipFile]::ExtractToDirectory($package.Zip, $extracted)
 $runtime = Join-Path $extracted 'againrom'
 $manifest = Get-Content -LiteralPath (Join-Path $runtime 'BUILD-INFO.json') -Raw | ConvertFrom-Json
+$starterVersion = (Get-Content -LiteralPath (Join-Path $repository 'cmd/starter/VERSION') -Raw).Trim()
 Assert-True ($manifest.revision -ceq $revision -and $manifest.tag -ceq "v$version" -and $manifest.target -ceq 'windows/amd64') 'Manifest identity differs.'
-foreach ($name in @('againrom', 'starter')) {
-    $line = (& (Join-Path $runtime ($name + '.exe')) -version | Out-String).Trim()
-    Assert-True ($LASTEXITCODE -eq 0 -and $line.EndsWith(' ' + $revision.Substring(0, 12))) 'Extracted executable lost its stamp.'
+foreach ($program in @(@{ Name = 'againrom'; Version = $version }, @{ Name = 'starter'; Version = $starterVersion }, @{ Name = 'mapedit'; Version = $version })) {
+    $exe = Join-Path $runtime ($program.Name + '.exe')
+    $line = (& $exe -version | Out-String).Trim()
+    Assert-True ($LASTEXITCODE -eq 0 -and $line -ceq "$($program.Name) $($program.Version) $($revision.Substring(0, 12))") 'Extracted executable lost its version or stamp.'
+    Assert-True ([Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion -ceq $program.Version) 'Extracted executable lost its version resource.'
 }
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $runtime 'starter.ini'))) 'Version inspection created starter.ini.'
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $runtime 'options.txt'))) 'Version inspection created options.txt.'
@@ -63,6 +66,12 @@ foreach ($badTag in @('main', 'v00.88.3', "v$version-rc.1", 'v999.999.999')) {
     Assert-Refused { & $packager @bad -OutputDirectory $output } "Invalid tag was accepted: $badTag"
     Assert-True (-not (Test-Path -LiteralPath $output)) 'Invalid tag wrote output.'
 }
+$noEditor = Join-Path $evidence 'inputs-without-mapedit'
+New-Item -ItemType Directory -Path $noEditor | Out-Null
+foreach ($name in @('againrom.exe', 'starter.exe')) { Copy-Item -LiteralPath (Join-Path $inputs $name) -Destination $noEditor }
+$bare = $arguments.Clone(); $bare.BinariesDirectory = $noEditor
+Assert-Refused { & $packager @bare -OutputDirectory (Join-Path $evidence 'without-mapedit') } 'A package without mapedit.exe was accepted.'
+Assert-True (-not (Test-Path -LiteralPath (Join-Path $evidence 'without-mapedit'))) 'The refusal without mapedit.exe wrote output.'
 $wrong = $arguments.Clone(); $wrong.Revision = '0' * 40
 Assert-Refused { & $packager @wrong -OutputDirectory (Join-Path $evidence 'wrong-revision') } 'Wrong revision was accepted.'
 $install = Join-Path $evidence 'install-fixture'
@@ -72,4 +81,4 @@ foreach ($name in @('MAIN.RES', 'GRAPHICS.RES', 'SCENARIO.RES', 'WORLD.RES', 'MO
 }
 Assert-Refused { & $packager @arguments -OutputDirectory (Join-Path $install 'package') } 'Install-contained output was accepted.'
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $install 'package'))) 'Install refusal wrote output.'
-Write-Output "windows-package: 11 entries; private sentinels excluded; extracted stamps, versions, manifest, checksum and repeat bytes verified; existing output, four invalid tags, wrong revision and install-contained output refused. SHA256=$hash"
+Write-Output "windows-package: 12 entries; private sentinels excluded; extracted stamps, versions, version resources, manifest, checksum and repeat bytes verified; existing output, missing mapedit.exe, four invalid tags, wrong revision and install-contained output refused. SHA256=$hash"

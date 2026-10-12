@@ -77,6 +77,7 @@ const (
 	aFocus
 	aSettingCycle // flip or step the panel's bool or choice setting, i is its row
 	aSettingReset
+	aMapEditor
 )
 
 type action struct {
@@ -173,9 +174,10 @@ type app struct {
 }
 
 type result struct {
-	kind   string // "check" or "version"
+	kind   string // "check", "version" or "editor"
 	output string
 	err    error
+	launch []string // "editor": the program and arguments to start once the check passed
 }
 
 // newApp reads the settings file at iniPath (a missing file is the defaults)
@@ -582,6 +584,7 @@ func (a *app) layout() []item {
 	button(rect(10, by, 100, 28), "Play", action{kind: aPlay})
 	button(rect(118, by, 100, 28), "Check", action{kind: aCheck})
 	button(rect(226, by, 140, 28), "Save settings", action{kind: aSave})
+	button(rect(374, by, 130, 28), mapEditorCaption(a.lang()), action{kind: aMapEditor})
 	if cmd, err := a.command(); err != nil {
 		text(10, by+36, err.Error(), toneBad)
 	} else {
@@ -735,6 +738,8 @@ func (a *app) apply(act action) {
 		a.check()
 	case aSave:
 		a.save()
+	case aMapEditor:
+		a.openMapEditor()
 	}
 }
 
@@ -936,8 +941,69 @@ func (a *app) check() {
 	a.output = nil
 	a.deps.async(func() {
 		out, err := a.deps.run(exe, args)
-		a.results <- result{"check", out, err}
+		a.results <- result{kind: "check", output: out, err: err}
 	})
+}
+
+// mapEditorWords is the map editor button's caption by label language.
+var mapEditorWords = map[string]string{locale.Fallback: "Map editor", "ru": "Редактор карт"}
+
+// mapEditorCaption is the caption in lang, else in the reference language.
+func mapEditorCaption(lang string) string {
+	if w, ok := mapEditorWords[lang]; ok {
+		return w
+	}
+	return mapEditorWords[locale.Fallback]
+}
+
+// mapEditorPlan resolves the map editor beside this program and its arguments
+// for the selected base, and reports why they cannot be had.
+func (a *app) mapEditorPlan() (string, []string, error) {
+	root, ok := a.selectedRoot()
+	if !ok {
+		return "", nil, errors.New("no base game selected")
+	}
+	if info := a.infos[root]; !info.Valid() {
+		return "", nil, fmt.Errorf("base %s is not an install: missing %s", a.s.LastBase, strings.Join(info.Missing, ", "))
+	}
+	exe := editorExecutable(a.selfPath, a.goos)
+	if !fileExists(exe) {
+		return "", nil, fmt.Errorf("map editor not found: %s", exe)
+	}
+	return exe, []string{"-assets", root}, nil
+}
+
+// openMapEditor first runs the map editor's map list on the selected base,
+// which loads the base as the window would and exits; poll starts the editor
+// the way Play starts the game when the list passed, and otherwise shows the
+// editor's own error output, which a window started without a console loses.
+func (a *app) openMapEditor() {
+	exe, args, err := a.mapEditorPlan()
+	if err != nil {
+		a.fail("cannot open the map editor: %v", err)
+		return
+	}
+	a.ok("checking %s on %s ...", filepath.Base(exe), a.s.LastBase)
+	a.output = nil
+	a.deps.async(func() {
+		out, err := a.deps.run(exe, append(append([]string{}, args...), "-list"))
+		a.results <- result{kind: "editor", output: out, err: err, launch: append([]string{exe}, args...)}
+	})
+}
+
+// startMapEditor takes in the map list check of openMapEditor.
+func (a *app) startMapEditor(r result) {
+	exe := r.launch[0]
+	if r.err != nil {
+		a.output = outputOf(r.output)
+		a.fail("the map editor cannot open this base: %v", r.err)
+		return
+	}
+	if err := a.deps.start(exe, r.launch[1:]); err != nil {
+		a.fail("cannot start %s: %v", exe, err)
+		return
+	}
+	a.ok("started %s", filepath.Base(exe))
 }
 
 // probeVersion asks the game program for its version line.
@@ -949,7 +1015,7 @@ func (a *app) probeVersion() {
 	}
 	a.deps.async(func() {
 		out, err := a.deps.run(exe, []string{"-version"})
-		a.results <- result{"version", out, err}
+		a.results <- result{kind: "version", output: out, err: err}
 	})
 }
 
@@ -975,18 +1041,25 @@ func (a *app) poll() {
 				}
 				a.setGameVersion(strings.TrimSpace(r.output))
 			case "check":
-				a.output = strings.Split(strings.TrimRight(strings.ReplaceAll(r.output, "\r\n", "\n"), "\n"), "\n")
+				a.output = outputOf(r.output)
 				if r.err != nil {
 					a.fail("check failed: %v", r.err)
 				} else {
 					a.ok("check passed")
 				}
 				a.dirty = true
+			case "editor":
+				a.startMapEditor(r)
 			}
 		default:
 			return
 		}
 	}
+}
+
+// outputOf is a program's output as the window's lines.
+func outputOf(s string) []string {
+	return strings.Split(strings.TrimRight(strings.ReplaceAll(s, "\r\n", "\n"), "\n"), "\n")
 }
 
 // takeDirty reports whether the image needs redrawing, and clears the flag.

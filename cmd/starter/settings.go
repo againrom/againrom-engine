@@ -433,6 +433,16 @@ func (s settings) gameExecutable(self, goos string) string {
 	return filepath.Join(filepath.Dir(self), name)
 }
 
+// editorExecutable is the map editor the starter opens: the one beside this
+// program.
+func editorExecutable(self, goos string) string {
+	name := "mapedit"
+	if goos == "windows" {
+		name += ".exe"
+	}
+	return filepath.Join(filepath.Dir(self), name)
+}
+
 func fileExists(path string) bool {
 	st, err := os.Stat(path)
 	return err == nil && !st.IsDir()

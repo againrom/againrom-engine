@@ -30,7 +30,7 @@ func TestCommittedObjectsMatchTheirVersionFiles(t *testing.T) {
 	root := moduleRoot(t)
 	for _, p := range Programs {
 		dir := filepath.Join(root, filepath.FromSlash(p.Dir))
-		version, err := ReadVersion(dir)
+		version, err := ReadVersion(filepath.Join(root, filepath.FromSlash(p.VersionSource())))
 		if err != nil {
 			t.Fatalf("%s: %v", p.Describe(), err)
 		}
@@ -46,6 +46,33 @@ func TestCommittedObjectsMatchTheirVersionFiles(t *testing.T) {
 			t.Errorf("%s: %s does not match VERSION %s; run go run ./internal/versionres/cmd/versionres", p.Describe(), SysoName, version)
 		}
 	}
+}
+
+func TestFileVersionReadsTheFixedInformation(t *testing.T) {
+	for _, v := range []string{"0.118.0", "3.4.5", "65535.0.65535"} {
+		data, err := Syso(v, Programs[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, err := FileVersion(data); err != nil || got != v {
+			t.Errorf("%s read back as %q %v", v, got, err)
+		}
+	}
+	if _, err := FileVersion([]byte("no resource")); err == nil {
+		t.Fatal("an object without fixed file information was read")
+	}
+}
+
+func TestMapEditorCarriesTheGameVersion(t *testing.T) {
+	for _, p := range Programs {
+		if p.Exe == "mapedit.exe" {
+			if p.VersionSource() != "cmd/againrom" || p.Dir != "cmd/mapedit" {
+				t.Fatalf("%+v", p)
+			}
+			return
+		}
+	}
+	t.Fatal("no mapedit.exe row")
 }
 
 func TestSysoIsDeterministicAndFollowsTheVersion(t *testing.T) {

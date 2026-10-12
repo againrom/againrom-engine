@@ -33,7 +33,9 @@ for ($directory = $parent; $null -ne $directory; $directory = $directory.Parent)
 }
 $binaries = [IO.Path]::GetFullPath($BinariesDirectory)
 $goVersion = ''
-foreach ($program in @(@{ Name = 'againrom'; Version = $version }, @{ Name = 'starter'; Version = $starterVersion })) {
+# The map editor is part of the game and carries the game's version.
+$programs = @(@{ Name = 'againrom'; Version = $version }, @{ Name = 'starter'; Version = $starterVersion }, @{ Name = 'mapedit'; Version = $version })
+foreach ($program in $programs) {
     $exe = Join-Path $binaries ($program.Name + '.exe')
     $line = (& $exe -version | Out-String).Trim()
     if ($LASTEXITCODE -ne 0 -or $line -cne "$($program.Name) $($program.Version) $($Revision.Substring(0, 12))") {
@@ -63,7 +65,7 @@ $stage = Join-Path $output 'againrom'
 New-Item -ItemType Directory -Path $output | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $stage 'LICENSES') | Out-Null
 foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $repository $file) -Destination (Join-Path $stage $file) }
-foreach ($name in @('againrom.exe', 'starter.exe')) { Copy-Item -LiteralPath (Join-Path $binaries $name) -Destination $stage }
+foreach ($name in @($programs | ForEach-Object { $_.Name + '.exe' })) { Copy-Item -LiteralPath (Join-Path $binaries $name) -Destination $stage }
 $manifest = [ordered]@{
     version = $version; starter_version = $starterVersion; revision = $Revision; tag = $Tag
     target = 'windows/amd64'; go = $goVersion
@@ -75,7 +77,7 @@ $zip = Join-Path $output $name
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
 try {
-    foreach ($file in @($files + @('againrom.exe', 'starter.exe', 'BUILD-INFO.json') | Sort-Object)) {
+    foreach ($file in @($files + @($programs | ForEach-Object { $_.Name + '.exe' }) + @('BUILD-INFO.json') | Sort-Object)) {
         $entry = $archive.CreateEntry(('againrom/' + $file), [IO.Compression.CompressionLevel]::Optimal)
         $entry.LastWriteTime = [DateTimeOffset]::new(1980, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
         $input = [IO.File]::OpenRead((Join-Path $stage $file))

@@ -9,6 +9,7 @@
 package versionres
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -22,16 +23,28 @@ import (
 
 // Program is one executable that carries a version resource.
 type Program struct {
-	Dir         string // module-relative directory holding VERSION and the .syso
+	Dir         string // module-relative directory holding the .syso, and VERSION unless VersionDir names another
+	VersionDir  string // module-relative directory whose VERSION the program carries; empty is Dir
 	Exe         string // the executable's file name
 	Product     string
 	Description string
+}
+
+// VersionSource is the module-relative directory holding the VERSION file the
+// program's resource is built from.
+func (p Program) VersionSource() string {
+	if p.VersionDir != "" {
+		return p.VersionDir
+	}
+	return p.Dir
 }
 
 // Programs lists every executable with a version resource.
 var Programs = []Program{
 	{Dir: "cmd/againrom", Exe: "againrom.exe", Product: "Againrom", Description: "Againrom game"},
 	{Dir: "cmd/starter", Exe: "starter.exe", Product: "Againrom", Description: "Againrom starter"},
+	// The map editor is part of the game and carries the game's version.
+	{Dir: "cmd/mapedit", VersionDir: "cmd/againrom", Exe: "mapedit.exe", Product: "Againrom", Description: "Againrom map editor"},
 }
 
 // SysoName is the object's file name in a program's directory. The suffix keeps
@@ -67,6 +80,18 @@ func ReadVersion(dir string) (string, error) {
 		return "", err
 	}
 	return buildinfo.ParseVersion(string(data))
+}
+
+// FileVersion reads the file version, MAJOR.MINOR.PATCH, from the fixed file
+// information of an object Syso built.
+func FileVersion(syso []byte) (string, error) {
+	at := bytes.Index(syso, le32(0xFEEF04BD))
+	if at < 0 || at+16 > len(syso) {
+		return "", fmt.Errorf("no fixed file information")
+	}
+	ms := binary.LittleEndian.Uint32(syso[at+8:])
+	ls := binary.LittleEndian.Uint32(syso[at+12:])
+	return buildinfo.ParseVersion(fmt.Sprintf("%d.%d.%d", ms>>16, ms&0xFFFF, ls>>16))
 }
 
 func utf16z(s string) []byte {

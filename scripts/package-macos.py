@@ -85,7 +85,8 @@ def package(arguments):
     if sys.platform != "darwin" or native_arch != arguments.arch:
         raise ValueError("Packaging requires a native macOS host of the selected architecture.")
     binaries = Path(os.path.abspath(arguments.binaries_directory))
-    versions = {"againrom": version, "starter": starter_version}
+    # The map editor is part of the game and carries the game's version.
+    versions = {"againrom": version, "starter": starter_version, "mapedit": version}
     go_versions = {
         binary_identity(binaries / name, name, program_version, arguments.revision, arguments.arch)
         for name, program_version in versions.items()

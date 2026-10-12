@@ -45,7 +45,7 @@ configuration files.
    quarantine attributes:
 
    ```sh
-   xattr -d com.apple.quarantine againrom starter
+   xattr -d com.apple.quarantine againrom starter mapedit
    ```
 
    An attribute-not-found message means that executable is already unquarantined.
@@ -54,8 +54,14 @@ configuration files.
    currently requires typed paths; clipboard paste and Command+V are pending.
 
 The ZIP preserves executable permissions and contains no game assets or player
-profiles. It is a pair of command-line-launched executables, without an `.app`
+profiles. It holds three command-line-launched executables, without an `.app`
 bundle. Alternatively, run `./againrom -assets "/path/to/Rage of Mages"`.
+
+## Map editor
+
+The map editor, `mapedit.exe` (`./mapedit` on macOS), comes in the same
+folder. Select a base in the starter and press **Map editor** (**Редактор карт** on a Russian install). See
+`docs/MODS.md` in the source repository for its keys.
 
 ## Starter settings
 

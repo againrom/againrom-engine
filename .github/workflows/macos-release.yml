@@ -80,11 +80,11 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$(go env GOHOSTARCH)" == "$GOARCH" ]]
-          go test -trimpath -count=1 ./internal/buildinfo ./internal/versionres ./cmd/starter
+          go test -trimpath -count=1 ./internal/buildinfo ./internal/versionres ./cmd/starter ./cmd/mapedit
           go test -trimpath -count=1 ./cmd/againrom ./pkg/game -run 'Test(RuntimeProfile|LaunchProfile)'
       - name: Build macOS programs
         shell: bash
-        run: bash scripts/build-tools.sh "$RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter
+        run: bash scripts/build-tools.sh "$RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter ./cmd/mapedit
       - name: Check the public package boundary
         shell: bash
         run: python3 scripts/test-macos-package.py --binaries-directory "$RUNNER_TEMP/againrom-binaries" --evidence-directory "$RUNNER_TEMP/package-check" --arch "$GOARCH"

@@ -2325,6 +2325,9 @@ package storyguard
 // CommentBytes rises for the speakers' own sex: the docs of the new
 // pkg/game/speakersex_release_test.go census, resolveNPC and withoutHeroArms,
 // and the gate note in speakerAudience, this note included.
+//
+// CommentBytes rises for the release script parse tests: the docs of the new
+// internal/buildinfo/releasescripts_test.go, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2348,5 +2351,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1730,
 	},
-	CommentBytes: 8881251,
+	CommentBytes: 8884091,
 }

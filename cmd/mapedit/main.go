@@ -35,8 +35,13 @@ func run(args []string, out io.Writer) error {
 	detailScroll := flags.Int("scroll-details", 0, "wheel steps down the selected inspector in a diagnostic snapshot")
 	triggers := flags.Bool("triggers", false, "show the authored trigger filter")
 	focusRef := flags.Int("focus-reference", 0, "focus a selected record's 1-based map reference without changing selection")
+	version := flags.Bool("version", false, "print the program name, game version and source revision, and exit")
 	if err := flags.Parse(args); err != nil {
 		return err
+	}
+	if *version {
+		fmt.Fprintln(out, versionLine())
+		return nil
 	}
 	if flags.NArg() != 0 {
 		return fmt.Errorf("unexpected arguments: %v", flags.Args())
