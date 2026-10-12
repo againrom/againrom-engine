@@ -11,7 +11,7 @@ func secondRow(r SpellRule) SpellRule {
 }
 
 func TestSecondGameArmsFollowThePublishedTable(t *testing.T) {
-	want := map[uint16]uint16{1: 1, 4: 5, 5: ArmNone, 6: 8, 7: ArmNone, 10: 13, 11: 14, 12: 15,
+	want := map[uint16]uint16{1: 1, 4: 5, 5: ArmNone, 6: 8, 7: 21, 10: 13, 11: 14, 12: 15,
 		15: 12, 16: ArmNone, 18: 20, 22: 25, 23: 26, 24: 6, 25: ArmNone, 26: 11, 27: 18, 28: 27, 29: 28,
 		0: ArmNone, 30: ArmNone}
 	for id, arm := range want {
@@ -120,8 +120,12 @@ func TestSecondStoneCurseWithNoEffectKindLandsAndAttachesNothing(t *testing.T) {
 
 func TestSpellRuleLandsRefusesAStagedAreaWithNoProgram(t *testing.T) {
 	blizzard := secondRow(SpellRule{ID: 7, School: 2, Area: true, Distribution: distributionStaged, Radius: 4, DamageMin: 10, DamageMax: 30, Damaging: true})
-	if SpellRuleLands(blizzard) {
-		t.Error("Blizzard, a staged area with no cell program, lands")
+	if !SpellRuleLands(blizzard) {
+		t.Error("Blizzard, which runs the sampled staged program, does not land")
+	}
+	staged := secondRow(SpellRule{ID: 16, School: 2, Area: true, Distribution: distributionStaged, Radius: 4, DamageMin: 10, DamageMax: 30, Damaging: true})
+	if SpellRuleLands(staged) {
+		t.Error("a staged row with no arm and so no cell program lands")
 	}
 	acid := secondRow(SpellRule{ID: 9, School: 2, Area: true, Distribution: distributionStaged, Radius: 3, DamageMin: 10, DamageMax: 14, Damaging: true})
 	if !SpellRuleLands(acid) {
@@ -139,11 +143,11 @@ func TestSpellRuleLandsRefusesAStagedAreaWithNoProgram(t *testing.T) {
 
 func TestCreatureAimOfARowWithNoArmFollowsItsColumns(t *testing.T) {
 	ice := secondRow(SpellRule{ID: 5, TargetsUnit: true, Damaging: true, DamageMin: 5, DamageMax: 10})
-	blizzard := secondRow(SpellRule{ID: 7, Area: true, Distribution: distributionStaged, Damaging: true, DamageMin: 10, DamageMax: 30})
+	area := secondRow(SpellRule{ID: 16, Area: true, Distribution: distributionDiamond, Damaging: true, DamageMin: 10, DamageMax: 30})
 	summon := secondRow(SpellRule{ID: 25})
 	heal := secondRow(SpellRule{ID: 24, Restorative: true, TargetsUnit: true})
-	w := spWorld(t, 1, []SpellRule{ice, blizzard, summon, heal})
-	for id, want := range map[uint32]creatureAim{5: creatureAimVictim, 7: creatureAimVictimCell, 25: creatureAimNone, 24: creatureAimCaster} {
+	w := spWorld(t, 1, []SpellRule{ice, area, summon, heal})
+	for id, want := range map[uint32]creatureAim{5: creatureAimVictim, 16: creatureAimVictimCell, 25: creatureAimNone, 24: creatureAimCaster} {
 		if got := w.creatureAim(id); got != want {
 			t.Errorf("creatureAim(%d) = %d, want %d", id, got, want)
 		}

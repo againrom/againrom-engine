@@ -13,6 +13,15 @@ type CurrentAreaPolicy struct {
 	RingLife       uint16
 	Caster         EntityID
 	HasCaster      bool
+
+	// RingCells are a sampled staged program's last painted cells. Absent,
+	// the record holds none and LOAD draws nothing.
+	RingCells []uint16 `json:",omitempty"`
+}
+
+// zero reports a policy holding no field at all.
+func (p CurrentAreaPolicy) zero() bool {
+	return !p.DerivedPayload && p.Power == 0 && p.CloudPhase == 0 && p.RingLife == 0 && p.Caster == 0 && !p.HasCaster && len(p.RingCells) == 0
 }
 
 type CurrentAreaPayload struct {
@@ -82,7 +91,14 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 			}
 			e.Phase = (v.AE48[3]-1)*3 + uint8(2-v.AE4C)
 			e.Remaining = p.RingLife
-			e.Cells = canonicalCells(n.ringStageCells(e, int(e.Phase/3)))
+			if ringStageDraws(n.spellArm(e.Spell)) {
+				if !n.sampledRingCells(e, p.RingCells) {
+					return fmt.Errorf("sim: invalid native ring cells")
+				}
+				e.Cells = slices.Clone(p.RingCells)
+			} else {
+				e.Cells = canonicalCells(n.ringStageCells(e, int(e.Phase/3)))
+			}
 		}
 		// Absence belongs to the native constructor only while all ordinary
 		// payload operands still match it. An edited ordinary value stays live.
@@ -175,4 +191,22 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 	}
 	*w = n
 	return nil
+}
+
+// sampledRingCells admits the saved cells of a sampled staged record: at most
+// the one cell a stage paints, -2..3 from the anchor and inside the stage's
+// 8..dimension-9 inset.
+func (w *World) sampledRingCells(e cellEffect, cells []uint16) bool {
+	if len(cells) > 1 {
+		return false
+	}
+	cx, cy := keyCell(e.Key)
+	for _, k := range cells {
+		x, y := keyCell(k)
+		dx, dy := int32(uint8(x-cx+2)), int32(uint8(y-cy+2))
+		if dx > 5 || dy > 5 || x < 8 || y < 8 || x > w.bounds.Width-9 || y > w.bounds.Height-9 {
+			return false
+		}
+	}
+	return true
 }

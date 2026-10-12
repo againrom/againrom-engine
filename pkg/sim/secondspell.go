@@ -2,10 +2,13 @@ package sim
 
 // secondSpellArms maps a second-game spell id to the first-game arm of the
 // same spell (R2-ENGINE-019 names the rows, R2-ENGINE-024 groups them by
-// arm). Ice Missile, Blizzard, Diamond Dust and Summon have no first-game
-// counterpart and run no singular behaviour here (DIV-2617, DIV-2618).
+// arm). Blizzard runs arm 21's sampled staged program: 32 pulses three area
+// updates apart, each one cell drawn x then y as RNG(5)-2 and admitted only
+// inside 8..dimension-9 (R2-ENGINE-391, R2-ENGINE-392). Ice Missile, Diamond
+// Dust and Summon have no first-game counterpart and run no singular
+// behaviour here (DIV-2618).
 var secondSpellArms = [...]uint16{
-	1: 1, 2: 2, 3: 3, 4: 5, 5: ArmNone, 6: 8, 7: ArmNone, 8: 10, 9: 9, 10: 13,
+	1: 1, 2: 2, 3: 3, 4: 5, 5: ArmNone, 6: 8, 7: 21, 8: 10, 9: 9, 10: 13,
 	11: 14, 12: 15, 13: 16, 14: 17, 15: 12, 16: ArmNone, 17: 19, 18: 20, 19: 22,
 	20: 23, 21: 24, 22: 25, 23: 26, 24: 6, 25: ArmNone, 26: 11, 27: 18, 28: 27,
 	29: 28,

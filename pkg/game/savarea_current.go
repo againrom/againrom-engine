@@ -68,7 +68,7 @@ func projectNativeAreas(doc *sav.DocumentData, world *sim.World) error {
 		if a.Mode != sim.AreaModeCloud {
 			continue
 		}
-		layer, ok := areaLayerIndex(a.Spell)
+		layer, ok := areaLayerIndex(world.SpellArm(a.Spell))
 		if !ok {
 			return fmt.Errorf("current cloud %d has no cell layer", a.Spell)
 		}

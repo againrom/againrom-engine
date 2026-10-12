@@ -108,6 +108,9 @@ var nstPinned = []struct {
 		// and carried across a decode, and the blasts of one effect walk that
 		// wait for their record; the queue is empty between ticks.
 		{"burst", "sim.burstState"},
+		// Decode context only: a wrapper form's hook giving the decoded spell
+		// rows their arms. The decoded world holds nil.
+		{"rowArms", "func([]sim.SpellRule)"},
 		{"itemWeights", "[]sim.ItemWeight"},
 		{"script", "*sim.Script"},
 		{"rom2", "*sim.rom2ScriptState"},

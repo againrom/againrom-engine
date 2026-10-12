@@ -3172,6 +3172,9 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
+	if w.rowArms != nil {
+		w.rowArms(spells)
+	}
 	itemWeights, iwused, err := decodeItemWeights(tail[used+gused+sused+cused+eused+tused+pused+spused:])
 	if err != nil {
 		return err

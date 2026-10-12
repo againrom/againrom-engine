@@ -115,12 +115,15 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 		} else if mode&1 != 0 {
 			d.Mode = sim.AreaModeCloud
 		}
-		if d.Mode == sim.AreaModeRing && spell != 4 && spell != 9 && spell != 21 {
+		// The staged program and the cell layer belong to the row's arm: a
+		// second-game row runs a first-game arm under its own id.
+		arm := ms.World.SpellArm(d.Spell)
+		if d.Mode == sim.AreaModeRing && arm != 4 && arm != 9 && arm != 21 {
 			meta.unavailable("AreaEffect has no established staged program")
 			continue
 		}
 		if d.Mode == sim.AreaModeCloud {
-			layer, known := areaLayerIndex(d.Spell)
+			layer, known := areaLayerIndex(arm)
 			if !known || identity == 0 || identityCount[identity] != 1 {
 				meta.unavailable("AreaEffect cloud layer/identity is not uniquely bound")
 				continue

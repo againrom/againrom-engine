@@ -2238,6 +2238,12 @@ package storyguard
 // factor-table witnesses in pkg/game/spellrecord_release_test.go and
 // castdamage_release_test.go, the sim popup test and the unmodded Heal popup
 // note in modformulas_release_test.go, including this paragraph.
+//
+// CommentBytes rises for the second game's Blizzard: the arm table note in
+// pkg/sim/secondspell.go, the docs of ringStageDraws, rowArms,
+// CurrentAreaPolicy.RingCells and sampledRingCells, the arm notes of the SAV
+// area import, and the docs of the new pkg/sim/secondblizzard_test.go and
+// pkg/game/secondblizzard_release_test.go, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2261,5 +2267,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8793498,
+	CommentBytes: 8799459,
 }

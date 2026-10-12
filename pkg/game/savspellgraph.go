@@ -183,7 +183,7 @@ func bindSavedSpellGraph(state *SnapshotSAVDocument, world *sim.World, meta *Sna
 				d.Mode = sim.AreaModeCloud
 			}
 			if d.Mode == sim.AreaModeCloud {
-				if layer, ok := areaLayerIndex(d.Spell); ok {
+				if layer, ok := areaLayerIndex(world.SpellArm(d.Spell)); ok {
 					d.Layer = layer
 				}
 				for _, c := range world.SavedCellRecords() {

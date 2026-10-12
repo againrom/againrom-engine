@@ -1814,6 +1814,11 @@ type World struct {
 	// decode, and the queue is empty between ticks (burst.go).
 	burst burstState
 
+	// rowArms gives a decoded spell table its arms before the decode checks
+	// the retained effects against them. A wrapper form sets it on the
+	// receiver it decodes into; the decoded world never holds it.
+	rowArms func([]SpellRule)
+
 	// itemWeights is what one unit of each item code this world can name
 	// weighs, sorted by code (weight.go). It is a TABLE the world is handed,
 	// like the spell table above it, and not state a tick writes:

@@ -603,6 +603,11 @@ func (w *World) blastCellsInMap(cx, cy, r int32) []uint16 {
 	return cells
 }
 
+// ringStageDraws reports a staged program whose stage cells come from the
+// world's stream: Meteor Storm's sampled cell. Its painted cells cannot be
+// produced again without drawing, so a SAVE carries them.
+func ringStageDraws(id uint16) bool { return id == 21 }
+
 func ringStageCount(id uint16) int {
 	switch id {
 	case 4:

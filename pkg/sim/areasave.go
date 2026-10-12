@@ -1,6 +1,9 @@
 package sim
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 type AreaSaveState struct {
 	Key, Spell, Remaining          uint16
@@ -28,6 +31,9 @@ func (w *World) NativeAreaSaveStates() ([]AreaSaveState, error) {
 		}
 		if e.Mode == areaModeRing {
 			row.Policy.RingLife = e.Remaining
+			if ringStageDraws(w.spellArm(e.Spell)) {
+				row.Policy.RingCells = slices.Clone(e.Cells)
+			}
 			row.Stage = e.Phase/3 + 1
 			row.Remaining = 2 - uint16(e.Phase%3)
 		}

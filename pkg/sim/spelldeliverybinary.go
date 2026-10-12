@@ -176,7 +176,7 @@ func (w *World) spellDeliveryFault() error {
 		}
 		if c := d.Current; c != nil {
 			if !d.AtCell || c.Key != cellKey(d.X, d.Y) || c.Spell != d.Rule.ID || c.Mode < areaModeBlast || c.Mode > areaModeCloud ||
-				c.Direction > 7 || len(c.Cells) != 0 || c.Policy != (CurrentAreaPolicy{}) || d.Payload == nil || c.Payload != *d.Payload {
+				c.Direction > 7 || len(c.Cells) != 0 || !c.Policy.zero() || d.Payload == nil || c.Payload != *d.Payload {
 				return fmt.Errorf("sim: invalid prepared area delivery")
 			}
 		}
