@@ -23,6 +23,9 @@ type gameFiles struct {
 	unitKeys      mapload.UnitKeys
 	spellArms     func([]sim.SpellRule)
 	freshPlayers  mapload.PlayerPolicy
+	// itemNameKeys is the key half of the item-name table; the lines are
+	// main.res text/itemname.txt in both games (R2-ENGINE-267).
+	itemNameKeys string
 	// autoCastCaptions are the dialogs text lines of the automatic-casting
 	// row: its label and the three levels, or none.
 	autoCastCaptions []int
@@ -41,6 +44,7 @@ var firstGameFiles = gameFiles{
 	},
 	unitKeys:     mapload.ClassUnitKeys,
 	freshPlayers: mapload.SlotPlayers,
+	itemNameKeys: ItemNameKeyAddress,
 }
 
 var secondGameFiles = gameFiles{
@@ -55,6 +59,7 @@ var secondGameFiles = gameFiles{
 	unitKeys:     mapload.ServerUnitKeys,
 	spellArms:    mapload.SecondGameSpellArms,
 	freshPlayers: mapload.NoFreshPlayers,
+	itemNameKeys: worldPrefix + "data/itemname.bin",
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
 }

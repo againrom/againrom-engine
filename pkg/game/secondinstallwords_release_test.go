@@ -136,7 +136,7 @@ func TestReleaseSecondGameInstallWordsReadInTheFont(t *testing.T) {
 	}
 
 	// An install without the item-name pair has no names to read.
-	shippedNames, _ := ReadItemNames(src, TextCode{})
+	shippedNames, _ := readItemNamesAt(src, secondGameFiles.itemNameKeys, TextCode{})
 	for code, s := range shippedNames {
 		if got := f.Table.Names[code]; !secondGameWordReads(selector, s, got) {
 			t.Errorf("item %#x reads %q from %q", code, got, s)

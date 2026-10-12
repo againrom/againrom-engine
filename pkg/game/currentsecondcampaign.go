@@ -16,8 +16,9 @@ type currentSecondCampaign struct {
 	Bank      [1024]int32
 	Current   currentSecondLocation
 	Available []currentSecondLocation
-	Room      *secondTownRoom `json:",omitempty"`
-	Aux       *secondAux      `json:",omitempty"`
+	Room      *secondTownRoom    `json:",omitempty"`
+	Aux       *secondAux         `json:",omitempty"`
+	Shop      *currentSecondShop `json:",omitempty"`
 }
 
 const maxSecondAvailable = 130
@@ -29,6 +30,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 		Available json.RawMessage
 		Room      *secondTownRoom
 		Aux       json.RawMessage
+		Shop      *currentSecondShop
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -43,7 +45,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room}
+	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop}
 	copy(next.Bank[:], bank)
 	if next.Aux, err = decodeSecondAux(fields.Aux); err != nil {
 		return err
@@ -80,6 +82,11 @@ func decodeSecondAux(raw json.RawMessage) (*secondAux, error) {
 }
 
 func (c *currentSecondCampaign) validate() error {
+	if c.Shop != nil {
+		if err := c.Shop.validate(); err != nil {
+			return err
+		}
+	}
 	if c.Current.Kind == 2 {
 		return c.validateTown()
 	}
@@ -121,13 +128,13 @@ func (c *currentSecondCampaign) validateOrdinaryAvailable() error {
 func (c *currentSecondCampaign) validateTown() error {
 	// R2-ENGINE-231, R2-SESSION-077, DIV-2412, DIV-2633.
 	if c.Current == (currentSecondLocation{2, 2}) || c.Current == (currentSecondLocation{2, 3}) {
-		if c.Room == nil || *c.Room > secondTownInn {
+		if c.Room == nil || *c.Room > secondTownShop {
 			return fmt.Errorf("current second campaign requires a quiet later town")
 		}
 		return c.validateOrdinaryAvailable()
 	}
 	town, mission := (currentSecondLocation{2, 1}), (currentSecondLocation{1, 10})
-	if c.Current != town || c.Bank[768] != 10 || c.Room == nil || *c.Room > secondTownInn || len(c.Available) < 1 || len(c.Available) > 2 || c.Available[0] != town || len(c.Available) == 2 && c.Available[1] != mission {
+	if c.Current != town || c.Bank[768] != 10 || c.Room == nil || *c.Room > secondTownShop || len(c.Available) < 1 || len(c.Available) > 2 || c.Available[0] != town || len(c.Available) == 2 && c.Available[1] != mission {
 		return fmt.Errorf("current second campaign requires a quiet first town")
 	}
 	return nil
@@ -137,7 +144,7 @@ func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}}
+	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop)}
 	if c.aux != (secondAux{}) {
 		aux := c.aux
 		out.Aux = &aux
@@ -157,6 +164,7 @@ func (c *currentSecondCampaign) clone() *currentSecondCampaign {
 	}
 	out := *c
 	out.Available = slices.Clone(c.Available)
+	out.Shop = c.Shop.clone()
 	if c.Aux != nil {
 		aux := *c.Aux
 		out.Aux = &aux
@@ -171,7 +179,7 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &secondCampaign{bank: c.Bank, current: secondLocation{c.Current.Kind, c.Current.ID}}
+	out := &secondCampaign{bank: c.Bank, current: secondLocation{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore()}
 	if c.Aux != nil {
 		out.aux = *c.Aux
 	}

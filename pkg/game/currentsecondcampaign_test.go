@@ -141,7 +141,7 @@ func TestCurrentSecondOrdinaryMissionsKeepTheirCampaign(t *testing.T) {
 }
 
 func TestCurrentSecondLaterMissionKeepsEveryAvailableRecordInOrder(t *testing.T) {
-	source := &secondCampaign{current: secondLocation{1, 31}}
+	source := &secondCampaign{current: secondLocation{1, 31}, shop: newSecondShop()}
 	for id := 3; id > 0; id-- {
 		source.available = append(source.available, secondLocation{2, id})
 	}

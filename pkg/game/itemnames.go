@@ -29,10 +29,16 @@ const (
 // recovery and, past that, its seven-digit digits, so a missing table
 // narrows what is named rather than blocking anything.
 func ReadItemNames(src entrySource, code TextCode) (data.ItemNames, bool) {
+	return readItemNamesAt(src, ItemNameKeyAddress, code)
+}
+
+// readItemNamesAt is ReadItemNames with the key file at keys, the address a
+// game's files name.
+func readItemNamesAt(src entrySource, keys string, code TextCode) (data.ItemNames, bool) {
 	if src == nil {
 		return nil, false
 	}
-	bin, err := src.ReadFile(ItemNameKeyAddress)
+	bin, err := src.ReadFile(keys)
 	if err != nil {
 		return nil, false
 	}

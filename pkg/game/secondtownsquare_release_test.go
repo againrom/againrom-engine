@@ -93,7 +93,7 @@ func TestReleaseSecondTownOneMaskCensus(t *testing.T) {
 	}
 	for b, w := range map[byte]answer{
 		128: {"inn", 236, ui.TownSquareControlDoor, 0, true},
-		144: {"shop", 233, 0, 0, false},
+		144: {"shop", 233, ui.TownSquareControlDoor, 2, true},
 		160: {"gate", 237, ui.TownSquareControlDoor, 1, true},
 		176: {"menu", 235, ui.TownSquareControlMenu, 0, true},
 		192: {"school", 234, 0, 0, false},
@@ -173,7 +173,7 @@ func TestReleaseSecondTownOneLayers(t *testing.T) {
 }
 
 // Hover and click per selector: the school shows tip 234 and does nothing;
-// the shop opens no room; the closed gate shows the plagatguard section and
+// the shop opens its room; the closed gate shows the plagatguard section and
 // keeps the party in town (R2-ENGINE-241, R2-SESSION-128).
 func TestReleaseSecondTownOneSelectors(t *testing.T) {
 	f, app, s, now := secondTownOne(t)
@@ -188,8 +188,14 @@ func TestReleaseSecondTownOneSelectors(t *testing.T) {
 			t.Fatalf("%s hover not delivered", name)
 		}
 		sq.Click(sq.Hover())
-		if c.room != secondTownSquare || c.current != (secondLocation{2, 1}) || c.payload != nil {
-			t.Errorf("%s click acted: room %v current %v", name, c.room, c.current)
+		want := map[string]secondTownRoom{"school": secondTownSquare, "shop": secondTownShop}[name]
+		if c.room != want || c.current != (secondLocation{2, 1}) || c.payload != nil {
+			t.Errorf("%s click: room %v current %v, want room %v", name, c.room, c.current, want)
+		}
+		if name == "shop" {
+			if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
+				t.Fatalf("escape from the shop left room %v (%v)", c.room, err)
+			}
 		}
 	}
 	if c.bank[769] != 0 {

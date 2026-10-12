@@ -50,6 +50,9 @@ func (s *Scene) when(w *WhenSpec) bool {
 	if w.Hover != "" && (s.hover == nil || s.hover.Name != w.Hover) {
 		return false
 	}
+	if w.If != "" && !s.host.Condition(w.If) {
+		return false
+	}
 	if w.Active != "" {
 		a := s.byName[w.Active]
 		if a == nil || !a.activeNow() {

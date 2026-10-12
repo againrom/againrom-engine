@@ -2225,6 +2225,14 @@ package storyguard
 // guest itself: pkg/game/modmission.go and modassemble.go, cmd/modmission,
 // the guest fields of the town, snapshot and session record, the restore
 // override in originalsave.go and its archtest row, including these lines.
+//
+// CommentBytes rises for the second game's shop rules: the docs of the new
+// pkg/secondshop and its allow-map row, genuinely new code, this note included.
+// CommentBytes rises for the second game's shop page: the docs of the shop
+// state, its SAV record, the page's rows, grids and painter, pkg/town's grid
+// and layer condition, genuinely new code, this note included. It rises again
+// for the shop's item names: the docs of NameKey, of the game's item-name key
+// address and of the cell's word lines, this sentence included.
 // CommentBytes rises for the popup that states the cast's damage: the docs of
 // SpellCharacteristics and SpellDamagePair in pkg/sim, the popup, cast and
 // factor-table witnesses in pkg/game/spellrecord_release_test.go and
@@ -2253,5 +2261,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8780043,
+	CommentBytes: 8793498,
 }

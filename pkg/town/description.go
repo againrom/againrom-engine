@@ -387,9 +387,10 @@ type LayerSpec struct {
 }
 
 // WhenSpec is a layer condition: the hovered hotspot, an active actor, a
-// family member running an episode on a sheet, or any one of a list of
-// conditions.
+// family member running an episode on a sheet, a campaign condition, or any
+// one of a list of conditions.
 type WhenSpec struct {
+	If      string     `json:"if"`
 	Hover   string     `json:"hover"`
 	Active  string     `json:"active"`
 	Running string     `json:"running"`
@@ -443,7 +444,10 @@ type RoomSpec struct {
 	// page draws the campaign's roster in, and its buttons in index order.
 	Seats   *SeatSpec    `json:"seats"`
 	Buttons []ButtonSpec `json:"buttons"`
-	Cite    []string     `json:"cite"`
+	// Grids are the page's item grids: each shows a list the page kind
+	// names, one entry per cell.
+	Grids []GridSpec `json:"grids"`
+	Cite  []string   `json:"cite"`
 }
 
 // Step is one entry or exit step: a composer step ("reset" the square view)
@@ -528,6 +532,7 @@ type Vocabulary struct {
 	Values     []string
 	Events     []string
 	Pages      []string
+	Lists      []string
 }
 
 func (v Vocabulary) has(list []string, name string) bool {

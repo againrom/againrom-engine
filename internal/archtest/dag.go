@@ -82,10 +82,13 @@ var allow = map[string][]string{
 	"pkg/rules":     {},
 	// The random service is a leaf: its generators and named streams import
 	// nothing of this tree, so every tier that draws can name it.
-	"pkg/random":  {},
-	"pkg/mapload": {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
-	"pkg/mapedit": {"pkg/formats/alm"},
-	"pkg/render":  {"pkg/sim", "pkg/vfs"},
+	"pkg/random": {},
+	// The second game's shop rules read collections through their own
+	// interface and draw through a caller's rand(): a leaf.
+	"pkg/secondshop": {},
+	"pkg/mapload":    {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
+	"pkg/mapedit":    {"pkg/formats/alm"},
+	"pkg/render":     {"pkg/sim", "pkg/vfs"},
 	// Terrain decodes bitmaps through the format leaf; menus bind loader sets.
 	"pkg/render/terrain":    {"pkg/formats/bmp"},
 	"pkg/render/refraction": {},

@@ -396,7 +396,7 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 		t.Fatal("town 3 departure changed availability", c.available)
 	}
 	for _, bad := range []func(*currentSecondCampaign){
-		func(c *currentSecondCampaign) { room := secondTownInn + 1; c.Room = &room },
+		func(c *currentSecondCampaign) { room := secondTownShop + 1; c.Room = &room },
 		func(c *currentSecondCampaign) { c.Room = nil },
 		func(c *currentSecondCampaign) { c.Available = c.Available[:2] },
 		func(c *currentSecondCampaign) { c.Bank[775] = 1 },

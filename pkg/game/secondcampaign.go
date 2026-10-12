@@ -20,6 +20,7 @@ type secondTownRoom uint8
 const (
 	secondTownSquare secondTownRoom = iota
 	secondTownInn
+	secondTownShop
 )
 
 // secondAux is the eight-entry auxiliary array of five DWORD fields (+0,
@@ -36,11 +37,12 @@ type secondCampaign struct {
 	selected  secondLocation
 	payload   []byte
 	part      int
+	shop      secondShop
 }
 
 func newSecondCampaign() *secondCampaign {
 	initial := secondLocation{kind: 2, id: 1}
-	c := &secondCampaign{available: []secondLocation{initial}, current: initial}
+	c := &secondCampaign{available: []secondLocation{initial}, current: initial, shop: newSecondShop()}
 	c.bank[768] = 10
 	return c
 }
@@ -270,6 +272,9 @@ func (t *secondCampaignScreen) Header() string {
 	if c := t.state(); c != nil && c.current.kind == 2 {
 		if c.room == secondTownInn {
 			return "ROM2 campaign: tavern"
+		}
+		if c.room == secondTownShop {
+			return "ROM2 campaign: shop"
 		}
 		return fmt.Sprintf("ROM2 campaign: town %d", c.current.id)
 	}

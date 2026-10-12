@@ -168,10 +168,9 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	d.Bodies, _ = ReadBodyList(fsys)
 	// NOT FATAL, for the same reason: a missing item-name table narrows what
 	// itemName (world.go) can show a code by, it does not stop a mission
-	// from opening. It reads a different archive (main.res text, not
-	// world.res), so it rides beside the table rather than inside the walk
-	// above.
-	d.Table.Names, _ = ReadItemNames(fsys, InstallTextCode(fsys, g.Edition()))
+	// from opening. Its lines are main.res text, not world.res, so it rides
+	// beside the table rather than inside the walk above.
+	d.Table.Names, _ = readItemNamesAt(fsys, filesOf(g).itemNameKeys, InstallTextCode(fsys, g.Edition()))
 	// NOT FATAL either: a table that read fewer than the four hero names carries
 	// none, and MissionPartyAs then names a hero started without the generator's
 	// name field itself. The generator reads the same four through the same

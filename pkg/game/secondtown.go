@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/screenart"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -17,21 +18,25 @@ import (
 var secondTownDescriptions = map[int]string{1: "rom2-town1", 2: "rom2-town2", 3: "rom2-town3"}
 
 // secondTownPages are the page kinds the second game's town screen draws.
-var secondTownPages = []string{"inn"}
+var secondTownPages = []string{"inn", "shop"}
 
 // secondTownRooms binds the description's room names to the campaign's
 // rooms, the room the SAV records.
-var secondTownRooms = map[string]secondTownRoom{"square": secondTownSquare, "inn": secondTownInn}
+var secondTownRooms = map[string]secondTownRoom{"square": secondTownSquare, "inn": secondTownInn, "shop": secondTownShop}
 
 // secondTownRowText is the list fallback's text for a square hotspot's row.
 var secondTownRowText = map[string]string{"inn": "TAVERN", "gate": "GATES",
 	"girl1": "GIRL 1", "girl2": "GIRL 2", "guard": "GUARD", "dervish": "DERVISH",
-	"innkeeper": "INNKEEPER", "shopkeeper": "SHOPKEEPER"}
+	"innkeeper": "INNKEEPER", "shopkeeper": "SHOPKEEPER", "shop": "SHOP"}
 
 // secondTownConditions answers the conditions the second game's town
 // descriptions name.
 var secondTownConditions = map[string]func(c *secondCampaign) bool{
 	"gate-open": (*secondCampaign).gateOpen,
+	"shelf-0":   func(c *secondCampaign) bool { return c.shop.category == 0 },
+	"shelf-1":   func(c *secondCampaign) bool { return c.shop.category == 1 },
+	"shelf-2":   func(c *secondCampaign) bool { return c.shop.category == 2 },
+	"shelf-3":   func(c *secondCampaign) bool { return c.shop.category == 3 },
 }
 
 // secondTownValues answers the values the second game's town descriptions
@@ -54,6 +59,8 @@ var secondTownHooks = map[string]func(t *secondCampaignScreen, room string){
 		c.leaveTown()
 		c.room = secondTownSquare
 	},
+	"shop-open":  secondShopOpen,
+	"shop-leave": func(t *secondCampaignScreen, _ string) { t.state().shop.leave() },
 }
 
 // secondGateText is the town text section the closed gate shows
@@ -66,7 +73,7 @@ const secondInnExit = "EXIT"
 // secondTownVocabulary is the hook, condition, value and page names the
 // second game's campaign answers.
 func secondTownVocabulary() town.Vocabulary {
-	v := town.Vocabulary{Pages: secondTownPages}
+	v := town.Vocabulary{Pages: secondTownPages, Lists: secondTownLists}
 	for name := range secondTownHooks {
 		v.Hooks = append(v.Hooks, name)
 	}
@@ -98,6 +105,11 @@ type secondTownState struct {
 	seatFrames []int
 	seatStamp  time.Time
 	innShown   bool
+
+	// shopOffsets are the first entries the shop's stock and hero grids
+	// show; shopInfo is the item the information panel shows.
+	shopOffsets [2]int
+	shopInfo    *secondshop.Item
 
 	action ui.TownAction
 }
@@ -327,7 +339,9 @@ func (t *secondCampaignScreen) seatFrame(i int) int {
 // hotspot with a row, in row order; in a page with seats one TALK row per
 // speaker, then EXIT.
 func (t *secondCampaignScreen) composedRows(d *town.Description, c *secondCampaign) []ui.TownRow {
-	if r := d.Room(t.roomName()); r != nil {
+	if r := d.Room(t.roomName()); r != nil && r.Page == "shop" {
+		return t.shopRows(c)
+	} else if r != nil {
 		var rows []ui.TownRow
 		for _, o := range c.speakers() {
 			rows = append(rows, ui.TownRow{Text: fmt.Sprintf("TALK %d", o.npc), Choosable: true})
@@ -350,7 +364,9 @@ func (t *secondCampaignScreen) composedRows(d *town.Description, c *secondCampai
 func (t *secondCampaignScreen) chooseComposed(d *town.Description, c *secondCampaign, i int) ui.TownAction {
 	square := t.scene(d, d.Square.Name)
 	room := t.roomName()
-	if r := d.Room(room); r != nil {
+	if r := d.Room(room); r != nil && r.Page == "shop" {
+		return t.chooseShop(d, c, room, i)
+	} else if r != nil {
 		speakers := c.speakers()
 		if i < len(speakers) {
 			if r.Seats != nil {
@@ -430,6 +446,9 @@ func (v secondTownView) Paint(dst *image.RGBA) {
 			}
 		}
 	}
+	if len(r.Grids) > 0 {
+		v.paintShopGrids(dst, r)
+	}
 	s.Paint(dst, "front")
 	words, font := v.t.install.Words, v.t.install.Font.Value()
 	for _, b := range r.Buttons {
@@ -466,6 +485,9 @@ func (v secondTownView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 			return ui.TownSquareControl{Kind: ui.TownSquareControlMenu}, true
 		}
 		return ui.TownSquareControl{}, false
+	}
+	if r.Page == "shop" {
+		return v.shopControlAt(r, p)
 	}
 	speakers := len(v.t.state().speakers())
 	if r.Seats != nil {

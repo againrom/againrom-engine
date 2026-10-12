@@ -81,7 +81,7 @@ func TestRom2TownDescriptionShape(t *testing.T) {
 			rows[*h.Row] = secondTownRowText[h.Name]
 		}
 	}
-	if strings.Join(rows, ",") != "TAVERN,GATES" {
+	if strings.Join(rows, ",") != "TAVERN,GATES,SHOP" {
 		t.Errorf("square rows %v", rows)
 	}
 	p, ok := base.Find(base.ROM2EN)

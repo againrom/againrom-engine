@@ -146,6 +146,20 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 			}
 		}
 	}
+	lists := map[string]bool{}
+	for i, g := range r.Grids {
+		where := fmt.Sprintf("grid %d", i)
+		if g.List == "" || lists[g.List] {
+			return fail("%s shows no list or a repeated one %q", where, g.List)
+		}
+		lists[g.List] = true
+		if g.Count <= 0 || g.First.Rectangle().Empty() {
+			return fail("%s needs cells and a first cell", where)
+		}
+		if err := needArt(where, g.Back); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -259,7 +273,7 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 	}
 	for _, a := range s.Art {
 		switch a.Format {
-		case "picture", "series", "sprites":
+		case "picture", "series", "sprites", "frame":
 		case "mask":
 			if s.View.Size[0] <= 0 || s.View.Size[1] <= 0 {
 				return fail("mask art %q in a scene without a view size", a.Name)
@@ -397,7 +411,7 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 // known, and a list of alternatives that names nothing else.
 func (n *sceneNames) checkWhen(where string, w WhenSpec) error {
 	if len(w.Any) > 0 {
-		if w.Hover != "" || w.Active != "" || w.Running != "" {
+		if w.If != "" || w.Hover != "" || w.Active != "" || w.Running != "" {
 			return n.fail("%s mixes alternatives with a condition", where)
 		}
 		for _, a := range w.Any {
@@ -928,7 +942,7 @@ func onlyEqual(p, o PickSpec) bool {
 // the game does not answer.
 func (d *Description) checkVocabulary(vocab Vocabulary) error {
 	lists := map[string][]string{"hook": vocab.Hooks, "condition": vocab.Conditions, "value": vocab.Values,
-		"event": vocab.Events, "page": vocab.Pages}
+		"event": vocab.Events, "page": vocab.Pages, "list": vocab.Lists}
 	for _, u := range d.uses() {
 		if !vocab.has(lists[u.kind], u.name) {
 			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, u.kind, u.name)
@@ -972,6 +986,19 @@ func (d *Description) uses() []nameUse {
 		for _, a := range s.Actors {
 			raised[a.Raise] = true
 		}
+		var when func(w *WhenSpec)
+		when = func(w *WhenSpec) {
+			if w == nil {
+				return
+			}
+			use("condition", prefix+"layer", w.If)
+			for i := range w.Any {
+				when(&w.Any[i])
+			}
+		}
+		for i := range s.Layers {
+			when(s.Layers[i].When)
+		}
 		for _, a := range s.Actors {
 			where := prefix + "actor " + a.Name
 			use("condition", where, a.HoldUnless)
@@ -990,6 +1017,9 @@ func (d *Description) uses() []nameUse {
 	}
 	for _, r := range d.Rooms {
 		use("page", "room "+r.Name, r.Page)
+		for _, g := range r.Grids {
+			use("list", "room "+r.Name, g.List)
+		}
 		for _, s := range append(append([]Step{}, r.Enter...), r.Exit...) {
 			use("hook", "room "+r.Name, s.Hook)
 		}
