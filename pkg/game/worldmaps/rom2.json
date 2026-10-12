@@ -1,0 +1,53 @@
+{
+  "worldmap": "rom2",
+  "art": [
+    {"name": "gmap", "format": "picture", "key": "main/graphics/global.map/gmap.bmp", "cite": ["R2-ENGINE-429", "R2-ASSET-093"]},
+    {"name": "umoir", "format": "picture", "key": "main/graphics/global.map/umoir.bmp", "cite": ["R2-ENGINE-429", "R2-ASSET-093"]},
+    {"name": "pathmap", "format": "mask", "key": "graphics/global.map/pathmap.bmp", "cite": ["R2-ENGINE-433", "R2-ASSET-093"]},
+    {"name": "umoirpath", "format": "mask", "key": "graphics/global.map/umoirpath.bmp", "cite": ["R2-ENGINE-433", "R2-ASSET-093"]},
+    {"name": "ball", "format": "picture", "key": "graphics/global.map/ballmap.bmp", "transparent": "black", "cite": ["R2-ENGINE-429", "DIV-3069"]},
+    {"name": "flag", "format": "sprites", "key": "graphics/global.map/flag/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
+    {"name": "yourflag", "format": "sprites", "key": "graphics/global.map/yourflag/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
+    {"name": "cross", "format": "sprites", "key": "graphics/global.map/cross/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-432"]},
+    {"name": "missionflag", "format": "sprites", "key": "graphics/global.map/missionflag/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]},
+    {"name": "flagonmap", "format": "sprites", "key": "graphics/global.map/flagonmap/sprites.16a", "cite": ["R2-ENGINE-429", "R2-ENGINE-430"]}
+  ],
+  "records": "catalog",
+  "catalog": [
+    {"kind": 2, "id": 1, "point": [215, 234]},
+    {"kind": 1, "id": 10, "point": [302, 158]},
+    {"kind": 1, "id": 93, "point": [306, 148]},
+    {"kind": 1, "id": 94, "point": [306, 148]},
+    {"kind": 1, "id": 95, "point": [306, 148]},
+    {"kind": 1, "id": 96, "point": [306, 148]}
+  ],
+  "modes": [
+    {"name": "select", "background": "gmap", "path": "pathmap",
+     "party": {"art": "yourflag", "at": [-20, -44], "cite": ["R2-ENGINE-430"]},
+     "markers": true, "text": true,
+     "cite": ["R2-ENGINE-428", "R2-ENGINE-429", "R2-ENGINE-430", "R2-ENGINE-434"]},
+    {"name": "route", "background": "umoir", "path": "umoirpath",
+     "party": {"art": "flag", "at": [-10, -24], "cite": ["R2-ENGINE-430"]},
+     "travel": "first",
+     "cite": ["R2-ENGINE-272", "R2-ENGINE-428", "R2-ENGINE-430", "R2-ENGINE-432"]}
+  ],
+  "pick": "nearest",
+  "preview": true,
+  "skip-at-start": true,
+  "ball": "ball",
+  "cross": {"art": "cross", "at": [-10, -12], "cite": ["R2-ENGINE-432"]},
+  "cross-hold": 2,
+  "markers": [
+    {"who": "target", "art": "missionflag", "at": [-5, -41], "cite": ["R2-ENGINE-430"]},
+    {"who": "other", "art": "flagonmap", "at": [-5, -37], "cite": ["R2-ENGINE-430"]}
+  ],
+  "text": {
+    "source": "main/text/globalmap.txt",
+    "name": {"1": "title%d", "2": "town%d"},
+    "description": {"1": "briefing%d", "2": "description%d"},
+    "trim": 2,
+    "name-at": [230, 27], "lines-at": [230, 48], "line-step": 10, "width": 320, "max-lines": 15,
+    "cite": ["R2-ENGINE-434", "DIV-3070"]
+  },
+  "cite": ["R2-ENGINE-418", "R2-ENGINE-428", "R2-ENGINE-431", "R2-ENGINE-432", "R2-ENGINE-433", "DIV-3069", "DIV-3070"]
+}

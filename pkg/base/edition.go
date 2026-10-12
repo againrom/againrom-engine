@@ -41,6 +41,10 @@ type Edition struct {
 	// screen no town or generator description names.
 	Screens string
 
+	// WorldMap names the world-map description: the campaign map's art,
+	// modes, pick rule, travel and text as data.
+	WorldMap string
+
 	// Options names the Game Options column a stepping option row reads its
 	// offered values and its new-game value from.
 	Options string
@@ -115,6 +119,7 @@ var firstEdition = Edition{
 	Music:                     "rom1",
 	Rooms:                     "rom1",
 	Screens:                   "rom1",
+	WorldMap:                  "rom1",
 	Options:                   "rom1",
 	CompanionObjectiveMission: 40,
 	Cutscenes: map[string]CutsceneArchive{
@@ -134,6 +139,7 @@ var secondEdition = Edition{
 	Generator:    "rom2",
 	Music:        "rom2",
 	Screens:      "rom2",
+	WorldMap:     "rom2",
 	Options:      "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{

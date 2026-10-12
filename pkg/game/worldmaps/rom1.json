@@ -1,0 +1,27 @@
+{
+  "worldmap": "rom1",
+  "art": [
+    {"name": "background", "format": "picture", "key": "main/graphics/global.map/gmap.bmp", "cite": ["TOWN-120"]},
+    {"name": "path", "format": "mask", "key": "graphics/global.map/pathmap.bmp", "cite": ["TOWN-119"]},
+    {"name": "ball", "format": "picture", "key": "graphics/global.map/ballmap.bmp", "transparent": "black", "cite": ["TOWN-120"]},
+    {"name": "flag", "format": "sprites", "key": "graphics/global.map/flag/sprites.16a", "cite": ["TOWN-529"]},
+    {"name": "available", "format": "sprites", "key": "graphics/global.map/flag1/sprites.16a", "cite": ["TOWN-529"]},
+    {"name": "cross", "format": "sprites", "key": "graphics/global.map/cross/sprites.16a", "cite": ["TOWN-530", "TOWN-531"]},
+    {"name": "scroll", "format": "picture", "key": "graphics/global.map/scroll0%d.bmp", "index": [{"count": 3, "base": 1, "cite": ["TOWN-036"]}], "transparent": "black", "cite": ["TOWN-036"]},
+    {"name": "pressed", "format": "picture", "key": "graphics/global.map/scrollp%d.bmp", "index": [{"count": 3, "base": 1, "cite": ["TOWN-036"]}], "transparent": "black", "cite": ["TOWN-036"]},
+    {"name": "marker", "format": "frame", "key": "main/graphics/global.map/%s.256", "bound": true, "cite": ["TOWN-120"]}
+  ],
+  "records": "registry",
+  "modes": [
+    {"name": "town", "background": "background", "path": "path",
+     "party": {"art": "flag", "cite": ["TOWN-120"]},
+     "cite": ["TOWN-120", "TOWN-121"]}
+  ],
+  "pick": "scroll",
+  "ball": "ball",
+  "cross": {"art": "cross", "cite": ["TOWN-120", "TOWN-530"]},
+  "task": {"art": "available", "at": [-4, -32], "cite": ["TOWN-528"]},
+  "cards": {"scroll": "scroll", "pressed": "pressed", "cite": ["TOWN-036", "TOWN-118"]},
+  "record-art": "marker",
+  "cite": ["TOWN-118", "TOWN-119", "TOWN-120", "TOWN-121", "DIV-1516", "DIV-1545"]
+}

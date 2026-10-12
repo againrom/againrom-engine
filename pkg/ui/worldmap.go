@@ -22,9 +22,56 @@ type WorldMapMission struct {
 	Anchor   image.Point
 	Region   image.Rectangle
 	Object   int
-	Marker   image.Image
+	// Kind is the record's kind as its campaign numbers it; a map's text
+	// keys are chosen by it.
+	Kind   int
+	Marker image.Image
+	// MarkerAt places Marker. Its zero value keeps drawMarker's own rule: a
+	// whole-map overlay at its own coordinates, a smaller picture centred.
+	MarkerAt WorldMapPlace
 	Enabled  bool
 	Problem  string
+}
+
+// WorldMapPlace places a sprite at a point. Its zero value centres the
+// sprite on the point; TopLeft puts the sprite's top-left corner at the point
+// plus Offset. A map's description supplies every placement.
+type WorldMapPlace struct {
+	Offset  image.Point
+	TopLeft bool
+}
+
+// WorldMapTextBlock is a text block a map draws over its records: one name
+// line at NameAt, and Body wrapped to Width in lines from LinesAt, LineStep
+// apart, at most MaxLines of them.
+type WorldMapTextBlock struct {
+	Name     string
+	Body     string
+	NameAt   image.Point
+	LinesAt  image.Point
+	LineStep int
+	Width    int
+	MaxLines int
+	NameFont *rendertext.Font
+	LineFont *rendertext.Font
+}
+
+// WorldMapTextLines are the lines a text block draws its body in.
+func WorldMapTextLines(t *WorldMapTextBlock) []string {
+	if t == nil || t.LineFont == nil {
+		return nil
+	}
+	var lines []string
+	for _, line := range strings.Split(strings.ReplaceAll(t.Body, "\r", ""), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		lines = append(lines, wrapTooltipLine(line, t.LineFont, t.Width)...)
+	}
+	if t.MaxLines > 0 && len(lines) > t.MaxLines {
+		lines = lines[:t.MaxLines]
+	}
+	return lines
 }
 
 // WorldMapMarker is one cached mission marker picture. It is drawn whether or
@@ -47,9 +94,17 @@ type WorldMapView struct {
 	// drawn at Position. Available is the task Flag1, drawn while AtHome at
 	// the hovered mission's anchor, or the selected mission's from the choice
 	// until arrival (`TOWN-528`). Cross is the destination marker.
-	Flag          image.Image
-	Available     image.Image
-	Cross         image.Image
+	Flag        image.Image
+	Available   image.Image
+	Cross       image.Image
+	FlagAt      WorldMapPlace
+	AvailableAt WorldMapPlace
+	CrossAt     WorldMapPlace
+	// MarkersOverRoute draws the mission markers after the route dots
+	// instead of before them.
+	MarkersOverRoute bool
+	// Text is drawn last, over every sprite, when present.
+	Text          *WorldMapTextBlock
 	Scroll        [3]image.Image
 	Pressed       [3]image.Image
 	Font          *rendertext.Font
@@ -261,17 +316,12 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 
 	// Paint order follows `TOWN-120` (High): cached mission markers, route
 	// stamps, the animated destination cross, the task Flag1 while at home,
-	// the animated current-position flag, then scroll
-	// cards below. `DIV-128`: a mission with no cached marker (never
-	// selected, or its own Picture is "nothing") paints nothing here — no
-	// placeholder dot.
-	for _, m := range v.Missions {
-		if m.Enabled && worldMapImagePresent(m.Marker) {
-			drawMarker(dst, m.Marker, m.Anchor)
-		}
-	}
-	for _, m := range v.Markers {
-		drawMarker(dst, m.Picture, m.Anchor)
+	// the animated current-position flag, then scroll cards below. A map whose
+	// description draws markers over the route draws them after the stamps.
+	// `DIV-128`: a mission with no cached marker (never selected, or its own
+	// Picture is "nothing") paints nothing here — no placeholder dot.
+	if !v.MarkersOverRoute {
+		drawWorldMapMarkers(dst, v)
 	}
 
 	shown := v.RouteShown
@@ -284,15 +334,18 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 	for i := 0; i < shown; i += worldMapBallStride {
 		stampAt(dst, v.Ball, v.Route[i], worldMapRoute, 2)
 	}
+	if v.MarkersOverRoute {
+		drawWorldMapMarkers(dst, v)
+	}
 	if v.Returning {
-		stampAt(dst, v.Cross, v.Destination, worldMapMark, 4)
+		placeSprite(dst, v.Cross, v.Destination, v.CrossAt, worldMapMark, 4)
 	} else if v.Selected >= 0 && v.Selected < len(v.Missions) && v.Missions[v.Selected].Enabled {
-		stampAt(dst, v.Cross, v.Missions[v.Selected].Anchor, worldMapMark, 4)
+		placeSprite(dst, v.Cross, v.Missions[v.Selected].Anchor, v.CrossAt, worldMapMark, 4)
 	}
 	if i := worldMapTaskFlag(v); i >= 0 {
-		drawTaskFlag(dst, v.Available, v.Missions[i].Anchor)
+		placeSprite(dst, v.Available, v.Missions[i].Anchor, v.AvailableAt, color.RGBA{R: 220, G: 210, B: 175, A: 255}, 3)
 	}
-	stampAt(dst, v.Flag, v.Position, color.RGBA{R: 242, G: 235, B: 211, A: 255}, 4)
+	placeSprite(dst, v.Flag, v.Position, v.FlagAt, color.RGBA{R: 242, G: 235, B: 211, A: 255}, 4)
 
 	words := v.Words
 	authored := AuthoredWords()
@@ -321,6 +374,7 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 		}
 		drawWorldMapCard(dst, v, i, i-base, m.Title, detail, m.Payment)
 	}
+	drawWorldMapText(dst, v.Text)
 	if v.Problem != "" {
 		drawWorldMapLine(dst, v.Font, v.Problem, 12, 454, color.RGBA{R: 255, G: 220, B: 190, A: 255}, 102)
 	} else if v.Message != "" {
@@ -399,18 +453,47 @@ func stampAt(dst *image.RGBA, pic image.Image, p image.Point, fallback color.RGB
 	}
 }
 
-// drawTaskFlag places Flag1's frame with its top-left corner 4 pixels left of
-// and 32 above the task's anchor, the paint's own offsets (`TOWN-528`), so the
-// flag stands over the destination Cross instead of covering it. With no
-// sheet the fallback dot stays centred on the anchor.
-func drawTaskFlag(dst *image.RGBA, pic image.Image, anchor image.Point) {
-	if !worldMapImagePresent(pic) {
-		stampAt(dst, pic, anchor, color.RGBA{R: 220, G: 210, B: 175, A: 255}, 3)
+// placeSprite draws pic at p by place. With no picture the fallback dot stays
+// centred on p.
+func placeSprite(dst *image.RGBA, pic image.Image, p image.Point, place WorldMapPlace, fallback color.RGBA, radius int) {
+	if !worldMapImagePresent(pic) || !place.TopLeft {
+		stampAt(dst, pic, p, fallback, radius)
 		return
 	}
 	b := pic.Bounds()
-	at := anchor.Add(image.Pt(-4, -32))
+	at := p.Add(place.Offset)
 	draw.Draw(dst, b.Add(at.Sub(b.Min)), pic, b.Min, draw.Over)
+}
+
+// drawWorldMapMarkers draws every enabled mission's marker, then the cached
+// markers of missions without a scroll.
+func drawWorldMapMarkers(dst *image.RGBA, v WorldMapView) {
+	for _, m := range v.Missions {
+		if !m.Enabled || !worldMapImagePresent(m.Marker) {
+			continue
+		}
+		if m.MarkerAt.TopLeft {
+			placeSprite(dst, m.Marker, m.Anchor, m.MarkerAt, worldMapMark, 0)
+			continue
+		}
+		drawMarker(dst, m.Marker, m.Anchor)
+	}
+	for _, m := range v.Markers {
+		drawMarker(dst, m.Picture, m.Anchor)
+	}
+}
+
+// drawWorldMapText draws a map's text block: the name, then each line.
+func drawWorldMapText(dst *image.RGBA, t *WorldMapTextBlock) {
+	if t == nil {
+		return
+	}
+	if t.NameFont != nil && t.Name != "" {
+		t.NameFont.Draw(dst, t.Name, t.NameAt.X, t.NameAt.Y, worldMapInk)
+	}
+	for i, line := range WorldMapTextLines(t) {
+		t.LineFont.Draw(dst, line, t.LinesAt.X, t.LinesAt.Y+i*t.LineStep, worldMapInk)
+	}
 }
 
 // drawMarker places a marker picture. A picture that covers the whole map is

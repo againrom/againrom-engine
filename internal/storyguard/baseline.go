@@ -2244,6 +2244,12 @@ package storyguard
 // CurrentAreaPolicy.RingCells and sampledRingCells, the arm notes of the SAV
 // area import, and the docs of the new pkg/sim/secondblizzard_test.go and
 // pkg/game/secondblizzard_release_test.go, including this paragraph.
+//
+// CommentBytes rises for the one world-map builder: the world-map description
+// types in pkg/game/worldmapdescription.go, the shared state machine in
+// pkg/game/worldmapstate.go, the placement and text block docs in
+// pkg/ui/worldmap.go, and the second game's map wiring, including this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2267,5 +2273,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8799459,
+	CommentBytes: 8805998,
 }

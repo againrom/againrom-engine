@@ -25,10 +25,11 @@ var engineWordsPackages = []string{"pkg/ui/", "pkg/game/"}
 // EngineWordsAllowed are the files that may hold a finding, each with its
 // reason.
 var EngineWordsAllowed = map[string]string{
-	"pkg/game/townsquare.go": "embeds the town descriptions, not a word table",
-	"pkg/game/generator.go":  "embeds the character generator descriptions, not a word table",
-	"pkg/game/music.go":      "embeds the music descriptions, not a word table",
-	"pkg/game/screenart.go":  "embeds the screen art descriptions, not a word table",
+	"pkg/game/townsquare.go":          "embeds the town descriptions, not a word table",
+	"pkg/game/generator.go":           "embeds the character generator descriptions, not a word table",
+	"pkg/game/music.go":               "embeds the music descriptions, not a word table",
+	"pkg/game/screenart.go":           "embeds the screen art descriptions, not a word table",
+	"pkg/game/worldmapdescription.go": "embeds the world-map descriptions, not a word table",
 }
 
 // EngineWordsDebt is the selector branches that remain, per file. Each converts
