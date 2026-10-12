@@ -51,7 +51,7 @@ func currentSkillRangeCheck(t *testing.T, f *FrontEnd, live, ordinary int32, bon
 	if level != 100 || base != 100 || modifier != bonus || reach != uint32(ordinary) {
 		t.Fatalf("ordinary Fire Ball: UA6=%d U114=%d UD4=%d S09=%d; want 100/100/%d/%d (live %d)", level, base, modifier, reach, bonus, ordinary, live)
 	}
-	if bytes.Contains(raw, modMarkName) || f.live.world.Hash() != before {
+	if sav.MayCarryNativeMods(raw) || f.live.world.Hash() != before {
 		t.Fatal("ordinary SAVE added a mod mark or changed the live world")
 	}
 	return path

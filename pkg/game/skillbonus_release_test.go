@@ -1,7 +1,6 @@
 package game
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -96,7 +95,7 @@ func TestReleaseSkillBonusLiftsPast100AndTheSaveStaysOriginal(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if bytes.Contains(raw, modMarkName) {
+			if sav.MayCarryNativeMods(raw) {
 				t.Fatal("a save without a mod set carries a mod mark")
 			}
 			level, base, bonus := savedHumanLevels(t, raw)

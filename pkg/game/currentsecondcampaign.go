@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
-	"strings"
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
@@ -213,11 +212,8 @@ func validateOriginalGame(saved []byte, game base.Game) error {
 		}
 		if store, present := sf.StateStore(); present {
 			for _, section := range store.Root.Children {
-				if !strings.EqualFold(section.Name, "CurrentState") {
-					continue
-				}
 				for _, leaf := range section.Children {
-					if strings.EqualFold(leaf.Name, "AgainromActions") {
+					if sav.IsNativeActionsLeaf(section.Name, leaf.Name) {
 						return fmt.Errorf("authored current SAV document is malformed: %w", err)
 					}
 				}

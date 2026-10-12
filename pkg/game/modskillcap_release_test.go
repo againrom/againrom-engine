@@ -225,7 +225,7 @@ func TestReleaseModSkillCapLeavesAnUnmoddedSaveUntouched(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := export(f)
-	if bytes.Contains(a, modMarkName) {
+	if sav.MayCarryNativeMods(a) {
 		t.Fatal("an unmodded save carries a mod mark")
 	}
 	g := releaseFront(t)

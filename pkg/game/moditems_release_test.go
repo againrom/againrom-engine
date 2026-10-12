@@ -323,7 +323,7 @@ func TestReleaseModItemChangeAppliesToTheShippedRow(t *testing.T) {
 
 func TestReleaseUnmoddedTownSaveHasNoModLeaf(t *testing.T) {
 	f := currentTown(t, nil, nil)
-	if raw := currentTownSave(t, f); bytes.Contains(raw, modMarkName) {
+	if raw := currentTownSave(t, f); sav.MayCarryNativeMods(raw) {
 		t.Fatal("an unmodded town save carries the mod leaf")
 	}
 }

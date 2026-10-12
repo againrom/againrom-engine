@@ -3,7 +3,6 @@ package sav
 import (
 	"encoding/binary"
 	"fmt"
-	"slices"
 	"sort"
 	"strconv"
 )
@@ -82,43 +81,9 @@ func worldStateShape(state *cityState) ([]stateDirectory, error) {
 	if _, err := worldStateSerializedSize(state); err != nil {
 		return nil, err
 	}
-	shape := append([]stateDirectory(nil), cityStateShape...)
-	if value, ok := state.values[NativeRandomPath]; ok {
-		if err := validateNativeRandom(value.kind, value.bytes); err != nil {
-			return nil, err
-		}
-		// REG-100: sorted lookup compares case-sensitive bytes. Both names
-		// fit the original 15-byte insertion limit, with an actual NUL tail.
-		for i := range shape {
-			if shape[i].directory == "CurrentState" {
-				shape[i].children = []stateLeaf{{"AgainromRng", 6}, {"InBattle", 2}}
-			}
-		}
-	}
-	shape, err := withSessionLeaf(state, shape)
+	shape, err := placeSupplementLeaves(state, append([]stateDirectory(nil), cityStateShape...), worldForm)
 	if err != nil {
 		return nil, err
-	}
-	mods, err := modsLeaf(state)
-	if err != nil {
-		return nil, err
-	}
-	if mods != nil {
-		for i := range shape {
-			if shape[i].directory == "CurrentState" {
-				shape[i].children = append(slices.Clone(mods), shape[i].children...)
-			}
-		}
-	}
-	if value, ok := state.values[NativeActionsPath]; ok {
-		if _, _, err := NativeActions(DocumentStateData{ValueRecords: []CityStateRecordData{{Path: NativeActionsPath, Value: CityStateValueData{Kind: value.kind, Bytes: value.bytes}}}}); err != nil {
-			return nil, err
-		}
-		for i := range shape {
-			if shape[i].directory == "CurrentState" {
-				shape[i].children = append([]stateLeaf{{"AgainromActions", 6}}, shape[i].children...)
-			}
-		}
 	}
 	shape = append(shape, stateDirectory{"Fog", []stateLeaf{{"FirstState", 2}, {"Data", 6}}})
 	for path, value := range state.values {

@@ -3,7 +3,6 @@ package sav
 import (
 	"encoding/binary"
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -193,34 +192,7 @@ func validateCityState(state *cityState) error {
 }
 
 func currentCityStateShape(state *cityState) ([]stateDirectory, error) {
-	shape, err := withSessionLeaf(state, append([]stateDirectory(nil), cityStateShape...))
-	if err != nil {
-		return nil, err
-	}
-	mods, err := modsLeaf(state)
-	if err != nil {
-		return nil, err
-	}
-	if mods != nil {
-		for i := range shape {
-			if shape[i].directory == "CurrentState" {
-				shape[i].children = append(slices.Clone(mods), shape[i].children...)
-			}
-		}
-	}
-	if state != nil {
-		if value, ok := state.values[NativeActionsPath]; ok {
-			if _, _, err := NativeActions(DocumentStateData{ValueRecords: []CityStateRecordData{{Path: NativeActionsPath, Value: CityStateValueData{Kind: value.kind, Bytes: value.bytes}}}}); err != nil {
-				return nil, err
-			}
-			for i := range shape {
-				if shape[i].directory == "CurrentState" {
-					shape[i].children = append([]stateLeaf{{"AgainromActions", 6}}, shape[i].children...)
-				}
-			}
-		}
-	}
-	return shape, nil
+	return placeSupplementLeaves(state, append([]stateDirectory(nil), cityStateShape...), cityForm)
 }
 
 func validateStateShape(state *cityState, shape []stateDirectory) error {

@@ -267,8 +267,8 @@ func TestReleaseModAbandonReturnsToTheTownAsEntered(t *testing.T) {
 	// town that entered the mission.
 	raw := currentTownSave(t, f)
 	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil || doc.Head.Mission != 0 || doc.World != nil || !bytes.Contains(raw, modMarkName) {
-		t.Fatalf("the town SAV: mission %d, world %v, mark %v, err %v", doc.Head.Mission, doc.World != nil, bytes.Contains(raw, modMarkName), err)
+	if err != nil || doc.Head.Mission != 0 || doc.World != nil || !sav.MayCarryNativeMods(raw) {
+		t.Fatalf("the town SAV: mission %d, world %v, mark %v, err %v", doc.Head.Mission, doc.World != nil, sav.MayCarryNativeMods(raw), err)
 	}
 	entryDoc, err := sav.DecodeDocumentData(entrySav)
 	if err != nil {

@@ -18,10 +18,6 @@ import (
 // modMarkFormat is the version of the mod mark's payload.
 const modMarkFormat = 1
 
-// modMarkName is the leaf name the mark is stored under, as the state store
-// spells it. Its presence in a save's bytes is the cheap test for a mark.
-var modMarkName = []byte("AgainromMods")
-
 // modMark is the payload of the AgainromMods leaf: the mod set the save was
 // written under, and the true value of every actor field that exceeds the
 // original game's domain. The ordinary fields of the save hold the projection
@@ -294,7 +290,7 @@ func modMarkRefusal(format string, args ...any) error {
 //   - mods active and a mark of another set: refused, naming each difference.
 func applyModMark(saved []byte, ctx mapload.ModContext) ([]byte, []modMarkLayer, error) {
 	active := ctx.Set
-	if active.Empty() && !bytes.Contains(saved, modMarkName) {
+	if active.Empty() && !sav.MayCarryNativeMods(saved) {
 		return saved, nil, nil
 	}
 	doc, err := sav.DecodeDocumentData(saved)

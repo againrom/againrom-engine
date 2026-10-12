@@ -109,7 +109,7 @@ func TestTheModMarkProjectsAndRestoresTrueSkillState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(encoded, modMarkName) {
+	if !sav.MayCarryNativeMods(encoded) {
 		t.Fatal("the leaf name is not visible in the bytes the fast path searches")
 	}
 	loaded, _, err := applyModMark(encoded, mapload.ModContext{Set: set})
@@ -180,7 +180,7 @@ func TestWithoutModsTheDocumentIsLeftExactlyAsItIs(t *testing.T) {
 		t.Fatal(err)
 	}
 	after, err := sav.EncodeDocumentData(doc)
-	if err != nil || !bytes.Equal(before, after) || bytes.Contains(after, modMarkName) {
+	if err != nil || !bytes.Equal(before, after) || sav.MayCarryNativeMods(after) {
 		t.Fatal("an unmodded save changed", err)
 	}
 	loaded, _, err := applyModMark(after, mapload.ModContext{})

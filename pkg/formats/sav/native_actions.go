@@ -5,15 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"slices"
-	"strings"
 	"sync"
 )
 
-// NativeActionsPath carries the typed native continuation supplement in an
-// ordinary application-registry dword array. REG-099/102 bound the registry
-// mechanism; original application acceptance is not established (DIV-1369).
-const NativeActionsPath = "/CurrentState/AgainromActions"
 const MaxNativeActions = 8 << 20
 
 func NativeActions(state DocumentStateData) ([]byte, bool, error) {
@@ -22,60 +16,11 @@ func NativeActions(state DocumentStateData) ([]byte, bool, error) {
 }
 
 func nativeActionsView(state DocumentStateData) ([]byte, bool, error) {
-	var value []byte
-	found := false
-	for _, r := range state.ValueRecords {
-		if !strings.EqualFold(r.Path, NativeActionsPath) {
-			continue
-		}
-		if found || r.Path != NativeActionsPath || r.Value.Kind != 6 || r.Value.Int32 != 0 {
-			return nil, false, fmt.Errorf("sav: ambiguous native action leaf")
-		}
-		b := r.Value.Bytes
-		if len(b) < 8 || len(b) > MaxNativeActions+12 || len(b)%4 != 0 || binary.LittleEndian.Uint32(b) != 1 {
-			return nil, false, fmt.Errorf("sav: invalid native action framing")
-		}
-		n := uint64(binary.LittleEndian.Uint32(b[4:]))
-		if n == 0 || n > MaxNativeActions || n > uint64(len(b)-8) || uint64(len(b)) != (n+11)&^3 {
-			return nil, false, fmt.Errorf("sav: invalid native action length")
-		}
-		for _, pad := range b[8+n:] {
-			if pad != 0 {
-				return nil, false, fmt.Errorf("sav: nonzero native action padding")
-			}
-		}
-		value, found = b[8:8+n], true
-	}
-	return value, found, nil
+	return nativeActionsLeaf.lookupPayload(state)
 }
 
 func SetNativeActions(state *DocumentStateData, value []byte) error {
-	if state == nil || len(value) == 0 || len(value) > MaxNativeActions {
-		return fmt.Errorf("sav: native actions require a bounded application leaf")
-	}
-	if _, _, err := nativeActionsView(*state); err != nil {
-		return err
-	}
-	b := make([]byte, (len(value)+11)&^3)
-	binary.LittleEndian.PutUint32(b, 1)
-	binary.LittleEndian.PutUint32(b[4:], uint32(len(value)))
-	copy(b[8:], value)
-	r := CityStateRecordData{Path: NativeActionsPath, Value: CityStateValueData{Kind: 6, Bytes: b}}
-	records := slices.Clone(state.ValueRecords)
-	index := -1
-	for i := range records {
-		if records[i].Path == r.Path {
-			index = i
-		}
-	}
-	if index < 0 {
-		records = append(records, r)
-	} else {
-		records[index] = r
-	}
-	slices.SortFunc(records, func(a, b CityStateRecordData) int { return strings.Compare(a.Path, b.Path) })
-	state.ValueRecords = records
-	return nil
+	return nativeActionsLeaf.storePayload(state, value)
 }
 
 // Registry continuation addresses are part of the document graph. Relocate
