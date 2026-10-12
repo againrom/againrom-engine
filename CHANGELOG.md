@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.120.0
+
 - [BASE] Once a spell's mana is spent, the cast completes. Clicking the same spell again while it is being cast spends nothing and does not start the cast over. Choosing another spell or target during the casting no longer cancels it: the new cast follows when the first one is released, and each spends its mana once, when its casting begins. A move or attack ordered during the casting also waits for it.
 - [BASE] The in-game menu opens at once, however many saved games the folder holds, and the Load list opens quickly the second time. Both games read each saved game once and remember it until the file changes.
 - [ROM1] Your companions and your hero speak mission lines in their own sex. Where a mission has a man's and a woman's version of a line, as in the New Catapult mission's argument about which way to go, the version shown now matches the person speaking, with that person's portrait. A companion's line is shown with that companion's own portrait, not with another hero of the same sex.
