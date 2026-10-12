@@ -185,11 +185,7 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 		w.detachSavedMember(e.ID)
 		g.Members = append(g.Members, SavedGroupMember{Archive: e.SourceBinding.ArchiveIndex, Entity: e.ID, Bound: true})
 		g.Owner = SavedGroupReference{Class: 1, Owner: e.Owner}
-		currentSelector := e.CommandGroup != 0 && e.SourceBinding.GroupSelector == e.CommandGroup
 		e.CommandGroup = selector
-		if e.SourceBinding.GroupIndex != 0 && currentSelector {
-			e.SourceBinding.GroupSelector = selector
-		}
 		if !resetOrder {
 			continue
 		}
@@ -203,7 +199,37 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 		binary.LittleEndian.PutUint16(o.Raw[10:], uint16(ordered.x)|uint16(ordered.y)<<8)
 	}
 	w.appendSavedCommandGroup(g)
+	w.syncSourceGroupSelectors()
 	return true
+}
+
+// syncSourceGroupSelectors keeps each inline-Group actor's retained selector
+// where LOAD reads it back: the selector of the Group now holding the source
+// Group's identity, else of the Group the actor stands in. A command moves
+// actors between Groups and may delete an emptied one, which changes both.
+func (w *World) syncSourceGroupSelectors() {
+	if w.groupDialectNative() {
+		return
+	}
+	for i := range w.entities {
+		e := &w.entities[i]
+		if e.SourceBinding.GroupIndex == 0 {
+			continue
+		}
+		var held *SavedGroup
+		for at := range w.savedGroups.Groups {
+			if w.savedGroups.Groups[at].ID == e.SourceBinding.GroupIndex {
+				held = &w.savedGroups.Groups[at]
+				break
+			}
+		}
+		if held == nil {
+			held = w.savedGroupFor(e.ID)
+		}
+		if held != nil {
+			e.SourceBinding.GroupSelector = held.Selector
+		}
+	}
 }
 
 func (w *World) handOverSaved(i int, player uint32) {

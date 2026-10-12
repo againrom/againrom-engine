@@ -98,6 +98,17 @@ func nativeTerminalScalarBasis(b NativeActorBasis) NativeActorBasis {
 
 func (w *World) nativeBasisNow(e Entity) NativeActorBasis {
 	b := NativeBasisNow(e)
+	// A native mover outside a stride stands on its cell centre, the position
+	// SAVE writes for it; the stored block keeps the cell the actor was loaded
+	// or last strode from.
+	if m := w.motionFor(e.ID); !e.Stride.Present && !e.OffMap && (m == nil || !m.Current) {
+		x, y := e.X*256+128, e.Y*256+128
+		for index, value := range [4]byte{byte(x >> 8), byte(y >> 8), byte(x), byte(y)} {
+			if b.BlockByteKnown(index) {
+				b.Block[index] = value
+			}
+		}
+	}
 	if b.ScalarIsKnown(ScalarU50) {
 		if order := w.savedOrder(e.ID); order != nil {
 			o := *order

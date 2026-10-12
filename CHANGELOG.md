@@ -14,6 +14,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [BASE] Fire Wall sounds: its fire crackles from the moment the wall rises until it burns out, even when the view stays still. Before, the sound waited for the view to move or for the next bird call.
 - [ROM1] In the tavern, the speaker who offers the mission for the repaired catapult speaks both lines aloud. A tavern speaker with no recording for the hero's sex and class plays the conversation's own recording instead of staying silent.
 - [ROM1] The shopkeeper says one line about an item you take from his shelf instead of running through all of its lines one after another. A magic item gets its effect line, a book or wand its spell line, and other goods one of their own lines, picked anew each time.
+- [ROM1] A game saved after playing on from an original save loads back exactly as it was left: a monster holding an attack keeps it, a monster that moved and died stays where it fell, and heroes sent away from their group keep their new orders.
 
 ## 0.120.0
 

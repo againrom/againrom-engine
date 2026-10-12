@@ -2363,6 +2363,10 @@ package storyguard
 // CommentBytes rises for the town speaker's installed recording: the docs of
 // SpeechBank.has and the variant note in townSpeechPath and of the new town
 // speaker release test, this note included.
+//
+// CommentBytes rises for the original-save replay: the docs of the new
+// pkg/game/originalreplay_release_test.go and the notes on the three carriers
+// that SAVE writes from the current state, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2386,5 +2390,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8920660,
+	CommentBytes: 8922850,
 }

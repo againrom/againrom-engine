@@ -4,6 +4,7 @@
 # matches these IDs against its runtime JSON skip census.
 pkg/game.TestReleaseDecodedInstallFixtureIsolation
 pkg/game.TestReleaseOriginalStreamStartDrawsAFacingForEveryRingPlacement
+pkg/game.TestReleaseOriginalSaveReplayColdLoadEqualsLive
 pkg/game.TestReleaseQuickSaveCurrentStateAndLoad
 pkg/game.TestReleaseActivePauseOrderedSAVAndResume
 pkg/game.TestReleaseActivePauseRenderedWorld

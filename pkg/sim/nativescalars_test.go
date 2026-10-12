@@ -44,6 +44,8 @@ func TestNativeScalarsLiteralFormOldABIAndCurrentAction(t *testing.T) {
 		}
 	}
 	w := nativeBasisWorld(t)
+	// Block byte 0 is the actor's cell column while it is not striding.
+	w.entities[0].X = 1
 	oldBasis := (NativeActorBasis{}).WithBase([24]byte{2, 7}).WithModifier([64]byte{19}).WithBody(40)
 	oldBasis.AttackPresent, oldBasis.AttackKnown, oldBasis.Attack[22] = true, 1<<22, 0x91
 	w.entities[0].NativeBasis = oldBasis
@@ -115,7 +117,9 @@ func TestNativeScalarsValuesMasksAndPresenceAffectHash(t *testing.T) {
 		changed := basis
 		changed.Block[index] = byte(index + 1)
 		w.entities[0].NativeBasis = changed
-		if w.Hash() == before {
+		// The first four bytes are the actor's position outside a stride, which
+		// the hash reads from the actor.
+		if w.Hash() == before && index >= 4 {
 			t.Fatal("Block byte missing from hash", index)
 		}
 		changed = basis

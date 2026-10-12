@@ -108,6 +108,13 @@ func (w *World) syncCurrentActorCarriers(i int) {
 		if e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo {
 			m.ActorAction = 3
 		}
+	} else if m != nil && !m.Current && e.Alive() && !e.OffMap && !w.motionActive(e.ID) && (m.ActorAction == 0 || m.ActorAction == 3) {
+		// An imported route that native movement continues keeps its other
+		// words; the held attack is the one action word the entity owns.
+		m.ActorAction = 0
+		if e.HasAttackTarget && e.Transit == 0 && !e.Turning() && e.AttackPhase != AttackBoundaryTwo {
+			m.ActorAction = 3
+		}
 	}
 	w.syncCurrentActorOrder(i)
 
