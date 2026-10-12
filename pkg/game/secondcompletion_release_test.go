@@ -399,7 +399,8 @@ func TestReleaseSecondGameFirstMovieControls(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			for _, row := range []string{"abort", "confirm-abort"} {
+			// Mission 20 is open: its menu ends the quest to the main menu.
+			for _, row := range []string{"end", "exit-main"} {
 				if err := a.HeadlessGameMenuAction(row); err != nil {
 					t.Fatal(err)
 				}
