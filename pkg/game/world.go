@@ -4352,7 +4352,7 @@ func (mw *mapWorld) advanceSwings() {
 				// swing. Its selector is emitted at the class AttackDelay
 				// even when the spell's own range exceeds weapon reach.
 				if e.AttackPhase == sim.AttackCasting {
-					mw.playActorSound("weapon-cast-animation", castSpellSoundSlot(e.WeaponSpell), *e)
+					mw.playActorSound("weapon-cast-animation", castSpellSoundSlot(mw.spells(), e.WeaponSpell), *e)
 					continue
 				}
 				if mw.swingSound == nil && mw.semanticSound == nil || !mw.swingTargetInReach(ents, *e) {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+
+	"againrom/pkg/rules"
 )
 
 // SavedWorldEffects binds only proved consumers of the carried SAV records.
@@ -179,17 +181,6 @@ func (w *World) savedProjectile(id uint16) *SavedProjectile {
 		}
 	}
 	return nil
-}
-
-// The default arm includes unused switch entries inside13..64. Picture-specific
-// notification effects stay outside this local coordinate/clock consumer.
-// ANIM-143, DIV-944.
-func savedAttachedProjectile(picture int32) bool {
-	switch picture {
-	case 18, 24, 28, 40, 44, 48, 52, 54, 56, 62, 64, 20, 30:
-		return true
-	}
-	return false
 }
 
 // A residual layer key does not supply the baseline or current occupants for
@@ -493,41 +484,25 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 	// ANIM-PROJ-025: signed division truncates toward zero; the final
 	// positive segment reaches the current target, the next tick reaps it.
 	p.ActionPhase++
-	switch {
-	case p.Picture == 34 || p.Picture == 36:
-		// MAGIC-BOLTSTILL-072 / ANIM-BOLTRAMP-035: no position writes. An
-		// actionphase outside 1..13 keeps the previous phase (MAGIC-281).
-		ramp := [...]int32{4, 3, 2, 1, 0, 1, 2, 1, 0, 1, 2, 3, 4}
-		if p.ActionPhase >= 1 && p.ActionPhase <= 13 {
-			p.Phase = ramp[p.ActionPhase-1]
+	// The update arm is the identifier's rule in this World's game
+	// (rules.EffectDriveOf). A ramp writes no position and keeps its frame
+	// outside counters 1..13 (MAGIC-BOLTSTILL-072, ANIM-BOLTRAMP-035, MAGIC-281).
+	drive := rules.EffectDriveOf(w.SpellGame(), p.Picture)
+	if drive.Frame == rules.FrameRamp {
+		if phase, ok := rules.RampFrame(p.ActionPhase); ok {
+			p.Phase = phase
 		}
-	default:
-		if savedAttachedProjectile(p.Picture) {
+	} else {
+		switch drive.Motion {
+		case rules.EffectFollow:
 			p.X, p.Y, p.Z = p.ActionX, p.ActionY, p.ActionZ
-		} else if p.Picture != teleportProjectilePicture {
-			// ANIM-149: the picture-60 arm writes no position.
+		case rules.EffectTravel:
 			p.X += (p.ActionX - p.X) / p.ActionSegments
 			p.Y += (p.ActionY - p.Y) / p.ActionSegments
 			p.Z += (p.ActionZ - p.Z) / p.ActionSegments
 		}
-		p.Phase = 0
-		switch p.Picture { // ANIM-PHASECLOCK-028
-		case 60:
-			p.Phase = p.ActionPhase - 1
-		case 51:
-			p.Phase = p.ActionPhase
-		case 20, 30:
-			// ANIM-149: a call that finds its target sets phase 1.
-			if resolved {
-				p.Phase = 1
-			} else if d.Phases > 0 {
-				p.Phase = (p.ActionPhase / 2) % int32(d.Phases)
-			}
-		default:
-			if d.Phases > 0 {
-				p.Phase = (p.ActionPhase / 2) % int32(d.Phases)
-			}
-		}
+		// ANIM-PHASECLOCK-028, ANIM-149.
+		p.Phase, _ = rules.EffectFrameAt(drive.Frame, p.ActionPhase, d.Phases, resolved)
 	}
 	p.LastAction = p.Action
 	p.ActionSegments--

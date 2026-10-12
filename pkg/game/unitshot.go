@@ -113,7 +113,7 @@ func (mw *mapWorld) releaseUnitShot(e sim.Entity, picture, late int) {
 		OffsetX: int32(dx), OffsetY: int32(dy), Late: late, PreMove: premove}) {
 		return
 	}
-	if data.CastTrailSlot(picture) >= 0 {
+	if mw.spells().TrailSlot(int32(picture)) >= 0 {
 		for _, at := range start {
 			mw.shots.appendTrail(id, at)
 		}
@@ -142,7 +142,7 @@ func (mw *mapWorld) noteShotPreMoves() {
 		armed[row.ID] = !row.Retired
 	}
 	for _, p := range mw.world.SavedProjectiles().Items {
-		if armed[p.ID] && data.CastTrailSlot(int(p.Picture)) >= 0 {
+		if armed[p.ID] && mw.spells().TrailSlot(p.Picture) >= 0 {
 			if mw.shots.premove == nil {
 				mw.shots.premove = make(map[uint16]image.Point)
 			}

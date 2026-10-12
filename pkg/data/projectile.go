@@ -178,31 +178,14 @@ func CastPicture(spell int) int { return 2*spell + 8 }
 // BurstPicture is CastPicture's odd sibling.
 func BurstPicture(spell int) int { return 2*spell + 9 }
 
-// OverlaySpells are the four spell ids whose RETAINED per-cell area effect has
-// art at all: `wall_of_fire` (3), `freezing_cloud` (7), `poison_cloud` (8) and
-// `wall_of_earth` (19) (`MAGIC-OVERLAYART-051`).
-//
-// THE SET IS AN ENGINE LIMIT AND NOT A TABLE. The per-cell draw's four arms test
-// mask bits 3, 7, 8 and 19 and index projectile records 15, 23, 25 and 47 as
-// literal `.text` immediates. Those are `BurstPicture` of the four ids, but the
-// value is baked rather than computed: the picture the message carried was
-// already discarded when the client converted it back to a spell id. So editing
-// `projectiles.reg` moves the ART behind an id and moves nothing about WHICH
-// four ids have any (G2).
-//
-// Six spells reach the cloud mode. The other two paint their cells, damage
-// through them and draw nothing, which is what this build did for all six.
-var OverlaySpells = [4]int{3, 7, 8, 19}
-
-// OverlayPicture is the projectile record a retained per-cell overlay draws for
-// this spell id, and whether it has one at all.
+// OverlayPicture is the projectile record a retained per-cell overlay draws
+// for first-game spell row spell, and whether it has one at all
+// (`MAGIC-OVERLAYART-051`): rows 3, 7, 8 and 19 in the first game's
+// SpellPresentation. The draw indexes those records as literal immediates, so
+// editing `projectiles.reg` moves the art behind an id and not which ids
+// have any (G2).
 func OverlayPicture(spell int) (int, bool) {
-	for _, id := range OverlaySpells {
-		if id == spell {
-			return BurstPicture(spell), true
-		}
-	}
-	return 0, false
+	return firstSpellPresentation.OverlayPicture(spell)
 }
 
 // The picture ids whose flight length is not zero, with the arm each takes
@@ -230,22 +213,7 @@ const PictureCellUnits = 256
 // A negative dist answers the same as zero, so no input produces a negative
 // life.
 func CastFlight(picture, dist int) int {
-	if dist < 0 {
-		dist = 0
-	}
-	switch picture {
-	case 10:
-		return atLeastOne(dist / 200)
-	case 12:
-		return atLeastOne(dist / 384)
-	case 20, 30:
-		return 1
-	case 34, 36:
-		return 13
-	case 60:
-		return 21
-	}
-	return 0
+	return firstSpellPresentation.Flight(int32(picture), dist, 0)
 }
 
 func CastFlies(picture int) bool { return CastFlight(picture, PictureCellUnits) > 0 }
@@ -266,26 +234,18 @@ const (
 // CastTravels reports whether picture's object changes position over its life.
 // It is a narrower question than CastFlies: a picture may have a length and
 // still stand still.
-func CastTravels(picture int) bool { return picture == 10 || picture == 12 }
+func CastTravels(picture int) bool { return firstSpellPresentation.Travels(int32(picture)) }
 
 // CastDrawsPath reports whether picture draws a generated point list instead of
 // one sprite at its own position (`MAGIC-BOLTGATE-069`). Exactly two do.
 func CastDrawsPath(picture int) bool {
-	return picture == PicturePathFirst || picture == PicturePathSecond
+	return firstSpellPresentation.DrawsPath(int32(picture))
 }
 
 // CastTrailSlot is which of the two trail sheets picture leaves behind it, or -1
 // for a picture that leaves none (`MAGIC-TRAIL-073`). Exactly two do, and they
 // are the same two that travel.
-func CastTrailSlot(picture int) int {
-	switch picture {
-	case 10:
-		return 0
-	case 12:
-		return 1
-	}
-	return -1
-}
+func CastTrailSlot(picture int) int { return firstSpellPresentation.TrailSlot(int32(picture)) }
 
 // CastTrailLength is how many past positions a trail holds. Six is a hard bound
 // in the engine's own code: the driver drops entry 0 when the count has reached
@@ -311,21 +271,10 @@ const (
 	burstLifeDefault = 16
 	burstLifeAcid    = 18
 	burstLifeFire    = 22
-
-	burstPictureAcid = 27
-	burstPictureFire = 13
 )
 
 // BurstLife is how many ticks the burst object at picture stands for. Every
 // picture has one: the lifetime is the sender's choice and not a property of
 // the picture, so a picture with no burst record still answers a life, and
 // what makes nothing drawn is the missing record rather than a zero here.
-func BurstLife(picture int) int {
-	switch picture {
-	case burstPictureAcid:
-		return burstLifeAcid
-	case burstPictureFire:
-		return burstLifeFire
-	}
-	return burstLifeDefault
-}
+func BurstLife(picture int) int { return firstSpellPresentation.CellLife(int32(picture)) }

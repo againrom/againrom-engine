@@ -710,6 +710,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// The engine's own words follow the install's language, the detected
 	// profile's; the font's selector only converts bytes.
 	words.Language = archives.Base.Profile.Language
+	words.Spells = data.SpellPresentationNamed(archives.Game().Edition().Spells)
 
 	// THE LANGUAGE SELECTOR IS READ ONCE, HERE, and written onto the one font
 	// this front-end keeps. It is read at startup rather than per draw because
@@ -762,7 +763,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 			// ground; a projectile sheet is what a cast looks like, and the font's
 			// rule applies — a mission does not fail to open over a cosmetic asset.
 			// An install with no projectile registry draws no spell art and starts.
-			Projectiles: loadProjectilesOrNil(archives.Containers),
+			Projectiles: loadProjectilesOrNil(archives.Containers, data.SpellPresentationNamed(archives.Game().Edition().Spells).Game),
 			// Off the CONTAINER FILESYSTEM's enumeration, filtered to the scenario
 			// identity, rather than off a scan of the scenario handle: the campaign
 			// maps are addressed like every other entry in the set. Every container

@@ -51,8 +51,11 @@ func main() {
 
 	// The four overlay ids against the installed art, and the frames each one
 	// can actually reach on the shipped sheet.
-	for _, id := range data.OverlaySpells {
-		picture, _ := data.OverlayPicture(id)
+	for id := range 64 {
+		picture, overlay := data.OverlayPicture(id)
+		if !overlay {
+			continue
+		}
 		sheet := sheets.Sheet(picture)
 		if sheet == nil {
 			fmt.Printf("overlay spell %2d  picture %2d  NO SHEET\n", id, picture)

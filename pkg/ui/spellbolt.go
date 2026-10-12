@@ -35,6 +35,7 @@ import (
 // art is centred on the point by subtracting them, and where they disagree with
 // the frame the sprite shifts rather than clipping. Sprite effects with no sheet
 // or an invalid frame draw nothing. Background deformation carries no sheet.
+// Raise draws the frame that many screen pixels above its point.
 type SpellBolt struct {
 	Cell             image.Point
 	To               image.Point
@@ -45,6 +46,7 @@ type SpellBolt struct {
 	Frame            int
 	Mirror           bool
 	Owner            uint32
+	Raise            int
 	Pass             SpellPass
 	Effect           SpellEffect
 	Phase            int
@@ -185,7 +187,7 @@ func (v *Viewer) spellArtPlacements() []effectScreenRect {
 			continue
 		}
 		point, lift := b.groundPoint(), v.spellBoltLift(b)
-		px, py := point.X-b.Sheet.CenterX, point.Y-b.Sheet.CenterY
+		px, py := point.X-b.Sheet.CenterX, point.Y-b.Sheet.CenterY-b.Raise
 		if b.Display {
 			px, py, lift = b.Pos.X-boltStampCentre, b.Pos.Y-boltStampCentre, v.displayLift()
 		}

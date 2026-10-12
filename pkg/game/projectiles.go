@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -195,6 +196,12 @@ func offsetFromLine(d ui.SpellBolt, first image.Point) int {
 // A skipped picture draws nothing, which is a state the drawing side already has
 // an answer for: 21 of the 28 spell ids compute a picture with no record at all.
 func LoadProjectiles(src terrain.EntrySource) (*terrain.EffectSet, error) {
+	return loadProjectilesFor(src, rules.SpellGameFirst)
+}
+
+// loadProjectilesFor is LoadProjectiles with each sheet's clock taken from
+// game's update arms.
+func loadProjectilesFor(src terrain.EntrySource, game rules.SpellGame) (*terrain.EffectSet, error) {
 	if src == nil {
 		return nil, fmt.Errorf("%s: no graphics archive", ProjectileRegistry)
 	}
@@ -262,7 +269,7 @@ func LoadProjectiles(src terrain.EntrySource) (*terrain.EffectSet, error) {
 			Phases:         int(p.Phases),
 			RotationPhases: int(p.RotationPhases),
 			Flip:           p.Flip != 0,
-			Clock:          effectClock(int(id)),
+			Clock:          effectClock(game, id),
 			// The registry's own Width and Height HALVED, which is what the draw
 			// subtracts from the object's point. They are the centring offsets and
 			// not the art's size, and on shipped rows the two disagree — carried
@@ -317,8 +324,8 @@ func loadSmokeSheets(src terrain.EntrySource, set *terrain.EffectSet) {
 // the map's own furniture and a run without them is a run missing its ground. A
 // projectile sheet is what a cast looks like, and the font's rule holds: a
 // mission does not fail to open over a cosmetic asset.
-func loadProjectilesOrNil(src terrain.EntrySource) *terrain.EffectSet {
-	set, err := LoadProjectiles(src)
+func loadProjectilesOrNil(src terrain.EntrySource, game rules.SpellGame) *terrain.EffectSet {
+	set, err := loadProjectilesFor(src, game)
 	if err != nil {
 		return nil
 	}
@@ -332,18 +339,14 @@ func loadProjectilesOrNil(src terrain.EntrySource) *terrain.EffectSet {
 // reachable only through a unit class's own key, which is not a cast.
 const projectileMaxID = 65
 
-// effectClock is which phase clock a picture runs. The default is one frame
-// per two ticks and it is what every picture but two takes; the two
-// overrides are the engine's own per-picture switch arms (ANIM-PHASECLOCK-028).
-//
-// It sits here, in the tier that reads the registry, because the render tier has
-// no picture ids: the id is resolved into a clock once, at load, and the
-// selection downstream reads a field.
-func effectClock(picture int) terrain.EffectClock {
-	switch picture {
-	case 60:
+// effectClock is which phase clock a picture runs in game: its update arm's
+// frame rule (rules.EffectDriveOf, ANIM-PHASECLOCK-028), resolved once at
+// load because the render tier has no picture ids.
+func effectClock(game rules.SpellGame, picture int32) terrain.EffectClock {
+	switch rules.EffectDriveOf(game, picture).Frame {
+	case rules.FrameCounterLess1:
 		return terrain.EffectClockDirect
-	case 51:
+	case rules.FrameCounter:
 		return terrain.EffectClockRaw
 	}
 	return terrain.EffectClockHalf

@@ -131,7 +131,7 @@ type Words struct {
 	// round a spell name on the name line of a book (main.txt lines 90 and 91).
 	ItemSpellOf       string
 	ItemSpellOfSuffix string
-	ItemSpellNames    [29]string // spell.txt, indexed by spell ID (1..28)
+	ItemSpellNames    [30]string // spell.txt, indexed by spell ID (1..29)
 	// DurationUnit is authored UI copy for nominal game seconds. The install
 	// names the duration caption, while its language selector chooses this unit.
 	DurationUnit string

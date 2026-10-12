@@ -3,7 +3,6 @@ package game
 import (
 	"image"
 
-	"againrom/pkg/data"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -71,24 +70,26 @@ func boltSeed(b spellBolt) uint32 {
 // driver writes it into the record.
 var boltRamp = [...]int{4, 3, 2, 1, 0, 1, 2, 1, 0, 1, 2, 3, 4}
 
-// boltChainStride is picture 36's frame stride per link tag (ANIM-BOLTDRAW-034).
+// boltChainStride is the chain picture's frame stride per link tag
+// (ANIM-BOLTDRAW-034).
 const boltChainStride = 5
 
 // boltFrame and boltTag are the sheet frame and the stored tag of one link:
-// picture 34 draws frame phase with tag 34; picture 36 draws phase+5*tag with
-// the victim index modulo 7 (MAGIC-275, MAGIC-280).
-func boltFrame(picture, phase, tag int) int {
-	if picture == data.PicturePathSecond {
-		return phase + boltChainStride*int(boltTag(picture, tag))
+// a single path picture draws frame phase with its own identifier as the tag
+// (34 in the first game, 28 in the second: DIV-3108); the chain picture draws phase+5*tag with the victim
+// index modulo 7 (MAGIC-275, MAGIC-280). The game's set names the chain.
+func boltFrame(picture, phase, tag int, chain bool) int {
+	if chain {
+		return phase + boltChainStride*int(boltTag(picture, tag, chain))
 	}
 	return phase
 }
 
-func boltTag(picture, tag int) uint8 {
-	if picture == data.PicturePathSecond {
+func boltTag(picture, tag int, chain bool) uint8 {
+	if chain {
 		return uint8(((tag % chainTagCount) + chainTagCount) % chainTagCount)
 	}
-	return data.PicturePathFirst
+	return uint8(picture)
 }
 
 // pathDraws is one path object's call: one stamp per stored point, in list
@@ -110,7 +111,8 @@ func (mw *mapWorld) pathDraws(b spellBolt) []ui.SpellBolt {
 // absent. The spell light stamps the same points (objectLightStamps).
 func (mw *mapWorld) pathFigure(b spellBolt) (*terrain.EffectSheet, int, []image.Point) {
 	sheet := mw.projectiles.Sheet(b.picture)
-	frame := boltFrame(b.picture, b.phase, b.tag)
+	chain := mw.spells().Effect(int32(b.picture)).Chain
+	frame := boltFrame(b.picture, b.phase, b.tag, chain)
 	if sheet.Frame(frame) == nil {
 		return nil, 0, nil
 	}
@@ -118,7 +120,7 @@ func (mw *mapWorld) pathFigure(b spellBolt) (*terrain.EffectSheet, int, []image.
 	ax, ay := mw.boltDisplayPoint(origin, b.from)
 	bx, by := mw.boltDisplayPoint(b.to.Mul(ui.ShotScale), b.to)
 	rng := boltRNG{state: boltSeed(b)}
-	return sheet, frame, boltImagePoints(boltFigure(ax, ay, bx, by, boltTag(b.picture, b.tag), rng.next))
+	return sheet, frame, boltImagePoints(boltFigure(ax, ay, bx, by, boltTag(b.picture, b.tag, chain), rng.next))
 }
 
 // boltDisplayPoint is a cell-relative ShotScale point as a native display

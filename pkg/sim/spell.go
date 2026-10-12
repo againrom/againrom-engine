@@ -700,9 +700,9 @@ func weaponRiderSpellFor(spells []SpellRule, e Entity) (SpellRule, bool) {
 // and character presentation. Damage uses the same powered pair as the live
 // apply, duration uses the same pre-target point-effect clock, and MaxRange is
 // the raw weapon-release reach rather than a book cast's power-adjusted range.
-// RayCount is SpellRule.RayLimit.
+// RayCount is SpellRule.RayLimit; Arm is SpellRule.ArmID.
 type WeaponSpellCharacteristics struct {
-	SpellID                uint16
+	SpellID, Arm           uint16
 	DamageMin, DamageMax   int64
 	DurationTicks          uint16
 	MaxRange               uint8
@@ -723,7 +723,7 @@ func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpe
 		return WeaponSpellCharacteristics{}, false
 	}
 
-	out := WeaponSpellCharacteristics{SpellID: rule.ID, MaxRange: rule.MaxRange}
+	out := WeaponSpellCharacteristics{SpellID: rule.ID, Arm: rule.arm(), MaxRange: rule.MaxRange}
 	if rule.Damaging || rule.arm() == 11 {
 		out.DamageMin, out.DamageMax = SpellDamagePair(r, rule, power)
 		out.HasDamage = true

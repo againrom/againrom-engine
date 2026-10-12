@@ -10,6 +10,14 @@ import (
 	"againrom/pkg/ui"
 )
 
+// The first game's Teleport and Heal cast pictures: Teleport puts two
+// records on the map (MAGIC-265); Heal's object draws nothing itself
+// (ANIM-CAST-027).
+const (
+	teleportPicture = 60
+	healingPicture  = 20
+)
+
 // The spell in flight and the two clocks.
 
 // sbSheets is a synthetic art bundle shaped like the four shipped rows this

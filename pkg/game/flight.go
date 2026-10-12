@@ -34,6 +34,14 @@ func (mw *mapWorld) recordPhases(picture int) uint16 {
 	return 0
 }
 
+// spells is the spell presentation set of the World's own game.
+func (mw *mapWorld) spells() *data.SpellPresentation {
+	if mw.world == nil {
+		return data.FirstSpellPresentation()
+	}
+	return data.SpellPresentationOf(mw.world.SpellGame())
+}
+
 // cellCentre is a cell's centre in 256-per-cell units.
 func cellCentre(c image.Point) (int32, int32) {
 	return int32(c.X)*256 + 128, int32(c.Y)*256 + 128
@@ -45,10 +53,14 @@ func cellCentre(c image.Point) (int32, int32) {
 // cell's centre otherwise (MAGIC-288), with the segment count of the
 // producer's picture switch. A picture outside that switch gets 0 segments:
 // its record takes an id and retires on its first call (SAV-1204). Teleport
-// builds a second record at the destination (MAGIC-265).
+// builds a second record at the destination (MAGIC-265). The segment count,
+// the path and the second record are the game's set (data.SpellPresentation).
 func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	spell := int(ev.Spell)
 	picture := data.CastPicture(spell)
+	set := mw.spells()
+	effect := set.Effect(int32(picture))
+	phases := mw.recordPhases(picture)
 	from := image.Pt(int(ev.FromX), int(ev.FromY))
 	to := image.Pt(int(ev.ToX), int(ev.ToY))
 	class := mw.casterClass(ev.Caster)
@@ -56,11 +68,11 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	if !ok {
 		x, y = cellCentre(from)
 	}
-	launch := castLaunch(class, ev.Facing, picture)
+	launch := castLaunch(class, ev.Facing, effect.SecondRecord)
 	aimX, aimY := cellCentre(to)
-	rec := sim.CastRecord{Caster: ev.Caster, Picture: int32(picture), Phases: mw.recordPhases(picture),
+	rec := sim.CastRecord{Caster: ev.Caster, Picture: int32(picture), Phases: phases,
 		X: x + int32(launch.X), Y: y + int32(launch.Y), AimX: aimX, AimY: aimY,
-		Dir: sim.ProjectileDirection(int32(to.X-from.X), int32(to.Y-from.Y)), Segments: int32(data.CastFlight(picture, castDistance(from, to))), Owner: ev.Owner}
+		Dir: sim.ProjectileDirection(int32(to.X-from.X), int32(to.Y-from.Y)), Segments: int32(set.Flight(int32(picture), castDistance(from, to), int(phases))), Owner: ev.Owner}
 	if !ev.AtCell && ev.Target != 0 && mw.projectiles.Homes(picture) {
 		rec.Target, rec.HasTarget = ev.Target, true
 	}
@@ -68,11 +80,11 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	for _, v := range ev.Victims {
 		look.links = append(look.links, image.Pt(int(v.X), int(v.Y)))
 	}
-	if len(look.links) == 0 && data.CastDrawsPath(picture) {
+	if len(look.links) == 0 && set.DrawsPath(int32(picture)) {
 		look.links = []image.Point{to}
 	}
 	mw.releaseRecord(rec, look)
-	if picture == teleportPicture {
+	if effect.SecondRecord {
 		arrive := image.Point{}
 		if class != nil {
 			arrive = castSelectionDelta(class)
@@ -85,7 +97,9 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 // releaseScriptCast builds the record a client arm builds for a cast whose
 // source is a cell (0x8b, 0x8c; SAV-1199): Lightning's direct record of 5
 // segments and Prismatic Spray's of 13, from the source cell's centre,
-// started at actionphase -1 (MAGIC-281).
+// started at actionphase -1 (MAGIC-281). The picture is the row's own cast
+// identifier, the chain's segments the game's set; the second game keeps
+// Lightning's 5 (DIV-3108).
 func (mw *mapWorld) releaseScriptCast(ev sim.ScriptCastEvent, seed uint32) {
 	from := image.Pt(int(ev.FromX), int(ev.FromY))
 	to := image.Pt(int(ev.ToX), int(ev.ToY))
@@ -93,10 +107,11 @@ func (mw *mapWorld) releaseScriptCast(ev sim.ScriptCastEvent, seed uint32) {
 	look := flightLook{seed: seed}
 	switch mw.world.SpellArm(uint16(ev.Spell)) {
 	case 13:
-		picture, segments = data.CastPicture(13), 5
+		picture, segments = data.CastPicture(int(ev.Spell)), 5
 		look.links = []image.Point{to}
 	case 14:
-		picture, segments = data.CastPicture(14), data.CastFlight(data.PicturePathSecond, 0)
+		picture = data.CastPicture(int(ev.Spell))
+		segments = mw.spells().Flight(int32(picture), 0, int(mw.recordPhases(picture)))
 		for _, v := range ev.Victims {
 			look.links = append(look.links, image.Pt(int(v.X), int(v.Y)))
 		}
@@ -122,7 +137,7 @@ func (mw *mapWorld) releaseRecord(rec sim.CastRecord, look flightLook) {
 		mw.flights = make(map[uint16]flightLook)
 	}
 	mw.flights[id] = look
-	if data.CastTrailSlot(int(rec.Picture)) >= 0 {
+	if mw.spells().TrailSlot(rec.Picture) >= 0 {
 		for _, at := range start {
 			mw.shots.appendTrail(id, at)
 		}
@@ -139,7 +154,7 @@ func (mw *mapWorld) releaseAreaBursts(p sim.AreaPaint) {
 	}
 	for _, c := range p.Cells {
 		mw.world.ReleaseAreaBurst(sim.AreaBurst{CellX: c.X, CellY: c.Y, Picture: int32(picture),
-			Segments: int32(data.BurstLife(picture)), Phases: mw.recordPhases(picture), Owner: p.Owner})
+			Segments: int32(mw.spells().CellLife(int32(picture))), Phases: mw.recordPhases(picture), Owner: p.Owner})
 	}
 }
 
@@ -150,7 +165,7 @@ func (mw *mapWorld) releaseAreaBursts(p sim.AreaPaint) {
 func (mw *mapWorld) recordPaths(p sim.SavedProjectile, owner uint32) []spellBolt {
 	look, ok := mw.flights[p.ID]
 	if !ok {
-		if int(p.Picture) == data.PicturePathSecond {
+		if mw.spells().Effect(p.Picture).Chain {
 			return nil
 		}
 		look = flightLook{seed: uint32(p.ID) + 1}

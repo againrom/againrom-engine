@@ -2286,6 +2286,18 @@ package storyguard
 // duration function: the docs of pkg/sim/areaarms.go, pkg/sim/spellvalues.go,
 // internal/archtest/spelltables.go and their tests, including this note.
 //
+// CommentBytes rises for the one spell presentation table: the docs of the
+// new pkg/data/spellpresentation.go, pkg/rules/spelleffect.go, their tests
+// and the Edition.Spells field, including this note. It rises again for the
+// game sites reading the World's set: the docs of mapWorld.spells, the light,
+// sound and path readers and the new pkg/game/spellpresentation_test.go.
+// It rises again for the spell text the set names: the docs of its text
+// fields, InstallWords.Spells, the text tests and the second game's spell
+// text release test, and for the DIV-3108 citations, and for the falling
+// piece: the fall fields, DrawnFrame, SpellBolt.Raise and their tests, and
+// for the second game's spell presentation release witness, and for the
+// Blizzard cell sound's cue count and its frame-8 test.
+//
 // CommentBytes rises for the shop stock a SAV no longer carries: the docs of
 // secondShop.restock, the shop document's legacy read, the second game's
 // loaded town arrival, the SAV field helpers of the shop witnesses and the new
@@ -2315,7 +2327,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1732,
+		"longcommentgroups":      1731,
 	},
-	CommentBytes: 8852318,
+	CommentBytes: 8865218,
 }

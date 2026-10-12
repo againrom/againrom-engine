@@ -14,13 +14,14 @@ const castLaunchScale = 8
 
 // castLaunch is a cast object's start from its caster's cell centre, in
 // ShotScale units: A+8*(ShootOffset pair-Center), or the Selection fallback
-// for an empty array and Teleport (MAGIC-261). A adds 128*(TileSize-1).
-func castLaunch(c *terrain.UnitClass, facing uint8, picture int) image.Point {
+// for an empty array and for an object that builds a second record at the
+// destination, Teleport (MAGIC-261). A adds 128*(TileSize-1).
+func castLaunch(c *terrain.UnitClass, facing uint8, teleport bool) image.Point {
 	if c == nil {
 		return image.Point{}
 	}
 	a := (max(c.TileSize, 1) - 1) * ui.ShotScale / 2
-	if off, ok := classShootOffset(c, facing); ok && picture != teleportPicture {
+	if off, ok := classShootOffset(c, facing); ok && !teleport {
 		return image.Pt(a, a).Add(off)
 	}
 	return image.Pt(a, a).Add(castSelectionDelta(c))
@@ -63,5 +64,5 @@ func (mw *mapWorld) casterClass(id sim.EntityID) *terrain.UnitClass {
 }
 
 func (mw *mapWorld) castLaunchFor(id sim.EntityID, facing uint8, picture int) image.Point {
-	return castLaunch(mw.casterClass(id), facing, picture)
+	return castLaunch(mw.casterClass(id), facing, mw.spells().Effect(int32(picture)).SecondRecord)
 }

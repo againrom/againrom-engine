@@ -22,7 +22,7 @@ func TestDrainLifeWeaponProjectionKeepsTransferFlagsAndState(t *testing.T) {
 		entity := caster
 		entity.WeaponSpellLevel = tc.power
 		got, ok := WeaponSpellCharacteristicsFor(Rules{}, entity, []SpellRule{rule})
-		want := WeaponSpellCharacteristics{SpellID: 11, DamageMin: tc.min, DamageMax: tc.max, MaxRange: 7, HasDamage: true}
+		want := WeaponSpellCharacteristics{SpellID: 11, Arm: 11, DamageMin: tc.min, DamageMax: tc.max, MaxRange: 7, HasDamage: true}
 		if !ok || got != want {
 			t.Errorf("synthetic Drain power %d = %+v/%v, want %+v", tc.power, got, ok, want)
 		}

@@ -8,38 +8,17 @@ import (
 	"againrom/pkg/ui"
 )
 
-// Projectile light: pictures 10, 12, 13, 34 and 36 stamp the vertex light
-// grid, rebuilt on every push (MAGIC-269, MAGIC-272). Client draw state only
-// (MAGIC-274). Stamps overwrite in draw order (MAGIC-270, DIV-2661).
-
-// boltLightStep is the stamp byte per phase of a path picture (MAGIC-270).
-const boltLightStep = 10
-
-// Fire Arrow and Fire Ball flight stamp at a fixed level (MAGIC-271).
-const (
-	flightLightLevel     = 16
-	fireArrowLightRadius = 0
-	fireBallLightRadius  = 1
-	fireArrowPicture     = 10
-	fireBallPicture      = 12
-)
-
-// explosionLight is the explosion's radius and level by phase (MAGIC-271).
-var explosionLight = [...]struct {
-	radius int
-	level  uint8
-}{{1, 16}, {2, 8}, {3, 0}, {3, 0}, {3, 8}, {3, 16}, {3, 24}, {3, 32}, {3, 40}, {3, 46}, {3, 46}}
-
-// wallFireLightRadius is a Wall of Fire cell's stamp (MAGIC-UNITLIGHT-057,
-// footprint MAGIC-271).
-const wallFireLightRadius = 1
+// Projectile light: the identifiers the game's set gives a light kind stamp
+// the vertex light grid, rebuilt on every push (MAGIC-269, MAGIC-272;
+// R2-ENGINE-448). Client draw state only (MAGIC-274). Stamps overwrite in
+// draw order (MAGIC-270, DIV-2661).
 
 // pathLightStamps writes the four vertices of each in-map path point's cell
-// at u8(10*phase) (MAGIC-270). The points are the stored figure's native
+// at u8(step*phase), the set's PathLightStep (MAGIC-270). The points are the stored figure's native
 // display points; the column is x>>5 and the row is the ground row under the
 // point (DIV-2659).
 func (mw *mapWorld) pathLightStamps(out []ui.LightStamp, points []image.Point, phase int, bounds sim.Bounds) []ui.LightStamp {
-	level := uint8(boltLightStep * phase)
+	level := mw.spells().PathLightStep * uint8(phase)
 	for _, p := range points {
 		c, ok := mw.displayLightCell(p)
 		if !ok || c.X < 0 || c.Y < 0 || c.X >= int(bounds.Width) || c.Y >= int(bounds.Height) {
@@ -100,17 +79,15 @@ func floorDiv(a, b int) int {
 	return q
 }
 
-// pictureLightStamps stamps one non-path object at cell.
-func pictureLightStamps(out []ui.LightStamp, picture int, cell image.Point, phase int) []ui.LightStamp {
-	switch picture {
-	case fireArrowPicture:
-		return pointLightStamps(out, cell, fireArrowLightRadius, flightLightLevel)
-	case fireBallPicture:
-		return pointLightStamps(out, cell, fireBallLightRadius, flightLightLevel)
-	case fireBallBurstPicture:
-		if phase >= 0 && phase < len(explosionLight) {
-			e := explosionLight[phase]
-			return pointLightStamps(out, cell, e.radius, e.level)
+// pictureLightStamps stamps one non-path object at cell by its light kind in
+// set: a fixed point stamp, or the burst step of its phase.
+func pictureLightStamps(out []ui.LightStamp, set *data.SpellPresentation, picture int, cell image.Point, phase int) []ui.LightStamp {
+	switch e := set.Effect(int32(picture)); e.LightKind {
+	case data.LightPoint:
+		return pointLightStamps(out, cell, e.Light.Radius, e.Light.Level)
+	case data.LightBurst:
+		if step, ok := set.BurstLightAt(phase); ok {
+			return pointLightStamps(out, cell, step.Radius, step.Level)
 		}
 	}
 	return out
@@ -132,8 +109,12 @@ func (mw *mapWorld) objectLightStamps(ents []sim.Entity) []ui.LightStamp {
 // path record at each of its figures' points.
 func (mw *mapWorld) savedProjectileLightStamps(out []ui.LightStamp, bounds sim.Bounds) []ui.LightStamp {
 	records, owners := mw.armedRecords()
+	set := mw.spells()
 	for _, p := range records {
-		if data.CastDrawsPath(int(p.Picture)) {
+		if set.DrawsPath(p.Picture) {
+			if set.Effect(p.Picture).LightKind != data.LightPath {
+				continue
+			}
 			for _, b := range mw.recordPaths(p, owners[p.ID]) {
 				_, _, points := mw.pathFigure(b)
 				out = mw.pathLightStamps(out, points, int(p.Phase), bounds)
@@ -141,20 +122,25 @@ func (mw *mapWorld) savedProjectileLightStamps(out []ui.LightStamp, bounds sim.B
 			continue
 		}
 		cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))
-		out = pictureLightStamps(out, int(p.Picture), cell, int(p.Phase))
+		out = pictureLightStamps(out, set, int(p.Picture), cell, int(p.Phase))
 	}
 	return out
 }
 
-// wallFireLightStamps stamps each Wall of Fire cell at its flicker level.
+// wallFireLightStamps stamps each cell of a retained effect whose overlay
+// identifier the set lights as a cell (the first game's Wall of Fire,
+// MAGIC-UNITLIGHT-057, footprint MAGIC-271) at its flicker level.
 func (mw *mapWorld) wallFireLightStamps(out []ui.LightStamp) []ui.LightStamp {
-	for _, effect := range mw.cellEffectsByArm() {
-		if effect.Spell != 3 {
+	set := mw.spells()
+	for _, effect := range mw.world.CellEffects() {
+		picture, _ := set.OverlayPicture(int(effect.Spell))
+		e := set.Effect(int32(picture))
+		if e.LightKind != data.LightCell {
 			continue
 		}
 		for _, c := range effect.Cells {
 			cell := image.Pt(int(c[0]), int(c[1]))
-			out = pointLightStamps(out, cell, wallFireLightRadius, wallFireLightLevel(mw.scene, cell))
+			out = pointLightStamps(out, cell, e.Light.Radius, wallFireLightLevel(mw.scene, cell))
 		}
 	}
 	return out

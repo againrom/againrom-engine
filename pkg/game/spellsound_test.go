@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -43,10 +44,10 @@ func TestSpellSoundSelectorsAreTheDecodedPictureFormulas(t *testing.T) {
 		{28, 564, 565},
 		{29, 0, 0},
 	} {
-		if got := castSpellSoundSlot(tc.spell); got != tc.cast {
+		if got := castSpellSoundSlot(data.FirstSpellPresentation(), tc.spell); got != tc.cast {
 			t.Errorf("cast selector for spell %d = %d, want %d", tc.spell, got, tc.cast)
 		}
-		if got := effectSpellSoundSlot(tc.spell); got != tc.effect {
+		if got := effectSpellSoundSlot(data.FirstSpellPresentation(), tc.spell); got != tc.effect {
 			t.Errorf("effect selector for spell %d = %d, want %d", tc.spell, got, tc.effect)
 		}
 	}
@@ -295,7 +296,8 @@ func TestStagedAndStormEffectsVoiceEachAcceptedCellOnce(t *testing.T) {
 	if len(*plays) != 2 {
 		t.Fatalf("two redraws changed sound count to %d, want 2", len(*plays))
 	}
-	for range stormSoundPhase - 1 {
+	_, stormPhase := data.FirstSpellPresentation().CellSound(21)
+	for range stormPhase - 1 {
 		mw.advanceSpellSoundCues()
 	}
 	if len(*plays) != 2 {

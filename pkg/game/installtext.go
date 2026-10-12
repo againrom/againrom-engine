@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/base"
+	"againrom/pkg/data"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/locale"
 	"againrom/pkg/render/terrain"
@@ -267,6 +268,11 @@ type InstallWords struct {
 	// ("english", "russian"); empty reads English. It chooses the engine's own
 	// words (pkg/words); Selector only converts bytes.
 	Language string
+
+	// Spells is the game's spell presentation set: how many rows `spell.txt`
+	// names and which row each `spells.txt` line names. Nil reads the first
+	// game's.
+	Spells *data.SpellPresentation
 }
 
 // LoadInstallWords reads the tables once, in the font's code page under
@@ -296,6 +302,15 @@ func LoadInstallWords(src terrain.EntrySource, code TextCode) *InstallWords {
 // Stats, UnitName and Site are distinct table-local index spaces. Keeping
 // separate accessors makes it impossible for a caller to accidentally treat a
 // local item label or actor id as a global main.txt subscript.
+// spellSet is the spell presentation set the words name spells by; an
+// install words value no game named takes the first game's.
+func (w *InstallWords) spellSet() *data.SpellPresentation {
+	if w == nil || w.Spells == nil {
+		return data.FirstSpellPresentation()
+	}
+	return w.Spells
+}
+
 func (w *InstallWords) Stats(i int) (string, bool) {
 	if w == nil {
 		return "", false
@@ -368,19 +383,20 @@ func (w *InstallWords) Words() ui.Words {
 			}
 		}
 	}
+	spells := w.spellSet()
 	if w != nil && w.spellNames != nil {
-		for id := 1; id < len(out.ItemSpellNames); id++ {
+		for id := 1; id <= spells.NamedRows && id < len(out.ItemSpellNames); id++ {
 			if s, ok := w.spellNames.At(id - 1); ok {
 				out.ItemSpellNames[id] = s
 			}
 		}
 		// DIV-2177: a language may name Drain Life by its own alias.
-		if alias := out.Engine.Text("item.drain_life_alias"); alias != "" {
-			out.ItemSpellNames[11] = EncodeInstallText(alias, w.Selector)
+		if alias := out.Engine.Text("item.drain_life_alias"); alias != "" && spells.DrainLifeAliasRow > 0 {
+			out.ItemSpellNames[spells.DrainLifeAliasRow] = EncodeInstallText(alias, w.Selector)
 		}
 	}
-	if w != nil && w.spellBookNames.Lines() == len(originalBookIDs) {
-		for cell, id := range originalBookIDs {
+	if w != nil && w.spellBookNames.Lines() == len(spells.BookRows) {
+		for cell, id := range spells.BookRows {
 			if s, ok := w.spellBookNames.At(cell); ok {
 				out.SpellBookNames[id] = spellBookRowName(s)
 			}

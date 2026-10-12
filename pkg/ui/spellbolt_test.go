@@ -335,3 +335,29 @@ func TestDisplayRowFindsTheGroundRowUnderADisplayPoint(t *testing.T) {
 		t.Errorf("flat view row %d ok %v, want 2", row, ok)
 	}
 }
+
+// Raise draws the frame that many screen pixels higher and nothing else; a
+// zero raise is the loss control.
+func TestARaisedSpellSpriteDrawsAboveItsPoint(t *testing.T) {
+	t.Parallel()
+
+	v := commandViewer(t)
+	sheet := uiSheet(9, 12, 12, 6, 6)
+	place := func(raise int) effectScreenRect {
+		v.SetSpellBolts([]SpellBolt{{
+			Cell: image.Pt(2, 2), Pos: image.Pt(2*ShotScale, 2*ShotScale), Sheet: sheet, Frame: 8, Raise: raise,
+		}})
+		placed := v.spellArtPlacements()
+		if len(placed) != 1 {
+			t.Fatalf("raise %d placed %d rectangles, want one", raise, len(placed))
+		}
+		return placed[0]
+	}
+	flat, raised := place(0), place(28)
+	if got, want := flat.Y-raised.Y, 28*v.cam.Zoom; got != want {
+		t.Errorf("raise 28 moved the sprite up %v, want %v", got, want)
+	}
+	if raised.X != flat.X {
+		t.Errorf("raise moved the sprite across: %v, want %v", raised.X, flat.X)
+	}
+}

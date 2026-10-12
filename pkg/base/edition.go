@@ -45,6 +45,10 @@ type Edition struct {
 	// rectangle, raising event, once-only rule and pointer owner.
 	Tips string
 
+	// Spells names the spell presentation set: each effect identifier's
+	// life, art, light and sound rules.
+	Spells string
+
 	// Options names the Game Options column a stepping option row reads its
 	// offered values and its new-game value from.
 	Options string
@@ -116,6 +120,7 @@ var firstEdition = Edition{
 	Screens:                   "rom1",
 	Tips:                      "rom1",
 	Options:                   "rom1",
+	Spells:                    "rom1",
 	CompanionObjectiveMission: 40,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "Allods/video4.res", Name: "video4"},
@@ -135,6 +140,7 @@ var secondEdition = Edition{
 	Screens:      "rom2",
 	Tips:         "rom2",
 	Options:      "rom2",
+	Spells:       "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "video.res", Name: "video"},

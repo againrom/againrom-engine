@@ -48,10 +48,10 @@ func TestCastLaunchHumanClassesInEightDirections(t *testing.T) {
 	} {
 		c := launchHuman(tc.offsets)
 		for d, facing := range launchFacings {
-			if got := castLaunch(c, facing, 34); got != tc.want[d] {
+			if got := castLaunch(c, facing, false); got != tc.want[d] {
 				t.Errorf("%s direction %d: launch %v, want %v", tc.name, d, got, tc.want[d])
 			}
-			if got := castLaunch(c, facing+16, 34); got != tc.want[d] {
+			if got := castLaunch(c, facing+16, false); got != tc.want[d] {
 				t.Errorf("%s direction %d odd facing: launch %v, want %v", tc.name, d, got, tc.want[d])
 			}
 		}
@@ -62,7 +62,7 @@ func TestCastLaunchTeleportTakesTheSelectionFallback(t *testing.T) {
 	t.Parallel()
 	c := launchHuman(launchStaffOffsets)
 	for _, facing := range launchFacings {
-		if got := castLaunch(c, facing, teleportPicture); got != image.Pt(-48, -57) {
+		if got := castLaunch(c, facing, true); got != image.Pt(-48, -57) {
 			t.Errorf("Teleport at facing %d: launch %v, want (-48,-57)", facing, got)
 		}
 	}
@@ -95,23 +95,23 @@ func TestCastLaunchCreatureCasters(t *testing.T) {
 	t.Parallel()
 	sling := &terrain.UnitClass{CenterX: 64, CenterY: 64, TileSize: 1, Selection: image.Rect(40, 40, 88, 90),
 		ShootOffset: []int{59, 77, 44, 67, 42, 53, 51, 42, 66, 39, 80, 45, 85, 59, 77, 72}}
-	if got, want := castLaunch(sling, 0, 34), image.Pt(8*(66-64), 8*(39-64)); got != want {
+	if got, want := castLaunch(sling, 0, false), image.Pt(8*(66-64), 8*(39-64)); got != want {
 		t.Errorf("ShootOffset creature facing north: %v, want %v", got, want)
 	}
-	if got, want := castLaunch(sling, 128, 34), image.Pt(8*(59-64), 8*(77-64)); got != want {
+	if got, want := castLaunch(sling, 128, false), image.Pt(8*(59-64), 8*(77-64)); got != want {
 		t.Errorf("ShootOffset creature facing south: %v, want %v", got, want)
 	}
 	plain := &terrain.UnitClass{CenterX: 64, CenterY: 80, TileSize: 1, Selection: image.Rect(40, 40, 90, 100)}
 	for _, facing := range launchFacings {
-		if got := castLaunch(plain, facing, 10); got != image.Pt(25-64, 30-80) {
+		if got := castLaunch(plain, facing, false); got != image.Pt(25-64, 30-80) {
 			t.Errorf("fallback creature at facing %d: %v, want (-39,-50)", facing, got)
 		}
 	}
 	plain.TileSize = 2
-	if got := castLaunch(plain, 0, 10); got != image.Pt(128-39, 128-50) {
+	if got := castLaunch(plain, 0, false); got != image.Pt(128-39, 128-50) {
 		t.Errorf("two-tile fallback creature: %v, want (89,78)", got)
 	}
-	if got := castLaunch(nil, 0, 10); got != (image.Point{}) {
+	if got := castLaunch(nil, 0, false); got != (image.Point{}) {
 		t.Errorf("an unknown class launches at %v, want the cell centre", got)
 	}
 }
@@ -133,7 +133,7 @@ func TestACastObjectLeavesTheCastersStaffTip(t *testing.T) {
 			{Caster: 1, Target: 2, Spell: spLightning, FromX: 5, FromY: 5, ToX: 11, ToY: 9, Facing: facing},
 			{Caster: 1, Target: 2, Spell: 1, FromX: 5, FromY: 5, ToX: 11, ToY: 9, Facing: facing},
 		})
-		launch := castLaunch(launchHuman(launchStaffOffsets), facing, 34)
+		launch := castLaunch(launchHuman(launchStaffOffsets), facing, false)
 		want := image.Pt(5*ui.ShotScale, 5*ui.ShotScale).Add(launch)
 		records := flightRecords(mw)
 		if len(records) != 2 {

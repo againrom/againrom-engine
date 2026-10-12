@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
 )
 
 // AI-SPELLIDENT-286: controller cell/index -> real spell ID. Commands in
 // Againrom already carry real IDs, so translation happens only at this boundary.
-var originalBookIDs = [...]uint16{1, 2, 3, 4, 5, 23, 24, 16, 15, 14, 13, 12, 6, 7, 8, 9, 10, 25, 26, 22, 21, 20, 19, 18}
+var originalBookIDs = data.FirstSpellPresentation().BookRows
 
 // Unknown book IDs use the ordinary unbound cell. Current SAV session policy
 // retains those custom bindings; ordinary edits to a bound cell take priority.

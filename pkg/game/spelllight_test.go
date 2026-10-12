@@ -145,7 +145,7 @@ func TestFireArrowFireBallAndExplosionLight(t *testing.T) {
 	}{{1, 16}, {2, 8}, {3, 0}, {3, 0}, {3, 8}, {3, 16}, {3, 24}, {3, 32}, {3, 40}, {3, 46}, {3, 46}}
 	counts := []int{4, 12, 32, 52}
 	for phase, e := range table {
-		got := pictureLightStamps(nil, fireBallBurstPicture, image.Pt(10, 10), phase)
+		got := pictureLightStamps(nil, data.FirstSpellPresentation(), fireBallBurstPicture, image.Pt(10, 10), phase)
 		if len(got) != counts[e.radius] {
 			t.Errorf("explosion phase %d stamps %d vertices, want radius %d's %d", phase, len(got), e.radius, counts[e.radius])
 		}
@@ -156,12 +156,12 @@ func TestFireArrowFireBallAndExplosionLight(t *testing.T) {
 		}
 	}
 	for _, phase := range []int{-1, 11, 21} {
-		if got := pictureLightStamps(nil, fireBallBurstPicture, image.Pt(10, 10), phase); len(got) != 0 {
+		if got := pictureLightStamps(nil, data.FirstSpellPresentation(), fireBallBurstPicture, image.Pt(10, 10), phase); len(got) != 0 {
 			t.Errorf("explosion phase %d stamps %d vertices, want none", phase, len(got))
 		}
 	}
 	for _, picture := range []int{1, 7, 11, 14, 20, 30, 60} {
-		if got := pictureLightStamps(nil, picture, image.Pt(10, 10), 0); len(got) != 0 {
+		if got := pictureLightStamps(nil, data.FirstSpellPresentation(), picture, image.Pt(10, 10), 0); len(got) != 0 {
 			t.Errorf("picture %d stamps light", picture)
 		}
 	}
@@ -191,7 +191,7 @@ func TestFlightLightStaysAtTheRecordsCell(t *testing.T) {
 			p := flightRecords(mw)[0]
 			cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))
 			got := lightGrid(mw.objectLightStamps(nil))
-			want := lightGrid(pictureLightStamps(nil, data.CastPicture(int(spell)), cell, -1))
+			want := lightGrid(pictureLightStamps(nil, data.FirstSpellPresentation(), data.CastPicture(int(spell)), cell, -1))
 			if len(want) == 0 || fmt.Sprint(got) != fmt.Sprint(want) {
 				t.Errorf("spell %d call %d: record at %v, light %v, want %v", spell, call, cell, got, want)
 			}

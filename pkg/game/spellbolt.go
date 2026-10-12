@@ -106,7 +106,7 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 		if ev.Weapon {
 			source = "weapon-cast-direct"
 		}
-		mw.playSpellSound(castSpellSoundSlot(ev.Spell), ev.Owner, from, source)
+		mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), ev.Owner, from, source)
 		if !ev.Weapon {
 			span := mw.startCastRun(ev.Caster)
 			mw.scheduleBookCastSound(ev, span)
@@ -117,7 +117,7 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
 		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 { // MAGIC-089, DIV-076
 			mw.healBursts = append(mw.healBursts, healBurst{at: to,
-				picture: data.CastPicture(int(arm)), owner: ev.TargetOwner,
+				picture: data.CastPicture(int(ev.Spell)), owner: ev.TargetOwner,
 				seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
 		}
 	}
@@ -150,10 +150,6 @@ func castSeed(caster, target sim.EntityID, spell int) uint32 {
 	return uint32(caster)*2654435761 + uint32(target)*2246822519 + uint32(spell) + 1
 }
 
-// teleportPicture is the one picture that puts TWO objects on the map: the
-// spawner copy-constructs a second one (MAGIC-265).
-const teleportPicture = 60
-
 // fireBallSpell is the spell whose burst the World builds as a record.
 const fireBallSpell = 2
 
@@ -161,12 +157,6 @@ const fireBallSpell = 2
 // decoded 22-tick life over an 11-frame half clock would otherwise wrap its
 // last visible tick from frame 10 back to frame 0 (ANIM-103).
 const fireBallBurstPicture = 13
-
-// healingPicture has a decoded one-tick cast object, but the ordinary
-// projectile draw arm deliberately submits no blit for it. The target-local
-// positive-Heal consumer below is the only path that draws this sheet
-// (ANIM-CAST-027).
-const healingPicture = 20
 
 // armBurstPhases hands the World the installed phase count of the Fire_Ball
 // burst's sheet, which the World's burst record needs for its frame leaf.
@@ -481,12 +471,14 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 		if e.Mode != sim.AreaModeCloud {
 			continue
 		}
-		picture, ok := data.OverlayPicture(int(e.Spell))
+		// The picture is the row's own cell identifier in the World's game;
+		// the slot and pass follow the row's arm.
+		picture, ok := mw.spells().OverlayPicture(int(e.Spell))
 		if !ok {
 			continue
 		}
 		arm, pass := 0, ui.SpellOverlayA // MAGIC-OVERLAYART-051
-		switch e.Spell {
+		switch mw.world.SpellArm(e.Spell) {
 		case 3:
 		case 19:
 			arm = 1
@@ -555,21 +547,18 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 // at a time.
 func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 	for _, p := range paints {
-		picture := data.BurstPicture(int(p.Spell))
 		// A staged sender produces one logical client object per accepted cell,
-		// hence one selector per cell. Picture 51 is the one decoded exception:
-		// its object stays silent at construction and voices slot 551 at phase 8.
+		// hence one selector per cell. A cell object with a sound delay (the
+		// first game's picture 51, the second's 23) stays silent at
+		// construction and voices its slot at that phase.
+		slot, delay := mw.spells().CellSound(int(p.Spell))
+		source := "spell-effect"
+		if delay > 0 {
+			source = "storm-phase"
+		}
 		for _, c := range p.Cells {
 			at := image.Pt(int(c.X), int(c.Y))
-			delay := 0
-			if picture == stormBurstPicture {
-				delay = stormSoundPhase
-			}
-			source := "spell-effect"
-			if picture == stormBurstPicture {
-				source = "storm-phase"
-			}
-			mw.queueSpellSound(effectSpellSoundSlot(p.Spell), p.Owner, at, delay, source)
+			mw.queueSpellSound(slot, p.Owner, at, delay, source)
 		}
 		mw.releaseAreaBursts(p)
 	}
@@ -629,12 +618,13 @@ func (mw *mapWorld) armedRecords() ([]sim.SavedProjectile, map[uint16]uint32) {
 // its figures, each followed by its smoke trail when trails is set.
 func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 	records, owners := mw.armedRecords()
+	set := mw.spells()
 	var out []ui.SpellBolt
 	for _, p := range records {
-		if p.Picture == healingPicture {
+		if set.Effect(p.Picture).Hidden {
 			continue
 		}
-		if data.CastDrawsPath(int(p.Picture)) {
+		if set.DrawsPath(p.Picture) {
 			for _, b := range mw.recordPaths(p, owners[p.ID]) {
 				out = append(out, mw.pathDraws(b)...)
 			}
@@ -650,11 +640,12 @@ func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 			continue
 		}
 		sheet := mw.projectiles.Sheet(int(p.Picture))
-		frame, mirror, ok := terrain.SelectEffectFrame(sheet, savedProjectileFacing(p.Dir), int(p.Phase))
+		drawn, raise := set.DrawnFrame(p.Picture, int(p.Phase))
+		frame, mirror, ok := terrain.SelectEffectFrame(sheet, savedProjectileFacing(p.Dir), drawn)
 		if !ok {
 			continue
 		}
-		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID]})
+		out = append(out, ui.SpellBolt{Cell: cell, To: cell, Pos: image.Pt(int(p.X), int(p.Y)), AbsolutePosition: true, Sheet: sheet, Frame: frame, Mirror: mirror, Owner: owners[p.ID], Raise: raise})
 		if trails {
 			out = append(out, mw.savedProjectileTrail(p)...)
 		}
@@ -667,7 +658,7 @@ func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 // frame i, so the newest of six draws frame 5, and only for a row whose
 // Palette is not 0 (ANIM-142).
 func (mw *mapWorld) savedProjectileTrail(p sim.SavedProjectile) []ui.SpellBolt {
-	slot := data.CastTrailSlot(int(p.Picture))
+	slot := mw.spells().TrailSlot(p.Picture)
 	if slot < 0 || !mw.projectiles.Smokes(int(p.Picture)) {
 		return nil
 	}

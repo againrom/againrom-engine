@@ -1,6 +1,9 @@
 package sim
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 // A shot at a structure is an ordinary unit-shot record whose target key is
 // the structure's id and whose aim is its anchor cell's centre (SAV-1197).
@@ -97,12 +100,48 @@ func TestClientAndBurstRecordsStartAtActionPhaseMinusOne(t *testing.T) {
 // ANIM-149: the Teleport picture's arm writes no position.
 func TestTheTeleportRecordStandsStill(t *testing.T) {
 	w := shotWorld(t)
-	w.ReleaseCast(CastRecord{Picture: teleportProjectilePicture, X: 300, Y: 400, AimX: 3000, AimY: 400, Segments: 21})
+	w.ReleaseCast(CastRecord{Picture: 60, X: 300, Y: 400, AimX: 3000, AimY: 400, Segments: 21})
 	for range 20 {
 		p, _ := savedProjectileOf(w, 0)
 		if p.X != 300 || p.Y != 400 {
 			t.Fatalf("the record moved to %d,%d", p.X, p.Y)
 		}
 		Step(w, nil)
+	}
+}
+
+// The driver takes the update arm of the World's game (rules.EffectDriveOf):
+// a first-game 28 or 54 record stands at its aim point, a second-game 28
+// ramps in place and a second-game 54 stands still on the counter-less-one
+// frame (R2-ENGINE-447).
+func TestTheDriverTakesTheArmOfTheWorldsGame(t *testing.T) {
+	type at struct{ x, y, phase int32 }
+	run := func(second bool, picture int32) []at {
+		w := shotWorld(t)
+		if second {
+			w.rom2 = &rom2ScriptState{}
+		}
+		w.ReleaseCast(CastRecord{Picture: picture, Phases: 21, X: 300, Y: 400, AimX: 3000, AimY: 400, Segments: 13})
+		var out []at
+		for range 4 {
+			p, _ := savedProjectileOf(w, 0)
+			out = append(out, at{p.X, p.Y, p.Phase})
+			Step(w, nil)
+		}
+		return out
+	}
+	for _, tc := range []struct {
+		second  bool
+		picture int32
+		want    []at
+	}{
+		{false, 28, []at{{3000, 400, 0}, {3000, 400, 1}, {3000, 400, 1}, {3000, 400, 2}}},
+		{true, 28, []at{{300, 400, 4}, {300, 400, 3}, {300, 400, 2}, {300, 400, 1}}},
+		{false, 54, []at{{3000, 400, 0}, {3000, 400, 1}, {3000, 400, 1}, {3000, 400, 2}}},
+		{true, 54, []at{{300, 400, 0}, {300, 400, 1}, {300, 400, 2}, {300, 400, 3}}},
+	} {
+		if got := run(tc.second, tc.picture); fmt.Sprint(got) != fmt.Sprint(tc.want) {
+			t.Errorf("second %v picture %d: %v, want %v", tc.second, tc.picture, got, tc.want)
+		}
 	}
 }

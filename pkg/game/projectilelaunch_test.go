@@ -34,8 +34,8 @@ func TestAProjectileInFlightKeepsItsCurrentPointAndLightAcrossSAV(t *testing.T) 
 			continue
 		}
 		cell := image.Pt(int(p.X)/256, int(p.Y)/256)
-		if stamps[cell] != flightLightLevel {
-			t.Errorf("Fire Arrow %d at %v leaves vertex %v at %d, want %d", p.ID, cell, cell, stamps[cell], flightLightLevel)
+		if stamps[cell] != 16 {
+			t.Errorf("Fire Arrow %d at %v leaves vertex %v at %d, want %d", p.ID, cell, cell, stamps[cell], 16)
 		}
 	}
 	if moved == 0 {

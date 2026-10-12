@@ -1,8 +1,14 @@
 package sim
 
-// teleportProjectilePicture is the cast picture whose producer builds a second
-// record by copy and whose driver arm writes no position (ANIM-147, ANIM-149).
-const teleportProjectilePicture = 60
+import "againrom/pkg/rules"
+
+// SpellGame is the game whose spell effect rules this World's driver takes.
+func (w *World) SpellGame() rules.SpellGame {
+	if w.SecondGame() {
+		return rules.SpellGameSecond
+	}
+	return rules.SpellGameFirst
+}
 
 // CastRecord names one record a cast leaves as. The caller owns what the
 // installed registries decide: the picture, its phase count, the start point

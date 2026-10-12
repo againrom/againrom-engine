@@ -3,6 +3,8 @@ package game
 import (
 	"os"
 	"testing"
+
+	"againrom/pkg/data"
 )
 
 // TestReleaseSpellSoundSelectorPopulation proves the production SoundBank's
@@ -20,8 +22,9 @@ func TestReleaseSpellSoundSelectorPopulation(t *testing.T) {
 
 	castResolved := map[uint16]bool{3: false, 4: false, 21: false}
 	effectResolved := map[uint16]bool{2: true, 4: true, 21: true}
-	for spell := uint16(firstSpellSoundID); spell <= lastSpellSoundID; spell++ {
-		castSlot := castSpellSoundSlot(spell)
+	set := data.FirstSpellPresentation()
+	for spell := uint16(1); spell <= uint16(set.LastSoundRow); spell++ {
+		castSlot := castSpellSoundSlot(set, spell)
 		_, missingCast := castResolved[spell]
 		wantCast := !missingCast
 		if sample, ok := bank.Sample(castSlot); ok != wantCast {
@@ -31,7 +34,7 @@ func TestReleaseSpellSoundSelectorPopulation(t *testing.T) {
 				spell, castSlot, sample.Rate, len(sample.PCM))
 		}
 
-		effectSlot := effectSpellSoundSlot(spell)
+		effectSlot := effectSpellSoundSlot(set, spell)
 		wantEffect := effectResolved[spell]
 		if sample, ok := bank.Sample(effectSlot); ok != wantEffect {
 			t.Errorf("spell %d effect Sfx%d resolved=%v, want %v", spell, effectSlot, ok, wantEffect)

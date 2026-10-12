@@ -8,7 +8,6 @@ var CommittedAreaArmSites = map[string]int{
 	"pkg/game/shopconsumables.go":    2,
 	"pkg/game/spell.go":              1,
 	"pkg/game/spellbolt.go":          5,
-	"pkg/game/spelllight.go":         1,
 	"pkg/game/world.go":              1,
 	"pkg/sim/areasave.go":            1,
 	"pkg/sim/castbinary.go":          1,

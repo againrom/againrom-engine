@@ -7,18 +7,6 @@ import (
 	"againrom/pkg/sim"
 )
 
-// The spell book is a fixed 1..28 id space. Both decoded selector families use
-// the picture arithmetic that already owns that space: the caster/action
-// picture is even and the transient effect picture is odd.
-const (
-	firstSpellSoundID = 1
-	lastSpellSoundID  = 28
-	spellSoundBase    = 500
-	stormBurstPicture = 51 // ANIM-149, DIV-501
-	stormSoundSlot    = 551
-	stormSoundPhase   = 8
-)
-
 // spellSoundCue is one future one-shot, counted only by paced world ticks.
 // Keeping this out of draw and push is the idempotence rule: any number of
 // render frames, including paused ones, can observe a cue without consuming or
@@ -38,22 +26,19 @@ type spellSoundCue struct {
 	phase  int
 }
 
-func castSpellSoundSlot(spell uint16) int {
-	if spell < firstSpellSoundID || spell > lastSpellSoundID {
-		return 0
-	}
-	return spellSoundBase + data.CastPicture(int(spell))
+// castSpellSoundSlot is the slot a cast of spell voices in set's game: the
+// even caster picture over the sound base, 0 outside the voiced rows.
+func castSpellSoundSlot(set *data.SpellPresentation, spell uint16) int {
+	return set.CastSound(int(spell))
 }
 
-func effectSpellSoundSlot(spell uint16) int {
-	if spell < firstSpellSoundID || spell > lastSpellSoundID {
-		return 0
-	}
-	picture := data.BurstPicture(int(spell))
-	if picture == stormBurstPicture {
-		return stormSoundSlot
-	}
-	return spellSoundBase + picture
+// effectSpellSoundSlot is the slot a cell object of spell voices in set's
+// game: the odd effect picture over the sound base, 0 outside the voiced
+// rows. A row whose object waits (ANIM-149, DIV-501; R2-ENGINE-446) voices
+// the same slot after the delay CellSound names.
+func effectSpellSoundSlot(set *data.SpellPresentation, spell uint16) int {
+	slot, _ := set.CellSound(int(spell))
+	return slot
 }
 
 func (mw *mapWorld) playSpellSound(slot int, owner uint32, cell image.Point, source ...string) {
@@ -171,7 +156,7 @@ func (mw *mapWorld) scheduleBookCastSound(ev sim.CastEvent, span int) {
 		mw.spellSound == nil && mw.semanticSound == nil {
 		return
 	}
-	slot := castSpellSoundSlot(ev.Spell)
+	slot := castSpellSoundSlot(mw.spells(), ev.Spell)
 	if slot <= 0 {
 		return
 	}
@@ -193,7 +178,7 @@ func (mw *mapWorld) observeScriptCasts(events []sim.ScriptCastEvent) {
 		// flight parameter 5, not the normal caster's 13 calls; the source-cell
 		// Prismatic Spray links each resolved victim (MAGIC-281).
 		mw.releaseScriptCast(ev, seed)
-		mw.playSpellSound(castSpellSoundSlot(ev.Spell), 0, from, "scripted-cast")
+		mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), 0, from, "scripted-cast")
 		mw.scheduleBlastSound(ev.Spell, 0, from, to, false)
 	}
 }
@@ -209,14 +194,15 @@ func (mw *mapWorld) scheduleBlastSound(spell uint16, owner uint32, from, to imag
 	}
 	delay := 0
 	if !weaponReplacement {
-		picture := data.CastPicture(int(spell))
-		if data.CastTravels(picture) {
-			delay = data.CastFlight(picture, castDistance(from, to))
+		set := mw.spells()
+		picture := int32(data.CastPicture(int(spell)))
+		if set.Travels(picture) {
+			delay = set.Flight(picture, castDistance(from, to), int(mw.recordPhases(int(picture))))
 		}
 	}
 	source := "spell-effect"
 	if delay > 0 {
 		source = "deferred-spell-effect"
 	}
-	mw.queueSpellSound(effectSpellSoundSlot(spell), owner, to, delay, source)
+	mw.queueSpellSound(effectSpellSoundSlot(mw.spells(), spell), owner, to, delay, source)
 }
