@@ -79,7 +79,7 @@ func retainedWallDriver1162() *SavedWorldEffects {
 
 func TestRetainedCloud1162RetirementOwnsPayloadPlanesAndRouting(t *testing.T) {
 	w := retainedWallCells1162(t, true)
-	before := slices.Clone(w.savedMotion.Cells)
+	before := slices.Clone(w.cellRecords)
 	if w.terrainOpen(DomainGround, 16, 16) || w.savedCellPlanes.Static[0x1010] != 0x25 {
 		t.Fatal("controlled loaded wall must block before expiry")
 	}
@@ -156,8 +156,8 @@ func TestRetainedCloud1162MissingOwnersAndCorruptionAreAtomic(t *testing.T) {
 		corrupt     func(*World)
 	}{
 		{"planes", "plane authority", func(w *World) { w.savedCellPlanes = nil }},
-		{"motion", "current Cell", func(w *World) { w.savedMotion = nil }},
-		{"node", "current Cell", func(w *World) { w.savedMotion.Cells = w.savedMotion.Cells[1:] }},
+		{"records", "current Cell", func(w *World) { w.cellRecords = nil }},
+		{"node", "current Cell", func(w *World) { w.cellRecords = w.cellRecords[1:] }},
 		{"residual", "retained world-effect", func(w *World) { w.savedCellRecords = w.savedCellRecords[1:] }},
 		{"layer", "layer payload", func(w *World) { w.motionCell(0x1010).Payload[32]++ }},
 		{"count", "layer count", func(w *World) { w.motionCell(0x1010).Payload[2]++ }},

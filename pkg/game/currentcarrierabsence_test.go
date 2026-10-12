@@ -103,8 +103,10 @@ func TestCurrentSackAbsenceKeepsStrictNativeWorldAcrossTwoCycles(t *testing.T) {
 	source := f.live.world
 	for cycle := 0; cycle < 2; cycle++ {
 		doc, a := currentRootSAVDocument(t, f)
-		if len(a.AbsentCellSacks) == 0 {
-			t.Fatal("native Sack cell key has no absence anchor")
+		// The death Sack enters its cell record with its key
+		// (SAV-SACKENTRY-590), so the SAVE names no absent Sack key.
+		if len(a.AbsentCellSacks) != 0 {
+			t.Fatal("the death Sack's cell lacks its key", a.AbsentCellSacks)
 		}
 		f = loadCurrentRootSAV(t, doc, func(t *testing.T) *FrontEnd { return itemMutationFront1115(t, 1) })
 		if f.live.world.Hash() != source.Hash() {
@@ -158,26 +160,29 @@ func TestCurrentDeathKeepsChangedOrdinaryMotionOrderAndSackKey(t *testing.T) {
 				raw, _ := savedObjectRaw(r, "U158", 148)
 				raw[0x40] = 93
 			case "sack":
-				for _, row := range a.AbsentCellSacks {
-					if row.Carriers == sim.CurrentSackKeyRecord|sim.CurrentSackKeyMotion {
-						sackCell, sackKey = row.Cell, row.Wire+1000
-						for i := range doc.Objects {
-							record := &doc.Objects[i]
-							identity, _ := savedStructureValue(record, "Identity")
-							if record.Class == "Sack" && identity == row.Wire {
-								savedObjectSetValue(record, "Identity", sackKey)
-							}
+				// The death Sack's cell record holds its key in the World.
+				_, worldCells, _, _ := f.live.world.SavedActorMotions()
+				for _, cell := range worldCells {
+					wire := binary.LittleEndian.Uint32(cell.Payload[16:])
+					if wire == 0 || sackKey != 0 {
+						continue
+					}
+					sackCell, sackKey = cell.Cell, wire+1000
+					for i := range doc.Objects {
+						record := &doc.Objects[i]
+						identity, _ := savedStructureValue(record, "Identity")
+						if record.Class == "Sack" && identity == wire {
+							savedObjectSetValue(record, "Identity", sackKey)
 						}
-						for i := range doc.World.Cells {
-							if doc.World.Cells[i].Cell == row.Cell {
-								doc.World.Cells[i].Sack = sackKey
-							}
+					}
+					for i := range doc.World.Cells {
+						if doc.World.Cells[i].Cell == cell.Cell {
+							doc.World.Cells[i].Sack = sackKey
 						}
-						break
 					}
 				}
 				if sackKey == 0 {
-					t.Fatal("death fixture lacks both absent cell Sack carriers")
+					t.Fatal("death fixture holds no Sack cell key")
 				}
 			}
 			for cycle := 0; cycle < 2; cycle++ {

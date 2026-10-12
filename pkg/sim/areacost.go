@@ -269,10 +269,10 @@ func strideCell(s NativeStride, steps int32) cell {
 // plane's cost, so a form's load never calls this.
 func (w *World) RewriteImportedLayerCosts() {
 	p := w.savedCellPlanes
-	if p == nil || w.savedMotion == nil {
+	if p == nil {
 		return
 	}
-	for _, c := range w.savedMotion.Cells {
+	for _, c := range w.cellRecords {
 		if w.layeredPlaneCellNow(c.Cell) {
 			p.Cost[c.Cell], p.CostKnown[c.Cell] = w.savedCellCost(c), 1
 		}
@@ -315,8 +315,15 @@ func (w *World) ResetLoadedAreaCosts() {
 }
 
 // recomputeCrossing is the release of the footprint at from and the occupation
-// of the footprint at to, each cell recomputed (MOVE-084, MOVE-085).
+// of the footprint at to (MOVE-084, MOVE-085). On a World with planes the cell
+// slots decide which cells recompute (MOVE-088).
 func (w *World) recomputeCrossing(e Entity, from, to cell) {
+	if w.savedCellPlanes != nil {
+		if i := indexOfEntity(w.entities, e.ID); i >= 0 {
+			w.moveNativeCellSlots(i, from, to)
+		}
+		return
+	}
 	side := footprintSide(e.TokenSize)
 	cells := make([]cell, 0, 2*side*side)
 	for _, at := range [2]cell{from, to} {

@@ -8,7 +8,7 @@ import (
 
 func TestCurrentStructureRuntimeCoordinatesSurviveRemintAndOrdinaryEdits(t *testing.T) {
 	for _, ids := range [][2]uint32{{73, 91}, {73, 73}, {0, 0}, {0xabcdef77, 0xabcdef77}} {
-		f, snapshot, world, live, source := currentBuildingRootFixture(t, true)
+		f, snapshot, world, live, source := currentBuildingRootCandidate(t, true)
 		_, cells, _ := world.SavedStructures()
 		for i := range source {
 			source[i].RuntimeID = ids[i]
@@ -16,6 +16,7 @@ func TestCurrentStructureRuntimeCoordinatesSurviveRemintAndOrdinaryEdits(t *test
 		if err := world.ImportOriginalStructures(live, source, cells, make([]byte, int(world.Bounds().Width*world.Bounds().Height))); err != nil {
 			t.Fatal(err)
 		}
+		withLoadedCellPlanes(t, f, world)
 		snapshot.World, _ = world.MarshalBinary()
 		raw, err := f.ExportCurrentSave(snapshot, "current structure runtime coordinates")
 		if err != nil {

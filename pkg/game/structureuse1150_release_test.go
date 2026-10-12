@@ -54,10 +54,17 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// The witness World is a mission World: it holds the installed cell
+			// planes and its Buildings' records, as mission entry builds them.
 			world, err := sim.NewStructuredWorld(1150, live.world.Bounds(), sim.ModeCanonical,
-				sim.Terrain{Block: mapload.PassabilityWith(m, f.Table), Cost: mapload.Cost(m), Height: mapload.Height(m)},
+				mapload.Planes(m, f.Table),
 				[]sim.Entity{actor}, currentScript, live.world.Relations(), nil, nil, mapload.SpellRules(f.Table), sim.GhostTemplate{}, live.world.Structures())
 			if err != nil {
+				t.Fatal(err)
+			}
+			witness := *live.mission.state
+			witness.World = world
+			if err = constructCurrentBuildings(&witness, f.Archives.Containers); err != nil {
 				t.Fatal(err)
 			}
 			if err = world.DeclareItemWeights(live.world.ItemWeights()); err != nil {

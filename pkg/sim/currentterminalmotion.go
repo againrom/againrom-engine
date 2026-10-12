@@ -29,6 +29,7 @@ func (w *World) restoreCurrentTerminalMotions(rows []CurrentTerminalMotion) erro
 		return fmt.Errorf("sim: terminal motion has no carrier")
 	}
 	w.savedMotion = cloneActorMotions(w.savedMotion)
+	w.cellRecords = slices.Clone(w.cellRecords)
 	w.savedCellRecords = slices.Clone(w.savedCellRecords)
 	seen := map[EntityID]bool{}
 	for _, row := range rows {

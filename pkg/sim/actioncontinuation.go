@@ -438,6 +438,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 	}
 	n.entities, n.routes = slices.Clone(w.entities), slices.Clone(w.routes)
 	n.savedMotion = cloneActorMotions(w.savedMotion)
+	n.cellRecords = slices.Clone(w.cellRecords)
 	n.savedCellRecords = slices.Clone(w.savedCellRecords)
 	n.savedGroups = cloneSavedGroups(w.savedGroups)
 	n.savedObjects = w.savedObjects.Clone()
@@ -535,8 +536,8 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 					mover := m.Mover
 					n.savedMotion.Motions = slices.DeleteFunc(n.savedMotion.Motions, func(m SavedActorMotion) bool { return m.Entity == e.ID })
 					n.adoptMover(*e, &mover)
-					for j := range n.savedMotion.Cells {
-						c := &n.savedMotion.Cells[j]
+					for j := range n.cellRecords {
+						c := &n.cellRecords[j]
 						for layer := 0; layer < 2; layer++ {
 							slot := motionSlot(c, layer)
 							if slot.Bound && slot.Entity == e.ID {

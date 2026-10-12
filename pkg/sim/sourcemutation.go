@@ -1,5 +1,7 @@
 package sim
 
+import "slices"
+
 // sourceMutationCopy isolates the owners touched by an item producer. The
 // caller publishes this candidate only after all source callbacks succeed.
 // Death normalization runs after commit, never against the shallow shared
@@ -12,6 +14,7 @@ func (w *World) sourceMutationCopy(i int) World {
 	n.savedGroups = cloneSavedGroups(w.savedGroups)
 	n.savedObjects = w.savedObjects.Clone()
 	n.savedMotion = cloneActorMotions(w.savedMotion)
+	n.cellRecords = slices.Clone(w.cellRecords)
 	if w.savedCellPlanes != nil {
 		planes := *w.savedCellPlanes
 		n.savedCellPlanes = &planes

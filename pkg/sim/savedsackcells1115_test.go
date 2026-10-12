@@ -60,7 +60,9 @@ func literalSackPlanes1115(w *World, cost, stat, dyn, grid byte) {
 	w.savedCellPlanes.Static[sackCell1115] = stat
 	w.savedCellPlanes.Dynamic[sackCell1115] = dyn
 	w.grid[20*32+10] = grid
-	w.savedMotion.Blocks = []SavedActorBlock{{Cell: 0x140a, Dyn: dyn, Static: stat}}
+	if w.savedMotion != nil {
+		w.savedMotion.Blocks = []SavedActorBlock{{Cell: 0x140a, Dyn: dyn, Static: stat}}
+	}
 }
 
 func assertSackCellWorld1115(t *testing.T, got, want *World, before []byte, changed bool) {
@@ -70,7 +72,7 @@ func assertSackCellWorld1115(t *testing.T, got, want *World, before []byte, chan
 	_, _ = expectedHash.Write(expected)
 	_, _ = oldHash.Write(before)
 	if !bytes.Equal(actual, expected) || got.Hash() != expectedHash.Sum64() {
-		t.Fatalf("complete state/hash differs: got %016x want %016x; cells=%+v blocks=%+v", got.Hash(), want.Hash(), got.savedMotion.Cells, got.savedMotion.Blocks)
+		t.Fatalf("complete state/hash differs: got %016x want %016x; cells=%+v blocks=%+v", got.Hash(), want.Hash(), got.cellRecords, got.savedMotion.Blocks)
 	}
 	if bytes.Equal(actual, before) == changed || (got.Hash() == oldHash.Sum64()) == changed {
 		t.Fatalf("canonical state change=%v, want %v", !bytes.Equal(actual, before), changed)
@@ -97,7 +99,7 @@ func TestSavedSackCell1115RegistrationExistingIsOnlySlotWrite(t *testing.T) {
 		w.savedCellPlanes.CostKnown[sackCell1115] = 0
 		before := mustMarshal(t, w)
 		want := copySackCellSavedWorld(t, w)
-		copy(want.savedMotion.Cells[0].Payload[16:20], []byte{0x12, 0x34, 0x56, 0x78})
+		copy(want.cellRecords[0].Payload[16:20], []byte{0x12, 0x34, 0x56, 0x78})
 		if ok, issue := w.registerSavedSackCell(sackCell1115, sackKey1115); !ok || issue != "" {
 			t.Fatalf("existing registration: %v %q", ok, issue)
 		}
@@ -140,8 +142,8 @@ func TestSavedSackCell1115RegistrationRefusalAndNewRecord(t *testing.T) {
 		}
 		w.grid[20*32+10] |= blockMagicWall
 		before, want := mustMarshal(t, w), copySackCellSavedWorld(t, w)
-		want.savedMotion = &savedActorMotionState{Cells: []SavedActorCell{{Cell: 0x140a,
-			Payload: [52]byte{0: 37, 1: 0x12, 16: 0x12, 17: 0x34, 18: 0x56, 19: 0x78}}}}
+		want.cellRecords = []SavedActorCell{{Cell: 0x140a,
+			Payload: [52]byte{0: 37, 1: 0x12, 16: 0x12, 17: 0x34, 18: 0x56, 19: 0x78}}}
 		want.savedStructureCells = []SavedStructureCell{{Cell: 0x140a, BaselineCost: 37, BaselineStatic: 0x12}}
 		literalSackPlanes1115(want, 37, 0x32, 0x32, 6)
 		if ok, issue := w.registerSavedSackCell(sackCell1115, sackKey1115); !ok || issue != "" {
@@ -158,7 +160,7 @@ func TestSavedSackCell1115RemovalIgnoresSlotIdentityAndResidue(t *testing.T) {
 		w.writeCellTail(sackCell1115, [6]byte{0, 31, 7, 8, 6, 5})
 		w.grid[20*32+10] |= blockMagicWall
 		before, want := mustMarshal(t, w), copySackCellSavedWorld(t, w)
-		want.savedMotion.Cells, want.cellTails, want.savedStructureCells = nil, nil, nil
+		want.cellRecords, want.cellTails, want.savedStructureCells = nil, nil, nil
 		literalSackPlanes1115(want, 11, 0x12, 0x32, 6)
 		if ok, issue := w.removeSavedSackCell(sackCell1115); !ok || issue != "" {
 			t.Fatalf("remove slot %08x: %v %q", key, ok, issue)
@@ -181,7 +183,7 @@ func TestSavedSackCell1115DeletionKeepsNeighborCellsTailsAndBlocks(t *testing.T)
 	w := sackCellWorld1115(t, &p)
 	left := SavedActorCell{Cell: 0x1409, Payload: [52]byte{0: 17, 1: 3, 16: 0x41}}
 	right := SavedActorCell{Cell: 0x140b, Payload: [52]byte{0: 19, 1: 1, 16: 0x81}}
-	w.savedMotion.Cells = []SavedActorCell{left, w.savedMotion.Cells[0], right}
+	w.cellRecords = []SavedActorCell{left, w.cellRecords[0], right}
 	w.savedStructureCells = []SavedStructureCell{
 		{Cell: 0x1409, BaselineCost: 17, BaselineStatic: 3},
 		{Cell: 0x140a, BaselineCost: 11, BaselineStatic: 2},
@@ -197,7 +199,7 @@ func TestSavedSackCell1115DeletionKeepsNeighborCellsTailsAndBlocks(t *testing.T)
 	w.syncNativeSavedPlaneGrid()
 	w.refreshSavedPlaneBlocks()
 	before, want := mustMarshal(t, w), copySackCellSavedWorld(t, w)
-	want.savedMotion.Cells = []SavedActorCell{want.savedMotion.Cells[0], want.savedMotion.Cells[2]}
+	want.cellRecords = []SavedActorCell{want.cellRecords[0], want.cellRecords[2]}
 	want.cellTails = []cellTail{want.cellTails[0], want.cellTails[2]}
 	want.savedStructureCells = []SavedStructureCell{want.savedStructureCells[0], want.savedStructureCells[2]}
 	literalSackPlanes1115(want, 11, 0x12, 0x32, 2)
@@ -248,7 +250,7 @@ func TestSavedSackCell1115RemovalRetainersAndLayers(t *testing.T) {
 				}
 			}
 			before, want := mustMarshal(t, w), copySackCellSavedWorld(t, w)
-			clear(want.savedMotion.Cells[0].Payload[16:20])
+			clear(want.cellRecords[0].Payload[16:20])
 			literalSackPlanes1115(want, 11, tc.stat, tc.dyn, tc.grid)
 			if ok, issue := w.removeSavedSackCell(sackCell1115); !ok || issue != "" {
 				t.Fatalf("retained removal: %v %q", ok, issue)
@@ -261,7 +263,7 @@ func TestSavedSackCell1115RemovalRetainersAndLayers(t *testing.T) {
 		p[offset] = 0x51 // Deliberately nonzero layer with count zero.
 		w := sackCellWorld1115(t, &p)
 		before, want := mustMarshal(t, w), copySackCellSavedWorld(t, w)
-		want.savedMotion.Cells, want.savedStructureCells = nil, nil
+		want.cellRecords, want.savedStructureCells = nil, nil
 		dynamic := byte(0x32)
 		if offset == 32 {
 			dynamic = 0x37
@@ -287,7 +289,7 @@ func TestSavedSackCell1115RemovalCurrentBitFourAndSavedBaseline(t *testing.T) {
 		w.savedCellPlanes.Static[sackCell1115] = tc.current
 		w.savedMotion.Blocks[0].Static = tc.current
 		before, want := mustMarshal(t, w), copySackCellSavedWorld(t, w)
-		want.savedMotion.Cells, want.savedStructureCells = nil, nil
+		want.cellRecords, want.savedStructureCells = nil, nil
 		grid := byte(0)
 		if tc.stat == 0x92 {
 			grid = 2
@@ -312,7 +314,7 @@ func TestSavedSackCell1115UnsupportedPreflightIsAtomic(t *testing.T) {
 		{"remove-no-planes", "plane authority", true, true, func(w *World) { w.savedCellPlanes = nil }, sackKey1115},
 		{"zero-opaque-key", "nonzero opaque Sack key", false, false, func(*World) {}, 0},
 		{"unknown-new-cost", "known current cost", false, false, func(w *World) { w.savedCellPlanes.CostKnown[sackCell1115] = 0 }, sackKey1115},
-		{"unresolved-building", "unresolved Building", true, true, func(w *World) { w.savedMotion.Cells[0].Payload[12] = 0x19 }, sackKey1115},
+		{"unresolved-building", "unresolved Building", true, true, func(w *World) { w.cellRecords[0].Payload[12] = 0x19 }, sackKey1115},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := sackPayload1115(sackKey1115)

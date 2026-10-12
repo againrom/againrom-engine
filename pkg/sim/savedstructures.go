@@ -161,7 +161,41 @@ func (w *World) ConstructSavedStructures(source []SavedStructure, cells []SavedS
 	}
 	w.savedStructures, w.savedStructureCells, w.hasSavedStructures = cloneSavedStructures(source), slices.Clone(cells), true
 	w.rebuildStructureSlots()
+	w.attachStructureRecords()
 	return nil
+}
+
+// attachStructureRecords gives every Building cell of a World with cell
+// planes the record the attach writes (TERR-240): a cell without one gets a
+// zeroed record with the cell's baselines and this-record bit 5, and the
+// record names its Building at +12. The structure cell then reads the record,
+// as a LOAD reads it, and the cell is recomputed: its blocking mask sets or
+// clears Static and Dynamic bits 0 and 2.
+func (w *World) attachStructureRecords() {
+	p := w.savedCellPlanes
+	if p == nil {
+		return
+	}
+	keys := make(map[StructureID]uint32, len(w.savedStructures))
+	for _, s := range w.savedStructures {
+		keys[s.ID] = s.SourceKey
+	}
+	for _, sc := range slices.Clone(w.savedStructureCells) {
+		if !sc.HasStructure {
+			continue
+		}
+		if w.motionCell(sc.Cell) == nil {
+			c := SavedActorCell{Cell: sc.Cell}
+			c.Payload[0], c.Payload[1] = sc.BaselineCost, sc.BaselineStatic
+			at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= sc.Cell })
+			w.cellRecords = slices.Insert(w.cellRecords, at, c)
+			p.Static[sc.Cell] |= 0x20
+		}
+		c := w.motionCell(sc.Cell)
+		binary.LittleEndian.PutUint32(c.Payload[12:], keys[sc.ID])
+		w.syncSavedStructureCell(*c)
+		w.recomputeSavedCell(sc.Cell)
+	}
 }
 
 // ImportOriginalStructures replaces the roster and its explicit cell occupancy
@@ -199,6 +233,18 @@ func (w *World) ImportOriginalStructures(structures []Structure, source []SavedS
 	w.structures, w.savedStructures, w.savedStructureCells = cs, ss, cc
 	w.hasSavedStructures = true
 	w.grid = slices.Clone(grid)
+	// On a World with cell planes the planes own the grid's block bits, and a
+	// cell record names only a Building of the imported roster.
+	w.syncNativeSavedPlaneGrid()
+	for i := range w.cellRecords {
+		if w.savedCellPlanes == nil {
+			break
+		}
+		key := binary.LittleEndian.Uint32(w.cellRecords[i].Payload[12:])
+		if _, _, found := w.savedCellBuilding(key); key != 0 && !found {
+			binary.LittleEndian.PutUint32(w.cellRecords[i].Payload[12:], 0)
+		}
+	}
 	w.rebuildStructureSlots()
 	return nil
 }

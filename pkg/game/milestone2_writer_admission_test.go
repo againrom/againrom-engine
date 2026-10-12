@@ -460,12 +460,19 @@ func TestMilestone2WriterLossControls(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(dir, "renamed.sav"), mf.raw, 0600); err != nil {
 				t.Fatal(err)
 			}
-			instruments := []string{"Buildings", "CellRecords", "DeadRoots", "DyingOwnerActors", "Groups", "MoverRoutes", "Players", "Sacks", "SessionBlock", "SpellEffects", "TerrainBlockPlane"}
-			cmd := exec.Command(os.Args[0], "-test.v", "-test.count=1", "-test.run=^TestMilestone2("+strings.Join(instruments, "|")+")$/renamed.sav$")
+			// A World with cell planes keeps the Building roster this file
+			// lists, because its cell records name that roster, so the
+			// Buildings instrument finds the file's Buildings and passes; its
+			// own controls prove it finds a changed roster.
+			instruments := []string{"CellRecords", "DeadRoots", "DyingOwnerActors", "Groups", "MoverRoutes", "Players", "Sacks", "SessionBlock", "SpellEffects", "TerrainBlockPlane"}
+			cmd := exec.Command(os.Args[0], "-test.v", "-test.count=1", "-test.run=^TestMilestone2(Buildings|"+strings.Join(instruments, "|")+")$/renamed.sav$")
 			cmd.Env = append(os.Environ(), "AGAINROM_SAVE_CORPUS="+dir, "AGAINROM_M2_ORIGINAL_CONTROL=1")
 			out, err := cmd.CombinedOutput()
 			if err == nil {
 				t.Fatal("original-carrier controls all passed")
+			}
+			if !bytes.Contains(out, []byte("--- PASS: TestMilestone2Buildings/renamed.sav")) {
+				t.Fatalf("the Buildings instrument differs from the roster the file lists:\n%s", out)
 			}
 			for _, name := range instruments {
 				marker := "--- FAIL: TestMilestone2" + name + "/renamed.sav"

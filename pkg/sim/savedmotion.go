@@ -55,7 +55,6 @@ type SavedActorBlock struct {
 
 type savedActorMotionState struct {
 	Motions []SavedActorMotion
-	Cells   []SavedActorCell
 	Blocks  []SavedActorBlock
 }
 
@@ -64,7 +63,7 @@ func cloneActorMotions(s *savedActorMotionState) *savedActorMotionState {
 		return nil
 	}
 	out := *s
-	out.Motions, out.Cells, out.Blocks = slices.Clone(s.Motions), slices.Clone(s.Cells), slices.Clone(s.Blocks)
+	out.Motions, out.Blocks = slices.Clone(s.Motions), slices.Clone(s.Blocks)
 	for i := range out.Motions {
 		out.Motions[i].StaticRoute = slices.Clone(out.Motions[i].StaticRoute)
 		out.Motions[i].DynamicRoute = slices.Clone(out.Motions[i].DynamicRoute)
@@ -72,12 +71,20 @@ func cloneActorMotions(s *savedActorMotionState) *savedActorMotionState {
 	return &out
 }
 
+// SavedActorMotions returns the imported motion, the per-cell records and the
+// block deltas. Present reports the motion, the records or the planes.
 func (w *World) SavedActorMotions() ([]SavedActorMotion, []SavedActorCell, []SavedActorBlock, bool) {
+	cells := slices.Clone(w.cellRecords)
 	s := cloneActorMotions(w.savedMotion)
 	if s == nil {
-		return nil, nil, nil, false
+		if w.savedCellPlanes != nil {
+			// A World with planes and no imported motion holds its Block
+			// records in the planes.
+			return nil, cells, w.planeBlocks(0), true
+		}
+		return nil, cells, nil, len(w.cellRecords) > 0
 	}
-	return s.Motions, s.Cells, s.Blocks, true
+	return s.Motions, cells, s.Blocks, true
 }
 
 func (w *World) motionFor(id EntityID) *SavedActorMotion {
@@ -124,22 +131,27 @@ func (w *World) SavedActorMotionIssues() []string {
 // Semantic unsupported cases stay readable with an issue; malformed bindings
 // fail atomically. Nil in all three arguments explicitly means absent authority.
 func (w *World) ImportOriginalActorMotions(motions []SavedActorMotion, cells []SavedActorCell, blocks []SavedActorBlock) error {
-	if w == nil || w.savedMotion != nil {
+	if w == nil || w.savedMotion != nil || len(w.cellRecords) > 0 {
 		return fmt.Errorf("saved motion requires a candidate without motion authority")
 	}
 	if motions == nil && cells == nil && blocks == nil {
 		w.savedMotion = nil
 		return nil
 	}
-	s := cloneActorMotions(&savedActorMotionState{Motions: motions, Cells: cells, Blocks: blocks})
+	s := cloneActorMotions(&savedActorMotionState{Motions: motions, Blocks: blocks})
+	records := slices.Clone(cells)
+	if records == nil {
+		records = []SavedActorCell{}
+	}
 	sort.Slice(s.Motions, func(i, j int) bool { return s.Motions[i].Entity < s.Motions[j].Entity })
 	// The game bridge supplies the final overlay per key, not archive history.
-	sort.Slice(s.Cells, func(i, j int) bool { return s.Cells[i].Cell < s.Cells[j].Cell })
+	sort.Slice(records, func(i, j int) bool { return records[i].Cell < records[j].Cell })
 	sort.Slice(s.Blocks, func(i, j int) bool { return s.Blocks[i].Cell < s.Blocks[j].Cell })
 	staged := *w
 	staged.entities = slices.Clone(w.entities)
 	staged.routes = slices.Clone(w.routes)
 	staged.savedMotion = s
+	staged.cellRecords = records
 	for i := range s.Motions {
 		m := &s.Motions[i]
 		at := indexOfEntity(staged.entities, m.Entity)
@@ -168,7 +180,7 @@ func (w *World) ImportOriginalActorMotions(motions []SavedActorMotion, cells []S
 	if err := staged.savedMotionFault(); err != nil {
 		return err
 	}
-	w.entities, w.savedMotion, w.routes = staged.entities, s, staged.routes
+	w.entities, w.savedMotion, w.routes, w.cellRecords = staged.entities, s, staged.routes, records
 	w.dropMovers()
 	w.refreshSavedPlaneBlocks()
 	return nil
@@ -300,12 +312,12 @@ func (w *World) motionAdmissionIssue(m SavedActorMotion, e Entity) string {
 func (w *World) savedMotionFault() error {
 	s := w.savedMotion
 	if s == nil {
-		return nil
+		return w.cellRecordFault()
 	}
-	if len(s.Motions) > 1<<20 || len(s.Cells) > 65536 || len(s.Blocks) > 65536 {
+	if len(s.Motions) > 1<<20 || len(w.cellRecords) > 65536 || len(s.Blocks) > 65536 {
 		return fmt.Errorf("saved motion population exceeds bounds")
 	}
-	span := uint64(12) + uint64(len(s.Cells))*64 + uint64(len(s.Blocks))*4
+	span := uint64(12) + uint64(len(w.cellRecords))*64 + uint64(len(s.Blocks))*4
 	for i, m := range s.Motions {
 		if i > 0 && s.Motions[i-1].Entity >= m.Entity || len(m.StaticRoute) > 65536 || len(m.DynamicRoute) > 65536 || len(m.Issue) > 256 {
 			return fmt.Errorf("invalid saved motion identity/count/issue")
@@ -337,17 +349,37 @@ func (w *World) savedMotionFault() error {
 			return fmt.Errorf("invalid active saved crossing")
 		}
 	}
+	if err := w.cellRecordFault(); err != nil {
+		return err
+	}
+	for i, c := range s.Blocks {
+		if i > 0 && s.Blocks[i-1].Cell >= c.Cell {
+			return fmt.Errorf("saved actor block cells are not strictly ordered")
+		}
+	}
+	return nil
+}
+
+// cellRecordFault validates the per-cell records: strictly ordered cells and
+// typed slots that agree with the payload keys and bind one key per actor.
+func (w *World) cellRecordFault() error {
+	if len(w.cellRecords) > 65536 {
+		return fmt.Errorf("saved actor cell population exceeds bounds")
+	}
 	boundKeys := make(map[uint32]EntityID)
 	actorKeys := make(map[EntityID]uint32)
-	for i, c := range s.Cells {
-		if i > 0 && s.Cells[i-1].Cell >= c.Cell {
+	for i, c := range w.cellRecords {
+		if i > 0 && w.cellRecords[i-1].Cell >= c.Cell {
 			return fmt.Errorf("saved actor cells are not strictly ordered")
 		}
 		for layer, slot := range []SavedActorSlot{c.Ground, c.Air} {
-			if slot.Key != binary.LittleEndian.Uint32(c.Payload[4+4*layer:]) || !slot.Bound && slot.Entity != 0 || slot.Bound && (slot.Key == 0 || w.motionFor(slot.Entity) == nil) {
+			// A native actor (no motion record) may hold a slot without a key
+			// until SAVE supplies it; an imported mover's slot carries its key.
+			native := w.motionFor(slot.Entity) == nil
+			if slot.Key != binary.LittleEndian.Uint32(c.Payload[4+4*layer:]) || !slot.Bound && slot.Entity != 0 || slot.Bound && slot.Key == 0 && !native {
 				return fmt.Errorf("saved actor cell %04x has an invalid typed slot", c.Cell)
 			}
-			if !slot.Bound {
+			if !slot.Bound || slot.Key == 0 {
 				continue
 			}
 			if prior, present := boundKeys[slot.Key]; present && prior != slot.Entity {
@@ -362,11 +394,6 @@ func (w *World) savedMotionFault() error {
 				}
 			}
 			boundKeys[slot.Key], actorKeys[slot.Entity] = slot.Entity, slot.Key
-		}
-	}
-	for i, c := range s.Blocks {
-		if i > 0 && s.Blocks[i-1].Cell >= c.Cell {
-			return fmt.Errorf("saved actor block cells are not strictly ordered")
 		}
 	}
 	return nil
@@ -388,14 +415,11 @@ func (w *World) noteActorMotionOrder(id EntityID) {
 }
 
 func (w *World) motionCell(key uint16) *SavedActorCell {
-	if w.savedMotion == nil {
+	i := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= key })
+	if i == len(w.cellRecords) || w.cellRecords[i].Cell != key {
 		return nil
 	}
-	i := sort.Search(len(w.savedMotion.Cells), func(i int) bool { return w.savedMotion.Cells[i].Cell >= key })
-	if i == len(w.savedMotion.Cells) || w.savedMotion.Cells[i].Cell != key {
-		return nil
-	}
-	return &w.savedMotion.Cells[i]
+	return &w.cellRecords[i]
 }
 
 func motionSlot(c *SavedActorCell, layer int) *SavedActorSlot {
@@ -453,10 +477,7 @@ func (w *World) motionOwnsCell(id EntityID, layer int, x, y int32) bool {
 }
 
 func (w *World) occupySavedMotions(s *routeScratch) {
-	if w.savedMotion == nil {
-		return
-	}
-	for _, c := range w.savedMotion.Cells {
+	for _, c := range w.cellRecords {
 		if at, ok := w.cellIndex(int32(c.Cell&255), int32(c.Cell>>8)); ok {
 			for layer, slot := range []SavedActorSlot{c.Ground, c.Air} {
 				if w.currentMotionSlot(slot) {
@@ -464,6 +485,9 @@ func (w *World) occupySavedMotions(s *routeScratch) {
 				}
 			}
 		}
+	}
+	if w.savedMotion == nil {
+		return
 	}
 	for i := range w.savedMotion.Motions {
 		m := &w.savedMotion.Motions[i]
@@ -654,7 +678,7 @@ func (w *World) refreshMotionBlocks(i int, touched []uint16) {
 		}
 	}
 	if m != nil {
-		for _, c := range w.savedMotion.Cells {
+		for _, c := range w.cellRecords {
 			if !entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8)) {
 				continue
 			}
@@ -713,8 +737,8 @@ func (w *World) moveMotionSlots(i int, to uint16) bool {
 	actorKey := w.motionActorKey(e.ID)
 	layer := e.Domain.layer()
 	detached := false
-	for k := range w.savedMotion.Cells {
-		c := &w.savedMotion.Cells[k]
+	for k := range w.cellRecords {
+		c := &w.cellRecords[k]
 		slot := motionSlot(c, layer)
 		if slot.Bound && slot.Entity == e.ID && entityCoversCell(&e, int32(c.Cell&255), int32(c.Cell>>8)) {
 			*slot = SavedActorSlot{}
@@ -761,7 +785,7 @@ func (w *World) motionActorKey(id EntityID) uint32 {
 		return 0
 	}
 	key := w.entities[at].SourceBinding.Identity
-	for _, c := range w.savedMotion.Cells {
+	for _, c := range w.cellRecords {
 		for _, slot := range []SavedActorSlot{c.Ground, c.Air} {
 			if slot.Bound && slot.Entity == id {
 				if key != 0 && key != slot.Key {

@@ -3,6 +3,7 @@ package sim
 import (
 	"encoding/binary"
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -46,10 +47,10 @@ func TestCurrentSackKeyAbsenceDoesNotChangeOtherCellValues(t *testing.T) {
 	for _, carriers := range []uint8{CurrentSackKeyRecord, CurrentSackKeyMotion, CurrentSackKeyRecord | CurrentSackKeyMotion} {
 		w := sourceBindingWorld1111(t)
 		w.SetSavedCellRecords([]SavedCellRecord{{Cell: 0x0101, Sack: 91, Residue0: 7, Ground: SavedCellActorSlot{Key: 41}}, {Cell: 0x0202, Sack: 92, Residue1: [2]byte{3, 5}}})
-		w.savedMotion = &savedActorMotionState{Cells: []SavedActorCell{{Cell: 0x0101}, {Cell: 0x0202}}}
-		binary.LittleEndian.PutUint32(w.savedMotion.Cells[0].Payload[16:], 91)
-		binary.LittleEndian.PutUint32(w.savedMotion.Cells[1].Payload[16:], 92)
-		w.savedMotion.Cells[0].Payload[3], w.savedMotion.Cells[1].Payload[32] = 17, 29
+		w.cellRecords = []SavedActorCell{{Cell: 0x0101}, {Cell: 0x0202}}
+		binary.LittleEndian.PutUint32(w.cellRecords[0].Payload[16:], 91)
+		binary.LittleEndian.PutUint32(w.cellRecords[1].Payload[16:], 92)
+		w.cellRecords[0].Payload[3], w.cellRecords[1].Payload[32] = 17, 29
 		before := w.Hash()
 		for _, rows := range [][]CurrentSackKeyAbsence{{{0x0101, 92, carriers}}, {{0x0303, 91, carriers}}, {{0x0101, 91, carriers}, {0x0101, 91, carriers}}, {{0x0101, 91, 0}}, {{0x0101, 91, 4}}} {
 			if err := w.RestoreCurrentSackKeyAbsence(rows); err == nil || w.Hash() != before {
@@ -57,14 +58,14 @@ func TestCurrentSackKeyAbsenceDoesNotChangeOtherCellValues(t *testing.T) {
 			}
 		}
 		want := w.SavedCellRecords()
-		wantMotion := cloneActorMotions(w.savedMotion)
+		wantMotion := slices.Clone(w.cellRecords)
 		if carriers&CurrentSackKeyRecord != 0 {
 			want[0].Sack = 0
 		}
 		if carriers&CurrentSackKeyMotion != 0 {
-			binary.LittleEndian.PutUint32(wantMotion.Cells[0].Payload[16:], 0)
+			binary.LittleEndian.PutUint32(wantMotion[0].Payload[16:], 0)
 		}
-		if err := w.RestoreCurrentSackKeyAbsence([]CurrentSackKeyAbsence{{0x0101, 91, carriers}}); err != nil || !reflect.DeepEqual(w.SavedCellRecords(), want) || !reflect.DeepEqual(w.savedMotion, wantMotion) {
+		if err := w.RestoreCurrentSackKeyAbsence([]CurrentSackKeyAbsence{{0x0101, 91, carriers}}); err != nil || !reflect.DeepEqual(w.SavedCellRecords(), want) || !reflect.DeepEqual(w.cellRecords, wantMotion) {
 			t.Fatal("Sack absence changed another field", err)
 		}
 	}
@@ -72,10 +73,11 @@ func TestCurrentSackKeyAbsenceDoesNotChangeOtherCellValues(t *testing.T) {
 
 func TestCurrentMotionCellAbsenceIsAtomicAndKeepsOtherCarriers(t *testing.T) {
 	w := sourceBindingWorld1111(t)
-	w.savedMotion = &savedActorMotionState{Cells: []SavedActorCell{{Cell: 0x0101}, {Cell: 0x0202}}, Blocks: []SavedActorBlock{{Cell: 0x0101, Dyn: 64}}}
+	w.savedMotion = &savedActorMotionState{Blocks: []SavedActorBlock{{Cell: 0x0101, Dyn: 64}}}
+	w.cellRecords = []SavedActorCell{{Cell: 0x0101}, {Cell: 0x0202}}
 	w.SetSavedCellRecords([]SavedCellRecord{{Cell: 0x0101, Sack: 91}})
-	w.savedMotion.Cells[0].Payload[3] = 71
-	old := cloneActorMotions(w.savedMotion)
+	w.cellRecords[0].Payload[3] = 71
+	old, oldCells := cloneActorMotions(w.savedMotion), slices.Clone(w.cellRecords)
 	before := w.Hash()
 	for _, rows := range [][][]uint16{{nil, {0x0303}}, {nil, {0x0101, 0x0101}}, {{0x0101}, {0x0101}, nil}} {
 		if err := w.RestoreCurrentCarrierAbsence(nil, nil, nil, rows...); err == nil || w.Hash() != before {
@@ -85,7 +87,7 @@ func TestCurrentMotionCellAbsenceIsAtomicAndKeepsOtherCarriers(t *testing.T) {
 	if err := w.RestoreCurrentCarrierAbsence(nil, nil, nil, nil, []uint16{0x0101}); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(w.savedMotion.Cells, old.Cells[1:]) || !reflect.DeepEqual(w.savedMotion.Blocks, old.Blocks) || w.SavedCellRecords()[0].Sack != 91 || old.Cells[0].Payload[3] != 71 {
+	if !reflect.DeepEqual(w.cellRecords, oldCells[1:]) || !reflect.DeepEqual(w.savedMotion.Blocks, old.Blocks) || w.SavedCellRecords()[0].Sack != 91 || oldCells[0].Payload[3] != 71 {
 		t.Fatal("motion absence changed another carrier or aliased its input")
 	}
 }

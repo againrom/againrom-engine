@@ -3,6 +3,7 @@ package sim
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"sort"
 )
 
@@ -50,30 +51,35 @@ func (w *World) ImportOriginalCellPlanes(planes *SavedCellPlanes) error {
 	for _, tail := range w.cellTails {
 		w.syncSavedCellTail(tail.Key, tail.Bytes)
 	}
-	if w.savedMotion != nil {
-		for _, c := range w.savedMotion.Cells {
-			w.syncSavedStructureCell(c)
-		}
+	for _, c := range w.cellRecords {
+		w.syncSavedStructureCell(c)
 	}
 	w.syncNativeSavedPlaneGrid()
 	w.refreshSavedPlaneBlocks()
 	return nil
 }
 
-// ConstructSavedCellPlanes executes the shared cell recompute for the new
-// world's already registered native owners. Original LOAD never calls it.
-func (w *World) ConstructSavedCellPlanes(planes *SavedCellPlanes) error {
-	if w == nil || w.tick != 0 || w.savedCellPlanes != nil || w.savedMotion == nil {
+// ConstructSavedCellPlanes builds the new world's planes with CellPlanes, lets
+// every living actor occupy the cells under it and executes the shared cell
+// recompute for its already registered native owners. Original LOAD never
+// calls it.
+func (w *World) ConstructSavedCellPlanes(start CellPlaneStart) error {
+	if w == nil || w.tick != 0 || w.savedCellPlanes != nil {
 		return fmt.Errorf("saved cell construction requires fresh spatial authority")
 	}
 	staged := *w
 	staged.savedMotion = cloneActorMotions(w.savedMotion)
+	staged.cellRecords = slices.Clone(w.cellRecords)
 	staged.grid = append([]byte(nil), w.grid...)
 	staged.savedStructureCells = append([]SavedStructureCell(nil), w.savedStructureCells...)
-	if err := staged.ImportOriginalCellPlanes(planes); err != nil {
+	if err := staged.ImportOriginalCellPlanes(w.CellPlanes(start)); err != nil {
 		return err
 	}
-	for _, cell := range staged.savedMotion.Cells {
+	staged.occupyMissionStartCells()
+	for _, s := range staged.sacks {
+		staged.registerPlacedSackCell(s.X, s.Y)
+	}
+	for _, cell := range staged.cellRecords {
 		if issue := staged.recomputeSavedCell(cell.Cell); issue != "" {
 			return fmt.Errorf("saved cell %04x: %s", cell.Cell, issue)
 		}
@@ -262,13 +268,19 @@ func (w *World) refreshSavedPlaneBlocks() {
 	if w.savedCellPlanes == nil || w.savedMotion == nil {
 		return
 	}
-	out := make([]SavedActorBlock, 0, len(w.savedMotion.Blocks))
+	w.savedMotion.Blocks = w.planeBlocks(len(w.savedMotion.Blocks))
+}
+
+// planeBlocks is the World's Block records: every cell of the flat range whose
+// Dynamic byte exceeds 15, with its Static byte (TERR-PASS-053).
+func (w *World) planeBlocks(capacity int) []SavedActorBlock {
+	out := make([]SavedActorBlock, 0, capacity)
 	for k := 0x807; k <= 0xeded; k++ {
 		if d := w.savedCellPlanes.Dynamic[k]; d > 15 {
 			out = append(out, SavedActorBlock{Cell: uint16(k), Dyn: d, Static: w.savedCellPlanes.Static[k]})
 		}
 	}
-	w.savedMotion.Blocks = out
+	return out
 }
 
 func (w *World) savedCellPayload(c SavedActorCell) [52]byte {
@@ -339,10 +351,10 @@ func (w *World) recomputeSavedCell(key uint16) string {
 	cost, stat := w.savedCellCost(*c), c.Payload[1]|0x20
 	dyn := stat
 	carry := p.Static[key] & 0x10
-	if c.Ground.Key != 0 {
+	if cellSlotTaken(c.Ground) {
 		dyn |= 0x40
 	}
-	if c.Air.Key != 0 {
+	if cellSlotTaken(c.Air) {
 		dyn |= 0x80
 	}
 	if buildingKey := binary.LittleEndian.Uint32(c.Payload[12:]); buildingKey != 0 {
@@ -400,13 +412,10 @@ func (w *World) createSavedCell(key uint16) string {
 	// this-record bit on the current static plane. Existing records are reused.
 	c := SavedActorCell{Cell: key}
 	c.Payload[0], c.Payload[1] = p.Cost[key], p.Static[key]
-	if w.savedMotion == nil {
-		w.savedMotion = &savedActorMotionState{}
-	}
-	at := sort.Search(len(w.savedMotion.Cells), func(i int) bool { return w.savedMotion.Cells[i].Cell >= key })
-	w.savedMotion.Cells = append(w.savedMotion.Cells, SavedActorCell{})
-	copy(w.savedMotion.Cells[at+1:], w.savedMotion.Cells[at:])
-	w.savedMotion.Cells[at] = c
+	at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= key })
+	w.cellRecords = append(w.cellRecords, SavedActorCell{})
+	copy(w.cellRecords[at+1:], w.cellRecords[at:])
+	w.cellRecords[at] = c
 	p.Static[key] |= 0x20
 	w.syncSavedStructureCell(c)
 	w.syncNativeSavedPlaneCell(key)
@@ -420,14 +429,14 @@ func (w *World) deleteEmptySavedCell(key uint16) bool {
 		return false
 	}
 	c.Payload = w.savedCellPayload(*c)
-	if !motionCellDeletionEligible(c.Payload) || w.nativeAreaCellPresent(key) {
+	if !motionCellDeletionEligible(c.Payload) || cellSlotTaken(c.Ground) || cellSlotTaken(c.Air) || w.nativeAreaCellPresent(key) {
 		return false
 	}
 	carry := p.Static[key] & 0x10
 	w.writeSavedCost(key, c.Payload[0])
 	p.Static[key], p.Dynamic[key] = c.Payload[1]|carry, c.Payload[1]|carry
-	at := sort.Search(len(w.savedMotion.Cells), func(i int) bool { return w.savedMotion.Cells[i].Cell >= key })
-	w.savedMotion.Cells = append(w.savedMotion.Cells[:at], w.savedMotion.Cells[at+1:]...)
+	at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= key })
+	w.cellRecords = append(w.cellRecords[:at], w.cellRecords[at+1:]...)
 	w.removeCurrentCellRecord(key)
 	if j := sort.Search(len(w.cellTails), func(i int) bool { return w.cellTails[i].Key >= key }); j < len(w.cellTails) && w.cellTails[j].Key == key {
 		w.cellTails = append(w.cellTails[:j], w.cellTails[j+1:]...)
@@ -469,19 +478,60 @@ func (w *World) planeMotionBoundaryIssue(i int, to uint16) string {
 // arms remain disclosed by the motion Issue; no callback return is invented.
 func (w *World) movePlaneMotionSlots(i int, to uint16) bool {
 	e := w.entities[i]
-	actorKey := w.motionActorKey(e.ID)
+	key := w.motionActorKey(e.ID)
+	detached := w.releaseCellSlots(i, cell{x: e.X, y: e.Y})
+	if issue := w.occupyCellSlots(i, cell{x: int32(to & 255), y: int32(to >> 8)}, key, true); issue != "" {
+		w.motionFor(e.ID).Issue = issue
+	}
+	return detached
+}
+
+// moveNativeCellSlots is a native mover's crossing on a World with planes:
+// the release of the footprint at from, then the occupation of the footprint
+// at to (MOVE-088). The native step requested the entry's cell casts at its
+// transit start, so the occupation requests none. A native actor without a
+// source identity binds its slots with key 0; SAVE supplies the key.
+func (w *World) moveNativeCellSlots(i int, from, to cell) {
+	key := w.motionActorKey(w.entities[i].ID)
+	w.releaseCellSlots(i, from)
+	w.occupyCellSlots(i, to, key, false)
+	w.refreshSavedPlaneBlocks()
+}
+
+// occupyMissionStartCells enters every living on-map actor's footprint once,
+// in entity order, by the occupation rule a crossing uses.
+func (w *World) occupyMissionStartCells() {
+	for i := range w.entities {
+		e := &w.entities[i]
+		if e.Alive() && !e.OffMap {
+			w.occupyCellSlots(i, cell{x: e.X, y: e.Y}, w.motionActorKey(e.ID), false)
+		}
+	}
+}
+
+// cellSlotTaken is the original's non-zero slot test: a slot holds an actor
+// when it carries a key or binds a native actor that has none yet.
+func cellSlotTaken(slot SavedActorSlot) bool {
+	return slot.Key != 0 || slot.Bound
+}
+
+// releaseCellSlots is SAV-CELLLEAVE-584 over the footprint anchored at at: a
+// missing record or an empty slot ends the loop; a taken slot is cleared,
+// even when it holds another actor, and its cell is recomputed.
+func (w *World) releaseCellSlots(i int, at cell) bool {
+	e := w.entities[i]
 	layer := e.Domain.layer()
 	detached := false
-detach:
 	for dy := int32(0); dy < footprintSide(e.TokenSize); dy++ {
 		for dx := int32(0); dx < footprintSide(e.TokenSize); dx++ {
-			key := uint16(e.Y+dy)<<8 | uint16(e.X+dx)
-			c := w.motionCell(key)
-			if c == nil || motionSlot(c, layer).Key == 0 {
-				break detach
+			key, ok := savedPlaneKey(at.x+dx, at.y+dy)
+			if !ok {
+				return detached
 			}
-			// SAV-CELLLEAVE-584 clears the selected nonzero slot, even when
-			// its saved pointer differs from the actor doing the detach.
+			c := w.motionCell(key)
+			if c == nil || !cellSlotTaken(*motionSlot(c, layer)) {
+				return detached
+			}
 			*motionSlot(c, layer) = SavedActorSlot{}
 			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0)
 			w.syncCurrentCellActor(key, layer, *motionSlot(c, layer))
@@ -490,20 +540,31 @@ detach:
 			detached = true
 		}
 	}
+	return detached
+}
+
+// occupyCellSlots is SAV-CELLENTRY-582 over the footprint anchored at at, in
+// row-major order. A cell that cannot be constructed returns its issue; a
+// taken slot refuses the entry through a body that does nothing: no store, no
+// recompute, and the later cells are not entered. The step goes on.
+func (w *World) occupyCellSlots(i int, at cell, actorKey uint32, cast bool) string {
+	e := w.entities[i]
+	layer := e.Domain.layer()
 	for dy := int32(0); dy < footprintSide(e.TokenSize); dy++ {
 		for dx := int32(0); dx < footprintSide(e.TokenSize); dx++ {
-			key := uint16(int32(to>>8)+dy)<<8 | uint16(int32(to&255)+dx)
+			key, ok := savedPlaneKey(at.x+dx, at.y+dy)
+			if !ok {
+				return "crossing reaches unsupported plane boundary"
+			}
 			if issue := w.createSavedCell(key); issue != "" {
-				w.motionFor(e.ID).Issue = issue
-				return detached
+				return issue
 			}
 			c := w.motionCell(key)
-			w.requestCellCast(i, int32(key&255), int32(key>>8))
-			if motionSlot(c, layer).Key != 0 {
-				// A taken slot refuses the entry through a body that does
-				// nothing: no store, no recompute, and the loop over the later
-				// cells ends. The step goes on (MOVE-088).
-				return detached
+			if cast {
+				w.requestCellCast(i, int32(key&255), int32(key>>8))
+			}
+			if cellSlotTaken(*motionSlot(c, layer)) {
+				return ""
 			}
 			*motionSlot(c, layer) = SavedActorSlot{Key: actorKey, Entity: e.ID, Bound: true}
 			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], actorKey)
@@ -511,7 +572,7 @@ detach:
 			w.recomputeSavedCell(key)
 		}
 	}
-	return detached
+	return ""
 }
 
 func (w *World) refreshPlaneMotionReservations(i int, touched []uint16) {

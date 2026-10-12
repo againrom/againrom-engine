@@ -26,11 +26,11 @@ type savedCostWindow struct {
 // openCostWindow starts the window for a step on a world with a saved cell plane.
 func (w *World) openCostWindow() {
 	w.costWindow = nil
-	if w.savedCellPlanes == nil || w.savedMotion == nil {
+	if w.savedCellPlanes == nil {
 		return
 	}
 	win := &savedCostWindow{layered: make(map[uint16]bool), due: make(map[uint16]uint8)}
-	for _, c := range w.savedMotion.Cells {
+	for _, c := range w.cellRecords {
 		if w.layeredPlaneCellNow(c.Cell) {
 			win.layered[c.Cell] = true
 		}

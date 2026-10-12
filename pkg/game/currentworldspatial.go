@@ -3,12 +3,9 @@ package game
 import (
 	"cmp"
 	"encoding/binary"
-	"errors"
 	"fmt"
-	"io/fs"
 	"slices"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -457,51 +454,15 @@ func currentBlockPlaneDelta(planes *sim.SavedCellPlanes, record map[uint16]sav.D
 }
 
 // Existing raw planes retain their full authority. Without that carrier the
-// current native grid supplies its modeled fields; installed terrain supplies
-// only cells and flag bits which that grid does not model.
+// one plane builder folds the current native grid's modelled fields over the
+// installed terrain's constructor planes.
 func currentSpatialPlanes(w *sim.World, m *alm.Map, src entrySource) (*sim.SavedCellPlanes, error) {
 	if planes, present := w.SavedCellPlanes(); present {
 		return planes, nil
 	}
-	planes := &sim.SavedCellPlanes{}
-	if src != nil {
-		raw, err := src.ReadFile(worldPrefix + "data/map.reg")
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return nil, err
-		}
-		if err == nil {
-			costs, err := data.OriginalTerrainCostTable(raw)
-			if err != nil {
-				return nil, err
-			}
-			planes, err = mapload.OriginalTerrainPlanes(m, costs)
-			if err != nil {
-				return nil, err
-			}
-		}
+	base, err := readOriginalCellPlanes(m, src)
+	if err != nil {
+		return nil, err
 	}
-	p := w.CurrentPolicy().Terrain
-	width := int(w.Bounds().Width)
-	for at, grid := range p.Block {
-		key := uint16(at/width)<<8 | uint16(at%width)
-		stat := grid&3 | (grid&8)>>1
-		// TERR-STRUCT-068/072: a world that has already loaded through
-		// originalstructures.go's ImportOriginalStructures carries domain 2's
-		// scenery/border bit as grid bit3 already, so (grid&8)>>1 above is
-		// enough. A genuinely fresh world -- no prior document, this cell's
-		// grid straight from the mission's own opening terrain -- has not
-		// folded that bit in yet, and grid still reads the map's raw domain
-		// value in bits 0-1 the way originalstructures.go's own grid does
-		// before its fold. Reading that raw value here, with the same
-		// domain-2-or-Overlay test that fold uses, keeps this plane's Static
-		// byte-identical to what a later LOAD of the same cell would
-		// recompute, whether or not this particular export ever ran the fold.
-		if grid&2 != 0 || (at < len(m.Overlay) && m.Overlay[at] != 0) {
-			stat |= 4
-		}
-		planes.Static[key] = planes.Static[key]&^7 | stat
-		planes.Dynamic[key] = planes.Dynamic[key]&^7 | planes.Static[key]&7
-		planes.Cost[key], planes.Height[key], planes.CostKnown[key] = p.Cost[at], p.Height[at], 1
-	}
-	return planes, nil
+	return w.CellPlanes(sim.CellPlaneStart{Base: base, Overlay: m.Overlay}), nil
 }

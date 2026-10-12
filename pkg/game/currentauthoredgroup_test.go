@@ -67,6 +67,7 @@ func TestCurrentAuthoredGroupAbsentContainerKeepsTwoSAVCycles(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				withMissionCellPlanes(t, f, w)
 				if err := w.ImportSavedGroups([]sim.SavedGroup{g}, nil); err != nil {
 					t.Fatal(err)
 				}

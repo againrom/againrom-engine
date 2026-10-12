@@ -20,13 +20,15 @@ func importOriginalCellPlanes(ms *Mission, source entrySource) error {
 	if ms == nil || ms.World == nil || ms.savedDocument == nil || ms.savedDocument.Document == nil || ms.savedDocument.Document.World == nil {
 		return nil
 	}
-	planes, err := readOriginalCellPlanes(ms.Map, source)
-	if err != nil || planes == nil {
+	base, err := readOriginalCellPlanes(ms.Map, source)
+	if err != nil || base == nil {
 		return err
 	}
+	blocks := make([]sim.SavedActorBlock, 0, len(ms.savedDocument.Document.World.Blocks))
 	for _, block := range ms.savedDocument.Document.World.Blocks {
-		planes.Static[block.Cell], planes.Dynamic[block.Cell] = block.Static, block.Dyn
+		blocks = append(blocks, sim.SavedActorBlock{Cell: block.Cell, Dyn: block.Dyn, Static: block.Static})
 	}
+	planes := ms.World.CellPlanes(sim.CellPlaneStart{Base: base, Document: true, Blocks: blocks})
 	if err := ms.World.ImportOriginalCellPlanes(planes); err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -382,6 +383,11 @@ func TestCurrentSackBindingsMalformedLoadIsAtomic(t *testing.T) {
 			if row == nil || row.Object == 0 {
 				t.Fatal("new Sack binding missing")
 			}
+			if strings.HasPrefix(mode, "motion_") && len(a.AbsentMotionCells) == 0 {
+				// A dropped Sack enters its cell record, so no motion cell is
+				// absent; each motion mode breaks one well-formed row.
+				a.AbsentMotionCells = append(a.AbsentMotionCells, currentAbsentCellCarrier{Cell: doc.World.Cells[0].Cell, Anchor: [32]byte{1}})
+			}
 			switch mode {
 			case "duplicate":
 				a.Ownership = append(a.Ownership, *row)
@@ -438,10 +444,17 @@ func TestCurrentSackMotionAbsenceKeepsOrdinaryCellEdits(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			f, id := currentDroppedSackFront(t)
 			doc, a := currentRootSAVDocument(t, f)
-			if len(a.AbsentMotionCells) != 1 {
-				t.Fatal("new Sack lacks its one absent motion-cell anchor", a.AbsentMotionCells)
+			// The dropped Sack enters its cell record (SAV-SACKENTRY-590): its
+			// cell is World state, not an absent carrier.
+			if len(a.AbsentMotionCells) != 0 {
+				t.Fatal("a dropped Sack's cell is an absent motion cell", a.AbsentMotionCells)
 			}
-			key := a.AbsentMotionCells[0].Cell
+			var key uint16
+			for _, sack := range f.live.world.Sacks() {
+				if sack.ObjectID == id {
+					key = uint16(sack.X) | uint16(sack.Y)<<8
+				}
+			}
 			var cell sav.DocumentCellData
 			for i := range doc.World.Cells {
 				if doc.World.Cells[i].Cell != key {
@@ -484,7 +497,7 @@ func TestCurrentSackMotionAbsenceKeepsOrdinaryCellEdits(t *testing.T) {
 						added = row.Payload[0] == 73 && row.Payload[1] == 4 && row.Payload[3] == 21
 					}
 				}
-				if present != (mode == "payload" || mode == "duplicate") || added != (mode == "new_cell") {
+				if !present || added != (mode == "new_cell") {
 					t.Fatal("ordinary cell presence edit was suppressed", present, added)
 				}
 				for _, row := range cold.live.world.SavedObjects().Sacks {

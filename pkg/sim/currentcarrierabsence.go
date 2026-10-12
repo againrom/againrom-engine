@@ -48,6 +48,7 @@ func (w *World) RestoreCurrentSackKeyAbsence(rows []CurrentSackKeyAbsence) error
 	}
 	w.savedCellRecords = slices.Clone(w.savedCellRecords)
 	w.savedMotion = cloneActorMotions(w.savedMotion)
+	w.cellRecords = slices.Clone(w.cellRecords)
 	for _, row := range rows {
 		if row.Carriers&CurrentSackKeyRecord != 0 {
 			w.savedCellRecords[indices[row.Cell]].Sack = 0
@@ -105,10 +106,8 @@ func (w *World) RestoreCurrentCarrierAbsence(tails, records []uint16, diaries []
 		return err
 	}
 	motionKeys := map[uint16]bool{}
-	if w.savedMotion != nil {
-		for _, row := range w.savedMotion.Cells {
-			motionKeys[row.Cell] = true
-		}
+	for _, row := range w.cellRecords {
+		motionKeys[row.Cell] = true
 	}
 	if err := validateCells(motionKeys, cells); err != nil {
 		return err
@@ -134,12 +133,13 @@ func (w *World) RestoreCurrentCarrierAbsence(tails, records []uint16, diaries []
 	}
 	if len(blocks)+len(cells) != 0 {
 		w.savedMotion = cloneActorMotions(w.savedMotion)
+		w.cellRecords = slices.Clone(w.cellRecords)
 	}
 	if len(blocks) != 0 {
 		w.savedMotion.Blocks = slices.DeleteFunc(w.savedMotion.Blocks, func(row SavedActorBlock) bool { return !blockKeys[row.Cell] })
 	}
 	if len(cells) != 0 {
-		w.savedMotion.Cells = slices.DeleteFunc(w.savedMotion.Cells, func(row SavedActorCell) bool { return !motionKeys[row.Cell] })
+		w.cellRecords = slices.DeleteFunc(w.cellRecords, func(row SavedActorCell) bool { return !motionKeys[row.Cell] })
 	}
 	return nil
 }

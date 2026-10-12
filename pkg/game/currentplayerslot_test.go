@@ -23,6 +23,7 @@ func currentPlayerSlotFixture(t *testing.T, last uint32) (*FrontEnd, Snapshot, *
 	if err != nil {
 		t.Fatal(err)
 	}
+	withMissionCellPlanes(t, f, w)
 	for owner := uint32(0); owner <= last; owner++ {
 		w.SetPurse(owner, 0xf1234500+owner)
 	}

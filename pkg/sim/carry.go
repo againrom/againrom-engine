@@ -814,13 +814,13 @@ func (w *World) TakeSack(id EntityID, x, y int32) error {
 	w.purses[owner] += s.Gold // wraps at 32 bits, normaliseSacks' own rule
 	w.sacks = append(w.sacks[:j], w.sacks[j+1:]...)
 	w.publishActorItems(i, SelfSlot, false)
-	if s.ObjectID != 0 {
-		row := w.savedObjects.sack(s.ObjectID)
-		if row.Origin.Kind == SavedObjectOriginal {
-			if _, issue := w.removeSavedSackCell(uint16(x) | uint16(y)<<8); issue != "" {
-				return fmt.Errorf("sim: Sack removal: %s", issue)
-			}
+	// SAV-SACKREMOVE-591: the pick-up removes the Sack from its cell record.
+	if w.savedCellPlanes != nil || s.ObjectID != 0 && w.savedObjects.sack(s.ObjectID).Origin.Kind == SavedObjectOriginal {
+		if _, issue := w.removeSavedSackCell(uint16(x) | uint16(y)<<8); issue != "" {
+			return fmt.Errorf("sim: Sack removal: %s", issue)
 		}
+	}
+	if s.ObjectID != 0 {
 		if err := w.savedObjects.RetireSack(s.ObjectID, s.Gold); err != nil {
 			return err
 		}

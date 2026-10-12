@@ -338,14 +338,8 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	// decodes the type-8 section's ground arm into the sacks
 	// sim.NewStockedWorld places on the map, and stockFrom decodes the same
 	// section's other arm into the Stock entries that constructor puts into an
-	// actor's container instead. The error the constructor can return is
-	// discarded on the same ground every other arm of this function already
-	// discards one on: sacksFrom has already dropped what would make it fire
-	// over a sack (an out-of-bounds cell), and stockFrom never names an id ents
-	// does not hold — every id it emits is an index into m.Units, the same
-	// indices the loop above built ents from, one per unit — so the only way
-	// left to raise the error is a difficulty or a domain this call has already
-	// refused above.
+	// actor's container instead. The constructor's error is returned: the installed
+	// terrain's planes can refuse to build (Terrain.BaseFault).
 	authoredSacks, err := sacksFrom(m, t)
 	if err != nil {
 		return nil, nil, err
@@ -354,9 +348,12 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	if err != nil {
 		return nil, nil, err
 	}
-	w, _ := sim.NewStructuredWorld(Seed, b, sim.ModeCanonical, Planes(m, t), ents, nil,
+	w, err := sim.NewStructuredWorld(Seed, b, sim.ModeCanonical, Planes(m, t), ents, nil,
 		relationFrom(groups), authoredSacks, append(authoredStock, loadout...), spellsFor(t),
 		ghostTemplate(t), Structures(m, t))
+	if err != nil {
+		return nil, nil, err
+	}
 	w.SetRules(t.rules())
 	authored := units
 	if m != nil && m.AuthoredUnits != nil {

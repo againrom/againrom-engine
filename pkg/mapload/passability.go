@@ -72,8 +72,8 @@ const (
 // is the reject's, and it is the value the ingest writes for any class of 13 or
 // more.
 //
-// These are the shipped values used by the native fresh-map path. Original
-// LOAD uses data.OriginalTerrainCostTable and classifyCosts with installed parameters.
+// These are the shipped values, used only where no installed table is known
+// (Table.TerrainCosts nil): a tool or test without an install (DIV-3093).
 var classCost = [11]uint8{
 	classReject,
 	classLand:     8,
@@ -362,18 +362,31 @@ func Census(m *alm.Map) Counts {
 // A structure does NOT reach it. A placed building rebuilds the block bytes of
 // the cells it covers and puts their cost baseline back unchanged, so there is
 // no second stage here for a table to feed — which is why this takes a map where
-// the block plane's entry point takes a map and a table.
-func Cost(m *alm.Map) []byte {
+// the block plane's entry point takes a map and a table. Cost prices with the
+// compiled shipped values; CostWith with a given Terrain cost table.
+func Cost(m *alm.Map) []byte { return CostWith(m, classCost) }
+
+// CostWith is Cost under the Terrain cost table costs (Cost[0..10]).
+func CostWith(m *alm.Map, costs [11]uint8) []byte {
 	w, h, ok := extent(m)
 	if !ok {
 		return nil
 	}
 	out := make([]byte, w*h)
 	for i := range out {
-		_, c := classify(planeAt(m.Tiles, i))
+		_, c := classifyCosts(planeAt(m.Tiles, i), costs)
 		out[i] = c
 	}
 	return out
+}
+
+// TerrainCostTable is the Terrain cost table a world over t stands on: the
+// installed one t carries, else the compiled shipped values.
+func (t *Table) TerrainCostTable() [11]uint8 {
+	if t != nil && t.TerrainCosts != nil {
+		return *t.TerrainCosts
+	}
+	return classCost
 }
 
 // Height is the altitude plane a decoded map describes: the map's own
@@ -408,6 +421,15 @@ func Height(m *alm.Map) []byte {
 // Two of those paths rebuild a world from an earlier one, and a path assembling
 // its own bundle is how a rebuilt world comes to stand on different ground from
 // the world it was rebuilt from.
+//
+// A Table carrying the installed map.reg cost table also yields the installed
+// terrain's constructor planes and the map's Overlay plane; a Table without one
+// (the second game, a tool without an install) yields neither.
 func Planes(m *alm.Map, t *Table) sim.Terrain {
-	return sim.Terrain{Block: PassabilityWith(m, t), Cost: Cost(m), Height: Height(m)}
+	out := sim.Terrain{Block: PassabilityWith(m, t), Cost: CostWith(m, t.TerrainCostTable()), Height: Height(m)}
+	if t != nil && t.TerrainCosts != nil && !t.DocumentCellPlanes && m != nil {
+		out.Base, out.BaseFault = OriginalTerrainPlanes(m, *t.TerrainCosts)
+		out.Overlay = m.Overlay
+	}
+	return out
 }

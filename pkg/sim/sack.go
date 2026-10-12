@@ -292,6 +292,7 @@ func (w *World) pourSack(x, y int32, gold uint32, items []ItemInstance) {
 	w.sacks = append(w.sacks, Sack{})
 	copy(w.sacks[j+1:], w.sacks[j:])
 	w.sacks[j] = makeSack(x, y, gold, items)
+	w.registerPlacedSackCell(x, y)
 }
 
 // Sacks returns the world's ground sacks, in the world's own ascending

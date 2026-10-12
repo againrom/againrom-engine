@@ -15,7 +15,7 @@ func TestSavedSackKeylessBindingNeedsACellNamingNoSack(t *testing.T) {
 	if err := w.ImportSavedObjects(r, b); err == nil {
 		t.Fatal("keyless binding accepted a cell whose Sack slot names the Sack")
 	}
-	w.savedMotion.Cells, w.savedStructureCells = nil, nil
+	w.cellRecords, w.savedStructureCells = nil, nil
 	b[0].Keyless = false
 	if err := w.ImportSavedObjects(r, b); err == nil {
 		t.Fatal("exact binding accepted a cell with no record")

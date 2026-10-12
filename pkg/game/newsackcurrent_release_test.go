@@ -31,8 +31,10 @@ func TestReleaseEngineSAVNewGroundSackSurvivesSaveLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	loaded, _ := loadSAVWindow(t, store, firstName)
-	if _, present := loaded.live.world.SavedCellPlanes(); present {
-		t.Fatal("engine-written SAV unexpectedly restored a current cell-plane carrier")
+	// Every first-game World holds the cell planes, so the drop below enters
+	// its Sack in a cell record (SAV-SACKENTRY-590).
+	if _, present := loaded.live.world.SavedCellPlanes(); !present {
+		t.Fatal("engine-written SAV restored no cell-plane carrier")
 	}
 	listed := make(map[uint16]bool, len(doc.World.Cells))
 	for _, cell := range doc.World.Cells {

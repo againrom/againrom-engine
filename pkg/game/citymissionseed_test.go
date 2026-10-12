@@ -20,7 +20,10 @@ func seededCityMission(t *testing.T) (*FrontEnd, *cityObjectTopology) {
 	carried[0].StartingHero, carried[0].PlayerCharacter = true, true
 	f := cellStateFront(t)
 	definitions := currentPoolFixtureFront(t, 91)
+	costs := f.Table.TerrainCosts
 	f.Table, f.Humans = definitions.Table, definitions.Humans
+	// The Table carries the cost table of the install its archives hold.
+	f.Table.TerrainCosts = costs
 	f.Campaign = definitions.Campaign
 	f.Town = NewTown(f.Campaign.Value())
 	f.Town.cityObjects = graph.Clone()

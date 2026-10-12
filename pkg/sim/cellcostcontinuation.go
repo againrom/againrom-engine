@@ -43,6 +43,7 @@ func (w *World) RestoreCurrentCellCosts(costs []CurrentCellCost, residue ...Curr
 	next.savedCellPlanes = &planes
 	next.grid = slices.Clone(w.grid)
 	next.savedMotion = cloneActorMotions(w.savedMotion)
+	next.cellRecords = slices.Clone(w.cellRecords)
 	for _, c := range costs {
 		planes.Cost[c.Cell] = c.Cost
 	}

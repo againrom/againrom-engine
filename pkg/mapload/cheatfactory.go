@@ -68,6 +68,8 @@ func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, 
 		return sim.Entity{}, nil, worn, fmt.Errorf("actor name is unavailable")
 	}
 	local := *t
+	// The scratch map has no terrain: its World builds no installed cell planes.
+	local.TerrainCosts = nil
 	row, placement, err := t.unitKeys().cheatPlacement(name, t, &local, alm.Unit{X: 12<<8 | 128, Y: 12<<8 | 128})
 	if err != nil {
 		return sim.Entity{}, nil, worn, err

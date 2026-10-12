@@ -28,6 +28,7 @@ func tacticalCurrentFixture(t *testing.T) (*FrontEnd, Snapshot, *sim.World) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	withMissionCellPlanes(t, f, w)
 	if err := w.RestoreActorTraversal([]sim.EntityID{0, 42, 41}); err != nil {
 		t.Fatal(err)
 	}

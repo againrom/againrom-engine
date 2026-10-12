@@ -2282,6 +2282,16 @@ package storyguard
 // pkg/ui/sound.go and of the new pkg/ui/soundstream_test.go, including this
 // paragraph.
 //
+// CommentBytes rises for the cell planes carrier: the installed Terrain cost
+// table (readTerrainCosts, Table.TerrainCosts, CostWith), the plane builder
+// and its readers, the native cell slots, the plane Block records and the
+// LOAD table flag, the native slot form, the Building cell records and their
+// recompute, the policy's grid mirror, the start, route and SAVE census
+// tests, the Sack cell records, the terminal and stale native slots, the
+// restored wall clouds, the constructed prepared map, the map presence cell
+// slots, the SAVE Sack key, a felled body's native block, the writer loss
+// control's Buildings premise, their tests, including this paragraph.
+//
 // CommentBytes rises for the one area-arm table and the one range and
 // duration function: the docs of pkg/sim/areaarms.go, pkg/sim/spellvalues.go,
 // internal/archtest/spelltables.go and their tests, including this note.
@@ -2358,7 +2368,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1728,
+		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8895695,
+	CommentBytes: 8913826,
 }

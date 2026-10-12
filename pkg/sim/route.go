@@ -590,7 +590,7 @@ func (w *World) placementOpen(self int, x, y int32) bool {
 	if !w.terrainOpenFootprint(e, x, y) {
 		return false
 	}
-	if w.savedMotion != nil {
+	if w.savedMotion != nil || w.savedCellPlanes != nil {
 		return w.occupancyOpenFootprint(newRouteScratch(w), self, x, y)
 	}
 	layer := e.Domain.layer()

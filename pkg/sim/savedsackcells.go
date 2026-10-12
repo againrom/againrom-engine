@@ -42,6 +42,23 @@ func (w *World) registerSavedSackCell(cell uint16, sackKey uint32) (bool, string
 	return true, ""
 }
 
+// sackCellKey is the opaque key a Sack the engine places holds in its cell
+// record. A cell holds one Sack, so the cell names it; SAVE writes the key as
+// the Sack's Identity (DIV-3098).
+func sackCellKey(cell uint16) uint32 { return 0x52000000 | uint32(cell)<<4 }
+
+// registerPlacedSackCell enters a Sack placed on (x, y), at mission start or
+// in play, in its cell record (SAV-SACKENTRY-590). A World without cell
+// planes holds no record.
+func (w *World) registerPlacedSackCell(x, y int32) {
+	if w.savedCellPlanes == nil {
+		return
+	}
+	if key, ok := savedPlaneKey(x, y); ok {
+		w.registerSavedSackCell(key, sackCellKey(key))
+	}
+}
+
 // removeSavedSackCell applies SAV-SACKREMOVE-591/SAV-SACKPLANES-592. It
 // deliberately accepts an empty or different Sack slot: there is no supplied
 // identity comparison. Allocator/callback effects are not implemented here.
@@ -73,8 +90,8 @@ func (w *World) removeSavedSackCell(cell uint16) (bool, string) {
 		// The actor-detach helper restores Dynamic too. Sack deletion does
 		// not: its recomputed bit5/layer result survives the node removal.
 		p.Dynamic[cell] |= carry
-		at := sort.Search(len(w.savedMotion.Cells), func(i int) bool { return w.savedMotion.Cells[i].Cell >= cell })
-		w.savedMotion.Cells = append(w.savedMotion.Cells[:at], w.savedMotion.Cells[at+1:]...)
+		at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= cell })
+		w.cellRecords = append(w.cellRecords[:at], w.cellRecords[at+1:]...)
 		w.removeCurrentCellRecord(cell)
 		if at := sort.Search(len(w.cellTails), func(i int) bool { return w.cellTails[i].Key >= cell }); at < len(w.cellTails) && w.cellTails[at].Key == cell {
 			w.cellTails = append(w.cellTails[:at], w.cellTails[at+1:]...)

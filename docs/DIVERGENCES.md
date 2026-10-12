@@ -166,6 +166,7 @@ copying those counts.
 | `docs/divergences/shop.md` |
 | `docs/divergences/simulation.md` |
 | `docs/divergences/simulation-cast-and-pursuit.md` |
+| `docs/divergences/simulation-cell-planes.md` |
 | `docs/divergences/tavern.md` |
 | `docs/divergences/town.md` |
 | `docs/divergences/ui-and-settings.md` |

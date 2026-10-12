@@ -78,6 +78,15 @@ type Table struct {
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules
 
+	// TerrainCosts is the installed map.reg Terrain cost table (Cost[0..10]),
+	// mods applied; nil prices cells with the compiled shipped values.
+	TerrainCosts *[11]byte
+
+	// DocumentCellPlanes marks a World whose cell planes a loaded document
+	// supplies: Planes names no installed base, so the World is built without
+	// planes and the LOAD import builds them (SAV-LOAD-057).
+	DocumentCellPlanes bool
+
 	// Mods describes the mods the session runs under; the zero value is none.
 	// The save writer and reader read it to mark and check a save.
 	Mods ModContext

@@ -10,7 +10,7 @@ func TestCurrentMoveKeepsIndependentOrderCursor(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			w := importedRelocationWorld1115(t)
 			if mode == "without-mover" {
-				w.savedMotion = nil
+				w.savedMotion, w.cellRecords = nil, nil
 			}
 			binary.LittleEndian.PutUint16(w.savedOrder(1).Raw[2:], 0x0507)
 			Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: 9, Y: 2}})

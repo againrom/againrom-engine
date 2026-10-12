@@ -35,13 +35,13 @@ func TestNativeActorRegistryRestoresFootprintWithoutReplacingOriginalMotion(t *t
 			binary.LittleEndian.PutUint32(c.Payload[8:], 0x2000)
 			w.savedCellPlanes.Dynamic[key] = 0x80
 		}
-		w.savedMotion.Cells = append(w.savedMotion.Cells, c)
+		w.cellRecords = append(w.cellRecords, c)
 		w.savedCellRecords = append(w.savedCellRecords, SavedCellRecord{Cell: key, Ground: SavedCellActorSlot{Key: 0x1000, Entity: 1, Bound: true}})
 		w.savedCellPlanes.Static[key] = 0x20
 		w.savedCellPlanes.Dynamic[key] |= 0x60
 	}
 	untouched := SavedActorCell{Cell: 0x1413, Ground: SavedActorSlot{Key: 0x4000, Entity: 4, Bound: true}}
-	w.savedMotion.Cells = append(w.savedMotion.Cells, untouched)
+	w.cellRecords = append(w.cellRecords, untouched)
 	original := append([]SavedActorMotion(nil), w.savedMotion.Motions[1:]...)
 	w.ReconcileNativeActorRegistry(map[EntityID]uint32{5: 0x5000})
 	if w.motionCell(0x0505) != nil {
@@ -93,7 +93,8 @@ func TestNativeMovementCarriesActorCellRegistry(t *testing.T) {
 		c.Payload[0] = 8
 		*motionSlot(&c, layer) = SavedActorSlot{Key: 0x1000, Entity: 1, Bound: true}
 		binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0x1000)
-		w.savedMotion = &savedActorMotionState{Motions: []SavedActorMotion{{Entity: 1, Position: SavedActorPosition{Cell: c.Cell, PackedCell: c.Cell, FineX: 128, FineY: 128}, Issue: "native order supersedes original route continuation"}}, Cells: []SavedActorCell{c}}
+		w.savedMotion = &savedActorMotionState{Motions: []SavedActorMotion{{Entity: 1, Position: SavedActorPosition{Cell: c.Cell, PackedCell: c.Cell, FineX: 128, FineY: 128}, Issue: "native order supersedes original route continuation"}}}
+		w.cellRecords = []SavedActorCell{c}
 		w.savedCellPlanes = &SavedCellPlanes{}
 		for y := 0; y < 16; y++ {
 			for x := 0; x < 16; x++ {
@@ -111,7 +112,7 @@ func TestNativeMovementCarriesActorCellRegistry(t *testing.T) {
 			t.Fatalf("control did not reach destination: %+v", e)
 		}
 		seen := 0
-		for _, c := range w.savedMotion.Cells {
+		for _, c := range w.cellRecords {
 			if motionSlot(&c, layer).Key == 0x1000 {
 				seen++
 				if c.Cell != 0x0208 {
@@ -143,7 +144,7 @@ func TestNativeRegistryPreservesImportedCellsUntilMovement(t *testing.T) {
 			c.Payload[0] = 8
 			*motionSlot(&c, layer) = SavedActorSlot{Key: 0x1000, Entity: 1, Bound: true}
 			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0x1000)
-			w.savedMotion.Cells = append(w.savedMotion.Cells, c)
+			w.cellRecords = append(w.cellRecords, c)
 			w.savedCellPlanes.Static[key], w.savedCellPlanes.Dynamic[key] = 0x20, 0x20|byte(0x40<<layer)
 		}
 		before := w.Hash()

@@ -24,7 +24,7 @@ func TestDropTargetRefusalKeepsItemAtFeet(t *testing.T) {
 		{"physical sack slot", CellPoint{X: 6, Y: 5}, func(w *World) {
 			c := SavedActorCell{Cell: cellKey(6, 5)}
 			binary.LittleEndian.PutUint32(c.Payload[16:], 91)
-			w.savedMotion = &savedActorMotionState{Cells: []SavedActorCell{c}}
+			w.cellRecords = []SavedActorCell{c}
 		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {

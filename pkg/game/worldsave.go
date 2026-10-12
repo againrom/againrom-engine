@@ -513,14 +513,21 @@ func projectItems(state *SnapshotSAVDocument, world *sim.World, tables ...*maplo
 		}
 		// The current record belongs to this exact Sack binding. Reuse its
 		// ordinary key while the native key remains absent across LOAD.
+		// A Sack the World entered in its cell record (SAV-SACKENTRY-590) is
+		// named there by its key.
+		cell := uint16(ground.X) | uint16(ground.Y)<<8
 		key := priorKeys[row.ID]
+		for _, c := range state.Document.World.Cells {
+			if key == 0 && c.Cell == cell {
+				key = c.Sack
+			}
+		}
 		if key == 0 {
 			key = keys[keyIndex]
 			keyIndex++
 		}
 		object := &state.Document.Objects[indices[row.ID]-1]
 		savedObjectSetValue(object, "Identity", key)
-		cell := uint16(ground.X) | uint16(ground.Y)<<8
 		found := false
 		for i := range state.Document.World.Cells {
 			c := &state.Document.World.Cells[i]

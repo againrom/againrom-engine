@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/pkg/data"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/sim"
 )
 
@@ -263,5 +264,20 @@ func TestCheatCreatureKeepsOrdinaryDifficulty(t *testing.T) {
 		if err != nil || e.HP != tc.hp || e.MaxHP != tc.hp || e.ActorLoad.Source.Stats[8] != uint16(tc.hp) {
 			t.Errorf("difficulty %d: HP=%d/%d err=%v, want %d", tc.diff, e.HP, e.MaxHP, err, tc.hp)
 		}
+	}
+}
+
+// An installed Terrain cost table builds cell planes on a mission World; the
+// summon's scratch World has no terrain and must still construct the actor.
+// Loss control: the same scratch map under that table refuses its planes.
+func TestCheatActorBuildsUnderAnInstalledCostTable(t *testing.T) {
+	table := cheatActorTable()
+	costs := [11]byte{255, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
+	table.TerrainCosts = &costs
+	if _, _, _, err := CheatActor(table.Units.EntryName(2), false, table, DifficultyNormal); err != nil {
+		t.Fatal(err)
+	}
+	if terrain := Planes(&alm.Map{Width: 40, Height: 40}, table); terrain.BaseFault == nil {
+		t.Fatal("a map without terrain built installed planes")
 	}
 }

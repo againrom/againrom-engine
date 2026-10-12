@@ -307,3 +307,42 @@ func TestOriginalTerrainPlanes1115RejectsIncompleteInputs(t *testing.T) {
 		})
 	}
 }
+
+// A Table's installed Terrain cost table prices the world's cost plane; nil
+// keeps the compiled shipped values.
+func TestPlanesTakeTheTableTerrainCosts(t *testing.T) {
+	m := &alm.Map{Width: 1, Height: 1, Tiles: []uint16{0}, Altitudes: []byte{0}, Overlay: []byte{0}}
+	compiled := mapload.Planes(m, nil).Cost
+	costs := (*mapload.Table)(nil).TerrainCostTable()
+	for i := 1; i < len(costs); i++ {
+		costs[i] = 40
+	}
+	modded := mapload.Planes(m, &mapload.Table{TerrainCosts: &costs}).Cost
+	if len(compiled) != 1 || len(modded) != 1 || compiled[0] == 40 || modded[0] != 40 {
+		t.Fatalf("cost plane compiled %v, under the table %v", compiled, modded)
+	}
+}
+
+// A Table carrying the installed cost table hands the world the installed
+// terrain's constructor planes and the Overlay plane; without one the Terrain
+// carries neither, and a terrain the constructor refuses carries its fault.
+func TestPlanesCarryTheInstalledTerrainBase(t *testing.T) {
+	m := &alm.Map{Width: 24, Height: 24, Tiles: make([]uint16, 576), Altitudes: make([]byte, 576), Overlay: make([]byte, 576)}
+	m.Overlay[300] = 1
+	costs := [11]byte{255, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	want, err := mapload.OriginalTerrainPlanes(m, costs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := mapload.Planes(m, &mapload.Table{TerrainCosts: &costs})
+	if got.BaseFault != nil || got.Base == nil || *got.Base != *want || len(got.Overlay) != len(m.Overlay) {
+		t.Fatalf("installed Terrain base: fault %v, base %t, overlay %d", got.BaseFault, got.Base != nil, len(got.Overlay))
+	}
+	if bare := mapload.Planes(m, nil); bare.Base != nil || bare.Overlay != nil || bare.BaseFault != nil {
+		t.Fatalf("a Table without an install carries a base")
+	}
+	small := &alm.Map{Width: 1, Height: 1, Tiles: []uint16{0}, Altitudes: []byte{0}, Overlay: []byte{0}}
+	if refused := mapload.Planes(small, &mapload.Table{TerrainCosts: &costs}); refused.BaseFault == nil || refused.Base != nil {
+		t.Fatalf("a refused terrain carries no fault")
+	}
+}

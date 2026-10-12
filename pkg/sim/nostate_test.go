@@ -153,6 +153,7 @@ var nstPinned = []struct {
 		{"removedNativeBases", "[]sim.NativeActorBasisRecord"},
 		{"currentPlayers", "*sim.currentPlayerState"},
 		{"savedMotion", "*sim.savedActorMotionState"},
+		{"cellRecords", "[]sim.SavedActorCell"},
 		{"movers", "[]sim.moverRecord"},
 		{"savedCellPlanes", "*sim.SavedCellPlanes"},
 		{"savedObjects", "*sim.SavedObjects"},

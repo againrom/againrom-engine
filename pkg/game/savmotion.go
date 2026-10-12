@@ -249,6 +249,7 @@ func projectSavedActorMotions(state *SnapshotSAVDocument, world *sim.World) erro
 		}
 		next.Objects[binding.ObjectIndex-1] = record
 	}
+	cells = documentCellKeys(cells, bindings, next.Objects)
 	last := make(map[uint16]int, len(next.World.Cells))
 	_, currentPlanes := world.SavedCellPlanes()
 	if currentPlanes {
@@ -369,6 +370,7 @@ func validateSavedActorMotionsWorld(state *SnapshotSAVDocument, world *sim.World
 	for _, cell := range state.Document.World.Cells {
 		lastCell[cell.Cell] = cell
 	}
+	cells = documentCellKeys(cells, bindings, state.Document.Objects)
 	_, currentPlanes := world.SavedCellPlanes()
 	if currentPlanes && (len(lastCell) != len(cells) || len(state.Document.World.Cells) != len(cells)) {
 		return fmt.Errorf("saved actor document has a different current cell population")
@@ -396,6 +398,26 @@ func validateSavedActorMotionsWorld(state *SnapshotSAVDocument, world *sim.World
 		}
 	}
 	return nil
+}
+
+// documentCellKeys returns the cells as the document writes them. A slot bound
+// to a native actor holds key 0 in the World; the document names that actor
+// by the Identity its object is written with.
+func documentCellKeys(cells []sim.SavedActorCell, bindings map[sim.EntityID]SnapshotSAVActor, objects []sav.DocumentRecordData) []sim.SavedActorCell {
+	cells = slices.Clone(cells)
+	for i := range cells {
+		for layer, slot := range []*sim.SavedActorSlot{&cells[i].Ground, &cells[i].Air} {
+			binding, found := bindings[slot.Entity]
+			if !slot.Bound || slot.Key != 0 || !found || binding.Retired || binding.ObjectIndex == 0 || int(binding.ObjectIndex) > len(objects) {
+				continue
+			}
+			if key, err := savedStructureValue(&objects[binding.ObjectIndex-1], "Identity"); err == nil {
+				slot.Key = key
+				binary.LittleEndian.PutUint32(cells[i].Payload[4+4*layer:], key)
+			}
+		}
+	}
+	return cells
 }
 
 // savedMoverMatches compares a document mover with the World's, apart from

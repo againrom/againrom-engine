@@ -49,7 +49,7 @@ func TestSavedObjectsWorld1115ImportRefusalsAreAtomic(t *testing.T) {
 		{"missing-native-sack", func(q *request) { q.w.sacks = nil }},
 		{"missing-binding", func(q *request) { q.b = nil }},
 		{"missing-cell-node", func(q *request) {
-			q.w.savedMotion.Cells, q.w.savedStructureCells = nil, nil
+			q.w.cellRecords, q.w.savedStructureCells = nil, nil
 		}},
 		{"zero-registry-id", func(q *request) { q.r.Sacks[0].ID = 0 }},
 		{"duplicate-registry-id", func(q *request) { q.r.Sacks = append(q.r.Sacks, q.r.Sacks[0]) }},
@@ -275,7 +275,7 @@ func sourceCopyWorld(t *testing.T) *World {
 	w := goldPickupSavedWorld(t, 31)
 	w.pourSack(10, 20, 0, []ItemInstance{{Code: 0x3185, Effects: []ItemEffect{{Kind: 8, Mode: 1, Operand: 17}}}})
 	neighbor := SavedActorCell{Cell: 0x140b, Payload: [52]byte{0: 19, 1: 1, 12: 0x91}}
-	w.savedMotion.Cells = append(w.savedMotion.Cells, neighbor)
+	w.cellRecords = append(w.cellRecords, neighbor)
 	source := SavedStructure{ID: 9, Class: SavedBuilding, SourceKey: 0x91, ArchiveIndex: 9, Blocking: 1,
 		Position: [12]byte{11, 20}, Base52: [22]byte{14: 1, 15: 1, 18: 1}}
 	if err := w.ImportOriginalStructures([]Structure{{ID: 9, Col: 11, Row: 20, Width: 1, Height: 1, Blocking: 1}}, []SavedStructure{source},
@@ -305,7 +305,7 @@ func TestSavedObjectsWorld1115SourceMutationCopyOwnsTouchedStorage(t *testing.T)
 		{"registry-sack", func(w *World) { w.savedObjects.Sacks[0].Gold++ }},
 		{"registry-root", func(w *World) { w.savedObjects.SackRoots[0]++ }},
 		{"registry-container", func(w *World) { w.savedObjects.Containers[0].Accumulator++ }},
-		{"cell-payload", func(w *World) { w.savedMotion.Cells[0].Payload[16]++ }},
+		{"cell-payload", func(w *World) { w.cellRecords[0].Payload[16]++ }},
 		{"current-block", func(w *World) { w.savedMotion.Blocks[0].Dyn++ }},
 		{"saved-plane-cost", func(w *World) { w.savedCellPlanes.Cost[0x140a]++ }},
 		{"saved-plane-cost-known", func(w *World) { w.savedCellPlanes.CostKnown[0x140a] = 0 }},

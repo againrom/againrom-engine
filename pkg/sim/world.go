@@ -1236,6 +1236,11 @@ func regenFault(e Entity) error {
 // its target mid-stride finishes paying the crossing, then keeps its inputs.
 func (e *Entity) clearTransit() {
 	e.Transit, e.TransitTotal = 0, 0
+	// A known native position block follows the stride while one is held;
+	// the body keeps the cell centre the stride last gave it.
+	if e.Stride.Present {
+		e.NativeBasis.Block = NativeBasisNow(*e).Block
+	}
 	e.clearStride()
 }
 
@@ -1541,10 +1546,19 @@ const defaultCost = fallbackMeanCost
 // cells tilts the rate. Every byte value is legal in Cost and in Height: they
 // are read as numbers, not as flags, so there is no reserved bit to refuse and
 // no value that is not a state a caller may build.
+//
+// Base is the installed terrain's constructor planes under the installed
+// map.reg cost table (TERR-PASS-049/050), with Overlay the map's Overlay plane,
+// row-major over the bounds; both are nil where no install exists. BaseFault is
+// the reason the installed terrain refused to build its planes.
 type Terrain struct {
 	Block  []byte
 	Cost   []byte
 	Height []byte
+
+	Base      *SavedCellPlanes
+	Overlay   []byte
+	BaseFault error
 }
 
 // newPlane returns the plane a world over b holds, given the plane its builder
@@ -1899,6 +1913,9 @@ type World struct {
 	removedNativeBases    []NativeActorBasisRecord
 	currentPlayers        *currentPlayerState
 	savedMotion           *savedActorMotionState
+	// cellRecords holds the per-cell records (SAV cell entries), sorted by
+	// Cell; they belong to the cell planes, not to imported motion.
+	cellRecords []SavedActorCell
 	// movers holds each first-game actor's Mover record (constructedMover),
 	// sorted by actor; an actor whose Mover an import holds has none.
 	movers          []moverRecord
@@ -2191,6 +2208,9 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 	// refused here on the boundaries every initial Entity crosses below.
 	if err := ghost.fault(); err != nil {
 		return nil, fmt.Errorf("sim: ghost template: %w", err)
+	}
+	if t.BaseFault != nil {
+		return nil, fmt.Errorf("sim: installed terrain planes: %w", t.BaseFault)
 	}
 	g, err := newGrid(b, t.Block)
 	if err != nil {
@@ -2485,6 +2505,14 @@ func newWorld(seed uint64, b Bounds, mode Mode, t Terrain, ents []Entity, s *Scr
 			if err := w.RestoreActorLoad(s.ID, *s.LoadState); err != nil {
 				return nil, err
 			}
+		}
+	}
+	// The installed terrain's constructor planes become the World's cell
+	// planes after every entity and structure is in place, so mission start
+	// occupies the actors' cell slots (TERR-PASS-049, MOVE-085).
+	if t.Base != nil {
+		if err := w.ConstructSavedCellPlanes(CellPlaneStart{Base: t.Base, Overlay: t.Overlay}); err != nil {
+			return nil, fmt.Errorf("sim: cell planes: %w", err)
 		}
 	}
 	return w, nil

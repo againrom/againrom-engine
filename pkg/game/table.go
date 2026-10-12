@@ -1,7 +1,9 @@
 package game
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 
 	"againrom/pkg/base"
 	"againrom/pkg/data"
@@ -162,6 +164,9 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		Magic:      f.Collection(databin.Magic),
 		MagicItems: f.Collection(databin.MagicItems),
 	})}
+	if d.Table.TerrainCosts, err = readTerrainCosts(fsys, filesOf(g).terrainCosts); err != nil {
+		return nil, err
+	}
 	d.StartWeapon, d.StartWeaponErr = resolveStartingWeapon(f, PartySkillSlot())
 	// Not fatal, and reported by nothing beyond the field itself — see
 	// Definitions.Bodies.
@@ -184,6 +189,27 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		d.Table.NPCNames = rows.lines
 	}
 	return d, nil
+}
+
+// readTerrainCosts is the installed Terrain cost table at addr, the one every
+// first-game World prices cells with (ALM-TERR-043). An install without the
+// file, and a game naming none, keep the compiled table (DIV-3093).
+func readTerrainCosts(fsys *vfs.FS, addr string) (*[11]byte, error) {
+	if addr == "" {
+		return nil, nil
+	}
+	raw, err := fsys.ReadFile(addr)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("original terrain parameters: %w", err)
+	}
+	costs, err := data.OriginalTerrainCostTable(raw)
+	if err != nil {
+		return nil, fmt.Errorf("original terrain parameters: %w", err)
+	}
+	return &costs, nil
 }
 
 // readUnder gives t the edition of game g and the placement decoder's values

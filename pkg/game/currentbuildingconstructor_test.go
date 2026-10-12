@@ -46,6 +46,9 @@ func TestCurrentBuildingConstructorOwnsFreshFieldsBeforeFirstSave(t *testing.T) 
 	}
 	cold := coldCurrentBuildings(t, raw)
 	checkCurrentBuildingSources(t, cold.live.world, world.Structures(), sources)
+	if world.Hash() != cold.live.world.Hash() {
+		assertCurrentWorldEqual(t, world, cold.live.world, "fresh Building SAVE")
+	}
 	if !reflect.DeepEqual(world.CurrentPolicy().Terrain, cold.live.world.CurrentPolicy().Terrain) ||
 		!reflect.DeepEqual(world.StructureOccupancy(), cold.live.world.StructureOccupancy()) {
 		t.Fatal("SAV LOAD changed fresh structure terrain or aliases")

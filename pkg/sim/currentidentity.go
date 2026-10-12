@@ -196,11 +196,11 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 		for i := range w.savedMotion.Motions {
 			ref(&w.savedMotion.Motions[i].Entity)
 		}
-		for i := range w.savedMotion.Cells {
-			c := &w.savedMotion.Cells[i]
-			optional(&c.Ground.Entity, c.Ground.Bound)
-			optional(&c.Air.Entity, c.Air.Bound)
-		}
+	}
+	for i := range w.cellRecords {
+		c := &w.cellRecords[i]
+		optional(&c.Ground.Entity, c.Ground.Bound)
+		optional(&c.Air.Entity, c.Air.Bound)
 	}
 	for i := range w.savedCellRecords {
 		c := &w.savedCellRecords[i]

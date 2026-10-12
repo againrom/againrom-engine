@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A freshly started mission follows the same cell rules as a loaded save. Creatures cross building doorways and bridges at the original's speed for those cells from the start, and no creature at the start of a mission steps onto a cell that would stop it after loading.
+- [ROM1] A mod that changes the terrain movement costs (map.reg) now changes how creatures move on every mission.
+
 ## 0.120.0
 
 - [BASE] Once a spell's mana is spent, the cast completes. Clicking the same spell again while it is being cast spends nothing and does not start the cast over. Choosing another spell or target during the casting no longer cancels it: the new cast follows when the first one is released, and each spends its mana once, when its casting begins. A move or attack ordered during the casting also waits for it.

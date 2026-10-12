@@ -23,7 +23,7 @@ func terminalRegistryWorld(t *testing.T) *World {
 		c := SavedActorCell{Cell: key, Ground: SavedActorSlot{Key: identity}, Air: SavedActorSlot{Key: 0x3000}}
 		binary.LittleEndian.PutUint32(c.Payload[4:], identity)
 		binary.LittleEndian.PutUint32(c.Payload[8:], c.Air.Key)
-		w.savedMotion.Cells = append(w.savedMotion.Cells, c)
+		w.cellRecords = append(w.cellRecords, c)
 		w.savedCellRecords = append(w.savedCellRecords, SavedCellRecord{Cell: key, Ground: SavedCellActorSlot{Key: identity}, Air: SavedCellActorSlot{Key: 0x3000}})
 		w.savedCellPlanes.Dynamic[key], w.savedCellPlanes.Static[key] = 0xe5, 0x25
 	}
@@ -33,7 +33,7 @@ func terminalRegistryWorld(t *testing.T) *World {
 
 func requireTerminalRegistry(t *testing.T, w *World) {
 	t.Helper()
-	for _, c := range w.savedMotion.Cells {
+	for _, c := range w.cellRecords {
 		want := uint32(0)
 		mask := byte(0xa5)
 		if c.Cell == 0x1011 {
@@ -104,9 +104,9 @@ func TestTerminalRegistryNativeBoundSlotWithoutSourceIdentity(t *testing.T) {
 	w := terminalRegistryWorld(t)
 	w.entities[0].SourceBinding = SourceBinding{}
 	w.savedMotion.Motions = []SavedActorMotion{{Entity: 1, Issue: "native movement supersedes original crossing", Position: SavedActorPosition{Cell: 0x100f, PackedCell: 0x100f, FineX: 128, FineY: 128}}}
-	for i := range w.savedMotion.Cells {
-		if w.savedMotion.Cells[i].Ground.Key == 0x1000 {
-			w.savedMotion.Cells[i].Ground.Entity, w.savedMotion.Cells[i].Ground.Bound = 1, true
+	for i := range w.cellRecords {
+		if w.cellRecords[i].Ground.Key == 0x1000 {
+			w.cellRecords[i].Ground.Entity, w.cellRecords[i].Ground.Bound = 1, true
 		}
 	}
 	Step(w, []Command{TerminalKill(1)})

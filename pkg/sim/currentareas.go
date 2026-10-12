@@ -43,6 +43,7 @@ func (w *World) RestoreCurrentAreas(rows []CurrentAreaRestore) error {
 	n.savedSpellGraph = cloneSavedSpellGraph(w.savedSpellGraph)
 	n.savedWorldEffects = cloneSavedWorldEffects(w.savedWorldEffects)
 	n.savedMotion = cloneActorMotions(w.savedMotion)
+	n.cellRecords = slices.Clone(w.cellRecords)
 	n.savedCellRecords = slices.Clone(w.savedCellRecords)
 	n.effects = slices.Clone(w.effects)
 	if n.savedSpellGraph == nil {

@@ -7,8 +7,26 @@ func (w *World) ReconcileNativeActorRegistry(bindings map[EntityID]uint32) {
 }
 
 func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
-	if w.savedMotion == nil || w.savedCellPlanes == nil {
+	if w.savedCellPlanes == nil {
 		return
+	}
+	w.nativeSlotForm()
+	// A native actor (no source identity, no motion record) moves its slots
+	// with it, so a slot bound to it on a cell it does not cover comes from a
+	// loaded document; such an actor is reconciled as a mover is.
+	native := map[EntityID]bool{}
+	for _, c := range w.cellRecords {
+		for layer, slot := range []SavedActorSlot{c.Ground, c.Air} {
+			at := indexOfEntity(w.entities, slot.Entity)
+			if !slot.Bound || slot.Key != 0 || at < 0 {
+				continue
+			}
+			e := &w.entities[at]
+			if e.SourceBinding.Identity == 0 && w.motionFor(e.ID) == nil && e.Alive() &&
+				(e.OffMap || layer != e.Domain.layer() || !entityCoversCell(e, int32(c.Cell&255), int32(c.Cell>>8))) {
+				native[e.ID] = true
+			}
+		}
 	}
 	actors := map[EntityID]int{}
 	keys := map[EntityID]uint32{}
@@ -16,7 +34,7 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 	for i := range w.entities {
 		e := &w.entities[i]
 		m := w.motionFor(e.ID)
-		if m == nil || m.Current || !e.Alive() {
+		if !native[e.ID] && (m == nil || m.Current) || !e.Alive() {
 			continue
 		}
 		need := e.OffMap
@@ -38,13 +56,13 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 		if keys[e.ID] == 0 {
 			keys[e.ID] = bindings[e.ID]
 		}
-		unresolved = unresolved || keys[e.ID] == 0
+		unresolved = unresolved || keys[e.ID] == 0 && !native[e.ID]
 	}
 	if len(actors) == 0 {
 		return
 	}
 	if unresolved {
-		for _, c := range w.savedMotion.Cells {
+		for _, c := range w.cellRecords {
 			for _, slot := range []SavedActorSlot{c.Ground, c.Air} {
 				if _, ok := actors[slot.Entity]; ok && slot.Bound && keys[slot.Entity] == 0 {
 					keys[slot.Entity] = slot.Key
@@ -57,6 +75,9 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 		if _, ok := actors[e.ID]; !ok {
 			continue
 		}
+		if native[e.ID] {
+			continue
+		}
 		if keys[e.ID] == 0 {
 			delete(actors, e.ID)
 		} else {
@@ -67,10 +88,13 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 		return
 	}
 	changed := false
-	for i := range w.savedMotion.Cells {
-		c := &w.savedMotion.Cells[i]
+	for i := range w.cellRecords {
+		c := &w.cellRecords[i]
 		for layer, slot := range []*SavedActorSlot{&c.Ground, &c.Air} {
 			id, ok := byKey[slot.Key]
+			if slot.Key == 0 && slot.Bound && native[slot.Entity] {
+				id, ok = slot.Entity, true
+			}
 			if !ok || slot.Bound && slot.Entity != id {
 				continue
 			}
@@ -83,7 +107,7 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0)
 			w.syncCurrentCellActor(c.Cell, layer, *slot)
 			reserved := false
-			for _, m := range w.savedMotion.Motions {
+			for _, m := range w.savedActorMotionList() {
 				if m.Entity == e.ID {
 					continue
 				}
@@ -99,8 +123,12 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 		}
 	}
 	for _, e := range w.entities {
-		if _, ok := actors[e.ID]; !ok || e.OffMap || keys[e.ID] == 0 {
+		if _, ok := actors[e.ID]; !ok || e.OffMap || keys[e.ID] == 0 && !native[e.ID] {
 			continue
+		}
+		want := keys[e.ID]
+		if native[e.ID] {
+			want = 0
 		}
 		for y := int32(0); y < footprintSide(e.TokenSize); y++ {
 			for x := int32(0); x < footprintSide(e.TokenSize); x++ {
@@ -110,14 +138,14 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 				}
 				c := w.motionCell(key)
 				slot := motionSlot(c, e.Domain.layer())
-				if slot.Key != 0 && slot.Key != keys[e.ID] {
+				if slot.Key != 0 && slot.Key != want || slot.Key == 0 && slot.Bound && slot.Entity != e.ID {
 					continue
 				}
 				if slot.Bound && slot.Entity == e.ID && w.savedCellPlanes.Dynamic[key]&(0x20|0x40<<e.Domain.layer()) == 0x20|0x40<<e.Domain.layer() {
 					continue
 				}
 				changed = true
-				*slot = SavedActorSlot{Key: keys[e.ID], Entity: e.ID, Bound: true}
+				*slot = SavedActorSlot{Key: want, Entity: e.ID, Bound: true}
 				binary.LittleEndian.PutUint32(c.Payload[4+4*e.Domain.layer():], slot.Key)
 				w.syncCurrentCellActor(key, e.Domain.layer(), *slot)
 				w.savedCellPlanes.Dynamic[key] |= 0x20 | 0x40<<e.Domain.layer()
@@ -127,4 +155,34 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 	if changed {
 		w.refreshSavedPlaneBlocks()
 	}
+}
+
+// nativeSlotForm gives every slot bound to a native actor (no source
+// identity, no motion record) the form a native crossing writes: the actor
+// and key 0. An imported mover's slot keeps its key (cellRecordFault). A LOAD
+// binds a document key to its actor, so a World loaded from a SAV and the
+// World that wrote it hold one slot form; SAVE writes the actor's Identity.
+func (w *World) nativeSlotForm() {
+	for i := range w.cellRecords {
+		c := &w.cellRecords[i]
+		for layer, slot := range []*SavedActorSlot{&c.Ground, &c.Air} {
+			if !slot.Bound || slot.Key == 0 {
+				continue
+			}
+			at := indexOfEntity(w.entities, slot.Entity)
+			if at < 0 || w.entities[at].SourceBinding.Identity != 0 || w.motionFor(slot.Entity) != nil {
+				continue
+			}
+			slot.Key = 0
+			binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0)
+			w.syncCurrentCellActor(c.Cell, layer, *slot)
+		}
+	}
+}
+
+func (w *World) savedActorMotionList() []SavedActorMotion {
+	if w.savedMotion == nil {
+		return nil
+	}
+	return w.savedMotion.Motions
 }

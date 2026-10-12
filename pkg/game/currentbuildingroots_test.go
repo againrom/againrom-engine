@@ -10,9 +10,20 @@ import (
 	"againrom/pkg/sim"
 )
 
+// currentBuildingRootFixture is a World loaded with two Buildings: the LOAD
+// candidate below with the cell planes its import builds.
 func currentBuildingRootFixture(t *testing.T, completeCell bool) (*FrontEnd, Snapshot, *sim.World, []sim.Structure, []sim.SavedStructure) {
 	t.Helper()
-	f, snapshot, world := partialCurrentGraph(t)
+	f, snapshot, world, live, source := currentBuildingRootCandidate(t, completeCell)
+	withLoadedCellPlanes(t, f, world)
+	return f, snapshot, world, live, source
+}
+
+// currentBuildingRootCandidate is the LOAD candidate before its cell planes:
+// the Buildings, their cells and, with completeCell, the document cell record.
+func currentBuildingRootCandidate(t *testing.T, completeCell bool) (*FrontEnd, Snapshot, *sim.World, []sim.Structure, []sim.SavedStructure) {
+	t.Helper()
+	f, snapshot, world := partialCurrentGraphAs(t, true, false)
 	var err error
 	snapshot.SavedDocument, err = f.materializeCurrentWorld(snapshot, world)
 	if err != nil {
@@ -39,6 +50,8 @@ func currentBuildingRootFixture(t *testing.T, completeCell bool) (*FrontEnd, Sna
 	if completeCell {
 		cell := sim.SavedActorCell{Cell: 0x1312, Payload: [52]byte{44, 0xa8, 0, 0x63}}
 		cell.Payload[50], cell.Payload[51] = 0x91, 0xa3
+		// The document cell names its Building at +12, as the LOAD reads it.
+		binary.LittleEndian.PutUint32(cell.Payload[12:], source[0].SourceKey)
 		if err := world.ImportOriginalActorMotions(nil, []sim.SavedActorCell{cell}, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -154,7 +167,16 @@ func checkCurrentBuildingSources(t *testing.T, world *sim.World, live []sim.Stru
 }
 
 func TestCurrentBuildingRootsInitializeUnrepresentedCellSuffix(t *testing.T) {
-	f, snapshot, world, live, source := currentBuildingRootFixture(t, false)
+	f, snapshot, world, live, source := currentBuildingRootCandidate(t, false)
+	// A World with cell planes holds every structure cell as a cell record.
+	// This one carries the baselines and the Building alone; the retained
+	// document has no record for the cell, so SAVE writes its suffix fresh.
+	cell := sim.SavedActorCell{Cell: 0x1312, Payload: [52]byte{44, 0xa8}}
+	binary.LittleEndian.PutUint32(cell.Payload[12:], source[0].SourceKey)
+	if err := world.ImportOriginalActorMotions(nil, []sim.SavedActorCell{cell}, nil); err != nil {
+		t.Fatal(err)
+	}
+	withLoadedCellPlanes(t, f, world)
 	var err error
 	snapshot.World, err = world.MarshalBinary()
 	if err != nil {
@@ -232,7 +254,7 @@ func TestCurrentBuildingRootsIgnoreLoadedIdentityCollision(t *testing.T) {
 }
 
 func TestCurrentBuildingRootsReplaceStalePositionAndCellOwnership(t *testing.T) {
-	f, snapshot, world, live, source := currentBuildingRootFixture(t, false)
+	f, snapshot, world, live, source := currentBuildingRootCandidate(t, false)
 	var err error
 	snapshot.SavedDocument, err = f.materializeCurrentWorld(snapshot, world)
 	if err != nil {
@@ -253,9 +275,11 @@ func TestCurrentBuildingRootsReplaceStalePositionAndCellOwnership(t *testing.T) 
 	}
 	oldCell := sim.SavedActorCell{Cell: 0x1312, Payload: [52]byte{13, 0x23, 0, 0x61}}
 	newCell := sim.SavedActorCell{Cell: 0x1413, Payload: [52]byte{51, 0x48, 0, 0x67}}
+	binary.LittleEndian.PutUint32(newCell.Payload[12:], source[0].SourceKey)
 	if err := world.ImportOriginalActorMotions(nil, []sim.SavedActorCell{oldCell, newCell}, nil); err != nil {
 		t.Fatal(err)
 	}
+	withLoadedCellPlanes(t, f, world)
 	snapshot.World, err = world.MarshalBinary()
 	if err != nil {
 		t.Fatal(err)

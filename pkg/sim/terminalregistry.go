@@ -47,14 +47,14 @@ func (w *World) ReconcileTerminalActorRegistry(bindings map[EntityID]uint32) {
 
 func (w *World) clearTerminalRegistry(ids map[EntityID]bool, keys map[uint32]bool) {
 	delete(keys, 0)
-	if w.savedMotion != nil {
-		for _, c := range w.savedMotion.Cells {
-			for _, slot := range []SavedActorSlot{c.Ground, c.Air} {
-				if slot.Bound && ids[slot.Entity] && slot.Key != 0 {
-					keys[slot.Key] = true
-				}
+	for _, c := range w.cellRecords {
+		for _, slot := range []SavedActorSlot{c.Ground, c.Air} {
+			if slot.Bound && ids[slot.Entity] && slot.Key != 0 {
+				keys[slot.Key] = true
 			}
 		}
+	}
+	if w.savedMotion != nil {
 		for i := range w.savedMotion.Motions {
 			m := &w.savedMotion.Motions[i]
 			if ids[m.Entity] {
@@ -72,24 +72,23 @@ func (w *World) clearTerminalRegistry(ids map[EntityID]bool, keys map[uint32]boo
 			}
 		}
 	}
-	if w.savedMotion != nil {
-		for i := range w.savedMotion.Cells {
-			c := &w.savedMotion.Cells[i]
-			for layer, slot := range []*SavedActorSlot{&c.Ground, &c.Air} {
-				if keys[slot.Key] {
-					*slot = SavedActorSlot{}
-					binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0)
-					touched[c.Cell] |= 0x40 << layer
-				}
+	for i := range w.cellRecords {
+		c := &w.cellRecords[i]
+		for layer, slot := range []*SavedActorSlot{&c.Ground, &c.Air} {
+			// A native actor's slot holds the actor and key 0 (nativeSlotForm).
+			if keys[slot.Key] || slot.Key == 0 && slot.Bound && ids[slot.Entity] {
+				*slot = SavedActorSlot{}
+				binary.LittleEndian.PutUint32(c.Payload[4+4*layer:], 0)
+				touched[c.Cell] |= 0x40 << layer
 			}
 		}
 	}
 	for cell, mask := range touched {
 		if c := w.motionCell(cell); c != nil {
-			if c.Ground.Key != 0 {
+			if cellSlotTaken(c.Ground) {
 				mask &^= 0x40
 			}
-			if c.Air.Key != 0 {
+			if cellSlotTaken(c.Air) {
 				mask &^= 0x80
 			}
 		}

@@ -11,6 +11,9 @@ import (
 // Raw counts and values come from terrainCellsRaw, whose only decoder input
 // is the first terrain structure's location. The expected population does
 // not shrink if the decoder drops a record or misreports a payload offset.
+// The compared planes are the carrier the LOAD builds with the one plane
+// builder (the document's Blocks over the installed constructor planes), the
+// carrier every first-game World holds from mission start.
 func TestMilestone2TerrainBlockPlane(t *testing.T) {
 	filesChecked, recordsChecked, differences := 0, 0, 0
 	widths := map[int]int{}

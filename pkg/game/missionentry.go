@@ -253,6 +253,16 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 	if r.fresh() {
 		draws = missionRandom(ports.random)
 	}
+	// A World built from the map alone, a fresh start or a prepared map that
+	// loads no document, holds the start construction: one kind of World.
+	constructed := r.fresh() || r.snap == nil && fog == nil
+	if !constructed && table != nil {
+		// A resumed World takes its cell planes from what it loads, never
+		// from a construction it would then replace.
+		loaded := *table
+		loaded.DocumentCellPlanes = true
+		table = &loaded
+	}
 	ms, err := startMissionFromWith(mv.Map, addr, r.n, table, diff, entryParty, draws)
 	if err != nil {
 		return nil, nil, err
@@ -262,9 +272,13 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 		if err := seedCurrentCityObjects(ms, r.town, table, ports.cityBase); err != nil {
 			return nil, nil, err
 		}
+	}
+	if constructed {
 		if err := ports.install.constructCurrentBuildings(ms); err != nil {
 			return nil, nil, err
 		}
+	}
+	if r.fresh() {
 		for i, id := range ms.Start.IDs {
 			if i >= len(ms.Party) || ms.Party[i].Carry == nil {
 				continue

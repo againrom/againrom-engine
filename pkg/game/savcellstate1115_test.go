@@ -128,7 +128,37 @@ func cellStateFront(t *testing.T) *FrontEnd {
 		t.Fatal(err)
 	}
 	f.Archives.Containers = fsys
+	if f.Table.TerrainCosts, err = readTerrainCosts(fsys, worldPrefix+"data/map.reg"); err != nil {
+		t.Fatal(err)
+	}
 	return f
+}
+
+// withMissionCellPlanes gives a World built beside the fixture mission the
+// cell planes every first-game mission World holds.
+func withMissionCellPlanes(t *testing.T, f *FrontEnd, w *sim.World) {
+	t.Helper()
+	m := f.live.mission.state.Map
+	base, err := readOriginalCellPlanes(m, f.Archives.Containers)
+	if err != nil || base == nil {
+		t.Fatal("fixture install lacks its terrain planes", err)
+	}
+	if err := w.ConstructSavedCellPlanes(sim.CellPlaneStart{Base: base, Overlay: m.Overlay}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// withLoadedCellPlanes builds a LOAD candidate's cell planes the way the
+// original LOAD does: the installed base under the document's Block records.
+func withLoadedCellPlanes(t *testing.T, f *FrontEnd, w *sim.World) {
+	t.Helper()
+	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers)
+	if err != nil || base == nil {
+		t.Fatal("fixture install lacks its terrain planes", err)
+	}
+	if err := w.ImportOriginalCellPlanes(w.CellPlanes(sim.CellPlaneStart{Base: base, Document: true})); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func cellStateBlocks1115(bit4 bool) []sav.BlockRecord {

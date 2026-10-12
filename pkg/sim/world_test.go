@@ -58,7 +58,7 @@ func init() {
 	worldWriters = append(worldWriters, "RestoreStructureUseMetadata", "RestoreStructureBlocking")
 	// SavedStructures is a detached reader. ImportOriginalStructures is an
 	// atomic construction-time writer, never an advancing simulation API.
-	worldMethods = append(worldMethods, "ReleaseUnitShot", "SavedStructures", "ImportOriginalStructures", "SavedGroupPlayers", "ImportSavedGroupPlayers", "ActorFinePosition", "ActorMotionActive", "ImportOriginalActorMotions", "SavedActorMotionIssues", "SavedActorMotions", "SavedCellPlanes", "ImportOriginalCellPlanes", "SavedObjects", "SavedSackCellKey", "ImportSavedObjects", "ScriptRegisters", "RawSessionHead", "RawSessionMid", "SetRawSessionHead", "SetRawSessionMid", "SavedCellRecords", "ImportOriginalCellRecords", "SetSavedCellRecords", "SavedSpellEffects", "SetSavedSpellEffects", "SetSkillLevels", "SavedProjectiles", "ImportOriginalProjectiles", "SetSavedProjectiles", "SavedDiaries", "ImportOriginalDiaries", "SetSavedDiaries")
+	worldMethods = append(worldMethods, "ReleaseUnitShot", "SavedStructures", "ImportOriginalStructures", "SavedGroupPlayers", "ImportSavedGroupPlayers", "ActorFinePosition", "ActorMotionActive", "ImportOriginalActorMotions", "SavedActorMotionIssues", "SavedActorMotions", "SavedCellPlanes", "CellPlanes", "ImportOriginalCellPlanes", "SavedObjects", "SavedSackCellKey", "ImportSavedObjects", "ScriptRegisters", "RawSessionHead", "RawSessionMid", "SetRawSessionHead", "SetRawSessionMid", "SavedCellRecords", "ImportOriginalCellRecords", "SetSavedCellRecords", "SavedSpellEffects", "SetSavedSpellEffects", "SetSkillLevels", "SavedProjectiles", "ImportOriginalProjectiles", "SetSavedProjectiles", "SavedDiaries", "ImportOriginalDiaries", "SetSavedDiaries")
 	// The burst picture's phase count is install-derived input, set once per world.
 	worldMethods = append(worldMethods, "SetBurstPhases", "WindUpElapsed")
 	worldMethods = append(worldMethods, "ReleaseCast", "ReleaseAreaBurst", "ProjectilePoint")
@@ -125,6 +125,7 @@ func init() {
 // sample has no rated mover; steprate_test.go covers its rated composition.
 var worldArgReaders = map[string][]reflect.Value{
 	"ROM2ScenarioValue":    {reflect.ValueOf(int32(753))},
+	"CellPlanes":           {reflect.ValueOf(CellPlaneStart{Base: &SavedCellPlanes{}, Overlay: []byte{1}})},
 	"ActorOrderProgress":   {reflect.ValueOf(EntityID(7))},
 	"SackValue":            {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(2))},
 	"Entity":               {reflect.ValueOf(EntityID(7))},

@@ -116,7 +116,8 @@ func openLoadedCycleArenaChoices(t *testing.T, heroCount, structure int, choices
 	}
 
 	m := live.mission.state.Map
-	terrain := sim.Terrain{Block: mapload.PassabilityWith(m, f.Table), Cost: mapload.Cost(m), Height: mapload.Height(m)}
+	// The arena is a mission World: it holds the installed cell planes.
+	terrain := mapload.Planes(m, f.Table)
 	bounds := live.world.Bounds()
 	var structures []sim.Structure
 	px, py, found := openGroundSquare(terrain.Block, int(bounds.Width), int(bounds.Height), 15)
@@ -193,6 +194,9 @@ func openLoadedCycleArenaChoices(t *testing.T, heroCount, structure int, choices
 				candidate.ActorManifest.Actors = append(candidate.ActorManifest.Actors, row)
 			}
 		}
+	}
+	if err := constructCurrentBuildings(&candidate, f.Archives.Containers); err != nil {
+		t.Fatal(err)
 	}
 	live.mission.state = &candidate
 	for i := range live.fog.visible {

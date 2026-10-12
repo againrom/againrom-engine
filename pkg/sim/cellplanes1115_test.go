@@ -94,7 +94,7 @@ func TestSavedCellPlanes1115CreationDetachDeletionAndCurrentBlocks(t *testing.T)
 	if err := w.ImportOriginalCellPlanes(p); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := w.SavedCellPlanes(); got.Cost[0x100f] != 37 || len(w.savedMotion.Cells) != 1 {
+	if got, _ := w.SavedCellPlanes(); got.Cost[0x100f] != 37 || len(w.cellRecords) != 1 {
 		t.Fatal("LOAD recomputed or constructed cells")
 	}
 	for tick := 0; tick < 5; tick++ {
@@ -323,14 +323,14 @@ func TestSavedCellPlanes1115FirstNativeTailNodeAndConflictingTailFault(t *testin
 	p := new(SavedCellPlanes)
 	p.Costs[0] = 255
 	before := mustMarshal(t, w)
-	if err := w.ImportOriginalCellPlanes(p); err == nil || !bytes.Equal(before, mustMarshal(t, w)) || w.savedMotion != nil {
+	if err := w.ImportOriginalCellPlanes(p); err == nil || !bytes.Equal(before, mustMarshal(t, w)) || w.savedMotion != nil || len(w.cellRecords) > 0 {
 		t.Fatal("unknown first-node baseline was partly adopted")
 	}
 	p.CostKnown[0x1111], p.Cost[0x1111] = 1, 17
 	if err := w.ImportOriginalCellPlanes(p); err != nil {
 		t.Fatal(err)
 	}
-	if w.savedMotion == nil || len(w.savedMotion.Motions) != 0 || len(w.savedMotion.Cells) != 1 || w.motionCell(0x1111).Payload[0] != 17 {
+	if w.savedMotion != nil || len(w.cellRecords) != 1 || w.motionCell(0x1111).Payload[0] != 17 {
 		t.Fatal("explicit first tail did not create only its typed Cell node")
 	}
 	valid := mustMarshal(t, w)
@@ -346,7 +346,7 @@ func TestSavedCellPlanes1115FirstNativeTailNodeAndConflictingTailFault(t *testin
 		}
 	}
 	var cold World
-	if err := cold.UnmarshalBinary(valid); err != nil || !bytes.Equal(valid, mustMarshal(t, &cold)) {
+	if err := cold.UnmarshalBinary(valid); err != nil || !bytes.Equal(valid, mustMarshal(t, &cold)) || cold.savedMotion != nil || len(cold.cellRecords) != 1 {
 		t.Fatal("first-node state failed native roundtrip", err)
 	}
 }
@@ -363,10 +363,10 @@ func TestSavedCellPlanes1115UnknownCostAndUnresolvedBuildingRefuseBeforeMutation
 			t.Fatal(err)
 		}
 		before, _ := w.SavedCellPlanes()
-		cells := append([]SavedActorCell(nil), w.savedMotion.Cells...)
+		cells := append([]SavedActorCell(nil), w.cellRecords...)
 		Step(w, nil)
 		after, _ := w.SavedCellPlanes()
-		if *before != *after || !reflect.DeepEqual(cells, w.savedMotion.Cells) {
+		if *before != *after || !reflect.DeepEqual(cells, w.cellRecords) {
 			t.Fatal("unsupported recomputation partially changed planes/nodes")
 		}
 		if w.motionFor(7).Issue == "" || w.ActorMotionActive(7) {

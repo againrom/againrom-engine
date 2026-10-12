@@ -15,6 +15,13 @@ import (
 
 func partialCurrentGraph(t *testing.T, detached ...bool) (*FrontEnd, Snapshot, *sim.World) {
 	t.Helper()
+	return partialCurrentGraphAs(t, false, len(detached) != 0 && detached[0])
+}
+
+// partialCurrentGraphAs returns the World as a LOAD candidate when candidate
+// is set: no cell planes yet, so a test imports the document's records first.
+func partialCurrentGraphAs(t *testing.T, candidate, detached bool) (*FrontEnd, Snapshot, *sim.World) {
+	t.Helper()
 	f := cellStateFront(t)
 	campaign := saveCampaign()
 	campaign.Side = []int{11, 12}
@@ -34,6 +41,7 @@ func partialCurrentGraph(t *testing.T, detached ...bool) (*FrontEnd, Snapshot, *
 	if err != nil {
 		t.Fatal(err)
 	}
+	withMissionCellPlanes(t, f, w)
 	s.SavedDocument, err = f.materializeCurrentWorld(s, w)
 	if err != nil {
 		t.Fatal(err)
@@ -44,12 +52,15 @@ func partialCurrentGraph(t *testing.T, detached ...bool) (*FrontEnd, Snapshot, *
 		Members: []sim.SavedGroupMember{{}, {Entity: 41, Bound: true}}, Words: []uint16{11, 19}, Path: []uint16{0x1010, 0x1212}}
 	g.AI[0x12], g.AI[0x20], g.AI[0x38], g.AI[0x45] = 19, 3, 3, 1
 	entities = append(entities, sim.Entity{ID: 0, X: 18, Y: 18, HP: 37, MaxHP: 37, Owner: sim.SelfSlot, TypeID: 1, Speed: 1, TokenSize: 1, Capacity: data.UnitCapacity()})
-	if len(detached) != 0 && detached[0] {
+	if detached {
 		entities[1].X, entities[1].Y, entities[1].OffMap = 54, 100, true
 	}
 	w, err = sim.NewWorld(11, f.live.world.Bounds(), sim.ModeCanonical, nil, entities)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !candidate {
+		withMissionCellPlanes(t, f, w)
 	}
 	if err := w.ImportSavedGroups([]sim.SavedGroup{g}, nil); err != nil {
 		t.Fatal(err)

@@ -56,7 +56,7 @@ func TestSavedGoldPickup1115RealTransferRetiresSackAndCell(t *testing.T) {
 		want.savedObjects.Sacks[0].Retired = true
 		want.savedObjects.Sacks[0].Gold = 0
 		want.savedObjects.SackRoots, want.savedObjects.Containers = nil, nil
-		want.savedMotion.Cells, want.savedStructureCells = nil, nil
+		want.cellRecords, want.savedStructureCells = nil, nil
 		// Static bit1 blocks air. This fixture has no native magic wall
 		// (bit2) to preserve, unlike the separate cell-helper fixture.
 		literalSackPlanes1115(want, 11, 0x12, 0x32, 2)
@@ -89,7 +89,7 @@ func TestSavedGoldPickup1115FailureIsAtomicAndGetterDetached(t *testing.T) {
 	}
 	// Unresolved Building authority prevents recompute. The attempted
 	// removal must not clear +10, credit gold, retire roots or edit planes.
-	binary.LittleEndian.PutUint32(w.savedMotion.Cells[0].Payload[12:], 0x87654321)
+	binary.LittleEndian.PutUint32(w.cellRecords[0].Payload[12:], 0x87654321)
 	before := mustMarshal(t, w)
 	if err := w.TakeSack(7, 10, 20); err == nil {
 		t.Fatal("unknown cell recompute admitted")

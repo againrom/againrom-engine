@@ -297,6 +297,27 @@ func TestNativeScalarMaintainedPartsKeepIndependentBits(t *testing.T) {
 	}
 }
 
+// A body felled after a stride keeps the position its native block showed
+// while the stride was held, not the block it was loaded with. Loss control:
+// a body without a stride keeps its loaded block.
+func TestNativeBlockKeepsTheStridePositionWhenTheTransitClears(t *testing.T) {
+	w := nativeBasisWorld(t)
+	e := &w.entities[0]
+	e.X, e.Y = 70, 35
+	e.NativeBasis = NativeActorBasis{BlockPresent: true, BlockKnown: 0x3ff, Block: [10]byte{69, 36, 128, 128, 0, 0, 16, 0, 0, 81}}
+	still := *e
+	e.Stride = NativeStride{Present: true, FromX: 69, FromY: 36, ToX: 70, ToY: 35, StepX: 8, StepY: -8}
+	shown := NativeBasisNow(*e)
+	e.clearTransit()
+	if e.NativeBasis != shown || e.NativeBasis.Block[0] != 70 || e.NativeBasis.Block[1] != 35 {
+		t.Fatalf("felled block %v, held %v", e.NativeBasis.Block, shown.Block)
+	}
+	still.clearTransit()
+	if still.NativeBasis.Block[0] != 69 || still.NativeBasis.Block[1] != 36 {
+		t.Fatalf("strideless block %v", still.NativeBasis.Block)
+	}
+}
+
 func TestNativeScalarCurrentClockKeepsUnknownHistory(t *testing.T) {
 	for _, tc := range []struct {
 		name                 string

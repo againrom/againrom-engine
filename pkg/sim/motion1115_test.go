@@ -170,7 +170,7 @@ func TestSavedMotion1115EmptyCellDeletionIsAnExplicitCoverageGap(t *testing.T) {
 	if got.Issue != "original empty cell deletion and baseline restoration are not executed" || got.Position.Cell != 0x1010 || got.Position.FineX != 128 || got.Active || got.ActorAction != 0 {
 		t.Fatal("deletion gap silently projected or stopped known crossing", got)
 	}
-	if len(w.savedMotion.Cells) != 2 {
+	if len(w.cellRecords) != 2 {
 		t.Fatal("unimplemented deletion was enacted")
 	}
 	var cold World
@@ -286,7 +286,7 @@ func TestSavedMotion1115UnsupportedImportAndMissingCellStayNativeSaveable(t *tes
 			if err := fresh.UnmarshalBinary(mustMarshal(t, w)); err != nil {
 				t.Fatal("unsupported state lost native saveability", err)
 			}
-			if len(w.savedMotion.Cells) != len(cs) {
+			if len(w.cellRecords) != len(cs) {
 				t.Fatal("invented new payload")
 			}
 		})

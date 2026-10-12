@@ -297,6 +297,7 @@ func TestPendingCommandsActorZeroThroughOrdinarySAV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	withMissionCellPlanes(t, f, source)
 	for owner := uint32(0); owner <= 1; owner++ {
 		source.SetPurse(owner, 0xf1234500+owner)
 	}

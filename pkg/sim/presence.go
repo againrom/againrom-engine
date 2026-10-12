@@ -27,6 +27,7 @@ func (w *World) takeOffMap(i int) bool {
 		return false
 	}
 	w.unlinkActorTraversal(w.entities[i].ID)
+	w.leavePresenceCells(i)
 	w.entities[i].OffMap = true
 	w.invalidateActorMotion(w.entities[i].ID, "native removal supersedes original cell membership")
 	return true
@@ -162,7 +163,27 @@ func (w *World) placeAt(i int, x, y int32) bool {
 	}
 	w.appendActorTraversal(e.ID)
 	e.OffMap = false
+	w.enterPresenceCells(i)
 	return true
+}
+
+// leavePresenceCells and enterPresenceCells keep a World's cell slots with
+// map presence: a removal leaves the actor's cells and a placement enters
+// them, by the crossing's rules (SAV-CELLLEAVE-584, SAV-CELLENTRY-582;
+// DIV-3099). A World without cell planes holds no slots.
+func (w *World) leavePresenceCells(i int) {
+	if w.savedCellPlanes != nil {
+		w.releaseCellSlots(i, cell{x: w.entities[i].X, y: w.entities[i].Y})
+		w.refreshSavedPlaneBlocks()
+	}
+}
+
+func (w *World) enterPresenceCells(i int) {
+	if w.savedCellPlanes != nil {
+		e := w.entities[i]
+		w.occupyCellSlots(i, cell{x: e.X, y: e.Y}, w.motionActorKey(e.ID), false)
+		w.refreshSavedPlaneBlocks()
+	}
 }
 
 // placeFree is the fit test: may the entity at index i stand with its complete

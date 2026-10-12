@@ -1,6 +1,9 @@
 package sim
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
 type OriginalLivingActor struct {
 	Entity Entity
@@ -41,6 +44,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 	// refuses a batch. Detach them as well as the entity/route/stock slots.
 	staged.savedGroups = cloneSavedGroups(w.savedGroups)
 	staged.savedMotion = cloneActorMotions(w.savedMotion)
+	staged.cellRecords = slices.Clone(w.cellRecords)
 	staged.bookCasts = append([]bookCast(nil), w.bookCasts...)
 	staged.scrollCasts = append([]ScrollCast(nil), w.scrollCasts...)
 	staged.casts = append([]scriptCast(nil), w.casts...)

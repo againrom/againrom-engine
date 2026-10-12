@@ -29,6 +29,9 @@ type gameFiles struct {
 	itemNameKeys string
 	// autoCastCaptions are the dialogs text lines of the automatic-casting
 	// row: its label and the three levels, or none.
+	// terrainCosts is the address of the installed Terrain cost table every
+	// World of the game prices cells with; empty keeps the compiled table.
+	terrainCosts     string
 	autoCastCaptions []int
 	// savePages are the game's own load and save pages, or nil for the
 	// first game's LOAD window and save dialog. ownSaves makes both pages
@@ -51,6 +54,7 @@ var firstGameFiles = gameFiles{
 	unitKeys:     mapload.ClassUnitKeys,
 	freshPlayers: mapload.SlotPlayers,
 	itemNameKeys: ItemNameKeyAddress,
+	terrainCosts: worldPrefix + "data/map.reg",
 }
 
 var secondGameFiles = gameFiles{

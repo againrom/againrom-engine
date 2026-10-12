@@ -97,6 +97,14 @@ func (w *World) CurrentPolicy() CurrentWorldPolicy {
 		GroupCarrier: !w.groupDialectNative(), MotionCarrier: w.savedMotion != nil, PlaneCarrier: w.savedCellPlanes != nil,
 		StructureCarrier: w.hasSavedStructures, ObjectCarrier: w.savedObjects != nil, Formations: w.formations,
 		Scorched: slices.Clone(w.scorchedCells), SpellGraphCarrier: &graph, EffectDriverCarrier: &drivers}
+	if w.savedCellPlanes != nil {
+		// The planes own Static bit 2; the grid's bit 3 only mirrors it
+		// (syncNativeSavedPlaneCell). The Terrain a World is built from
+		// carries no mirror: a World built with planes derives it again.
+		for i := range p.Terrain.Block {
+			p.Terrain.Block[i] &^= blockStaticObject
+		}
+	}
 	p.ROM2 = w.currentROM2Policy()
 	for _, g := range w.groups {
 		p.Groups = append(p.Groups, CurrentGroupPolicy{g.owner, g.group, g.base, g.order, g.commandedX, g.commandedY, g.roamCounter})
@@ -233,18 +241,34 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	if !p.MotionCarrier {
 		w.savedMotion = nil
 	}
-	if !p.PlaneCarrier {
+	// A first-game World keeps the cell planes its LOAD import built even when
+	// an older engine SAV did not mark them: every first-game World holds them.
+	dropPlanes := !p.PlaneCarrier && (w.SecondGame() || w.savedCellPlanes == nil)
+	if !p.MotionCarrier && dropPlanes {
+		w.cellRecords = nil
+	}
+	if dropPlanes {
 		w.savedCellPlanes = nil
-		w.grid = slices.Clone(w.grid)
-		for _, e := range w.effects {
-			if w.spellArm(e.Spell) == 19 && e.Mode == areaModeCloud {
-				w.setWallCells(e.Cells, true)
-			}
+	}
+	// The magic wall bits are the native grid's own; a LOAD's planes carry
+	// none, so every restore marks the cells of each standing wall cloud.
+	w.grid = slices.Clone(w.grid)
+	for _, e := range w.effects {
+		if w.spellArm(e.Spell) == 19 && e.Mode == areaModeCloud {
+			w.setWallCells(e.Cells, true)
 		}
 	}
 	if !p.StructureCarrier {
 		// The imported static plane keeps its structure bindings and source rows.
-		w.hasSavedStructures = slices.ContainsFunc(w.grid, func(b byte) bool { return b&blockStaticObject != 0 })
+		// A World with cell planes mirrors Static bit 2 (border, scenery and
+		// structure cells alike) into the grid, so there the bit names no
+		// binding: it keeps the imported roster when that names a Building,
+		// because its cell records name that roster's keys.
+		if w.savedCellPlanes != nil {
+			w.hasSavedStructures = len(w.savedStructures) != 0
+		} else {
+			w.hasSavedStructures = slices.ContainsFunc(w.grid, func(b byte) bool { return b&blockStaticObject != 0 })
+		}
 		if !w.hasSavedStructures {
 			w.savedStructures = nil
 			w.savedStructureCells = nil

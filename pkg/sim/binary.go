@@ -2383,7 +2383,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	data, motion, err := splitSavedMotions(data)
+	data, motion, cellRecords, err := splitSavedMotions(data)
 	if err != nil {
 		return err
 	}
@@ -3182,7 +3182,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 			structures[i].Blocking = savedStructures[i].Blocking
 		}
 	}
-	motionCheck := World{entities: ents, savedMotion: motion, bounds: b, grid: grid, savedCellPlanes: planes, cellTails: cellTails}
+	motionCheck := World{entities: ents, savedMotion: motion, cellRecords: cellRecords, bounds: b, grid: grid, savedCellPlanes: planes, cellTails: cellTails}
 	if err := motionCheck.savedMotionFault(); err != nil {
 		return err
 	}
@@ -3197,6 +3197,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		savedObjects:        weighted.savedObjects,
 		savedCellPlanes:     planes,
 		savedMotion:         motion,
+		cellRecords:         cellRecords,
 		hasSavedStructures:  hasStructures,
 		savedStructures:     savedStructures,
 		savedStructureCells: savedCells,

@@ -243,6 +243,11 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 				}
 			}
 			for _, c := range doc.World.Cells {
+				// A cell tail lives in its cell record, as the restart slots'
+				// tail cells hold bit 0x20 (TestReleaseMissionStartPlanesAgainstTheRestartSlots).
+				if c.Operation != 0 || c.Power != 0 || c.SourceX != 0 || c.SourceY != 0 || c.TargetX != 0 || c.TargetY != 0 {
+					recordCells[c.Cell] = true
+				}
 				if c.Sack == 0 && c.GroundActor == 0 && c.AirActor == 0 && c.Building == 0 {
 					continue
 				}
