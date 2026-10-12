@@ -2242,6 +2242,9 @@ package storyguard
 // factor-table witnesses in pkg/game/spellrecord_release_test.go and
 // castdamage_release_test.go, the sim popup test and the unmodded Heal popup
 // note in modformulas_release_test.go, including this paragraph.
+// CommentBytes rises for the one list of World form wrappers: the docs of
+// pkg/sim/formwrapper.go, its guard and resume tests and the release witness
+// of a changed structure under automatic casting, including this note.
 //
 // CommentBytes rises for the second game's Blizzard: the arm table note in
 // pkg/sim/secondspell.go, the docs of ringStageDraws, rowArms,
@@ -2271,5 +2274,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8804778,
+	CommentBytes: 8806820,
 }

@@ -2312,80 +2312,10 @@ func (w *World) UnmarshalBinary(data []byte) error {
 // decodes its base through it, so a wrapper's canonical re-encoding compares
 // the form it read.
 func (w *World) unmarshalForm(data []byte) error {
-	if len(data) > 0 && data[0] == autoCastFormVersion {
-		return w.unmarshalAutoCastSettings(data)
-	}
-	if len(data) > 0 && data[0] == bodyReferenceFormVersion {
-		return w.unmarshalBodyReferences(data)
-	}
-	if len(data) > 0 && data[0] == speedModifierFormVersion {
-		return w.unmarshalSpeedModifiers(data)
-	}
-	if len(data) > 0 && data[0] == heldOrderFormVersion {
-		return w.unmarshalHeldOrders(data)
-	}
-	if len(data) > 0 && data[0] == pursuitSearchFormVersion {
-		return w.unmarshalPursuitSearches(data)
-	}
-	if len(data) > 0 && data[0] == escortFormVersion {
-		return w.unmarshalEscortResidues(data)
-	}
-	if len(data) > 0 && data[0] == turnStateFormVersion {
-		return w.unmarshalTurnStates(data)
-	}
-	if len(data) > 0 && data[0] == nativeScalarFormVersion {
-		return w.unmarshalNativeScalars(data)
-	}
-	if len(data) > 0 && data[0] == nativeItemFormVersion {
-		return w.unmarshalNativeItemRecords(data)
-	}
-	if len(data) > 0 && data[0] == nativeLiveFormVersion {
-		return w.unmarshalNativeLiveBlocks(data)
-	}
-	if len(data) > 0 && data[0] == currentPlayerFormVersion {
-		return w.unmarshalCurrentPlayers(data)
-	}
-	if len(data) > 0 && data[0] == playerParticipantFormVersion {
-		return w.unmarshalPlayerParticipants(data)
-	}
-	if len(data) > 0 && data[0] == nativeBasisFormVersion {
-		return w.unmarshalNativeActorBases(data)
-	}
-	if len(data) > 0 && data[0] == bookSelectionFormVersion {
-		return w.unmarshalBookSelections(data)
-	}
-	if len(data) > 0 && data[0] == nativeClassFormVersion {
-		return w.unmarshalNativeClasses(data)
-	}
-	if len(data) > 0 && data[0] == rom2ScriptFormVersion {
-		return w.unmarshalROM2ScriptState(data)
-	}
-	if len(data) > 0 && data[0] == nativeTrainingFormVersion {
-		return w.unmarshalNativeTraining(data)
-	}
-	if len(data) > 0 && data[0] == areaCostFormVersion {
-		return w.unmarshalAreaCosts(data)
-	}
-	if len(data) > 0 && data[0] == creatureSpellFormVersion {
-		return w.unmarshalCreatureSpells(data)
-	}
-	if len(data) > 0 && data[0] == pendingOrderFormVersion {
-		return w.unmarshalPendingOrders(data)
-	}
-	if len(data) > 0 && data[0] == tacticalFormVersion {
-		return w.unmarshalTactical(data)
-	}
-	if len(data) > 0 && data[0] == structureBlockingFormVersion {
-		return w.unmarshalStructureBlocking(data)
-	}
-	if len(data) > 0 && data[0] == currentTerminalFormVersion {
-		return w.unmarshalCurrentTerminalActors(data)
-	}
-	if len(data) > 0 && (data[0] == spellGraphFormVersion || data[0] == currentAreaFormVersion) {
-		return w.unmarshalSavedSpellGraph(data)
-	}
-	if len(data) > 0 && data[0] == autoHealingFormVersion {
-		return w.unmarshalAutoHealing(data)
+	if len(data) > 0 {
+		if fw, ok := formWrapperOf(data[0]); ok {
+			return fw.decode(w, data)
+		}
 	}
 	if len(data) > 0 && data[0] != formatVersion {
 		return fmt.Errorf("sim: unknown byte form version %d, this build writes and reads %d only", data[0], formatVersion)
