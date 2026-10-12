@@ -30,10 +30,11 @@ type nameTable map[string][]string
 // deliberately spread one file per setter family, so a reference moving between
 // files is a change worth declaring rather than a refactor to absorb silently.
 var almReferences = nameTable{
-	"editor.go/New":                    {"alm.OpenDocument"},
-	"editor.go/(*Editor).Map":          {"alm.Map", "alm.Open"},
-	"meta.go/(*Editor).SetName":        {"alm.EncodeName"},
-	"meta.go/(*Editor).SetDescription": {"alm.EncodeDescription"},
+	"editor.go/New":                       {"alm.OpenDocument"},
+	"editor.go/(*Editor).Map":             {"alm.Map", "alm.Open"},
+	"unit.go/(*Editor).highestScriptUnit": {"alm.ScriptNode"},
+	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},
+	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload

@@ -12,6 +12,7 @@ import (
 )
 
 type editProbe1118 struct {
+	noUnitAuthoring
 	doc               *InspectionDocument
 	index, undo, redo int
 	dirty             bool

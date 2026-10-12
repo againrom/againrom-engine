@@ -58,9 +58,19 @@ type InspectionEdits interface {
 	CanUndo() bool
 	CanRedo() bool
 	MoveUnit(index int, cell image.Point) (*InspectionDocument, error)
+	CloneUnit(index int, cell image.Point) (*InspectionDocument, error)
+	DeleteUnit(index int) (*InspectionDocument, error)
+	UnitFields(index int) []InspectionField
+	SetUnitField(index int, key string, value int64) (*InspectionDocument, error)
 	Undo() (*InspectionDocument, error)
 	Redo() (*InspectionDocument, error)
 	SaveAs(path string) (string, error)
+}
+
+// InspectionField is one settable field of a selected record and its value.
+type InspectionField struct {
+	Key, Label string
+	Value      int64
 }
 
 type EditorMap struct{ Key, Label string }
@@ -79,6 +89,8 @@ type MapEditor struct {
 	filter                         int
 	catalog, pathMode              bool
 	pathSave                       bool
+	fieldMode, cloning             bool // field prompt in the path modal; next canvas click clones
+	field                          int  // index into the selected unit's fields
 	path, message                  string
 	down, moved                    bool
 	press                          image.Point
@@ -244,7 +256,7 @@ func (e *MapEditor) rows() []int {
 
 // Key and Pointer are the same input doors used by Update and headless proof.
 func (e *MapEditor) Key(key string) error {
-	if e.pathMode && key != "escape" && key != "enter" && key != "backspace" && key != "close" {
+	if e.pathMode && key != "escape" && key != "enter" && key != "backspace" && key != "close" && !(e.fieldMode && key == "tab") {
 		return nil
 	}
 	switch key {
@@ -259,8 +271,13 @@ func (e *MapEditor) Key(key string) error {
 			e.cancelUnitDrag()
 			return nil
 		}
+		if e.cloning {
+			e.cloning = false
+			e.message = ""
+			return nil
+		}
 		if e.pathMode {
-			e.pathMode = false
+			e.pathMode, e.fieldMode = false, false
 			e.message = ""
 			return nil
 		}
@@ -281,6 +298,7 @@ func (e *MapEditor) Key(key string) error {
 		return ebiten.Termination
 	case "open":
 		e.cancelUnitDrag()
+		e.cloning, e.fieldMode = false, false
 		e.pathMode = true
 		e.pathSave = false
 		e.path = ""
@@ -292,6 +310,9 @@ func (e *MapEditor) Key(key string) error {
 		e.listWheel = 0
 		e.message = ""
 	case "enter":
+		if e.fieldMode {
+			return e.setField(strings.TrimSpace(e.path))
+		}
 		if e.pathMode {
 			if e.pathSave {
 				return e.saveAs(strings.TrimSpace(e.path))
@@ -301,11 +322,15 @@ func (e *MapEditor) Key(key string) error {
 	case "saveas":
 		if e.editable() {
 			e.cancelUnitDrag()
+			e.cloning, e.fieldMode = false, false
 			e.pathMode, e.pathSave = true, true
 			e.path, e.message = "", ""
 		}
+	case "clone", "delete", "field", "tab":
+		return e.unitKey(key)
 	case "undo", "redo":
 		e.cancelUnitDrag()
+		e.cloning = false
 		if e.editable() {
 			if key == "undo" && !e.doc.Edits.CanUndo() || key == "redo" && !e.doc.Edits.CanRedo() {
 				return nil
@@ -401,6 +426,10 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	e.doc.Viewer.step(in, now)
 	if released && e.press.X < rail {
+		if e.cloning {
+			e.cloneAt(p)
+			return
+		}
 		e.selectAt(p)
 	}
 }
@@ -510,9 +539,19 @@ func (e *MapEditor) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeyO) {
 			_ = e.Key("open")
 		}
+		for _, k := range []struct {
+			key  ebiten.Key
+			name string
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}} {
+			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
+				_ = e.Key(k.name)
+			}
+		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 			e.Fit()
 		}
+	} else if e.fieldMode && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		_ = e.Key("tab")
 	}
 	e.Pointer(readInput(), time.Now())
 	return nil
@@ -755,7 +794,11 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			line(row.Text, row.Rect.Min.X, row.Rect.Min.Y, 300, c)
 		}
 	}
-	line(editorClip(e.font, "Drag unit: move / ground: pan", 300), 10, h-39, 300, editorPaper)
+	help := "Drag unit: move / C: clone / Del / E: fields"
+	if e.cloning {
+		help = "Clone: click a cell / Esc: cancel"
+	}
+	line(editorClip(e.font, help, 300), 10, h-39, 300, editorPaper)
 	line("Ctrl+Z / Ctrl+Y / Ctrl+S", 10, h-21, 300, editorPaper)
 	if e.pathMode || e.message != "" {
 		draw.Draw(pic, image.Rect(0, bottom+30, 320, h-45), image.NewUniform(editorInk), image.Point{}, draw.Src)

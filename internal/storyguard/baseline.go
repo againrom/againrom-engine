@@ -2290,6 +2290,10 @@ package storyguard
 // secondShop.restock, the shop document's legacy read, the second game's
 // loaded town arrival, the SAV field helpers of the shop witnesses and the new
 // pkg/game/shopreload_release_test.go, this note included.
+//
+// CommentBytes rises for unit authoring in the map editor: the docs of the new
+// pkg/mapedit/unitfield.go and CloneUnit, the host's clone, delete and field
+// operations, pkg/ui/mapeditorunits.go and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2313,5 +2317,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8847274,
+	CommentBytes: 8852318,
 }

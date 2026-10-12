@@ -27,7 +27,9 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 	}
 	if e.pathMode {
 		title := "ALM path / Enter: open"
-		if e.pathSave {
+		if e.fieldMode {
+			title = e.fieldTitle()
+		} else if e.pathSave {
 			title = "New .alm path / Enter: Save As"
 		}
 		add(title, editorGold)
@@ -177,7 +179,7 @@ func (e *MapEditor) dragUnit(in Input, p image.Point, rail int) bool {
 		return true
 	}
 	inside := p.In(image.Rect(0, 0, rail, e.window.Y))
-	if e.unitDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && !e.catalog && !e.pathMode {
+	if e.unitDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && !e.catalog && !e.pathMode && !e.cloning {
 		hit := -1
 		for _, i := range e.hitsAt(p) {
 			if e.doc.Records[i].Kind == "Unit" && (hit < 0 || i == e.selected) {

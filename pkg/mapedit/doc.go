@@ -1,6 +1,6 @@
 // Package mapedit is the headless edit model over one accepted ROM1 .alm map:
-// typed mutations — paint a grid cell, edit a type-0 field, place, move and
-// delete a unit — with undo and redo, and every byte the caller did not ask to
+// typed mutations — paint a grid cell, edit a type-0 field, place, clone, move
+// and delete a unit, set a unit field from one table — with undo and redo, and every byte the caller did not ask to
 // change carried out of the file it was loaded from.
 //
 // Preservation by carrying, not by regeneration. A mutation partitions the

@@ -3,19 +3,21 @@ package mapedit
 import (
 	"encoding/binary"
 	"fmt"
+
+	"againrom/pkg/formats/alm"
 )
 
-// The type-6 record as this story addresses it: a fixed 70 bytes whose first two
-// words are the fixed-point coordinates, and the type-0 word that says how many
-// of them there are. Nothing else about the record is named, because nothing else
-// about it is touched — the other 62 bytes hold class keys, an owner slot,
-// sentinel runs and id words this package neither reads nor writes.
+// The type-6 record: a fixed 70 bytes whose first two words are the
+// fixed-point coordinates, the unit id a clone renumbers, and the type-0 word
+// that says how many records there are. The fields a caller may set by name are
+// the table in unitfield.go; every other byte is carried.
 const (
 	unitTypeID = 6
 
 	unitRecordSize = 70
 	unitX          = 0x00
 	unitY          = 0x04
+	unitID         = 0x40
 
 	metaCount6 = 0x24
 )
@@ -98,6 +100,80 @@ func (e *Editor) PlaceUnit(record []byte) (int, error) {
 		e.countWordPart(f, 1),
 	})
 	return n, nil
+}
+
+// CloneUnit appends a copy of the record at index i with its X and Y words set
+// to x and y and its unit id set to one above the highest of every type-6 unit
+// id and every unit id a Target_Unit parameter of the type-7 script names, and
+// returns the new index. A script id whose unit was deleted so stays unclaimed.
+// Every other byte, the group id included, is the source record's. It is one
+// edit, the same three parts as PlaceUnit, so one Undo removes it. A map whose
+// next id would pass 0xFFFF is refused: the u16 field has no next value
+// (ALM-UNIT-048).
+func (e *Editor) CloneUnit(i int, x, y uint32) (int, error) {
+	f := e.locate()
+	units, err := f.optional("clone a unit", unitTypeID)
+	if err != nil {
+		return -1, err
+	}
+	if err := e.checkUnitIndex(f, "clone", i); err != nil {
+		return -1, err
+	}
+	n := e.unitCount(f)
+	highest := uint32(0)
+	for k := 0; k < n; k++ {
+		highest = max(highest, uint32(binary.LittleEndian.Uint16(e.data[units.abs(k*unitRecordSize+unitID):])))
+	}
+	scripted, err := e.highestScriptUnit()
+	if err != nil {
+		return -1, fmt.Errorf("mapedit: cannot clone unit %d: %w", i, err)
+	}
+	highest = max(highest, scripted)
+	if highest >= 0xFFFF {
+		return -1, fmt.Errorf("mapedit: cannot clone unit %d: the highest unit id is already %d", i, highest)
+	}
+	at := units.abs(i * unitRecordSize)
+	record := cloneBytes(e.data[at : at+unitRecordSize])
+	binary.LittleEndian.PutUint32(record[unitX:], x)
+	binary.LittleEndian.PutUint32(record[unitY:], y)
+	binary.LittleEndian.PutUint16(record[unitID:], uint16(highest+1))
+	e.apply(edit{
+		replace(units.abs(n*unitRecordSize), nil, record),
+		e.sizeWordPart(units, unitRecordSize),
+		e.countWordPart(f, 1),
+	})
+	return n, nil
+}
+
+// Script parameter type code of a Target_Unit value, and the first value of the
+// hero band, which names the party and no placed unit.
+const (
+	scriptUnitParam = 4
+	scriptHeroBand  = 10001
+)
+
+// highestScriptUnit is the highest unit id a Target_Unit parameter of the type-7
+// script names below the hero band, 0 when the map has no script or none.
+func (e *Editor) highestScriptUnit() (uint32, error) {
+	m, err := e.Map()
+	if err != nil {
+		return 0, err
+	}
+	sc, err := m.Script()
+	if err != nil {
+		return 0, err
+	}
+	highest := uint32(0)
+	for _, nodes := range [][]alm.ScriptNode{sc.Actions, sc.Conditions} {
+		for _, n := range nodes {
+			for k, t := range n.Type {
+				if t == scriptUnitParam && n.Value[k] < scriptHeroBand {
+					highest = max(highest, n.Value[k])
+				}
+			}
+		}
+	}
+	return highest, nil
 }
 
 // MoveUnit sets the X and Y words of the record at index i to the raw

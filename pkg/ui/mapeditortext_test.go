@@ -13,7 +13,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type editorTextEdits struct{ moves, undo, redo, writes int }
+type editorTextEdits struct {
+	noUnitAuthoring
+	moves, undo, redo, writes int
+}
 
 func (*editorTextEdits) Dirty() bool   { return false }
 func (*editorTextEdits) CanUndo() bool { return false }
