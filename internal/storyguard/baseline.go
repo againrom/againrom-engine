@@ -2331,6 +2331,12 @@ package storyguard
 //
 // CommentBytes rises for the directory check before a mod map is written: the
 // docs of checkModMapDirectory in pkg/game/modmapsave.go, this note included.
+//
+// CommentBytes rises for structure and sack authoring in the map editor: the
+// docs of the new section table in pkg/mapedit (section.go, structure.go,
+// loot.go, field.go), the host's record operations and checks,
+// pkg/ui/mapeditorrecords.go and their tests, this note included; the unit
+// wrappers' shortened docs pay part of it.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2352,7 +2358,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1730,
+		"longcommentgroups":      1728,
 	},
-	CommentBytes: 8889868,
+	CommentBytes: 8895695,
 }

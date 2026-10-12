@@ -98,10 +98,11 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	if next == nil {
 		return nil // unavailable history or same-cell move
 	}
-	// Unit movement does not change terrain, structures or sacks. Retain the
-	// live viewer (camera, GPU caches and render settings) and refresh entities.
+	// A record edit does not change terrain. Retain the live viewer (camera,
+	// GPU caches and render settings) and refresh entities, structures and sacks.
 	old := e.doc.Viewer
 	old.SetEntities(next.Viewer.entities)
+	old.adoptPlacements(next.Viewer)
 	next.Viewer = old
 	var kind string
 	index := -1
@@ -121,16 +122,17 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	return nil
 }
 
-type editorUnitDrag struct {
+type editorRecordDrag struct {
+	kind          string
 	record, index int
 	press         image.Point
 	grab, cell    image.Point
 	moved         bool
 }
 
-func (e *MapEditor) cancelUnitDrag() {
-	if e.unitDrag != nil {
-		e.unitDrag = nil
+func (e *MapEditor) cancelRecordDrag() {
+	if e.recordDrag != nil {
+		e.recordDrag = nil
 		e.cancelledDrag = e.down
 	}
 	if e.doc != nil {
@@ -168,9 +170,9 @@ func (e *MapEditor) selectAt(p image.Point) {
 	e.Select(chosen, false)
 }
 
-// Capture units before Viewer.step: otherwise the same primary drag pans the
+// Capture records before Viewer.step: otherwise the same primary drag pans the
 // ground. One release commits one history entry; previews never touch bytes.
-func (e *MapEditor) dragUnit(in Input, p image.Point, rail int) bool {
+func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 	if e.cancelledDrag {
 		e.down = in.PrimaryDown
 		if !in.PrimaryDown {
@@ -179,21 +181,25 @@ func (e *MapEditor) dragUnit(in Input, p image.Point, rail int) bool {
 		return true
 	}
 	inside := p.In(image.Rect(0, 0, rail, e.window.Y))
-	if e.unitDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && !e.catalog && !e.pathMode && !e.cloning {
+	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && !e.catalog && !e.pathMode && e.pick == "" {
 		hit := -1
 		for _, i := range e.hitsAt(p) {
-			if e.doc.Records[i].Kind == "Unit" && (hit < 0 || i == e.selected) {
+			rank := dragRank[e.doc.Records[i].Kind]
+			if rank == 0 || hit >= 0 && hit == e.selected {
+				continue // the selected record wins
+			}
+			if hit < 0 || i == e.selected || rank < dragRank[e.doc.Records[hit].Kind] {
 				hit = i
 			}
 		}
 		if hit >= 0 {
 			r := e.doc.Records[hit]
 			x, y, _ := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
-			e.unitDrag = &editorUnitDrag{record: hit, index: r.Index, press: p, grab: image.Pt(x, y).Sub(r.Cell), cell: r.Cell}
+			e.recordDrag = &editorRecordDrag{kind: r.Kind, record: hit, index: r.Index, press: p, grab: image.Pt(x, y).Sub(r.Cell), cell: r.Cell}
 			e.doc.Viewer.dragging = false
 		}
 	}
-	d := e.unitDrag
+	d := e.recordDrag
 	if d == nil {
 		return false
 	}
@@ -201,7 +207,7 @@ func (e *MapEditor) dragUnit(in Input, p image.Point, rail int) bool {
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 	cell := image.Pt(x, y).Sub(d.grab)
 	if !inside || !ok || !cell.In(image.Rect(0, 0, e.doc.Width, e.doc.Height)) {
-		e.cancelUnitDrag()
+		e.cancelRecordDrag()
 		return true
 	}
 	if math.Abs(float64(p.X-d.press.X)) > 4 || math.Abs(float64(p.Y-d.press.Y)) > 4 {
@@ -212,13 +218,23 @@ func (e *MapEditor) dragUnit(in Input, p image.Point, rail int) bool {
 	}
 	d.cell = cell
 	if !in.PrimaryDown {
-		e.unitDrag = nil
+		e.recordDrag = nil
 		if d.moved {
-			next, err := e.doc.Edits.MoveUnit(d.index, cell)
+			next, err := e.doc.Edits.Move(d.kind, d.index, cell)
 			_ = e.adoptEdit(next, err)
 		} else {
 			e.selectAt(p)
 		}
 	}
 	return true
+}
+
+// adoptPlacements takes the structure and sack layers of a viewer built over
+// the edited map, keeping this viewer's camera, caches and settings.
+func (v *Viewer) adoptPlacements(n *Viewer) {
+	v.grid.Structures = n.grid.Structures
+	v.structuresFlat, v.structuresDisplaced, v.structureCounts = n.structuresFlat, n.structuresDisplaced, n.structureCounts
+	v.structureAnimFlat, v.structureAnimDisplaced = n.structureAnimFlat, n.structureAnimDisplaced
+	v.structureInfo, v.planeOrder = n.structureInfo, n.planeOrder
+	v.sacks = n.sacks
 }

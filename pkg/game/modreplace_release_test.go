@@ -135,7 +135,7 @@ func TestReleaseModReplacesACampaignMission(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.Layout(1280, 800)
-	if d, err := e.Document().Edits.DeleteUnit(index); err != nil || d == nil {
+	if d, err := e.Document().Edits.Delete("Unit", index); err != nil || d == nil {
 		t.Fatalf("delete unit %d: %v", index, err)
 	}
 	if err := e.Key("saveas"); err != nil || e.Dirty() {

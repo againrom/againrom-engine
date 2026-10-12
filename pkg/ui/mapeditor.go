@@ -57,11 +57,14 @@ type InspectionEdits interface {
 	Dirty() bool
 	CanUndo() bool
 	CanRedo() bool
-	MoveUnit(index int, cell image.Point) (*InspectionDocument, error)
-	CloneUnit(index int, cell image.Point) (*InspectionDocument, error)
-	DeleteUnit(index int) (*InspectionDocument, error)
-	UnitFields(index int) []InspectionField
-	SetUnitField(index int, key string, value int64) (*InspectionDocument, error)
+	// Move, Clone, Delete, Fields and SetField address a record by its
+	// InspectionRecord Kind and Index: a unit, a structure, a sack or a stock.
+	Move(kind string, index int, cell image.Point) (*InspectionDocument, error)
+	Clone(kind string, index int, cell image.Point) (*InspectionDocument, error)
+	Delete(kind string, index int) (*InspectionDocument, error)
+	Fields(kind string, index int) []InspectionField
+	SetField(kind string, index int, key string, value int64) (*InspectionDocument, error)
+	AddSack(cell image.Point, item int64) (*InspectionDocument, error)
 	Undo() (*InspectionDocument, error)
 	Redo() (*InspectionDocument, error)
 	SaveAs(path string) (string, error)
@@ -89,15 +92,17 @@ type MapEditor struct {
 	filter                         int
 	catalog, pathMode              bool
 	pathSave                       bool
-	fieldMode, cloning             bool // field prompt in the path modal; next canvas click clones
-	field                          int  // index into the selected unit's fields
+	fieldMode                      bool         // field prompt in the path modal
+	pick                           string       // "clone" or "sack": the next canvas click picks a cell
+	sackCell                       *image.Point // the cell a sack prompt adds to
+	field                          int          // index into the selected record's fields
 	path, message                  string
 	down, moved                    bool
 	press                          image.Point
 	window                         image.Point
 	panelImage                     *ebiten.Image
 	focusedReference               int // 1-based on the selected record; 0 means none
-	unitDrag                       *editorUnitDrag
+	recordDrag                     *editorRecordDrag
 	cancelledDrag                  bool // consume the remainder of a cancelled press
 	textSmoothingEnabled           bool
 	textOverlay                    textOverlay
@@ -152,7 +157,7 @@ func (e *MapEditor) Open(source string) error {
 	e.listWheel, e.detailWheel = 0, 0
 	e.catalog, e.pathMode = false, false
 	e.message = ""
-	e.cancelUnitDrag()
+	e.cancelRecordDrag()
 	e.Fit()
 	return nil
 }
@@ -267,17 +272,17 @@ func (e *MapEditor) Key(key string) error {
 		}
 		return ebiten.Termination
 	case "escape":
-		if e.unitDrag != nil {
-			e.cancelUnitDrag()
+		if e.recordDrag != nil {
+			e.cancelRecordDrag()
 			return nil
 		}
-		if e.cloning {
-			e.cloning = false
+		if e.pick != "" {
+			e.pick = ""
 			e.message = ""
 			return nil
 		}
 		if e.pathMode {
-			e.pathMode, e.fieldMode = false, false
+			e.pathMode, e.fieldMode, e.sackCell = false, false, nil
 			e.message = ""
 			return nil
 		}
@@ -297,14 +302,14 @@ func (e *MapEditor) Key(key string) error {
 		}
 		return ebiten.Termination
 	case "open":
-		e.cancelUnitDrag()
-		e.cloning, e.fieldMode = false, false
+		e.cancelRecordDrag()
+		e.pick, e.fieldMode = "", false
 		e.pathMode = true
 		e.pathSave = false
 		e.path = ""
 		e.message = ""
 	case "catalog":
-		e.cancelUnitDrag()
+		e.cancelRecordDrag()
 		e.catalog = !e.catalog
 		e.offset = 0
 		e.listWheel = 0
@@ -324,16 +329,16 @@ func (e *MapEditor) Key(key string) error {
 			return e.saveIntoMod(m)
 		}
 		if e.editable() {
-			e.cancelUnitDrag()
-			e.cloning, e.fieldMode = false, false
+			e.cancelRecordDrag()
+			e.pick, e.fieldMode = "", false
 			e.pathMode, e.pathSave = true, true
 			e.path, e.message = "", ""
 		}
-	case "clone", "delete", "field", "tab":
-		return e.unitKey(key)
+	case "clone", "delete", "field", "tab", "sack":
+		return e.recordKey(key)
 	case "undo", "redo":
-		e.cancelUnitDrag()
-		e.cloning = false
+		e.cancelRecordDrag()
+		e.pick = ""
 		if e.editable() {
 			if key == "undo" && !e.doc.Edits.CanUndo() || key == "redo" && !e.doc.Edits.CanRedo() {
 				return nil
@@ -393,7 +398,7 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		rail = e.doc.Viewer.cam.ViewW
 	}
 	p := image.Pt(x, y)
-	if e.dragUnit(in, p, rail) {
+	if e.dragRecord(in, p, rail) {
 		return
 	}
 	if in.PrimaryDown && !e.down {
@@ -429,8 +434,8 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	e.doc.Viewer.step(in, now)
 	if released && e.press.X < rail {
-		if e.cloning {
-			e.cloneAt(p)
+		if e.pick != "" {
+			e.pickAt(p)
 			return
 		}
 		e.selectAt(p)
@@ -545,7 +550,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -797,9 +802,12 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			line(row.Text, row.Rect.Min.X, row.Rect.Min.Y, 300, c)
 		}
 	}
-	help := "Drag unit: move / C: clone / Del / E: fields"
-	if e.cloning {
+	help := "Drag: move / C: clone / Del / E: fields / S: sack"
+	switch e.pick {
+	case "clone":
 		help = "Clone: click a cell / Esc: cancel"
+	case "sack":
+		help = "Sack: click a cell / Esc: cancel"
 	}
 	line(editorClip(e.font, help, 300), 10, h-39, 300, editorPaper)
 	line(e.saveHelp(), 10, h-21, 300, editorPaper)
@@ -869,8 +877,8 @@ func (e *MapEditor) markerLines() []editorLine {
 	v := e.doc.Viewer
 	var out []editorLine
 	for i, r := range e.doc.Records {
-		if e.unitDrag != nil && e.unitDrag.moved && i == e.unitDrag.record {
-			r.Cell = e.unitDrag.cell // preview only; no model mutation until release
+		if e.recordDrag != nil && e.recordDrag.moved && i == e.recordDrag.record {
+			r.Cell = e.recordDrag.cell // preview only; no model mutation until release
 		}
 		if !r.Spatial || (r.Warning == "" && i != e.selected) {
 			continue

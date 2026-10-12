@@ -57,6 +57,9 @@ var payloadLengthReferences = nameTable{
 	"editor.go/" + fileScope:         {"payloadSize", "recPayloadSize"},
 	"editor.go/(*Editor).locate":     {"payloadSize", "recPayloadSize"},
 	"unit.go/(*Editor).sizeWordPart": {"recPayloadSize"},
+	// The section walk slices the payload and refuses a walk that does not
+	// consume it exactly; the count it walks is the type-0 word.
+	"section.go/(*Editor).walkSection": {"payloadSize"},
 }
 
 // ---------------------------------------------------------------------------

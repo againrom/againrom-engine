@@ -106,7 +106,7 @@ func TestMapEditorClonesAUnitOntoAClickedCell(t *testing.T) {
 	if err := e.Key("redo"); err != nil || !bytes.Equal(e.Document().SourceBytes, cloned) {
 		t.Fatal("redo did not restore the clone")
 	}
-	if _, err := e.Document().Edits.CloneUnit(0, image.Pt(16, 3)); err == nil || !bytes.Equal(e.Document().SourceBytes, cloned) {
+	if _, err := e.Document().Edits.Clone("Unit", 0, image.Pt(16, 3)); err == nil || !bytes.Equal(e.Document().SourceBytes, cloned) {
 		t.Fatal("a clone outside the map was accepted")
 	}
 }

@@ -2,9 +2,9 @@ package game
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"image"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,62 +51,123 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	return d, err
 }
 
-func (s *mapInspectionEdits) MoveUnit(index int, cell image.Point) (*ui.InspectionDocument, error) {
+// editKinds maps an inspection record kind to the model's record section.
+// A ground sack and a unit's stock are both type-8 records.
+var editKinds = map[string]mapedit.Kind{
+	"Unit": mapedit.KindUnit, "Structure": mapedit.KindStructure,
+	"Sack": mapedit.KindLoot, "Stock": mapedit.KindLoot,
+}
+
+func editKind(kind string) (mapedit.Kind, error) {
+	k, ok := editKinds[kind]
+	if !ok {
+		return 0, fmt.Errorf("a %s record cannot be edited", strings.ToLower(kind))
+	}
+	return k, nil
+}
+
+// cellWords keeps the source's fraction within the cell, as a move does.
+func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
+	return uint32(cell.X)<<8 | x&255, uint32(cell.Y)<<8 | y&255
+}
+
+// Move moves the record onto cell, keeping its fraction within the cell, as
+// one edit.
+func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil, err
+	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		view, err := m.Map()
+		if err := insideMap(m, cell, "destination"); err != nil {
+			return false, err
+		}
+		x, y, err := m.Position(k, index)
 		if err != nil {
 			return false, err
 		}
-		if !cell.In(image.Rect(0, 0, int(view.Width), int(view.Height))) {
-			return false, fmt.Errorf("unit destination is outside the map")
-		}
-		r, err := m.UnitRecord(index)
-		if err != nil {
-			return false, err
-		}
-		x, y := binary.LittleEndian.Uint32(r), binary.LittleEndian.Uint32(r[4:])
-		nx, ny := uint32(cell.X)<<8|x&255, uint32(cell.Y)<<8|y&255
+		nx, ny := cellWords(cell, x, y)
 		if x == nx && y == ny {
 			return false, nil
 		}
-		return true, m.MoveUnit(index, nx, ny)
+		if err := m.Move(k, index, nx, ny); err != nil {
+			return false, err
+		}
+		return true, s.checkPlacement(k, m, index)
 	})
 }
 
-// CloneUnit copies the unit at index onto cell, keeping the source's
-// fraction within the cell, as one edit. mapedit.CloneUnit chooses the id.
-func (s *mapInspectionEdits) CloneUnit(index int, cell image.Point) (*ui.InspectionDocument, error) {
+// Clone copies the record onto cell, keeping the source's fraction within
+// the cell, as one edit. The model's section row chooses the copy's identity.
+func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil, err
+	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		view, err := m.Map()
+		if err := insideMap(m, cell, "clone cell"); err != nil {
+			return false, err
+		}
+		x, y, err := m.Position(k, index)
 		if err != nil {
 			return false, err
 		}
-		if !cell.In(image.Rect(0, 0, int(view.Width), int(view.Height))) {
-			return false, fmt.Errorf("clone cell %d,%d is outside the map", cell.X, cell.Y)
-		}
-		r, err := m.UnitRecord(index)
+		nx, ny := cellWords(cell, x, y)
+		i, err := m.CloneRecord(k, index, nx, ny)
 		if err != nil {
 			return false, err
 		}
-		x, y := binary.LittleEndian.Uint32(r), binary.LittleEndian.Uint32(r[4:])
-		_, err = m.CloneUnit(index, uint32(cell.X)<<8|x&255, uint32(cell.Y)<<8|y&255)
+		return true, s.checkPlacement(k, m, i)
+	})
+}
+
+func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocument, error) {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil, err
+	}
+	return s.change(func(m *mapedit.Editor) (bool, error) {
+		err := m.Delete(k, index)
 		return err == nil, err
 	})
 }
 
-func (s *mapInspectionEdits) DeleteUnit(index int) (*ui.InspectionDocument, error) {
+// AddSack places a new ground sack holding one item on cell, as one edit.
+// Its words sit at the cell's centre and it carries no gold (DIV-3134).
+func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		err := m.DeleteUnit(index)
+		if err := insideMap(m, cell, "sack cell"); err != nil {
+			return false, err
+		}
+		if item <= 0 || item > math.MaxUint16 {
+			return false, fmt.Errorf("item code %d is outside 1..65535", item)
+		}
+		if err := s.checkItem(item); err != nil {
+			return false, err
+		}
+		x, y := cellWords(cell, newSackFraction, newSackFraction)
+		_, err := m.Place(mapedit.KindLoot, m.GroundSack(x, y, uint16(item)))
 		return err == nil, err
 	})
 }
 
-// UnitFields lists the settable fields of the unit at index with their current
-// values, in the order of mapedit's field table.
-func (s *mapInspectionEdits) UnitFields(index int) []ui.InspectionField {
+// newSackFraction is the position within its cell a new sack's words carry.
+const newSackFraction = 128
+
+// Fields lists the settable fields of the record with their current values,
+// in the order of its section's field table.
+func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil
+	}
+	fields, err := s.model.Fields(k, index)
+	if err != nil {
+		return nil
+	}
 	var out []ui.InspectionField
-	for _, f := range mapedit.UnitFields() {
-		v, err := s.model.UnitFieldValue(index, f.Key)
+	for _, f := range fields {
+		v, err := s.model.FieldValue(k, index, f.Key)
 		if err != nil {
 			return nil
 		}
@@ -115,26 +176,105 @@ func (s *mapInspectionEdits) UnitFields(index int) []ui.InspectionField {
 	return out
 }
 
-// SetUnitField writes one field of the unit at index as one edit, after the
-// field's range and its reference check pass on the edited record.
-func (s *mapInspectionEdits) SetUnitField(index int, key string, value int64) (*ui.InspectionDocument, error) {
+// SetField writes one field of the record as one edit, after the field's
+// range, its reference check and the record's placement check pass on the
+// edited map.
+func (s *mapInspectionEdits) SetField(kind string, index int, key string, value int64) (*ui.InspectionDocument, error) {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil, err
+	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		f, ok := mapedit.UnitFieldByKey(key)
-		if !ok {
-			return false, fmt.Errorf("no unit field %q", key)
-		}
-		if old, err := m.UnitFieldValue(index, key); err != nil || old == value {
+		fields, err := m.Fields(k, index)
+		if err != nil {
 			return false, err
 		}
-		if err := m.SetUnitField(index, key, value); err != nil {
+		var f mapedit.Field
+		for _, row := range fields {
+			if row.Key == key {
+				f = row
+			}
+		}
+		if f.Key == "" {
+			return false, fmt.Errorf("no %s field %q", strings.ToLower(kind), key)
+		}
+		if old, err := m.FieldValue(k, index, key); err != nil || old == value {
+			return false, err
+		}
+		if err := m.SetField(k, index, key, value); err != nil {
 			return false, err
 		}
 		view, err := m.Map()
 		if err != nil {
 			return false, err
 		}
-		return true, checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
+		switch f.Check {
+		case mapedit.CheckStructureKind:
+			err = s.checkStructureKind(value)
+		case mapedit.CheckItemCode:
+			if value != 0 {
+				err = s.checkItem(value)
+			}
+		case mapedit.CheckRosterSlot, mapedit.CheckClassKey, mapedit.CheckDefinitionID:
+			err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
+		}
+		if err != nil {
+			return false, err
+		}
+		return true, s.checkPlacement(k, m, index)
 	})
+}
+
+func insideMap(m *mapedit.Editor, cell image.Point, what string) error {
+	view, err := m.Map()
+	if err != nil {
+		return err
+	}
+	if !cell.In(image.Rect(0, 0, int(view.Width), int(view.Height))) {
+		return fmt.Errorf("%s %d,%d is outside the map", what, cell.X, cell.Y)
+	}
+	return nil
+}
+
+// checkPlacement refuses a structure whose footprint, as the world builds it
+// from the installed tables, leaves the map.
+func (s *mapInspectionEdits) checkPlacement(k mapedit.Kind, m *mapedit.Editor, index int) error {
+	if k != mapedit.KindStructure {
+		return nil
+	}
+	view, err := m.Map()
+	if err != nil {
+		return err
+	}
+	st := mapload.Structures(view, s.inspector.table)[index]
+	r := image.Rect(int(st.Col), int(st.Row), int(st.Col)+max(1, int(st.Width)), int(st.Row)+max(1, int(st.Height)))
+	if !r.In(image.Rect(0, 0, view.Width, view.Height)) {
+		return fmt.Errorf("structure footprint %d,%d %dx%d leaves the map", r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	}
+	return nil
+}
+
+// checkStructureKind refuses a kind the installed structures.reg does not
+// hold. A class a mod adds is not consulted.
+func (s *mapInspectionEdits) checkStructureKind(kind int64) error {
+	set := s.inspector.structures
+	if set == nil || kind <= 0 || kind >= int64(len(set.Classes)) || set.Classes[kind] == nil {
+		return fmt.Errorf("structure kind %d is not in the installed structures.reg", kind)
+	}
+	return nil
+}
+
+// checkItem refuses an item code the installed item-name table does not
+// name (DIV-3134). An item a mod adds is not consulted.
+func (s *mapInspectionEdits) checkItem(code int64) error {
+	t := s.inspector.table
+	if t == nil {
+		return fmt.Errorf("no installed tables to check item code %d against", code)
+	}
+	if _, ok := t.Names.NameFor(data.ItemCode(code)); !ok {
+		return fmt.Errorf("item code %d names no installed item", code)
+	}
+	return nil
 }
 
 // checkUnitField runs a field's reference check against the edited map and

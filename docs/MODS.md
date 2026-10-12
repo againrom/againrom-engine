@@ -211,9 +211,10 @@ second-game install, the starter shows the editor's error and opens nothing.
 A folder that is not an install and a missing `mapedit` are refused with the
 starter's message. From a terminal, `mapedit -assets <install>` opens the same
 window. It opens with the install's map list. The editor's own help names its
-keys: PgUp and PgDn page the list; dragging a unit moves it and dragging the
-ground pans; C clones the selected unit (click a cell; Esc cancels), Del
-deletes it, and E edits its fields (Tab: next field, Enter: set); Ctrl+Z
+keys: PgUp and PgDn page the list; dragging a unit, structure or sack moves
+it and dragging the ground pans; C clones the selected unit, structure or
+sack (click a cell; Esc cancels), Del deletes it, E edits its fields (Tab:
+next field, Enter: set), and S adds a sack on the next clicked cell; Ctrl+Z
 undoes, Ctrl+Y redoes and Ctrl+S asks for a new `.alm` path to save a copy
 (Enter saves); Enter opens a typed ALM path; Esc goes back. The
 editor never writes into an install.

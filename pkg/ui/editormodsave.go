@@ -22,8 +22,8 @@ func (e *MapEditor) modSave() (InspectionModSave, bool) {
 
 // saveIntoMod is Save into the host's mod; a refusal stays on screen.
 func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
-	e.cancelUnitDrag()
-	e.cloning, e.fieldMode = false, false
+	e.cancelRecordDrag()
+	e.pick, e.sackCell, e.fieldMode = "", nil, false
 	source, err := m.SaveIntoMod()
 	if err != nil {
 		e.message = err.Error()

@@ -1,0 +1,180 @@
+package mapedit
+
+import (
+	"encoding/binary"
+	"fmt"
+	"math"
+)
+
+// FieldCheck names the reference check a host runs on a set value beyond the
+// field's own range. This package knows no installed table or roster, so it
+// states which check a field needs and the host performs it.
+type FieldCheck int
+
+const (
+	CheckRangeOnly     FieldCheck = iota // the range below is the whole rule
+	CheckRosterSlot                      // a 1-based slot in the type-5 roster (ALM-OWN-039)
+	CheckClassKey                        // a class key the installed tables hold (ALM-CLS-038)
+	CheckDefinitionID                    // zero, or a definition id the installed tables hold
+	CheckStructureKind                   // an ID the installed structures.reg holds (ALM-CLS-036)
+	CheckItemCode                        // an item code the installed item tables hold; 0 passes
+)
+
+// Field is one settable integer field of a record, at a record-relative
+// offset. A field with Element set is one element of a repeated list whose
+// u32 count sits at Counter: 0 removes the element, and the row whose Offset
+// is the record's end appends one.
+type Field struct {
+	Key      string // stable name a caller addresses the field by
+	Label    string // window text
+	Offset   int
+	Width    int // 1, 2 or 4 bytes, little-endian
+	Signed   bool
+	Min, Max int64
+	Check    FieldCheck
+	Element  int
+	Counter  int
+}
+
+// UnitField and UnitFieldCheck are the type-6 names of Field and FieldCheck.
+type (
+	UnitField      = Field
+	UnitFieldCheck = FieldCheck
+)
+
+// unitFields is the one table of type-6 fields a caller may set. Offsets are
+// file offsets into the record (ALM-UNIT-040).
+var unitFields = []Field{
+	{Key: "owner", Label: "Owner slot", Offset: 0x14, Width: 4, Min: 1, Max: math.MaxUint32, Check: CheckRosterSlot},
+	{Key: "class", Label: "Class", Offset: 0x08, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16, Check: CheckClassKey},
+	{Key: "definition", Label: "Definition id", Offset: 0x10, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckDefinitionID},
+	{Key: "hp", Label: "Hit points (-1 = default)", Offset: 0x20, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+}
+
+// Fields returns the settable fields of k's record i in window order.
+func (e *Editor) Fields(k Kind, i int) ([]Field, error) {
+	w, err := e.walkIndex(k, "list the fields of", i)
+	if err != nil {
+		return nil, err
+	}
+	at, l := w.at(i)
+	return w.sec.fields(e, e.data[at:at+l]), nil
+}
+
+func fieldByKey(fields []Field, key string) (Field, bool) {
+	for _, f := range fields {
+		if f.Key == key {
+			return f, true
+		}
+	}
+	return Field{}, false
+}
+
+// FieldValue reads the field named key of k's record i. The appending row
+// reads 0.
+func (e *Editor) FieldValue(k Kind, i int, key string) (int64, error) {
+	rec, err := e.Record(k, i)
+	if err != nil {
+		return 0, err
+	}
+	f, ok := fieldByKey(sections[k].fields(e, rec), key)
+	if !ok {
+		return 0, fmt.Errorf("mapedit: no %s field %q", sections[k].name, key)
+	}
+	if f.Offset >= len(rec) {
+		return 0, nil
+	}
+	return f.decode(rec[f.Offset:]), nil
+}
+
+// SetField writes v into the field named key of k's record i as one edit. A
+// value outside the field's range is refused and writes nothing; the field's
+// Check is the caller's to run. A write that keeps the record's length edits
+// the field's bytes alone; one that adds or removes an element, or the 0x21
+// extension, replaces the record and moves the payloadSize word.
+func (e *Editor) SetField(k Kind, i int, key string, v int64) error {
+	w, err := e.walkIndex(k, "set a field of", i)
+	if err != nil {
+		return err
+	}
+	at, l := w.at(i)
+	rec := e.data[at : at+l]
+	f, ok := fieldByKey(w.sec.fields(e, rec), key)
+	if !ok {
+		return fmt.Errorf("mapedit: no %s field %q", w.sec.name, key)
+	}
+	if v < f.Min || v > f.Max {
+		return fmt.Errorf("mapedit: %s %d is outside %d..%d", f.Label, v, f.Min, f.Max)
+	}
+	if f.Offset >= l && v == 0 {
+		return fmt.Errorf("mapedit: %s 0 adds nothing", f.Label)
+	}
+	next := f.write(rec, v)
+	if w.sec.reshape != nil {
+		next = w.sec.reshape(next)
+	}
+	if w.sec.length(e, next) != len(next) {
+		return fmt.Errorf("mapedit: %s %d would not be one type-%d record", f.Label, v, w.sec.typeID)
+	}
+	if len(next) == l {
+		p := at + f.Offset
+		e.apply(edit{replace(p, e.data[p:p+f.Width], next[f.Offset:f.Offset+f.Width])})
+		return nil
+	}
+	e.apply(edit{replace(at, rec, next), e.sizeWordPart(w.span, len(next)-l)})
+	return nil
+}
+
+// write returns a fresh copy of rec with v written into f: in place, as a
+// new element at the record's end, or, for an element set to 0, without it.
+func (f Field) write(rec []byte, v int64) []byte {
+	out := cloneBytes(rec)
+	if f.Element == 0 {
+		f.put(out[f.Offset:], v)
+		return out
+	}
+	count := binary.LittleEndian.Uint32(out[f.Counter:])
+	switch {
+	case f.Offset >= len(rec):
+		if v == 0 {
+			return out
+		}
+		el := make([]byte, f.Element)
+		f.put(el, v)
+		out = append(out, el...)
+		count++
+	case v == 0:
+		out = append(out[:f.Offset], out[f.Offset+f.Element:]...)
+		count--
+	default:
+		f.put(out[f.Offset:], v)
+	}
+	binary.LittleEndian.PutUint32(out[f.Counter:], count)
+	return out
+}
+
+func (f Field) put(b []byte, v int64) {
+	switch f.Width {
+	case 1:
+		b[0] = byte(v)
+	case 2:
+		binary.LittleEndian.PutUint16(b, uint16(v))
+	default:
+		binary.LittleEndian.PutUint32(b, uint32(v))
+	}
+}
+
+func (f Field) decode(b []byte) int64 {
+	switch {
+	case f.Width == 1:
+		return int64(b[0])
+	case f.Width == 2 && f.Signed:
+		return int64(int16(binary.LittleEndian.Uint16(b)))
+	case f.Width == 2:
+		return int64(binary.LittleEndian.Uint16(b))
+	case f.Signed:
+		return int64(int32(binary.LittleEndian.Uint32(b)))
+	default:
+		return int64(binary.LittleEndian.Uint32(b))
+	}
+}

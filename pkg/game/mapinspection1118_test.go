@@ -240,14 +240,14 @@ func TestMapEditor1118MalformedBoundsAndNoopAreAtomic(t *testing.T) {
 	_, e, _ := open1118(t, b)
 	d := e.Document()
 	for _, cell := range []image.Point{image.Pt(-1, 4), image.Pt(32, 4), image.Pt(3, 32)} {
-		if next, err := d.Edits.MoveUnit(0, cell); err == nil || next != nil || d.Edits.CanUndo() || !bytes.Equal(b, d.SourceBytes) {
+		if next, err := d.Edits.Move("Unit", 0, cell); err == nil || next != nil || d.Edits.CanUndo() || !bytes.Equal(b, d.SourceBytes) {
 			t.Fatal("out-of-bounds accepted or changed history")
 		}
 	}
-	if _, err := d.Edits.MoveUnit(999, image.Pt(1, 1)); err == nil {
+	if _, err := d.Edits.Move("Unit", 999, image.Pt(1, 1)); err == nil {
 		t.Fatal("invalid file-order index accepted")
 	}
-	if next, err := d.Edits.MoveUnit(0, image.Pt(3, 4)); err != nil || next != nil || d.Edits.CanUndo() {
+	if next, err := d.Edits.Move("Unit", 0, image.Pt(3, 4)); err != nil || next != nil || d.Edits.CanUndo() {
 		t.Fatal("no-op recorded")
 	}
 	bad := filepath.Join(t.TempDir(), "bad.alm")

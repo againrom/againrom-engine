@@ -30,7 +30,7 @@ func (p *editProbe1118) Redo() (*InspectionDocument, error) {
 	return nil, nil
 }
 func (p *editProbe1118) SaveAs(string) (string, error) { return "", fmt.Errorf("test writer refused") }
-func (p *editProbe1118) MoveUnit(index int, cell image.Point) (*InspectionDocument, error) {
+func (p *editProbe1118) Move(_ string, index int, cell image.Point) (*InspectionDocument, error) {
 	p.index, p.dirty = index, true
 	next := *p.doc
 	next.Records = append([]InspectionRecord(nil), next.Records...)

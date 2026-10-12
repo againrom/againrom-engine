@@ -21,7 +21,7 @@ type editorTextEdits struct {
 func (*editorTextEdits) Dirty() bool   { return false }
 func (*editorTextEdits) CanUndo() bool { return false }
 func (*editorTextEdits) CanRedo() bool { return false }
-func (p *editorTextEdits) MoveUnit(int, image.Point) (*InspectionDocument, error) {
+func (p *editorTextEdits) Move(string, int, image.Point) (*InspectionDocument, error) {
 	p.moves++
 	return nil, nil
 }

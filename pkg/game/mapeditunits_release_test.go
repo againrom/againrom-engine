@@ -160,14 +160,14 @@ func TestReleaseMapEditorUnitAuthoringPlaysAsModMission(t *testing.T) {
 				t.Fatalf("edit refused: %v", err)
 			}
 		}
-		apply(docs.CloneUnit(p.S, p.Cell))
+		apply(docs.Clone("Unit", p.S, p.Cell))
 		for _, f := range []struct {
 			key string
 			v   int64
 		}{{"owner", int64(p.Owner)}, {"class", int64(p.Class)}, {"definition", int64(p.Def)}, {"hp", int64(p.HP)}} {
-			apply(docs.SetUnitField(p.C, f.key, f.v))
+			apply(docs.SetField("Unit", p.C, f.key, f.v))
 		}
-		apply(docs.DeleteUnit(p.D))
+		apply(docs.Delete("Unit", p.D))
 	})
 	after, built := guestWorld(t, edited)
 	clone := byMapUnitID(after, p.CloneID)
@@ -266,10 +266,10 @@ func TestReleaseMapEditorCloneNeverTakesADeletedScriptedUnitID(t *testing.T) {
 	e.Layout(1280, 800)
 	edits := e.Document().Edits
 	cell := image.Pt(int(m.Units[src].X>>8)+1, int(m.Units[src].Y>>8))
-	if d, err := edits.DeleteUnit(del); err != nil || d == nil {
+	if d, err := edits.Delete("Unit", del); err != nil || d == nil {
 		t.Fatalf("delete refused: %v", err)
 	}
-	if d, err := edits.CloneUnit(src, cell); err != nil || d == nil {
+	if d, err := edits.Clone("Unit", src, cell); err != nil || d == nil {
 		t.Fatalf("clone refused: %v", err)
 	}
 	out := filepath.Join(t.TempDir(), "edited.alm")

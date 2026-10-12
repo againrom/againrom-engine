@@ -1,7 +1,8 @@
 // Package mapedit is the headless edit model over one accepted ROM1 .alm map:
 // typed mutations — paint a grid cell, edit a type-0 field, place, clone, move
-// and delete a unit, set a unit field from one table — with undo and redo, and every byte the caller did not ask to
-// change carried out of the file it was loaded from.
+// and delete a unit, structure or loot record and set its fields, all through
+// one section table (section.go) — with undo and redo, and every byte the
+// caller did not ask to change carried out of the file it was loaded from.
 //
 // Preservation by carrying, not by regeneration. A mutation partitions the
 // loaded bytes into the target region it deliberately edits and the carried
@@ -34,10 +35,10 @@
 // many that map's own count word advertises; and no mutation here adds or
 // removes a record, so the file header's record count never changes.
 //
-// Units cross this boundary as bytes and nothing else: a record is read as a
-// 70-byte copy and placed as a complete 70-byte record from the caller, so no
-// call here can invent the 50 bytes the decoded view does not expose. The
-// cheap way to a valid record is to clone one. A unit is addressed by its
+// Records cross this boundary as bytes and nothing else: a record is read as
+// a copy and placed as one complete record of its section's grammar, so no
+// call here can invent the bytes the decoded view does not expose. The cheap
+// way to a valid record is to clone one. A record is addressed by its kind and
 // file-order index, and a delete shifts the later indices down.
 //
 // Scope is the version-990 dialect pkg/formats/alm accepts. The editor is a
