@@ -34,10 +34,12 @@ type secondCampaign struct {
 	available []secondLocation
 	current   secondLocation
 	room      secondTownRoom
-	selected  secondLocation
 	payload   []byte
 	part      int
 	shop      secondShop
+	// mapOpen is the map's current opening (openMap); nil while the party
+	// stands at a location and after a LOAD at the map.
+	mapOpen *secondMapOpening
 }
 
 func newSecondCampaign() *secondCampaign {
@@ -71,6 +73,7 @@ func (c *secondCampaign) leaveTown() bool {
 		}
 		c.available = remaining
 	}
+	c.openMap(c.current)
 	c.current = secondLocation{}
 	return true
 }
@@ -214,8 +217,8 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 			}
 		}
 	}
-	c.current = secondLocation{}
-	c.selected, c.room = secondLocation{}, secondTownSquare
+	c.openMap(c.current)
+	c.current, c.room = secondLocation{}, secondTownSquare
 	return output
 }
 
@@ -229,6 +232,13 @@ type secondCampaignScreen struct {
 	tags eventTags
 	// composed is the composed town's presentation.
 	composed *secondTownState
+	// mapArt is the install's world-map art; worldMap is the open map, built
+	// for one opening of one campaign.
+	mapArt     func() *worldMapAssets
+	worldMap   *worldMapState
+	worldMapOf *secondCampaign
+	// worldMapAt is the opening worldMap was built for.
+	worldMapAt *secondMapOpening
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -248,7 +258,7 @@ func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
 	return &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
 		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
-		composed: newSecondTownState(f)}
+		composed: newSecondTownState(f), mapArt: f.worldMapAssets}
 }
 
 func (t *secondCampaignScreen) StartNewGame() error {
@@ -300,18 +310,7 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 		}
 		return append(rows, gates)
 	}
-	var rows []ui.TownRow
-	for _, location := range c.available {
-		name := "mission"
-		if location.kind == 2 {
-			name = "town"
-		}
-		rows = append(rows, ui.TownRow{Text: fmt.Sprintf("%s %d", name, location.id), Choosable: true})
-	}
-	if c.has(c.selected) {
-		rows = append(rows, ui.TownRow{Text: "ENTER", Choosable: c.current == (secondLocation{})}, ui.TownRow{Text: "CANCEL", Choosable: true})
-	}
-	return rows
+	return nil
 }
 
 func (t *secondCampaignScreen) Footer() []string {
@@ -338,17 +337,6 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 		return t.chooseComposed(d, c, i)
 	}
 	if c.current.kind != 2 {
-		if i < len(c.available) {
-			c.selected = c.available[i]
-		} else if i == len(c.available) {
-			if c.selected.kind == 2 {
-				c.current, c.selected, c.room = c.selected, secondLocation{}, secondTownSquare
-				return ui.TownAction{}
-			}
-			return ui.TownAction{Open: t.open(c.selected.id)}
-		} else {
-			c.selected = secondLocation{}
-		}
 		return ui.TownAction{}
 	}
 	if i == len(rows)-1 {
@@ -383,10 +371,6 @@ func (t *secondCampaignScreen) Back() bool {
 	}
 	if c.payload != nil {
 		t.AdvanceTownDialogue()
-		return true
-	}
-	if c.selected != (secondLocation{}) {
-		c.selected = secondLocation{}
 		return true
 	}
 	if d, ok := t.composedTown(); ok {
@@ -446,13 +430,12 @@ func (t *secondCampaignScreen) AdvanceTownDialogue() ui.TownAction {
 func (t *secondCampaignScreen) CanSave() bool { return t.state().savePoint() }
 
 func (c *secondCampaign) savePoint() bool {
-	return c != nil && c.selected == (secondLocation{}) && c.payload == nil && c.part == 0 && captureSecondCampaign(c).validateTown() == nil
+	return c != nil && c.payload == nil && c.part == 0 && captureSecondCampaign(c).validateTown() == nil
 }
 
-// noticePending reports whether the campaign holds an open dialogue or a
-// selected destination; no campaign holds neither.
+// noticePending reports whether the campaign holds an open dialogue.
 func (c *secondCampaign) noticePending() bool {
-	return c != nil && (c.payload != nil || c.part != 0 || c.selected != (secondLocation{}))
+	return c != nil && (c.payload != nil || c.part != 0)
 }
 
 // readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a

@@ -30,12 +30,7 @@ func secondTownTwo(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *ti
 	c := f.Town.second
 	c.current, c.available, c.room = secondLocation{}, []secondLocation{{2, 2}}, secondTownSquare
 	c.bank[768] = 30
-	// A held selection makes Back rebuild the rows from the placed state.
-	c.selected = secondLocation{2, 2}
-	if err := app.HeadlessKey("escape"); err != nil || c.selected != (secondLocation{}) {
-		t.Fatal("destination Back", err)
-	}
-	for _, row := range []string{"town 2", "ENTER"} {
+	for _, row := range []string{"town 2"} {
 		if err := app.HeadlessActivate(row); err != nil {
 			t.Fatal(row, err)
 		}

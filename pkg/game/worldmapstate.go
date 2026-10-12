@@ -174,21 +174,6 @@ func (s *worldMapState) aim(p image.Point) {
 	s.route = worldMapRoute(s.graph(), s.current, s.missions[best].Anchor, worldMapFallbackStep)
 }
 
-// press is a nearest-pick press: it skips a running travel, or starts the
-// travel to the target.
-func (s *worldMapState) press() {
-	if s.travelling() {
-		s.skipTravel()
-		return
-	}
-	if s.hovered >= 0 {
-		route := s.route
-		if s.startTravel(s.hovered) && len(route) > 0 {
-			s.route = route
-		}
-	}
-}
-
 // tick advances one paint: the party and marker counters, and while a travel
 // runs the Cross counter by one and the route reveal by 8 coordinates,
 // clamped to the route's own length (`TOWN-120`, R2-ENGINE-432). It reports
@@ -198,6 +183,7 @@ func (s *worldMapState) tick() bool {
 	s.frame++
 	s.marks++
 	if !s.travelling() {
+		s.openTravel()
 		return false
 	}
 	s.cross++
@@ -205,8 +191,9 @@ func (s *worldMapState) tick() bool {
 	return s.shown >= len(s.route) && s.crossPassedEnd()
 }
 
-// openTravel opens the map travelling to its first record when its mode
-// says so (R2-ENGINE-272, R2-ENGINE-432).
+// openTravel starts the travel to the first record when the mode says so
+// and none runs: the map opens travelling, and a paint with no travel starts
+// it again (R2-ENGINE-272, R2-ENGINE-432).
 func (s *worldMapState) openTravel() {
 	if s.modeSpec().Travel == "first" && len(s.missions) > 0 {
 		s.startTravel(0)
@@ -248,6 +235,7 @@ func (s *worldMapState) view(in worldMapViewInput) ui.WorldMapView {
 		return v
 	}
 	v.FlagAt, v.CrossAt, v.AvailableAt = mode.Party.place(), d.Cross.place(), d.Task.place()
+	v.PointerPicks = d.Pick == "nearest"
 	// Rule markers stand over the route dots (R2-ENGINE-429); registry
 	// pictures are whole-map overlays beneath them.
 	v.MarkersOverRoute = len(d.Markers) > 0
@@ -273,10 +261,14 @@ func (s *worldMapState) view(in worldMapViewInput) ui.WorldMapView {
 
 // marker is record i's marker by the description's rules (R2-ENGINE-430):
 // the target's rule at the target, the other rule at every other record not
-// at the party's point.
+// at the party's point. A disabled record has no point and no marker
+// (DIV-3073).
 func (s *worldMapState) marker(i int) (image.Image, ui.WorldMapPlace) {
 	d := s.desc()
 	m := s.missions[i]
+	if !m.Enabled {
+		return nil, ui.WorldMapPlace{}
+	}
 	for k, r := range d.Markers {
 		target := s.hovered >= 0 && s.hovered < len(s.missions) && s.missions[s.hovered].Anchor == m.Anchor
 		switch {

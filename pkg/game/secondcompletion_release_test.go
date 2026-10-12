@@ -200,7 +200,7 @@ func TestReleaseSecondGameFirstSuccessPresentation(t *testing.T) {
 		}
 	}
 	checkCompletionDestination(t, f, a, m, tick, hash)
-	t.Logf("ordinary first-success report->teleport/01.smk sha256=%x frames=167 rendered=167 selected-independent-RGBA=3 final-black=yes PCM=%d sha256=%x start/stop=1/1 destination=available20 tick=%d unchanged", sha256.Sum256(media), len(pcm), sha256.Sum256(pcm), tick)
+	t.Logf("ordinary first-success report->teleport/01.smk sha256=%x frames=167 rendered=167 selected-independent-RGBA=3 final-black=yes PCM=%d sha256=%x start/stop=1/1 destination=mission20 tick=%d unchanged", sha256.Sum256(media), len(pcm), sha256.Sum256(pcm), tick)
 }
 
 type completionAudio struct {
@@ -251,22 +251,19 @@ func compareFirstMovieFrame(t *testing.T, got *image.RGBA, ref []byte, n uint32)
 
 func checkCompletionDestination(t *testing.T, f *FrontEnd, a *ui.App, m *mapWorld, tick, hash uint64) {
 	t.Helper()
-	if a.Screen() != ui.ScreenTown || f.live != nil || m.world.Tick() != tick || m.world.Hash() != hash {
-		t.Fatalf("movie destination=%s live=%v tick=%d/%d", a.Screen(), f.live != nil, m.world.Tick(), tick)
+	// No town is available after mission 10, so the movie's end enters
+	// mission 20 without the map (R2-ENGINE-422).
+	if a.Screen() != ui.ScreenMap || f.live == nil || f.live == m || f.liveMission != 20 || m.world.Tick() != tick || m.world.Hash() != hash {
+		t.Fatalf("movie destination=%s mission=%d tick=%d/%d", a.Screen(), f.liveMission, m.world.Tick(), tick)
 	}
 	c := f.Town.second
-	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{kind: 1, id: 20}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
 		t.Fatal("campaign did not advance exactly once", c)
 	}
-	before := *c
-	if err := a.HeadlessCutsceneStep(""); err != nil {
-		t.Fatal(err)
-	}
-	if err := a.HeadlessActivate("notice"); err == nil {
-		t.Fatal("duplicate acknowledgement found a notice")
-	}
-	if !reflect.DeepEqual(before, *c) {
-		t.Fatal("duplicate acknowledgement advanced campaign")
+	before, live := *c, f.live
+	_ = a.HeadlessCutsceneStep("")
+	if !reflect.DeepEqual(before, *c) || f.live != live || f.liveMission != 20 {
+		t.Fatal("a duplicate acknowledgement advanced the campaign")
 	}
 }
 
@@ -397,7 +394,7 @@ func TestReleaseSecondGameFirstMovieControls(t *testing.T) {
 				}
 			}
 			checkCompletionDestination(t, f, a, m, tick, hash)
-			for presses := 0; a.Screen() == ui.ScreenTown && presses < 4; presses++ {
+			for presses := 0; a.Screen() != ui.ScreenGameMenu && presses < 4; presses++ {
 				if err := a.HeadlessKey("escape"); err != nil {
 					t.Fatal(err)
 				}

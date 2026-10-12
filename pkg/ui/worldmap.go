@@ -104,7 +104,10 @@ type WorldMapView struct {
 	// instead of before them.
 	MarkersOverRoute bool
 	// Text is drawn last, over every sprite, when present.
-	Text          *WorldMapTextBlock
+	Text *WorldMapTextBlock
+	// PointerPicks reports that the pointer targets the nearest record and a
+	// press travels to it, rather than the scroll cards choosing.
+	PointerPicks  bool
 	Scroll        [3]image.Image
 	Pressed       [3]image.Image
 	Font          *rendertext.Font

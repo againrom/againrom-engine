@@ -31,12 +31,7 @@ func secondTownThree(t *testing.T, stage int32) (*FrontEnd, *ui.App, *secondCamp
 	c := f.Town.second
 	c.current, c.available, c.room = secondLocation{}, []secondLocation{{2, 3}, {1, 70}}, secondTownSquare
 	c.bank[768] = stage
-	// A held selection makes Back rebuild the rows from the placed state.
-	c.selected = secondLocation{2, 3}
-	if err := app.HeadlessKey("escape"); err != nil || c.selected != (secondLocation{}) {
-		t.Fatal("destination Back", err)
-	}
-	for _, row := range []string{"town 3", "ENTER"} {
+	for _, row := range []string{"town 3"} {
 		if err := app.HeadlessActivate(row); err != nil {
 			t.Fatal(row, err)
 		}
@@ -679,7 +674,7 @@ func TestReleaseSecondTownDruidColdLoadKeepsTheRoom(t *testing.T) {
 			}
 			secondTownAssertSample(t, before, secondTownSampleNow(t, cold, coldApp))
 			for _, a := range []*ui.App{app, coldApp} {
-				targets := []string{"GATES", "mission 70", "ENTER"}
+				targets := []string{"GATES", "mission 70"}
 				if room == secondTownInn {
 					targets = append([]string{secondInnExit}, targets...)
 				}

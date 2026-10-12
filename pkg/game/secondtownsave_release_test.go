@@ -235,18 +235,11 @@ func secondTownEnter(t *testing.T, f *FrontEnd, app *ui.App) {
 		}
 	}
 	party := mapload.CloneParty(f.Carried)
-	for _, target := range []string{"mission 10", "CANCEL"} {
-		if err := app.HeadlessActivate(target); err != nil {
-			t.Fatal(err)
-		}
-	}
 	if c.bank != bank || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{1, 10}}) || !reflect.DeepEqual(party, f.Carried) {
-		t.Fatal("cancelled destination changed town inputs")
+		t.Fatal("leaving town 1 changed town inputs")
 	}
-	for _, target := range []string{"mission 10", "ENTER"} {
-		if err := app.HeadlessActivate(target); err != nil {
-			t.Fatal(err)
-		}
+	if err := app.HeadlessActivate("mission 10"); err != nil {
+		t.Fatal(err)
 	}
 	if app.Screen() != ui.ScreenMap || f.liveMission != 10 || f.live.mission.resumed {
 		t.Fatal("ordinary initial departure did not start mission 10")
@@ -464,7 +457,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if _, _, err := f.RestoreOriginal(reference); err != nil {
 		t.Fatal(err)
 	}
-	if _, open := f.TownScreen().(ui.TownDialogueScreen).TownDialogue(); open || f.Town.second.selected != (secondLocation{}) {
+	if _, open := f.TownScreen().(ui.TownDialogueScreen).TownDialogue(); open {
 		t.Fatal("valid LOAD retained stale modal")
 	}
 	if err := app.HeadlessKey("f9"); err != nil {
@@ -472,16 +465,16 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	}
 	secondTownDismissAck(t, app)
 	secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
-	for _, target := range []string{"EXIT", "GATES", "mission 10"} {
+	for _, target := range []string{"EXIT", "GATES"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if f.Town.second.selected == (secondLocation{}) {
-		t.Fatal("destination was not selected")
+	if f.Town.second.current != (secondLocation{}) {
+		t.Fatal("the global map did not open")
 	}
 	if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad {
-		t.Fatal("ordinary LOAD from selected destination", err, app.Screen())
+		t.Fatal("ordinary LOAD from the global map", err, app.Screen())
 	}
 	_, list, _ := f.SaveSeams(SaveStore{Dir: out}, OriginalStore{}, nil)
 	label := ""
@@ -496,8 +489,8 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if err := app.HeadlessActivate(label); err != nil {
 		t.Fatal(err)
 	}
-	if f.Town.second.selected != (secondLocation{}) {
-		t.Fatal("ordinary named LOAD retained stale selection")
+	if f.Town.second.current == (secondLocation{}) {
+		t.Fatal("ordinary named LOAD kept the global map open")
 	}
 	secondTownDismissAck(t, app)
 	secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
@@ -508,7 +501,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	app.FlushBackground()
 	cold, a = secondTownCold(t, out, string(timedSaveBase(0))+".sav")
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
-	t.Log("F4/cold App LOAD; F9; SaveSeams; compat exporters; detached room/TALK/party/bank; timed city autosave/cold LOAD; stale modal/selection cleared")
+	t.Log("F4/cold App LOAD; F9; SaveSeams; compat exporters; detached room/TALK/party/bank; timed city autosave/cold LOAD; stale modal and map cleared")
 }
 
 func secondTownChangeJSON(t *testing.T, raw []byte, change func(map[string]any)) []byte {

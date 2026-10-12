@@ -941,6 +941,9 @@ pkg/game.TestReleaseCurrentSkillInverseClass
 
 pkg/game.TestReleaseSecondCampaignFirstRoute
 pkg/game.TestReleaseSecondCampaignFailureDoesNotLeave
+pkg/game.TestReleaseSecondCampaignWorldMapRouteMode
+pkg/game.TestReleaseSecondCampaignWorldMapSkip
+pkg/game.TestReleaseSecondCampaignWorldMapSelectMode
 pkg/game.TestReleaseSecondGameFirstSuccessPresentation
 pkg/game.TestReleaseSecondGameFirstMovieControls
 pkg/video/smacker.TestReleaseSecondGameFirstMovieAgainstOracles

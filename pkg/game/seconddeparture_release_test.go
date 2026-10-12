@@ -90,7 +90,7 @@ func secondLaterAssertGraph(t *testing.T, want, got *cityObjectTopology, generat
 
 func secondLaterTownAction(t *testing.T, app *ui.App) {
 	t.Helper()
-	secondLaterChoose(t, app, "GATES", "town 2", "CANCEL", "town 2", "ENTER")
+	secondLaterChoose(t, app, "GATES", "town 2")
 }
 
 func secondLaterColdProof(t *testing.T, path string) {
@@ -316,7 +316,7 @@ func secondTwentyWin(t *testing.T, f *FrontEnd, app *ui.App, unlock bool) {
 func secondLaterMissionProof(t *testing.T, f *FrontEnd, app *ui.App, cold *FrontEnd, a *ui.App, out string) {
 	t.Helper()
 	for _, app := range []*ui.App{app, a} {
-		secondLaterChoose(t, app, "GATES", "mission 21", "CANCEL", "mission 21", "ENTER")
+		secondLaterChoose(t, app, "GATES", "mission 21")
 	}
 	if f.liveMission != 21 || cold.liveMission != 21 {
 		t.Fatal("available21 did not enter")
@@ -400,7 +400,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 							break
 						}
 					}
-					secondLaterChoose(t, app, "EXIT", "GATES", "mission 10", "ENTER")
+					secondLaterChoose(t, app, "EXIT", "GATES", "mission 10")
 					enterSecondCampaignNextMission(t, f, app, false)
 					if enriched {
 						f.live.world.SetPurse(sim.SelfSlot, 913)
@@ -468,7 +468,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 					if app.HeadlessActivate("notice") == nil || !reflect.DeepEqual(before, captureSecondCampaign(c)) {
 						t.Fatal("duplicate acknowledgement advanced again")
 					}
-					secondLaterChoose(t, app, "town 2", "CANCEL", "town 2", "ENTER")
+					secondLaterChoose(t, app, "town 2")
 					if app.HeadlessActivate("TALK 517") == nil {
 						t.Fatal("town2 reused the first-town talk")
 					}

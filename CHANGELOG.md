@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM2] The global map replaces the list of destinations. Leaving the first town shows the road to the first mission and the party walks it by itself; leaving any other town, or winning a mission, opens the map with every place you can go marked by a flag. Point at a flag to see the place's name, its description and the road there; click to set off. A click or a key during the walk skips to its end, and the party enters the place it reached. The map has no cancel, as in the original.
+- [ROM2] After the first mission the party goes straight on to the next one, as in the original, because no town is open yet.
+
 ## 0.117.0
 
 - [ROM2] Blizzard works: creatures that know it now cast it. The storm strikes 32 times, one cell after another around its target, hurting everyone there (water protection softens it, and the caster's own side is not spared) and damaging buildings. A save made during a Blizzard loads with the storm still going.

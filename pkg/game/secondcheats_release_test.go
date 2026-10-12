@@ -43,7 +43,7 @@ func secondCheatMission(t *testing.T, mage, chicken bool) (*FrontEnd, *ui.App) {
 			break
 		}
 	}
-	for _, target := range []string{"EXIT", "GATES", "mission 10", "ENTER"} {
+	for _, target := range []string{"EXIT", "GATES", "mission 10"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -409,11 +409,13 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// No town is available after mission 10: the victory enters mission 20
+	// without the map (R2-ENGINE-422).
 	c := cold.Town.second
-	if ca.Screen() != ui.ScreenTown || cold.live != nil || !cold.Town.Done(10) {
-		t.Fatalf("#victory Victory reached screen=%s live=%v done=%v", ca.Screen(), cold.live != nil, cold.Town.Done(10))
+	if ca.Screen() != ui.ScreenMap || cold.live == cw || cold.liveMission != 20 || !cold.Town.Done(10) {
+		t.Fatalf("#victory Victory reached screen=%s mission=%d done=%v", ca.Screen(), cold.liveMission, cold.Town.Done(10))
 	}
-	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{kind: 1, id: 20}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
 		t.Fatal("#victory did not advance the campaign exactly once", c)
 	}
 }

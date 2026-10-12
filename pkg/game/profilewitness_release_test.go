@@ -259,7 +259,7 @@ func runProfileWitness(t *testing.T, f *FrontEnd, maskSaveDirectory bool) {
 				break
 			}
 		}
-		for _, target := range []string{"EXIT", "GATES", "mission 10", "ENTER"} {
+		for _, target := range []string{"EXIT", "GATES", "mission 10"} {
 			w.do("activate-"+target, HeadlessStep{Command: "activate", Target: target})
 		}
 	} else {

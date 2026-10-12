@@ -1011,19 +1011,34 @@ func (a *App) headlessActivateWorldMap(world TownWorldMapScreen, target string) 
 			available = append(available, m.Number)
 		}
 	}
-	number, ok := headlessWorldMapMissionNumber(target)
+	number, town, ok := headlessWorldMapRecord(target)
 	if !ok {
 		return fmt.Errorf("headless activate %q: town world map has no such control; available missions: %v", target, available)
 	}
 	want := -1
 	for i, m := range view.Missions {
-		if m.Enabled && m.Number == number {
+		if m.Enabled && m.Number == number && (m.Kind == 2) == town {
 			want = i
 			break
 		}
 	}
 	if want < 0 {
-		return fmt.Errorf("headless activate %q: no mission %d on screen town; available missions: %v", target, number, available)
+		return fmt.Errorf("headless activate %q: no record %d on screen town; available missions: %v", target, number, available)
+	}
+	if view.PointerPicks {
+		// The pointer targets the record nearest it; a press travels there,
+		// or skips a travel already running toward it.
+		x, y, ok := a.nativeFrameToWindow(view.Missions[want].Anchor)
+		if !ok {
+			return fmt.Errorf("headless activate %q: record %d stands outside the placed frame", target, number)
+		}
+		if err := a.HeadlessPointer("hover", x, y); err != nil {
+			return err
+		}
+		if err := a.HeadlessPointer("release", x, y); err != nil {
+			return err
+		}
+		view = world.WorldMapView()
 	}
 	for i := 0; i <= len(view.Missions) && view.Selected != want; i++ {
 		if err := a.HeadlessKey("down"); err != nil {
@@ -1066,6 +1081,23 @@ func headlessWorldMapMissionNumber(target string) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+// headlessWorldMapRecord also reads a record named by its kind, "mission N"
+// or "town N"; town reports a town record.
+func headlessWorldMapRecord(target string) (number int, town bool, ok bool) {
+	if n, ok := headlessWorldMapMissionNumber(target); ok {
+		return n, false, true
+	}
+	lower := strings.ToLower(strings.TrimSpace(target))
+	for _, prefix := range []string{"mission ", "town "} {
+		if rest, found := strings.CutPrefix(lower, prefix); found {
+			if n, err := strconv.Atoi(strings.TrimSpace(rest)); err == nil {
+				return n, prefix == "town ", true
+			}
+		}
+	}
+	return 0, false, false
 }
 
 // headlessChooseRow reaches the requested row through the same arrow-key

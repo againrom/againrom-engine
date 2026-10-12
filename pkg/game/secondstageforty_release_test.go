@@ -26,12 +26,7 @@ func secondStageFortyInn(t *testing.T, f *FrontEnd, app *ui.App) *secondCampaign
 	if !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 31}}) {
 		t.Fatal("mission 30 departure availability", c.available)
 	}
-	// A held selection makes Back rebuild the rows from the placed state.
-	c.selected = secondLocation{2, 2}
-	if err := app.HeadlessKey("escape"); err != nil || c.selected != (secondLocation{}) {
-		t.Fatal("destination Back", err)
-	}
-	secondLaterChoose(t, app, "town 2", "ENTER", "TAVERN")
+	secondLaterChoose(t, app, "town 2", "TAVERN")
 	if c.current != (secondLocation{2, 2}) || c.room != secondTownInn || c.bank[768] != 40 {
 		t.Fatalf("town 2 inn: current=%v room=%d stage=%d", c.current, c.room, c.bank[768])
 	}

@@ -474,125 +474,39 @@ func worldMapOptionalImage(pic *image.RGBA) image.Image {
 	return pic
 }
 
-func (t *townScreen) WorldMapHover(p image.Point) {
-	if t == nil || t.worldMap == nil {
-		return
+// The first game's town screen is a world-map campaign: its input methods are
+// the one builder's, with its own record choice, leave and arrival.
+
+func (t *townScreen) worldMapNow() *worldMapState {
+	if t == nil {
+		return nil
 	}
-	v := t.WorldMapView()
-	t.worldMap.scrollHovered = false
-	if i, ok := ui.WorldMapCardAt(v, p); ok {
-		t.worldMap.scrollHovered = true
-		t.worldMap.hovered = i
-		return
-	}
-	if i, ok := ui.WorldMapRegionAt(v, p); ok {
-		t.worldMap.hovered = i
-		return
-	}
-	t.worldMap.hovered = -1
+	return t.worldMap
 }
 
-// WorldMapMove selects the next enabled mission before the selected one for
-// delta -1 (Up, the wheel away from the user) and after it for +1 (Down, the
-// wheel toward the user). Reaching the mission the party is already travelling
-// to selects nothing, so its route and reveal keep running (DIV-1515), as a
-// click on its scroll leaves them (DIV-1479).
-func (t *townScreen) WorldMapMove(delta int) {
-	if t == nil || t.worldMap == nil || len(t.worldMap.missions) == 0 || delta == 0 {
-		return
-	}
-	if t.worldMap.hideScrolls() {
-		return
-	}
-	i := t.worldMap.selected
-	if i < 0 && delta < 0 {
-		// A backward move from the before-first sentinel begins after the last
-		// item, just as a forward move begins before the first.
-		i = 0
-	}
-	for attempts := 0; attempts < len(t.worldMap.missions); attempts++ {
-		i = (i + delta + len(t.worldMap.missions)) % len(t.worldMap.missions)
-		if t.worldMap.missions[i].Enabled {
-			if !t.worldMap.travellingTo(i) {
-				t.selectWorldMission(i)
-			}
-			return
-		}
-	}
-}
+func (t *townScreen) WorldMapHover(p image.Point)               { worldMapHover(t, p) }
+func (t *townScreen) WorldMapMove(delta int)                    { worldMapMove(t, delta) }
+func (t *townScreen) WorldMapChoose() ui.TownAction             { return worldMapChoose(t) }
+func (t *townScreen) WorldMapClick(p image.Point) ui.TownAction { return worldMapClick(t, p) }
 
-// WorldMapChoose is Enter. The original's key-down and character slots call
-// the progress helper a missed scroll click calls, without reading the key
-// value or the selection (`TOWN-485`, `TOWN-486`, High; `TOWN-487` binds Return
-// through the campaign). So Enter does what a click that misses every scroll
-// does at the same moment (skipTravel): nothing at zero progress, otherwise the
-// reveal to the route's end and the Cross counter assigned its frame count plus
-// one, and the next tick arrives. It never opens a mission itself and reports
-// no mission problem (DIV-1546).
-func (t *townScreen) WorldMapChoose() ui.TownAction {
-	if t == nil || t.worldMap == nil {
-		return ui.TownAction{}
-	}
-	t.worldMap.skipTravel()
-	return ui.TownAction{}
-}
-
-// WorldMapClick selects through the mission scrolls only (`TOWN-118`, High):
-// a mission is selected by clicking its scroll entry, and the map-rectangle
-// override hit-tests a region without calling mission selection or route
-// construction (DIV-105). A scroll click starts travel to its mission, and a
-// click on another mission's scroll restarts travel toward that one. A click
-// on the scroll of the mission already being travelled to leaves the route and
-// its reveal running (DIV-1479). There is no second click that opens a mission
-// — arrival opens it by itself (`TOWN-121`, High; `DIV-135` closed). A click
-// that lands on no card while travel is in progress, a mission's map region
-// included, is the miss-a-scroll skip arm: once the reveal has begun it sets
-// the reveal to the route's own end and the Cross counter past its end, and
-// the very next WorldMapTick call opens the destination. `TOWN-121` skips only
-// at non-zero route progress, so the same click before the first tick does
-// nothing (DIV-1516).
-func (t *townScreen) WorldMapClick(p image.Point) ui.TownAction {
-	if t == nil || t.worldMap == nil {
-		return ui.TownAction{}
-	}
-	v := t.WorldMapView()
-	if i, ok := ui.WorldMapCardAt(v, p); ok {
-		if i < 0 {
-			t.worldMap.route, t.worldMap.shown, t.worldMap.cross, t.worldMap.selected = nil, 0, 0, -1
-			t.atSquare()
-			return ui.TownAction{}
-		}
-		if t.worldMap.travellingTo(i) {
-			return ui.TownAction{}
-		}
-		t.selectWorldMission(i)
-		return ui.TownAction{}
-	}
-	t.worldMap.skipTravel()
-	return ui.TownAction{}
-}
-
-// WorldMapTick advances the Flag's animation counter, and while a route is
-// held the Cross counter by one and the route reveal by 8 coordinates,
-// clamped to the route's own length (`TOWN-120`, High). It opens the
-// destination, with no second click, the moment the reveal has reached the
-// route's own end and the Cross animation has passed its end — from the tick
-// that finishes the later of the two or from a skip that WorldMapClick set up
-// (`TOWN-121`, High; DIV-1545). The call rate that gates how often this fires
-// is authored (`DIV-136`): `TOWN-121` grades the driving message's own
-// real-time cadence Unknown.
+// WorldMapTick also advances the task Flag1's counter, which the town screen
+// keeps across entries (`TOWN-529`).
 func (t *townScreen) WorldMapTick() ui.TownAction {
 	if t == nil || t.worldMap == nil {
 		return ui.TownAction{}
 	}
 	t.worldFlag1Frame++
-	// shown may already equal len(s.route) here — the skip arm in
-	// WorldMapClick and a Cross animation that outlasts the reveal both leave
-	// it there — so the tick still reaches the arrival test.
-	if !t.worldMap.tick() {
-		return ui.TownAction{}
-	}
-	return t.arriveWorldMap()
+	return worldMapTick(t)
+}
+
+// chooseWorldRecord is the scroll pick's choice of mission i.
+func (t *townScreen) chooseWorldRecord(i int) { t.selectWorldMission(i) }
+
+// leaveWorldMap is the town scroll: it drops the travel and returns to the
+// square.
+func (t *townScreen) leaveWorldMap() {
+	t.worldMap.route, t.worldMap.shown, t.worldMap.cross, t.worldMap.selected = nil, 0, 0, -1
+	t.atSquare()
 }
 
 // arriveWorldMap is `TOWN-121`'s own paint-completion step (High): copy

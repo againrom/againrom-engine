@@ -2248,8 +2248,9 @@ package storyguard
 // CommentBytes rises for the one world-map builder: the world-map description
 // types in pkg/game/worldmapdescription.go, the shared state machine in
 // pkg/game/worldmapstate.go, the placement and text block docs in
-// pkg/ui/worldmap.go, and the second game's map wiring, including this
-// paragraph.
+// pkg/ui/worldmap.go, the shared input rules in pkg/game/worldmapinput.go,
+// the second game's map in pkg/game/secondworldmap.go and the docs of its
+// fixture and release tests, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2271,7 +2272,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1732,
+		"longcommentgroups":      1731,
 	},
-	CommentBytes: 8805998,
+	CommentBytes: 8811731,
 }

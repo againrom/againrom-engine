@@ -53,8 +53,71 @@ func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File
 	app := f.App("campaign")
 	app.Layout(1024, 768)
 	screen := f.TownScreen().(*secondCampaignScreen)
+	secondMapFixturePoints(screen)
 	app.SetTown(screen)
 	return f, app, screen
+}
+
+// secondMapFixturePoints gives every catalog record a fixture point, distinct
+// from every other, so a fixture campaign's map places every record it
+// offers. Town 1 and mission 10 keep their catalog points.
+func secondMapFixturePoints(screen *secondCampaignScreen) {
+	art := screen.mapArt
+	var fixture *worldMapAssets
+	screen.mapArt = func() *worldMapAssets {
+		if fixture != nil {
+			return fixture
+		}
+		a := art()
+		if a == nil || a.desc == nil {
+			return a
+		}
+		d := *a.desc
+		d.Catalog = append([]WorldMapCatalogRecord(nil), d.Catalog...)
+		for i, id := range []int{2, 3} {
+			d.Catalog = append(d.Catalog, WorldMapCatalogRecord{Kind: 2, ID: id, Point: [2]int{40 + 30*i, 400}})
+		}
+		for id := 20; id < 128; id++ {
+			if _, ok := d.point(1, id); !ok {
+				d.Catalog = append(d.Catalog, WorldMapCatalogRecord{Kind: 1, ID: id, Point: [2]int{40 + 5*(id-20), 40 + 3*(id%7)}})
+			}
+		}
+		copied := *a
+		copied.desc = &d
+		fixture = &copied
+		return fixture
+	}
+}
+
+// secondMapTravel travels the open map to l as a player does: the pointer
+// targets it, a press starts the travel and paints run to its end. It answers
+// the opener's error for a mission and an error when l is not on the map or
+// the travel ends nowhere.
+func secondMapTravel(app *ui.App, screen *secondCampaignScreen, l secondLocation) error {
+	if !screen.AtWorldMap() {
+		return fmt.Errorf("the map is not open for %v", l)
+	}
+	for _, m := range screen.WorldMapView().Missions {
+		if !m.Enabled || m.Number != l.id || m.Kind != l.kind {
+			continue
+		}
+		screen.WorldMapHover(m.Anchor)
+		screen.WorldMapClick(m.Anchor)
+		for range 4000 {
+			action := screen.WorldMapTick()
+			if action.Open != nil {
+				return app.OpenMission(action.Open)
+			}
+			if action.Msg != "" {
+				return fmt.Errorf("%s", action.Msg)
+			}
+			if !screen.AtWorldMap() {
+				return nil
+			}
+		}
+		return fmt.Errorf("the travel to %v did not end", l)
+	}
+	return fmt.Errorf("no map record %v", l)
 }
 
 func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
@@ -121,18 +184,19 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	beforeBank, beforeCurrent := c.bank, c.current
 	beforeAvailable := append([]secondLocation(nil), c.available...)
 	beforeParty := mapload.CloneParty(f.Carried)
-	for _, target := range []string{"mission 10", "CANCEL", "mission 10", "ENTER"} {
-		if err := app.HeadlessActivate(target); err != nil {
-			t.Fatal(err)
-		}
+	if !screen.AtWorldMap() || screen.WorldMapView().Selected != 0 {
+		t.Fatal("leaving town 1 did not open the map travelling to its first record")
+	}
+	if err := app.HeadlessActivate("mission 10"); err != nil {
+		t.Fatal(err)
 	}
 	if app.Screen() != ui.ScreenTown || !strings.Contains(app.HeadlessMessage(), "scenario/10.alm") || f.live != nil {
-		t.Fatalf("failed entry lost destination screen: %v %q", app.Screen(), app.HeadlessMessage())
+		t.Fatalf("failed entry lost the map: %v %q", app.Screen(), app.HeadlessMessage())
 	}
 	if c.bank != beforeBank || c.current != beforeCurrent || !reflect.DeepEqual(c.available, beforeAvailable) || !reflect.DeepEqual(f.Carried, beforeParty) {
-		t.Fatal("failed or cancelled entry mutated campaign state")
+		t.Fatal("failed entry mutated campaign state")
 	}
-	if err := app.HeadlessActivate("ENTER"); err != nil {
+	if err := app.HeadlessActivate("mission 10"); err != nil {
 		t.Fatal("failed destination cannot be retried", err)
 	}
 	if err := app.OpenMission(f.MissionOpener(20)); err == nil {
