@@ -8,10 +8,10 @@ import (
 )
 
 // LoadTipPanelArt resolves the tip panel's frame pieces and its checkbox gem
-// pair from the tip-panel manifest of description d. Any piece failing fails
-// the whole call.
-func LoadTipPanelArt(src terrain.EntrySource, d *Screens) (*ui.TipPanelArt, error) {
-	set, err := loadScreen(src, d, "tip-panel")
+// pair from manifest of description d, the one the tip table names. Any
+// piece failing fails the whole call.
+func LoadTipPanelArt(src terrain.EntrySource, d *Screens, manifest string) (*ui.TipPanelArt, error) {
+	set, err := loadScreen(src, d, manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,11 @@ func (p *Presentation) tipArt(in *InstallResources) *ui.TipPanelArt {
 	if in.Archives == nil {
 		return nil
 	}
-	a, err := LoadTipPanelArt(in.Archives.artSource(), ScreensDescription(in.profile()))
+	table := TipTable(in.profile().Edition())
+	if table == nil {
+		return nil
+	}
+	a, err := LoadTipPanelArt(in.Archives.artSource(), ScreensDescription(in.profile()), table.Art)
 	if err != nil {
 		return nil
 	}

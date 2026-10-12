@@ -92,24 +92,23 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 	stats[chargenStatMind] = stat("Mind")
 	stats[chargenStatSpirit] = stat("Spirit")
 
-	// Every generator tip text is read once here; each page's enter tests
-	// TipsMode itself (TOWN-518, TOWN-522).
+	// Every generator tip row's text is read once here; each page's enter
+	// tests TipsMode itself (TOWN-518, TOWN-522).
 	var src entrySource
 	if f.Archives != nil {
 		src = f.Archives.Containers
 	}
-	tip := func(t ui.GeneratorTipText) string {
-		text, _ := ReadShopTip(src, t.File, f.textCode())
-		if t.Section == "" || text == "" {
-			return text
+	table := TipTable(f.Base().Profile.Edition())
+	tip := func(event, class string) ui.ChargenTip {
+		row := table.Row(event, "", class)
+		if row == nil {
+			return ui.ChargenTip{}
 		}
-		return secondGameTextSection([]byte(text), t.Section)
+		return ui.NewChargenTip(table, row, readTipText(src, row.Text, f.textCode()))
 	}
-	var tipSelect [3]string
-	for i, t := range l.Tips.Select {
-		if i < len(tipSelect) {
-			tipSelect[i] = tip(t)
-		}
+	tips := ui.ChargenTips{Fighter: tip("detail-enter", "fighter"), Mage: tip("detail-enter", "mage"), After: tip("first-skill-click", "")}
+	for _, event := range ui.PreCreateTipEvents {
+		tips.Select = append(tips.Select, tip(event, ""))
 	}
 	reset := l.Detail.ResetFor(f.Base().Profile.Language)
 	restore := l.Detail.RestoreFor(f.Base().Profile.Language)
@@ -128,15 +127,12 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		// above, art on shopArt's own cached-once precedent, and the toggle
 		// read from and written through the same store every room's own tip
 		// reads (tipstore.go).
-		TipSelect:     tipSelect,
-		TipText:       tip(l.Tips.Fighter),
-		TipTextMage:   tip(l.Tips.Mage),
-		TipTextDetail: tip(l.Tips.After),
-		TipClose:      f.Words.TipClose,
-		TipToggle:     f.Words.TipShowNext,
-		TipArt:        f.tipArt(),
-		TipsOn:        !f.TipsOff(),
-		SetTipsOn:     func(on bool) { f.SetTipsOff(!on) },
+		Tips:      tips,
+		TipClose:  f.Words.TipClose,
+		TipToggle: f.Words.TipShowNext,
+		TipArt:    f.tipArt(),
+		TipsOn:    !f.TipsOff(),
+		SetTipsOn: func(on bool) { f.SetTipsOff(!on) },
 
 		ResetStart: reset.Values == "start",
 		ResetSkill: reset.Skill,

@@ -88,14 +88,9 @@ type ChargenSetup struct {
 	// health as the one he is about to get.
 	Derive func(ChargenResult) []ChargenDerived
 
-	// TipSelect are the pre-create popup's three step texts, chrsel1..3
-	// (TOWN-518). TipText and TipTextMage are the detailed page's enter
-	// texts, chrgen1f and chrgen1m, chosen by the hero's class, and
-	// TipTextDetail is chrgen2, its text after the first skill click
-	// (TOWN-522). An empty text draws no popup.
-	TipSelect            [3]string
-	TipText, TipTextMage string
-	TipTextDetail        string
+	// Tips are the generator's rows of the game's tip table with their
+	// texts read. An empty text draws no popup.
+	Tips ChargenTips
 	// TipClose and TipToggle are main.txt[127] and main.txt[128], already
 	// resolved by the game side. Empty keeps the exact EN fallback for a
 	// diagnostic setup assembled without an install.
@@ -897,47 +892,76 @@ func (c *Chargen) Result() (ChargenResult, bool) {
 	return ChargenResult{Name: c.name, Choices: choices, Stats: stats, Difficulty: c.Difficulty()}, true
 }
 
-// TipPanel is the showing page's tip popup: pre-create with its step's
-// select text (TOWN-518), the detailed page with the class's text, then the
-// after-click text once a skill was clicked (TOWN-522, MENU-137), each at the
-// description's rectangle.
+// TipPanel is the showing page's tip popup: pre-create with its step's row
+// (TOWN-518), the detailed page with the class's row, then the after-click
+// row once a skill was clicked (TOWN-522, MENU-137), each at its row's
+// rectangle in its row's panel style.
 func (c *Chargen) TipPanel() TipPanelView {
 	l, art := c.layout(), c.art()
 	if c == nil || c.setup.TipArt == nil || l == nil {
 		return TipPanelView{}
 	}
+	var tip ChargenTip
+	tips := &c.setup.Tips
+	switch {
+	case c.stage == PreCreateStage && c.preTip && c.preStep >= 0 && c.preStep < len(tips.Select):
+		tip = tips.Select[c.preStep]
+	case c.stage == DetailedStage && c.detailTip && c.detailStep != 0:
+		tip = tips.After
+	case c.stage == DetailedStage && c.detailTip:
+		tip = tips.Fighter
+		if len(c.choiceIndex) > 1 && c.choiceIndex[1] != 0 && tips.Mage.Text != "" {
+			tip = tips.Mage
+		}
+	}
+	if tip.Text == "" {
+		return TipPanelView{}
+	}
 	var font *text.Font
 	if art != nil {
 		font = art.Font
-		if l.Tips.Panel.Font == "install" && art.TipFont != nil {
+		if tip.Font == "install" && art.TipFont != nil {
 			font = art.TipFont
 		}
 	}
-	rect, tipText := l.Tips.DetailRect.Rectangle(), ""
-	switch {
-	case c.stage == PreCreateStage && c.preTip && c.preStep >= 0 && c.preStep < len(c.setup.TipSelect):
-		rect, tipText = l.Tips.PreCreateRect.Rectangle(), c.setup.TipSelect[c.preStep]
-	case c.stage == DetailedStage && c.detailTip && c.detailStep != 0:
-		tipText = c.setup.TipTextDetail
-	case c.stage == DetailedStage && c.detailTip:
-		tipText = c.setup.TipText
-		if len(c.choiceIndex) > 1 && c.choiceIndex[1] != 0 && c.setup.TipTextMage != "" {
-			tipText = c.setup.TipTextMage
-		}
-	}
-	if tipText == "" {
-		return TipPanelView{}
-	}
 	return TipPanelView{
-		Rect:        rect,
-		Text:        tipText,
+		Rect:        tip.Rect,
+		Text:        tip.Text,
 		ToggleOn:    c.setup.TipsOn,
 		CloseLabel:  c.setup.TipClose,
 		ToggleLabel: c.setup.TipToggle,
 		Art:         c.setup.TipArt,
 		Font:        font,
-		TextInset:   l.Tips.Panel.Inset,
+		TextInset:   tip.Inset,
+		Owner:       tip.Owner,
 	}
+}
+
+// ChargenTip is one generator row of the game's tip table as the page draws
+// it: its text read, its rectangle, its panel style and its pointer owner.
+type ChargenTip struct {
+	Text  string
+	Rect  image.Rectangle
+	Font  string
+	Inset [4]int
+	Owner TipOwner
+}
+
+// ChargenTips are the generator's tip rows: the pre-create steps in
+// PreCreateTipEvents order, the detailed page's enter row by the hero's class
+// and its row after the first skill click.
+type ChargenTips struct {
+	Select               []ChargenTip
+	Fighter, Mage, After ChargenTip
+}
+
+// NewChargenTip is row of table with its text.
+func NewChargenTip(table *TipTable, row *TipRow, text string) ChargenTip {
+	if row == nil {
+		return ChargenTip{}
+	}
+	p := table.Panel(row)
+	return ChargenTip{Text: text, Rect: row.Rectangle(), Font: p.Font, Inset: p.Inset, Owner: row.Owner()}
 }
 
 // CloseTip deletes the showing page's popup (MENU-137). The page's next

@@ -29,7 +29,7 @@ type GeneratorDescription struct {
 	Words     GeneratorWords     `json:"words"`
 	PreCreate GeneratorPreCreate `json:"pre-create"`
 	Detail    GeneratorDetail    `json:"detail"`
-	Tips      GeneratorTips      `json:"tips"`
+	TipCycles GeneratorTipCycles `json:"tip-cycles"`
 	// Hover is how the generator's hover help draws; nil draws it as every
 	// other hover help draws.
 	Hover *GeneratorHover `json:"hover"`
@@ -465,38 +465,15 @@ func (h *GeneratorHover) style() *hoverStyle {
 	return s
 }
 
-// GeneratorTipText is one tip text: a whole file, or one section of a file.
-type GeneratorTipText struct {
-	File    string   `json:"file"`
-	Section string   `json:"section"`
-	Cite    []string `json:"cite"`
-}
-
-// GeneratorTipPanel is how the generator's tip panels draw their text: in
-// the generator's text font ("text") or the install's ("install"), inside
-// the panel less Inset (left, top, right, bottom). The text wraps to that
-// width and draws as many lines of the font's height plus 2 as fit.
-type GeneratorTipPanel struct {
-	Font  string   `json:"font"`
-	Inset [4]int   `json:"inset"`
-	Cite  []string `json:"cite"`
-}
-
-// GeneratorTips are both pages' tip panels and highlight cycles. The
-// pre-create cycle's targets are mask bytes per tip step; the detail cycle
-// walks the selectable skills.
-type GeneratorTips struct {
-	PreCreateRect  GeneratorRect      `json:"pre-create-rect"`
-	DetailRect     GeneratorRect      `json:"detail-rect"`
-	Panel          GeneratorTipPanel  `json:"panel"`
-	Select         []GeneratorTipText `json:"select"`
-	Fighter        GeneratorTipText   `json:"fighter"`
-	Mage           GeneratorTipText   `json:"mage"`
-	After          GeneratorTipText   `json:"after"`
-	PreCreateCycle [][]int            `json:"pre-create-cycle"`
-	HoverWaitMS    int                `json:"hover-wait-ms"`
-	StepGapMS      int                `json:"step-gap-ms"`
-	Cite           []string           `json:"cite"`
+// GeneratorTipCycles are both pages' highlight cycles while their tip shows.
+// The pre-create cycle's targets are mask bytes per tip step, one step per
+// pre-create tip row of the game's tip table; the detail cycle walks the
+// selectable skills.
+type GeneratorTipCycles struct {
+	PreCreateCycle [][]int  `json:"pre-create-cycle"`
+	HoverWaitMS    int      `json:"hover-wait-ms"`
+	StepGapMS      int      `json:"step-gap-ms"`
+	Cite           []string `json:"cite"`
 }
 
 // The builder's control slots. A description fills each one; the counts are
@@ -551,8 +528,8 @@ func (d *GeneratorDescription) validate() error {
 		return fmt.Errorf("attribute boxes are not %d each", generatorStats)
 	case len(t.Commands) != generatorCommands && len(t.Commands) != generatorCommandsMax:
 		return fmt.Errorf("%d commands, want %d or %d", len(t.Commands), generatorCommands, generatorCommandsMax)
-	case len(d.Tips.Select) != len(d.Tips.PreCreateCycle):
-		return fmt.Errorf("%d pre-create tip texts for %d cycle steps", len(d.Tips.Select), len(d.Tips.PreCreateCycle))
+	case len(d.TipCycles.PreCreateCycle) != len(PreCreateTipEvents):
+		return fmt.Errorf("%d pre-create cycle steps for %d tip steps", len(d.TipCycles.PreCreateCycle), len(PreCreateTipEvents))
 	case p.Name.Cap <= 0 || p.Name.CaretMS <= 0:
 		return fmt.Errorf("name cap %d, caret %d ms", p.Name.Cap, p.Name.CaretMS)
 	}
@@ -603,14 +580,6 @@ func (d *GeneratorDescription) validate() error {
 	}
 	if h := d.Hover; h != nil && (h.Font != "text" || !oneOf(h.Lines, "authored", "wrapped")) {
 		return fmt.Errorf("hover font %q, lines %q", h.Font, h.Lines)
-	}
-	if !oneOf(d.Tips.Panel.Font, "text", "install") {
-		return fmt.Errorf("tip panel font %q", d.Tips.Panel.Font)
-	}
-	for _, v := range d.Tips.Panel.Inset {
-		if v < 0 {
-			return fmt.Errorf("tip panel inset %v", d.Tips.Panel.Inset)
-		}
 	}
 	if len(t.Reset) == 0 {
 		return fmt.Errorf("no reset rule")

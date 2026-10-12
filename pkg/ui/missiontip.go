@@ -10,8 +10,8 @@ import (
 )
 
 // missionTip is the mission tip popup, child 0x10 of the campaign window
-// (TRIG-TIPS-087): one at a time at MissionTipRect, built by the shared tip
-// panel. It does not stop the world; its Close and checkbox take their own
+// (TRIG-TIPS-087): one at a time at its tip table row's rectangle, built by
+// the shared tip panel. It does not stop the world; its Close and checkbox take their own
 // presses and its body passes them to the map (TOWN-480).
 type missionTip struct {
 	text        string
@@ -23,10 +23,13 @@ type missionTip struct {
 	composedFor TipPanelView
 }
 
-// MissionTipDress is what the mission popup draws with: the shared tip panel
-// art and font, the Close and checkbox labels (main.txt 127 and 128), and the
-// TipsMode word its checkbox reads and writes (MENU-135).
+// MissionTipDress is what the mission popup draws with: its tip table row's
+// rectangle and owner, the shared tip panel art and font, the Close and
+// checkbox labels (main.txt 127 and 128), and the TipsMode word its checkbox
+// reads and writes (MENU-135). An empty Rect draws no popup.
 type MissionTipDress struct {
+	Rect                    image.Rectangle
+	Owner                   TipOwner
 	Art                     *TipPanelArt
 	Font                    *text.Font
 	CloseLabel, ToggleLabel string
@@ -66,13 +69,14 @@ func (v *Viewer) MissionTip() TipPanelView {
 		on = d.TipsOn()
 	}
 	view := TipPanelView{
-		Rect:        MissionTipRect,
+		Rect:        d.Rect,
 		Text:        v.mtip.text,
 		ToggleOn:    on,
 		CloseLabel:  d.CloseLabel,
 		ToggleLabel: d.ToggleLabel,
 		Art:         d.Art,
 		Font:        font,
+		Owner:       d.Owner,
 	}
 	if v.hasCursor {
 		view.Pointer, view.PointerOK = image.Pt(v.cursorX, v.cursorY), true

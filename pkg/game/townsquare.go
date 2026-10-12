@@ -60,7 +60,7 @@ func init() {
 func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
 
 // RoomDescription is the town description whose rooms the profile reads: the
-// first game's tavern, shop and school pages, their tips and their scene art,
+// first game's tavern, shop and school pages and their scene art,
 // as the edition's Rooms names them; nil for the second game, whose towns
 // name their rooms in their own descriptions. Callers must not change it.
 func RoomDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Rooms] }

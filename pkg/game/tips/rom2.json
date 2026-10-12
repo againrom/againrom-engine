@@ -1,0 +1,28 @@
+{
+  "tips": "rom2",
+  "art": "tip-panel",
+  "panels": [
+    {"name": "generator", "font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]}
+  ],
+  "rows": [
+    {"name": "pre-create-1", "event": "pre-create-enter",
+     "text": {"file": "main/text/town.txt", "section": "tips8"}, "rect": [232, 48, 640, 184], "panel": "generator",
+     "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289", "DIV-3015"]},
+    {"name": "pre-create-2", "event": "portrait-click",
+     "text": {"file": "main/text/town.txt", "section": "tips9"}, "rect": [232, 48, 640, 184], "panel": "generator",
+     "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289", "DIV-3015"]},
+    {"name": "pre-create-3", "event": "level-click",
+     "text": {"file": "main/text/town.txt", "section": "tips10"}, "rect": [232, 48, 640, 184], "panel": "generator",
+     "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289", "DIV-3015"]},
+    {"name": "detail-fighter", "event": "detail-enter", "class": "fighter",
+     "text": {"file": "main/text/town.txt", "section": "tips5"}, "rect": [160, 280, 472, 480], "panel": "generator",
+     "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289"]},
+    {"name": "detail-mage", "event": "detail-enter", "class": "mage",
+     "text": {"file": "main/text/town.txt", "section": "tips6"}, "rect": [160, 280, 472, 480], "panel": "generator",
+     "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289"]},
+    {"name": "detail-after", "event": "first-skill-click",
+     "text": {"file": "main/text/town.txt", "section": "tips7"}, "rect": [160, 280, 472, 480], "panel": "generator",
+     "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289"]}
+  ],
+  "cite": ["R2-ENGINE-289", "R2-ENGINE-274", "R2-ENGINE-314", "DIV-3015"]
+}

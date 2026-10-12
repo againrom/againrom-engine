@@ -3840,7 +3840,7 @@ func (a *App) paintPreCreateCycle(c *Chargen, in appInput, now time.Time) {
 		c.cycleDraw = -1
 		return
 	}
-	c.cycleDraw = a.tipCycles[0].paint(now, l.Tips.PreCreateCycle, c.preStep, hovered, ms(l.Tips.HoverWaitMS), ms(l.Tips.StepGapMS))
+	c.cycleDraw = a.tipCycles[0].paint(now, l.TipCycles.PreCreateCycle, c.preStep, hovered, ms(l.TipCycles.HoverWaitMS), ms(l.TipCycles.StepGapMS))
 }
 
 // paintSkillCycle runs the detailed skill cycle while the popup exists and
@@ -3865,7 +3865,7 @@ func (a *App) paintSkillCycle(c *Chargen, in appInput, now time.Time) {
 	for i := range skills {
 		skills[i] = i
 	}
-	c.cycleDraw = a.tipCycles[1].paint(now, [][]int{skills}, 0, hovered, ms(l.Tips.HoverWaitMS), ms(l.Tips.StepGapMS))
+	c.cycleDraw = a.tipCycles[1].paint(now, [][]int{skills}, 0, hovered, ms(l.TipCycles.HoverWaitMS), ms(l.TipCycles.StepGapMS))
 }
 
 // activatePreCreate runs one pre-create control. A pointer activation is the
@@ -4633,7 +4633,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 	surface, inSurface := townSurfaceScreen(t)
 	switch {
 	case inSurface:
-		surface.Tip = tipPanelWithPointer(surface.Tip, uint8(surface.Kind)+1, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
+		surface.Tip = tipPanelWithPointer(surface.Tip, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 		surface.SuppressHover = true
 		surface.Message = msg
 		surface.AnimationFrame = animationFrame
@@ -4655,7 +4655,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 		}
 		return ComposeTownSurface(surface), nil
 	case inShop:
-		shop.TipPanel = tipPanelWithPointer(shop.TipPanel, 3, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
+		shop.TipPanel = tipPanelWithPointer(shop.TipPanel, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 		shop.SuppressHover = true
 		shop.Msg = msg
 		if len(pointerState) > 0 {
@@ -4682,7 +4682,7 @@ func composeTownRoom(t TownScreen, msg string, cursor image.Point, hasCursor boo
 				squareView, _ = townSquareView(t)
 			}
 			squareView.Message = msg
-			squareView.Tip = tipPanelWithPointer(squareView.Tip, 4, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
+			squareView.Tip = tipPanelWithPointer(squareView.Tip, cursor, hasCursor, pointer.tipPress, pointer.tipOwner)
 			return ComposeTownSquare(squareView), nil
 		}
 		return nil, errTownRowList
@@ -4708,7 +4708,7 @@ func (a *App) composeTownRoom() (*image.RGBA, error) {
 	if atTownSquare(a.flow.town) && !a.townPaintAllowed() {
 		if v, ready := townSquareView(a.flow.town); ready {
 			v.Message = msg
-			v.Tip = tipPanelWithPointer(v.Tip, 4, a.townCursor, a.hasTownCursor, a.townTipPress, a.townTipPressOwner)
+			v.Tip = tipPanelWithPointer(v.Tip, a.townCursor, a.hasTownCursor, a.townTipPress, a.townTipPressOwner)
 			return ComposeTownSquare(v), nil
 		}
 	}
@@ -4958,7 +4958,7 @@ func (a *App) composeChargenScreen() (*image.RGBA, error) {
 	c.SetDetailMessage(a.chargenDetailMessage())
 	c.statHeld = a.chargenHeld
 	p, inside := a.windowToNativeFrame(a.pointer.X, a.pointer.Y)
-	tip := tipPanelWithPointer(c.TipPanel(), chargenTipRoom, p, inside, a.townTipPress, a.townTipPressOwner)
+	tip := tipPanelWithPointer(c.TipPanel(), p, inside, a.townTipPress, a.townTipPressOwner)
 	return composeChargenPage(c, a.chargenHover, a.chargenPressed(), tip), nil
 }
 

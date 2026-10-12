@@ -106,7 +106,7 @@ func viewTable(t *mapload.Table) *mapload.Table {
 	v.SpellArms, v.FreshPlayers = nil, nil
 	if t.Edition != nil {
 		e := *t.Edition
-		e.TextCodePage, e.MissionTip = nil, nil
+		e.TextCodePage = nil
 		v.Edition = &e
 	}
 	return &v
@@ -122,7 +122,7 @@ func tableFuncCodes(t *mapload.Table) []uintptr {
 	}
 	out := []uintptr{code(t.SpellArms), code(t.FreshPlayers)}
 	if t.Edition != nil {
-		out = append(out, code(t.Edition.TextCodePage), code(t.Edition.MissionTip))
+		out = append(out, code(t.Edition.TextCodePage))
 	}
 	return out
 }

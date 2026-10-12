@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
 
@@ -46,7 +47,7 @@ func TestSecondGeneratorDescribesTheOriginalLook(t *testing.T) {
 		}
 	})
 	t.Run("detail tip between the card and the portrait", func(t *testing.T) {
-		if got := d.Tips.DetailRect.Rectangle(); got != image.Rect(160, 280, 472, 480) {
+		if got := TipTable(base.GameROM2.Edition()).Row("detail-enter", "", "fighter").Rectangle(); got != image.Rect(160, 280, 472, 480) {
 			t.Errorf("detail tip %v, want (160,280)-(472,480)", got)
 		}
 	})

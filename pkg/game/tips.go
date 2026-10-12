@@ -4,7 +4,6 @@ import (
 	"image"
 
 	"againrom/pkg/render/text"
-	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -13,7 +12,7 @@ func (t *townScreen) loadTip(room townRoom) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	dst, addr := t.tipTextSource(room)
+	dst, text := t.tipTextSource(room)
 	if dst == nil {
 		return
 	}
@@ -26,7 +25,7 @@ func (t *townScreen) loadTip(room townRoom) {
 		*dst = ""
 		return
 	}
-	t.readTipText(dst, addr)
+	t.readTipText(dst, text)
 }
 
 // rereadTip updates an existing popup's content without constructing another.
@@ -34,65 +33,57 @@ func (t *townScreen) rereadTip(room townRoom) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	dst, addr := t.tipTextSource(room)
+	dst, text := t.tipTextSource(room)
 	if dst != nil && *dst != "" {
-		t.readTipText(dst, addr)
+		t.readTipText(dst, text)
 	}
 }
 
-func (t *townScreen) tipTextSource(room townRoom) (*string, string) {
+func (t *townScreen) tipTextSource(room townRoom) (*string, *ui.TipText) {
+	var dst *string
 	switch room {
 	case roomSquare:
-		return &t.townTip, t.townDescription().Tip.Text
+		dst = &t.townTip
 	case roomShop:
-		return &t.shopTip, t.roomTip(room).Text
+		dst = &t.shopTip
 	case roomSchool:
-		return &t.schoolTip, t.roomTip(room).Text
+		dst = &t.schoolTip
 	case roomTavern:
-		return &t.tavernTip, t.roomTip(room).Text
+		dst = &t.tavernTip
 	}
-	return nil, ""
+	if row := t.roomTip(room); row != nil {
+		return dst, &row.Text
+	}
+	return dst, nil
 }
 
-// roomTip answers a room's tip as the profile's descriptions give it: the
-// square's from the town description, the others from the room description.
-func (t *townScreen) roomTip(room townRoom) town.TipSpec {
-	if room == roomSquare {
-		if d := t.townDescription(); d != nil {
-			return d.Tip
-		}
-		return town.TipSpec{}
+// roomTip is the room's row of the game's tip table, nil when the room shows
+// no tip.
+func (t *townScreen) roomTip(room townRoom) *ui.TipRow {
+	if t == nil {
+		return nil
 	}
-	return roomTipIn(t.roomDescription(), room)
+	return TipTable(t.profile().Edition()).Row("room-enter", townRoomName(room), "")
 }
 
-func roomTipIn(d *town.Description, room townRoom) town.TipSpec {
-	if d == nil {
-		return town.TipSpec{}
-	}
-	name := townRoomName(room)
-	for i := range d.Rooms {
-		if r := &d.Rooms[i]; r.Name == name && r.Tip != nil {
-			return *r.Tip
-		}
-	}
-	return town.TipSpec{}
-}
-
-// roomTipView projects a room's popup at the description's rectangle. The
-// bottom edge follows the text when the description asks for that, and grows
-// when the engine's wrap would cut the text at the rectangle (DIV-2719).
+// roomTipView projects a room's popup at its row's rectangle. The bottom edge
+// follows the text when the row asks for that, and grows when the engine's
+// wrap would cut the text at the rectangle (DIV-2719).
 func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
-	spec := t.roomTip(room)
-	v := t.tipView(room, text, spec.Rect.Rectangle())
-	if spec.Fit || !ui.TipPanelFits(v) {
+	row := t.roomTip(room)
+	if row == nil {
+		row = &ui.TipRow{}
+	}
+	v := t.tipView(room, text, row.Rectangle())
+	v.Owner = row.Owner()
+	if row.Fit || !ui.TipPanelFits(v) {
 		v.Rect = ui.TipPanelShrinkRect(v.Rect, t.in.tipFont(), text)
 	}
 	return v
 }
 
-// advanceShopSecondTip retexts the open shop popup with the description's
-// second text once per shop activation, when the table holds an item
+// advanceShopSecondTip retexts the open shop popup with its row's second
+// text once per shop activation, when the table holds an item
 // (TOWN-517). It reads no TipsMode: the popup exists only if the flag was set
 // at activation.
 func (t *townScreen) advanceShopSecondTip() {
@@ -102,20 +93,24 @@ func (t *townScreen) advanceShopSecondTip() {
 	if shop := t.sess.Shop; shop == nil || len(shop.Table()) == 0 {
 		return
 	}
-	second := t.roomTip(roomShop).Second
-	if second == "" {
+	row := t.roomTip(roomShop)
+	if row == nil || row.Second.File == "" {
 		return
 	}
 	t.shopTipSecond = true
-	t.readTipText(&t.shopTip, second)
+	t.readTipText(&t.shopTip, &row.Second)
 }
 
-func (t *townScreen) readTipText(dst *string, addr string) {
+func (t *townScreen) readTipText(dst *string, text *ui.TipText) {
+	if text == nil {
+		*dst = ""
+		return
+	}
 	var src entrySource
 	if t.in.Archives != nil {
 		src = t.in.Archives.Containers
 	}
-	*dst, _ = ReadShopTip(src, addr, t.in.textCode())
+	*dst = readTipText(src, *text, t.in.textCode())
 }
 
 // tipView projects the constructed popup and the live global checkbox flag.

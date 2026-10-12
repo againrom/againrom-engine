@@ -158,7 +158,8 @@ func TestTownTipContentReadKeepsConstruction(t *testing.T) {
 		s := f.TownScreen().(*townScreen)
 		s.room = room
 		s.loadTip(room)
-		dst, addr := s.tipTextSource(room)
+		dst, text := s.tipTextSource(room)
+		addr := text.File
 		if *dst != "initial" {
 			t.Fatalf("room %d source %q lacks initial content", room, addr)
 		}

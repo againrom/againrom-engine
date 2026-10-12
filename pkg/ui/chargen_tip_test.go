@@ -17,15 +17,12 @@ func chargenTipSetup() ChargenSetup {
 		Choices: []ChargenChoice{{Options: []string{"male", "female"}, Parent: -1},
 			{Options: []string{"fighter", "mage"}, Parent: -1},
 			{Options: []string{"a", "b", "c", "d", "e"}, Parent: -1}},
-		Stats:         []ChargenStat{{Floor: 0, Ceiling: 50, Start: 25}},
-		Cost:          triangular(50),
-		Budget:        1000,
-		TipSelect:     [3]string{"choose a hero", "choose a level", "press OK"},
-		TipText:       "fighter text",
-		TipTextMage:   "mage text",
-		TipTextDetail: "after the skill",
-		TipArt:        tipTestArt(),
-		TipsOn:        true,
+		Stats:  []ChargenStat{{Floor: 0, Ceiling: 50, Start: 25}},
+		Cost:   triangular(50),
+		Budget: 1000,
+		Tips:   testChargenTips([3]string{"choose a hero", "choose a level", "press OK"}, "fighter text", "mage text", "after the skill"),
+		TipArt: tipTestArt(),
+		TipsOn: true,
 	}
 }
 

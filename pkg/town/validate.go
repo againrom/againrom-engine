@@ -63,7 +63,7 @@ func validateStep(s Step, where string, fail func(string, ...any) error) error {
 	return nil
 }
 
-// validateRoom checks a room's music, tip, page art and scene.
+// validateRoom checks a room's music, page art and scene.
 func (d *Description) validateRoom(r RoomSpec, rooms map[string]bool) error {
 	fail := func(format string, args ...any) error {
 		return fmt.Errorf("town %s: room %s: %s", d.Town, r.Name, fmt.Sprintf(format, args...))
@@ -75,9 +75,6 @@ func (d *Description) validateRoom(r RoomSpec, rooms map[string]bool) error {
 		if len(m.Tracks) > 0 && m.By == "" {
 			return fail("music tracks without the value that chooses them")
 		}
-	}
-	if t := r.Tip; t != nil && t.Rect.Rectangle().Empty() {
-		return fail("tip rectangle %v is empty", t.Rect)
 	}
 	if err := screenart.Check(r.Art); err != nil {
 		return fail("page %v", err)

@@ -165,18 +165,7 @@
     "refusals": {"empty-slot": 193, "reserved-slot": 194, "reserved": ["self", "computer"], "cite": ["DIV-116"]},
     "cite": ["TOWN-232", "TOWN-523", "DIV-2717"]
   },
-  "tips": {
-    "pre-create-rect": [232, 0, 640, 136],
-    "detail-rect": [160, 280, 472, 480],
-    "panel": {"font": "text", "inset": [20, 24, 28, 36], "cite": ["MENU-137", "DIV-191"]},
-    "select": [
-      {"file": "main/text/tips/chrsel1.txt", "cite": ["TOWN-518"]},
-      {"file": "main/text/tips/chrsel2.txt", "cite": ["TOWN-518"]},
-      {"file": "main/text/tips/chrsel3.txt", "cite": ["TOWN-518"]}
-    ],
-    "fighter": {"file": "main/text/tips/chrgen1f.txt", "cite": ["TOWN-187", "TOWN-522"]},
-    "mage": {"file": "main/text/tips/chrgen1m.txt", "cite": ["TOWN-187", "TOWN-522"]},
-    "after": {"file": "main/text/tips/chrgen2.txt", "cite": ["TOWN-187", "TOWN-522"]},
+  "tip-cycles": {
     "pre-create-cycle": [[80, 100, 120, 140], [20, 40, 60], [160, 180]],
     "hover-wait-ms": 500, "step-gap-ms": 300,
     "cite": ["MENU-137", "TOWN-518", "TOWN-519", "TOWN-520", "TOWN-522", "DIV-2714"]

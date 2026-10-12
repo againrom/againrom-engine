@@ -78,7 +78,7 @@ func tipArtSource() chargenSource {
 }
 
 func TestLoadTipPanelArtUsesRoomFrameBank(t *testing.T) {
-	a, err := LoadTipPanelArt(tipArtSource(), rom1Screens)
+	a, err := LoadTipPanelArt(tipArtSource(), rom1Screens, tipTables["rom1"].Art)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestLoadTipPanelArtRejectsMissingOrMalformedRoomFrames(t *testing.T) {
 			case "short":
 				src["graphics/interface/lm.256"] = tipGemSheet()
 			}
-			if _, err := LoadTipPanelArt(src, rom1Screens); err == nil {
+			if _, err := LoadTipPanelArt(src, rom1Screens, tipTables["rom1"].Art); err == nil {
 				t.Fatal("malformed room frame accepted")
 			}
 		})
@@ -123,7 +123,7 @@ func TestLoadTipPanelArtGemSheetTooShortFails(t *testing.T) {
 	src := tipArtSource()
 	frame := synth.Frame256{Width: 2, Height: 2, Pixels: []synth.Pixel256{{Index: 1, Opaque: true}, {}, {}, {}}}
 	src[tipGemPath] = synth.Sheet256(synth.Sheet256Options{Palette: []color.RGBA{{}, {R: 1}}, Frames: []synth.Frame256{frame, frame, frame, frame, frame}})
-	if _, err := LoadTipPanelArt(src, rom1Screens); err == nil {
+	if _, err := LoadTipPanelArt(src, rom1Screens, tipTables["rom1"].Art); err == nil {
 		t.Fatal("short checkbox sheet accepted")
 	}
 }

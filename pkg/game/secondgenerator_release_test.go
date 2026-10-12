@@ -243,8 +243,8 @@ func TestReleaseSecondGameGeneratorTipsDrawWhole(t *testing.T) {
 		c := ui.NewChargen(setup)
 		c.SelectPreChoice(picture)
 		v := c.TipPanel()
-		for i, s := range setup.TipSelect {
-			v.Text = s
+		for i, s := range setup.Tips.Select {
+			v.Text = s.Text
 			whole(fmt.Sprintf("picture %d pre-create step %d", picture, i), v)
 		}
 		c.Forward()
@@ -252,15 +252,15 @@ func TestReleaseSecondGameGeneratorTipsDrawWhole(t *testing.T) {
 			t.Fatalf("picture %d: Forward did not open the detail page", picture)
 		}
 		v = c.TipPanel()
-		want := setup.TipText
+		want := setup.Tips.Fighter.Text
 		if f.generator().PreCreate.Heroes[picture].Class != 0 {
-			want = setup.TipTextMage
+			want = setup.Tips.Mage.Text
 		}
 		if v.Text != want {
 			t.Errorf("picture %d: the detail page opened on the other class's tip", picture)
 		}
 		whole(fmt.Sprintf("picture %d detail", picture), v)
-		v.Text = setup.TipTextDetail
+		v.Text = setup.Tips.After.Text
 		whole(fmt.Sprintf("picture %d after a skill click", picture), v)
 	}
 }

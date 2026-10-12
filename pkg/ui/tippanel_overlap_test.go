@@ -432,7 +432,7 @@ func TestPreCreateTipPanelSwallowsEveryPortraitItCovers(t *testing.T) {
 	setup.PreCreate = &ChargenPreCreate{Art: art}
 	setup.TipsOn = true
 	setup.TipArt = tipTestArt()
-	setup.TipSelect[0] = "pick a hero"
+	setup.Tips = testChargenTips([3]string{"pick a hero"}, "", "", "")
 	a := newTestApp(t, appRows(1), okLoader(t))
 	c := NewChargen(setup)
 	if err := a.OpenChargen(c, func(ChargenResult) (MapOpener, error) { return nil, nil }); err != nil {

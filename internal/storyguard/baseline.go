@@ -2215,6 +2215,10 @@ package storyguard
 // pkg/ui/minimap.go, the structure owner slots in pkg/game/world.go, the
 // minimap paint in pkg/game/missionart.go, the installed-picture witness and
 // the minimap release tests it rewrote, including this paragraph.
+// CommentBytes rises for the one tip table per game: the docs of the new
+// pkg/ui/tiptable.go and pkg/game/tiptable.go, the archtest tip table scan,
+// the tip frame digest release test and its loss control, including this
+// paragraph.
 // CommentBytes rises for the one automatic-casting setting: the docs of
 // pkg/sim/autocastsetting.go and its byte form, the attack-route support gate
 // in pkg/sim/spell.go, the one Game Options table in pkg/ui/gameoptions.go
@@ -2267,5 +2271,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8799459,
+	CommentBytes: 8804778,
 }

@@ -1,8 +1,8 @@
 // Package town is the town composer: one builder that turns a town
 // description into scenes, the square and each room page, all run by one
 // runtime, Scene. A description is data. It names the art, the
-// mask, the hotspots, the actor programs, the clock, the sounds, the tips, the
-// music and the rooms of one town, and the hooks a campaign answers. The
+// mask, the hotspots, the actor programs, the clock, the sounds, the music
+// and the rooms of one town, and the hooks a campaign answers. The
 // package holds no fact of any game: no resource key, coordinate, mask byte,
 // sound name or timing value appears in its code, and it imports no campaign
 // package. A game supplies its descriptions and a Host.
@@ -36,7 +36,6 @@ type Description struct {
 	Actors   []ActorSpec   `json:"actors"`
 	Step     StepSpec      `json:"step"`
 	Layers   []LayerSpec   `json:"layers"`
-	Tip      TipSpec       `json:"tip"`
 	Music    MusicSpec     `json:"music"`
 	Square   SquareSpec    `json:"square"`
 	Rooms    []RoomSpec    `json:"rooms"`
@@ -399,17 +398,6 @@ type WhenSpec struct {
 	Cite    []string   `json:"cite"`
 }
 
-// TipSpec is the view's tip popup: its text key and rectangle. Second is a
-// text that replaces the first once per room activation when the host's
-// condition holds; Fit moves the bottom edge up to the text's own height.
-type TipSpec struct {
-	Text   string   `json:"text"`
-	Second string   `json:"second"`
-	Rect   Rect     `json:"rect"`
-	Fit    bool     `json:"fit"`
-	Cite   []string `json:"cite"`
-}
-
 // MusicSpec is a view's music: one track, or one track per value of a
 // variant the host answers, the shown variant's track first.
 type MusicSpec struct {
@@ -439,7 +427,6 @@ type RoomSpec struct {
 	// sheets its page kind draws, read by the one screen art loader.
 	Art   []ArtSpec  `json:"art"`
 	Music *MusicSpec `json:"music"`
-	Tip   *TipSpec   `json:"tip"`
 	// Seats and Buttons are a page's own controls as data: the seat grid its
 	// page draws the campaign's roster in, and its buttons in index order.
 	Seats   *SeatSpec    `json:"seats"`

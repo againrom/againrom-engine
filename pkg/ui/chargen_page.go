@@ -246,10 +246,10 @@ func (c *Chargen) preHoverRegion(hover chargenControl) int {
 // A lit Back or Forward draws its art.
 func composePreCreateCycle(dst *image.RGBA, c *Chargen, p *ChargenPresentation) {
 	l, k := c.layout(), c.cycleDraw
-	if l == nil || k < 0 || c.preStep < 0 || c.preStep >= len(l.Tips.PreCreateCycle) || k >= len(l.Tips.PreCreateCycle[c.preStep]) {
+	if l == nil || k < 0 || c.preStep < 0 || c.preStep >= len(l.TipCycles.PreCreateCycle) || k >= len(l.TipCycles.PreCreateCycle[c.preStep]) {
 		return
 	}
-	id := preMaskControl(l, uint8(l.Tips.PreCreateCycle[c.preStep][k]))
+	id := preMaskControl(l, uint8(l.TipCycles.PreCreateCycle[c.preStep][k]))
 	focus := c.preFocusControl()
 	switch {
 	case id >= chargenChoice0 && id <= chargenChoice3:

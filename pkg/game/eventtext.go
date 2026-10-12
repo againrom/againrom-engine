@@ -554,8 +554,9 @@ func EventPart(payload []byte, n int, aud EventAudience) (string, bool) {
 	return body, ok
 }
 
-// MissionTipPath is the edition's text of tip n of the mission
-// (TRIG-TIPS-087); false when the edition has no mission tips.
+// MissionTipPath is the archive path of tip n of the mission, from the
+// edition's tip table (TRIG-TIPS-087); false when the table has no mission
+// tips.
 func MissionTipPath(e base.Edition, mission, n int) (string, bool) {
-	return e.MissionTip(mission, n)
+	return TipTable(e).MissionTip(mission, n)
 }

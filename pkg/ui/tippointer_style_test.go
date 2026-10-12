@@ -77,7 +77,7 @@ func TestChargenTipKeepsOriginalRectAndClosePresentation(t *testing.T) {
 	for _, detail := range []bool{false, true} {
 		t.Run(map[bool]string{false: "pre-create", true: "detailed"}[detail], func(t *testing.T) {
 			setup := chargenTipSetup()
-			setup.TipTextDetail = "detail tip"
+			setup.Tips.After.Text = "detail tip"
 			c := NewChargen(setup)
 			if detail {
 				c.Forward()

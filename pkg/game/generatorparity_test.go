@@ -43,10 +43,6 @@ var generatorParityWaivers = []generatorParityWaiver{
 	{"pre-create.sparkle.gap-ms", "rom1", "the first game's sparkle waits a step count (DIV-1276)"},
 	{"pre-create.sparkle.gap-draw-divisor", "rom1", "the first game's sparkle waits a step count (DIV-1276)"},
 	{"pre-create.sparkle.within", "rom1", "the first game's sparkle runs along a tour (DIV-1276)"},
-	{"tips.select[].section", "rom1", "the first game's tips are whole files, not town.txt sections (TOWN-518)"},
-	{"tips.fighter.section", "rom1", "the first game's tips are whole files, not town.txt sections (TOWN-187)"},
-	{"tips.mage.section", "rom1", "the first game's tips are whole files, not town.txt sections (TOWN-187)"},
-	{"tips.after.section", "rom1", "the first game's tips are whole files, not town.txt sections (TOWN-187)"},
 }
 
 // generatorFieldPaths are the field paths a description sets: dotted object

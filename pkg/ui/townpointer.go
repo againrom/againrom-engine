@@ -2,14 +2,14 @@ package ui
 
 import "image"
 
+// townTipOwner is the popup a held Close belongs to: its tip table row, its
+// construction and what it shows.
 type townTipOwner struct {
 	revision uint64
-	room     uint8
+	row      TipOwner
 	rect     image.Rectangle
 	text     string
 }
-
-const chargenTipRoom uint8 = 5
 
 // townRoomPointerState is the press state a room composes with.
 type townRoomPointerState struct {
@@ -45,39 +45,40 @@ func (a *App) clearTownTip() {
 	a.townTipPressOwner = townTipOwner{}
 }
 
-func tipPanelOwner(v TipPanelView, room uint8) townTipOwner {
-	return townTipOwner{revision: v.Revision, room: room, rect: v.Rect, text: v.Text}
+func tipPanelOwner(v TipPanelView) townTipOwner {
+	return townTipOwner{revision: v.Revision, row: v.Owner, rect: v.Rect, text: v.Text}
 }
 
-func tipPanelWithPointer(v TipPanelView, room uint8, p image.Point, inside bool, press buttonLatch, owner townTipOwner) TipPanelView {
+func tipPanelWithPointer(v TipPanelView, p image.Point, inside bool, press buttonLatch, owner townTipOwner) TipPanelView {
 	v.Pointer, v.PointerOK = p, inside
 	v.CloseHover = inside && p.In(TipPanelCloseRect(v.Rect))
-	v.ClosePressed = press.Holds() && owner == tipPanelOwner(v, room)
+	v.ClosePressed = press.Holds() && owner == tipPanelOwner(v)
 	return v
 }
 
 func (a *App) currentTownTip() (TipPanelView, townTipOwner) {
 	var v TipPanelView
-	var room uint8
 	if a.flow.screen == ScreenChargen && a.flow.chargen != nil {
-		v, room = a.flow.chargen.TipPanel(), chargenTipRoom
+		v = a.flow.chargen.TipPanel()
 	} else if a.flow.screen == ScreenTown {
 		if _, open := townDialogue(a.flow.town); open {
 			return v, townTipOwner{}
 		}
 		if surface, ok := townSurfaceScreen(a.flow.town); ok {
-			v, room = surface.Tip, uint8(surface.Kind)+1
+			v = surface.Tip
 		} else if shop, ok := townShopScreen(a.flow.town); ok {
-			v, room = shop.TipPanel, 3
+			v = shop.TipPanel
 		} else if square, ok := townSquareView(a.flow.town); ok {
-			v, room = square.Tip, 4
+			v = square.Tip
 		}
 	}
-	return v, tipPanelOwner(v, room)
+	return v, tipPanelOwner(v)
 }
 
+// cancelTownTipPointer drops a held Close; a town popup's cancelled press
+// also swallows its release, which the generator page takes itself.
 func (a *App) cancelTownTipPointer() {
-	if a.townTipPress.Holds() && a.townTipPressOwner.room != chargenTipRoom {
+	if a.townTipPress.Holds() && a.townTipPressOwner.row.Pointer == "town" {
 		a.suppressPrimaryRelease = true
 	}
 	a.clearTownTip()

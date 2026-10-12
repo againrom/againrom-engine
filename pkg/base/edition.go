@@ -32,7 +32,7 @@ type Edition struct {
 	Music string
 
 	// Rooms names the town description whose rooms the first game's tavern,
-	// shop and school pages, their tips and their scene art are read from;
+	// shop and school pages and their scene art are read from;
 	// empty when the game has no such pages. The second game's towns name
 	// their rooms in their own descriptions.
 	Rooms string
@@ -40,6 +40,10 @@ type Edition struct {
 	// Screens names the screen art description: the art manifest of every
 	// screen no town or generator description names.
 	Screens string
+
+	// Tips names the tip table: every tip popup the game shows, its text,
+	// rectangle, raising event, once-only rule and pointer owner.
+	Tips string
 
 	// Options names the Game Options column a stepping option row reads its
 	// offered values and its new-game value from.
@@ -75,11 +79,6 @@ type Edition struct {
 	// ModFamily are the words a mod's applies-to list names every base of
 	// the game by, beside each base's own id.
 	ModFamily []string
-
-	// MissionTip is the archive path of tip n of a mission. A mission
-	// dialogue part's tips= tag raises that popup when the dialogue closes on
-	// its last page; false when the tag raises nothing.
-	MissionTip func(mission, n int) (string, bool)
 }
 
 // CutsceneArchive is one archive cutscenes play from.
@@ -115,6 +114,7 @@ var firstEdition = Edition{
 	Music:                     "rom1",
 	Rooms:                     "rom1",
 	Screens:                   "rom1",
+	Tips:                      "rom1",
 	Options:                   "rom1",
 	CompanionObjectiveMission: 40,
 	Cutscenes: map[string]CutsceneArchive{
@@ -124,7 +124,6 @@ var firstEdition = Edition{
 	StartupCutscenes:  append([]string{"logos/buka.smk", "logos/nival.smk", "logos/1c.smk"}, numberedCutscenes("intro")...),
 	OriginalGenerator: "msvc",
 	ModFamily:         []string{"rom1"},
-	MissionTip:        numberedTips("main/text/battle/m%d/tips%02d.txt"),
 }
 
 var secondEdition = Edition{
@@ -134,6 +133,7 @@ var secondEdition = Edition{
 	Generator:    "rom2",
 	Music:        "rom2",
 	Screens:      "rom2",
+	Tips:         "rom2",
 	Options:      "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{
@@ -141,7 +141,6 @@ var secondEdition = Edition{
 		"video8": {Path: "video.res", Name: "video"},
 	},
 	DefaultCutscenes: "video4",
-	MissionTip:       noTips,
 }
 
 // AppliesTo are the names a base answers to in a mod's applies-to list: its
@@ -163,15 +162,6 @@ func numberedCutscenes(directory string) []string {
 	}
 	return names
 }
-
-// numberedTips is the tip path formatted from pattern with the mission and
-// the tip number.
-func numberedTips(pattern string) func(mission, n int) (string, bool) {
-	return func(mission, n int) (string, bool) { return fmt.Sprintf(pattern, mission, n), true }
-}
-
-// noTips raises no tip.
-func noTips(int, int) (string, bool) { return "", false }
 
 // Edition is the game's edition. The empty game and any game this package
 // does not name are the first game, as Profile.GameOf reads them.

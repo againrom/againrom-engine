@@ -74,8 +74,8 @@ func missionTipText(t *testing.T, f *FrontEnd, mission, n int) string {
 func wantMissionTip(t *testing.T, f *FrontEnd, live *mapWorld, mission, n int, what string) {
 	t.Helper()
 	v := live.view.MissionTip()
-	if !v.Showing() || v.Rect != ui.MissionTipRect || v.Text != missionTipText(t, f, mission, n) {
-		t.Fatalf("%s: popup %q at %v showing %v, want tip %d at %v", what, v.Text, v.Rect, v.Showing(), n, ui.MissionTipRect)
+	if !v.Showing() || v.Rect != missionTipRect || v.Text != missionTipText(t, f, mission, n) {
+		t.Fatalf("%s: popup %q at %v showing %v, want tip %d at %v", what, v.Text, v.Rect, v.Showing(), n, missionTipRect)
 	}
 }
 
@@ -115,7 +115,7 @@ func TestReleaseMissionTipControlsAndTipsMode(t *testing.T) {
 	app, live := openMissionTipMap(t, f, 10)
 	pageMissionDialogue(t, app, live, "start dialogue")
 	wantMissionTip(t, f, live, 10, 2, "start trigger")
-	box := ui.TipPanelToggleRect(ui.MissionTipRect)
+	box := ui.TipPanelToggleRect(missionTipRect)
 	at := box.Min.Add(image.Pt(2, 2))
 	if err := app.HeadlessPointer("press", at.X, at.Y); err != nil {
 		t.Fatal(err)
@@ -131,7 +131,7 @@ func TestReleaseMissionTipControlsAndTipsMode(t *testing.T) {
 	}
 	pageMissionDialogue(t, app, live, "dialogue with TipsMode clear")
 	wantMissionTip(t, f, live, 10, 2, "TipsMode clear keeps the open popup")
-	closeAt := ui.TipPanelCloseRect(ui.MissionTipRect).Min.Add(image.Pt(4, 4))
+	closeAt := ui.TipPanelCloseRect(missionTipRect).Min.Add(image.Pt(4, 4))
 	if err := app.HeadlessPointer("press", closeAt.X, closeAt.Y); err != nil {
 		t.Fatal(err)
 	}

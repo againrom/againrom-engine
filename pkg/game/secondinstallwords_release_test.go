@@ -144,7 +144,7 @@ func TestReleaseSecondGameInstallWordsReadInTheFont(t *testing.T) {
 	}
 	// The first game's room tip addresses, read through the second game's text code.
 	for _, room := range []townRoom{roomShop, roomTavern, roomSchool} {
-		addr := roomTipIn(ROM1TownDescription(), room).Text
+		addr := rom1RoomTip(room).Text.File
 		shipped, ok := ReadShopTip(src, addr, TextCode{})
 		if !ok {
 			continue

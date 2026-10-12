@@ -34,6 +34,8 @@ type TipPanelView struct {
 	// TextInset (left, top, right, bottom) places the text inside Rect; zero
 	// is the list child's own inset (MENU-137).
 	TextInset [4]int
+	// Owner is the tip table row the popup was built from.
+	Owner TipOwner
 }
 
 // textRect is where the view's text draws and its fit is tested.
@@ -57,10 +59,6 @@ const (
 	tipPanelGemSize    = 16
 	tipPanelChromeH    = 61
 )
-
-// MissionTipRect is the mission popup in the campaign window
-// (TRIG-TIPS-087).
-var MissionTipRect = image.Rect(10, 20, 370, 188)
 
 // TipPanelTextRect is where the text is drawn and its fit is tested: the
 // list child itself (MENU-137).

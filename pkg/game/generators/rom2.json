@@ -168,18 +168,7 @@
     "default-skill": 0,
     "cite": ["R2-ENGINE-283", "R2-ENGINE-286", "R2-ENGINE-288", "DIV-2770", "DIV-2771"]
   },
-  "tips": {
-    "pre-create-rect": [232, 48, 640, 184],
-    "detail-rect": [160, 280, 472, 480],
-    "panel": {"font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]},
-    "select": [
-      {"file": "main/text/town.txt", "section": "tips8", "cite": ["R2-ENGINE-289"]},
-      {"file": "main/text/town.txt", "section": "tips9", "cite": ["R2-ENGINE-289"]},
-      {"file": "main/text/town.txt", "section": "tips10", "cite": ["R2-ENGINE-289"]}
-    ],
-    "fighter": {"file": "main/text/town.txt", "section": "tips5", "cite": ["R2-ENGINE-289"]},
-    "mage": {"file": "main/text/town.txt", "section": "tips6", "cite": ["R2-ENGINE-289"]},
-    "after": {"file": "main/text/town.txt", "section": "tips7", "cite": ["R2-ENGINE-289"]},
+  "tip-cycles": {
     "pre-create-cycle": [[80, 100, 120, 140], [20, 40, 60], [160, 180]],
     "hover-wait-ms": 500, "step-gap-ms": 300,
     "cite": ["R2-ENGINE-289", "R2-ENGINE-274", "R2-ENGINE-389", "DIV-3015"]

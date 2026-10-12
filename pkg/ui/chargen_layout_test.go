@@ -44,8 +44,6 @@ var (
 	chargenStatPlusBox       = rects(testLayout.Detail.Stats.Plus)
 	chargenStatMinusBox      = rects(testLayout.Detail.Stats.Minus)
 	chargenRemainingBox      = testLayout.Detail.Stats.Pool.Rectangle()
-	PreCreateTipRect         = testLayout.Tips.PreCreateRect.Rectangle()
-	ChargenTipRect           = testLayout.Tips.DetailRect.Rectangle()
 )
 
 func preCreateNameTextOrigin() image.Point { return testLayout.PreCreate.Name.TextAt.Pt() }

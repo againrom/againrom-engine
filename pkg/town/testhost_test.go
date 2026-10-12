@@ -200,7 +200,6 @@ func baseTown() obj {
 			"start-sound": obj{"slot": "a", "key": "spin.wav"}}},
 		"step":   obj{"admitted": list{"advance spin"}},
 		"layers": list{obj{"art": "base", "mode": "copy", "at": list{0, 0}}, obj{"actor": "spin", "mode": "over", "at": list{2, 3}}},
-		"tip":    obj{"text": "tips.txt", "rect": list{0, 0, 10, 10}},
 		"music":  obj{"track": "t.wav"},
 		"square": obj{"name": "square", "enter": list{obj{"composer": "reset"}, obj{"hook": "leave-hook"}}},
 		"rooms": list{obj{"name": "inn", "page": "inn",

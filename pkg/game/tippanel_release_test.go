@@ -141,7 +141,7 @@ func TestReleaseChargenTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
 func TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt(t *testing.T) {
 	f := releaseFront(t)
 	setup := f.ChargenSetup()
-	if setup.TipTextMage == "" || setup.TipTextMage == setup.TipText {
+	if setup.Tips.Mage.Text == "" || setup.Tips.Mage.Text == setup.Tips.Fighter.Text {
 		t.Fatal("the fighter and mage nodes did not resolve as two texts on this install")
 	}
 	frames := map[int]*image.RGBA{}
@@ -149,7 +149,7 @@ func TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt(t *testin
 		c := ui.NewChargen(setup)
 		c.SelectPreChoice(choice)
 		c.Forward()
-		want := map[int]string{0: setup.TipText, 1: setup.TipTextMage}[choice]
+		want := map[int]string{0: setup.Tips.Fighter.Text, 1: setup.Tips.Mage.Text}[choice]
 		if v := c.TipPanel(); v.Text != want || v.Rect != chargenTipRect {
 			t.Fatalf("choice %d detailed popup = %q at %v", choice, v.Text, v.Rect)
 		}
@@ -193,14 +193,14 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 	if f3.Archives != nil {
 		src = f3.Archives.Containers
 	}
-	tips := f3.generator().Tips
-	fighterText, ok := ReadShopTip(src, tips.Fighter.File, f3.textCode())
+	fighterFile, mageFile := rom1TipRow("detail-enter", "", "fighter").Text.File, rom1TipRow("detail-enter", "", "mage").Text.File
+	fighterText, ok := ReadShopTip(src, fighterFile, f3.textCode())
 	if !ok {
-		t.Fatalf("ReadShopTip(%s) reported no shipped node", tips.Fighter.File)
+		t.Fatalf("ReadShopTip(%s) reported no shipped node", fighterFile)
 	}
-	mageText, ok := ReadShopTip(src, tips.Mage.File, f3.textCode())
+	mageText, ok := ReadShopTip(src, mageFile, f3.textCode())
 	if !ok {
-		t.Fatalf("ReadShopTip(%s) reported no shipped node", tips.Mage.File)
+		t.Fatalf("ReadShopTip(%s) reported no shipped node", mageFile)
 	}
 	art := f3.tipArt()
 	if f3.ChargenAssets == nil || f3.ChargenAssets.Presentation == nil || f3.ChargenAssets.Presentation.Font == nil {
@@ -213,8 +213,8 @@ func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
 			t.Errorf("chargen %s tip does not fit ChargenTipRect %v", name, v.Rect)
 		}
 	}
-	for i, step := range tips.Select {
-		addr := step.File
+	for i, event := range ui.PreCreateTipEvents {
+		addr := rom1TipRow(event, "", "").Text.File
 		text, ok := ReadShopTip(src, addr, f3.textCode())
 		if !ok {
 			t.Fatalf("%s is not shipped", addr)

@@ -13,7 +13,7 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 	payload := []byte("Buy low\rand sell high.")
 	fsys := townTextFS(t, []synth.File{{Path: "text/tips/shop1.txt", Data: payload}})
 
-	got, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text, TextCode{})
+	got, ok := ReadShopTip(fsys, rom1RoomTip(roomShop).Text.File, TextCode{})
 	if !ok {
 		t.Fatal("ReadShopTip reported the file absent")
 	}
@@ -26,19 +26,19 @@ func TestReadShopTipReadsTheWholeFileWithNoLineSplit(t *testing.T) {
 // there is nothing to draw (matching every other install text reader).
 func TestReadShopTipMissingFileAnswersFalse(t *testing.T) {
 	fsys := townTextFS(t, nil)
-	if _, ok := ReadShopTip(fsys, roomTipIn(ROM1TownDescription(), roomShop).Text, TextCode{}); ok {
+	if _, ok := ReadShopTip(fsys, rom1RoomTip(roomShop).Text.File, TextCode{}); ok {
 		t.Error("ReadShopTip found a file that was never shipped")
 	}
-	if _, ok := ReadShopTip(nil, roomTipIn(ROM1TownDescription(), roomShop).Text, TextCode{}); ok {
+	if _, ok := ReadShopTip(nil, rom1RoomTip(roomShop).Text.File, TextCode{}); ok {
 		t.Error("ReadShopTip with a nil source answered true")
 	}
 }
 
 func TestShopTipPathIsMainTextTipsShop1(t *testing.T) {
-	if got := roomTipIn(ROM1TownDescription(), roomShop).Text; got != "main/text/tips/shop1.txt" {
+	if got := rom1RoomTip(roomShop).Text.File; got != "main/text/tips/shop1.txt" {
 		t.Fatalf("shop room tip = %q, want main/text/tips/shop1.txt", got)
 	}
-	if got := roomTipIn(ROM1TownDescription(), roomShop).Second; got != "main/text/tips/shop2.txt" {
+	if got := rom1RoomTip(roomShop).Second.File; got != "main/text/tips/shop2.txt" {
 		t.Fatalf("shop room second tip = %q, want main/text/tips/shop2.txt", got)
 	}
 }
@@ -107,7 +107,7 @@ func TestEnteringTheShopWithNoArchivesDoesNotPanic(t *testing.T) {
 	}
 }
 
-// The room tips the description gives are the claimed text addresses and
+// The room tips the tip table gives are the claimed text addresses and
 // rectangles (TOWN-015, TOWN-021, TOWN-328, TOWN-329, SHOP-TIP-045).
 func TestRoomTipsAreTheDescribedTextsAndRectangles(t *testing.T) {
 	for _, tc := range []struct {
@@ -119,8 +119,8 @@ func TestRoomTipsAreTheDescribedTextsAndRectangles(t *testing.T) {
 		{roomShop, "main/text/tips/shop1.txt", image.Rect(164, 162, 476, 298)},
 		{roomSchool, "main/text/tips/training.txt", image.Rect(0, 0, 456, 200)},
 	} {
-		if tip := roomTipIn(ROM1TownDescription(), tc.room); tip.Text != tc.text || tip.Rect.Rectangle() != tc.rect {
-			t.Errorf("room %d tip = %q %v, want %q %v", tc.room, tip.Text, tip.Rect.Rectangle(), tc.text, tc.rect)
+		if tip := rom1RoomTip(tc.room); tip.Text.File != tc.text || tip.Rectangle() != tc.rect {
+			t.Errorf("room %d tip = %q %v, want %q %v", tc.room, tip.Text.File, tip.Rectangle(), tc.text, tc.rect)
 		}
 	}
 }

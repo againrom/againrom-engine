@@ -18,13 +18,14 @@ import (
 // The first game's description names the class texts by class, not by sex:
 // chrgen1f.txt is the fighter's text and chrgen1m.txt the mage's (TOWN-187).
 func TestGeneratorTipTextsAreByClass(t *testing.T) {
-	tips := generatorDescriptions[base.GameROM1.Edition().Generator].Tips
-	if tips.Fighter.File != mainPrefix+"text/tips/chrgen1f.txt" || tips.Mage.File != mainPrefix+"text/tips/chrgen1m.txt" {
-		t.Fatalf("class tip texts = %q, %q", tips.Fighter.File, tips.Mage.File)
+	tips := TipTable(base.GameROM1.Edition())
+	fighter, mage := tips.Row("detail-enter", "", "fighter"), tips.Row("detail-enter", "", "mage")
+	if fighter.Text.File != mainPrefix+"text/tips/chrgen1f.txt" || mage.Text.File != mainPrefix+"text/tips/chrgen1m.txt" {
+		t.Fatalf("class tip texts = %q, %q", fighter.Text.File, mage.Text.File)
 	}
 }
 
-// ChargenSetup resolves TipText to the fighter node's own shipped content —
+// ChargenSetup resolves the fighter tip to the fighter node's own shipped content —
 // the class row's Start is always 0 today — and
 // leaves TipsOn, TipArt and SetTipsOn wired for the screen (spec behaviours
 // 1, 3, 4).
@@ -34,8 +35,8 @@ func TestChargenSetupResolvesTheFighterTip(t *testing.T) {
 	f.Words.TipClose = "installed close"
 	f.Words.TipShowNext = "installed toggle"
 	s := f.ChargenSetup()
-	if s.TipText != "fighter text" {
-		t.Fatalf("TipText = %q, want the fighter node's own text", s.TipText)
+	if s.Tips.Fighter.Text != "fighter text" {
+		t.Fatalf("fighter tip = %q, want the fighter node's own text", s.Tips.Fighter.Text)
 	}
 	if !s.TipsOn {
 		t.Fatal("TipsOn = false, want the shipped default (true)")
@@ -56,22 +57,22 @@ func TestChargenSetupWithTipsOffCarriesTheGate(t *testing.T) {
 		{Path: "text/tips/chrsel2.txt", Data: []byte("second step")}})}}}
 	f.tipsOff = true
 	s := f.ChargenSetup()
-	if s.TipText != "fighter text" || s.TipSelect[1] != "second step" {
-		t.Fatalf("texts with TipsOff = %q, %q", s.TipText, s.TipSelect[1])
+	if s.Tips.Fighter.Text != "fighter text" || s.Tips.Select[1].Text != "second step" {
+		t.Fatalf("texts with TipsOff = %q, %q", s.Tips.Fighter.Text, s.Tips.Select[1].Text)
 	}
 	if s.TipsOn {
 		t.Fatal("TipsOn with TipsOff = true, want false")
 	}
 }
 
-// A room whose node the install does not ship resolves an empty TipText, the
+// A row whose node the install does not ship resolves an empty text, the
 // same "no shipped node, no panel" shape tips.go's own loadTip already gives
 // the four other screens (spec behaviour 2).
 func TestChargenSetupWithNoShippedNodeLeavesTipTextEmpty(t *testing.T) {
 	f := &FrontEnd{InstallResources: InstallResources{Archives: &Archives{Containers: townTextFS(t, nil)}}}
 	s := f.ChargenSetup()
-	if s.TipText != "" {
-		t.Fatalf("TipText with no shipped chrgen1f.txt = %q, want empty", s.TipText)
+	if s.Tips.Fighter.Text != "" {
+		t.Fatalf("fighter tip with no shipped chrgen1f.txt = %q, want empty", s.Tips.Fighter.Text)
 	}
 }
 

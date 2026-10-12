@@ -157,7 +157,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	}
 	for step, press := range []string{"choice 3", "difficulty 1", ""} {
 		v := c.TipPanel()
-		if !v.Showing() || v.Rect != preCreateTipRect || v.Text != setup.TipSelect[step] || c.TipStep() != step {
+		if !v.Showing() || v.Rect != preCreateTipRect || v.Text != setup.Tips.Select[step].Text || c.TipStep() != step {
 			t.Fatalf("pre-create step %d popup %q at %v (step %d)", step, v.Text, v.Rect, c.TipStep())
 		}
 		if err := app.HeadlessPointer("hover", rest.X, rest.Y); err != nil {
@@ -180,7 +180,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 		t.Fatal("OK did not open the detailed page")
 	}
 	v := c.TipPanel()
-	if !v.Showing() || v.Rect != chargenTipRect || (v.Text != setup.TipText && v.Text != setup.TipTextMage) {
+	if !v.Showing() || v.Rect != chargenTipRect || (v.Text != setup.Tips.Fighter.Text && v.Text != setup.Tips.Mage.Text) {
 		t.Fatalf("detailed enter popup %q at %v", v.Text, v.Rect)
 	}
 	if err := app.HeadlessPointer("hover", 300, 470); err != nil {
@@ -196,7 +196,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 
 	// The first skill click retexts chrgen2 and stops the skill cycle.
 	col := "fighter"
-	if v.Text == setup.TipTextMage {
+	if v.Text == setup.Tips.Mage.Text {
 		col = "mag"
 	}
 	raw, err := f.Archives.Containers.ReadFile("graphics/interface/chrgen/" + col + "/mask.bmp")
@@ -219,7 +219,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 			}
 		}
 	}
-	if got := c.TipPanel(); got.Text != setup.TipTextDetail || c.TipStep() != 1 {
+	if got := c.TipPanel(); got.Text != setup.Tips.After.Text || c.TipStep() != 1 {
 		t.Fatalf("first skill click: popup %q step %d", got.Text, c.TipStep())
 	}
 	if err := app.HeadlessPointer("hover", 300, 470); err != nil {
@@ -282,7 +282,7 @@ func TestReleaseMissionStartTipRender(t *testing.T) {
 	wantMissionTip(t, f, live, 10, 2, "start trigger")
 	// The map frame needs the GPU; the popup composes alone at its place.
 	pic := ui.ComposeMissionTip(live.view, 1024, 768)
-	if pic.RGBAAt(ui.MissionTipRect.Min.X+40, ui.MissionTipRect.Min.Y+40).A == 0 || pic.RGBAAt(ui.MissionTipRect.Max.X+5, ui.MissionTipRect.Min.Y+40).A != 0 {
+	if pic.RGBAAt(missionTipRect.Min.X+40, missionTipRect.Min.Y+40).A == 0 || pic.RGBAAt(missionTipRect.Max.X+5, missionTipRect.Min.Y+40).A != 0 {
 		t.Fatal("the mission popup does not compose inside its rectangle")
 	}
 	writeTipRender(t, dir, "mission10-start-tip-popup", pic)

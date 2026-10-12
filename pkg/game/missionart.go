@@ -66,6 +66,9 @@ func (s viewerArtSource) resolve() viewerArt {
 		CloseLabel:  s.in.Words.TipClose,
 		ToggleLabel: s.in.Words.TipShowNext,
 	}
+	if row := TipTable(s.in.profile().Edition()).Row("dialogue-close", "", ""); row != nil {
+		art.missionTip.Rect, art.missionTip.Owner = row.Rectangle(), row.Owner()
+	}
 	if pc := s.pc; pc != nil {
 		art.missionTip.TipsOn = func() bool { return !pc.tipsOffNow() }
 		art.missionTip.SetTipsOn = func(on bool) { pc.setTipsOff(!on) }
