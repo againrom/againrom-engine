@@ -12,6 +12,8 @@ const (
 	KindUnit      Kind = iota // type 6, 70-byte placements (ALM-UNIT-018)
 	KindStructure             // type 4, 20 bytes plus the 0x21 extension (ALM-OBJ-019, ALM-OBJ-034)
 	KindLoot                  // type 8, a ground sack or a unit's stock (ALM-SACK-065)
+	KindAction                // type 7 action node array (ALM-TRIG-044, ALM-TRIG-045)
+	KindCondition             // type 7 condition node array
 )
 
 // section is one row of the record-section table: where a kind's records
@@ -23,6 +25,11 @@ type section struct {
 	typeID uint32
 	count  int // the type-0 word that counts the records
 	x, y   int // fixed-point coordinate words, /256 is the cell
+
+	// layout, when set, finds the records inside a payload that holds several
+	// counted arrays, in place of the type-0 count word and a payload that is
+	// one array.
+	layout func(e *Editor, sp span) (arrayLayout, error)
 
 	// length measures the record at the start of b, or answers -1 when it
 	// does not fit.
@@ -53,6 +60,8 @@ var sections = map[Kind]*section{
 		cellless: func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
 		fields:   lootFields,
 	},
+	KindAction:    scriptSection("action", 0),
+	KindCondition: scriptSection("condition", 1),
 }
 
 func fixedLength(b []byte, n int) int {
@@ -72,10 +81,18 @@ func sectionOf(k Kind) (*section, error) {
 // walk is one section located in the current buffer: its record and the
 // payload-relative start of each record, with the payload end last.
 type walk struct {
-	frame  frame
-	sec    *section
-	span   span
-	starts []int
+	frame   frame
+	sec     *section
+	span    span
+	countAt int // absolute offset of the word that counts the records
+	starts  []int
+}
+
+// arrayLayout is where one counted array sits in its payload: the absolute
+// offset of its count word, the payload-relative start of its first record,
+// the record count and the payload bytes that follow the last record.
+type arrayLayout struct {
+	countAt, first, n, after int
 }
 
 func (w walk) n() int { return len(w.starts) - 1 }
@@ -98,11 +115,18 @@ func (e *Editor) walkSection(k Kind, what string) (walk, error) {
 	if err != nil {
 		return walk{}, err
 	}
-	w := walk{frame: f, sec: sec, span: sp, starts: []int{0}}
-	n := e.u32(f.required(metaTypeID).abs(sec.count))
+	lay := arrayLayout{countAt: f.required(metaTypeID).abs(sec.count)}
+	lay.n = int(e.u32(lay.countAt))
+	if sec.layout != nil {
+		lay, err = sec.layout(e, sp)
+		if err != nil {
+			return walk{}, fmt.Errorf("mapedit: cannot %s: %w", what, err)
+		}
+	}
+	w := walk{frame: f, sec: sec, span: sp, countAt: lay.countAt, starts: []int{lay.first}}
 	payload := e.data[sp.payloadOff : sp.payloadOff+sp.payloadSize]
-	off := 0
-	for i := uint32(0); i < n; i++ {
+	off := lay.first
+	for i := 0; i < lay.n; i++ {
 		l := sec.length(e, payload[off:])
 		if l <= 0 {
 			return walk{}, fmt.Errorf("mapedit: cannot %s: %s record %d does not fit in the type-%d payload", what, sec.name, i, sec.typeID)
@@ -110,8 +134,8 @@ func (e *Editor) walkSection(k Kind, what string) (walk, error) {
 		off += l
 		w.starts = append(w.starts, off)
 	}
-	if off != sp.payloadSize {
-		return walk{}, fmt.Errorf("mapedit: cannot %s: the type-%d walk consumed %d of %d payload bytes", what, sec.typeID, off, sp.payloadSize)
+	if off+lay.after != sp.payloadSize {
+		return walk{}, fmt.Errorf("mapedit: cannot %s: the type-%d walk consumed %d of %d payload bytes", what, sec.typeID, off+lay.after, sp.payloadSize)
 	}
 	return w, nil
 }
@@ -190,7 +214,7 @@ func (e *Editor) appendRecord(w walk, record []byte) int {
 	e.apply(edit{
 		replace(w.span.abs(w.starts[n]), nil, record),
 		e.sizeWordPart(w.span, len(record)),
-		e.wordPart(w.frame.required(metaTypeID).abs(w.sec.count), 1),
+		e.wordPart(w.countAt, 1),
 	})
 	return n
 }
@@ -255,7 +279,7 @@ func (e *Editor) Delete(k Kind, i int) error {
 	e.apply(edit{
 		replace(at, e.data[at:at+l], nil),
 		e.sizeWordPart(w.span, -l),
-		e.wordPart(w.frame.required(metaTypeID).abs(w.sec.count), -1),
+		e.wordPart(w.countAt, -1),
 	})
 	return nil
 }

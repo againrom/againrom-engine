@@ -224,7 +224,7 @@ func TestReleaseEveryInstalledMapReportsNoError(t *testing.T) {
 
 func TestReleaseMapEditorHelpLinesFitTheRail(t *testing.T) {
 	x := installedInspector(t)
-	for _, line := range []string{"R: report / Drag: move / C: clone"} {
+	for _, line := range ui.EditorHelpLines() {
 		if width := x.font.Advance(line); width > 300 {
 			t.Errorf("%q is %d wide; the rail holds 300", line, width)
 		}

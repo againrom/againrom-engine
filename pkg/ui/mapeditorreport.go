@@ -79,6 +79,7 @@ type reportState struct {
 	sel     int
 	flagged map[string]bool
 	offset  int
+	goals   []InspectionGoal // set while the rows are the script panel's arms
 }
 
 func findingKey(kind string, index int) string { return fmt.Sprintf("%s#%d", kind, index) }
@@ -103,6 +104,7 @@ func (e *MapEditor) openReport(rows []InspectionFinding, note string) {
 		e.report.offset = e.offset
 	}
 	e.report.open, e.report.rows, e.report.note, e.report.sel = true, rows, note, 0
+	e.report.goals = nil
 	e.report.flagged = map[string]bool{}
 	for _, f := range rows {
 		if f.Kind != "" {

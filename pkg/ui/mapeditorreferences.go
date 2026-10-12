@@ -83,7 +83,7 @@ func (e *MapEditor) detailLayout(h int) []inspectionDetailRow {
 		}
 	}
 	lineHeight := max(16, e.font.Height()+2)
-	limit := max(0, (h-top-45)/lineHeight)
+	limit := max(0, (h-top-81)/lineHeight)
 	e.detailOffset = max(0, min(e.detailOffset, max(0, len(wrapped)-limit)))
 	var out []inspectionDetailRow
 	for i := e.detailOffset; i < min(len(wrapped), e.detailOffset+limit); i++ {

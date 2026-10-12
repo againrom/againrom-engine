@@ -59,6 +59,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 var editKinds = map[string]mapedit.Kind{
 	"Unit": mapedit.KindUnit, "Structure": mapedit.KindStructure,
 	"Sack": mapedit.KindLoot, "Stock": mapedit.KindLoot,
+	"Action": mapedit.KindAction, "Condition": mapedit.KindCondition,
 }
 
 func editKind(kind string) (mapedit.Kind, error) {
@@ -220,6 +221,8 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 			}
 		case mapedit.CheckRosterSlot, mapedit.CheckClassKey, mapedit.CheckDefinitionID:
 			err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
+		case mapedit.CheckScriptUnit, mapedit.CheckScriptStructure, mapedit.CheckScriptGroup:
+			err = checkScriptReference(f.Check, view, value)
 		}
 		if err != nil {
 			return false, err
@@ -456,4 +459,35 @@ func preservedPairRoots(resolvedRoot string) []string {
 		roots = append(roots, filepath.Join(parent, l.Code))
 	}
 	return roots
+}
+
+// checkScriptReference refuses a script target the map does not hold: a
+// Target_Unit below the hero band no placed unit carries, a Target_Structure
+// no structure carries, or a Target_Group no unit holds (ALM-TRIG-046).
+func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64) error {
+	switch check {
+	case mapedit.CheckScriptUnit:
+		if value >= scriptHeroBand {
+			return nil
+		}
+		for _, u := range m.Units {
+			if int64(u.UnitID) == value {
+				return nil
+			}
+		}
+		return fmt.Errorf("no unit on the map has unit id %d", value)
+	case mapedit.CheckScriptStructure:
+		for _, o := range m.Objects {
+			if int64(o.Field12) == value {
+				return nil
+			}
+		}
+		return fmt.Errorf("no structure on the map has structure id %d", value)
+	}
+	for _, u := range m.Units {
+		if int64(u.GroupID) == value {
+			return nil
+		}
+	}
+	return fmt.Errorf("no unit on the map holds group %d", value)
 }

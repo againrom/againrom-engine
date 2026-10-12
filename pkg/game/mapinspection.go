@@ -142,6 +142,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 	v.ShowReadout(false)
 	d := &ui.InspectionDocument{Viewer: v, Source: source, Name: m.Name,
 		Width: m.Width, Height: m.Height, SourceBytes: model.Bytes()}
+	for _, c := range mapload.DropCells(m) {
+		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
+	}
 	add := func(r ui.InspectionRecord) {
 		if r.Spatial && (r.Cell.X < 0 || r.Cell.Y < 0 || r.Cell.X >= m.Width || r.Cell.Y >= m.Height) {
 			r.Warning = joinInspectionWarning(r.Warning, "Anchor outside map; marker clamped to edge")

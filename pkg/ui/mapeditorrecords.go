@@ -15,13 +15,19 @@ var dragRank = map[string]int{"Unit": 1, "Sack": 2, "Structure": 3}
 // fields of. A unit's stock has no cell and is reached from the list.
 func editableKind(kind string) bool { return dragRank[kind] > 0 || kind == "Stock" }
 
+// fieldKind reports a record kind whose fields the window sets: the editable
+// kinds and the script nodes, which have no cell to clone or delete.
+func fieldKind(kind string) bool {
+	return editableKind(kind) || kind == "Action" || kind == "Condition"
+}
+
 // selectedRecord is the kind and file-order index of the selected editable
 // record, or index -1.
 func (e *MapEditor) selectedRecord() (string, int) {
 	if !e.editable() || e.catalog || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return "", -1
 	}
-	if r := e.doc.Records[e.selected]; editableKind(r.Kind) {
+	if r := e.doc.Records[e.selected]; fieldKind(r.Kind) {
 		return r.Kind, r.Index
 	}
 	return "", -1
@@ -61,8 +67,12 @@ func (e *MapEditor) recordKey(key string) error {
 		e.pick, e.message = "sack", ""
 		return nil
 	}
+	if key == "drop" || key == "goals" {
+		e.scriptKey(key)
+		return nil
+	}
 	kind, index := e.selectedRecord()
-	if index < 0 {
+	if index < 0 || (key != "field" && !editableKind(kind)) {
 		e.message = "Select a unit, structure or sack first."
 		return nil
 	}
@@ -137,6 +147,10 @@ func (e *MapEditor) setField(text string) error {
 func (e *MapEditor) pickAt(p image.Point) {
 	pick := e.pick
 	e.pick = ""
+	if pick == "goal" {
+		e.goalAt(p)
+		return
+	}
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 	if !ok {
 		e.message = "Click a map cell."
@@ -146,6 +160,10 @@ func (e *MapEditor) pickAt(p image.Point) {
 		cell := image.Pt(x, y)
 		e.sackCell = &cell
 		e.openPrompt("")
+		return
+	}
+	if pick == "drop" {
+		e.dropAt(image.Pt(x, y))
 		return
 	}
 	kind, index := e.selectedRecord()

@@ -2374,6 +2374,11 @@ package storyguard
 //
 // CommentBytes rises for a step that completes before a new order acts: the
 // note in beginManualCast and the step tests, this note included.
+//
+// CommentBytes rises for script authoring in the map editor: the docs of the
+// new type-7 rows in pkg/mapedit/script.go and SetFields in field.go, the
+// host's script operations in pkg/game/mapinspectionscript.go, the script
+// panel in pkg/ui/mapeditorscript.go and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2397,5 +2402,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8931892,
+	CommentBytes: 8941843,
 }

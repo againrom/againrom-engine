@@ -34,7 +34,7 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 		}
 		add(title, editorGold)
 	}
-	available := max(1, (h-88-y)/height)
+	available := max(1, (h-124-y)/height)
 	var errors []string
 	if e.message != "" {
 		errors = editorWrap(e.font, e.editorHostText(e.message), 300)

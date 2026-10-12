@@ -12,12 +12,15 @@ import (
 type FieldCheck int
 
 const (
-	CheckRangeOnly     FieldCheck = iota // the range below is the whole rule
-	CheckRosterSlot                      // a 1-based slot in the type-5 roster (ALM-OWN-039)
-	CheckClassKey                        // a class key the installed tables hold (ALM-CLS-038)
-	CheckDefinitionID                    // zero, or a definition id the installed tables hold
-	CheckStructureKind                   // an ID the installed structures.reg holds (ALM-CLS-036)
-	CheckItemCode                        // an item code the installed item tables hold; 0 passes
+	CheckRangeOnly       FieldCheck = iota // the range below is the whole rule
+	CheckRosterSlot                        // a 1-based slot in the type-5 roster (ALM-OWN-039)
+	CheckClassKey                          // a class key the installed tables hold (ALM-CLS-038)
+	CheckDefinitionID                      // zero, or a definition id the installed tables hold
+	CheckStructureKind                     // an ID the installed structures.reg holds (ALM-CLS-036)
+	CheckItemCode                          // an item code the installed item tables hold; 0 passes
+	CheckScriptUnit                        // a unit id a type-6 record holds, or a hero-band value (ALM-TRIG-046)
+	CheckScriptStructure                   // a structure id a type-4 record's +0x12 word holds (ALM-TRIG-046)
+	CheckScriptGroup                       // a group id a type-6 record holds (ALM-TRIG-046)
 )
 
 // Field is one settable integer field of a record, at a record-relative
@@ -87,38 +90,63 @@ func (e *Editor) FieldValue(k Kind, i int, key string) (int64, error) {
 	return f.decode(rec[f.Offset:]), nil
 }
 
+// FieldSet is one field of a record and the value to write into it.
+type FieldSet struct {
+	Key   string
+	Value int64
+}
+
 // SetField writes v into the field named key of k's record i as one edit. A
 // value outside the field's range is refused and writes nothing; the field's
 // Check is the caller's to run. A write that keeps the record's length edits
 // the field's bytes alone; one that adds or removes an element, or the 0x21
 // extension, replaces the record and moves the payloadSize word.
 func (e *Editor) SetField(k Kind, i int, key string, v int64) error {
+	return e.SetFields(k, i, FieldSet{key, v})
+}
+
+// SetFields writes several fields of one record as one edit, so one Undo
+// reverts them together. Each write follows SetField's rules and sees the
+// record the writes before it left; a key named twice is refused.
+func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
+	if len(sets) == 0 {
+		return fmt.Errorf("mapedit: no field to set")
+	}
 	w, err := e.walkIndex(k, "set a field of", i)
 	if err != nil {
 		return err
 	}
 	at, l := w.at(i)
 	rec := e.data[at : at+l]
-	f, ok := fieldByKey(w.sec.fields(e, rec), key)
-	if !ok {
-		return fmt.Errorf("mapedit: no %s field %q", w.sec.name, key)
-	}
-	if v < f.Min || v > f.Max {
-		return fmt.Errorf("mapedit: %s %d is outside %d..%d", f.Label, v, f.Min, f.Max)
-	}
-	if f.Offset >= l && v == 0 {
-		return fmt.Errorf("mapedit: %s 0 adds nothing", f.Label)
-	}
-	next := f.write(rec, v)
-	if w.sec.reshape != nil {
-		next = w.sec.reshape(next)
-	}
-	if w.sec.length(e, next) != len(next) {
-		return fmt.Errorf("mapedit: %s %d would not be one type-%d record", f.Label, v, w.sec.typeID)
+	next := cloneBytes(rec)
+	lo, hi := l, 0
+	seen := map[string]bool{}
+	for _, set := range sets {
+		f, ok := fieldByKey(w.sec.fields(e, next), set.Key)
+		if !ok {
+			return fmt.Errorf("mapedit: no %s field %q", w.sec.name, set.Key)
+		}
+		if seen[set.Key] {
+			return fmt.Errorf("mapedit: %s field %q is named twice", w.sec.name, set.Key)
+		}
+		seen[set.Key] = true
+		if set.Value < f.Min || set.Value > f.Max {
+			return fmt.Errorf("mapedit: %s %d is outside %d..%d", f.Label, set.Value, f.Min, f.Max)
+		}
+		if f.Offset >= len(next) && set.Value == 0 {
+			return fmt.Errorf("mapedit: %s 0 adds nothing", f.Label)
+		}
+		next = f.write(next, set.Value)
+		if w.sec.reshape != nil {
+			next = w.sec.reshape(next)
+		}
+		if w.sec.length(e, next) != len(next) {
+			return fmt.Errorf("mapedit: %s %d would not be one type-%d record", f.Label, set.Value, w.sec.typeID)
+		}
+		lo, hi = min(lo, f.Offset), max(hi, f.Offset+f.Width)
 	}
 	if len(next) == l {
-		p := at + f.Offset
-		e.apply(edit{replace(p, e.data[p:p+f.Width], next[f.Offset:f.Offset+f.Width])})
+		e.apply(edit{replace(at+lo, rec[lo:hi], next[lo:hi])})
 		return nil
 	}
 	e.apply(edit{replace(at, rec, next), e.sizeWordPart(w.span, len(next)-l)})

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -17,7 +18,10 @@ const replaceModID = "ambush"
 // replaceMod writes, in a fresh mods folder, the mod ambush that replaces
 // campaign mission 20 with the map and texts it copies out of the install
 // under test, as cmd/modmission does. It returns the mods folder.
-func replaceMod(t *testing.T) string {
+func replaceMod(t *testing.T) string { return replaceModNumber(t, 20) }
+
+// replaceModNumber is replaceMod for campaign mission number.
+func replaceModNumber(t *testing.T, number int) string {
 	t.Helper()
 	install := os.Getenv("AGAINROM_ASSETS")
 	if install == "" {
@@ -29,7 +33,7 @@ func replaceMod(t *testing.T) string {
 		"mod.toml": "id = \"" + replaceModID + "\"\ntitle = \"Ambush\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\n" +
 			"description = \"Mission 20 on an edited map.\"\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n",
 		"main.star": "def init(game, settings):\n    game.data.add(\"data/missions.toml\")\n",
-		"data/missions.toml": "[[mission]]\nkind = \"replace\"\nkey = \"ambush\"\nnumber = 20\n" +
+		"data/missions.toml": "[[mission]]\nkind = \"replace\"\nkey = \"ambush\"\nnumber = " + strconv.Itoa(number) + "\n" +
 			"map = \"mission/{lang}/map.alm\"\ntexts = \"mission/{lang}/text\"\ntitle = \"ambush.title\"\n",
 		"text/en/strings.toml": "\"ambush.title\" = \"Ambush\"\n",
 	}
@@ -43,7 +47,7 @@ func replaceMod(t *testing.T) string {
 		}
 	}
 	lang := modrt.LanguageFor(BaseID(InspectInstall(install)))
-	if _, err := AssembleModMission(install, lang, 20, dir); err != nil {
+	if _, err := AssembleModMission(install, lang, number, dir); err != nil {
 		t.Fatal(err)
 	}
 	return root

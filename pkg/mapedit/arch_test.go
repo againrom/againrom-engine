@@ -60,6 +60,9 @@ var payloadLengthReferences = nameTable{
 	// The section walk slices the payload and refuses a walk that does not
 	// consume it exactly; the count it walks is the type-0 word.
 	"section.go/(*Editor).walkSection": {"payloadSize"},
+	// The type-7 layout walks the payload's three counted arrays and refuses a
+	// payload they do not tile.
+	"script.go/scriptLayout": {"payloadSize"},
 }
 
 // ---------------------------------------------------------------------------

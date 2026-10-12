@@ -50,6 +50,7 @@ type InspectionDocument struct {
 	Records       []InspectionRecord
 	SourceBytes   []byte // exact current model bytes, not a re-encoded map
 	ScriptNotice  string
+	Drops         []image.Point   // the cells the map's script drops the party on
 	Edits         InspectionEdits // optional; host owns persistence and safety
 }
 
@@ -68,6 +69,29 @@ type InspectionEdits interface {
 	Undo() (*InspectionDocument, error)
 	Redo() (*InspectionDocument, error)
 	SaveAs(path string) (string, error)
+}
+
+// InspectionScript is implemented by edits whose host edits the map's script:
+// the drop cell and the targets of its win, lose and protect arms. Goals lists
+// the arms; SetGoalTarget points goal at the Unit or Structure record picked
+// on the map.
+type InspectionScript interface {
+	Goals() []InspectionGoal
+	SetGoalTarget(goal int, kind string, index int) (*InspectionDocument, error)
+	SetDropCell(cell image.Point) (*InspectionDocument, error)
+}
+
+// InspectionGoal is one row of the script panel. Pick is the record kind a
+// click on the map must name. Kind and Index address the script record the
+// row edits, Index -1 for the row that adds one. Cell is where the current
+// target stands, when HasCell.
+type InspectionGoal struct {
+	Arm, Text string
+	Pick      string
+	Kind      string
+	Index     int
+	Cell      image.Point
+	HasCell   bool
 }
 
 // InspectionField is one settable field of a selected record and its value.
@@ -93,7 +117,7 @@ type MapEditor struct {
 	catalog, pathMode              bool
 	pathSave                       bool
 	fieldMode                      bool         // field prompt in the path modal
-	pick                           string       // "clone" or "sack": the next canvas click picks a cell
+	pick                           string       // "clone", "sack", "drop" or "goal": the next canvas click picks a cell or a record
 	sackCell                       *image.Point // the cell a sack prompt adds to
 	field                          int          // index into the selected record's fields
 	path, message                  string
@@ -337,7 +361,9 @@ func (e *MapEditor) Key(key string) error {
 			}
 			return e.Open(strings.TrimSpace(e.path))
 		}
-		if e.report.open {
+		if len(e.report.goals) > 0 {
+			e.armGoal()
+		} else if e.report.open {
 			e.selectFinding(e.report.sel)
 		}
 	case "report":
@@ -359,7 +385,7 @@ func (e *MapEditor) Key(key string) error {
 			e.pathMode, e.pathSave = true, true
 			e.path, e.message = "", ""
 		}
-	case "clone", "delete", "field", "tab", "sack":
+	case "clone", "delete", "field", "tab", "sack", "drop", "goals":
 		return e.recordKey(key)
 	case "undo", "redo":
 		e.cancelRecordDrag()
@@ -580,7 +606,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -786,6 +812,9 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		} else if e.report.open {
 			f := e.report.rows[n]
 			label = reportLabel(f)
+			if len(e.report.goals) > 0 {
+				label = goalLabel(e.report.goals[n])
+			}
 			if f.Error {
 				c = editorWarning
 			}
@@ -823,8 +852,11 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			step = max(16, e.font.Height()+2)
 		}
 		text := f.Line()
+		if len(e.report.goals) > 0 {
+			text = goalLabel(e.report.goals[e.report.sel])
+		}
 		for n, row := range editorWrap(e.font, text, 300) {
-			if y := bottom + 40 + n*step; y+step <= h-45 {
+			if y := bottom + 40 + n*step; y+step <= h-81 {
 				line(row, 10, y, 300, editorLight)
 			}
 		}
@@ -861,22 +893,17 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			line(row.Text, row.Rect.Min.X, row.Rect.Min.Y, 300, c)
 		}
 	}
-	help := "R: report / Drag: move / C: clone / Del / E: fields / S: sack"
-	switch e.pick {
-	case "clone":
-		help = "Clone: click a cell / Esc: cancel"
-	case "sack":
-		help = "Sack: click a cell / Esc: cancel"
+	for n, help := range e.helpLines() {
+		line(editorClip(e.font, help, 300), 10, h-75+n*18, 300, editorPaper)
 	}
-	line(editorClip(e.font, help, 300), 10, h-39, 300, editorPaper)
 	line(e.saveHelp(), 10, h-21, 300, editorPaper)
 	if e.pathMode || e.message != "" {
-		draw.Draw(pic, image.Rect(0, bottom+30, 320, h-45), image.NewUniform(editorInk), image.Point{}, draw.Src)
+		draw.Draw(pic, image.Rect(0, bottom+30, 320, h-81), image.NewUniform(editorInk), image.Point{}, draw.Src)
 		for _, row := range e.modalLayout(h) {
 			line(row.text, 10, row.y, 300, row.color)
 		}
 		if e.message != "" {
-			line("Map and history retained. Esc: back", 10, h-72, 300, editorPaper)
+			line("Map and history retained. Esc: back", 10, h-108, 300, editorPaper)
 		}
 	}
 	return pic
@@ -971,6 +998,13 @@ func (e *MapEditor) markerLines() []editorLine {
 		wx, wy := e.cellCenter(cell)
 		x, y := v.cam.WorldToScreen(wx, wy)
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), editorGold}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), editorGold})
+	}
+	for _, cell := range e.dropMarkers() {
+		wx, wy := e.cellCenter(cell)
+		x, y := v.cam.WorldToScreen(wx, wy)
+		for _, d := range [][4]float32{{-8, -8, 8, -8}, {8, -8, 8, 8}, {8, 8, -8, 8}, {-8, 8, -8, -8}, {-8, -8, 8, 8}, {-8, 8, 8, -8}} {
+			out = append(out, editorLine{float32(x) + d[0], float32(y) + d[1], float32(x) + d[2], float32(y) + d[3], editorCondition})
+		}
 	}
 	out = append(out, e.referenceMarkerLines()...)
 	return out
