@@ -15,6 +15,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] In the tavern, the speaker who offers the mission for the repaired catapult speaks both lines aloud. A tavern speaker with no recording for the hero's sex and class plays the conversation's own recording instead of staying silent.
 - [ROM1] The shopkeeper says one line about an item you take from his shelf instead of running through all of its lines one after another. A magic item gets its effect line, a book or wand its spell line, and other goods one of their own lines, picked anew each time.
 - [ROM1] A game saved after playing on from an original save loads back exactly as it was left: a monster holding an attack keeps it, a monster that moved and died stays where it fell, and heroes sent away from their group keep their new orders.
+- [BASE] A step from one cell to the next completes before a new order acts. Giving a spell order to a walking hero, such as Magic Shield on the hero or a spell at a target, no longer throws the figure to the centre of the cell it was entering: the hero finishes the step, then casts.
 
 ## 0.120.0
 

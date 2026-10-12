@@ -2367,6 +2367,9 @@ package storyguard
 // CommentBytes rises for the original-save replay: the docs of the new
 // pkg/game/originalreplay_release_test.go and the notes on the three carriers
 // that SAVE writes from the current state, this note included.
+//
+// CommentBytes rises for a step that completes before a new order acts: the
+// note in beginManualCast and the step tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2390,5 +2393,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8922850,
+	CommentBytes: 8924966,
 }

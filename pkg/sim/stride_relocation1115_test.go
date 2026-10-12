@@ -99,10 +99,19 @@ func TestNativeStrideRelocation1115ManualBookDispatchAndFacing(t *testing.T) {
 			if events := StepObserved(w, []Command{command}); len(events) != 0 {
 				t.Fatal("book released before its wind-up")
 			}
+			// The step in progress completes; the cast is admitted at its end.
+			if len(w.bookCasts) != 0 || w.entities[0].Transit == 0 {
+				t.Fatalf("cast admitted inside the step: %+v transit %d", w.bookCasts, w.entities[0].Transit)
+			}
+			for n := 0; n < 40 && len(w.bookCasts) == 0; n++ {
+				if events := StepObserved(w, nil); len(events) != 0 {
+					t.Fatal("book released before its wind-up")
+				}
+			}
 			if len(w.bookCasts) != 1 || w.entities[0].Facing != 96 {
 				t.Fatalf("cast admission/facing = %+v facing %d, want one cast facing southeast", w.bookCasts, w.entities[0].Facing)
 			}
-			// Manual admission turns toward the cast and cancels the old stride.
+			// Admission after the step turns toward the cast and cancels the old stride.
 			strideRelocationAbsent1115(t, w.entities[0], 3, 2, 0, 0)
 			released := false
 			for n := 0; n < 64; n++ {

@@ -48,6 +48,13 @@ func spellClickFixture(t *testing.T) (*FrontEnd, sim.Entity, sim.Entity) {
 		t.Fatal(err)
 	}
 	sprayRowWalk(t, f.live, mage.ID, 13, 40)
+	// A cast ordered mid-step waits for the step's end; these tests order it at once.
+	for range 40 {
+		if e := releaseEntity(t, f.live, mage.ID); e.Transit == 0 {
+			break
+		}
+		f.live.tick()
+	}
 	if err := f.live.world.HeadlessPlace(foe.ID, 18, 40); err != nil {
 		t.Fatal(err)
 	}

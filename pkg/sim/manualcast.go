@@ -69,7 +69,9 @@ func (w *World) beginManualCast(i int, c Command) bool {
 	if !w.cancelScroll(i) {
 		return false
 	}
-	if e := &w.entities[i]; w.retainsOldStrike(i) {
+	// A step between two cells completes: the cast waits for its end like one
+	// behind a strike, and the figure is never moved to the cell centre.
+	if e := &w.entities[i]; w.retainsOldStrike(i) || e.Transit != 0 {
 		resumes := c.Kind == KindCast && holdsOrderedVictim(*e)
 		w.clearActorCast(i)
 		w.clearOrder(i)
@@ -175,8 +177,6 @@ func (w *World) beginCellCastApproach(i int, c Command) bool {
 	e := &w.entities[i]
 	e.Retreat = RetreatContinuation{}
 	e.clearAttack()
-	e.clearTransit()
-	e.clearStride()
 	e.clearTurn()
 	if !w.queueBookCast(bookCast{Caster: e.ID, Spell: c.Spell, X: c.X, Y: c.Y, AtCell: true, Retained: true, Phase: bookApproach}) {
 		return false
