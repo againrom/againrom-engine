@@ -2285,6 +2285,11 @@ package storyguard
 // CommentBytes rises for the one area-arm table and the one range and
 // duration function: the docs of pkg/sim/areaarms.go, pkg/sim/spellvalues.go,
 // internal/archtest/spelltables.go and their tests, including this note.
+//
+// CommentBytes rises for the shop stock a SAV no longer carries: the docs of
+// secondShop.restock, the shop document's legacy read, the second game's
+// loaded town arrival, the SAV field helpers of the shop witnesses and the new
+// pkg/game/shopreload_release_test.go, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2308,5 +2313,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8844723,
+	CommentBytes: 8847324,
 }

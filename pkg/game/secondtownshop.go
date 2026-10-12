@@ -1,6 +1,8 @@
 package game
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"againrom/pkg/mapload"
@@ -11,7 +13,8 @@ import (
 // location's assortment record, the one stock the town shops share
 // (R2-ENGINE-374), the location that stock was drawn for, the hero's items
 // the shop deals in (DIV-3043), and the open deal. The deal is the page's:
-// a capture writes it undone (DIV-3045).
+// a capture writes it undone, and writes neither the stock nor its location
+// (DIV-3045).
 type secondShop struct {
 	records [4]secondshop.Record
 	stock   secondshop.Stock
@@ -255,71 +258,78 @@ func (s *secondShop) leave() {
 	s.stock = secondshop.Leave(s.stock)
 }
 
-// currentSecondShop is the shop as the SAV writes it: the records, the
-// stock, the location it was drawn for and the hero's items, with the open
-// deal undone.
+// restock draws the stock of location anew from its record: the draw a LOAD
+// of a save made in a town makes before the shop can be entered. A SAV
+// carries no stock; reloading is what restocks the shop.
+func (s *secondShop) restock(tables secondshop.Tables, location int, rnd secondshop.Rand) {
+	s.buying, s.selling, s.category = nil, nil, 0
+	if location <= 0 || location >= len(s.records) {
+		s.stock, s.filled = secondshop.Stock{}, 0
+		return
+	}
+	s.stock, s.filled = tables.Fill(s.records[location], rnd), location
+}
+
+// currentSecondShop is the shop as the SAV writes it: the records and the
+// hero's items, with the open deal undone. The stock is never written: a
+// LOAD draws it anew.
 type currentSecondShop struct {
 	Records [4]secondshop.Record
-	Stock   secondshop.Stock
-	Filled  int
 	Hero    []secondshop.Item
 }
 
-// maxSecondShopItems bounds each saved list.
+// UnmarshalJSON reads the shop. A document this engine wrote earlier also
+// holds the stock and the location it was drawn for; both are read past and
+// dropped.
+func (c *currentSecondShop) UnmarshalJSON(raw []byte) error {
+	var fields struct {
+		Records [4]secondshop.Record
+		Hero    []secondshop.Item
+		Stock   json.RawMessage
+		Filled  json.RawMessage
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&fields); err != nil {
+		return err
+	}
+	*c = currentSecondShop{Records: fields.Records, Hero: fields.Hero}
+	return nil
+}
+
+// maxSecondShopItems bounds the saved list.
 const maxSecondShopItems = 4096
 
 func captureSecondShop(s secondShop) *currentSecondShop {
-	s.stock = cloneSecondStock(s.stock)
-	s.hero = append([]secondshop.Item(nil), s.hero...)
-	s.undo()
-	if s.records == secondshop.NewGameRecords && s.filled == 0 && len(s.hero) == 0 && s.empty() {
+	hero := append([]secondshop.Item(nil), s.hero...)
+	for _, it := range s.selling {
+		hero = secondshop.Insert(hero, it)
+	}
+	if s.records == secondshop.NewGameRecords && len(hero) == 0 {
 		return nil
 	}
-	return &currentSecondShop{Records: s.records, Stock: s.stock, Filled: s.filled, Hero: s.hero}
-}
-
-// empty reports whether no category holds an entry.
-func (s secondShop) empty() bool {
-	for _, list := range s.stock {
-		if len(list) > 0 {
-			return false
-		}
-	}
-	return true
-}
-
-func cloneSecondStock(s secondshop.Stock) secondshop.Stock {
-	for c := range s {
-		s[c] = append([]secondshop.Item(nil), s[c]...)
-	}
-	return s
+	return &currentSecondShop{Records: s.records, Hero: hero}
 }
 
 func (c *currentSecondShop) validate() error {
-	if c.Filled < 0 || c.Filled >= len(c.Records) || len(c.Hero) > maxSecondShopItems {
-		return fmt.Errorf("current second campaign shop is out of range")
+	if len(c.Hero) > maxSecondShopItems {
+		return fmt.Errorf("current second campaign shop list is too long")
 	}
-	lists := append([][]secondshop.Item{c.Hero}, c.Stock[:]...)
-	for _, list := range lists {
-		if len(list) > maxSecondShopItems {
-			return fmt.Errorf("current second campaign shop list is too long")
-		}
-		for _, it := range list {
-			if it.Kind < secondshop.Armor || it.Kind > secondshop.Book || it.Quantity < 0 || it.Price < 0 {
-				return fmt.Errorf("current second campaign shop holds an invalid item")
-			}
+	for _, it := range c.Hero {
+		if it.Kind < secondshop.Armor || it.Kind > secondshop.Book || it.Quantity < 0 || it.Price < 0 {
+			return fmt.Errorf("current second campaign shop holds an invalid item")
 		}
 	}
 	return nil
 }
 
-// restore answers the campaign's shop; an absent one is a new game's.
+// restore answers the campaign's shop with no stock; an absent one is a new
+// game's.
 func (c *currentSecondShop) restore() secondShop {
 	if c == nil {
 		return newSecondShop()
 	}
-	return secondShop{records: c.Records, stock: cloneSecondStock(c.Stock), filled: c.Filled,
-		hero: append([]secondshop.Item(nil), c.Hero...)}
+	return secondShop{records: c.Records, hero: append([]secondshop.Item(nil), c.Hero...)}
 }
 
 func (c *currentSecondShop) clone() *currentSecondShop {
@@ -327,7 +337,6 @@ func (c *currentSecondShop) clone() *currentSecondShop {
 		return nil
 	}
 	out := *c
-	out.Stock = cloneSecondStock(c.Stock)
 	out.Hero = append([]secondshop.Item(nil), c.Hero...)
 	return &out
 }

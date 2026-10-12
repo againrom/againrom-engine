@@ -6,6 +6,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -145,9 +146,20 @@ func (r secondCampaignRules) selectedMarkers(f *FrontEnd, src *originalSource) (
 	return nil, nil
 }
 
+// arriveLoaded enters a loaded second-game town with its shop stock drawn
+// anew from the current records before the shop can be entered: a SAV
+// carries no stock (DIV-3045). A first-game town arrives as the first game's.
 func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
-	if c.town.second == nil {
+	second := c.town.second
+	if second == nil {
 		r.firstCampaignRules.arriveLoaded(f, c)
+		return
+	}
+	if second.current.kind != 2 {
+		return
+	}
+	if tables, ok := secondShopTables(f.Table); ok {
+		second.shop.restock(tables, second.current.id, f.randomService().Stream(random.ShopStock).Raw)
 	}
 }
 

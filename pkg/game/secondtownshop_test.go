@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -53,8 +54,10 @@ func TestSecondShopDealSettlesGoldAndItems(t *testing.T) {
 }
 
 // TestSecondShopSaveRoundTrip writes the shop with an open deal: the SAV
-// holds the deal undone, the live deal stays open, and an old save without
-// a shop restores the new game's records.
+// holds the records and the hero's items with the deal undone and no stock,
+// the live deal stays open, a document with a stock in it loads with that
+// stock dropped, and an old save without a shop restores the new game's
+// records.
 func TestSecondShopSaveRoundTrip(t *testing.T) {
 	c := &secondCampaign{current: secondLocation{1, 10}, available: []secondLocation{{1, 10}}, shop: secondShopSample()}
 	c.shop.take(0)
@@ -67,13 +70,36 @@ func TestSecondShopSaveRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if fields := secondShopWrittenFields(t, raw); !reflect.DeepEqual(fields, []string{"Hero", "Records"}) {
+		t.Fatalf("the written shop holds fields %v, want only Hero and Records: a SAV carries no stock", fields)
+	}
 	var decoded currentSecondCampaign
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		t.Fatal(err)
 	}
-	want := secondShopSample()
+	sample := secondShopSample()
+	want := secondShop{records: sample.records, hero: sample.hero}
 	if got := decoded.restore().shop; !reflect.DeepEqual(got, want) {
 		t.Fatalf("restored shop %+v, want %+v", got, want)
+	}
+	// Loss control: the stock the live shop holds is not what a LOAD restores.
+	if reflect.DeepEqual(sample, want) {
+		t.Fatal("loss control compares equal")
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	shop := doc["Shop"].(map[string]any)
+	shop["Stock"] = []any{[]any{map[string]any{"Kind": 1, "Row": 3, "Quantity": 9, "Price": 125}}, nil, nil, nil}
+	shop["Filled"] = 1
+	written, _ := json.Marshal(doc)
+	var earlier currentSecondCampaign
+	if err := json.Unmarshal(written, &earlier); err != nil {
+		t.Fatal("a document this engine wrote with a stock is refused:", err)
+	}
+	if got := earlier.restore().shop; !reflect.DeepEqual(got, want) {
+		t.Fatalf("a written stock came back: %+v", got)
 	}
 	old, _ := json.Marshal(struct {
 		Bank      []int32
@@ -90,10 +116,14 @@ func TestSecondShopSaveRoundTrip(t *testing.T) {
 	if fresh := captureSecondCampaign(newSecondCampaign()); fresh.Shop != nil {
 		t.Fatal("a new game's shop is written")
 	}
+	drawn := newSecondCampaign()
+	drawn.shop.stock, drawn.shop.filled = sample.stock, 1
+	if captureSecondCampaign(drawn).Shop != nil {
+		t.Fatal("a new game's drawn stock writes a shop")
+	}
 	for name, change := range map[string]func(s map[string]any){
 		"kind":     func(s map[string]any) { s["Hero"].([]any)[0].(map[string]any)["Kind"] = 9 },
 		"quantity": func(s map[string]any) { s["Hero"].([]any)[0].(map[string]any)["Quantity"] = -1 },
-		"filled":   func(s map[string]any) { s["Filled"] = 4 },
 		"unknown":  func(s map[string]any) { s["Deal"] = 1 },
 	} {
 		var doc map[string]any
@@ -107,6 +137,22 @@ func TestSecondShopSaveRoundTrip(t *testing.T) {
 			t.Errorf("%s: a malformed shop decoded: %v", name, err)
 		}
 	}
+}
+
+// secondShopWrittenFields answers the sorted field names of the shop a
+// written second campaign document holds.
+func secondShopWrittenFields(t *testing.T, raw []byte) []string {
+	t.Helper()
+	var doc struct{ Shop map[string]json.RawMessage }
+	if err := json.Unmarshal(raw, &doc); err != nil || doc.Shop == nil {
+		t.Fatal("no written shop:", err)
+	}
+	var out []string
+	for k := range doc.Shop {
+		out = append(out, k)
+	}
+	slices.Sort(out)
+	return out
 }
 
 // TestSecondShopOfferedByPlace buys one unit of a two-unit shelf entry and

@@ -8,19 +8,23 @@ import (
 )
 
 // TestReleaseSecondTownDruidStaleStockSave writes a SAV between the druid inn
-// conversation and the next entry to the shop: the stock drawn before the
-// conversation is stale in the SAV, and a separate process that LOADs it and
-// enters the shop draws a fourth category with goods (DIV-3045).
+// conversation and the next entry to the shop: the SAV carries no stock, and
+// a separate process that LOADs it draws the stock anew at LOAD, before the
+// shop is entered, with a fourth category with goods (DIV-3045).
 func TestReleaseSecondTownDruidStaleStockSave(t *testing.T) {
 	secondGameRoot(t)
 	if path := os.Getenv("AGAINROM_SECOND_STALE_INPUT"); path != "" {
 		f, app := secondTownCold(t, filepath.Dir(path), filepath.Base(path))
 		c := f.Town.second
-		if c.shop.filled == 3 || len(c.shop.stock[3]) != 0 || c.bank[770] != 2 {
-			t.Fatalf("cold LOAD: filled %d, fourth category %d entries, slot 770 %d", c.shop.filled, len(c.shop.stock[3]), c.bank[770])
+		if c.shop.filled != 3 || c.room == secondTownShop || c.bank[770] != 2 {
+			t.Fatalf("cold LOAD: filled %d, room %d, slot 770 %d", c.shop.filled, c.room, c.bank[770])
 		}
-		secondShopEnter(t, f, app, f.TownScreen().(*secondCampaignScreen))
 		secondShopClassFour(t, c)
+		drawn := secondShopUndone(c.shop)
+		secondShopEnter(t, f, app, f.TownScreen().(*secondCampaignScreen))
+		if !reflect.DeepEqual(drawn, c.shop.stock) {
+			t.Fatal("the entry after LOAD drew the stock again")
+		}
 		t.Logf("fresh-process LOAD: fourth category %d entries", len(c.shop.stock[3]))
 		return
 	}

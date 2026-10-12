@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"againrom/pkg/formats/sav"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -84,8 +83,8 @@ func secondShopRows(s *secondCampaignScreen, text string) bool {
 
 // TestReleaseSecondTownShopLaterTowns opens the town 2 and town 3 shops from
 // their squares, buys and sells at the claimed prices, saves with a deal
-// open, and has a separate process LOAD the SAV, compare the shop and the
-// gold and make the same next deal. Town 3's fourth category is hidden and
+// open, and has a separate process LOAD the SAV: the gold, records and items
+// are kept and the stock is drawn anew (DIV-3045). Town 3's fourth category is hidden and
 // refused with bank slot 770 zero and shown once it is set (R2-ENGINE-259).
 func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 	for _, tc := range []struct {
@@ -137,22 +136,14 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 				t.Fatalf("second deal: hero %v buying %v", c.shop.hero, c.shop.buying)
 			}
 			secondShopWitness(t, app, witness+"-shop-deal-open")
-			saved, savedGold := captureSecondShop(c.shop), f.Town.gold
+			saved, savedGold, old := captureSecondShop(c.shop), f.Town.gold, secondShopUndone(c.shop)
 			if saved.Records != c.shop.records {
 				t.Fatal("the captured records are not the campaign's")
 			}
 			dir := secondMissionSaveDirectory(t)
 			raw := secondTownNamedSave(t, f, app, dir, "Shop")
-			doc, err := sav.DecodeDocumentData(raw)
-			if err != nil {
-				t.Fatal(err)
-			}
-			actions, err := readCurrentActions(&doc)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got := actions.Session.Second.Shop; !reflect.DeepEqual(got, saved) || actions.Session.Second.Aux != nil {
-				t.Fatal("the SAV's shop differs from the captured shop, or it carries the auxiliary array")
+			if actions := secondShopSaved(t, raw, saved); actions.Session.Second.Aux != nil {
+				t.Fatal("the SAV carries the auxiliary array")
 			}
 			// Loss control: another town's records in the written shop are
 			// not the shop the continuous run holds.
@@ -161,11 +152,7 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			if reflect.DeepEqual(lost, saved) {
 				t.Fatal("loss control compares equal")
 			}
-			next, nextGold := secondShopNextDeal(t, f, app)
-			if nextGold >= savedGold {
-				t.Fatalf("next deal bought nothing: gold %d -> %d", savedGold, nextGold)
-			}
-			proof, err := json.Marshal(secondShopProof{Shop: saved, Gold: savedGold, Next: next, NextGold: nextGold, NextHeader: f.TownScreen().Header()})
+			proof, err := json.Marshal(secondShopProof{Shop: saved, Gold: savedGold, Old: old})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -177,35 +164,10 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare || len(c.shop.buying) != 0 {
 				t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying))
 			}
-			t.Logf("town %d shop: %d/%d/%d/%d entries; bought at %d, sold for %d; SAV %d bytes", tc.id, len(saved.Stock[0]),
-				len(saved.Stock[1]), len(saved.Stock[2]), len(saved.Stock[3]), first.Price, secondshop.SaleCredit(first.Price, 1), len(raw))
+			t.Logf("town %d shop: %d/%d/%d/%d entries; bought at %d, sold for %d; SAV %d bytes", tc.id, len(old[0]),
+				len(old[1]), len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(first.Price, 1), len(raw))
 		})
 	}
-}
-
-// secondShopColdProof is the separate process: the LOAD restores the town's
-// shop page, gold and shop, and the next deal equals the continuous run's.
-func secondShopColdProof(t *testing.T, path string, id int) {
-	t.Helper()
-	raw, err := os.ReadFile(path + ".json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var proof secondShopProof
-	if err := json.Unmarshal(raw, &proof); err != nil {
-		t.Fatal(err)
-	}
-	f, app := secondTownCold(t, filepath.Dir(path), filepath.Base(path))
-	c := f.Town.second
-	got := captureSecondShop(c.shop)
-	if c.current != (secondLocation{2, id}) || c.room != secondTownShop || f.Town.gold != proof.Gold || !reflect.DeepEqual(got, proof.Shop) {
-		t.Fatalf("cold LOAD: current %v room %d gold %d/%d shop equal %v", c.current, c.room, f.Town.gold, proof.Gold, reflect.DeepEqual(got, proof.Shop))
-	}
-	next, gold := secondShopNextDeal(t, f, app)
-	if gold != proof.NextGold || !reflect.DeepEqual(next, proof.Next) || f.TownScreen().Header() != proof.NextHeader {
-		t.Fatalf("cold next deal: gold %d/%d shop equal %v", gold, proof.NextGold, reflect.DeepEqual(next, proof.Next))
-	}
-	t.Logf("fresh-process LOAD of town %d: shop, gold and the next deal equal the continuous run", id)
 }
 
 // secondShopDruidGate opens the druid shop with bank slot 770 zero: no
