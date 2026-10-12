@@ -31,15 +31,6 @@ type SnapshotSAVArea struct {
 
 const detachedProjectileTarget = sim.EntityID(math.MaxUint32)
 
-func areaLayerIndex(spell uint16) (uint8, bool) {
-	for i, id := range [...]uint16{3, 7, 8, 19, 12, 17} {
-		if spell == id {
-			return uint8(i), true
-		}
-	}
-	return 0, false
-}
-
 func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 	state := ms.savedDocument
 	if state == nil || state.Document == nil {
@@ -118,12 +109,12 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 		// The staged program and the cell layer belong to the row's arm: a
 		// second-game row runs a first-game arm under its own id.
 		arm := ms.World.SpellArm(d.Spell)
-		if d.Mode == sim.AreaModeRing && arm != 4 && arm != 9 && arm != 21 {
+		if d.Mode == sim.AreaModeRing && !sim.AreaArmStaged(arm) {
 			meta.unavailable("AreaEffect has no established staged program")
 			continue
 		}
 		if d.Mode == sim.AreaModeCloud {
-			layer, known := areaLayerIndex(arm)
+			layer, known := sim.AreaArmLayer(arm)
 			if !known || identity == 0 || identityCount[identity] != 1 {
 				meta.unavailable("AreaEffect cloud layer/identity is not uniquely bound")
 				continue

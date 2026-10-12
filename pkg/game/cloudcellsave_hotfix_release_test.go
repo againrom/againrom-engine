@@ -119,7 +119,7 @@ func TestReleaseCloudOverUnrecordedCellsSavesAndReloads(t *testing.T) {
 	for known := mage.KnownSpells; known != 0 && spell == 0; known &= known - 1 {
 		id := uint16(bits.TrailingZeros32(known))
 		rule, ok := f.live.world.Spell(uint32(id))
-		if l, cloud := areaLayerIndex(id); ok && cloud && rule.Area && rule.AreaMode() == sim.AreaModeCloud {
+		if l, cloud := sim.AreaArmLayer(id); ok && cloud && rule.Area && rule.AreaMode() == sim.AreaModeCloud {
 			spell, layer = id, l
 		}
 	}

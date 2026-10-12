@@ -40,7 +40,7 @@ func (w *World) NativeSpellDeliverySaveStates() []SpellDeliverySaveState {
 			a.Direction = uint8(FacingDir(d.Facing))
 		}
 		if a.Mode == areaModeCloud {
-			a.Remaining = areaLife(d.Rule, uint16(d.Power)) - 1
+			a.Remaining = spellDurationOf(w.rules, d.Rule, d.Power, durationArea) - 1
 		}
 		a.Payload = w.preparedSpellPayload(d.Rule, d.Power, indexOfEntity(w.entities, d.Target))
 		if d.Payload != nil {

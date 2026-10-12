@@ -47,7 +47,7 @@ func openAreaCostRig(t *testing.T) *areaCostRig {
 	}
 	r.px, r.py = px, py
 	for _, rule := range mapload.SpellRules(f.Table) {
-		_, layer := areaLayerIndex(rule.ID)
+		_, layer := sim.AreaArmLayer(rule.ID)
 		if layer && rule.Area && rule.AreaMode() == sim.AreaModeCloud && rule.Damaging && (r.spell == 0 || rule.ID == 12) {
 			r.spell = rule.ID
 		}
@@ -430,7 +430,7 @@ func TestReleaseAreaLayerCostContinuesAcrossSaveAndLoad(t *testing.T) {
 	for known := mage.KnownSpells; known != 0 && spell == 0; known &= known - 1 {
 		id := uint16(bits.TrailingZeros32(known))
 		rule, ok := f.live.world.Spell(uint32(id))
-		if _, cloud := areaLayerIndex(id); ok && cloud && rule.Area && rule.AreaMode() == sim.AreaModeCloud {
+		if _, cloud := sim.AreaArmLayer(id); ok && cloud && rule.Area && rule.AreaMode() == sim.AreaModeCloud {
 			spell = id
 		}
 	}

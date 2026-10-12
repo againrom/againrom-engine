@@ -91,7 +91,7 @@ func (w *World) savedWorldEffectsFault() error {
 		}
 	}
 	for i, a := range s.Areas {
-		if a.ID == 0 || i > 0 && s.Areas[i-1].ID >= a.ID || a.Root < -1 || a.Root >= int32(len(w.savedSpellEffects)) || a.Mode < areaModeBlast || a.Mode > areaModeCloud || a.Spell == 0 || a.Spell > 28 || a.Mode == areaModeCloud && (a.Layer >= 6 || a.Identity == 0 || identities[a.Identity]) || len(a.Cells) > 65536 {
+		if a.ID == 0 || i > 0 && s.Areas[i-1].ID >= a.ID || a.Root < -1 || a.Root >= int32(len(w.savedSpellEffects)) || a.Mode < areaModeBlast || a.Mode > areaModeCloud || a.Spell == 0 || a.Spell > 28 || a.Mode == areaModeCloud && (int(a.Layer) >= len(areaLayerSpells) || a.Identity == 0 || identities[a.Identity]) || len(a.Cells) > 65536 {
 			return fail()
 		}
 		identities[a.Identity] = true

@@ -149,7 +149,7 @@ func RefreshBook(r Rules, e *Entity, table []SpellRule) {
 		if rule.School < skillSlots {
 			level = e.Skill[rule.School]
 		}
-		e.Book.Slots[rule.ID-1].Range = uint8(spellRangeUnder(r, rule, spellPowerUnder(r, rule, level, e.Mind)))
+		e.Book.Slots[rule.ID-1].Range = uint8(spellRangeOf(r, rule, spellPowerUnder(r, rule, level, e.Mind), rangeCast))
 	}
 }
 
@@ -177,7 +177,7 @@ func originalSpellRange(rule SpellRule, level, mind int32) uint8 {
 		level = min(100, level)
 	}
 	power := min(int32(100), max(int32(0), level+mind-30))
-	return uint8(spellRange(rule, power))
+	return uint8(spellRangeOf(Rules{}, rule, power, rangeCast))
 }
 
 func (w *World) refreshAppliedBook(ci int, id uint32) {

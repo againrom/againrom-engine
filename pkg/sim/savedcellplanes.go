@@ -325,7 +325,7 @@ func (w *World) savedCellCost(c SavedActorCell) uint8 {
 }
 
 // TERR-STRUCT-078: byte-width shifts deliberately wrap. All six slots count
-// independently of the retained layer-count byte; the fourth also blocks.
+// independently of the retained layer-count byte; areaArms' blocking slot also blocks.
 func (w *World) recomputeSavedCell(key uint16) string {
 	c := w.motionCell(key)
 	p := w.savedCellPlanes
@@ -356,7 +356,7 @@ func (w *World) recomputeSavedCell(key uint16) string {
 			dyn &= 0xfa
 		}
 	}
-	if binary.LittleEndian.Uint32(c.Payload[32:]) != 0 || w.nativeAreaLayerPresent(key, 19) {
+	if layer, arm := areaBlockingLayer(); binary.LittleEndian.Uint32(c.Payload[20+4*layer:]) != 0 || w.nativeAreaLayerPresent(key, arm) {
 		stat |= 5
 		dyn |= 5
 	}

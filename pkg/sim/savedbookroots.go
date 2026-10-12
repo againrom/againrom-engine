@@ -155,7 +155,7 @@ func (w *World) bookRootValueMatches(saved, derived SourceItemSpell) bool {
 	if !ok {
 		return false
 	}
-	bottom, top := int64(derived.Range), spellRange(rule, spellPowerMax)
+	bottom, top := int64(derived.Range), spellRangeOf(Rules{}, rule, spellPowerMax, rangeCast)
 	if w.rules.SpellFormulaTable(rules.FormulaRange, rule.ID) != nil {
 		bottom, top = w.rangeSpan(rule)
 	}

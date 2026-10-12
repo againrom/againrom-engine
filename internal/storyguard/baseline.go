@@ -2281,6 +2281,10 @@ package storyguard
 // CommentBytes rises for the queued sound fields: the docs of soundEntity in
 // pkg/ui/sound.go and of the new pkg/ui/soundstream_test.go, including this
 // paragraph.
+//
+// CommentBytes rises for the one area-arm table and the one range and
+// duration function: the docs of pkg/sim/areaarms.go, pkg/sim/spellvalues.go,
+// internal/archtest/spelltables.go and their tests, including this note.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2304,5 +2308,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8841133,
+	CommentBytes: 8844723,
 }

@@ -9,25 +9,7 @@ import (
 
 // MAGIC-MAPLAYER-040 and CLOUDOWNER-155: six current pointers, not six
 // objects and not an owner stack. Native objects have no invented SAV pointer.
-var areaLayerSpells = [...]uint16{3, 7, 8, 19, 12, 17}
-
-func areaLayerConflict(incoming, old uint16) bool {
-	if !layerSpell(old) {
-		return false
-	}
-	if incoming == old {
-		return true
-	}
-	switch incoming {
-	case 2, 3:
-		return old == 7 || old == 8
-	case 7:
-		return old == 3
-	case 12, 17:
-		return old == 12 || old == 17
-	}
-	return false
-}
+// The slots and the layers each arm clears are areaArms rows.
 
 func (w *World) nativeAreaLayerPresent(key, spell uint16) bool {
 	for _, e := range w.effects {
@@ -82,7 +64,7 @@ func (w *World) cloudPulseCells(key, spell uint16, radius int32) []uint16 {
 // a cast can clear an old layer or spend its caster. A wall's two-cell paint
 // extent is independent of Radius; include both bounded extents here.
 func (w *World) areaPaintIssue(rule SpellRule, x, y int32) string {
-	if !layerSpell(rule.arm()) && rule.arm() != 2 {
+	if !areaArmClearsLayers(rule.arm()) {
 		return ""
 	}
 	if err := w.savedWorldEffectsFault(); err != nil {

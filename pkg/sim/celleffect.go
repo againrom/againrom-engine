@@ -253,44 +253,6 @@ func areaModeFor(rule SpellRule) uint8 {
 	return areaModeBlast
 }
 
-// areaLife is how many ticks an area effect stands, counting the tick it is
-// removed on. It is the player-facing duration projection, not necessarily the
-// word retained in cellEffect.Remaining.
-//
-// For a cloud it is `V0 + 1` where `V0 = (AreaDuration << 4) + (power << 4)/10`
-// is `effect+0x4c`'s initial value (`MAGIC-AREAPULSE-037`). The extra tick is
-// the removal pass that sees the raw word already at zero.
-//
-// A STAGED ROW'S DURATION COLUMN IS NOT READ, because the builder zeroes
-// `+0x4c` on the same arm that selects staged mode. Its life is its own
-// cadence: stage ticks 0, 3, 6, ... and the terminal stage removes the record
-// on the tick it runs (`MAGIC-RING-048`), so the whole life is
-// `(stages - 1) * 3 + 1`. That is one formula for both the record's lifetime
-// and the spellbook popup's duration, where the popup previously read an
-// invented `(Radius + 2) * 2` off a hard-coded id 21.
-func areaLife(rule SpellRule, power uint16) uint16 {
-	if areaModeFor(rule) == areaModeRing {
-		return ringLife(rule.arm())
-	}
-	v := (int64(rule.AreaDuration) << 4)
-	if v > 0 {
-		v += (int64(power) << 4) / 10
-	}
-	return uint16(v + 1)
-}
-
-// ringLife is a staged effect's whole life in ticks: stage 0 runs at once and
-// every later stage three ticks after the one before it, with the terminal
-// stage removing the record on the same tick it runs. A row with no stage
-// program has no life.
-func ringLife(id uint16) uint16 {
-	n := ringStageCount(id)
-	if n == 0 {
-		return 0
-	}
-	return uint16((n-1)*3 + 1)
-}
-
 func (w *World) landArea(rule SpellRule, power uint16, caster EntityID, hasCaster bool, fromX, fromY, x, y int32, obs *castObs) bool {
 	return w.landAreaFacing(rule, power, caster, hasCaster, fromX, fromY, x, y, 0, false, obs)
 }
@@ -325,7 +287,7 @@ func (w *World) areaLandingRefusal(rule SpellRule, power uint16, x, y int32) str
 	if mode == areaModeRing && ringStageCount(rule.arm()) == 0 {
 		return "row selects a staged program its spell id has none of"
 	}
-	if areaLife(rule, power) == 0 {
+	if spellDurationOf(w.rules, rule, int32(power), durationArea) == 0 {
 		return "area lifetime is zero"
 	}
 	if issue := w.areaPaintIssue(rule, x, y); issue != "" {
@@ -408,7 +370,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		// stage later. The extra one keeps the generic lifetime guard from
 		// removing the record before that terminal execution. A row with no
 		// stage program was refused above.
-		e.Remaining = areaLife(rule, power)
+		e.Remaining = spellDurationOf(w.rules, rule, int32(power), durationArea)
 		e.Phase = 0
 		cells := w.ringStageCells(e, 0)
 		e.Cells = canonicalCells(cells)
@@ -419,7 +381,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 	// A cloud stores the raw counter V0, while areaLife reports the V0+1
 	// ticks over which the record is observed and removed. areaLandingRefusal
 	// has already rejected a wrapped zero life, so the subtraction is defined.
-	e.Remaining = areaLife(rule, power) - 1
+	e.Remaining = spellDurationOf(w.rules, rule, int32(power), durationArea) - 1
 	if current != nil {
 		e.Remaining = current.Remaining
 	}
@@ -603,77 +565,14 @@ func (w *World) blastCellsInMap(cx, cy, r int32) []uint16 {
 	return cells
 }
 
-// ringStageDraws reports a staged program whose stage cells come from the
-// world's stream: Meteor Storm's sampled cell. Its painted cells cannot be
-// produced again without drawing, so a SAVE carries them.
-func ringStageDraws(id uint16) bool { return id == 21 }
-
-func ringStageCount(id uint16) int {
-	switch id {
-	case 4:
-		return 2
-	case 9:
-		return 6
-	case 21:
-		return 32
-	default:
-		return 0
-	}
-}
-
 // ringStageCells is the three ring programs' exact cell producer. Unlike the
 // static cloud and wall helpers, order is significant here: an accepted cell is
 // painted and its occupant slots are applied before the next offset is read.
 func (w *World) ringStageCells(e cellEffect, stage int) []uint16 {
 	cx, cy := keyCell(e.Key)
 	var offsets [][2]int32
-	switch w.spellArm(e.Spell) {
-	case 4: // Fire Sacrifice: two fixed shells; orientation is ignored.
-		if stage == 0 {
-			offsets = [][2]int32{{-1, 1}, {-1, 0}, {-1, -1}, {0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}}
-		} else if stage == 1 {
-			offsets = [][2]int32{{-2, 1}, {-2, 0}, {-2, -1}, {-1, 2}, {0, 2}, {1, 2}, {-1, -2}, {0, -2}, {1, -2}, {2, 1}, {2, 0}, {2, -1}}
-		}
-	case 9: // Acid Stream: alternating straight and diagonal wedges.
-		if stage < 0 || stage >= 6 {
-			break
-		}
-		if e.Direction&1 == 0 {
-			if stage < 5 {
-				for x := -stage; x <= stage; x++ {
-					offsets = append(offsets, [2]int32{int32(x), int32(stage)})
-				}
-			}
-		} else {
-			for i := 0; i <= stage; i++ {
-				offsets = append(offsets, [2]int32{int32(stage - i), int32(i)})
-			}
-		}
-		for i := range offsets {
-			dx, dy := offsets[i][0], offsets[i][1]
-			switch e.Direction & 7 {
-			case 0:
-				offsets[i] = [2]int32{dx, -dy}
-			case 1:
-				offsets[i] = [2]int32{dx, -dy}
-			case 2:
-				offsets[i] = [2]int32{dy, dx}
-			case 3:
-				offsets[i] = [2]int32{dx, dy}
-			case 4:
-				offsets[i] = [2]int32{-dx, dy}
-			case 5:
-				offsets[i] = [2]int32{-dx, dy}
-			case 6:
-				offsets[i] = [2]int32{-dy, dx}
-			case 7:
-				offsets[i] = [2]int32{-dx, -dy}
-			}
-		}
-	case 21: // Meteor Storm: one independently sampled cell per stage.
-		if stage >= 0 && stage < 32 {
-			offsets = append(offsets, [2]int32{w.rng.uniform(5) - 2, w.rng.uniform(5) - 2})
-		}
+	if a, _ := areaArmOf(w.spellArm(e.Spell)); a.stage != nil {
+		offsets = a.stage(w, e, stage)
 	}
 	out := make([]uint16, 0, len(offsets))
 	for _, d := range offsets {
@@ -845,13 +744,6 @@ func cellRecordHolds(e *Entity) bool {
 	return true
 }
 
-func layerSpell(id uint16) bool {
-	switch id {
-	case 3, 7, 8, 12, 17, 19:
-		return true
-	}
-	return false
-}
 func containsKey(a []uint16, k uint16) bool {
 	for _, candidate := range a {
 		if candidate == k {
@@ -862,13 +754,13 @@ func containsKey(a []uint16, k uint16) bool {
 }
 
 func (w *World) resolveLayerConflicts(e *cellEffect) {
-	if !layerSpell(w.spellArm(e.Spell)) && w.spellArm(e.Spell) != 2 {
+	if !areaArmClearsLayers(w.spellArm(e.Spell)) {
 		return
 	}
-	if w.spellArm(e.Spell) == 8 {
+	if under, ok := areaArmYieldsTo(w.spellArm(e.Spell)); ok {
 		kept := e.Cells[:0]
 		for _, key := range e.Cells {
-			if !w.areaLayerPresent(key, 3) {
+			if !w.areaLayerPresent(key, under) {
 				kept = append(kept, key)
 			}
 		}

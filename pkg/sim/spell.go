@@ -2,7 +2,6 @@ package sim
 
 import (
 	"fmt"
-	"math/bits"
 	"sort"
 )
 
@@ -265,77 +264,6 @@ const spellPowerMax = 255
 // result saturates there.
 const durationTickCeiling = 65535
 
-// lastingTicks is the duration word of a power-scaled effect: base sixteenths
-// of a unit times 1.025^power (durationSlow) or 1.05^power (durationFast),
-// truncated, saturating at durationTickCeiling.
-func lastingTicks(power int32, base int32, scale durationScale) uint16 {
-	if base <= 0 {
-		return 0
-	}
-	if power < 0 {
-		power = 0
-	} else if power > spellPowerMax {
-		power = spellPowerMax
-	}
-	m := uint64(base) * 16
-	var v uint64
-	if power <= 100 {
-		factor := durationSlowQ56[power]
-		if scale == durationFast {
-			factor = durationFastQ56[power]
-		}
-		hi, lo := bits.Mul64(m, factor)
-		if hi>>56 != 0 {
-			return durationTickCeiling
-		}
-		v = hi<<8 | lo>>56
-	} else {
-		f := durationSlowAbove[power-101]
-		if scale == durationFast {
-			f = durationFastAbove[power-101]
-		}
-		carry, _ := bits.Mul64(f.Frac, m)
-		v = f.Whole*m + carry
-	}
-	if v > durationTickCeiling {
-		return durationTickCeiling
-	}
-	return uint16(v)
-}
-
-// segmentedTicks is the duration word of Invisibility and Stone Curse. Up to
-// power 100 it is lastingTicks. Above, the duration is k whole durations at
-// power 100 plus the duration at the remaining power, where
-// k = floor((power-1)/100), so power 200 holds two durations at 100 and power
-// 250 holds two and the duration at 50.
-func segmentedTicks(power int32, base int32, scale durationScale) uint16 {
-	if power > spellPowerMax {
-		power = spellPowerMax
-	}
-	if power <= 100 {
-		return lastingTicks(power, base, scale)
-	}
-	k := (power - 1) / 100
-	total := uint32(k)*uint32(lastingTicks(100, base, scale)) + uint32(lastingTicks(power-100*k, base, scale))
-	if total > durationTickCeiling {
-		return durationTickCeiling
-	}
-	return uint16(total)
-}
-
-// spellLastingTicks is the power-scaled duration word of a row whose effect
-// duration follows its Spell Duration column: Invisibility on the fast law and
-// a base of 3, Stone Curse segmented, every other row on the slow law.
-func spellLastingTicks(rule SpellRule, power int32) uint16 {
-	switch rule.arm() {
-	case 15:
-		return segmentedTicks(power, 3, durationFast)
-	case 20:
-		return segmentedTicks(power, rule.SpellDuration, durationSlow)
-	}
-	return lastingTicks(power, rule.SpellDuration, durationSlow)
-}
-
 func (w *World) ordinaryEffect(ci, ti int, rule SpellRule, power int32) bool {
 	if rule.Delivery == 2 {
 		return w.queuePointDelivery(ci, ti, rule, power)
@@ -499,12 +427,12 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 		if m, ok := magnitudeUnder(w.rules, rule, power); ok {
 			mag = m
 		}
-		return kind, mag, spellLastingTicksUnder(w.rules, rule, power), EffectDuration
+		return kind, mag, spellDurationOf(w.rules, rule, power, durationEffect), EffectDuration
 	case 15:
-		return EffectInvisible, 1, spellLastingTicksUnder(w.rules, rule, power), EffectDuration
+		return EffectInvisible, 1, spellDurationOf(w.rules, rule, power, durationEffect), EffectDuration
 	}
 	kind, mode := rule.EffectKind, rule.EffectMode
-	mag, duration := rule.EffectMagnitude, spellPointDurationUnder(w.rules, rule, power)
+	mag, duration := rule.EffectMagnitude, spellDurationOf(w.rules, rule, power, durationEffect)
 	switch rule.arm() {
 	case 5, 10, 16, 22:
 		mag = power / 2
@@ -801,7 +729,7 @@ func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpe
 		out.HasDamage = true
 	}
 	if rule.arm() == 20 {
-		out.DurationTicks = spellPointDurationUnder(r, rule, power)
+		out.DurationTicks = spellDurationOf(r, rule, power, durationEffect)
 		out.HasDuration = true
 	}
 	if rule.arm() == 14 {
@@ -866,24 +794,6 @@ func spellPower(level, mind int32) int32 {
 		return spellPowerMax
 	}
 	return p
-}
-
-// spellRange is the decoded cast reach after power. Teleport is the sole
-// faster-growing arm; every other spell adds power/30 to its installed base.
-func spellRange(rule SpellRule, power int32) int64 {
-	if rule.bookInstance {
-		return int64(rule.MaxRange)
-	}
-	// MAGIC-ARM-014's first gate is exact: a zero maximum means no range
-	// bonus is computed at all. Shield and Fire Sacrifice ship on this arm.
-	if rule.MaxRange == 0 {
-		return 0
-	}
-	divisor := int32(30)
-	if rule.arm() == 26 {
-		divisor = 3
-	}
-	return int64(rule.MaxRange) + int64(power/divisor)
 }
 
 // clampByte is a damage component held in the byte the original's effect
@@ -992,53 +902,11 @@ func SpellCharacteristicsFor(r Rules, e Entity, rule SpellRule) SpellCharacteris
 	}
 	power := spellPowerUnder(r, rule, level, e.Mind)
 	c := SpellCharacteristics{SkillLevel: level, SkillXP: xp, Power: power,
-		ManaCost: rule.ManaCost, Range: spellRecordRangeUnder(r, rule, power),
-		Duration: spellRecordDurationUnder(r, rule, power), Radius: rule.Radius}
+		ManaCost: rule.ManaCost, Range: spellRangeOf(r, rule, power, rangeRecord),
+		Duration: spellDurationOf(r, rule, power, durationRecord), Radius: rule.Radius}
 	c.DamageMin, c.DamageMax = SpellDamagePair(r, rule, power)
 	c.Magnitude, c.HasMagnitude = magnitudeUnder(r, rule, power)
 	return c
-}
-
-// spellRecordRange is the record's byte +9: the row's range column plus
-// power/30 when that column is non-zero, power/3 for Teleport (TEXT-096).
-func spellRecordRange(rule SpellRule, power int32) int64 {
-	if rule.bookInstance {
-		return int64(rule.MaxRange)
-	}
-	base := int32(rule.MaxRange)
-	switch {
-	case rule.arm() == 26:
-		base += power / 3
-	case base != 0:
-		base += power / 30
-	}
-	return int64(uint8(base))
-}
-
-// spellRecordDuration is the record's word +0x10 in sixteenths of the duration
-// unit: the Spell Duration column through the power ramp when it is positive,
-// else the Area Effect Duration column plus power*16/10 when that is positive,
-// else 0 (TEXT-096). Spell 15 takes the fast ramp on a base of 3.
-func spellRecordDuration(rule SpellRule, power int32) uint16 {
-	switch {
-	case rule.SpellDuration > 0:
-		return spellLastingTicks(rule, power)
-	case rule.AreaDuration > 0:
-		return uint16(int64(rule.AreaDuration)<<4 + (int64(power)<<4)/10)
-	}
-	return 0
-}
-
-// spellPointDuration is the one point-effect duration projection used by both
-// application and presentation. Target-specific resistance (Stone Curse's
-// target protection adjustment) remains in ordinaryEffect after this base.
-func spellPointDuration(rule SpellRule, power int32) uint16 {
-	switch rule.arm() {
-	case 15, 5, 10, 16, 18, 20, 22, 23, 24, 27, 28:
-		return spellLastingTicks(rule, power)
-	default:
-		return rule.EffectDuration
-	}
 }
 
 func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY int32, obs *castObs) bool {
@@ -1100,7 +968,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	// 6. within the decoded power-scaled range, in whole cells, by the same Chebyshev
 	// distance the rest of this package measures a separation with —
 	// cell.chebyshevTo (route.go), reused rather than restated.
-	if (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) > spellRangeUnder(w.rules, rule, power) {
+	if (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) > spellRangeOf(w.rules, rule, power, rangeCast) {
 		return false
 	}
 	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
@@ -1226,7 +1094,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	// Point orders use the book's range, not the caster's personal sight.
 	// The player view gates the clicked ground before producing this order.
 	if _, inside := cellIndexIn(w.bounds, x, y); !inside ||
-		(cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeUnder(w.rules, rule, power) ||
+		(cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) ||
 		caster.CastWait > 0 || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
 		return false
 	}
@@ -1798,7 +1666,7 @@ func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, 
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	if !skipRange && (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeUnder(w.rules, rule, power) {
+	if !skipRange && (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) {
 		return refusalCellOutOfRange
 	}
 	if r := w.areaLandingRefusal(rule, uint16(power), x, y); r != "" {
@@ -1876,7 +1744,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 		level = caster.Skill[rule.School]
 	}
 	if !skipRange && (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) >
-		spellRangeUnder(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind)) {
+		spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast) {
 		return refusalTargetOutOfRange
 	}
 	if r := w.pointEffectRefusal(ci, vi, rule, spellPowerUnder(w.rules, rule, level, caster.Mind)); r != "" {
@@ -2359,7 +2227,7 @@ func (w *World) attackRange(ci int) int64 {
 			if rule.School < skillSlots {
 				level = e.Skill[rule.School]
 			}
-			return spellRangeUnder(w.rules, rule, spellPowerUnder(w.rules, rule, level, e.Mind))
+			return spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, e.Mind), rangeCast)
 		}
 	}
 	return int64(e.Reach)
@@ -2447,7 +2315,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	reach := spellRangeUnder(w.rules, rule, power)
+	reach := spellRangeOf(w.rules, rule, power, rangeCast)
 	var visible []byte
 	var best EntityID
 	var bestTier int
