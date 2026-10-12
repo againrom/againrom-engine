@@ -1899,8 +1899,11 @@ type World struct {
 	removedNativeBases    []NativeActorBasisRecord
 	currentPlayers        *currentPlayerState
 	savedMotion           *savedActorMotionState
-	savedCellPlanes       *SavedCellPlanes
-	savedObjects          *SavedObjects
+	// movers holds each first-game actor's Mover record (constructedMover),
+	// sorted by actor; an actor whose Mover an import holds has none.
+	movers          []moverRecord
+	savedCellPlanes *SavedCellPlanes
+	savedObjects    *SavedObjects
 
 	// 1131: the cell-record residue no earlier story carries in its own typed
 	// form (savedcellrecord.go).

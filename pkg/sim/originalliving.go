@@ -69,6 +69,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 				staged.appendActorTraversal(e.ID)
 			}
 			staged.entities = append(staged.entities, e)
+			staged.constructMover(e)
 			staged.routes = append(staged.routes, nil)
 			staged.carried = append(staged.carried, nil)
 			staged.equipment = append(staged.equipment, [EquipSlots]ItemInstance{})

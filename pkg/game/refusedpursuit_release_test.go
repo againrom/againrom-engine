@@ -30,13 +30,27 @@ func TestReleaseMission121BridgeTrollKeepsItsVictimWhenItsRouteIsRefused(t *test
 			e, _ := p.entity(id)
 			home[id] = [2]int32{e.X, e.Y}
 		}
-		cells := map[sim.EntityID][2]int32{victim: {36, 15}}
-		if pair {
-			cells[escortA], cells[escortB] = [2]int32{35, 15}, [2]int32{35, 16}
+		// The script placement may pick a neighbour by World draws, so each
+		// actor is placed again until it stands on its cell, in a fixed order.
+		type spot struct {
+			id   sim.EntityID
+			x, y int32
 		}
-		for id, c := range cells {
-			if err := p.World.HeadlessPlace(id, c[0], c[1]); err != nil {
-				t.Fatal(err)
+		cells := []spot{{victim, 36, 15}}
+		if pair {
+			cells = []spot{{escortA, 35, 15}, {escortB, 35, 16}, {victim, 36, 15}}
+		}
+		for _, c := range cells {
+			for n := 0; ; n++ {
+				if err := p.World.HeadlessPlace(c.id, c.x, c.y); err != nil {
+					t.Fatal(err)
+				}
+				if e, _ := p.entity(c.id); e.X == c.x && e.Y == c.y {
+					break
+				}
+				if n == 64 {
+					t.Fatalf("entity %d never stood on %d,%d", c.id, c.x, c.y)
+				}
 			}
 		}
 		pin := func() []sim.Command {
@@ -86,8 +100,8 @@ func TestReleaseMission121BridgeTrollKeepsItsVictimWhenItsRouteIsRefused(t *test
 			if idleTicks < (pinned-firstIdle)*9/10 {
 				t.Fatalf("the order read idle on %d of %d ticks, want it idle throughout", idleTicks, pinned-firstIdle)
 			}
-			for id, c := range home {
-				if err := p.World.HeadlessPlace(id, c[0], c[1]); err != nil {
+			for _, id := range []sim.EntityID{escortA, escortB} {
+				if err := p.World.HeadlessPlace(id, home[id][0], home[id][1]); err != nil {
 					t.Fatal(err)
 				}
 			}

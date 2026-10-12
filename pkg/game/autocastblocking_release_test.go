@@ -119,8 +119,8 @@ func autoCastChangedBlocking(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(s.World) == 0 || s.World[0] != 121 || !sim.HasStructureBlockingForm(s.World) {
-		t.Errorf("snapshot World form %v hides the structure blocking", s.World[:min(1, len(s.World))])
+	if len(s.World) == 0 || s.World[0] < 121 || !sim.HasStructureBlockingForm(s.World) {
+		t.Errorf("snapshot World form %v is below the automatic-casting wrapper or hides the structure blocking", s.World[:min(1, len(s.World))])
 	}
 	resumed := autoCastLevelFront(t)
 	open, town, err := resumed.Restore(s)

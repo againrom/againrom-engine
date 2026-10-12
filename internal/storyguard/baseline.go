@@ -2223,6 +2223,16 @@ package storyguard
 // pkg/sim/autocastsetting.go and its byte form, the attack-route support gate
 // in pkg/sim/spell.go, the one Game Options table in pkg/ui/gameoptions.go
 // and the docs of their tests, including this paragraph.
+//
+// CommentBytes rose for the mission-start Mover: the constructor facing and
+// its keyed draw in pkg/sim/mover.go, its tests, and this paragraph. It
+// rises again for the Mover record: the builder and record docs in
+// pkg/sim/mover.go and moverbinary.go, their tests, the SAVE wiring in
+// pkg/game/worldsavemotion.go and its two release test files, the notes in
+// the swing and Stand Ground witnesses the start facings moved, these lines
+// included. It rises again for the withdrawn ring placements: the docs of
+// ConstructPlacementFacings and withdrawnBefore, their tests, these lines
+// included.
 // CommentBytes rises for the mod missions a guest party plays: the docs of
 // the new pkg/mod/missions.go and the missions file in pkg/modrt, all
 // genuinely new code, including this paragraph. It rises again for the
@@ -2274,5 +2284,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8806820,
+	CommentBytes: 8819384,
 }

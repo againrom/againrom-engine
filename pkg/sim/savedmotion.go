@@ -169,6 +169,7 @@ func (w *World) ImportOriginalActorMotions(motions []SavedActorMotion, cells []S
 		return err
 	}
 	w.entities, w.savedMotion, w.routes = staged.entities, s, staged.routes
+	w.dropMovers()
 	w.refreshSavedPlaneBlocks()
 	return nil
 }

@@ -94,6 +94,7 @@ func (w *World) raiseControlSpirit(ci, ti int) (consumed bool, raised EntityID) 
 		return false, 0
 	}
 	w.entities = append(w.entities, ghost)
+	w.constructMover(ghost)
 	w.appendActorTraversal(ghost.ID)
 	w.routes = append(w.routes, nil)
 	w.carried = append(w.carried, nil)

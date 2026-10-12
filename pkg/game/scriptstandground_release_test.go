@@ -114,7 +114,14 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 		for _, id := range a.members {
 			e, _ := treated.Entity(id)
 			c, _ := control.Entity(id)
-			if e.HasTarget || e.HasAttackTarget {
+			// A member standing ground strikes another player's actor that
+			// comes beside it; with the start facings one does on mission 40.
+			struck := false
+			if v, ok := treated.Entity(e.AttackTarget); ok && e.HasAttackTarget && v.Owner != e.Owner {
+				dx, dy := v.X-e.X, v.Y-e.Y
+				struck = dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1
+			}
+			if e.HasTarget || e.HasAttackTarget && !struck {
 				t.Fatalf("group %d member %d still holds destination %v victim %v after Stand Ground", a.node.Group, id, e.HasTarget, e.HasAttackTarget)
 			}
 			if c.HasTarget {

@@ -284,9 +284,9 @@ func TestARaisedGhostInheritsAnInactiveTurnAtItsSourcesFacing(t *testing.T) {
 		t.Fatalf("control spirit did not raise a ghost: %+v", w.entities)
 	}
 	got := w.entities[1]
-	if got.Facing != 96 || got.DesiredFacing != 96 || got.TurnRemaining != 0 || got.TurnTotal != 0 {
-		t.Fatalf("raised ghost turn state = facing %d, desired %d, remaining/total %d/%d; want 96, 96, 0/0",
-			got.Facing, got.DesiredFacing, got.TurnRemaining, got.TurnTotal)
+	if want := constructorFacing(&w.rng, got.ID); got.Facing != want || got.DesiredFacing != want || got.TurnRemaining != 0 || got.TurnTotal != 0 {
+		t.Fatalf("raised ghost turn state = facing %d, desired %d, remaining/total %d/%d; want the constructor's %d, %d, 0/0",
+			got.Facing, got.DesiredFacing, got.TurnRemaining, got.TurnTotal, want, want)
 	}
 	if got.RotationSpeed != 16 {
 		t.Fatalf("raised ghost RotationSpeed = %d; want 16 (hlGhostTemplate's value, carried from the template's own field)",

@@ -49,6 +49,7 @@ without launch settings uses seed 0, so a test replays without a clock.
 |---|---|---|---|
 | world | the mission World | SplitMix64 at the World seed, unchanged | the shared stream; the World holds it while the mission runs; range wrapper for every bounded draw |
 | placement | mission start | `StartSeed`, unchanged | the shared stream after the mission loader's and AI manager's reseeds; continues into the World |
+| start-facing | the actor constructor's facing: map actors at mission start, a Control Spirit ghost, a cheat summon | keyed by (engine constant, name, actor id); moves no stream | the shared stream: one draw per map actor in record order before the join walk's drop pick (`MOVE-119`, `SESS-090`); a ghost or summon draws from the World's stream at its construction |
 | command-voice | speaker chooser, command and select readers | (seed, name) | shared, raw draws |
 | music | list order | (seed, name), the engine's shuffle | shared: start `rand()%n`, then 2n swaps in Random Order (`MAGIC-286`) |
 | ambient-birds | mission bird calls | (seed, name) | own stream (DIV-2732) |

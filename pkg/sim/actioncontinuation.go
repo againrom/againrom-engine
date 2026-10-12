@@ -530,7 +530,11 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 				m.Issue = v.MotionIssue
 			} else {
 				if v.MotionIssue == "" {
+					// The saving World stepped this actor natively and held its
+					// Mover record; the World takes it from the loaded bytes.
+					mover := m.Mover
 					n.savedMotion.Motions = slices.DeleteFunc(n.savedMotion.Motions, func(m SavedActorMotion) bool { return m.Entity == e.ID })
+					n.adoptMover(*e, &mover)
 					for j := range n.savedMotion.Cells {
 						c := &n.savedMotion.Cells[j]
 						for layer := 0; layer < 2; layer++ {

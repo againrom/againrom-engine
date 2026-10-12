@@ -640,6 +640,7 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 	d.GainsXP = false
 	e := NewActor(d, ActorPlacement{ID: id, X: src.X, Y: src.Y, Facing: src.Facing,
 		Owner: caster.Owner, Group: caster.Group})
+	w.constructFacing(&e)
 	e.standAtPost()
 	return e, true
 }

@@ -418,6 +418,7 @@ func StepWithdrawalTraced(w *World, cmds []Command) []WithdrawalDecision {
 func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs) {
 	w.beginTurnSubTick()
 	defer w.endTurnSubTick()
+	w.movers = slices.Clone(w.movers)
 	if obs != nil {
 		w.damageObservation = &damageObservation{}
 		defer func() {
@@ -942,6 +943,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			if e.Stride.Present {
 				if from, to, crossed := strideCrossing(e.Stride, int32(e.TransitTotal)-1-int32(e.Transit)); crossed {
 					w.recomputeCrossing(*e, from, to)
+					w.moverCrossed(e.ID)
 				}
 			}
 			continue
@@ -2050,6 +2052,7 @@ func (w *World) remove(gone []EntityID) bool {
 		equipment = append(equipment, w.equipment[i])
 	}
 	w.entities, w.routes, w.carried, w.equipment = keep, routes, carried, equipment
+	w.dropMovers()
 	for i := range w.entities {
 		if w.entities[i].HasPendingAttackTarget && w.entities[i].PendingAttackTargetKind == AttackTargetUnit && indexOfEntity(w.entities, w.entities[i].PendingAttackTarget) < 0 {
 			w.entities[i].clearPendingAttack()

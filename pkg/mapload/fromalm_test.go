@@ -1456,6 +1456,15 @@ const entityIDFloorFooterLen = 8
 
 func strippedOfPlayerCarriers(form []byte) []byte {
 	out := append([]byte(nil), form...)
+	if len(out) >= 13+formHeaderLen && out[0] == 122 && string(out[len(out)-4:]) == "MVR1" {
+		n := uint64(binary.LittleEndian.Uint32(out[len(out)-9:]))
+		if n > uint64(len(out)-9-formHeaderLen) || out[len(out)-5] >= 122 {
+			panic("invalid mover record fixture span")
+		}
+		base, start := out[len(out)-5], len(out)-9-int(n)
+		out = out[:start]
+		out[0] = base
+	}
 	if len(out) >= 13+formHeaderLen && out[0] == 112 && string(out[len(out)-4:]) == "NLB1" {
 		n := uint64(binary.LittleEndian.Uint32(out[len(out)-9:]))
 		base := out[len(out)-5]

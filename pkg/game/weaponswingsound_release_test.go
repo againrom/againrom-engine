@@ -76,7 +76,9 @@ func swingSlotsAt(t *testing.T, f *FrontEnd, mw *mapWorld, id sim.EntityID) []in
 	}
 	heard := observeReleaseAudio(t, f)
 	mw.strike(uint32(id), uint32(victim))
-	for tick := 0; tick < 12; tick++ {
+	// The victim keeps its constructor facing, turns to the hero and strikes
+	// first; the hero's first swing follows inside 32 ticks, its second after.
+	for tick := 0; tick < 32; tick++ {
 		mw.tick()
 	}
 	var slots []int

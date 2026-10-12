@@ -33,6 +33,7 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{moverFormVersion, "MVR1", trailerSpan32, (*World).unmarshalMovers},
 		{autoCastFormVersion, "ACS1", trailerPairs8, (*World).unmarshalAutoCastSettings},
 		{bodyReferenceFormVersion, "BDR1", trailerSpan32, (*World).unmarshalBodyReferences},
 		{speedModifierFormVersion, "SPM1", trailerSpan32, (*World).unmarshalSpeedModifiers},

@@ -69,6 +69,12 @@ func init() {
 	worldMethods = append(worldMethods, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldWriters = append(worldWriters, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")
 	worldMethods = append(worldMethods, "StructureOccupancy")
+	// The spawner's constructor facings, drawn once on an unadvanced World.
+	worldMethods = append(worldMethods, "ConstructPlacementFacings")
+	worldWriters = append(worldWriters, "ConstructPlacementFacings")
+	// The Mover records: built once at mission start, written into a SAV's Mover.
+	worldMethods = append(worldMethods, "ConstructMissionMovers", "ApplyMover")
+	worldWriters = append(worldWriters, "ConstructMissionMovers")
 	worldMethods = append(worldMethods, "HasEffectArm", "SpellArm")
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
@@ -131,6 +137,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"FrozenGroupAI":        {reflect.ValueOf(uint32(SelfSlot)), reflect.ValueOf(uint32(0))},
 	"AppendCorpseStates":   {reflect.ValueOf([]CorpseState(nil))},
 	"ActorFinePosition":    {reflect.ValueOf(EntityID(7))},
+	"ApplyMover":           {reflect.ValueOf(EntityID(7)), reflect.ValueOf(new([180]byte))},
 	"ActorMotionActive":    {reflect.ValueOf(EntityID(7))},
 	"WindUpElapsed":        {reflect.ValueOf(EntityID(7))},
 	"ProjectilePoint":      {reflect.ValueOf(EntityID(7))},

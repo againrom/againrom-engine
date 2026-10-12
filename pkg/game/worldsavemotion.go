@@ -7,12 +7,25 @@ import (
 
 func projectMotion(state *SnapshotSAVDocument, world *sim.World) error {
 	motions, _, _, present := world.SavedActorMotions()
-	if !present {
-		for _, a := range state.Actors {
-			if !a.Retired {
-				motions = append(motions, sim.SavedActorMotion{Entity: a.EntityID, Position: sim.SavedActorPosition{TerrainKey: state.Document.World.TerrainIdentity}})
-			}
+	imported := map[sim.EntityID]bool{}
+	for _, m := range motions {
+		imported[m.Entity] = true
+	}
+	// An actor whose Mover no import holds starts from its Mover record
+	// (sim.World.ApplyMover), else from zero; the projection then writes its
+	// facing, rate and motion from the actor.
+	constructed := map[sim.EntityID]bool{}
+	for _, a := range state.Actors {
+		if a.Retired || imported[a.EntityID] {
+			continue
 		}
+		m := sim.SavedActorMotion{Entity: a.EntityID, Position: sim.SavedActorPosition{TerrainKey: state.Document.World.TerrainIdentity}}
+		if world.ApplyMover(a.EntityID, &m.Mover) {
+			constructed[a.EntityID] = true
+		} else if present {
+			continue
+		}
+		motions = append(motions, m)
 	}
 	actors := map[sim.EntityID]uint16{}
 	for _, a := range state.Actors {
@@ -63,7 +76,7 @@ func projectMotion(state *SnapshotSAVDocument, world *sim.World) error {
 		m := old
 		if live && old.Issue == "" {
 			var err error
-			m, err = sim.ProjectActorMotion(e, old, world.Route(e.ID), !present)
+			m, err = sim.ProjectActorMotion(e, old, world.Route(e.ID), !present || constructed[e.ID])
 			if err != nil {
 				return err
 			}

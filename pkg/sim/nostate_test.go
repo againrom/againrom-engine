@@ -153,6 +153,7 @@ var nstPinned = []struct {
 		{"removedNativeBases", "[]sim.NativeActorBasisRecord"},
 		{"currentPlayers", "*sim.currentPlayerState"},
 		{"savedMotion", "*sim.savedActorMotionState"},
+		{"movers", "[]sim.moverRecord"},
 		{"savedCellPlanes", "*sim.SavedCellPlanes"},
 		{"savedObjects", "*sim.SavedObjects"},
 		// 1131: carried-not-wire-form, the same class as rawSessionHead/

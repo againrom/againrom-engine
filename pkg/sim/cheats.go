@@ -198,6 +198,8 @@ func (w *World) CheatSummon(template Entity, pack []ItemStack, worn [EquipSlots]
 	n.actorTraversal = append([]EntityID(nil), w.actorTraversal...)
 	n.casts = append([]scriptCast(nil), w.casts...)
 	n.entities = append(n.entities, template)
+	n.constructFacing(&n.entities[len(n.entities)-1])
+	n.constructMover(n.entities[len(n.entities)-1])
 	n.routes = append(n.routes, nil)
 	n.carried = append(n.carried, held[0])
 	n.equipment = append(n.equipment, equipped[0])

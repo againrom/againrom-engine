@@ -27,3 +27,29 @@ func WithdrawBorderPlacements(m *alm.Map) int {
 func inBorderRing(x, y, w, h int) bool {
 	return x < borderDepth || y < borderDepth || x >= w-borderDepth || y >= h-borderDepth
 }
+
+// withdrawnBefore lists, for each ring placement WithdrawBorderPlacements took
+// out of m.Units, how many kept units precede it in record order. The
+// original constructs such an actor, drawing its facing, before the cell
+// refusal deletes it (MOVE-120, MOVE-141). It is empty when nothing was
+// withdrawn, or when the authored records cannot be reconciled with Units.
+func withdrawnBefore(m *alm.Map) []int {
+	if m == nil || len(m.AuthoredUnits) <= len(m.Units) {
+		return nil
+	}
+	w, h := int(m.Width), int(m.Height)
+	var out []int
+	kept := 0
+	for _, u := range m.AuthoredUnits {
+		x, y := unitCell(u)
+		if inBorderRing(int(x), int(y), w, h) {
+			out = append(out, kept)
+			continue
+		}
+		kept++
+	}
+	if kept != len(m.Units) {
+		return nil
+	}
+	return out
+}

@@ -17,8 +17,29 @@ import (
 	"againrom/pkg/vfs"
 )
 
+// beforeMoverRecordForm peels the Mover record form; an earlier form never
+// held one, so the peel drops the records.
+func beforeMoverRecordForm(t *testing.T, raw []byte) []byte {
+	t.Helper()
+	end := len(raw)
+	if end == 0 || raw[0] != 122 {
+		return raw
+	}
+	if end < 47 || string(raw[end-4:]) != "MVR1" || raw[end-5] >= 122 {
+		t.Fatal("invalid Mover record footer")
+	}
+	span := uint64(binary.LittleEndian.Uint32(raw[end-9:]))
+	if span < 10 || span > uint64(end-43) || (span-4)%6 != 0 {
+		t.Fatal("invalid Mover record span", span)
+	}
+	out := bytes.Clone(raw[:end-9-int(span)])
+	out[0] = raw[end-5]
+	return out
+}
+
 func beforeHeldOrderForm(t *testing.T, raw []byte) []byte {
 	t.Helper()
+	raw = beforeMoverRecordForm(t, raw)
 	if len(raw) == 0 || raw[0] != 118 {
 		return raw
 	}

@@ -61,6 +61,7 @@ func (w *World) RestoreActorIdentities(ids map[EntityID]EntityID, floor *uint64)
 		}
 		return cmp.Compare(a.Spell, b.Spell)
 	})
+	slices.SortFunc(n.movers, func(a, b moverRecord) int { return cmp.Compare(a.Entity, b.Entity) })
 	if n.savedMotion != nil {
 		slices.SortFunc(n.savedMotion.Motions, func(a, b SavedActorMotion) int { return cmp.Compare(a.Entity, b.Entity) })
 	}
@@ -187,6 +188,9 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 			ref(&o.Entity)
 			optional(&o.EscortTarget, o.EscortBound)
 		}
+	}
+	for i := range w.movers {
+		ref(&w.movers[i].Entity)
 	}
 	if w.savedMotion != nil {
 		for i := range w.savedMotion.Motions {

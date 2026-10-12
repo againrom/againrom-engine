@@ -6,6 +6,7 @@ import "fmt"
 // detached LOAD transaction. A failed field or binding leaves the World intact.
 func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values map[EntityID]ActorValues, actions ActionContinuations, objects map[SavedObjectID]SavedObjectID, terminalMotions ...CurrentTerminalMotion) error {
 	next := *w
+	loaded := next.savedMotion
 	if policy != nil {
 		if err := next.restoreCurrentPolicy(*policy); err != nil {
 			return err
@@ -28,6 +29,10 @@ func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values ma
 	}
 	if err := next.restoreCurrentTerminalMotions(terminalMotions); err != nil {
 		return err
+	}
+	if policy != nil && !policy.MotionCarrier {
+		// The actors' owners, speed words and motion are restored now.
+		next.adoptMovers(loaded)
 	}
 	if policy != nil && policy.EntityIDFloor != nil {
 		if *policy.EntityIDFloor > entityIDLimit {

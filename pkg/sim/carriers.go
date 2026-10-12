@@ -18,6 +18,7 @@ func (w *World) constructCarriers(native bool) {
 	w.constructSessionClock()
 	w.constructEffectDriver()
 	w.constructGroups(native)
+	w.constructMovers()
 }
 
 // constructEffectDriver gives a first-game World the world-effect driver table

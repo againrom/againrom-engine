@@ -33,6 +33,7 @@ const (
 	ItemStars     Name = "item-stars"
 	ShopStock     Name = "shop-stock"
 	Generator     Name = "generator"
+	StartFacing   Name = "start-facing"
 )
 
 // ownInOriginal names the streams that keep their own generator in original
@@ -360,6 +361,15 @@ func DeriveSeed(seed uint64, name string) uint64 {
 		h *= 1099511628211
 	}
 	return mix64(seed + h)
+}
+
+// Keyed is a seeded draw with no state: a value in [0, n] from the mix of
+// seed, the consumer's name and key. A consumer that must not move any stream
+// in seeded mode draws here; the same seed, name and key always answer alike,
+// whatever was drawn before.
+func Keyed(seed uint64, name Name, key uint64, n int32) int32 {
+	g := SplitMix64{State: DeriveSeed(seed, string(name)) ^ mix64(key)}
+	return g.Uniform(n)
 }
 
 // SeedOf derives a session seed from bytes: an original save that carries no

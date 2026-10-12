@@ -87,7 +87,10 @@ func TestRaisedGhostCarriesItsCensusFields(t *testing.T) {
 	}
 	want := NewActor(ActorDefinition{}, ActorPlacement{})
 	want.ID, want.X, want.Y, want.PostX, want.PostY = 12, 2, 2, 2, 2
-	want.Facing, want.DesiredFacing, want.Owner, want.Group = 5, 5, 7, 9
+	// The constructor draws the ghost's facing (MOVE-119); the corpse's is not
+	// one of the seven stores the arm copies (MAGIC-249).
+	f := constructorFacing(&w.rng, 12)
+	want.Facing, want.DesiredFacing, want.Owner, want.Group = f, f, 7, 9
 	want.ActorState = actorStateGuard
 	want.HP, want.MaxHP = 45, 45
 	want.Reaction, want.Mind, want.Spirit, want.ToHit, want.Defence = 21, 37, 29, 71, 73

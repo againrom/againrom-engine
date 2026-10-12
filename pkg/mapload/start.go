@@ -686,7 +686,7 @@ func restoredPools(p PartyMember, health, mana int32, regen data.UnitDef) pools 
 // there, so a start's report says the same thing for a party of none as for a
 // party of one.
 func StartMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember) (*sim.World, Start, error) {
-	return startMission(m, t, diff, party, 0, nil)
+	return startMission(m, t, diff, party, 0, nil, false)
 }
 
 // StartCampaignMission is StartMission with the campaign mission number that
@@ -694,14 +694,15 @@ func StartMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember) (*
 // point for standalone maps and synthetic callers that have no campaign.
 func StartCampaignMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int) (*sim.World, Start, error) {
-	return startMission(m, t, diff, party, mission, nil)
+	return startMission(m, t, diff, party, mission, nil, false)
 }
 
 // startMission places the party with draws, or with a sequence at StartSeed
 // when draws is nil. Draws on the original's generator continue into the
-// World, which then starts from their state instead of Seed.
+// World, which then starts from their state instead of Seed. second marks a
+// second-game map, whose actors keep their placement facing.
 func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
-	mission int, draws *sim.Draws) (*sim.World, Start, error) {
+	mission int, draws *sim.Draws, second bool) (*sim.World, Start, error) {
 	// The loader owns the roster it is about to mint. In particular, no Carry
 	// pointer or item slice held by a town/save caller remains writable through
 	// this mission's member values.
@@ -722,6 +723,11 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 
 	if draws == nil {
 		draws = sim.NewDraws(StartSeed)
+	}
+	// The spawner constructs every map actor, and the constructor draws its
+	// facing, before the join walk draws the drop cell (MOVE-119, MOVE-122).
+	if !second {
+		base.ConstructPlacementFacings(draws, withdrawnBefore(m))
 	}
 	cells := DropCells(m)
 	// The map's person roster travels with the start (0159 D-9). It keys on
@@ -757,6 +763,12 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	}
 
 	if len(party) == 0 {
+		if draws.Original() {
+			base.SetRandom(random.Original, draws.State())
+		}
+		if !second {
+			base.ConstructMissionMovers(nil)
+		}
 		return base, st, nil
 	}
 	// A PARTY MEMBER'S EIGHT COMBAT NUMBERS ARE THE FOLD'S, and they are folded
@@ -1064,6 +1076,10 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	if draws.Original() {
 		out.SetRandom(random.Original, draws.State())
 	}
+	// Every actor's Mover as the spawner and the join walk leave it.
+	if !second {
+		out.ConstructMissionMovers(st.IDs)
+	}
 	return out, st, nil
 }
 
@@ -1161,7 +1177,7 @@ func StartCampaignMissionScriptedWith(m *alm.Map, t *Table, diff Difficulty, par
 
 func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int, s *sim.Script, draws *sim.Draws) (*sim.World, Start, error) {
-	base, st, err := startMission(m, t, diff, party, mission, draws)
+	base, st, err := startMission(m, t, diff, party, mission, draws, s != nil && s.Dialect() == sim.ScriptROM2)
 	if err != nil {
 		return nil, Start{}, err
 	}
@@ -1208,6 +1224,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	if base.RandomMode() == random.Original {
 		out.SetRandom(random.Original, base.RandomState())
 	}
+	out.ConstructMissionMovers(st.IDs)
 	return out, st, nil
 }
 
