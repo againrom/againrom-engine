@@ -200,12 +200,21 @@ func (f *flow) readMenuSound() (enabled bool, volume int, available bool) {
 	return f.menuSound()
 }
 
+// canLoadSave answers whether LOAD has a row. It asks the front end's
+// existence check when there is one and builds the list only otherwise.
+func (f *flow) canLoadSave() bool {
+	if f.saveList == nil {
+		return false
+	}
+	if f.pages.loadable != nil {
+		return f.pages.loadable()
+	}
+	return len(f.saveList()) > 0
+}
+
 func (f *flow) refreshGameMenuGates() {
 	f.menuCanSave = f.saveGame != nil || f.saveDialogSeams.Prepare != nil
-	f.menuCanLoad = false
-	if f.saveList != nil {
-		f.menuCanLoad = len(f.saveList()) > 0
-	}
+	f.menuCanLoad = f.canLoadSave()
 	_, _, f.menuCanSound = f.readMenuSound()
 }
 

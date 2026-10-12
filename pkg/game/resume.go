@@ -659,26 +659,7 @@ func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() tim
 	// install's saves are a fixed set he did not produce in this session —
 	// merging them by mtime would push what he just wrote below a file from
 	// another program's last run. Each group keeps its own newest-first order.
-	list := func() []ui.SaveEntry {
-		if g := f.savedGame(); filesOf(g).ownSaves {
-			return ownSaveRows(ownGameSaves(store.Dir, store.Selector, g), localOriginalSaveToken)
-		}
-		var out []ui.SaveEntry
-		// Decode stored labels at the seam; SaveStore.List retains header bytes.
-		if ents, err := store.List(); err == nil {
-			for _, e := range ents {
-				name := e.Name
-				if IsOriginal(name) {
-					name = localOriginalSaveToken(name)
-				}
-				out = append(out, ui.SaveEntry{Name: name, Label: drawableLabel(e.Label)})
-			}
-		}
-		for _, e := range orig.List() {
-			out = append(out, ui.SaveEntry{Name: e.Name, Label: e.Label})
-		}
-		return out
-	}
+	list := func() []ui.SaveEntry { return f.saveRows(store, orig, true) }
 	// SAV IS THE ONLY SAVE FORMAT. A local row carries a source tag, an install
 	// row is a bare .sav name, and every other name is refused. The name is the
 	// opaque token pkg/ui passed back unread.
@@ -700,6 +681,43 @@ func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() tim
 		return nil, false, fmt.Errorf("%q is not a SAV file", name)
 	}
 	return save, list, load
+}
+
+// saveRows is the load window's list. A local row's label is made drawable
+// unless raw is set; the install's rows are never altered.
+func (f *FrontEnd) saveRows(store SaveStore, orig OriginalStore, drawable bool) []ui.SaveEntry {
+	if g := f.savedGame(); filesOf(g).ownSaves {
+		return ownSaveRows(ownGameSaves(store.Dir, store.Selector, g), localOriginalSaveToken)
+	}
+	var out []ui.SaveEntry
+	// Decode stored labels at the seam; SaveStore.List retains header bytes.
+	if ents, err := store.List(); err == nil {
+		for _, e := range ents {
+			name := e.Name
+			if IsOriginal(name) {
+				name = localOriginalSaveToken(name)
+			}
+			label := e.Label
+			if drawable {
+				label = drawableLabel(label)
+			}
+			out = append(out, ui.SaveEntry{Name: name, Label: label})
+		}
+	}
+	for _, e := range orig.List() {
+		out = append(out, ui.SaveEntry{Name: e.Name, Label: e.Label})
+	}
+	return out
+}
+
+// anyLoadableSaveRow reports whether saveRows would list a row, without
+// reading more than the first save that opens.
+func (f *FrontEnd) anyLoadableSaveRow(store SaveStore, orig OriginalStore) bool {
+	if g := f.savedGame(); filesOf(g).ownSaves {
+		return len(scanSaves(saveScan{Dir: store.Dir, Bounded: true, Regular: true, OfGame: true, Game: g, First: true})) != 0
+	}
+	return len(scanSaves(saveScan{Dir: store.Dir, Bounded: true, First: true})) != 0 ||
+		len(scanSaves(saveScan{Dir: orig.Dir, First: true})) != 0
 }
 
 // A local authored .sav and a read-only install .sav may lawfully share the

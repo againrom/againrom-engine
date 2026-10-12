@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -211,41 +210,16 @@ func (s SaveStore) List() ([]SaveEntry, error) {
 	if s.Dir == "" {
 		return nil, errors.New("no save directory configured")
 	}
-	ents, err := os.ReadDir(s.Dir)
-	if err != nil {
+	if _, err := os.ReadDir(s.Dir); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
 		}
 		return nil, err
 	}
 	var out []SaveEntry
-	for _, e := range ents {
-		if e.IsDir() {
-			continue
-		}
-		if !strings.EqualFold(filepath.Ext(e.Name()), originalSaveExt) {
-			continue
-		}
-		fi, err := e.Info()
-		if err != nil || fi.Size() < 0 || fi.Size() > maxSaveBytes {
-			continue
-		}
-		b, err := s.Read(e.Name())
-		if err != nil {
-			continue
-		}
-		label, err := OriginalSaveLabel(b, s.Selector)
-		if err != nil {
-			continue
-		}
-		out = append(out, SaveEntry{Name: e.Name(), Label: label, Mod: fi.ModTime()})
+	for _, e := range scanSaves(saveScan{Dir: s.Dir, Bounded: true}) {
+		out = append(out, SaveEntry{Name: e.Name, Label: e.rowLabel(s.Selector), Mod: e.Mod})
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Mod.Equal(out[j].Mod) {
-			return out[i].Name > out[j].Name
-		}
-		return out[i].Mod.After(out[j].Mod)
-	})
 	return out, nil
 }
 
@@ -723,38 +697,10 @@ type OriginalStore struct {
 // DIRECTORY IS AN EMPTY LIST AND NOT AN ERROR — a build pointed at no install,
 // or an install with no saves in it, are one state to a player.
 func (s OriginalStore) List() []SaveEntry {
-	if s.Dir == "" {
-		return nil
-	}
-	ents, err := os.ReadDir(s.Dir)
-	if err != nil {
-		return nil
-	}
 	var out []SaveEntry
-	for _, e := range ents {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), originalSaveExt) {
-			continue
-		}
-		b, err := s.Read(e.Name())
-		if err != nil {
-			continue
-		}
-		label, err := OriginalSaveLabel(b, s.Selector)
-		if err != nil {
-			continue
-		}
-		var mod time.Time
-		if fi, err := e.Info(); err == nil {
-			mod = fi.ModTime()
-		}
-		out = append(out, SaveEntry{Name: e.Name(), Label: label, Mod: mod})
+	for _, e := range scanSaves(saveScan{Dir: s.Dir}) {
+		out = append(out, SaveEntry{Name: e.Name, Label: e.rowLabel(s.Selector), Mod: e.Mod})
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Mod.Equal(out[j].Mod) {
-			return out[i].Name > out[j].Name
-		}
-		return out[i].Mod.After(out[j].Mod)
-	})
 	return out
 }
 

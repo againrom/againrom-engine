@@ -9,6 +9,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 ## Unreleased
 
 - [BASE] Once a spell's mana is spent, the cast completes. Clicking the same spell again while it is being cast spends nothing and does not start the cast over. Choosing another spell or target during the casting no longer cancels it: the new cast follows when the first one is released, and each spends its mana once, when its casting begins. A move or attack ordered during the casting also waits for it.
+- [BASE] The in-game menu opens at once, however many saved games the folder holds, and the Load list opens quickly the second time. Both games read each saved game once and remember it until the file changes.
 
 ## 0.119.0
 

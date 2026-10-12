@@ -2318,6 +2318,9 @@ package storyguard
 // castAfterWindUp and manualCastContinues in pkg/sim/manualcast.go, the queued
 // cast row notes in pendingorder.go and currentactions.go, and the new spell
 // click mana tests, this note included.
+//
+// CommentBytes rises for the one save-directory scanner: the docs of
+// pkg/game/savescan.go and its witnesses, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2341,5 +2344,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1731,
 	},
-	CommentBytes: 8874267,
+	CommentBytes: 8877871,
 }

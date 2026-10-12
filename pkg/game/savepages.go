@@ -5,12 +5,10 @@ import (
 	"image"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
 	"againrom/pkg/base"
-	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
@@ -187,38 +185,10 @@ func anyGameSave(dir string) bool {
 // current-session leaf, and its quick and timed saves are listed beside
 // game*.sav (DIV-2404, DIV-3079).
 func ownGameSaves(dir string, selector int, g base.Game) []SaveEntry {
-	if dir == "" {
-		return nil
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
-	}
 	var out []SaveEntry
-	for _, e := range entries {
-		if e.IsDir() || !IsOriginal(e.Name()) {
-			continue
-		}
-		fi, err := e.Info()
-		if err != nil || !fi.Mode().IsRegular() || fi.Size() > maxSaveBytes {
-			continue
-		}
-		b, err := (SaveStore{Dir: dir}).Read(e.Name())
-		if err != nil {
-			continue
-		}
-		sf, err := sav.Open(b)
-		if err != nil || validateOriginalGame(b, g) != nil {
-			continue
-		}
-		out = append(out, SaveEntry{Name: e.Name(), Label: asciiLabel(sf.Label, selector), Mod: fi.ModTime()})
+	for _, e := range scanSaves(saveScan{Dir: dir, Bounded: true, Regular: true, OfGame: true, Game: g}) {
+		out = append(out, SaveEntry{Name: e.Name, Label: asciiLabel(e.Label, selector), Mod: e.Mod})
 	}
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].Mod.Equal(out[j].Mod) {
-			return out[i].Name > out[j].Name
-		}
-		return out[i].Mod.After(out[j].Mod)
-	})
 	return out
 }
 

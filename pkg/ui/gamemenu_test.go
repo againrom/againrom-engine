@@ -410,3 +410,22 @@ func TestSaveTellsTheFarSideWhichScreenItWasTakenOn(t *testing.T) {
 		})
 	}
 }
+
+func TestOpeningTheMenuAsksTheExistenceCheckAndNeverBuildsTheList(t *testing.T) {
+	f := newFlow(NewPicker(nil), nil)
+	lists, asks := 0, 0
+	f.saveList = func() []SaveEntry { lists++; return []SaveEntry{{Name: "a.sav", Label: "a save"}} }
+	f.pages.loadable = func() bool { asks++; return true }
+	f.openGameMenu(ScreenMap)
+	if lists != 0 || asks == 0 {
+		t.Fatalf("menu open built the list %d times and asked the check %d times", lists, asks)
+	}
+	if !selectGameMenuAction(f, gameMenuLoad) || !f.menuList.Rows()[f.menuList.Selection()].Choosable {
+		t.Fatal("LOAD row not choosable though a save exists")
+	}
+	f.pages.loadable = func() bool { return false }
+	f.openGameMenu(ScreenMap)
+	if !selectGameMenuAction(f, gameMenuLoad) || f.menuList.Rows()[f.menuList.Selection()].Choosable {
+		t.Fatal("LOAD row choosable though the check found no save")
+	}
+}

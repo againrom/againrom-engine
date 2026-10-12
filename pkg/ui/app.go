@@ -3401,6 +3401,13 @@ func (a *App) SetSaveSeams(save SaveGame, list SaveList, load LoadGame) {
 	a.flow.saveGame, a.flow.saveList, a.flow.loadGame = save, list, load
 }
 
+// SetSaveAny installs the front end's answer to whether LOAD would list at
+// least one row. The menu and the mission failure panel ask it instead of
+// building the whole list; a nil answer falls back to the list.
+func (a *App) SetSaveAny(any func() bool) {
+	a.flow.pages.loadable = any
+}
+
 // SetGameMenuSettings installs the two settings destinations' seams. The tips
 // callbacks reach the existing persistent preference. The sound callbacks
 // apply audio state and persist it through the configured game preference store.

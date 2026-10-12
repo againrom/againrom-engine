@@ -76,6 +76,8 @@ type pageSeams struct {
 	save             *savePageState
 	files            func() bool
 	hasSave          bool
+	// loadable answers whether the load list has a row without building it.
+	loadable func() bool
 }
 
 // SavePages are a game's load page and, when set, its save page. A nil Save

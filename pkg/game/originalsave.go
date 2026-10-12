@@ -965,14 +965,7 @@ func OriginalSaveLabel(saved []byte, selector int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	label := asciiLabel(sf.Label, selector)
-	if label == "" {
-		label = "(no label)"
-	}
-	if sf.Head.Mission == 0 {
-		return fmt.Sprintf("%s - between missions", label), nil
-	}
-	return fmt.Sprintf("%s - mission %d", label, sf.Head.Mission), nil
+	return originalSaveLabelOf(sf.Label, sf.Head.Mission, selector), nil
 }
 
 // asciiLabel makes a label drawable, decoding it through the CURRENT

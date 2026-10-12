@@ -46,8 +46,9 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	f.configureQuickSave(app, &current, fences, queue, observers...)
 	game := f.savedGame()
 	app.SetSaveFiles(func() bool {
-		return anyGameSave(current.Dir) || filesOf(game).ownSaves && len(ownGameSaves(current.Dir, store.Selector, game)) != 0
+		return anyGameSave(current.Dir) || filesOf(game).ownSaves && f.anyLoadableSaveRow(SaveStore{Dir: current.Dir}, OriginalStore{})
 	})
+	app.SetSaveAny(func() bool { return f.anyLoadableSaveRow(current, original) })
 	app.SetSaveDelete(func(token string) bool {
 		_, err := loadDeletePath(current.Dir, token, fences, current.profile)
 		return err == nil
@@ -60,32 +61,10 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 		save, _, _ := f.SaveSeams(current, original, now, observers...)
 		return save(onMap)
 	}, func() []ui.SaveEntry {
-		_, list, _ := f.SaveSeams(current, original, now)
-		entries := list()
-		if filesOf(game).ownSaves {
-			return entries
-		}
-		// UNMANGLE EVERY LOCAL ROW'S LABEL, not only .ags ones. Restoring it here
-		// for BOTH formats is what keeps this window and the SAVE dialog's own
-		// browser (SaveDialogSeams.List, same store, never mangled) showing the
-		// same string for the same file -- a local .sav row's token is prefixed
-		// (localOriginalSaveToken), so the map key has to match it.
-		if rows, err := current.List(); err == nil {
-			labels := make(map[string]string, len(rows))
-			for _, row := range rows {
-				name := row.Name
-				if IsOriginal(name) {
-					name = localOriginalSaveToken(name)
-				}
-				labels[name] = row.Label
-			}
-			for i := range entries {
-				if label, ok := labels[entries[i].Name]; ok {
-					entries[i].Label = label
-				}
-			}
-		}
-		return entries
+		// A local row keeps its stored label, undrawable runes included, so
+		// this window and the SAVE dialog's own browser (SaveDialogSeams.List,
+		// same store, never altered) show the same string for the same file.
+		return f.saveRows(current, original, false)
 	}, func(name string) (ui.MapOpener, bool, error) {
 		queue.wait()
 		_, _, load := f.SaveSeams(current, original, now)

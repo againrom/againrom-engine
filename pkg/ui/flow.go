@@ -1206,7 +1206,7 @@ func (f *flow) enter(v *Viewer, tick MapTick, order MapOrder, cadence MapCadence
 		v.setHelpScrollArt(f.helpScroll.frames)
 	}
 	v.setFailureLoadCheck(func() bool {
-		return f.loadGame != nil && f.saveList != nil && len(f.saveList()) != 0
+		return f.loadGame != nil && f.canLoadSave()
 	})
 	f.tick, f.order, f.cadence, f.affect, f.advance, f.attack, f.grab, f.stance, f.march =
 		tick, order, cadence, affect, advance, attack, grab, stance, march
