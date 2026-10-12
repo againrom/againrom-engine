@@ -87,8 +87,8 @@ func (r *speakerResolver) speakerFigure(fig figureID, eq data.Equipment) *image.
 //
 // NO LAYER IS DROPPED FOR BEING IN A DIALOGUE (`DLG-FIGURE-021`): the head slot
 // is composed whenever the resolved worn set fills it, on both arms.
-func (r *speakerResolver) liveFigure(rec data.NPCFace) (*image.RGBA, bool) {
-	if a, ok := r.cast.resolve(rec); ok {
+func (r *speakerResolver) liveFigure(npc int32, rec data.NPCFace) (*image.RGBA, bool) {
+	if a, ok := r.cast.resolveNPC(npc, rec); ok {
 		var eq data.Equipment
 		if r.cast.worn != nil {
 			eq = r.cast.worn(a.id)
@@ -114,7 +114,7 @@ func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle
 	// Figure and no-picture arms describe what to synthesise only after the
 	// client actor walk found nobody. Running the switch first made a carried
 	// Brian synthetic and made npc23/Naira reuse the current inventory subject.
-	pic, live := r.liveFigure(rec)
+	pic, live := r.liveFigure(int32(speaker), rec)
 	if !live {
 		switch rec.Kind {
 		case data.NPCPortrait:

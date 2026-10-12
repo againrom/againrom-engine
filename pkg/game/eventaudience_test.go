@@ -106,23 +106,20 @@ func TestAPartWithNoSurvivingTagIsAbsent(t *testing.T) {
 	}
 }
 
-func TestTheFourIamArmsSatisfyTheFourBareOnes(t *testing.T) {
+func TestTheFourIamArmsDoNotSatisfyTheFourBareOnes(t *testing.T) {
 	t.Parallel()
 
 	faces := map[int32]data.NPCFace{
 		1: {Start: true, Tokens: tokens(data.NPCTokenFemale)},
 		2: {Start: true},
 	}
-	// A female hero, an `iamfemale` tag: accepted by the female speaker.
-	if got, ok := EventPart([]byte("<part=1,npc=1,iamfemale>hers"), 1,
-		speakerAud(true, false, faces)); !ok || got != "hers" {
-		t.Errorf("female speaker: got %q, %v; want %q", got, ok, "hers")
-	}
-	// The same tag read by the same hero, with a MALE speaker, is refused: the
-	// body contains `female`, so the speaker's own sex arm runs too.
-	if got, ok := EventPart([]byte("<part=1,npc=2,iamfemale>hers"), 1,
-		speakerAud(true, false, faces)); ok {
-		t.Errorf("male speaker: got %q, %v; want the tag refused", got, ok)
+	// A female hero, an `iamfemale` tag: accepted whatever the speaker's sex,
+	// because the speaker arms test the body without the `iam*` literals.
+	for _, npc := range []string{"1", "2"} {
+		if got, ok := EventPart([]byte("<part=1,npc="+npc+",iamfemale>hers"), 1,
+			speakerAud(true, false, faces)); !ok || got != "hers" {
+			t.Errorf("speaker npc%s: got %q, %v; want %q", npc, got, ok, "hers")
+		}
 	}
 }
 
@@ -171,8 +168,8 @@ func TestTheSpeakerArmsAreGated(t *testing.T) {
 // TestTheSpeakerTakesTheHeroWhereItsRecordSaysTo is SC-3, the authored half.
 //
 // `MySex` hands the sex axis to the player's own hero and `MyClass` the class
-// axis; `Me` hands over both. Nothing shipped reaches this, because the gate
-// above does not open on shipped data.
+// axis; `Me` hands over both. Shipped npc21 to npc24 reach it through their
+// `Start` token.
 func TestTheSpeakerTakesTheHeroWhereItsRecordSaysTo(t *testing.T) {
 	t.Parallel()
 

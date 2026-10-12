@@ -180,10 +180,11 @@ type EventAudience struct {
 // HeroAudience is the audience a party makes: its SUBJECT's sex and class, with
 // no speaker resolvable.
 //
-// THE SUBJECT IS THE FIRST MEMBER. A start places the first party member at the
-// drop cell exactly and crowds the rest around him, and the inventory subject is
-// taken from the same slot, so "the player's own hero" is one member and every
-// consumer of it agrees which.
+// THE SUBJECT IS THE STARTING HERO, the member the start marked as the player's
+// own character, whatever slot a join or a load moved him to; the speaker
+// records' `Me`, `MySex` and `MyClass` derive every hero speaker's sex and class
+// from the same member (owner direction, DIV-3149). A party with no marked
+// member answers from its first member.
 //
 // An empty party is a male fighter, because the four `iam*` arms are answered
 // from the two bits alone and there is no third value to give them. A mission
@@ -192,9 +193,16 @@ func HeroAudience(party []mapload.PartyMember) EventAudience {
 	if len(party) == 0 {
 		return EventAudience{}
 	}
+	subject := party[0]
+	for _, m := range party {
+		if primaryPlayerHero(m) {
+			subject = m
+			break
+		}
+	}
 	return EventAudience{
-		HeroFemale: data.FigureDir(party[0].FigureDir).Female(),
-		HeroMage:   party[0].Mage,
+		HeroFemale: data.FigureDir(subject.FigureDir).Female(),
+		HeroMage:   subject.Mage,
 	}
 }
 
@@ -202,20 +210,19 @@ func HeroAudience(party []mapload.PartyMember) EventAudience {
 // need: the sex and class of the record a tag's `npc=` number names, and the
 // gate that decides whether those arms run at all (SC-2, SC-3).
 //
-// THE GATE IS THE RECORD'S `Start` KEY. A record without it — which is every
-// shipped record — resolves nothing, so the four arms are skipped and no tag is
-// rejected on a speaker's account.
+// THE GATE IS A `Start` KEY OR A `Start` FLAGS TOKEN. The key is the
+// original's reading (DLG-TAGARM-027) and no shipped section has one. The token
+// is the owner's: npc21 to npc24 carry it, so each speaks in its own sex derived
+// from the starting hero (DIV-3149). Any other record resolves nothing, so the
+// four arms are skipped and no tag is rejected on its account.
 //
-// WHERE THE FACTS COME FROM WHEN THE GATE DOES PASS IS AUTHORED (SC-3). No
-// published claim states where the original reads a synthesised speaker's own
-// sex and class from. This takes them from the record's flag tokens, and lets
-// the record hand each axis to the player's hero where it says to: `MySex` and
-// `Me` for the sex, `MyClass` and `Me` for the class, which is what those tokens
-// mean at every other reader of the same list.
+// THE FACTS COME FROM THE RECORD'S FLAG TOKENS, handing each axis to the
+// player's hero where it says to: `MySex` and `Me` for the sex, `MyClass` and
+// `Me` for the class, as at every other reader of the same list (DLG-SYNTH-042).
 func speakerAudience(hero EventAudience, faces map[int32]data.NPCFace) EventAudience {
 	hero.Speaker = func(npc int) (female, mage, resolved bool) {
 		rec, ok := faces[int32(npc)]
-		if !ok || !rec.Start {
+		if !ok || !rec.Start && !rec.Archetype {
 			return false, false, false
 		}
 		female = rec.Tokens.Has(data.NPCTokenFemale)
@@ -250,12 +257,11 @@ type eventArm struct {
 
 // eventArms is the eight arms in the order they are applied.
 //
-// EVERY TEST IS A SUBSTRING TEST OVER THE WHOLE TAG BODY, and an arm that does
-// not reject falls through to the next. That is what makes the four `iam*`
-// literals satisfy the four bare ones as well: `iamfemale` contains `female`,
-// `iammale` contains `male`, `iammage` contains `mage` and `iamfighter`
-// contains `fighter`. It is reproduced rather than corrected, because it is what
-// the shipped files were authored against.
+// EVERY TEST IS A SUBSTRING TEST, and an arm that does not reject falls
+// through to the next. The four speaker arms test the body with the four `iam*`
+// literals removed (DIV-3149): in the original `iamfemale` also satisfies
+// `female` (DLG-TAGARM-027), which with the speaker gate open would close every
+// shipped `iamfemale`/`iammale` pair spoken by a companion of the other sex.
 //
 // ONE GUARD EXISTS AND IT IS THE ORIGINAL'S OWN: the `male` arm is skipped for
 // any body containing `female`, which every `female` body does contain as a
@@ -332,11 +338,16 @@ func (secondEventTags) accepts(a EventAudience, tag string) bool {
 
 func (firstEventTags) accepts(a EventAudience, tag string) bool {
 	var sexF, mageF, gate, asked bool
+	bare := withoutHeroArms(tag)
 	for _, arm := range eventArms {
-		if !containsFold(tag, arm.lit) {
+		body := tag
+		if arm.speaker {
+			body = bare
+		}
+		if !containsFold(body, arm.lit) {
 			continue
 		}
-		if arm.guard != "" && containsFold(tag, arm.guard) {
+		if arm.guard != "" && containsFold(body, arm.guard) {
 			continue
 		}
 		have := a.HeroFemale
@@ -360,6 +371,21 @@ func (firstEventTags) accepts(a EventAudience, tag string) bool {
 		}
 	}
 	return true
+}
+
+// withoutHeroArms is a tag body with every `iam*` literal cut out, the text the
+// four speaker arms test.
+func withoutHeroArms(tag string) string {
+	for _, arm := range eventArms[:4] {
+		for {
+			i := indexFold(tag, arm.lit)
+			if i < 0 {
+				break
+			}
+			tag = tag[:i] + "," + tag[i+len(arm.lit):]
+		}
+	}
+	return tag
 }
 
 // speakerFacts is the four speaker arms' subject: the sex and class of whoever

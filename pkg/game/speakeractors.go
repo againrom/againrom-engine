@@ -56,6 +56,9 @@ type speakerActor struct {
 	// not the hero-range id a Hero-mode placement's constructor writes there
 	// (`ALM-CLS-054`).
 	typeID int32
+
+	// npc is the campaign npc record this person joined as, 0 for none.
+	npc int32
 }
 
 // entitySpeakers is every placed person of m, in ascending entity id: the
@@ -205,7 +208,7 @@ func missionSpeakers(m *alm.Map, t *mapload.Table, roster map[sim.EntityID]maplo
 				class = placement.typeID
 			}
 			out = append(out, speakerActor{
-				id: pe.id, hero: hero,
+				id: pe.id, hero: hero, npc: int32(p.CompanionNPC),
 				fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: class,
 			})
 			continue
@@ -223,7 +226,7 @@ func missionSpeakers(m *alm.Map, t *mapload.Table, roster map[sim.EntityID]maplo
 		p := party[i]
 		dir, face := memberFigure(p)
 		out = append(out, speakerActor{
-			id: ids[i], me: primaryPlayerHero(p), hero: p.PlayerCharacter && p.MercenaryType == 0,
+			id: ids[i], me: primaryPlayerHero(p), hero: p.PlayerCharacter && p.MercenaryType == 0, npc: int32(p.CompanionNPC),
 			fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: p.Class,
 		})
 	}
@@ -279,6 +282,21 @@ func (c speakerCast) resolve(rec data.NPCFace) (speakerActor, bool) {
 		}
 	}
 	return speakerActor{}, false
+}
+
+// resolveNPC is resolve with the companion who joined as record npc tried
+// first, so a line of npc23 shows Danath or Naira and not another live hero
+// the same predicate admits. The original's candidate order is not decoded
+// (entitySpeakers); this order is ours (DIV-3150).
+func (c speakerCast) resolveNPC(npc int32, rec data.NPCFace) (speakerActor, bool) {
+	if c.alive != nil && npc != 0 {
+		for _, a := range c.actors {
+			if a.npc == npc && c.alive(a.id) && c.matches(rec, a) {
+				return a, true
+			}
+		}
+	}
+	return c.resolve(rec)
 }
 
 // matches is `DLG-SPEAKER-023`'s conjunction over one candidate: one term per

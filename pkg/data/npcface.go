@@ -222,12 +222,10 @@ type NPCFace struct {
 	// a record without it skips all four, so a part tagged for a female speaker
 	// is accepted whoever the speaker is.
 	//
-	// IT IS THE KEY AND NOT THE `Flags` TOKEN. The two are different lookups and
-	// they disagree on shipped data: no shipped section carries a key of this
-	// name, and four carry `Start` inside their `Flags` list. Reading the token
-	// here would make the four speaker arms live for exactly those four records.
-	// Which of the two the original does is not established, so this takes the
-	// narrower reading, and lifting it is this one assignment.
+	// IT IS THE KEY AND NOT THE `Flags` TOKEN. No shipped section carries a key
+	// of this name, and four carry `Start` inside their `Flags` list, which
+	// Archetype records. The event audience opens the speaker arms on either
+	// (DIV-3149).
 	Start bool
 }
 

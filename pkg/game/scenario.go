@@ -63,12 +63,11 @@ type PlayWorld struct {
 	// ALL FOUR ARE ABSENT ON A SYNTHETIC WORLD, which has no map script and so
 	// raises nothing. A nil announcer samples to nothing, which is the right
 	// answer rather than a guard.
-	ann           *Announcer
-	mission       int
-	src           entrySource
-	audience      EventAudience
-	eventAudience func(int) EventAudience
-	announced     []HeadlessAnnouncement
+	ann       *Announcer
+	mission   int
+	src       entrySource
+	audience  EventAudience
+	announced []HeadlessAnnouncement
 }
 
 // The two asset sources a scenario can declare.
@@ -256,12 +255,8 @@ func (p *PlayWorld) announcementOf(e int32) HeadlessAnnouncement {
 		return out
 	}
 	out.Shipped = true
-	audience := p.audience
-	if p.eventAudience != nil {
-		audience = p.eventAudience(int(e))
-	}
 	for n := 1; ; n++ {
-		body, ok := EventPart(payload, n, audience)
+		body, ok := EventPart(payload, n, p.audience)
 		if !ok {
 			break
 		}
@@ -274,23 +269,16 @@ func (p *PlayWorld) announcementOf(e int32) HeadlessAnnouncement {
 // watchAnnouncements gives a mission-stage world what it needs to turn a
 // raised number into the text a player would have read.
 //
-// It is separate from NewPlayWorld because the three inputs are the CALLER's:
-// the archive the mission was opened from, and the speaker table, are things
+// It is separate from NewPlayWorld because the inputs are the CALLER's: the
+// archive the mission was opened from, and the speaker table, are things
 // StartScenarioMission holds and a started mission does not carry.
-func (p *PlayWorld) watchAnnouncements(ms *Mission, src entrySource, faces map[int32]data.NPCFace, tables ...*mapload.Table) {
+func (p *PlayWorld) watchAnnouncements(ms *Mission, src entrySource, faces map[int32]data.NPCFace) {
 	if p == nil || ms == nil {
 		return
 	}
 	p.ann = NewAnnouncer(ms.World, ms.Raises)
 	p.mission, p.src = ms.Number, src
 	p.audience = speakerAudience(HeroAudience(ms.Party), faces)
-	var table *mapload.Table
-	if len(tables) != 0 {
-		table = tables[0]
-	}
-	p.eventAudience = func(event int) EventAudience {
-		return scenarioEventAudience(p.audience, ms, event, table, faces)
-	}
 }
 
 // decodeInstallText is the install's own code page turned into UTF-8, for a
@@ -1460,6 +1448,6 @@ func StartScenarioMission(a *Archives, s HeadlessScenario) (*PlayWorld, *Mission
 		return nil, nil, err
 	}
 	p := NewPlayWorld(ms)
-	p.watchAnnouncements(ms, a.Containers, LoadNPCFaces(a.Containers), defs.Table)
+	p.watchAnnouncements(ms, a.Containers, LoadNPCFaces(a.Containers))
 	return p, ms, nil
 }

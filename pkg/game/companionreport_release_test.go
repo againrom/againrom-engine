@@ -101,7 +101,7 @@ func TestReleaseMission70CompanionReportUsesLiveSpeakerVariants(t *testing.T) {
 				t.Fatal("ordinary dialogue open failed or changed World")
 			}
 			played := NewPlayWorld(live.mission.state)
-			played.watchAnnouncements(live.mission.state, f.Archives.Containers, live.npcFaces, f.Table)
+			played.watchAnnouncements(live.mission.state, f.Archives.Containers, live.npcFaces)
 			report := played.announcementOf(2)
 			proof := map[string]any{"root": root, "root_path_sha256": namespace, "source_sha256": fmt.Sprintf("%x", sha256.Sum256(payload)), "registry_sha256": fmt.Sprintf("%x", sha256.Sum256(registry)), "primary": primaryDir, "speaker": id, "figure": actor.fig.Dir, "class": member.Class, "template_class": template.Class, "template_row": template.Name, "portrait_sha256": fmt.Sprintf("%x", sha256.Sum256(portrait.Pix)), "world_before": fmt.Sprintf("%x", before)}
 			for part := 1; live.view.NoticeOpen() && part < 32; part++ {
@@ -239,7 +239,7 @@ func companionColdReport(t *testing.T, f *FrontEnd, app *ui.App, payload []byte,
 		t.Fatal("cold LOAD event02 did not open")
 	}
 	played := NewPlayWorld(live.mission.state)
-	played.watchAnnouncements(live.mission.state, cold.Archives.Containers, live.npcFaces, cold.Table)
+	played.watchAnnouncements(live.mission.state, cold.Archives.Containers, live.npcFaces)
 	report := played.announcementOf(2)
 	proof := map[string]any{"generated_sav_sha256": fmt.Sprintf("%x", sha256.Sum256(raw)), "generated_sav": entries[0].Name, "speaker": actor.id, "figure": actor.fig.Dir, "class": live.mission.state.Start.Roster[actor.id].Class, "world_before": fmt.Sprintf("%x", before), "tick_before": tick}
 	for part := 1; live.view.NoticeOpen() && part < 32; part++ {

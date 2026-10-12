@@ -2321,6 +2321,10 @@ package storyguard
 //
 // CommentBytes rises for the one save-directory scanner: the docs of
 // pkg/game/savescan.go and its witnesses, this note included.
+//
+// CommentBytes rises for the speakers' own sex: the docs of the new
+// pkg/game/speakersex_release_test.go census, resolveNPC and withoutHeroArms,
+// and the gate note in speakerAudience, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2332,7 +2336,7 @@ var Committed = Baseline{
 		"funaddr":         0,
 		"expmention":      0,
 		"acclause":        1865,
-		"scclause":        506,
+		"scclause":        505,
 		"barestorynumber": 1724,
 	},
 	Counts: map[string]int{
@@ -2342,7 +2346,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    34,
-		"longcommentgroups":      1731,
+		"longcommentgroups":      1730,
 	},
-	CommentBytes: 8877871,
+	CommentBytes: 8881251,
 }
