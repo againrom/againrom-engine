@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/render/menu"
 	"againrom/pkg/screenart"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 // gameFiles are the readers of the installed files the two games lay out
@@ -29,6 +30,11 @@ type gameFiles struct {
 	// autoCastCaptions are the dialogs text lines of the automatic-casting
 	// row: its label and the three levels, or none.
 	autoCastCaptions []int
+	// savePages are the game's own load and save pages, or nil for the
+	// first game's LOAD window and save dialog. ownSaves makes both pages
+	// list only this game's game*.sav files by their label.
+	savePages func(*FrontEnd) *ui.SavePages
+	ownSaves  bool
 }
 
 var firstGameFiles = gameFiles{
@@ -62,6 +68,8 @@ var secondGameFiles = gameFiles{
 	itemNameKeys: worldPrefix + "data/itemname.bin",
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
+	savePages:        secondSavePages,
+	ownSaves:         true,
 }
 
 // filesOf are the file readers of game g.

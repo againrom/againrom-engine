@@ -210,11 +210,13 @@ type Assets struct {
 
 	// place is nil for the first game, whose rectangles are the tables above.
 	place *secondPlacement
+	// actions binds each button to what its release does.
+	actions Actions
 }
 
 // Load binds the first game's resolved main-menu art to its layout.
 func Load(set *screenart.Set) (*Assets, error) {
-	a := &Assets{}
+	a := &Assets{actions: FirstActions}
 	var err error
 	if a.Base, err = picture(set, "base"); err != nil {
 		return nil, err

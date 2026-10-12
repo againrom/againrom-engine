@@ -82,7 +82,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 	before := secondTownSampleNow(t, f, app)
 	raw := secondTownNamedSave(t, f, app, out, "Stage forty inn")
 	secondTownShape(t, raw)
-	cold, a := secondTownCold(t, out, "Stage forty inn.sav")
+	cold, a := secondTownCold(t, out, secondSaveFile(t, out, "Stage forty inn"))
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 	if got := cold.TownScreen().Rows(); !reflect.DeepEqual(got, rows) {
 		t.Fatal("cold stage 40 inn rows", got)
@@ -120,7 +120,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 	if c.current != (secondLocation{1, 40}) || bank[768] != 40 {
 		t.Fatal("mission 40 did not open at stage 40", c.current, bank[768])
 	}
-	if _, err := os.Stat(filepath.Join(out, "Stage forty inn.sav")); err != nil {
+	if _, err := os.Stat(filepath.Join(out, secondSaveFile(t, out, "Stage forty inn"))); err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("new game -> stage 30 inn -> Leave30 -> stage 40 inn -> %d-byte SAV -> cold LOAD -> TALK 22/2108/2015/2111/2004 -> M40 opens on both", len(raw))

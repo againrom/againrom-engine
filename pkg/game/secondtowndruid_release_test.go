@@ -670,7 +670,7 @@ func TestReleaseSecondTownDruidColdLoadKeepsTheRoom(t *testing.T) {
 			raw := secondTownNamedSave(t, f, app, out, name)
 			secondTownShape(t, raw)
 			secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
-			cold, coldApp := secondTownCold(t, out, name+".sav")
+			cold, coldApp := secondTownCold(t, out, secondSaveFile(t, out, name))
 			s := cold.TownScreen().(*secondCampaignScreen)
 			coldApp.SetTown(s)
 			c := cold.Town.second

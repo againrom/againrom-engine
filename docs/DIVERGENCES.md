@@ -157,6 +157,7 @@ copying those counts.
 | `docs/divergences/rom2.md` |
 | `docs/divergences/rom2-character-generator.md` |
 | `docs/divergences/rom2-humans.md` |
+| `docs/divergences/rom2-menu-and-save-pages.md` |
 | `docs/divergences/rom2-music.md` |
 | `docs/divergences/rom2-text.md` |
 | `docs/divergences/rom2-town.md` |

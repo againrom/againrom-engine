@@ -2267,6 +2267,13 @@ package storyguard
 // the shown-button condition, the shop records' departure and stage writes,
 // the shop events and the new witnesses, genuinely new code, this note included.
 //
+// CommentBytes rises for the second game's menu and its load and save pages:
+// the docs of the menu action tables in pkg/render/menu/actions.go, the page
+// builder in pkg/ui/savepage.go and savepage_save.go, the page steps and draw
+// in load_window.go and load_draw.go, pkg/game/savepages.go and the new page
+// tests and the chosen-row notes of the save target and its twin-label tests,
+// including this paragraph.
+//
 // CommentBytes rises for the test heap returner: the doc of
 // startHeapReturner in the new pkg/game/heapreturn_test.go, including this
 // paragraph.
@@ -2297,5 +2304,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1732,
 	},
-	CommentBytes: 8829726,
+	CommentBytes: 8841133,
 }

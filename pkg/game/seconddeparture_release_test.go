@@ -110,7 +110,7 @@ func secondLaterColdProof(t *testing.T, path string) {
 		secondLaterTownAction(t, app)
 		secondTownAssertSample(t, *proof.Town, secondTownSampleNow(t, f, app))
 		secondTownNamedSave(t, f, app, filepath.Dir(path), "Fresh process town")
-		cold, _ := secondTownCold(t, filepath.Dir(path), "Fresh process town.sav")
+		cold, _ := secondTownCold(t, filepath.Dir(path), secondSaveFile(t, filepath.Dir(path), "Fresh process town"))
 		secondLaterAssertGraph(t, f.Town.cityObjects, cold.Town.cityObjects, nil)
 	} else {
 		f, app := secondMissionColdAt(t, filepath.Dir(path), filepath.Base(path), 21)
@@ -337,7 +337,7 @@ func secondLaterMissionProof(t *testing.T, f *FrontEnd, app *ui.App, cold *Front
 	secondAssertSample(t, first, secondSaveSampleNow(t, cold, a))
 	raw := secondMissionNamedSave(t, f, app, out, "Mission21")
 	secondLaterLossControls(t, f, raw)
-	loaded, b := secondMissionColdAt(t, out, "Mission21.sav", 21)
+	loaded, b := secondMissionColdAt(t, out, secondSaveFile(t, out, "Mission21"), 21)
 	secondAssertSample(t, first, secondSaveSampleNow(t, loaded, b))
 	id := f.live.mission.ids[0]
 	e, _ := f.live.world.Entity(id)
@@ -359,9 +359,9 @@ func secondLaterMissionProof(t *testing.T, f *FrontEnd, app *ui.App, cold *Front
 		t.Fatal("M21 next action changed no World")
 	}
 	secondMissionNamedSave(t, loaded, b, out, "Continued21")
-	again, c := secondMissionColdAt(t, out, "Continued21.sav", 21)
+	again, c := secondMissionColdAt(t, out, secondSaveFile(t, out, "Continued21"), 21)
 	secondAssertSample(t, last, secondSaveSampleNow(t, again, c))
-	secondLaterEmitProof(t, filepath.Join(out, "Mission21.sav"), secondLaterProof{Mission: []secondSaveSample{first, last}, Actor: id, X: x, Y: y, Ticks: 8})
+	secondLaterEmitProof(t, filepath.Join(out, secondSaveFile(t, out, "Mission21")), secondLaterProof{Mission: []secondSaveSample{first, last}, Actor: id, X: x, Y: y, Ticks: 8})
 }
 
 func TestReleaseSecondTownTwoContinuation(t *testing.T) {
@@ -487,16 +487,16 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 					raw := secondTownNamedSave(t, f, app, out, "Second town")
 					secondTownShape(t, raw)
 					secondLaterLossControls(t, f, raw)
-					cold, a := secondTownCold(t, out, "Second town.sav")
+					cold, a := secondTownCold(t, out, secondSaveFile(t, out, "Second town"))
 					secondTownAssertSample(t, sample, secondTownSampleNow(t, cold, a))
 					secondLaterAssertGraph(t, graph, cold.Town.cityObjects, spells)
 					secondLaterTownAction(t, a)
 					secondTownAssertSample(t, sample, secondTownSampleNow(t, cold, a))
 					secondTownNamedSave(t, cold, a, out, "Continued town")
-					again, b := secondTownCold(t, out, "Continued town.sav")
+					again, b := secondTownCold(t, out, secondSaveFile(t, out, "Continued town"))
 					secondTownAssertSample(t, sample, secondTownSampleNow(t, again, b))
 					secondLaterAssertGraph(t, cold.Town.cityObjects, again.Town.cityObjects, nil)
-					secondLaterEmitProof(t, filepath.Join(out, "Second town.sav"), secondLaterProof{Town: &sample, TownGraph: graph, TownSpells: spells})
+					secondLaterEmitProof(t, filepath.Join(out, secondSaveFile(t, out, "Second town")), secondLaterProof{Town: &sample, TownGraph: graph, TownSpells: spells})
 					if unlock {
 						secondLaterMissionProof(t, f, app, cold, a, out)
 					}

@@ -171,10 +171,10 @@ func TestReleaseSecondGameGeneratorStartsTheFirstTown(t *testing.T) {
 	if doc.Head.Difficulty != uint32(native) {
 		t.Fatalf("SAV difficulty %d, want %d", doc.Head.Difficulty, native)
 	}
-	cold, a := secondTownCold(t, out, "Generated hero.sav")
+	cold, a := secondTownCold(t, out, secondSaveFile(t, out, "Generated hero"))
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 	secondGeneratorCheckHero(t, cold, res, template)
-	if _, err := os.Stat(filepath.Join(out, "Generated hero.sav")); err != nil {
+	if _, err := os.Stat(filepath.Join(out, secondSaveFile(t, out, "Generated hero"))); err != nil {
 		t.Fatal(err)
 	}
 }

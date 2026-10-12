@@ -4,6 +4,7 @@ import (
 	"image"
 	"math"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -117,6 +118,12 @@ func TestReleaseSecondGameMusicScreens(t *testing.T) {
 	device := secondMusicDevice(t, f)
 	app := f.App("second music")
 	app.Layout(640, 480)
+	// Load is locked until a game*.sav exists (R2-ENGINE-437).
+	saves := t.TempDir()
+	if err := os.WriteFile(filepath.Join(saves, "game0000.sav"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f.ConfigureSaveSeams(app, SaveStore{Dir: saves}, OriginalStore{}, nil)
 	tail := &secondMusicTail{app: app, device: device}
 	tail.expect(t, "menu", []string{"request:menu.wav"}, []string{"start"})
 	for _, overlay := range []string{"load game"} {
@@ -354,7 +361,7 @@ func TestReleaseSecondGameMusicAreas(t *testing.T) {
 
 	out := t.TempDir()
 	secondMissionNamedSave(t, f, app, out, "music areas")
-	cold, coldApp := secondMissionCold(t, out, "music areas.sav")
+	cold, coldApp := secondMissionCold(t, out, secondSaveFile(t, out, "music areas"))
 	log := coldApp.MusicRequestLog()
 	t.Logf("cold LOAD log %v", log)
 	if want := []string{"request:menu.wav", "stop", "request:B00.wav..B16.wav"}; !slices.Equal(log, want) {

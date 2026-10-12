@@ -62,6 +62,10 @@ func (f *flow) openSaveDialog() {
 	if !f.atGameSavePoint() {
 		return
 	}
+	if f.pages.saveSet != nil {
+		f.openSavePage()
+		return
+	}
 	d := &saveDialog{request: SaveRequest{
 		OnMap: f.menuBack == ScreenMap, Directory: f.saveDialogSeams.Directory,
 		Name: "save", Format: SaveSAV,

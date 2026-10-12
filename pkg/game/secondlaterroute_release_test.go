@@ -333,7 +333,7 @@ func TestReleaseSecondLaterMissionSaveContinuation(t *testing.T) {
 		t.Fatal("stage 30 shop record stores absent from the saved campaign")
 	}
 	raw := secondMissionNamedSave(t, f, app, out, "Later mission")
-	cold, a := secondMissionColdAt(t, out, "Later mission.sav", 32)
+	cold, a := secondMissionColdAt(t, out, secondSaveFile(t, out, "Later mission"), 32)
 	secondAssertSample(t, before, secondSaveSampleNow(t, cold, a))
 	assertCurrentWorldEqual(t, f.live.world, cold.live.world, "cold LOAD")
 	e, _ = f.live.world.Entity(id)

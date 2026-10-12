@@ -338,7 +338,7 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 	}
 	out := secondMissionSaveDirectory(t)
 	secondMissionNamedSave(t, f, a, out, "Cheats")
-	cold, ca := secondMissionColdAt(t, out, "Cheats.sav", 10)
+	cold, ca := secondMissionColdAt(t, out, secondSaveFile(t, out, "Cheats"), 10)
 	cold.live.stopped = true
 	if got := secondCheatStateOf(t, cold, summoned); !reflect.DeepEqual(got, want) {
 		t.Fatalf("cold LOAD state %+v, want %+v", got, want)
@@ -441,7 +441,7 @@ func TestReleaseSecondCampaignCheatLaunchFlag(t *testing.T) {
 	app.Layout(1024, 768)
 	on.ConfigureSaveSeams(app, SaveStore{Dir: out}, OriginalStore{}, nil)
 	_, list, _ := on.SaveSeams(SaveStore{Dir: out}, OriginalStore{}, nil)
-	groundAppLoad(t, app, list, localOriginalSaveToken("Flag.sav"))
+	groundAppLoad(t, app, list, localOriginalSaveToken(secondSaveFile(t, out, "Flag")))
 	if !on.live.mission.resumed || on.live.cheats.privilege[sim.SelfSlot] != 255 {
 		t.Fatalf("the flag did not unlock the LOAD: resumed %v campaign %v priv %d", on.live.mission.resumed, on.live.cheats.campaign, on.live.cheats.privilege[sim.SelfSlot])
 	}
@@ -450,7 +450,7 @@ func TestReleaseSecondCampaignCheatLaunchFlag(t *testing.T) {
 		t.Fatalf("LOAD lines %+v lack reply 5", on.live.view.MessageLines())
 	}
 
-	off, _ := secondMissionColdAt(t, out, "Flag.sav", 10)
+	off, _ := secondMissionColdAt(t, out, secondSaveFile(t, out, "Flag"), 10)
 	if off.live.cheats.privilege[sim.SelfSlot] != 0 {
 		t.Fatal("a LOAD with the flag off is unlocked")
 	}

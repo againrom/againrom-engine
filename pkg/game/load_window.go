@@ -22,6 +22,11 @@ func (f *FrontEnd) wireLoadWindow(a *ui.App) {
 		}
 	}
 	a.SetLoadWindowWords(w)
+	if f.Archives != nil {
+		if pages := filesOf(f.Archives.Game()).savePages; pages != nil {
+			a.SetSavePages(*pages(f))
+		}
+	}
 }
 
 func prepareLoadDelete(dir, token string, fences []string, profiles ...*runtimeProfileAccess) (func() error, error) {

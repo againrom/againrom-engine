@@ -122,15 +122,14 @@ func secondMissionNamedSave(t *testing.T, f *FrontEnd, app *ui.App, out, name st
 		t.Fatal(captureErr)
 	}
 	if err := app.HeadlessSaveAction("save"); err != nil {
-		_, fileErr := os.Stat(filepath.Join(out, name+".sav"))
 		after, _, captureErr := f.Snapshot(true)
 		entries, dirErr := os.ReadDir(out)
-		t.Fatalf("ordinary SAVE refusal: %v file=%v world_unchanged=%v state_unchanged=%v capture=%v dir=%v entries=%v", err, fileErr, hash == f.live.world.Hash(), reflect.DeepEqual(before, after), captureErr, dirErr, entries)
+		t.Fatalf("ordinary SAVE refusal: %v world_unchanged=%v state_unchanged=%v capture=%v dir=%v entries=%v", err, hash == f.live.world.Hash(), reflect.DeepEqual(before, after), captureErr, dirErr, entries)
 	}
 	if app.Screen() != ui.ScreenGameMenu || app.HeadlessMessage() != f.Words.SaveAcknowledgement {
 		t.Fatal("ordinary SAVE acknowledgement", app.Screen(), app.HeadlessMessage())
 	}
-	raw, err := os.ReadFile(filepath.Join(out, name+".sav"))
+	raw, err := os.ReadFile(filepath.Join(out, recordSecondSave(t, out, name)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +379,7 @@ func secondMissionNamedContinuation(t *testing.T, mission int) {
 		t.Fatal(err)
 	}
 	raw := secondMissionNamedSave(t, f, app, out, "First mission")
-	cold, a := secondMissionColdAt(t, out, "First mission.sav", mission)
+	cold, a := secondMissionColdAt(t, out, secondSaveFile(t, out, "First mission"), mission)
 	secondAssertSample(t, before, secondSaveSampleNow(t, cold, a))
 	assertCurrentWorldEqual(t, f.live.world, cold.live.world, "cold LOAD")
 	id := f.live.mission.ids[0]
@@ -407,13 +406,13 @@ func secondMissionNamedContinuation(t *testing.T, mission int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(out, "First mission.sav")
+	path := filepath.Join(out, secondSaveFile(t, out, "First mission"))
 	if err := os.WriteFile(path+".json", encoded, 0600); err != nil {
 		t.Fatal(err)
 	}
 	runSpellWitnessChild(t, path, "AGAINROM_SECOND_SAVE_INPUT")
 	secondMissionNamedSave(t, cold, a, out, "Continued mission")
-	again, b := secondMissionColdAt(t, out, "Continued mission.sav", mission)
+	again, b := secondMissionColdAt(t, out, secondSaveFile(t, out, "Continued mission"), mission)
 	secondAssertSample(t, after, secondSaveSampleNow(t, again, b))
 	t.Logf("ordinary changed M%d -> named %d-byte SAV -> cold App first frame -> 24 identical post-action ticks -> resave/cold LOAD", mission, len(raw))
 }
@@ -809,7 +808,7 @@ func secondMissionNoticeBoundary(t *testing.T, mission int) {
 	dismissSecondMissionDialogue(t, app, f.live)
 	f.live.observeScriptMessages([]int32{2, 3})
 	secondMissionNamedSave(t, f, app, out, "Deferred notices")
-	cold, a := secondMissionColdAt(t, out, "Deferred notices.sav", mission)
+	cold, a := secondMissionColdAt(t, out, secondSaveFile(t, out, "Deferred notices"), mission)
 	if !reflect.DeepEqual(cold.live.mission.pendingMessages, []int32{2, 3}) {
 		t.Fatal("ordered notice queue lost")
 	}

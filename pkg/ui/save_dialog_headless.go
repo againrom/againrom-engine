@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,6 +21,9 @@ type HeadlessSaveDialog struct {
 }
 
 func (a *App) HeadlessSaveState() (HeadlessSaveDialog, bool) {
+	if a != nil && a.flow != nil && a.flow.screen == ScreenSave && a.flow.pages.save != nil {
+		return a.headlessSavePageState(), true
+	}
 	if a == nil || a.flow == nil || a.flow.screen != ScreenSave || a.flow.saveDialog == nil {
 		return HeadlessSaveDialog{}, false
 	}
@@ -45,6 +49,9 @@ func (a *App) HeadlessSaveEdit(directory, name string, format SaveFormat) error 
 	}
 	if format != "" && !strings.EqualFold(string(format), string(SaveSAV)) {
 		return fmt.Errorf("save dialog: format %q is unavailable", format)
+	}
+	if a.flow.pages.save != nil {
+		return a.headlessSavePageEdit(directory, name)
 	}
 	d := a.flow.saveDialog
 	if directory != "" {
@@ -76,6 +83,9 @@ func (a *App) HeadlessSaveAction(action string) error {
 	h, ok := a.HeadlessSaveState()
 	if !ok {
 		return saveDialogError(action)
+	}
+	if a.flow.pages.save != nil {
+		return a.headlessSavePageAction(action)
 	}
 	var c saveControl
 	switch strings.ToLower(strings.TrimSpace(action)) {
@@ -129,6 +139,13 @@ func (a *App) HeadlessSaveSelect(index int) error {
 	if h, ok := a.HeadlessSaveState(); !ok || h.Confirmation {
 		return saveDialogError("select")
 	}
+	if s := a.flow.pages.save; s != nil {
+		if !s.list.Select(index) {
+			return fmt.Errorf("save page: row %d is unavailable", index)
+		}
+		s.pick()
+		return nil
+	}
 	d := a.flow.saveDialog
 	if d.list == nil || !d.list.Select(index) {
 		return fmt.Errorf("save dialog: row %d is unavailable", index)
@@ -161,4 +178,63 @@ func saveControlName(c saveControl) string {
 		return "cancel"
 	}
 	return ""
+}
+
+func (a *App) headlessSavePageState() HeadlessSaveDialog {
+	s := a.flow.pages.save
+	return HeadlessSaveDialog{
+		Request: SaveRequest{OnMap: s.onMap, Directory: s.directory, Label: string(s.name), Format: SaveSAV},
+		Entries: append([]SaveEntry(nil), s.saves...), Confirmation: s.ui.confirm,
+		Focus: "name", Message: a.flow.msg,
+	}
+}
+
+// headlessSavePageEdit types name into the save page's name box through the
+// page's own keys. The page writes only to its own directory.
+func (a *App) headlessSavePageEdit(directory, name string) error {
+	s := a.flow.pages.save
+	if directory != "" && !sameSavePath(directory, s.directory) {
+		return fmt.Errorf("save page: it writes only to %s", s.directory)
+	}
+	if name == "" {
+		return nil
+	}
+	if err := a.HeadlessKey("ctrl-a"); err != nil {
+		return err
+	}
+	return a.HeadlessType(name, false)
+}
+
+func (a *App) headlessSavePageAction(action string) error {
+	s := a.flow.pages.save
+	v := s.view()
+	switch strings.ToLower(strings.TrimSpace(action)) {
+	case "save", "confirm":
+		if strings.EqualFold(strings.TrimSpace(action), "confirm") != s.ui.confirm {
+			return saveDialogError(action)
+		}
+		if a.flow.pageButtonDisabled(v, loadOKButton) {
+			return fmt.Errorf("save page: Ok is disabled")
+		}
+		a.acceptPage(v)
+	case "delete":
+		if s.ui.confirm || !a.flow.canDeletePage(v) {
+			return saveDialogError(action)
+		}
+		a.flow.confirmDeletePage(v)
+	case "back", "cancel":
+		a.flow.cancelPage(v)
+	case "select-all":
+		return a.HeadlessKey("ctrl-a")
+	default:
+		return fmt.Errorf("save page: unknown action %q", action)
+	}
+	if a.flow.screen == ScreenSave && a.flow.msg != "" {
+		return fmt.Errorf("save page: %s", a.flow.msg)
+	}
+	return nil
+}
+
+func sameSavePath(a, b string) bool {
+	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }

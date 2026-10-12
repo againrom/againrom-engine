@@ -37,7 +37,7 @@ func TestReleaseSecondTownDruidStaleStockSave(t *testing.T) {
 	c.talkTo(secondInnOption{kind: 0, npc: 675, topic: 78})
 	dir := secondMissionSaveDirectory(t)
 	secondTownNamedSave(t, f, app, dir, "Stale")
-	runSpellWitnessChild(t, filepath.Join(dir, "Stale.sav"), "AGAINROM_SECOND_STALE_INPUT")
+	runSpellWitnessChild(t, filepath.Join(dir, secondSaveFile(t, dir, "Stale")), "AGAINROM_SECOND_STALE_INPUT")
 }
 
 // TestReleaseSecondTownKaargDepartureStale: a departure that changes the record of

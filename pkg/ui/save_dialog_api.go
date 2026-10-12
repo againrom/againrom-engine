@@ -7,9 +7,12 @@ type SaveFormat string
 // SaveSAV is the only save format.
 const SaveSAV SaveFormat = "SAV"
 
+// SaveRequest names one SAVE. Label, when set, is the label written into the
+// file; otherwise the name is.
 type SaveRequest struct {
 	OnMap           bool
 	Directory, Name string
+	Label           string `json:",omitempty"`
 	Format          SaveFormat
 }
 

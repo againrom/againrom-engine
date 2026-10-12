@@ -1352,6 +1352,9 @@ func (a *App) dropWidgetLatches() {
 	if f.saveDialog != nil {
 		f.saveDialog.press.Clear()
 	}
+	if f.pages.save != nil {
+		f.pages.save.ui.press.Clear()
+	}
 	if f.docPanel != nil {
 		f.docPanel.press.Clear()
 	}
@@ -2402,7 +2405,8 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 // hit mask, and a press-and-release on the same button activates it. It reports
 // whether the activated button ends the program.
 //
-// New Game, Load, Hall of Fame and Exit use their installed buttons.
+// Each button does what the menu assets' binding table says; a locked button
+// selects nothing.
 func (a *App) stepMenu(in appInput) (exit bool) {
 	if a.stepModMenu(in) {
 		return false
@@ -2410,7 +2414,9 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 	hit := a.buttonAt(in.CursorX, in.CursorY)
 
 	if in.Load {
-		a.flow.openLoad(ScreenMenu)
+		if !a.loadLocked() {
+			a.flow.openLoad(ScreenMenu)
+		}
 		return false
 	}
 
@@ -2427,19 +2433,21 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		if released != 0 {
 			a.playUISound(UISoundCommonControl)
 		}
-		switch released {
-		case menu.NewGameButton:
+		switch a.assets.Binding(released).Action {
+		case menu.ActionNewGame:
 			a.activateNewGame()
 			a.PlayCutsceneSequence(numberedCutscenes("newgame"))
-		case menu.LoadGameButton:
+		case menu.ActionLoad:
 			a.flow.openLoad(ScreenMenu)
-		case menu.HallOfFameButton:
+		case menu.ActionHallOfFame:
 			a.flow.showHallOfFame()
-		case menu.CutscenesButton:
-			a.openCutsceneLibrary()
-		case menu.CreditsButton:
+		case menu.ActionCutscenes:
+			if !a.assets.Bindings().SeenCutscenes || len(a.seenCutscenes()) != 0 {
+				a.openCutsceneLibrary()
+			}
+		case menu.ActionCredits:
 			a.openCredits(ScreenMenu)
-		case menu.ExitButton:
+		case menu.ActionExit:
 			return true
 		}
 	default:
@@ -2457,7 +2465,28 @@ func (a *App) buttonAt(x, y int) int {
 	if !ok {
 		return 0
 	}
-	return a.assets.ButtonAt(p)
+	b := a.assets.ButtonAt(p)
+	if a.assets.Locked(b, a.flow.pages.hasSave) {
+		return 0
+	}
+	return b
+}
+
+// loadLocked reports whether the menu's Load buttons are locked.
+func (a *App) loadLocked() bool {
+	for b := 1; b <= menu.ButtonCount; b++ {
+		if a.assets.Locked(b, a.flow.pages.hasSave) {
+			return true
+		}
+	}
+	return false
+}
+
+// SetSaveFiles installs the front end's answer to whether any save file
+// exists; a menu whose Load needs a save asks it each time the menu shows.
+func (a *App) SetSaveFiles(exists func() bool) {
+	a.flow.pages.files = exists
+	a.flow.refreshMenuSave()
 }
 
 // stepPicker drives the map list: arrows move the selection, the wheel moves it

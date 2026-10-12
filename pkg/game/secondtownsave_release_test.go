@@ -147,13 +147,12 @@ func secondTownNamedSave(t *testing.T, f *FrontEnd, app *ui.App, out, name strin
 		t.Fatal(err)
 	}
 	if err := app.HeadlessSaveAction("save"); err != nil {
-		_, fileErr := os.Stat(filepath.Join(out, name+".sav"))
-		t.Fatalf("ordinary first-town SAVE producer refusal: %v file=%v", err, fileErr)
+		t.Fatalf("ordinary first-town SAVE producer refusal: %v", err)
 	}
 	if app.Screen() != ui.ScreenGameMenu || app.HeadlessMessage() != f.Words.SaveAcknowledgement {
 		t.Fatal("ordinary SAVE acknowledgement", app.Screen(), app.HeadlessMessage())
 	}
-	raw, err := os.ReadFile(filepath.Join(out, name+".sav"))
+	raw, err := os.ReadFile(filepath.Join(out, recordSecondSave(t, out, name)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,11 +316,11 @@ func TestReleaseSecondTownNamedSaveContinuation(t *testing.T) {
 				raw := secondTownNamedSave(t, f, app, dir, "First town")
 				secondTownShape(t, raw)
 				secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
-				cold, a := secondTownCold(t, dir, "First town.sav")
+				cold, a := secondTownCold(t, dir, secondSaveFile(t, dir, "First town"))
 				secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 
 				secondTownNamedSave(t, cold, a, dir, "Resaved town")
-				again, b := secondTownCold(t, dir, "Resaved town.sav")
+				again, b := secondTownCold(t, dir, secondSaveFile(t, dir, "Resaved town"))
 				secondTownAssertSample(t, before, secondTownSampleNow(t, again, b))
 				secondTownEnter(t, f, app)
 				secondTownEnter(t, cold, a)
@@ -358,7 +357,7 @@ func TestReleaseSecondTownNamedSaveContinuation(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				path := filepath.Join(dir, "First town.sav")
+				path := filepath.Join(dir, secondSaveFile(t, dir, "First town"))
 				if err := os.WriteFile(path+".json", proof, 0600); err != nil {
 					t.Fatal(err)
 				}
@@ -761,7 +760,7 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 	}
 	before := secondTownSampleNow(t, f, app)
 	secondTownNamedSave(t, f, app, out, "Closed TALK")
-	cold, a := secondTownCold(t, out, "Closed TALK.sav")
+	cold, a := secondTownCold(t, out, secondSaveFile(t, out, "Closed TALK"))
 	secondTownAssertSample(t, before, secondTownSampleNow(t, cold, a))
 	t.Log("already-unlocked open TALK refuses capture/sole producer/aliases/named preparation/seam/F2/F4/F9/timed without partial file or discarded modal; closed TALK SAV cold LOAD")
 }

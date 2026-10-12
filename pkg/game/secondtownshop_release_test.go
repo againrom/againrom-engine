@@ -184,7 +184,7 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "Shop.sav")
+	path := filepath.Join(dir, secondSaveFile(t, dir, "Shop"))
 	if err := os.WriteFile(path+".json", proof, 0600); err != nil {
 		t.Fatal(err)
 	}

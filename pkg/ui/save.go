@@ -10,10 +10,13 @@ import (
 // the screen behind the menu, leaving persistence to the game package.
 type SaveGame func(onMap bool) (name string, err error)
 
-// SaveEntry holds the disk token and the label from its header.
+// SaveEntry holds the disk token and the label from its header. Detail, when
+// set, is what a page's message line shows for the selected row instead of
+// the label.
 type SaveEntry struct {
-	Name  string
-	Label string
+	Name   string
+	Label  string
+	Detail string `json:",omitempty"`
 }
 
 // SaveList is what is on disk, newest first.

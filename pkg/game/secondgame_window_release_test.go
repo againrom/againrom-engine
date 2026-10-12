@@ -3,6 +3,7 @@ package game
 import (
 	"image"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -176,9 +177,19 @@ func TestReleaseSecondGameWindowStartsMissionTen(t *testing.T) {
 
 func TestReleaseSecondGameMenuButtonsDoNotCrash(t *testing.T) {
 	f := secondGameFront(t)
+	// Load is locked until a game*.sav exists (R2-ENGINE-437).
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "game0000.sav"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f.Options = OptionsStore{Path: filepath.Join(dir, "options.txt")}
+	if err := f.Options.EncounterCutscene(f.movieCatalog()[0].Directory); err != nil {
+		t.Fatal(err)
+	}
 	for _, name := range []string{"load game", "hall of fame", "cutscenes", "credits"} {
 		app := f.App("second")
 		app.Layout(1024, 768)
+		f.ConfigureSaveSeams(app, SaveStore{Dir: dir}, OriginalStore{}, nil)
 		if err := app.HeadlessActivate(name); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}

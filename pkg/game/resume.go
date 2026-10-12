@@ -660,6 +660,9 @@ func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() tim
 	// merging them by mtime would push what he just wrote below a file from
 	// another program's last run. Each group keeps its own newest-first order.
 	list := func() []ui.SaveEntry {
+		if g := f.savedGame(); filesOf(g).ownSaves {
+			return ownSaveRows(ownGameSaves(store.Dir, store.Selector, g), localOriginalSaveToken)
+		}
 		var out []ui.SaveEntry
 		// Decode stored labels at the seam; SaveStore.List retains header bytes.
 		if ents, err := store.List(); err == nil {

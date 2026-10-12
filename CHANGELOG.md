@@ -13,6 +13,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM2] The shopkeepers move: after a few idle seconds they play a gesture, and they answer a purchase or a sale. In the first town the keeper also nods when you change the group and shakes his head when you cannot afford a purchase; the Kaarg keeper speaks.
 - [ROM1] At the start of a mission every creature and character placed on the map faces the way the original turns it, each its own way, instead of all facing the same direction.
 - [ROM1] A save made during a mission stores more of each creature's movement data as the original holds it at that moment, so the original game and this game go on from such a save more alike.
+- [ROM2] The main menu's buttons do what they do in the second game: New Game, Load Game, Cut Scenes, Credits, Hall of Fame and Exit. Load Game stays dark until any saved game exists in the saves folder (a save of the first game kept in the same folder also lights it), and Cut Scenes opens only after a cutscene has been seen. Multi Player and Server still do nothing: multiplayer comes after the single-player game is complete.
+- [ROM2] Load Game opens the second game's own Load Saved Game page: the saves listed by their names, newest first, with the time of the selected save below the list, and Ok, Delete and Cancel. Saves of the first game are no longer listed there.
+- [ROM2] Saving opens the second game's own Save Game page. Type a name and press Ok: the first row, the empty slot, writes a new save; choosing a saved game puts its name in the box, and Ok then writes over the chosen save without asking, as the original does, even when another save with the same name is listed above it. Typing the name of a listed save, with no save chosen, writes over the newest one with that name.
 
 ## 0.117.0
 

@@ -43,5 +43,6 @@ func LoadSecond(set *screenart.Set) (*Assets, error) {
 		p.caption[i] = img
 	}
 	a.place = p
+	a.actions = SecondActions
 	return a, nil
 }

@@ -665,6 +665,9 @@ type flow struct {
 	loadBack        Screen
 	saves           []SaveEntry
 
+	// pages are a game's own load and save pages and the open save page.
+	pages pageSeams
+
 	// These fields are the in-game menu's own state: which panel and nested page
 	// are up, the session projection, and the decoded gates as they answered
 	// when the root was built.
@@ -962,6 +965,9 @@ func screenExitCursor(s Screen) (string, bool) {
 // A SCREEN ARRIVED AT FROM ITSELF still runs its pair, which is the original's
 // own shape: the transition is what the routine does, not a diff it takes.
 func (f *flow) setScreen(s Screen) {
+	if s == ScreenMenu {
+		f.refreshMenuSave()
+	}
 	if s == ScreenMap {
 		f.ending = EndingView{}
 		f.endingPage, f.endingTop, f.endingFocus, f.endingPress = 0, 0, 0, buttonLatch{}
@@ -1603,6 +1609,10 @@ func (f *flow) escape() (exit bool) {
 		}
 		return false
 	case ScreenSave:
+		if s := f.pages.save; s != nil {
+			f.cancelPage(s.view())
+			return false
+		}
 		f.cancelSaveDialog()
 		return false
 	case ScreenDocuments:

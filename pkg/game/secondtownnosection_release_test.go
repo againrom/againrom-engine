@@ -15,7 +15,7 @@ func TestReleaseSecondTownLoadWithoutInnSection(t *testing.T) {
 	raw := secondTownNamedSave(t, f, app, dir, "First town")
 	secondTownShape(t, raw)
 
-	withSection, a := secondTownCold(t, dir, "First town.sav")
+	withSection, a := secondTownCold(t, dir, secondSaveFile(t, dir, "First town"))
 	if err := a.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestReleaseSecondTownLoadWithoutInnSection(t *testing.T) {
 		own.Containers = fs
 		f.Archives = &own
 	}
-	cold, b := secondTownCold(t, dir, "First town.sav", without)
+	cold, b := secondTownCold(t, dir, secondSaveFile(t, dir, "First town"), without)
 	if got, _ := cold.Archives.Containers.ReadFile(mainPrefix + "text/town.txt"); bytes.Contains(got, []byte("npc517talk10")) {
 		t.Fatal("overlay left the section in place")
 	}

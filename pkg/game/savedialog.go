@@ -44,6 +44,10 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	f.configureScreenshot(app, store, fences)
 	f.configureTimedAutosave(app, &current, fences, now, queue, observers...)
 	f.configureQuickSave(app, &current, fences, queue, observers...)
+	game := f.savedGame()
+	app.SetSaveFiles(func() bool {
+		return anyGameSave(current.Dir) || filesOf(game).ownSaves && len(ownGameSaves(current.Dir, store.Selector, game)) != 0
+	})
 	app.SetSaveDelete(func(token string) bool {
 		_, err := loadDeletePath(current.Dir, token, fences, current.profile)
 		return err == nil
@@ -58,6 +62,9 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	}, func() []ui.SaveEntry {
 		_, list, _ := f.SaveSeams(current, original, now)
 		entries := list()
+		if filesOf(game).ownSaves {
+			return entries
+		}
 		// UNMANGLE EVERY LOCAL ROW'S LABEL, not only .ags ones. Restoring it here
 		// for BOTH formats is what keeps this window and the SAVE dialog's own
 		// browser (SaveDialogSeams.List, same store, never mangled) showing the
@@ -118,6 +125,9 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 	}
 	return ui.SaveDialogSeams{Directory: store.Dir,
 		List: func(dir string) (ui.SaveDirectory, error) {
+			if game := f.savedGame(); filesOf(game).ownSaves {
+				return listOwnSaveDirectory(dir, fences, store.Selector, game, store.profile)
+			}
 			return listSaveDirectory(dir, fences, store.Selector, store.profile)
 		},
 		CanDelete: func(dir, name string) bool {
@@ -143,7 +153,11 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 				return ui.PreparedSave{}, err
 			}
 			notifySaveCapture(observers, "f2", s)
-			raw, notice, err := f.playerMissionSave(s, string(name))
+			label := request.Label
+			if label == "" {
+				label = string(name)
+			}
+			raw, notice, err := f.playerMissionSave(s, label)
 			if err != nil {
 				return ui.PreparedSave{}, err
 			}

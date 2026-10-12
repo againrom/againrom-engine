@@ -12,6 +12,7 @@ func defaultLoadWindowWords() LoadWindowWords {
 	return LoadWindowWords{"Load Saved Game", "Load the Game", "OK", "Delete", "Cancel", "Delete selected saved game?"}
 }
 
+// loadWindow is one open page's pointer and confirmation state.
 type loadWindow struct {
 	quick         QuickSaveControls
 	words         LoadWindowWords
@@ -55,60 +56,101 @@ var (
 	loadDisabledText = color.RGBA{112, 122, 115, 255}
 )
 
-// The three Load buttons, as button latch ids.
+// The three page buttons, as button latch ids.
 const (
 	loadOKButton = iota
 	loadDeleteButton
 	loadCancelButton
 )
 
-func loadButtonRect(i int) image.Rectangle { return image.Rect(156+i*124, 380, 252+i*124, 404) }
+func loadButtonRect(i int) image.Rectangle { return firstLoadPage(LoadWindowWords{}).Buttons[i].Rect }
+
+// pageListBox is a page's shared list.
+func (a *App) pageListBox(v pageView) listBox {
+	return newListBox(v.page.List, v.page.Rows, a.flow.menuFont)
+}
 
 // loadListBox is the Load window's shared list.
-func (a *App) loadListBox() listBox { return newListBox(loadListArg, loadVisibleRows, a.flow.menuFont) }
+func (a *App) loadListBox() listBox { return a.pageListBox(a.flow.loadView()) }
 
-// loadButtonAt is the Load button under p.
-func loadButtonAt(p image.Point) (int, bool) {
-	for i := 0; i < 3; i++ {
-		if p.In(loadButtonRect(i)) {
+// buttonAt is the page button under p.
+func (v pageView) buttonAt(p image.Point) (int, bool) {
+	for i, b := range v.page.Buttons {
+		if p.In(b.Rect) {
 			return i, true
 		}
 	}
 	return 0, false
 }
 
-// loadButtonDisabled reports whether Load button i is disabled: Delete
-// while no save can be deleted or a deletion awaits confirmation.
-func (f *flow) loadButtonDisabled(i int) bool {
-	return i == loadDeleteButton && (!f.canDeleteLoad() || f.loadUI.confirm)
-}
-
-func (f *flow) canDeleteLoad() bool {
-	if f.loadList == nil || f.loadUI.canDelete == nil || f.loadUI.prepareDelete == nil {
-		return false
+// pageButtonDisabled reports whether page button i is disabled: Ok on a page
+// that needs a listed save while none is, or on a save page with an empty
+// name; Delete while no save can be deleted or a deletion awaits
+// confirmation.
+func (f *flow) pageButtonDisabled(v pageView, i int) bool {
+	switch i {
+	case loadOKButton:
+		if v.ui.confirm {
+			return false
+		}
+		return v.page.OKNeedsSave && len(v.saves) == 0 || v.save != nil && len(v.save.name) == 0
+	case loadDeleteButton:
+		return !f.canDeletePage(v) || v.ui.confirm
 	}
-	i := f.loadList.Selection()
-	return i >= 0 && i < len(f.saves) && f.loadUI.canDelete(f.saves[i].Name)
+	return false
 }
 
-func (a *App) acceptLoad() {
+// canDeletePage reports whether the selected row is a save the page may
+// delete.
+func (f *flow) canDeletePage(v pageView) bool {
+	entry, _, ok := v.selected()
+	return ok && f.pageCanDelete(v, entry)
+}
+
+func (f *flow) pageCanDelete(v pageView, e SaveEntry) bool {
+	if v.save != nil {
+		s := f.saveDialogSeams
+		return s.CanDelete != nil && s.PrepareDelete != nil && s.CanDelete(v.save.directory, e.Name)
+	}
+	return v.ui.canDelete != nil && v.ui.prepareDelete != nil && v.ui.canDelete(e.Name)
+}
+
+func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) {
+	if v.save != nil {
+		return f.saveDialogSeams.PrepareDelete(v.save.directory, e.Name)
+	}
+	return v.ui.prepareDelete(e.Name)
+}
+
+// acceptPage is Ok: load or save the selection, or delete it once confirmed.
+func (a *App) acceptPage(v pageView) {
 	f := a.flow
-	f.loadUI.resetPointer()
-	if !f.loadUI.confirm {
-		a.activatePicker(f.loadList, f.chooseLoad)
+	v.ui.resetPointer()
+	if !v.ui.confirm {
+		if v.save != nil {
+			f.submitSavePage()
+			return
+		}
+		a.activatePicker(v.list, f.chooseLoad)
 		a.syncViewerLayout()
 		return
 	}
-	if !f.canDeleteLoad() {
-		f.loadUI.confirm = false
+	if !f.canDeletePage(v) {
+		v.ui.confirm = false
 		return
 	}
-	i := f.loadList.Selection()
-	if f.loadUI.remove == nil {
+	i := v.list.Selection()
+	if v.ui.remove == nil {
 		return
 	}
-	if err := f.loadUI.remove(); err != nil {
+	if err := v.ui.remove(); err != nil {
 		f.msg = err.Error()
+		return
+	}
+	if v.save != nil {
+		f.refreshSavePage()
+		f.pages.save.list.Move(i)
+		f.pages.save.pick()
 		return
 	}
 	back := f.loadBack
@@ -118,43 +160,74 @@ func (a *App) acceptLoad() {
 	}
 }
 
-func (f *flow) confirmDeleteLoad() {
-	if !f.canDeleteLoad() {
+func (f *flow) confirmDeletePage(v pageView) {
+	entry, _, ok := v.selected()
+	if !ok || !f.pageCanDelete(v, entry) {
 		return
 	}
-	remove, err := f.loadUI.prepareDelete(f.saves[f.loadList.Selection()].Name)
+	remove, err := f.pagePrepareDelete(v, entry)
 	if err != nil {
 		f.msg = err.Error()
 		return
 	}
-	f.loadUI.remove, f.loadUI.confirm, f.msg = remove, true, ""
+	v.ui.remove, v.ui.confirm, f.msg = remove, true, ""
 }
 
-func (a *App) stepLoadWindow(in appInput, now time.Time) {
-	f := a.flow
-	l := f.loadList
-	if in.Unfocused || l == nil {
-		f.loadUI.resetPointer()
+// cancelPage is Cancel: it leaves a confirmation, else closes the page.
+func (f *flow) cancelPage(v pageView) {
+	if v.ui.confirm {
+		v.ui.confirm = false
+		f.msg = ""
 		return
+	}
+	if v.save != nil {
+		f.closeSavePage("")
+		return
+	}
+	f.closeLoad()
+}
+
+func (a *App) stepLoadWindow(in appInput, now time.Time) { a.stepPage(a.flow.loadView(), in) }
+
+func (a *App) stepPage(v pageView, in appInput) {
+	f := a.flow
+	l := v.list
+	if in.Unfocused || l == nil {
+		v.ui.resetPointer()
+		return
+	}
+	if v.save != nil {
+		before := l.Selection()
+		defer func() {
+			if f.pages.save != nil && f.pages.save.list == l && l.Selection() != before {
+				f.pages.save.pick()
+			}
+		}()
 	}
 	if in.Enter {
-		a.acceptLoad()
+		a.acceptPage(v)
 		return
 	}
-	if in.Delete && f.canDeleteLoad() {
-		f.loadUI.resetPointer()
-		f.confirmDeleteLoad()
+	if v.save == nil && in.Delete && f.canDeletePage(v) {
+		v.ui.resetPointer()
+		f.confirmDeletePage(v)
 		return
 	}
-	if !f.loadUI.confirm {
+	if !v.ui.confirm {
+		if v.save != nil {
+			v.save.edit(in)
+			if in.Typed != "" || in.Backspace || in.Delete {
+				f.msg = ""
+			}
+		}
 		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || in.WheelY != 0 {
-			f.loadUI.rowPressed = false
+			v.ui.rowPressed = false
 		}
 		listKey(l, in.Up, in.Down, in.PageUp, in.PageDown)
 		switch {
-		case in.Home:
+		case in.Home && v.save == nil:
 			l.Select(0)
-		case in.End:
+		case in.End && v.save == nil:
 			l.Select(len(l.Rows()) - 1)
 		case in.WheelY > 0:
 			l.Move(-3)
@@ -163,33 +236,33 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 		}
 	}
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	box := a.loadListBox()
-	if !f.loadUI.confirm {
-		if req, pos := f.loadUI.bar.step(listBar(box, l), p, ok, in); req != barNone {
-			f.loadUI.rowPressed = false
+	box := a.pageListBox(v)
+	if !v.ui.confirm {
+		if req, pos := v.ui.bar.step(listBar(box, l), p, ok, in); req != barNone {
+			v.ui.rowPressed = false
 			listBarRequest(l, req, pos)
 			return
 		}
-		if f.loadUI.bar.active() {
-			f.loadUI.rowPressed = false
+		if v.ui.bar.active() {
+			v.ui.rowPressed = false
 			return
 		}
 	}
 	if in.PrimaryPressed {
-		button, onButton := loadButtonAt(p)
-		f.loadUI.press.Press(button, ok && onButton && !f.loadButtonDisabled(button))
-		if !ok || onButton || f.loadUI.confirm {
-			f.loadUI.rowPressed = false
+		button, onButton := v.buttonAt(p)
+		v.ui.press.Press(button, ok && onButton && !f.pageButtonDisabled(v, button))
+		if !ok || onButton || v.ui.confirm {
+			v.ui.rowPressed = false
 			return
 		}
 		row, onRow := box.RowAt(p)
-		if onRow && in.PrimaryDouble && f.loadUI.rowPressed {
+		if onRow && in.PrimaryDouble && v.ui.rowPressed {
 			// Loads the first press's selection on this release (MENU-144).
-			f.loadUI.rowPressed, f.loadUI.doubled = false, true
+			v.ui.rowPressed, v.ui.doubled = false, true
 			return
 		}
 		top, count := l.Visible()
-		f.loadUI.rowPressed = onRow && row < count && top+row < len(f.saves)
+		v.ui.rowPressed = onRow && row < count && top+row < l.Len()
 		if onRow && row < count {
 			l.Select(top + row)
 		}
@@ -198,28 +271,23 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) {
 	if !in.PrimaryReleased {
 		return
 	}
-	if f.loadUI.doubled {
-		a.acceptLoad()
+	if v.ui.doubled {
+		a.acceptPage(v)
 		return
 	}
-	at, inside := loadButtonAt(p)
-	button, activated := f.loadUI.press.Release(at, ok && inside)
+	at, inside := v.buttonAt(p)
+	button, activated := v.ui.press.Release(at, ok && inside)
 	if !activated {
 		return
 	}
 	switch button {
 	case loadOKButton:
-		a.acceptLoad()
+		a.acceptPage(v)
 	case loadDeleteButton:
-		if !f.loadUI.confirm && f.canDeleteLoad() {
-			f.confirmDeleteLoad()
+		if !v.ui.confirm && f.canDeletePage(v) {
+			f.confirmDeletePage(v)
 		}
 	case loadCancelButton:
-		if f.loadUI.confirm {
-			f.loadUI.confirm = false
-			f.msg = ""
-		} else {
-			f.closeLoad()
-		}
+		f.cancelPage(v)
 	}
 }

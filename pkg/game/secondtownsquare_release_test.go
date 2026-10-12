@@ -406,7 +406,7 @@ func TestReleaseSecondTownOneColdLoadKeepsTheRoom(t *testing.T) {
 	}
 	out := t.TempDir()
 	secondTownNamedSave(t, f, app, out, "Inn room")
-	cold, coldApp := secondTownCold(t, out, "Inn room.sav")
+	cold, coldApp := secondTownCold(t, out, secondSaveFile(t, out, "Inn room"))
 	s := cold.TownScreen().(*secondCampaignScreen)
 	coldApp.SetTown(s)
 	if cold.Town.second.room != secondTownInn || !s.AtTownSquare() {

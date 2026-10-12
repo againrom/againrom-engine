@@ -209,7 +209,7 @@ func TestReleaseSecondMissionTenHealSaveContinuation(t *testing.T) {
 	}
 	spent, _ := f.live.world.Entity(mage.ID)
 	secondMissionNamedSave(t, f, app, out, "Spell mission")
-	cold, a := secondMissionColdAt(t, out, "Spell mission.sav", 10)
+	cold, a := secondMissionColdAt(t, out, secondSaveFile(t, out, "Spell mission"), 10)
 	assertCurrentWorldEqual(t, f.live.world, cold.live.world, "cold LOAD")
 	loaded, _ := cold.live.world.Entity(mage.ID)
 	if loaded.Mana != spent.Mana || loaded.KnownSpells != spent.KnownSpells {

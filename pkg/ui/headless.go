@@ -268,6 +268,9 @@ func (a *App) HeadlessRows() []PickerRow {
 		if a.flow.saveDialog != nil {
 			p = a.flow.saveDialog.list
 		}
+		if a.flow.pages.save != nil {
+			p = a.flow.pages.save.list
+		}
 	}
 	if p == nil {
 		return nil
@@ -1132,15 +1135,24 @@ func (a *App) headlessMenuButton(target string) error {
 			return nil
 		}
 	}
-	want, ok := headlessMenuButtons[strings.ToLower(strings.TrimSpace(target))]
-	if !ok {
-		names := make([]string, 0, len(headlessMenuButtons))
-		for name := range headlessMenuButtons {
-			names = append(names, name)
+	want, names := 0, []string{}
+	for b := 1; b <= menu.ButtonCount; b++ {
+		name := a.assets.Binding(b).Name
+		if name == "" {
+			continue
 		}
+		names = append(names, name)
+		if strings.EqualFold(strings.TrimSpace(target), name) {
+			want = b
+		}
+	}
+	if want == 0 {
 		sort.Strings(names)
 		return fmt.Errorf("headless activate %q: the menu offers %s",
 			target, strings.Join(names, ", "))
+	}
+	if a.assets.Locked(want, a.flow.pages.hasSave) {
+		return fmt.Errorf("headless activate %q: the button is locked", target)
 	}
 	px, py, found := 0, 0, false
 	for y := 0; y < a.winH && !found; y++ {
@@ -1159,19 +1171,6 @@ func (a *App) headlessMenuButton(target string) error {
 		return fmt.Errorf("headless activate %q requested application exit", target)
 	}
 	return nil
-}
-
-// headlessMenuButtons is the scenario vocabulary for the brooch, keyed in lower
-// case. The words are the ones the buttons carry in the shipped artwork; the
-// indices are menu's own, computed from the placement table rather than spelled
-// out here.
-var headlessMenuButtons = map[string]int{
-	"new game":     menu.NewGameButton,
-	"load game":    menu.LoadGameButton,
-	"hall of fame": menu.HallOfFameButton,
-	"cutscenes":    menu.CutscenesButton,
-	"credits":      menu.CreditsButton,
-	"exit":         menu.ExitButton,
 }
 
 // HeadlessSelectEntity performs a primary-button press and release at a point

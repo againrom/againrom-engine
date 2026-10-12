@@ -254,7 +254,7 @@ func TestReleaseSecondGameBlizzardSaveContinuation(t *testing.T) {
 		t.Fatalf("no Blizzard reached its twelfth pulse: pulse %d outcome %v", stage, f.live.world.Outcome())
 	}
 	raw := secondMissionNamedSave(t, f, app, out, "Blizzard")
-	cold, a := secondMissionColdAt(t, out, "Blizzard.sav", 102)
+	cold, a := secondMissionColdAt(t, out, secondSaveFile(t, out, "Blizzard"), 102)
 	assertCurrentWorldEqual(t, f.live.world, cold.live.world, "cold LOAD")
 	// Loss control: the same SAV without the sampled cells the areas carry
 	// loads to another World.
@@ -296,7 +296,7 @@ func TestReleaseSecondGameBlizzardSaveContinuation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(out, "Blizzard.sav")
+	path := filepath.Join(out, secondSaveFile(t, out, "Blizzard"))
 	if err := os.WriteFile(path+".json", encoded, 0600); err != nil {
 		t.Fatal(err)
 	}
