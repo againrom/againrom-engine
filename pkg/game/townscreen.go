@@ -514,7 +514,7 @@ func (t *townScreen) townLines() []string {
 	dialogue := newTownDialogue(payload)
 	var lines []string
 	for part := 1; ; part++ {
-		if !dialogue.lookup(part, HeroAudience(t.sess.Carried)) {
+		if !dialogue.lookup(part, partyAudience(t.sess.Carried, nil)) {
 			break
 		}
 		lines = append(lines, dialogue.text)
@@ -744,12 +744,8 @@ func (t *townScreen) composeShopFaces() {
 	if t.room == roomTavern {
 		t.resolver.cast = t.tavernSpeakerCast()
 	}
-	for _, member := range party {
-		if primaryPlayerHero(member) {
-			t.resolver.cast.playerDir, _ = memberFigure(member)
-			t.resolver.cast.hasPlayer = true
-			break
-		}
+	if dir, ok := playerDirection(party); ok {
+		t.resolver.cast.playerDir, t.resolver.cast.hasPlayer = dir, true
 	}
 }
 

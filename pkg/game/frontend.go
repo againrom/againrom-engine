@@ -1694,7 +1694,7 @@ func withoutFallenBodies(party []mapload.PartyMember, ids []sim.EntityID, w *sim
 	var keptParty []mapload.PartyMember
 	var keptIDs []sim.EntityID
 	for i, p := range party {
-		if i < len(ids) && lying[ids[i]] && p.PlayerCharacter && p.MercenaryType == 0 && !p.StartingHero {
+		if i < len(ids) && lying[ids[i]] && playerCharacter(p) && !p.StartingHero {
 			continue
 		}
 		keptParty = append(keptParty, p)

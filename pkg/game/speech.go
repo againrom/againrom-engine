@@ -124,37 +124,23 @@ func (t *townScreen) townSpeechPath() (string, bool) {
 	// The installed hero recordings replace the "npc" prefix with the
 	// speaker's sex/class pair (ff, fm, mf, mm). Reuse the figure predicate
 	// to choose that speaker from the carried party, not the selected doll.
-	cast := speakerCast{}
-	for _, member := range t.sess.Carried {
-		if primaryPlayerHero(member) {
-			cast.playerDir, _ = memberFigure(member)
-			cast.hasPlayer = true
-		}
+	cast := newSpeakerCast(t.sess.Carried, nil)
+	actor, found := cast.resolveNPC(int32(speaker), rec)
+	leaf := path.Base(name)
+	if !found || !strings.HasPrefix(leaf, "npc") {
+		return name, true
 	}
-	for _, member := range t.sess.Carried {
-		dir, face := memberFigure(member)
-		actor := speakerActor{me: primaryPlayerHero(member), hero: member.PlayerCharacter && member.MercenaryType == 0,
-			fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: member.Class}
-		if !cast.matches(rec, actor) {
-			continue
-		}
-		sex, class := "m", "f"
-		if dir.Female() {
-			sex = "f"
-		}
-		if dir.Mage() {
-			class = "m"
-		}
-		leaf := path.Base(name)
-		if !strings.HasPrefix(leaf, "npc") {
-			break
-		}
-		// A speaker whose sex/class recording the install lacks plays the
-		// pager's own leaf name (DLG-SOUND-028, DLG-VOICE-074).
-		if hero := path.Dir(name) + "/" + sex + class + "_" + strings.TrimPrefix(leaf, "npc"); t.in.SpeechBank.has(hero) {
-			return hero, true
-		}
-		break
+	sex, class := "m", "f"
+	if actor.fig.Dir.Female() {
+		sex = "f"
+	}
+	if actor.fig.Dir.Mage() {
+		class = "m"
+	}
+	// A speaker whose sex/class recording the install lacks plays the
+	// pager's own leaf name (DLG-SOUND-028, DLG-VOICE-074).
+	if hero := path.Dir(name) + "/" + sex + class + "_" + strings.TrimPrefix(leaf, "npc"); t.in.SpeechBank.has(hero) {
+		return hero, true
 	}
 	return name, true
 }

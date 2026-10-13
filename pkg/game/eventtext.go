@@ -206,6 +206,18 @@ func HeroAudience(party []mapload.PartyMember) EventAudience {
 	}
 }
 
+// partyAudience is the one audience function: the party's hero audience, with
+// the speaker half added when the caller holds the speaker records. A screen
+// with no records (the town's dialogue, the second game's campaign pages) asks
+// with nil faces and gets the hero audience alone.
+func partyAudience(party []mapload.PartyMember, faces map[int32]data.NPCFace) EventAudience {
+	hero := HeroAudience(party)
+	if faces == nil {
+		return hero
+	}
+	return speakerAudience(hero, faces)
+}
+
 // speakerAudience gives a hero audience the speaker half the four bare arms
 // need: the sex and class of the record a tag's `npc=` number names, and the
 // gate that decides whether those arms run at all (SC-2, SC-3).

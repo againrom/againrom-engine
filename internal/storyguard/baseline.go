@@ -2411,6 +2411,10 @@ package storyguard
 // the docs of modTextFallback, EncodeModText, encodeInstallRunes,
 // ModTextDropped, the dropped-character and texts-stamp helpers of the
 // mod-message-text rule, this note included.
+//
+// CommentBytes rises for the one speaker cast constructor and audience
+// function: the docs of newSpeakerCast, playerCharacter and partyAudience, the
+// census test and the predicate test, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2434,5 +2438,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 8986711,
+	CommentBytes: 8989631,
 }

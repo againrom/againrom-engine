@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"againrom/pkg/data"
+	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -161,6 +162,10 @@ func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle
 }
 
 func (mw *mapWorld) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle, bool) {
+	var party []mapload.PartyMember
+	if mw.mission != nil {
+		party = mw.mission.party
+	}
 	r := speakerResolver{
 		src: mw.archive(), units: mw.units, npcFaces: mw.npcFaces,
 		portraits: mw.portraits, figurePics: mw.figurePics,
@@ -169,14 +174,11 @@ func (mw *mapWorld) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle, bool
 		// function values below close over this driver so the worn set and the
 		// liveness answer come from the world as it stands NOW, which is
 		// `DLG-SPEAKER-022`'s own "those slots change only by a re-send".
-		cast: speakerCast{
+		cast: newSpeakerCast(party, &speakerWorld{
 			actors: mw.speakerActors,
 			alive:  mw.entityAlive,
 			worn:   mw.equipmentOf,
-		},
-	}
-	if dir, ok := mw.playerFigureDir(); ok {
-		r.cast.playerDir, r.cast.hasPlayer = dir, true
+		}),
 	}
 	if mw.invSubjectSet {
 		r.playerFigure = mw.invSubject.Figure
@@ -204,11 +206,5 @@ func (mw *mapWorld) playerFigureDir() (data.FigureDir, bool) {
 	if mw.mission == nil {
 		return "", false
 	}
-	for _, m := range mw.mission.party {
-		if primaryPlayerHero(m) {
-			dir, _ := memberFigure(m)
-			return dir, true
-		}
-	}
-	return "", false
+	return playerDirection(mw.mission.party)
 }

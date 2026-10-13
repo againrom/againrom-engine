@@ -90,7 +90,7 @@ func dialogueInteger(s string) (int, bool) {
 }
 
 func (t *townScreen) lookupTownDialogue() bool {
-	if !t.dialogue.lookup(t.said, HeroAudience(t.sess.Carried)) {
+	if !t.dialogue.lookup(t.said, partyAudience(t.sess.Carried, nil)) {
 		return false
 	}
 	if t.dialogue.portrait {

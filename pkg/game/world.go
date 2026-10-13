@@ -659,7 +659,7 @@ func guardedEntities(party []mapload.PartyMember, ids []sim.EntityID) []sim.Enti
 		if i >= len(ids) {
 			break
 		}
-		if p.PlayerCharacter && p.MercenaryType == 0 {
+		if playerCharacter(p) {
 			out = append(out, ids[i])
 		}
 	}
@@ -999,7 +999,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		// NewAnnouncer for the aliasing that makes the difference load-bearing.
 		ann: NewAnnouncer(ms.World, ms.Raises),
 	}
-	mw.mission.audience = speakerAudience(HeroAudience(ms.Party), npcFaces)
+	mw.mission.audience = partyAudience(ms.Party, npcFaces)
 	if ms.ActorManifest != nil {
 		for _, actor := range ms.ActorManifest.Actors {
 			if _, present := mw.chars[actor.ID]; !present {

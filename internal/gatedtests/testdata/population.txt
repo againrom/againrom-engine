@@ -1164,3 +1164,4 @@ pkg/game.TestReleaseMapEditorNewMapIsWonAndLostByItsArms
 pkg/game.TestReleaseMapEditorGroupAndStructureArmsOnAnInstalledMapCopy
 pkg/game.TestReleaseArmedMageCastsOnlyAfterItsWalk
 pkg/game.TestReleaseOrderStateSurvivesSAVE
+pkg/game.TestReleaseSpeakerCastCensusOneResolver

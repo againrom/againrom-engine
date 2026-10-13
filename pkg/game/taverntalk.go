@@ -52,17 +52,7 @@ type tavernStockActor struct {
 // party first is this build's order. The town has no world, so every actor is
 // alive.
 func tavernTalkCast(party []mapload.PartyMember, stock []tavernStockActor) speakerCast {
-	c := speakerCast{alive: func(sim.EntityID) bool { return true }}
-	for i, p := range party {
-		dir, face := memberFigure(p)
-		c.actors = append(c.actors, speakerActor{
-			id: sim.EntityID(i), me: primaryPlayerHero(p), hero: p.PlayerCharacter && p.MercenaryType == 0,
-			fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: p.Class,
-		})
-		if primaryPlayerHero(p) && !c.hasPlayer {
-			c.playerDir, c.hasPlayer = dir, true
-		}
-	}
+	c := newSpeakerCast(party, nil)
 	for k, a := range stock {
 		a.actor.id = sim.EntityID(len(party) + k)
 		c.actors = append(c.actors, a.actor)
@@ -132,7 +122,7 @@ func resolveTavernTalk(npc int, rec data.NPCFace, known bool, party []mapload.Pa
 	}
 	cast := tavernTalkCast(party, stock)
 	if known && !rec.Tokens.Has(data.NPCTokenPlatoon) {
-		if a, ok := cast.resolve(rec); ok {
+		if a, ok := cast.resolveNPC(int32(npc), rec); ok {
 			o := tavernTalkObject{live: int(a.id), hero: a.hero, mage: a.fig.Dir.Mage(), human: !a.hero}
 			if i := int(a.id); i < len(party) {
 				o.sheet = int(party[i].MercenaryType)

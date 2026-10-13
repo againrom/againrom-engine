@@ -278,7 +278,7 @@ func (p *PlayWorld) watchAnnouncements(ms *Mission, src entrySource, faces map[i
 	}
 	p.ann = NewAnnouncer(ms.World, ms.Raises)
 	p.mission, p.src = ms.Number, src
-	p.audience = speakerAudience(HeroAudience(ms.Party), faces)
+	p.audience = partyAudience(ms.Party, faces)
 }
 
 // decodeInstallText is the install's own code page turned into UTF-8, for a

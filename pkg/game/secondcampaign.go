@@ -396,7 +396,7 @@ func (t *secondCampaignScreen) dialogueBody() (string, bool) {
 	if c.payload == nil {
 		return "", false
 	}
-	audience := HeroAudience(t.session.Carried)
+	audience := partyAudience(t.session.Carried, nil)
 	audience.tags = t.tags
 	return dialoguePart(c.payload, c.part, audience)
 }

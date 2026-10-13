@@ -223,14 +223,64 @@ func missionSpeakers(m *alm.Map, t *mapload.Table, roster map[sim.EntityID]maplo
 		n = len(ids)
 	}
 	for i := 0; i < n; i++ {
-		p := party[i]
-		dir, face := memberFigure(p)
-		out = append(out, speakerActor{
-			id: ids[i], me: primaryPlayerHero(p), hero: p.PlayerCharacter && p.MercenaryType == 0, npc: int32(p.CompanionNPC),
-			fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: p.Class,
-		})
+		out = append(out, partyActor(ids[i], party[i]))
 	}
 	return out
+}
+
+// playerCharacter is the one hero predicate: a full player character, not a
+// hired unit. PlayerCharacter separates a character from a mercenary and
+// MercenaryType is the hire's own type; the two fields are written by
+// different constructors, so both are tested.
+func playerCharacter(p mapload.PartyMember) bool {
+	return p.PlayerCharacter && p.MercenaryType == 0
+}
+
+// partyActor is the speaker candidate a party member is.
+func partyActor(id sim.EntityID, p mapload.PartyMember) speakerActor {
+	dir, face := memberFigure(p)
+	return speakerActor{
+		id: id, me: primaryPlayerHero(p), hero: playerCharacter(p), npc: int32(p.CompanionNPC),
+		fig: figureID{Dir: dir, Face: face}, face: int32(face), typeID: p.Class,
+	}
+}
+
+// playerDirection is the figure directory of the player's own character, the
+// party member the start marked, or no answer for a party without one.
+func playerDirection(party []mapload.PartyMember) (data.FigureDir, bool) {
+	for _, m := range party {
+		if primaryPlayerHero(m) {
+			dir, _ := memberFigure(m)
+			return dir, true
+		}
+	}
+	return "", false
+}
+
+// speakerWorld is a live world's answer to the cast: the candidates it holds
+// (placements and party actors), whether each is alive and what each wears.
+type speakerWorld struct {
+	actors []speakerActor
+	alive  func(sim.EntityID) bool
+	worn   func(sim.EntityID) data.Equipment
+}
+
+// newSpeakerCast is the one constructor of a cast. The player's direction is
+// the party's marked hero. Without a world the candidates are the party
+// members in party order, all alive, each id its index; with a world they are
+// the world's.
+func newSpeakerCast(party []mapload.PartyMember, w *speakerWorld) speakerCast {
+	c := speakerCast{}
+	c.playerDir, c.hasPlayer = playerDirection(party)
+	if w != nil {
+		c.actors, c.alive, c.worn = w.actors, w.alive, w.worn
+		return c
+	}
+	c.alive = func(sim.EntityID) bool { return true }
+	for i, p := range party {
+		c.actors = append(c.actors, partyActor(sim.EntityID(i), p))
+	}
+	return c
 }
 
 // speakerCast is the live half of speaker resolution: the candidates, the two
