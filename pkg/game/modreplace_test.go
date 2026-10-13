@@ -45,14 +45,14 @@ func TestSetModMissionsServesAReplacingMapOverTheInstalledMission(t *testing.T) 
 		t.Fatal(err)
 	}
 	r := replaceDecl()
-	if err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{r, guestDecl()}}); err != nil {
+	if _, err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{r, guestDecl()}}); err != nil {
 		t.Fatal(err)
 	}
 	for address, want := range map[string]string{
 		"scenario/20.alm":                  string(r.MapBytes),
 		"main/text/battle/m20/event01.txt": "E1",
 		"main/text/battle/m20/title.txt":   "Ambush",
-		"scenario/25.alm":                  "MAP",
+		"scenario/25.alm":                  string(guestMapBytes()),
 	} {
 		if got, err := f.Archives.Containers.ReadFile(address); err != nil || string(got) != want {
 			t.Errorf("%s: %q %v", address, got, err)
@@ -85,7 +85,7 @@ func TestSetModMissionsRefusesAReplacementTheInstallDoesNotBearOut(t *testing.T)
 		f := replaceFixtureFront(t)
 		m := replaceDecl()
 		c.edit(f, &m)
-		err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}})
+		_, err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}})
 		if err == nil || !strings.Contains(err.Error(), `mod "r": data/missions.toml:4: `+c.want) {
 			t.Errorf("%s: %v, want %q", name, err, c.want)
 		}
@@ -94,7 +94,7 @@ func TestSetModMissionsRefusesAReplacementTheInstallDoesNotBearOut(t *testing.T)
 		}
 	}
 	// Loss control: the unedited declaration is served.
-	if err := replaceFixtureFront(t).SetModMissions(mod.MissionData{Missions: []mod.Mission{replaceDecl()}}); err != nil {
+	if _, err := replaceFixtureFront(t).SetModMissions(mod.MissionData{Missions: []mod.Mission{replaceDecl()}}); err != nil {
 		t.Fatal(err)
 	}
 }

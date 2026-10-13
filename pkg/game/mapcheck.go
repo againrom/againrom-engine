@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -106,6 +107,7 @@ type mapCheck struct {
 	model  *mapedit.Editor
 	m      *alm.Map
 	source string
+	pages  *modPages
 
 	script    alm.Script
 	scriptErr error
@@ -133,14 +135,86 @@ func sourceMission(source string) int {
 	return n
 }
 
+// modPages is what a mod ships for one mission entry that the rules read: the
+// entry and the files of its texts folder, by file name.
+type modPages struct {
+	id    string
+	entry mod.Mission
+	files map[string][]byte
+}
+
+// editorPages is the pages of the mod folder Save writes into for the map
+// opened from source; nil without a mod or an entry for the map.
+func (x *MapInspector) editorPages(source string) *modPages {
+	if x.mod == nil {
+		return nil
+	}
+	entry, ok := x.mod.entryFor(source)
+	if !ok {
+		return nil
+	}
+	p := &modPages{id: x.mod.id, entry: entry, files: map[string][]byte{}}
+	if entry.Texts == "" {
+		return p
+	}
+	dir := filepath.Join(x.mod.dir, filepath.FromSlash(entry.Texts))
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return p
+	}
+	for _, f := range files {
+		if !f.Type().IsRegular() {
+			continue
+		}
+		if b, err := os.ReadFile(filepath.Join(dir, f.Name())); err == nil {
+			p.files[f.Name()] = b
+		}
+	}
+	return p
+}
+
+// missionPages is the pages the mod loader holds for a mission it declares.
+func missionPages(m mod.Mission) *modPages {
+	return &modPages{id: m.Mod, entry: m, files: m.TextFiles}
+}
+
 // CheckMap runs the rule table over the map the model now holds and answers the
 // findings, errors first, each group in table order and then record order.
 func (x *MapInspector) CheckMap(model *mapedit.Editor, source string) ([]ui.InspectionFinding, error) {
+	return x.checkMapPages(model, source, x.editorPages(source))
+}
+
+// CheckModMap is the rule table over the map bytes of a mission a mod declares,
+// with the texts that mission ships. It is the one entry the mod load and the
+// editor's report share. A map the editor's model cannot open is one
+// mission-build error.
+func (x *MapInspector) CheckModMap(m mod.Mission, source string) []ui.InspectionFinding {
+	model, err := mapedit.New(m.MapBytes)
+	if err != nil {
+		return []ui.InspectionFinding{{Error: true, Rule: "mission-build", Text: err.Error()}}
+	}
+	return x.report(model, source, missionPages(m))
+}
+
+// report answers the findings for the map the model holds, a failed check being
+// one mission-build error.
+func (x *MapInspector) report(model *mapedit.Editor, source string, pages *modPages) []ui.InspectionFinding {
+	rows, err := x.checkMapPages(model, source, pages)
+	if err != nil {
+		rows = []ui.InspectionFinding{{Error: true, Rule: "mission-build", Text: err.Error()}}
+	}
+	if rows == nil {
+		rows = []ui.InspectionFinding{}
+	}
+	return rows
+}
+
+func (x *MapInspector) checkMapPages(model *mapedit.Editor, source string, pages *modPages) ([]ui.InspectionFinding, error) {
 	m, err := model.Map()
 	if err != nil {
 		return nil, err
 	}
-	c := &mapCheck{x: x, model: model, m: m, source: source}
+	c := &mapCheck{x: x, model: model, m: m, source: source, pages: pages}
 	c.script, c.scriptErr = m.Script()
 	c.loot, c.lootErr = m.Loot()
 	var errs, warnings []ui.InspectionFinding
@@ -596,13 +670,7 @@ func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 	if s.reported != nil && bytes.Equal(s.reportedFor, b) && s.reportedTexts == stamp {
 		return s.reported
 	}
-	rows, err := s.inspector.CheckMap(s.model, s.source)
-	if err != nil {
-		rows = []ui.InspectionFinding{{Error: true, Rule: "mission-build", Text: err.Error()}}
-	}
-	if rows == nil {
-		rows = []ui.InspectionFinding{}
-	}
+	rows := s.inspector.report(s.model, s.source, s.inspector.editorPages(s.source))
 	s.reported, s.reportedFor, s.reportedTexts = rows, append([]byte(nil), b...), stamp
 	return rows
 }
@@ -648,47 +716,36 @@ func (s *mapInspectionEdits) gate() error {
 // reported. A send of the reserved number 255 is the lost-mission panel and
 // takes no page.
 func (c *mapCheck) modMessageText() []mapHit {
-	if c.x.mod == nil {
+	if c.pages == nil {
 		return nil
 	}
-	entry, ok := c.x.mod.entryFor(c.source)
-	if !ok {
-		return nil
-	}
-	return append(c.modMissingPages(entry), c.modDroppedCharacters(entry)...)
+	return append(c.modMissingPages(c.pages), c.modDroppedCharacters(c.pages)...)
 }
 
 // modDroppedCharacters names, once per file, a character of a UTF-8 file in the
 // entry's texts folder that the running base cannot show after the plain-form
 // table of the mod text encoder.
-func (c *mapCheck) modDroppedCharacters(entry mod.Mission) []mapHit {
-	if entry.Texts == "" || c.x.archives == nil || c.x.archives.Containers == nil {
+func (c *mapCheck) modDroppedCharacters(p *modPages) []mapHit {
+	if p.entry.Texts == "" || c.x.archives == nil || c.x.archives.Containers == nil {
 		return nil
 	}
 	selector := LanguageSelector(c.x.archives.Containers)
-	dir := filepath.Join(c.x.mod.dir, filepath.FromSlash(entry.Texts))
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		return nil
+	names := make([]string, 0, len(p.files))
+	for name := range p.files {
+		names = append(names, name)
 	}
+	slices.Sort(names)
 	var out []mapHit
-	for _, f := range files {
-		if !f.Type().IsRegular() {
-			continue
-		}
-		b, err := os.ReadFile(filepath.Join(dir, f.Name()))
-		if err != nil {
-			continue
-		}
-		if r, dropped := ModTextDropped(b, selector); dropped {
-			out = append(out, mapHit{Text: fmt.Sprintf("mod %q: %s/%s holds the character %q (U+%04X), which this base cannot show; it is dropped from the page", c.x.mod.id, entry.Texts, f.Name(), r, r)})
+	for _, name := range names {
+		if r, dropped := ModTextDropped(p.files[name], selector); dropped {
+			out = append(out, mapHit{Text: fmt.Sprintf("mod %q: %s/%s holds the character %q (U+%04X), which this base cannot show; it is dropped from the page", p.id, p.entry.Texts, name, r, r)})
 		}
 	}
 	return out
 }
 
 // modMissingPages is the message-number half of the rule.
-func (c *mapCheck) modMissingPages(entry mod.Mission) []mapHit {
+func (c *mapCheck) modMissingPages(p *modPages) []mapHit {
 	if c.scriptErr != nil {
 		return nil
 	}
@@ -704,17 +761,17 @@ func (c *mapCheck) modMissingPages(entry mod.Mission) []mapHit {
 		}
 		seen[r.Event] = true
 		name := fmt.Sprintf("event%02d.txt", r.Event)
-		if entry.Texts != "" {
-			if st, err := os.Stat(filepath.Join(c.x.mod.dir, filepath.FromSlash(entry.Texts), name)); err == nil && st.Mode().IsRegular() {
+		if p.entry.Texts != "" {
+			if _, ok := p.files[name]; ok {
 				continue
 			}
 		}
-		if entry.Kind == mod.MissionReplace && c.x.archives != nil && c.x.archives.Containers != nil {
-			if _, shipped := ReadEventText(c.x.archives.Containers, entry.Number, int(r.Event)); shipped {
+		if p.entry.Kind == mod.MissionReplace && c.x.archives != nil && c.x.archives.Containers != nil {
+			if _, shipped := ReadEventText(c.x.archives.Containers, p.entry.Number, int(r.Event)); shipped {
 				continue
 			}
 		}
-		out = append(out, mapHit{Text: fmt.Sprintf("the script sends message %d, and mod %q gives no %s", r.Event, c.x.mod.id, name)})
+		out = append(out, mapHit{Text: fmt.Sprintf("the script sends message %d, and mod %q gives no %s", r.Event, p.id, name)})
 	}
 	return out
 }

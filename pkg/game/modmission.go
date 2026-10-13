@@ -3,8 +3,10 @@ package game
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"slices"
 	"strconv"
+	"strings"
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -83,14 +85,17 @@ func (g *guestMission) clone() *guestMission {
 // map and texts under its own mission number on this front end's filesystem:
 // a guest mission under a number of its own, a replacing mission over the
 // install's campaign mission. A declaration the campaign or the install does
-// not bear out is refused with the mod, the file and the line. It runs once,
-// after SetMods and before any game is opened.
-func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
+// not bear out, or whose map the map editor's rule table reports an error
+// for, is refused with the mod, the file and the line (DIV-3256). The
+// warnings of the same rules refuse nothing and come back as lines naming the
+// same mod, file and line. It runs once, after SetMods and the other mod
+// tables and before any game is opened.
+func (f *FrontEnd) SetModMissions(d mod.MissionData) (warnings []string, err error) {
 	if d.Empty() {
-		return nil
+		return nil, nil
 	}
 	if f == nil || f.Table == nil || f.Archives == nil || f.Archives.Containers == nil {
-		return errors.New("the front end has no definition table or archives to carry the mods' missions")
+		return nil, errors.New("the front end has no definition table or archives to carry the mods' missions")
 	}
 	c := f.Campaign.Value()
 	src := f.Archives.Containers
@@ -101,35 +106,39 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 		address, _ := MissionMap(m.Number)
 		if m.Kind == mod.MissionReplace {
 			if err := f.checkReplacing(m, address); err != nil {
-				return bad("%v", err)
+				return nil, bad("%v", err)
 			}
 			continue
 		}
 		switch {
 		case m.Number%mainMissionStride == 0:
-			return bad("number %d is a multiple of %d, the numbers of the campaign's main missions", m.Number, mainMissionStride)
+			return nil, bad("number %d is a multiple of %d, the numbers of the campaign's main missions", m.Number, mainMissionStride)
 		case slices.Contains(c.Side, m.Number) || slices.Contains(c.Offered, m.Number):
-			return bad("number %d is a mission of this install's campaign", m.Number)
+			return nil, bad("number %d is a mission of this install's campaign", m.Number)
 		}
 		if _, err := src.ReadFile(address); err == nil {
-			return bad("number %d is a map of this install (%s)", m.Number, address)
+			return nil, bad("number %d is a map of this install (%s)", m.Number, address)
 		}
 		if !slices.Contains(c.Main, m.After) {
-			return bad("after %d is not a main mission of this install's campaign", m.After)
+			return nil, bad("after %d is not a main mission of this install's campaign", m.After)
 		}
 		if next, ok := c.AutoAdvance(m.After); ok {
-			return bad("mission %d is followed by mission %d, not by a town", m.After, next)
+			return nil, bad("mission %d is followed by mission %d, not by a town", m.After, next)
 		}
 		offer, ok := c.NextMission(m.After)
 		if !ok || !offer.Town {
-			return bad("the win of mission %d opens no town", m.After)
+			return nil, bad("the win of mission %d opens no town", m.After)
 		}
 		if offer.Mission != m.Chapter {
-			return bad("the win of mission %d opens the town of chapter %d, not chapter %d", m.After, offer.Mission, m.Chapter)
+			return nil, bad("the win of mission %d opens the town of chapter %d, not chapter %d", m.After, offer.Mission, m.Chapter)
 		}
 		if !slices.Contains(c.Chapters[m.Chapter].AddHero, m.Guest) {
-			return bad("the town of chapter %d does not grant companion %d", m.Chapter, m.Guest)
+			return nil, bad("the town of chapter %d does not grant companion %d", m.Chapter, m.Guest)
 		}
+	}
+	warnings, err = f.checkModMaps(d)
+	if err != nil {
+		return nil, err
 	}
 	fs := src.Fork()
 	own := *f.Archives
@@ -154,7 +163,46 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 		}
 	}
 	f.Table.Mods.Missions = d
-	return nil
+	return warnings, nil
+}
+
+// modMapInspector is the map editor's inspector over this front end's tables,
+// the rule table's one reader at the mod load.
+func (f *FrontEnd) modMapInspector() (*MapInspector, error) {
+	structures, err := LoadStructures(f.Archives.Containers)
+	if errors.Is(err, fs.ErrNotExist) {
+		structures, err = nil, nil // the structure-kind rule has no table to hold the map against
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &MapInspector{archives: f.Archives, table: f.Table, structures: structures}, nil
+}
+
+// checkModMaps runs the map editor's rule table over the map of every mission
+// the mods declare, with the texts that mission ships. An error finding
+// refuses the mission; the lines of the warnings come back.
+func (f *FrontEnd) checkModMaps(d mod.MissionData) ([]string, error) {
+	x, err := f.modMapInspector()
+	if err != nil {
+		return nil, err
+	}
+	var warnings []string
+	for _, m := range d.Missions {
+		address, _ := MissionMap(m.Number)
+		var refusals []string
+		for _, finding := range x.CheckModMap(m, address) {
+			if finding.Error {
+				refusals = append(refusals, finding.Line())
+				continue
+			}
+			warnings = append(warnings, fmt.Sprintf("mod %q: %s:%d: map %s: %s", m.Mod, m.File, m.Line, m.Map, finding.Line()))
+		}
+		if len(refusals) > 0 {
+			return nil, itemFileError(m.Mod, m.File, m.Line, "map %s: %s", m.Map, strings.Join(refusals, "; "))
+		}
+	}
+	return warnings, nil
 }
 
 // checkReplacing refuses a replacing mission whose number is no mission of

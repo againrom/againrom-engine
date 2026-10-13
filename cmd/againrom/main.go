@@ -853,9 +853,13 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 2
 		}
-		if err := front.SetModMissions(modRun.Missions); err != nil {
+		warnings, err := front.SetModMissions(modRun.Missions)
+		if err != nil {
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 2
+		}
+		for _, w := range warnings {
+			fmt.Fprintln(stderr, "againrom: warning:", w)
 		}
 	}
 	if o.fidelityCheck != "" {

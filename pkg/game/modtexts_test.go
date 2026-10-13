@@ -66,7 +66,7 @@ func TestSetModMissionsEncodesTextFilesTitleAndBriefingOnce(t *testing.T) {
 		"event02.txt":  []byte("\x8f\xe0\r\n"),
 		"tips01.txt":   []byte("Tip\r\n"),
 	}
-	if err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}}); err != nil {
+	if _, err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}}); err != nil {
 		t.Fatal(err)
 	}
 	selector := LanguageSelector(f.Archives.Containers)

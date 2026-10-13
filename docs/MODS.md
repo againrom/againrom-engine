@@ -177,6 +177,12 @@ follows. The rules:
   on the first game; a mod names the bases it applies to in `applies-to`.
 - The map must decode as a map; a map the mission build refuses is refused
   when the mod loads, naming the file and line.
+- The map editor's rules judge the map of every mission, guest and replacing
+  (`DIV-3256`). A rule at error level refuses the mod when it loads, naming the
+  file, the line, the rule and its message. A rule at warning level refuses
+  nothing; its finding prints as a `warning:` line on standard error, which the
+  starter's check shows. The rule for message texts reads the mission's own
+  `texts` folder.
 - One mission number belongs to one mod: a second mod that replaces the same
   mission, or uses its number in any way, is refused when it loads. A guest
   mission never uses a campaign number, so the two kinds cannot collide; a

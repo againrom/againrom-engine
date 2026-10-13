@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/synth"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/vfs"
@@ -38,10 +39,15 @@ func guestFixtureFront(t *testing.T) *FrontEnd {
 		Table: &mapload.Table{}, Archives: &Archives{Containers: fs}}}
 }
 
+// guestMapBytes is a small map the rule table accepts.
+func guestMapBytes() []byte {
+	return synth.ALM(synth.ALMOptions{Width: 4, Height: 4, Name: "guest"})
+}
+
 func guestDecl() mod.Mission {
 	return mod.Mission{Mod: "m", File: mod.MissionsFile, Line: 2, Key: "prologue", Number: 25, After: 20, Guest: 22,
 		Chapter: 30, Carry: mod.CarryJoin, Title: "Title", Brief: "Briefing",
-		MapBytes: []byte("MAP"), TextFiles: map[string][]byte{"event01.txt": []byte("E1")}}
+		MapBytes: guestMapBytes(), TextFiles: map[string][]byte{"event01.txt": []byte("E1")}}
 }
 
 func TestSetModMissionsRefusesWhatTheCampaignOrInstallDoesNotBearOut(t *testing.T) {
@@ -61,7 +67,7 @@ func TestSetModMissionsRefusesWhatTheCampaignOrInstallDoesNotBearOut(t *testing.
 		f := guestFixtureFront(t)
 		m := guestDecl()
 		c.edit(&m)
-		err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}})
+		_, err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}})
 		if err == nil || !strings.Contains(err.Error(), `mod "m": data/missions.toml:2: `+c.want) {
 			t.Errorf("%s: %v, want %q", name, err, c.want)
 		}
@@ -74,11 +80,11 @@ func TestSetModMissionsRefusesWhatTheCampaignOrInstallDoesNotBearOut(t *testing.
 func TestSetModMissionsServesTheModsMapAndTextsUnderTheMissionNumber(t *testing.T) {
 	f := guestFixtureFront(t)
 	shared := f.Archives.Containers
-	if err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{guestDecl()}}); err != nil {
+	if _, err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{guestDecl()}}); err != nil {
 		t.Fatal(err)
 	}
 	for address, want := range map[string]string{
-		"scenario/25.alm":                   "MAP",
+		"scenario/25.alm":                   string(guestMapBytes()),
 		"main/text/battle/m25/event01.txt":  "E1",
 		"main/text/battle/m25/title.txt":    "Title",
 		"main/text/battle/m25/briefing.txt": "Briefing",

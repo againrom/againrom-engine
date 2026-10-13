@@ -90,7 +90,7 @@ func guestFront(t *testing.T, dir string, ids ...string) *FrontEnd {
 	if err := f.SetModCompanions(res.Companions); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.SetModMissions(res.Missions); err != nil {
+	if _, err := f.SetModMissions(res.Missions); err != nil {
 		t.Fatal(err)
 	}
 	return f
