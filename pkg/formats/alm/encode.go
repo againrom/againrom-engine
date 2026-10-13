@@ -106,3 +106,9 @@ func encodeCP1251(s string) ([]byte, error) {
 	}
 	return b, nil
 }
+
+// EncodeText encodes text for fixed-width Windows-1251 fields; callers own the width.
+func EncodeText(s string) ([]byte, error) { return encodeCP1251(s) }
+
+// DecodeText decodes a bounded Windows-1251 field through its first NUL.
+func DecodeText(b []byte) string { return decodeCP1251(b) }

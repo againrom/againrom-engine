@@ -169,7 +169,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 		if c != nil && len(c.Frames) > 0 {
 			idx, mirror := terrain.SelectUnitFrame(c.Anim, len(c.Frames), false, 0, 0, 0)
 			e.Frame, e.Mirror = c.Frames[idx], mirror
-			if palette := x.units.OwnerPalette(c, u.Owner); palette != nil && e.Frame != nil {
+			shade := u.Owner
+			if u.Owner > 0 && uint64(u.Owner) <= uint64(len(m.Groups)) {
+				shade = m.Groups[u.Owner-1].Color
+			}
+			if palette := x.units.OwnerPalette(c, shade); palette != nil && e.Frame != nil {
 				tinted := *e.Frame
 				tinted.Palette = *palette
 				e.Frame = &tinted
@@ -268,7 +272,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 		add(r)
 	}
 	for i, g := range m.Groups {
-		add(ui.InspectionRecord{Kind: "Group", Section: 5, Index: i, Label: g.Name, Details: []string{fmt.Sprintf("Scalar: %d", g.Scalar), fmt.Sprintf("Relations: %v", g.Relation)}})
+		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.DecodeText([]byte(g.Name)))))
 	}
 	script, scriptErr := m.Script()
 	if scriptErr == nil {

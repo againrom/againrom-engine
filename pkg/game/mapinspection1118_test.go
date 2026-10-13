@@ -89,7 +89,7 @@ func inspectionFixtureBytes(t *testing.T) []byte {
 	return append(b, []byte("uncounted trailer")...)
 }
 
-func openInspectionFixture(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, string) {
+func openTestMapEditor(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, string) {
 	t.Helper()
 	// The fixture is a raw byte-level case with a script naming records it lacks;
 	// it proves the save mechanics, so it reports with no rules.
@@ -122,7 +122,7 @@ func dragInspectionRecord(e *ui.MapEditor, from, to image.Point) {
 
 func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 	b := inspectionFixtureBytes(t)
-	x, e, source := openInspectionFixture(t, b)
+	x, e, source := openTestMapEditor(t, b)
 	e.Select(0, true)
 	cam := *e.Document().Viewer.Camera()
 	oldTrigger := inspectRecord1093(t, e.Document(), "Condition", 2)
@@ -212,7 +212,7 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 	for _, mode := range []string{"click", "same-cell", "escape", "rail", "outside"} {
 		t.Run(mode, func(t *testing.T) {
 			b := inspectionFixtureBytes(t)
-			_, e, _ := openInspectionFixture(t, b)
+			_, e, _ := openTestMapEditor(t, b)
 			e.Select(0, true)
 			p := point1118(e, image.Pt(3, 4))
 			now := time.Unix(1, 0)
@@ -242,7 +242,7 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 
 func TestMapEditor1118MalformedBoundsAndNoopAreAtomic(t *testing.T) {
 	b := inspectionFixtureBytes(t)
-	_, e, _ := openInspectionFixture(t, b)
+	_, e, _ := openTestMapEditor(t, b)
 	d := e.Document()
 	for _, cell := range []image.Point{image.Pt(-1, 4), image.Pt(32, 4), image.Pt(3, 32)} {
 		if next, err := d.Edits.Move("Unit", 0, cell); err == nil || next != nil || d.Edits.CanUndo() || !bytes.Equal(b, d.SourceBytes) {

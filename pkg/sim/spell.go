@@ -1581,7 +1581,9 @@ func (w *World) RestoreOneShotPlayerCasts() int {
 	repaired := 0
 	for _, cast := range w.bookCasts {
 		ci := indexOfEntity(w.entities, cast.Caster)
-		if !cast.Retained || ci < 0 || w.entities[ci].Owner != SelfSlot {
+		if !cast.Retained || ci < 0 || w.entities[ci].Owner != SelfSlot ||
+			!w.humanParticipantUnit(w.entities[ci]) || w.entities[ci].hasCreatureSpells() ||
+			cast.Phase == bookApproach && w.approachHeld(ci, cast) {
 			out = append(out, cast)
 			continue
 		}

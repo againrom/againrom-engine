@@ -77,7 +77,7 @@ func TestReleaseMapEditorListsAndOpensEveryNewMapSize(t *testing.T) {
 		groups, units := 0, 0
 		for _, r := range d.Records {
 			switch r.Kind {
-			case "Group":
+			case "Player":
 				groups++
 			case "Unit":
 				units++

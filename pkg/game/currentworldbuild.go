@@ -167,6 +167,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			// Exactly one Player is the local human.
 			participant = 1
 		}
+		if saved, present := currentPlayerName(s.SavedDocument, currentID); present {
+			name = saved
+		}
 		mustSetText(&r, "Name", name)
 		percent, present := w.AutoHealing(slot)
 		if !present {

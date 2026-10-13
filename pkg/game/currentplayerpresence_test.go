@@ -145,11 +145,8 @@ func TestCurrentMixedPlayersKeepTwoSAVCyclesAndOrdinaryEdits(t *testing.T) {
 							for _, value := range b.Document.Objects[p.ObjectIndex-1].Texts {
 								found = found || value.Name == "Name" && value.Value == name
 							}
-							// A Player name is written from the map or the hero;
-							// an edit to the file's bytes is not World state, so
-							// only the edited file itself holds it.
-							if found != (cycle == 0) {
-								t.Fatal("Player name edit carried outside the World", cycle)
+							if !found {
+								t.Fatal("Player name bytes changed across SAVE/LOAD", cycle)
 							}
 						}
 					}

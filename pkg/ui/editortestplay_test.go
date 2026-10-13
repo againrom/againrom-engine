@@ -41,7 +41,7 @@ func TestTheTestPlayKeyPlaysTheMapAndKeepsTheWindow(t *testing.T) {
 	if err := e.Key("testplay"); err == nil || e.message != edits.err.Error() {
 		t.Fatalf("failure: %v, message %q", err, e.message)
 	}
-	if !containsString(EditorHelpLines(), "N: new map / U: unit / F5: play") {
+	if !containsString(EditorHelpLines(), "N: new map / U: unit / P / F5") {
 		t.Fatal("the help does not name the test play key")
 	}
 }

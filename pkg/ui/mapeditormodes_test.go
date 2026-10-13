@@ -27,10 +27,11 @@ func (c *modesCalls) add(format string, a ...any) {
 // modesBase is a host that edits: every edit returns a fresh document and is
 // logged.
 type modesBase struct {
-	calls *modesCalls
-	dirty bool
-	doc   func(InspectionEdits) *InspectionDocument
-	self  InspectionEdits
+	calls   *modesCalls
+	dirty   bool
+	doc     func(InspectionEdits) *InspectionDocument
+	self    InspectionEdits
+	players []string
 }
 
 func (p *modesBase) next(format string, a ...any) (*InspectionDocument, error) {
@@ -48,11 +49,25 @@ func (p *modesBase) Clone(k string, i int, c image.Point) (*InspectionDocument, 
 	return p.next("Clone %s %d %v", k, i, c)
 }
 func (p *modesBase) Delete(k string, i int) (*InspectionDocument, error) {
+	if k == "Player" {
+		if i == 0 {
+			return nil, fmt.Errorf("The first player cannot be deleted.")
+		}
+		p.players = append(p.players[:i], p.players[i+1:]...)
+	}
 	return p.next("Delete %s %d", k, i)
 }
 func (p *modesBase) Fields(k string, i int) []InspectionField {
 	if k == "Unit" || k == "Sack" || k == "Structure" {
 		return []InspectionField{{Key: "a", Label: "First", Value: 11}, {Key: "b", Label: "Second", Value: 22}}
+	}
+	if k == "Player" && i >= 0 && i < len(p.players) {
+		return []InspectionField{
+			{Key: "name", Label: "Name", Text: true, TextValue: p.players[i]},
+			{Key: "colour", Label: "Colour (0..15)", Value: int64(i)},
+			{Key: "control", Label: "Control (0 human, 1 computer)", Value: 1},
+			{Key: "relation:0", Label: "Relation to Self", Value: 1},
+		}
 	}
 	return nil
 }
@@ -117,6 +132,16 @@ func (p *modesFull) Paint(s BrushStroke) (*InspectionDocument, error) {
 func (p *modesFull) AddUnit(c image.Point, class int64) (*InspectionDocument, error) {
 	return p.next("AddUnit %v %d", c, class)
 }
+func (p *modesFull) AddPlayer() (*InspectionDocument, error) {
+	p.players = append(p.players, fmt.Sprintf("Player %d", len(p.players)+1))
+	return p.next("AddPlayer")
+}
+func (p *modesFull) SetTextField(k string, i int, key, value string) (*InspectionDocument, error) {
+	if k == "Player" && key == "name" {
+		p.players[i] = value
+	}
+	return p.next("SetTextField %s %d %s %q", k, i, key, value)
+}
 func (p *modesFull) Report() []InspectionFinding { return modesFindings }
 
 // modesMod is a full host that saves into a mod.
@@ -146,6 +171,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 		edits, base = p, &p.modesBase
 	}
 	base.calls, base.self = calls, edits
+	base.players = []string{"Self", "Enemy"}
 	build := func(source string, edits InspectionEdits) *InspectionDocument {
 		v, err := NewViewer("modes", terrain.Grid{Width: 50, Height: 50, Tiles: make([]uint16, 2500)}, &terrain.Tileset{})
 		if err != nil {
@@ -164,6 +190,10 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 		for i := 0; i < 24; i++ {
 			d.Records = append(d.Records, InspectionRecord{Kind: "Scenery", Index: i, Section: 3, Label: "tree"})
 		}
+		for i, name := range base.players {
+			d.Records = append(d.Records, InspectionRecord{Kind: "Player", Index: i, Section: 5, Label: name,
+				Details: []string{"Name: " + name, fmt.Sprintf("Colour: %d", i), "Control: computer", "Relation to Self: hostile"}})
+		}
 		return d
 	}
 	base.doc = func(e InspectionEdits) *InspectionDocument { return build("edited", e) }
@@ -181,7 +211,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "testplay", "bogus"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "bogus"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:rail-maps", "ui:rail-open", "ui:rail-fit", "ui:rail-undo", "ui:rail-redo", "ui:rail-save", "ui:rail-filter", "ui:rail-row0", "ui:wheel-rail"}
 
@@ -397,11 +427,14 @@ var modesPaths = []modesPath{
 	{"dirty-catalog", []string{"ui:select0", "clone", "ui:click-cell", "catalog"}},
 	{"triggers", []string{"triggers"}},
 	{"paged", []string{"pagedown"}},
+	{"players", []string{"players"}},
+	{"player-name", []string{"players", "down", "field"}},
+	{"player-number", []string{"players", "down", "field", "tab"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the
 // optional seams and against the mod host.
-var modesSmallPaths = map[string]bool{"list": true, "selected": true, "catalog": true, "saveas": true, "saveas-bad": true, "field": true, "clone": true, "sack": true, "sack-prompt": true, "unit": true, "terrain": true, "drop": true, "goals": true, "report": true, "dirty": true, "open": true}
+var modesSmallPaths = map[string]bool{"list": true, "selected": true, "catalog": true, "saveas": true, "saveas-bad": true, "field": true, "clone": true, "sack": true, "sack-prompt": true, "unit": true, "terrain": true, "drop": true, "goals": true, "report": true, "dirty": true, "open": true, "players": true, "player-name": true}
 
 func modesGoldenLines(t *testing.T) []string {
 	actions := append(append([]string(nil), modesKeys...), modesGestures...)
@@ -493,6 +526,7 @@ func modesPathSteps(name string) []string {
 // TestMapEditorModesReadableTable states the main transitions in words.
 func TestMapEditorModesReadableTable(t *testing.T) {
 	keys := "Drag: move / C: clone / Del"
+	players := "P: records / A: add / Del: delete"
 	rows := []modesRow{
 		{"full", "list", "clone", keys, "Select a unit, structure or sack first.", "", false, false},
 		{"full", "selected", "clone", "Clone: click a cell", "", "", false, false},
@@ -534,6 +568,13 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "report-clone", "escape", keys, "", "", true, false},
 		{"full", "list", "new", keys, "", "", false, false},
 		{"full", "report", "new", keys, "", "", false, false},
+		{"full", "list", "players", players, "", "", false, false},
+		{"full", "players", "field", players, "", "Name / Tab: next / Enter: set", false, false},
+		{"full", "player-name", "tab", players, "", "Colour (0..15) / Tab: next / Enter: set", false, false},
+		{"full", "players", "player", players, "", "", false, false},
+		{"plain", "players", "player", players, "", "", false, false},
+		{"full", "players", "delete", players, "The first player cannot be deleted.", "", false, false},
+		{"full", "players", "escape", keys, "", "", false, false},
 	}
 	for _, r := range rows {
 		e, _ := newModesEditor(t, r.host)

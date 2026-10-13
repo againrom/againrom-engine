@@ -198,6 +198,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenTerrain: {"terrain"},
 		screenHeight:  {"height"},
 		screenObjects: {"objects"},
+		screenPlayers: {"players"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)
@@ -249,6 +250,7 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"open prompt", []string{"open", "ui:text-7"}, false, escapes, false},
 		{"save prompt", []string{"saveas", "ui:text-7"}, false, escapes, false},
 		{"field prompt", []string{"ui:select0", "field", "tab"}, false, escapes, false},
+		{"player name prompt", []string{"players", "field"}, false, escapes, false},
 		{"new sack prompt", []string{"sack", "ui:click-cell", "ui:text-7"}, false, escapes, false},
 		{"new unit prompt", []string{"unit", "ui:click-cell", "ui:text-7"}, false, escapes, false},
 		{"new unit completes", []string{"unit", "ui:click-cell", "ui:text-7", "enter"}, false, nil, true},

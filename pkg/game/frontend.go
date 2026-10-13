@@ -1294,6 +1294,9 @@ func (f *FrontEnd) loadMap(index int) (*ui.Viewer, ui.MapTick, ui.MapOrder, ui.M
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, fmt.Errorf("load %s: %w", e.Source, err)
 	}
+	if !e.FromArchive {
+		mw.usePlayerColours(mv.Map)
+	}
 	audio.wireReplies(mw)
 	mw.view.SetPathfinding(f.showPathfinding)
 	mw.view.SetGraphicsOptions(f.graphics)

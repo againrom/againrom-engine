@@ -60,7 +60,7 @@ var mapRules = []mapRule{
 		run:       (*mapCheck).recordOutside},
 	{ID: "script-reference", Error: true,
 		Authority: "ALM-TRIG-046, ALM-TRIG-047; the script compile's unresolved references",
-		Meaning:   "a script names a unit, structure or group the map does not hold",
+		Meaning:   "a script names a unit, structure, group or player the map does not hold",
 		run:       (*mapCheck).scriptReference},
 	{ID: "owner-slot", Error: true,
 		Authority: "ALM-OWN-039",
@@ -400,6 +400,10 @@ func (c *mapCheck) scriptReference() []mapHit {
 	}{{"Action", c.script.Actions}, {"Condition", c.script.Conditions}} {
 		for i, n := range family.nodes {
 			for p, tag := range n.Type {
+				if tag == 3 && rosterSlotError(c.m, n.Value[p]) != nil {
+					out = append(out, mapHit{Kind: family.kind, Index: i,
+						Text: fmt.Sprintf("%s %d (opcode %#x) parameter %d names player %d, which the map does not hold", strings.ToLower(family.kind), n.ID, n.Opcode, p, n.Value[p])})
+				}
 				if tag == scriptGroupParam && n.Value[p] != 0 && !groups[n.Value[p]] {
 					out = append(out, mapHit{Kind: family.kind, Index: i,
 						Text: fmt.Sprintf("%s %d (opcode %#x) names group %d, which no unit holds", strings.ToLower(family.kind), n.ID, n.Opcode, n.Value[p])})
@@ -431,7 +435,7 @@ func (c *mapCheck) ownerSlot() []mapHit {
 		}
 	}
 	for i, o := range c.m.Objects {
-		if err := rosterSlotError(c.m, o.Field0E); err != nil {
+		if err := rosterSlotError(c.m, o.Field0E&0xffff); err != nil {
 			out = append(out, mapHit{Kind: "Structure", Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true, Text: "the structure's " + err.Error()})
 		}
 	}

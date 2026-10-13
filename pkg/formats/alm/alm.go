@@ -815,7 +815,7 @@ func (m *Map) decodeGroups(p []byte) error {
 			Color:       binary.LittleEndian.Uint32(rec[0:4]),
 			Participant: binary.LittleEndian.Uint32(rec[4:8]),
 			Scalar:      binary.LittleEndian.Uint32(rec[0x08:0x0c]),
-			Name:        decodeASCII(rec[0x0c:]),
+			Name:        decodeASCII(rec[0x0c:0x2c]),
 		}
 		for k := 0; k < groupRelationLen; k++ {
 			off := groupRelationOff + 2*k

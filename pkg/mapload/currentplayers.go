@@ -46,8 +46,7 @@ func SlotPlayers(w *sim.World, m *alm.Map) error {
 		id, participant := uint32(i+1), uint32(1)
 		if m != nil && slot > 0 && uint64(slot) <= uint64(len(m.Groups)) {
 			participant = m.Groups[slot-1].Participant
-		}
-		if slot == sim.SelfSlot {
+		} else if slot == sim.SelfSlot {
 			participant = 0
 		}
 		players[i] = sim.SavedGroupPlayer{ID: id, Slot: slot}

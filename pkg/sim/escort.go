@@ -245,7 +245,7 @@ func (w *World) acquireStanding(i int) {
 	if at < 0 {
 		w.clearOrder(i)
 		w.entities[i].releaseBetweenCycles(PendingRelease)
-		if escortState(w.entities[i].ActorState) && !humanParticipantUnit(w.entities[i]) {
+		if escortState(w.entities[i].ActorState) && !w.humanParticipantUnit(w.entities[i]) {
 			w.entities[i].EscortOrder = escortOrderIdle
 		}
 		return

@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"slices"
 
 	"againrom/pkg/render/terrain"
 )
@@ -23,7 +24,8 @@ type MinimapPaint struct {
 // keeps between repaints: the terrain colours built for one brightness plane,
 // and the last composed picture with the counter value it was painted at.
 type minimapOriginalState struct {
-	paint *MinimapPaint
+	paint         *MinimapPaint
+	playerColours []uint32
 
 	terrain       []color.RGBA
 	terrainLevels *uint8
@@ -57,8 +59,14 @@ const minimapRepaintSteps = 11
 // the symbolic minimap.
 func (v *Viewer) SetMinimapPaint(p *MinimapPaint) {
 	if v.minimapOriginal.paint != p {
-		v.minimapOriginal = minimapOriginalState{paint: p}
+		v.minimapOriginal = minimapOriginalState{paint: p, playerColours: v.minimapOriginal.playerColours}
 	}
+}
+
+// SetPlayerColours gives authored maps their roster's colour slots.
+func (v *Viewer) SetPlayerColours(colours []uint32) {
+	v.minimapOriginal.playerColours = slices.Clone(colours)
+	v.minimapOriginal.painted = false
 }
 
 // minimapOriginalActive reports whether the minimap is painted by the first
@@ -146,13 +154,17 @@ func (v *Viewer) minimapMarkFog(col, row int) uint16 {
 
 // minimapOwnerColour is the mark colour of an owner roster slot: its shade
 // table's word +0x1148 plus the sky tint the unit sprites carry, saturated.
-// The shade table is selected by the slot's low nibble, the selector this
-// build's unit bodies use (DIV-2996). Slot 0 names no owner and has no colour.
+// Campaign maps use the slot's low nibble; authored maps supply roster colours.
+// Slot 0 names no owner and has no colour. DIV-2996.
 func (v *Viewer) minimapOwnerColour(owner uint32) (color.RGBA, bool) {
 	if owner == 0 || v.minimapOriginal.paint == nil {
 		return color.RGBA{}, false
 	}
-	c := v.minimapOriginal.paint.OwnerShades[owner&0x0f]
+	shade := owner & 15
+	if uint64(owner) <= uint64(len(v.minimapOriginal.playerColours)) {
+		shade = v.minimapOriginal.playerColours[owner-1] & 15
+	}
+	c := v.minimapOriginal.paint.OwnerShades[shade]
 	tint := v.lightTint()
 	return color.RGBA{
 		R: uint8(min(255, int(c.R)+int(tint[0]))),

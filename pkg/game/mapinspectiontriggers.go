@@ -249,7 +249,7 @@ func (s *inspectionScript) parameter(r *ui.InspectionRecord, role string, tag, i
 			s.issue(r, fmt.Sprintf("Unresolved player slot %d", id))
 			return
 		}
-		s.line(r, fmt.Sprintf("Player slot %d: %s (no map anchor)", id, s.m.Groups[id-1].Name), role)
+		s.line(r, fmt.Sprintf("Player slot %d: %s (no map anchor)", id, alm.DecodeText([]byte(s.m.Groups[id-1].Name))), role)
 		return
 	case 4:
 		if id >= 10001 {

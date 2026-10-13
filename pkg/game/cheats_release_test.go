@@ -1027,10 +1027,10 @@ func TestReleaseCheatOrdinaryChatAndNamesUseInstalledAlphabet(t *testing.T) {
 	for _, source := range []string{"partyFallback", "decodedGroup"} {
 		t.Run(source, func(t *testing.T) {
 			f, a, id := cheatReleaseApp(t, false)
-			playerUTF8, playerBytes := "Player", "Player"
+			playerUTF8, playerBytes, playerWire := "Player", "Player", "Player"
 			chatUTF8, chatBytes := "Hello", "Hello"
 			if f.live.view.TextSelector() == text.SelectorConverting {
-				playerUTF8, playerBytes = "Данас", "\x84\xa0\xad\xa0\xe1"
+				playerUTF8, playerBytes, playerWire = "Данас", "\x84\xa0\xad\xa0\xe1", "\xc4\xe0\xed\xe0\xf1"
 				chatUTF8, chatBytes = "Привет", "\x8f\xe0\xa8\xa2\xa5\xe2"
 			}
 			groups := f.live.mission.state.Map.Groups
@@ -1040,7 +1040,7 @@ func TestReleaseCheatOrdinaryChatAndNamesUseInstalledAlphabet(t *testing.T) {
 			groups[sim.SelfSlot-1].Name = ""
 			f.live.mission.party[0].Name = playerBytes
 			if source == "decodedGroup" {
-				groups[sim.SelfSlot-1].Name = playerUTF8
+				groups[sim.SelfSlot-1].Name = playerWire
 			}
 			f.live.mission.state.Map.Meta.Word70 = 4
 			f.live.view.ClearMessages()

@@ -888,6 +888,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"groupTag": true, "fog": true, "pending": true, "pendingIgnored": true, "castRun": true, "healBursts": true,
 		"visualIDs": true, "visualNext": true}
 	derivable := map[string]bool{
+		"playerColours":   true,
 		"cheats":          true,
 		"visualLocalNext": true,
 		"fame":            true,

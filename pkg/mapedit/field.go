@@ -4,6 +4,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strings"
+	"unicode/utf8"
+
+	"againrom/pkg/formats/alm"
 )
 
 // FieldCheck names the reference check a host runs on a set value beyond the
@@ -23,7 +27,7 @@ const (
 	CheckScriptGroup                       // a group id a type-6 record holds (ALM-TRIG-046)
 )
 
-// Field is one settable integer field of a record, at a record-relative
+// Field is one settable field of a record, at a record-relative
 // offset. A field with Element set is one element of a repeated list whose
 // u32 count sits at Counter: 0 removes the element, and the row whose Offset
 // is the record's end appends one.
@@ -31,8 +35,9 @@ type Field struct {
 	Key      string // stable name a caller addresses the field by
 	Label    string // window text
 	Offset   int
-	Width    int // 1, 2 or 4 bytes, little-endian
+	Width    int // byte width; numeric fields are little-endian
 	Signed   bool
+	Text     bool
 	Min, Max int64
 	Check    FieldCheck
 	Element  int
@@ -84,6 +89,9 @@ func (e *Editor) FieldValue(k Kind, i int, key string) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("mapedit: no %s field %q", sections[k].name, key)
 	}
+	if f.Text {
+		return 0, fmt.Errorf("mapedit: %s is a text field", f.Label)
+	}
 	if f.Offset >= len(rec) {
 		return 0, nil
 	}
@@ -126,6 +134,9 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 		if !ok {
 			return fmt.Errorf("mapedit: no %s field %q", w.sec.name, set.Key)
 		}
+		if f.Text {
+			return fmt.Errorf("mapedit: %s is a text field", f.Label)
+		}
 		if seen[set.Key] {
 			return fmt.Errorf("mapedit: %s field %q is named twice", w.sec.name, set.Key)
 		}
@@ -150,6 +161,47 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 		return nil
 	}
 	e.apply(edit{replace(at, rec, next), e.sizeWordPart(w.span, len(next)-l)})
+	return nil
+}
+
+// TextFieldValue reads a fixed-width Windows-1251 field, stopping at its first NUL.
+func (e *Editor) TextFieldValue(k Kind, i int, key string) (string, error) {
+	rec, err := e.Record(k, i)
+	if err != nil {
+		return "", err
+	}
+	f, ok := fieldByKey(sections[k].fields(e, rec), key)
+	if !ok || !f.Text {
+		return "", fmt.Errorf("mapedit: no %s text field %q", sections[k].name, key)
+	}
+	return alm.DecodeText(rec[f.Offset : f.Offset+f.Width]), nil
+}
+
+// SetTextField writes one fixed-width Windows-1251 field as one undo step.
+func (e *Editor) SetTextField(k Kind, i int, key, value string) error {
+	w, err := e.walkIndex(k, "set a text field of", i)
+	if err != nil {
+		return err
+	}
+	at, l := w.at(i)
+	f, ok := fieldByKey(w.sec.fields(e, e.data[at:at+l]), key)
+	if !ok || !f.Text {
+		return fmt.Errorf("mapedit: no %s text field %q", w.sec.name, key)
+	}
+	if !utf8.ValidString(value) || strings.IndexByte(value, 0) >= 0 {
+		return fmt.Errorf("mapedit: %s needs valid text without NUL", f.Label)
+	}
+	encoded, err := alm.EncodeText(value)
+	if err != nil {
+		return fmt.Errorf("mapedit: %s must fit Windows-1251: %w", f.Label, err)
+	}
+	if len(encoded) > f.Width {
+		return fmt.Errorf("mapedit: %s is %d bytes, maximum %d", f.Label, len(encoded), f.Width)
+	}
+	out := make([]byte, f.Width)
+	copy(out, encoded)
+	p := at + f.Offset
+	e.apply(edit{replace(p, e.data[p:p+f.Width], out)})
 	return nil
 }
 

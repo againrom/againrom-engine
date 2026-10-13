@@ -3,12 +3,11 @@ package sim
 import "encoding/binary"
 
 // AI-ACTIVITY-324: the nonzero dispatch gate is a rebuilt member count.
-// The single-player world uses SelfSlot for its human-controlled actors;
-// its current living, on-map population supplies the spatial sources.
+// Living on-map actors with zero control supply the spatial sources.
 func (w *World) refreshSavedGroupActivity() {
 	var covered [32][32]bool
 	for _, e := range w.entities {
-		if e.Owner != SelfSlot || !e.Alive() || e.OffMap {
+		if e.Owner == 0 || !w.humanParticipantUnit(e) || !e.Alive() || e.OffMap {
 			continue
 		}
 		x, y := int(e.X)>>3, int(e.Y)>>3
@@ -43,7 +42,7 @@ func (w *World) refreshSavedGroupActivity() {
 				continue
 			}
 			e := w.entities[i]
-			if e.Owner == SelfSlot || !e.Alive() || e.OffMap {
+			if e.Owner != 0 && w.humanParticipantUnit(e) || !e.Alive() || e.OffMap {
 				continue
 			}
 			represented = true

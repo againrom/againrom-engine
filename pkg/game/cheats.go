@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -58,7 +59,7 @@ func (mw *mapWorld) cheatPlayerName(owner uint32) string {
 	if mw.mission != nil && mw.mission.state != nil && mw.mission.state.Map != nil {
 		groups := mw.mission.state.Map.Groups
 		if owner > 0 && int(owner) <= len(groups) && groups[owner-1].Name != "" {
-			return groups[owner-1].Name
+			return alm.DecodeText([]byte(groups[owner-1].Name))
 		}
 	}
 	if owner == sim.SelfSlot && mw.mission != nil && len(mw.mission.party) != 0 {

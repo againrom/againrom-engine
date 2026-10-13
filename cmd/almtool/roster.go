@@ -43,7 +43,7 @@ func cmdRoster(path string) error {
 	fmt.Printf("slot  name                              units  relation words (raw u16, k=0..15)\n")
 	for i, g := range m.Groups {
 		slot := uint32(i) + 1
-		fmt.Printf("%4d  %-32q %5d  %v\n", slot, g.Name, owned[slot], g.Relation)
+		fmt.Printf("%4d  %-32q %5d  %v\n", slot, alm.DecodeText([]byte(g.Name)), owned[slot], g.Relation)
 	}
 	if unnamed := owned[0]; unnamed > 0 {
 		fmt.Printf("      %d placed unit(s) name no slot (owner word 0)\n", unnamed)

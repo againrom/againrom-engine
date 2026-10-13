@@ -36,6 +36,8 @@ var almReferences = nameTable{
 	"unit.go/(*Editor).highestScriptUnit": {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},
 	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
+	"field.go/(*Editor).TextFieldValue":   {"alm.DecodeText"},
+	"field.go/(*Editor).SetTextField":     {"alm.EncodeText"},
 	"newmap.go/NewMap":                    {"alm.NewMap", "alm.NewMapSpec"},
 	"brush.go/(*Editor).heightStroke":     {"alm.MaxHeight"},
 	"brush.go/(*Editor).tileStroke":       {"alm.TileGroupMask"},
@@ -63,7 +65,8 @@ var payloadLengthReferences = nameTable{
 	"unit.go/(*Editor).sizeWordPart": {"recPayloadSize"},
 	// The section walk slices the payload and refuses a walk that does not
 	// consume it exactly; the count it walks is the type-0 word.
-	"section.go/(*Editor).walkSection": {"payloadSize"},
+	"section.go/(*Editor).walkSection":   {"payloadSize"},
+	"section.go/(*Editor).insertSection": {"payloadSize", "recPayloadSize"},
 	// The type-7 layout walks the payload's three counted arrays and refuses a
 	// payload they do not tile.
 	"script.go/scriptLayout": {"payloadSize"},

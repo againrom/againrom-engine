@@ -278,6 +278,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 				}
 			}
 		}
+		human := w.entities[i].Owner != 0 && w.humanParticipantUnit(w.entities[i])
 		if at >= 0 {
 			w.orderAttack(i, w.entities[at].ID)
 			if o != nil {
@@ -297,7 +298,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 				e.TargetX, e.TargetY, e.HasTarget = x, y, true
 				w.syncSavedDestination(i)
 			}
-		} else if order == orderStandGround && w.entities[i].Owner == SelfSlot && !underCommand(w.entities[i]) {
+		} else if order == orderStandGround && human && !underCommand(w.entities[i]) {
 			// A participant's member idles with the pending order 0, not the idle
 			// turn (AI-349, AI-353). A member walking to a cell it was sent to
 			// keeps its walk, as in a native group's decision (aiGroups).
@@ -308,7 +309,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 		} else {
 			// Release is keyed to the member's actual owner, not a containing
 			// Player or the possibly null/discordant saved Group owner lookup.
-			if w.entities[i].Owner != SelfSlot {
+			if !human {
 				w.releaseAttack(i)
 			}
 			if o != nil {

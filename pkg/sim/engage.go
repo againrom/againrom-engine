@@ -215,7 +215,7 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 // way. The reported bool is whether a cast began.
 func (w *World) aiCast(i int, _ *castObs) bool {
 	e := w.entities[i]
-	if e.Owner == 0 || e.Owner == SelfSlot || w.orderStateAt(i).recoveryWaiting() || !isMage(e) {
+	if w.humanParticipantUnit(e) || w.orderStateAt(i).recoveryWaiting() || !isMage(e) {
 		return false
 	}
 	var choices []SpellRule
@@ -524,7 +524,7 @@ func (w *World) decide(g aiGroup) {
 			}
 			if at >= 0 {
 				w.orderAcquire(mi, w.entities[at].ID)
-			} else if g.owner != SelfSlot {
+			} else if w.entities[mi].Owner == 0 || !w.humanParticipantUnit(w.entities[mi]) {
 				w.releaseAttack(mi)
 			}
 		}
@@ -565,12 +565,10 @@ func (w *World) decide(g aiGroup) {
 	// instruction pair, and testing one without the other would be a silent
 	// claim about which of the two is reachable.
 	if uint8(len(cands)) == 0 || uint8(len(g.members)) == 0 {
-		if g.owner != SelfSlot {
-			for _, mi := range deciding {
+		for _, mi := range deciding {
+			if w.entities[mi].Owner == 0 || !w.humanParticipantUnit(w.entities[mi]) {
 				w.releaseAttack(mi)
-			}
-		} else if order == orderStandGround {
-			for _, mi := range deciding {
+			} else if order == orderStandGround {
 				w.standDown(mi)
 			}
 		}
@@ -600,7 +598,7 @@ func (w *World) decide(g aiGroup) {
 		}
 		if at >= 0 {
 			w.orderAttack(mi, w.entities[at].ID)
-		} else if g.owner != SelfSlot {
+		} else if w.entities[mi].Owner == 0 || !w.humanParticipantUnit(w.entities[mi]) {
 			w.releaseAttack(mi)
 		} else if order == orderStandGround {
 			w.standDown(mi)

@@ -173,7 +173,7 @@ func cmdContent(path string) error {
 	}
 	fmt.Printf("groups (type5): %d\n", len(m.Groups))
 	for i, g := range m.Groups {
-		fmt.Printf("  [%d] %q scalar=%d\n", i, g.Name, g.Scalar)
+		fmt.Printf("  [%d] %q scalar=%d\n", i, alm.DecodeText([]byte(g.Name)), g.Scalar)
 	}
 
 	fmt.Printf("objects (type4): %d\n", len(m.Objects))

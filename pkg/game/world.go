@@ -170,7 +170,8 @@ type mapWorld struct {
 	// through one owner palette. The indexed pixels stay shared; a distinct
 	// pointer keeps the window's frame-keyed texture cache from handing two
 	// factions one uploaded texture. It reaches no simulation field or digest.
-	ownerFrames map[ownerFrameKey]*terrain.StaticFrame
+	ownerFrames   map[ownerFrameKey]*terrain.StaticFrame
+	playerColours []uint32
 
 	// structureStateScratch is the presentation projection rebuilt by push.
 	// Reusing it keeps a long headless mission from allocating one slice per
@@ -5480,11 +5481,12 @@ func (mw *mapWorld) ownerFrame(c *terrain.UnitClass, frame *terrain.StaticFrame,
 	if frame == nil || mw == nil || mw.units == nil {
 		return frame
 	}
-	palette := mw.units.OwnerPalette(c, owner)
+	shade := mw.ownerShade(owner)
+	palette := mw.units.OwnerPalette(c, shade)
 	if palette == nil || frame.Palette == *palette {
 		return frame
 	}
-	key := ownerFrameKey{frame: frame, shade: uint8(owner & 0x0f)}
+	key := ownerFrameKey{frame: frame, shade: uint8(shade)}
 	if tinted := mw.ownerFrames[key]; tinted != nil {
 		return tinted
 	}

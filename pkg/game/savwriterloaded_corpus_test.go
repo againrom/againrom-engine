@@ -1,12 +1,10 @@
 //go:build sessioncorpusaudit
 
-// Loaded-document census. A SAVE is built from the World; only the spans
-// savDocumentFallbacks names may come from the loaded file. Each save is
-// loaded and its Snapshot taken; then the loaded document the Snapshot holds
-// is changed twice: once only inside the unknown-meaning spans, once
-// everywhere but the join keys, a scalar's known part beside its unknown
-// span included. Both SAVEs must be byte-identical: a written leaf that
-// differs is a known kind taken from the loaded file. The census names each.
+// Loaded-document census. A SAVE builds state from the World. Player Name
+// keeps its loaded bytes; savDocumentFallbacks names the unknown spans that
+// also come from the loaded file. The census changes the Snapshot's document
+// twice: once in unknown spans, once everywhere but join keys. It names every
+// written kind that follows a source change and rejects undeclared state.
 package game
 
 import (
@@ -374,16 +372,18 @@ func TestSAVWriterCensusLoadedDocument(t *testing.T) {
 			if out[poisonAll] == nil {
 				known = probed
 			}
-			var declared, undeclared []string
+			var declared, retained, undeclared []string
 			for _, k := range known {
-				if loadedCensusDeclaredDebt(k) {
+				if k == "Player.t.Name" {
+					retained = append(retained, k)
+				} else if loadedCensusDeclaredDebt(k) {
 					declared = append(declared, k)
 				} else {
 					undeclared = append(undeclared, k)
 				}
 			}
-			line := fmt.Sprintf("%s: %d known kinds from the loaded file %v, %d of them the declared world-effect Token debt (DIV-2502); %d written kinds follow its unknown-meaning spans %v",
-				input.name, len(known), known, len(declared), len(unknown), unknown)
+			line := fmt.Sprintf("%s: %d known kinds from the loaded file %v, %d of them the declared world-effect Token debt (DIV-2502); %d kinds preserve loaded name bytes %v; %d written kinds follow its unknown-meaning spans %v",
+				input.name, len(known), known, len(declared), len(retained), retained, len(unknown), unknown)
 			report = append(report, line)
 			t.Log(line)
 			if len(undeclared) != 0 {

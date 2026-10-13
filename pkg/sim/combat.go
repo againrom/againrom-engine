@@ -470,7 +470,7 @@ func (w *World) answerRefusedPursuit(i int) {
 		return
 	}
 	e := &w.entities[i]
-	if victim := w.reacquisitionVictim(i); victim >= 0 && !suppressedAcquirer(*e) {
+	if victim := w.reacquisitionVictim(i); victim >= 0 && !w.suppressedAcquirer(*e) {
 		if w.orderAcquire(i, w.entities[victim].ID) {
 			return
 		}
@@ -487,7 +487,7 @@ func (w *World) answerRefusedPickupWalk(i int) {
 	if e.PendingOrder.Kind != PendingPickup || e.HasAttackTarget || e.OffMap {
 		return
 	}
-	if victim := w.reacquisitionVictim(i); victim >= 0 && !suppressedAcquirer(*e) {
+	if victim := w.reacquisitionVictim(i); victim >= 0 && !w.suppressedAcquirer(*e) {
 		w.orderAcquire(i, w.entities[victim].ID)
 	}
 }

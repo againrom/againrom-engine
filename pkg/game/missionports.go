@@ -53,7 +53,15 @@ func (s installMission) loadPartyBodies(ms *Mission, units *terrain.UnitSet) {
 // that owns the world opens nothing, and a driver that went looking would give
 // one mission two behaviours depending on when it ran.
 func (s installMission) openMissionDriver(ms *Mission, units *terrain.UnitSet, v *ui.Viewer) *mapWorld {
-	return openMission(ms, s.in.Table, units, v, s.in.Archives.Containers, s.in.Faces, s.in.NPCFaces)
+	mw := openMission(ms, s.in.Table, units, v, s.in.Archives.Containers, s.in.Faces, s.in.NPCFaces)
+	if s.in.Table != nil {
+		_, guest := s.in.Table.Mods.Missions.ByNumber(ms.Number)
+		_, replacement := s.in.Table.Mods.Missions.Replacing(ms.Number)
+		if guest || replacement {
+			mw.usePlayerColours(ms.Map)
+		}
+	}
+	return mw
 }
 
 // missionProjectiles is a fact about the install rather than about the

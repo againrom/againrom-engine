@@ -2440,6 +2440,9 @@ package storyguard
 // CommentBytes rises 2600 bytes for the objects brush: the docs of the object
 // plane, its stroke, the host's objects list and the tests that pin them, this
 // note included.
+// New text-field and roster APIs add doc comments in mapedit/field.go,
+// mapedit/section.go and formats/alm/encode.go. The shared editor fixture
+// now has a semantic name.
 var Committed = Baseline{
 	TestIdentCount: 4647,
 	TestFileCount:  264,
@@ -2463,5 +2466,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9025102,
+	CommentBytes: 9025099,
 }

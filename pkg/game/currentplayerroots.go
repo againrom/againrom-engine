@@ -116,3 +116,24 @@ func validateCurrentPlayerRoots(state *SnapshotSAVDocument, w *sim.World) error 
 	}
 	return nil
 }
+
+func currentPlayerName(state *SnapshotSAVDocument, id uint32) (string, bool) {
+	if state == nil || state.Document == nil || id == 0 {
+		return "", false
+	}
+	for _, row := range currentPlayerRoots(state) {
+		if row.ID != id || row.ObjectIndex == 0 || int(row.ObjectIndex) > len(state.Document.Objects) {
+			continue
+		}
+		object := state.Document.Objects[row.ObjectIndex-1]
+		if object.Class != "Player" {
+			continue
+		}
+		for _, text := range object.Texts {
+			if text.Name == "Name" {
+				return text.Value, true
+			}
+		}
+	}
+	return "", false
+}

@@ -99,7 +99,7 @@ func isRangeRefusal(refusal string) bool {
 // selection took the pass.
 func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
-	if e.Owner == 0 || e.Owner == SelfSlot || !e.Alive() || !e.hasCreatureSpells() {
+	if e.Owner == 0 || w.suppressedAcquirer(e) || !e.Alive() || !e.hasCreatureSpells() {
 		return false
 	}
 	w.engageDrew = append(w.engageDrew, e.ID)
@@ -171,7 +171,7 @@ func (w *World) dropCreatureApproach(i int) {
 // its target, or for a cast at a cell the creature's own attack target.
 func (w *World) armCreatureApproach(i int, c *bookCast, victim EntityID) bool {
 	e := w.entities[i]
-	if !c.Retained || e.Owner == SelfSlot || !e.hasCreatureSpells() {
+	if !c.Retained || !e.hasCreatureSpells() {
 		return false
 	}
 	if !(e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && e.AttackTarget == victim) &&
@@ -195,11 +195,13 @@ func (w *World) approachVictim(i int, c bookCast) (EntityID, bool) {
 // startApproachedCast begins the wind-up of an armed cast that is now in
 // range, facing its target as admission does.
 func (w *World) startApproachedCast(i int, c *bookCast) {
+	e := w.entities[i]
+	retained := c.Retained && e.hasCreatureSpells() && e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
 	w.standForCreatureCast(i)
 	caster := w.entities[i]
 	rule, _ := w.bookSpell(caster, uint32(c.Spell))
 	c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging, castWindupTicks(caster), 0, false
-	c.Retained = c.Retained && caster.Owner != SelfSlot
+	c.Retained = retained
 	if c.AtCell {
 		w.turnToCell(i, c.X, c.Y)
 	} else if ti := indexOfEntity(w.entities, c.Target); ti >= 0 {

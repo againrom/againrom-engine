@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"strconv"
+	"strings"
 )
 
 // dragRank orders the record kinds a drag can move when one press hits
@@ -16,9 +17,9 @@ var dragRank = map[string]int{"Unit": 1, "Sack": 2, "Structure": 3}
 func editableKind(kind string) bool { return dragRank[kind] > 0 || kind == "Stock" }
 
 // fieldKind reports a record kind whose fields the window sets: the editable
-// kinds and the script nodes, which have no cell to clone or delete.
+// kinds, script nodes and nonspatial Players.
 func fieldKind(kind string) bool {
-	return editableKind(kind) || kind == "Action" || kind == "Condition"
+	return editableKind(kind) || kind == "Action" || kind == "Condition" || kind == "Player"
 }
 
 // selectedRecord is the kind and file-order index of the selected editable
@@ -59,7 +60,7 @@ func (e *MapEditor) recordKey(key string) error {
 		if len(fields) > 0 {
 			if e.prompt.open() {
 				e.prompt.field = (e.prompt.field + 1) % len(fields)
-				e.prompt.path = strconv.FormatInt(fields[e.prompt.field].Value, 10)
+				e.prompt.path = fieldInput(fields[e.prompt.field])
 			}
 			e.message = ""
 		}
@@ -78,7 +79,7 @@ func (e *MapEditor) recordKey(key string) error {
 		return nil
 	}
 	kind, index := e.selectedRecord()
-	if index < 0 || (key != "field" && !editableKind(kind)) {
+	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && kind == "Player")) {
 		e.message = "Select a unit, structure or sack first."
 		return nil
 	}
@@ -93,6 +94,11 @@ func (e *MapEditor) recordKey(key string) error {
 			return err
 		}
 		e.selected = -1
+		if kind == "Player" && e.filter == editorPlayersFilter {
+			if rows := e.rows(); len(rows) > 0 {
+				e.Select(rows[min(index, len(rows)-1)], false)
+			}
+		}
 	case "field":
 		e.leave(leavePick | leavePrompt)
 		fields := e.promptFields()
@@ -100,9 +106,16 @@ func (e *MapEditor) recordKey(key string) error {
 			e.message = "This record has no settable fields."
 			return nil
 		}
-		e.openPrompt(editorPrompt{kind: promptField, path: strconv.FormatInt(fields[0].Value, 10)})
+		e.openPrompt(editorPrompt{kind: promptField, path: fieldInput(fields[0])})
 	}
 	return nil
+}
+
+func fieldInput(f InspectionField) string {
+	if f.Text {
+		return f.TextValue
+	}
+	return strconv.FormatInt(f.Value, 10)
 }
 
 func (e *MapEditor) fieldTitle() string {
@@ -122,19 +135,31 @@ func (e *MapEditor) setField(text string) error {
 		e.leave(leavePrompt)
 		return nil
 	}
-	v, err := strconv.ParseInt(text, 10, 64)
-	if err != nil {
-		e.message = "Enter a whole number."
-		return err
-	}
+	field := fields[e.prompt.field]
 	var next *InspectionDocument
+	var err error
 	newKind := ""
 	adds := e.prompt.adds()
-	if adds {
-		next, newKind, err = e.addRecord(e.prompt.cell, v)
-	} else {
+	if field.Text {
+		host, ok := e.doc.Edits.(InspectionTextFields)
+		if !ok {
+			err = fmt.Errorf("This host cannot edit text fields.")
+			return e.adoptEdit(nil, err)
+		}
 		kind, index := e.selectedRecord()
-		next, err = e.doc.Edits.SetField(kind, index, fields[e.prompt.field].Key, v)
+		next, err = host.SetTextField(kind, index, field.Key, text)
+	} else {
+		v, parseErr := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
+		if parseErr != nil {
+			e.message = "Enter a whole number."
+			return parseErr
+		}
+		if adds {
+			next, newKind, err = e.addRecord(e.prompt.cell, v)
+		} else {
+			kind, index := e.selectedRecord()
+			next, err = e.doc.Edits.SetField(kind, index, field.Key, v)
+		}
 	}
 	if err := e.adoptEdit(next, err); err != nil {
 		return err
@@ -172,7 +197,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 		return
 	}
 	kind, index := e.selectedRecord()
-	if index < 0 {
+	if index < 0 || !editableKind(kind) {
 		e.message = "Clone needs a selected unit, structure or sack."
 		return
 	}

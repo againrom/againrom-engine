@@ -203,10 +203,10 @@ func (w *World) beginCellCastApproach(i int, c Command) bool {
 // creature's attack on its victim, or a player's walk to the cast cell.
 func (w *World) approachHeld(i int, c bookCast) bool {
 	e := w.entities[i]
-	if e.Owner == SelfSlot {
+	if !e.HasAttackTarget {
 		return c.AtCell && e.HasTarget && e.TargetX == c.X && e.TargetY == c.Y
 	}
-	return e.HasAttackTarget
+	return e.hasCreatureSpells() && e.AttackTargetKind == AttackTargetUnit
 }
 
 const teleportSpellID = 26

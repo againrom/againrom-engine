@@ -43,7 +43,7 @@ func (w *World) rememberAttacker(ai, ti int) {
 func (w *World) stampAttackNotices(stamp []byte, members []int, consume bool) {
 	for _, i := range members {
 		e := w.entities[i]
-		if e.Owner == 0 || e.Owner == SelfSlot || !e.Alive() || e.OffMap {
+		if e.Owner == 0 || w.humanParticipantUnit(e) || !e.Alive() || e.OffMap {
 			continue
 		}
 		n := w.attackNoticeAt(i)

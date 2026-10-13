@@ -59,7 +59,7 @@ type InspectionEdits interface {
 	CanUndo() bool
 	CanRedo() bool
 	// Move, Clone, Delete, Fields and SetField address a record by its
-	// InspectionRecord Kind and Index: a unit, a structure, a sack or a stock.
+	// InspectionRecord Kind and Index. Players support Delete and Fields.
 	Move(kind string, index int, cell image.Point) (*InspectionDocument, error)
 	Clone(kind string, index int, cell image.Point) (*InspectionDocument, error)
 	Delete(kind string, index int) (*InspectionDocument, error)
@@ -98,6 +98,8 @@ type InspectionGoal struct {
 type InspectionField struct {
 	Key, Label string
 	Value      int64
+	Text       bool
+	TextValue  string
 }
 
 type EditorMap struct{ Key, Label string }
@@ -276,6 +278,8 @@ func (e *MapEditor) rows() []int {
 			show = r.Warning != ""
 		case 7:
 			show = r.Kind == "Trigger" || (r.Kind == "Section" && r.Section == 7)
+		case editorPlayersFilter:
+			show = r.Kind == "Player"
 		}
 		if show {
 			out = append(out, i)
@@ -394,7 +398,7 @@ func (e *MapEditor) railClick(x, y int) {
 		}
 		return
 	}
-	if e.listView() && !e.brushActive() && y >= 128 && y < 176 {
+	if e.listView() && !e.brushActive() && e.filter != editorPlayersFilter && y >= 128 && y < 176 {
 		idx := (y-128)/24*4 + x/80
 		if idx < len(editorFilters) {
 			e.filter = idx
@@ -478,7 +482,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyF5, "testplay"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -640,6 +644,8 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		line(fmt.Sprintf("Units %d Build %d Sacks %d", counts["Unit"], counts["Structure"], counts["Sack"]), 10, 88, 300, editorPaper)
 		if e.filter == 7 {
 			line(fmt.Sprintf("Triggers %d / C%d A%d", counts["Trigger"], counts["Condition"], counts["Action"]), 10, 108, 300, editorPaper)
+		} else if e.filter == editorPlayersFilter {
+			line(fmt.Sprintf("Players %d", counts["Player"]), 10, 108, 300, editorPaper)
 		} else {
 			line(fmt.Sprintf("Scenery %d / %d issues", counts["Scenery"], warnings), 10, 108, 300, editorPaper)
 		}
@@ -650,6 +656,9 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		line(editorClip(e.font, e.report.note, 300), 10, 143, 300, editorGold)
 	} else if e.brushActive() {
 		line(editorClip(e.font, e.brushStatus(), 300), 10, 143, 300, editorGold)
+	} else if !e.catalog && e.filter == editorPlayersFilter {
+		line("PLAYERS", 10, 130, 300, editorGold)
+		line("Name, colour, control, relations", 10, 154, 300, editorPaper)
 	} else if !e.catalog {
 		for i, s := range editorFilters {
 			x, y := (i%4)*80, (i/4)*24+128

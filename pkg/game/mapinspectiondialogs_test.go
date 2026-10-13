@@ -52,8 +52,8 @@ func finishInspectionDialog(t *testing.T, e *ui.MapEditor, called <-chan pathdia
 
 func TestMapEditorDialogSaveMatchesTextPathBytes(t *testing.T) {
 	b := inspectionFixtureBytes(t)
-	_, textEditor, _ := openInspectionFixture(t, b)
-	_, dialogEditor, source := openInspectionFixture(t, b)
+	_, textEditor, _ := openTestMapEditor(t, b)
+	_, dialogEditor, source := openTestMapEditor(t, b)
 	for _, e := range []*ui.MapEditor{textEditor, dialogEditor} {
 		e.Select(0, true)
 		dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
@@ -110,7 +110,7 @@ func TestMapEditorDialogOpenLoadsChosenBytes(t *testing.T) {
 	}
 	for _, route := range []string{"key", "rail"} {
 		t.Run(route, func(t *testing.T) {
-			_, e, source := openInspectionFixture(t, b)
+			_, e, source := openTestMapEditor(t, b)
 			e.Select(0, true)
 			before := e.Document()
 			called := installInspectionDialog(e, filepath.Dir(source), pathdialog.Result{Path: path})
@@ -146,8 +146,8 @@ func TestMapEditorDialogInstallRefusalMatchesTextPath(t *testing.T) {
 	}
 	path := filepath.Join(root, "refused.alm")
 	b := inspectionFixtureBytes(t)
-	x, textEditor, _ := openInspectionFixture(t, b)
-	y, dialogEditor, _ := openInspectionFixture(t, b)
+	x, textEditor, _ := openTestMapEditor(t, b)
+	y, dialogEditor, _ := openTestMapEditor(t, b)
 	x.archives, y.archives = &Archives{Root: root}, &Archives{Root: root}
 	for _, e := range []*ui.MapEditor{textEditor, dialogEditor} {
 		e.Select(0, true)
@@ -181,7 +181,7 @@ func TestMapEditorDialogInstallRefusalMatchesTextPath(t *testing.T) {
 }
 
 func TestMapEditorDialogCancelSavePreservesStateAndFiles(t *testing.T) {
-	_, e, _ := openInspectionFixture(t, inspectionFixtureBytes(t))
+	_, e, _ := openTestMapEditor(t, inspectionFixtureBytes(t))
 	e.Select(0, true)
 	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
 	dragInspectionRecord(e, image.Pt(5, 6), image.Pt(7, 8))

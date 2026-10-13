@@ -386,18 +386,6 @@ const (
 	largeBudget  budgetRule = 3
 )
 
-// humanParticipantUnit reports whether a human participant owns e: the
-// condition under which the far search of a one-cell unit takes the flat
-// budget. The original reads the owning Player's whole dword at +0x28 for zero,
-// which a campaign map authors on its roster record 0 and on no other, and the
-// party takes that record's slot (MOVE-TERM-003, UNIT-OWNER-009, ALM-140,
-// ALM-PLAYER-069). An entity that names no roster slot has no owning Player to
-// read, so it keeps the participant's form, the one this build has always given
-// it. DIV-1569.
-func humanParticipantUnit(e Entity) bool {
-	return e.Owner == 0 || e.Owner == SelfSlot
-}
-
 // farBudgetFor is the budget rule the far search of the entity at index i runs
 // under: the n x n arm for a unit larger than one cell whoever owns it, and for a
 // one-cell unit the flat rule when a human participant owns it and the
@@ -414,7 +402,7 @@ func (w *World) farBudgetFor(i int) budgetRule {
 	switch {
 	case footprintSide(e.TokenSize) > 1:
 		return largeBudget
-	case humanParticipantUnit(*e):
+	case w.humanParticipantUnit(*e):
 		return flatBudget
 	}
 	return staticBudget

@@ -15,7 +15,7 @@ package sim
 func (w *World) reacquireWithinReach(i int) {
 	victim := w.reacquisitionVictim(i)
 	e := &w.entities[i]
-	if victim < 0 || suppressedAcquirer(*e) {
+	if victim < 0 || w.suppressedAcquirer(*e) {
 		w.clearOrder(i)
 		e.clearAttack()
 		return
@@ -83,6 +83,6 @@ func (w *World) reacquisitionVictim(i int) int {
 // suppressedAcquirer reports whether e is a human participant's spellcaster of
 // reach below two, the unit the reacquisition and the engage routine refuse to
 // send at a victim on their own (AI-GUARD-007).
-func suppressedAcquirer(e Entity) bool {
-	return e.Owner == SelfSlot && isMage(e) && e.Reach < 2
+func (w *World) suppressedAcquirer(e Entity) bool {
+	return e.Owner != 0 && w.humanParticipantUnit(e) && isMage(e) && e.Reach < 2
 }

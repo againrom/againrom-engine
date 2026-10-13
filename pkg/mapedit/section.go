@@ -16,6 +16,7 @@ const (
 	KindAction                // type 7 action node array (ALM-TRIG-044, ALM-TRIG-045)
 	KindCondition             // type 7 condition node array
 	KindTrigger               // type 7 trigger array, 184-byte records (ALM-TRIG-047)
+	KindPlayer
 )
 
 // section is one row of the record-section table: where a kind's records
@@ -25,8 +26,9 @@ const (
 type section struct {
 	name   string
 	typeID uint32
-	count  int // the type-0 word that counts the records
-	x, y   int // fixed-point coordinate words, /256 is the cell
+	count  int  // the type-0 word that counts the records
+	x, y   int  // fixed-point coordinate words, /256 is the cell
+	create bool // Place may create this absent counted payload
 
 	// layout, when set, finds the records inside a payload that holds several
 	// counted arrays, in place of the type-0 count word and a payload that is
@@ -43,28 +45,41 @@ type section struct {
 	// reshape restores the grammar after a field write; nil keeps the length.
 	reshape func(rec []byte) []byte
 	// fields lists the settable fields of one record.
-	fields func(e *Editor, rec []byte) []Field
+	fields        func(e *Editor, rec []byte) []Field
+	validatePlace func(e *Editor, w walk, rec []byte) error
+	deleteParts   func(e *Editor, w walk, i int) ([]part, error)
 }
 
-var sections = map[Kind]*section{
-	KindUnit: {name: "unit", typeID: unitTypeID, count: metaCount6, x: unitX, y: unitY,
-		length:   func(_ *Editor, b []byte) int { return fixedLength(b, unitRecordSize) },
-		renumber: renumberUnit,
-		fields:   func(*Editor, []byte) []Field { return unitFields },
-	},
-	KindStructure: {name: "structure", typeID: structureTypeID, count: metaCount4, x: 0x00, y: 0x04,
-		length:  structureLength,
-		reshape: reshapeStructure,
-		fields:  structureFields,
-	},
-	KindLoot: {name: "sack", typeID: lootTypeID, count: metaCount8, x: lootX, y: lootY,
-		length:   lootLength,
-		cellless: func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
-		fields:   lootFields,
-	},
-	KindAction:    scriptSection("action", 0),
-	KindCondition: scriptSection("condition", 1),
-	KindTrigger:   scriptSection("trigger", 2),
+var sections map[Kind]*section
+
+func init() {
+	sections = map[Kind]*section{
+		KindUnit: {name: "unit", typeID: unitTypeID, count: metaCount6, x: unitX, y: unitY,
+			length:   func(_ *Editor, b []byte) int { return fixedLength(b, unitRecordSize) },
+			renumber: renumberUnit,
+			fields:   func(*Editor, []byte) []Field { return unitFields },
+		},
+		KindStructure: {name: "structure", typeID: structureTypeID, count: metaCount4, x: 0x00, y: 0x04,
+			length:  structureLength,
+			reshape: reshapeStructure,
+			fields:  structureFields,
+		},
+		KindLoot: {name: "sack", typeID: lootTypeID, count: metaCount8, x: lootX, y: lootY,
+			length:   lootLength,
+			cellless: func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
+			fields:   lootFields,
+		},
+		KindAction:    scriptSection("action", 0),
+		KindCondition: scriptSection("condition", 1),
+		KindTrigger:   scriptSection("trigger", 2),
+		KindPlayer: {name: "player", typeID: playerTypeID, count: metaPlayerCount, create: true,
+			length:        func(_ *Editor, b []byte) int { return fixedLength(b, playerRecordSize) },
+			cellless:      func([]byte) bool { return true },
+			fields:        playerFields,
+			validatePlace: validatePlayerPlacement,
+			deleteParts:   playerDeleteParts,
+		},
+	}
 }
 
 func fixedLength(b []byte, n int) int {
@@ -156,6 +171,18 @@ func (e *Editor) walkIndex(k Kind, what string, i int) (walk, error) {
 	return w, nil
 }
 
+func (e *Editor) placementSection(k Kind, what string) (walk, error) {
+	sec, err := sectionOf(k)
+	if err != nil {
+		return walk{}, err
+	}
+	f := e.locate()
+	if f.carries(sec.typeID) || !sec.create {
+		return e.walkSection(k, what)
+	}
+	return walk{frame: f, sec: sec, countAt: f.required(metaTypeID).abs(sec.count), starts: []int{0}}, nil
+}
+
 func sectionName(k Kind) string {
 	if s, ok := sections[k]; ok {
 		return s.name
@@ -192,27 +219,34 @@ func (e *Editor) Position(k Kind, i int) (x, y uint32, err error) {
 	}
 	sec := sections[k]
 	if sec.cellless != nil && sec.cellless(rec) {
-		return 0, 0, fmt.Errorf("mapedit: %s %d is carried by a unit and has no cell", sec.name, i)
+		return 0, 0, fmt.Errorf("mapedit: %s %d has no map cell", sec.name, i)
 	}
 	return binary.LittleEndian.Uint32(rec[sec.x:]), binary.LittleEndian.Uint32(rec[sec.y:]), nil
 }
 
 // Place appends record after k's last record and returns its index. The
 // record is copied verbatim and must be exactly one record of k's grammar.
-// The edit is three parts: the record, the section's payloadSize word and
-// its type-0 count word.
+// An absent section whose row permits creation is inserted after metadata.
 func (e *Editor) Place(k Kind, record []byte) (int, error) {
-	w, err := e.walkSection(k, "place a "+sectionName(k))
+	w, err := e.placementSection(k, "place a "+sectionName(k))
 	if err != nil {
 		return -1, err
 	}
 	if w.sec.length(e, record) != len(record) {
 		return -1, fmt.Errorf("mapedit: cannot place a %d-byte record: it is not one type-%d record", len(record), w.sec.typeID)
 	}
+	if w.sec.validatePlace != nil {
+		if err := w.sec.validatePlace(e, w, record); err != nil {
+			return -1, err
+		}
+	}
 	return e.appendRecord(w, record), nil
 }
 
 func (e *Editor) appendRecord(w walk, record []byte) int {
+	if !w.frame.carries(w.sec.typeID) {
+		return e.insertSection(w, record)
+	}
 	n := w.n()
 	e.apply(edit{
 		replace(w.span.abs(w.starts[n]), nil, record),
@@ -220,6 +254,22 @@ func (e *Editor) appendRecord(w walk, record []byte) int {
 		e.wordPart(w.countAt, 1),
 	})
 	return n
+}
+
+func (e *Editor) insertSection(w walk, record []byte) int {
+	meta := w.frame.required(metaTypeID)
+	framed := make([]byte, recordHeaderSize+len(record))
+	binary.LittleEndian.PutUint32(framed, 7)
+	binary.LittleEndian.PutUint32(framed[4:], recordHeaderSize)
+	binary.LittleEndian.PutUint32(framed[recPayloadSize:], uint32(len(record)))
+	binary.LittleEndian.PutUint32(framed[recTypeID:], w.sec.typeID)
+	copy(framed[recordHeaderSize:], record)
+	e.apply(edit{
+		replace(meta.abs(meta.payloadSize), nil, framed),
+		e.wordPart(fhRecordCount, 1),
+		replace(w.countAt, e.data[w.countAt:w.countAt+4], []byte{1, 0, 0, 0}),
+	})
+	return 0
 }
 
 // CloneRecord appends a copy of k's record i with its X and Y words set to x and y
@@ -234,7 +284,7 @@ func (e *Editor) CloneRecord(k Kind, i int, x, y uint32) (int, error) {
 	at, l := w.at(i)
 	rec := cloneBytes(e.data[at : at+l])
 	if w.sec.cellless != nil && w.sec.cellless(rec) {
-		return -1, fmt.Errorf("mapedit: cannot clone %s %d: it is carried by a unit and has no cell", w.sec.name, i)
+		return -1, fmt.Errorf("mapedit: cannot clone %s %d: it has no map cell", w.sec.name, i)
 	}
 	binary.LittleEndian.PutUint32(rec[w.sec.x:], x)
 	binary.LittleEndian.PutUint32(rec[w.sec.y:], y)
@@ -256,7 +306,7 @@ func (e *Editor) Move(k Kind, i int, x, y uint32) error {
 	}
 	at, l := w.at(i)
 	if w.sec.cellless != nil && w.sec.cellless(e.data[at:at+l]) {
-		return fmt.Errorf("mapedit: cannot move %s %d: it is carried by a unit and has no cell", w.sec.name, i)
+		return fmt.Errorf("mapedit: cannot move %s %d: it has no map cell", w.sec.name, i)
 	}
 	var img [8]byte
 	binary.LittleEndian.PutUint32(img[0:], x)
@@ -286,6 +336,13 @@ func (e *Editor) Delete(k Kind, i int) error {
 	}
 	if k == KindLoot {
 		ed = append(ed, e.unitLinkParts(i)...)
+	}
+	if w.sec.deleteParts != nil {
+		parts, err := w.sec.deleteParts(e, w, i)
+		if err != nil {
+			return err
+		}
+		ed = append(ed, parts...)
 	}
 	e.apply(ed)
 	return nil

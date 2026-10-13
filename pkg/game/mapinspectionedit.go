@@ -61,6 +61,7 @@ var editKinds = map[string]mapedit.Kind{
 	"Unit": mapedit.KindUnit, "Structure": mapedit.KindStructure,
 	"Sack": mapedit.KindLoot, "Stock": mapedit.KindLoot,
 	"Action": mapedit.KindAction, "Condition": mapedit.KindCondition,
+	"Player": mapedit.KindPlayer,
 }
 
 func editKind(kind string) (mapedit.Kind, error) {
@@ -172,11 +173,16 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	}
 	var out []ui.InspectionField
 	for _, f := range fields {
-		v, err := s.model.FieldValue(k, index, f.Key)
+		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text}
+		if f.Text {
+			row.TextValue, err = s.model.TextFieldValue(k, index, f.Key)
+		} else {
+			row.Value, err = s.model.FieldValue(k, index, f.Key)
+		}
 		if err != nil {
 			return nil
 		}
-		out = append(out, ui.InspectionField{Key: f.Key, Label: f.Label, Value: v})
+		out = append(out, row)
 	}
 	return out
 }

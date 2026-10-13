@@ -77,6 +77,29 @@ func (w *World) PlayerParticipants() ([]PlayerParticipant, bool) {
 	return slices.Clone(w.currentPlayers.Participants), true
 }
 
+// MOVE-TERM-003, AI-ROUTE-045, ALM-140: test the complete control word.
+// A missing or ambiguous owner retains the legacy slot policy (DIV-1569).
+func (w *World) humanParticipantUnit(e Entity) bool {
+	if e.Owner == 0 {
+		return true
+	}
+	if s := w.currentPlayers; s != nil && s.ParticipantsPresent {
+		at := -1
+		for i, p := range s.Players {
+			if p.Slot == e.Owner {
+				if at >= 0 {
+					return e.Owner == SelfSlot
+				}
+				at = i
+			}
+		}
+		if at >= 0 {
+			return s.Participants[at].Value == 0
+		}
+	}
+	return e.Owner == SelfSlot
+}
+
 // RestorePlayerParticipants replaces the complete exact-ID carrier atomically.
 // Absence is independent of a present zero word and never selects a Player.
 func (w *World) RestorePlayerParticipants(rows []PlayerParticipant, present bool) error {
