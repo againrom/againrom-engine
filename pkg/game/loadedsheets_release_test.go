@@ -128,10 +128,10 @@ func TestReleaseOwnerSaveCreaturesKeepTheirSheets(t *testing.T) {
 	}
 	fresh := readPlacedSheets(t, a, f.live, "fresh mission 10")
 
-	compareLoadedSheets(t, g, fresh, b, loaded, "owner save", false, false)
+	compareLoadedSheets(t, g, fresh, b, loaded, "owner save", false, true)
 	resaved, _ := writeOrdinarySAV(t, g, "owner-resaved.sav")
 	h, c, cold := placedSpeakerLoad(t, filepath.Dir(resaved), filepath.Base(resaved))
-	compareLoadedSheets(t, h, fresh, c, cold, "owner save after SAVE and LOAD", false, false)
+	compareLoadedSheets(t, h, fresh, c, cold, "owner save after SAVE and LOAD", false, true)
 }
 
 // placedSheetRead is what one placed actor of a mission states: the sheet its

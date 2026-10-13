@@ -75,7 +75,9 @@ func captureCurrentTerminalValues(w *sim.World, a *currentActionData) error {
 			return fmt.Errorf("current terminal actor %d collides with a live value", terminal.ID)
 		}
 		row := terminal
-		row.Worn = 0 // the departed actor's record holds its worn items
+		if !row.LeavesNoBody() {
+			row.Worn = 0 // the departed actor's record holds its worn items
+		}
 		a.Values[terminal.ID] = sim.ActorValues{CurrentTerminal: &row}
 	}
 	return nil

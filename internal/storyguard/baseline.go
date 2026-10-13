@@ -32,6 +32,8 @@ package storyguard
 // docs state that every input it feeds those wrappers is real install or
 // mission data, not a fixture.
 //
+// CommentBytes rose by the doc comments of the dead-flyer SAV fix and its tests.
+//
 // CommentBytes rose a further 549 bytes over one file: internal/archtest's
 // own dag.go, registering the new cmd/tooltipshot in the architecture
 // allow-map with the same reasoning style every other cmd/* row already
@@ -2456,5 +2458,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9014083,
+	CommentBytes: 9015262,
 }

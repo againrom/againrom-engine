@@ -111,8 +111,8 @@ func TestSAVWriterCensusLossControls(t *testing.T) {
 }
 
 // The World holds the dead units of an engine-written mission: every Unit and
-// Weapon record and every dead root of the loaded file is written again, and
-// a cold LOAD of the SAVE restores the same World.
+// Weapon record and every dead root of the loaded file is written again except
+// those of torn-down flyers, and a cold LOAD of the SAVE restores the same World.
 func TestSAVWriterCensusDeadUnits(t *testing.T) {
 	name := "2026-10-07/saveorcsdontgo.sav"
 	census := func(raw []byte) [3]int {
@@ -143,8 +143,21 @@ func TestSAVWriterCensusDeadUnits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := census(raw); got != loaded {
-		t.Fatalf("Unit, Weapon and dead-root counts %v, loaded %v", got, loaded)
+	// A torn-down flyer is no longer an actor of the file: its Unit record, its
+	// held weapon and its dead root are the only difference.
+	want := loaded
+	for _, row := range f.live.world.CurrentTerminalActors() {
+		if row.LeavesNoBody() {
+			want[0]--
+			want[2]--
+			want[1] -= int(row.Worn & 1)
+		}
+	}
+	if want == loaded {
+		t.Fatal("the corpus save holds no torn-down flyer")
+	}
+	if got := census(raw); got != want {
+		t.Fatalf("Unit, Weapon and dead-root counts %v, want %v from loaded %v", got, want, loaded)
 	}
 	path := filepath.Join(t.TempDir(), "dead.sav")
 	if err := os.WriteFile(path, raw, 0o644); err != nil {

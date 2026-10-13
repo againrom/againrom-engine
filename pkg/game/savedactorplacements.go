@@ -15,6 +15,9 @@ func retainSavedActorPlacements(m *alm.Map, graph sav.SavedActorGraph, dead []sa
 	if m == nil || state == nil || state.Document == nil || state.Document.World == nil {
 		return
 	}
+	// A torn-down flyer has no record; its departed row still names the
+	// placement, which stays so that actor identities keep their order.
+	flown := noBodyPlacements(state)
 	if graph.CurrentPopulation {
 		present := make(map[uint16]bool)
 		current, placements := make(map[uint16]int), make(map[uint16]int)
@@ -28,6 +31,9 @@ func retainSavedActorPlacements(m *alm.Map, graph sav.SavedActorGraph, dead []sa
 			if actor.MapUnitID != 0 {
 				present[actor.MapUnitID] = true
 			}
+		}
+		for _, unit := range flown {
+			present[unit] = true
 		}
 		for _, unit := range m.Units {
 			placements[unit.UnitID]++
@@ -69,6 +75,9 @@ func retainSavedActorPlacements(m *alm.Map, graph sav.SavedActorGraph, dead []sa
 	if len(keys) == 0 || len(keys) != len(seen) {
 		return
 	}
+	for _, unit := range flown {
+		present[unit] = true
+	}
 	counts := make(map[uint16]int)
 	for _, unit := range m.Units {
 		counts[unit.UnitID]++
@@ -76,4 +85,20 @@ func retainSavedActorPlacements(m *alm.Map, graph sav.SavedActorGraph, dead []sa
 	m.Units = slices.DeleteFunc(slices.Clone(m.Units), func(unit alm.Unit) bool {
 		return unit.UnitID != 0 && counts[unit.UnitID] == 1 && !present[unit.UnitID]
 	})
+}
+
+// noBodyPlacements lists the map units the departed rows of torn-down flyers
+// name.
+func noBodyPlacements(state *SnapshotSAVDocument) []uint16 {
+	a, err := readCurrentActions(state.Document)
+	if err != nil || a == nil {
+		return nil
+	}
+	var units []uint16
+	for _, v := range a.Values {
+		if row := v.CurrentTerminal; row != nil && row.MapUnitID != 0 && row.LeavesNoBody() {
+			units = append(units, row.MapUnitID)
+		}
+	}
+	return units
 }

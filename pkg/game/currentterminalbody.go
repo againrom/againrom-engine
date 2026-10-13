@@ -38,6 +38,9 @@ func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapl
 		bases[row.ID] = row.Basis
 	}
 	for _, row := range rows {
+		if row.LeavesNoBody() {
+			continue // freed at teardown
+		}
 		var body *currentTerminalBody
 		if row.MapUnitID != 0 {
 			for _, e := range spawn.Entities() {

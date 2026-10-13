@@ -118,9 +118,6 @@ func TestReleaseOwnerSaveSpeakerKeepsHisWornSet(t *testing.T) {
 	}
 	f, _, live := placedSpeakerLoad(t, dir, "mission10.sav")
 	id, before := sarindarSpeaks(t, f, live, "owner save")
-	if n := len(live.mission.state.Map.Units); n > int(id) {
-		t.Fatalf("the owner save kept %d placements; Sarindar's id %d still names one", n, id)
-	}
 	resaved, _ := writeOrdinarySAV(t, f, "owner-resaved.sav")
 	g, b, cold := placedSpeakerLoad(t, filepath.Dir(resaved), filepath.Base(resaved))
 	loaded, after := sarindarSpeaks(t, g, cold, "owner save after SAVE and LOAD")

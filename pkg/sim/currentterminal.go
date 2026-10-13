@@ -19,6 +19,12 @@ type CurrentTerminalActor struct {
 	Worn      uint16 `json:",omitempty"`
 }
 
+// LeavesNoBody marks the row of a non-ground mover torn down before bones: the
+// original holds no actor for it (HERO-DEATH-026). Scripts still read the row.
+func (r CurrentTerminalActor) LeavesNoBody() bool {
+	return r.Stage != 0 && DecayStage(r.Stage) < DecayBones && r.HP < decayGoneHP
+}
+
 // CurrentTerminalActors returns terminal rows in ID order.
 func (w *World) CurrentTerminalActors() []CurrentTerminalActor {
 	return slices.Clone(w.currentTerminalActors)
