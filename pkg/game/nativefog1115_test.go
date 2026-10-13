@@ -10,12 +10,19 @@ import (
 
 func TestNativeFog1115CheckpointBetweenSamples(t *testing.T) {
 	f, app, _ := sackObjectsOpen1115(t, nil)
-	visible := append([]byte(nil), f.live.fog.visible...)
-	explored := append([]byte(nil), f.live.fog.explored...)
+	opening := append([]byte(nil), f.live.fog.visible...)
 	f.live.tick()
-	if !bytes.Equal(visible, f.live.fog.visible) || !bytes.Equal(explored, f.live.fog.explored) {
+	if f.live.world.Tick()%fogPeriod == 0 {
 		t.Fatal("fixture crossed the scheduled fog refresh instead of its interior")
 	}
+	// Between samples a moved body only adds ground (the per-tick stamp).
+	for i, v := range opening {
+		if v != 0 && f.live.fog.visible[i] == 0 {
+			t.Fatal("an interior tick cleared ground between samples")
+		}
+	}
+	visible := append([]byte(nil), f.live.fog.visible...)
+	explored := append([]byte(nil), f.live.fog.explored...)
 	newSample := newFogPlane(f.live.fog.cols, f.live.fog.rows)
 	newSample.refresh(f.live.world, sim.SelfSlot)
 	if bytes.Equal(newSample.visible, visible) {

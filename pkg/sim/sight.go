@@ -423,6 +423,30 @@ func (w *World) Sight(owner uint32) []byte {
 	return stamp
 }
 
+// SightOf is Sight restricted to the named entities: the same population
+// rule, the same march, the stamp of only those bodies. It is the fog
+// reader for a body that has just moved (TERR-TILE-079).
+func (w *World) SightOf(owner uint32, ids []EntityID) []byte {
+	stamp := make([]byte, len(w.grid))
+	for i := range w.entities {
+		e := w.entities[i]
+		if e.Owner != owner || e.Decay >= decayDarkStage || e.ScanRange == 0 || !containsEntityID(ids, e.ID) {
+			continue
+		}
+		w.marchSight(fogSight, stamp, cellOf(&e), int32(e.ScanRange))
+	}
+	return stamp
+}
+
+func containsEntityID(ids []EntityID, id EntityID) bool {
+	for _, v := range ids {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
 // actorSight is the current perception of one actor, rebuilt from canonical
 // terrain and actor state for every admission decision. Actor-directed spells
 // use the AI reader rather than a participant's union: a hidden patient or

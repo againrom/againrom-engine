@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The fog opens as your units move, as in the original. Ground a walking unit steps onto is lit at once instead of up to two seconds later, so a mage with automatic casting no longer attacks an enemy that is still drawn under black or fog. Ground a unit has left still stays lit until the fog's next full redraw, as before.
 - [ROM1] A spell, book or scroll, aimed at a wide creature now reaches it across the gap between the two bodies, as the original measures it, so a mage can cast at a large creature from a cell farther than before. A Shield-type spell of range 0 no longer reaches another unit standing in the caster's own cell.
 - [ROM1] A map the editor saves matches what the original editor writes. A new map starts with the original's two players, Self and Enemy, hostile to each other; a unit saved with an owner the map has no player for becomes player 1's, and a unit's sack follows the unit's position in the saved file. Deleting a sack no longer makes other sacks on the ground vanish when the map is saved.
 

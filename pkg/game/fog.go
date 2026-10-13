@@ -1,6 +1,8 @@
 package game
 
 import (
+	"image"
+
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -140,4 +142,55 @@ func (p *fogPlane) project() []byte {
 		}
 	}
 	return out
+}
+
+// stampMoved is the original's per-tick stamp (TERR-TILE-079): a drawable of
+// the local player whose cell differs from the cell it last stamped at ORs its
+// sight into the visible and explored layers. Nothing is cleared; the clear
+// stays with the period. The engine moves a body onto its next cell at the
+// first tick of the crossing, so that tick is the point of the move.
+//
+// A body met for the first time only records its cell: the opening refresh,
+// the period and the teleport arrival already light it. The constructor
+// records every body once, so the first step already compares. The second game's
+// map screen keeps the periodic refresh alone.
+func (mw *mapWorld) stampMoved() {
+	if mw.fog == nil {
+		return
+	}
+	if mw.world.SecondGame() {
+		return
+	}
+	if mw.stamped == nil {
+		mw.stamped = make(map[sim.EntityID]image.Point)
+	}
+	var moved []sim.EntityID
+	for _, e := range mw.world.EntityView() {
+		if e.Owner != sim.SelfSlot {
+			continue
+		}
+		at := image.Point{X: int(e.X), Y: int(e.Y)}
+		if last, seen := mw.stamped[e.ID]; seen && last != at {
+			moved = append(moved, e.ID)
+		}
+		mw.stamped[e.ID] = at
+	}
+	if len(moved) == 0 {
+		return
+	}
+	mw.fog.fold(mw.world.SightOf(sim.SelfSlot, moved))
+}
+
+// fold ORs a stamp into the visible and explored layers without clearing.
+func (p *fogPlane) fold(stamp []byte) {
+	n := len(p.visible)
+	if len(stamp) < n {
+		n = len(stamp)
+	}
+	for i := 0; i < n; i++ {
+		if stamp[i] != 0 {
+			p.visible[i] = 1
+			p.explored[i] = 1
+		}
+	}
 }

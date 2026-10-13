@@ -193,6 +193,10 @@ type mapWorld struct {
 	// Teleport admission (pkg/game/fog.go).
 	fog *fogPlane
 
+	// stamped is the cell each local body last stamped its sight at
+	// (stampMoved). Presentation state: nothing hashed or saved reads it.
+	stamped map[sim.EntityID]image.Point
+
 	// groupTag is the tag the NEXT group order will carry, bumped whenever an
 	// enqueued order cannot join the one being assembled — see enqueue. It is
 	// bookkeeping of the front-end's, exactly as the four memories above it are:
@@ -2061,6 +2065,7 @@ func newMapWorldWith(w *sim.World, sched [][]sim.Command, units *terrain.UnitSet
 	b := w.Bounds()
 	mw.fog = newFogPlane(int(b.Width), int(b.Height))
 	mw.fog.refresh(w, sim.SelfSlot)
+	mw.stampMoved()
 	// The first push uses the restored world's tick, or zero for a fresh map.
 	mw.push()
 	// The readout's own tick-0 push, beside it and for its reason: a map that
@@ -4186,6 +4191,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.scene++
 	// Teleport arrivals reveal their surroundings before the same frame is
 	// pushed. Ordinary updates retain the periodic world-tick cadence.
+	mw.stampMoved()
 	if mw.world.Tick()%fogPeriod == 0 || mw.localTeleportArrived(events) {
 		mw.fog.refresh(mw.world, sim.SelfSlot)
 		mw.view.RefreshCheatFog()

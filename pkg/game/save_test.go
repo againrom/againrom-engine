@@ -906,7 +906,7 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 		"stopped": true, "unpaced": true, "mission": true, "projectiles": true,
 		"derives": true, "derivedSkills": true, "skillBonus": true, "derivedPotions": true,
 	}
-	cosmetic := map[string]bool{"prev": true, "walk": true, "died": true, "hurt": true, "blows": true, "strikes": true, "scene": true,
+	cosmetic := map[string]bool{"prev": true, "stamped": true, "walk": true, "died": true, "hurt": true, "blows": true, "strikes": true, "scene": true,
 		"pendingDamage": true, "soundEntities": true,
 		"spellSoundCues": true,
 		"markElements":   true, "pickup": true, "shots": true, "flights": true, "drawnMoving": true,

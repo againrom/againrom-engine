@@ -382,14 +382,15 @@ func TestApplication1170OriginalReferenceAndFogRefusalsKeepActiveSession(t *test
 func TestApplication1170BetweenSamplesExplorationHasNoVisibilityLeaf(t *testing.T) {
 	f, _, _ := sackObjectsOpen1115(t, nil)
 	f.live.fog.refresh(f.live.world, sim.SelfSlot)
-	// This fixture's actor crosses a cell between scheduled fog samples.
-	// Capture its sampled planes independently, then advance actual movement.
-	wantExplored := bytes.Clone(f.live.fog.explored)
-	wantVisible := bytes.Clone(f.live.fog.visible)
+	// This fixture's actor crosses a cell between scheduled fog samples; the
+	// cell it steps onto is stamped, the ground it left is kept. Advance actual
+	// movement, then capture the planes that tick left.
 	f.live.tick()
-	if !bytes.Equal(f.live.fog.explored, wantExplored) || !bytes.Equal(f.live.fog.visible, wantVisible) {
+	if f.live.world.Tick()%fogPeriod == 0 {
 		t.Fatal("fixture crossed a scheduled visibility sample")
 	}
+	wantExplored := bytes.Clone(f.live.fog.explored)
+	wantVisible := bytes.Clone(f.live.fog.visible)
 	derived := make([]byte, len(wantExplored))
 	for i, lit := range f.live.world.Sight(sim.SelfSlot) {
 		if lit != 0 {
