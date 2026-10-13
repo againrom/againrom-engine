@@ -57,7 +57,8 @@ func (e *Editor) SetWord70(v uint32) error { return e.setWord(metaWord70, v) }
 func (e *Editor) SetWord74(v uint32) error { return e.setWord(metaWord74, v) }
 
 // SetBitmask sets the type-0 low-bit word at +0x18 to v, on the same terms: the
-// whole word, no bit of it interpreted.
+// whole word, no bit of it interpreted. A caller that derives the word from
+// tile words uses alm.TileGroupMask.
 func (e *Editor) SetBitmask(v uint32) error { return e.setWord(metaBitmask, v) }
 
 // SetName sets the type-0 name field at +0x30 to s.

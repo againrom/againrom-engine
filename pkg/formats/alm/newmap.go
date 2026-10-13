@@ -16,8 +16,9 @@ const (
 	// NewMapDefaultSide is the side of the default map (ALM-NEWMAP-237).
 	NewMapDefaultSide = 80
 
-	// NewMapMaxAltitude is the top of the original editor's height slider
-	// (TERR-246).
+	// NewMapMaxAltitude is the top of the original new-map dialog's height
+	// slider, 0..126 (TERR-246). It is the dialog's limit, not the format's:
+	// MaxHeight is the range the height tool and the maps hold.
 	NewMapMaxAltitude = 126
 )
 
@@ -27,19 +28,6 @@ type NewMapSpec struct {
 	Width, Height int
 	Tile          uint16 // the word every tile cell holds
 	Altitude      uint8  // the byte every height cell holds
-}
-
-// NewMapTerrain is one choice of the fill word and the name the original
-// editor's dialog lists it under (TERR-246).
-type NewMapTerrain struct {
-	Name string
-	Tile uint16
-}
-
-// NewMapTerrains lists the fills of TERR-246 in the dialog's order.
-var NewMapTerrains = []NewMapTerrain{
-	{"Land", 0x14}, {"Grass", 0x11}, {"Sand", 0x91}, {"Savanna", 0xd1}, {"Cracks", 0x51},
-	{"Flowers", 0x191}, {"Rocky", 0x111}, {"High Rocks", 0x1d1}, {"Water", 0x211},
 }
 
 // DefaultNewMap is an 80 x 80 map of Grass at height 64 (ALM-NEWMAP-237,
@@ -134,16 +122,6 @@ func (s NewMapSpec) Validate() error {
 // tileSaveMask is the tile word bits the original save keeps (ALM-SAVE-238).
 const tileSaveMask = 0x23ff
 
-// tileGroupMask is the type-0 +0x18 word of a plane holding the one tile word
-// w, by the rule of ALM-SAVE-238.
-func tileGroupMask(w uint16) uint32 {
-	mask := uint32(1) << ((uint32(w) & tileIndexMask) >> 6)
-	if mask > 0xff {
-		mask |= 0xf00
-	}
-	return min(mask, 0x1fff)
-}
-
 // NewMap is the one constructor of a map from nothing. It returns a Document
 // opened through the same route as any other stream: the bytes are built from
 // the defaults tables above and then accepted by OpenDocument, so the model
@@ -164,7 +142,7 @@ func NewMap(spec NewMapSpec) (*Document, error) {
 	for _, w := range newMapMeta {
 		le.PutUint32(meta[w.off:], w.value)
 	}
-	le.PutUint32(meta[metaBitmask:], tileGroupMask(spec.Tile))
+	le.PutUint32(meta[metaBitmask:], TileGroupMask([]uint16{spec.Tile}))
 	name, err := EncodeName(newMapName)
 	if err != nil {
 		return nil, err

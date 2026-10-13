@@ -1,6 +1,9 @@
 package mapedit
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // The terrain classes, numbered as the movement classifier numbers them
 // (TERR-PASS-050). The editor never classifies a word itself: a caller hands
@@ -24,25 +27,42 @@ const ClassCount = int(ClassRoad) + 1
 
 // PaletteEntry is one terrain a brush can paint: its class, its base tile word
 // (TERR-242: the word the original's terrain tool stores) and the name the
-// window shows.
+// window shows. NewMapOrder is the entry's 1-based place in the original
+// new-map dialog's list (TERR-246), or 0 when the dialog does not offer it.
 type PaletteEntry struct {
-	Class uint8
-	Word  uint16
-	Name  string
+	Class       uint8
+	Word        uint16
+	Name        string
+	NewMapOrder int
 }
 
-// Palette lists the paintable terrains in the order the window shows them.
+// Palette is the one terrain table: each tile word appears once, under one
+// name, in the order the window shows. The new-map list is the subset with a
+// NewMapOrder (NewMapTerrains).
 var Palette = [...]PaletteEntry{
-	{ClassGrass, 0x11, "Grass"},
-	{ClassLand, 0x14, "Land"},
-	{ClassSand, 0x91, "Sand"},
-	{ClassCracked, 0x51, "Cracked"},
-	{ClassFlowers, 0x191, "Flowers"},
-	{ClassStones, 0x111, "Stones"},
-	{ClassSavanna, 0xd1, "Savanna"},
-	{ClassMountain, 0x1d1, "Mountain"},
-	{ClassWater, 0x211, "Water"},
-	{ClassRoad, 0x311, "Road"},
+	{ClassGrass, 0x11, "Grass", 2},
+	{ClassLand, 0x14, "Land", 1},
+	{ClassSand, 0x91, "Sand", 3},
+	{ClassCracked, 0x51, "Cracked", 5},
+	{ClassFlowers, 0x191, "Flowers", 6},
+	{ClassStones, 0x111, "Stones", 7},
+	{ClassSavanna, 0xd1, "Savanna", 4},
+	{ClassMountain, 0x1d1, "Mountain", 8},
+	{ClassWater, 0x211, "Water", 9},
+	{ClassRoad, 0x311, "Road", 0},
+}
+
+// NewMapTerrains lists the fills the original new-map dialog offers
+// (TERR-246), in the dialog's order, from the one Palette.
+func NewMapTerrains() []PaletteEntry {
+	var out []PaletteEntry
+	for _, p := range Palette {
+		if p.NewMapOrder > 0 {
+			out = append(out, p)
+		}
+	}
+	slices.SortFunc(out, func(a, b PaletteEntry) int { return a.NewMapOrder - b.NewMapOrder })
+	return out
 }
 
 // strip is one strip group: the two classes its tile images blend

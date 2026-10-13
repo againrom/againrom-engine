@@ -137,16 +137,3 @@ func TestNewMapRefusesWhatItCannotBuild(t *testing.T) {
 		}
 	}
 }
-
-func TestNewMapTerrainsAreTheDialogsNine(t *testing.T) {
-	if len(NewMapTerrains) != 9 {
-		t.Fatalf("%d terrains, want the dialog's 9 (TERR-246)", len(NewMapTerrains))
-	}
-	for _, tr := range NewMapTerrains {
-		s := DefaultNewMap()
-		s.Tile = tr.Tile
-		if _, err := NewMap(s); err != nil {
-			t.Errorf("%s %#x: %v", tr.Name, tr.Tile, err)
-		}
-	}
-}

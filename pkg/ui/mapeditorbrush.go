@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"image/color"
@@ -213,30 +214,13 @@ func (b *brushState) extend(cell image.Point) {
 		return
 	}
 	dx, dy := cell.X-last.X, cell.Y-last.Y
-	n := max(abs(dx), abs(dy))
+	n := max(absInt(dx), absInt(dy))
 	for i := 1; i <= n; i++ {
-		step := image.Pt(last.X+(dx*i+sign(dx)*n/2)/n, last.Y+(dy*i+sign(dy)*n/2)/n)
+		step := image.Pt(last.X+(dx*i+cmp.Compare(dx, 0)*n/2)/n, last.Y+(dy*i+cmp.Compare(dy, 0)*n/2)/n)
 		if step != b.stroke[len(b.stroke)-1] {
 			b.stroke = append(b.stroke, step)
 		}
 	}
-}
-
-func abs(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
-
-func sign(v int) int {
-	switch {
-	case v < 0:
-		return -1
-	case v > 0:
-		return 1
-	}
-	return 0
 }
 
 func (e *MapEditor) brushCommit() {

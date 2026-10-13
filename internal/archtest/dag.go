@@ -89,8 +89,9 @@ var allow = map[string][]string{
 	"pkg/mapload":    {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
 	"pkg/mapedit":    {"pkg/formats/alm"},
 	"pkg/render":     {"pkg/sim", "pkg/vfs"},
-	// Terrain decodes bitmaps through the format leaf; menus bind loader sets.
-	"pkg/render/terrain":    {"pkg/formats/bmp"},
+	// Terrain decodes bitmaps through the format leaf and reads the tile-group
+	// mask constant from the map format, its one owner; menus bind loader sets.
+	"pkg/render/terrain":    {"pkg/formats/bmp", "pkg/formats/alm"},
 	"pkg/render/refraction": {},
 	"pkg/render/backdrop":   {},
 	"pkg/render/camera":     {},

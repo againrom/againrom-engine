@@ -2415,6 +2415,10 @@ package storyguard
 // CommentBytes rises for the one speaker cast constructor and audience
 // function: the docs of newSpeakerCast, playerCharacter and partyAudience, the
 // census test and the predicate test, this note included.
+//
+// CommentBytes rises 2456 bytes for the editor tables hotfix: the docs of
+// alm.TileGroupMask, alm.MaxHeight, alm.TileGroupBits, mapedit.NewMapTerrains
+// and the tests that pin them, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2438,5 +2442,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 8989631,
+	CommentBytes: 8992087,
 }

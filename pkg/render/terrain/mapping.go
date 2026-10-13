@@ -1,6 +1,10 @@
 package terrain
 
-import "slices"
+import (
+	"slices"
+
+	"againrom/pkg/formats/alm"
+)
 
 // RenderTileWords builds the light parser's private tile plane. ALM-TILEVIEW-122
 // clears bit13 on load; the main parser keeps it for collision. Runtime fire
@@ -14,9 +18,8 @@ func RenderTileWords(stored []uint16) []uint16 {
 }
 
 const (
-	tileGroupMask  = 0x1fff // masked before the group shift
-	tileGroupShift = 6      // g   = (w & 0x1fff) >> 6
-	tileBlendShift = 4      // b   = (w >> 4) & 3
+	tileGroupShift = 6 // g   = (w & 0x1fff) >> 6
+	tileBlendShift = 4 // b   = (w >> 4) & 3
 	tileBlendMask  = 3
 	tileSubMask    = 0xf // sub = w & 0xf
 
@@ -49,7 +52,7 @@ type TileRef struct {
 // splitTileWord applies the TERR-IDX-003 split shared by the static and animated
 // resolutions, so the two cannot drift apart.
 func splitTileWord(word uint16) (g, b, sub int) {
-	g = int(word&tileGroupMask) >> tileGroupShift
+	g = int(word&alm.TileGroupBits) >> tileGroupShift
 	b = int(word>>tileBlendShift) & tileBlendMask
 	sub = int(word) & tileSubMask
 	return g, b, sub

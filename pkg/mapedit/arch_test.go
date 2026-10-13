@@ -36,6 +36,8 @@ var almReferences = nameTable{
 	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},
 	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
 	"newmap.go/NewMap":                    {"alm.NewMap", "alm.NewMapSpec"},
+	"brush.go/(*Editor).heightStroke":     {"alm.MaxHeight"},
+	"brush.go/(*Editor).tileStroke":       {"alm.TileGroupMask"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload

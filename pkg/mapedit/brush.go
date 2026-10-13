@@ -3,6 +3,8 @@ package mapedit
 import (
 	"encoding/binary"
 	"fmt"
+
+	"againrom/pkg/formats/alm"
 )
 
 // Plane names the grid layer a brush writes.
@@ -35,11 +37,10 @@ type Brush struct {
 // Cell is a grid position.
 type Cell struct{ X, Y int }
 
-// Limits of a stroke. Heights are the 0..127 the format holds; a row step
+// Limits of a stroke. Heights are the 0..alm.MaxHeight the format holds; a row step
 // above rowStep between a cell and the one below it is bounded after a height
 // stroke; maxRadius and maxCentres keep one call's work bounded.
 const (
-	heightMax  = 127
 	rowStep    = 31
 	maxRadius  = 16
 	maxCentres = 1 << 16
@@ -221,16 +222,7 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	if len(ed) == 0 {
 		return nil, nil
 	}
-	mask := uint32(0)
-	for _, v := range next {
-		mask |= 1 << (v & 0x3ff >> 6)
-	}
-	if mask > 0xff {
-		mask |= 0xf00
-	}
-	if mask > 0x1fff {
-		mask = 0x1fff
-	}
+	mask := alm.TileGroupMask(next)
 	if at := meta.abs(metaBitmask); e.u32(at) != mask {
 		var img [4]byte
 		binary.LittleEndian.PutUint32(img[:], mask)
@@ -260,7 +252,7 @@ func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 			i := y*w + x
 			in[i] = true
 			v := int(next[i]) + b.Value*weight(b.Falloff, d2, b.Radius)/64
-			next[i] = byte(min(max(v, 0), heightMax))
+			next[i] = byte(min(max(v, 0), alm.MaxHeight))
 		})
 	}
 	// Above the stroke's first cell the step is bounded by raising the upper
