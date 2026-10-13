@@ -18,6 +18,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] A spell, book or scroll, aimed at a wide creature now reaches it across the gap between the two bodies, as the original measures it, so a mage can cast at a large creature from a cell farther than before. A Shield-type spell of range 0 no longer reaches another unit standing in the caster's own cell.
 - [ROM1] A save no longer keeps the ghosts, bees, bats and dragons that have died: the original game no longer replays their deaths when it loads the save. Saves written earlier with such creatures load as before and are written without them from the next save.
 - [ROM1] A map the editor saves matches what the original editor writes. A new map starts with the original's two players, Self and Enemy, hostile to each other; a unit saved with an owner the map has no player for becomes player 1's, and a unit's sack follows the unit's position in the saved file. Deleting a sack no longer makes other sacks on the ground vanish when the map is saved.
+- [ROM1] A save made in the town now groups the party as the original does. Each companion who joins between missions is written in a group of his or her own, each hired type in a group of its own (the Catapult and the Ballista included), and a group whose members all left without a refund is written empty instead of being dropped. Returning a hired squad for a refund removes that hire's empty group, including after SAVE and LOAD.
 
 ## 0.122.0
 

@@ -31,8 +31,8 @@ func wantGroupIDs(t *testing.T, got []cityLiveGroup, want ...[]string) {
 }
 
 // A live group keeps its members and its order while the party changes around
-// it: a member who left is dropped, an emptied group is not kept, a joiner
-// enters the first group and a hire enters a group of its type.
+// it: a member who left is dropped, an emptied group is kept, a joiner
+// opens a group of its own and a hire enters a group of its type.
 func TestReconcileCityGroupsFollowsPartyChanges(t *testing.T) {
 	marked := func(b byte) cityLiveGroup {
 		g := cityLiveGroup{Payload: cityConstructedGroup()}
@@ -45,37 +45,37 @@ func TestReconcileCityGroupsFollowsPartyChanges(t *testing.T) {
 	party := []mapload.PartyMember{{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "h4", MercenaryType: 4}, {ID: "join"},
 		{ID: "n5", MercenaryType: 5}, {ID: "n3a", MercenaryType: 3}, {ID: "n3b", MercenaryType: 3}}
 	groups, order := reconcileCityGroups(live, party)
-	wantGroupIDs(t, groups, []string{"b", "a", "join"}, []string{"h4"}, []string{"c"}, []string{"n5"}, []string{"n3a", "n3b"})
-	if got := slices.Concat(order...); !slices.Equal(got, []int{1, 0, 4, 3, 2, 5, 6, 7}) {
+	wantGroupIDs(t, groups, []string{"b", "a"}, []string{"h4"}, []string{"c"}, []string{"join"}, []string{"n5"}, []string{"n3a", "n3b"})
+	if got := slices.Concat(order...); !slices.Equal(got, []int{1, 0, 3, 2, 4, 5, 6, 7}) {
 		t.Fatalf("party order %v", got)
 	}
 	if groups[0].Payload.Raw80[0] != 1 || groups[1].Payload.Raw80[0] != 2 || groups[2].Payload.Raw80[0] != 3 {
 		t.Fatal("a kept group lost its own field values")
 	}
-	if !slices.Equal(groups[3].Payload.Raw80, cityHireGroup().Raw80) {
+	if !slices.Equal(groups[3].Payload.Raw80, cityConstructedGroup().Raw80) || !slices.Equal(groups[4].Payload.Raw80, cityHireGroup().Raw80) {
 		t.Fatal("a hire group does not carry the hire fields")
 	}
-	// The hired groups leave with their members, and a second reconcile of the
-	// result changes nothing.
+	// The hired groups stay, empty, when their members leave, and a second
+	// reconcile of the result changes nothing.
 	again, _ := reconcileCityGroups(groups, party[:5])
-	wantGroupIDs(t, again, []string{"b", "a", "join"}, []string{"h4"}, []string{"c"})
+	wantGroupIDs(t, again, []string{"b", "a"}, []string{"h4"}, []string{"c"}, []string{"join"}, nil, nil)
 	same, _ := reconcileCityGroups(again, party[:5])
-	wantGroupIDs(t, same, []string{"b", "a", "join"}, []string{"h4"}, []string{"c"})
+	wantGroupIDs(t, same, []string{"b", "a"}, []string{"h4"}, []string{"c"}, []string{"join"}, nil, nil)
 }
 
-// A group whose only members left is gone, so a later hire of the same type
-// opens a new group at the end rather than reviving it.
-func TestReconcileCityGroupsDropsAnEmptiedGroup(t *testing.T) {
+// A group whose only members left is kept empty, so a later hire of the same
+// type opens a new group at the end rather than reviving it.
+func TestReconcileCityGroupsKeepsAnEmptiedGroup(t *testing.T) {
 	var town Town
 	party := []mapload.PartyMember{{ID: "hero"}, {ID: "m6a", MercenaryType: 6}}
 	town.settleCityGroups(party)
 	wantGroupIDs(t, town.cityGroups, []string{"hero"}, []string{"m6a"})
 	party = party[:1]
 	town.settleCityGroups(party)
-	wantGroupIDs(t, town.cityGroups, []string{"hero"})
+	wantGroupIDs(t, town.cityGroups, []string{"hero"}, nil)
 	party = append(party, mapload.PartyMember{ID: "m14", MercenaryType: 14}, mapload.PartyMember{ID: "m6a", MercenaryType: 6})
 	town.settleCityGroups(party)
-	wantGroupIDs(t, town.cityGroups, []string{"hero"}, []string{"m14"}, []string{"m6a"})
+	wantGroupIDs(t, town.cityGroups, []string{"hero"}, nil, []string{"m14"}, []string{"m6a"})
 }
 
 // The saved document names each group's actors by object index; the current
@@ -139,5 +139,32 @@ func TestCityGroupsSurviveUnavailableProvenance(t *testing.T) {
 	last.Town.cityGroups = nil
 	if broken := cityRosterOrdinary(t, currentTownSave(t, last), total); reflect.DeepEqual(broken, groups) {
 		t.Fatal("dropping live membership leaves the groups unchanged, so the input does not exercise it")
+	}
+}
+
+func TestRefundCityGroupsKeepsUnrelatedGroupsAndSurvivors(t *testing.T) {
+	group := func(mark byte, ids ...string) cityLiveGroup {
+		g := cityLiveGroup{Payload: cityHireGroup(), Members: ids}
+		g.Payload.Raw80[0] = mark
+		return g
+	}
+	town := Town{cityGroups: []cityLiveGroup{
+		group(1, "hero", "returned-mixed"), group(2), group(3, "returned-squad"),
+		group(4, "lost-without-refund"), group(5, "other-squad"),
+	}}
+	before := slices.Clone(town.cityGroups)
+	party := []mapload.PartyMember{{ID: "hero"}, {ID: "other-squad", MercenaryType: 2}}
+	town.refundCityGroups(party, []string{"returned-mixed", "returned-squad"})
+	wantGroupIDs(t, town.cityGroups, []string{"hero"}, nil, nil, []string{"other-squad"})
+	for i, mark := range []byte{1, 2, 4, 5} {
+		if town.cityGroups[i].Payload.Raw80[0] != mark {
+			t.Fatalf("group %d payload/order changed", i)
+		}
+	}
+	wantGroupIDs(t, before, []string{"hero", "returned-mixed"}, nil, []string{"returned-squad"}, []string{"lost-without-refund"}, []string{"other-squad"})
+	kept := slices.Clone(town.cityGroups)
+	town.refundCityGroups(party, nil)
+	if !cityGroupsEqual(kept, town.cityGroups) {
+		t.Fatal("a return touching no group changed unrelated groups")
 	}
 }

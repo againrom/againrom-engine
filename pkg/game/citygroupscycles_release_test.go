@@ -97,7 +97,7 @@ func cityGroupKinds(t *testing.T, raw []byte) [][]string {
 // cityGroupsWant is the groups the party's current membership calls for,
 // computed from the party alone: one group per unhired member in party order
 // (the town holds its Player's members in groups of one, as an original town
-// can), then one group per hired squad in hire order. A member's kind is what its written
+// can), then one group per squad hired, in hire order, empty once the squad was returned. A member's kind is what its written
 // actor holds: an unhired member its Name, a siege hire a Unit with no Name and
 // its hire type, any other hire a Human with no Name and its hire type.
 func cityGroupsWant(t *testing.T, raw []byte, party []mapload.PartyMember, hired []int) [][]string {
@@ -108,11 +108,11 @@ func cityGroupsWant(t *testing.T, raw []byte, party []mapload.PartyMember, hired
 			want = append(want, []string{fmt.Sprintf("Human/%s/0", member.Name)})
 		}
 	}
-	for _, typ := range hired {
+	for k, typ := range hired {
 		var squad []string
 		for _, member := range party {
 			switch {
-			case int(member.MercenaryType) != typ:
+			case int(member.MercenaryType) != typ || slices.Index(hired[k+1:], typ) >= 0:
 			case typ <= 2:
 				squad = append(squad, fmt.Sprintf("Unit//%d", typ))
 			default:
@@ -149,35 +149,38 @@ func cityGroupsEqual(a, b []cityLiveGroup) bool {
 // continues on the live World's hashes.
 func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 	plans := [][]int{{14, 1, 14, 6}, {14, 6, 10, 6, 1}, {6, 2, 14}}
+	// A refunded squad removes its hire group; mission losses keep theirs.
 	hired := [][]int{{1, 6}, {14, 10, 1}, {6, 2, 14}}
 	lineage := releaseFront(t)
 	reachabilityWalkArrive(t, lineage, "Group Cycles")
+	// prior lists the squad groups the town already holds, a returned or lost
+	// squad's group among them, empty.
+	var prior []int
 	for cycle, plan := range plans {
 		lineage.Town.gold = 5_000_000
 		seed := currentTownSave(t, lineage)
-		cityGroupsWant(t, seed, lineage.Carried, nil)
+		cityGroupsWant(t, seed, lineage.Carried, prior)
 		live, app, store := cityGroupsColdApp(t, seed)
 		if cycle == 0 {
 			if len(live.Carried) != len(lineage.Carried)+1 {
 				t.Fatalf("the companion did not join after the first load: %d members from %d", len(live.Carried), len(lineage.Carried))
 			}
 			// The Player of an original town can hold its members in several
-			// groups. Split the loaded town's one group in two, each with its
-			// own field values, as that state.
+			// groups: the hero's group and the joined companion's own group
+			// each get their own field values.
 			groups, _ := reconcileCityGroups(live.Town.cityGroups, live.Carried)
-			if len(groups) != 1 || len(groups[0].Members) != 2 {
-				t.Fatalf("the loaded town holds groups %v, want one group of two", liveGroupIDs(groups))
+			if len(groups) != 2 || len(groups[0].Members) != 1 || len(groups[1].Members) != 1 {
+				t.Fatalf("the loaded town holds groups %v, want two groups of one", liveGroupIDs(groups))
 			}
-			second := cityLiveGroup{Payload: cityConstructedGroup(), Members: groups[0].Members[1:]}
-			groups[0].Members = groups[0].Members[:1]
-			groups[0].Payload.F1c, groups[0].Payload.Raw80[0], second.Payload.Raw80[0] = 3, 1, 2
-			live.Town.cityGroups = []cityLiveGroup{groups[0], second}
+			groups[0].Payload.F1c, groups[0].Payload.Raw80[0], groups[1].Payload.Raw80[0] = 3, 1, 2
+			live.Town.cityGroups = groups
 		}
 		for _, typ := range plan {
 			cityGroupsToggle(t, live, typ)
 		}
 		raw := cityRosterF2Save(t, app, store, fmt.Sprintf("groups-%d", cycle))
-		saved := cityGroupsWant(t, raw, live.Carried, hired[cycle])
+		slots := slices.Concat(prior, hired[cycle])
+		saved := cityGroupsWant(t, raw, live.Carried, slots)
 		t.Logf("cycle %d chapter %d: %d members, SAV groups %q", cycle, live.Town.Chapter(), len(live.Carried), saved)
 
 		cold, coldApp, coldStore := cityGroupsColdApp(t, raw)
@@ -197,7 +200,7 @@ func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 		}
 		cold.Town.cityGroups = kept
 		again := cityRosterF2Save(t, coldApp, coldStore, fmt.Sprintf("groups-%d-again", cycle))
-		if got := cityGroupsWant(t, again, cold.Carried, hired[cycle]); !slices.EqualFunc(got, saved, slices.Equal[[]string]) {
+		if got := cityGroupsWant(t, again, cold.Carried, slots); !slices.EqualFunc(got, saved, slices.Equal[[]string]) {
 			t.Fatalf("cycle %d: the cold town's SAVE moved members between groups: %v, then %v", cycle, saved, got)
 		}
 
@@ -230,6 +233,6 @@ func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 				t.Fatalf("cycle %d: a hired member %s returned from the mission", cycle, member.ID)
 			}
 		}
-		lineage = cold
+		lineage, prior = cold, slots
 	}
 }

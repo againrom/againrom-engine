@@ -26,7 +26,7 @@ func hireGroupOf(actors ...uint16) sav.CityGroupData {
 	return g
 }
 
-func TestLoadedCityGroupsFollowMembersAndLeaveJoinersToTheFirstGroup(t *testing.T) {
+func TestLoadedCityGroupsFollowMembersAndGiveEachJoinerAGroup(t *testing.T) {
 	unit := func(identity uint32) sav.CityObjectData {
 		token := make([]byte, 37)
 		binary.LittleEndian.PutUint32(token[29:], identity)
@@ -53,13 +53,14 @@ func TestLoadedCityGroupsFollowMembersAndLeaveJoinersToTheFirstGroup(t *testing.
 		{ID: "m5", MercenaryType: 5}, {ID: "m3a", MercenaryType: 3}, {ID: "m3b", MercenaryType: 3}}
 	written := constructedTown(len(party))
 	order := writeCityGroups(&written, party, cityGroupsFromLoaded(party, loaded))
-	if !slices.Equal(order, []int{1, 2, 0, 3, 4, 5, 6}) {
+	if !slices.Equal(order, []int{1, 0, 3, 2, 4, 5, 6}) {
 		t.Fatalf("group order %v", order)
 	}
 	want := []sav.CityGroupData{
-		{Raw80: raw(1), F1c: 7, F44: nativeCityPlayerIdentity, Actors: []uint16{3, 4}},
+		{Raw80: raw(1), F1c: 7, F44: nativeCityPlayerIdentity, Actors: []uint16{3}},
 		{Raw80: raw(2), F44: nativeCityPlayerIdentity, Actors: []uint16{2}},
 		{Raw80: raw(3), F44: nativeCityPlayerIdentity, Actors: []uint16{5}},
+		{Raw80: make([]byte, 80), F44: nativeCityPlayerIdentity, Actors: []uint16{4}},
 		hireGroupOf(6),
 		hireGroupOf(7, 8),
 	}

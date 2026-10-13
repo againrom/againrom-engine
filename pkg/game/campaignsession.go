@@ -116,6 +116,7 @@ func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n in
 	}
 	s.live, s.liveMission, s.liveParty = mw, n, party
 	rules.enterMission(s.Town, n)
+	s.Town.joinCityGroups(s.Carried)
 	if mw != nil && mw.mission != nil {
 		mw.mission.entryQuickSpells = s.quickSpells
 	}

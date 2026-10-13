@@ -107,16 +107,22 @@ func TestReleaseCitySAVKeepsTheLoadedPlayerGroups(t *testing.T) {
 	}
 }
 
-// A town reached without a loaded town document writes its one constructed
-// group holding the whole party (DIV-1411).
-func TestReleaseCitySAVWithoutALoadedTownWritesOneGroup(t *testing.T) {
+// A town reached without a loaded town document writes a constructed group
+// for the hero and one more for each member who joined after (DIV-1411,
+// PARTY-039).
+func TestReleaseCitySAVWithoutALoadedTownWritesOneGroupPerJoiner(t *testing.T) {
 	f := currentTown(t, nil, nil)
 	if f.originalCity != nil {
 		t.Skip("this town route retains a loaded town document")
 	}
 	_, groups, names := cityGroupsByName(t, writtenTownData(t, f))
-	if len(groups) != 1 || len(names[0]) != len(f.Carried) {
-		t.Fatalf("town without a loaded document has groups %v, want one group of %d", names, len(f.Carried))
+	if len(groups) != len(f.Carried) {
+		t.Fatalf("town without a loaded document has groups %v, want one group for each of %d members", names, len(f.Carried))
+	}
+	for g, n := range names {
+		if len(n) != 1 || n[0] != f.Carried[g].Name {
+			t.Fatalf("group %d holds %v, want %q alone", g, n, f.Carried[g].Name)
+		}
 	}
 }
 

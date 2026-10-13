@@ -21,8 +21,8 @@ func cityHireGroup() sav.CityGroupData {
 }
 
 // cityConstructedGroup is the group a town holds when nothing else places a
-// party member: the group of a town with no recorded groups, and the group a
-// member joining after the load enters.
+// party member: the group of a town with no recorded groups, and the new group
+// of each member who joins.
 func cityConstructedGroup() sav.CityGroupData {
 	return sav.CityGroupData{Raw80: make([]byte, 80), F44: nativeCityPlayerIdentity}
 }
@@ -37,10 +37,12 @@ type cityLiveGroup struct {
 
 // reconcileCityGroups returns the live groups over the current party and the
 // party index of each member, group by group. A member who left the party
-// leaves its group, and a group left with no member is dropped. A member in no
-// group joins one: a hire to the group of its mercenary type, appended in
-// party order (SAV-617), any other member to the first group. DIV-1411 names
-// the inferences in that placement.
+// leaves its group; the group stays, empty, and is written as the original's
+// serializers write every listed group (SAV-1234). A member in no group joins
+// a new one: a hire the group of its mercenary type, one group per hired type
+// (PARTY-040), and any other member a group of its own (PARTY-039), each
+// appended in party order. A town with no group yet holds every member who is
+// not a hire in one constructed group (DIV-1686).
 func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([]cityLiveGroup, [][]int) {
 	index := make(map[string]int, len(party))
 	for i, p := range party {
@@ -59,11 +61,11 @@ func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([
 				held = append(held, i)
 			}
 		}
-		if len(held) != 0 {
-			out, members = append(out, cityLiveGroup{Payload: g.Payload}), append(members, held)
-		}
+		out, members = append(out, cityLiveGroup{Payload: g.Payload}), append(members, held)
 	}
+	constructed := -1
 	if len(out) == 0 {
+		constructed = 0
 		out, members = append(out, cityLiveGroup{Payload: cityConstructedGroup()}), append(members, nil)
 	}
 	hireGroup := map[uint8]int{}
@@ -71,8 +73,9 @@ func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([
 		if placed[i] {
 			continue
 		}
-		g := 0
-		if p.Hired() {
+		g := constructed
+		switch {
+		case p.Hired():
 			k, ok := hireGroup[p.MercenaryType]
 			if !ok {
 				k = len(out)
@@ -80,13 +83,16 @@ func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([
 				out, members = append(out, cityLiveGroup{Payload: cityHireGroup()}), append(members, nil)
 			}
 			g = k
+		case g < 0:
+			g = len(out)
+			out, members = append(out, cityLiveGroup{Payload: cityConstructedGroup()}), append(members, nil)
 		}
 		members[g] = append(members[g], i)
 	}
 	var kept []cityLiveGroup
 	var order [][]int
 	for g := range out {
-		if len(members[g]) == 0 {
+		if g == constructed && len(members[g]) == 0 {
 			continue
 		}
 		for _, i := range members[g] {
@@ -95,6 +101,55 @@ func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([
 		kept, order = append(kept, out[g]), append(order, members[g])
 	}
 	return kept, order
+}
+
+// joinCityGroups is the walk a mission start makes over the Player's groups:
+// while the first group holds no member and more than one group is listed, the
+// first group is removed (AI-479). A group behind a non-empty first group is
+// not swept.
+func (t *Town) joinCityGroups(party []mapload.PartyMember) {
+	if t == nil {
+		return
+	}
+	inParty := make(map[string]bool, len(party))
+	for _, p := range party {
+		inParty[p.ID] = true
+	}
+	empty := func(g cityLiveGroup) bool {
+		return !slices.ContainsFunc(g.Members, func(id string) bool { return inParty[id] })
+	}
+	groups := t.cityGroups
+	for len(groups) > 1 && empty(groups[0]) {
+		groups = groups[1:]
+	}
+	if len(groups) != len(t.cityGroups) {
+		t.cityGroups = slices.Clone(groups)
+	}
+}
+
+// refundCityGroups removes a refunded hire's group only when no party member
+// remains in it. Already-empty groups and groups emptied without a refund stay.
+func (t *Town) refundCityGroups(party []mapload.PartyMember, returned []string) {
+	if t == nil {
+		return
+	}
+	inParty := make(map[string]bool, len(party))
+	for _, p := range party {
+		inParty[p.ID] = true
+	}
+	refunded := make(map[string]bool, len(returned))
+	for _, id := range returned {
+		refunded[id] = true
+	}
+	groups := slices.DeleteFunc(slices.Clone(t.cityGroups), func(g cityLiveGroup) bool {
+		touched, live := false, false
+		for _, id := range g.Members {
+			touched = touched || refunded[id]
+			live = live || inParty[id]
+		}
+		return touched && !live
+	})
+	t.cityGroups, _ = reconcileCityGroups(groups, party)
 }
 
 // settleCityGroups records the groups over the current party as the town's
@@ -223,7 +278,8 @@ func cityGroupsFromCurrent(city sav.CityData, a *currentActionData) []cityLiveGr
 
 // cityGroupsOver builds live groups from loaded ones, naming each actor's
 // member through resolve. A member is placed once, in the first group naming
-// it, and a group with no member is dropped.
+// it. A group the file lists with no actor is kept; a group whose actors none
+// resolves is dropped.
 func cityGroupsOver(loaded []loadedPlayerGroup, resolve func(uint16) (string, bool)) []cityLiveGroup {
 	var out []cityLiveGroup
 	placed := map[string]bool{}
@@ -235,7 +291,7 @@ func cityGroupsOver(loaded []loadedPlayerGroup, resolve func(uint16) (string, bo
 				live.Members = append(live.Members, id)
 			}
 		}
-		if len(live.Members) != 0 {
+		if len(live.Members) != 0 || len(g.actors) == 0 {
 			out = append(out, live)
 		}
 	}

@@ -151,14 +151,17 @@ func (t *townScreen) toggleMercenary(typ int) (string, bool) {
 		if !ok || !t.sess.Town.mercenaryReturn(typ, count, price) {
 			return "the squad cannot be returned", false
 		}
+		var returned []string
 		kept := t.sess.Carried[:0]
 		for _, member := range t.sess.Carried {
 			if int(member.MercenaryType) != typ {
 				kept = append(kept, member)
+			} else {
+				returned = append(returned, member.ID)
 			}
 		}
 		t.sess.Carried = kept
-		t.sess.Town.settleCityGroups(t.sess.Carried)
+		t.sess.Town.refundCityGroups(t.sess.Carried, returned)
 		t.clampTownMember()
 		t.composeShopFaces()
 		return "", true
