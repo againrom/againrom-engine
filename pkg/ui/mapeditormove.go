@@ -25,11 +25,11 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 		rows = append(rows, editorModalRow{editorClip(e.font, s, 300), y, c})
 		y += height
 	}
-	if e.pathMode {
+	if e.prompt.open() {
 		title := "ALM path / Enter: open"
-		if e.fieldMode {
+		if e.prompt.fields() {
 			title = e.fieldTitle()
-		} else if e.pathSave {
+		} else if e.prompt.kind == promptSave {
 			title = "New .alm path / Enter: Save As"
 		}
 		add(title, editorGold)
@@ -39,9 +39,9 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 	if e.message != "" {
 		errors = editorWrap(e.font, e.editorHostText(e.message), 300)
 	}
-	if e.pathMode {
+	if e.prompt.open() {
 		reserved := min(len(errors), max(1, available/2))
-		paths := editorWrap(e.font, e.editorHostText(e.path)+"_", 300)
+		paths := editorWrap(e.font, e.editorHostText(e.prompt.path)+"_", 300)
 		n := max(1, min(6, available-reserved))
 		if len(paths) > n {
 			paths = paths[len(paths)-n:]
@@ -70,8 +70,8 @@ func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty()
 
 // TextInput is shared by the native path field and deterministic input drives.
 func (e *MapEditor) TextInput(s string) {
-	if e.pathMode {
-		e.path += s
+	if e.prompt.open() {
+		e.prompt.path += s
 	}
 }
 
@@ -89,7 +89,7 @@ func (e *MapEditor) saveAs(path string) error {
 		return err
 	}
 	e.doc.Source = source
-	e.pathMode, e.pathSave = false, false
+	e.leave(leavePrompt)
 	e.message = ""
 	e.afterSave()
 	return nil
@@ -190,7 +190,7 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		return true
 	}
 	inside := p.In(image.Rect(0, 0, rail, e.window.Y))
-	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && !e.catalog && !e.pathMode && e.pick == "" {
+	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && e.free() {
 		hit := -1
 		for _, i := range e.hitsAt(p) {
 			rank := dragRank[e.doc.Records[i].Kind]

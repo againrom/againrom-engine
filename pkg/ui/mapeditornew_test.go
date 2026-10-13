@@ -45,19 +45,19 @@ func TestUnitKeyNeedsAHostThatAddsUnits(t *testing.T) {
 		t.Fatalf("U armed %q", e.pick)
 	}
 	e.pickAt(image.Pt(300, 300))
-	if !e.pathMode || !e.fieldMode || e.sackCell == nil || !e.newUnit {
-		t.Fatalf("the click did not open the class prompt: path %v field %v cell %v unit %v", e.pathMode, e.fieldMode, e.sackCell, e.newUnit)
+	if e.prompt.kind != promptNewUnit {
+		t.Fatalf("the click did not open the class prompt: prompt %v", e.prompt.kind)
 	}
 	if fields := e.promptFields(); len(fields) != 1 || fields[0].Key != "class" {
 		t.Fatalf("prompt fields %+v", fields)
 	}
-	cell := *e.sackCell
-	e.path = "27"
+	cell := e.prompt.cell
+	e.prompt.path = "27"
 	if err := e.Key("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if len(host.cells) != 1 || host.cells[0] != cell || host.classes[0] != 27 || e.pathMode {
-		t.Fatalf("AddUnit calls %v %v, prompt open %v", host.cells, host.classes, e.pathMode)
+	if len(host.cells) != 1 || host.cells[0] != cell || host.classes[0] != 27 || e.prompt.open() {
+		t.Fatalf("AddUnit calls %v %v, prompt open %v", host.cells, host.classes, e.prompt.open())
 	}
 }
 

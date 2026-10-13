@@ -70,7 +70,7 @@ func (e *MapEditor) brushHost() InspectionBrush {
 
 // brushActive reports whether a brush mode owns the canvas and the list.
 func (e *MapEditor) brushActive() bool {
-	return e.brush.mode != brushOff && e.brushHost() != nil && !e.catalog && !e.pathMode && e.pick == "" && len(e.report.goals) == 0
+	return e.brush.mode != brushOff && e.brushHost() != nil && e.free() && len(e.report.goals) == 0
 }
 
 func (e *MapEditor) brushRows() []string {
@@ -108,15 +108,7 @@ func (e *MapEditor) brushKey(key string) bool {
 		if e.brushHost() == nil || e.catalog {
 			return true
 		}
-		e.cancelRecordDrag()
-		e.closeReport()
-		e.pick, e.fieldMode = "", false
-		e.message = ""
-		e.brush.stroke, e.brush.down = nil, false
-		if e.brush.mode == mode {
-			mode = brushOff
-		}
-		e.brush.mode = mode
+		e.toggleBrush(mode)
 		return true
 	case "radiusup", "radiusdown":
 		if e.brushActive() {
@@ -181,7 +173,7 @@ func (e *MapEditor) brushCell(p image.Point, rail int) (image.Point, bool) {
 // whether it took the input, so the canvas does not pan under the brush.
 func (e *MapEditor) brushPointer(in Input, p image.Point, rail int) bool {
 	if !e.brushActive() {
-		e.brush.stroke, e.brush.down = nil, false
+		e.brush.endStroke()
 		return false
 	}
 	cell, on := e.brushCell(p, rail)
@@ -225,7 +217,7 @@ func (b *brushState) extend(cell image.Point) {
 
 func (e *MapEditor) brushCommit() {
 	cells := e.brush.stroke
-	e.brush.stroke, e.brush.down = nil, false
+	e.brush.endStroke()
 	host := e.brushHost()
 	if host == nil || len(cells) == 0 {
 		return
@@ -365,3 +357,6 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 	}
 	return out
 }
+
+// endStroke drops the stroke in progress.
+func (b *brushState) endStroke() { b.stroke, b.down = nil, false }

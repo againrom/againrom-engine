@@ -126,7 +126,7 @@ func TestMapEditorModalCoversSurviveTextPreparationAndDraw(t *testing.T) {
 						if err := e.Open("refused"); err == nil || e.Message() == "" {
 							t.Fatal("refused open did not display its message")
 						}
-					} else if err := e.Key(mode); err != nil || !e.pathMode || e.pathSave != (mode == "saveas") {
+					} else if err := e.Key(mode); err != nil || !e.prompt.open() || (e.prompt.kind == promptSave) != (mode == "saveas") {
 						t.Fatalf("production %s input did not enter its modal: %v", mode, err)
 					}
 					screen := ebiten.NewImage(size.X, size.Y)
@@ -161,7 +161,7 @@ func TestMapEditorModalCoversSurviveTextPreparationAndDraw(t *testing.T) {
 					if c, k, _ := e.TextSettle(); c != 0 || k != 0 {
 						t.Fatal("smoothing off retained capture")
 					}
-					if err := e.Key("escape"); err != nil || e.pathMode || e.Message() != "" {
+					if err := e.Key("escape"); err != nil || e.prompt.open() || e.Message() != "" {
 						t.Fatal("production escape did not dismiss the cover", err)
 					}
 					if !bytes.Equal(plain.Pix, e.PanelImage(size.Y).Pix) {

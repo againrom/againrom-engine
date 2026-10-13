@@ -98,7 +98,7 @@ func TestMapEditor1093AmbiguousLinksModalAndBoundedGeometry(t *testing.T) {
 	if !e.FocusReference(2) || len(e.referenceMarkerLines()) != 6 {
 		t.Fatal("large region must use six bounded primitives")
 	}
-	e.pathMode = true
+	e.prompt.kind = promptOpen
 	e.focusedReference = 0
 	for _, row := range e.detailLayout(480) {
 		if row.Reference == 2 {

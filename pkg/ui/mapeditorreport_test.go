@@ -144,8 +144,8 @@ func TestSaveAsWithAnErrorShowsTheReportAndKeepsItOnScreen(t *testing.T) {
 		t.Fatalf("Save As: %v", err)
 	}
 	rows, open := e.ReportOpen()
-	if !open || len(rows) != 4 || e.pathMode || e.message != "" || !e.Dirty() || e.doc.Source != "scenario/10.alm" {
-		t.Fatalf("open %v rows %d path %v message %q dirty %v source %q", open, len(rows), e.pathMode, e.message, e.Dirty(), e.doc.Source)
+	if !open || len(rows) != 4 || e.prompt.open() || e.message != "" || !e.Dirty() || e.doc.Source != "scenario/10.alm" {
+		t.Fatalf("open %v rows %d path %v message %q dirty %v source %q", open, len(rows), e.prompt.open(), e.message, e.Dirty(), e.doc.Source)
 	}
 	if !strings.HasPrefix(e.report.note, "Save refused: 3 errors, 1 warnings") {
 		t.Fatalf("note %q", e.report.note)

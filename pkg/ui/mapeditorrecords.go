@@ -36,10 +36,10 @@ func (e *MapEditor) selectedRecord() (string, int) {
 // promptFields are the rows the field prompt cycles through: the new sack's
 // item code while a sack waits for one, else the selected record's fields.
 func (e *MapEditor) promptFields() []InspectionField {
-	if e.sackCell != nil && e.newUnit {
+	switch e.prompt.kind {
+	case promptNewUnit:
 		return []InspectionField{{Key: "class", Label: "Class key for the new unit"}}
-	}
-	if e.sackCell != nil {
+	case promptNewSack:
 		return []InspectionField{{Key: "item", Label: "Item code for the new sack"}}
 	}
 	kind, index := e.selectedRecord()
@@ -57,8 +57,11 @@ func (e *MapEditor) recordKey(key string) error {
 	if key == "tab" {
 		fields := e.promptFields()
 		if len(fields) > 0 {
-			e.field = (e.field + 1) % len(fields)
-			e.path, e.message = strconv.FormatInt(fields[e.field].Value, 10), ""
+			if e.prompt.open() {
+				e.prompt.field = (e.prompt.field + 1) % len(fields)
+				e.prompt.path = strconv.FormatInt(fields[e.prompt.field].Value, 10)
+			}
+			e.message = ""
 		}
 		return nil
 	}
@@ -66,12 +69,8 @@ func (e *MapEditor) recordKey(key string) error {
 		return nil
 	}
 	if key == "sack" {
-		e.cancelRecordDrag()
-		e.pick, e.message = "sack", ""
-		return nil
-	}
-	if key == "unit" {
-		e.unitKey()
+		e.leave(leaveDrag)
+		e.armPick(pickSack)
 		return nil
 	}
 	if key == "drop" || key == "goals" {
@@ -83,49 +82,44 @@ func (e *MapEditor) recordKey(key string) error {
 		e.message = "Select a unit, structure or sack first."
 		return nil
 	}
-	e.cancelRecordDrag()
+	e.leave(leaveDrag)
 	switch key {
 	case "clone":
-		e.pick, e.message = "clone", ""
+		e.armPick(pickClone)
 	case "delete":
-		e.pick = ""
+		e.leave(leavePick)
 		next, err := e.doc.Edits.Delete(kind, index)
 		if err := e.adoptEdit(next, err); err != nil {
 			return err
 		}
 		e.selected = -1
 	case "field":
-		e.pick, e.sackCell = "", nil
+		e.leave(leavePick | leavePrompt)
 		fields := e.promptFields()
 		if len(fields) == 0 {
 			e.message = "This record has no settable fields."
 			return nil
 		}
-		e.openPrompt(strconv.FormatInt(fields[0].Value, 10))
+		e.openPrompt(editorPrompt{kind: promptField, path: strconv.FormatInt(fields[0].Value, 10)})
 	}
 	return nil
 }
 
-func (e *MapEditor) openPrompt(text string) {
-	e.pathMode, e.pathSave, e.fieldMode, e.field = true, false, true, 0
-	e.path, e.message = text, ""
-}
-
 func (e *MapEditor) fieldTitle() string {
 	fields := e.promptFields()
-	if e.field >= len(fields) {
+	if e.prompt.field >= len(fields) {
 		return "Field / Enter: set"
 	}
-	if e.sackCell != nil {
-		return fields[e.field].Label + " / Enter: add"
+	if e.prompt.adds() {
+		return fields[e.prompt.field].Label + " / Enter: add"
 	}
-	return fmt.Sprintf("%s / Tab: next / Enter: set", fields[e.field].Label)
+	return fmt.Sprintf("%s / Tab: next / Enter: set", fields[e.prompt.field].Label)
 }
 
 func (e *MapEditor) setField(text string) error {
 	fields := e.promptFields()
-	if e.field >= len(fields) {
-		e.pathMode, e.fieldMode, e.sackCell = false, false, nil
+	if e.prompt.field >= len(fields) {
+		e.leave(leavePrompt)
 		return nil
 	}
 	v, err := strconv.ParseInt(text, 10, 64)
@@ -135,27 +129,28 @@ func (e *MapEditor) setField(text string) error {
 	}
 	var next *InspectionDocument
 	newKind := ""
-	if e.sackCell != nil {
-		next, newKind, err = e.addRecord(*e.sackCell, v)
+	adds := e.prompt.adds()
+	if adds {
+		next, newKind, err = e.addRecord(e.prompt.cell, v)
 	} else {
 		kind, index := e.selectedRecord()
-		next, err = e.doc.Edits.SetField(kind, index, fields[e.field].Key, v)
+		next, err = e.doc.Edits.SetField(kind, index, fields[e.prompt.field].Key, v)
 	}
 	if err := e.adoptEdit(next, err); err != nil {
 		return err
 	}
-	if e.sackCell != nil && next != nil {
+	if adds && next != nil {
 		e.selectNewest(newKind)
 	}
-	e.pathMode, e.fieldMode, e.sackCell = false, false, nil
+	e.leave(leavePrompt)
 	return nil
 }
 
 // pickAt finishes an armed clone or sack on the ground cell under p.
 func (e *MapEditor) pickAt(p image.Point) {
 	pick := e.pick
-	e.pick = ""
-	if pick == "goal" {
+	e.leave(leavePick)
+	if pick == pickGoal {
 		e.goalAt(p)
 		return
 	}
@@ -164,13 +159,15 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.message = "Click a map cell."
 		return
 	}
-	if pick == "sack" || pick == "unit" {
-		cell := image.Pt(x, y)
-		e.sackCell, e.newUnit = &cell, pick == "unit"
-		e.openPrompt("")
+	if pick == pickSack {
+		e.openPrompt(editorPrompt{kind: promptNewSack, cell: image.Pt(x, y)})
 		return
 	}
-	if pick == "drop" {
+	if pick == pickUnit {
+		e.openPrompt(editorPrompt{kind: promptNewUnit, cell: image.Pt(x, y)})
+		return
+	}
+	if pick == pickDrop {
 		e.dropAt(image.Pt(x, y))
 		return
 	}

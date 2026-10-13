@@ -97,48 +97,21 @@ func (e *MapEditor) ReportSelected() int {
 	return e.report.sel
 }
 
-// openReport shows rows under a note, leaving the record list's offset to be
-// restored when the panel closes.
-func (e *MapEditor) openReport(rows []InspectionFinding, note string) {
-	if !e.report.open {
-		e.report.offset = e.offset
-	}
-	e.report.open, e.report.rows, e.report.note, e.report.sel = true, rows, note, 0
-	e.report.goals = nil
-	e.report.flagged = map[string]bool{}
-	for _, f := range rows {
-		if f.Kind != "" {
-			e.report.flagged[findingKey(f.Kind, f.Index)] = true
-		}
-	}
-	e.catalog, e.offset, e.listWheel = false, 0, 0
-}
-
-func (e *MapEditor) closeReport() {
-	if !e.report.open {
-		return
-	}
-	e.offset = e.report.offset
-	e.report = reportState{}
-	e.listWheel = 0
-}
-
 // reportKey is the report key: it checks the map as it now stands and shows
 // the findings, or closes the panel when it already shows.
 func (e *MapEditor) reportKey() {
 	if e.report.open {
-		e.closeReport()
+		e.leave(leaveReport)
 		return
 	}
 	c, ok := e.checker()
 	if !ok || e.catalog {
 		return
 	}
-	e.cancelRecordDrag()
-	e.pick, e.fieldMode, e.pathMode = "", false, false
+	e.leave(leaveDrag | leavePick | leavePrompt)
 	rows := c.Report()
 	errs, warnings := CountFindings(rows)
-	e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings))
+	e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)
 	e.selectFinding(0)
 }
 
@@ -158,15 +131,15 @@ func (e *MapEditor) afterSave() {
 	}
 	if rows := c.Report(); len(rows) > 0 {
 		_, warnings := CountFindings(rows)
-		e.openReport(rows, fmt.Sprintf("Saved with %d warnings", warnings))
+		e.openReport(rows, fmt.Sprintf("Saved with %d warnings", warnings), nil)
 	}
 }
 
 // refuseSave shows the report a refused save carries and keeps it on screen.
 func (e *MapEditor) refuseSave(r *ReportRefusal) {
-	e.pathMode, e.pathSave, e.fieldMode = false, false, false
+	e.leave(leavePrompt)
 	errs, warnings := CountFindings(r.Findings)
-	e.openReport(r.Findings, fmt.Sprintf("Save refused: %d errors, %d warnings", errs, warnings))
+	e.openReport(r.Findings, fmt.Sprintf("Save refused: %d errors, %d warnings", errs, warnings), nil)
 	e.selectFinding(0)
 }
 

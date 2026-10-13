@@ -2424,6 +2424,10 @@ package storyguard
 // alm.TileGroupMask, alm.MaxHeight, alm.TileGroupBits, mapedit.NewMapTerrains
 // and the tests that pin them, this note included.
 //
+// CommentBytes rises 6898 bytes for the editor modes hotfix: the docs of the window's
+// mode value and its key table, and the tests that pin them, this note
+// included.
+//
 // CommentBytes rises for the sack-delete link renumbering of the map editor: the docs
 // of unitLinkParts and the release and focused tests, this note included.
 var Committed = Baseline{
@@ -2449,5 +2453,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9002580,
+	CommentBytes: 9009478,
 }

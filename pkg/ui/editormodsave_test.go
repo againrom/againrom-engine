@@ -41,8 +41,8 @@ func TestSaveGoesIntoTheModTheHostNames(t *testing.T) {
 	if err := e.Key("saveas"); err != nil {
 		t.Fatal(err)
 	}
-	if edits.saves != 1 || edits.writes != 0 || e.pathMode || e.doc.Source != "mods/x/mission/en/map.alm" || e.message != "" {
-		t.Fatalf("saves %d writes %d path %v source %q message %q", edits.saves, edits.writes, e.pathMode, e.doc.Source, e.message)
+	if edits.saves != 1 || edits.writes != 0 || e.prompt.open() || e.doc.Source != "mods/x/mission/en/map.alm" || e.message != "" {
+		t.Fatalf("saves %d writes %d path %v source %q message %q", edits.saves, edits.writes, e.prompt.open(), e.doc.Source, e.message)
 	}
 	edits.err = errors.New(`no mission of mod "x" names this map`)
 	if err := e.Key("saveas"); err == nil || e.message != edits.err.Error() || e.doc.Source != "mods/x/mission/en/map.alm" {
@@ -59,7 +59,7 @@ func TestSaveAsAsksForAPathWithoutAMod(t *testing.T) {
 	if err := e.Key("saveas"); err != nil {
 		t.Fatal(err)
 	}
-	if edits.saves != 0 || !e.pathMode || !e.pathSave {
-		t.Fatalf("saves %d path %v save %v", edits.saves, e.pathMode, e.pathSave)
+	if edits.saves != 0 || e.prompt.kind != promptSave {
+		t.Fatalf("saves %d path %v save %v", edits.saves, e.prompt.open(), e.prompt.kind == promptSave)
 	}
 }

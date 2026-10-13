@@ -100,15 +100,15 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	}
 	p.dirty = true
 	e.railClick(230, 45)
-	if !e.pathMode || !e.pathSave || e.path != "" {
+	if e.prompt.kind != promptSave || e.prompt.path != "" {
 		t.Fatal("Save As button did not open an explicit empty path field")
 	}
 	e.TextInput("new.alm")
 	e.railClick(10, 12) // modal path input owns the rail
-	if !e.pathMode || e.catalog {
+	if !e.prompt.open() || e.catalog {
 		t.Fatal("rail click escaped path prompt")
 	}
-	if err := e.Key("enter"); err == nil || !e.pathMode || !e.Dirty() {
+	if err := e.Key("enter"); err == nil || !e.prompt.open() || !e.Dirty() {
 		t.Fatal("failed Save As cleared prompt or dirty state")
 	}
 }
@@ -134,8 +134,8 @@ func TestMapEditor1118LongPathAndRefusalNeverOverlap(t *testing.T) {
 	for _, size := range []image.Point{image.Pt(640, 480), image.Pt(800, 600), image.Pt(1280, 800)} {
 		e := editor1092(t)
 		e.Layout(size.X, size.Y)
-		e.pathMode, e.pathSave = true, true
-		e.path = strings.Repeat("long-directory/", 60) + "chosen-map.alm"
+		e.prompt.kind = promptSave
+		e.prompt.path = strings.Repeat("long-directory/", 60) + "chosen-map.alm"
 		e.message = "Save As refused: the explicit output directory does not exist."
 		rows := e.modalLayout(size.Y)
 		path, refusal := false, false

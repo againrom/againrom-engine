@@ -5,56 +5,6 @@ import (
 	"image"
 )
 
-// The rail's help lines. Each line must fit the rail width unclipped;
-// EditorHelpLines lists every line the window can show so a test can measure
-// them with the installed font.
-var (
-	helpKeys      = []string{"Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H: brush", "N: new map / U: unit"}
-	helpPickClone = []string{"Clone: click a cell", "Esc: cancel"}
-	helpPickSack  = []string{"Sack: click a cell", "Esc: cancel"}
-	helpPickDrop  = []string{"Drop cell: click a cell", "Esc: cancel"}
-	helpPickGoal  = []string{"Target: click a unit or", "structure / Esc: cancel"}
-	helpTerrain   = []string{"T: off / Drag: paint / [ ]: size"}
-	helpHeight    = []string{"H: off / Drag: shape / [ ]: size"}
-	helpGoals     = []string{"Enter: pick a target", "Up, Down: select / G: close"}
-)
-
-// EditorHelpLines is every help line the editor window shows.
-func EditorHelpLines() []string {
-	var out []string
-	for _, rows := range [][]string{helpKeys, helpPickClone, helpPickSack, helpPickUnit, helpPickDrop, helpPickGoal, helpGoals, helpTerrain, helpHeight} {
-		out = append(out, rows...)
-	}
-	return out
-}
-
-// helpLines is the help rows for the window's state: the keys, or the
-// instruction of the armed pick.
-func (e *MapEditor) helpLines() []string {
-	if e.brushActive() {
-		if e.brush.mode == brushHeight {
-			return helpHeight
-		}
-		return helpTerrain
-	}
-	switch e.pick {
-	case "clone":
-		return helpPickClone
-	case "sack":
-		return helpPickSack
-	case "unit":
-		return helpPickUnit
-	case "drop":
-		return helpPickDrop
-	case "goal":
-		return helpPickGoal
-	}
-	if len(e.report.goals) > 0 {
-		return helpGoals
-	}
-	return helpKeys
-}
-
 func (e *MapEditor) script() (InspectionScript, bool) {
 	if !e.editable() {
 		return nil, false
@@ -70,17 +20,16 @@ func (e *MapEditor) scriptKey(key string) {
 	if !ok || e.catalog {
 		return
 	}
-	e.cancelRecordDrag()
 	if key == "drop" {
-		e.closeReport()
-		e.pick, e.message = "drop", ""
+		e.leave(leaveDrag | leaveReport)
+		e.armPick(pickDrop)
 		return
 	}
 	if len(e.report.goals) > 0 {
-		e.closeReport()
+		e.leave(leaveDrag | leaveReport)
 		return
 	}
-	e.pick, e.fieldMode, e.pathMode = "", false, false
+	e.leave(leaveDrag | leavePick | leavePrompt)
 	e.openGoals(s, 0)
 }
 
@@ -93,8 +42,7 @@ func (e *MapEditor) openGoals(s InspectionScript, sel int) {
 	for i, g := range goals {
 		rows[i] = InspectionFinding{Rule: g.Arm, Kind: g.Kind, Index: g.Index, Cell: g.Cell, HasCell: g.HasCell, Text: g.Text}
 	}
-	e.openReport(rows, fmt.Sprintf("Script arms: %d", len(goals)))
-	e.report.goals = goals
+	e.openReport(rows, fmt.Sprintf("Script arms: %d", len(goals)), goals)
 	if len(goals) > 0 {
 		e.selectFinding(max(0, min(sel, len(goals)-1)))
 	}
@@ -118,7 +66,7 @@ func (e *MapEditor) armGoal() {
 	if len(e.report.goals) == 0 || e.report.sel >= len(e.report.goals) {
 		return
 	}
-	e.pick, e.message = "goal", ""
+	e.armPick(pickGoal)
 }
 
 // goalAt gives the selected script arm the unit or structure under p as its

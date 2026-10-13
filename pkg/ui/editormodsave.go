@@ -22,8 +22,7 @@ func (e *MapEditor) modSave() (InspectionModSave, bool) {
 
 // saveIntoMod is Save into the host's mod; a refusal stays on screen.
 func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
-	e.cancelRecordDrag()
-	e.pick, e.sackCell, e.fieldMode = "", nil, false
+	e.leave(leaveDrag | leavePick | leavePrompt)
 	source, err := m.SaveIntoMod()
 	if err != nil {
 		if r, ok := refusal(err); ok {
@@ -34,7 +33,7 @@ func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
 		return err
 	}
 	e.doc.Source = source
-	e.pathMode, e.pathSave = false, false
+	e.leave(leavePrompt)
 	e.message = ""
 	e.afterSave()
 	return nil

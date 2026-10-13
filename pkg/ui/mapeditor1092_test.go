@@ -73,8 +73,8 @@ func TestMapEditor1092NativePixelsSelectionFilteringAndTransactionalOpen(t *test
 	if !bytes.Equal(e.doc.SourceBytes, []byte("untouched")) {
 		t.Fatal("inspection wrote source")
 	}
-	e.pathMode = true
-	if err := e.Key("escape"); err != nil || e.pathMode || e.message != "" {
+	e.prompt.kind = promptOpen
+	if err := e.Key("escape"); err != nil || e.prompt.open() || e.message != "" {
 		t.Fatal("path cancellation closed editor")
 	}
 	e.catalog = true

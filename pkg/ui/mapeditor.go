@@ -114,21 +114,13 @@ type MapEditor struct {
 	selected, offset, detailOffset int
 	listWheel, detailWheel         float64 // fractional rows belong to their viewport
 	filter                         int
-	catalog, pathMode              bool
-	pathSave                       bool
-	fieldMode                      bool         // field prompt in the path modal
-	pick                           string       // "clone", "sack", "unit", "drop" or "goal": the next canvas click picks a cell or a record
-	sackCell                       *image.Point // the cell a sack prompt adds to
-	newUnit                        bool         // the prompt at sackCell asks for a unit's class
-	field                          int          // index into the selected record's fields
-	path, message                  string
+	editorMode                     // the window's mode: catalogue, prompt, pick, brush and report
+	message                        string
 	down, moved                    bool
 	press                          image.Point
 	window                         image.Point
 	panelImage                     *ebiten.Image
 	focusedReference               int // 1-based on the selected record; 0 means none
-	report                         reportState
-	brush                          brushState
 	recordDrag                     *editorRecordDrag
 	cancelledDrag                  bool // consume the remainder of a cancelled press
 	textSmoothingEnabled           bool
@@ -138,7 +130,7 @@ type MapEditor struct {
 }
 
 func NewMapEditor(font *text.Font, maps []EditorMap, open InspectionOpener) *MapEditor {
-	return &MapEditor{font: font, maps: maps, open: open, selected: -1, catalog: true, window: image.Pt(1280, 800), textSmoothingEnabled: true}
+	return &MapEditor{font: font, maps: maps, open: open, selected: -1, editorMode: editorMode{catalog: true}, window: image.Pt(1280, 800), textSmoothingEnabled: true}
 }
 
 func (e *MapEditor) SetTextSmoothing(enabled bool) { e.textSmoothingEnabled = enabled }
@@ -179,14 +171,12 @@ func (e *MapEditor) Open(source string) error {
 	next.Viewer.editorView = true
 	e.doc = next
 	e.Layout(e.window.X, e.window.Y)
+	e.leave(leaveDrag | leaveReport | leaveCatalog | leavePrompt)
 	e.selected, e.offset, e.detailOffset, e.filter = -1, 0, 0, 0
 	e.focusedReference = 0
 	e.listWheel, e.detailWheel = 0, 0
-	e.catalog, e.pathMode = false, false
 	e.message = ""
-	e.report = reportState{}
-	e.cancelRecordDrag()
-	e.brush.stroke, e.brush.down = nil, false
+	e.brush.endStroke()
 	e.Fit()
 	return nil
 }
@@ -293,163 +283,6 @@ func (e *MapEditor) rows() []int {
 	return out
 }
 
-// Key and Pointer are the same input doors used by Update and headless proof.
-func (e *MapEditor) Key(key string) error {
-	if e.pathMode && key != "escape" && key != "enter" && key != "backspace" && key != "close" && !(e.fieldMode && key == "tab") {
-		return nil
-	}
-	switch key {
-	case "close":
-		if e.Dirty() {
-			e.message = "Unsaved changes. Save As or undo changes before closing."
-			return nil
-		}
-		return ebiten.Termination
-	case "escape":
-		if e.recordDrag != nil {
-			e.cancelRecordDrag()
-			return nil
-		}
-		if e.pick != "" {
-			e.pick = ""
-			e.message = ""
-			return nil
-		}
-		if e.pathMode {
-			e.pathMode, e.fieldMode, e.sackCell = false, false, nil
-			e.message = ""
-			return nil
-		}
-		if e.report.open && e.message == "" {
-			e.closeReport()
-			return nil
-		}
-		if e.message != "" {
-			e.message = ""
-			return nil
-		}
-		if e.brush.mode != brushOff {
-			e.brush.mode, e.brush.stroke, e.brush.down = brushOff, nil, false
-			return nil
-		}
-		if e.catalog && e.doc != nil {
-			e.catalog = false
-			e.offset = 0
-			e.listWheel = 0
-			return nil
-		}
-		if e.Dirty() {
-			e.message = "Unsaved changes. Save As or undo changes before closing."
-			return nil
-		}
-		return ebiten.Termination
-	case "open":
-		e.cancelRecordDrag()
-		e.closeReport()
-		e.pick, e.fieldMode = "", false
-		e.pathMode = true
-		e.pathSave = false
-		e.path = ""
-		e.message = ""
-	case "catalog":
-		e.cancelRecordDrag()
-		e.closeReport()
-		e.catalog = !e.catalog
-		e.offset = 0
-		e.listWheel = 0
-		e.message = ""
-	case "enter":
-		if e.fieldMode {
-			return e.setField(strings.TrimSpace(e.path))
-		}
-		if e.pathMode {
-			if e.pathSave {
-				return e.saveAs(strings.TrimSpace(e.path))
-			}
-			return e.Open(strings.TrimSpace(e.path))
-		}
-		if len(e.report.goals) > 0 {
-			e.armGoal()
-		} else if e.report.open {
-			e.selectFinding(e.report.sel)
-		}
-	case "report":
-		e.reportKey()
-	case "terrain", "height", "radiusup", "radiusdown":
-		e.brushKey(key)
-	case "up", "down":
-		if e.brushKey(key) {
-			return nil
-		}
-		if key == "up" {
-			e.reportStep(-1)
-		} else {
-			e.reportStep(1)
-		}
-	case "saveas":
-		if m, ok := e.modSave(); ok {
-			return e.saveIntoMod(m)
-		}
-		if e.editable() {
-			e.cancelRecordDrag()
-			e.closeReport()
-			e.pick, e.fieldMode = "", false
-			e.pathMode, e.pathSave = true, true
-			e.path, e.message = "", ""
-		}
-	case "new":
-		e.newKey()
-	case "unit":
-		e.unitKey()
-	case "clone", "delete", "field", "tab", "sack", "drop", "goals":
-		return e.recordKey(key)
-	case "undo", "redo":
-		e.cancelRecordDrag()
-		e.pick = ""
-		if e.editable() {
-			if key == "undo" && !e.doc.Edits.CanUndo() || key == "redo" && !e.doc.Edits.CanRedo() {
-				return nil
-			}
-			var next *InspectionDocument
-			var err error
-			if key == "undo" {
-				next, err = e.doc.Edits.Undo()
-			} else {
-				next, err = e.doc.Edits.Redo()
-			}
-			return e.adoptEdit(next, err)
-		}
-	case "backspace":
-		if e.pathMode {
-			r := []rune(e.path)
-			if len(r) > 0 {
-				e.path = string(r[:len(r)-1])
-			}
-		}
-	case "fit":
-		e.Fit()
-	case "triggers":
-		e.filter, e.offset = 7, 0
-		e.listWheel = 0
-		if e.selected >= 0 {
-			e.Select(e.selected, false)
-		}
-	case "pageup":
-		e.listWheel = 0
-		e.offset = max(0, e.offset-e.visibleRows())
-	case "pagedown":
-		e.listWheel = 0
-		e.offset = min(max(0, e.rowCount()-e.visibleRows()), e.offset+e.visibleRows())
-	case "home":
-		e.listWheel = 0
-		e.offset = 0
-	case "end":
-		e.listWheel = 0
-		e.offset = max(0, e.rowCount()-e.visibleRows())
-	}
-	return nil
-}
-
 func (e *MapEditor) rowCount() int {
 	if e.brushActive() {
 		return len(e.brushRows())
@@ -486,7 +319,7 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	released := e.down && !in.PrimaryDown && !e.moved
 	e.down = in.PrimaryDown
-	if e.pathMode {
+	if e.prompt.open() {
 		return
 	}
 	if x >= rail {
@@ -505,12 +338,12 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		}
 		return
 	}
-	if e.doc == nil || e.catalog || e.pathMode {
+	if e.doc == nil || e.blocksCanvas() {
 		return
 	}
 	e.doc.Viewer.step(in, now)
 	if released && e.press.X < rail {
-		if e.pick != "" {
+		if e.pick != pickNone {
 			e.pickAt(p)
 			return
 		}
@@ -531,14 +364,14 @@ func editorWheelRows(remainder *float64, wheel float64) int {
 }
 
 func (e *MapEditor) railClick(x, y int) {
-	if e.pathMode {
+	if e.prompt.open() {
 		return
 	}
 	if y >= 42 && y < 64 {
 		_ = e.Key([]string{"undo", "redo", "saveas"}[min(2, max(0, x/108))])
 		return
 	}
-	if !e.catalog && !e.report.open && !e.pathMode && e.message == "" {
+	if e.listView() && !e.prompt.open() && e.message == "" {
 		for _, line := range e.detailLayout(e.window.Y) {
 			if line.Reference > 0 && image.Pt(x, y).In(line.Rect) {
 				e.FocusReference(line.Reference)
@@ -557,12 +390,11 @@ func (e *MapEditor) railClick(x, y int) {
 		}
 		return
 	}
-	if !e.catalog && !e.report.open && !e.brushActive() && y >= 128 && y < 176 {
+	if e.listView() && !e.brushActive() && y >= 128 && y < 176 {
 		idx := (y-128)/24*4 + x/80
 		if idx < len(editorFilters) {
 			e.filter = idx
-			e.offset = 0
-			e.listWheel = 0
+			e.resetList(0)
 			if e.selected >= 0 {
 				e.Select(e.selected, false)
 			}
@@ -595,7 +427,7 @@ func (e *MapEditor) Update() error {
 			return err
 		}
 	}
-	if e.pathMode {
+	if e.prompt.open() {
 		e.TextInput(string(ebiten.AppendInputChars(nil)))
 	}
 	for _, k := range []struct {
@@ -608,7 +440,7 @@ func (e *MapEditor) Update() error {
 			}
 		}
 	}
-	if !e.pathMode {
+	if !e.prompt.open() {
 		if ebiten.IsKeyPressed(ebiten.KeyControl) {
 			if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 				key := "undo"
@@ -641,7 +473,7 @@ func (e *MapEditor) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeyR) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 			_ = e.Key("report")
 		}
-	} else if e.fieldMode && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+	} else if e.prompt.fields() && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 		_ = e.Key("tab")
 	}
 	e.Pointer(readInput(), time.Now())
@@ -931,7 +763,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		line(editorClip(e.font, help, 300), 10, h-75+n*18, 300, editorPaper)
 	}
 	line(e.saveHelp(), 10, h-21, 300, editorPaper)
-	if e.pathMode || e.message != "" {
+	if e.prompt.open() || e.message != "" {
 		draw.Draw(pic, image.Rect(0, bottom+30, 320, h-81), image.NewUniform(editorInk), image.Point{}, draw.Src)
 		for _, row := range e.modalLayout(h) {
 			line(row.text, 10, row.y, 300, row.color)
