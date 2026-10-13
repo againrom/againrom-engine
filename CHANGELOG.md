@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.122.0
+
 - [Starter] Every caption of the starter window comes from one table in English and Russian. With a Russian base the buttons, labels, headings, status and error lines read in Russian, using the game's own Russian words where the install has one (Delete, On, Off, Skills, Saved Games and others). Mod setting labels stay the mod's own.
 - [ROM1] In the tavern and the town, a companion who joined the party (Naira with a female hero, the companion of mission 100 with a male mage) now answers his or her own lines with the right voice recording and statistics. Before, Brian answered for them.
 - [ROM1] Mod authors write a mission's texts in UTF-8: event and tip pages, the world map's briefmap.txt, the title and the briefing. The game encodes them for the base it runs on, so one mod folder shows Russian on the Russian base and English on the English one. A text file written in the base's own bytes still works. `modmission` copies an installed mission's texts out as UTF-8, and the map editor warns before it saves into a mod when the map's script sends a message the mod gives no text.
