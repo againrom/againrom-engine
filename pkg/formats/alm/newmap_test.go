@@ -76,9 +76,6 @@ func TestNewMapDefaultsMatchTheClaims(t *testing.T) {
 	if got := binary.LittleEndian.Uint32(raw[0x10:]); got != 990 {
 		t.Errorf("formatVersion %d, want 990", got)
 	}
-	if len(m.Groups) != 2 || m.Groups[1].Name != "Enemy" || m.Groups[1].Participant != 1 || m.Groups[0].Participant != 0 {
-		t.Errorf("roster %+v, want two players, the second named Enemy with +0x04 = 1 (ALM-NEWMAP-236)", m.Groups)
-	}
 	if len(m.Units) != 0 || len(m.Objects) != 0 {
 		t.Errorf("a new map holds %d units and %d structures", len(m.Units), len(m.Objects))
 	}
@@ -135,5 +132,70 @@ func TestNewMapRefusesWhatItCannotBuild(t *testing.T) {
 		if d, err := NewMap(s); err == nil || d != nil {
 			t.Errorf("%s: built a document", name)
 		}
+	}
+}
+
+// rosterProblems lists how a type-5 payload departs from ALM-NEWMAP-258: two
+// 76-byte records with id words 1 and 2, side words 0 and 1, scalar 0, the
+// names Self and Enemy zero past the NUL, and a sixteen-word relation row
+// holding 2 at the record's own slot and 1 elsewhere.
+func rosterProblems(p []byte) []string {
+	var out []string
+	if len(p) != 152 {
+		return []string{"the roster is not two 76-byte records"}
+	}
+	for i, want := range []struct {
+		id, side uint32
+		name     string
+	}{{1, 0, "Self"}, {2, 1, "Enemy"}} {
+		r := p[76*i : 76*(i+1)]
+		le := binary.LittleEndian
+		if le.Uint32(r[0:]) != want.id || le.Uint32(r[4:]) != want.side || le.Uint32(r[8:]) != 0 {
+			out = append(out, "id, side or scalar word")
+		}
+		if !bytes.Equal(r[0x0c:0x2c], append([]byte(want.name), make([]byte, 32-len(want.name))...)) {
+			out = append(out, "name")
+		}
+		for k := 0; k < 16; k++ {
+			w := uint16(1)
+			if k == i {
+				w = 2
+			}
+			if le.Uint16(r[0x2c+2*k:]) != w {
+				out = append(out, "relation word")
+			}
+		}
+	}
+	return out
+}
+
+// ALM-NEWMAP-258: the two players of a new map. The control is the roster the
+// constructor wrote before the claim: scalar 5000, no first name, zeros in the
+// relation row.
+func TestNewMapPlayersMatchTheClaim(t *testing.T) {
+	d := mustNewMap(t, DefaultNewMap())
+	if got := rosterProblems(d.RecordPayload(slices.Index(d.RecordTypeIDs(), 5))); len(got) != 0 {
+		t.Errorf("roster departs from ALM-NEWMAP-258: %v", got)
+	}
+	old := make([]byte, 152)
+	binary.LittleEndian.PutUint32(old[0:], 1)
+	binary.LittleEndian.PutUint32(old[8:], 5000)
+	copy(old[0x2c:], []byte{2, 0, 1, 0})
+	binary.LittleEndian.PutUint32(old[76:], 2)
+	binary.LittleEndian.PutUint32(old[80:], 1)
+	binary.LittleEndian.PutUint32(old[84:], 5000)
+	copy(old[76+0x0c:], "Enemy")
+	if len(rosterProblems(old)) == 0 {
+		t.Error("control: the earlier roster passes the check")
+	}
+}
+
+// ALM-NEWMAP-257: the original leaves heap contents after the name's NUL and
+// in the text region; the constructor writes zeros there.
+func TestNewMapUnwrittenBytesAreZero(t *testing.T) {
+	meta := mustNewMap(t, DefaultNewMap()).RecordPayload(0)
+	if !bytes.Equal(meta[0x30+len("Multiplayer Map"):0x70], make([]byte, 64-len("Multiplayer Map"))) ||
+		!bytes.Equal(meta[0x78:0x78+512], make([]byte, 512)) {
+		t.Error("a byte after the name or in the text region is not zero")
 	}
 }

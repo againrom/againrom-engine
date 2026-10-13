@@ -31,6 +31,7 @@ type nameTable map[string][]string
 // files is a change worth declaring rather than a refactor to absorb silently.
 var almReferences = nameTable{
 	"editor.go/New":                       {"alm.OpenDocument"},
+	"editor.go/(*Editor).SaveBytes":       {"alm.SaveForm"},
 	"editor.go/(*Editor).Map":             {"alm.Map", "alm.Open"},
 	"unit.go/(*Editor).highestScriptUnit": {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},

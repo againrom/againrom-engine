@@ -279,12 +279,49 @@ func (e *Editor) Delete(k Kind, i int) error {
 		return err
 	}
 	at, l := w.at(i)
-	e.apply(edit{
+	ed := edit{
 		replace(at, e.data[at:at+l], nil),
 		e.sizeWordPart(w.span, -l),
 		e.wordPart(w.countAt, -1),
-	})
+	}
+	if k == KindLoot {
+		ed = append(ed, e.unitLinkParts(i)...)
+	}
+	e.apply(ed)
 	return nil
+}
+
+// unitLinkParts renumbers the units' loot links (the word at +0x18, a 1-based
+// index into the type-8 array) for the removal of loot record i: a link to it
+// becomes 0 and a link above it falls by one, so every other link still names
+// the record it named (DIV-3255). A map without units has none.
+func (e *Editor) unitLinkParts(i int) []part {
+	if !e.locate().carries(unitTypeID) {
+		return nil
+	}
+	uw, err := e.walkSection(KindUnit, "renumber unit loot links")
+	if err != nil {
+		return nil
+	}
+	var parts []part
+	for u := 0; u < uw.n(); u++ {
+		at, _ := uw.at(u)
+		p := at + unitLootLink
+		old := e.u32(p)
+		nv := old
+		switch {
+		case old == uint32(i)+1:
+			nv = 0
+		case old > uint32(i)+1:
+			nv = old - 1
+		}
+		if nv != old {
+			var img [4]byte
+			binary.LittleEndian.PutUint32(img[:], nv)
+			parts = append(parts, replace(p, e.data[p:p+4], img[:]))
+		}
+	}
+	return parts
 }
 
 // Placement is one record a PlaceAll batch appends to its kind's section.

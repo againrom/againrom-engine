@@ -46,7 +46,7 @@ type newMapWord struct {
 // newMapMeta lists the type-0 words a new map carries other than the sides,
 // the group mask and the zero words. +0x18 is recomputed from the tile plane
 // (ALM-SAVE-238); +0x20, +0x24, +0x28 and +0x2c are 0 (ALM-NEWMAP-236); the
-// 512 bytes at +0x78 are zero past the name (DIV-3208).
+// bytes past the name and the 512 bytes at +0x78 are zero (DIV-3250).
 var newMapMeta = []newMapWord{
 	{metaAngle, 0x3f490fda, "ALM-NEWMAP-236"},
 	{metaWord0C, 360, "ALM-NEWMAP-236, ALM-METADEFAULT-186"},
@@ -60,31 +60,27 @@ var newMapMeta = []newMapWord{
 // newMapName is the type-0 name of a new map (ALM-NEWMAP-236).
 const newMapName = "Multiplayer Map"
 
-// newMapPlayer is one roster record: the colour slot at +0x00, the word at
-// +0x04, the name at +0x0c and the scalar at +0x08 (ALM-GRP-041).
+// newMapPlayer is one roster record in the writer's order: the id word at
+// +0x00, the side word at +0x04, the scalar at +0x08 and the name at +0x0c
+// (ALM-NEWMAP-258).
 type newMapPlayer struct {
-	colour, participant uint32
-	name                string
-	source              string
+	id, side, scalar uint32
+	name             string
 }
 
-// newMapScalar is the roster scalar of a defaulted record (ALM-REQ-056).
-const newMapScalar = 5000
-
-// newMapRoster is the two-player roster: the original editor builds the
-// players with (1, 1) and (2, 2), names the second Enemy and stores 1 in its
-// +0x04 word (ALM-NEWMAP-236). The first record keeps the constructor's 0
-// there and no name (DIV-3208).
+// newMapRoster is the two-player roster: the original editor's player
+// constructor takes (1, 1) and (2, 2), the names are Self and Enemy, the side
+// words 0 and 1 and the scalars 0 (ALM-NEWMAP-258).
 var newMapRoster = []newMapPlayer{
-	{1, 0, "", "ALM-NEWMAP-236, DIV-3208"},
-	{2, 1, "Enemy", "ALM-NEWMAP-236"},
+	{1, 0, 0, "Self"},
+	{2, 1, 0, "Enemy"},
 }
 
-// Relation words of the roster rows: 2 on the diagonal, which the loader
-// forces (AI-DIPLO-005), 1 between the two players, 0 elsewhere (DIV-3208).
+// Relation words of a roster row: 2 on the record's own slot and 1 on each of
+// the other fifteen (ALM-NEWMAP-258).
 const (
-	newMapRelationSelf    = 2
-	newMapRelationHostile = 1
+	newMapRelationSelf  = 2
+	newMapRelationOther = 1
 )
 
 // newMapRecords is the record order of a new map: the original writer's
@@ -161,12 +157,12 @@ func NewMap(spec NewMapSpec) (*Document, error) {
 	roster := make([]byte, 0, groupRecordSize*len(newMapRoster))
 	for i, p := range newMapRoster {
 		rec := make([]byte, groupRecordSize)
-		le.PutUint32(rec[0:], p.colour)
-		le.PutUint32(rec[4:], p.participant)
-		le.PutUint32(rec[8:], newMapScalar)
+		le.PutUint32(rec[0:], p.id)
+		le.PutUint32(rec[4:], p.side)
+		le.PutUint32(rec[8:], p.scalar)
 		copy(rec[0x0c:0x2c], p.name)
-		for k := range newMapRoster {
-			word := uint16(newMapRelationHostile)
+		for k := 0; k < groupRelationLen; k++ {
+			word := uint16(newMapRelationOther)
 			if k == i {
 				word = newMapRelationSelf
 			}

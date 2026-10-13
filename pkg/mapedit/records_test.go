@@ -3,6 +3,7 @@ package mapedit_test
 import (
 	"bytes"
 	"encoding/binary"
+	"slices"
 	"testing"
 
 	"againrom/internal/synth"
@@ -404,5 +405,72 @@ func TestSectionFieldRowsLieInsideTheirRecords(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// DIV-3255: deleting a loot record sets the links to it to 0 and lowers the
+// links above it by one, in the same edit; Undo returns the exact bytes. The
+// links are 1-based indices into the type-8 array.
+func TestDeleteLootRenumbersUnitLinks(t *testing.T) {
+	const nUnits, nSacks = 4, 4
+	var units []synth.ALMUnit
+	for i := 0; i < nUnits; i++ {
+		units = append(units, synth.ALMUnit{X: uint32(2+i)*256 + 128, Y: 3*256 + 128, ClassID: 40, ClassSubID: 2})
+	}
+	base := synth.ALM(synth.ALMOptions{Width: 16, Height: 16, Type7Payload: make([]byte, 12), Units: units})
+	seed := newEditor(t, base)
+	for i := 0; i < nSacks; i++ {
+		if _, err := seed.Place(mapedit.KindLoot, seed.GroundSack(uint32(5+i)*256+128, 6*256+128, 0x0101)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Unit k links sack k+1 (links 1..3); the fourth unit links nothing.
+	linked := seed.Bytes()
+	_, p := recordAt(t, linked, 6)
+	for k, link := range []uint32{1, 2, 3, 0} {
+		binary.LittleEndian.PutUint32(linked[p+70*k+0x18:], link)
+	}
+	links := func(b []byte) []uint32 {
+		_, p := recordAt(t, b, 6)
+		var out []uint32
+		for k := 0; k < nUnits; k++ {
+			out = append(out, binary.LittleEndian.Uint32(b[p+70*k+0x18:]))
+		}
+		return out
+	}
+	for _, c := range []struct {
+		del  int
+		want []uint32
+	}{
+		{0, []uint32{0, 1, 2, 0}}, // the first record: the link to it clears, the rest fall by one
+		{1, []uint32{1, 0, 2, 0}}, // a middle record: below stays, at clears, above falls
+		{2, []uint32{1, 2, 0, 0}},
+		{3, []uint32{1, 2, 3, 0}}, // an unlinked last record: no link changes
+	} {
+		e := newEditor(t, linked)
+		if err := e.Delete(mapedit.KindLoot, c.del); err != nil {
+			t.Fatal(err)
+		}
+		if got := links(e.Bytes()); !slices.Equal(got, c.want) {
+			t.Errorf("delete sack %d: links %v, want %v", c.del, got, c.want)
+		}
+		if e.Count(mapedit.KindLoot) != nSacks-1 {
+			t.Errorf("delete sack %d: %d sacks left", c.del, e.Count(mapedit.KindLoot))
+		}
+		after := e.Bytes()
+		if !e.Undo() || !bytes.Equal(e.Bytes(), linked) || e.CanUndo() {
+			t.Errorf("delete sack %d: one Undo did not restore the exact bytes", c.del)
+		}
+		if !e.Redo() || !bytes.Equal(e.Bytes(), after) {
+			t.Errorf("delete sack %d: Redo did not return the edited bytes", c.del)
+		}
+	}
+	// A map without units: the same delete is the plain removal.
+	e := newEditor(t, synth.ALM(synth.ALMOptions{Width: 16, Height: 16, Type7Payload: make([]byte, 12)}))
+	if _, err := e.Place(mapedit.KindLoot, e.GroundSack(256, 256, 0x0101)); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.Delete(mapedit.KindLoot, 0); err != nil || e.Count(mapedit.KindLoot) != 0 {
+		t.Errorf("delete on a map without units: %v", err)
 	}
 }

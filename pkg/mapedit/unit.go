@@ -18,6 +18,7 @@ const (
 	unitX          = 0x00
 	unitY          = 0x04
 	unitID         = 0x40
+	unitLootLink   = 0x18 // 1-based index into the type-8 array, 0 for none
 
 	metaCount6 = 0x24
 )

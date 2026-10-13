@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -221,11 +222,14 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 				t.Fatalf("installed explicit Save As: %v", err)
 			}
 			written, err := os.ReadFile(out)
-			if err != nil || !bytes.Equal(changed, written) {
-				t.Fatalf("written bytes differ: %v", err)
+			// The written file is the original's save form of the edit: a sack
+			// the moved unit carries follows it.
+			form, ferr := alm.SaveForm(changed)
+			if err != nil || ferr != nil || !bytes.Equal(form, written) {
+				t.Fatalf("written bytes differ from the save form: %v %v", err, ferr)
 			}
 			fresh := x.Editor()
-			if err := fresh.Open(out); err != nil || fresh.Dirty() || fresh.Document().Edits.CanUndo() || !bytes.Equal(changed, fresh.Document().SourceBytes) {
+			if err := fresh.Open(out); err != nil || fresh.Dirty() || fresh.Document().Edits.CanUndo() || !bytes.Equal(form, fresh.Document().SourceBytes) {
 				t.Fatalf("fresh reopened document differs: %v", err)
 			}
 			if hasReference {

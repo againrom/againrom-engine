@@ -82,7 +82,11 @@ func (x *MapInspector) WriteNewMap(source, path string) (string, []ui.Inspection
 	if x.archives != nil {
 		root = x.archives.Root
 	}
-	target, err := writeEditedMap(root, source, path, s.model.Bytes())
+	b, err := s.model.SaveBytes()
+	if err != nil {
+		return "", nil, err
+	}
+	target, err := writeEditedMap(root, source, path, b)
 	if err != nil {
 		return "", nil, err
 	}

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A map the editor saves matches what the original editor writes. A new map starts with the original's two players, Self and Enemy, hostile to each other; a unit saved with an owner the map has no player for becomes player 1's, and a unit's sack follows the unit's position in the saved file. Deleting a sack no longer makes other sacks on the ground vanish when the map is saved.
+
 ## 0.122.0
 
 - [Starter] Every caption of the starter window comes from one table in English and Russian. With a Russian base the buttons, labels, headings, status and error lines read in Russian, using the game's own Russian words where the install has one (Delete, On, Off, Skills, Saved Games and others). Mod setting labels stay the mod's own.

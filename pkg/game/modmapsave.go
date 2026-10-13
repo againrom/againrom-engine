@@ -116,7 +116,10 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	if err := s.gate(); err != nil {
 		return "", err
 	}
-	b := s.model.Bytes()
+	b, err := s.model.SaveBytes()
+	if err != nil {
+		return "", fmt.Errorf("mod %q: %w", m.id, err)
+	}
 	root := ""
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
@@ -125,7 +128,7 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("mod %q: %w", m.id, err)
 	}
-	s.saved, s.source = b, target
+	s.saved, s.source = s.model.Bytes(), target
 	return target, nil
 }
 

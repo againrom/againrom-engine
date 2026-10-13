@@ -76,6 +76,11 @@ func New(data []byte) (*Editor, error) {
 // out before an edit still holds the bytes as they were when it was taken.
 func (e *Editor) Bytes() []byte { return cloneBytes(e.data) }
 
+// SaveBytes returns the bytes a save writes: the edited stream in the form
+// the original editor's save leaves it (alm.SaveForm). The session keeps its
+// own bytes; only the written file differs.
+func (e *Editor) SaveBytes() ([]byte, error) { return alm.SaveForm(e.data) }
+
 // Clone preserves the complete undo/redo branch for a transactional edit.
 // Parts are immutable after creation; the log slice and current bytes are not.
 func (e *Editor) Clone() *Editor {

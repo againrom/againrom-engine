@@ -66,6 +66,9 @@ func fixture1118(t *testing.T) []byte {
 	s := spans1118(t, b)
 	binary.LittleEndian.PutUint16(b[s[6]+0x40:], 2)
 	binary.LittleEndian.PutUint32(b[s[6]+0x42:], 5)
+	// Both units belong to a roster slot, so the save form leaves them be.
+	binary.LittleEndian.PutUint32(b[s[6]+0x14:], 1)
+	binary.LittleEndian.PutUint32(b[s[6]+70+0x14:], 1)
 	appendSection := func(id uint32, payload []byte) {
 		h := make([]byte, 20)
 		binary.LittleEndian.PutUint32(h, 7)

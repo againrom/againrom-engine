@@ -94,3 +94,32 @@ func TestNewUnitRecordRefusesWhatItCannotBuild(t *testing.T) {
 		t.Error("owner slot 0 was accepted")
 	}
 }
+
+// ALM-SAVE-256: the written file binds a unit whose owner matches no player to
+// player 1; the session keeps the owner it was given.
+func TestSaveBytesWritesTheOriginalsFormAndKeepsTheSession(t *testing.T) {
+	e, err := NewMap(alm.NewMapSpec{Width: 32, Height: 32, Tile: 0x11, Altitude: 64})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := make([]byte, 70)
+	binary.LittleEndian.PutUint32(rec[0x14:], 9)
+	if _, err := e.PlaceUnit(rec); err != nil {
+		t.Fatal(err)
+	}
+	saved, err := e.SaveBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := alm.SaveForm(e.Bytes())
+	if err != nil || !bytes.Equal(saved, want) {
+		t.Fatalf("SaveBytes is not the save form of the session (%v)", err)
+	}
+	m, err := alm.Open(saved)
+	if err != nil || len(m.Units) != 1 || m.Units[0].Owner != 1 {
+		t.Fatalf("saved units %v (%v), want owner 1", m.Units, err)
+	}
+	if m, err := e.Map(); err != nil || m.Units[0].Owner != 9 {
+		t.Fatalf("the session's owner changed (%v)", err)
+	}
+}
