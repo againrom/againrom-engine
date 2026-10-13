@@ -85,10 +85,10 @@ func TestBaseRowsAndNotesStateTheProfile(t *testing.T) {
 }
 
 func TestBaseLabelOfAnUnrecognisedBuild(t *testing.T) {
-	if got := baseLabel(profileInfo(basepkg.ROM1EN, false)); got != "rom1-en (unrecognised build)" {
+	if got := (&app{}).baseLabel(profileInfo(basepkg.ROM1EN, false)); got != "rom1-en (unrecognised build)" {
 		t.Fatalf("label = %q", got)
 	}
-	if got := baseLabel(game.InstallInfo{Language: "russian"}); got != "russian" {
+	if got := (&app{}).baseLabel(game.InstallInfo{Language: "russian"}); got != "russian" {
 		t.Fatalf("label = %q", got)
 	}
 }
@@ -119,7 +119,7 @@ func TestSecondGameRootIsSelectableAndLaunches(t *testing.T) {
 		t.Fatalf("rows = %q", rows)
 	}
 	do(t, a, action{aSelectBase, 1})
-	for _, want := range []string{"rom2-ru (Rage of Mages II, Russian; exact build)", "original saves refused", "SAV record"} {
+	for _, want := range []string{"rom2-ru (Rage of Mages II, Russian; exact build)", a.t(cSavesRefused), "SAV record"} {
 		if !strings.Contains(a.status, want) || a.statusBad {
 			t.Fatalf("status %q lacks %q", a.status, want)
 		}

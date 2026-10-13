@@ -39,7 +39,7 @@ func TestChickenCheckboxIsOffAndPlayForwardsOnlyItsFlag(t *testing.T) {
 			for _, item := range a.layout() {
 				if item.act.kind == aChicken {
 					found = true
-					if item.checked || item.text != "off" || item.kind != iToggle {
+					if item.checked || item.text != a.t(cOff) || item.kind != iToggle {
 						t.Fatalf("default checkbox: %+v", item)
 					}
 				}

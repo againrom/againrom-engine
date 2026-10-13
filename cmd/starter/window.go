@@ -16,7 +16,7 @@ type window struct {
 
 func runWindow(a *app) error {
 	ebiten.SetWindowSize(winW, winH)
-	ebiten.SetWindowTitle("Againrom starter " + a.starterVersion)
+	ebiten.SetWindowTitle(a.t(cWindowTitle, a.starterVersion))
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 	ebiten.SetTPS(30)
 	return ebiten.RunGame(&window{a: a, img: ebiten.NewImage(winW, winH)})

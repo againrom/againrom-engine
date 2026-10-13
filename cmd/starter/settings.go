@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -311,7 +309,7 @@ func (s settings) modEnabled(id string) bool {
 // defaults add no argument, so the game's saved preferences keep applying.
 func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string, error) {
 	if strings.TrimSpace(root) == "" {
-		return nil, errors.New("no base game selected")
+		return nil, captionErr(cNoBaseSelected)
 	}
 	args := []string{"-assets", root}
 	if len(s.Enabled) > 0 {
@@ -330,7 +328,7 @@ func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string,
 	if v := strings.TrimSpace(s.Volume); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil || n < 0 || n > 100 {
-			return nil, fmt.Errorf("volume %q is not a number from 0 to 100", v)
+			return nil, captionErr(cBadVolume, v)
 		}
 		args = append(args, "-volume", strconv.Itoa(n))
 	}
@@ -354,12 +352,12 @@ func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string,
 	}
 	mission := strings.TrimSpace(s.Mission)
 	if s.Picker && mission != "" {
-		return nil, errors.New("picker and mission cannot both be set")
+		return nil, captionErr(cPickerMission)
 	}
 	if mission != "" {
 		n, err := strconv.Atoi(mission)
 		if err != nil || n < 1 {
-			return nil, fmt.Errorf("mission %q is not a positive number", mission)
+			return nil, captionErr(cBadMission, mission)
 		}
 		args = append(args, "-mission", strconv.Itoa(n))
 	}
@@ -398,7 +396,7 @@ func splitArgs(line string) ([]string, error) {
 		}
 	}
 	if inQuote {
-		return nil, errors.New("extra arguments have an unmatched quote")
+		return nil, captionErr(cExtraQuote)
 	}
 	if have {
 		args = append(args, cur.String())

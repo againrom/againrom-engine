@@ -187,27 +187,30 @@ func newApp(iniPath, selfPath, goos, starterVersion string, d deps) *app {
 		deps: d, selfPath: selfPath, goos: goos, iniPath: iniPath,
 		infos:          map[string]game.InstallInfo{},
 		starterVersion: starterVersion,
-		gameVersion:    "unknown",
+		gameVersion:    versionUnknown,
 		results:        make(chan result, 8),
 		dirty:          true,
 	}
+	// The first problem is reported once the bases are inspected, so it is
+	// worded in the language of the selected base.
+	var early func()
 	data, err := os.ReadFile(iniPath)
 	switch {
 	case err == nil:
 	case errors.Is(err, os.ErrNotExist):
 		data = nil
 	default:
-		a.fail("cannot read settings %s: %v", iniPath, err)
+		early = func() { a.fail(cReadSettingsFailed, iniPath, err) }
 	}
 	a.file, a.problems = ini.Parse(data)
 	a.s = loadSettings(a.file)
 	if len(a.problems) > 0 {
 		p := a.problems[0]
-		a.fail("settings %s: %s (%d such line(s); the lines are kept as they are)", iniPath, p, len(a.problems))
+		early = func() { a.fail(cSettingsLine, iniPath, p, len(a.problems)) }
 	}
-	if a.status == "" {
+	if early == nil {
 		if err := probeWritable(filepath.Dir(iniPath)); err != nil {
-			a.fail("settings folder is not writable, Save settings will fail: %v", err)
+			early = func() { a.fail(cFolderNotWritable, err) }
 		}
 	}
 	for _, b := range a.s.Bases {
@@ -215,6 +218,9 @@ func newApp(iniPath, selfPath, goos, starterVersion string, d deps) *app {
 	}
 	if _, ok := a.s.basePath(a.s.LastBase); !ok && len(a.s.Bases) > 0 {
 		a.s.LastBase = a.s.Bases[0].Key
+	}
+	if early != nil {
+		early()
 	}
 	a.rescan()
 	a.probeVersion()
@@ -234,12 +240,12 @@ func probeWritable(dir string) error {
 	return os.Remove(name)
 }
 
-func (a *app) ok(format string, args ...any) {
-	a.status, a.statusBad, a.dirty = fmt.Sprintf(format, args...), false, true
+func (a *app) ok(id captionID, args ...any) {
+	a.status, a.statusBad, a.dirty = a.t(id, args...), false, true
 }
 
-func (a *app) fail(format string, args ...any) {
-	a.status, a.statusBad, a.dirty = fmt.Sprintf(format, args...), true, true
+func (a *app) fail(id captionID, args ...any) {
+	a.status, a.statusBad, a.dirty = a.t(id, args...), true, true
 }
 
 func (a *app) inspectBase(path string) {
@@ -276,7 +282,7 @@ func (a *app) settingsOf(id string) ([]mod.Setting, error) {
 		}
 	}
 	if !found {
-		d.err = fmt.Errorf("mod %s has no usable folder", id)
+		d.err = captionErr(cModNoFolder, id)
 	}
 	a.declared[id] = d
 	return d.list, d.err
@@ -324,7 +330,7 @@ func (a *app) modArgs() ([]string, error) {
 	for _, id := range a.s.Enabled {
 		decl, err := a.settingsOf(id)
 		if err != nil {
-			return nil, fmt.Errorf("mod %s: %v", id, err)
+			return nil, captionErr(cModError, id, a.errText(err))
 		}
 		given := map[string]string{}
 		for _, st := range decl {
@@ -407,7 +413,7 @@ func (a *app) modRows() []modRow {
 		if e, ok := byID[id]; ok {
 			r = describe(e)
 		} else {
-			r = modRow{id: id, label: id + ": folder not found in the mods directory", problem: "folder not found"}
+			r = modRow{id: id, label: a.t(cModFolderMissing, id), problem: a.t(cProblemMissing)}
 		}
 		r.enabled = true
 		rows = append(rows, r)
@@ -436,13 +442,16 @@ func (a *app) layout() []item {
 		it = append(it, item{kind: iField, rect: r, text: *a.field(id), focused: a.focus == id, act: action{aFocus, int(id)}})
 	}
 
-	title := "Starter " + a.starterVersion + " (" + shortRevision() + ")"
-	text(10, 6, title, toneNormal)
-	text(330, 6, "launches againrom "+a.gameVersion, toneDim)
-	text(10, 24, "settings: "+a.iniPath, toneDim)
+	gameVersion := a.gameVersion
+	if gameVersion == versionUnknown {
+		gameVersion = a.t(cUnknown)
+	}
+	text(10, 6, a.t(cTitle, a.starterVersion, shortRevision()), toneNormal)
+	text(330, 6, a.t(cLaunches, gameVersion), toneDim)
+	text(10, 24, a.t(cSettingsFile, a.iniPath), toneDim)
 
 	// Base games.
-	heading(10, 48, "Base game")
+	heading(10, 48, a.t(cHeadBase))
 	bases := a.s.Bases
 	top := clampScroll(&a.scroll[0], len(bases), baseRows)
 	for k := 0; k < baseRows && top+k < len(bases); k++ {
@@ -451,28 +460,28 @@ func (a *app) layout() []item {
 		r := item{kind: iBaseRow, rect: rect(10, 66+18*k, 365, 18), checked: strings.EqualFold(b.Key, a.s.LastBase), act: action{aSelectBase, top + k}}
 		if info.Valid() {
 			r.tone = toneGood
-			r.text = b.Key + "  " + b.Path + "  OK " + baseLabel(info)
+			r.text = a.t(cBaseOK, b.Key, b.Path, a.baseLabel(info))
 		} else {
 			r.tone = toneBad
-			r.text = b.Key + "  " + b.Path + "  not an install, missing " + strings.Join(info.Missing, ", ")
+			r.text = a.t(cBaseBad, b.Key, b.Path, strings.Join(info.Missing, ", "))
 		}
 		it = append(it, r)
 	}
 	if len(bases) == 0 {
-		textW(10, 66, 365, "No base game yet. Type or paste a folder below.", toneDim)
+		textW(10, 66, 365, a.t(cNoBase), toneDim)
 	}
-	text(10, 162, "Add path:", toneDim)
+	text(10, 162, a.t(cAddPath), toneDim)
 	field(rect(76, 158, 170, 22), fAddBase)
-	button(rect(252, 158, 50, 22), "Add", action{kind: aAddBase})
-	button(rect(308, 158, 67, 22), "Remove", action{kind: aRemoveBase})
+	button(rect(252, 158, 50, 22), a.t(cAdd), action{kind: aAddBase})
+	button(rect(308, 158, 67, 22), a.t(cRemove), action{kind: aRemoveBase})
 
 	// Mods.
-	heading(10, 190, "Mods")
-	text(10, 214, "Folder:", toneDim)
+	heading(10, 190, a.t(cHeadMods))
+	text(10, 214, a.t(cFolder), toneDim)
 	field(rect(76, 210, 224, 22), fModsDir)
-	button(rect(306, 210, 69, 22), "Rescan", action{kind: aRescan})
+	button(rect(306, 210, 69, 22), a.t(cRescan), action{kind: aRescan})
 	if a.s.ModsDir == "" {
-		textW(76, 234, 299, "(empty: "+mod.DefaultDir(a.selfDir())+")", toneDim)
+		textW(76, 234, 299, a.t(cModsDefault, mod.DefaultDir(a.selfDir())), toneDim)
 	}
 	rows := a.modRows()
 	top = clampScroll(&a.scroll[1], len(rows), modRows)
@@ -496,65 +505,65 @@ func (a *app) layout() []item {
 		it = append(it, item{kind: iModRow, rect: rect(10, 250+18*k, 365, 18), text: label, tone: tn, checked: m.enabled, act: action{aToggleMod, top + k}})
 	}
 	if a.scanErr != nil {
-		textW(10, 382, 365, "cannot read the mods folder: "+a.scanErr.Error(), toneBad)
+		textW(10, 382, 365, a.t(cModsReadError, a.scanErr.Error()), toneBad)
 	} else if len(rows) == 0 {
-		textW(10, 250, 365, "No mods found.", toneDim)
+		textW(10, 250, 365, a.t(cNoMods), toneDim)
 	}
-	textW(10, 362, 365, "Tick to enable. Load order is the order shown.", toneDim)
+	textW(10, 362, 365, a.t(cTickHint), toneDim)
 
 	// Parameters.
-	heading(395, 48, "Parameters")
+	heading(395, 48, a.t(cHeadParams))
 	row := func(i int, label string) int { y := 66 + 24*i; textW(395, y+3, 135, label, toneNormal); return y }
 	ctl := func(y int) image.Rectangle { return rect(535, y, 215, 22) }
-	y := row(0, "Sound")
-	button(ctl(y), a.s.Sound, action{kind: aSound})
-	y = row(1, "Volume 0-100")
+	y := row(0, a.t(cSound))
+	button(ctl(y), a.valueText(a.s.Sound), action{kind: aSound})
+	y = row(1, a.t(cVolume))
 	field(ctl(y), fVolume)
-	y = row(2, "Movies")
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.Movies), checked: a.s.Movies, act: action{kind: aMovies}})
-	y = row(3, "Mission movies")
-	button(ctl(y), a.s.Video, action{kind: aVideo})
-	y = row(4, "Markers")
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.Markers), checked: a.s.Markers, act: action{kind: aMarkers}})
-	y = row(5, "Saves folder")
+	y = row(2, a.t(cMovies))
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Movies), checked: a.s.Movies, act: action{kind: aMovies}})
+	y = row(3, a.t(cMissionMovies))
+	button(ctl(y), a.valueText(a.s.Video), action{kind: aVideo})
+	y = row(4, a.t(cMarkers))
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Markers), checked: a.s.Markers, act: action{kind: aMarkers}})
+	y = row(5, a.t(cSavesFolder))
 	field(ctl(y), fSaves)
-	heading(395, 214, "Advanced")
-	y = row(7, "Mission number")
+	heading(395, 214, a.t(cHeadAdvanced))
+	y = row(7, a.t(cMissionNumber))
 	field(ctl(y), fMission)
-	y = row(8, "Map picker")
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
-	y = row(9, "#Chicken each mission")
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
-	y = row(10, "Skill")
+	y = row(8, a.t(cMapPicker))
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
+	y = row(9, a.t(cChicken))
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
+	y = row(10, a.t(cSkill))
 	field(ctl(y), fSkill)
-	y = row(11, "Extra arguments")
+	y = row(11, a.t(cExtraArgs))
 	field(ctl(y), fExtra)
-	heading(395, 356, "Starter")
-	y = row(13, "Close after Play")
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-	y = row(14, "Game program")
+	heading(395, 356, a.t(cHeadStarter))
+	y = row(13, a.t(cCloseAfterPlay))
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
+	y = row(14, a.t(cGameProgram))
 	field(ctl(y), fAgainrom)
-	y = row(15, "Load unmarked saves")
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
+	y = row(15, a.t(cLoadUnmarked))
+	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 
 	// Mod settings.
-	heading(10, panelTop, "Mod settings")
+	heading(10, panelTop, a.t(cHeadModSettings))
 	if id, ok := a.panelMod(); !ok {
-		textW(10, panelTop+22, 365, "Select a mod in the list to edit its settings.", toneDim)
+		textW(10, panelTop+22, 365, a.t(cSelectMod), toneDim)
 	} else {
-		state, tn := "not enabled", toneDim
+		state, tn := a.t(cModNotEnabled), toneDim
 		if a.s.modEnabled(id) {
-			state, tn = "enabled", toneNormal
+			state, tn = a.t(cModEnabled), toneNormal
 		}
-		textW(120, panelTop, 170, id+" ("+state+")", tn)
+		textW(120, panelTop, 170, a.t(cModState, id, state), tn)
 		decl, err := a.settingsOf(id)
 		switch {
 		case err != nil:
-			textW(10, panelTop+22, 365, "settings.toml: "+err.Error(), toneBad)
+			textW(10, panelTop+22, 365, a.t(cSettingsToml, a.errText(err)), toneBad)
 		case len(decl) == 0:
-			textW(10, panelTop+22, 365, "This mod has no settings.", toneDim)
+			textW(10, panelTop+22, 365, a.t(cNoModSettings), toneDim)
 		default:
-			button(rect(300, panelTop-3, 75, 22), "Defaults", action{kind: aSettingReset})
+			button(rect(300, panelTop-3, 75, 22), a.t(cDefaults), action{kind: aSettingReset})
 			for i := 0; i < settingRows && i < len(decl); i++ {
 				st, y := decl[i], panelTop+24+24*i
 				label := st.Label(a.lang())
@@ -568,25 +577,25 @@ func (a *app) layout() []item {
 					it = append(it, item{kind: iField, rect: ctl, text: val, focused: a.focus == fSetting0+fieldID(i), act: action{aFocus, int(fSetting0) + i}})
 				case mod.KindBool:
 					v, perr := st.Parse(val)
-					it = append(it, item{kind: iToggle, rect: ctl, text: onOff(perr == nil && v.Bool), checked: perr == nil && v.Bool, act: action{aSettingCycle, i}})
+					it = append(it, item{kind: iToggle, rect: ctl, text: a.onOff(perr == nil && v.Bool), checked: perr == nil && v.Bool, act: action{aSettingCycle, i}})
 				default:
 					button(ctl, val, action{aSettingCycle, i})
 				}
 			}
 			if len(decl) > settingRows {
-				textW(10, panelTop+24+24*settingRows, 365, fmt.Sprintf("%d more setting(s) are not shown.", len(decl)-settingRows), toneDim)
+				textW(10, panelTop+24+24*settingRows, 365, a.t(cMoreSettings, len(decl)-settingRows), toneDim)
 			}
 		}
 	}
 
 	// Actions.
 	by := 410 + panelH
-	button(rect(10, by, 100, 28), "Play", action{kind: aPlay})
-	button(rect(118, by, 100, 28), "Check", action{kind: aCheck})
-	button(rect(226, by, 140, 28), "Save settings", action{kind: aSave})
-	button(rect(374, by, 130, 28), mapEditorCaption(a.lang()), action{kind: aMapEditor})
+	button(rect(10, by, 100, 28), a.t(cPlay), action{kind: aPlay})
+	button(rect(118, by, 100, 28), a.t(cCheck), action{kind: aCheck})
+	button(rect(226, by, 140, 28), a.t(cSaveSettings), action{kind: aSave})
+	button(rect(374, by, 130, 28), a.t(cMapEditor), action{kind: aMapEditor})
 	if cmd, err := a.command(); err != nil {
-		text(10, by+36, err.Error(), toneBad)
+		text(10, by+36, a.errText(err), toneBad)
 	} else {
 		text(10, by+36, cmd, toneDim)
 	}
@@ -609,11 +618,33 @@ func (a *app) layout() []item {
 // outputLines is how many lines of Check output the window keeps in view.
 const outputLines = 6
 
-func onOff(b bool) string {
+// versionUnknown is what gameVersion holds until the game program has told its
+// version.
+const versionUnknown = "unknown"
+
+// onOff is the caption of a switch.
+func (a *app) onOff(b bool) string {
 	if b {
-		return "on"
+		return a.t(cOn)
 	}
-	return "off"
+	return a.t(cOff)
+}
+
+// valueText is a stored option value as the button shows it: the words the
+// settings file uses for on, off, default and normal in the caption language,
+// any other value as it is.
+func (a *app) valueText(v string) string {
+	switch v {
+	case soundOn:
+		return a.t(cOn)
+	case soundOff:
+		return a.t(cOff)
+	case soundDefault:
+		return a.t(cValueDefault)
+	case videoNormal:
+		return a.t(cValueNormal)
+	}
+	return v
 }
 
 func clampScroll(offset *int, n, capacity int) int {
@@ -678,7 +709,7 @@ func (a *app) apply(act action) {
 			b := a.s.Bases[act.i]
 			a.s.LastBase = b.Key
 			if info := a.infos[b.Path]; info.Valid() {
-				a.ok("%s", baseNote(info))
+				a.ok(cText, a.baseNote(info))
 			}
 		}
 	case aToggleMod:
@@ -688,7 +719,7 @@ func (a *app) apply(act action) {
 			if r := rows[act.i]; r.enabled || r.problem == "" {
 				a.s.toggleMod(r.id)
 			} else {
-				a.fail("mod %s cannot be enabled: %s", r.id, r.problem)
+				a.fail(cModCannotEnable, r.id, r.problem)
 			}
 		}
 	case aSettingCycle:
@@ -709,7 +740,7 @@ func (a *app) apply(act action) {
 		}
 	case aRescan:
 		a.rescan()
-		a.ok("%d mod folder(s) found in %s", len(a.scan), a.s.modsDir(a.selfDir()))
+		a.ok(cModsFound, len(a.scan), a.s.modsDir(a.selfDir()))
 	case aSound:
 		a.s.Sound = map[string]string{soundDefault: soundOn, soundOn: soundOff, soundOff: soundDefault}[a.s.Sound]
 		if a.s.Sound == "" {
@@ -777,11 +808,11 @@ func (a *app) cycleSetting(i int) {
 func (a *app) addBase() {
 	path := strings.Trim(strings.TrimSpace(a.addText), `"`)
 	if path == "" {
-		a.fail("type or paste the folder of a game install first")
+		a.fail(cTypeFolder)
 		return
 	}
 	if st, err := os.Stat(path); err != nil || !st.IsDir() {
-		a.fail("%s is not a folder", path)
+		a.fail(cNotFolder, path)
 		return
 	}
 	key := a.s.addBase(path)
@@ -789,9 +820,9 @@ func (a *app) addBase() {
 	a.s.LastBase = key
 	a.addText = ""
 	if info := a.infos[path]; info.Valid() {
-		a.ok("added %s: %s", key, baseNote(info))
+		a.ok(cAdded, key, a.baseNote(info))
 	} else {
-		a.fail("added %s, but it is not an install: missing %s", key, strings.Join(info.Missing, ", "))
+		a.fail(cAddedNotInstall, key, strings.Join(info.Missing, ", "))
 	}
 }
 
@@ -877,10 +908,10 @@ func (a *app) save() {
 		err = os.WriteFile(a.iniPath, a.file.Bytes(), 0o644)
 	}
 	if err != nil {
-		a.fail("cannot save settings: %v", err)
+		a.fail(cSaveFailed, err)
 		return
 	}
-	a.ok("settings saved to %s", a.iniPath)
+	a.ok(cSaved, a.iniPath)
 	a.probeVersion()
 }
 
@@ -889,14 +920,14 @@ func (a *app) save() {
 func (a *app) launchPlan(extra ...string) (string, []string, error) {
 	root, ok := a.selectedRoot()
 	if !ok {
-		return "", nil, errors.New("no base game selected")
+		return "", nil, captionErr(cNoBaseSelected)
 	}
 	if info := a.infos[root]; !info.Valid() {
-		return "", nil, fmt.Errorf("base %s is not an install: missing %s", a.s.LastBase, strings.Join(info.Missing, ", "))
+		return "", nil, captionErr(cBaseNotInstall, a.s.LastBase, strings.Join(info.Missing, ", "))
 	}
 	for _, m := range a.modRows() {
 		if m.enabled && m.problem != "" {
-			return "", nil, fmt.Errorf("mod %s is enabled but cannot be used: %s", m.id, m.problem)
+			return "", nil, captionErr(cModUnusable, m.id, m.problem)
 		}
 	}
 	modArgs, err := a.modArgs()
@@ -910,7 +941,7 @@ func (a *app) launchPlan(extra ...string) (string, []string, error) {
 	args = withBase(args, a.infos[root])
 	exe := a.s.gameExecutable(a.selfPath, a.goos)
 	if !fileExists(exe) {
-		return "", nil, fmt.Errorf("game program not found: %s", exe)
+		return "", nil, captionErr(cGameNotFound, exe)
 	}
 	return exe, append(args, extra...), nil
 }
@@ -918,14 +949,14 @@ func (a *app) launchPlan(extra ...string) (string, []string, error) {
 func (a *app) play() {
 	exe, args, err := a.launchPlan()
 	if err != nil {
-		a.fail("cannot play: %v", err)
+		a.fail(cCannotPlay, a.errText(err))
 		return
 	}
 	if err := a.deps.start(exe, args); err != nil {
-		a.fail("cannot start %s: %v", exe, err)
+		a.fail(cCannotStart, exe, err)
 		return
 	}
-	a.ok("started %s", filepath.Base(exe))
+	a.ok(cStarted, filepath.Base(exe))
 	if a.s.CloseOnPlay {
 		a.closing = true
 	}
@@ -934,10 +965,10 @@ func (a *app) play() {
 func (a *app) check() {
 	exe, args, err := a.launchPlan("-check")
 	if err != nil {
-		a.fail("cannot check: %v", err)
+		a.fail(cCannotCheck, a.errText(err))
 		return
 	}
-	a.ok("running %s -check ...", filepath.Base(exe))
+	a.ok(cRunningCheck, filepath.Base(exe))
 	a.output = nil
 	a.deps.async(func() {
 		out, err := a.deps.run(exe, args)
@@ -945,30 +976,19 @@ func (a *app) check() {
 	})
 }
 
-// mapEditorWords is the map editor button's caption by label language.
-var mapEditorWords = map[string]string{locale.Fallback: "Map editor", "ru": "Редактор карт"}
-
-// mapEditorCaption is the caption in lang, else in the reference language.
-func mapEditorCaption(lang string) string {
-	if w, ok := mapEditorWords[lang]; ok {
-		return w
-	}
-	return mapEditorWords[locale.Fallback]
-}
-
 // mapEditorPlan resolves the map editor beside this program and its arguments
 // for the selected base, and reports why they cannot be had.
 func (a *app) mapEditorPlan() (string, []string, error) {
 	root, ok := a.selectedRoot()
 	if !ok {
-		return "", nil, errors.New("no base game selected")
+		return "", nil, captionErr(cNoBaseSelected)
 	}
 	if info := a.infos[root]; !info.Valid() {
-		return "", nil, fmt.Errorf("base %s is not an install: missing %s", a.s.LastBase, strings.Join(info.Missing, ", "))
+		return "", nil, captionErr(cBaseNotInstall, a.s.LastBase, strings.Join(info.Missing, ", "))
 	}
 	exe := editorExecutable(a.selfPath, a.goos)
 	if !fileExists(exe) {
-		return "", nil, fmt.Errorf("map editor not found: %s", exe)
+		return "", nil, captionErr(cEditorNotFound, exe)
 	}
 	return exe, []string{"-assets", root}, nil
 }
@@ -980,10 +1000,10 @@ func (a *app) mapEditorPlan() (string, []string, error) {
 func (a *app) openMapEditor() {
 	exe, args, err := a.mapEditorPlan()
 	if err != nil {
-		a.fail("cannot open the map editor: %v", err)
+		a.fail(cCannotOpenEditor, a.errText(err))
 		return
 	}
-	a.ok("checking %s on %s ...", filepath.Base(exe), a.s.LastBase)
+	a.ok(cCheckingEditor, filepath.Base(exe), a.s.LastBase)
 	a.output = nil
 	a.deps.async(func() {
 		out, err := a.deps.run(exe, append(append([]string{}, args...), "-list"))
@@ -996,14 +1016,14 @@ func (a *app) startMapEditor(r result) {
 	exe := r.launch[0]
 	if r.err != nil {
 		a.output = outputOf(r.output)
-		a.fail("the map editor cannot open this base: %v", r.err)
+		a.fail(cEditorCannotOpen, r.err)
 		return
 	}
 	if err := a.deps.start(exe, r.launch[1:]); err != nil {
-		a.fail("cannot start %s: %v", exe, err)
+		a.fail(cCannotStart, exe, err)
 		return
 	}
-	a.ok("started %s", filepath.Base(exe))
+	a.ok(cStarted, filepath.Base(exe))
 }
 
 // probeVersion asks the game program for its version line.
@@ -1020,7 +1040,7 @@ func (a *app) probeVersion() {
 }
 
 func (a *app) setGameVersion(line string) {
-	v := "unknown"
+	v := versionUnknown
 	if f := strings.Fields(line); len(f) >= 2 && f[0] == "againrom" {
 		v = strings.Join(f[1:], " ")
 	}
@@ -1043,9 +1063,9 @@ func (a *app) poll() {
 			case "check":
 				a.output = outputOf(r.output)
 				if r.err != nil {
-					a.fail("check failed: %v", r.err)
+					a.fail(cCheckFailed, r.err)
 				} else {
-					a.ok("check passed")
+					a.ok(cCheckPassed)
 				}
 				a.dirty = true
 			case "editor":
@@ -1072,17 +1092,17 @@ func (a *app) takeDirty() bool {
 // baseLabel is what a base row says of an install: its profile id, whether the
 // build is one the profile knows, and whether the profile states limits. An
 // install with no profile says its language.
-func baseLabel(info game.InstallInfo) string {
+func (a *app) baseLabel(info game.InstallInfo) string {
 	m := info.Base
 	if !m.Profile.Known() {
 		return info.Language
 	}
 	label := m.Profile.ID
 	if !m.Exact {
-		label += " (unrecognised build)"
+		label += a.t(cUnrecognised)
 	}
 	if hasLimits(m.Profile) {
-		label += ", has limits"
+		label += a.t(cHasLimits)
 	}
 	return label
 }
@@ -1094,18 +1114,18 @@ func hasLimits(p basepkg.Profile) bool {
 
 // baseNote is the status line a selected or added base gets: the profile and
 // each limit the profile states.
-func baseNote(info game.InstallInfo) string {
+func (a *app) baseNote(info game.InstallInfo) string {
 	m := info.Base
 	if !m.Profile.Known() {
-		return info.Language + " install"
+		return a.t(cInstallOf, info.Language)
 	}
 	parts := []string{m.String()}
 	l := m.Profile.Limits
 	if l.NoCharacterGeneration {
-		parts = append(parts, fmt.Sprintf("no character generation, new game opens mission %d", m.Profile.Mission()))
+		parts = append(parts, a.t(cNoCharGen, m.Profile.Mission()))
 	}
 	if l.OriginalSaveRefusal != "" {
-		parts = append(parts, "original saves refused")
+		parts = append(parts, a.t(cSavesRefused))
 	}
 	parts = append(parts, l.Notes...)
 	return strings.Join(parts, "; ")

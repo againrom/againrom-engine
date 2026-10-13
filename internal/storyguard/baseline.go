@@ -2403,6 +2403,9 @@ package storyguard
 // CommentBytes rises for the one order state, the automatic cast moment and
 // the cast hold through recovery: pkg/sim/orderstate.go, castOrder and their
 // tests, this note included.
+//
+// CommentBytes rises for the starter's one caption table: the docs of
+// cmd/starter/captions.go and its tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2426,5 +2429,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 8980241,
+	CommentBytes: 8983112,
 }
