@@ -231,7 +231,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 			continue
 		}
 		if !c.Started {
-			if cellOf(e).chebyshevTo(cell{x: c.X, y: c.Y}) > spellRangeOf(w.rules, rule, power, rangeCast) {
+			if !w.scrollInReach(*e, *c, spellRangeOf(w.rules, rule, power, rangeCast)) {
 				if !e.HasTarget {
 					// A prior search gave up. Preserve the item on this authored
 					// failure boundary rather than inventing original destruction.
@@ -358,4 +358,15 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 		}
 		obs.recordVictims(victims)
 	}
+}
+
+// scrollInReach is the reach gate of a scroll cast: the unit gate of
+// withinCastReach for a unit target, the whole-cell maximum axis to a cell.
+func (w *World) scrollInReach(caster Entity, c ScrollCast, reach int64) bool {
+	if !c.AtCell {
+		if ti := indexOfEntity(w.entities, c.Target); ti >= 0 {
+			return w.withinCastReach(caster, w.entities[ti], reach)
+		}
+	}
+	return cellOf(&caster).chebyshevTo(cell{x: c.X, y: c.Y}) <= reach
 }
