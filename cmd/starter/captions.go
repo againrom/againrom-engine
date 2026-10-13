@@ -27,19 +27,22 @@ const (
 	cHeadStarter     captionID = "head-starter"
 	cHeadModSettings captionID = "head-mod-settings"
 
-	cBaseOK        captionID = "base-ok"
-	cBaseBad       captionID = "base-bad"
-	cNoBase        captionID = "no-base"
-	cAddPath       captionID = "add-path"
-	cAdd           captionID = "add"
-	cRemove        captionID = "remove"
-	cFolder        captionID = "folder"
-	cRescan        captionID = "rescan"
-	cModsDefault   captionID = "mods-default"
-	cModsReadError captionID = "mods-read-error"
-	cNoMods        captionID = "no-mods"
-	cTickHint      captionID = "tick-hint"
-	cModsFound     captionID = "mods-found"
+	cBaseOK             captionID = "base-ok"
+	cBaseBad            captionID = "base-bad"
+	cNoBase             captionID = "no-base"
+	cAddPath            captionID = "add-path"
+	cAdd                captionID = "add"
+	cBrowse             captionID = "browse"
+	cChooseBaseFolder   captionID = "choose-base-folder"
+	cFolderDialogFailed captionID = "folder-dialog-failed"
+	cRemove             captionID = "remove"
+	cFolder             captionID = "folder"
+	cRescan             captionID = "rescan"
+	cModsDefault        captionID = "mods-default"
+	cModsReadError      captionID = "mods-read-error"
+	cNoMods             captionID = "no-mods"
+	cTickHint           captionID = "tick-hint"
+	cModsFound          captionID = "mods-found"
 
 	cSound          captionID = "sound"
 	cVolume         captionID = "volume"
@@ -150,6 +153,9 @@ var captionRows = []captionRow{
 	row(cNoBase, "No base game yet. Type or paste a folder below.", "Игры пока нет. Введите или вставьте папку ниже.", ""),
 	row(cAddPath, "Add path:", "Путь:", ""),
 	row(cAdd, "Add", "Внести", ""),
+	row(cBrowse, "Browse", "Обзор", ""),
+	row(cChooseBaseFolder, "Choose the base game folder", "Выберите папку основной игры", ""),
+	row(cFolderDialogFailed, "folder dialog unavailable: %v; type or paste the folder in Add path", "выбор папки недоступен: %v; введите или вставьте папку в поле пути", ""),
 	row(cRemove, "Remove", "Удалить", "dialogs.txt: Delete"),
 	row(cFolder, "Folder:", "Папка:", ""),
 	row(cRescan, "Rescan", "Обновить", ""),

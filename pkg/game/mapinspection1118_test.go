@@ -17,7 +17,7 @@ import (
 )
 
 // Independent physical ALM walk: no model locator, decoded Map or serializer.
-func spans1118(t *testing.T, b []byte) map[uint32]int {
+func inspectionSectionOffsets(t *testing.T, b []byte) map[uint32]int {
 	t.Helper()
 	if len(b) < 20 {
 		t.Fatal("short fixture")
@@ -44,7 +44,7 @@ func movedBytes1118(t *testing.T, before, after []byte, index int, cell image.Po
 	if len(before) != len(after) {
 		t.Fatalf("length changed %d -> %d", len(before), len(after))
 	}
-	off := spans1118(t, before)[6] + index*70
+	off := inspectionSectionOffsets(t, before)[6] + index*70
 	// Byte-by-byte, independent of MoveUnit's DWORD write: low fractional
 	// bytes stay; only the next three bytes of each coordinate may change.
 	want := append([]byte(nil), before...)
@@ -60,10 +60,10 @@ func movedBytes1118(t *testing.T, before, after []byte, index int, cell image.Po
 	}
 }
 
-func fixture1118(t *testing.T) []byte {
+func inspectionFixtureBytes(t *testing.T) []byte {
 	t.Helper()
 	b := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: triggerPayload1093(), Units: []synth.ALMUnit{{X: 3*256 + 128, Y: 4*256 + 255, ClassID: 300}, {X: 7*256 + 3, Y: 8*256 + 5, ClassID: 301}}})
-	s := spans1118(t, b)
+	s := inspectionSectionOffsets(t, b)
 	binary.LittleEndian.PutUint16(b[s[6]+0x40:], 2)
 	binary.LittleEndian.PutUint32(b[s[6]+0x42:], 5)
 	// Both units belong to a roster slot, so the save form leaves them be.
@@ -89,7 +89,7 @@ func fixture1118(t *testing.T) []byte {
 	return append(b, []byte("uncounted trailer")...)
 }
 
-func open1118(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, string) {
+func openInspectionFixture(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, string) {
 	t.Helper()
 	// The fixture is a raw byte-level case with a script naming records it lacks;
 	// it proves the save mechanics, so it reports with no rules.
@@ -112,7 +112,7 @@ func point1118(e *ui.MapEditor, cell image.Point) image.Point {
 	return image.Pt(int(x), int(y))
 }
 
-func drag1118(e *ui.MapEditor, from, to image.Point) {
+func dragInspectionRecord(e *ui.MapEditor, from, to image.Point) {
 	now := time.Unix(1, 0)
 	a, b := point1118(e, from), point1118(e, to)
 	e.Pointer(ui.Input{CursorX: a.X, CursorY: a.Y, PrimaryDown: true}, now)
@@ -121,15 +121,15 @@ func drag1118(e *ui.MapEditor, from, to image.Point) {
 }
 
 func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
-	b := fixture1118(t)
-	x, e, source := open1118(t, b)
+	b := inspectionFixtureBytes(t)
+	x, e, source := openInspectionFixture(t, b)
 	e.Select(0, true)
 	cam := *e.Document().Viewer.Camera()
 	oldTrigger := inspectRecord1093(t, e.Document(), "Condition", 2)
 	if len(oldTrigger.References) != 1 || oldTrigger.References[0].Targets[0].Cell != image.Pt(3, 4) {
 		t.Fatal("fixture lacks Unit ID 2 reference")
 	}
-	drag1118(e, image.Pt(3, 4), image.Pt(5, 6))
+	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
 	d := e.Document()
 	if !e.Dirty() || !d.Edits.CanUndo() || d.Edits.CanRedo() || e.Selected() != 0 || d.Records[0].Cell != image.Pt(5, 6) {
 		t.Fatal("pointer move did not retain edited selection/history")
@@ -201,7 +201,7 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 		t.Fatal("redo back to saved bytes stayed dirty")
 	}
 	_ = e.Key("undo")
-	drag1118(e, image.Pt(3, 4), image.Pt(6, 7))
+	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(6, 7))
 	if e.Document().Edits.CanRedo() {
 		t.Fatal("new edit did not truncate redo branch")
 	}
@@ -211,8 +211,8 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 	for _, mode := range []string{"click", "same-cell", "escape", "rail", "outside"} {
 		t.Run(mode, func(t *testing.T) {
-			b := fixture1118(t)
-			_, e, _ := open1118(t, b)
+			b := inspectionFixtureBytes(t)
+			_, e, _ := openInspectionFixture(t, b)
 			e.Select(0, true)
 			p := point1118(e, image.Pt(3, 4))
 			now := time.Unix(1, 0)
@@ -234,15 +234,15 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 				t.Fatal("cancel/no-op changed bytes or history")
 			}
 			// Release clears capture; the next valid drag must work normally.
-			drag1118(e, image.Pt(3, 4), image.Pt(5, 6))
+			dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
 			movedBytes1118(t, b, e.Document().SourceBytes, 0, image.Pt(5, 6))
 		})
 	}
 }
 
 func TestMapEditor1118MalformedBoundsAndNoopAreAtomic(t *testing.T) {
-	b := fixture1118(t)
-	_, e, _ := open1118(t, b)
+	b := inspectionFixtureBytes(t)
+	_, e, _ := openInspectionFixture(t, b)
 	d := e.Document()
 	for _, cell := range []image.Point{image.Pt(-1, 4), image.Pt(32, 4), image.Pt(3, 32)} {
 		if next, err := d.Edits.Move("Unit", 0, cell); err == nil || next != nil || d.Edits.CanUndo() || !bytes.Equal(b, d.SourceBytes) {

@@ -125,7 +125,7 @@ func rigWithLanguage(t *testing.T, language string) *rig {
 // each belongs to, in the order they are checked.
 var windowCaptions = []captionID{
 	cHeadBase, cHeadMods, cHeadParams, cHeadAdvanced, cHeadStarter, cHeadModSettings,
-	cAddPath, cAdd, cRemove, cFolder, cRescan, cTickHint, cSound, cVolume, cMovies,
+	cAddPath, cAdd, cBrowse, cRemove, cFolder, cRescan, cTickHint, cSound, cVolume, cMovies,
 	cMissionMovies, cMarkers, cSavesFolder, cMissionNumber, cMapPicker, cChicken, cSkill,
 	cExtraArgs, cCloseAfterPlay, cGameProgram, cLoadUnmarked, cSelectMod, cPlay, cCheck,
 	cSaveSettings, cMapEditor,

@@ -145,7 +145,8 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick"},
+		"pkg/ui/systemclick", "pkg/pathdialog"},
+	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.
 	"pkg/ui/systemclick": {},
@@ -216,7 +217,7 @@ var allow = map[string][]string{
 	"cmd/terraintool": {"pkg/render/terrain", "pkg/formats/res", "pkg/formats/alm", "pkg/game", "pkg/base"},
 	// The read-only editor receives authored content from the game loader and
 	// drives only UI inspection and camera input, not simulation or file formats.
-	"cmd/mapedit": {"pkg/game", "pkg/ui", "internal/buildinfo", "internal/versionres"},
+	"cmd/mapedit": {"pkg/game", "pkg/ui", "pkg/pathdialog", "internal/buildinfo", "internal/versionres"},
 	// mapview's -blocked tint draws the plane a PLACED STRUCTURE reaches, so
 	// the tool reaches the tier that derives one and the two tiers it takes a
 	// definition table out of an archive with. pkg/data is not on the row: a
@@ -400,7 +401,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/mod", "pkg/locale", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/mod", "pkg/locale", "pkg/pathdialog", "internal/buildinfo"},
 }
 
 // Violation names one rejected edge.
@@ -481,6 +482,9 @@ var noExternalFormats = map[string]bool{
 }
 
 func externalAllowed(pkg, imp string) bool {
+	if pkg == "pkg/pathdialog" {
+		return imp == "golang.org/x/sys/windows" || imp == "github.com/ebitengine/purego" || imp == "github.com/ebitengine/purego/objc"
+	}
 	// External dependencies are confined to their named tier.
 	//
 	// golang.org/x/text (CP866 decoding) belongs to the formats tier, minus the

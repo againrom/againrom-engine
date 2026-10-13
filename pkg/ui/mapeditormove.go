@@ -70,7 +70,7 @@ func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty()
 
 // TextInput is shared by the native path field and deterministic input drives.
 func (e *MapEditor) TextInput(s string) {
-	if e.prompt.open() {
+	if e.pathDialog.pending == nil && e.prompt.open() {
 		e.prompt.path += s
 	}
 }

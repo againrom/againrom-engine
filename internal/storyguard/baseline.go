@@ -2436,7 +2436,7 @@ package storyguard
 // plane, its stroke, the host's objects list and the tests that pin them, this
 // note included.
 var Committed = Baseline{
-	TestIdentCount: 4669,
+	TestIdentCount: 4647,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2458,5 +2458,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9015262,
+	CommentBytes: 9015982,
 }

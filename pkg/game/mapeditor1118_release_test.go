@@ -168,7 +168,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			if e.Selected() != recordIndex || e.Document().Records[recordIndex].Cell != to || !e.Dirty() {
 				t.Fatal("live editor selection/placement failed")
 			}
-			raw := changed[spans1118(t, changed)[6]+chosen*70:]
+			raw := changed[inspectionSectionOffsets(t, changed)[6]+chosen*70:]
 			text := fmt.Sprintf("X/Y raw: %d / %d", binary.LittleEndian.Uint32(raw), binary.LittleEndian.Uint32(raw[4:]))
 			if !strings.Contains(inspectText1093(e.Document().Records[recordIndex]), text) {
 				t.Fatal("installed coordinate detail is stale")

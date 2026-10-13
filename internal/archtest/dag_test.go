@@ -348,8 +348,9 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// drawing tier names; pkg/words holds the engine's own word tables; pkg/locale
 	// is the stdlib-only table of install languages; pkg/ui/systemclick is the
 	// UI tier's own leaf that reads the system's double-click setting.
+	// pkg/pathdialog is the shared system path service; it imports no game state.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick"}
+		"pkg/ui/systemclick", "pkg/pathdialog"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {
@@ -376,7 +377,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	}
 	for _, rel := range []string{
 		"pkg/render", "pkg/render/terrain", "pkg/render/camera",
-		"pkg/render/frame", "pkg/render/menu", "pkg/audio", "pkg/video", "pkg/words",
+		"pkg/render/frame", "pkg/render/menu", "pkg/audio", "pkg/video", "pkg/words", "pkg/pathdialog",
 	} {
 		if vs := Check(map[string][]string{"pkg/ui": {ModulePath + "/" + rel}}); len(vs) != 0 {
 			t.Errorf("pkg/ui -> %s: got %v, want no violation — the render tier and the audio leaf are the UI's grant", rel, vs)

@@ -111,6 +111,7 @@ type MapEditor struct {
 	maps                           []EditorMap
 	open                           InspectionOpener
 	hostText                       func(string) string
+	pathDialog                     editorPathDialog
 	selected, offset, detailOffset int
 	listWheel, detailWheel         float64 // fractional rows belong to their viewport
 	filter                         int
@@ -297,6 +298,9 @@ func (e *MapEditor) rowCount() int {
 }
 
 func (e *MapEditor) Pointer(in Input, now time.Time) {
+	if e.pathDialog.pending != nil {
+		return
+	}
 	x, y := in.CursorX, in.CursorY
 	rail := e.window.X - editorRailWidth
 	if e.doc != nil {
@@ -422,6 +426,15 @@ func (e *MapEditor) railClick(x, y int) {
 }
 
 func (e *MapEditor) Update() error {
+	if e.PollPathDialog() {
+		return nil
+	}
+	if e.pathDialog.rearm {
+		if len(inpututil.AppendPressedKeys(nil)) == 0 && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle) {
+			e.pathDialog.rearm = false
+		}
+		return nil
+	}
 	if ebiten.IsWindowBeingClosed() {
 		if err := e.Key("close"); err != nil {
 			return err
@@ -458,6 +471,9 @@ func (e *MapEditor) Update() error {
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyO) {
 			_ = e.Key("open")
+		}
+		if e.pathDialog.pending != nil {
+			return nil
 		}
 		for _, k := range []struct {
 			key  ebiten.Key
@@ -878,6 +894,7 @@ func (e *MapEditor) markerLines() []editorLine {
 }
 
 func (e *MapEditor) Run() error {
+	ebiten.SetRunnableOnUnfocused(true)
 	ebiten.SetWindowClosingHandled(true)
 	ebiten.SetWindowSize(1280, 800)
 	ebiten.SetWindowSizeLimits(640, 480, -1, -1)

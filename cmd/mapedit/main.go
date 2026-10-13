@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"againrom/pkg/game"
+	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui"
 )
 
@@ -76,7 +77,8 @@ func run(args []string, out io.Writer) error {
 	if *focusRef < 0 || (*focusRef > 0 && *selectRecord == "") {
 		return fmt.Errorf("-focus-reference requires -select and a positive reference index")
 	}
-	x, err := game.NewMapInspector(game.ResolveAssetRoot(*assets, os.Getenv("AGAINROM_ASSETS")))
+	assetRoot := game.ResolveAssetRoot(*assets, os.Getenv("AGAINROM_ASSETS"))
+	x, err := game.NewMapInspector(assetRoot)
 	if err != nil {
 		return err
 	}
@@ -182,6 +184,7 @@ func run(args []string, out io.Writer) error {
 		}
 		return reportFindings(out, d)
 	}
+	e.SetPathDialog(pathdialog.Show, assetRoot)
 	return e.Run()
 }
 

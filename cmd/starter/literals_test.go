@@ -120,7 +120,7 @@ var starterFiles = []struct {
 	name       string
 	errorsOnly bool
 }{
-	{"app.go", false}, {"render.go", false}, {"window.go", false}, {"settings.go", true},
+	{"app.go", false}, {"render.go", false}, {"window.go", false}, {"folderdialog.go", false}, {"settings.go", true},
 }
 
 // TestNoCaptionLiteralOutsideTable fails when a starter file holds a caption

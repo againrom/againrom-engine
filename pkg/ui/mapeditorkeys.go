@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"againrom/pkg/pathdialog"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -165,6 +166,9 @@ func (e *MapEditor) helpLines() []string { return editorHelp[e.helpScreen()] }
 // Key and Pointer are the same input doors used by Update and headless proof.
 // A key with no row, or one the open prompt does not hear, does nothing.
 func (e *MapEditor) Key(key string) error {
+	if e.pathDialog.pending != nil {
+		return nil
+	}
 	row := editorKeyByName[key]
 	if row == nil {
 		return nil
@@ -219,8 +223,7 @@ func (e *MapEditor) keyEscape(string) error {
 }
 
 func (e *MapEditor) keyOpen(string) error {
-	e.leave(leaveDrag | leaveReport | leavePick)
-	e.openPrompt(editorPrompt{kind: promptOpen})
+	e.askPath(pathdialog.OpenFile)
 	return nil
 }
 
@@ -280,8 +283,7 @@ func (e *MapEditor) keySaveAs(string) error {
 		return e.saveIntoMod(m)
 	}
 	if e.editable() {
-		e.leave(leaveDrag | leaveReport | leavePick)
-		e.openPrompt(editorPrompt{kind: promptSave})
+		e.askPath(pathdialog.SaveFile)
 	}
 	return nil
 }

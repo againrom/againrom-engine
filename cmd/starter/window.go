@@ -3,6 +3,8 @@ package main
 import (
 	"image"
 
+	"againrom/pkg/pathdialog"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
@@ -10,15 +12,20 @@ import (
 // window shows an app in an Ebitengine window. The app draws itself into an
 // RGBA image; the window uploads that image when it changes.
 type window struct {
-	a   *app
-	img *ebiten.Image
+	a                  *app
+	img                *ebiten.Image
+	dialogInputRelease bool
 }
 
 func runWindow(a *app) error {
+	if a.deps.pathDialog == nil {
+		a.deps.pathDialog = pathdialog.Show
+	}
 	ebiten.SetWindowSize(winW, winH)
 	ebiten.SetWindowTitle(a.t(cWindowTitle, a.starterVersion))
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 	ebiten.SetTPS(30)
+	ebiten.SetRunnableOnUnfocused(true)
 	return ebiten.RunGame(&window{a: a, img: ebiten.NewImage(winW, winH)})
 }
 
@@ -30,10 +37,16 @@ func keyRepeat(k ebiten.Key) bool {
 
 func (w *window) Update() error {
 	a := w.a
+	if w.blockDialogInput(starterInputHeld()) {
+		return nil
+	}
 	a.poll()
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		a.click(image.Pt(x, y))
+		if a.folderDialogResults != nil {
+			return nil
+		}
 	}
 	if _, dy := ebiten.Wheel(); dy != 0 {
 		x, y := ebiten.CursorPosition()
@@ -66,6 +79,25 @@ func (w *window) Update() error {
 		return ebiten.Termination
 	}
 	return nil
+}
+
+func (w *window) blockDialogInput(held bool) bool {
+	if w.a.pollFolderDialog() {
+		w.dialogInputRelease = true
+		return true
+	}
+	if w.dialogInputRelease {
+		w.dialogInputRelease = held
+		return true
+	}
+	return false
+}
+
+func starterInputHeld() bool {
+	return len(inpututil.AppendPressedKeys(nil)) != 0 ||
+		ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) ||
+		ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) ||
+		ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle)
 }
 
 func (w *window) Draw(screen *ebiten.Image) {

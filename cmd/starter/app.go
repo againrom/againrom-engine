@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/ini"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/pathdialog"
 )
 
 // Window size in pixels. panelH is the height of the mod settings panel that
@@ -78,6 +79,7 @@ const (
 	aSettingCycle // flip or step the panel's bool or choice setting, i is its row
 	aSettingReset
 	aMapEditor
+	aChooseBase
 )
 
 type action struct {
@@ -137,7 +139,8 @@ type deps struct {
 	// inspect looks at a base root.
 	inspect func(root string) game.InstallInfo
 	// async runs f off the interface thread.
-	async func(f func())
+	async      func(f func())
+	pathDialog pathdialog.Func
 }
 
 // app is the starter's state. It has no window code: Update and Draw in main.go
@@ -168,9 +171,10 @@ type app struct {
 	starterVersion string
 	gameVersion    string // what "againrom -version" printed, or "unknown"
 
-	results chan result
-	dirty   bool
-	closing bool
+	results             chan result
+	folderDialogResults chan folderDialogResult
+	dirty               bool
+	closing             bool
 }
 
 type result struct {
@@ -471,7 +475,8 @@ func (a *app) layout() []item {
 		textW(10, 66, 365, a.t(cNoBase), toneDim)
 	}
 	text(10, 162, a.t(cAddPath), toneDim)
-	field(rect(76, 158, 170, 22), fAddBase)
+	field(rect(76, 158, 100, 22), fAddBase)
+	button(rect(182, 158, 64, 22), a.t(cBrowse), action{kind: aChooseBase})
 	button(rect(252, 158, 50, 22), a.t(cAdd), action{kind: aAddBase})
 	button(rect(308, 158, 67, 22), a.t(cRemove), action{kind: aRemoveBase})
 
@@ -685,14 +690,23 @@ func quoteArgs(args []string) string {
 
 // click handles a left click at p.
 func (a *app) click(p image.Point) {
+	if a.folderDialogResults != nil {
+		return
+	}
 	items := a.layout()
 	prev := a.focus
-	a.focus = fNone
+	act := action{}
 	for i := len(items) - 1; i >= 0; i-- {
 		if it := items[i]; it.act.kind != aNone && p.In(it.rect) {
-			a.apply(it.act)
+			act = it.act
 			break
 		}
+	}
+	if act.kind != aChooseBase {
+		a.focus = fNone
+	}
+	if act.kind != aNone {
+		a.apply(act)
 	}
 	if prev != a.focus {
 		a.dirty = true
@@ -700,6 +714,13 @@ func (a *app) click(p image.Point) {
 }
 
 func (a *app) apply(act action) {
+	if a.folderDialogResults != nil {
+		return
+	}
+	if act.kind == aChooseBase {
+		a.chooseBase()
+		return
+	}
 	a.dirty = true
 	switch act.kind {
 	case aFocus:
@@ -828,6 +849,9 @@ func (a *app) addBase() {
 
 // types appends typed text to the focused field.
 func (a *app) typed(s string) {
+	if a.folderDialogResults != nil {
+		return
+	}
 	f := a.field(a.focus)
 	if f == nil {
 		return
@@ -842,6 +866,9 @@ func (a *app) typed(s string) {
 
 // backspace removes the focused field's last character.
 func (a *app) backspace() {
+	if a.folderDialogResults != nil {
+		return
+	}
 	if f := a.field(a.focus); f != nil && *f != "" {
 		r := []rune(*f)
 		*f = string(r[:len(r)-1])
@@ -851,6 +878,9 @@ func (a *app) backspace() {
 
 // enter confirms the focused field.
 func (a *app) enter() {
+	if a.folderDialogResults != nil {
+		return
+	}
 	switch a.focus {
 	case fAddBase:
 		a.addBase()
@@ -863,10 +893,17 @@ func (a *app) enter() {
 	a.dirty = true
 }
 
-func (a *app) escape() { a.focus, a.dirty = fNone, true }
+func (a *app) escape() {
+	if a.folderDialogResults == nil {
+		a.focus, a.dirty = fNone, true
+	}
+}
 
 // tab moves focus to the next field.
 func (a *app) tab() {
+	if a.folderDialogResults != nil {
+		return
+	}
 	for n := 0; n < int(fieldCount); n++ {
 		a.focus = a.focus%(fieldCount-1) + 1
 		if a.field(a.focus) != nil {
@@ -878,7 +915,7 @@ func (a *app) tab() {
 
 // pasteText pastes the first line of the clipboard into the focused field.
 func (a *app) pasteText() {
-	if a.focus == fNone || a.deps.paste == nil {
+	if a.folderDialogResults != nil || a.focus == fNone || a.deps.paste == nil {
 		return
 	}
 	s := strings.TrimSpace(a.deps.paste())
@@ -890,6 +927,9 @@ func (a *app) pasteText() {
 
 // wheel scrolls the list under p by lines.
 func (a *app) wheel(p image.Point, lines int) {
+	if a.folderDialogResults != nil {
+		return
+	}
 	switch {
 	case p.In(image.Rect(10, 66, 375, 156)):
 		a.scroll[0] += lines

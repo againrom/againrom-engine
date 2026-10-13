@@ -11,26 +11,28 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-type editProbe1118 struct {
+type editorMoveProbe struct {
 	noUnitAuthoring
 	doc               *InspectionDocument
 	index, undo, redo int
 	dirty             bool
 }
 
-func (p *editProbe1118) Dirty() bool   { return p.dirty }
-func (p *editProbe1118) CanUndo() bool { return p.dirty }
-func (p *editProbe1118) CanRedo() bool { return !p.dirty }
-func (p *editProbe1118) Undo() (*InspectionDocument, error) {
+func (p *editorMoveProbe) Dirty() bool   { return p.dirty }
+func (p *editorMoveProbe) CanUndo() bool { return p.dirty }
+func (p *editorMoveProbe) CanRedo() bool { return !p.dirty }
+func (p *editorMoveProbe) Undo() (*InspectionDocument, error) {
 	p.undo++
 	return nil, nil
 }
-func (p *editProbe1118) Redo() (*InspectionDocument, error) {
+func (p *editorMoveProbe) Redo() (*InspectionDocument, error) {
 	p.redo++
 	return nil, nil
 }
-func (p *editProbe1118) SaveAs(string) (string, error) { return "", fmt.Errorf("test writer refused") }
-func (p *editProbe1118) Move(_ string, index int, cell image.Point) (*InspectionDocument, error) {
+func (p *editorMoveProbe) SaveAs(string) (string, error) {
+	return "", fmt.Errorf("test writer refused")
+}
+func (p *editorMoveProbe) Move(_ string, index int, cell image.Point) (*InspectionDocument, error) {
 	p.index, p.dirty = index, true
 	next := *p.doc
 	next.Records = append([]InspectionRecord(nil), next.Records...)
@@ -53,7 +55,7 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	e := editor1092(t)
 	e.Layout(1024, 768)
 	e.doc.Records[20].Index = 63 // file index is neither row nor filtered ordinal
-	p := &editProbe1118{doc: e.doc, index: -1}
+	p := &editorMoveProbe{doc: e.doc, index: -1}
 	e.doc.Edits = p
 	e.Select(20, true)
 	e.filter, e.offset, e.detailOffset = 2, 3, 5
@@ -116,7 +118,7 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 func TestMapEditor1118GroundDragStillPans(t *testing.T) {
 	e := editor1092(t)
 	e.Layout(1024, 768)
-	e.doc.Edits = &editProbe1118{doc: e.doc}
+	e.doc.Edits = &editorMoveProbe{doc: e.doc}
 	e.Select(20, true)
 	x, y := e.cellCenter(image.Pt(24, 22)) // no record under this cell
 	sx, sy := e.doc.Viewer.cam.WorldToScreen(x, y)
