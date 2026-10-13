@@ -2129,6 +2129,9 @@ func (w *World) MarshalBinary() ([]byte, error) {
 // MarshalBinary returns independent storage on every call.
 func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 	for _, e := range w.entities {
+		if e.Alive() && w.hasMissingTargetCast(e) {
+			return nil, fmt.Errorf("sim: actor %d retains an unresolved cast target", e.ID)
+		}
 		if err := escortResidueFault(e); err != nil {
 			return nil, err
 		}

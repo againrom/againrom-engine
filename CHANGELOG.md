@@ -12,6 +12,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] [ROM2] Teleport across several cells draws the caster at the destination at once, without sliding or walking through the intervening cells.
 - [Starter] Browse beside Add path opens the system folder chooser on Windows and macOS. If the chooser is unavailable, the path field remains available.
 - [ROM1] The map editor's Open and Save As use the system file dialogs on Windows and macOS, starting at the current map's folder or the base game folder. Cancelling keeps the map and edits; if a dialog is unavailable, the editor shows the path prompt.
+- [ROM1] Saves made in a fight load in the original game: an attack whose victim has died no longer leaves an attack order without a target.
+
 - [ROM1] The map editor no longer crashes when the map report is open while a brush is on and the report lists more rows than the brush's list has.
 - [ROM1] The map editor paints objects. Press B, choose a class from the list (trees, stones, fences, bones and the rest the game draws; the first row clears) and drag across the map: every cell of the brush takes that object, shown as the game draws it, and one stroke is one undo step. Save, Save As and save into a mod write the objects, and the game plays the map with them in place, blocking movement as the installed objects do.
 - [ROM1] Map authors can add and edit players, their names, colours, human or computer control and directed relations. Deleting an unused player preserves later ownership and script references; each edit has one undo step and survives saving into a mod.

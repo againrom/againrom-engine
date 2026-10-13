@@ -39,6 +39,7 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 	e.ActorState = actorStatePickupComplete
 	w.syncSavedOrderState(i)
 	w.syncCurrentActorOrder(i)
+	w.normaliseSavedTargetOrders()
 	return true
 }
 

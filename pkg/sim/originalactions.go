@@ -94,5 +94,6 @@ func (w *World) ImportOriginalActorActions(actions []OriginalActorAction) error 
 		return err
 	}
 	w.entities = staged.entities
+	w.normaliseSavedTargetOrders()
 	return nil
 }

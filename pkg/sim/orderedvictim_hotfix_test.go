@@ -106,8 +106,8 @@ func TestAWarriorTakesTheStanceBackWhenItsOrderedVictimIsGone(t *testing.T) {
 		t.Fatalf("after the ordered hostile fell the warrior holds victim %v/%d, want a hostile still beside it",
 			got.HasAttackTarget, got.AttackTarget)
 	}
-	if got.ActorState != actorStateGuard {
-		t.Errorf("the warrior's actor state is %d, want guard (%d) once the order is over",
-			got.ActorState, actorStateGuard)
+	if got.ActorState != actorStateAcquire {
+		t.Errorf("the warrior's actor state is %d, want acquire (%d) once the order is over",
+			got.ActorState, actorStateAcquire)
 	}
 }

@@ -662,6 +662,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 			order.Raw = ProjectCastOrderOperands(order.Raw, target, spell, p.X, p.Y, reach, p.Kind == PendingCellCast)
 		}
 	}
+	n.normaliseSavedTargetOrders()
 	if _, err := n.MarshalBinary(); err != nil {
 		return fmt.Errorf("sim: restored current actions: %w", err)
 	}

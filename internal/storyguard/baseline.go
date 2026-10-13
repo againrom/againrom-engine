@@ -2443,6 +2443,10 @@ package storyguard
 // New text-field and roster APIs add doc comments in mapedit/field.go,
 // mapedit/section.go and formats/alm/encode.go. The shared editor fixture
 // now has a semantic name.
+//
+// CommentBytes rises for the new target-order normalization in
+// pkg/sim/targetorder.go and the build line that moves the target census
+// into the corpus audit, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4647,
 	TestFileCount:  264,
@@ -2466,5 +2470,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9025099,
+	CommentBytes: 9025462,
 }

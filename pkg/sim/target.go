@@ -63,6 +63,9 @@ func (w *World) clearInvalidTargetReferences(target EntityID) {
 		}
 		w.entities[i].clearActiveAttack()
 		w.clearOrder(i)
+		if _, _, pending := w.entities[i].RequestedAttackTarget(); !w.SecondGame() && w.entities[i].Alive() && !pending && !w.entities[i].PendingOrder.IsCastRow() {
+			w.stopTargetOrder(i)
+		}
 	}
 
 	books := w.bookCasts[:0]

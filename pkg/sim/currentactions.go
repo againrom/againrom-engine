@@ -84,6 +84,7 @@ func (w *World) syncCurrentActionCarriers() {
 			}
 		}
 	}
+	w.normaliseSavedTargetOrders()
 }
 
 func (w *World) syncCurrentActorCarriers(i int) {

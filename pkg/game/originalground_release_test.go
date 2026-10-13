@@ -425,6 +425,13 @@ func TestReleaseOriginalGround1076GoldEffectsAndStackSurviveNativeContinuation(t
 	}
 	hash := w.Hash()
 	store, name, written := menuSAVE(t, f, app, OriginalStore{})
+	writtenDoc, err := sav.DecodeDocumentData(written)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, faults := attackTargetWireCensus(writtenDoc); len(faults) != 0 {
+		t.Fatalf("pickup SAVE retains unresolved living target orders: %+v", faults)
+	}
 	cold, _ := loadSAVWindow(t, store, name)
 	back := cold.live.world
 	requireSameItemObjects(t, w, back)

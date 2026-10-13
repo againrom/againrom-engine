@@ -18,7 +18,7 @@ func TestAuthoredControlRetainedCastsSurviveResumeRepair(t *testing.T) {
 				if err := w.RestoreCurrentPlayers([]SavedGroupPlayer{{ID: 91, Slot: SelfSlot}}, []PlayerParticipant{{PlayerID: 91, Value: control}}, true); err != nil {
 					t.Fatal(err)
 				}
-				w.bookCasts = []bookCast{{Caster: 1, Spell: 2, Phase: bookCharging, Remaining: 4, Retained: true}}
+				w.bookCasts = []bookCast{{Caster: 1, Target: 1, Spell: 2, Phase: bookCharging, Remaining: 4, Retained: true}}
 				var cold World
 				if err := cold.UnmarshalBinary(mustMarshal(t, w)); err != nil {
 					t.Fatal(err)

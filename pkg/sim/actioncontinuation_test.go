@@ -206,6 +206,14 @@ func TestCurrentBookAllPhasesAndTypedEndpoints(t *testing.T) {
 			Step(w, []Command{cmd})
 			if mode == "removed" {
 				w.bookCasts[0].Target = 999
+				before, mana := w.Hash(), w.entities[0].Mana
+				if _, err := w.MarshalBinary(); err == nil || w.Hash() != before {
+					t.Fatal("missing cast target was serialized or changed the World")
+				}
+				w.normaliseSavedTargetOrders()
+				if len(w.bookCasts) != 0 || w.entities[0].Mana != mana {
+					t.Fatal("missing cast cleanup kept the producer or refunded paid mana")
+				}
 			}
 			phases := map[bookPhase]bool{}
 			for sample := 0; sample < 40; sample++ {
@@ -225,7 +233,7 @@ func TestCurrentBookAllPhasesAndTypedEndpoints(t *testing.T) {
 				}
 				Step(w, nil)
 			}
-			if !phases[bookCharging] {
+			if mode != "removed" && !phases[bookCharging] {
 				t.Fatalf("missing actual commanded charge: %v", phases)
 			}
 		})
