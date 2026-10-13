@@ -157,21 +157,72 @@ func SplitTextTable(b []byte) *TextTable {
 // cannot encode is dropped rather than widening the string with a
 // placeholder byte a real installed line would never contain.
 func EncodeInstallText(s string, selector int) string {
+	return string(encodeInstallRunes(s, selector, false))
+}
+
+// modTextFallback is the plain form of each typographic character an author
+// types: the install has a byte for none of them (the installed pages are
+// ASCII or CP866 letters), so a mod's text meets the encoder's drop unless
+// this table gives the character a form first.
+var modTextFallback = map[rune]string{
+	'«': `"`, '»': `"`, '“': `"`, '”': `"`, '„': `"`, '‟': `"`,
+	'‘': `'`, '’': `'`, '‚': `'`, '‛': `'`, '‹': `'`, '›': `'`,
+	'‐': `-`, '‑': `-`, '‒': `-`, '–': `-`, '—': `-`, '―': `-`, '−': `-`,
+	'…': `...`,
+	' ': ` `, ' ': ` `, ' ': ` `,
+}
+
+// EncodeModText is EncodeInstallText for text a mod author wrote: a character
+// in modTextFallback becomes its plain form before the encoder runs.
+func EncodeModText(s string, selector int) string {
+	return string(encodeInstallRunes(s, selector, true))
+}
+
+// encodeInstallRunes is the one per-rune encoder. With fallback set, a rune in
+// modTextFallback is replaced by its plain form first.
+func encodeInstallRunes(s string, selector int, fallback bool) []byte {
 	var b []byte
 	for _, r := range s {
+		if fallback {
+			if plain, ok := modTextFallback[r]; ok {
+				b = append(b, plain...)
+				continue
+			}
+		}
 		if c, ok := textinput.EncodeRune(r, selector); ok {
 			b = append(b, c)
 		}
 	}
-	return string(b)
+	return b
+}
+
+// ModTextDropped reports the first rune of a mod's text file that the base
+// under selector cannot show after the plain-form table, and whether the file
+// is read as UTF-8 at all. The Byte Order Mark is not counted.
+func ModTextDropped(b []byte, selector int) (rune, bool) {
+	if !utf8.Valid(b) {
+		return 0, false
+	}
+	for _, r := range string(b) {
+		if r < 0x20 || r == 0x7f || r == 0xfeff {
+			continue
+		}
+		if _, ok := modTextFallback[r]; ok {
+			continue
+		}
+		if _, ok := textinput.EncodeRune(r, selector); !ok {
+			return r, true
+		}
+	}
+	return 0, false
 }
 
 // EncodeInstallTextFile turns a mod's UTF-8 text file into the install's own
-// bytes under selector, rune by rune through EncodeInstallText's encoder. A
-// control byte (the CR LF line ends, a tab) is kept as it stands; a rune the
-// selector cannot encode is dropped, as EncodeInstallText drops it. A file
-// that is not valid UTF-8 was written in the install's own bytes before mods
-// wrote UTF-8, and is returned unchanged.
+// bytes under selector, rune by rune through the one encoder after the
+// plain-form table. A control byte (the CR LF line ends, a tab) is kept as it
+// stands; a rune the selector cannot encode is dropped. A file that is not
+// valid UTF-8 was written in the install's own bytes before mods wrote UTF-8,
+// and is returned unchanged.
 func EncodeInstallTextFile(b []byte, selector int) []byte {
 	if !utf8.Valid(b) {
 		return slices.Clone(b)
@@ -182,7 +233,7 @@ func EncodeInstallTextFile(b []byte, selector int) []byte {
 			out = append(out, byte(r))
 			continue
 		}
-		out = append(out, EncodeInstallText(string(r), selector)...)
+		out = append(out, encodeInstallRunes(string(r), selector, true)...)
 	}
 	return out
 }

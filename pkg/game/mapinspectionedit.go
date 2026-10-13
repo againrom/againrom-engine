@@ -25,8 +25,9 @@ type mapInspectionEdits struct {
 	source    string
 	saved     []byte
 
-	reported    []ui.InspectionFinding // the report of the bytes in reportedFor
-	reportedFor []byte
+	reported      []ui.InspectionFinding // the report of the bytes in reportedFor
+	reportedFor   []byte
+	reportedTexts string // the texts folder stamp the report was made under
 }
 
 func (s *mapInspectionEdits) Dirty() bool   { return !bytes.Equal(s.saved, s.model.Bytes()) }

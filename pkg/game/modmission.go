@@ -147,10 +147,10 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 			serve(dir+name, EncodeInstallTextFile(b, selector))
 		}
 		if m.Title != "" {
-			serve(dir+"title.txt", []byte(EncodeInstallText(m.Title, selector)))
+			serve(dir+"title.txt", []byte(EncodeModText(m.Title, selector)))
 		}
 		if m.Brief != "" {
-			serve(dir+"briefing.txt", []byte(EncodeInstallText(m.Brief, selector)))
+			serve(dir+"briefing.txt", []byte(EncodeModText(m.Brief, selector)))
 		}
 	}
 	f.Table.Mods.Missions = d

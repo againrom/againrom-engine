@@ -95,7 +95,7 @@ var mapRules = []mapRule{
 		run:       (*mapCheck).stockLink},
 	{ID: "mod-message-text", Error: false,
 		Authority: "MISSION-TEXT-005, TRIG-MSGLIMIT-050; the mod's texts folder",
-		Meaning:   "the script sends a message number that the mod's texts folder gives no event page for, and the install holds none either",
+		Meaning:   "the script sends a message number that the mod's texts folder gives no event page for, and the install holds none either; or a text file of the folder holds a character this base cannot show",
 		run:       (*mapCheck).modMessageText},
 }
 
@@ -592,7 +592,8 @@ func (c *mapCheck) stockLink() []mapHit {
 // last answer is kept while the map bytes stay the same.
 func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 	b := s.model.Bytes()
-	if s.reported != nil && bytes.Equal(s.reportedFor, b) {
+	stamp := s.textsStamp()
+	if s.reported != nil && bytes.Equal(s.reportedFor, b) && s.reportedTexts == stamp {
 		return s.reported
 	}
 	rows, err := s.inspector.CheckMap(s.model, s.source)
@@ -602,8 +603,33 @@ func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 	if rows == nil {
 		rows = []ui.InspectionFinding{}
 	}
-	s.reported, s.reportedFor = rows, append([]byte(nil), b...)
+	s.reported, s.reportedFor, s.reportedTexts = rows, append([]byte(nil), b...), stamp
 	return rows
+}
+
+// textsStamp names the file names and sizes of the texts folder of the mod's
+// entry for this map, the part of the report that does not come from the map
+// bytes. It is empty without a mod or a folder.
+func (s *mapInspectionEdits) textsStamp() string {
+	m := s.inspector.mod
+	if m == nil {
+		return ""
+	}
+	entry, ok := m.entryFor(s.source)
+	if !ok || entry.Texts == "" {
+		return ""
+	}
+	files, err := os.ReadDir(filepath.Join(m.dir, filepath.FromSlash(entry.Texts)))
+	if err != nil {
+		return ""
+	}
+	var sb strings.Builder
+	for _, f := range files {
+		if info, err := f.Info(); err == nil && info.Mode().IsRegular() {
+			fmt.Fprintf(&sb, "%s:%d;", f.Name(), info.Size())
+		}
+	}
+	return sb.String()
 }
 
 // gate refuses a save of a map whose report holds an error.
@@ -622,11 +648,48 @@ func (s *mapInspectionEdits) gate() error {
 // reported. A send of the reserved number 255 is the lost-mission panel and
 // takes no page.
 func (c *mapCheck) modMessageText() []mapHit {
-	if c.x.mod == nil || c.scriptErr != nil {
+	if c.x.mod == nil {
 		return nil
 	}
 	entry, ok := c.x.mod.entryFor(c.source)
 	if !ok {
+		return nil
+	}
+	return append(c.modMissingPages(entry), c.modDroppedCharacters(entry)...)
+}
+
+// modDroppedCharacters names, once per file, a character of a UTF-8 file in the
+// entry's texts folder that the running base cannot show after the plain-form
+// table of the mod text encoder.
+func (c *mapCheck) modDroppedCharacters(entry mod.Mission) []mapHit {
+	if entry.Texts == "" || c.x.archives == nil || c.x.archives.Containers == nil {
+		return nil
+	}
+	selector := LanguageSelector(c.x.archives.Containers)
+	dir := filepath.Join(c.x.mod.dir, filepath.FromSlash(entry.Texts))
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var out []mapHit
+	for _, f := range files {
+		if !f.Type().IsRegular() {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(dir, f.Name()))
+		if err != nil {
+			continue
+		}
+		if r, dropped := ModTextDropped(b, selector); dropped {
+			out = append(out, mapHit{Text: fmt.Sprintf("mod %q: %s/%s holds the character %q (U+%04X), which this base cannot show; it is dropped from the page", c.x.mod.id, entry.Texts, f.Name(), r, r)})
+		}
+	}
+	return out
+}
+
+// modMissingPages is the message-number half of the rule.
+func (c *mapCheck) modMissingPages(entry mod.Mission) []mapHit {
+	if c.scriptErr != nil {
 		return nil
 	}
 	_, report, err := tableFiles(c.x.table).compileScript(c.m, campaignScriptRefs(c.m, c.x.table, nil, sourceMission(c.source)))

@@ -2406,6 +2406,11 @@ package storyguard
 //
 // CommentBytes rises for the starter's one caption table: the docs of
 // cmd/starter/captions.go and its tests, this note included.
+//
+// CommentBytes rises 1963 bytes for the mod text plain-form table and report:
+// the docs of modTextFallback, EncodeModText, encodeInstallRunes,
+// ModTextDropped, the dropped-character and texts-stamp helpers of the
+// mod-message-text rule, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2429,5 +2434,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 8984748,
+	CommentBytes: 8986711,
 }
