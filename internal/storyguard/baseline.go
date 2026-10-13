@@ -17,6 +17,9 @@ package storyguard
 // a regression. A comment-only change proves it moved no code with
 // scripts/check-comment-only-change.sh.
 //
+// CommentBytes rose by the doc comments of the editor review fixes in pkg/mapedit,
+// pkg/mapload and pkg/game, and this paragraph.
+//
 // CommentBytes rose a further 5512 bytes over three files, all doc comments
 // on genuinely new code witnessing the two hints the merged tree still left
 // unscreenshotted: pkg/ui/tooltip.go's ComposeTooltipHint (the shared paint
@@ -2415,5 +2418,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8969160,
+	CommentBytes: 8970009,
 }

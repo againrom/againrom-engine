@@ -19,6 +19,14 @@ func TestMapRuleNamesAMapWhoseFallbackDropLeavesIt(t *testing.T) {
 	}
 	none := make([]byte, 12)
 	zero := scriptPayload([]scriptNode{{label: "drop", opcode: dropActionOpcode, id: 1, values: []uint32{0, 9}, tags: []uint32{5, 6}}}, nil)
+	mixed := scriptPayload([]scriptNode{
+		{label: "drop", opcode: dropActionOpcode, id: 1, values: []uint32{0, 9}, tags: []uint32{5, 6}},
+		{label: "drop", opcode: dropActionOpcode, id: 2, values: []uint32{16, 16}, tags: []uint32{5, 6}},
+	}, nil)
+	valid := scriptPayload([]scriptNode{
+		{label: "drop", opcode: dropActionOpcode, id: 1, values: []uint32{16, 16}, tags: []uint32{5, 6}},
+		{label: "drop", opcode: dropActionOpcode, id: 2, values: []uint32{17, 16}, tags: []uint32{5, 6}},
+	}, nil)
 	for _, c := range []struct {
 		name   string
 		side   int
@@ -27,6 +35,7 @@ func TestMapRuleNamesAMapWhoseFallbackDropLeavesIt(t *testing.T) {
 	}{
 		{"no drop cell on a 32 map", 32, none, "5041 of its 5041 cells"},
 		{"a drop cell with a zero coordinate", 32, zero, "5041 of its 5041 cells"},
+		{"a zero-coordinate cell among valid ones", 32, mixed, "1 of the map's 2 drop cells have a zero coordinate"},
 		{"no drop cell on a 96 map", 96, none, "cells are outside the 96x96 map or blocked"},
 	} {
 		rows := ofRule(findings(t, x, built(t, bare(c.side, c.script), nil, nil), "x"), "drop-cell")
@@ -41,10 +50,17 @@ func TestMapRuleNamesAMapWhoseFallbackDropLeavesIt(t *testing.T) {
 	// Loss controls: a drop cell, and a map whose fallback square is open.
 	for name, o := range map[string]synth.ALMOptions{
 		"a usable drop cell":                 bare(32, scriptPayloadWithDrop(nil, nil)),
+		"two usable drop cells":              bare(32, valid),
 		"no drop cell on a map of 128 cells": bare(128, none),
 	} {
 		if rows := ofRule(findings(t, x, built(t, o, nil, nil), "x"), "drop-cell"); len(rows) != 0 {
 			t.Errorf("%s: %+v", name, rows)
+		}
+	}
+	// A mixed table on an open fallback square gets no sentence.
+	for _, r := range ofRule(findings(t, x, built(t, bare(128, mixed), nil, nil), "x"), "drop-cell") {
+		if strings.Contains(r.Text, "have a zero coordinate") {
+			t.Errorf("mixed table on a map of 128: %+v", r)
 		}
 	}
 }

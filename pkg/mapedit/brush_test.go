@@ -417,3 +417,47 @@ func TestTileStrokeIsDeterministic(t *testing.T) {
 		}
 	}
 }
+
+// A stroke keeps bit 13 on unpainted rewritten cells, including the top rows.
+func TestTileStrokeKeepsTheImpassableFlagOfUnpaintedCells(t *testing.T) {
+	const flag = 0x2000
+	in := brushMap(0x11, 40)
+	tf := walkFrame(t, in).byType(t, 1)
+	flagged := []int{12*brushSide + 12, 12*brushSide + 11, 3*brushSide + 5, brushSide*brushSide - 2}
+	for _, i := range flagged {
+		putU16(in, tf.payloadOff+2*i, 0x11|flag)
+	}
+	ed, err := mapedit.New(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ed.Paint(mapedit.Brush{Plane: mapedit.PlaneTile, Value: int(mapedit.ClassMountain)},
+		[]mapedit.Cell{{X: 13, Y: 12}, {X: brushSide - 1, Y: brushSide - 1}}, testClass); err != nil {
+		t.Fatal(err)
+	}
+	tiles, _, _ := planes(t, ed.Bytes())
+	rewritten := 0
+	for _, i := range []int{flagged[0], flagged[1], flagged[3]} {
+		if tiles[i]&^flag != 0x11 {
+			rewritten++
+		}
+		if tiles[i]&flag == 0 {
+			t.Errorf("cell %d lost its impassable flag: %#x", i, tiles[i])
+		}
+	}
+	if rewritten == 0 {
+		t.Error("the stroke rewrote no flagged neighbour, so the test measures nothing")
+	}
+	if tiles[flagged[2]]&flag == 0 || tiles[flagged[2]]&^flag != tiles[0] {
+		t.Errorf("top-row flagged cell %#x, top row cell 0 %#x", tiles[flagged[2]], tiles[0])
+	}
+	if tiles[0]&flag != 0 {
+		t.Errorf("an unflagged top-row cell took the flag: %#x", tiles[0])
+	}
+	if p := tiles[12*brushSide+13]; p&flag != 0 {
+		t.Errorf("the painted cell carries the flag: %#x", p)
+	}
+	if last := tiles[len(tiles)-1]; last&flag != 0 {
+		t.Errorf("the painted last cell carries the flag: %#x", last)
+	}
+}

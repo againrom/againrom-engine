@@ -426,8 +426,11 @@ func (c *mapCheck) unitTerrain() []mapHit {
 			continue
 		}
 		if ents[i].Domain.BlockedBy(c.plane[cell.Y*c.width()+cell.X]) {
-			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: cell, HasCell: true,
-				Text: fmt.Sprintf("the unit stands on cell %d,%d, which its movement class cannot enter", cell.X, cell.Y)})
+			text := fmt.Sprintf("the unit stands on cell %d,%d, which its movement class cannot enter", cell.X, cell.Y)
+			if mapload.InBorderRing(c.m, cell.X, cell.Y) {
+				text += "; the cell is in the border ring, and the game removes a unit placed there when the mission loads"
+			}
+			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: cell, HasCell: true, Text: text})
 		}
 	}
 	return out
@@ -517,14 +520,18 @@ func (c *mapCheck) dropCell() []mapHit {
 }
 
 // fallbackDrop (DIV-3212) answers the finding for a map whose drop cells give the party no
-// cell: the start then draws one cell from the fallback square on each axis
+// cell, or only some (the start picks one at random): the start then draws one cell from the fallback square on each axis
 // (MISSION-DROP-002), and the finding counts the cells of that square the party
 // cannot stand on, outside the map or blocked.
 func (c *mapCheck) fallbackDrop(cells []mapload.Cell) []mapHit {
+	zero := 0
 	for _, d := range cells {
-		if d.X != 0 && d.Y != 0 {
-			return nil
+		if d.X == 0 || d.Y == 0 {
+			zero++
 		}
+	}
+	if zero == 0 && len(cells) > 0 {
+		return nil
 	}
 	low, high := mapload.FallbackDropRange()
 	lost, total := 0, 0
@@ -539,6 +546,10 @@ func (c *mapCheck) fallbackDrop(cells []mapload.Cell) []mapHit {
 	}
 	if lost == 0 {
 		return nil
+	}
+	if zero > 0 && zero < len(cells) {
+		return []mapHit{{Text: fmt.Sprintf("%d of the map's %d drop cells have a zero coordinate; the start picks one drop cell at random, and such a pick sends the party to a random cell of %d to %d on each axis: %d of its %d cells are outside the %dx%d map or blocked",
+			zero, len(cells), low, high, lost, total, c.width(), c.height())}}
 	}
 	return []mapHit{{Text: fmt.Sprintf("the map has no drop cell, and the party lands on a random cell of %d to %d on each axis: %d of its %d cells are outside the %dx%d map or blocked",
 		low, high, lost, total, c.width(), c.height())}}

@@ -524,3 +524,26 @@ func TestMapReportKeepsInstalledFactsAsWarnings(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// The unit-terrain warning for a ring unit says the game removes it.
+func TestMapRuleUnitInTheBorderRingSaysTheGameRemovesIt(t *testing.T) {
+	x := checkInspector()
+	const ring = "the game removes a unit placed there when the mission loads"
+	for _, c := range []struct {
+		name string
+		x, y int
+		ring bool
+	}{
+		{"a unit in the ring", 3, 3, true},
+		{"a unit on blocked ground inside the ring", 12, 12, false},
+	} {
+		o := cleanOptions()
+		o.Units = []synth.ALMUnit{{X: uint32(c.x*256 + 128), Y: uint32(c.y*256 + 128), ClassID: 40, ClassSubID: 2}}
+		o.Overlay = make([]uint8, 32*32)
+		o.Overlay[c.y*32+c.x] = 1
+		rows := ofRule(findings(t, x, built(t, o, nil, nil), "x"), "unit-terrain")
+		if len(rows) != 1 || strings.Contains(rows[0].Text, ring) != c.ring {
+			t.Errorf("%s: unit-terrain findings %+v, want one, naming the removal: %v", c.name, rows, c.ring)
+		}
+	}
+}

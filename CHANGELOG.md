@@ -9,6 +9,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 ## Unreleased
 
 - [ROM1] Mod authors write a mission's texts in UTF-8: event and tip pages, the world map's briefmap.txt, the title and the briefing. The game encodes them for the base it runs on, so one mod folder shows Russian on the Russian base and English on the English one. A text file written in the base's own bytes still works. `modmission` copies an installed mission's texts out as UTF-8, and the map editor warns before it saves into a mod when the map's script sends a message the mod gives no text.
+- [ROM1] The map editor's brush keeps a cell the map's author closed closed: a terrain stroke beside such a cell no longer makes it walkable. The map check also names more cases for a mod author: a drop-cell table that mixes cells with a zero coordinate and valid cells (the party may land on a random cell), and a unit placed in the border ring, which the game removes when the mission loads.
 
 ## 0.121.0
 

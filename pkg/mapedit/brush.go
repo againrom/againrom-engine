@@ -184,6 +184,9 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 			}
 		}
 		next[i] = derived
+		if !painted[i] {
+			next[i] |= old[i] & blockedBit
+		}
 	}
 	last := len(next) - 1
 	touched := next[last] != old[last]
@@ -192,7 +195,10 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	}
 	if touched {
 		for i := 0; i < 8*w && i < len(next); i++ {
-			next[i] = next[last]
+			next[i] = next[last] &^ blockedBit
+			if !painted[i] {
+				next[i] |= old[i] & blockedBit
+			}
 		}
 	}
 	var ed edit
@@ -232,6 +238,9 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	}
 	return ed, nil
 }
+
+// blockedBit is the tile word's impassable flag, kept on unpainted cells.
+const blockedBit = 0x2000
 
 // keepsShape reports whether the word a cell shows already has the shape and
 // strip pairing of the word the rule would give it.

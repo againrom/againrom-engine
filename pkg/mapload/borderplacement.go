@@ -24,6 +24,11 @@ func WithdrawBorderPlacements(m *alm.Map) int {
 	return n
 }
 
+// InBorderRing reports whether cell x,y is in the border ring.
+func InBorderRing(m *alm.Map, x, y int) bool {
+	return inBorderRing(x, y, int(m.Width), int(m.Height))
+}
+
 func inBorderRing(x, y, w, h int) bool {
 	return x < borderDepth || y < borderDepth || x >= w-borderDepth || y >= h-borderDepth
 }

@@ -91,6 +91,13 @@ without a drop cell reports `warning drop-cell`, with 5041 of 5041 cells lost;
 a 128 or 256 map reports nothing, its fallback square being open ground. The
 rule stays a warning, so a map without a drop cell can be saved and the party
 then lands off the map.
+Installed maps: the rule warns on `scenario/50.alm` in both installs and, in the
+RU install only, on `loose/Horror.alm`, which has no type-7 record (1645 of 5041
+cells lost); no other installed map is warned on
+(`TestReleaseDropCellRuleWarnsOnTheNamedInstalledMaps`). A table that mixes a cell
+with a zero coordinate and cells without also warns, because the start picks a
+table cell at random. A `unit-terrain` warning for a unit in the border ring
+says that the game removes the unit when the mission loads (`TERR-PLACE-208`).
 
 ## Proof
 
