@@ -4248,16 +4248,26 @@ func (mw *mapWorld) recordCells() {
 	}
 }
 
+// cellStep keeps adjacent crossings continuous and draws a longer relocation
+// at its destination without walking or interpolation.
+func (mw *mapWorld) cellStep(id sim.EntityID, cell image.Point) (image.Point, bool) {
+	was, seen := mw.prev[id]
+	if !seen {
+		return image.Point{}, false
+	}
+	step := cell.Sub(was)
+	if step.X < -1 || step.X > 1 || step.Y < -1 || step.Y > 1 {
+		return image.Point{}, true
+	}
+	return step, false
+}
+
 // advanceOdometers pays each entity the distance it walked on the tick that
 // has just run, and resets the count of one that stood still and has no idle
 // cycle to draw.
 //
-// THE STEP IS DERIVED EXACTLY AS THE PUSH DERIVES IT — the entity's cell now
-// less the cell the memory holds, under the memory's own PRESENCE test — so the
-// unit the odometer pays is the unit the push draws walking, and there is one
-// rule and not two kept in step. An id the memory has not seen has taken no
-// step, which is what keeps an entity first observed part way through a crossing
-// from being paid the whole distance from wherever the map's corner is.
+// Both the odometer and the pushed snapshot use cellStep. A newly seen
+// entity or a relocation has no crossing distance.
 //
 // THE CROSSING IS READ FROM Transit AND THE COUNTED TICK, never from
 // TransitTotal (walkClock). At tick k of an n-tick crossing the simulation still
@@ -4289,10 +4299,7 @@ func (mw *mapWorld) advanceOdometers() {
 			continue
 		}
 
-		var step image.Point
-		if was, seen := mw.prev[e.ID]; seen {
-			step = image.Point{X: int(e.X), Y: int(e.Y)}.Sub(was)
-		}
+		step, _ := mw.cellStep(e.ID, image.Pt(int(e.X), int(e.Y)))
 
 		if step == (image.Point{}) {
 			// Standing still — blocked, waiting, ordered nowhere, downed or
@@ -4935,11 +4942,9 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			}
 		}
 
-		var step image.Point
-		if was, seen := mw.prev[e.ID]; seen {
-			step = cell.Sub(was)
-		}
+		step, jump := mw.cellStep(e.ID, cell)
 		if stone {
+			jump = false
 			// A Stone-held unit keeps the crossing it was parked in
 			// (DIV-073); its origin is the World's stride, which a SAV
 			// carries, not the view's memory, which it does not.
@@ -4947,8 +4952,10 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			if e.Transit > 0 && e.Stride.Present {
 				step = cell.Sub(image.Pt(int(e.Stride.FromX), int(e.Stride.FromY)))
 			}
+		} else if jump {
+			finePosition = false
 		}
-		moving := step != image.Point{} || mw.world.ActorMotionActive(e.ID)
+		moving := !jump && (step != image.Point{} || mw.world.ActorMotionActive(e.ID))
 		if mw.drawnMoving == nil {
 			mw.drawnMoving = make(map[sim.EntityID]bool)
 		}
