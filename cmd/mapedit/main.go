@@ -35,6 +35,8 @@ func run(args []string, out io.Writer) error {
 	detailScroll := flags.Int("scroll-details", 0, "wheel steps down the selected inspector in a diagnostic snapshot")
 	triggers := flags.Bool("triggers", false, "show the authored trigger filter")
 	focusRef := flags.Int("focus-reference", 0, "focus a selected record's 1-based map reference without changing selection")
+	newMap := flags.String("new", "", "start a new map of this size, e.g. 32x32 (width and height, 32 to 256 in steps of 8); with -out the blank map is written and the program exits")
+	out2 := flags.String("out", "", "with -new: the new .alm file to write the blank map to; the report is printed and the program exits")
 	modDir := flags.String("mod", "", "mod folder Save writes into: Ctrl+S writes the map to the path its data/missions.toml entry names, and refuses a map no entry names")
 	version := flags.Bool("version", false, "print the program name, game version and source revision, and exit")
 	if err := flags.Parse(args); err != nil {
@@ -59,6 +61,15 @@ func run(args []string, out io.Writer) error {
 	if *detailScroll < 0 || *detailScroll > 100000 || (*detailScroll > 0 && (*snapshot == "" || *selectRecord == "")) {
 		return fmt.Errorf("-scroll-details requires -snapshot and -select; range 0..100000")
 	}
+	if *newMap != "" && *path != "" {
+		return fmt.Errorf("-new and -map exclude each other")
+	}
+	if *out2 != "" && *newMap == "" {
+		return fmt.Errorf("-out requires -new")
+	}
+	if *newMap != "" {
+		*path = game.NewMapSource(*newMap)
+	}
 	if *check && *path == "" {
 		return fmt.Errorf("-check requires -map")
 	}
@@ -73,6 +84,14 @@ func run(args []string, out io.Writer) error {
 		if err := x.SetMod(*modDir); err != nil {
 			return err
 		}
+	}
+	if *out2 != "" {
+		target, rows, err := x.WriteNewMap(*path, *out2)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "mapedit: wrote %s (%s)\n", target, *newMap)
+		return printFindings(out, rows)
 	}
 	if *list {
 		for _, m := range x.Maps {
@@ -174,13 +193,21 @@ func reportFindings(out io.Writer, d *ui.InspectionDocument) error {
 		return nil
 	}
 	rows := c.Report()
+	if err := printFindings(out, rows); err != nil {
+		return err
+	}
+	if errs, _ := ui.CountFindings(rows); errs > 0 {
+		return fmt.Errorf("%s holds %d errors", d.Source, errs)
+	}
+	return nil
+}
+
+// printFindings prints one line per finding and the count line.
+func printFindings(out io.Writer, rows []ui.InspectionFinding) error {
 	for _, f := range rows {
 		fmt.Fprintln(out, f.Line())
 	}
 	errs, warnings := ui.CountFindings(rows)
 	fmt.Fprintf(out, "report: %d errors, %d warnings\n", errs, warnings)
-	if errs > 0 {
-		return fmt.Errorf("%s holds %d errors", d.Source, errs)
-	}
 	return nil
 }

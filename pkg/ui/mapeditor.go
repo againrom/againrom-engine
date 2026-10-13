@@ -117,8 +117,9 @@ type MapEditor struct {
 	catalog, pathMode              bool
 	pathSave                       bool
 	fieldMode                      bool         // field prompt in the path modal
-	pick                           string       // "clone", "sack", "drop" or "goal": the next canvas click picks a cell or a record
+	pick                           string       // "clone", "sack", "unit", "drop" or "goal": the next canvas click picks a cell or a record
 	sackCell                       *image.Point // the cell a sack prompt adds to
+	newUnit                        bool         // the prompt at sackCell asks for a unit's class
 	field                          int          // index into the selected record's fields
 	path, message                  string
 	down, moved                    bool
@@ -396,6 +397,10 @@ func (e *MapEditor) Key(key string) error {
 			e.pathMode, e.pathSave = true, true
 			e.path, e.message = "", ""
 		}
+	case "new":
+		e.newKey()
+	case "unit":
+		e.unitKey()
 	case "clone", "delete", "field", "tab", "sack", "drop", "goals":
 		return e.recordKey(key)
 	case "undo", "redo":
@@ -625,7 +630,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -808,7 +813,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			line(editorClip(e.font, s, 74), x+4, y+2, 74, c)
 		}
 	} else {
-		line("INSTALLED MAPS", 10, 143, 300, editorGold)
+		line("NEW AND INSTALLED MAPS", 10, 143, 300, editorGold)
 	}
 	rows := e.rows()
 	rowCount := len(rows)

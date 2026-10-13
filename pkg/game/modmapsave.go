@@ -67,6 +67,9 @@ func (x *MapInspector) SetMod(dir string) error {
 // the mission whose number an installed scenario map has, or the mission
 // whose map path is the opened host file.
 func (m *editorMod) entryFor(source string) (mod.Mission, bool) {
+	if isNewSource(source) {
+		return m.unwrittenEntry()
+	}
 	if stem, ok := strings.CutPrefix(source, scenarioPrefix); ok {
 		n, err := strconv.Atoi(strings.TrimSuffix(stem, ".alm"))
 		for _, e := range m.missions.Missions {

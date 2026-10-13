@@ -219,6 +219,17 @@ undoes, Ctrl+Y redoes and Ctrl+S asks for a new `.alm` path to save a copy
 (Enter saves); Enter opens a typed ALM path; Esc goes back. The
 editor never writes into an install.
 
+N lists the new-map sizes above the installed maps (32, 48, 64, 80, 128 and
+256 cells a side); a click opens a blank map with two sides, the second named
+Enemy and hostile to the first. U, a click on a cell and a class key add a
+unit. A new map saved with `mapedit -mod` goes to the mod's one mission entry
+whose map file the folder does not hold yet. The party lands on the drop cell
+of the map's script, so a map the party is to play needs one (the report
+warns when the map has none and its fallback landing cells leave the map).
+`mapedit -new <width>x<height> -out <file>` writes the blank map to a new
+file and prints that report; `-new` alone opens the window on it, with
+`-check` it prints the report.
+
 `mapedit -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
 to the path the mod's mission entry for it names (the entry whose `number` is
 the opened installed map's mission, or whose `map` is the opened file), and

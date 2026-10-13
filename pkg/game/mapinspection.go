@@ -66,13 +66,13 @@ func NewMapInspector(root string) (*MapInspector, error) {
 }
 
 func (x *MapInspector) Editor() *ui.MapEditor {
-	rows := make([]ui.EditorMap, len(x.Maps))
-	for i, e := range x.Maps {
+	rows := newMapRows()
+	for _, e := range x.Maps {
 		key := "loose/" + e.Source
 		if e.FromArchive {
 			key = "scenario/" + e.Source
 		}
-		rows[i] = ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text())}
+		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text())})
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
 	e.SetHostTextEncoder(x.inspectionUTF8)
@@ -101,6 +101,8 @@ func (x *MapInspector) Open(source string) (*ui.InspectionDocument, error) {
 	var b []byte
 	var err error
 	switch {
+	case isNewSource(source):
+		return x.openNew(source)
 	case strings.HasPrefix(source, "scenario/"):
 		b, err = x.archives.Containers.ReadFile(source)
 	case strings.HasPrefix(source, "loose/"):

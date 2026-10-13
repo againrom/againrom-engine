@@ -363,8 +363,8 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 		return "", err
 	}
 	input := source
-	if strings.HasPrefix(source, "scenario/") {
-		input = "" // archive address, never a writable host path
+	if strings.HasPrefix(source, "scenario/") || isNewSource(source) {
+		input = "" // archive address or a map built from nothing, never a writable host path
 	} else if strings.HasPrefix(source, "loose/") {
 		input = filepath.Join(root, filepath.FromSlash(strings.TrimPrefix(source, "loose/")))
 	}

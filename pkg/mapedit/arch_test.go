@@ -35,6 +35,7 @@ var almReferences = nameTable{
 	"unit.go/(*Editor).highestScriptUnit": {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},
 	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
+	"newmap.go/NewMap":                    {"alm.NewMap", "alm.NewMapSpec"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload

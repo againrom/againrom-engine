@@ -2383,6 +2383,11 @@ package storyguard
 // CommentBytes rises for the map editor's terrain and height brush: the notes
 // in pkg/mapedit/terrain.go and brush.go, pkg/ui/mapeditorbrush.go and the
 // new release tests, this note included.
+//
+// CommentBytes rises for the new map: the docs of pkg/formats/alm/newmap.go,
+// pkg/mapedit/newmap.go, pkg/game/mapinspectionnew.go, pkg/ui/mapeditornew.go
+// the release test pkg/game/mapeditnew_release_test.go, the drop-cell tests
+// in pkg/game/mapcheckdrop_test.go and mapcheck_test.go, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2406,5 +2411,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8956384,
+	CommentBytes: 8965612,
 }

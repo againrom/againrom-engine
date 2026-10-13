@@ -46,6 +46,16 @@ type scriptNode struct {
 	values, tags []uint32
 }
 
+// scriptPayloadWithDrop is scriptPayload for a fixture the party can start on:
+// a script with no drop cell gets one after its actions. A test of the
+// drop-cell rule lays the payload out itself.
+func scriptPayloadWithDrop(actions, conditions []scriptNode) []byte {
+	if !slices.ContainsFunc(actions, func(n scriptNode) bool { return n.opcode == dropActionOpcode }) {
+		actions = append(slices.Clone(actions), scriptNode{label: "Drop location", opcode: dropActionOpcode, id: 99, values: []uint32{16, 16}, tags: []uint32{5, 6}})
+	}
+	return scriptPayload(actions, conditions)
+}
+
 func scriptPayload(actions, conditions []scriptNode) []byte {
 	var b []byte
 	put := func(v uint32) { b = binary.LittleEndian.AppendUint32(b, v) }
@@ -69,9 +79,10 @@ func scriptPayload(actions, conditions []scriptNode) []byte {
 }
 
 // cleanOptions is a 32x32 map every rule passes: two units owned by the one
-// side, with their own unit and group ids, and an empty script.
+// side, with their own unit and group ids, and a script that holds only the
+// drop cell.
 func cleanOptions() synth.ALMOptions {
-	return synth.ALMOptions{Width: 32, Height: 32, Type7Payload: make([]byte, 12), Units: []synth.ALMUnit{
+	return synth.ALMOptions{Width: 32, Height: 32, Type7Payload: scriptPayloadWithDrop(nil, nil), Units: []synth.ALMUnit{
 		{X: 12*256 + 128, Y: 12*256 + 128, ClassID: 40, ClassSubID: 2},
 		{X: 16*256 + 128, Y: 18*256 + 128, ClassID: 40, ClassSubID: 2},
 	}}
@@ -208,7 +219,7 @@ func TestMapRulesFindTheirDefectAndNothingInTheCleanMap(t *testing.T) {
 		return o
 	}
 	scriptWith := func(actions, conditions []scriptNode) synth.ALMOptions {
-		return with(func(o *synth.ALMOptions) { o.Type7Payload = scriptPayload(actions, conditions) })
+		return with(func(o *synth.ALMOptions) { o.Type7Payload = scriptPayloadWithDrop(actions, conditions) })
 	}
 	alive := func(unit uint32) []scriptNode {
 		return []scriptNode{{label: "alive", opcode: 5, id: 3, values: []uint32{unit}, tags: []uint32{4}}}
@@ -253,13 +264,13 @@ func TestMapRulesFindTheirDefectAndNothingInTheCleanMap(t *testing.T) {
 			func() *mapedit.Editor {
 				return built(t, with(func(o *synth.ALMOptions) {
 					o.Objects = []synth.ALMObject{hut(14, 12, 1)}
-					o.Type7Payload = scriptPayload(nil, []scriptNode{{label: "structure", opcode: 21, id: 3, values: []uint32{99}, tags: []uint32{9}}})
+					o.Type7Payload = scriptPayloadWithDrop(nil, []scriptNode{{label: "structure", opcode: 21, id: 3, values: []uint32{99}, tags: []uint32{9}}})
 				}), nil, nil)
 			},
 			func() *mapedit.Editor {
 				return built(t, with(func(o *synth.ALMOptions) {
 					o.Objects = []synth.ALMObject{hut(14, 12, 1)}
-					o.Type7Payload = scriptPayload(nil, []scriptNode{{label: "structure", opcode: 21, id: 3, values: []uint32{7}, tags: []uint32{9}}})
+					o.Type7Payload = scriptPayloadWithDrop(nil, []scriptNode{{label: "structure", opcode: 21, id: 3, values: []uint32{7}, tags: []uint32{9}}})
 				}), nil, nil)
 			}},
 		{"a script naming a group no unit holds", "script-reference", "Action", 0,

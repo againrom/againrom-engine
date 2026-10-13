@@ -36,6 +36,9 @@ func (e *MapEditor) selectedRecord() (string, int) {
 // promptFields are the rows the field prompt cycles through: the new sack's
 // item code while a sack waits for one, else the selected record's fields.
 func (e *MapEditor) promptFields() []InspectionField {
+	if e.sackCell != nil && e.newUnit {
+		return []InspectionField{{Key: "class", Label: "Class key for the new unit"}}
+	}
 	if e.sackCell != nil {
 		return []InspectionField{{Key: "item", Label: "Item code for the new sack"}}
 	}
@@ -65,6 +68,10 @@ func (e *MapEditor) recordKey(key string) error {
 	if key == "sack" {
 		e.cancelRecordDrag()
 		e.pick, e.message = "sack", ""
+		return nil
+	}
+	if key == "unit" {
+		e.unitKey()
 		return nil
 	}
 	if key == "drop" || key == "goals" {
@@ -127,8 +134,9 @@ func (e *MapEditor) setField(text string) error {
 		return err
 	}
 	var next *InspectionDocument
+	newKind := ""
 	if e.sackCell != nil {
-		next, err = e.doc.Edits.AddSack(*e.sackCell, v)
+		next, newKind, err = e.addRecord(*e.sackCell, v)
 	} else {
 		kind, index := e.selectedRecord()
 		next, err = e.doc.Edits.SetField(kind, index, fields[e.field].Key, v)
@@ -137,7 +145,7 @@ func (e *MapEditor) setField(text string) error {
 		return err
 	}
 	if e.sackCell != nil && next != nil {
-		e.selectNewest("Sack")
+		e.selectNewest(newKind)
 	}
 	e.pathMode, e.fieldMode, e.sackCell = false, false, nil
 	return nil
@@ -156,9 +164,9 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.message = "Click a map cell."
 		return
 	}
-	if pick == "sack" {
+	if pick == "sack" || pick == "unit" {
 		cell := image.Pt(x, y)
-		e.sackCell = &cell
+		e.sackCell, e.newUnit = &cell, pick == "unit"
 		e.openPrompt("")
 		return
 	}

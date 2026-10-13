@@ -32,6 +32,10 @@ const (
 	fallbackSpan int32 = 70
 )
 
+// FallbackDropRange is the inclusive range, per axis, of the cell the party
+// lands on when the map authorises no usable drop cell (MISSION-DROP-002).
+func FallbackDropRange() (low, high int32) { return fallbackLow, fallbackLow + fallbackSpan }
+
 // PartyMember is one unit a start places for the player.
 //
 // IT CARRIES A HERO, AND ITS COMBAT NUMBERS ARE DERIVED FROM HIM. Until 0078

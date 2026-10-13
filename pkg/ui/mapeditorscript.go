@@ -9,7 +9,7 @@ import (
 // EditorHelpLines lists every line the window can show so a test can measure
 // them with the installed font.
 var (
-	helpKeys      = []string{"Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H: brush"}
+	helpKeys      = []string{"Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H: brush", "N: new map / U: unit"}
 	helpPickClone = []string{"Clone: click a cell", "Esc: cancel"}
 	helpPickSack  = []string{"Sack: click a cell", "Esc: cancel"}
 	helpPickDrop  = []string{"Drop cell: click a cell", "Esc: cancel"}
@@ -22,7 +22,7 @@ var (
 // EditorHelpLines is every help line the editor window shows.
 func EditorHelpLines() []string {
 	var out []string
-	for _, rows := range [][]string{helpKeys, helpPickClone, helpPickSack, helpPickDrop, helpPickGoal, helpGoals, helpTerrain, helpHeight} {
+	for _, rows := range [][]string{helpKeys, helpPickClone, helpPickSack, helpPickUnit, helpPickDrop, helpPickGoal, helpGoals, helpTerrain, helpHeight} {
 		out = append(out, rows...)
 	}
 	return out
@@ -42,6 +42,8 @@ func (e *MapEditor) helpLines() []string {
 		return helpPickClone
 	case "sack":
 		return helpPickSack
+	case "unit":
+		return helpPickUnit
 	case "drop":
 		return helpPickDrop
 	case "goal":

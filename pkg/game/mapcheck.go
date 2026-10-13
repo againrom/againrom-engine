@@ -84,7 +84,7 @@ var mapRules = []mapRule{
 		run:       (*mapCheck).sackDuplicate},
 	{ID: "drop-cell", Error: false,
 		Authority: "MISSION-DROP-002",
-		Meaning:   "a drop cell lies outside the map or on a cell the party cannot stand on",
+		Meaning:   "a drop cell lies outside the map or on a cell the party cannot stand on, or the map has none and the fallback cells leave the map",
 		run:       (*mapCheck).dropCell},
 	{ID: "stock-link", Error: false,
 		Authority: "ALM-ORD-068",
@@ -474,11 +474,12 @@ func (c *mapCheck) sackDuplicate() []mapHit {
 
 func (c *mapCheck) dropCell() []mapHit {
 	cells := mapload.DropCells(c.m)
-	if len(cells) == 0 {
-		return nil
-	}
 	if c.plane == nil {
 		c.plane = mapload.Passability(c.m)
+	}
+	out := c.fallbackDrop(cells)
+	if len(cells) == 0 {
+		return out
 	}
 	var nodes []int
 	for i, n := range c.script.Actions {
@@ -486,7 +487,6 @@ func (c *mapCheck) dropCell() []mapHit {
 			nodes = append(nodes, i)
 		}
 	}
-	var out []mapHit
 	for k, d := range cells {
 		cell := image.Pt(int(d.X), int(d.Y))
 		text := ""
@@ -507,6 +507,34 @@ func (c *mapCheck) dropCell() []mapHit {
 		out = append(out, h)
 	}
 	return out
+}
+
+// fallbackDrop (DIV-3212) answers the finding for a map whose drop cells give the party no
+// cell: the start then draws one cell from the fallback square on each axis
+// (MISSION-DROP-002), and the finding counts the cells of that square the party
+// cannot stand on, outside the map or blocked.
+func (c *mapCheck) fallbackDrop(cells []mapload.Cell) []mapHit {
+	for _, d := range cells {
+		if d.X != 0 && d.Y != 0 {
+			return nil
+		}
+	}
+	low, high := mapload.FallbackDropRange()
+	lost, total := 0, 0
+	for y := low; y <= high; y++ {
+		for x := low; x <= high; x++ {
+			total++
+			cell := image.Pt(int(x), int(y))
+			if !c.inside(cell) || len(c.plane) == c.width()*c.height() && sim.DomainGround.BlockedBy(c.plane[cell.Y*c.width()+cell.X]) {
+				lost++
+			}
+		}
+	}
+	if lost == 0 {
+		return nil
+	}
+	return []mapHit{{Text: fmt.Sprintf("the map has no drop cell, and the party lands on a random cell of %d to %d on each axis: %d of its %d cells are outside the %dx%d map or blocked",
+		low, high, lost, total, c.width(), c.height())}}
 }
 
 // dropActionOpcode is the script action whose first two values are a drop cell.
