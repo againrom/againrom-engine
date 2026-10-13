@@ -33,7 +33,7 @@ func (w *World) retreatOrder(cmds []Command, first int, consumed []bool) {
 		// A reserved walk-to-cast is the superseded destination, not started
 		// cast progress. Refund it through the existing consumable seam.
 		// A started scroll keeps its wind-up and recovery before Retreat runs.
-		if !w.scrollInFlight(w.entities[i].ID) {
+		if !w.orderState(&w.entities[i]).scrollBegun() {
 			w.cancelScroll(i)
 		}
 		e := &w.entities[i]

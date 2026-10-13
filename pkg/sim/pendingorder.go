@@ -20,6 +20,11 @@ type PendingOrder struct {
 	X, Y        int32
 }
 
+// IsCastRow reports a queued manual cast, at an actor or at a cell.
+func (p PendingOrder) IsCastRow() bool {
+	return p.Kind == PendingActorCast || p.Kind == PendingCellCast
+}
+
 func (e *Entity) strikeAhead() bool {
 	return e.HasAttackTarget && (e.AttackPhase == AttackCharging || e.AttackPhase == AttackCasting)
 }
@@ -92,7 +97,7 @@ func (w *World) pendingLogicalProgress(i int) uint8 {
 func (w *World) ActorOrderProgress(id EntityID) uint8 {
 	if i := indexOfEntity(w.entities, id); i >= 0 {
 		p := w.entities[i].PendingOrder
-		if p.RowAdmitted && (p.Kind == PendingActorCast || p.Kind == PendingCellCast || p.Kind == PendingScroll) {
+		if p.RowAdmitted && (p.IsCastRow() || p.Kind == PendingScroll) {
 			return 2
 		}
 		if p.RowAdmitted && p.Kind == PendingPickup && (w.entities[i].Transit != 0 || w.motionActive(id)) {
@@ -125,10 +130,10 @@ func (w *World) takePendingOrders() {
 		if p.Kind == PendingNone || p.Kind == PendingPickup || p.Kind == PendingScroll || !e.Alive() || e.OffMap || !w.pendingOrderReady(i) {
 			continue
 		}
-		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && w.orderState(e).charging() {
+		if p.IsCastRow() && w.orderState(e).charging() {
 			continue
 		}
-		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && !p.RowAdmitted {
+		if p.IsCastRow() && !p.RowAdmitted {
 			e.PendingOrder.RowAdmitted = true
 			e.AdmittedBookSpell = p.Spell
 			continue
@@ -191,7 +196,7 @@ func (w *World) pendingOrderFault() error {
 		}
 		// A manual cast queued behind a paid wind-up stands beside it, and beside
 		// the recovery of its release tick, until takePendingOrders runs it.
-		castRow := p.Kind == PendingActorCast || p.Kind == PendingCellCast
+		castRow := p.IsCastRow()
 		s := w.orderState(&e)
 		if p.Kind != PendingScroll && (s.wait && !(castRow && !s.booked()) || s.scrollPending()) {
 			return fmt.Errorf("sim: pending order conflicts with admitted cast")
@@ -218,7 +223,7 @@ func (w *World) pendingOrderFault() error {
 				return fmt.Errorf("sim: actor cast carries cell operands")
 			}
 		}
-		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && p.Spell == 0 {
+		if p.IsCastRow() && p.Spell == 0 {
 			return fmt.Errorf("sim: pending cast has no spell")
 		}
 		if p.Kind == PendingPickupComplete && e.ActorState != actorStatePickupComplete {
@@ -230,8 +235,7 @@ func (w *World) pendingOrderFault() error {
 			}
 		}
 		if p.Kind == PendingScroll {
-			at, ok := w.scrollIndex(e.ID)
-			if !ok || w.scrollCasts[at].Started {
+			if !s.scrollPending() || s.scrollBegun() {
 				return fmt.Errorf("sim: pending scroll has no waiting pointer")
 			}
 		}

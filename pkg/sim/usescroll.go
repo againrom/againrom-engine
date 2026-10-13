@@ -28,11 +28,6 @@ func (w *World) scrollIndex(id EntityID) (int, bool) {
 	return i, i < len(w.scrollCasts) && w.scrollCasts[i].Caster == id
 }
 
-func (w *World) scrollInFlight(id EntityID) bool {
-	i, ok := w.scrollIndex(id)
-	return ok && w.scrollCasts[i].Started
-}
-
 func ScrollSpell(item ItemInstance) (uint16, int32, bool) {
 	if item.Kind != 4 || item.Code>>8&15 != 14 || item.Price < 0 || len(item.Effects) == 0 || len(item.Effects) > 64 || item.Effects[0].Kind != 41 {
 		return 0, 0, false
@@ -255,7 +250,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 				k++
 				continue
 			}
-			if e.Transit != 0 || e.CastWait != 0 {
+			if e.Transit != 0 || w.orderState(e).recoveryWaiting() {
 				k++
 				continue
 			}

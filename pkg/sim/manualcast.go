@@ -29,7 +29,7 @@ func (w *World) manualActionInterruptions(cmds []Command) map[EntityID]bool {
 			i := indexOfEntity(w.entities, c.Entity)
 			admitted = w.validStructureUse(i, StructureID(uint32(c.X))) && !w.paidWindUp(c.Entity)
 			if admitted {
-				if _, pending := w.scrollIndex(c.Entity); pending {
+				if i >= 0 && w.orderState(&w.entities[i]).scrollPending() {
 					// Refund admission can fail in source containers. Probe an
 					// isolated candidate so a refused click keeps the old release.
 					n := w.sourceMutationCopy(i)
@@ -58,7 +58,7 @@ func (w *World) beginManualCast(i int, c Command) bool {
 		return w.beginCellCastApproach(i, c)
 	}
 	if w.manualCastContinues(c) {
-		if p := w.entities[i].PendingOrder.Kind; p == PendingActorCast || p == PendingCellCast {
+		if w.entities[i].PendingOrder.IsCastRow() {
 			w.entities[i].PendingOrder = PendingOrder{}
 		}
 		return true

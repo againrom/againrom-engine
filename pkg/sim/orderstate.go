@@ -80,7 +80,7 @@ func (w *World) orderState(e *Entity) orderState {
 			s.scroll = scrollStarted
 		}
 	}
-	s.queued = e.PendingOrder.Kind == PendingActorCast || e.PendingOrder.Kind == PendingCellCast
+	s.queued = e.PendingOrder.IsCastRow()
 	s.step = e.Transit != 0 || w.motionActive(e.ID)
 	s.strike = e.AttackPhase != AttackReady || e.AttackCountdown != 0
 	return s
@@ -114,6 +114,15 @@ func (s orderState) phase() orderPhase {
 	return orderPhaseNone
 }
 
+// approaching reports a retained book order walking into range.
+func (s orderState) approaching() bool { return s.book == castApproach }
+
+// recoveryWaiting reports the one-shot recovery interval left by a release.
+func (s orderState) recoveryWaiting() bool { return s.wait }
+
+// scrollBegun reports a scroll cast past its reservation: its wind-up runs.
+func (s orderState) scrollBegun() bool { return s.scroll == scrollStarted }
+
 // booked reports a book cast record in any phase.
 func (s orderState) booked() bool { return s.book != castNone }
 
@@ -140,5 +149,5 @@ func (s orderState) castBusy() bool {
 // cast's progress through its recovery, and a move order waits for its exit
 // (MAGIC-311, AI-491).
 func (s orderState) ownsBody() bool {
-	return s.charging() || s.book == castRecovering || s.wait || s.scroll == scrollStarted
+	return s.charging() || s.book == castRecovering || s.wait || s.scrollBegun()
 }

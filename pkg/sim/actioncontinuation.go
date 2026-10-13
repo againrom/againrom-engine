@@ -646,7 +646,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 	}
 	for _, e := range n.entities {
 		p := e.PendingOrder
-		if p.Kind != PendingActorCast && p.Kind != PendingCellCast {
+		if !p.IsCastRow() {
 			continue
 		}
 		if order := n.savedOrder(e.ID); order != nil {

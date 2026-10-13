@@ -160,8 +160,8 @@ func (w *World) armCreatureCast(i int, victim, target EntityID, x, y int32, atCe
 
 // dropCreatureApproach ends an armed approach: another order replaced it.
 func (w *World) dropCreatureApproach(i int) {
-	if k, ok := w.bookCastIndex(w.entities[i].ID); ok && w.bookCasts[k].Phase == bookApproach {
-		w.bookCasts = append(w.bookCasts[:k], w.bookCasts[k+1:]...)
+	if s := w.orderStateAt(i); s.approaching() {
+		w.bookCasts = append(w.bookCasts[:s.bookAt], w.bookCasts[s.bookAt+1:]...)
 	}
 }
 

@@ -1001,7 +1001,7 @@ func inReach(a, t Entity) bool {
 func (w *World) endHeldCycleForWalk(i int) bool {
 	e := &w.entities[i]
 	if e.AttackPhase != AttackBoundaryTwo || !e.HasAttackTarget || !e.HasTarget ||
-		e.PendingOrder.Kind != PendingNone || w.usingStructure(e.ID) || e.CastWait != 0 {
+		e.PendingOrder.Kind != PendingNone || w.usingStructure(e.ID) || w.orderState(e).recoveryWaiting() {
 		return false
 	}
 	e.clearActiveAttack()

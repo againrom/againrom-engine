@@ -37,7 +37,7 @@ func currentOrderSpellKey(doc *sav.DocumentData, a *currentActionData, id sim.En
 	}
 	if spell == 0 {
 		for _, row := range a.Actions.Actors {
-			if row.Entity == id && (row.PendingOrder.Kind == sim.PendingActorCast || row.PendingOrder.Kind == sim.PendingCellCast) {
+			if row.Entity == id && (row.PendingOrder.IsCastRow()) {
 				spell = row.PendingOrder.Spell
 				break
 			}

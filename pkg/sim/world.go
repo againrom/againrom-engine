@@ -2575,11 +2575,15 @@ func (w *World) CastingSpell(id EntityID) (spell uint16, remaining uint8, ok boo
 		spell, _, _ = ScrollSpell(w.scrollCasts[i].Item)
 		return spell, w.scrollCasts[i].Remaining, true
 	}
-	i, ok := w.bookCastIndex(id)
-	if !ok || w.bookCasts[i].Phase != bookCharging {
+	ei := indexOfEntity(w.entities, id)
+	if ei < 0 {
 		return 0, 0, false
 	}
-	return w.bookCasts[i].Spell, w.bookCasts[i].Remaining, true
+	s := w.orderStateAt(ei)
+	if !s.charging() {
+		return 0, 0, false
+	}
+	return w.bookCasts[s.bookAt].Spell, w.bookCasts[s.bookAt].Remaining, true
 }
 
 // Spell returns the normalized rule installed in this world. The value is a

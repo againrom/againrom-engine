@@ -991,7 +991,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	// previous one's swing has run. It is asked BEFORE the cost, so a throttled
 	// cast spends nothing and rolls nothing, and it is asked of the book arm
 	// alone — releaseWeaponSpell never reaches this function.
-	if caster.CastWait > 0 {
+	if w.orderState(caster).recoveryWaiting() {
 		return false
 	}
 	// 7. a cost the caster cannot afford refuses the WHOLE cast: no mana
@@ -1095,7 +1095,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	// The player view gates the clicked ground before producing this order.
 	if _, inside := cellIndexIn(w.bounds, x, y); !inside ||
 		(cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) ||
-		caster.CastWait > 0 || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
+		w.orderState(caster).recoveryWaiting() || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
 		return false
 	}
 	// The area landing's own refusals, asked BEFORE the cost (spec: a refusal
@@ -1503,7 +1503,7 @@ func (w *World) retainedCastBusy(i int) bool {
 		return true
 	}
 	e := w.entities[i]
-	return e.AttackPhase != AttackReady || e.AttackCountdown != 0 || e.CastWait != 0
+	return e.AttackPhase != AttackReady || e.AttackCountdown != 0 || w.orderState(&e).recoveryWaiting()
 }
 
 func (w *World) queueBookCast(c bookCast) bool {

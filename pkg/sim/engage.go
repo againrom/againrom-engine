@@ -215,7 +215,7 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 // way. The reported bool is whether a cast began.
 func (w *World) aiCast(i int, _ *castObs) bool {
 	e := w.entities[i]
-	if e.Owner == 0 || e.Owner == SelfSlot || e.CastWait != 0 || !isMage(e) {
+	if e.Owner == 0 || e.Owner == SelfSlot || w.orderStateAt(i).recoveryWaiting() || !isMage(e) {
 		return false
 	}
 	var choices []SpellRule

@@ -84,10 +84,10 @@ func (w *World) syncSavedStandGround(i int) {
 // the pending order, so both stay (AI-356).
 func (w *World) holdReplacesPendingRow(i int) {
 	e := &w.entities[i]
-	switch p := e.PendingOrder; p.Kind {
-	case PendingRelease, PendingPickup:
+	switch p := e.PendingOrder; {
+	case p.Kind == PendingRelease || p.Kind == PendingPickup:
 		e.PendingOrder = PendingOrder{}
-	case PendingActorCast, PendingCellCast:
+	case p.IsCastRow():
 		if !p.RowAdmitted {
 			e.PendingOrder = PendingOrder{}
 		}

@@ -37,6 +37,7 @@ func osWorld(t *testing.T, enemies ...[2]int32) *World {
 // written before the order state, reading the raw carriers.
 type legacyPredicates struct {
 	booked, inFlight, paid, scrollPending, scrollStarted, castBusy bool
+	approaching, waiting, castRow                                  bool
 }
 
 func legacyOf(w *World, i int) legacyPredicates {
@@ -50,6 +51,7 @@ func legacyOf(w *World, i int) legacyPredicates {
 		l.inFlight = c.Phase == bookCharging
 		l.paid = c.Phase == bookCharging && c.Paid
 		l.castBusy = c.Phase != bookApproach
+		l.approaching = c.Phase == bookApproach
 	}
 	for _, s := range w.scrollCasts {
 		if s.Caster == e.ID {
@@ -57,6 +59,8 @@ func legacyOf(w *World, i int) legacyPredicates {
 		}
 	}
 	queued := e.PendingOrder.Kind == PendingActorCast || e.PendingOrder.Kind == PendingCellCast
+	l.castRow = queued
+	l.waiting = e.CastWait != 0
 	l.castBusy = l.castBusy || queued || l.scrollPending || e.CastWait != 0
 	return l
 }
@@ -67,7 +71,8 @@ func osAgree(t *testing.T, w *World, tick int) {
 		l := legacyOf(w, i)
 		s := w.orderStateAt(i)
 		got := legacyPredicates{booked: s.booked(), inFlight: s.charging(), paid: s.paidWindUp(),
-			scrollPending: s.scrollPending(), scrollStarted: s.scroll == scrollStarted, castBusy: s.castBusy()}
+			scrollPending: s.scrollPending(), scrollStarted: s.scrollBegun(), castBusy: s.castBusy(),
+			approaching: s.approaching(), waiting: s.recoveryWaiting(), castRow: w.entities[i].PendingOrder.IsCastRow()}
 		if got != l {
 			t.Fatalf("tick %d entity %d: order state %+v, former predicates %+v", tick, w.entities[i].ID, got, l)
 		}
@@ -126,5 +131,32 @@ func TestOrderStateAgreesWithEveryFormerPredicate(t *testing.T) {
 				t.Fatalf("the case never reached phase %d: %v", c.want, seen)
 			}
 		})
+	}
+}
+
+// The three queries that replaced the call sites' own expressions agree
+// with those expressions on a retained approach and on every pending kind.
+func TestOrderStateQueriesAgreeOnApproachAndPendingKinds(t *testing.T) {
+	w := osWorld(t, [2]int32{8, 4})
+	if !w.queueBookCast(bookCast{Caster: osMage, Target: osEnemy, Spell: 1, Phase: bookApproach, Retained: true}) {
+		t.Fatal("approach record refused")
+	}
+	l := legacyOf(w, 0)
+	if !l.approaching || !w.orderStateAt(0).approaching() {
+		t.Fatalf("approach: former %v, query %v", l.approaching, w.orderStateAt(0).approaching())
+	}
+	w.entities[0].CastWait = 3
+	if !w.orderStateAt(0).recoveryWaiting() || !legacyOf(w, 0).waiting {
+		t.Fatal("a nonzero CastWait must read as waiting")
+	}
+	for _, kind := range []uint8{PendingNone, PendingRelease, PendingPickup, PendingPickupComplete, PendingActorCast, PendingCellCast, PendingScroll} {
+		w.entities[0].PendingOrder = PendingOrder{Kind: kind}
+		former := kind == PendingActorCast || kind == PendingCellCast
+		if got := w.entities[0].PendingOrder.IsCastRow(); got != former {
+			t.Fatalf("kind %d: IsCastRow %v, former pair %v", kind, got, former)
+		}
+		if got := w.orderStateAt(0).queued; got != former {
+			t.Fatalf("kind %d: queued %v, former pair %v", kind, got, former)
+		}
 	}
 }
