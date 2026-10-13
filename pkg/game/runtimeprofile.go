@@ -63,6 +63,39 @@ func ResolveRuntimeProfile(saveOverride, executable, userConfigDir, originalDir 
 	return runtimeProfileStores(filepath.Join(root, "saves"), originalDir, nil), nil
 }
 
+// folder creates, when absent, the profile's subfolder name and answers its
+// path. A profile inside an install answers the access that admits writes
+// beneath the folder; any other profile answers none, and its writes keep the
+// ordinary install fence, which also holds the install originalDir.
+func (p RuntimeProfile) folder(name, originalDir string) (string, *runtimeProfileAccess, error) {
+	if p.Directory == "" {
+		return "", nil, errors.New("no player profile directory")
+	}
+	access := p.Saves.profile
+	if access == nil {
+		if err := refuseOriginalWriteTarget(p.Directory, originalDir); err != nil {
+			return "", nil, err
+		}
+		dir, err := createProfileDirectory(filepath.Join(p.Directory, name))
+		if err != nil {
+			return "", nil, err
+		}
+		return dir.path, nil, refuseOriginalWriteTarget(dir.path, originalDir)
+	}
+	if allowed, err := access.rootAccess().allows(access.root.path); err != nil || !allowed {
+		return "", nil, fmt.Errorf("profile directory %s is not writable: %v", access.root.path, err)
+	}
+	dir, err := createProfileDirectory(filepath.Join(access.root.path, name))
+	if err != nil {
+		return "", nil, err
+	}
+	grant := &runtimeProfileAccess{root: access.root, directory: dir, descendants: true}
+	if allowed, err := grant.allows(dir.path); err != nil || !allowed {
+		return "", nil, fmt.Errorf("profile folder %s is not writable: %v", dir.path, err)
+	}
+	return dir.path, grant, nil
+}
+
 func runtimeProfileStores(saves, originalDir string, access *runtimeProfileAccess) RuntimeProfile {
 	return RuntimeProfile{Directory: filepath.Dir(saves),
 		Saves:   SaveStore{Dir: saves, profile: access},

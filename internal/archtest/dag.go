@@ -217,7 +217,7 @@ var allow = map[string][]string{
 	"cmd/terraintool": {"pkg/render/terrain", "pkg/formats/res", "pkg/formats/alm", "pkg/game", "pkg/base"},
 	// The read-only editor receives authored content from the game loader and
 	// drives only UI inspection and camera input, not simulation or file formats.
-	"cmd/mapedit": {"pkg/game", "pkg/ui", "pkg/pathdialog", "internal/buildinfo", "internal/versionres"},
+	"cmd/mapedit": {"pkg/game", "pkg/ui", "pkg/launch", "pkg/pathdialog", "internal/buildinfo", "internal/versionres"},
 	// mapview's -blocked tint draws the plane a PLACED STRUCTURE reaches, so
 	// the tool reaches the tier that derives one and the two tiers it takes a
 	// definition table out of an archive with. pkg/data is not on the row: a
@@ -401,7 +401,10 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/mod", "pkg/locale", "pkg/pathdialog", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "internal/buildinfo"},
+	// The one launch of a program by another (the starter's game and editor,
+	// the editor's test play) imports nothing of this tree.
+	"pkg/launch": {},
 }
 
 // Violation names one rejected edge.

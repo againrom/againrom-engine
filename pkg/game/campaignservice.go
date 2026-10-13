@@ -86,6 +86,9 @@ type campaignService interface {
 	// censusRefusal refuses a census of the campaign's maps: the census
 	// reports each map of a destination bank.
 	censusRefusal() error
+	// testPlayRefusal refuses the map editor's test play, which plays a map
+	// as a guest mission after a won chapter mission.
+	testPlayRefusal() error
 	// eventTags is how the game's event text tag bodies are read.
 	eventTags() eventTags
 

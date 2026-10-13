@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/vfs"
 )
 
 // assembledText is the name of an installed mission text a mod mission takes:
@@ -47,23 +49,11 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 		return nil, fmt.Errorf("the install holds no map for mission %d: %w", mission, err)
 	}
 	files := map[string][]byte{"mission/" + lang + "/map.alm": m}
-	selector := LanguageSelector(a.Containers)
-	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(mission) + "/"
-	for _, e := range a.Containers.Entries() {
-		name, ok := strings.CutPrefix(strings.ToLower(e.Address), prefix)
-		if !ok || !assembledText.MatchString(name) {
-			continue
-		}
-		b, err := a.Containers.ReadFile(e.Address)
-		if err != nil {
-			return nil, err
-		}
-		// The mod folder holds UTF-8. A file the install decoder cannot give
-		// back byte for byte is copied as the install holds it, which a mod
-		// serves unchanged.
-		if u, ok := DecodeInstallTextFile(b, selector); ok {
-			b = u
-		}
+	pages, err := installedPages(a.Containers, mission)
+	if err != nil {
+		return nil, err
+	}
+	for name, b := range pages {
 		files["mission/"+lang+"/text/"+name] = b
 	}
 	var written []string
@@ -78,6 +68,31 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 		written = append(written, rel)
 	}
 	return written, nil
+}
+
+// installedPages is the text pages of installed mission n a mod mission
+// carries, by file name. The mod folder holds UTF-8; a file the install
+// decoder cannot give back byte for byte is kept as the install holds it,
+// which a mod serves unchanged.
+func installedPages(src *vfs.FS, n int) (map[string][]byte, error) {
+	pages := map[string][]byte{}
+	selector := LanguageSelector(src)
+	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(n) + "/"
+	for _, e := range src.Entries() {
+		name, ok := strings.CutPrefix(strings.ToLower(e.Address), prefix)
+		if !ok || !assembledText.MatchString(name) {
+			continue
+		}
+		b, err := src.ReadFile(e.Address)
+		if err != nil {
+			return nil, err
+		}
+		if u, ok := DecodeInstallTextFile(b, selector); ok {
+			b = u
+		}
+		pages[name] = b
+	}
+	return pages, nil
 }
 
 // pathWithin reports whether path is dir or lies beneath it, after both are

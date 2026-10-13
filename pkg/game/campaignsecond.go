@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 
 	"againrom/pkg/base"
@@ -326,3 +327,7 @@ func (secondCampaignRules) ownsGame(g base.Game) error {
 }
 
 func (secondCampaignRules) censusRefusal() error { return nil }
+
+func (secondCampaignRules) testPlayRefusal() error {
+	return errors.New("Test play plays first-game maps only: this campaign has no guest missions")
+}

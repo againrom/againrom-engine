@@ -71,7 +71,7 @@ var (
 
 func init() {
 	keys := func(line string) []helpEntry { return []helpEntry{{screenKeys, line}} }
-	line0, line1, line2, line3 := "Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H, B: brush", "N: new map / U: unit"
+	line0, line1, line2, line3 := "Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H, B: brush", "N: new map / U: unit / F5: play"
 	arms := "Up, Down: select / G: close"
 	editorKeyRows = []keyRow{
 		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, "Enter: pick a target"}}},
@@ -89,6 +89,7 @@ func init() {
 		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}}},
 		{key: "new", label: "N", act: (*MapEditor).keyNew, help: keys(line3)},
 		{key: "unit", label: "U", act: (*MapEditor).keyUnit, help: keys(line3)},
+		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(line3)},
 		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}}},
 		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}}},
 		{key: "up", label: "Up", act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}}},

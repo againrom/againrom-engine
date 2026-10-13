@@ -34,6 +34,11 @@ package storyguard
 //
 // CommentBytes rose by the doc comments of the dead-flyer SAV fix and its tests.
 //
+// CommentBytes rose by the doc comments of the map editor's test play, all new
+// code: pkg/launch, pkg/game/mapedittestplay.go and its tests,
+// pkg/ui/editortestplay.go, the release test in cmd/againrom, and this
+// paragraph.
+//
 // CommentBytes rose a further 549 bytes over one file: internal/archtest's
 // own dag.go, registering the new cmd/tooltipshot in the architecture
 // allow-map with the same reasoning style every other cmd/* row already
@@ -2458,5 +2463,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9015768,
+	CommentBytes: 9023266,
 }

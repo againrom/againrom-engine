@@ -52,20 +52,18 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"flag"
 	"fmt"
 	"image"
 	"image/png"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
 
 	"againrom/pkg/game"
+	"againrom/pkg/launch"
 )
 
 func main() {
@@ -75,25 +73,10 @@ func main() {
 func realDeps() deps {
 	return deps{
 		run: func(exe string, args []string) (string, error) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			defer cancel()
-			cmd := exec.CommandContext(ctx, exe, args...)
-			cmd.Dir = filepath.Dir(exe)
-			hideConsole(cmd)
-			var out bytes.Buffer
-			cmd.Stdout, cmd.Stderr = &out, &out
-			err := cmd.Run()
-			return out.String(), err
+			return launch.For(exe, args).Run(2 * time.Minute)
 		},
 		start: func(exe string, args []string) error {
-			cmd := exec.Command(exe, args...)
-			cmd.Dir = filepath.Dir(exe)
-			hideConsole(cmd)
-			if err := cmd.Start(); err != nil {
-				return err
-			}
-			go cmd.Wait()
-			return nil
+			return launch.For(exe, args).Start()
 		},
 		paste:   clipboardText,
 		inspect: game.InspectInstall,

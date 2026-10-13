@@ -243,3 +243,18 @@ file and prints that report; `-new` alone opens the window on it, with
 to the path the mod's mission entry for it names (the entry whose `number` is
 the opened installed map's mission, or whose `map` is the opened file), and
 refuses a map no entry names.
+
+F5 plays the map as it stands, unsaved edits included. The editor writes the
+map into its own test mod, `testplay`, in the editor's player profile (the
+`testplay` folder beside `mapedit`, or `Againrom/testplay` when the editor runs
+from inside an install), and starts the game beside the editor on the same
+base with `-mods testplay -mods-dir <that folder> -mission <n>`: character
+generation, then the map as guest mission `n`. The test mod declares the map
+as a guest mission after the campaign's first won mission that opens a town
+granting a companion; `n` is the lowest number after that mission the game
+accepts for a guest (21 on the first game's installs). It carries the text
+pages of the installed mission the map was opened from, or of its mod entry.
+Each F5 replaces the test mod's map and pages. A map the report finds an error
+in is not played; the report shows. The editor stays open, and nothing the
+author saved changes. A missing or failed game program is named on the
+message line. The second game has no test play.

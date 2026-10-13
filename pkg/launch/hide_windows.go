@@ -1,4 +1,4 @@
-package main
+package launch
 
 import (
 	"os/exec"
@@ -9,7 +9,7 @@ import (
 // console window. It does not touch the program's own windows.
 const createNoWindow = 0x08000000
 
-// hideConsole keeps a child console program from opening a console window.
-func hideConsole(cmd *exec.Cmd) {
+// HideConsole keeps a child console program from opening a console window.
+func HideConsole(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: createNoWindow}
 }

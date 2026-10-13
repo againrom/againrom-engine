@@ -1,5 +1,7 @@
 // Command mapedit inspects authored ALM content and saves explicit edited
-// copies outside installations, without simulation.
+// copies outside installations, without simulation. Its test play key (F5)
+// writes the map as it stands into a test mod in the player profile and starts
+// the game beside this program in that mission.
 package main
 
 import (
@@ -8,11 +10,13 @@ import (
 	"image/png"
 	"io"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"againrom/pkg/game"
+	"againrom/pkg/launch"
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui"
 )
@@ -82,6 +86,9 @@ func run(args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	self, _ := os.Executable()
+	userConfigDir, _ := os.UserConfigDir()
+	x.SetTestPlay(testPlayHost(self, userConfigDir, assetRoot))
 	if *modDir != "" {
 		if err := x.SetMod(*modDir); err != nil {
 			return err
@@ -213,4 +220,17 @@ func printFindings(out io.Writer, rows []ui.InspectionFinding) error {
 	errs, warnings := ui.CountFindings(rows)
 	fmt.Fprintf(out, "report: %d errors, %d warnings\n", errs, warnings)
 	return nil
+}
+
+// testPlayHost is the test play of the editor at self over the install root:
+// the player profile that program resolves, and the game beside it started
+// through the one launch.
+func testPlayHost(self, userConfigDir, root string) game.TestPlayHost {
+	return game.TestPlayHost{
+		Profile: func() (game.RuntimeProfile, error) {
+			return game.ResolveRuntimeProfile("", self, userConfigDir, root)
+		},
+		Game:  launch.Beside(self, "againrom", runtime.GOOS),
+		Start: func(program string, args []string) error { return launch.For(program, args).Start() },
+	}
 }

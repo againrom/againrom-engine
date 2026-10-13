@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
+	"againrom/pkg/vfs"
 )
 
 // A mod mission is played by a guest party while the party waits. When the
@@ -110,30 +111,8 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) (warnings []string, err err
 			}
 			continue
 		}
-		switch {
-		case m.Number%mainMissionStride == 0:
-			return nil, bad("number %d is a multiple of %d, the numbers of the campaign's main missions", m.Number, mainMissionStride)
-		case slices.Contains(c.Side, m.Number) || slices.Contains(c.Offered, m.Number):
-			return nil, bad("number %d is a mission of this install's campaign", m.Number)
-		}
-		if _, err := src.ReadFile(address); err == nil {
-			return nil, bad("number %d is a map of this install (%s)", m.Number, address)
-		}
-		if !slices.Contains(c.Main, m.After) {
-			return nil, bad("after %d is not a main mission of this install's campaign", m.After)
-		}
-		if next, ok := c.AutoAdvance(m.After); ok {
-			return nil, bad("mission %d is followed by mission %d, not by a town", m.After, next)
-		}
-		offer, ok := c.NextMission(m.After)
-		if !ok || !offer.Town {
-			return nil, bad("the win of mission %d opens no town", m.After)
-		}
-		if offer.Mission != m.Chapter {
-			return nil, bad("the win of mission %d opens the town of chapter %d, not chapter %d", m.After, offer.Mission, m.Chapter)
-		}
-		if !slices.Contains(c.Chapters[m.Chapter].AddHero, m.Guest) {
-			return nil, bad("the town of chapter %d does not grant companion %d", m.Chapter, m.Guest)
+		if err := checkGuest(c, src, m); err != nil {
+			return nil, bad("%v", err)
 		}
 	}
 	warnings, err = f.checkModMaps(d)
@@ -164,6 +143,40 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) (warnings []string, err err
 	}
 	f.Table.Mods.Missions = d
 	return warnings, nil
+}
+
+// checkGuest refuses a guest mission the campaign c or the install src does
+// not bear out: its number is a main-mission number, a campaign mission or an
+// installed map, or its after, chapter and guest are not a won main mission,
+// the town that win opens and a companion that town grants.
+func checkGuest(c Campaign, src *vfs.FS, m mod.Mission) error {
+	address, _ := MissionMap(m.Number)
+	switch {
+	case m.Number%mainMissionStride == 0:
+		return fmt.Errorf("number %d is a multiple of %d, the numbers of the campaign's main missions", m.Number, mainMissionStride)
+	case slices.Contains(c.Side, m.Number) || slices.Contains(c.Offered, m.Number):
+		return fmt.Errorf("number %d is a mission of this install's campaign", m.Number)
+	}
+	if _, err := src.ReadFile(address); err == nil {
+		return fmt.Errorf("number %d is a map of this install (%s)", m.Number, address)
+	}
+	if !slices.Contains(c.Main, m.After) {
+		return fmt.Errorf("after %d is not a main mission of this install's campaign", m.After)
+	}
+	if next, ok := c.AutoAdvance(m.After); ok {
+		return fmt.Errorf("mission %d is followed by mission %d, not by a town", m.After, next)
+	}
+	offer, ok := c.NextMission(m.After)
+	if !ok || !offer.Town {
+		return fmt.Errorf("the win of mission %d opens no town", m.After)
+	}
+	if offer.Mission != m.Chapter {
+		return fmt.Errorf("the win of mission %d opens the town of chapter %d, not chapter %d", m.After, offer.Mission, m.Chapter)
+	}
+	if !slices.Contains(c.Chapters[m.Chapter].AddHero, m.Guest) {
+		return fmt.Errorf("the town of chapter %d does not grant companion %d", m.Chapter, m.Guest)
+	}
+	return nil
 }
 
 // modMapInspector is the map editor's inspector over this front end's tables,

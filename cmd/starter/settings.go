@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"againrom/pkg/ini"
+	"againrom/pkg/launch"
 	"againrom/pkg/mod"
 )
 
@@ -424,21 +425,13 @@ func (s settings) gameExecutable(self, goos string) string {
 	if p := strings.TrimSpace(s.Againrom); p != "" {
 		return p
 	}
-	name := "againrom"
-	if goos == "windows" {
-		name += ".exe"
-	}
-	return filepath.Join(filepath.Dir(self), name)
+	return launch.Beside(self, "againrom", goos)
 }
 
 // editorExecutable is the map editor the starter opens: the one beside this
 // program.
 func editorExecutable(self, goos string) string {
-	name := "mapedit"
-	if goos == "windows" {
-		name += ".exe"
-	}
-	return filepath.Join(filepath.Dir(self), name)
+	return launch.Beside(self, "mapedit", goos)
 }
 
 func fileExists(path string) bool {

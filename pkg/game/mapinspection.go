@@ -29,8 +29,9 @@ type MapInspector struct {
 	table      *mapload.Table
 	font       *text.Font
 	Maps       []MapEntry
-	mod        *editorMod // the mod folder Save writes into; nil for Save As
-	rules      []mapRule  // the map report's rule table; nil is mapRules
+	mod        *editorMod    // the mod folder Save writes into; nil for Save As
+	testPlay   *TestPlayHost // the game the test play key starts; nil: no test play
+	rules      []mapRule     // the map report's rule table; nil is mapRules
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {

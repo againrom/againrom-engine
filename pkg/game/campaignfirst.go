@@ -149,6 +149,8 @@ func (firstCampaignRules) ownsGame(g base.Game) error {
 	return errOtherGame
 }
 
+func (firstCampaignRules) testPlayRefusal() error { return nil }
+
 func (firstCampaignRules) censusRefusal() error {
 	return errors.New("the census needs a second-game root")
 }
