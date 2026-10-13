@@ -127,6 +127,7 @@ type MapEditor struct {
 	panelImage                     *ebiten.Image
 	focusedReference               int // 1-based on the selected record; 0 means none
 	report                         reportState
+	brush                          brushState
 	recordDrag                     *editorRecordDrag
 	cancelledDrag                  bool // consume the remainder of a cancelled press
 	textSmoothingEnabled           bool
@@ -184,6 +185,7 @@ func (e *MapEditor) Open(source string) error {
 	e.message = ""
 	e.report = reportState{}
 	e.cancelRecordDrag()
+	e.brush.stroke, e.brush.down = nil, false
 	e.Fit()
 	return nil
 }
@@ -325,6 +327,10 @@ func (e *MapEditor) Key(key string) error {
 			e.message = ""
 			return nil
 		}
+		if e.brush.mode != brushOff {
+			e.brush.mode, e.brush.stroke, e.brush.down = brushOff, nil, false
+			return nil
+		}
 		if e.catalog && e.doc != nil {
 			e.catalog = false
 			e.offset = 0
@@ -368,7 +374,12 @@ func (e *MapEditor) Key(key string) error {
 		}
 	case "report":
 		e.reportKey()
+	case "terrain", "height", "radiusup", "radiusdown":
+		e.brushKey(key)
 	case "up", "down":
+		if e.brushKey(key) {
+			return nil
+		}
 		if key == "up" {
 			e.reportStep(-1)
 		} else {
@@ -435,6 +446,9 @@ func (e *MapEditor) Key(key string) error {
 }
 
 func (e *MapEditor) rowCount() int {
+	if e.brushActive() {
+		return len(e.brushRows())
+	}
 	if e.catalog {
 		return len(e.maps)
 	}
@@ -452,6 +466,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		rail = e.doc.Viewer.cam.ViewW
 	}
 	p := image.Pt(x, y)
+	if e.brushPointer(in, p, rail) {
+		return
+	}
 	if e.dragRecord(in, p, rail) {
 		return
 	}
@@ -535,7 +552,7 @@ func (e *MapEditor) railClick(x, y int) {
 		}
 		return
 	}
-	if !e.catalog && !e.report.open && y >= 128 && y < 176 {
+	if !e.catalog && !e.report.open && !e.brushActive() && y >= 128 && y < 176 {
 		idx := (y-128)/24*4 + x/80
 		if idx < len(editorFilters) {
 			e.filter = idx
@@ -557,6 +574,8 @@ func (e *MapEditor) railClick(x, y int) {
 		}
 	} else if e.report.open {
 		e.selectFinding(row)
+	} else if e.brushActive() {
+		e.brushRowClick(row)
 	} else {
 		rows := e.rows()
 		if row < len(rows) {
@@ -606,7 +625,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -776,6 +795,8 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 	}
 	if e.report.open {
 		line(editorClip(e.font, e.report.note, 300), 10, 143, 300, editorGold)
+	} else if e.brushActive() {
+		line(editorClip(e.font, e.brushStatus(), 300), 10, 143, 300, editorGold)
 	} else if !e.catalog {
 		for i, s := range editorFilters {
 			x, y := (i%4)*80, (i/4)*24+128
@@ -795,6 +816,8 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		rowCount = len(e.maps)
 	} else if e.report.open {
 		rowCount = len(e.report.rows)
+	} else if e.brushActive() {
+		rowCount = len(e.brushRows())
 	}
 	if rowCount == 0 && e.filter == 7 && e.doc != nil {
 		line(e.doc.ScriptNotice, 10, editorListTop, 300, editorPaper)
@@ -809,6 +832,12 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		c := editorPaper
 		if e.catalog {
 			label = e.maps[n].Label
+		} else if e.brushActive() {
+			label = e.brushRows()[n]
+			if n == e.brush.sel[e.brush.mode] {
+				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
+				c = editorGold
+			}
 		} else if e.report.open {
 			f := e.report.rows[n]
 			label = reportLabel(f)
@@ -860,7 +889,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 				line(row, 10, y, 300, editorLight)
 			}
 		}
-	} else if e.selected >= 0 && e.doc != nil && !e.catalog {
+	} else if e.selected >= 0 && e.doc != nil && !e.catalog && !e.brushActive() {
 		r := e.doc.Records[e.selected]
 		line(fmt.Sprintf("%s #%d / type %d", r.Kind, r.Index, r.Section), 10, bottom+40, 300, editorGold)
 		if r.Spatial {
@@ -1007,6 +1036,7 @@ func (e *MapEditor) markerLines() []editorLine {
 		}
 	}
 	out = append(out, e.referenceMarkerLines()...)
+	out = append(out, e.brushMarkerLines()...)
 	return out
 }
 

@@ -103,6 +103,9 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	if next == nil {
 		return nil // unavailable history or same-cell move
 	}
+	if e.terrainDiffers(next) {
+		return e.adoptTerrainEdit(next, nil)
+	}
 	// A record edit does not change terrain. Retain the live viewer (camera,
 	// GPU caches and render settings) and refresh entities, structures and sacks.
 	old := e.doc.Viewer

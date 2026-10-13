@@ -433,3 +433,10 @@ func Planes(m *alm.Map, t *Table) sim.Terrain {
 	}
 	return out
 }
+
+// TileClass is the terrain class (1 Land through 10 Road) the classifier
+// gives a tile word, or 0xff for a word it rejects.
+func TileClass(word uint16) uint8 {
+	class, _ := classify(word)
+	return class
+}

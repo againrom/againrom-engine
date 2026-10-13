@@ -9,18 +9,20 @@ import (
 // EditorHelpLines lists every line the window can show so a test can measure
 // them with the installed font.
 var (
-	helpKeys      = []string{"Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop cell / G: script arms"}
+	helpKeys      = []string{"Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H: brush"}
 	helpPickClone = []string{"Clone: click a cell", "Esc: cancel"}
 	helpPickSack  = []string{"Sack: click a cell", "Esc: cancel"}
 	helpPickDrop  = []string{"Drop cell: click a cell", "Esc: cancel"}
 	helpPickGoal  = []string{"Target: click a unit or", "structure / Esc: cancel"}
+	helpTerrain   = []string{"T: off / Drag: paint / [ ]: size"}
+	helpHeight    = []string{"H: off / Drag: shape / [ ]: size"}
 	helpGoals     = []string{"Enter: pick a target", "Up, Down: select / G: close"}
 )
 
 // EditorHelpLines is every help line the editor window shows.
 func EditorHelpLines() []string {
 	var out []string
-	for _, rows := range [][]string{helpKeys, helpPickClone, helpPickSack, helpPickDrop, helpPickGoal, helpGoals} {
+	for _, rows := range [][]string{helpKeys, helpPickClone, helpPickSack, helpPickDrop, helpPickGoal, helpGoals, helpTerrain, helpHeight} {
 		out = append(out, rows...)
 	}
 	return out
@@ -29,6 +31,12 @@ func EditorHelpLines() []string {
 // helpLines is the help rows for the window's state: the keys, or the
 // instruction of the armed pick.
 func (e *MapEditor) helpLines() []string {
+	if e.brushActive() {
+		if e.brush.mode == brushHeight {
+			return helpHeight
+		}
+		return helpTerrain
+	}
 	switch e.pick {
 	case "clone":
 		return helpPickClone

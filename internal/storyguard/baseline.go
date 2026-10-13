@@ -2379,6 +2379,10 @@ package storyguard
 // new type-7 rows in pkg/mapedit/script.go and SetFields in field.go, the
 // host's script operations in pkg/game/mapinspectionscript.go, the script
 // panel in pkg/ui/mapeditorscript.go and their tests, this note included.
+//
+// CommentBytes rises for the map editor's terrain and height brush: the notes
+// in pkg/mapedit/terrain.go and brush.go, pkg/ui/mapeditorbrush.go and the
+// new release tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2402,5 +2406,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8941843,
+	CommentBytes: 8956384,
 }
