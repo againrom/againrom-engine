@@ -13,6 +13,7 @@ type Plane uint8
 const (
 	PlaneTile   Plane = iota + 1 // type 1, 16-bit tile words
 	PlaneHeight                  // type 2, one height byte per cell
+	PlaneObject                  // type 3, one static-object class code per cell
 )
 
 // Falloff names how a brush's effect fades from its centre to its rim.
@@ -23,10 +24,11 @@ const (
 	FalloffCosine                // the effect follows a quarter cosine wave to zero one cell past the radius
 )
 
-// Brush is the one operation both grid planes share, as data. On the tile plane
+// Brush is the one operation the grid planes share, as data. On the tile plane
 // Value is the terrain class the disc takes (a Palette entry's Class); on the
-// height plane Value is the signed height change at the centre. A stroke is a
-// Brush and the centres the pointer visited.
+// height plane Value is the signed height change at the centre; on the object
+// plane Value is the class code every cell of the disc takes, 0 clearing it. A
+// stroke is a Brush and the centres the pointer visited.
 type Brush struct {
 	Plane   Plane
 	Value   int
@@ -114,6 +116,11 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 		}
 	case PlaneHeight:
 		ed = e.heightStroke(f, b, at, w, h)
+	case PlaneObject:
+		var err error
+		if ed, err = e.objectStroke(f, b, at, w, h); err != nil {
+			return false, err
+		}
 	default:
 		return false, fmt.Errorf("mapedit: no grid plane %d", b.Plane)
 	}
@@ -282,4 +289,35 @@ func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 		i = j
 	}
 	return ed
+}
+
+// objectStroke writes the class code (0..255) into every cell of the disc.
+// Which codes name a class is the host's knowledge (the object registry); the
+// model refuses a code a byte cannot hold and a map with no type-3 record.
+func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, error) {
+	if b.Value < 0 || b.Value > 255 {
+		return nil, fmt.Errorf("mapedit: %d is not an object class code", b.Value)
+	}
+	span, err := f.optional("paint objects", overlayTypeID)
+	if err != nil {
+		return nil, err
+	}
+	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
+	next := append([]byte(nil), old...)
+	for _, cell := range at {
+		disc(cell, b.Radius, w, h, func(x, y, _ int) { next[y*w+x] = byte(b.Value) })
+	}
+	var ed edit
+	for i := 0; i < len(next); {
+		if next[i] == old[i] {
+			i++
+			continue
+		}
+		j := i
+		for ; j < len(next) && next[j] != old[j]; j++ {
+		}
+		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
+		i = j
+	}
+	return ed, nil
 }

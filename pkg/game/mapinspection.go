@@ -22,6 +22,7 @@ type MapInspector struct {
 	archives   *Archives
 	tiles      *terrain.Tileset
 	statics    *terrain.StaticSet
+	objectRows []ui.BrushObject // the objects list: the clear row, then each drawable class
 	structures *terrain.StructureSet
 	units      *terrain.UnitSet
 	sacks      []*terrain.StaticFrame
@@ -41,6 +42,7 @@ func NewMapInspector(root string) (*MapInspector, error) {
 	if x.statics, err = LoadStatics(a.Containers); err != nil {
 		return nil, err
 	}
+	x.objectRows = objectBrushRows(a.Containers, x.statics)
 	if x.structures, err = LoadStructures(a.Containers); err != nil {
 		return nil, err
 	}

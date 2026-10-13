@@ -461,3 +461,99 @@ func TestTileStrokeKeepsTheImpassableFlagOfUnpaintedCells(t *testing.T) {
 		t.Errorf("the painted last cell carries the flag: %#x", last)
 	}
 }
+
+// objectMap is brushMap with a type-3 record of the given code in every cell.
+func objectMap(tile uint16, height, code byte) []byte {
+	in := brushMap(tile, height)
+	n := brushSide * brushSide
+	rec := make([]byte, recordHeaderSize)
+	putU32(rec, recTag, recordTag)
+	putU32(rec, recHdrLen, recordHdrLen)
+	putU32(rec, recPayloadSize, uint32(n))
+	putU32(rec, recTypeID, 3)
+	putU32(rec, recPerMapConst, fixPerMapConst)
+	in = append(in, rec...)
+	in = append(in, bytes.Repeat([]byte{code}, n)...)
+	putU32(in, fhRecordCount, 4)
+	putU32(in, fhDataSize, uint32(5*n+72))
+	return in
+}
+
+func objectCells(t *testing.T, data []byte) []byte {
+	t.Helper()
+	f := walkFrame(t, data).byType(t, 3)
+	return data[f.payloadOff : f.payloadOff+brushSide*brushSide]
+}
+
+func TestObjectStrokeWritesTheClassCodeOverTheDiscAndNothingElse(t *testing.T) {
+	in := objectMap(0x14, 40, 0)
+	ed, err := mapedit.New(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed, err := ed.Paint(mapedit.Brush{Plane: mapedit.PlaneObject, Value: 7, Radius: 2}, []mapedit.Cell{{X: 12, Y: 12}}, nil)
+	if err != nil || !changed {
+		t.Fatalf("Paint = %v, %v", changed, err)
+	}
+	out := ed.Bytes()
+	of := walkFrame(t, in).byType(t, 3)
+	for i := range in {
+		if in[i] != out[i] && (i < of.payloadOff || i >= of.payloadOff+of.payloadSize) {
+			t.Fatalf("byte %#x changed outside the type-3 grid", i)
+		}
+	}
+	for i, c := range objectCells(t, out) {
+		x, y := i%brushSide, i/brushSide
+		want := byte(0)
+		if (x-12)*(x-12)+(y-12)*(y-12) <= 4 {
+			want = 7
+		}
+		if c != want {
+			t.Fatalf("object (%d,%d) = %d, want %d", x, y, c, want)
+		}
+	}
+	if !ed.Undo() || !bytes.Equal(ed.Bytes(), in) || ed.CanUndo() {
+		t.Fatal("one Undo does not restore the object bytes")
+	}
+}
+
+func TestObjectClearRowWritesTheEmptyValue(t *testing.T) {
+	in := objectMap(0x14, 40, 9)
+	ed, _ := mapedit.New(in)
+	if changed, err := ed.Paint(mapedit.Brush{Plane: mapedit.PlaneObject, Value: 0, Radius: 1}, []mapedit.Cell{{X: 5, Y: 5}}, nil); err != nil || !changed {
+		t.Fatalf("Paint = %v, %v", changed, err)
+	}
+	cells := objectCells(t, ed.Bytes())
+	for i, c := range cells {
+		x, y := i%brushSide, i/brushSide
+		want := byte(9)
+		if (x-5)*(x-5)+(y-5)*(y-5) <= 1 {
+			want = 0
+		}
+		if c != want {
+			t.Fatalf("object (%d,%d) = %d, want %d", x, y, c, want)
+		}
+	}
+}
+
+func TestObjectStrokeThatChangesNothingRecordsNothing(t *testing.T) {
+	in := objectMap(0x14, 40, 9)
+	ed, _ := mapedit.New(in)
+	changed, err := ed.Paint(mapedit.Brush{Plane: mapedit.PlaneObject, Value: 9, Radius: 2}, []mapedit.Cell{{X: 8, Y: 8}}, nil)
+	if err != nil || changed || ed.CanUndo() || !bytes.Equal(ed.Bytes(), in) {
+		t.Fatalf("same code: changed=%v err=%v undo=%v", changed, err, ed.CanUndo())
+	}
+}
+
+func TestObjectStrokeIsRejectedWithoutATypeThreeRecord(t *testing.T) {
+	in := brushMap(0x14, 40)
+	ed, _ := mapedit.New(in)
+	for _, v := range []int{5, 256, -1} {
+		if _, err := ed.Paint(mapedit.Brush{Plane: mapedit.PlaneObject, Value: v}, []mapedit.Cell{{X: 1, Y: 1}}, nil); err == nil {
+			t.Errorf("code %d: no error", v)
+		}
+	}
+	if ed.CanUndo() || !bytes.Equal(ed.Bytes(), in) {
+		t.Fatal("a rejected stroke changed the model")
+	}
+}

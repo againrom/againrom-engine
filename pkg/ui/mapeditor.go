@@ -462,7 +462,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -669,12 +669,6 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		c := editorPaper
 		if e.catalog {
 			label = e.maps[n].Label
-		} else if e.brushActive() {
-			label = e.brushRows()[n]
-			if n == e.brush.sel[e.brush.mode] {
-				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
-				c = editorGold
-			}
 		} else if e.report.open {
 			f := e.report.rows[n]
 			label = reportLabel(f)
@@ -685,6 +679,12 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 				c = editorWarning
 			}
 			if n == e.report.sel {
+				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
+				c = editorGold
+			}
+		} else if e.brushActive() {
+			label = e.brushRows()[n]
+			if n == e.brush.sel[e.brush.mode] {
 				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
 				c = editorGold
 			}

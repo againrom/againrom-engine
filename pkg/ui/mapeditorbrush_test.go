@@ -26,6 +26,9 @@ func (p *brushProbe) SaveAs(string) (string, error)      { return "", nil }
 func (p *brushProbe) BrushTerrains() []BrushTerrain {
 	return []BrushTerrain{{Class: 2, Name: "Grass"}, {Class: 8, Name: "Mountain"}}
 }
+func (p *brushProbe) BrushObjects() []BrushObject {
+	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}}
+}
 func (p *brushProbe) Move(string, int, image.Point) (*InspectionDocument, error) { return nil, nil }
 
 func (p *brushProbe) Paint(s BrushStroke) (*InspectionDocument, error) {
@@ -89,7 +92,7 @@ func TestMapEditorBrushStrokeIsOneEditAndKeepsTheView(t *testing.T) {
 		t.Fatalf("a drag made %d strokes, want 1", len(p.strokes))
 	}
 	s := p.strokes[0]
-	if s.Height || s.Value != 8 || s.Radius != brushDefaultRadius || len(s.Cells) != 4 || s.Cells[0] != image.Pt(20, 20) || s.Cells[3] != image.Pt(23, 20) {
+	if s.Plane != BrushPlaneTerrain || s.Value != 8 || s.Radius != brushDefaultRadius || len(s.Cells) != 4 || s.Cells[0] != image.Pt(20, 20) || s.Cells[3] != image.Pt(23, 20) {
 		t.Fatalf("stroke %+v", s)
 	}
 	if e.doc.Viewer == old || e.doc.Viewer.cam.Zoom != cam.Zoom || e.doc.Viewer.cam.X != cam.X || e.doc.Viewer.cam.Y != cam.Y {
@@ -108,7 +111,7 @@ func TestMapEditorBrushHeightRowsAndModeSwitch(t *testing.T) {
 	e.Key("radiusdown")
 	e.Key("radiusdown")
 	drag(e, image.Pt(10, 10))
-	if len(p.strokes) != 1 || !p.strokes[0].Height || p.strokes[0].Value != -brushHeightStep || p.strokes[0].Radius != 0 {
+	if len(p.strokes) != 1 || p.strokes[0].Plane != BrushPlaneHeight || p.strokes[0].Value != -brushHeightStep || p.strokes[0].Radius != 0 {
 		t.Fatalf("height stroke %+v", p.strokes)
 	}
 	e.Key("terrain")
@@ -131,5 +134,22 @@ func TestMapEditorBrushHelpLinesFitTheRail(t *testing.T) {
 				t.Errorf("%q is %d wide; the rail holds 300", line, w)
 			}
 		}
+	}
+}
+
+// The objects brush paints the plane of its list: the selected row's code.
+func TestMapEditorObjectsBrushStrokeCarriesTheRowCode(t *testing.T) {
+	e, p := brushEditor(t)
+	if err := e.Key("objects"); err != nil {
+		t.Fatal(err)
+	}
+	if got := e.brushRows(); len(got) != 2 || got[1] != "Oak" {
+		t.Fatalf("objects rows %v", got)
+	}
+	_ = e.Key("down")
+	e.ShowCell(image.Pt(20, 20))
+	drag(e, image.Pt(20, 20))
+	if len(p.strokes) != 1 || p.strokes[0].Plane != BrushPlaneObjects || p.strokes[0].Value != 3 {
+		t.Fatalf("strokes %+v", p.strokes)
 	}
 }

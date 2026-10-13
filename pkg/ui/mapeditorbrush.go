@@ -13,20 +13,37 @@ type BrushTerrain struct {
 	Name  string
 }
 
-// BrushStroke is one pointer stroke as data: the plane (terrain class or
-// height), the value at each cell (the class, or the height change), the
-// brush radius in cells and the cells the pointer visited.
+// BrushObject is one row of the objects list the host lets the window paint:
+// the class code a cell takes (0 is the row that clears objects) and its name.
+type BrushObject struct {
+	Code int
+	Name string
+}
+
+// BrushPlane names the grid layer a stroke writes.
+type BrushPlane uint8
+
+const (
+	BrushPlaneTerrain BrushPlane = iota
+	BrushPlaneHeight
+	BrushPlaneObjects
+)
+
+// BrushStroke is one pointer stroke as data: the plane, the value at each cell
+// (a terrain class, a height change or an object class code), the brush radius
+// in cells and the cells the pointer visited.
 type BrushStroke struct {
-	Height bool
+	Plane  BrushPlane
 	Value  int
 	Radius int
 	Cells  []image.Point
 }
 
-// InspectionBrush is the optional seam of a host whose document paints terrain
-// and heights. A stroke is one edit: one undo step, one document.
+// InspectionBrush is the optional seam of a host whose document paints terrain,
+// heights and objects. A stroke is one edit: one undo step, one document.
 type InspectionBrush interface {
 	BrushTerrains() []BrushTerrain
+	BrushObjects() []BrushObject
 	Paint(BrushStroke) (*InspectionDocument, error)
 }
 
@@ -36,6 +53,7 @@ const (
 	brushOff brushMode = iota
 	brushTerrain
 	brushHeight
+	brushObjects
 )
 
 // The brush settings the window offers: the radius a stroke starts with and
@@ -46,11 +64,16 @@ const (
 	brushHeightStep    = 8
 )
 
+// brushKeyModes is the brush mode each brush key switches, and brushModeNames
+// the word the status line gives it.
+var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects}
+var brushModeNames = map[brushMode]string{brushTerrain: "Terrain", brushHeight: "Height", brushObjects: "Objects"}
+
 var brushHeightRows = [...]string{"Raise", "Lower"}
 
 type brushState struct {
 	mode    brushMode
-	sel     [3]int // selected row per mode
+	sel     [4]int // selected row per mode
 	radius  int    // meaningful once radiusSet
 	stroke  []image.Point
 	down    bool
@@ -85,6 +108,14 @@ func (e *MapEditor) brushRows() []string {
 		return rows
 	case brushHeight:
 		return brushHeightRows[:]
+	case brushObjects:
+		var rows []string
+		if h := e.brushHost(); h != nil {
+			for _, o := range h.BrushObjects() {
+				rows = append(rows, o.Name)
+			}
+		}
+		return rows
 	}
 	return nil
 }
@@ -96,15 +127,12 @@ func (e *MapEditor) brushRadius() int {
 	return e.brush.radius
 }
 
-// brushKey handles the keys that choose a brush: T and H switch their mode on
-// or off, the bracket keys set the radius, Up and Down choose the row.
+// brushKey handles the keys that choose a brush: T, H and B switch their mode
+// on or off, the bracket keys set the radius, Up and Down choose the row.
 func (e *MapEditor) brushKey(key string) bool {
 	switch key {
-	case "terrain", "height":
-		mode := brushTerrain
-		if key == "height" {
-			mode = brushHeight
-		}
+	case "terrain", "height", "objects":
+		mode := brushKeyModes[key]
 		if e.brushHost() == nil || e.catalog {
 			return true
 		}
@@ -149,11 +177,7 @@ func (e *MapEditor) brushStatus() string {
 	if sel >= len(rows) {
 		return ""
 	}
-	what := "Terrain"
-	if e.brush.mode == brushHeight {
-		what = "Height"
-	}
-	return fmt.Sprintf("%s: %s  size %d", what, rows[sel], e.brushRadius())
+	return fmt.Sprintf("%s: %s  size %d", brushModeNames[e.brush.mode], rows[sel], e.brushRadius())
 }
 
 // brushCell is the grid cell under the frame position p, if it is on the map.
@@ -222,14 +246,21 @@ func (e *MapEditor) brushCommit() {
 	if host == nil || len(cells) == 0 {
 		return
 	}
-	op := BrushStroke{Height: e.brush.mode == brushHeight, Radius: e.brushRadius(), Cells: cells}
+	op := BrushStroke{Radius: e.brushRadius(), Cells: cells}
 	sel := e.brush.sel[e.brush.mode]
-	if op.Height {
-		op.Value = brushHeightStep
+	switch e.brush.mode {
+	case brushHeight:
+		op.Plane, op.Value = BrushPlaneHeight, brushHeightStep
 		if sel == 1 {
 			op.Value = -brushHeightStep
 		}
-	} else {
+	case brushObjects:
+		objects := host.BrushObjects()
+		if sel >= len(objects) {
+			return
+		}
+		op.Plane, op.Value = BrushPlaneObjects, objects[sel].Code
+	default:
 		terrains := host.BrushTerrains()
 		if sel >= len(terrains) {
 			return
@@ -240,14 +271,14 @@ func (e *MapEditor) brushCommit() {
 	_ = e.adoptTerrainEdit(next, err)
 }
 
-// terrainDiffers reports whether next shows other tiles or heights than the
-// current document.
+// terrainDiffers reports whether next shows other tiles, heights or objects
+// than the current document.
 func (e *MapEditor) terrainDiffers(next *InspectionDocument) bool {
 	if next == nil || next.Viewer == nil || e.doc == nil {
 		return false
 	}
 	a, b := e.doc.Viewer.grid, next.Viewer.grid
-	return !equalSlice(a.Tiles, b.Tiles) || !equalSlice(a.Altitudes, b.Altitudes)
+	return !equalSlice(a.Tiles, b.Tiles) || !equalSlice(a.Altitudes, b.Altitudes) || !equalSlice(a.Overlay, b.Overlay)
 }
 
 func equalSlice[T comparable](a, b []T) bool {

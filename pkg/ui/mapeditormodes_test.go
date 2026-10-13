@@ -108,8 +108,11 @@ func (p *modesFull) SetDropCell(c image.Point) (*InspectionDocument, error) {
 func (p *modesFull) BrushTerrains() []BrushTerrain {
 	return []BrushTerrain{{Class: 2, Name: "Grass"}, {Class: 8, Name: "Mountain"}, {Class: 9, Name: "Water"}}
 }
+func (p *modesFull) BrushObjects() []BrushObject {
+	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}}
+}
 func (p *modesFull) Paint(s BrushStroke) (*InspectionDocument, error) {
-	return p.next("Paint %v %d %d %d", s.Height, s.Value, s.Radius, len(s.Cells))
+	return p.next("Paint %v %d %d %d", s.Plane == BrushPlaneHeight, s.Value, s.Radius, len(s.Cells))
 }
 func (p *modesFull) AddUnit(c image.Point, class int64) (*InspectionDocument, error) {
 	return p.next("AddUnit %v %d", c, class)
@@ -178,7 +181,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "bogus"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "bogus"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:rail-maps", "ui:rail-open", "ui:rail-fit", "ui:rail-undo", "ui:rail-redo", "ui:rail-save", "ui:rail-filter", "ui:rail-row0", "ui:wheel-rail"}
 
@@ -378,6 +381,9 @@ var modesPaths = []modesPath{
 	{"terrain", []string{"terrain"}},
 	{"terrain-down", []string{"terrain", "down", "radiusup"}},
 	{"height", []string{"height"}},
+	{"objects", []string{"objects"}},
+	{"objects-stroke", []string{"objects", "down", "ui:press-cell"}},
+	{"objects-report", []string{"objects", "report"}},
 	{"terrain-open", []string{"terrain", "open"}},
 	{"terrain-clone", []string{"ui:select0", "terrain", "clone"}},
 	{"terrain-report", []string{"terrain", "report"}},

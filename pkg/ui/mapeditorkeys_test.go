@@ -197,6 +197,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenGoals:   {"goals"},
 		screenTerrain: {"terrain"},
 		screenHeight:  {"height"},
+		screenObjects: {"objects"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)
@@ -268,6 +269,7 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"terrain brush", []string{"terrain", "ui:press-cell"}, false, escapes, false},
 		{"terrain brush toggles", []string{"terrain", "ui:press-cell"}, false, []string{"terrain"}, false},
 		{"height brush", []string{"height"}, false, escapes, false},
+		{"objects brush", []string{"objects"}, false, escapes, false},
 		{"brush under a pick", []string{"ui:select0", "terrain", "clone"}, false, escapes, false},
 		{"catalogue", []string{"catalog"}, true, escapes, false},
 		{"catalogue toggles", []string{"catalog"}, true, []string{"catalog"}, false},

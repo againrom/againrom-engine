@@ -2430,6 +2430,9 @@ package storyguard
 //
 // CommentBytes rises for the sack-delete link renumbering of the map editor: the docs
 // of unitLinkParts and the release and focused tests, this note included.
+// CommentBytes rises 2600 bytes for the objects brush: the docs of the object
+// plane, its stroke, the host's objects list and the tests that pin them, this
+// note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2453,5 +2456,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1726,
 	},
-	CommentBytes: 9011483,
+	CommentBytes: 9014083,
 }
