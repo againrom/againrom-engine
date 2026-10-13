@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.121.0
+
 - [ROM1] A freshly started mission follows the same cell rules as a loaded save. Creatures cross building doorways and bridges at the original's speed for those cells from the start, and no creature at the start of a mission steps onto a cell that would stop it after loading.
 - [ROM1] A mod that changes the terrain movement costs (map.reg) now changes how creatures move on every mission.
 - [BASE] The `#pickup all` cheat picks up every sack as an ordinary pickup: the message line names the gold and each item picked up, quest documents go to the main hero, and a mission event that waits for a sack to be picked up follows as it does after a normal pickup.
