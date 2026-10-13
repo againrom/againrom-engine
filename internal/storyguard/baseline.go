@@ -2388,6 +2388,10 @@ package storyguard
 // pkg/mapedit/newmap.go, pkg/game/mapinspectionnew.go, pkg/ui/mapeditornew.go
 // the release test pkg/game/mapeditnew_release_test.go, the drop-cell tests
 // in pkg/game/mapcheckdrop_test.go and mapcheck_test.go, this note included.
+//
+// CommentBytes rises 3548 bytes for the mod mission texts: the docs of
+// EncodeInstallTextFile and DecodeInstallTextFile, the mod-message-text rule
+// and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2411,5 +2415,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8965612,
+	CommentBytes: 8969160,
 }

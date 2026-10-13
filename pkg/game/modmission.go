@@ -144,7 +144,7 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) error {
 		serve(address, m.MapBytes)
 		dir := mainPrefix + "text/battle/m" + strconv.Itoa(m.Number) + "/"
 		for name, b := range m.TextFiles {
-			serve(dir+name, b)
+			serve(dir+name, EncodeInstallTextFile(b, selector))
 		}
 		if m.Title != "" {
 			serve(dir+"title.txt", []byte(EncodeInstallText(m.Title, selector)))

@@ -11,14 +11,14 @@ import (
 )
 
 // assembledText is the name of an installed mission text a mod mission takes:
-// its event and tip pages. Title and briefing come from the mod's own words.
-var assembledText = regexp.MustCompile(`^(event|tips)[0-9]{2}\.txt$`)
+// its event and tip pages, title, briefing and the world map's briefmap.
+var assembledText = regexp.MustCompile(`^((event|tips)[0-9]{2}|title|briefing|briefmap)\.txt$`)
 
 // AssembleModMission copies the installed map of mission and its event and
 // tip texts out of the install at root into mission/<lang>/map.alm and
 // mission/<lang>/text/ of the mod folder out, where a data/missions.toml
-// names them. out must be a mod folder (it holds mod.toml) outside the
-// install; nothing is written anywhere else. It returns the files written,
+// names them. The texts are written as UTF-8 (DecodeInstallTextFile). out
+// must be a mod folder (it holds mod.toml) outside the install; nothing is written anywhere else. It returns the files written,
 // relative to out.
 func AssembleModMission(root, lang string, mission int, out string) ([]string, error) {
 	if lang == "" || strings.ContainsAny(lang, `/\.:`) {
@@ -47,6 +47,7 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 		return nil, fmt.Errorf("the install holds no map for mission %d: %w", mission, err)
 	}
 	files := map[string][]byte{"mission/" + lang + "/map.alm": m}
+	selector := LanguageSelector(a.Containers)
 	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(mission) + "/"
 	for _, e := range a.Containers.Entries() {
 		name, ok := strings.CutPrefix(strings.ToLower(e.Address), prefix)
@@ -56,6 +57,12 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 		b, err := a.Containers.ReadFile(e.Address)
 		if err != nil {
 			return nil, err
+		}
+		// The mod folder holds UTF-8. A file the install decoder cannot give
+		// back byte for byte is copied as the install holds it, which a mod
+		// serves unchanged.
+		if u, ok := DecodeInstallTextFile(b, selector); ok {
+			b = u
 		}
 		files["mission/"+lang+"/text/"+name] = b
 	}

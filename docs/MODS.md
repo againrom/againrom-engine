@@ -134,7 +134,7 @@ a campaign mission of the install on the mod's map; see below.
 | `key` | required; 1 to 32 of a-z, 0-9 and `_`, starting with a letter |
 | `number` | required; the mission number the mission runs as, 1..65535; a `guest` row may not use a campaign number or one of the install's `scenario` container; a `replace` row must (see Replacing a campaign mission) |
 | `map` | required; the map file inside the mod folder (at most 1 MiB) |
-| `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files in install encoding: `eventNN.txt`, `tipsNN.txt` |
+| `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files: `eventNN.txt`, `tipsNN.txt` and `briefmap.txt`, the world map's mission text. Write them in UTF-8; the game encodes each into the running install's bytes, so one folder reads right on the English and the Russian base. A character the install has no byte for is dropped. A file that is not valid UTF-8 is served byte for byte, as mods written before UTF-8 were |
 | `title`, `briefing` | optional; text keys of the mod's `text/<lang>/strings.toml`, written into the mission's `title.txt` and `briefing.txt` |
 | `after` | required; the campaign mission whose win starts this mission; its successor must be a town |
 | `guest` | required; the campaign companion who plays it, as the town of `chapter` would grant him or her over the party |
@@ -198,8 +198,11 @@ title  = "ambush.title"
 ```
 
 The repository holds no map. `cmd/modmission -install <root> -map <n> -out
-<mod folder>` copies an installed map and its event and tip texts into
-`mission/<lang>/` of a mod folder and writes nothing else.
+<mod folder>` copies an installed map and its event, tip, title, briefing and
+briefmap texts into `mission/<lang>/` of a mod folder, the texts as UTF-8, and
+writes nothing else. When the map editor saves into a mod, its map report warns
+about a message the map's script sends for which neither the mod's `texts`
+folder nor, for a replacing mission, the install holds an `eventNN.txt`.
 
 ## Map editor
 

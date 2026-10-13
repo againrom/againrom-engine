@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"image"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -14,6 +16,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -90,6 +93,10 @@ var mapRules = []mapRule{
 		Authority: "ALM-ORD-068",
 		Meaning:   "a unit's stock link names a type-8 record that is not its own stock, or none",
 		run:       (*mapCheck).stockLink},
+	{ID: "mod-message-text", Error: false,
+		Authority: "MISSION-TEXT-005, TRIG-MSGLIMIT-050; the mod's texts folder",
+		Meaning:   "the script sends a message number that the mod's texts folder gives no event page for, and the install holds none either",
+		run:       (*mapCheck).modMessageText},
 }
 
 // mapCheck is one pass of the rule table over one map: the decoded map, the
@@ -595,4 +602,45 @@ func (s *mapInspectionEdits) gate() error {
 		return &ui.ReportRefusal{Findings: rows}
 	}
 	return nil
+}
+
+// modMessageText is the rule for a map that Save writes into a mod: each
+// message number the script sends needs an eventNN.txt page in the texts
+// folder of the mod's mission entry. A replacing mission keeps the install's
+// page for a number the folder leaves out, so only a number neither holds is
+// reported. A send of the reserved number 255 is the lost-mission panel and
+// takes no page.
+func (c *mapCheck) modMessageText() []mapHit {
+	if c.x.mod == nil || c.scriptErr != nil {
+		return nil
+	}
+	entry, ok := c.x.mod.entryFor(c.source)
+	if !ok {
+		return nil
+	}
+	_, report, err := tableFiles(c.x.table).compileScript(c.m, campaignScriptRefs(c.m, c.x.table, nil, sourceMission(c.source)))
+	if err != nil {
+		return nil
+	}
+	seen := map[int32]bool{}
+	var out []mapHit
+	for _, r := range report.Raises {
+		if r.Event <= 0 || r.Event == ReservedMessageNumber || seen[r.Event] {
+			continue
+		}
+		seen[r.Event] = true
+		name := fmt.Sprintf("event%02d.txt", r.Event)
+		if entry.Texts != "" {
+			if st, err := os.Stat(filepath.Join(c.x.mod.dir, filepath.FromSlash(entry.Texts), name)); err == nil && st.Mode().IsRegular() {
+				continue
+			}
+		}
+		if entry.Kind == mod.MissionReplace && c.x.archives != nil && c.x.archives.Containers != nil {
+			if _, shipped := ReadEventText(c.x.archives.Containers, entry.Number, int(r.Event)); shipped {
+				continue
+			}
+		}
+		out = append(out, mapHit{Text: fmt.Sprintf("the script sends message %d, and mod %q gives no %s", r.Event, c.x.mod.id, name)})
+	}
+	return out
 }

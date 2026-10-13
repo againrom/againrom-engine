@@ -47,6 +47,7 @@ As, Save into a mod and `mapedit -check` all call `Report`.
 | `sack-duplicate` | warning | two ground sacks on one cell (`ALM-SACK-065`) |
 | `drop-cell` | warning | `mapload.DropCells` outside the map or on a cell blocked for ground movers |
 | `stock-link` | warning | a unit's 1-based +0x18 link names no type-8 record, or one whose owner word is not the unit's id (`ALM-ORD-068`) |
+| `mod-message-text` | warning | a message number the script sends has no `eventNN.txt` in the texts folder of the mod's mission entry (and, for a replacing mission, none in the install); only when the editor saves into a mod (`DIV-3220`) |
 
 The mission build's checks are called, not copied: `OriginalTerrainPlanes`,
 `StartMissionFrom`, `CompileScript` (through `tableFiles(...).compileScript`

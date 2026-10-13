@@ -159,7 +159,7 @@ func ofRule(rows []ui.InspectionFinding, rule string) []ui.InspectionFinding {
 
 func TestMapRuleTableIsDataWithAKindPerRow(t *testing.T) {
 	errs := []string{"terrain-planes", "mission-build", "record-outside", "script-reference", "owner-slot", "item-code", "structure-kind"}
-	warnings := []string{"unit-terrain", "structure-overlap", "sack-duplicate", "drop-cell", "stock-link"}
+	warnings := []string{"unit-terrain", "structure-overlap", "sack-duplicate", "drop-cell", "stock-link", "mod-message-text"}
 	var gotErrs, gotWarnings []string
 	seen := map[string]bool{}
 	for _, r := range mapRules {

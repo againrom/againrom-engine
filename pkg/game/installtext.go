@@ -9,7 +9,10 @@ import (
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 	"againrom/pkg/words"
+	"bytes"
+	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 // The two install text tables this build reads by index, and the decoded
@@ -161,6 +164,51 @@ func EncodeInstallText(s string, selector int) string {
 		}
 	}
 	return string(b)
+}
+
+// EncodeInstallTextFile turns a mod's UTF-8 text file into the install's own
+// bytes under selector, rune by rune through EncodeInstallText's encoder. A
+// control byte (the CR LF line ends, a tab) is kept as it stands; a rune the
+// selector cannot encode is dropped, as EncodeInstallText drops it. A file
+// that is not valid UTF-8 was written in the install's own bytes before mods
+// wrote UTF-8, and is returned unchanged.
+func EncodeInstallTextFile(b []byte, selector int) []byte {
+	if !utf8.Valid(b) {
+		return slices.Clone(b)
+	}
+	out := make([]byte, 0, len(b))
+	for _, r := range string(b) {
+		if r < 0x20 || r == 0x7f {
+			out = append(out, byte(r))
+			continue
+		}
+		out = append(out, EncodeInstallText(string(r), selector)...)
+	}
+	return out
+}
+
+// DecodeInstallTextFile is EncodeInstallTextFile's inverse for an installed
+// text file: each byte becomes the rune textinput.DecodeByte reads it as under
+// selector, and a control byte is kept. It answers false when some byte has no
+// rune or the UTF-8 it makes does not encode back to b, so the caller never
+// writes text that changes the file.
+func DecodeInstallTextFile(b []byte, selector int) ([]byte, bool) {
+	out := make([]byte, 0, len(b)*2)
+	for _, c := range b {
+		if c < 0x20 || c == 0x7f {
+			out = append(out, c)
+			continue
+		}
+		r, ok := textinput.DecodeByte(c, selector)
+		if !ok {
+			return nil, false
+		}
+		out = utf8.AppendRune(out, r)
+	}
+	if !utf8.Valid(out) || !bytes.Equal(EncodeInstallTextFile(out, selector), b) {
+		return nil, false
+	}
+	return out, true
 }
 
 // spellBookRowName is spells.txt's own two-field row, name and description
