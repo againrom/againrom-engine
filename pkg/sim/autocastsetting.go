@@ -199,7 +199,7 @@ func (w *World) autoCastAt(ci, ti int, arm uint16, buff bool) bool {
 	if _, standing := effectIndex(w.attached, w.entities[ti].ID, id); buff && standing {
 		return false
 	}
-	return w.beginBookSpellOnce(ci, w.entities[ti].ID, uint32(id))
+	return w.castOrder(ci, Cast(w.entities[ci].ID, w.entities[ti].ID, SpellID(id)))
 }
 
 func (w *World) autoCastNeutral(ci, ti int) bool {

@@ -156,10 +156,10 @@ func (w *World) nativeLaterActorAction(e Entity) bool {
 	if e.Retreat.Known && e.Retreat.Progress != 2 || e.PendingOrder.RowAdmitted {
 		return true
 	}
-	if i, ok := w.bookCastIndex(e.ID); ok && w.bookCasts[i].Phase != bookApproach {
+	if s := w.orderState(&e); s.booked() && s.book != castApproach {
 		return true
 	}
-	if _, ok := w.scrollIndex(e.ID); ok && e.PendingOrder.Kind != PendingScroll {
+	if w.orderState(&e).scrollPending() && e.PendingOrder.Kind != PendingScroll {
 		return true
 	}
 	if e.AttackPhase == AttackCasting {

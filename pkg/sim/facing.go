@@ -230,7 +230,7 @@ func (w *World) cancelTurnForTargetChange(i int, x, y int32) {
 // the actor's facing and is the one thing that keeps a turn.
 func (w *World) clearTurnUnlessCasting(i int) {
 	e := &w.entities[i]
-	if _, casting := w.bookCastIndex(e.ID); !casting {
+	if !w.orderState(e).booked() {
 		e.clearTurn()
 	}
 }

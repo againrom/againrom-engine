@@ -590,18 +590,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// hit; it fires only when the order actually changes the target,
 			// so a re-issued identical destination keeps its route.
 			w.attachMoveOrder(i, c.X, c.Y, c.Kind == KindPickUp)
-			// A MOVEMENT ORDER DOES NOT CLAIM ITS ACTOR AGAINST THE AUTOCAST
-			// SWEEP. It did until this round, which made "this unit has
-			// somewhere to go" mean "this unit does not cast" for the tick the
-			// order arrived on — and for every tick, for a client that emits a
-			// move command while the button is held.
-			//
-			// The guarantee that motivated the claim is kept by underCommand
-			// (engage.go), which autoCastOrder already consults for the
-			// unbidden, unarmed Heal alone: a unit holding a destination and no
-			// victim is under command, so idle healing cannot detach the order.
-			// An ARMED autocast is the player's own instruction and is meant to
-			// reach a moving unit.
+			// A MOVEMENT ORDER IN FORCE KEEPS THE AUTOMATIC CAST AWAY: the
+			// sweep acts only at the moment a player's cast would act at once
+			// (autoCastMoment), so no unit casts on the move (owner).
 		case KindKill:
 			// Nothing is done to a unit that is already dead — not the health,
 			// which would deepen it, and not the order, which it does not hold.
@@ -646,7 +637,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			if c.Kind == KindAttackStructure {
 				kind = AttackTargetStructure
 			}
-			if !e.Alive() || w.stoneCursed(i) || w.scrollCastPending(i) || (kind == AttackTargetUnit && (victim == c.Entity || indexOfEntity(w.entities, victim) < 0)) {
+			if !e.Alive() || w.stoneCursed(i) || w.orderStateAt(i).scrollPending() || (kind == AttackTargetUnit && (victim == c.Entity || indexOfEntity(w.entities, victim) < 0)) {
 				continue
 			}
 			if kind == AttackTargetStructure && indexOfStructure(w.structures, StructureID(victim)) < 0 {
@@ -765,9 +756,10 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 
 	// Unbidden spells are admission candidates, not a pre-command phase. An
 	// explicit attack/cast admitted above owns the actor and makes every auto
-	// candidate lose without cost or queueing; an explicit move similarly keeps
-	// idle Heal from detaching the order. Losing candidates are not retained and
-	// are freshly enumerated on a later idle tick.
+	// candidate lose without cost or queueing; a move order in force, a step
+	// or any order phase keeps every automatic cast away (autoCastMoment).
+	// Losing candidates are not retained and are freshly enumerated on a later
+	// free tick.
 	w.stepAutoCasts(unionOfClaims(released, commanded))
 
 	// LEGACY NATIVE SESSIONS run their mission script here. Source-clock sessions
@@ -903,22 +895,13 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		if e.Turning() {
 			continue
 		}
-		// A BOOK CAST OWNS THE BODY THROUGH ITS WIND-UP AND NOT THROUGH ITS
-		// RECOVERY. The caster stands while it channels: its move order remains
-		// attached and resumes afterward, and nothing here advances the body,
-		// overwrites the admitted facing or turns the cast again.
-		//
-		// RECOVERY GATES THE NEXT ACTION AND NOT THE WALK. spec.md's own
-		// wording is that release "enters the actor's equipped recovery
-		// interval" and that "a later action may begin only after simulation
-		// recovery" — a statement about admission, which actorActionBusy makes,
-		// and not about the mover. Skipping the walk here as well is what left
-		// a commanded mage standing: stepAutoCasts runs before this loop, so an
-		// armed row with a target in range re-arms on the tick recovery reaches
-		// zero and the body never gets a tick. Measured over 201 ticks, a mage
-		// ordered seven cells away with Fire Arrow armed and a hostile in range
-		// covered none of them.
-		if w.bookCastInFlight(e.ID) || w.scrollInFlight(e.ID) {
+		// A CAST OWNS THE BODY THROUGH ITS WIND-UP AND ITS RECOVERY. The
+		// original keeps a cast's progress until its recovery ends, and a move
+		// order given meanwhile walks after that exit (MAGIC-311, AI-491). The
+		// move order stays attached and resumes afterward. The automatic cast
+		// cannot re-arm in front of it: it never acts while a move order is in
+		// force (autoCastMoment), so the walk always gets its tick.
+		if w.orderState(e).ownsBody() {
 			continue
 		}
 		// A MOVER THAT OWES TRANSIT TICKS IS PAYING FOR THE CELL IT HAS ALREADY
@@ -1171,7 +1154,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		if e.OffMap || w.stoneCursed(i) || !e.HasAttackTarget || e.PendingOrder.Kind != PendingNone && w.pendingLogicalProgress(i) == 0 || e.PendingOrder.RowAdmitted || i < len(retreatHolds) && retreatHolds[i] {
 			continue
 		}
-		if _, casting := w.bookCastIndex(e.ID); casting || e.CastWait != 0 {
+		if s := w.orderState(e); s.booked() || s.wait {
 			continue
 		}
 		loaded := e.AttackPhase != AttackReady

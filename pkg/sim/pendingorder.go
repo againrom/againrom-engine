@@ -125,7 +125,7 @@ func (w *World) takePendingOrders() {
 		if p.Kind == PendingNone || p.Kind == PendingPickup || p.Kind == PendingScroll || !e.Alive() || e.OffMap || !w.pendingOrderReady(i) {
 			continue
 		}
-		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && w.bookCastInFlight(e.ID) {
+		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && w.orderState(e).charging() {
 			continue
 		}
 		if (p.Kind == PendingActorCast || p.Kind == PendingCellCast) && !p.RowAdmitted {
@@ -192,11 +192,11 @@ func (w *World) pendingOrderFault() error {
 		// A manual cast queued behind a paid wind-up stands beside it, and beside
 		// the recovery of its release tick, until takePendingOrders runs it.
 		castRow := p.Kind == PendingActorCast || p.Kind == PendingCellCast
-		_, booked := w.bookCastIndex(e.ID)
-		if p.Kind != PendingScroll && (e.CastWait != 0 && !(castRow && !booked) || w.scrollCastPending(indexOfEntity(w.entities, e.ID))) {
+		s := w.orderState(&e)
+		if p.Kind != PendingScroll && (s.wait && !(castRow && !s.booked()) || s.scrollPending()) {
 			return fmt.Errorf("sim: pending order conflicts with admitted cast")
 		}
-		if booked && !(castRow && !p.RowAdmitted && w.paidWindUp(e.ID)) {
+		if s.booked() && !(castRow && !p.RowAdmitted && s.paidWindUp()) {
 			return fmt.Errorf("sim: pending order conflicts with book cast")
 		}
 		switch p.Kind {

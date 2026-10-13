@@ -280,7 +280,10 @@ func TestTheAIArmsCannotInterruptACastTheyDoNotOwn(t *testing.T) {
 	}
 }
 
-func TestAnArmedAutocastReachesAMovingActorOnTheTickItIsOrdered(t *testing.T) {
+// An armed automatic cast waits while a move order is in force: nothing is
+// admitted on the tick the order arrives or on the walk, and the mage casts
+// once it stands on the ordered cell (owner: no unit casts on the move).
+func TestAnArmedAutocastWaitsForTheMoveOrderToEnd(t *testing.T) {
 	t.Parallel()
 
 	caster := acCaster(1, 2, 2, 50, 1<<1, 1)
@@ -290,27 +293,21 @@ func TestAnArmedAutocastReachesAMovingActorOnTheTickItIsOrdered(t *testing.T) {
 	enemy.Owner = 2
 	w := hlWorld(t, 23, acEnemies(t), []SpellRule{hlArrow()}, caster, enemy)
 
-	Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: 2, Y: 9}})
-
-	e := spAt(t, w, 1)
-	if !e.HasTarget || e.TargetX != 2 || e.TargetY != 9 {
-		t.Fatalf("the move order was not attached: held=%v (%d,%d)", e.HasTarget, e.TargetX, e.TargetY)
+	Step(w, []Command{MoveTo(1, CellPoint{X: 2, Y: 9})})
+	for n := 0; n < 200 && spAt(t, w, 1).HasTarget; n++ {
+		if len(w.bookCasts) != 0 {
+			t.Fatalf("tick %d: the armed autocast reached a mage under a move order", n)
+		}
+		Step(w, nil)
 	}
-	if len(w.bookCasts) != 1 {
-		t.Fatalf("the armed autocast did not reach an actor on the tick its move order arrived: "+
-			"%d pending", len(w.bookCasts))
+	if e := spAt(t, w, 1); e.X != 2 || e.Y != 9 {
+		t.Fatalf("the mage stands at (%d,%d), ordered to (2,9)", e.X, e.Y)
 	}
-
-	// And the order survives the release.
-	for n := 0; n < 32 && len(w.bookCasts) != 0; n++ {
+	for n := 0; n < 64 && spAt(t, w, 2).HP >= 100; n++ {
 		Step(w, nil)
 	}
 	if spAt(t, w, 2).HP >= 100 {
-		t.Fatal("the autocast never released")
-	}
-	if e := spAt(t, w, 1); !e.HasTarget || e.TargetX != 2 || e.TargetY != 9 {
-		t.Errorf("the release consumed the movement order: held=%v (%d,%d)",
-			e.HasTarget, e.TargetX, e.TargetY)
+		t.Fatal("the armed autocast never released after the walk")
 	}
 }
 
@@ -318,12 +315,11 @@ func TestAnArmedAutocastReachesAMovingActorOnTheTickItIsOrdered(t *testing.T) {
 // fixture, and it is the deeper form of the order regression: attaching the
 // destination is not obeying the order if the actor never takes a step.
 //
-// A book cast owns the body through its WIND-UP alone. Recovery gates the next
-// action, which is actorActionBusy's business, and not the walk. While the
-// mover stood down for recovery as well, an armed row with a target in range
-// re-armed on the tick recovery reached zero — stepAutoCasts runs before the
-// mover — and the actor covered no ground at all. The control is the same
-// world with nothing armed.
+// A cast owns the body through its wind-up and its recovery. An armed row with
+// a target in range once re-armed on the tick recovery reached zero, so the
+// actor covered no ground; the automatic cast now waits while a move order is
+// in force, so the walk ends and the mage casts from the ordered cell. The
+// control is the same world with nothing armed.
 func TestACommandedAutocasterWalksAndShoots(t *testing.T) {
 	t.Parallel()
 
@@ -357,28 +353,30 @@ func TestACommandedAutocasterWalksAndShoots(t *testing.T) {
 	}
 }
 
-// TestAMoveOrderDoesNotHoldCastRecoveryStill keeps DIV-028 while the recovery
-// is now carried by the retained lifecycle: a producer that can claim a
-// recovering actor must neither freeze the interval nor freeze the walk.
-func TestAMoveOrderDoesNotHoldCastRecoveryStill(t *testing.T) {
+// TestAMoveOrderWaitsForARetainedRecovery keeps DIV-028 with the recovery
+// now holding the body: a move order given during a retained recovery is kept,
+// the caster stands until the recovery ends and then walks (MAGIC-311).
+func TestAMoveOrderWaitsForARetainedRecovery(t *testing.T) {
 	caster := spMage(1, 0, 0, 60, 50, 40, 1<<1)
 	caster.AttackRelax = 12
 	w := spWorld(t, 42, []SpellRule{ogArrow()}, caster, spEnt(2, 3, 0))
 
 	w.bookCasts = []bookCast{{Caster: 1, Target: 2, Spell: 1,
 		Phase: bookRelaxing, Remaining: 12, Complete: true, Retained: true}}
-	if len(w.bookCasts) != 1 || w.bookCasts[0].Phase != bookRelaxing || w.bookCasts[0].Remaining == 0 {
-		t.Fatalf("the fixture produced no retained recovery interval: %+v", w.bookCasts)
-	}
-
 	for n := 0; n < 40 && len(w.bookCasts) != 0; n++ {
+		if w.bookCasts[0].Phase == bookRelaxing && spAt(t, w, 1).Y != 0 {
+			t.Fatalf("tick %d: the caster walked during its recovery", n)
+		}
 		Step(w, []Command{{Kind: KindMoveTo, Entity: 1, X: int32(n % 3), Y: 5}})
 	}
 	if len(w.bookCasts) != 0 {
 		t.Errorf("retained recovery still stands after 40 ticks of movement orders: %+v", w.bookCasts)
 	}
+	for n := 0; n < 40 && spAt(t, w, 1).Y == 0; n++ {
+		Step(w, nil)
+	}
 	if e := spAt(t, w, 1); e.Y == 0 {
-		t.Error("the recovering caster did not begin its commanded walk")
+		t.Error("the recovering caster did not begin its commanded walk after the recovery")
 	}
 }
 

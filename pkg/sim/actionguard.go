@@ -13,30 +13,10 @@ package sim
 // physical progress ends (AI-356).
 //
 // Movement consults neither. A movement order from the player, from a script or
-// from the AI is always taken; the mover pauses only for the wind-up itself and
-// may walk through retained retry or recovery. A destination attached during
-// wind-up survives the release and then advances under DIV-028.
-func (w *World) actorCastBusy(i int) bool {
-	if p := w.entities[i].PendingOrder.Kind; p == PendingActorCast || p == PendingCellCast {
-		return true
-	}
-	if _, ok := w.scrollIndex(w.entities[i].ID); ok {
-		return true
-	}
-	if w.entities[i].CastWait != 0 {
-		return true
-	}
-	k, pending := w.bookCastIndex(w.entities[i].ID)
-	return pending && w.bookCasts[k].Phase != bookApproach
-}
-
-// scrollCastPending reports whether a scroll cast owns this actor, from its
-// reservation to its release. It is the half of actorCastBusy that a player's
-// attack order still yields to.
-func (w *World) scrollCastPending(i int) bool {
-	_, ok := w.scrollIndex(w.entities[i].ID)
-	return ok
-}
+// from the AI is always taken; the mover pauses for the wind-up and the
+// recovery (orderState.ownsBody) and may walk through a retained retry. A
+// destination attached meanwhile advances after the recovery ends (DIV-028).
+func (w *World) actorCastBusy(i int) bool { return w.orderStateAt(i).castBusy() }
 
 // clearActorCast ends both canonical representations of a book action: an
 // admitted cast record and the recovery interval left after a one-shot or

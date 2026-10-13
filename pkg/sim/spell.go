@@ -1455,11 +1455,6 @@ func (w *World) bookCastIndex(caster EntityID) (int, bool) {
 	return i, i < len(w.bookCasts) && w.bookCasts[i].Caster == caster
 }
 
-func (w *World) bookCastInFlight(caster EntityID) bool {
-	i, ok := w.bookCastIndex(caster)
-	return ok && w.bookCasts[i].Phase == bookCharging
-}
-
 // actorActionBusy is the CAST admission guard: it answers "may a new spell
 // begin on this actor now", and nothing else. A spell may not begin while a
 // physical or weapon attack cycle is loaded, and may not begin while a book
@@ -2031,17 +2026,23 @@ func (w *World) stepAutoCasts(released map[EntityID]bool) {
 				w.entities[i].AutoSpell = 0
 			}
 		}
-		if released[w.entities[i].ID] {
-			continue
-		}
-		if w.entities[i].CastWait > 0 {
-			continue
-		}
-		if w.entities[i].HasPendingAttackTarget {
+		if released[w.entities[i].ID] || !w.autoCastMoment(i) {
 			continue
 		}
 		w.autoCast(i)
 	}
+}
+
+// autoCastMoment reports the moment a player's cast order would act at once:
+// no order phase of any kind (no step, strike, cast, scroll or queued cast),
+// no move order in force and no attack order waiting. The automatic cast acts
+// only then, so no unit casts on the move (owner).
+func (w *World) autoCastMoment(i int) bool {
+	e := &w.entities[i]
+	if e.HasPendingAttackTarget || e.HasTarget && !e.HasAttackTarget {
+		return false
+	}
+	return w.orderStateAt(i).phase() == orderPhaseNone
 }
 
 // autoCastable reports whether AUTOMATIC selection may pick rule at all. A
@@ -2085,10 +2086,7 @@ const autoHealReserveNum, autoHealReserveDen = 1, 4
 // underCommand, so an idle-heal decision cannot consume that order either.
 func (w *World) inCombat(ci int) bool {
 	e := w.entities[ci]
-	if e.HasAttackTarget || e.CastWait != 0 {
-		return true
-	}
-	if _, pending := w.bookCastIndex(e.ID); pending {
+	if s := w.orderState(&e); e.HasAttackTarget || s.wait || s.booked() {
 		return true
 	}
 	for i := range w.entities {
@@ -2199,7 +2197,7 @@ func (w *World) autoCast(ci int) {
 		if !found {
 			continue
 		}
-		if w.beginBookSpellOnce(ci, target, uint32(rule.ID)) {
+		if w.castOrder(ci, Cast(w.entities[ci].ID, target, SpellID(rule.ID))) {
 			return
 		}
 	}

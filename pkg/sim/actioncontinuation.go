@@ -201,8 +201,7 @@ func (w *World) Actions() ActionContinuations {
 		if o := w.savedOrder(e.ID); o != nil {
 			ordinal := ordinals[e.ID]
 			order = &ActionOrderContinuation{State: o.State, Authored: o.Authored, RepairStage: o.RepairStage, Inner: o.Raw[8], Progress: o.Raw[9], Retry: o.Raw[0x15], Ordinal: &ordinal}
-			_, casting := w.bookCastIndex(e.ID)
-			if (casting || e.PendingOrder.Kind == PendingActorCast || e.PendingOrder.Kind == PendingCellCast) && binary.LittleEndian.Uint32(o.Raw[0x30:]) == 0 {
+			if s := w.orderState(&e); (s.booked() || s.queued) && binary.LittleEndian.Uint32(o.Raw[0x30:]) == 0 {
 				absent := uint32(0)
 				order.AbsentSpellKey = &absent
 			}

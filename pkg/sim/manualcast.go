@@ -117,17 +117,24 @@ func (w *World) beginManualCast(i int, c Command) bool {
 		w.syncSavedActorCommand(i)
 		w.syncSavedPost(i)
 	}
+	return w.castOrder(i, c)
+}
+
+// castOrder starts the cast an order names once no step and no strike stands
+// before it: the turn, the wind-up, the release and the recovery follow. A
+// player's cast and the automatic cast both start here.
+func (w *World) castOrder(i int, c Command) bool {
 	if c.Kind == KindCastAt {
 		return w.beginBookSpellAt(i, c.X, c.Y, uint32(c.Spell))
 	}
 	return w.beginBookSpellOnce(i, EntityID(uint32(c.X)), uint32(c.Y))
 }
 
-// paidWindUp reports a book cast winding up after its cost was spent. Once
-// the mana is spent the cast completes: no order cancels or restarts it.
+// paidWindUp reads the order state of the caster by id; an absent caster
+// has no wind-up.
 func (w *World) paidWindUp(caster EntityID) bool {
-	k, ok := w.bookCastIndex(caster)
-	return ok && w.bookCasts[k].Phase == bookCharging && w.bookCasts[k].Paid
+	i := indexOfEntity(w.entities, caster)
+	return i >= 0 && w.orderStateAt(i).paidWindUp()
 }
 
 // castAfterWindUp keeps a manual cast as the caster's next order while a paid
@@ -146,11 +153,15 @@ func (w *World) castAfterWindUp(i int, c Command) bool {
 // the same spell at the same unit or cell. It is no new order, so the wind-up
 // runs on without a restart and a cast queued behind it is dropped.
 func (w *World) manualCastContinues(c Command) bool {
-	k, ok := w.bookCastIndex(c.Entity)
-	if !ok || w.bookCasts[k].Phase != bookCharging {
+	i := indexOfEntity(w.entities, c.Entity)
+	if i < 0 {
 		return false
 	}
-	b := w.bookCasts[k]
+	s := w.orderStateAt(i)
+	if !s.charging() {
+		return false
+	}
+	b := w.bookCasts[s.bookAt]
 	if c.Kind == KindCastAt {
 		return b.AtCell && b.Spell == c.Spell && b.X == c.X && b.Y == c.Y
 	}

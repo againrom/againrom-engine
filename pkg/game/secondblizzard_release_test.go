@@ -207,8 +207,20 @@ func TestReleaseSecondGameBlizzardCast(t *testing.T) {
 
 type secondBlizzardProof struct {
 	Key    uint16
+	Keep   []sim.EntityID
 	Hashes []uint64
 	Stages []uint8
+}
+
+// secondBlizzardKeep heals the units whose death would end the mission, so
+// the world goes on ticking until the Blizzard runs out.
+func secondBlizzardKeep(t *testing.T, w *sim.World, keep []sim.EntityID) {
+	t.Helper()
+	for _, id := range keep {
+		if err := w.HeadlessHeal(id); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 // TestReleaseSecondGameBlizzardSaveContinuation: a named SAV taken in the
@@ -274,7 +286,7 @@ func TestReleaseSecondGameBlizzardSaveContinuation(t *testing.T) {
 	if control, _ := secondMissionColdAt(t, out, "Blizzard without cells.sav", 102); control.live.world.Hash() == cold.live.world.Hash() {
 		t.Fatal("a SAV without its sampled cells loaded to the same World")
 	}
-	proof := secondBlizzardProof{Key: key}
+	proof := secondBlizzardProof{Key: key, Keep: keep}
 	for range 120 {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
@@ -282,6 +294,8 @@ func TestReleaseSecondGameBlizzardSaveContinuation(t *testing.T) {
 		if err := a.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
+		secondBlizzardKeep(t, f.live.world, keep)
+		secondBlizzardKeep(t, cold.live.world, keep)
 		assertCurrentWorldEqual(t, f.live.world, cold.live.world, "post-load Blizzard")
 		proof.Hashes = append(proof.Hashes, f.live.world.Hash())
 		pulse, _ := secondBlizzardStage(t, f.live.world, key)
@@ -290,7 +304,7 @@ func TestReleaseSecondGameBlizzardSaveContinuation(t *testing.T) {
 	// The 32nd pulse removes the area on its own tick, so 31 is the last
 	// count a tick leaves standing.
 	if proof.Stages[len(proof.Stages)-1] != 0 || slices.Max(proof.Stages) != 31 {
-		t.Fatalf("the saved Blizzard did not run out its pulses within 120 ticks: %v", proof.Stages)
+		t.Fatalf("the saved Blizzard did not run out its pulses within 120 ticks: %v outcome %v tick %d", proof.Stages, f.live.world.Outcome(), f.live.world.Tick())
 	}
 	encoded, err := json.Marshal(proof)
 	if err != nil {
@@ -335,6 +349,7 @@ func secondBlizzardColdProof(t *testing.T, path string) {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
 		}
+		secondBlizzardKeep(t, f.live.world, proof.Keep)
 		pulse, _ := secondBlizzardStage(t, f.live.world, proof.Key)
 		if got := f.live.world.Hash(); got != want || pulse != proof.Stages[i] {
 			t.Fatalf("fresh-process tick %d: hash %x pulse %d, want %x pulse %d", i, got, pulse, want, proof.Stages[i])

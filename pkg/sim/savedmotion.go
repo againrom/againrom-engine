@@ -303,7 +303,7 @@ func (w *World) motionAdmissionIssue(m SavedActorMotion, e Entity) string {
 	if m.Mover[0xb0] == 0 && m.Mover[0xb1] == 0 || binary.LittleEndian.Uint16(m.Mover[0xae:]) > 7 {
 		return "active mover has unsupported direction/steps"
 	}
-	if e.Turning() || w.bookCastInFlight(e.ID) || w.scrollInFlight(e.ID) {
+	if e.Turning() || w.orderState(&e).charging() || w.scrollInFlight(e.ID) {
 		return "active mover conflicts with a native action"
 	}
 	return ""

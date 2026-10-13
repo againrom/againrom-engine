@@ -129,8 +129,9 @@ func (w *World) consumeRetreatProgress(i int) bool {
 	case 1:
 		complete = e.Retreat.Complete && e.Retreat.Counter > 2
 	case 2:
-		busy := e.CastWait != 0 || w.scrollInFlight(e.ID)
-		_, book := w.bookCastIndex(e.ID)
+		s := w.orderState(e)
+		busy := s.wait || s.scroll == scrollStarted
+		book := s.booked()
 		if e.PendingOrder.Kind == PendingNone {
 			busy = w.actorCastBusy(i)
 		}

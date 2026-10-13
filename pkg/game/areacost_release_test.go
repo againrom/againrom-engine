@@ -448,6 +448,10 @@ func TestReleaseAreaLayerCostContinuesAcrossSaveAndLoad(t *testing.T) {
 		f.live.tick()
 	}
 	f.live.tick()
+	// A cast holds the body through its recovery; the walk below starts after it.
+	for i := 0; i < 256 && releaseEntity(t, f.live, mage.ID).CastWait != 0; i++ {
+		f.live.tick()
+	}
 	mage = releaseEntity(t, f.live, mage.ID)
 	at := cloudCellWitness(t, f, mage.ID)
 	target, found := [2]int{}, false
