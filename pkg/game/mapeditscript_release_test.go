@@ -324,10 +324,19 @@ func TestReleaseEveryInstalledMapListsItsScriptArmsAndWritesItsBytes(t *testing.
 		if len(goals) != len(rows) || goals[len(goals)-1].Index != -1 {
 			t.Fatalf("%s: %d arms listed for %d rows", key, len(goals), len(rows))
 		}
-		for _, g := range rows[:len(rows)-1] {
+		for _, g := range rows {
+			if g.node < 0 {
+				continue
+			}
 			arms[g.arm]++
 			if text, _, _ := describeTarget(m, g.param, g.value); strings.Contains(text, "not on the map") {
 				t.Logf("%s: %s arm names %s", key, g.arm, text)
+			}
+		}
+		// A map that has a win arm row offers no row that adds one.
+		for _, g := range rows {
+			if g.node < 0 && g.add != addProtect && hasArmRow(rows, g.arm) {
+				t.Fatalf("%s: the panel offers to add a %s arm to a map that has one", key, g.arm)
 			}
 		}
 		target := filepath.Join(out, "map"+strconv.Itoa(n)+".alm")
@@ -344,4 +353,14 @@ func TestReleaseEveryInstalledMapListsItsScriptArmsAndWritesItsBytes(t *testing.
 	if arms[armWin] == 0 || arms[armLose] == 0 || arms[armProtect] == 0 {
 		t.Fatalf("an arm kind is missing: %v", arms)
 	}
+}
+
+// hasArmRow reports whether rows hold a row of arm that edits an existing node.
+func hasArmRow(rows []goalRow, arm string) bool {
+	for _, g := range rows {
+		if g.arm == arm && g.node >= 0 {
+			return true
+		}
+	}
+	return false
 }

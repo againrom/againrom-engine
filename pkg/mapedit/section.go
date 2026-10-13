@@ -3,6 +3,7 @@ package mapedit
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 )
 
 // Kind names a record section an edit addresses by file-order index.
@@ -14,6 +15,7 @@ const (
 	KindLoot                  // type 8, a ground sack or a unit's stock (ALM-SACK-065)
 	KindAction                // type 7 action node array (ALM-TRIG-044, ALM-TRIG-045)
 	KindCondition             // type 7 condition node array
+	KindTrigger               // type 7 trigger array, 184-byte records (ALM-TRIG-047)
 )
 
 // section is one row of the record-section table: where a kind's records
@@ -62,6 +64,7 @@ var sections = map[Kind]*section{
 	},
 	KindAction:    scriptSection("action", 0),
 	KindCondition: scriptSection("condition", 1),
+	KindTrigger:   scriptSection("trigger", 2),
 }
 
 func fixedLength(b []byte, n int) int {
@@ -282,4 +285,92 @@ func (e *Editor) Delete(k Kind, i int) error {
 		e.wordPart(w.countAt, -1),
 	})
 	return nil
+}
+
+// Placement is one record a PlaceAll batch appends to its kind's section.
+type Placement struct {
+	Kind   Kind
+	Record []byte
+}
+
+// PlaceAll appends every record of batch, in order within its kind, as one
+// edit and returns each record's new index in batch order. The kinds must be
+// arrays of one counted payload (the type-7 script): the edit is the records,
+// each array's count word and the payload's size word, so one Undo reverts the
+// whole batch to the exact earlier bytes. A record of a kind is checked
+// against that kind's grammar, as Place does.
+func (e *Editor) PlaceAll(batch []Placement) ([]int, error) {
+	if len(batch) == 0 {
+		return nil, fmt.Errorf("mapedit: nothing to place")
+	}
+	walks := map[Kind]walk{}
+	added := map[Kind][]byte{}
+	counts := map[Kind]int{}
+	index := make([]int, len(batch))
+	for i, p := range batch {
+		w, ok := walks[p.Kind]
+		if !ok {
+			var err error
+			if w, err = e.walkSection(p.Kind, "place a "+sectionName(p.Kind)); err != nil {
+				return nil, err
+			}
+			if w.sec.layout == nil {
+				return nil, fmt.Errorf("mapedit: cannot place several records: the %s section is not one array of a counted payload", w.sec.name)
+			}
+			for _, other := range walks {
+				if other.span != w.span {
+					return nil, fmt.Errorf("mapedit: cannot place records of different payloads in one edit")
+				}
+			}
+			walks[p.Kind] = w
+		}
+		if w.sec.length(e, p.Record) != len(p.Record) {
+			return nil, fmt.Errorf("mapedit: cannot place a %d-byte record: it is not one type-%d %s record", len(p.Record), w.sec.typeID, w.sec.name)
+		}
+		index[i] = w.n() + counts[p.Kind]
+		counts[p.Kind]++
+		added[p.Kind] = append(added[p.Kind], p.Record...)
+	}
+	// An array's new records end where the next array's count word begins, so
+	// the two parts share an offset and are one splice: records, then the word.
+	type splice struct {
+		records, removed, word []byte
+	}
+	var kinds []Kind
+	for k := range walks {
+		kinds = append(kinds, k)
+	}
+	slices.Sort(kinds)
+	at := map[int]*splice{}
+	slot := func(off int) *splice {
+		if at[off] == nil {
+			at[off] = &splice{}
+		}
+		return at[off]
+	}
+	var sp span
+	total := 0
+	for _, k := range kinds {
+		w := walks[k]
+		sp = w.span
+		end := w.span.abs(w.starts[w.n()])
+		slot(end).records = added[k]
+		word := e.wordPart(w.countAt, counts[k])
+		s := slot(w.countAt)
+		s.removed, s.word = word.removed, word.inserted
+		total += len(added[k])
+	}
+	var offs []int
+	for off := range at {
+		offs = append(offs, off)
+	}
+	slices.Sort(offs)
+	var ed edit
+	for _, off := range offs {
+		s := at[off]
+		ed = append(ed, replace(off, s.removed, append(slices.Clone(s.records), s.word...)))
+	}
+	ed = append(ed, e.sizeWordPart(sp, total))
+	e.apply(ed)
+	return index, nil
 }

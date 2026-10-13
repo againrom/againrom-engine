@@ -2395,6 +2395,10 @@ package storyguard
 // CommentBytes rises 3548 bytes for the mod mission texts: the docs of
 // EncodeInstallTextFile and DecodeInstallTextFile, the mod-message-text rule
 // and their tests, this note included.
+//
+// CommentBytes rises for the map editor's win and lose arms: the docs of
+// pkg/mapedit/arm.go and PlaceAll in section.go, the host rows in
+// pkg/game/mapinspectionscript.go and the new tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4669,
 	TestFileCount:  264,
@@ -2418,5 +2422,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1727,
 	},
-	CommentBytes: 8970009,
+	CommentBytes: 8976025,
 }

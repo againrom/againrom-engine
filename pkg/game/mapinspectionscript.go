@@ -20,6 +20,7 @@ const (
 	scriptOpWin       = 4
 	scriptOpLose      = 5
 	scriptCheckVIP    = 18
+	partySlot         = 1 // the roster slot the party plays as
 	scriptUnitParam   = 4
 	scriptStructParam = 9
 	armWin            = "Win"
@@ -28,18 +29,48 @@ const (
 )
 
 // goalRow is one target parameter an arm reads: the arm, the trigger that
-// carries it, the condition node and parameter slot that holds it.
+// carries it, the condition node and parameter slot that holds it. A row with
+// node -1 adds a record instead: a protect check, or the arm kind named by
+// add.
 type goalRow struct {
 	arm           string
 	trigger, node int
 	slot          int
 	param, value  uint32
+	add           addOp
+}
+
+// addOp is what a row with no node adds.
+type addOp int
+
+const (
+	addNothing addOp = iota
+	addProtect
+	addWinUnit
+	addWinGroup
+	addWinStructure
+	addLoseUnit
+)
+
+// addArms maps the rows that add an arm to the arm table, with the text each
+// shows and the parameter type its click names.
+var addArms = map[addOp]struct {
+	kind  mapedit.ArmKind
+	arm   string
+	param uint32
+	text  string
+}{
+	addWinUnit:      {mapedit.ArmWinUnit, armWin, scriptUnitParam, "add: the death of a unit wins"},
+	addWinGroup:     {mapedit.ArmWinGroup, armWin, scriptGroupParam, "add: a group wiped out wins"},
+	addWinStructure: {mapedit.ArmWinStructure, armWin, scriptStructParam, "add: a structure destroyed wins"},
+	addLoseUnit:     {mapedit.ArmLoseUnit, armLose, scriptUnitParam, "add: the death of a party unit loses"},
 }
 
 // scriptGoalRows lists the target parameters of the script's win, lose and
-// protect arms in trigger order, then check 18 order, and ends with the row
-// that adds a protect check (node -1). A trigger names its condition nodes by
-// id (ALM-TRIG-047).
+// protect arms in trigger order, then check 18 order. Rows that add a record
+// follow (node -1): the three win arms when the map has no win arm row, the
+// lose arm when it has no lose arm row, and always, last, the protect check. A
+// trigger names its condition nodes by id (ALM-TRIG-047).
 func scriptGoalRows(sc alm.Script) []goalRow {
 	condition := map[uint32]int{}
 	for i, n := range sc.Conditions {
@@ -98,7 +129,16 @@ func scriptGoalRows(sc alm.Script) []goalRow {
 			add(armProtect, -1, i)
 		}
 	}
-	return append(rows, goalRow{arm: armProtect, trigger: -1, node: -1, slot: -1, param: scriptUnitParam})
+	has := map[string]bool{}
+	for _, r := range rows {
+		has[r.arm] = true
+	}
+	for _, op := range []addOp{addWinUnit, addWinGroup, addWinStructure, addLoseUnit} {
+		if a := addArms[op]; !has[a.arm] {
+			rows = append(rows, goalRow{arm: a.arm, trigger: -1, node: -1, slot: -1, param: a.param, add: op})
+		}
+	}
+	return append(rows, goalRow{arm: armProtect, trigger: -1, node: -1, slot: -1, param: scriptUnitParam, add: addProtect})
 }
 
 // Goals lists the arms of the map's script as the window's script panel shows
@@ -125,7 +165,11 @@ func goalListing(m *alm.Map, sc alm.Script, g goalRow) ui.InspectionGoal {
 		pick = "Structure"
 	}
 	if g.node < 0 {
-		return ui.InspectionGoal{Arm: g.arm, Pick: pick, Index: -1, Text: "add a check that loses the mission when a unit dies"}
+		text := "add a check that loses the mission when a unit dies"
+		if g.add != addProtect {
+			text = addArms[g.add].text
+		}
+		return ui.InspectionGoal{Arm: g.arm, Pick: pick, Index: -1, Text: text}
 	}
 	n := sc.Conditions[g.node]
 	who := fmt.Sprintf("trigger %q", sc.Triggers[max(g.trigger, 0)].Name)
@@ -233,6 +277,21 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind string, index int) (*u
 		if err != nil {
 			return false, err
 		}
+		if a, ok := addArms[g.add]; ok && g.node < 0 {
+			if g.add == addLoseUnit && view.Units[index].Owner != partySlot {
+				return false, fmt.Errorf("a lose arm takes a unit of the party's side, roster slot %d; unit %d belongs to slot %d", partySlot, view.Units[index].UnitID, view.Units[index].Owner)
+			}
+			if g.add == addWinStructure && s.inspector != nil && s.inspector.table != nil {
+				if err := structureStartsStanding(view, s.inspector.table, index); err != nil {
+					return false, err
+				}
+			}
+			if err := registerCollision(sc, mapedit.ArmConditions); err != nil {
+				return false, err
+			}
+			err = m.AddArm(a.kind, value)
+			return err == nil, err
+		}
 		if g.node >= 0 {
 			if value == g.value {
 				return false, nil
@@ -245,7 +304,7 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind string, index int) (*u
 				return false, fmt.Errorf("unit %d is already protected", value)
 			}
 		}
-		if err := registerCollision(sc); err != nil {
+		if err := registerCollision(sc, 1); err != nil {
 			return false, err
 		}
 		id, err := m.NextScriptID(mapedit.KindCondition)
@@ -261,11 +320,32 @@ func (s *mapInspectionEdits) SetGoalTarget(goal int, kind string, index int) (*u
 	})
 }
 
-// registerCollision refuses a new check when a script variable already uses
-// the register the check would take: the build gives check i register i and a
+// structureStartsStanding refuses a structure the game builds with no health:
+// its health check would hold at the first pass and win the mission at once.
+func structureStartsStanding(m *alm.Map, t *mapload.Table, index int) error {
+	built := mapload.Structures(m, t)
+	if index < 0 || index >= len(built) {
+		return fmt.Errorf("no structure %d", index)
+	}
+	if int16(built[index].Field42) <= 0 {
+		return fmt.Errorf("structure %d starts the mission with no health, so the arm would win it at once", index)
+	}
+	return nil
+}
+
+// registerCollision refuses new checks when a script variable already uses a
+// register one of them would take: the build gives check i register i and a
 // variable addresses the same array by its own number (MISSION-SLOT-008).
-func registerCollision(sc alm.Script) error {
-	next := uint32(len(sc.Conditions))
+func registerCollision(sc alm.Script, added int) error {
+	for k := range added {
+		if err := registerCollides(sc, uint32(len(sc.Conditions)+k)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func registerCollides(sc alm.Script, next uint32) error {
 	for _, set := range []struct {
 		nodes   []alm.ScriptNode
 		opcodes [2]uint32

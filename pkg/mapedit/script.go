@@ -41,21 +41,30 @@ const (
 type ScriptParam struct{ Type, Value uint32 }
 
 func scriptSection(name string, array int) *section {
-	return &section{name: name, typeID: scriptTypeID,
+	size := scriptArraySizes[array]
+	sec := &section{name: name, typeID: scriptTypeID,
 		layout:   scriptLayout(array),
-		length:   func(_ *Editor, b []byte) int { return fixedLength(b, scriptNodeSize) },
+		length:   func(_ *Editor, b []byte) int { return fixedLength(b, size) },
 		cellless: func([]byte) bool { return true },
-		fields:   func(_ *Editor, rec []byte) []Field { return nodeFields(rec) },
+		fields:   func(*Editor, []byte) []Field { return nil },
 	}
+	if array < 2 {
+		sec.fields = func(_ *Editor, rec []byte) []Field { return nodeFields(rec) }
+	}
+	return sec
 }
 
-// scriptLayout locates array a (0 actions, 1 conditions) in the type-7
+// scriptArraySizes is the record size of the three arrays of the type-7
+// payload, in file order: actions, conditions, triggers.
+var scriptArraySizes = [3]int{scriptNodeSize, scriptNodeSize, scriptTriggerSize}
+
+// scriptLayout locates array a (0 actions, 1 conditions, 2 triggers) in the type-7
 // payload. The three arrays must tile the payload exactly, as the engine's
 // own walk requires; otherwise no node edit is built over the bytes.
 func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 	return func(e *Editor, sp span) (arrayLayout, error) {
 		p := e.data[sp.payloadOff : sp.payloadOff+sp.payloadSize]
-		sizes := [3]int{scriptNodeSize, scriptNodeSize, scriptTriggerSize}
+		sizes := scriptArraySizes
 		var lay arrayLayout
 		off := 0
 		for k, size := range sizes {
