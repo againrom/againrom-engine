@@ -106,8 +106,8 @@ func TestNativeItemHistoryAvailabilityAndDispatcherGates(t *testing.T) {
 	w.entities[0].NativeBasis.ModifierKnown &^= 1 << 18
 	Step(w, []Command{Equip(0, 0, 2)})
 	b := w.entities[0].NativeBasis
-	if b.ModifierByteKnown(18) || b.ModifierByteKnown(19) || !b.ModifierByteKnown(40) {
-		t.Fatal("unknown arithmetic preimage supplied a known word or erased unrelated bytes", b)
+	if !b.ModifierByteKnown(18) || !b.ModifierByteKnown(19) || binary.LittleEndian.Uint16(b.Modifier[18:]) != 3 || !b.ModifierByteKnown(40) {
+		t.Fatal("unknown arithmetic preimage was not formed from the worn set, or erased unrelated bytes", b)
 	}
 	item = nativeHistoryItem(SourceShield, ItemEffect{Kind: 44, Operand: 0x0907})
 	w = nativeItemHistoryWorld(t, item, [64]byte{})
@@ -199,15 +199,15 @@ func TestNativeItemHistoryRangedLiteralDoesNotNeedPriorSelector(t *testing.T) {
 	w.entities[0].NativeBasis.ModifierKnown &^= 7 << 37
 	Step(w, []Command{Unequip(0, 1)})
 	b := w.entities[0].NativeBasis
-	if b.ModifierByteKnown(37) || b.ModifierByteKnown(38) || !b.ModifierByteKnown(39) || b.Modifier[39] != 0 || b.Modifier[37] != 3 || b.Modifier[38] != 2 || !b.ModifierByteKnown(40) {
-		t.Fatal("removal literal fabricated arithmetic or required a prior selector", b)
+	if !b.ModifierByteKnown(37) || !b.ModifierByteKnown(38) || !b.ModifierByteKnown(39) || b.Modifier[39] != 0 || b.Modifier[37] != 0 || b.Modifier[38] != 0 || !b.ModifierByteKnown(40) || b.Modifier[40] != 99 {
+		t.Fatal("removal literal required a prior selector, or the empty worn set did not form the pair", b)
 	}
 	w = nativeItemHistoryWorld(t, PlainItem(0x1101), raw)
 	w.equipment[0][0], w.carried[0] = PlainItem(0x1101), nil
 	Step(w, []Command{Unequip(0, 1)})
 	b = w.entities[0].NativeBasis
-	if b.ModifierByteKnown(37) || b.ModifierByteKnown(38) || b.ModifierByteKnown(39) || !b.ModifierByteKnown(40) {
-		t.Fatal("class-only item supplied unavailable definition operands", b)
+	if !b.ModifierByteKnown(37) || !b.ModifierByteKnown(38) || !b.ModifierByteKnown(39) || [3]byte{b.Modifier[37], b.Modifier[38], b.Modifier[39]} != [3]byte{} || !b.ModifierByteKnown(40) {
+		t.Fatal("a class-only item's removal did not leave the empty worn set's words", b)
 	}
 	before := b
 	Step(w, []Command{Unequip(0, 1)})
@@ -226,5 +226,33 @@ func TestNativeItemHistoryDropWornUsesActualRemovalEvent(t *testing.T) {
 	b := w.entities[0].NativeBasis
 	if !w.equipment[0][1].Empty() || len(w.Sacks()) != 1 || binary.LittleEndian.Uint16(b.Modifier[18:]) != 0x1234 || !b.ModifierByteKnown(18) || !b.ModifierByteKnown(19) {
 		t.Fatal("actual worn drop failed to remove one raw Effect", b, w.equipment[0][1], w.Sacks())
+	}
+}
+
+// An equip declares no constructor row: a world without merge operands (the
+// second game) keeps its weight table, and binding merge operands to a world
+// moves neither its weight table nor its hash.
+func TestEquipDeclaresNoConstructorRows(t *testing.T) {
+	item := nativeHistoryItem(SourceWeapon)
+	item.SourceEquipment = SourceEquipment{}
+	w := nativeItemHistoryWorld(t, item, [64]byte{})
+	before := w.ItemWeights()
+	Step(w, []Command{Equip(0, 0, 1)})
+	if after := w.ItemWeights(); len(after) != len(before) {
+		t.Fatalf("the weight table went from %d to %d rows at an equip", len(before), len(after))
+	}
+	if got := w.itemConstructor(item.Code); got.Class != 0 {
+		t.Fatalf("a world without merge operands reads class %d for %#x", got.Class, item.Code)
+	}
+	hash := w.Hash()
+	ctor := SourceEquipment{Class: SourceWeapon}
+	if err := w.BindMergeOperands([]ItemWeight{{Code: item.Code, Weight: 3, Constructor: ctor}}); err != nil {
+		t.Fatal(err)
+	}
+	if w.Hash() != hash || len(w.ItemWeights()) != len(before) {
+		t.Fatal("binding merge operands moved the hash or the weight table")
+	}
+	if got := w.itemConstructor(item.Code); got.Class != SourceWeapon {
+		t.Fatalf("merge operands read class %d for %#x, want %d", got.Class, item.Code, SourceWeapon)
 	}
 }

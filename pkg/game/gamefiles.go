@@ -27,6 +27,9 @@ type gameFiles struct {
 	// storedFormMerge keeps a plain item and a constructed one of the same
 	// code apart in a pack merge: no second-game claim states its equality.
 	storedFormMerge bool
+	// storedOwnWeight keeps a native Human's stored own weight in a SAVE
+	// instead of its worn weight: no second-game claim states the rule.
+	storedOwnWeight bool
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
@@ -73,6 +76,7 @@ var secondGameFiles = gameFiles{
 	spellArms:       mapload.SecondGameSpellArms,
 	freshPlayers:    mapload.NoFreshPlayers,
 	storedFormMerge: true,
+	storedOwnWeight: true,
 	itemNameKeys:    worldPrefix + "data/itemname.bin",
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},

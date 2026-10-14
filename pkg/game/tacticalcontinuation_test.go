@@ -338,12 +338,11 @@ func TestCurrentTacticalSAVCastDoesNotOverwritePending(t *testing.T) {
 		if binding.ID == 0 && !binding.Structure && !binding.Missing {
 			actor := &doc.Objects[binding.Object-1]
 			order, err := savedMotionRaw(actor, "U158", 148)
-			if err != nil || order[8] != 1 || order[9] != 2 || binary.LittleEndian.Uint16(order[2:]) != 0x1411 || order[0x5c] != 0 {
-				t.Fatal("cast writer replaced pending/progress or operands", order, err)
+			if err != nil || order[8] != 1 || order[9] != 0 || binary.LittleEndian.Uint16(order[2:]) != 0x1411 || order[0x5c] != 0 {
+				t.Fatal("cast writer replaced pending or operands, or wrote a cast without its Spell", order, err)
 			}
-			action, err := savedMotionRaw(actor, "U54", 4)
-			if err != nil || binary.LittleEndian.Uint32(action) != 0xe {
-				t.Fatal("Retreat replaced retained cast action", action, err)
+			if spell, _ := savedStructureValue(actor, "U64"); spell != 0 {
+				t.Fatal("a cast without a Spell record named one", spell)
 			}
 			cold := coldTacticalCurrent(t, f, raw)
 			if cold.live.world.Hash() != w.Hash() {

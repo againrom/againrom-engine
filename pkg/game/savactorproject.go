@@ -121,6 +121,29 @@ func projectSavedActorValues(document *sav.DocumentData, bindings []SnapshotSAVA
 	return nil
 }
 
+// projectWornOwnWeight writes a native Human's own weight as its worn set
+// when it carries no loaded weight record. An equip adds the item's weight to
+// own weight and a removal subtracts it from the loaded value (SAV-792,
+// HERO-170, HERO-171); the first game's SAVE runs this pass (DIV-3358).
+func projectWornOwnWeight(document *sav.DocumentData, bindings []SnapshotSAVActor, world *sim.World) error {
+	for _, binding := range bindings {
+		if binding.Retired || binding.ObjectIndex == 0 || int(binding.ObjectIndex) > len(document.Objects) {
+			continue
+		}
+		e, ok := world.Entity(binding.EntityID)
+		record := &document.Objects[binding.ObjectIndex-1]
+		if !ok || e.ActorLoad.Source.Class != 0 || e.ActorLoad.Present || record.Class != "Human" {
+			continue
+		}
+		if worn, ok := world.WornWeight(e.ID); ok {
+			if err := savedActorSetValue(record, "U8E", uint32(uint16(worn))); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // projectCurrentActorOwner writes the actor's owner Reference from its current
 // owner: the key of the one Player whose slot is that owner. A script hand-over
 // sets actor+14 to the new Player before the actor joins its new Group

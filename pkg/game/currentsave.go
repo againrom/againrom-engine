@@ -97,6 +97,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := f.finalizeCurrentPlaneResidue(&doc, s); err != nil {
 		return nil, err
 	}
+	sealCastSources(&doc)
 	repairEquipmentDefinitionRows(&doc)
 	if f.ModSet().Empty() {
 		projectOriginalAttack(&doc)

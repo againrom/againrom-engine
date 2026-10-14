@@ -384,6 +384,11 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		}
 		action, phase := binary.LittleEndian.Uint32(actionRaw), binary.LittleEndian.Uint32(phaseRaw)
 		freeze(b.EntityID, phase, value("U136"))
+		// A book cast in recovery keeps its countdown; the caster starts no
+		// cast before it ends (MAGIC-CADENCE-126, DIV-3357).
+		if (action == 0xd || action == 0xe) && phase == 7 && value("U6C") <= 255 {
+			a.CastWait = uint8(value("U6C"))
+		}
 		// State 14 in sub-phase 5 is a point cast counting down to its
 		// application (MAGIC-TELEPORT-370, SAV-1254).
 		if id, known := spellIDs[value("U64")]; action == 14 && phase == 5 && known && id <= 0xffff && value("U6C") <= 255 {
@@ -440,6 +445,9 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 				switch phase {
 				case 5:
 					a.Phase = sim.AttackCharging
+					if savedWeaponCastBorrow(state.Document, r) {
+						a.Phase = sim.AttackCasting
+					}
 				case 7:
 					a.Phase = sim.AttackRelaxing
 				case 0:

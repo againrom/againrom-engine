@@ -19,6 +19,8 @@ type OriginalActorAction struct {
 	CreditSpell            int8
 	ActorState             uint8
 	PostX, PostY           int32
+	// CastWait is a book cast's remaining recovery (MAGIC-CADENCE-126).
+	CastWait uint8
 }
 
 func (w *World) ImportOriginalActorActions(actions []OriginalActorAction) error {
@@ -75,9 +77,15 @@ func (w *World) ImportOriginalActorActions(actions []OriginalActorAction) error 
 			e.AttackTarget, e.HasAttackTarget, e.AttackTargetKind = a.Target, true, AttackTargetUnit
 			e.AcquirePursuit = false
 			e.AttackPhase, e.AttackCountdown = a.Phase, a.Countdown
+			if _, release := staged.weaponSpell(*e); a.Phase == AttackCasting && !release {
+				e.AttackPhase = AttackCharging
+			}
 			if err := attackFault(*e); err != nil {
 				return fmt.Errorf("sim: actor %d restored attack: %w", a.Entity, err)
 			}
+		}
+		if e.Alive() {
+			e.CastWait = max(e.CastWait, a.CastWait)
 		}
 		if a.HasCredit {
 			if indexOfEntity(staged.entities, a.Credit) < 0 {

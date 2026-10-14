@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Saves made while a hero casts from a spellbook or charges a staff load in the original game without crashing it. A loaded healer finishes recovering before the next cast. After a weapon swap or removal, the save carries the damage of the weapon now worn, and a hero's own weight counts what the hero wears, so removing a shield in the original no longer makes it negative.
 - [ROM1] An item a hero picks up, loots, is handed, unequips or is granted joins an identical item already in the pack, whatever form each was stored in. A spear bought in the city now joins spears looted in a mission, and a spear dropped and picked up again joins the spears already carried. A save that already holds two such cells keeps them on loading; dropping one and picking it up joins them.
 - [ROM1] Test Play in the map editor starts sooner after F5: the test mod is written with fewer disk checks.
 - [ROM1] A potion drunk in the town is used up and changes nothing, as in the original; a regeneration potion drunk there no longer carries into the next mission. A save made with such a potion by an earlier version loads, and the potion ends when the next mission starts.

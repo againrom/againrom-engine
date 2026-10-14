@@ -88,6 +88,9 @@ func (w *World) applyNativeEquipmentBasis(e *Entity, item ItemInstance, operatio
 	if item.Empty() || e.ActorLoad.Source.Class != 0 {
 		return
 	}
+	if item.SourceEquipment.Class == 0 {
+		item.SourceEquipment = w.itemConstructor(item.Code)
+	}
 	o := w.nativeEquipmentOperands(item, e.Skill[0])
 	sign := 1
 	if operation == NativeModifierRemove {
@@ -124,6 +127,7 @@ func UpdateNativeEquipmentChangeBasis(basis NativeActorBasis, removed, added Ite
 }
 
 func (w *World) applyNativeEquipmentChange(e *Entity, removed, added ItemInstance) {
+	held := e.NativeBasis.ModifierPresent
 	oldRaw, newRaw := removed.SourceEquipment, added.SourceEquipment
 	oldRaw.Spell, newRaw.Spell = SourceItemSpell{}, SourceItemSpell{}
 	if removed.ObjectID == 0 || removed.ObjectID != added.ObjectID || oldRaw != newRaw {
@@ -132,6 +136,46 @@ func (w *World) applyNativeEquipmentChange(e *Entity, removed, added ItemInstanc
 	} else if !sameItemEffects(removed.Effects, added.Effects) {
 		nativeItemEffects(e, removed, -1)
 		nativeItemEffects(e, added, 1)
+	}
+	if held {
+		w.reformNativeWeaponArm(e)
+	}
+}
+
+// nativeWeaponArmBytes are the modifier bytes a weapon's own arm writes:
+// to-hit, damage base and spread, the ranged triple and the defence word.
+var nativeWeaponArmBytes = [...]int{18, 19, 32, 33, 37, 38, 39, 42, 43}
+
+// reformNativeWeaponArm gives a native Human that held a modifier block and
+// whose weapon-arm bytes are unavailable after an equipment change the bytes
+// its worn set contributes, as the construction forms them (DIV-3359).
+// Available bytes keep the change's own arithmetic.
+func (w *World) reformNativeWeaponArm(e *Entity) {
+	if e.ActorLoad.Source.Class != 0 || !e.NativeBasis.ModifierPresent {
+		return
+	}
+	i := indexOfEntity(w.entities, e.ID)
+	if i < 0 || i >= len(w.equipment) || &w.entities[i] != e {
+		return
+	}
+	unknown := false
+	for _, n := range nativeWeaponArmBytes {
+		unknown = unknown || !e.NativeBasis.ModifierByteKnown(n)
+	}
+	if !unknown {
+		return
+	}
+	var fresh Entity
+	fresh.NativeBasis = NativeActorBasis{}.WithModifier([64]byte{})
+	fresh.Humanoid, fresh.NativeClass, fresh.Skill[0] = e.Humanoid, e.NativeClass, e.Skill[0]
+	for _, item := range w.equipment[i] {
+		w.applyNativeEquipmentBasis(&fresh, item, NativeModifierAttach)
+	}
+	for _, n := range nativeWeaponArmBytes {
+		if !e.NativeBasis.ModifierByteKnown(n) && fresh.NativeBasis.ModifierByteKnown(n) {
+			e.NativeBasis.Modifier[n] = fresh.NativeBasis.Modifier[n]
+			e.NativeBasis.ModifierKnown |= uint64(1) << n
+		}
 	}
 }
 

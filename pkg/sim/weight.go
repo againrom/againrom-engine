@@ -194,6 +194,29 @@ func (w *World) wornWeight(i int) int32 {
 	return sum
 }
 
+// itemConstructor is the constructor of code: the declared row when the weight
+// table holds one, else the bound merge operands, zero when neither does.
+func (w *World) itemConstructor(code uint16) SourceEquipment {
+	i := sort.Search(len(w.itemWeights), func(i int) bool { return w.itemWeights[i].Code >= code })
+	if i < len(w.itemWeights) && w.itemWeights[i].Code == code && w.itemWeights[i].Constructor.Class != 0 {
+		return w.itemWeights[i].Constructor
+	}
+	j := sort.Search(len(w.mergeOperands), func(j int) bool { return w.mergeOperands[j].Code >= code })
+	if j < len(w.mergeOperands) && w.mergeOperands[j].Code == code {
+		return w.mergeOperands[j].Constructor
+	}
+	return SourceEquipment{}
+}
+
+// WornWeight is entity id's own weight, the sum over its worn set.
+func (w *World) WornWeight(id EntityID) (int32, bool) {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 {
+		return 0, false
+	}
+	return w.wornWeight(i), true
+}
+
 // loadOf is the carried load, `actor+0x90`, exactly as ITEM-LOAD-005 gives
 // the derive at `L03920`..`L03921`:
 //

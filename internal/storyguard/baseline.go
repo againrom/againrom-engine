@@ -2461,6 +2461,12 @@ package storyguard
 // CommentBytes rises for the equal-items merge: the docs of sim.EffectiveJoin,
 // the bound-incoming join, SavedObjects.absorbObject, the install merge
 // operands and the tests that pin them, this note included.
+//
+// CommentBytes rises for the doc comments of new code in the SAV hero-state
+// hotfix: the last cast pass of SAVE (pkg/game/savcastsource.go), the native
+// weapon-arm re-form and constructor lookup in pkg/sim and the new tests that
+// pin them, this note included. It rises again for the first-game own-weight
+// pass (projectWornOwnWeight) and its per-game flag.
 var Committed = Baseline{
 	TestIdentCount: 4625,
 	TestFileCount:  264,
@@ -2484,5 +2490,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9051033,
+	CommentBytes: 9057534,
 }
