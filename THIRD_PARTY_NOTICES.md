@@ -1,12 +1,12 @@
 # Third-party notices
 
-againrom is licensed under GPL-3.0-or-later (see `LICENSE`). This file inventories
-the third-party open-source modules compiled into againrom binaries, together with
+AgainROM is licensed under GPL-3.0-or-later (see `LICENSE`). This file inventories
+the third-party open-source modules compiled into AgainROM binaries, together with
 their licenses; the full license texts live under `LICENSES/`.
 
 ## Compiled third-party modules
 
-againrom depends on the Go standard library plus the modules below: CP866 string
+AgainROM depends on the Go standard library plus the modules below: CP866 string
 decoding for the `pkg/formats` tier, CPU font rendering, and Ebitengine (with
 its transitive dependencies) for the `pkg/ui` and `cmd` tiers.
 Every `go test ./...` run cross-checks this list against `go.mod`'s `require` set
@@ -49,7 +49,7 @@ below) instead of through the module-vs-`go.mod` diff above.
 DPCM audio in pure Go, ported file-by-file from libsmacker 1.2.0's C source
 (upstream: `libsmacker.sourceforge.net`) for auditability against the
 original. The original library is LGPL-2.1-or-later; this port carries the
-same license, and is compatible with distributing the whole againrom binary
+same license, and is compatible with distributing the whole AgainROM binary
 under GPL-3.0-or-later. Every ported file under `pkg/video/smacker` carries a
 header citing this origin; the full license text is `LICENSES/LGPL-2.1.txt`.
 This package is not a research artifact: it is third-party derived code under
