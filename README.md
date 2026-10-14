@@ -19,6 +19,14 @@ original. Each known difference is listed in `docs/divergences/`.
 
 againrom only reads the install. It never changes the original game's files.
 
+### An install from the CD
+
+The CD installer leaves the music and the movies on the disc, and the original
+game reads them from there. againrom reads only the install folder. Copy
+`MUSIC.RES`, `VIDEO4.RES` and `VIDEO8.RES` from the `Allods` folder on the disc
+into a folder named `Allods` inside the install folder, so that music and
+movies work. A digital copy, for example from GOG, already holds that folder.
+
 ## Install on Windows
 
 1. Download the Windows AMD64 ZIP from
