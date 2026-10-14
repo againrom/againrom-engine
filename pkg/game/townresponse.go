@@ -89,13 +89,18 @@ func (t *townScreen) speakSchoolTraining(slot int) {
 	t.requestSchoolSound(schoolTeachSound)
 }
 
-// shopItemResponse starts the one recording a merchant stack moved onto the
-// table speaks (SHOP-109): its effect description, else its spell
-// description, else one part of its class/row lines drawn from the shop's
-// presentation seam. A recording the install lacks is passed over, and an
-// item with none stops the previous one. DIV-2115 keeps a request on every
-// selection instead of the original's draw gate.
+// shopItemSpeechPercent bounds the tray draw (SHOP-109).
+const shopItemSpeechPercent = 30
+
+// shopItemResponse is the tray's speech request for a merchant stack moved
+// onto the table (SHOP-109): one scaled draw per placement; from 30 up it
+// requests nothing and leaves a playing recording. Below 30 the stack speaks
+// one recording: effect, else spell, else a drawn class/row part. A recording
+// the install lacks is passed over, and a stack with none stops the previous.
 func (t *townScreen) shopItemResponse(item ShopItem) {
+	if t.sceneDraw("idle", 100) >= shopItemSpeechPercent {
+		return
+	}
 	present := func(name string) bool {
 		_, found := t.in.SpeechBank.Sample(name)
 		return found

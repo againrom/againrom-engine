@@ -287,3 +287,53 @@ func TestReleaseShopMerchantSpeaksOneLinePerItem(t *testing.T) {
 	}
 	t.Logf("%d class/row keys (%d with several parts), %d spells, %d effects: one recording per selection under three draws", keys, multi, books, effects)
 }
+
+// 300 seeded placements of installed items speak exactly when the draw is below 30.
+func TestReleaseShopMerchantSpeaksOnThirtyPercentDraw(t *testing.T) {
+	f, app, s, r := releaseQuietShopApp(t)
+	shopSpeechDrain(t, app, r, 0)
+	present := func(n string) bool { _, ok := f.SpeechBank.Sample(n); return ok }
+	var items []ShopItem
+	for b := 1; b < 14; b++ {
+		for d := 0; d < 100; d++ {
+			if present(fmt.Sprintf("speech/shop/s%02di%02dp1.wav", b, d)) {
+				items = append(items, ShopItem{Code: data.ItemCode(b<<8 | d), Count: 1})
+			}
+		}
+	}
+	if len(items) == 0 {
+		t.Fatal("the install holds no class/row recording")
+	}
+	state := uint32(12345)
+	next := func() int {
+		state = state*1103515245 + 12345
+		return int(state>>16) & 0x7fff
+	}
+	var gate int
+	f.ShopRandom = func(n int) int {
+		v := next()
+		if n == 100 {
+			gate = v * 100 / 32767 % 100
+			return gate
+		}
+		return v % n
+	}
+	asked, spoke := 0, 0
+	for i := 0; i < 300; i++ {
+		item := items[i%len(items)]
+		base := len(r.samples)
+		s.shopItemResponse(item)
+		got := shopSpeechDrain(t, app, r, base)
+		if (gate < 30) != (got == 1) || got > 1 {
+			t.Fatalf("placement %d: draw %d, %d recording(s)", i, gate, got)
+		}
+		asked++
+		if got == 1 {
+			spoke++
+		}
+	}
+	if spoke == 0 || spoke == asked {
+		t.Fatalf("%d of %d placements spoke", spoke, asked)
+	}
+	t.Logf("%d items with recordings; %d of %d placements requested a recording", len(items), spoke, asked)
+}

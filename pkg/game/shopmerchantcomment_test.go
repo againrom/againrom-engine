@@ -226,6 +226,7 @@ func TestCityShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	})
 	r := &tavernInteriorRecorder{}
 	f.SpeechPlayer = r
+	f.ShopRandom = func(int) int { return 0 }
 
 	click(s, ui.ShopControlPackCell, 1)
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})

@@ -152,6 +152,7 @@ func TestShopSelectionSpeaksOneRecordingAndNewSelectionReplacesIt(t *testing.T) 
 	})
 	r := &tavernInteriorRecorder{}
 	f.SpeechPlayer = r
+	f.ShopRandom = func(int) int { return 0 }
 	f.Shop = NewShop(1000)
 	f.Shop.shelves[ShelfWeapons] = []ShopItem{
 		{Code: data.ComposeItemCode(2, 1, 3, 2), Count: 1, Price: 100, Effects: []sim.ItemEffect{{Kind: 2}, {Kind: 2}}},

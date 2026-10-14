@@ -162,6 +162,7 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 			}
 		}
 	}
+	defer pinShopDraw(f)()
 	for _, item := range []struct {
 		value ShopItem
 		name  string
@@ -335,4 +336,11 @@ func (f *FrontEnd) witnessSpeechFocus(t *townScreen, voice audio.Voice, report i
 	}
 	fmt.Fprintf(report, "focus: backend=%s before=%d immediate=%d paused=%d resumed=%d buffer=%d generation=%d owner=retained SAV=unchanged operations=stop,play,stop,destroy\n", backend, phaseBefore, immediate, phase, resumed, buffer, id.Generation)
 	return nil
+}
+
+// pinShopDraw fixes every shop draw at 0; the result restores it.
+func pinShopDraw(f *FrontEnd) func() {
+	saved := f.ShopRandom
+	f.ShopRandom = func(int) int { return 0 }
+	return func() { f.ShopRandom = saved }
 }
