@@ -1104,6 +1104,7 @@ type Viewer struct {
 	quickSpells    *[4]uint32 // session-owned; never retained by an actor
 	itemCast       *itemCastSelection
 	itemCastSink   MapItemCast
+	castNeedsSight bool // SetCastNeedsSight: a cast takes only ground in current sight
 
 	// autocastSink is SetAutocastSink's own value (spellbook.go): where the
 	// autocast toggle leaves this package, nil for a viewer never given one.

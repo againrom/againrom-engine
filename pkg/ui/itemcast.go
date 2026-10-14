@@ -35,7 +35,10 @@ func (v *Viewer) releaseItemCast(x, y int) {
 		return
 	}
 	col, row, inside := v.groundCellAt(float64(x), float64(y))
-	if !inside || !v.fogGateSack(col, row) {
+	if !inside {
+		return
+	}
+	if v.castNeedsSight && !v.castSightCell(col, row) || !v.castNeedsSight && !v.fogGateSack(col, row) {
 		return
 	}
 	_, hit, hasHit := v.hoverMask(x, y)

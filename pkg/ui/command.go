@@ -1486,9 +1486,14 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 	// Read AFTER the release has been accounted for, so the frame a press ends
 	// on is not itself "a press in progress".
 	g.held = v.held
-	if g.tap && v.itemCast != nil {
+	if g.tap && v.itemCast != nil && g.cursor == "cast" {
 		v.releaseItemCast(g.x, g.y)
 		return nil, false
+	}
+	// A click under the move cursor an item cast shows outside sight moves
+	// and drops the item cast, as a refused item release did before.
+	if g.tap && v.itemCast != nil {
+		v.itemCast = nil
 	}
 
 	// Hover inspection is read-only. Only an explicit attack cursor can consume

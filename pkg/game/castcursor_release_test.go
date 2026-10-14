@@ -89,6 +89,10 @@ func TestReleaseCastCursorFollowsTheSpellKind(t *testing.T) {
 	where := func(name string) (int, int) {
 		t.Helper()
 		inspectionCentre(live, 31, 50)
+		// Every cell in sight: the cast's sight gate is its own test.
+		for i := range live.fog.visible {
+			live.fog.visible[i], live.fog.explored[i] = 1, 1
+		}
 		live.push()
 		if err := a.HeadlessStep(); err != nil {
 			t.Fatal(err)

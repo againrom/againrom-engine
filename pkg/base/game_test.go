@@ -79,3 +79,21 @@ func TestCreatureResistanceHeadingFollowsEdition(t *testing.T) {
 		}
 	}
 }
+
+func TestCastNeedsSightFollowsEdition(t *testing.T) {
+	for _, tc := range []struct {
+		id   string
+		want bool
+	}{
+		{ROM1EN, true}, {ROM1RU, true}, {ROM1Demo, true},
+		{ROM2EN, false}, {ROM2RU, false}, {ROM2, false},
+	} {
+		profile, ok := Find(tc.id)
+		if !ok {
+			t.Fatalf("profile %s is absent", tc.id)
+		}
+		if got := profile.CastNeedsSight(); got != tc.want {
+			t.Errorf("profile %s cast needs sight = %v, want %v", tc.id, got, tc.want)
+		}
+	}
+}

@@ -3431,9 +3431,8 @@ func (mw *mapWorld) castAt(entity, victim, spell uint32) {
 func (mw *mapWorld) attackOrCast(entity, victim, spell uint32, x, y int, cell bool) {
 	if spell != 0 {
 		if cell {
-			// Teleport is allowed into an unseen destination so mission 80's
-			// disconnected grave can be reached. Keep the populated fog plane's
-			// map bounds guard; range and terrain remain simulation refusals.
+			// Sight gates the cursor, not this seam; a Teleport point outside
+			// a populated fog plane is still dropped.
 			const teleportSpellID = 26
 			if spellArmOf(mw.world.Spells(), spell) == teleportSpellID && !mw.fog.contains(x, y) {
 				return

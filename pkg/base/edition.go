@@ -42,6 +42,11 @@ type Edition struct {
 	Screens                   string
 	CreatureResistanceHeading bool
 
+	// CastNeedsSight makes the mission map's cast cursor stand only over a
+	// cell one of whose four corners is in current sight; elsewhere an armed
+	// cast shows the move cursor and a click moves.
+	CastNeedsSight bool
+
 	// Tips names the tip table: every tip popup the game shows, its text,
 	// rectangle, raising event, once-only rule and pointer owner.
 	Tips string
@@ -120,6 +125,7 @@ var firstEdition = Edition{
 	Rooms:                     "rom1",
 	Screens:                   "rom1",
 	CreatureResistanceHeading: true,
+	CastNeedsSight:            true,
 	Tips:                      "rom1",
 	Options:                   "rom1",
 	Spells:                    "rom1",
@@ -184,6 +190,8 @@ func (g Game) Edition() Edition {
 func (p Profile) Edition() Edition { return p.GameOf().Edition() }
 
 func (p Profile) CreatureResistanceHeading() bool { return p.Edition().CreatureResistanceHeading }
+
+func (p Profile) CastNeedsSight() bool { return p.Edition().CastNeedsSight }
 
 // Known reports whether g is a game this package names; the empty game is the
 // first game.

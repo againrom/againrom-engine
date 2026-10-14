@@ -32,16 +32,20 @@ func (v *Viewer) spellAim(id uint32) spellAim {
 }
 
 // castCursorAt is the cursor an armed spell answers over the game area, and
-// false where the ordinary cursor stands. An area spell answers everywhere,
-// seen or not; a target spell over a unit the party sees; a self spell over a
-// selected unit that holds it. The click is made under the answer, so
-// elsewhere it is the ordinary click.
+// false where the ordinary cursor stands. Where a cast needs sight and the
+// cell fails castSightAt, every cast arm answers move (MENU-CAST-153).
+// Otherwise an item cast and an area spell answer everywhere; a target spell
+// over a unit the party sees; a self spell over a selected unit that holds it.
+// The click is made under the answer, so elsewhere it is the ordinary click.
 func (v *Viewer) castCursorAt(x, y int) (string, bool) {
+	if v.itemCast == nil && v.selectedSpell == 0 {
+		return "", false
+	}
+	if !v.castSightAt(x, y) {
+		return "move", true
+	}
 	if v.itemCast != nil {
 		return "cast", true
-	}
-	if v.selectedSpell == 0 {
-		return "", false
 	}
 	switch v.spellAim(v.selectedSpell) {
 	case aimArea:
@@ -56,6 +60,34 @@ func (v *Viewer) castCursorAt(x, y int) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// SetCastNeedsSight turns the current-sight gate of castSightAt on or off.
+func (v *Viewer) SetCastNeedsSight(on bool) { v.castNeedsSight = on }
+
+// castSightAt reports whether the ground cell under a frame point takes a
+// cast. A point that names no cell is not gated.
+func (v *Viewer) castSightAt(x, y int) bool {
+	col, row, inside := v.groundCellAt(float64(x), float64(y))
+	return !inside || v.castSightCell(col, row)
+}
+
+// castSightCell is TERR-CLICK-262's hover predicate on the client fog plane.
+// The plane holds one state per lattice vertex, as the shroud reads it: cell
+// (col,row) has the corners (col,row), (col+1,row), (col+1,row+1) and
+// (col,row+1). FogVisible is the pair 11, FogExplored 10, FogUnseen 00. The
+// plane has no raw pair 01, so the corners' OR is 11 exactly when one corner
+// is in sight now. DIV-3324.
+func (v *Viewer) castSightCell(col, row int) bool {
+	if !v.castNeedsSight {
+		return true
+	}
+	for _, c := range [4][2]int{{col, row}, {col + 1, row}, {col + 1, row + 1}, {col, row + 1}} {
+		if v.fogAt(c[0], c[1]) == FogVisible {
+			return true
+		}
+	}
+	return false
 }
 
 // castVictimAt is the unit decide would name for a cast click, less a unit the

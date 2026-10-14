@@ -24,6 +24,7 @@ type viewerArt struct {
 	font                          *text.Font
 	cardFont                      *text.Font
 	preserveCreatureSkillsHeading bool
+	castNeedsSight                bool
 	attackPointer                 *image.RGBA
 	commandPanel                  *ui.CommandPanelArt
 	bottomHUD                     *ui.BottomHUDArt
@@ -54,6 +55,7 @@ func (s viewerArtSource) resolve() viewerArt {
 	art.font = s.in.Font.Value()
 	art.cardFont = s.in.tipFont()
 	art.preserveCreatureSkillsHeading = !s.in.profile().CreatureResistanceHeading()
+	art.castNeedsSight = s.in.profile().CastNeedsSight()
 	art.attackPointer = s.in.AttackPointer.Value()
 	art.commandPanel = s.in.CommandPanelArt.Value()
 	art.bottomHUD = s.in.BottomHUDArt.Value()
@@ -96,6 +98,7 @@ func (a viewerArt) apply(v *ui.Viewer) {
 	v.SetMissionTipDress(a.missionTip)
 	v.SetMinimapPaint(a.minimapPaint)
 	v.SetPreserveCreatureSkillsHeading(a.preserveCreatureSkillsHeading)
+	v.SetCastNeedsSight(a.castNeedsSight)
 }
 
 // pickerArt is the art a debug picker map is dressed with: viewerArt without
@@ -104,6 +107,7 @@ type pickerArt struct {
 	font                          *text.Font
 	cardFont                      *text.Font
 	preserveCreatureSkillsHeading bool
+	castNeedsSight                bool
 	attackPointer                 *image.RGBA
 	commandPanel                  *ui.CommandPanelArt
 	bottomHUD                     *ui.BottomHUDArt
@@ -123,6 +127,7 @@ type pickerArtSource struct {
 func (s pickerArtSource) resolve() pickerArt {
 	art := pickerArt{font: s.in.Font.Value(), cardFont: s.in.tipFont()}
 	art.preserveCreatureSkillsHeading = !s.in.profile().CreatureResistanceHeading()
+	art.castNeedsSight = s.in.profile().CastNeedsSight()
 	art.attackPointer = s.in.AttackPointer.Value()
 	art.commandPanel = s.in.CommandPanelArt.Value()
 	art.bottomHUD = s.in.BottomHUDArt.Value()
@@ -145,6 +150,7 @@ func (a pickerArt) apply(v *ui.Viewer) {
 	v.SetSackFrames(a.sackFrames)
 	v.SetSackBoundaries(a.sackBoundaries)
 	v.SetPreserveCreatureSkillsHeading(a.preserveCreatureSkillsHeading)
+	v.SetCastNeedsSight(a.castNeedsSight)
 }
 
 // minimapShadeEntry is the palette entry of the owner shade word the first

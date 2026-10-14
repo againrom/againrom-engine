@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/terrain"
 )
 
 // This file is the scenario vocabulary's POINTER half (1005 round 2, seventh
@@ -675,4 +676,17 @@ func (a *App) HeadlessHelpBarPoint(part string) (int, int, error) {
 		}
 	}
 	return 0, 0, fmt.Errorf("headless help bar: no window pixel on the %s", part)
+}
+
+// HeadlessCellPoint is the window pixel at the centre of one drawn map cell.
+func (a *App) HeadlessCellPoint(col, row int) (int, int, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return 0, 0, err
+	}
+	sx, sy := v.cam.WorldToScreen(float64(col*terrain.CellSize+terrain.CellSize/2), float64(row*terrain.CellSize+terrain.CellSize/2))
+	if c, r, inside := v.groundCellAt(sx, sy); !inside || c != col || r != row {
+		return 0, 0, fmt.Errorf("headless cell point: cell (%d,%d) is not under frame point (%.0f,%.0f)", col, row, sx, sy)
+	}
+	return v.frameToWindow(image.Pt(int(sx), int(sy)), "headless cell point")
 }

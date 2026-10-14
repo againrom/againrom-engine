@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A spell is aimed only at ground your party sees now, as in the original. Over explored ground that is dark now the cursor is the move cursor and a click moves the selected units; the chosen spell stays ready. Teleport is aimed the same way. Mission 80's grave is reached by walking to the river bank, seeing the grave's island and Teleporting onto it.
 - [ROM1] Animal and monster cards head their weapon-kind values Resistance, as the original does.
 - [ROM1] The map editor plays the map you are editing: press F5 and the game opens it, unsaved edits included, after character generation. The editor stays open, so you can close the game and go on editing. Your saved map and mods are not touched; the map is written to a test mod beside the editor. A map whose report shows an error is not played, and a missing game program is named on the editor's message line.
 - [ROM1] [ROM2] Teleport across several cells draws the caster at the destination at once, without sliding or walking through the intervening cells.
