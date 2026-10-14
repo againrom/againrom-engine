@@ -3240,6 +3240,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		// no rebuild rule of their own.
 		ghost:             w.ghost,
 		sourceDerive:      w.sourceDerive,
+		mergeOperands:     w.mergeOperands,
 		burst:             burstState{phases: w.burst.phases},
 		rules:             w.rules,
 		diary:             w.diary,

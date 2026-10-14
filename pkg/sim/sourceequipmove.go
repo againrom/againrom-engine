@@ -9,15 +9,21 @@ import (
 // acquire fresh constructor operands. A saved BaseItem with an equipment-like
 // appearance remains that BaseItem, and a retained Weapon is never refilled.
 func (w *World) sourceConstructItem(item ItemInstance) ItemInstance {
+	return constructItemWith(w.itemWeights, item)
+}
+
+// constructItemWith fills a plain item from the constructor row ws holds for
+// its code, or returns it unchanged.
+func constructItemWith(ws []ItemWeight, item ItemInstance) ItemInstance {
 	if item.WeightPresent || item.SourceEquipment.Class != 0 {
 		return item
 	}
-	i := sort.Search(len(w.itemWeights), func(i int) bool { return w.itemWeights[i].Code >= item.Code })
-	if i == len(w.itemWeights) || w.itemWeights[i].Code != item.Code || w.itemWeights[i].Constructor.Class == 0 {
+	i := sort.Search(len(ws), func(i int) bool { return ws[i].Code >= item.Code })
+	if i == len(ws) || ws[i].Code != item.Code || ws[i].Constructor.Class == 0 {
 		return item
 	}
-	item.SourceEquipment = w.itemWeights[i].Constructor
-	item.WeightPresent, item.Weight = true, int16(w.itemWeights[i].Weight)
+	item.SourceEquipment = ws[i].Constructor
+	item.WeightPresent, item.Weight = true, int16(ws[i].Weight)
 	item.Kind = 1
 	if item.SourceEquipment.Class == SourceWeapon {
 		item.Kind = 2

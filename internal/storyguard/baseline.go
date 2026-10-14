@@ -2457,6 +2457,10 @@ package storyguard
 //
 // CommentBytes rises for refuseOriginalWriteTargets, which the named-save
 // directory check now shares, this note included.
+//
+// CommentBytes rises for the equal-items merge: the docs of sim.EffectiveJoin,
+// the bound-incoming join, SavedObjects.absorbObject, the install merge
+// operands and the tests that pin them, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4625,
 	TestFileCount:  264,
@@ -2480,5 +2484,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9044051,
+	CommentBytes: 9051033,
 }

@@ -74,6 +74,11 @@ type Table struct {
 	// SlotPlayers.
 	FreshPlayers PlayerPolicy
 
+	// StoredFormMerge binds no constructor rows for pack merges, so a plain
+	// item and a constructed one of the same code stay apart; false is the
+	// first game's (DIV-762).
+	StoredFormMerge bool
+
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules

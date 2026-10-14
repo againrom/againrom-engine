@@ -114,6 +114,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 	var checked World
 	checked.ghost = w.ghost
 	checked.sourceDerive = w.sourceDerive
+	checked.mergeOperands = w.mergeOperands
 	checked.burst.phases = w.burst.phases
 	checked.rules = w.rules
 	checked.diary = w.diary

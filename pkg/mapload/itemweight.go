@@ -132,6 +132,26 @@ func DeclareCodeWeights(w *sim.World, t *Table, codes []uint16) {
 	// weights, and this list is built from a set of codes each resolved once.
 	_ = w.DeclareItemWeights(out)
 	DeclareSourceConstructors(w, t)
+	bindMergeOperands(w, t)
+}
+
+// bindMergeOperands binds the constructor rows of every code the world
+// weighs, which a pack merge reads a plain item's operands from
+// (sim.EffectiveJoin). A table with StoredFormMerge binds none.
+func bindMergeOperands(w *sim.World, t *Table) {
+	if t.StoredFormMerge {
+		return
+	}
+	var rows []sim.ItemWeight
+	for _, iw := range w.ItemWeights() {
+		built := SourceConstructedItem(sim.PlainItem(iw.Code), t)
+		if built.SourceEquipment.Class != 0 {
+			rows = append(rows, sim.ItemWeight{Code: iw.Code, Weight: int32(built.Weight), Constructor: built.SourceEquipment})
+		}
+	}
+	// The error is dropped for DeclareItemWeights' reason: each code is
+	// resolved once from one table.
+	_ = w.BindMergeOperands(rows)
 }
 
 // sortCodes is an ascending insertion sort over a code list. It is written out

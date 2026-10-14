@@ -855,28 +855,54 @@ func (r *SavedObjects) insertSelectedAt(id SavedObjectID, destination SavedObjec
 // (ITEM-MERGE-129). flags is the incoming Token +0x08 word, literal one for a
 // pickup (ITEM-GROUNDMOVE-130) and zero for a value no Token describes.
 func (r *SavedObjects) absorbValue(id SavedObjectID, value ItemStack, flags uint32) error {
+	return r.mutate(func(n *SavedObjects) error { return n.absorbValueInPlace(id, value, flags) })
+}
+
+func (r *SavedObjects) absorbValueInPlace(id SavedObjectID, value ItemStack, flags uint32) error {
+	held := r.item(id)
+	if held == nil || held.Retired || value.ObjectID != 0 || value.Count == 0 || !savedNativeMerge(held.Value, value) {
+		return fmt.Errorf("sim: invalid saved value merge")
+	}
+	sum := uint64(held.Value.Count) + uint64(value.Count)
+	if uint32(sum) == 0 {
+		return fmt.Errorf("sim: saved merge would create an invalid zero native count")
+	}
+	for _, at := range r.Locations(id) {
+		if c := r.container(at.Owner); c != nil {
+			c.weight(value, value.Count, true)
+		}
+	}
+	held.Value.Count = uint32(sum)
+	held.Token.T08 |= flags
+	if !savedOriginalMerge(held.Value, value) {
+		held.Coverage.Unknown |= SavedUnknownMergePolicy
+	}
+	if sum > 65535 {
+		held.Coverage.Unknown |= SavedUnknownCountWidth
+	}
+	return nil
+}
+
+// absorbObject merges the in-flight Item incoming into the live Item id as
+// the container merge does (ITEM-MERGE-129): id keeps its value and gains
+// incoming's count and +0x08 flags, and incoming is retired. value is
+// incoming's value written in id's form, so each container holding id gains
+// id's own per-unit weight.
+func (r *SavedObjects) absorbObject(id, incoming SavedObjectID, value ItemStack) error {
 	return r.mutate(func(n *SavedObjects) error {
-		held := n.item(id)
-		if held == nil || held.Retired || value.ObjectID != 0 || value.Count == 0 || !savedNativeMerge(held.Value, value) {
-			return fmt.Errorf("sim: invalid saved value merge")
+		row := n.item(incoming)
+		if row == nil || row.Retired || row.InFlight == 0 || incoming == id || value.Count != row.Value.Count {
+			return fmt.Errorf("sim: invalid saved object merge")
 		}
-		sum := uint64(held.Value.Count) + uint64(value.Count)
-		if uint32(sum) == 0 {
-			return fmt.Errorf("sim: saved merge would create an invalid zero native count")
+		flags, unknown := row.Token.T08, row.Coverage.Unknown&SavedUnknownFlags
+		if err := n.dispose(incoming); err != nil {
+			return err
 		}
-		for _, at := range n.Locations(id) {
-			if c := n.container(at.Owner); c != nil {
-				c.weight(value, value.Count, true)
-			}
+		value.ObjectID = 0
+		if err := n.absorbValueInPlace(id, value, flags); err != nil {
+			return err
 		}
-		held.Value.Count = uint32(sum)
-		held.Token.T08 |= flags
-		if !savedOriginalMerge(held.Value, value) {
-			held.Coverage.Unknown |= SavedUnknownMergePolicy
-		}
-		if sum > 65535 {
-			held.Coverage.Unknown |= SavedUnknownCountWidth
-		}
+		n.item(id).Coverage.Unknown |= unknown
 		return nil
 	})
 }

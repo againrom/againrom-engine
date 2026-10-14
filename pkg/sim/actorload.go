@@ -190,6 +190,16 @@ func (w *World) finishLoadMutation(i int, before loadMutation) bool {
 // at the container's stored next-index. A merge touches only its destination.
 // The existing instance-retention equality policy remains in force.
 func (w *World) addCarried(i int, item ItemStack, otherActive ...int) bool {
+	if k, v := w.boundJoin(i, item); k >= 0 {
+		n := w.sourceMutationCopy(i)
+		if !n.mergeBoundIntoHeld(i, k, item, v, otherActive...) {
+			return false
+		}
+		copy(w.entities, n.entities)
+		n.entities = w.entities
+		*w = n
+		return true
+	}
 	item = w.joinForm(i, item)
 	if w.savedObjects != nil {
 		if k := w.firstMergeableHeld(i, item); k >= 0 && (item.ObjectID == 0 || w.carried[i][k].ObjectID == 0) {
@@ -260,8 +270,10 @@ func (w *World) firstMergeableHeld(i int, item ItemStack) int {
 
 // joinForm is an unbound item written in the form of the first element of
 // actor i's container that CanMergeItemValues accepts once so written
-// (JoinForm), so the ordinary merge takes it, or else item itself. The
-// world's declared constructors build a plain value.
+// (JoinForm, the world's declared constructors building a plain value), so
+// the ordinary merge takes it. Failing that it is item written in the form of
+// the first element whose effective operands it shares (effectiveJoin), or
+// else item itself.
 func (w *World) joinForm(i int, item ItemStack) ItemStack {
 	if item.ObjectID != 0 {
 		return item
@@ -274,7 +286,66 @@ func (w *World) joinForm(i int, item ItemStack) ItemStack {
 			return StackItem(v, item.Count)
 		}
 	}
+	if k, v := w.effectiveJoin(i, item); k >= 0 {
+		return v
+	}
 	return item
+}
+
+// boundJoin is the first element of actor i's container that the saved-object
+// item joins only by its effective operands (effectiveJoin), with item written
+// in that element's form, or -1. An element CanMergeItemValues accepts as
+// item stands is the ordinary merge's.
+func (w *World) boundJoin(i int, item ItemStack) (int, ItemStack) {
+	if item.ObjectID == 0 || w.savedObjects == nil {
+		return -1, item
+	}
+	for _, held := range w.carried[i] {
+		if held.Code != 0 && held.Count != 0 && CanMergeItemValues(held.Instance(), item.Instance()) {
+			return -1, item
+		}
+	}
+	return w.effectiveJoin(i, item)
+}
+
+// effectiveJoin is the first element of actor i's container whose effective
+// operands item shares (EffectiveJoin), with item written in its form, or -1.
+// A plain value is read through the world's declared constructor, else the
+// bound merge operands. A world without merge operands compares stored forms
+// only.
+func (w *World) effectiveJoin(i int, item ItemStack) (int, ItemStack) {
+	if len(w.mergeOperands) == 0 {
+		return -1, item
+	}
+	construct := func(v ItemInstance) ItemInstance {
+		if built := w.sourceConstructItem(v); built.SourceEquipment.Class != 0 {
+			return built
+		}
+		return constructItemWith(w.mergeOperands, v)
+	}
+	for k, held := range w.carried[i] {
+		if held.Code == 0 || held.Count == 0 {
+			continue
+		}
+		if v, ok := EffectiveJoin(held.Instance(), item.Instance(), construct); ok {
+			return k, StackItem(v, item.Count)
+		}
+	}
+	return -1, item
+}
+
+// mergeBoundIntoHeld merges the saved-object item, written in element k's
+// form as v, into element k. The destination is retained and the incoming
+// saved object retired (ITEM-MERGE-129).
+func (w *World) mergeBoundIntoHeld(i, k int, item, v ItemStack, otherActive ...int) bool {
+	held := w.carried[i][k].Clone()
+	if held.ObjectID == 0 {
+		return w.mergeIntoHeld(i, k, item, 0, otherActive...)
+	}
+	if w.savedObjects.absorbObject(held.ObjectID, item.ObjectID, v) != nil {
+		return false
+	}
+	return w.syncSavedItemViews(held.ObjectID, held, i, otherActive...)
 }
 
 // mergeIntoHeld merges item into element k when at least one side has no

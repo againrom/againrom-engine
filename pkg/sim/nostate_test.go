@@ -101,6 +101,7 @@ var nstPinned = []struct {
 		// Pure arithmetic code, rebound before any source producer. It holds
 		// no derived or actor state; all operands live in ActorLoad.Source.
 		{"sourceDerive", "sim.SourceDerive"},
+		{"mergeOperands", "[]sim.ItemWeight"},
 		{"safeMode", "bool"},
 		{"carried", "[][]sim.ItemStack"},
 		{"equipment", "[][12]sim.ItemInstance"},

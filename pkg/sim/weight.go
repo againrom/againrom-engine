@@ -104,6 +104,20 @@ func (w *World) DeclareItemWeights(ws []ItemWeight) error {
 	return nil
 }
 
+// BindMergeOperands adds ws to the constructor rows a pack merge reads a plain
+// item's operands from (EffectiveJoin). The loader binds them from the same
+// tables and code population as DeclareItemWeights. They are never encoded,
+// so a world's hash does not move; a world without them compares stored
+// forms only.
+func (w *World) BindMergeOperands(ws []ItemWeight) error {
+	merged, err := normaliseItemWeights(append(append([]ItemWeight(nil), w.mergeOperands...), ws...))
+	if err != nil {
+		return err
+	}
+	w.mergeOperands = merged
+	return nil
+}
+
 // ItemWeights is this world's whole weight table, in code order — a copy, so a
 // caller cannot write through into the world's own.
 func (w *World) ItemWeights() []ItemWeight {

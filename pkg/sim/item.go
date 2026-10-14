@@ -203,6 +203,27 @@ func JoinForm(held, incoming ItemInstance, construct func(ItemInstance) ItemInst
 	return plain, true
 }
 
+// EffectiveJoin is incoming written in held's stored form, and whether the two
+// are one item to merging: equal under CanMergeItemValues once each plain
+// value is read as the operands construct writes for its code. Unlike
+// JoinForm it never lets a plain value stand for operands its constructor
+// does not write, so items whose operands differ stay apart (DIV-754,
+// DIV-762). The merge keeps the destination (ITEM-MERGE-129).
+func EffectiveJoin(held, incoming ItemInstance, construct func(ItemInstance) ItemInstance) (ItemInstance, bool) {
+	effective := func(v ItemInstance) ItemInstance {
+		if v.WeightPresent || v.SourceEquipment.Class != 0 {
+			return v
+		}
+		return construct(v.Clone())
+	}
+	if !CanMergeItemValues(effective(held), effective(incoming)) {
+		return incoming, false
+	}
+	v := incoming.Clone()
+	v.Weight, v.WeightPresent, v.SourceEquipment, v.Kind = held.Weight, held.WeightPresent, held.SourceEquipment, held.Kind
+	return v, CanMergeItemValues(held, v)
+}
+
 // CastSpell returns the first ordered kind-41 effect as spell id and signed
 // power. ITEM-CASTLINK-076 defines the low word as id and the high word as
 // signed i16 power.

@@ -1820,6 +1820,10 @@ type World struct {
 	spells        []SpellRule
 	ghost         GhostTemplate
 	sourceDerive  SourceDerive
+	// mergeOperands holds, per item code, the definition blocks and weight
+	// its constructor writes (BindMergeOperands). Install-derived input like
+	// ghost, carried across a decode and never encoded.
+	mergeOperands []ItemWeight
 	safeMode      bool
 	carried       [][]ItemStack
 	equipment     [][EquipSlots]ItemInstance

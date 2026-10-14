@@ -24,6 +24,9 @@ type gameFiles struct {
 	unitKeys      mapload.UnitKeys
 	spellArms     func([]sim.SpellRule)
 	freshPlayers  mapload.PlayerPolicy
+	// storedFormMerge keeps a plain item and a constructed one of the same
+	// code apart in a pack merge: no second-game claim states its equality.
+	storedFormMerge bool
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
@@ -66,10 +69,11 @@ var secondGameFiles = gameFiles{
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
 	},
-	unitKeys:     mapload.ServerUnitKeys,
-	spellArms:    mapload.SecondGameSpellArms,
-	freshPlayers: mapload.NoFreshPlayers,
-	itemNameKeys: worldPrefix + "data/itemname.bin",
+	unitKeys:        mapload.ServerUnitKeys,
+	spellArms:       mapload.SecondGameSpellArms,
+	freshPlayers:    mapload.NoFreshPlayers,
+	storedFormMerge: true,
+	itemNameKeys:    worldPrefix + "data/itemname.bin",
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,

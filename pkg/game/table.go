@@ -218,6 +218,7 @@ func readUnder(g base.Game, t *mapload.Table) *mapload.Table {
 	edition, files := g.Edition(), filesOf(g)
 	t.Edition = &edition
 	t.UnitKeys, t.SpellArms, t.FreshPlayers = files.unitKeys, files.spellArms, files.freshPlayers
+	t.StoredFormMerge = files.storedFormMerge
 	return t
 }
 
