@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -52,6 +50,7 @@ const (
 // f.World.SessionOff is used only as the structure's own start offset
 // (WorldHalf's own doc comment), on this instrument's independence rule.
 func TestMilestone2SessionBlock(t *testing.T) {
+	sessionCorpusAudit(t)
 	filesChecked := 0
 	clockMismatches, registerMismatches, latchMismatches := 0, 0, 0
 	rawHeadMismatches, rawMidMismatches := 0, 0

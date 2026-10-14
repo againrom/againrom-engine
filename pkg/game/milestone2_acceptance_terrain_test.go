@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -15,6 +13,7 @@ import (
 // builder (the document's Blocks over the installed constructor planes), the
 // carrier every first-game World holds from mission start.
 func TestMilestone2TerrainBlockPlane(t *testing.T) {
+	sessionCorpusAudit(t)
 	filesChecked, recordsChecked, differences := 0, 0, 0
 	widths := map[int]int{}
 	var refused []milestone2ResumeRefusal

@@ -1,10 +1,9 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import "testing"
 
 func TestMilestone2UnitCombat(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, cities, rawRecords, worldRecords, cityRecords, live, rawOnly, bytesRead, mismatches := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Unit": 0, "Human": 0, "Humanoid": 0}
 	var refused []milestone2ResumeRefusal

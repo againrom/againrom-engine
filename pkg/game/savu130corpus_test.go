@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 // Package game corpus proof for this story's own sole-review correction
 // (its returning finding's item 1): currentActorSource's s.Class == 0
 // fresh-mint branch now builds actor+0x130 (U130, HERO-XP-077's
@@ -21,6 +19,7 @@ import (
 )
 
 func TestSAVU130CorpusResaveKeepsTheLoadedAggregate(t *testing.T) {
+	sessionCorpusAudit(t)
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if assets == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")

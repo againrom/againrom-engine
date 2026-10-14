@@ -1,10 +1,9 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import "testing"
 
 func TestMilestone2ActorRoots(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, cities, actors, children, mismatches := 0, 0, 0, 0, 0
 	var total actor1161Population
 	var refused []milestone2ResumeRefusal

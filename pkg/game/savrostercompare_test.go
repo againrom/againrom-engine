@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -11,6 +9,7 @@ import (
 )
 
 func TestRoundTripRosterPermutationKeepsMemberChecks(t *testing.T) {
+	sessionCorpusAudit(t)
 	before := Snapshot{Mission: 111, Party: []mapload.PartyMember{
 		{ID: "hero", Name: "same", StartingHero: true},
 		{ID: "npc:1", Name: "same", CompanionNPC: 1, KnownSpells: 2},
@@ -59,6 +58,7 @@ func TestRoundTripRosterPermutationKeepsMemberChecks(t *testing.T) {
 }
 
 func TestRoundTripRosterIdentityCannotHideMissingMembers(t *testing.T) {
+	sessionCorpusAudit(t)
 	member := func(id string) mapload.PartyMember { return mapload.PartyMember{ID: id, Name: "same"} }
 	for _, tc := range []struct {
 		name, field   string

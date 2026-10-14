@@ -1,10 +1,9 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import "testing"
 
 func TestMilestone2Groups(t *testing.T) {
+	sessionCorpusAudit(t)
 	files, groups, members, normalized, words, paths, actors, patrol, mismatches := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	var population groups1155Population
 	var refused, unreadable, projectionUnavailable []milestone2ResumeRefusal

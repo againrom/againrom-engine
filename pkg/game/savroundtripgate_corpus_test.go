@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 // The SAV round-trip gate: GAME, then SAV, then LOAD, then GAME, over the
@@ -1045,11 +1043,13 @@ const (
 )
 
 func savGateNewGameKits(t *testing.T, part int) {
+	sessionCorpusAudit(t)
 	kits, absent := savGateKits(t)
 	savGateCensus(t, "newgamekits", part, savGateKitParts, []string{"newgame", "kit resave", "kit played", "kit cycled"}, append(savGateNewGames(), kits...), absent)
 }
 
 func savGateCorpusPart(t *testing.T, part int) {
+	sessionCorpusAudit(t)
 	savGateCensus(t, "corpus", part, savGateCorpusParts, []string{"corpus town", "corpus resave", "corpus played", "corpus dying"}, savGateCorpus(t), nil)
 }
 

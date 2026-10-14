@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -11,6 +9,7 @@ import (
 )
 
 func TestMilestone2NativeScalarMutation(t *testing.T) {
+	sessionCorpusAudit(t)
 	matched := false
 	milestone2Corpus(t, func(t *testing.T, input milestone2File, f *FrontEnd) {
 		if input.rel != "2026-10-07/saveorcsdontgo.sav" {

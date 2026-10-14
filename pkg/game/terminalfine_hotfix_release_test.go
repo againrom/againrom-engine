@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -15,6 +13,7 @@ import (
 )
 
 func TestMilestone2PlayedTerminalFrozenFineSurvivesCurrentSAV(t *testing.T) {
+	sessionCorpusAudit(t)
 	for _, tc := range []struct {
 		name, hash   string
 		identity     uint32

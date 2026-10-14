@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -121,6 +119,7 @@ func censusMissionAutosave(t *testing.T, f *FrontEnd) ([]byte, error) {
 }
 
 func TestReleaseWriterCensusMissionDocument(t *testing.T) {
+	sessionCorpusAudit(t)
 	name := os.Getenv("AGAINROM_CENSUS_SAVE")
 	if name == "" {
 		t.Skip("no AGAINROM_CENSUS_SAVE")
@@ -145,6 +144,7 @@ func TestReleaseWriterCensusMissionDocument(t *testing.T) {
 }
 
 func TestReleaseWriterCensusLiveMission(t *testing.T) {
+	sessionCorpusAudit(t)
 	name := os.Getenv("AGAINROM_CENSUS_SAVE")
 	if name == "" {
 		t.Skip("no AGAINROM_CENSUS_SAVE")
@@ -189,6 +189,7 @@ func censusTownPrepare(t *testing.T, f *FrontEnd, raw []byte) func() *censusRun 
 }
 
 func TestReleaseWriterCensusTownDocument(t *testing.T) {
+	sessionCorpusAudit(t)
 	name := os.Getenv("AGAINROM_CENSUS_TOWN")
 	if name == "" {
 		t.Skip("no AGAINROM_CENSUS_TOWN")
@@ -207,6 +208,7 @@ func TestReleaseWriterCensusTownDocument(t *testing.T) {
 }
 
 func TestReleaseWriterCensusCapturedState(t *testing.T) {
+	sessionCorpusAudit(t)
 	name := os.Getenv("AGAINROM_CENSUS_SAVE")
 	if name == "" {
 		t.Skip("no explicit capture census source")

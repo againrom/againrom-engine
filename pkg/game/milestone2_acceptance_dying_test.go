@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -17,6 +15,7 @@ import (
 // No decoded Actor.Stage/HP/DyingTimer, ActorHoldings or stat array is the
 // expected value. Token head identity and position come from SAV-TOKEN-034.
 func TestMilestone2DyingOwnerActors(t *testing.T) {
+	sessionCorpusAudit(t)
 	files, subjects, checked, mismatches := 0, 0, 0, 0
 	var refused []milestone2ResumeRefusal
 	milestone2CarrierCorpus(t, currentCarrierDyingOwnerActors, func(t *testing.T, mf milestone2File, fe *FrontEnd) {

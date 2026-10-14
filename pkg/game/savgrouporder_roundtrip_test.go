@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -13,6 +11,7 @@ import (
 )
 
 func TestCorpusResavePreservesCurrentGroupOrders(t *testing.T) {
+	sessionCorpusAudit(t)
 	assets, corpus := os.Getenv("AGAINROM_ASSETS"), os.Getenv("AGAINROM_SAVE_CORPUS")
 	if assets == "" || corpus == "" {
 		t.Fatal("AGAINROM_ASSETS and AGAINROM_SAVE_CORPUS are required")

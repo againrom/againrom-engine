@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -10,6 +8,7 @@ import (
 )
 
 func TestLowSAVResaveCorpusCensus(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, resaved, clockNear, offMap, offMapZero := 0, 0, 0, 0, 0
 	var refused, projectionUnavailable []milestone2ResumeRefusal
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {

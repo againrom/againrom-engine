@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -11,6 +9,7 @@ import (
 // duplicate or introduce a saved key. This compares baselines and layer
 // counts; object-reference and trigger consumers have separate instruments.
 func TestMilestone2CellRecords(t *testing.T) {
+	sessionCorpusAudit(t)
 	filesChecked, recordsChecked, uniqueChecked, differences := 0, 0, 0, 0
 	var refused []milestone2ResumeRefusal
 	milestone2CarrierCorpus(t, currentCarrierCellRecords, func(t *testing.T, mf milestone2File, fe *FrontEnd) {

@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -113,6 +111,7 @@ func observeWriterLoot(t *testing.T, f *FrontEnd, checkpoint string) lootObserva
 }
 
 func TestLootConstructionCapturePreservesAbsenceNamesAndInputOwnership(t *testing.T) {
+	sessionCorpusAudit(t)
 	if present, inputs := observeLootConstruction(nil); present || inputs != nil {
 		t.Fatal("absent constructor table was fabricated")
 	}
@@ -168,6 +167,7 @@ func lootHoldings(f *FrontEnd) map[string]uint64 {
 }
 
 func TestSAVWriterLootContinuationWitness(t *testing.T) {
+	sessionCorpusAudit(t)
 	dir := os.Getenv("AGAINROM_LOOT_WITNESS_OUT")
 	if dir == "" {
 		t.Skip("no explicit loot witness output directory")

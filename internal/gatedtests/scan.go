@@ -9,6 +9,10 @@
 // compares that manifest with an asset-free go test -json census before
 // running its packages on the supplied lawful roots.
 //
+// A test that reaches the session corpus audit gate (corpusAuditGate) by
+// the same route is a corpus audit, not a release test: ScanCorpusAudits
+// lists it, Scan leaves it out, and testdata/corpusaudit.txt holds that list.
+//
 // This is a lexical scan, not a type-checked call graph. It does not resolve
 // methods, imported helpers, function values, helpers outside _test.go, or
 // computed skip messages. It does not prove a call is reachable at runtime.
@@ -46,6 +50,10 @@ import (
 // exporting it claimed a public API this package does not have.
 const selfTestName = "TestScanMatchesTheCheckedInPopulationList"
 
+// corpusAuditGate is the pkg/game test helper that skips a session corpus
+// audit unless scripts/check-milestone2-acceptance.sh opened it.
+const corpusAuditGate = "sessionCorpusAudit"
+
 // Test names one gated test function: its package import path, its own
 // function name, and the first helper on a route to the skip. Via is empty
 // when the test contains the skip itself.
@@ -62,11 +70,23 @@ func (t Test) ID() string { return t.Package + "." + t.Func }
 // name starts with ".", nested Git worktrees, and the "knowledge" submodule, which this project
 // never edits and which carries its own test suite) and returns every
 // top-level TestXxx(t *testing.T) function that reaches an AGAINROM_
-// t.Skip/t.Skipf call through package-local test helpers, sorted by ID.
-// Only files the default build compiles count, as in the release census.
+// t.Skip/t.Skipf call through package-local test helpers and is not a corpus
+// audit, sorted by ID. Only files the default build compiles count, as in
+// the release census.
 func Scan(moduleRoot string) ([]Test, error) {
-	var out []Test
-	err := filepath.WalkDir(moduleRoot, func(path string, d fs.DirEntry, err error) error {
+	release, _, err := scanModule(moduleRoot)
+	return release, err
+}
+
+// ScanCorpusAudits returns every top-level test that reaches
+// corpusAuditGate, sorted by ID, over the files Scan reads.
+func ScanCorpusAudits(moduleRoot string) ([]Test, error) {
+	_, audits, err := scanModule(moduleRoot)
+	return audits, err
+}
+
+func scanModule(moduleRoot string) (release, audits []Test, err error) {
+	err = filepath.WalkDir(moduleRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -88,21 +108,23 @@ func Scan(moduleRoot string) ([]Test, error) {
 		if relErr != nil {
 			return relErr
 		}
-		pkgTests, pkgErr := scanDir(path, filepath.ToSlash(rel))
+		pkgRelease, pkgAudits, pkgErr := scanDir(path, filepath.ToSlash(rel))
 		if pkgErr != nil {
 			return pkgErr
 		}
-		out = append(out, pkgTests...)
+		release = append(release, pkgRelease...)
+		audits = append(audits, pkgAudits...)
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].ID() < out[j].ID() })
-	return out, nil
+	sort.Slice(release, func(i, j int) bool { return release[i].ID() < release[j].ID() })
+	sort.Slice(audits, func(i, j int) bool { return audits[i].ID() < audits[j].ID() })
+	return release, audits, nil
 }
 
-func scanDir(dir, importPath string) ([]Test, error) {
+func scanDir(dir, importPath string) (release, audits []Test, err error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(fi fs.FileInfo) bool {
 		if !strings.HasSuffix(fi.Name(), "_test.go") {
@@ -112,13 +134,8 @@ func scanDir(dir, importPath string) ([]Test, error) {
 		return err != nil || match
 	}, 0)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if len(pkgs) == 0 {
-		return nil, nil
-	}
-
-	var out []Test
 	for _, pkg := range pkgs {
 		// External _test packages cannot call this package's private helpers.
 		bodies := map[string]*ast.FuncDecl{}
@@ -131,13 +148,21 @@ func scanDir(dir, importPath string) ([]Test, error) {
 				bodies[fn.Name.Name] = fn
 			}
 		}
-		for name, via := range gatedFunctions(bodies) {
+		audit := reaching(bodies, func(name string, _ *ast.BlockStmt) bool { return name == corpusAuditGate })
+		for name, via := range reaching(bodies, func(_ string, body *ast.BlockStmt) bool { return bodyHasGatedSkip(body) }) {
 			if isTestFunc(bodies[name]) {
-				out = append(out, Test{Package: importPath, Func: name, Via: via})
+				if _, found := audit[name]; !found {
+					release = append(release, Test{Package: importPath, Func: name, Via: via})
+				}
+			}
+		}
+		for name, via := range audit {
+			if isTestFunc(bodies[name]) {
+				audits = append(audits, Test{Package: importPath, Func: name, Via: via})
 			}
 		}
 	}
-	return out, nil
+	return release, audits, nil
 }
 
 // isTestFunc reports whether fn is a top-level Go test function:
@@ -197,10 +222,10 @@ func bodyHasGatedSkip(body *ast.BlockStmt) bool {
 	return found
 }
 
-// gatedFunctions propagates direct gates through the reverse call graph.
+// reaching propagates the seed functions through the reverse call graph.
 // Each function enters the queue once, so helper cycles terminate. Sorted
-// seeds and callers make Via deterministic when several routes reach a gate.
-func gatedFunctions(bodies map[string]*ast.FuncDecl) map[string]string {
+// seeds and callers make Via deterministic when several routes reach a seed.
+func reaching(bodies map[string]*ast.FuncDecl, seed func(name string, body *ast.BlockStmt) bool) map[string]string {
 	names := make([]string, 0, len(bodies))
 	for name := range bodies {
 		names = append(names, name)
@@ -212,7 +237,7 @@ func gatedFunctions(bodies map[string]*ast.FuncDecl) map[string]string {
 	var queue []string
 	for _, name := range names {
 		body := bodies[name].Body
-		if bodyHasGatedSkip(body) {
+		if seed(name, body) {
 			via[name] = ""
 			queue = append(queue, name)
 		}

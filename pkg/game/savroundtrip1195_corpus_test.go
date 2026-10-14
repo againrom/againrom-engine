@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 // Package game permanent round-trip regression instrument: load, resave,
 // compare semantic state, reload, over the discovered corpus and our own save
 // points. It runs beside the tagged milestone-2 gate and names every refusal
@@ -97,6 +95,7 @@ func sav1195CheckDisclosed(t *testing.T, label string, disclosed corpusLossCeili
 }
 
 func TestSAVHiredPoolMigrationBound(t *testing.T) {
+	sessionCorpusAudit(t)
 	member := mapload.PartyMember{ID: "mercenary:3:1", MercenaryType: 3}
 	before := Snapshot{Mission: 50, Party: []mapload.PartyMember{member}}
 	before.MercenaryHired[3] = true
@@ -205,6 +204,7 @@ func sav1195CheckBaseline(t *testing.T, label string, baseline sav1195Baseline, 
 }
 
 func TestSAVRoundTrip1195OriginalCorpus(t *testing.T) {
+	sessionCorpusAudit(t)
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if assets == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")

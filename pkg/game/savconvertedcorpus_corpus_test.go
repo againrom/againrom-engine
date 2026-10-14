@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -71,6 +69,7 @@ type savConvertedSummary struct {
 }
 
 func savConvertedContinuation(t *testing.T, part int) {
+	sessionCorpusAudit(t)
 	corpus := os.Getenv("AGAINROM_CONVERTED_CORPUS")
 	if corpus == "" {
 		t.Fatal("AGAINROM_CONVERTED_CORPUS must name the directory of converted SAV files and conversion-manifest.json")

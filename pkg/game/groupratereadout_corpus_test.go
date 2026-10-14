@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -12,6 +10,7 @@ import (
 
 // Census: entities whose group rate term differs from the entity field.
 func TestGroupRateTermCorpusCensus(t *testing.T) {
+	sessionCorpusAudit(t)
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if corpus == "" || assets == "" {

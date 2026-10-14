@@ -150,6 +150,43 @@ func TestOtherSystem(t *testing.T) { requireInstall(t) }
 	}
 }
 
+func TestScanListsCorpusAuditsApart(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "pkg", "fixture")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	source := `package fixture
+import "testing"
+func TestRelease(t *testing.T) { requireInstall(t) }
+func TestAudit(t *testing.T) { sessionCorpusAudit(t); requireInstall(t) }
+func TestAuditPart1(t *testing.T) { auditPart(t, 0) }
+func TestAuditOffline(t *testing.T) { sessionCorpusAudit(t) }
+func auditPart(t *testing.T, part int) { sessionCorpusAudit(t); requireInstall(t) }
+func requireInstall(t *testing.T) { t.Skip("no AGAINROM_ASSETS") }
+func sessionCorpusAudit(t *testing.T) { t.Skip("session corpus audit") }
+`
+	if err := os.WriteFile(filepath.Join(dir, "fixture_test.go"), []byte(source), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	release, audits, err := scanModule(root)
+	if err != nil {
+		t.Fatalf("scanModule fixture: %v", err)
+	}
+	wantRelease := []Test{{Package: "pkg/fixture", Func: "TestRelease", Via: "requireInstall"}}
+	wantAudits := []Test{
+		{Package: "pkg/fixture", Func: "TestAudit", Via: "sessionCorpusAudit"},
+		{Package: "pkg/fixture", Func: "TestAuditOffline", Via: "sessionCorpusAudit"},
+		{Package: "pkg/fixture", Func: "TestAuditPart1", Via: "auditPart"},
+	}
+	if !reflect.DeepEqual(release, wantRelease) {
+		t.Errorf("release = %#v, want %#v", release, wantRelease)
+	}
+	if !reflect.DeepEqual(audits, wantAudits) {
+		t.Errorf("audits = %#v, want %#v", audits, wantAudits)
+	}
+}
+
 func TestScanKeepsHelperCallsWithinTheirPackage(t *testing.T) {
 	got := scanSourceFixture(t, map[string]string{
 		"internal_test.go": `package fixture
@@ -190,29 +227,32 @@ func TestScanHelperDepthIsNotAnArbitraryCutoff(t *testing.T) {
 // TestScanMatchesTheCheckedInPopulationList is this package's own
 // fail-closed check, the same shape as pkg/ui's screen registry
 // (screenregistry_test.go): Scan's live result must equal
-// testdata/population.txt exactly, in both directions. A gated test added
-// without updating the list fails here; a line in the list that Scan no
-// longer finds (a test renamed, moved, or ungated) also fails here. Either
-// failure is the population changing without this package's manifest
-// changing with it — the same failure check-milestone.sh's own history
-// warns against (AGENTS.md: "a gate must print what it SELECTED").
+// testdata/population.txt exactly, in both directions, and ScanCorpusAudits'
+// must equal testdata/corpusaudit.txt. A gated test added without updating
+// its list fails here; a line a scan no longer finds (a test renamed, moved,
+// or ungated) also fails here.
 func TestScanMatchesTheCheckedInPopulationList(t *testing.T) {
 	root, err := ModuleRoot(".")
 	if err != nil {
 		t.Fatalf("ModuleRoot: %v", err)
 	}
-	got, err := Scan(root)
+	release, audits, err := scanModule(root)
 	if err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
+	compareWithList(t, release, "testdata/population.txt")
+	compareWithList(t, audits, "testdata/corpusaudit.txt")
+}
+
+func compareWithList(t *testing.T, got []Test, list string) {
+	t.Helper()
 	gotIDs := map[string]bool{}
 	for _, test := range got {
 		gotIDs[test.ID()] = true
 	}
-
-	raw, err := os.ReadFile("testdata/population.txt")
+	raw, err := os.ReadFile(list)
 	if err != nil {
-		t.Fatalf("reading testdata/population.txt: %v", err)
+		t.Fatalf("reading %s: %v", list, err)
 	}
 	wantIDs := map[string]bool{}
 	for _, line := range strings.Split(string(raw), "\n") {
@@ -222,19 +262,18 @@ func TestScanMatchesTheCheckedInPopulationList(t *testing.T) {
 		}
 		wantIDs[line] = true
 	}
-
 	for id := range gotIDs {
 		if !wantIDs[id] {
-			t.Errorf("Scan found %s, not listed in testdata/population.txt", id)
+			t.Errorf("scan found %s, not listed in %s", id, list)
 		}
 	}
 	for id := range wantIDs {
 		if !gotIDs[id] {
-			t.Errorf("testdata/population.txt lists %s, Scan did not find it", id)
+			t.Errorf("%s lists %s, the scan did not find it", list, id)
 		}
 	}
 	if len(gotIDs) != len(wantIDs) {
-		t.Errorf("population size mismatch: Scan found %d, testdata/population.txt lists %d", len(gotIDs), len(wantIDs))
+		t.Errorf("size mismatch: the scan found %d, %s lists %d", len(gotIDs), list, len(wantIDs))
 	}
 }
 

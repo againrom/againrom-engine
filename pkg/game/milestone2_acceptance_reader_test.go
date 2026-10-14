@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 // Package game milestone-2 acceptance instrument (docs/1140/story.md), owner
 // milestone 2 (pipeline/SAV-COMPLETION.md): an original ROM1 mission SAV
 // reads back completely.
@@ -25,7 +23,7 @@
 // Selected by scripts/check-milestone2-acceptance.sh, required by the seat
 // for original-resume or acceptance-instrument changes. Standalone command:
 //
-//	go test -tags sessioncorpusaudit -count=1 ./pkg/game/ -run 'TestMilestone2' -v
+//	AGAINROM_SESSION_CORPUS_AUDIT=1 go test -count=1 ./pkg/game/ -run 'TestMilestone2' -v
 //
 // AGAINROM_SAVE_CORPUS names gameversions/saves; AGAINROM_ASSETS names the EN
 // or RU lawful root to resume through.
@@ -161,6 +159,7 @@ func walkOriginalSaveCorpus(t *testing.T, corpus string, fn func(t *testing.T, m
 }
 
 func TestMilestone2CorpusCountsUnreadable(t *testing.T) {
+	sessionCorpusAudit(t)
 	raw, err := cityfixture.Original(false)
 	if err != nil {
 		t.Fatal(err)

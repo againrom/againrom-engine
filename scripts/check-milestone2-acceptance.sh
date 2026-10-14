@@ -5,12 +5,12 @@
 # milestone 2") against one or more lawful install roots, and fail loudly if
 # any of them go red.
 #
-# WHY THIS EXISTS (story1140-pass1.md F-6). The four TestMilestone2* tests
-# this story added live behind the sessioncorpusaudit build tag, the tag
-# every earlier corpus-audit story (1130-1139) also used. pipeline/
-# check-release-tests.sh runs `go test` with no build tag, so it never builds
-# or selects them; nothing else in scripts/ or pipeline/ mentions the tag
-# either. The acceptance declaration these four tests carry was silently red
+# WHY THIS EXISTS (story1140-pass1.md F-6). The TestMilestone2* tests are
+# session corpus audits, like every earlier corpus-audit story (1130-1139).
+# Each skips unless AGAINROM_SESSION_CORPUS_AUDIT is set (pkg/game
+# sessionCorpusAudit; internal/gatedtests lists them in
+# testdata/corpusaudit.txt, apart from the release population), so
+# pipeline/check-release-tests.sh never runs them; this script sets it. The acceptance declaration these four tests carry was silently red
 # on 2027-09-07 -- the preserved save corpus grew five files between the
 # story's own measurement and its push, and one of them then hit a
 # pre-existing importer refusal -- and no gate the seat runs could have said
@@ -34,7 +34,7 @@
 # This script is what "a gate the seat actually runs" names for that family.
 # It does not replace check-release-tests.sh, which still owns the untagged,
 # registered gated-test population; it is the sessioncorpusaudit family's own
-# equivalent, selecting TestMilestone2*. Story 1144 adds an independent
+# equivalent, selecting TestMilestone2* and the instruments below. Story 1144 adds an independent
 # dying-owner-actor witness to the four instruments from story 1140; story
 # 1145 adds Buildings; 1151 adds Sacks and their item graphs. Other opt-in
 # corpus audits are not selected by this gate.
@@ -133,10 +133,6 @@ skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|Test
 only) pattern='^TestSAVRoundTripGate' ;;
 *) fail "AGAINROM_M2_SAVGATE must be unset, skip or only" ;;
 esac
-listing="$(env -u GOMEMLIMIT go test -tags sessioncorpusaudit -list "$pattern" ./pkg/game/... 2>&1)" || {
-	printf '%s\n' "$listing"
-	fail "cannot list the acceptance instruments"
-}
 # AGAINROM_M2_WORK keeps each instrument's output file and exit receipt in a
 # named directory, readable while the workers run and after a deadline kills
 # the run.
@@ -148,25 +144,32 @@ else
 	trap 'rm -rf "$work"' EXIT
 fi
 module="$(env -u GOMEMLIMIT go list -m)" || fail "cannot read the module path"
-packages=() dirs=() tests=() owners=() pending=()
-while IFS= read -r line; do
-	case "$line" in
-	Test*) pending+=("$line") ;;
-	ok*)
-		[ "${#pending[@]}" -gt 0 ] || continue
-		read -r _ pkg _ <<<"$line"
-		p="${#packages[@]}"
-		packages+=("$pkg")
-		dirs+=("$here/${pkg#"$module"/}")
-		env -u GOMEMLIMIT go test -c -tags sessioncorpusaudit -o "$work/p$p.test.exe" "$pkg" || fail "cannot build $pkg"
-		for name in "${pending[@]}"; do
-			tests+=("$name")
+# One -trimpath test binary per package, the build the final chain's prebuild
+# compiles, so only its link is new; the binary lists its own instruments.
+listed="$(env -u GOMEMLIMIT go list ./pkg/game/...)" || fail "cannot list the packages"
+packages=() dirs=() tests=() owners=()
+for pkg in $listed; do
+	p="${#packages[@]}"
+	env -u GOMEMLIMIT go test -c -trimpath -o "$work/p$p.test.exe" "$pkg" || fail "cannot build $pkg"
+	[ -f "$work/p$p.test.exe" ] || continue
+	listing="$(cd "$here/${pkg#"$module"/}" && "$work/p$p.test.exe" -test.list "$pattern")" || {
+		printf '%s\n' "$listing"
+		fail "cannot list the acceptance instruments"
+	}
+	found=0
+	while IFS= read -r line; do
+		case "$line" in
+		Test*)
+			tests+=("$line")
 			owners+=("$p")
-		done
-		pending=()
-		;;
-	esac
-done <<<"$listing"
+			found=1
+			;;
+		esac
+	done <<<"$listing"
+	[ "$found" -eq 1 ] || continue
+	packages+=("$pkg")
+	dirs+=("$here/${pkg#"$module"/}")
+done
 [ "${#tests[@]}" -gt 0 ] || fail "no acceptance instrument matches $pattern"
 
 timings="$cache.m2-timings${AGAINROM_M2_SAVGATE:+-$AGAINROM_M2_SAVGATE}"
@@ -213,7 +216,7 @@ run() {
 	# reaches this gate.
 	(cd "${dirs[${owners[$t]}]}" &&
 		env -u AGAINROM_CENSUS_ONLY -u AGAINROM_SAV_ROUNDTRIP_ONLY -u AGAINROM_SAV_ROUNDTRIP_WORKERS \
-			AGAINROM_ASSETS="${roots[$r]}" AGAINROM_M2_SHARE="$(winpath "${shares[$r]}")" AGAINROM_SAVE_CORPUS="$corpus" AGAINROM_CONVERTED_CORPUS="$(convdir "${roots[$r]}")" AGAINROM_SAV_ROUNDTRIP_KITS="$kits" \
+			AGAINROM_SESSION_CORPUS_AUDIT=1 AGAINROM_ASSETS="${roots[$r]}" AGAINROM_M2_SHARE="$(winpath "${shares[$r]}")" AGAINROM_SAVE_CORPUS="$corpus" AGAINROM_CONVERTED_CORPUS="$(convdir "${roots[$r]}")" AGAINROM_SAV_ROUNDTRIP_KITS="$kits" \
 			"$work/p${owners[$t]}.test.exe" -test.count=1 -test.v -test.timeout=30m -test.run "^${tests[$t]}\$") \
 		>"$work/$r-$t.out" 2>&1
 	local rc=$?

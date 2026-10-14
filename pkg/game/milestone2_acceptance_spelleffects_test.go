@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -8,6 +6,7 @@ import (
 )
 
 func TestMilestone2SpellEffects(t *testing.T) {
+	sessionCorpusAudit(t)
 	files, roots, objects, fields, typed, refs, aliases, empty, mismatches, nonemptyResumed := 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"SpellEffect": 0, "PointEffect": 0, "AreaEffect": 0, "SpellTransport": 0, "Effect": 0, "Effect_DirectDamage": 0}
 	var refused []milestone2ResumeRefusal

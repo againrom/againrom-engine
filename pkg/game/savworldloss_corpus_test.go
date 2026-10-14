@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -19,6 +17,7 @@ import (
 // after play the actors' native basis scalars and block bytes of the live
 // World differ from the restored ones, with and without this writer.
 func TestSAVWriterCensusLossControls(t *testing.T) {
+	sessionCorpusAudit(t)
 	for _, name := range []string{"2026-10-07/saveorcsdontgo.sav", "2026-10-06/game0007-original-m70-boltcoming.sav"} {
 		t.Run(filepath.Base(name), func(t *testing.T) {
 			f := censusMissionFront(t, name)
@@ -114,6 +113,7 @@ func TestSAVWriterCensusLossControls(t *testing.T) {
 // Weapon record and every dead root of the loaded file is written again except
 // those of torn-down flyers, and a cold LOAD of the SAVE restores the same World.
 func TestSAVWriterCensusDeadUnits(t *testing.T) {
+	sessionCorpusAudit(t)
 	name := "2026-10-07/saveorcsdontgo.sav"
 	census := func(raw []byte) [3]int {
 		doc, err := sav.DecodeDocumentData(raw)

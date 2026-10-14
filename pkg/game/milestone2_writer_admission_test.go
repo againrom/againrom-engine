@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -218,6 +216,7 @@ func mustMilestone2Open(t *testing.T, raw []byte) *sav.File {
 }
 
 func TestMilestone2WriterOriginalAdmission(t *testing.T) {
+	sessionCorpusAudit(t)
 	raw, err := cityfixture.Original(false)
 	if err != nil {
 		t.Fatal(err)
@@ -251,6 +250,7 @@ func TestMilestone2WriterOriginalAdmission(t *testing.T) {
 }
 
 func TestMilestone2WriterCurrentRoundTrip(t *testing.T) {
+	sessionCorpusAudit(t)
 	assets := os.Getenv("AGAINROM_ASSETS")
 	f, _, refusal, town := savGateOpen(t, assets, "current writer", savGateCase{mission: 10}, nil)
 	if refusal != "" || town {
@@ -292,6 +292,7 @@ func TestMilestone2WriterCurrentRoundTrip(t *testing.T) {
 }
 
 func TestMilestone2WriterBitAdmission(t *testing.T) {
+	sessionCorpusAudit(t)
 	raw, err := cityfixture.Original(false)
 	if err != nil {
 		t.Fatal(err)
@@ -430,6 +431,7 @@ func milestone2WriterRecordControls(t *testing.T) {
 }
 
 func TestMilestone2WriterLossControls(t *testing.T) {
+	sessionCorpusAudit(t)
 	if os.Getenv("AGAINROM_M2_ORIGINAL_CONTROL") == "1" {
 		t.Fatal("loss-control child must select only byte instruments")
 	}

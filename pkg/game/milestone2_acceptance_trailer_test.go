@@ -1,10 +1,9 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import "testing"
 
 func TestMilestone2Trailer(t *testing.T) {
+	sessionCorpusAudit(t)
 	files, nonzeroFiles, differences, cities := 0, 0, 0, 0
 	var refused []milestone2ResumeRefusal
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {

@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 // Package game original-SAV byte-identity census (docs/1197/story.md).
 //
 // THE QUESTION THIS ANSWERS. pipeline/SAV-COMPLETION.md's milestone 2 compares
@@ -71,7 +69,7 @@
 // A store rewritten with a value silently dropped would agree with itself
 // through sav's parser; it cannot agree with reg's.
 //
-//	go test -tags sessioncorpusaudit -count=1 ./pkg/game/ -run TestSAVByteIdentity1197 -v
+//	AGAINROM_SESSION_CORPUS_AUDIT=1 go test -count=1 ./pkg/game/ -run TestSAVByteIdentity1197 -v
 //
 // AGAINROM_SAVE_CORPUS names gameversions/saves and AGAINROM_ASSETS names the EN
 // or RU lawful root (milestone2Corpus requires it even though this census never
@@ -736,6 +734,7 @@ var sav1197OriginalBaseline = sav1197Baseline{
 }
 
 func TestSAVByteIdentity1197OriginalCorpus(t *testing.T) {
+	sessionCorpusAudit(t)
 	verbose := os.Getenv("AGAINROM_SAV1197_RANGES") == "all"
 
 	total, identical, refused := 0, 0, 0

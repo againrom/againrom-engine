@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -55,6 +53,7 @@ func unitD8Values(class string, values map[string]uint32, live bool) (map[string
 }
 
 func TestMilestone2UnitScalars(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, cities, rawRecords, worldRecords, cityRecords, live, rawOnly, bytesRead, mismatches := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Unit": 0, "Human": 0, "Humanoid": 0}
 	var refused []milestone2ResumeRefusal

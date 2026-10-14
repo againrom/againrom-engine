@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -11,6 +9,7 @@ import (
 )
 
 func TestCorpusDyingMoverSpeedRoundTrip(t *testing.T) {
+	sessionCorpusAudit(t)
 	const path = "2026-08-15/game0017.sav"
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {

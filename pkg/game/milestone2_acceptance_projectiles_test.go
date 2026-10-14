@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -8,6 +6,7 @@ import (
 )
 
 func TestMilestone2Projectiles(t *testing.T) {
+	sessionCorpusAudit(t)
 	sources, resumed, empty, ids, items, leaves, valueBytes, mismatches, nonemptyResumed := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	var refused []milestone2ResumeRefusal
 	var nonempty []string

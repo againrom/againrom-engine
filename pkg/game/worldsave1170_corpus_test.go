@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -15,6 +13,7 @@ import (
 // names its source and stage. Passing requires actual ordinary SAV publication
 // and a source-free cold LOAD, not AGS fallback or only Document decoding.
 func TestCurrentWorldSAVAdmission1170(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, loaded, written := 0, 0, 0
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, f *FrontEnd) {
 		if !mf.present {
@@ -80,6 +79,7 @@ func TestCurrentWorldSAVAdmission1170(t *testing.T) {
 // crossing newly eligible for the native stride boundary policy, independently
 // of the writer census or a current-world producer's output.
 func TestCurrentWorldSAVStrideQualification1170(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, motions, active, matched := 0, 0, 0, 0
 	milestone2Corpus(t, func(t *testing.T, mf milestone2File, f *FrontEnd) {
 		if !mf.present {

@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -9,6 +7,7 @@ import (
 )
 
 func TestSAVRoundTripGateComparisonStorage(t *testing.T) {
+	sessionCorpusAudit(t)
 	world := func(count int) *sim.World {
 		var actors []sim.Entity
 		for i := range count {

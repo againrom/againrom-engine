@@ -26,7 +26,7 @@ import (
 // whole module), so loadTypeCheckedModule caches the result per module root
 // and both loaders share the one pass within a process.
 //
-// Building it runs `go list -export -json -deps ./...` once to learn every
+// Building it runs `go list -trimpath -export -json -deps ./...` once to learn every
 // package's Dir, GoFiles, TestGoFiles, XTestGoFiles and, for every
 // dependency including the standard library, the path to its compiled
 // export data - then type-checks each of this module's own packages with
@@ -94,10 +94,12 @@ type goListPkg struct {
 	Error        *struct{ Err string }
 }
 
-// runGoList runs `go list -export -json` with the given patterns and decodes
-// the concatenated JSON objects it prints, one per matched package.
+// runGoList runs `go list -trimpath -export -json` with the given patterns and
+// decodes the concatenated JSON objects it prints, one per matched package.
+// -trimpath matches the final chain's prebuild and every test build it runs,
+// so the export data is already in the build cache instead of compiled again.
 func runGoList(root string, patterns ...string) ([]goListPkg, error) {
-	args := append([]string{"list", "-export", "-json"}, patterns...)
+	args := append([]string{"list", "-trimpath", "-export", "-json"}, patterns...)
 	cmd := exec.Command("go", args...)
 	cmd.Dir = root
 	var out, errOut bytes.Buffer
@@ -125,7 +127,7 @@ func runGoList(root string, patterns ...string) ([]goListPkg, error) {
 }
 
 // exportLookup resolves an import path to its compiled export data,
-// preloaded in bulk from one `go list -export -deps ./...` and filled in on
+// preloaded in bulk from one `go list -trimpath -export -deps ./...` and filled in on
 // demand for the rare path that call misses - a package only a test file
 // imports, which the plain build graph does not reach.
 type exportLookup struct {

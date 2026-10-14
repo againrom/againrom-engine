@@ -14,7 +14,7 @@ import (
 // it never calls it, on TestCellRecordCorpusAudit1131's own stated reason for
 // reconstructing its own comparison value.
 //
-// Untagged (unlike the sessioncorpusaudit-gated corpus audit that first
+// Ungated (unlike the session corpus audit that first
 // needed it) so the ordinary release-witness tests in
 // originalspelleffects1132_release_test.go can call it too.
 func sameSpellEffectGraphForAudit(file []sav.SpellEffect, live []sim.SavedSpellEffect) (string, bool) {

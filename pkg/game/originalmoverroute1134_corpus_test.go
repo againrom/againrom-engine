@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -12,6 +10,7 @@ import (
 )
 
 func TestMoverRouteCorpusAudit1134(t *testing.T) {
+	sessionCorpusAudit(t)
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Fatal("AGAINROM_SAVE_CORPUS must name gameversions/saves")

@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 // Writer census over changed worlds (pipeline/SAV-ENDGAME.md, execution order
 // item eight, second part). The round-trip instrument resaves an unchanged
 // load, where carried original bytes hide writer gaps. This census loads each
@@ -1127,6 +1125,7 @@ type writerCensusPartSummary struct {
 // the whole corpus did. AGAINROM_CENSUS_ONLY narrows each part to the files
 // whose path contains it and reports that part alone, unchecked.
 func writerCensusChangedWorlds(t *testing.T, part int) {
+	sessionCorpusAudit(t)
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if assets == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")
@@ -1334,6 +1333,7 @@ func writerCensusFailures(tally *writerCensusTally) []string {
 // game0002-bigsack.sav must pass every rule, and the corpus must hold world
 // originals.
 func TestSAVWriterCensusReference(t *testing.T) {
+	sessionCorpusAudit(t)
 	results := writerCensusEach(t, writerCensusFiles(t), func(t *testing.T, mf milestone2File) writerCensusResult {
 		if !mf.present {
 			return writerCensusResult{town: true}
@@ -1418,6 +1418,7 @@ func writerCensusSetState(d *sav.DocumentData, path string, v int32) error {
 // writer gap. Each edit reproduces a gap the way an unfixed writer wrote it,
 // and each must be caught by the rule or field class named for it.
 func TestSAVWriterCensusSensitivity(t *testing.T) {
+	sessionCorpusAudit(t)
 	assets := os.Getenv("AGAINROM_ASSETS")
 	if assets == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")
@@ -1662,6 +1663,7 @@ func TestSAVWriterCensusSensitivity(t *testing.T) {
 // failure for each way a tally can break it: a mismatch or refusal with no
 // baseline row, a change below its floor, and an unnamed field.
 func TestSAVWriterCensusFailures(t *testing.T) {
+	sessionCorpusAudit(t)
 	if got := writerCensusExtraMismatch(map[string][]string{writerCensusSackKey: {"known"}, "empty": nil}, writerCensusSackKey); got != "" {
 		t.Fatalf("empty mismatch category counted as extra: %s", got)
 	}

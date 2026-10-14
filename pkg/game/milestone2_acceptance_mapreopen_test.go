@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -29,6 +27,7 @@ import (
 //
 // PARTY-SESSION-008
 func TestMilestone2MapReopen(t *testing.T) {
+	sessionCorpusAudit(t)
 	fileCount, liveChecked := 0, 0
 	stemMismatches, numberMismatches, addressMismatches := 0, 0, 0
 	betweenMission := 0

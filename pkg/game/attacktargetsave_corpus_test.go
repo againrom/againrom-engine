@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -12,6 +10,7 @@ import (
 )
 
 func TestAttackTargetSaveCensus(t *testing.T) {
+	sessionCorpusAudit(t)
 	assets, output := os.Getenv("AGAINROM_ASSETS"), os.Getenv("AGAINROM_ATTACK_TARGET_WITNESS")
 	original, converted, engine := os.Getenv("AGAINROM_SAVE_CORPUS"), os.Getenv("AGAINROM_CONVERTED_CORPUS"), os.Getenv("AGAINROM_ATTACK_TARGET_ENGINE_SAVES")
 	if assets == "" || output == "" || original == "" || converted == "" || engine == "" {

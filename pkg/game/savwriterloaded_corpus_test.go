@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 // Loaded-document census. A SAVE builds state from the World. Player Name
 // keeps its loaded bytes; savDocumentFallbacks names the unknown spans that
 // also come from the loaded file. The census changes the Snapshot's document
@@ -354,6 +352,7 @@ func loadedCensusTownPatterns(t *testing.T, doc sav.DocumentData) map[string]boo
 }
 
 func TestSAVWriterCensusLoadedDocument(t *testing.T) {
+	sessionCorpusAudit(t)
 	if os.Getenv("AGAINROM_SAVE_CORPUS") == "" {
 		t.Skip("no AGAINROM_SAVE_CORPUS: the loaded-document census needs owner saves")
 	}

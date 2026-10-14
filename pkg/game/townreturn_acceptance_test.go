@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -317,6 +315,7 @@ func townReturnWriteProof(t *testing.T, path string, proof townReturnProof) {
 }
 
 func TestMilestone2TownReturnProofBytes(t *testing.T) {
+	sessionCorpusAudit(t)
 	const raw = "\x80\x81\x9f\xa0\xe0\xf0\xff\x00ASCII"
 	sample := townReturnSample{
 		Chapter: -1, Selected: 131, Gold: 1100, Done20: true, AtSquare: true,
@@ -581,6 +580,7 @@ func townReturnChild(t *testing.T, path string) {
 }
 
 func TestMilestone2TownReturnCurrentSAV(t *testing.T) {
+	sessionCorpusAudit(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Fatal("AGAINROM_ASSETS must name the explicit lawful install to resume through")
 	}

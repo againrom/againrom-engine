@@ -1,5 +1,3 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import (
@@ -28,6 +26,7 @@ func currentRoundTripSnapshot(f *FrontEnd, onMap bool) (Snapshot, string, error)
 }
 
 func TestRoundTripObservationUsesCurrentMissionHoldings(t *testing.T) {
+	sessionCorpusAudit(t)
 	w, err := sim.NewStockedWorld(1, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, sim.Terrain{},
 		[]sim.Entity{{ID: 1, X: 3, Y: 3, Owner: sim.SelfSlot, HP: 10, MaxHP: 10}}, nil, sim.Relations{},
 		[]sim.Sack{{X: 3, Y: 3, Gold: 40, Items: []uint16{9, 5, 7}}}, nil)

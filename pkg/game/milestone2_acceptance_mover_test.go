@@ -1,10 +1,9 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import "testing"
 
 func TestMilestone2MoverRoutes(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, cities, records, worldRecords, cityRecords, compared, excluded, current, active, handedOff, dying, mismatches := 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Unit": 0, "Human": 0, "Humanoid": 0}
 	unsupported := 0

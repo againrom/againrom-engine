@@ -1,10 +1,9 @@
-//go:build sessioncorpusaudit
-
 package game
 
 import "testing"
 
 func TestMilestone2DeadRoots(t *testing.T) {
+	sessionCorpusAudit(t)
 	worlds, cities, occurrences, unique, mismatches, materialized, virtual, terminal := 0, 0, 0, 0, 0, 0, 0, 0
 	classes := map[uint8]int{}
 	stages := map[uint8]int{}
