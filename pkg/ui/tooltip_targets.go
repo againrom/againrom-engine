@@ -115,7 +115,12 @@ func panelTooltipSlot(field PanelField, s PanelSubject) int {
 		return 166
 	case PanelFieldMoveSpeed:
 		return 167
-	case PanelFieldSkill, PanelFieldSkillGeneral, PanelFieldSkillsHeading:
+	case PanelFieldSkillsHeading:
+		if s.Char.Band == CharacterBandCreature && !s.PreserveCreatureSkillsHeading {
+			return 188
+		}
+		return 168
+	case PanelFieldSkill, PanelFieldSkillGeneral:
 		return 168
 	case PanelFieldResistance:
 		if s.Char.Band == CharacterBandCreature {

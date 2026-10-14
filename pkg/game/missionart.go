@@ -19,21 +19,22 @@ import (
 // A nil member is the ordinary case for an install whose art would not read:
 // the viewer then draws its own authored mark, or nothing, exactly as before.
 type viewerArt struct {
-	words          ui.Words
-	dialogFrame    *ui.MenuPanelArt
-	font           *text.Font
-	cardFont       *text.Font
-	attackPointer  *image.RGBA
-	commandPanel   *ui.CommandPanelArt
-	bottomHUD      *ui.BottomHUDArt
-	paneFigure     ui.TownPane
-	paneStats      ui.TownPane
-	paneCorners    *ui.CharacterPaneCornerArt
-	paneFiller     ui.TownPane
-	sackFrames     []*terrain.StaticFrame
-	sackBoundaries []*terrain.StaticFrame
-	missionTip     ui.MissionTipDress
-	minimapPaint   *ui.MinimapPaint
+	words                         ui.Words
+	dialogFrame                   *ui.MenuPanelArt
+	font                          *text.Font
+	cardFont                      *text.Font
+	preserveCreatureSkillsHeading bool
+	attackPointer                 *image.RGBA
+	commandPanel                  *ui.CommandPanelArt
+	bottomHUD                     *ui.BottomHUDArt
+	paneFigure                    ui.TownPane
+	paneStats                     ui.TownPane
+	paneCorners                   *ui.CharacterPaneCornerArt
+	paneFiller                    ui.TownPane
+	sackFrames                    []*terrain.StaticFrame
+	sackBoundaries                []*terrain.StaticFrame
+	missionTip                    ui.MissionTipDress
+	minimapPaint                  *ui.MinimapPaint
 }
 
 // viewerArtSource resolves a viewer's art from the install and the
@@ -52,6 +53,7 @@ func (s viewerArtSource) resolve() viewerArt {
 	art.minimapPaint = missionMinimapPaint(s.in)
 	art.font = s.in.Font.Value()
 	art.cardFont = s.in.tipFont()
+	art.preserveCreatureSkillsHeading = !s.in.profile().CreatureResistanceHeading()
 	art.attackPointer = s.in.AttackPointer.Value()
 	art.commandPanel = s.in.CommandPanelArt.Value()
 	art.bottomHUD = s.in.BottomHUDArt.Value()
@@ -93,21 +95,23 @@ func (a viewerArt) apply(v *ui.Viewer) {
 	v.SetSackBoundaries(a.sackBoundaries)
 	v.SetMissionTipDress(a.missionTip)
 	v.SetMinimapPaint(a.minimapPaint)
+	v.SetPreserveCreatureSkillsHeading(a.preserveCreatureSkillsHeading)
 }
 
 // pickerArt is the art a debug picker map is dressed with: viewerArt without
 // the words, dialog frame and pane filler.
 type pickerArt struct {
-	font           *text.Font
-	cardFont       *text.Font
-	attackPointer  *image.RGBA
-	commandPanel   *ui.CommandPanelArt
-	bottomHUD      *ui.BottomHUDArt
-	paneFigure     ui.TownPane
-	paneStats      ui.TownPane
-	paneCorners    *ui.CharacterPaneCornerArt
-	sackFrames     []*terrain.StaticFrame
-	sackBoundaries []*terrain.StaticFrame
+	font                          *text.Font
+	cardFont                      *text.Font
+	preserveCreatureSkillsHeading bool
+	attackPointer                 *image.RGBA
+	commandPanel                  *ui.CommandPanelArt
+	bottomHUD                     *ui.BottomHUDArt
+	paneFigure                    ui.TownPane
+	paneStats                     ui.TownPane
+	paneCorners                   *ui.CharacterPaneCornerArt
+	sackFrames                    []*terrain.StaticFrame
+	sackBoundaries                []*terrain.StaticFrame
 }
 
 // pickerArtSource resolves a picker map's art.
@@ -118,6 +122,7 @@ type pickerArtSource struct {
 
 func (s pickerArtSource) resolve() pickerArt {
 	art := pickerArt{font: s.in.Font.Value(), cardFont: s.in.tipFont()}
+	art.preserveCreatureSkillsHeading = !s.in.profile().CreatureResistanceHeading()
 	art.attackPointer = s.in.AttackPointer.Value()
 	art.commandPanel = s.in.CommandPanelArt.Value()
 	art.bottomHUD = s.in.BottomHUDArt.Value()
@@ -139,6 +144,7 @@ func (a pickerArt) apply(v *ui.Viewer) {
 	v.SetCharacterPaneArt(a.paneFigure, a.paneStats, a.paneCorners)
 	v.SetSackFrames(a.sackFrames)
 	v.SetSackBoundaries(a.sackBoundaries)
+	v.SetPreserveCreatureSkillsHeading(a.preserveCreatureSkillsHeading)
 }
 
 // minimapShadeEntry is the palette entry of the owner shade word the first

@@ -39,7 +39,8 @@ type Edition struct {
 
 	// Screens names the screen art description: the art manifest of every
 	// screen no town or generator description names.
-	Screens string
+	Screens                   string
+	CreatureResistanceHeading bool
 
 	// Tips names the tip table: every tip popup the game shows, its text,
 	// rectangle, raising event, once-only rule and pointer owner.
@@ -118,6 +119,7 @@ var firstEdition = Edition{
 	Music:                     "rom1",
 	Rooms:                     "rom1",
 	Screens:                   "rom1",
+	CreatureResistanceHeading: true,
 	Tips:                      "rom1",
 	Options:                   "rom1",
 	Spells:                    "rom1",
@@ -180,6 +182,8 @@ func (g Game) Edition() Edition {
 
 // Edition is the profile's edition.
 func (p Profile) Edition() Edition { return p.GameOf().Edition() }
+
+func (p Profile) CreatureResistanceHeading() bool { return p.Edition().CreatureResistanceHeading }
 
 // Known reports whether g is a game this package names; the empty game is the
 // first game.

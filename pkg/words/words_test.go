@@ -24,10 +24,8 @@ var sameWord = map[string]string{
 	"tooltip.unit_options": "tooltip.unit",
 }
 
-// TestTablesEqualTheReplacedWords is the no-word-change proof: every word the
-// replaced per-screen code produced (testdata/replaced.tsv, drawn through that
-// code on both languages) is the table's word for that id, and the English
-// table holds no id that code did not produce.
+// TestTablesEqualTheReplacedWords checks each historical EN/RU word against
+// testdata/replaced.tsv and rejects English ids absent from that dump.
 func TestTablesEqualTheReplacedWords(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "replaced.tsv"))
 	if err != nil {

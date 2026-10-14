@@ -55,3 +55,27 @@ func TestSecondGameMatchStatement(t *testing.T) {
 		t.Fatalf("statement = %q", loose)
 	}
 }
+
+func TestCreatureResistanceHeadingFollowsEdition(t *testing.T) {
+	if got := (Profile{}).CreatureResistanceHeading(); !got {
+		t.Fatal("the default profile does not keep the first game's creature heading")
+	}
+	for _, tc := range []struct {
+		id   string
+		want bool
+	}{
+		{ROM1EN, true}, {ROM1RU, true}, {ROM1Demo, true},
+		{ROM2EN, false}, {ROM2RU, false}, {ROM2, false},
+	} {
+		profile, ok := Find(tc.id)
+		if !ok {
+			t.Fatalf("profile %s is absent", tc.id)
+		}
+		if got := profile.Edition().CreatureResistanceHeading; got != tc.want {
+			t.Errorf("profile %s creature resistance heading = %v, want %v", tc.id, got, tc.want)
+		}
+		if got := profile.CreatureResistanceHeading(); got != tc.want {
+			t.Errorf("profile %s creature resistance heading accessor = %v, want %v", tc.id, got, tc.want)
+		}
+	}
+}

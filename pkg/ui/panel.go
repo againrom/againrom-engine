@@ -441,6 +441,9 @@ func panelSkillSlot(f PanelField) (int, bool) {
 }
 
 func panelLabel(s PanelSubject, f PanelField, fallback string) string {
+	if f == PanelFieldSkillsHeading && s.Char.Band == CharacterBandCreature && !s.PreserveCreatureSkillsHeading {
+		return panelLabel(s, PanelFieldResistHeading, "RESISTANCE")
+	}
 	if slot, ok := panelSkillSlot(f); ok {
 		base := 30
 		if s.Char.Mage {
@@ -525,10 +528,11 @@ type PanelSubject struct {
 	// when Name is empty. They never enter simulation or persistence. Current
 	// town, shop and generator panels use full detail (7); the mission panel
 	// states the unit's knowledge level.
-	UnitNameIndex int
-	DetailLevel   int
-	DetailSet     bool
-	Words         Words
+	UnitNameIndex                 int
+	DetailLevel                   int
+	DetailSet                     bool
+	Words                         Words
+	PreserveCreatureSkillsHeading bool
 
 	// OriginalPanel carries the three actor values which gate the two final
 	// fixed captions in the original information panel. They stay in their
@@ -707,8 +711,9 @@ type PanelLayout struct {
 	// their content-derived geometry.
 	FixedColumns bool
 	// CompactCard selects the narrow character-card typography and safe inset.
-	CompactCard bool
-	RightInset  int
+	CompactCard                   bool
+	RightInset                    int
+	PreserveCreatureSkillsHeading bool
 
 	// Flow stacks the rows from Pad, one line height plus Gap apart; otherwise
 	// each row is PLACED at its own At.
@@ -2122,7 +2127,14 @@ func RenderPanel(l PanelLayout, f *text.Font, s PanelSubject) *image.RGBA {
 // SetPanelLayout replaces what the panel looks like, and nothing else about
 // the viewer is a function of the value.
 func (v *Viewer) SetPanelLayout(l PanelLayout) {
+	l.PreserveCreatureSkillsHeading = v.panelLayout.PreserveCreatureSkillsHeading
 	v.panelLayout = l
+	v.panelSerial++
+	v.panelPic = nil
+}
+
+func (v *Viewer) SetPreserveCreatureSkillsHeading(preserve bool) {
+	v.panelLayout.PreserveCreatureSkillsHeading = preserve
 	v.panelSerial++
 	v.panelPic = nil
 }
@@ -2177,7 +2189,7 @@ func (v *Viewer) panelSubjectFromPresent(present []MapEntity) PanelSubject {
 		Selected: len(present), Combat: e.Combat, Char: e.Char, Speed: e.Speed,
 		Weight: e.Load, WeightKnown: true, UnitNameIndex: e.UnitNameIndex,
 		DetailLevel: v.cardLevel(e), DetailSet: true, Words: v.words, OriginalPanel: e.OriginalPanel,
-		KnownSpells: e.KnownSpells}
+		KnownSpells: e.KnownSpells, PreserveCreatureSkillsHeading: v.panelLayout.PreserveCreatureSkillsHeading}
 }
 
 // panelPresent is the picture to draw this frame and where its top-left corner
