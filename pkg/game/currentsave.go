@@ -333,6 +333,11 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
+	difficulty, err := campaignDifficulty(int64(s.Difficulty))
+	if err != nil {
+		return sav.DocumentData{}, err
+	}
+	writeDifficulty(&doc, campaignOf(s.game), difficulty)
 	shortcuts, err := quickSpellsToOriginalIndices(s.QuickSpells)
 	if err != nil {
 		return sav.DocumentData{}, err

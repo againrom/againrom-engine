@@ -142,6 +142,10 @@ func (firstCampaignRules) captureDifficulty(*FrontEnd, *Snapshot, bool) {}
 
 func (firstCampaignRules) recordDifficulty(Snapshot, *currentSessionData) {}
 
+func (firstCampaignRules) difficultyRecord(d mapload.Difficulty) (uint32, bool) {
+	return uint32(d) - 1, true
+}
+
 func (firstCampaignRules) ownsGame(g base.Game) error {
 	if base.SameGame(g, base.GameROM1) {
 		return nil

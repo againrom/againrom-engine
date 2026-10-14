@@ -319,6 +319,8 @@ func (secondCampaignRules) recordDifficulty(s Snapshot, record *currentSessionDa
 	}
 }
 
+func (secondCampaignRules) difficultyRecord(mapload.Difficulty) (uint32, bool) { return 0, false }
+
 func (secondCampaignRules) ownsGame(g base.Game) error {
 	if base.SameGame(g, base.GameROM2) {
 		return nil

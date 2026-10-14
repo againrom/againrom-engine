@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A save now also writes its difficulty in the campaign record, where the original's own saves keep it; the original played an Easy or Hard save from earlier versions at Normal. A save made by an earlier version keeps loading at its saved difficulty here; save it once to correct it for the original.
 - [ROM1] Saves made while a hero casts from a spellbook or charges a staff load in the original game without crashing it. A loaded healer finishes recovering before the next cast. After a weapon swap or removal, the save carries the damage of the weapon now worn, and a hero's own weight counts what the hero wears, so removing a shield in the original no longer makes it negative.
 - [ROM1] An item a hero picks up, loots, is handed, unequips or is granted joins an identical item already in the pack, whatever form each was stored in. A spear bought in the city now joins spears looted in a mission, and a spear dropped and picked up again joins the spears already carried. A save that already holds two such cells keeps them on loading; dropping one and picking it up joins them.
 - [ROM1] Test Play in the map editor starts sooner after F5: the test mod is written with fewer disk checks.

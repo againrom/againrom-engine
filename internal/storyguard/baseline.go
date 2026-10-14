@@ -2467,6 +2467,9 @@ package storyguard
 // weapon-arm re-form and constructor lookup in pkg/sim and the new tests that
 // pin them, this note included. It rises again for the first-game own-weight
 // pass (projectWornOwnWeight) and its per-game flag.
+//
+// CommentBytes rises for the difficulty record word: sav.File.CampaignDifficulty,
+// writeDifficulty, difficultyRecord and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4625,
 	TestFileCount:  264,
@@ -2490,5 +2493,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9057534,
+	CommentBytes: 9058258,
 }

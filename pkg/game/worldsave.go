@@ -55,7 +55,7 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
-	state.Document.Head.Difficulty = uint32(difficulty)
+	writeDifficulty(state.Document, campaignOf(s.game), difficulty)
 	var world sim.World
 	if err = world.UnmarshalBinary(s.World); err != nil {
 		return sav.DocumentData{}, err

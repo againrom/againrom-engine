@@ -175,10 +175,10 @@ func (f *File) editCampaign(edit func(*cityCampaign) error) error {
 }
 
 // SetCampaignScalar writes one of the campaign record's seven raw top-level
-// scalars, in their file order: 0 SelectedMission, 1 an unnamed +0x114 word,
-// 2 AutoGetMission, 3 LastMission, 4 the FirstMapPoint flag (0 or 1), 5
+// scalars, in their file order: 0 SelectedMission, 1 the +0x114 difficulty
+// word, 2 AutoGetMission, 3 LastMission, 4 the FirstMapPoint flag (0 or 1), 5
 // MissionTime, 6 an unnamed +0x128 word. Indices 1 and 6 have no named field
-// in CampaignProjection (campaign_tail.go) and are reachable only here.
+// in CampaignProjection (campaign_tail.go) and are writable only here.
 func (f *File) SetCampaignScalar(i int, v uint32) error {
 	return f.editCampaign(func(cc *cityCampaign) error {
 		if i < 0 || i >= len(cc.scalars) {

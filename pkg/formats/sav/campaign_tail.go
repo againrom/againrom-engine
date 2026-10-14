@@ -40,8 +40,8 @@ type CampaignMarker struct {
 }
 
 // CampaignProjection is the campaign record after the embedded state store.
-// It contains only typed fields established by SAV-CAMPAIGN-076..088. The two
-// still-unnamed scalar +0x114 is read for framing. ScoreEvents preserves the
+// It contains only typed fields established by SAV-CAMPAIGN-076..088. The
+// +0x114 difficulty word is read through CampaignDifficulty. ScoreEvents preserves the
 // +0x128 FAME input; Known distinguishes raw decode from older gob snapshots.
 //
 // Campaign returns a deep copy, so this value is an immutable projection of a
@@ -89,6 +89,19 @@ func (f *File) Campaign() (CampaignProjection, bool, error) {
 		return CampaignProjection{}, false, f.campaignErr
 	}
 	return cloneCampaignProjection(*f.campaign), true, nil
+}
+
+// CampaignDifficulty reports the campaign record's +0x114 word, which holds
+// the difficulty minus one (SAV-1269). ok and err follow Campaign.
+func (f *File) CampaignDifficulty() (word uint32, ok bool, err error) {
+	if _, ok, err = f.Campaign(); !ok || err != nil {
+		return 0, ok, err
+	}
+	cc, err := parseCityCampaign(f.TailRest)
+	if err != nil {
+		return 0, false, fmt.Errorf("sav: campaign record: %w", err)
+	}
+	return cc.scalars[1], true, nil
 }
 
 func cloneCampaignRecord(in CampaignRecord) CampaignRecord {
@@ -307,7 +320,7 @@ func parseCampaignProjection(b []byte) (CampaignProjection, error) {
 	if out.SelectedMission, err = c.u32("selected mission"); err != nil {
 		return CampaignProjection{}, err
 	}
-	if _, err = c.u32("unnamed +0x114 scalar"); err != nil {
+	if _, err = c.u32("difficulty word"); err != nil {
 		return CampaignProjection{}, err
 	}
 	if out.AutoGetMission, err = c.u32("AutoGetMission"); err != nil {

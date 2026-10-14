@@ -345,8 +345,8 @@ func nativeCityDataConstruct(roster, hired []mapload.PartyMember, table *mapload
 		TrailerState: make([]byte, generatedCityTrailerLen),
 		Objects:      objects,
 		State:        sav.NewCityStateData(combined[heroIndex].Name),
-		// scalars[1] = 1 (DIV-888; see the doc comment above). scalars[6] and
-		// every other campaign scalar stay 0.
+		// scalars[1] = 1 until SAVE writes the difficulty (writeDifficulty);
+		// every other campaign scalar stays 0.
 		Campaign: sav.CityCampaignData{Scalars: [7]uint32{1: 1}},
 	}, nil
 }
@@ -370,8 +370,7 @@ const generatedCityTrailerLen = 400
 // declares none (REG-SCN-063); LastMission is still written zero
 // because no method in campaignprogress.go reads it (DIV-882). scalars[1]/[6]
 // are NOT part of sav.CampaignProjection and applyCityCampaignProjection never
-// touches them (DIV-888) — they are set once, in nativeCityData's own
-// sav.CityData literal, before this projection is ever applied.
+// touches them (DIV-888); SAVE writes scalars[1] from the difficulty.
 //
 // DIV-890, DIV-884, DIV-903
 func nativeCampaignProjection(f *FrontEnd, s Snapshot) (sav.CampaignProjection, error) {

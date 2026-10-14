@@ -101,6 +101,9 @@ type campaignService interface {
 	// recordDifficulty writes the difficulty a save of s carries in its
 	// session record: the second game's town save, its own; the first's, none.
 	recordDifficulty(s Snapshot, record *currentSessionData)
+	// difficultyRecord is the campaign record word a save at difficulty d
+	// carries: the first game's, d minus one; the second's keeps its word.
+	difficultyRecord(d mapload.Difficulty) (uint32, bool)
 	// ownsGame refuses a save whose engine record names a game other than
 	// this campaign's.
 	ownsGame(g base.Game) error

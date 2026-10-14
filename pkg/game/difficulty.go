@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -17,6 +18,15 @@ func campaignDifficulty(value int64) (mapload.Difficulty, error) {
 		return 0, fmt.Errorf("invalid campaign difficulty %d (want 1..3)", value)
 	}
 	return mapload.Difficulty(value), nil
+}
+
+// writeDifficulty writes d to the head and, where the campaign keeps it, d
+// minus one to the campaign record word (SAV-1270).
+func writeDifficulty(doc *sav.DocumentData, rules campaignService, d mapload.Difficulty) {
+	doc.Head.Difficulty = uint32(d)
+	if word, ok := rules.difficultyRecord(d); ok {
+		doc.Campaign.Scalars[1] = word
+	}
 }
 
 // NewGameOpener is shared by process-start chargen and the menu's NEW GAME.
