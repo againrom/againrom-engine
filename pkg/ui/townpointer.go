@@ -120,6 +120,11 @@ func (a *App) stepTownTipPointer(in appInput, v TipPanelView, p image.Point, ins
 			case TipControlToggle:
 				a.flow.toggleTips()
 			case TipControlClose:
+				// The Close press requests click01 with no playing test
+				// (TOWN-547).
+				if townClicks(a.flow.town) {
+					a.playUISound(UISoundCommonControl)
+				}
 				a.latchTownTip(owner)
 			}
 			return consumed

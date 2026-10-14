@@ -116,6 +116,9 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 	f.Town = NewTown(Campaign{})
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Speech witness", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 30, 30}})
 	f.arriveInTown()
+	// The shop's entry greeting plays at speech volume beside the response
+	// it is not; its buffers are set aside before each shop response.
+	var greeting map[uint64]bool
 	check := func(action, expected string) error {
 		voice := t.speech.voice
 		if f.SpeechBank.last != expected || voice == nil || !voice.Playing() {
@@ -134,7 +137,7 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 		if t.speech.voice != voice || !voice.Playing() {
 			return fmt.Errorf("speech response: %s stopped on ordinary update", action)
 		}
-		if err := f.witnessSpeechFocus(t, voice, report); err != nil {
+		if err := f.witnessSpeechFocus(t, voice, report, greeting); err != nil {
 			return fmt.Errorf("speech response: %s: %w", action, err)
 		}
 		fmt.Fprintf(report, "response: action=%s file=%s samples=%d nonzero=yes device=playing focus=retained/resumed current-SAV=unchanged room-exit=destroyed-once\n", action, expected, len(sample.PCM))
@@ -178,6 +181,7 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 		value.Price, value.Count = 100, 1
 		f.Shop.shelves[ShelfArmour] = []ShopItem{value}
 		t.Choose(1)
+		greeting = playingSpeechBuffers(f)
 		t.ShopClick(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: 0})
 		if len(f.Shop.Table()) != 1 {
 			return fmt.Errorf("speech response: item selection did not reach trade table")
@@ -199,7 +203,20 @@ func (f *FrontEnd) witnessTownResponses(report io.Writer) error {
 	return nil
 }
 
-func (f *FrontEnd) witnessSpeechFocus(t *townScreen, voice audio.Voice, report io.Writer) error {
+// playingSpeechBuffers are the speech buffers playing now.
+func playingSpeechBuffers(f *FrontEnd) map[uint64]bool {
+	out := map[uint64]bool{}
+	if owner := ui.DeliveryOwner(f.SoundPlayer); owner != nil {
+		for _, b := range owner.BackendState().Buffers {
+			if b.Group == audio.SpeechChannel && b.Playing {
+				out[b.ID] = true
+			}
+		}
+	}
+	return out
+}
+
+func (f *FrontEnd) witnessSpeechFocus(t *townScreen, voice audio.Voice, report io.Writer, ignore map[uint64]bool) error {
 	owner := ui.DeliveryOwner(f.SoundPlayer)
 	current, ok := voice.(interface {
 		ID() audio.VoiceID
@@ -213,7 +230,7 @@ func (f *FrontEnd) witnessSpeechFocus(t *townScreen, voice audio.Voice, report i
 	var buffer, sequence uint64
 	physical := false
 	for _, b := range before.Buffers {
-		if b.Group == audio.SpeechChannel && b.Playing {
+		if b.Group == audio.SpeechChannel && b.Playing && !ignore[b.ID] {
 			if buffer != 0 {
 				return fmt.Errorf("ambiguous active speech buffers")
 			}

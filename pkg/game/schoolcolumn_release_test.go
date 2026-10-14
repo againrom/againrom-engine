@@ -212,11 +212,17 @@ func TestReleaseSchoolColumnClassTransitionInstalledPixelsAndSound(t *testing.T)
 	// threshold-gated walk (mageTicks including the media's own tail wait,
 	// fighterColumnTicks stopping at the column's own later final step).
 	wantCalls := 1 + mageTicks + fighterColumnTicks
-	if wantMatched := wantCalls * 148 * 208; matched != wantMatched || changed == 0 || len(recorder.samples) != 2 {
-		t.Fatalf("matched=%d want=%d changed=%d sounds=%d", matched, wantMatched, changed, len(recorder.samples))
+	// The school's entry requests its Enter sound first (TOWN-551); every
+	// later request is a rotation.
+	if len(recorder.samples) == 0 || reflect.DeepEqual(recorder.samples[0], wantSound) {
+		t.Fatalf("the school entry requested no Enter sound before the rotations (%d sounds)", len(recorder.samples))
 	}
-	for i, sample := range recorder.samples {
-		if !reflect.DeepEqual(sample, wantSound) || recorder.places[i] != (audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}) {
+	rotations, places := recorder.samples[1:], recorder.places[1:]
+	if wantMatched := wantCalls * 148 * 208; matched != wantMatched || changed == 0 || len(rotations) != 2 {
+		t.Fatalf("matched=%d want=%d changed=%d rotations=%d", matched, wantMatched, changed, len(rotations))
+	}
+	for i, sample := range rotations {
+		if !reflect.DeepEqual(sample, wantSound) || places[i] != (audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}) {
 			t.Fatalf("rotation %d did not play the installed centered waveform", i)
 		}
 	}

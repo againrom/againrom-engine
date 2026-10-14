@@ -41,9 +41,11 @@ func TestApplicationTakesNoPressOnTheMerchant(t *testing.T) {
 	if c, ok := ShopControlAt(onPick); !ok || c.Kind != ShopControlShelfPick || c.Index != 0 {
 		t.Fatalf("the point %v answers %+v, want shelf pick 0", onPick, c)
 	}
+	// The shelf tab plays no registry cue of the application's own: the
+	// town screen requests the shelf change sound (SHOP-SOUND-137).
 	press(onPick)
-	if len(town.clicked) != 1 || len(rec.plays) != 1 || a.flow.msg != "moved" {
-		t.Fatalf("a press on a shelf pick crossed %v, played %d cue(s) and left the line %q; want one, one and the answer",
+	if len(town.clicked) != 1 || len(rec.plays) != 0 || a.flow.msg != "moved" {
+		t.Fatalf("a press on a shelf pick crossed %v, played %d cue(s) and left the line %q; want one, none and the answer",
 			town.clicked, len(rec.plays), a.flow.msg)
 	}
 }

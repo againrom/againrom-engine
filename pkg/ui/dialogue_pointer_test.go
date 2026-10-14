@@ -9,7 +9,10 @@ import (
 type pointerDialogueTown struct {
 	fakeSurfaceDialogueTown
 	revision uint64
+	clicks   bool
 }
+
+func (f *pointerDialogueTown) TownClickSounds() bool { return f.clicks }
 
 func (f *pointerDialogueTown) TownDialogueRevision() uint64 { return f.revision }
 func (f *pointerDialogueTown) AdvanceTownDialogue() TownAction {

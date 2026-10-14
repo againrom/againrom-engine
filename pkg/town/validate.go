@@ -292,6 +292,25 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 	for _, sl := range s.Sounds.Slots {
 		n.slots[sl.Name] = true
 		n.keyed[sl.Name] = sl.Key != ""
+		if sl.Channel != "" && sl.Channel != "speech" {
+			return fail("sound slot %q has channel %q", sl.Name, sl.Channel)
+		}
+		if sl.Priority < 0 {
+			return fail("sound slot %q has priority %d", sl.Name, sl.Priority)
+		}
+	}
+	for _, tr := range s.Sounds.Triggers {
+		if tr.On == "" || !n.slots[tr.Slot] {
+			return fail("sound trigger %q names no slot %q", tr.On, tr.Slot)
+		}
+		if tr.Key == "" && !n.keyed[tr.Slot] {
+			return fail("sound trigger %q requests slot %q with no key", tr.On, tr.Slot)
+		}
+		for _, sl := range tr.Stop {
+			if !n.slots[sl] {
+				return fail("sound trigger %q stops no slot %q", tr.On, sl)
+			}
+		}
 	}
 	for _, h := range s.Hotspots {
 		n.spots[h.Name] = true

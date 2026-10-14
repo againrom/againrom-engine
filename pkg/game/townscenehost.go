@@ -19,7 +19,7 @@ type sceneCampaign interface {
 	sceneSeed() int64
 	sceneCondition(name string) bool
 	sceneValue(name string) int
-	scenePlay(room, source, key string, loop bool) town.Voice
+	scenePlay(room string, r town.SoundRequest) town.Voice
 	sceneStartLoop(key string) bool
 	sceneStopLoop()
 	sceneLeave(room string)
@@ -49,8 +49,8 @@ func (h townSceneHost) StopLoop(string)               { h.t.sceneStopLoop() }
 func (h townSceneHost) Leave(room string)             { h.t.sceneLeave(room) }
 func (h townSceneHost) Hook(name, room string)        { h.t.sceneHook(name, room) }
 func (h townSceneHost) Dialogue(key string)           { h.t.sceneDialogue(key) }
-func (h townSceneHost) PlaySound(source, key string, loop bool) town.Voice {
-	return h.t.scenePlay(h.room, source, key, loop)
+func (h townSceneHost) PlaySound(r town.SoundRequest) town.Voice {
+	return h.t.scenePlay(h.room, r)
 }
 
 func (h townSceneHost) StopSound(v town.Voice) {
@@ -133,26 +133,41 @@ func (t *townScreen) sceneValue(name string) int {
 	return -1
 }
 
-// PlaySound plays through the room's audio scope; without a sound device a
-// room page asks nothing and the square still opens its scope.
-func (t *townScreen) scenePlay(room, source, key string, loop bool) town.Voice {
+// PlaySound plays through the room's audio scope at the slot's priority and
+// volume class; without a sound device a room page asks nothing and the
+// square still opens its scope.
+func (t *townScreen) scenePlay(room string, r town.SoundRequest) town.Voice {
 	if t.sess == nil {
 		return nil
 	}
-	sample, ok := t.in.SoundBank.namedSample(key)
+	sample, ok := t.in.SoundBank.namedSample(r.Key)
 	if !ok {
 		return nil
 	}
 	if townRoomNames[room] != roomSquare && t.sound.soundDevice() == nil {
 		return nil
 	}
-	v := audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample,
-		audio.FixedRequest(source, key, audio.EffectsChannel, 128, loop,
+	group, priority := audio.EffectsChannel, townSoundPriority(r)
+	if r.Speech {
+		group = audio.SpeechChannel
+	}
+	v := audio.Dispatch(t.roomSoundPlayer(group), sample,
+		audio.FixedRequest(r.Source, r.Key, group, priority, r.Loop,
 			audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
 	if v == nil {
 		return nil
 	}
 	return v
+}
+
+// townSoundPriority is a slot request's priority: the slot's own, else 128,
+// the priority of every town room request but click01's (TOWN-554,
+// VIDEO-SFX-099).
+func townSoundPriority(r town.SoundRequest) uint8 {
+	if r.Priority > 0 && r.Priority < 256 {
+		return uint8(r.Priority)
+	}
+	return 128
 }
 
 func (t *townScreen) sceneStartLoop(key string) bool {

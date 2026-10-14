@@ -2,15 +2,18 @@ package game
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
 
@@ -88,9 +91,25 @@ func (p *delayedSpeechPositionPlayer) DeviceGain() float64 { return 0 }
 
 func testDelayedSpeechPositionCache(t *testing.T) {
 	var players []*delayedSpeechPositionPlayer
+	var raws [][]byte
 	restore := ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
+		size, err := reader.Seek(0, io.SeekEnd)
+		if err != nil || size <= 0 || size > 64<<20 {
+			t.Fatalf("invalid installed PCM size %d: %v", size, err)
+		}
+		if _, err := reader.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
+		raw := make([]byte, size)
+		if _, err := io.ReadFull(reader, raw); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := reader.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
 		player := &delayedSpeechPositionPlayer{deliveryWitnessPlayer: &deliveryWitnessPlayer{reader: reader, position: 17 * time.Millisecond}}
 		players = append(players, player)
+		raws = append(raws, raw)
 		return player, nil
 	})
 	t.Cleanup(restore)
@@ -108,8 +127,10 @@ func testDelayedSpeechPositionCache(t *testing.T) {
 	if err := audioWitnessClosed(ui.DeliveryOwner(f.SoundPlayer)); err != nil {
 		t.Fatal(err)
 	}
-	for _, player := range players {
-		if player.closes != 1 || player.playing || player.seeks != 0 {
+	roomPCM := roomTablePCM(t, f)
+	for i, player := range players {
+		rewound := player.seeks != 0 && !slices.ContainsFunc(roomPCM, func(pcm []byte) bool { return bytes.Equal(raws[i], pcm) })
+		if player.closes != 1 || player.playing || rewound {
 			t.Fatal("delayed cache control lost close-once or no-rewind semantics", player)
 		}
 	}
@@ -118,6 +139,7 @@ func testDelayedSpeechPositionCache(t *testing.T) {
 
 func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 	var players []*deliveryWitnessPlayer
+	var raws [][]byte
 	pcmBuffers := 0
 	restore := ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {
 		size, err := reader.Seek(0, io.SeekEnd)
@@ -140,6 +162,7 @@ func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 		pcmBuffers++
 		player := &deliveryWitnessPlayer{reader: reader, position: 17 * time.Millisecond}
 		players = append(players, player)
+		raws = append(raws, raw)
 		return player, nil
 	})
 	t.Cleanup(restore)
@@ -151,15 +174,26 @@ func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 	if err := f.WitnessTownMedia("", &report); err != nil {
 		t.Fatal(err, report.String())
 	}
+	// The shop's and the school's entry sounds (SHOP-SOUND-137, TOWN-551)
+	// add their own buffers beside the 68 the responses use.
+	rooms := 0
+	for _, r := range ui.DeliveryOwner(f.SoundPlayer).Service.Snapshot().Receipts {
+		if r.Reason == audio.DeliveryAdmitted && (r.Source == "shop-interior" || r.Selector == "town/school/enter.wav") {
+			rooms++
+		}
+	}
 	a.StopAudio()
 	if err := audioWitnessClosed(ui.DeliveryOwner(f.SoundPlayer)); err != nil {
 		t.Fatal(err)
 	}
-	if pcmBuffers != 68 || strings.Count(report.String(), "backend=controlled-exact") != 34 {
-		t.Fatalf("PCM buffers=%d exact focus cuts=%d, want 68/34", pcmBuffers, strings.Count(report.String(), "backend=controlled-exact"))
+	if pcmBuffers != 68+rooms || strings.Count(report.String(), "backend=controlled-exact") != 34 {
+		t.Fatalf("PCM buffers=%d exact focus cuts=%d, want %d/34", pcmBuffers, strings.Count(report.String(), "backend=controlled-exact"), 68+rooms)
 	}
-	for _, player := range players {
-		if player.closes != 1 || player.playing || player.seeks != 0 {
+	t.Logf("%d response and %d room entry PCM buffers", 68, rooms)
+	roomPCM := roomTablePCM(t, f)
+	for i, player := range players {
+		rewound := player.seeks != 0 && !slices.ContainsFunc(roomPCM, func(pcm []byte) bool { return bytes.Equal(raws[i], pcm) })
+		if player.closes != 1 || player.playing || rewound {
 			t.Fatal("controlled player survived, closed twice or rewound", player)
 		}
 	}
@@ -168,4 +202,44 @@ func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 	restore()
 	t.Run("asynchronous-cache-control", testDelayedSpeechPositionCache)
 	t.Run("sound-options-consumer", testSoundOptionsWitnessConsumer)
+}
+
+// roomTablePCM is the device PCM of every sample a room sound table names.
+// A room sound table's effects (the shop's entry, depart, Put_On and
+// Put_Off) replay from the start when the witness enters a room again or
+// a restart slot repeats (SHOP-SOUND-135, SHOP-SOUND-137); the response
+// speech buffers never rewind.
+func roomTablePCM(t *testing.T, f *FrontEnd) [][]byte {
+	t.Helper()
+	roomPCM := [][]byte{}
+	for _, room := range RoomDescription(f.Base().Profile).Rooms {
+		if room.Scene == nil {
+			continue
+		}
+		sounds := room.Scene.Sounds
+		for _, slot := range sounds.Slots {
+			keys := []string{slot.Key}
+			for _, tr := range sounds.Triggers {
+				if tr.Slot == slot.Name && tr.Key != "" {
+					keys = append(keys, tr.Key)
+				}
+			}
+			for _, key := range keys {
+				sample, ok := f.SoundBank.namedSample(key)
+				if key == "" || !ok {
+					continue
+				}
+				pcm := make([]byte, len(sample.PCM)*4)
+				for i, value := range sample.PCM {
+					binary.LittleEndian.PutUint16(pcm[i*4:], uint16(value))
+					binary.LittleEndian.PutUint16(pcm[i*4+2:], uint16(value))
+				}
+				roomPCM = append(roomPCM, pcm)
+			}
+		}
+	}
+	if len(roomPCM) == 0 {
+		t.Fatal("the room sound tables name no installed sample")
+	}
+	return roomPCM
 }

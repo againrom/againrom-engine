@@ -278,6 +278,58 @@ func (t *townScreen) ShopDrag(from, to ui.ShopControl) ui.TownAction {
 	if t == nil || t.room != roomShop {
 		return ui.TownAction{}
 	}
+	return t.shopTableSounds(from.Kind == ui.ShopControlTableCell, func() ui.TownAction { return t.shopDrag(from, to) })
+}
+
+// shopTableSounds runs one shop gesture with the trade table's sounds: a
+// pick from the table requests its pick sound before the take, which stands
+// when the take refuses; a gesture that puts units on the table requests its
+// drop sound after them (SHOP-SOUND-135). Moves between the shelf, the
+// backpack and the figure request nothing.
+func (t *townScreen) shopTableSounds(pick bool, act func() ui.TownAction) ui.TownAction {
+	if pick {
+		t.roomSound("shop", "table-pick")
+	}
+	before := t.shopTableUnits()
+	a := act()
+	if !pick && t.shopTableUnits() > before {
+		t.roomSound("shop", "table-drop")
+	}
+	return a
+}
+
+func (t *townScreen) shopTableUnits() int64 {
+	if t.sess == nil || t.sess.Shop == nil {
+		return 0
+	}
+	var n int64
+	for _, p := range t.sess.Shop.Table() {
+		n += int64(p.Count)
+	}
+	return n
+}
+
+// ShopPress requests the press sounds of the shop's buttons and arrows:
+// Undo on button 0, Out on button 3, Scroll on the shelf and backpack
+// arrows (SHOP-SOUND-136, SHOP-SOUND-138). Buttons 1 and 2 request nothing
+// on the press.
+func (t *townScreen) ShopPress(c ui.ShopControl) {
+	if t == nil || t.room != roomShop {
+		return
+	}
+	switch c.Kind {
+	case ui.ShopControlButton:
+		if c.Index == 0 || c.Index == 3 {
+			t.roomSound("shop", fmt.Sprintf("button-press-%d", c.Index))
+		}
+	case ui.ShopControlArrowUp, ui.ShopControlArrowDown:
+		t.roomSound("shop", "shelf-arrow")
+	case ui.ShopControlPackLeft, ui.ShopControlPackRight:
+		t.roomSound("shop", "pack-arrow")
+	}
+}
+
+func (t *townScreen) shopDrag(from, to ui.ShopControl) ui.TownAction {
 	switch {
 	case from.Kind == ui.ShopControlPackCell && to.Kind == ui.ShopControlDoll:
 		return t.shopEquipFromPack(from.Index)
@@ -669,6 +721,11 @@ func (t *townScreen) ShopClick(c ui.ShopControl) ui.TownAction {
 	if t == nil || t.room != roomShop {
 		return ui.TownAction{}
 	}
+	pick := c.Kind == ui.ShopControlTableCell && !t.shopBook
+	return t.shopTableSounds(pick, func() ui.TownAction { return t.shopClick(c) })
+}
+
+func (t *townScreen) shopClick(c ui.ShopControl) ui.TownAction {
 	switch c.Kind {
 	case ui.ShopControlButton:
 		return t.shopButton(c.Index)
@@ -737,21 +794,38 @@ func (t *townScreen) ShopScroll(region ui.ShopWheelRegion, rows int) {
 func (t *townScreen) shopButton(i int) ui.TownAction {
 	switch i {
 	case 0:
+		// The clear picks every table element, one pick sound each
+		// (SHOP-SOUND-135).
+		for range t.sess.Shop.Table() {
+			t.roomSound("shop", "table-pick")
+		}
 		return t.shopClear()
 	case 1:
-		if total := t.sess.Shop.BuyTotal(); total != 0 {
-			if int32(t.sess.Town.Gold()) >= total {
-				t.shopPage().Event("merchant-yes")
-			} else {
-				t.shopPage().Event("merchant-no")
-			}
+		// Buy requests buy, or nofit when the purse is short, and nothing
+		// for an empty purchase (SHOP-SOUND-136).
+		total := t.sess.Shop.BuyTotal()
+		if total == 0 {
+			return t.shopBuy()
 		}
-		return t.shopBuy()
+		if int32(t.sess.Town.Gold()) < total {
+			t.shopPage().Event("merchant-no")
+			a := t.shopBuy()
+			t.roomSound("shop", "buy-short")
+			return a
+		}
+		t.shopPage().Event("merchant-yes")
+		a := t.shopBuy()
+		t.roomSound("shop", "buy")
+		return a
 	case 2:
-		if t.sess.Shop.SellTotal() != 0 {
-			t.shopPage().Event("merchant-yes")
+		// Sell requests sell after the trade only for a nonzero value.
+		if t.sess.Shop.SellTotal() == 0 {
+			return t.shopSell()
 		}
-		return t.shopSell()
+		t.shopPage().Event("merchant-yes")
+		a := t.shopSell()
+		t.roomSound("shop", "sell")
+		return a
 	case 3:
 		// Clear the table, then leave. Back already clears it on the way out, so
 		// leaving is the whole command. It posts no line: the original's leave
@@ -781,6 +855,9 @@ func (t *townScreen) shopClickShelfCell(i int, whole bool) ui.TownAction {
 func (t *townScreen) chooseRoomShelf(i int) ui.TownAction {
 	if i < 0 || i >= len(shopRoomShelves) {
 		return ui.TownAction{}
+	}
+	if i != t.shopChosen {
+		t.roomSound("shop", "rack-changed")
 	}
 	t.shopPage().Event("rack", i)
 	t.shopChosen, t.shelfBase = i, 0

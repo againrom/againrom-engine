@@ -114,19 +114,19 @@ func (t *townScreen) sqSelector() int {
 // campaign.
 type stillHost struct{ art *town.Art }
 
-func (h stillHost) Art() *town.Art                            { return h.art }
-func (h stillHost) Now() time.Time                            { return time.Time{} }
-func (h stillHost) Draw(string, int) int                      { return 0 }
-func (h stillHost) Seed() int64                               { return 0 }
-func (h stillHost) Condition(string) bool                     { return false }
-func (h stillHost) Value(string) int                          { return -1 }
-func (h stillHost) PlaySound(string, string, bool) town.Voice { return nil }
-func (h stillHost) StopSound(town.Voice)                      {}
-func (h stillHost) StartLoop(string) bool                     { return false }
-func (h stillHost) StopLoop(string)                           {}
-func (h stillHost) Leave(string)                              {}
-func (h stillHost) Hook(string, string)                       {}
-func (h stillHost) Dialogue(string)                           {}
+func (h stillHost) Art() *town.Art                         { return h.art }
+func (h stillHost) Now() time.Time                         { return time.Time{} }
+func (h stillHost) Draw(string, int) int                   { return 0 }
+func (h stillHost) Seed() int64                            { return 0 }
+func (h stillHost) Condition(string) bool                  { return false }
+func (h stillHost) Value(string) int                       { return -1 }
+func (h stillHost) PlaySound(town.SoundRequest) town.Voice { return nil }
+func (h stillHost) StopSound(town.Voice)                   {}
+func (h stillHost) StartLoop(string) bool                  { return false }
+func (h stillHost) StopLoop(string)                        {}
+func (h stillHost) Leave(string)                           {}
+func (h stillHost) Hook(string, string)                    {}
+func (h stillHost) Dialogue(string)                        {}
 
 // staticSquareArt keeps only the square's still pictures and mask.
 func staticSquareArt(full *town.Art) *town.Art {

@@ -35,6 +35,8 @@ type MissionTipDress struct {
 	CloseLabel, ToggleLabel string
 	TipsOn                  func() bool
 	SetTipsOn               func(bool)
+	// CloseClick requests click01 on the Close press (TOWN-547).
+	CloseClick bool
 }
 
 // SetMissionTipDress dresses the mission popup.
@@ -105,6 +107,9 @@ func (v *Viewer) missionTipGesture(p image.Point, pressed, released bool) bool {
 				v.mtip.dress.SetTipsOn(!view.ToggleOn)
 			}
 		case TipControlClose:
+			if v.mtip.dress.CloseClick {
+				v.PlayUISound(UISoundCommonControl)
+			}
 			v.mtip.closePress.Press(int(TipControlClose), true)
 		}
 		return consumed

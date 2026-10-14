@@ -187,7 +187,32 @@ type PickSpec struct {
 type SoundSpec struct {
 	Slots []SlotSpec `json:"slots"`
 	Loop  string     `json:"loop"`
-	Cite  []string   `json:"cite"`
+	// Triggers bind the game's named room events to slot requests: one
+	// table per room says which event requests which sample.
+	Triggers []TriggerSpec `json:"triggers"`
+	Cite     []string      `json:"cite"`
+}
+
+// TriggerSpec is one room event's request: the slot, an optional key in
+// place of the slot's own, and the slots stopped first.
+type TriggerSpec struct {
+	On   string   `json:"on"`
+	Slot string   `json:"slot"`
+	Key  string   `json:"key"`
+	Stop []string `json:"stop"`
+	Cite []string `json:"cite"`
+}
+
+// SoundRequest is one slot request as the host receives it.
+type SoundRequest struct {
+	Source string
+	Key    string
+	Loop   bool
+	// Priority is the request's channel priority; 0 when the slot names none,
+	// and the host then uses its default.
+	Priority int
+	// Speech plays at the speech volume instead of the effects volume.
+	Speech bool
 }
 
 // SlotSpec is one retained voice: a slot holds at most one sound, and a
@@ -201,8 +226,18 @@ type SlotSpec struct {
 	Loop bool `json:"loop"`
 	// Untracked plays every request and keeps no voice: a later request does
 	// not wait for it and a silence does not stop it.
-	Untracked bool     `json:"untracked"`
-	Cite      []string `json:"cite"`
+	Untracked bool `json:"untracked"`
+	// Restart stops and rewinds a playing sound and requests it again.
+	Restart bool `json:"restart"`
+	// Priority is the request priority; 0 leaves the host's default.
+	Priority int `json:"priority"`
+	// Channel "speech" plays at the speech volume; "" at the effects volume.
+	Channel string   `json:"channel"`
+	Cite    []string `json:"cite"`
+}
+
+func (sl SlotSpec) request(key string) SoundRequest {
+	return SoundRequest{Source: sl.Source, Key: key, Loop: sl.Loop, Priority: sl.Priority, Speech: sl.Channel == "speech"}
 }
 
 // CueSpec is one sound request on a slot, after stopping other slots.

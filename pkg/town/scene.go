@@ -139,7 +139,7 @@ type Host interface {
 	Value(name string) int
 	// PlaySound starts key for a slot's source and answers its voice, or nil
 	// when the key cannot play.
-	PlaySound(source, key string, loop bool) Voice
+	PlaySound(r SoundRequest) Voice
 	StopSound(Voice)
 	// StartLoop starts the scene's entry loop and reports whether it started.
 	StartLoop(key string) bool
@@ -684,16 +684,30 @@ func (s *Scene) sound(slot, key string) {
 		key = spec.Key
 	}
 	if spec.Untracked {
-		s.host.PlaySound(spec.Source, key, spec.Loop)
+		s.host.PlaySound(spec.request(key))
 		return
 	}
 	if vc := s.voices[i]; vc != nil {
-		if vc.Playing() {
+		if vc.Playing() && !spec.Restart {
 			return
 		}
 		s.stopIndex(i)
 	}
-	s.voices[i] = s.host.PlaySound(spec.Source, key, spec.Loop)
+	s.voices[i] = s.host.PlaySound(spec.request(key))
+}
+
+// Trigger runs every request the scene's sound table binds to a room event,
+// in table order: it stops the named slots, then requests the slot.
+func (s *Scene) Trigger(on string) {
+	for _, tr := range s.spec.Sounds.Triggers {
+		if tr.On != on {
+			continue
+		}
+		for _, sl := range tr.Stop {
+			s.stop(sl)
+		}
+		s.sound(tr.Slot, tr.Key)
+	}
 }
 
 func (s *Scene) stop(slot string) {

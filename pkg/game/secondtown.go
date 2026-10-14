@@ -645,7 +645,8 @@ func (t *secondCampaignScreen) roomPlayer(room string) audio.Player {
 	return device
 }
 
-func (t *secondCampaignScreen) scenePlay(room, source, key string, loop bool) town.Voice {
+func (t *secondCampaignScreen) scenePlay(room string, r town.SoundRequest) town.Voice {
+	source, key, loop := r.Source, r.Key, r.Loop
 	sample, ok := t.install.SoundBank.namedSample(key)
 	if !ok {
 		return nil
@@ -654,7 +655,7 @@ func (t *secondCampaignScreen) scenePlay(room, source, key string, loop bool) to
 	if player == nil {
 		return nil
 	}
-	v := audio.Dispatch(player, sample, audio.FixedRequest(source, key, audio.EffectsChannel, 128, loop,
+	v := audio.Dispatch(player, sample, audio.FixedRequest(source, key, audio.EffectsChannel, townSoundPriority(r), loop,
 		audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
 	if v == nil {
 		return nil

@@ -86,7 +86,7 @@ func (t *townScreen) speakSchoolTraining(slot int) {
 		}
 		t.startTownResponse([]string{fmt.Sprintf("speech/training/npc%ds%dl%d.wav", npc, slot, tier+1)})
 	}
-	t.requestSchoolSound(schoolTeachSound)
+	t.roomSound("school", "teach")
 }
 
 // shopItemSpeechPercent bounds the tray draw (SHOP-109).

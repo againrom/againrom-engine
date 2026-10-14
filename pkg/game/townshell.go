@@ -408,7 +408,22 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 // enabled skill column, unless that member's instance plays. The member is
 // the generator description's for the column's skill slot and class, fighter
 // cells 0..4 and mage cells 5..9 (VIDEO-SFX-059). The press changes no state.
+//
+// A press on a tavern roster cell that holds an occupant requests the
+// roster's sound, and a press on the leave button of the tavern or the school
+// requests the leave sound (TAVERN-027, TAVERN-028, TOWN-551).
 func (t *townScreen) TownSurfacePress(c ui.TownSurfaceControl) {
+	switch {
+	case t.room == roomTavern && c.Kind == ui.TownSurfaceControlCell:
+		if c.Index >= 0 && c.Index < len(t.tavernCandidates()) {
+			t.roomSound("tavern", "cell-press")
+		}
+		return
+	case t.room == roomTavern && c.Kind == ui.TownSurfaceControlButton && c.Index == tavernButtonExit,
+		t.room == roomSchool && c.Kind == ui.TownSurfaceControlButton && c.Index == 1:
+		t.roomSound(townRoomName(t.room), "leave-press")
+		return
+	}
 	if t.room != roomSchool || c.Kind != ui.TownSurfaceControlCell || c.Index < 0 || c.Index >= 10 || t.schoolTrainingBusy() {
 		return
 	}
@@ -519,10 +534,12 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 				}
 				t.composeShopFaces()
 				t.openOfferDialogue(TownTavern, candidate.offer, candidate.offer.NPC)
+				t.roomSound("tavern", "talk")
 				return ui.TownAction{}
 			}
 			if candidate.key.kind == tavernCandidateMercenary {
 				t.openMercenaryDialogue(candidate.merc.Type)
+				t.roomSound("tavern", "talk")
 				return ui.TownAction{}
 			}
 		case tavernButtonExit:

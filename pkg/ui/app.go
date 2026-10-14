@@ -1458,7 +1458,12 @@ func (a *App) stepDialoguePointer(in appInput, owner dialoguePointerOwner, insid
 		if !a.dialoguePress.captured {
 			a.dialoguePress = dialoguePointerPress{owner: owner, captured: true}
 		}
-		a.dialoguePress.press.Press(0, inside && !a.dialogueButtonDisabled(owner))
+		enabled := inside && !a.dialogueButtonDisabled(owner)
+		if enabled && owner.surface == ScreenTown && townClicks(a.flow.town) && !a.dialoguePress.press.Holds() {
+			// A town dialogue's page button press requests click01 (DIALOGUE-080).
+			a.playUISound(UISoundCommonControl)
+		}
+		a.dialoguePress.press.Press(0, enabled)
 	}
 	if in.PrimaryReleased {
 		_, released := a.dialoguePress.press.Release(0, inside && a.dialoguePress.owner == owner && !a.dialogueButtonDisabled(owner))
@@ -2677,7 +2682,12 @@ func (a *App) clickTownSurface(c TownSurfaceControl, double bool) bool {
 		// Campaign-pane controls D/E/C play click00 before their transition.
 		a.playUISound(UISoundCampaignPanel)
 	case TownSurfaceControlButton:
-		a.playUISound(UISoundCommonControl)
+		// The first game's tavern and school buttons are not click01
+		// buttons; their rooms request their own sounds (TOWN-548,
+		// TAVERN-028, TOWN-551).
+		if !townClicks(a.flow.town) {
+			a.playUISound(UISoundCommonControl)
+		}
 	}
 	return a.flow.clickTownSurface(c, double)
 }
@@ -2691,13 +2701,11 @@ func (a *App) clickShop(c ShopControl) bool {
 		}
 		return ok
 	}
+	// The buttons, arrows and shelf tabs request the shop room's own sounds
+	// through the town screen (SHOP-SOUND-136..138).
 	switch c.Kind {
 	case ShopControlPickerPrev, ShopControlPickerNext, ShopControlCharacterMode:
 		a.playUISound(UISoundCampaignPanel)
-	case ShopControlButton, ShopControlArrowUp, ShopControlArrowDown,
-		ShopControlPackLeft, ShopControlPackRight,
-		ShopControlShelfPick:
-		a.playUISound(UISoundCommonControl)
 	}
 	return a.flow.clickShop(c)
 }
@@ -2919,8 +2927,12 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 				a.shopButtonPress.Clear()
 				a.shopDragOrigin, a.shopDragArmed = shopGridControlAt(shopView, p)
 				if !a.shopDragArmed {
-					if c, hit := shopScreenControlAt(shopView, p); hit && c.Kind == ShopControlButton {
+					c, hit := shopScreenControlAt(shopView, p)
+					if hit && c.Kind == ShopControlButton {
 						a.shopButtonPress.Press(c.Index, shopView.Live[c.Index])
+					}
+					if presser, ok := a.flow.town.(ShopPresser); ok && hit {
+						presser.ShopPress(c)
 					}
 				}
 				a.shopDragOriginBase = shopDragGridBase(shopView, a.shopDragOrigin)

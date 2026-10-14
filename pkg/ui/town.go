@@ -318,6 +318,25 @@ func (f *flow) dragShop(from, to ShopControl) bool {
 	return true
 }
 
+// ShopPresser receives the press of a shop button or arrow, before its
+// release acts.
+type ShopPresser interface {
+	ShopPress(ShopControl)
+}
+
+// TownClickSounds reports whether the town follows the first game's click
+// model: the tip Close and dialogue page presses request click01 and the
+// tavern and school button releases request none. A town that does not
+// implement it clicks on those releases only.
+type TownClickSounds interface {
+	TownClickSounds() bool
+}
+
+func townClicks(t TownScreen) bool {
+	c, ok := t.(TownClickSounds)
+	return ok && c.TownClickSounds()
+}
+
 // TipScreen is the tip panel's own mutation seam (1018 spec behaviours 3, 4):
 // one screen implementation covers every room's own panel, since the panel
 // is the same widget everywhere and the room it is showing on is read on the

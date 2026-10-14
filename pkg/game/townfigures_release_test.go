@@ -516,12 +516,14 @@ func TestReleaseTownFiguresTakeNoPressAndGuardsRestAfterRoomExits(t *testing.T) 
 	}
 	r.press(roomShop, "shop with the offer taken")
 	before := r.state(false)
-	x, y, err := r.app.HeadlessShopPoint("shelf_pick", 0)
+	// A shelf pick that changes the shelf requests the shop's depart sound
+	// (SHOP-SOUND-137).
+	x, y, err := r.app.HeadlessShopPoint("shelf_pick", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	r.click(image.Pt(x, y))
-	if after := r.state(false); after.cues <= before.cues {
+	if after := r.state(false); after.cues+after.sounds <= before.cues+before.sounds {
 		t.Fatalf("a press on a shelf pick played no cue (%+v to %+v), so this route cannot answer a press", before, after)
 	}
 	r.leave(roomShop, true)

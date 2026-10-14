@@ -83,6 +83,7 @@ type fakeHost struct {
 	values     map[string]int
 	log        []string
 	voices     []*fakeVoice
+	requests   []SoundRequest
 }
 
 func (h *fakeHost) Art() *Art      { return h.art }
@@ -103,7 +104,9 @@ func (h *fakeHost) Value(name string) int {
 	}
 	return -1
 }
-func (h *fakeHost) PlaySound(source, key string, loop bool) Voice {
+func (h *fakeHost) PlaySound(r SoundRequest) Voice {
+	source, key := r.Source, r.Key
+	h.requests = append(h.requests, r)
 	h.log = append(h.log, "play "+source+":"+key)
 	v := &fakeVoice{h: h, key: key, playing: true}
 	h.voices = append(h.voices, v)

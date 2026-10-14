@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The town plays the original's sounds in more places. In the shop: a thud when an item goes onto the trade table and another when it is taken off, the purchase, the refused purchase and the sale, Undo and Out on the button press, the scroll arrows, a shelf change, and the shop's greeting and background on entry. In the tavern: a click on a mercenary or speaker, hiring, a hire you cannot pay for, dismissal, opening a talk or a biography, and the Exit press. In the school: entry and the Exit press. The tavern's and the school's buttons no longer click when released, as in the original. Closing a tip window with its Close button clicks, in town and in a mission, and so does the page button of a town dialogue.
 - [ROM1] The shopkeeper speaks about an item you move onto the trade table only some of the time, about three placements in ten, as in the original, not on every placement.
 - [ROM1] A spell is aimed only at ground your party sees now, as in the original. Over explored ground that is dark now the cursor is the move cursor and a click moves the selected units; the chosen spell stays ready. Teleport is aimed the same way. Mission 80's grave is reached by walking to the river bank, seeing the grave's island and Teleporting onto it.
 - [ROM1] Animal and monster cards head their weapon-kind values Resistance, as the original does.

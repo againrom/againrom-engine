@@ -288,8 +288,23 @@
          {"name": "water", "source": "tavern-interior", "key": "town/inn/water.wav", "loop": true, "cite": ["TOWN-413", "DIV-849"]},
          {"name": "chair", "source": "tavern-interior", "key": "town/inn/chair.wav", "cite": ["TOWN-413", "DIV-847"]},
          {"name": "breath", "source": "tavern-interior", "key": "town/shop/breath.wav", "cite": ["TOWN-413", "DIV-847"]},
-         {"name": "enter", "source": "tavern-interior", "key": "town/inn/enter.wav", "cite": ["TOWN-413", "DIV-847"]}
-       ], "cite": ["TOWN-413"]},
+         {"name": "enter", "source": "tavern-interior", "key": "town/inn/enter.wav", "cite": ["TOWN-413", "DIV-847"]},
+         {"name": "helper", "source": "tavern-interior", "key": "town/inn/helper.wav", "cite": ["TAVERN-027"]},
+         {"name": "out", "source": "tavern-interior", "key": "out.wav", "cite": ["TAVERN-028"]},
+         {"name": "add", "source": "tavern-interior", "key": "add.wav", "cite": ["TAVERN-028"]},
+         {"name": "noadd", "source": "tavern-interior", "key": "noadd.wav", "cite": ["TAVERN-028"]},
+         {"name": "nofit", "source": "tavern-interior", "key": "town/shop/nofit.wav", "cite": ["TAVERN-028"]},
+         {"name": "talk", "source": "tavern-interior", "key": "talk.wav", "cite": ["TAVERN-028"]}
+       ],
+       "triggers": [
+         {"on": "cell-press", "slot": "helper", "cite": ["TAVERN-027", "DIV-3338"]},
+         {"on": "leave-press", "slot": "out", "cite": ["TAVERN-028"]},
+         {"on": "hire", "slot": "add", "cite": ["TAVERN-028"]},
+         {"on": "hire-short", "slot": "nofit", "cite": ["TAVERN-028"]},
+         {"on": "dismiss", "slot": "noadd", "cite": ["TAVERN-028"]},
+         {"on": "talk", "slot": "talk", "cite": ["TAVERN-028"]}
+       ],
+       "cite": ["TOWN-413", "TOWN-554"]},
        "clocks": [
          {"name": "cycle", "period-ms": 100, "compare": "greater", "rebase": "every", "cite": ["TOWN-408", "DIV-842"]},
          {"name": "tender", "period-ms": 83, "compare": "greater", "rebase": "every", "cite": ["TOWN-410", "TOWN-411", "DIV-842"]},
@@ -361,6 +376,36 @@
      ],
      "scene": {
        "random": [{"name": "idle", "source": "host", "cite": ["SHOP-ANIMATION-081", "DIV-851"]}],
+       "sounds": {
+         "slots": [
+           {"name": "put-on", "source": "shop-interior", "key": "put_on.wav", "restart": true, "cite": ["SHOP-SOUND-135", "VIDEO-SFX-099"]},
+           {"name": "put-off", "source": "shop-interior", "key": "put_off.wav", "restart": true, "cite": ["SHOP-SOUND-135", "VIDEO-SFX-099"]},
+           {"name": "shelf-scroll", "source": "shop-interior", "key": "scroll.wav", "restart": true, "cite": ["SHOP-SOUND-138", "VIDEO-SFX-099"]},
+           {"name": "pack-scroll", "source": "shop-interior", "key": "scroll.wav", "restart": true, "cite": ["SHOP-SOUND-138", "VIDEO-SFX-099"]},
+           {"name": "depart", "source": "shop-interior", "key": "town/shop/depart.wav", "restart": true, "cite": ["SHOP-SOUND-137", "VIDEO-SFX-099"]},
+           {"name": "enter", "source": "shop-interior", "key": "town/shop/enter.wav", "cite": ["SHOP-SOUND-137"]},
+           {"name": "inshop", "source": "shop-interior", "key": "town/shop/inshop.wav", "loop": true, "cite": ["SHOP-SOUND-137", "VIDEO-SFX-099"]},
+           {"name": "start", "source": "shop-interior", "key": "town/shop/start.wav", "channel": "speech", "cite": ["SHOP-SOUND-137", "VIDEO-SFX-099"]},
+           {"name": "nofit", "source": "shop-interior", "key": "town/shop/nofit.wav", "cite": ["SHOP-SOUND-136"]},
+           {"name": "buy", "source": "shop-interior", "key": "town/buy.wav", "cite": ["SHOP-SOUND-136"]},
+           {"name": "sell", "source": "shop-interior", "key": "town/sell.wav", "cite": ["SHOP-SOUND-136"]},
+           {"name": "undo", "source": "shop-interior", "key": "undo.wav", "cite": ["SHOP-SOUND-136"]},
+           {"name": "out", "source": "shop-interior", "key": "out.wav", "cite": ["SHOP-SOUND-136"]}
+         ],
+         "triggers": [
+           {"on": "table-drop", "slot": "put-on", "cite": ["SHOP-SOUND-135"]},
+           {"on": "table-pick", "slot": "put-off", "cite": ["SHOP-SOUND-135"]},
+           {"on": "shelf-arrow", "slot": "shelf-scroll", "cite": ["SHOP-SOUND-138"]},
+           {"on": "pack-arrow", "slot": "pack-scroll", "cite": ["SHOP-SOUND-138"]},
+           {"on": "rack-changed", "slot": "depart", "cite": ["SHOP-SOUND-137"]},
+           {"on": "buy", "slot": "buy", "cite": ["SHOP-SOUND-136"]},
+           {"on": "buy-short", "slot": "nofit", "cite": ["SHOP-SOUND-136"]},
+           {"on": "sell", "slot": "sell", "cite": ["SHOP-SOUND-136"]},
+           {"on": "button-press-0", "slot": "undo", "cite": ["SHOP-SOUND-136"]},
+           {"on": "button-press-3", "slot": "out", "cite": ["SHOP-SOUND-136"]}
+         ],
+         "cite": ["SHOP-SOUND-134", "VIDEO-SFX-099"]},
+       "enter": ["sound depart", "sound enter", "sound inshop", "sound start"],
        "art": [
          {"name": "rack0", "format": "series", "key": "graphics/interface/shopanim/04/%d.bmp", "first": 1, "count": 11,
           "keep-missing": true, "transparent": "black", "cite": ["SHOP-ANIMATION-082", "SHOP-SHELF-047", "DIV-856"]},
@@ -410,6 +455,7 @@
           "cite": ["SHOP-ANIMATION-083", "SHOP-ANIMATION-084", "DIV-854"]}
        ],
        "steps": [
+         {"when": "active", "run": ["sound inshop"], "cite": ["SHOP-SOUND-137", "VIDEO-SFX-099", "DIV-3339"]},
          {"clock": "step", "when": "active", "run": ["arm merchant", "advance racks", "advance merchant"],
           "cite": ["SHOP-ANIMATION-081"]}
        ],
@@ -491,12 +537,19 @@
        ],
        "sounds": {
          "slots": [{"name": "rotate", "source": "school-training", "key": "town/school/rotate.wav", "untracked": true,
-                    "cite": ["TOWN-147", "TOWN-430"]}],
-         "cite": ["TOWN-147"]},
+                    "cite": ["TOWN-147", "TOWN-430", "TOWN-554"]},
+                   {"name": "enter", "source": "school-training", "key": "town/school/enter.wav", "cite": ["TOWN-551"]},
+                   {"name": "out", "source": "school-training", "key": "out.wav", "cite": ["TOWN-551"]}],
+         "triggers": [
+           {"on": "teach", "slot": "rotate", "key": "town/school/teach.wav", "cite": ["TOWN-551", "TOWN-554"]},
+           {"on": "leave-press", "slot": "out", "cite": ["TOWN-551"]}
+         ],
+         "cite": ["TOWN-147", "TOWN-551"]},
        "clocks": [
          {"name": "gate", "period-ms": 83, "compare": "greater", "rebase": "every", "cite": ["TOWN-430", "DIV-872"]}
        ],
        "enter-active": true,
+       "enter": ["sound enter"],
        "actors": [
          {"name": "column", "program": "target", "art": "column", "frames": 16, "endpoints": [0, 15], "value": "member-class",
           "wait": {"base-ms": 83, "compare": "greater", "cite": ["TOWN-147"]},
