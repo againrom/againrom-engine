@@ -153,6 +153,16 @@ func (w *World) sourcePotion(i int, kind uint8, amount int32) bool {
 }
 
 func (w *World) sourceEffect(i int, kind EffectKind, amount int32) (int32, bool) {
+	return w.sourceEffectIn(i, kind, amount, true)
+}
+
+// sourceEffectOnCandidate is sourceEffect on a private candidate that its
+// owner discards whole on failure, so it copies nothing.
+func (w *World) sourceEffectOnCandidate(i int, kind EffectKind, amount int32) (int32, bool) {
+	return w.sourceEffectIn(i, kind, amount, false)
+}
+
+func (w *World) sourceEffectIn(i int, kind EffectKind, amount int32, isolate bool) (int32, bool) {
 	var key uint8
 	switch kind {
 	case EffectHealth:
@@ -183,8 +193,15 @@ func (w *World) sourceEffect(i int, kind EffectKind, amount int32) (int32, bool)
 	if kind == EffectHealth && amount > 0 && !w.entities[i].Alive() {
 		return 0, true
 	}
+	effect := ItemEffect{Kind: key, Operand: uint32(amount)}
+	if !isolate {
+		if !w.sourceItemEffect(i, effect, 1) {
+			return 0, false
+		}
+		return amount, true
+	}
 	n := w.sourceMutationCopy(i)
-	if !n.sourceItemEffect(i, ItemEffect{Kind: key, Operand: uint32(amount)}, 1) {
+	if !n.sourceItemEffect(i, effect, 1) {
 		return 0, false
 	}
 	*w = n

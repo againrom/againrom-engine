@@ -2447,6 +2447,16 @@ package storyguard
 // CommentBytes rises for the new target-order normalization in
 // pkg/sim/targetorder.go and the build line that moves the target census
 // into the corpus audit, this note included.
+//
+// CommentBytes rises for the source effect run on its own candidate: the doc
+// of sourceEffectOnCandidate and its refusal test, this note included.
+//
+// CommentBytes rises for the test play write: the docs of the split original
+// write fence, admittedOnce and the durable flag, and their control test,
+// this note included.
+//
+// CommentBytes rises for refuseOriginalWriteTargets, which the named-save
+// directory check now shares, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4625,
 	TestFileCount:  264,
@@ -2470,5 +2480,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9041726,
+	CommentBytes: 9044051,
 }

@@ -227,7 +227,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 	if access := profile.Saves.profile; access != nil {
 		grant = &runtimeProfileAccess{root: access.root, directory: access.root, descendants: true}
 	}
-	guard := func(dir string) error {
+	guard, forget := admittedOnce(func(dir string) error {
 		if grant != nil {
 			allowed, err := grant.allows(dir)
 			if err != nil {
@@ -238,7 +238,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 			}
 		}
 		return fenceEditorWrite(root, dir, "Test play")
-	}
+	})
 	files := map[string][]byte{
 		mod.ManifestName: []byte(testPlayManifest),
 		"main.star":      []byte(testPlayEntry),
@@ -261,6 +261,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 	if err != nil {
 		return "", err
 	}
+	forget()
 	folder = filepath.Join(modsDir, TestPlayModID)
 	names := make([]string, 0, len(files))
 	for name := range files {
@@ -268,7 +269,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 	}
 	slices.Sort(names)
 	for _, rel := range names {
-		if err := writeTestModFile(guard, modsDir, folder, rel, files[rel]); err != nil {
+		if err := writeTestModFile(guard, modsDir, folder, rel, files[rel], false); err != nil {
 			return "", err
 		}
 	}
@@ -284,16 +285,38 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 			return "", err
 		}
 	}
-	if err := writeTestModFile(guard, modsDir, folder, testPlayRecord, testPlayRecordBytes(names)); err != nil {
+	if err := writeTestModFile(guard, modsDir, folder, testPlayRecord, testPlayRecordBytes(names), true); err != nil {
 		return "", err
 	}
 	return modsDir, nil
 }
 
+// admittedOnce runs check once per folder spelling until forget: a folder it
+// admitted is admitted again without a new install census, and a refusal is
+// never remembered. writeTestModFile still checks each folder on a file's path
+// for a link or a redirect before it asks the guard.
+func admittedOnce(check func(string) error) (guard func(string) error, forget func()) {
+	passed := map[string]bool{}
+	guard = func(dir string) error {
+		if passed[dir] {
+			return nil
+		}
+		if err := check(dir); err != nil {
+			return err
+		}
+		passed[dir] = true
+		return nil
+	}
+	return guard, func() { clear(passed) }
+}
+
 // writeTestModFile writes data to the slash path rel in folder, creating the
 // directories below top one by one, each checked by guard, and replacing the
-// file through a dot-named file moved over it.
-func writeTestModFile(guard func(string) error, top, folder, rel string, data []byte) error {
+// file through a dot-named file moved over it. Only a durable file is flushed
+// before the move: the ownership record, written last. Every other file is
+// rewritten by the next test play or lives in a staging folder removed after
+// validation.
+func writeTestModFile(guard func(string) error, top, folder, rel string, data []byte, durable bool) error {
 	full := filepath.Join(folder, filepath.FromSlash(rel))
 	lexical, err := filepath.Rel(top, filepath.Dir(full))
 	if err != nil || !filepath.IsLocal(lexical) && lexical != "." {
@@ -337,7 +360,7 @@ func writeTestModFile(guard func(string) error, top, folder, rel string, data []
 		return err
 	}
 	_, writeErr := tmp.Write(data)
-	if writeErr == nil {
+	if writeErr == nil && durable {
 		writeErr = tmp.Sync()
 	}
 	closeErr := tmp.Close()

@@ -124,7 +124,7 @@ func validateTestMod(profileDir, folder, root string, old []string, files map[st
 		return err
 	}
 	for rel, b := range files {
-		if err := writeTestModFile(guard, profileDir, dest, rel, b); err != nil {
+		if err := writeTestModFile(guard, profileDir, dest, rel, b, false); err != nil {
 			return err
 		}
 	}

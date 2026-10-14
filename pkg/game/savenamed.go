@@ -74,13 +74,19 @@ func namedSaveDirectory(path string, fences []string, profiles ...*runtimeProfil
 	if err != nil {
 		return "", err
 	}
-	for _, fence := range fences {
-		if err := refuseProfileWriteTarget(abs, fence, profiles...); err != nil {
+	// A profile grant admits the path for every fence alike. Otherwise each
+	// fence is checked, and even callers without a configured fence retain
+	// the archive census, which runs once for all of them.
+	if len(profiles) != 0 {
+		allowed, err := profiles[0].allows(abs)
+		if err != nil {
 			return "", err
 		}
+		if allowed {
+			return filepath.Clean(abs), nil
+		}
 	}
-	// Even callers without a configured fence retain the archive census.
-	if err := refuseProfileWriteTarget(abs, "", profiles...); err != nil {
+	if err := refuseOriginalWriteTargets(abs, fences); err != nil {
 		return "", err
 	}
 	return filepath.Clean(abs), nil

@@ -425,10 +425,8 @@ func fenceEditorWrite(root, parent, verb string) error {
 		// language and of whether its archives are presently readable.
 		roots = append(roots, preservedPairRoots(resolvedRoot)...)
 	}
-	for _, protected := range roots {
-		if err := refuseOriginalWriteTarget(parent, protected); err != nil {
-			return fmt.Errorf("%s: %w", verb, err)
-		}
+	if err := refuseOriginalWriteTargets(parent, roots); err != nil {
+		return fmt.Errorf("%s: %w", verb, err)
 	}
 	return nil
 }

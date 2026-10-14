@@ -513,13 +513,49 @@ func isOwnedSaveTempName(name string) bool {
 // the RU distribution. Missing target directories are resolved through their
 // nearest existing parent so a symlink/junction cannot hide a future child.
 func refuseOriginalWriteTarget(target, originalDir string) error {
+	return refuseOriginalWriteTargets(target, []string{originalDir})
+}
+
+// refuseOriginalWriteTargets is refuseOriginalWriteTarget for each of roots in
+// order, with the archive census, which does not depend on the root, run once
+// where the first root's check ran it. With no roots it is the census alone.
+func refuseOriginalWriteTargets(target string, roots []string) error {
+	resolvedTarget, err := resolveOriginalWriteTarget(target)
+	if err != nil {
+		return err
+	}
+	for i, root := range roots {
+		if err := refuseUnderOriginal(target, resolvedTarget, root); err != nil {
+			return err
+		}
+		if i == 0 {
+			if err := refuseInstallAncestor(target, resolvedTarget); err != nil {
+				return err
+			}
+		}
+	}
+	if len(roots) == 0 {
+		return refuseInstallAncestor(target, resolvedTarget)
+	}
+	return nil
+}
+
+// resolveOriginalWriteTarget is the resolved spelling both halves of
+// refuseOriginalWriteTarget compare.
+func resolveOriginalWriteTarget(target string) (string, error) {
 	if target == "" {
-		return errors.New("no save directory configured")
+		return "", errors.New("no save directory configured")
 	}
 	resolvedTarget, err := resolvePathForSaveSafety(target)
 	if err != nil {
-		return fmt.Errorf("resolve original-save target %s: %w", target, err)
+		return "", fmt.Errorf("resolve original-save target %s: %w", target, err)
 	}
+	return resolvedTarget, nil
+}
+
+// refuseUnderOriginal is the explicit fence: target, resolved or physical,
+// lies in originalDir.
+func refuseUnderOriginal(target, resolvedTarget, originalDir string) error {
 	if originalDir != "" {
 		resolvedOriginal, err := resolvePathForSaveSafety(originalDir)
 		if err != nil {
@@ -533,6 +569,12 @@ func refuseOriginalWriteTarget(target, originalDir string) error {
 			return fmt.Errorf("refusing to write original-format save under read-only game install %s", originalDir)
 		}
 	}
+	return nil
+}
+
+// refuseInstallAncestor is the archive census: an ancestor of the resolved
+// target holds the required archives. It does not depend on originalDir.
+func refuseInstallAncestor(target, resolvedTarget string) error {
 	installDir, install, err := requiredArchiveAncestor(resolvedTarget)
 	if err != nil {
 		return fmt.Errorf("inspect original-save target ancestors for %s: %w", target, err)

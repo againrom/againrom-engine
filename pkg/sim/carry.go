@@ -2,6 +2,7 @@ package sim
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 )
 
@@ -58,6 +59,7 @@ func foldContainer(c []ItemStack) []ItemStack {
 // every insert. Where the code is already held, the fold then moves the
 // units back into the element that holds it and the tail place disappears.
 func appendItems(c []ItemStack, items []ItemInstance) []ItemStack {
+	c = slices.Grow(c, len(items))
 	for _, item := range items {
 		c = append(c, StackItem(item, 1))
 	}

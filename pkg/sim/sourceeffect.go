@@ -15,7 +15,7 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 	remove := func(index int) bool {
 		e := n.attached[index]
 		if e.Mode&EffectContinuous == 0 {
-			if _, ok := n.sourceEffect(ti, e.Kind, -e.Magnitude); !ok {
+			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, -e.Magnitude); !ok {
 				return false
 			}
 		}
@@ -46,7 +46,7 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 			return false
 		}
 	}
-	if _, ok := n.sourceEffect(ti, kind, magnitude); !ok {
+	if _, ok := n.sourceEffectOnCandidate(ti, kind, magnitude); !ok {
 		return false
 	}
 	index, _ := effectIndex(n.attached, id, rule.ID)
