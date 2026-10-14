@@ -1,6 +1,6 @@
-# againrom
+# AgainROM
 
-againrom is a new engine for **Rage of Mages** (Allods, 1998). You play the
+AgainROM is a new engine for **Rage of Mages** (Allods, 1998). You play the
 original game's campaign with your own copy of the game, on Windows or macOS.
 
 It ships no game files. It reads the maps, graphics, sounds, music and movies
@@ -17,15 +17,15 @@ original. Each known difference is listed in `docs/divergences/`.
 - The game files of Rage of Mages, English or Russian, from a Windows install
   or the CD. The game is sold digitally, for example on GOG.
 
-againrom only reads the game files. It never changes them.
+AgainROM only reads the game files. It never changes them.
 
 ## Game files
 
-againrom reads these files from one game folder:
+AgainROM reads these files from one game folder:
 
 | file | what it gives |
 |---|---|
-| `main.res`, `graphics.res`, `scenario.res`, `world.res`, `movies.res` | the game itself; without any one of them againrom does not start |
+| `main.res`, `graphics.res`, `scenario.res`, `world.res`, `movies.res` | the game itself; without any one of them AgainROM does not start |
 | `sfx.res` | sounds |
 | `speech.res` | voiced lines in towns |
 | `patch.res` | the captions of three graphics options |
@@ -40,7 +40,7 @@ LOAD.
 ### An install from the CD
 
 The CD installer leaves the music and the movies on the disc, and the original
-game reads them from there. againrom reads only the game folder. Copy
+game reads them from there. AgainROM reads only the game folder. Copy
 `MUSIC.RES`, `VIDEO4.RES` and `VIDEO8.RES` from the `Allods` folder on the disc
 into a folder named `Allods` inside the game folder. A digital copy, for
 example from GOG, already holds that folder.
@@ -106,8 +106,8 @@ folder. Select a base in the starter and press **Map editor** (**Редакто�
 
 ## Saves
 
-againrom saves in the original game's save format. LOAD also lists the saves
-the original game made in its own install folder, and they load in againrom.
+AgainROM saves in the original game's save format. LOAD also lists the saves
+the original game made in its own install folder, and they load in AgainROM.
 
 By default, saves go to the `saves` folder beside `againrom.exe`. If the game
 runs from inside an install folder, they go to `Againrom\saves` there instead,
@@ -169,12 +169,12 @@ That workflow also builds macOS Intel and Apple Silicon packages through
 - "Rage of Mages", "Allods" and the Russian title of the game are trademarks
   of their owners. They are used here only to describe compatibility.
 - No original game data, executable or asset is distributed with this
-  project. A lawfully owned install is required to run it. Naming a store is
+  project. A lawfully owned copy of the game is required to run it. Naming a store is
   not an endorsement of it.
 - The game's behaviour was established by reverse engineering a lawfully owned
   copy for interoperability, in a separate research process. Its public
   findings are the `knowledge/` snapshot.
-- Copyright of the project's own code: the Againrom authors.
+- Copyright of the project's own code: the AgainROM authors.
 
 ## License
 
