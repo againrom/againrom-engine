@@ -4,8 +4,8 @@ againrom is a new engine for **Rage of Mages** (Allods, 1998). You play the
 original game's campaign with your own copy of the game, on Windows or macOS.
 
 It ships no game files. It reads the maps, graphics, sounds, music and movies
-from a Rage of Mages install that you already own. Both the English and the
-Russian releases work.
+from the files of a Rage of Mages copy that you already own. Both the English
+and the Russian releases work.
 
 The game is a work in progress. The campaign, towns, shops, the tavern,
 battles, spells, movies and saving all run. Some details still differ from the
@@ -14,18 +14,36 @@ original. Each known difference is listed in `docs/divergences/`.
 ## What you need
 
 - 64-bit Windows, or macOS on Intel or Apple Silicon.
-- An installed copy of Rage of Mages, English or Russian. It is sold
-  digitally, for example on GOG.
+- The game files of Rage of Mages, English or Russian, from a Windows install
+  or the CD. The game is sold digitally, for example on GOG.
 
-againrom only reads the install. It never changes the original game's files.
+againrom only reads the game files. It never changes them.
+
+## Game files
+
+againrom reads these files from one game folder:
+
+| file | what it gives |
+|---|---|
+| `main.res`, `graphics.res`, `scenario.res`, `world.res`, `movies.res` | the game itself; without any one of them againrom does not start |
+| `sfx.res` | sounds |
+| `speech.res` | voiced lines in towns |
+| `patch.res` | the captions of three graphics options |
+| `Allods/MUSIC.RES` | music |
+| `Allods/VIDEO4.RES`, `Allods/VIDEO8.RES` | the intro and the mission movies |
+
+A missing optional file only turns its part off: no sound, no voices, no
+music or no movies. `rom.exe` and the other files of the folder are not
+needed. Saves the original game made in that folder (`game*.sav`) appear in
+LOAD.
 
 ### An install from the CD
 
 The CD installer leaves the music and the movies on the disc, and the original
-game reads them from there. againrom reads only the install folder. Copy
+game reads them from there. againrom reads only the game folder. Copy
 `MUSIC.RES`, `VIDEO4.RES` and `VIDEO8.RES` from the `Allods` folder on the disc
-into a folder named `Allods` inside the install folder, so that music and
-movies work. A digital copy, for example from GOG, already holds that folder.
+into a folder named `Allods` inside the game folder. A digital copy, for
+example from GOG, already holds that folder.
 
 ## Install on Windows
 
@@ -46,8 +64,12 @@ configuration files.
 
 ## Install on macOS
 
+Rage of Mages was never released for macOS. Copy the files listed under
+[Game files](#game-files) from a Windows install or the CD into one folder on
+the Mac, with `Allods` as a folder inside it.
+
 1. Download the macOS AMD64 ZIP for an Intel Mac, or the macOS ARM64 ZIP for
-   Apple Silicon. Unpack it into a separate folder outside the game install.
+   Apple Silicon. Unpack it into a separate folder, not into the game folder.
 2. These builds have no Developer ID signature or notarization. For a download
    you trust, open Terminal in the unpacked `againrom` folder and remove its
    quarantine attributes:
@@ -58,12 +80,12 @@ configuration files.
 
    An attribute-not-found message means that executable is already unquarantined.
 3. Run `./starter` from that Terminal. Under **Base game**, type the absolute
-   path of the owned install, press **Add**, then **Play**. The Mac starter
+   path of the game folder, press **Add**, then **Play**. The Mac starter
    currently requires typed paths; clipboard paste and Command+V are pending.
 
 The ZIP preserves executable permissions and contains no game assets or player
 profiles. It holds three command-line-launched executables, without an `.app`
-bundle. Alternatively, run `./againrom -assets "/path/to/Rage of Mages"`.
+bundle. Alternatively, run `./againrom -assets "/path/to/game folder"`.
 
 ## Map editor
 
