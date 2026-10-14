@@ -130,7 +130,13 @@ func TestOneFireBallCommandProducesOneSoundLifecycle(t *testing.T) {
 	}
 }
 
-func TestTeleportAnimationSoundFollowsTheLiveCasterToItsDestination(t *testing.T) {
+// TestTeleportAnimationSoundReadsTheLiveCaster: the cast message is sent at
+// admission and the AttackDelay hook is called AttackDelay ticks later at the
+// caster's live point (MAGIC-TELEPORT-371). Here AttackDelay 2 falls before
+// the charge-12 relocation, so both sound at the start cell; with AttackDelay
+// equal to the charge the hook reads the destination
+// (TestTeleportIsPresentedAtAdmissionAndMovesOnTheCountdown).
+func TestTeleportAnimationSoundReadsTheLiveCaster(t *testing.T) {
 	mw := spellSoundTeleportWorld(t)
 	plays := recordSpellSounds(mw)
 	mw.sched = [][]sim.Command{{
@@ -143,14 +149,14 @@ func TestTeleportAnimationSoundFollowsTheLiveCasterToItsDestination(t *testing.T
 	if casts != 1 {
 		t.Fatalf("one Teleport command applied %d times, want once", casts)
 	}
-	if e, ok := mw.entity(1); !ok || e.X != 12 || e.Y != 9 {
-		t.Fatalf("Teleport caster = %+v, present=%v; want live at (12,9)", e, ok)
+	if e, ok := mw.entity(1); !ok || e.X != 8 || e.Y != 8 {
+		t.Fatalf("Teleport caster = %+v, present=%v; want still at (8,8) at AttackDelay", e, ok)
 	}
 	want := []spellSoundPlay{
-		// The direct message remains at CastEvent.FromX/Y.
+		// The direct message at CastEvent.FromX/Y.
 		{slot: 560, owner: 7, cell: image.Pt(8, 8)},
-		// The independent AttackDelay hook follows the visible caster run.
-		{slot: 560, owner: 7, cell: image.Pt(12, 9)},
+		// The AttackDelay hook at the caster's live point, before the move.
+		{slot: 560, owner: 7, cell: image.Pt(8, 8)},
 	}
 	if len(*plays) != len(want) || (*plays)[0] != want[0] || (*plays)[1] != want[1] {
 		t.Fatalf("Teleport sound lifecycle = %+v, want %+v", *plays, want)

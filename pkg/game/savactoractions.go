@@ -324,6 +324,21 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		complete, _ := savedStructureValue(r, "U136")
 		freeze(body, binary.LittleEndian.Uint32(phase), complete)
 	}
+	// A point cast in flight names its Spell object by key (U64); the Spell's
+	// S08 is the spell id.
+	spellIDs := map[uint32]uint32{}
+	for i := range state.Document.Objects {
+		r := &state.Document.Objects[i]
+		if r.Class != "Spell" {
+			continue
+		}
+		key, err := savedStructureValue(r, "This")
+		id, idErr := savedStructureValue(r, "S08")
+		if err == nil && idErr == nil && key != 0 {
+			spellIDs[key] = id
+		}
+	}
+	var pointCasts []sim.OriginalPointCast
 	for _, b := range state.Actors {
 		r := &state.Document.Objects[b.ObjectIndex-1]
 		value := func(name string) uint32 { v, _ := savedStructureValue(r, name); return v }
@@ -369,6 +384,12 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		}
 		action, phase := binary.LittleEndian.Uint32(actionRaw), binary.LittleEndian.Uint32(phaseRaw)
 		freeze(b.EntityID, phase, value("U136"))
+		// State 14 in sub-phase 5 is a point cast counting down to its
+		// application (MAGIC-TELEPORT-370, SAV-1254).
+		if id, known := spellIDs[value("U64")]; action == 14 && phase == 5 && known && id <= 0xffff && value("U6C") <= 255 {
+			pointCasts = append(pointCasts, sim.OriginalPointCast{Entity: b.EntityID, Spell: uint16(id),
+				X: int32(value("U60")), Y: int32(value("U61")), Countdown: uint8(value("U6C"))})
+		}
 		if action == 0 || action == 1 || action == 2 || action == 3 {
 			a.Target, a.HasTarget = byKey[value("U5C")]
 			if body, ok := bodyKeys[value("U5C")]; ok && !a.HasTarget && (phase == 5 || phase == 7) {
@@ -444,6 +465,7 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 	if err := ms.World.ImportOriginalActorActions(batch); err != nil {
 		return err
 	}
+	ms.World.ImportOriginalPointCasts(pointCasts)
 	rows := make([]sim.HeldOrderRecord, 0, len(held))
 	for _, e := range ms.World.Entities() {
 		if o, ok := held[e.ID]; ok {

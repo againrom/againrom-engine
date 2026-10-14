@@ -67,6 +67,7 @@ var nstPinned = []struct {
 	{"World", reflect.TypeOf(World{}), []nstField{
 		{"tick", "uint64"},
 		{"damageObservation", "*sim.damageObservation"},
+		{"castObservation", "*sim.castObs"},
 		{"turnSteps", "map[sim.EntityID]struct {}"},
 		{"turnStepScope", "bool"},
 		{"hasSessionClock", "bool"},

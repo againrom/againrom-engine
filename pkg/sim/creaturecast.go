@@ -207,8 +207,7 @@ func (w *World) startApproachedCast(i int, c *bookCast) {
 	} else if ti := indexOfEntity(w.entities, c.Target); ti >= 0 {
 		w.turnToActor(i, ti)
 	}
-	w.admitBookPayment(i, rule)
-	w.startSpellAction(i)
+	w.chargeBookCast(i, rule)
 }
 
 // creatureReplaceCastOrder is what a draw does to the retained cast order of a

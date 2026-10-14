@@ -103,8 +103,12 @@ func TestNativeStrideRelocation1115ManualBookDispatchAndFacing(t *testing.T) {
 			if len(w.bookCasts) != 0 || w.entities[0].Transit == 0 {
 				t.Fatalf("cast admitted inside the step: %+v transit %d", w.bookCasts, w.entities[0].Transit)
 			}
+			// The admitting step reports the cast (MAGIC-TELEPORT-371) and moves
+			// nothing; an event before admission would be a release.
 			for n := 0; n < 40 && len(w.bookCasts) == 0; n++ {
-				if events := StepObserved(w, nil); len(events) != 0 {
+				r := StepReported(w, nil)
+				admitted := len(w.bookCasts) == 1 && len(r.Casts) == 1 && r.Casts[0].Spell == 26 && r.Casts[0].ToX == 7 && r.Casts[0].ToY == 5
+				if len(r.Relocations) != 0 || len(r.Casts) != 0 && !admitted {
 					t.Fatal("book released before its wind-up")
 				}
 			}
@@ -115,10 +119,13 @@ func TestNativeStrideRelocation1115ManualBookDispatchAndFacing(t *testing.T) {
 			strideRelocationAbsent1115(t, w.entities[0], 3, 2, 0, 0)
 			released := false
 			for n := 0; n < 64; n++ {
-				events := StepObserved(w, nil)
-				if len(events) != 0 {
-					if len(events) != 1 || events[0].Spell != 26 || events[0].ToX != 7 || events[0].ToY != 5 {
-						t.Fatalf("unexpected release: %+v", events)
+				r := StepReported(w, nil)
+				if len(r.Casts) != 0 {
+					t.Fatalf("a second cast event during the wind-up: %+v", r.Casts)
+				}
+				if len(r.Relocations) != 0 {
+					if len(r.Relocations) != 1 || r.Relocations[0].Caster != 1 || r.Relocations[0].ToX != 7 || r.Relocations[0].ToY != 5 {
+						t.Fatalf("unexpected release: %+v", r.Relocations)
 					}
 					released = true
 					break

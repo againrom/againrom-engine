@@ -91,7 +91,12 @@ func teleportJumpItem(t *testing.T, f *FrontEnd, scroll bool) sim.ItemInstance {
 
 func teleportJumpFront(t *testing.T, mission int, scroll bool) (*FrontEnd, *ui.App) {
 	t.Helper()
-	f := stoneStillFront(t)
+	return teleportJumpFrontOn(t, stoneStillFront(t), mission, scroll)
+}
+
+// teleportJumpFrontOn opens the Teleport witness mission on front f.
+func teleportJumpFrontOn(t *testing.T, f *FrontEnd, mission int, scroll bool) (*FrontEnd, *ui.App) {
+	t.Helper()
 	item := teleportJumpItem(t, f, scroll)
 	party := hasteParty()
 	party[0].Hero = data.Hero{Body: 60, Reaction: 60, Mind: 100, Spirit: 100}
@@ -278,17 +283,27 @@ func TestReleaseTeleportUnitTargetDrawsAtDestination(t *testing.T) {
 	}
 	hashOnly := os.Getenv("AGAINROM_TELEPORT_HASH_ONLY") != ""
 	teleportJumpLogHash(t, mw, "book-unit")
+	// The cast is reported at its admission and the caster moves when the
+	// countdown reaches zero (MAGIC-TELEPORT-371, MAGIC-TELEPORT-370), so the
+	// arrival is the first tick after the report that moves the caster.
 	arrived := false
+	var admitted []sim.CastEvent
 	for range 256 {
 		old := teleportJumpPushed(t, mw, casterID)
 		oldDistance := mw.walk[casterID].dist
-		var events []sim.CastEvent
-		mw.tickWithCastSink(func(casts []sim.CastEvent) { events = casts })
-		teleportJumpLogHash(t, mw, "book-unit")
-		for _, event := range events {
-			if event.Caster != casterID || event.Spell != 26 || event.Target != target.ID {
-				continue
+		mw.tickWithCastSink(func(casts []sim.CastEvent) {
+			for _, event := range casts {
+				if event.Caster == casterID && event.Spell == 26 && event.Target == target.ID {
+					admitted = append(admitted, event)
+				}
 			}
+		})
+		teleportJumpLogHash(t, mw, "book-unit")
+		var events []sim.CastEvent
+		if moved := teleportJumpPushed(t, mw, casterID); len(admitted) == 1 && moved.Cell != old.Cell {
+			events = admitted
+		}
+		for _, event := range events {
 			arrived = true
 			arrival := teleportJumpPushed(t, mw, casterID)
 			destination := image.Pt(int(event.ToX), int(event.ToY))
@@ -343,15 +358,20 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 		mw.world = creatureWitnessWorld(t, source, probe, f.Table, heroID, x, y, creatureAlone(heroID, creature.ID))
 		mw.fog.refresh(mw.world, sim.SelfSlot)
 		mw.push()
+		// The cast is reported at its admission; the creature moves when the
+		// countdown reaches zero (MAGIC-TELEPORT-371, MAGIC-TELEPORT-370).
 		casts := 0
+		var admitted []sim.CastEvent
 		for range 1500 {
-			var events []sim.CastEvent
-			mw.tickWithCastSink(func(released []sim.CastEvent) { events = released })
-			for _, event := range events {
-				if event.Caster != creature.ID || event.Spell != 26 {
-					continue
+			mw.tickWithCastSink(func(released []sim.CastEvent) {
+				for _, event := range released {
+					if event.Caster == creature.ID && event.Spell == 26 {
+						admitted = append(admitted[:0], event)
+						casts++
+					}
 				}
-				casts++
+			})
+			for _, event := range admitted {
 				delta := image.Pt(int(event.ToX-event.FromX), int(event.ToY-event.FromY))
 				if max(absCell(int32(delta.X)), absCell(int32(delta.Y))) != 1 {
 					t.Fatal("installed creature Teleport is not aimed at an adjacent cell", event)

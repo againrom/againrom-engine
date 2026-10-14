@@ -45,11 +45,17 @@ func spCast(caster, victim EntityID, spell uint32) Command {
 // against the same tick.
 func spRunCast(w *World, cmd Command) []CastEvent {
 	events := StepObserved(w, []Command{cmd})
-	for n := 0; len(events) == 0 && n < 255; n++ {
+	// A Teleport reports its cast at admission (MAGIC-TELEPORT-371); its
+	// application still waits for the wind-up, so a charging record runs on.
+	charging := func() bool {
+		i, ok := w.bookCastIndex(cmd.Entity)
+		return ok && w.bookCasts[i].Phase == bookCharging
+	}
+	for n := 0; (len(events) == 0 || charging()) && n < 255; n++ {
 		if i, ok := w.bookCastIndex(cmd.Entity); ok && w.bookCasts[i].Complete {
 			break
 		}
-		events = StepObserved(w, nil)
+		events = append(events, StepObserved(w, nil)...)
 		if len(w.bookCasts) == 0 && len(events) == 0 {
 			break
 		}

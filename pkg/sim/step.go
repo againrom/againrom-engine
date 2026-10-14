@@ -394,6 +394,8 @@ type Report struct {
 	ScriptCasts    []ScriptCastEvent
 	AreaPaints     []AreaPaint
 	Damages        []DamageEvent
+	// Relocations names every Teleport that moved its caster in this step.
+	Relocations []Relocation
 }
 
 // StepReported is Step with all observations reported. StepObserved is this
@@ -402,7 +404,7 @@ func StepReported(w *World, cmds []Command) Report {
 	var obs castObs
 	stepWorld(w, cmds, nil, &obs, nil)
 	return Report{ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
-		AreaPaints: obs.paints, Damages: obs.damages}
+		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations}
 }
 
 // StepWithdrawalTraced is Step with the successful phase-6 withdrawal
@@ -419,6 +421,8 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	w.beginTurnSubTick()
 	defer w.endTurnSubTick()
 	w.movers = slices.Clone(w.movers)
+	w.castObservation = obs
+	defer func() { w.castObservation = nil }()
 	if obs != nil {
 		w.damageObservation = &damageObservation{}
 		defer func() {
@@ -1232,6 +1236,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 	}
 	w.syncCurrentActionCarriers()
+	w.presentAdmittedCasts()
 }
 
 // lookAhead is how far along a stored route the near search aims: the sub-goal

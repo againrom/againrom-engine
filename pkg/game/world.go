@@ -4192,7 +4192,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// Teleport arrivals reveal their surroundings before the same frame is
 	// pushed. Ordinary updates retain the periodic world-tick cadence.
 	mw.stampMoved()
-	if mw.world.Tick()%fogPeriod == 0 || mw.localTeleportArrived(events) {
+	if mw.world.Tick()%fogPeriod == 0 || mw.localTeleportArrived(report.Relocations) {
 		mw.fog.refresh(mw.world, sim.SelfSlot)
 		mw.view.RefreshCheatFog()
 	}

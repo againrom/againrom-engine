@@ -114,6 +114,8 @@ func init() {
 	worldWriters = append(worldWriters, "RestoreHeldOrders")
 	worldMethods = append(worldMethods, "RepairNativePackCells")
 	worldWriters = append(worldWriters, "RepairNativePackCells")
+	worldMethods = append(worldMethods, "ImportOriginalPointCasts")
+	worldWriters = append(worldWriters, "ImportOriginalPointCasts")
 	worldWriters = append(worldWriters, "RestoreActorTraversal", "RebuildLoadedActorTraversal")
 	slices.Sort(worldMethods)
 	worldWriters = append(worldWriters, "ImportOriginalStructures", "ImportSavedGroupPlayers", "ImportOriginalActorMotions", "ImportOriginalCellPlanes", "ImportSavedObjects", "SetRawSessionHead", "SetRawSessionMid", "ImportOriginalCellRecords", "SetSavedCellRecords", "SetSavedSpellEffects", "SetSkillLevels", "ImportOriginalProjectiles", "SetSavedProjectiles", "ImportOriginalDiaries", "SetSavedDiaries")

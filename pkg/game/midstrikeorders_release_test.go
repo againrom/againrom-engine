@@ -138,13 +138,18 @@ func TestReleaseMidStrikeManualCastCurrentSAVAppColdLoad(t *testing.T) {
 				t.Fatal("admitted self cast SAVE replaced the separate resume endpoint")
 			}
 		}
+		// A Teleport reports its cast on the admitting tick and lands when the
+		// caster stands on the destination; another cast lands at its report.
 		landed := false
 		for range 180 {
 			arena.live.tickWithCastSink(func(events []sim.CastEvent) {
 				for _, event := range events {
-					landed = landed || event.Caster == hero && event.Spell == uint16(spell)
+					landed = landed || !cellCast && event.Caster == hero && event.Spell == uint16(spell)
 				}
 			})
+			if h := arena.get(hero); cellCast && h.X == at.X && h.Y == at.Y {
+				landed = true
+			}
 			cold.live.tick()
 			if !midStrikeArenaSame(arena.live.world, cold.live.world) {
 				t.Fatal("admitted installed cast cold action differs")

@@ -89,6 +89,45 @@ type castObs struct {
 	scriptCasts    []ScriptCastEvent
 	paints         []AreaPaint
 	damages        []DamageEvent
+	relocations    []Relocation
+	// held names the casters whose charging book cast waited this step for
+	// their turn.
+	held []EntityID
+}
+
+// Relocation is one Teleport that moved its caster in this step: the caster,
+// its roster slot and the two cells. A vetoed destination moves nothing and
+// records nothing.
+type Relocation struct {
+	Caster       EntityID
+	Owner        uint32
+	FromX, FromY int32
+	ToX, ToY     int32
+}
+
+// recordAdmission reports a cast at its admission: the caster's cell and the
+// destination cell, which for a unit target is that unit's cell now.
+func (o *castObs) recordAdmission(w *World, ci int, target EntityID, atCell bool, rule SpellRule, x, y int32) {
+	if o == nil {
+		return
+	}
+	a := w.entities[ci]
+	ev := CastEvent{Caster: a.ID, Spell: rule.ID, School: rule.School, Owner: a.Owner, AtCell: atCell,
+		FromX: a.X, FromY: a.Y, ToX: x, ToY: y, Facing: a.Facing}
+	if !atCell {
+		ev.Target = target
+		if ti := indexOfEntity(w.entities, target); ti >= 0 {
+			ev.TargetOwner = w.entities[ti].Owner
+		}
+	}
+	o.casts = append(o.casts, ev)
+}
+
+func (o *castObs) recordRelocation(e Entity, fromX, fromY int32) {
+	if o != nil {
+		o.relocations = append(o.relocations, Relocation{Caster: e.ID, Owner: e.Owner,
+			FromX: fromX, FromY: fromY, ToX: e.X, ToY: e.Y})
+	}
 }
 
 func (o *castObs) recordScriptMessage(event int32) {

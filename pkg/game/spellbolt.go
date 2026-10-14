@@ -108,7 +108,7 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 		}
 		mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), ev.Owner, from, source)
 		if !ev.Weapon {
-			span := mw.startCastRun(ev.Caster)
+			span := mw.startBookCastRun(ev)
 			mw.scheduleBookCastSound(ev, span)
 		}
 		if !ev.Rider {
@@ -274,6 +274,28 @@ func (mw *mapWorld) startCastRun(id sim.EntityID) int {
 	mw.swing[id] = -1
 	return span
 }
+
+// startBookCastRun starts the run a book cast event plays. A first-game
+// Teleport is reported at its admission and its relocation follows on the
+// countdown, so its run is the caster class's own Attack timeline, one phase
+// per tick, drawn across the move (ANIM-TELEPORT-172). Every other cast keeps
+// the run scaled to its charge.
+func (mw *mapWorld) startBookCastRun(ev sim.CastEvent) int {
+	if !mw.world.SecondGame() && mw.world.SpellArm(ev.Spell) == teleportArm {
+		if c := mw.casterClass(ev.Caster); c != nil && len(c.Anim.AttackTrack) > 0 {
+			// advanceCastRuns takes a tick off in the admitting tick itself,
+			// so a run drawn on span ticks starts one above its span.
+			span := len(c.Anim.AttackTrack)
+			mw.castRun[ev.Caster] = castRun{left: span + 1, span: span, identity: &castRunIdentity{}}
+			mw.swing[ev.Caster] = -1
+			return span
+		}
+	}
+	return mw.startCastRun(ev.Caster)
+}
+
+// teleportArm is Teleport's spell arm.
+const teleportArm = 26
 
 // casting reports that id is inside a cast run this tier is playing. It is
 // the entity's OWN half of the swing gate: an entity resolving an attack

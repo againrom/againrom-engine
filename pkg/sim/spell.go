@@ -361,6 +361,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 			return false
 		}
 		to := cell{x: w.entities[ti].X, y: w.entities[ti].Y}
+		fromX, fromY := w.entities[ci].X, w.entities[ci].Y
 		if !w.attachFootprint(ci, to.x, to.y) {
 			// The cast has been admitted and paid. A relocation veto does not
 			// undo that cast or suppress its presentation (MAGIC-TELEPORT-174).
@@ -371,6 +372,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		w.entities[ci].clearStride()
 		w.entities[ci].HasTarget = false
 		w.routes[ci] = nil
+		w.castObservation.recordRelocation(w.entities[ci], fromX, fromY)
 		return true
 	case 25:
 		if ci < 0 || w.entities[ti].Alive() || w.entities[ti].Decay != DecayBones {
@@ -1062,7 +1064,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	if rule.Restorative && w.entities[vi].HP > healthBefore {
 		restored = w.entities[vi].HP - healthBefore
 	}
-	if !(rule.arm() == 14 && rule.Delivery == 2 && w.bookAlreadyPaid(casterID, spellID)) {
+	if !(rule.arm() == 14 && rule.Delivery == 2 && w.bookAlreadyPaid(casterID, spellID)) && !w.presentedAtAdmission(rule) {
 		obs.recordFromResult(w, ci, vi, rule, false, castFromX, castFromY, restored)
 		obs.recordVictims(victims)
 	}
@@ -1112,13 +1114,16 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	}
 	w.refreshAppliedBook(ci, spellID)
 	if rule.arm() == 26 {
-		obs.recordAt(w, ci, rule, x, y)
-		if w.attachFootprint(ci, x, y) {
+		if !w.presentedAtAdmission(rule) {
+			obs.recordAt(w, ci, rule, x, y)
+		}
+		if fromX, fromY := caster.X, caster.Y; w.attachFootprint(ci, x, y) {
 			caster.X, caster.Y = x, y
 			w.invalidateActorMotion(caster.ID, "native teleport supersedes original movement")
 			caster.clearStride()
 			caster.HasTarget = false
 			w.routes[ci] = nil
+			obs.recordRelocation(*caster, fromX, fromY)
 		}
 	} else {
 		if !w.landArea(rule, uint16(power), caster.ID, true, caster.X, caster.Y, x, y, obs) {
@@ -1520,6 +1525,81 @@ func (w *World) withinCastReach(caster, target Entity, reach int64) bool {
 	return caster.ID == target.ID || int64(edgeDistance(caster, target)) <= reach
 }
 
+// chargeBookCast pays the admitted book cast of actor ci and starts its action.
+// A first-game Teleport whose caster faces its target is presented here; one
+// still turning is presented by presentAdmittedCasts on the tick its turn
+// ends. Its release reports no second cast.
+func (w *World) chargeBookCast(ci int, rule SpellRule) {
+	w.admitBookPayment(ci, rule)
+	w.startSpellAction(ci)
+	if s := w.orderStateAt(ci); s.charging() && !w.castHeldNextTick(ci, w.bookCasts[s.bookAt]) {
+		w.presentBookCast(ci, w.bookCasts[s.bookAt], rule)
+	}
+}
+
+// presentAdmittedCasts presents each first-game Teleport that stepBookCasts
+// held for its caster's turn on this tick and whose countdown starts on the
+// next one. The original admits a cast only once its caster's facing equals
+// the heading (MOVE-107, MAGIC-340), and the countdown runs from that
+// admission (MAGIC-TELEPORT-370), so the relocation falls charge ticks after
+// the presentation in every direction.
+func (w *World) presentAdmittedCasts() {
+	if w.castObservation == nil {
+		return
+	}
+	for _, id := range w.castObservation.held {
+		ci := indexOfEntity(w.entities, id)
+		if ci < 0 {
+			continue
+		}
+		s := w.orderStateAt(ci)
+		if !s.charging() {
+			continue
+		}
+		c := w.bookCasts[s.bookAt]
+		rule, known := w.bookSpell(w.entities[ci], uint32(c.Spell))
+		if known && c.Remaining == castWindupTicks(w.entities[ci]) && !w.castHeldNextTick(ci, c) {
+			w.presentBookCast(ci, c, rule)
+		}
+	}
+}
+
+// castHeldNextTick reports that stepBookCasts will hold charging record c on
+// the next tick: its caster is turning toward a target other than itself and
+// the next turn step will not end the turn.
+func (w *World) castHeldNextTick(ci int, c bookCast) bool {
+	e := w.entities[ci]
+	if !e.Turning() || c.Target == c.Caster {
+		return false
+	}
+	advances := e.Alive() && !e.OffMap && !w.stoneCursed(ci) && !w.motionActive(e.ID)
+	return !(advances && e.Facing == e.DesiredFacing)
+}
+
+// presentBookCast reports record c of actor ci at its admission when its row
+// is presented there (MAGIC-TELEPORT-371): the caster's cell and the
+// destination, which for a unit target is that unit's cell now.
+func (w *World) presentBookCast(ci int, c bookCast, rule SpellRule) {
+	if !w.presentedAtAdmission(rule) {
+		return
+	}
+	x, y := c.X, c.Y
+	if !c.AtCell {
+		ti := indexOfEntity(w.entities, c.Target)
+		if ti < 0 {
+			return
+		}
+		x, y = w.entities[ti].X, w.entities[ti].Y
+	}
+	w.castObservation.recordAdmission(w, ci, c.Target, c.AtCell, rule, x, y)
+}
+
+// presentedAtAdmission reports a row whose cast message the first game sends
+// at admission rather than at the release: Teleport.
+func (w *World) presentedAtAdmission(rule SpellRule) bool {
+	return !w.SecondGame() && rule.arm() == teleportSpellID
+}
+
 func (w *World) queueBookCast(c bookCast) bool {
 	i, exists := w.bookCastIndex(c.Caster)
 	if exists {
@@ -1562,8 +1642,7 @@ func (w *World) beginBookSpellMode(ci int, victim EntityID, spellID uint32, reta
 	// movement during wind-up cannot restart or retarget this action.
 	w.turnToActor(ci, indexOfEntity(w.entities, victim))
 	if c.Phase == bookCharging {
-		w.admitBookPayment(ci, rule)
-		w.startSpellAction(ci)
+		w.chargeBookCast(ci, rule)
 	}
 	return true
 }
@@ -1800,8 +1879,7 @@ func (w *World) beginBookSpellAtMode(ci int, x, y int32, spellID uint32, retaine
 	w.entities[ci].AdmittedBookSpell = uint16(spellID)
 	w.turnToCell(ci, x, y)
 	if c.Phase == bookCharging {
-		w.admitBookPayment(ci, rule)
-		w.startSpellAction(ci)
+		w.chargeBookCast(ci, rule)
 	}
 	return true
 }
@@ -1863,8 +1941,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging,
 				castWindupTicks(w.entities[ci]), 0, false
 			rule, _ := w.bookSpell(w.entities[ci], uint32(c.Spell))
-			w.admitBookPayment(ci, rule)
-			w.startSpellAction(ci)
+			w.chargeBookCast(ci, rule)
 			i++
 			continue
 		case bookRelaxing:
@@ -1893,6 +1970,9 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			continue
 		}
 		if w.entities[ci].Turning() && c.Target != c.Caster {
+			if obs != nil {
+				obs.held = append(obs.held, c.Caster)
+			}
 			i++
 			continue
 		}

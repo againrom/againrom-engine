@@ -1788,8 +1788,11 @@ func newPlane(b Bounds, plane []byte, absent byte, what string) ([]byte, error) 
 type World struct {
 	tick              uint64
 	damageObservation *damageObservation
-	turnSteps         map[EntityID]struct{}
-	turnStepScope     bool
+	// castObservation is the step's report sink while a step runs, nil
+	// otherwise. Admission sites without a sink parameter record through it.
+	castObservation *castObs
+	turnSteps       map[EntityID]struct{}
+	turnStepScope   bool
 
 	// A source session uses tick as its uint32 SubTick and keeps FullTick
 	// independently. Without this presence bit the historical native uint64

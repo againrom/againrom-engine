@@ -314,6 +314,7 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 				w.entities[ci].X, w.entities[ci].Y = c.X, c.Y
 				w.invalidateActorMotion(w.entities[ci].ID, "native teleport supersedes original movement")
 				w.entities[ci].clearStride()
+				obs.recordRelocation(w.entities[ci], a.X, a.Y)
 			}
 		} else if rule.Area {
 			applied = w.landAreaFacing(rule, uint16(power), a.ID, true, a.X, a.Y, c.X, c.Y, a.Facing, true, obs)

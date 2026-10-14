@@ -65,7 +65,10 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	to := image.Pt(int(ev.ToX), int(ev.ToY))
 	class := mw.casterClass(ev.Caster)
 	x, y, ok := mw.world.ProjectilePoint(ev.Caster)
-	if !ok {
+	if !ok || effect.SecondRecord && !mw.world.SecondGame() && !mw.casterStandsOn(ev.Caster, from) {
+		// A first-game Teleport's start record stands at the cell the caster
+		// cast from, also when the event is read after the caster moved
+		// (MAGIC-TELEPORT-358, ANIM-TELEPORT-172).
 		x, y = cellCentre(from)
 	}
 	launch := castLaunch(class, ev.Facing, effect.SecondRecord)
@@ -92,6 +95,12 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 		rec.X, rec.Y = aimX+int32(arrive.X), aimY+int32(arrive.Y)
 		mw.releaseRecord(rec, look)
 	}
+}
+
+// casterStandsOn reports that the live caster's cell is at.
+func (mw *mapWorld) casterStandsOn(id sim.EntityID, at image.Point) bool {
+	e, ok := mw.entity(id)
+	return ok && int(e.X) == at.X && int(e.Y) == at.Y
 }
 
 // releaseScriptCast builds the record a client arm builds for a cast whose

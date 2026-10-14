@@ -52,7 +52,15 @@ func TestManualCastPreemptsCurrentAction(t *testing.T) {
 				if why := w.manualCastRefusal(cmd); why != "" {
 					t.Fatalf("manual admission still refuses the busy actor: %s", why)
 				}
-				if events := StepObserved(w, []Command{cmd}); len(events) != 0 {
+				// A Teleport is presented on its admission tick (MAGIC-TELEPORT-371),
+				// so the replacement tick carries the new cast's event and no other.
+				// Behind a loaded strike the cast waits for progress zero.
+				admitted := 0
+				if target == "cell" && action != "attack" {
+					admitted = 1
+				}
+				events := StepObserved(w, []Command{cmd})
+				if len(events) != admitted || admitted == 1 && (events[0].Spell != 26 || events[0].ToX != 6 || events[0].ToY != 3) {
 					t.Fatalf("old action released on replacement tick: %+v", events)
 				}
 				if action == "attack" {
@@ -67,7 +75,7 @@ func TestManualCastPreemptsCurrentAction(t *testing.T) {
 					t.Fatal("old movement, attack or guard order survived")
 				}
 				back := retreatRoundTrip1089(t, w)
-				casts := 0
+				casts := admitted
 				for tick := 0; tick < 64; tick++ {
 					casts += len(StepObserved(w, nil))
 					Step(back, nil)
@@ -114,7 +122,8 @@ func TestManualCastInterruptsReservedScroll(t *testing.T) {
 					w.entities[0].clearTurn()
 				}
 			}
-			if events := StepObserved(w, []Command{{Kind: KindCastAt, Entity: 1, Spell: 26, X: 4, Y: 4}}); len(events) != 0 {
+			// The replacing Teleport's own admission event is the one event.
+			if events := StepObserved(w, []Command{{Kind: KindCastAt, Entity: 1, Spell: 26, X: 4, Y: 4}}); len(events) != 1 || events[0].ToX != 4 || events[0].ToY != 4 {
 				t.Fatalf("cancelled scroll applied: %+v", events)
 			}
 			if len(w.scrollCasts) != 0 || len(w.carried[0]) != 1 || w.carried[0][0].Count != 2 || len(w.bookCasts) != 1 {

@@ -26,14 +26,14 @@ import (
 // could tell apart from the periodic one.
 const fogPeriod = 32
 
-func (mw *mapWorld) localTeleportArrived(events []sim.CastEvent) bool {
-	for _, event := range events {
-		if mw.world.SpellArm(uint16(event.Spell)) != 26 || event.Owner != sim.SelfSlot || (event.FromX == event.ToX && event.FromY == event.ToY) {
+// localTeleportArrived reports a local Teleport that moved its living caster
+// in this step. A blocked placement moves nothing and reports no relocation.
+func (mw *mapWorld) localTeleportArrived(moved []sim.Relocation) bool {
+	for _, r := range moved {
+		if r.Owner != sim.SelfSlot || (r.FromX == r.ToX && r.FromY == r.ToY) {
 			continue
 		}
-		// A blocked placement emits the same endpoint effects and pays mana.
-		// Reveal only the actual living caster's position after the step.
-		if caster, ok := mw.entity(event.Caster); ok && caster.Owner == sim.SelfSlot && caster.HP > 0 && caster.X == event.ToX && caster.Y == event.ToY {
+		if caster, ok := mw.entity(r.Caster); ok && caster.Owner == sim.SelfSlot && caster.HP > 0 && caster.X == r.ToX && caster.Y == r.ToY {
 			return true
 		}
 	}
