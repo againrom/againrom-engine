@@ -16,7 +16,7 @@ const recoveredCap = 0xf625
 // merchant's room through the square and the merchant's conversation.
 func recoveredCapShop(t *testing.T, raw []byte) (*FrontEnd, *ui.App, SaveStore, *townScreen) {
 	t.Helper()
-	f, app, store := cityPotionLoadApp(t, raw)
+	f, app, store := cityLoadApp(t, raw)
 	if err := app.HeadlessActivate("SHOP"); err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func recoveredCapShow(t *testing.T, app *ui.App, shop *townScreen, id string) {
 		if m := shop.shopPartyMember(shop.shopMemberIndex()); m != nil && m.ID == id {
 			return
 		}
-		cityPotionPointer(t, app, "picker_next", 0, "press", "release")
+		cityShopPointer(t, app, "picker_next", 0, "press", "release")
 	}
 	t.Fatalf("the member picker never showed %s", id)
 }
@@ -56,7 +56,7 @@ func recoveredCapCell(t *testing.T, shop *townScreen) int {
 
 func recoveredCapTap(t *testing.T, app *ui.App, target string, index int) {
 	t.Helper()
-	cityPotionPointer(t, app, target, index, "press", "release")
+	cityShopPointer(t, app, target, index, "press", "release")
 }
 
 // recoveredCapDrawn is what the shop's message strip draws of msg:
@@ -112,10 +112,10 @@ func TestReleaseTownDoubleClickWearsTheRecoveredCap(t *testing.T) {
 				t.Fatalf("the cap has slot %d (%v) and city object %d", slot, ok, object)
 			}
 			if route == "drag" {
-				cityPotionPointer(t, app, "pack", cell, "press")
-				cityPotionPointer(t, app, "doll_box", 0, "move", "release")
+				cityShopPointer(t, app, "pack", cell, "press")
+				cityShopPointer(t, app, "doll_box", 0, "move", "release")
 			} else {
-				cityPotionPointer(t, app, "pack", cell, "press", "release", "press", "release")
+				cityShopPointer(t, app, "pack", cell, "press", "release", "press", "release")
 			}
 			msg := app.HeadlessMessage()
 			worn, pack := currentTownMember(t, f, "npc:22")
@@ -125,7 +125,7 @@ func TestReleaseTownDoubleClickWearsTheRecoveredCap(t *testing.T) {
 					route, msg, recoveredCapDrawn(f, msg), slot, worn[slot-1], root.Worn[slot-1], pack, len(f.Shop.Table()), object)
 			}
 			live := f.Town.cityObjects.Clone()
-			cold, _, _ := cityPotionLoadApp(t, cityRosterF2Save(t, app, store, "cap"))
+			cold, _, _ := cityLoadApp(t, cityRosterF2Save(t, app, store, "cap"))
 			if cold.Town == nil || cold.Town.cityObjects == nil {
 				t.Fatal("the cold LOAD has no city item graph")
 			}

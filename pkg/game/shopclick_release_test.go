@@ -97,7 +97,7 @@ func TestReleaseShopClicksTransferOnTheReleaseFrame(t *testing.T) {
 		t.Fatal("idle double-click expiry moved another unit")
 	}
 	saved := cityRosterF2Save(t, app, store, "responsive-shop")
-	cold, coldApp, _ := cityPotionLoadApp(t, saved)
+	cold, coldApp, _ := cityLoadApp(t, saved)
 	coldApp.Layout(640, 480)
 	if cold.Town.Gold() != wantGold || len(cold.Shop.Table()) != 0 {
 		t.Fatal("cold SAVE/LOAD changed the purse or retained a transient trade")

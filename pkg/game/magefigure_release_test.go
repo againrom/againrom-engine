@@ -167,7 +167,7 @@ func TestReleaseTownMageGlovesAreDrawnUnderTheBraceletsOnReniesta(t *testing.T) 
 	}
 	f.Shop.shelves[ShelfArmour] = stock
 	f.Town.gold = 100000
-	cityPotionPointer(t, app, "shelf_pick", 0, "press", "release")
+	cityShopPointer(t, app, "shelf_pick", 0, "press", "release")
 	for _, want := range []struct {
 		slot int
 		code uint16
@@ -176,7 +176,7 @@ func TestReleaseTownMageGlovesAreDrawnUnderTheBraceletsOnReniesta(t *testing.T) 
 		if err := app.HeadlessPointer("press", at.X, at.Y); err != nil {
 			t.Fatal(err)
 		}
-		cityPotionPointer(t, app, "doll_box", 0, "move", "release")
+		cityShopPointer(t, app, "doll_box", 0, "move", "release")
 		if worn, _ := currentTownMember(t, f, "npc:22"); worn[want.slot-1] != want.code {
 			t.Fatalf("slot %d holds %#x after the drag, want %#x; message %q", want.slot, worn[want.slot-1], want.code, app.HeadlessMessage())
 		}

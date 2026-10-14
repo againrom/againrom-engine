@@ -147,36 +147,3 @@ func TestReleaseTownCurrentHeroFieldsThroughF2(t *testing.T) {
 		t.Errorf("next three ticks lost current Body/pools: %+v", e)
 	}
 }
-
-func TestReleaseTownPotionCurrentFieldsThroughF2(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		effect sim.ItemEffect
-		at     int
-	}{{"Body", sim.ItemEffect{Kind: 2, Operand: 3}, 10}, {"HealthRegeneration", sim.ItemEffect{Kind: 8, Mode: 1, Operand: 3 | 20<<16}, 10}, {"ManaRegeneration", sim.ItemEffect{Kind: 11, Mode: 1, Operand: 3 | 20<<16}, 14}} {
-		t.Run(tc.name, func(t *testing.T) {
-			f, app, store, member := currentHeroTownFixture(t)
-			p := &f.Carried[member]
-			p.Saved = &mapload.Saved{HP: 17, MaxHP: 257, Mana: 19, MaxMana: 113}
-			result, ok := mapload.ApplyTownPotion(*p, sim.ItemInstance{Code: 0xe08, Kind: 3, Effects: []sim.ItemEffect{tc.effect}}, f.Table)
-			if !ok || result.Carry.NativeHistory == nil {
-				t.Fatal("actual native potion preflight")
-			}
-			if !commitTownPotion(p, result) {
-				t.Fatal("actual native potion commit")
-			}
-			raw := cityRosterF2Save(t, app, store, "potion-hero")
-			h := routeBoundHero(t, f, raw)
-			if h.Stats[8] != 17 || h.Stats[9] != 257 || h.Stats[11] != 19 || h.Stats[12] != 113 {
-				t.Errorf("potion attachment lost current pools: %v", h.Stats)
-			}
-			if h.Stats[0] != result.Carry.NativeHistory.Basis.Body {
-				t.Errorf("potion Body got %d want current %d", h.Stats[0], result.Carry.NativeHistory.Basis.Body)
-			}
-			want := binary.LittleEndian.Uint16(result.Carry.NativeHistory.Basis.Modifier[tc.at:])
-			if got := binary.LittleEndian.Uint16(h.Basis.Human.Fields.Modifier[tc.at:]); got != want {
-				t.Errorf("potion %s got %d want current %d", tc.name, got, want)
-			}
-		})
-	}
-}

@@ -729,23 +729,11 @@ func (t *townScreen) shopEquipFromPackValues(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	item := stacks[k].Instance()
-	if user, result, refusal, potion := t.shopPotionUser(item); potion {
+	if user, refusal, potion := t.shopPotionUser(item); potion {
 		if user == nil {
 			return refusal
 		}
-		before := mapload.CloneParty([]mapload.PartyMember{*user})[0]
-		var trade *originalCityTrade
-		if t.sess.originalCity != nil {
-			trade = t.sess.originalCity.trade
-		}
 		if !t.shopTakeOnePackItem(item) {
-			return ui.TownAction{}
-		}
-		if !commitTownPotion(user, result) {
-			*user = before
-			if t.sess.originalCity != nil {
-				t.sess.originalCity.trade = trade
-			}
 			return ui.TownAction{}
 		}
 		return ui.TownInfo("used")
@@ -804,22 +792,17 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	item := items[k]
-	if user, result, refusal, potion := t.shopPotionUser(item.Instance()); potion {
+	if user, refusal, potion := t.shopPotionUser(item.Instance()); potion {
 		if user == nil {
 			return refusal
 		}
 		if item.Price > 0 && int32(t.sess.Town.Gold()) < item.Price {
 			return ui.TownAction{}
 		}
-		next := mapload.CloneParty([]mapload.PartyMember{*user})[0]
-		if !commitTownPotion(&next, result) {
-			return ui.TownAction{}
-		}
 		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
 			return ui.TownAction{}
 		}
 		t.sess.Town.gold -= int(item.Price)
-		*user = next
 		return ui.TownInfo("used")
 	}
 	if reader, spell, refusal, readable := t.shopBookReader(item.Instance()); readable {
@@ -881,15 +864,11 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	place := table[i]
-	if user, result, refusal, potion := t.shopPotionUser(place.Instance()); potion {
+	if user, refusal, potion := t.shopPotionUser(place.Instance()); potion {
 		if user == nil {
 			return refusal
 		}
 		if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
-			return ui.TownAction{}
-		}
-		next := mapload.CloneParty([]mapload.PartyMember{*user})[0]
-		if !commitTownPotion(&next, result) {
 			return ui.TownAction{}
 		}
 		taken, ok := t.sess.Shop.TakeOffTable(i, 1)
@@ -899,7 +878,6 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 		if !taken.Mine {
 			t.sess.Town.gold -= int(taken.Price)
 		}
-		*user = next
 		return ui.TownInfo("used")
 	}
 	if reader, spell, refusal, readable := t.shopBookReader(place.Instance()); readable {

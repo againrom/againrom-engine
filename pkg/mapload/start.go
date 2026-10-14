@@ -690,7 +690,7 @@ func restoredPools(p PartyMember, health, mana int32, regen data.UnitDef) pools 
 // there, so a start's report says the same thing for a party of none as for a
 // party of one.
 func StartMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember) (*sim.World, Start, error) {
-	return startMission(m, t, diff, party, 0, nil, false)
+	return StartCampaignMission(m, t, diff, party, 0)
 }
 
 // StartCampaignMission is StartMission with the campaign mission number that
@@ -698,7 +698,11 @@ func StartMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember) (*
 // point for standalone maps and synthetic callers that have no campaign.
 func StartCampaignMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	mission int) (*sim.World, Start, error) {
-	return startMission(m, t, diff, party, mission, nil, false)
+	w, st, err := startMission(m, t, diff, party, mission, nil, false)
+	if err == nil {
+		dropTownPotionRecords(w, party, st)
+	}
+	return w, st, err
 }
 
 // startMission places the party with draws, or with a sequence at StartSeed
@@ -1224,6 +1228,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	if err := initializeOriginalHumanMovement(out, party, st); err != nil {
 		return nil, Start{}, err
 	}
+	dropTownPotionRecords(out, party, st)
 	DeclareSourceConstructors(out, t)
 	if base.RandomMode() == random.Original {
 		out.SetRandom(random.Original, base.RandomState())

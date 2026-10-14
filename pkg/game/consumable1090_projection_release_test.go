@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -107,74 +106,6 @@ func TestReleaseConsumable1090AppRestoredSheets(t *testing.T) {
 			back.live.push()
 			if control.Hash() != back.live.world.Hash() {
 				t.Fatal("sheet refresh changed canonical continuation")
-			}
-		}
-	})
-	t.Run("owned town absorption", func(t *testing.T) {
-		app, shop := releaseShopApp(t)
-		f := frontOf(shop)
-		item := mapload.ItemInstanceFromCode(0xe01, f.Table)
-		shop.setShopPackItemInstances([]sim.ItemInstance{item, item})
-		before := shop.ShopScreen().Character.Subject.Combat.Absorption
-		shopPointer1090(t, app, "pack", 1, "press", "release", "press", "release")
-		p := shop.shopPartyMember(shop.shopMemberIndex())
-		if p.PotionEffect == nil || p.PotionEffect.Kind != sim.EffectAbsorption || p.PotionEffect.Magnitude != 50 || p.PotionEffect.Remaining != 480 || len(shop.shopPackItemInstances()) != 1 {
-			t.Fatal("owned antipoison use did not commit one unit and timer")
-		}
-		want := before + 50
-		unchanged := mapload.CloneParty(f.Carried)
-		for n := 0; n < 3; n++ {
-			if got := shop.ShopScreen().Character.Subject.Combat.Absorption; got != want {
-				t.Fatalf("shop absorption=%d want%d", got, want)
-			}
-			if got := shop.townCharacterView().Subject.Combat.Absorption; got != want {
-				t.Fatalf("town absorption=%d want%d", got, want)
-			}
-		}
-		if !reflect.DeepEqual(f.Carried, unchanged) {
-			t.Fatal("drawing changed carried state")
-		}
-		snapshot, label, err := f.Snapshot(false)
-		if err != nil {
-			t.Fatal(err)
-		}
-		disk, err := EncodeSave(snapshot, label)
-		if err != nil {
-			t.Fatal(err)
-		}
-		decoded, _, err := DecodeSave(disk)
-		if err != nil {
-			t.Fatal(err)
-		}
-		back := releaseFront(t)
-		_, town, err := back.Restore(decoded)
-		if err != nil || !town {
-			t.Fatalf("restore town=%v: %v", town, err)
-		}
-		if got := back.TownScreen().(*townScreen).townCharacterView().Subject.Combat.Absorption; got != want {
-			t.Fatalf("restored town absorption=%d want%d", got, want)
-		}
-		if !reflect.DeepEqual(back.Carried[0].PotionEffect, p.PotionEffect) {
-			t.Fatal("town projection advanced or replaced timer")
-		}
-		next := back.App("1090-town-sheet-carry")
-		next.Layout(1024, 768)
-		if err := next.OpenMission(back.MissionOpener(back.Town.Chapter())); err != nil {
-			t.Fatal(err)
-		}
-		e, _ := back.live.entity(back.live.mission.ids[0])
-		if int(e.Absorption) != want || len(back.live.world.ActiveEffects()) != 1 || back.live.world.ActiveEffects()[0].Remaining != 480 {
-			t.Fatalf("town-to-mission absorption=%d want%d effects=%+v", e.Absorption, want, back.live.world.ActiveEffects())
-		}
-		for tick := 1; tick <= 480; tick++ {
-			sim.Step(back.live.world, nil)
-			current, _ := back.live.entity(e.ID)
-			expected := want
-			if tick == 480 {
-				expected = before
-			}
-			if int(current.Absorption) != expected {
-				t.Fatalf("carried potion tick%d absorption=%d want%d", tick, current.Absorption, expected)
 			}
 		}
 	})

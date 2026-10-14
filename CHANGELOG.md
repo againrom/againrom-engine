@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A potion drunk in the town is used up and changes nothing, as in the original; a regeneration potion drunk there no longer carries into the next mission. A save made with such a potion by an earlier version loads, and the potion ends when the next mission starts.
+
 ## 0.123.0
 
 - [ROM1] The town plays the original's sounds in more places. In the shop: a thud when an item goes onto the trade table and another when it is taken off, the purchase, the refused purchase and the sale, Undo and Out on the button press, the scroll arrows, a shelf change, and the shop's greeting and background on entry. In the tavern: a click on a mercenary or speaker, hiring, a hire you cannot pay for, dismissal, opening a talk or a biography, and the Exit press. In the school: entry and the Exit press. The tavern's and the school's buttons no longer click when released, as in the original. Closing a tip window with its Close button clicks, in town and in a mission, and so does the page button of a town dialogue.

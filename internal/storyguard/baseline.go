@@ -2448,7 +2448,7 @@ package storyguard
 // pkg/sim/targetorder.go and the build line that moves the target census
 // into the corpus audit, this note included.
 var Committed = Baseline{
-	TestIdentCount: 4632,
+	TestIdentCount: 4625,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2470,5 +2470,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9042448,
+	CommentBytes: 9041726,
 }

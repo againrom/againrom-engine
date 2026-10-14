@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"slices"
@@ -75,41 +74,6 @@ func kitOwnerShop(t *testing.T, f *FrontEnd, app *ui.App) *townScreen {
 	return shop
 }
 
-func kitOwnerDrinkRegeneration(t *testing.T, f *FrontEnd, app *ui.App) *sim.ActiveEffect {
-	t.Helper()
-	shop := kitOwnerShop(t, f, app)
-	shop.shopMember = 0
-	member := shop.shopPartyMember(shop.shopMemberIndex())
-	if member == nil || member.PotionEffect != nil {
-		t.Fatal("fixture requires a member without a potion")
-	}
-	var item ShopItem
-	found := false
-	for _, s := range shopPotionStock(f.Table, rand.New(rand.NewSource(1))) {
-		if f.Table.MagicItems.EntryName(int(s.Code&0xff)) == "Potion Health Regeneration" {
-			item, found = s, true
-		}
-	}
-	if !found {
-		t.Fatal("installed shop does not sell the regeneration potion")
-	}
-	f.Shop.shelves[ShelfBooks] = []ShopItem{item}
-	f.Town.gold = 100000
-	cityPotionPointer(t, app, "shelf_pick", 3, "press", "release")
-	gold := f.Town.Gold()
-	packAt := releaseShopBuyToPack(t, app, f, uint16(item.Code))
-	if err := app.HeadlessPointer("press", packAt.X, packAt.Y); err != nil {
-		t.Fatal(err)
-	}
-	cityPotionPointer(t, app, "doll_box", 0, "move", "release")
-	member = shop.shopPartyMember(shop.shopMemberIndex())
-	e := member.PotionEffect
-	if e == nil || e.Kind != sim.EffectHealthRegeneration || e.Magnitude != 100 || e.Remaining != 960 || f.Town.Gold() != gold-int(item.Price) {
-		t.Fatalf("potion use left %+v, gold %d -> %d", e, gold, f.Town.Gold())
-	}
-	return e
-}
-
 func kitOwnerLearnSpell(t *testing.T, f *FrontEnd, app *ui.App) (mapload.PartyMember, uint32) {
 	t.Helper()
 	idx := cityMageIndex(t, f)
@@ -178,7 +142,6 @@ func kitOwnerBuildCity(t *testing.T) ([]byte, string) {
 	f, app, store := cityGroupsColdApp(t, seed)
 	t.Logf("%s chapter %d party %d gold %d", edition, f.Town.Chapter(), len(f.Carried), f.Town.Gold())
 
-	potion := kitOwnerDrinkRegeneration(t, f, app)
 	mage, spell := kitOwnerLearnSpell(t, f, app)
 
 	f.Town.gold = 3_000_000
@@ -212,7 +175,7 @@ func kitOwnerBuildCity(t *testing.T) ([]byte, string) {
 	}
 	label := kitOwnerCityLabel(edition)
 	raw := cityRosterF2Save(t, app, store, label)
-	t.Logf("BUILD %s label %q party %d hired %v plan %v potion %+v mage %s learned spell %d bytes %d", edition, label, len(f.Carried), hired, plan, *potion, mage.Name, spell, len(raw))
+	t.Logf("BUILD %s label %q party %d hired %v plan %v mage %s learned spell %d bytes %d", edition, label, len(f.Carried), hired, plan, mage.Name, spell, len(raw))
 	return raw, edition
 }
 
@@ -220,7 +183,7 @@ func TestKitOwnerCityM10(t *testing.T) {
 	raw, edition := kitOwnerBuildCity(t)
 	kitOwnerWrite(t, kitOwnerOutput(t, edition), kitOwnerCityFile(edition), raw)
 	loaded := strings.Join(kitOwnerReceive(t, raw), "; ")
-	for _, want := range []string{"party 14 members, hired: type 2 x1, type 6 x4, type 13 x4, type 14 x3", "potion Kit Hero kind 12 magnitude 100 remaining 960", "knows spells [1 2 6 12 18]"} {
+	for _, want := range []string{"party 14 members, hired: type 2 x1, type 6 x4, type 13 x4, type 14 x3", "knows spells [1 2 6 12 18]"} {
 		if !strings.Contains(loaded, want) {
 			t.Fatalf("cold LOAD of the city file lacks %q: %s", want, loaded)
 		}

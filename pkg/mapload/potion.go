@@ -28,8 +28,8 @@ func PotionHeadroom(h data.Hero, d data.Derived) (out [4]int32) {
 }
 
 // PartyDisplayWithTable is the read-only town/preview projection. Spawn stays
-// base-only because initializePotions attaches the carried timer to the new
-// actor separately. Display folds it once without advancing or storing state.
+// base-only; display folds a carried timer once without advancing or storing
+// state.
 func PartyDisplayWithTable(p PartyMember, t *Table) (d data.Derived, health, mana int32) {
 	// The first two hire types use fixed creature templates, including in
 	// the town card. StartMission resolves this same placement block.
@@ -76,134 +76,27 @@ func initializePotions(w *sim.World, party []PartyMember, st Start, table *Table
 		}
 		d, _, _ := PartySpawnWithTable(p, table)
 		w.SetPotionHeadroom(st.IDs[i], PotionHeadroom(p.Hero, d))
-		if p.PotionEffect != nil {
-			if p.Carry != nil && p.Carry.LiveLoad != nil && p.Carry.LiveLoad.Inventory.Source.Class == 2 {
-				w.RestoreAppliedPotionEffect(st.IDs[i], *p.PotionEffect)
-			} else if p.Carry != nil && p.Carry.NativeHistory != nil {
-				w.RestoreCarriedPotionEffect(st.IDs[i], *p.PotionEffect)
-			} else {
-				w.RestorePotionEffect(st.IDs[i], *p.PotionEffect)
-			}
+		if p.PotionEffect == nil {
+			continue
 		}
-	}
-}
-
-// ApplyTownPotion uses the simulation's exact Item application without a town
-// clock. The returned member owns its copied permanent/timed state; callers
-// commit it only after taking one source unit. Campaign pool minting is unchanged.
-func ApplyTownPotion(p PartyMember, item sim.ItemInstance, table *Table) (PartyMember, bool) {
-	if !sim.UsablePotion(item) {
-		return p, false
-	}
-	if p.Carry != nil && p.Carry.LiveLoad != nil && p.Carry.LiveLoad.Inventory.Source.Class == 2 {
-		return applySourceTownPotion(p, item)
-	}
-	d, hp, mana := PartySpawnWithTable(p, table)
-	_, _, _, sourcePools := originalHumanSpawn(p, table)
-	if p.Saved != nil && !sourcePools {
-		hp, d.HealthMax = p.Saved.HP, p.Saved.MaxHP
-		mana, d.ManaMax = p.Saved.Mana, p.Saved.MaxMana
-	}
-	e := sim.Entity{ID: 1, HP: hp, MaxHP: d.HealthMax, Mana: mana, MaxMana: d.ManaMax, Absorption: d.Combat.Absorption,
-		HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration, PotionHeadroom: PotionHeadroom(p.Hero, d)}
-	e.Humanoid = true
-	carriedNativeHistory(p, &e.NativeBasis, &e.NativeClass)
-	w, err := sim.NewStockedWorld(0, sim.Bounds{Width: 1, Height: 1}, sim.ModeCanonical, sim.Terrain{}, []sim.Entity{e}, nil, sim.Relations{}, nil, []sim.Stock{{ID: 1, ItemInstances: []sim.ItemInstance{item}}})
-	if err != nil {
-		return p, false
-	}
-	if p.PotionEffect != nil {
-		var restored bool
-		if p.Carry != nil && p.Carry.NativeHistory != nil {
-			restored = w.RestoreCarriedPotionEffect(1, *p.PotionEffect)
+		// Only an earlier build's town use stores one; it is attached as
+		// written and dropTownPotionRecords removes it.
+		if p.Carry != nil && p.Carry.LiveLoad != nil && p.Carry.LiveLoad.Inventory.Source.Class == 2 {
+			w.RestoreAppliedPotionEffect(st.IDs[i], *p.PotionEffect)
+		} else if p.Carry != nil && p.Carry.NativeHistory != nil {
+			w.RestoreCarriedPotionEffect(st.IDs[i], *p.PotionEffect)
 		} else {
-			restored = w.RestorePotionEffect(1, *p.PotionEffect)
-		}
-		if !restored {
-			return p, false
+			w.RestorePotionEffect(st.IDs[i], *p.PotionEffect)
 		}
 	}
-	if !w.UseCarriedPotion(1, 0) {
-		return p, false
-	}
-	out := clonePartyMember(p)
-	actor := w.Entities()[0]
-	if out.Carry != nil && out.Carry.NativeHistory != nil {
-		out.Carry.NativeHistory = CaptureNativeCarryHistory(actor)
-	}
-	out.Hero = PotionHero(out.Hero, actor.PotionStats)
-	out.PotionEffect = nil
-	for _, effect := range w.ActiveEffects() {
-		if effect.Spell == 0 {
-			out.PotionEffect = &effect
-			break
-		}
-	}
-	if out.Saved != nil {
-		out.Saved.HP, out.Saved.Mana = actor.HP, actor.Mana
-	}
-	out.RetireOriginalHuman()
-	UpdatePartyLoad(p, &out, table, true, true)
-	return out, true
 }
 
-func applySourceTownPotion(p PartyMember, item sim.ItemInstance) (PartyMember, bool) {
-	// The city transaction owns the actual source item. This isolated use
-	// applies its effects only; commit refreshes from the post-transaction
-	// accumulator. Do not subtract a fictitious carried unit's weight twice.
-	item = item.Clone()
-	item.WeightPresent, item.Weight = true, 0
-	e := sim.Entity{ID: 1, HP: 1, MaxHP: 1}
-	w, err := sim.NewStockedWorld(0, sim.Bounds{Width: 1, Height: 1}, sim.ModeCanonical, sim.Terrain{}, []sim.Entity{e}, nil, sim.Relations{}, nil, []sim.Stock{{ID: 1, ItemInstances: []sim.ItemInstance{item}}})
-	if err != nil {
-		return p, false
-	}
-	BindSourceDerive(w)
-	if p.PotionEffect != nil && !w.RestorePotionEffect(1, *p.PotionEffect) {
-		return p, false
-	}
-	if w.RestoreActorLoad(1, *p.Carry.LiveLoad) != nil || !w.UseCarriedPotion(1, 0) {
-		return p, false
-	}
-	if w.Entities()[0].Capacity == 0 {
-		return p, false
-	}
-	out := clonePartyMember(p)
-	out.Carry.LiveLoad = w.Entities()[0].CurrentActorLoad()
-	out.Hero = SourceHumanState(out.Carry.LiveLoad.Inventory.Source, out.Carry.LiveLoad.Inventory.Accumulator).Hero()
-	out.PotionEffect = nil
-	for _, effect := range w.ActiveEffects() {
-		if effect.Spell == 0 {
-			out.PotionEffect = &effect
-			break
+// dropTownPotionRecords expires every carried potion record before the first
+// tick: no town potion reaches a mission (DIV-1691).
+func dropTownPotionRecords(w *sim.World, party []PartyMember, st Start) {
+	for i, p := range party {
+		if i < len(st.IDs) && p.PotionEffect != nil {
+			w.DropPotionEffect(st.IDs[i])
 		}
 	}
-	out.RetireOriginalHuman()
-	return out, true
-}
-
-// CommitSourceTownPotion publishes a preflighted source effect after the city
-// has removed its item. The result's retained modifiers remain authoritative;
-// only the live container bookkeeping comes from the transaction.
-func CommitSourceTownPotion(member *PartyMember, result PartyMember) bool {
-	if member.Carry == nil || member.Carry.LiveLoad == nil || result.Carry == nil || result.Carry.LiveLoad == nil || result.Carry.LiveLoad.Inventory.Source.Class != 2 {
-		return false
-	}
-	s := *member.Carry.LiveLoad
-	h := SourceHumanState(result.Carry.LiveLoad.Inventory.Source, s.Inventory.Accumulator)
-	h.Weight = uint16(s.Inventory.OwnWeight)
-	n, _, err := h.RefreshInventoryLoad()
-	if err != nil {
-		return false
-	}
-	s.Inventory.Source = humanSourceWithRuntime(n, s.Inventory.Source)
-	s.Load, s.Capacity, s.Speed = int32(int16(n.Load)), int32(int16(n.Capacity)), int32(int16(n.Speed))
-	s.Movement = sim.HumanMovement{Present: true, RawSpeed: int16(n.Speed), NativeSpeed: s.Speed, Load: s.Load, Capacity: s.Capacity}
-	member.Carry.LiveLoad = &s
-	member.Hero, member.PotionEffect = n.Hero(), result.PotionEffect
-	member.RetireOriginalHuman()
-	if member.Saved != nil {
-		member.Saved.HP, member.Saved.MaxHP, member.Saved.Mana, member.Saved.MaxMana = int32(int16(n.Health)), int32(int16(n.HealthMax)), int32(int16(n.Mana)), int32(int16(n.ManaMax))
-	}
-	return true
 }

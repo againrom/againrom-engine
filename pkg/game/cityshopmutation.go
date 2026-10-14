@@ -1033,15 +1033,12 @@ func (t *townScreen) cityShopNativeWear(slot int, item ShopItem) error {
 }
 
 func (t *townScreen) cityShopUse(item ShopItem, take func() (ShopItem, error), packIndex int) (ui.TownAction, error) {
-	if user, result, _, potion := t.shopPotionUser(item.Instance()); potion {
+	if user, _, potion := t.shopPotionUser(item.Instance()); potion {
 		if user == nil {
 			return ui.TownAction{}, shopRefusal("refused")
 		}
 		if _, err := take(); err != nil {
 			return ui.TownAction{}, err
-		}
-		if !commitTownPotion(&t.sess.Carried[t.shopMemberIndex()], result) {
-			return ui.TownAction{}, shopRefusal("cannot use that potion")
 		}
 		return ui.TownInfo("used"), nil
 	}

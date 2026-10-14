@@ -15,7 +15,7 @@ var CommittedActorLiterals = map[string]int{
 	"pkg/game/originalspellbook.go":  3,
 	"pkg/game/shopview.go":           1,
 	"pkg/game/world.go":              1,
-	"pkg/mapload/potion.go":          3,
+	"pkg/mapload/potion.go":          1,
 	"pkg/mapload/sourceequipment.go": 1,
 	"pkg/sim/binary.go":              1,
 	"pkg/sim/carry.go":               1,

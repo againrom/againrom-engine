@@ -6,44 +6,18 @@ import (
 	"againrom/pkg/ui"
 )
 
-func (t *townScreen) shopPotionUser(item sim.ItemInstance) (*mapload.PartyMember, mapload.PartyMember, ui.TownAction, bool) {
+// shopPotionUser refuses a scroll. A usable potion is consumed by the caller and
+// changes nothing: the town has no clock (DIV-1691).
+func (t *townScreen) shopPotionUser(item sim.ItemInstance) (*mapload.PartyMember, ui.TownAction, bool) {
 	if item.Kind == 4 {
-		return nil, mapload.PartyMember{}, ui.TownAction{}, true
+		return nil, ui.TownAction{}, true
 	}
 	if item.Kind != 3 {
-		return nil, mapload.PartyMember{}, ui.TownAction{}, false
+		return nil, ui.TownAction{}, false
 	}
 	p := t.shopPartyMember(t.shopMemberIndex())
-	if p == nil {
-		return nil, mapload.PartyMember{}, ui.TownAction{}, true
+	if p == nil || !sim.UsablePotion(item) {
+		return nil, ui.TownAction{}, true
 	}
-	result, ok := mapload.ApplyTownPotion(*p, item, t.in.Table)
-	if !ok {
-		return nil, mapload.PartyMember{}, ui.TownAction{}, true
-	}
-	return p, result, ui.TownAction{}, true
-}
-
-func commitTownPotion(member *mapload.PartyMember, result mapload.PartyMember) bool {
-	if result.Carry != nil && result.Carry.LiveLoad != nil && result.Carry.LiveLoad.Inventory.Source.Class != 0 {
-		return mapload.CommitSourceTownPotion(member, result)
-	}
-	// The transaction already removed one item from member's pack. Do not
-	// overwrite that updated container with the preflight copy's inventory.
-	member.RetireOriginalHuman()
-	member.Hero, member.PotionEffect = result.Hero, result.PotionEffect
-	if member.Carry != nil && result.Carry != nil && result.Carry.NativeHistory != nil {
-		history := *result.Carry.NativeHistory
-		member.Carry.NativeHistory = &history
-	}
-	if member.Saved != nil && result.Saved != nil {
-		member.Saved.HP, member.Saved.Mana = result.Saved.HP, result.Saved.Mana
-	}
-	if member.Carry != nil && member.Carry.LiveLoad != nil && result.Carry != nil && result.Carry.LiveLoad != nil {
-		state := *member.Carry.LiveLoad
-		state.Capacity, state.Speed, state.Movement = result.Carry.LiveLoad.Capacity, result.Carry.LiveLoad.Speed, sim.HumanMovement{}
-		state.Load = state.Inventory.CurrentLoad()
-		member.Carry.LiveLoad = &state
-	}
-	return true
+	return p, ui.TownAction{}, true
 }

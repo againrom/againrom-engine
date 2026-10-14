@@ -30,7 +30,7 @@ func cityNewGameSessionBoundary(t *testing.T, explicitProfile bool) {
 					t.Cleanup(app.StopAudio)
 				} else {
 					_, raw := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
-					f, _, _ = cityPotionLoadApp(t, raw)
+					f, _, _ = cityLoadApp(t, raw)
 				}
 				f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 				if explicitProfile {
@@ -83,7 +83,7 @@ func cityNewGameSessionBoundary(t *testing.T, explicitProfile bool) {
 					}
 				}
 				for tick := 0; tick <= 3; tick++ {
-					cityPotionMissionEqual(t, f.live.world, clean.live.world, tick)
+					cityMissionWorldsEqual(t, f.live.world, clean.live.world, tick)
 					if tick < 3 {
 						f.LiveAdvance(1)
 						clean.LiveAdvance(1)

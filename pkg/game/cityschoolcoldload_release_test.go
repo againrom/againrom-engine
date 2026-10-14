@@ -11,7 +11,7 @@ func TestReleaseCitySchoolTrainsNativeMageAfterColdLoad(t *testing.T) {
 	f, app := saveDialogArrivedTown(t, store.Dir)
 	t.Cleanup(app.StopAudio)
 	raw := cityRosterF2Save(t, app, store, "school-seed")
-	cold, coldApp, coldStore := cityPotionLoadApp(t, raw)
+	cold, coldApp, coldStore := cityLoadApp(t, raw)
 	idx := cityMageIndex(t, cold)
 	member := cold.Carried[idx]
 	if !member.Mage || f.Carried[idx].ID != member.ID {
@@ -39,7 +39,7 @@ func TestReleaseCitySchoolTrainsNativeMageAfterColdLoad(t *testing.T) {
 		t.Fatal("Train left the city", coldApp.Screen())
 	}
 	again := cityRosterF2Save(t, coldApp, coldStore, "school-trained")
-	back, _, _ := cityPotionLoadApp(t, again)
+	back, _, _ := cityLoadApp(t, again)
 	if got := trainingPartyMember(t, back, member.ID); got.Hero.Skill[slot] != trained.Hero.Skill[slot] || back.Town.Gold() != cold.Town.Gold() {
 		t.Fatalf("second cold LOAD skill %d gold %d, want %d and %d", got.Hero.Skill[slot], back.Town.Gold(), trained.Hero.Skill[slot], cold.Town.Gold())
 	}

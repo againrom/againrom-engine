@@ -74,7 +74,7 @@ func (w *World) applyPotion(i, index int, item ItemInstance) bool {
 }
 
 // UseCarriedPotion is the same atomic command operation without advancing a
-// clock. The town projection uses it on an isolated, typed actor value.
+// clock.
 func (w *World) UseCarriedPotion(id EntityID, index int) bool {
 	return w.usePotion(indexOfEntity(w.entities, id), index)
 }
@@ -163,8 +163,8 @@ func (w *World) attachPotionEffect(id EntityID, incoming ItemEffect) {
 	}
 }
 
-// RestorePotionEffect applies a carried town/mission-boundary timer to a fresh
-// actor exactly once. Native world decoding never calls this constructor.
+// RestorePotionEffect applies a carried timer to a fresh actor exactly once.
+// Native world decoding never calls this constructor.
 func (w *World) RestorePotionEffect(id EntityID, effect ActiveEffect) bool {
 	itemEffect, ok := potionAttachment(effect)
 	if !ok || indexOfEntity(w.entities, id) < 0 {
@@ -216,6 +216,15 @@ func (w *World) RestoreCarriedPotionEffect(id EntityID, effect ActiveEffect) boo
 	}
 	w.entities[i].NativeBasis = basis
 	return true
+}
+
+// DropPotionEffect removes id's potion attachment through the expiry inverse.
+func (w *World) DropPotionEffect(id EntityID) bool {
+	k, exists := effectIndex(w.attached, id, 0)
+	if !exists {
+		return false
+	}
+	return w.removeAttachedAt(k)
 }
 
 // ProjectPotionEffect applies the same attachment arithmetic to a value only.

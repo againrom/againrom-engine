@@ -146,7 +146,7 @@ func TestHistoricalCarryFieldNamesKeepNoHistoryDefault(t *testing.T) {
 	}
 }
 
-func TestNativeCarryPotionRawHistoryAppliedOnce(t *testing.T) {
+func TestNativeCarryPotionRecordIsDroppedWithItsRawHistory(t *testing.T) {
 	m, party := carryMap(t), nativeCarryParty()
 	w, st := mustStart(t, m, party)
 	w = endedWith(t, m, w, st.IDs[0], func(e *sim.Entity) {
@@ -154,26 +154,22 @@ func TestNativeCarryPotionRawHistoryAppliedOnce(t *testing.T) {
 		binary.LittleEndian.PutUint16(e.NativeBasis.Modifier[44:], 0x1234)
 		e.NativeBasis.Modifier[63] = 197
 	}, nil, [sim.EquipSlots]uint16{})
+	base := entityOf(t, w, st.IDs[0])
 	if !w.RestorePotionEffect(st.IDs[0], sim.ActiveEffect{Kind: sim.EffectAbsorption, Mode: sim.EffectDuration, Magnitude: 7, Remaining: 3}) {
 		t.Fatal("actual potion attachment refused")
 	}
-	e := entityOf(t, w, st.IDs[0])
-	want := e.NativeBasis
-	if binary.LittleEndian.Uint16(want.Modifier[44:]) != 0x123b {
+	if e := entityOf(t, w, st.IDs[0]); binary.LittleEndian.Uint16(e.NativeBasis.Modifier[44:]) != 0x123b {
 		t.Fatal("attachment fixture did not maintain raw history")
 	}
 	party = mapload.CarryParty(party, w, st.IDs)
+	if party[0].PotionEffect == nil {
+		t.Fatal("fixture carried no potion record")
+	}
 	next, ns := mustStart(t, m, nativeCarryGob(t, party))
 	for tick := 0; tick <= 3; tick++ {
 		got := entityOf(t, next, ns.IDs[0])
-		expected := want
-		absorption := e.Absorption
-		if tick == 3 {
-			binary.LittleEndian.PutUint16(expected.Modifier[44:], 0x1234)
-			absorption -= 7
-		}
-		if got.NativeBasis != expected || got.Absorption != absorption {
-			t.Fatalf("tick=%d raw=%#x effective=%d want raw=%#x effective=%d", tick, binary.LittleEndian.Uint16(got.NativeBasis.Modifier[44:]), got.Absorption, binary.LittleEndian.Uint16(expected.Modifier[44:]), absorption)
+		if got.NativeBasis != base.NativeBasis || got.Absorption != base.Absorption || len(next.ActiveEffects()) != 0 {
+			t.Fatalf("tick=%d raw=%#x effective=%d want raw=%#x effective=%d", tick, binary.LittleEndian.Uint16(got.NativeBasis.Modifier[44:]), got.Absorption, binary.LittleEndian.Uint16(base.NativeBasis.Modifier[44:]), base.Absorption)
 		}
 		sim.Step(next, nil)
 	}
@@ -209,28 +205,6 @@ func TestNativeCarryTownEquipmentMaintainsOrderedHistory(t *testing.T) {
 	}
 	if binary.LittleEndian.Uint16(p.Carry.NativeHistory.Basis.Modifier[18:]) != 0x1234 {
 		t.Fatal("town removal lost literal effect history")
-	}
-}
-
-func TestNativeCarryTownPotionReplacementPreservesRawHistory(t *testing.T) {
-	p := nativeCarryParty()[0]
-	b := [64]byte{44: 0x3b, 45: 0x12}
-	p.Carry = &mapload.Carry{NativeHistory: &mapload.NativeCarryHistory{Basis: (sim.NativeActorBasis{}).WithModifier(b), Class: sim.NativeClass{Present: true, Fighter: true}}}
-	p.PotionEffect = &sim.ActiveEffect{Kind: sim.EffectAbsorption, Mode: sim.EffectDuration, Magnitude: 7, Remaining: 3}
-	potion := sim.ItemInstance{Code: 0xe08, Kind: 3, Effects: []sim.ItemEffect{{Kind: 16, Mode: 1, Operand: 3 | 2<<16}}}
-	p, ok := mapload.ApplyTownPotion(p, potion, nil)
-	if !ok || p.Carry.NativeHistory == nil || binary.LittleEndian.Uint16(p.Carry.NativeHistory.Basis.Modifier[44:]) != 0x1237 {
-		t.Fatalf("town replacement result ok=%v raw=%#x effect=%+v", ok, binary.LittleEndian.Uint16(p.Carry.NativeHistory.Basis.Modifier[44:]), p.PotionEffect)
-	}
-	m := carryMap(t)
-	w, st := mustStart(t, m, []mapload.PartyMember{p})
-	if e := entityOf(t, w, st.IDs[0]); e.Absorption != 3 || binary.LittleEndian.Uint16(e.NativeBasis.Modifier[44:]) != 0x1237 {
-		t.Fatal("new mission repeated town attachment")
-	}
-	sim.Step(w, nil)
-	sim.Step(w, nil)
-	if e := entityOf(t, w, st.IDs[0]); e.Absorption != 0 || binary.LittleEndian.Uint16(e.NativeBasis.Modifier[44:]) != 0x1234 {
-		t.Fatal("new mission expiry removed the attachment twice")
 	}
 }
 

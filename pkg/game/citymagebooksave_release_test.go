@@ -79,20 +79,20 @@ func cityMageBuyBook(t *testing.T, f *FrontEnd, app *ui.App, memberID string, it
 		if m := shop.shopPartyMember(shop.shopMemberIndex()); m != nil && m.ID == memberID {
 			break
 		}
-		cityPotionPointer(t, app, "picker_next", 0, "press", "release")
+		cityShopPointer(t, app, "picker_next", 0, "press", "release")
 	}
 	if m := shop.shopPartyMember(shop.shopMemberIndex()); m == nil || m.ID != memberID {
 		t.Fatal("member picker did not reach the mage")
 	}
 	f.Shop.shelves[ShelfBooks] = []ShopItem{item}
 	f.Town.gold = 100000
-	cityPotionPointer(t, app, "shelf_pick", 3, "press", "release")
+	cityShopPointer(t, app, "shelf_pick", 3, "press", "release")
 	gold := f.Town.Gold()
 	packAt := releaseShopBuyToPack(t, app, f, item.Instance().Code)
 	if err := app.HeadlessPointer("press", packAt.X, packAt.Y); err != nil {
 		t.Fatal(err)
 	}
-	cityPotionPointer(t, app, "doll_box", 0, "move", "release")
+	cityShopPointer(t, app, "doll_box", 0, "move", "release")
 	spell, _ := item.Instance().BookSpell()
 	m := trainingPartyMember(t, f, memberID)
 	if m.KnownSpells&(1<<spell) == 0 || m.Book.State == sim.BookPresent && m.Book.Slots[spell-1] == (sim.BookSpell{}) || f.Town.Gold() != gold-int(item.Price) {
@@ -170,7 +170,7 @@ func cityMageCastInput(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID, 
 func TestReleaseCityMageBookChangeF2SAVAndNextMissionCast(t *testing.T) {
 	t.Run("original city", func(t *testing.T) {
 		_, raw := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
-		f, app, store := cityPotionLoadApp(t, raw)
+		f, app, store := cityLoadApp(t, raw)
 		cityMageBookWitness(t, f, app, store)
 	})
 	t.Run("current arrival", func(t *testing.T) {
@@ -209,7 +209,7 @@ func cityMageBookWitness(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 	if len(candidates) == 0 {
 		t.Fatal("the mage already knows every merchant spell")
 	}
-	probe, probeApp, _ := cityPotionLoadApp(t, before)
+	probe, probeApp, _ := cityLoadApp(t, before)
 	for _, item := range candidates {
 		cityMageBuyBook(t, probe, probeApp, memberID, item)
 	}
@@ -264,7 +264,7 @@ func cityMageBookWitness(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 		if got := trainingPartyMember(t, live, memberID); got.Book != changed.Book || got.KnownSpells != changed.KnownSpells {
 			t.Fatal("city SAVE changed the uninterrupted book")
 		}
-		cold, coldApp, coldStore := cityPotionLoadApp(t, saved)
+		cold, coldApp, coldStore := cityLoadApp(t, saved)
 		cityRosterSame(t, live, cold)
 		if got := trainingPartyMember(t, cold, memberID); got.Book != changed.Book || got.KnownSpells != changed.KnownSpells {
 			t.Fatalf("cold LOAD %d book %+v known %#x, live %+v %#x", cycle, got.Book, got.KnownSpells, changed.Book, changed.KnownSpells)
@@ -278,7 +278,7 @@ func cityMageBookWitness(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 		}
 	}
 	liveID, coldID := cityMageMissionID(t, live, memberID), cityMageMissionID(t, f, memberID)
-	cityPotionMissionEqual(t, live.live.world, f.live.world, 0)
+	cityMissionWorldsEqual(t, live.live.world, f.live.world, 0)
 	at, ok := cityMageNearest(cityMageCastCells(t, live, liveApp, liveID, spell), cityMageCastCells(t, f, app, coldID, spell))
 	if !ok {
 		t.Fatal("next mission admits no visible ground cast of the learned spell in both sessions")
@@ -298,7 +298,7 @@ func cityMageBookWitness(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 		t.Fatalf("cold mission cast spent no mana: %d -> %d", mana.Mana, after.Mana)
 	}
 
-	old, oldApp, _ := cityPotionLoadApp(t, before)
+	old, oldApp, _ := cityLoadApp(t, before)
 	if trainingPartyMember(t, old, memberID).KnownSpells&(1<<spell) != 0 {
 		t.Fatal("pre-change SAV already knows the spell: the witness cannot discriminate")
 	}

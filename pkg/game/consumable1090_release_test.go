@@ -75,44 +75,18 @@ func shopPointer1090(t *testing.T, app *ui.App, kind string, index int, edges ..
 	}
 }
 
-func TestReleaseConsumable1090AppTownSourceUseAndContinuation(t *testing.T) {
+func TestReleaseTownScrollUseKeepsTheStagedUnit(t *testing.T) {
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
-	potions := shopPotionStock(f.Table, rand.New(rand.NewSource(1090)))
 	scrolls := shopScrollPool(f.Table, 100000, rand.New(rand.NewSource(1090)))
-	if len(potions) != 6 || len(scrolls) != 27 {
-		t.Fatalf("producer population potions=%d scrolls=%d", len(potions), len(scrolls))
+	if len(scrolls) != 27 {
+		t.Fatalf("producer population scrolls=%d", len(scrolls))
 	}
-	// Deterministic display fixture, using the real installed producers. All
-	// purchase/use mutations below pass through App pointer dispatch.
-	f.Shop.shelves[ShelfBooks] = []ShopItem{potions[0], scrolls[0]}
+	f.Shop.shelves[ShelfBooks] = []ShopItem{scrolls[0]}
 	f.Town.gold = 100000
 	shopPointer1090(t, app, "shelf_pick", 3, "press", "release")
-	if s.ShopScreen().Shelf[0].Icon == nil {
-		t.Fatal("potion source has no installed art")
-	}
-	beforeGold, beforeQty := f.Town.Gold(), f.Shop.Shelf(ShelfBooks)[0].Count
-	at := releaseShopBuyToPack(t, app, f, uint16(potions[0].Code))
-	x, y := at.X, at.Y
-	if err := app.HeadlessPointer("press", x, y); err != nil {
-		t.Fatal(err)
-	}
-	dx, dy, err := app.HeadlessShopPoint("doll_box", 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, edge := range []string{"move", "release"} {
-		if err := app.HeadlessPointer(edge, dx, dy); err != nil {
-			t.Fatal(err)
-		}
-	}
-	p := s.shopPartyMember(s.shopMemberIndex())
-	if p.PotionEffect == nil || p.PotionEffect.Kind != sim.EffectHealthRegeneration || p.PotionEffect.Magnitude != 100 || p.PotionEffect.Remaining != 960 || f.Shop.Shelf(ShelfBooks)[0].Count != beforeQty-1 || f.Town.Gold() != beforeGold-int(potions[0].Price) {
-		t.Fatalf("town use effect=%+v gold=%d qty=%d", p.PotionEffect, f.Town.Gold(), f.Shop.Shelf(ShelfBooks)[0].Count)
-	}
-	// Shelf -> table -> pack is purchase, not use. Scroll gesture in the town
-	// remains a non-consuming refusal while its target-map route is Unknown.
-	shopPointer1090(t, app, "shelf", 1, "press", "release")
+	// Shelf -> table -> pack is purchase, not use.
+	shopPointer1090(t, app, "shelf", 0, "press", "release")
 	shopPointer1090(t, app, "button", 1, "press", "release")
 	items := s.shopPackStacks()
 	index := -1
@@ -125,6 +99,7 @@ func TestReleaseConsumable1090AppTownSourceUseAndContinuation(t *testing.T) {
 	if index < 0 {
 		t.Fatal("purchased scroll absent from pack")
 	}
+	p := s.shopPartyMember(s.shopMemberIndex())
 	before := append([]sim.ItemStack(nil), items...)
 	known := p.KnownSpells
 	gold := f.Town.Gold()
@@ -137,36 +112,6 @@ func TestReleaseConsumable1090AppTownSourceUseAndContinuation(t *testing.T) {
 	if !reflect.DeepEqual(kept, s.shopPackStacks()) {
 		t.Fatalf("town scroll refusal changed another pack item: want=%+v after=%+v", kept, s.shopPackStacks())
 	}
-	snapshot, label, err := f.Snapshot(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	disk, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	loaded, _, err := DecodeSave(disk)
-	if err != nil {
-		t.Fatal(err)
-	}
-	back := releaseFront(t)
-	_, town, err := back.Restore(loaded)
-	if err != nil || !town {
-		t.Fatalf("town restore=%v %v", town, err)
-	}
-	if !reflect.DeepEqual(back.Carried[0].PotionEffect, p.PotionEffect) {
-		t.Fatal("town native timer changed")
-	}
-	mission := back.App("1090-town-continuation")
-	mission.Layout(1024, 768)
-	if err := mission.OpenMission(back.MissionOpener(back.Town.Chapter())); err != nil {
-		t.Fatal(err)
-	}
-	effects := back.live.world.ActiveEffects()
-	if len(effects) != 1 || effects[0].Kind != sim.EffectHealthRegeneration || effects[0].Remaining != 960 {
-		t.Fatalf("town to mission effects=%+v", effects)
-	}
-	potionNative1090(t, back, "town-to-mission")
 }
 
 func TestReleaseConsumable1090AppPermanentTimedAndScroll(t *testing.T) {

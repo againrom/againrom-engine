@@ -158,21 +158,11 @@ func TestSourceActor1110NegativeFoldKeepsSpeedClearsOnlyModifier(t *testing.T) {
 	}
 }
 
-func TestSourceActor1110TownPotionAndCarryKeepAppliedState(t *testing.T) {
+func TestSourceCarryKeepsCompleteBasis(t *testing.T) {
 	s := sourceLiteral1110()
 	w := sourceWorld1110(t, s, nil)
-	p := PartyMember{ID: "source", Carry: &Carry{LiveLoad: w.Entities()[0].CurrentActorLoad()}, Saved: &Saved{HP: 40, MaxHP: 90}}
-	item := sim.ItemInstance{Code: 0xe01, Kind: 3, WeightPresent: true, Weight: 2, Effects: []sim.ItemEffect{{Kind: 8, Mode: 1, Operand: 100 | 3<<16}}}
-	result, ok := ApplyTownPotion(p, item, nil)
-	if !ok || !CommitSourceTownPotion(&p, result) {
-		t.Fatal("source town potion refused")
-	}
-	d, hp, _ := PartyDisplayWithTable(p, nil)
-	if d.HealthRegeneration != 100 || d.HealthMax != 24 || hp != 24 || p.Carry.LiveLoad.Inventory.Accumulator != 406 || p.Carry.LiveLoad.Load != 203 || p.PotionEffect == nil || p.PotionEffect.Remaining != 3 {
-		t.Fatal("town applied twice or changed container", p.Carry.LiveLoad, d, hp)
-	}
 	// Mission carry keeps the complete basis, not the entry Hero or a
-	// reconstructed equipment sum. The source contains already-applied pools.
+	// reconstructed equipment sum.
 	carried := CarryParty([]PartyMember{{ID: "source"}}, w, []sim.EntityID{1})
 	if len(carried) != 1 || carried[0].Hero.Body != 10 || carried[0].Carry.LiveLoad.Inventory.Source.Base != s.Base || carried[0].Carry.LiveLoad.Load != 500 {
 		t.Fatal("mission carry dropped source state", carried)

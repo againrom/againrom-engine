@@ -85,47 +85,6 @@ func TestReleaseTownFidelity1192(t *testing.T) {
 			}
 		}
 	})
-	t.Run("siege-potion-card", func(t *testing.T) {
-		for _, typ := range []int{1, 2} {
-			a, shop := releaseShopApp(t)
-			defer a.StopAudio()
-			shop.CloseTip()
-			members, ok := shop.buildMercenarySquad(typ, 1)
-			if !ok {
-				t.Fatal("missing siege template")
-			}
-			shop.sess.Carried, shop.shopMember = members, 0
-			item := mapload.ItemInstanceFromCode(0xe01, shop.in.Table)
-			if !shop.setShopPackItemInstances([]sim.ItemInstance{item, item}) {
-				t.Fatal("missing potion pack")
-			}
-			before := shop.ShopScreen().Character.Subject.Combat.Absorption
-			shopPointer1090(t, a, "pack", 1, "press", "release", "press", "release")
-			p := shop.shopPartyMember(0)
-			if p.PotionEffect == nil || p.PotionEffect.Kind != sim.EffectAbsorption || p.PotionEffect.Magnitude != 50 || len(shop.shopPackItemInstances()) != 1 {
-				t.Fatal("potion was not consumed with its timer")
-			}
-			if after := shop.ShopScreen().Character.Subject.Combat.Absorption; after != before+50 {
-				t.Fatalf("siege%d absorption %d, want %d", typ, after, before+50)
-			}
-			// Let the real simulation expire the timer, then project the returned hire.
-			w, err := sim.NewStockedWorld(0, sim.Bounds{Width: 1, Height: 1}, sim.ModeCanonical, sim.Terrain{}, []sim.Entity{{ID: 1, HP: 250, MaxHP: 250, Absorption: int32(before)}}, nil, sim.Relations{}, nil, nil)
-			if err != nil || !w.RestorePotionEffect(1, *p.PotionEffect) {
-				t.Fatal("cannot restore potion", err)
-			}
-			for ticks := 0; ticks < int(p.PotionEffect.Remaining); ticks++ {
-				sim.Step(w, nil)
-			}
-			returned := mapload.CarryParty([]mapload.PartyMember{*p}, w, []sim.EntityID{1})
-			if len(returned) != 1 || returned[0].PotionEffect != nil {
-				t.Fatal("expired effect survived return")
-			}
-			d, _, _ := mapload.PartyDisplayWithTable(returned[0], shop.in.Table)
-			if d.Combat.Absorption != int32(before) {
-				t.Fatalf("expired siege%d potion remained: %d", typ, d.Combat.Absorption)
-			}
-		}
-	})
 	t.Run("shop-pointer", func(t *testing.T) {
 		a, s := releaseShopApp(t)
 		defer a.StopAudio()
