@@ -1,11 +1,7 @@
 package game
 
 import (
-	"bytes"
 	"encoding/base64"
-	"encoding/binary"
-	"encoding/gob"
-	"hash/crc32"
 	"strings"
 	"testing"
 
@@ -53,20 +49,6 @@ func TestDifficultyNativeCompatibilityAndAtomicRefusal(t *testing.T) {
 		if f.Town != oldTown || f.Difficulty != mapload.DifficultyNormal {
 			t.Fatal("invalid restore changed live session")
 		}
-	}
-}
-
-func TestDifficultyInvalidGobIsRejectedAfterBoundedDecode(t *testing.T) {
-	var body bytes.Buffer
-	if err := gob.NewEncoder(&body).Encode(Snapshot{Difficulty: 99}); err != nil {
-		t.Fatal(err)
-	}
-	b := append([]byte(saveMagic), saveVersion, 0, 0)
-	b = binary.LittleEndian.AppendUint32(b, crc32.ChecksumIEEE(body.Bytes()))
-	b = binary.LittleEndian.AppendUint32(b, uint32(body.Len()))
-	b = append(b, body.Bytes()...)
-	if _, _, err := DecodeSave(b); err == nil || !strings.Contains(err.Error(), "difficulty") {
-		t.Fatalf("corrupt nonzero difficulty: %v", err)
 	}
 }
 

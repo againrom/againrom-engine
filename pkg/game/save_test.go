@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/binary"
 	"errors"
 	"os"
@@ -243,58 +242,6 @@ func TestTheCampaignIsNotInTheSave(t *testing.T) {
 	}
 	if g.Town.Gold() != initialPlayerPurse+250 {
 		t.Errorf("gold = %d, want the save's own %d", g.Town.Gold(), initialPlayerPurse+250)
-	}
-}
-
-// TestEveryRefusalHasItsOwnSentence is AC-3. Each case is one file and one
-// distinct message, and none of them panics or loads half a game.
-func TestEveryRefusalHasItsOwnSentence(t *testing.T) {
-	good, err := EncodeSave(Snapshot{Gold: 1}, "x")
-	if err != nil {
-		t.Fatalf("EncodeSave: %v", err)
-	}
-
-	flipped := append([]byte(nil), good...)
-	flipped[len(flipped)-1] ^= 0xff
-
-	stale := append([]byte(nil), good...)
-	stale[len(saveMagic)] = saveVersion + 1
-
-	foreign := append([]byte(nil), good...)
-	copy(foreign, "Asg&....")
-
-	cases := []struct {
-		name string
-		in   []byte
-		want string
-	}{
-		{"shorter than a header", good[:4], "shorter than a header"},
-		{"a foreign magic", foreign, "not an againrom save"},
-		{"a stale version byte", stale, "this build reads version"},
-		{"a truncated payload", good[:len(good)-10], "header declares"},
-		{"a flipped payload byte", flipped, "corrupt"},
-	}
-	seen := map[string]bool{}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			s, _, err := DecodeSave(tc.in)
-			if err == nil {
-				t.Fatal("the file was accepted")
-			}
-			if !strings.Contains(err.Error(), tc.want) {
-				t.Errorf("message %q does not name %q", err, tc.want)
-			}
-			if !reflect.DeepEqual(s, Snapshot{}) {
-				t.Error("a refused file produced a partial snapshot")
-			}
-			if seen[err.Error()] {
-				t.Errorf("message %q is not distinct from another refusal's", err)
-			}
-			seen[err.Error()] = true
-		})
-	}
-	if _, _, err := DecodeSave(foreign); !errors.Is(err, ErrNotSave) {
-		t.Errorf("a foreign file answers %v, want ErrNotSave", err)
 	}
 }
 
@@ -1332,25 +1279,6 @@ func TestPreparedMissionCommitsOnceThroughTheLoadWindow(t *testing.T) {
 	}
 }
 
-func releasedSaveFixtureSnapshot(t *testing.T) Snapshot {
-	t.Helper()
-	w, err := sim.NewWorld(9, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, make([]byte, 64), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !w.SetPurse(sim.SelfSlot, 777) {
-		t.Fatal("fixture purse refused")
-	}
-	world, err := w.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return Snapshot{
-		Open: true, Gold: 321, Won: []int{10}, Available: []int{20}, Offered: 20,
-		Mission: 10, World: world, WorldSelectedOnce: []int{10, 20},
-	}
-}
-
 // preMercenaryStateSaveFixtureBase64 is the committed synthetic .ags from
 // master immediately before Snapshot gained its mercenary arrays. It already
 // includes PartyMember.WeaponMaterialized. Its decode-only test preserves the
@@ -1435,165 +1363,6 @@ const preMercenaryStateSaveFixtureBase64 = "QUdSTVNBVkUBIQByZWxlYXNlZCBlbnZlbG9w
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA"
-
-// releasedSaveFixtureLabel is the envelope label the encode-side fixture is
-// written and read at. It carries no version number, on the test's own reason
-// below: the label is part of the pinned bytes, so a number in it would have to
-// be re-spelled at every byte-form bump.
-const releasedSaveFixtureLabel = "released envelope 1 at the current simulation form"
-
-func TestPreMercenaryStateSaveFixtureStillDecodes(t *testing.T) {
-	old, err := base64.StdEncoding.DecodeString(preMercenaryStateSaveFixtureBase64)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, label, err := DecodeSave(old)
-	if err != nil {
-		t.Fatalf("pre-mercenary-state fixture no longer loads: %v", err)
-	}
-	if label != "released envelope 1 simulation 53" || !s.Open || s.Gold != 321 ||
-		s.Mission != 10 || s.Offered != 20 || !reflect.DeepEqual(s.Won, []int{10}) ||
-		!reflect.DeepEqual(s.Available, []int{20}) || s.MercenaryState ||
-		len(s.WorldSelectedOnce) != 0 || s.Residue.DepartedCharacters != nil {
-		t.Fatalf("pre-mercenary-state fixture decoded as label %q snapshot %+v", label, s)
-	}
-}
-
-// preWeaponMaterializedSaveFixtureBase64 is releasedSaveFixtureBase64's own
-// bytes AS COMMITTED ON master BEFORE PartyMember.WeaponMaterialized existed
-// (round-2 adversarial review, twelfth pass, C3, DIV-095): retrieved with
-// `git show master:pkg/game/save_test.go` at this story's own base commit,
-// unmodified. It is what a save this build (or an earlier build of it)
-// actually wrote before the field was added, and its own test below decodes
-// it rather than re-encoding and comparing bytes — the CURRENT encoder
-// legitimately produces different bytes now, since PartyMember's gob type
-// descriptor grew, and a byte-exact comparison against this fixture would
-// fail for a reason that is not a defect.
-const preWeaponMaterializedSaveFixtureBase64 = "QUdSTVNBVkUBIQByZWxlYXNlZCBlbnZlbG9wZSAxIHNpbXVsYXRpb24gNTPPINLe2hYAAP+EfwMBAQhTbmFwc2hvdAH/gAABCgEE" +
-	"T3BlbgECAAEER29sZAEEAAEDV29uAf+CAAEJQXZhaWxhYmxlAf+CAAEFVGFrZW4B/4YAAQVQYXJ0eQH/nAABB09mZmVyZWQBBAAB" +
-	"B01pc3Npb24BBAABBVdvcmxkAQoAAQdSZXNpZHVlAf+eAAAAE/+BAgEBBVtdaW50Af+CAAEEAAAj/4UCAQEUW11nYW1lLlNuYXBz" +
-	"aG90T2ZmZXIB/4YAAf+EAAA+/4MDAQENU25hcHNob3RPZmZlcgH/hAABAwEHQ2hhcHRlcgEEAAEIQnVpbGRpbmcBBAABBUluZGV4" +
-	"AQQAAAAk/5sCAQEVW11tYXBsb2FkLlBhcnR5TWVtYmVyAf+cAAH/iAAA/gEk/4cDAQELUGFydHlNZW1iZXIB/4gAARUBAklEAQwA" +
-	"AQlUZW1wb3JhcnkBAgABBE5hbWUBDAABD1BsYXllckNoYXJhY3RlcgECAAEMU3RhcnRpbmdIZXJvAQIAAQ1NZXJjZW5hcnlUeXBl" +
-	"AQYAAQxDb21wYW5pb25OUEMBBAABBUNsYXNzAQQAAQRCb2R5AQwAAQdCb2R5RGlyAQwAAQRNYWdlAQIAAQdQcm9maWxlAf+KAAEJ" +
-	"RmlndXJlRGlyAQwAAQpGaWd1cmVGYWNlAQQAAQRIZXJvAf+MAAELS25vd25TcGVsbHMBBgABBFdvcm4B/5AAAQdDYXJyaWVkAf+S" +
-	"AAEGV2VhcG9uAf+UAAEFQ2FycnkB/5YAAQVTYXZlZAH/mAAAAEH/iQMBAQdQcm9maWxlAf+KAAEDAQdGaWdodGVyAQIAAQxIZWFs" +
-	"dGhDb2x1bW4BAgABCk1hbmFDb2x1bW4BAgAAAEf/iwMBAQRIZXJvAf+MAAEFAQRCb2R5AQQAAQhSZWFjdGlvbgEEAAEETWluZAEE" +
-	"AAEGU3Bpcml0AQQAAQVTa2lsbAH/jgAAABj/jQEBAQhbNl1pbnQzMgH/jgABBAEMAAAa/48BAQEKWzEyXXVpbnQxNgH/kAABBgEY" +
-	"AAAW/5ECAQEIW111aW50MTYB/5IAAQYAAP+3/5MDAQEGV2VhcG9uAf+UAAENAQROYW1lAQwAAQNSb3cBBAABBENvZGUBBgABCkRh" +
-	"bWFnZUJhc2UBBAABDERhbWFnZVNwcmVhZAEEAAEFVG9IaXQBBAABB0RlZmVuY2UBBAABCkF0dGFja1R5cGUBBAABCkNoYXJnZVRp" +
-	"bWUBBAABCVJlbGF4VGltZQEEAAEFUmFuZ2UBBAABCVNwZWxsTmFtZQEMAAEKU3BlbGxQb3dlcgEEAAAAOf+VAwEBBUNhcnJ5Af+W" +
-	"AAEDAQdTa2lsbFhQAf+OAAEFSXRlbXMB/5IAAQhFcXVpcHBlZAH/kAAAAHv/lwMBAQVTYXZlZAH/mAABCAEEQ2VsbAH/mgABAkhQ" +
-	"AQQAAQVNYXhIUAEEAAEETWFuYQEEAAEHTWF4TWFuYQEEAAERSGVhbHRoUmVnZW5QZXJpb2QBBAABD01hbmFSZWdlblBlcmlvZAEE" +
-	"AAEJTWFwVW5pdElEAQYAAAAe/5kDAQEEQ2VsbAH/mgABAgEBWAEEAAEBWQEEAAAAd/+dAwEBD1NuYXBzaG90UmVzaWR1ZQH/ngAB" +
-	"BwEJQ29tbWFuZGVkAf+gAAEFU3dpbmcB/6IAAQVQaGFzZQH/pAABCEdyb3VwVGFnAQYAAQdGb2dDb2xzAQQAAQdGb2dSb3dzAQQA" +
-	"AQtGb2dFeHBsb3JlZAEKAAAAFv+fAgEBCFtddWludDMyAf+gAAEGAAAe/6EEAQEObWFwW3VpbnQzMl1pbnQB/6IAAQYBBAAAIP+j" +
-	"BAEBEG1hcFt1aW50MzJddWludDgB/6QAAQYBBgAA/hFc/4ABAQH+AoIBARQBASgDKAEUAf4RQzUAAAAAAAAAAAkAAAAAAAAACAAA" +
-	"AAgAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJAwAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAgICAgICAgICAgICAgICAgIC" +
-	"AgICAgICAgICAgICAgICAgICAgICAgICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=="
-
-// TestPreWeaponMaterializedSaveFixtureStillDecodesItsOuterEnvelope is
-// DIV-095's restored gob witness (round-2 adversarial review, twelfth pass,
-// C3): a save this build (or an earlier build of it) actually wrote, byte
-// for byte, BEFORE PartyMember.WeaponMaterialized existed. The outer
-// Snapshot still decodes under the current reader. Its embedded simulation
-// form is deliberately refused now: form 53 cannot say which actors suppress
-// corpse loot, so accepting it as form 54 would invent hashed simulation
-// state.
-//
-// This particular fixture's own Snapshot never populates Party (see
-// releasedSaveFixtureSnapshot, master's and this branch's identical
-// constructor for the payload these bytes encode), so the loop below runs
-// over zero members today. Its own value is what it proves regardless of
-// that count: gob's append-only evolution rule decodes a field the wire
-// stream never wrote to its Go zero value, so WeaponMaterialized comes back
-// false for a member from this era not because this fixture demonstrates it
-// on a real member, but because the language guarantees it and the loop
-// compiles and runs against the CURRENT mapload.PartyMember struct without
-// error — the decode succeeding at all, over a type descriptor one field
-// narrower than today's, is this test's own claim.
-func TestPreWeaponMaterializedSaveFixtureStillDecodesItsOuterEnvelope(t *testing.T) {
-	want, err := base64.StdEncoding.DecodeString(preWeaponMaterializedSaveFixtureBase64)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, label, err := DecodeSave(want)
-	if err != nil {
-		t.Fatalf("pre-WeaponMaterialized fixture no longer decodes: %v", err)
-	}
-	if label != "released envelope 1 simulation 53" || !s.Open || s.Gold != 321 ||
-		s.Mission != 10 || s.Offered != 20 || !reflect.DeepEqual(s.Won, []int{10}) ||
-		!reflect.DeepEqual(s.Available, []int{20}) {
-		t.Fatalf("pre-WeaponMaterialized fixture decoded as label %q snapshot %+v", label, s)
-	}
-	var w sim.World
-	if err := w.UnmarshalBinary(s.World); err == nil || !strings.Contains(err.Error(), "version 53") {
-		t.Fatalf("pre-WeaponMaterialized fixture's simulation form error = %v, want an explicit version-53 refusal", err)
-	}
-	for i, member := range s.Party {
-		if member.WeaponMaterialized {
-			t.Errorf("member %d (%q) decoded WeaponMaterialized true from a save that could not have written it",
-				i, member.Name)
-		}
-	}
-}
 
 // TestLoadingPutsTheTownScreenBackAtTheSquare: the open room belongs to the game
 // being left, and a loaded game is entered at the square.

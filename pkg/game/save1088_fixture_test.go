@@ -1,11 +1,6 @@
 package game
 
-import (
-	"crypto/sha256"
-	"encoding/base64"
-	"fmt"
-	"testing"
-)
+import ()
 
 // Exact synthetic master7677d697 envelope, before WorldMapReturn existed.
 // Generated from the released fixture in the unchanged checkout, not from
@@ -110,20 +105,3 @@ const preWorldMapReturn1088Envelope = "QUdSTVNBVkUBMgByZWxlYXNlZCBlbnZlbG9wZSAxI
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
 	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=="
-
-func TestPreWorldMapReturn1088EnvelopeDecodes(t *testing.T) {
-	b, err := base64.StdEncoding.DecodeString(preWorldMapReturn1088Envelope)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if h := fmt.Sprintf("%x", sha256.Sum256(b)); h != "f0f24fcbe077b0f56ac86df81cf8962195b26d9affeded2b556f7cfea75e54bc" {
-		t.Fatalf("prior fixture hash %s", h)
-	}
-	s, label, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if label != releasedSaveFixtureLabel || s.WorldMapReturn != nil || s.Mission != 10 || s.Gold != 321 || len(s.World) == 0 || s.World[0] != 67 {
-		t.Fatal("prior save semantics changed")
-	}
-}

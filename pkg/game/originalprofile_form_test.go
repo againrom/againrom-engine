@@ -63,20 +63,3 @@ func preInstanceWeightForm1109(t *testing.T, b []byte) []byte {
 	}
 	return out
 }
-
-func preCurrentProfileForm1107(t *testing.T, b []byte) []byte {
-	t.Helper()
-	out := preInstanceWeightForm1109(t, b)
-	if out[0] < 73 {
-		return out
-	}
-	cells := int(binary.LittleEndian.Uint32(out[30:34]))
-	n := int(binary.LittleEndian.Uint32(out[25:29]))
-	base := 34 + 3*cells
-	for i := n - 1; i >= 0; i-- {
-		at := base + 457*i + 456
-		out = append(out[:at], out[at+1:]...)
-	}
-	out[0] = 72
-	return out
-}

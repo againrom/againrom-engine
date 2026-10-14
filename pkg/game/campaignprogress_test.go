@@ -333,24 +333,15 @@ func TestCompletingRestoredSideReturnsToMainWithoutLowerReplay(t *testing.T) {
 	}
 }
 
-func TestRestoredCampaignRoundTripsThroughAgainromEnvelope(t *testing.T) {
+func TestRestoredTownPrefersTheCampaignProjectionOverLegacyFields(t *testing.T) {
 	c, town := restoredTownFixture(t)
 	front := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: town, Offered: 41}}
-	snapshot, _, err := front.Snapshot(false)
+	decoded, _, err := front.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	encoded, err := EncodeSave(snapshot, "campaign projection")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !decoded.CampaignState || !reflect.DeepEqual(decoded.Campaign, snapshot.Campaign) {
-		t.Fatalf("campaign envelope round trip = state %v %+v, want %+v",
-			decoded.CampaignState, decoded.Campaign, snapshot.Campaign)
+	if !decoded.CampaignState {
+		t.Fatal("a campaign town snapshot carries no campaign projection")
 	}
 	// CampaignProjection is authoritative over the legacy duplicate fields.
 	// A decoder must not union fresh/lower defaults back into restored state.

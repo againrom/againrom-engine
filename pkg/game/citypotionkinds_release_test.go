@@ -270,6 +270,19 @@ func cityPotionOpenMissions(t *testing.T, x *cityPotionExpect) {
 }
 
 func TestReleaseCityPotionKindsF2SAVAndMissionExpiry(t *testing.T) {
+	t.Run("native unmodified control", func(t *testing.T) {
+		store := SaveStore{Dir: t.TempDir()}
+		live, app := saveDialogArrivedTown(t, store.Dir)
+		t.Cleanup(app.StopAudio)
+		raw := cityRosterF2Save(t, app, store, "unmodified")
+		cold, coldApp, _ := cityPotionLoadApp(t, raw)
+		for i, f := range []*FrontEnd{live, cold} {
+			if err := []*ui.App{app, coldApp}[i].OpenMission(f.MissionOpener(f.Town.Chapter())); err != nil {
+				t.Fatal(err)
+			}
+		}
+		cityPotionMissionEqual(t, live.live.world, cold.live.world, 0)
+	})
 	for _, kind := range cityPotionKinds {
 		for _, origin := range []string{"current arrival", "original city"} {
 			t.Run(kind.name+"/"+origin, func(t *testing.T) { cityPotionKindRun(t, kind, origin) })

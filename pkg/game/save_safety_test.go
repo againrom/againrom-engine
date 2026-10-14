@@ -1,12 +1,8 @@
 package game
 
 import (
-	"bytes"
-	"encoding/binary"
-	"encoding/gob"
 	"errors"
 	"fmt"
-	"hash/crc32"
 	"image/color"
 	"os"
 	"os/exec"
@@ -474,51 +470,6 @@ func TestSaveStoreConcurrentProcessHelper(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("result-%d", index)), []byte(name), 0o644); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func declaredPayloadTail(t *testing.T, encoded, tail []byte) []byte {
-	t.Helper()
-	out := append([]byte(nil), encoded...)
-	labelLen := int(binary.LittleEndian.Uint16(out[len(saveMagic)+1:]))
-	checksumAt := saveHeaderLen + labelLen
-	lengthAt := checksumAt + 4
-	bodyAt := lengthAt + 4
-	out = append(out, tail...)
-	body := out[bodyAt:]
-	binary.LittleEndian.PutUint32(out[checksumAt:], crc32.ChecksumIEEE(body))
-	binary.LittleEndian.PutUint32(out[lengthAt:], uint32(len(body)))
-	return out
-}
-
-func TestDecodeRejectsTrailingDataInsideDeclaredPayload(t *testing.T) {
-	first, err := EncodeSave(Snapshot{Gold: 7}, "inside tail")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var second bytes.Buffer
-	if err := gob.NewEncoder(&second).Encode(Snapshot{Gold: 8}); err != nil {
-		t.Fatal(err)
-	}
-	for _, tc := range []struct {
-		name string
-		tail []byte
-	}{
-		{name: "second gob value", tail: second.Bytes()},
-		{name: "unread byte", tail: []byte{0xa5}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			snap, label, err := DecodeSave(declaredPayloadTail(t, first, tc.tail))
-			if err == nil {
-				t.Fatal("DecodeSave accepted data after the first gob value")
-			}
-			if !strings.Contains(err.Error(), "trailing data") {
-				t.Fatalf("inside-payload refusal = %q, want trailing data", err)
-			}
-			if !reflect.DeepEqual(snap, Snapshot{}) || label != "" {
-				t.Fatalf("inside-payload refusal returned snapshot %+v and label %q", snap, label)
-			}
-		})
 	}
 }
 

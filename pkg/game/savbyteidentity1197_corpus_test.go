@@ -14,14 +14,6 @@
 // Its 94-of-102 with zero mismatches proves that we read the same file the same
 // way twice, which is a real regression bound and is not a completeness claim.
 //
-// pkg/formats/sav's own TestDocument1115LawfulCorpusAudit (build tag
-// savdocumentaudit) has the same shape one layer down: it parses, serializes,
-// re-parses and re-serializes, and asserts the SECOND encoding equals the first.
-// It calls clear(raw) immediately after parsing, so the one comparison that
-// would settle completeness -- our bytes against the bytes we read -- is not
-// merely absent, it is made impossible. That test measures stability. This one
-// measures identity.
-//
 // WHAT THIS DOES. For every file the milestone2 corpus discovers: decode it to
 // the intermediate the reader produces (sav.DecodeDocumentData, whose DTO owns
 // no File.Body, Store, TailRest, offset or compressed input -- save_document.go),

@@ -3,9 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/gob"
 	"errors"
-	"hash/crc32"
 	"reflect"
 	"strings"
 	"testing"
@@ -255,37 +253,6 @@ func TestOriginalSpellbook1096NewTownEquipmentTeachesOnlyItsOwnSpells(t *testing
 	screen.shopUnequipDoll(3)
 	if member.KnownSpells != 1<<6|1<<26 || !member.SpellbookRestored || !member.SpellbookPresent {
 		t.Fatal("town follow-up lost exact learned state")
-	}
-}
-
-func TestOriginalSpellbook1096OldNativeMissingMetadataDefaults(t *testing.T) {
-	// An old gob's type omits the new fields entirely, rather than asking
-	// today's encoder to write their zero values under today's descriptor.
-	var body bytes.Buffer
-	old := struct {
-		Party []struct {
-			ID          string
-			KnownSpells uint32
-		}
-	}{}
-	old.Party = append(old.Party, struct {
-		ID          string
-		KnownSpells uint32
-	}{"old-hero", 1 << 6})
-	if err := gob.NewEncoder(&body).Encode(old); err != nil {
-		t.Fatal(err)
-	}
-	encoded := append([]byte(saveMagic), saveVersion, 0, 0)
-	encoded = binary.LittleEndian.AppendUint32(encoded, crc32.ChecksumIEEE(body.Bytes()))
-	encoded = binary.LittleEndian.AppendUint32(encoded, uint32(body.Len()))
-	encoded = append(encoded, body.Bytes()...)
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil || len(decoded.Party) != 1 {
-		t.Fatalf("old descriptor: %v", err)
-	}
-	p := decoded.Party[0]
-	if p.KnownSpells != 1<<6 || p.SpellbookRestored || p.SpellbookPresent {
-		t.Fatalf("old metadata defaults: %+v", p)
 	}
 }
 

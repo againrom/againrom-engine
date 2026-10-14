@@ -2,10 +2,10 @@ package game
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -193,6 +193,10 @@ func world1170LossControls(t *testing.T, s Snapshot, original []byte, world *sim
 					}
 				}
 			case "new root omission":
+				// Drop the newest Sack root, the records only it owns and the
+				// ownership rows naming those records, which are then absent
+				// state. The root count the oracle sampled from the live World
+				// is the one value this changes.
 				root := d.World.Sacks[len(d.World.Sacks)-1]
 				key, _ := savedStructureValue(&d.Objects[root-1], "Identity")
 				d.World.Sacks = d.World.Sacks[:len(d.World.Sacks)-1]
@@ -212,12 +216,10 @@ func world1170LossControls(t *testing.T, s Snapshot, original []byte, world *sim
 						}
 					}
 				}
+				world1170DropOwnershipRows(t, &d, retired)
 				d, _, err = sav.RetireDocumentData(d, retired)
 				if err != nil {
-					if !strings.Contains(err.Error(), "current ownership node was retired") {
-						t.Fatal("single-cause omission produced an unrelated graph error", err)
-					}
-					t.Skipf("not an independent wire-oracle control: the current ownership node could not be retired: %v", err)
+					t.Fatal("single-cause omission produced a graph error", err)
 				}
 			}
 			wire, err := sav.EncodeDocumentData(d)
@@ -242,6 +244,43 @@ func world1170LossControls(t *testing.T, s Snapshot, original []byte, world *sim
 	s.SavedDocument = broken
 	if _, err := currentWorldDocument(s, false); err == nil {
 		t.Fatal(fmt.Errorf("permuted exact bindings were silently rebound"))
+	}
+}
+
+// world1170DropOwnershipRows removes the current-action ownership rows that
+// name a record about to be retired.
+func world1170DropOwnershipRows(t *testing.T, d *sav.DocumentData, retired []uint16) {
+	t.Helper()
+	raw, present, err := sav.NativeActions(d.State)
+	if err != nil || !present {
+		t.Fatal("new root omission needs the current-action supplement", err)
+	}
+	var root map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &root); err != nil {
+		t.Fatal(err)
+	}
+	var rows []map[string]json.RawMessage
+	if err := json.Unmarshal(root["Ownership"], &rows); err != nil {
+		t.Fatal(err)
+	}
+	kept := rows[:0]
+	for _, row := range rows {
+		var object uint16
+		if err := json.Unmarshal(row["Object"], &object); err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Contains(retired, object) {
+			kept = append(kept, row)
+		}
+	}
+	if root["Ownership"], err = json.Marshal(kept); err != nil {
+		t.Fatal(err)
+	}
+	if raw, err = json.Marshal(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := sav.SetNativeActions(&d.State, raw); err != nil {
+		t.Fatal(err)
 	}
 }
 

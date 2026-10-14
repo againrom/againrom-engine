@@ -1048,10 +1048,21 @@ func TestTheStripsFirstPlaceIsTheMoneyElement(t *testing.T) {
 
 // The wheel turns the region it is given and nothing else (DIV-005).
 func TestTheWheelTurnsOnlyTheRegionItIsGiven(t *testing.T) {
-	f, s := shopRoom(t, []uint16{0x0101, 0x0122})
+	// Both grids are stocked by hand so each can turn: eight distinct armour
+	// codes fill more than the rack's six cells, and six distinct pack codes
+	// plus the money element fill more than the strip's five slots.
+	f, s := shopRoom(t, []uint16{0x0101, 0x0122, 0x0f00, 0x0f01, 0x0f02, 0x0f03})
+	stock := make([]ShopItem, 0, 8)
+	for i := 0; i < 8; i++ {
+		stock = append(stock, ShopItem{Code: data.ItemCode(0x0201 + i), Price: int32(90 - 10*i), Count: 1})
+	}
+	f.Shop.shelves[ShelfArmour] = stock
 	click(s, ui.ShopControlShelfPick, roomArmour)
-	if len(f.Shop.Shelf(ShelfArmour)) <= 6 {
-		t.Skip("the fixture's armour shelf is too short to scroll")
+	if n := len(f.Shop.Shelf(ShelfArmour)); n <= 6 {
+		t.Fatalf("the fixture stocked %d armour items, too few to scroll", n)
+	}
+	if s.packScrollMax() < 1 {
+		t.Fatalf("the fixture's pack holds %d stacks, too few to scroll", len(s.shopPackStacks()))
 	}
 	s.ShopScroll(ui.ShopWheelShelf, 1)
 	if s.shelfBase != shopShelfCols {
