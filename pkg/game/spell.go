@@ -176,6 +176,7 @@ func (mw *mapWorld) pushSpellbook() {
 	var selected []sim.Entity
 	for _, id := range mw.view.SelectedUnits() {
 		if e, held := mw.entity(sim.EntityID(id)); held {
+			e.AutoSpell = uint16(mw.autocastShown(e.ID, e.AutoSpell))
 			selected = append(selected, e)
 		}
 	}
@@ -464,4 +465,27 @@ func (mw *mapWorld) setAutocast(entity, spell uint32) {
 	// the mission script exactly as it did, and marking it here detached it
 	// silently and permanently the first time the key was pressed.
 	mw.pending = append(mw.pending, cmd)
+	// The book reads the queue through autocastShown; the viewer's entity list
+	// is refreshed only by a tick, so Ctrl+A's reading is told here.
+	if e, ok := mw.entity(id); ok && mw.view != nil {
+		mw.view.SetEntityAutocast(entity, mw.autocastShown(id, e.AutoSpell))
+	}
+}
+
+// autocastShown is current with every queued autocast command for the entity
+// applied in order: what the next tick makes of it. A paused game queues
+// without stepping, and the book and the viewer show this value so a change
+// is visible at once.
+func (mw *mapWorld) autocastShown(id sim.EntityID, current uint16) uint32 {
+	spell := uint32(current)
+	for _, c := range mw.pending {
+		if c.Kind == sim.KindAutocast && c.Entity == id {
+			if c.X <= 0 || c.X > 0xffff {
+				spell = 0
+			} else {
+				spell = uint32(c.X)
+			}
+		}
+	}
+	return spell
 }

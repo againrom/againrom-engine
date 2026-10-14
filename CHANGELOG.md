@@ -14,6 +14,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [Starter] Browse beside Add path opens the system folder chooser on Windows and macOS. If the chooser is unavailable, the path field remains available.
 - [ROM1] The map editor's Open and Save As use the system file dialogs on Windows and macOS, starting at the current map's folder or the base game folder. Cancelling keeps the map and edits; if a dialog is unavailable, the editor shows the path prompt.
 - [ROM1] Saves made in a fight load in the original game: an attack whose victim has died no longer leaves an attack order without a target.
+- [ROM1] [ROM2] While the game is paused, a changed autocast setting (right-click on a spell cell, Ctrl+A) shows its dashed frame at once, and a second change starts from the shown setting. The setting takes effect on the first tick after you resume.
 
 - [ROM1] The map editor no longer crashes when the map report is open while a brush is on and the report lists more rows than the brush's list has.
 - [ROM1] The map editor paints objects. Press B, choose a class from the list (trees, stones, fences, bones and the rest the game draws; the first row clears) and drag across the map: every cell of the brush takes that object, shown as the game draws it, and one stroke is one undo step. Save, Save As and save into a mod write the objects, and the game plays the map with them in place, blocking movement as the installed objects do.

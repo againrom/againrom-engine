@@ -5075,7 +5075,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			DrawCategory:    category,
 			SpellStateKnown: true, KnownSpells: e.KnownSpells,
 			CastCapable: (clientClass == 0x17 || clientClass == 0x18) && e.KnownSpells != 0,
-			AutoSpell:   uint32(e.AutoSpell),
+			AutoSpell:   mw.autocastShown(e.ID, e.AutoSpell),
 			Cell:        cell, Step: step, Route: mw.routeOf(e.ID),
 			Name: name, Life: lifeOf(e), HP: int(e.HP), MaxHP: int(e.MaxHP),
 			Untargetable: !e.OrdinaryTargetable(),

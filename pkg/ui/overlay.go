@@ -844,6 +844,16 @@ func (v *Viewer) SetEntities(entities []MapEntity) {
 	}
 }
 
+// SetEntityAutocast records the autocast spell a queued change will give the
+// entity, so a second Ctrl+A before the next tick starts from the shown state.
+func (v *Viewer) SetEntityAutocast(entity, spell uint32) {
+	for i := range v.entities {
+		if v.entities[i].ID == entity {
+			v.entities[i].AutoSpell = spell
+		}
+	}
+}
+
 // EntityMarkers reports how many entities the viewer holds, mirroring
 // ObjectOverlay/UnitOverlay's shape and reason: the tier that owns the world
 // needs to see that its entities arrived without opening a window, and a viewer

@@ -512,3 +512,27 @@ func TestThePopupStatesTheRecordAtTheCastPower(t *testing.T) {
 		}
 	}
 }
+
+func TestAutocastShownAppliesTheQueueInOrderPerEntity(t *testing.T) {
+	mw := &mapWorld{}
+	if got := mw.autocastShown(1, 6); got != 6 {
+		t.Fatalf("an empty queue shows %d, want the World's 6", got)
+	}
+	mw.pending = []sim.Command{
+		sim.Autocast(1, 0), sim.Autocast(2, 7), sim.Autocast(1, 1), sim.Autocast(1, 0), sim.Autocast(1, 9),
+		sim.MoveTo(1, sim.CellPoint{X: 3, Y: 3}),
+	}
+	for _, c := range []struct {
+		id   sim.EntityID
+		cur  uint16
+		want uint32
+	}{{1, 6, 9}, {2, 0, 7}, {3, 4, 4}} {
+		if got := mw.autocastShown(c.id, c.cur); got != c.want {
+			t.Errorf("entity %d shows %d, want %d", c.id, got, c.want)
+		}
+	}
+	mw.pending = []sim.Command{sim.Autocast(1, 1), sim.Autocast(1, 0)}
+	if got := mw.autocastShown(1, 6); got != 0 {
+		t.Errorf("on then off shows %d, want 0", got)
+	}
+}

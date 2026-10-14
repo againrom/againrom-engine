@@ -299,6 +299,21 @@ func (a *App) HeadlessSpellPoint(spell uint32) (int, int, error) {
 	return 0, 0, fmt.Errorf("headless spell point: spell %d is not visible", spell)
 }
 
+// HeadlessSpellAutocast reports whether the viewer's book entry for spell is
+// marked with the autocast frame on the frame about to be drawn.
+func (a *App) HeadlessSpellAutocast(spell uint32) (bool, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range v.spellbook {
+		if entry.ID == spell {
+			return entry.Autocast, nil
+		}
+	}
+	return false, fmt.Errorf("headless spell autocast: spell %d is not in the book", spell)
+}
+
 // HeadlessShopPoint is a window pixel the OPEN SHOP ROOM answers for one of its
 // four drag surfaces: `doll` slot 1..12, `shelf` cell, `pack` cell or `table`
 // place, each index 0-based except the doll's, which is the equipment slot's own

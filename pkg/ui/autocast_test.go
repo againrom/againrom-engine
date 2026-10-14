@@ -370,3 +370,76 @@ func TestASchoolOutsideThePaletteStillDrawsAMark(t *testing.T) {
 			passes[0].Color, SpellSchoolColors[0])
 	}
 }
+
+// pausedAutocastApp is two casters of spell 1 selected, with a sink that does
+// what the simulation side does between ticks: it records the new setting for
+// the entity and shows it on the next frame, in the book and to the key.
+func pausedAutocastApp(t *testing.T, tellViewer bool) (*App, map[uint32]uint32, func()) {
+	t.Helper()
+	a := spellbookTestApp(t)
+	mapAtScaleOne(a)
+	v := a.flow.viewer
+	ents := []MapEntity{
+		{ID: sbUnitID, Life: LifeAlive, SpellStateKnown: true, KnownSpells: 1 << 1},
+		{ID: sbOtherID, Life: LifeAlive, SpellStateKnown: true, KnownSpells: 1 << 1},
+	}
+	v.SetEntities(ents)
+	v.sel = selection{sbUnitID, sbOtherID}
+	shown := map[uint32]uint32{}
+	frame := func() {
+		book := acBook(shown[sbUnitID])
+		v.SetSpellbook(sbUnitID, book)
+	}
+	frame()
+	v.SetAutocastSink(func(entity, spell uint32) {
+		shown[entity] = spell
+		if tellViewer {
+			v.SetEntityAutocast(entity, spell)
+		}
+	})
+	return a, shown, frame
+}
+
+func TestPausedAutocastKeyAndRightClickShowEveryChangeOnTheNextFrame(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	t.Run("Ctrl+A over two casters: on, off, on again", func(t *testing.T) {
+		a, shown, frame := pausedAutocastApp(t, true)
+		v := a.flow.viewer
+		x, y := sbEntryPoint(t, v, v.spellbook, 0)
+		sbClick(v, x, y)
+		for i, want := range []uint32{1, 0, 1} {
+			a.step(appInput{Autocast: true}, now)
+			frame()
+			if shown[sbUnitID] != want || shown[sbOtherID] != want {
+				t.Fatalf("press %d: casters show %v, want both %d", i+1, shown, want)
+			}
+			if v.spellbook[0].Autocast != (want == 1) {
+				t.Fatalf("press %d: the drawn entry shows autocast %v", i+1, v.spellbook[0].Autocast)
+			}
+		}
+	})
+	t.Run("a viewer never told the shown setting asks for on again", func(t *testing.T) {
+		a, shown, frame := pausedAutocastApp(t, false)
+		v := a.flow.viewer
+		x, y := sbEntryPoint(t, v, v.spellbook, 0)
+		sbClick(v, x, y)
+		a.step(appInput{Autocast: true}, now)
+		frame()
+		a.step(appInput{Autocast: true}, now)
+		if shown[sbUnitID] != 1 {
+			t.Fatalf("control: the second press cleared without the shown setting: %v", shown)
+		}
+	})
+	t.Run("right-click: on, off, on again", func(t *testing.T) {
+		a, shown, frame := pausedAutocastApp(t, true)
+		v := a.flow.viewer
+		x, y := sbEntryPoint(t, v, v.spellbook, 0)
+		for i, want := range []uint32{1, 0, 1} {
+			a.step(appInput{CursorX: x, CursorY: y, SecondaryPressed: true}, now)
+			frame()
+			if shown[sbUnitID] != want || v.spellbook[0].Autocast != (want == 1) {
+				t.Fatalf("click %d: shown %v, entry %v, want %d", i+1, shown, v.spellbook[0].Autocast, want)
+			}
+		}
+	})
+}
