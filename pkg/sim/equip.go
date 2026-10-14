@@ -16,6 +16,9 @@ func (w *World) equip(i, cindex, slot, displace int) {
 		if n.equipSavedNative(i, cindex, slot, displace) && n.savedMutationValid() {
 			*w = n
 			w.clearFelled(i)
+			if slot == slotWeapon+1 {
+				w.closeWornSpellGap(i)
+			}
 		}
 		return
 	}
@@ -76,6 +79,9 @@ func (w *World) equip(i, cindex, slot, displace int) {
 	// supplies. Normalize death only after the complete container/equipment move
 	// so clearFelled drops the final loadout once and no later writer restores it.
 	w.clearFelled(i)
+	if slot == slotWeapon+1 {
+		w.closeWornSpellGap(i)
+	}
 }
 
 // unequip is the unequip command's own act (0151, defect 4): equipment slot

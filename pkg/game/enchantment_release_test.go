@@ -505,9 +505,14 @@ func TestReleaseMBrigand3KeepsOneStaffThroughDeathPickupEquipSaveAndCast(t *test
 		t.Fatalf("party pack after pickup = %+v, want staff %+v", stacks, staff)
 	}
 	sim.Step(ms.World, []sim.Command{{Kind: sim.KindEquip, Entity: taker, X: int32(stackIndex), Y: 1}})
+	// The party's equip builds the Spell the shipped actor's staff lacks
+	// (ITEM-187, DIV-3362).
+	rule := mapload.SpellRules(f.Table)[uint8(spell)-1]
+	wornStaff := staff.Clone()
+	wornStaff.SourceEquipment.Spell = sim.SourceItemSpell{Present: true, ID: uint8(spell), Range: rule.MaxRange, ManaCost: uint16(rule.ManaCost)}
 	partyWorn, _ := ms.World.EquippedItems(taker)
-	if !reflect.DeepEqual(partyWorn[0], staff) {
-		t.Fatalf("party equipped staff = %+v, want %+v", partyWorn[0], staff)
+	if staff.SourceEquipment.Spell.Present || !reflect.DeepEqual(partyWorn[0], wornStaff) {
+		t.Fatalf("party equipped staff = %+v, want %+v", partyWorn[0], wornStaff)
 	}
 
 	form, _ := ms.World.MarshalBinary()
@@ -517,12 +522,12 @@ func TestReleaseMBrigand3KeepsOneStaffThroughDeathPickupEquipSaveAndCast(t *test
 	}
 	restoredWorn, _ := restored.EquippedItems(taker)
 	restoredEntity := releaseEntityByID(t, &restored, taker)
-	if !reflect.DeepEqual(restoredWorn[0], staff) || restoredEntity.WeaponSpellSource != sim.WeaponSpellItem ||
+	if !reflect.DeepEqual(restoredWorn[0], wornStaff) || restoredEntity.WeaponSpellSource != sim.WeaponSpellItem ||
 		restoredEntity.WeaponSpell != spell || restoredEntity.WeaponSpellLevel != power {
 		t.Fatalf("reloaded party source/item = %+v / %+v", restoredEntity, restoredWorn[0])
 	}
 
-	castWorld := releaseStaffCastWorld(t, restoredEntity, staff, mapload.SpellRules(f.Table))
+	castWorld := releaseStaffCastWorld(t, restoredEntity, wornStaff, mapload.SpellRules(f.Table))
 	var event sim.CastEvent
 	for tick := 0; tick < 512 && event.Spell == 0; tick++ {
 		var commands []sim.Command

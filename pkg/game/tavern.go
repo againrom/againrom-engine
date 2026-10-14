@@ -244,6 +244,7 @@ func buildMercenarySquad(table *mapload.Table, town *Town, typ, count int) ([]ma
 		HiredRotationSpeed: def.RotationSpeed,
 		Class:              def.TypeID,
 	}
+	joinedWornSpells(base.WornItems[:], table)
 	for slot, item := range wornItems {
 		base.Worn[slot] = item.Code
 	}

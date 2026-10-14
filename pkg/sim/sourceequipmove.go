@@ -2,6 +2,7 @@ package sim
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sort"
 )
 
@@ -222,6 +223,84 @@ func (w *World) sourcePrepareWeaponTraced(item *ItemInstance, trace *sourceEquip
 		return w.sourceTraceSpell(trace, ticket, item.SourceEquipment.Spell)
 	}
 	return true // no matching Effect does not clear an existing owned Spell
+}
+
+// BuildWornWeaponSpells gives each party actor's worn Weapon that holds no
+// Spell and whose first castSpell Effect names a known spell the Spell an
+// equip builds (ITEM-SPELLMOVE-132). A plain worn item takes construct's
+// operands first, the ones SAVE writes for it, or without construct the
+// World's constructor row for its code. It reports how many Spells it built.
+func (w *World) BuildWornWeaponSpells(construct func(ItemInstance) ItemInstance) int {
+	built := 0
+	for i := range w.entities {
+		if w.buildWornWeaponSpell(i, construct) {
+			built++
+		}
+	}
+	return built
+}
+
+// buildWornWeaponSpell closes actor i's gap in place (DIV-3362): an equip
+// route that builds no Spell, a hand-over, or a loaded record without one
+// leaves it. Another player's actor keeps its Weapon as it stands. Only the
+// item changes: no actor load or pool is derived again. A held Spell keeps
+// its values; a Weapon whose saved views disagree keeps its gap.
+func (w *World) buildWornWeaponSpell(i int, construct func(ItemInstance) ItemInstance) bool {
+	item := w.equipment[i][slotWeapon].Clone()
+	if w.entities[i].Owner != SelfSlot || item.Empty() || item.SourceEquipment.Spell.Present {
+		return false
+	}
+	id, _, ok := item.CastSpell()
+	rule, known := w.findSpell(uint32(uint8(id)))
+	if !ok || !known || uint8(id) == 0 {
+		return false
+	}
+	source := item.SourceEquipment
+	if source.Class == 0 && construct != nil {
+		source = construct(item.Clone()).SourceEquipment
+	} else if source.Class == 0 {
+		source = w.itemConstructor(item.Code)
+	}
+	if source.Class != SourceWeapon {
+		return false
+	}
+	source.Spell = sourceSpellFromRule(rule)
+	before, worn := w.savedObjects, w.equipment[i][slotWeapon]
+	if item.ObjectID == 0 {
+		item.SourceEquipment = source
+	} else {
+		objects := w.savedObjects.Clone()
+		err := objects.mutate(func(r *SavedObjects) error {
+			row := r.item(item.ObjectID)
+			if row == nil || row.Spell != 0 || !StackStateEqual(row.Value, r.stackForItem(item)) {
+				return fmt.Errorf("sim: stale worn Weapon")
+			}
+			spell := source.Spell
+			source.Spell = SourceItemSpell{}
+			row.Value.SourceEquipment, row.Token.T0C = source, source.DefinitionRow
+			return r.putItemSpell(row, spell)
+		})
+		if err != nil {
+			return false
+		}
+		w.savedObjects = objects
+		item = objects.item(item.ObjectID).Value.Instance()
+	}
+	w.equipment[i][slotWeapon] = item
+	if !w.savedMutationValid() {
+		w.savedObjects, w.equipment[i][slotWeapon] = before, worn
+		return false
+	}
+	return true
+}
+
+// closeWornSpellGap is the live build after a route that makes a classed
+// Weapon worn or hands its wearer to the party; the second game keeps the
+// World's Spell as it stands.
+func (w *World) closeWornSpellGap(i int) {
+	if i >= 0 && i < len(w.entities) && !w.SecondGame() {
+		w.buildWornWeaponSpell(i, nil)
+	}
 }
 
 func (w *World) sourceWeaponFields(i int, item ItemInstance, sign int32) bool {

@@ -2470,6 +2470,12 @@ package storyguard
 //
 // CommentBytes rises for the difficulty record word: sav.File.CampaignDifficulty,
 // writeDifficulty, difficultyRecord and their tests, this note included.
+//
+// CommentBytes rises for the doc comments of new code in the worn spell weapon
+// hotfix: the build of a party Weapon's Spell at an equip, a hand-over, a
+// mission open and a SAVE (pkg/sim, pkg/game), the same Spell for a member
+// who joins in the town, its per-game flag and the tests that pin it, this
+// note included.
 var Committed = Baseline{
 	TestIdentCount: 4625,
 	TestFileCount:  264,
@@ -2493,5 +2499,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9058258,
+	CommentBytes: 9064459,
 }

@@ -53,6 +53,11 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 		base := sim.Terrain{Cost: mapload.Cost(m), Height: mapload.Height(m)}
 		s.terrainBase = &base
 	}
+	if s.Mission != 0 && len(s.World) != 0 && !filesOf(s.game).storedWeaponSpell {
+		if s.World, err = savedWornWeaponSpells(s.World, f.Table); err != nil {
+			return nil, err
+		}
+	}
 	var doc sav.DocumentData
 	if s.Mission == 0 {
 		doc, err = f.currentCityDocument(s)

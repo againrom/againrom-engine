@@ -30,6 +30,9 @@ type gameFiles struct {
 	// storedOwnWeight keeps a native Human's stored own weight in a SAVE
 	// instead of its worn weight: no second-game claim states the rule.
 	storedOwnWeight bool
+	// storedWeaponSpell writes a worn Weapon's Spell as the World holds it,
+	// without building a missing one: no second-game claim states the rule.
+	storedWeaponSpell bool
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
@@ -72,12 +75,13 @@ var secondGameFiles = gameFiles{
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
 	},
-	unitKeys:        mapload.ServerUnitKeys,
-	spellArms:       mapload.SecondGameSpellArms,
-	freshPlayers:    mapload.NoFreshPlayers,
-	storedFormMerge: true,
-	storedOwnWeight: true,
-	itemNameKeys:    worldPrefix + "data/itemname.bin",
+	unitKeys:          mapload.ServerUnitKeys,
+	spellArms:         mapload.SecondGameSpellArms,
+	freshPlayers:      mapload.NoFreshPlayers,
+	storedFormMerge:   true,
+	storedOwnWeight:   true,
+	storedWeaponSpell: true,
+	itemNameKeys:      worldPrefix + "data/itemname.bin",
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,

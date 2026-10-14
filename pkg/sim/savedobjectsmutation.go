@@ -300,6 +300,24 @@ func (w *World) putWornObject(i, slot int, item ItemInstance) bool {
 	return err == nil
 }
 
+// putItemSpell gives row a newly generated Spell child holding value, or
+// none for an absent value.
+func (r *SavedObjects) putItemSpell(row *SavedItemObject, value SourceItemSpell) error {
+	row.Spell = 0
+	row.Value.SourceEquipment.Spell = value
+	row.Coverage.Unknown &^= SavedUnknownSpellInitialization
+	if value.Present {
+		id, err := r.mint()
+		if err != nil {
+			return err
+		}
+		row.Spell = id
+		r.Spells = append(r.Spells, SavedSpellObject{ID: id, Origin: SavedObjectOrigin{Kind: SavedObjectGenerated}, Value: value, Coverage: SavedObjectCoverage{Unknown: SavedUnknownIdentity}})
+	}
+	r.RefreshChildLiveness()
+	return nil
+}
+
 // replaceObjectSpell is the nested lifecycle of ITEM-SPELLMOVE-132. Known
 // constructor fields come from SpellRule; the runtime pointer remains unknown.
 func (w *World) replaceObjectSpell(item *ItemInstance, value SourceItemSpell) bool {
@@ -313,19 +331,7 @@ func (w *World) replaceObjectSpell(item *ItemInstance, value SourceItemSpell) bo
 		if row == nil || !StackStateEqual(row.Value, r.stackForItem(*item)) {
 			return fmt.Errorf("sim: stale Weapon Spell producer")
 		}
-		row.Spell = 0
-		row.Value.SourceEquipment.Spell = value
-		row.Coverage.Unknown &^= SavedUnknownSpellInitialization
-		if value.Present {
-			id, err := r.mint()
-			if err != nil {
-				return err
-			}
-			row.Spell = id
-			r.Spells = append(r.Spells, SavedSpellObject{ID: id, Origin: SavedObjectOrigin{Kind: SavedObjectGenerated}, Value: value, Coverage: SavedObjectCoverage{Unknown: SavedUnknownIdentity}})
-		}
-		r.RefreshChildLiveness()
-		return nil
+		return r.putItemSpell(row, value)
 	})
 	if err != nil {
 		return false

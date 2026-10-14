@@ -117,6 +117,7 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 	} else if member, ok = townCompanion(in, chapter, npc, s.Carried); !ok {
 		return false
 	}
+	joinedWornSpells(member.WornItems[:], in.table)
 	s.Carried = mapload.OwnParty(append(s.Carried, member))
 	return true
 }
