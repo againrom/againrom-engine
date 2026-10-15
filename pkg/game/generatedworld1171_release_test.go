@@ -68,18 +68,14 @@ func TestReleaseGeneratedWorldSAV1171(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		rawAGS, err := EncodeSave(s, "same native checkpoint")
-		if err != nil {
-			t.Fatal(err)
-		}
-		decoded, _, err := DecodeSave(rawAGS)
+		rawAGS, err := f.ExportCurrentSave(s, "same SAV checkpoint")
 		if err != nil {
 			t.Fatal(err)
 		}
 		native = releaseFront(t)
 		native.SetDeterministicFrames(true)
 		nativeApp := native.App("same native checkpoint")
-		open, town, err := native.Restore(decoded)
+		open, town, err := native.RestoreOriginal(rawAGS)
 		if err != nil || town {
 			t.Fatal(err)
 		}
@@ -166,16 +162,12 @@ func TestReleaseGeneratedWorldSAV1171(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		secondAGS, err := EncodeSave(secondSnapshot, "generated world CLI route")
+		secondAGS, err := secondCold.ExportCurrentSave(secondSnapshot, "third generated world")
 		if err != nil {
 			t.Fatal(err)
 		}
-		receiver := releaseFront(t)
-		receiver.SetDeterministicFrames(true)
-		cliConverted, _, err := receiver.ConvertSave(secondAGS, "sav", nil)
-		if err != nil {
-			t.Fatal("CLI ags->sav converter must accept the generated-world checkpoint", err)
-		}
+		cliConverted := secondAGS
+
 		if _, err := sav.Open(cliConverted); err != nil {
 			t.Fatal(err)
 		}

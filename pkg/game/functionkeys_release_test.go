@@ -72,15 +72,9 @@ func TestReleaseFunctionKeysSaveLoadAndDiplomacy(t *testing.T) {
 					t.Fatal("F2 changed the mission or town save point")
 				}
 			} else {
-				if !inTown {
-					t.Fatal("ordinary mission F2 did not write SAV")
-				}
-				snapshot, _, err := DecodeSave(raw)
-				if err != nil {
-					t.Fatal(err)
-				}
-				savedMission = snapshot.Mission
+				t.Fatal("ordinary F2 did not write SAV")
 			}
+
 			if savedMission != wantMission {
 				t.Fatalf("F2 saved mission=%d want=%d", savedMission, wantMission)
 			}

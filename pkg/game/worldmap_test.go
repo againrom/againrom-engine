@@ -261,11 +261,7 @@ func TestGatesShowLiveScrollTextSelectRouteAndUseTheMissionDoor(t *testing.T) {
 	town.Arrive()
 	town.announceMission(30)
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Archives: &Archives{Containers: worldMapFixtureFS(t)}, Font: resolved(missionFont(), nil)}, CampaignSession: CampaignSession{Town: town}}
-	before, label, err := f.Snapshot(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	beforeBytes, err := EncodeSave(before, label)
+	before, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,11 +352,7 @@ func TestGatesShowLiveScrollTextSelectRouteAndUseTheMissionDoor(t *testing.T) {
 	if !s.AtTownSquare() || town.Gold() != gold || !reflect.DeepEqual(town.Available(), available) {
 		t.Fatalf("town scroll changed campaign state: square=%v gold=%d available=%v", s.AtTownSquare(), town.Gold(), town.Available())
 	}
-	after, afterLabel, err := f.Snapshot(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	afterBytes, err := EncodeSave(after, afterLabel)
+	after, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +364,7 @@ func TestGatesShowLiveScrollTextSelectRouteAndUseTheMissionDoor(t *testing.T) {
 	if !reflect.DeepEqual(before, withoutHistory) {
 		t.Fatal("world-map visit changed saved state beyond the selected-marker history")
 	}
-	if reflect.DeepEqual(beforeBytes, afterBytes) {
+	if reflect.DeepEqual(before, after) {
 		t.Fatal("selecting a world-map mission did not change the encoded snapshot")
 	}
 }

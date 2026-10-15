@@ -256,20 +256,34 @@ func TestApplication1170RejectsMalformedOriginalRunsBeforeAllocation(t *testing.
 func TestApplication1170NativeCheckpointPreservesApplication(t *testing.T) {
 	f, _, _ := sackObjectsOpen1115(t, nil)
 	f.live.tick()
+	initialHash := f.live.world.Hash()
+	for id, member := range f.live.mission.state.Start.Roster {
+		if member.KnownSpells != 0 || member.Book.State != sim.BookLegacy {
+			t.Fatal("fixture must name an absent source book", id)
+		}
+		member.Book.State, member.SpellbookRestored = sim.BookAbsent, true
+		f.live.mission.state.Start.Roster[id] = member
+	}
+	for i := f.live.mission.entryCount; i < len(f.live.mission.party); i++ {
+		member := &f.live.mission.party[i]
+		if member.KnownSpells != 0 || member.Book.State != sim.BookLegacy {
+			t.Fatal("fixture tail must name an absent source book", i)
+		}
+		member.Book.State, member.SpellbookRestored = sim.BookAbsent, true
+	}
+	if f.live.world.Hash() != initialHash {
+		t.Fatal("fixture book metadata changed the World")
+	}
 	before, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(before, "application checkpoint")
-	if err != nil {
-		t.Fatal(err)
-	}
-	saved, _, err := DecodeSave(raw)
+	raw, err := f.ExportCurrentSave(before, "application checkpoint")
 	if err != nil {
 		t.Fatal(err)
 	}
 	cold := cellStateFront(t)
-	open, town, err := cold.Restore(saved)
+	open, town, err := cold.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal("application checkpoint restore", err)
 	}
@@ -280,9 +294,12 @@ func TestApplication1170NativeCheckpointPreservesApplication(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if !sameResave(t, f, cold) {
+		t.Fatal("second SAVE changed the ordinary document")
+	}
 	a, b := reflect.ValueOf(before), reflect.ValueOf(after)
 	for i := 0; i < a.NumField(); i++ {
-		if !a.Field(i).CanInterface() {
+		if !a.Field(i).CanInterface() || a.Type().Field(i).Name == "SavedDocument" {
 			continue
 		}
 		if !reflect.DeepEqual(a.Field(i).Interface(), b.Field(i).Interface()) {
@@ -301,24 +318,9 @@ func TestApplicationLegacyCapturesCurrentViewWithoutRestoringHistoricalOptions(t
 			binary.LittleEndian.PutUint32(record.Value.Bytes, 1234007)
 		}
 	}
-	raw, err := EncodeSave(source, "legacy application absence")
-	if err != nil {
-		t.Fatal(err)
-	}
-	saved, _, err := DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if saved.ApplicationState != nil {
-		t.Fatal("legacy decode invented an application checkpoint")
-	}
-	open, town, err := f.Restore(saved)
-	if err != nil || town {
-		t.Fatal("legacy application restore", err)
-	}
-	if _, _, _, _, _, _, _, _, _, _, err := open(); err != nil {
-		t.Fatal(err)
-	}
+	f.live.applicationState = nil
+	f.live.mission.state.savedDocument = source.SavedDocument
+
 	view := f.live.view.SaveApplication()
 	view.Selection = nil
 	if err := f.live.view.RestoreSaveApplication(view); err != nil {

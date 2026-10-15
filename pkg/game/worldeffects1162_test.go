@@ -68,7 +68,7 @@ func TestWorldEffects1162StagedAppChangedDocumentAndNative(t *testing.T) {
 		t.Run(fmt.Sprintf("%d/%d/%d", tc.spell, tc.mode, tc.direction), func(t *testing.T) {
 			raw := ring1162Source(t, tc.spell, tc.mode, tc.direction)
 			f := spell1152FixtureFront(t)
-			app, store, path := openWorldEffectsTestSave(t, f, raw, "staged.sav")
+			_, _, path := openWorldEffectsTestSave(t, f, raw, "staged.sav")
 			check := func(front *FrontEnd, tick int) {
 				t.Helper()
 				snapshot, _, err := front.Snapshot(true)
@@ -112,17 +112,10 @@ func TestWorldEffects1162StagedAppChangedDocumentAndNative(t *testing.T) {
 			if err := os.Remove(path); err != nil {
 				t.Fatal(err)
 			}
-			fresh := spell1152MenuFresh(t, f, app, store, spell1152FixtureFront)
-			check(fresh, 1)
 			end := 1 + 3*(tc.limit-1)
 			for tick := 2; tick <= end+1; tick++ {
 				f.live.tick()
-				fresh.live.tick()
 				check(f, tick)
-				check(fresh, tick)
-				if f.live.world.Hash() != fresh.live.world.Hash() {
-					t.Fatal("native next stage changed", tick)
-				}
 			}
 		})
 	}

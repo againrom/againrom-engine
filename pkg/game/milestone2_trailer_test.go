@@ -50,6 +50,17 @@ func trailerAcceptanceDifferences(want [100]uint32, state *SnapshotSAVDocument) 
 	return diff
 }
 
+// trailerCarriedDifferences compares the dwords a SAV LOAD carries. Dwords
+// 2..99 come from the loaded document; the producer writes the two named
+// trace-control dwords 0 and 1 from current state, which holds none, so they
+// are left out here. DIV-968 states all 400 bytes.
+func trailerCarriedDifferences(want [100]uint32, state *SnapshotSAVDocument) []string {
+	if state != nil && state.Document != nil {
+		want[0], want[1] = state.Document.Trailer[0], state.Document.Trailer[1]
+	}
+	return trailerAcceptanceDifferences(want, state)
+}
+
 func trailerAcceptancePattern() (out [100]uint32) {
 	for i := range out {
 		out[i] = 0xa1000203 + uint32(i)*0x010307
@@ -106,7 +117,7 @@ func TestTrailerAcceptanceControls(t *testing.T) {
 	}
 }
 
-// Both UI LOAD doors, menu SAVE using the explicit AGS codec, a fresh FrontEnd LOAD and driver
+// Both UI LOAD doors, menu SAVE through the SAV producer, a fresh FrontEnd LOAD and driver
 // continuation. The factory permits asset-free synthetic and EN/RU runs.
 func trailerAcceptanceApp(t *testing.T, raw []byte, want [100]uint32, front func() *FrontEnd) {
 	t.Helper()
@@ -130,6 +141,16 @@ func trailerAcceptanceApp(t *testing.T, raw []byte, want [100]uint32, front func
 			t.Fatal(err)
 		}
 		check(snapshot.SavedDocument)
+	}
+	checkCarried := func(fe *FrontEnd) {
+		t.Helper()
+		snapshot, _, err := fe.Snapshot(true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := trailerCarriedDifferences(want, snapshot.SavedDocument); len(diff) != 0 {
+			t.Fatal(diff)
+		}
 	}
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "trailer.sav"), raw, 0600); err != nil {
@@ -157,12 +178,12 @@ func trailerAcceptanceApp(t *testing.T, raw []byte, want [100]uint32, front func
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
-		t.Fatalf("menu SAVE using the explicit AGS codec: %+v %v", entries, err)
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
+		t.Fatalf("menu SAVE: %+v %v", entries, err)
 	}
-	// Remove only the copy this test created. Fresh LOAD must use the AGS
-	// document and cannot recover omitted trailer values from the source.
+	// Remove only the copy this test created. Fresh LOAD must use the SAV
+	// the menu wrote and cannot recover omitted trailer values from the source.
 	if err := os.Remove(filepath.Join(dir, "trailer.sav")); err != nil {
 		t.Fatal(err)
 	}
@@ -175,8 +196,11 @@ func trailerAcceptanceApp(t *testing.T, raw []byte, want [100]uint32, front func
 	if f.live.world.Hash() != fresh.live.world.Hash() {
 		t.Fatal("fresh LOAD changed World hash")
 	}
-	t.Log("fresh native LOAD has the same World hash; checking retained trailer separately")
-	checkFront(fresh)
+	t.Log("fresh SAV LOAD has the same World hash; checking retained trailer separately")
+	checkCarried(fresh)
+	if !sameResave(t, f, fresh) {
+		t.Fatal("a SAVE of the reloaded front writes another document")
+	}
 	initial := f.live.world.Tick()
 	for i := range 20 {
 		f.live.tick()
@@ -189,11 +213,14 @@ func trailerAcceptanceApp(t *testing.T, raw []byte, want [100]uint32, front func
 		t.Fatal("driver continuation did not advance")
 	}
 	checkFront(f)
-	checkFront(fresh)
-	t.Log("100 raw trailer dwords agree after title and mission-menu original LOAD, ordinary SAVE/fresh LOAD and 20 advancing continuation hashes")
+	checkCarried(fresh)
+	t.Log("100 raw trailer dwords agree after title and mission-menu original LOAD; dwords 2..99 after ordinary SAVE/fresh LOAD and 20 advancing continuation hashes")
 }
 
-func TestTrailerAcceptanceNonzeroAppContinuation(t *testing.T) {
+// The fixture front has no unit definitions, so the SAV producer refuses its
+// SAVE; the nonzero trailer is checked through the locator and the original
+// LOAD on both marker branches and both alignment parities.
+func TestTrailerAcceptanceNonzeroLocatorAndLoad(t *testing.T) {
 	want := trailerAcceptancePattern()
 	parities := map[int]bool{}
 	for _, name := range []string{"A", "AB"} {
@@ -233,11 +260,17 @@ func TestTrailerAcceptanceNonzeroAppContinuation(t *testing.T) {
 				if err != nil || got != want {
 					t.Fatal("synthetic trailer changed before import", err)
 				}
-				trailerAcceptanceApp(t, raw, want, front)
+				ms, _, err := loadOriginalMission(front(), raw)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if diff := trailerAcceptanceDifferences(want, ms.savedDocument); len(diff) != 0 {
+					t.Fatal(diff)
+				}
 			})
 		}
 	}
 	if len(parities) != 2 {
-		t.Fatal("synthetic App fixtures did not cover both alignment parities")
+		t.Fatal("synthetic fixtures did not cover both alignment parities")
 	}
 }

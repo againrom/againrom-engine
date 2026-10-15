@@ -51,7 +51,7 @@ func TestReleaseOriginalProfile1107NaturalFractionAppAndNative(t *testing.T) {
 			if _, err := save(true); err != nil {
 				t.Fatal(err)
 			}
-			entries, err := listAGS(store)
+			entries, err := localSAVRows(store)
 			if err != nil || len(entries) != 1 {
 				t.Fatal(entries, err)
 			}

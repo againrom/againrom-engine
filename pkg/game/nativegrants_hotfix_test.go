@@ -1,7 +1,6 @@
 package game
 
 import (
-	"bytes"
 	"encoding/binary"
 	"reflect"
 	"strings"
@@ -40,7 +39,7 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 	} {
 		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: NewTown(c)}}
 		before := f.Town
-		if _, _, err := f.Restore(bad); err == nil || !strings.Contains(err.Error(), "companion grant") {
+		if err := validateSnapshotHeroGrants(c, bad); err == nil || !strings.Contains(err.Error(), "companion grant") {
 			t.Fatal("malformed grant state not refused", bad, err)
 		}
 		if f.Town != before || f.Town.Gold() != initialPlayerPurse {
@@ -55,7 +54,7 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 		t.Fatal("current campaign reissued a consumed grant", got)
 	}
 	// Map insertion order must not change persisted grant bytes.
-	var prior []byte
+	var prior []int
 	for _, order := range [][]int{{40, 30}, {30, 40}} {
 		town := NewTown(c)
 		for _, n := range order {
@@ -63,11 +62,9 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 		}
 		var snapshot Snapshot
 		snapshotTown(town, &snapshot)
-		raw, err := EncodeSave(snapshot, "grant order")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if prior != nil && !bytes.Equal(prior, raw) {
+		raw := snapshot.ConsumedHeroGrants
+
+		if prior != nil && !reflect.DeepEqual(prior, raw) {
 			t.Fatal("nondeterministic native grant bytes")
 		}
 		prior = raw
@@ -85,14 +82,6 @@ func TestNativeCompanionGrantIsConsumedAndPersisted(t *testing.T) {
 	}
 	var snapshot Snapshot
 	snapshotTown(town, &snapshot)
-	raw, err := EncodeSave(snapshot, "consumed grant")
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshot, _, err = DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if got := restoreTown(c, snapshot).takeAddHeroes(30); len(got) != 0 {
 		t.Fatal("AGS restored a consumed grant", got)
 	}
@@ -140,16 +129,12 @@ func TestReleaseNativeConsumedCompanionGrant(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			rawAGS, err := EncodeSave(snapshot, label)
-			if err != nil {
-				t.Fatal(err)
-			}
-			snapshot, _, err = DecodeSave(rawAGS)
+			rawAGS, err := f.ExportCurrentSave(snapshot, label)
 			if err != nil {
 				t.Fatal(err)
 			}
 			g := releaseFront(t)
-			if _, town, err := g.Restore(snapshot); err != nil || !town {
+			if _, town, err := g.RestoreOriginal(rawAGS); err != nil || !town {
 				t.Fatal("native reload", town, err)
 			}
 			g.addChapterCompanions(g.Town.Chapter())

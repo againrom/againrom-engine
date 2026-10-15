@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/sim"
@@ -116,7 +115,7 @@ func TestReleaseMilestone2Groups1155(t *testing.T) {
 			}
 			fresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 			reloaded := checkCurrent(fresh)
-			if !bytes.Equal(current.World, reloaded.World) || !reflect.DeepEqual(current.SavedDocument, reloaded.SavedDocument) {
+			if !bytes.Equal(current.World, reloaded.World) || !sameResave(t, f, fresh) {
 				t.Fatal("menu SAVE/fresh LOAD changed current Group graph or World")
 			}
 			initial := f.live.world.Tick()

@@ -310,38 +310,6 @@ func memberSchoolPrice(m mapload.PartyMember, slot int) int {
 	return schoolPrice(m.Hero.Skill[slot])
 }
 
-func originalCityUpgradeParty(party []mapload.PartyMember, state *originalCitySaveState) []mapload.PartyMember {
-	if state == nil {
-		return party
-	}
-	party = mapload.CloneParty(party)
-	for i := range party {
-		if party[i].OriginalHuman != nil {
-			continue
-		}
-		for _, b := range state.bindings {
-			if b.returned != nil {
-				continue
-			}
-			if b.partyID != party[i].ID || len(b.training) != 0 {
-				continue
-			}
-			legacy := b.baseline
-			legacy.OriginalHuman = nil
-			if reflect.DeepEqual(party[i], legacy) {
-				party[i] = mapload.CloneParty([]mapload.PartyMember{b.baseline})[0]
-			} else if b.baseline.OriginalHuman != nil {
-				// Before retained Human state existed, ordinary native item and
-				// school changes carried no marker. The independently validated
-				// source basis must not reclaim those changed native characters.
-				party[i].OriginalHuman = mapload.CloneParty([]mapload.PartyMember{b.baseline})[0].OriginalHuman
-				party[i].RetireOriginalHuman()
-			}
-		}
-	}
-	return party
-}
-
 func humanSpeedStat(e sim.Entity) int {
 	return int(e.SpeedWord())
 }

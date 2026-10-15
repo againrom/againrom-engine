@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"testing"
 
@@ -181,7 +180,7 @@ func TestReleaseMilestone2Sacks1151(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(after.World, reloaded.World) || !reflect.DeepEqual(after.SavedDocument, reloaded.SavedDocument) {
+	if !bytes.Equal(after.World, reloaded.World) || !sameResave(t, f, fresh) {
 		t.Fatal("menu SAVE/fresh LOAD changed Sack/item graph or World")
 	}
 	check(fresh, source, currentOrigins(reloaded.SavedDocument))

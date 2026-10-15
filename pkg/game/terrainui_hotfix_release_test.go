@@ -54,12 +54,11 @@ func TestReleaseLocalizedMissionUnitNames(t *testing.T) {
 }
 
 func TestReleaseVampiricStaffTrainsWaterAtFullHealth(t *testing.T) {
-	path, _ := groundCorpusFile(t, "2026-09-15/mission111-portrait-input.ags",
-		"522d5cd01dea60a6d64637884f0427b58888c329be3458259c14d17bce5afe35")
+	path, _ := ownerCurrentSAV(t, "mission111-portrait-input")
 	f := releaseFront(t)
 	a := f.App("vampiric staff")
 	defer a.StopAudio()
-	_, list, load := agsSaveSeams(f, SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
+	_, list, load := f.SaveSeams(SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
 	a.SetSaveSeams(nil, list, load)
 	groundAppLoad(t, a, list, filepath.Base(path))
 	caster := releaseEntityByID(t, f.live.world, 84)

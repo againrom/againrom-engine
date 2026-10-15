@@ -118,16 +118,12 @@ func coldBuilding1175(t *testing.T, f *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	disk, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	saved, _, err := DecodeSave(disk)
+	disk, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fresh := releaseFront(t)
-	opener, town, err := fresh.Restore(saved)
+	opener, town, err := fresh.RestoreOriginal(disk)
 	if err != nil || town || opener == nil {
 		t.Fatalf("cold Restore: town=%v opener=%v error=%v", town, opener != nil, err)
 	}
@@ -138,13 +134,13 @@ func coldBuilding1175(t *testing.T, f *FrontEnd) {
 	}
 	fresh.live.view.SetFogReveal(true)
 	if got := fresh.live.world.Structures(); !slices.Equal(got, want) {
-		t.Fatal("cold AGS changed structure state")
+		t.Fatal("cold SAV changed structure state")
 	}
 	for _, structure := range want {
 		before, beforeRuins := f.live.view.StructureRuinFrames(uint32(structure.ID))
 		after, afterRuins := fresh.live.view.StructureRuinFrames(uint32(structure.ID))
 		if before != after || beforeRuins != afterRuins {
-			t.Fatalf("structure%d draw changed after cold AGS: %d/%d -> %d/%d",
+			t.Fatalf("structure%d draw changed after cold SAV: %d/%d -> %d/%d",
 				structure.ID, before, beforeRuins, after, afterRuins)
 		}
 	}

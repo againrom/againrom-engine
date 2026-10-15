@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/base64"
 	"strings"
 	"testing"
 
@@ -16,35 +15,11 @@ func TestDifficultyNativeCompatibilityAndAtomicRefusal(t *testing.T) {
 			t.Fatalf("accepted difficulty %d", v)
 		}
 	}
-	// A frozen, authored envelope actually written with the old gob schema,
-	// not a modern Snapshot explicitly carrying the zero sentinel.
-	b, err := base64.StdEncoding.DecodeString(preMercenaryStateSaveFixtureBase64)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s.Difficulty != 0 {
-		t.Fatal("old schema somehow supplied difficulty")
-	}
-	s.Mission, s.World, s.Gold = 0, nil, 123 // exercise the town restore boundary
-	f := &FrontEnd{CampaignSession: CampaignSession{Difficulty: mapload.DifficultyHard, Town: NewTown(Campaign{})}}
-	if _, town, err := f.Restore(s); err != nil || !town {
-		t.Fatalf("old schema restore: %v %v", town, err)
-	}
-	if f.Difficulty != mapload.DifficultyNormal || f.Town.Gold() != 123 {
-		t.Fatalf("old schema became %+v", f)
-	}
+	f := &FrontEnd{CampaignSession: CampaignSession{Difficulty: mapload.DifficultyNormal, Town: NewTown(Campaign{})}}
 	oldTown := f.Town
-	for _, difficulty := range []mapload.Difficulty{-1, 4, 2147483647} {
-		s.Difficulty = difficulty
-		if _, err := EncodeSave(s, "invalid"); err == nil {
-			t.Fatal("encoder accepted invalid difficulty")
-		}
-		if _, _, err := f.Restore(s); err == nil || !strings.Contains(err.Error(), "difficulty") {
-			t.Fatalf("invalid native restore=%v", err)
+	for _, difficulty := range []uint32{4, 2147483647, 0xffffffff} {
+		if _, _, err := f.RestoreOriginal(originalDifficultyFixture(t, 0, difficulty)); err == nil || !strings.Contains(err.Error(), "difficulty") {
+			t.Fatalf("invalid SAV restore=%v", err)
 		}
 		if f.Town != oldTown || f.Difficulty != mapload.DifficultyNormal {
 			t.Fatal("invalid restore changed live session")
@@ -63,9 +38,11 @@ func originalDifficultyFixture(t *testing.T, mission, difficulty uint32) []byte 
 }
 
 func TestDifficultyOriginalTownImportAndNativePersistence(t *testing.T) {
+	source, newFront := spellbookCitySource(t)
 	for _, level := range []uint32{1, 2, 3} {
-		f := &FrontEnd{CampaignSession: CampaignSession{Difficulty: mapload.DifficultyHard, Town: NewTown(Campaign{})}}
-		if _, town, err := f.RestoreOriginal(originalDifficultyFixture(t, 0, level)); err != nil || !town {
+		f := newFront()
+		f.Difficulty = mapload.DifficultyHard
+		if _, town, err := f.RestoreOriginal(withDifficultyWords(t, source, level, level-1)); err != nil || !town {
 			t.Fatalf("original %d: town=%v err=%v", level, town, err)
 		}
 		if f.Difficulty != mapload.Difficulty(level) {
@@ -75,16 +52,12 @@ func TestDifficultyOriginalTownImportAndNativePersistence(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		b, err := EncodeSave(s, "difficulty")
+		b, err := f.ExportCurrentSave(s, "difficulty")
 		if err != nil {
 			t.Fatal(err)
 		}
-		decoded, _, err := DecodeSave(b)
-		if err != nil {
-			t.Fatal(err)
-		}
-		g := &FrontEnd{}
-		if _, _, err := g.Restore(decoded); err != nil {
+		g := newFront()
+		if _, _, err := g.RestoreOriginal(b); err != nil {
 			t.Fatal(err)
 		}
 		if g.Difficulty != mapload.Difficulty(level) {
@@ -94,7 +67,7 @@ func TestDifficultyOriginalTownImportAndNativePersistence(t *testing.T) {
 	f := &FrontEnd{CampaignSession: CampaignSession{Difficulty: mapload.DifficultyEasy, Town: NewTown(Campaign{})}}
 	town := f.Town
 	for _, level := range []uint32{4, 0xffffffff} {
-		if _, _, err := f.RestoreOriginal(originalDifficultyFixture(t, 0, level)); err == nil {
+		if _, _, err := f.RestoreOriginal(withDifficultyWords(t, source, level, level-1)); err == nil {
 			t.Fatal("invalid original difficulty accepted")
 		}
 		if f.Town != town || f.Difficulty != mapload.DifficultyEasy {

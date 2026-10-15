@@ -38,7 +38,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 	if f.gameOptionValues(true) != want || f.live.world.Tick() != 0 || len(f.live.pending) != 2 {
 		t.Fatal("fresh mission did not read preferences without stepping", f.gameOptionValues(true), f.live.world.Tick(), f.live.pending)
 	}
-	s, _, err := f.Snapshot(true)
+	_, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,14 +53,8 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(s, "options checkpoint")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err = DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	raw := pendingRaw
+
 	opposite := ui.GameOptionValues{1, 1, 1, 0, 0}
 	savedOptions := releaseFront(t)
 	savedOptions.SetDeterministicFrames(true)
@@ -83,15 +77,15 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 	seed(cold.Options, opposite)
 	cold.LoadOptions()
 	ca := cold.App("cold options")
-	open, town, err := cold.Restore(s)
+	open, town, err := cold.RestoreOriginal(raw)
 	if err != nil || town {
-		t.Fatal("restore AGS", town, err)
+		t.Fatal("restore SAV", town, err)
 	}
 	if err := ca.OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
 	if cold.gameOptionValues(true) != want || !reflect.DeepEqual(cold.live.pending, f.live.pending) {
-		t.Fatal("profile overwrote loaded AGS settings or pending orders", cold.gameOptionValues(true), cold.live.pending)
+		t.Fatal("profile overwrote loaded SAV settings or pending orders", cold.gameOptionValues(true), cold.live.pending)
 	}
 	for _, withProfile := range []bool{false, true} {
 		fresh := releaseFront(t)
@@ -102,7 +96,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 		fresh.LoadOptions()
 		fa := fresh.App("loaded session then new game")
 		fa.SetCutscenes(nil)
-		loaded, town, err := fresh.Restore(s)
+		loaded, town, err := fresh.RestoreOriginal(raw)
 		if err != nil || town {
 			t.Fatal(err)
 		}
@@ -127,7 +121,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 		x, _ := f.live.world.MarshalBinary()
 		y, _ := cold.live.world.MarshalBinary()
 		if !bytes.Equal(x, y) {
-			t.Fatal("AGS continuation differs", i)
+			t.Fatal("SAV continuation differs", i)
 		}
 		mode, present := f.live.world.CommandFormationMode(sim.SelfSlot)
 		savedMode, savedPresent := savedOptions.live.world.CommandFormationMode(sim.SelfSlot)
@@ -333,7 +327,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 			t.Fatal(err, closeErr)
 		}
 	}
-	t.Log("five persisted controls; ordinary queued-choice SAV; opposite-profile cold LOAD and 64 next-tick option samples without replay; legacy AGS successors; SAV flags and retreat thresholds; installed pointer controls and panel")
+	t.Log("five persisted controls; ordinary queued-choice SAV; opposite-profile cold LOAD and 64 next-tick option samples without replay; legacy SAV successors; SAV flags and retreat thresholds; installed pointer controls and panel")
 }
 
 func optionsTwin(t *testing.T, f *FrontEnd, live sim.Entity) sim.Entity {

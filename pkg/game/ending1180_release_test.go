@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"errors"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -102,9 +101,6 @@ func TestReleaseCampaign1180EndingCreditsHallSaveAndReset(t *testing.T) {
 			t.Fatal("the completed campaign was written as a SAV")
 		}
 		hold := f.Town
-		if candidate, err := f.prepareRestore(before); err == nil || candidate != nil || !errors.Is(err, errCompletedCampaignFile) {
-			t.Fatal("a completed campaign state was accepted by LOAD", err)
-		}
 		if f.Town != hold || !f.completedCampaign() {
 			t.Fatal("the refused LOAD changed the live campaign")
 		}

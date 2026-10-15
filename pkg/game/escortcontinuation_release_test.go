@@ -95,16 +95,12 @@ func escortNativeContinuation(t *testing.T, f *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wire, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(wire)
+	wire, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	back := releaseFront(t)
-	opener, town, err := back.Restore(decoded)
+	opener, town, err := back.RestoreOriginal(wire)
 	if err != nil || town || opener == nil {
 		t.Fatal("engine save restore", err, town)
 	}

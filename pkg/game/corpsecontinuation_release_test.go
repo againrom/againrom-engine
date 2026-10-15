@@ -18,7 +18,7 @@ func loadLocalLegacySave(t *testing.T, store SaveStore, name string) *FrontEnd {
 	f.SetDeterministicFrames(true)
 	app := f.App("cold explicit legacy save")
 	app.Layout(1024, 768)
-	save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, name)
 	return f
@@ -63,7 +63,7 @@ func requireCurrentCorpse(t *testing.T, f *FrontEnd, want corpseContinuationWitn
 
 func saveCorpseMission(t *testing.T, f *FrontEnd, dir string) string {
 	t.Helper()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(true)
 	if err != nil || !IsOriginal(name) {
 		snapshot, _, snapshotErr := f.Snapshot(true)

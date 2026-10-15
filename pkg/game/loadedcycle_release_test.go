@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"testing"
 
@@ -320,6 +321,42 @@ func (arena *loadedCycleArena) loadedOnLanding(t *testing.T, hero, victim sim.En
 	}
 }
 
+// Complete the synthetic rig through the current mission constructor
+// before any combat input. The battle checkpoint below still compares
+// against its independent pre-SAVE World, including all 120 next ticks.
+func (arena *loadedCycleArena) completeCurrentSaveFixture(t *testing.T) {
+	t.Helper()
+	actors := arena.live.world.Entities()
+	items, actions := arena.live.world.SavedObjects(), arena.live.world.Actions()
+	initial, label, err := arena.front.Snapshot(true)
+	if err != nil {
+		t.Fatal("initial current mission fixture", err)
+	}
+	raw, err := arena.front.ExportCurrentSave(initial, label)
+	if err != nil {
+		t.Fatal("initial current mission fixture SAVE", err)
+	}
+	complete := releaseFront(t)
+	complete.Options = OptionsStore{}
+	complete.SetDeterministicFrames(true)
+	opener, town, err := complete.RestoreOriginal(raw)
+	if err != nil || town || opener == nil {
+		t.Fatal("initial current mission fixture LOAD", town, err)
+	}
+	app := complete.App("complete loaded-cycle fixture")
+	t.Cleanup(app.StopAudio)
+	app.Layout(1024, 768)
+	if err := app.OpenMission(opener); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(actors, complete.live.world.Entities()) || !reflect.DeepEqual(items, complete.live.world.SavedObjects()) || !reflect.DeepEqual(actions, complete.live.world.Actions()) {
+		t.Fatal("initial fixture construction changed independent actors, items or actions")
+	}
+	arena.front, arena.live, arena.app = complete, complete.live, app
+	inspectionCentre(arena.live, int(arena.cx), int(arena.cy))
+	arena.live.push()
+}
+
 // reload saves the mission as it stands, restores the saved game on a second
 // front end through the ordinary load path, and returns the restored mission
 // beside a control world decoded from the saved world bytes.
@@ -329,16 +366,12 @@ func (arena *loadedCycleArena) reload(t *testing.T) (*mapWorld, *sim.World) {
 	if err != nil {
 		t.Fatalf("the save was refused: %v", err)
 	}
-	raw, err := EncodeSave(snapshot, label)
+	raw, err := arena.front.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatalf("the save was refused: %v", err)
 	}
-	decoded, _, err := DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
 	back := releaseFront(t)
-	opener, town, err := back.Restore(decoded)
+	opener, town, err := back.RestoreOriginal(raw)
 	if err != nil || town || opener == nil {
 		t.Fatal("restore", err, town)
 	}
@@ -353,6 +386,10 @@ func (arena *loadedCycleArena) reload(t *testing.T) (*mapWorld, *sim.World) {
 		t.Fatal(err)
 	}
 	mapload.BindSourceDerive(&control)
+	if want, got := control.Hash(), back.live.world.Hash(); want != got {
+		t.Logf("current SAV LOAD changed the independent source World before Step: source=%x cold=%x", want, got)
+		currentMenuWorldDiagnostics(t, &control, back.live.world)
+	}
 	return back.live, &control
 }
 
@@ -555,6 +592,7 @@ func TestReleaseALoadedAttackCycleFinishesBeforeAMoveOrder(t *testing.T) {
 
 	t.Run("save and load while the move waits behind the blow", func(t *testing.T) {
 		arena := openLoadedCycleArena(t, 1)
+		arena.completeCurrentSaveFixture(t)
 		hero, east := arena.heroes[0], arena.east
 		arena.selectFirstHero(t)
 		arena.orderAttack(t, east)
@@ -577,10 +615,14 @@ func TestReleaseALoadedAttackCycleFinishesBeforeAMoveOrder(t *testing.T) {
 				back.HasAttackTarget, back.AttackTarget, back.HasTarget, back.TargetX, back.TargetY, back.AttackPhase,
 				back.AttackCountdown, held.AttackCountdown)
 		}
+		if control.Hash() != restored.world.Hash() {
+			t.Fatal("the battle checkpoint changed the independent source World before Step")
+		}
 		for n := range 120 {
 			sim.Step(control, nil)
 			sim.Step(restored.world, nil)
 			if control.Hash() != restored.world.Hash() {
+				currentMenuWorldDiagnostics(t, control, restored.world)
 				t.Fatalf("the loaded game differs from the saved world bytes %d ticks after the load", n+1)
 			}
 		}

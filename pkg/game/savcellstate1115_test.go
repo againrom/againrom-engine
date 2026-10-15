@@ -233,7 +233,7 @@ func cellStateOriginalDoor1115(t *testing.T, fromMap, bit4 bool) (*FrontEnd, *ui
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
 	}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: inputs}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: inputs}, nil)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, "game1115.sav")
 	clear(raw)
@@ -448,7 +448,7 @@ func TestSavedCellState1115OriginalDoorsConstructorDeletionNativeContinuation(t 
 					}
 					fresh := cellStateFront(t)
 					freshApp := fresh.App("fresh cell-lifecycle native LOAD")
-					save, list, load := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+					save, list, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 					freshApp.SetSaveSeams(save, list, load)
 					groundAppLoad(t, freshApp, list, name)
 					after := cellStateCheck1115(t, fresh, bit4, saveAt)
@@ -456,12 +456,12 @@ func TestSavedCellState1115OriginalDoorsConstructorDeletionNativeContinuation(t 
 						t.Fatal("fresh native LOAD reconstructed or lost cell lifecycle state")
 					}
 					secondStore := SaveStore{Dir: t.TempDir()}
-					save, list, load = agsSaveSeams(fresh, secondStore, OriginalStore{}, nil)
+					save, list, load = fresh.SaveSeams(secondStore, OriginalStore{}, nil)
 					freshApp.SetSaveSeams(save, list, load)
 					secondName := crossingMenuSave(t, freshApp, secondStore)
 					second := cellStateFront(t)
 					secondApp := second.App("second cell-lifecycle cold LOAD")
-					save, list, load = agsSaveSeams(second, secondStore, OriginalStore{}, nil)
+					save, list, load = second.SaveSeams(secondStore, OriginalStore{}, nil)
 					secondApp.SetSaveSeams(save, list, load)
 					groundAppLoad(t, secondApp, list, secondName)
 					secondSnapshot := cellStateCheck1115(t, second, bit4, saveAt)
@@ -498,143 +498,5 @@ func TestSavedCellState1115MissingRegistryKeepsAuthorityAbsent(t *testing.T) {
 		if tick < 5 {
 			f.live.tick()
 		}
-	}
-}
-
-// The native World remains valid and byte-identical in every case. Only the
-// detached document disagrees; the checksum-valid envelope must reach semantic
-// validation and refuse before either direct Restore or menu LOAD adopts it.
-func TestSavedCellState1115DocumentDisagreementRefusedBeforeAdoption(t *testing.T) {
-	currentCell := func(t *testing.T, doc *sav.DocumentWorldData) *sav.DocumentCellData {
-		t.Helper()
-		for i := range doc.Cells {
-			if doc.Cells[i].Cell == 0x1010 {
-				return &doc.Cells[i]
-			}
-		}
-		t.Fatal("corruption fixture lacks the constructed current cell")
-		return nil
-	}
-	currentBlock := func(t *testing.T, doc *sav.DocumentWorldData) *sav.BlockRecord {
-		t.Helper()
-		for i := range doc.Blocks {
-			if doc.Blocks[i].Cell == 0x1010 {
-				return &doc.Blocks[i]
-			}
-		}
-		t.Fatal("corruption fixture lacks the current occupancy block")
-		return nil
-	}
-	for _, tc := range []struct {
-		name   string
-		mutate func(*testing.T, *sav.DocumentWorldData)
-	}{
-		{"cell baseline cost", func(t *testing.T, doc *sav.DocumentWorldData) {
-			currentCell(t, doc).Cost = 17
-		}},
-		{"cell residue", func(t *testing.T, doc *sav.DocumentWorldData) {
-			currentCell(t, doc).Residue32 = 0xcafe
-		}},
-		{"cell layer key", func(t *testing.T, doc *sav.DocumentWorldData) {
-			currentCell(t, doc).Layers[5] = 0x7a777001
-		}},
-		{"deleted old cell resurrection", func(_ *testing.T, doc *sav.DocumentWorldData) {
-			doc.Cells = append([]sav.DocumentCellData{{Cell: 0x100f, Cost: 17, Residue03: 0x35, Residue32: 0xcafe}}, doc.Cells...)
-		}},
-		{"duplicate current cell key", func(t *testing.T, doc *sav.DocumentWorldData) {
-			duplicate := *currentCell(t, doc)
-			doc.Cells = append([]sav.DocumentCellData{duplicate}, doc.Cells...)
-		}},
-		{"extra block", func(t *testing.T, doc *sav.DocumentWorldData) {
-			old := doc.Blocks
-			doc.Blocks = make([]sav.BlockRecord, 0, len(old)+1)
-			inserted := false
-			for _, block := range old {
-				if block.Cell == 0x0909 {
-					t.Fatal("extra block must target a key excluded by the real Dyn15 scan")
-				}
-				if !inserted && block.Cell > 0x0909 {
-					doc.Blocks = append(doc.Blocks, sav.BlockRecord{Cell: 0x0909, Dyn: 16})
-					inserted = true
-				}
-				doc.Blocks = append(doc.Blocks, block)
-			}
-			if !inserted {
-				t.Fatal("corruption fixture has no block insertion point")
-			}
-		}},
-		{"missing block", func(t *testing.T, doc *sav.DocumentWorldData) {
-			for i, block := range doc.Blocks {
-				if block.Cell == 0x1010 {
-					doc.Blocks = append(doc.Blocks[:i], doc.Blocks[i+1:]...)
-					return
-				}
-			}
-			t.Fatal("corruption fixture has no block to remove")
-		}},
-		{"block dynamic value", func(t *testing.T, doc *sav.DocumentWorldData) {
-			currentBlock(t, doc).Dyn ^= 1
-		}},
-		{"block static value", func(t *testing.T, doc *sav.DocumentWorldData) {
-			currentBlock(t, doc).Static ^= 1
-		}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			f, _, _ := cellStateOriginalDoor1115(t, false, false)
-			f.live.tick()
-			before := cellStateCheck1115(t, f, false, 1)
-			bad := before
-			var err error
-			bad.SavedDocument, err = cloneSavedDocument(before.SavedDocument)
-			if err != nil {
-				t.Fatal(err)
-			}
-			tc.mutate(t, bad.SavedDocument.Document.World)
-			envelope := uncheckedDocumentEnvelope1115(t, bad)
-			label := []byte("Disagreeing cell lifecycle")
-			binary.LittleEndian.PutUint16(envelope[9:11], uint16(len(label)))
-			header := append(bytes.Clone(envelope[:11]), label...)
-			envelope = append(header, envelope[11:]...)
-			decoded, _, err := DecodeSave(envelope)
-			if err != nil {
-				t.Fatal("checksum-valid cell DTO must reach semantic World validation", err)
-			}
-			if !bytes.Equal(decoded.World, before.World) || reflect.DeepEqual(decoded.SavedDocument, before.SavedDocument) {
-				t.Fatal("corruption fixture must change only detached document state")
-			}
-			oldLive, oldTown, oldShop, oldHash := f.live, f.Town, f.Shop, f.live.world.Hash()
-			unchanged := func() {
-				t.Helper()
-				if f.live != oldLive || f.Town != oldTown || f.Shop != oldShop || f.live.world.Hash() != oldHash ||
-					!reflect.DeepEqual(before, cellStateCheck1115(t, f, false, 1)) {
-					t.Fatal("refused cell DTO changed live hash, session or Snapshot")
-				}
-			}
-			if open, town, err := f.Restore(decoded); err == nil || open != nil || town {
-				t.Fatal("Restore adopted disagreeing cell lifecycle", open != nil, town, err)
-			}
-			unchanged()
-			store := SaveStore{Dir: t.TempDir()}
-			if err := os.WriteFile(filepath.Join(store.Dir, "disagreeing-cell-lifecycle.ags"), envelope, 0600); err != nil {
-				t.Fatal(err)
-			}
-			app := f.App("refused cell-lifecycle document")
-			save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
-			app.SetSaveSeams(save, list, load)
-			rows := list()
-			if len(rows) != 1 {
-				t.Fatal("hostile cell DTO has no ordinary LOAD row", rows)
-			}
-			if err := headlessOpenLoad(app); err != nil {
-				t.Fatal(err)
-			}
-			if err := app.HeadlessActivate(rows[0].Label); err != nil {
-				t.Fatal(err)
-			}
-			if app.Screen() != ui.ScreenLoad || app.HeadlessMessage() == "" {
-				t.Fatal("ordinary LOAD did not expose cell DTO refusal", app.Screen(), app.HeadlessMessage())
-			}
-			unchanged()
-		})
 	}
 }

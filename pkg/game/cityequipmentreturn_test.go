@@ -59,7 +59,7 @@ func equipmentReturnTownSave(t *testing.T, f *FrontEnd) []byte {
 	town.room = roomTavern
 	town.composeShopFaces()
 	store := SaveStore{Dir: t.TempDir()}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("town SAVE: %v", err)
@@ -87,7 +87,7 @@ func equipmentReturnReload(t *testing.T, raw []byte) (worn [sim.EquipSlots]uint1
 		t.Fatal(err)
 	}
 	g := releaseFront(t)
-	_, _, load := agsSaveSeams(g, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: dir}, nil)
+	_, _, load := g.SaveSeams(SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: dir}, nil)
 	if _, town, err := load("town.sav"); err != nil || !town {
 		t.Fatalf("town LOAD of the written SAV: town=%v err=%v", town, err)
 	}
@@ -128,13 +128,13 @@ func loadedMission20(t *testing.T, m10 func(f *FrontEnd, hero sim.EntityID)) *Fr
 		t.Fatalf("open mission 20: %v", err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(true)
 	if err != nil || !IsOriginal(name) {
 		t.Fatalf("mission SAVE in mission 20 wrote %q: %v", name, err)
 	}
 	g := releaseFront(t)
-	_, _, load := agsSaveSeams(g, store, OriginalStore{}, nil)
+	_, _, load := g.SaveSeams(store, OriginalStore{}, nil)
 	open, town, err := load(localOriginalSaveToken(name))
 	if err != nil || town {
 		t.Fatalf("LOAD of the mission SAVE: town=%v err=%v", town, err)

@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/data"
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -25,6 +25,7 @@ import (
 func saveCampaign() Campaign {
 	return Campaign{
 		Main:    []int{10, 20},
+		Side:    []int{11, 12},
 		Offered: []int{10, 20},
 		Chapters: map[int]Chapter{
 			10: {Mission: 10, Payment: 250, Shop: []int{11, 12}},
@@ -75,7 +76,14 @@ func saveParty() []mapload.PartyMember {
 // alone, out through the envelope and back into a FRESH town over the same
 // campaign.
 func TestATownSaveRoundTripsThroughDisk(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}, CampaignSession: CampaignSession{Town: saveTown(t), Carried: saveParty(), Offered: 20}}
+	source := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}, CampaignSession: CampaignSession{Town: saveTown(t), Carried: saveParty(), Offered: 20}}
+	capture, _, err := source.Snapshot(false)
+	if err != nil || !reflect.DeepEqual(capture.Party, mapload.CloneParty(source.Carried)) {
+		t.Fatal("capture lost complete party fields", err)
+	}
+	f := currentTrainingCity(t)
+	f.Campaign = resolved(saveCampaign(), nil)
+	f.Town, f.Offered = saveTown(t), 20
 
 	snap, label, err := f.Snapshot(false)
 	if err != nil {
@@ -89,21 +97,18 @@ func TestATownSaveRoundTripsThroughDisk(t *testing.T) {
 			snap.Mission, len(snap.World))
 	}
 
-	b, err := EncodeSave(snap, label)
+	b, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatalf("EncodeSave: %v", err)
 	}
-	back, gotLabel, err := DecodeSave(b)
-	if err != nil {
-		t.Fatalf("DecodeSave: %v", err)
-	}
-	if gotLabel != label {
-		t.Errorf("label came back %q, want %q", gotLabel, label)
+	gotLabel, err := OriginalSaveLabel(b, f.textSelector())
+	if err != nil || !strings.HasPrefix(gotLabel, label) {
+		t.Fatalf("SAV label=%q want prefix %q: %v", gotLabel, label, err)
 	}
 
 	// A FRESH front end, as a restarted program is.
-	g := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}}
-	open, town, err := g.Restore(back)
+	g := &FrontEnd{InstallResources: f.InstallResources}
+	open, town, err := g.RestoreOriginal(b)
 	if err != nil {
 		t.Fatalf("Restore: %v", err)
 	}
@@ -163,7 +168,8 @@ func TestSaveTakenOffersEncodeDeterministicallyAcrossRepeatedSnapshots(t *testin
 
 	var first []byte
 	for i := 0; i < 20; i++ {
-		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(camp, nil)}, CampaignSession: CampaignSession{Town: newTown()}}
+		f := currentTrainingCity(t)
+		f.Campaign, f.Town = resolved(camp, nil), newTown()
 		snap, label, err := f.Snapshot(false)
 		if err != nil {
 			t.Fatalf("run %d: Snapshot: %v", i, err)
@@ -171,7 +177,7 @@ func TestSaveTakenOffersEncodeDeterministicallyAcrossRepeatedSnapshots(t *testin
 		if len(snap.Taken) != 3 {
 			t.Fatalf("run %d: Taken has %d offer(s), want 3", i, len(snap.Taken))
 		}
-		b, err := EncodeSave(snap, label)
+		b, err := f.ExportCurrentSave(snap, label)
 		if err != nil {
 			t.Fatalf("run %d: EncodeSave: %v", i, err)
 		}
@@ -187,26 +193,44 @@ func TestSaveTakenOffersEncodeDeterministicallyAcrossRepeatedSnapshots(t *testin
 }
 
 func TestSaveKeepsStableIdentityAndTemporaryMembershipMetadata(t *testing.T) {
-	party := mapload.OwnParty(saveParty())
-	party[0].ID = "hero"
-	party[0].StartingHero = true
-	temporary := mapload.OwnParty(party)[0]
-	temporary.ID = "temporary:witness"
-	temporary.StartingHero = false
-	temporary.Temporary = true
-	party = append(party, temporary)
+	f := currentTrainingCity(t)
+	party := mapload.CloneParty(f.Carried)
+	party[0].ID, party[0].StartingHero = "hero", true
+	party[1].ID, party[1].StartingHero, party[1].Temporary = "temporary:witness", false, true
+	for _, member := range party {
+		captured := captureCurrentParty(0, member)
+		if !reflect.DeepEqual(captured.restore(), member) {
+			t.Fatal("current party DTO lost a complete member")
+		}
+	}
+	f.Carried = party
+	s, label, err := f.Snapshot(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := f.ExportCurrentSave(s, label)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cold := &FrontEnd{InstallResources: f.InstallResources}
+	if _, town, err := cold.RestoreOriginal(raw); err != nil || !town {
+		t.Fatal("identity SAV LOAD", town, err)
+	}
+	back, _, err := cold.Snapshot(false)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	b, err := EncodeSave(Snapshot{Party: party}, "identity")
-	if err != nil {
-		t.Fatal(err)
+	if len(back.Party) != len(party) {
+		t.Fatal("SAV changed membership count", len(back.Party), len(party))
 	}
-	back, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
+	for i, want := range party {
+		got := back.Party[i]
+		if got.ID != want.ID || got.Temporary != want.Temporary || got.StartingHero != want.StartingHero || got.PlayerCharacter != want.PlayerCharacter || got.CompanionNPC != want.CompanionNPC || got.MercenaryType != want.MercenaryType {
+			t.Fatalf("SAV identity/membership changed member %d: %q/%v/%v/%v/%d/%d -> %q/%v/%v/%v/%d/%d", i, want.ID, want.Temporary, want.StartingHero, want.PlayerCharacter, want.CompanionNPC, want.MercenaryType, got.ID, got.Temporary, got.StartingHero, got.PlayerCharacter, got.CompanionNPC, got.MercenaryType)
+		}
 	}
-	if !reflect.DeepEqual(back.Party, party) {
-		t.Fatalf("saved party identity/membership = %+v, want %+v", back.Party, party)
-	}
+
 }
 
 func TestSaveDepartedCharactersRoundTrips(t *testing.T) {
@@ -214,13 +238,16 @@ func TestSaveDepartedCharactersRoundTrips(t *testing.T) {
 		DepartedCharacters: []uint32{109, 107},
 		Commanded:          []uint32{106, 108},
 	}}
-	raw, err := EncodeSave(want, "departed characters")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, label, err := DecodeSave(raw)
-	if err != nil || label != "departed characters" || !reflect.DeepEqual(got, want) {
-		t.Fatalf("departed character envelope = %+v, label %q, error %v; want %+v", got, label, err, want)
+	to, _ := readoutWorld(t,
+		sim.Entity{ID: 107, HP: 10, MaxHP: 10, Owner: sim.SelfSlot},
+		sim.Entity{ID: 109, HP: 10, MaxHP: 10, Owner: sim.SelfSlot})
+	to.mission = &missionNotices{guarded: []sim.EntityID{107, 109}, ids: []sim.EntityID{107, 109}}
+	to.applyResidue(want.Residue)
+	got := to.residue()
+	sort.Slice(got.DepartedCharacters, func(i, j int) bool { return got.DepartedCharacters[i] < got.DepartedCharacters[j] })
+	sort.Slice(got.Commanded, func(i, j int) bool { return got.Commanded[i] < got.Commanded[j] })
+	if !reflect.DeepEqual(got.DepartedCharacters, []uint32{107, 109}) || !reflect.DeepEqual(got.Commanded, []uint32{106, 108}) {
+		t.Fatalf("departed/commanded residue = %v/%v", got.DepartedCharacters, got.Commanded)
 	}
 }
 
@@ -233,9 +260,7 @@ func TestTheCampaignIsNotInTheSave(t *testing.T) {
 	other := Campaign{Main: []int{30}, Offered: []int{30},
 		Chapters: map[int]Chapter{30: {Mission: 30, Shop: []int{31}}}}
 	g := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(other, nil)}}
-	if _, _, err := g.Restore(snap); err != nil {
-		t.Fatalf("Restore: %v", err)
-	}
+	g.Town = restoreTown(other, snap)
 	offers := g.Town.Offers(TownShop)
 	if len(offers) != 1 || offers[0].Mission != 31 {
 		t.Fatalf("the restored town offers %+v, want the NEW install's own shop row", offers)
@@ -249,47 +274,40 @@ func TestTheStoreWritesListsAndReadsBack(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "saves") // NOT created ahead of time
 	s := SaveStore{Dir: dir}
 
-	if got, err := listAGS(s); err != nil || len(got) != 0 {
+	if got, err := s.List(); err != nil || len(got) != 0 {
 		t.Fatalf("List over a missing directory = (%v, %v), want (empty, nil)", got, err)
 	}
 	if _, err := os.Stat(dir); !errors.Is(err, os.ErrNotExist) {
 		t.Error("listing created the directory; it is created on the first write alone")
 	}
 
-	first, err := EncodeSave(Snapshot{Gold: 1}, "town — gold 1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, err := EncodeSave(Snapshot{Gold: 2, Mission: 10}, "mission 10 — gold 2")
-	if err != nil {
-		t.Fatal(err)
-	}
-	base := time.Date(2026, 8, 12, 10, 0, 0, 0, time.UTC)
-	n1, err := s.Write(base, first)
+	first := originalWriterLabeled(t, "first save")
+	second := originalWriterLabeled(t, "second save")
+	n1, err := s.WriteOriginal("", first)
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	n2, err := s.Write(base.Add(time.Minute), second)
+	n2, err := s.WriteOriginal("", second)
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
 	if n1 == n2 {
 		t.Fatalf("two saves landed under one name %q", n1)
 	}
-	if !strings.HasSuffix(n1, saveExt) {
+	if !strings.HasSuffix(n1, originalSaveExt) {
 		t.Errorf("name %q does not carry the extension", n1)
 	}
 
-	// A SECOND SAVE INSIDE ONE SECOND GETS ITS OWN FILE.
-	n3, err := s.Write(base, first)
+	// Repeated saves of the same bytes claim distinct slots.
+	n3, err := s.WriteOriginal("", first)
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
 	if n3 == n1 {
-		t.Fatalf("a save in the same second overwrote %q", n1)
+		t.Fatalf("a repeated save overwrote %q", n1)
 	}
 
-	list, err := listAGS(s)
+	list, err := s.List()
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
@@ -300,7 +318,7 @@ func TestTheStoreWritesListsAndReadsBack(t *testing.T) {
 	for _, e := range list {
 		labels[e.Name] = e.Label
 	}
-	if labels[n2] != "mission 10 — gold 2" {
+	if labels[n2] != "second save - between missions" {
 		t.Errorf("the label out of %s's header is %q", n2, labels[n2])
 	}
 
@@ -308,12 +326,8 @@ func TestTheStoreWritesListsAndReadsBack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Read: %v", err)
 	}
-	snap, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatalf("DecodeSave: %v", err)
-	}
-	if snap.Gold != 2 || snap.Mission != 10 {
-		t.Errorf("read back gold %d mission %d, want 2 and 10", snap.Gold, snap.Mission)
+	if !bytes.Equal(b, second) {
+		t.Fatal("read back bytes differ from the complete second save")
 	}
 }
 
@@ -398,12 +412,11 @@ func (f *faultSaveFile) Close() error {
 }
 
 // TestAtomicSavePublicationBoundaries is 1008 AC-1 and AC-2. It drives the
-// exact file-operation seam SaveStore.Write uses and leaves every path inside
+// exact file-operation seam SaveStore.WriteOriginal uses and leaves every path inside
 // t.TempDir. The write failure writes one byte first, so cleanup is proved over
 // an actual incomplete sibling rather than an empty stand-in.
 func TestAtomicSavePublicationBoundaries(t *testing.T) {
-	at := time.Date(2026, 8, 16, 12, 34, 56, 0, time.UTC)
-	baseName := "save-20260816-123456.ags"
+	baseName := "game0000.sav"
 	old := []byte("an earlier complete save")
 	data := []byte("the new complete save")
 
@@ -416,7 +429,7 @@ func TestAtomicSavePublicationBoundaries(t *testing.T) {
 			}
 			ops := &faultSaveOps{fail: boundary}
 			store := SaveStore{Dir: dir, files: ops}
-			if name, err := store.Write(at, data); !errors.Is(err, errSaveBoundary) || name != "" {
+			if name, err := store.WriteOriginal("", data); !errors.Is(err, errSaveBoundary) || name != "" {
 				t.Fatalf("Write at %s = (%q, %v), want empty name and injected error", boundary, name, err)
 			}
 			gotOld, err := os.ReadFile(oldPath)
@@ -439,11 +452,11 @@ func TestAtomicSavePublicationBoundaries(t *testing.T) {
 			t.Fatal(err)
 		}
 		ops := &faultSaveOps{}
-		name, err := (SaveStore{Dir: dir, files: ops}).Write(at, data)
+		name, err := (SaveStore{Dir: dir, files: ops}).WriteOriginal("", data)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if name != "save-20260816-123456-2.ags" {
+		if name != "game0001.sav" {
 			t.Fatalf("published name = %q", name)
 		}
 		if want := []string{"create", "write", "sync", "close", "publish", "publish"}; !reflect.DeepEqual(ops.calls, want) {
@@ -462,16 +475,9 @@ func TestAtomicSavePublicationBoundaries(t *testing.T) {
 // and the next save must recover the hidden staging file before creating a new
 // one. The write and sync cases also force Close to fail during cleanup.
 func TestSaveFailureReportsCleanupRefusalAndRecoversOnRetry(t *testing.T) {
-	at := time.Date(2026, 8, 16, 12, 34, 56, 0, time.UTC)
-	baseName := "save-20260816-123456.ags"
-	old, err := EncodeSave(Snapshot{Gold: 11}, "old complete save")
-	if err != nil {
-		t.Fatal(err)
-	}
-	data, err := EncodeSave(Snapshot{Gold: 22}, "new complete save")
-	if err != nil {
-		t.Fatal(err)
-	}
+	baseName := "game0000.sav"
+	old := originalWriterLabeled(t, "old complete save")
+	data := originalWriterLabeled(t, "new complete save")
 
 	for _, boundary := range []string{"write", "sync", "close", "publish"} {
 		t.Run(boundary, func(t *testing.T) {
@@ -485,7 +491,7 @@ func TestSaveFailureReportsCleanupRefusalAndRecoversOnRetry(t *testing.T) {
 				ops.cleanupCloseFailures = 1
 			}
 			store := SaveStore{Dir: dir, files: ops}
-			name, err := store.Write(at, data)
+			name, err := store.WriteOriginal("", data)
 			if name != "" || !errors.Is(err, errSaveBoundary) || !errors.Is(err, errSaveRemoveBoundary) {
 				t.Fatalf("failed Write = (%q, %v), want primary and cleanup removal failures", name, err)
 			}
@@ -511,14 +517,14 @@ func TestSaveFailureReportsCleanupRefusalAndRecoversOnRetry(t *testing.T) {
 			if len(temps) != 1 {
 				t.Fatalf("hidden staging files after refused cleanup = %v, want one", temps)
 			}
-			listed, listErr := listAGS(store)
+			listed, listErr := store.List()
 			if listErr != nil || len(listed) != 1 || listed[0].Name != baseName {
 				t.Fatalf("visible saves after refused cleanup = (%v, %v), want only %s", listed, listErr, baseName)
 			}
 
 			ops.fail = ""
-			name, err = store.Write(at, data)
-			if err != nil || name != "save-20260816-123456-2.ags" {
+			name, err = store.WriteOriginal("", data)
+			if err != nil || name != "game0001.sav" {
 				t.Fatalf("retry Write = (%q, %v), want recovered unique publication", name, err)
 			}
 			entries, readErr = os.ReadDir(dir)
@@ -543,38 +549,36 @@ func TestSaveFailureReportsCleanupRefusalAndRecoversOnRetry(t *testing.T) {
 }
 
 func TestSaveRecoveryRetriesRemovalBeforeCreatingAnotherTemp(t *testing.T) {
-	at := time.Date(2026, 8, 16, 12, 34, 56, 0, time.UTC)
 	dir := t.TempDir()
 	ops := &faultSaveOps{fail: "publish", removeFailures: 2}
 	store := SaveStore{Dir: dir, files: ops}
-	if _, err := store.Write(at, []byte("complete")); !errors.Is(err, errSaveRemoveBoundary) {
+	if _, err := store.WriteOriginal("", []byte("complete")); !errors.Is(err, errSaveRemoveBoundary) {
 		t.Fatalf("first Write error = %v, want refused cleanup", err)
 	}
 	creates := countStrings(ops.calls, "create")
 	ops.fail = ""
-	if name, err := store.Write(at, []byte("complete")); name != "" || !errors.Is(err, errSaveRemoveBoundary) {
+	if name, err := store.WriteOriginal("", []byte("complete")); name != "" || !errors.Is(err, errSaveRemoveBoundary) {
 		t.Fatalf("recovery refusal = (%q, %v), want removal error and no save", name, err)
 	}
 	if got := countStrings(ops.calls, "create"); got != creates {
 		t.Fatalf("recovery refusal created another temp: create count %d, want %d", got, creates)
 	}
-	if name, err := store.Write(at, []byte("complete")); err != nil || name != "save-20260816-123456.ags" {
+	if name, err := store.WriteOriginal("", []byte("complete")); err != nil || name != "game0000.sav" {
 		t.Fatalf("eventual recovery Write = (%q, %v)", name, err)
 	}
 }
 
 func TestSaveRecoveryDoesNotRemoveAnotherProcessTemp(t *testing.T) {
-	at := time.Date(2026, 8, 16, 12, 34, 56, 0, time.UTC)
 	dir := t.TempDir()
-	foreign := filepath.Join(dir, ".save-20260816-123456.ags.tmp-foreign-process-1")
+	foreign := filepath.Join(dir, ".save-original.sav.tmp-foreign-process-1")
 	if err := os.WriteFile(foreign, []byte("another writer is still using this namespace"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	name, err := (SaveStore{Dir: dir}).Write(at, []byte("complete"))
+	name, err := (SaveStore{Dir: dir}).WriteOriginal("", []byte("complete"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if name != "save-20260816-123456.ags" {
+	if name != "game0000.sav" {
 		t.Fatalf("published name = %q", name)
 	}
 	if got, err := os.ReadFile(foreign); err != nil || string(got) != "another writer is still using this namespace" {
@@ -593,7 +597,7 @@ func countStrings(values []string, target string) int {
 }
 
 func looksLikeSaveTemp(name string) bool {
-	return strings.HasPrefix(name, ".save-") && strings.Contains(name, saveExt+".tmp-")
+	return strings.HasPrefix(name, ".save-") && strings.Contains(name, originalSaveExt+".tmp-")
 }
 
 func entryNames(entries []os.DirEntry) []string {
@@ -746,13 +750,6 @@ func TestSavingBeforeAnyGameIsRefused(t *testing.T) {
 	}
 }
 
-func TestASaveNamingAMissionWithNoWorldIsRefused(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}}
-	if _, _, err := f.Restore(Snapshot{Mission: 10}); err == nil {
-		t.Fatal("a mission save with no world half was accepted")
-	}
-}
-
 func TestTheResidueRidesAndComesBack(t *testing.T) {
 	from := &mapWorld{
 		commanded: map[sim.EntityID]bool{4: true, 9: true},
@@ -769,16 +766,6 @@ func TestTheResidueRidesAndComesBack(t *testing.T) {
 		t.Errorf("commanded = %v, want [4 9]", r.Commanded)
 	}
 
-	// Through the envelope, because that is the trip it actually makes.
-	b, err := EncodeSave(Snapshot{Mission: 1, World: []byte{0}, Residue: r}, "x")
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	to := &mapWorld{
 		commanded: map[sim.EntityID]bool{},
 		swing:     map[sim.EntityID]int{},
@@ -786,7 +773,7 @@ func TestTheResidueRidesAndComesBack(t *testing.T) {
 		fog:       newFogPlane(4, 2),
 		view:      nil,
 	}
-	to.applyResidue(back.Residue)
+	to.applyResidue(r)
 	if !to.commanded[4] || !to.commanded[9] {
 		t.Error("commanded did not come back — resumed units would fall back to the placeholder script")
 	}
@@ -888,34 +875,6 @@ func TestEveryMapWorldFieldIsRuled(t *testing.T) {
 // TestTheWorldHalfIsTheSimulationsOwnBytes: the envelope carries them opaque and
 // this story authors nothing inside them, so a world out and back through a save
 // is the world sim.MarshalBinary already round-trips.
-func TestTheWorldHalfIsTheSimulationsOwnBytes(t *testing.T) {
-	w, err := sim.NewWorld(7, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, make([]byte, 64), nil)
-	if err != nil {
-		t.Fatalf("NewWorld: %v", err)
-	}
-	raw, err := w.MarshalBinary()
-	if err != nil {
-		t.Fatalf("MarshalBinary: %v", err)
-	}
-	b, err := EncodeSave(Snapshot{Mission: 10, World: raw}, "mission 10")
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(back.World, raw) {
-		t.Fatal("the world half did not come back byte for byte")
-	}
-	var got sim.World
-	if err := got.UnmarshalBinary(back.World); err != nil {
-		t.Fatalf("the simulation refused its own bytes out of the envelope: %v", err)
-	}
-	if got.Tick() != w.Tick() {
-		t.Errorf("tick = %d, want %d", got.Tick(), w.Tick())
-	}
-}
 
 func TestAStaleSimulationVersionIsRefusedByTheSimulation(t *testing.T) {
 	w, err := sim.NewWorld(7, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, make([]byte, 64), nil)
@@ -927,14 +886,8 @@ func TestAStaleSimulationVersionIsRefusedByTheSimulation(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw[0] = 49 // predates oldestReadableVersion (50), refused by name
-	b, err := EncodeSave(Snapshot{Mission: 10, World: raw}, "x")
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatalf("the ENVELOPE must accept it — only the world half is stale: %v", err)
-	}
+	back := Snapshot{Mission: 10, World: raw}
+
 	ms := &Mission{World: &sim.World{}}
 	if err := resumeWorld(ms, &back, nil); err == nil {
 		t.Fatal("a stale simulation version was accepted")
@@ -945,7 +898,7 @@ func TestTheSaveSeamsCrossOnlyStringsAndBools(t *testing.T) {
 	f, _ := originalCityRouteFixture(t)
 	dir := filepath.Join(t.TempDir(), "saves")
 	at := time.Date(2026, 8, 12, 9, 0, 0, 0, time.UTC)
-	save, list, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, func() time.Time { return at })
+	save, list, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, func() time.Time { return at })
 
 	name, err := save(false)
 	if err != nil {
@@ -960,7 +913,7 @@ func TestTheSaveSeamsCrossOnlyStringsAndBools(t *testing.T) {
 	}
 
 	g := &FrontEnd{InstallResources: f.InstallResources}
-	gsave, _, gload := agsSaveSeams(g, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	gsave, _, gload := g.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	_ = gsave
 	open, town, err := gload(rows[0].Name)
 	if err != nil {
@@ -1031,63 +984,77 @@ func saveTestArchive(t *testing.T, files ...synth.File) *Archives {
 // envelope and gob decoder. The failure occurs while the candidate mission is
 // being built, after the old screen is already visible behind the load window.
 func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
+	rewrite := func(t *testing.T, raw []byte, edit func(*sav.DocumentData)) []byte {
+		t.Helper()
+		doc, err := sav.DecodeDocumentData(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		edit(&doc)
+		raw, err = sav.EncodeDocumentData(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return raw
+	}
 	cases := []struct {
 		name  string
-		alter func(*testing.T, *FrontEnd, *Snapshot)
+		alter func(*testing.T, *FrontEnd, []byte) []byte
 		want  string
 	}{
 		{
-			name: "stale simulation form",
-			alter: func(t *testing.T, _ *FrontEnd, s *Snapshot) {
-				t.Helper()
-				// The immediately preceding form is deliberately readable. Use
-				// 52, a reserved version no released build ever wrote, to keep
-				// this arm a decoder refusal rather than a migration test.
-				s.World[0] = 52
+			name: "invalid SAV signature",
+			alter: func(t *testing.T, _ *FrontEnd, raw []byte) []byte {
+				raw[0] = '!'
+				return raw
 			},
-			want: "too old",
+			want: "magic",
 		},
 		{
-			name: "late source actor manifest binding",
-			alter: func(t *testing.T, _ *FrontEnd, s *Snapshot) {
-				s.ActorManifest = &SnapshotActorManifest{Version: 1, Actors: []SnapshotActor{{ID: 0}, {ID: 9999}}}
+			name: "invalid campaign difficulty",
+			alter: func(t *testing.T, _ *FrontEnd, raw []byte) []byte {
+				return rewrite(t, raw, func(doc *sav.DocumentData) { doc.Head.Difficulty = 4 })
 			},
-			want: "manifest",
+			want: "difficulty",
 		},
 		{
-			name: "invalid world after mission construction",
-			alter: func(t *testing.T, _ *FrontEnd, s *Snapshot) {
-				t.Helper()
-				s.World = append([]byte(nil), s.World[:8]...)
-				s.World[0] = 95
+			name: "truncated SAV header",
+			alter: func(t *testing.T, _ *FrontEnd, raw []byte) []byte {
+				return raw[:12]
 			},
-			want: "byte form truncated",
+			want: "shorter",
 		},
 		{
 			name: "mission map cannot be read",
-			alter: func(t *testing.T, _ *FrontEnd, s *Snapshot) {
-				t.Helper()
-				s.Mission = 20
+			alter: func(t *testing.T, f *FrontEnd, raw []byte) []byte {
+				f.Archives = saveTestArchive(t)
+				return raw
 			},
-			want: "read scenario/20.alm",
+			want: "read scenario/10.alm",
 		},
 		{
 			name: "mission map cannot be decoded",
-			alter: func(t *testing.T, f *FrontEnd, s *Snapshot) {
-				t.Helper()
-				s.Mission = 20
-				f.Archives = saveTestArchive(t, synth.File{Path: "20.alm", Data: []byte("not an alm")})
+			alter: func(t *testing.T, f *FrontEnd, raw []byte) []byte {
+				f.Archives = saveTestArchive(t, synth.File{Path: "10.alm", Data: []byte("not an alm")})
+				return raw
 			},
-			want: "decode scenario/20.alm",
+			want: "decode scenario/10.alm",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			f := missionFrontEnd(t)
-			f.Campaign = resolved(saveCampaign(), nil)
-			f.Town = saveTown(t)
-			f.Carried = saveParty()
+			f := currentPoolFixtureFront(t, 91, 92)
+			campaign := saveCampaign()
+			campaign.Side = []int{11, 12}
+			f.Campaign = resolved(campaign, nil)
+			f.Town = NewTown(campaign)
+			f.Town.Arrive()
+			if mission, ok := f.Town.Take(TownShop, 0); !ok || mission != 11 {
+				t.Fatal("prepare taken shop offer", mission, ok)
+			}
+			f.Town.gold += 250
+			f.Carried = f.NextParty()
 			f.Carried[0].StartingHero, f.Carried[0].PlayerCharacter = true, true
 			f.Offered = 20
 			townScreen := f.TownScreen().(*townScreen)
@@ -1101,7 +1068,6 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 			if err != nil {
 				t.Fatalf("snapshot current mission: %v", err)
 			}
-			tc.alter(t, f, &snap)
 
 			oldTown, oldLive, oldWorld := f.Town, f.live, f.live.world
 			oldCarried := mapload.CloneParty(f.Carried)
@@ -1112,25 +1078,16 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 			}
 			oldHash := oldWorld.Hash()
 
-			payload, err := EncodeSave(snap, tc.name)
-			if tc.name == "invalid world after mission construction" {
-				if err == nil {
-					t.Fatal("current World envelope validation accepted a truncated native form")
-				}
-				// An untrusted producer can bypass the new formation-pair check.
-				// Keep the ordinary LOAD atomicity witness on the same bad World.
-				payload = uncheckedDocumentEnvelope1115(t, snap)
-				label := []byte(tc.name)
-				binary.LittleEndian.PutUint16(payload[9:11], uint16(len(label)))
-				payload = append(append(bytes.Clone(payload[:11]), label...), payload[11:]...)
-			} else if err != nil {
+			payload, err := f.ExportCurrentSave(snap, tc.name)
+			if err != nil {
 				t.Fatal(err)
 			}
 			store := SaveStore{Dir: t.TempDir()}
-			if _, err := store.Write(time.Date(2026, 8, 16, 14, 0, 0, 0, time.UTC), payload); err != nil {
+			name, err := store.WriteOriginal("", payload)
+			if err != nil {
 				t.Fatal(err)
 			}
-			app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+			app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 
 			if err := app.HeadlessKey("escape"); err != nil {
 				t.Fatal(err)
@@ -1143,6 +1100,10 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 			}
 			if app.Screen() != ui.ScreenLoad || app.HeadlessGameplayScreen() != ui.ScreenMap {
 				t.Fatalf("load window = screen %v over %v", app.Screen(), app.HeadlessGameplayScreen())
+			}
+			// Corrupt the listed temporary fixture after the load window captured its row.
+			if err := os.WriteFile(filepath.Join(store.Dir, name), tc.alter(t, f, payload), 0o644); err != nil {
+				t.Fatal(err)
 			}
 			if err := app.HeadlessActivate(tc.name); err != nil {
 				t.Fatal(err)
@@ -1175,10 +1136,10 @@ func TestFailedCandidateLoadKeepsTheRunningGame(t *testing.T) {
 }
 
 func TestOversizedSaveRefusalKeepsTheRunningGame(t *testing.T) {
-	f := missionFrontEnd(t)
+	f := currentPoolFixtureFront(t, 91, 92)
 	f.Campaign = resolved(saveCampaign(), nil)
 	f.Town = saveTown(t)
-	f.Carried = saveParty()
+	f.Carried = f.NextParty()
 	f.Carried[0].StartingHero, f.Carried[0].PlayerCharacter = true, true
 	app := f.App("bounded-load")
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
@@ -1188,16 +1149,16 @@ func TestOversizedSaveRefusalKeepsTheRunningGame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, "oversized on disk")
+	payload, err := f.ExportCurrentSave(snap, "oversized on disk")
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	name, err := store.Write(time.Date(2026, 8, 16, 14, 30, 0, 0, time.UTC), payload)
+	name, err := store.WriteOriginal("", payload)
 	if err != nil {
 		t.Fatal(err)
 	}
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
@@ -1233,10 +1194,17 @@ func TestOversizedSaveRefusalKeepsTheRunningGame(t *testing.T) {
 // the same production seam. The current game remains live during preparation;
 // choosing the row then adopts the already-built driver and enters its viewer.
 func TestPreparedMissionCommitsOnceThroughTheLoadWindow(t *testing.T) {
-	f := missionFrontEnd(t)
-	f.Campaign = resolved(saveCampaign(), nil)
-	f.Town = saveTown(t)
-	f.Carried = saveParty()
+	f := currentPoolFixtureFront(t, 91, 92)
+	campaign := saveCampaign()
+	campaign.Side = []int{11, 12}
+	f.Campaign = resolved(campaign, nil)
+	f.Town = NewTown(campaign)
+	f.Town.Arrive()
+	if mission, ok := f.Town.Take(TownShop, 0); !ok || mission != 11 {
+		t.Fatal("prepare taken shop offer", mission, ok)
+	}
+	f.Town.gold += 250
+	f.Carried = f.NextParty()
 	f.Carried[0].StartingHero, f.Carried[0].PlayerCharacter = true, true
 	app := f.App("prepared-load")
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
@@ -1249,15 +1217,15 @@ func TestPreparedMissionCommitsOnceThroughTheLoadWindow(t *testing.T) {
 	snap.Gold = 4321
 	oldLive := f.live
 	wantHash := f.live.world.Hash()
-	payload, err := EncodeSave(snap, "prepared mission")
+	payload, err := f.ExportCurrentSave(snap, "prepared mission")
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Date(2026, 8, 16, 15, 0, 0, 0, time.UTC), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
@@ -1279,100 +1247,24 @@ func TestPreparedMissionCommitsOnceThroughTheLoadWindow(t *testing.T) {
 	}
 }
 
-// preMercenaryStateSaveFixtureBase64 is the committed synthetic .ags from
-// master immediately before Snapshot gained its mercenary arrays. It already
-// includes PartyMember.WeaponMaterialized. Its decode-only test preserves the
-// backward-compatibility witness while the current encoding is pinned by
-// currentReleasedSaveFixtureSHA256 below. It contains no installed-game bytes.
-const preMercenaryStateSaveFixtureBase64 = "QUdSTVNBVkUBIQByZWxlYXNlZCBlbnZlbG9wZSAxIHNpbXVsYXRpb24gNTOZyJzi8RYAAP+EfwMBAQhTbmFwc2hvdAH/gAABCgEE" +
-	"T3BlbgECAAEER29sZAEEAAEDV29uAf+CAAEJQXZhaWxhYmxlAf+CAAEFVGFrZW4B/4YAAQVQYXJ0eQH/nAABB09mZmVyZWQBBAAB" +
-	"B01pc3Npb24BBAABBVdvcmxkAQoAAQdSZXNpZHVlAf+eAAAAE/+BAgEBBVtdaW50Af+CAAEEAAAj/4UCAQEUW11nYW1lLlNuYXBz" +
-	"aG90T2ZmZXIB/4YAAf+EAAA+/4MDAQENU25hcHNob3RPZmZlcgH/hAABAwEHQ2hhcHRlcgEEAAEIQnVpbGRpbmcBBAABBUluZGV4" +
-	"AQQAAAAk/5sCAQEVW11tYXBsb2FkLlBhcnR5TWVtYmVyAf+cAAH/iAAA/gE7/4cDAQELUGFydHlNZW1iZXIB/4gAARYBAklEAQwA" +
-	"AQlUZW1wb3JhcnkBAgABBE5hbWUBDAABD1BsYXllckNoYXJhY3RlcgECAAEMU3RhcnRpbmdIZXJvAQIAAQ1NZXJjZW5hcnlUeXBl" +
-	"AQYAAQxDb21wYW5pb25OUEMBBAABBUNsYXNzAQQAAQRCb2R5AQwAAQdCb2R5RGlyAQwAAQRNYWdlAQIAAQdQcm9maWxlAf+KAAEJ" +
-	"RmlndXJlRGlyAQwAAQpGaWd1cmVGYWNlAQQAAQRIZXJvAf+MAAELS25vd25TcGVsbHMBBgABBFdvcm4B/5AAAQdDYXJyaWVkAf+S" +
-	"AAEGV2VhcG9uAf+UAAESV2VhcG9uTWF0ZXJpYWxpemVkAQIAAQVDYXJyeQH/lgABBVNhdmVkAf+YAAAAQf+JAwEBB1Byb2ZpbGUB" +
-	"/4oAAQMBB0ZpZ2h0ZXIBAgABDEhlYWx0aENvbHVtbgECAAEKTWFuYUNvbHVtbgECAAAAR/+LAwEBBEhlcm8B/4wAAQUBBEJvZHkB" +
-	"BAABCFJlYWN0aW9uAQQAAQRNaW5kAQQAAQZTcGlyaXQBBAABBVNraWxsAf+OAAAAGP+NAQEBCFs2XWludDMyAf+OAAEEAQwAABr/" +
-	"jwEBAQpbMTJddWludDE2Af+QAAEGARgAABb/kQIBAQhbXXVpbnQxNgH/kgABBgAA/7f/kwMBAQZXZWFwb24B/5QAAQ0BBE5hbWUB" +
-	"DAABA1JvdwEEAAEEQ29kZQEGAAEKRGFtYWdlQmFzZQEEAAEMRGFtYWdlU3ByZWFkAQQAAQVUb0hpdAEEAAEHRGVmZW5jZQEEAAEK" +
-	"QXR0YWNrVHlwZQEEAAEKQ2hhcmdlVGltZQEEAAEJUmVsYXhUaW1lAQQAAQVSYW5nZQEEAAEJU3BlbGxOYW1lAQwAAQpTcGVsbFBv" +
-	"d2VyAQQAAAA5/5UDAQEFQ2FycnkB/5YAAQMBB1NraWxsWFAB/44AAQVJdGVtcwH/kgABCEVxdWlwcGVkAf+QAAAAe/+XAwEBBVNh" +
-	"dmVkAf+YAAEIAQRDZWxsAf+aAAECSFABBAABBU1heEhQAQQAAQRNYW5hAQQAAQdNYXhNYW5hAQQAARFIZWFsdGhSZWdlblBlcmlv" +
-	"ZAEEAAEPTWFuYVJlZ2VuUGVyaW9kAQQAAQlNYXBVbml0SUQBBgAAAB7/mQMBAQRDZWxsAf+aAAECAQFYAQQAAQFZAQQAAAB3/50D" +
-	"AQEPU25hcHNob3RSZXNpZHVlAf+eAAEHAQlDb21tYW5kZWQB/6AAAQVTd2luZwH/ogABBVBoYXNlAf+kAAEIR3JvdXBUYWcBBgAB" +
-	"B0ZvZ0NvbHMBBAABB0ZvZ1Jvd3MBBAABC0ZvZ0V4cGxvcmVkAQoAAAAW/58CAQEIW111aW50MzIB/6AAAQYAAB7/oQQBAQ5tYXBb" +
-	"dWludDMyXWludAH/ogABBgEEAAAg/6MEAQEQbWFwW3VpbnQzMl11aW50OAH/pAABBgEGAAD+EVz/gAEBAf4CggEBFAEBKAMoARQB" +
-	"/hFDNQAAAAAAAAAACQAAAAAAAAAIAAAACAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI" +
-	"CAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAkDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgIC" +
-	"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" +
-	"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA"
-
 // TestLoadingPutsTheTownScreenBackAtTheSquare: the open room belongs to the game
 // being left, and a loaded game is entered at the square.
 func TestLoadingPutsTheTownScreenBackAtTheSquare(t *testing.T) {
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}, CampaignSession: CampaignSession{Town: saveTown(t)}}
+	f := currentTrainingCity(t)
 	ts := f.TownScreen().(*townScreen)
 	ts.room, ts.said = roomTavern, 2
-	if _, _, err := f.Restore(Snapshot{Open: true, Gold: 5}); err != nil {
-		t.Fatalf("Restore: %v", err)
+	snapshot, label, err := f.Snapshot(false)
+	if err != nil {
+		t.Fatal(err)
 	}
+	raw, err := f.ExportCurrentSave(snapshot, label)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.RestoreOriginal(raw); err != nil {
+		t.Fatal(err)
+	}
+
 	if ts.room != roomSquare || ts.said != 0 {
 		t.Errorf("the town screen came back in room %v with %d lines said, want the square", ts.room, ts.said)
 	}

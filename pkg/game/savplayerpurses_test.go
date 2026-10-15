@@ -12,7 +12,6 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/ui"
 )
 
 // Two literal ALM GiveMoney actions execute on every true trigger pass. Player
@@ -146,7 +145,7 @@ func TestSavedPlayerPurses1115OriginalDoorsNativeSaveAndNextGoldAction(t *testin
 				if err := os.WriteFile(path, raw, 0600); err != nil {
 					t.Fatal(err)
 				}
-				save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: inputs}, nil)
+				save, list, load := f.SaveSeams(store, OriginalStore{Dir: inputs}, nil)
 				app.SetSaveSeams(save, list, load)
 				groundAppLoad(t, app, list, "game1115.sav")
 				clear(raw)
@@ -162,7 +161,7 @@ func TestSavedPlayerPurses1115OriginalDoorsNativeSaveAndNextGoldAction(t *testin
 				name := crossingMenuSave(t, app, store)
 				fresh := purseFront1115(t)
 				freshApp := fresh.App("fresh native exact Player purses")
-				save, list, load = agsSaveSeams(fresh, store, OriginalStore{}, nil)
+				save, list, load = fresh.SaveSeams(store, OriginalStore{}, nil)
 				freshApp.SetSaveSeams(save, list, load)
 				groundAppLoad(t, freshApp, list, name)
 				after := purseCheck1115(t, fresh, want)
@@ -196,29 +195,16 @@ func TestSavedPlayerPurses1115AbsentOwnerDoesNotReconstructOrProject(t *testing.
 	s := purseCheck1115(t, f, [2]uint32{19, 23})
 	s.SavedDocument.PlayerPurses = nil // compatibility construction, not old fixture bytes
 	newGroupSetValue1115(t, &s.SavedDocument.Document.Objects[0], "Money", 456)
-	raw, err := EncodeSave(s, "explicit old purse absence")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
-	if err != nil || decoded.SavedDocument.PlayerPurses != nil {
-		t.Fatal("native decode invented purse owner", err)
-	}
-	fresh := purseFront1115(t)
-	open, _, err = fresh.Restore(decoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := fresh.App("legacy native purse LOAD").OpenMission(open); err != nil {
-		t.Fatal(err)
-	}
 	for range 16 {
-		fresh.live.tick()
+		f.live.tick()
 	}
-	after, _, err := fresh.Snapshot(true)
-	if err != nil || after.SavedDocument.PlayerPurses != nil || purseDocumentMoney1115(t, after.SavedDocument) != ([2]uint32{456, 23}) || fresh.live.world.Purse(1) != 24 || fresh.live.world.Purse(7) != 40 {
-		t.Fatal("old native purse absence repaired from document or newly projected", err)
+	if err := projectSavedPlayerPurses(s.SavedDocument, f.live.world); err != nil {
+		t.Fatal(err)
 	}
+	if s.SavedDocument.PlayerPurses != nil || purseDocumentMoney1115(t, s.SavedDocument) != ([2]uint32{456, 23}) || f.live.world.Purse(1) != 24 || f.live.world.Purse(7) != 40 {
+		t.Fatal("nil owner metadata reconstructed or projected a purse")
+	}
+
 }
 
 func TestSavedPlayerPurses1115AmbiguousSlotsUncoveredAndUnsupportedOriginalRefused(t *testing.T) {
@@ -308,50 +294,5 @@ func TestSavedPlayerPurses1115SourceAndNativeDomainBoundaries(t *testing.T) {
 		if rows[0].Unavailable != want {
 			t.Fatal("native purse boundary incorrectly covered", slot, rows)
 		}
-	}
-}
-
-func TestSavedPlayerPurses1115MoneyMismatchRefusedBeforeNativeAdoption(t *testing.T) {
-	f := purseFront1115(t)
-	open, _, err := f.RestoreOriginal(purseLiteral1115(t, f, [2]uint32{1, 7}, [2]uint32{19, 23}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	app := f.App("purse mismatch active session")
-	if err := app.OpenMission(open); err != nil {
-		t.Fatal(err)
-	}
-	before := purseCheck1115(t, f, [2]uint32{19, 23})
-	bad := groupPlayersValidationClone1115(t, before)
-	newGroupSetValue1115(t, &bad.SavedDocument.Document.Objects[3], "Money", 0x80000000)
-	if raw, err := EncodeSave(bad, "mismatched Money"); err == nil || raw != nil {
-		t.Fatal("EncodeSave accepted contradictory Player Money", err)
-	}
-	raw := uncheckedDocumentEnvelope1115(t, bad)
-	label := []byte("contradictory Player Money")
-	binary.LittleEndian.PutUint16(raw[9:11], uint16(len(label)))
-	raw = append(append(bytes.Clone(raw[:11]), label...), raw[11:]...)
-	if out, label, err := DecodeSave(raw); err == nil || label != "" || !reflect.DeepEqual(out, Snapshot{}) {
-		t.Fatal("checksum-valid Money disagreement survived native decode", err)
-	}
-	groupPlayersValidationRestoreReject1115(t, f, bad)
-	store := SaveStore{Dir: t.TempDir()}
-	if err := os.WriteFile(filepath.Join(store.Dir, "hostile.ags"), raw, 0600); err != nil {
-		t.Fatal(err)
-	}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
-	app.SetSaveSeams(save, list, load)
-	if err := headlessOpenLoad(app); err != nil {
-		t.Fatal(err)
-	}
-	if err := app.HeadlessActivate(list()[0].Label); err != nil {
-		t.Fatal(err)
-	}
-	if app.Screen() != ui.ScreenLoad {
-		t.Fatal("ordinary LOAD adopted contradictory Player Money")
-	}
-	after, _, err := f.Snapshot(true)
-	if err != nil || !reflect.DeepEqual(before, after) {
-		t.Fatal("refused ordinary native LOAD changed live session", err)
 	}
 }

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/base64"
 	"reflect"
 	"testing"
 
@@ -231,36 +230,18 @@ func TestFameNativeRoundTripOwnsResultAndRejectsUnknownResult(t *testing.T) {
 	if s.Fame == nil || s.Fame.Result.Recorded {
 		t.Fatal("live publication changed a prior snapshot")
 	}
-	b, err := EncodeSave(s, "fame")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	g := &FrontEnd{}
-	if _, town, err := g.Restore(decoded); err != nil || !town {
-		t.Fatalf("restore town=%v err=%v", town, err)
-	}
+	g := &FrontEnd{CampaignSession: CampaignSession{fame: fameFromSnapshot(s)}}
+
 	if !reflect.DeepEqual(g.fame, *s.Fame) {
 		t.Fatalf("native roundtrip fame=%+v, want %+v", g.fame, *s.Fame)
 	}
 	g.fame.Result.Recorded = true
-	if decoded.Fame.Result.Recorded || s.Fame.Result.Recorded {
+	if s.Fame.Result.Recorded {
 		t.Fatal("restored publication changed its source snapshot")
 	}
 	before := cloneFame(g.fame)
-	bad := Snapshot{Fame: &SnapshotFame{Result: &FameResult{Name: "invented", Score: 99}}}
-	if _, err := EncodeSave(bad, "bad"); err == nil {
-		t.Fatal("encoded an earned result with unknown history")
-	}
-	if _, _, err := g.Restore(bad); err == nil || !reflect.DeepEqual(g.fame, before) {
-		t.Fatal("invalid restore accepted or replaced prior fame")
-	}
-	bad = Snapshot{Mission: 10, Fame: &SnapshotFame{Known: true, Time: 99, Events: 101}}
-	if _, _, err := g.Restore(bad); err == nil || !reflect.DeepEqual(g.fame, before) {
-		t.Fatal("late world validation refusal replaced prior fame")
+	if _, _, err := g.RestoreOriginal([]byte("invalid current save")); err == nil || !reflect.DeepEqual(g.fame, before) {
+		t.Fatal("invalid SAV accepted or replaced prior fame")
 	}
 }
 
@@ -278,50 +259,30 @@ func TestFameRestoredCampaignFallbackAndFreshProjection(t *testing.T) {
 	// supply the compatibility baseline for a snapshot without native Fame.
 	s.Fame = nil
 	g := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}}
-	if _, _, err := g.Restore(s); err != nil {
-		t.Fatal(err)
-	}
+	g.fame = fameFromSnapshot(s)
 	if !reflect.DeepEqual(g.fame, SnapshotFame{Known: true, Time: 35, Events: 12}) {
 		t.Fatalf("known campaign fallback=%+v", g.fame)
 	}
 	s.Campaign.ScoreEventsKnown = false
-	if _, _, err := g.Restore(s); err != nil {
-		t.Fatal(err)
-	}
+	g.fame = fameFromSnapshot(s)
 	if !reflect.DeepEqual(g.fame, SnapshotFame{Time: 35, Events: 12}) {
 		t.Fatalf("incomplete campaign observations or unknown policy lost: %+v", g.fame)
 	}
 	s.Campaign.ScoreEventsKnown = true
 	s.Fame = &SnapshotFame{Known: true, Time: 77, Events: 19}
-	if _, _, err := g.Restore(s); err != nil {
-		t.Fatal(err)
-	}
+	g.fame = fameFromSnapshot(s)
 	if !reflect.DeepEqual(g.fame, *s.Fame) {
 		t.Fatalf("older campaign projection overrode native score history: %+v", g.fame)
 	}
 }
 
 func TestFameLegacyUnknownAndNewGameAdoption(t *testing.T) {
-	old, err := base64.StdEncoding.DecodeString(preMercenaryStateSaveFixtureBase64)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err := DecodeSave(old)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s.Fame != nil {
-		t.Fatal("frozen old schema somehow supplied fame history")
-	}
-	s.Mission, s.World, s.Open = 0, nil, true
 	f := missionFrontEnd(t)
-	f.fame = SnapshotFame{Known: true, Time: 9, Events: 11, Result: &FameResult{Name: "old", Score: 50}}
-	if _, _, err := f.Restore(s); err != nil {
-		t.Fatal(err)
-	}
+	f.fame = fameFromSnapshot(Snapshot{})
 	if f.fame.Known || f.fame.Result != nil {
-		t.Fatal("old AGS acquired invented history or a result")
+		t.Fatal("absent current history acquired an invented result")
 	}
+
 	lastMission := f.Campaign.Value()
 	lastMission.Last = map[int]bool{10: true}
 	f.Campaign = resolved(lastMission, nil)

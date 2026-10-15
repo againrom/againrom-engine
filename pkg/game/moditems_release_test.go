@@ -77,13 +77,13 @@ func modItemTownOf(t *testing.T, mk func() *FrontEnd) *FrontEnd {
 		t.Fatalf("open mission 20: %v", err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(true)
 	if err != nil || !IsOriginal(name) {
 		t.Fatalf("mission SAVE in mission 20 wrote %q: %v", name, err)
 	}
 	g := mk()
-	_, _, load := agsSaveSeams(g, store, OriginalStore{}, nil)
+	_, _, load := g.SaveSeams(store, OriginalStore{}, nil)
 	open, town, err := load(localOriginalSaveToken(name))
 	if err != nil || town {
 		t.Fatalf("LOAD of the mission SAVE: town=%v err=%v", town, err)

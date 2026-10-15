@@ -109,16 +109,12 @@ func checkEntryNative1084(t *testing.T, f *FrontEnd, stage string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	disk, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(disk)
+	disk, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	restored := releaseFront(t)
-	opener, town, err := restored.Restore(decoded)
+	opener, town, err := restored.RestoreOriginal(disk)
 	if err != nil || town || opener == nil {
 		t.Fatalf("%s Restore: %v town=%v", stage, err, town)
 	}

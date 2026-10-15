@@ -7,9 +7,6 @@ import (
 	"againrom/pkg/sim"
 )
 
-// Earlier World forms cannot contain the exact formation carrier.
-const firstSavedFormationWorldForm = 90
-
 func savedPlayerFormationFields(record *sav.DocumentRecordData) (int16, uint32, []byte, error) {
 	command, err := savedStructureValue(record, "Slot")
 	if err != nil || command > 0xffff {

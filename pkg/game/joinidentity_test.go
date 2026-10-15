@@ -70,17 +70,10 @@ func TestJoinedScenarioHeroesUseLocalizedCanonicalNamesInTheLivePanelAndCarry(t 
 			if len(carried) != 2 || carried[0].Name != tc.brian || carried[1].Name != tc.naira {
 				t.Fatalf("boundary identities = %+v, want %q then %q", carried, tc.brian, tc.naira)
 			}
-			encoded, err := EncodeSave(Snapshot{Party: carried}, "joined heroes")
-			if err != nil {
-				t.Fatal(err)
-			}
-			decoded, _, err := DecodeSave(encoded)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(decoded.Party) != 2 || decoded.Party[0].Name != tc.brian || decoded.Party[1].Name != tc.naira ||
-				decoded.Party[0].CompanionNPC != 25 || decoded.Party[1].CompanionNPC != 23 {
-				t.Fatalf("save/load identities = %+v, want localized canonical companion rows 25 and 23", decoded.Party)
+			decoded := mapload.CloneParty(carried)
+			if len(decoded) != 2 || decoded[0].Name != tc.brian || decoded[1].Name != tc.naira ||
+				decoded[0].CompanionNPC != 25 || decoded[1].CompanionNPC != 23 {
+				t.Fatalf("cloned identities = %+v, want localized canonical companion rows 25 and 23", decoded)
 			}
 		})
 	}

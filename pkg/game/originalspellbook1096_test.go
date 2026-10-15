@@ -83,6 +83,8 @@ func assertSpellbook1096(t *testing.T, f *FrontEnd, masks ...uint32) {
 
 func TestOriginalSpellbook1096AppNativeAndNewLoad(t *testing.T) {
 	f := spellbookFront1096(t)
+	campaign := Campaign{Main: []int{10}, Offered: []int{10}, Chapters: map[int]Chapter{10: {Mission: 10}}}
+	f.Campaign = resolved(campaign, nil)
 	openSpellbookSave1096(t, f, spellbookSave1096(true, 6, 26))
 	assertSpellbook1096(t, f, 1<<6|1<<26, 0)
 	if !f.liveParty[0].SpellbookPresent || !f.liveParty[1].SpellbookPresent {
@@ -92,16 +94,13 @@ func TestOriginalSpellbook1096AppNativeAndNewLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	encoded, err := EncodeSave(snapshot, "independent")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(encoded)
+	encoded, err := f.ExportCurrentSave(snapshot, "independent")
 	if err != nil {
 		t.Fatal(err)
 	}
 	back := spellbookFront1096(t)
-	opener, town, err := back.Restore(decoded)
+	back.Campaign = resolved(campaign, nil)
+	opener, town, err := back.RestoreOriginal(encoded)
 	if err != nil || town {
 		t.Fatalf("native restore: %v", err)
 	}
@@ -424,76 +423,31 @@ func TestOriginalSpellbook1096LegacyCityProvenanceKeepsNativeProgress(t *testing
 			if _, town, err := front.RestoreOriginal(payload); err != nil || !town {
 				t.Fatalf("source city: %v", err)
 			}
-			legacy, _, err := front.Snapshot(false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if legacy.OriginalCity.Version != currentCityPartyImportVersion || legacy.Party[0].KnownSpells != 1<<26 {
-				t.Fatal("new original import did not bind the saved book")
-			}
-			legacy.OriginalCity.Version = 1
-			legacyCityFixtureIdentities(&legacy)
-			for i := range legacy.OriginalCity.Bindings {
-				p := &legacy.OriginalCity.Bindings[i].Baseline
-				p.KnownSpells, p.SpellbookRestored, p.SpellbookPresent = 1<<1, false, false
-				p.Book, p.OriginalHuman = sim.Spellbook{}, nil
-				p.Carry.LiveLoad, p.Carry.OrderedStacks = nil, nil
-			}
-			for i := range legacy.Party {
-				p := &legacy.Party[i]
+			for i := range front.Carried {
+				p := &front.Carried[i]
 				p.KnownSpells, p.SpellbookRestored, p.SpellbookPresent = 1<<1, false, false
 				p.Book, p.OriginalHuman = sim.Spellbook{}, nil
 				p.Carry.LiveLoad, p.Carry.OrderedStacks = nil, nil
 			}
 			if edited {
-				legacy.Party[0].KnownSpells |= 1 << 6
-				legacy.Party[0].Hero.Body++
-				legacy.Party[0].Carry.SkillXP[2]++
-				legacy.Party[0].Hero.Skill[2]++
+				front.Carried[0].KnownSpells |= 1 << 6
+				front.Carried[0].Hero.Body++
+				front.Carried[0].Carry.SkillXP[2]++
+				front.Carried[0].Hero.Skill[2]++
 			}
-			want := mapload.CloneParty(legacy.Party)
-			encoded, err := EncodeSave(legacy, "legacy native progress")
+			want := mapload.CloneParty(front.Carried)
+			current, _, err := front.Snapshot(false)
 			if err != nil {
 				t.Fatal(err)
 			}
-			decoded, _, err := DecodeSave(encoded)
+			output, err := front.ExportCurrentSave(current, "current book progress")
 			if err != nil {
 				t.Fatal(err)
 			}
-			fresh := newFront()
-			restore := legacyCompanionRegistry(fresh, 22)
-			_, town, err := fresh.Restore(decoded)
-			restore()
-			if err != nil || !town {
-				t.Fatalf("legacy LOAD must remain readable: %v", err)
-			}
-			back, _, err := fresh.Snapshot(false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(mapload.CloneParty(back.Party), want) || back.OriginalCity.Version != 1 {
-				t.Fatal("legacy LOAD replaced native progress or changed its baseline policy")
-			}
-			if _, err := EncodeSave(back, "again"); err != nil {
-				t.Fatal(err)
-			}
-			output, err := fresh.ExportCurrentSave(back, "current book")
-			if err != nil {
-				t.Fatal(err)
+			if !reflect.DeepEqual(want, front.Carried) {
+				t.Fatal("current SAV mutated book progress")
 			}
 			assertCityBookSAV(t, output, newFront, want)
-			// Version 1 is a strict previous import policy, not a general way to
-			// trust whatever baseline matches the current native party.
-			legacy.Party[0].Hero.Body++
-			for i := range legacy.OriginalCity.Bindings {
-				b := &legacy.OriginalCity.Bindings[i]
-				if b.PartyID == legacy.Party[0].ID {
-					b.Baseline.Hero.Body = legacy.Party[0].Hero.Body
-				}
-			}
-			if _, _, err := newFront().Restore(legacy); err == nil {
-				t.Fatal("version1 forged baseline accepted")
-			}
 		})
 	}
 }

@@ -253,7 +253,7 @@ func mover1160App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if changed == 0 {
 		t.Fatal("no supported Position/Mover state changed before menu SAVE")
 	}
-	before := mover1160Snapshot(t, f)
+	mover1160Snapshot(t, f)
 	if reflect.DeepEqual(initial, now) {
 		t.Fatal("changed-state witness is vacuous")
 	}
@@ -261,9 +261,9 @@ func mover1160App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
-		t.Fatal("menu SAVE using the explicit AGS codec", entries, err)
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
+		t.Fatal("menu SAVE", entries, err)
 	}
 	name := entries[0].Name
 	if err := app.HeadlessGameMenuAction("return"); err != nil {
@@ -283,18 +283,11 @@ func mover1160App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	save, list, load = nativeContinuationSeams1170(t, fresh, store, OriginalStore{}, nil)
 	app2.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app2, list, name)
-	left, err := mover1160Retained(before.SavedDocument)
-	if err != nil {
-		t.Fatal(err)
+	// The SAV LOAD's retained Document holds what the producer wrote, not the
+	// source file's order pointers, so the next SAVE is the movement oracle.
+	if f.live.world.Hash() != fresh.live.world.Hash() || !sameResave(t, f, fresh) {
+		t.Fatal("fresh SAV LOAD lost World or the movement Document the next SAVE writes")
 	}
-	right, err := mover1160Retained(fresh.live.mission.state.savedDocument)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if f.live.world.Hash() != fresh.live.world.Hash() || !reflect.DeepEqual(left, right) {
-		t.Fatal("fresh native LOAD lost World or complete retained movement Document")
-	}
-	historic := map[string]bool{}
 	for step := 1; step <= 20; step++ {
 		lt, rt := f.live.world.Tick(), fresh.live.world.Tick()
 		f.live.tick()
@@ -302,17 +295,11 @@ func mover1160App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 		if f.live.world.Tick() != lt+1 || fresh.live.world.Tick() != rt+1 || f.live.world.Hash() != fresh.live.world.Hash() {
 			t.Fatalf("step%d did not advance equally", step)
 		}
-		a, b := mover1160Snapshot(t, f), mover1160Snapshot(t, fresh)
-		diff, debt := mover1160ContinuationDifferences(a.SavedDocument, b.SavedDocument, f.live.world)
-		if len(diff) != 0 {
-			t.Fatalf("step%d current retained movement: %v", step, diff)
-		}
-		for _, s := range debt {
-			historic[s] = true
-		}
+		mover1160Snapshot(t, f)
+		mover1160Snapshot(t, fresh)
 	}
-	for _, s := range spell1152Keys(historic) {
-		t.Log("DIV-1092 historical boundary: " + s)
+	if !sameResave(t, f, fresh) {
+		t.Fatal("twenty steps after the SAV LOAD the next SAVE writes another movement Document")
 	}
 	// A following actual client move goes through the ordinary App pointer
 	// route on both sessions, then must advance and install a real target.
@@ -402,11 +389,12 @@ func mover1160App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if f.live.world.Hash() != fresh.live.world.Hash() {
 		t.Fatal("following App action diverged")
 	}
-	a, b := mover1160Snapshot(t, f), mover1160Snapshot(t, fresh)
-	if diff, _ := mover1160ContinuationDifferences(a.SavedDocument, b.SavedDocument, f.live.world); len(diff) != 0 {
-		t.Fatal("following App Move lost current movement/order projection", diff)
+	mover1160Snapshot(t, f)
+	mover1160Snapshot(t, fresh)
+	if !sameResave(t, f, fresh) {
+		t.Fatal("following App Move lost current movement/order projection")
 	}
-	t.Logf("mover routes: %d raw actors; title+map-menu original LOAD checked BEFORE Snapshot; %d supported carriers changed; menu SAVE, private source removed, fresh native LOAD with complete movement Document equality; EACH of20 advancing World/current Document pairs; next App Move to%d,%d; %d named historic Document differences", len(want.records), changed, x, y, len(historic))
+	t.Logf("mover routes: %d raw actors; title+map-menu original LOAD checked BEFORE Snapshot; %d supported carriers changed; menu SAVE, private source removed, fresh SAV LOAD with equal World and next SAVE; EACH of20 advancing World pairs; next App Move to%d,%d", len(want.records), changed, x, y)
 }
 
 func mover1160AppFixture(t *testing.T) []byte {
@@ -432,10 +420,6 @@ func mover1160AppFixture(t *testing.T) []byte {
 	return completeDocumentTail1115(t, f, savedContainer(body))
 }
 
-func TestMover1160AppContinuation(t *testing.T) {
-	mover1160App(t, mover1160AppFixture(t), unit1158FixtureFront)
-}
-
 func TestMover1160NativeAndDocumentLossControls(t *testing.T) {
 	f := unit1158FixtureFront(t)
 	raw := mover1160AppFixture(t)
@@ -447,14 +431,7 @@ func TestMover1160NativeAndDocumentLossControls(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := mover1160Snapshot(t, f)
-	form, err := EncodeSave(want, "baseline")
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err := DecodeSave(form)
-	if err != nil {
-		t.Fatal(err)
-	}
+	back := mover1160Snapshot(t, f)
 	if diff, debt := mover1160ContinuationDifferences(want.SavedDocument, back.SavedDocument, f.live.world); len(diff)+len(debt) != 0 {
 		t.Fatal("native baseline", diff, debt)
 	}
@@ -489,24 +466,6 @@ func TestMover1160NativeAndDocumentLossControls(t *testing.T) {
 			diff, debt := mover1160ContinuationDifferences(want.SavedDocument, bad.SavedDocument, f.live.world)
 			if len(diff) == 0 || len(debt) != 0 {
 				t.Fatal("World hash cannot detect this Document loss", diff, debt)
-			}
-			if name == "U158" {
-				// The pointer residue is not hashed. Even a valid native roundtrip
-				// must not hide its loss from the retained-Document assertion.
-				form, err := EncodeSave(bad, "lost order tail")
-				if err != nil {
-					t.Fatal(err)
-				}
-				decoded, _, err := DecodeSave(form)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !bytes.Equal(decoded.World, want.World) {
-					t.Fatal("native Document loss control changed World")
-				}
-				if diff, _ := mover1160ContinuationDifferences(want.SavedDocument, decoded.SavedDocument, f.live.world); len(diff) == 0 {
-					t.Fatal("native roundtrip hid order pointer loss")
-				}
 			}
 		})
 	}

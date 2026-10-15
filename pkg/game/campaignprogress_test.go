@@ -9,6 +9,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -362,7 +363,7 @@ func TestMalformedCampaignSnapshotDoesNotMutateFrontEnd(t *testing.T) {
 	c, town := restoredTownFixture(t)
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: town, Offered: 77}}
 	bad := Snapshot{CampaignState: true}
-	_, _, err := f.Restore(bad)
+	_, _, err := f.RestoreOriginal(originalSaveWithCampaign(t, 0, bad.Campaign))
 	if err == nil || !strings.Contains(err.Error(), "main mission") {
 		t.Fatalf("Restore malformed campaign err = %v", err)
 	}
@@ -456,7 +457,7 @@ func TestCampaignProjectionRejectsEveryDeadCandidateAtomically(t *testing.T) {
 			old := NewTown(c)
 			f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: old, Offered: 77}}
 			bad := Snapshot{CampaignState: true, Campaign: projection, Mission: 41}
-			if _, _, err := f.Restore(bad); err == nil || !strings.Contains(err.Error(), "no live main or retained-child record") {
+			if _, _, err := f.RestoreOriginal(originalSaveWithCampaign(t, 0, bad.Campaign)); err == nil || !strings.Contains(err.Error(), "no live main or retained-child record") {
 				t.Fatalf("dead %s candidate err = %v", tc.name, err)
 			}
 			if f.Town != old || f.Offered != 77 {
@@ -479,17 +480,6 @@ func TestActiveCampaignMissionMustBeTheSelectedLiveRecordOnBothRestorePaths(t *t
 		{"not selected", 51, "does not match selected mission 41"},
 	}
 	for _, tc := range cases {
-		t.Run("againrom "+tc.name, func(t *testing.T) {
-			old := NewTown(c)
-			f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: old, Offered: 77}}
-			bad := Snapshot{CampaignState: true, Campaign: cloneCampaignProjectionForTest(projection), Mission: tc.mission}
-			if _, _, err := f.Restore(bad); err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("active snapshot err = %v, want %q", err, tc.want)
-			}
-			if f.Town != old || f.Offered != 77 {
-				t.Fatal("active snapshot mismatch partially installed")
-			}
-		})
 		t.Run("original "+tc.name, func(t *testing.T) {
 			old := NewTown(c)
 			f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: old, Offered: 77}}
@@ -511,10 +501,6 @@ func TestPreTownCampaignCannotEnterThroughATownOnlySave(t *testing.T) {
 		name string
 		load func(*FrontEnd) error
 	}{
-		{"againrom", func(f *FrontEnd) error {
-			_, _, err := f.Restore(Snapshot{CampaignState: true, Campaign: projection})
-			return err
-		}},
 		{"original", func(f *FrontEnd) error {
 			_, _, err := f.RestoreOriginal(originalSaveWithCampaign(t, 0, projection))
 			return err
@@ -587,6 +573,8 @@ func TestRestoredMapPointAndImportedMarkerReachTheProductionWorldMap(t *testing.
 
 func TestSelectionAfterZeroMarkerImportRoundTripsToTheProductionWorldMap(t *testing.T) {
 	f := restoredWorldMapFront(t, true, false)
+	seed := currentTrainingCity(t)
+	f.Table, f.Carried = seed.Table, mapload.CloneParty(seed.Carried)
 	s := f.TownScreen().(*townScreen)
 	s.Choose(3)
 	seedWorldMapMarker(f)
@@ -601,28 +589,28 @@ func TestSelectionAfterZeroMarkerImportRoundTripsToTheProductionWorldMap(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !snapshot.CampaignMarkerSelected || len(snapshot.Campaign.Markers) != 1 ||
+	if snapshot.Campaign.FirstMapPoint || !snapshot.CampaignMarkerSelected || len(snapshot.Campaign.Markers) != 1 ||
 		snapshot.Campaign.Markers[0].Value != 30 || snapshot.Campaign.Markers[0].Picture != `main\graphics\Global.Map\absent-marker.256` {
 		t.Fatalf("selected current marker was not projected: %v/%+v",
 			snapshot.CampaignMarkerSelected, snapshot.Campaign.Markers)
 	}
-	encoded, err := EncodeSave(snapshot, label)
+	encoded, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
+	doc, err := sav.DecodeDocumentData(encoded)
+	if err != nil || doc.Campaign.Scalars[4] != 1 {
+		t.Fatal("town SAV did not project the home map point (DIV-905)", err)
 	}
-	g := &FrontEnd{InstallResources: InstallResources{Campaign: f.Campaign, Archives: &Archives{Containers: worldMapFixtureFS(t)}, Font: resolved(missionFont(), nil)}}
-	if open, town, err := g.Restore(decoded); err != nil || open != nil || !town {
+	g := &FrontEnd{InstallResources: f.InstallResources}
+	if open, town, err := g.RestoreOriginal(encoded); err != nil || open != nil || !town {
 		t.Fatalf("round-trip restore = opener %v town %v err %v", open != nil, town, err)
 	}
 	back := g.TownScreen().(*townScreen)
 	back.Choose(3)
 	want := seedWorldMapMarker(g)
 	view := back.WorldMapView()
-	if view.Position != image.Pt(32, 23) || len(view.Missions) != 1 || view.Missions[0].Marker != want {
+	if view.Position != image.Pt(2, 3) || len(view.Missions) != 1 || view.Missions[0].Number != 30 || view.Missions[0].Anchor != image.Pt(32, 23) || view.Missions[0].Marker != want {
 		t.Fatalf("round-trip world map = position %v missions %+v", view.Position, view.Missions)
 	}
 }

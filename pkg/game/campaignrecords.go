@@ -1,10 +1,6 @@
 package game
 
-import (
-	"fmt"
-
-	"againrom/pkg/formats/sav"
-)
+import "againrom/pkg/formats/sav"
 
 type campaignRecords struct {
 	main     campaignProgressRecord
@@ -127,24 +123,6 @@ func (r *campaignRecords) snapshot() *SnapshotCampaignRecords {
 		out.Children = append(out.Children, child.savRecord(true))
 	}
 	return out
-}
-
-func validateSnapshotCampaignRecords(_ Campaign, s Snapshot) error {
-	if s.CampaignState || s.CampaignRecords == nil {
-		return nil
-	}
-	r := s.CampaignRecords
-	if r.Main.Mission == 0 || int(r.Main.Mission) != s.MainMission {
-		return fmt.Errorf("saved campaign records have invalid main mission %d", r.Main.Mission)
-	}
-	seen := map[uint32]bool{r.Main.Mission: true}
-	for _, child := range r.Children {
-		if child.Mission == 0 || seen[child.Mission] || child.Age >= 2 {
-			return fmt.Errorf("saved campaign child %d is zero, duplicate or expired", child.Mission)
-		}
-		seen[child.Mission] = true
-	}
-	return nil
 }
 
 func (t *Town) restoreCampaignRecords(s Snapshot) {

@@ -557,7 +557,7 @@ func TestDocumentData1115BoundsBeforeCopies(t *testing.T) {
 	}
 }
 
-func TestDocumentData1115PersistenceTypeHasNoMapsOrCustomGob(t *testing.T) {
+func TestDocumentData1115PersistenceTypeHasNoMapsOrHiddenFields(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 	var inspect func(reflect.Type)
 	inspect = func(typ reflect.Type) {
@@ -565,9 +565,6 @@ func TestDocumentData1115PersistenceTypeHasNoMapsOrCustomGob(t *testing.T) {
 			return
 		}
 		seen[typ] = true
-		if typ.Implements(reflect.TypeFor[gob.GobEncoder]()) || typ.Implements(reflect.TypeFor[gob.GobDecoder]()) || reflect.PointerTo(typ).Implements(reflect.TypeFor[gob.GobEncoder]()) || reflect.PointerTo(typ).Implements(reflect.TypeFor[gob.GobDecoder]()) {
-			t.Fatalf("custom gob method hides %s from native preflight", typ)
-		}
 		switch typ.Kind() {
 		case reflect.Map, reflect.Interface:
 			t.Fatalf("nondeterministic/untyped persisted field %s", typ)

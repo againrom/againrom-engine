@@ -382,12 +382,19 @@ func TestSackObjects1115HostilePairsRefuseBeforeAdoption(t *testing.T) {
 				t.Fatal(err)
 			}
 			tc.edit(&bad)
-			if decoded, _, err := DecodeSave(uncheckedDocumentEnvelope1115(t, bad)); err == nil || !reflect.DeepEqual(decoded, Snapshot{}) {
-				t.Fatal("checksum-valid disagreeing Sack pair accepted", err)
-			}
 			live, hash := f.live, f.live.world.Hash()
-			if open, town, err := f.Restore(bad); err == nil || open != nil || town {
-				t.Fatal("hostile Sack pair reached frontend adoption", err)
+			var world sim.World
+			if err := world.UnmarshalBinary(bad.World); err != nil {
+				t.Fatal(err)
+			}
+			candidate := *f.live.mission.state
+			candidate.World = &world
+			retained, oldHash := candidate.savedDocument, world.Hash()
+			if err := restoreSavedDocument(&candidate, bad.SavedDocument); err == nil {
+				t.Fatal("hostile Sack pair reached document adoption", err)
+			}
+			if candidate.savedDocument != retained || world.Hash() != oldHash {
+				t.Fatal("rejected Sack pair changed candidate")
 			}
 			if f.live != live || f.live.world.Hash() != hash || !reflect.DeepEqual(snapshotCurrentObjects(t, f), before) {
 				t.Fatal("rejected Sack pair changed active session")
@@ -478,26 +485,6 @@ func TestSackObjects1115AmbiguousOriginalSacksKeepNativeSave(t *testing.T) {
 			t.Fatal("ambiguous source coverage changed", row)
 		}
 	}
-	// This remains an explicit predecessor-codec input control. Current SAV
-	// export of unbound Sacks is covered separately by current-unbound tests.
-	s.ghost, s.terrainBase = nil, nil
-	raw, err := EncodeSave(s, "explicitly uncovered merged Sacks")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
-	if err != nil || !reflect.DeepEqual(decoded, s) {
-		t.Fatal("uncovered original Sacks broke ordinary native SAVE", err)
-	}
-	fresh := cellStateFront(t)
-	open, town, err := fresh.Restore(decoded)
-	if err != nil || town {
-		t.Fatal("uncovered Sack native LOAD", town, err)
-	}
-	if err := fresh.App("uncovered native Sacks").OpenMission(open); err != nil {
-		t.Fatal(err)
-	}
-	if fresh.live.world.Hash() != f.live.world.Hash() || !reflect.DeepEqual(snapshotCurrentObjects(t, fresh).SavedDocument, s.SavedDocument) {
-		t.Fatal("native LOAD inferred an owner or changed uncovered source records")
-	}
+	// Current unbound Sack SAVE/LOAD has separate current-state witnesses.
+
 }

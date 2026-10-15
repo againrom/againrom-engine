@@ -5,7 +5,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -18,22 +17,22 @@ func releaseShopApp(t *testing.T) (*ui.App, *townScreen) {
 	t.Helper()
 	f := releaseFront(t)
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snap, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Date(2026, 8, 17, 12, 0, 0, 0, time.UTC), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	app := f.App("1006-release-shop-hit")
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.HeadlessActivate("load game"); err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +162,10 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	town.gold = 1_000_000
 	f.Town = town
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
+	if len(f.Carried) != 1 {
+		t.Fatalf("shared-town fixture has %d members before hiring, want the player hero", len(f.Carried))
+	}
 	s := f.TownScreen().(*townScreen)
 	s.room = roomTavern
 	s.composeShopFaces()
@@ -253,7 +255,11 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, inTown, err := f.Restore(snap); err != nil || !inTown {
+	raw, err := f.ExportCurrentSave(snap, "hired squad")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, inTown, err := f.RestoreOriginal(raw); err != nil || !inTown {
 		t.Fatalf("restore hired town = %v, %v", inTown, err)
 	}
 	s = f.TownScreen().(*townScreen)
@@ -323,7 +329,11 @@ func TestReleaseSharedTownRoute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := f.Restore(snap); err != nil {
+	raw, err = f.ExportCurrentSave(snap, "trained hero")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.RestoreOriginal(raw); err != nil {
 		t.Fatal(err)
 	}
 	if f.Carried[0].Hero.Skill[slot] != level+1 || f.Town.Gold() != gold-price {

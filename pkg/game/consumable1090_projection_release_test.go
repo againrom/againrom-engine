@@ -60,16 +60,12 @@ func TestReleaseConsumable1090AppRestoredSheets(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		disk, err := EncodeSave(snapshot, label)
-		if err != nil {
-			t.Fatal(err)
-		}
-		decoded, _, err := DecodeSave(disk)
+		disk, err := f.ExportCurrentSave(snapshot, label)
 		if err != nil {
 			t.Fatal(err)
 		}
 		back := releaseFront(t)
-		opener, town, err := back.Restore(decoded)
+		opener, town, err := back.RestoreOriginal(disk)
 		if err != nil || town {
 			t.Fatalf("restore town=%v: %v", town, err)
 		}

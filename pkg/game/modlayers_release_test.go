@@ -448,7 +448,7 @@ func TestReleaseModLayersInTheMissionInventory(t *testing.T) {
 	// A mission SAVE writes the three layers in the mod leaf, and a cold LOAD
 	// under the same mods wears them again; without the mod it refuses.
 	store := SaveStore{Dir: t.TempDir()}
-	save, _, _ := agsSaveSeams(g, store, OriginalStore{}, nil)
+	save, _, _ := g.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(true)
 	if err != nil || !IsOriginal(name) {
 		t.Fatalf("mission SAVE wrote %q: %v", name, err)
@@ -466,7 +466,7 @@ func TestReleaseModLayersInTheMissionInventory(t *testing.T) {
 		t.Fatalf("the mission SAVE's layers: %+v %v %v", mark.Layers, present, err)
 	}
 	cold := modItemFront(t)
-	_, _, load := agsSaveSeams(cold, store, OriginalStore{}, nil)
+	_, _, load := cold.SaveSeams(store, OriginalStore{}, nil)
 	open, town, err := load(localOriginalSaveToken(name))
 	if err != nil || town {
 		t.Fatalf("LOAD of the mission SAVE: town=%v err=%v", town, err)
@@ -484,7 +484,7 @@ func TestReleaseModLayersInTheMissionInventory(t *testing.T) {
 		t.Fatalf("after the mission LOAD: defence +%d layers %v", got, cold.live.activeLayers(cid))
 	}
 	plain := releaseFront(t)
-	_, _, plainLoad := agsSaveSeams(plain, store, OriginalStore{}, nil)
+	_, _, plainLoad := plain.SaveSeams(store, OriginalStore{}, nil)
 	if _, _, err := plainLoad(localOriginalSaveToken(name)); err == nil || !errors.Is(err, ErrModMark) {
 		t.Fatalf("a mission LOAD without the mod: %v", err)
 	}

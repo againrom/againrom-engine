@@ -2,6 +2,7 @@ package game
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -95,36 +96,18 @@ func TestGateSnapshotRecordsAndHistoricalDefault(t *testing.T) {
 	town.Won(30)
 	var s Snapshot
 	snapshotTown(town, &s)
-	if err := validateSnapshotCampaignRecords(town.camp, s); err != nil {
-		t.Fatal(err)
-	}
-	raw, err := EncodeSave(s, "gate record fixture")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	back := restoreTown(town.camp, decoded)
+	back := restoreTown(town.camp, s)
 	if !reflect.DeepEqual(town.records, back.records) || back.gateMission() != 31 {
 		t.Fatal("detached snapshot lost current records", back.records)
 	}
-	decoded.CampaignRecords = nil
-	legacy := restoreTown(town.camp, decoded)
+	s.CampaignRecords = nil
+	legacy := restoreTown(town.camp, s)
 	if r := legacy.records.record(31); r == nil || r.age != 1 || !r.announced || legacy.gateMission() != 31 {
 		t.Fatal("historical accepted previous-chapter default", r)
 	}
 	legacy.Won(40)
 	if legacy.records.record(31) != nil {
 		t.Fatal("historical default never expires")
-	}
-	corrupt := *s.CampaignRecords
-	corrupt.Children = append([]sav.CampaignRecord(nil), corrupt.Children...)
-	corrupt.Children[0].Age = 2
-	s.CampaignRecords = &corrupt
-	if err := validateSnapshotCampaignRecords(town.camp, s); err == nil {
-		t.Fatal("expired wire record accepted")
 	}
 }
 
@@ -164,9 +147,17 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 	t.Run("changed campaign keeps configured building rows", func(t *testing.T) {
 		var s Snapshot
 		snapshotTown(saveTown(t), &s)
-		changed := Campaign{Main: []int{30}, Offered: []int{30}, Chapters: map[int]Chapter{30: {Mission: 30, Shop: []int{31}}}}
-		if err := validateSnapshotCampaignRecords(changed, s); err != nil {
-			t.Fatal("changed campaign rejected structurally valid state", err)
+		changed := Campaign{Main: []int{30}, Side: []int{31}, Offered: []int{30}, Chapters: map[int]Chapter{30: {Mission: 30, Shop: []int{31}}}}
+		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(changed, nil)}}
+		projection, err := nativeCampaignProjection(f, s)
+		if err != nil {
+			t.Fatal("changed campaign rejected current SAV projection", err)
+		}
+		if projection.Main.Mission != 30 || len(projection.Children) != 1 || projection.Children[0].Mission != 31 || !reflect.DeepEqual(projection.ShopMission, []uint16{31}) {
+			t.Fatal("current SAV lost configured campaign rows", projection)
+		}
+		if _, err := campaignProgressFromSAV(changed, projection); err != nil {
+			t.Fatal("changed campaign rejected current SAV state", err)
 		}
 		back := restoreTown(changed, s)
 		if back.currentMain() != 30 || back.records.main.mission != 30 || back.records.record(31) == nil || len(back.Offers(TownShop)) != 1 || back.Offers(TownShop)[0].Mission != 31 || back.gold != s.Gold {
@@ -183,8 +174,13 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		changed.Side = []int{41}
 		changed.Offered = []int{30, 40, 41}
 		changed.Chapters = map[int]Chapter{40: changed.Chapters[40], 50: changed.Chapters[50]}
-		if err := validateSnapshotCampaignRecords(changed, s); err != nil {
-			t.Fatal("absent definition rejected current record", err)
+		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(changed, nil)}}
+		projection, err := nativeCampaignProjection(f, s)
+		if err != nil {
+			t.Fatal("absent definition rejected current SAV projection", err)
+		}
+		if _, err := campaignProgressFromSAV(changed, projection); err == nil || !strings.Contains(err.Error(), "mission 31 is not a declared side mission") {
+			t.Fatal("current SAV accepted a retained child absent from the campaign declaration", err)
 		}
 		back := restoreTown(changed, s)
 		if !reflect.DeepEqual(town.records, back.records) || back.gateMission() != 31 {

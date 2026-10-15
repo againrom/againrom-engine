@@ -66,7 +66,7 @@ func TestReleaseOriginalSavedTurnContinues1147(t *testing.T) {
 			if err := app.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
-			entries, err := listAGS(store)
+			entries, err := localSAVRows(store)
 			if err != nil || len(entries) != 1 {
 				t.Fatalf("ordinary SAVE: %v %v", entries, err)
 			}

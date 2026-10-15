@@ -78,7 +78,9 @@ func actorEffects1161Current(t *testing.T, f *FrontEnd, id sim.EntityID, remaini
 		t.Fatal(err)
 	}
 	state := s.SavedDocument
-	if state == nil || state.ActorEffects == nil || state.ActorEffects.Unavailable != "" || len(state.ActorEffects.Rows) != 1 {
+	// After expiry the source front keeps the retired row (object 0); a SAV
+	// LOAD of the expired state projects no row. Both hold no attachment.
+	if state == nil || state.ActorEffects == nil || state.ActorEffects.Unavailable != "" || len(state.ActorEffects.Rows) != 1 && (remaining != 0 || len(state.ActorEffects.Rows) != 0) {
 		t.Fatal("current effect projection unavailable", state)
 	}
 	var actor *sav.DocumentRecordData
@@ -95,7 +97,10 @@ func actorEffects1161Current(t *testing.T, f *FrontEnd, id sim.EntityID, remaini
 	if !ok || err != nil {
 		t.Fatal("actor effect roots missing", err)
 	}
-	row := state.ActorEffects.Rows[0]
+	var row SnapshotSAVActorEffect
+	if len(state.ActorEffects.Rows) != 0 {
+		row = state.ActorEffects.Rows[0]
+	}
 	entity, ok := f.live.entity(id)
 	if !ok {
 		t.Fatal("actor carrier disappeared")
@@ -145,7 +150,7 @@ func actorEffects1161App(t *testing.T, raw []byte, id sim.EntityID) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
+	entries, err := localSAVRows(store)
 	if err != nil || len(entries) != 1 {
 		t.Fatal(entries, err)
 	}
@@ -184,7 +189,7 @@ func actorEffects1161App(t *testing.T, raw []byte, id sim.EntityID) {
 	if err := app2.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err = listAGS(store)
+	entries, err = localSAVRows(store)
 	if err != nil {
 		t.Fatal(err)
 	}

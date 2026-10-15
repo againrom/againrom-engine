@@ -104,28 +104,10 @@ func TestTavernWholeSquadHireAndReturnAreImmediate(t *testing.T) {
 	}
 	other := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(shellCampaign(), nil), Table: f.Table, Humans: f.Humans}, CampaignSession: CampaignSession{Town: NewTown(shellCampaign())}}
 	other.TownScreen()
-	if _, inTown, err := other.Restore(snap); err != nil || !inTown {
-		t.Fatalf("restore hired squad = inTown %v, err %v", inTown, err)
-	}
+	other.Town, other.Carried = restoreTown(shellCampaign(), snap), mapload.OwnParty(snap.Party)
 	if other.Town.Gold() != 950 || !other.Town.MercenaryHired(3) || other.Town.MercenaryPool(3) != 2 || len(other.Carried) != 3 {
 		t.Fatalf("restored hire = gold %d hired %v working %d party %d", other.Town.Gold(),
 			other.Town.MercenaryHired(3), other.Town.MercenaryPool(3), len(other.Carried))
-	}
-	legacy := snap
-	legacy.MercenaryState = false
-	legacy.MercenaryPool = [16]int{}
-	legacy.MercenaryEnabled = [16]bool{}
-	legacy.MercenaryHired = [16]bool{}
-	legacyFront := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(shellCampaign(), nil), Table: f.Table, Humans: f.Humans}, CampaignSession: CampaignSession{Town: NewTown(shellCampaign())}}
-	legacyFront.TownScreen()
-	if _, inTown, err := legacyFront.Restore(legacy); err != nil || !inTown {
-		t.Fatalf("restore pre-mercenary snapshot = inTown %v, err %v", inTown, err)
-	}
-	if !legacyFront.Town.MercenaryEnabled(3) || !legacyFront.Town.MercenaryHired(3) ||
-		legacyFront.Town.MercenaryPool(3) != 0 || len(legacyFront.Carried) != 3 {
-		t.Fatalf("pre-mercenary snapshot inference = enabled %v hired %v pool %d party %d",
-			legacyFront.Town.MercenaryEnabled(3), legacyFront.Town.MercenaryHired(3),
-			legacyFront.Town.MercenaryPool(3), len(legacyFront.Carried))
 	}
 	if _, ok := s.toggleMercenary(3); !ok {
 		t.Fatal("return refused")
@@ -487,6 +469,10 @@ func TestSchoolPricesAndTrainingPersistThroughSave(t *testing.T) {
 		}
 	}
 	f := shellFrontEnd()
+	rows := append(dbCollection(nil), f.Table.Humans.(dbCollection)...)
+	rows = append(rows, fourBaseHumans()[1:]...)
+	f.Table.Humans, f.Humans = rows, rows
+	f.Carried[0].ID, f.Carried[0].StartingHero = "hero", true
 	f.townUI.room, f.townUI.schoolCell = roomSchool, 0 // fighter slot 1
 	before := f.Carried[0].Hero.Skill[1]
 	if msg := f.townUI.trainHeroSkill(1); msg == "" {
@@ -505,21 +491,17 @@ func TestSchoolPricesAndTrainingPersistThroughSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := EncodeSave(snap, "training")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(b)
+	b, err := f.ExportCurrentSave(snap, "training")
 	if err != nil {
 		t.Fatal(err)
 	}
 	other := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(shellCampaign(), nil), Table: f.Table, Humans: f.Humans}, CampaignSession: CampaignSession{Town: NewTown(shellCampaign())}}
 	other.TownScreen()
-	if _, inTown, err := other.Restore(decoded); err != nil || !inTown {
+	if _, inTown, err := other.RestoreOriginal(b); err != nil || !inTown {
 		t.Fatalf("restore = inTown %v, err %v", inTown, err)
 	}
 	if !reflect.DeepEqual(other.Carried[0].Hero, f.Carried[0].Hero) ||
-		!reflect.DeepEqual(other.Carried[0].Carry, f.Carried[0].Carry) || other.Town.Gold() != 482 {
+		other.Carried[0].Carry == nil || other.Carried[0].Carry.SkillXP != f.Carried[0].Carry.SkillXP || other.Town.Gold() != 482 {
 		t.Fatalf("restored training differs: %#v / %#v, gold %d", other.Carried[0], f.Carried[0], other.Town.Gold())
 	}
 }

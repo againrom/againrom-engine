@@ -1,9 +1,11 @@
 package game
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -42,18 +44,34 @@ func TestCityTopologySnapshotAndRestoreOwnTheirGraph(t *testing.T) {
 }
 
 func TestCityTopologyInvalidRestoreKeepsLiveSession(t *testing.T) {
-	town := NewTown(Campaign{})
-	f := &FrontEnd{CampaignSession: CampaignSession{Town: town,
-		Carried: []mapload.PartyMember{{ID: "live"}}}}
-	for _, bad := range []*cityObjectTopology{
-		{Version: 0, NextID: 1},
-		{Version: cityObjectTopologyVersion, NextID: 2, Items: []cityItemTopology{{ID: 1}, {ID: 1}}},
-	} {
+	raw, newFront := cityProjectionSource(t)
+	f := cityProjectionLoad(t, raw, newFront)
+	raw = cityProjectionSave(t, f)
+	town := f.Town
+	for _, duplicate := range []bool{false, true} {
+		doc, actions, _ := cityProjectionWire(t, raw)
+		if duplicate {
+			actions.Objects[1].ID = actions.Objects[0].ID
+		} else {
+			actions.Inventory.NextID = actions.Objects[0].ID
+		}
+		leaf, err := json.Marshal(actions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := sav.SetNativeActions(&doc.State, leaf); err != nil {
+			t.Fatal(err)
+		}
+		bad, err := sav.EncodeDocumentData(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
 		before := mapload.CloneParty(f.Carried)
-		if _, err := f.prepareRestore(Snapshot{CityObjects: bad}); err == nil {
+		graph := town.cityObjects.Clone()
+		if _, _, err := f.RestoreOriginal(bad); err == nil {
 			t.Fatal("malformed topology admitted")
 		}
-		if f.Town != town || !reflect.DeepEqual(f.Carried, before) {
+		if f.Town != town || !reflect.DeepEqual(f.Carried, before) || !reflect.DeepEqual(town.cityObjects, graph) {
 			t.Fatal("rejected candidate changed the live session")
 		}
 	}

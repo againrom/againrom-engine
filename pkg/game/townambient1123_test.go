@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/mapload"
 	"bytes"
 	"fmt"
 	"image"
@@ -374,6 +375,10 @@ func TestTownAmbientOptionalSoundCapabilityAndSampleRetry(t *testing.T) {
 
 func TestTownAmbientPresentationDoesNotChangeNativeOrSimulationState(t *testing.T) {
 	f, app, _, now, _, _, _ := townAmbientFixture(t, true)
+	seed := currentTrainingCity(t)
+	f.Table = seed.Table
+	f.Carried = mapload.CloneParty(seed.Carried)
+
 	mw, _ := readoutWorld(t, sim.Entity{ID: 1123, X: 8, Y: 9})
 	f.live = mw
 	worldBytes, worldHash := marshalWorld(t, mw.world), mw.world.Hash()
@@ -381,7 +386,7 @@ func TestTownAmbientPresentationDoesNotChangeNativeOrSimulationState(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBefore, err := EncodeSave(before, label)
+	nativeBefore, err := f.ExportCurrentSave(before, label)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,12 +398,12 @@ func TestTownAmbientPresentationDoesNotChangeNativeOrSimulationState(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAfter, err := EncodeSave(after, label)
+	nativeAfter, err := f.ExportCurrentSave(after, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(nativeBefore, nativeAfter) {
-		t.Fatal("town ambience changed native save bytes")
+		t.Fatal("town ambience changed SAV bytes")
 	}
 	if mw.world.Hash() != worldHash || !bytes.Equal(worldBytes, marshalWorld(t, mw.world)) {
 		t.Fatal("town ambience changed simulation form or hash")

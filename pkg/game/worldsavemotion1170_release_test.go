@@ -14,9 +14,8 @@ func world1170MotionContinuation(t *testing.T, mode string) {
 	worldMotionContinuation(t, mode)
 }
 
-// Use the actual mission MapOrder and sample before SAVE. The AGS control is
-// encoded, decoded and restored into another FrontEnd; it is not a World clone
-// or a comparison between projected Documents.
+// Sample the actual MapOrder before SAVE and compare the running source World
+// to a separately loaded current SAV through the complete continuation.
 func worldMotionContinuation(t *testing.T, mode string) {
 	t.Helper()
 	turning, healing, savOnlyHealing := mode == "turn", mode == "heal" || mode == "heal_sav", mode == "heal_sav"
@@ -88,7 +87,7 @@ func worldMotionContinuation(t *testing.T, mode string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		encoded, err = EncodeSave(s, "explicit native continuation control")
+		encoded, err = f.ExportCurrentSave(s, "explicit current continuation control")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,7 +116,7 @@ func worldMotionContinuation(t *testing.T, mode string) {
 		b := world1170Entity(t, cold, hero.SourceBinding.RuntimeID)
 		apos, bpos := world1170Position(f.live.world, a), world1170Position(cold.live.world, b)
 		if native != nil && f.live.world.Hash() != native.live.world.Hash() {
-			t.Fatalf("true AGS cold control lost complete World at sample %d", step)
+			t.Fatalf("current SAV cold control lost complete World at sample %d", step)
 		}
 		if a.TurnRemaining != b.TurnRemaining || a.TurnTotal != b.TurnTotal || a.Transit != b.Transit || a.TransitTotal != b.TransitTotal || a.ActionClock != b.ActionClock || a.HP != b.HP || a.Mana != b.Mana {
 			t.Fatalf("current action/clock/pools differ at sample %d: turn %d/%d transit %d/%d clock %+v/%+v HP%d/%d Mana%d/%d", step, a.TurnRemaining, b.TurnRemaining, a.Transit, b.Transit, a.ActionClock, b.ActionClock, a.HP, b.HP, a.Mana, b.Mana)
@@ -185,7 +184,7 @@ func worldMotionContinuation(t *testing.T, mode string) {
 		t.Logf("ordinary SAV preserves the pending Heal: first release at continuation step %d, restored %d HP", healStep, healed)
 	}
 	if native != nil {
-		t.Logf("161 samples through ordinary %s: differences %d, arrival live %d cold %d; true AGS control preserves full World throughout", ext, different, liveArrival, coldArrival)
+		t.Logf("161 samples through ordinary %s: differences %d, arrival live %d cold %d; current SAV control preserves full World throughout", ext, different, liveArrival, coldArrival)
 	} else {
 		t.Logf("161 samples through ordinary SAV: differences %d, arrival live %d cold %d", different, liveArrival, coldArrival)
 	}
@@ -247,13 +246,9 @@ func TestReleaseCurrentWorldCombinedDropDamageHealSAV(t *testing.T) {
 
 func world1170NativeMotionLoad(t *testing.T, encoded []byte) *FrontEnd {
 	t.Helper()
-	s, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
 	cold := releaseFront(t)
 	cold.SetDeterministicFrames(true)
-	open, town, err := cold.Restore(s)
+	open, town, err := cold.RestoreOriginal(encoded)
 	if err != nil || town {
 		t.Fatal(err)
 	}

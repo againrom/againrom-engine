@@ -26,7 +26,7 @@ func TestCampaignCompanionBindingUsesRoleInsteadOfPartyPosition(t *testing.T) {
 	}
 }
 
-func TestTransferredCharacterLossGuardSurvivesRemovalAndNativeEnvelope(t *testing.T) {
+func TestTransferredCharacterLossGuardSurvivesRemovalAndCurrentResidue(t *testing.T) {
 	world := func(owner uint32, present bool) *mapWorld {
 		t.Helper()
 		entities := []sim.Entity{{ID: 1, Owner: sim.SelfSlot, HP: 10, MaxHP: 10}}
@@ -40,21 +40,14 @@ func TestTransferredCharacterLossGuardSurvivesRemovalAndNativeEnvelope(t *testin
 	if mw.guardedCharacterLost() {
 		t.Fatal("enemy companion's death counted as an owned character's death")
 	}
-	b, err := EncodeSave(Snapshot{Residue: mw.residue()}, "transferred")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
+	residue := mw.residue()
 	afterRemoval := world(0, false)
-	afterRemoval.applyResidue(s.Residue)
+	afterRemoval.applyResidue(residue)
 	if afterRemoval.guardedCharacterLost() || afterRemoval.mission.outcome == sim.OutcomeLost {
 		t.Fatal("cold load forgot a transferred character after final removal")
 	}
 	returned := world(sim.SelfSlot, true)
-	returned.applyResidue(s.Residue)
+	returned.applyResidue(residue)
 	if !returned.guardedCharacterLost() {
 		t.Fatal("a currently owned dead character inherited an enemy exemption")
 	}
@@ -62,9 +55,9 @@ func TestTransferredCharacterLossGuardSurvivesRemovalAndNativeEnvelope(t *testin
 	if !missing.guardedCharacterLost() {
 		t.Fatal("an absent owned character without a transfer record did not lose")
 	}
-	s.Residue.MissionLost = true
+	residue.MissionLost = true
 	oldLoss := world(8, true)
-	oldLoss.applyResidue(s.Residue)
+	oldLoss.applyResidue(residue)
 	if oldLoss.mission.outcome != sim.OutcomeLost {
 		t.Fatal("transfer repair cleared an already recorded loss")
 	}

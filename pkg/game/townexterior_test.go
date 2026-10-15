@@ -1,7 +1,9 @@
 package game
 
 import (
+	"againrom/pkg/mapload"
 	"bytes"
+	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"image/color"
 	"testing"
@@ -11,7 +13,6 @@ import (
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type exteriorVoice struct {
@@ -416,6 +417,10 @@ func TestTownExteriorAppMenuFocusRoomReentryAndLoadReset(t *testing.T) {
 
 func TestTownExteriorPresentationLeavesNativeBytesIdentical(t *testing.T) {
 	f, a, s, now, roll, _ := exteriorFixture(t)
+	seed := currentTrainingCity(t)
+	f.Table = seed.Table
+	f.Carried = mapload.CloneParty(seed.Carried)
+
 	mw, _ := readoutWorld(t, sim.Entity{ID: 1, X: 4, Y: 5})
 	f.live = mw
 	worldBytes, worldHash := marshalWorld(t, mw.world), mw.world.Hash()
@@ -423,7 +428,7 @@ func TestTownExteriorPresentationLeavesNativeBytesIdentical(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := EncodeSave(before, "same")
+	b, err := f.ExportCurrentSave(before, "same")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -436,12 +441,12 @@ func TestTownExteriorPresentationLeavesNativeBytesIdentical(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b2, err := EncodeSave(after, "same")
+	b2, err := f.ExportCurrentSave(after, "same")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(b, b2) {
-		t.Fatal("presentation changed native save bytes")
+		t.Fatal("presentation changed SAV bytes")
 	}
 	if mw.world.Hash() != worldHash || !bytes.Equal(worldBytes, marshalWorld(t, mw.world)) {
 		t.Fatal("presentation changed sim hash or binary state")

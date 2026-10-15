@@ -215,8 +215,6 @@ func TestReleaseSaveDialog1173MissionCity(t *testing.T) {
 		}
 		saveDialogMission(t, f, app, t.TempDir())
 	})
-	if os.Getenv("AGAINROM_PLAYED_SAVE1173") != "" {
-	}
 }
 
 func saveOriginalMissionReturn(t *testing.T) {
@@ -272,27 +270,19 @@ func saveOriginalMissionReturnFile(t *testing.T, path, hash string) {
 			t.Fatalf("current Human or pack changed for %s", want.ID)
 		}
 	}
-	ags, err := EncodeSave(s, "Returned AGS")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cold, _, err := DecodeSave(ags)
-	if err != nil {
-		t.Fatal(err)
-	}
 	h := releaseFront(t)
-	if _, town, err := h.Restore(cold); err != nil || !town {
-		t.Fatal("cold AGS", town, err)
+	if _, town, err := h.RestoreOriginal(encoded); err != nil || !town {
+		t.Fatal("cold SAV", town, err)
 	}
 	if !reflect.DeepEqual(h.Carried, f.Carried) {
-		t.Fatal("AGS changed the complete carried party")
+		t.Fatal("SAV changed the complete carried party")
 	}
 	next, _, err := h.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := h.playerCitySave(next, "Cold AGS to SAV"); err != nil {
-		t.Fatal("town AGS lost SAV continuity", err)
+	if _, _, err := h.playerCitySave(next, "Cold SAV to SAV"); err != nil {
+		t.Fatal("town SAV lost SAV continuity", err)
 	}
 }
 
@@ -382,19 +372,13 @@ func TestReleaseSaveDialog1173TownPairOverwriteAndRefusal(t *testing.T) {
 			t.Fatal(err)
 		}
 		g := releaseFront(t)
-		if IsOriginal(path) {
-			if _, town, err := g.RestoreOriginal(raw); err != nil || !town {
-				t.Fatal("overwritten SAV cold LOAD", err)
-			}
-		} else {
-			s, _, err := DecodeSave(raw)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, town, err := g.Restore(s); err != nil || !town {
-				t.Fatal("overwritten AGS cold LOAD", err)
-			}
+		if !IsOriginal(path) {
+			t.Fatal("SAVE target is not SAV", path)
 		}
+		if _, town, err := g.RestoreOriginal(raw); err != nil || !town {
+			t.Fatal("overwritten SAV cold LOAD", err)
+		}
+
 		if g.Town.Gold() != f.Town.Gold() {
 			t.Fatal("SAVE changed current purse")
 		}

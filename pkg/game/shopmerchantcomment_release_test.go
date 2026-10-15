@@ -22,17 +22,17 @@ func releaseQuietShopApp(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavern
 	f.SpeechPlayer = r
 	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snap, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Unix(200, 0), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Unix(200, 0)
@@ -40,7 +40,7 @@ func releaseQuietShopApp(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavern
 	f.ShopRandom = func(int) int { return 0 }
 	app := f.App("release shop merchant comments")
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	for _, target := range []string{"load game", "@first", "SHOP"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)

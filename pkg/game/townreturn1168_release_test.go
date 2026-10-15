@@ -186,7 +186,7 @@ func townReturnLeaveTavern(t *testing.T, f *FrontEnd, mission int) {
 func townReturnSave1168(t *testing.T, f *FrontEnd, dir string) (string, []byte) {
 	t.Helper()
 	store := SaveStore{Dir: dir}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil || !IsOriginal(name) {
 		t.Fatal("ordinary SAVE did not write SAV", name, err)
@@ -201,7 +201,7 @@ func townReturnSave1168(t *testing.T, f *FrontEnd, dir string) (string, []byte) 
 func townReturnLoad1168(t *testing.T, dir, name string) *FrontEnd {
 	t.Helper()
 	f := releaseFront(t)
-	_, _, load := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, _, load := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	if IsOriginal(name) {
 		name = localOriginalSaveToken(name)
 	}
@@ -219,7 +219,7 @@ func townReturnImported1168(t *testing.T) (*FrontEnd, string) {
 	if err := WriteConvertedSave(private, raw, os.Getenv("AGAINROM_ASSETS")); err != nil {
 		t.Fatal(err)
 	}
-	_, _, load := agsSaveSeams(f, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(private)}, nil)
+	_, _, load := f.SaveSeams(SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(private)}, nil)
 	if _, town, err := load("source.sav"); err != nil || !town {
 		t.Fatal(town, err)
 	}
@@ -241,16 +241,6 @@ func townReturnCycle1168(t *testing.T, f *FrontEnd, private, before, after strin
 	s, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
-	}
-	// A serialized AGS baseline keeps the advisory. SAV normalization must
-	// not erase it on Snapshot or mutate either the source or live state.
-	ags, err := EncodeSave(s, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	baseline, _, err := DecodeSave(ags)
-	if err != nil || baseline.Offered != f.Offered {
-		t.Fatal("AGS advisory lost", err)
 	}
 	export := f.ExportNativeCitySave
 	if f.originalCity != nil {
@@ -327,7 +317,7 @@ func townReturnCycle1168(t *testing.T, f *FrontEnd, private, before, after strin
 		t.Fatal("completed prior main paid a second time")
 	}
 	if out := os.Getenv("AGAINROM_1168_ARTIFACTS"); out != "" {
-		for suffix, payload := range map[string][]byte{"baseline.ags": ags, "first.sav": raw, "second.sav": raw2} {
+		for suffix, payload := range map[string][]byte{"first.sav": raw, "second.sav": raw2} {
 			if err := WriteConvertedSave(filepath.Join(out, strings.ReplaceAll(t.Name(), "/", "-")+"-"+suffix), payload, os.Getenv("AGAINROM_ASSETS")); err != nil {
 				t.Fatal(err)
 			}
@@ -336,27 +326,33 @@ func townReturnCycle1168(t *testing.T, f *FrontEnd, private, before, after strin
 	t.Logf("ordinary SAVE => %s; source-free LOAD/current advisory; unchanged SAVE and a conversation heard inside the inn preserve state; leaving the inn => %s; source-bound second SAVE/LOAD keeps actor graph, store and payment", before, after)
 }
 
+func townReturnCurrent1168(t *testing.T) *FrontEnd {
+	t.Helper()
+	f := releaseFront(t)
+	party := f.ChargenParty(ui.ChargenResult{Name: "Town return", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
+	app := f.App("1168 controlled completion")
+	if err := app.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := f.LiveCompleteCampaign(); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.OpenMission(f.MissionOpenerWith(20, f.NextParty())); err != nil {
+		t.Fatal(err)
+	}
+	// The real opener supplies World/party/IDs/roster. This calls the
+	// completion boundary, not a claimed played victory trigger.
+	next, line, err := f.LiveCompleteCampaign()
+	if err != nil || next != 0 {
+		t.Fatal(next, line, err)
+	}
+	t.Log(line)
+	return f
+}
+
 func TestReleaseTownReturnCurrentCampaign1168(t *testing.T) {
 	t.Run("fresh-mission20", func(t *testing.T) {
-		f := releaseFront(t)
-		party := f.ChargenParty(ui.ChargenResult{Name: "Town return", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
-		app := f.App("1168 controlled completion")
-		if err := app.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
-			t.Fatal(err)
-		}
-		if _, _, err := f.LiveCompleteCampaign(); err != nil {
-			t.Fatal(err)
-		}
-		if err := app.OpenMission(f.MissionOpenerWith(20, f.NextParty())); err != nil {
-			t.Fatal(err)
-		}
-		// The real opener supplies World/party/IDs/roster. This calls the
-		// completion boundary, not a claimed played victory trigger.
-		next, line, err := f.LiveCompleteCampaign()
-		if err != nil || next != 0 {
-			t.Fatal(next, line, err)
-		}
-		t.Log(line)
+		f := townReturnCurrent1168(t)
 		// Mission 10's own section grants three text documents on entry
 		// (REG-SCN-097/MISSION-DOC-021), which the original fixture never
 		// reached because it skipped straight to mission 20. Chapters 20 and
@@ -414,7 +410,7 @@ func TestReleaseTownReturnImportedActorReturn1168(t *testing.T) {
 		t.Fatal("expected two exact CarryRoster provenance drops", dropped)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil || !IsOriginal(name) {
 		t.Fatal("current actor return must write SAV", name, err)

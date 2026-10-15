@@ -83,7 +83,7 @@ func TestOriginalOutcome1097CityStartsFreshMission(t *testing.T) {
 
 func TestOriginalOutcome1097NativeBeforeAcknowledgementAndTerminalDefeat(t *testing.T) {
 	for _, outcome := range []byte{1, 2} {
-		f := missionFrontEnd(t)
+		f := currentPoolFixtureFront(t)
 		f.Font = resolved(missionFont(), nil)
 		f.SetDeterministicFrames(true)
 		a := f.App("1097-synthetic-original")
@@ -107,15 +107,11 @@ func TestOriginalOutcome1097NativeBeforeAcknowledgementAndTerminalDefeat(t *test
 		if err != nil {
 			t.Fatal(err)
 		}
-		b, err := EncodeSave(snap, label)
+		b, err := f.ExportCurrentSave(snap, label)
 		if err != nil {
 			t.Fatal(err)
 		}
-		back, _, err := DecodeSave(b)
-		if err != nil {
-			t.Fatal(err)
-		}
-		opener, town, err = f.Restore(back)
+		opener, town, err = f.RestoreOriginal(b)
 		if err != nil || town {
 			t.Fatalf("native restore: %v", err)
 		}

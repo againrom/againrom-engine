@@ -228,6 +228,15 @@ func TestReleaseNativeCityPlayerConstruction(t *testing.T) {
 		f.live.tick()
 		check(2, 1)
 	})
+	t.Run("current_town_return_seed", func(t *testing.T) {
+		f, s := playerConstructorSourceN4(t)
+		raw, err := f.ExportNativeCitySave(s, "Player constructor proof")
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkPlayerWireN4(t, raw, 2, 1)
+		checkPlayerColdN4(t, s, raw)
+	})
 	if root := os.Getenv("AGAINROM_N4_AUDIT_ROOT"); root != "" {
 		t.Run("preserved_N4_source", func(t *testing.T) {
 			read := func(path, hash string) []byte {
@@ -246,15 +255,7 @@ func TestReleaseNativeCityPlayerConstruction(t *testing.T) {
 			if m, _ := old.Players[0].Field("F2C"); m != 0 || playerSettingsN4(t, oldDoc)[31] != 0 {
 				t.Fatal("preserved old-constructor discriminator changed")
 			}
-			baseline := read("story1168/f68f3f9/en/TestReleaseTownReturnCurrentCampaign1168-fresh-mission20-baseline.ags", "5b04851951e81595d2a8ec12d4229c98ea490deba32a20235b6b2616ba7054af")
-			s, _, err := DecodeSave(baseline)
-			if err != nil {
-				t.Fatal(err)
-			}
-			f := releaseFront(t)
-			if _, town, err := f.Restore(s); err != nil || !town {
-				t.Fatal(town, err)
-			}
+			f, s := playerConstructorSourceN4(t)
 			raw, err := f.ExportNativeCitySave(s, "Player constructor proof")
 			if err != nil {
 				t.Fatal(err)
@@ -262,21 +263,56 @@ func TestReleaseNativeCityPlayerConstruction(t *testing.T) {
 			checkPlayerWireN4(t, raw, 2, 1)
 			next, nextDoc := playerWireN4(t, raw)
 			checkPreservedPlayerN4(t, f, s, old, oldDoc, next, nextDoc)
-			restored := currentTownReload(t, raw)
-			if len(restored.Carried) != len(s.Party) || restored.Town.gold != s.Gold || restored.Town.Chapter() != s.Offered {
-				t.Fatal("N4 cold LOAD changed party population, gold or current chapter")
-			}
-			for i, want := range s.Party {
-				got := restored.Carried[i]
-				wantWorn, wantPack := memberItemCodes(want)
-				gotWorn, gotPack := memberItemCodes(got)
-				if got.ID != want.ID || got.Name != want.Name || got.Hero != want.Hero || got.Class != want.Class ||
-					got.StartingHero != want.StartingHero || got.KnownSpells != want.KnownSpells || !reflect.DeepEqual(got.Weapon, want.Weapon) ||
-					gotWorn != wantWorn || !slices.Equal(gotPack, wantPack) {
-					t.Fatalf("N4 cold LOAD changed current party member %d (%q)", i, want.ID)
-				}
-			}
+			checkPlayerColdN4(t, s, raw)
 		})
+	}
+}
+
+func playerConstructorSourceN4(t *testing.T) (*FrontEnd, Snapshot) {
+	t.Helper()
+	f := townReturnCurrent1168(t)
+	f.originalCity = nil
+	f.Town.cityObjects = nil
+	for i := range f.Carried {
+		p := &f.Carried[i]
+		p.OriginalHuman = nil
+		p.CarriedItems = nil
+		p.WornItems = [sim.EquipSlots]sim.ItemInstance{}
+		if p.Carry != nil {
+			p.Carry.ItemInstances, p.Carry.OrderedStacks = nil, nil
+			p.Carry.EquippedItems = [sim.EquipSlots]sim.ItemInstance{}
+			p.Carry.LiveLoad, p.Carry.NativeHistory = nil, nil
+		}
+	}
+	s, _, err := f.Snapshot(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.OriginalCity != nil || s.CityObjects != nil || len(s.Party) != 2 || s.Party[0].ID != "hero" || s.Party[0].Name != "Town return" || s.Party[1].ID != "npc:22" {
+		t.Fatal("N4 current source roles/provenance changed")
+	}
+	pack := mapload.MemberCarriedItems(s.Party[0], f.Table)
+	if len(pack) != 1 || pack[0].Code != 0x0e1c || pack[0].Weight != 0 || pack[0].WeightPresent || s.Party[0].Carry != nil && s.Party[0].Carry.LiveLoad != nil {
+		t.Fatal("N4 current source is not code-only with absent load/weight")
+	}
+	return f, s
+}
+
+func checkPlayerColdN4(t *testing.T, s Snapshot, raw []byte) {
+	t.Helper()
+	restored := currentTownReload(t, raw)
+	if len(restored.Carried) != len(s.Party) || restored.Town.gold != s.Gold || restored.Town.Chapter() != s.Offered {
+		t.Fatal("N4 cold LOAD changed party population, gold or current chapter")
+	}
+	for i, want := range s.Party {
+		got := restored.Carried[i]
+		wantWorn, wantPack := memberItemCodes(want)
+		gotWorn, gotPack := memberItemCodes(got)
+		if got.ID != want.ID || got.Name != want.Name || got.Hero != want.Hero || got.Class != want.Class ||
+			got.StartingHero != want.StartingHero || got.KnownSpells != want.KnownSpells || !reflect.DeepEqual(got.Weapon, want.Weapon) ||
+			gotWorn != wantWorn || !slices.Equal(gotPack, wantPack) {
+			t.Fatalf("N4 cold LOAD changed current party member %d (%q)", i, want.ID)
+		}
 	}
 }
 

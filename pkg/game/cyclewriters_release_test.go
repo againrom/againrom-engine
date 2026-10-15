@@ -354,6 +354,7 @@ func TestReleaseADefendOrderGivenAsACycleEndsLoadsNoSecondCycle(t *testing.T) {
 // companion (DIV-1577).
 func TestReleaseADefendOrderWaitingBehindABlowSurvivesSaveAndLoad(t *testing.T) {
 	arena := openLoadedCycleArena(t, 2)
+	arena.completeCurrentSaveFixture(t)
 	hero, companion, east := arena.heroes[0], arena.heroes[1], arena.east
 	arena.selectFirstHero(t)
 	arena.orderAttack(t, east)

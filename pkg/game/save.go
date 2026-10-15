@@ -68,9 +68,8 @@ type Snapshot struct {
 	// a first-ever SAVE of an ordinary, continuing mission carries no prior
 	// document either, and that save's own round trip through this engine
 	// still needs the full census to reload byte for byte. Only a generated
-	// mission SAV meant for the original game itself sets this true. False
-	// on every older or ordinary Snapshot value, so gob leaves it unset for
-	// every payload that predates the field.
+	// mission SAV meant for the original game itself sets this true. Ordinary
+	// current-state capture leaves it false.
 	NativeMissionTerrain bool
 	// The opaque World binary omits this constructor input. Capture it with
 	// the World so a later save cannot substitute another mission's template.
@@ -88,24 +87,18 @@ type Snapshot struct {
 	Fame *SnapshotFame
 	// ApplicationState is current mission UI state. Nil is the legacy default.
 	ApplicationState *SnapshotApplicationState
-	// CameraSet distinguishes a save that recorded the mission camera from a
-	// payload written before these fields existed. ApplicationState carries a
-	// camera only for a mission that has an original application record --
-	// mission 20's generated world, or a load from an imported original save --
-	// so ordinary play recorded no camera anywhere and every load opened at the
-	// map's own start position. Gob leaves all four fields zero for an older
-	// payload, and cell (0, 0) is a real map corner, so restore reads the flag
-	// and never the coordinates. Units are cells, as in SaveApplicationState.
+	// CameraSet distinguishes an explicitly captured mission camera from the
+	// constructor default. Coordinates use cells, as in SaveApplicationState.
 	CameraSet                    bool
 	CameraX, CameraY, CameraZoom float64
-	// Additive native-only spell IDs, in F5–F8 order. Old AGS defaults to four
-	// unbound slots. Current spell/mode/book visibility are not persisted here.
+	// QuickSpells holds spell IDs in F5-F8 order. Current spell, mode and book
+	// visibility are captured by their own application fields.
 	QuickSpells [4]uint32
-	// Additive gob field: old .ags has zero, interpreted as Normal. World is
-	// already scaled and is never adjusted during restore (UNIT-GATE-013).
+	// Difficulty is campaign state. World is already scaled and is never
+	// adjusted during restore (UNIT-GATE-013).
 	Difficulty mapload.Difficulty
 	// MainMission is the native campaign main; ordinary Campaign is authoritative
-	// when present. Older envelopes derive it from the active mission and history.
+	// when present. Otherwise the active mission and history supply it.
 	MainMission     int
 	SelectedMission int
 	Open            bool
@@ -115,45 +108,18 @@ type Snapshot struct {
 	Taken           []SnapshotOffer
 	OfferLabels     *currentOfferLabels
 
-	// Additive gob state for consumed native AddHero arrays. Old payloads
-	// lack HeroGrantState; their reached-town compatibility rule is DIV-1181.
+	// HeroGrantState marks captured consumption of native AddHero arrays.
 	HeroGrantState     bool
 	ConsumedHeroGrants []int
 
-	// MercenaryState distinguishes a current save from a version-1 payload
-	// written before the tavern fields existed. Gob leaves a newly added field
-	// zero when reading such a payload, so the old save keeps campaign stock.
+	// MercenaryState marks captured tavern stock and hired types.
 	MercenaryState   bool
 	MercenaryPool    [16]int
 	MercenaryEnabled [16]bool
 	MercenaryHired   [16]bool
 
-	// Documents is the campaign document collection and DocumentMission is
-	// the monotonic guard that decides whether a mission entry adds to it
-	// (town.go; REG-SCN-097, MISSION-DOC-021).
-	//
-	// THE FIELD SET IS THE ORIGINAL'S AND THE LOCATION IS NOT. MISSION-DOC-021
-	// is High for the record — a count then that many (value, kind) pairs,
-	// eight bytes a pair, and nothing else — and MEDIUM for where the run
-	// sits in the original's save file, the 32-byte trailer between it and
-	// EOF being unattributed. This build writes its own envelope, so it
-	// carries the field set here as two gob fields and transcribes no
-	// trailer. DIV-324 is the row for THAT — this field's own location —
-	// and DIV-095 is the row for the envelope form in general: the `.ags`
-	// form is authored by againrom and has no ROM1 claim. DIV-298 is the
-	// panel's phase gate and says nothing about the save.
-	//
-	// DocumentMission has no counterpart in the original's record at all.
-	// The original's guard compares against the campaign's own current
-	// mission, which its 32-byte trailer's first dword carries; this build
-	// has no such field on the campaign side, so the guard's own value is
-	// persisted instead of being re-derived.
-	//
-	// BOTH ARE ADDITIVE gob FIELDS. A payload written before they existed
-	// decodes them at their zero values — no documents and a guard of zero —
-	// which is exactly the state a game that had never entered a mission
-	// would hold, so an old save re-collects on its next mission entry
-	// rather than arriving with a collection it never had.
+	// Documents is the campaign document collection. DocumentMission is the
+	// monotonic guard that prevents collecting it twice on mission entry.
 	Documents       []SnapshotDocument
 	DocumentMission int
 
@@ -161,9 +127,7 @@ type Snapshot struct {
 	// every town SAV was written with before it existed.
 	LastMap string
 
-	// CampaignState distinguishes a fresh campaign snapshot from one restored
-	// from an original save. Campaign is an additive gob field and therefore
-	// does not change the envelope version or pkg/sim's binary form.
+	// CampaignState marks a captured campaign projection.
 	// CampaignMarkerSelected carries the presentation latch that becomes true
 	// when a player selects a mission after import. It is deliberately separate
 	// from Campaign.Markers: no synthetic original-format marker record or
@@ -183,16 +147,14 @@ type Snapshot struct {
 	// on this build's world map. It is separate from Campaign.Markers for the
 	// same reason as CampaignMarkerSelected: a native snapshot persists its
 	// own presentation gate without inventing an original-format record.
-	// This additive gob field leaves old envelope-version-1 saves readable at
-	// the empty-set zero value and does not change pkg/sim's binary form.
 	WorldSelectedOnce []int
 
 	// WorldMapReturn reads legacy travel saves. LOAD resolves it to the city;
 	// current saves never write it.
 	WorldMapReturn *SnapshotMapReturn
 
-	// OriginalCity is additive: old AGS has nil, hence no SAV-export provenance.
-	// It is a bounded semantic model, not source bytes or an original file path.
+	// OriginalCity is bounded semantic provenance for current city state.
+	// It holds no source bytes or original file path.
 	OriginalCity *SnapshotOriginalCity
 
 	// Party is what FrontEnd.Carried held and Offered is the mission the
@@ -234,16 +196,14 @@ type SnapshotMapReturn struct {
 	Shown   int
 }
 
-// SnapshotOffer is one consumed offer: the three coordinates offerRef holds,
-// exported so gob can see them.
+// SnapshotOffer is one consumed offer: the three coordinates offerRef holds.
 type SnapshotOffer struct {
 	Chapter  int
 	Building int
 	Index    int
 }
 
-// SnapshotDocument is one element of the campaign document collection —
-// Document's own two fields (town.go), exported so gob can see them.
+// SnapshotDocument is one element of the campaign document collection.
 type SnapshotDocument struct {
 	Value int
 	Kind  int
@@ -267,7 +227,7 @@ type SnapshotResidue struct {
 	MissionLost bool
 
 	// DepartedCharacters retains ownership transfers after the entity's final
-	// removal. Older envelopes omit it; extant actors still supply their owner.
+	// removal. Extant actors also supply their current owner.
 	DepartedCharacters []uint32
 
 	// Commanded is every entity the front end has ordered. A resumed world

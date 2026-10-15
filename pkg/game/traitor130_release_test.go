@@ -5,11 +5,9 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/data"
-	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -144,26 +142,9 @@ func (x *betrayal130) drive(t *testing.T, ticks uint64) {
 
 func (x *betrayal130) cold(t *testing.T, stage string, expectedWorld []byte) {
 	t.Helper()
-	var store SaveStore
+	store, saved, _ := campaignSave(t, x.f, true)
 	if expectedWorld == nil {
-		var saved Snapshot
-		store, saved, _ = campaignSave(t, x.f, true)
 		expectedWorld = saved.World
-	} else {
-		// This is a legacy input fixture for unresolved script references.
-		// Ordinary player SAVE above always uses the current SAV producer.
-		saved, _, err := x.f.Snapshot(true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		raw, err := EncodeSave(saved, "Legacy unresolved program")
-		if err != nil {
-			t.Fatal(err)
-		}
-		store = SaveStore{Dir: t.TempDir()}
-		if err := os.WriteFile(filepath.Join(store.Dir, "legacy.ags"), raw, 0600); err != nil {
-			t.Fatal(err)
-		}
 	}
 	f, app := campaignCold(t, store)
 	if f.live == nil || f.liveMission != 130 || app.Screen() != ui.ScreenMap {
@@ -265,124 +246,6 @@ func (x *betrayal130) requireGuardLoss(t *testing.T, victim sim.EntityID) {
 	}
 }
 
-// At the start of a legacy fixture, replace only program bytes. Two controlled
-// copies locate those bytes without depending on serialized offsets; their
-// reset execution state is never installed. Original clock/registers/latches,
-// counters, outcomes and every non-program section remain byte-identical.
-func betrayal130ProgramForm(t *testing.T, world *sim.World, script *sim.Script) []byte {
-	t.Helper()
-	original, err := world.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
-	before, err := sim.NewControlledScriptWorld(world, world.Script())
-	if err != nil {
-		t.Fatal(err)
-	}
-	after, err := sim.NewControlledScriptWorld(world, script)
-	if err != nil {
-		t.Fatal(err)
-	}
-	a, err := before.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := after.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(original) != len(a) || len(a) != len(b) {
-		t.Fatal("legacy program replacement changed the world shape")
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			if original[i] != a[i] {
-				t.Fatal("legacy fixture attempted to overwrite runtime state")
-			}
-			original[i] = b[i]
-		}
-	}
-	var check sim.World
-	if err := check.UnmarshalBinary(original); err != nil {
-		t.Fatal("legacy program form", err)
-	}
-	if check.Tick() != world.Tick() || check.ScriptRegisters() != world.ScriptRegisters() || check.Outcome() != world.Outcome() {
-		t.Fatal("legacy program replacement changed execution state")
-	}
-	for i := int32(0); i < 1000; i++ {
-		if check.ScriptLatched(i) != world.ScriptLatched(i) {
-			t.Fatal("legacy program replacement changed latches")
-		}
-	}
-	if !reflect.DeepEqual(check.Script().Checks(), script.Checks()) || !reflect.DeepEqual(check.Script().Instants(), script.Instants()) || !reflect.DeepEqual(check.Script().Triggers(), script.Triggers()) {
-		t.Fatal("legacy form did not carry the exact requested program")
-	}
-	return original
-}
-
-func (x *betrayal130) legacyProgram(t *testing.T) *sim.Script {
-	t.Helper()
-	w := x.f.live.world
-	correct := w.Script()
-	checks, instants := correct.Checks(), correct.Instants()
-	src, err := x.f.live.mission.state.Map.Script()
-	if err != nil {
-		t.Fatal(err)
-	}
-	count := 0
-	clearRef := func(n alm.ScriptNode, unit, unit2 *sim.EntityID, has, has2 *bool) {
-		ordinal := 0
-		for slot, kind := range n.Type {
-			if kind != 4 {
-				continue
-			}
-			ordinal++
-			if n.Value[slot] != 10002 {
-				continue
-			}
-			if ordinal == 1 {
-				if !*has || *unit != x.companion {
-					t.Fatal("fresh program did not bind the companion")
-				}
-				*unit, *has = 0, false
-			} else if ordinal == 2 {
-				if !*has2 || *unit2 != x.companion {
-					t.Fatal("fresh distance check did not bind the companion")
-				}
-				*unit2, *has2 = 0, false
-			} else {
-				t.Fatal("unexpected third unit reference")
-			}
-			count++
-		}
-	}
-	for i, n := range src.Conditions {
-		c := &checks[i]
-		clearRef(n, &c.Unit, &c.Unit2, &c.HasUnit, &c.HasUnit2)
-	}
-	i := 0
-	for _, n := range src.Actions {
-		if n.Opcode >= 0x10002 {
-			continue
-		}
-		in := &instants[i]
-		clearRef(n, &in.Unit, &in.Unit2, &in.HasUnit, &in.HasUnit2)
-		i++
-	}
-	if count != 3 {
-		t.Fatalf("legacy mission130 fixture cleared%d references, want3", count)
-	}
-	legacy, err := sim.NewScript(checks, instants, correct.Triggers())
-	if err != nil {
-		t.Fatal(err)
-	}
-	form := betrayal130ProgramForm(t, w, legacy)
-	if err := w.UnmarshalBinary(form); err != nil {
-		t.Fatal(err)
-	}
-	return correct
-}
-
 // The betrayal runs as four release tests, one per primary sex and branch,
 // so the release gate can give each its own process. The three control
 // cases run with the breeder-first branch.
@@ -466,25 +329,7 @@ func runBetrayal130(t *testing.T, female, breederFirstPart bool) {
 			x.running(t, "cold removed enemy")
 			x.requireGuardLoss(t, x.hero)
 		})
-		t.Run(branch+"/legacy-AGS", func(t *testing.T) {
-			x := startBetrayal130(t, female)
-			correct := x.legacyProgram(t)
-			x.prerequisite(t, breederFirst)
-			// The old writer has already run: variable50, counter93, the
-			// Start latch and (in breeder-first) a nonzero branch all survive.
-			if !x.f.live.world.ScriptLatched(0) || x.f.live.world.Tick() == 0 {
-				t.Fatal("legacy AGS has no runtime state to preserve")
-			}
-			want := betrayal130ProgramForm(t, x.f.live.world, correct)
-			x.cold(t, "legacy unresolved program", want)
-			x.transfer(t, breederFirst)
-			x.hostile(t, breederFirst)
-			if err := x.f.live.world.HeadlessKill(x.companion); err != nil {
-				t.Fatal(err)
-			}
-			x.drive(t, 32)
-			x.running(t, "repaired legacy betrayal")
-		})
+
 	}
 	if !breederFirstPart {
 		return

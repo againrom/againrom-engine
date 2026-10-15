@@ -83,19 +83,12 @@ func TestSourceEquipment1110CityAllOriginsNativeNextRemoval(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			raw, err := EncodeSave(snapshot, "source equipment city")
-			if err != nil {
-				t.Fatal(err)
+			decoded := mapload.CloneParty(snapshot.Party)
+			if !reflect.DeepEqual(decoded, snapshot.Party) {
+				t.Fatal("city clone drops retained equipment or source actor")
 			}
-			decoded, _, err := DecodeSave(raw)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(decoded.Party, snapshot.Party) {
-				t.Fatal("city native drops retained equipment or source actor")
-			}
-			// A fresh town instance gets only decoded state, no producer closure.
-			f.Carried = mapload.CloneParty(decoded.Party)
+			// The next town surface gets detached current party state.
+			f.Carried = decoded
 			screen = f.TownScreen().(*townScreen)
 			if a := screen.shopUnequipToTable(7); a.Msg != "on the table" {
 				t.Fatal(a)

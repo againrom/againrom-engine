@@ -4,33 +4,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
-	"fmt"
 )
-
-func validateSnapshotBooks(s Snapshot) error {
-	check := func(p mapload.PartyMember) error {
-		if err := p.Book.Validate(p.KnownSpells); err != nil {
-			return fmt.Errorf("party %q: %w", p.ID, err)
-		}
-		if p.Book.State != sim.BookLegacy && (!p.SpellbookRestored || p.SpellbookPresent != p.Book.HasInstances()) {
-			return fmt.Errorf("party %q has inconsistent source book presence", p.ID)
-		}
-		return nil
-	}
-	for _, p := range s.Party {
-		if err := check(p); err != nil {
-			return err
-		}
-	}
-	if s.OriginalCity != nil {
-		for _, b := range s.OriginalCity.Bindings {
-			if err := check(b.Baseline); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
 
 func importedSpellbook(present bool, spells []sav.SavedSpell) sim.Spellbook {
 	b := sim.Spellbook{State: sim.BookAbsent}

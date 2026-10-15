@@ -114,19 +114,3 @@ func TestResumeRepairsLegacyLinkedItemsInEveryWorldContainer(t *testing.T) {
 	roundCarried, _ := roundTrip.CarriedItems(9)
 	assertItem("round-trip carried", roundCarried[0], 12)
 }
-
-func TestPrepareTownRestoreRepairsPartyItemsBeforeCommit(t *testing.T) {
-	legacy := sim.ItemInstance{Code: 0x8134, Kind: 2, Price: 267,
-		Effects: []sim.ItemEffect{{Kind: 12, Operand: 0x0000fb05}}}
-	f := &FrontEnd{InstallResources: InstallResources{Table: resumeRepairTable()}}
-	candidate, err := f.prepareRestore(Snapshot{Party: []mapload.PartyMember{{
-		ID: "hero", Carry: &mapload.Carry{ItemInstances: []sim.ItemInstance{legacy}},
-	}}})
-	if err != nil {
-		t.Fatalf("prepareRestore: %v", err)
-	}
-	items := mapload.MemberCarriedItems(candidate.carried[0], f.Table)
-	if len(items) != 1 || items[0].Price != 6106 || items[0].Effects[0].Operand != 5 {
-		t.Fatalf("prepared town item = %+v, want repaired +5 and value 6106", items)
-	}
-}

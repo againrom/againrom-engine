@@ -16,7 +16,7 @@ func holdingsNativeFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 	t.Helper()
 	hash := f.live.world.Hash()
 	native := nativeCheckpoint1170(f, store)
-	_, nativeList, nativeLoad := agsSaveSeams(f, store, OriginalStore{}, nil)
+	_, nativeList, nativeLoad := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(native, nativeList, nativeLoad)
 	if terminalSave != nil {
 		// A saved Victory modal captures menu keys. This instrument selects
@@ -34,14 +34,14 @@ func holdingsNativeFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 		}
 		t.Log("App menu with explicit native checkpoint codec")
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 		t.Fatalf("ordinary App SAVE: %+v %v", entries, err)
 	}
 	fresh := releaseFront(t)
 	fresh.SetDeterministicFrames(true)
 	app2 := fresh.App("1108-fresh-native-load")
-	s, l, load := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+	s, l, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(s, l, load)
 	groundAppLoad(t, app2, l, entries[0].Name)
 	if fresh.live.world.Hash() != hash {
@@ -154,7 +154,7 @@ func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
 			f.SetDeterministicFrames(true)
 			app := f.App("1108-natural-holdings")
 			store := SaveStore{Dir: t.TempDir()}
-			save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: filepath.Dir(path)}, nil)
+			save, list, load := f.SaveSeams(store, OriginalStore{Dir: filepath.Dir(path)}, nil)
 			app.SetSaveSeams(save, list, load)
 			groundAppLoad(t, app, list, filepath.Base(path))
 			actor := poolEntity(t, f.live.world, tc.mapID)

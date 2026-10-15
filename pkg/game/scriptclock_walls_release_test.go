@@ -37,7 +37,7 @@ func TestReleaseScriptClockKeepsWallsUntilLever(t *testing.T) {
 			}
 			cold := releaseFront(t)
 			cold.SetDeterministicFrames(true)
-			_, _, load := agsSaveSeams(cold, SaveStore{Dir: dir}, OriginalStore{}, nil)
+			_, _, load := cold.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 			open, town, err := load(name)
 			if err != nil || town {
 				t.Fatalf("fresh LOAD: town=%v err=%v", town, err)

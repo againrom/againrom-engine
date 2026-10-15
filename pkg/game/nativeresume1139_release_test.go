@@ -9,7 +9,7 @@ import (
 // TestReleaseNativeResumeCarriesSpellEffectsAndCellRecords1139 is story
 // 1139's own full-Go release witness, on originalholdings_release_test.go's
 // own holdingsNativeFresh shape: original LOAD, ordinary App menu SAVE, then
-// a fresh App LOAD of that native .ags in a brand-new FrontEnd/App/World —
+// a fresh App LOAD of that SAV in a brand-new FrontEnd/App/World —
 // the exact player-visible cycle Form85 exists for
 // (pkg/sim/carriedresumebinary.go). holdingsNativeFresh's own Hash() check
 // already proves the whole world matches bit for bit across that cycle; this
@@ -40,7 +40,7 @@ func TestReleaseNativeResumeCarriesSpellEffectsAndCellRecords1139(t *testing.T) 
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: dir}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: dir}, nil)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, "game0018.sav")
 
@@ -53,7 +53,7 @@ func TestReleaseNativeResumeCarriesSpellEffectsAndCellRecords1139(t *testing.T) 
 		t.Fatal("fixture carries no cell-record residue at all")
 	}
 
-	// The cycle itself: ordinary App menu SAVE (native .ags), then a fresh
+	// The cycle itself: ordinary App menu SAVE (SAV), then a fresh
 	// FrontEnd/App/World LOAD of that exact file — holdingsNativeFresh's own
 	// shape (originalholdings_release_test.go), including its Hash()
 	// equality check across the whole cycle.

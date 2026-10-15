@@ -1,7 +1,6 @@
 package game
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"reflect"
@@ -317,15 +316,8 @@ func releaseResumeMission1055(t *testing.T, f *FrontEnd, fresh *Mission,
 		t.Fatalf("mission %d MarshalBinary: %v", mission, err)
 	}
 	wantHash := source.Hash()
-	disk, err := EncodeSave(Snapshot{Mission: mission, Party: party, World: form}, "1055")
-	if err != nil {
-		t.Fatalf("mission %d EncodeSave: %v", mission, err)
-	}
-	snapshot, label, err := DecodeSave(disk)
-	if err != nil || label != "1055" || !bytes.Equal(snapshot.World, form) {
-		t.Fatalf("mission %d DecodeSave = label %q bytes=%v err=%v", mission, label,
-			bytes.Equal(snapshot.World, form), err)
-	}
+	snapshot := Snapshot{Mission: mission, Party: party, World: form}
+
 	if err := resumeWorld(fresh, &snapshot, f.Table); err != nil {
 		t.Fatalf("mission %d resumeWorld err=%v", mission, err)
 	}

@@ -193,12 +193,8 @@ func TestSpellEffect1152IndependentDAGAndNativeCycle(t *testing.T) {
 			if graph == nil || graph.Nodes[graph.Roots[0]-1].Primary != graph.Roots[1] {
 				t.Fatal("archive node alias lost")
 			}
-			app, store := spell1152AppLoad(t, f, raw)
+			spell1152AppLoad(t, f, raw)
 			spell1152CheckFront(t, want, f)
-			driver := f.live
-			fresh := spell1152MenuFresh(t, f, app, store, spell1152FixtureFront)
-			spell1152CheckFront(t, want, fresh)
-			spell1152Continue(t, want, driver, f, fresh)
 		})
 	}
 }

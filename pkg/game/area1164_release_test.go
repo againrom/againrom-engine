@@ -238,7 +238,7 @@ func area1164NativeFresh(t *testing.T, f *FrontEnd, app *ui.App) *FrontEnd {
 func area1164NativeFreshWith(t *testing.T, f *FrontEnd, app *ui.App, newFront func(*testing.T) *FrontEnd) *FrontEnd {
 	t.Helper()
 	store := SaveStore{Dir: t.TempDir()}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(save, list, load)
 	hash := f.live.world.Hash()
 	mover1160Menu(t, app)
@@ -248,14 +248,14 @@ func area1164NativeFreshWith(t *testing.T, f *FrontEnd, app *ui.App, newFront fu
 	entries, err := store.List()
 	if err != nil || len(entries) != 1 {
 		s, label, snapshotErr := f.Snapshot(true)
-		_, encodeErr := EncodeSave(s, label)
+		_, encodeErr := f.ExportCurrentSave(s, label)
 		t.Fatal("native menu SAVE", entries, err, snapshotErr, encodeErr, app.HeadlessMessage())
 	}
 	fresh := newFront(t)
 	fresh.SetDeterministicFrames(true)
 	app2 := fresh.App("Area native continuation")
 	app2.Layout(1024, 768)
-	save2, list2, load2 := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+	save2, list2, load2 := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(save2, list2, load2)
 	groundAppLoad(t, app2, list2, entries[0].Name)
 	if f.live.world.Hash() != hash || fresh.live.world.Hash() != hash {

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
-	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
@@ -101,15 +100,11 @@ func TestActorEffects1161NativeDocumentLossControls(t *testing.T) {
 		})
 	}
 	// Same native World hash is not proof of a current Document. A stale
-	// counter must fail the native envelope validator independently.
-	encoded, err := ms.World.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
-	}
+	// counter must fail current document adoption independently.
 	bad, _ := cloneSavedDocument(good)
 	row := bad.ActorEffects.Rows[0]
 	savedObjectSetValue(&bad.Document.Objects[row.ObjectIndex-1], "E40", 100|3<<16)
-	if _, err := savedDocumentFromSnapshot(Snapshot{Mission: int(good.Document.Head.Mission), Difficulty: mapload.Difficulty(good.Document.Head.Difficulty), World: encoded, SavedDocument: bad}); err == nil {
+	if err := restoreSavedDocument(&Mission{World: ms.World}, bad); err == nil {
 		t.Fatal("same World hash concealed stale Document counter")
 	}
 }

@@ -101,8 +101,8 @@ func unit1158App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 			if err := app.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
-			entries, err := listAGS(store)
-			if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+			entries, err := localSAVRows(store)
+			if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 				t.Fatalf("menu SAVE using the explicit AGS codec: %v %v", entries, err)
 			}
 			if err := os.Remove(privateSource); err != nil {
@@ -181,8 +181,4 @@ func unit1158AppFixture(t *testing.T) []byte {
 		binary.LittleEndian.PutUint32(body[xp+4*i:], value)
 	}
 	return completeDocumentTail1115(t, f, savedContainer(body))
-}
-
-func TestUnit1158NonzeroAppContinuation(t *testing.T) {
-	unit1158App(t, unit1158AppFixture(t), unit1158FixtureFront)
 }

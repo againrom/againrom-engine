@@ -1,8 +1,10 @@
 package game
 
 import (
+	"againrom/pkg/mapload"
 	"bytes"
 	"fmt"
+	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"image/color"
 	"testing"
@@ -11,7 +13,6 @@ import (
 	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func shopInteriorPixel(c color.RGBA) *image.RGBA {
@@ -327,6 +328,10 @@ func TestShopInteriorLifecycleDegradationAndPresentationBoundary(t *testing.T) {
 		t.Fatal("missing active Yes family exposed lower-priority No")
 	}
 
+	seed := currentTrainingCity(t)
+	f.Table = seed.Table
+	f.Carried = mapload.CloneParty(seed.Carried)
+
 	mw, _ := readoutWorld(t, sim.Entity{ID: 1, X: 4, Y: 5})
 	f.live = mw
 	worldBytes, worldHash := marshalWorld(t, mw.world), mw.world.Hash()
@@ -334,7 +339,7 @@ func TestShopInteriorLifecycleDegradationAndPresentationBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBefore, err := EncodeSave(beforeSnapshot, "same")
+	nativeBefore, err := f.ExportCurrentSave(beforeSnapshot, "same")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,7 +350,7 @@ func TestShopInteriorLifecycleDegradationAndPresentationBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAfter, err := EncodeSave(afterSnapshot, "same")
+	nativeAfter, err := f.ExportCurrentSave(afterSnapshot, "same")
 	if err != nil {
 		t.Fatal(err)
 	}

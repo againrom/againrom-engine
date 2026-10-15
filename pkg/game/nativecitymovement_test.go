@@ -163,19 +163,4 @@ func nativeCityMovementOwnerResaves(t *testing.T) {
 			t.Fatal("owner party count", tc.path, count)
 		}
 	}
-	baseline := read("story1168/f68f3f9/en/TestReleaseTownReturnCurrentCampaign1168-fresh-mission20-baseline.ags", "5b04851951e81595d2a8ec12d4229c98ea490deba32a20235b6b2616ba7054af")
-	s, _, err := DecodeSave(baseline)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f := releaseFront(t)
-	_, town, err := f.Restore(s)
-	if err != nil || !town {
-		t.Fatal(town, err)
-	}
-	raw, err := f.ExportNativeCitySave(s, "N3 movement correction")
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkNativeMovementWire(t, f, raw)
 }

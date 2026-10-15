@@ -52,7 +52,7 @@ func TestTextSettleDecidesRealFramesWithoutReadback(t *testing.T) {
 	t.Run("town", func(t *testing.T) {
 		f := releaseFront(t)
 		f.Carried = f.NextParty()
-		f.arriveInTown()
+		arriveInTownGrantTaken(f)
 		f.Town.announceMission(f.Town.currentMain())
 		now := time.Unix(100, 0)
 		f.TownAnimationNow = func() time.Time { return now }
@@ -61,16 +61,16 @@ func TestTextSettleDecidesRealFramesWithoutReadback(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		payload, err := EncodeSave(snap, label)
+		payload, err := f.ExportCurrentSave(snap, label)
 		if err != nil {
 			t.Fatal(err)
 		}
 		store := SaveStore{Dir: t.TempDir()}
-		if _, err = store.Write(now, payload); err != nil {
+		if _, err = store.WriteOriginal("", payload); err != nil {
 			t.Fatal(err)
 		}
 		a := f.App("text-settle-town")
-		a.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+		a.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 		if err = a.HeadlessKey("load"); err != nil {
 			t.Fatal(err)
 		}

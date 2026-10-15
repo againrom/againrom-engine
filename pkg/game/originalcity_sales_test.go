@@ -268,51 +268,6 @@ func TestCitySaleCancellationAndCurrentChangesSurviveSAV(t *testing.T) {
 	}
 }
 
-func TestCitySaleNativeHistoryRejectsForgedPositionsAndOverdraw(t *testing.T) {
-	for _, mode := range []string{"position", "overdraw", "future-training", "zero", "missing-commit", "training-order", "unknown-policy"} {
-		t.Run(mode, func(t *testing.T) {
-			f := city1102Front(t, false)
-			snapshot, _, err := f.Snapshot(false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for i := range snapshot.OriginalCity.Bindings {
-				b := &snapshot.OriginalCity.Bindings[i]
-				if b.PartyID != "hero" {
-					continue
-				}
-				b.SalesVersion = 1
-				b.Sales = []SnapshotCitySale{{Position: 0, Quantity: 2, Commit: true}}
-				switch mode {
-				case "position":
-					b.Sales[0].Position = 99
-				case "overdraw":
-					b.Sales[0].Quantity = 6
-				case "future-training":
-					b.Sales[0].AfterTraining = 1
-				case "zero":
-					b.Sales[0].Quantity = 0
-				case "missing-commit":
-					b.Sales[0].Commit = false
-				case "training-order":
-					b.Training = []uint8{1}
-					b.Sales[0].AfterTraining = 1
-					b.Sales = append(b.Sales, SnapshotCitySale{Quantity: 1, Commit: true})
-				case "unknown-policy":
-					b.SalesVersion = 2
-				}
-			}
-			before, graph, gold := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone(), f.Town.Gold()
-			if _, _, err := f.Restore(snapshot); err == nil {
-				t.Fatal("malformed historical sale accepted")
-			}
-			if !reflect.DeepEqual(before, f.Carried) || !reflect.DeepEqual(graph, f.Town.cityObjects) || gold != f.Town.Gold() {
-				t.Fatal("failed historical restore published party, graph or purse")
-			}
-		})
-	}
-}
-
 func TestCitySaleCurrentFieldsNeedNoReplayHistory(t *testing.T) {
 	for _, mode := range []string{"load", "item-price", "current-modifier", "missing-retired-basis", "changed-retired-basis"} {
 		t.Run(mode, func(t *testing.T) {

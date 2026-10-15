@@ -83,17 +83,10 @@ func TestARestoredExploredPlaneSurvivesOurOwnSave(t *testing.T) {
 	if !from.applyExplored(4, 2, []byte{0, 0, 0, 1, 1, 0, 0, 0}) {
 		t.Fatal("the plane was refused")
 	}
-	s := Snapshot{Mission: 10, World: []byte{1}, Residue: from.residue()}
-	b, err := EncodeSave(s, "explored")
-	if err != nil {
-		t.Fatalf("EncodeSave: %v", err)
-	}
-	back, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatalf("DecodeSave: %v", err)
-	}
-	if back.Residue.FogCols != 4 || back.Residue.FogRows != 2 {
-		t.Fatalf("dimensions came back %dx%d", back.Residue.FogCols, back.Residue.FogRows)
+	back := from.residue()
+
+	if back.FogCols != 4 || back.FogRows != 2 {
+		t.Fatalf("dimensions came back %dx%d", back.FogCols, back.FogRows)
 	}
 	to := &mapWorld{
 		commanded: map[sim.EntityID]bool{},
@@ -101,9 +94,9 @@ func TestARestoredExploredPlaneSurvivesOurOwnSave(t *testing.T) {
 		phase:     map[sim.EntityID]sim.AttackPhase{},
 		fog:       newFogPlane(4, 2),
 	}
-	to.applyResidue(back.Residue)
+	to.applyResidue(back)
 	if to.fog.explored[3] != 1 || to.fog.explored[4] != 1 {
-		t.Fatalf("the explored plane did not survive our own save: %v", to.fog.explored)
+		t.Fatalf("the explored plane did not survive residue application: %v", to.fog.explored)
 	}
 	if n := countState(to.fog.explored, 1); n != 2 {
 		t.Fatalf("%d cells came back, want 2", n)

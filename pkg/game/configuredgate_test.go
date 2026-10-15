@@ -103,15 +103,7 @@ func TestConfiguredMainRecordAcceptanceAndCompatibility(t *testing.T) {
 				}
 				var s Snapshot
 				snapshotTown(town, &s)
-				raw, err := EncodeSave(s, "configured main")
-				if err != nil {
-					t.Fatal(err)
-				}
-				decoded, _, err := DecodeSave(raw)
-				if err != nil {
-					t.Fatal(err)
-				}
-				back := restoreTown(c, decoded)
+				back := restoreTown(c, s)
 				if !reflect.DeepEqual(before, back.currentRecords().snapshot()) || back.gateMission() != 40 || back.Gold() != 100 || !back.taken[offerRef{30, building, 0}] {
 					t.Fatal("additive continuation loses record or provenance")
 				}

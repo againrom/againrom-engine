@@ -154,7 +154,11 @@ func formation1159Initial(t *testing.T, raw []byte, f *FrontEnd) {
 	}
 }
 
-func formation1159CurrentProjection(t *testing.T, f *FrontEnd, initial Snapshot) {
+// formation1159CurrentProjection checks the current Player bindings against the
+// initial Snapshot. residue also compares the 31 opaque PRaw32 bytes before the
+// mode byte; the SAV producer writes them as zero, so a front loaded from a SAV
+// keeps identity and mode only.
+func formation1159CurrentProjection(t *testing.T, f *FrontEnd, initial Snapshot, residue bool) {
 	t.Helper()
 	current, _, err := f.Snapshot(true)
 	if err != nil {
@@ -172,7 +176,7 @@ func formation1159CurrentProjection(t *testing.T, f *FrontEnd, initial Snapshot)
 			t.Fatal(err)
 		}
 		_, _, now, err := savedPlayerFormationFields(&current.SavedDocument.Document.Objects[binding.ObjectIndex-1])
-		if err != nil || p.PlayerID != oldBinding.ID || p.PlayerID != binding.ID || p.CommandID != command || p.TriggerID != trigger || now[31] != p.Mode || !bytes.Equal(now[:31], old[:31]) {
+		if err != nil || p.PlayerID != oldBinding.ID || p.PlayerID != binding.ID || p.CommandID != command || p.TriggerID != trigger || now[31] != p.Mode || residue && !bytes.Equal(now[:31], old[:31]) {
 			t.Fatal("current projection changed formation identity or opaque residue", p, err)
 		}
 	}
@@ -294,8 +298,8 @@ func formation1159SaveCycle(t *testing.T, raw []byte, front func(*testing.T) *Fr
 			if err := app.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
-			entries, err := listAGS(store)
-			if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+			entries, err := localSAVRows(store)
+			if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 				t.Fatal("ordinary menu SAVE", entries, err)
 			}
 			if err := os.Remove(path); err != nil {
@@ -371,22 +375,17 @@ func formation1159SaveCycle(t *testing.T, raw []byte, front func(*testing.T) *Fr
 			if !slices.Equal(leftPlayers, rightPlayers) || !reflect.DeepEqual(leftGroups, rightGroups) {
 				t.Fatal("cross-session exact formations or Group owners differ")
 			}
-			formation1159CurrentProjection(t, f, initial)
-			formation1159CurrentProjection(t, fresh, initial)
-			// The second SAVE belongs to the source-free session. Superseded
-			// original-motion residue is retained independently of current World
-			// state, so compare this writer with its own complete Snapshot.
-			last, _, err := fresh.Snapshot(true)
-			if err != nil {
-				t.Fatal(err)
-			}
+			formation1159CurrentProjection(t, f, initial, true)
+			formation1159CurrentProjection(t, fresh, initial, false)
+			// The second SAVE belongs to the source-free session; a third front
+			// loads it.
 			if err := app2.HeadlessKey("escape"); err != nil {
 				t.Fatal(err)
 			}
 			if err := app2.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
-			nextEntries, err := listAGS(store)
+			nextEntries, err := localSAVRows(store)
 			if err != nil || len(nextEntries) != 2 {
 				t.Fatal("second ordinary menu SAVE", nextEntries, err)
 			}
@@ -396,13 +395,17 @@ func formation1159SaveCycle(t *testing.T, raw []byte, front func(*testing.T) *Fr
 					secondName = entry.Name
 				}
 			}
-			round, err := os.ReadFile(filepath.Join(store.Dir, secondName))
-			if err != nil || secondName == "" {
-				t.Fatal(err)
-			}
-			back, _, err := DecodeSave(round)
-			if err != nil || !slices.Equal(back.World, last.World) || !reflect.DeepEqual(back.SavedDocument, last.SavedDocument) {
-				t.Fatal("new native Group save lost formation", err)
+			third := front(t)
+			third.SetDeterministicFrames(true)
+			app3 := third.App("second formation LOAD")
+			app3.Layout(1024, 768)
+			save, list, load = nativeContinuationSeams1170(t, third, store, OriginalStore{}, nil)
+			app3.SetSaveSeams(save, list, load)
+			groundAppLoad(t, app3, list, secondName)
+			thirdPlayers, _ := third.live.world.SavedPlayerFormations()
+			thirdGroups, _, _ := third.live.world.SavedGroups()
+			if third.live.world.Hash() != fresh.live.world.Hash() || !slices.Equal(thirdPlayers, rightPlayers) || !reflect.DeepEqual(thirdGroups, rightGroups) {
+				t.Fatal("new native Group save lost formation")
 			}
 			t.Logf("%s: raw formation import, client change, menu SAVE, source removed, fresh LOAD, 20 EACH advancing steps, next Move and second native save; synthetic script/discordance=%v", door, synthetic)
 		})

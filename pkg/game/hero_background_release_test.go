@@ -39,19 +39,19 @@ func TestReleaseHeroBackground(t *testing.T) {
 		}
 	})
 	for _, fixture := range []struct {
-		name, hash string
-		mission    int
+		name    string
+		mission int
 	}{
-		{"mission110-portrait-input.ags", "d6f93dcb979fe9a1cd5506b727e286f9ba45709691c94c0b873d2da6f1d1345e", 110},
-		{"mission111-portrait-input.ags", "522d5cd01dea60a6d64637884f0427b58888c329be3458259c14d17bce5afe35", 111},
+		{"mission110-portrait-input", 110},
+		{"mission111-portrait-input", 111},
 	} {
 		t.Run(fmt.Sprint(fixture.mission), func(t *testing.T) {
-			path, _ := groundCorpusFile(t, "2026-09-15/"+fixture.name, fixture.hash)
+			path, _ := ownerCurrentSAV(t, fixture.name)
 			f := releaseFront(t)
 			f.SetDeterministicFrames(true)
 			a := f.App("hero figure background")
 			defer a.StopAudio()
-			_, list, load := agsSaveSeams(f, SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
+			_, list, load := f.SaveSeams(SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
 			a.SetSaveSeams(nil, list, load)
 			groundAppLoad(t, a, list, filepath.Base(path))
 			a.Layout(1024, 768)

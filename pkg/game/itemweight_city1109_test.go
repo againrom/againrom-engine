@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -19,25 +20,26 @@ func TestInstanceWeightLegacyCitySalesKeepImportPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Synthetic predecessor input; the frozen installed witness is separate.
-	// The old snapshot had no city topology, ordered stock or live load carrier.
-	s.OriginalCity.Version, s.CityObjects = 3, nil
-	legacyCityFixtureIdentities(&s)
-	restore := legacyCompanionRegistry(f, 22)
+	// This current source state deliberately has absent stored weights and
+	// no topology, ordered stock or live load carrier.
 	for i := range s.Party {
-		clearLegacyItemWeights(&s.Party[i])
-		s.Party[i].Carry.LiveLoad, s.Party[i].Carry.OrderedStacks = nil, nil
+		p := &s.Party[i]
+		sets := [][]sim.ItemInstance{p.CarriedItems, p.WornItems[:]}
+		if p.OriginalHuman != nil {
+			sets = append(sets, p.OriginalHuman.Inventory, p.OriginalHuman.Equipment[:])
+		}
+		if p.Carry != nil {
+			sets = append(sets, p.Carry.ItemInstances, p.Carry.EquippedItems[:])
+			p.Carry.LiveLoad, p.Carry.OrderedStacks = nil, nil
+		}
+		for _, items := range sets {
+			for j := range items {
+				items[j].Weight, items[j].WeightPresent = 0, false
+			}
+		}
 	}
-	for i := range s.OriginalCity.Bindings {
-		p := &s.OriginalCity.Bindings[i].Baseline
-		clearLegacyItemWeights(p)
-		p.Carry.LiveLoad, p.Carry.OrderedStacks = nil, nil
-	}
-	_, town, err := f.Restore(s)
-	restore()
-	if err != nil || !town {
-		t.Fatal("legacy city sale LOAD", town, err)
-	}
+	f.Carried = mapload.CloneParty(s.Party)
+	f.Town.cityObjects = nil
 	if !reflect.DeepEqual(f.Carried, s.Party) || f.Town.cityObjects != nil {
 		t.Fatal("legacy LOAD rewrote current party values or invented old topology")
 	}

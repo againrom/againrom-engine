@@ -143,13 +143,8 @@ func TestGameOptions1186RejectMalformedSavedCommands(t *testing.T) {
 		{{ui.GameOptionHealth, 1}}, {{ui.GameOptionFormation, 3}}, {{ui.GameOptionRetreat, -1}},
 		make([]PendingGameOption, 4097),
 	} {
-		s := Snapshot{Residue: SnapshotResidue{PendingGameOptions: orders}}
-		if _, err := EncodeSave(s, "invalid options"); err == nil {
-			t.Fatal("invalid options encoded")
-		}
-		f := &FrontEnd{}
-		if _, _, err := f.Restore(s); err == nil {
-			t.Fatal("invalid options accepted by direct restore")
+		if err := validatePendingGameOptions(orders); err == nil {
+			t.Fatal("invalid pending options accepted")
 		}
 	}
 }

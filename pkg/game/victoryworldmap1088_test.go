@@ -89,7 +89,7 @@ func TestVictoryLegacySnapshotReturnResolvesWithoutReplay(t *testing.T) {
 		t.Fatal("pending return admitted SAVE")
 	}
 	s.Back()
-	snap, label, err := f.Snapshot(false)
+	snap, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,18 +97,10 @@ func TestVictoryLegacySnapshotReturnResolvesWithoutReplay(t *testing.T) {
 		t.Fatal("resolved city retained a third save point")
 	}
 	snap.WorldMapReturn = &pending
-	form, err := EncodeSave(snap, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(form)
-	if err != nil {
-		t.Fatal(err)
-	}
 	g, _ := victoryWorldMapFront(t)
-	if _, town, err := g.Restore(decoded); err != nil || !town {
-		t.Fatalf("restore=%v town=%v", err, town)
-	}
+	g.Town = restoreTown(g.Campaign.Value(), snap)
+	g.restoreWorldMapReturn(&restoreCandidate{worldMapReturn: snap.WorldMapReturn})
+
 	back := g.TownScreen().(*townScreen)
 	if !back.AtTownSquare() || back.worldPosition != image.Pt(2, 3) || back.worldMap.returnMission != 0 {
 		t.Fatal("legacy return was not resolved to the city")
@@ -118,19 +110,6 @@ func TestVictoryLegacySnapshotReturnResolvesWithoutReplay(t *testing.T) {
 	back.WorldMapTick()
 	if !back.AtTownSquare() || g.Town.Gold() != gold || !g.Town.Done(30) {
 		t.Fatal("resumed return did not complete without replay")
-	}
-}
-
-func TestVictory1088InvalidReturnRestoreIsAtomic(t *testing.T) {
-	for _, pending := range []SnapshotMapReturn{{Mission: 0}, {Mission: -1}, {Mission: 30, Shown: -1}} {
-		f, s := victoryWorldMapFront(t)
-		town, cache := f.Town, s.worldMap
-		if _, _, err := f.Restore(Snapshot{Open: true, WorldMapReturn: &pending}); err == nil {
-			t.Fatalf("accepted malformed return %+v", pending)
-		}
-		if f.Town != town || s.worldMap != cache {
-			t.Fatal("refused restore changed the active game")
-		}
 	}
 }
 
@@ -208,9 +187,8 @@ func TestVictory1088ImportedAwayMapReturnsAndPersistsHome(t *testing.T) {
 	if err != nil || !snap.Campaign.FirstMapPoint || snap.WorldMapReturn != nil {
 		t.Fatalf("home snapshot=%+v err=%v", snap.Campaign, err)
 	}
-	if _, _, err := f.Restore(snap); err != nil {
-		t.Fatal(err)
-	}
+	f.Town = restoreTown(f.Campaign.Value(), snap)
+	f.resetTownSurface(&restoreCandidate{town: f.Town, townOnly: true})
 	s.Choose(3)
 	if !s.WorldMapView().AtHome || s.WorldMapView().Returning {
 		t.Fatal("completed return replayed on load")

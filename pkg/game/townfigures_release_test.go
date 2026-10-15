@@ -139,6 +139,17 @@ func newTownFiguresRig(t *testing.T) *townFiguresRig {
 	// families are cleared on this front end's own copy: nothing but the guards
 	// paints in their rectangle.
 	f.TownSquareArt = resolved(withoutAmbience(f.TownSquareArt.Value()), nil)
+	// Pin the selected card on private art; client ticks are not the town clock.
+	if art := f.TownTavernArt.Value(); art != nil {
+		fixed := *art
+		for i, frames := range art.UnitFrames {
+			fixed.UnitFrames[i] = make([]image.Image, len(frames))
+			for j := range frames {
+				fixed.UnitFrames[i][j] = frames[0]
+			}
+		}
+		f.TownTavernArt = resolved(&fixed, nil)
+	}
 
 	r := &townFiguresRig{t: t, f: f, now: time.Unix(100, 0), sounds: &exteriorRecorder{}, speech: &tavernInteriorRecorder{}}
 	f.SoundPlayer, f.SpeechPlayer = r.sounds, r.speech
@@ -149,22 +160,22 @@ func newTownFiguresRig(t *testing.T) *townFiguresRig {
 	f.ShopRandom = func(int) int { return 0 }
 	f.tipsOff = true
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snap, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err = store.Write(r.now, payload); err != nil {
+	if _, err = store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	r.app = f.App("town figures")
 	r.app.Layout(640, 480)
-	r.app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	r.app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	for _, step := range []func() error{func() error { return r.app.HeadlessKey("load") }, func() error { return r.app.HeadlessActivate("@first") }} {
 		if err = step(); err != nil {
 			t.Fatal(err)

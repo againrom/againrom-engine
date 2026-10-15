@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,7 +43,8 @@ func TestActorManifestNativeSnapshotFreshProcessAndNextMove(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		saved, _, err := DecodeSave(payload)
+		var saved Snapshot
+		err = json.Unmarshal(payload, &saved)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -83,18 +85,18 @@ func TestActorManifestNativeSnapshotFreshProcessAndNextMove(t *testing.T) {
 	mw.mission = &missionNotices{state: &Mission{World: w, ActorManifest: manifest}}
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}, CampaignSession: CampaignSession{Town: saveTown(t)}}
 	f.liveDriver(mw, 10, nil)
-	saved, label, err := f.Snapshot(true)
+	saved, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(saved.ActorManifest, manifest) || saved.ActorManifest == manifest || len(saved.Party) != 0 {
 		t.Fatalf("snapshot aliases manifest or promoted Unit to party: %+v", saved)
 	}
-	payload, err := EncodeSave(saved, label)
+	payload, err := json.Marshal(saved)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "actor-manifest.ags")
+	path := filepath.Join(t.TempDir(), "actor-manifest-proof.json")
 	if err := os.WriteFile(path, payload, 0o600); err != nil {
 		t.Fatal(err)
 	}

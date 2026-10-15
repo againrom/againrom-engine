@@ -206,18 +206,14 @@ func releaseOriginalSelectedCursor(t *testing.T) {
 	}
 	controlled := file.Marshal()
 	var native []byte
-	for _, format := range []string{"sav", "ags"} {
+	for _, format := range []string{"source SAV", "current SAV"} {
 		fresh := releaseFront(t)
 		fresh.SetDeterministicFrames(true)
 		var open ui.MapOpener
-		if format == "sav" {
+		if format == "source SAV" {
 			open, town, err = fresh.RestoreOriginal(controlled)
 		} else {
-			var s Snapshot
-			s, _, err = DecodeSave(native)
-			if err == nil {
-				open, town, err = fresh.Restore(s)
-			}
+			open, town, err = fresh.RestoreOriginal(native)
 		}
 		if err != nil || town {
 			t.Fatal(format, "cold prepare", err)
@@ -230,12 +226,12 @@ func releaseOriginalSelectedCursor(t *testing.T) {
 		if _, spell, armed := fresh.live.view.QuickSpellState(); spell != 18 || !armed {
 			t.Fatal(format, "lost the loaded cast cursor", spell, armed)
 		}
-		if format == "sav" {
+		if format == "source SAV" {
 			s, _, err := fresh.Snapshot(true)
 			if err != nil {
 				t.Fatal(err)
 			}
-			native, err = EncodeSave(s, "selected cursor")
+			native, err = fresh.ExportCurrentSave(s, "selected cursor")
 			if err != nil {
 				t.Fatal(err)
 			}

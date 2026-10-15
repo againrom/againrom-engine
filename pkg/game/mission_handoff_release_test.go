@@ -311,15 +311,9 @@ func TestReleaseMissionHandoffMismatchGuard(t *testing.T) {
 	f, _, projection := missionHandoffTown(t)
 	var before Snapshot
 	snapshotTown(f.Town, &before)
-	bad := before
-	bad.Mission = 131
-	for _, source := range []string{"snapshot", "SAV"} {
-		var err error
-		if source == "snapshot" {
-			_, _, err = f.Restore(bad)
-		} else {
-			_, _, err = f.RestoreOriginal(originalSaveWithCampaign(t, 131, projection))
-		}
+	for _, source := range []string{"SAV"} {
+		_, _, err := f.RestoreOriginal(originalSaveWithCampaign(t, 131, projection))
+
 		if err == nil || !strings.Contains(err.Error(), "active mission 131 does not match selected mission 130") {
 			t.Fatalf("stage=mismatch-guard source=%s: %v", source, err)
 		}

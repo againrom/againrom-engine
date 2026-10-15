@@ -141,15 +141,20 @@ func TestSavedFormation1159NativePairRefusalsAreAtomic(t *testing.T) {
 				t.Fatal(err)
 			}
 			tc.edit(&bad)
-			if out, err := EncodeSave(bad, "hostile formation"); err == nil || out != nil {
-				t.Fatal("EncodeSave published a hostile pair", err)
-			}
-			if out, label, err := DecodeSave(uncheckedDocumentEnvelope1115(t, bad)); err == nil || label != "" || !reflect.DeepEqual(out, Snapshot{}) {
-				t.Fatal("DecodeSave published a hostile pair", err)
-			}
 			oldLive, oldTown, oldShop := f.live, f.Town, f.Shop
-			if open, town, err := f.Restore(bad); err == nil || open != nil || town {
-				t.Fatal("Restore prepared a hostile pair", err)
+			var world sim.World
+			err = world.UnmarshalBinary(bad.World)
+			if err == nil {
+				candidate := *f.live.mission.state
+				candidate.World = &world
+				retained, hash := candidate.savedDocument, world.Hash()
+				err = restoreSavedDocument(&candidate, bad.SavedDocument)
+				if candidate.savedDocument != retained || world.Hash() != hash {
+					t.Fatal("formation refusal changed candidate")
+				}
+			}
+			if err == nil {
+				t.Fatal("accepted hostile formation pair")
 			}
 			after, _, err := f.Snapshot(true)
 			if err != nil || !reflect.DeepEqual(before, after) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
@@ -160,7 +165,7 @@ func TestSavedFormation1159NativePairRefusalsAreAtomic(t *testing.T) {
 }
 
 func TestSavedFormation1159ValidOwnerCoverageGaps(t *testing.T) {
-	_, source := formation1159Snapshot(t)
+	sourceFront, source := formation1159Snapshot(t)
 	for _, tc := range []struct {
 		name     string
 		resolved bool
@@ -196,24 +201,27 @@ func TestSavedFormation1159ValidOwnerCoverageGaps(t *testing.T) {
 				t.Fatal(err)
 			}
 			good.World, _ = world.MarshalBinary()
-			native, err := EncodeSave(good, "valid owner gap")
-			if err != nil {
-				t.Fatal("valid gap refused EncodeSave", err)
-			}
-			back, label, err := DecodeSave(native)
-			if err != nil || label != "valid owner gap" || !bytes.Equal(back.World, good.World) || !reflect.DeepEqual(back.SavedDocument, good.SavedDocument) {
-				t.Fatal("valid gap changed at native readback", err)
-			}
-			fresh := formation1159Front(t)
-			open, town, err := fresh.Restore(back)
-			if err != nil || open == nil || town {
-				t.Fatal("valid gap refused Restore", err)
-			}
-			if err := fresh.App("valid owner gap").OpenMission(open); err != nil {
-				t.Fatal(err)
-			}
-			if fresh.live.world.Hash() != world.Hash() {
-				t.Fatal("valid owner gap changed current World")
+			var fresh *FrontEnd
+			if tc.resolved {
+				native, err := sourceFront.ExportCurrentSave(good, "valid owner gap")
+				if err != nil {
+					t.Fatal(err)
+				}
+				fresh = formation1159Front(t)
+				if _, err = fresh.LoadObservedSAV(native); err != nil || fresh.live.world.Hash() != world.Hash() {
+					t.Fatal("resolved owner SAV state changed", err)
+				}
+			} else {
+				// DIV-1091: these unresolved synthetic owners exercise live dispatch.
+				fresh, _ = formation1159Snapshot(t)
+				candidate := *fresh.live.mission.state
+				candidate.World = &world
+				hash := world.Hash()
+				if err = restoreSavedDocument(&candidate, good.SavedDocument); err != nil || world.Hash() != hash {
+					t.Fatal("valid owner helper refused or changed World", err)
+				}
+				*fresh.live.mission.state = candidate
+				fresh.live.world = &world
 			}
 			fresh.live.cycleFormation()
 			for range 16 {

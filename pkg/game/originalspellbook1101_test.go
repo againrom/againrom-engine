@@ -76,6 +76,7 @@ func mageFront1101(t *testing.T, raw []byte) *FrontEnd {
 func TestMageCityTrainDerivesAllFieldsAndOrdinarySAVBook(t *testing.T) {
 	source := mageCity1101(t, true, false)
 	f := mageFront1101(t, source)
+	bindCurrentCityFixtureRow(t, f)
 	initial, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
@@ -107,6 +108,13 @@ func TestMageCityTrainDerivesAllFieldsAndOrdinarySAVBook(t *testing.T) {
 	if m.Book.Slots[0] != (sim.BookSpell{Range: 6, Defensive: 2, ManaCost: 65535}) {
 		t.Fatalf("trained book %+v", m.Book)
 	}
+	var slotSum uint32
+	for _, xp := range m.Carry.SkillXP {
+		slotSum += uint32(xp)
+	}
+	if m.Carry.SkillXP[1] != 16450 || slotSum != 16450 {
+		t.Fatalf("trained mage slot1/sum = %d/%d, want16450", m.Carry.SkillXP[1], slotSum)
+	}
 	snapshot, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
@@ -121,33 +129,60 @@ func TestMageCityTrainDerivesAllFieldsAndOrdinarySAVBook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assertMageAggregateXP1101(t, trainingPartyMember(t, f, "hero"), 23450)
 	assertMageFieldDiff1101(t, baseline, raw)
 	file, _ := sav.Open(raw)
 	p, _ := file.CityProvenance()
 	for _, c := range p.Roster() {
+		if c.Hero && c.Experience != 16450 {
+			t.Fatalf("DIV-2472 SAV aggregate = %d, want16450", c.Experience)
+		}
 		if c.Hero && (len(c.Spells) != 1 || c.Spells[0].Range != 6 || c.Spells[0].Defensive != 2 || c.Spells[0].ManaCost != 65535) {
 			t.Fatalf("SAV instance %+v", c.Spells)
 		}
 	}
-	fresh := mageFront1101(t, raw)
+	fresh := &FrontEnd{InstallResources: f.InstallResources}
+	if _, town, err := fresh.RestoreOriginal(raw); err != nil || !town {
+		t.Fatalf("current mage SAV LOAD: town=%t err=%v", town, err)
+	}
 	got := trainingPartyMember(t, fresh, "hero")
+	assertMageAggregateXP1101(t, got, 16450)
 	if got.Book != m.Book || got.Hero != m.Hero || got.Saved.Mana != 90 || got.Saved.MaxMana != 112 {
 		t.Fatal("SAV continuation lost mage state")
 	}
-	encoded, err := EncodeSave(snapshot, "mage native")
-	if err != nil {
-		t.Fatal(err)
+	if _, town, err := fresh.RestoreOriginal(raw); err != nil || !town {
+		t.Fatalf("second current SAV LOAD %v", err)
 	}
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, town, err := fresh.Restore(decoded); err != nil || !town {
-		t.Fatalf("AGS LOAD %v", err)
-	}
-	if got := trainingPartyMember(t, fresh, "hero"); !reflect.DeepEqual(got, m) {
+	got = trainingPartyMember(t, fresh, "hero")
+	assertMageAggregateXP1101(t, got, 16450)
+	wantMember, gotMember := mageWithoutAggregateWords1101(t, m), mageWithoutAggregateWords1101(t, got)
+	if !reflect.DeepEqual(gotMember, wantMember) {
+		currentItemFieldDiagnostics(t, "Mage", reflect.ValueOf(wantMember), reflect.ValueOf(gotMember))
 		t.Fatal("native mage continuation differs")
 	}
+}
+
+func assertMageAggregateXP1101(t *testing.T, member mapload.PartyMember, want uint32) {
+	t.Helper()
+	if member.OriginalHuman == nil || member.Carry == nil || member.Carry.LiveLoad == nil {
+		t.Fatal("mage lost current aggregate XP carriers")
+	}
+	if member.OriginalHuman.State.Experience != want || member.Carry.LiveLoad.Inventory.Source.Experience != want {
+		t.Fatalf("mage aggregate XP Human/load = %d/%d, want%d", member.OriginalHuman.State.Experience, member.Carry.LiveLoad.Inventory.Source.Experience, want)
+	}
+}
+
+func mageWithoutAggregateWords1101(t *testing.T, member mapload.PartyMember) mapload.PartyMember {
+	t.Helper()
+	if member.OriginalHuman == nil || member.Carry == nil || member.Carry.LiveLoad == nil {
+		t.Fatal("mage lost current aggregate XP carriers")
+	}
+	member = mapload.CloneParty([]mapload.PartyMember{member})[0]
+	// DIV-2472 writes the six-slot sum 16450 over the retained aggregate 23450.
+	// Both aggregates are asserted separately; every other member field is exact.
+	member.OriginalHuman.State.Experience = 0
+	member.Carry.LiveLoad.Inventory.Source.Experience = 0
+	return member
 }
 
 func assertMageFieldDiff1101(t *testing.T, source, trained []byte) {

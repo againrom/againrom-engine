@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"hash/crc32"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +57,7 @@ func completeDocumentTail1115(t *testing.T, f *FrontEnd, b []byte) []byte {
 
 func documentSnapshotFixture(t *testing.T) (*FrontEnd, Snapshot) {
 	t.Helper()
-	f := poolFixtureFront(t, 91)
+	f := currentPoolFixtureFront(t, 91)
 	f.Campaign = resolved(saveCampaign(), nil)
 	source := completeDocumentFixture1115(t, f)
 	open, town, err := f.RestoreOriginal(source)
@@ -97,21 +95,20 @@ func TestDocument1115NativeOwnsWholeModelAndCurrentClock(t *testing.T) {
 	if current.SavedDocument.Document.Head.CounterA != clock.SubTick || current.SavedDocument.Document.Head.CounterB != clock.FullTick || clock.SubTick != 9360 {
 		t.Fatal("document replays imported clock", clock)
 	}
-	encoded, err := EncodeSave(current, "complete native document")
+	encoded, err := f.ExportCurrentSave(current, "complete native document")
 	if err != nil {
 		t.Fatal(err)
 	}
-	loaded, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(current.SavedDocument, loaded.SavedDocument) {
-		t.Fatal("native graph changed")
+	fresh := currentPoolFixtureFront(t, 91)
+	fresh.Campaign = resolved(saveCampaign(), nil)
+	loaded, err := fresh.LoadObservedSAV(encoded)
+	if err != nil || f.live.world.Hash() != fresh.live.world.Hash() || !sameResave(t, f, fresh) {
+		t.Fatal("current SAV lost source state or document", err)
 	}
 	for range 4 {
-		again, err := EncodeSave(loaded, "complete native document")
+		again, err := f.ExportCurrentSave(current, "complete native document")
 		if err != nil || !bytes.Equal(encoded, again) {
-			t.Fatal("native document encoding is not deterministic", err)
+			t.Fatal("current document SAVE is not deterministic", err)
 		}
 	}
 	loaded.SavedDocument.Document.Label = []byte("changed copy")
@@ -123,18 +120,8 @@ func TestDocument1115NativeOwnsWholeModelAndCurrentClock(t *testing.T) {
 	if err != nil || !bytes.Equal(baseline, after) {
 		t.Fatal("Snapshot mutated earlier owned document", err)
 	}
-	fresh := poolFixtureFront(t, 91)
-	fresh.Campaign = resolved(saveCampaign(), nil)
-	open, town, err := fresh.Restore(current)
-	if err != nil || town {
-		t.Fatal("native prepare", town, err)
-	}
-	if err := fresh.App("fresh document").OpenMission(open); err != nil {
-		t.Fatal(err)
-	}
-	resaved, _, err := fresh.Snapshot(true)
-	if err != nil || !reflect.DeepEqual(current.SavedDocument, resaved.SavedDocument) {
-		t.Fatal("fresh native LOAD lost document", err)
+	if !sameResave(t, f, fresh) {
+		t.Fatal("detached clone mutation reached current source or cold LOAD")
 	}
 	sim.Step(f.live.world, nil)
 	sim.Step(fresh.live.world, nil)
@@ -143,49 +130,40 @@ func TestDocument1115NativeOwnsWholeModelAndCurrentClock(t *testing.T) {
 	}
 }
 
-// Bypass EncodeSave's semantic checks, as an untrusted sender can do.
-func uncheckedDocumentEnvelope1115(t *testing.T, s Snapshot) []byte {
-	t.Helper()
-	var payload bytes.Buffer
-	if err := gob.NewEncoder(&payload).Encode(s); err != nil {
-		t.Fatal(err)
-	}
-	b := append([]byte(saveMagic), saveVersion, 0, 0)
-	b = binary.LittleEndian.AppendUint32(b, crc32.ChecksumIEEE(payload.Bytes()))
-	b = binary.LittleEndian.AppendUint32(b, uint32(payload.Len()))
-	return append(b, payload.Bytes()...)
-}
-
 func TestDocument1115MalformedNativeIsAtomic(t *testing.T) {
 	f, source := documentSnapshotFixture(t)
 	for name, mutate := range map[string]func(*Snapshot){
 		"version":          func(s *Snapshot) { s.SavedDocument.Version++ },
 		"document version": func(s *Snapshot) { s.SavedDocument.Document.Version++ },
-		"mission":          func(s *Snapshot) { s.SavedDocument.Document.Head.Mission++ },
-		"difficulty":       func(s *Snapshot) { s.SavedDocument.Document.Head.Difficulty++ },
 		"nonactor":         func(s *Snapshot) { s.SavedDocument.Actors[0].ObjectIndex = 1 },
 		"out of range":     func(s *Snapshot) { s.SavedDocument.Actors[0].ObjectIndex = 65535 },
 		"duplicate":        func(s *Snapshot) { s.SavedDocument.Actors = append(s.SavedDocument.Actors, s.SavedDocument.Actors[0]) },
 		"inactive":         func(s *Snapshot) { s.SavedDocument.Unavailable = "forged" },
-		"city":             func(s *Snapshot) { s.Mission = 0 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := source
 			s.SavedDocument, _ = cloneSavedDocument(source.SavedDocument)
 			mutate(&s)
-			if _, err := EncodeSave(s, "bad"); err == nil {
-				t.Fatal("encoded malformed document")
+			before, _, err := f.Snapshot(true)
+			if err != nil {
+				t.Fatal(err)
 			}
-			if _, _, err := DecodeSave(uncheckedDocumentEnvelope1115(t, s)); err == nil {
-				t.Fatal("decoded malformed document")
+			var world sim.World
+			if err = world.UnmarshalBinary(s.World); err != nil {
+				t.Fatal("valid World fixture", err)
 			}
-			before := f.live.world.Hash()
-			if _, _, err := f.Restore(s); err == nil {
-				t.Fatal("prepared malformed document")
+			candidate := *f.live.mission.state
+			candidate.World = &world
+			retained := candidate.savedDocument
+			hash := world.Hash()
+			if err = restoreSavedDocument(&candidate, s.SavedDocument); err == nil {
+				t.Fatal("restored malformed document")
 			}
-			if f.live.world.Hash() != before {
-				t.Fatal("failed LOAD changed live world")
+			after, _, err := f.Snapshot(true)
+			if err != nil || !reflect.DeepEqual(before, after) || candidate.savedDocument != retained || world.Hash() != hash {
+				t.Fatal("rejected document changed source or candidate state", err)
 			}
+
 		})
 	}
 	for _, mutate := range []func(*Snapshot){
@@ -197,9 +175,20 @@ func TestDocument1115MalformedNativeIsAtomic(t *testing.T) {
 		s.SavedDocument, _ = cloneSavedDocument(source.SavedDocument)
 		mutate(&s)
 		before, _, _ := f.Snapshot(true)
-		if _, _, err := f.Restore(s); err == nil {
-			t.Fatal("accepted inconsistent native/document pair")
+		var world sim.World
+		if err := world.UnmarshalBinary(s.World); err != nil {
+			t.Fatal(err)
 		}
+		candidate := *f.live.mission.state
+		candidate.World = &world
+		retained, hash := candidate.savedDocument, world.Hash()
+		if err := restoreSavedDocument(&candidate, s.SavedDocument); err == nil {
+			t.Fatal("accepted inconsistent current/document pair")
+		}
+		if candidate.savedDocument != retained || world.Hash() != hash {
+			t.Fatal("late document refusal changed candidate")
+		}
+
 		after, _, err := f.Snapshot(true)
 		if err != nil || !reflect.DeepEqual(before, after) {
 			t.Fatal("late refusal changed active session", err)
@@ -208,7 +197,7 @@ func TestDocument1115MalformedNativeIsAtomic(t *testing.T) {
 }
 
 func TestDocument1115PartialImportStaysExplicitAndNewMissionClearsIt(t *testing.T) {
-	f := poolFixtureFront(t, 91)
+	f := currentPoolFixtureFront(t, 91)
 	open, _, err := f.RestoreOriginal(clockFixture1112(9343, 584, &poolFixtureActor{mapID: 91, cell: 0x0605, hp: 10, maxHP: 100, profile: literalProfile1107()}))
 	if err != nil {
 		t.Fatal(err)
@@ -221,13 +210,9 @@ func TestDocument1115PartialImportStaysExplicitAndNewMissionClearsIt(t *testing.
 	if err != nil || s.SavedDocument == nil || s.SavedDocument.Document != nil || s.SavedDocument.Unavailable == "" {
 		t.Fatal("partial import gained full-document claim", err)
 	}
-	b, err := EncodeSave(s, "partial")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, _, err := DecodeSave(b)
-	if err != nil || !reflect.DeepEqual(s.SavedDocument, got.SavedDocument) {
-		t.Fatal("partial boundary vanished", err)
+	// An incomplete imported document stays explicit until the current producer completes it.
+	if s.SavedDocument.Unavailable == "" {
+		t.Fatal("partial import boundary vanished")
 	}
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
@@ -236,7 +221,7 @@ func TestDocument1115PartialImportStaysExplicitAndNewMissionClearsIt(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	control := poolFixtureFront(t, 91)
+	control := currentPoolFixtureFront(t, 91)
 	control.Town = NewTown(control.Campaign.Value())
 	control.Town.gold = f.Town.Gold()
 	if err := control.App("independent new mission").OpenMission(control.MissionOpener(10)); err != nil {
@@ -281,7 +266,7 @@ func TestDocument1115BothDoorsMenuSaveFreshProcess(t *testing.T) {
 		if err != nil || next.SavedDocument.Document.Head.CounterA != before.SubTick+1 {
 			t.Fatal("next real driver tick did not update document", err)
 		}
-		if _, err := EncodeSave(next, "next native document"); err != nil {
+		if _, err := f.ExportCurrentSave(next, "next current document"); err != nil {
 			t.Fatal(err)
 		}
 		t.Log("complete document: menu SAVE, source removed, fresh App LOAD and next driver tick PASS")

@@ -167,7 +167,7 @@ func crossingCellOriginalDoor1115(t *testing.T, fromMap, keepSack bool) (*FrontE
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
 	}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: inputs}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: inputs}, nil)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, "game1115.sav")
 	clear(raw)
@@ -365,7 +365,7 @@ func crossingNativeDoor(t *testing.T, store SaveStore, name string) *FrontEnd {
 	t.Helper()
 	f := newGroupFront(t, -1)
 	app := f.App("fresh native crossing")
-	save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, localOriginalSaveToken(name))
 	return f
@@ -489,102 +489,3 @@ func TestSavedCrossing1115EmptyOldCellKeepsLifecycleIssueAcrossNativeLoad(t *tes
 // These remain grammar-valid documents and checksum-valid native envelopes.
 // Only the detached document changes: native LOAD must reject disagreement,
 // not reconstruct or repair the authoritative World from the retained DTO.
-func TestSavedCrossing1115DocumentDisagreementRefusedBeforeAdoption(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		mutate func(*testing.T, *sav.DocumentRecordData, *sav.DocumentData)
-	}{
-		{"position fraction", func(t *testing.T, actor *sav.DocumentRecordData, _ *sav.DocumentData) {
-			crossingRawField(t, actor, "Block12")[4] = 1
-		}},
-		{"position terrain identity", func(t *testing.T, actor *sav.DocumentRecordData, _ *sav.DocumentData) {
-			crossingRawField(t, actor, "Block12")[8] ^= 1
-		}},
-		{"accepted axis step", func(t *testing.T, actor *sav.DocumentRecordData, _ *sav.DocumentData) {
-			crossingRawField(t, actor, "U154")[0xb0] = 31
-		}},
-		{"actor action", func(t *testing.T, actor *sav.DocumentRecordData, _ *sav.DocumentData) {
-			binary.LittleEndian.PutUint32(crossingRawField(t, actor, "U54"), 0)
-		}},
-		{"static route", func(t *testing.T, actor *sav.DocumentRecordData, _ *sav.DocumentData) {
-			crossingRawField(t, actor, "U15C")[0] = 17
-		}},
-		{"dynamic route", func(t *testing.T, actor *sav.DocumentRecordData, _ *sav.DocumentData) {
-			crossingRawField(t, actor, "U178")[0] = 17
-		}},
-		{"ground slot", func(_ *testing.T, _ *sav.DocumentRecordData, doc *sav.DocumentData) {
-			doc.World.Cells[2].GroundActor = newGroupB1115
-		}},
-		{"air slot", func(_ *testing.T, _ *sav.DocumentRecordData, doc *sav.DocumentData) {
-			doc.World.Cells[2].AirActor = newGroupB1115
-		}},
-		{"reservation plane", func(_ *testing.T, _ *sav.DocumentRecordData, doc *sav.DocumentData) {
-			doc.World.Blocks[0].Dyn ^= 0x40
-		}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			f, _, _ := crossingOriginalDoor1115(t, false)
-			f.live.tick()
-			before := crossingCheck1115(t, f, 1, false)
-			bad := before
-			var err error
-			bad.SavedDocument, err = cloneSavedDocument(before.SavedDocument)
-			if err != nil {
-				t.Fatal(err)
-			}
-			e, _ := crossingMotion1115(t, f)
-			var actor *sav.DocumentRecordData
-			for _, binding := range bad.SavedDocument.Actors {
-				if binding.EntityID == e.ID {
-					actor = &bad.SavedDocument.Document.Objects[binding.ObjectIndex-1]
-				}
-			}
-			if actor == nil {
-				t.Fatal("corruption fixture lacks exact actor binding")
-			}
-			tc.mutate(t, actor, bad.SavedDocument.Document)
-			envelope := uncheckedDocumentEnvelope1115(t, bad)
-			label := []byte("Disagreeing saved crossing")
-			binary.LittleEndian.PutUint16(envelope[9:11], uint16(len(label)))
-			header := append(bytes.Clone(envelope[:11]), label...)
-			envelope = append(header, envelope[11:]...)
-			decoded, _, err := DecodeSave(envelope)
-			if err != nil {
-				t.Fatal("DTO fixture must reach semantic World validation", err)
-			}
-			if !bytes.Equal(decoded.World, before.World) {
-				t.Fatal("DTO-only corruption changed native World")
-			}
-			oldLive, oldTown, oldShop := f.live, f.Town, f.Shop
-			if open, town, err := f.Restore(decoded); err == nil || open != nil || town {
-				t.Fatal("Restore adopted disagreeing saved crossing", open != nil, town, err)
-			}
-			if !reflect.DeepEqual(before, groupDocumentSnapshot(t, f)) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
-				t.Fatal("refused DTO changed FrontEnd state")
-			}
-			store := SaveStore{Dir: t.TempDir()}
-			if err := os.WriteFile(filepath.Join(store.Dir, "disagreeing-crossing.ags"), envelope, 0600); err != nil {
-				t.Fatal(err)
-			}
-			app := f.App("refused crossing document")
-			save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
-			app.SetSaveSeams(save, list, load)
-			rows := list()
-			if len(rows) != 1 {
-				t.Fatal("hostile DTO has no ordinary LOAD row", rows)
-			}
-			if err := headlessOpenLoad(app); err != nil {
-				t.Fatal(err)
-			}
-			if err := app.HeadlessActivate(rows[0].Label); err != nil {
-				t.Fatal(err)
-			}
-			if app.Screen() != ui.ScreenLoad || app.HeadlessMessage() == "" {
-				t.Fatal("ordinary LOAD did not expose DTO refusal", app.Screen(), app.HeadlessMessage())
-			}
-			if !reflect.DeepEqual(before, groupDocumentSnapshot(t, f)) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
-				t.Fatal("ordinary refused DTO LOAD adopted partial state")
-			}
-		})
-	}
-}

@@ -39,7 +39,7 @@ func spell1152AppLoad(t *testing.T, f *FrontEnd, raw []byte) (*ui.App, SaveStore
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: dir}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: dir}, nil)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, "game0018.sav")
 	return app, store
@@ -48,7 +48,7 @@ func spell1152AppLoad(t *testing.T, f *FrontEnd, raw []byte) (*ui.App, SaveStore
 func spell1152MenuFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, front func(*testing.T) *FrontEnd) *FrontEnd {
 	t.Helper()
 	hash := f.live.world.Hash()
-	_, nativeList, nativeLoad := agsSaveSeams(f, store, OriginalStore{}, nil)
+	_, nativeList, nativeLoad := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(nativeCheckpoint1170(f, store), nativeList, nativeLoad)
 	t.Log("App menu with explicit native checkpoint codec")
 	if err := app.HeadlessKey("escape"); err != nil {
@@ -57,15 +57,15 @@ func spell1152MenuFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore,
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 		t.Fatalf("ordinary menu SAVE: %v %v", entries, err)
 	}
 	fresh := front(t)
 	fresh.SetDeterministicFrames(true)
 	app2 := fresh.App("SpellEffect fresh LOAD")
 	app2.Layout(1024, 768)
-	save, list, load := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+	save, list, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app2, list, entries[0].Name)
 	if fresh.live.world.Hash() != hash {

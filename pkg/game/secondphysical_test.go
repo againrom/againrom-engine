@@ -80,7 +80,7 @@ func TestSecondPhysicalCityTrainAndSAVWire(t *testing.T) {
 		if h.Attack.SecondBase != pair[0] || h.Attack.SecondSpread != pair[1] {
 			t.Fatal("Train accumulated current instead of clearing/folding")
 		}
-		s, label, err := f.Snapshot(false)
+		s, _, err := f.Snapshot(false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -103,16 +103,9 @@ func TestSecondPhysicalCityTrainAndSAVWire(t *testing.T) {
 				t.Fatal("SAV pair bytes")
 			}
 		}
-		native, err := EncodeSave(s, label)
-		if err != nil {
-			t.Fatal(err)
-		}
-		back, _, err := DecodeSave(native)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := back.Party[0].OriginalHuman.State.Attack; got.SecondBase != pair[0] || got.SecondSpread != pair[1] {
-			t.Fatal("AGS pair")
+		back := city1099Front(t, raw)
+		if got := back.Carried[0].OriginalHuman.State.Attack; got.SecondBase != pair[0] || got.SecondSpread != pair[1] {
+			t.Fatal("fresh SAV pair")
 		}
 	}
 }

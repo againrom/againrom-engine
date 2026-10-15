@@ -329,30 +329,22 @@ func TestReleaseCurrentWorldDeadRandomRefusal1170(t *testing.T) {
 	if again.live.world.RandomState() != cold.live.world.RandomState() {
 		t.Fatal("second death/advanced-stream SAV lost its current native random state")
 	}
-	// The converter fixture's "to sav" direction (ConvertSave)
-	// takes an AGS-encoded native checkpoint, not an already-ordinary SAV
-	// (that is DecodeSave's own input contract); build one from cold's present
-	// state to exercise that direction with the same advanced stream.
 	coldSnapshot, _, err := cold.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	agsBytes, err := EncodeSave(coldSnapshot, "advanced random ags")
+	converted, err := cold.ExportCurrentSave(coldSnapshot, "advanced current random")
 	if err != nil {
-		t.Fatal(err)
-	}
-	converted, _, err := cold.ConvertSave(agsBytes, "sav", nil)
-	if err != nil {
-		t.Fatal("converter must carry the advanced native random stream, not refuse it", err)
+		t.Fatal("current SAV must carry the advanced random stream", err)
 	}
 	convertedDoc, err := sav.DecodeDocumentData(converted)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if state, present, err := sav.NativeRandomState(convertedDoc.State); err != nil || !present || state != cold.live.world.RandomState() {
-		t.Fatalf("converter did not carry the exact advanced native random stream: present=%v state=%#x want=%#x err=%v", present, state, cold.live.world.RandomState(), err)
+		t.Fatalf("current SAV did not carry the exact advanced native random stream: present=%v state=%#x want=%#x err=%v", present, state, cold.live.world.RandomState(), err)
 	}
-	t.Logf("current corpse and RNG %016x retained through 161 SAV samples, second cold SAVE and the ags->sav converter", cold.live.world.RandomState())
+	t.Logf("current corpse and RNG %016x retained through 161 SAV samples, second cold SAVE and direct current SAV export", cold.live.world.RandomState())
 }
 
 func TestReleaseCurrentWorldEffectSAV1170(t *testing.T) {

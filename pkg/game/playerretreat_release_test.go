@@ -48,16 +48,12 @@ func retreatNative1089(t *testing.T, f *FrontEnd, stage string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
+	raw, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	back := releaseFront(t)
-	opener, town, err := back.Restore(decoded)
+	opener, town, err := back.RestoreOriginal(raw)
 	if err != nil || town || opener == nil {
 		t.Fatal(stage, "restore", err, town)
 	}

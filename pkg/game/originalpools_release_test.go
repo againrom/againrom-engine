@@ -61,8 +61,8 @@ func TestReleaseOriginalPools1094WoundedNonPartyAppLoadAndNativeRoundtrip(t *tes
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 		t.Fatalf("native mission SAVE = %+v %v", entries, err)
 	}
 	groundAppLoad(t, app, list, entries[0].Name)

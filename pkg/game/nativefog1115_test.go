@@ -128,15 +128,10 @@ func TestNativeFog1115RejectsMalformedSampleBeforeAdoption(t *testing.T) {
 			bad.Residue.FogExplored = bytes.Clone(before.Residue.FogExplored)
 			bad.Residue.FogVisible = bytes.Clone(before.Residue.FogVisible)
 			tc.edit(&bad.Residue)
-			if _, err := EncodeSave(bad, "invalid visibility"); err == nil {
-				t.Fatal("encoder accepted malformed visibility")
+			if err := validateNativeFogResidue(bad.Residue); err == nil {
+				t.Fatal("malformed current visibility accepted")
 			}
-			if _, _, err := DecodeSave(uncheckedDocumentEnvelope1115(t, bad)); err == nil {
-				t.Fatal("checksum-valid hostile visibility envelope was accepted")
-			}
-			if _, _, err := f.Restore(bad); err == nil {
-				t.Fatal("direct Restore accepted malformed visibility")
-			}
+
 			after, _, err := f.Snapshot(true)
 			if err != nil || !reflect.DeepEqual(before, after) || app == nil {
 				t.Fatal("refused visibility changed the active session", err)
@@ -150,7 +145,7 @@ func TestNativeFog1115RejectsMalformedSampleBeforeAdoption(t *testing.T) {
 	if err := validateNativeFogResidue(bad.Residue); err != nil {
 		t.Fatal("extent control must pass shape validation", err)
 	}
-	if _, _, err := f.Restore(bad); err == nil {
+	if f.live.restoreNativeFog(bad.Residue) {
 		t.Fatal("LOAD accepted a complete sample for a different map extent")
 	}
 	after, _, err := f.Snapshot(true)

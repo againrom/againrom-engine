@@ -79,7 +79,7 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 	app.SetSaveSeams(save, list, load)
 	initialFresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 	initialSnapshot, _, err := initialFresh.Snapshot(true)
-	if err != nil || !bytes.Equal(before.World, initialSnapshot.World) || !reflect.DeepEqual(before.SavedDocument, initialSnapshot.SavedDocument) {
+	if err != nil || !bytes.Equal(before.World, initialSnapshot.World) || !sameResave(t, f, initialFresh) {
 		t.Fatal("live gold Sack changed through ordinary SAVE/fresh LOAD", err)
 	}
 	checkInitial(initialFresh.live.world, initialSnapshot.SavedDocument)
@@ -147,7 +147,7 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 	}
 	fresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 	reloaded, _, err := fresh.Snapshot(true)
-	if err != nil || !bytes.Equal(after.World, reloaded.World) || !reflect.DeepEqual(after.SavedDocument, reloaded.SavedDocument) {
+	if err != nil || !bytes.Equal(after.World, reloaded.World) || !sameResave(t, f, fresh) {
 		t.Fatal("retired Sack changed through ordinary SAVE/fresh LOAD", err)
 	}
 	for range 20 {

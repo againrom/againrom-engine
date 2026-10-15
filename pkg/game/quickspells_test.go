@@ -1,11 +1,9 @@
 package game
 
 import (
-	"bytes"
-	"encoding/binary"
-	"encoding/gob"
+	"againrom/pkg/formats/sav"
+	"encoding/json"
 	"errors"
-	"hash/crc32"
 	"reflect"
 	"testing"
 
@@ -16,84 +14,92 @@ import (
 
 // An independent envelope producer. Its schema deliberately does not use
 // Snapshot, so old/malformed tests cannot pass by sharing the production writer.
-func quickEnvelope1119(t *testing.T, value any) []byte {
-	t.Helper()
-	var payload bytes.Buffer
-	if err := gob.NewEncoder(&payload).Encode(value); err != nil {
-		t.Fatal(err)
-	}
-	b := []byte("AGRMSAVE\x01\x00\x00")
-	b = binary.LittleEndian.AppendUint32(b, crc32.ChecksumIEEE(payload.Bytes()))
-	b = binary.LittleEndian.AppendUint32(b, uint32(payload.Len()))
-	return append(b, payload.Bytes()...)
-}
 
 func TestQuickSpellsNativeIndependentOldNewAndMalformed(t *testing.T) {
 	want := [4]uint32{89, 17, 3, 65535}
-	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}, CampaignSession: CampaignSession{Town: saveTown(t), quickSpells: want}}
+	f, _ := city1095Front(t)
+	f.quickSpells = want
 	snapshot, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := EncodeSave(snapshot, label)
+	raw, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Read the public envelope and the named field without DecodeSave.
-	labelLen := int(binary.LittleEndian.Uint16(b[9:11]))
-	start := 11 + labelLen
-	if string(b[:8]) != "AGRMSAVE" || b[8] != 1 || binary.LittleEndian.Uint32(b[start:]) != crc32.ChecksumIEEE(b[start+8:]) {
-		t.Fatal("native header/checksum changed")
-	}
-	var independent struct{ QuickSpells [4]uint32 }
-	if err := gob.NewDecoder(bytes.NewReader(b[start+8:])).Decode(&independent); err != nil || independent.QuickSpells != want {
-		t.Fatalf("independent field=%v err=%v", independent.QuickSpells, err)
-	}
-	back, _, err := DecodeSave(b)
+	doc, err := sav.DecodeDocumentData(raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	g := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(saveCampaign(), nil)}}
-	if _, town, err := g.Restore(back); err != nil || !town || g.quickSpells != want {
-		t.Fatalf("fresh native restore=%v town%v err%v", g.quickSpells, town, err)
+	leaf, present, err := sav.NativeActions(doc.State)
+	if err != nil || !present {
+		t.Fatal("current quick-spell policy absent", err)
 	}
-	old := quickEnvelope1119(t, struct {
-		Open bool
-		Gold int
-	}{true, 12})
-	back, _, err = DecodeSave(old)
-	if err != nil || back.QuickSpells != [4]uint32{} {
-		t.Fatalf("old schema=%v err=%v", back.QuickSpells, err)
+	var independent struct {
+		Session *struct {
+			QuickSpells []struct {
+				Slot uint8
+				ID   uint32
+			}
+		}
 	}
-	if _, _, err := g.Restore(back); err != nil || g.quickSpells != [4]uint32{} {
-		t.Fatal("old save retained previous bindings")
+	if err := json.Unmarshal(leaf, &independent); err != nil || independent.Session == nil {
+		t.Fatal("independent current field", err)
+	}
+	seen := map[uint8]uint32{}
+	for _, row := range independent.Session.QuickSpells {
+		if row.Slot >= 4 || row.ID != want[row.Slot] {
+			t.Fatal("independent current slot", row)
+		}
+		seen[row.Slot] = row.ID
+	}
+	if seen[0] != 89 || seen[3] != 65535 {
+		t.Fatal("custom slot payload lost", seen)
+	}
+	g, _ := city1095Front(t)
+	if _, town, err := g.RestoreOriginal(raw); err != nil || !town || g.quickSpells != want {
+		t.Fatalf("fresh current SAV slots=%v town%v err%v", g.quickSpells, town, err)
 	}
 	for _, bad := range [][4]uint32{{65536}, {17, 17}} {
 		t.Run("malformed", func(t *testing.T) {
-			g.quickSpells = want
-			before := *g
-			if _, err := EncodeSave(Snapshot{QuickSpells: bad}, ""); err == nil {
+			before := *f
+			invalid := snapshot
+			invalid.QuickSpells = bad
+			if _, err := f.ExportCurrentSave(invalid, label); err == nil {
 				t.Fatal("writer accepted malformed slots")
 			}
-			raw := quickEnvelope1119(t, struct {
-				Open        bool
-				QuickSpells [4]uint32
-			}{true, bad})
-			if _, _, err := DecodeSave(raw); err == nil {
-				t.Fatal("decoder accepted malformed slots")
+			changed, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatal(err)
 			}
-			if _, err := g.prepareRestore(Snapshot{QuickSpells: bad}); err == nil {
-				t.Fatal("direct restore accepted malformed slots")
+			actions, err := readCurrentActions(&changed)
+			if err != nil || actions == nil || actions.Session == nil {
+				t.Fatal("current session absent", err)
 			}
-			if !reflect.DeepEqual(before, *g) {
+			actions.Session.QuickSpells = nil
+			for slot, id := range bad {
+				if id != 0 {
+					actions.Session.QuickSpells = append(actions.Session.QuickSpells, currentQuickSpell{Slot: uint8(slot), ID: id})
+				}
+			}
+			leaf, err := json.Marshal(actions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := sav.SetNativeActions(&changed.State, leaf); err != nil {
+				t.Fatal(err)
+			}
+			altered, err := sav.EncodeDocumentData(changed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := f.RestoreOriginal(altered); err == nil {
+				t.Fatal("current SAV accepted malformed slots")
+			}
+			if !reflect.DeepEqual(before, *f) {
 				t.Fatal("failed restore changed active session")
 			}
 		})
-	}
-	for _, value := range []any{struct{ QuickSpells [3]uint32 }{}, struct{ QuickSpells [5]uint32 }{}} {
-		if _, _, err := DecodeSave(quickEnvelope1119(t, value)); err == nil {
-			t.Fatal("non-four native slot shape accepted")
-		}
 	}
 }
 
@@ -116,7 +122,13 @@ func TestQuickSpellsCandidateAndMissionLifetime(t *testing.T) {
 		t.Fatal("town arrival lost bindings")
 	}
 	before := *f
-	if _, err := f.prepareRestore(Snapshot{Mission: 20, QuickSpells: want}); err == nil {
+	_, source := city1095Front(t)
+	bad, err := sav.Open(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad.Head.Mission = 20
+	if _, _, err := f.RestoreOriginal(bad.Marshal()); err == nil {
 		t.Fatal("missing world accepted")
 	}
 	if !reflect.DeepEqual(before, *f) {

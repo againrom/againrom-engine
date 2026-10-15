@@ -1,14 +1,12 @@
 package game
 
 import (
-	"errors"
-
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 // SnapshotFame is campaign-owned score history. Known distinguishes a complete
-// history from an older AGS that never stored the counters. Unknown histories
+// history from a state without captured counters. Unknown histories
 // can retain later observations but cannot produce an earned result.
 type SnapshotFame struct {
 	Known        bool
@@ -30,13 +28,6 @@ func cloneFame(s SnapshotFame) SnapshotFame {
 		s.Result = &result
 	}
 	return s
-}
-
-func validateSnapshotFame(s *SnapshotFame) error {
-	if s != nil && !s.Known && s.Result != nil {
-		return errors.New("saved fame result has unknown campaign history")
-	}
-	return nil
 }
 
 func fameFromSnapshot(s Snapshot) SnapshotFame {

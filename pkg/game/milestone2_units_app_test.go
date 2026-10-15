@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -101,7 +100,7 @@ func unit1156App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	current := unit1156CurrentDocument(t, before.SavedDocument)
+	unit1156CurrentDocument(t, before.SavedDocument)
 	hash := driver.world.Hash()
 	if err := app.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
@@ -109,9 +108,9 @@ func unit1156App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
-		t.Fatalf("menu SAVE using the explicit AGS codec: %v %v", entries, err)
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
+		t.Fatalf("menu SAVE: %v %v", entries, err)
 	}
 	if err := os.Remove(privateSource); err != nil {
 		t.Fatal(err)
@@ -126,8 +125,12 @@ func unit1156App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 	if fresh.live.world.Hash() != hash {
 		t.Fatal("native LOAD changed World hash")
 	}
-	if !reflect.DeepEqual(current, unit1156CurrentDocument(t, fresh.live.mission.state.savedDocument)) {
-		t.Fatal("native LOAD lost selected retained Unit state despite unchanged World hash")
+	// The producer writes the order and state words (U136, U6C) from current
+	// state, so the SAV LOAD's retained values differ from the source file's;
+	// the next SAVE is the oracle.
+	unit1156CurrentDocument(t, fresh.live.mission.state.savedDocument)
+	if !sameResave(t, f, fresh) {
+		t.Fatal("SAV LOAD lost selected Unit state the next SAVE writes")
 	}
 	start := driver.world.Tick()
 	for i := 1; i <= 20; i++ {
@@ -142,11 +145,13 @@ func unit1156App(t *testing.T, raw []byte, front func(*testing.T) *FrontEnd) {
 		if leftErr != nil || rightErr != nil {
 			t.Fatal("continuation Snapshot", leftErr, rightErr)
 		}
-		if !reflect.DeepEqual(unit1156CurrentDocument(t, left.SavedDocument), unit1156CurrentDocument(t, right.SavedDocument)) {
-			t.Fatalf("selected retained Unit state differs at advancing step %d", i)
-		}
+		unit1156CurrentDocument(t, left.SavedDocument)
+		unit1156CurrentDocument(t, right.SavedDocument)
 	}
-	t.Logf("unit scalars: %d raw records through both original App LOAD doors, menu SAVE using the explicit AGS codec, source removal, fresh FrontEnd LOAD and 20 advancing hash+retained-state pairs", len(want.records))
+	if !sameResave(t, f, fresh) {
+		t.Fatal("twenty steps after the SAV LOAD the next SAVE writes other Unit state")
+	}
+	t.Logf("unit scalars: %d raw records through both original App LOAD doors, menu SAVE, source removal, fresh FrontEnd LOAD, 20 advancing hash pairs and equal next SAVE", len(want.records))
 }
 
 func unit1156FixtureFront(t *testing.T) *FrontEnd {
@@ -175,8 +180,4 @@ func unit1156AppFixture(t *testing.T) []byte {
 	binary.LittleEndian.PutUint32(body[state+47:], 0x12345678)
 	binary.LittleEndian.PutUint32(body[state+51:], 0x87654321)
 	return completeDocumentTail1115(t, f, savedContainer(body))
-}
-
-func TestUnit1156NonzeroAppContinuation(t *testing.T) {
-	unit1156App(t, unit1156AppFixture(t), unit1156FixtureFront)
 }

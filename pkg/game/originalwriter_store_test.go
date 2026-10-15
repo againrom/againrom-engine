@@ -111,11 +111,7 @@ func TestSaveStoreListsLocalSAVAndIgnoresAGS(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "game0000.sav"), savedFile(0, tenActors()), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	native, err := EncodeSave(Snapshot{}, "native")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := store.Write(time.Date(2026, 8, 27, 1, 2, 3, 0, time.UTC), native); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "legacy.ags"), []byte("synthetic retired save"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,7 +141,7 @@ func TestSaveSeamsKeepsCollidingLocalAndInstallOriginalRowsDistinct(t *testing.T
 		t.Fatal(err)
 	}
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(Campaign{}, nil)}, CampaignSession: CampaignSession{Town: NewTown(Campaign{})}}
-	_, list, load := agsSaveSeams(f, SaveStore{Dir: localDir}, OriginalStore{Dir: installDir}, nil)
+	_, list, load := f.SaveSeams(SaveStore{Dir: localDir}, OriginalStore{Dir: installDir}, nil)
 	rows := list()
 	byName := make(map[string]ui.SaveEntry, len(rows))
 	for _, row := range rows {
@@ -179,12 +175,8 @@ func TestSaveSeamsKeepsCollidingLocalAndInstallOriginalRowsDistinct(t *testing.T
 func TestProductionLoadRefusesAnAGSName(t *testing.T) {
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	native, err := EncodeSave(Snapshot{}, "native")
-	if err != nil {
-		t.Fatal(err)
-	}
-	name, err := store.Write(time.Date(2026, 8, 27, 1, 2, 3, 0, time.UTC), native)
-	if err != nil {
+	name := "legacy.ags"
+	if err := os.WriteFile(filepath.Join(dir, name), []byte("synthetic retired save"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	f := &FrontEnd{}

@@ -64,16 +64,12 @@ func TestFameOriginalCityCountersBecomeKnownAndSurviveAGS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	native, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(native)
+	native, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	cold := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(campaign, nil)}}
-	if _, town, err := cold.Restore(decoded); err != nil || !town {
+	if _, town, err := cold.RestoreOriginal(native); err != nil || !town {
 		t.Fatalf("AGS city restore: town=%v err=%v", town, err)
 	}
 	if !reflect.DeepEqual(cold.fame, want) {

@@ -30,7 +30,7 @@ func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 	// cleared on this front end's own copy.
 	f.TownSquareArt = resolved(withoutAmbience(f.TownSquareArt.Value()), nil)
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	// Accepted mission availability is existing model state, not animation state.
 	f.Town.announceMission(f.Town.currentMain())
 	now, roll := time.Unix(100, 0), 0
@@ -43,17 +43,17 @@ func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err = store.Write(now, payload); err != nil {
+	if _, err = store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	a := f.App("1120-installed-town")
 	a.Layout(640, 480)
-	a.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	a.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err = a.HeadlessKey("load"); err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	initialBytes, err := EncodeSave(initial, "same")
+	initialBytes, err := f.ExportCurrentSave(initial, "same")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	afterBytes, err := EncodeSave(after, "same")
+	afterBytes, err := f.ExportCurrentSave(after, "same")
 	if err != nil {
 		t.Fatal(err)
 	}

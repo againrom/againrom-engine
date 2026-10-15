@@ -318,10 +318,6 @@ func TestSchoolTrainingReadOnlyLifecycleAndNativeBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBefore, err := EncodeSave(snapshotBefore, "same")
-	if err != nil {
-		t.Fatal(err)
-	}
 	for i := 0; i < 80; i++ {
 		paintSchoolTraining(t, s, now, 84*time.Millisecond)
 	}
@@ -329,12 +325,8 @@ func TestSchoolTrainingReadOnlyLifecycleAndNativeBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAfter, err := EncodeSave(snapshotAfter, "same")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(nativeBefore, nativeAfter) || hashBefore != mw.world.Hash() || !bytes.Equal(worldBefore, marshalWorld(t, mw.world)) {
-		t.Fatal("school presentation changed native bytes, simulation hash or binary state")
+	if !reflect.DeepEqual(snapshotBefore, snapshotAfter) || hashBefore != mw.world.Hash() || !bytes.Equal(worldBefore, marshalWorld(t, mw.world)) {
+		t.Fatal("school presentation changed current Snapshot, simulation hash or binary state")
 	}
 
 	s.room = roomSchool

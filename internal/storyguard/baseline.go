@@ -2448,6 +2448,11 @@ package storyguard
 // pkg/sim/targetorder.go and the build line that moves the target census
 // into the corpus audit, this note included.
 //
+// TestIdentCount, TestFileCount and CommentBytes rise back toward their
+// prior values: eleven SAVE/LOAD release tests and their pkg/game helpers
+// return on the SAV route, with the docs of sameResave
+// (nativecheckpoint1170_test.go), trailerCarriedDifferences and the
+// restated checks, this note included.
 // CommentBytes rises for the source effect run on its own candidate: the doc
 // of sourceEffectOnCandidate and its refusal test, this note included.
 //
@@ -2481,7 +2486,7 @@ package storyguard
 // canonical comparison, its proven-form memo, the in-place saved-object
 // search and their tests, this note included.
 var Committed = Baseline{
-	TestIdentCount: 4625,
+	TestIdentCount: 4557,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2500,8 +2505,8 @@ var Committed = Baseline{
 		"structtags.nontest":     0,
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
-		"stringliterals.test":    34,
-		"longcommentgroups":      1723,
+		"stringliterals.test":    32,
+		"longcommentgroups":      1722,
 	},
-	CommentBytes: 9065321,
+	CommentBytes: 9047601,
 }

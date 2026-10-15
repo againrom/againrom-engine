@@ -156,7 +156,7 @@ func TestReleaseOriginalGround1076RejectedLoadPreservesLiveGame(t *testing.T) {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: originals}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: originals}, nil)
 	app.SetSaveSeams(save, list, load)
 	rows := list()
 	if len(rows) != 1 {
@@ -282,8 +282,8 @@ func TestReleaseOriginalGround1076ProductionAppReplacesFreshLootAndSavesPickup(t
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 		t.Fatalf("mission SAVE must be explicit lossless .ags, not stale original bytes: %+v %v screen=%s message=%s", entries, err, app.Screen(), app.HeadlessMessage())
 	}
 	groundAppLoad(t, app, list, entries[0].Name)

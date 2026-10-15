@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"encoding/binary"
 	"reflect"
 	"slices"
@@ -225,16 +226,12 @@ func TestSavedCurrentOrder1115ScriptToDocumentAndNativeContinuation(t *testing.T
 			if issues := fromSAV.live.world.SavedGroupIssues(); len(issues) != 0 {
 				t.Fatal("produced SAV cannot continue known current order", issues)
 			}
-			native, err := EncodeSave(current, "current script order")
-			if err != nil {
-				t.Fatal(err)
-			}
-			decoded, _, err := DecodeSave(native)
+			native, err := front.ExportCurrentSave(current, "current script order")
 			if err != nil {
 				t.Fatal(err)
 			}
 			fresh := groupDocumentFront1115(t)
-			open, town, err := fresh.Restore(decoded)
+			open, town, err := fresh.RestoreOriginal(native)
 			if err != nil || town {
 				t.Fatal("fresh current native", town, err)
 			}
@@ -242,7 +239,7 @@ func TestSavedCurrentOrder1115ScriptToDocumentAndNativeContinuation(t *testing.T
 				t.Fatal(err)
 			}
 			again := groupDocumentSnapshot(t, fresh)
-			if !reflect.DeepEqual(current.SavedDocument, again.SavedDocument) {
+			if !bytes.Equal(current.World, again.World) || !sameResave(t, front, fresh) {
 				t.Fatal("fresh native LOAD lost current document")
 			}
 			for range 20 {

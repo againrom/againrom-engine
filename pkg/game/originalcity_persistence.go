@@ -3,12 +3,9 @@ package game
 import (
 	"fmt"
 	"reflect"
-	"sort"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
-	"againrom/pkg/sim"
 )
 
 // SnapshotOriginalCity is optional provenance, not canonical simulation state.
@@ -80,11 +77,9 @@ func (state *originalCitySaveState) snapshot() *SnapshotOriginalCity {
 	return out
 }
 
-// originalCityFromSnapshot prepares structural provenance without install
-// context. Native LOAD must also call validateOriginalCityBaseline before
-// installCandidate may adopt it. Current party edits do not invalidate native
-// saves; marshal separately refuses to export them. A baseline assertion is
-// never made trustworthy merely by matching the current party.
+// originalCityFromSnapshot prepares bounded structural provenance for current
+// city capture and SAVE. Source bindings and return history are checked before
+// the detached city state is used.
 func originalCityFromSnapshot(s Snapshot) (*originalCitySaveState, error) {
 	dto := s.OriginalCity
 	if dto == nil {
@@ -96,7 +91,7 @@ func originalCityFromSnapshot(s Snapshot) (*originalCitySaveState, error) {
 	if err := boundCitySnapshot(reflect.ValueOf(*dto), new(citySnapshotBudget), 0); err != nil {
 		return nil, err
 	}
-	// Mission AGS keeps the same immutable city source and the previous return
+	// A mission snapshot keeps the immutable city source and previous return
 	// graph. The World carries current mission item identities independently.
 	if (s.Mission == 0) != (len(s.World) == 0) {
 		return nil, fmt.Errorf("original city provenance has inconsistent mission/world presence")
@@ -198,8 +193,8 @@ func originalCityFromSnapshot(s Snapshot) (*originalCitySaveState, error) {
 	return state, nil
 }
 
-// Envelopes can check identity construction without an install; the registry
-// interpretation itself is verified independently by validateOriginalCityBaseline.
+// validateCityPartyIDs checks binding identity construction against the
+// detached source roster.
 func validateCityPartyIDs(dto *SnapshotOriginalCity, document *sav.CityProvenance) error {
 	characters, err := document.SourceParty()
 	if err != nil {
@@ -231,271 +226,11 @@ func validateCityPartyIDs(dto *SnapshotOriginalCity, document *sav.CityProvenanc
 	return nil
 }
 
-// legacyCityPartyIdentity is the identity a city save before version 7 gave
-// source character c: the starting hero, or the town companion whose npc.reg
-// record selects c's Humans row at the chapter that grants it (REG-SCN-098:
-// [npc22] selects rows 28 and 29). Without an install only the hero is known;
-// validateOriginalCityBaseline settles the companion against the registry.
-func (in townInstall) legacyCityPartyIdentity(c sav.Character) (string, int) {
-	if c.Hero {
-		return "hero", 0
-	}
-	if in.table == nil || in.table.Humans == nil {
-		return "", 0
-	}
-	chapters := make([]int, 0, len(in.campaign.Chapters))
-	for n := range in.campaign.Chapters {
-		chapters = append(chapters, n)
-	}
-	sort.Ints(chapters)
-	for _, chapter := range chapters {
-		for _, npc := range in.campaign.Chapters[chapter].AddHero {
-			for _, mage := range []bool{false, true} {
-				for _, female := range []bool{false, true} {
-					server, ok := in.table.NPC.CampaignServerID(int32(npc), chapter, mage, female)
-					if ok && data.FindHumanByServerID(in.table.Humans, server) == int(c.DefRow) {
-						return fmt.Sprintf("npc:%d", npc), npc
-					}
-				}
-			}
-		}
-	}
-	return "", 0
-}
-
-// validateOriginalCityBaseline runs before candidate publication. Saved
-// baselines are untrusted assertions: reconstruct ALL member fields using the
-// same source characters, table and body context as RestoreOriginal, then
-// require exact equality. Current party edits remain valid native progress;
-// they cannot change the reconstructed baseline used by the SAV equality gate.
-func (in townInstall) validateOriginalCityBaseline(state *originalCitySaveState) error {
-	if state == nil || state.unavailable != nil {
-		return nil
-	}
-	document, ok := state.document.(*sav.CityProvenance)
-	if !ok {
-		return fmt.Errorf("original city baseline has no semantic source")
-	}
-	characters, err := document.SourceParty()
-	if err != nil {
-		return fmt.Errorf("original city baseline source: %w", err)
-	}
-	// restorePartyCharacters filters/reorders its input, so keep an independent
-	// source slice for identity binding. A fallback is never export eligible.
-	restored, report := restorePartyCharacters(append([]sav.Character(nil), characters...), nil, nil, in.bodies, in.table)
-	if report.Err != nil || report.Fallback {
-		return fmt.Errorf("original city baseline cannot restore its source roster: %v", report.Err)
-	}
-	persistent := characters[:0]
-	for _, character := range characters {
-		if persistentOriginalCharacter(character, in.table) {
-			persistent = append(persistent, character)
-		}
-	}
-	persistent, _, _ = leadFirst(persistent)
-	if len(restored) != len(persistent) {
-		return fmt.Errorf("original city baseline roster differs from source")
-	}
-	if state.partyImportVersion < 7 {
-		for i, c := range persistent {
-			restored[i].ID, restored[i].CompanionNPC = in.legacyCityPartyIdentity(c)
-		}
-	}
-	mapload.NameParty(restored)
-	clearRestoredMissionPosition(restored)
-	if state.partyImportVersion == 1 {
-		if len(restored) != len(persistent) {
-			return fmt.Errorf("original city legacy baseline roster differs from source")
-		}
-		for i, character := range persistent {
-			restored[i].KnownSpells = legacyOriginalCityBook(character, in.table)
-			restored[i].SpellbookRestored = false
-			restored[i].SpellbookPresent = false
-		}
-	}
-	if state.partyImportVersion < 3 {
-		for i := range restored {
-			restored[i].Book = sim.Spellbook{}
-		}
-	}
-	if state.partyImportVersion < 5 {
-		for i := range restored {
-			clearLegacySourceEquipment(&restored[i])
-			if restored[i].Carry != nil {
-				restored[i].Carry.LiveLoad, restored[i].Carry.OrderedStacks = nil, nil
-			}
-		}
-	}
-	if state.partyImportVersion < 4 {
-		for i := range restored {
-			clearLegacyItemWeights(&restored[i])
-		}
-	}
-	if state.partyImportVersion < 6 {
-		for i := range restored {
-			if c := restored[i].Carry; c != nil && c.LiveLoad != nil {
-				c.LiveLoad.HealthHundredths, c.LiveLoad.ManaHundredths = 0, 0
-			}
-		}
-	}
-	expected := bindOriginalCity(document, persistent, restored, nil, in.table)
-	if expected.unavailable != nil {
-		return fmt.Errorf("original city baseline import context: %w", expected.unavailable)
-	}
-	byID := make(map[uint32]originalCityBinding, len(expected.bindings))
-	for i := range expected.bindings {
-		expected.bindings[i].partyImportVersion = state.partyImportVersion
-		binding := expected.bindings[i]
-		byID[binding.character.Identity] = binding
-	}
-	for _, saved := range state.bindings {
-		want, ok := byID[saved.character.Identity]
-		comparison := want.baseline
-		if saved.baseline.OriginalHuman == nil && len(saved.training) == 0 {
-			comparison.OriginalHuman = nil // legacy source baseline, not a current-state repair
-		}
-		if !ok || saved.partyID != want.partyID {
-			return fmt.Errorf("original city baseline for %q differs from semantic source/import context", saved.partyID)
-		}
-		if state.partyImportVersion < 8 && !reflect.DeepEqual(saved.baseline, comparison) {
-			legacy := legacyCityWeaponBaseline(comparison, in.table)
-			if reflect.DeepEqual(saved.baseline, legacy) {
-				want.baseline = legacyCityWeaponBaseline(want.baseline, in.table)
-				comparison = legacy
-			}
-		}
-		if !reflect.DeepEqual(saved.baseline, comparison) {
-			if legacy := legacyCityLoadSpeed(comparison); reflect.DeepEqual(saved.baseline, legacy) {
-				comparison = legacy
-			}
-		}
-		if !reflect.DeepEqual(saved.baseline, comparison) {
-			a, b := reflect.ValueOf(saved.baseline), reflect.ValueOf(comparison)
-			for i := 0; i < a.NumField(); i++ {
-				if !reflect.DeepEqual(a.Field(i).Interface(), b.Field(i).Interface()) {
-					return fmt.Errorf("original city baseline for %q differs from semantic source/import context (%s)", saved.partyID, a.Type().Field(i).Name)
-				}
-			}
-		}
-		want.training = append([]uint8(nil), saved.training...)
-		want.sales = cloneCitySales(saved.sales)
-		want.salesVersion = saved.salesVersion
-		want.returned = cloneCityReturn(saved.returned)
-		if want.returned != nil {
-			if err := want.checkReturn(want.returned); err != nil {
-				return err
-			}
-		}
-		if _, err := want.expectedMember(); err != nil {
-			return err
-		}
-		if len(want.sales) != 0 {
-			if _, err := citySaleRemainders(want, want.sales); err != nil {
-				return err
-			}
-		}
-		byID[saved.character.Identity] = want
-	}
-	// Adopt only freshly derived baselines after every assertion succeeded.
-	state.bindings = expected.bindings
-	for i := range state.bindings {
-		state.bindings[i] = byID[state.bindings[i].character.Identity]
-	}
-	return nil
-}
-
-// legacyCityLoadSpeed is a baseline as imports before SAV-1116 stored it:
-// the Human's actor-load speed without its overload penalty.
-func legacyCityLoadSpeed(p mapload.PartyMember) mapload.PartyMember {
-	if p.Carry == nil || p.Carry.LiveLoad == nil || !p.Carry.LiveLoad.Movement.Present || p.Carry.LiveLoad.Inventory.Source.Class != 2 {
-		return p
-	}
-	p = mapload.CloneParty([]mapload.PartyMember{p})[0]
-	l := p.Carry.LiveLoad
-	l.Speed = mapload.SourceHumanState(l.Inventory.Source, l.Inventory.Accumulator).NativeMovementBase()
-	l.Movement.NativeSpeed = l.Speed
-	return p
-}
-
-// Reconstruct the code/template policy for historical baseline assertions only.
-// Version 7 also emitted current-effect baselines, so both require full equality.
-func legacyCityWeaponBaseline(p mapload.PartyMember, table *mapload.Table) mapload.PartyMember {
-	p = mapload.CloneParty([]mapload.PartyMember{p})[0]
-	p.Weapon = nil
-	if code, ok := wornWeapon(p.Worn); ok && table != nil {
-		if weapon, err := data.WeaponFromCode(code, table.Shapes, table.Materials, table.Weapons); err == nil {
-			p.Weapon = &weapon
-		}
-		if p.Mage {
-			if staff, err := data.ResolveWeapon(mageWeaponName, table.Shapes, table.Materials, table.Weapons); err == nil && staff.Code == code {
-				p.Weapon = &staff
-			}
-		}
-	}
-	if p.OriginalHuman != nil {
-		p.OriginalHuman.Weapon = p.Weapon
-	}
-	return p
-}
-
-func clearLegacyItemWeights(p *mapload.PartyMember) {
-	clear := func(items []sim.ItemInstance) {
-		for i := range items {
-			items[i].Weight, items[i].WeightPresent = 0, false
-		}
-	}
-	clear(p.CarriedItems)
-	clear(p.WornItems[:])
-	if p.OriginalHuman != nil {
-		clear(p.OriginalHuman.Inventory)
-		clear(p.OriginalHuman.Equipment[:])
-	}
-	if p.Carry != nil {
-		clear(p.Carry.ItemInstances)
-		clear(p.Carry.EquippedItems[:])
-	}
-}
-
-func clearLegacySourceEquipment(p *mapload.PartyMember) {
-	clear := func(items []sim.ItemInstance) {
-		for i := range items {
-			items[i].SourceEquipment = sim.SourceEquipment{}
-		}
-	}
-	clear(p.CarriedItems)
-	clear(p.WornItems[:])
-	if p.OriginalHuman != nil {
-		clear(p.OriginalHuman.Inventory)
-		clear(p.OriginalHuman.Equipment[:])
-	}
-	if p.Carry != nil {
-		clear(p.Carry.ItemInstances)
-		clear(p.Carry.EquippedItems[:])
-	}
-}
-
-// This is solely the pre-1096 import policy for validating a version-1
-// assertion. It is not used to restore a new original SAV or repair live state.
-func legacyOriginalCityBook(character sav.Character, table *mapload.Table) uint32 {
-	if table == nil || table.Humans == nil || character.Class != "Human" {
-		return 0
-	}
-	i := int(character.DefRow)
-	if i <= 0 || i >= table.Humans.Len() {
-		return 0
-	}
-	definition, err := data.NewHumanDef(table.Humans.EntryName(i), table.Humans.EntryParams(i))
-	if err != nil {
-		return 0
-	}
-	return definition.KnownSpells
-}
-
 type citySnapshotBudget struct{ elements, bytes uint64 }
 
 // The persisted DTO has no recursive pointers; still bound every nested slice
-// before cloning a baseline or letting the encoder allocate a payload. Gob's
-// independent wire preflight remains mandatory before decoding untrusted bytes.
+// before cloning a baseline. SAV decoding separately bounds untrusted input
+// before constructing this DTO.
 func boundCitySnapshot(v reflect.Value, budget *citySnapshotBudget, depth int) error {
 	if depth > maxSaveGobDepth {
 		return fmt.Errorf("original city snapshot nesting exceeds bound")

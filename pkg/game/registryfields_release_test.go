@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/reg"
-	"againrom/pkg/formats/sav"
 )
 
 // shippedTownCompanion is the companion both shipped campaigns grant in town
@@ -63,27 +62,6 @@ func TestReleaseTownCompanionIsTheRegistryAddHero(t *testing.T) {
 	}
 }
 
-// TestReleaseLegacyCityCompanionIsTheRegistryRecord binds the identity a city
-// save before version 7 gives a companion to the installed npc.reg record: on
-// both shipped roots Humans rows 28 and 29, and no other row, are npc 22.
-func TestReleaseLegacyCityCompanionIsTheRegistryRecord(t *testing.T) {
-	f := releaseFront(t)
-	in := f.townInstall()
-	for row := 0; row < f.Table.Humans.Len() && row <= 255; row++ {
-		id, npc := in.legacyCityPartyIdentity(sav.Character{DefRow: uint8(row)})
-		companion := row == 28 || row == 29
-		if companion && (id != "npc:22" || npc != shippedTownCompanion) || !companion && (id != "" || npc != 0) {
-			t.Fatalf("Humans row %d legacy identity = %q/%d", row, id, npc)
-		}
-	}
-	if id, npc := in.legacyCityPartyIdentity(sav.Character{Hero: true, DefRow: 28}); id != "hero" || npc != 0 {
-		t.Fatalf("legacy hero identity = %q/%d", id, npc)
-	}
-}
-
-// TestReleaseNewGameMissionIsTheRegistryFirst binds the mission a new game
-// opens to the installed scenario registry: the first [Mission<n>] section in
-// file order is mission 10 on both shipped roots, and NewGameMission answers it.
 func TestReleaseNewGameMissionIsTheRegistryFirst(t *testing.T) {
 	f := releaseFront(t)
 	first := 0

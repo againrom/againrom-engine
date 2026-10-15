@@ -140,24 +140,12 @@ func TestQuickSpellsOriginalPopulatedMappingAndCurrentSave(t *testing.T) {
 	// Native provenance reconstructs its source baseline; it cannot silently
 	// treat the changed live bindings as the original values on fresh LOAD.
 	s.QuickSpells = [4]uint32{1, 65535}
-	b, err := EncodeSave(s, "changed")
+	current, err := f.ExportCurrentSave(s, "changed")
 	if err != nil {
 		t.Fatal(err)
 	}
-	back, _, err := DecodeSave(b)
-	if err != nil {
-		t.Fatal(err)
-	}
-	g, _ := city1095Front(t)
-	if _, _, err := g.Restore(back); err != nil {
-		t.Fatal(err)
-	}
-	if g.quickSpells != s.QuickSpells || g.originalCity.baselineQuickSpells != want {
-		t.Fatal("native source and live values were conflated")
-	}
-	current, err := g.ExportCurrentSave(back, "changed")
-	if err != nil {
-		t.Fatal(err)
+	if f.originalCity.baselineQuickSpells != want {
+		t.Fatal("current SAVE changed source shortcut baseline")
 	}
 	cold, _ := city1095Front(t)
 	if _, town, err := cold.RestoreOriginal(current); err != nil || !town || cold.quickSpells != s.QuickSpells {
@@ -207,17 +195,26 @@ func TestQuickSpellsMalformedOriginalAndNativeProvenanceAreAtomic(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range s.OriginalCity.Document.State.ValueRecords {
-		r := &s.OriginalCity.Document.State.ValueRecords[i]
+	raw, err := f.ExportCurrentSave(s, "current malformed shortcuts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range doc.State.ValueRecords {
+		r := &doc.State.ValueRecords[i]
 		if r.Path == "/SpellBook/Shortcuts" {
 			binary.LittleEndian.PutUint32(r.Value.Bytes, 24)
 		}
 	}
-	before := *f
-	if _, _, err := DecodeSave(quickEnvelope1119(t, s)); err == nil {
-		t.Fatal("malformed native source provenance decoded")
+	altered, err := sav.EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, _, err := f.Restore(s); err == nil || !reflect.DeepEqual(*f, before) {
-		t.Fatal("malformed native source provenance was not atomic")
+	before := *f
+	if _, _, err := f.RestoreOriginal(altered); err == nil || !reflect.DeepEqual(*f, before) {
+		t.Fatal("malformed current source provenance was not atomic", err)
 	}
 }

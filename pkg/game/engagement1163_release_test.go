@@ -158,8 +158,8 @@ func TestReleaseEngagement1163OriginalAndNativeContinuation(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 		t.Fatal("ordinary mission SAVE", entries, err)
 	}
 	if err := app.HeadlessGameMenuAction("return"); err != nil {

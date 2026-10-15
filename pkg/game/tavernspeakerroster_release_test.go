@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"slices"
 	"testing"
-	"time"
 
 	"againrom/pkg/ui"
 )
@@ -16,7 +15,7 @@ func releaseTavernApp(t *testing.T, f *FrontEnd, store SaveStore) (*ui.App, *tow
 	t.Helper()
 	app := f.App("tavern speaker")
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	for _, target := range []string{"load game", "@first", "TAVERN"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatalf("activate %q: %v", target, err)
@@ -116,7 +115,7 @@ func hearKeptTavernSpeakerTwice(t *testing.T, app *ui.App, f *FrontEnd, s *townS
 func TestReleaseTavernSpeakerStaysAndRepeats(t *testing.T) {
 	f := releaseFront(t)
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	var speaker TownOffer
 	for _, o := range f.Town.Offers(TownTavern) {
 		if o.Mission > 0 {
@@ -132,19 +131,19 @@ func TestReleaseTavernSpeakerStaysAndRepeats(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Unix(200, 0), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	app, s := releaseTavernApp(t, f, store)
 	hearTavernSpeakerTwice(t, app, f, s, speaker)
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil || !IsOriginal(name) {
 		t.Fatalf("town SAVE = %q, %v", name, err)

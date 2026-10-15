@@ -8,13 +8,12 @@ import (
 )
 
 func TestReleaseFireballUsesPartyVisiblePointFromOwnerSave(t *testing.T) {
-	path, _ := groundCorpusFile(t, "2026-09-15/mission111-portrait-input.ags",
-		"522d5cd01dea60a6d64637884f0427b58888c329be3458259c14d17bce5afe35")
+	path, _ := ownerCurrentSAV(t, "mission111-portrait-input")
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("Fireball reach")
 	defer a.StopAudio()
-	_, list, load := agsSaveSeams(f, SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
+	_, list, load := f.SaveSeams(SaveStore{Dir: filepath.Dir(path)}, OriginalStore{}, nil)
 	a.SetSaveSeams(nil, list, load)
 	groundAppLoad(t, a, list, filepath.Base(path))
 	a.Layout(1024, 768)

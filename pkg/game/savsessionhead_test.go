@@ -126,16 +126,8 @@ func TestReleaseMissionSAVConstructsAbsentSessionTimer(t *testing.T) {
 	if err != nil || f.live.world.RawSessionHead() != ([48]byte{}) || checkpoint.SavedDocument != nil {
 		t.Fatal("ordinary SAV projection mutated the live checkpoint or attached retained source state", err)
 	}
-	native, err := EncodeSave(checkpoint, "retained timer")
-	if err != nil {
-		t.Fatal(err)
-	}
-	restored, _, err := DecodeSave(native)
-	if err != nil {
-		t.Fatal(err)
-	}
 	g := releaseFront(t)
-	opener, town, err := g.Restore(restored)
+	opener, town, err := g.RestoreOriginal(raw)
 	if err != nil || town || opener == nil {
 		t.Fatal("native checkpoint LOAD", err)
 	}

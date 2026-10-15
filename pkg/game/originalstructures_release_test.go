@@ -142,8 +142,8 @@ func TestReleaseOriginalStructures1098HealthRuinAndNativeSave(t *testing.T) {
 			if err := app.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
-			entries, err := listAGS(store)
-			if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+			entries, err := localSAVRows(store)
+			if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 				t.Fatalf("SAVE %+v %v", entries, err)
 			}
 			groundAppLoad(t, app, list, entries[0].Name)

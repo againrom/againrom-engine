@@ -361,46 +361,30 @@ func newGroupDocument1115(t *testing.T, f *FrontEnd, want []newGroupWant1115, du
 
 func newGroupNative1115(t *testing.T, f *FrontEnd, snapshot Snapshot, destination int32) *FrontEnd {
 	t.Helper()
-	snapshot.ghost, snapshot.terrainBase = nil, nil
-	native, err := EncodeSave(snapshot, "generated exact Groups")
+	native, err := f.ExportCurrentSave(snapshot, "generated exact Groups")
 	if err != nil {
 		t.Fatal(err)
-	}
-	loaded, label, err := DecodeSave(native)
-	if err != nil || label != "generated exact Groups" || !reflect.DeepEqual(loaded, snapshot) {
-		t.Fatal("AGS lost current graph/native state", label, err)
-	}
-	// Live ticks populate the existing Residue.Swing/Phase maps. Gob does not
-	// promise map entry order; require every decoded field, including those
-	// maps, to agree instead of mistaking envelope byte order for state drift.
-	again, err := EncodeSave(loaded, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, secondLabel, err := DecodeSave(again)
-	if err != nil || secondLabel != label || !reflect.DeepEqual(second, snapshot) {
-		t.Fatal("AGS second complete decoded Snapshot is not stable", err)
 	}
 	fresh := newGroupFront(t, destination)
-	open, town, err := fresh.Restore(loaded)
-	if err != nil || town {
-		t.Fatal("generated Group AGS prepare", town, err)
+	if _, err := fresh.LoadObservedSAV(native); err != nil {
+		t.Fatal("current Group SAV LOAD", err)
 	}
-	if err := fresh.App("generated Group AGS resume").OpenMission(open); err != nil {
-		t.Fatal(err)
+	if f.live.world.Hash() != fresh.live.world.Hash() || !sameResave(t, f, fresh) {
+		t.Fatal("current Group SAVE/LOAD lost exact source state")
 	}
-	restored := groupDocumentSnapshot(t, fresh)
-	if !reflect.DeepEqual(restored.SavedDocument, snapshot.SavedDocument) || f.live.world.Hash() != fresh.live.world.Hash() {
-		t.Fatal("AGS Restore/OpenMission/Snapshot changed exact state")
-	}
-	beforeSAV, err := sav.EncodeDocumentData(*snapshot.SavedDocument.Document)
+	secondSnapshot, _, err := fresh.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	afterSAV, err := sav.EncodeDocumentData(*restored.SavedDocument.Document)
-	if err != nil || !bytes.Equal(beforeSAV, afterSAV) {
-		t.Fatal("SAV document bytes changed across AGS Restore", err)
+	secondBytes, err := fresh.ExportCurrentSave(secondSnapshot, "generated exact Groups")
+	if err != nil {
+		t.Fatal(err)
 	}
+	second := newGroupFront(t, destination)
+	if _, err = second.LoadObservedSAV(secondBytes); err != nil || second.live.world.Hash() != f.live.world.Hash() || !sameResave(t, f, second) {
+		t.Fatal("second Group SAVE/cold LOAD lost source state", err)
+	}
+	fresh = second
 	for tick := range 20 {
 		f.live.tick()
 		fresh.live.tick()
@@ -408,7 +392,9 @@ func newGroupNative1115(t *testing.T, f *FrontEnd, snapshot Snapshot, destinatio
 			t.Fatal("generated Group AGS continuation diverged at", tick)
 		}
 	}
-	return fresh
+	// Keep the independent literal source graph as the next generation's oracle.
+	// Both current SAV generations above still continue from cold LOAD for20 ticks.
+	return f
 }
 
 func newGroupSAV1115(t *testing.T, f *FrontEnd, snapshot Snapshot, want []newGroupWant1115, destination int32) {
@@ -580,5 +566,29 @@ func TestSavedGroupNew1115DuplicateSlotKeepsExactIdentityAndHandoverGap(t *testi
 			t.Fatal("failed Group transaction changed retained inline records", object)
 		}
 	}
-	newGroupNative1115(t, f, gap, 1)
+	// DIV-788: an ambiguous destination has no exact current Player container.
+	hash := f.live.world.Hash()
+	if out, err := f.ExportCurrentSave(gap, "ambiguous Group container"); err == nil || out != nil || !strings.Contains(err.Error(), "exact native Player container") {
+		t.Fatal("ambiguous current Group writer gap changed", err)
+	}
+	if f.live.world.Hash() != hash || !reflect.DeepEqual(groupDocumentSnapshot(t, f).SavedDocument, gap.SavedDocument) {
+		t.Fatal("refused ambiguous Group SAVE changed source state")
+	}
+	for range 20 {
+		f.live.tick()
+	}
+	after := groupDocumentSnapshot(t, f)
+	if !strings.Contains(after.SavedDocument.GroupBindings.Unavailable, "exact native Player container") {
+		t.Fatal("next20 ticks erased the exact-container gap")
+	}
+	afterGroups, _, _ := f.live.world.SavedGroups()
+	if len(afterGroups) != 6 || afterGroups[5].ID != 7 || afterGroups[5].ContainerID != 0 || !slices.Equal(newGroupMemberKeys1115(t, f.live.world, afterGroups[5]), []uint32{newGroupA}) {
+		t.Fatal("ambiguous Group next20 gameplay changed exact identity", afterGroups)
+	}
+	for _, object := range initial.SavedDocument.Document.Players {
+		if object != 0 && !reflect.DeepEqual(after.SavedDocument.Document.Objects[object-1].Groups, initial.SavedDocument.Document.Objects[object-1].Groups) {
+			t.Fatal("next20 failed Group transaction changed retained inline records", object)
+		}
+	}
+
 }

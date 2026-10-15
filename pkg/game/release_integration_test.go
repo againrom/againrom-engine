@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/gob"
 	"fmt"
 	"image"
 	"io"
@@ -67,7 +66,7 @@ func TestReleaseSave666ProductionHeadlessScenarioKeepsCharacterOwnership(t *test
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("0152-release-headless")
-	app.SetSaveSeams(agsSaveSeams(f, SaveStore{Dir: scenario.Saves}, OriginalStore{Dir: scenario.OriginalSaves}, nil))
+	app.SetSaveSeams(f.SaveSeams(SaveStore{Dir: scenario.Saves}, OriginalStore{Dir: scenario.OriginalSaves}, nil))
 	if err := RunHeadlessScenario(f, app, scenario, io.Discard, io.Discard); err != nil {
 		t.Fatal(err)
 	}
@@ -1037,16 +1036,12 @@ func TestReleaseCampaignJoinRoutesAreImmediateInteractiveAndPersistent(t *testin
 			if len(snap.Party) != 1 {
 				t.Fatalf("joined npc%d save mint prefix = %#v, want only entry hero", tc.npc, snap.Party)
 			}
-			encoded, err := EncodeSave(snap, label)
+			encoded, err := f.ExportCurrentSave(snap, label)
 			if err != nil {
 				t.Fatalf("encode joined npc%d: %v", tc.npc, err)
 			}
-			decoded, _, err := DecodeSave(encoded)
-			if err != nil {
-				t.Fatalf("decode joined npc%d: %v", tc.npc, err)
-			}
 			restored := releaseFront(t)
-			opener, town, err := restored.Restore(decoded)
+			opener, town, err := restored.RestoreOriginal(encoded)
 			if err != nil || town || opener == nil {
 				t.Fatalf("prepare joined npc%d restore = opener %v town %v err %v", tc.npc, opener != nil, town, err)
 			}
@@ -1176,13 +1171,13 @@ func TestReleaseGeneratedCharacterLaunchSaveLoadAndCampaignContinuity(t *testing
 
 	dir := t.TempDir()
 	at := time.Date(2026, 8, 14, 12, 0, 0, 0, time.UTC)
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, func() time.Time { return at })
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, func() time.Time { return at })
 	name, err := save(true)
 	if err != nil {
 		t.Fatalf("save generated mission: %v", err)
 	}
 	restored := releaseFront(t)
-	_, _, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, _, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	open, town, err := load(localOriginalSavePrefix + name)
 	if err != nil || town || open == nil {
 		t.Fatalf("load generated mission = opener %v town %v err %v", open != nil, town, err)
@@ -1223,24 +1218,16 @@ func TestReleaseLoadCandidateKeepsTheLiveMissionUntilCommit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	valid := snap
-	stale := snap
-	stale.World = append([]byte(nil), stale.World...)
-	// Version 65 is now the immediately previous, losslessly migratable form.
-	// Use the unwritten version 51 hole so this fixture continues to exercise a
-	// candidate the loader must refuse rather than a valid old save.
-	stale.World[0] = 51
-
 	store := SaveStore{Dir: t.TempDir()}
-	var hostile bytes.Buffer
-	if err := gob.NewEncoder(&hostile).Encode(stale); err != nil {
+	invalidBytes, err := f.ExportCurrentSave(snap, "invalid candidate")
+	if err != nil {
 		t.Fatal(err)
 	}
-	staleBytes := historicalEnvelope(t, hostile.Bytes(), "stale candidate")
-	if _, err := store.Write(time.Date(2026, 8, 16, 17, 0, 0, 0, time.UTC), staleBytes); err != nil {
+	invalidName, err := store.WriteOriginal("", invalidBytes)
+	if err != nil {
 		t.Fatal(err)
 	}
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	oldLive, oldTown, oldHash := f.live, f.Town, f.live.world.Hash()
 
 	if err := app.HeadlessKey("escape"); err != nil {
@@ -1252,29 +1239,33 @@ func TestReleaseLoadCandidateKeepsTheLiveMissionUntilCommit(t *testing.T) {
 	if err := app.HeadlessKey("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessActivate("stale candidate"); err != nil {
+	invalidBytes[0] = '!'
+	if err := os.WriteFile(filepath.Join(store.Dir, invalidName), invalidBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.HeadlessActivate("invalid candidate"); err != nil {
 		t.Fatal(err)
 	}
 	if app.Screen() != ui.ScreenLoad || app.HeadlessGameplayScreen() != ui.ScreenMap ||
 		f.live != oldLive || f.Town != oldTown || f.live.world.Hash() != oldHash {
-		t.Fatalf("stale refusal = screen %v over %v live %v town %v hash %016x",
+		t.Fatalf("invalid refusal = screen %v over %v live %v town %v hash %016x",
 			app.Screen(), app.HeadlessGameplayScreen(), f.live == oldLive, f.Town == oldTown, f.live.world.Hash())
 	}
-	if !strings.Contains(strings.ToLower(app.HeadlessMessage()), "too old") {
-		t.Fatalf("stale refusal = %q", app.HeadlessMessage())
+	if !strings.Contains(strings.ToLower(app.HeadlessMessage()), "magic") {
+		t.Fatalf("invalid refusal = %q", app.HeadlessMessage())
 	}
 
-	if err := app.HeadlessKey("escape"); err != nil {
-		t.Fatal(err)
-	}
-	validBytes, err := EncodeSave(valid, "valid candidate")
+	validBytes, err := f.ExportCurrentSave(snap, "valid candidate")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.Write(time.Date(2026, 8, 16, 17, 0, 1, 0, time.UTC), validBytes); err != nil {
+	if _, err := store.WriteOriginal("", validBytes); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("enter"); err != nil {
+	if err := app.HeadlessKey("escape"); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.HeadlessGameMenuAction("load"); err != nil {
 		t.Fatal(err)
 	}
 	if err := app.HeadlessActivate("valid candidate"); err != nil {

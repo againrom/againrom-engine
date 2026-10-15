@@ -299,17 +299,13 @@ func TestTrainedCityNativeAndSAVContinueByPartyIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	native, err := EncodeSave(snapshot, "trained city")
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(native)
+	native, err := f.ExportCurrentSave(snapshot, "trained city")
 	if err != nil {
 		t.Fatal(err)
 	}
 	fresh := currentTrainingCity(t)
-	if _, town, err := fresh.Restore(decoded); err != nil || !town {
-		t.Fatalf("AGS continuation %t %v", town, err)
+	if _, town, err := fresh.RestoreOriginal(native); err != nil || !town {
+		t.Fatalf("current SAV continuation %t %v", town, err)
 	}
 	if !reflect.DeepEqual(trainingPartyMember(t, fresh, "hero"), hero) {
 		t.Fatal("native lost typed current state")
@@ -430,19 +426,11 @@ func TestTrainedHumanPanelsUseStoredSpeedAndIndependentAggregate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(Snapshot{Mission: 10, Party: []mapload.PartyMember{p}, World: world}, "retained panel")
-	if err != nil {
-		t.Fatal(err)
-	}
-	snapshot, _, err := DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
 	var fresh sim.World
-	if err := fresh.UnmarshalBinary(snapshot.World); err != nil {
+	if err := fresh.UnmarshalBinary(world); err != nil {
 		t.Fatal(err)
 	}
-	assertPanel(&fresh, snapshot.Party[0])
+	assertPanel(&fresh, mapload.CloneParty([]mapload.PartyMember{p})[0])
 }
 
 func TestTrainedCityMalformedCurrentInputIsAtomic(t *testing.T) {
@@ -571,33 +559,13 @@ func TestTrainedCityRetainedFieldsCannotReplaceCurrentHuman(t *testing.T) {
 	}
 }
 
-func TestTrainedCityLegacyNativeDefaultsAndMalformedHistory(t *testing.T) {
+func TestTrainedCityCurrentSourceWithoutOriginalHumanStillTrains(t *testing.T) {
 	f := currentTrainingCity(t)
-	s, _, err := f.Snapshot(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := range s.Party {
-		s.Party[i].OriginalHuman = nil
-	}
-	for i := range s.OriginalCity.Bindings {
-		s.OriginalCity.Bindings[i].Baseline.OriginalHuman = nil
-	}
-	if _, _, err := f.Restore(s); err != nil {
-		t.Fatal("legacy baseline rejected", err)
+	for i := range f.Carried {
+		f.Carried[i].OriginalHuman = nil
 	}
 	if msg := train1099(t, f, "hero", 0); !strings.HasPrefix(msg, "trained ") {
 		t.Fatal(msg)
-	}
-	for _, slots := range [][]uint8{{0}, {6}, make([]uint8, maxCityTraining+1)} {
-		s.OriginalCity.Bindings[0].Training = slots
-		before := f.Town
-		if _, _, err := f.Restore(s); err == nil {
-			t.Fatal("invalid history accepted")
-		}
-		if f.Town != before {
-			t.Fatal("invalid history committed a candidate")
-		}
 	}
 }
 

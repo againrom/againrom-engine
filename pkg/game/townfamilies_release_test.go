@@ -100,7 +100,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBefore, err := EncodeSave(before, label)
+	nativeBefore, err := f.ExportCurrentSave(before, label)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,7 +275,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAfter, err := EncodeSave(after, label)
+	nativeAfter, err := f.ExportCurrentSave(after, label)
 	if err != nil {
 		t.Fatal(err)
 	}

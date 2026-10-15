@@ -87,19 +87,20 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	if len(fighter) == 0 || len(mage) == 0 || fighter[0].Mage || !mage[0].Mage {
 		t.Fatal("installed chargen did not provide both school classes")
 	}
+	mage[0].ID, mage[0].StartingHero = "player:training-mage", false
 	f.Carried = mapload.OwnParty([]mapload.PartyMember{fighter[0], mage[0]})
 	f.Town.gold = 100000
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snapshot, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snapshot, label)
+	payload, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Unix(1124, 0), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 
@@ -131,7 +132,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 
 	app := f.App("1124-installed-school-training")
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.HeadlessActivate("load game"); err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +167,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBefore, err := EncodeSave(before, "same")
+	nativeBefore, err := f.ExportCurrentSave(before, "same")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +341,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAfter, err := EncodeSave(after, "same")
+	nativeAfter, err := f.ExportCurrentSave(after, "same")
 	if err != nil {
 		t.Fatal(err)
 	}

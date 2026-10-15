@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"testing"
-	"time"
 )
 
 // TestDrawableLabelSubstitutesForRunesTheLoadFontCannotDraw pins the
@@ -48,19 +47,17 @@ func TestDrawableLabelSubstitutesForRunesTheLoadFontCannotDraw(t *testing.T) {
 // does not rewrite one to make it render.
 func TestTheLoadRowOfALegacyEmDashSaveIsDrawableAndTheFileIsUntouched(t *testing.T) {
 	const legacy = "mission 30 \u2014 tick 176 \u2014 gold 70"
-	const want = "mission 30 - tick 176 - gold 70"
+	const rawLegacy = "mission 30 \x97 tick 176 \x97 gold 70"
+	const want = "mission 30 - tick 176 - gold 70 - between missions"
 
-	data, err := EncodeSave(Snapshot{Gold: 70}, legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := originalWriterLabeled(t, rawLegacy)
 	store := SaveStore{Dir: t.TempDir()}
-	name, err := store.Write(time.Date(2026, 8, 14, 23, 52, 33, 0, time.UTC), data)
+	name, err := store.WriteOriginal("", data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, list, _ := agsSaveSeams(&FrontEnd{}, store, OriginalStore{Dir: t.TempDir()}, nil)
+	_, list, _ := (&FrontEnd{}).SaveSeams(store, OriginalStore{Dir: t.TempDir()}, nil)
 	rows := list()
 	if len(rows) != 1 {
 		t.Fatalf("load rows = %v, want one", rows)
@@ -69,11 +66,11 @@ func TestTheLoadRowOfALegacyEmDashSaveIsDrawableAndTheFileIsUntouched(t *testing
 		t.Fatalf("drawn row label = %q, want %q", rows[0].Label, want)
 	}
 
-	listed, err := listAGS(store)
+	listed, err := store.List()
 	if err != nil || len(listed) != 1 {
 		t.Fatalf("List = (%v, %v), want one row", listed, err)
 	}
-	if listed[0].Label != legacy {
+	if listed[0].Label != legacy+" - between missions" {
 		t.Fatalf("stored label reported as %q; the store reports the header, not the row", listed[0].Label)
 	}
 
@@ -81,7 +78,7 @@ func TestTheLoadRowOfALegacyEmDashSaveIsDrawableAndTheFileIsUntouched(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(body, []byte(legacy)) {
+	if !bytes.Equal(body, data) || !bytes.Contains(body, []byte(rawLegacy)) {
 		t.Fatal("the stored label was rewritten; the substitution must be for display only")
 	}
 }

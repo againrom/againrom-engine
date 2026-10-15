@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"againrom/pkg/render/text"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -104,4 +105,19 @@ func TestLiveNoticePagesReportsEveryPageOfAnOpenLoadNotice(t *testing.T) {
 			t.Errorf("page %d: %d produced, %d drawn", i+1, p.Produced, p.Drawn)
 		}
 	}
+}
+
+// openLoadNotice posts test pages through the ordinary dialogue viewer.
+// It leaves the event payload empty so advanceNotice pages only these strings.
+func (mw *mapWorld) openLoadNotice(pages []string) {
+	if len(pages) == 0 {
+		return
+	}
+	m := mw.mission
+	m.open, m.kind, m.payload, m.part, m.portrait = true, ui.NoticeDialogue, nil, 1, false
+	m.pages = pages
+	if m.outcome == sim.OutcomeWon || m.outcome == sim.OutcomeLost {
+		m.outcomeShown = false // restore the terminal panel after the disclosure
+	}
+	mw.view.SetDialogue(ui.Dialogue{Text: pages[0]})
 }

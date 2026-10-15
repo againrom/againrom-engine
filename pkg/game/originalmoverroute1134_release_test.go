@@ -47,8 +47,8 @@ func TestReleaseOriginalMoverRouteRestoresOnLoad1134(t *testing.T) {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{Dir: dir}, nil))
-	_, list, _ := agsSaveSeams(f, store, OriginalStore{Dir: dir}, nil)
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{Dir: dir}, nil))
+	_, list, _ := f.SaveSeams(store, OriginalStore{Dir: dir}, nil)
 	groundAppLoad(t, app, list, "game0021.sav")
 
 	// Independently reconstructed live comparison: walks the file's own
@@ -136,7 +136,7 @@ func TestReleaseOriginalMoverRouteDomainBlockedCellIsNotRefusedAcrossSaveReload1
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatalf("Save after loading a route across a closed cell: %v", err)
 	}
-	entries, err := listAGS(store)
+	entries, err := localSAVRows(store)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("ordinary SAVE: %+v %v", entries, err)
 	}
@@ -215,7 +215,7 @@ func TestReleaseOriginalMoverRouteAnchorGuardSurvivesSaveReload1134(t *testing.T
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatalf("Save after loading an unanchored saved route: %v", err)
 	}
-	entries, err := listAGS(store)
+	entries, err := localSAVRows(store)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("ordinary SAVE: %+v %v", entries, err)
 	}

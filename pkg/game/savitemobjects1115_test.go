@@ -275,7 +275,7 @@ func TestItemObjects1115HostilePairsAndRemapAreAtomic(t *testing.T) {
 			}
 			tc.edit(bad.SavedDocument)
 			hash := f.live.world.Hash()
-			if _, err := savedDocumentFromSnapshot(bad); err == nil {
+			if err := restoreSavedDocument(&Mission{World: f.live.world}, bad.SavedDocument); err == nil {
 				t.Fatal("hostile pair admitted")
 			}
 			if f.live.world.Hash() != hash || !reflect.DeepEqual(snapshotCurrentObjects(t, f), before) {

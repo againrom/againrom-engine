@@ -18,6 +18,7 @@ func TestReleaseWorldMapMarkerHistorySurvivesNativeSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	reachabilityWalkArrive(t, f, "Marker history")
 	mission, noPictureMission := markerCurrentRecords(t, f)
 	screen := f.TownScreen().(*townScreen)
 	screen.Choose(3)
@@ -53,23 +54,19 @@ func TestReleaseWorldMapMarkerHistorySurvivesNativeSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	encoded, err := EncodeSave(snapshot, label)
+	encoded, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(decoded.WorldSelectedOnce) != 1 || decoded.WorldSelectedOnce[0] != mission {
-		t.Fatalf("encoded marker history = %v, want [%d]", decoded.WorldSelectedOnce, mission)
+	if len(snapshot.WorldSelectedOnce) != 1 || snapshot.WorldSelectedOnce[0] != mission {
+		t.Fatalf("encoded marker history = %v, want [%d]", snapshot.WorldSelectedOnce, mission)
 	}
 
 	restored, err := NewFrontEnd(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if open, town, err := restored.Restore(decoded); err != nil || open != nil || !town {
+	if open, town, err := restored.RestoreOriginal(encoded); err != nil || open != nil || !town {
 		t.Fatalf("Restore = opener %v town %v err %v", open != nil, town, err)
 	}
 	back := restored.TownScreen().(*townScreen)
@@ -83,6 +80,7 @@ func TestReleaseWorldMapMarkerHistorySurvivesNativeSaveLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	reachabilityWalkArrive(t, fresh, "Marker history")
 	freshMission, freshNoPicture := markerCurrentRecords(t, fresh)
 	if freshMission != mission || freshNoPicture != noPictureMission {
 		t.Fatal("fresh marker fixture identities changed")

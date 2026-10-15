@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -91,7 +90,7 @@ func TestReleaseMilestone2Players1154(t *testing.T) {
 	}
 	fresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 	after := check(fresh)
-	if !bytes.Equal(before.World, after.World) || !reflect.DeepEqual(before.SavedDocument, after.SavedDocument) {
+	if !bytes.Equal(before.World, after.World) || !sameResave(t, f, fresh) {
 		t.Fatal("menu SAVE/fresh LOAD changed Player retention or World")
 	}
 	for step := 0; step < 20; step++ {

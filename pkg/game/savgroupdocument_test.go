@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -60,24 +61,88 @@ func groupDocumentBindings1115(t *testing.T, state *SnapshotSAVDocument, world *
 	if state == nil || state.Document == nil || state.GroupBindings == nil {
 		t.Fatal("missing group projection state")
 	}
+	actions, err := readCurrentActions(state.Document)
+	if err != nil {
+		t.Fatal("invalid current actor identity carrier", err)
+	}
+	if actions != nil {
+		// Native object keys and reachability Groups are transport. The
+		// independent World hash and next actions remain the state oracle.
+		if _, err := cloneSavedDocument(state); err != nil {
+			t.Fatal("invalid current native bindings", err)
+		}
+		if err := validateSavedDocumentWorld(state, world); err != nil {
+			t.Fatal("current actor bindings differ from World", err)
+		}
+		if err := validateSavedGroupBindingWorld(state, world); err != nil {
+			t.Fatal("current Group bindings differ from World", err)
+		}
+		if _, err := sav.EncodeDocumentData(*state.Document); err != nil {
+			t.Fatal("invalid typed current SAV", err)
+		}
+		actors := map[sim.EntityID]sim.Entity{}
+		for _, actor := range world.Entities() {
+			actors[actor.ID] = actor
+		}
+		if len(actors) != 5 {
+			t.Fatal("independent source World actor population changed", len(actors))
+		}
+		actionObjects := map[sim.EntityID]uint16{}
+		for _, binding := range actions.Bindings {
+			if binding.Structure || binding.Missing {
+				continue
+			}
+			if actionObjects[binding.ID] != 0 {
+				t.Fatal("duplicate current-action actor binding", binding)
+			}
+			actionObjects[binding.ID] = binding.Object
+		}
+		if len(actionObjects) != 5 {
+			t.Fatal("current-action actor coverage differs from source World", actionObjects)
+		}
+		seen := map[sim.EntityID]bool{}
+		objects := map[uint16]bool{}
+		source := map[sim.EntityID]uint16{}
+		for _, binding := range state.Actors {
+			actor, exists := actors[binding.EntityID]
+			if binding.Retired || !exists || seen[binding.EntityID] || binding.ObjectIndex == 0 || int(binding.ObjectIndex) > len(state.Document.Objects) || objects[binding.ObjectIndex] || actionObjects[binding.EntityID] != binding.ObjectIndex {
+				t.Fatal("current SAV actor coverage differs from source World", binding)
+			}
+			if !currentActorRecordMatches(world, actor, state.Document.Objects[binding.ObjectIndex-1]) {
+				t.Fatal("current actor record has wrong World class", binding)
+			}
+			seen[binding.EntityID] = true
+			objects[binding.ObjectIndex] = true
+			if actor.SourceBinding.Class != 0 {
+				source[binding.EntityID] = binding.ObjectIndex
+			}
+		}
+		if len(seen) != 5 {
+			t.Fatal("current SAV lost source World actor IDs", seen)
+		}
+		return source
+	}
 	byNative := map[sim.EntityID]uint32{}
 	for _, actor := range world.Entities() {
 		if actor.SourceBinding.Class != 0 {
 			byNative[actor.ID] = actor.SourceBinding.Identity
 		}
 	}
+	originalKeys := map[uint32]bool{1004: false, 1006: false, 1007: false}
 	out := map[sim.EntityID]uint16{}
 	for _, binding := range state.Actors {
 		if binding.Retired {
 			continue
 		}
 		if binding.ObjectIndex == 0 || int(binding.ObjectIndex) > len(state.Document.Objects) {
-			t.Fatal("invalid current actor object binding", binding)
+			t.Fatal("invalid original actor object binding", binding)
 		}
 		key := actorProjectionValue(t, state.Document.Objects[binding.ObjectIndex-1], "Identity")
-		if key != byNative[binding.EntityID] {
+		seen, known := originalKeys[key]
+		if key != byNative[binding.EntityID] || !known || seen || out[binding.EntityID] != 0 {
 			t.Fatal("actor reindex bound a different source identity", binding, key, byNative)
 		}
+		originalKeys[key] = true
 		out[binding.EntityID] = binding.ObjectIndex
 	}
 	boundMembers := 0
@@ -87,20 +152,19 @@ func groupDocumentBindings1115(t *testing.T, state *SnapshotSAVDocument, world *
 		}
 		boundMembers++
 		if out[binding.EntityID] == 0 || binding.ObjectIndex != out[binding.EntityID] {
-			t.Fatal("Group member reindex disagrees with actor reindex", binding, out)
+			t.Fatal("Group member reindex disagrees with original actor reindex", binding, out)
 		}
 	}
 	if len(out) != 3 || boundMembers != 3 || len(state.GroupBindings.Groups) != 1 {
 		t.Fatal("incomplete original Group bindings", out, boundMembers, state.GroupBindings.Groups)
 	}
-	for _, binding := range state.GroupBindings.Groups {
-		if binding.ID != 1 || binding.PlayerObject == 0 || int(binding.PlayerObject) > len(state.Document.Objects) {
-			t.Fatal("wrong original Group identity/Player binding", binding)
-		}
-		player := state.Document.Objects[binding.PlayerObject-1]
-		if player.Class != "Player" || binding.InlineIndex != 0 || len(player.Groups) != 1 || player.Groups[0].Class != "Group" {
-			t.Fatal("Group reindex lost enclosing Player/inline location", binding, player.Class)
-		}
+	binding := state.GroupBindings.Groups[0]
+	if binding.ID != 1 || binding.PlayerObject == 0 || int(binding.PlayerObject) > len(state.Document.Objects) {
+		t.Fatal("wrong original Group identity/Player binding", binding)
+	}
+	player := state.Document.Objects[binding.PlayerObject-1]
+	if player.Class != "Player" || binding.InlineIndex != 0 || len(player.Groups) != 1 || player.Groups[0].Class != "Group" {
+		t.Fatal("original Group lost enclosing Player/inline location", binding, player.Class)
 	}
 	return out
 }
@@ -111,12 +175,12 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		incoming, _, err := DecodeSave(raw)
+		incoming, err := sav.DecodeDocumentData(raw)
 		if err != nil {
 			t.Fatal(err)
 		}
 		front := groupDocumentFront1115(t)
-		open, town, err := front.Restore(incoming)
+		open, town, err := front.RestoreOriginal(raw)
 		if err != nil || town {
 			t.Fatal("fresh reordered native Restore", town, err)
 		}
@@ -124,21 +188,121 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 			t.Fatal(err)
 		}
 		current := groupDocumentSnapshot(t, front)
-		if current.SavedDocument.GroupBindings.Unavailable != "" || !reflect.DeepEqual(current.SavedDocument, incoming.SavedDocument) || fmt.Sprintf("%x", front.live.world.Hash()) != os.Getenv("AGAINROM_GROUP_DOCUMENT1115_WORLD") {
-			t.Fatal("fresh reordered native LOAD/Snapshot lost graph, bindings or World")
+		if current.SavedDocument.GroupBindings.Unavailable != "" {
+			t.Fatalf("fresh reordered SAV has unavailable Group bindings: %q", current.SavedDocument.GroupBindings.Unavailable)
+		}
+		if got := fmt.Sprintf("%x", front.live.world.Hash()); got != os.Getenv("AGAINROM_GROUP_DOCUMENT1115_WORLD") {
+			sourceBytes, readErr := os.ReadFile(os.Getenv("AGAINROM_GROUP_DOCUMENT1115_SOURCE_WORLD"))
+			if readErr != nil {
+				t.Fatal("read independent source World diagnostic", readErr)
+			}
+			var source sim.World
+			if err := source.UnmarshalBinary(sourceBytes); err != nil {
+				t.Fatal("decode independent source World diagnostic", err)
+			}
+			sourceGroups, sourceOrders, sourceGroupsPresent := source.SavedGroups()
+			coldGroups, coldOrders, coldGroupsPresent := front.live.world.SavedGroups()
+			sourcePlayers, sourcePlayersPresent := source.SavedGroupPlayers()
+			coldPlayers, coldPlayersPresent := front.live.world.SavedGroupPlayers()
+			sourceClock, sourceClockPresent := source.SessionClock()
+			coldClock, coldClockPresent := front.live.world.SessionClock()
+			t.Logf("source clock=%+v/%t cold=%+v/%t", sourceClock, sourceClockPresent, coldClock, coldClockPresent)
+			for i, actor := range source.Entities() {
+				cold := front.live.world.Entities()
+				if i >= len(cold) {
+					t.Logf("source actor %d absent in cold census", actor.ID)
+					continue
+				}
+				if !reflect.DeepEqual(actor, cold[i]) {
+					t.Logf("entity %d/%d state differs; source binding=%+v cold binding=%+v", actor.ID, cold[i].ID, actor.SourceBinding, cold[i].SourceBinding)
+				}
+			}
+			if sourceGroupsPresent != coldGroupsPresent || !reflect.DeepEqual(sourceGroups, coldGroups) || !reflect.DeepEqual(sourceOrders, coldOrders) {
+				t.Logf("source Groups=%+v orders=%+v present=%t\ncold Groups=%+v orders=%+v present=%t", sourceGroups, sourceOrders, sourceGroupsPresent, coldGroups, coldOrders, coldGroupsPresent)
+			}
+			if sourcePlayersPresent != coldPlayersPresent || !reflect.DeepEqual(sourcePlayers, coldPlayers) {
+				t.Logf("source Players=%+v/%t cold=%+v/%t", sourcePlayers, sourcePlayersPresent, coldPlayers, coldPlayersPresent)
+			}
+			t.Fatalf("fresh reordered SAV changed source World: want=%s got=%s", os.Getenv("AGAINROM_GROUP_DOCUMENT1115_WORLD"), got)
 		}
 		groupDocumentBindings1115(t, current.SavedDocument, front.live.world)
-		doc, err := sav.EncodeDocumentData(*current.SavedDocument.Document)
-		if err != nil || fmt.Sprintf("%x", sha256.Sum256(doc)) != os.Getenv("AGAINROM_GROUP_DOCUMENT1115_SAV") {
-			t.Fatal("fresh reordered graph does not export the same SAV", err)
+		retained := front.live.mission.state.savedDocument
+		if retained == nil || retained.Document == nil {
+			t.Fatal("cold SAV lost retained source graph")
 		}
-		again, err := EncodeSave(current, "fresh reordered Group")
+		inputCanonical, err := canonicalDocument1115(t, incoming)
+		if err != nil || fmt.Sprintf("%x", sha256.Sum256(inputCanonical)) != os.Getenv("AGAINROM_GROUP_DOCUMENT1115_SAV") {
+			t.Fatal("cold process input differs from source SAV", err)
+		}
+		beforeActions, beforeErr := readCurrentActions(&incoming)
+		afterActions, afterErr := readCurrentActions(retained.Document)
+		if beforeErr != nil || afterErr != nil || beforeActions == nil || afterActions == nil {
+			t.Fatal("current-actions semantic input absent", beforeErr, afterErr)
+		}
+		beforeJSON, err := json.Marshal(beforeActions)
 		if err != nil {
 			t.Fatal(err)
 		}
-		reloaded, _, err := DecodeSave(again)
-		if err != nil || !reflect.DeepEqual(reloaded.SavedDocument, incoming.SavedDocument) {
-			t.Fatal("fresh LOAD to second native SAVE changed graph/bindings", err)
+		afterJSON, err := json.Marshal(afterActions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(beforeJSON, afterJSON) {
+			currentItemFieldDiagnostics(t, "current-actions", reflect.ValueOf(beforeActions), reflect.ValueOf(afterActions))
+			t.Fatal("cold LOAD changed typed current-actions semantics")
+		}
+		normalized, err := sav.DecodeDocumentData(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		sourceBytes, err := os.ReadFile(os.Getenv("AGAINROM_GROUP_DOCUMENT1115_SOURCE_WORLD"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var independent sim.World
+		if err = independent.UnmarshalBinary(sourceBytes); err != nil {
+			t.Fatal(err)
+		}
+		haveSourceOwnerZero := false
+		for _, actor := range independent.Entities() {
+			if actor.Owner == 0 {
+				haveSourceOwnerZero = true
+			}
+		}
+		if !haveSourceOwnerZero || fmt.Sprintf("%x", independent.Hash()) != os.Getenv("AGAINROM_GROUP_DOCUMENT1115_WORLD") {
+			t.Fatal("native zero-slot policy lacks independent source World owner")
+		}
+		if len(beforeActions.PlayerSlots) != 1 {
+			t.Fatal("unexpected native Player slot policy population", beforeActions.PlayerSlots)
+		}
+		policy := beforeActions.PlayerSlots[0]
+		if policy.Object == 0 || int(policy.Object) > len(normalized.Objects) || policy.Wire != 2 || policy.Native != 0 || policy.Trigger != nil || policy.Shared {
+			t.Fatal("unexpected native zero-slot policy", policy)
+		}
+		player := &normalized.Objects[policy.Object-1]
+		if player.Class != "Player" || actorProjectionValue(t, *player, "Slot") != policy.Wire || actorProjectionValue(t, *player, "SlotAgain") != policy.Wire {
+			t.Fatal("native zero-slot policy does not match both incoming wire fields", policy)
+		}
+		// restoreCurrentPlayerSlots restores these two transport spellings to
+		// native slot zero. All other ordinary and unknown bytes stay exact.
+		newGroupSetValue1115(t, player, "Slot", policy.Native)
+		newGroupSetValue1115(t, player, "SlotAgain", policy.Native)
+		expected, err := canonicalDocument1115(t, normalized)
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc, err := canonicalDocument1115(t, *retained.Document)
+		if err != nil || !bytes.Equal(expected, doc) {
+			t.Fatal("cold SAV changed ordinary or unknown graph fields beyond validated slot policy", err)
+		}
+		t.Log("typed current-actions semantics and ordinary graph with exact native Slot/SlotAgain policy PASS")
+		again, err := front.ExportCurrentSave(current, "fresh reordered Group")
+		if err != nil {
+			t.Fatal(err)
+		}
+		second := groupDocumentFront1115(t)
+		if _, err = second.LoadObservedSAV(again); err != nil || second.live.world.Hash() != front.live.world.Hash() || !sameResave(t, front, second) {
+			t.Fatal("second SAV lost current graph/bindings", err)
 		}
 		for range 20 {
 			front.live.tick()
@@ -151,6 +315,26 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 	}
 	front := groupDocumentFront1115(t)
 	raw := groupDocumentLiteral1115(t, front)
+	// The source selector belongs to the native Group and its imported actor
+	// bindings. Construct it before LOAD rather than forging a stale cache.
+	sourceDocument, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seenPlayers := map[uint16]bool{}
+	for _, index := range sourceDocument.Players {
+		if index == 0 || seenPlayers[index] {
+			continue
+		}
+		seenPlayers[index] = true
+		for i := range sourceDocument.Objects[index-1].Groups {
+			newGroupSetValue1115(t, &sourceDocument.Objects[index-1].Groups[i], "G1C", 0xfedcba98)
+		}
+	}
+	raw, err = sav.EncodeDocumentData(sourceDocument)
+	if err != nil {
+		t.Fatal(err)
+	}
 	mission, report, err := loadOriginalMission(front, raw)
 	if err != nil || report.GroupsRestored != 1 {
 		t.Fatal("production diagnostic import", err, report)
@@ -180,7 +364,6 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 	}
 	oldMembers := slices.Clone(groups[0].Members)
 	groups[0].Members = []sim.SavedGroupMember{oldMembers[3], oldMembers[0], oldMembers[2], oldMembers[1]}
-	groups[0].Selector = 0xfedcba98
 	groups[0].Words = []uint16{0xff00, 0x1201, 0xff00}
 	groups[0].Path = []uint16{0x1002, 0x3040}
 	groups[0].AI[0x20], groups[0].AI[0x44], groups[0].AI[0x45] = 0xff, 29, 0
@@ -245,19 +428,31 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 	if !reflect.DeepEqual(current.SavedDocument, again.SavedDocument) {
 		t.Fatal("projection is not deterministic")
 	}
-	native, err := EncodeSave(current, "reindexed Group state")
+	native, err := front.ExportCurrentSave(current, "reindexed Group state")
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, _, err := DecodeSave(native)
-	if err != nil || !reflect.DeepEqual(current.SavedDocument, decoded.SavedDocument) {
-		t.Fatal("native format lost reindexed Group metadata", err)
+	writtenDoc, err := sav.DecodeDocumentData(native)
+	if err != nil {
+		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "reindexed-group.ags")
+	expectedDoc, err := canonicalDocument1115(t, writtenDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "reindexed-group.sav")
 	if err := os.WriteFile(path, native, 0600); err != nil {
 		t.Fatal(err)
 	}
 	worldHash := fmt.Sprintf("%x", front.live.world.Hash())
+	sourceWorld, err := front.live.world.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceWorldPath := filepath.Join(filepath.Dir(path), "source-world.bin")
+	if err = os.WriteFile(sourceWorldPath, sourceWorld, 0600); err != nil {
+		t.Fatal(err)
+	}
 	for range 20 {
 		front.live.tick()
 	}
@@ -268,7 +463,8 @@ func TestSavedGroupDocument1115CurrentStateReindexesWholeGraph(t *testing.T) {
 	child := exec.Command(executable, "-test.run=^TestSavedGroupDocument1115CurrentStateReindexesWholeGraph$", "-test.v")
 	child.Env = append(os.Environ(), "AGAINROM_GROUP_DOCUMENT1115_NATIVE="+path,
 		"AGAINROM_GROUP_DOCUMENT1115_WORLD="+worldHash,
-		fmt.Sprintf("AGAINROM_GROUP_DOCUMENT1115_SAV=%x", sha256.Sum256(encoded)),
+		"AGAINROM_GROUP_DOCUMENT1115_SOURCE_WORLD="+sourceWorldPath,
+		fmt.Sprintf("AGAINROM_GROUP_DOCUMENT1115_SAV=%x", sha256.Sum256(expectedDoc)),
 		fmt.Sprintf("AGAINROM_GROUP_DOCUMENT1115_NEXT=%x", front.live.world.Hash()))
 	output, err := child.CombinedOutput()
 	if err != nil || !bytes.Contains(output, []byte("fresh-process native LOAD, Snapshot, SAVE and next20 ticks PASS")) {
@@ -344,7 +540,7 @@ func TestSavedGroupDocument1115AuthoredMoveProjectsCommandGroup(t *testing.T) {
 			if err := os.WriteFile(path, raw, 0600); err != nil {
 				t.Fatal(err)
 			}
-			save, list, load := agsSaveSeams(front, store, OriginalStore{Dir: dir}, nil)
+			save, list, load := front.SaveSeams(store, OriginalStore{Dir: dir}, nil)
 			app.SetSaveSeams(save, list, load)
 			groundAppLoad(t, app, list, "game1115.sav")
 			clear(raw)
@@ -433,7 +629,7 @@ func TestSavedGroupDocument1115AuthoredMoveProjectsCommandGroup(t *testing.T) {
 			}
 			fresh := groupDocumentFront1115(t)
 			freshApp := fresh.App("fresh current native Group")
-			fs, fl, fn := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+			fs, fl, fn := fresh.SaveSeams(store, OriginalStore{}, nil)
 			freshApp.SetSaveSeams(fs, fl, fn)
 			groundAppLoad(t, freshApp, fl, entries[0].Name)
 			gg, oo, has := fresh.live.world.SavedGroups()

@@ -11,40 +11,6 @@ import (
 // The camera is additive snapshot state. A payload written before these fields
 // existed decodes with CameraSet false, which is what keeps an old save opening
 // at the map's start position rather than at cell (0, 0) -- a real map corner.
-func TestSnapshotCameraSurvivesTheNativeEncoding(t *testing.T) {
-	town := NewTown(saveCampaign())
-	var base Snapshot
-	snapshotTown(town, &base)
-
-	legacy, err := EncodeSave(base, "no camera")
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err := DecodeSave(legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if back.CameraSet || back.CameraX != 0 || back.CameraY != 0 || back.CameraZoom != 0 {
-		t.Fatalf("a save with no camera decoded one: %+v", back)
-	}
-
-	withCamera := base
-	withCamera.CameraSet, withCamera.CameraX, withCamera.CameraY, withCamera.CameraZoom = true, -12.5, 27, 2
-	raw, err := EncodeSave(withCamera, "camera")
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err = DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !back.CameraSet || back.CameraX != -12.5 || back.CameraY != 27 || back.CameraZoom != 2 {
-		t.Fatalf("camera round trip = %v (%v, %v, %v)", back.CameraSet, back.CameraX, back.CameraY, back.CameraZoom)
-	}
-	if math.Abs(back.CameraX) > math.MaxInt32 {
-		t.Fatal("decoded camera is outside the restorable range")
-	}
-}
 
 func TestReleaseMissionSaveReopensAtTheSavedCamera(t *testing.T) {
 	f := releaseFront(t)

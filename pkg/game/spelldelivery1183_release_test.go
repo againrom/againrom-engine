@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
+	"againrom/internal/synth"
+	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -28,15 +29,25 @@ func TestReleaseSpellDelivery1183InstalledRulesAndNativeSave(t *testing.T) {
 			t.Fatal("installed delivery column", r.ID, r.Delivery)
 		}
 	}
+	newFront := func() *FrontEnd {
+		g := withCurrentMenuDefinitions(t, poolFixtureFrontMap(t, synth.ALM(synth.ALMOptions{Width: 16, Height: 16})))
+		g.Table.Spells = f.Table.Spells
+		return g
+	}
 	for _, id := range []uint16{1, 2, 13} {
 		t.Run(fmt.Sprint(id), func(t *testing.T) {
 			rule := rules[id-1]
-			caster := sim.Entity{ID: 1, Owner: sim.SelfSlot, X: 1, Y: 1, HP: 100, MaxHP: 100, Mana: 200, MaxMana: 200, ScanRange: 20, KnownSpells: uint32(1) << id, AttackCharge: 8}
-			target := sim.Entity{ID: 2, Owner: 2, X: 5, Y: 1, HP: 1000, MaxHP: 1000, DyingTime: 200}
+			source := newFront()
+			if err := source.App("spell flight source").OpenMission(source.MissionOpenerWith(10, nil)); err != nil {
+				t.Fatal(err)
+			}
+			caster := sim.Entity{ID: 1, Owner: sim.SelfSlot, X: 1, Y: 1, HP: 100, MaxHP: 100, Mana: 200, MaxMana: 200, TypeID: 1, HealthRegenPeriod: 1, ManaRegenPeriod: 1, Capacity: data.UnitCapacity(), ScanRange: 20, KnownSpells: uint32(1) << id, AttackCharge: 8}
+			target := sim.Entity{ID: 2, Owner: 2, X: 5, Y: 1, HP: 1000, MaxHP: 1000, TypeID: 1, HealthRegenPeriod: 1, ManaRegenPeriod: 1, Capacity: data.UnitCapacity(), DyingTime: 200}
 			w, err := sim.NewSpelledWorld(1183, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil, []sim.Entity{caster, target}, nil, rules)
 			if err != nil {
 				t.Fatal(err)
 			}
+			source.live.world, source.live.mission.state.World = w, w
 			cmd := sim.Command{Kind: sim.KindCast, Entity: 1, X: 2, Y: int32(id)}
 			if rule.Area {
 				cmd = sim.Command{Kind: sim.KindCastAt, Entity: 1, X: 5, Y: 1, Spell: id}
@@ -58,16 +69,16 @@ func TestReleaseSpellDelivery1183InstalledRulesAndNativeSave(t *testing.T) {
 			if err := admitEffects(state, w); err != nil {
 				t.Fatal("released delivery refused", err)
 			}
-			b, err := w.MarshalBinary()
+			captured, _, err := source.Snapshot(true)
 			if err != nil {
 				t.Fatal(err)
 			}
-			payload, err := EncodeSave(Snapshot{World: b}, "in flight")
+			payload, err := source.ExportCurrentSave(captured, "in flight")
 			if err != nil {
 				t.Fatal(err)
 			}
 			store := SaveStore{Dir: t.TempDir()}
-			name, err := store.Write(time.Unix(1183, 0), payload)
+			name, err := store.WriteOriginal("", payload)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -75,13 +86,17 @@ func TestReleaseSpellDelivery1183InstalledRulesAndNativeSave(t *testing.T) {
 			if err != nil || !bytes.Equal(payload, read) {
 				t.Fatal("native file", err)
 			}
-			snapshot, _, err := DecodeSave(read)
-			if err != nil {
+			cold := newFront()
+			open, town, err := cold.RestoreOriginal(read)
+			if err != nil || town {
+				t.Fatal("SAV flight LOAD", town, err)
+			}
+			if err := cold.App("spell flight LOAD").OpenMission(open); err != nil {
 				t.Fatal(err)
 			}
-			var back sim.World
-			if err := back.UnmarshalBinary(snapshot.World); err != nil {
-				t.Fatal(err)
+			back := cold.live.world
+			if w.Hash() != back.Hash() || back.PendingSpellDeliveries() != 1 {
+				t.Fatal("SAV flight state changed before continuation")
 			}
 			steps := int(4 * 256 / rule.EffectSpeed)
 			if id == 13 {
@@ -90,7 +105,7 @@ func TestReleaseSpellDelivery1183InstalledRulesAndNativeSave(t *testing.T) {
 			steps++ // A tail transport appends its child for the next list pass.
 			for step := 1; step <= steps; step++ {
 				sim.Step(w, nil)
-				sim.StepObserved(&back, nil)
+				sim.StepObserved(back, nil)
 				if w.Hash() != back.Hash() || step < steps && w.Entities()[1].HP != 1000 {
 					t.Fatal("LOAD or early payload", step)
 				}

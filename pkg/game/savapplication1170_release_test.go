@@ -94,36 +94,14 @@ func applicationPointerPanWitness(t *testing.T, legacy, toggleOption bool) {
 	if err != nil || town {
 		t.Fatal(err)
 	}
-	if legacy {
-		if _, _, _, _, _, _, _, _, _, _, err := open(); err != nil {
-			t.Fatal(err)
-		}
-		snapshot, _, err := f.Snapshot(true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		snapshot.ApplicationState = nil
-		raw, err := EncodeSave(snapshot, "legacy application")
-		if err != nil {
-			t.Fatal(err)
-		}
-		snapshot, _, err = DecodeSave(raw)
-		if err != nil {
-			t.Fatal(err)
-		}
-		f = releaseFront(t)
-		f.Options = OptionsStore{}
-		f.SetDeterministicFrames(true)
-		open, town, err = f.Restore(snapshot)
-		if err != nil || town {
-			t.Fatal(err)
-		}
-	}
 	app := f.App("fractional pointer pan")
 	if err := app.OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
 	app.Layout(1024, 768)
+	if legacy {
+		f.live.applicationState = nil
+	}
 	for _, key := range []string{"0", "select-all"} {
 		if err := app.HeadlessKey(key); err != nil {
 			t.Fatal(err)
@@ -216,16 +194,12 @@ func applicationPointerPanWitness(t *testing.T, legacy, toggleOption bool) {
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("fresh-process LOAD and next action: %v\n%s", err, output)
 	}
-	native, err := EncodeSave(s, "explicit native checkpoint")
+	native, err := f.ExportCurrentSave(s, "explicit current checkpoint")
 	if err != nil {
 		t.Fatal(err)
 	}
-	saved, _, err := DecodeSave(native)
-	if err != nil || !reflect.DeepEqual(saved.ApplicationState.View, want) {
-		t.Fatal("ordinary native SAVE lost fractional current application", err)
-	}
 	cold := releaseFront(t)
-	coldOpen, coldTown, err := cold.Restore(saved)
+	coldOpen, coldTown, err := cold.RestoreOriginal(native)
 	if err != nil || coldTown {
 		t.Fatal(err)
 	}
@@ -258,35 +232,6 @@ func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.
 	wantRaw := OriginalStateData{Wimpy: 7, ShowHP: -7, FlyingHP: 9, Formation: 31, Speed: 99,
 		ShowTimeFlow: -3, InventoryOpen: 6, BookOpen: 5, Pressed: -1, ViewX: 12, ViewY: 24,
 		Selection: []uint32{}}
-	// Both conversion directions must preserve values outside the native UI
-	// subset without a window adoption or a process preference overwrite.
-	// AGS is a retired write target, so the legacy fixture the surviving
-	// AGS->SAV leg below reads is authored directly from converter's own
-	// RestoreOriginal+Snapshot+EncodeSave, the same steps ConvertSave's
-	// removed "-to ags" direction once ran.
-	converter := releaseFront(t)
-	open, sourceTown, err := converter.RestoreOriginal(input)
-	if err != nil {
-		t.Fatal("SAV to AGS", err)
-	}
-	if !sourceTown {
-		if _, _, _, _, _, _, _, _, _, _, err = open(); err != nil {
-			t.Fatal("SAV to AGS", err)
-		}
-	}
-	sourceSnapshot, _, err := converter.Snapshot(!sourceTown)
-	if err != nil {
-		t.Fatal("SAV to AGS", err)
-	}
-	agnostic, err := EncodeSave(sourceSnapshot, "agnostic")
-	if err != nil {
-		t.Fatal("SAV to AGS", err)
-	}
-	converted, _, err := releaseFront(t).ConvertSave(agnostic, "sav", nil)
-	if err != nil {
-		t.Fatal("AGS to SAV", err)
-	}
-	checkRawApplication1170(t, converted, wantRaw)
 	open, town, err := f.RestoreOriginal(input)
 	if err != nil || town {
 		t.Fatalf("original application prepare: %v", err)
@@ -411,16 +356,12 @@ func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.
 	if !bytes.Equal(s.Residue.FogExplored, wantFog) || !bytes.Equal(s.Residue.FogVisible, wantFog) {
 		t.Fatal("current Fog was not captured")
 	}
-	native, err := EncodeSave(s, "current application native checkpoint")
-	if err != nil {
-		t.Fatal(err)
-	}
-	nativeSnapshot, _, err := DecodeSave(native)
+	native, err := f.ExportCurrentSave(s, "current application checkpoint")
 	if err != nil {
 		t.Fatal(err)
 	}
 	nativeFront := releaseFront(t)
-	nativeOpen, nativeTown, err := nativeFront.Restore(nativeSnapshot)
+	nativeOpen, nativeTown, err := nativeFront.RestoreOriginal(native)
 	if err != nil || nativeTown {
 		t.Fatal("current application native restore", err)
 	}
@@ -430,11 +371,8 @@ func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.
 	if !reflect.DeepEqual(nativeFront.live.view.SaveApplication(), wantView) || !bytes.Equal(nativeFront.live.fog.explored, wantFog) || !bytes.Equal(nativeFront.live.fog.visible, wantFog) {
 		t.Fatal("native cold restore changed current application or sampled visibility")
 	}
-	currentConverted, _, err := releaseFront(t).ConvertSave(native, "sav", nil)
-	if err != nil {
-		t.Fatal("current application AGS to SAV", err)
-	}
-	checkRawApplication1170(t, currentConverted, wantRaw)
+	checkRawApplication1170(t, native, wantRaw)
+
 	store := SaveStore{Dir: t.TempDir()}
 	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	key("escape")
@@ -462,10 +400,7 @@ func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.
 		t.Fatal("frozen-source loss controls did not distinguish current state")
 	}
 	clear(input)
-	clear(agnostic)
-	clear(converted)
 	clear(native)
-	clear(currentConverted)
 	for generation := 0; generation < 2; generation++ {
 		fresh := releaseFront(t)
 		open, town, err := fresh.RestoreOriginal(saved)

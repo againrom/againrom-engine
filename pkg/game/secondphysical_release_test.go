@@ -16,25 +16,54 @@ func loadSecondPhysicalApp1104(t *testing.T, f *FrontEnd, path string) *ui.App {
 	t.Helper()
 	app := f.App("1104-second-physical")
 	store, original := SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(path)}
-	if filepath.Ext(path) == ".ags" {
-		store.Dir, original.Dir = filepath.Dir(path), t.TempDir()
-	}
-	save, list, load := agsSaveSeams(f, store, original, nil)
-	app.SetSaveSeams(save, list, load)
+	save, list, load := f.SaveSeams(store, original, nil)
+	wantToken := filepath.Base(path)
+	var rows []ui.SaveEntry
+	loadedToken := ""
+	app.SetSaveSeams(save, func() []ui.SaveEntry {
+		rows = list()
+		return rows
+	}, func(token string) (ui.MapOpener, bool, error) {
+		if token != wantToken {
+			t.Fatalf("App LOAD token %q, want%q", token, wantToken)
+		}
+		loadedToken = token
+		return load(token)
+	})
 	if err := headlessOpenLoad(app); err != nil {
 		t.Fatal(err)
 	}
-	label := ""
-	for _, row := range list() {
-		if row.Name == filepath.Base(path) {
-			label = row.Label
+	selected := -1
+	for i, row := range rows {
+		if row.Name == wantToken {
+			if selected >= 0 {
+				t.Fatal("duplicate exact LOAD token", wantToken)
+			}
+			selected = i
 		}
 	}
-	if label == "" {
+	if selected < 0 {
 		t.Fatal("missing load entry", path)
 	}
-	if err := app.HeadlessActivate(label); err != nil || app.Screen() != ui.ScreenTown {
+	shown := app.HeadlessRows()
+	if len(shown) != len(rows) {
+		t.Fatal("App LOAD changed the production row population")
+	}
+	for i, row := range rows {
+		if shown[i].Text != row.Label || !shown[i].Choosable {
+			t.Fatal("App LOAD changed a production row", i, row)
+		}
+	}
+	for i := 0; i < selected; i++ {
+		if err := app.HeadlessKey("down"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := app.HeadlessKey("enter"); err != nil || app.Screen() != ui.ScreenTown {
 		t.Fatal("App LOAD", app.Screen(), err)
+	}
+	if loadedToken != wantToken {
+		t.Fatalf("App did not LOAD exact token %q: got%q", wantToken, loadedToken)
 	}
 	return app
 }
@@ -50,7 +79,7 @@ func TestSecondPhysicalProcess1104(t *testing.T) {
 	if !ok || h.Attack.SecondBase != 20 || h.Attack.SecondSpread != 7 || h.Modifier.Attack.SecondBase != 20 || h.Modifier.Attack.SecondSpread != 7 {
 		t.Fatal("fresh App LOAD pair")
 	}
-	// This opens the real mission and verifies canonical AGS continuation.
+	// This opens the real mission and verifies current SAV continuation.
 	trainedMission1099(t, f)
 	for i, p := range f.live.mission.party {
 		if p.ID == "hero" {
@@ -101,7 +130,7 @@ func TestReleaseSecondPhysicalSyntheticCityAppRoute(t *testing.T) {
 		t.Fatal("App Train refused or failed", app.HeadlessMessage())
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(save, list, load)
 	if err := app.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
@@ -122,24 +151,7 @@ func TestReleaseSecondPhysicalSyntheticCityAppRoute(t *testing.T) {
 		t.Fatal("not Asg&", err)
 	}
 	checkSecondPhysicalWire1104(t, raw)
-	// AGS is a retired write target, so the legacy fixture the fresh AGS App
-	// LOAD below reads is authored directly from this city's own current
-	// Snapshot instead of round-tripped through the removed "-to ags"
-	// direction, and placed on disk as a plain file since WriteConvertedSave
-	// now refuses every ".ags" path outright.
-	agsSnapshot, _, err := f.Snapshot(false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ags, err := EncodeSave(agsSnapshot, "trained")
-	if err != nil {
-		t.Fatal(err)
-	}
-	agsPath := filepath.Join(t.TempDir(), "trained.ags")
-	if err := os.WriteFile(agsPath, ags, 0600); err != nil {
-		t.Fatal(err)
-	}
-	for _, in := range []string{path, agsPath} {
+	for _, in := range []string{path} {
 		cmd := exec.Command(os.Args[0], "-test.run=^TestSecondPhysicalProcess1104$", "-test.v")
 		cmd.Env = append(os.Environ(), "AGAINROM_1104_INPUT="+in)
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -149,7 +161,7 @@ func TestReleaseSecondPhysicalSyntheticCityAppRoute(t *testing.T) {
 	if again, err := os.ReadFile(sourcePath); err != nil || !bytes.Equal(again, source) {
 		t.Fatal("lawful source changed")
 	}
-	t.Logf("SYNTHETIC scratch city from lawful SHA=%x; current91/3 modifier20/7 -> Train20/7; gold%d->%d; App LOAD/Train/ordinary SAVE Asg& bytes%d SHA=%x; fresh SAV and AGS App LOAD -> mission30 -> native continuation", sha256.Sum256(source), gold, gold-200, len(raw), sha256.Sum256(raw))
+	t.Logf("SYNTHETIC scratch city from lawful SHA=%x; current91/3 modifier20/7 -> Train20/7; gold%d->%d; App LOAD/Train/ordinary SAVE Asg& bytes%d SHA=%x; fresh SAV App LOAD -> mission30 -> current continuation", sha256.Sum256(source), gold, gold-200, len(raw), sha256.Sum256(raw))
 }
 
 func checkSecondPhysicalWire1104(t *testing.T, raw []byte) {

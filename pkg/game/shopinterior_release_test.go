@@ -102,17 +102,17 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	}
 	f.Town = town
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snapshot, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snapshot, label)
+	payload, err := f.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Unix(200, 0), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 
@@ -126,7 +126,7 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	}
 	app := f.App("1122-installed-shop")
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.HeadlessActivate("load game"); err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeBefore, err := EncodeSave(before, "same")
+	nativeBefore, err := f.ExportCurrentSave(before, "same")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	nativeAfter, err := EncodeSave(after, "same")
+	nativeAfter, err := f.ExportCurrentSave(after, "same")
 	if err != nil {
 		t.Fatal(err)
 	}

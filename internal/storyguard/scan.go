@@ -67,16 +67,6 @@ var notAStoryNumber = map[string]bool{
 	"decodeCP1251": true,
 	"encodeCP1251": true,
 	"Windows1251":  true,
-
-	// These three are gob wire-format field names, written into every .ags
-	// save already on disk (pkg/game/savehistoricalwire.go). encoding/gob
-	// matches fields by name, so the number is a format constant that lives
-	// in the bytes; renaming the Go field would drop the saved value rather
-	// than remove the number. Nothing outside that one file and its test
-	// reads these names.
-	"Application1170": true,
-	"GameOptions1186": true,
-	"LocalOnly1186":   true,
 }
 
 // digitRun returns the first maximal run of ASCII digits in s whose length is

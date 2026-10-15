@@ -123,7 +123,11 @@ func autoCastChangedBlocking(t *testing.T) {
 		t.Errorf("snapshot World form %v is below the automatic-casting wrapper or hides the structure blocking", s.World[:min(1, len(s.World))])
 	}
 	resumed := autoCastLevelFront(t)
-	open, town, err := resumed.Restore(s)
+	raw, err = cold.ExportCurrentSave(s, "changed blocking")
+	if err != nil {
+		t.Fatal(err)
+	}
+	open, town, err := resumed.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal("Snapshot resume", town, err)
 	}

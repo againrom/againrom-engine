@@ -1,7 +1,6 @@
 package game
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -62,25 +61,19 @@ func TestReleaseGeneratedCityConversion1166(t *testing.T) {
 		t.Fatalf("installed hire/training result: gold%d members%d", want.Gold, len(want.Party))
 	}
 	label := "generated\xffcity"
-	input, err := EncodeSave(want, label)
+	output, err := f.ExportCurrentSave(want, label)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal("generated current SAV", err)
 	}
-	inputCopy := bytes.Clone(input)
-	converter := releaseFront(t)
-	output, keptLabel, err := converter.ConvertCitySave(input, "sav", nil)
-	if err != nil || keptLabel != label {
-		t.Fatal("generated AGS to SAV", keptLabel, err)
+	after, _, err := f.Snapshot(false)
+	if err != nil || !reflect.DeepEqual(after, want) {
+		t.Fatal("current SAV changed source state", err)
 	}
-	if !bytes.Equal(input, inputCopy) {
-		t.Fatal("conversion changed source bytes")
+	sourceFile, err := sav.Open(output)
+	if err != nil || string(sourceFile.Label) != label {
+		t.Fatal("current SAV source label", err)
 	}
-	// converter's own live Town is untouched by the write: the repair below
-	// only ever changes the bytes ExportNativeCitySave produces, never the
-	// live session that produced them (nativecity.go copies t.mercEnabled
-	// rather than mutating it in place), so this first check still wants the
-	// state the live session actually reached on its own.
-	city1166Check(t, converter, want)
+	city1166Check(t, f, want)
 	store := SaveStore{Dir: t.TempDir()}
 	if err := WriteConvertedSave(filepath.Join(store.Dir, "converted.sav"), output, root); err != nil {
 		t.Fatal(err)
@@ -101,7 +94,7 @@ func TestReleaseGeneratedCityConversion1166(t *testing.T) {
 		}
 	}
 	fresh := releaseFront(t)
-	save, list, load := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+	save, list, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 	rows := list()
 	if len(rows) != 1 {
 		t.Fatal(rows)
@@ -195,13 +188,6 @@ func TestReleaseGeneratedCityConversion1166(t *testing.T) {
 		})
 	}
 	if dir := os.Getenv("AGAINROM_1166_ARTIFACTS"); dir != "" {
-		ags := filepath.Join(dir, "generated.ags")
-		if err := CheckConvertedSaveTarget(ags, root); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(ags, input, 0o600); err != nil {
-			t.Fatal(err)
-		}
 		if err := WriteConvertedSave(filepath.Join(dir, "converted.sav"), output, root); err != nil {
 			t.Fatal(err)
 		}

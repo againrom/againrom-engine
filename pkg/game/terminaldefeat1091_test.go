@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"encoding/base64"
 	"testing"
 
 	"againrom/pkg/sim"
@@ -57,59 +56,6 @@ func TestTerminalDefeat1091DeathScriptAndSentinelActions(t *testing.T) {
 	}
 }
 
-func TestTerminalDefeat1091NativeLatchRoundTripAndOldDefault(t *testing.T) {
-	f := missionFrontEnd(t)
-	f.Font = resolved(missionFont(), nil)
-	f.SetDeterministicFrames(true)
-	a := f.App("1091-native")
-	a.Layout(1024, 768)
-	if err := a.OpenMission(f.MissionOpener(10)); err != nil {
-		t.Fatal(err)
-	}
-	// A reserved-message loss need not have a simulation outcome counter.
-	f.live.mission.announced, f.live.mission.outcome = true, sim.OutcomeLost
-	f.live.showOutcome()
-	snap, label, err := f.Snapshot(true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	b, err := EncodeSave(snap, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	back, _, err := DecodeSave(b)
-	if err != nil || !back.Residue.MissionLost {
-		t.Fatalf("native lost latch: %v/%v", back.Residue.MissionLost, err)
-	}
-	open, town, err := f.Restore(back)
-	if err != nil || town {
-		t.Fatalf("Restore: %v/%v", town, err)
-	}
-	if err := a.OpenMission(open); err != nil {
-		t.Fatal(err)
-	}
-	if _, kind, up := f.LiveNotice(); !up || kind != ui.NoticeFailure {
-		t.Fatal("first restored frame is playable")
-	}
-	hash, tick := f.live.world.Hash(), f.live.world.Tick()
-	for i := 0; i < 50; i++ {
-		if err := a.HeadlessStep(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if f.live.world.Hash() != hash || f.live.world.Tick() != tick {
-		t.Fatal("restored lost session advanced")
-	}
-	old, err := base64.StdEncoding.DecodeString(preWorldMapReturn1088Envelope)
-	if err != nil {
-		t.Fatal(err)
-	}
-	oldSnap, _, err := DecodeSave(old)
-	if err != nil || oldSnap.Residue.MissionLost {
-		t.Fatalf("old default: %v/%v", oldSnap.Residue.MissionLost, err)
-	}
-}
-
 func TestTerminalDefeat1091LostDisclosureWithoutFontStaysTerminal(t *testing.T) {
 	for _, loseFontAfterOpen := range []bool{false, true} {
 		f := missionFrontEnd(t)
@@ -122,17 +68,7 @@ func TestTerminalDefeat1091LostDisclosureWithoutFontStaysTerminal(t *testing.T) 
 		}
 		f.live.mission.announced, f.live.mission.outcome = true, sim.OutcomeLost
 		f.live.showOutcome()
-		snap, _, err := f.Snapshot(true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		opener, town, err := f.Restore(snap)
-		if err != nil || town {
-			t.Fatalf("restore: town=%v error=%v", town, err)
-		}
-		if err := a.OpenMission(opener); err != nil {
-			t.Fatal(err)
-		}
+		// DIV-610: this terminal checkpoint has no player SAVE control.
 		mw := f.live
 		if !loseFontAfterOpen {
 			mw.view.SetFont(nil)
@@ -147,7 +83,7 @@ func TestTerminalDefeat1091LostDisclosureWithoutFontStaysTerminal(t *testing.T) 
 				t.Fatal("Lost/disclosure/no-font released input or changed world")
 			}
 		}
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 50; i++ {
 			if err := a.HeadlessStep(); err != nil {
 				t.Fatal(err)
 			}

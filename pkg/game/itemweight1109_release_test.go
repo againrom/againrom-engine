@@ -3,7 +3,7 @@ package game
 import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
-	"crypto/sha256"
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +45,7 @@ func TestReleaseOriginalItemWeightTransferAndNativeReload(t *testing.T) {
 	}
 	f.SetDeterministicFrames(true)
 	app := f.App("item-weight-source")
-	initialSave, initialList, initialLoad := agsSaveSeams(f, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(path)}, nil)
+	initialSave, initialList, initialLoad := f.SaveSeams(SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(path)}, nil)
 	app.SetSaveSeams(initialSave, initialList, initialLoad)
 	groundAppLoad(t, app, initialList, filepath.Base(path))
 	w := f.live.world
@@ -155,67 +155,52 @@ func itemWeightSeam(w *sim.World, runtimes []uint32) string {
 	return out
 }
 
-// The artifact is a genuine old-producer envelope outside Git. Its optional
+// The artifact is a frozen source SAV outside Git. Its optional
 // path makes the default no-install gate independent of owner files.
 func TestInstanceWeightFrozenCityV3(t *testing.T) {
 	root := os.Getenv("AGAINROM_WEIGHT_OLD_CITY")
 	if root == "" {
-		t.Skip("AGAINROM_WEIGHT_OLD_CITY is unset: no frozen predecessor city artifact")
+		t.Skip("AGAINROM_WEIGHT_OLD_CITY is unset: no frozen source city SAV")
 	}
-	path := filepath.Join(root, "trained.ags")
-	raw, e := os.ReadFile(path)
-	if e != nil {
-		// Named but absent is a missing subject, not a gate failure, and the
-		// reason deliberately omits the variable so a supplied-root run counts
-		// it as lacking a subject instead of as a still-gated skip.
-		t.Skip("frozen predecessor city artifact is absent")
-	}
-	if fmt.Sprintf("%x", sha256.Sum256(raw)) != "60082e1537dad3ca76c4e84531c5380db71d4323ed3803dbb10414cf83819b76" {
-		t.Fatal("old city artifact changed")
-	}
-	s, label, e := DecodeSave(raw)
-	if e != nil {
-		t.Fatal(e)
+	path := filepath.Join(root, "trained.sav")
+	source, err := os.ReadFile(path)
+	if err != nil {
+		t.Skip("frozen source city SAV is absent")
 	}
 	f := releaseFront(t)
 	loadSecondPhysicalApp1104(t, f, path)
-	loaded, _, e := f.Snapshot(false)
-	if e != nil {
-		t.Fatal(e)
-	}
-	if !reflect.DeepEqual(s.Party, loaded.Party) || !reflect.DeepEqual(s.OriginalCity, loaded.OriginalCity) {
-		t.Fatal("old city native state or source baseline changed")
-	}
-	exported, e := f.ExportOriginalSave(loaded, label)
-	// This frozen AGS predates score history.
-	if loaded.Fame == nil || loaded.Fame.Known || e != nil || len(exported) == 0 {
-		t.Fatal("old city score-history export changed", e)
-	}
-	if _, town, e := releaseFront(t).RestoreOriginal(exported); e != nil || !town {
-		t.Fatal("old city score-history export does not cold-load", town, e)
-	}
-	ags, e := EncodeSave(loaded, label)
-	if e != nil {
-		t.Fatal(e)
-	}
-	again, _, e := DecodeSave(ags)
-	if e != nil || !reflect.DeepEqual(loaded, again) {
-		t.Fatal("old city AGS recovery changed", e)
-	}
-	want, e := os.ReadFile(filepath.Join(root, "trained.sav"))
-	if e != nil {
-		t.Fatal(e)
-	}
-	newFront := releaseFront(t)
-	if _, town, e := newFront.RestoreOriginal(want); e != nil || !town {
-		t.Fatal("new source city LOAD", town, e)
-	}
-	for _, p := range newFront.Carried {
-		for _, i := range p.WornItems {
-			if i.Code != 0 && !i.WeightPresent {
-				t.Fatal("new city source weight absent")
+	for _, p := range f.Carried {
+		for _, item := range p.WornItems {
+			if item.Code != 0 && !item.WeightPresent {
+				t.Fatal("frozen source city weight absent")
 			}
 		}
 	}
-	t.Log("genuine city-v3 App LOAD/AGS retains party+baseline; absent score history now exports and cold-loads (DIV-1319); preserved historical SAV still imports source weights")
+	snapshot, label, err := f.Snapshot(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output, err := f.ExportCurrentSave(snapshot, label)
+	if err != nil {
+		t.Fatal("frozen source city current SAVE", err)
+	}
+	cold := releaseFront(t)
+	if _, town, err := cold.RestoreOriginal(output); err != nil || !town {
+		t.Fatal("frozen source current SAV LOAD", town, err)
+	}
+	for i, member := range f.Carried {
+		if i >= len(cold.Carried) {
+			t.Fatal("frozen source party lost")
+		}
+		if !reflect.DeepEqual(member.WornItems, cold.Carried[i].WornItems) {
+			t.Fatal("frozen source weights changed through current SAVE/LOAD")
+		}
+	}
+	if len(f.Carried) != len(cold.Carried) {
+		t.Fatal("frozen source current party count changed")
+	}
+	if after, err := os.ReadFile(path); err != nil || !bytes.Equal(source, after) {
+		t.Fatal("frozen source SAV changed", err)
+	}
+	t.Log("frozen source SAV App LOAD retains weights; current SAVE and cold LOAD retain worn instances; source remains immutable")
 }

@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -18,27 +17,27 @@ func TestReleaseTerminalDefeat1091AppNativeContinuation(t *testing.T) {
 	app := f.App("1091-terminal-defeat")
 	app.Layout(1024, 768)
 	store := SaveStore{Dir: t.TempDir()}
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
-	write := func(label string, stamp int64) string {
+	write := func(label string) string {
 		t.Helper()
 		snap, _, err := f.Snapshot(true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		data, err := EncodeSave(snap, label)
+		data, err := f.ExportCurrentSave(snap, label)
 		if err != nil {
 			t.Fatal(err)
 		}
-		name, err := store.Write(time.Unix(stamp, 0), data)
+		name, err := store.WriteOriginal("", data)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return name
 	}
-	runningName := write("running 1091", 1)
+	runningName := write("running 1091")
 	runningBytes, err := store.Read(runningName)
 	if err != nil {
 		t.Fatal(err)
@@ -70,6 +69,19 @@ func TestReleaseTerminalDefeat1091AppNativeContinuation(t *testing.T) {
 	if title != wantTitle || f.live.view.Words().MenuExitMain != exit || f.live.view.Words().MenuLoad != load {
 		t.Fatal("failure labels do not match main[141], dialogs[44]/[35]")
 	}
+	for _, key := range []string{"f2", "f4"} {
+		if err := app.HeadlessKey(key); err != nil {
+			t.Fatal(err)
+		}
+		rows, err := store.List()
+		if err != nil || len(rows) != 1 || app.Screen() != ui.ScreenMap || !app.HeadlessNoticeOpen() {
+			t.Fatalf("terminal %s exposed SAVE: rows=%d screen=%s notice=%t err=%v", key, len(rows), app.Screen(), app.HeadlessNoticeOpen(), err)
+		}
+	}
+	if err := app.HeadlessActivate("save game"); err == nil {
+		t.Fatal("terminal panel exposed a SAVE control")
+	}
+	t.Logf("terminal no-SAVE: F2 and F4 keep one pre-loss SAV and the failure panel; no SAVE control")
 	old := f.live
 	before, _ := old.world.MarshalBinary()
 	// The actual store list is captured at panel open; remove and corrupt a
@@ -107,39 +119,16 @@ func TestReleaseTerminalDefeat1091AppNativeContinuation(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// A current native lost session is admitted by the normal loader, but is
-	// still terminal on its first frame. The initial running save is rebuilt
-	// from a separate fresh mission and is the only playable continuation.
-	lostName := write("lost 1091", 2)
-	lostBytes, err := store.Read(lostName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Remove(filepath.Join(store.Dir, runningName)); err != nil {
-		t.Fatal(err)
-	}
-	write("running 1091", 3)
-	lostSnap, _, err := DecodeSave(lostBytes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	open, town, err := f.Restore(lostSnap)
-	if err != nil || town {
-		t.Fatalf("restore lost: %v/%v", town, err)
-	}
-	if err := app.OpenMission(open); err != nil {
-		t.Fatal(err)
-	}
-	if _, kind, up := f.LiveNotice(); !up || kind != ui.NoticeFailure {
-		t.Fatal("native loss resumed without failure panel")
-	}
 	scenario, err := ReadHeadlessScenario(filepath.Join("..", "..", "docs", "1091", "terminal-defeat.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	// DIV-610: the forced post-panel checkpoint belonged only to the AGS
+	// instrument. Keep the live failure, cancel, exit and pre-loss SAV LOAD.
+	if len(scenario.Steps) < 9 || scenario.Steps[7].Target != "lost 1091" {
+		t.Fatal("terminal scenario checkpoint shape changed")
+	}
+	scenario.Steps = append(scenario.Steps[:6], scenario.Steps[9:]...)
 	var trace bytes.Buffer
 	if err := RunHeadlessScenario(f, app, scenario, io.Discard, &trace); err != nil {
 		t.Fatalf("scenario: %v\n%s", err, trace.String())
@@ -147,5 +136,5 @@ func TestReleaseTerminalDefeat1091AppNativeContinuation(t *testing.T) {
 	if f.live == old || f.live.mission.outcome == sim.OutcomeLost {
 		t.Fatal("successful Load did not replace lost session")
 	}
-	t.Logf("m10 primary death failure tick=%d; installed title/Exit/Load; missing+malformed refusal; native lost load/cancel/exit and running restore: PASS", old.world.Tick())
+	t.Logf("m10 primary death failure tick=%d; installed title/Exit/Load; missing+malformed refusal; terminal SAVE blocked; cancel/exit and pre-loss SAV restore: PASS", old.world.Tick())
 }

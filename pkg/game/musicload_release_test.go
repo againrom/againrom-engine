@@ -3,7 +3,6 @@ package game
 import (
 	"slices"
 	"testing"
-	"time"
 
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
@@ -30,7 +29,7 @@ func loseMissionTen(t *testing.T) (*FrontEnd, *ui.App, *loadMusicRecorder, *mapW
 	app.SetCutscenes(nil)
 	app.Layout(1024, 768)
 	store := SaveStore{Dir: t.TempDir()}
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
@@ -38,11 +37,11 @@ func loseMissionTen(t *testing.T) (*FrontEnd, *ui.App, *loadMusicRecorder, *mapW
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := EncodeSave(snap, "running")
+	data, err := f.ExportCurrentSave(snap, "running")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.Write(time.Unix(1, 0), data); err != nil {
+	if _, err := store.WriteOriginal("", data); err != nil {
 		t.Fatal(err)
 	}
 	if list, playing := app.MusicPlaybackState(); len(list) != 12 || playing == "" {
@@ -144,24 +143,24 @@ func TestReleaseTownSaveLoadRequestsTownListOnlyWhenItIsNotPlaying(t *testing.T)
 	device := &loadMusicRecorder{}
 	f.MusicPlayer = device
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snap, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err = store.Write(time.Unix(100, 0), payload); err != nil {
+	if _, err = store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	app := f.App("town-load-music")
 	t.Cleanup(app.StopAudio)
 	app.SetCutscenes(nil)
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	logAtMenu, eventsAtMenu := len(app.MusicRequestLog()), len(device.events)
 	load := func(fromMenu bool) {
 		t.Helper()

@@ -55,16 +55,12 @@ func defendNative1087(t *testing.T, f *FrontEnd, stage string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(snap, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
+	raw, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	back := releaseFront(t)
-	opener, town, err := back.Restore(decoded)
+	opener, town, err := back.RestoreOriginal(raw)
 	if err != nil || town || opener == nil {
 		t.Fatalf("%s restore:%v town=%v", stage, err, town)
 	}

@@ -101,12 +101,11 @@ commit and pull-request attribution.
   to decide hashed behaviour. A new persisted field needs a deterministic default
   for every old save this project has written. Reject corrupt input with a
   bounded error; never allocate from an unchecked installed count.
-- An exported field name on a gob-persisted struct is a wire-format identifier.
-  `encoding/gob` silently drops a stream field the receiver does not declare, so
-  renaming the field reads old saves clean with the value gone. Renaming the
-  type is free. Keep the name, or add a decode path for the historical one
-  (`pkg/game/savehistoricalwire.go`) and prove it with a test that encodes under
-  the historical name.
+- Game SAVE/LOAD uses SAV. `encoding/gob` remains only in test instruments,
+  including DTO comparison copies in `pkg/formats/sav/document_data_test.go`
+  and cross-process witness sidecars in
+  `pkg/game/timedautosave_release_test.go`. These are not supported game-save
+  inputs. A sidecar producer and its test reader must change together.
 
 ## Lane work
 

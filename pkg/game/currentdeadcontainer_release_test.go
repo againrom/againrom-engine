@@ -54,27 +54,42 @@ func requireDeadContainerWire(t *testing.T, raw []byte, want map[uint32]deadCont
 }
 
 func TestReleaseCurrentDeadContainerUsesCurrentWorld(t *testing.T) {
-	_, source := groundCorpusFile(t, "2026-09-15/mission111-portrait-input.ags", "522d5cd01dea60a6d64637884f0427b58888c329be3458259c14d17bce5afe35")
-	snapshot, _, err := DecodeSave(source)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if snapshot.SavedDocument == nil || snapshot.SavedDocument.Document == nil {
-		t.Fatal("source AGS has no retained SAV document")
-	}
+	_, source := ownerCurrentSAV(t, "mission111-portrait-input")
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	open, town, err := f.Restore(snapshot)
+	open, town, err := f.RestoreOriginal(source)
 	if err != nil || town {
-		t.Fatal("source AGS restore", town, err)
+		t.Fatal("source SAV restore", town, err)
 	}
-	if err := f.App("dead container current state").OpenMission(open); err != nil {
+	if err = f.App("dead container current state").OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
 	want := currentDeadContainers(t, f.live.world)
 	if len(want) != 43 {
 		t.Fatalf("source dead population = %d, want 43", len(want))
 	}
+	retained, err := cloneSavedDocument(f.live.mission.state.savedDocument)
+	if err != nil || retained == nil || retained.Document == nil {
+		t.Fatal("retained SAV graph absent", err)
+	}
+	for i := range retained.Document.Objects {
+		object := &retained.Document.Objects[i]
+		key, err := savedStructureValue(object, "Identity")
+		if err != nil {
+			continue
+		}
+		state, ok := want[key]
+		if ok && !state.present {
+			savedObjectSetValue(object, "HasInventory", 1)
+			savedObjectSetValue(object, "Inventory1C", 10000)
+			savedObjectSetValue(object, "Inventory20", 0)
+			savedObjectSetRefs(object, "Inventory", nil, true)
+		}
+	}
+	if _, err := sav.EncodeDocumentData(*retained.Document); err != nil {
+		t.Fatal("synthetic stale containers are not a valid SAV", err)
+	}
+	f.live.mission.state.savedDocument = retained
 	absent, present, stale := 0, 0, 0
 	for identity, state := range want {
 		if state.present {
@@ -88,7 +103,7 @@ func TestReleaseCurrentDeadContainerUsesCurrentWorld(t *testing.T) {
 				t.Fatalf("absent dead actor %#x has tail %v", identity, state.tail)
 			}
 		}
-		for _, object := range snapshot.SavedDocument.Document.Objects {
+		for _, object := range retained.Document.Objects {
 			key, err := savedStructureValue(&object, "Identity")
 			if err != nil || key != identity {
 				continue

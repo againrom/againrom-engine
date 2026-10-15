@@ -21,7 +21,8 @@ func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
 	wants := [4][4]int{{0, 3, 2, 1}, {0, 3, 2, 0}, {0, 1, 0, 3}, {0, 1, 0, 2}}
 	for primary, dir := range dirs {
 		f := releaseFront(t)
-		f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Archetype witness", Choices: []int{primary / 2, primary % 2, 0}, Stats: []int{31, 27, 24, 29}})
+		chargen := ui.ChargenResult{Name: "Archetype witness", Choices: []int{primary / 2, primary % 2, 0}, Stats: []int{31, 27, 24, 29}}
+		f.Carried = f.ChargenParty(chargen)
 		app, town := openFirstTownShopDialogue(t, f, "archetype dialogue")
 		t.Cleanup(app.StopAudio)
 		checkDialogueBackdrop(t, f, app, town, "main/text/shop/npc31m31.txt")
@@ -109,6 +110,8 @@ func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
 			t.Fatalf("primary %s: installed dialogues covered %v", dir, seen)
 		}
 		t.Logf("primary %s: searched %d installed shop/training/inn-NPC payloads; no npc21 line in this population", dir, payloads)
+		f = releaseFront(t)
+		f.Carried = f.ChargenParty(chargen)
 		missionApp := f.App("live primary speaker")
 		t.Cleanup(missionApp.StopAudio)
 		missionApp.Layout(640, 480)

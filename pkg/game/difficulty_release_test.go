@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/formats/sav"
 	"bytes"
 	"fmt"
 	"image"
@@ -61,17 +62,13 @@ func TestReleaseDifficultyCampaignThroughProductionUI(t *testing.T) {
 				t.Fatal(err)
 			}
 			ghost := f.live.world.Ghost()
-			b, err := EncodeSave(s, "level")
-			if err != nil {
-				t.Fatal(err)
-			}
-			back, _, err := DecodeSave(b)
+			b, err := f.ExportCurrentSave(s, "level")
 			if err != nil {
 				t.Fatal(err)
 			}
 			f.Difficulty = mapload.Difficulty(4 - level)
 			oldTown, oldWorld := f.Town, f.live.world
-			open, town, err := f.Restore(back)
+			open, town, err := f.RestoreOriginal(b)
 			if err != nil || town {
 				t.Fatalf("prepare mission: %v %v", town, err)
 			}
@@ -94,11 +91,19 @@ func TestReleaseDifficultyCampaignThroughProductionUI(t *testing.T) {
 			// Invalid candidate must not alter any session-owned difficulty/world.
 			oldWorld = f.live.world
 			oldTown = f.Town
-			bad := back
-			bad.Difficulty = 99
-			if _, _, err := f.Restore(bad); err == nil {
+			bad, err := sav.DecodeDocumentData(b)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bad.Head.Difficulty = 99
+			invalid, err := sav.EncodeDocumentData(bad)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := f.RestoreOriginal(invalid); err == nil {
 				t.Fatal("invalid level accepted")
 			}
+
 			if f.live.world != oldWorld || f.Town != oldTown || int(f.Difficulty) != level {
 				t.Fatal("invalid candidate mutated current game")
 			}
@@ -117,16 +122,12 @@ func TestReleaseDifficultyCampaignThroughProductionUI(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			b, err = EncodeSave(s, "town")
-			if err != nil {
-				t.Fatal(err)
-			}
-			back, _, err = DecodeSave(b)
+			b, err = f.ExportCurrentSave(s, "town")
 			if err != nil {
 				t.Fatal(err)
 			}
 			f.Difficulty = 0
-			if _, town, err := f.Restore(back); err != nil || !town {
+			if _, town, err := f.RestoreOriginal(b); err != nil || !town {
 				t.Fatalf("town restore: %v %v", town, err)
 			}
 			if int(f.Difficulty) != level {

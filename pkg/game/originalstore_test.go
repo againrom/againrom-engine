@@ -81,37 +81,43 @@ func TestOriginalStoreRefusesANameThatIsNotBare(t *testing.T) {
 }
 
 func TestTheLoadListPutsOursFirstAndTheOriginalsAfter(t *testing.T) {
-	// A player who has just saved wants his own file at the top. The install's
-	// saves are a fixed set he did not produce in this session, so the two
-	// groups are appended and never interleaved by time.
-	ours := t.TempDir()
-	if err := os.WriteFile(filepath.Join(ours, "a.ags"), encodeForTest(t, "ours one"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(ours, "b.ags"), encodeForTest(t, "ours two"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	_, list, _ := agsSaveSeams(&FrontEnd{}, SaveStore{Dir: ours}, OriginalStore{Dir: t.TempDir()}, nil)
-	rows := list()
-	if len(rows) != 2 {
-		t.Fatalf("listed %d row(s), want the two of ours: %v", len(rows), rows)
-	}
-	for _, r := range rows {
-		if IsOriginal(r.Name) {
-			t.Errorf("row %q is an original save in a list built from an empty install", r.Name)
+	ours, originals := t.TempDir(), t.TempDir()
+	for _, row := range []struct{ dir, name, label string }{
+		{ours, "a.sav", "ours one"}, {ours, "b.sav", "ours two"}, {originals, "original.sav", "original"},
+	} {
+		if err := os.WriteFile(filepath.Join(row.dir, row.name), encodeForTest(t, row.label), 0600); err != nil {
+			t.Fatal(err)
 		}
+	}
+	_, list, _ := (&FrontEnd{}).SaveSeams(SaveStore{Dir: ours}, OriginalStore{Dir: originals}, nil)
+	rows := list()
+	if len(rows) != 3 {
+		t.Fatalf("listed %d row(s), want two local then one original: %v", len(rows), rows)
+	}
+	local := map[string]bool{localOriginalSaveToken("a.sav"): true, localOriginalSaveToken("b.sav"): true}
+	for _, row := range rows[:2] {
+		if !local[row.Name] {
+			t.Fatal("local SAV row lost its namespace", row)
+		}
+		delete(local, row.Name)
+	}
+	if len(local) != 0 || rows[2].Name != "original.sav" {
+		t.Fatal("original SAV interleaved with local rows", rows)
 	}
 }
 
-// encodeForTest writes a minimal save of OUR format carrying the given label.
 func encodeForTest(t *testing.T, label string) []byte {
 	t.Helper()
-	b, err := EncodeSave(Snapshot{}, label)
+	f, _ := city1095Front(t)
+	s, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return b
+	raw, err := f.ExportCurrentSave(s, label)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
 }
 
 func TestALabelIsMadeDrawableThroughTheInstallsOwnPage(t *testing.T) {

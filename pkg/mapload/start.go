@@ -284,23 +284,9 @@ type PartyMember struct {
 	// neither screen's display, drag or purse logic can ever re-open a question
 	// this member has already answered.
 	//
-	// It rides across a mission boundary exactly as Weapon itself does —
-	// through clonePartyMember's plain value copy, inside OwnParty and
-	// CarryParty — and it rides inside a save exactly as Weapon does too:
-	// Snapshot.Party (pkg/game/save.go) is encoding/gob over this whole
-	// type, so an exported bool needs no envelope change to persist, and an
-	// older save decodes it at its zero value, false.
-	//
-	// FALSE IS NOT THE CORRECT ANSWER FOR EVERY SUCH MEMBER (round-2
-	// adversarial review, twelfth pass, C2, DIV-112): it is correct only for
-	// one who never triggered the fallback before the save was written. A
-	// member whose fallback HAD already resolved into a real item in an earlier
-	// mission, and who then sold or dropped that item before the save was
-	// captured, decodes with the latch unraised and reproduces exactly the
-	// duplication counterexamples A and B (fifth pass) closed for every save
-	// written after this field existed — the old save simply carries no
-	// record that the question was ever answered. See DIV-112 for the disclosed
-	// gap; this build does not migrate an old save's members to close it.
+	// OwnParty and CarryParty carry this bit across mission boundaries. The
+	// current SAV party-policy supplement carries it across SAVE/LOAD. A missing
+	// policy leaves it false; DIV-112 names that lost-history boundary.
 	WeaponMaterialized bool
 
 	// Carry is what this member brought OUT of a previous mission — his

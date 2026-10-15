@@ -182,19 +182,16 @@ func TestSavedGroupBindings1115MalformedMetadataIsAtomic(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := groupBindingsSafetyClone1115(t, source)
 			tc.mutate(t, &s)
-			if encoded, err := EncodeSave(s, "malformed Group binding"); err == nil || !strings.Contains(err.Error(), tc.reason) || encoded != nil {
-				t.Fatalf("EncodeSave refusal %v, want %q and no output", err, tc.reason)
-			}
-			decoded, label, err := DecodeSave(uncheckedDocumentEnvelope1115(t, s))
-			if err == nil || !strings.Contains(err.Error(), tc.reason) || label != "" || !reflect.DeepEqual(decoded, Snapshot{}) {
-				t.Fatalf("DecodeSave refusal %v, want %q and no partial state", err, tc.reason)
+			if encoded, err := cloneSavedDocument(s.SavedDocument); err == nil || !strings.Contains(err.Error(), tc.reason) || encoded != nil {
+				t.Fatalf("document clone refusal %v, want %q and no output", err, tc.reason)
 			}
 			before, _, err := f.Snapshot(true)
 			if err != nil {
 				t.Fatal(err)
 			}
-			open, town, err := f.Restore(s)
-			if err == nil || !strings.Contains(err.Error(), tc.reason) || open != nil || town {
+			candidate := *f.live.mission.state
+			err = restoreSavedDocument(&candidate, s.SavedDocument)
+			if err == nil || !strings.Contains(err.Error(), tc.reason) {
 				t.Fatalf("Restore refusal %v, want %q and no candidate", err, tc.reason)
 			}
 			after, _, err := f.Snapshot(true)
@@ -221,7 +218,7 @@ func TestSavedGroupBindings1115EmptyPresenceAndOwnership(t *testing.T) {
 			}
 		})
 	}
-	_, snapshot := documentSnapshotFixture(t)
+	front, snapshot := documentSnapshotFixture(t)
 	source := snapshot.SavedDocument.GroupBindings
 	baseline := *source
 	baseline.Groups = append([]SnapshotSAVGroupBinding(nil), source.Groups...)
@@ -237,13 +234,15 @@ func TestSavedGroupBindings1115EmptyPresenceAndOwnership(t *testing.T) {
 	if !reflect.DeepEqual(*source, baseline) {
 		t.Fatal("clone's Group/member slices alias the source metadata")
 	}
-	encoded, err := EncodeSave(snapshot, "owned Group bindings")
+	encoded, err := front.ExportCurrentSave(snapshot, "owned Group bindings")
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil || !reflect.DeepEqual(decoded.SavedDocument.GroupBindings, source) {
-		t.Fatal("native encoding lost exact Group binding values", err)
+	fresh := currentPoolFixtureFront(t, 91)
+	fresh.Campaign = resolved(saveCampaign(), nil)
+	decoded, err := fresh.LoadObservedSAV(encoded)
+	if err != nil || !sameResave(t, front, fresh) || front.live.world.Hash() != fresh.live.world.Hash() {
+		t.Fatal("SAV lost exact current Group values", err)
 	}
 	decoded.SavedDocument.GroupBindings.Groups[0].InlineIndex++
 	decoded.SavedDocument.GroupBindings.Members[0].UnresolvedHandle++

@@ -10,14 +10,14 @@ import (
 )
 
 func TestReleaseSavedEnemyHumanPortraitsAndBooks(t *testing.T) {
-	path, _ := groundCorpusFile(t, "2026-09-14/mission111-enemy-dolls.ags", "548c9c2eb6d0e05e86215adf6cb47f5197896446eecc99ba288c5fd50e5dff6f")
+	path, _ := ownerCurrentSAV(t, "mission111-enemy-dolls")
 	store := SaveStore{Dir: filepath.Dir(path)}
 	name := filepath.Base(path)
 	for generation := 0; generation < 2; generation++ {
 		f := releaseFront(t)
 		f.SetDeterministicFrames(true)
 		a := f.App("enemy portraits")
-		_, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
+		_, list, load := f.SaveSeams(store, OriginalStore{}, nil)
 		a.SetSaveSeams(nil, list, load)
 		groundAppLoad(t, a, list, name)
 		a.Layout(1024, 768)

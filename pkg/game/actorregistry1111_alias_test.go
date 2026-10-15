@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -278,13 +279,35 @@ func TestActorRegistry1111AliasLateFailuresKeepBindings(t *testing.T) {
 			}
 			unchanged(err)
 		}
-		saved, _, err := f.Snapshot(true)
+		saved, label, err := f.Snapshot(true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		saved.ActorManifest = cloneActorManifest(saved.ActorManifest)
-		saved.ActorManifest.Actors[len(saved.ActorManifest.Actors)-1].ID = saved.ActorManifest.Actors[0].ID
-		_, _, err = f.Restore(saved)
+		raw, err := f.ExportCurrentSave(saved, label)
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc, err := sav.DecodeDocumentData(raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		actions, err := readCurrentActions(&doc)
+		if err != nil || actions == nil || len(actions.Bindings) < 2 {
+			t.Fatal("missing current alias bindings", err)
+		}
+		actions.Bindings[len(actions.Bindings)-1].ID = actions.Bindings[0].ID
+		leaf, err := json.Marshal(actions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := sav.SetNativeActions(&doc.State, leaf); err != nil {
+			t.Fatal(err)
+		}
+		bad, err := sav.EncodeDocumentData(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = f.RestoreOriginal(bad)
 		unchanged(err)
 	}
 }

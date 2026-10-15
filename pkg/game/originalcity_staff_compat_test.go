@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/binary"
 	"reflect"
-	"strings"
 	"testing"
 
 	"againrom/internal/cityfixture"
@@ -12,7 +11,7 @@ import (
 	"againrom/pkg/mapload"
 )
 
-func staffCityFixture(t *testing.T, weaponName string) (*FrontEnd, Snapshot, data.Weapon) {
+func staffCityFixture(t *testing.T, weaponName string) (*FrontEnd, Snapshot) {
 	t.Helper()
 	params := make([]int32, data.MinHumanRow)
 	params[16], params[17], params[18] = 0x17, 4, 1
@@ -41,9 +40,11 @@ func staffCityFixture(t *testing.T, weaponName string) (*FrontEnd, Snapshot, dat
 	binary.LittleEndian.PutUint16(fields, uint16(weapon.Code))
 	binary.LittleEndian.PutUint16(fields[2:], 1)
 	fields[4] = 2
+	derived := make([]byte, 47)
+	derived[14], derived[15], derived[46] = 10, 10, 1
 	model.Objects[2].Unit.Equipment[0] = 4
 	model.Objects = append(model.Objects,
-		sav.CityObjectData{Class: "Weapon", Item: &sav.CityItemData{Token: token(0x4567), Fields: fields, Derived: make([]byte, 47), Effects: []uint16{5}}},
+		sav.CityObjectData{Class: "Weapon", Item: &sav.CityItemData{Token: token(0x4567), Fields: fields, Derived: derived, Effects: []uint16{5}}},
 		sav.CityObjectData{Class: "Effect", Effect: &sav.CityEffectData{Token: token(0x5678), Fields: effect}})
 	document, err := sav.CityFromData(model)
 	if err != nil {
@@ -68,99 +69,41 @@ func staffCityFixture(t *testing.T, weaponName string) (*FrontEnd, Snapshot, dat
 	if s.Party[0].Weapon.SpellName != "Stone_Curse" || s.Party[0].Weapon.SpellPower != -2 || s.Party[0].OriginalHuman == nil {
 		t.Fatalf("source fixture lost current signed effect: weapon=%+v human=%t", s.Party[0].Weapon, s.Party[0].OriginalHuman != nil)
 	}
-	if weaponName == "Wood Staff" {
-		weapon, err = data.ResolveWeapon("Wood Staff {castSpell=Fire_Arrow:10}", table.Shapes, table.Materials, table.Weapons)
-		if err != nil {
-			t.Fatal(err)
-		}
+	current := mapload.MemberWeapon(s.Party[0], f.Table)
+	if current == nil || current.DamageBase != 10 || current.DamageSpread != 10 || current.Range != 1 || current.SpellPower != -2 {
+		t.Fatalf("source concrete staff disagrees with independent fixture: %+v", current)
 	}
-	return f, s, weapon
+	return f, s
 }
 
-func TestHistoricalCityStaffBaselineKeepsBothExactEncodings(t *testing.T) {
+func TestCurrentCitySignedStaffSurvivesTwoSAVCycles(t *testing.T) {
 	for _, weaponName := range []string{"Wood Staff", "Bone Staff"} {
-		for _, policy := range []string{"historical-current-party", "historical-old-party", "emitted-current-source", "new-current-source"} {
-			t.Run(weaponName+"/"+policy, func(t *testing.T) {
-				f, s, oldWeapon := staffCityFixture(t, weaponName)
-				if policy != "new-current-source" {
-					s.OriginalCity.Version = 7
-				} else if s.OriginalCity.Version != 8 {
-					t.Fatal("new import did not identify its current-effect baseline policy")
+		t.Run(weaponName, func(t *testing.T) {
+			f, s := staffCityFixture(t, weaponName)
+			bindCurrentCityFixtureRow(t, f)
+			want := mapload.CloneParty(s.Party)
+			for cut := 0; cut < 2; cut++ {
+				before := mapload.CloneParty(f.Carried)
+				raw, err := f.ExportCurrentSave(s, "current signed staff")
+				if err != nil {
+					t.Fatal(err)
 				}
-				if policy == "historical-current-party" || policy == "historical-old-party" {
-					for i := range s.OriginalCity.Bindings {
-						p := &s.OriginalCity.Bindings[i].Baseline
-						if p.StartingHero {
-							w, h := oldWeapon, oldWeapon
-							p.Weapon, p.OriginalHuman.Weapon = &w, &h
-						}
-					}
+				if !reflect.DeepEqual(f.Carried, before) {
+					t.Fatal("SAVE changed current staff source")
 				}
-				if policy == "historical-old-party" {
-					w, h := oldWeapon, oldWeapon
-					s.Party[0].Weapon, s.Party[0].OriginalHuman.Weapon = &w, &h
+				fresh := &FrontEnd{InstallResources: f.InstallResources}
+				if _, town, err := fresh.RestoreOriginal(raw); err != nil || !town {
+					t.Fatal("current staff SAV LOAD", town, err)
 				}
-				want := mapload.CloneParty(s.Party)
-				for cut := 0; cut < 2; cut++ {
-					raw, err := EncodeSave(s, "historical staff")
-					if err != nil {
-						t.Fatal(err)
-					}
-					decoded, _, err := DecodeSave(raw)
-					if err != nil {
-						t.Fatal(err)
-					}
-					before := decoded.OriginalCity
-					fresh := &FrontEnd{InstallResources: f.InstallResources}
-					if _, town, err := fresh.Restore(decoded); err != nil || !town {
-						t.Fatal("historical LOAD", town, err)
-					}
-					s, _, err = fresh.Snapshot(false)
-					if err != nil || !reflect.DeepEqual(s.Party, want) || !reflect.DeepEqual(s.OriginalCity, before) {
-						t.Fatalf("LOAD changed party=%t baseline=%t: %v", !reflect.DeepEqual(s.Party, want), !reflect.DeepEqual(s.OriginalCity, before), err)
-					}
+				if !reflect.DeepEqual(fresh.Carried, want) {
+					currentItemFieldDiagnostics(t, "Party", reflect.ValueOf(want), reflect.ValueOf(fresh.Carried))
+					t.Fatal("current staff SAV changed party")
 				}
-			})
-		}
-	}
-}
-
-func TestHistoricalCityStaffBaselineRejectsPartialAndForgedEncodings(t *testing.T) {
-	for _, name := range []string{"weapon-only", "human-only", "other-weapon-field", "other-human-field", "item-effect", "wrong-power", "current-version"} {
-		t.Run(name, func(t *testing.T) {
-			f, s, oldWeapon := staffCityFixture(t, "Bone Staff")
-			s.OriginalCity.Version = 7
-			for i := range s.OriginalCity.Bindings {
-				p := &s.OriginalCity.Bindings[i].Baseline
-				if !p.StartingHero {
-					continue
+				f = fresh
+				s, _, err = f.Snapshot(false)
+				if err != nil {
+					t.Fatal(err)
 				}
-				w, h := oldWeapon, oldWeapon
-				if name != "human-only" {
-					p.Weapon = &w
-				}
-				if name != "weapon-only" {
-					p.OriginalHuman.Weapon = &h
-				}
-				switch name {
-				case "other-weapon-field":
-					p.Weapon.DamageBase++
-				case "other-human-field":
-					p.OriginalHuman.State.Modifier.Attack.Tail[0]++
-				case "item-effect":
-					p.WornItems[0].Effects[0].Operand++
-				case "wrong-power":
-					p.Weapon.SpellPower, p.OriginalHuman.Weapon.SpellPower = 11, 11
-				case "current-version":
-					s.OriginalCity.Version = 8
-				}
-			}
-			before, town := mapload.CloneParty(f.Carried), f.Town
-			if _, _, err := f.Restore(s); err == nil || !strings.Contains(err.Error(), "differs from semantic source/import context") {
-				t.Fatal("forged historical baseline did not fail equality", err)
-			}
-			if !reflect.DeepEqual(f.Carried, before) || f.Town != town {
-				t.Fatal("refused baseline changed the live session")
 			}
 		})
 	}

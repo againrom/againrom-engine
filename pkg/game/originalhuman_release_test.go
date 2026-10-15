@@ -69,7 +69,7 @@ func TestReleaseImportedFighterTrainingUsesSAVAndFreshProcesses(t *testing.T) {
 	sourcePath, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	store := SaveStore{Dir: t.TempDir()}
 	app := f.App("1099-city-training")
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: filepath.Dir(sourcePath)}, nil)
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: filepath.Dir(sourcePath)}, nil)
 	app.SetSaveSeams(save, list, load)
 	if err := headlessOpenLoad(app); err != nil {
 		t.Fatal(err)
@@ -223,17 +223,13 @@ func trainedMission1099(t *testing.T, f *FrontEnd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(snap, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
+	raw, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	back := releaseFront(t)
 	back.SetDeterministicFrames(true)
-	opener, town, err := back.Restore(decoded)
+	opener, town, err := back.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatalf("native mission restore %v %v", town, err)
 	}

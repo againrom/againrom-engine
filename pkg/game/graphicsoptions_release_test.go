@@ -92,11 +92,7 @@ func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(s, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err = DecodeSave(raw)
+	raw, err := f.ExportCurrentSave(s, label)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +100,7 @@ func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
 	cold.Options = f.Options
 	cold.LoadOptions()
 	ca := cold.App("cold graphics")
-	open, town, err := cold.Restore(s)
+	open, town, err := cold.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal("native load", err)
 	}

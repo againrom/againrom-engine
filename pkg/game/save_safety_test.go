@@ -115,19 +115,15 @@ func TestConcurrentLinkedCommitsReapAllRetiredAliases(t *testing.T) {
 		recoveryRemoveFailures: 1,
 	}
 	store := SaveStore{Dir: dir, files: ops}
-	at := time.Date(2026, 8, 17, 3, 0, 0, 0, time.UTC)
 	type result struct {
 		name string
 		err  error
 	}
 	results := make(chan result, 2)
 	for _, gold := range []int{1, 2} {
-		data, err := EncodeSave(Snapshot{Gold: gold}, fmt.Sprintf("writer %d", gold))
-		if err != nil {
-			t.Fatal(err)
-		}
+		data := []byte(fmt.Sprintf("complete writer %d", gold))
 		go func() {
-			name, err := store.Write(at, data)
+			name, err := store.WriteOriginal("", data)
 			results <- result{name: name, err: err}
 		}()
 	}
@@ -147,7 +143,7 @@ func TestConcurrentLinkedCommitsReapAllRetiredAliases(t *testing.T) {
 		switch {
 		case looksLikeSaveTemp(entry.Name()):
 			temps = append(temps, entry.Name())
-		case filepath.Ext(entry.Name()) == saveExt:
+		case filepath.Ext(entry.Name()) == originalSaveExt:
 			finals = append(finals, entry.Name())
 		}
 	}
@@ -200,22 +196,18 @@ func TestLinkedPublicationMakesLinkCreationTheCommitPoint(t *testing.T) {
 // is removed before the next save creates another temporary file.
 func TestSaveStoreReportsCommittedLinkedSaveAndRecoversItsPrivateName(t *testing.T) {
 	dir := t.TempDir()
-	data, err := EncodeSave(Snapshot{Gold: 77}, "linked commit")
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := originalWriterLabeled(t, "linked commit")
 	ops := &linkedCleanupOps{publishRemoveFailures: 1, recoveryRemoveFailures: 1}
 	store := SaveStore{Dir: dir, files: ops}
-	at := time.Date(2026, 8, 17, 2, 0, 0, 0, time.UTC)
 
-	name, err := store.Write(at, data)
-	if err != nil || name != "save-20260817-020000.ags" {
+	name, err := store.WriteOriginal("", data)
+	if err != nil || name != "game0000.sav" {
 		t.Fatalf("committed Write = (%q, %v), want final-name success", name, err)
 	}
 	if len(ops.publishRemovePaths) != 1 || filepath.Base(ops.publishRemovePaths[0]) == name {
 		t.Fatalf("post-commit removals = %v, want only the private source name", ops.publishRemovePaths)
 	}
-	listed, err := listAGS(store)
+	listed, err := store.List()
 	if err != nil || len(listed) != 1 || listed[0].Name != name {
 		t.Fatalf("list after cleanup refusal = (%v, %v), want committed final row", listed, err)
 	}
@@ -237,11 +229,11 @@ func TestSaveStoreReportsCommittedLinkedSaveAndRecoversItsPrivateName(t *testing
 	}
 
 	ops.recoveryRemoveFailures = 1
-	if refused, err := store.Write(at, data); refused != "" || !errors.Is(err, errSaveRemoveBoundary) {
+	if refused, err := store.WriteOriginal("", data); refused != "" || !errors.Is(err, errSaveRemoveBoundary) {
 		t.Fatalf("Write while alias recovery is refused = (%q, %v), want no new save", refused, err)
 	}
-	second, err := store.Write(at, data)
-	if err != nil || second != "save-20260817-020000-2.ags" {
+	second, err := store.WriteOriginal("", data)
+	if err != nil || second != "game0001.sav" {
 		t.Fatalf("Write after recovery = (%q, %v), want second committed name", second, err)
 	}
 	entries, err = os.ReadDir(dir)
@@ -262,7 +254,6 @@ func TestConcurrentSameSecondPublicationIsExclusive(t *testing.T) {
 	dir := t.TempDir()
 	ops := &saveRendezvousOps{ready: make(chan struct{}, 2), release: make(chan struct{})}
 	store := SaveStore{Dir: dir, files: ops}
-	at := time.Date(2026, 8, 16, 12, 0, 0, 0, time.UTC)
 
 	type result struct {
 		name string
@@ -275,7 +266,7 @@ func TestConcurrentSameSecondPublicationIsExclusive(t *testing.T) {
 		data := data
 		go func() {
 			started.Done()
-			name, err := store.Write(at, data)
+			name, err := store.WriteOriginal("", data)
 			results <- result{name: name, err: err}
 		}()
 	}
@@ -297,20 +288,12 @@ func TestConcurrentSameSecondPublicationIsExclusive(t *testing.T) {
 // the same physical directory through an absolute alias. Recovery must
 // recognise the first path as active rather than delete it as residue.
 func TestActiveSaveTempIdentitySurvivesDirectoryAliases(t *testing.T) {
-	relative, err := os.MkdirTemp(".", ".save-alias-test-*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(relative) })
-	dir, err := filepath.Abs(relative)
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := t.TempDir()
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	relative, err = filepath.Rel(wd, dir)
+	relative, err := filepath.Rel(wd, dir)
 	if err != nil {
 		t.Skipf("cannot construct a relative alias for %s: %v", dir, err)
 	}
@@ -318,23 +301,16 @@ func TestActiveSaveTempIdentitySurvivesDirectoryAliases(t *testing.T) {
 	if os.PathSeparator == '\\' {
 		absoluteAlias = strings.ToUpper(dir)
 	}
-	first, err := EncodeSave(Snapshot{Gold: 1}, "relative writer")
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, err := EncodeSave(Snapshot{Gold: 2}, "absolute writer")
-	if err != nil {
-		t.Fatal(err)
-	}
+	first := []byte("complete relative writer")
+	second := []byte("complete absolute writer")
 	paused := &saveRendezvousOps{ready: make(chan struct{}, 1), release: make(chan struct{})}
-	at := time.Date(2026, 8, 16, 12, 0, 0, 0, time.UTC)
 	type result struct {
 		name string
 		err  error
 	}
 	firstResult := make(chan result, 1)
 	go func() {
-		name, err := (SaveStore{Dir: relative, files: paused}).Write(at, first)
+		name, err := (SaveStore{Dir: relative, files: paused}).WriteOriginal("", first)
 		firstResult <- result{name: name, err: err}
 	}()
 	select {
@@ -342,7 +318,7 @@ func TestActiveSaveTempIdentitySurvivesDirectoryAliases(t *testing.T) {
 	case result := <-firstResult:
 		t.Fatalf("relative writer failed before publication pause: %v", result.err)
 	}
-	secondName, secondErr := (SaveStore{Dir: absoluteAlias}).Write(at, second)
+	secondName, secondErr := (SaveStore{Dir: absoluteAlias}).WriteOriginal("", second)
 	close(paused.release)
 	firstDone := <-firstResult
 	if firstDone.err != nil || secondErr != nil {
@@ -351,14 +327,13 @@ func TestActiveSaveTempIdentitySurvivesDirectoryAliases(t *testing.T) {
 	if firstDone.name == secondName {
 		t.Fatalf("aliased writers both published %q", secondName)
 	}
-	for name, wantGold := range map[string]int{firstDone.name: 1, secondName: 2} {
+	for name, want := range map[string][]byte{firstDone.name: first, secondName: second} {
 		body, err := (SaveStore{Dir: dir}).Read(name)
 		if err != nil {
 			t.Fatal(err)
 		}
-		snap, _, err := DecodeSave(body)
-		if err != nil || snap.Gold != wantGold {
-			t.Fatalf("save %q = gold %d, %v; want %d", name, snap.Gold, err, wantGold)
+		if !reflect.DeepEqual(body, want) {
+			t.Fatalf("save %q = %q; want complete bytes %q", name, body, want)
 		}
 	}
 }
@@ -424,12 +399,12 @@ func TestSaveStoreConcurrentProcesses(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		snap, _, err := DecodeSave(body)
-		if err != nil || snap.Gold != i+1 {
-			t.Fatalf("process %d save %q decoded as gold %d, error %v", i, name, snap.Gold, err)
+		want := originalWriterLabeled(t, fmt.Sprintf("process %d", i))
+		if !reflect.DeepEqual(body, want) {
+			t.Fatalf("process %d save %q differs from its complete payload", i, name)
 		}
 	}
-	list, err := listAGS(store)
+	list, err := store.List()
 	if err != nil || len(list) != processes {
 		t.Fatalf("concurrent process list = (%d, %v), want %d", len(list), err, processes)
 	}
@@ -459,12 +434,8 @@ func TestSaveStoreConcurrentProcessHelper(t *testing.T) {
 		}
 		time.Sleep(time.Millisecond)
 	}
-	payload, err := EncodeSave(Snapshot{Gold: index + 1}, fmt.Sprintf("process %d", index))
-	if err != nil {
-		t.Fatal(err)
-	}
-	name, err := (SaveStore{Dir: dir}).Write(
-		time.Date(2026, 8, 16, 12, 0, 0, 0, time.UTC), payload)
+	payload := originalWriterLabeled(t, fmt.Sprintf("process %d", index))
+	name, err := (SaveStore{Dir: dir}).WriteOriginal("", payload)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -549,7 +520,7 @@ func TestPublicationRefusesAndPreservesAnExistingSave(t *testing.T) {
 	}
 }
 
-func candidateBodyFixture(t *testing.T) (*FrontEnd, Snapshot, string, *terrain.UnitSet) {
+func candidateBodyFixture(t *testing.T) (*FrontEnd, []byte, string, *terrain.UnitSet) {
 	t.Helper()
 	dir := t.TempDir()
 	pal := make([]color.RGBA, 4)
@@ -582,8 +553,10 @@ func candidateBodyFixture(t *testing.T) (*FrontEnd, Snapshot, string, *terrain.U
 	}, HasOwnerPalettes: true}
 	units.OwnerPalettes[3][17] = color.RGBA{R: 0x31, G: 0x42, B: 0x53, A: 0xff}
 	units.OwnerPalettes[15][255] = color.RGBA{R: 0xa4, G: 0xb5, B: 0xc6, A: 0xff}
-	f := &FrontEnd{InstallResources: InstallResources{Archives: &Archives{Containers: containers}, Tiles: &terrain.Tileset{}, Units: units, Campaign: resolved(saveCampaign(), nil)}, CampaignSession: CampaignSession{Town: saveTown(t), Carried: saveParty()}}
-	f.Carried[0].StartingHero, f.Carried[0].PlayerCharacter = true, true
+	campaign := Campaign{Main: []int{10}, Offered: []int{10}, Chapters: map[int]Chapter{10: {Mission: 10}}}
+	rows := append(fourBaseHumans(), dbEntry{name: "native hero seed", params: humansParams(50, 0, 1)})
+	f := &FrontEnd{InstallResources: InstallResources{Archives: &Archives{Containers: containers}, Tiles: &terrain.Tileset{}, Units: units, Campaign: resolved(campaign, nil), Table: &mapload.Table{Humans: rows}, Humans: rows}, CampaignSession: CampaignSession{Town: NewTown(campaign), Carried: []mapload.PartyMember{{ID: "hero", Name: "Cache hero", Body: "swordsman", BodyDir: "heroes_l", StartingHero: true, PlayerCharacter: true, Hero: data.NewCampaignHero(1)}}}}
+	units.Classes[1] = units.Classes[3]
 	app := f.App("candidate-cache")
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
@@ -592,18 +565,22 @@ func candidateBodyFixture(t *testing.T) (*FrontEnd, Snapshot, string, *terrain.U
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.Party = []mapload.PartyMember{{Body: "swordsman", BodyDir: "heroes_l"}}
+	raw, err := f.ExportCurrentSave(s, "candidate cache")
+	if err != nil {
+		t.Fatal(err)
+	}
 	key := data.HeroBodyKey("heroes_l", "swordsman")
+	delete(f.Units.Bodies, key)
 	if _, exists := f.Units.Bodies[key]; exists {
 		t.Fatal("fixture body was already cached")
 	}
-	return f, s, key, f.live.units
+	return f, raw, key, f.live.units
 }
 
 func TestFailedCandidateDoesNotPopulateTheLiveBodyCache(t *testing.T) {
-	f, s, key, oldUnits := candidateBodyFixture(t)
-	s.World = append([]byte(nil), s.World[:8]...)
-	if _, err := f.prepareRestore(s); err == nil {
+	f, raw, key, oldUnits := candidateBodyFixture(t)
+	raw = append([]byte(nil), raw[:8]...)
+	if _, _, err := f.RestoreOriginal(raw); err == nil {
 		t.Fatal("corrupt candidate world was accepted")
 	}
 	if f.live.units != oldUnits || f.live.units != f.Units {
@@ -615,8 +592,8 @@ func TestFailedCandidateDoesNotPopulateTheLiveBodyCache(t *testing.T) {
 }
 
 func TestCandidateBodyCacheIsAdoptedOnlyAtCommit(t *testing.T) {
-	f, s, key, oldUnits := candidateBodyFixture(t)
-	open, town, err := f.Restore(s)
+	f, raw, key, oldUnits := candidateBodyFixture(t)
+	open, town, err := f.RestoreOriginal(raw)
 	if err != nil {
 		t.Fatal(err)
 	}

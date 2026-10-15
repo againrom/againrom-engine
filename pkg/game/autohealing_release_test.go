@@ -93,11 +93,7 @@ func TestReleaseAutoHealing1191MenuNativeAndOriginalSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(s, "paused healing policy")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err = DecodeSave(raw)
+	raw, err := f.ExportCurrentSave(s, "paused healing policy")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +105,7 @@ func TestReleaseAutoHealing1191MenuNativeAndOriginalSave(t *testing.T) {
 		t.Fatal(err)
 	}
 	ca := cold.App("cold healing")
-	open, town, err := cold.Restore(s)
+	open, town, err := cold.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal(town, err)
 	}

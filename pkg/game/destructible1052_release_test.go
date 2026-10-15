@@ -216,16 +216,12 @@ func TestReleaseMission101FireBallDestroysAndDrawsTheShippedSwitch(t *testing.T)
 	for _, tc := range forms {
 		t.Run(tc.name, func(t *testing.T) {
 			bookLifecycle(t, tc.form, caster)
-			disk, err := EncodeSave(withWorld(snapshot, tc.form), label)
+			disk, err := f.ExportCurrentSave(withWorld(snapshot, tc.form), label)
 			if err != nil {
 				t.Fatalf("EncodeSave: %v", err)
 			}
-			decoded, _, err := DecodeSave(disk)
-			if err != nil {
-				t.Fatalf("DecodeSave: %v", err)
-			}
 			restored := releaseFront(t)
-			opener, town, err := restored.Restore(decoded)
+			opener, town, err := restored.RestoreOriginal(disk)
 			if err != nil || town || opener == nil {
 				t.Fatalf("Restore = opener %v town %v err %v", opener != nil, town, err)
 			}

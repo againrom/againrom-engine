@@ -104,19 +104,6 @@ func projectile1157Resume(t *testing.T, raw []byte) (projectile1157Source, *Miss
 	return want, ms
 }
 
-func TestProjectiles1157IndependentStateAndNativeContinuation(t *testing.T) {
-	for _, mode := range []string{"array", "singleton", "empty", "missing-FreeIndex", "missing-IDs", "missing-section"} {
-		t.Run(mode, func(t *testing.T) {
-			raw := projectile1157Fixture(t, mode)
-			want, _ := projectile1157Resume(t, raw)
-			if mode == "array" && (want.free != 0xfedc || !slices.Equal(want.ids, []uint16{266, 7, 266}) || len(want.items) != 2 || uint32(want.items[0].fields[0]) != 0x81235282 || len(want.values) != 34) {
-				t.Fatalf("literal allocator/IDs/fields differ before App import: %+v", want)
-			}
-			projectile1157App(t, raw, func() *FrontEnd { return projectile1157Front(t) })
-		})
-	}
-}
-
 func projectile1157FieldPointers(p *sim.SavedProjectile) []*int32 {
 	return []*int32{&p.X, &p.Y, &p.Z, &p.Picture, &p.Dir, &p.Phase, &p.LastAction, &p.Action,
 		&p.ActionDir, &p.ActionTarget, &p.ActionX, &p.ActionY, &p.ActionZ, &p.ActionPhase, &p.ActionSegments, &p.ActionSpell}
@@ -256,6 +243,18 @@ func TestProjectiles1157RawBounds(t *testing.T) {
 			}
 			if _, err := projectile1157Read(b); err == nil {
 				t.Fatal("malformed raw structure escaped reader")
+			}
+		})
+	}
+}
+
+func TestProjectiles1157IndependentState(t *testing.T) {
+	for _, mode := range []string{"array", "singleton", "empty", "missing-FreeIndex", "missing-IDs", "missing-section"} {
+		t.Run(mode, func(t *testing.T) {
+			raw := projectile1157Fixture(t, mode)
+			want, _ := projectile1157Resume(t, raw)
+			if mode == "array" && (want.free != 0xfedc || !slices.Equal(want.ids, []uint16{266, 7, 266}) || len(want.items) != 2 || uint32(want.items[0].fields[0]) != 0x81235282 || len(want.values) != 34) {
+				t.Fatalf("literal allocator/IDs/fields differ before App import: %+v", want)
 			}
 		})
 	}

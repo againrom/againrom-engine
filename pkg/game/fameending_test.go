@@ -34,14 +34,6 @@ func TestEarnedEndingWritesOnceAndRestoresRecordedResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := EncodeSave(s, "complete")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err = DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
 	cold := completedFameFront(t)
 	cold.hallStore = f.hallStore
 	cold.fame = fameFromSnapshot(s)

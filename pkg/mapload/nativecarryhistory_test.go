@@ -1,9 +1,7 @@
 package mapload_test
 
 import (
-	"bytes"
 	"encoding/binary"
-	"encoding/gob"
 	"testing"
 
 	"againrom/pkg/data"
@@ -16,19 +14,6 @@ func nativeCarryParty() []mapload.PartyMember {
 	p[0].ID = "native-history"
 	p[0].Profile = data.Profile{Fighter: true, HealthColumn: true}
 	return p
-}
-
-func nativeCarryGob(t *testing.T, p []mapload.PartyMember) []mapload.PartyMember {
-	t.Helper()
-	var raw bytes.Buffer
-	if err := gob.NewEncoder(&raw).Encode(p); err != nil {
-		t.Fatal(err)
-	}
-	var out []mapload.PartyMember
-	if err := gob.NewDecoder(&raw).Decode(&out); err != nil {
-		t.Fatal(err)
-	}
-	return out
 }
 
 func TestNativeCarryHistoryUsesActualActorAndPreservesAbsence(t *testing.T) {
@@ -70,7 +55,7 @@ func TestNativeCarryHistoryUsesActualActorAndPreservesAbsence(t *testing.T) {
 				if len(captured) != 1 || captured[0].Carry == nil {
 					t.Fatalf("actual living member has no Carry: %v", captured)
 				}
-				captured = nativeCarryGob(t, mapload.OwnParty(mapload.CloneParty(captured)))
+				captured = mapload.OwnParty(mapload.CloneParty(captured))
 				next, nextStart := mustStart(t, m, captured)
 				got := entityOf(t, next, nextStart.IDs[0])
 				if got.NativeBasis != tc.basis {
@@ -98,51 +83,10 @@ func TestFirstMaterializedCarryHasNoActorHistory(t *testing.T) {
 	if party[0].Carry == nil {
 		t.Fatal("fixture has no first holdings Carry")
 	}
-	materialized, st := mustStart(t, m, nativeCarryGob(t, party))
+	materialized, st := mustStart(t, m, mapload.OwnParty(mapload.CloneParty(party)))
 	got := entityOf(t, materialized, st.IDs[0])
 	if got.NativeBasis != want.NativeBasis || got.NativeClass != want.NativeClass {
 		t.Fatal("first holdings materialization invented observed actor history", got.NativeBasis, got.NativeClass)
-	}
-}
-
-type historicalCarryShape struct {
-	SkillXP  [data.SkillSlots]int32
-	Items    []uint16
-	Equipped [sim.EquipSlots]uint16
-}
-
-type historicalPartyCarryShape struct {
-	ID      string
-	Class   int32
-	Hero    data.Hero
-	Profile data.Profile
-	Carry   *historicalCarryShape
-}
-
-func TestHistoricalCarryFieldNamesKeepNoHistoryDefault(t *testing.T) {
-	party := nativeCarryParty()
-	old := []historicalPartyCarryShape{{ID: party[0].ID, Class: party[0].Class,
-		Hero: party[0].Hero, Profile: party[0].Profile,
-		Carry: &historicalCarryShape{SkillXP: [6]int32{701, 17, 23, 31, 41, 53}, Items: []uint16{0x0e07}},
-	}}
-	var raw bytes.Buffer
-	if err := gob.NewEncoder(&raw).Encode(old); err != nil {
-		t.Fatal(err)
-	}
-	var decoded []mapload.PartyMember
-	if err := gob.NewDecoder(&raw).Decode(&decoded); err != nil {
-		t.Fatal(err)
-	}
-	if len(decoded) != 1 || decoded[0].Carry == nil || decoded[0].Carry.SkillXP != old[0].Carry.SkillXP ||
-		len(decoded[0].Carry.Items) != 1 || decoded[0].Carry.Items[0] != old[0].Carry.Items[0] {
-		t.Fatal("historical gob field values changed", decoded)
-	}
-	m := carryMap(t)
-	fresh, fs := mustStart(t, m, party)
-	gotWorld, gs := mustStart(t, m, decoded)
-	want, got := entityOf(t, fresh, fs.IDs[0]), entityOf(t, gotWorld, gs.IDs[0])
-	if got.NativeBasis != want.NativeBasis || got.NativeClass != want.NativeClass {
-		t.Fatal("old Carry with no actor history suppressed the fresh constructor", got.NativeBasis, got.NativeClass)
 	}
 }
 
@@ -165,7 +109,7 @@ func TestNativeCarryPotionRecordIsDroppedWithItsRawHistory(t *testing.T) {
 	if party[0].PotionEffect == nil {
 		t.Fatal("fixture carried no potion record")
 	}
-	next, ns := mustStart(t, m, nativeCarryGob(t, party))
+	next, ns := mustStart(t, m, mapload.OwnParty(mapload.CloneParty(party)))
 	for tick := 0; tick <= 3; tick++ {
 		got := entityOf(t, next, ns.IDs[0])
 		if got.NativeBasis != base.NativeBasis || got.Absorption != base.Absorption || len(next.ActiveEffects()) != 0 {

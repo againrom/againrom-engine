@@ -116,18 +116,8 @@ func TestTrainedCityOrdinaryPurchaseKeepsSourceSchool(t *testing.T) {
 			if legacy {
 				// Removing the older city-export basis does not retire the
 				// independent source actor retained in LiveLoad.
-				s, _, err := f.Snapshot(false)
-				if err != nil {
-					t.Fatal(err)
-				}
-				for i := range s.Party {
-					s.Party[i].OriginalHuman = nil
-				}
-				for i := range s.OriginalCity.Bindings {
-					s.OriginalCity.Bindings[i].Baseline.OriginalHuman = nil
-				}
-				if _, _, err := f.Restore(s); err != nil {
-					t.Fatal(err)
+				for i := range f.Carried {
+					f.Carried[i].OriginalHuman = nil
 				}
 			}
 			for step, want := range []struct {

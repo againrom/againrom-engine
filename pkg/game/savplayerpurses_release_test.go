@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -89,7 +88,7 @@ func TestReleaseOriginalPlayerPurses1115NativeContinuation(t *testing.T) {
 	check(f.live.world, before.SavedDocument, true)
 	fresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 	after, _, err := fresh.Snapshot(true)
-	if err != nil || !bytes.Equal(before.World, after.World) || !reflect.DeepEqual(before.SavedDocument, after.SavedDocument) {
+	if err != nil || !bytes.Equal(before.World, after.World) || !sameResave(t, f, fresh) {
 		t.Fatal("ordinary SAVE/fresh LOAD changed complete Player purse state", err)
 	}
 	check(fresh.live.world, after.SavedDocument, true)

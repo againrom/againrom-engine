@@ -46,7 +46,9 @@ func light1162Differences(w *sim.World, state *SnapshotSAVDocument, source spell
 		add(effects[0].AE4C == uint16(18-tick), "live countdown")
 		add(slices.Equal(effects[0].AE48[:], root.raw["AE48"]), "live payload bytes")
 	}
-	add(state != nil && state.WorldEffects != nil && state.Document != nil, "current Document bindings")
+	// A SAV LOAD of a state with no live world effect projects no
+	// WorldEffects rows at all; both forms carry zero areas.
+	add(state != nil && state.Document != nil && (state.WorldEffects != nil || !alive), "current Document bindings")
 	if state == nil || state.Document == nil {
 		return diff
 	}

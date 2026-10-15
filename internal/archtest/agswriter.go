@@ -7,8 +7,8 @@ import (
 	"sort"
 )
 
-// CheckNoAGSWriter rejects production references to the legacy envelope encoder.
-// Tests retain the encoder to exercise existing AGS reading and migration.
+// CheckNoAGSWriter prevents reintroducing production calls to the retired AGS
+// encoder. Synthetic guard tests declare the forbidden API as a loss control.
 func CheckNoAGSWriter(m *TypeCheckedModule) []string {
 	var paths []string
 	for path := range m.Packages {

@@ -66,18 +66,9 @@ func TestExploredHiddenCellQueuesAndCompletesHighRangeTeleport(t *testing.T) {
 	const farX, farY = 35, 3 // distance 33 exceeds sight 4 and fits Teleport range 41.
 	from := &mapWorld{fog: newFogPlane(teleportFogWidth, teleportFogHeight)}
 	from.fog.explored[exploredIndex(farX, farY)] = 1
-	payload, err := EncodeSave(Snapshot{Mission: 1, World: []byte{0}, Residue: from.residue()},
-		"explored Teleport")
-	if err != nil {
-		t.Fatalf("EncodeSave: %v", err)
-	}
-	back, _, err := DecodeSave(payload)
-	if err != nil {
-		t.Fatalf("DecodeSave: %v", err)
-	}
-	mw.applyResidue(back.Residue)
+	mw.applyResidue(from.residue())
 	if !mw.fog.exploredAt(farX, farY) {
-		t.Fatal("explored destination did not survive the save envelope")
+		t.Fatal("explored destination did not survive residue application")
 	}
 	if mw.fog.visible[exploredIndex(farX, farY)] != 0 {
 		t.Fatal("far-cell fixture is currently visible; it must exercise explored-only admission")

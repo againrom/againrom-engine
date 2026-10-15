@@ -160,7 +160,7 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 				if err := WriteConvertedSave(privateSource, source, root); err != nil {
 					t.Fatal(err)
 				}
-				_, _, load := agsSaveSeams(f, store, OriginalStore{Dir: filepath.Dir(privateSource)}, nil)
+				_, _, load := f.SaveSeams(store, OriginalStore{Dir: filepath.Dir(privateSource)}, nil)
 				if _, town, err := load("source.sav"); err != nil || !town {
 					t.Fatal("private source LOAD", town, err)
 				}
@@ -207,7 +207,7 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			}
 			// The ordinary town save callback reads current slots, regardless of
 			// the retained paused driver. No world/offer state is normalized.
-			save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+			save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 			name, err := save(false)
 			if err != nil || !IsOriginal(name) {
 				t.Fatal("current bindings fell back instead of saving SAV", name, err)
@@ -227,13 +227,13 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ags, err := EncodeSave(current, "quick\xffcity")
+			converted, err := f.ExportCurrentSave(current, "quick\xffcity")
 			if err != nil {
 				t.Fatal(err)
 			}
-			converted, label, err := releaseFront(t).ConvertCitySave(ags, "sav", nil)
-			if err != nil || label != "quick\xffcity" {
-				t.Fatal("current AGS conversion", label, err)
+			convertedFile, err := sav.Open(converted)
+			if err != nil || string(convertedFile.Label) != "quick\xffcity" {
+				t.Fatal("current SAV label", err)
 			}
 			cityQuickRaw1167(t, converted, firstCells)
 			if privateSource != "" {
@@ -242,7 +242,7 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 				}
 			}
 			fresh := releaseFront(t)
-			save2, _, load2 := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+			save2, _, load2 := fresh.SaveSeams(store, OriginalStore{}, nil)
 			if _, town, err := load2(localOriginalSaveToken(name)); err != nil || !town || fresh.quickSpells != firstIDs {
 				t.Fatal("source-free fresh SAV LOAD", fresh.quickSpells, town, err)
 			}
@@ -264,7 +264,7 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			}
 			cityQuickRaw1167(t, raw2, [4]int32{-1, 23, 5, 7})
 			third := releaseFront(t)
-			_, _, load3 := agsSaveSeams(third, store, OriginalStore{}, nil)
+			_, _, load3 := third.SaveSeams(store, OriginalStore{}, nil)
 			if _, town, err := load3(localOriginalSaveToken(name2)); err != nil || !town || third.quickSpells != ([4]uint32{0, 18, 23, 16}) {
 				t.Fatal("second SAV LOAD lost cleared/current bindings", third.quickSpells, town, err)
 			}
@@ -275,23 +275,19 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			emptyAGS, err := EncodeSave(empty, "cleared")
-			if err != nil {
-				t.Fatal(err)
-			}
-			emptySAV, _, err := releaseFront(t).ConvertCitySave(emptyAGS, "sav", nil)
+			emptySAV, err := third.ExportCurrentSave(empty, "cleared")
 			if err != nil {
 				t.Fatal(err)
 			}
 			cityQuickRaw1167(t, emptySAV, [4]int32{-1, -1, -1, -1})
 			if dir := os.Getenv("AGAINROM_1167_ARTIFACTS"); dir != "" {
-				for suffix, b := range map[string][]byte{"current.ags": ags, "first.sav": raw, "second.sav": raw2} {
+				for suffix, b := range map[string][]byte{"current.sav": converted, "first.sav": raw, "second.sav": raw2} {
 					if err := WriteConvertedSave(filepath.Join(dir, origin+"-"+suffix), b, root); err != nil {
 						t.Fatal(err)
 					}
 				}
 			}
-			t.Log("App Ctrl-F5/F6/F8 => IDs[23 18 0 16], raw kind6 cells[5 23 -1 7]; ordinary town SAVE, private source removed, fresh LOAD; F5/Ctrl-F7 clears F5, second SAVE cells[-1 23 5 7], cold LOAD/F8 targeting spends mana; converter current and all-unbound words; unrelated city records retained")
+			t.Log("App Ctrl-F5/F6/F8 => IDs[23 18 0 16], raw kind6 cells[5 23 -1 7]; ordinary town SAVE, private source removed, fresh LOAD; F5/Ctrl-F7 clears F5, second SAVE cells[-1 23 5 7], cold LOAD/F8 targeting spends mana; current SAVE and all-unbound words; unrelated city records retained")
 		})
 	}
 }

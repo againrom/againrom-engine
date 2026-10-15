@@ -58,7 +58,7 @@ func TestReleaseNativeTownSaveBarePartySessionStateRoundTripsAsSAV(t *testing.T)
 	// FrontEnd loads it back to the same town state.
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -67,7 +67,7 @@ func TestReleaseNativeTownSaveBarePartySessionStateRoundTripsAsSAV(t *testing.T)
 		t.Fatalf("save(false) published %q, want the sole SAV format", name)
 	}
 	restored := releaseFront(t)
-	_, _, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
+	_, _, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
 	open, town, err := load(name)
 	if err != nil || !town || open != nil {
 		t.Fatalf("load SAV town save = opener %v town %v err %v", open != nil, town, err)
@@ -116,7 +116,7 @@ func TestReleaseNativeTownSaveRosterChangeAcrossSAVSaves(t *testing.T) {
 	saveAndReload := func(t *testing.T) *FrontEnd {
 		t.Helper()
 		dir := t.TempDir()
-		save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+		save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 		name, err := save(false)
 		if err != nil {
 			t.Fatalf("save(false): %v", err)
@@ -125,7 +125,7 @@ func TestReleaseNativeTownSaveRosterChangeAcrossSAVSaves(t *testing.T) {
 			t.Fatalf("bare current party wrote %q, want SAV", name)
 		}
 		restored := releaseFront(t)
-		_, _, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
+		_, _, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
 		if open, town, err := load(name); err != nil || !town || open != nil {
 			t.Fatalf("load SAV town = opener %v town %v err %v", open != nil, town, err)
 		}
@@ -205,7 +205,7 @@ func TestReleaseNativeTownSaveFighterWornSlotTwelveRoundTrips(t *testing.T) {
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -215,7 +215,7 @@ func TestReleaseNativeTownSaveFighterWornSlotTwelveRoundTrips(t *testing.T) {
 	}
 
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("restored save list = %+v, want exactly one entry", entries)
@@ -330,7 +330,7 @@ func TestReleaseNativeTownSaveRealPartyEmitsNativeSAVAndRoundTrips(t *testing.T)
 	// .ags fallback.
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -348,7 +348,7 @@ func TestReleaseNativeTownSaveRealPartyEmitsNativeSAVAndRoundTrips(t *testing.T)
 	// install directory. Reloading through list() here is that same
 	// production dispatch, not a test-only shortcut.
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("restored save list = %+v, want exactly one entry", entries)
@@ -519,7 +519,7 @@ func TestReleaseNativeTownSaveHiredMercenaryEmitsNativeSAVAndRoundTrips(t *testi
 	// the .ags fallback, exactly as it does with no one hired.
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -528,7 +528,7 @@ func TestReleaseNativeTownSaveHiredMercenaryEmitsNativeSAVAndRoundTrips(t *testi
 		t.Fatalf("save(false) published %q as .ags; a hired mercenary must now emit a native .sav", name)
 	}
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("restored save list = %+v, want exactly one entry", entries)
@@ -673,7 +673,7 @@ func TestReleaseNativeCitySAVDismissalPreservesLoadedWorkingPool(t *testing.T) {
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil || !IsOriginal(name) {
 		t.Fatalf("first city SAVE = %q, err %v", name, err)
@@ -697,7 +697,7 @@ func TestReleaseNativeCitySAVDismissalPreservesLoadedWorkingPool(t *testing.T) {
 	}
 
 	loaded := releaseFront(t)
-	_, rows, load := agsSaveSeams(loaded, store, OriginalStore{}, nil)
+	_, rows, load := loaded.SaveSeams(store, OriginalStore{}, nil)
 	entries := rows()
 	if len(entries) != 1 {
 		t.Fatalf("first reload save rows = %+v, want one local SAV", entries)
@@ -726,7 +726,7 @@ func TestReleaseNativeCitySAVDismissalPreservesLoadedWorkingPool(t *testing.T) {
 			loaded.Town.MercenaryHired(hireType), countTownMercenaries(loaded.Carried, hireType))
 	}
 
-	saveAgain, _, _ := agsSaveSeams(loaded, store, OriginalStore{}, nil)
+	saveAgain, _, _ := loaded.SaveSeams(store, OriginalStore{}, nil)
 	name, err = saveAgain(false)
 	if err != nil || !IsOriginal(name) {
 		t.Fatalf("city SAVE after dismissal = %q, err %v", name, err)
@@ -923,7 +923,7 @@ func TestReleaseNativeTownSaveShopBaredSessionRoundTripsAsSAV(t *testing.T) {
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -933,7 +933,7 @@ func TestReleaseNativeTownSaveShopBaredSessionRoundTripsAsSAV(t *testing.T) {
 	}
 
 	restored := releaseFront(t)
-	_, _, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
+	_, _, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
 	if open, town, err := load(name); err != nil || !town || open != nil {
 		t.Fatalf("load SAV town save = opener %v town %v err %v", open != nil, town, err)
 	}
@@ -1045,7 +1045,7 @@ func TestReleaseNativeTownSaveReachabilityWalkAllReachableStatesWriteNative(t *t
 
 		dir := t.TempDir()
 		store := SaveStore{Dir: dir}
-		save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+		save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 		name, err := save(false)
 		if err != nil {
 			t.Fatalf("Won(%d): save(false): %v", m, err)
@@ -1054,7 +1054,7 @@ func TestReleaseNativeTownSaveReachabilityWalkAllReachableStatesWriteNative(t *t
 			t.Fatalf("Won(%d): save(false) published %q as .ags, not a native .sav, right after ExportNativeCitySave itself succeeded", m, name)
 		}
 		loader := releaseFront(t)
-		_, loaderList, load := agsSaveSeams(loader, SaveStore{Dir: dir}, OriginalStore{}, nil)
+		_, loaderList, load := loader.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 		entries := loaderList()
 		if len(entries) != 1 {
 			t.Fatalf("Won(%d): save list = %+v, want exactly one entry", m, entries)
@@ -1151,7 +1151,7 @@ func TestReleaseNativeTownSaveReachabilityWalkThreeCheckpointsRoundTrip(t *testi
 
 		dir := t.TempDir()
 		store := SaveStore{Dir: dir}
-		save, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+		save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 		name, err := save(false)
 		if err != nil {
 			t.Fatalf("checkpoint Won(%d): save(false): %v", m, err)
@@ -1160,7 +1160,7 @@ func TestReleaseNativeTownSaveReachabilityWalkThreeCheckpointsRoundTrip(t *testi
 			t.Fatalf("checkpoint Won(%d): save(false) published %q as .ags, want a native .sav", m, name)
 		}
 		restored := releaseFront(t)
-		_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+		_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 		entries := restoredList()
 		if len(entries) != 1 {
 			t.Fatalf("checkpoint Won(%d): restored save list = %+v, want exactly one entry", m, entries)
@@ -1317,7 +1317,7 @@ func TestReleaseNativeTownSaveTavernOffersSurviveReload(t *testing.T) {
 		}
 
 		dir := t.TempDir()
-		save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+		save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 		name, err := save(false)
 		if err != nil {
 			t.Fatalf("Won(%d): save(false): %v", m, err)
@@ -1326,7 +1326,7 @@ func TestReleaseNativeTownSaveTavernOffersSurviveReload(t *testing.T) {
 			t.Fatalf("Won(%d): save(false) published %q as .ags, want a native .sav", m, name)
 		}
 		restored := releaseFront(t)
-		_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+		_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 		entries := restoredList()
 		if len(entries) != 1 {
 			t.Fatalf("Won(%d): save list = %+v, want exactly one entry", m, entries)
@@ -1427,7 +1427,7 @@ func TestReleaseNativeTownSaveStrippedHeroBesideHiredMercenaryRoundTrips(t *test
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -1436,7 +1436,7 @@ func TestReleaseNativeTownSaveStrippedHeroBesideHiredMercenaryRoundTrips(t *test
 		t.Fatalf("save(false) published %q as .ags; the sold hero beside a hired member must keep the native .sav", name)
 	}
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("save list = %+v, want exactly one entry", entries)
@@ -1538,7 +1538,7 @@ func TestReleaseNativeTownSaveHiredMercenaryAscendingOrderRoundTrips(t *testing.
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -1547,7 +1547,7 @@ func TestReleaseNativeTownSaveHiredMercenaryAscendingOrderRoundTrips(t *testing.
 		t.Fatalf("save(false) published %q as .ags; an ascending hire order must emit a native .sav", name)
 	}
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("save list = %+v, want exactly one entry", entries)
@@ -1606,7 +1606,7 @@ func TestReleaseNativeTownSaveHiredMercenaryDescendingOrderRoundTrips(t *testing
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -1615,7 +1615,7 @@ func TestReleaseNativeTownSaveHiredMercenaryDescendingOrderRoundTrips(t *testing
 		t.Fatalf("save(false) published %q as .ags; a descending Human-type hire order must now keep the native .sav", name)
 	}
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("save list = %+v, want exactly one entry", entries)
@@ -1681,7 +1681,7 @@ func TestReleaseNativeTownSaveHiredMercenarySiegeThenHumanOrderRoundTrips(t *tes
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -1690,7 +1690,7 @@ func TestReleaseNativeTownSaveHiredMercenarySiegeThenHumanOrderRoundTrips(t *tes
 		t.Fatalf("save(false) published %q as .ags; siege-then-Human order must emit a native .sav, as master did", name)
 	}
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("save list = %+v, want exactly one entry", entries)
@@ -1740,7 +1740,7 @@ func TestReleaseNativeTownSaveHiredMercenaryHumanThenSiegeOrderPreserved(t *test
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -1749,7 +1749,7 @@ func TestReleaseNativeTownSaveHiredMercenaryHumanThenSiegeOrderPreserved(t *test
 		t.Fatalf("save(false) published %q, want the sole SAV format", name)
 	}
 	restored := releaseFront(t)
-	_, _, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
+	_, _, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{Dir: dir}, nil)
 	if _, town, err := load(name); err != nil || !town {
 		t.Fatalf("load SAV = town %v err %v", town, err)
 	}
@@ -1786,7 +1786,7 @@ func TestReleaseNativeTownSaveHiredMercenaryCombatBlockRoundTrips(t *testing.T) 
 	}
 
 	dir := t.TempDir()
-	save, _, _ := agsSaveSeams(f, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	save, _, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	name, err := save(false)
 	if err != nil {
 		t.Fatalf("save(false): %v", err)
@@ -1795,7 +1795,7 @@ func TestReleaseNativeTownSaveHiredMercenaryCombatBlockRoundTrips(t *testing.T) 
 		t.Fatalf("save(false) published %q as .ags; a solo type-10 hire must still emit a native .sav", name)
 	}
 	restored := releaseFront(t)
-	_, restoredList, load := agsSaveSeams(restored, SaveStore{Dir: dir}, OriginalStore{}, nil)
+	_, restoredList, load := restored.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 	entries := restoredList()
 	if len(entries) != 1 {
 		t.Fatalf("save list = %+v, want exactly one entry", entries)
@@ -1873,7 +1873,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithNothingChanged
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name1, err := save1(false)
 	if err != nil {
 		t.Fatalf("checkpoint one save(false): %v", err)
@@ -1887,7 +1887,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithNothingChanged
 	}
 
 	reloaded := releaseFront(t)
-	save2, list2, load2 := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+	save2, list2, load2 := reloaded.SaveSeams(store, OriginalStore{}, nil)
 	entries := list2()
 	if len(entries) != 1 {
 		t.Fatalf("checkpoint one's save list = %+v, want exactly one entry", entries)
@@ -1924,7 +1924,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithNothingChanged
 	}
 
 	twiceReloaded := releaseFront(t)
-	_, list3, load3 := agsSaveSeams(twiceReloaded, store, OriginalStore{}, nil)
+	_, list3, load3 := twiceReloaded.SaveSeams(store, OriginalStore{}, nil)
 	// list3 reports the UI-facing opaque token (localOriginalSavePrefix +
 	// bare name, resume.go), not the bare store name save()/store.Read()
 	// use — the same distinction load's own doc comment names.
@@ -2045,7 +2045,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithHiredSquad(t *
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name1, err := save1(false)
 	if err != nil {
 		t.Fatalf("checkpoint one save(false): %v", err)
@@ -2059,7 +2059,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithHiredSquad(t *
 	}
 
 	reloaded := releaseFront(t)
-	save2, list2, load2 := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+	save2, list2, load2 := reloaded.SaveSeams(store, OriginalStore{}, nil)
 	entries := list2()
 	if len(entries) != 1 {
 		t.Fatalf("checkpoint one's save list = %+v, want exactly one entry", entries)
@@ -2107,7 +2107,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithHiredSquad(t *
 	}
 
 	twiceReloaded := releaseFront(t)
-	_, list3, load3 := agsSaveSeams(twiceReloaded, store, OriginalStore{}, nil)
+	_, list3, load3 := twiceReloaded.SaveSeams(store, OriginalStore{}, nil)
 	// list3 reports the UI-facing opaque token (localOriginalSavePrefix +
 	// bare name, resume.go), not the bare store name save()/store.Read()
 	// use — the same distinction load's own doc comment names.
@@ -2169,7 +2169,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeAfterWorldMapOpene
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name1, err := save1(false)
 	if err != nil {
 		t.Fatalf("checkpoint one save(false): %v", err)
@@ -2183,7 +2183,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeAfterWorldMapOpene
 	}
 
 	reloaded := releaseFront(t)
-	save2, list2, _ := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+	save2, list2, _ := reloaded.SaveSeams(store, OriginalStore{}, nil)
 	if entries := list2(); len(entries) != 1 {
 		t.Fatalf("checkpoint one's save list = %+v, want exactly one entry", entries)
 	}
@@ -2239,7 +2239,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeAfterWorldMapOpene
 	}
 
 	twiceReloaded := releaseFront(t)
-	_, list3, load3 := agsSaveSeams(twiceReloaded, store, OriginalStore{}, nil)
+	_, list3, load3 := twiceReloaded.SaveSeams(store, OriginalStore{}, nil)
 	// list3 reports the UI-facing opaque token (localOriginalSavePrefix +
 	// bare name, resume.go), not the bare store name save()/store.Read()
 	// use — the same distinction load's own doc comment names.
@@ -2308,7 +2308,7 @@ func TestReleaseNativeTownSaveReachabilityWalkSecondSaveAllStayNative(t *testing
 
 		dir := t.TempDir()
 		store := SaveStore{Dir: dir}
-		save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+		save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 		name1, err := save1(false)
 		if err != nil || !IsOriginal(name1) {
 			refusals = append(refusals, fmt.Sprintf("Won(%d): checkpoint one = %q err %v, not a native .sav", m, name1, err))
@@ -2316,7 +2316,7 @@ func TestReleaseNativeTownSaveReachabilityWalkSecondSaveAllStayNative(t *testing
 		}
 
 		reloaded := releaseFront(t)
-		save2, list2, load2 := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+		save2, list2, load2 := reloaded.SaveSeams(store, OriginalStore{}, nil)
 		entries := list2()
 		if len(entries) != 1 {
 			t.Fatalf("Won(%d): checkpoint one's save list = %+v, want exactly one entry", m, entries)
@@ -2349,7 +2349,7 @@ func TestReleaseNativeTownSaveReachabilityWalkSecondSaveAllStayNative(t *testing
 // carries and checkpoint two stays native. A companion shape — open a
 // marker the baseline does NOT carry, post-reload, then SAVE — was drafted
 // and dropped here: campaignProgress.projection() (campaignprogress.go),
-// which builds Campaign.Markers for BOTH marshal and EncodeSave, only ever
+// which builds Campaign.Markers for the saved campaign projection, only ever
 // reflects what was already decode-frozen at LOAD (populated once, in
 // campaignProgressFromSAV, from the file's own Markers list); only
 // nativeCampaignProjection (nativecity.go) reads the live once-selected UI
@@ -2366,14 +2366,14 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadCustomQuickSpellStaysNative(t
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name1, err := save1(false)
 	if err != nil || !IsOriginal(name1) {
 		t.Fatalf("checkpoint one = %q err %v, want a native .sav", name1, err)
 	}
 
 	reloaded := releaseFront(t)
-	save2, list2, load2 := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+	save2, list2, load2 := reloaded.SaveSeams(store, OriginalStore{}, nil)
 	entries := list2()
 	if len(entries) != 1 {
 		t.Fatalf("checkpoint one's save list = %+v, want exactly one entry", entries)
@@ -2385,7 +2385,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadCustomQuickSpellStaysNative(t
 		t.Fatal("fixture assumption broke: reload bound no imported-city baseline")
 	}
 	want := reloaded.originalCity.baselineQuickSpells
-	want[0] = 65535 // No original book cell; native AGS must retain the ID.
+	want[0] = 65535 // No original book cell; SAV must retain the ID.
 	if want == reloaded.originalCity.baselineQuickSpells {
 		t.Fatal("fixture assumption broke: the mutated slots still equal the baseline")
 	}
@@ -2400,7 +2400,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadCustomQuickSpellStaysNative(t
 	}
 
 	third := releaseFront(t)
-	_, _, load3 := agsSaveSeams(third, store, OriginalStore{Dir: dir}, nil)
+	_, _, load3 := third.SaveSeams(store, OriginalStore{Dir: dir}, nil)
 	if _, town, err := load3(name2); err != nil || !town {
 		t.Fatalf("loading checkpoint two: town %v err %v", town, err)
 	}
@@ -2435,14 +2435,14 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStrippedHeroBesideHiredMercen
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name1, err := save1(false)
 	if err != nil || !IsOriginal(name1) {
 		t.Fatalf("checkpoint one = %q err %v, want a native .sav", name1, err)
 	}
 
 	reloaded := releaseFront(t)
-	save2, list2, load2 := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+	save2, list2, load2 := reloaded.SaveSeams(store, OriginalStore{}, nil)
 	entries := list2()
 	if len(entries) != 1 {
 		t.Fatalf("checkpoint one's save list = %+v, want exactly one entry", entries)
@@ -2502,7 +2502,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStrippedHeroBesideHiredMercen
 	}
 
 	third := releaseFront(t)
-	_, _, load3 := agsSaveSeams(third, store, OriginalStore{}, nil)
+	_, _, load3 := third.SaveSeams(store, OriginalStore{}, nil)
 	if _, town, err := load3(localOriginalSaveToken(name2)); err != nil || !town {
 		t.Fatalf("loading checkpoint two: town %v err %v", town, err)
 	}
@@ -2543,7 +2543,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadDescendingHireOrderStaysNativ
 
 	dir := t.TempDir()
 	store := SaveStore{Dir: dir}
-	save1, _, _ := agsSaveSeams(f, store, OriginalStore{}, nil)
+	save1, _, _ := f.SaveSeams(store, OriginalStore{}, nil)
 	name1, err := save1(false)
 	if err != nil || !IsOriginal(name1) {
 		t.Fatalf("checkpoint one = %q err %v, want a native .sav", name1, err)
@@ -2551,7 +2551,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadDescendingHireOrderStaysNativ
 	_ = screen
 
 	reloaded := releaseFront(t)
-	save2, list2, load2 := agsSaveSeams(reloaded, store, OriginalStore{}, nil)
+	save2, list2, load2 := reloaded.SaveSeams(store, OriginalStore{}, nil)
 	entries := list2()
 	if len(entries) != 1 {
 		t.Fatalf("checkpoint one's save list = %+v, want exactly one entry", entries)
@@ -2583,7 +2583,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadDescendingHireOrderStaysNativ
 	}
 
 	third := releaseFront(t)
-	_, _, load3 := agsSaveSeams(third, store, OriginalStore{Dir: dir}, nil)
+	_, _, load3 := third.SaveSeams(store, OriginalStore{Dir: dir}, nil)
 	if _, town, err := load3(name2); err != nil || !town {
 		t.Fatalf("loading checkpoint two: town %v err %v", town, err)
 	}

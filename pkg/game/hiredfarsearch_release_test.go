@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
@@ -80,23 +79,23 @@ func releaseHireSiege(t *testing.T, f *FrontEnd) {
 	town.gold = 1_000_000
 	f.Town = town
 	f.Carried = f.NextParty()
-	f.arriveInTown()
+	arriveInTownGrantTaken(f)
 	snap, label, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload, err := EncodeSave(snap, label)
+	payload, err := f.ExportCurrentSave(snap, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	store := SaveStore{Dir: t.TempDir()}
-	if _, err := store.Write(time.Unix(100, 0), payload); err != nil {
+	if _, err := store.WriteOriginal("", payload); err != nil {
 		t.Fatal(err)
 	}
 	app := f.App("hired siege tavern")
 	t.Cleanup(app.StopAudio)
 	app.Layout(640, 480)
-	app.SetSaveSeams(agsSaveSeams(f, store, OriginalStore{}, nil))
+	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{}, nil))
 	for _, target := range []string{"load game", "@first", "TAVERN"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)

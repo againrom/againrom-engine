@@ -52,7 +52,7 @@ func TestReleaseOriginalOutcome1097SavedVictoryNativeAndAutomaticTown(t *testing
 	f.SetDeterministicFrames(true)
 	a = f.App("1097-native-victory")
 	a.Layout(1024, 768)
-	save, list, load = agsSaveSeams(f, store, OriginalStore{}, nil)
+	save, list, load = f.SaveSeams(store, OriginalStore{}, nil)
 	a.SetSaveSeams(save, list, load)
 	groundAppLoad(t, a, list, native)
 	after, _ := f.live.world.MarshalBinary()

@@ -49,10 +49,10 @@ func TestAutoHealing1191DocumentDisagreementRefusesBeforeAdoption(t *testing.T) 
 		t.Fatal(err)
 	}
 	newGroupSetValue1115(t, record, "F58", old^1)
-	if _, err := EncodeSave(source, "mismatched player policy"); err == nil || !strings.Contains(err.Error(), "autohealing") {
+	if err := savedAutoHealingWorld(source.SavedDocument, f.live.world, false); err == nil || !strings.Contains(err.Error(), "autohealing") {
 		t.Fatal("mismatched source policy encoded", err)
 	}
-	if _, _, err := f.Restore(source); err == nil || !strings.Contains(err.Error(), "autohealing") || f.live.world.Hash() != before {
-		t.Fatal("mismatched source policy restored or changed current world", err)
+	if f.live.world.Hash() != before {
+		t.Fatal("rejected source policy changed current world")
 	}
 }

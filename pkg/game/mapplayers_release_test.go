@@ -308,16 +308,12 @@ func TestReleaseMapEditorPlayersPlayWithAuthoredColoursAndRelations(t *testing.T
 		}
 		t.Logf("%s %s retained owner %d, colour 9, computer controls and directed hostility", filepath.Base(os.Getenv("AGAINROM_ASSETS")), route, loadedActor.Owner)
 	}
-	raw, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(raw)
+	raw, err := after.ExportCurrentSave(snapshot, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	cold := guestFront(t, edited, newMapModID)
-	open, town, err := cold.Restore(decoded)
+	open, town, err := cold.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal("legacy AGS cold mod LOAD", town, err)
 	}

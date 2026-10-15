@@ -14,33 +14,26 @@ func TestWorldMarkerHistoryRoundTripsAndReplacesThePreviousGame(t *testing.T) {
 	screen := f.TownScreen().(*townScreen)
 	screen.worldSelectedOnce = map[int]bool{20: true, 10: true, 99: false}
 
-	snapshot, label, err := f.Snapshot(false)
+	snapshot, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if want := []int{10, 20}; !reflect.DeepEqual(snapshot.WorldSelectedOnce, want) {
 		t.Fatalf("snapshot marker history = %v, want sorted %v", snapshot.WorldSelectedOnce, want)
 	}
-	encoded, err := EncodeSave(snapshot, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	decoded, _, err := DecodeSave(encoded)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	g := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(campaign, nil)}, CampaignSession: CampaignSession{Town: NewTown(campaign)}}
 	g.TownScreen()
 	g.townUI.worldSelectedOnce = map[int]bool{999: true}
-	open, town, err := g.Restore(decoded)
-	if err != nil || open != nil || !town {
-		t.Fatalf("Restore = opener %v town %v err %v", open != nil, town, err)
+	history, err := worldSelectedOnceFromSnapshot(snapshot.WorldSelectedOnce)
+	if err != nil {
+		t.Fatal(err)
 	}
+	g.installCandidate(&restoreCandidate{townOnly: true, town: restoreTown(campaign, snapshot), worldSelectedOnce: history})
+
 	if want := map[int]bool{10: true, 20: true}; !reflect.DeepEqual(g.townUI.worldSelectedOnce, want) {
 		t.Fatalf("restored marker history = %v, want %v", g.townUI.worldSelectedOnce, want)
 	}
-	decoded.WorldSelectedOnce[0] = 77
+	snapshot.WorldSelectedOnce[0] = 77
 	if g.townUI.worldSelectedOnce[77] || !g.townUI.worldSelectedOnce[10] {
 		t.Fatal("installed marker history aliases the caller's snapshot slice")
 	}
@@ -103,7 +96,7 @@ func TestMalformedWorldMarkerHistoryRefusesBeforeCommit(t *testing.T) {
 			f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(campaign, nil)}, CampaignSession: CampaignSession{Town: oldTown}}
 			f.TownScreen()
 			f.townUI.worldSelectedOnce = map[int]bool{99: true}
-			if _, _, err := f.Restore(Snapshot{Open: true, WorldSelectedOnce: tc.missions}); err == nil {
+			if _, err := worldSelectedOnceFromSnapshot(tc.missions); err == nil {
 				t.Fatal("malformed marker history was accepted")
 			}
 			if f.Town != oldTown || !f.townUI.worldSelectedOnce[99] {

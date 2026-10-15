@@ -95,15 +95,15 @@ func producer1162Snapshot(t *testing.T, f *FrontEnd) Snapshot {
 func producer1162Fresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, path string) *FrontEnd {
 	t.Helper()
 	hash := f.live.world.Hash()
-	_, nativeList, nativeLoad := agsSaveSeams(f, store, OriginalStore{}, nil)
+	_, nativeList, nativeLoad := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(nativeCheckpoint1170(f, store), nativeList, nativeLoad)
 	t.Log("App menu with explicit native checkpoint codec")
 	mover1160Menu(t, app)
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := listAGS(store)
-	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".ags" {
+	entries, err := localSAVRows(store)
+	if err != nil || len(entries) != 1 || filepath.Ext(entries[0].Name) != ".sav" {
 		t.Fatal("ordinary menu SAVE", entries, err)
 	}
 	if err := os.Remove(path); err != nil {
@@ -116,7 +116,7 @@ func producer1162Fresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, 
 	fresh.SetDeterministicFrames(true)
 	app2 := fresh.App("Current producers source-free LOAD")
 	app2.Layout(1024, 768)
-	save, list, load := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+	save, list, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app2, list, entries[0].Name)
 	if fresh.live.world.Hash() != hash || f.live.world.Hash() != hash {
@@ -130,7 +130,7 @@ func producerSAVFresh(t *testing.T, f *FrontEnd, app *ui.App, path string) (*Fro
 	hash := f.live.world.Hash()
 	mover1160Menu(t, app)
 	store := SaveStore{Dir: t.TempDir()}
-	save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: filepath.Dir(path)}, func() time.Time { return time.Unix(1, 0) })
+	save, list, load := f.SaveSeams(store, OriginalStore{Dir: filepath.Dir(path)}, func() time.Time { return time.Unix(1, 0) })
 	app.SetSaveSeams(save, list, load)
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)

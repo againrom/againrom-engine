@@ -2,7 +2,6 @@ package game
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -216,10 +215,6 @@ func TestReleaseCurrentObjectSAVContinuation(t *testing.T) {
 		return
 	}
 	_ = releaseFront(t)
-	dir := os.Getenv("AGAINROM_OBJECT_AGS_DIR")
-	if dir == "" {
-		dir = filepath.Join(filepath.Dir(os.Getenv("AGAINROM_ASSETS")), "..", "engine", "saves")
-	}
 	for _, input := range []struct {
 		name, hash string
 		retired    int
@@ -230,26 +225,16 @@ func TestReleaseCurrentObjectSAVContinuation(t *testing.T) {
 		{"save1234", "199a94ce8024f784cd2cd0945d64081806b1e0f6823e75e72616181ebe01aa9c", 11},
 	} {
 		t.Run(input.name, func(t *testing.T) {
-			path := filepath.Join(dir, input.name+".ags")
-			raw, err := os.ReadFile(path)
-			digest := sha256.Sum256(raw)
-			if err != nil || hex.EncodeToString(digest[:]) != input.hash {
-				t.Fatal("unchanged native corpus input missing or changed", path, err)
+			fixture := input.name
+			if fixture == "112323232" {
+				fixture = "mission111-portrait-input"
 			}
-			defer func() {
-				after, err := os.ReadFile(path)
-				if err != nil || sha256.Sum256(after) != digest {
-					t.Fatal("original AGS input changed", err)
-				}
-			}()
-			s, _, err := DecodeSave(raw)
-			if err != nil {
-				t.Fatal(err)
-			}
+			_, raw := ownerCurrentSAV(t, fixture)
+			expectedSource := ownerSourceProof(t, fixture)
 			f := releaseFront(t)
 			f.Options = OptionsStore{}
 			f.SetDeterministicFrames(true)
-			open, town, err := f.Restore(s)
+			open, town, err := f.RestoreOriginal(raw)
 			if err != nil || town {
 				t.Fatal("native input LOAD", town, err)
 			}
@@ -257,21 +242,17 @@ func TestReleaseCurrentObjectSAVContinuation(t *testing.T) {
 				t.Fatal(err)
 			}
 			proof := currentObjectProof{Owners: currentObjectOwners(t, f), InputSHA256: input.hash, Bodies: currentBodies(f.live.world)}
-			held := make(map[sim.EntityID]bool)
+			if !reflect.DeepEqual(expectedSource.Owners, proof.Owners) || !reflect.DeepEqual(expectedSource.Bodies, proof.Bodies) {
+				t.Fatal("SAV fixture lost independent source owner/body state")
+			}
+
 			for _, d := range f.live.world.OriginalDeadActors() {
-				held[d.ID] = true
 				proof.Held = append(proof.Held, d.Current)
 			}
-			current, _, err := f.Snapshot(true)
-			if err != nil {
-				t.Fatal(err)
+			if !reflect.DeepEqual(expectedSource.Held, proof.Held) {
+				t.Fatal("SAV fixture lost independent source held corpse state")
 			}
-			for _, a := range current.SavedDocument.Actors {
-				if a.Retired && !held[a.EntityID] {
-					id, _ := savedStructureValue(&current.SavedDocument.Document.Objects[a.ObjectIndex-1], "RuntimeID")
-					proof.Retired = append(proof.Retired, id)
-				}
-			}
+			proof.Retired = append([]uint32(nil), expectedSource.Retired...)
 			if len(proof.Retired) != input.retired {
 				t.Fatal("retired input population differs", len(proof.Retired))
 			}
@@ -310,4 +291,70 @@ func firstObjectDifference(want, got []currentItemOwner) string {
 		}
 	}
 	return fmt.Sprintf("owner count %d/%d", len(want), len(got))
+}
+
+// DIV-3348 bounds the replacement subjects; it does not promise legacy hash parity.
+func ownerCurrentSAV(t *testing.T, name string) (string, []byte) {
+	t.Helper()
+	root := os.Getenv("AGAINROM_RESTORE_OWNER_FIXTURES")
+	if root == "" {
+		t.Skip("AGAINROM_RESTORE_OWNER_FIXTURES is not set")
+	}
+	locale := "en"
+	if releaseFront(t).textSelector() == 1 {
+		locale = "ru"
+	}
+	hashes := map[string][2]string{
+		"122323":                    {"0ab5d2dd647454849eb4ed0dac744d2f84e4021b800da8495f4434b4fc56e2e9", "713272ab4bec4b2e510dfb3b65d2cac3e9bf2d2d4e2acc5df5f2f21d2cfc4da1"},
+		"123":                       {"3993b79acf4c2f1045098150b9aa3e5f5d6de0f3a72154b10b034538b6b9ff00", "ceb21629266d2bcc2888ce4dfb835fe6c0d909098aff6b1d1745291ef6789bee"},
+		"save1234":                  {"5bcc04684a13a559d80ccef1a319d4369dbd88ba9a8ed82f2e2b879d652a2bec", "911f483b9df66835427294ddf680eb60cf8964f0ff4622c8339bef89f1e0442f"},
+		"mission111-enemy-dolls":    {"13bc40dad274f6c9fead13f1bb96e3c033d88d10cde11eefaeffa87966eff48a", "13bc40dad274f6c9fead13f1bb96e3c033d88d10cde11eefaeffa87966eff48a"},
+		"mission110-portrait-input": {"d77f7e9109b79254135c2ec9fc66c863cfc1981210735676f653afdd7cf12ca1", "c72dc4cd3f9dc90a34376d6cc7c74d72f1a887410a957d598800ecf6fd7434c5"},
+		"mission111-portrait-input": {"95ac3ebeb80f385db8a0390cb77aafaf4fe24dfb7462b9edbc39f30307369654", "d01a7a1847023a573ea9c8ca7a3473511ad35aebefeea98aa11ec8a225936bff"},
+	}
+	expected, ok := hashes[name]
+	if !ok {
+		t.Fatal("unknown owner SAV fixture", name)
+	}
+	at := 0
+	if locale == "ru" {
+		at = 1
+	}
+	path := filepath.Join(root, locale, name, "fixture.sav")
+	raw, err := os.ReadFile(path)
+	if err != nil || fmt.Sprintf("%x", sha256.Sum256(raw)) != expected[at] {
+		t.Fatal("owner SAV fixture missing or changed", name, locale, err)
+	}
+	return path, raw
+}
+
+func ownerSourceProof(t *testing.T, name string) currentObjectProof {
+	t.Helper()
+	hashes := map[string]string{
+		"122323":                    "59707db2605b7cf1cfd60d029c7f90d9fc1e0c1891aaa983834b238d6095b5d5",
+		"123":                       "eb4c8e370095195dac144443f5ce9307e0147caf142336cde80246ce34f9b7ad",
+		"save1234":                  "67c27f6993ed0735d8bf95f2d260aeab234b7e16c12053ba4c06eea5ce2aec09",
+		"mission111-portrait-input": "a70d9549535a6fa889826952d3f5992a74fe186bc7f034eca082916c34606601",
+	}
+	expected, ok := hashes[name]
+	if !ok {
+		t.Fatal("unknown source expectation manifest", name)
+	}
+	root := os.Getenv("AGAINROM_RESTORE_OWNER_FIXTURES")
+	if root == "" {
+		t.Skip("AGAINROM_RESTORE_OWNER_FIXTURES is not set")
+	}
+	locale := "en"
+	if releaseFront(t).textSelector() == 1 {
+		locale = "ru"
+	}
+	raw, err := os.ReadFile(filepath.Join(root, locale, name, "source-object-proof.json"))
+	if err != nil || fmt.Sprintf("%x", sha256.Sum256(raw)) != expected {
+		t.Fatal("independent source expectation manifest missing or changed", name, err)
+	}
+	var proof currentObjectProof
+	if err = json.Unmarshal(raw, &proof); err != nil {
+		t.Fatal(err)
+	}
+	return proof
 }

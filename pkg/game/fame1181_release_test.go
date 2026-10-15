@@ -50,11 +50,11 @@ func TestReleaseFame1181TerminalResultColdHallAndSAV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pendingRaw, err := EncodeSave(pending, "Pending earned result")
+	pendingRaw, err := f.ExportCurrentSave(pending, "Pending earned result")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(artifact, "pending.ags"), pendingRaw, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(artifact, "pending.sav"), pendingRaw, 0600); err != nil {
 		t.Fatal(err)
 	}
 	time := uint32(100) + uint32(int32(uint32(f.live.world.Tick()))/16)

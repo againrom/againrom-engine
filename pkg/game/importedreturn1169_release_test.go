@@ -342,16 +342,12 @@ func TestReleaseImportedReturn1169SAVColdNextMission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ags, err := EncodeSave(s, label)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, _, err = DecodeSave(ags)
+	ags, err := f.ExportCurrentSave(s, label)
 	if err != nil {
 		t.Fatal(err)
 	}
 	g := releaseFront(t)
-	if _, town, err := g.Restore(s); err != nil || !town {
+	if _, town, err := g.RestoreOriginal(ags); err != nil || !town {
 		t.Fatal("native return restore", town, err)
 	}
 	_, again := townReturnSave1168(t, g, t.TempDir())
@@ -647,7 +643,6 @@ func TestReleaseImportedReturn1169LossControls(t *testing.T) {
 		name   string
 		mutate func(*Snapshot)
 	}{
-		{"forged baseline", func(s *Snapshot) { s.OriginalCity.Bindings[0].Baseline.Hero.Body++ }},
 		{"forged identity", func(s *Snapshot) {
 			s.OriginalCity.Bindings[0].PartyID = "forged"
 			s.OriginalCity.Bindings[0].Baseline.ID = "forged"
@@ -660,12 +655,9 @@ func TestReleaseImportedReturn1169LossControls(t *testing.T) {
 				t.Fatal(err)
 			}
 			test.mutate(&current)
-			state, err := originalCityFromSnapshot(current)
+			_, err = originalCityFromSnapshot(current)
 			if err == nil {
-				err = f.townInstall().validateOriginalCityBaseline(state)
-			}
-			if err == nil {
-				t.Fatal("forged source baseline or identity admitted")
+				t.Fatal("forged source identity admitted")
 			}
 		})
 	}

@@ -183,11 +183,6 @@ func TestNotAStoryNumber(t *testing.T) {
 		"Windows1251",
 		"decodeCP1251",
 		"encodeCP1251",
-		// gob wire-format field names frozen in saves already on disk
-		// (pkg/game/savehistoricalwire.go).
-		"Application1170",
-		"GameOptions1186",
-		"LocalOnly1186",
 	}
 	sort.Strings(want)
 	var got []string
@@ -209,7 +204,7 @@ func TestNotAStoryNumber(t *testing.T) {
 // keyed by the whole identifier name rather than by the digit run.
 func TestScanAppliesTheExceptionList(t *testing.T) {
 	dir := t.TempDir()
-	src := "package probe\n\nvar Application1170 int\nvar somethingElse1170 int\n"
+	src := "package probe\n\nvar Windows1251 int\nvar somethingElse1251 int\n"
 	if err := os.WriteFile(filepath.Join(dir, "probe.go"), []byte(src), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -221,8 +216,8 @@ func TestScanAppliesTheExceptionList(t *testing.T) {
 	for _, hit := range report.NonTestIdents {
 		names = append(names, hit.Name)
 	}
-	if !slices.Equal(names, []string{"somethingElse1170"}) {
-		t.Errorf("Scan reported %v, want only somethingElse1170", names)
+	if !slices.Equal(names, []string{"somethingElse1251"}) {
+		t.Errorf("Scan reported %v, want only somethingElse1251", names)
 	}
 }
 

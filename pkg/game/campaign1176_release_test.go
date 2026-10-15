@@ -142,10 +142,6 @@ func campaignCold(t *testing.T, store SaveStore) (*FrontEnd, *ui.App) {
 	f.SetDeterministicFrames(true)
 	app := f.App("1176 cold LOAD")
 	f.ConfigureSaveSeams(app, store, OriginalStore{}, nil)
-	if legacy, _ := listAGS(store); len(legacy) != 0 {
-		save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
-		app.SetSaveSeams(save, list, load)
-	}
 	if err := app.HeadlessActivate("load game"); err != nil {
 		t.Fatal("cold main-menu LOAD", err)
 	}

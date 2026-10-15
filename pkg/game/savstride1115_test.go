@@ -2,7 +2,6 @@ package game
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,7 +10,6 @@ import (
 	"testing"
 
 	"againrom/pkg/sim"
-	"againrom/pkg/ui"
 )
 
 func strideActor1115(t *testing.T, f *FrontEnd) sim.Entity {
@@ -66,7 +64,7 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 				if err := os.WriteFile(path, raw, 0600); err != nil {
 					t.Fatal(err)
 				}
-				save, list, load := agsSaveSeams(f, store, OriginalStore{Dir: originals}, nil)
+				save, list, load := f.SaveSeams(store, OriginalStore{Dir: originals}, nil)
 				app.SetSaveSeams(save, list, load)
 				groundAppLoad(t, app, list, "game1115.sav")
 				clear(raw)
@@ -98,7 +96,7 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 				}
 				fresh := newGroupFront(t, -1)
 				freshApp := fresh.App("native stride fresh load")
-				fs, fl, fn := agsSaveSeams(fresh, store, OriginalStore{}, nil)
+				fs, fl, fn := fresh.SaveSeams(store, OriginalStore{}, nil)
 				freshApp.SetSaveSeams(fs, fl, fn)
 				groundAppLoad(t, freshApp, fl, entries[0].Name)
 				after := groupDocumentSnapshot(t, fresh)
@@ -137,112 +135,5 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 				}
 			})
 		}
-	}
-}
-
-// Bypass only EncodeSave to present a checksum-valid hostile native envelope.
-// Its opaque World reaches the public Restore boundary; no failed candidate
-// may be adopted by the existing live FrontEnd or the ordinary LOAD menu.
-func TestSavedStride1115MalformedEnvelopeLeavesFrontEndUntouched(t *testing.T) {
-	for _, tc := range []struct {
-		name   string
-		mutate func([]byte)
-	}{
-		{"unknown entity", func(record []byte) { binary.LittleEndian.PutUint32(record, 0xfedcba98) }},
-		{"zero rate", func(record []byte) { record[20] = 0 }},
-		{"wide rate", func(record []byte) { record[20] = 64 }},
-		{"wrong axis sign", func(record []byte) { record[21] = 0xc1 }},
-		{"wrong inactive axis", func(record []byte) { record[22] = 1 }},
-		{"wrong direction", func(record []byte) { record[23] = 1 }},
-		{"wide direction", func(record []byte) { record[23] = 8 }},
-		{"zero length", func(record []byte) { copy(record[4:12], record[12:20]) }},
-		{"different committed cell", func(record []byte) { binary.LittleEndian.PutUint32(record[12:], 17) }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			f := newGroupOpen1115(t, -1, false)
-			strideStartEast(t, f)
-			before := groupDocumentSnapshot(t, f)
-			bad := before
-			bad.World = bytes.Clone(before.World)
-			nativeForm := beforeTurnStateForm(t, bad.World)
-			legacy := beforeStructureUseForm1150(t, nativeForm)
-			if len(nativeForm) < 54 || beforeAutoHealing1191(t, nativeForm)[0] != 95 || binary.LittleEndian.Uint32(legacy[len(legacy)-4:]) != 0 {
-				t.Fatal("fixture is not the current native form with absent cell planes")
-			}
-			counterEnd := len(legacy) - 8
-			if binary.LittleEndian.Uint32(bad.World[counterEnd:]) != 0 {
-				t.Fatal("unexpected native Roam counter")
-			}
-			clockEnd := counterEnd - 4 - int(binary.LittleEndian.Uint32(bad.World[counterEnd-4:]))
-			carriedResumeSpan := int(binary.LittleEndian.Uint32(bad.World[clockEnd-4:]))
-			objectsEnd := clockEnd - 4 - carriedResumeSpan
-			objectSpan := int(binary.LittleEndian.Uint32(bad.World[objectsEnd-4:]))
-			motionEnd := objectsEnd - 8 - objectSpan
-			if motionEnd < 38 || binary.LittleEndian.Uint32(bad.World[motionEnd:]) != 0 {
-				t.Fatal("fixture object span or absent cell-plane footer differs")
-			}
-			outer := uint64(binary.LittleEndian.Uint32(bad.World[motionEnd-4:]))
-			if outer > uint64(motionEnd-38) {
-				t.Fatal("invalid outer saved-motion suffix")
-			}
-			end := motionEnd - 4 - int(outer)
-			span := int(binary.LittleEndian.Uint32(bad.World[end-4:]))
-			start := end - 4 - span
-			if span != 28 || start < 1 || binary.LittleEndian.Uint32(bad.World[start:]) != 1 {
-				t.Fatalf("literal one-stride footer differs: span=%d", span)
-			}
-			record := bad.World[start+4 : start+28]
-			if binary.LittleEndian.Uint32(record) != uint32(strideActor1115(t, f).ID) || record[20] != 63 || record[21] != 63 || record[22] != 0 || record[23] != 2 {
-				t.Fatal("literal east stride footer differs", record)
-			}
-			tc.mutate(record)
-			envelope := uncheckedDocumentEnvelope1115(t, bad)
-			// Give the otherwise label-empty hostile fixture a real menu row.
-			// The checksum covers the unchanged gob payload, not this header.
-			label := []byte("Malformed native stride")
-			binary.LittleEndian.PutUint16(envelope[9:11], uint16(len(label)))
-			header := append(bytes.Clone(envelope[:11]), label...)
-			envelope = append(header, envelope[11:]...)
-			decoded, _, err := DecodeSave(envelope)
-			// The current purse/document owner validates native World state at
-			// the envelope seam too. Earlier refusal must remain atomic, while
-			// the direct Snapshot seam still receives the same hostile state.
-			if err == nil || !reflect.DeepEqual(decoded, Snapshot{}) {
-				t.Fatal("DecodeSave accepted a malformed stride or returned partial state", err)
-			}
-			oldLive, oldTown, oldShop := f.live, f.Town, f.Shop
-			if open, town, err := f.Restore(bad); err == nil || open != nil || town {
-				t.Fatal("Restore accepted malformed stride", open != nil, town, err)
-			}
-			after := groupDocumentSnapshot(t, f)
-			if !reflect.DeepEqual(before, after) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
-				t.Fatal("failed stride restore adopted partial FrontEnd state")
-			}
-			store := SaveStore{Dir: t.TempDir()}
-			name := "bad-stride.ags"
-			if err := os.WriteFile(filepath.Join(store.Dir, name), envelope, 0600); err != nil {
-				t.Fatal(err)
-			}
-			app := f.App("refused native stride")
-			save, list, load := agsSaveSeams(f, store, OriginalStore{}, nil)
-			app.SetSaveSeams(save, list, load)
-			rows := list()
-			if len(rows) != 1 {
-				t.Fatal("hostile native envelope is absent from ordinary LOAD", rows)
-			}
-			if err := headlessOpenLoad(app); err != nil {
-				t.Fatal(err)
-			}
-			if err := app.HeadlessActivate(rows[0].Label); err != nil {
-				t.Fatal(err)
-			}
-			if app.Screen() != ui.ScreenLoad || app.HeadlessMessage() == "" {
-				t.Fatal("ordinary LOAD did not expose the stride refusal", app.Screen(), app.HeadlessMessage())
-			}
-			after = groupDocumentSnapshot(t, f)
-			if !reflect.DeepEqual(before, after) || f.live != oldLive || f.Town != oldTown || f.Shop != oldShop {
-				t.Fatal("ordinary failed stride LOAD changed live state")
-			}
-		})
 	}
 }

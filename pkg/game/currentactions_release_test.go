@@ -2,13 +2,10 @@ package game
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -423,30 +420,8 @@ func TestReleaseCurrentActionBookSAV(t *testing.T) {
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
-	dir := os.Getenv("AGAINROM_OBJECT_AGS_DIR")
-	if dir == "" {
-		dir = filepath.Join(filepath.Dir(os.Getenv("AGAINROM_ASSETS")), "..", "engine", "saves")
-	}
-	path := filepath.Join(dir, "122323.ags")
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	digest := sha256.Sum256(raw)
-	if hex.EncodeToString(digest[:]) != "903efb70bf0e042dc90a3b6b3bbd9ce36aca83534dbc662d4b12c678d0477702" {
-		t.Fatal("original input changed")
-	}
-	defer func() {
-		after, err := os.ReadFile(path)
-		if err != nil || sha256.Sum256(after) != digest {
-			t.Fatal("witness changed original input")
-		}
-	}()
-	s, _, err := DecodeSave(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	open, town, err := f.Restore(s)
+	_, raw := ownerCurrentSAV(t, "122323")
+	open, town, err := f.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal(err)
 	}

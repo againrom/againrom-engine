@@ -40,18 +40,11 @@ func groupPlayersValidationClone1115(t *testing.T, source Snapshot) Snapshot {
 }
 
 // Use the complete synthetic wire fixture at every externally supplied
-// snapshot seam. A rejected DTO may not leave a partial result or mutate the
-// already running session, even when a sender bypasses EncodeSave entirely.
+// current producer seam. A rejected DTO must leave the running session intact.
 func groupPlayersValidationReject1115(t *testing.T, front *FrontEnd, s Snapshot) {
 	t.Helper()
 	if out, err := cloneSavedDocument(s.SavedDocument); err == nil || out != nil {
 		t.Errorf("clone accepted malformed Player/authored provenance: out=%v err=%v", out != nil, err)
-	}
-	if out, err := EncodeSave(s, "hostile Player binding"); err == nil || out != nil {
-		t.Errorf("EncodeSave accepted malformed Player/authored provenance: bytes=%d err=%v", len(out), err)
-	}
-	if out, label, err := DecodeSave(uncheckedDocumentEnvelope1115(t, s)); err == nil || label != "" || !reflect.DeepEqual(out, Snapshot{}) {
-		t.Errorf("DecodeSave returned malformed/partial snapshot: label=%q err=%v", label, err)
 	}
 	groupPlayersValidationRestoreReject1115(t, front, s)
 }
@@ -62,8 +55,18 @@ func groupPlayersValidationRestoreReject1115(t *testing.T, front *FrontEnd, s Sn
 	if err != nil {
 		t.Fatal(err)
 	}
-	if open, town, err := front.Restore(s); err == nil || open != nil || town {
-		t.Errorf("Restore accepted malformed/partial provenance: opener=%v town=%v err=%v", open != nil, town, err)
+	var world sim.World
+	if err := world.UnmarshalBinary(s.World); err != nil {
+		t.Fatal("valid Player pairing World", err)
+	}
+	candidate := *front.live.mission.state
+	candidate.World = &world
+	retained, hash := candidate.savedDocument, world.Hash()
+	if err := restoreSavedDocument(&candidate, s.SavedDocument); err == nil {
+		t.Error("accepted malformed Player/authored pairing")
+	}
+	if candidate.savedDocument != retained || world.Hash() != hash {
+		t.Error("rejected Player pairing changed candidate")
 	}
 	after, _, err := front.Snapshot(true)
 	if err != nil || !reflect.DeepEqual(before, after) {
@@ -290,7 +293,7 @@ func TestSavedGroupPlayersValidation1115NativeDocumentPairing(t *testing.T) {
 }
 
 func TestSavedGroupPlayersValidation1115DetachedCloneAndNativeRoundTrip(t *testing.T) {
-	_, source := groupPlayersValidationSnapshot1115(t)
+	sourceFront, source := groupPlayersValidationSnapshot1115(t)
 	want := groupPlayersValidationClone1115(t, source)
 	cloned := groupPlayersValidationClone1115(t, source)
 	cloned.SavedDocument.GroupBindings.Players[0].ID++
@@ -300,21 +303,14 @@ func TestSavedGroupPlayersValidation1115DetachedCloneAndNativeRoundTrip(t *testi
 	if !reflect.DeepEqual(source, want) {
 		t.Fatal("Player/container/authored clone aliases its source")
 	}
-	encoded, err := EncodeSave(source, "exact Player containers")
+	encoded, err := sourceFront.ExportCurrentSave(source, "exact Player containers")
 	if err != nil {
 		t.Fatal(err)
 	}
-	decoded, label, err := DecodeSave(encoded)
-	if err != nil || label != "exact Player containers" || !reflect.DeepEqual(decoded.SavedDocument.GroupBindings, source.SavedDocument.GroupBindings) {
-		t.Fatal("native round trip changed Player/container/authored provenance", label, err)
-	}
 	front := groupDocumentFront1115(t)
-	open, town, err := front.Restore(decoded)
-	if err != nil || town {
-		t.Fatal("exact native/document pairing failed LOAD", err, town)
-	}
-	if err := front.App("Player binding round trip").OpenMission(open); err != nil {
-		t.Fatal(err)
+	decoded, err := front.LoadObservedSAV(encoded)
+	if err != nil || sourceFront.live.world.Hash() != front.live.world.Hash() || !sameResave(t, sourceFront, front) {
+		t.Fatal("current SAV lost Player/container/authored provenance", err)
 	}
 	before := groupDocumentSnapshot(t, front)
 	decoded.SavedDocument.GroupBindings.Players[0].ID++
