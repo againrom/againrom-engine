@@ -25,8 +25,8 @@ import (
 // of an order does not know what the world still contains when it arrives. So is
 // one naming a kind this build does not define — a switch with no arm for it —
 // for the same reason and by the same rule.
-// Group is the correlation tag of a group order and is read by that kind ALONE,
-// except in KindPlayerDropGold, where the same 32 bits carry the gold amount.
+// Group is a group order's correlation tag, KindPlayerDropGold's amount, or
+// the whole-stack flag for KindDropCarried and KindRearrangeCarried.
 // Every command of that kind carrying the same tag inside one advance is one
 // order over the entities they name; two different tags are two orders, and the
 // later of them wins where they overlap.
@@ -152,7 +152,8 @@ const (
 	KindAutocast uint8 = 11
 	// KindCastAt orders a point-target spell at cell (X,Y). Spell carries the row id.
 	KindCastAt uint8 = 12
-	// KindDropCarried drops one unit of the container ELEMENT at Spell (the
+	// KindDropCarried drops one unit, or the whole stack when Group is nonzero,
+	// of the container ELEMENT at Spell (the
 	// same element indexing KindEquip's own X reads) to the ground, at the
 	// cell (X, Y) when ITEM-DROP-008's own window allows it (drop.go), and at
 	// the entity's own cell otherwise. It is destination code 3 of
@@ -181,10 +182,11 @@ const (
 	KindUsePotion uint8 = 20
 	// Scroll unit orders carry target in X and carried index in Spell; point
 	// orders carry the cell in X/Y and the same carried index in Spell.
-	KindUseScroll    uint8 = 21
-	KindUseScrollAt  uint8 = 22
-	KindUseStructure uint8 = 23
-	KindPickUp       uint8 = 24
+	KindUseScroll        uint8 = 21
+	KindUseScrollAt      uint8 = 22
+	KindUseStructure     uint8 = 23
+	KindPickUp           uint8 = 24
+	KindRearrangeCarried uint8 = 25
 	// KindPlayerParameter is ROM1 player-command opcode 0x46. Player is the
 	// addressed roster slot, X is the selector/sub-code and Y is its authored
 	// value. Unlike entity commands it is applied before entity lookup: a player
@@ -739,7 +741,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// The move itself is drop.go's own function, on KindEquip's own
 			// precedent (D-3): the element bounds refusal is that
 			// function's, not a guard written out again here.
-			w.dropFromContainer(i, int(c.Spell), c.X, c.Y)
+			w.dropFromContainer(i, int(c.Spell), c.X, c.Y, c.Group != 0)
+		case KindRearrangeCarried:
+			w.rearrangeCarried(i, int(c.X), int(c.Y), c.Group != 0)
 		case KindDropWorn:
 			// drop.go's own function again, restated over an equipment
 			// slot instead of a container element.

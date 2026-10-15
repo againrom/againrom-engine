@@ -124,6 +124,16 @@ func DropCarried(actor EntityID, item ItemSlot, at CellPoint) Command {
 	return Command{Kind: KindDropCarried, Entity: actor, X: at.X, Y: at.Y, Spell: uint16(item)}
 }
 
+// DropCarriedStack moves the whole selected element to the ground.
+func DropCarriedStack(actor EntityID, item ItemSlot, at CellPoint) Command {
+	return Command{Kind: KindDropCarried, Entity: actor, X: at.X, Y: at.Y, Spell: uint16(item), Group: 1}
+}
+
+// RearrangeCarried joins the selected destination, or swaps unequal whole stacks.
+func RearrangeCarried(actor EntityID, source, target ItemSlot, whole bool) Command {
+	return Command{Kind: KindRearrangeCarried, Entity: actor, X: int32(source), Y: int32(target), Group: uint32(boolFlag(whole))}
+}
+
 // DropWorn is DropCarried over an equipment slot instead of a container
 // element. Both carry the index in Spell, which is why they take different
 // types for it.

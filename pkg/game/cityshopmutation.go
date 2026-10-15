@@ -27,13 +27,20 @@ type shopRefusal string
 func (r shopRefusal) Error() string { return string(r) }
 
 func (t *townScreen) withCityShopMutation(action func(*townScreen) (ui.TownAction, error)) ui.TownAction {
+	if t.sess == nil || t.sess.Town == nil {
+		return ui.TownAction{}
+	}
 	n := *t
 	n.sess = t.sess.cityBookCandidate()
+	var roots []cityPartyObjectRoots
+	if n.sess.Town.cityObjects != nil {
+		roots = n.sess.Town.cityObjects.Roots
+	}
 	for _, member := range n.sess.Carried {
 		if err := mapload.ValidatePartyLoad(member); err != nil {
 			return ui.TownAction{Msg: "cannot change city items: " + err.Error()}
 		}
-		for _, root := range n.sess.Town.cityObjects.Roots {
+		for _, root := range roots {
 			if string(root.PartyID) == member.ID && !cityPackRootsCurrent(member, root, n.in.Table) {
 				return ui.TownAction{Msg: "cannot change city items: stale pack roots"}
 			}
@@ -90,12 +97,16 @@ func cityPackRootsCurrent(member mapload.PartyMember, root cityPartyObjectRoots,
 // incoming joins keeps its held value.
 func cityJoinForm(held, incoming sim.ItemInstance, table *mapload.Table) (sim.ItemInstance, bool) {
 	return sim.JoinForm(held, incoming, func(v sim.ItemInstance) sim.ItemInstance {
-		built := mapload.SourceConstructedItem(v, table)
-		if b := data.ItemCode(v.Code).B(); !built.WeightPresent && (b < 1 || b > 12) {
-			built.WeightPresent, built.Weight = true, 1
-		}
-		return built
+		return cityConstructItem(v, table)
 	})
+}
+
+func cityConstructItem(v sim.ItemInstance, table *mapload.Table) sim.ItemInstance {
+	built := mapload.SourceConstructedItem(v, table)
+	if b := data.ItemCode(v.Code).B(); !built.WeightPresent && (b < 1 || b > 12) {
+		built.WeightPresent, built.Weight = true, 1
+	}
+	return built
 }
 
 // cityPackJoins reports whether incoming joins the held pack cell.

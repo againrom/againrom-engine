@@ -1126,7 +1126,7 @@ func (t *townScreen) shopPackStacks() []sim.ItemStack {
 		}
 		return nil
 	}
-	if m := t.shopPartyMember(t.shopMemberIndex()); m != nil && m.Carry != nil && m.Carry.LiveLoad != nil {
+	if m := t.shopPartyMember(t.shopMemberIndex()); m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
 		out := make([]sim.ItemStack, len(m.Carry.OrderedStacks))
 		for i, s := range m.Carry.OrderedStacks {
 			out[i] = sim.StackItem(s.Instance(), s.Count)

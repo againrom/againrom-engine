@@ -1133,6 +1133,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		// a picture to carry with no archive read of its own.
 		if v.dragCandKind != dragNone && !v.dragActive && v.dragMoved >= TapSlop {
 			v.dragActive = true
+			v.dragWhole = in.ShiftHeld || in.Viewer.Shift
 			switch v.dragCandKind {
 			case dragFromPack:
 				if v.dragCandIdx >= 0 && v.dragCandIdx < len(v.invSubject.Pack) {
@@ -1228,7 +1229,11 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 						break
 					}
 					box, onPane := v.heldItemBox()
+					target, inPack := v.inventoryPackCellAt(in.CursorX, in.CursorY)
 					switch {
+					case inPack && target != v.dragCandIdx && !v.isPurseCell(target):
+						v.invPackMove.source, v.invPackMove.target = v.dragCandIdx, target
+						v.invPackMove.whole, v.invPackMove.pending = v.dragWhole, true
 					case onPane && p.In(box):
 						v.invEquipRequest = v.dragCandIdx + 1
 					case v.mapSurfaceCaptures(in.CursorX, in.CursorY) &&
@@ -1251,6 +1256,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 						// whatever world cell the drawn map showed underneath that HUD chrome.
 						dx, dy := v.dropCellAt(in.CursorX, in.CursorY)
 						v.raiseGroundDrop(false, v.dragCandIdx, dx, dy)
+						v.invDropWhole = v.dragWhole
 					}
 					// A release back inside the doll box itself but not on the
 					// figure — the box's own frame or background — or anywhere

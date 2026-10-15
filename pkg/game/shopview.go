@@ -261,19 +261,10 @@ func (t *townScreen) shopEquippedItem(i, n int) (sim.ItemInstance, bool) {
 	return item, true
 }
 
-// ShopDrag completes a drag between two of the screen's own surfaces (spec
-// bullet 1 and 2, restated for the shop; `DIV-087`, `DIV-089`, `DIV-091`). A
-// pair this switch does not recognise — released back on the same surface,
-// or on nothing the shop names at all — is a no-op: nothing was ever taken
-// from either side to begin with (the model is never mid-drag, command.go's
-// own invariant restated for a screen with no world underneath it).
-//
-// THE FIFTH, table-to-doll, has no click precedent: a click on a table cell
-// takes it off, so this pair reaches `shopEquipFromTable`, the take-and-wear
-// gesture over `Shop.TakeOffTable`, for a customer-owned place only.
-//
-// The three staging pairs pass from.Shift, the release frame's modifier, to
-// the act ShopClick reaches with c.Shift (DIV-1463).
+// ShopDrag uses the existing shop surfaces and transaction adapters. Pack
+// pairs share the simulation's quantity and merge decision. Trade staging
+// passes the release's Shift modifier to its existing one/whole operation.
+// A miss or same-cell release leaves every item at its origin.
 func (t *townScreen) ShopDrag(from, to ui.ShopControl) ui.TownAction {
 	if t == nil || t.room != roomShop {
 		return ui.TownAction{}
@@ -331,6 +322,8 @@ func (t *townScreen) ShopPress(c ui.ShopControl) {
 
 func (t *townScreen) shopDrag(from, to ui.ShopControl) ui.TownAction {
 	switch {
+	case from.Kind == ui.ShopControlPackCell && to.Kind == ui.ShopControlPackCell:
+		return t.shopMoveWithinPack(t.packBase+from.Index-1, t.packBase+to.Index-1, from.Shift)
 	case from.Kind == ui.ShopControlPackCell && to.Kind == ui.ShopControlDoll:
 		return t.shopEquipFromPack(from.Index)
 	case from.Kind == ui.ShopControlShelfCell && to.Kind == ui.ShopControlDoll:

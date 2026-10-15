@@ -233,7 +233,7 @@ func (mw *mapWorld) inventoryOrderPending(id sim.EntityID) bool {
 func changesInventory(k uint8) bool {
 	switch k {
 	case sim.KindEquip, sim.KindUnequip, sim.KindDropCarried, sim.KindDropWorn, sim.KindPickUp,
-		sim.KindReadBook, sim.KindUsePotion, sim.KindUseScroll, sim.KindUseScrollAt:
+		sim.KindReadBook, sim.KindUsePotion, sim.KindUseScroll, sim.KindUseScrollAt, sim.KindRearrangeCarried:
 		return true
 	}
 	return false

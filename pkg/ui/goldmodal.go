@@ -474,17 +474,24 @@ func (v *Viewer) goldModalPresent() (*image.RGBA, image.Point, bool) {
 	return img, box.Min, true
 }
 
-// previewSubject is the subject the pack bar draws: the purse shows its
-// quantity less the share a drag holds. The stored subject is never changed.
+// previewSubject subtracts the held quantity from the drawn pack without
+// changing the stored subject.
 func (v *Viewer) previewSubject() InventorySubject {
 	s := v.invSubject
 	idx, n, ok := v.goldPurse()
-	if !ok || v.gold.held == 0 {
-		return s
+	if ok && v.gold.held != 0 {
+		s.PackCount = append([]uint32(nil), s.PackCount...)
+		s.PackCount[idx] = n - min(n, v.gold.held)
 	}
-	counts := append([]uint32(nil), s.PackCount...)
-	counts[idx] = n - min(n, v.gold.held)
-	s.PackCount = counts
+	idx = v.dragCandIdx
+	if v.dragActive && v.dragCandKind == dragFromPack && !v.isPurseCell(idx) && idx >= 0 && idx < len(s.PackCount) {
+		s.PackCount = append([]uint32(nil), s.PackCount...)
+		if v.dragWhole {
+			s.PackCount[idx] = 0
+		} else {
+			s.PackCount[idx] -= min(s.PackCount[idx], 1)
+		}
+	}
 	return s
 }
 

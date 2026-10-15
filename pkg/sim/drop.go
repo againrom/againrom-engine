@@ -104,26 +104,12 @@ func (w *World) groundBlockedSackCell(x, y int32) bool {
 	return ok && i < len(w.grid) && w.grid[i]&blockGround != 0
 }
 
-// dropFromContainer is KindDropCarried's own act: entity index i's container
-// ELEMENT at cindex gives up ONE UNIT to the ground (source code 2 of
-// ITEM-CMD-007), on equip's own element-not-unit rule — cindex names a
-// place in w.carried[i], not a position in its flat expansion.
-//
-// ONE THING REFUSES IT, leaving i's container byte-for-byte what it was:
-// cindex outside the container's own element bounds. AN ENTITY THE WORLD
-// DOES NOT HOLD is refused already, by stepWorld's own entity lookup before
-// this is ever reached (equip's own precedent).
-//
-// AT A COUNT ABOVE 1 the element stays in its own place at count minus 1
-// (equip's own arithmetic for a source that loses a unit); AT A COUNT OF 1
-// the element is removed entirely, on 0112's own rule for an emptied place.
-// NO FOLD IS NEEDED: removing a unit can never create a second element
-// holding a code some other element already holds, unlike equip's own
-// displaced-code append.
-func (w *World) dropFromContainer(i, cindex int, destX, destY int32) {
+// dropFromContainer moves one unit or the whole selected element. The source
+// remains unchanged when either its index or the landing cell is invalid.
+func (w *World) dropFromContainer(i, cindex int, destX, destY int32, whole bool) {
 	if w.savedObjects != nil && w.actorHasSavedItems(i) {
 		n := w.sourceMutationCopy(i)
-		if n.dropSavedCarried(i, cindex, destX, destY) {
+		if n.dropSavedCarried(i, cindex, destX, destY, whole) {
 			*w = n
 		}
 		return
@@ -132,6 +118,28 @@ func (w *World) dropFromContainer(i, cindex int, destX, destY int32) {
 		return
 	}
 	if cindex < 0 || cindex >= len(w.carried[i]) {
+		return
+	}
+	if whole {
+		n := w.sourceMutationCopy(i)
+		x, y, valid := n.dropWindowCell(i, destX, destY)
+		if !valid {
+			return
+		}
+		before := n.beginLoadMutation(i)
+		item, ok := n.takeCarriedObject(i, cindex, true)
+		if !ok {
+			return
+		}
+		if !n.finishLoadMutation(i, before) {
+			return
+		}
+		items := make([]ItemInstance, item.Count)
+		for j := range items {
+			items[j] = item.Instance()
+		}
+		n.pourSack(x, y, 0, items)
+		*w = n
 		return
 	}
 	item := w.carried[i][cindex].Instance()

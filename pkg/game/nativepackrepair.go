@@ -13,7 +13,7 @@ func repairCurrentNativePacks(ms *Mission, a *currentActionData, actorIDs map[si
 				continue
 			}
 			switch p.Command.Kind {
-			case sim.KindEquip, sim.KindReadBook, sim.KindUsePotion, sim.KindDropCarried, sim.KindUseScroll, sim.KindUseScrollAt:
+			case sim.KindEquip, sim.KindReadBook, sim.KindUsePotion, sim.KindDropCarried, sim.KindUseScroll, sim.KindUseScrollAt, sim.KindRearrangeCarried:
 				if id, ok := actorIDs[p.Command.Entity]; ok {
 					blocked = append(blocked, id)
 				}

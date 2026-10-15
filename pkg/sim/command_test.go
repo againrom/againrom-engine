@@ -21,7 +21,12 @@ func constructorCases() []constructorCase {
 	var wideStructure StructureID = 4294967295
 	var pickup Command
 	pickup.Kind, pickup.Entity, pickup.X, pickup.Y = KindPickUp, 7, -3, 9
+	var rearrange, dropStack Command
+	rearrange.Kind, rearrange.Entity, rearrange.X, rearrange.Y, rearrange.Group = KindRearrangeCarried, 7, 2, 4, 1
+	dropStack.Kind, dropStack.Entity, dropStack.X, dropStack.Y, dropStack.Spell, dropStack.Group = KindDropCarried, 7, 30, 31, 6, 1
 	return []constructorCase{
+		{"RearrangeCarried", RearrangeCarried(7, 2, 4, true), rearrange},
+		{"DropCarriedStack", DropCarriedStack(7, 6, CellPoint{X: 30, Y: 31}), dropStack},
 		{"PickUp", PickUp(7, CellPoint{X: -3, Y: 9}), pickup},
 		{"MoveTo", MoveTo(7, CellPoint{X: -3, Y: 9}),
 			Command{Kind: KindMoveTo, Entity: 7, X: -3, Y: 9}},
@@ -100,6 +105,7 @@ func TestEveryCommandKindHasAConstructor(t *testing.T) {
 		KindReadBook, KindTerminalKill, KindAttackStructure, KindGroupDefend,
 		KindGroupRetreat, KindUsePotion, KindUseScroll, KindUseScrollAt,
 		KindUseStructure, KindPickUp, KindPlayerParameter,
+		KindRearrangeCarried,
 	}
 	for _, k := range kinds {
 		if !built[k] {

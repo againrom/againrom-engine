@@ -2228,6 +2228,7 @@ func (mw *mapWorld) frameAdvance(advance func()) {
 	mw.equipFromPack()
 	mw.unequipFromWorn()
 	mw.unequipFromDoll()
+	mw.moveWithinPack()
 	mw.dropFromInventory()
 	mw.dropGoldFromPurse()
 	advance()
@@ -2626,11 +2627,18 @@ func (mw *mapWorld) materializeFallbackWeapon() (int, bool) {
 // TakeInventoryDrop (pkg/ui/inventory.go), so a request left undrained this
 // frame cannot surface again next frame under a stale cell.
 func (mw *mapWorld) dropFromInventory() {
-	worn, idx, x, y, ok := mw.view.TakeInventoryDrop()
+	worn, idx, x, y, whole, ok := mw.view.TakeInventoryDropStack()
 	if !ok {
 		return
 	}
-	mw.enqueueDrop(worn, idx, x, y)
+	mw.enqueueDrop(worn, idx, x, y, whole)
+}
+
+func (mw *mapWorld) moveWithinPack() {
+	source, target, whole, ok := mw.view.TakeInventoryPackMove()
+	if ok && mw.invSubjectSet {
+		mw.pending = append(mw.pending, sim.RearrangeCarried(sim.EntityID(mw.invSubject.ID), sim.ItemSlot(source), sim.ItemSlot(target), whole))
+	}
 }
 
 // enqueueDrop turns a drained ground-drop request into a sim.Command
@@ -2657,7 +2665,7 @@ func (mw *mapWorld) dropFromInventory() {
 // entity's OWN position at application time, so this function states no
 // window of its own. sim.DropLanding shares that rule with the command,
 // including the fallback to the dropper's own cell for a refused aim.
-func (mw *mapWorld) enqueueDrop(worn bool, idx int, x, y int32) {
+func (mw *mapWorld) enqueueDrop(worn bool, idx int, x, y int32, whole ...bool) {
 	if !mw.invSubjectSet {
 		return
 	}
@@ -2682,7 +2690,11 @@ func (mw *mapWorld) enqueueDrop(worn bool, idx int, x, y int32) {
 	if idx < 0 {
 		return
 	}
-	mw.pending = append(mw.pending, sim.DropCarried(id, sim.ItemSlot(idx), mw.dropAim(id, x, y)))
+	if len(whole) != 0 && whole[0] {
+		mw.pending = append(mw.pending, sim.DropCarriedStack(id, sim.ItemSlot(idx), mw.dropAim(id, x, y)))
+	} else {
+		mw.pending = append(mw.pending, sim.DropCarried(id, sim.ItemSlot(idx), mw.dropAim(id, x, y)))
+	}
 }
 
 // dropAim is the cell enqueueDrop commands a drop at: sim.DropLanding's answer,

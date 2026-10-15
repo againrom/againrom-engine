@@ -1111,7 +1111,7 @@ func (v *Viewer) packStarOmit() int {
 	if !v.dragActive || v.dragCandKind != dragFromPack || v.dragCandIdx < 0 || v.dragCandIdx >= len(v.invSubject.PackCount) {
 		return -1
 	}
-	if v.invSubject.PackCount[v.dragCandIdx] <= 1 {
+	if v.dragWhole && !v.isPurseCell(v.dragCandIdx) || v.invSubject.PackCount[v.dragCandIdx] <= 1 {
 		return v.dragCandIdx
 	}
 	return -1
@@ -1319,6 +1319,7 @@ func (v *Viewer) TakeInventoryDollUnequip() (int, bool) {
 func (v *Viewer) raiseGroundDrop(worn bool, idx int, x, y int32) {
 	v.invDropRequest = idx + 1
 	v.invDropWorn = worn
+	v.invDropWhole = false
 	v.invDropX, v.invDropY = x, y
 }
 
@@ -1334,14 +1335,28 @@ func (v *Viewer) raiseGroundDrop(worn bool, idx int, x, y int32) {
 // mapWorld.enqueueDrop exactly as every other drained request here does —
 // through the one function that states the rule, never a second copy of it.
 func (v *Viewer) TakeInventoryDrop() (worn bool, idx int, x, y int32, ok bool) {
+	worn, idx, x, y, _, ok = v.TakeInventoryDropStack()
+	return
+}
+
+// TakeInventoryDropStack drains the drop and its captured whole-stack flag.
+func (v *Viewer) TakeInventoryDropStack() (worn bool, idx int, x, y int32, whole, ok bool) {
 	if v.invDropRequest == 0 {
-		return false, 0, 0, 0, false
+		return false, 0, 0, 0, false, false
 	}
 	idx = v.invDropRequest - 1
 	worn = v.invDropWorn
 	x, y = v.invDropX, v.invDropY
+	whole = v.invDropWhole
 	v.invDropRequest = 0
-	return worn, idx, x, y, true
+	return worn, idx, x, y, whole, true
+}
+
+// TakeInventoryPackMove drains one drag between two carried elements.
+func (v *Viewer) TakeInventoryPackMove() (source, target int, whole, ok bool) {
+	m := v.invPackMove
+	v.invPackMove.pending = false
+	return m.source, m.target, m.whole, m.pending
 }
 
 // DraggedDollSlot is the zero-based worn slot a drag is currently carrying

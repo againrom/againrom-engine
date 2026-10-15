@@ -148,13 +148,13 @@ func (w *World) savedDropCell(i int, x, y int32) (int32, int32, bool) {
 	return w.dropWindowCell(i, x, y)
 }
 
-func (w *World) dropSavedCarried(i, index int, x, y int32) bool {
+func (w *World) dropSavedCarried(i, index int, x, y int32, whole bool) bool {
 	x, y, ok := w.savedDropCell(i, x, y)
 	if !ok || !w.sourceMutationReady(i) {
 		return false
 	}
 	before := w.beginLoadMutation(i)
-	item, ok := w.takeCarriedObject(i, index, false)
+	item, ok := w.takeCarriedObject(i, index, whole)
 	if !ok || !w.putGroundObjectAt(i, x, y, 0, item) || !w.finishLoadMutation(i, before) {
 		return false
 	}

@@ -31,7 +31,7 @@ func pendingPlayerScoped(c sim.Command) bool {
 }
 
 func pendingKindValid(c sim.Command) bool {
-	return c.Kind <= sim.KindPickUp || pendingPlayerScoped(c)
+	return c.Kind <= sim.KindRearrangeCarried || pendingPlayerScoped(c)
 }
 
 func pendingTarget(c sim.Command) (present, structure bool) {

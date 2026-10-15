@@ -76,6 +76,9 @@ func UpdatePartyLoadOrdered(before PartyMember, p *PartyMember, t *Table, refres
 func updatePartyLoad(before PartyMember, p *PartyMember, t *Table, refresh, derive, reconcile bool) error {
 	updateNativePartyHistory(before, p, t, derive)
 	if before.Carry == nil || before.Carry.LiveLoad == nil || p.Carry == nil {
+		if reconcile && before.Carry != nil && before.Carry.OrderedStacks != nil && p.Carry != nil {
+			reconcilePartyStacks(before, p, t)
+		}
 		return nil
 	}
 	s := *before.Carry.LiveLoad
@@ -140,7 +143,7 @@ func updatePartyLoad(before PartyMember, p *PartyMember, t *Table, refresh, deri
 // flat compatibility list; only newly acquired objects take the stored index.
 func reconcilePartyStacks(before PartyMember, p *PartyMember, t *Table) {
 	remaining := cloneItemInstances(MemberCarriedItems(*p, t))
-	var stacks []sim.ItemStack
+	stacks := make([]sim.ItemStack, 0, len(before.Carry.OrderedStacks))
 	for _, stack := range before.Carry.OrderedStacks {
 		var count uint32
 		for i := 0; i < len(remaining) && count < stack.Count; {
@@ -167,7 +170,10 @@ func reconcilePartyStacks(before PartyMember, p *PartyMember, t *Table) {
 		if merged {
 			continue
 		}
-		index := int(min(p.Carry.LiveLoad.Inventory.InsertIndex, uint32(len(stacks))))
+		index := len(stacks)
+		if p.Carry.LiveLoad != nil {
+			index = int(min(p.Carry.LiveLoad.Inventory.InsertIndex, uint32(len(stacks))))
+		}
 		stacks = append(stacks, sim.ItemStack{})
 		copy(stacks[index+1:], stacks[index:])
 		stacks[index] = sim.StackItem(item, 1)

@@ -43,3 +43,34 @@ func TestExplicitPartyPackRejectsMalformedCountsWithoutPrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestValuePackMutationReconcilesOrderWithoutRetainedLoad(t *testing.T) {
+	first, second, added := sim.PlainItem(0x101), sim.PlainItem(0x102), sim.PlainItem(0x103)
+	before := mapload.PartyMember{ID: "hero", Carried: []uint16{0x999}, Carry: &mapload.Carry{}}
+	if err := mapload.UpdatePartyLoadOrdered(before, &before, nil, false, false, []sim.ItemStack{sim.StackItem(first, 2), sim.StackItem(second, 1)}); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name  string
+		items []sim.ItemInstance
+		want  []sim.ItemStack
+	}{
+		{"consume", []sim.ItemInstance{first, second}, []sim.ItemStack{sim.StackItem(first, 1), sim.StackItem(second, 1)}},
+		{"append", []sim.ItemInstance{first, second, added}, []sim.ItemStack{sim.StackItem(first, 1), sim.StackItem(second, 1), sim.StackItem(added, 1)}},
+		{"empty", nil, []sim.ItemStack{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			next := mapload.CloneParty([]mapload.PartyMember{before})[0]
+			next.Carry.ItemInstances, next.Carry.Items = tc.items, nil
+			for _, item := range tc.items {
+				next.Carry.Items = append(next.Carry.Items, item.Code)
+			}
+			if err := mapload.UpdatePartyLoad(before, &next, nil, false, false); err != nil {
+				t.Fatal(err)
+			}
+			if next.Carry.LiveLoad != nil || !reflect.DeepEqual(next.Carry.OrderedStacks, tc.want) || len(mapload.MemberCarriedItems(next, nil)) != len(tc.items) {
+				t.Fatalf("ordered=%+v load=%+v flat=%+v", next.Carry.OrderedStacks, next.Carry.LiveLoad, mapload.MemberCarriedItems(next, nil))
+			}
+		})
+	}
+}

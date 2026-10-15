@@ -2993,15 +2993,9 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 					// mask in force before this drag suppressed anything, so the origin's
 					// identity does not change because the drawn picture did.
 					if shopReleaseIsOrigin(shopView, origin, p) {
-						// A SAME-CELL TREMOR remains a click for the three
-						// rectangular grids. A DOLL DRAG is different: once it
-						// crossed TapSlop the item is visibly in hand and a
-						// release anywhere back on its original painted layer
-						// cancels the move. Treating that release as ShopClick
-						// unequipped the item even though the player dropped it
-						// back on the doll. An actual doll tap still reaches the
-						// uncrossed arm below and keeps tap-to-unequip.
-						if origin.Kind != ShopControlDoll {
+						// Returning a held pack or worn item cancels the move.
+						// Shelf and trade-table tremors retain their click action.
+						if origin.Kind != ShopControlDoll && origin.Kind != ShopControlPackCell {
 							a.flow.clickShop(held)
 							a.syncViewerLayout()
 						}
@@ -3021,10 +3015,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 						// comparison above already excludes: reaching this
 						// branch means dest, whatever it is, is not origin,
 						// so every release here is a genuine cross-cell drag.
-						// ShopDrag's own switch (shopview.go) carries no case
-						// for a same-family pair, so a same-family,
-						// different-cell release is a no-op there — nothing
-						// further is asked of it here.
+						// The model decides the accepted same-family pairs.
 						a.flow.dragShop(held, dest)
 						a.syncViewerLayout()
 					} else if origin.Kind != ShopControlDoll && shopPaneTakesItemAt(p) {

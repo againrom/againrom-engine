@@ -1060,6 +1060,7 @@ type Viewer struct {
 	dragCandKind uint8
 	dragCandIdx  int
 	dragActive   bool
+	dragWhole    bool
 	dragIcon     *image.RGBA
 	dragImg      *ebiten.Image
 
@@ -1087,6 +1088,11 @@ type Viewer struct {
 	invDropWorn    bool
 	invDropX       int32
 	invDropY       int32
+	invDropWhole   bool
+	invPackMove    struct {
+		source, target int
+		whole, pending bool
+	}
 
 	// gold is the purse transaction's own draft, held share and request
 	// (goldmodal.go).
