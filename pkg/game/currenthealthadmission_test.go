@@ -370,14 +370,13 @@ func TestCurrentHealthAdmissionDyingAndRetained(t *testing.T) {
 	}
 	before := f.live.world.Entities()
 	prior, present := f.live.world.Entity(dead[0].ID)
-	if !present || prior.MapUnitID != 92 || prior.HP != -14 || prior.MaxHP != 100 || prior.Decay != sim.DecayStage(2) || prior.Alive() || dead[0].Source.State.HP != -14 || dead[0].Current.HP != -14 {
-		t.Fatal("retained current fixture lacks literal ALM health/lifecycle", prior.ID, prior.HP, prior.MaxHP, prior.Decay, dead[0])
+	if !present || prior.MapUnitID != 92 || prior.HP != -14 || prior.MaxHP != 30 || prior.Decay != sim.DecayStage(2) || prior.Alive() || dead[0].Source.State.HP != -14 || dead[0].Current.HP != -14 {
+		t.Fatal("retained current fixture lacks literal SAV health/lifecycle", prior.ID, prior.HP, prior.MaxHP, prior.Decay, dead[0])
 	}
-	// The ordinary original corpse held MaxHP 30, but that import only owns
-	// its death tuple. The current ALM Entity retains SpawnHP 100. A stale
-	// operand anchored to 30 must lose to the actual current maximum 100.
-	_, staleMaximum, err := sim.CurrentActorHealthFromWords(65522, 100, []sim.ActorNumericResidue{{Field: 1, Wire: 30, Lift: 65536}})
-	if err != nil || staleMaximum != 100 {
+	// The SAV supplies the current maximum 30. A width operand anchored
+	// to the fresh placement's maximum 100 must lose to that ordinary word.
+	_, staleMaximum, err := sim.CurrentActorHealthFromWords(65522, 30, []sim.ActorNumericResidue{{Field: 1, Wire: 100, Lift: 65536}})
+	if err != nil || staleMaximum != 30 {
 		t.Fatal("stale corpse backing overrode current maximum", staleMaximum, err)
 	}
 	doc, err := sav.DecodeDocumentData(currentRuntimeSave(t, f))
@@ -399,18 +398,18 @@ func TestCurrentHealthAdmissionDyingAndRetained(t *testing.T) {
 			t.Fatal("retained fixture already has health width", x)
 		}
 	}
-	v.Widths = append(v.Widths, sim.ActorNumericResidue{Field: 0, Wire: 65522, Lift: -65536}, sim.ActorNumericResidue{Field: 1, Wire: 100, Lift: 65536})
+	v.Widths = append(v.Widths, sim.ActorNumericResidue{Field: 0, Wire: 65522, Lift: -65536}, sim.ActorNumericResidue{Field: 1, Wire: 30, Lift: 65536})
 	a.Values[dead[0].ID] = v
 	if err := f.live.world.RestoreCurrentContinuation(nil, a.Values, f.live.world.Actions(), nil); err != nil {
 		t.Fatal(err)
 	}
 	e, ok := f.live.world.Entity(dead[0].ID)
-	if !ok || e.HP != -65550 || e.MaxHP != 65636 || e.Alive() {
+	if !ok || e.HP != -65550 || e.MaxHP != 65566 || e.Alive() {
 		t.Fatal("literal retained current health", e)
 	}
 	for i := range before {
 		if before[i].ID == dead[0].ID {
-			before[i].HP, before[i].MaxHP = -65550, 65636
+			before[i].HP, before[i].MaxHP = -65550, 65566
 		}
 	}
 	if !reflect.DeepEqual(before, f.live.world.Entities()) {

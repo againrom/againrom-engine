@@ -51,7 +51,7 @@ func TestCurrentConsumedCorpseZeroIDSAVAndMissingBinding(t *testing.T) {
 			}
 			sim.Step(w, nil)
 		}
-		want := sim.CurrentTerminalActor{ID: 0, Cell: 0x0f0f, HP: -10001, Stage: 5}
+		want := sim.CurrentTerminalActor{ID: 0, Cell: 0x0f0f, HP: -10001, Stage: 5, MaxHP: 29, MaxHPPresent: true}
 		if got := w.CurrentTerminalActors(); !reflect.DeepEqual(got, []sim.CurrentTerminalActor{want}) {
 			t.Fatal("actual cast did not consume ID0", got)
 		}

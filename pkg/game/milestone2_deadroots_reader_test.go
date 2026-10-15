@@ -85,7 +85,7 @@ func dead1163Expected(f *sav.File, raw []byte) (dead1163Source, error) {
 		tail := tails[archive]
 		position := a.raw["Block12"]
 		d := sim.OriginalDeadSource{ArchiveIndex: archive, Class: map[string]uint8{"Unit": 1, "Human": 2, "Humanoid": 3}[a.class],
-			Identity: a.values["Identity"]}
+			Identity: a.values["Identity"], MaxHP: int32(uint16(a.values["HealthMax"])), MaxHPPresent: true}
 		// RuntimeID belongs to State, not the identity metadata.
 		d.MapUnitID, d.TerrainKey, d.OwnerKey = uint16(a.values["T08"]), binary.LittleEndian.Uint32(position[8:]), a.values["Reference"]
 		d.State = sim.DeadActorState{RuntimeID: a.values["RuntimeID"], Cell: binary.LittleEndian.Uint16(position), FineX: position[4], FineY: position[5], Stage: tail.stage, HP: tail.hp, Timer: int8(a.values["U6C"])}

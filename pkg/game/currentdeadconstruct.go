@@ -19,6 +19,11 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 			return err
 		}
 	}
+	if s.MaxHPPresent {
+		if err := savedActorSetValue(record, "HealthMax", uint32(uint16(s.MaxHP))); err != nil {
+			return err
+		}
+	}
 	p := constructedPositionBlock(int32(c.Cell&255), int32(c.Cell>>8), s.TerrainKey)
 	p[4], p[5] = c.FineX, c.FineY
 	mustSetRaw(record, "Block12", p)

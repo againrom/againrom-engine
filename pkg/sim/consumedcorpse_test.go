@@ -19,7 +19,7 @@ func TestConsumedNativeCorpseZeroIDKeepsStageThroughCompactionAndScript(t *testi
 		t.Fatal(err)
 	}
 	spRunCast(w, Cast(41, 0, 25))
-	want := CurrentTerminalActor{ID: 0, Cell: 0x0102, HP: -10001, Stage: 5, MapUnitID: 7}
+	want := CurrentTerminalActor{ID: 0, Cell: 0x0102, HP: -10001, Stage: 5, MapUnitID: 7, MaxHP: corpse.MaxHP, MaxHPPresent: true}
 	if got := w.CurrentTerminalActors(); !reflect.DeepEqual(got, []CurrentTerminalActor{want}) {
 		t.Fatalf("consumed current tuple %+v, want %+v", got, want)
 	}

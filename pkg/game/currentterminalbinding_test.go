@@ -13,9 +13,9 @@ func TestCurrentTerminalBindingsImportWithoutSnapshotActorEntity(t *testing.T) {
 	const id sim.EntityID = 34
 	const object uint16 = 1
 	const identity uint32 = 0x62000020
-	terminal := sim.CurrentTerminalActor{ID: id, Cell: 0x0504, HP: -601, Stage: 4}
+	terminal := sim.CurrentTerminalActor{ID: id, Cell: 0x0504, HP: -601, Stage: 4, MaxHP: 31, MaxHPPresent: true}
 	doc := sav.DocumentData{Version: sav.DocumentDataVersion, Head: sav.DocumentHeadData{Mission: 130}, World: &sav.DocumentWorldData{}, DeadActors: []uint16{object},
-		Objects: []sav.DocumentRecordData{{Class: "Unit", Values: []sav.DocumentValueData{{Name: "Identity", Value: identity}}}}}
+		Objects: []sav.DocumentRecordData{{Class: "Unit", Values: []sav.DocumentValueData{{Name: "Identity", Value: identity}, {Name: "HealthMax", Value: 31}}}}}
 	stateData := sav.NewCityStateData("terminal binding")
 	doc.State = sav.DocumentStateData{RootKind: stateData.RootKind, DirectoryRecords: stateData.DirectoryRecords, ValueRecords: stateData.ValueRecords}
 	a := currentActionData{Version: 1, Bindings: []currentActionBinding{{ID: id, Object: object}},

@@ -352,7 +352,7 @@ func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
 				}
 			}
 			requireLiveRaisedGhost(t, f, w.Ghost().TypeID)
-			want := sim.CurrentTerminalActor{ID: victim.ID, Cell: uint16(victim.X) | uint16(victim.Y)<<8, HP: -10001, Stage: 5, MapUnitID: victim.MapUnitID}
+			want := sim.CurrentTerminalActor{ID: victim.ID, Cell: uint16(victim.X) | uint16(victim.Y)<<8, HP: -10001, Stage: 5, MapUnitID: victim.MapUnitID, MaxHP: victim.MaxHP, MaxHPPresent: true}
 			hash := w.Hash()
 			raw := consumedCorpseSave(t, f, app, store, "consumed")
 			if err := os.WriteFile(filepath.Join(dir, "consumed.sav"), raw, 0600); err != nil {

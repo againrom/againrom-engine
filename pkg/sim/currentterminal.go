@@ -11,12 +11,14 @@ import (
 // Worn has bit k set when equipment slot k still held an item at departure; a
 // SAVE writes those items of the placement on the departed actor's record.
 type CurrentTerminalActor struct {
-	ID        EntityID
-	Cell      uint16
-	HP        int32
-	Stage     uint8
-	MapUnitID uint16 `json:",omitempty"`
-	Worn      uint16 `json:",omitempty"`
+	ID           EntityID
+	Cell         uint16
+	HP           int32
+	Stage        uint8
+	MapUnitID    uint16 `json:",omitempty"`
+	Worn         uint16 `json:",omitempty"`
+	MaxHP        int32  `json:",omitempty"`
+	MaxHPPresent bool   `json:",omitempty"`
 }
 
 // LeavesNoBody marks the row of a non-ground mover torn down before bones: the
@@ -75,7 +77,8 @@ func (w *World) importCurrentTerminalActors(batch []CurrentTerminalActor, replac
 				}
 			} else {
 				cell := uint16(e.Y)<<8 | uint16(e.X)
-				if e.Alive() || e.HP != row.HP || uint8(e.Decay) != row.Stage || cell != row.Cell {
+				if e.Alive() || e.HP != row.HP || uint8(e.Decay) != row.Stage || cell != row.Cell ||
+					row.MaxHPPresent && e.MaxHP != row.MaxHP {
 					return fmt.Errorf("current terminal actor %d differs from its exact ordinary body", row.ID)
 				}
 			}
@@ -110,8 +113,13 @@ func (w *World) importCurrentTerminalActors(batch []CurrentTerminalActor, replac
 			continue
 		}
 		for i := range next.currentTerminalActors {
-			if held := &next.currentTerminalActors[i]; held.ID == row.ID && row.Worn != 0 {
-				held.Worn = row.Worn
+			if held := &next.currentTerminalActors[i]; held.ID == row.ID {
+				if row.Worn != 0 {
+					held.Worn = row.Worn
+				}
+				if row.MaxHPPresent {
+					held.MaxHP, held.MaxHPPresent = row.MaxHP, true
+				}
 			}
 		}
 	}
@@ -141,6 +149,7 @@ func currentTerminalActorsFault(rows []CurrentTerminalActor, bounds Bounds) erro
 	for i, row := range rows {
 		if seen[row.ID] || i > 0 && rows[i-1].ID >= row.ID ||
 			row.HP >= decayGoneHP || row.Stage > consumedCorpseStage || row.Worn >= 1<<EquipSlots ||
+			!row.MaxHPPresent && row.MaxHP != 0 ||
 			int32(row.Cell&255) >= bounds.Width || int32(row.Cell>>8) >= bounds.Height {
 			return fmt.Errorf("sim: invalid current terminal actor %d", row.ID)
 		}
@@ -153,6 +162,8 @@ func (w *World) hasCurrentTerminalActor(want CurrentTerminalActor) bool {
 	for _, row := range w.currentTerminalActors {
 		if row.ID == want.ID {
 			row.Worn, want.Worn = 0, 0
+			row.MaxHP, want.MaxHP = 0, 0
+			row.MaxHPPresent, want.MaxHPPresent = false, false
 			return row == want
 		}
 	}

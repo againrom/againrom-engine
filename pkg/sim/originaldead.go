@@ -26,6 +26,8 @@ type OriginalDeadSource struct {
 	ContainerTail                  [2]uint32
 	State                          DeadActorState
 	HeldWeapon                     OriginalDeadWeapon
+	MaxHP                          int32
+	MaxHPPresent                   bool
 }
 
 type OriginalDeadActor struct {
@@ -77,6 +79,9 @@ func deadStateFaultWithPosition(s DeadActorState, b Bounds, allowFinePosition bo
 // unit at all; MapUnitID 0 is the shape a saved actor that was never an ALM
 // placement (a hired mercenary, observed below) carries, not corruption.
 func deadSourceFault(s OriginalDeadSource, b Bounds) error {
+	if !s.MaxHPPresent && s.MaxHP != 0 {
+		return fmt.Errorf("absent original dead maximum health carries state")
+	}
 	generated := (SourceBinding{Class: s.Class}).Generated()
 	if s.Identity == 0 || s.Class < 1 || s.Class > GeneratedHumanBinding ||
 		(!generated && s.ArchiveIndex == 0) || (generated && (s.ArchiveIndex != 0 || s.State.Stage != 5)) {
@@ -173,6 +178,9 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 		if currentIDs[d.ID] {
 			e := &w.entities[indexOfEntity(w.entities, d.ID)]
 			e.Decay, e.Dwell, e.SuppressCorpseLoot = DecayStage(s.Stage), 0, true
+			if r.Source.MaxHPPresent {
+				e.MaxHP = r.Source.MaxHP
+			}
 			w.originalDead = append(w.originalDead, r)
 			continue
 		}
@@ -187,6 +195,9 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 		e := &w.entities[i]
 		e.X, e.Y = int32(s.Cell&255), int32(s.Cell>>8)
 		e.HP, e.Decay, e.Dwell = int32(s.HP), DecayStage(min(s.Stage, 4)), 0
+		if d.Source.MaxHPPresent {
+			e.MaxHP = d.Source.MaxHP
+		}
 		// Setting the late stage first makes clearFelled a cleanup only. It
 		// cannot halve defence, arm a dwell, or enter the death/drop boundary.
 		w.clearFelled(i)
@@ -226,6 +237,7 @@ func (w *World) OriginalDeadActors() []OriginalDeadRecord {
 				current = r.Source.State
 				current.HP, current.Stage = int16(e.HP), uint8(e.Decay)
 				current.Cell = uint16(e.Y)<<8 | uint16(e.X)
+				r.Source.MaxHP, r.Source.MaxHPPresent = e.MaxHP, true
 			}
 		}
 		out = append(out, OriginalDeadRecord{r.OriginalDeadActor, current})
@@ -292,6 +304,7 @@ func (w *World) retireOriginalDead(id EntityID) {
 		if ei := indexOfEntity(w.entities, id); ei >= 0 {
 			e := w.entities[ei]
 			r.terminal.Cell = uint16(e.Y)<<8 | uint16(e.X)
+			r.Source.MaxHP, r.Source.MaxHPPresent = e.MaxHP, true
 		}
 		r.terminal.Stage, r.terminal.HP, r.terminal.RuntimeID = 5, -10001, 0
 		if r.Source.MapUnitID != 0 {
@@ -316,6 +329,7 @@ func (w *World) retireOriginalDead(id EntityID) {
 			}
 			w.currentTerminalActors = append(w.currentTerminalActors, CurrentTerminalActor{
 				ID: id, Cell: uint16(e.Y)<<8 | uint16(e.X), HP: e.HP, Stage: uint8(e.Decay), MapUnitID: e.MapUnitID, Worn: worn,
+				MaxHP: e.MaxHP, MaxHPPresent: true,
 			})
 			slices.SortFunc(w.currentTerminalActors, func(a, b CurrentTerminalActor) int {
 				if a.ID < b.ID {
@@ -334,6 +348,7 @@ func (w *World) retireOriginalDead(id EntityID) {
 	}
 	state := DeadActorState{Cell: uint16(e.Y)<<8 | uint16(e.X), FineX: 128, FineY: 128, Stage: 5, HP: -10001}
 	source := OriginalDeadSource{Identity: e.SourceBinding.Identity, ArchiveIndex: e.SourceBinding.ArchiveIndex,
+		MaxHP: e.MaxHP, MaxHPPresent: true,
 		MapUnitID: e.MapUnitID, Class: e.SourceBinding.Class, OwnerKey: e.SourceBinding.GroupOwnerKey,
 		ContainerPresent: e.ActorLoad.ContainerPresent,
 		ContainerTail:    [2]uint32{e.ActorLoad.InsertIndex, uint32(e.ActorLoad.Accumulator)}, State: state,

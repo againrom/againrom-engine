@@ -184,8 +184,20 @@ func currentTerminalImportRows(ms *Mission, a *currentActionData) ([]sim.Current
 			return nil, fmt.Errorf("current terminal actor %d has an invalid SAV identity", id)
 		}
 		row := *values.CurrentTerminal
+		if !row.MaxHPPresent && row.MaxHP != 0 {
+			return nil, fmt.Errorf("current terminal actor %d has an unavailable health maximum", id)
+		}
 		if object != 0 {
-			row.Worn = savedRecordWornMask(&ms.savedDocument.Document.Objects[object-1])
+			r := &ms.savedDocument.Document.Objects[object-1]
+			row.Worn = savedRecordWornMask(r)
+			maximum, err := savedStructureValue(r, "HealthMax")
+			if err != nil {
+				return nil, err
+			}
+			if !row.MaxHPPresent || uint16(row.MaxHP) != uint16(maximum) {
+				row.MaxHP = int32(uint16(maximum))
+			}
+			row.MaxHPPresent = true
 		}
 		rows = append(rows, row)
 		if object != 0 {

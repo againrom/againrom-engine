@@ -158,10 +158,17 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 		case "Humanoid":
 			class = 3
 		}
+		maxHP := int32(d.MaxHP)
+		if currentBody {
+			if health, present := ms.actorRegistry.health[id]; present {
+				maxHP = health.MaxHP
+			}
+		}
 		batch = append(batch, sim.OriginalDeadActor{ID: id, Source: sim.OriginalDeadSource{
 			Identity: d.Identity, ArchiveIndex: d.ArchiveIndex, MapUnitID: d.MapUnitID, Class: class,
 			TerrainKey: d.TerrainKey, OwnerKey: d.OwnerKey, References: d.References,
 			ContainerPresent: d.ContainerPresent, ContainerTail: d.ContainerTail,
+			MaxHP: maxHP, MaxHPPresent: true,
 			HeldWeapon: heldWeapon,
 			State:      sim.DeadActorState{RuntimeID: d.RuntimeID, Cell: d.Cell, FineX: d.FineX, FineY: d.FineY, Stage: d.Stage, HP: d.HP, Timer: d.Timer},
 		}})

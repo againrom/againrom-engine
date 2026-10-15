@@ -61,6 +61,9 @@ func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapl
 		}
 		e := &body.entity
 		e.ID, e.X, e.Y, e.HP, e.Decay = row.ID, int32(row.Cell&255), int32(row.Cell>>8), row.HP, sim.DecayStage(row.Stage)
+		if row.MaxHPPresent {
+			e.MaxHP = row.MaxHP
+		}
 		e.NativeBasis = bases[row.ID]
 		for slot := range body.worn {
 			if row.Worn&(1<<slot) == 0 {

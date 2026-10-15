@@ -14,6 +14,7 @@ type DeadActor struct {
 	MapUnitID, Cell                           uint16
 	FineX, FineY, Stage                       uint8
 	HP                                        int16
+	MaxHP                                     uint16
 	Timer                                     int8
 	Effects, Carried, Worn                    int
 	ContainerPresent                          bool
@@ -60,7 +61,7 @@ func (f *File) DeadActors() ([]DeadActor, error) {
 		d := DeadActor{Off: r.Off, ArchiveIndex: r.Index, Class: r.Class, Identity: key,
 			RuntimeID: r.value("RuntimeID"), TerrainKey: u32(p, 8), OwnerKey: r.value("Reference"),
 			MapUnitID: uint16(r.value("T08")), Cell: u16(p, 0), FineX: p[4], FineY: p[5],
-			Stage: uint8(r.value("Stage")), HP: int16(r.value("Health")), Timer: int8(r.value("U6C")),
+			Stage: uint8(r.value("Stage")), HP: int16(r.value("Health")), MaxHP: uint16(r.value("HealthMax")), Timer: int8(r.value("U6C")),
 			TypeID:  uint16(r.value("T0E")),
 			Effects: r.Counts["Effects"], Carried: r.Counts["Inventory"],
 			Worn:             len(r.Refs["HeldWeapon"]) + len(r.Refs["HeldShield"]) + len(r.Refs["Worn"]),

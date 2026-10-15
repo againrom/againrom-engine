@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Saving keeps a dead character's current maximum health instead of rebuilding it from the map's difficulty. The value also survives decay and repeated SAVE/LOAD.
 - [ROM1] Scroll descriptions cover every ordinary scroll spell, including Darkness and Curse, with the spell's fields and effect caption at the scroll's own power. The spellbook keeps its existing descriptions.
 - [ROM1] A scroll's description shows the spell's range and other characteristics at the scroll's own power. Newly created scrolls have the correct value, including the Protection from Fire scroll on mission 81, which sells for 2048. Prices already stored in saves and shop stock are kept. Sold enchanted weapons, shields and armour go to the Magic Items shelf.
 - [BASE] Dragging onto a matching backpack stack combines the items in missions and the town shop. A normal drag takes one item; Shift takes the whole stack. The same quantities apply to floor drops in missions. Taking a whole stack also lets it trade places with a different item.

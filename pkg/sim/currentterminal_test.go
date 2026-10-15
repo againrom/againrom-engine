@@ -11,7 +11,7 @@ func TestCurrentTerminalActorRetainsTupleAcrossCompactionAndColdLoad(t *testing.
 	w.entities[1].HP, w.entities[1].Decay = decayGoneHP-1, decayLast
 	toLadderSubTick(w)
 	Step(w, nil)
-	want := CurrentTerminalActor{ID: 3, Cell: uint16(11)<<8 | 10, HP: decayGoneHP - 1, Stage: uint8(decayLast)}
+	want := CurrentTerminalActor{ID: 3, Cell: uint16(11)<<8 | 10, HP: decayGoneHP - 1, Stage: uint8(decayLast), MaxHP: companion.MaxHP, MaxHPPresent: true}
 	if indexOfEntity(w.entities, want.ID) >= 0 {
 		t.Fatal("fixture did not compact the companion")
 	}
