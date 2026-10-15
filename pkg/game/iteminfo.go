@@ -266,7 +266,7 @@ func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload
 				for _, rule := range mapload.SpellRules(table) {
 					if rule.ID == id {
 						c := sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rule, power)
-						lines = spellDetailsLines([]spellKnower{{rule, c}}, lines, &words)
+						lines = spellDetailsLines([]spellKnower{{rule, c}}, lines, &words, scrollDetails)
 						break
 					}
 				}

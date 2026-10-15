@@ -309,10 +309,17 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 		return lines
 	}
 	lines = add(lines, spellLabelManaCost, fmt.Sprintf("%d", knowers[len(knowers)-1].c.ManaCost))
-	return spellDetailsLines(knowers, lines, w)
+	return spellDetailsLines(knowers, lines, w, spellbookDetails)
 }
 
-func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words) []string {
+type spellDetailContext uint8
+
+const (
+	spellbookDetails spellDetailContext = iota
+	scrollDetails
+)
+
+func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, context spellDetailContext) []string {
 	add := func(lines []string, i int, value string) []string {
 		if i >= 0 && i < len(w.Hover) && w.Hover[i] != "" {
 			lines = append(lines, w.Hover[i]+": "+value)
@@ -328,8 +335,16 @@ func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words) []str
 		rangeMin, rangeMax = min(rangeMin, k.c.Range), max(rangeMax, k.c.Range)
 		durMin, durMax = min(durMin, k.c.Duration), max(durMax, k.c.Duration)
 	}
-	if damageMax != 0 {
-		lines = add(lines, spellLabelDamage, spellPair(damageMin, damageMax, "%d", "-"))
+	showDamage := damageMax != 0
+	if context == scrollDetails {
+		showDamage = damageMax != damageMin
+	}
+	if showDamage {
+		value := spellPair(damageMin, damageMax, "%d", "-")
+		if context == scrollDetails {
+			value = fmt.Sprintf("%d-%d", damageMin, damageMax)
+		}
+		lines = add(lines, spellLabelDamage, value)
 	}
 	if rangeMax != 0 {
 		lines = add(lines, spellLabelRange, spellPair(rangeMin, rangeMax, "%d", "-"))
@@ -340,11 +355,25 @@ func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words) []str
 	// The blocks run in this order and share one destination, so the last
 	// block that holds a value is the only caption shown.
 	caption := ""
-	for _, block := range spellCaptions {
+	order := []int{182, 183, 184, 185, 187, 186, 217}
+	if context == scrollDetails {
+		order = []int{182, 185, 187, 183, 186, 184}
+	}
+	for _, label := range order {
+		var block spellCaption
+		for _, candidate := range spellCaptions {
+			if candidate.label == label {
+				block = candidate
+				break
+			}
+		}
 		lo, hi, held := int64(0), int64(0), false
 		for _, k := range knowers {
+			if context == spellbookDetails && !inOriginalBook(k.rule.ID) {
+				continue
+			}
 			v, ok := block.value(k.rule, k.c)
-			if !ok {
+			if !ok || context == scrollDetails && v == 0 {
 				continue
 			}
 			if !held {
@@ -394,7 +423,7 @@ type spellCaption struct {
 func spellCaptionByID(ids []uint16, f, fromTable func(l int64) int64) func(sim.SpellRule, sim.SpellCharacteristics) (int64, bool) {
 	return func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
 		for _, want := range ids {
-			if want == rule.ID && inOriginalBook(rule.ID) {
+			if want == rule.ID {
 				if c.HasMagnitude {
 					return fromTable(int64(c.Magnitude)), true
 				}
@@ -414,13 +443,12 @@ func inOriginalBook(id uint16) bool {
 	return false
 }
 
-// spellCaptions are the caption blocks in code order (TEXT-080, TEXT-081).
-// Caption 187 and ids 17, 27 and 28 are outside the book's 24 cells.
+// spellCaptions share the book and item formulas (TEXT-081, TEXT-133).
 var spellCaptions = []spellCaption{
 	{label: 182, signed: true, format: "%d", rangeSep: "...", value: func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
 		l := int64(c.Power)
 		switch {
-		case rule.ID != 24 && rule.ID != 7 || !inOriginalBook(rule.ID):
+		case rule.ID != 24 && rule.ID != 7 && rule.ID != 28:
 			return 0, false
 		case c.HasMagnitude:
 			return int64(c.Magnitude), true
@@ -430,10 +458,11 @@ var spellCaptions = []spellCaption{
 		return -(l/15 + 1), true
 	}},
 	{label: 183, format: "+%d", rangeSep: "...", value: spellCaptionByID([]uint16{5, 16, 10, 22}, func(l int64) int64 { return min(l/2, 100) }, func(m int64) int64 { return min(m, 100) })},
-	{label: 184, signed: true, format: "%d", rangeSep: "...", value: spellCaptionByID([]uint16{12}, func(l int64) int64 { return -(l/30 + 1) }, func(m int64) int64 { return -m })},
+	{label: 184, signed: true, format: "%d", rangeSep: "...", value: spellCaptionByID([]uint16{12, 17}, func(l int64) int64 { return -(l/30 + 1) }, func(m int64) int64 { return -m })},
 	{label: 185, format: "+%d%%", rangeSep: "...", value: spellCaptionByID([]uint16{23}, func(l int64) int64 { return 4*l/5 + 20 }, func(m int64) int64 { return m })},
+	{label: 187, format: "+%d%%", rangeSep: "...", value: spellCaptionByID([]uint16{27}, func(l int64) int64 { return 4*l/5 + 20 }, func(m int64) int64 { return m })},
 	{label: 186, format: "%d", rangeSep: "-", value: func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
-		return int64(rule.RayLimit(c.Power)), rule.ID == 14 && inOriginalBook(rule.ID)
+		return int64(rule.RayLimit(c.Power)), rule.ID == 14
 	}},
 	{label: 217, format: "%d", rangeSep: "-", value: spellCaptionByID([]uint16{18}, func(l int64) int64 { return l/10 + 3 }, func(m int64) int64 { return m })},
 }
