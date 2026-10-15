@@ -309,6 +309,16 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 		return lines
 	}
 	lines = add(lines, spellLabelManaCost, fmt.Sprintf("%d", knowers[len(knowers)-1].c.ManaCost))
+	return spellDetailsLines(knowers, lines, w)
+}
+
+func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words) []string {
+	add := func(lines []string, i int, value string) []string {
+		if i >= 0 && i < len(w.Hover) && w.Hover[i] != "" {
+			lines = append(lines, w.Hover[i]+": "+value)
+		}
+		return lines
+	}
 	var damageMin, damageMax int64
 	rangeMin, rangeMax := knowers[0].c.Range, knowers[0].c.Range
 	durMin, durMax := knowers[0].c.Duration, knowers[0].c.Duration
@@ -345,7 +355,7 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 		if !held || (!block.signed && hi == 0) {
 			continue
 		}
-		if l := label(block.label); l != "" {
+		if l := w.Hover[block.label]; l != "" {
 			caption = l + ": " + spellPair(lo, hi, block.format, block.rangeSep)
 		}
 	}

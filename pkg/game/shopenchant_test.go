@@ -236,8 +236,11 @@ func TestShopCellsKeepDistinctEffectsAndCloneAcrossEveryModelTransfer(t *testing
 	if _, ok := shop.Sell(); !ok {
 		t.Fatal("Sell refused the enchanted item")
 	}
-	magic := shop.Shelf(ShelfWeapons)
-	if len(magic) != 2 || magic[1].Effects[0].Operand != 5 {
+	magic := shop.Shelf(ShelfMagic)
+	if len(magic) != 1 || magic[0].Count != 1 || magic[0].Effects[0].Operand != 5 {
 		t.Fatalf("sell collapsed a distinct enchantment: %+v", magic)
+	}
+	if weapons := shop.Shelf(ShelfWeapons); len(weapons) != 1 || weapons[0].Count != 1 || weapons[0].Effects[0].Operand != 4 {
+		t.Fatalf("sell changed the remaining shelf instance: %+v", weapons)
 	}
 }

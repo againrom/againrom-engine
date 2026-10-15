@@ -14,10 +14,7 @@ import (
 // spell characteristics. Item instances also state their ordered effects.
 // These helpers return plain text for pkg/ui to draw.
 
-// itemInfoLines is one item code's own popup text: its name, by itemName's
-// own rule (world.go), followed by whichever of the two decoded
-// characteristic lines its class resolves through — or the name alone when
-// neither does.
+// itemInfoLines describes a code's name and decoded equipment statistics.
 func itemInfoLines(code data.ItemCode, table *mapload.Table) []string {
 	return itemInfoLinesWithWeaponDamage(code, table, nil)
 }
@@ -247,11 +244,10 @@ func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload
 		}
 	}
 	lines := itemInfoLinesWithWeaponDamage(data.ItemCode(item.Code), table, combined, words)
-	// A book is a class-0xe00 item code. Its card has no heading, and the spell it
-	// teaches or casts continues its name line (TEXT-090, TEXT-092).
+	// Class-14 spell effects continue the name line (TEXT-090, TEXT-092).
 	book := item.Code&0xf00 == 0xe00
 	magic := describedItemSpell
-	for _, effect := range item.Effects {
+	for index, effect := range item.Effects {
 		if !book && !magic {
 			lines = append(lines, words.ItemMagic)
 			magic = true
@@ -260,7 +256,21 @@ func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload
 			continue
 		}
 		if effect.Kind == 42 || book && effect.Kind == 41 {
-			lines[len(lines)-1] += itemSpellFragment(uint16(effect.Operand), table, words)
+			id := uint16(effect.Operand)
+			scrollID, power, scroll := sim.ScrollSpell(item)
+			if index == 0 && scroll {
+				id = scrollID
+			}
+			lines[len(lines)-1] += itemSpellFragment(id, table, words)
+			if index == 0 && scroll {
+				for _, rule := range mapload.SpellRules(table) {
+					if rule.ID == id {
+						c := sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rule, power)
+						lines = spellDetailsLines([]spellKnower{{rule, c}}, lines, &words)
+						break
+					}
+				}
+			}
 			continue
 		}
 		lines = append(lines, itemEffectInfoLine(effect, table, words))

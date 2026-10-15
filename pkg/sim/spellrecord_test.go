@@ -2,6 +2,18 @@ package sim
 
 import "testing"
 
+func TestSpellCharacteristicsAtPowerKeepsFixedItemPower(t *testing.T) {
+	rule := SpellRule{ID: 1, School: 1, MaxRange: 7, DamageMin: 4, DamageMax: 8, ManaCost: 19}
+	for _, power := range []int32{0, 6, 60, 100, 255} {
+		got := SpellCharacteristicsAtPower(Rules{}, rule, power)
+		if got.Power != power || got.Range != int64(7+power/30) ||
+			got.DamageMin != int64(4*(power+30)/30) || got.DamageMax != int64(8*(power+30)/30) ||
+			got.ManaCost != 19 || got.SkillLevel != 0 || got.SkillXP != 0 {
+			t.Fatalf("fixed power %d: %+v", power, got)
+		}
+	}
+}
+
 // TestSpellPopupFiguresAreTheCastsAtItsPower holds every power-formed popup
 // figure to the cast power, on both sides of a skill and Mind sum of 30. The
 // original's record level reads 100 below 30 (TEXT-097); the owner's popup

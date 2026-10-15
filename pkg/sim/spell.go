@@ -903,7 +903,14 @@ func SpellCharacteristicsFor(r Rules, e Entity, rule SpellRule) SpellCharacteris
 		level, xp = e.Skill[rule.School], e.SkillXP[rule.School]
 	}
 	power := spellPowerUnder(r, rule, level, e.Mind)
-	c := SpellCharacteristics{SkillLevel: level, SkillXP: xp, Power: power,
+	c := SpellCharacteristicsAtPower(r, rule, power)
+	c.SkillLevel, c.SkillXP = level, xp
+	return c
+}
+
+// SpellCharacteristicsAtPower projects a spell at an item's fixed cast power.
+func SpellCharacteristicsAtPower(r Rules, rule SpellRule, power int32) SpellCharacteristics {
+	c := SpellCharacteristics{Power: power,
 		ManaCost: rule.ManaCost, Range: spellRangeOf(r, rule, power, rangeRecord),
 		Duration: spellDurationOf(r, rule, power, durationRecord), Radius: rule.Radius}
 	c.DamageMin, c.DamageMax = SpellDamagePair(r, rule, power)

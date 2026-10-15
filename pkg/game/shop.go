@@ -818,11 +818,11 @@ func shopShelfFor(c data.ItemCode) ShopShelf {
 }
 
 func shopShelfForItem(item ShopItem, table *mapload.Table) ShopShelf {
-	if item.Kind == 3 || item.Kind == 4 {
+	if item.Kind == 3 || item.Kind == 4 || item.Kind == 5 {
 		return ShelfBooks
 	}
-	if _, readable := item.Instance().BookSpell(); readable {
-		return ShelfBooks
+	if item.Instance().HasEnchantment() {
+		return ShelfMagic
 	}
 	if item.Code.B() == shopWeaponClass {
 		var suitability data.Suitability

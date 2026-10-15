@@ -366,13 +366,28 @@ func RepriceItemInstance(item sim.ItemInstance, table *Table) int32 {
 		return base // ITEM-MAGVAL-090: ordinary MagicItems keep their row value.
 	}
 	if item.Kind == 4 {
-		var cast []sim.ItemEffect
+		var value int32
 		for _, e := range item.Effects {
-			if e.Kind == 41 {
-				cast = append(cast, e)
+			if e.Kind != 41 || table.Spells == nil {
+				continue
 			}
+			spell := int(int16(e.Operand))
+			if spell < 0 || spell >= table.Spells.Len() {
+				continue
+			}
+			params := table.Spells.EntryParams(spell)
+			if len(params) <= 20 {
+				continue
+			}
+			power := float64(int16(e.Operand >> 16))
+			rank := math.Log(1+power/30) / math.Log(1.2)
+			term := float64(params[20]) * math.Pow(2, rank) / 50
+			if math.IsNaN(term) || term >= 1<<63 || term < -1<<63 {
+				continue
+			}
+			value += int32(int64(term)) // ITEM-191
 		}
-		if value := storedItemPrice(0, cast, table); value != 0 {
+		if value != 0 {
 			return value
 		}
 		return base

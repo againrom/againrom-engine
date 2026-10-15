@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A scroll's description shows the spell's range and other characteristics at the scroll's own power. Newly created scrolls have the correct value, including the Protection from Fire scroll on mission 81, which sells for 2048. Prices already stored in saves and shop stock are kept. Sold enchanted weapons, shields and armour go to the Magic Items shelf.
 - [BASE] Dragging onto a matching backpack stack combines the items in missions and the town shop. A normal drag takes one item; Shift takes the whole stack. The same quantities apply to floor drops in missions. Taking a whole stack also lets it trade places with a different item.
 - [BASE] Loading and restoring saves does less repeated decoding and copying of the saved world.
 - [ROM1] A staff a hero wears is saved with its spell, whether the hero put it on during a mission, wore it from the start or wore it when joining, so in the original game the hero's attacks cast the staff's spell instead of a plain shot that looks like a Fire Arrow. A save that already lost a worn staff's spell gets it back when it is loaded, without putting the staff on again.

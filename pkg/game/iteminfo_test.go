@@ -20,6 +20,47 @@ import (
 	"againrom/pkg/ui"
 )
 
+func TestScrollItemInfoUsesItsFixedSpellPowerAndRelevantFields(t *testing.T) {
+	spells := make(dbCollection, 6)
+	for id := 1; id < len(spells); id++ {
+		spells[id].params = make([]int32, 22)
+		spells[id].params[1], spells[id].params[2], spells[id].params[6], spells[id].params[8] = 19, 1, 7, 1
+	}
+	spells[1].name, spells[5].name = "Arrow", "Protection"
+	spells[1].params[16], spells[1].params[17] = 4, 8
+	spells[5].params[14] = 1
+	table := &mapload.Table{Spells: spells}
+	words := testSpellPopupWords()
+	words.Hover[183] = "Resistance"
+	for _, tc := range []struct {
+		spell, power    uint32
+		present, absent string
+	}{
+		{5, 60, "Resistance: +30", "Damage:"},
+		{1, 60, "Damage: 12-24", "Resistance:"},
+		{5, 6, "Resistance: +3", "Damage:"},
+	} {
+		item := sim.ItemInstance{Code: 0x0e0e, Kind: 4, Price: 99,
+			Effects: []sim.ItemEffect{{Kind: 41, Operand: tc.spell | tc.power<<16}}}
+		got := itemInstanceInfoLines(item, table, words)
+		if !slices.Contains(got, tc.present) || !slices.Contains(got, fmt.Sprintf("Range: %d", 7+tc.power/30)) {
+			t.Fatalf("spell%d power%d: %q", tc.spell, tc.power, got)
+		}
+		for _, line := range got {
+			if strings.HasPrefix(line, tc.absent) || strings.HasPrefix(line, "Mana cost:") {
+				t.Fatalf("irrelevant scroll line %q in %q", line, got)
+			}
+		}
+		if tc.spell == 5 && !strings.Contains(strings.Join(got, "\n"), "Duration:") {
+			t.Fatalf("protection scroll lacks duration: %q", got)
+		}
+		stacked := packInfoLinesWithWeaponDamage([]sim.ItemStack{sim.StackItem(item, 3)}, table, nil, words)
+		if len(stacked) != 1 || !slices.Equal(stacked[0], got) {
+			t.Fatalf("quantity changed scroll characteristics: %q/%q", got, stacked)
+		}
+	}
+}
+
 // A resolvable weapon states its name and both decoded characteristic
 // lines, read off the SAME data.WeaponFromCode call itemName and rearm
 // already make (eqSword, equip_test.go) — this test witnesses that

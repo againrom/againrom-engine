@@ -66,8 +66,8 @@ func TestReleaseBookCardIsBuiltFromTheInstalledFormatterWords(t *testing.T) {
 	}
 	// A class-0xe00 item with a cast-spell effect, a scroll, takes the same fragment.
 	scroll := sim.ItemInstance{Code: 0x0e0e, Kind: 4, Effects: []sim.ItemEffect{{Kind: 41, Operand: 12 | 3<<16}}}
-	if got, want := itemInstanceInfoLines(scroll, f.Table, f.Words), []string{itemName(data.ItemCode(0x0e0e), f.Table) + " " + of + " " + rows[11] + suffix}; !slices.Equal(got, want) {
-		t.Fatalf("scroll card %q, want %q", got, want)
+	if got, want := itemInstanceInfoLines(scroll, f.Table, f.Words), itemName(data.ItemCode(0x0e0e), f.Table)+" "+of+" "+rows[11]+suffix; len(got) <= 1 || got[0] != want {
+		t.Fatalf("scroll card %q, want name %q and spell characteristics", got, want)
 	}
 	// A non-book item carrying a teach-spell effect takes the heading, with the
 	// fragment continuing it, and a book takes no heading.

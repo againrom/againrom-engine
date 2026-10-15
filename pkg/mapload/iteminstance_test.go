@@ -29,6 +29,60 @@ func (itemTestScale) EntryDoubles(int) []float64 {
 	return []float64{1, 1, 1, 1, 1, 1, 1, 1, 1}
 }
 
+func TestScrollValueUsesItsOwnScaleSignedOperandsAndIntegerEffectSum(t *testing.T) {
+	spells := make(itemTestCollection, 32770)
+	for row, scalar := range map[int]int32{1: 80, 2: -80, 3: 1, 4: -800, 5: 800, 6: 500000000, 32769: 800} {
+		spells[row].params = make([]int32, 22)
+		spells[row].params[20] = scalar
+	}
+	table := &Table{Spells: spells, MagicItems: itemTestCollection{{}, {name: "Scroll", params: []int32{37}}}}
+	cast := func(id uint16, power int16) sim.ItemEffect {
+		return sim.ItemEffect{Kind: 41, Operand: uint32(id) | uint32(uint16(power))<<16}
+	}
+	for _, tc := range []struct {
+		name    string
+		effects []sim.ItemEffect
+		want    int32
+	}{
+		{"zero power", []sim.ItemEffect{cast(1, 0)}, 1},
+		{"powered", []sim.ItemEffect{cast(1, 6)}, 3},
+		{"placed protection", []sim.ItemEffect{cast(5, 99)}, 4096},
+		{"signed scalar", []sim.ItemEffect{cast(4, 0)}, -16},
+		{"signed power", []sim.ItemEffect{cast(5, -15)}, 1},
+		{"no equipment cap", []sim.ItemEffect{cast(6, 0)}, 10000000},
+		{"truncate inside loop", []sim.ItemEffect{cast(1, 0), cast(1, 0)}, 2},
+		{"zero integer sum", []sim.ItemEffect{cast(1, 0), cast(2, 0)}, 37},
+		{"fraction truncates to zero", []sim.ItemEffect{cast(3, 0)}, 37},
+		{"signed spell index", []sim.ItemEffect{cast(0x8001, 0)}, 37},
+		{"ignore other effects", []sim.ItemEffect{cast(1, 0), {Kind: 1, Operand: 17}, {Kind: 15, Operand: 5}}, 1},
+		{"no cast", []sim.ItemEffect{{Kind: 1, Operand: 17}}, 37},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			item := sim.ItemInstance{Code: 0xe01, Kind: 4, Price: 9999, Effects: tc.effects}
+			if got := RepriceItemInstance(item, table); got != tc.want {
+				t.Fatalf("general scroll value%d want%d", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestALMScrollConstructionUsesItsGeneralValue(t *testing.T) {
+	spells := make(itemTestCollection, 6)
+	spells[5].params = make([]int32, 22)
+	spells[5].params[20] = 800
+	table := &Table{Spells: spells, MagicItems: itemTestCollection{{}, {name: "Scroll Fire", params: []int32{3000}}}}
+	m := &alm.Map{Enchantments: []alm.Enchantment{{SpellRaw: 5 | 99<<16,
+		Elements: []alm.EnchantmentElement{{Kind: 1, Low: 17}}}}}
+	item, err := lootItemInstance(alm.LootElement{Code: 0xe01, TileMarkerIndex: 1}, m, table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []sim.ItemEffect{{Kind: 41, Operand: 5 | 99<<16}, {Kind: 1, Operand: 17}}
+	if item.Kind != 4 || item.Price != 4096 || !reflect.DeepEqual(item.Effects, want) {
+		t.Fatal("ALM scroll construction", item)
+	}
+}
+
 func TestEquipmentCellParserPreservesOrderDuplicatesModesAndTheMalformedToken(t *testing.T) {
 	spells := make(itemTestCollection, 15)
 	spells[7].name = "Lightning"

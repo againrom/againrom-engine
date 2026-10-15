@@ -324,16 +324,26 @@ func releaseStoredItemPrice(item sim.ItemInstance, table *mapload.Table) int32 {
 				continue
 			}
 			spell := int(uint16(effect.Operand))
-			if spell >= table.Spells.Len() {
+			if item.Kind == 4 {
+				spell = int(int16(effect.Operand))
+			}
+			if spell < 0 || spell >= table.Spells.Len() {
 				continue
 			}
 			params := table.Spells.EntryParams(spell)
 			power := int32(int16(effect.Operand >> 16))
-			if len(params) <= 20 || params[20] <= 0 || power < 0 {
+			if len(params) <= 20 || item.Kind != 4 && (params[20] <= 0 || power < 0) {
 				continue
 			}
 			rank := math.Log(float64(power)/30+1) / math.Log(1.2)
-			cast += int64(10 * float64(params[20]) * math.Pow(2, rank))
+			term := 10 * float64(params[20]) * math.Pow(2, rank)
+			if item.Kind == 4 {
+				term = float64(params[20]) * math.Pow(2, rank) / 50
+				if math.IsNaN(term) || term >= 1<<63 || term < -1<<63 {
+					continue
+				}
+			}
+			cast += int64(term)
 			continue
 		}
 		if table == nil || table.Magic == nil || int(effect.Kind) >= table.Magic.Len() {
@@ -355,13 +365,11 @@ func releaseStoredItemPrice(item sim.ItemInstance, table *mapload.Table) int32 {
 	}
 	price := int64(base) + direct + ordinary + cast
 	if item.Kind == 4 {
-		// ITEM-VALUE-115 gives Scroll its own value branch: only kind-41
-		// contributions, with the MagicItems base used on a zero sum.
-		// Equipment still takes base + every supported effect above.
-		price = cast
+		price = int64(int32(cast))
 		if price == 0 {
 			price = int64(base)
 		}
+		return int32(price)
 	}
 	if price >= 9_999_999 {
 		return 9_999_999
@@ -375,9 +383,9 @@ func releaseStoredItemPrice(item sim.ItemInstance, table *mapload.Table) int32 {
 func TestScrollValueOracleKeepsSubtypeAndDefaultCastPower(t *testing.T) {
 	table := &mapload.Table{Spells: enchantSpells{5: 80}, MagicItems: potionShopRows{{}, {"Scroll", ""}}}
 	for _, tc := range []struct {
-		power uint32
-		want  int32
-	}{{0, 800}, {6, 1600}} {
+		power           uint32
+		want, equipment int32
+	}{{0, 1, 800}, {6, 3, 1600}} {
 		power := tc.power
 		item := sim.ItemInstance{Code: 0xe01, Kind: 4, Price: 37, Effects: []sim.ItemEffect{
 			{Kind: 41, Operand: 5 | power<<16}, {Kind: 1, Operand: 17},
@@ -390,9 +398,31 @@ func TestScrollValueOracleKeepsSubtypeAndDefaultCastPower(t *testing.T) {
 			t.Fatalf("power%d production value=%d want%d", power, got, want)
 		}
 		item.Kind = 1
-		wantEquipment := 37 + 17 + tc.want
+		wantEquipment := 37 + 17 + tc.equipment
 		if got := releaseStoredItemPrice(item, table); got != wantEquipment {
 			t.Fatalf("equipment oracle lost additive valuation: %d want%d", got, wantEquipment)
+		}
+	}
+}
+
+func TestConstructedScrollWholeStackSaleKeepsStockOverride(t *testing.T) {
+	table := &mapload.Table{Spells: enchantSpells{5: 800}, MagicItems: dbCollection{{}, {name: "Scroll Fire", params: []int32{3000}}}}
+	item := sim.ItemInstance{Code: 0xe01, Kind: 4, Effects: []sim.ItemEffect{{Kind: 41, Operand: 5 | 99<<16}}}
+	item.Price = mapload.RepriceItemInstance(item, table)
+	if item.Price != 4096 {
+		t.Fatal("constructed general scroll value", item.Price)
+	}
+	for _, tc := range []struct{ price, payout int32 }{{item.Price, 6144}, {123, 185}} {
+		item.Price = tc.price
+		shop := NewShop(1000)
+		shop.tbl = table
+		if !shop.PutOnTable(shopItemFromInstance(item, 3)) {
+			t.Fatal("could not stage the scroll stack")
+		}
+		paid, ok := shop.Sell()
+		stock := shop.Shelf(ShelfBooks)
+		if !ok || paid != tc.payout || len(shop.Table()) != 0 || len(stock) != 1 || stock[0].Count != 3 || stock[0].Price != tc.price || !staffSaleValueEqual(stock[0].Instance(), item) {
+			t.Fatal("whole-stack sale changed stored value, quantity or payout", paid, ok, stock)
 		}
 	}
 }
