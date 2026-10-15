@@ -366,7 +366,7 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 func (w *World) scrollInReach(caster Entity, c ScrollCast, reach int64) bool {
 	if !c.AtCell {
 		if ti := indexOfEntity(w.entities, c.Target); ti >= 0 {
-			return w.withinCastReach(caster, w.entities[ti], reach)
+			return w.withinCastReach(&caster, &w.entities[ti], reach)
 		}
 	}
 	return cellOf(&caster).chebyshevTo(cell{x: c.X, y: c.Y}) <= reach

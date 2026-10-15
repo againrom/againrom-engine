@@ -32,7 +32,7 @@ func (w *World) appendBookSelections(b []byte) []byte {
 	return append(b, base, 'B', 'S', 'L', '1')
 }
 
-func (w *World) unmarshalBookSelections(data []byte) error {
+func (w *World) unmarshalBookSelections(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed admitted book selection") }
 	if len(data) < headerLen+19 || !bytes.Equal(data[len(data)-4:], []byte("BSL1")) {
 		return fail()
@@ -50,7 +50,7 @@ func (w *World) unmarshalBookSelections(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	var prior EntityID
@@ -65,8 +65,7 @@ func (w *World) unmarshalBookSelections(data []byte) error {
 		prior = id
 		next.entities[index].AdmittedBookSpell = spell
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

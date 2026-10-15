@@ -34,7 +34,7 @@ func (w *World) appendAutoHealing(b []byte) []byte {
 	return append(b, 'A', 'H', 'L', '1')
 }
 
-func (w *World) unmarshalAutoHealing(data []byte) error {
+func (w *World) unmarshalAutoHealing(data []byte, _ formProof) error {
 	malformed := func() error { return fmt.Errorf("malformed autohealing save section") }
 	if len(data) < headerLen+12 {
 		return fmt.Errorf("byte form truncated: autohealing header needs %d bytes", headerLen+12)

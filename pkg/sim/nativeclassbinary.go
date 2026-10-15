@@ -37,7 +37,7 @@ func (w *World) appendNativeClasses(b []byte) []byte {
 	return append(b, base, 'C', 'L', 'S', '1')
 }
 
-func (w *World) unmarshalNativeClasses(data []byte) error {
+func (w *World) unmarshalNativeClasses(data []byte, proof formProof) error {
 	if len(data) < headerLen {
 		return fmt.Errorf("byte form truncated")
 	}
@@ -58,7 +58,7 @@ func (w *World) unmarshalNativeClasses(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	var prior EntityID
@@ -72,8 +72,7 @@ func (w *World) unmarshalNativeClasses(data []byte) error {
 		prior = id
 		next.entities[i].NativeClass = NativeClass{Present: true, Fighter: data[o+4] != 0}
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

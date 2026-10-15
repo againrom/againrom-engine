@@ -53,7 +53,7 @@ func (w *World) appendNativeActorBases(b []byte) []byte {
 	return append(b, base, 'N', 'A', 'B', '1')
 }
 
-func (w *World) unmarshalNativeActorBases(data []byte) error {
+func (w *World) unmarshalNativeActorBases(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed native actor basis") }
 	if len(data) < headerLen+13+nativeBasisRecordLen || !bytes.Equal(data[len(data)-4:], []byte("NAB1")) {
 		return fail()
@@ -71,7 +71,7 @@ func (w *World) unmarshalNativeActorBases(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)+len(next.originalDead)+len(next.currentTerminalActors)) {
@@ -94,8 +94,7 @@ func (w *World) unmarshalNativeActorBases(data []byte) error {
 	if err := next.RestoreNativeActorBases(rows); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

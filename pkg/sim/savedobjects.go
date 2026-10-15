@@ -263,7 +263,7 @@ func (r *SavedObjects) item(id SavedObjectID) *SavedItemObject {
 	if r == nil {
 		return nil
 	}
-	i, ok := slices.BinarySearchFunc(r.Items, id, func(v SavedItemObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
+	i, ok := searchInPlace(r.Items, id, func(v *SavedItemObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
 	if !ok {
 		return nil
 	}
@@ -274,7 +274,7 @@ func (r *SavedObjects) effect(id SavedObjectID) *SavedEffectObject {
 	if r == nil {
 		return nil
 	}
-	i, ok := slices.BinarySearchFunc(r.Effects, id, func(v SavedEffectObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
+	i, ok := searchInPlace(r.Effects, id, func(v *SavedEffectObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
 	if !ok {
 		return nil
 	}
@@ -285,7 +285,7 @@ func (r *SavedObjects) spell(id SavedObjectID) *SavedSpellObject {
 	if r == nil {
 		return nil
 	}
-	i, ok := slices.BinarySearchFunc(r.Spells, id, func(v SavedSpellObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
+	i, ok := searchInPlace(r.Spells, id, func(v *SavedSpellObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
 	if !ok {
 		return nil
 	}
@@ -296,11 +296,27 @@ func (r *SavedObjects) sack(id SavedObjectID) *SavedSackObject {
 	if r == nil {
 		return nil
 	}
-	i, ok := slices.BinarySearchFunc(r.Sacks, id, func(v SavedSackObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
+	i, ok := searchInPlace(r.Sacks, id, func(v *SavedSackObject, id SavedObjectID) int { return savedIDCompare(v.ID, id) })
 	if !ok {
 		return nil
 	}
 	return &r.Sacks[i]
+}
+
+// searchInPlace is slices.BinarySearchFunc reading each probed element through
+// a pointer: the same probes in the same order and the same answer, without
+// copying an element per probe.
+func searchInPlace[E, T any](x []E, target T, cmp func(*E, T) int) (int, bool) {
+	i, j := 0, len(x)
+	for i < j {
+		h := int(uint(i+j) >> 1)
+		if cmp(&x[h], target) < 0 {
+			i = h + 1
+		} else {
+			j = h
+		}
+	}
+	return i, i < len(x) && cmp(&x[i], target) == 0
 }
 
 func savedIDCompare(a, b SavedObjectID) int {

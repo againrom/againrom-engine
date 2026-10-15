@@ -1628,10 +1628,22 @@ func (w *World) binaryBodyLen() int {
 	return n
 }
 
+// tailCapacity is the room a new buffer keeps after the body for the sections
+// appended behind it: the fixed cell planes and twice the body for the rest,
+// which held the whole tail of 99 in 100 captured forms. It sets capacity
+// only; the appended bytes are the same with any capacity.
+func (w *World) tailCapacity(body int) int {
+	n := 2 * body
+	if w.savedCellPlanes != nil {
+		n += savedCellPlanePayloadLen + 4
+	}
+	return n
+}
+
 func (w *World) encodeInto(b []byte) []byte {
 	n := w.binaryBodyLen()
 	if cap(b) < n {
-		b = make([]byte, n)
+		b = make([]byte, n, n+w.tailCapacity(n))
 	} else {
 		b = b[:n]
 		clear(b)
@@ -2129,7 +2141,7 @@ func (w *World) MarshalBinary() ([]byte, error) {
 // MarshalBinary returns independent storage on every call.
 func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 	for _, e := range w.entities {
-		if e.Alive() && w.hasMissingTargetCast(e) {
+		if e.Alive() && w.hasMissingTargetCast(&e) {
 			return nil, fmt.Errorf("sim: actor %d retains an unresolved cast target", e.ID)
 		}
 		if err := escortResidueFault(e); err != nil {
@@ -2301,8 +2313,13 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 // record bytes and failing the second, and truncated and over-long stay the same
 // comparison.
 func (w *World) UnmarshalBinary(data []byte) error {
-	if err := w.unmarshalForm(data); err != nil {
+	digest, zero := w.formDigest(data)
+	proven := zero && provenForms.has(digest)
+	if err := w.unmarshalForm(data, formProof(proven)); err != nil {
 		return err
+	}
+	if zero && !proven {
+		provenForms.add(digest)
 	}
 	// The byte form is decoded as written; a form without a carrier then
 	// takes the carrier every first-game World holds. A form without the
@@ -2313,11 +2330,11 @@ func (w *World) UnmarshalBinary(data []byte) error {
 
 // unmarshalForm decodes one byte form exactly as written. Each wrapper form
 // decodes its base through it, so a wrapper's canonical re-encoding compares
-// the form it read.
-func (w *World) unmarshalForm(data []byte) error {
+// the form it read; a proven form skips that comparison at every level.
+func (w *World) unmarshalForm(data []byte, proof formProof) error {
 	if len(data) > 0 {
 		if fw, ok := formWrapperOf(data[0]); ok {
-			return fw.decode(w, data)
+			return fw.decode(w, data, proof)
 		}
 	}
 	if len(data) > 0 && data[0] != formatVersion {

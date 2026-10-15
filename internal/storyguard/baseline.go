@@ -2476,6 +2476,10 @@ package storyguard
 // mission open and a SAVE (pkg/sim, pkg/game), the same Spell for a member
 // who joins in the town, its per-game flag and the tests that pin it, this
 // note included.
+//
+// CommentBytes rises for the doc comments of the World decoder's pooled
+// canonical comparison, its proven-form memo, the in-place saved-object
+// search and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4625,
 	TestFileCount:  264,
@@ -2499,5 +2503,5 @@ var Committed = Baseline{
 		"stringliterals.test":    34,
 		"longcommentgroups":      1725,
 	},
-	CommentBytes: 9064459,
+	CommentBytes: 9067058,
 }

@@ -53,7 +53,7 @@ func (w *World) appendMovers(b []byte) []byte {
 	return append(b, base, 'M', 'V', 'R', '1')
 }
 
-func (w *World) unmarshalMovers(data []byte) error {
+func (w *World) unmarshalMovers(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed mover records") }
 	if len(data) < headerLen+13+moverFormEntryLen || !bytes.Equal(data[len(data)-4:], []byte("MVR1")) {
 		return fail()
@@ -71,7 +71,7 @@ func (w *World) unmarshalMovers(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) || next.SecondGame() {
@@ -93,8 +93,7 @@ func (w *World) unmarshalMovers(data []byte) error {
 		next.setMover(r)
 		last = i
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

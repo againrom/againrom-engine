@@ -50,7 +50,7 @@ func (w *World) appendStructureBlocking(b []byte) []byte {
 	return append(b, base, 'S', 'B', 'K', '1')
 }
 
-func (w *World) unmarshalStructureBlocking(data []byte) error {
+func (w *World) unmarshalStructureBlocking(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed structure blocking section") }
 	if len(data) < headerLen+21 || !bytes.Equal(data[len(data)-4:], []byte("SBK1")) {
 		return fail()
@@ -72,7 +72,7 @@ func (w *World) unmarshalStructureBlocking(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.structures)) {
@@ -93,8 +93,7 @@ func (w *World) unmarshalStructureBlocking(data []byte) error {
 		}
 		next.structures[at].Blocking = mask
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

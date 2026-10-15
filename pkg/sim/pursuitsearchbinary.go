@@ -41,7 +41,7 @@ func (w *World) appendPursuitSearches(b []byte) []byte {
 	return append(b, base, 'P', 'R', 'S', '1')
 }
 
-func (w *World) unmarshalPursuitSearches(data []byte) error {
+func (w *World) unmarshalPursuitSearches(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed pursuit search section") }
 	if len(data) < headerLen+13+pursuitSearchRecordLen || !bytes.Equal(data[len(data)-4:], []byte("PRS1")) {
 		return fail()
@@ -59,7 +59,7 @@ func (w *World) unmarshalPursuitSearches(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {
@@ -90,8 +90,7 @@ func (w *World) unmarshalPursuitSearches(data []byte) error {
 		}
 		next.entities[i].Pursuit = p
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

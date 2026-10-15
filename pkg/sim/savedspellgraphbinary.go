@@ -43,7 +43,7 @@ func (w *World) appendSavedSpellGraph(b []byte) []byte {
 	return append(b, base, 'S', 'P', 'G', '1')
 }
 
-func (w *World) unmarshalSavedSpellGraph(data []byte) error {
+func (w *World) unmarshalSavedSpellGraph(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed saved spell graph section") }
 	if len(data) < headerLen+10 || !bytes.Equal(data[len(data)-4:], []byte("SPG1")) {
 		return fail()
@@ -66,7 +66,7 @@ func (w *World) unmarshalSavedSpellGraph(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	next.savedSpellGraph, next.effectOrder = continuation.Graph, continuation.Order

@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Loading and restoring saves does less repeated decoding and copying of the saved world.
 - [ROM1] A staff a hero wears is saved with its spell, whether the hero put it on during a mission, wore it from the start or wore it when joining, so in the original game the hero's attacks cast the staff's spell instead of a plain shot that looks like a Fire Arrow. A save that already lost a worn staff's spell gets it back when it is loaded, without putting the staff on again.
 - [ROM1] A save now also writes its difficulty in the campaign record, where the original's own saves keep it; the original played an Easy or Hard save from earlier versions at Normal. A save made by an earlier version keeps loading at its saved difficulty here; save it once to correct it for the original.
 - [ROM1] Saves made while a hero casts from a spellbook or charges a staff load in the original game without crashing it. A loaded healer finishes recovering before the next cast. After a weapon swap or removal, the save carries the damage of the weapon now worn, and a hero's own weight counts what the hero wears, so removing a shield in the original no longer makes it negative.

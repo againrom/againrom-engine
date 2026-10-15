@@ -91,7 +91,7 @@ func (w *World) appendBodyReferences(b []byte) []byte {
 	return append(b, base, 'B', 'D', 'R', '1')
 }
 
-func (w *World) unmarshalBodyReferences(data []byte) error {
+func (w *World) unmarshalBodyReferences(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed body references") }
 	if len(data) < headerLen+13+bodyReferenceRecordLen || !bytes.Equal(data[len(data)-4:], []byte("BDR1")) {
 		return fail()
@@ -109,7 +109,7 @@ func (w *World) unmarshalBodyReferences(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {
@@ -131,8 +131,7 @@ func (w *World) unmarshalBodyReferences(data []byte) error {
 		}
 		last = i
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

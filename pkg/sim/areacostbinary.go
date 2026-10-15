@@ -44,7 +44,7 @@ func (w *World) appendAreaCosts(b []byte) []byte {
 	return append(b, base, 'A', 'C', 'P', '1')
 }
 
-func (w *World) unmarshalAreaCosts(data []byte) error {
+func (w *World) unmarshalAreaCosts(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed area cost section") }
 	if len(data) < headerLen+9+4+areaCostRecordLen || !bytes.Equal(data[len(data)-4:], []byte("ACP1")) {
 		return fail()
@@ -62,7 +62,7 @@ func (w *World) unmarshalAreaCosts(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	rows := make([]areaCostEntry, 0, count)
@@ -76,8 +76,7 @@ func (w *World) unmarshalAreaCosts(data []byte) error {
 		rows = append(rows, e)
 	}
 	next.areaCosts, next.areaCostLive = rows, false
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) || !slices.Equal(next.decayedAreaCosts(), rows) {
+	if !next.marshalsTo(data, proof) || !slices.Equal(next.decayedAreaCosts(), rows) {
 		return fail()
 	}
 	*w = next

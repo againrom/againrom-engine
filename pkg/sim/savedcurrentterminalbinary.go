@@ -26,7 +26,7 @@ func (w *World) appendCurrentTerminalActors(b []byte) []byte {
 	return append(b, base, 'C', 'T', 'A', '1')
 }
 
-func (w *World) unmarshalCurrentTerminalActors(data []byte) error {
+func (w *World) unmarshalCurrentTerminalActors(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed current terminal actor section") }
 	if len(data) < headerLen+10 || !bytes.Equal(data[len(data)-4:], []byte("CTA1")) {
 		return fail()
@@ -46,7 +46,7 @@ func (w *World) unmarshalCurrentTerminalActors(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if err := currentTerminalActorsFault(continuation.Actors, next.bounds); err != nil {

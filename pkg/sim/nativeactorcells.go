@@ -15,10 +15,14 @@ func (w *World) syncNativeActorCells(bindings map[EntityID]uint32) {
 	// with it, so a slot bound to it on a cell it does not cover comes from a
 	// loaded document; such an actor is reconciled as a mover is.
 	native := map[EntityID]bool{}
-	for _, c := range w.cellRecords {
-		for layer, slot := range []SavedActorSlot{c.Ground, c.Air} {
+	for i := range w.cellRecords {
+		c := &w.cellRecords[i]
+		for layer, slot := range [2]SavedActorSlot{c.Ground, c.Air} {
+			if !slot.Bound || slot.Key != 0 {
+				continue
+			}
 			at := indexOfEntity(w.entities, slot.Entity)
-			if !slot.Bound || slot.Key != 0 || at < 0 {
+			if at < 0 {
 				continue
 			}
 			e := &w.entities[at]

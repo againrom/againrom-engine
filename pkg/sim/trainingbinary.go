@@ -35,7 +35,7 @@ func (w *World) appendNativeTraining(b []byte) []byte {
 	return append(b, base, 'T', 'R', 'N', '1')
 }
 
-func (w *World) unmarshalNativeTraining(data []byte) error {
+func (w *World) unmarshalNativeTraining(data []byte, proof formProof) error {
 	if len(data) < headerLen {
 		return fmt.Errorf("byte form truncated")
 	}
@@ -56,7 +56,7 @@ func (w *World) unmarshalNativeTraining(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	var prior EntityID
@@ -74,8 +74,7 @@ func (w *World) unmarshalNativeTraining(data []byte) error {
 		}
 		next.entities[i].NativeTraining = training
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

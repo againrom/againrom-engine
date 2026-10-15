@@ -115,7 +115,7 @@ func (w *World) appendHeldOrders(b []byte) []byte {
 	return append(b, base, 'H', 'L', 'D', '1')
 }
 
-func (w *World) unmarshalHeldOrders(data []byte) error {
+func (w *World) unmarshalHeldOrders(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed held order") }
 	if len(data) < headerLen+13+heldOrderRecordLen || !bytes.Equal(data[len(data)-4:], []byte("HLD1")) {
 		return fail()
@@ -133,7 +133,7 @@ func (w *World) unmarshalHeldOrders(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {
@@ -155,8 +155,7 @@ func (w *World) unmarshalHeldOrders(data []byte) error {
 		}
 		last = i
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

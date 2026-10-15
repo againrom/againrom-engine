@@ -970,7 +970,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	// 6. within the decoded power-scaled range, in whole cells, by the same Chebyshev
 	// distance the rest of this package measures a separation with —
 	// cell.chebyshevTo (route.go), reused rather than restated.
-	if !w.withinCastReach(*caster, *target, spellRangeOf(w.rules, rule, power, rangeCast)) {
+	if !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast)) {
 		return false
 	}
 	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
@@ -1518,7 +1518,7 @@ func (w *World) retainedCastBusy(i int) bool {
 // the two anchor cells, the compare its own claim states (R2-ENGINE-348). A
 // cast at a cell measures the whole-cell maximum axis in both games
 // (MAGIC-REACH-180).
-func (w *World) withinCastReach(caster, target Entity, reach int64) bool {
+func (w *World) withinCastReach(caster, target *Entity, reach int64) bool {
 	if w.SecondGame() {
 		return (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) <= reach
 	}
@@ -1833,7 +1833,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if rule.School < skillSlots {
 		level = caster.Skill[rule.School]
 	}
-	if !skipRange && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast)) {
+	if !skipRange && !w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast)) {
 		return refusalTargetOutOfRange
 	}
 	if r := w.pointEffectRefusal(ci, vi, rule, spellPowerUnder(w.rules, rule, level, caster.Mind)); r != "" {
@@ -2416,7 +2416,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 	var bestDeficit int64
 	found := false
 	for i := range w.entities {
-		if !w.withinCastReach(caster, w.entities[i], reach) {
+		if !w.withinCastReach(&caster, &w.entities[i], reach) {
 			continue
 		}
 		t := w.entities[i]

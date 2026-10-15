@@ -56,7 +56,7 @@ func (w *World) appendCurrentPlayers(b []byte, players []SavedGroupPlayer, rows 
 	return append(b, base, 'C', 'P', 'P', '1')
 }
 
-func (w *World) unmarshalCurrentPlayers(data []byte) error {
+func (w *World) unmarshalCurrentPlayers(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed independent current Player carrier") }
 	if len(data) < headerLen+14 || !bytes.Equal(data[len(data)-4:], []byte("CPP1")) {
 		return fail()
@@ -90,21 +90,20 @@ func (w *World) unmarshalCurrentPlayers(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if err := next.RestoreCurrentPlayers(players, rows, present); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next
 	return nil
 }
 
-func (w *World) unmarshalPlayerParticipants(data []byte) error {
+func (w *World) unmarshalPlayerParticipants(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed Player Participant carrier") }
 	if len(data) < headerLen+13 || !bytes.Equal(data[len(data)-4:], []byte("PPT1")) {
 		return fail()
@@ -122,7 +121,7 @@ func (w *World) unmarshalPlayerParticipants(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	rows := make([]PlayerParticipant, int(count))
@@ -133,8 +132,7 @@ func (w *World) unmarshalPlayerParticipants(data []byte) error {
 	if err := next.RestorePlayerParticipants(rows, true); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

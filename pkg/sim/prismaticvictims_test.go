@@ -70,7 +70,8 @@ func TestPrismaticSprayTakesTheFoesNearestTheCasterUpToTheCap(t *testing.T) {
 	if want := prismaticCells(t, w, ids); !reflect.DeepEqual(cells, want) {
 		t.Fatalf("ray cells %v, want one per victim in victim order %v", cells, want)
 	}
-	if got := edgeDistance(w.entities[0], spAt(t, w, 4)); got != 1 {
+	foe := spAt(t, w, 4)
+	if got := edgeDistance(&w.entities[0], &foe); got != 1 {
 		t.Fatalf("adjacent foe edge distance %d, want 1", got)
 	}
 }
@@ -230,7 +231,7 @@ func TestPrismaticEdgeDistanceKeepsListBAboveTheSentinel(t *testing.T) {
 	for size := uint8(1); size <= 4; size++ {
 		for a := int32(0); a < 256; a += 5 {
 			for b := int32(0); b < 256; b++ {
-				d := edgeDistance(Entity{X: a, Y: a, TokenSize: size}, Entity{X: b, Y: 255 - b, TokenSize: size})
+				d := edgeDistance(&Entity{X: a, Y: a, TokenSize: size}, &Entity{X: b, Y: 255 - b, TokenSize: size})
 				if d < 1 {
 					t.Fatalf("size %d cells %d,%d: edge distance %d", size, a, b, d)
 				}

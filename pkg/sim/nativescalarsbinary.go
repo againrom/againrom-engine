@@ -45,7 +45,7 @@ func (w *World) appendNativeScalars(b []byte) []byte {
 	return append(b, base, 'N', 'S', 'C', '1')
 }
 
-func (w *World) unmarshalNativeScalars(data []byte) error {
+func (w *World) unmarshalNativeScalars(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed native scalar section") }
 	if len(data) < headerLen+13+nativeScalarRecordLen || !bytes.Equal(data[len(data)-4:], []byte("NSC1")) {
 		return fail()
@@ -63,7 +63,7 @@ func (w *World) unmarshalNativeScalars(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)+len(next.originalDead)+len(next.currentTerminalActors)) {
@@ -98,8 +98,7 @@ func (w *World) unmarshalNativeScalars(data []byte) error {
 	if err := next.RestoreNativeActorBases(rows); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

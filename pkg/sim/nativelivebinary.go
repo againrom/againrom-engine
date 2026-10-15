@@ -43,7 +43,7 @@ func (w *World) appendNativeLiveBlocks(b []byte) []byte {
 	return append(b, base, 'N', 'L', 'B', '1')
 }
 
-func (w *World) unmarshalNativeLiveBlocks(data []byte) error {
+func (w *World) unmarshalNativeLiveBlocks(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed native live blocks") }
 	if len(data) < headerLen+13+nativeLiveRecordLen || !bytes.Equal(data[len(data)-4:], []byte("NLB1")) {
 		return fail()
@@ -61,7 +61,7 @@ func (w *World) unmarshalNativeLiveBlocks(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)+len(next.originalDead)+len(next.currentTerminalActors)) {
@@ -94,8 +94,7 @@ func (w *World) unmarshalNativeLiveBlocks(data []byte) error {
 	if err := next.RestoreNativeActorBases(rows); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

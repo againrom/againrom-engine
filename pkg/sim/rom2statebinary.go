@@ -59,7 +59,7 @@ func (w *World) appendROM2ScriptState(b []byte) []byte {
 	return append(b, base, 'R', '2', 'S', '1')
 }
 
-func (w *World) unmarshalROM2ScriptState(data []byte) error {
+func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed ROM2 script state section") }
 	if len(data) < headerLen+9+rom2ScenarioWireLen+4 || !bytes.Equal(data[len(data)-4:], []byte("R2S1")) {
 		return fail()
@@ -100,7 +100,7 @@ func (w *World) unmarshalROM2ScriptState(data []byte) error {
 	// from the second game's table again, before the base form checks its
 	// retained areas against them.
 	next.rowArms = AssignSecondGameArms
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	next.rowArms = nil
@@ -117,8 +117,7 @@ func (w *World) unmarshalROM2ScriptState(data []byte) error {
 	next.script, next.rom2 = script, state
 	next.spells = append([]SpellRule(nil), next.spells...)
 	AssignSecondGameArms(next.spells)
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

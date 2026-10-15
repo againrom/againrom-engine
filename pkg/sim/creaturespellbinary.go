@@ -40,7 +40,7 @@ func (w *World) appendCreatureSpells(b []byte) []byte {
 	return append(b, base, 'C', 'S', 'P', '1')
 }
 
-func (w *World) unmarshalCreatureSpells(data []byte) error {
+func (w *World) unmarshalCreatureSpells(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed creature spell section") }
 	if len(data) < headerLen+9+4+creatureSpellRecordLen || !bytes.Equal(data[len(data)-4:], []byte("CSP1")) {
 		return fail()
@@ -58,7 +58,7 @@ func (w *World) unmarshalCreatureSpells(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	var prior EntityID
@@ -81,8 +81,7 @@ func (w *World) unmarshalCreatureSpells(data []byte) error {
 		}
 	}
 	next.fillOrderSlotWindows()
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

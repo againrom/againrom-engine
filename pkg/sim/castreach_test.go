@@ -49,11 +49,11 @@ func TestACasterAlwaysReachesItself(t *testing.T) {
 	t.Parallel()
 
 	a := Entity{ID: 1, X: 3, Y: 3, TokenSize: 1}
-	if !(&World{}).withinCastReach(a, a, 0) {
+	if !(&World{}).withinCastReach(&a, &a, 0) {
 		t.Fatal("the caster is out of reach of itself at reach 0")
 	}
 	b := Entity{ID: 2, X: 3, Y: 3, TokenSize: 1}
-	if (&World{}).withinCastReach(a, b, 0) {
+	if (&World{}).withinCastReach(&a, &b, 0) {
 		t.Fatal("another body in the caster's cell is within reach 0")
 	}
 }
@@ -119,7 +119,7 @@ func TestTheSecondGameCastReachStaysTheAnchorCells(t *testing.T) {
 		t.Fatalf("second game: the wide target holds %d health after the release, want a hit", got)
 	}
 	// The gate agrees for the scroll route.
-	if (&World{rom2: &rom2ScriptState{}}).withinCastReach(Entity{ID: 1, X: 10, Y: 10, TokenSize: 1}, Entity{ID: 2, X: 2, Y: 10, TokenSize: 2}, 7) {
+	if (&World{rom2: &rom2ScriptState{}}).withinCastReach(&Entity{ID: 1, X: 10, Y: 10, TokenSize: 1}, &Entity{ID: 2, X: 2, Y: 10, TokenSize: 2}, 7) {
 		t.Fatal("second game: the gate admits anchor distance 8 at reach 7")
 	}
 }

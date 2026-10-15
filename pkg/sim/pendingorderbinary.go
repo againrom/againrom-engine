@@ -44,7 +44,7 @@ func (w *World) appendPendingOrders(b []byte) []byte {
 	return append(b, base, 'O', 'R', 'D', '1')
 }
 
-func (w *World) unmarshalPendingOrders(data []byte) error {
+func (w *World) unmarshalPendingOrders(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed pending order continuation") }
 	if len(data) < headerLen+33 || !bytes.Equal(data[len(data)-4:], []byte("ORD1")) {
 		return fail()
@@ -62,7 +62,7 @@ func (w *World) unmarshalPendingOrders(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	var prior EntityID
@@ -89,8 +89,7 @@ func (w *World) unmarshalPendingOrders(data []byte) error {
 	if err := next.pendingOrderFault(); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

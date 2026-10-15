@@ -26,7 +26,7 @@ func (w *World) appendAutoCastSettings(b []byte) []byte {
 	return append(b, byte(len(rows)/2), base, 'A', 'C', 'S', '1')
 }
 
-func (w *World) unmarshalAutoCastSettings(data []byte) error {
+func (w *World) unmarshalAutoCastSettings(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed automatic-casting section") }
 	if len(data) < headerLen+8 || !bytes.Equal(data[len(data)-4:], []byte("ACS1")) {
 		return fail()
@@ -48,7 +48,7 @@ func (w *World) unmarshalAutoCastSettings(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	next.autoCastSetting = settings

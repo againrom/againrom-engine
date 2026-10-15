@@ -3,7 +3,6 @@ package sim
 import (
 	"cmp"
 	"fmt"
-	"slices"
 
 	"againrom/pkg/rules"
 )
@@ -44,7 +43,7 @@ func (w *World) refreshSavedBookRoots(index int) {
 		return
 	}
 	e := w.entities[index]
-	position, found := slices.BinarySearchFunc(w.savedObjects.BookRoots, e.ID, func(root SavedBookRoot, id EntityID) int {
+	position, found := searchInPlace(w.savedObjects.BookRoots, e.ID, func(root *SavedBookRoot, id EntityID) int {
 		return cmp.Compare(root.Entity, id)
 	})
 	if !found {

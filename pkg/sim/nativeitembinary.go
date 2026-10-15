@@ -60,7 +60,7 @@ func (w *World) appendNativeItemRecords(b []byte) []byte {
 	return append(b, base, 'N', 'I', 'R', '1')
 }
 
-func (w *World) unmarshalNativeItemRecords(data []byte) error {
+func (w *World) unmarshalNativeItemRecords(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed native Item record span") }
 	if len(data) < headerLen+9+nativeItemRecordLen || !bytes.Equal(data[len(data)-4:], []byte("NIR1")) {
 		return fail()
@@ -74,7 +74,7 @@ func (w *World) unmarshalNativeItemRecords(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	for at := start + nativeItemRecordLen; at < len(data)-9; at += nativeItemRecordLen {
@@ -98,8 +98,7 @@ func (w *World) unmarshalNativeItemRecords(data []byte) error {
 	if at != len(data)-9 {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

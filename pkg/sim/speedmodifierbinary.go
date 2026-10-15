@@ -47,7 +47,7 @@ func (w *World) appendSpeedModifiers(b []byte) []byte {
 	return append(b, base, 'S', 'P', 'M', '1')
 }
 
-func (w *World) unmarshalSpeedModifiers(data []byte) error {
+func (w *World) unmarshalSpeedModifiers(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed speed modifier") }
 	if len(data) < headerLen+13+speedModifierRecordLen || !bytes.Equal(data[len(data)-4:], []byte("SPM1")) {
 		return fail()
@@ -65,7 +65,7 @@ func (w *World) unmarshalSpeedModifiers(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {
@@ -85,8 +85,7 @@ func (w *World) unmarshalSpeedModifiers(data []byte) error {
 		}
 		last = i
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

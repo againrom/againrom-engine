@@ -88,7 +88,7 @@ func (w *World) appendTactical(b []byte) []byte {
 	return append(b, base, 'T', 'A', 'C', '1')
 }
 
-func (w *World) unmarshalTactical(data []byte) error {
+func (w *World) unmarshalTactical(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed tactical continuation") }
 	if len(data) < headerLen+18 || !bytes.Equal(data[len(data)-4:], []byte("TAC1")) {
 		return fail()
@@ -115,7 +115,7 @@ func (w *World) unmarshalTactical(data []byte) error {
 	base := bytes.Clone(data[:start])
 	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base); err != nil {
+	if err := next.unmarshalForm(base, proof); err != nil {
 		return err
 	}
 	if payload[0] == 1 {
@@ -143,8 +143,7 @@ func (w *World) unmarshalTactical(data []byte) error {
 	if err := next.tacticalFault(); err != nil {
 		return fail()
 	}
-	canonical, err := next.MarshalBinary()
-	if err != nil || !bytes.Equal(canonical, data) {
+	if !next.marshalsTo(data, proof) {
 		return fail()
 	}
 	*w = next

@@ -29,7 +29,7 @@ func (w *World) stopTargetOrder(i int) {
 	}
 }
 
-func (w *World) orderTargetPresent(e Entity, o SavedActorOrder, cast bool) bool {
+func (w *World) orderTargetPresent(e *Entity, o *SavedActorOrder, cast bool) bool {
 	if !cast {
 		if id, kind, ok := e.RequestedAttackTarget(); ok {
 			if kind == AttackTargetUnit {
@@ -60,8 +60,8 @@ func (w *World) orderTargetPresent(e Entity, o SavedActorOrder, cast bool) bool 
 	if key == 0 {
 		return false
 	}
-	for _, target := range w.entities {
-		if target.SourceBinding.Identity == key {
+	for i := range w.entities {
+		if w.entities[i].SourceBinding.Identity == key {
 			return true
 		}
 	}
@@ -87,7 +87,7 @@ func (w *World) normaliseSavedTargetOrders() {
 	}
 	for i := range w.entities {
 		e := &w.entities[i]
-		if e.Alive() && w.hasMissingTargetCast(*e) {
+		if e.Alive() && w.hasMissingTargetCast(e) {
 			if !w.dropMissingTargetCast(i) {
 				continue
 			}
@@ -113,7 +113,7 @@ func (w *World) normaliseSavedTargetOrders() {
 		if row != 5 && row != 6 && !cast {
 			continue
 		}
-		if !w.orderTargetPresent(*e, *o, cast) {
+		if !w.orderTargetPresent(e, o, cast) {
 			if !cast && e.HasTarget {
 				if _, _, requested := e.RequestedAttackTarget(); !requested {
 					w.syncSavedDestination(i)
@@ -130,7 +130,7 @@ func (w *World) normaliseSavedTargetOrders() {
 	}
 }
 
-func (w *World) hasMissingTargetCast(e Entity) bool {
+func (w *World) hasMissingTargetCast(e *Entity) bool {
 	if w.SecondGame() {
 		return false
 	}

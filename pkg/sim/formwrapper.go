@@ -1,6 +1,12 @@
 package sim
 
-import "encoding/binary"
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/binary"
+	"reflect"
+	"sync"
+)
 
 // wrapperTrailer names how a continuation wrapper ends, and so how the form
 // it wraps is found.
@@ -23,7 +29,7 @@ type formWrapper struct {
 	version byte
 	tag     string
 	trailer wrapperTrailer
-	decode  func(*World, []byte) error
+	decode  func(*World, []byte, formProof) error
 }
 
 // formWrappers is the one list of World form wrappers, outermost first.
@@ -61,6 +67,98 @@ func init() {
 		{spellGraphFormVersion, "SPG1", trailerSpan32, (*World).unmarshalSavedSpellGraph},
 		{autoHealingFormVersion, "AHL1", trailerSpan16, (*World).unmarshalAutoHealing},
 	}
+}
+
+// canonicalForms holds the byte forms a wrapper decoder writes only to compare
+// with its input; no buffer outlives the comparison.
+var canonicalForms sync.Pool
+
+// formProof is true when the bytes being decoded already decoded once into a
+// zero World and passed every wrapper's canonical comparison on the way.
+// Decoding reads only the bytes and the receiver, so the same bytes decoded
+// into a zero World pass the same comparisons again.
+type formProof bool
+
+// marshalsTo reports whether w marshals without error to exactly data, the
+// canonical re-encoding every wrapper decoder requires of its input. A proven
+// form has passed it already.
+func (w *World) marshalsTo(data []byte, proof formProof) bool {
+	if proof {
+		return true
+	}
+	p, _ := canonicalForms.Get().(*[]byte)
+	if p == nil {
+		p = new([]byte)
+	}
+	canonical, err := w.MarshalBinaryInto((*p)[:0])
+	equal := err == nil && bytes.Equal(canonical, data)
+	if err == nil {
+		*p = canonical
+	}
+	canonicalForms.Put(p)
+	return equal
+}
+
+// provenFormCount bounds the proven-form memo; one SAVE or LOAD decodes the
+// same form several times in a row.
+const provenFormCount = 16
+
+// provenForms holds the SHA-256 digests of the wrapper forms most recently
+// decoded into a zero World without error, newest first. It holds no World
+// and no form bytes, so it hands out nothing that can alias decoded state, and
+// a changed byte changes the digest.
+var provenForms provenFormMemo
+
+type provenFormMemo struct {
+	mu      sync.Mutex
+	n       int
+	digests [provenFormCount][sha256.Size]byte
+}
+
+func (m *provenFormMemo) has(d [sha256.Size]byte) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for i := range m.n {
+		if m.digests[i] == d {
+			copy(m.digests[1:i+1], m.digests[:i])
+			m.digests[0] = d
+			return true
+		}
+	}
+	return false
+}
+
+func (m *provenFormMemo) add(d [sha256.Size]byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	at := m.n
+	for i := range m.n {
+		if m.digests[i] == d {
+			at = i
+			break
+		}
+	}
+	if at == len(m.digests) {
+		at--
+	} else if at == m.n {
+		m.n++
+	}
+	copy(m.digests[1:at+1], m.digests[:at])
+	m.digests[0] = d
+}
+
+// formDigest returns the SHA-256 of data and whether the proven-form memo
+// applies to this decode: a wrapper form into a zero World. Any other
+// receiver carries its own fields into the decoded World, and a base form has
+// no canonical comparison to skip.
+func (w *World) formDigest(data []byte) ([sha256.Size]byte, bool) {
+	if len(data) == 0 {
+		return [sha256.Size]byte{}, false
+	}
+	if _, ok := formWrapperOf(data[0]); !ok || !reflect.ValueOf(w).Elem().IsZero() {
+		return [sha256.Size]byte{}, false
+	}
+	return sha256.Sum256(data), true
 }
 
 func formWrapperOf(version byte) (formWrapper, bool) {

@@ -33,7 +33,7 @@ func footprintCoord(size uint8, at int32) int32 {
 }
 
 // edgeDistance is MAGIC-REACH-179's footprint-gap distance as a byte.
-func edgeDistance(a, b Entity) uint8 {
+func edgeDistance(a, b *Entity) uint8 {
 	gap := func(ca, cb int32) int32 {
 		d := ca - cb
 		if d < 0 {
@@ -76,7 +76,7 @@ func (w *World) prismaticVictims(ci, ti int, rule SpellRule, power int32) []int 
 	facing := w.headingBetween(caster, primary)
 	scores := make([]uint32, len(cands))
 	for k, i := range cands {
-		scores[k] = (uint32(edgeDistance(caster, w.entities[i]))<<8 + w.prismaticTurnCost(facing, caster, w.entities[i])) & 0xffff
+		scores[k] = (uint32(edgeDistance(&caster, &w.entities[i]))<<8 + w.prismaticTurnCost(facing, caster, w.entities[i])) & 0xffff
 	}
 	type winner struct{ at, score uint32 }
 	var winners []winner
