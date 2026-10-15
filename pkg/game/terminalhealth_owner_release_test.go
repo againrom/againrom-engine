@@ -126,8 +126,7 @@ func TestReleaseTerminalHealthMaximumOwnerSAV(t *testing.T) {
 				if !reflect.DeepEqual(terminal, cold.live.world.CurrentTerminalActors()) {
 					t.Fatalf("cycle %d cold LOAD changed terminal World IDs, health, maxima or placement", cycle)
 				}
-				// Native current records allocate ordinary identities during SAVE.
-				// Their unique authored IDs retain the actor correspondence.
+				// Native wire identities change; authored map IDs bind actors.
 				t.Logf("cycle %d authored actor identities reallocated=%d; ordinary Health/HealthMax/Stage and terminal World rows retained", cycle, identities)
 				f, app = cold, coldApp
 			}

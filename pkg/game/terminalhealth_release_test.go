@@ -17,7 +17,7 @@ func TestReleaseTerminalHealthMaximumOrdinarySAV(t *testing.T) {
 	var living uint16
 	for i := range doc.Objects {
 		actor := &doc.Objects[i]
-		if !unit1156Class(actor.Class) {
+		if actor.Class != "Unit" && actor.Class != "Human" && actor.Class != "Humanoid" {
 			continue
 		}
 		id, _ := savedStructureValue(actor, "T08")

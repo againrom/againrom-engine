@@ -5,7 +5,7 @@ import (
 	"slices"
 )
 
-func (s *milestoneActorSubjects) terminal(archive uint16, off int, class string, identity, runtime uint32, object uint16, current *milestoneActorCurrent, stage byte, hp int16, position []byte) (bool, string) {
+func (s *milestoneActorSubjects) terminal(archive uint16, off int, class string, identity, runtime uint32, object uint16, current *milestoneActorCurrent, stage byte, hp int16, maxHP uint16, position []byte) (bool, string) {
 	if current == nil || current.Terminal == nil {
 		return false, ""
 	}
@@ -62,9 +62,15 @@ func (s *milestoneActorSubjects) terminal(archive uint16, off int, class string,
 	}
 	owners := 0
 	var difference string
-	// The blob row carries no worn mask; LOAD takes it from the dead root.
 	want := *current.Terminal
 	want.Worn = savedRecordWornMask(r)
+	if !want.MaxHPPresent && want.MaxHP != 0 {
+		return false, "terminal actor subject maximum presence differs"
+	}
+	if !want.MaxHPPresent || uint16(want.MaxHP) != maxHP {
+		want.MaxHP = int32(maxHP)
+	}
+	want.MaxHPPresent = true
 	for _, terminal := range m.World.CurrentTerminalActors() {
 		if terminal.ID != current.ID {
 			continue

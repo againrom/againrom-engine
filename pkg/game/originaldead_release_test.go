@@ -252,6 +252,23 @@ func assertTerminalWeapons1100(t *testing.T, w *sim.World, body []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(form) > 0 && form[0] == 123 {
+		if len(form) < 59 || !bytes.Equal(form[len(form)-4:], []byte("DMH1")) || form[len(form)-5] >= 123 {
+			t.Fatal("invalid dead maximum-health wrapper")
+		}
+		span := uint64(binary.LittleEndian.Uint32(form[len(form)-9:]))
+		if span < 12 || span > uint64(len(form)-9-38) {
+			t.Fatal("invalid dead maximum-health span", span)
+		}
+		start := len(form) - 9 - int(span)
+		count := uint64(binary.LittleEndian.Uint32(form[start:]))
+		if count == 0 || span != 4+8*count {
+			t.Fatal("invalid dead maximum-health row count", count)
+		}
+		base := form[len(form)-5]
+		form = append([]byte(nil), form[:start]...)
+		form[0] = base
+	}
 	// The independently tested action-clock suffix is outside this Weapon view.
 	form = beforeStructureBlockingForm(t, form)
 	form = beforeActionClockForm1146(t, form)

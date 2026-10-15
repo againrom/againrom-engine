@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -63,7 +64,7 @@ func TestNativeTerminalActorSubjectColdCorrespondence(t *testing.T) {
 
 func TestNativeTerminalActorSubjectLossControls(t *testing.T) {
 	source, raw := nativeTerminalSubjectFixture(t)
-	for _, name := range []string{"no-manager", "source-class", "source-identity", "dead-root", "ordinary-identity", "live-ID", "raw-health", "raw-cell", "current-tuple"} {
+	for _, name := range []string{"no-manager", "source-class", "source-identity", "dead-root", "ordinary-identity", "live-ID", "raw-health", "raw-maximum", "raw-cell", "current-tuple"} {
 		t.Run(name, func(t *testing.T) {
 			cold := nativeSubjectCold(t, source, raw)
 			ms := cold.live.mission.state
@@ -105,6 +106,13 @@ func TestNativeTerminalActorSubjectLossControls(t *testing.T) {
 							want.records[j].hp++
 						}
 					}
+				case "raw-maximum":
+					roots[i].maxHP++
+					for j := range want.records {
+						if want.records[j].current != nil && want.records[j].current.Terminal != nil {
+							want.records[j].maxHP++
+						}
+					}
 				case "raw-cell":
 					reader.body[roots[i].loc.Off] ^= 1
 					for j := range want.records {
@@ -126,10 +134,75 @@ func TestNativeTerminalActorSubjectLossControls(t *testing.T) {
 			if !strings.Contains(strings.Join(a, ";"), "terminal actor subject") || !strings.Contains(strings.Join(c, ";"), "terminal actor subject") {
 				t.Fatal("terminal subject loss was accepted", name, a, c)
 			}
-			if name == "raw-health" || name == "raw-cell" || name == "current-tuple" {
+			if name == "raw-health" || name == "raw-maximum" || name == "raw-cell" || name == "current-tuple" {
 				if strings.Contains(strings.Join(a, ";"), "eligible raw actor missing") || strings.Contains(strings.Join(c, ";"), "expected live source basis unavailable") {
 					t.Fatal("tuple value mismatch changed exact terminal ownership", name, a, c)
 				}
+			}
+		})
+	}
+}
+
+func TestNativeTerminalActorSubjectOrdinaryMaximum(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		marker  int32
+		present bool
+		wire    uint16
+		want    int32
+	}{
+		{"legacy marker", 0, false, 509, 509},
+		{"known zero", 0, true, 0, 0},
+		{"ordinary edit", 60, true, 509, 509},
+		{"wide matching word", 65596, true, 60, 65596},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, raw := nativeTerminalSubjectFixture(t)
+			doc, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actions, err := readCurrentActions(&doc)
+			if err != nil || actions == nil || actions.Values[0].CurrentTerminal == nil {
+				t.Fatal("native terminal marker unavailable", err)
+			}
+			marker := actions.Values[0].CurrentTerminal
+			marker.MaxHP, marker.MaxHPPresent = tc.marker, tc.present
+			encoded, err := json.Marshal(actions)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := sav.SetNativeActions(&doc.State, encoded); err != nil {
+				t.Fatal(err)
+			}
+			if len(doc.DeadActors) != 1 {
+				t.Fatal("native terminal dead root population", len(doc.DeadActors))
+			}
+			mustSetValue(&doc.Objects[doc.DeadActors[0]-1], "HealthMax", uint32(tc.wire))
+			raw, err = sav.EncodeDocumentData(doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cold := nativeSubjectCold(t, f, raw)
+			world := cold.live.world
+			terminal := world.CurrentTerminalActors()
+			if len(terminal) != 1 || terminal[0].MaxHP != tc.want || !terminal[0].MaxHPPresent {
+				t.Fatal("terminal maximum does not follow the ordinary word and matching width", terminal)
+			}
+			ms := cold.live.mission.state
+			roots, combat, actors, compared := nativeSubjectCompare(t, raw, ms, world.Entities())
+			file, err := sav.Open(raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			scalars, err := unitScalarExpected(file, raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			scalarDifferences, _, scalarCount := scalars.entityDifferences(world.Entities(), nil, ms)
+			differences := strings.Join(append(append(roots, combat...), scalarDifferences...), ";")
+			if actors != 1 || compared != 1 || scalarCount != 1 || strings.Contains(differences, "terminal actor subject") || strings.Contains(differences, "eligible raw actor missing") || strings.Contains(differences, "expected live source basis unavailable") {
+				t.Fatal("independent terminal subject comparison rejected the current maximum", actors, compared, scalarCount, differences)
 			}
 		})
 	}

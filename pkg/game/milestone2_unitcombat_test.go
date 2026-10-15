@@ -27,6 +27,7 @@ type unitCombatRecord struct {
 	// boundary.
 	stage   byte
 	hp      int16
+	maxHP   uint16
 	current *milestoneActorCurrent
 }
 
@@ -105,7 +106,7 @@ func unit1158Read(body []byte, locations []sav.DocumentActorLocation, objects []
 		state := body[loc.StateOff+1+n : loc.StateOff+1+n+55]
 		r := unitCombatRecord{archive: loc.ArchiveIndex, class: loc.Class, off: loc.Off,
 			identity: binary.LittleEndian.Uint32(body[loc.Off+29:]), runtime: binary.LittleEndian.Uint32(body[loc.Off+12:]),
-			raw: map[string][]byte{}, stage: state[46], hp: int16(binary.LittleEndian.Uint16(state[16:]))}
+			raw: map[string][]byte{}, stage: state[46], hp: int16(binary.LittleEndian.Uint16(state[16:])), maxHP: binary.LittleEndian.Uint16(state[18:])}
 		copy(r.position[:], body[loc.Off:loc.Off+4])
 		at := loc.RawBlocksOff
 		for _, block := range unit1158Blocks[:4] {
@@ -191,7 +192,7 @@ func (want unit1158Set) entityDifferences(entities []sim.Entity, state *Snapshot
 			differences = append(differences, prefix+": "+issue)
 		}
 		if !exists {
-			owned, ownerIssue := subjects.terminal(r.archive, r.off, r.class, r.identity, r.runtime, want.origins[r.archive], r.current, r.stage, r.hp, r.position[:])
+			owned, ownerIssue := subjects.terminal(r.archive, r.off, r.class, r.identity, r.runtime, want.origins[r.archive], r.current, r.stage, r.hp, r.maxHP, r.position[:])
 			if ownerIssue != "" {
 				differences = append(differences, prefix+": "+ownerIssue)
 			}

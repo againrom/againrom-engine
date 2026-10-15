@@ -241,7 +241,7 @@ func (want unitScalarSet) entityDifferences(entities []sim.Entity, manifest *Sna
 		}
 		if !exists {
 			stage, hp := r.values["Stage"], int16(r.values["Health"])
-			owned, ownerIssue := subjects.terminal(r.archive, r.off, r.class, r.values["Identity"], r.values["RuntimeID"], want.origins[r.archive], r.current, byte(stage), hp, r.raw["Block12"][:4])
+			owned, ownerIssue := subjects.terminal(r.archive, r.off, r.class, r.values["Identity"], r.values["RuntimeID"], want.origins[r.archive], r.current, byte(stage), hp, uint16(r.values["HealthMax"]), r.raw["Block12"][:4])
 			if ownerIssue != "" {
 				differences = append(differences, prefix+": "+ownerIssue)
 			}

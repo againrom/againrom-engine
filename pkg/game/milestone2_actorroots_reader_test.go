@@ -19,6 +19,7 @@ type actor1161Record struct {
 	loc     sav.DocumentActorLocation
 	stage   byte
 	hp      int16
+	maxHP   uint16
 	values  map[string]uint32
 	counts  map[string]uint32
 	refs    map[string][]uint16
@@ -177,7 +178,7 @@ func actorRootEntityDifferences(roots []actor1161Record, r *sackByteReader, orig
 		}
 		if !ok {
 			owned, ownerIssue := subjects.terminal(a.loc.ArchiveIndex, a.loc.Off, a.loc.Class,
-				binary.LittleEndian.Uint32(r.body[a.loc.Off+29:]), binary.LittleEndian.Uint32(r.body[a.loc.Off+12:]), origins[a.loc.ArchiveIndex], a.current, a.stage, a.hp, r.body[a.loc.Off:a.loc.Off+4])
+				binary.LittleEndian.Uint32(r.body[a.loc.Off+29:]), binary.LittleEndian.Uint32(r.body[a.loc.Off+12:]), origins[a.loc.ArchiveIndex], a.current, a.stage, a.hp, a.maxHP, r.body[a.loc.Off:a.loc.Off+4])
 			if ownerIssue != "" {
 				add("%s %s", prefix, ownerIssue)
 			}
@@ -373,7 +374,7 @@ func actor1161ReadLocations(body []byte, actors []sav.DocumentActorLocation, loc
 	}
 	out := make([]actor1161Record, 0, len(actors))
 	for _, loc := range actors {
-		a := actor1161Record{loc: loc, stage: admission[loc.ArchiveIndex].stage, hp: admission[loc.ArchiveIndex].hp, values: map[string]uint32{}, counts: map[string]uint32{}, refs: map[string][]uint16{}}
+		a := actor1161Record{loc: loc, stage: admission[loc.ArchiveIndex].stage, hp: admission[loc.ArchiveIndex].hp, maxHP: admission[loc.ArchiveIndex].maxHP, values: map[string]uint32{}, counts: map[string]uint32{}, refs: map[string][]uint16{}}
 		p := loc.Off + 37
 		a.counts["Effects"], a.refs["Effects"] = r.list(&p, 0)
 		if p != loc.RoutesOff && r.err == nil {
