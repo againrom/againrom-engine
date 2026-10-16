@@ -20,21 +20,42 @@ import (
 // One retained byte-model and checkpoint own the document. A candidate clone
 // retains history and is adopted only after its full inspection view succeeds.
 type mapInspectionEdits struct {
-	inspector *MapInspector
-	model     *mapedit.Editor
-	source    string
-	saved     []byte
+	inspector                    *MapInspector
+	model                        *mapedit.Editor
+	source                       string
+	saved                        []byte
+	workspace                    *editorWorkspaceState
+	savedWorkspace               []byte
+	workspaceImage               []byte
+	workspaceHistory             bool
+	page                         string
+	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
 
 	reported      []ui.InspectionFinding // the report of the bytes in reportedFor
 	reportedFor   []byte
 	reportedTexts string // the texts folder stamp the report was made under
 }
 
-func (s *mapInspectionEdits) Dirty() bool   { return !bytes.Equal(s.saved, s.model.Bytes()) }
-func (s *mapInspectionEdits) CanUndo() bool { return s.model.CanUndo() }
-func (s *mapInspectionEdits) CanRedo() bool { return s.model.CanRedo() }
+func (s *mapInspectionEdits) Dirty() bool {
+	return !bytes.Equal(s.saved, s.model.Bytes()) || !bytes.Equal(s.savedWorkspace, s.workspaceImage)
+}
+func (s *mapInspectionEdits) CanUndo() bool {
+	if s.workspaceHistory {
+		return len(s.undoWorkspace) > 0
+	}
+	return s.model.CanUndo()
+}
+func (s *mapInspectionEdits) CanRedo() bool {
+	if s.workspaceHistory {
+		return len(s.redoWorkspace) > 0
+	}
+	return s.model.CanRedo()
+}
 
 func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument, error) {
+	if err := s.prepareWorkspace(); err != nil {
+		return nil, err
+	}
 	d, err := s.inspector.inspectModel(m, s.source)
 	if err == nil {
 		d.Edits = s
@@ -50,6 +71,7 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 	}
 	d, err := s.project(next)
 	if err == nil {
+		s.rememberWorkspace(true)
 		s.model = next
 	}
 	return d, err
@@ -319,14 +341,29 @@ func checkUnitField(f mapedit.UnitField, m *alm.Map, u alm.Unit, t *mapload.Tabl
 }
 
 func (s *mapInspectionEdits) Undo() (*ui.InspectionDocument, error) {
-	return s.change(func(m *mapedit.Editor) (bool, error) { return m.Undo(), nil })
+	if len(s.undoWorkspace) > 0 {
+		return s.travelWorkspace(true)
+	}
+	if s.workspaceHistory {
+		return nil, nil
+	}
+	return s.modelHistory(true)
 }
 
 func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
-	return s.change(func(m *mapedit.Editor) (bool, error) { return m.Redo(), nil })
+	if len(s.redoWorkspace) > 0 {
+		return s.travelWorkspace(false)
+	}
+	if s.workspaceHistory {
+		return nil, nil
+	}
+	return s.modelHistory(false)
 }
 
 func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
+	if !bytes.Equal(s.savedWorkspace, s.workspaceImage) {
+		return "", fmt.Errorf("save authored pages and route into a mod package with W, then Ctrl+S")
+	}
 	if err := s.gate(); err != nil {
 		return "", err
 	}

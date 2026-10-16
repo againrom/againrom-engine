@@ -5,16 +5,36 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"againrom/pkg/vfs"
 )
 
-// assembledText is the name of an installed mission text a mod mission takes:
-// its event and tip pages, title, briefing and the world map's briefmap.
-var assembledText = regexp.MustCompile(`^((event|tips)[0-9]{2}|title|briefing|briefmap)\.txt$`)
+func missionPageName(name string) bool {
+	if name == "title.txt" || name == "briefing.txt" || name == "briefmap.txt" {
+		return true
+	}
+	prefixes := []string{"event"}
+	for _, table := range tipTables {
+		if path, ok := table.MissionTip(1, 0); ok {
+			prefixes = append(prefixes, strings.TrimSuffix(filepath.Base(path), "00.txt"))
+		}
+	}
+	for _, prefix := range prefixes {
+		number, ok := strings.CutPrefix(name, prefix)
+		if !ok {
+			continue
+		}
+		number, ok = strings.CutSuffix(number, ".txt")
+		if !ok {
+			return false
+		}
+		n, err := strconv.ParseUint(number, 10, 31)
+		return err == nil && fmt.Sprintf("%s%02d.txt", prefix, n) == name
+	}
+	return false
+}
 
 // AssembleModMission copies the installed map of mission and its event and
 // tip texts out of the install at root into mission/<lang>/map.alm and
@@ -80,7 +100,7 @@ func installedPages(src *vfs.FS, n int) (map[string][]byte, error) {
 	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(n) + "/"
 	for _, e := range src.Entries() {
 		name, ok := strings.CutPrefix(strings.ToLower(e.Address), prefix)
-		if !ok || !assembledText.MatchString(name) {
+		if !ok || !missionPageName(name) {
 			continue
 		}
 		b, err := src.ReadFile(e.Address)

@@ -42,17 +42,6 @@ type TestPlayHost struct {
 // SetTestPlay names the host of the editor's test play.
 func (x *MapInspector) SetTestPlay(h TestPlayHost) { x.testPlay = &h }
 
-// testPlayManifest is the test mod's mod.toml.
-const testPlayManifest = `id          = "` + TestPlayModID + `"
-title       = "Map editor test play"
-version     = "1.0.0"
-author      = "Againrom"
-description = "The map the map editor plays: written by its test play key, replaced by the next one."
-api         = 1
-applies-to  = ["rom1"]
-entry       = "main.star"
-`
-
 // testPlayEntry is the test mod's entry script.
 const testPlayEntry = `def init(game, settings):
     game.data.add("` + mod.MissionsFile + `")
@@ -87,6 +76,14 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	m, err := x.testPlayMission(s.source, b)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
+	}
+	if s.workspace != nil {
+		m.TextFiles = cloneWorkspace(s.workspace).Pages
+		if len(m.TextFiles) > 0 {
+			m.Texts = testPlayTexts
+		} else {
+			m.Texts = ""
+		}
 	}
 	// The game loads the test mod through the same rule table; an error there
 	// would refuse the mod before the mission opens.
@@ -156,7 +153,7 @@ func (x *MapInspector) testPlayMission(source string, b []byte) (mod.Mission, er
 	m.TextFiles = map[string][]byte{}
 	if p := x.editorPages(source); p != nil {
 		for name, t := range p.files {
-			if assembledText.MatchString(name) {
+			if missionPageName(name) {
 				m.TextFiles[name] = t
 			}
 		}
@@ -197,12 +194,20 @@ func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 // testPlayMissions is the test mod's data/missions.toml for m.
 func testPlayMissions(m mod.Mission) []byte {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "# The map the map editor plays, as a guest mission. Each test play replaces it.\n[[mission]]\n")
+	fmt.Fprintln(&sb, "[[mission]]")
+	if m.Kind == mod.MissionReplace {
+		fmt.Fprintf(&sb, "kind = %q\n", mod.MissionReplace)
+	}
 	fmt.Fprintf(&sb, "key     = %q\nnumber  = %d\nmap     = %q\n", m.Key, m.Number, m.Map)
 	if m.Texts != "" {
 		fmt.Fprintf(&sb, "texts   = %q\n", m.Texts)
 	}
-	fmt.Fprintf(&sb, "after   = %d\nguest   = %d\nchapter = %d\n", m.After, m.Guest, m.Chapter)
+	if m.Kind != mod.MissionReplace {
+		fmt.Fprintf(&sb, "after   = %d\nguest   = %d\nchapter = %d\n", m.After, m.Guest, m.Chapter)
+		if m.Gold != 0 {
+			fmt.Fprintf(&sb, "gold = %d\n", m.Gold)
+		}
+	}
 	return []byte(sb.String())
 }
 
@@ -239,24 +244,18 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 		}
 		return fenceEditorWrite(root, dir, "Test play")
 	})
-	files := map[string][]byte{
-		mod.ManifestName: []byte(testPlayManifest),
-		"main.star":      []byte(testPlayEntry),
-		mod.MissionsFile: testPlayMissions(m),
-		testPlayMap:      m.MapBytes,
-	}
-	for name, b := range m.TextFiles {
-		files[testPlayTexts+"/"+name] = b
-	}
+	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m)
 	if err := testPlayTargets(folder, old, files); err != nil {
 		return "", err
 	}
 	if err := guard(profile.Directory); err != nil {
 		return "", err
 	}
-	if err := validateTestMod(profile.Directory, folder, root, old, files, guard); err != nil {
+	stage, err := stageMissionPackage(profile.Directory, folder, root, TestPlayModID, testPlayRecord, old, files, guard)
+	if err != nil {
 		return "", err
 	}
+	defer os.RemoveAll(stage)
 	modsDir, grant, err = profile.folder(TestPlayModID, root)
 	if err != nil {
 		return "", err

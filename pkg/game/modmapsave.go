@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +19,10 @@ type editorMod struct {
 	dir      string
 	id       string
 	missions mod.MissionData
+	owned    bool
+	copyOnly bool
+	selected string
+	title    string
 }
 
 // SetMod names the mod folder dir the editor's Save writes into: Save writes
@@ -59,7 +64,14 @@ func (x *MapInspector) SetMod(dir string) error {
 	if err != nil {
 		return fmt.Errorf("mod %q: %v", e.Manifest.ID, err)
 	}
-	x.mod = &editorMod{dir: dir, id: e.Manifest.ID, missions: d}
+	owned := false
+	if _, err := os.Lstat(filepath.Join(dir, editorPackageRecord)); err == nil {
+		if _, err := missionPackageOwnership(dir, editorPackageRecord, nil); err != nil {
+			return err
+		}
+		owned = true
+	}
+	x.mod = &editorMod{dir: dir, id: e.Manifest.ID, missions: d, owned: owned, title: e.Manifest.Title}
 	return nil
 }
 
@@ -86,7 +98,17 @@ func (m *editorMod) entryFor(source string) (mod.Mission, bool) {
 	if err != nil {
 		return mod.Mission{}, false
 	}
-	for _, e := range m.missions.Missions {
+	entries := m.missions.Missions
+	if m.selected != "" {
+		entries = append([]mod.Mission(nil), entries...)
+		for n, e := range entries {
+			if e.Key == m.selected {
+				entries[0], entries[n] = entries[n], entries[0]
+				break
+			}
+		}
+	}
+	for _, e := range entries {
 		if st, err := os.Stat(filepath.Join(m.dir, filepath.FromSlash(e.Map))); err == nil && os.SameFile(opened, st) {
 			return e, true
 		}
@@ -99,6 +121,9 @@ func (s *mapInspectionEdits) ModTarget() string {
 	if s.inspector == nil || s.inspector.mod == nil {
 		return ""
 	}
+	if s.inspector.mod.copyOnly {
+		return s.inspector.mod.id + " (read-only; W: copy)"
+	}
 	return s.inspector.mod.id
 }
 
@@ -108,6 +133,15 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	m := s.inspector.mod
 	if m == nil {
 		return "", errors.New("no mod folder is named")
+	}
+	if m.copyOnly {
+		return "", errors.New("this imported mod is read-only; choose a new mod ID and folder with W to save an owned copy")
+	}
+	if m.owned {
+		return s.saveWorkspacePackage(m.dir)
+	}
+	if !bytes.Equal(s.savedWorkspace, s.workspaceImage) {
+		return "", errors.New("authored pages need an editor-owned mod package; choose a new folder with W")
 	}
 	e, ok := m.entryFor(s.source)
 	if !ok {

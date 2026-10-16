@@ -38,6 +38,11 @@ func (e *MapEditor) selectedRecord() (string, int) {
 // item code while a sack waits for one, else the selected record's fields.
 func (e *MapEditor) promptFields() []InspectionField {
 	switch e.prompt.kind {
+	case promptWorkspace:
+		if host, ok := e.workspace(); ok {
+			return host.WorkspaceFields(e.prompt.scope)
+		}
+		return nil
 	case promptNewUnit:
 		return []InspectionField{{Key: "class", Label: "Class key for the new unit"}}
 	case promptNewSack:
@@ -126,10 +131,13 @@ func (e *MapEditor) fieldTitle() string {
 	if e.prompt.adds() {
 		return fields[e.prompt.field].Label + " / Enter: add"
 	}
-	return fmt.Sprintf("%s / Tab: next / Enter: set", fields[e.prompt.field].Label)
+	return fmt.Sprintf("%s / Tab: next / Enter: set", choiceTitle(fields[e.prompt.field], e.prompt.path))
 }
 
 func (e *MapEditor) setField(text string) error {
+	if e.prompt.kind == promptWorkspace {
+		return e.setWorkspaceField(text)
+	}
 	fields := e.promptFields()
 	if e.prompt.field >= len(fields) {
 		e.leave(leavePrompt)

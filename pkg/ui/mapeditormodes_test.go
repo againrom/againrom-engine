@@ -211,7 +211,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "bogus"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "help", "metadata", "pages", "package", "clear", "newline", "bogus"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:rail-maps", "ui:rail-open", "ui:rail-fit", "ui:rail-undo", "ui:rail-redo", "ui:rail-save", "ui:rail-filter", "ui:rail-row0", "ui:wheel-rail"}
 
@@ -525,7 +525,8 @@ func modesPathSteps(name string) []string {
 
 // TestMapEditorModesReadableTable states the main transitions in words.
 func TestMapEditorModesReadableTable(t *testing.T) {
-	keys := "Drag: move / C: clone / Del"
+	keys := "N: new map / U: unit"
+	prompt := "Enter: set / Tab: next / Esc: back"
 	players := "P: records / A: add / Del: delete"
 	rows := []modesRow{
 		{"full", "list", "clone", keys, "Select a unit, structure or sack first.", "", false, false},
@@ -549,16 +550,16 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "terrain", "height", "H: off / Drag: shape / [ ]: size", "", "", false, true},
 		{"plain", "list", "terrain", keys, "", "", false, false},
 		{"full", "terrain", "clone", "T: off / Drag: paint / [ ]: size", "Select a unit, structure or sack first.", "", false, true},
-		{"full", "terrain", "open", keys, "", "ALM path / Enter: open", false, false},
+		{"full", "terrain", "open", prompt, "", "ALM path / Enter: open", false, false},
 		{"full", "terrain-open", "escape", "T: off / Drag: paint / [ ]: size", "", "", false, true},
-		{"full", "list", "open", keys, "", "ALM path / Enter: open", false, false},
-		{"full", "list", "saveas", keys, "", "New .alm path / Enter: Save As", false, false},
+		{"full", "list", "open", prompt, "", "ALM path / Enter: open", false, false},
+		{"full", "list", "saveas", prompt, "", "New .alm path / Enter: Save As", false, false},
 		{"mod", "list", "saveas", keys, "", "", true, false},
-		{"full", "selected", "field", keys, "", "First / Tab: next / Enter: set", false, false},
-		{"full", "field", "tab", keys, "", "Second / Tab: next / Enter: set", false, false},
+		{"full", "selected", "field", prompt, "", "First / Tab: next / Enter: set", false, false},
+		{"full", "field", "tab", prompt, "", "Second / Tab: next / Enter: set", false, false},
 		{"full", "list", "field", keys, "Select a unit, structure or sack first.", "", false, false},
-		{"full", "sack", "ui:click-cell", keys, "", "Item code for the new sack / Enter: add", false, false},
-		{"full", "unit", "ui:click-cell", keys, "", "Class key for the new unit / Enter: add", false, false},
+		{"full", "sack", "ui:click-cell", prompt, "", "Item code for the new sack / Enter: add", false, false},
+		{"full", "unit", "ui:click-cell", prompt, "", "Class key for the new unit / Enter: add", false, false},
 		{"full", "sack-prompt", "escape", keys, "", "", false, false},
 		{"full", "list", "catalog", keys, "", "", false, false},
 		{"full", "catalog-open", "escape", keys, "", "", false, false},
@@ -566,11 +567,11 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "saveas-bad", "escape", keys, "", "", false, false},
 		{"full", "saveas-ok", "escape", keys, "", "", false, false},
 		{"full", "report-clone", "escape", keys, "", "", true, false},
-		{"full", "list", "new", keys, "", "", false, false},
-		{"full", "report", "new", keys, "", "", false, false},
+		{"full", "list", "new", prompt, "", "New map: width x height / Enter", false, false},
+		{"full", "report", "new", prompt, "", "New map: width x height / Enter", false, false},
 		{"full", "list", "players", players, "", "", false, false},
-		{"full", "players", "field", players, "", "Name / Tab: next / Enter: set", false, false},
-		{"full", "player-name", "tab", players, "", "Colour (0..15) / Tab: next / Enter: set", false, false},
+		{"full", "players", "field", prompt, "", "Name / Tab: next / Enter: set", false, false},
+		{"full", "player-name", "tab", prompt, "", "Colour (0..15) / Tab: next / Enter: set", false, false},
 		{"full", "players", "player", players, "", "", false, false},
 		{"plain", "players", "player", players, "", "", false, false},
 		{"full", "players", "delete", players, "The first player cannot be deleted.", "", false, false},

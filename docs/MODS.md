@@ -223,21 +223,43 @@ window. It opens with the install's map list. The editor's own help names its
 keys: PgUp and PgDn page the list; dragging a unit, structure or sack moves
 it and dragging the ground pans; C clones the selected unit, structure or
 sack (click a cell; Esc cancels), Del deletes it, E edits its fields (Tab:
-next field, Enter: set), and S adds a sack on the next clicked cell; Ctrl+Z
-undoes, Ctrl+Y redoes and Ctrl+S asks for a new `.alm` path to save a copy
-(Enter saves); Enter opens a typed ALM path; Esc goes back. The
-editor never writes into an install.
+next field, Enter: set), and S adds a sack on the next clicked cell. F1 opens
+the scrollable key reference. Ctrl+Z undoes, Ctrl+Y redoes and Ctrl+S saves
+the selected mod package, or asks for a new `.alm` path when no mod is
+selected. Enter opens a typed ALM path; Esc goes back. The editor never writes
+into an install.
 
-N lists the new-map sizes above the installed maps (32, 48, 64, 80, 128 and
-256 cells a side); a click opens a blank map with two sides, the second named
-Enemy and hostile to the first. U, a click on a cell and a class key add a
-unit. A new map saved with `mapedit -mod` goes to the mod's one mission entry
+N asks for width x height. Each side can be 32..256 cells in steps of 8;
+rectangles are supported. The blank map has two sides, the second named
+Enemy and hostile to the first. The Maps button retains the installed-map
+catalogue. U, a click on a cell and a class key add a unit. M edits the map's
+name and description. The other metadata fields are labelled raw: their
+stored bits can be edited, but this does not promise a light or time effect.
+A new map saved with `mapedit -mod` goes to the mod's one mission entry
 whose map file the folder does not hold yet. The party lands on the drop cell
 of the map's script, so a map the party is to play needs one (the report
 warns when the map has none and its fallback landing cells leave the map).
 `mapedit -new <width>x<height> -out <file>` writes the blank map to a new
 file and prints that report; `-new` alone opens the window on it, with
 `-check` it prints the report.
+
+X edits mission pages. Set the page name, reopen X and use Tab to reach its
+body. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,
+`eventNN.txt` and `tipsNN.txt`; numbers use at least two digits and can exceed
+99. Shift+Enter inserts a new line, Ctrl+A clears the field and Enter applies
+it. Pages use UTF-8; an unrepresentable character or an oversized page is
+refused with the entered text retained. Map, page and route changes share
+Undo/Redo. Saving only an ALM refuses unsaved page or route changes.
+
+W selects a mod folder or creates an owned package in a new explicit folder.
+Its fields set the mod ID/title and the guest or campaign-replacement route;
+Tab selects the next field and Up/Down selects available choices. A source
+with several missions has a source-mission choice. An imported manual mod
+remains read-only: choose a new folder and ID to save the selected mission as
+an owned copy. The source files stay unchanged. An owned package contains one
+mission; select and copy other source missions separately. Ctrl+S stages the
+map, declaration and pages, validates them with the normal loader and then
+saves the package. Unrelated files survive updates; conflicts refuse the save.
 
 `mapedit -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
 to the path the mod's mission entry for it names (the entry whose `number` is
@@ -253,7 +275,8 @@ generation, then the map as guest mission `n`. The test mod declares the map
 as a guest mission after the campaign's first won mission that opens a town
 granting a companion; `n` is the lowest number after that mission the game
 accepts for a guest (21 on the first game's installs). It carries the text
-pages of the installed mission the map was opened from, or of its mod entry.
+pages of the installed mission the map was opened from, or of its mod entry,
+including current text edits.
 Each F5 replaces the test mod's map and pages. A map the report finds an error
 in is not played; the report shows. The editor stays open, and nothing the
 author saved changes. A missing or failed game program is named on the

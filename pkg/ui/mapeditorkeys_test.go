@@ -199,6 +199,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenHeight:  {"height"},
 		screenObjects: {"objects"},
 		screenPlayers: {"players"},
+		screenPrompt:  {"ui:select0", "field"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)
@@ -275,7 +276,8 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"brush under a pick", []string{"ui:select0", "terrain", "clone"}, false, escapes, false},
 		{"catalogue", []string{"catalog"}, true, escapes, false},
 		{"catalogue toggles", []string{"catalog"}, true, []string{"catalog"}, false},
-		{"new map catalogue", []string{"new"}, true, escapes, false},
+		{"new map prompt", []string{"new"}, false, escapes, false},
+		{"new map catalogue after cancel", []string{"new", "escape"}, true, escapes, false},
 		{"catalogue under a prompt", []string{"catalog", "open"}, false, escapes, false},
 	}
 	for _, c := range cases {

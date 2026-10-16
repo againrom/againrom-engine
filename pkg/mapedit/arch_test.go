@@ -35,6 +35,7 @@ var almReferences = nameTable{
 	"editor.go/(*Editor).Map":             {"alm.Map", "alm.Open"},
 	"unit.go/(*Editor).highestScriptUnit": {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},
+	"meta.go/(*Editor).SetEncodedName":    {"alm.DecodeText", "alm.EncodeName", "alm.EncodeText"},
 	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
 	"field.go/(*Editor).TextFieldValue":   {"alm.DecodeText"},
 	"field.go/(*Editor).SetTextField":     {"alm.EncodeText"},

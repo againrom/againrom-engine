@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -28,6 +29,10 @@ func testPlayRecordBytes(names []string) []byte {
 }
 
 func testPlayOwnership(folder string, protected []string) ([]string, error) {
+	return missionPackageOwnership(folder, testPlayRecord, protected)
+}
+
+func missionPackageOwnership(folder, recordName string, protected []string) ([]string, error) {
 	for _, dir := range protected {
 		for _, pair := range [][2]string{{dir, folder}, {folder, dir}} {
 			inside, err := sameOrDescendantPhysical(pair[0], pair[1])
@@ -53,7 +58,7 @@ func testPlayOwnership(folder string, protected []string) ([]string, error) {
 	if err != nil || !sameSaveName(physical, folder) {
 		return nil, fmt.Errorf("%s redirects out of the test mod", folder)
 	}
-	name := filepath.Join(folder, testPlayRecord)
+	name := filepath.Join(folder, recordName)
 	st, err = os.Lstat(name)
 	if err != nil || !st.Mode().IsRegular() || st.Size() > 65536 {
 		return nil, fmt.Errorf("%s was not written by a test play", folder)
@@ -70,7 +75,7 @@ func testPlayOwnership(folder string, protected []string) ([]string, error) {
 	for _, rel := range record.Files {
 		page := strings.TrimPrefix(rel, testPlayTexts+"/")
 		fixed := rel == mod.ManifestName || rel == "main.star" || rel == mod.MissionsFile || rel == testPlayMap
-		if seen[rel] || !fixed && (page == rel || !assembledText.MatchString(page)) {
+		if seen[rel] || !fixed && (page == rel || !missionPageName(page)) {
 			return nil, fmt.Errorf("%s has an invalid recorded path %q", folder, rel)
 		}
 		seen[rel] = true
@@ -106,37 +111,44 @@ func testPlayTargets(folder string, old []string, files map[string][]byte) error
 	return nil
 }
 
-func validateTestMod(profileDir, folder, root string, old []string, files map[string][]byte, guard func(string) error) error {
-	stage, err := os.MkdirTemp(profileDir, ".testplay-*")
+func stageMissionPackage(profileDir, folder, root, id, record string, old []string, files map[string][]byte, guard func(string) error) (stage string, err error) {
+	stage, err = os.MkdirTemp(profileDir, ".testplay-*")
 	if err != nil {
-		return err
+		return "", err
 	}
-	defer os.RemoveAll(stage)
-	dest := filepath.Join(stage, TestPlayModID)
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(stage)
+		}
+	}()
+	dest := filepath.Join(stage, id)
 	if err := os.Mkdir(dest, 0o755); err != nil {
-		return err
+		return stage, err
 	}
 	if _, err := os.Stat(folder); err == nil {
-		if err := copyRetainedTestMod(folder, dest, old, guard); err != nil {
-			return err
+		if err := copyRetainedTestMod(folder, dest, old, record, guard); err != nil {
+			return stage, err
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return err
+		return stage, err
 	}
 	for rel, b := range files {
 		if err := writeTestModFile(guard, profileDir, dest, rel, b, false); err != nil {
-			return err
+			return stage, err
 		}
 	}
-	entries, err := mod.Resolve(stage, []string{TestPlayModID})
+	if err := writeTestModFile(guard, profileDir, dest, record, testPlayRecordBytes(slices.Sorted(maps.Keys(files))), true); err != nil {
+		return stage, err
+	}
+	entries, err := mod.Resolve(stage, []string{id})
 	if err != nil {
-		return err
+		return stage, err
 	}
 	_, err = modrt.Load(entries, BaseID(InspectInstall(root)), nil, modrt.Options{})
-	return err
+	return stage, err
 }
 
-func copyRetainedTestMod(folder, dest string, old []string, guard func(string) error) error {
+func copyRetainedTestMod(folder, dest string, old []string, record string, guard func(string) error) error {
 	return filepath.WalkDir(folder, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -161,7 +173,7 @@ func copyRetainedTestMod(folder, dest string, old []string, guard func(string) e
 			}
 			return os.Mkdir(filepath.Join(dest, rel), 0o755)
 		}
-		if rel == testPlayRecord || slices.Contains(old, filepath.ToSlash(rel)) {
+		if rel == record || slices.Contains(old, filepath.ToSlash(rel)) {
 			return nil
 		}
 		if !d.Type().IsRegular() {

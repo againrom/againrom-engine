@@ -30,6 +30,8 @@ const (
 	promptField              // a value for the selected record's field
 	promptNewSack            // the item code of a sack added on the picked cell
 	promptNewUnit            // the class key of a unit added on the picked cell
+	promptRectangle
+	promptWorkspace
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -39,11 +41,14 @@ type editorPrompt struct {
 	cell  image.Point
 	field int
 	path  string
+	scope string
 }
 
-func (p editorPrompt) open() bool   { return p.kind != promptNone }
-func (p editorPrompt) adds() bool   { return p.kind == promptNewSack || p.kind == promptNewUnit }
-func (p editorPrompt) fields() bool { return p.kind == promptField || p.adds() }
+func (p editorPrompt) open() bool { return p.kind != promptNone }
+func (p editorPrompt) adds() bool { return p.kind == promptNewSack || p.kind == promptNewUnit }
+func (p editorPrompt) fields() bool {
+	return p.kind == promptField || p.adds() || p.kind == promptWorkspace
+}
 
 // editorMode is every layer the window can be in.
 type editorMode struct {

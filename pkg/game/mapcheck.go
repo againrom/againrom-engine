@@ -674,7 +674,7 @@ func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 	if s.reported != nil && bytes.Equal(s.reportedFor, b) && s.reportedTexts == stamp {
 		return s.reported
 	}
-	rows := s.inspector.report(s.model, s.source, s.inspector.editorPages(s.source))
+	rows := s.inspector.report(s.model, s.source, s.currentPages())
 	s.reported, s.reportedFor, s.reportedTexts = rows, append([]byte(nil), b...), stamp
 	return rows
 }
@@ -683,6 +683,9 @@ func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 // entry for this map, the part of the report that does not come from the map
 // bytes. It is empty without a mod or a folder.
 func (s *mapInspectionEdits) textsStamp() string {
+	if s.workspace != nil {
+		return string(s.workspaceImage)
+	}
 	m := s.inspector.mod
 	if m == nil {
 		return ""

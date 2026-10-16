@@ -100,6 +100,12 @@ type InspectionField struct {
 	Value      int64
 	Text       bool
 	TextValue  string
+	Choices    []InspectionChoice
+}
+
+type InspectionChoice struct {
+	Value int64
+	Label string
 }
 
 type EditorMap struct{ Key, Label string }
@@ -253,7 +259,8 @@ var editorFilters = []string{"All", "Units", "Build", "Sacks", "Scenery", "Other
 
 func (e *MapEditor) listBottom() int { return editorListTop + e.visibleRows()*editorRowHeight }
 func (e *MapEditor) visibleRows() int {
-	return max(3, min(12, (e.window.Y/2+30-editorListTop)/editorRowHeight))
+	bottom := min(e.window.Y/2+30, e.helpTop(e.window.Y)-132)
+	return max(1, min(12, (bottom-editorListTop)/editorRowHeight))
 }
 
 func (e *MapEditor) rows() []int {
@@ -452,7 +459,11 @@ func (e *MapEditor) Update() error {
 		name string
 	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}, {ebiten.KeyArrowUp, "up"}, {ebiten.KeyArrowDown, "down"}} {
 		if inpututil.IsKeyJustPressed(k.key) {
-			if err := e.Key(k.name); err == ebiten.Termination {
+			name := k.name
+			if name == "enter" && ebiten.IsKeyPressed(ebiten.KeyShift) && e.multilinePrompt() {
+				name = "newline"
+			}
+			if err := e.Key(name); err == ebiten.Termination {
 				return err
 			}
 		}
@@ -482,7 +493,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -493,8 +504,13 @@ func (e *MapEditor) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeyR) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 			_ = e.Key("report")
 		}
-	} else if e.prompt.fields() && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
-		_ = e.Key("tab")
+	} else {
+		if e.prompt.fields() && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+			_ = e.Key("tab")
+		}
+		if ebiten.IsKeyPressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyA) {
+			_ = e.Key("clear")
+		}
 	}
 	e.Pointer(readInput(), time.Now())
 	return nil
@@ -747,17 +763,23 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			text = goalLabel(e.report.goals[e.report.sel])
 		}
 		for n, row := range editorWrap(e.font, text, 300) {
-			if y := bottom + 40 + n*step; y+step <= h-81 {
+			if y := bottom + 40 + n*step; y+step <= e.helpTop(h)-6 {
 				line(row, 10, y, 300, editorLight)
 			}
 		}
 	} else if e.selected >= 0 && e.doc != nil && !e.catalog && !e.brushActive() {
 		r := e.doc.Records[e.selected]
-		line(fmt.Sprintf("%s #%d / type %d", r.Kind, r.Index, r.Section), 10, bottom+40, 300, editorGold)
+		if bottom+40+e.helpStep() <= e.helpTop(h)-6 {
+			line(fmt.Sprintf("%s #%d / type %d", r.Kind, r.Index, r.Section), 10, bottom+40, 300, editorGold)
+		}
 		if r.Spatial {
-			line(fmt.Sprintf("Cell %d,%d  /  %dx%d", r.Cell.X, r.Cell.Y, r.Size.X, r.Size.Y), 10, bottom+61, 300, editorLight)
+			if bottom+61+e.helpStep() <= e.helpTop(h)-6 {
+				line(fmt.Sprintf("Cell %d,%d  /  %dx%d", r.Cell.X, r.Cell.Y, r.Size.X, r.Size.Y), 10, bottom+61, 300, editorLight)
+			}
 		} else if r.Kind == "Trigger" {
-			line("Blue: conditions / Gold: actions", 10, bottom+61, 300, editorPaper)
+			if bottom+61+e.helpStep() <= e.helpTop(h)-6 {
+				line("Blue: conditions / Gold: actions", 10, bottom+61, 300, editorPaper)
+			}
 		}
 		detailTop := bottom + 86
 		if r.Preview != nil && h >= 700 {
@@ -768,7 +790,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 				for y := 0; y < hp; y++ {
 					for x := 0; x < w; x++ {
 						c := preview.RGBAAt(preview.Rect.Min.X+int(float64(x)/scale), preview.Rect.Min.Y+int(float64(y)/scale))
-						if c.A != 0 {
+						if c.A != 0 && detailTop+y < e.helpTop(h)-6 {
 							pic.SetRGBA(10+x, detailTop+y, c)
 						}
 					}
@@ -785,16 +807,13 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		}
 	}
 	for n, help := range e.helpLines() {
-		line(editorClip(e.font, help, 300), 10, h-75+n*18, 300, editorPaper)
+		line(editorClip(e.font, help, 300), 10, e.helpTop(h)+n*e.helpStep(), 300, editorPaper)
 	}
-	line(e.saveHelp(), 10, h-21, 300, editorPaper)
+	line(e.saveHelp(), 10, e.saveTop(h), 300, editorPaper)
 	if e.prompt.open() || e.message != "" {
-		draw.Draw(pic, image.Rect(0, bottom+30, 320, h-81), image.NewUniform(editorInk), image.Point{}, draw.Src)
+		draw.Draw(pic, image.Rect(0, bottom+30, 320, e.helpTop(h)-6), image.NewUniform(editorInk), image.Point{}, draw.Src)
 		for _, row := range e.modalLayout(h) {
 			line(row.text, 10, row.y, 300, row.color)
-		}
-		if e.message != "" {
-			line("Map and history retained. Esc: back", 10, h-108, 300, editorPaper)
 		}
 	}
 	return pic

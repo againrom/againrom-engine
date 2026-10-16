@@ -143,7 +143,7 @@ func TestMapEditor1118LongPathAndRefusalNeverOverlap(t *testing.T) {
 		path, refusal := false, false
 		last := 0
 		for _, row := range rows {
-			if row.y < last || row.y+e.font.Height() > size.Y-88 || e.font.Advance(row.text) > 300 {
+			if row.y < last || row.y+e.font.Height() > e.helpTop(size.Y)-6 || e.font.Advance(row.text) > 300 {
 				t.Fatalf("overlapping/clipped modal at %v: %+v", size, rows)
 			}
 			last = row.y + max(16, e.font.Height()+2)

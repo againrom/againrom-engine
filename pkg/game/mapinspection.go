@@ -75,6 +75,7 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 		if e.FromArchive {
 			key = "scenario/" + e.Source
 		}
+		e.Name = alm.DecodeText([]byte(e.Name))
 		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text())})
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
@@ -145,7 +146,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 	v.SetAnimated(false)
 	v.SetTimeFlow(false)
 	v.ShowReadout(false)
-	d := &ui.InspectionDocument{Viewer: v, Source: source, Name: m.Name,
+	d := &ui.InspectionDocument{Viewer: v, Source: source, Name: alm.DecodeText([]byte(m.Name)),
 		Width: m.Width, Height: m.Height, SourceBytes: model.Bytes()}
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
@@ -317,7 +318,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 			r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Unresolved enchantment grammar: %d authored records", m.TileMarkers.Count))
 		}
 		if id == 0 {
-			r.Details = append(r.Details, x.inspectionUTF8(m.Name), x.inspectionUTF8(m.Description), fmt.Sprintf("Metadata: %+v", m.Meta))
+			r.Details = append(r.Details, x.inspectionUTF8(alm.DecodeText([]byte(m.Name))), x.inspectionUTF8(m.Description), fmt.Sprintf("Metadata: %+v", m.Meta))
 		}
 		add(r)
 	}

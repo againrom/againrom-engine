@@ -4,6 +4,9 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"strings"
+
+	"againrom/pkg/render/text"
 )
 
 type editorModalRow struct {
@@ -31,23 +34,28 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 			title = e.fieldTitle()
 		} else if e.prompt.kind == promptSave {
 			title = "New .alm path / Enter: Save As"
+		} else if e.prompt.kind == promptRectangle {
+			title = "New map: width x height / Enter"
 		}
 		add(title, editorGold)
 	}
-	available := max(1, (h-124-y)/height)
+	available := max(0, (e.helpTop(h)-6-y)/height)
 	var errors []string
 	if e.message != "" {
 		errors = editorWrap(e.font, e.editorHostText(e.message), 300)
+		available = max(0, available-1)
 	}
 	if e.prompt.open() {
 		reserved := min(len(errors), max(1, available/2))
-		paths := editorWrap(e.font, e.editorHostText(e.prompt.path)+"_", 300)
-		n := max(1, min(6, available-reserved))
+		paths := editorParagraphs(e.font, e.editorHostText(e.prompt.path)+"_", 300)
+		n := max(0, min(6, available-reserved))
 		if len(paths) > n {
 			paths = paths[len(paths)-n:]
-			paths[0] = "..." + paths[0]
-			for e.font != nil && len(paths[0]) > 3 && e.font.Advance(paths[0]) > 300 {
-				paths[0] = "..." + paths[0][4:]
+			if len(paths) > 0 {
+				paths[0] = "..." + paths[0]
+				for e.font != nil && len(paths[0]) > 3 && e.font.Advance(paths[0]) > 300 {
+					paths[0] = "..." + paths[0][4:]
+				}
 			}
 		}
 		for _, s := range paths {
@@ -62,7 +70,20 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 		}
 		add(s, editorWarning)
 	}
+	if e.message != "" && y+height <= e.helpTop(h)-6 {
+		add("Map and history retained. Esc: back", editorPaper)
+	} else if e.multilinePrompt() && y+height <= e.helpTop(h)-6 {
+		add("Shift+Enter: new line / Ctrl+A: clear", editorPaper)
+	}
 	return rows
+}
+
+func editorParagraphs(f *text.Font, s string, width int) []string {
+	var out []string
+	for _, paragraph := range strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n") {
+		out = append(out, editorWrap(f, paragraph, width)...)
+	}
+	return out
 }
 
 func (e *MapEditor) editable() bool { return e.doc != nil && e.doc.Edits != nil }

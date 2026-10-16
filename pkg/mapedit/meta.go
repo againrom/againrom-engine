@@ -1,6 +1,7 @@
 package mapedit
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -75,6 +76,23 @@ func (e *Editor) SetName(s string) error {
 	if err != nil {
 		return fmt.Errorf("mapedit: %w", err)
 	}
+	e.writeMeta(metaName, img)
+	return nil
+}
+
+func (e *Editor) SetEncodedName(value []byte) error {
+	img, err := alm.EncodeName("")
+	if err != nil {
+		return err
+	}
+	if len(value) >= len(img) || bytes.IndexByte(value, 0) >= 0 {
+		return fmt.Errorf("mapedit: name needs at most %d bytes without NUL", len(img)-1)
+	}
+	back, err := alm.EncodeText(alm.DecodeText(value))
+	if err != nil || !bytes.Equal(back, value) {
+		return fmt.Errorf("mapedit: name bytes do not round trip through Windows-1251")
+	}
+	copy(img, value)
 	e.writeMeta(metaName, img)
 	return nil
 }
