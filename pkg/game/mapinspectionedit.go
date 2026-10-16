@@ -83,7 +83,8 @@ var editKinds = map[string]mapedit.Kind{
 	"Unit": mapedit.KindUnit, "Structure": mapedit.KindStructure,
 	"Sack": mapedit.KindLoot, "Stock": mapedit.KindLoot,
 	"Action": mapedit.KindAction, "Condition": mapedit.KindCondition,
-	"Player": mapedit.KindPlayer,
+	"Player":      mapedit.KindPlayer,
+	"Enchantment": mapedit.KindEnchantment,
 }
 
 func editKind(kind string) (mapedit.Kind, error) {
@@ -196,6 +197,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	var out []ui.InspectionField
 	for _, f := range fields {
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text}
+		row.Choices = s.RecordChoices(kind, index, f.Key)
 		if f.Text {
 			row.TextValue, err = s.model.TextFieldValue(k, index, f.Key)
 		} else {
@@ -248,8 +250,18 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 			if value != 0 {
 				err = s.inspector.checkItem(value)
 			}
-		case mapedit.CheckRosterSlot, mapedit.CheckClassKey, mapedit.CheckDefinitionID:
+		case mapedit.CheckRosterSlot:
+			err = rosterSlotError(view, uint32(value))
+		case mapedit.CheckClassKey, mapedit.CheckDefinitionID:
 			err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
+		case mapedit.CheckItemRecipe:
+			if value != 0 {
+				if value > int64(len(view.Enchantments)) {
+					err = fmt.Errorf("recipe %d is outside 1..%d", value, len(view.Enchantments))
+				} else if r := view.Enchantments[value-1]; r.X != 0 || r.Y != 0 {
+					err = fmt.Errorf("recipe %d has cell coordinates and cannot enchant an item", value)
+				}
+			}
 		case mapedit.CheckScriptUnit, mapedit.CheckScriptStructure, mapedit.CheckScriptGroup:
 			err = checkScriptReference(f.Check, view, value)
 		}

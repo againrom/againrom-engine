@@ -17,6 +17,7 @@ const (
 	KindCondition             // type 7 condition node array
 	KindTrigger               // type 7 trigger array, 184-byte records (ALM-TRIG-047)
 	KindPlayer
+	KindEnchantment
 )
 
 // section is one row of the record-section table: where a kind's records
@@ -24,11 +25,12 @@ const (
 // grammar needs. Place, clone, move, delete and the field table read only
 // this row, so a further kind is a row and not a second editor.
 type section struct {
-	name   string
-	typeID uint32
-	count  int  // the type-0 word that counts the records
-	x, y   int  // fixed-point coordinate words, /256 is the cell
-	create bool // Place may create this absent counted payload
+	name        string
+	typeID      uint32
+	count       int  // the type-0 word that counts the records
+	x, y        int  // fixed-point coordinate words, /256 is the cell
+	create      bool // Place may create this absent counted payload
+	insertAfter uint32
 
 	// layout, when set, finds the records inside a payload that holds several
 	// counted arrays, in place of the type-0 count word and a payload that is
@@ -41,7 +43,8 @@ type section struct {
 	// cellless reports a record whose coordinates the game never reads.
 	cellless func(rec []byte) bool
 	// renumber gives a clone its identity; nil copies every byte.
-	renumber func(e *Editor, w walk, rec []byte) error
+	renumber   func(e *Editor, w walk, rec []byte) error
+	cloneParts func(e *Editor, w walk, source int, rec []byte) ([]part, error)
 	// reshape restores the grammar after a field write; nil keeps the length.
 	reshape func(rec []byte) []byte
 	// fields lists the settable fields of one record.
@@ -55,16 +58,19 @@ var sections map[Kind]*section
 func init() {
 	sections = map[Kind]*section{
 		KindUnit: {name: "unit", typeID: unitTypeID, count: metaCount6, x: unitX, y: unitY,
-			length:   func(_ *Editor, b []byte) int { return fixedLength(b, unitRecordSize) },
-			renumber: renumberUnit,
-			fields:   func(*Editor, []byte) []Field { return unitFields },
+			length:      func(_ *Editor, b []byte) int { return fixedLength(b, unitRecordSize) },
+			renumber:    renumberUnit,
+			cloneParts:  cloneUnitStockParts,
+			fields:      func(*Editor, []byte) []Field { return unitFields },
+			deleteParts: refuseOwnedStockDeletion,
 		},
-		KindStructure: {name: "structure", typeID: structureTypeID, count: metaCount4, x: 0x00, y: 0x04,
-			length:  structureLength,
-			reshape: reshapeStructure,
-			fields:  structureFields,
+		KindStructure: {name: "structure", typeID: structureTypeID, count: metaCount4, x: 0x00, y: 0x04, create: true, insertAfter: playerTypeID,
+			length:   structureLength,
+			reshape:  reshapeStructure,
+			fields:   structureFields,
+			renumber: renumberStructure,
 		},
-		KindLoot: {name: "sack", typeID: lootTypeID, count: metaCount8, x: lootX, y: lootY,
+		KindLoot: {name: "sack", typeID: lootTypeID, count: metaCount8, x: lootX, y: lootY, create: true, insertAfter: 9,
 			length:   lootLength,
 			cellless: func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
 			fields:   lootFields,
@@ -78,6 +84,10 @@ func init() {
 			fields:        playerFields,
 			validatePlace: validatePlayerPlacement,
 			deleteParts:   playerDeleteParts,
+		},
+		KindEnchantment: {name: "enchantment", typeID: 9, layout: enchantmentLayout,
+			length: enchantmentLength, cellless: func([]byte) bool { return true }, fields: enchantmentFields,
+			deleteParts: enchantmentDeleteParts,
 		},
 	}
 }
@@ -226,7 +236,7 @@ func (e *Editor) Position(k Kind, i int) (x, y uint32, err error) {
 
 // Place appends record after k's last record and returns its index. The
 // record is copied verbatim and must be exactly one record of k's grammar.
-// An absent section whose row permits creation is inserted after metadata.
+// An absent section uses its row's insertion predecessor.
 func (e *Editor) Place(k Kind, record []byte) (int, error) {
 	w, err := e.placementSection(k, "place a "+sectionName(k))
 	if err != nil {
@@ -244,38 +254,51 @@ func (e *Editor) Place(k Kind, record []byte) (int, error) {
 }
 
 func (e *Editor) appendRecord(w walk, record []byte) int {
-	if !w.frame.carries(w.sec.typeID) {
-		return e.insertSection(w, record)
-	}
-	n := w.n()
-	e.apply(edit{
-		replace(w.span.abs(w.starts[n]), nil, record),
-		e.sizeWordPart(w.span, len(record)),
-		e.wordPart(w.countAt, 1),
-	})
-	return n
+	i, ed := e.appendRecordParts(w, record)
+	e.apply(ed)
+	return i
 }
 
-func (e *Editor) insertSection(w walk, record []byte) int {
+func (e *Editor) appendRecordParts(w walk, record []byte) (int, edit) {
+	return e.appendRecordsParts(w, record, 1)
+}
+
+func (e *Editor) appendRecordsParts(w walk, record []byte, count int) (int, edit) {
+	if !w.frame.carries(w.sec.typeID) {
+		return 0, e.insertSectionParts(w, record, count)
+	}
+	n := w.n()
+	return n, edit{
+		replace(w.span.abs(w.starts[n]), nil, record),
+		e.sizeWordPart(w.span, len(record)),
+		e.wordPart(w.countAt, count),
+	}
+}
+
+func (e *Editor) insertSectionParts(w walk, record []byte, count int) edit {
 	meta := w.frame.required(metaTypeID)
+	anchor := meta
+	if w.frame.carries(w.sec.insertAfter) {
+		anchor = w.frame.required(w.sec.insertAfter)
+	}
 	framed := make([]byte, recordHeaderSize+len(record))
 	binary.LittleEndian.PutUint32(framed, 7)
 	binary.LittleEndian.PutUint32(framed[4:], recordHeaderSize)
 	binary.LittleEndian.PutUint32(framed[recPayloadSize:], uint32(len(record)))
 	binary.LittleEndian.PutUint32(framed[recTypeID:], w.sec.typeID)
 	copy(framed[recordHeaderSize:], record)
-	e.apply(edit{
-		replace(meta.abs(meta.payloadSize), nil, framed),
+	var word [4]byte
+	binary.LittleEndian.PutUint32(word[:], uint32(count))
+	return edit{
+		replace(anchor.abs(anchor.payloadSize), nil, framed),
 		e.wordPart(fhRecordCount, 1),
-		replace(w.countAt, e.data[w.countAt:w.countAt+4], []byte{1, 0, 0, 0}),
-	})
-	return 0
+		replace(w.countAt, e.data[w.countAt:w.countAt+4], word[:]),
+	}
 }
 
 // CloneRecord appends a copy of k's record i with its X and Y words set to x and y
-// and returns the new index, as one edit. The section's renumber rule gives
-// the copy its identity; every other byte is the source's. A record without
-// a cell is refused.
+// and returns the new index as one edit. Section hooks assign identity and
+// independent ownership. A record without a cell is refused.
 func (e *Editor) CloneRecord(k Kind, i int, x, y uint32) (int, error) {
 	w, err := e.walkIndex(k, "clone", i)
 	if err != nil {
@@ -293,7 +316,16 @@ func (e *Editor) CloneRecord(k Kind, i int, x, y uint32) (int, error) {
 			return -1, fmt.Errorf("mapedit: cannot clone %s %d: %w", w.sec.name, i, err)
 		}
 	}
-	return e.appendRecord(w, rec), nil
+	var extra []part
+	if w.sec.cloneParts != nil {
+		extra, err = w.sec.cloneParts(e, w, i, rec)
+		if err != nil {
+			return -1, err
+		}
+	}
+	index, ed := e.appendRecordParts(w, rec)
+	e.apply(append(ed, extra...))
+	return index, nil
 }
 
 // Move sets the X and Y words of k's record i to the raw fixed-point values

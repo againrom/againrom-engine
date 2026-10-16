@@ -28,6 +28,14 @@ func (e *MapEditor) units() (InspectionUnits, bool) {
 // addRecord finishes the prompt of a new sack or unit: v is the item code or
 // the class key, and the record is added on the cell the click picked.
 func (e *MapEditor) addRecord(cell image.Point, v int64) (*InspectionDocument, string, error) {
+	if e.prompt.kind == promptNewStructure {
+		host, ok := e.doc.Edits.(InspectionRecords)
+		if !ok {
+			return nil, "Structure", nil
+		}
+		next, err := host.AddStructure(cell, v)
+		return next, "Structure", err
+	}
 	if e.prompt.kind == promptNewUnit {
 		u, ok := e.units()
 		if !ok {

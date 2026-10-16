@@ -101,7 +101,7 @@ func TestStructureMoveWritesOnlyItsCoordinateWords(t *testing.T) {
 	undoRedoExact(t, e, 1, b, want)
 }
 
-func TestStructureCloneCopiesEveryByteButTheCell(t *testing.T) {
+func TestStructureClonePreservesOtherBytesAndAllocatesIdentity(t *testing.T) {
 	b := recordsFixture(t)
 	e := newEditor(t, b)
 	i, err := e.CloneRecord(mapedit.KindStructure, 1, 13*256+64, 2*256+32)
@@ -112,6 +112,7 @@ func TestStructureCloneCopiesEveryByteButTheCell(t *testing.T) {
 	rec := append([]byte(nil), b[p+20:p+48]...)
 	binary.LittleEndian.PutUint32(rec[0:], 13*256+64)
 	binary.LittleEndian.PutUint32(rec[4:], 2*256+32)
+	binary.LittleEndian.PutUint16(rec[0x12:], 10)
 	want := splice(b, p+48, 0, rec)
 	addWord(want, h+8, 28)
 	addWord(want, metaAt(t, b, 0x20), 1)
@@ -119,7 +120,7 @@ func TestStructureCloneCopiesEveryByteButTheCell(t *testing.T) {
 		t.Fatal("the clone is not the source's 28 bytes at the new cell plus the size and count words")
 	}
 	m, err := alm.Open(e.Bytes())
-	if err != nil || len(m.Objects) != 3 || m.Objects[2].Field12 != 9 || m.Objects[2].Field0C != 12 || m.Objects[2].Field0E != 1 {
+	if err != nil || len(m.Objects) != 3 || m.Objects[2].Field12 != 10 || m.Objects[2].Field0C != 12 || m.Objects[2].Field0E != 1 {
 		t.Fatalf("clone %+v, %v", m.Objects, err)
 	}
 	undoRedoExact(t, e, 1, b, want)
@@ -162,7 +163,7 @@ func TestStructureKindAcrossTheExtensionReshapesTheRecord(t *testing.T) {
 		}
 		return s
 	}
-	if keys(0) != "kind " || keys(1) != "kind width height " {
+	if keys(0) != "kind owner identity placement " || keys(1) != "kind width height owner identity placement " {
 		t.Fatalf("structure fields %q / %q", keys(0), keys(1))
 	}
 	if err := e.SetField(mapedit.KindStructure, 0, "kind", 0x21); err != nil {
@@ -334,7 +335,7 @@ func TestStockHasNoCellAndKeepsItsItems(t *testing.T) {
 		t.Fatal("a refused stock edit wrote")
 	}
 	fs, _ := e.Fields(mapedit.KindLoot, 0)
-	if len(fs) != 2 || fs[0].Key != "item1" || fs[1].Key != "additem" {
+	if len(fs) != 3 || fs[0].Key != "item1" || fs[1].Key != "additem" || fs[2].Key != "recipe1" {
 		t.Fatalf("stock fields %+v", fs)
 	}
 	if err := e.SetField(mapedit.KindLoot, 0, "additem", 0x0202); err != nil {
@@ -357,7 +358,7 @@ func TestShortLootHeadHasNoGold(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs, _ := e.Fields(mapedit.KindLoot, 0)
-	if len(fs) != 2 || fs[0].Key != "item1" {
+	if len(fs) != 3 || fs[0].Key != "item1" || fs[2].Key != "recipe1" {
 		t.Fatalf("short-head fields %+v", fs)
 	}
 	if r := lootElements(t, e.Bytes()); len(r) != 1 || r[0].Elements[0].ItemCode() != 0x0101 {

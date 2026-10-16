@@ -12,12 +12,13 @@ import "image"
 type pickKind string
 
 const (
-	pickNone  pickKind = ""
-	pickClone pickKind = "clone" // a cell to clone the selected record onto
-	pickSack  pickKind = "sack"  // a cell to add a sack on
-	pickUnit  pickKind = "unit"  // a cell to add a unit on
-	pickDrop  pickKind = "drop"  // the cell the party drops on
-	pickGoal  pickKind = "goal"  // a unit or structure for the selected script arm
+	pickNone      pickKind = ""
+	pickClone     pickKind = "clone" // a cell to clone the selected record onto
+	pickSack      pickKind = "sack"  // a cell to add a sack on
+	pickUnit      pickKind = "unit"  // a cell to add a unit on
+	pickDrop      pickKind = "drop"  // the cell the party drops on
+	pickGoal      pickKind = "goal"  // a unit or structure for the selected script arm
+	pickStructure pickKind = "structure"
 )
 
 // promptKind is the text prompt in the rail.
@@ -30,6 +31,8 @@ const (
 	promptField              // a value for the selected record's field
 	promptNewSack            // the item code of a sack added on the picked cell
 	promptNewUnit            // the class key of a unit added on the picked cell
+	promptNewStructure
+	promptItemRecipe
 	promptRectangle
 	promptWorkspace
 )
@@ -45,9 +48,11 @@ type editorPrompt struct {
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }
-func (p editorPrompt) adds() bool { return p.kind == promptNewSack || p.kind == promptNewUnit }
+func (p editorPrompt) adds() bool {
+	return p.kind == promptNewSack || p.kind == promptNewUnit || p.kind == promptNewStructure
+}
 func (p editorPrompt) fields() bool {
-	return p.kind == promptField || p.adds() || p.kind == promptWorkspace
+	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace || p.adds()
 }
 
 // editorMode is every layer the window can be in.

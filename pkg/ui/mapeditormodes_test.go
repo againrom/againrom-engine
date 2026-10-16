@@ -108,6 +108,16 @@ var modesFindings = []InspectionFinding{
 // modesFull adds the optional seams: script, brush, units and the report.
 type modesFull struct{ modesBase }
 
+func (p *modesFull) AddStructure(c image.Point, kind int64) (*InspectionDocument, error) {
+	return p.next("AddStructure %v %d", c, kind)
+}
+func (p *modesFull) AddStock(unit int) (*InspectionDocument, error) {
+	return p.next("AddStock %d", unit)
+}
+func (p *modesFull) AddItemRecipe(kind string, index int, item int64) (*InspectionDocument, error) {
+	return p.next("AddItemRecipe %s %d %d", kind, index, item)
+}
+
 func (p *modesFull) Goals() []InspectionGoal {
 	return []InspectionGoal{
 		{Arm: "Win", Text: "kill unit", Pick: "Unit", Kind: "Action", Index: 0, Cell: image.Pt(10, 10), HasCell: true},
@@ -211,7 +221,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "help", "metadata", "pages", "package", "clear", "newline", "bogus"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "help", "metadata", "pages", "package", "clear", "newline", "bogus"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:rail-maps", "ui:rail-open", "ui:rail-fit", "ui:rail-undo", "ui:rail-redo", "ui:rail-save", "ui:rail-filter", "ui:rail-row0", "ui:wheel-rail"}
 
@@ -398,6 +408,8 @@ var modesPaths = []modesPath{
 	{"sack-prompt-tab", []string{"sack", "ui:click-cell", "tab"}},
 	{"unit", []string{"unit"}},
 	{"unit-prompt", []string{"unit", "ui:click-cell"}},
+	{"new-structure", []string{"structure"}},
+	{"new-structure-prompt", []string{"structure", "ui:click-cell"}},
 	{"drop", []string{"drop"}},
 	{"goals", []string{"goals"}},
 	{"goals-pick", []string{"goals", "enter"}},

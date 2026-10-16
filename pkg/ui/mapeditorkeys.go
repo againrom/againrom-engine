@@ -27,6 +27,7 @@ const (
 	screenHeight                    // the height brush
 	screenObjects                   // the objects brush
 	screenPlayers                   // the roster list
+	screenStructure
 	screenPrompt
 	screenCount
 )
@@ -94,6 +95,9 @@ func init() {
 		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}}},
 		{key: "new", label: "N", act: (*MapEditor).keyNew, help: keys(line3)},
 		{key: "unit", label: "U", act: (*MapEditor).keyUnit, help: keys(line3)},
+		{key: "structure", label: "J", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
+		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
+		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, line4}, {screenPlayers, players}}},
 		{key: "player", label: "A", act: (*MapEditor).keyPlayer, help: []helpEntry{{screenPlayers, players}}},
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(line4)},
@@ -101,8 +105,8 @@ func init() {
 		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys")},
-		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}}},
-		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}}},
+		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenStructure, "Structure: click a cell"}}},
+		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenStructure, "Esc: cancel"}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
 		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
 		{key: "close", live: promptHears, act: (*MapEditor).keyClose, unlisted: unlistedWindow},
@@ -158,7 +162,7 @@ func EditorHelpLines() []string {
 var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects}
 
 // pickScreens is the help screen of each armed pick.
-var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickSack: screenSack, pickUnit: screenUnit, pickDrop: screenDrop, pickGoal: screenGoal}
+var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickSack: screenSack, pickUnit: screenUnit, pickDrop: screenDrop, pickGoal: screenGoal, pickStructure: screenStructure}
 
 // helpScreen is the help for the window's mode: an active brush, the armed
 // pick, the script panel, or the keys.
@@ -275,8 +279,10 @@ func (e *MapEditor) keyCatalog(string) error {
 
 func (e *MapEditor) keyEnter(string) error {
 	switch e.prompt.kind {
-	case promptField, promptNewSack, promptNewUnit, promptWorkspace:
+	case promptField, promptNewSack, promptNewUnit, promptNewStructure, promptWorkspace:
 		return e.setField(e.prompt.path)
+	case promptItemRecipe:
+		return e.setItemRecipe(e.prompt.path)
 	case promptRectangle:
 		return e.Open("new/" + strings.TrimSpace(e.prompt.path))
 	case promptSave:

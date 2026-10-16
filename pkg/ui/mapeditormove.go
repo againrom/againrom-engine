@@ -32,6 +32,8 @@ func (e *MapEditor) modalLayout(h int) []editorModalRow {
 		title := "ALM path / Enter: open"
 		if e.prompt.fields() {
 			title = e.fieldTitle()
+		} else if e.prompt.kind == promptItemRecipe {
+			title = "Item number (1..N) / Enter: add recipe"
 		} else if e.prompt.kind == promptSave {
 			title = "New .alm path / Enter: Save As"
 		} else if e.prompt.kind == promptRectangle {

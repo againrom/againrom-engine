@@ -19,19 +19,20 @@ import (
 // MapInspector opens authored data only: it never constructs a World, mission,
 // scheduler, save store or audio device. All installed resources are read-only.
 type MapInspector struct {
-	archives   *Archives
-	tiles      *terrain.Tileset
-	statics    *terrain.StaticSet
-	objectRows []ui.BrushObject // the objects list: the clear row, then each drawable class
-	structures *terrain.StructureSet
-	units      *terrain.UnitSet
-	sacks      []*terrain.StaticFrame
-	table      *mapload.Table
-	font       *text.Font
-	Maps       []MapEntry
-	mod        *editorMod    // the mod folder Save writes into; nil for Save As
-	testPlay   *TestPlayHost // the game the test play key starts; nil: no test play
-	rules      []mapRule     // the map report's rule table; nil is mapRules
+	archives      *Archives
+	tiles         *terrain.Tileset
+	statics       *terrain.StaticSet
+	objectRows    []ui.BrushObject // the objects list: the clear row, then each drawable class
+	structures    *terrain.StructureSet
+	units         *terrain.UnitSet
+	sacks         []*terrain.StaticFrame
+	table         *mapload.Table
+	font          *text.Font
+	Maps          []MapEntry
+	mod           *editorMod    // the mod folder Save writes into; nil for Save As
+	testPlay      *TestPlayHost // the game the test play key starts; nil: no test play
+	rules         []mapRule     // the map report's rule table; nil is mapRules
+	recordOptions map[string][]ui.InspectionChoice
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {
@@ -234,7 +235,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 					r.Warning = "Unresolved sack art; anchor shown"
 				}
 			}
-			r.Details = []string{fmt.Sprintf("Owner: %d  Gold: %d", l.Owner, l.Gold), fmt.Sprintf("X/Y raw: %d / %d", l.X, l.Y), fmt.Sprintf("Items: %d", len(l.Elements))}
+			r.Details = []string{fmt.Sprintf("Owner: %d  Gold: %d", l.Owner, l.Gold), fmt.Sprintf("X/Y raw: %d / %d", l.X, l.Y), fmt.Sprintf("Items: %d / I: recipe by item number", len(l.Elements))}
 			for n, e := range l.Elements {
 				name, known := "", false
 				if x.table != nil {
@@ -244,7 +245,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 					name = "unresolved item name"
 					r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Item %d name unresolved", n))
 				}
-				r.Details = append(r.Details, fmt.Sprintf("%d: %s", n, name))
+				r.Details = append(r.Details, fmt.Sprintf("Item %d: %s", n+1, name))
 				r.Details = append(r.Details, fmt.Sprintf("%d: code %#04x class %d index %d", n, e.ItemCode(), alm.ItemClass(e.ItemCode()), alm.ItemIndex(e.ItemCode())), fmt.Sprintf("   raw04 %d enchantment %d", e.Field04, e.TileMarkerIndex))
 			}
 			add(r)
@@ -266,8 +267,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 		add(r)
 	}
 	for i, e := range m.Enchantments {
-		r := ui.InspectionRecord{Kind: "Enchantment", Section: 9, Index: i, Label: fmt.Sprintf("tag %d", e.Tag), Warning: "Effect metadata listed only; no invented world placement",
+		r := ui.InspectionRecord{Kind: "Enchantment", Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
 			Details: []string{fmt.Sprintf("X/Y raw: %d / %d", e.X, e.Y), fmt.Sprintf("A/B/C: %d / %d / %d", e.A, e.B, e.C), fmt.Sprintf("Spell raw: %d", e.SpellRaw), fmt.Sprintf("Elements: %v", e.Elements)}}
+		if e.X != 0 || e.Y != 0 {
+			r.Warning = "Cell or caster entry; item recipe fields are unavailable"
+		}
 		// These coordinates can name item metadata, not a world placement.
 		// Do not fabricate a spatial marker from an undecided interpretation.
 		add(r)

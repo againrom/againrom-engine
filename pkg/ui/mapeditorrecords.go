@@ -19,7 +19,7 @@ func editableKind(kind string) bool { return dragRank[kind] > 0 || kind == "Stoc
 // fieldKind reports a record kind whose fields the window sets: the editable
 // kinds, script nodes and nonspatial Players.
 func fieldKind(kind string) bool {
-	return editableKind(kind) || kind == "Action" || kind == "Condition" || kind == "Player"
+	return editableKind(kind) || kind == "Action" || kind == "Condition" || kind == "Player" || kind == "Enchantment"
 }
 
 // selectedRecord is the kind and file-order index of the selected editable
@@ -44,9 +44,13 @@ func (e *MapEditor) promptFields() []InspectionField {
 		}
 		return nil
 	case promptNewUnit:
-		return []InspectionField{{Key: "class", Label: "Class key for the new unit"}}
+		return e.newRecordField("Unit", "class", "Class key for the new unit")
 	case promptNewSack:
-		return []InspectionField{{Key: "item", Label: "Item code for the new sack"}}
+		return e.newRecordField("Sack", "item", "Item code for the new sack")
+	case promptNewStructure:
+		return e.newRecordField("Structure", "kind", "Kind for the new structure")
+	case promptItemRecipe:
+		return e.recipeItemField()
 	}
 	kind, index := e.selectedRecord()
 	if index < 0 {
@@ -84,7 +88,7 @@ func (e *MapEditor) recordKey(key string) error {
 		return nil
 	}
 	kind, index := e.selectedRecord()
-	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && kind == "Player")) {
+	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && (kind == "Player" || kind == "Enchantment"))) {
 		e.message = "Select a unit, structure or sack first."
 		return nil
 	}
@@ -129,7 +133,7 @@ func (e *MapEditor) fieldTitle() string {
 		return "Field / Enter: set"
 	}
 	if e.prompt.adds() {
-		return fields[e.prompt.field].Label + " / Enter: add"
+		return choiceTitle(fields[e.prompt.field], e.prompt.path) + " / Enter: add"
 	}
 	return fmt.Sprintf("%s / Tab: next / Enter: set", choiceTitle(fields[e.prompt.field], e.prompt.path))
 }
@@ -200,6 +204,10 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.openPrompt(editorPrompt{kind: promptNewUnit, cell: image.Pt(x, y)})
 		return
 	}
+	if pick == pickStructure {
+		e.openPrompt(editorPrompt{kind: promptNewStructure, cell: image.Pt(x, y)})
+		return
+	}
 	if pick == pickDrop {
 		e.dropAt(image.Pt(x, y))
 		return
@@ -226,4 +234,14 @@ func (e *MapEditor) selectNewest(kind string) {
 		}
 	}
 	e.selected = best
+	if best >= 0 {
+		visible := false
+		for _, row := range e.rows() {
+			visible = visible || row == best
+		}
+		if !visible {
+			e.filter = 0
+		}
+		e.Select(best, false)
+	}
 }

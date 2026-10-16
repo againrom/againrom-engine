@@ -2,9 +2,11 @@ package game
 
 import (
 	"bytes"
+	"encoding/binary"
 	"image"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -85,6 +87,55 @@ func TestReleaseMapEditorRefusesASaveThatLeavesAScriptDangling(t *testing.T) {
 	if errs, _ := ui.CountFindings(e.Document().Edits.(ui.InspectionChecker).Report()); errs != 0 {
 		t.Fatalf("the installed map reports %d errors", errs)
 	}
+	loot, err := m.Loot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stock := -1
+	for i, record := range loot.Records {
+		if record.Owner == uint32(id) {
+			if stock >= 0 {
+				t.Fatalf("scripted unit %d has more than one owned stock", id)
+			}
+			stock = i
+		}
+	}
+	if stock >= 0 {
+		row := recordOf(e.Document(), "Stock", stock)
+		if row < 0 {
+			t.Fatalf("owned Stock #%d is missing from the editor", stock)
+		}
+		e.Select(row, false)
+		if err := e.Key("delete"); err != nil || !e.Dirty() {
+			t.Fatalf("delete owned stock: %v", err)
+		}
+		model := e.Document().Edits.(*mapInspectionEdits).model
+		unitRecord, err := model.UnitRecord(unit)
+		if err != nil || binary.LittleEndian.Uint32(unitRecord[0x18:]) != 0 {
+			t.Fatalf("owned stock removal did not clear the unit link: %v", err)
+		}
+		after, err := model.Map()
+		if err != nil || len(after.Units) != len(m.Units) || after.Units[unit].UnitID != id {
+			t.Fatalf("stock removal changed the scripted unit: %v", err)
+		}
+		remaining, err := after.Loot()
+		if err != nil || len(remaining.Records) != len(loot.Records)-1 {
+			t.Fatalf("stock removal changed another loot record: %v", err)
+		}
+		for i, record := range remaining.Records {
+			original := i
+			if original >= stock {
+				original++
+			}
+			if !reflect.DeepEqual(record, loot.Records[original]) {
+				t.Fatalf("stock removal changed surviving loot record %d", original)
+			}
+		}
+	}
+	if errs, _ := ui.CountFindings(e.Document().Edits.(ui.InspectionChecker).Report()); errs != 0 {
+		t.Fatalf("stock cleanup reports %d errors before deleting the scripted unit", errs)
+	}
+	postStock := bytes.Clone(e.Document().SourceBytes)
 	e.Select(recordOf(e.Document(), "Unit", unit), false)
 	if err := e.Key("delete"); err != nil || !e.Dirty() {
 		t.Fatalf("delete: %v", err)
@@ -123,8 +174,13 @@ func TestReleaseMapEditorRefusesASaveThatLeavesAScriptDangling(t *testing.T) {
 			break
 		}
 	}
-	if err := e.Key("undo"); err != nil || e.Dirty() || !bytes.Equal(e.Document().SourceBytes, installed) {
+	if err := e.Key("undo"); err != nil || e.Dirty() != (stock >= 0) || !bytes.Equal(e.Document().SourceBytes, postStock) {
 		t.Fatalf("undo: %v", err)
+	}
+	if stock >= 0 {
+		if err := e.Key("undo"); err != nil || e.Dirty() || !bytes.Equal(e.Document().SourceBytes, installed) {
+			t.Fatalf("undo stock cleanup: %v", err)
+		}
 	}
 	_ = e.Key("saveas")
 	e.TextInput(target)

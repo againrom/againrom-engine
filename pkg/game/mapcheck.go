@@ -92,7 +92,7 @@ var mapRules = []mapRule{
 		run:       (*mapCheck).dropCell},
 	{ID: "stock-link", Error: false,
 		Authority: "ALM-ORD-068",
-		Meaning:   "a unit's stock link names a type-8 record that is not its own stock, or none",
+		Meaning:   "a unit's stock link names no owned record, or a stock has no unique placed owner",
 		run:       (*mapCheck).stockLink},
 	{ID: "mod-message-text", Error: false,
 		Authority: "MISSION-TEXT-005, TRIG-MSGLIMIT-050; the mod's texts folder",
@@ -662,6 +662,16 @@ func (c *mapCheck) stockLink() []mapHit {
 			continue
 		}
 		out = append(out, mapHit{Kind: "Unit", Index: i, Cell: unitCell(u), HasCell: true, Text: text})
+	}
+	owners := make(map[uint32]int, len(c.m.Units))
+	for _, u := range c.m.Units {
+		owners[uint32(u.UnitID)]++
+	}
+	for i, stock := range c.loot.Records {
+		if stock.Owner != 0 && owners[stock.Owner] != 1 {
+			out = append(out, mapHit{Kind: "Stock", Index: i,
+				Text: fmt.Sprintf("stock owner unit id %d resolves to %d placed units; its inventory has no unique actor", stock.Owner, owners[stock.Owner])})
+		}
 	}
 	return out
 }

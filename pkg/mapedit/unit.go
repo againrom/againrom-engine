@@ -104,6 +104,10 @@ const (
 // highestScriptUnit is the highest unit id a Target_Unit parameter of the type-7
 // script names below the hero band, 0 when the map has no script or none.
 func (e *Editor) highestScriptUnit() (uint32, error) {
+	return e.highestScriptTarget(scriptUnitParam, scriptHeroBand)
+}
+
+func (e *Editor) highestScriptTarget(param, limit uint32) (uint32, error) {
 	m, err := e.Map()
 	if err != nil {
 		return 0, err
@@ -116,7 +120,7 @@ func (e *Editor) highestScriptUnit() (uint32, error) {
 	for _, nodes := range [][]alm.ScriptNode{sc.Actions, sc.Conditions} {
 		for _, n := range nodes {
 			for k, t := range n.Type {
-				if t == scriptUnitParam && n.Value[k] < scriptHeroBand {
+				if t == param && n.Value[k] < limit {
 					highest = max(highest, n.Value[k])
 				}
 			}

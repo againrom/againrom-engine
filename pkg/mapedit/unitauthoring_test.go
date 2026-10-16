@@ -147,7 +147,7 @@ func TestSetUnitFieldRefusalWritesNothing(t *testing.T) {
 		i   int
 		key string
 		v   int64
-	}{{1, "owner", 0}, {1, "owner", 1 << 32}, {1, "class", 32768}, {1, "hp", -32769}, {1, "definition", -1}, {1, "group", 1}, {2, "hp", 1}} {
+	}{{1, "owner", 0}, {1, "owner", 1 << 32}, {1, "class", 32768}, {1, "hp", -32769}, {1, "definition", -1}, {1, "group", -1}, {1, "group", 1 << 32}, {2, "hp", 1}} {
 		if err := e.SetUnitField(c.i, c.key, c.v); err == nil {
 			t.Fatalf("unit %d %s=%d accepted", c.i, c.key, c.v)
 		}
@@ -165,7 +165,7 @@ func TestUnitFieldTableNamesFieldsInsideTheRecord(t *testing.T) {
 		}
 		seen[f.Key] = true
 	}
-	if len(seen) != 4 {
+	if len(seen) != 5 || !seen["group"] {
 		t.Fatalf("table has %d fields", len(seen))
 	}
 }

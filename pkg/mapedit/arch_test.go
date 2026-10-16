@@ -30,18 +30,18 @@ type nameTable map[string][]string
 // deliberately spread one file per setter family, so a reference moving between
 // files is a change worth declaring rather than a refactor to absorb silently.
 var almReferences = nameTable{
-	"editor.go/New":                       {"alm.OpenDocument"},
-	"editor.go/(*Editor).SaveBytes":       {"alm.SaveForm"},
-	"editor.go/(*Editor).Map":             {"alm.Map", "alm.Open"},
-	"unit.go/(*Editor).highestScriptUnit": {"alm.ScriptNode"},
-	"meta.go/(*Editor).SetName":           {"alm.EncodeName"},
-	"meta.go/(*Editor).SetEncodedName":    {"alm.DecodeText", "alm.EncodeName", "alm.EncodeText"},
-	"meta.go/(*Editor).SetDescription":    {"alm.EncodeDescription"},
-	"field.go/(*Editor).TextFieldValue":   {"alm.DecodeText"},
-	"field.go/(*Editor).SetTextField":     {"alm.EncodeText"},
-	"newmap.go/NewMap":                    {"alm.NewMap", "alm.NewMapSpec"},
-	"brush.go/(*Editor).heightStroke":     {"alm.MaxHeight"},
-	"brush.go/(*Editor).tileStroke":       {"alm.TileGroupMask"},
+	"editor.go/New":                         {"alm.OpenDocument"},
+	"editor.go/(*Editor).SaveBytes":         {"alm.SaveForm"},
+	"editor.go/(*Editor).Map":               {"alm.Map", "alm.Open"},
+	"unit.go/(*Editor).highestScriptTarget": {"alm.ScriptNode"},
+	"meta.go/(*Editor).SetEncodedName":      {"alm.DecodeText", "alm.EncodeName", "alm.EncodeText"},
+	"meta.go/(*Editor).SetName":             {"alm.EncodeName"},
+	"meta.go/(*Editor).SetDescription":      {"alm.EncodeDescription"},
+	"field.go/(*Editor).TextFieldValue":     {"alm.DecodeText"},
+	"field.go/(*Editor).SetTextField":       {"alm.EncodeText"},
+	"newmap.go/NewMap":                      {"alm.NewMap", "alm.NewMapSpec"},
+	"brush.go/(*Editor).heightStroke":       {"alm.MaxHeight"},
+	"brush.go/(*Editor).tileStroke":         {"alm.TileGroupMask"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload
@@ -66,8 +66,9 @@ var payloadLengthReferences = nameTable{
 	"unit.go/(*Editor).sizeWordPart": {"recPayloadSize"},
 	// The section walk slices the payload and refuses a walk that does not
 	// consume it exactly; the count it walks is the type-0 word.
-	"section.go/(*Editor).walkSection":   {"payloadSize"},
-	"section.go/(*Editor).insertSection": {"payloadSize", "recPayloadSize"},
+	"section.go/(*Editor).walkSection":        {"payloadSize"},
+	"section.go/(*Editor).insertSectionParts": {"payloadSize", "recPayloadSize"},
+	"enchantment.go/enchantmentLayout":        {"payloadSize"},
 	// The type-7 layout walks the payload's three counted arrays and refuses a
 	// payload they do not tile.
 	"script.go/scriptLayout": {"payloadSize"},

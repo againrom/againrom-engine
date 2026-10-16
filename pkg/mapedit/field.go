@@ -25,6 +25,8 @@ const (
 	CheckScriptUnit                        // a unit id a type-6 record holds, or a hero-band value (ALM-TRIG-046)
 	CheckScriptStructure                   // a structure id a type-4 record's +0x12 word holds (ALM-TRIG-046)
 	CheckScriptGroup                       // a group id a type-6 record holds (ALM-TRIG-046)
+	CheckStructureIdentity
+	CheckItemRecipe
 )
 
 // Field is one settable field of a record, at a record-relative
@@ -55,8 +57,9 @@ type (
 var unitFields = []Field{
 	{Key: "owner", Label: "Owner slot", Offset: 0x14, Width: 4, Min: 1, Max: math.MaxUint32, Check: CheckRosterSlot},
 	{Key: "class", Label: "Class", Offset: 0x08, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16, Check: CheckClassKey},
-	{Key: "definition", Label: "Definition id", Offset: 0x10, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckDefinitionID},
+	{Key: "definition", Label: "Human definition (0 = class)", Offset: 0x10, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckDefinitionID},
 	{Key: "hp", Label: "Hit points (-1 = default)", Offset: 0x20, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+	{Key: "group", Label: "Group id (0 = none)", Offset: 0x42, Width: 4, Min: 0, Max: math.MaxUint32},
 }
 
 // Fields returns the settable fields of k's record i in window order.
@@ -128,6 +131,7 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 	rec := e.data[at : at+l]
 	next := cloneBytes(rec)
 	lo, hi := l, 0
+	var extra []part
 	seen := map[string]bool{}
 	for _, set := range sets {
 		f, ok := fieldByKey(w.sec.fields(e, next), set.Key)
@@ -147,6 +151,13 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 		if f.Offset >= len(next) && set.Value == 0 {
 			return fmt.Errorf("mapedit: %s 0 adds nothing", f.Label)
 		}
+		if f.Check == CheckStructureIdentity {
+			parts, err := e.structureIdentityParts(i, f.decode(next[f.Offset:]), set.Value)
+			if err != nil {
+				return err
+			}
+			extra = append(extra, parts...)
+		}
 		next = f.write(next, set.Value)
 		if w.sec.reshape != nil {
 			next = w.sec.reshape(next)
@@ -157,10 +168,10 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 		lo, hi = min(lo, f.Offset), max(hi, f.Offset+f.Width)
 	}
 	if len(next) == l {
-		e.apply(edit{replace(at+lo, rec[lo:hi], next[lo:hi])})
+		e.apply(append(edit{replace(at+lo, rec[lo:hi], next[lo:hi])}, extra...))
 		return nil
 	}
-	e.apply(edit{replace(at, rec, next), e.sizeWordPart(w.span, len(next)-l)})
+	e.apply(append(edit{replace(at, rec, next), e.sizeWordPart(w.span, len(next)-l)}, extra...))
 	return nil
 }
 

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Place buildings, assign unit groups and starting inventories, create
+  enchanted loot, and clone units with independent items.
 - [ROM1] Create rectangular maps, edit mission text and metadata, save
   playable mod packages, and read every editor command from F1.
 - [ROM1] Shop Buy and Sell buttons show totals on a centered second line.

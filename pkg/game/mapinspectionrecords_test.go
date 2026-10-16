@@ -145,7 +145,7 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	_ = e.Key("clone")
 	clickCell(e, image.Pt(10, 2))
 	step("clone", func(m *alm.Map, _ []alm.LootRecord) bool {
-		return len(m.Objects) == 3 && m.Objects[2].X == 10*256+128 && m.Objects[2].Field12 == 7
+		return len(m.Objects) == 3 && m.Objects[2].X == 10*256+128 && m.Objects[2].Field12 == 8
 	})
 	if r := e.Document().Records[e.Selected()]; r.Kind != "Structure" || r.Index != 2 {
 		t.Fatalf("the clone is not selected: %+v", r)
