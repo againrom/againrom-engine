@@ -695,6 +695,9 @@ func (t *townScreen) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember
 	if member == nil || !member.Mage {
 		return nil, 0, ui.TownAction{}, true
 	}
+	if sim.KnowsBookSpell(member.Book, member.KnownSpells, spell) {
+		return nil, 0, ui.TownAction{}, true
+	}
 	return member, spell, ui.TownAction{}, true
 }
 

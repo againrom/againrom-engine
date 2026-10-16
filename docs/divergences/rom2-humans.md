@@ -1,6 +1,6 @@
 # Divergences -- Second game roots -- Human derive
 
-2 row(s). Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
+3 row(s). Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
 
 ## Divergences
 
@@ -17,3 +17,4 @@ No ROM2 claim answers the question, so the implementation authored one.
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
 |---|---|---|---|---|---|---|---|---|
 | DIV-2785 | ROM2 Human derive / overload penalty and speed modifier order | - | `R2-ENGINE-290`: the ROM2 speed is Agility below 12, else Agility/5 + 12, plus 10 for type 0x13 or 0x15, minus the load term, minimum 6, and item modifiers follow (High for the arithmetic). The load term itself is Unknown there; no ROM2 claim states its operands, the capacity or the clear of a negative sum | A ROM2 native Human runs the ROM1 rule (`SAV-1116`, `HERO-SPEED-008`): load at or above capacity Body x 10 + 1 subtracts load/capacity before the modifier, with the floor of 6, and a negative sum clears the modifier (`rules.HumanSpeed`) | UNKNOWN | The ROM2 track builds ROM2 behaviour from ROM2 evidence; the load term has none, so the ROM1 rule stands in | A ROM2 claim on the load term and the modifier clear, with an overloaded ROM2 control | OPEN |
+| DIV-3442 | ROM2 Human inventory / reading a one-spell book | Owner: a mage who knows a book's spell does not use the book | No second-game claim covers book use; `ITEM-USE-113` and `ITEM-WEAR-058` are first-game evidence (DIV-451). | The first game's mission inventory, which serves second-game missions, refuses a mage who knows the book's spell before any command; the book stays. The second-game town shop page has no read route. | UNKNOWN | Owner direction; no second-game claim. | A second-game claim on book use. | OPEN |

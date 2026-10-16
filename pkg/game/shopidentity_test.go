@@ -92,10 +92,10 @@ func TestShopIdentifiedBookUseConsumesSelectedNode(t *testing.T) {
 	if got := f.Carried[0].KnownSpells; got != uint32(1)<<spell {
 		t.Fatalf("known spells = %#x, want selected book's spell %d", got, spell)
 	}
-	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "learned" {
-		t.Fatalf("remaining book use = %+v", action)
+	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "" {
+		t.Fatalf("remaining book of a known spell = %+v, want refused", action)
 	}
-	requireShopPackIDs(t, f)
+	requireShopPackIDs(t, f, 101)
 }
 
 func TestShopPackSelectionRequiresPresentIDAndKeepsCodeOnlyLookup(t *testing.T) {

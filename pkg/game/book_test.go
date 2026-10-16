@@ -88,3 +88,23 @@ func TestInventoryBookUseRefusesAFighterAndMalformedBook(t *testing.T) {
 		})
 	}
 }
+
+func TestInventoryBookUseKeepsABookOfAKnownSpell(t *testing.T) {
+	book := gameSpellBook(26)
+	mw := bookMission(t, true, book, book)
+	mw.enqueueEquip(0)
+	mw.tick()
+	if got := releaseEntity(t, mw, 7).KnownSpells; got != uint32(1)<<26 {
+		t.Fatalf("KnownSpells = %#x, want Teleport", got)
+	}
+	before, _ := mw.world.CarriedItems(7)
+	mw.enqueueEquip(0)
+	if len(mw.pending) != 0 {
+		t.Fatalf("pending = %+v, want none for a known spell", mw.pending)
+	}
+	mw.tick()
+	after, _ := mw.world.CarriedItems(7)
+	if !reflect.DeepEqual(after, before) || len(after) != 1 {
+		t.Fatalf("carried before %#v after %#v, want the book kept", before, after)
+	}
+}

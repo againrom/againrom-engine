@@ -282,7 +282,7 @@ func TestCityBookLearningThenTrainingUsesCurrentBookWithoutReload(t *testing.T) 
 func TestCityBookAllocationFailureLeavesTrainingAndShopUntouched(t *testing.T) {
 	for _, action := range []string{"training first", "training second", "shelf", "table", "pack"} {
 		t.Run(action, func(t *testing.T) {
-			f, _ := cityBookFixture(t, 99, false, true, true)
+			f, _ := cityBookFixture(t, 99, false, strings.HasPrefix(action, "training"), true)
 			f.Town.cityObjects.NextID = ^sim.SavedObjectID(0)
 			if action == "training second" {
 				f.Town.cityObjects.NextID--

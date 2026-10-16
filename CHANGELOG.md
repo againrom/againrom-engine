@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A mage no longer uses up a book of a spell he already knows; the book
+  stays where it was, whether he tries it from the inventory, the shop
+  shelf or the merchant's table.
+- [ROM2] A mage no longer uses up a book of a spell he already knows in a
+  mission inventory.
+
 ## 0.124.0
 
 - [ROM1] Heal and Drain marks continue after loading, follow moving targets,

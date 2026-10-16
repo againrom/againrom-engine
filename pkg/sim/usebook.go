@@ -30,3 +30,13 @@ func (w *World) readBook(i, cindex int) {
 		*live = *w
 	}
 }
+
+func KnowsBookSpell(book Spellbook, known uint32, id uint16) bool {
+	var e Entity
+	e.Book, e.KnownSpells = book, known
+	return knowsSpell(e, uint32(id))
+}
+
+func MayReadBook(e Entity, spell uint16) bool {
+	return e.Alive() && isMage(e) && !knowsSpell(e, uint32(spell))
+}

@@ -221,6 +221,10 @@ func TestCityShopNullPositionAndEqualBookConsumption(t *testing.T) {
 	if root := cityShopRoots(t, f, 0); !slices.Equal(root.Pack, before[:2]) || f.Carried[0].KnownSpells&(1<<spell) == 0 || len(f.Carried[0].Carry.ItemInstances) != 1 {
 		t.Fatal("book consume removed a different equal node or null", root)
 	}
+	known, knownGraph := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone()
+	if a := screen.shopEquipFromPack(1); a.Msg != "" || !reflect.DeepEqual(f.Carried, known) || !reflect.DeepEqual(knownGraph, f.Town.cityObjects) {
+		t.Fatal("a book of a known spell was read or changed state", a)
+	}
 	party, graph := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone()
 	if a := screen.shopEquipFromPack(2); !strings.Contains(a.Msg, "no current quantity") || !reflect.DeepEqual(f.Carried, party) || !reflect.DeepEqual(graph, f.Town.cityObjects) {
 		t.Fatal("null selection changed state", a)

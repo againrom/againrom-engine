@@ -1,6 +1,7 @@
 package game
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -219,16 +220,21 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Carried[0].Mage = true
 		f.Carried[0].Carry.ItemInstances = []sim.ItemInstance{book, book}
 		f.Carried[0].Carry.Items = []uint16{book.Code, book.Code}
-		for remaining := 1; remaining >= 0; remaining-- {
-			if action := screen.shopEquipFromPack(1); action.Msg != "learned" {
-				t.Fatalf("pack read = %+v, want learned", action)
-			}
-			if got := f.Carried[0].KnownSpells; got != uint32(1)<<spell {
-				t.Fatalf("KnownSpells = %#x, want only spell %d", got, spell)
-			}
-			if got := len(mapload.MemberCarriedItems(f.Carried[0], f.Table)); got != remaining {
-				t.Fatalf("pack holds %d book(s), want %d", got, remaining)
-			}
+		if action := screen.shopEquipFromPack(1); action.Msg != "learned" {
+			t.Fatalf("pack read = %+v, want learned", action)
+		}
+		if got := f.Carried[0].KnownSpells; got != uint32(1)<<spell {
+			t.Fatalf("KnownSpells = %#x, want only spell %d", got, spell)
+		}
+		if got := len(mapload.MemberCarriedItems(f.Carried[0], f.Table)); got != 1 {
+			t.Fatalf("pack holds %d book(s), want 1", got)
+		}
+		before := f.Carried[0]
+		if action := screen.shopEquipFromPack(1); action.Msg != "" {
+			t.Fatalf("known-spell pack read = %+v, want refused", action)
+		}
+		if !reflect.DeepEqual(f.Carried[0], before) {
+			t.Fatalf("known-spell refusal changed the member: %+v -> %+v", before, f.Carried[0])
 		}
 	})
 
@@ -243,6 +249,49 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		if f.Carried[0].KnownSpells != 0 || len(mapload.MemberCarriedItems(f.Carried[0], f.Table)) != 1 {
 			t.Fatalf("fighter refusal mutated member: %+v", f.Carried[0])
 		}
+	})
+
+	t.Run("known spell is not bought from the shelf or the table", func(t *testing.T) {
+		f, screen := shopRoom(t, nil)
+		f.Table = shopBookFixtureTable()
+		f.Shop = NewShop(1000)
+		f.Shop.Generate(f.Table, 1053)
+		f.Carried[0].Mage = true
+		f.Town.gold = 2000
+		screen.shopChosen = roomBooks
+		item := f.Shop.Shelf(ShelfBooks)[0]
+		spell, _ := item.Instance().BookSpell()
+		if action := screen.shopEquipFromShelf(0); !strings.Contains(action.Msg, "bought and learned") {
+			t.Fatalf("first shelf read = %+v", action)
+		}
+		learned := f.Carried[0]
+		if learned.KnownSpells&(uint32(1)<<spell) == 0 {
+			t.Fatalf("spell %d not learned", spell)
+		}
+		for i, it := range f.Shop.Shelf(ShelfBooks) {
+			if sp, _ := it.Instance().BookSpell(); sp == spell {
+				beforeUnits, beforeGold := shelfUnits(f.Shop, ShelfBooks), f.Town.Gold()
+				if action := screen.shopEquipFromShelf(i); action.Msg != "" {
+					t.Fatalf("known shelf read = %+v, want refused", action)
+				}
+				if shelfUnits(f.Shop, ShelfBooks) != beforeUnits || f.Town.Gold() != beforeGold || !reflect.DeepEqual(f.Carried[0], learned) {
+					t.Fatal("known shelf refusal bought or changed something")
+				}
+				if !f.Shop.TakeFromShelf(ShelfBooks, i, 1) {
+					t.Fatal("TakeFromShelf refused book")
+				}
+				placed := len(f.Shop.Table())
+				gold := f.Town.Gold()
+				if action := screen.shopEquipFromTable(0); action.Msg != "" {
+					t.Fatalf("known table read = %+v, want refused", action)
+				}
+				if len(f.Shop.Table()) != placed || f.Town.Gold() != gold || !reflect.DeepEqual(f.Carried[0], learned) {
+					t.Fatal("known table refusal bought or changed something")
+				}
+				return
+			}
+		}
+		t.Skip("no second unit of the learned spell on the fixture shelf")
 	})
 
 	t.Run("direct shelf purchase", func(t *testing.T) {
