@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"fmt"
+	"slices"
 )
 
 // bodyRecordReferences reads a body's order words from its loaded record:
@@ -142,7 +143,8 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 			id = ids[0]
 		}
 		terminalWeapon := d.Class == "Unit" && d.Stage == 5 && d.Worn == 1 && d.HeldWeapon.Present
-		if (d.Effects != 0 || d.Carried != 0 || (d.Worn != 0 && !terminalWeapon)) && !retainedTerminalDeadContents(state, origins, d) {
+		effectsOnly := d.Carried == 0 && (d.Worn == 0 || terminalWeapon) && retainedDeadEffectsCount(state, origins, d) == d.Effects
+		if (d.Effects != 0 || d.Carried != 0 || (d.Worn != 0 && !terminalWeapon)) && !effectsOnly && !retainedTerminalDeadContents(state, origins, d) {
 			return fmt.Errorf("original dead actor %#x: unsupported effects/carried/worn contents", d.Identity)
 		}
 		var heldWeapon sim.OriginalDeadWeapon
@@ -195,39 +197,47 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 }
 
 func retainedTerminalDeadContents(state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin, dead sav.DeadActor) bool {
-	if dead.Stage != 5 || dead.Identity == 0 || dead.ArchiveIndex == 0 || state == nil || state.Document == nil {
-		return false
+	return dead.Stage == 5 && deadRecordObject(state, origins, dead) != 0
+}
+
+// deadRecordObject is the one loaded object a dead record names: its archive
+// index maps to exactly one object, that object is a DeadActors root with the
+// record's identity, class and stage, and no other root holds the identity.
+// Zero is no such object.
+func deadRecordObject(state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin, dead sav.DeadActor) uint16 {
+	if dead.Identity == 0 || dead.ArchiveIndex == 0 || state == nil || state.Document == nil {
+		return 0
 	}
 	var object uint16
 	for _, origin := range origins {
 		if origin.ArchiveIndex == dead.ArchiveIndex {
 			if object != 0 || origin.ObjectIndex == 0 || int(origin.ObjectIndex) > len(state.Document.Objects) {
-				return false
+				return 0
 			}
 			object = origin.ObjectIndex
 		}
 	}
 	if object == 0 {
-		return false
+		return 0
 	}
 	for _, origin := range origins {
 		if origin.ObjectIndex == object && origin.ArchiveIndex != dead.ArchiveIndex {
-			return false
+			return 0
 		}
 	}
 	record := &state.Document.Objects[object-1]
 	identity, err := savedStructureValue(record, "Identity")
 	if err != nil || identity != dead.Identity || record.Class != dead.Class {
-		return false
+		return 0
 	}
 	stage, err := savedStructureValue(record, "Stage")
 	if err != nil || stage != uint32(dead.Stage) {
-		return false
+		return 0
 	}
 	found := false
 	for _, root := range state.Document.DeadActors {
 		if root == 0 || int(root) > len(state.Document.Objects) {
-			return false
+			return 0
 		}
 		if root == object {
 			found = true
@@ -235,8 +245,55 @@ func retainedTerminalDeadContents(state *SnapshotSAVDocument, origins []sav.Docu
 		}
 		key, err := savedStructureValue(&state.Document.Objects[root-1], "Identity")
 		if err == nil && key == dead.Identity {
-			return false
+			return 0
 		}
 	}
-	return found
+	if !found {
+		return 0
+	}
+	return object
+}
+
+// retainedDeadEffectsCount is the number of Effects a dead record keeps
+// unexecuted, or -1 when it keeps none this way. A DeadActors root in no
+// Group is never on the tick list (SAV-1171), and only the actor tick runs an
+// attachment (MAGIC-CONSUME-144), so its Effects stay as stored. The writer
+// re-emits them from the loaded document (retainedDeadEffects).
+func retainedDeadEffectsCount(state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin, dead sav.DeadActor) int {
+	object := deadRecordObject(state, origins, dead)
+	if object == 0 {
+		return -1
+	}
+	effects, ok := retainedDeadEffects(state.Document, object)
+	if !ok {
+		return -1
+	}
+	return len(effects)
+}
+
+// retainedDeadEffects reads the Effects of the DeadActors root object when
+// that root is in no Group and owns each Effect alone, one per spell id.
+func retainedDeadEffects(doc *sav.DocumentData, object uint16) ([]sim.SavedEffectObject, bool) {
+	if doc == nil || object == 0 || int(object) > len(doc.Objects) || !slices.Contains(doc.DeadActors, object) {
+		return nil, false
+	}
+	incoming := savedDocumentIncoming(doc)
+	refs, found := savedObjectRefs(&doc.Objects[object-1], "Effects")
+	if !found || len(refs) == 0 || incoming[object] != 1 {
+		return nil, false
+	}
+	var out []sim.SavedEffectObject
+	spells := map[uint8]bool{}
+	for _, index := range refs {
+		if index == 0 || int(index) > len(doc.Objects) || incoming[index] != 1 {
+			return nil, false
+		}
+		effect, err := savedEffectRecord(&doc.Objects[index-1])
+		if err != nil || effect.E0C > 31 || spells[effect.E0C] {
+			return nil, false
+		}
+		spells[effect.E0C] = true
+		out = append(out, effect)
+	}
+	return out, true
 }

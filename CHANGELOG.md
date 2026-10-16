@@ -10,6 +10,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 - [ROM1] A unit on Hold Position that is ordered to attack leaves Hold, as in
   the original.
+- [ROM1] Original mission saves that would not load now load: a unit
+  between two attacks, and bodies that still carry a spell effect.
 - [ROM1] A mage no longer uses up a book of a spell he already knows; the book
   stays where it was, whether he tries it from the inventory, the shop
   shelf or the merchant's table.

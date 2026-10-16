@@ -22,6 +22,15 @@ type generatedDocumentBuilder struct {
 	currentKeys          map[uint32]bool
 	documentKeysReserved bool
 	heldKeys             map[uint32]bool
+	// loaded is the document the mission was loaded from; it supplies the
+	// fields the World does not hold, such as a dead record's retained Effects.
+	loaded *sav.DocumentData
+	// liveEffects names the actors the World holds attachments on; their
+	// Effects are the World's, never retained ones.
+	liveEffects map[sim.EntityID]bool
+	// retainedKeys are the loaded Identities of retained dead Effects this
+	// builder claimed; each is written as loaded.
+	retainedKeys map[uint32]bool
 }
 
 func constructedGeneratedItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {

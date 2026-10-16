@@ -2498,6 +2498,10 @@ package storyguard
 // (pkg/sim/standground_test.go, pkg/game/holdattackoriginal_release_test.go)
 // and the known-book hotfix merged from main, less the removed Stand Ground
 // exemption, this note included.
+//
+// CommentBytes rises for the doc comments of the original attack-boundary
+// import, the dead actors' retained Effects with their loaded Tokens, kept
+// apart from live attachments, and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4557,
 	TestFileCount:  264,
@@ -2521,5 +2525,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9044942,
+	CommentBytes: 9049427,
 }

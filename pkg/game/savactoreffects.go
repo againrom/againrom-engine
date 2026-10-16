@@ -42,6 +42,7 @@ func importOriginalActorEffects(ms *Mission) error {
 	}
 	metadata := &SnapshotSAVActorEffects{Version: 1}
 	incoming := savedDocumentIncoming(state.Document)
+	live := &liveEffectReader{doc: state.Document}
 	var effects []sim.ActiveEffect
 	for _, actor := range state.Actors {
 		if actor.Retired {
@@ -50,6 +51,9 @@ func importOriginalActorEffects(ms *Mission) error {
 		refs, found := savedObjectRefs(&state.Document.Objects[actor.ObjectIndex-1], "Effects")
 		if !found {
 			return fmt.Errorf("actor %d lacks Effects references", actor.EntityID)
+		}
+		if retainedDeadEffectOwner(state.Document, actor.ObjectIndex, refs, false, live) {
+			continue
 		}
 		seen := map[uint16]bool{}
 		start := len(effects)
@@ -86,6 +90,57 @@ func importOriginalActorEffects(ms *Mission) error {
 	}
 	state.ActorEffects = metadata
 	return nil
+}
+
+// retainedDeadEffectOwner reports whether object, holding Effects refs, is a
+// dead record whose Effects stay unexecuted (retainedDeadEffects): attached is
+// false and the loaded supplement records no live attachment on it.
+func retainedDeadEffectOwner(doc *sav.DocumentData, object uint16, refs []uint16, attached bool, live *liveEffectReader) bool {
+	if len(refs) == 0 || attached {
+		return false
+	}
+	_, ok := retainedDeadEffects(doc, object)
+	return ok && !live.holds(object)
+}
+
+// liveEffectReader reads liveEffectObjects once, and only for a document
+// that holds a dead record of the retained shape. A supplement it cannot read
+// records no live attachment; LOAD refuses such a supplement on its own path,
+// and a save point never refuses for it.
+type liveEffectReader struct {
+	doc  *sav.DocumentData
+	read bool
+	live map[uint16]bool
+}
+
+func (r *liveEffectReader) holds(object uint16) bool {
+	if !r.read {
+		r.live, _ = liveEffectObjects(r.doc)
+		r.read = true
+	}
+	return r.live[object]
+}
+
+// liveEffectObjects names the actor records a native SAV records live
+// attachments on: each EffectCasters target joined to its record through the
+// supplement's actor bindings, the saved ID namespace the World restores. An
+// original SAV records none.
+func liveEffectObjects(doc *sav.DocumentData) (map[uint16]bool, error) {
+	a, err := readCurrentActions(doc)
+	if err != nil || a == nil {
+		return nil, err
+	}
+	targets := map[sim.EntityID]bool{}
+	for _, c := range a.Actions.EffectCasters {
+		targets[c.Target] = true
+	}
+	out := map[uint16]bool{}
+	for _, b := range a.Bindings {
+		if !b.Structure && !b.Missing && b.Object != 0 && targets[b.ID] {
+			out[b.Object] = true
+		}
+	}
+	return out, nil
 }
 
 func cloneSavedActorEffects(src *SnapshotSAVActorEffects, doc *sav.DocumentData, actors []SnapshotSAVActor) (*SnapshotSAVActorEffects, error) {
@@ -129,11 +184,19 @@ func cloneSavedActorEffects(src *SnapshotSAVActorEffects, doc *sav.DocumentData,
 		}
 	}
 	if src.Unavailable == "" {
+		rowed := map[sim.EntityID]bool{}
+		for _, row := range src.Rows {
+			rowed[row.Entity] = true
+		}
+		live := &liveEffectReader{doc: doc}
 		for _, actor := range actors {
 			if actor.Retired {
 				continue
 			}
 			refs, _ := savedObjectRefs(&doc.Objects[actor.ObjectIndex-1], "Effects")
+			if retainedDeadEffectOwner(doc, actor.ObjectIndex, refs, rowed[actor.EntityID], live) {
+				continue
+			}
 			for _, index := range refs {
 				if !objects[index] {
 					return nil, fmt.Errorf("saved actor Effect lost its binding")
@@ -205,9 +268,14 @@ func projectSavedActorEffects(state *SnapshotSAVDocument, world *sim.World) erro
 		// Native LOAD never imports them. Name the gap only when an effect
 		// exists on either side; effect-free predecessors remain byte-stable.
 		present := len(world.ActiveEffects()) != 0
+		active := map[sim.EntityID]bool{}
+		for _, e := range world.ActiveEffects() {
+			active[e.Target] = true
+		}
+		live := &liveEffectReader{doc: state.Document}
 		for _, actor := range state.Actors {
 			refs, _ := savedObjectRefs(&state.Document.Objects[actor.ObjectIndex-1], "Effects")
-			present = present || len(refs) != 0
+			present = present || len(refs) != 0 && !retainedDeadEffectOwner(state.Document, actor.ObjectIndex, refs, active[actor.EntityID], live)
 		}
 		if present {
 			state.ActorEffects = &SnapshotSAVActorEffects{Version: 1, Unavailable: "legacy native actor effects have no exact current bindings"}

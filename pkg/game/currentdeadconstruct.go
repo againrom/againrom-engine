@@ -69,7 +69,87 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		}
 		mustSetRefs(record, "HeldWeapon", []uint16{object})
 	}
+	return b.retainDeadEffects(record, body.ID, s)
+}
+
+// retainDeadEffects writes the Effects a dead record keeps unexecuted, read
+// from the loaded document's record of the same identity and class, with that
+// record's spell mask U144, unless that body holds live attachments in the
+// loaded document or the World. The World holds no part of these Effects, so
+// each Token is the loaded one. Its RuntimeID is kept even where another
+// object holds the same handle, as original files repeat one on these Effects;
+// an Identity reserveRetainedDeadEffectKeys could not claim is left to the
+// minting pass.
+func (b *generatedDocumentBuilder) retainDeadEffects(record *sav.DocumentRecordData, body sim.EntityID, s sim.OriginalDeadSource) error {
+	if b.loaded == nil {
+		return nil
+	}
+	var object uint16
+	for _, root := range b.loaded.DeadActors {
+		if root == 0 || int(root) > len(b.loaded.Objects) {
+			continue
+		}
+		r := &b.loaded.Objects[root-1]
+		if key, err := savedStructureValue(r, "Identity"); err == nil && key == s.Identity && r.Class == savedActorClass(s.Class) && root != object {
+			if object != 0 {
+				return fmt.Errorf("retained dead actor %#x has two loaded records", s.Identity)
+			}
+			object = root
+		}
+	}
+	effects, ok := retainedDeadEffects(b.loaded, object)
+	if !ok || b.liveEffects[body] {
+		return nil
+	}
+	if (&liveEffectReader{doc: b.loaded}).holds(object) {
+		return nil
+	}
+	refs := make([]uint16, 0, len(effects))
+	for _, effect := range effects {
+		token := effect.Token
+		if !b.retainedKeys[token.Identity] {
+			token.Identity = 0
+		}
+		if b.runtimeIDs == nil {
+			b.runtimeIDs = savedRuntimeIDs(b.doc.Objects)
+		}
+		b.runtimeIDs[token.RuntimeID] = true
+		index, err := b.append(savedCurrentEffectRecord(sim.SavedEffectObject{E0C: effect.E0C, Value: effect.Value, Token: token}))
+		if err != nil {
+			return err
+		}
+		refs = append(refs, index)
+	}
+	mask, err := savedStructureValue(&b.loaded.Objects[object-1], "U144")
+	if err != nil {
+		return err
+	}
+	savedObjectSetRefs(record, "Effects", refs, true)
+	savedObjectSetValue(record, "U144", mask)
 	return nil
+}
+
+// reserveRetainedDeadEffectKeys claims, before any key is minted, the Identity
+// of each Effect a loaded dead root keeps unexecuted (retainedDeadEffects).
+func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys() {
+	if b.loaded == nil {
+		return
+	}
+	live := &liveEffectReader{doc: b.loaded}
+	for _, root := range b.loaded.DeadActors {
+		effects, ok := retainedDeadEffects(b.loaded, root)
+		if !ok || live.holds(root) {
+			continue
+		}
+		for _, effect := range effects {
+			if key := effect.Token.Identity; key != 0 && !b.claimHeldKey(key) {
+				if b.retainedKeys == nil {
+					b.retainedKeys = map[uint32]bool{}
+				}
+				b.retainedKeys[key] = true
+			}
+		}
+	}
 }
 
 // appendAbsentDeadRecords writes each retained dead actor no written record

@@ -441,23 +441,9 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 				}
 			}
 			if a.HasTarget {
-				a.Countdown = int32(value("U6C"))
-				switch phase {
-				case 5:
-					a.Phase = sim.AttackCharging
-					if savedWeaponCastBorrow(state.Document, r) {
-						a.Phase = sim.AttackCasting
-					}
-				case 7:
-					a.Phase = sim.AttackRelaxing
-				case 0:
-					if value("U136") != 0 {
-						a.Phase = sim.AttackBoundaryOne
-					} else if action == 0 && order[9] == 0 {
-						a.Phase = sim.AttackBoundaryTwo
-					}
-				default:
-					a.HasTarget = false
+				a.Phase, a.Countdown, a.HasTarget = originalAttackCycle(phase, value("U136"), action, order[9], value("U6C"))
+				if a.Phase == sim.AttackCharging && savedWeaponCastBorrow(state.Document, r) {
+					a.Phase = sim.AttackCasting
 				}
 			}
 		}
@@ -497,6 +483,29 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		}
 	}
 	return ms.World.RestoreBodyReferences(bodies)
+}
+
+// originalAttackCycle maps a targeted order's sub-phase U58, completion byte
+// U136, action word U54, progress ord+9 and countdown U6C to the World's
+// attack phase and count; ok is false for a sub-phase the World has no arm
+// for. Phase 0 never reads U6C, so a byte left there is stale and a boundary
+// owes nothing (HERO-CROSSHOLD-146, HERO-CADENCE-112).
+func originalAttackCycle(phase, complete, action uint32, progress byte, countdown uint32) (sim.AttackPhase, int32, bool) {
+	switch phase {
+	case 5:
+		return sim.AttackCharging, int32(countdown), true
+	case 7:
+		return sim.AttackRelaxing, int32(countdown), true
+	case 0:
+		if complete != 0 {
+			return sim.AttackBoundaryOne, 0, true
+		}
+		if action == 0 && progress == 0 {
+			return sim.AttackBoundaryTwo, 0, true
+		}
+		return sim.AttackReady, int32(countdown), true
+	}
+	return sim.AttackReady, int32(countdown), false
 }
 
 // holdBodyOrder keeps a live actor's order on a body the World does not
