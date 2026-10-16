@@ -77,7 +77,7 @@ func newDeliveryWitness(t *testing.T, dir string, controlled bool) *deliveryWitn
 	w.front.TavernRandom = func(int) int { return 0 }
 	w.front.SchoolRandom = func(int) int { return 0 }
 	w.owner = ui.DeliveryOwner(w.front.SoundPlayer)
-	if w.owner == nil || w.owner != ui.DeliveryOwner(w.front.SpeechPlayer) {
+	if w.owner == nil || w.owner != ui.DeliveryOwner(w.front.speech.player) {
 		t.Fatal("instrument: production has no one effects/speech owner")
 	}
 	w.app = w.front.App("shared audio delivery")

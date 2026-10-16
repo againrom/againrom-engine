@@ -59,7 +59,7 @@ func playRandomSession(t *testing.T, seed uint64, original bool) sessionRun {
 	f.TownAnimationNow = func() time.Time { return now }
 	f.PersistenceContext.tipsOff = true
 	sounds := &traceSounds{}
-	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = sounds, sounds, sounds
+	f.SoundPlayer, f.speech.player, f.AmbientPlayer = sounds, sounds, sounds
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	fighter := f.ChargenParty(ui.ChargenResult{Name: "Session fighter", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 20, 20}})
 	mage := f.ChargenParty(ui.ChargenResult{Name: "Session mage", Choices: []int{1, 1, 0}, Stats: []int{20, 20, 30, 30}})

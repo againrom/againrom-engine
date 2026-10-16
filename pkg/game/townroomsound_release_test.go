@@ -179,7 +179,7 @@ func TestReleaseTownRoomsRequestTheCensusSounds(t *testing.T) {
 	f.TownAnimationRandom = func(int) int { return 0 }
 	f.ShopRandom = func(int) int { return 99 }
 	rec := &installedSoundRecorder{}
-	f.SoundPlayer, f.SpeechPlayer, f.MusicPlayer, f.CutsceneAudioPlayer = rec, rec, nil, nil
+	f.SoundPlayer, f.speech.player, f.MusicPlayer, f.CutsceneAudioPlayer = rec, rec, nil, nil
 	f.AmbientPlayer = &townCrowdRecorder{}
 	a := f.App("town room sounds")
 	t.Cleanup(a.StopAudio)

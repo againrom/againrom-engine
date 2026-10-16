@@ -152,7 +152,7 @@ func newTownFiguresRig(t *testing.T) *townFiguresRig {
 	}
 
 	r := &townFiguresRig{t: t, f: f, now: time.Unix(100, 0), sounds: &exteriorRecorder{}, speech: &tavernInteriorRecorder{}}
-	f.SoundPlayer, f.SpeechPlayer = r.sounds, r.speech
+	f.SoundPlayer, f.speech.player = r.sounds, r.speech
 	f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	f.TownAnimationNow = func() time.Time { return r.now }

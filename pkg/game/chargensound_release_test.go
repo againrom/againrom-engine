@@ -78,7 +78,7 @@ func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
 	rec := &exteriorRecorder{}
 	f.Sound = SoundOptions{Enabled: true, Volume: 0}
 	f.SoundPlayer, f.SoundBank = rec, OpenSounds(f.Archives.Root)
-	f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer = &menuSettingsPlayer{}, &menuSettingsPlayer{}, &menuSettingsPlayer{}
+	f.speech.player, f.MusicPlayer, f.AmbientPlayer = &menuSettingsPlayer{}, &menuSettingsPlayer{}, &menuSettingsPlayer{}
 	f.CutsceneAudioPlayer = fakeCutsceneAudioPlayer{}
 	app := f.App("installed chargen sounds")
 	defer app.StopAudio()

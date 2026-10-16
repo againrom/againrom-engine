@@ -89,7 +89,7 @@ func decodedInstallFront(root string) (*FrontEnd, error) {
 		InstallResources: in,
 		RuntimeServices: RuntimeServices{
 			Sound: soundOptions, SoundChannels: soundChannelVolumes,
-			SoundPlayer: scope.Player(audio.EffectsChannel), SpeechPlayer: scope.Player(audio.SpeechChannel),
+			SoundPlayer: scope.Player(audio.EffectsChannel), speech: speechService{player: scope.Player(audio.SpeechChannel)},
 			MusicPlayer: music, AmbientPlayer: scope.Ambient(), CutsceneAudioPlayer: cutscene,
 			Random: random.NewService(random.Session{}),
 		},
@@ -175,7 +175,7 @@ func TestReleaseDecodedInstallFixtureIsolation(t *testing.T) {
 	codes := func(f *FrontEnd) []uintptr { return tableFuncCodes(f.Table) }
 	runtime := func(f *FrontEnd) RuntimeServices {
 		r := f.RuntimeServices
-		r.SoundPlayer, r.SpeechPlayer, r.MusicPlayer, r.AmbientPlayer, r.CutsceneAudioPlayer = nil, nil, nil, nil, nil
+		r.SoundPlayer, r.speech.player, r.MusicPlayer, r.AmbientPlayer, r.CutsceneAudioPlayer = nil, nil, nil, nil, nil
 		r.Random = nil
 		return r
 	}

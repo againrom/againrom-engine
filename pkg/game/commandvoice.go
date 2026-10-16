@@ -78,11 +78,11 @@ func commandRecording(gesture ui.VoiceGesture, bank string, draw voiceDraw) stri
 func (a runtimeMissionAudio) unitReplies(mw *mapWorld, draw voiceDraw) (command func(ui.VoiceGesture, []uint32, time.Time), selection func([]uint32, time.Time)) {
 	speak := func(speaker sim.Entity, bank, leaf, source string) {
 		if sample, ok := a.in.SoundBank.namedSample(bank + "/" + leaf + ".wav"); ok {
-			mw.view.PlayReplySample(a.rt.SpeechPlayer, sample, source, "voice:"+bank+"/"+leaf+".wav", speaker.Owner, image.Pt(int(speaker.X), int(speaker.Y)), mw.actorSoundFine(speaker))
+			mw.view.PlayReplySample(a.rt.speech.player, sample, source, "voice:"+bank+"/"+leaf+".wav", speaker.Owner, image.Pt(int(speaker.X), int(speaker.Y)), mw.actorSoundFine(speaker))
 		}
 	}
 	ready := func() bool {
-		return !a.rt.acknowledgmentsOff && a.rt.SpeechPlayer != nil && a.in.SoundBank != nil
+		return !a.rt.speech.acknowledgmentsOff && a.rt.speech.player != nil && a.in.SoundBank != nil
 	}
 	command = func(gesture ui.VoiceGesture, ids []uint32, now time.Time) {
 		if !ready() {

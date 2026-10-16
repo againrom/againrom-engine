@@ -44,7 +44,7 @@ func (f *FrontEnd) WitnessSoundOptions(root, output string, report io.Writer) er
 		}
 	}
 	fmt.Fprintf(report, "sound: startup enabled=%v master=%d channels=%v\n", f.Sound.Enabled, f.Sound.Volume, f.SoundChannels)
-	fmt.Fprintf(report, "sound: startup acknowledgments=%v\n", !f.acknowledgmentsOff)
+	fmt.Fprintf(report, "sound: startup acknowledgments=%v\n", !f.speech.acknowledgmentsOff)
 	devices := []struct {
 		name    string
 		player  any
@@ -52,7 +52,7 @@ func (f *FrontEnd) WitnessSoundOptions(root, output string, report io.Writer) er
 	}{
 		{"music", f.MusicPlayer, audio.MusicChannel},
 		{"effects", f.SoundPlayer, audio.EffectsChannel},
-		{"speech", f.SpeechPlayer, audio.SpeechChannel},
+		{"speech", f.speech.player, audio.SpeechChannel},
 		{"ambience", f.AmbientPlayer, audio.EffectsChannel},
 		{"movie", f.CutsceneAudioPlayer, audio.ChannelCount},
 	}
@@ -121,7 +121,7 @@ func (f *FrontEnd) WitnessSoundOptions(root, output string, report io.Writer) er
 	for _, group := range []audio.Channel{audio.EffectsChannel, audio.SpeechChannel} {
 		player := f.SoundPlayer
 		if group == audio.SpeechChannel {
-			player = f.SpeechPlayer
+			player = f.speech.player
 		}
 		request := audio.FixedRequest("witness-settings", fmt.Sprintf("witness:settings:%d", group), group, 100, false, placement)
 		voice := audio.Dispatch(player, sample, request)

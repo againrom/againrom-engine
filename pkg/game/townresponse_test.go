@@ -62,7 +62,7 @@ func TestSchoolTeacherSpeaksAfterAPaidStepOncePerLatch(t *testing.T) {
 		{Path: "training/npc34s4l3.wav", Data: speechWAV(2003)},
 	})
 	voice, sound := &tavernInteriorRecorder{}, &schoolRotateRecorder{}
-	f.SpeechPlayer, f.SoundPlayer = voice, sound
+	f.speech.player, f.SoundPlayer = voice, sound
 	f.SoundBank = &SoundBank{named: map[string]soundCacheEntry{
 		schoolTeachSound: {sample: audio.Sample{Rate: audio.DeviceRate, PCM: []int16{77}}, ok: true},
 	}}
@@ -151,7 +151,7 @@ func TestShopSelectionSpeaksOneRecordingAndNewSelectionReplacesIt(t *testing.T) 
 		{Path: "shop/books/03.wav", Data: speechWAV(4000)},
 	})
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	f.ShopRandom = func(int) int { return 0 }
 	f.Shop = NewShop(1000)
 	f.Shop.shelves[ShelfWeapons] = []ShopItem{

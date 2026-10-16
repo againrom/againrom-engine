@@ -57,7 +57,7 @@ func prepareHelpScrollbarStyleWitness(t *testing.T, f *FrontEnd) *helpScrollbarS
 		t.Fatal(err)
 	}
 	f.Options = OptionsStore{Path: filepath.Join(state, "options.txt")}
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	const path = graphicsPrefix + "interface/scrlbars.256"
 	raw, err := f.Archives.Containers.ReadFile(path)
 	if err != nil || fmt.Sprintf("%x", sha256.Sum256(raw)) != "8451c93d1a3bd772ab0e012bb4e3606cbbb7cb950184ad9ad40f631034fffdfe" {

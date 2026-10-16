@@ -23,7 +23,7 @@ func shopCommentFixture(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavernI
 		{Path: "shop/s06i06p1.wav", Data: speechWAV(2000)},
 	})
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	f.Shop = NewShop(1000)
 	f.Shop.shelves[ShelfArmour] = []ShopItem{{Code: 0x0102, Count: 3, Price: 100}}
 	f.Carried[0].CarriedItems = []sim.ItemInstance{sim.PlainItem(0x0606), sim.PlainItem(0x0606)}
@@ -225,7 +225,7 @@ func TestCityShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		{Path: name(his.Code), Data: speechWAV(2000)},
 	})
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	f.ShopRandom = func(int) int { return 0 }
 
 	click(s, ui.ShopControlPackCell, 1)

@@ -199,7 +199,7 @@ func attackTargetHeadlessResaveResult(assets string, raw []byte, directory, name
 		}
 	}()
 	f.MusicPlayer = fakePlayer{}
-	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = fakePlayer{}, fakePlayer{}, fakePlayer{}
+	f.SoundPlayer, f.speech.player, f.AmbientPlayer = fakePlayer{}, fakePlayer{}, fakePlayer{}
 	f.CutsceneAudioPlayer = fakeCutsceneAudioPlayer{}
 	f.SetDeterministicFrames(true)
 	open, town, err := f.RestoreOriginal(raw)

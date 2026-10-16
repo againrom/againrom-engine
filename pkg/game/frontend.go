@@ -314,10 +314,10 @@ type RuntimeServices struct {
 	// does not reach a hero already generated.
 	Sound SoundOptions
 
-	// SoundChannels and SpeechPlayer belong to the process, not a loaded world.
-	SoundChannels      audio.ChannelVolumes
-	acknowledgmentsOff bool
-	SpeechPlayer       audio.Player
+	// Playback configuration and speech belong to the process.
+	SoundChannels audio.ChannelVolumes
+	speech        speechService
+	projectiles   projectileCounter
 
 	// SoundPlayer is the opened sound device, or nil.
 	SoundPlayer audio.Player
@@ -816,7 +816,7 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 		RuntimeServices: RuntimeServices{
 			Sound:               soundOptions,
 			SoundChannels:       soundChannelVolumes,
-			SpeechPlayer:        speechPlayer,
+			speech:              speechService{player: speechPlayer},
 			SoundPlayer:         soundPlayer,
 			MusicPlayer:         musicPlayer,
 			AmbientPlayer:       ambientPlayer,
@@ -1009,7 +1009,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	// install-backed bank and concrete device as unit and spell sounds.
 	a.SetAudio(f.SoundPlayer, f.SoundBank)
 	a.SetInterfaceGenerator(f.generator())
-	a.SetSpeechAudio(f.SpeechPlayer)
+	a.SetSpeechAudio(f.speech.player)
 	a.SetAmbientDevice(f.AmbientPlayer)
 	a.SetCutsceneAudio(f.CutsceneAudioPlayer)
 	// The cursor registry rides beside the chargen gate, on its own reasoning:

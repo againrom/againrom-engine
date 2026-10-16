@@ -306,7 +306,7 @@ func startTownTrace(t *testing.T, party func(*FrontEnd)) (*townTrace, map[byte][
 	f.randomService().SetStreamSeed(random.Music, 3)
 	f.PersistenceContext.tipsOff = false
 	sounds := &traceSounds{}
-	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = sounds, sounds, sounds
+	f.SoundPlayer, f.speech.player, f.AmbientPlayer = sounds, sounds, sounds
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	f.Carried = f.NextParty()
 	if party != nil {

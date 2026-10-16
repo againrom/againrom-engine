@@ -131,6 +131,8 @@ import (
 // would then carry a switch it must never read and cmd/mapview would gain
 // one it cannot honour.
 type mapWorld struct {
+	projectileCounter *projectileCounter
+
 	cheats           cheatConsole
 	fame             fameObserver
 	applicationState *SnapshotApplicationState

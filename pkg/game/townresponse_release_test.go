@@ -38,7 +38,7 @@ func TestReleaseTownSpeechResponses(t *testing.T) {
 	t.Cleanup(restore)
 	f := releaseFront(t)
 	owner := ui.DeliveryOwner(f.SoundPlayer)
-	if owner == nil || owner != ui.DeliveryOwner(f.SpeechPlayer) {
+	if owner == nil || owner != ui.DeliveryOwner(f.speech.player) {
 		t.Fatal("installed response has no shared effects/speech owner")
 	}
 	teach, ok := f.SoundBank.namedSample(schoolTeachSound)

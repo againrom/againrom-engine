@@ -122,12 +122,12 @@ func (f *FrontEnd) witnessCommandAcknowledgmentsWithClockControl(report io.Write
 			return err
 		}
 		owner := ui.DeliveryOwner(probe.SoundPlayer)
-		player := probe.SpeechPlayer
+		player := probe.speech.player
 		if owner == nil || owner != ui.DeliveryOwner(player) {
 			return fmt.Errorf("command voice witness: effects and speech have no shared owner")
 		}
 		observed := &commandVoiceObserver{Player: player}
-		probe.SpeechPlayer = observed
+		probe.speech.player = observed
 		a := probe.App("command voice witness")
 		defer a.StopAudio()
 		a.SetCutscenes(nil)
@@ -149,7 +149,7 @@ func (f *FrontEnd) witnessCommandAcknowledgmentsWithClockControl(report io.Write
 		if err := a.HeadlessGameMenuAction("sound-options"); err != nil {
 			return err
 		}
-		if probe.acknowledgmentsOff == enabled {
+		if probe.speech.acknowledgmentsOff == enabled {
 			if err := a.HeadlessGameMenuAction("acknowledgments"); err != nil {
 				return err
 			}
@@ -213,7 +213,7 @@ func (f *FrontEnd) witnessCommandAcknowledgmentsWithClockControl(report io.Write
 		}
 		fmt.Fprintf(report, "command voice: enabled=%v selection-requests=%d command-requests=%d fresh-viewer=yes pointer-command=yes\n", enabled, selection, observed.plays-selection)
 		hashes[run], ticks[run] = probe.live.world.Hash(), probe.live.world.Tick()
-		f.acknowledgmentsOff = probe.acknowledgmentsOff
+		f.speech.acknowledgmentsOff = probe.speech.acknowledgmentsOff
 		a.StopAudio()
 		if err := audioWitnessClosed(owner); err != nil {
 			return err

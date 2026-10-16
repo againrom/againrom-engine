@@ -53,7 +53,7 @@ func newPreCreateRig(t *testing.T) *preCreateRig {
 	}
 	f.Sound = SoundOptions{Enabled: true, Volume: 0}
 	f.SoundPlayer, f.SoundBank = r.rec, OpenSounds(f.Archives.Root)
-	f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer = &menuSettingsPlayer{}, &menuSettingsPlayer{}, &menuSettingsPlayer{}
+	f.speech.player, f.MusicPlayer, f.AmbientPlayer = &menuSettingsPlayer{}, &menuSettingsPlayer{}, &menuSettingsPlayer{}
 	f.CutsceneAudioPlayer = fakeCutsceneAudioPlayer{}
 	r.app = f.App("pre-create empty name")
 	t.Cleanup(r.app.StopAudio)

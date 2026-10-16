@@ -30,7 +30,7 @@ func townFront(t *testing.T, seed uint64, original bool) (*FrontEnd, *ui.App, *t
 	f.TownAnimationNow = func() time.Time { return now }
 	f.PersistenceContext.tipsOff = true
 	sounds := &traceSounds{}
-	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = sounds, sounds, sounds
+	f.SoundPlayer, f.speech.player, f.AmbientPlayer = sounds, sounds, sounds
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Dwell fighter", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 20, 20}})
 	f.arriveInTown()
 	_, off := traceMaskPoints(t, f)

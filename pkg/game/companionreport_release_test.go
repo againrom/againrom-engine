@@ -43,7 +43,7 @@ func TestReleaseMission70CompanionReportUsesLiveSpeakerVariants(t *testing.T) {
 				t.Fatal(err)
 			}
 			f.Options = OptionsStore{Path: filepath.Join(dir, "options.txt")}
-			f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+			f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 			f.SetDeterministicFrames(true)
 			primary := f.NextParty()[0]
 			primary.Mage, primary.FigureDir = primaryDir.Mage(), string(primaryDir)
@@ -206,7 +206,7 @@ func companionColdReport(t *testing.T, f *FrontEnd, app *ui.App, payload []byte,
 	}
 	cold := releaseFront(t)
 	cold.Options = OptionsStore{Path: filepath.Join(dir, "cold-options.txt")}
-	cold.SoundPlayer, cold.MusicPlayer, cold.AmbientPlayer, cold.CutsceneAudioPlayer, cold.SpeechPlayer = nil, nil, nil, nil, nil
+	cold.SoundPlayer, cold.MusicPlayer, cold.AmbientPlayer, cold.CutsceneAudioPlayer, cold.speech.player = nil, nil, nil, nil, nil
 	cold.SetDeterministicFrames(true)
 	coldApp := cold.App("current SAV companion report")
 	t.Cleanup(coldApp.StopAudio)

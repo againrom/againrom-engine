@@ -66,7 +66,7 @@ func townSpeakerTexts(t *testing.T, f *FrontEnd) []townSpeakerText {
 func TestReleaseTownSpeakersPlayTheirInstalledLines(t *testing.T) {
 	f := releaseFront(t)
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil
 	texts := townSpeakerTexts(t, f)
 	if len(texts) == 0 {

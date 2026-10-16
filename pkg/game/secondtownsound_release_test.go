@@ -29,7 +29,7 @@ func (r *secondTownSoundLog) RequestSample(s audio.Sample, q audio.Request) audi
 func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 	f := secondGameFront(t)
 	log := &secondTownSoundLog{}
-	f.SoundPlayer, f.SpeechPlayer = log, log
+	f.SoundPlayer, f.speech.player = log, log
 	app := f.App("second town sounds")
 	t.Cleanup(app.StopAudio)
 	app.Layout(1024, 768)

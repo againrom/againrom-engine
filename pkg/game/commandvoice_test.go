@@ -142,7 +142,7 @@ var (
 
 func voiceFront(mw *mapWorld, bank *SoundBank) (*FrontEnd, *acknowledgmentRecorder) {
 	voices := &acknowledgmentRecorder{}
-	return &FrontEnd{InstallResources: InstallResources{SoundBank: bank}, RuntimeServices: RuntimeServices{SpeechPlayer: voices}}, voices
+	return &FrontEnd{InstallResources: InstallResources{SoundBank: bank}, RuntimeServices: RuntimeServices{speech: speechService{player: voices}}}, voices
 }
 
 // TestSpeakerIsOneMemberOfTheFirstNonEmptyTier checks tier order, member
@@ -382,7 +382,7 @@ func TestSelectionReplyNeedsAnOwnedPrimaryAndTheOption(t *testing.T) {
 	if got := heard(voices, 0); !slices.Equal(got, []int16{voiceSample("mf_hero", "select2")}) {
 		t.Errorf("select2 at draw 16384: %v", got)
 	}
-	f.acknowledgmentsOff = true
+	f.speech.acknowledgmentsOff = true
 	script.set()
 	selection([]uint32{1}, now.Add(time.Hour))
 	if len(voices.samples) != 1 || script.used != 0 {

@@ -352,7 +352,7 @@ func (f *FrontEnd) LoadOptions() {
 	f.smoothingOff.frame = !frame
 	f.wimpyMode, _ = f.Options.WimpyMode()
 	acknowledgments, _ := f.Options.Acknowledgments()
-	f.acknowledgmentsOff = !acknowledgments
+	f.speech.acknowledgmentsOff = !acknowledgments
 	options, present, _ := f.Options.gameOptions()
 	defaults := defaultGraphicsValues()
 	for _, o := range [...]ui.GameOption{ui.GameOptionSmoothing, ui.GameOptionShadows, ui.GameOptionLighting,

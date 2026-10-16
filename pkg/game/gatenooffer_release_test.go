@@ -38,7 +38,7 @@ func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
 	root := f.Archives.Root
 	f.Sound = SoundOptions{Enabled: true, Volume: 0}
 	voices := &exteriorRecorder{}
-	f.SpeechPlayer = voices
+	f.speech.player = voices
 	now, rolls := time.Unix(100, 0), 0
 	f.TownAnimationNow = func() time.Time { return now }
 	f.TownAnimationRandom = func(n int) int { rolls++; return 0 }

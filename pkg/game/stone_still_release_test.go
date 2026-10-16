@@ -38,7 +38,7 @@ func stoneStillFront(t *testing.T) *FrontEnd {
 	t.Helper()
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
-	f.SoundPlayer, f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.speech.player, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil, nil
 	f.SetDeterministicFrames(true)
 	return f
 }

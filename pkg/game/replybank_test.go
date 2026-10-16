@@ -92,7 +92,7 @@ func TestARepliesBankIsTheBankItsWoundsUse(t *testing.T) {
 		draws[d.ID] = d
 	}
 	voices := &acknowledgmentRecorder{}
-	f := &FrontEnd{InstallResources: InstallResources{SoundBank: replyBankFixture()}, RuntimeServices: RuntimeServices{SpeechPlayer: voices}}
+	f := &FrontEnd{InstallResources: InstallResources{SoundBank: replyBankFixture()}, RuntimeServices: RuntimeServices{speech: speechService{player: voices}}}
 	_, selection := f.runtimeAudio().unitReplies(mw, func() int { return 0 })
 	now := time.Unix(10, 0)
 	for i, p := range replyBankPeople {

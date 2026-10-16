@@ -347,7 +347,7 @@ func TestReleaseRescuedVillagersReplyAndHurtInThePeasantBank(t *testing.T) {
 	f, app := labyrinthFront(t)
 	mercs := labyrinthMercenaries(t, f)
 	voices := &acknowledgmentRecorder{}
-	f.SpeechPlayer = voices
+	f.speech.player = voices
 	installed := labyrinthRecordings(t, f)
 	var villagers []sim.EntityID
 	for _, e := range f.live.world.Entities() {

@@ -15,7 +15,7 @@ func gateRetentionInstalledFreshTown(t *testing.T) (*FrontEnd, *ui.App, *townScr
 	t.Helper()
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Retained child", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	for _, n := range []int{10, 20} {
 		if _, ok := f.Town.Won(n); !ok {
@@ -104,7 +104,7 @@ func gateRetentionColdTown(t *testing.T, store SaveStore) (*FrontEnd, *ui.App, *
 	t.Helper()
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	a := f.App("Retained child cold SAV")
 	a.Layout(640, 480)
 	f.ConfigureSaveSeams(a, store, OriginalStore{}, nil)
@@ -230,7 +230,7 @@ func TestReleaseGateCampaignRetention(t *testing.T) {
 	t.Run("unaccepted-child-control", func(t *testing.T) {
 		f := releaseFront(t)
 		f.Options = OptionsStore{}
-		f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+		f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 		f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Unaccepted", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 		for _, n := range []int{10, 20} {
 			if _, ok := f.Town.Won(n); !ok {

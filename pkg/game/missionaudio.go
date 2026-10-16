@@ -1,9 +1,15 @@
 package game
 
 import (
+	"againrom/pkg/audio"
 	"againrom/pkg/random"
 	"againrom/pkg/ui"
 )
+
+type speechService struct {
+	player             audio.Player
+	acknowledgmentsOff bool
+}
 
 // missionAudio is everything a mission screen's construction asks of sound.
 // The mission-entry sequence calls these four operations and names no player,
@@ -43,7 +49,7 @@ func (f *FrontEnd) runtimeAudio() runtimeMissionAudio {
 }
 
 func (a runtimeMissionAudio) attach(v *ui.Viewer) {
-	v.SetScopedAudio(a.rt.SoundPlayer, a.rt.SpeechPlayer, a.in.SoundBank, a.rt.AmbientPlayer, a.rt.randomService().Stream(random.AmbientBirds))
+	v.SetScopedAudio(a.rt.SoundPlayer, a.rt.speech.player, a.in.SoundBank, a.rt.AmbientPlayer, a.rt.randomService().Stream(random.AmbientBirds))
 }
 
 func (a runtimeMissionAudio) release(v *ui.Viewer) {

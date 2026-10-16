@@ -83,7 +83,7 @@ func TestReleaseDialoguePortraitBackdrop(t *testing.T) {
 func openFirstTownShopDialogue(t *testing.T, f *FrontEnd, name string) (*ui.App, *townScreen) {
 	t.Helper()
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil
 	f.Carried = f.NextParty()
 	arriveInTownGrantTaken(f)

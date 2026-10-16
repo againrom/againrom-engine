@@ -13,15 +13,16 @@ import (
 // town, and whether it starts fresh, resumes a native save (snap) or resumes
 // an original save (prepare).
 type missionRequest struct {
-	n            int
-	party        []mapload.PartyMember
-	snap         *Snapshot
-	initialPurse *uint32
-	prepare      func(*alm.Map) (*originalFog, error)
-	activate     *func()
-	units        *terrain.UnitSet
-	difficulty   mapload.Difficulty
-	town         *Town
+	n                 int
+	party             []mapload.PartyMember
+	snap              *Snapshot
+	initialPurse      *uint32
+	prepare           func(*alm.Map) (*originalFog, error)
+	activate          *func()
+	units             *terrain.UnitSet
+	difficulty        mapload.Difficulty
+	town              *Town
+	projectileCounter uint16
 }
 
 // fresh is a mission started rather than resumed.
@@ -54,7 +55,8 @@ type missionPorts struct {
 	random *random.Service
 	// campaign is the campaign service of the install's profile; none is the
 	// first game's.
-	campaign campaignService
+	campaign    campaignService
+	projectiles *projectileCounter
 }
 
 // rules is the entry's campaign service.
@@ -111,6 +113,9 @@ type missionDisplay struct {
 // start, seat the world, dress the viewer, open the driver, settle what a
 // resume restores, commit, and install the seams.
 func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
+	if r.fresh() {
+		r.projectileCounter = ports.projectiles.value()
+	}
 	addr, diff, err := admitMission(ports.rules(), r.town, r.n, !r.fresh(), r.difficulty)
 	if err != nil {
 		return preparedMap{}, err
@@ -156,6 +161,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// world opens nothing, and a driver that went looking for an install
 	// itself would give one mission two behaviours depending on when it ran.
 	mw := ports.install.openMissionDriver(ms, r.units, mv.Viewer)
+	mw.projectileCounter = ports.projectiles
 	mw.cheats.difficulty = diff
 	mw.cheats.campaign = ports.rules().chatCampaign(r.town)
 	ports.audio.wireReplies(mw)
@@ -185,6 +191,9 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	}
 	// Commit fresh selection with the driver; LOAD keeps its validated campaign.
 	commitDriver := func() {
+		if r.fresh() {
+			seedProjectileCounter(ms.World, ports.projectiles.value())
+		}
 		if r.fresh() && r.town != nil && r.town.progress != nil && !r.town.guestMission().playing(r.n) {
 			r.town.selectMission(r.n)
 		}
@@ -331,6 +340,9 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms *Mission, v *ui.Viewer) error {
 	if err := rules.seatWorld(r, ms); err != nil {
 		return err
+	}
+	if r.fresh() {
+		seedProjectileCounter(ms.World, r.projectileCounter)
 	}
 	// THE SAVED WORLD REPLACES THE STARTED ONE HERE, between the start
 	// and openMission (0143 plan D-2): the driver below is then built

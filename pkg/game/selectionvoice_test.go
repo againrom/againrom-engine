@@ -59,7 +59,7 @@ func selectionVoiceMission(t *testing.T) (*FrontEnd, *ui.App, *acknowledgmentRec
 	voices := &acknowledgmentRecorder{}
 	f := &FrontEnd{
 		InstallResources: InstallResources{Archives: &Archives{Containers: containers}, Tiles: &terrain.Tileset{}, SoundBank: selectionVoiceBank()},
-		RuntimeServices:  RuntimeServices{SpeechPlayer: voices},
+		RuntimeServices:  RuntimeServices{speech: speechService{player: voices}},
 	}
 	f.SetDeterministicFrames(true)
 	party := MissionParty(nil, data.BodyList{}, nil)

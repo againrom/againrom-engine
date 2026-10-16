@@ -44,7 +44,7 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.SetDeterministicFrames(true)
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	f.Options = OptionsStore{Path: filepath.Join(stateDir, "options.txt")}
 	if err := f.Options.setTimedAutosave(ui.TimedAutosaveSettings{Enabled: true, Minutes: 1}); err != nil {
 		t.Fatal(err)

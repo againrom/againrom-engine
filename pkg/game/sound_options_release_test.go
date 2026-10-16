@@ -32,7 +32,7 @@ func TestReleaseSoundOptions1187InstalledControls(t *testing.T) {
 	speechRec := &speechRecorder{}
 	effectsRec := &speechRecorder{}
 	effects, speech, music, ambient := &effectsRec.menuSettingsPlayer, &speechRec.menuSettingsPlayer, &menuSettingsPlayer{}, &menuSettingsPlayer{}
-	f.SoundPlayer, f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer = effectsRec, speechRec, music, ambient
+	f.SoundPlayer, f.speech.player, f.MusicPlayer, f.AmbientPlayer = effectsRec, speechRec, music, ambient
 	a := f.App("installed sound controls")
 	defer a.StopAudio()
 	a.SetCutscenes(nil)

@@ -23,7 +23,7 @@ import (
 func TestReleaseMinimapLootDotsFollowTheOption(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	app := f.App("loot dots")
 	t.Cleanup(app.StopAudio)
@@ -186,7 +186,7 @@ func TestReleaseSecondGameLootDotsLeaveTheSaveUntouched(t *testing.T) {
 		t.Skip("second-game current SAV producer")
 	}
 	f.SetDeterministicFrames(true)
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	f.LoadOptions()
 	app := f.App("second game loot save")

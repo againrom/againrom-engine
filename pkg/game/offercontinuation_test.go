@@ -156,7 +156,7 @@ func TestOfferFailedLookupRetainsDisplayFaceAndVoice(t *testing.T) {
 	f.Archives.Containers = townTextFS(t, []synth.File{{Path: "text/shop/npc31m31.txt", Data: []byte(payload)}})
 	f.SpeechBank = responseBank(t, []synth.File{{Path: "shop/npc31m31p1.wav", Data: speechWAV(1234)}, {Path: "shop/npc31m31p2.wav", Data: speechWAV(5678)}})
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	defer app.StopAudio()
 	if err := app.HeadlessActivate("SHOP"); err != nil {
 		t.Fatal(err)

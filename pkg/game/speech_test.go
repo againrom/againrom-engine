@@ -92,7 +92,7 @@ func TestTownSpeechUsesArchiveAndStopsAcrossDialogueLifecycle(t *testing.T) {
 			f.SpeechBank = OpenSpeech(root)
 			recorder := &tavernInteriorRecorder{}
 			effects := &tavernInteriorRecorder{}
-			f.SoundPlayer, f.SpeechPlayer = effects, recorder
+			f.SoundPlayer, f.speech.player = effects, recorder
 			a := f.App("speech lifecycle")
 			defer a.StopAudio()
 			a.SetSaveSeams(nil, func() []ui.SaveEntry { return []ui.SaveEntry{{Name: "town.ags", Label: "Town"}} }, func(string) (ui.MapOpener, bool, error) { return nil, true, nil })

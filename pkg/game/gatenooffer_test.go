@@ -43,7 +43,7 @@ func gateLineFront(t *testing.T, ship bool) (*FrontEnd, *tavernInteriorRecorder)
 	f.Font = resolved(missionFont(), nil)
 	clearTownTestGateLatches(f.Town)
 	recorder := &tavernInteriorRecorder{}
-	f.SpeechPlayer = recorder
+	f.speech.player = recorder
 	return f, recorder
 }
 

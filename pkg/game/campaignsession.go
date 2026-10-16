@@ -59,6 +59,7 @@ func admitMission(rules campaignService, town *Town, n int, resuming bool, level
 // game starts exactly as the first one did. The town is rebuilt over the
 // install's campaign rather than zeroed.
 func (s *CampaignSession) clear(campaign Campaign) {
+	s.detachProjectileCounter()
 	s.detachFameObserver()
 	s.fame = SnapshotFame{}
 	s.quickSpells = [4]uint32{}
@@ -94,6 +95,7 @@ func (s *CampaignSession) adopt(c *restoreCandidate) {
 // endLive forgets the live map and returns it, so the caller can release what
 // the map held. The session keeps no reference to a map that was ended.
 func (s *CampaignSession) endLive() *mapWorld {
+	s.detachProjectileCounter()
 	outgoing := s.live
 	s.live, s.liveMission, s.liveParty = nil, 0, nil
 	return outgoing
@@ -108,6 +110,7 @@ func (s *CampaignSession) endLive() *mapWorld {
 // through it and a save must read what it holds now.
 func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n int, party []mapload.PartyMember) (outgoing *mapWorld) {
 	outgoing = s.live
+	s.detachProjectileCounter()
 	mapload.NameParty(party)
 	s.bindFameObserver(mw)
 	// A guest's mission is no mission of the waiting town's campaign.
@@ -115,6 +118,9 @@ func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n in
 		s.Town.activateMission(n)
 	}
 	s.live, s.liveMission, s.liveParty = mw, n, party
+	if mw != nil {
+		mw.projectileCounter.track(mw.world)
+	}
 	rules.enterMission(s.Town, n)
 	s.Town.joinCityGroups(s.Carried)
 	if mw != nil && mw.mission != nil {

@@ -76,7 +76,7 @@ var roomSoundKeys = []string{
 
 func addRoomSounds(f *FrontEnd) *roomSoundRecorder {
 	rec := &roomSoundRecorder{}
-	f.SoundPlayer, f.SpeechPlayer = rec, rec
+	f.SoundPlayer, f.speech.player = rec, rec
 	if f.SoundBank == nil {
 		f.SoundBank = &SoundBank{cache: map[int]soundCacheEntry{}}
 	}

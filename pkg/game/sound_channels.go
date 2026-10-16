@@ -69,7 +69,7 @@ func (f *FrontEnd) applySoundSettings() {
 	if setter, ok := f.SoundPlayer.(gameMenuAudioSetter); ok {
 		setter.SetSettings(f.SoundChannels.Settings(audio.EffectsChannel, master))
 	}
-	if setter, ok := f.SpeechPlayer.(gameMenuAudioSetter); ok {
+	if setter, ok := f.speech.player.(gameMenuAudioSetter); ok {
 		setter.SetSettings(f.SoundChannels.Settings(audio.SpeechChannel, master))
 	}
 	if f.MusicPlayer != nil {
@@ -86,7 +86,7 @@ func (f *FrontEnd) applySoundSettings() {
 func (f *FrontEnd) wireSoundOptions(a *ui.App) {
 	controls := ui.SoundOptionControls{
 		Read: func() audio.ChannelVolumes { return f.SoundChannels }, Write: f.setSoundChannel,
-		ReadAcknowledgments: func() bool { return !f.acknowledgmentsOff }, WriteAcknowledgments: f.setAcknowledgments,
+		ReadAcknowledgments: func() bool { return !f.speech.acknowledgmentsOff }, WriteAcknowledgments: f.setAcknowledgments,
 		Words: ui.DefaultSoundOptionWords(),
 	}
 	if f.Archives != nil {

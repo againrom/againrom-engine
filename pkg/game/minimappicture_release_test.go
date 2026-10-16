@@ -28,7 +28,7 @@ func TestReleaseMissionMinimapPaintsTheInstalledPicture(t *testing.T) {
 		t.Skip("the first game's minimap picture")
 	}
 	f.SetDeterministicFrames(true)
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	app := f.App("mission minimap picture")
 	t.Cleanup(app.StopAudio)
 	app.Layout(1024, 768)

@@ -23,7 +23,7 @@ func TestSoundChannelsPersistRouteAndRejectFailedWrites(t *testing.T) {
 	}
 	effects, speech, music, ambient := &menuSettingsPlayer{}, &menuSettingsPlayer{}, &menuSettingsPlayer{}, &menuSettingsPlayer{}
 	movie := &channelMoviePlayer{}
-	f := &FrontEnd{RuntimeServices: RuntimeServices{Sound: SoundOptions{Enabled: true, Volume: 80}, SoundChannels: audio.FullChannelVolumes(), SoundPlayer: effects, SpeechPlayer: speech, MusicPlayer: music, AmbientPlayer: ambient, CutsceneAudioPlayer: movie}, PersistenceContext: PersistenceContext{Options: OptionsStore{Path: path}}}
+	f := &FrontEnd{RuntimeServices: RuntimeServices{Sound: SoundOptions{Enabled: true, Volume: 80}, SoundChannels: audio.FullChannelVolumes(), SoundPlayer: effects, speech: speechService{player: speech}, MusicPlayer: music, AmbientPlayer: ambient, CutsceneAudioPlayer: movie}, PersistenceContext: PersistenceContext{Options: OptionsStore{Path: path}}}
 	for channel, value := range []int{25, 50, 75} {
 		if err := f.setSoundChannel(audio.Channel(channel), value); err != nil {
 			t.Fatal(err)

@@ -134,7 +134,7 @@ func TestReleaseShopShelvesRunCheapestFirstInsideEachGroup(t *testing.T) {
 func shopOrderFront(t *testing.T) *FrontEnd {
 	t.Helper()
 	f := releaseFront(t)
-	f.SoundPlayer, f.SpeechPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.speech.player, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil, nil
 	f.SetDeterministicFrames(true)
 	return f
 }

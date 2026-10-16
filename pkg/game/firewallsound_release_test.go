@@ -50,7 +50,7 @@ func TestReleaseFireWallSoundsWithTheCameraStill(t *testing.T) {
 	f.SetDeterministicFrames(true)
 	r := &fireWallSounds{}
 	f.SoundPlayer, f.AmbientPlayer = r, r
-	f.SpeechPlayer, f.MusicPlayer, f.CutsceneAudioPlayer = nil, nil, nil
+	f.speech.player, f.MusicPlayer, f.CutsceneAudioPlayer = nil, nil, nil
 	party := MissionPartyAs(true, f.StartWeapon.Value(), f.Bodies, f.Table)
 	a := f.App("fire wall sound")
 	a.SetCutscenes(nil)

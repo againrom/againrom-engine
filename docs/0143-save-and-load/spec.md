@@ -104,6 +104,7 @@ no state), or **rides**.
 | `weaponSwap` | cosmetic | the weapon swap key's memory of each unit's previous weapon and its unfinished swap steps (`DIV-2948`). Owner: App state, never hashed or saved, so after a LOAD no unit has a previous weapon until its weapon changes again. A step already queued rides with `pending`; the steps not yet queued are lost, and the World holds only what the applied orders wrote. The re-derivation of a unit that is not the inventory subject follows the pending orders, not this field |
 | `mission` | derivable | the notice machinery is rebuilt at open; a notice that was on screen when the save was taken is not restored |
 | `fame` | derivable | The observer binds to campaign-owned Snapshot.Fame and baselines current corpse stages at map adoption. Its scratch slices and pointer are rebuilt; campaign counters and the captured result persist separately in Snapshot.Fame |
+| `projectileCounter` | derivable | The existing mission/session builder recreates this runtime service binding at mission entry. The current counter remains the World's FreeIndex; the binding adds no SAV field |
 | `cheats` | derivable | Privilege and client reveal, knowledge and trace flags reset at mission open or cold LOAD; factory difficulty rebuilds from mission options. Saved gameplay mutations and exploration use the ordinary World and Fog records. DIV-2540 |
 
 ## FR-6 — the mini-menu

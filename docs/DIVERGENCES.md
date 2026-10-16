@@ -155,6 +155,7 @@ copying those counts.
 | `docs/divergences/persistence-entities.md` |
 | `docs/divergences/persistence-native-city-sav.md` |
 | `docs/divergences/persistence-original-saves-corpus.md` |
+| `docs/divergences/persistence-original-projectiles-and-effects.md` |
 | `docs/divergences/persistence-original-saves-format.md` |
 | `docs/divergences/rendering.md` |
 | `docs/divergences/rom2.md` |

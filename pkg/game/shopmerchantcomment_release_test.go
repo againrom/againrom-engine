@@ -19,7 +19,7 @@ func releaseQuietShopApp(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavern
 	t.Helper()
 	f := releaseFront(t)
 	r := &tavernInteriorRecorder{}
-	f.SpeechPlayer = r
+	f.speech.player = r
 	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer = nil, nil, nil, nil
 	f.Carried = f.NextParty()
 	arriveInTownGrantTaken(f)

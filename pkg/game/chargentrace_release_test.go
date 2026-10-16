@@ -143,7 +143,7 @@ func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
 	f.randomService().SetStreamSeed(random.Music, 3)
 	f.PersistenceContext.tipsOff = false
 	sounds := &traceSounds{}
-	f.SoundPlayer, f.SpeechPlayer, f.AmbientPlayer = sounds, sounds, sounds
+	f.SoundPlayer, f.speech.player, f.AmbientPlayer = sounds, sounds, sounds
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	a := f.App("chargen-trace")
 	a.Layout(640, 480)

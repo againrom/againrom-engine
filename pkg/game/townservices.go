@@ -46,7 +46,7 @@ type townArt interface {
 type runtimeTownAudio struct{ rt *RuntimeServices }
 
 func (a runtimeTownAudio) soundDevice() audio.Player       { return a.rt.SoundPlayer }
-func (a runtimeTownAudio) speechDevice() audio.Player      { return a.rt.SpeechPlayer }
+func (a runtimeTownAudio) speechDevice() audio.Player      { return a.rt.speech.player }
 func (a runtimeTownAudio) ambientDevice() ui.AmbientDevice { return a.rt.AmbientPlayer }
 func (a runtimeTownAudio) wildlifeSeed() int64 {
 	return a.rt.randomService().StreamSeed(random.TownWildlife)

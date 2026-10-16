@@ -14,7 +14,7 @@ func configuredGateColdTown(t *testing.T, store SaveStore, c Campaign, overlay s
 	f := releaseFront(t)
 	f.Campaign = resolved(c, nil)
 	f.Options = OptionsStore{}
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	useOfferTextOverlay(t, f, overlay)
 	a := f.App("Configured main cold SAV")
 	a.Layout(640, 480)
@@ -51,7 +51,7 @@ func TestReleaseConfiguredGateMainSAVContinuation(t *testing.T) {
 				c.Chapters[30] = ch
 				f.Campaign, f.Town = resolved(c, nil), NewTown(c)
 				f.Options = OptionsStore{}
-				f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+				f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 				f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Configured main", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 				for _, mission := range []int{10, 20} {
 					if _, ok := f.Town.Won(mission); !ok {

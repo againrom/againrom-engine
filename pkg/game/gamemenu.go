@@ -49,7 +49,7 @@ type gameMenuAudioSetter interface {
 }
 
 func (f *FrontEnd) gameMenuSound() (enabled bool, volume int, available bool) {
-	if f == nil || (f.SoundPlayer == nil && f.SpeechPlayer == nil && f.MusicPlayer == nil && f.AmbientPlayer == nil && f.CutsceneAudioPlayer == nil) {
+	if f == nil || (f.SoundPlayer == nil && f.speech.player == nil && f.MusicPlayer == nil && f.AmbientPlayer == nil && f.CutsceneAudioPlayer == nil) {
 		return false, 0, false
 	}
 	return f.Sound.Enabled, f.Sound.Volume, true

@@ -110,7 +110,7 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 	}
 	f.Options = OptionsStore{Path: filepath.Join(stateDir, "options.txt")}
 	f.SetDeterministicFrames(true)
-	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.SpeechPlayer = nil, nil, nil, nil, nil
+	f.SoundPlayer, f.MusicPlayer, f.AmbientPlayer, f.CutsceneAudioPlayer, f.speech.player = nil, nil, nil, nil, nil
 	rows := make([]ui.SaveEntry, 27)
 	for i := range rows {
 		rows[i] = ui.SaveEntry{Name: fmt.Sprintf("slot-%02d.sav", i), Label: fmt.Sprintf("slot-%02d", i)}

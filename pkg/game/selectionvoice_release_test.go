@@ -30,7 +30,7 @@ func TestReleaseUnitRepliesPlayInstalledRecordings(t *testing.T) {
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	f.SoundBank = OpenSounds(f.Archives.Root)
 	voices := &acknowledgmentRecorder{}
-	f.SpeechPlayer = voices
+	f.speech.player = voices
 	installed := map[string]audio.Sample{}
 	for _, banks := range humanVoiceBanks {
 		for _, bank := range banks {

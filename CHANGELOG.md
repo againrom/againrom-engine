@@ -12,6 +12,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   loading a save made before the sound.
 - [ROM1] Author mission conditions, ordered actions and triggers, then test
   the saved mod from the editor through victory and return to town.
+- [ROM1] Shots and spell effects continue their saved record numbering when
+  the same game session enters another mission or starts a new game.
 - [ROM1] Place buildings, assign unit groups and starting inventories, create
   enchanted loot, and clone units with independent items.
 - [ROM1] Create rectangular maps, edit mission text and metadata, save

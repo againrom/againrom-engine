@@ -401,10 +401,10 @@ func writeLeaveMod(t *testing.T) string {
 	return dir
 }
 
-// Restart reopens the mission from its entry point with the party and purse it
-// was entered with: the mission world is the world of the first entry again, and
-// what the first run changed is gone.
+// Restart restores the entry World, party and purse while continuing the
+// process projectile counter.
 func TestReleaseModRestartReopensTheMissionFromItsEntry(t *testing.T) {
+	counterSilentDevice(t)
 	dir := writeLeaveMod(t)
 	f, a, screens, s := abandonTown(t, dir, "mission-leave")
 	if len(screens.Screens) != 2 || screens.Screens[1].Kind != mod.ActionRestart {
@@ -414,6 +414,8 @@ func TestReleaseModRestartReopensTheMissionFromItsEntry(t *testing.T) {
 	abandonEnter(t, f, a, s, 30)
 	first := f.live
 	entryHash, entryTick := first.world.Hash(), first.world.Tick()
+	entryWorld := cloneCellPlaneWorld(t, first.world)
+	entryProjectiles := entryWorld.SavedProjectiles()
 	abandonSteps(t, a, 80)
 	first.world.SetPurse(sim.SelfSlot, uint32(entry.gold)+500)
 	if first.world.Hash() == entryHash {
@@ -431,16 +433,35 @@ func TestReleaseModRestartReopensTheMissionFromItsEntry(t *testing.T) {
 	if err := a.HeadlessActivate(restart); err != nil {
 		t.Fatal(err)
 	}
+	outgoingProjectiles := first.world.SavedProjectiles()
 	if err := a.HeadlessActivate(abandonLabel(f, screens.Screens[1].Title)); err != nil {
 		t.Fatal(err)
 	}
 	if a.Screen() != ui.ScreenMap || f.live == first || f.live.mission.number != 30 {
 		t.Fatalf("restart left screen %s, same driver %v", a.Screen(), f.live == first)
 	}
-	if f.live.world.Tick() != entryTick || f.live.world.Hash() != entryHash {
-		t.Fatalf("the restarted mission is at tick %d hash %x, the first entry was tick %d hash %x",
-			f.live.world.Tick(), f.live.world.Hash(), entryTick, entryHash)
+	restartedProjectiles := f.live.world.SavedProjectiles()
+	if restartedProjectiles.FreeIndex != outgoingProjectiles.FreeIndex {
+		t.Fatalf("the restarted counter is %d, the outgoing accepted World held %d", restartedProjectiles.FreeIndex, outgoingProjectiles.FreeIndex)
 	}
+	createdRecord := false
+	for _, id := range outgoingProjectiles.IDs {
+		createdRecord = createdRecord || !slices.Contains(entryProjectiles.IDs, id)
+	}
+	if createdRecord && outgoingProjectiles.FreeIndex == entryProjectiles.FreeIndex {
+		t.Fatal("the played mission created a record without advancing its entry counter")
+	}
+	expectedWorld := cloneCellPlaneWorld(t, entryWorld)
+	expectedProjectiles := expectedWorld.SavedProjectiles()
+	expectedProjectiles.FreeIndex = outgoingProjectiles.FreeIndex
+	expectedWorld.SetSavedProjectiles(expectedProjectiles)
+	expectedBytes, restartedBytes := marshalWorld(t, expectedWorld), marshalWorld(t, f.live.world)
+	if f.live.world.Tick() != entryTick || f.live.world.Hash() != expectedWorld.Hash() || !bytes.Equal(restartedBytes, expectedBytes) {
+		t.Fatalf("the restarted mission is at tick %d hash %x, the entry with the observed counter is tick %d hash %x; full World bytes equal %t",
+			f.live.world.Tick(), f.live.world.Hash(), entryTick, expectedWorld.Hash(), bytes.Equal(restartedBytes, expectedBytes))
+	}
+	t.Logf("restart FreeIndex entry=%d outgoing=%d restarted=%d created-record=%t; complete World bytes=%d hash=%x with only the observed counter substituted",
+		entryProjectiles.FreeIndex, outgoingProjectiles.FreeIndex, restartedProjectiles.FreeIndex, createdRecord, len(restartedBytes), expectedWorld.Hash())
 	if got := f.live.world.Purse(sim.SelfSlot); got != uint32(entry.gold) {
 		t.Fatalf("the restarted mission has purse %d, want %d", got, entry.gold)
 	}

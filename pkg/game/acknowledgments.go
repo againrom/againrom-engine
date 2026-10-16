@@ -26,6 +26,6 @@ func (f *FrontEnd) setAcknowledgments(on bool) error {
 			return err
 		}
 	}
-	f.acknowledgmentsOff = !on
+	f.speech.acknowledgmentsOff = !on
 	return nil
 }

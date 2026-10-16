@@ -13,7 +13,7 @@ func TestAcknowledgments1188PreferencesColdStartAndFailedWrite(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "options.txt")
 	f := &FrontEnd{PersistenceContext: PersistenceContext{Options: OptionsStore{Path: path}}}
 	f.LoadOptions()
-	if f.acknowledgmentsOff {
+	if f.speech.acknowledgmentsOff {
 		t.Fatal("missing preference disabled replies")
 	}
 	for value, enabled := range map[string]bool{"0": false, "1": true, "7": true, "-1": true, "broken": true} {
@@ -21,7 +21,7 @@ func TestAcknowledgments1188PreferencesColdStartAndFailedWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 		f.LoadOptions()
-		if f.acknowledgmentsOff == enabled {
+		if f.speech.acknowledgmentsOff == enabled {
 			t.Fatal("wrong preference", value)
 		}
 	}
@@ -30,7 +30,7 @@ func TestAcknowledgments1188PreferencesColdStartAndFailedWrite(t *testing.T) {
 	}
 	cold := &FrontEnd{PersistenceContext: PersistenceContext{Options: OptionsStore{Path: path}}}
 	cold.LoadOptions()
-	if !cold.acknowledgmentsOff {
+	if !cold.speech.acknowledgmentsOff {
 		t.Fatal("cold process lost disabled preference")
 	}
 	contents, _ := os.ReadFile(path)
@@ -38,7 +38,7 @@ func TestAcknowledgments1188PreferencesColdStartAndFailedWrite(t *testing.T) {
 		t.Fatal("unrelated preference lost")
 	}
 	cold.Options.Path = t.TempDir()
-	if err := cold.setAcknowledgments(true); err == nil || !cold.acknowledgmentsOff {
+	if err := cold.setAcknowledgments(true); err == nil || !cold.speech.acknowledgmentsOff {
 		t.Fatal("failed write changed live option")
 	}
 }
