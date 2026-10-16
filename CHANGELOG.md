@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Shop Buy and Sell buttons show totals on a centered second line.
 - [ROM1] Shots and spell flights keep their release timing and current state
   across saving and loading, including a save made before a shot is released.
 

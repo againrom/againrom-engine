@@ -1,10 +1,60 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"testing"
+
+	"againrom/pkg/render/text"
 )
+
+func TestShopBuyAndSellTotalsDrawBelowCaptions(t *testing.T) {
+	font := townShellRosterTestFont()
+	labels := [4]string{"Undo", "Buy", "Sell", "Exit"}
+	for _, amount := range []int32{0, 12345, 1026633} {
+		for pressed := -1; pressed < 4; pressed++ {
+			t.Run(fmt.Sprintf("amount-%d/pressed-%d", amount, pressed), func(t *testing.T) {
+				v := ShopScreenView{Font: font, Live: [4]bool{true, true, true, true},
+					Words: Words{ShopUndo: labels[0], ShopBuy: labels[1], ShopSell: labels[2], ShopExit: labels[3]},
+					Purse: 4567, Buy: amount, Sell: amount, Total: -7654}
+				var hover image.Point
+				if pressed >= 0 {
+					r := shopButtonRects[pressed]
+					hover = r.Min.Add(r.Max).Div(2)
+					v.Press = ShopControl{Kind: ShopControlButton, Index: pressed}
+				}
+				calls := text.Record(func() { ComposeShopScreen(v, hover, pressed >= 0, nil, false) })
+				values := [4]string{"4,567", GroupDigits(int64(amount)), GroupDigits(int64(amount)), "-7,654"}
+				for i, r := range shopButtonRects {
+					bands := [2]image.Rectangle{
+						image.Rect(r.Min.X, r.Min.Y+2, r.Max.X, r.Min.Y+24),
+						image.Rect(r.Min.X, r.Min.Y+23, r.Max.X, r.Max.Y-2),
+					}
+					for row, want := range []string{labels[i], values[i]} {
+						w, h := font.Measure(want)
+						x, y := bands[row].Min.X+(bands[row].Dx()-w)/2, bands[row].Min.Y+(bands[row].Dy()-h)/2
+						if pressed == i {
+							y++
+						}
+						var line []text.DrawCall
+						for _, call := range calls {
+							if !call.Flat && call.Y == y && image.Pt(call.X, call.Y).In(r) {
+								line = append(line, call)
+							}
+						}
+						if got := recordedText(font, line); got != want {
+							t.Fatalf("button %d row %d at y=%d drew %q, want %q", i, row, y, got, want)
+						}
+						if line[0].X != x {
+							t.Fatalf("button %d row %d starts at x=%d, want centered x=%d", i, row, line[0].X, x)
+						}
+					}
+				}
+			})
+		}
+	}
+}
 
 // TestShopPanelDrawsButtonBitmapOnlyWhilePressedAndHovered pins TOWN-260:
 // ShopMenu.bmp is the panel at rest, and a ShopButton bitmap appears only at

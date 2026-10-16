@@ -1114,8 +1114,7 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 var shopPanel = panelComposition{Body: shopButtonRegion, BodyOver: true, Plaques: shopButtonRects[:],
 	FitLine: true, Ink: plaqueCommandInk}
 
-// shopButtonPanel is the shop's command panel; Buy and Sell join caption and
-// number on one line (SHOP-050).
+// shopButtonPanel places each command's caption above its total.
 func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonPanel {
 	var art panelArt
 	if v.Art != nil {
@@ -1133,13 +1132,8 @@ func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonP
 	numbers := [4]int32{v.Purse, v.Buy, v.Sell, v.Total}
 	buttons := make([]panelButton, len(shopButtonRects))
 	for i, r := range shopButtonRects {
-		n := GroupDigits(int64(numbers[i]))
 		b := &buttons[i]
-		if i == 1 || i == 2 {
-			b.Captions = []string{labels[i] + " " + n}
-		} else {
-			b.Captions = []string{labels[i], n}
-		}
+		b.Captions = []string{labels[i], GroupDigits(int64(numbers[i]))}
 		b.Hover = hasHover && hover.In(r)
 		b.Inside, b.Disabled = b.Hover, !v.Live[i]
 		b.Pressed = v.Press == (ShopControl{Kind: ShopControlButton, Index: i})
