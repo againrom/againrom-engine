@@ -110,7 +110,7 @@ func TestMapEditorBrushHeightRowsAndModeSwitch(t *testing.T) {
 	e.Key("radiusdown")
 	e.Key("radiusdown")
 	e.Key("radiusdown")
-	drag(e, image.Pt(10, 10))
+	drag(e, image.Pt(30, 30)) // clear of the palette popup at the window's left
 	if len(p.strokes) != 1 || p.strokes[0].Plane != BrushPlaneHeight || p.strokes[0].Value != -brushHeightStep || p.strokes[0].Radius != 0 {
 		t.Fatalf("height stroke %+v", p.strokes)
 	}

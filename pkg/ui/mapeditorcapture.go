@@ -10,13 +10,20 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-// HeadlessFrame composes the editor's actual rail and retained body placements
+// HeadlessFrame composes the editor's actual chrome and retained body placements
 // over the render tier's CPU terrain raster. It is a diagnostic, not GPU
 // readback: triangle edge sampling can differ and projected shadows are omitted.
-// No native window, input synthesis or simulation is needed.
+// No native window, input synthesis or simulation is needed. With no map open
+// it is the chrome over black, as the window shows it.
 func (e *MapEditor) HeadlessFrame() (*image.RGBA, string, error) {
 	if e.doc == nil {
-		return nil, "", fmt.Errorf("no map open")
+		if e.window.X <= 0 || e.window.Y <= 0 {
+			return nil, "", fmt.Errorf("no map open and no window size")
+		}
+		out := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
+		draw.Draw(out, out.Bounds(), image.NewUniform(color.RGBA{0, 0, 0, 255}), image.Point{}, draw.Src)
+		draw.Draw(out, out.Bounds(), e.ChromeImage(), image.Point{}, draw.Over)
+		return out, "actual chrome; no map open", nil
 	}
 	v := e.doc.Viewer
 	var ground *terrain.Render
@@ -61,12 +68,12 @@ func (e *MapEditor) HeadlessFrame() (*image.RGBA, string, error) {
 			canvas.SetRGBA(int(float64(s.x0)+dx*float64(i)/float64(n)), int(float64(s.y0)+dy*float64(i)/float64(n)), s.color)
 		}
 	}
-	draw.Draw(pic, image.Rect(v.cam.ViewW, 0, v.frameW, v.frameH), e.PanelImage(v.frameH), image.Point{}, draw.Src)
 	out := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	draw.Draw(out, out.Bounds(), image.NewUniform(color.RGBA{0, 0, 0, 255}), image.Point{}, draw.Src)
 	ox, oy := v.place.Origin()
 	editorBlit(out, pic, screenRect{X: ox, Y: oy, W: float64(v.frameW) * v.place.Scale(), H: float64(v.frameH) * v.place.Scale()}, false)
-	return out, "CPU terrain + retained body placements + actual rail; no GPU readback; shadows omitted", nil
+	draw.Draw(out, out.Bounds(), e.ChromeImage(), image.Point{}, draw.Over)
+	return out, "CPU terrain + retained body placements + actual chrome; no GPU readback; shadows omitted", nil
 }
 
 func editorBlit(dst, src *image.RGBA, r screenRect, mirror bool) {

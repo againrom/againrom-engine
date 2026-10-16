@@ -96,7 +96,7 @@ func assertInspectionFit1092(t *testing.T, e *ui.MapEditor) {
 		}
 		for _, p := range []image.Point{{0, 0}, {w * 32, 0}, {0, worldH}, {w * 32, worldH}} {
 			x, y := c.WorldToScreen(float64(p.X), float64(p.Y))
-			if x < -1e-8 || y < -1e-8 || x > float64(size.X-320)+1e-8 || y > float64(size.Y)+1e-8 {
+			if x < -1e-8 || y < -1e-8 || x > float64(c.ViewW)+1e-8 || y > float64(c.ViewH)+1e-8 {
 				t.Fatalf("%s %dx%d at%v edge%v projects outside canvas: %v,%v zoom%v", e.Document().Source, w, h, size, p, x, y, c.Zoom)
 			}
 		}

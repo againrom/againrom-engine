@@ -108,8 +108,7 @@ func openTestMapEditor(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, st
 }
 
 func point1118(e *ui.MapEditor, cell image.Point) image.Point {
-	x, y := e.Document().Viewer.Camera().WorldToScreen(float64(cell.X*32+16), float64(cell.Y*32+16))
-	return image.Pt(int(x), int(y))
+	return e.CellPoint(cell)
 }
 
 func dragInspectionRecord(e *ui.MapEditor, from, to image.Point) {
@@ -209,7 +208,7 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 }
 
 func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
-	for _, mode := range []string{"click", "same-cell", "escape", "rail", "outside"} {
+	for _, mode := range []string{"click", "same-cell", "escape", "bar", "outside"} {
 		t.Run(mode, func(t *testing.T) {
 			b := inspectionFixtureBytes(t)
 			_, e, _ := openTestMapEditor(t, b)
@@ -223,8 +222,8 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 			case "escape":
 				_ = e.Key("escape")
 				p = point1118(e, image.Pt(6, 7))
-			case "rail":
-				p.X = 1000
+			case "bar":
+				p.Y = 2 // over the top bar, off the map
 			case "outside":
 				p.X = -10
 			}

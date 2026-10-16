@@ -58,7 +58,8 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	p := &editorMoveProbe{doc: e.doc, index: -1}
 	e.doc.Edits = p
 	e.Select(20, true)
-	e.filter, e.offset, e.detailOffset = 2, 3, 5
+	e.filter, e.objectTop = 2, 1
+	e.objectHidden = true
 	cam := *e.doc.Viewer.cam
 	v := e.doc.Viewer
 	from := e.doc.Records[20].Cell
@@ -68,8 +69,9 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	tx, ty := e.cellCenter(to)
 	tx, ty = v.cam.WorldToScreen(tx, ty)
 	now := time.Unix(1, 0)
-	e.Pointer(Input{CursorX: int(sx), CursorY: int(sy), PrimaryDown: true}, now)
-	e.Pointer(Input{CursorX: int(tx), CursorY: int(ty), PrimaryDown: true, WheelY: 1, PanRight: true}, now)
+	press, drop := mapPoint(e, image.Pt(int(sx), int(sy))), mapPoint(e, image.Pt(int(tx), int(ty)))
+	e.Pointer(Input{CursorX: press.X, CursorY: press.Y, PrimaryDown: true}, now)
+	e.Pointer(Input{CursorX: drop.X, CursorY: drop.Y, PrimaryDown: true, WheelY: 1, PanRight: true}, now)
 	if p.index != -1 || e.Dirty() || e.doc.Records[20].Cell != from || !reflect.DeepEqual(cam, *v.cam) {
 		t.Fatal("preview committed an edit or pan/zoom escaped capture")
 	}
@@ -77,38 +79,40 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	if len(lines) != 6 || lines[0].x0 != float32(tx-5) || lines[0].y0 != float32(ty) {
 		t.Fatalf("drag preview not at candidate cell: %+v", lines)
 	}
-	e.Pointer(Input{CursorX: int(tx), CursorY: int(ty)}, now)
+	e.Pointer(Input{CursorX: drop.X, CursorY: drop.Y}, now)
 	if p.index != 63 || e.Selected() != 20 || e.doc.Records[20].Cell != to || e.doc.Viewer != v || v.entities[0].Cell != to {
 		t.Fatal("committed wrong unit identity or left entity presentation stale")
 	}
-	if e.filter != 2 || e.offset != 3 || e.detailOffset != 5 || !reflect.DeepEqual(cam, *v.cam) {
-		t.Fatalf("edit lost inspection context: filter=%d offset=%d detail=%d", e.filter, e.offset, e.detailOffset)
+	if e.filter != 2 || !reflect.DeepEqual(cam, *v.cam) {
+		t.Fatalf("edit lost inspection context: filter=%d", e.filter)
 	}
 	if e.markerLines()[0].x0 != float32(tx-5) {
 		t.Fatal("committed marker remained at old cell")
 	}
-	if got := e.PanelImage(768).RGBAAt(2, 43); got != editorGold {
-		t.Fatalf("enabled Undo not visible: %v", got)
+	for _, b := range e.barEntries() {
+		if b.key == "undo" && b.disabled || b.key == "redo" && !b.disabled {
+			t.Fatalf("bar entry %s disabled=%v", b.key, b.disabled)
+		}
 	}
-	e.railClick(10, 45)
-	e.railClick(115, 45)
+	chromeClick(e, barPoint(t, e, "undo"))
+	chromeClick(e, barPoint(t, e, "redo"))
 	if p.redo != 0 {
 		t.Fatal("disabled Redo dispatched")
 	}
 	p.dirty = false // next probe state enables Redo
-	e.railClick(115, 45)
+	chromeClick(e, barPoint(t, e, "redo"))
 	if p.undo != 1 || p.redo != 1 {
-		t.Fatal("visible Undo/Redo buttons do not dispatch")
+		t.Fatal("visible Undo/Redo entries do not dispatch")
 	}
 	p.dirty = true
-	e.railClick(230, 45)
+	chromeClick(e, barPoint(t, e, "save"))
 	if e.prompt.kind != promptSave || e.prompt.path != "" {
-		t.Fatal("Save As button did not open an explicit empty path field")
+		t.Fatal("Save did not open an explicit empty path field")
 	}
 	e.TextInput("new.alm")
-	e.railClick(10, 12) // modal path input owns the rail
-	if !e.prompt.open() || e.catalog {
-		t.Fatal("rail click escaped path prompt")
+	chromeClick(e, barPoint(t, e, "map")) // the prompt owns the window
+	if !e.prompt.open() || e.catalog || e.menu != "" {
+		t.Fatal("a bar click escaped the path prompt")
 	}
 	if err := e.Key("enter"); err == nil || !e.prompt.open() || !e.Dirty() {
 		t.Fatal("failed Save As cleared prompt or dirty state")
@@ -124,9 +128,10 @@ func TestMapEditor1118GroundDragStillPans(t *testing.T) {
 	sx, sy := e.doc.Viewer.cam.WorldToScreen(x, y)
 	before := e.doc.Viewer.cam.X
 	now := time.Unix(1, 0)
-	e.Pointer(Input{CursorX: int(sx), CursorY: int(sy), PrimaryDown: true}, now)
-	e.Pointer(Input{CursorX: int(sx) - 32, CursorY: int(sy), PrimaryDown: true}, now)
-	e.Pointer(Input{CursorX: int(sx) - 32, CursorY: int(sy)}, now)
+	at := mapPoint(e, image.Pt(int(sx), int(sy)))
+	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true}, now)
+	e.Pointer(Input{CursorX: at.X - 32, CursorY: at.Y, PrimaryDown: true}, now)
+	e.Pointer(Input{CursorX: at.X - 32, CursorY: at.Y}, now)
 	if e.doc.Viewer.cam.X <= before || e.Dirty() {
 		t.Fatal("ground drag no longer pans or edited a unit")
 	}
@@ -139,19 +144,22 @@ func TestMapEditor1118LongPathAndRefusalNeverOverlap(t *testing.T) {
 		e.prompt.kind = promptSave
 		e.prompt.path = strings.Repeat("long-directory/", 60) + "chosen-map.alm"
 		e.message = "Save As refused: the explicit output directory does not exist."
-		rows := e.modalLayout(size.Y)
-		path, refusal := false, false
-		last := 0
-		for _, row := range rows {
-			if row.y < last || row.y+e.font.Height() > e.helpTop(size.Y)-6 || e.font.Advance(row.text) > 300 {
-				t.Fatalf("overlapping/clipped modal at %v: %+v", size, rows)
-			}
-			last = row.y + max(16, e.font.Height()+2)
-			path = path || strings.HasSuffix(row.text, "_")
-			refusal = refusal || row.color == editorWarning
+		spec, l := promptLayout(t, e)
+		if !l.Rect.In(image.Rect(0, 0, size.X, size.Y)) {
+			t.Fatalf("prompt %v leaves the window %v", l.Rect, size)
 		}
-		if !path || !refusal {
-			t.Fatalf("path caret or error disappeared at %v: %+v", size, rows)
+		last := spec.Rows[len(spec.Rows)-1]
+		refusal := false
+		for _, n := range spec.Notes {
+			refusal = refusal || strings.Contains(n, "does not exist")
+		}
+		for _, rr := range l.Rows {
+			if e.font.Advance(spec.Rows[rr.Index].Value) > rr.Control.Dx() {
+				t.Fatalf("clipped path row at %v: %q", size, spec.Rows[rr.Index].Value)
+			}
+		}
+		if !strings.HasSuffix(last.Value, "chosen-map.alm") || !last.Focus || !refusal {
+			t.Fatalf("path caret or error disappeared at %v: %+v", size, spec)
 		}
 	}
 }

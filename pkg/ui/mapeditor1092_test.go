@@ -44,22 +44,23 @@ func TestMapEditor1092NativePixelsSelectionFilteringAndTransactionalOpen(t *test
 	e := editor1092(t)
 	e.Layout(800, 600)
 	v := e.doc.Viewer
-	if v.cam.ViewW != 480 || v.cam.ViewH != 600 || v.place.Scale() != 1 {
-		t.Fatal("rail shrank with the canvas/window")
+	bar := e.barHeight()
+	if v.cam.ViewW != 800 || v.cam.ViewH != 600-2*bar || v.place.Scale() != 1 {
+		t.Fatal("the map frame is not the window between the bar and the strip")
 	}
+	if _, oy := v.place.Origin(); int(oy) != bar {
+		t.Fatalf("the map frame starts at %v, not below the bar", oy)
+	}
+	e.filter, e.listShown = 1, true
 	e.Select(30, true)
-	if e.offset > 30 || e.offset+e.visibleRows() <= 30 {
-		t.Fatal("selected row outside catalogue")
+	e.listSpec()
+	if top, n := e.model.Visible(); e.model.Selection() < top || e.model.Selection() >= top+n {
+		t.Fatal("selected row outside the list popup")
 	}
 	before := *v.cam
-	e.filter = 1
 	e.Select(30, false)
 	if e.filter != 1 {
 		t.Fatal("selection silently replaced user's filter")
-	}
-	e.railClick(5, 130) // explicit All restores the selected row
-	if e.filter != 0 || e.offset > 30 || e.offset+e.visibleRows() <= 30 {
-		t.Fatal("All did not reveal selection")
 	}
 	old := e.doc
 	for _, source := range []string{"bad", "bad"} {
@@ -89,14 +90,21 @@ func TestMapEditor1092CameraAndCataloguePointerDoors(t *testing.T) {
 	v := e.doc.Viewer
 	e.Select(20, true)
 	before := *v.cam
-	in := Input{CursorX: 900, CursorY: 210, WheelY: -2}
+	e.showRecords(0)
+	e.Select(20, true)
+	before = *v.cam
+	e.listSpec()
+	row := listRowPoint(t, e, e.model.Selection())
+	in := Input{CursorX: row.X, CursorY: row.Y, WheelY: -2}
+	sel := e.model.Selection()
 	e.Pointer(in, time.Unix(1, 0))
 	if !reflect.DeepEqual(before, *v.cam) {
-		t.Fatal("rail wheel zoomed/panned canvas")
+		t.Fatal("list popup wheel zoomed/panned canvas")
 	}
-	if e.offset == 0 {
-		t.Fatal("rail wheel did not scroll catalogue")
+	if e.model.Selection() == sel {
+		t.Fatal("list popup wheel did not move the list")
 	}
+	e.closeList()
 	zoom := v.cam.Zoom
 	e.Pointer(Input{CursorX: 350, CursorY: 350, WheelY: 1}, time.Unix(1, 0))
 	if v.cam.Zoom <= zoom {
@@ -106,7 +114,9 @@ func TestMapEditor1092CameraAndCataloguePointerDoors(t *testing.T) {
 	wx, wy := e.cellCenter(e.doc.Records[20].Cell)
 	sx, sy := v.cam.WorldToScreen(wx, wy)
 	e.selected = -1
-	in = Input{CursorX: int(sx), CursorY: int(sy), PrimaryDown: true}
+	e.objectHidden = true
+	at := mapPoint(e, image.Pt(int(sx), int(sy)))
+	in = Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true}
 	e.Pointer(in, time.Unix(1, 0))
 	in.PrimaryDown = false
 	e.Pointer(in, time.Unix(1, 0))
@@ -138,14 +148,15 @@ func TestMapEditor1092LargeMapFitAndLocalZoomAtSupportedSizes(t *testing.T) {
 			if err := e.Open("large"); err != nil {
 				t.Fatal(err)
 			}
-			want := math.Min(float64(size.X-320)/float64(cells*32), float64(size.Y)/float64(cells*32))
+			viewH := size.Y - 2*e.barHeight()
+			want := math.Min(float64(size.X)/float64(cells*32), float64(viewH)/float64(cells*32))
 			check := func() {
 				if math.Abs(v.cam.Zoom-want) > 1e-12 {
 					t.Fatalf("%dx%d at%v zoom=%v want%v", cells, cells, size, v.cam.Zoom, want)
 				}
 				for _, p := range []image.Point{{0, 0}, {cells * 32, 0}, {0, cells * 32}, {cells * 32, cells * 32}} {
 					x, y := v.cam.WorldToScreen(float64(p.X), float64(p.Y))
-					if x < -1e-8 || y < -1e-8 || x > float64(size.X-320)+1e-8 || y > float64(size.Y)+1e-8 {
+					if x < -1e-8 || y < -1e-8 || x > float64(size.X)+1e-8 || y > float64(viewH)+1e-8 {
 						t.Fatalf("edge %v outside %v: %v,%v", p, size, x, y)
 					}
 				}
@@ -172,55 +183,64 @@ func TestMapEditor1092LargeMapFitAndLocalZoomAtSupportedSizes(t *testing.T) {
 	}
 }
 
-func TestMapEditor1092FractionalRailWheelOwnsTravelAndTraversesDetails(t *testing.T) {
+func TestMapEditor1092FractionalWheelOwnsTravelPerPopup(t *testing.T) {
 	e := editor1092(t)
 	e.Layout(640, 480)
+	e.showRecords(0)
 	e.Select(30, true)
 	for i := 0; i < 40; i++ {
 		e.doc.Records[30].Details = append(e.doc.Records[30].Details, fmt.Sprintf("item %02d", i))
 	}
-	e.offset = 0
+	e.ChromeImage()
+	e.model.Select(0)
 	cameraBefore := *e.doc.Viewer.cam
-	wheel := func(y int, delta float64, n int) {
+	listAt := listRowPoint(t, e, 0)
+	_, l := objectLayout(t, e)
+	objectAt := center(l.Rows[0].Rect)
+	if e.chromeHit(listAt) != popList || e.chromeHit(objectAt) != popObject {
+		t.Fatalf("setup: list %v object %v", e.chromeHit(listAt), e.chromeHit(objectAt))
+	}
+	wheel := func(p image.Point, delta float64, n int) {
 		for i := 0; i < n; i++ {
-			e.Pointer(Input{CursorX: 630, CursorY: y, WheelY: delta}, time.Unix(1, 0))
-			e.PanelImage(480)
+			e.Pointer(Input{CursorX: p.X, CursorY: p.Y, WheelY: delta}, time.Unix(1, 0))
+			e.ChromeImage()
 		}
 	}
-	wheel(200, -0.25, 20)
-	if e.offset != 15 || e.detailOffset != 0 {
-		t.Fatalf("list=%d details=%d", e.offset, e.detailOffset)
+	wheel(listAt, -0.25, 20)
+	if e.model.Selection() != 15 || e.objectTop != 0 {
+		t.Fatalf("list=%d object=%d", e.model.Selection(), e.objectTop)
 	}
-	wheel(200, 0.25, 20)
-	if e.offset != 0 {
+	wheel(listAt, 0.25, 20)
+	if e.model.Selection() != 0 {
 		t.Fatal("fractional list cannot return")
 	}
-	wheel(410, -0.25, 20)
-	if e.detailOffset != 15 || e.offset != 0 {
-		t.Fatalf("details=%d list=%d", e.detailOffset, e.offset)
+	wheel(objectAt, -0.25, 20)
+	if e.objectTop != 15 || e.model.Selection() != 0 {
+		t.Fatalf("object=%d list=%d", e.objectTop, e.model.Selection())
 	}
-	wheel(410, -0.25, 200)
-	if e.detailOffset < 35 {
-		t.Fatal("cannot reach last sack item")
+	wheel(objectAt, -0.25, 400)
+	s, _ := objectLayout(t, e)
+	if e.objectTop+s.MaxRows != len(s.Rows) {
+		t.Fatal("cannot reach the last detail")
 	}
-	wheel(410, 0.25, 200)
-	if e.detailOffset != 0 || e.offset != 0 || !reflect.DeepEqual(cameraBefore, *e.doc.Viewer.cam) {
+	wheel(objectAt, 0.25, 400)
+	if e.objectTop != 0 || e.model.Selection() != 0 || !reflect.DeepEqual(cameraBefore, *e.doc.Viewer.cam) {
 		t.Fatal("reverse detail traversal moved list/camera or failed")
 	}
-	// Neither viewport may borrow the other's uncommitted fractional rows.
-	e.listWheel, e.detailWheel = 0, 0
-	wheel(200, -0.1, 3)
-	wheel(410, -0.1, 1)
-	if e.offset != 0 || e.detailOffset != 0 {
-		t.Fatal("fractional remainder crossed viewport boundary")
+	// Neither popup may borrow the other's uncommitted fractional rows.
+	e.listWheel, e.objectWheel = 0, 0
+	wheel(listAt, -0.1, 3)
+	wheel(objectAt, -0.1, 1)
+	if e.model.Selection() != 0 || e.objectTop != 0 {
+		t.Fatal("fractional remainder crossed popup boundary")
 	}
-	wheel(200, -0.1, 1)
-	if e.offset != 1 || e.detailOffset != 0 {
+	wheel(listAt, -0.1, 1)
+	if e.model.Selection() != 1 || e.objectTop != 0 {
 		t.Fatal("list did not retain its own remainder")
 	}
 }
 
-func TestMapEditor1092MinimumWindowAllSackDetailsReachPixels(t *testing.T) {
+func TestMapEditor1092MinimumWindowAllSackDetailsReachTheObjectPopup(t *testing.T) {
 	e := editor1092(t)
 	e.Layout(640, 480)
 	e.Select(30, true)
@@ -229,50 +249,37 @@ func TestMapEditor1092MinimumWindowAllSackDetailsReachPixels(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		r.Details = append(r.Details, fmt.Sprintf("%02d: item with authored code %04x", i, 0x1100+i))
 	}
-	beforeCamera, beforeList := *e.doc.Viewer.cam, e.offset
-	before := e.PanelImage(480)
-	seen := make([]bool, len(r.Details)+1)
-	lineHeight := max(16, e.font.Height()+2)
-	top := e.listBottom() + 86
-	visible := (480 - top - 45) / lineHeight
-	if e.doc.Viewer.cam.ViewW != 320 || e.doc.Viewer.place.Scale() != 1 || visible < 3 {
-		t.Fatal("minimum window shrank glyphs or has no usable detail viewport")
+	beforeCamera := *e.doc.Viewer.cam
+	before := e.ChromeImage()
+	if e.doc.Viewer.cam.ViewW != 640 || e.doc.Viewer.place.Scale() != 1 {
+		t.Fatal("minimum window shrank glyphs")
 	}
-	for i := 0; i < 20; i++ {
-		pic := e.PanelImage(480)
-		for j := e.detailOffset; j < min(len(seen), e.detailOffset+visible); j++ {
-			seen[j] = true
+	seen := map[string]bool{}
+	_, l := objectLayout(t, e)
+	at := center(l.Rows[0].Rect)
+	for i := 0; i < 60; i++ {
+		s, l := objectLayout(t, e)
+		if s.MaxRows < 3 {
+			t.Fatal("no usable detail viewport")
 		}
-		if e.detailOffset+visible == len(seen) {
-			// Independently render the last item at its expected final viewport
-			// position, then compare the pixels actually uploaded by Draw.
-			want := image.NewRGBA(image.Rect(0, 0, 320, lineHeight))
-			for y := 0; y < lineHeight; y++ {
-				for x := 0; x < 320; x++ {
-					want.SetRGBA(x, y, editorPanel)
-				}
+		for _, rr := range l.Rows {
+			if !rr.Rect.In(l.Rect) {
+				t.Fatalf("row %d leaves the popup", rr.Index)
 			}
-			e.font.Draw(want, r.Details[len(r.Details)-1], 10, 0, editorPaper)
-			y := top + (visible-1)*lineHeight
-			for row := 0; row < lineHeight; row++ {
-				if !bytes.Equal(pic.Pix[pic.PixOffset(0, y+row):pic.PixOffset(0, y+row)+1280], want.Pix[want.PixOffset(0, row):want.PixOffset(0, row)+1280]) {
-					t.Fatal("last item never reached the actual rail pixels")
-				}
-			}
-			break
+			seen[s.Rows[rr.Index].Label] = true
 		}
-		e.Pointer(Input{CursorX: 630, CursorY: 410, WheelY: -1}, time.Unix(1, 0))
+		e.Pointer(Input{CursorX: at.X, CursorY: at.Y, WheelY: -1}, time.Unix(1, 0))
 	}
-	for i, ok := range seen {
-		if !ok {
-			t.Fatalf("detail line %d skipped by wheel scroll", i)
+	for _, d := range r.Details {
+		if !seen[d] {
+			t.Fatalf("detail line %q skipped by wheel scroll", d)
 		}
 	}
-	if e.offset != beforeList || !reflect.DeepEqual(beforeCamera, *e.doc.Viewer.cam) {
-		t.Fatal("detail scroll moved catalogue or camera")
+	if !reflect.DeepEqual(beforeCamera, *e.doc.Viewer.cam) {
+		t.Fatal("detail scroll moved the camera")
 	}
-	e.Pointer(Input{CursorX: 630, CursorY: 410, WheelY: 100}, time.Unix(1, 0))
-	if !bytes.Equal(before.Pix, e.PanelImage(480).Pix) {
+	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, WheelY: 100}, time.Unix(1, 0))
+	if !bytes.Equal(before.Pix, e.ChromeImage().Pix) {
 		t.Fatal("cannot return to first detail")
 	}
 }
@@ -330,8 +337,9 @@ func TestMapEditor1092ActualFourArtLayersReachDrawAndPreview(t *testing.T) {
 		}
 	}
 	e.Select(0, false)
-	pic := e.PanelImage(768)
-	if got := pic.RGBAAt(10, e.listBottom()+86); got != s.Palette[120] {
+	pic := e.ChromeImage()
+	data := objectRowRect(t, e, e.obj.data).Rect // the picture stands right of the data
+	if got := pic.RGBAAt(data.Max.X-4, data.Min.Y+4); got != s.Palette[120] {
 		t.Fatalf("selected sack art pixel %v", got)
 	}
 	if len(e.markerLines()) != 6 {

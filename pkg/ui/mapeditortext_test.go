@@ -50,9 +50,11 @@ func selectedTextEditor(t *testing.T, font *text.Font, size image.Point) (*MapEd
 	if !e.Select(0, false) {
 		t.Fatal("selected record not admitted")
 	}
+	// The object popup stands where the prompt and the message cover it.
+	e.objectAt, e.objPlaced = image.Pt(size.X/2-200, size.Y/3), true
 	t.Cleanup(func() {
-		if e.panelImage != nil {
-			e.panelImage.Dispose()
+		if e.chromeImage != nil {
+			e.chromeImage.Dispose()
 		}
 		if e.textOverlay.tex != nil {
 			e.textOverlay.tex.Dispose()
@@ -66,8 +68,8 @@ func selectedTextEditor(t *testing.T, font *text.Font, size image.Point) (*MapEd
 
 func assertEditorPanelUpload(t *testing.T, e *MapEditor, h int) (captured, kept, partial int) {
 	t.Helper()
-	pic, blit, calls, showing := e.panelPicture(h)
-	if !bytes.Equal(pic.Pix, e.PanelImage(h).Pix) {
+	pic, blit, calls, showing := e.chromePicture()
+	if !bytes.Equal(pic.Pix, e.ChromeImage().Pix) {
 		t.Fatal("capture changed the final native panel")
 	}
 	erased := make(map[image.Point]color.RGBA)
@@ -92,7 +94,7 @@ func assertEditorPanelUpload(t *testing.T, e *MapEditor, h int) (captured, kept,
 		}
 	}
 	for y := 0; y < h; y++ {
-		for x := 0; x < editorRailWidth; x++ {
+		for x := 0; x < pic.Bounds().Dx(); x++ {
 			at := image.Pt(x, y)
 			want, showing := erased[at]
 			if !showing {
@@ -121,7 +123,7 @@ func TestMapEditorModalCoversSurviveTextPreparationAndDraw(t *testing.T) {
 					}
 					e, edits := selectedTextEditor(t, font, size)
 					doc, records, source := e.doc, append([]InspectionRecord(nil), e.doc.Records...), bytes.Clone(e.doc.SourceBytes)
-					plain := e.PanelImage(size.Y)
+					plain := e.ChromeImage()
 					if mode == "message" {
 						if err := e.Open("refused"); err == nil || e.Message() == "" {
 							t.Fatal("refused open did not display its message")
@@ -144,17 +146,17 @@ func TestMapEditorModalCoversSurviveTextPreparationAndDraw(t *testing.T) {
 					}
 					v := e.doc.Viewer
 					ox, oy := v.place.Origin()
-					if v.place.Scale() != 1 || ox != 0 || oy != 0 || v.cam.ViewW != size.X-editorRailWidth {
-						t.Fatal("rail placement changed")
+					if v.place.Scale() != 1 || ox != 0 || int(oy) != e.barHeight() || v.cam.ViewW != size.X || v.cam.ViewH != size.Y-2*e.barHeight() {
+						t.Fatal("map placement changed")
 					}
 					for _, f := range e.TextFates() {
-						if f.Call.X < v.cam.ViewW || f.Call.X >= size.X {
-							t.Fatal("captured text left the rail", f.Call.X)
+						if f.Call.X < 0 || f.Call.X >= size.X || f.Call.Y < 0 || f.Call.Y >= size.Y {
+							t.Fatal("captured text left the window", f.Call.X, f.Call.Y)
 						}
 					}
 					e.SetTextSmoothing(false)
 					e.Draw(screen)
-					pic, blit, calls, showing := e.panelPicture(size.Y)
+					pic, blit, calls, showing := e.chromePicture()
 					if !bytes.Equal(pic.Pix, blit.Pix) || len(calls) != 0 || len(showing) != 0 {
 						t.Fatal("smoothing off changed the native upload")
 					}
@@ -164,7 +166,7 @@ func TestMapEditorModalCoversSurviveTextPreparationAndDraw(t *testing.T) {
 					if err := e.Key("escape"); err != nil || e.prompt.open() || e.Message() != "" {
 						t.Fatal("production escape did not dismiss the cover", err)
 					}
-					if !bytes.Equal(plain.Pix, e.PanelImage(size.Y).Pix) {
+					if !bytes.Equal(plain.Pix, e.ChromeImage().Pix) {
 						t.Fatal("modal dismissal did not restore the selected-record panel")
 					}
 					e.SetTextSmoothing(true)

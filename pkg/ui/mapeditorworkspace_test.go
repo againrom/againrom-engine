@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestMapEditorHelpAndModalRowsStayAboveSave(t *testing.T) {
+func TestMapEditorPopupsStayInsideTheWindow(t *testing.T) {
 	for _, size := range []image.Point{image.Pt(640, 480), image.Pt(1280, 800), image.Pt(1920, 1080)} {
 		for _, path := range []string{"list", "selected", "clone", "sack", "unit", "drop", "goals", "goals-pick", "terrain", "height", "objects", "players", "field", "open", "saveas"} {
 			e, _ := newModesEditor(t, "full")
@@ -14,34 +14,34 @@ func TestMapEditorHelpAndModalRowsStayAboveSave(t *testing.T) {
 			for _, step := range modesPathSteps(path) {
 				modesAct(e, step)
 			}
-			height := e.helpStep()
-			if end := e.helpTop(size.Y) + len(e.helpLines())*height; end > e.saveTop(size.Y)-6 {
-				t.Fatalf("%v/%s help overlaps save", size, path)
+			window := image.Rect(0, e.barHeight(), size.X, size.Y)
+			if s, ok := e.listSpec(); ok {
+				if r := layoutPopup(s, e.font, e.bodyFont()).Rect; !r.In(window) {
+					t.Fatalf("%v/%s list popup %v leaves %v", size, path, r, window)
+				}
 			}
-			if e.saveTop(size.Y)+e.font.Height() > size.Y {
-				t.Fatalf("%v/%s save leaves rail", size, path)
-			}
-			for _, row := range e.detailLayout(size.Y) {
-				if row.Rect.Max.Y > e.helpTop(size.Y)-6 {
-					t.Fatalf("%v/%s detail overlaps help: %+v", size, path, row)
+			if s, _, ok := e.objectSpec(); ok {
+				if r := layoutPopup(s, e.font, e.bodyFont()).Rect; !r.In(window) {
+					t.Fatalf("%v/%s object popup %v leaves %v", size, path, r, window)
 				}
 			}
 			if e.prompt.open() {
 				e.prompt.path = strings.Repeat("path/", 160) + "tail"
 				e.message = "refused input: keep the document and typed tail"
-				caret, refusal := false, false
-				for _, row := range e.modalLayout(size.Y) {
-					if row.y+height > e.helpTop(size.Y)-6 {
-						t.Fatalf("%v/%s modal overlaps help: %+v", size, path, row)
-					}
-					caret = caret || strings.HasSuffix(row.text, "tail_")
-					refusal = refusal || row.color == editorWarning
+				s, l := promptLayout(t, e)
+				if !l.Rect.In(window) {
+					t.Fatalf("%v/%s prompt %v leaves %v", size, path, l.Rect, window)
 				}
-				if !caret || !refusal {
-					t.Fatalf("%v/%s lost caret or refusal", size, path)
+				last := s.Rows[len(s.Rows)-1]
+				refusal := false
+				for _, n := range s.Notes {
+					refusal = refusal || strings.Contains(n, "refused input")
+				}
+				if !strings.HasSuffix(last.Value, "tail") || !last.Focus || !refusal {
+					t.Fatalf("%v/%s lost caret or refusal: %+v %v", size, path, last, s.Notes)
 				}
 			}
-			_ = e.PanelImage(size.Y)
+			_ = e.ChromeImage()
 		}
 	}
 }

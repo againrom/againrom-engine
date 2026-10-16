@@ -201,6 +201,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenPlayers:   {"players"},
 		screenStructure: {"structure"},
 		screenPrompt:    {"ui:select0", "field"},
+		screenMove:      {"ui:select0", "ui:pick-move"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)

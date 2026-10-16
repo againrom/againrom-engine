@@ -19,13 +19,14 @@ func (p *unitEdits) AddUnit(cell image.Point, class int64) (*InspectionDocument,
 
 func TestNewKeyOpensTheCatalogueAtItsFirstRow(t *testing.T) {
 	e := reportEditor(t, &reportEdits{})
-	e.catalog, e.offset = false, 3
+	e.catalog = false
 	_ = e.Key("report")
 	if err := e.Key("new"); err != nil {
 		t.Fatal(err)
 	}
-	if !e.catalog || e.offset != 0 {
-		t.Fatalf("catalogue %v offset %d after N", e.catalog, e.offset)
+	e.listSpec()
+	if top, _ := e.model.Visible(); !e.catalog || top != 0 || e.model.Len() > 1 && e.model.Selection() != 1 {
+		t.Fatalf("catalogue %v top %d selection %d after N", e.catalog, top, e.model.Selection())
 	}
 	if _, open := e.ReportOpen(); open {
 		t.Fatal("the report stayed open")
@@ -61,11 +62,13 @@ func TestUnitKeyNeedsAHostThatAddsUnits(t *testing.T) {
 	}
 }
 
-func TestEveryHelpRowFitsTheRail(t *testing.T) {
+// The status strip joins a screen's help rows; each row stays short enough
+// that a screen's rows fit the strip of the smallest window.
+func TestEveryHelpRowFitsTheStatusStrip(t *testing.T) {
 	e := reportEditor(t, &unitEdits{})
 	for _, row := range EditorHelpLines() {
 		if got := editorClip(e.font, row, 300); got != row {
-			t.Errorf("%q is clipped to %q; the rail holds 300", row, got)
+			t.Errorf("%q is clipped to %q; a help row holds 300", row, got)
 		}
 	}
 }

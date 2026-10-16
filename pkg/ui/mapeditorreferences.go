@@ -24,11 +24,6 @@ type InspectionTarget struct {
 	Cell, Size image.Point
 }
 
-type inspectionDetailRow struct {
-	InspectionLine
-	Rect image.Rectangle
-}
-
 func inspectionRoleColor(role string) color.RGBA {
 	switch role {
 	case "condition":
@@ -40,60 +35,6 @@ func inspectionRoleColor(role string) color.RGBA {
 	default:
 		return editorPaper
 	}
-}
-
-// detailLayout is shared by the uploaded rail and Pointer hit tests. A wrapped
-// link retains its identity on every visible line, including after a resize.
-func (e *MapEditor) detailLayout(h int) []inspectionDetailRow {
-	if e.doc == nil || e.selected < 0 || e.selected >= len(e.doc.Records) || e.catalog {
-		return nil
-	}
-	r := e.doc.Records[e.selected]
-	top := e.listBottom() + 86
-	if r.Preview != nil && h >= 700 && r.Preview.Width > 0 && r.Preview.Height > 0 {
-		top += 70
-	}
-	var lines []InspectionLine
-	visible := false
-	for _, id := range e.rows() {
-		visible = visible || id == e.selected
-	}
-	if !visible {
-		lines = append(lines, InspectionLine{Text: "Hidden by filter: choose All", Role: "warning"})
-	}
-	// Structured records put their compact authored summary first. Their issues
-	// are also shown beside the exact failing reference, not ahead of the logic.
-	if r.Warning != "" && len(r.Lines) == 0 {
-		lines = append(lines, InspectionLine{Text: "! " + r.Warning, Role: "warning"})
-	}
-	lines = append(lines, InspectionLine{Text: r.Label})
-	for _, s := range r.Details {
-		lines = append(lines, InspectionLine{Text: s})
-	}
-	lines = append(lines, r.Lines...)
-	var wrapped []InspectionLine
-	for _, l := range lines {
-		if l.Reference > 0 {
-			l.Text = "> " + l.Text
-		}
-		for _, s := range editorWrap(e.font, l.Text, 300) {
-			row := l
-			row.Text = s
-			wrapped = append(wrapped, row)
-		}
-	}
-	lineHeight := 16
-	if e.font != nil {
-		lineHeight = max(lineHeight, e.font.Height()+2)
-	}
-	limit := max(0, (e.helpTop(h)-6-top)/lineHeight)
-	e.detailOffset = max(0, min(e.detailOffset, max(0, len(wrapped)-limit)))
-	var out []inspectionDetailRow
-	for i := e.detailOffset; i < min(len(wrapped), e.detailOffset+limit); i++ {
-		y := top + (i-e.detailOffset)*lineHeight
-		out = append(out, inspectionDetailRow{wrapped[i], image.Rect(10, y, 310, y+lineHeight)})
-	}
-	return out
 }
 
 // FocusReference preserves the selected record, filter, list and detail travel.

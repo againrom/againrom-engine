@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The map editor opens through a top bar and popups: pick a map from a
+  scrollable list, open units, buildings, groups, sacks, players and triggers
+  from the bar, and edit every field of a selected object in one window with
+  drop-downs, Apply and Cancel, in English or Russian.
 - [ROM1] A unit on Hold Position that is ordered to attack leaves Hold, as in
   the original.
 - [ROM1] Original mission saves that would not load now load: a unit

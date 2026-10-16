@@ -218,12 +218,16 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	if err := e.Open("map0"); err != nil {
 		t.Fatal(err)
 	}
+	// The popups stand in the window's bottom-right corner, clear of the
+	// cells the gestures aim at.
+	e.listAt, e.listPlaced = image.Pt(e.window.X, e.window.Y), true
+	e.objectAt, e.objPlaced = image.Pt(e.window.X, e.window.Y), true
 	return e, calls
 }
 
 var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "clear", "newline", "bogus"}
 
-var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:rail-maps", "ui:rail-open", "ui:rail-fit", "ui:rail-undo", "ui:rail-redo", "ui:rail-save", "ui:rail-filter", "ui:rail-row0", "ui:wheel-rail"}
+var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:menu-fit", "ui:bar-undo", "ui:bar-redo", "ui:bar-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
 
 func modesPress(e *MapEditor, p image.Point, down bool) {
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: down}, time.Unix(1, 0))
@@ -236,9 +240,19 @@ func modesClick(e *MapEditor, p image.Point) {
 
 // modesAct applies one key or gesture and reports the error text of a key.
 func modesAct(e *MapEditor, name string) string {
-	rail := image.Pt(e.window.X-editorRailWidth, 0)
-	if e.doc != nil {
-		rail.X = e.doc.Viewer.cam.ViewW
+	bar := func(key string) image.Point {
+		for _, b := range e.barEntries() {
+			if b.key == key {
+				return center(b.rect)
+			}
+		}
+		return image.Point{}
+	}
+	menu := func(key string, row int) {
+		modesClick(e, bar(key))
+		if b, ok := e.openMenuEntry(); ok {
+			modesClick(e, center(e.menuDropdown(b, true).listBox(e.font).Row(row)))
+		}
 	}
 	cell := func(x, y int) image.Point {
 		e.Fit() // a selection may have scrolled the map; the gesture aims at the fitted view
@@ -267,24 +281,38 @@ func modesAct(e *MapEditor, name string) string {
 		modesPress(e, cell(10, 10), true)
 	case "ui:press-cell":
 		modesPress(e, cell(25, 20), true)
-	case "ui:rail-maps":
-		modesClick(e, rail.Add(image.Pt(10, 20)))
-	case "ui:rail-open":
-		modesClick(e, rail.Add(image.Pt(120, 20)))
-	case "ui:rail-fit":
-		modesClick(e, rail.Add(image.Pt(230, 20)))
-	case "ui:rail-undo":
-		modesClick(e, rail.Add(image.Pt(10, 50)))
-	case "ui:rail-redo":
-		modesClick(e, rail.Add(image.Pt(120, 50)))
-	case "ui:rail-save":
-		modesClick(e, rail.Add(image.Pt(230, 50)))
-	case "ui:rail-filter":
-		modesClick(e, rail.Add(image.Pt(90, 140)))
-	case "ui:rail-row0":
-		modesClick(e, rail.Add(image.Pt(10, 190)))
-	case "ui:wheel-rail":
-		e.Pointer(Input{CursorX: rail.X + 10, CursorY: 300, WheelY: -0.1}, time.Unix(1, 0))
+	case "ui:menu-maps":
+		menu("map", 1)
+	case "ui:menu-open":
+		menu("map", 2)
+	case "ui:menu-fit":
+		menu("view", 5)
+	case "ui:bar-undo":
+		modesClick(e, bar("undo"))
+	case "ui:bar-redo":
+		modesClick(e, bar("redo"))
+	case "ui:bar-save":
+		modesClick(e, bar("save"))
+	case "ui:bar-units":
+		modesClick(e, bar("units"))
+	case "ui:list-row0":
+		if s, ok := e.listSpec(); ok {
+			l := layoutPopup(s, e.font, e.bodyFont())
+			modesClick(e, center(l.List.Row(0)))
+		}
+	case "ui:wheel-list":
+		modesWheel(e)
+	case "ui:esc-twice":
+		_ = e.Key("escape")
+		_ = e.Key("escape")
+	case "ui:pick-move":
+		if s, _, ok := e.objectSpec(); ok && e.obj.cell >= 0 {
+			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+				if rr.Index == e.obj.cell {
+					modesClick(e, center(rr.Button))
+				}
+			}
+		}
 	default:
 		if err := e.Key(name); err != nil {
 			return err.Error()
@@ -294,12 +322,13 @@ func modesAct(e *MapEditor, name string) string {
 }
 
 func modesWheel(e *MapEditor) {
-	rail := e.window.X - editorRailWidth
-	if e.doc != nil {
-		rail = e.doc.Viewer.cam.ViewW
+	s, ok := e.listSpec()
+	if !ok {
+		return
 	}
+	p := center(layoutPopup(s, e.font, e.bodyFont()).List.Row(0))
 	for i := 0; i < 2; i++ {
-		e.Pointer(Input{CursorX: rail + 10, CursorY: 300, WheelY: -0.1}, time.Unix(1, 0))
+		e.Pointer(Input{CursorX: p.X, CursorY: p.Y, WheelY: -0.1}, time.Unix(1, 0))
 	}
 }
 
@@ -309,9 +338,17 @@ func modesProbe(e *MapEditor, calls *modesCalls, errText string, pixels bool) st
 	var b strings.Builder
 	rows, open := e.ReportOpen()
 	fmt.Fprintf(&b, "err=%q msg=%q help=%q\n", errText, e.Message(), e.helpLines())
-	fmt.Fprintf(&b, "report=%v/%d sel=%d brush=%v rows=%d selected=%d offset=%d filter=%d dirty=%v\n", open, len(rows), e.ReportSelected(), e.brushActive(), e.rowCount(), e.Selected(), e.offset, e.filter, e.Dirty())
-	for _, r := range e.modalLayout(768) {
-		fmt.Fprintf(&b, "modal %d %q %v\n", r.y, r.text, r.color)
+	list, cursor := e.listKind(), -1
+	if s, ok := e.listSpec(); ok {
+		cursor = s.List.Selection()
+	}
+	fmt.Fprintf(&b, "report=%v/%d sel=%d brush=%v list=%q/%d selected=%d filter=%d dirty=%v\n", open, len(rows), e.ReportSelected(), e.brushActive(), list, cursor, e.Selected(), e.filter, e.Dirty())
+	if s, ok := e.promptSpec(); ok {
+		fmt.Fprintf(&b, "prompt %q", s.Title)
+		for _, r := range s.Rows {
+			fmt.Fprintf(&b, " %q", r.Value)
+		}
+		fmt.Fprintf(&b, " notes %q\n", s.Notes)
 	}
 	if e.doc != nil {
 		fmt.Fprintf(&b, "source=%q\n", e.doc.Source)
@@ -333,7 +370,7 @@ func modesPanelHash(e *MapEditor) (out string) {
 		}
 	}()
 	h := fnv.New32a()
-	h.Write(e.PanelImage(768).Pix)
+	h.Write(e.ChromeImage().Pix)
 	return fmt.Sprintf("%08x", h.Sum32())
 }
 
@@ -519,12 +556,10 @@ type modesRow struct {
 }
 
 func modesTitle(e *MapEditor) string {
-	for _, r := range e.modalLayout(768) {
-		if r.color == editorGold {
-			return r.text
-		}
+	if !e.prompt.open() {
+		return ""
 	}
-	return ""
+	return editorClip(e.font, e.promptTitle(), 300)
 }
 
 func modesPathSteps(name string) []string {
@@ -588,7 +623,8 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "players", "player", players, "", "", false, false},
 		{"plain", "players", "player", players, "", "", false, false},
 		{"full", "players", "delete", players, "The first player cannot be deleted.", "", false, false},
-		{"full", "players", "escape", keys, "", "", false, false},
+		{"full", "players", "escape", players, "", "", false, false}, // Esc closes the player's popup first
+		{"full", "players", "ui:esc-twice", keys, "", "", false, false},
 	}
 	for _, r := range rows {
 		e, _ := newModesEditor(t, r.host)

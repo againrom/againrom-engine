@@ -111,13 +111,13 @@ func TestReportKeyListsTheFindingsAndSelectingOneSelectsItsRecord(t *testing.T) 
 	if e.ReportSelected() != 3 {
 		t.Fatal("Down passed the last finding")
 	}
-	// Clicking a row selects it. The list starts at editorListTop.
-	e.railClick(10, editorListTop+1*editorRowHeight+2)
+	// Clicking a row of the list popup selects it.
+	chromeClick(e, listRowPoint(t, e, 1))
 	if e.ReportSelected() != 1 {
 		t.Fatalf("a click on row 1 selected %d", e.ReportSelected())
 	}
-	if pic := e.PanelImage(600); pic == nil {
-		t.Fatal("no panel")
+	if pic := e.ChromeImage(); pic == nil {
+		t.Fatal("no chrome")
 	}
 	if n := len(e.markerLines()); n == 0 {
 		t.Fatal("flagged records draw no marker")

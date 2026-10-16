@@ -31,8 +31,8 @@ func finishEditorDialog(t *testing.T, e *MapEditor) {
 	}
 }
 
-func TestEditorOpenDialogKeyAndRail(t *testing.T) {
-	for _, door := range []string{"key", "rail"} {
+func TestEditorOpenDialogKeyAndMenu(t *testing.T) {
+	for _, door := range []string{"key", "menu"} {
 		t.Run(door, func(t *testing.T) {
 			e := editor1092(t)
 			base := t.TempDir()
@@ -47,10 +47,8 @@ func TestEditorOpenDialogKeyAndRail(t *testing.T) {
 			if door == "key" {
 				_ = e.Key("open")
 			} else {
-				in := Input{CursorX: e.window.X - editorRailWidth + 150, CursorY: 20, PrimaryDown: true}
-				e.Pointer(in, time.Time{})
-				in.PrimaryDown = false
-				e.Pointer(in, time.Time{})
+				chromeClick(e, barPoint(t, e, "map"))
+				chromeClick(e, menuPoint(t, e, 2))
 			}
 			finishEditorDialog(t, e)
 			select {

@@ -17,7 +17,7 @@ func (e *MapEditor) keyPlayers(string) error {
 	wasPlayers := e.listView() && !e.brushActive() && e.filter == editorPlayersFilter
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
 	e.message = ""
-	e.filter = 0
+	e.filter, e.listShown = 0, !wasPlayers
 	if !wasPlayers {
 		e.filter = editorPlayersFilter
 	}

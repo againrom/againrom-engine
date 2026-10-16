@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // MapInspector opens authored data only: it never constructs a World, mission,
@@ -28,6 +29,7 @@ type MapInspector struct {
 	sacks         []*terrain.StaticFrame
 	table         *mapload.Table
 	font          *text.Font
+	body          *text.Font // the documents font: rows, labels, values and report text
 	Maps          []MapEntry
 	mod           *editorMod    // the mod folder Save writes into; nil for Save As
 	testPlay      *TestPlayHost // the game the test play key starts; nil: no test play
@@ -61,6 +63,13 @@ func NewMapInspector(root string) (*MapInspector, error) {
 		return nil, err
 	}
 	x.font.Selector = LanguageSelector(a.Containers)
+	// The documents font is the install's plain reading face; the editor's
+	// rows, labels, values and reports use it, its titles font1.
+	// An install without it keeps font1 throughout.
+	if body, err := LoadFont(a.Containers, DocumentFont, FontCoverage); err == nil {
+		body.Selector = x.font.Selector
+		x.body = body
+	}
 	loose, err := DirMaps(root, a.Loose)
 	if err != nil {
 		return nil, err
@@ -80,6 +89,10 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text())})
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
+	e.SetBodyFont(x.body)
+	if x.archives != nil {
+		e.SetWords(words.For(x.archives.Base.Profile.Language))
+	}
 	e.SetHostTextEncoder(x.inspectionUTF8)
 	return e
 }
@@ -161,7 +174,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 	var entities []ui.MapEntity
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))
-		r := ui.InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf("class %d", u.ClassID)}
+		r := ui.InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID)}
 		var c *terrain.UnitClass
 		if x.units != nil {
 			c = x.units.Classes[int32(u.ClassID)]

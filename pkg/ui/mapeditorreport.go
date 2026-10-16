@@ -71,14 +71,13 @@ func refusal(err error) (*ReportRefusal, bool) {
 }
 
 // reportState is the window's report panel: the findings it lists, the one
-// selected, and the list offset the record list had before it opened.
+// selected and the records they flag.
 type reportState struct {
 	open    bool
 	rows    []InspectionFinding
 	note    string
 	sel     int
 	flagged map[string]bool
-	offset  int
 	goals   []InspectionGoal // set while the rows are the script panel's arms
 }
 
@@ -151,7 +150,6 @@ func (e *MapEditor) selectFinding(i int) {
 	}
 	e.report.sel = i
 	f := e.report.rows[i]
-	listOffset := e.offset
 	e.selected, e.focusedReference = -1, 0
 	jumped := false
 	if f.Kind != "" {
@@ -163,14 +161,8 @@ func (e *MapEditor) selectFinding(i int) {
 			}
 		}
 	}
-	e.offset = listOffset
 	if !jumped && f.HasCell {
 		e.centerOn(f.Cell)
-	}
-	if rows := e.visibleRows(); i < e.offset {
-		e.offset = i
-	} else if i >= e.offset+rows {
-		e.offset = i - rows + 1
 	}
 }
 

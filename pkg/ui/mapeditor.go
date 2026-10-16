@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"math"
 	"strings"
 	"time"
@@ -13,14 +12,10 @@ import (
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
-	"againrom/pkg/render/textsmooth"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
-
-const editorRailWidth = 320
-const editorListTop, editorRowHeight = 184, 20
 
 var editorInk = color.RGBA{0x20, 0x1b, 0x16, 255}
 var editorPanel = color.RGBA{0x30, 0x29, 0x1f, 255}
@@ -41,6 +36,7 @@ type InspectionRecord struct {
 	Preview        *terrain.StaticFrame
 	Lines          []InspectionLine
 	References     []InspectionReference
+	Player, Group  int // a unit's owner slot and group number; 0 is none
 }
 
 type InspectionDocument struct {
@@ -114,32 +110,32 @@ type InspectionOpener func(string) (*InspectionDocument, error)
 // MapEditor is an authored-map canvas. It has no game App, command queue,
 // mission or simulation ticking seam. Host callbacks own edits and file writes.
 type MapEditor struct {
-	doc                            *InspectionDocument
-	font                           *text.Font
-	maps                           []EditorMap
-	open                           InspectionOpener
-	hostText                       func(string) string
-	pathDialog                     editorPathDialog
-	selected, offset, detailOffset int
-	listWheel, detailWheel         float64 // fractional rows belong to their viewport
-	filter                         int
-	editorMode                     // the window's mode: catalogue, prompt, pick, brush and report
-	message                        string
-	down, moved                    bool
-	press                          image.Point
-	window                         image.Point
-	panelImage                     *ebiten.Image
-	focusedReference               int // 1-based on the selected record; 0 means none
-	recordDrag                     *editorRecordDrag
-	cancelledDrag                  bool // consume the remainder of a cancelled press
-	textSmoothingEnabled           bool
-	textOverlay                    textOverlay
-	textLayers                     []textLayer
-	textCaptured, textKept         int
+	doc                    *InspectionDocument
+	font                   *text.Font
+	maps                   []EditorMap
+	open                   InspectionOpener
+	hostText               func(string) string
+	pathDialog             editorPathDialog
+	selected               int
+	filter                 int
+	editorMode             // the window's mode: catalogue, prompt, pick, brush and report
+	message                string
+	down, moved            bool
+	press                  image.Point
+	window                 image.Point
+	focusedReference       int // 1-based on the selected record; 0 means none
+	recordDrag             *editorRecordDrag
+	cancelledDrag          bool // consume the remainder of a cancelled press
+	textSmoothingEnabled   bool
+	textOverlay            textOverlay
+	textLayers             []textLayer
+	textCaptured, textKept int
+	editorChrome
 }
 
 func NewMapEditor(font *text.Font, maps []EditorMap, open InspectionOpener) *MapEditor {
-	return &MapEditor{font: font, maps: maps, open: open, selected: -1, editorMode: editorMode{catalog: true}, window: image.Pt(1280, 800), textSmoothingEnabled: true}
+	return &MapEditor{font: font, maps: maps, open: open, selected: -1, editorMode: editorMode{catalog: true}, window: image.Pt(1280, 800), textSmoothingEnabled: true,
+		editorChrome: editorChrome{obj: objectEdit{record: -1, focus: -1, open: -1, cell: -1}}}
 }
 
 func (e *MapEditor) SetTextSmoothing(enabled bool) { e.textSmoothingEnabled = enabled }
@@ -181,9 +177,9 @@ func (e *MapEditor) Open(source string) error {
 	e.doc = next
 	e.Layout(e.window.X, e.window.Y)
 	e.leave(leaveDrag | leaveReport | leaveCatalog | leavePrompt)
-	e.selected, e.offset, e.detailOffset, e.filter = -1, 0, 0, 0
-	e.focusedReference = 0
-	e.listWheel, e.detailWheel = 0, 0
+	e.selected, e.filter, e.listShown = -1, 0, false
+	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
+	e.listWheel, e.objectWheel = 0, 0
 	e.message = ""
 	e.brush.endStroke()
 	e.Fit()
@@ -211,20 +207,9 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	if e.doc == nil || index < 0 || index >= len(e.doc.Records) {
 		return false
 	}
-	e.selected, e.detailOffset = index, 0
-	e.focusedReference = 0
-	e.detailWheel = 0
-	rows := e.rows()
-	row := -1
-	for n, id := range rows {
-		if id == index {
-			row = n
-			break
-		}
-	}
-	if row >= 0 && (row < e.offset || row >= e.offset+e.visibleRows()) {
-		e.offset = max(0, row-e.visibleRows()/2)
-	}
+	e.selected, e.objectTop, e.objectHidden = index, 0, false
+	e.focusedReference, e.objectWheel = 0, 0
+	e.groupSel = editorGroup{}
 	r := e.doc.Records[index]
 	if jump && r.Spatial {
 		e.centerOn(r.Cell)
@@ -256,12 +241,6 @@ func (e *MapEditor) cellCenter(cell image.Point) (float64, float64) {
 }
 
 var editorFilters = []string{"All", "Units", "Build", "Sacks", "Scenery", "Other", "Issues", "Triggers"}
-
-func (e *MapEditor) listBottom() int { return editorListTop + e.visibleRows()*editorRowHeight }
-func (e *MapEditor) visibleRows() int {
-	bottom := min(e.window.Y/2+30, e.helpTop(e.window.Y)-132)
-	return max(1, min(12, (bottom-editorListTop)/editorRowHeight))
-}
 
 func (e *MapEditor) rows() []int {
 	if e.doc == nil {
@@ -297,30 +276,24 @@ func (e *MapEditor) rows() []int {
 	return out
 }
 
-func (e *MapEditor) rowCount() int {
-	if e.brushActive() {
-		return len(e.brushRows())
-	}
-	if e.catalog {
-		return len(e.maps)
-	}
-	if e.report.open {
-		return len(e.report.rows)
-	}
-	return len(e.rows())
-}
-
 func (e *MapEditor) Pointer(in Input, now time.Time) {
 	if e.pathDialog.pending != nil {
 		return
 	}
-	x, y := in.CursorX, in.CursorY
-	rail := e.window.X - editorRailWidth
-	if e.doc != nil {
-		x, y = e.doc.Viewer.windowToFrame(x, y)
-		rail = e.doc.Viewer.cam.ViewW
+	if e.chromePointer(in, now) {
+		if e.doc != nil {
+			e.doc.Viewer.dragging = false
+		}
+		return
 	}
+	if e.doc == nil {
+		e.down = in.PrimaryDown
+		return
+	}
+	x, y := e.doc.Viewer.windowToFrame(in.CursorX, in.CursorY)
+	rail := e.doc.Viewer.cam.ViewW
 	p := image.Pt(x, y)
+	e.hoverAt(p)
 	if e.brushPointer(in, p, rail) {
 		return
 	}
@@ -336,30 +309,11 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	released := e.down && !in.PrimaryDown && !e.moved
 	e.down = in.PrimaryDown
-	if e.prompt.open() {
-		return
-	}
-	if x >= rail {
-		if e.doc != nil {
-			e.doc.Viewer.dragging = false
-		}
-		if in.WheelY != 0 {
-			if y >= e.listBottom() && !e.catalog {
-				e.detailOffset = max(0, e.detailOffset+editorWheelRows(&e.detailWheel, in.WheelY))
-			} else {
-				e.offset = max(0, min(max(0, e.rowCount()-e.visibleRows()), e.offset+editorWheelRows(&e.listWheel, in.WheelY)))
-			}
-		}
-		if released && e.press.X >= rail {
-			e.railClick(x-rail, y)
-		}
-		return
-	}
-	if e.doc == nil || e.blocksCanvas() {
+	if e.prompt.open() || e.blocksCanvas() {
 		return
 	}
 	e.doc.Viewer.step(in, now)
-	if released && e.press.X < rail {
+	if released {
 		if e.pick != pickNone {
 			e.pickAt(p)
 			return
@@ -380,65 +334,10 @@ func editorWheelRows(remainder *float64, wheel float64) int {
 	return rows
 }
 
-func (e *MapEditor) railClick(x, y int) {
-	if e.prompt.open() {
-		return
-	}
-	if y >= 42 && y < 64 {
-		_ = e.Key([]string{"undo", "redo", "saveas"}[min(2, max(0, x/108))])
-		return
-	}
-	if e.listView() && !e.prompt.open() && e.message == "" {
-		for _, line := range e.detailLayout(e.window.Y) {
-			if line.Reference > 0 && image.Pt(x, y).In(line.Rect) {
-				e.FocusReference(line.Reference)
-				return
-			}
-		}
-	}
-	if y >= 8 && y < 36 {
-		switch {
-		case x < 108:
-			_ = e.Key("catalog")
-		case x < 216:
-			_ = e.Key("open")
-		default:
-			e.Fit()
-		}
-		return
-	}
-	if e.listView() && !e.brushActive() && e.filter != editorPlayersFilter && e.filter != editorScriptsFilter && y >= 128 && y < 176 {
-		idx := (y-128)/24*4 + x/80
-		if idx < len(editorFilters) {
-			e.filter = idx
-			e.resetList(0)
-			if e.selected >= 0 {
-				e.Select(e.selected, false)
-			}
-		}
-		return
-	}
-	if y < editorListTop || y >= e.listBottom() {
-		return
-	}
-	row := e.offset + (y-editorListTop)/editorRowHeight
-	if e.catalog {
-		if row < len(e.maps) {
-			_ = e.Open(e.maps[row].Key)
-		}
-	} else if e.report.open {
-		e.selectFinding(row)
-	} else if e.brushActive() {
-		e.brushRowClick(row)
-	} else {
-		rows := e.rows()
-		if row < len(rows) {
-			e.Select(rows[row], true)
-		}
-	}
-}
-
 func (e *MapEditor) Update() error {
+	if e.exitAsked {
+		return ebiten.Termination
+	}
 	if e.PollPathDialog() {
 		return nil
 	}
@@ -453,7 +352,7 @@ func (e *MapEditor) Update() error {
 			return err
 		}
 	}
-	if e.prompt.open() {
+	if e.prompt.open() || e.objectTyping() {
 		e.TextInput(string(ebiten.AppendInputChars(nil)))
 	}
 	for _, k := range []struct {
@@ -470,7 +369,7 @@ func (e *MapEditor) Update() error {
 			}
 		}
 	}
-	if !e.prompt.open() {
+	if !e.prompt.open() && !e.objectTyping() {
 		if ebiten.IsKeyPressed(ebiten.KeyControl) {
 			if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 				key := "undo"
@@ -507,7 +406,7 @@ func (e *MapEditor) Update() error {
 			_ = e.Key("report")
 		}
 	} else {
-		if e.prompt.fields() && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		if (e.prompt.fields() || e.objectTyping()) && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 			_ = e.Key("tab")
 		}
 		if ebiten.IsKeyPressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyA) {
@@ -520,20 +419,20 @@ func (e *MapEditor) Update() error {
 
 func (e *MapEditor) Layout(w, h int) (int, int) {
 	e.window = image.Pt(w, h)
-	if e.doc != nil {
+	if e.doc != nil && w > 0 && h > 0 {
 		v := e.doc.Viewer
-		if w > 0 && h > 0 {
-			if v.frameW != w || v.frameH != h {
-				if v.canvas != nil {
-					disposeFrameCanvas(v.canvas)
-					v.canvas = nil
-				}
-			}
-			v.frameW, v.frameH = w, h
-			v.place = frame.Fit(w, h, w, h)
-			v.syncMapViewport()
-			v.cam.SetMinimumZoom(math.Min(camera.ZoomMin, e.fitZoom()))
+		area := e.mapArea()
+		fw, fh := area.Dx(), area.Dy()
+		if (v.frameW != fw || v.frameH != fh) && v.canvas != nil {
+			disposeFrameCanvas(v.canvas)
+			v.canvas = nil
 		}
+		// The frame is the map area: centred in the window between a bar and
+		// a strip of equal height, it sits at scale 1 below the bar.
+		v.frameW, v.frameH = fw, fh
+		v.place = frame.Fit(fw, fh, w, h)
+		v.syncMapViewport()
+		v.cam.SetMinimumZoom(math.Min(camera.ZoomMin, e.fitZoom()))
 	}
 	return w, h
 }
@@ -545,283 +444,24 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 	if e.textSmoothingEnabled {
 		text.ResetCapture()
 	}
-	if e.doc == nil {
-		calls := e.drawPanel(screen, e.window.X-editorRailWidth, e.window.Y)
-		if len(calls) > 0 {
-			e.textOverlay.draw(screen, calls, 1, 0, 0)
-		}
-		return
-	}
-	v := e.doc.Viewer
-	v.syncMapViewport()
-	if v.canvas == nil {
-		v.canvas = ebiten.NewImage(v.frameW, v.frameH)
-	}
-	v.canvas.Clear()
-	v.drawFrame(v.canvas)
-	e.drawMarkers(v.canvas)
-	calls := e.drawPanel(v.canvas, v.cam.ViewW, v.frameH)
-	ox, oy := v.place.Origin()
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(v.place.Scale(), v.place.Scale())
-	op.GeoM.Translate(ox, oy)
-	screen.DrawImage(v.canvas, op)
-	if len(calls) > 0 {
-		e.textOverlay.draw(screen, calls, v.place.Scale(), ox, oy)
-	}
-}
-
-func (e *MapEditor) drawPanel(dst *ebiten.Image, x, h int) []text.DrawCall {
-	pic, blit, calls, kept := e.panelPicture(h)
-	for i := range calls {
-		calls[i].X += x
-		calls[i].Clip = calls[i].Clip.Add(image.Pt(x, 0)).Intersect(dst.Bounds())
-	}
-	for i := range kept {
-		kept[i].X += x
-		kept[i].Clip = kept[i].Clip.Add(image.Pt(x, 0)).Intersect(dst.Bounds())
-	}
-	log := &pixelLog{}
-	log.reset(dst.Bounds())
-	log.over(pic, image.Pt(x, 0))
-	log.end()
-	e.textLayers = append(e.textLayers, textLayer{calls, dst.Bounds(), log})
-	e.textCaptured, e.textKept = len(calls), len(kept)
-	if e.panelImage == nil || e.panelImage.Bounds().Dy() != h {
-		if e.panelImage != nil {
-			e.panelImage.Dispose()
-		}
-		e.panelImage = ebiten.NewImage(editorRailWidth, h)
-	}
-	e.panelImage.WritePixels(blit.Pix)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(x), 0)
-	dst.DrawImage(e.panelImage, op)
-	return kept
-}
-
-func (e *MapEditor) panelPicture(h int) (pic, blit *image.RGBA, calls, kept []text.DrawCall) {
-	if !e.textSmoothingEnabled {
-		pic = e.PanelImage(h)
-		return pic, pic, nil, nil
-	}
-	calls = text.Record(func() { pic = e.PanelImage(h) })
-	blit = image.NewRGBA(pic.Bounds())
-	copy(blit.Pix, pic.Pix)
-	kept = textsmooth.Settle(blit, calls)
-	return pic, blit, calls, text.MarkErased(kept)
-}
-
-// PanelImage composes the native rail, including art and opaque covers.
-func (e *MapEditor) PanelImage(h int) *image.RGBA {
-	pic := image.NewRGBA(image.Rect(0, 0, editorRailWidth, h))
-	draw.Draw(pic, pic.Bounds(), image.NewUniform(editorPanel), image.Point{}, draw.Src)
-	line := func(s string, x, y, w int, c color.RGBA) {
-		if e.font == nil {
-			return
-		}
-		for _, s := range editorWrap(e.font, s, w) {
-			e.font.Draw(pic, s, x, y, c)
-			y += max(16, e.font.Height()+2)
-		}
-	}
-	for i, s := range []string{"Maps", "Open path", "Fit"} {
-		r := image.Rect(i*108, 8, min((i+1)*108-4, 316), 36)
-		draw.Draw(pic, r, image.NewUniform(editorGold), image.Point{}, draw.Src)
-		line(s, r.Min.X+8, 12, 90, editorInk)
-	}
-	for i, s := range []string{"Undo", "Redo", "Save As"} {
-		enabled := e.editable()
-		if enabled && i == 0 {
-			enabled = e.doc.Edits.CanUndo()
-		} else if enabled && i == 1 {
-			enabled = e.doc.Edits.CanRedo()
-		}
-		bg, ink := editorInk, editorPaper
-		if enabled {
-			bg, ink = editorGold, editorInk
-		}
-		r := image.Rect(i*108, 42, min((i+1)*108-4, 316), 64)
-		draw.Draw(pic, r, image.NewUniform(bg), image.Point{}, draw.Src)
-		line(s, r.Min.X+8, 44, 90, ink)
-	}
 	if e.doc != nil {
-		status := "Saved: "
-		if e.Dirty() {
-			status = "* Modified: "
+		v := e.doc.Viewer
+		v.syncMapViewport()
+		if v.canvas == nil {
+			v.canvas = ebiten.NewImage(v.frameW, v.frameH)
 		}
-		line(editorClip(e.font, status+e.editorHostText(e.doc.Source), 300), 10, 67, 300, editorLight)
-		counts := map[string]int{}
-		warnings := 0
-		for _, r := range e.doc.Records {
-			counts[r.Kind]++
-			if r.Warning != "" {
-				warnings++
-			}
-		}
-		line(fmt.Sprintf("Units %d Build %d Sacks %d", counts["Unit"], counts["Structure"], counts["Sack"]), 10, 88, 300, editorPaper)
-		if e.filter == 7 || e.filter == editorScriptsFilter {
-			line(fmt.Sprintf("Triggers %d / C%d A%d", counts["Trigger"], counts["Condition"], counts["Action"]), 10, 108, 300, editorPaper)
-		} else if e.filter == editorPlayersFilter {
-			line(fmt.Sprintf("Players %d", counts["Player"]), 10, 108, 300, editorPaper)
-		} else {
-			line(fmt.Sprintf("Scenery %d / %d issues", counts["Scenery"], warnings), 10, 108, 300, editorPaper)
-		}
-	} else {
-		line("Choose an installed map or open an ALM path.", 10, 75, 300, editorPaper)
+		v.canvas.Clear()
+		v.drawFrame(v.canvas)
+		e.drawMarkers(v.canvas)
+		ox, oy := v.place.Origin()
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Scale(v.place.Scale(), v.place.Scale())
+		op.GeoM.Translate(ox, oy)
+		screen.DrawImage(v.canvas, op)
 	}
-	if e.report.open {
-		line(editorClip(e.font, e.report.note, 300), 10, 143, 300, editorGold)
-	} else if e.brushActive() {
-		line(editorClip(e.font, e.brushStatus(), 300), 10, 143, 300, editorGold)
-	} else if !e.catalog && e.filter == editorScriptsFilter {
-		line("SCRIPTS / A: add / E: fields", 10, 130, 300, editorGold)
-		line("Up, Down: select / Esc: map", 10, 154, 300, editorPaper)
-	} else if !e.catalog && e.filter == editorPlayersFilter {
-		line("PLAYERS", 10, 130, 300, editorGold)
-		line("Name, colour, control, relations", 10, 154, 300, editorPaper)
-	} else if !e.catalog {
-		for i, s := range editorFilters {
-			x, y := (i%4)*80, (i/4)*24+128
-			c := editorPaper
-			if i == e.filter {
-				draw.Draw(pic, image.Rect(x, y, x+79, y+22), image.NewUniform(editorInk), image.Point{}, draw.Src)
-				c = editorGold
-			}
-			line(editorClip(e.font, s, 74), x+4, y+2, 74, c)
-		}
-	} else {
-		line("NEW AND INSTALLED MAPS", 10, 143, 300, editorGold)
+	if kept := e.drawChrome(screen); len(kept) > 0 {
+		e.textOverlay.draw(screen, kept, 1, 0, 0)
 	}
-	rows := e.rows()
-	rowCount := len(rows)
-	if e.catalog {
-		rowCount = len(e.maps)
-	} else if e.report.open {
-		rowCount = len(e.report.rows)
-	} else if e.brushActive() {
-		rowCount = len(e.brushRows())
-	}
-	if rowCount == 0 && e.filter == 7 && e.doc != nil {
-		line(e.doc.ScriptNotice, 10, editorListTop, 300, editorPaper)
-	}
-	for j := 0; j < e.visibleRows(); j++ {
-		n := e.offset + j
-		if n >= rowCount {
-			break
-		}
-		y := editorListTop + j*editorRowHeight
-		label := ""
-		c := editorPaper
-		if e.catalog {
-			label = e.maps[n].Label
-		} else if e.report.open {
-			f := e.report.rows[n]
-			label = reportLabel(f)
-			if len(e.report.goals) > 0 {
-				label = goalLabel(e.report.goals[n])
-			}
-			if f.Error {
-				c = editorWarning
-			}
-			if n == e.report.sel {
-				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
-				c = editorGold
-			}
-		} else if e.brushActive() {
-			label = e.brushRows()[n]
-			if n == e.brush.sel[e.brush.mode] {
-				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
-				c = editorGold
-			}
-		} else {
-			id := rows[n]
-			r := e.doc.Records[id]
-			label = fmt.Sprintf("%s #%d  %s", r.Kind, r.Index, r.Label)
-			if r.Warning != "" {
-				label = "! " + label
-				c = editorWarning
-			}
-			if id == e.selected {
-				draw.Draw(pic, image.Rect(0, y, 320, y+20), image.NewUniform(editorInk), image.Point{}, draw.Src)
-				c = editorGold
-			}
-		}
-		if e.font != nil {
-			clipped := editorWrap(e.font, label, 300)
-			if len(clipped) > 0 {
-				e.font.Draw(pic, clipped[0], 10, y+2, c)
-			}
-		}
-	}
-	bottom := e.listBottom()
-	line(editorClip(e.font, fmt.Sprintf("%d-%d / %d   PgUp PgDn", min(e.offset+1, rowCount), min(e.offset+e.visibleRows(), rowCount), rowCount), 300), 10, bottom+4, 300, editorPaper)
-	draw.Draw(pic, image.Rect(8, bottom+29, 312, bottom+30), image.NewUniform(editorGold), image.Point{}, draw.Src)
-	if e.report.open && e.report.sel < len(e.report.rows) {
-		f := e.report.rows[e.report.sel]
-		step := 16
-		if e.font != nil {
-			step = max(16, e.font.Height()+2)
-		}
-		text := f.Line()
-		if len(e.report.goals) > 0 {
-			text = goalLabel(e.report.goals[e.report.sel])
-		}
-		for n, row := range editorWrap(e.font, text, 300) {
-			if y := bottom + 40 + n*step; y+step <= e.helpTop(h)-6 {
-				line(row, 10, y, 300, editorLight)
-			}
-		}
-	} else if e.selected >= 0 && e.doc != nil && !e.catalog && !e.brushActive() {
-		r := e.doc.Records[e.selected]
-		if bottom+40+e.helpStep() <= e.helpTop(h)-6 {
-			line(fmt.Sprintf("%s #%d / type %d", r.Kind, r.Index, r.Section), 10, bottom+40, 300, editorGold)
-		}
-		if r.Spatial {
-			if bottom+61+e.helpStep() <= e.helpTop(h)-6 {
-				line(fmt.Sprintf("Cell %d,%d  /  %dx%d", r.Cell.X, r.Cell.Y, r.Size.X, r.Size.Y), 10, bottom+61, 300, editorLight)
-			}
-		} else if r.Kind == "Trigger" {
-			if bottom+61+e.helpStep() <= e.helpTop(h)-6 {
-				line("Blue: conditions / Gold: actions", 10, bottom+61, 300, editorPaper)
-			}
-		}
-		detailTop := bottom + 86
-		if r.Preview != nil && h >= 700 {
-			preview := r.Preview.RGBA()
-			if preview != nil && !preview.Bounds().Empty() {
-				scale := math.Min(1, math.Min(300/float64(preview.Bounds().Dx()), 64/float64(preview.Bounds().Dy())))
-				w, hp := max(1, int(float64(preview.Bounds().Dx())*scale)), max(1, int(float64(preview.Bounds().Dy())*scale))
-				for y := 0; y < hp; y++ {
-					for x := 0; x < w; x++ {
-						c := preview.RGBAAt(preview.Rect.Min.X+int(float64(x)/scale), preview.Rect.Min.Y+int(float64(y)/scale))
-						if c.A != 0 && detailTop+y < e.helpTop(h)-6 {
-							pic.SetRGBA(10+x, detailTop+y, c)
-						}
-					}
-				}
-				detailTop += 70
-			}
-		}
-		for _, row := range e.detailLayout(h) {
-			c := inspectionRoleColor(row.Role)
-			if row.Reference > 0 && row.Reference == e.focusedReference {
-				draw.Draw(pic, row.Rect, image.NewUniform(editorInk), image.Point{}, draw.Src)
-			}
-			line(row.Text, row.Rect.Min.X, row.Rect.Min.Y, 300, c)
-		}
-	}
-	for n, help := range e.helpLines() {
-		line(editorClip(e.font, help, 300), 10, e.helpTop(h)+n*e.helpStep(), 300, editorPaper)
-	}
-	line(e.saveHelp(), 10, e.saveTop(h), 300, editorPaper)
-	if e.prompt.open() || e.message != "" {
-		draw.Draw(pic, image.Rect(0, bottom+30, 320, e.helpTop(h)-6), image.NewUniform(editorInk), image.Point{}, draw.Src)
-		for _, row := range e.modalLayout(h) {
-			line(row.text, 10, row.y, 300, row.color)
-		}
-	}
-	return pic
 }
 
 // Host paths/errors are UTF-8. Installed record and item labels are already in
@@ -841,8 +481,14 @@ func editorWrap(f *text.Font, s string, width int) []string {
 	var line string
 	for _, r := range []byte(strings.ReplaceAll(s, "\n", " ")) {
 		if line != "" && f.Advance(line+string([]byte{r})) > width {
-			lines = append(lines, line)
-			line = ""
+			// Break after the line's last space when it has one, so a
+			// word moves whole; the bytes stay in order either way.
+			cut := strings.LastIndexByte(line, ' ') + 1
+			if cut <= 0 || r == ' ' {
+				cut = len(line)
+			}
+			lines = append(lines, line[:cut])
+			line = line[cut:]
 		}
 		line += string([]byte{r})
 	}
@@ -881,7 +527,8 @@ func (e *MapEditor) markerLines() []editorLine {
 		if e.recordDrag != nil && e.recordDrag.moved && i == e.recordDrag.record {
 			r.Cell = e.recordDrag.cell // preview only; no model mutation until release
 		}
-		if !r.Spatial || (r.Warning == "" && i != e.selected && !e.report.flagged[findingKey(r.Kind, r.Index)]) {
+		issue := !e.view.hideIssues && (r.Warning != "" || e.report.flagged[findingKey(r.Kind, r.Index)])
+		if !r.Spatial || (!issue && i != e.selected) {
 			continue
 		}
 		wx, wy := e.cellCenter(r.Cell)
@@ -891,7 +538,7 @@ func (e *MapEditor) markerLines() []editorLine {
 			c = editorGold
 		}
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), c}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), c})
-		if i == e.selected {
+		if i == e.selected && !e.view.hideFootprints {
 			for cy := r.Cell.Y; cy < r.Cell.Y+max(1, r.Size.Y); cy++ {
 				for cx := r.Cell.X; cx < r.Cell.X+max(1, r.Size.X); cx++ {
 					if cx < 0 || cy < 0 || cx >= e.doc.Width || cy >= e.doc.Height {
@@ -915,6 +562,9 @@ func (e *MapEditor) markerLines() []editorLine {
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), editorGold}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), editorGold})
 	}
 	for _, cell := range e.dropMarkers() {
+		if e.view.hideDrops {
+			break
+		}
 		wx, wy := e.cellCenter(cell)
 		x, y := v.cam.WorldToScreen(wx, wy)
 		for _, d := range [][4]float32{{-8, -8, 8, -8}, {8, -8, 8, 8}, {8, 8, -8, 8}, {-8, 8, -8, -8}, {-8, -8, 8, 8}, {-8, 8, 8, -8}} {
@@ -923,7 +573,8 @@ func (e *MapEditor) markerLines() []editorLine {
 	}
 	out = append(out, e.referenceMarkerLines()...)
 	out = append(out, e.brushMarkerLines()...)
-	return out
+	out = append(out, e.groupMarkerLines()...)
+	return append(e.gridLines(), out...)
 }
 
 func (e *MapEditor) Run() error {

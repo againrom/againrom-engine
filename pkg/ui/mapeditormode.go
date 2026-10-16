@@ -19,6 +19,7 @@ const (
 	pickDrop      pickKind = "drop"  // the cell the party drops on
 	pickGoal      pickKind = "goal"  // a unit or structure for the selected script arm
 	pickStructure pickKind = "structure"
+	pickMove      pickKind = "move" // a cell to move the selected record to
 )
 
 // promptKind is the text prompt in the rail.
@@ -111,9 +112,10 @@ func (e *MapEditor) leave(x exits) {
 	}
 }
 
-// resetList scrolls the record list to offset and drops the wheel's remainder.
-func (e *MapEditor) resetList(offset int) {
-	e.offset, e.listWheel = offset, 0
+// resetList puts the list popup back at its first row and drops the wheel's
+// remainder.
+func (e *MapEditor) resetList(int) {
+	e.model, e.modelKey, e.listWheel = nil, "", 0
 }
 
 // enterCatalog shows the catalogue at its first row.
@@ -147,9 +149,6 @@ func (e *MapEditor) toggleBrush(mode brushMode) {
 // restored when the panel closes. goals is set while the rows are the script
 // panel's arms.
 func (e *MapEditor) openReport(rows []InspectionFinding, note string, goals []InspectionGoal) {
-	if !e.report.open {
-		e.report.offset = e.offset
-	}
 	e.report.open, e.report.rows, e.report.note, e.report.sel = true, rows, note, 0
 	e.report.goals = goals
 	e.report.flagged = map[string]bool{}
@@ -165,9 +164,8 @@ func (e *MapEditor) closeReport() {
 	if !e.report.open {
 		return
 	}
-	e.offset = e.report.offset
 	e.report = reportState{}
-	e.listWheel = 0
+	e.resetList(0)
 }
 
 // blocksCanvas reports that the map takes no pointer: the catalogue or a

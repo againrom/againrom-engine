@@ -61,8 +61,7 @@ func authoredUnits(t *testing.T, e *ui.MapEditor) []alm.Unit {
 }
 
 func clickCell(e *ui.MapEditor, cell image.Point) {
-	x, y := e.Document().Viewer.Camera().WorldToScreen(float64(cell.X*32+16), float64(cell.Y*32+16))
-	p := image.Pt(int(x), int(y))
+	p := e.CellPoint(cell)
 	now := time.Unix(1, 0)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, now)

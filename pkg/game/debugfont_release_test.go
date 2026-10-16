@@ -355,7 +355,8 @@ func TestReleaseMapEditorInstalledTextIsCapturedAtScaleOne(t *testing.T) {
 	}
 	e.Layout(smoothingW, smoothingH)
 	v := e.Document().Viewer
-	if got := v.Placement().Scale(); got != 1 || v.FrameSize() != image.Pt(smoothingW, smoothingH) {
+	// The map fills the window between the top bar and the status strip.
+	if got := v.Placement().Scale(); got != 1 || v.FrameSize().X != smoothingW || v.FrameSize().Y >= smoothingH || v.FrameSize().Y < smoothingH-80 {
 		t.Fatalf("editor native layout frame=%v scale=%g", v.FrameSize(), got)
 	}
 	screen := ebiten.NewImage(smoothingW, smoothingH)
@@ -368,14 +369,14 @@ func TestReleaseMapEditorInstalledTextIsCapturedAtScaleOne(t *testing.T) {
 	}
 	for _, ft := range fates {
 		if ft.Call.SourceOver {
-			t.Error("installed editor rail unexpectedly used a debug glyph")
+			t.Error("installed editor chrome unexpectedly used a debug glyph")
 		}
 		if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank {
-			t.Errorf("editor rail glyph (%d,%d) is %s", ft.Call.X, ft.Call.Y, ft.Fate)
+			t.Errorf("editor chrome glyph (%d,%d) is %s", ft.Call.X, ft.Call.Y, ft.Fate)
 		}
 	}
 	if e.Dirty() {
 		t.Fatal("opening and drawing the installed editor changed map state")
 	}
-	t.Logf("editor %s: frame=%v scale=1 captured=%d kept=%d; installed PanelImage route, read-only map open, no above-1 claim", key, v.FrameSize(), captured, kept)
+	t.Logf("editor %s: frame=%v scale=1 captured=%d kept=%d; installed chrome route, read-only map open, no above-1 claim", key, v.FrameSize(), captured, kept)
 }

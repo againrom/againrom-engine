@@ -66,6 +66,10 @@ func (e *MapEditor) promptFields() []InspectionField {
 // selected record, E opens the field prompt and Tab moves it to the next
 // field. Each accepted change is one history entry.
 func (e *MapEditor) recordKey(key string) error {
+	if key == "tab" && e.objectTyping() {
+		e.obj.focus, e.obj.open = (e.obj.focus+1)%len(e.obj.fields), -1
+		return nil
+	}
 	if key == "tab" {
 		fields := e.promptFields()
 		if len(fields) > 0 {
@@ -219,6 +223,13 @@ func (e *MapEditor) pickAt(p image.Point) {
 	}
 	if pick == pickDrop {
 		e.dropAt(image.Pt(x, y))
+		return
+	}
+	if pick == pickMove {
+		if kind, index := e.selectedRecord(); index >= 0 && editableKind(kind) {
+			next, err := e.doc.Edits.Move(kind, index, image.Pt(x, y))
+			_ = e.adoptEdit(next, err)
+		}
 		return
 	}
 	kind, index := e.selectedRecord()

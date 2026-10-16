@@ -14,7 +14,10 @@ func TestMapEditorPanelDrawsAReportLongerThanTheBrushPalette(t *testing.T) {
 	if rows, open := e.ReportOpen(); !open || len(rows) <= len(e.brushRows()) || !e.brushActive() {
 		t.Fatalf("setup: report open %v with %d rows, brush active %v with %d rows", open, len(rows), e.brushActive(), len(e.brushRows()))
 	}
-	if img := e.PanelImage(768); img == nil {
-		t.Fatal("no panel")
+	if img := e.ChromeImage(); img == nil {
+		t.Fatal("no chrome")
+	}
+	if e.listKind() != "report" || e.model.Len() != len(e.report.rows) {
+		t.Fatalf("the list popup shows %q with %d rows", e.listKind(), e.model.Len())
 	}
 }

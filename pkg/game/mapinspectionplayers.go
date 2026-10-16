@@ -24,13 +24,18 @@ func (s *mapInspectionEdits) SetTextField(kind string, index int, key, value str
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		old, err := m.TextFieldValue(k, index, key)
-		if err != nil || old == value {
-			return false, err
-		}
-		err = m.SetTextField(k, index, key, value)
-		return err == nil, err
+		return setTextFieldOn(m, k, index, key, value)
 	})
+}
+
+// setTextFieldOn sets one text field on the model m.
+func setTextFieldOn(m *mapedit.Editor, k mapedit.Kind, index int, key, value string) (bool, error) {
+	old, err := m.TextFieldValue(k, index, key)
+	if err != nil || old == value {
+		return false, err
+	}
+	err = m.SetTextField(k, index, key, value)
+	return err == nil, err
 }
 
 func inspectionPlayer(model *mapedit.Editor, index int, name string) ui.InspectionRecord {

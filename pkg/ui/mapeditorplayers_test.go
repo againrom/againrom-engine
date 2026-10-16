@@ -100,8 +100,8 @@ func TestMapEditorPlayerPromptKeepsTextAndErrors(t *testing.T) {
 	playerPromptInput(t, e, name)
 	e.SetHostTextEncoder(func(s string) string { return strings.ReplaceAll(s, "Я", "X") })
 	found := false
-	for _, row := range e.modalLayout(768) {
-		found = found || row.text == strings.Repeat("X", 32)+"_"
+	for _, row := range promptText(t, e) {
+		found = found || row == strings.Repeat("X", 32)
 	}
 	if e.prompt.path != name || !found {
 		t.Fatal("the common prompt lost a full-width UTF-8 player name", e.prompt.path, found)

@@ -29,6 +29,7 @@ const (
 	screenPlayers                   // the roster list
 	screenStructure
 	screenPrompt
+	screenMove
 	screenCount
 )
 
@@ -106,8 +107,8 @@ func init() {
 		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys / F2: scripts")},
-		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenStructure, "Structure: click a cell"}}},
-		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenStructure, "Esc: cancel"}}},
+		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenStructure, "Structure: click a cell"}, {screenMove, "Move: click a cell"}}},
+		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenStructure, "Esc: cancel"}, {screenMove, "Esc: cancel"}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
 		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
 		{key: "close", live: promptHears, act: (*MapEditor).keyClose, unlisted: unlistedWindow},
@@ -163,7 +164,7 @@ func EditorHelpLines() []string {
 var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects}
 
 // pickScreens is the help screen of each armed pick.
-var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickSack: screenSack, pickUnit: screenUnit, pickDrop: screenDrop, pickGoal: screenGoal, pickStructure: screenStructure}
+var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickSack: screenSack, pickUnit: screenUnit, pickDrop: screenDrop, pickGoal: screenGoal, pickStructure: screenStructure, pickMove: screenMove}
 
 // helpScreen is the help for the window's mode: an active brush, the armed
 // pick, the script panel, or the keys.
@@ -211,12 +212,12 @@ func (e *MapEditor) Key(key string) error {
 	if row == nil {
 		return nil
 	}
-	if e.prompt.open() {
+	if e.prompt.open() || e.objectTyping() {
 		switch row.live {
 		case promptDeaf:
 			return nil
 		case promptFields:
-			if !e.prompt.fields() {
+			if !e.prompt.fields() && !e.objectTyping() {
 				return nil
 			}
 		}
@@ -244,6 +245,12 @@ func (e *MapEditor) keyEscape(string) error {
 	case e.prompt.open():
 		e.leave(leavePrompt)
 		e.message = ""
+	case e.menu != "":
+		e.menu = ""
+	case e.dropdownOpen():
+		e.obj.open = -1
+	case e.objectTyping():
+		e.obj.focus = -1
 	case e.report.open && e.message == "":
 		e.leave(leaveReport)
 	case e.message != "":
@@ -252,10 +259,10 @@ func (e *MapEditor) keyEscape(string) error {
 		e.leave(leaveBrush)
 	case e.catalog && e.doc != nil:
 		e.leave(leaveCatalog)
-	case e.listView() && e.filter == editorPlayersFilter:
-		return e.keyPlayers("")
-	case e.listView() && e.filter == editorScriptsFilter:
-		e.filter = 0
+	case e.groupSel.set && !e.objectHidden || e.selected >= 0 && !e.objectHidden:
+		e.closeObject()
+	case e.listShown:
+		e.closeList()
 	case e.Dirty():
 		e.message = "Unsaved changes. Save As or undo changes before closing."
 	default:
@@ -281,6 +288,14 @@ func (e *MapEditor) keyCatalog(string) error {
 }
 
 func (e *MapEditor) keyEnter(string) error {
+	if e.objectTyping() {
+		e.applyObject()
+		return nil
+	}
+	if e.catalog && !e.prompt.open() {
+		e.catalogOpen()
+		return nil
+	}
 	switch e.prompt.kind {
 	case promptField, promptNewSack, promptNewUnit, promptNewStructure, promptWorkspace, promptNewScript:
 		return e.setField(e.prompt.path)
@@ -313,12 +328,25 @@ func (e *MapEditor) brushKeyRow(key string) error {
 
 // keyStep moves the brush palette's row, else the report's selected finding.
 func (e *MapEditor) keyStep(key string) error {
+	delta := 1
+	if key == "up" {
+		delta = -1
+	}
 	if e.prompt.fields() {
-		delta := 1
-		if key == "up" {
-			delta = -1
-		}
 		e.stepChoice(delta)
+		return nil
+	}
+	if e.objectTyping() {
+		if e.dropdownOpen() {
+			dropdownStep(e.obj.choice, delta)
+			e.chooseObjectChoiceKeep()
+		} else {
+			e.objectStep(delta)
+		}
+		return nil
+	}
+	if e.catalog {
+		e.catalogStep(delta)
 		return nil
 	}
 	if e.brushKey(key) {
@@ -382,6 +410,10 @@ func (e *MapEditor) keyHistory(key string) error {
 }
 
 func (e *MapEditor) keyBackspace(string) error {
+	if e.objectTyping() {
+		e.objectText("", true)
+		return nil
+	}
 	if e.prompt.open() {
 		r := []rune(e.prompt.path)
 		if len(r) > 0 {
@@ -397,24 +429,33 @@ func (e *MapEditor) keyFit(string) error {
 }
 
 func (e *MapEditor) keyTriggers(string) error {
-	e.filter = 7
-	e.resetList(0)
-	if e.selected >= 0 {
-		e.Select(e.selected, false)
-	}
+	e.showRecords(7)
 	return nil
 }
 
+// keyPage pages the list popup: the map picker's highlight, else the list's
+// cursor.
 func (e *MapEditor) keyPage(key string) error {
+	if e.model == nil || e.listKind() == "" {
+		return nil
+	}
+	m := e.model
 	switch key {
 	case "pageup":
-		e.resetList(max(0, e.offset-e.visibleRows()))
+		listKey(m, false, false, true, false)
 	case "pagedown":
-		e.resetList(min(max(0, e.rowCount()-e.visibleRows()), e.offset+e.visibleRows()))
+		listKey(m, false, false, false, true)
 	case "home":
-		e.resetList(0)
+		m.Select(0)
 	case "end":
-		e.resetList(max(0, e.rowCount()-e.visibleRows()))
+		m.Select(m.Len() - 1)
+	}
+	if e.catalog && m.Len() > 0 && !m.Rows()[m.Selection()].Choosable {
+		if key == "end" || key == "pagedown" {
+			e.catalogStep(-1)
+		} else {
+			e.catalogStep(1)
+		}
 	}
 	return nil
 }

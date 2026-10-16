@@ -157,7 +157,7 @@ func writePlayerPanelWitness(t *testing.T, x *MapInspector, source string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		encodeErr, closeErr := png.Encode(f, e.PanelImage(800)), f.Close()
+		encodeErr, closeErr := png.Encode(f, e.ChromeImage()), f.Close()
 		if encodeErr != nil || closeErr != nil {
 			t.Fatal("player panel witness", encodeErr, closeErr)
 		}

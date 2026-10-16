@@ -2590,7 +2590,7 @@ func viewportSize(frameW, frameH int) image.Point {
 // map's scroll limit does not depend on the selection.
 func (v *Viewer) mapViewportSize() image.Point {
 	if v.editorView {
-		return image.Pt(max(1, v.frameW-editorRailWidth), v.frameH)
+		return image.Pt(max(1, v.frameW), max(1, v.frameH))
 	}
 	view := viewportSize(v.frameW, v.frameH)
 	if bar, _, ok := v.packBarShown(); ok && bar.Min.Y < view.Y {

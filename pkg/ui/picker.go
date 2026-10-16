@@ -352,3 +352,25 @@ func (p *Picker) HeaderText() string {
 // pickerBackground is the map list's fill. It is the project's own choice, not a
 // reproduction of anything the original draws.
 var pickerBackground = color.RGBA{R: 0x0d, G: 0x0d, B: 0x14, A: 0xff}
+
+// SetRows replaces the list's rows, keeping the selection and the window
+// inside the new list.
+func (p *Picker) SetRows(rows []PickerRow) {
+	if p == nil {
+		return
+	}
+	p.rows = rows
+	if p.sel >= len(rows) {
+		p.sel = max(0, len(rows)-1)
+	}
+	p.Scroll(0)
+}
+
+// Scroll moves the window by d rows without moving the selection: the
+// wheel's travel over a list whose selection is an object the author chose.
+func (p *Picker) Scroll(d int) {
+	if p == nil {
+		return
+	}
+	p.top = max(0, min(p.top+d, len(p.rows)-p.visibleRows()))
+}

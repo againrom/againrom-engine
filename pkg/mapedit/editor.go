@@ -127,6 +127,25 @@ func (e *Editor) Redo() bool {
 	return true
 }
 
+// Mark is the history position a later Squash folds back to.
+func (e *Editor) Mark() int { return e.cursor }
+
+// Squash folds the edits accepted since mark into one history entry: a single
+// part that replaces the bytes as they stood at mark with the current bytes.
+// One Undo then reverts all of them and one Redo re-applies them. Zero or one
+// edit since mark is left as it is.
+func (e *Editor) Squash(mark int) {
+	if mark < 0 || mark >= e.cursor-1 {
+		return
+	}
+	before := e.Clone()
+	for before.cursor > mark {
+		before.Undo()
+	}
+	e.log = append(e.log[:mark], edit{replace(0, before.data, e.data)})
+	e.cursor = len(e.log)
+}
+
 // part is one splice of an edit: a pre-image offset, the bytes it removes
 // there and the bytes it inserts in their place. Both are held as copies, so a
 // history entry depends neither on the buffer it was read out of nor on a

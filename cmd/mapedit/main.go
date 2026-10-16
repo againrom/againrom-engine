@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"againrom/pkg/game"
 	"againrom/pkg/launch"
@@ -147,7 +146,7 @@ func run(args []string, out io.Writer) error {
 		return fmt.Errorf("map reference %d is unavailable", *focusRef)
 	}
 	if *snapshot != "" {
-		e.Pointer(ui.Input{CursorX: w - 1, CursorY: h - 70, WheelY: -float64(*detailScroll)}, time.Time{})
+		e.ScrollDetails(*detailScroll)
 		pic, note, err := e.HeadlessFrame()
 		if err != nil {
 			return err

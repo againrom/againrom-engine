@@ -241,77 +241,121 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if k == mapedit.KindTrigger && key == "order" {
-			if value < 0 || value >= int64(m.Count(k)) {
-				return false, fmt.Errorf("no trigger position %d", value)
-			}
-			if value == int64(index) {
-				return false, nil
-			}
-			err := m.Reorder(k, index, int(value))
-			return err == nil, err
-		}
-		if err := scriptFieldAllowed(m, k, index, key, value); err != nil {
-			return false, err
-		}
-		fields, err := m.Fields(k, index)
-		if err != nil {
-			return false, err
-		}
-		var f mapedit.Field
-		for _, row := range fields {
-			if row.Key == key {
-				f = row
-			}
-		}
-		if f.Key == "" {
-			return false, fmt.Errorf("no %s field %q", strings.ToLower(kind), key)
-		}
-		if old, err := m.FieldValue(k, index, key); err != nil || old == value {
-			return false, err
-		}
-		if err := m.SetField(k, index, key, value); err != nil {
-			return false, err
-		}
-		if err := scriptVariableAllowed(m, k, index); err != nil {
-			return false, err
-		}
-		view, err := m.Map()
-		if err != nil {
-			return false, err
-		}
-		switch f.Check {
-		case mapedit.CheckStructureKind:
-			err = s.inspector.checkStructureKind(value)
-		case mapedit.CheckItemCode:
-			if value != 0 {
-				err = s.inspector.checkItem(value)
-			}
-		case mapedit.CheckRosterSlot:
-			err = rosterSlotError(view, uint32(value))
-		case mapedit.CheckClassKey, mapedit.CheckDefinitionID:
-			err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
-		case mapedit.CheckItemRecipe:
-			if value != 0 {
-				if value > int64(len(view.Enchantments)) {
-					err = fmt.Errorf("recipe %d is outside 1..%d", value, len(view.Enchantments))
-				} else if r := view.Enchantments[value-1]; r.X != 0 || r.Y != 0 {
-					err = fmt.Errorf("recipe %d has cell coordinates and cannot enchant an item", value)
-				}
-			}
-		case mapedit.CheckScriptUnit, mapedit.CheckScriptStructure, mapedit.CheckScriptGroup:
-			err = checkScriptReference(f.Check, view, value)
-		case mapedit.CheckScriptPlayer:
-			err = rosterSlotError(view, uint32(value))
-		}
-		if err != nil {
-			return false, err
-		}
-		if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
-			return false, err
-		}
-		return true, s.checkPlacement(k, m, index)
+		return s.setFieldOn(m, kind, k, index, key, value)
 	})
+}
+
+// SetFields writes several fields of one record as one edit: each through
+// the checks SetField or SetTextField applies, the trigger order last. A
+// refused field refuses the set and the model is unchanged.
+func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
+	k, err := editKind(kind)
+	if err != nil {
+		return nil, err
+	}
+	ordered := make([]ui.InspectionFieldValue, 0, len(values))
+	for _, v := range values {
+		if v.Key != "order" {
+			ordered = append(ordered, v)
+		}
+	}
+	for _, v := range values {
+		if v.Key == "order" {
+			ordered = append(ordered, v)
+		}
+	}
+	return s.change(func(m *mapedit.Editor) (bool, error) {
+		changed, mark := false, m.Mark()
+		for _, v := range ordered {
+			var c bool
+			var err error
+			if v.Text {
+				c, err = setTextFieldOn(m, k, index, v.Key, v.TextValue)
+			} else {
+				c, err = s.setFieldOn(m, kind, k, index, v.Key, v.Value)
+			}
+			if err != nil {
+				return false, err
+			}
+			changed = changed || c
+		}
+		m.Squash(mark)
+		return changed, nil
+	})
+}
+
+// setFieldOn sets one numeric field on the model m after its checks.
+func (s *mapInspectionEdits) setFieldOn(m *mapedit.Editor, kind string, k mapedit.Kind, index int, key string, value int64) (bool, error) {
+	if k == mapedit.KindTrigger && key == "order" {
+		if value < 0 || value >= int64(m.Count(k)) {
+			return false, fmt.Errorf("no trigger position %d", value)
+		}
+		if value == int64(index) {
+			return false, nil
+		}
+		err := m.Reorder(k, index, int(value))
+		return err == nil, err
+	}
+	if err := scriptFieldAllowed(m, k, index, key, value); err != nil {
+		return false, err
+	}
+	fields, err := m.Fields(k, index)
+	if err != nil {
+		return false, err
+	}
+	var f mapedit.Field
+	for _, row := range fields {
+		if row.Key == key {
+			f = row
+		}
+	}
+	if f.Key == "" {
+		return false, fmt.Errorf("no %s field %q", strings.ToLower(kind), key)
+	}
+	if old, err := m.FieldValue(k, index, key); err != nil || old == value {
+		return false, err
+	}
+	if err := m.SetField(k, index, key, value); err != nil {
+		return false, err
+	}
+	if err := scriptVariableAllowed(m, k, index); err != nil {
+		return false, err
+	}
+	view, err := m.Map()
+	if err != nil {
+		return false, err
+	}
+	switch f.Check {
+	case mapedit.CheckStructureKind:
+		err = s.inspector.checkStructureKind(value)
+	case mapedit.CheckItemCode:
+		if value != 0 {
+			err = s.inspector.checkItem(value)
+		}
+	case mapedit.CheckRosterSlot:
+		err = rosterSlotError(view, uint32(value))
+	case mapedit.CheckClassKey, mapedit.CheckDefinitionID:
+		err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
+	case mapedit.CheckItemRecipe:
+		if value != 0 {
+			if value > int64(len(view.Enchantments)) {
+				err = fmt.Errorf("recipe %d is outside 1..%d", value, len(view.Enchantments))
+			} else if r := view.Enchantments[value-1]; r.X != 0 || r.Y != 0 {
+				err = fmt.Errorf("recipe %d has cell coordinates and cannot enchant an item", value)
+			}
+		}
+	case mapedit.CheckScriptUnit, mapedit.CheckScriptStructure, mapedit.CheckScriptGroup:
+		err = checkScriptReference(f.Check, view, value)
+	case mapedit.CheckScriptPlayer:
+		err = rosterSlotError(view, uint32(value))
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
+		return false, err
+	}
+	return true, s.checkPlacement(k, m, index)
 }
 
 func insideMap(m *mapedit.Editor, cell image.Point, what string) error {

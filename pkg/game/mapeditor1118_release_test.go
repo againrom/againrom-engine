@@ -128,12 +128,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			// Actual displaced editor view; raw height-plane projection, not
 			// MapInspector's decoded positions, supplies pointer coordinates.
 			proj := terrain.Project(sections[2], e.Document().Width, e.Document().Height)
-			point := func(cell image.Point) image.Point {
-				a, b := proj.WorldCorner(cell.X, cell.Y)
-				c, d := proj.WorldCorner(cell.X+1, cell.Y+1)
-				sx, sy := e.Document().Viewer.Camera().WorldToScreen(float64((a+c)/2), float64((b+d)/2))
-				return image.Pt(int(sx), int(sy))
-			}
+			point := e.CellPoint
 			left, top := proj.WorldCorner(from.X, from.Y)
 			right, bottom := proj.WorldCorner(from.X+1, from.Y+1)
 			cam := e.Document().Viewer.Camera()
@@ -189,10 +184,13 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Undo did not restore actual composed frame: %v", err)
 			}
-			// The Redo button is now enabled; the canvas itself must return
-			// byte-identically, including the unit and selected marker.
+			// The top bar's Redo entry is now enabled; the map between the bar
+			// and the status strip must return byte-identically, including the
+			// unit and selected marker.
 			w := e.Document().Viewer.ViewportSize().X
-			for y := 0; y < 800; y++ {
+			_, originY := e.Document().Viewer.Placement().Origin()
+			mapTop := int(originY)
+			for y := mapTop; y < mapTop+e.Document().Viewer.FrameSize().Y; y++ {
 				if !bytes.Equal(before.Pix[y*before.Stride:y*before.Stride+w*4], undo.Pix[y*undo.Stride:y*undo.Stride+w*4]) {
 					t.Fatalf("Undo did not restore canvas row %d", y)
 				}
@@ -242,7 +240,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for y := 0; y < 800; y++ {
+			for y := mapTop; y < mapTop+e.Document().Viewer.FrameSize().Y; y++ {
 				if !bytes.Equal(after.Pix[y*after.Stride:y*after.Stride+w*4], reopened.Pix[y*reopened.Stride:y*reopened.Stride+w*4]) {
 					t.Fatalf("fresh reopen canvas differs at row %d", y)
 				}

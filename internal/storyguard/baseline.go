@@ -2502,8 +2502,11 @@ package storyguard
 // CommentBytes rises for the doc comments of the original attack-boundary
 // import, the dead actors' retained Effects with their loaded Tokens, kept
 // apart from live attachments, and their tests, this note included.
+//
+// CommentBytes rises for the map editor's popup builder, drop-down widget,
+// top bar and object popup and their tests, this note included.
 var Committed = Baseline{
-	TestIdentCount: 4557,
+	TestIdentCount: 4551,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2525,5 +2528,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9049427,
+	CommentBytes: 9065704,
 }

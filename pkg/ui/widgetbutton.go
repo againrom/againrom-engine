@@ -24,6 +24,7 @@ const (
 	widgetEdit
 	widgetHoverBox
 	widgetFrame
+	widgetDropdown
 )
 
 // widgetCall is one call of a shared builder: its kind, rectangle and state.

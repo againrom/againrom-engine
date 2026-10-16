@@ -2,83 +2,11 @@ package ui
 
 import (
 	"image"
-	"image/color"
 	"math"
 	"strings"
 
 	"againrom/pkg/render/text"
 )
-
-type editorModalRow struct {
-	text  string
-	y     int
-	color color.RGBA
-}
-
-// Both long paths and errors have a bounded viewport. Keep the editable tail
-// and caret visible; reserve separate rows for refusal text even at 640x480.
-func (e *MapEditor) modalLayout(h int) []editorModalRow {
-	height := 16
-	if e.font != nil {
-		height = max(height, e.font.Height()+2)
-	}
-	y := e.listBottom() + 40
-	var rows []editorModalRow
-	add := func(s string, c color.RGBA) {
-		rows = append(rows, editorModalRow{editorClip(e.font, s, 300), y, c})
-		y += height
-	}
-	if e.prompt.open() {
-		title := "ALM path / Enter: open"
-		if e.prompt.fields() {
-			title = e.fieldTitle()
-		} else if e.prompt.kind == promptItemRecipe {
-			title = "Item number (1..N) / Enter: add recipe"
-		} else if e.prompt.kind == promptSave {
-			title = "New .alm path / Enter: Save As"
-		} else if e.prompt.kind == promptRectangle {
-			title = "New map: width x height / Enter"
-		}
-		add(title, editorGold)
-	}
-	available := max(0, (e.helpTop(h)-6-y)/height)
-	var errors []string
-	if e.message != "" {
-		errors = editorWrap(e.font, e.editorHostText(e.message), 300)
-		available = max(0, available-1)
-	}
-	if e.prompt.open() {
-		reserved := min(len(errors), max(1, available/2))
-		paths := editorParagraphs(e.font, e.editorHostText(e.prompt.path)+"_", 300)
-		n := max(0, min(6, available-reserved))
-		if len(paths) > n {
-			paths = paths[len(paths)-n:]
-			if len(paths) > 0 {
-				paths[0] = "..." + paths[0]
-				for e.font != nil && len(paths[0]) > 3 && e.font.Advance(paths[0]) > 300 {
-					paths[0] = "..." + paths[0][4:]
-				}
-			}
-		}
-		for _, s := range paths {
-			add(s, editorLight)
-		}
-		available -= len(paths)
-	}
-	for i := 0; i < min(available, len(errors)); i++ {
-		s := errors[i]
-		if i == available-1 && i+1 < len(errors) {
-			s = editorClip(e.font, s, 280) + "..."
-		}
-		add(s, editorWarning)
-	}
-	if e.message != "" && y+height <= e.helpTop(h)-6 {
-		add("Map and history retained. Esc: back", editorPaper)
-	} else if e.multilinePrompt() && y+height <= e.helpTop(h)-6 {
-		add("Shift+Enter: new line / Ctrl+A: clear", editorPaper)
-	}
-	return rows
-}
 
 func editorParagraphs(f *text.Font, s string, width int) []string {
 	var out []string
@@ -95,6 +23,8 @@ func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty()
 func (e *MapEditor) TextInput(s string) {
 	if e.pathDialog.pending == nil && e.prompt.open() {
 		e.prompt.path += s
+	} else if e.pathDialog.pending == nil && e.objectTyping() && s != "" {
+		e.objectText(s, false)
 	}
 }
 
@@ -116,6 +46,21 @@ func (e *MapEditor) saveAs(path string) error {
 	e.message = ""
 	e.afterSave()
 	return nil
+}
+
+// refreshGroup rebuilds the open group popup's group from the current document,
+// keyed by player and group number, and closes the popup when no member is left.
+func (e *MapEditor) refreshGroup() {
+	if !e.groupSel.set {
+		return
+	}
+	for _, g := range e.groups() {
+		if g.player == e.groupSel.player && g.group == e.groupSel.group {
+			e.groupSel = g
+			return
+		}
+	}
+	e.groupSel = editorGroup{}
 }
 
 func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
@@ -150,6 +95,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 			break
 		}
 	}
+	e.refreshGroup()
 	e.message = ""
 	return nil
 }
@@ -212,7 +158,7 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		}
 		return true
 	}
-	inside := p.In(image.Rect(0, 0, rail, e.window.Y))
+	inside := p.In(image.Rect(0, 0, rail, e.doc.Viewer.cam.ViewH))
 	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && e.free() {
 		hit := -1
 		for _, i := range e.hitsAt(p) {

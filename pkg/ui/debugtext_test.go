@@ -168,7 +168,9 @@ func TestMapEditorCapturesItsInstalledFontAtScaleOne(t *testing.T) {
 			t.Fatal("editor panel has no captured installed glyph")
 		}
 		for _, ft := range e.TextFates() {
-			if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank {
+			// A chrome glyph that a later paint covers or its clip cuts away
+			// is Hidden: the overlay draws nothing and the native cells stand.
+			if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank && ft.Fate != textsmooth.Hidden {
 				t.Fatalf("editor glyph fate %s", ft.Fate)
 			}
 		}

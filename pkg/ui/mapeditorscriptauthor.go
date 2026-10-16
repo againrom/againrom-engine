@@ -15,13 +15,13 @@ func (e *MapEditor) keyScripts(string) error {
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
-	e.filter = editorScriptsFilter
+	e.filter, e.listShown = editorScriptsFilter, true
 	e.resetList(0)
 	e.selected = -1
 	if rows := e.rows(); len(rows) > 0 {
 		e.Select(rows[0], false)
 	}
-	e.message = "A: add script record / E: fields"
+	e.message = ""
 	return nil
 }
 

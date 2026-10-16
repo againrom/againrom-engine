@@ -305,7 +305,7 @@ func TestWindowKeysMoveTheDropCellAndRetargetAnArm(t *testing.T) {
 	// A click on empty ground names no target and leaves the bytes.
 	before := e.Document().SourceBytes
 	_ = e.Key("enter")
-	clickCell(e, image.Pt(2, 2))
+	clickCell(e, image.Pt(16, 20)) // empty ground clear of the script panel
 	if !bytes.Equal(e.Document().SourceBytes, before) || e.Message() == "" {
 		t.Fatalf("a click on no unit: message %q", e.Message())
 	}

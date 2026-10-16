@@ -26,6 +26,9 @@ var sameWord = map[string]string{
 
 // TestTablesEqualTheReplacedWords checks each historical EN/RU word against
 // testdata/replaced.tsv and rejects English ids absent from that dump.
+// editorPrefix starts every id of the map editor's own words.
+const editorPrefix = "editor."
+
 func TestTablesEqualTheReplacedWords(t *testing.T) {
 	f, err := os.Open(filepath.Join("testdata", "replaced.tsv"))
 	if err != nil {
@@ -66,12 +69,19 @@ func TestTablesEqualTheReplacedWords(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The map editor's ids are words written for the editor, not words a
+	// replaced screen drew, so the dump of replaced code holds none of them.
+	fresh := 0
 	for _, id := range ids {
+		if strings.HasPrefix(id, editorPrefix) {
+			fresh++
+			continue
+		}
 		if !seen[id] {
 			t.Errorf("English id %s is a word the replaced code did not draw", id)
 		}
 	}
-	if len(seen) != len(ids) || perLang["en"] != perLang["ru"] {
+	if len(seen) != len(ids)-fresh || perLang["en"] != perLang["ru"] {
 		t.Errorf("ids: dump %d, table %d; rows en %d, ru %d", len(seen), len(ids), perLang["en"], perLang["ru"])
 	}
 	t.Logf("%d message ids; %d site rows per language", len(ids), perLang["en"])

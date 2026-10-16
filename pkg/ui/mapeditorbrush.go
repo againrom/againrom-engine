@@ -182,7 +182,7 @@ func (e *MapEditor) brushStatus() string {
 
 // brushCell is the grid cell under the frame position p, if it is on the map.
 func (e *MapEditor) brushCell(p image.Point, rail int) (image.Point, bool) {
-	if p.X < 0 || p.Y < 0 || p.X >= rail || p.Y >= e.window.Y {
+	if p.X < 0 || p.Y < 0 || p.X >= rail || p.Y >= e.doc.Viewer.cam.ViewH {
 		return image.Point{}, false
 	}
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
@@ -327,19 +327,21 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error) error 
 			break
 		}
 	}
+	e.refreshGroup()
 	e.message = ""
 	return nil
 }
 
-// CellPoint is the position, in the window's frame, of the centre of a map
-// cell under the current camera. A driver that feeds the pointer uses it.
+// CellPoint is the position, in the window, of the centre of a map cell
+// under the current camera. A driver that feeds the pointer uses it.
 func (e *MapEditor) CellPoint(cell image.Point) image.Point {
 	if e.doc == nil {
 		return image.Point{}
 	}
 	x, y := e.cellCenter(cell)
 	sx, sy := e.doc.Viewer.cam.WorldToScreen(x, y)
-	return image.Pt(int(sx), int(sy))
+	ox, oy := e.doc.Viewer.place.Origin()
+	return image.Pt(int(sx+ox), int(sy+oy))
 }
 
 // ShowCell scrolls the map to cell at full zoom.

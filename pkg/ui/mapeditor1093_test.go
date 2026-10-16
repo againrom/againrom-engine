@@ -12,12 +12,23 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-func click1093(e *MapEditor, x, y int) {
-	e.Pointer(Input{CursorX: x, CursorY: y, PrimaryDown: true}, time.Time{})
-	e.Pointer(Input{CursorX: x, CursorY: y}, time.Time{})
+// objectRowOf is the spec row whose text is label, and its link.
+func objectRowOf(t *testing.T, e *MapEditor, label string) (int, int) {
+	t.Helper()
+	s, links, ok := e.objectSpec()
+	if !ok {
+		t.Fatal("no object popup")
+	}
+	for n, r := range s.Rows {
+		if r.Label == label {
+			return n, links[n]
+		}
+	}
+	t.Fatalf("no object row %q", label)
+	return 0, 0
 }
 
-func TestMapEditor1093TriggerFilterLateLinkAndContextAt640(t *testing.T) {
+func TestMapEditor1093TriggerListLateLinkOpensItsTargetAt640(t *testing.T) {
 	e := editor1092(t)
 	e.Layout(640, 480)
 	r := InspectionRecord{Kind: "Trigger", Section: 7, Index: 0, Label: "Authored trigger"}
@@ -27,60 +38,49 @@ func TestMapEditor1093TriggerFilterLateLinkAndContextAt640(t *testing.T) {
 	r.Lines = append(r.Lines, InspectionLine{Text: "late target link", Role: "action", Reference: 1})
 	r.References = []InspectionReference{{Label: "target", Role: "action", Targets: []InspectionTarget{{Cell: image.Pt(35, 20), Size: image.Pt(1, 1)}}}}
 	e.doc.Records = append(e.doc.Records, r)
-	click1093(e, 320+250, 160) // actual eighth filter
+	chromeClick(e, barPoint(t, e, "triggers"))
 	if e.filter != 7 || len(e.rows()) != 1 {
-		t.Fatal("eighth filter did not expose trigger")
+		t.Fatal("the Triggers entry did not list the trigger")
 	}
-	click1093(e, 340, editorListTop+4)
+	chromeClick(e, listRowPoint(t, e, 0))
 	selected := e.selected
 	if selected != 40 {
 		t.Fatalf("selected %d", selected)
 	}
 	beforeCamera := *e.doc.Viewer.cam
-	for i := 0; i < 100; i++ {
-		e.Pointer(Input{CursorX: 620, CursorY: 420, WheelY: -0.25}, time.Time{})
-		e.PanelImage(480)
+	_, l := objectLayout(t, e)
+	at := center(l.Rows[0].Rect)
+	for i := 0; i < 400; i++ {
+		e.Pointer(Input{CursorX: at.X, CursorY: at.Y, WheelY: -0.25}, time.Time{})
 	}
 	if !reflect.DeepEqual(beforeCamera, *e.doc.Viewer.cam) {
 		t.Fatal("detail wheel touched camera")
 	}
-	rows := e.detailLayout(480)
-	last := rows[len(rows)-1]
-	if last.Reference != 1 || last.Text != "> late target link" {
-		t.Fatalf("late link unreachable %+v", rows)
+	n, link := objectRowOf(t, e, "> late target link")
+	if link != 1 {
+		t.Fatalf("late link row %d carries link %d", n, link)
 	}
-	// Independent font drawing checks the exact pixels uploaded by Draw.
-	want := image.NewRGBA(image.Rect(0, 0, 320, 16))
-	for y := 0; y < 16; y++ {
-		for x := 0; x < 320; x++ {
-			want.SetRGBA(x, y, editorPanel)
-		}
+	row := objectRowRect(t, e, n)
+	if !row.Rect.In(image.Rect(0, 0, 640, 480)) {
+		t.Fatal("late link outside the window")
 	}
-	e.font.Draw(want, "> late target link", 10, 0, editorGold)
-	pic := e.PanelImage(480)
-	for y := 0; y < 16; y++ {
-		if !bytes.Equal(pic.Pix[pic.PixOffset(0, last.Rect.Min.Y+y):pic.PixOffset(0, last.Rect.Min.Y+y)+1280], want.Pix[y*1280:(y+1)*1280]) {
-			t.Fatal("link text absent from actual rail pixels")
-		}
+	chromeClick(e, center(row.Rect))
+	if e.selected != 34 || e.doc.Records[e.selected].Cell != image.Pt(35, 20) {
+		t.Fatalf("the link did not select its target: %d", e.selected)
 	}
-	beforeOffset, beforeList, beforeWheel := e.detailOffset, e.offset, e.detailWheel
-	click1093(e, 340, last.Rect.Min.Y+2)
-	if e.focusedReference != 1 || e.selected != selected || e.filter != 7 || e.detailOffset != beforeOffset || e.offset != beforeList || e.detailWheel != beforeWheel {
-		t.Fatal("link lost selected trigger/scroll/filter")
-	}
-	if reflect.DeepEqual(beforeCamera, *e.doc.Viewer.cam) || len(e.referenceMarkerLines()) != 6 {
-		t.Fatal("link failed to focus/mark map target")
+	if _, _, ok := e.objectSpec(); !ok {
+		t.Fatal("the link did not open its target's popup")
 	}
 	wx, wy := e.cellCenter(image.Pt(35, 20))
 	sx, sy := e.doc.Viewer.cam.WorldToScreen(wx, wy)
-	if sx < 0 || sx >= 320 || sy < 0 || sy >= 480 {
+	if reflect.DeepEqual(beforeCamera, *e.doc.Viewer.cam) || sx < 0 || sx >= 640 || sy < 0 || sy >= float64(e.doc.Viewer.cam.ViewH) {
 		t.Fatal("focused target outside canvas")
 	}
 	if !bytes.Equal(e.doc.SourceBytes, []byte("untouched")) || e.doc.Viewer.AnimationCounter() != 0 {
 		t.Fatal("inspector mutated source or ticked")
 	}
-	// Failed open retains all trigger context, not just the map pointer.
-	if err := e.Open("bad"); err == nil || e.selected != selected || e.focusedReference != 1 || e.detailOffset != beforeOffset {
+	// A failed open retains the selection and its popup.
+	if err := e.Open("bad"); err == nil || e.selected != 34 {
 		t.Fatal("failed open destroyed context")
 	}
 }
@@ -98,39 +98,51 @@ func TestMapEditor1093AmbiguousLinksModalAndBoundedGeometry(t *testing.T) {
 	if !e.FocusReference(2) || len(e.referenceMarkerLines()) != 6 {
 		t.Fatal("large region must use six bounded primitives")
 	}
+	n, _ := objectRowOf(t, e, "> large bounded reference")
+	at := center(objectRowRect(t, e, n).Rect)
 	e.prompt.kind = promptOpen
 	e.focusedReference = 0
-	for _, row := range e.detailLayout(480) {
-		if row.Reference == 2 {
-			click1093(e, 340, row.Rect.Min.Y+2)
-		}
-	}
+	chromeClick(e, at)
 	if e.focusedReference != 0 {
-		t.Fatal("click leaked through path overlay")
+		t.Fatal("click leaked through the prompt")
+	}
+	e.prompt.kind = promptNone
+	chromeClick(e, at)
+	if e.focusedReference != 2 || e.selected != 0 {
+		t.Fatal("a many-cell link selected a record or lost its focus")
 	}
 }
 
 func TestMapEditor1093WrappedContinuationClickAfterResize(t *testing.T) {
 	e := editor1092(t)
 	r := &e.doc.Records[0]
-	r.Lines = []InspectionLine{{Text: strings.Repeat("authored target reference ", 40), Role: "condition", Reference: 1}}
+	r.Lines = []InspectionLine{{Text: strings.Repeat("authored target reference ", 400), Role: "condition", Reference: 1}}
 	r.References = []InspectionReference{{Label: "wrapped", Role: "condition", Targets: []InspectionTarget{{Cell: image.Pt(31, 27), Size: image.Pt(1, 1)}}}}
 	e.Select(0, false)
-	if e.font.Advance(r.Lines[0].Text) <= 300 {
-		t.Fatal("fixture must wrap at the actual rail width")
+	if e.font.Advance(r.Lines[0].Text) <= 420 {
+		t.Fatal("fixture must wrap at the popup width")
 	}
-	e.detailOffset = 3 // the first visible line is a link continuation, not its start
 	for _, size := range []image.Point{image.Pt(800, 600), image.Pt(640, 480)} {
 		e.Layout(size.X, size.Y)
-		e.PanelImage(size.Y)
-		rows := e.detailLayout(size.Y)
-		if len(rows) < 2 || rows[0].Reference != 1 || strings.HasPrefix(rows[0].Text, "> ") {
-			t.Fatalf("not a wrapped continuation: %+v", rows)
+		e.objPlaced = false
+		s, links, _ := e.objectSpec()
+		first := -1
+		for n := range s.Rows {
+			if links[n] == 1 && first < 0 {
+				first = n
+			}
 		}
-		before := e.detailOffset
+		e.objectTop = first + 1 // the first shown row is a link continuation
+		s, links, _ = e.objectSpec()
+		l := layoutPopup(s, e.font, e.bodyFont())
+		top := l.Rows[0]
+		if links[top.Index] != 1 || strings.HasPrefix(s.Rows[top.Index].Label, "> ") {
+			t.Fatalf("not a wrapped continuation: %+v", s.Rows[top.Index])
+		}
+		before := e.objectTop
 		e.focusedReference = 0
-		click1093(e, size.X-300, rows[0].Rect.Min.Y+2)
-		if e.focusedReference != 1 || e.detailOffset != before || e.selected != 0 {
+		chromeClick(e, center(top.Rect))
+		if e.focusedReference != 1 || e.objectTop != before || e.selected != 0 {
 			t.Fatal("continuation click lost link identity or scroll after resize")
 		}
 	}
@@ -174,13 +186,13 @@ func TestMapEditor1093FocusFitsProjectedFootprintsAndAnchors(t *testing.T) {
 			}
 			_ = e.Key("triggers")
 			e.Select(0, false)
-			e.detailOffset, e.detailWheel, e.listWheel = 2, 0.25, 0.5
+			e.objectTop, e.objectWheel, e.listWheel = 2, 0.25, 0.5
 			if !e.FocusReference(1) {
 				t.Fatal("focus rejected")
 			}
 			check := func(x, y float64) {
 				sx, sy := v.cam.WorldToScreen(x, y)
-				if sx < 0 || sx >= 320 || sy < 0 || sy >= 480 {
+				if sx < 0 || sx >= float64(v.cam.ViewW) || sy < 0 || sy >= float64(v.cam.ViewH) {
 					t.Errorf("raw projected point %g,%g outside: %g,%g", x, y, sx, sy)
 				}
 			}
@@ -202,16 +214,16 @@ func TestMapEditor1093FocusFitsProjectedFootprintsAndAnchors(t *testing.T) {
 			}
 			for _, line := range lines {
 				for _, p := range [][2]float32{{line.x0, line.y0}, {line.x1, line.y1}} {
-					if p[0] < 0 || p[0] >= 320 || p[1] < 0 || p[1] >= 480 {
+					if p[0] < 0 || p[0] >= float32(v.cam.ViewW) || p[1] < 0 || p[1] >= float32(v.cam.ViewH) {
 						t.Fatalf("actual marker outside focused canvas: %v", p)
 					}
 				}
 			}
-			if e.selected != 0 || e.filter != 7 || e.offset != 0 || e.detailOffset != 2 || e.detailWheel != 0.25 || e.listWheel != 0.5 || !bytes.Equal(e.doc.SourceBytes, []byte("unchanged")) {
+			if e.selected != 0 || e.filter != 7 || e.objectTop != 2 || e.objectWheel != 0.25 || e.listWheel != 0.5 || !bytes.Equal(e.doc.SourceBytes, []byte("unchanged")) {
 				t.Fatal("focus changed inspection context/source")
 			}
 			e.Fit()
-			if v.cam.Zoom != 320.0/(w*32) {
+			if v.cam.Zoom != float64(min(v.cam.ViewW, v.cam.ViewH))/(w*32) {
 				t.Fatal("focus changed complete-map Fit")
 			}
 		})
