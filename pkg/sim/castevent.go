@@ -96,8 +96,26 @@ type castObs struct {
 	relocations    []Relocation
 	// held names the casters whose charging book cast waited this step for
 	// their turn.
-	held         []EntityID
-	flightStarts []FlightStart
+	held             []EntityID
+	flightStarts     []FlightStart
+	projectilePhases []ProjectilePhase
+}
+
+// ProjectilePhase is one record's local callback boundary (ANIM-149).
+type ProjectilePhase struct {
+	ID                   uint16
+	Picture, ActionPhase int32
+	Owner                uint32
+	CellX, CellY         int32
+}
+
+func (o *castObs) recordProjectilePhase(w *World, p SavedProjectile, d SavedProjectileDriver) {
+	if o == nil || w.SecondGame() || p.Picture != 51 || p.ActionPhase != 8 {
+		return
+	}
+	o.projectilePhases = append(o.projectilePhases, ProjectilePhase{ID: p.ID,
+		Picture: p.Picture, ActionPhase: p.ActionPhase, Owner: d.Owner,
+		CellX: p.X / 256, CellY: p.Y / 256})
 }
 
 // Relocation is one Teleport that moved its caster in this step: the caster,

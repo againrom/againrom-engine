@@ -564,11 +564,12 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 // ROM2 retains the client release adapter.
 func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 	for _, p := range paints {
-		// A staged sender produces one logical client object per accepted cell,
-		// hence one selector per cell. A cell object with a sound delay (the
-		// first game's picture 51, the second's 23) stays silent at
-		// construction and voices its slot at that phase.
+		// Picture 51 sounds from its common driver phase; other staged cells
+		// retain their construction sound, including ROM2's delayed cell.
 		slot, delay := mw.spells().CellSound(int(p.Spell))
+		if !mw.world.SecondGame() && data.BurstPicture(int(p.Spell)) == 51 {
+			slot = 0
+		}
 		source := "spell-effect"
 		if delay > 0 {
 			source = "storm-phase"
@@ -580,6 +581,14 @@ func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 		if mw.world.SecondGame() || !mw.world.HasFlightInputs() {
 			mw.releaseAreaBursts(p)
 		}
+	}
+}
+
+func (mw *mapWorld) observeProjectilePhases(events []sim.ProjectilePhase) {
+	for _, ev := range events {
+		row := uint16((ev.Picture - 9) / 2)
+		mw.queueSpellSound(effectSpellSoundSlot(mw.spells(), row), ev.Owner,
+			image.Pt(int(ev.CellX), int(ev.CellY)), 0, "storm-phase")
 	}
 }
 

@@ -302,19 +302,21 @@ func TestStagedAndStormEffectsVoiceEachAcceptedCellOnce(t *testing.T) {
 	if len(*plays) != 2 {
 		t.Fatalf("two redraws changed sound count to %d, want 2", len(*plays))
 	}
-	_, stormPhase := data.FirstSpellPresentation().CellSound(21)
-	for range stormPhase - 1 {
-		mw.advanceSpellSoundCues()
+	if len(mw.spellSoundCues) != 0 {
+		t.Fatal("record phase sound retained an independent delay cue")
+	}
+	for range 7 {
+		mw.observeProjectilePhases(sim.StepReported(mw.world, nil).ProjectilePhases)
 	}
 	if len(*plays) != 2 {
 		t.Fatalf("storm sounded before phase 8: %+v", *plays)
 	}
-	mw.advanceSpellSoundCues()
+	mw.observeProjectilePhases(sim.StepReported(mw.world, nil).ProjectilePhases)
 	if got := (*plays)[len(*plays)-1]; got != (spellSoundPlay{slot: 551, owner: 9, cell: image.Pt(8, 7)}) {
 		t.Fatalf("storm phase-8 sound = %+v", got)
 	}
 	for range 12 {
-		mw.advanceSpellSoundCues()
+		mw.observeProjectilePhases(sim.StepReported(mw.world, nil).ProjectilePhases)
 	}
 	if len(*plays) != 3 {
 		t.Fatalf("completed storm cue repeated: %+v", *plays)

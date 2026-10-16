@@ -504,6 +504,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 		// ANIM-PHASECLOCK-028, ANIM-149.
 		p.Phase, _ = rules.EffectFrameAt(drive.Frame, p.ActionPhase, d.Phases, resolved)
 	}
+	w.castObservation.recordProjectilePhase(w, *p, *d)
 	p.LastAction = p.Action
 	p.ActionSegments--
 }

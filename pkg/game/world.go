@@ -4162,6 +4162,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// accepted cell and the client builds one short-lived object from each, so
 	// an earlier stage is still drawn while a later one lights up.
 	mw.observeAreaPaints(report.AreaPaints)
+	mw.observeProjectilePhases(report.ProjectilePhases)
 	if sink != nil {
 		sink(events)
 	}

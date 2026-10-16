@@ -128,6 +128,7 @@ copying those counts.
 | `docs/divergences/client-input-and-keys.md` |
 | `docs/divergences/client-mission-screen.md` |
 | `docs/divergences/client-presentation-other.md` |
+| `docs/divergences/client-presentation-sound.md` |
 | `docs/divergences/client-room-presentation.md` |
 | `docs/divergences/combat-and-ai.md` |
 | `docs/divergences/combat-and-ai-attack-and-hold-orders.md` |

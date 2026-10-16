@@ -397,8 +397,9 @@ type Report struct {
 	AreaPaints     []AreaPaint
 	Damages        []DamageEvent
 	// Relocations names every Teleport that moved its caster in this step.
-	Relocations  []Relocation
-	FlightStarts []FlightStart
+	Relocations      []Relocation
+	FlightStarts     []FlightStart
+	ProjectilePhases []ProjectilePhase
 }
 
 // StepReported is Step with all observations reported. StepObserved is this
@@ -407,7 +408,8 @@ func StepReported(w *World, cmds []Command) Report {
 	var obs castObs
 	stepWorld(w, cmds, nil, &obs, nil)
 	return Report{ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
-		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, FlightStarts: obs.flightStarts}
+		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, FlightStarts: obs.flightStarts,
+		ProjectilePhases: obs.projectilePhases}
 }
 
 // StepWithdrawalTraced is Step with the successful phase-6 withdrawal
