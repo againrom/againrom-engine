@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.124.0
+
 - [ROM1] Heal and Drain marks continue after loading, follow moving targets,
   and fade independently of the projectile that created them.
 
