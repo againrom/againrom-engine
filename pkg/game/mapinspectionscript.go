@@ -172,9 +172,9 @@ func goalListing(m *alm.Map, sc alm.Script, g goalRow) ui.InspectionGoal {
 		return ui.InspectionGoal{Arm: g.arm, Pick: pick, Index: -1, Text: text}
 	}
 	n := sc.Conditions[g.node]
-	who := fmt.Sprintf("trigger %q", sc.Triggers[max(g.trigger, 0)].Name)
-	if g.trigger < 0 {
-		who = fmt.Sprintf("check %d", n.ID)
+	who := fmt.Sprintf("check %d", n.ID)
+	if g.trigger >= 0 {
+		who = fmt.Sprintf("trigger %q", sc.Triggers[g.trigger].Name)
 	}
 	target, cell, has := describeTarget(m, g.param, g.value)
 	return ui.InspectionGoal{Arm: g.arm, Pick: pick, Kind: "Condition", Index: g.node, Cell: cell, HasCell: has,

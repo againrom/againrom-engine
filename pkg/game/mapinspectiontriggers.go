@@ -6,34 +6,12 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
-// Operation captions describe only the pinned vocabulary's established arms
-// (TRIG-COND-003, TRIG-ACT-004, TRIG-DIST-014, TRIG-SACK-022). An authored label
-// never supplies semantics, and an unlisted operation remains explicitly raw.
 func inspectionOperation(kind string, opcode uint32) string {
-	var names map[uint32]string
-	if kind == "Condition" {
-		names = map[uint32]string{1: "Group count", 2: "Unit in box", 3: "Unit in distance square", 4: "Unit field (selector 6)", 5: "Unit alive", 6: "Distance between units", 7: "Point to unit distance", 8: "Player population", 10: "Player relation", 11: "No-write arm", 12: "Item presence", 13: "No-write arm", 14: "Sack at cell", 15: "Nearest player unit distance", 16: "Item to point distance", 17: "Item presence", 18: "Lose if unit dies", 19: "Read variable", 21: "Structure field", 22: "Move object check", 0x10002: "Constant / variable preset"}
-	} else {
-		names = map[uint32]string{2: "Send message", 3: "Set variable", 4: "Win", 5: "Lose", 6: "Group command", 8: "Increment variable", 9: "No-op arm", 10: "Set relation", 16: "Take unit off map", 17: "Return unit to map", 18: "Replace unit on map", 19: "Give unit to player", 22: "Give group to player", 26: "Set structure field", 27: "Move unit", 29: "Set cell effect duration", 30: "Set unit effect duration", 32: "Take group off map", 33: "Return group to map", 34: "Set unit field", 0x10002: "Drop location (build time)", 0x10003: "Object form (build time)"}
-	}
-	if name := names[opcode]; name != "" {
-		return name
-	}
-	if kind == "Action" {
-		// TRIG-ADDITEM-027, TRIG-GIVEALL-025, TRIG-MONEY-028.
-		switch opcode {
-		case 12:
-			return "Create item"
-		case 23:
-			return "Give money to player"
-		case 28:
-			return "Give entire inventory"
-		}
-	}
-	return "Unknown operation"
+	return mapload.ScriptOperationName(kind == "Condition", opcode)
 }
 
 type inspectionScript struct {
@@ -85,7 +63,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script) {
 		for p := range t.Left {
 			comparison := "unknown"
 			if t.Cmp[p] < 6 {
-				comparison = []string{"==", "!=", ">", "<", ">=", "<="}[t.Cmp[p]]
+				comparison = mapload.ScriptComparisons[t.Cmp[p]]
 			}
 			status := ""
 			if t.Left[p] == 0 && t.Right[p] == 0 {
@@ -191,7 +169,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind string, n alm.Scrip
 		}
 		name := "Unknown"
 		if tag <= 9 {
-			name = []string{"None", "Int/Enum", "Group", "Player", "Unit", "X", "Y", "Const", "Item", "Structure"}[tag]
+			name = mapload.ScriptParameterNames[tag]
 		}
 		label := fmt.Sprintf("Par%d %s [tag %d] = %d", i, name, tag, n.Value[i])
 		s.line(r, label, "")

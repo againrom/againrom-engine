@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Author mission conditions, ordered actions and triggers, then test
+  the saved mod from the editor through victory and return to town.
 - [ROM1] Place buildings, assign unit groups and starting inventories, create
   enchanted loot, and clone units with independent items.
 - [ROM1] Create rectangular maps, edit mission text and metadata, save

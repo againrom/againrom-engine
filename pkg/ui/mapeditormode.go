@@ -35,6 +35,7 @@ const (
 	promptItemRecipe
 	promptRectangle
 	promptWorkspace
+	promptNewScript
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -49,7 +50,7 @@ type editorPrompt struct {
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }
 func (p editorPrompt) adds() bool {
-	return p.kind == promptNewSack || p.kind == promptNewUnit || p.kind == promptNewStructure
+	return p.kind == promptNewSack || p.kind == promptNewUnit || p.kind == promptNewStructure || p.kind == promptNewScript
 }
 func (p editorPrompt) fields() bool {
 	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace || p.adds()

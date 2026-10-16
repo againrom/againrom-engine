@@ -50,6 +50,8 @@ func scriptSection(name string, array int) *section {
 	}
 	if array < 2 {
 		sec.fields = func(_ *Editor, rec []byte) []Field { return nodeFields(rec) }
+	} else {
+		sec.fields = func(_ *Editor, rec []byte) []Field { return triggerFields() }
 	}
 	return sec
 }
@@ -88,14 +90,15 @@ func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 	}
 }
 
-// nodeFields lists one field per typed parameter slot of a node record, in
-// slot order. The opcode, the id, the label and the editor's slot names are
-// carried. A Target_Item slot is not offered: its domain is Unknown
-// (ALM-TRIG-046).
+// nodeFields offers identity, parameter kinds and typed values. Unedited
+// bytes, including unknown parameter values and slot names, stay carried.
 func nodeFields(rec []byte) []Field {
-	var out []Field
+	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: 64, Text: true},
+		{Key: "opcode", Label: "Operation", Offset: nodeOpcode, Width: 4, Min: 1, Max: math.MaxUint32},
+		{Key: "id", Label: "Node ID", Offset: nodeID, Width: 4, Min: 1, Max: scriptMaxID}}
 	for i := 0; i < nodeSlots; i++ {
 		t := binary.LittleEndian.Uint32(rec[nodeTypes+4*i:])
+		out = append(out, Field{Key: fmt.Sprintf("type%d", i), Label: fmt.Sprintf("Par%d kind", i), Offset: nodeTypes + 4*i, Width: 4, Min: 0, Max: 9})
 		f := Field{Key: fmt.Sprintf("value%d", i), Offset: nodeValues + 4*i, Width: 4}
 		switch t {
 		case paramInt, paramConst:
@@ -103,7 +106,7 @@ func nodeFields(rec []byte) []Field {
 		case paramGroup:
 			f.Label, f.Min, f.Max, f.Check = "group id", 0, math.MaxUint32, CheckScriptGroup
 		case paramPlayer:
-			f.Label, f.Min, f.Max = "player slot", 1, 8
+			f.Label, f.Min, f.Max, f.Check = "player slot", 1, 8, CheckScriptPlayer
 		case paramUnit:
 			f.Label, f.Min, f.Max, f.Check = "unit id", 1, math.MaxUint16, CheckScriptUnit
 		case paramX:
@@ -112,6 +115,8 @@ func nodeFields(rec []byte) []Field {
 			f.Label, f.Min, f.Max = "cell Y", 0, 255
 		case paramStructure:
 			f.Label, f.Min, f.Max, f.Check = "structure id", 1, math.MaxUint16, CheckScriptStructure
+		case 8:
+			f.Label, f.Min, f.Max = "item offset (code = offset + 3608)", 0, math.MaxUint16
 		default:
 			continue
 		}
@@ -119,6 +124,57 @@ func nodeFields(rec []byte) []Field {
 		out = append(out, f)
 	}
 	return out
+}
+
+func triggerFields() []Field {
+	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: 64, Text: true}}
+	for i := 0; i < 3; i++ {
+		out = append(out, Field{Key: fmt.Sprintf("left%d", i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: triggerPairs + 8*i, Width: 4, Max: scriptMaxID},
+			Field{Key: fmt.Sprintf("right%d", i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: triggerPairs + 8*i + 4, Width: 4, Max: scriptMaxID},
+			Field{Key: fmt.Sprintf("cmp%d", i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: triggerCompare + 4*i, Width: 4, Max: 5})
+	}
+	for i := 0; i < 4; i++ {
+		out = append(out, Field{Key: fmt.Sprintf("action%d", i), Label: fmt.Sprintf("Action%d ID (0 empty)", i+1), Offset: triggerActions + 4*i, Width: 4, Max: scriptMaxID})
+	}
+	return append(out, Field{Key: "once", Label: "Fire once", Offset: triggerOnce, Width: 4, Max: 1})
+}
+
+func (e *Editor) Reorder(k Kind, from, to int) error {
+	w, err := e.walkIndex(k, "reorder", from)
+	if err != nil {
+		return err
+	}
+	if to < 0 || to >= w.n() {
+		return fmt.Errorf("mapedit: no %s %d", sectionName(k), to)
+	}
+	if to == from {
+		return nil
+	}
+	lo, hi := min(from, to), max(from, to)
+	start, _ := w.at(lo)
+	end, l := w.at(hi)
+	end += l
+	var next []byte
+	for i := lo; i <= hi; i++ {
+		j := i
+		if from < to {
+			if i == to {
+				j = from
+			} else {
+				j = i + 1
+			}
+		} else {
+			if i == to {
+				j = from
+			} else {
+				j = i - 1
+			}
+		}
+		at, n := w.at(j)
+		next = append(next, e.data[at:at+n]...)
+	}
+	e.apply(edit{replace(start, e.data[start:end], next)})
+	return nil
 }
 
 // NewScriptNode builds one node record: a zero record with the label, opcode,
@@ -152,6 +208,9 @@ func (e *Editor) NextScriptID(k Kind) (uint32, error) {
 	for i := 0; i < w.n(); i++ {
 		at, _ := w.at(i)
 		if id := e.u32(at + nodeID); id >= next {
+			if id == math.MaxUint32 {
+				return 0, fmt.Errorf("mapedit: node ID space is exhausted")
+			}
 			next = id + 1
 		}
 	}

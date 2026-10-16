@@ -90,10 +90,18 @@ func TestScriptNodesAreRowsOfTheSectionTable(t *testing.T) {
 		t.Fatal("the unedited map does not write the bytes it was given")
 	}
 	fields, err := e.Fields(mapedit.KindCondition, 0)
-	if err != nil || len(fields) != 1 || fields[0].Key != "value0" || fields[0].Check != mapedit.CheckScriptUnit {
+	find := func(fields []mapedit.Field, key string) mapedit.Field {
+		for _, f := range fields {
+			if f.Key == key {
+				return f
+			}
+		}
+		return mapedit.Field{}
+	}
+	if err != nil || find(fields, "value0").Check != mapedit.CheckScriptUnit || find(fields, "type9").Max != 9 || !find(fields, "name").Text {
 		t.Fatalf("fields of the unit-alive check: %+v, %v", fields, err)
 	}
-	if fields, _ = e.Fields(mapedit.KindAction, 0); len(fields) != 2 || fields[0].Max != 255 {
+	if fields, _ = e.Fields(mapedit.KindAction, 0); find(fields, "value0").Max != 255 || find(fields, "value1").Max != 255 {
 		t.Fatalf("fields of the drop action: %+v", fields)
 	}
 }

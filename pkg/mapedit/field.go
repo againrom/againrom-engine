@@ -25,6 +25,7 @@ const (
 	CheckScriptUnit                        // a unit id a type-6 record holds, or a hero-band value (ALM-TRIG-046)
 	CheckScriptStructure                   // a structure id a type-4 record's +0x12 word holds (ALM-TRIG-046)
 	CheckScriptGroup                       // a group id a type-6 record holds (ALM-TRIG-046)
+	CheckScriptPlayer
 	CheckStructureIdentity
 	CheckItemRecipe
 )

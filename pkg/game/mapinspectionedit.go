@@ -83,6 +83,7 @@ var editKinds = map[string]mapedit.Kind{
 	"Unit": mapedit.KindUnit, "Structure": mapedit.KindStructure,
 	"Sack": mapedit.KindLoot, "Stock": mapedit.KindLoot,
 	"Action": mapedit.KindAction, "Condition": mapedit.KindCondition,
+	"Trigger":     mapedit.KindTrigger,
 	"Player":      mapedit.KindPlayer,
 	"Enchantment": mapedit.KindEnchantment,
 }
@@ -156,6 +157,9 @@ func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocum
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
+		if err := scriptDeleteAllowed(m, k, index); err != nil {
+			return false, err
+		}
 		err := m.Delete(k, index)
 		return err == nil, err
 	})
@@ -195,6 +199,14 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		return nil
 	}
 	var out []ui.InspectionField
+	var script alm.Script
+	var scriptView *alm.Map
+	if scriptKind(k) {
+		if view, e := s.model.Map(); e == nil {
+			scriptView = view
+			script, _ = view.Script()
+		}
+	}
 	for _, f := range fields {
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text}
 		row.Choices = s.RecordChoices(kind, index, f.Key)
@@ -206,7 +218,16 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		if err != nil {
 			return nil
 		}
+		if scriptView != nil {
+			row.Choices = scriptFieldChoices(kind, f.Key, script)
+			if strings.HasPrefix(f.Key, "value") {
+				row.Choices = scriptValueChoices(scriptView, k, index, f.Key)
+			}
+		}
 		out = append(out, row)
+	}
+	if k == mapedit.KindTrigger {
+		out = append(out, ui.InspectionField{Key: "order", Label: "Trigger order (0 first)", Value: int64(index)})
 	}
 	return out
 }
@@ -220,6 +241,19 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
+		if k == mapedit.KindTrigger && key == "order" {
+			if value < 0 || value >= int64(m.Count(k)) {
+				return false, fmt.Errorf("no trigger position %d", value)
+			}
+			if value == int64(index) {
+				return false, nil
+			}
+			err := m.Reorder(k, index, int(value))
+			return err == nil, err
+		}
+		if err := scriptFieldAllowed(m, k, index, key, value); err != nil {
+			return false, err
+		}
 		fields, err := m.Fields(k, index)
 		if err != nil {
 			return false, err
@@ -237,6 +271,9 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 			return false, err
 		}
 		if err := m.SetField(k, index, key, value); err != nil {
+			return false, err
+		}
+		if err := scriptVariableAllowed(m, k, index); err != nil {
 			return false, err
 		}
 		view, err := m.Map()
@@ -264,8 +301,13 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 			}
 		case mapedit.CheckScriptUnit, mapedit.CheckScriptStructure, mapedit.CheckScriptGroup:
 			err = checkScriptReference(f.Check, view, value)
+		case mapedit.CheckScriptPlayer:
+			err = rosterSlotError(view, uint32(value))
 		}
 		if err != nil {
+			return false, err
+		}
+		if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
 			return false, err
 		}
 		return true, s.checkPlacement(k, m, index)
@@ -527,19 +569,33 @@ func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64) err
 		if value >= scriptHeroBand {
 			return nil
 		}
+		matches := 0
 		for _, u := range m.Units {
 			if int64(u.UnitID) == value {
-				return nil
+				matches++
 			}
 		}
-		return fmt.Errorf("no unit on the map has unit id %d", value)
+		if matches == 1 {
+			return nil
+		}
+		if matches == 0 {
+			return fmt.Errorf("no unit on the map has unit id %d", value)
+		}
+		return fmt.Errorf("unit id %d resolves to %d map units", value, matches)
 	case mapedit.CheckScriptStructure:
+		matches := 0
 		for _, o := range m.Objects {
 			if int64(o.Field12) == value {
-				return nil
+				matches++
 			}
 		}
-		return fmt.Errorf("no structure on the map has structure id %d", value)
+		if matches == 1 {
+			return nil
+		}
+		if matches == 0 {
+			return fmt.Errorf("no structure on the map has structure id %d", value)
+		}
+		return fmt.Errorf("structure id %d resolves to %d structures", value, matches)
 	}
 	for _, u := range m.Units {
 		if int64(u.GroupID) == value {

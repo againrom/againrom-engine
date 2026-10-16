@@ -243,6 +243,31 @@ warns when the map has none and its fallback landing cells leave the map).
 file and prints that report; `-new` alone opens the window on it, with
 `-check` it prints the report.
 
+J, a click and a structure kind add a structure. C clones it with a new
+identity; E edits its owner, kind, identity and placement words. U adds units;
+their E fields include group membership. Select a unit and press K to create
+its stock, then E to add items. S creates a ground sack. Select a stock or
+sack and press I to choose the item number for a magic recipe; E on the new
+recipe sets its spell and ordered effects. Up/Down cycles installed names
+and current map references in these field prompts; numeric input also works.
+Deleting a referenced recipe or a unit that still owns a stock is refused.
+
+F2 lists actions, conditions and triggers. A adds one of those kinds; E and
+Tab edit its fields. Choose operations, parameter kinds and references with
+Up/Down or type their numeric values. Changing an operation keeps its current
+parameters, so set each required kind and value. A trigger compares up to
+three pairs of condition IDs with AND, then runs its four action slots in
+order. Its fields also set once/repeat and trigger order. Constant/preset
+conditions initialize variable registers by their zero-based condition
+position; read-variable conditions and set/increment actions use those
+registers or free slots up to 99. Runtime checks also write registers, so
+the editor refuses a variable reference that would collide with one.
+Clear trigger references before deleting or renaming their nodes. Unknown
+imported operations and parameter bytes are retained; authoring choices list
+the operations supported by the current runtime. D sets the party drop cell;
+E on a drop action can edit another drop independently. G retains the goal
+presets and target picker.
+
 X edits mission pages. Set the page name, reopen X and use Tab to reach its
 body. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,
 `eventNN.txt` and `tipsNN.txt`; numbers use at least two digits and can exceed
@@ -260,6 +285,14 @@ an owned copy. The source files stay unchanged. An owned package contains one
 mission; select and copy other source missions separately. Ctrl+S stages the
 map, declaration and pages, validates them with the normal loader and then
 saves the package. Unrelated files survive updates; conflicts refuse the save.
+
+To build a playable scenario, create its size with N, set D, add its units
+and structures, write an `event01.txt` page with X, and use F2 to connect a
+message and win action to the intended conditions. Set the route and a new
+folder with W, save with Ctrl+S, and reopen the folder with W to check the
+checkpoint. F5 enters character generation for the current map. Acknowledging
+its Victory panel returns the game to the campaign town; the editor stays
+open for further changes.
 
 `mapedit -mod <mod folder>` saves into the mod: Ctrl+S writes the edited map
 to the path the mod's mission entry for it names (the entry whose `number` is

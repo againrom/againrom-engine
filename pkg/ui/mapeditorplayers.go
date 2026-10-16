@@ -38,6 +38,9 @@ func (e *MapEditor) keyPlayers(string) error {
 }
 
 func (e *MapEditor) keyPlayer(string) error {
+	if e.addScriptKey() {
+		return nil
+	}
 	if !e.editable() || !e.listView() || e.brushActive() || e.filter != editorPlayersFilter {
 		return nil
 	}

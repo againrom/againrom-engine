@@ -287,6 +287,8 @@ func (e *MapEditor) rows() []int {
 			show = r.Kind == "Trigger" || (r.Kind == "Section" && r.Section == 7)
 		case editorPlayersFilter:
 			show = r.Kind == "Player"
+		case editorScriptsFilter:
+			show = scriptRecord(r.Kind)
 		}
 		if show {
 			out = append(out, i)
@@ -405,7 +407,7 @@ func (e *MapEditor) railClick(x, y int) {
 		}
 		return
 	}
-	if e.listView() && !e.brushActive() && e.filter != editorPlayersFilter && y >= 128 && y < 176 {
+	if e.listView() && !e.brushActive() && e.filter != editorPlayersFilter && e.filter != editorScriptsFilter && y >= 128 && y < 176 {
 		idx := (y-128)/24*4 + x/80
 		if idx < len(editorFilters) {
 			e.filter = idx
@@ -493,7 +495,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -658,7 +660,7 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 			}
 		}
 		line(fmt.Sprintf("Units %d Build %d Sacks %d", counts["Unit"], counts["Structure"], counts["Sack"]), 10, 88, 300, editorPaper)
-		if e.filter == 7 {
+		if e.filter == 7 || e.filter == editorScriptsFilter {
 			line(fmt.Sprintf("Triggers %d / C%d A%d", counts["Trigger"], counts["Condition"], counts["Action"]), 10, 108, 300, editorPaper)
 		} else if e.filter == editorPlayersFilter {
 			line(fmt.Sprintf("Players %d", counts["Player"]), 10, 108, 300, editorPaper)
@@ -672,6 +674,9 @@ func (e *MapEditor) PanelImage(h int) *image.RGBA {
 		line(editorClip(e.font, e.report.note, 300), 10, 143, 300, editorGold)
 	} else if e.brushActive() {
 		line(editorClip(e.font, e.brushStatus(), 300), 10, 143, 300, editorGold)
+	} else if !e.catalog && e.filter == editorScriptsFilter {
+		line("SCRIPTS / A: add / E: fields", 10, 130, 300, editorGold)
+		line("Up, Down: select / Esc: map", 10, 154, 300, editorPaper)
 	} else if !e.catalog && e.filter == editorPlayersFilter {
 		line("PLAYERS", 10, 130, 300, editorGold)
 		line("Name, colour, control, relations", 10, 154, 300, editorPaper)

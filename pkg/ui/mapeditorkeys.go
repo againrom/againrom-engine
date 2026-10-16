@@ -101,10 +101,11 @@ func init() {
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, line4}, {screenPlayers, players}}},
 		{key: "player", label: "A", act: (*MapEditor).keyPlayer, help: []helpEntry{{screenPlayers, players}}},
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(line4)},
+		{key: "scripts", label: "F2", act: (*MapEditor).keyScripts, help: keys("F1: all keys / F2: scripts")},
 		{key: "metadata", label: "M", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(line5)},
-		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys")},
+		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys / F2: scripts")},
 		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenStructure, "Structure: click a cell"}}},
 		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenStructure, "Esc: cancel"}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
@@ -253,6 +254,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.leave(leaveCatalog)
 	case e.listView() && e.filter == editorPlayersFilter:
 		return e.keyPlayers("")
+	case e.listView() && e.filter == editorScriptsFilter:
+		e.filter = 0
 	case e.Dirty():
 		e.message = "Unsaved changes. Save As or undo changes before closing."
 	default:
@@ -279,7 +282,7 @@ func (e *MapEditor) keyCatalog(string) error {
 
 func (e *MapEditor) keyEnter(string) error {
 	switch e.prompt.kind {
-	case promptField, promptNewSack, promptNewUnit, promptNewStructure, promptWorkspace:
+	case promptField, promptNewSack, promptNewUnit, promptNewStructure, promptWorkspace, promptNewScript:
 		return e.setField(e.prompt.path)
 	case promptItemRecipe:
 		return e.setItemRecipe(e.prompt.path)
@@ -321,7 +324,7 @@ func (e *MapEditor) keyStep(key string) error {
 	if e.brushKey(key) {
 		return nil
 	}
-	if e.listView() && e.filter == editorPlayersFilter {
+	if e.listView() && (e.filter == editorPlayersFilter || e.filter == editorScriptsFilter) {
 		delta := 1
 		if key == "up" {
 			delta = -1

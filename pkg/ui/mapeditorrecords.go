@@ -19,7 +19,7 @@ func editableKind(kind string) bool { return dragRank[kind] > 0 || kind == "Stoc
 // fieldKind reports a record kind whose fields the window sets: the editable
 // kinds, script nodes and nonspatial Players.
 func fieldKind(kind string) bool {
-	return editableKind(kind) || kind == "Action" || kind == "Condition" || kind == "Player" || kind == "Enchantment"
+	return editableKind(kind) || scriptRecord(kind) || kind == "Player" || kind == "Enchantment"
 }
 
 // selectedRecord is the kind and file-order index of the selected editable
@@ -38,6 +38,8 @@ func (e *MapEditor) selectedRecord() (string, int) {
 // item code while a sack waits for one, else the selected record's fields.
 func (e *MapEditor) promptFields() []InspectionField {
 	switch e.prompt.kind {
+	case promptNewScript:
+		return []InspectionField{{Key: "kind", Label: "New script record", Choices: []InspectionChoice{{0, "Action"}, {1, "Condition"}, {2, "Trigger"}}}}
 	case promptWorkspace:
 		if host, ok := e.workspace(); ok {
 			return host.WorkspaceFields(e.prompt.scope)
@@ -88,7 +90,7 @@ func (e *MapEditor) recordKey(key string) error {
 		return nil
 	}
 	kind, index := e.selectedRecord()
-	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && (kind == "Player" || kind == "Enchantment"))) {
+	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && (kind == "Player" || kind == "Enchantment" || scriptRecord(kind)))) {
 		e.message = "Select a unit, structure or sack first."
 		return nil
 	}
@@ -166,7 +168,14 @@ func (e *MapEditor) setField(text string) error {
 			e.message = "Enter a whole number."
 			return parseErr
 		}
-		if adds {
+		if e.prompt.kind == promptNewScript {
+			kinds := []string{"Action", "Condition", "Trigger"}
+			if v < 0 || v >= int64(len(kinds)) {
+				return fmt.Errorf("Choose Action, Condition or Trigger")
+			}
+			newKind = kinds[v]
+			next, err = e.doc.Edits.(InspectionScriptAuthor).AddScript(newKind)
+		} else if adds {
 			next, newKind, err = e.addRecord(e.prompt.cell, v)
 		} else {
 			kind, index := e.selectedRecord()
