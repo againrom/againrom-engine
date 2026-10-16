@@ -63,8 +63,8 @@ func TestHoldPressedDuringARetreatEndsTheRetreat(t *testing.T) {
 
 			Step(w, []Command{GroupStance(1, OrderStandGround, 2)})
 			held := entityAt(t, w, 1)
-			if held.ActorState != actorStateGuard {
-				t.Fatalf("after Hold the warrior holds state %#x, want guard %#x", held.ActorState, actorStateGuard)
+			if held.ActorState != actorStateAcquire {
+				t.Fatalf("after Hold the warrior holds state %#x, want %#x", held.ActorState, actorStateAcquire)
 			}
 			if held.HasTarget || held.HasAttackTarget {
 				t.Fatalf("after Hold the warrior holds destination %v (%d,%d), victim %v", held.HasTarget, held.TargetX, held.TargetY, held.HasAttackTarget)
@@ -76,8 +76,8 @@ func TestHoldPressedDuringARetreatEndsTheRetreat(t *testing.T) {
 					t.Fatal("after Hold the warrior stands in no saved group")
 				}
 				order = g.AI[0x20]
-				if o := w.savedOrder(1); o == nil || o.State != uint32(actorStateGuard) {
-					t.Fatalf("after Hold the saved order record holds %+v, want guard %#x", o, actorStateGuard)
+				if o := w.savedOrder(1); o == nil || o.State != uint32(actorStateAcquire) {
+					t.Fatalf("after Hold the saved order record holds %+v, want %#x", o, actorStateAcquire)
 				}
 			} else {
 				order, _, _ = regState(w, held.Owner, effectiveGroup(&held))
@@ -119,9 +119,9 @@ func TestHoldPressedDuringARetreatEndsTheRetreat(t *testing.T) {
 }
 
 // TestHoldPressedOnARetreatingAndAnIdleMemberLeavesTheIdleOneAsItWas: one press
-// of Hold reaches a member in Retreat and a member holding nothing. The second
-// keeps its state, its cell and its empty order, and both stand in one group at
-// Stand Ground.
+// of Hold reaches a member in Retreat and a member holding nothing. Both take
+// state 0xc (AI-351); the second keeps its cell and its empty order, and both
+// stand in one group at Stand Ground.
 func TestHoldPressedOnARetreatingAndAnIdleMemberLeavesTheIdleOneAsItWas(t *testing.T) {
 	t.Parallel()
 
@@ -150,10 +150,10 @@ func TestHoldPressedOnARetreatingAndAnIdleMemberLeavesTheIdleOneAsItWas(t *testi
 
 			Step(w, []Command{GroupStance(1, OrderStandGround, 2), GroupStance(3, OrderStandGround, 2)})
 			first, second := entityAt(t, w, 1), entityAt(t, w, 3)
-			if first.ActorState != actorStateGuard || first.HasTarget {
+			if first.ActorState != actorStateAcquire || first.HasTarget {
 				t.Fatalf("after Hold the retreating warrior holds state %#x, destination %v", first.ActorState, first.HasTarget)
 			}
-			if second.ActorState != before.ActorState || second.X != before.X || second.Y != before.Y || second.HasTarget || second.HasAttackTarget {
+			if second.ActorState != actorStateAcquire || second.X != before.X || second.Y != before.Y || second.HasTarget || second.HasAttackTarget {
 				t.Fatalf("after Hold the idle warrior holds state %#x at (%d,%d), destination %v, victim %v; it held state %#x at (%d,%d)",
 					second.ActorState, second.X, second.Y, second.HasTarget, second.HasAttackTarget, before.ActorState, before.X, before.Y)
 			}

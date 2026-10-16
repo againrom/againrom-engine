@@ -52,17 +52,22 @@ func (w *World) actorPass() {
 		if order, _, ok := w.groupState(w.entities[i].Owner, effectiveGroup(&w.entities[i])); ok && order == orderRoam {
 			continue
 		}
-		switch w.entities[i].ActorState {
+		// The first game enters every arm under Group order 0 alone
+		// (actorLayerDecides, AI-ORDER-010). The second game keeps its own
+		// dispatch, which gates only the guard arm.
+		if !w.groupDialectNative() && !w.actorLayerDecides(i) {
+			continue
+		}
+		state := w.entities[i].ActorState
+		// Guard is the constructor's default for every entity, not a state a
+		// command writes, so the second game gates this arm on Group order 0.
+		if state == actorStateGuard && !w.actorLayerDecides(i) {
+			continue
+		}
+		noteActorState(w.entities[i].ID, state)
+		switch state {
 		case actorStateGuard:
-			// THE ONE CASE WITH A GATE OF ITS OWN (1141). Guard is the constructor's
-			// default for every entity, not a state a command writes, so it is the
-			// one arm whose population is not already fixed by its setter.
-			// actorLayerDecides is the law's own entry condition for the whole
-			// per-actor machine (AI-ORDER-010, AI-POST-095): group order 0 and
-			// nothing else.
-			if w.actorLayerDecides(i) {
-				w.armGuard(i)
-			}
+			w.armGuard(i)
 		case actorStateAcquire:
 			w.armAcquire(i)
 		case actorStatePatrol:
@@ -75,6 +80,16 @@ func (w *World) actorPass() {
 		case actorStateRetreat:
 			w.armRetreat(i)
 		}
+	}
+}
+
+// actorStateRead is a test seam: when set, it sees every actor state a
+// per-actor dispatch reads, by entity. Production leaves it nil.
+var actorStateRead func(id EntityID, state uint8)
+
+func noteActorState(id EntityID, state uint8) {
+	if actorStateRead != nil {
+		actorStateRead(id, state)
 	}
 }
 

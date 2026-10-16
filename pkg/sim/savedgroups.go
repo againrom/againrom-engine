@@ -437,6 +437,7 @@ func (w *World) savedActorDispatch(i int) {
 	if o == nil || !w.entities[i].Alive() || w.entities[i].OffMap {
 		return
 	}
+	noteActorState(o.Entity, uint8(o.State))
 	switch o.State {
 	case 1:
 		w.savedMove(i, o)

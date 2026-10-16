@@ -1,6 +1,7 @@
 package game
 
 import (
+	"slices"
 	"testing"
 
 	"againrom/pkg/sim"
@@ -109,6 +110,14 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 		if !fired {
 			t.Fatalf("group %d: the node never ran", a.node.Group)
 		}
+		_, orders, _ := treated.SavedGroups()
+		for _, id := range a.members {
+			e, _ := treated.Entity(id)
+			i := slices.IndexFunc(orders, func(o sim.SavedActorOrder) bool { return o.Entity == id })
+			if e.ActorState != 0xc || i < 0 || orders[i].State != 0xc {
+				t.Fatalf("group %d member %d holds state %#x after Stand Ground, want 0xc on the entity and its order (AI-370)", a.node.Group, id, e.ActorState)
+			}
+		}
 		stood := map[sim.EntityID]sim.Entity{}
 		walking := 0
 		for _, id := range a.members {
@@ -188,6 +197,9 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 			if got, _ := back.live.entity(id); got.X != e.X && got.Y != e.Y {
 				t.Fatalf("loaded member %d left (%d,%d) for (%d,%d)", id, e.X, e.Y, got.X, got.Y)
 			}
+		}
+		if witnessed == 0 {
+			standStateColdProcess(t, raw, a.members)
 		}
 		witnessed++
 		t.Logf("group %d: %d members stood, %d of them on a walk in the control world", a.node.Group, len(a.members), walking)

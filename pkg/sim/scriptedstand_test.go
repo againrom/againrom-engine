@@ -40,11 +40,11 @@ func TestScriptStandGroundStandsAMemberOnAWalk(t *testing.T) {
 		control := worldRoundTripForTest(t, w)
 		w.runInstant(lcGroupOrder(lcGroup, 0, scriptStandOrder))
 		e := laEnt(t, w, lcArcherID)
-		if e.HasTarget || e.HasAttackTarget || e.ActorState != actorStateGuard {
-			t.Fatalf("saved=%t: member holds destination %t victim %t state %#x, want none and guard", saved, e.HasTarget, e.HasAttackTarget, e.ActorState)
+		if e.HasTarget || e.HasAttackTarget || e.ActorState != actorStateAcquire {
+			t.Fatalf("saved=%t: member holds destination %t victim %t state %#x, want none and 0xc", saved, e.HasTarget, e.HasAttackTarget, e.ActorState)
 		}
 		if saved {
-			if o := w.savedOrder(lcArcherID); o == nil || o.Raw[8] != 0 || o.State != uint32(actorStateGuard) {
+			if o := w.savedOrder(lcArcherID); o == nil || o.Raw[8] != 0 || o.State != uint32(actorStateAcquire) {
 				t.Fatalf("saved order after Stand Ground: %+v", o)
 			}
 		} else if order, _, ok := regState(w, 3, lcGroup); !ok || order != orderStandGround {
@@ -83,8 +83,8 @@ func TestScriptStandGroundEndsAPatrolAndAnEscort(t *testing.T) {
 			t.Fatalf("%s: fixture state %#x", name, e.ActorState)
 		}
 		w.runInstant(lcGroupOrder(lcGroup, 0, scriptStandOrder))
-		if e := laEnt(t, w, lcArcherID); e.ActorState != actorStateGuard || e.HasTarget {
-			t.Fatalf("%s: after Stand Ground state %#x destination %t, want guard and none", name, e.ActorState, e.HasTarget)
+		if e := laEnt(t, w, lcArcherID); e.ActorState != actorStateAcquire || e.HasTarget {
+			t.Fatalf("%s: after Stand Ground state %#x destination %t, want 0xc and none", name, e.ActorState, e.HasTarget)
 		}
 	}
 }

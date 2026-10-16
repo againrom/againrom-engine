@@ -418,3 +418,36 @@ func TestStandDownOnAMemberHoldingNothingLeavesItsLoadedRouteRecordAlone(t *test
 			after[0].Current, after[0].Issue, before[0].Issue)
 	}
 }
+
+// TestAttackOrderReleasesAHoldMemberIntoAFreshGroup: the player's attack order
+// builds a new Group at order 0 for the attacker (AI-CMD-033) and stores state
+// 3 (AI-CMD-054). A member Hold left at state 0xc leaves its order-3 Group; the
+// member not ordered stays in it at 0xc.
+func TestAttackOrderReleasesAHoldMemberIntoAFreshGroup(t *testing.T) {
+	t.Parallel()
+
+	m := withdrawalFighter(1, SelfSlot, 20, 20, 100)
+	mate := withdrawalFighter(4, SelfSlot, 20, 22, 100)
+	rel := engRel(t, [3]uint32{SelfSlot, 3, 1}, [3]uint32{3, SelfSlot, 2})
+	w := engWorld(t, rel, m, mate, withdrawalFighter(2, 3, 22, 20, 100))
+	Step(w, []Command{GroupStance(1, OrderStandGround, 7), GroupStance(4, OrderStandGround, 7)})
+	held := w.savedGroupFor(1)
+	if held == nil || held != w.savedGroupFor(4) || held.AI[0x20] != orderStandGround {
+		t.Fatalf("fixture: Hold did not put both members in one order-3 Group: %+v", held)
+	}
+	if s := entityAt(t, w, 1).ActorState; s != actorStateAcquire {
+		t.Fatalf("fixture: the held member holds state %#x, want 0xc", s)
+	}
+	heldID := held.ID
+	Step(w, []Command{Attack(1, 2)})
+	g := w.savedGroupFor(1)
+	if g == nil || g.ID == heldID || g.AI[0x20] != orderNone || len(g.Members) != 1 {
+		t.Fatalf("after the attack order the attacker stands in %+v, want a fresh one-member Group at order 0", g)
+	}
+	if e := entityAt(t, w, 1); !e.HasAttackTarget || e.ActorState != actorStateEngage {
+		t.Fatalf("attacker holds victim %t state %#x, want the victim and state 3", e.HasAttackTarget, e.ActorState)
+	}
+	if rest := w.savedGroupFor(4); rest == nil || rest.ID != heldID || rest.AI[0x20] != orderStandGround || entityAt(t, w, 4).ActorState != actorStateAcquire {
+		t.Fatalf("the member not ordered left its Hold Group: %+v", rest)
+	}
+}

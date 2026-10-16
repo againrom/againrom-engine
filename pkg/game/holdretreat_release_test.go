@@ -64,7 +64,7 @@ func TestReleaseHoldPositionEndsARetreat(t *testing.T) {
 		t.Fatalf("the second warrior stands in a group at order %d (known %v), want Stand Ground", order, known)
 	}
 	after := arena.get(runner)
-	if after.ActorState != 0xb || after.HasTarget || after.HasAttackTarget {
+	if after.ActorState != 0xc || after.HasTarget || after.HasAttackTarget {
 		t.Fatalf("after Hold Position the fleeing warrior holds state %#x, destination %v (%d,%d), victim %v",
 			after.ActorState, after.HasTarget, after.TargetX, after.TargetY, after.HasAttackTarget)
 	}
@@ -84,9 +84,9 @@ func TestReleaseHoldPositionEndsARetreat(t *testing.T) {
 			t.Fatalf("%d ticks after Hold Position the fleeing warrior is at (%d,%d), state %#x, destination %v, victim %v; he stood at (%d,%d)",
 				k+1, h.X, h.Y, h.ActorState, h.HasTarget, h.HasAttackTarget, rest.X, rest.Y)
 		}
-		if h := arena.get(idle); h.X != quiet.X || h.Y != quiet.Y || h.HasTarget || h.HasAttackTarget || h.ActorState != waiting.ActorState {
-			t.Fatalf("%d ticks after Hold Position the idle warrior is at (%d,%d), state %#x, destination %v, victim %v; he held state %#x at (%d,%d)",
-				k+1, h.X, h.Y, h.ActorState, h.HasTarget, h.HasAttackTarget, waiting.ActorState, quiet.X, quiet.Y)
+		if h := arena.get(idle); h.X != quiet.X || h.Y != quiet.Y || h.HasTarget || h.HasAttackTarget || h.ActorState != 0xc {
+			t.Fatalf("%d ticks after Hold Position the idle warrior is at (%d,%d), state %#x, destination %v, victim %v; he stood at (%d,%d) with state 0xc",
+				k+1, h.X, h.Y, h.ActorState, h.HasTarget, h.HasAttackTarget, quiet.X, quiet.Y)
 		}
 	}
 	for range 220 {

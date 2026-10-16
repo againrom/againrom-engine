@@ -112,7 +112,7 @@ func TestPickup1117ReplacementOrdersWinBeforeCompletion(t *testing.T) {
 		{"move", Command{Kind: KindMoveTo, Entity: 0, X: 25, Y: 20}, actorStateGuard},
 		{"group-move", Command{Kind: KindGroupMoveTo, Entity: 0, X: 25, Y: 20}, actorStateGuard},
 		{"stop", Command{Kind: KindGroupStance, Entity: 0, X: int32(OrderGuard)}, actorStateGuard},
-		{"stand", Command{Kind: KindGroupStance, Entity: 0, X: int32(OrderStandGround)}, actorStateGuard},
+		{"stand", Command{Kind: KindGroupStance, Entity: 0, X: int32(OrderStandGround)}, actorStateAcquire},
 		{"patrol", Command{Kind: KindGroupPatrolTo, Entity: 0, X: 25, Y: 20}, actorStatePatrol},
 		{"retreat", Command{Kind: KindGroupRetreat, Entity: 0, Player: 1}, actorStateRetreat},
 		{"defend", Command{Kind: KindGroupDefend, Entity: 0, X: 9}, actorStateDefend},

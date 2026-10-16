@@ -236,9 +236,13 @@ func TestAnyPlayerOrderEndsAPatrol(t *testing.T) {
 			engRun(w, 2)
 
 			e := w.entities[0]
-			if e.ActorState != actorStateGuard {
-				t.Fatalf("the unit is still in actor state %d after %s, want guard (%d)",
-					e.ActorState, tc.name, actorStateGuard)
+			want := actorStateGuard
+			if tc.cmd.X == OrderStandGround {
+				want = actorStateAcquire // the Stand Ground setter's own store (AI-351)
+			}
+			if e.ActorState != want {
+				t.Fatalf("the unit is still in actor state %d after %s, want %d",
+					e.ActorState, tc.name, want)
 			}
 			if e.PatrolHeadX != 0 || e.PatrolHeadY != 0 || e.PatrolTailX != 0 || e.PatrolTailY != 0 ||
 				e.PatrolLeg != patrolLegHead {

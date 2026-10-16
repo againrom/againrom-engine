@@ -2489,6 +2489,15 @@ package storyguard
 // CommentBytes rises for the doc comments of the one flight-input builder
 // (pkg/game/flightinputs.go), the shared World wrapper envelope
 // (pkg/sim/formwrapper.go) and its round-trip test, this note included.
+//
+// CommentBytes rises for the doc comments of the Group order gate's
+// witnesses (pkg/sim/actorgate_test.go, pkg/game/holdstate_release_test.go)
+// and the actor-state test seam in pkg/sim/actor.go, this note included.
+//
+// CommentBytes rises for the attack order's Hold witnesses
+// (pkg/sim/standground_test.go, pkg/game/holdattackoriginal_release_test.go)
+// and the known-book hotfix merged from main, less the removed Stand Ground
+// exemption, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4557,
 	TestFileCount:  264,
@@ -2510,7 +2519,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1719,
+		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9042248,
+	CommentBytes: 9044942,
 }

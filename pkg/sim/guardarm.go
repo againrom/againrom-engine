@@ -17,9 +17,8 @@ package sim
 // transcribed dead, which is the shape savedGuard (savedgroupsai.go) already
 // carries for the same routine on the original-runtime side.
 //
-// WHAT THE ARM DOES NOT DECIDE is who reaches it. Guard is this build's
-// constructor default for EVERY entity, so the dispatch's own case carries
-// that gate; see actorLayerDecides.
+// WHAT THE ARM DOES NOT DECIDE is who reaches it: the dispatch carries that
+// gate; see actorLayerDecides.
 
 // postRadius is the occupancy block's Chebyshev radius: `mover+0x08`, written
 // once in the image by the mover constructor and read at every block site
@@ -109,41 +108,22 @@ func (w *World) guardWalkHome(i int) {
 	e.TargetX, e.TargetY, e.HasTarget = x, y, true
 }
 
-// actorLayerDecides reports whether the per-actor machine is what decides
-// entity i at all: its group's stored order is 0.
+// actorLayerDecides reports whether the per-actor machine decides entity i:
+// its Group's stored order is 0. `AI-ORDER-010` reads arm 0 as the one that
+// hands control to the members' own states, and `AI-POST-095` places the one
+// live call of the per-actor machine inside arm 0 (`callto:R0008` = 2/2/0).
+// No other order, 0xff and 0x11 included, evaluates `actor+0x50`.
 //
-// `AI-ORDER-010` gives the group order byte's six-arm table and reads arm 0
-// as the one that "hands control to the members' own states"; `AI-POST-095`
-// measures the entry (`callto:R0008` = 2 / 2 / 0) and states the negative
-// this gate exists for — a group under order 1 never evaluates `actor+0x50`.
-//
-// THE GATE IS HERE BECAUSE GUARD IS NOT WRITTEN BY A COMMAND AT ALL — it
-// is the constructor's default for every entity in the world. The other five
-// actor states are each written beside a group order cleared to 0 (group.go,
-// script.go, playerdefend.go, playerretreat.go), so their arms are entered
-// on that order in the ordinary case; without this gate the guard arm would
-// instead run for every guarding unit on the map, including the whole
-// population the group layer's own guard and stand-ground arms already
-// decide, and decide it twice.
-//
-// THAT IS THE ORDINARY CASE AND NOT AN INVARIANT (pass 1 review, F-6). A
-// setter writes the order and the state together, but a LATER group command
-// can raise the order without rewriting either: a script `Group Command:
-// Guard` against a group an earlier node put on patrol sets `g.order = 1`
-// (cmdGroupGuard) and leaves its members in patrol state, where armPatrol —
-// and through it this arm — still runs, against `AI-ORDER-010`'s "a group
-// under order 1 never evaluates `actor+0x50`". The ungated armPatrol predates
-// 1141; what 1141 adds is that those members also scan and engage. Not
-// reached on shipped data: over the eight maps that carry a patrol node, at
-// 1500 ticks each, all fourteen entities that ran the patrol arm ran it under
-// group order 0 (measured in this story's adversarial pass). Recorded as
-// DIV-990.
-//
-// A PAIR NO RECORD NAMES ANSWERS FALSE, on decide's own rule: such a pair
-// takes no group decision, and giving it an actor decision instead would be
-// the same back-door derivation that rule removes.
+// A first-game World reads the order its Group registry holds, which every
+// first-game Group command writes; the second game reads its native record.
+// A pair no record names answers false: it takes no Group decision, and an
+// actor decision in its place would be the derivation decide's rule removes.
 func (w *World) actorLayerDecides(i int) bool {
-	e := w.entities[i]
-	order, _, ok := w.groupState(e.Owner, effectiveGroup(&e))
+	e := &w.entities[i]
+	if !w.groupDialectNative() {
+		g := w.savedGroupFor(e.ID)
+		return g != nil && g.AI[0x20] == orderNone
+	}
+	order, _, ok := w.groupState(e.Owner, effectiveGroup(e))
 	return ok && order == orderNone
 }

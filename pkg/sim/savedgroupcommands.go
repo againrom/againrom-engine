@@ -191,8 +191,12 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 		}
 		e.clearPatrol()
 		w.clearEscort(i)
+		if order == orderStandGround {
+			// The Stand Ground setter stores state 0xc for every member (AI-351).
+			e.ActorState = actorStateAcquire
+		}
 		o := w.ensureSavedOrder(i)
-		o.State, o.Patrol = 0xb, nil
+		o.State, o.Patrol = uint32(e.ActorState), nil
 		o.authorNative()
 		binary.LittleEndian.PutUint32(o.Raw[0x50:], 0)
 		binary.LittleEndian.PutUint16(o.Raw[:], uint16(e.X)|uint16(e.Y)<<8)
