@@ -107,13 +107,19 @@ func (w *World) ReleaseUnitShot(s UnitShot) bool {
 
 // driveNewRecord runs a just-built record's first driver calls, observing each
 // call's starting point through preMove (ANIM-140).
-func (w *World) driveNewRecord(i, calls int, preMove func(x, y int32)) {
+func (w *World) driveNewRecord(i, calls int, preMove func(x, y int32), marks ...func(ProjectileMark)) {
 	for range calls {
 		d := &w.savedWorldEffects.Projectiles[i]
 		if p := w.savedProjectile(d.ID); preMove != nil && !d.Retired && p != nil && p.ActionSegments != 0 {
 			preMove(p.X, p.Y)
 		}
-		w.stepSavedProjectile(d)
+		if mark := w.stepSavedProjectile(d); mark != nil {
+			for _, observe := range marks {
+				if observe != nil {
+					observe(*mark)
+				}
+			}
+		}
 	}
 	if w.savedWorldEffects.Projectiles[i].Retired {
 		w.clearRetiredWorldEffectCarriers()

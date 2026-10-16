@@ -99,6 +99,21 @@ type castObs struct {
 	held             []EntityID
 	flightStarts     []FlightStart
 	projectilePhases []ProjectilePhase
+	projectileMarks  []ProjectileMark
+}
+
+// ProjectileMark is one resolved actor target's picture-20 or picture-30
+// callback. It is client observation and carries no simulation state.
+type ProjectileMark struct {
+	Target  EntityID
+	Picture int32
+	Binding SourceBinding
+}
+
+func (o *castObs) recordProjectileMark(mark ProjectileMark) {
+	if o != nil {
+		o.projectileMarks = append(o.projectileMarks, mark)
+	}
 }
 
 // ProjectilePhase is one record's local callback boundary (ANIM-149).

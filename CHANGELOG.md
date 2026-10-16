@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Heal and Drain marks continue after loading, follow moving targets,
+  and fade independently of the projectile that created them.
+
 - [ROM1] Earthquake's cell sound follows its animation and still plays after
   loading a save made before the sound.
 - [ROM1] Author mission conditions, ordered actions and triggers, then test

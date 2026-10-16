@@ -55,11 +55,8 @@ type showerParticle struct {
 	dx, depth int
 }
 
-// showerCohorts reproduces MAGIC-090's RNG consumption from tick zero so a
-// redraw is stable: one draw chooses 3..5 records, then one angle draw supplies
-// both coordinates of every record. The original seeds its process RNG from
-// time; this client seeds from the cast observation so replay presentation is
-// deterministic while retaining the decoded recurrence, order and geometry.
+// showerCohorts replays the retained deterministic particle policy from age
+// zero. The target-mark claims do not establish its native recurrence.
 func showerCohorts(b healBurst, through int) [][]showerParticle {
 	tile := b.tile
 	if tile < 1 {
@@ -93,7 +90,7 @@ func showerCohorts(b healBurst, through int) [][]showerParticle {
 // (SAV-1129, ANIM-147). A siege or weapon-spell rider leaves none: it builds
 // its area effect and transport only (ANIM-115). Only Fire_Ball's blast and
 // the staged stages build a burst record (ANIM-148).
-func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
+func (mw *mapWorld) observeCasts(events []sim.CastEvent) (marks []sim.ProjectileMark) {
 	for i, ev := range events {
 		from := image.Point{X: int(ev.FromX), Y: int(ev.FromY)}
 		to := image.Point{X: int(ev.ToX), Y: int(ev.ToY)}
@@ -113,15 +110,22 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 		if ev.Produced {
 			mw.keepCastLook(ev, i)
 		} else if !ev.Rider {
-			mw.releaseCast(ev, i)
+			marks = append(marks, mw.releaseCast(ev, i)...)
 		}
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
-		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 { // MAGIC-089, DIV-076
-			mw.healBursts = append(mw.healBursts, healBurst{at: to,
-				picture: data.CastPicture(int(ev.Spell)), owner: ev.TargetOwner,
-				seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
+		target, targetPresent := mw.entity(ev.Target)
+		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 {
+			if !mw.world.SecondGame() && !ev.AtCell && targetPresent {
+				marks = append(marks, sim.ProjectileMark{Target: target.ID,
+					Picture: int32(data.CastPicture(int(ev.Spell))), Binding: target.SourceBinding})
+			} else {
+				mw.healBursts = append(mw.healBursts, healBurst{at: to,
+					picture: data.CastPicture(int(ev.Spell)), owner: ev.TargetOwner,
+					seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
+			}
 		}
 	}
+	return marks
 }
 
 func (mw *mapWorld) effectTileSize(id sim.EntityID) int {
@@ -370,10 +374,34 @@ func (mw *mapWorld) advanceHealBursts() {
 	mw.healBursts = live
 }
 
-// healSpriteDraws carries MAGIC-089/090's shower records. Countdown values 32
-// through 8 append a 3..5 particle cohort. The most recent eight cohorts remain
-// visible at phases 0..7. One angle supplies each particle's elliptical dx and
-// depth; Heal rises from the target and Drain descends from one tile above it.
+// showerMarkRecords is the shared Heal/Drain geometry builder. The engine
+// retains 25 cohorts and eight particle phases as a bounded presentation policy.
+func showerMarkRecords(b healBurst) []terrain.EffectMark {
+	tile := max(b.tile, 1)
+	lastSpawn := min(b.age, healSpawnTicks-1)
+	if b.age < 0 || b.age >= healBurstLife {
+		return nil
+	}
+	first := max(lastSpawn-healParticleLife+1, 0)
+	cohorts := showerCohorts(b, lastSpawn)
+	step := int(math.Trunc(1 + float64(32*tile)/7))
+	var out []terrain.EffectMark
+	for tick := first; tick <= lastSpawn; tick++ {
+		particleAge := b.age - tick
+		if particleAge < 0 || particleAge >= healParticleLife {
+			continue
+		}
+		dy := -step * particleAge
+		if b.drain {
+			dy = -32*tile + step*particleAge
+		}
+		for _, particle := range cohorts[tick] {
+			out = append(out, terrain.EffectMark{DX: particle.dx, DY: dy, Depth: particle.depth, Record: b.picture, Phase: particleAge})
+		}
+	}
+	return out
+}
+
 func (mw *mapWorld) healSpriteDraws() []ui.HealSprite {
 	var out []ui.HealSprite
 	for _, b := range mw.healBursts {
@@ -382,38 +410,13 @@ func (mw *mapWorld) healSpriteDraws() []ui.HealSprite {
 			continue
 		}
 		base := image.Pt(b.at.X*ui.ShotScale, b.at.Y*ui.ShotScale)
-		tile := b.tile
-		if tile < 1 {
-			tile = 1
-		}
-		lastSpawn := b.age
-		if lastSpawn >= healSpawnTicks {
-			lastSpawn = healSpawnTicks - 1
-		}
-		first := lastSpawn - healParticleLife + 1
-		if first < 0 {
-			first = 0
-		}
-		cohorts := showerCohorts(b, lastSpawn)
-		step := int(math.Trunc(1 + float64(32*tile)/7))
-		for tick := first; tick <= lastSpawn; tick++ {
-			particleAge := b.age - tick
-			if particleAge < 0 || particleAge >= healParticleLife {
-				continue
-			}
-			frame, _, ok := terrain.SelectEffectFrame(sheet, 0, particleAge)
+		for _, m := range showerMarkRecords(b) {
+			frame, _, ok := terrain.SelectEffectFrame(sheet, 0, m.Phase)
 			if !ok {
 				continue
 			}
-			dy := -step * particleAge
-			if b.drain {
-				dy = -32*tile + step*particleAge
-			}
-			for _, particle := range cohorts[tick] {
-				pos := base.Add(image.Pt(particle.dx*boltUnitsPerPixel,
-					(dy-particle.depth)*boltUnitsPerPixel))
-				out = append(out, ui.HealSprite{Cell: b.at, Pos: pos, Sheet: sheet, Frame: frame, Owner: b.owner})
-			}
+			pos := base.Add(image.Pt(m.DX, m.DY-m.Depth).Mul(boltUnitsPerPixel))
+			out = append(out, ui.HealSprite{Cell: b.at, Pos: pos, Sheet: sheet, Frame: frame, Owner: b.owner})
 		}
 	}
 	return out

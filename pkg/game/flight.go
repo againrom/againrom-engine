@@ -89,7 +89,7 @@ func cellCentre(c image.Point) (int32, int32) {
 // its record takes an id and retires on its first call (SAV-1204). Teleport
 // builds a second record at the destination (MAGIC-265). The segment count,
 // the path and the second record are the game's set (data.SpellPresentation).
-func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
+func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) (marks []sim.ProjectileMark) {
 	spell := int(ev.Spell)
 	picture := data.CastPicture(spell)
 	set := mw.spells()
@@ -110,7 +110,8 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	rec := sim.CastRecord{Caster: ev.Caster, Picture: int32(picture), Phases: phases,
 		X: x + int32(launch.X), Y: y + int32(launch.Y), AimX: aimX, AimY: aimY,
 		Dir: sim.ProjectileDirection(int32(to.X-from.X), int32(to.Y-from.Y)), Segments: int32(set.Flight(int32(picture), castDistance(from, to), int(phases))), Owner: ev.Owner}
-	if !ev.AtCell && ev.Target != 0 && mw.projectiles.Homes(picture) {
+	target, _ := mw.entity(ev.Target)
+	if !ev.AtCell && mw.projectiles.Homes(picture) && (ev.Target != 0 || sim.ProjectileTargetKey(target) != 0) {
 		rec.Target, rec.HasTarget = ev.Target, true
 	}
 	look := flightLook{seed: mw.visualCastSeed(ev.Caster, ev.Target, spell, ev.AtCell), tag: index % chainTagCount}
@@ -120,15 +121,16 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) {
 	if len(look.links) == 0 && set.DrawsPath(int32(picture)) {
 		look.links = []image.Point{to}
 	}
-	mw.releaseRecord(rec, look)
+	marks = append(marks, mw.releaseRecord(rec, look)...)
 	if effect.SecondRecord {
 		arrive := image.Point{}
 		if class != nil {
 			arrive = castSelectionDelta(class)
 		}
 		rec.X, rec.Y = aimX+int32(arrive.X), aimY+int32(arrive.Y)
-		mw.releaseRecord(rec, look)
+		marks = append(marks, mw.releaseRecord(rec, look)...)
 	}
+	return marks
 }
 
 // casterStandsOn reports that the live caster's cell is at.
@@ -169,12 +171,13 @@ func (mw *mapWorld) releaseScriptCast(ev sim.ScriptCastEvent, seed uint32) {
 
 // releaseRecord hands one cast record to the World and keeps its look and the
 // trail point its first call started from.
-func (mw *mapWorld) releaseRecord(rec sim.CastRecord, look flightLook) {
+func (mw *mapWorld) releaseRecord(rec sim.CastRecord, look flightLook) (marks []sim.ProjectileMark) {
+	rec.Mark = func(m sim.ProjectileMark) { marks = append(marks, m) }
 	var start []image.Point
 	rec.PreMove = func(x, y int32) { start = append(start, image.Pt(int(x), int(y))) }
 	id, ok := mw.world.ReleaseCast(rec)
 	if !ok {
-		return
+		return marks
 	}
 	if mw.flights == nil {
 		mw.flights = make(map[uint16]flightLook)
@@ -185,6 +188,7 @@ func (mw *mapWorld) releaseRecord(rec sim.CastRecord, look flightLook) {
 			mw.shots.appendTrail(id, at)
 		}
 	}
+	return marks
 }
 
 // releaseAreaBursts builds the record a staged stage leaves at each accepted

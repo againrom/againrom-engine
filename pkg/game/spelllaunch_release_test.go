@@ -67,7 +67,7 @@ func launchObserve(t *testing.T, mw *mapWorld, hero sim.EntityID, facing uint8, 
 	e, _ := mw.entity(hero)
 	at := image.Pt(int(e.X), int(e.Y)).Add(dir.Mul(3))
 	id := mw.world.SavedProjectiles().FreeIndex
-	mw.observeCasts([]sim.CastEvent{{Caster: hero, Spell: spLightning, Owner: e.Owner, FromX: e.X, FromY: e.Y,
+	mw.observeCasts([]sim.CastEvent{{Caster: hero, AtCell: true, Spell: spLightning, Owner: e.Owner, FromX: e.X, FromY: e.Y,
 		ToX: int32(at.X), ToY: int32(at.Y), Facing: e.Facing}})
 	// The record's fifth call is the phase-0 call, where the figure starts at
 	// the launch point.

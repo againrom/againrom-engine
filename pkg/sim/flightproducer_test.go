@@ -18,6 +18,43 @@ func producerInputs(delay int32) FlightInputs {
 	}
 }
 
+func TestFlightProducerActorZeroWithoutRuntimeKeyKeepsFixedAim(t *testing.T) {
+	for _, spell := range []uint16{1, 6, 11, 13, 14} {
+		t.Run(fmt.Sprint(spell), func(t *testing.T) {
+			actors := shotPair(4)
+			actors[0].HasAttackTarget = false
+			actors[1].ID = 0
+			w := shotWorld(t, actors...)
+			picture := int32(spell)*2 + 8
+			w.SetFlightInputs(FlightInputs{Pictures: map[int32]FlightPicture{picture: {Present: true, Phases: 4, Homes: true, LifeTicks: 8}}})
+			ev := CastEvent{Caster: 1, Target: 0, Spell: spell, FromX: 1, FromY: 4, ToX: 5, ToY: 4}
+			obs := &castObs{}
+			w.castObservation = obs
+			w.produceCast(&ev, obs)
+			w.castObservation = nil
+			if !ev.Produced || !reflect.DeepEqual(ev.Records, []uint16{0}) || len(obs.projectileMarks) != 0 {
+				t.Fatalf("keyless actor-zero release event %+v, marks %+v", ev, obs.projectileMarks)
+			}
+			p, ok := savedProjectileOf(w, 0)
+			if !ok || p.ActionTarget != 0 || p.ActionX != 5*256+128 || p.ActionY != 4*256+128 {
+				t.Fatalf("fixed-aim record %+v, present %v", p, ok)
+			}
+			if d := w.SavedWorldEffectDrivers().Projectiles[0]; d.HasTarget || d.Target != 0 {
+				t.Fatalf("keyless actor-zero driver %+v", d)
+			}
+			if err := w.HeadlessPlace(0, 7, 4); err != nil {
+				t.Fatal(err)
+			}
+			if marks := StepReported(w, nil).ProjectileMarks; len(marks) != 0 {
+				t.Fatalf("fixed-aim call emitted actor marks %+v", marks)
+			}
+			if p, _ := savedProjectileOf(w, 0); p.ActionTarget != 0 || p.ActionX != 5*256+128 || p.ActionY != 4*256+128 {
+				t.Fatalf("moving keyless actor changed fixed aim: %+v", p)
+			}
+		})
+	}
+}
+
 func TestFlightProducerOrdinaryRangedOrders(t *testing.T) {
 	for _, delay := range []int32{0, 2, 6} {
 		for _, structure := range []bool{false, true} {

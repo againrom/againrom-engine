@@ -329,10 +329,7 @@ type mapWorld struct {
 	// (unitshot.go), presentation only and not saved.
 	shots unitShots
 
-	// healBursts are presentation-only particles born from a positive semantic
-	// Heal result. They retain the application anchor and target owner rather
-	// than an entity pointer, so target motion/removal cannot leave a stale
-	// reference and no cosmetic state reaches the simulation hash or save.
+	// healBursts retains fixed-anchor legacy and targetless shower inputs.
 	healBursts []healBurst
 
 	// projectiles is the projectile art bundle, keyed by picture id. It is
@@ -352,11 +349,7 @@ type mapWorld struct {
 	visualNext      sim.EntityID
 	visualLocalNext sim.EntityID
 
-	// markElements is the client's own effect-mark element list (1002;
-	// MAGIC-MARK-060, effectmark.go): one entry per (actor, kind) the
-	// simulation currently carries, holding the phase countdown the rebuild
-	// decrements. Cosmetic, on bolts' and castRun's own terms — not in the
-	// world, the byte form or the digest.
+	// markElements owns attached and projectile target-mark countdowns.
 	markElements []markElement
 
 	// sounds, swingSound and spellSound are the map's class-timed and
@@ -4159,7 +4152,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// that new level through the complete installed character graph before any
 	// later decision, save, hash or projection can observe a stale sheet.
 	mw.recomputeRaisedSkills()
-	mw.observeCasts(events)
+	marks := mw.observeCasts(events)
 	// AND ITS PAINTED STAGES (1003). A staged area effect sends one message per
 	// accepted cell and the client builds one short-lived object from each, so
 	// an earlier stage is still drawn while a later one lights up.
@@ -4196,7 +4189,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.advanceSpellSoundCues()
 	// And the effect-mark elements, in the same window and for the same
 	// reason: one rebuild is one tick here (1002; effectmark.go).
-	mw.advanceEffectMarks()
+	mw.advanceEffectMarks(append(report.ProjectileMarks, marks...)...)
 	// The mission item grid advances on the same paced message as one world
 	// tick (ITEM-STARPHASE-099). deterministicFrame and paceTo both enter this
 	// function only for ticks they actually run, so ordinary pause holds the

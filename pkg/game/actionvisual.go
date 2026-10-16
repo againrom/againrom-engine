@@ -33,6 +33,11 @@ type SnapshotHealBurst struct {
 	Drain       bool
 	Age         int
 }
+type SnapshotTargetMark struct {
+	Entity  sim.EntityID
+	Element uint32
+	Seed    uint32
+}
 type SnapshotCastRun struct {
 	Entity            sim.EntityID
 	Left, Span, Swing int
@@ -44,6 +49,11 @@ func (mw *mapWorld) actionVisuals(r *SnapshotResidue) {
 	r.VisualIdentities, r.VisualNext = mw.currentVisualIdentities()
 	for _, b := range mw.healBursts {
 		r.HealBursts = append(r.HealBursts, SnapshotHealBurst{b.at, b.picture, b.owner, b.seed, b.tile, b.drain, b.age})
+	}
+	for _, el := range mw.markElements {
+		if el.Transient && mw.markTargetPresent(el) {
+			r.TargetMarks = append(r.TargetMarks, SnapshotTargetMark{el.Entity, uint32(el.Kind)<<16 | uint32(el.Count), el.Seed})
+		}
 	}
 	for id, c := range mw.castRun {
 		r.CastRuns = append(r.CastRuns, SnapshotCastRun{id, c.left, c.span, mw.swing[id], mw.phase[id]})
@@ -167,5 +177,33 @@ func (mw *mapWorld) restoreActionVisuals(_ []SnapshotSpellBolt, heals []Snapshot
 	mw.healBursts = nil
 	for _, b := range heals {
 		mw.healBursts = append(mw.healBursts, healBurst{b.At, b.Picture, b.Owner, b.Seed, b.Tile, b.Drain, b.Age})
+	}
+}
+
+func validateTargetMarks(rows []SnapshotTargetMark) error {
+	if len(rows) > 65536 {
+		return fmt.Errorf("current target mark population exceeds bound")
+	}
+	seen := map[[2]uint32]bool{}
+	for _, r := range rows {
+		kind, count := r.Element>>16, uint16(r.Element)
+		key := [2]uint32{uint32(r.Entity), kind}
+		if (kind != 20 && kind != 30) || count == 0 || count > healBurstLife || seen[key] {
+			return fmt.Errorf("invalid current target mark")
+		}
+		seen[key] = true
+	}
+	return nil
+}
+
+func (mw *mapWorld) restoreTargetMarks(rows []SnapshotTargetMark) {
+	mw.markElements = slices.DeleteFunc(mw.markElements, func(el markElement) bool { return el.Transient })
+	for _, r := range rows {
+		e, ok := mw.entity(r.Entity)
+		if !ok || e.OffMap {
+			continue
+		}
+		mw.markElements = append(mw.markElements, markElement{Entity: r.Entity, Kind: int(r.Element >> 16),
+			Count: uint16(r.Element), Transient: true, Seed: r.Seed, Identity: targetMarkIdentity(e)})
 	}
 }

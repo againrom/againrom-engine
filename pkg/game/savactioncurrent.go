@@ -85,6 +85,7 @@ type currentActionData struct {
 	Pending          *currentPendingQueue `json:",omitempty"`
 	Bolts            []SnapshotSpellBolt
 	Heals            []SnapshotHealBurst
+	TargetMarks      []SnapshotTargetMark `json:",omitempty"`
 	Runs             []SnapshotCastRun
 	Animation        []currentAnimationClock `json:",omitempty"`
 	DeathAges        []currentDeathAge       `json:",omitempty"`
@@ -216,6 +217,9 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	if err := validateActionVisuals(a.Bolts, a.Heals); err != nil {
 		return nil, err
 	}
+	if err := validateTargetMarks(a.TargetMarks); err != nil {
+		return nil, err
+	}
 	if err := validateCastRuns(a.Runs); err != nil {
 		return nil, err
 	}
@@ -226,6 +230,11 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	for _, binding := range a.Bindings {
 		if !binding.Structure {
 			actorBindings[binding.ID] = true
+		}
+	}
+	for _, row := range a.TargetMarks {
+		if !actorBindings[row.Entity] {
+			return nil, fmt.Errorf("current target mark actor lacks a binding")
 		}
 	}
 	for _, row := range a.Animation {
@@ -369,7 +378,7 @@ func sourceActorDocumentClass(class uint8) string {
 // completion is independent. Constructor objects may still have a zero wire key.
 func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w *sim.World, s Snapshot, table *mapload.Table, captured ...sim.CurrentWorldPolicy) error {
 	a := currentActionData{Version: 1, WriterCarriers: 0, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases(), Options: s.Residue.PendingGameOptions,
-		Bolts: s.Residue.SpellBolts, Heals: s.Residue.HealBursts, Runs: s.Residue.CastRuns, GroupTag: s.Residue.GroupTag, VisualIdentities: s.Residue.VisualIdentities, VisualNext: s.Residue.VisualNext}
+		Bolts: s.Residue.SpellBolts, Heals: s.Residue.HealBursts, TargetMarks: s.Residue.TargetMarks, Runs: s.Residue.CastRuns, GroupTag: s.Residue.GroupTag, VisualIdentities: s.Residue.VisualIdentities, VisualNext: s.Residue.VisualNext}
 	if w.Script().Dialect() == sim.ScriptROM2 {
 		a.Fog = captureCurrentMissionFog(s.Residue)
 	}
@@ -740,6 +749,11 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 			return err
 		}
 	}
+	for _, r := range a.TargetMarks {
+		if _, err := ref(r.Entity, false); err != nil {
+			return err
+		}
+	}
 	for _, r := range a.Animation {
 		if _, err := ref(r.Entity, false); err != nil {
 			return err
@@ -809,6 +823,9 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 		})
 	}
 	if err := validateActionVisuals(a.Bolts, a.Heals); err != nil {
+		return err
+	}
+	if err := validateTargetMarks(a.TargetMarks); err != nil {
 		return err
 	}
 	if err := validateCastRuns(a.Runs); err != nil {
@@ -1492,6 +1509,13 @@ func (mw *mapWorld) restoreOriginalActionView() error {
 		}
 		a.Runs[i].Entity = id
 	}
+	for i := range a.TargetMarks {
+		id, ok := ids[a.TargetMarks[i].Entity]
+		if !ok {
+			return fmt.Errorf("current target mark actor is absent")
+		}
+		a.TargetMarks[i].Entity = id
+	}
 	var visualIDs []SnapshotVisualIdentity
 	for _, v := range a.VisualIdentities {
 		if id, ok := ids[v.Entity]; ok {
@@ -1509,6 +1533,7 @@ func (mw *mapWorld) restoreOriginalActionView() error {
 		}
 	}
 	mw.restoreActionVisuals(a.Bolts, a.Heals)
+	mw.restoreTargetMarks(a.TargetMarks)
 	mw.restoreCastRuns(a.Runs)
 	if err := mw.restoreCurrentAnimation(a.Animation, ids); err != nil {
 		return err

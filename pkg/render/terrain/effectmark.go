@@ -85,12 +85,8 @@ func MarkKind(spell int) int { return 2*spell + 8 }
 // establishes that they change the actor's own draw instead, which the tier
 // above owns and this function must not confuse with a mark.
 //
-// Heal and Drain Life answer nil here too, and that is a TIER decision rather
-// than the original's answer. MAGIC-089 and MAGIC-090 decode their stateful
-// carry-before-spawn producer: 25 cohorts of 3–5 particles, phases 0 through 7
-// and a constant tile-scaled vertical step. pkg/game's healSpriteDraws owns
-// that cast-observation lifetime; this stateless attached-mark rebuild cannot
-// carry the previous cohort array without inventing a second owner. DIV-076.
+// Heal and Drain Life use pkg/game's shared shower builder, which accepts
+// both fixed-anchor legacy inputs and target-mark countdown inputs.
 //
 // tileSize BELOW ONE IS TREATED AS ONE.
 func EffectMarkRecords(kind int, countdown uint16, tileSize int) []EffectMark {

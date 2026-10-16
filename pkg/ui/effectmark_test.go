@@ -88,3 +88,29 @@ func TestAMarkWhoseSheetCannotAnswerDrawsNothing(t *testing.T) {
 		t.Fatalf("two unresolvable marks produced %+v, want the sprite alone", band)
 	}
 }
+
+func TestTargetMarksUseCurrentFinePoseAndBothActorPasses(t *testing.T) {
+	v := identityViewer(t, cliffGrid(), cliffW*terrain.CellSize, cliffCanvasH)
+	e := withFrame(image.Pt(0, 1), entityArtA())
+	e.Marks = []UnitMark{
+		{Sheet: markSheet(), Mark: terrain.EffectMark{DX: 3, DY: -12, Depth: 5, Record: terrain.MarkHeal}},
+		{Sheet: markSheet(), Mark: terrain.EffectMark{DX: -2, DY: -18, Depth: -4, Record: terrain.MarkDrainLife}},
+	}
+	back, front := v.entityMarkRects(e)
+	if len(back) != 1 || len(front) != 1 {
+		t.Fatal("target kinds did not enter both actor passes")
+	}
+	e.FinePosition, e.FineX, e.FineY = true, 192, 64
+	movedBack, movedFront := v.entityMarkRects(e)
+	shift := float64(terrain.CellSize / 4)
+	for _, pair := range [][2]staticScreenRect{{back[0], movedBack[0]}, {front[0], movedFront[0]}} {
+		if pair[1].X-pair[0].X != shift || pair[1].Y-pair[0].Y != -shift {
+			t.Fatal("target mark used an old cell anchor instead of current fine pose", pair)
+		}
+	}
+	v.SetEntities([]MapEntity{e})
+	band := v.planeSprites()
+	if len(band) != 3 || band[0].Effect == nil || band[1].Frame == nil || band[2].Effect == nil {
+		t.Fatal("target mark passes did not surround the current actor", band)
+	}
+}

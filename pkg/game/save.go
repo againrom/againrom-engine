@@ -217,6 +217,7 @@ type SnapshotResidue struct {
 	PendingQueue       *SnapshotPendingQueue
 	SpellBolts         []SnapshotSpellBolt
 	HealBursts         []SnapshotHealBurst
+	TargetMarks        []SnapshotTargetMark
 	CastRuns           []SnapshotCastRun
 	VisualIdentities   []SnapshotVisualIdentity
 	VisualNext         sim.EntityID
@@ -254,7 +255,7 @@ type SnapshotResidue struct {
 }
 
 func (r SnapshotResidue) hasMissionState() bool {
-	return len(r.PendingMessages) != 0 || len(r.PendingGameOptions) != 0 || r.PendingQueue != nil || len(r.SpellBolts) != 0 || len(r.HealBursts) != 0 || len(r.CastRuns) != 0 || len(r.VisualIdentities) != 0 || r.VisualNext != 0 || r.MissionLost || len(r.DepartedCharacters) != 0 || len(r.Commanded) != 0 || len(r.Swing) != 0 || len(r.Phase) != 0 || r.GroupTag != 0 || r.FogCols != 0 || r.FogRows != 0 || len(r.FogExplored) != 0 || len(r.FogVisible) != 0
+	return len(r.PendingMessages) != 0 || len(r.PendingGameOptions) != 0 || r.PendingQueue != nil || len(r.SpellBolts) != 0 || len(r.HealBursts) != 0 || len(r.TargetMarks) != 0 || len(r.CastRuns) != 0 || len(r.VisualIdentities) != 0 || r.VisualNext != 0 || r.MissionLost || len(r.DepartedCharacters) != 0 || len(r.Commanded) != 0 || len(r.Swing) != 0 || len(r.Phase) != 0 || r.GroupTag != 0 || r.FogCols != 0 || r.FogRows != 0 || len(r.FogExplored) != 0 || len(r.FogVisible) != 0
 }
 
 // snapshotTown reads the town's five fields out. It is a function in this

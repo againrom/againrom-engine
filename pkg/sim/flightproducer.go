@@ -123,7 +123,8 @@ func (w *World) produceCast(ev *CastEvent, obs *castObs) {
 	dx, dy := c.castOffset(ev.Facing, p.SecondRecord)
 	rec := CastRecord{Caster: ev.Caster, Picture: picture, Phases: p.Phases, X: x + dx, Y: y + dy, AimX: ev.ToX*256 + 128, AimY: ev.ToY*256 + 128,
 		Dir: ProjectileDirection(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Segments: p.segments(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Owner: ev.Owner}
-	if !ev.AtCell && ev.Target != 0 && p.Homes {
+	target, _ := w.Entity(ev.Target)
+	if !ev.AtCell && p.Homes && (ev.Target != 0 || ProjectileTargetKey(target) != 0) {
 		rec.Target, rec.HasTarget = ev.Target, true
 	}
 	release := func() {

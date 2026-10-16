@@ -400,6 +400,7 @@ type Report struct {
 	Relocations      []Relocation
 	FlightStarts     []FlightStart
 	ProjectilePhases []ProjectilePhase
+	ProjectileMarks  []ProjectileMark
 }
 
 // StepReported is Step with all observations reported. StepObserved is this
@@ -409,7 +410,7 @@ func StepReported(w *World, cmds []Command) Report {
 	stepWorld(w, cmds, nil, &obs, nil)
 	return Report{ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
 		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, FlightStarts: obs.flightStarts,
-		ProjectilePhases: obs.projectilePhases}
+		ProjectilePhases: obs.projectilePhases, ProjectileMarks: obs.projectileMarks}
 }
 
 // StepWithdrawalTraced is Step with the successful phase-6 withdrawal

@@ -69,6 +69,7 @@ func (mw *mapWorld) residue() SnapshotResidue {
 // an id the reopened world does not hold is simply never looked up.
 func (mw *mapWorld) applyResidue(r SnapshotResidue) {
 	mw.restoreActionVisuals(r.SpellBolts, r.HealBursts)
+	mw.restoreTargetMarks(r.TargetMarks)
 	mw.restoreCastRuns(r.CastRuns)
 	mw.restoreVisualIdentities(r.VisualIdentities, r.VisualNext)
 	if r.PendingQueue != nil {
@@ -850,15 +851,24 @@ func (f *FrontEnd) LiveDoll(entity uint32) (LiveDollEvidence, bool) {
 	return composeDollEvidence(f.live.archive(), slots, fig), true
 }
 
-// LiveHealFeedback reports the semantic Heal bursts and the actual decoded
-// sheet instances the open map would submit this frame. It is developer-only,
-// read-only evidence: the returned counts come after observeCasts has consumed
-// the simulation event, and no particle or sheet state is exposed for mutation.
+// LiveHealFeedback counts fixed-anchor and target-bound showers and their
+// decoded records. It reads presentation state without advancing a rebuild.
 func (f *FrontEnd) LiveHealFeedback() (bursts, sprites int) {
 	if f.live == nil {
 		return 0, 0
 	}
-	return len(f.live.healBursts), len(f.live.healSpriteDraws())
+	bursts, sprites = len(f.live.healBursts), len(f.live.healSpriteDraws())
+	for _, el := range f.live.markElements {
+		if el.Transient && f.live.markTargetPresent(el) {
+			bursts++
+			for _, m := range f.live.markDraws(el.Entity, f.live.effectTileSize(el.Entity)) {
+				if m.Mark.Record == el.Kind && m.Sheet.Frame(m.Mark.Phase) != nil {
+					sprites++
+				}
+			}
+		}
+	}
+	return bursts, sprites
 }
 
 // LiveAdvance runs the open map screen's own logic tick n times, unpaced. Only

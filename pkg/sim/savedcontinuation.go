@@ -437,18 +437,19 @@ func (w *World) stepSavedWorldEffects(obs *castObs) {
 }
 
 // stepSavedProjectile is one driver call of one carried projectile.
-func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
+func (w *World) stepSavedProjectile(d *SavedProjectileDriver) *ProjectileMark {
 	if d.Retired {
-		return
+		return nil
 	}
 	p := w.savedProjectile(d.ID)
 	if p.ActionSegments == 0 {
 		w.savedProjectiles.Items = slices.DeleteFunc(w.savedProjectiles.Items, func(p SavedProjectile) bool { return p.ID == d.ID })
 		w.savedProjectiles.IDs = slices.DeleteFunc(w.savedProjectiles.IDs, func(id uint16) bool { return id == d.ID })
 		d.Retired = true
-		return
+		return nil
 	}
 	resolved := false
+	var mark *ProjectileMark
 	if d.TargetStructure {
 		if at := indexOfStructure(w.structures, StructureID(d.Target)); at >= 0 {
 			p.ActionX, p.ActionY = structureTargetPoint(w.structures[at])
@@ -470,6 +471,13 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 			target := w.entities[at]
 			p.ActionX, p.ActionY = w.savedProjectileTargetPoint(target)
 			resolved = true
+		}
+		if resolved && p.ActionSegments > 0 && !w.SecondGame() && (p.Picture == 20 || p.Picture == 30) {
+			mark = &ProjectileMark{Target: d.Target, Picture: p.Picture}
+			if at := indexOfEntity(w.entities, d.Target); at >= 0 {
+				mark.Binding = w.entities[at].SourceBinding
+			}
+			w.castObservation.recordProjectileMark(*mark)
 		}
 	}
 	// ANIM-139: an action-1 call that resolves its target aims actiondir from
@@ -507,6 +515,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) {
 	w.castObservation.recordProjectilePhase(w, *p, *d)
 	p.LastAction = p.Action
 	p.ActionSegments--
+	return mark
 }
 
 // Once every carried effect has left the world, its retired import ordinals

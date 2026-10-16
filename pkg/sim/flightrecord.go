@@ -33,6 +33,8 @@ type CastRecord struct {
 	Owner    uint32
 	// PreMove observes the point the first driver call starts from.
 	PreMove func(x, y int32)
+	// Mark observes the first driver call's actor mark outside a reported step.
+	Mark func(ProjectileMark)
 }
 
 // ReleaseCast builds the record a cast producer builds at the cast frame and
@@ -73,7 +75,7 @@ func (w *World) ReleaseCast(c CastRecord) (uint16, bool) {
 	}
 	id := w.savedProjectiles.FreeIndex
 	i := w.insertProjectile(record, driver)
-	w.driveNewRecord(i, 1, c.PreMove)
+	w.driveNewRecord(i, 1, c.PreMove, c.Mark)
 	return id, true
 }
 
