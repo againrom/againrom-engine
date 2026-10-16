@@ -171,6 +171,9 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	// Not fatal, and reported by nothing beyond the field itself — see
 	// Definitions.Bodies.
 	d.Bodies, _ = ReadBodyList(fsys)
+	if d.Table.FlightInputs, err = loadFlightInputs(fsys, data.SpellPresentationNamed(g.Edition().Spells), d.Bodies); err != nil {
+		return nil, err
+	}
 	// NOT FATAL, for the same reason: a missing item-name table narrows what
 	// itemName (world.go) can show a code by, it does not stop a mission
 	// from opening. Its lines are main.res text, not world.res, so it rides

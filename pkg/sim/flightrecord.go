@@ -10,11 +10,9 @@ func (w *World) SpellGame() rules.SpellGame {
 	return rules.SpellGameFirst
 }
 
-// CastRecord names one record a cast leaves as. The caller owns what the
-// installed registries decide: the picture, its phase count, the start point
-// the caster class's launch rule gives and the segment count of the
-// producer's picture switch. The World owns the record: id, leaves, driver and
-// flight. Damage stays with the cast's own delivery.
+// CastRecord names one record a cast leaves as. The producer supplies installed
+// inputs; World owns identity, leaves, driver and flight. Damage stays with the
+// cast's own delivery.
 type CastRecord struct {
 	Caster  EntityID
 	Picture int32

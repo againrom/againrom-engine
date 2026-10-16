@@ -2122,7 +2122,7 @@ func (w *World) encodeInto(b []byte) []byte {
 	w.relations.encodeInto(b[len(b)-relationLen:])
 	payload := w.appendAttackNotices(w.appendSavedWorldEffects(w.appendSavedFormations(w.appendStructureUses(w.appendScorched(w.appendGroupRoam(w.appendActionClocks(w.appendCarriedResumeState(w.appendSavedObjects(w.appendSavedCellPlanes(w.appendSavedMotions(w.appendNativeStrides(w.appendSavedGroupPlayerSection(w.appendSavedStructureSection(w.appendSavedGroups(w.appendSessionClock(b))))))))))))))))
 	payload = w.appendNativeItemRecords(w.appendNativeLiveBlocks(w.appendPlayerParticipants(w.appendNativeActorBases(w.appendBookSelections(w.appendNativeClasses(w.appendROM2ScriptState(w.appendNativeTraining(w.appendAreaCosts(w.appendCreatureSpells(w.appendPendingOrders(w.appendTactical(w.appendStructureBlocking(w.appendCurrentTerminalActors(w.appendSavedSpellGraph(w.appendAutoHealing(w.appendSpellDeliveries(w.appendEntityIDFloor(payload))))))))))))))))))
-	return w.appendOriginalDeadHealth(w.appendMovers(w.appendAutoCastSettings(w.appendBodyReferences(w.appendSpeedModifiers(w.appendHeldOrders(w.appendPursuitSearches(w.appendEscortResidues(w.appendTurnStates(w.appendNativeScalars(payload))))))))))
+	return w.appendFlightRuns(w.appendOriginalDeadHealth(w.appendMovers(w.appendAutoCastSettings(w.appendBodyReferences(w.appendSpeedModifiers(w.appendHeldOrders(w.appendPursuitSearches(w.appendEscortResidues(w.appendTurnStates(w.appendNativeScalars(payload)))))))))))
 }
 
 // MarshalBinary returns the world's canonical byte form: versioned,
@@ -2274,6 +2274,9 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 	for i := range w.entities {
 		if err := w.entities[i].SourceBinding.Validate(w.entities[i]); err != nil {
 			return nil, err
+		}
+		if !validFlightRun(w.entities[i].FlightRun) {
+			return nil, fmt.Errorf("sim: invalid flight release run")
 		}
 		if err := w.entities[i].ActorLoad.Validate(); err != nil {
 			return nil, err
@@ -3264,6 +3267,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		sourceDerive:      w.sourceDerive,
 		mergeOperands:     w.mergeOperands,
 		burst:             burstState{phases: w.burst.phases},
+		flightInputs:      w.flightInputs,
 		rules:             w.rules,
 		diary:             w.diary,
 		rawSessionHead:    carriedResume.head,

@@ -4119,6 +4119,9 @@ func (mw *mapWorld) tickWithCastSink(sink func([]sim.CastEvent)) int {
 // keeps only the state a projection would have written, for a no-window
 // instrument advancing several ticks before it reads the viewer.
 func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSink ...func(sim.Report)) int {
+	if !mw.world.SecondGame() && !mw.world.HasFlightInputs() {
+		mw.bindFlightInputs()
+	}
 	cmds := mw.commands()
 	equipped := mw.queuedEquipActors()
 	applied := len(mw.pending)
@@ -4130,6 +4133,11 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// — the same code path with a sink handed down — and what comes back is
 	// a value this tier keeps, never state on the world.
 	report := sim.StepReported(mw.world, cmds)
+	for _, p := range report.FlightStarts {
+		if mw.spells().TrailSlot(p.Picture) >= 0 {
+			mw.shots.appendTrail(p.ID, image.Pt(int(p.X), int(p.Y)))
+		}
+	}
 	mw.observeScriptMessages(report.ScriptMessages)
 	for _, observe := range reportSink {
 		observe(report)

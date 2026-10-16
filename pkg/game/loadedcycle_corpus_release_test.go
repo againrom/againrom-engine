@@ -130,10 +130,8 @@ func TestReleaseOriginalSaveLoadedCycleFinishesBeforeStateAndMoveOrders(t *testi
 					t.Fatalf("%s %s at offset %d: decode after the order: %v", rel, wr.name, offset, err)
 				}
 				mapload.BindSourceDerive(&control)
+				mapload.BindFlightInputs(&control, f.Table)
 				control.CopyDiaryUnits(w)
-				// The player's mission open arms the installed burst phases, which
-				// the World bytes do not carry.
-				(&mapWorld{world: &control, projectiles: f.Projectiles}).armBurstPhases()
 				if control.Hash() != w.Hash() {
 					t.Fatalf("%s %s at offset %d: the decoded world's hash differs from the live world's", rel, wr.name, offset)
 				}

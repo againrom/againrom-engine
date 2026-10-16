@@ -656,6 +656,7 @@ func resumeWorld(ms *Mission, s *Snapshot, table *mapload.Table) error {
 	if err := ms.World.UnmarshalBinary(s.World); err != nil {
 		return fmt.Errorf("save's world half: %w", err)
 	}
+	mapload.BindFlightInputs(ms.World, table)
 	ms.World.ResetLoadedAreaCosts()
 	if !sim.HasStructureBlockingForm(s.World) {
 		ms.World.RestoreStructureBlocking(structures)

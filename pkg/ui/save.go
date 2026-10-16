@@ -694,5 +694,10 @@ func (f *flow) loadPrepared(open MapOpener, town bool) error {
 // one it is about. The line is clipped to pickerCols by the draw, which now
 // marks the cut.
 func loadFailure(name string, err error) string {
-	return name + ": " + err.Error()
+	reason := err.Error()
+	switch reason {
+	case "sim: malformed flight release run span", "sim: invalid flight release run":
+		reason = "malformed flight continuation"
+	}
+	return name + ": " + reason
 }

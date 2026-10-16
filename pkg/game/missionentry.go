@@ -174,6 +174,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// every mission this front end opens. A driver that is never given one
 	// draws no spell art.
 	mw.projectiles = ports.install.missionProjectiles()
+	mw.bindFlightInputs()
 	mw.armBurstPhases()
 	ports.audio.wireEffects(mw, mv.Viewer)
 	if err := settleMission(r, mw, mv.Viewer, ms, fog, ports.profile); err != nil {
@@ -364,6 +365,7 @@ func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms
 		// matching native continuation without an invented world tick.
 		v.RestoreScheduledLightClock(ms.World.Tick())
 	}
+	mapload.BindFlightInputs(ms.World, table)
 	return nil
 }
 

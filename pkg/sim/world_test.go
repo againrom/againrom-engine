@@ -65,6 +65,8 @@ func init() {
 	worldMethods = append(worldMethods, "ReleaseCast", "ReleaseAreaBurst", "ProjectilePoint")
 	worldWriters = append(worldWriters, "ReleaseCast", "ReleaseAreaBurst")
 	worldWriters = append(worldWriters, "SetBurstPhases")
+	worldMethods = append(worldMethods, "HasFlightInputs", "SetFlightInputs")
+	worldWriters = append(worldWriters, "SetFlightInputs")
 	worldMethods = append(worldMethods, "ImportOriginalDyingActors")
 	worldWriters = append(worldWriters, "ImportOriginalDyingActors")
 	worldMethods = append(worldMethods, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")

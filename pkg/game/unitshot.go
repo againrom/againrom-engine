@@ -62,13 +62,13 @@ func (mw *mapWorld) classShot(class int32) (picture, delay int, drawn bool) {
 	return c.Projectile, c.ShootDelay, drawn
 }
 
-// advanceUnitShots releases this tick's shots: one per physical run, on the
-// tick the swing clock reaches the class's release tick, while the target is
-// in reach. Reach is the swing sound's own gate (advanceSwings): a shot that
-// cannot land is not built.
-//
-// It runs after advanceSwings, whose clock and run memory it reads.
+// advanceUnitShots consumes first-game record trails. ROM2 retains its client
+// release clock beside the swing presentation.
 func (mw *mapWorld) advanceUnitShots() {
+	if !mw.world.SecondGame() && mw.world.HasFlightInputs() {
+		mw.advanceShotTrails()
+		return
+	}
 	ents := mw.world.EntityView()
 	for i := range ents {
 		e := &ents[i]

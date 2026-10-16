@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -14,6 +15,13 @@ func withCurrentMenuDefinitions(t *testing.T, f *FrontEnd, extraHumanRows ...int
 	table := mapload.Table{}
 	if f.Table != nil {
 		table = *f.Table
+	}
+	if table.FlightInputs == nil {
+		var err error
+		table.FlightInputs, err = loadFlightInputs(f.Archives.Containers, data.SpellPresentationNamed(f.Archives.Game().Edition().Spells), f.Bodies)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if table.Units == nil {
 		unit := actorRegistryTable().Units.(dbCollection)[1]

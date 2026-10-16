@@ -10,10 +10,9 @@ import (
 
 // Every object in flight is one World projectile record: a cast, a staged
 // burst, a Fire_Ball burst, a unit's shot at a unit or a structure, and a
-// record a LOAD restored. This tier hands the World what the installed
-// registries decide at the release (picture, phase count, start point,
-// segments), keeps the look a record has no field for, and draws the records
-// through one producer (savedProjectileScene).
+// record a LOAD restored. This tier keeps the look a record has no field for
+// and draws records through savedProjectileScene. ROM2 retains its client
+// release adapter.
 
 // flightLook is the presentation a record carries no field for: a path
 // picture's figure seed, its link tag and the victims a Prismatic Spray links.
@@ -23,6 +22,41 @@ type flightLook struct {
 	seed  uint32
 	tag   int
 	links []image.Point
+}
+
+func (mw *mapWorld) keepFlightLook(ids []uint16, look flightLook) {
+	if len(ids) == 0 {
+		return
+	}
+	if mw.flights == nil {
+		mw.flights = make(map[uint16]flightLook)
+	}
+	for _, id := range ids {
+		mw.flights[id] = look
+	}
+}
+
+func (mw *mapWorld) keepCastLook(ev sim.CastEvent, index int) {
+	look := flightLook{seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tag: index % chainTagCount}
+	for _, v := range ev.Victims {
+		look.links = append(look.links, image.Pt(int(v.X), int(v.Y)))
+	}
+	if len(look.links) == 0 && mw.spells().DrawsPath(int32(data.CastPicture(int(ev.Spell)))) {
+		look.links = []image.Point{image.Pt(int(ev.ToX), int(ev.ToY))}
+	}
+	mw.keepFlightLook(ev.Records, look)
+}
+
+func (mw *mapWorld) keepScriptCastLook(ev sim.ScriptCastEvent, seed uint32) {
+	look := flightLook{seed: seed}
+	if mw.world.SpellArm(ev.Spell) == 13 {
+		look.links = []image.Point{image.Pt(int(ev.ToX), int(ev.ToY))}
+	} else {
+		for _, v := range ev.Victims {
+			look.links = append(look.links, image.Pt(int(v.X), int(v.Y)))
+		}
+	}
+	mw.keepFlightLook(ev.Records, look)
 }
 
 // recordPhases is the phase count a picture's installed sheet holds, the

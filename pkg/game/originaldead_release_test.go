@@ -252,6 +252,18 @@ func assertTerminalWeapons1100(t *testing.T, w *sim.World, body []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(form) > 0 && form[0] == 124 {
+		if len(form) < 58 || !bytes.Equal(form[len(form)-4:], []byte("FLR1")) || form[len(form)-5] >= 124 {
+			t.Fatal("invalid flight release wrapper")
+		}
+		span := uint64(binary.LittleEndian.Uint32(form[len(form)-9:]))
+		if span == 0 || span%11 != 0 || span > uint64(len(form)-9-38) {
+			t.Fatal("invalid flight release span", span)
+		}
+		base := form[len(form)-5]
+		form = append([]byte(nil), form[:len(form)-9-int(span)]...)
+		form[0] = base
+	}
 	if len(form) > 0 && form[0] == 123 {
 		if len(form) < 59 || !bytes.Equal(form[len(form)-4:], []byte("DMH1")) || form[len(form)-5] >= 123 {
 			t.Fatal("invalid dead maximum-health wrapper")

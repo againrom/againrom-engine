@@ -3,11 +3,51 @@ package ui
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"strings"
 	"testing"
 
 	"againrom/pkg/sim"
 )
+
+func TestMalformedFlightContinuationFitsTheLoadFailureLine(t *testing.T) {
+	w, err := sim.NewWorld(1, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, nil,
+		[]sim.Entity{{ID: 1, X: 1, Y: 1, HP: 10, MaxHP: 10, ClientClassFixed: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sim.CheckSaveForm(raw); err != nil {
+		t.Fatal("valid flight form refused", err)
+	}
+	span := int(binary.LittleEndian.Uint32(raw[len(raw)-9:]))
+	start := len(raw) - 9 - span
+	badFooter, invalidFlags := bytes.Clone(raw), bytes.Clone(raw)
+	badFooter[len(badFooter)-1] ^= 1
+	invalidFlags[start+4] = 0
+	reasons := []error{errors.New("sim: invalid flight release run")}
+	for _, data := range [][]byte{{raw[0]}, badFooter, invalidFlags} {
+		err := sim.CheckSaveForm(data)
+		if err == nil {
+			t.Fatal("corrupt flight form was accepted")
+		}
+		reasons = append(reasons, err)
+	}
+	name := strings.Repeat("s", refusalNameWidth)
+	for _, err := range reasons {
+		line := loadFailure(name, err)
+		if line != name+": malformed flight continuation" || len([]rune(line)) > pickerCols || clipRunes(line, pickerCols) != line || strings.Contains(line, "sim:") {
+			t.Fatal("flight LOAD reason leaked a prefix or was clipped", line)
+		}
+	}
+	unknown := errors.New("sim: unrelated decoder error")
+	if line := loadFailure(name, unknown); line != name+": "+unknown.Error() {
+		t.Fatal("unrelated LOAD reason changed", line)
+	}
+}
 
 func TestMalformedTacticalContinuationFitsTheLoadFailureLine(t *testing.T) {
 	w, err := sim.NewWorld(1, sim.Bounds{Width: 8, Height: 8}, sim.ModeCanonical, nil,

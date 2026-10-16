@@ -9,6 +9,8 @@ package sim
 // are carried directly. A refused or malformed pending script record produces
 // no event.
 type ScriptCastEvent struct {
+	Produced     bool
+	Records      []uint16
 	Spell        uint16
 	FromX, FromY int32
 	ToX, ToY     int32
@@ -21,8 +23,10 @@ type ScriptCastEvent struct {
 // before movement or removal can invalidate a later lookup. Weapon distinguishes
 // an attack release from a book cast for the frontend's animation selection.
 type CastEvent struct {
-	Caster EntityID
-	Target EntityID
+	Produced bool
+	Records  []uint16
+	Caster   EntityID
+	Target   EntityID
 	// Actor zero is valid; point delivery's zero is not an actor endpoint.
 	AtCell bool `json:"-"`
 	Spell  uint16
@@ -92,7 +96,8 @@ type castObs struct {
 	relocations    []Relocation
 	// held names the casters whose charging book cast waited this step for
 	// their turn.
-	held []EntityID
+	held         []EntityID
+	flightStarts []FlightStart
 }
 
 // Relocation is one Teleport that moved its caster in this step: the caster,

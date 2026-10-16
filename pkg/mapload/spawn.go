@@ -87,6 +87,9 @@ type Table struct {
 	// mods applied; nil prices cells with the compiled shipped values.
 	TerrainCosts *[11]byte
 
+	// FlightInputs are installed release rules and geometry, independent of art.
+	FlightInputs *sim.FlightInputs
+
 	// DocumentCellPlanes marks a World whose cell planes a loaded document
 	// supplies: Planes names no installed base, so the World is built without
 	// planes and the LOAD import builds them (SAV-LOAD-057).

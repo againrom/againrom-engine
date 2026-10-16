@@ -166,6 +166,7 @@ var nstPinned = []struct {
 		{"savedSpellEffects", "[]sim.SavedSpellEffect"},
 		// 1133: same class again.
 		{"savedProjectiles", "sim.SavedProjectiles"},
+		{"flightInputs", "*sim.FlightInputs"},
 		{"savedWorldEffects", "*sim.SavedWorldEffects"},
 		{"savedSpellGraph", "*sim.SavedSpellGraph"},
 		{"effectOrder", "[]sim.WorldEffectRef"},
@@ -229,6 +230,8 @@ var nstPinned = []struct {
 		{"Pursuit", "sim.PursuitSearch"},
 		{"AttackPhase", "sim.AttackPhase"},
 		{"AttackCountdown", "int32"},
+		{"FlightRun", "sim.FlightRun"},
+		{"ClientClassFixed", "bool"},
 		{"AttackCharge", "int32"},
 		{"AttackRelax", "int32"},
 		{"Humanoid", "bool"},

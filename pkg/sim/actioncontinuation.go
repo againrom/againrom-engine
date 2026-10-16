@@ -68,6 +68,8 @@ type ActorContinuation struct {
 	CastWait                                                    uint8
 	AutoSpell                                                   uint16
 	ActionClock                                                 ActionClock
+	FlightRun                                                   *FlightRun `json:",omitempty"`
+	ClientClassFixed                                            bool       `json:",omitempty"`
 	Withdraw, Wimpy                                             int32
 	PatrolHeadX, PatrolHeadY, PatrolTailX, PatrolTailY          int32
 	PatrolLeg                                                   uint8
@@ -217,7 +219,7 @@ func (w *World) Actions() ActionContinuations {
 			PendingAttackTarget: e.PendingAttackTarget, PendingAttackTargetKind: e.PendingAttackTargetKind, HasPendingAttackTarget: e.HasPendingAttackTarget,
 			PendingOrder:   e.PendingOrder,
 			AcquirePursuit: e.AcquirePursuit, PursuitIdle: e.PursuitIdle,
-			AttackPhase: e.AttackPhase, AttackCountdown: e.AttackCountdown,
+			AttackPhase: e.AttackPhase, AttackCountdown: e.AttackCountdown, ClientClassFixed: e.ClientClassFixed,
 			CastWait: e.CastWait, AutoSpell: e.AutoSpell, ActionClock: e.ActionClock,
 			Withdraw: e.Withdraw, Wimpy: e.Wimpy, PatrolHeadX: e.PatrolHeadX, PatrolHeadY: e.PatrolHeadY,
 			PatrolTailX: e.PatrolTailX, PatrolTailY: e.PatrolTailY, PatrolLeg: e.PatrolLeg,
@@ -229,6 +231,10 @@ func (w *World) Actions() ActionContinuations {
 		if e.Pursuit.Held {
 			p := e.Pursuit
 			a.Actors[len(a.Actors)-1].Pursuit = &p
+		}
+		if e.FlightRun.Active {
+			run := e.FlightRun
+			a.Actors[len(a.Actors)-1].FlightRun = &run
 		}
 		if e.NativeBasis.HasValues() {
 			native := w.nativeBasisNow(e)
@@ -500,6 +506,14 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 		}
 		e.AttackPhase, e.AttackCountdown, e.CastWait, e.AutoSpell = v.AttackPhase, v.AttackCountdown, v.CastWait, v.AutoSpell
 		e.ActionClock, e.Withdraw, e.Wimpy = v.ActionClock, v.Withdraw, v.Wimpy
+		e.FlightRun = FlightRun{}
+		e.ClientClassFixed = v.ClientClassFixed
+		if v.FlightRun != nil {
+			e.FlightRun = *v.FlightRun
+			if !validFlightRun(e.FlightRun) {
+				return fmt.Errorf("sim: invalid flight release run")
+			}
+		}
 		e.PatrolHeadX, e.PatrolHeadY, e.PatrolTailX, e.PatrolTailY, e.PatrolLeg = v.PatrolHeadX, v.PatrolHeadY, v.PatrolTailX, v.PatrolTailY, v.PatrolLeg
 		e.PostX, e.PostY, e.EscortTarget, e.HasEscortTarget, e.EscortRange, e.CommandGroup = v.PostX, v.PostY, v.EscortTarget, v.HasEscortTarget, v.EscortRange, v.CommandGroup
 		e.EscortOrder, e.EscortTurnPending = v.EscortOrder, v.EscortTurnPending

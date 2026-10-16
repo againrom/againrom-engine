@@ -355,6 +355,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 		return nil, nil, err
 	}
 	w.SetRules(t.rules())
+	BindFlightInputs(w, t)
 	authored := units
 	if m != nil && m.AuthoredUnits != nil {
 		authored = m.AuthoredUnits

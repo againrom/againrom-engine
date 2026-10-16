@@ -308,6 +308,7 @@ func TestOriginalActorSpellbooks1105BothDoorsNewCastAndNativeWindup(t *testing.T
 			}
 			back = new(sim.World)
 			mapload.BindSourceDerive(back)
+			mapload.BindFlightInputs(back, f.Table)
 			if err := back.UnmarshalBinary(raw); err != nil {
 				t.Fatal(err)
 			}

@@ -74,6 +74,7 @@ func openCurrentEffectSave(t *testing.T, source *FrontEnd, raw []byte) *FrontEnd
 
 func saveCurrentEffect(t *testing.T, f *FrontEnd) ([]byte, sav.DocumentData, *currentActionData) {
 	t.Helper()
+	f.live.bindFlightInputs()
 	before := f.live.world.Hash()
 	native, err := f.live.world.MarshalBinary()
 	if err != nil {

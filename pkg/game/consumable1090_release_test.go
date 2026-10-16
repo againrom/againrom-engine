@@ -314,6 +314,7 @@ func potionNative1090(t *testing.T, f *FrontEnd, stage string) {
 		t.Fatal(err)
 	}
 	mapload.BindSourceDerive(&control)
+	mapload.BindFlightInputs(&control, f.Table)
 	for tick := 0; tick < 33; tick++ {
 		sim.Step(&control, nil)
 		sim.Step(restored.live.world, nil)

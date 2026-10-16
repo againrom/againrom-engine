@@ -197,6 +197,9 @@ func (mw *mapWorld) pushSpellbook() {
 // map-authored human keeps its Humans-row class. Unresolved records keep their
 // explicit class, and hired actors their fixed class.
 func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32 {
+	if e, ok := mw.entity(id); ok && e.ClientClassFixed {
+		return e.Class
+	}
 	var class int32
 	var mage, materialized bool
 	var weapon *data.Weapon

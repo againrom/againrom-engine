@@ -202,6 +202,14 @@ func LoadProjectiles(src terrain.EntrySource) (*terrain.EffectSet, error) {
 // loadProjectilesFor is LoadProjectiles with each sheet's clock taken from
 // game's update arms.
 func loadProjectilesFor(src terrain.EntrySource, game rules.SpellGame) (*terrain.EffectSet, error) {
+	records, err := loadProjectileRecords(src)
+	if err != nil {
+		return nil, err
+	}
+	return projectileSet(src, records, game), nil
+}
+
+func loadProjectileRecords(src terrain.EntrySource) (*data.Projectiles, error) {
 	if src == nil {
 		return nil, fmt.Errorf("%s: no graphics archive", ProjectileRegistry)
 	}
@@ -218,6 +226,10 @@ func loadProjectilesFor(src terrain.EntrySource, game rules.SpellGame) (*terrain
 		return nil, fmt.Errorf("%s: %w", ProjectileRegistry, err)
 	}
 
+	return records, nil
+}
+
+func projectileSet(src terrain.EntrySource, records *data.Projectiles, game rules.SpellGame) *terrain.EffectSet {
 	set := &terrain.EffectSet{Sheets: make(map[int]*terrain.EffectSheet), Pictures: make(map[int]bool)}
 	// The sheets are memoised on their ADDRESS and the table they are drawn
 	// through, so two rows naming one file hold one slice of frames — pointer
@@ -229,11 +241,8 @@ func loadProjectilesFor(src terrain.EntrySource, game rules.SpellGame) (*terrain
 	}
 	decoded := make(map[sheetKey][]*terrain.EffectFrame)
 	shared := sharedProjectileTable(src)
-	for id := int32(0); id <= projectileMaxID; id++ {
-		p, ok := records.ByID(id)
-		if !ok {
-			continue
-		}
+	for _, id := range records.IDs() {
+		p, _ := records.ByID(id)
 		set.Pictures[int(id)] = true
 		if p.Homing != 0 {
 			if set.Homing == nil {
@@ -279,7 +288,7 @@ func loadProjectilesFor(src terrain.EntrySource, game rules.SpellGame) (*terrain
 		}
 	}
 	loadSmokeSheets(src, set)
-	return set, nil
+	return set
 }
 
 // smokeEntry is the address of one trail sheet inside the graphics
@@ -331,13 +340,6 @@ func loadProjectilesOrNil(src terrain.EntrySource, game rules.SpellGame) *terrai
 	}
 	return set
 }
-
-// projectileMaxID is the highest picture id this loader walks. It is the highest
-// a SPELL can compute — 2*28 + 9 — and the walk is over ids rather than over the
-// record map so the bundle is built in numeric order and does not depend on a
-// map walk. A row above it exists on the shipped registry (id 62) and is
-// reachable only through a unit class's own key, which is not a cast.
-const projectileMaxID = 65
 
 // effectClock is which phase clock a picture runs in game: its update arm's
 // frame rule (rules.EffectDriveOf, ANIM-PHASECLOCK-028), resolved once at

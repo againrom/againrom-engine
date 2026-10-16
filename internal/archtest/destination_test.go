@@ -255,3 +255,39 @@ func TestCheckDestinationWritersReportsInFileOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestDestinationWritersDistinguishRecordFields(t *testing.T) {
+	files := map[string]string{
+		"pkg/sim/record.go": `package sim
+type CastRecord struct { Target int32; HasTarget bool }
+type Entity struct { HasTarget bool }
+type EntityAlias = Entity
+`,
+		"pkg/sim/writers.go": `package sim
+func recipe() { rec := CastRecord{}; rec.Target, rec.HasTarget = 7, true }
+func explicitRecipe(rec *CastRecord) { rec.HasTarget = true }
+func entity(rec *Entity) { rec.HasTarget = true }
+func alias(rec *EntityAlias) { rec.HasTarget = true }
+func shadowed(rec *CastRecord, e *Entity) {
+ rec.HasTarget = true
+ { rec := e; rec.HasTarget = true }
+}
+func typeShadowed() {
+ type CastRecord = Entity
+ rec := CastRecord{}
+ rec.HasTarget = true
+}
+func unresolved(rec *Other) { rec.HasTarget = true }
+`,
+	}
+	want := []string{"entity", "alias", "shadowed", "typeShadowed", "unresolved"}
+	findings := CheckDestinationWriters(files)
+	if len(findings) != len(want) {
+		t.Fatalf("destination findings %v, want functions %v", findings, want)
+	}
+	for i, name := range want {
+		if findings[i].Func != name {
+			t.Errorf("finding %d is %s, want %s", i, findings[i].Func, name)
+		}
+	}
+}

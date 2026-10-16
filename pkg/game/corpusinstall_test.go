@@ -104,6 +104,11 @@ func viewTable(t *mapload.Table) *mapload.Table {
 	}
 	v := *t
 	v.SpellArms, v.FreshPlayers = nil, nil
+	if t.FlightInputs != nil {
+		inputs := *t.FlightInputs
+		inputs.ClassRule = nil
+		v.FlightInputs = &inputs
+	}
 	if t.Edition != nil {
 		e := *t.Edition
 		e.TextCodePage = nil
@@ -121,6 +126,9 @@ func tableFuncCodes(t *mapload.Table) []uintptr {
 		}
 	}
 	out := []uintptr{code(t.SpellArms), code(t.FreshPlayers)}
+	if t.FlightInputs != nil {
+		out = append(out, code(t.FlightInputs.ClassRule))
+	}
 	if t.Edition != nil {
 		out = append(out, code(t.Edition.TextCodePage))
 	}

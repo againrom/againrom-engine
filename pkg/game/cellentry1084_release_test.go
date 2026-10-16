@@ -131,6 +131,7 @@ func checkEntryNative1084(t *testing.T, f *FrontEnd, stage string) {
 		t.Fatal(err)
 	}
 	mapload.BindSourceDerive(&control)
+	mapload.BindFlightInputs(&control, f.Table)
 	a, b := sim.StepReported(&control, nil), sim.StepReported(restored.live.world, nil)
 	if control.Hash() != restored.live.world.Hash() || !reflect.DeepEqual(a, b) {
 		t.Fatalf("%s pending/effect continuation changed across native restore", stage)

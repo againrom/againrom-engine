@@ -348,9 +348,11 @@ type Entity struct {
 	PursuitIdle bool
 	// Pursuit is the route-search state of a pursuit on a unit victim. It is
 	// cleared with the victim (pursuitsearch.go).
-	Pursuit         PursuitSearch
-	AttackPhase     AttackPhase
-	AttackCountdown int32
+	Pursuit          PursuitSearch
+	AttackPhase      AttackPhase
+	AttackCountdown  int32
+	FlightRun        FlightRun
+	ClientClassFixed bool
 
 	AttackCharge, AttackRelax int32
 	// Humanoid is the actor-class predicate used by action recovery. It is
@@ -1943,6 +1945,7 @@ type World struct {
 	//
 	// DIV-944
 	savedProjectiles  SavedProjectiles
+	flightInputs      *FlightInputs
 	savedWorldEffects *SavedWorldEffects
 	savedSpellGraph   *SavedSpellGraph
 	effectOrder       []WorldEffectRef

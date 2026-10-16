@@ -47,6 +47,11 @@ func (f *FrontEnd) SetModBodies(bodies mod.BodyData) error {
 	fs.Overlay(ModBodyChoiceAddress, func() ([]byte, error) { return append([]byte(nil), choice...), nil })
 	f.Bodies = list
 	f.Table.Mods.Bodies = list
+	if f.Table.FlightInputs != nil {
+		inputs := *f.Table.FlightInputs
+		inputs.ClassRule = flightClassRule(list)
+		f.Table.FlightInputs = &inputs
+	}
 
 	units := cloneCandidateUnits(f.Units)
 	if units.Bodies == nil {

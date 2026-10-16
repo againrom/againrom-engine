@@ -54,12 +54,13 @@ type ActorDefinition struct {
 // ActorPlacement is where and for whom a new actor stands: its id, cell and
 // facing, its roster slot and group, and the map unit id it answers to.
 type ActorPlacement struct {
-	ID        EntityID
-	X, Y      int32
-	Facing    uint8
-	Owner     uint32
-	Group     uint32
-	MapUnitID uint16
+	ID               EntityID
+	X, Y             int32
+	Facing           uint8
+	Owner            uint32
+	Group            uint32
+	MapUnitID        uint16
+	ClientClassFixed bool
 }
 
 // NewActor is the one constructor of an actor Entity. Every origin (map
@@ -69,7 +70,7 @@ type ActorPlacement struct {
 func NewActor(d ActorDefinition, at ActorPlacement) Entity {
 	return Entity{
 		ID: at.ID, X: at.X, Y: at.Y, Facing: at.Facing, DesiredFacing: at.Facing,
-		Owner: at.Owner, Group: at.Group, MapUnitID: at.MapUnitID,
+		Owner: at.Owner, Group: at.Group, MapUnitID: at.MapUnitID, ClientClassFixed: at.ClientClassFixed,
 
 		Class: d.Class, TypeID: d.TypeID, Humanoid: d.Humanoid, Domain: d.Domain,
 		HP: d.HP, MaxHP: d.MaxHP, Mana: d.Mana, MaxMana: d.MaxMana,

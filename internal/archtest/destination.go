@@ -23,39 +23,12 @@ func (f Finding) String() string {
 	return f.File + ":" + strconv.Itoa(f.Line) + " in " + f.Func
 }
 
-// CheckDestinationWriters scans files — pkg/sim's non-test sources, keyed by
-// module-relative path; the live set comes from LoadSimSources, already home
-// to CheckSimDeterminism — for every assignment whose left-hand side selects
-// .HasTarget and whose right-hand side, AT THE SAME POSITION, is the literal
-// true.
-//
-// The assignment may be single-valued (`e.HasTarget = true`) or one arm of a
-// multi-value assignment (`e.TargetX, e.TargetY, e.HasTarget = x, y, true`),
-// which is how three of pkg/sim's four writers are actually written (plan.md,
-// "Note the shape of the assignment"). So the two sides of an *ast.AssignStmt
-// are walked IN LOCKSTEP, index by index, never by asking "does .HasTarget
-// appear on the left" and "does true appear on the right" as two independent
-// questions — a check built that way would match every clearing assignment
-// too (`e.TargetX, e.TargetY, e.HasTarget, e.Stall = 0, 0, false, 0` carries a
-// true-shaped statement nowhere, but a same-length check that paired wrong
-// could still be fooled by a longer tuple elsewhere). A multi-value
-// assignment is only inspected when the two sides have equal length: a form
-// like `a, b = f()` cannot be matched by position and is silently not
-// reported, which is a known narrowing rather than an oversight — no writer
-// in pkg/sim takes that shape today, and CheckSimDeterminism's own AST walk
-// has the same "equal-length tuple" limit for the same reason.
-//
-// An assignment is attributed to the innermost top-level function whose body
-// contains it. pkg/sim writes no writer inside a closure, but a func literal
-// nested in a named function would still be attributed to that outer name —
-// there is no better one to give it.
-//
-// This function carries no notion of an expected set: it reports what it
-// finds, not whether the result is right.
-//
-// Findings come back in file order, then in source order within a file —
-// matching CheckSimDeterminism's violations — so a report reads the same on
-// every run regardless of map iteration order.
+// CheckDestinationWriters collects literal-true HasTarget assignments, pairing
+// equal-length tuples by position. Unequal tuples remain outside the scan.
+// A lexical receiver declared as another struct's own HasTarget field is a
+// record, not Entity's destination. Unknown receiver types remain findings.
+// Results follow file and source order, attributed to the enclosing named
+// function even inside a closure. The caller owns the expected writer set.
 func CheckDestinationWriters(files map[string]string) []Finding {
 	names := make([]string, 0, len(files))
 	for name := range files {
@@ -63,10 +36,12 @@ func CheckDestinationWriters(files map[string]string) []Finding {
 	}
 	sort.Strings(names)
 
-	var out []Finding
+	parsed := make(map[string]*ast.File, len(files))
+	positions := make(map[string]*token.FileSet, len(files))
+	records := make(map[string]bool)
 	for _, name := range names {
 		fset := token.NewFileSet()
-		f, err := parser.ParseFile(fset, name, files[name], parser.SkipObjectResolution)
+		f, err := parser.ParseFile(fset, name, files[name], 0)
 		if err != nil {
 			// A file this scan cannot read is a file it can say nothing
 			// about. Unlike CheckSimDeterminism this is a collector rather
@@ -75,6 +50,37 @@ func CheckDestinationWriters(files map[string]string) []Finding {
 			// tree's sources already parse (LoadSimSources reads what
 			// go build itself compiles), so this path is not exercised by
 			// TestDestinationWritersMatchFR2.
+			continue
+		}
+		parsed[name], positions[name] = f, fset
+		for _, decl := range f.Decls {
+			gen, ok := decl.(*ast.GenDecl)
+			if !ok || gen.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gen.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if !ok || typeSpec.Name.Name == "Entity" {
+					continue
+				}
+				structure, ok := typeSpec.Type.(*ast.StructType)
+				if !ok {
+					continue
+				}
+				for _, field := range structure.Fields.List {
+					for _, id := range field.Names {
+						if id.Name == "HasTarget" {
+							records[typeSpec.Name.Name] = true
+						}
+					}
+				}
+			}
+		}
+	}
+	var out []Finding
+	for _, name := range names {
+		f, fset := parsed[name], positions[name]
+		if f == nil {
 			continue
 		}
 
@@ -116,6 +122,9 @@ func CheckDestinationWriters(files map[string]string) []Finding {
 				if !ok || id.Name != "true" {
 					continue
 				}
+				if destinationRecordType(sel.X, make(map[*ast.Object]bool), records) {
+					continue
+				}
 				out = append(out, Finding{
 					File: name,
 					Line: fset.Position(lhs.Pos()).Line,
@@ -126,4 +135,74 @@ func CheckDestinationWriters(files map[string]string) []Finding {
 		})
 	}
 	return out
+}
+
+func destinationRecordType(expr ast.Expr, seen map[*ast.Object]bool, records map[string]bool) bool {
+	switch e := expr.(type) {
+	case *ast.ParenExpr:
+		return destinationRecordType(e.X, seen, records)
+	case *ast.UnaryExpr:
+		if e.Op == token.AND || e.Op == token.MUL {
+			return destinationRecordType(e.X, seen, records)
+		}
+	case *ast.StarExpr:
+		return destinationRecordType(e.X, seen, records)
+	case *ast.CompositeLit:
+		return destinationRecordName(e.Type, records)
+	case *ast.Ident:
+		if e.Obj == nil || seen[e.Obj] {
+			return false
+		}
+		seen[e.Obj] = true
+		switch decl := e.Obj.Decl.(type) {
+		case *ast.Field:
+			return destinationRecordName(decl.Type, records)
+		case *ast.ValueSpec:
+			if decl.Type != nil {
+				return destinationRecordName(decl.Type, records)
+			}
+			for i, id := range decl.Names {
+				if id.Obj == e.Obj && len(decl.Names) == len(decl.Values) {
+					return destinationRecordType(decl.Values[i], seen, records)
+				}
+			}
+		case *ast.AssignStmt:
+			for i, lhs := range decl.Lhs {
+				if id, ok := lhs.(*ast.Ident); ok && id.Obj == e.Obj && len(decl.Lhs) == len(decl.Rhs) {
+					return destinationRecordType(decl.Rhs[i], seen, records)
+				}
+			}
+		}
+	}
+	return false
+}
+
+func destinationRecordName(expr ast.Expr, records map[string]bool) bool {
+	switch e := expr.(type) {
+	case *ast.StarExpr:
+		return destinationRecordName(e.X, records)
+	case *ast.ParenExpr:
+		return destinationRecordName(e.X, records)
+	case *ast.Ident:
+		if e.Obj != nil && e.Obj.Kind == ast.Typ {
+			spec, ok := e.Obj.Decl.(*ast.TypeSpec)
+			if !ok || spec.Name.Name == "Entity" {
+				return false
+			}
+			structure, ok := spec.Type.(*ast.StructType)
+			if !ok {
+				return false
+			}
+			for _, field := range structure.Fields.List {
+				for _, id := range field.Names {
+					if id.Name == "HasTarget" {
+						return true
+					}
+				}
+			}
+			return false
+		}
+		return records[e.Name]
+	}
+	return false
 }

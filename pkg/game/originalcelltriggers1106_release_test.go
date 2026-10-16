@@ -162,10 +162,24 @@ func TestReleaseOriginalCellTriggers1106AppOverlayAndNativeEntry(t *testing.T) {
 				return
 			}
 			pending, _ := cellAppSaveFresh1106(t, f, app, SaveStore{Dir: t.TempDir()}, "pending-entry")
+			nextProjectile := f.live.world.SavedProjectiles().FreeIndex
 			a, b := sim.StepReported(f.live.world, nil), sim.StepReported(pending.live.world, nil)
-			wantEvent := sim.ScriptCastEvent{Spell: 13, FromX: wantCast.FromX, FromY: wantCast.FromY, ToX: 21, ToY: 63}
+			wantEvent := sim.ScriptCastEvent{Produced: true, Records: []uint16{nextProjectile}, Spell: 13, FromX: wantCast.FromX, FromY: wantCast.FromY, ToX: 21, ToY: 63}
 			if !reflect.DeepEqual(a, b) || f.live.world.Hash() != pending.live.world.Hash() || len(a.ScriptCasts) != 1 || !reflect.DeepEqual(a.ScriptCasts[0], wantEvent) {
 				t.Fatalf("pending native cast continuation: %+v / %+v", a.ScriptCasts, b.ScriptCasts)
+			}
+			projectiles := f.live.world.SavedProjectiles()
+			if projectiles.FreeIndex != nextProjectile+1 {
+				t.Fatal("cell-entry cast did not consume exactly one projectile identity", projectiles)
+			}
+			found := 0
+			for _, p := range projectiles.Items {
+				if p.ID == nextProjectile && p.Picture == 34 {
+					found++
+				}
+			}
+			if found != 1 {
+				t.Fatal("cell-entry cast did not create its referenced Lightning record", projectiles)
 			}
 			t.Logf("%s: records184 union%d; pointer cast %+v; ordinary AGS before/pending fresh LOAD hash/events equal", variant, len(want), wantCast)
 		})

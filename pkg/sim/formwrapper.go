@@ -39,6 +39,7 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{flightRunFormVersion, "FLR1", trailerSpan32, (*World).unmarshalFlightRuns},
 		{originalDeadHealthFormVersion, "DMH1", trailerSpan32, (*World).unmarshalOriginalDeadHealth},
 		{moverFormVersion, "MVR1", trailerSpan32, (*World).unmarshalMovers},
 		{autoCastFormVersion, "ACS1", trailerPairs8, (*World).unmarshalAutoCastSettings},

@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"againrom/pkg/formats/reg"
@@ -78,6 +79,19 @@ func (p *Projectiles) Len() int {
 		return 0
 	}
 	return len(p.byID)
+}
+
+// IDs lists the loaded picture addresses in numeric order.
+func (p *Projectiles) IDs() []int32 {
+	if p == nil {
+		return nil
+	}
+	ids := make([]int32, 0, len(p.byID))
+	for id := range p.byID {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	return ids
 }
 
 // LoadProjectiles resolves a parsed projectiles.reg into its records.

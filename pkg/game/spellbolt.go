@@ -82,8 +82,7 @@ func showerCohorts(b healBurst, through int) [][]showerParticle {
 	return out
 }
 
-// observeCasts turns one tick's cast observations into what the front end
-// plays and the records the World flies.
+// observeCasts gives released records their appearance and plays cast cues.
 //
 // A BOOK CAST STARTS A CAST RUN ON ITS CASTER: the caster plays its own
 // Attack run, once, one frame per tick, for the expanded Attack timeline's
@@ -111,7 +110,9 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) {
 			span := mw.startBookCastRun(ev)
 			mw.scheduleBookCastSound(ev, span)
 		}
-		if !ev.Rider {
+		if ev.Produced {
+			mw.keepCastLook(ev, i)
+		} else if !ev.Rider {
 			mw.releaseCast(ev, i)
 		}
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
@@ -161,6 +162,9 @@ const fireBallBurstPicture = 13
 // armBurstPhases hands the World the installed phase count of the Fire_Ball
 // burst's sheet, which the World's burst record needs for its frame leaf.
 func (mw *mapWorld) armBurstPhases() {
+	if !mw.world.SecondGame() && mw.world.HasFlightInputs() {
+		return
+	}
 	if sheet := mw.projectiles.Sheet(fireBallBurstPicture); sheet != nil && sheet.Phases > 0 && sheet.Phases <= 65535 {
 		mw.world.SetBurstPhases(uint16(sheet.Phases))
 	}
@@ -556,17 +560,8 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 	return out
 }
 
-// observeAreaPaints turns one tick's staged stages into burst records: one
-// per accepted cell, at that cell, for the picture's own decoded burst life —
-// 16 ticks, 18 for Acid Stream's picture (`MAGIC-AREADRAW-049`,
-// `MAGIC-RING-048`, ANIM-148).
-//
-// THEY OVERLAP BY CONSTRUCTION and that is the point. A stage runs every three
-// ticks while an object lives sixteen, so five or six stages' cells are drawn at
-// once: Fire Sacrifice's inner shell is still burning when its outer shell
-// lights, Meteor Storm's rocks accumulate across its area over 32 stages, and
-// Acid Stream's cone grows away from the caster instead of flickering one wedge
-// at a time.
+// observeAreaPaints voices staged cells. Their records already belong to World.
+// ROM2 retains the client release adapter.
 func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 	for _, p := range paints {
 		// A staged sender produces one logical client object per accepted cell,
@@ -582,7 +577,9 @@ func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 			at := image.Pt(int(c.X), int(c.Y))
 			mw.queueSpellSound(slot, p.Owner, at, delay, source)
 		}
-		mw.releaseAreaBursts(p)
+		if mw.world.SecondGame() || !mw.world.HasFlightInputs() {
+			mw.releaseAreaBursts(p)
+		}
 	}
 }
 

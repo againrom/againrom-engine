@@ -118,6 +118,7 @@ func escortNativeContinuation(t *testing.T, f *FrontEnd) {
 		t.Fatal(err)
 	}
 	mapload.BindSourceDerive(&control)
+	mapload.BindFlightInputs(&control, f.Table)
 	for tick := range 33 {
 		sim.Step(&control, nil)
 		sim.Step(back.live.world, nil)

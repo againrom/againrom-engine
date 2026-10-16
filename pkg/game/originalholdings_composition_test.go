@@ -114,6 +114,7 @@ func TestOriginalHoldings1108BooksBothDoorsNewCastAndNativeContinuation(t *testi
 				}
 				back = new(sim.World)
 				mapload.BindSourceDerive(back)
+				mapload.BindFlightInputs(back, f.Table)
 				if err := back.UnmarshalBinary(raw); err != nil {
 					t.Fatal(err)
 				}

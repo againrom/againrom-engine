@@ -177,7 +177,11 @@ func (mw *mapWorld) observeScriptCasts(events []sim.ScriptCastEvent) {
 		// UNIT-M10CAST-056 / MAGIC-DELIVER-035: direct-client Lightning carries
 		// flight parameter 5, not the normal caster's 13 calls; the source-cell
 		// Prismatic Spray links each resolved victim (MAGIC-281).
-		mw.releaseScriptCast(ev, seed)
+		if ev.Produced {
+			mw.keepScriptCastLook(ev, seed)
+		} else {
+			mw.releaseScriptCast(ev, seed)
+		}
 		mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), 0, from, "scripted-cast")
 		mw.scheduleBlastSound(ev.Spell, 0, from, to, false)
 	}

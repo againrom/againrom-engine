@@ -960,7 +960,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		carriedNativeHistory(p, &def.NativeBasis, &def.NativeClass)
 		st.IDs[i] = sim.EntityID(len(ents))
 		ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: st.IDs[i], X: st.Cells[i].X, Y: st.Cells[i].Y,
-			Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p)}))
+			Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p), ClientClassFixed: p.Hired()}))
 		// A CARRIED MEMBER ARRIVES HOLDING WHAT HE LEFT WITH, and the class
 		// row's starting weapon is NOT minted for him a second time (the
 		// continuity hotfix). That is the whole reason Carry is reached by
@@ -1047,6 +1047,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		return nil, Start{}, err
 	}
 	out.SetRules(t.rules())
+	BindFlightInputs(out, t)
 	out.CopyDiaryUnits(base)
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
 		return nil, Start{}, err
@@ -1196,6 +1197,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 		return nil, Start{}, err
 	}
 	out.SetRules(t.rules())
+	BindFlightInputs(out, t)
 	out.CopyDiaryUnits(base)
 	if err := out.DeclareCellTails(base.CellTails()); err != nil {
 		return nil, Start{}, err

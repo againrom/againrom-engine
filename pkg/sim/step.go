@@ -397,7 +397,8 @@ type Report struct {
 	AreaPaints     []AreaPaint
 	Damages        []DamageEvent
 	// Relocations names every Teleport that moved its caster in this step.
-	Relocations []Relocation
+	Relocations  []Relocation
+	FlightStarts []FlightStart
 }
 
 // StepReported is Step with all observations reported. StepObserved is this
@@ -406,7 +407,7 @@ func StepReported(w *World, cmds []Command) Report {
 	var obs castObs
 	stepWorld(w, cmds, nil, &obs, nil)
 	return Report{ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
-		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations}
+		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, FlightStarts: obs.flightStarts}
 }
 
 // StepWithdrawalTraced is Step with the successful phase-6 withdrawal
@@ -420,6 +421,9 @@ func StepWithdrawalTraced(w *World, cmds []Command) []WithdrawalDecision {
 }
 
 func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs) {
+	if obs == nil && !w.SecondGame() && w.flightInputs != nil {
+		obs = &castObs{}
+	}
 	w.beginTurnSubTick()
 	defer w.endTurnSubTick()
 	w.movers = slices.Clone(w.movers)
@@ -443,6 +447,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 	}
 	w.initializeActionClocks()
+	w.prepareFlightRuns()
 	w.takePendingOrders()
 	if !w.SecondGame() {
 		w.beginSessionTick(tr, obs, withdrawals)
@@ -1241,6 +1246,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	}
 	w.syncCurrentActionCarriers()
 	w.presentAdmittedCasts()
+	w.produceFlights(obs)
 }
 
 // lookAhead is how far along a stored route the near search aims: the sub-goal

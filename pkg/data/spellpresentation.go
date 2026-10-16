@@ -103,6 +103,14 @@ func (s *SpellPresentation) Effect(id int32) EffectPresentation {
 	return EffectPresentation{ID: id}
 }
 
+// Effects returns the effect rules as independent values.
+func (s *SpellPresentation) Effects() []EffectPresentation {
+	if s == nil {
+		return nil
+	}
+	return append([]EffectPresentation(nil), s.effects...)
+}
+
 // Drive is identifier id's update arm in this game.
 func (s *SpellPresentation) Drive(id int32) rules.EffectDrive {
 	return rules.EffectDriveOf(s.Game, id)

@@ -147,6 +147,7 @@ func (e *Entity) clearActiveAttack() {
 	e.PursuitIdle = false
 	e.Pursuit = PursuitSearch{}
 	e.AttackPhase, e.AttackCountdown = AttackReady, 0
+	e.FlightRun = FlightRun{}
 }
 
 // clearAttackBetweenCycles is what a writer of a pending order does to e's
