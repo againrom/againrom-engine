@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -51,8 +50,7 @@ func (w *World) appendTactical(b []byte) []byte {
 	if !traversal && count == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = tacticalFormVersion
+	ws := beginWrapper(b)
 	if traversal {
 		b = append(b, 1)
 	} else {
@@ -84,22 +82,17 @@ func (w *World) appendTactical(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, uint32(r.X))
 		b = binary.LittleEndian.AppendUint32(b, uint32(r.Y))
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'T', 'A', 'C', '1')
+	return endWrapper(b, ws, tacticalFormVersion)
 }
 
 func (w *World) unmarshalTactical(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed tactical continuation") }
-	if len(data) < headerLen+18 || !bytes.Equal(data[len(data)-4:], []byte("TAC1")) {
+	env, ok := readWrapper(data, tacticalFormVersion)
+	payload := env.section()
+	span := uint64(len(payload))
+	if !ok || span < 9 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion == tacticalFormVersion || span < 9 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
-	payload := data[start : len(data)-9]
 	if payload[0] > 1 {
 		return fail()
 	}
@@ -112,10 +105,8 @@ func (w *World) unmarshalTactical(data []byte, proof formProof) error {
 	if retreats > 65535 || 9+4*count+16*retreats != span {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if payload[0] == 1 {

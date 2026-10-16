@@ -29,7 +29,22 @@ type formWrapper struct {
 	version byte
 	tag     string
 	trailer wrapperTrailer
+	base    wrapperBase
 	decode  func(*World, []byte, formProof) error
+}
+
+// wrapperBase admits the version of the form a wrapper wraps.
+type wrapperBase func(own, base byte) bool
+
+func baseOlder(own, base byte) bool { return base < own }
+
+func baseOther(own, base byte) bool { return base != own }
+
+func baseAny(byte, byte) bool { return true }
+
+// baseSpellGraph admits the plain form and the autohealing wrapper.
+func baseSpellGraph(_, base byte) bool {
+	return base == formatVersion || base == autoHealingFormVersion
 }
 
 // formWrappers is the one list of World form wrappers, outermost first.
@@ -39,35 +54,35 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
-		{flightRunFormVersion, "FLR1", trailerSpan32, (*World).unmarshalFlightRuns},
-		{originalDeadHealthFormVersion, "DMH1", trailerSpan32, (*World).unmarshalOriginalDeadHealth},
-		{moverFormVersion, "MVR1", trailerSpan32, (*World).unmarshalMovers},
-		{autoCastFormVersion, "ACS1", trailerPairs8, (*World).unmarshalAutoCastSettings},
-		{bodyReferenceFormVersion, "BDR1", trailerSpan32, (*World).unmarshalBodyReferences},
-		{speedModifierFormVersion, "SPM1", trailerSpan32, (*World).unmarshalSpeedModifiers},
-		{heldOrderFormVersion, "HLD1", trailerSpan32, (*World).unmarshalHeldOrders},
-		{pursuitSearchFormVersion, "PRS1", trailerSpan32, (*World).unmarshalPursuitSearches},
-		{escortFormVersion, "ESC1", trailerSpan32, (*World).unmarshalEscortResidues},
-		{turnStateFormVersion, "TRN1", trailerSpan32, (*World).unmarshalTurnStates},
-		{nativeScalarFormVersion, "NSC1", trailerSpan32, (*World).unmarshalNativeScalars},
-		{nativeItemFormVersion, "NIR1", trailerSpan32, (*World).unmarshalNativeItemRecords},
-		{nativeLiveFormVersion, "NLB1", trailerSpan32, (*World).unmarshalNativeLiveBlocks},
-		{currentPlayerFormVersion, "CPP1", trailerSpan32, (*World).unmarshalCurrentPlayers},
-		{playerParticipantFormVersion, "PPT1", trailerSpan32, (*World).unmarshalPlayerParticipants},
-		{nativeBasisFormVersion, "NAB1", trailerSpan32, (*World).unmarshalNativeActorBases},
-		{bookSelectionFormVersion, "BSL1", trailerSpan32, (*World).unmarshalBookSelections},
-		{nativeClassFormVersion, "CLS1", trailerSpan32, (*World).unmarshalNativeClasses},
-		{rom2ScriptFormVersion, "R2S1", trailerSpan32, (*World).unmarshalROM2ScriptState},
-		{nativeTrainingFormVersion, "TRN1", trailerSpan32, (*World).unmarshalNativeTraining},
-		{areaCostFormVersion, "ACP1", trailerSpan32, (*World).unmarshalAreaCosts},
-		{creatureSpellFormVersion, "CSP1", trailerSpan32, (*World).unmarshalCreatureSpells},
-		{pendingOrderFormVersion, "ORD1", trailerSpan32, (*World).unmarshalPendingOrders},
-		{tacticalFormVersion, "TAC1", trailerSpan32, (*World).unmarshalTactical},
-		{structureBlockingFormVersion, "SBK1", trailerSpan32, (*World).unmarshalStructureBlocking},
-		{currentTerminalFormVersion, "CTA1", trailerSpan32, (*World).unmarshalCurrentTerminalActors},
-		{currentAreaFormVersion, "SPG1", trailerSpan32, (*World).unmarshalSavedSpellGraph},
-		{spellGraphFormVersion, "SPG1", trailerSpan32, (*World).unmarshalSavedSpellGraph},
-		{autoHealingFormVersion, "AHL1", trailerSpan16, (*World).unmarshalAutoHealing},
+		{flightRunFormVersion, "FLR1", trailerSpan32, baseOlder, (*World).unmarshalFlightRuns},
+		{originalDeadHealthFormVersion, "DMH1", trailerSpan32, baseOlder, (*World).unmarshalOriginalDeadHealth},
+		{moverFormVersion, "MVR1", trailerSpan32, baseOlder, (*World).unmarshalMovers},
+		{autoCastFormVersion, "ACS1", trailerPairs8, baseOlder, (*World).unmarshalAutoCastSettings},
+		{bodyReferenceFormVersion, "BDR1", trailerSpan32, baseOlder, (*World).unmarshalBodyReferences},
+		{speedModifierFormVersion, "SPM1", trailerSpan32, baseOlder, (*World).unmarshalSpeedModifiers},
+		{heldOrderFormVersion, "HLD1", trailerSpan32, baseOlder, (*World).unmarshalHeldOrders},
+		{pursuitSearchFormVersion, "PRS1", trailerSpan32, baseOlder, (*World).unmarshalPursuitSearches},
+		{escortFormVersion, "ESC1", trailerSpan32, baseOlder, (*World).unmarshalEscortResidues},
+		{turnStateFormVersion, "TRN1", trailerSpan32, baseOlder, (*World).unmarshalTurnStates},
+		{nativeScalarFormVersion, "NSC1", trailerSpan32, baseOlder, (*World).unmarshalNativeScalars},
+		{nativeItemFormVersion, "NIR1", trailerSpan32, baseOlder, (*World).unmarshalNativeItemRecords},
+		{nativeLiveFormVersion, "NLB1", trailerSpan32, baseOlder, (*World).unmarshalNativeLiveBlocks},
+		{currentPlayerFormVersion, "CPP1", trailerSpan32, baseOlder, (*World).unmarshalCurrentPlayers},
+		{playerParticipantFormVersion, "PPT1", trailerSpan32, baseOlder, (*World).unmarshalPlayerParticipants},
+		{nativeBasisFormVersion, "NAB1", trailerSpan32, baseOlder, (*World).unmarshalNativeActorBases},
+		{bookSelectionFormVersion, "BSL1", trailerSpan32, baseOlder, (*World).unmarshalBookSelections},
+		{nativeClassFormVersion, "CLS1", trailerSpan32, baseOlder, (*World).unmarshalNativeClasses},
+		{rom2ScriptFormVersion, "R2S1", trailerSpan32, baseOlder, (*World).unmarshalROM2ScriptState},
+		{nativeTrainingFormVersion, "TRN1", trailerSpan32, baseOlder, (*World).unmarshalNativeTraining},
+		{areaCostFormVersion, "ACP1", trailerSpan32, baseOlder, (*World).unmarshalAreaCosts},
+		{creatureSpellFormVersion, "CSP1", trailerSpan32, baseOlder, (*World).unmarshalCreatureSpells},
+		{pendingOrderFormVersion, "ORD1", trailerSpan32, baseOlder, (*World).unmarshalPendingOrders},
+		{tacticalFormVersion, "TAC1", trailerSpan32, baseOther, (*World).unmarshalTactical},
+		{structureBlockingFormVersion, "SBK1", trailerSpan32, baseOther, (*World).unmarshalStructureBlocking},
+		{currentTerminalFormVersion, "CTA1", trailerSpan32, baseAny, (*World).unmarshalCurrentTerminalActors},
+		{currentAreaFormVersion, "SPG1", trailerSpan32, baseSpellGraph, (*World).unmarshalSavedSpellGraph},
+		{spellGraphFormVersion, "SPG1", trailerSpan32, baseSpellGraph, (*World).unmarshalSavedSpellGraph},
+		{autoHealingFormVersion, "AHL1", trailerSpan16, baseAny, (*World).unmarshalAutoHealing},
 	}
 }
 
@@ -172,33 +187,105 @@ func formWrapperOf(version byte) (formWrapper, bool) {
 	return formWrapper{}, false
 }
 
-// inner returns the wrapped form's version and the bytes that precede the
-// wrapper's section. It checks only the tag and the bounds; the wrapper's
-// decoder validates the section itself.
-func (fw formWrapper) inner(data []byte) (byte, []byte, bool) {
+// wrapperEnvelope is a wrapper read back: section data[start:end] after
+// the wrapped form data[:start] of version baseVersion.
+type wrapperEnvelope struct {
+	data        []byte
+	start, end  int
+	baseVersion byte
+}
+
+func (e wrapperEnvelope) section() []byte { return e.data[e.start:e.end] }
+
+func (e wrapperEnvelope) base() []byte {
+	b := bytes.Clone(e.data[:e.start])
+	b[0] = e.baseVersion
+	return b
+}
+
+// envelope reads fw's tag and the section bounds its trailer names.
+func (fw formWrapper) envelope(data []byte) (wrapperEnvelope, bool) {
 	end := len(data)
-	if end < headerLen+9 || string(data[end-4:]) != fw.tag {
-		return 0, nil, false
+	if end < headerLen+6 || string(data[end-4:]) != fw.tag {
+		return wrapperEnvelope{}, false
 	}
 	switch fw.trailer {
 	case trailerSpan32:
+		if end < headerLen+9 {
+			return wrapperEnvelope{}, false
+		}
 		span := uint64(binary.LittleEndian.Uint32(data[end-9:]))
 		if span > uint64(end-headerLen-9) {
-			return 0, nil, false
+			return wrapperEnvelope{}, false
 		}
-		return data[end-5], data[:end-9-int(span)], true
+		return wrapperEnvelope{data, end - 9 - int(span), end - 9, data[end-5]}, true
 	case trailerPairs8:
 		start := end - 6 - 2*int(data[end-6])
 		if start < headerLen {
-			return 0, nil, false
+			return wrapperEnvelope{}, false
 		}
-		return data[end-5], data[:start], true
+		return wrapperEnvelope{data, start, end - 6, data[end-5]}, true
 	case trailerSpan16:
 		start := end - 6 - int(binary.LittleEndian.Uint16(data[end-6:]))
 		if start < headerLen {
-			return 0, nil, false
+			return wrapperEnvelope{}, false
 		}
-		return formatVersion, data[:start], true
+		return wrapperEnvelope{data, start, end - 6, formatVersion}, true
 	}
-	return 0, nil, false
+	return wrapperEnvelope{}, false
+}
+
+// readWrapper reads the envelope of the given wrapper version and checks its
+// base version; the wrapper's decoder validates the section.
+func readWrapper(data []byte, version byte) (wrapperEnvelope, bool) {
+	fw, ok := formWrapperOf(version)
+	if !ok {
+		return wrapperEnvelope{}, false
+	}
+	e, ok := fw.envelope(data)
+	if !ok || !fw.base(fw.version, e.baseVersion) {
+		return wrapperEnvelope{}, false
+	}
+	return e, true
+}
+
+// inner returns the wrapped form's version and the bytes that precede the
+// wrapper's section. It checks only the tag and the bounds.
+func (fw formWrapper) inner(data []byte) (byte, []byte, bool) {
+	if len(data) < headerLen+9 {
+		return 0, nil, false
+	}
+	e, ok := fw.envelope(data)
+	if !ok {
+		return 0, nil, false
+	}
+	return e.baseVersion, data[:e.start], true
+}
+
+// wrapperStart is the wrapped form's version and where a section begins.
+type wrapperStart struct {
+	base byte
+	at   int
+}
+
+func beginWrapper(b []byte) wrapperStart { return wrapperStart{b[0], len(b)} }
+
+// endWrapper appends the version's trailer after the section begun at s.
+func endWrapper(b []byte, s wrapperStart, version byte) []byte {
+	fw, ok := formWrapperOf(version)
+	if !ok {
+		panic("sim: unlisted form wrapper version")
+	}
+	b[0] = version
+	n := len(b) - s.at
+	switch fw.trailer {
+	case trailerSpan32:
+		b = binary.LittleEndian.AppendUint32(b, uint32(n))
+		b = append(b, s.base)
+	case trailerPairs8:
+		b = append(b, byte(n/2), s.base)
+	case trailerSpan16:
+		b = binary.LittleEndian.AppendUint16(b, uint16(n))
+	}
+	return append(b, fw.tag...)
 }

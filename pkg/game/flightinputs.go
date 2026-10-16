@@ -1,8 +1,10 @@
 package game
 
 import (
+	"cmp"
 	"errors"
 	"io/fs"
+	"maps"
 	"slices"
 
 	"againrom/pkg/data"
@@ -23,7 +25,7 @@ func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation, b
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
-	in := flightInputsFromData(pictures, classes, spells, bodies)
+	in := buildFlightInputs(spells, installedPictureRows(pictures), installedClassRows(classes), bodies)
 	return &in, nil
 }
 
@@ -36,24 +38,53 @@ func flightPictures(spells *data.SpellPresentation) map[int32]sim.FlightPicture 
 	return out
 }
 
-func flightInputsFromData(pictures *data.Projectiles, classes *data.UnitClasses, spells *data.SpellPresentation, bodies data.BodyList) sim.FlightInputs {
+type flightPictureRow struct {
+	ID             int32
+	Present, Homes bool
+	Phases         uint16
+}
+
+type flightClassRow struct {
+	ID int32
+	sim.FlightClass
+}
+
+// buildFlightInputs is the one producer of sim.FlightInputs; a source only
+// exposes its picture and class rows.
+func buildFlightInputs(spells *data.SpellPresentation, pictures []flightPictureRow, classes []flightClassRow, bodies data.BodyList) sim.FlightInputs {
 	in := sim.FlightInputs{Pictures: flightPictures(spells), Classes: make(map[int32]sim.FlightClass), ClassRule: flightClassRule(bodies)}
-	for _, id := range pictures.IDs() {
-		raw, _ := pictures.ByID(id)
-		p := in.Pictures[id]
-		p.Present, p.Homes = true, raw.Homing != 0
-		p.Phases = flightPhases(int(raw.Phases))
-		p.CellLife = int32(spells.CellLife(id))
-		in.Pictures[id] = p
+	for _, r := range pictures {
+		p := in.Pictures[r.ID]
+		p.Present, p.Homes, p.Phases = r.Present, r.Homes, r.Phases
+		p.CellLife = int32(spells.CellLife(r.ID))
+		in.Pictures[r.ID] = p
 	}
-	if classes != nil {
-		for _, c := range classes.All() {
-			in.Classes[c.ID] = sim.FlightClass{Projectile: c.Projectile, ShootDelay: c.ShootDelay, TileSize: c.TileSize,
-				CenterX: c.CenterX, CenterY: c.CenterY, SelectionWidth: c.SelectionX2 - c.SelectionX1,
-				SelectionHeight: c.SelectionY2 - c.SelectionY1, ShootOffset: slices.Clone(c.ShootOffset)}
-		}
+	for _, c := range classes {
+		in.Classes[c.ID] = c.FlightClass
 	}
 	return in
+}
+
+func installedPictureRows(pictures *data.Projectiles) []flightPictureRow {
+	var rows []flightPictureRow
+	for _, id := range pictures.IDs() {
+		raw, _ := pictures.ByID(id)
+		rows = append(rows, flightPictureRow{ID: id, Present: true, Homes: raw.Homing != 0, Phases: flightPhases(int(raw.Phases))})
+	}
+	return rows
+}
+
+func installedClassRows(classes *data.UnitClasses) []flightClassRow {
+	if classes == nil {
+		return nil
+	}
+	var rows []flightClassRow
+	for _, c := range classes.All() {
+		rows = append(rows, flightClassRow{c.ID, sim.FlightClass{Projectile: c.Projectile, ShootDelay: c.ShootDelay, TileSize: c.TileSize,
+			CenterX: c.CenterX, CenterY: c.CenterY, SelectionWidth: c.SelectionX2 - c.SelectionX1,
+			SelectionHeight: c.SelectionY2 - c.SelectionY1, ShootOffset: slices.Clone(c.ShootOffset)}})
+	}
+	return rows
 }
 
 func flightPhases(phases int) uint16 {
@@ -98,40 +129,45 @@ func (mw *mapWorld) bindFlightInputs() {
 	if mw == nil || mw.world == nil || mw.world.SecondGame() || mw.world.HasFlightInputs() {
 		return
 	}
-	spells := mw.spells()
-	in := sim.FlightInputs{Pictures: flightPictures(spells), Classes: make(map[int32]sim.FlightClass)}
 	var bodies data.BodyList
 	if mw.mission != nil {
 		bodies = mw.mission.list
 	}
-	in.ClassRule = flightClassRule(bodies)
-	if mw.projectiles != nil {
-		for id, present := range mw.projectiles.Pictures {
-			p := in.Pictures[int32(id)]
-			p.Present, p.Homes, p.CellLife = present, mw.projectiles.Homes(id), int32(spells.CellLife(int32(id)))
-			in.Pictures[int32(id)] = p
-		}
-		for id, sheet := range mw.projectiles.Sheets {
-			if sheet == nil {
-				continue
-			}
-			p := in.Pictures[int32(id)]
-			p.Present, p.Homes, p.Phases = mw.projectiles.HasPicture(id), mw.projectiles.Homes(id), flightPhases(sheet.Phases)
-			p.CellLife = int32(spells.CellLife(int32(id)))
-			in.Pictures[int32(id)] = p
+	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), syntheticPictureRows(mw.projectiles), syntheticClassRows(mw.units), bodies))
+}
+
+// syntheticPictureRows: a sheet's row replaces its picture's row.
+func syntheticPictureRows(set *terrain.EffectSet) []flightPictureRow {
+	if set == nil {
+		return nil
+	}
+	rows := make(map[int]flightPictureRow, len(set.Pictures)+len(set.Sheets))
+	for id, present := range set.Pictures {
+		rows[id] = flightPictureRow{ID: int32(id), Present: present, Homes: set.Homes(id)}
+	}
+	for id, sheet := range set.Sheets {
+		if sheet != nil {
+			rows[id] = flightPictureRow{ID: int32(id), Present: set.HasPicture(id), Homes: set.Homes(id), Phases: flightPhases(sheet.Phases)}
 		}
 	}
-	if mw.units != nil {
-		for id, c := range mw.units.Classes {
-			if c == nil {
-				continue
-			}
-			in.Classes[id] = sim.FlightClass{Projectile: int32(c.Projectile), ShootDelay: int32(c.ShootDelay), TileSize: int32(c.TileSize),
-				CenterX: int32(c.CenterX), CenterY: int32(c.CenterY), SelectionWidth: int32(c.Selection.Dx()),
-				SelectionHeight: int32(c.Selection.Dy()), ShootOffset: flightOffsets(c.ShootOffset)}
-		}
+	return slices.SortedFunc(maps.Values(rows), func(a, b flightPictureRow) int { return cmp.Compare(a.ID, b.ID) })
+}
+
+func syntheticClassRows(units *terrain.UnitSet) []flightClassRow {
+	if units == nil {
+		return nil
 	}
-	mw.world.SetFlightInputs(in)
+	var rows []flightClassRow
+	for id, c := range units.Classes {
+		if c == nil {
+			continue
+		}
+		rows = append(rows, flightClassRow{id, sim.FlightClass{Projectile: int32(c.Projectile), ShootDelay: int32(c.ShootDelay), TileSize: int32(c.TileSize),
+			CenterX: int32(c.CenterX), CenterY: int32(c.CenterY), SelectionWidth: int32(c.Selection.Dx()),
+			SelectionHeight: int32(c.Selection.Dy()), ShootOffset: flightOffsets(c.ShootOffset)}})
+	}
+	slices.SortFunc(rows, func(a, b flightClassRow) int { return cmp.Compare(a.ID, b.ID) })
+	return rows
 }
 
 func flightOffsets(offsets []int) []int32 {

@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -37,8 +36,7 @@ func (w *World) appendStructureBlocking(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	base := b[0]
-	b[0] = structureBlockingFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(count))
 	for _, st := range w.structures {
 		if st.Blocking != st.Attach {
@@ -46,33 +44,23 @@ func (w *World) appendStructureBlocking(b []byte) []byte {
 			b = binary.LittleEndian.AppendUint32(b, st.Blocking)
 		}
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(4+8*count))
-	return append(b, base, 'S', 'B', 'K', '1')
+	return endWrapper(b, ws, structureBlockingFormVersion)
 }
 
 func (w *World) unmarshalStructureBlocking(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed structure blocking section") }
-	if len(data) < headerLen+21 || !bytes.Equal(data[len(data)-4:], []byte("SBK1")) {
+	env, ok := readWrapper(data, structureBlockingFormVersion)
+	payload := env.section()
+	span := uint64(len(payload))
+	if !ok || span < 12 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	if baseVersion == structureBlockingFormVersion {
-		return fail()
-	}
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if span < 12 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
-	payload := data[start : len(data)-9]
 	count := uint64(binary.LittleEndian.Uint32(payload))
 	if count == 0 || span != 4+8*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.structures)) {

@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"cmp"
 	"encoding/binary"
 	"fmt"
@@ -21,8 +20,7 @@ func (w *World) appendNativeLiveBlocks(b []byte) []byte {
 		return b
 	}
 	slices.SortFunc(rows, func(a, b NativeActorBasisRecord) int { return cmp.Compare(a.ID, b.ID) })
-	base, start := b[0], len(b)
-	b[0] = nativeLiveFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(len(rows)))
 	for _, r := range rows {
 		v, flag := r.Basis, byte(0)
@@ -39,29 +37,23 @@ func (w *World) appendNativeLiveBlocks(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, v.DefenceKnown)
 		b = append(b, v.Defence[:]...)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'N', 'L', 'B', '1')
+	return endWrapper(b, ws, nativeLiveFormVersion)
 }
 
 func (w *World) unmarshalNativeLiveBlocks(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed native live blocks") }
-	if len(data) < headerLen+13+nativeLiveRecordLen || !bytes.Equal(data[len(data)-4:], []byte("NLB1")) {
+	env, ok := readWrapper(data, nativeLiveFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+nativeLiveRecordLen {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= nativeLiveFormVersion || span < 4+nativeLiveRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || count > 65535 || span != 4+nativeLiveRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)+len(next.originalDead)+len(next.currentTerminalActors)) {

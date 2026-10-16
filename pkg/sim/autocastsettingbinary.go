@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -20,22 +19,18 @@ func (w *World) appendAutoCastSettings(b []byte) []byte {
 	if len(rows) == 0 {
 		return b
 	}
-	base := b[0]
-	b[0] = autoCastFormVersion
-	b = append(b, rows...)
-	return append(b, byte(len(rows)/2), base, 'A', 'C', 'S', '1')
+	ws := beginWrapper(b)
+	return endWrapper(append(b, rows...), ws, autoCastFormVersion)
 }
 
 func (w *World) unmarshalAutoCastSettings(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed automatic-casting section") }
-	if len(data) < headerLen+8 || !bytes.Equal(data[len(data)-4:], []byte("ACS1")) {
+	env, ok := readWrapper(data, autoCastFormVersion)
+	count := len(env.section()) / 2
+	if !ok || count == 0 || count > relationSlots {
 		return fail()
 	}
-	baseVersion, count := data[len(data)-5], int(data[len(data)-6])
-	if baseVersion >= autoCastFormVersion || count == 0 || count > relationSlots || len(data)-6-2*count < headerLen {
-		return fail()
-	}
-	start := len(data) - 6 - 2*count
+	start := env.start
 	var settings [relationSlots]AutoCastSetting
 	prior := -1
 	for n := 0; n < count; n++ {
@@ -45,10 +40,8 @@ func (w *World) unmarshalAutoCastSettings(data []byte, proof formProof) error {
 		}
 		settings[slot], prior = s, slot
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	next.autoCastSetting = settings

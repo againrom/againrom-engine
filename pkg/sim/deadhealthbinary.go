@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"cmp"
 	"encoding/binary"
 	"fmt"
@@ -27,36 +26,29 @@ func (w *World) appendOriginalDeadHealth(b []byte) []byte {
 		return b
 	}
 	slices.SortFunc(rows, func(a, b OriginalDeadActor) int { return cmp.Compare(a.ID, b.ID) })
-	base, start := b[0], len(b)
-	b[0] = originalDeadHealthFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(len(rows)))
 	for _, row := range rows {
 		b = binary.LittleEndian.AppendUint32(b, uint32(row.ID))
 		b = binary.LittleEndian.AppendUint32(b, uint32(row.Source.MaxHP))
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'D', 'M', 'H', '1')
+	return endWrapper(b, ws, originalDeadHealthFormVersion)
 }
 
 func (w *World) unmarshalOriginalDeadHealth(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed original dead maximum health section") }
-	if len(data) < headerLen+13+originalDeadHealthRecordLen || !bytes.Equal(data[len(data)-4:], []byte("DMH1")) {
+	env, ok := readWrapper(data, originalDeadHealthFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+originalDeadHealthRecordLen {
 		return fail()
 	}
-	version := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if version >= originalDeadHealthFormVersion || span < 4+originalDeadHealthRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || span != 4+originalDeadHealthRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.originalDead)) {

@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -18,8 +17,7 @@ func (w *World) appendPendingOrders(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = pendingOrderFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(count))
 	for _, e := range w.entities {
 		p := e.PendingOrder
@@ -40,29 +38,23 @@ func (w *World) appendPendingOrders(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, uint32(p.X))
 		b = binary.LittleEndian.AppendUint32(b, uint32(p.Y))
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'O', 'R', 'D', '1')
+	return endWrapper(b, ws, pendingOrderFormVersion)
 }
 
 func (w *World) unmarshalPendingOrders(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed pending order continuation") }
-	if len(data) < headerLen+33 || !bytes.Equal(data[len(data)-4:], []byte("ORD1")) {
+	env, ok := readWrapper(data, pendingOrderFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 24 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= pendingOrderFormVersion || span < 24 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || count > 65535 || span != 4+20*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	var prior EntityID

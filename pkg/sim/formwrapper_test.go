@@ -1,6 +1,8 @@
 package sim
 
 import (
+	"bytes"
+	"encoding/binary"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -63,7 +65,8 @@ func formVersionConstants(t *testing.T) map[string]struct {
 	return out
 }
 
-// Every FormVersion constant is in formWrappers with its encoder's tag.
+// Every FormVersion constant is in formWrappers, and its codec writes and
+// reads its envelope through the shared helpers.
 func TestFormWrappersNameEveryWrapperVersion(t *testing.T) {
 	consts := formVersionConstants(t)
 	if len(consts) < len(formWrappers) {
@@ -80,7 +83,7 @@ func TestFormWrappersNameEveryWrapperVersion(t *testing.T) {
 		listed[fw.version] = fw
 	}
 	for name, c := range consts {
-		fw, ok := listed[c.value]
+		_, ok := listed[c.value]
 		if !ok {
 			t.Errorf("%s (%d) in %s is not in formWrappers", name, c.value, c.file)
 			continue
@@ -89,12 +92,8 @@ func TestFormWrappersNameEveryWrapperVersion(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		var quoted []string
-		for _, r := range fw.tag {
-			quoted = append(quoted, "'"+string(r)+"'")
-		}
-		if !strings.Contains(string(src), strings.Join(quoted, ", ")) {
-			t.Errorf("%s: %s's encoder does not append tag %s", c.file, name, fw.tag)
+		if !strings.Contains(string(src), "endWrapper(") || !strings.Contains(string(src), "readWrapper(data, ") {
+			t.Errorf("%s: %s's codec does not use the shared wrapper envelope", c.file, name)
 		}
 		delete(listed, c.value)
 	}
@@ -127,5 +126,48 @@ func TestHasStructureBlockingFormUnderAutoCast(t *testing.T) {
 	var cold World
 	if err := cold.UnmarshalBinary(raw); err != nil || cold.Hash() != w.Hash() || cold.Structures()[0].Blocking != 2 {
 		t.Fatalf("cold load err=%v", err)
+	}
+}
+
+// An envelope reads back what endWrapper wrote and refuses a changed tag,
+// span or base version; the terminal actor wrapper admits any base.
+func TestWrapperEnvelopeRoundTrip(t *testing.T) {
+	plain := make([]byte, headerLen+3)
+	plain[0] = formatVersion
+	section := []byte{1, 2, 3, 4, 5, 6}
+	for _, fw := range formWrappers {
+		ws := beginWrapper(plain)
+		b := endWrapper(append(bytes.Clone(plain), section...), ws, fw.version)
+		e, ok := readWrapper(b, fw.version)
+		if b[0] != fw.version || !ok || !bytes.Equal(e.section(), section) || !bytes.Equal(e.base(), plain) {
+			t.Fatalf("%s: envelope %v did not read back", fw.tag, b)
+		}
+		if v, inner, ok := fw.inner(b); !ok || v != formatVersion || len(inner) != len(plain) {
+			t.Fatalf("%s: inner form lost", fw.tag)
+		}
+		tag := bytes.Clone(b)
+		tag[len(tag)-1] ^= 0x20
+		span := bytes.Clone(b)
+		switch fw.trailer {
+		case trailerSpan32:
+			binary.LittleEndian.PutUint32(span[len(span)-9:], uint32(len(span)-headerLen-8))
+		case trailerPairs8:
+			span[len(span)-6] = byte((len(span)-headerLen-6)/2 + 1)
+		case trailerSpan16:
+			binary.LittleEndian.PutUint16(span[len(span)-6:], uint16(len(span)-headerLen-5))
+		}
+		for name, bad := range map[string][]byte{"tag": tag, "span": span} {
+			if _, ok := readWrapper(bad, fw.version); ok {
+				t.Errorf("%s: changed %s admitted", fw.tag, name)
+			}
+		}
+		if fw.trailer == trailerSpan16 {
+			continue
+		}
+		base := bytes.Clone(b)
+		base[len(base)-5] = fw.version
+		if _, ok := readWrapper(base, fw.version); ok != (fw.tag == "CTA1") {
+			t.Errorf("%s: own version as base admitted=%t", fw.tag, ok)
+		}
 	}
 }

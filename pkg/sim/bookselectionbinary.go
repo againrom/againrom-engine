@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -18,8 +17,7 @@ func (w *World) appendBookSelections(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = bookSelectionFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(count))
 	for _, e := range w.entities {
 		if e.AdmittedBookSpell == 0 {
@@ -28,29 +26,23 @@ func (w *World) appendBookSelections(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, uint32(e.ID))
 		b = binary.LittleEndian.AppendUint16(b, e.AdmittedBookSpell)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'B', 'S', 'L', '1')
+	return endWrapper(b, ws, bookSelectionFormVersion)
 }
 
 func (w *World) unmarshalBookSelections(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed admitted book selection") }
-	if len(data) < headerLen+19 || !bytes.Equal(data[len(data)-4:], []byte("BSL1")) {
+	env, ok := readWrapper(data, bookSelectionFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 10 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= bookSelectionFormVersion || span < 10 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || count > 65535 || span != 4+6*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	var prior EntityID

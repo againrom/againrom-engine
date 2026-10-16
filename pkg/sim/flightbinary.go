@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -17,7 +16,7 @@ func validFlightRun(r FlightRun) bool {
 }
 
 func (w *World) appendFlightRuns(b []byte) []byte {
-	base, start := b[0], len(b)
+	ws := beginWrapper(b)
 	for _, e := range w.entities {
 		r := e.FlightRun
 		if !r.Active && !e.ClientClassFixed {
@@ -34,33 +33,26 @@ func (w *World) appendFlightRuns(b []byte) []byte {
 		b = append(b, flags, byte(r.Kind), byte(r.Phase))
 		b = binary.LittleEndian.AppendUint32(b, r.Elapsed)
 	}
-	if len(b) == start {
+	if len(b) == ws.at {
 		return b
 	}
-	b[0] = flightRunFormVersion
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'F', 'L', 'R', '1')
+	return endWrapper(b, ws, flightRunFormVersion)
 }
 
 func (w *World) unmarshalFlightRuns(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("sim: malformed flight release run span") }
-	if len(data) < headerLen+9+flightRunRecordLen || !bytes.Equal(data[len(data)-4:], []byte("FLR1")) {
+	env, ok := readWrapper(data, flightRunFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span == 0 || span%flightRunRecordLen != 0 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= flightRunFormVersion || span == 0 || span%flightRunRecordLen != 0 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
+	start := env.start
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	var previous EntityID
-	for at := start; at < len(data)-9; at += flightRunRecordLen {
+	for at := start; at < env.end; at += flightRunRecordLen {
 		id := EntityID(binary.LittleEndian.Uint32(data[at:]))
 		i := indexOfEntity(next.entities, id)
 		if i < 0 || at > start && id <= previous {

@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -33,36 +32,29 @@ func (w *World) appendAreaCosts(b []byte) []byte {
 	if len(rows) == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = areaCostFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(len(rows)))
 	for _, e := range rows {
 		b = binary.LittleEndian.AppendUint16(b, e.Key)
 		b = append(b, e.Mask, e.Byte)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'A', 'C', 'P', '1')
+	return endWrapper(b, ws, areaCostFormVersion)
 }
 
 func (w *World) unmarshalAreaCosts(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed area cost section") }
-	if len(data) < headerLen+9+4+areaCostRecordLen || !bytes.Equal(data[len(data)-4:], []byte("ACP1")) {
+	env, ok := readWrapper(data, areaCostFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+areaCostRecordLen {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= areaCostFormVersion || span < 4+areaCostRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || count > 65536 || span != 4+areaCostRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	rows := make([]areaCostEntry, 0, count)

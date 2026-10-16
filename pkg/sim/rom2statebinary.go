@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -40,8 +39,7 @@ func (w *World) appendROM2ScriptState(b []byte) []byte {
 	if w.rom2 == nil {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = rom2ScriptFormVersion
+	ws := beginWrapper(b)
 	for _, v := range w.rom2.Scenario {
 		b = binary.LittleEndian.AppendUint32(b, uint32(v))
 	}
@@ -55,21 +53,17 @@ func (w *World) appendROM2ScriptState(b []byte) []byte {
 		}
 		b = append(b, flag)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'R', '2', 'S', '1')
+	return endWrapper(b, ws, rom2ScriptFormVersion)
 }
 
 func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed ROM2 script state section") }
-	if len(data) < headerLen+9+rom2ScenarioWireLen+4 || !bytes.Equal(data[len(data)-4:], []byte("R2S1")) {
+	env, ok := readWrapper(data, rom2ScriptFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < rom2ScenarioWireLen+4 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= rom2ScriptFormVersion || span < rom2ScenarioWireLen+4 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start+rom2ScenarioWireLen:]))
 	if count > maxROM2Groups || span != rom2ScenarioWireLen+4+rom2GroupRecordLen*count {
 		return fail()
@@ -93,14 +87,12 @@ func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 		}
 		state.Groups = append(state.Groups, row)
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
 	// The byte form carries no arm: a second-game world's rows take theirs
 	// from the second game's table again, before the base form checks its
 	// retained areas against them.
 	next.rowArms = AssignSecondGameArms
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	next.rowArms = nil

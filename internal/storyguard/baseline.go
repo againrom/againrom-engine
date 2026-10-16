@@ -2485,6 +2485,10 @@ package storyguard
 // CommentBytes rises for the doc comments of the World decoder's pooled
 // canonical comparison, its proven-form memo, the in-place saved-object
 // search and their tests, this note included.
+//
+// CommentBytes rises for the doc comments of the one flight-input builder
+// (pkg/game/flightinputs.go), the shared World wrapper envelope
+// (pkg/sim/formwrapper.go) and its round-trip test, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4557,
 	TestFileCount:  264,
@@ -2508,5 +2512,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1719,
 	},
-	CommentBytes: 9041108,
+	CommentBytes: 9042248,
 }

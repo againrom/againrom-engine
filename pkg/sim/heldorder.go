@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -96,8 +95,7 @@ func (w *World) appendHeldOrders(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = heldOrderFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(count))
 	for _, e := range w.entities {
 		o := heldOrder(e)
@@ -111,29 +109,23 @@ func (w *World) appendHeldOrders(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, o.Countdown)
 		b = binary.LittleEndian.AppendUint32(b, o.Complete)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'H', 'L', 'D', '1')
+	return endWrapper(b, ws, heldOrderFormVersion)
 }
 
 func (w *World) unmarshalHeldOrders(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed held order") }
-	if len(data) < headerLen+13+heldOrderRecordLen || !bytes.Equal(data[len(data)-4:], []byte("HLD1")) {
+	env, ok := readWrapper(data, heldOrderFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+heldOrderRecordLen {
 		return fail()
 	}
-	version := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if version >= heldOrderFormVersion || span < 4+heldOrderRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || span != 4+heldOrderRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {

@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"slices"
@@ -23,20 +22,17 @@ func (w *World) appendPlayerParticipants(b []byte) []byte {
 	if !present {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = playerParticipantFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(len(rows)))
 	for _, row := range rows {
 		b = binary.LittleEndian.AppendUint32(b, row.PlayerID)
 		b = binary.LittleEndian.AppendUint32(b, row.Value)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'P', 'P', 'T', '1')
+	return endWrapper(b, ws, playerParticipantFormVersion)
 }
 
 func (w *World) appendCurrentPlayers(b []byte, players []SavedGroupPlayer, rows []PlayerParticipant, present bool) []byte {
-	base, start := b[0], len(b)
-	b[0] = currentPlayerFormVersion
+	ws := beginWrapper(b)
 	var presence byte
 	if present {
 		presence = 1
@@ -52,21 +48,17 @@ func (w *World) appendCurrentPlayers(b []byte, players []SavedGroupPlayer, rows 
 		}
 		b = binary.LittleEndian.AppendUint32(b, value)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'C', 'P', 'P', '1')
+	return endWrapper(b, ws, currentPlayerFormVersion)
 }
 
 func (w *World) unmarshalCurrentPlayers(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed independent current Player carrier") }
-	if len(data) < headerLen+14 || !bytes.Equal(data[len(data)-4:], []byte("CPP1")) {
+	env, ok := readWrapper(data, currentPlayerFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 5 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= currentPlayerFormVersion || span < 5 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start+1:]))
 	if data[start] > 1 || count > savedGroupPlayerLimit || span != 5+12*count {
 		return fail()
@@ -87,10 +79,8 @@ func (w *World) unmarshalCurrentPlayers(data []byte, proof formProof) error {
 			return fail()
 		}
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if err := next.RestoreCurrentPlayers(players, rows, present); err != nil {
@@ -105,23 +95,18 @@ func (w *World) unmarshalCurrentPlayers(data []byte, proof formProof) error {
 
 func (w *World) unmarshalPlayerParticipants(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed Player Participant carrier") }
-	if len(data) < headerLen+13 || !bytes.Equal(data[len(data)-4:], []byte("PPT1")) {
+	env, ok := readWrapper(data, playerParticipantFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4 {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= playerParticipantFormVersion || span < 4 || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count > savedGroupPlayerLimit || span != 4+8*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	rows := make([]PlayerParticipant, int(count))

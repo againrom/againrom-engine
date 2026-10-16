@@ -2,7 +2,6 @@ package sim
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,41 +31,29 @@ func (w *World) appendSavedSpellGraph(b []byte) []byte {
 	if w.savedSpellGraph == nil && len(w.effectOrder) == 0 && len(areas) == 0 {
 		return b
 	}
-	base := b[0]
-	b[0] = spellGraphFormVersion
+	ws, version := beginWrapper(b), spellGraphFormVersion
 	if len(areas) != 0 {
-		b[0] = currentAreaFormVersion
+		version = currentAreaFormVersion
 	}
 	raw, _ := json.Marshal(spellContinuation{Graph: w.savedSpellGraph, Order: w.effectOrder, Areas: areas})
-	b = append(b, raw...)
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(raw)))
-	return append(b, base, 'S', 'P', 'G', '1')
+	return endWrapper(append(b, raw...), ws, version)
 }
 
 func (w *World) unmarshalSavedSpellGraph(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed saved spell graph section") }
-	if len(data) < headerLen+10 || !bytes.Equal(data[len(data)-4:], []byte("SPG1")) {
+	env, ok := readWrapper(data, spellGraphFormVersion)
+	size := uint64(len(env.section()))
+	if !ok || size == 0 || size > maxCarriedResumeBytes {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	if baseVersion != formatVersion && baseVersion != autoHealingFormVersion {
-		return fail()
-	}
-	size := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if size == 0 || size > maxCarriedResumeBytes || size > uint64(len(data)-9-headerLen) {
-		return fail()
-	}
-	start := len(data) - 9 - int(size)
 	var continuation spellContinuation
-	d := json.NewDecoder(bytes.NewReader(data[start : len(data)-9]))
+	d := json.NewDecoder(bytes.NewReader(env.section()))
 	d.DisallowUnknownFields()
 	if d.Decode(&continuation) != nil || d.Decode(new(any)) != io.EOF {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	next.savedSpellGraph, next.effectOrder = continuation.Graph, continuation.Order
@@ -90,7 +77,7 @@ func (w *World) unmarshalSavedSpellGraph(data []byte, proof formProof) error {
 		return err
 	}
 	canonical, _ := json.Marshal(continuation)
-	if !bytes.Equal(canonical, data[start:len(data)-9]) {
+	if !bytes.Equal(canonical, env.section()) {
 		return fail()
 	}
 	*w = next

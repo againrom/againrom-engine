@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -19,8 +18,7 @@ func (w *World) appendTurnStates(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = turnStateFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(count))
 	for _, e := range w.entities {
 		s := e.TurnState
@@ -37,29 +35,23 @@ func (w *World) appendTurnStates(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, uint32(e.ID))
 		b = append(b, flag, s.Counter, s.Drawn, s.DrawTarget, s.DrawRemaining)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'T', 'R', 'N', '1')
+	return endWrapper(b, ws, turnStateFormVersion)
 }
 
 func (w *World) unmarshalTurnStates(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed turn state") }
-	if len(data) < headerLen+13+turnStateRecordLen || !bytes.Equal(data[len(data)-4:], []byte("TRN1")) {
+	env, ok := readWrapper(data, turnStateFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+turnStateRecordLen {
 		return fail()
 	}
-	version := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if version >= turnStateFormVersion || span < 4+turnStateRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || span != 4+turnStateRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {

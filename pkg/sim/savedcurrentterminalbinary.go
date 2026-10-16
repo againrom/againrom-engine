@@ -2,7 +2,6 @@ package sim
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,35 +17,26 @@ func (w *World) appendCurrentTerminalActors(b []byte) []byte {
 	if len(w.currentTerminalActors) == 0 {
 		return b
 	}
-	base := b[0]
-	b[0] = currentTerminalFormVersion
+	ws := beginWrapper(b)
 	raw, _ := json.Marshal(currentTerminalContinuation{Actors: w.currentTerminalActors})
-	b = append(b, raw...)
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(raw)))
-	return append(b, base, 'C', 'T', 'A', '1')
+	return endWrapper(append(b, raw...), ws, currentTerminalFormVersion)
 }
 
 func (w *World) unmarshalCurrentTerminalActors(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed current terminal actor section") }
-	if len(data) < headerLen+10 || !bytes.Equal(data[len(data)-4:], []byte("CTA1")) {
+	env, ok := readWrapper(data, currentTerminalFormVersion)
+	size := uint64(len(env.section()))
+	if !ok || size == 0 || size > maxCarriedResumeBytes {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	size := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if size == 0 || size > maxCarriedResumeBytes || size > uint64(len(data)-9-headerLen) {
-		return fail()
-	}
-	start := len(data) - 9 - int(size)
 	var continuation currentTerminalContinuation
-	d := json.NewDecoder(bytes.NewReader(data[start : len(data)-9]))
+	d := json.NewDecoder(bytes.NewReader(env.section()))
 	d.DisallowUnknownFields()
 	if d.Decode(&continuation) != nil || d.Decode(new(any)) != io.EOF {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if err := currentTerminalActorsFault(continuation.Actors, next.bounds); err != nil {
@@ -63,7 +53,7 @@ func (w *World) unmarshalCurrentTerminalActors(data []byte, proof formProof) err
 		}
 	}
 	canonical, _ := json.Marshal(continuation)
-	if !bytes.Equal(canonical, data[start:len(data)-9]) {
+	if !bytes.Equal(canonical, env.section()) {
 		return fail()
 	}
 	next.currentTerminalActors = continuation.Actors

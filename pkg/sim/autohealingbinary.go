@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -21,8 +20,7 @@ func (w *World) appendAutoHealing(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	b[0] = autoHealingFormVersion
-	start := len(b)
+	ws := beginWrapper(b)
 	b = append(b, byte(count))
 	for slot, p := range w.autoHealing {
 		if p.Present {
@@ -30,8 +28,7 @@ func (w *World) appendAutoHealing(b []byte) []byte {
 			b = binary.LittleEndian.AppendUint32(b, p.Percent)
 		}
 	}
-	b = binary.LittleEndian.AppendUint16(b, uint16(len(b)-start))
-	return append(b, 'A', 'H', 'L', '1')
+	return endWrapper(b, ws, autoHealingFormVersion)
 }
 
 func (w *World) unmarshalAutoHealing(data []byte, _ formProof) error {
@@ -39,15 +36,12 @@ func (w *World) unmarshalAutoHealing(data []byte, _ formProof) error {
 	if len(data) < headerLen+12 {
 		return fmt.Errorf("byte form truncated: autohealing header needs %d bytes", headerLen+12)
 	}
-	if !bytes.Equal(data[len(data)-4:], []byte("AHL1")) {
+	env, ok := readWrapper(data, autoHealingFormVersion)
+	raw := env.section()
+	span := len(raw)
+	if !ok || span < 6 || span > 1+relationSlots*5 {
 		return malformed()
 	}
-	span := int(binary.LittleEndian.Uint16(data[len(data)-6:]))
-	if span < 6 || span > 1+relationSlots*5 || len(data)-6-span < headerLen {
-		return malformed()
-	}
-	start := len(data) - 6 - span
-	raw := data[start : len(data)-6]
 	count := int(raw[0])
 	if count == 0 || count > relationSlots || span != 1+count*5 {
 		return malformed()
@@ -63,10 +57,8 @@ func (w *World) unmarshalAutoHealing(data []byte, _ formProof) error {
 		policies[slot] = autoHealingPolicy{Present: true, Percent: binary.LittleEndian.Uint32(raw[at+1:])}
 		prior = slot
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = formatVersion
 	next := *w
-	if err := next.unmarshalBinary(base); err != nil {
+	if err := next.unmarshalBinary(env.base()); err != nil {
 		return err
 	}
 	next.autoHealing = policies

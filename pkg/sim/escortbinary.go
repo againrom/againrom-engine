@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -27,8 +26,7 @@ func (w *World) appendEscortResidues(b []byte) []byte {
 	if count == 0 {
 		return b
 	}
-	base, start := b[0], len(b)
-	b[0] = escortFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(count))
 	for _, e := range w.entities {
 		if e.EscortOrder == escortOrderNone && !e.EscortTurnPending {
@@ -37,29 +35,23 @@ func (w *World) appendEscortResidues(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint32(b, uint32(e.ID))
 		b = append(b, e.EscortOrder, boolFlag(e.EscortTurnPending))
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'E', 'S', 'C', '1')
+	return endWrapper(b, ws, escortFormVersion)
 }
 
 func (w *World) unmarshalEscortResidues(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed escort continuation") }
-	if len(data) < headerLen+13+escortResidueRecordLen || !bytes.Equal(data[len(data)-4:], []byte("ESC1")) {
+	env, ok := readWrapper(data, escortFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+escortResidueRecordLen {
 		return fail()
 	}
-	version := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if version >= escortFormVersion || span < 4+escortResidueRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || span != 4+escortResidueRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = version
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)) {

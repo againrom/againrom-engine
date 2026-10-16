@@ -1,7 +1,6 @@
 package sim
 
 import (
-	"bytes"
 	"cmp"
 	"encoding/binary"
 	"fmt"
@@ -21,8 +20,7 @@ func (w *World) appendNativeScalars(b []byte) []byte {
 		return b
 	}
 	slices.SortFunc(rows, func(a, b NativeActorBasisRecord) int { return cmp.Compare(a.ID, b.ID) })
-	base, start := b[0], len(b)
-	b[0] = nativeScalarFormVersion
+	ws := beginWrapper(b)
 	b = binary.LittleEndian.AppendUint32(b, uint32(len(rows)))
 	for _, row := range rows {
 		v, flag := row.Basis, byte(0)
@@ -41,29 +39,23 @@ func (w *World) appendNativeScalars(b []byte) []byte {
 		b = binary.LittleEndian.AppendUint16(b, v.BlockKnown)
 		b = append(b, v.Block[:]...)
 	}
-	b = binary.LittleEndian.AppendUint32(b, uint32(len(b)-start))
-	return append(b, base, 'N', 'S', 'C', '1')
+	return endWrapper(b, ws, nativeScalarFormVersion)
 }
 
 func (w *World) unmarshalNativeScalars(data []byte, proof formProof) error {
 	fail := func() error { return fmt.Errorf("malformed native scalar section") }
-	if len(data) < headerLen+13+nativeScalarRecordLen || !bytes.Equal(data[len(data)-4:], []byte("NSC1")) {
+	env, ok := readWrapper(data, nativeScalarFormVersion)
+	span := uint64(len(env.section()))
+	if !ok || span < 4+nativeScalarRecordLen {
 		return fail()
 	}
-	baseVersion := data[len(data)-5]
-	span := uint64(binary.LittleEndian.Uint32(data[len(data)-9:]))
-	if baseVersion >= nativeScalarFormVersion || span < 4+nativeScalarRecordLen || span > uint64(len(data)-headerLen-9) {
-		return fail()
-	}
-	start := len(data) - 9 - int(span)
+	start := env.start
 	count := uint64(binary.LittleEndian.Uint32(data[start:]))
 	if count == 0 || count > 65535 || span != 4+nativeScalarRecordLen*count {
 		return fail()
 	}
-	base := bytes.Clone(data[:start])
-	base[0] = baseVersion
 	next := *w
-	if err := next.unmarshalForm(base, proof); err != nil {
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
 	if count > uint64(len(next.entities)+len(next.originalDead)+len(next.currentTerminalActors)) {
