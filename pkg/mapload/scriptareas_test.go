@@ -170,7 +170,11 @@ func TestScriptSignaturesAreWellFormed(t *testing.T) {
 	}
 	for _, c := range ScriptGroupCommands {
 		sig, ok := ScriptSignature(false, ScriptGroupCommand, c)
-		if !ok || sig[0].Type != ScriptConst || sig[9].Type != ScriptGroup {
+		groupSlot := 9
+		if c == 15 {
+			groupSlot = 1 // Follow stores the group after the command, as the shipped nodes do
+		}
+		if !ok || sig[0].Type != ScriptConst || sig[groupSlot].Type != ScriptGroup || c == 15 && sig[9].Type != ScriptNone {
 			t.Errorf("group command %d: %+v", c, sig)
 		}
 	}

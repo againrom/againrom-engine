@@ -31,6 +31,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   chooses where to run from the same spot as in the original.
 - [ROM1] The party reveals the map as far around it as in the original, and
   loading a save shows what the party sees at once.
+- [ROM1] The map editor stores a Follow group command in the layout the
+  original maps carry, and a parameter left unchosen after an operation
+  change is refused in the editor's own language, naming the field.
 
 ## 0.124.0
 

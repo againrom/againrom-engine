@@ -193,6 +193,7 @@
 "editor.node.operation" = "Операция"
 "editor.node.parameters" = "Параметры"
 "editor.node.cell" = "введите клетку как x,y."
+"editor.node.unset" = "выберите значение из списка."
 "editor.cmp.0" = "равно"
 "editor.cmp.1" = "не равно"
 "editor.cmp.2" = "больше"

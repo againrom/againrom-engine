@@ -10,6 +10,7 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // triggerMap is a 40x40 map of four units (unit ids 10..13, groups 20..23)
@@ -303,5 +304,87 @@ func TestTriggerAreasShowSelectAndHide(t *testing.T) {
 	trigClick(t, e, r, ok, "Trigger areas")
 	if _, ok := e.AreaLabelRect(1); ok {
 		t.Fatal("the View switch did not hide the areas")
+	}
+}
+
+// newFollowEditor opens triggerMap twice: the editor under test and a copy
+// for the host calls the editor's bytes are compared with.
+func newFollowEditor(t *testing.T) (e, c *ui.MapEditor, b []byte) {
+	t.Helper()
+	b = triggerMap(t)
+	e, _ = openGoalMap(t, b)
+	c, _ = openGoalMap(t, b)
+	return e, c, b
+}
+
+// A Follow node made in the node popup stores the group in Par1, the unit in
+// Par2 and the distance in Par3, as every shipped Follow node does, and the
+// bytes are the host's field calls', with Undo and Redo exact.
+func TestNodePopupWritesFollowInTheShippedLayout(t *testing.T) {
+	e, c, b := newFollowEditor(t)
+	e.Select(trigRecord(t, e, "Trigger", 1), true)
+	r, ok := e.RowButtonRect(11, 0, false)
+	trigClick(t, e, r, ok, "Edit action 1")
+	trigChoose(t, e, 1, "Group command")
+	trigChoose(t, e, 2, "Follow")
+	lines := trigLines(e)
+	if !strings.Contains(lines, "Group") || !strings.Contains(lines, "Unit") {
+		t.Fatalf("the Follow popup:\n%s", lines)
+	}
+	trigChoose(t, e, 3, "20")
+	trigChoose(t, e, 4, "10")
+	r, ok = e.FieldRect(5)
+	trigClick(t, e, r, ok, "distance")
+	_ = e.Key("backspace")
+	e.TextInput("4")
+	r, ok = e.PopupButtonRect(0)
+	trigClick(t, e, r, ok, "Apply")
+	if bytes.Equal(e.Document().SourceBytes, b) {
+		t.Fatalf("Apply wrote nothing:\n%s", trigLines(e))
+	}
+	m, _ := alm.Open(e.Document().SourceBytes)
+	sc, _ := m.Script()
+	n := sc.Actions[1]
+	if n.Opcode != 6 || n.Type != [10]uint32{7, 2, 4, 1} || n.Value[0] != 15 || n.Value[1] != 20 || n.Value[2] != 10 || n.Value[3] != 4 {
+		t.Fatalf("the Follow node reads %+v", n)
+	}
+	want, err := c.Document().Edits.(ui.InspectionFieldSet).SetFields("Action", 1, []ui.InspectionFieldValue{
+		{Key: "type0", Value: 7}, {Key: "type1", Value: 2}, {Key: "type2", Value: 4}, {Key: "type3", Value: 1},
+		{Key: "value0", Value: 15}, {Key: "value1", Value: 20}, {Key: "value2", Value: 10}, {Key: "value3", Value: 4},
+		{Key: "opcode", Value: 6}})
+	if err != nil || !bytes.Equal(e.Document().SourceBytes, want.SourceBytes) {
+		t.Fatalf("the popup wrote other bytes than SetFields: %v", err)
+	}
+	got := e.Document().SourceBytes
+	if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, b) {
+		t.Fatalf("Undo: %v", err)
+	}
+	if err := e.Key("redo"); err != nil || !bytes.Equal(e.Document().SourceBytes, got) {
+		t.Fatalf("Redo: %v", err)
+	}
+}
+
+// An operation change that leaves a reference slot unset is refused by the
+// popup in the editor's words, in each language, and writes nothing.
+func TestNodePopupRefusesAnUnsetReferenceInTheEditorsWords(t *testing.T) {
+	for _, tc := range []struct{ entry, want string }{
+		{"", "Player: choose it from the list."},
+		{"ru", "Игрок: выберите значение из списка."},
+	} {
+		b := triggerMap(t)
+		e, _ := openGoalMap(t, b)
+		book := words.For(tc.entry)
+		e.SetWords(book)
+		e.SetHostTextEncoder(func(s string) string { return s })
+		e.Select(trigRecord(t, e, "Trigger", 0), true)
+		r, ok := e.RowButtonRect(11, 0, false)
+		trigClick(t, e, r, ok, "Edit action 1")
+		trigChoose(t, e, 1, book.Text("editor.action.op23"))
+		r, ok = e.PopupButtonRect(0)
+		trigClick(t, e, r, ok, "Apply")
+		lines := trigLines(e)
+		if !strings.Contains(lines, tc.want) || strings.Contains(lines, "mapedit:") || !bytes.Equal(e.Document().SourceBytes, b) || e.Document().Edits.CanUndo() {
+			t.Fatalf("%q: an unset player was not refused in the editor's words:\n%s", tc.entry, lines)
+		}
 	}
 }

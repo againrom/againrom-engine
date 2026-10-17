@@ -195,6 +195,7 @@
 "editor.node.operation" = "Operation"
 "editor.node.parameters" = "Parameters"
 "editor.node.cell" = "enter the cell as x,y."
+"editor.node.unset" = "choose it from the list."
 "editor.cmp.0" = "equals"
 "editor.cmp.1" = "does not equal"
 "editor.cmp.2" = "is greater than"

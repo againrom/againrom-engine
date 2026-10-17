@@ -757,6 +757,21 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 		}
 		return out, nil
 	}
+	// A reference slot the user has not chosen is refused here, in the
+	// editor's words, before the host sees it.
+	for i, f := range o.fields {
+		s, err := strconv.Atoi(strings.TrimPrefix(f.Key, "value"))
+		if !strings.HasPrefix(f.Key, "value") || err != nil || s < 0 || s >= len(o.types) {
+			continue
+		}
+		switch o.types[s] {
+		case scriptPlayer, scriptUnit, scriptStructure: // the host accepts 0 only for a group and an item
+			n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64)
+			if err == nil && n == 0 && (o.types[s] != v.node.Types[s] || v.node.Values[s] != 0) {
+				return nil, fmt.Errorf("%s: %s", f.Label, e.word("editor.node.unset"))
+			}
+		}
+	}
 	var values []InspectionFieldValue
 	for i, f := range o.fields {
 		if o.buf[i] == fieldInput(f) && !(strings.HasPrefix(f.Key, "value") || strings.HasPrefix(f.Key, "cell")) {

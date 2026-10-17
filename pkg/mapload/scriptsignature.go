@@ -33,6 +33,10 @@ type ScriptSlot struct {
 // command (TRIG-GROUP-005); its signature follows that command.
 const ScriptGroupCommand = 6
 
+// scriptFollowCommand is the group command whose shipped nodes store the
+// target group in the slot after the command, not in the last slot.
+const scriptFollowCommand = 15
+
 // ScriptConstant is the build-time operation: a condition preset to its value
 // (TRIG-COND-003) or the action that is the drop cell (TRIG-DROP-013).
 const ScriptConstant = 0x10002
@@ -125,8 +129,8 @@ var actionSignatures = map[uint32]slots{
 }
 
 // groupCommandSignatures are action 6's slots by its command, the Const
-// first parameter; the target group stands in the last slot
-// (ALM-TRIG-045, TRIG-GROUPBOUNDS-136).
+// first parameter; the target group stands in the last slot, and for Follow
+// in the slot after the command (ALM-TRIG-045, TRIG-GROUPBOUNDS-136).
 var groupCommandSignatures = map[uint32]slots{
 	1:  {number("value")},
 	2:  cell("cell"),
@@ -157,7 +161,9 @@ func ScriptSignature(condition bool, opcode, command uint32) ([10]ScriptSlot, bo
 		s, ok = checkSignatures[opcode]
 	case opcode == ScriptGroupCommand:
 		s, ok = groupCommandSignatures[command]
-		if ok {
+		if ok && command == scriptFollowCommand {
+			s = append(slots{{ScriptConst, "command"}, group}, s...)
+		} else if ok {
 			s = append(slots{{ScriptConst, "command"}}, s...)
 			out[9] = group
 		}
