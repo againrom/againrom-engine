@@ -101,6 +101,7 @@ func (e *MapEditor) PollPathDialog() bool {
 		case reply.err != nil:
 			e.pathFallback(kind, reply.err)
 		case reply.result.Cancelled:
+			e.saveThen = nil
 		case reply.result.Path == "":
 			e.pathFallback(kind, fmt.Errorf("no path returned"))
 		default:

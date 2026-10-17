@@ -8,6 +8,13 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The map editor no longer refuses to close while the map has unsaved
+  changes. Closing it (the Exit entry, Esc, or the window's close button) or
+  opening another map asks one question naming the map: Save As, Close
+  without saving (Open without saving when opening), or Cancel. Save As
+  closes or opens only once the map is saved; Cancel and Esc return to the
+  editor unchanged. Pressing the window's close button again closes at once.
+  With no unsaved changes nothing is asked.
 - [ROM1] The map editor adds units, structures, sacks, groups, players and
   triggers through one step-by-step Add window. Every list has an Add
   button, and the old keys open the same window. Each step offers only valid

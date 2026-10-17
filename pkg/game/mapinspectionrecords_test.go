@@ -119,7 +119,6 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 			t.Fatalf("%s was accepted or wrote", what)
 		}
 		_ = e.Key("escape")
-		_ = e.Key("escape")
 	}
 
 	// Move: select the structure, then drag it from its anchor.

@@ -30,6 +30,8 @@ func (e *MapEditor) TextInput(s string) {
 }
 
 func (e *MapEditor) saveAs(path string) error {
+	then := e.saveThen
+	e.saveThen = nil
 	if !e.editable() {
 		return nil
 	}
@@ -46,7 +48,7 @@ func (e *MapEditor) saveAs(path string) error {
 	e.leave(leavePrompt)
 	e.message = ""
 	e.afterSave()
-	return nil
+	return e.leaveSaved(then)
 }
 
 // refreshGroup rebuilds the open group popup's group from the current document,

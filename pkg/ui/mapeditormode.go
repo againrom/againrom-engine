@@ -33,6 +33,8 @@ const (
 	promptRectangle
 	promptWorkspace
 	promptAdd // the Add window; its text is the current step's
+	// promptLeave asks what to do with unsaved changes before a step runs.
+	promptLeave
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -43,6 +45,7 @@ type editorPrompt struct {
 	path  string
 	scope string
 	add   *addRun
+	then  leaveStep // the step a promptLeave holds
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

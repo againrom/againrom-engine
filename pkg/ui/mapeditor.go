@@ -162,11 +162,16 @@ func (e *MapEditor) Selected() int                 { return e.selected }
 // UI tier. Record and item strings are already font-encoded by the loader.
 func (e *MapEditor) SetHostTextEncoder(encode func(string) string) { e.hostText = encode }
 
+// Open opens the map named source. With unsaved changes it asks first.
 func (e *MapEditor) Open(source string) error {
 	if e.Dirty() {
-		e.message = "Unsaved changes. Save As or undo changes before opening another map."
-		return fmt.Errorf("%s", e.message)
+		e.askLeave(leaveStep{open: true, source: source})
+		return nil
 	}
+	return e.openMap(source)
+}
+
+func (e *MapEditor) openMap(source string) error {
 	if e.open == nil {
 		e.message = "no map opener"
 		return fmt.Errorf("%s", e.message)

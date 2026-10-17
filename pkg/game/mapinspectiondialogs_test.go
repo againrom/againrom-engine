@@ -194,13 +194,10 @@ func TestMapEditorDialogCancelSavePreservesStateAndFiles(t *testing.T) {
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Key("close"); err != nil {
-		t.Fatal(err)
-	}
 	before, message, selected := e.Document(), e.Message(), e.Selected()
 	beforeBytes, beforeSource := bytes.Clone(before.SourceBytes), before.Source
-	if !e.Dirty() || !before.Edits.CanUndo() || !before.Edits.CanRedo() || message == "" {
-		t.Fatal("cancel fixture lacks dirty state, both history directions or a message")
+	if !e.Dirty() || !before.Edits.CanUndo() || !before.Edits.CanRedo() {
+		t.Fatal("cancel fixture lacks dirty state or both history directions")
 	}
 	dir := t.TempDir()
 	called := installInspectionDialog(e, dir, pathdialog.Result{Path: filepath.Join(dir, "cancelled.alm"), Cancelled: true})

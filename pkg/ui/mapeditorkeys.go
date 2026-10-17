@@ -232,8 +232,11 @@ func (e *MapEditor) Key(key string) error {
 }
 
 func (e *MapEditor) keyClose(string) error {
+	if e.prompt.kind == promptLeave {
+		return e.runLeave(leaveStep{})
+	}
 	if e.Dirty() {
-		e.message = "Unsaved changes. Save As or undo changes before closing."
+		e.askLeave(leaveStep{})
 		return nil
 	}
 	return ebiten.Termination
@@ -250,6 +253,7 @@ func (e *MapEditor) keyEscape(string) error {
 		e.message = ""
 	case e.prompt.open():
 		e.leave(leavePrompt)
+		e.saveThen = nil
 		e.message = ""
 	case e.menu != "":
 		e.menu = ""
@@ -270,7 +274,7 @@ func (e *MapEditor) keyEscape(string) error {
 	case e.listShown:
 		e.closeList()
 	case e.Dirty():
-		e.message = "Unsaved changes. Save As or undo changes before closing."
+		e.askLeave(leaveStep{})
 	default:
 		return ebiten.Termination
 	}
@@ -303,6 +307,8 @@ func (e *MapEditor) keyEnter(string) error {
 		return nil
 	}
 	switch e.prompt.kind {
+	case promptLeave:
+		return e.leaveSaveAs()
 	case promptAdd:
 		if !e.addPicking() {
 			e.addNext()

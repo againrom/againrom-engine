@@ -58,6 +58,8 @@ type popupSpec struct {
 	NoteInk   color.RGBA
 	Buttons   []string
 	Disabled  []bool
+	// ButtonW is the button row's button width; zero is the default.
+	ButtonW int
 	// PickLabel is the pick-on-map button's caption.
 	PickLabel string
 	// LabelWidth is the label column; zero is two fifths of the width.
@@ -194,10 +196,14 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	if n := len(s.Buttons); n > 0 {
 		y += popupPad
 		x := r.Max.X - popupPad
+		bw := popupButtonW
+		if s.ButtonW > 0 {
+			bw = s.ButtonW
+		}
 		l.Buttons = make([]image.Rectangle, n)
 		for i := n - 1; i >= 0; i-- {
-			l.Buttons[i] = image.Rect(x-popupButtonW, y, x, y+pitch+4)
-			x -= popupButtonW + popupPad
+			l.Buttons[i] = image.Rect(x-bw, y, x, y+pitch+4)
+			x -= bw + popupPad
 		}
 	}
 	return l

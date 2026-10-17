@@ -152,12 +152,14 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 		t.Fatalf("redo not byte exact: %v", err)
 	}
 	before := e.Document()
-	if err := e.Open(source); err == nil || e.Document() != before || !e.Dirty() {
+	if err := e.Open(source); err != nil || e.Document() != before || !e.Dirty() {
 		t.Fatal("dirty open silently discarded work")
 	}
-	if err := e.Key("close"); err != nil {
+	_ = e.Key("escape")
+	if err := e.Key("close"); err != nil || e.ExitAsked() {
 		t.Fatal("native close discarded dirty work")
 	}
+	_ = e.Key("escape")
 	_ = e.Key("saveas")
 	e.TextInput(filepath.Join(t.TempDir(), "cancelled.alm"))
 	_ = e.Key("escape")

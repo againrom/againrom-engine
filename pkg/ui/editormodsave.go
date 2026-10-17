@@ -22,6 +22,8 @@ func (e *MapEditor) modSave() (InspectionModSave, bool) {
 
 // saveIntoMod is Save into the host's mod; a refusal stays on screen.
 func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
+	then := e.saveThen
+	e.saveThen = nil
 	e.leave(leaveDrag | leavePick | leavePrompt)
 	source, err := m.SaveIntoMod()
 	if err != nil {
@@ -36,7 +38,7 @@ func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
 	e.leave(leavePrompt)
 	e.message = ""
 	e.afterSave()
-	return nil
+	return e.leaveSaved(then)
 }
 
 // saveHelp is the help line of the history and save keys; Save goes into the

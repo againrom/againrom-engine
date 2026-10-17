@@ -67,6 +67,7 @@ type editorChrome struct {
 	obj                    objectEdit
 	groupSel               editorGroup
 	exitAsked              bool
+	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
 	// backTrigger is the index of the trigger a node popup was opened from,
 	// -1 for none.
 	backTrigger int
@@ -752,6 +753,9 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 		s, _ := e.addSpec()
 		return s, true
 	}
+	if e.prompt.kind == promptLeave {
+		return e.leaveSpec(), true
+	}
 	w := min(560, e.window.X-16)
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
 	text := w - 2*popupPad - 60
@@ -1089,6 +1093,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 	case popPrompt:
 		if e.prompt.kind == promptAdd {
 			e.addPress(p, double)
+			return
+		}
+		if e.prompt.kind == promptLeave {
+			e.leavePress(p)
 			return
 		}
 		s, _ := e.promptSpec()
