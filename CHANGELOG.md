@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.125.0
+
 - [ROM1] The map editor opens through a top bar and popups: pick a map from a
   scrollable list, open units, buildings, groups, sacks, players and triggers
   from the bar, and edit every field of a selected object in one window with
