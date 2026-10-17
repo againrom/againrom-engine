@@ -16,6 +16,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] A unit sent to pick up a sack that someone else takes first still
   walks to the sack's place and finishes there as after a pickup, ready to
   attack an enemy in reach, as in the original.
+- [ROM1] A unit ordered to retreat whose way is blocked now attacks an enemy
+  within reach instead of standing still, as in the original.
 
 ## 0.125.0
 

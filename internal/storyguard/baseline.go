@@ -2528,6 +2528,9 @@ package storyguard
 //
 // CommentBytes rises for the emptied-cell pickup completion and its witnesses
 // (pkg/game, pkg/sim) and the native hand-over witness, this note included.
+//
+// CommentBytes rises for the refused withdrawal's answer (pkg/sim/combat.go)
+// and its witnesses (pkg/sim/refusedwithdrawal_test.go), this note included.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2551,5 +2554,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9101022,
+	CommentBytes: 9102852,
 }

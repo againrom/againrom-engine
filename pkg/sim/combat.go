@@ -482,7 +482,9 @@ func (w *World) answerRefusedPursuit(i int) {
 // answerRefusedWalk answers a refused walk with no victim by its walk state
 // (AI-649): a walk to a sack and, in the first game, each state the tail
 // sends to the reach pick (a guard's walk to its post, an escort closing) take
-// the hostile nearest within reach (AI-648). With none the actor stays.
+// the hostile nearest within reach (AI-648). With none the actor stays. A
+// withdrawal takes the pick through the retreat failure tail, the answer a
+// loaded route-failure flag takes, which also writes its progress (AI-365).
 func (w *World) answerRefusedWalk(i int) {
 	e := &w.entities[i]
 	if e.HasAttackTarget || e.OffMap {
@@ -491,21 +493,32 @@ func (w *World) answerRefusedWalk(i int) {
 	if e.PendingOrder.Kind != PendingPickup && !w.refusedWalkTakesPick(i) {
 		return
 	}
+	if e.ActorState == actorStateRetreat && e.PendingOrder.Kind == PendingNone {
+		w.ensureRetreatContinuation(i)
+		e.Retreat.Failure = true
+		w.retreatFailureTail(i)
+		return
+	}
 	if victim := w.reacquisitionVictim(i); victim >= 0 && !w.suppressedAcquirer(*e) {
 		w.orderAcquire(i, w.entities[victim].ID)
 	}
 }
 
 // refusedWalkTakesPick reports whether the tail sends actor i's refused walk
-// to the reach pick. Move, Swarm, Swarm 2 and Roam members and state 1 walk at state
-// 1, which the tail stands down for the group pass to send again (AI-519); a
-// patrol, a withdrawal and another pending order keep their own answers.
+// to the reach pick. A withdrawal does, whatever its Group (AI-365, AI-649).
+// Move and Swarm 2 members and state 1 walk at state 1, which the tail stands
+// down for the group pass to send again (AI-519, AI-648). The command state of
+// a Swarm (order 2) or Roam member is Unknown; they take none. A patrol and
+// another pending order keep their own answers.
 func (w *World) refusedWalkTakesPick(i int) bool {
 	e := w.entities[i]
 	if w.SecondGame() || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
 		return false
 	}
-	if e.ActorState == actorStatePatrol || e.ActorState == actorStateRetreat {
+	if e.ActorState == actorStateRetreat {
+		return true
+	}
+	if e.ActorState == actorStatePatrol {
 		return false
 	}
 	if o := w.savedOrder(e.ID); o != nil && (o.State == 1 || o.State == uint32(actorStatePatrol) || o.State == uint32(actorStateRetreat)) {
