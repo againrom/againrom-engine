@@ -5,10 +5,11 @@ import (
 	"image"
 	"os"
 	"path/filepath"
-	"strings"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -86,18 +87,11 @@ func TestReleaseMapEditorListsAndOpensEveryNewMapSize(t *testing.T) {
 		if groups != 2 || units != 0 {
 			t.Fatalf("%dx%d holds %d roster entries and %d units", side, side, groups, units)
 		}
-		// The drop-cell warning names the map whose fallback cells leave it.
-		var drop string
-		for _, f := range d.Edits.(ui.InspectionChecker).Report() {
-			if f.Error {
-				t.Errorf("%dx%d: %s", side, side, f.Line())
-			}
-			if f.Rule == "drop-cell" {
-				drop = f.Text
-			}
-		}
-		if (side <= 108) != (drop != "") {
-			t.Errorf("%dx%d: drop-cell finding %q", side, side, drop)
+		// The drop cell at the centre is a start point; nothing wins the map
+		// yet, which is its one finding.
+		rows := d.Edits.(ui.InspectionChecker).Report()
+		if len(rows) != 1 || rows[0].Error || rows[0].Rule != ui.RuleVictory {
+			t.Errorf("%dx%d: report %+v", side, side, rows)
 		}
 	}
 	for _, bad := range []string{"new/31x32", "new/32", "new/512x512", "new/32x32x"} {
@@ -126,9 +120,9 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 	e.Layout(1280, 800)
 	s := e.Document().Edits.(*mapInspectionEdits)
 
-	// The drop cell is added by the window's own operation.
-	if d, err := s.SetDropCell(drop); err != nil || d == nil {
-		t.Fatalf("add the drop cell: %v", err)
+	// The new map's drop cell is its centre.
+	if m, err := s.model.Map(); err != nil || !slices.Equal(mapload.DropCells(m), []mapload.Cell{{X: 16, Y: 16}}) {
+		t.Fatalf("the new map's drop cell: %v", err)
 	}
 	if d, err := s.AddUnit(foe, int64(class)); err != nil || d == nil {
 		t.Fatalf("add a unit: %v", err)
@@ -143,7 +137,7 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 	if _, err := os.Stat(target); err == nil {
 		t.Fatal("the map exists before it was saved")
 	}
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("Save into the mod: %v", err)
 	}
 	saved, err := os.ReadFile(target)
@@ -178,7 +172,9 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 		t.Fatalf("reopened: %d units, dirty %v", units, e2.Dirty())
 	}
 	for _, f := range e2.Document().Edits.(ui.InspectionChecker).Report() {
-		t.Errorf("the saved map reports %s", f.Line())
+		if f.Rule != ui.RuleVictory {
+			t.Errorf("the saved map reports %s", f.Line())
+		}
 	}
 	x2, err := NewMapInspector(os.Getenv("AGAINROM_ASSETS"))
 	if err != nil {
@@ -287,15 +283,23 @@ func TestReleaseMapEditorBlankWriteIsTheConstructorsBytes(t *testing.T) {
 	if err != nil || got == "" {
 		t.Fatalf("write: %v", err)
 	}
-	doc, err := alm.NewMap(alm.NewMapSpec{Width: 32, Height: 32, Tile: 0x11, Altitude: 64})
+	// The constructor's map in single-player mode with its drop cell at the
+	// centre (DIV-3597).
+	want, err := mapedit.NewMap(alm.NewMapSpec{Width: 32, Height: 32, Tile: 0x11, Altitude: 64})
 	if err != nil {
 		t.Fatal(err)
 	}
-	written, err := os.ReadFile(got)
-	if err != nil || !bytes.Equal(written, doc.Write()) {
-		t.Fatalf("the file is not the constructor's bytes (%v)", err)
+	if err := want.SetWord70(ui.MapModeSingle); err != nil {
+		t.Fatal(err)
 	}
-	if len(findings) == 0 || !strings.Contains(findings[0].Rule, "drop-cell") {
+	if err := want.SetDropCell(16, 16); err != nil {
+		t.Fatal(err)
+	}
+	written, err := os.ReadFile(got)
+	if err != nil || !bytes.Equal(written, want.Bytes()) {
+		t.Fatalf("the file is not the constructor's bytes with the mode and the drop cell (%v)", err)
+	}
+	if len(findings) != 1 || findings[0].Rule != ui.RuleVictory {
 		t.Fatalf("findings %+v", findings)
 	}
 	if _, _, err := x.WriteNewMap(newMapSource(32, 32), path); err == nil {

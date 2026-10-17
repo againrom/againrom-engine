@@ -18,6 +18,14 @@ func (e *MapEditor) keyTestPlay(string) error {
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt)
+	if e.askNotice(noticeTestPlay) {
+		return nil
+	}
+	return e.testPlay()
+}
+
+// testPlay starts the test play; a refusal shows the report.
+func (e *MapEditor) testPlay() error {
 	p, ok := e.doc.Edits.(InspectionTestPlay)
 	if !ok {
 		e.message = "Test play is not available for this map"

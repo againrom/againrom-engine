@@ -178,7 +178,11 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		for _, row := range []struct {
 			key   string
 			value uint32
-		}{{"angle", math.Float32bits(m.Angle)}, {"0c", m.Meta.Word0C}, {"10", m.Meta.Word10}, {"14", m.Meta.Word14}, {"18", m.Meta.Bitmask}, {"70", m.Meta.Word70}, {"74", m.Meta.Word74}} {
+		}{{"angle", math.Float32bits(m.Angle)}, {"0c", m.Meta.Word0C}, {"10", m.Meta.Word10}, {"14", m.Meta.Word14}, {"18", m.Meta.Bitmask}, {ui.ModeFieldKey, m.Meta.Word70}, {"74", m.Meta.Word74}} {
+			if row.key == ui.ModeFieldKey {
+				out = append(out, s.inspector.modeField(row.value))
+				continue
+			}
 			out = append(out, ui.InspectionField{Key: row.key, Label: "Raw " + row.key + " bits (effect unknown)", Value: int64(row.value)})
 		}
 		return out
@@ -356,7 +360,7 @@ func (s *mapInspectionEdits) setMapMetadata(key, value string) (*ui.InspectionDo
 				err = m.SetWord14(uint32(v))
 			case "18":
 				err = m.SetBitmask(uint32(v))
-			case "70":
+			case ui.ModeFieldKey:
 				err = m.SetWord70(uint32(v))
 			case "74":
 				err = m.SetWord74(uint32(v))

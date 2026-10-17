@@ -116,6 +116,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 		hasReference := refs[id] && idCount[id] == 1
 		t.Run(key, func(t *testing.T) {
 			e.Layout(1280, 800)
+			closeMapPanel(t, e)
 			recordIndex := -1
 			for i, r := range e.Document().Records {
 				if r.Kind == "Unit" && r.Index == chosen {
@@ -234,6 +235,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 				assertUnitRefs1118(t, fresh.Document(), id, to)
 			}
 			fresh.Layout(1280, 800)
+			closeMapPanel(t, fresh)
 			fresh.Select(recordIndex, false)
 			*fresh.Document().Viewer.Camera() = *e.Document().Viewer.Camera()
 			reopened, _, err := fresh.HeadlessFrame()

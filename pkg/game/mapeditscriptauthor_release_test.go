@@ -33,13 +33,19 @@ func newScriptAuthorMod(t *testing.T) (string, *ui.MapEditor, *MapInspector) {
 		t.Fatal(err)
 	}
 	e.Layout(1280, 800)
+	// The scenario numbers its actions from an empty script: the new map's
+	// drop action goes first, and the drop cell comes back after.
+	e.Select(recordOf(e.Document(), "Action", 0), false)
+	if err := e.Key("delete"); err != nil {
+		t.Fatal(err)
+	}
 	scriptWindowScenario(t, e)
 	if _, err := scriptOf(t, e).SetDropCell(image.Pt(16, 16)); err != nil {
 		t.Fatal(err)
 	}
 	_ = e.Key("undo")
 	_ = e.Key("redo")
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("save authored mission: %v", err)
 	}
 	return root, e, x

@@ -50,11 +50,15 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// The new map's drop action is action 0 with id 1; the added action is
+	// action 1 with id 2.
 	for _, v := range []struct {
-		kind, key string
-		value     int64
-	}{{"Action", "opcode", 4}, {"Trigger", "left0", 1}, {"Trigger", "right0", 1}, {"Trigger", "action0", 1}} {
-		if _, err := s.SetField(v.kind, 0, v.key, v.value); err != nil {
+		kind  string
+		index int
+		key   string
+		value int64
+	}{{"Action", 1, "opcode", 4}, {"Trigger", 0, "left0", 1}, {"Trigger", 0, "right0", 1}, {"Trigger", 0, "action0", 2}} {
+		if _, err := s.SetField(v.kind, v.index, v.key, v.value); err != nil {
 			t.Fatal(err)
 		}
 	}

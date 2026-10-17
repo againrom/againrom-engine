@@ -61,8 +61,10 @@ func workspaceFixture(t *testing.T) (*testPlayFixture, *ui.MapEditor) {
 	}
 	_ = e.Key("clear")
 	e.TextInput("40x56")
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
+	for range 2 { // the size, then single-player
+		if err := e.Key("enter"); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if e.Document() == nil || e.Document().Width != 40 || e.Document().Height != 56 {
 		t.Fatal("window did not create the rectangle")
@@ -196,13 +198,13 @@ func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
 	writeTestPlayInput(t, filepath.Join(folder, "author-notes.txt"), []byte("retain exact author bytes"))
 	writeTestPlayInput(t, filepath.Join(folder, "mission/text/event88.txt"), []byte("Retained page"))
 	workspacePage(t, e, "event01.txt", "Исправлено\nПродолжение")
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("package save: %v", err)
 	}
 	if got := tree(t, folder); got["author-notes.txt"] != "retain exact author bytes" || got["mission/text/event88.txt"] != "Retained page" {
 		t.Fatal("save lost an unrelated file")
 	}
-	if err := e.Key("testplay"); err != nil {
+	if err := pastNotice(e, "testplay"); err != nil {
 		t.Fatal(err)
 	}
 	played := loadWorkspaceMod(t, f.root, filepath.Join(f.profile, TestPlayModID, TestPlayModID))
@@ -225,7 +227,7 @@ func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
 	if fresh.Dirty() || s.workspace.Package.Kind != mod.MissionGuest || string(s.workspace.Pages["event01.txt"]) != "Исправлено\nПродолжение" {
 		t.Fatal("fresh package reopen lost texts or route")
 	}
-	if err := fresh.Key("saveas"); err != nil {
+	if err := pastNotice(fresh, "saveas"); err != nil {
 		t.Fatalf("reopened package with unowned page: %v", err)
 	}
 	x2.archives.Containers.Overlay("scenario/20.alm", func() ([]byte, error) { return bytes.Clone(m.MapBytes), nil })
@@ -235,7 +237,7 @@ func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
 	if err := workspaceField(fresh, "package", 4, "20"); err != nil {
 		t.Fatal(err)
 	}
-	if err := fresh.Key("saveas"); err != nil {
+	if err := pastNotice(fresh, "saveas"); err != nil {
 		t.Fatal(err)
 	}
 	m = loadWorkspaceMod(t, f.root, folder)
@@ -347,7 +349,7 @@ func TestMapEditorWorkspaceImportsManualModAsAnOwnedCopy(t *testing.T) {
 	if string(source.workspace.Pages["event02.txt"]) != "Second mission only" || source.workspace.Pages["event01.txt"] != nil {
 		t.Fatal("source choice retained first mission pages")
 	}
-	if err := e.Key("saveas"); err == nil || !strings.Contains(err.Error(), "read-only") {
+	if err := pastNotice(e, "saveas"); err == nil || !strings.Contains(err.Error(), "read-only") {
 		t.Fatalf("imported writer: %v", err)
 	}
 	_ = e.Key("escape")

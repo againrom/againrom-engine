@@ -175,6 +175,7 @@ func openAddCase(t *testing.T, x *MapInspector, in addInputs, c addCase) *ui.Map
 	if err := e.Open(in.key); err != nil {
 		t.Fatal(err)
 	}
+	closeMapPanel(t, e)
 	clicker := &editorClicker{t: t}
 	for _, k := range c.keys {
 		if k == "groups" {
@@ -290,6 +291,7 @@ func TestReleaseMapEditorAddWindowFrames(t *testing.T) {
 		if err := e.Open(in.key); err != nil {
 			t.Fatal(err)
 		}
+		closeMapPanel(t, e)
 		if bar == "scripts" {
 			_ = e.Key(bar)
 		} else {

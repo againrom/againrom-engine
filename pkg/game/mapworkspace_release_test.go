@@ -21,12 +21,15 @@ func TestReleaseMapEditorWorkspaceRoutesAndTexts(t *testing.T) {
 	}
 	_ = e.Key("clear")
 	e.TextInput("40x56")
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
+	for range 2 { // the size, then single-player
+		if err := e.Key("enter"); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if e.Document().Width != 40 || e.Document().Height != 56 {
 		t.Fatal("N did not create a rectangle")
 	}
+	closeMapPanel(t, e)
 	if err := workspaceField(e, "metadata", 0, "Карта"); err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +116,7 @@ func TestReleaseMapEditorWorkspaceRoutesAndTexts(t *testing.T) {
 	if err := workspaceField(e, "package", 4, "20"); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Key("saveas"); err != nil {
+	if err := pastNotice(e, "saveas"); err != nil {
 		t.Fatal(err)
 	}
 	m = loadWorkspaceMod(t, x.archives.Root, folder)

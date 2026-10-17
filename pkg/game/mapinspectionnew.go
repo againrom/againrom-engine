@@ -42,25 +42,48 @@ func newMapRows() []ui.EditorMap {
 	return rows
 }
 
-// newMapSpec reads a "new/<W>x<H>" source into the default spec of that size.
-func newMapSpec(source string) (alm.NewMapSpec, error) {
+// newMapSpec reads a "new/<W>x<H>" source, ending in ui.NewMapMultiplayer for
+// a multiplayer map, into the default spec of that size and the map's mode.
+func newMapSpec(source string) (alm.NewMapSpec, uint32, error) {
+	mode := ui.MapModeSingle
+	if rest, ok := strings.CutSuffix(source, ui.NewMapMultiplayer); ok {
+		source, mode = rest, ui.MapModeMultiplayer
+	}
 	var w, h int
 	var rest string
 	if n, _ := fmt.Sscanf(source, newMapPrefix+"%dx%d%s", &w, &h, &rest); n != 2 {
-		return alm.NewMapSpec{}, fmt.Errorf("new map %q: want %s<width>x<height>", source, newMapPrefix)
+		return alm.NewMapSpec{}, 0, fmt.Errorf("new map %q: want %s<width>x<height>", source, newMapPrefix)
 	}
 	spec := alm.DefaultNewMap()
 	spec.Width, spec.Height = w, h
-	return spec, spec.Validate()
+	return spec, mode, spec.Validate()
+}
+
+// newAuthorMap is the map an author starts from (DIV-3597): the original
+// editor's new map in the mode asked for, single-player by default, with its
+// drop cell at the centre so the party has a start point. The defaults are
+// the map's first bytes, not edits in its history.
+func newAuthorMap(spec alm.NewMapSpec, mode uint32) (*mapedit.Editor, error) {
+	model, err := mapedit.NewMap(spec)
+	if err != nil {
+		return nil, err
+	}
+	if err := model.SetWord70(mode); err != nil {
+		return nil, err
+	}
+	if err := model.SetDropCell(uint32(spec.Width/2), uint32(spec.Height/2)); err != nil {
+		return nil, err
+	}
+	return mapedit.New(model.Bytes())
 }
 
 // openNew builds the new map of source and inspects it as any opened map.
 func (x *MapInspector) openNew(source string) (*ui.InspectionDocument, error) {
-	spec, err := newMapSpec(source)
+	spec, mode, err := newMapSpec(source)
 	if err != nil {
 		return nil, err
 	}
-	model, err := mapedit.NewMap(spec)
+	model, err := newAuthorMap(spec, mode)
 	if err != nil {
 		return nil, err
 	}

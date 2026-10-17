@@ -24,10 +24,13 @@ func TestReleaseMapEditorCompleteScenarioPackageSAV(t *testing.T) {
 	}
 	_ = e.Key("clear")
 	e.TextInput("32x32")
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
+	for range 2 { // the size, then single-player
+		if err := e.Key("enter"); err != nil {
+			t.Fatal(err)
+		}
 	}
 	e.Document().Viewer.SetFlat(true)
+	closeMapPanel(t, e)
 	if err := workspaceField(e, "metadata", 0, "Group mission"); err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +121,7 @@ func TestReleaseMapEditorCompleteScenarioPackageSAV(t *testing.T) {
 			t.Fatal("W package", field.index, err)
 		}
 	}
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("Ctrl+S did not checkpoint the complete package: %v", err)
 	}
 	mission := loadWorkspaceMod(t, x.archives.Root, folder)
