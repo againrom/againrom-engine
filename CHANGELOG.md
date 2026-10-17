@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A mage of yours heals itself and its wounded companions while an
+  enemy shoots it from outside the mage's own reach, as in the original; an
+  enemy standing within its reach still keeps it fighting. The automatic
+  casting level (Minimum, Average, Maximum) follows the same rule.
 - [Starter] On macOS, Browse opens the system folder chooser and adds the
   chosen folder. The map editor's Open and Save As use the same system
   chooser; Open shows every file and has no file-type menu.

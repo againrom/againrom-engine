@@ -2186,9 +2186,28 @@ const autoHealReserveNum, autoHealReserveDen = 1, 4
 // attack target, is winding up or recovering from a spell, or a living hostile
 // is actively attacking it. A movement/order target is handled separately by
 // underCommand, so an idle-heal decision cannot consume that order either.
+//
+// A human participant's unit in the first game takes the heal arm's own
+// condition (AI-349, AI-353, AI-REACH-072): only a hostile the stand-ground
+// pick could name within its reach, a held victim within reach, or a victim a
+// player's attack order named keeps it from healing.
 func (w *World) inCombat(ci int) bool {
 	e := w.entities[ci]
-	if s := w.orderState(&e); e.HasAttackTarget || s.wait || s.booked() {
+	s := w.orderState(&e)
+	if s.wait || s.booked() {
+		return true
+	}
+	if w.healArmRules(e) {
+		return holdsOrderedVictim(e) || w.victimInReach(e) || w.hostileInReach(ci)
+	}
+	return w.engaged(ci)
+}
+
+// engaged reports whether ci holds an attack target or a living hostile holds
+// it as its unit victim.
+func (w *World) engaged(ci int) bool {
+	e := w.entities[ci]
+	if e.HasAttackTarget {
 		return true
 	}
 	for i := range w.entities {
@@ -2200,6 +2219,39 @@ func (w *World) inCombat(ci int) bool {
 			continue
 		}
 		return true
+	}
+	return false
+}
+
+// healArmRules reports whether e takes the heal arm's reach condition: a
+// first-game unit of a human participant (MAGIC-320, MAGIC-322).
+func (w *World) healArmRules(e Entity) bool {
+	return !w.SecondGame() && e.Owner != 0 && w.humanParticipantUnit(e)
+}
+
+// victimInReach reports whether e holds a unit victim it can strike from
+// where it stands.
+func (w *World) victimInReach(e Entity) bool {
+	if !e.HasAttackTarget || e.AttackTargetKind != AttackTargetUnit {
+		return false
+	}
+	vi := indexOfEntity(w.entities, e.AttackTarget)
+	return vi >= 0 && inReach(e, w.entities[vi])
+}
+
+// hostileInReach reports whether the stand-ground pick would name a target
+// for ci: a candidate of its group that its scorer does not refuse as past
+// reach (AI-STAND-076, AI-REACH-072).
+func (w *World) hostileInReach(ci int) bool {
+	e := w.entities[ci]
+	members := w.groupLivingMembers(e.Owner, effectiveGroup(&e))
+	if len(members) == 0 {
+		members = []int{ci}
+	}
+	for _, ti := range w.groupCandidates(aiGroup{owner: e.Owner, group: effectiveGroup(&e), members: members}, false) {
+		if ti != ci && w.candidateCost(ci, ti, orderStandGround) < scoreSeed {
+			return true
+		}
 	}
 	return false
 }
@@ -2257,10 +2309,15 @@ func (w *World) autoCastOrder(ci int) []SpellRule {
 		return []SpellRule{armed}
 	}
 	var order []SpellRule
-	if heal, ok := w.unarmedHeal(ci); ok && !w.inCombat(ci) && !underCommand(w.entities[ci]) {
+	// An engaged mage tries its armed row before the idle heal (owner).
+	armedFirst := hasArmed && w.engaged(ci)
+	if armedFirst {
+		order = append(order, armed)
+	}
+	if heal, ok := w.unarmedHeal(ci); ok && !underCommand(w.entities[ci]) && !w.inCombat(ci) {
 		order = append(order, heal)
 	}
-	if hasArmed {
+	if hasArmed && !armedFirst {
 		order = append(order, armed)
 	}
 	return order
@@ -2303,7 +2360,7 @@ func (w *World) autoCast(ci int) {
 			return
 		}
 	}
-	if e := w.entities[ci]; e.Owner == SelfSlot && e.KnownSpells != 0 && w.AutoCast(e.Owner).Level() != 0 && e.ActorState != actorStateRetreat && !underCommand(e) && w.supportWhileAttacking(ci) {
+	if e := w.entities[ci]; e.Owner == SelfSlot && e.KnownSpells != 0 && w.AutoCast(e.Owner).Level() != 0 && e.ActorState != actorStateRetreat && !underCommand(e) && w.supportAllowed(ci) {
 		w.supportCast(ci)
 	}
 }
@@ -2313,6 +2370,16 @@ func (w *World) autoCast(ci int) {
 // DIV-3009). A mage without an attack target passes.
 func (w *World) supportWhileAttacking(ci int) bool {
 	return !w.entities[ci].HasAttackTarget || w.attackRange(ci) < 2
+}
+
+// supportAllowed is the level's combat gate. A first-game human participant's
+// mage takes the heal arm's reach condition (owner); otherwise the attack
+// route's range gate applies.
+func (w *World) supportAllowed(ci int) bool {
+	if w.healArmRules(w.entities[ci]) {
+		return !w.inCombat(ci)
+	}
+	return w.supportWhileAttacking(ci)
 }
 
 // attackRange is the range an attack order carries: the armed attacking

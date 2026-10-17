@@ -247,14 +247,16 @@ func TestIdleHealLeavesAnActiveMoveOrderAttached(t *testing.T) {
 }
 
 // TestNearbyHostilityAloneDoesNotMakeAnIdleMageParticipateInBattle prevents a
-// proximity scan from suppressing the owner's idle heal. The hostile is close,
-// but neither side holds an attack target; the wounded teammate is still healed.
+// proximity scan from suppressing the owner's idle heal. The hostile is close
+// but outside the mage's reach, and neither side holds an attack target; the
+// wounded teammate is still healed. A hostile within reach blocks the heal
+// (healreach_test.go).
 func TestNearbyHostilityAloneDoesNotMakeAnIdleMageParticipateInBattle(t *testing.T) {
 	caster := acCaster(1, 2, 2, 50, 1<<6, 0)
 	caster.Owner = 1
 	hurt := spEnt(2, 3, 2)
 	hurt.Owner, hurt.HP = 1, 40
-	hostile := spEnt(3, 2, 3)
+	hostile := spEnt(3, 2, 4)
 	hostile.Owner = 2
 	w := hlWorld(t, 71, acEnemies(t), []SpellRule{hlHeal()}, caster, hurt, hostile)
 	spRunUnbidden(w)

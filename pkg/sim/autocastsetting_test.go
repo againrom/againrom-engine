@@ -247,7 +247,8 @@ func TestAutoCastLevelNumbersAndArms(t *testing.T) {
 // still heals its wounded companion; one attacking from range 2 or more, by
 // its reach or by an armed attacking spell it can pay for, does not
 // (R2-ENGINE-397, DIV-3009). The loss control is the melee case: a route that
-// stopped support for every attacking mage fails it.
+// stopped support for every attacking mage fails it. The world is the second
+// game's; in the first the heal arm's reach condition decides (healreach_test.go).
 func TestAutoCastSupportOnTheAttackRouteFollowsTheCommandRange(t *testing.T) {
 	for _, tc := range []struct {
 		reach uint8
@@ -256,6 +257,7 @@ func TestAutoCastSupportOnTheAttackRouteFollowsTheCommandRange(t *testing.T) {
 	}{{1, 0, true}, {4, 0, false}, {1, 1, false}} {
 		enemy := acsUnit(3, 2, 3, 100)
 		w := acsWorld(t, acEnemies(t), AutoCastMinimum|AutoCastOwn, acsMask(1, 6), tc.armed, acsUnit(2, SelfSlot, 4, 40), enemy)
+		w.rom2 = &rom2ScriptState{}
 		e := &w.entities[0]
 		e.Reach, e.AttackTarget, e.HasAttackTarget = tc.reach, 3, true
 		if tc.armed != 0 && w.attackRange(0) < 2 {

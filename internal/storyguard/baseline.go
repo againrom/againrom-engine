@@ -2540,6 +2540,10 @@ package storyguard
 // (pkg/ui/cellprojection*_test.go), net of the replaced corner and centre
 // comments in pkg/ui, this note included. Three long comment groups and one
 // bare story number left with the replaced code.
+//
+// CommentBytes rises for the heal arm's reach condition (pkg/sim/spell.go,
+// pkg/sim/engage.go) and its witnesses (pkg/sim/healreach_test.go), this note
+// included.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2563,5 +2567,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9123145,
+	CommentBytes: 9125998,
 }
