@@ -40,7 +40,7 @@ func authoringFixture(t *testing.T) ([]byte, int) {
 	binary.LittleEndian.PutUint32(b[p+70+0x42:], 9)
 	binary.LittleEndian.PutUint32(b[p+70+0x14:], 2)
 	for k := 0x2c; k < 0x40; k++ {
-		b[p+70+k] = byte(k) // carried bytes no field names
+		b[p+70+k] = byte(k) // override bytes a write of another field carries
 	}
 	return b, p
 }
@@ -114,6 +114,14 @@ func TestSetUnitFieldWritesOnlyTheFieldBytes(t *testing.T) {
 		{"definition", 0x01020304, 0x10, []byte{4, 3, 2, 1}, func(u alm.Unit) bool { return u.DefID == 0x01020304 }},
 		{"hp", -1, 0x20, []byte{0xff, 0xff}, func(u alm.Unit) bool { return !u.HasCurrentHP }},
 		{"hp", 250, 0x20, []byte{250, 0}, func(u alm.Unit) bool { return u.HasCurrentHP && u.CurrentHP == 250 }},
+		{"mana", 300, 0x24, []byte{0x2c, 1}, func(u alm.Unit) bool { return u.Tail.HasMana && u.Tail.Mana == 300 }},
+		{"mana", -1, 0x24, []byte{0xff, 0xff}, func(u alm.Unit) bool { return !u.Tail.HasMana }},
+		{"body", 0, 0x2c, []byte{0}, func(u alm.Unit) bool { return u.Tail.Body == 0 }},
+		{"reaction", 255, 0x2f, []byte{255}, func(u alm.Unit) bool { return u.Tail.Reaction == 255 }},
+		{"absorption", 240, 0x32, []byte{240}, func(u alm.Unit) bool { return u.Tail.Absorption == 240 }},
+		{"skill.shooting", 9, 0x3a, []byte{9}, func(u alm.Unit) bool { return u.Tail.Skill[4] == 9 }},
+		{"protection.fire", 77, 0x3b, []byte{77}, func(u alm.Unit) bool { return u.Tail.Protection[0] == 77 }},
+		{"gear", 1, 0x0c, []byte{0x80, 0, 0, 0}, func(u alm.Unit) bool { return u.Tail.SkipGear && u.Flags == 0x80 }},
 	}
 	for _, c := range cases {
 		b, p := authoringFixture(t)
@@ -140,6 +148,28 @@ func TestSetUnitFieldWritesOnlyTheFieldBytes(t *testing.T) {
 	}
 }
 
+// TestTheGearBitKeepsTheFlagWordsOtherBits: the gear field writes bit 7 of
+// the flag word alone.
+func TestTheGearBitKeepsTheFlagWordsOtherBits(t *testing.T) {
+	b, p := authoringFixture(t)
+	binary.LittleEndian.PutUint32(b[p+70+0x0c:], 0x8000_0105)
+	e := newEditor(t, b)
+	for _, c := range []struct {
+		v    int64
+		word uint32
+	}{{0, 0x8000_0105}, {1, 0x8000_0185}, {0, 0x8000_0105}} {
+		if err := e.SetUnitField(1, "gear", c.v); err != nil {
+			t.Fatal(err)
+		}
+		if got := binary.LittleEndian.Uint32(e.Bytes()[p+70+0x0c:]); got != c.word {
+			t.Fatalf("gear %d: flag word %#x, want %#x", c.v, got, c.word)
+		}
+		if v, _ := e.UnitFieldValue(1, "gear"); v != c.v {
+			t.Fatalf("gear reads back %d, want %d", v, c.v)
+		}
+	}
+}
+
 func TestSetUnitFieldRefusalWritesNothing(t *testing.T) {
 	b, _ := authoringFixture(t)
 	e := newEditor(t, b)
@@ -147,7 +177,8 @@ func TestSetUnitFieldRefusalWritesNothing(t *testing.T) {
 		i   int
 		key string
 		v   int64
-	}{{1, "owner", 0}, {1, "owner", 1 << 32}, {1, "class", 32768}, {1, "hp", -32769}, {1, "definition", -1}, {1, "group", -1}, {1, "group", 1 << 32}, {1, "tier", -1}, {1, "tier", 1 << 16}, {2, "hp", 1}} {
+	}{{1, "owner", 0}, {1, "owner", 1 << 32}, {1, "class", 32768}, {1, "hp", -32769}, {1, "definition", -1}, {1, "group", -1}, {1, "group", 1 << 32}, {1, "tier", -1}, {1, "tier", 1 << 16}, {2, "hp", 1},
+		{1, "body", 256}, {1, "body", -1}, {1, "mana", 32768}, {1, "protection.astral", 256}, {1, "gear", 2}, {1, "gear", -1}} {
 		if err := e.SetUnitField(c.i, c.key, c.v); err == nil {
 			t.Fatalf("unit %d %s=%d accepted", c.i, c.key, c.v)
 		}
@@ -160,12 +191,15 @@ func TestSetUnitFieldRefusalWritesNothing(t *testing.T) {
 func TestUnitFieldTableNamesFieldsInsideTheRecord(t *testing.T) {
 	seen := map[string]bool{}
 	for _, f := range mapedit.UnitFields() {
-		if seen[f.Key] || f.Width != 2 && f.Width != 4 || f.Offset < 8 || f.Offset+f.Width > 70 || f.Min > f.Max {
+		if seen[f.Key] || f.Width != 1 && f.Width != 2 && f.Width != 4 || f.Offset < 8 || f.Offset+f.Width > 70 || f.Min > f.Max {
 			t.Fatalf("bad field row %+v", f)
+		}
+		if f.Width == 1 && (f.Min != 0 || f.Max != 255) || f.Bit != 0 && f.Max != 1 {
+			t.Fatalf("an override byte or bit holds more than its width: %+v", f)
 		}
 		seen[f.Key] = true
 	}
-	if len(seen) != 6 || !seen["group"] || !seen["tier"] {
+	if len(seen) != 24 || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] {
 		t.Fatalf("table has %d fields", len(seen))
 	}
 }

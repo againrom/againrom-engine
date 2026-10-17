@@ -299,13 +299,10 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 			roster[sim.EntityID(i)] = tmpl
 		}
 		// The group, the owner and the authored map id come off the record and
-		// hold whether or not the placement resolved. UNIT-PLACE-034: an
-		// authored current health is signed and applied verbatim; difficulty
-		// scales only the resolved maximum.
-		def := b.actorDefinition(t)
-		if u.HasCurrentHP {
-			def.HP = int32(u.CurrentHP)
-		}
+		// hold whether or not the placement resolved. UNIT-PLACE-034: the
+		// tail's words and bytes after the derivation, an authored current
+		// health signed and verbatim; difficulty scales only the maximum.
+		def := withTailWords(b.actorDefinition(t), u, Resolve(u, t).Arm)
 		if member, ok := roster[sim.EntityID(i)]; ok {
 			def.NativeTraining = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
 		}
@@ -715,6 +712,8 @@ type spawnBlock struct {
 	nativeClass  sim.NativeClass
 	class        int32
 	health       int32
+	hp           int32 // the live health when hpSet; health otherwise
+	hpSet        bool
 	domain       sim.Domain
 	speed        int32
 	speedMod     int32
@@ -835,7 +834,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		return spawnBlock{}, err
 	}
 	if ok {
-		return unitRowBlock(int32(u.ClassID), Resolve(u, t).Index, def, worn, t), nil
+		return unitRowBlock(int32(u.ClassID), Resolve(u, t).Index, def, worn, t).withTailStats(u.Tail), nil
 	}
 
 	h, w, hworn, hcarried, ok, err := definitionForHuman(u, t)
@@ -887,26 +886,43 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 			loadout = data.Loadout{Weapon: w, Rules: t.rules()}
 		}
 		ApplyItemEffects(&loadout, hworn, h.Profile().Fighter)
+		// The constructor derives from the row; the stat stores and the
+		// second derivation follow, which leave the live health and mana at
+		// the lesser of the two derivations' maxima.
+		template := h.DerivedWithLoadout(h.Profile(), loadout)
+		h = humanWithTailStats(h, u.Tail)
 		der := h.DerivedWithLoadout(h.Profile(), loadout)
 		var skillXP [data.SkillSlots]int32
 		for i, level := range der.Skill {
 			skillXP[i] = t.rules().SkillXPExtended(level)
 		}
-		mana := int32(0)
+		manaMax := int32(0)
 		if h.Profile().ManaColumn && der.ManaMax > 0 {
-			mana = der.ManaMax
+			manaMax = der.ManaMax
+		}
+		mana, hp := manaMax, der.HealthMax
+		if tailStats(u.Tail) {
+			hp = min(hp, template.HealthMax)
+			if h.Profile().ManaColumn && template.ManaMax > 0 {
+				mana = min(mana, template.ManaMax)
+			} else {
+				mana = 0
+			}
 		}
 		_, _, taught := EquippedPoolEffects(hworn)
-		return spawnBlock{class: class, health: der.HealthMax, domain: domainForCode(h.MovementType),
+		return spawnBlock{class: class, health: der.HealthMax, hp: hp, hpSet: true, domain: domainForCode(h.MovementType),
 			nativeBasis: nativeBasis.WithBody(uint16(der.Body)),
 			nativeClass: sim.NativeClass{Present: true, Fighter: h.Profile().Fighter},
 			humanoid:    true,
-			speed:       h.Speed + riderBonus(typeID) + loadout.Mod.Speed, speedMod: loadout.Mod.Speed,
-			sight: sightOf(h.ScanRange + loadout.Mod.Sight), dying: h.DyingTime,
+			// The row's speed and sight move with a stored Reaction and Mind
+			// as the derivation moves them (HERO-SPEED-008, HERO-SIGHT-007).
+			speed:    h.Speed + riderBonus(typeID) + loadout.Mod.Speed + der.Speed - template.Speed,
+			speedMod: loadout.Mod.Speed,
+			sight:    sightOf(h.ScanRange + loadout.Mod.Sight + der.Sight - template.Sight), dying: h.DyingTime,
 			combat: der.Combat, protection: der.Protection,
 			resistance: data.DamageKindResistance(der.Resistance), tokenSize: uint8(h.TokenSize), skill: der.Skill, skillXP: skillXP,
 			capacity: der.Capacity,
-			mana:     mana, manaMax: mana,
+			mana:     mana, manaMax: manaMax,
 			healthPeriod: reg.HealthRegenPeriod, manaPeriod: reg.ManaRegenPeriod,
 			// THE HUMANS TABLE CARRIES NO EXPERIENCE-VALUE COLUMN EITHER: the period
 			// pair's own reason, restated for a third number — reg is the same
@@ -957,7 +973,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		// the creature arm's own ground: it substitutes the definition tier whole
 		// and that tier derives no class, so there is nothing here that could
 		// earn.
-		xpValue: d.XPValue, reaction: d.Reaction, mind: d.Mind, spirit: d.Spirit, gainsXP: false, capacity: data.UnitCapacity()}, nil
+		xpValue: d.XPValue, reaction: d.Reaction, mind: d.Mind, spirit: d.Spirit, gainsXP: false, capacity: data.UnitCapacity()}.withTailStats(u.Tail), nil
 }
 
 // unitRowBlock is the creature arm's block for the Units row at index. class

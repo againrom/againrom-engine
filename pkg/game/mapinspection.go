@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"slices"
 	"strings"
 
 	"againrom/pkg/data"
@@ -175,13 +176,20 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 	// game's: entityTiers and the world built at Normal difficulty. The build
 	// takes a fresh decode, being free to change the map it is given.
 	tiers := entityTiers(m, x.table)
-	var sheets []unitSheet
+	var sheets, templates []unitSheet
 	sheetErr := fmt.Errorf("no installed tables")
 	if x.table != nil {
 		if built, err := model.Map(); err != nil {
 			sheetErr = err
 		} else {
 			sheets, sheetErr = unitSheets(built, x.table)
+		}
+		// The template sheets beside the override section: built only for a
+		// map that has a placement with an override.
+		if slices.ContainsFunc(m.Units, hasTail) {
+			if built, err := model.Map(); err == nil {
+				templates, _ = templateSheets(built, x.table)
+			}
 		}
 	}
 	for i, u := range m.Units {
@@ -226,6 +234,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 			"Authored placement; idle pose, no simulation"}
 		if i < len(sheets) {
 			r.Lines = append(r.Lines, x.sheetLines(u, resolved, sheets[i])...)
+			template := sheets[i]
+			if i < len(templates) {
+				template = templates[i]
+			}
+			r.Lines = append(r.Lines, x.overrideLines(model, i, template)...)
 			v := sheets[i].Values
 			r.Hover = r.Label + x.inspectionUTF8("  "+fmt.Sprintf(x.word("editor.unit.hover"), v.HP, v.MaxHP))
 		} else {

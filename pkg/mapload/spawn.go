@@ -744,6 +744,9 @@ func definitionForHuman(u alm.Unit, t *Table) (def data.HumanDef, w *data.Weapon
 	if err != nil {
 		return data.HumanDef{}, nil, [sim.EquipSlots]sim.ItemInstance{}, nil, false, err
 	}
+	if skipsGear(u, r.Arm) {
+		return d, nil, [sim.EquipSlots]sim.ItemInstance{}, nil, true, nil
+	}
 	worn, rawCarried, wep, err := HumanRowEquipment(c.EntryStrings(r.Index), t)
 	if err != nil {
 		return data.HumanDef{}, nil, [sim.EquipSlots]sim.ItemInstance{}, nil, false, err
@@ -1088,6 +1091,9 @@ func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID) (PartyMember, bool) {
 	}
 	r := Resolve(u, t)
 	dir, face := placedFigure(u, r, d, t)
+	// The statistics carry the record's stat stores. The skill levels stay
+	// the row's: the skill stores reach the live levels, not the trained base.
+	hero := humanWithTailStats(d, u.Tail).Hero()
 	p := PartyMember{
 		ID:                 fmt.Sprintf("join:%d", uint32(id)),
 		Name:               personRowName(u, t),
@@ -1097,7 +1103,7 @@ func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID) (PartyMember, bool) {
 		Profile:            d.Profile(),
 		FigureDir:          string(dir),
 		FigureFace:         face,
-		Hero:               d.Hero(),
+		Hero:               hero,
 		KnownSpells:        d.KnownSpells,
 		Worn:               itemEquipmentCodes(worn),
 		Carried:            itemInstanceCodes(carried),

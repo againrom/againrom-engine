@@ -233,6 +233,7 @@ func type6RecordHealth(x, y uint32, classBits, classSubID uint16, flags, defID u
 	copy(r[0x0c:], le32(flags))
 	copy(r[0x10:], le32(defID))
 	copy(r[0x20:], le16(uint16(currentHP)))
+	copy(r[0x24:], le16(0xffff)) // the current-mana word's absent value
 	return r
 }
 
@@ -822,9 +823,9 @@ func TestType6Units(t *testing.T) {
 		}
 
 		want := []alm.Unit{
-			{X: 0x0180, Y: 0x0280, ClassID: 7, ClassSubID: 0x0011, Flags: 0x00000000, DefID: 0x00000000, CurrentHP: -1},
-			{X: 0x0380, Y: 0x0480, ClassID: highBitSigned, ClassSubID: 0x0022, Flags: 0x00000004, DefID: 0x0000abcd, CurrentHP: -1},
-			{X: 0x0580, Y: 0x0680, ClassID: 80, ClassSubID: 0x0033, Flags: 0x00000001, DefID: 0xcdcdcdcd, CurrentHP: -1},
+			{X: 0x0180, Y: 0x0280, ClassID: 7, ClassSubID: 0x0011, Flags: 0x00000000, DefID: 0x00000000, CurrentHP: -1, Tail: alm.UnitTail{Mana: -1}},
+			{X: 0x0380, Y: 0x0480, ClassID: highBitSigned, ClassSubID: 0x0022, Flags: 0x00000004, DefID: 0x0000abcd, CurrentHP: -1, Tail: alm.UnitTail{Mana: -1}},
+			{X: 0x0580, Y: 0x0680, ClassID: 80, ClassSubID: 0x0033, Flags: 0x00000001, DefID: 0xcdcdcdcd, CurrentHP: -1, Tail: alm.UnitTail{Mana: -1}},
 		}
 		for i, w := range want {
 			if m.Units[i] != w {

@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Units placed on a map now keep the strengths, skills and
+  resistances the map gives them, as in the original. In the map editor a
+  unit's popup edits each of these values beside the value its template
+  gives, and clearing a value returns the unit to its template.
 - [ROM1] The map editor no longer refuses to close while the map has unsaved
   changes. Closing it (the Exit entry, Esc, or the window's close button) or
   opening another map asks one question naming the map: Save As, Close

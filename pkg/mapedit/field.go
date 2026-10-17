@@ -29,12 +29,14 @@ const (
 	CheckStructureIdentity
 	CheckItemRecipe
 	CheckUnitTier // a secondary key that selects a Units row of the unit's class (ALM-CLS-052)
+	CheckUnitGear // flag bit 7, offered where the Human constructor reads it (ALM-FLAGPATH-109)
 )
 
 // Field is one settable field of a record, at a record-relative
 // offset. A field with Element set is one element of a repeated list whose
 // u32 count sits at Counter: 0 removes the element, and the row whose Offset
-// is the record's end appends one.
+// is the record's end appends one. A field with Bit set is that one bit of
+// its word, 0 or 1; a write keeps the word's other bits.
 type Field struct {
 	Key      string // stable name a caller addresses the field by
 	Label    string // window text
@@ -46,6 +48,7 @@ type Field struct {
 	Check    FieldCheck
 	Element  int
 	Counter  int
+	Bit      uint32
 }
 
 // UnitField and UnitFieldCheck are the type-6 names of Field and FieldCheck.
@@ -63,6 +66,33 @@ var unitFields = []Field{
 	{Key: "definition", Label: "Human definition (0 = class)", Offset: 0x10, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckDefinitionID},
 	{Key: "hp", Label: "Hit points (-1 = default)", Offset: 0x20, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
 	{Key: "group", Label: "Group id (0 = none)", Offset: 0x42, Width: 4, Min: 0, Max: math.MaxUint32},
+	// The override block the spawner stores after the constructor
+	// (UNIT-PLACE-034, UNIT-PLACESKILL-086, UNIT-PLACERESIST-087): a byte is
+	// absent at 0, the mana word at -1.
+	{Key: "mana", Label: "Mana (-1 = default)", Offset: 0x24, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+	overrideByte("body", "Body", 0x2c),
+	overrideByte("mind", "Mind", 0x2d),
+	overrideByte("spirit", "Spirit", 0x2e),
+	overrideByte("reaction", "Reaction", 0x2f),
+	overrideByte("defence", "Defence", 0x31),
+	overrideByte("absorption", "Absorption", 0x32),
+	overrideByte("skill.blade", "Blade skill", 0x36),
+	overrideByte("skill.axe", "Axe skill", 0x37),
+	overrideByte("skill.bludgeon", "Bludgeon skill", 0x38),
+	overrideByte("skill.pike", "Pike skill", 0x39),
+	overrideByte("skill.shooting", "Shooting skill", 0x3a),
+	overrideByte("protection.fire", "Fire protection", 0x3b),
+	overrideByte("protection.water", "Water protection", 0x3c),
+	overrideByte("protection.air", "Air protection", 0x3d),
+	overrideByte("protection.earth", "Earth protection", 0x3e),
+	overrideByte("protection.astral", "Astral protection", 0x3f),
+	{Key: "gear", Label: "Skip the row's equipment", Offset: 0x0c, Width: 4, Min: 0, Max: 1, Check: CheckUnitGear, Bit: 0x80},
+}
+
+// overrideByte is one override byte of the type-6 record: 0 keeps the
+// template's value.
+func overrideByte(key, label string, offset int) Field {
+	return Field{Key: key, Label: label + " (0 = template)", Offset: offset, Width: 1, Min: 0, Max: math.MaxUint8}
 }
 
 // Fields returns the settable fields of k's record i in window order.
@@ -243,6 +273,14 @@ func (f Field) write(rec []byte, v int64) []byte {
 }
 
 func (f Field) put(b []byte, v int64) {
+	if f.Bit != 0 {
+		word := binary.LittleEndian.Uint32(b) &^ f.Bit
+		if v != 0 {
+			word |= f.Bit
+		}
+		binary.LittleEndian.PutUint32(b, word)
+		return
+	}
 	switch f.Width {
 	case 1:
 		b[0] = byte(v)
@@ -255,6 +293,11 @@ func (f Field) put(b []byte, v int64) {
 
 func (f Field) decode(b []byte) int64 {
 	switch {
+	case f.Bit != 0:
+		if binary.LittleEndian.Uint32(b)&f.Bit != 0 {
+			return 1
+		}
+		return 0
 	case f.Width == 1:
 		return int64(b[0])
 	case f.Width == 2 && f.Signed:

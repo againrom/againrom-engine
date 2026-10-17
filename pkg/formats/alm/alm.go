@@ -200,9 +200,10 @@ type Group struct {
 // for that sentinel. Every other signed value, including zero and -10, is an
 // authored override and must reach placement unchanged (UNIT-PLACE-034).
 //
-// The rest of the 70-byte record is decoded (ALM-UNIT-040 publishes the whole read
-// map: the index at +0x18, located scalars and the two 0xFF-sentinel runs) but
-// deliberately not exposed here — none of it has a consumer (DD12).
+// Tail is the record's per-actor override block, which the spawner applies
+// after the constructor (UnitTail). The rest of the 70-byte record (the index
+// at +0x18, +0x1c and the slots no spawner instruction reads) stays unexposed:
+// none of it has a consumer (DD12).
 //
 // Owner is the record's OWNER SLOT at +0x14, and it left that unexposed set when
 // a consumer appeared for it. It is a 1-BASED INDEX INTO THE MAP'S OWN ROSTER —
@@ -244,6 +245,48 @@ type Unit struct {
 	UnitID       uint16 // +0x40 the id a script's Target_Unit names (raw)
 	GroupID      uint32 // +0x42 the id a script's Target_Group names (raw)
 	ServerID     uint32
+	Tail         UnitTail // the ROM1 override block; zero on a ROM2 record
+}
+
+// UnitTail is the ROM1 type-6 record's override block: the bytes the
+// placement spawner stores into the actor it has just constructed. Each byte
+// is absent at 0 and the mana word at -1 (UNIT-PLACE-034); file +0x35, the
+// General skill byte, is read and never applied (UNIT-PLACESKILL-086), so it
+// is not here. SkipGear is flag bit 7, which the Human constructor takes as
+// its equipment gate (ALM-FLAGPATH-109, UNIT-PLACEGEAR-098).
+type UnitTail struct {
+	Body, Mind, Spirit, Reaction uint8    // +0x2c..+0x2f
+	Mana                         int16    // +0x24, current mana
+	HasMana                      bool     // false only for the -1 word
+	Defence, Absorption          uint8    // +0x31, +0x32
+	Skill                        [5]uint8 // +0x36..+0x3a: skill slots 1..5
+	Protection                   [5]uint8 // +0x3b..+0x3f: fire, water, air, earth, astral
+	SkipGear                     bool     // +0x0c bit 7
+}
+
+// unitFlagSkipGear is the flag bit the Human constructor's equipment gate reads.
+const unitFlagSkipGear = 0x80
+
+// decodeUnitTail reads rec's override block.
+func decodeUnitTail(rec []byte) UnitTail {
+	mana := int16(binary.LittleEndian.Uint16(rec[0x24:0x26]))
+	t := UnitTail{Body: rec[0x2c], Mind: rec[0x2d], Spirit: rec[0x2e], Reaction: rec[0x2f],
+		Mana: mana, HasMana: mana != -1, Defence: rec[0x31], Absorption: rec[0x32],
+		SkipGear: binary.LittleEndian.Uint32(rec[0x0c:0x10])&unitFlagSkipGear != 0}
+	copy(t.Skill[:], rec[0x36:0x3b])
+	copy(t.Protection[:], rec[0x3b:0x40])
+	return t
+}
+
+// WithoutTail is u as its template spawns it: no override, the -1 health
+// word, and flag bit 7 clear where the tail read it.
+func (u Unit) WithoutTail() Unit {
+	if u.Tail.SkipGear {
+		u.Flags &^= unitFlagSkipGear
+	}
+	u.Tail = UnitTail{Mana: -1}
+	u.CurrentHP, u.HasCurrentHP = -1, false
+	return u
 }
 
 // Triggers is the type7 trigger effect/instant list. EntryCount is the leading
@@ -861,6 +904,7 @@ func (m *Map) decodeUnits(p []byte) error {
 			HasCurrentHP: currentHP != -1,
 			UnitID:       binary.LittleEndian.Uint16(rec[0x40:0x42]),
 			GroupID:      binary.LittleEndian.Uint32(rec[0x42:0x46]),
+			Tail:         decodeUnitTail(rec),
 		}
 	}
 	m.Units = units

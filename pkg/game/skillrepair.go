@@ -61,6 +61,11 @@ func repairSourceSkills(s *sim.SourceActor) {
 			continue
 		}
 		base := int32(int16(binary.LittleEndian.Uint16(s.Base[2+2*i:])))
+		// A live level below a trained level its experience agrees with is a
+		// stored placement override (UNIT-PLACESKILL-086), not a lost rank.
+		if int32(int16(at)) < base && repairedSkillLevel(base, s.SkillXP[i]) == base {
+			continue
+		}
 		binary.LittleEndian.PutUint16(s.Attack[2+2*i:], uint16(fixed))
 		binary.LittleEndian.PutUint16(s.Base[2+2*i:], uint16(base+fixed-int32(int16(at))))
 	}

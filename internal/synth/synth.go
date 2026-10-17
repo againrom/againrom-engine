@@ -627,7 +627,8 @@ func almObjects(objects []ALMObject) []byte {
 // almUnits lays the type-6 payload: one 70-byte record per unit, the bytes beyond
 // the decoded fields written at their own offsets. ClassID and an authored
 // CurrentHP go out as the two bytes of their own int16, the exact inverse of the
-// sign-extending reads. An absent CurrentHP writes -1, not zero.
+// sign-extending reads. An absent CurrentHP writes -1, not zero, and the mana
+// word at +0x24 is -1, absent, as on every shipped record.
 func almUnits(units []ALMUnit) []byte {
 	var out []byte
 	for _, u := range units {
@@ -643,6 +644,7 @@ func almUnits(units []ALMUnit) []byte {
 			currentHP = u.CurrentHP
 		}
 		binary.LittleEndian.PutUint16(rec[0x20:], uint16(currentHP))
+		binary.LittleEndian.PutUint16(rec[0x24:], 0xffff)
 		out = append(out, rec...)
 	}
 	return out

@@ -215,6 +215,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 			script, _ = view.Script()
 		}
 	}
+	template := s.unitTemplate(k, index)
 	for _, f := range fields {
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil}
 		if f.Check == mapedit.CheckUnitTier {
@@ -222,6 +223,15 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 				continue
 			}
 			row.Label = s.inspector.word("editor.unit.tier")
+		}
+		if k == mapedit.KindUnit {
+			label, offered := template.label(f)
+			if !offered {
+				continue
+			}
+			if label != "" {
+				row.Label = label
+			}
 		}
 		row.Choices = s.RecordChoices(kind, index, f.Key)
 		if f.Text != nil {
@@ -385,6 +395,8 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 		err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
 	case mapedit.CheckUnitTier:
 		err = s.inspector.tierError(view.AuthoredUnits[index])
+	case mapedit.CheckUnitGear:
+		err = s.inspector.gearError(view.AuthoredUnits[index])
 	case mapedit.CheckItemRecipe:
 		if value != 0 {
 			if value > int64(len(view.Enchantments)) {

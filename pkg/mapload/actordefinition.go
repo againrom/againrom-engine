@@ -16,9 +16,13 @@ func (b spawnBlock) actorDefinition(t *Table) sim.ActorDefinition {
 			source = sim.WeaponSpellInnate
 		}
 	}
+	hp := b.health
+	if b.hpSet {
+		hp = b.hp
+	}
 	return sim.ActorDefinition{
 		Class: b.class, TypeID: b.typeID, Humanoid: b.humanoid, Domain: b.domain,
-		HP: b.health, MaxHP: b.health, Mana: b.mana, MaxMana: b.manaMax,
+		HP: hp, MaxHP: b.health, Mana: b.mana, MaxMana: b.manaMax,
 		HealthRegenPeriod: b.healthPeriod, ManaRegenPeriod: b.manaPeriod,
 		HealthRegeneration: b.healthRegeneration, ManaRegeneration: b.manaRegeneration,
 		Speed: b.speed, SpeedModifier: b.speedMod, RotationSpeed: b.rotationSpeed, Capacity: b.capacity,
