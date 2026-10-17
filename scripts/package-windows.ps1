@@ -85,7 +85,5 @@ try {
         try { $input.CopyTo($destination) } finally { $destination.Dispose(); $input.Dispose() }
     }
 } finally { $archive.Dispose() }
-$checksum = Join-Path $output ($name + '.sha256')
 $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-[IO.File]::WriteAllText($checksum, "$hash  $name`n", [Text.UTF8Encoding]::new($false))
-[pscustomobject]@{ Zip = $zip; Checksum = $checksum; Manifest = (Join-Path $stage 'BUILD-INFO.json'); SHA256 = $hash }
+[pscustomobject]@{ Zip = $zip; Manifest = (Join-Path $stage 'BUILD-INFO.json'); SHA256 = $hash }

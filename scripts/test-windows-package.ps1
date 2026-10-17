@@ -54,7 +54,8 @@ Assert-True (-not (Test-Path -LiteralPath (Join-Path $runtime 'starter.ini'))) '
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $runtime 'options.txt'))) 'Version inspection created options.txt.'
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $runtime 'saves'))) 'Version inspection created saves.'
 $hash = (Get-FileHash -LiteralPath $package.Zip -Algorithm SHA256).Hash.ToLowerInvariant()
-Assert-True ((Get-Content -LiteralPath $package.Checksum -Raw) -ceq "$hash  $([IO.Path]::GetFileName($package.Zip))`n") 'Checksum differs.'
+Assert-True ($package.SHA256 -ceq $hash) 'Returned SHA256 differs from archive bytes.'
+Assert-True (@(Get-ChildItem -LiteralPath (Split-Path -Parent $package.Zip) -Filter '*.sha256').Count -eq 0) 'The package wrote a checksum file.'
 $repeat = & $packager @arguments -OutputDirectory (Join-Path $evidence 'repeat')
 Assert-True ($repeat.SHA256 -ceq $package.SHA256) 'Identical inputs produce different ZIP bytes.'
 $before = (Get-FileHash -LiteralPath $package.Zip -Algorithm SHA256).Hash
@@ -81,4 +82,4 @@ foreach ($name in @('MAIN.RES', 'GRAPHICS.RES', 'SCENARIO.RES', 'WORLD.RES', 'MO
 }
 Assert-Refused { & $packager @arguments -OutputDirectory (Join-Path $install 'package') } 'Install-contained output was accepted.'
 Assert-True (-not (Test-Path -LiteralPath (Join-Path $install 'package'))) 'Install refusal wrote output.'
-Write-Output "windows-package: 12 entries; private sentinels excluded; extracted stamps, versions, version resources, manifest, checksum and repeat bytes verified; existing output, missing mapedit.exe, four invalid tags, wrong revision and install-contained output refused. SHA256=$hash"
+Write-Output "windows-package: 12 entries; private sentinels excluded; extracted stamps, versions, version resources, manifest, returned digest, no checksum file and repeat bytes verified; existing output, missing mapedit.exe, four invalid tags, wrong revision and install-contained output refused. SHA256=$hash"

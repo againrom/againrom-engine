@@ -125,9 +125,8 @@ def verify(arguments):
     assert_true(inventory(Path(environment["HOME"])) == home_before, "Extracted version inspection wrote a user profile.")
     archive = Path(package["zip"])
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-    assert_true(Path(package["checksum"]).read_text(encoding="utf-8") == f"{digest}  {archive.name}\n",
-                "SHA256 sibling differs from archive bytes.")
     assert_true(package["sha256"] == digest, "Returned SHA256 differs from archive bytes.")
+    assert_true(not list(archive.parent.glob("*.sha256")), "The package wrote a checksum file.")
     repeat = invoke(evidence / "repeat")
     assert_true(Path(repeat["zip"]).read_bytes() == archive.read_bytes(), "Identical inputs produce different ZIP bytes.")
     invoke(evidence / "package", refused=True)
@@ -175,7 +174,7 @@ def verify(arguments):
     invoke(dangling, refused=True)
     assert_true(not (evidence / "missing-target").exists(), "Dangling output symbolic link was followed.")
     print(f"macos-package {arguments.arch}: 12 entries; private sentinels excluded; native versions, stamps, manifest, "
-          f"Unix extraction permissions, no profile writes, checksum and repeated ZIP bytes verified; "
+          f"Unix extraction permissions, no profile writes, returned digest, no checksum file and repeated ZIP bytes verified; "
           f"existing output, missing mapedit, four invalid tags, two invalid revisions, missing parent, two install-contained outputs "
           f"and three symbolic-link outputs refused. SHA256={digest}")
 

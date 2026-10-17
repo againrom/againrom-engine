@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Each release offers only the three game ZIPs, without separate
+  .sha256 checksum files.
 - [ROM1] A guard walking back to its post or a unit closing on the ally it
   escorts now attacks an enemy within reach when its path is blocked, instead
   of standing still.

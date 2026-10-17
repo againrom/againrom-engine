@@ -100,4 +100,3 @@ jobs:
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-macos-${{ matrix.arch }}.zip
-            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-macos-${{ matrix.arch }}.zip.sha256

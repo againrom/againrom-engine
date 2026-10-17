@@ -95,7 +95,6 @@ jobs:
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-windows-amd64.zip
-            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-windows-amd64.zip.sha256
 
   macos:
     needs: build
@@ -142,10 +141,7 @@ jobs:
           foreach ($platform in @('windows-amd64', 'macos-amd64', 'macos-arm64')) {
             $name = "againrom-$($env:RELEASE_VERSION)-$platform.zip"
             $zip = Join-Path $assets $name
-            $checksum = "$zip.sha256"
-            $expected += @($name, "$name.sha256")
-            $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ((Get-Content -LiteralPath $checksum -Raw) -cne "$hash  $name`n") { throw 'Downloaded ZIP checksum differs.' }
+            $expected += @($name)
             $archive = [IO.Compression.ZipFile]::OpenRead($zip)
             try {
               $entry = $archive.GetEntry('againrom/BUILD-INFO.json')

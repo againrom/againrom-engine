@@ -127,9 +127,7 @@ def package(arguments):
             entry.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(entry, (stage / name).read_bytes(), compresslevel=9)
     digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
-    checksum_path = output / (archive_name + ".sha256")
-    checksum_path.write_text(f"{digest}  {archive_name}\n", encoding="utf-8")
-    return {"zip": str(archive_path), "checksum": str(checksum_path), "manifest": str(manifest_path), "sha256": digest}
+    return {"zip": str(archive_path), "manifest": str(manifest_path), "sha256": digest}
 
 
 def main():
