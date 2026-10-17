@@ -488,7 +488,7 @@ var noExternalFormats = map[string]bool{
 
 func externalAllowed(pkg, imp string) bool {
 	if pkg == "pkg/pathdialog" {
-		return imp == "golang.org/x/sys/windows" || imp == "github.com/ebitengine/purego" || imp == "github.com/ebitengine/purego/objc"
+		return imp == "golang.org/x/sys/windows"
 	}
 	// External dependencies are confined to their named tier.
 	//

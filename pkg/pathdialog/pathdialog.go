@@ -90,21 +90,3 @@ func selected(path string, cancelled bool) (Result, error) {
 	}
 	return Result{Path: path}, nil
 }
-
-type outcome struct {
-	result Result
-	err    error
-}
-
-func waitForPanel(enqueue func(func()) error, begin func(func(Result, error))) (Result, error) {
-	done := make(chan outcome, 1)
-	var once sync.Once
-	finish := func(result Result, err error) {
-		once.Do(func() { done <- outcome{result, err} })
-	}
-	if err := enqueue(func() { begin(finish) }); err != nil {
-		return Result{}, err
-	}
-	answer := <-done
-	return answer.result, answer.err
-}

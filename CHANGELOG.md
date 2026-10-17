@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [Starter] On macOS, Browse opens the system folder chooser and adds the
+  chosen folder. The map editor's Open and Save As use the same system
+  chooser; Open shows every file and has no file-type menu.
 - [Starter] The starter's settings (sound, volume, movies, markers, saves
   folder, mission, skill, extra arguments and the starter's own options) moved
   behind a new Settings button, so the main window shows only the base game,
