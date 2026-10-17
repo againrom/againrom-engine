@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strconv"
@@ -177,14 +178,14 @@ func (m *SnapshotSAVWorldEffects) followProjectileDrivers(rows []sim.SavedProjec
 // record: the counter leaf follows the World, and nothing else in the store
 // changes. A Document without the leaf gets the whole empty section.
 func projectProjectileCounter(doc *sav.DocumentData, current sim.SavedProjectiles) error {
-	for i := range doc.State.ValueRecords {
-		r := &doc.State.ValueRecords[i]
-		if foldStatePath(r.Path) == "/projectiles/freeindex" {
-			if uint16(r.Value.Int32) != current.FreeIndex {
-				r.Value.Int32 = int32(current.FreeIndex)
-			}
-			return nil
+	n, err := patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, "/Projectiles/FreeIndex", func(v *sav.CityStateValueData) error {
+		if uint16(v.Int32) != current.FreeIndex {
+			v.Int32 = int32(current.FreeIndex)
 		}
+		return nil
+	})
+	if err != nil || n > 0 {
+		return err
 	}
 	return constructProjectileLeaves(doc, current, nil, map[string]bool{})
 }
@@ -216,78 +217,79 @@ func projectSavedProjectiles(doc *sav.DocumentData, current sim.SavedProjectiles
 		if !slices.Contains(boundIDs, p.ID) {
 			continue
 		}
-		root := "/prj" + strconv.Itoa(int(p.ID))
+		root := "/Prj" + strconv.Itoa(int(p.ID))
 		items[root] = true
 		fields := [...]int32{p.X, p.Y, p.Z, p.Picture, p.Dir, p.Phase, p.LastAction, p.Action, p.ActionDir, p.ActionTarget, p.ActionX, p.ActionY, p.ActionZ, p.ActionPhase, p.ActionSegments, p.ActionSpell}
 		for i, name := range projectileFieldNames {
 			values[root+"/"+name] = fields[i]
 		}
 	}
-	retired := map[string]bool{}
+	var retired []string
 	for _, id := range boundIDs {
-		root := "/prj" + strconv.Itoa(int(id))
-		if !items[root] {
-			retired[root] = true
+		root := "Prj" + strconv.Itoa(int(id))
+		if !items["/"+root] {
+			retired = append(retired, root)
 		}
 	}
 	retiredPath := func(path string) bool {
-		root, _, _ := strings.Cut(strings.TrimPrefix(foldStatePath(path), "/"), "/")
-		return retired["/"+root]
+		return slices.ContainsFunc(retired, func(root string) bool { return stateRootMatches(doc.State.RootKind, path, root) })
 	}
 	doc.State.DirectoryRecords = slices.DeleteFunc(doc.State.DirectoryRecords, func(r sav.CityStateDirectoryData) bool { return retiredPath(r.Path) })
 	doc.State.ValueRecords = slices.DeleteFunc(doc.State.ValueRecords, func(r sav.CityStateRecordData) bool { return retiredPath(r.Path) })
+	state := &doc.State
 	found := map[string]bool{}
-	hasFree, hasIDs := false, false
-	var projectedIDs []uint16
-	for i := range doc.State.ValueRecords {
-		r := &doc.State.ValueRecords[i]
-		path := foldStatePath(r.Path)
-		if value, ok := values[path]; ok {
-			r.Value.Int32 = value
+	for _, path := range slices.Sorted(maps.Keys(values)) {
+		n, _ := patchStateLeaf(state.RootKind, state.DirectoryRecords, state.ValueRecords, path, func(v *sav.CityStateValueData) error {
+			v.Int32 = values[path]
+			return nil
+		})
+		if n > 0 {
 			found[path] = true
 		}
-		if path == "/projectiles/freeindex" {
-			hasFree = true
-			if uint16(r.Value.Int32) != current.FreeIndex {
-				r.Value.Int32 = int32(current.FreeIndex)
+	}
+	free, _ := patchStateLeaf(state.RootKind, state.DirectoryRecords, state.ValueRecords, "/Projectiles/FreeIndex", func(v *sav.CityStateValueData) error {
+		if uint16(v.Int32) != current.FreeIndex {
+			v.Int32 = int32(current.FreeIndex)
+		}
+		return nil
+	})
+	var projectedIDs []uint16
+	idLeaves, err := patchStateLeaf(state.RootKind, state.DirectoryRecords, state.ValueRecords, "/Projectiles/IDs", func(v *sav.CityStateValueData) error {
+		if v.Kind == 2 {
+			if slices.Contains(current.IDs, uint16(v.Int32)) {
+				projectedIDs = append(projectedIDs, uint16(v.Int32))
+				return nil
+			}
+			v.Kind, v.Int32, v.Bytes = 6, 0, nil
+			return nil
+		}
+		if v.Kind != 6 || len(v.Bytes)%4 != 0 {
+			return fmt.Errorf("projectile IDs encoding changed")
+		}
+		var kept []byte
+		for at := 0; at < len(v.Bytes); at += 4 {
+			word := binary.LittleEndian.Uint32(v.Bytes[at:])
+			if slices.Contains(current.IDs, uint16(word)) {
+				kept = append(kept, v.Bytes[at:at+4]...)
+				projectedIDs = append(projectedIDs, uint16(word))
 			}
 		}
-		if path == "/projectiles/ids" {
-			hasIDs = true
-			if r.Value.Kind == 2 {
-				if slices.Contains(current.IDs, uint16(r.Value.Int32)) {
-					projectedIDs = append(projectedIDs, uint16(r.Value.Int32))
-					continue
-				}
-				r.Value.Kind, r.Value.Int32, r.Value.Bytes = 6, 0, nil
-				continue
-			}
-			if r.Value.Kind != 6 || len(r.Value.Bytes)%4 != 0 {
-				return fmt.Errorf("projectile IDs encoding changed")
-			}
-			var kept []byte
-			for at := 0; at < len(r.Value.Bytes); at += 4 {
-				word := binary.LittleEndian.Uint32(r.Value.Bytes[at:])
-				if slices.Contains(current.IDs, uint16(word)) {
-					kept = append(kept, r.Value.Bytes[at:at+4]...)
-					projectedIDs = append(projectedIDs, uint16(word))
-				}
-			}
-			r.Value.Bytes = kept
-		}
+		v.Bytes = kept
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	if !slices.Equal(projectedIDs, current.IDs) {
-		for i := range doc.State.ValueRecords {
-			r := &doc.State.ValueRecords[i]
-			if foldStatePath(r.Path) != "/projectiles/ids" {
-				continue
-			}
-			r.Value = sav.CityStateValueData{Kind: 6, Bytes: make([]byte, 4*len(current.IDs))}
+		_, _ = patchStateLeaf(state.RootKind, state.DirectoryRecords, state.ValueRecords, "/Projectiles/IDs", func(v *sav.CityStateValueData) error {
+			*v = sav.CityStateValueData{Kind: 6, Bytes: make([]byte, 4*len(current.IDs))}
 			for j, id := range current.IDs {
-				binary.LittleEndian.PutUint32(r.Value.Bytes[4*j:], uint32(id))
+				binary.LittleEndian.PutUint32(v.Bytes[4*j:], uint32(id))
 			}
-		}
+			return nil
+		})
 	}
+	hasFree, hasIDs := free > 0, idLeaves > 0
 	if !hasFree && current.FreeIndex != 0 || !hasIDs || len(found) != len(values) {
 		if err := constructProjectileLeaves(doc, current, boundIDs, found); err != nil {
 			return err
@@ -311,44 +313,34 @@ func validateSavedProjectileDocument(doc *sav.DocumentData, current sim.SavedPro
 	return nil
 }
 
-// YA1 lookup folds ASCII only. Preserve the stored spelling and unrelated
-// sections; only the bound object's sixteen leaves and retirement are owned.
-func foldStatePath(path string) string {
-	b := []byte(path)
-	for i, c := range b {
-		if c >= 'A' && c <= 'Z' {
-			b[i] = c + ('a' - 'A')
-		}
-	}
-	return string(b)
-}
-
 func completeSavedProjectileRecord(doc *sav.DocumentData, id uint16) bool {
-	root := "/prj" + strconv.Itoa(int(id))
-	count := map[string]int{}
-	ids, free := 0, 0
-	for _, r := range doc.State.ValueRecords {
-		switch foldStatePath(r.Path) {
-		case "/projectiles/ids":
-			ids++
-			if r.Value.Kind != 2 && (r.Value.Kind != 6 || len(r.Value.Bytes)%4 != 0) {
-				return false
-			}
-		case "/projectiles/freeindex":
-			free++
-			if r.Value.Kind != 2 {
-				return false
-			}
+	state := &doc.State
+	leaves := func(path string) []sav.CityStateValueData {
+		var out []sav.CityStateValueData
+		for _, i := range stateLeafRecords(state.RootKind, state.DirectoryRecords, state.ValueRecords, path) {
+			out = append(out, state.ValueRecords[i].Value)
 		}
-		if r.Value.Kind == 2 {
-			count[foldStatePath(r.Path)]++
-		}
+		return out
 	}
-	if ids != 1 || free > 1 {
+	ids, free := leaves("/Projectiles/IDs"), leaves("/Projectiles/FreeIndex")
+	if len(ids) != 1 || len(free) > 1 {
 		return false
 	}
+	if v := ids[0]; v.Kind != 2 && (v.Kind != 6 || len(v.Bytes)%4 != 0) {
+		return false
+	}
+	if len(free) == 1 && free[0].Kind != 2 {
+		return false
+	}
+	root := "/Prj" + strconv.Itoa(int(id))
 	for _, name := range projectileFieldNames {
-		if count[root+"/"+name] != 1 {
+		count := 0
+		for _, v := range leaves(root + "/" + name) {
+			if v.Kind == 2 {
+				count++
+			}
+		}
+		if count != 1 {
 			return false
 		}
 	}

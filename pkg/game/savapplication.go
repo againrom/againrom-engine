@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 
@@ -82,18 +83,13 @@ func validateApplicationState(s *SnapshotApplicationState) error {
 
 func readOriginalStateLeaf(doc *sav.DocumentData, path string, kind uint32) (sav.CityStateValueData, error) {
 	var value sav.CityStateValueData
-	found := false
-	for _, record := range doc.State.ValueRecords {
-		if record.Path != path {
-			continue
-		}
-		if found || record.Value.Kind != kind {
-			return value, fmt.Errorf("original application has ambiguous or invalid %s", path)
-		}
-		found, value = true, record.Value
-	}
-	if !found {
+	at := stateLeafRecords(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, path)
+	if len(at) == 0 {
 		return value, fmt.Errorf("original application is missing %s", path)
+	}
+	value = doc.State.ValueRecords[at[0]].Value
+	if len(at) > 1 || value.Kind != kind {
+		return value, fmt.Errorf("original application has ambiguous or invalid %s", path)
 	}
 	if kind == 2 && len(value.Bytes) != 0 || kind == 6 && (value.Int32 != 0 || len(value.Bytes)%4 != 0) {
 		return value, fmt.Errorf("original application has invalid storage for %s", path)
@@ -694,20 +690,25 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 		}
 	}
 	records := slices.Clone(doc.State.ValueRecords)
-	for i := range records {
-		if characterName != nil && records[i].Path == "/Character/Name" {
-			records[i].Value = sav.CityStateValueData{Kind: 0, Bytes: characterName}
+	set := func(path string, value sav.CityStateValueData) {
+		_, _ = patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, records, path, func(v *sav.CityStateValueData) error {
+			*v = value
+			v.Bytes = slices.Clone(value.Bytes)
+			return nil
+		})
+	}
+	if characterName != nil {
+		set("/Character/Name", sav.CityStateValueData{Kind: 0, Bytes: characterName})
+	}
+	for _, path := range slices.Sorted(maps.Keys(ints)) {
+		set(path, sav.CityStateValueData{Kind: 2, Int32: ints[path]})
+	}
+	for _, path := range slices.Sorted(maps.Keys(arrays)) {
+		data := make([]byte, 4*len(arrays[path]))
+		for j, value := range arrays[path] {
+			binary.LittleEndian.PutUint32(data[4*j:], value)
 		}
-		if value, ok := ints[records[i].Path]; ok {
-			records[i].Value = sav.CityStateValueData{Kind: 2, Int32: value}
-		}
-		if values, ok := arrays[records[i].Path]; ok {
-			data := make([]byte, 4*len(values))
-			for j, value := range values {
-				binary.LittleEndian.PutUint32(data[4*j:], value)
-			}
-			records[i].Value = sav.CityStateValueData{Kind: 6, Bytes: data}
-		}
+		set(path, sav.CityStateValueData{Kind: 6, Bytes: data})
 	}
 	doc.State.ValueRecords = records
 	return nil

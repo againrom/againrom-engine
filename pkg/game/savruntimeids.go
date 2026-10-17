@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -103,7 +102,8 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 	}
 	targets := map[int]uint16{}
 	for i, leaf := range doc.State.ValueRecords {
-		if !strings.HasPrefix(leaf.Path, "/Prj") || !strings.HasSuffix(leaf.Path, "/actiontarget") {
+		root, _ := splitStatePath(leaf.Path)
+		if len(root) < 3 || !stateRecordIs(doc.State.RootKind, doc.State.DirectoryRecords, leaf.Path, "/Prj"+root[3:]+"/actiontarget") {
 			continue
 		}
 		old := uint32(leaf.Value.Int32)
@@ -112,7 +112,7 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 		}
 		var object uint16
 		if drivers != nil {
-			id, err := strconv.ParseUint(strings.TrimSuffix(strings.TrimPrefix(leaf.Path, "/Prj"), "/actiontarget"), 10, 16)
+			id, err := strconv.ParseUint(root[3:], 10, 16)
 			if err != nil {
 				return err
 			}
@@ -186,18 +186,16 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 		savedObjectSetValue(r, "RuntimeID", id)
 	}
 	for i := range doc.State.ValueRecords {
-		leaf := &doc.State.ValueRecords[i]
 		if object := targets[i]; object != 0 {
-			leaf.Value.Int32 = int32(byObject[object])
+			doc.State.ValueRecords[i].Value.Int32 = int32(byObject[object])
 		}
-		if leaf.Path != "/Objects/Selection" {
-			continue
-		}
-		if len(leaf.Value.Bytes)%4 != 0 {
+	}
+	if _, err := patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, "/Objects/Selection", func(leaf *sav.CityStateValueData) error {
+		if len(leaf.Bytes)%4 != 0 {
 			return fmt.Errorf("current selection has a partial runtime ID")
 		}
-		for n := 0; n < len(leaf.Value.Bytes)/4; n++ {
-			old := binary.LittleEndian.Uint32(leaf.Value.Bytes[4*n:])
+		for n := 0; n < len(leaf.Bytes)/4; n++ {
+			old := binary.LittleEndian.Uint32(leaf.Bytes[4*n:])
 			object := uint16(0)
 			if s.ApplicationState != nil && !s.ApplicationState.LocalOnly && n < len(s.ApplicationState.View.Selection) {
 				object = actors[sim.EntityID(s.ApplicationState.View.Selection[n])]
@@ -208,8 +206,11 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 			if object == 0 || byObject[object] == 0 {
 				return fmt.Errorf("current selection has no unique placeable binding")
 			}
-			binary.LittleEndian.PutUint32(leaf.Value.Bytes[4*n:], byObject[object])
+			binary.LittleEndian.PutUint32(leaf.Bytes[4*n:], byObject[object])
 		}
+		return nil
+	}); err != nil {
+		return err
 	}
 	if a != nil {
 		sourceCoordinates := make(map[sim.EntityID]uint32)

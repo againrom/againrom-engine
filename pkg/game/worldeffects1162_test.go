@@ -185,7 +185,7 @@ func beforeWorldEffectForm1162(t *testing.T, b []byte) []byte {
 
 func TestWorldEffects1162ProjectionPreservesOpaqueStoreRows(t *testing.T) {
 	doc := sav.DocumentData{State: sav.DocumentStateData{
-		DirectoryRecords: []sav.CityStateDirectoryData{{Path: "/PRJ7", Kind: 17}, {Path: "/Prj007", Kind: 17}, {Path: "/Prj9", Kind: 17}, {Path: "/Prj999", Kind: 17}},
+		DirectoryRecords: []sav.CityStateDirectoryData{{Path: "/PRJ7", Kind: 1}, {Path: "/Prj007", Kind: 17}, {Path: "/Prj9", Kind: 17}, {Path: "/Prj999", Kind: 17}},
 		ValueRecords: []sav.CityStateRecordData{
 			{Path: "/PROJECTILES/FreeIndex", Value: sav.CityStateValueData{Kind: 2, Int32: 42}},
 			{Path: "/PROJECTILES/IDS", Value: sav.CityStateValueData{Kind: 6, Bytes: []byte{7, 0, 0x34, 0x12, 9, 0, 0, 0, 7, 0, 0x21, 0x43}}},

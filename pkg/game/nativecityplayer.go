@@ -32,24 +32,24 @@ func nativeCityPlayerState(heroIdentity uint32) (fixed, settings []byte) {
 }
 
 // The current canonical Player byte and the application setting index are
-// distinct. A queued UI command may have updated only the latter. With no
-// persisted setting or World, a fresh native Player starts in Auto.
-func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState, world *sim.World) error {
+// distinct. A queued UI command may have updated only the latter. Without
+// application state the loaded town's setting is used; with neither and no
+// World, a fresh native Player starts in Auto.
+func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState, world *sim.World, loaded []sav.CityStateRecordData) error {
 	mode, setting := uint8(2), int32(1)
 	if app != nil {
 		if err := validateApplicationState(app); err != nil {
 			return originalCityUnsupportedf("native Player formation: %v", err)
 		}
 		setting = app.Original.Formation
-		// Same authored-index mapping as sim.remapFormationParameter and the
-		// existing command seam: AI-FORM-037, including its default arm.
-		switch setting {
-		case 0:
-			mode = 0
-		case 2:
-			mode = 1
-		default:
-			mode = 2
+		mode = formationModeOfSetting(setting)
+	} else {
+		for _, r := range loaded {
+			if r.Path == "/GameOptions/Formation" && r.Value.Kind == 2 {
+				setting = r.Value.Int32
+				mode = formationModeOfSetting(setting)
+				break
+			}
 		}
 	}
 	if world != nil {
@@ -76,13 +76,30 @@ func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState
 	if player == nil || len(player.Raw32) != 32 {
 		return originalCityUnsupportedf("native Player formation has no complete settings block")
 	}
-	for i := range data.State.ValueRecords {
-		r := &data.State.ValueRecords[i]
-		if r.Path == "/GameOptions/Formation" && r.Value.Kind == 2 {
-			player.Raw32[31] = mode
-			r.Value.Int32 = setting
-			return nil
+	patched := 0
+	if _, err := patchStateLeaf(data.State.RootKind, data.State.DirectoryRecords, data.State.ValueRecords, "/GameOptions/Formation", func(v *sav.CityStateValueData) error {
+		if v.Kind == 2 {
+			v.Int32 = setting
+			patched++
 		}
+		return nil
+	}); err != nil {
+		return err
 	}
-	return originalCityUnsupportedf("native Player formation has no application setting leaf")
+	if patched == 0 {
+		return originalCityUnsupportedf("native Player formation has no application setting leaf")
+	}
+	player.Raw32[31] = mode
+	return nil
+}
+
+// formationModeOfSetting is AI-FORM-037's mapping, default arm included.
+func formationModeOfSetting(setting int32) uint8 {
+	switch setting {
+	case 0:
+		return 0
+	case 2:
+		return 1
+	}
+	return 2
 }

@@ -89,6 +89,16 @@ func originalQuickSpells(file *sav.File) ([4]uint32, error) {
 	return quickSpellsFromOriginalIndices(value.Ints)
 }
 
+func writeQuickSpellLeaf(doc *sav.DocumentData, shortcuts sav.CityShortcuts) {
+	_, _ = patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, "/SpellBook/Shortcuts", func(v *sav.CityStateValueData) error {
+		v.Bytes = make([]byte, 16)
+		for j, index := range shortcuts {
+			binary.LittleEndian.PutUint32(v.Bytes[j*4:], uint32(index))
+		}
+		return nil
+	})
+}
+
 func originalCityQuickSpells(document *sav.CityProvenance) ([4]uint32, error) {
 	// Data canonicalizes old map-form DTOs to ordered records after validation.
 	for _, record := range document.Data().State.ValueRecords {

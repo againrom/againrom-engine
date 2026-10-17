@@ -15,25 +15,20 @@ import (
 // independent allocator/ordered IDs. This constructor consumes complete live
 // records, never a presentation cast event or an omitted constructor default.
 func constructProjectileLeaves(doc *sav.DocumentData, current sim.SavedProjectiles, bound []uint16, found map[string]bool) error {
-	dirs := map[string]bool{}
-	paths := map[string]bool{}
-	for _, r := range doc.State.DirectoryRecords {
-		dirs[foldStatePath(r.Path)] = true
-	}
-	for _, r := range doc.State.ValueRecords {
-		paths[foldStatePath(r.Path)] = true
-	}
+	state := &doc.State
 	addDir := func(path string) {
-		if !dirs[foldStatePath(path)] {
-			doc.State.DirectoryRecords = append(doc.State.DirectoryRecords, sav.CityStateDirectoryData{Path: path, Kind: 1})
-			dirs[foldStatePath(path)] = true
+		if !hasStateRoot(state.RootKind, state.DirectoryRecords, strings.TrimPrefix(path, "/")) {
+			state.DirectoryRecords = append(state.DirectoryRecords, sav.CityStateDirectoryData{Path: path, Kind: 1})
 		}
 	}
+	has := func(path string) bool {
+		return len(stateLeafRecords(state.RootKind, state.DirectoryRecords, state.ValueRecords, path)) > 0
+	}
 	addDir("/Projectiles")
-	if !paths["/projectiles/freeindex"] {
+	if !has("/Projectiles/FreeIndex") {
 		doc.State.ValueRecords = append(doc.State.ValueRecords, sav.CityStateRecordData{Path: "/Projectiles/FreeIndex", Value: sav.CityStateValueData{Kind: 2, Int32: int32(current.FreeIndex)}})
 	}
-	if !paths["/projectiles/ids"] {
+	if !has("/Projectiles/IDs") {
 		data := make([]byte, 4*len(current.IDs))
 		for i, id := range current.IDs {
 			binary.LittleEndian.PutUint32(data[4*i:], uint32(id))
@@ -47,14 +42,14 @@ func constructProjectileLeaves(doc *sav.DocumentData, current sim.SavedProjectil
 		root := "/Prj" + strconv.Itoa(int(p.ID))
 		count := 0
 		for _, name := range projectileFieldNames {
-			if found[foldStatePath(root+"/"+name)] {
+			if found[root+"/"+name] {
 				count++
 			}
 		}
 		if count == len(projectileFieldNames) {
 			continue
 		}
-		if count != 0 || dirs[foldStatePath(root)] {
+		if count != 0 || hasStateRoot(state.RootKind, state.DirectoryRecords, strings.TrimPrefix(root, "/")) {
 			return fmt.Errorf("current projectile %d has a partial existing section", p.ID)
 		}
 		addDir(root)

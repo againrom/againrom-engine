@@ -116,7 +116,7 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 		var cityData sav.CityData
 		cityData, err = nativeCityDataConstruct(nativeCityRosterMembers(city.Party), nativeCityHumanHiredMembers(city.Party), in.table, city.Difficulty, attach, apply)
 		if err == nil {
-			err = nativeCityPlayerFormation(&cityData, captured.ApplicationState, world)
+			err = nativeCityPlayerFormation(&cityData, captured.ApplicationState, world, nil)
 		}
 		if err == nil {
 			provenance, err = sav.CityFromData(cityData)

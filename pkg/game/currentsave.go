@@ -236,7 +236,7 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	}
 	order := writeCityGroups(&city, s.Party, s.cityGroups)
 	city.MapName = s.LastMap
-	if err := nativeCityPlayerFormation(&city, s.ApplicationState, nil); err != nil {
+	if err := nativeCityPlayerFormation(&city, s.ApplicationState, nil, s.townOptions); err != nil {
 		return sav.DocumentData{}, nil, err
 	}
 	if err := projectCityApplication(&city, s.ApplicationState, s.townOptions); err != nil {
@@ -347,15 +347,7 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
-	for i := range doc.State.ValueRecords {
-		r := &doc.State.ValueRecords[i]
-		if r.Path == "/SpellBook/Shortcuts" {
-			r.Value.Bytes = make([]byte, 16)
-			for j, v := range shortcuts {
-				binary.LittleEndian.PutUint32(r.Value.Bytes[j*4:], uint32(v))
-			}
-		}
-	}
+	writeQuickSpellLeaf(&doc, shortcuts)
 	return doc, nil
 }
 

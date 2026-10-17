@@ -4,8 +4,8 @@ import "againrom/pkg/formats/sav"
 
 // cityApplicationLeaves are the town state-store leaves both original
 // application readers consume on LOAD (SAV-914). The spell shortcuts have
-// their own producer; Formation is carried below together with its Player
-// byte.
+// their own producer; nativeCityPlayerFormation writes Formation together
+// with its Player byte.
 var cityApplicationLeaves = []string{
 	"/GameOptions/FlyingHP", "/GameOptions/ShowHP", "/GameOptions/ShowTimeFlow",
 	"/GameOptions/Speed", "/GameOptions/Wimpy", "/Inventory/IsOpen",
@@ -43,36 +43,18 @@ func projectCityApplication(data *sav.CityData, app *SnapshotApplicationState, l
 	default:
 		return nil
 	}
-	if setting, ok := values["/GameOptions/Formation"]; ok && app == nil {
-		// nativeCityPlayerFormation's AI-FORM-037 mapping, applied to the
-		// loaded setting instead of the fresh-Player default.
-		mode := uint8(2)
-		switch setting {
-		case 0:
-			mode = 0
-		case 2:
-			mode = 1
-		}
-		if len(data.Players) == 1 && data.Players[0] != 0 && int(data.Players[0]) <= len(data.Objects) {
-			if player := data.Objects[data.Players[0]-1].Player; player != nil && len(player.Raw32) == 32 {
-				player.Raw32[31] = mode
-				for i := range state.ValueRecords {
-					if r := &state.ValueRecords[i]; r.Path == "/GameOptions/Formation" && r.Value.Kind == 2 {
-						r.Value.Int32 = setting
-					}
-				}
-			}
-		}
-	}
 	for _, path := range cityApplicationLeaves {
 		v, ok := values[path]
 		if !ok {
 			continue
 		}
-		for i := range state.ValueRecords {
-			if r := &state.ValueRecords[i]; r.Path == path && r.Value.Kind == 2 {
-				r.Value.Int32 = v
+		if _, err := patchStateLeaf(state.RootKind, state.DirectoryRecords, state.ValueRecords, path, func(r *sav.CityStateValueData) error {
+			if r.Kind == 2 {
+				r.Int32 = v
 			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 	return nil

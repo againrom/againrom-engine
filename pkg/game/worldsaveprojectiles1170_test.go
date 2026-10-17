@@ -41,12 +41,12 @@ func TestWorld1170ProjectileConstructorAndRetirement(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, r := range doc.State.DirectoryRecords {
-		if foldStatePath(r.Path) == "/prj11" {
+		if r.Path == "/Prj11" {
 			t.Fatal("retired projectile section resurrected")
 		}
 	}
 	for i, r := range doc.State.ValueRecords {
-		if foldStatePath(r.Path) == "/prj7/x" {
+		if r.Path == "/Prj7/x" {
 			doc.State.ValueRecords = append(doc.State.ValueRecords[:i], doc.State.ValueRecords[i+1:]...)
 			break
 		}
