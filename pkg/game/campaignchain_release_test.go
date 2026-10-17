@@ -547,6 +547,9 @@ func TestReleaseCampaignChainFromMission10(t *testing.T) {
 				chainSide(t, store, town, side)
 			})
 		}
+		t.Run(fmt.Sprintf("services_%d", n), func(t *testing.T) {
+			chainServices(t, raw, town, n == chainServiceControlTown)
+		})
 		f, app = g, ga
 		for _, p := range f.Carried {
 			if p.CompanionNPC == chainLeaves[n] && chainLeaves[n] != 0 {
