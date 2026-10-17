@@ -130,9 +130,6 @@ func (s *mapInspectionEdits) UnitTiers(class int64) ([]ui.InspectionChoice, int6
 	return tierChoices(tiers), int64(face)
 }
 
-// UnitTierLabel is the new-unit tier prompt's label.
-func (s *mapInspectionEdits) UnitTierLabel() string { return s.inspector.word("editor.unit.tier.new") }
-
 // AddUnitTier is AddUnit with the secondary key tier: 0 takes the key of the
 // class's first installed definition row (DIV-3209), any other value must
 // select a Units row of the class.

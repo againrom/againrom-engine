@@ -49,6 +49,7 @@ func TestReleaseMapEditorPlayerNamesKeepSAVBytes(t *testing.T) {
 			if err := e.Key("player"); err != nil {
 				t.Fatal(err)
 			}
+			addSteps(t, e, nil)
 			if err := enterField(e, 0, "\u041c\u0435\u0434\u044c"); err != nil {
 				t.Fatal(err)
 			}

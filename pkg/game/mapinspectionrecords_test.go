@@ -160,20 +160,20 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	}
 	step("delete", func(m *alm.Map, _ []alm.LootRecord) bool { return len(m.Objects) == 2 })
 
-	// Add a sack: S, a click, then the item code.
+	// Add a sack: S opens the Add window, then the cell and the item code.
 	clickCell(e, image.Pt(6, 6))
 	if _, l := editedMap(t, e); len(l) != 1 {
 		t.Fatal("a click without S added a sack")
 	}
 	_ = e.Key("sack")
-	clickCell(e, image.Pt(6, 6))
-	refused("an unnamed item", enterField(e, 0, "999"))
-	_ = e.Key("sack")
-	clickCell(e, image.Pt(6, 6))
-	e.TextInput("257")
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
+	e.TextInput("6,6")
+	_ = e.Key("enter")
+	e.TextInput("999")
+	_ = e.Key("enter")
+	if _, note, _ := e.AddStep(); note == "" || !bytes.Equal(e.Document().SourceBytes, history[len(history)-1]) {
+		t.Fatal("an unnamed item was accepted or wrote")
 	}
+	addSteps(t, e, map[string]string{"item": "257"})
 	step("add sack", func(_ *alm.Map, l []alm.LootRecord) bool {
 		return len(l) == 2 && l[1].Ground() && l[1].X == 6*256+128 && l[1].Y == 6*256+128 && len(l[1].Elements) == 1 && l[1].Elements[0].ItemCode() == 0x0101
 	})

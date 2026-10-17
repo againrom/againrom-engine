@@ -1,7 +1,5 @@
 package ui
 
-import "image"
-
 // The map editor window's modes are held in one value, editorMode. Its layers
 // are the ones an author can have at once: the catalogue instead of the record
 // list, a text prompt, an armed pick, a brush, and the report or script panel.
@@ -12,14 +10,13 @@ import "image"
 type pickKind string
 
 const (
-	pickNone      pickKind = ""
-	pickClone     pickKind = "clone" // a cell to clone the selected record onto
-	pickSack      pickKind = "sack"  // a cell to add a sack on
-	pickUnit      pickKind = "unit"  // a cell to add a unit on
-	pickDrop      pickKind = "drop"  // the cell the party drops on
-	pickGoal      pickKind = "goal"  // a unit or structure for the selected script arm
-	pickStructure pickKind = "structure"
-	pickMove      pickKind = "move" // a cell to move the selected record to
+	pickNone  pickKind = ""
+	pickClone pickKind = "clone" // a cell to clone the selected record onto
+	pickDrop  pickKind = "drop"  // the cell the party drops on
+	pickGoal  pickKind = "goal"  // a unit or structure for the selected script arm
+	pickMove  pickKind = "move"  // a cell to move the selected record to
+	// pickAddCell is the cell step of the Add window.
+	pickAddCell pickKind = "addcell"
 	// pickScriptCell is a cell for the open node popup's cell parameter.
 	pickScriptCell pickKind = "scriptcell"
 )
@@ -28,37 +25,29 @@ const (
 type promptKind uint8
 
 const (
-	promptNone    promptKind = iota
-	promptOpen               // an ALM path to open
-	promptSave               // a new ALM path for Save As
-	promptField              // a value for the selected record's field
-	promptNewSack            // the item code of a sack added on the picked cell
-	promptNewUnit            // the class key of a unit added on the picked cell
-	promptNewStructure
+	promptNone  promptKind = iota
+	promptOpen             // an ALM path to open
+	promptSave             // a new ALM path for Save As
+	promptField            // a value for the selected record's field
 	promptItemRecipe
 	promptRectangle
 	promptWorkspace
-	promptNewScript
-	promptNewUnitTier // the new unit's tier, when its class has several
+	promptAdd // the Add window; its text is the current step's
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
-// cycles to and, for a new record, the cell the click picked.
+// cycles to and, for the Add window, its run.
 type editorPrompt struct {
 	kind  promptKind
-	cell  image.Point
 	field int
 	path  string
 	scope string
-	class int64 // the new unit's class while its tier is asked
+	add   *addRun
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }
-func (p editorPrompt) adds() bool {
-	return p.kind == promptNewSack || p.kind == promptNewUnit || p.kind == promptNewUnitTier || p.kind == promptNewStructure || p.kind == promptNewScript
-}
 func (p editorPrompt) fields() bool {
-	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace || p.adds()
+	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace || p.kind == promptAdd
 }
 
 // editorMode is every layer the window can be in.
@@ -173,5 +162,8 @@ func (e *MapEditor) closeReport() {
 }
 
 // blocksCanvas reports that the map takes no pointer: the catalogue or a
-// prompt covers it.
-func (m *editorMode) blocksCanvas() bool { return m.catalog || m.prompt.open() }
+// prompt covers it. The Add window's cell pick leaves the map to the click.
+func (m *editorMode) blocksCanvas() bool { return m.catalog || m.prompt.open() && !m.addPicking() }
+
+// addPicking reports that the Add window waits for a cell click on the map.
+func (m *editorMode) addPicking() bool { return m.prompt.kind == promptAdd && m.pick == pickAddCell }

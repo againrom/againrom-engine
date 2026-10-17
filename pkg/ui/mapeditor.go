@@ -67,7 +67,6 @@ type InspectionEdits interface {
 	Delete(kind string, index int) (*InspectionDocument, error)
 	Fields(kind string, index int) []InspectionField
 	SetField(kind string, index int, key string, value int64) (*InspectionDocument, error)
-	AddSack(cell image.Point, item int64) (*InspectionDocument, error)
 	Undo() (*InspectionDocument, error)
 	Redo() (*InspectionDocument, error)
 	SaveAs(path string) (string, error)
@@ -314,7 +313,7 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	released := e.down && !in.PrimaryDown && !e.moved
 	e.down = in.PrimaryDown
-	if e.prompt.open() || e.blocksCanvas() {
+	if e.blocksCanvas() {
 		return
 	}
 	e.doc.Viewer.step(in, now)

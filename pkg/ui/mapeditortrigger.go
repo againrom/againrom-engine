@@ -693,22 +693,13 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 	}
 }
 
-// newTrigger adds a trigger and opens it.
+// newTrigger opens the Add window on a new trigger.
 func (e *MapEditor) newTrigger() {
 	if e.objectDirty() {
 		e.obj.note = e.word("editor.trigger.applyfirst")
 		return
 	}
-	host, ok := e.doc.Edits.(InspectionScriptAuthor)
-	if !ok {
-		return
-	}
-	next, err := host.AddScript("Trigger")
-	if e.adoptEdit(next, err) != nil || next == nil {
-		return
-	}
-	e.selectNewest("Trigger")
-	e.Select(e.selected, false)
+	e.openAdd("Trigger")
 }
 
 // deleteTrigger deletes the shown trigger; its nodes stay.

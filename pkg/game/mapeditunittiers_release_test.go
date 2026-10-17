@@ -187,10 +187,10 @@ func fourTierClass(t *testing.T, x *MapInspector) (int16, []unitTier) {
 	return 0, nil
 }
 
-// TestReleaseMapEditorNewUnitTakesTheChosenTier adds a unit through U, a
-// click, the class key and the tier prompt: the record the map gains is the
+// TestReleaseMapEditorNewUnitTakesTheChosenTier adds a unit through the Add
+// window's class, tier and cell steps: the record the map gains is the
 // one NewUnitRecord builds with the chosen tier, and the default tier the
-// prompt offers is the key a unit added without a tier takes.
+// tier step offers is the key a unit added without a tier takes.
 func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
 	x := installedInspector(t)
 	class, tiers := fourTierClass(t, x)
@@ -208,22 +208,12 @@ func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
 		t.Fatalf("UnitTiers(%d) = %d choices, default %d; AddUnit's key %d (%v)", class, len(choices), def, defKey, err)
 	}
 	_ = e.Key("unit")
-	c := &editorClicker{t: t, now: time.Unix(1, 0)}
-	p := e.CellPoint(cell)
-	c.click(e, image.Rectangle{Min: p, Max: p.Add(image.Pt(1, 1))}, true, "the cell")
-	e.TextInput(fmt.Sprint(class))
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(e.Document().SourceBytes, before) {
-		t.Fatal("the class prompt added the unit before its tier was asked")
+	addStepsN(t, e, map[string]string{"class": fmt.Sprint(class)}, 1)
+	if key, _, _ := e.AddStep(); key != "tier" || !bytes.Equal(e.Document().SourceBytes, before) {
+		t.Fatalf("after the class the Add window asks %q; the map changed: %v", key, !bytes.Equal(e.Document().SourceBytes, before))
 	}
 	want := tiers[2].Face
-	_ = e.Key("clear")
-	e.TextInput(fmt.Sprint(want))
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
-	}
+	addSteps(t, e, map[string]string{"tier": fmt.Sprint(want), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
 	witness, err := mapedit.New(before)
 	if err != nil {
 		t.Fatal(err)
@@ -530,18 +520,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	}
 	addUnit := func(e *ui.MapEditor, cell image.Point, class int16, tier uint16) {
 		t.Helper()
-		_ = e.Key("unit")
-		p := e.CellPoint(cell)
-		c.click(e, image.Rectangle{Min: p, Max: p.Add(image.Pt(1, 1))}, true, "the cell")
-		e.TextInput(fmt.Sprint(class))
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
-		_ = e.Key("clear")
-		e.TextInput(fmt.Sprint(tier))
-		if err := e.Key("enter"); err != nil {
-			t.Fatal(err)
-		}
+		addWindow(t, e, "unit", map[string]string{"class": fmt.Sprint(class), "tier": fmt.Sprint(tier), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
 	}
 
 	class, tiers := fourTierClass(t, x)
@@ -558,12 +537,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 
 	e = opened(NewMapSource("32x32"))
 	_ = e.Key("unit")
-	p := e.CellPoint(image.Pt(12, 14))
-	c.click(e, image.Rectangle{Min: p, Max: p.Add(image.Pt(1, 1))}, true, "the cell")
-	e.TextInput(fmt.Sprint(class))
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
-	}
+	addStepsN(t, e, map[string]string{"class": fmt.Sprint(class)}, 1)
 	_ = e.Key("down")
 	shot(e, "new-unit-tier", image.Rectangle{})
 
@@ -582,7 +556,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	e.Select(rec, true)
 	scrollTo(t, e, sheetHeading)
 	cell := e.Document().Records[rec].Cell
-	p = e.CellPoint(cell)
+	p := e.CellPoint(cell)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, c.now)
 	shot(e, "creature-sheet-and-hover", image.Rectangle{})
 

@@ -34,6 +34,10 @@ type mapInspectionEdits struct {
 	reported      []ui.InspectionFinding // the report of the bytes in reportedFor
 	reportedFor   []byte
 	reportedTexts string // the texts folder stamp the report was made under
+
+	// batch is the model every edit call writes while AddRecord runs the
+	// calls of one new record; nil otherwise.
+	batch *mapedit.Editor
 }
 
 func (s *mapInspectionEdits) Dirty() bool {
@@ -64,6 +68,10 @@ func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument,
 }
 
 func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (*ui.InspectionDocument, error) {
+	if s.batch != nil {
+		_, err := apply(s.batch)
+		return nil, err
+	}
 	next := s.model.Clone()
 	changed, err := apply(next)
 	if err != nil || !changed {

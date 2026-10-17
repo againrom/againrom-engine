@@ -591,6 +591,9 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		if e.filter == editorScriptsFilter {
 			s.Notes = []string{"A: add script record / E: fields"}
 		}
+		if _, ok := e.listAdd(); ok {
+			s.Buttons = []string{e.word("editor.button.add")}
+		}
 		if m.Len() == 0 && e.filter == 7 && e.doc != nil {
 			s.Notes = []string{editorClip(e.bodyFont(), e.doc.ScriptNotice, 380)}
 		}
@@ -600,6 +603,14 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		s.Notes = append(s.Notes, fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len()))
 	}
 	return s, true
+}
+
+// listAdd is the kind the shown records list's Add button adds.
+func (e *MapEditor) listAdd() (addKindRow, bool) {
+	if _, ok := e.addHost(); !ok || e.listKind() != "records" {
+		return addKindRow{}, false
+	}
+	return addKindFor(e.filter)
 }
 
 // listChoose acts on list row n: open a map, pick a finding or a brush row,
@@ -660,7 +671,8 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		return s, links, true
 	}
 	// A cell pick moves the object popup aside: the pick is a click on the map.
-	if e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.selected < 0 || e.selected >= len(e.doc.Records) {
+	// The Add window stands in its place until it closes.
+	if e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
 	if v, ok := e.scriptPopup(); ok {
@@ -733,8 +745,12 @@ func (e *MapEditor) objectRowsShown(buttons bool) int {
 
 // promptSpec is the prompt and the message as one popup.
 func (e *MapEditor) promptSpec() (popupSpec, bool) {
-	if !e.prompt.open() && e.message == "" {
+	if !e.prompt.open() && e.message == "" || e.addPicking() {
 		return popupSpec{}, false
+	}
+	if e.prompt.kind == promptAdd {
+		s, _ := e.addSpec()
+		return s, true
 	}
 	w := min(560, e.window.X-16)
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
@@ -784,6 +800,9 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 }
 
 func (e *MapEditor) promptTitle() string {
+	if r, ok := e.addRunning(); ok {
+		return r.title
+	}
 	switch {
 	case e.prompt.fields():
 		return e.fieldTitle()
@@ -830,6 +849,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	}
 	if s, ok := e.promptSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+		e.drawAddPreview(pic, s)
 	}
 	e.drawOpenDropdown(pic)
 	if b, ok := e.openMenuEntry(); ok {
@@ -996,7 +1016,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		return false
 	}
 	target := e.chromeHit(p)
-	modal := e.prompt.open() || e.message != ""
+	modal := e.prompt.open() && !e.addPicking() || e.message != ""
 	if target == popNone && !modal {
 		return false
 	}
@@ -1040,6 +1060,8 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 		if e.menuModel != nil {
 			e.menuModel.Move(editorWheelRows(&e.listWheel, wheel))
 		}
+	case popPrompt:
+		e.addWheel(wheel)
 	}
 }
 
@@ -1065,6 +1087,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			}
 		}
 	case popPrompt:
+		if e.prompt.kind == promptAdd {
+			e.addPress(p, double)
+			return
+		}
 		s, _ := e.promptSpec()
 		part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 		switch {
@@ -1114,6 +1140,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				} else {
 					_ = e.Key("open")
 				}
+			} else if row, ok := e.listAdd(); ok {
+				e.openAdd(row.Kind)
 			}
 		}
 	}

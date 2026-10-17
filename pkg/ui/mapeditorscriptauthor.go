@@ -1,9 +1,5 @@
 package ui
 
-type InspectionScriptAuthor interface {
-	AddScript(kind string) (*InspectionDocument, error)
-}
-
 const editorScriptsFilter = 9
 
 func scriptRecord(kind string) bool {
@@ -23,16 +19,4 @@ func (e *MapEditor) keyScripts(string) error {
 	}
 	e.message = ""
 	return nil
-}
-
-func (e *MapEditor) addScriptKey() bool {
-	if !e.editable() || !e.listView() || e.filter != editorScriptsFilter {
-		return false
-	}
-	if _, ok := e.doc.Edits.(InspectionScriptAuthor); !ok {
-		return false
-	}
-	e.leave(leaveDrag | leavePick)
-	e.openPrompt(editorPrompt{kind: promptNewScript, path: "0"})
-	return true
 }

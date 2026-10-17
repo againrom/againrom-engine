@@ -18,8 +18,6 @@ type helpScreen uint8
 const (
 	screenKeys    helpScreen = iota // no pick, panel or brush: the keys
 	screenClone                     // a clone is armed
-	screenSack                      // a sack is armed
-	screenUnit                      // a unit is armed
 	screenDrop                      // the drop cell is armed
 	screenGoal                      // a script arm's target is armed
 	screenGoals                     // the script panel is open
@@ -27,9 +25,10 @@ const (
 	screenHeight                    // the height brush
 	screenObjects                   // the objects brush
 	screenPlayers                   // the roster list
-	screenStructure
 	screenPrompt
 	screenMove
+	screenAdd     // the Add window
+	screenAddCell // the Add window's cell is armed
 	screenCount
 )
 
@@ -78,10 +77,11 @@ func init() {
 	line0, line1, line2, line3 := "Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H, B: brush", "N: new map / U: unit"
 	line4, line5 := "P: players / F5: test play", "M: map / X: pages / W: mod"
 	promptLine := "Enter: set / Tab: next / Esc: back"
+	addLine, addChoose := "Enter: next / Esc: cancel", "Up, Down: choose"
 	arms := "Up, Down: select / G: close"
 	players, playerFields := "P: records / A: add / Del: delete", "Up, Down: select / E: fields"
 	editorKeyRows = []keyRow{
-		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, "Enter: pick a target"}, {screenPrompt, promptLine}}},
+		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, "Enter: pick a target"}, {screenPrompt, promptLine}, {screenAdd, addLine}}},
 		{key: "clone", label: "C", act: (*MapEditor).recordKey, help: keys(line0)},
 		{key: "delete", label: "Del", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, line0}, {screenPlayers, players}}},
 		{key: "field", label: "E", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, line1}, {screenPlayers, playerFields}}},
@@ -100,17 +100,17 @@ func init() {
 		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
 		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, line4}, {screenPlayers, players}}},
-		{key: "player", label: "A", act: (*MapEditor).keyPlayer, help: []helpEntry{{screenPlayers, players}}},
+		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, players}}},
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(line4)},
 		{key: "scripts", label: "F2", act: (*MapEditor).keyScripts, help: keys("F1: all keys / F2: scripts")},
 		{key: "metadata", label: "M", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys / F2: scripts")},
-		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenSack, "Sack: click a cell"}, {screenUnit, "Unit: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenStructure, "Structure: click a cell"}, {screenMove, "Move: click a cell"}}},
-		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenSack, "Esc: cancel"}, {screenUnit, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenStructure, "Esc: cancel"}, {screenMove, "Esc: cancel"}}},
-		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
-		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}}},
+		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenMove, "Move: click a cell"}, {screenAddCell, "Cell: click a cell"}}},
+		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenMove, "Esc: cancel"}, {screenAdd, addLine}, {screenAddCell, "Esc: back"}}},
+		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}, {screenAdd, addChoose}}},
+		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}, {screenAdd, addChoose}}},
 		{key: "close", live: promptHears, act: (*MapEditor).keyClose, unlisted: unlistedWindow},
 		{key: "open", act: (*MapEditor).keyOpen, unlisted: unlistedRail},
 		{key: "catalog", act: (*MapEditor).keyCatalog, unlisted: unlistedRail},
@@ -164,11 +164,17 @@ func EditorHelpLines() []string {
 var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects}
 
 // pickScreens is the help screen of each armed pick.
-var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickSack: screenSack, pickUnit: screenUnit, pickDrop: screenDrop, pickGoal: screenGoal, pickStructure: screenStructure, pickMove: screenMove}
+var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickDrop: screenDrop, pickGoal: screenGoal, pickMove: screenMove, pickAddCell: screenAddCell}
 
 // helpScreen is the help for the window's mode: an active brush, the armed
 // pick, the script panel, or the keys.
 func (e *MapEditor) helpScreen() helpScreen {
+	if e.addPicking() {
+		return screenAddCell
+	}
+	if e.prompt.kind == promptAdd {
+		return screenAdd
+	}
 	if e.prompt.open() {
 		return screenPrompt
 	}
@@ -297,7 +303,12 @@ func (e *MapEditor) keyEnter(string) error {
 		return nil
 	}
 	switch e.prompt.kind {
-	case promptField, promptNewSack, promptNewUnit, promptNewUnitTier, promptNewStructure, promptWorkspace, promptNewScript:
+	case promptAdd:
+		if !e.addPicking() {
+			e.addNext()
+		}
+		return nil
+	case promptField, promptWorkspace:
 		return e.setField(e.prompt.path)
 	case promptItemRecipe:
 		return e.setItemRecipe(e.prompt.path)
@@ -331,6 +342,10 @@ func (e *MapEditor) keyStep(key string) error {
 	delta := 1
 	if key == "up" {
 		delta = -1
+	}
+	if e.prompt.kind == promptAdd {
+		e.addMove(delta)
+		return nil
 	}
 	if e.prompt.fields() {
 		e.stepChoice(delta)
@@ -419,6 +434,7 @@ func (e *MapEditor) keyBackspace(string) error {
 		if len(r) > 0 {
 			e.prompt.path = string(r[:len(r)-1])
 		}
+		e.addFollow()
 	}
 	return nil
 }

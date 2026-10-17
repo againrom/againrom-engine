@@ -71,10 +71,7 @@ func (h *popupHost) Clone(string, int, image.Point) (*InspectionDocument, error)
 	return nil, nil
 }
 func (h *popupHost) Delete(string, int) (*InspectionDocument, error) { return nil, nil }
-func (h *popupHost) AddSack(image.Point, int64) (*InspectionDocument, error) {
-	return nil, nil
-}
-func (h *popupHost) SaveAs(string) (string, error) { return "", errors.New("no writer") }
+func (h *popupHost) SaveAs(string) (string, error)                   { return "", errors.New("no writer") }
 func (h *popupHost) Undo() (*InspectionDocument, error) {
 	h.cursor--
 	h.restore(h.history[h.cursor-1])

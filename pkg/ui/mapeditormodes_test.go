@@ -74,9 +74,6 @@ func (p *modesBase) Fields(k string, i int) []InspectionField {
 func (p *modesBase) SetField(k string, i int, key string, v int64) (*InspectionDocument, error) {
 	return p.next("SetField %s %d %s %d", k, i, key, v)
 }
-func (p *modesBase) AddSack(c image.Point, item int64) (*InspectionDocument, error) {
-	return p.next("AddSack %v %d", c, item)
-}
 func (p *modesBase) Undo() (*InspectionDocument, error) {
 	p.calls.add("Undo")
 	p.dirty = false
@@ -108,9 +105,6 @@ var modesFindings = []InspectionFinding{
 // modesFull adds the optional seams: script, brush, units and the report.
 type modesFull struct{ modesBase }
 
-func (p *modesFull) AddStructure(c image.Point, kind int64) (*InspectionDocument, error) {
-	return p.next("AddStructure %v %d", c, kind)
-}
 func (p *modesFull) AddStock(unit int) (*InspectionDocument, error) {
 	return p.next("AddStock %d", unit)
 }
@@ -139,12 +133,29 @@ func (p *modesFull) BrushObjects() []BrushObject {
 func (p *modesFull) Paint(s BrushStroke) (*InspectionDocument, error) {
 	return p.next("Paint %v %d %d %d", s.Plane == BrushPlaneHeight, s.Value, s.Radius, len(s.Cells))
 }
-func (p *modesFull) AddUnit(c image.Point, class int64) (*InspectionDocument, error) {
-	return p.next("AddUnit %v %d", c, class)
+
+// NewRecordStep offers two choices for a choice step, "New" for a name and
+// 1 for a number; the tier gets none, so its step is left out.
+func (p *modesFull) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
+	switch key {
+	case "tier":
+		return InspectionNewStep{}
+	case "name":
+		return InspectionNewStep{Text: "New"}
+	case "colour", "group":
+		return InspectionNewStep{Value: 1}
+	}
+	return InspectionNewStep{Choices: []InspectionChoice{{Value: 1, Label: "1: One"}, {Value: 2, Label: "2: Two"}}, Value: 1}
 }
-func (p *modesFull) AddPlayer() (*InspectionDocument, error) {
-	p.players = append(p.players, fmt.Sprintf("Player %d", len(p.players)+1))
-	return p.next("AddPlayer")
+func (p *modesFull) CheckNewRecord(InspectionNewRecord, string) error { return nil }
+func (p *modesFull) NewRecordPreview(string, string, int64) *image.RGBA {
+	return nil
+}
+func (p *modesFull) AddRecord(r InspectionNewRecord) (*InspectionDocument, error) {
+	if r.Kind == "Player" {
+		p.players = append(p.players, fmt.Sprintf("Player %d", len(p.players)+1))
+	}
+	return p.next("AddRecord %s %v %v %v", r.Kind, r.Cell, r.HasCell, r.Values)
 }
 func (p *modesFull) SetTextField(k string, i int, key, value string) (*InspectionDocument, error) {
 	if k == "Player" && key == "name" {
@@ -305,6 +316,14 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:esc-twice":
 		_ = e.Key("escape")
 		_ = e.Key("escape")
+	case "ui:add-pick":
+		if s, acts := e.addSpecOK(); acts != nil {
+			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+				if acts[rr.Index].button == "pick" {
+					modesClick(e, center(rr.Button))
+				}
+			}
+		}
 	case "ui:pick-move":
 		if s, _, ok := e.objectSpec(); ok && e.obj.cell >= 0 {
 			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
@@ -445,6 +464,12 @@ var modesPaths = []modesPath{
 	{"sack-prompt-tab", []string{"sack", "ui:click-cell", "tab"}},
 	{"unit", []string{"unit"}},
 	{"unit-prompt", []string{"unit", "ui:click-cell"}},
+	{"unit-owner", []string{"unit", "enter"}},
+	{"unit-cell", []string{"unit", "enter", "enter"}},
+	{"unit-pick", []string{"unit", "enter", "enter", "ui:add-pick"}},
+	{"unit-picked", []string{"unit", "enter", "enter", "ui:add-pick", "ui:click-cell"}},
+	{"add-player", []string{"players", "player"}},
+	{"add-script", []string{"scripts", "player"}},
 	{"new-structure", []string{"structure"}},
 	{"new-structure-prompt", []string{"structure", "ui:click-cell"}},
 	{"drop", []string{"drop"}},
@@ -576,14 +601,18 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 	keys := "N: new map / U: unit"
 	prompt := "Enter: set / Tab: next / Esc: back"
 	players := "P: records / A: add / Del: delete"
+	add := "Enter: next / Esc: cancel"
 	rows := []modesRow{
 		{"full", "list", "clone", keys, "Select a unit, structure or sack first.", "", false, false},
 		{"full", "selected", "clone", "Clone: click a cell", "", "", false, false},
 		{"full", "selected", "ui:click-cell", keys, "", "", false, false},
 		{"full", "clone", "escape", keys, "", "", false, false},
 		{"full", "sack", "escape", keys, "", "", false, false},
-		{"full", "list", "sack", "Sack: click a cell", "", "", false, false},
-		{"full", "list", "unit", "Unit: click a cell", "", "", false, false},
+		{"full", "list", "sack", add, "", "Add sack", false, false},
+		{"full", "list", "unit", add, "", "Add unit", false, false},
+		{"full", "unit-cell", "ui:add-pick", "Cell: click a cell", "", "Add unit", false, false},
+		{"full", "unit-pick", "ui:click-cell", add, "", "Add unit", false, false},
+		{"full", "unit-pick", "escape", add, "", "Add unit", false, false},
 		{"plain", "list", "unit", keys, "", "", false, false},
 		{"full", "list", "drop", "Drop cell: click a cell", "", "", false, false},
 		{"full", "list", "goals", "Enter: pick a target", "", "", true, false},
@@ -606,8 +635,8 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "selected", "field", prompt, "", "First / Tab: next / Enter: set", false, false},
 		{"full", "field", "tab", prompt, "", "Second / Tab: next / Enter: set", false, false},
 		{"full", "list", "field", keys, "Select a unit, structure or sack first.", "", false, false},
-		{"full", "sack", "ui:click-cell", prompt, "", "Item code for the new sack / Enter: add", false, false},
-		{"full", "unit", "ui:click-cell", prompt, "", "Class key for the new unit / Enter: add", false, false},
+		{"full", "sack", "ui:click-cell", add, "", "Add sack", false, false},
+		{"full", "unit", "ui:click-cell", add, "", "Add unit", false, false},
 		{"full", "sack-prompt", "escape", keys, "", "", false, false},
 		{"full", "list", "catalog", keys, "", "", false, false},
 		{"full", "catalog-open", "escape", keys, "", "", false, false},
@@ -620,7 +649,7 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "list", "players", players, "", "", false, false},
 		{"full", "players", "field", prompt, "", "Name / Tab: next / Enter: set", false, false},
 		{"full", "player-name", "tab", prompt, "", "Colour (0..15) / Tab: next / Enter: set", false, false},
-		{"full", "players", "player", players, "", "", false, false},
+		{"full", "players", "player", add, "", "Add player", false, false},
 		{"plain", "players", "player", players, "", "", false, false},
 		{"full", "players", "delete", players, "The first player cannot be deleted.", "", false, false},
 		{"full", "players", "escape", players, "", "", false, false}, // Esc closes the player's popup first

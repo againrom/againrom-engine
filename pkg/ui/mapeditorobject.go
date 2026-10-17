@@ -551,7 +551,7 @@ func (e *MapEditor) chooseGroup(g editorGroup) {
 // groupSpec is the chosen group's popup: a row per member that opens it.
 func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 	g := e.groupSel
-	if !g.set || e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.selected >= 0 {
+	if !g.set || e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected >= 0 {
 		return popupSpec{}, nil, false
 	}
 	if !e.objPlaced {
@@ -562,7 +562,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 	s.Rows = []popupRow{{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)}, {Kind: popupHeading, Label: e.word("editor.group.members")}}
 	for _, id := range g.members {
 		if id < len(e.doc.Records) {
-			s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: e.recordSummary(id)})
+			s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: editorClip(e.bodyFont(), e.recordSummary(id), s.Width-2*popupPad-8)})
 			links = append(links, -(id + 1))
 		}
 	}

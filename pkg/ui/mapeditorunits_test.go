@@ -11,4 +11,3 @@ func (noUnitAuthoring) Fields(string, int) []InspectionField                    
 func (noUnitAuthoring) SetField(string, int, string, int64) (*InspectionDocument, error) {
 	return nil, nil
 }
-func (noUnitAuthoring) AddSack(image.Point, int64) (*InspectionDocument, error) { return nil, nil }

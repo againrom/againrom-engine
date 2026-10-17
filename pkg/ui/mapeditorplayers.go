@@ -1,9 +1,5 @@
 package ui
 
-type InspectionPlayers interface {
-	AddPlayer() (*InspectionDocument, error)
-}
-
 type InspectionTextFields interface {
 	SetTextField(kind string, index int, key, value string) (*InspectionDocument, error)
 }
@@ -37,25 +33,13 @@ func (e *MapEditor) keyPlayers(string) error {
 	return nil
 }
 
-func (e *MapEditor) keyPlayer(string) error {
-	if e.addScriptKey() {
+// keyAdd opens the Add window on the kind the shown list holds.
+func (e *MapEditor) keyAdd(string) error {
+	if !e.listView() || e.brushActive() {
 		return nil
 	}
-	if !e.editable() || !e.listView() || e.brushActive() || e.filter != editorPlayersFilter {
-		return nil
-	}
-	p, ok := e.doc.Edits.(InspectionPlayers)
-	if !ok {
-		return nil
-	}
-	e.leave(leaveDrag | leavePick | leaveBrush)
-	next, err := p.AddPlayer()
-	if err := e.adoptEdit(next, err); err != nil {
-		return err
-	}
-	if next != nil {
-		e.selectNewest("Player")
-		e.Select(e.selected, false)
+	if row, ok := addKindFor(e.filter); ok {
+		e.openAdd(row.Kind)
 	}
 	return nil
 }

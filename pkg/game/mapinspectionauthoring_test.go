@@ -25,11 +25,9 @@ func TestMapEditorRecordAuthoringMissingRoutes(t *testing.T) {
 	t.Run("first structure", func(t *testing.T) {
 		_, e := openRecords(t)
 		n := len(e.Document().Records)
-		_ = e.Key("structure")
-		clickCell(e, image.Pt(10, 2))
-		e.TextInput("5")
-		if err := e.Key("enter"); err != nil || len(e.Document().Records) != n+1 {
-			t.Fatalf("J/cell/kind/Enter adds no structure: %v", err)
+		recordAddInput(t, e, "structure", image.Pt(10, 2), 5)
+		if len(e.Document().Records) != n+1 {
+			t.Fatal("J/kind/owner/cell adds no structure")
 		}
 	})
 	t.Run("unit group", func(t *testing.T) {

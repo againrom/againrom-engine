@@ -31,22 +31,17 @@ func recordFieldInput(t *testing.T, e *ui.MapEditor, key string, value int64) {
 	t.Fatalf("%s %d has no field %s", r.Kind, r.Index, key)
 }
 
+// recordAddInput adds a unit of class value, a structure of kind value or a
+// sack of item value on cell through the Add window, every other step at its
+// default.
 func recordAddInput(t *testing.T, e *ui.MapEditor, key string, cell image.Point, value int64) {
 	t.Helper()
-	if err := e.Key(key); err != nil {
-		t.Fatal(err)
+	v, c := strconv.FormatInt(value, 10), fmt.Sprintf("%d,%d", cell.X, cell.Y)
+	values := map[string]map[string]string{"unit": {"class": v, "cell": c}, "structure": {"kind": v, "cell": c}, "sack": {"cell": c, "item": v}}[key]
+	if values == nil {
+		t.Fatalf("no Add window for %s", key)
 	}
-	clickCell(e, cell)
-	e.TextInput(strconv.FormatInt(value, 10))
-	before := len(e.Document().Records)
-	if err := e.Key("enter"); err != nil {
-		t.Fatalf("%s: %v", key, err)
-	}
-	if key == "unit" && len(e.Document().Records) == before {
-		if err := e.Key("enter"); err != nil {
-			t.Fatalf("%s tier: %v", key, err)
-		}
-	}
+	addWindow(t, e, key, values)
 }
 
 func recordRecipeInput(t *testing.T, e *ui.MapEditor, magnitude int64) {
@@ -408,13 +403,32 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 			t.Fatalf("%s has no visible installed name: %+v", c.kind, rows)
 		}
 		chosen[c.kind] = rows[0].Value
+		// The Add window's list walks with Down and Up; a many step takes the
+		// highlighted row with Enter and goes on with the next.
 		_ = e.Key(c.key)
-		clickCell(e, c.cell)
-		if err := e.Key("down"); err != nil {
-			t.Fatal(err)
-		}
-		if err := e.Key("enter"); err != nil {
-			t.Fatalf("%s named choice refused: %v", c.kind, err)
+		for n := 0; n < 16; n++ {
+			key, _, open := e.AddStep()
+			if !open {
+				break
+			}
+			switch key {
+			case c.field:
+				_ = e.Key("down")
+				if c.kind == "Sack" {
+					_ = e.Key("enter")
+				} else {
+					_ = e.Key("up")
+				}
+			case "cell":
+				_ = e.Key("clear")
+				e.TextInput(fmt.Sprintf("%d,%d", c.cell.X, c.cell.Y))
+			}
+			if err := e.Key("enter"); err != nil {
+				t.Fatalf("%s named choice refused: %v", c.kind, err)
+			}
+			if _, note, open := e.AddStep(); open && note != "" {
+				t.Fatalf("%s step %s refused: %s", c.kind, key, note)
+			}
 		}
 	}
 	m, _ := alm.Open(e.Document().SourceBytes)

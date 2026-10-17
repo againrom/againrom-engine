@@ -258,7 +258,7 @@ func TestReleaseMapEditorStructuresAndSacksPlayAsModMission(t *testing.T) {
 		}
 		apply(docs.Move("Structure", p.M, p.New.Min))
 		apply(docs.Delete("Structure", p.D))
-		apply(docs.AddSack(cell, int64(p.Item)))
+		apply(docs.(*mapInspectionEdits).AddSack(cell, int64(p.Item)))
 	})
 	f, hero = openGuestHero(t, edited)
 	after := f.live.world.Structures()

@@ -2,27 +2,17 @@ package ui
 
 import (
 	"fmt"
-	"image"
 	"strconv"
 	"strings"
 )
 
 type InspectionRecords interface {
-	AddStructure(cell image.Point, kind int64) (*InspectionDocument, error)
 	AddStock(unit int) (*InspectionDocument, error)
 	AddItemRecipe(kind string, index int, item int64) (*InspectionDocument, error)
 }
 
 type InspectionRecordChoices interface {
 	RecordChoices(kind string, index int, key string) []InspectionChoice
-}
-
-func (e *MapEditor) newRecordField(kind, key, label string) []InspectionField {
-	f := InspectionField{Key: key, Label: label}
-	if host, ok := e.doc.Edits.(InspectionRecordChoices); ok {
-		f.Choices = host.RecordChoices(kind, -1, key)
-	}
-	return []InspectionField{f}
 }
 
 func (e *MapEditor) recipeItemField() []InspectionField {
@@ -38,15 +28,16 @@ func (e *MapEditor) keyRecords(key string) error {
 	if !e.editable() || e.catalog {
 		return nil
 	}
+	if key == "structure" {
+		e.leave(leaveReport)
+		e.openAdd("Structure")
+		return nil
+	}
 	host, ok := e.doc.Edits.(InspectionRecords)
 	if !ok {
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush | leaveReport)
-	if key == "structure" {
-		e.armPick(pickStructure)
-		return nil
-	}
 	kind, index := e.selectedRecord()
 	if key == "stock" {
 		if kind != "Unit" {

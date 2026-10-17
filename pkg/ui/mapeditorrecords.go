@@ -34,27 +34,19 @@ func (e *MapEditor) selectedRecord() (string, int) {
 	return "", -1
 }
 
-// promptFields are the rows the field prompt cycles through: the new sack's
-// item code while a sack waits for one, else the selected record's fields.
+// promptFields are the rows the field prompt cycles through: the recipe's
+// item, the workspace's fields, else the selected record's fields.
 func (e *MapEditor) promptFields() []InspectionField {
 	switch e.prompt.kind {
-	case promptNewScript:
-		return []InspectionField{{Key: "kind", Label: "New script record", Choices: []InspectionChoice{{0, "Action"}, {1, "Condition"}, {2, "Trigger"}}}}
 	case promptWorkspace:
 		if host, ok := e.workspace(); ok {
 			return host.WorkspaceFields(e.prompt.scope)
 		}
 		return nil
-	case promptNewUnit:
-		return e.newRecordField("Unit", "class", "Class key for the new unit")
-	case promptNewUnitTier:
-		return e.newUnitTierField()
-	case promptNewSack:
-		return e.newRecordField("Sack", "item", "Item code for the new sack")
-	case promptNewStructure:
-		return e.newRecordField("Structure", "kind", "Kind for the new structure")
 	case promptItemRecipe:
 		return e.recipeItemField()
+	case promptAdd:
+		return nil
 	}
 	kind, index := e.selectedRecord()
 	if index < 0 {
@@ -64,12 +56,15 @@ func (e *MapEditor) promptFields() []InspectionField {
 }
 
 // recordKey handles the authoring keys: C arms a clone onto the next clicked
-// cell, S arms a new sack on the next clicked cell, Delete removes the
-// selected record, E opens the field prompt and Tab moves it to the next
-// field. Each accepted change is one history entry.
+// cell, S opens the Add window on a new sack, Delete removes the selected
+// record, E opens the field prompt and Tab moves it to the next field. Each
+// accepted change is one history entry.
 func (e *MapEditor) recordKey(key string) error {
 	if key == "tab" && e.objectTyping() {
 		e.obj.focus, e.obj.open = e.nextObjectField(e.obj.focus), -1
+		return nil
+	}
+	if key == "tab" && e.prompt.kind == promptAdd {
 		return nil
 	}
 	if key == "tab" {
@@ -87,8 +82,9 @@ func (e *MapEditor) recordKey(key string) error {
 		return nil
 	}
 	if key == "sack" {
-		e.leave(leaveDrag)
-		e.armPick(pickSack)
+		if !e.catalog {
+			e.openAdd("Sack")
+		}
 		return nil
 	}
 	if key == "drop" || key == "goals" {
@@ -140,9 +136,6 @@ func (e *MapEditor) fieldTitle() string {
 	if e.prompt.field >= len(fields) {
 		return "Field / Enter: set"
 	}
-	if e.prompt.adds() {
-		return choiceTitle(fields[e.prompt.field], e.prompt.path) + " / Enter: add"
-	}
 	return fmt.Sprintf("%s / Tab: next / Enter: set", choiceTitle(fields[e.prompt.field], e.prompt.path))
 }
 
@@ -158,8 +151,6 @@ func (e *MapEditor) setField(text string) error {
 	field := fields[e.prompt.field]
 	var next *InspectionDocument
 	var err error
-	newKind := ""
-	adds := e.prompt.adds()
 	if field.Text {
 		host, ok := e.doc.Edits.(InspectionTextFields)
 		if !ok {
@@ -174,33 +165,17 @@ func (e *MapEditor) setField(text string) error {
 			e.message = "Enter a whole number."
 			return parseErr
 		}
-		if e.prompt.kind == promptNewScript {
-			kinds := []string{"Action", "Condition", "Trigger"}
-			if v < 0 || v >= int64(len(kinds)) {
-				return fmt.Errorf("Choose Action, Condition or Trigger")
-			}
-			newKind = kinds[v]
-			next, err = e.doc.Edits.(InspectionScriptAuthor).AddScript(newKind)
-		} else if e.prompt.kind == promptNewUnit && e.askUnitTier(v) {
-			return nil
-		} else if adds {
-			next, newKind, err = e.addRecord(e.prompt.cell, v)
-		} else {
-			kind, index := e.selectedRecord()
-			next, err = e.doc.Edits.SetField(kind, index, field.Key, v)
-		}
+		kind, index := e.selectedRecord()
+		next, err = e.doc.Edits.SetField(kind, index, field.Key, v)
 	}
 	if err := e.adoptEdit(next, err); err != nil {
 		return err
-	}
-	if adds && next != nil {
-		e.selectNewest(newKind)
 	}
 	e.leave(leavePrompt)
 	return nil
 }
 
-// pickAt finishes an armed clone or sack on the ground cell under p.
+// pickAt finishes an armed pick on the ground cell under p.
 func (e *MapEditor) pickAt(p image.Point) {
 	pick := e.pick
 	e.leave(leavePick)
@@ -213,16 +188,8 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.message = "Click a map cell."
 		return
 	}
-	if pick == pickSack {
-		e.openPrompt(editorPrompt{kind: promptNewSack, cell: image.Pt(x, y)})
-		return
-	}
-	if pick == pickUnit {
-		e.openPrompt(editorPrompt{kind: promptNewUnit, cell: image.Pt(x, y)})
-		return
-	}
-	if pick == pickStructure {
-		e.openPrompt(editorPrompt{kind: promptNewStructure, cell: image.Pt(x, y)})
+	if pick == pickAddCell {
+		e.addPicked(image.Pt(x, y))
 		return
 	}
 	if pick == pickDrop {
@@ -253,7 +220,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 }
 
 // selectNewest selects the record of kind with the highest index, which is
-// where a clone or a new sack is appended.
+// where a clone or a new record is appended.
 func (e *MapEditor) selectNewest(kind string) {
 	best := -1
 	for i, r := range e.doc.Records {

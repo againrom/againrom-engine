@@ -33,10 +33,12 @@ func TestMapEditorPlayersUseRecordFieldsAndOneEditPerKey(t *testing.T) {
 	if e.doc.Records[e.selected].Index != 0 {
 		t.Fatal("Up did not select the first player")
 	}
-	if err := e.Key("player"); err != nil {
-		t.Fatal(err)
+	for _, key := range []string{"player", "enter", "enter", "enter"} {
+		if err := e.Key(key); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if len(calls.lines) != 1 || calls.lines[0] != "AddPlayer" || len(e.rows()) != 3 || e.doc.Records[e.selected].Index != 2 {
+	if len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord Player") || len(e.rows()) != 3 || e.doc.Records[e.selected].Index != 2 {
 		t.Fatal("add did not make one edit and select the appended player", calls.lines, e.selected)
 	}
 	for _, edit := range []struct {
@@ -130,7 +132,7 @@ func TestMapEditorPlayersNeedOptionalAddAndTextHosts(t *testing.T) {
 	_ = e.Key("players")
 	_ = e.Key("player")
 	if len(e.rows()) != 2 || len(calls.lines) != 0 {
-		t.Fatal("a host without AddPlayer received an edit", calls.lines)
+		t.Fatal("a host without the Add window received an edit", calls.lines)
 	}
 	_ = e.Key("field")
 	if err := e.Key("enter"); err == nil || !e.prompt.open() || e.Message() != "This host cannot edit text fields." || len(calls.lines) != 0 {

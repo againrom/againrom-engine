@@ -138,7 +138,7 @@ func TestReleaseMapEditorTriggerPopupWritesTheFieldCallBytes(t *testing.T) {
 
 func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	set := c.Document().Edits.(ui.InspectionFieldSet)
-	author := c.Document().Edits.(ui.InspectionScriptAuthor)
+	author := c.Document().Edits.(*mapInspectionEdits)
 	trigger := func() ui.InspectionTrigger { return e.Document().Script.Triggers[ti] }
 	trigIndex := e.Document().Records[trigger().Record].Index
 	selectTrigger := func() { e.Select(e.Document().Script.Triggers[ti].Record, true) }
@@ -331,6 +331,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	n := len(e.Document().Script.Triggers)
 	r, ok = e.PopupButtonRect(2)
 	trigClick(t, e, r, ok, "New")
+	addSteps(t, e, nil)
 	d, err := author.AddScript("Trigger")
 	if err != nil {
 		t.Fatal(err)

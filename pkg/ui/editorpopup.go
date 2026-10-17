@@ -52,10 +52,12 @@ type popupSpec struct {
 	List     *Picker
 	ListRows int
 	ListText listRowText
-	Notes    []string
-	NoteInk  color.RGBA
-	Buttons  []string
-	Disabled []bool
+	// ListAside is a column right of the list kept free for a picture.
+	ListAside int
+	Notes     []string
+	NoteInk   color.RGBA
+	Buttons   []string
+	Disabled  []bool
 	// PickLabel is the pick-on-map button's caption.
 	PickLabel string
 	// LabelWidth is the label column; zero is two fifths of the width.
@@ -77,6 +79,7 @@ type popupLayout struct {
 	Rows               []popupRowRect
 	List               listBox
 	HasList            bool
+	Aside              image.Rectangle // the column ListAside keeps
 	Notes              []image.Rectangle
 	Buttons            []image.Rectangle
 	Pitch              int
@@ -177,8 +180,11 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		y += pitch
 	}
 	if s.List != nil {
-		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize, y), max(1, s.ListRows), body)
+		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.ListAside, y), max(1, s.ListRows), body)
 		l.HasList = true
+		if s.ListAside > 0 {
+			l.Aside = image.Rect(r.Max.X-popupPad-s.ListAside+popupPad, y, r.Max.X-popupPad, l.List.Rect.Max.Y)
+		}
 		y = l.List.Rect.Max.Y + popupPad
 	}
 	for range s.Notes {
@@ -320,7 +326,8 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 				}
 			})
 		case popupSwitch:
-			drawPushButton(dst, body, pushButton{Rect: rr.Control, Label: row.Value, Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
+			// A long value ends in an ellipsis inside its button.
+			drawPushButton(dst, body, pushButton{Rect: rr.Control, Label: editorClip(body, row.Value, rr.Control.Dx()-12), Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
 		case popupChoice:
 			drawDropdown(dst, body, frames, dropdown{Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
 		default:

@@ -2564,6 +2564,12 @@ package storyguard
 // crowding check and the acquisition's order byte (pkg/sim refusedroute.go,
 // escort.go, savedgroupsai.go, currentorder.go, combat.go) and their tests in
 // pkg/sim and pkg/game, and this paragraph.
+//
+// CommentBytes rises for the map editor's one Add window: its step data and
+// builder (pkg/ui/mapeditoradd.go), its host (pkg/game/mapinspectionadd.go)
+// and their tests, less the retired per-kind prompts, this note included.
+// The group number correction adds 925 bytes: the map-wide freeGroup and its
+// refusal in pkg/game/mapinspectionadd.go and pkg/game/mapeditgroupid_release_test.go.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2587,5 +2593,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9145212,
+	CommentBytes: 9157694,
 }

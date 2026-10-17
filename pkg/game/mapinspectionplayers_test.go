@@ -53,9 +53,7 @@ func TestMapEditorPlayersWindowEditsAreSeparateUndoSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 	selectedPlayer(t, e, 0)
-	if err := e.Key("player"); err != nil {
-		t.Fatal(err)
-	}
+	addWindow(t, e, "player", nil)
 	selectedPlayer(t, e, 2)
 	if len(windowPlayers(t, e)) != 3 {
 		t.Fatal("add key did not create a third player")
@@ -188,9 +186,7 @@ func TestMapEditorPlayersSaveAsReopensTheirBytes(t *testing.T) {
 	x, e, source := playerWindow(t)
 	before := bytes.Clone(e.Document().SourceBytes)
 	_ = e.Key("players")
-	if err := e.Key("player"); err != nil {
-		t.Fatal(err)
-	}
+	addWindow(t, e, "player", nil)
 	selectedPlayer(t, e, 2)
 	if err := enterField(e, 0, "Copper"); err != nil {
 		t.Fatal(err)

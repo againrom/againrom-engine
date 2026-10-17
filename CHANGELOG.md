@@ -8,6 +8,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The map editor adds units, structures, sacks, groups, players and
+  triggers through one step-by-step Add window. Every list has an Add
+  button, and the old keys open the same window. Each step offers only valid
+  choices: a unit's class with its picture, its tier when the creature has
+  several, its owner by name and its cell, picked on the map or typed. A new
+  group is offered the lowest number no unit of the map carries, so a script
+  never reaches the wrong group. A refused value says why. Cancel at any
+  step adds nothing, one Undo removes the new record, and the new record's
+  popup opens when the window finishes.
 - [ROM1] A mage of yours without a staff that cannot get where it was going
   keeps the enemy within its reach as its target without striking it, as in
   the original; on its way to a sack it gives the sack up. Defending a unit

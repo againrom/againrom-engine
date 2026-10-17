@@ -19,15 +19,7 @@ func scriptWindowAdd(t *testing.T, e *ui.MapEditor, kind string) int {
 	if err := e.Key("scripts"); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.Key("player"); err != nil {
-		t.Fatal(err)
-	}
-	value := map[string]string{"Action": "0", "Condition": "1", "Trigger": "2"}[kind]
-	_ = e.Key("backspace")
-	e.TextInput(value)
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
-	}
+	addWindow(t, e, "player", map[string]string{"kind": map[string]string{"Action": "0", "Condition": "1", "Trigger": "2"}[kind]})
 	if e.Selected() < 0 || e.Document().Records[e.Selected()].Kind != kind {
 		t.Fatalf("no new %s selected: %d %s", kind, e.Selected(), e.Message())
 	}

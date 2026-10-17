@@ -33,6 +33,11 @@ func TestMapEditorPopupsStayInsideTheWindow(t *testing.T) {
 					t.Fatalf("%v/%s prompt %v leaves %v", size, path, l.Rect, window)
 				}
 				last := s.Rows[len(s.Rows)-1]
+				for _, r := range s.Rows {
+					if r.Focus {
+						last = r
+					}
+				}
 				refusal := false
 				for _, n := range s.Notes {
 					refusal = refusal || strings.Contains(n, "refused input")

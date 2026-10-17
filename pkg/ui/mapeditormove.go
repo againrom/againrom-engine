@@ -23,6 +23,7 @@ func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty()
 func (e *MapEditor) TextInput(s string) {
 	if e.pathDialog.pending == nil && e.prompt.open() {
 		e.prompt.path += s
+		e.addFollow()
 	} else if e.pathDialog.pending == nil && e.objectTyping() && s != "" {
 		e.objectText(s, false)
 	}

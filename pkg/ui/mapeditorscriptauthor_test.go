@@ -2,26 +2,30 @@ package ui
 
 import "testing"
 
+// The script list's Add window offers Action, Condition and Trigger; Up and
+// Down cycle the choice without writing, and Esc leaves.
 func TestEditorFieldChoicesCycleWithoutCommitting(t *testing.T) {
-	e, _ := newModesEditor(t, "full")
-	e.openPrompt(editorPrompt{kind: promptNewScript, path: "0"})
-	if e.fieldTitle() != "Action / Up, Down / Enter: add" {
-		t.Fatal(e.fieldTitle())
+	e, calls := newModesEditor(t, "full")
+	_ = e.Key("scripts")
+	_ = e.Key("player")
+	r, ok := e.addRunning()
+	if !ok || r.kind != "Script" || e.prompt.path != "0" {
+		t.Fatalf("A in the script list opened %v", e.prompt.kind)
 	}
 	_ = e.Key("down")
-	if e.prompt.path != "1" || e.fieldTitle() != "Condition / Up, Down / Enter: add" {
-		t.Fatalf("choice %q %s", e.prompt.path, e.fieldTitle())
+	if e.prompt.path != "1" {
+		t.Fatalf("choice %q", e.prompt.path)
 	}
 	_ = e.Key("up")
 	_ = e.Key("up")
 	if e.prompt.path != "2" {
 		t.Fatalf("wrapped choice %q", e.prompt.path)
 	}
-	if e.Dirty() {
+	if e.Dirty() || len(calls.lines) != 0 {
 		t.Fatal("choosing wrote to model")
 	}
 	_ = e.Key("escape")
 	if e.prompt.open() {
-		t.Fatal("choice prompt kept mode")
+		t.Fatal("choice window kept mode")
 	}
 }

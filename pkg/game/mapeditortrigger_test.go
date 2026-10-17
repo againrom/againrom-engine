@@ -113,7 +113,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	e, _ := openGoalMap(t, b)
 	c, _ := openGoalMap(t, b)
 	set := c.Document().Edits.(ui.InspectionFieldSet)
-	author := c.Document().Edits.(ui.InspectionScriptAuthor)
+	author := c.Document().Edits.(*mapInspectionEdits)
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
 	apply := func(want func() *ui.InspectionDocument) {
 		t.Helper()
@@ -184,6 +184,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	before := e.Document().SourceBytes
 	r, ok = e.PopupButtonRect(2)
 	trigClick(t, e, r, ok, "New")
+	addSteps(t, e, nil)
 	d, err := author.AddScript("Trigger")
 	if err != nil || !bytes.Equal(e.Document().SourceBytes, d.SourceBytes) {
 		t.Fatal("New wrote other bytes than AddScript", err)
