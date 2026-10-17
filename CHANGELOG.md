@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A unit sent to pick up a sack that someone else takes first still
+  walks to the sack's place and finishes there as after a pickup, ready to
+  attack an enemy in reach, as in the original.
+
 ## 0.125.0
 
 - [ROM1] The map editor opens through a top bar and popups: pick a map from a

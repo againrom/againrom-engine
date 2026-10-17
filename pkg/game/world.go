@@ -3555,6 +3555,8 @@ func (mw *mapWorld) orderPickup(id sim.EntityID, x, y int32) {
 // settlePickup reconstructs the presentation latch from canonical pending
 // state after LOAD. Transfer waits for both arrival and physical completion.
 // Removal, refusal or arrival disarms the request; a failed transfer never loops.
+// A sack gone before arrival is not tested on the walk: the arrival completes
+// the pickup without a transfer, as a taken sack's does (AI-645).
 func (mw *mapWorld) settlePickup() {
 	mw.pickup = pickupIntent{}
 	for i, actors := 0, mw.world.EntityView(); i < len(actors); i++ {
@@ -3572,16 +3574,15 @@ func (mw *mapWorld) settlePickup() {
 		mw.pickup = pickupIntent{}
 		return
 	}
-	if _, ok := mw.sackAt(mw.pickup.x, mw.pickup.y); !ok {
-		mw.world.CancelSackPickup(mw.pickup.id)
-		mw.pickup = pickupIntent{}
-		return
-	}
 	if e.X != mw.pickup.x || e.Y != mw.pickup.y || !sackPickupArrived(mw.world, e) {
 		return
 	}
 	id := mw.pickup.id
 	mw.pickup = pickupIntent{}
+	if _, ok := mw.sackAt(e.X, e.Y); !ok {
+		mw.world.CompleteSackPickup(id)
+		return
+	}
 	mw.takeSackFor(id)
 	mw.world.CancelSackPickup(id)
 }

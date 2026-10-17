@@ -116,16 +116,10 @@ func (w *World) takePendingOrders() {
 	for i := range w.entities {
 		e := &w.entities[i]
 		p := e.PendingOrder
-		if p.Kind == PendingPickup {
-			found := false
-			for _, sack := range w.sacks {
-				found = found || sack.X == p.X && sack.Y == p.Y
-			}
-			if !found {
-				e.PendingOrder = PendingOrder{}
-			} else if !p.RowAdmitted && w.pendingOrderReady(i) {
-				e.PendingOrder.RowAdmitted = true
-			}
+		// A pickup's sack is not tested here: one taken before arrival still
+		// ends in the pickup's completion (AI-645).
+		if p.Kind == PendingPickup && !p.RowAdmitted && w.pendingOrderReady(i) {
+			e.PendingOrder.RowAdmitted = true
 		}
 		if p.Kind == PendingNone || p.Kind == PendingPickup || p.Kind == PendingScroll || !e.Alive() || e.OffMap || !w.pendingOrderReady(i) {
 			continue

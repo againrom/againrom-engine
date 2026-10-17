@@ -2525,6 +2525,9 @@ package storyguard
 // pkg/sim/sight.go, and the hand-over witness's doc comment
 // (pkg/sim/handoverstrike_test.go) net of a shorter comment in
 // pkg/game/pickuporder_test.go, this note included.
+//
+// CommentBytes rises for the emptied-cell pickup completion and its witnesses
+// (pkg/game, pkg/sim) and the native hand-over witness, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2548,5 +2551,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9098766,
+	CommentBytes: 9099882,
 }

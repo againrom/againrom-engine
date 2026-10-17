@@ -170,6 +170,7 @@ copying those counts.
 | `docs/divergences/simulation.md` |
 | `docs/divergences/simulation-cast-and-pursuit.md` |
 | `docs/divergences/simulation-cell-planes.md` |
+| `docs/divergences/simulation-orders-withdrawal-and-escort.md` |
 | `docs/divergences/tavern.md` |
 | `docs/divergences/town.md` |
 | `docs/divergences/ui-and-settings.md` |

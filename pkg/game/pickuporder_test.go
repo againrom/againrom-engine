@@ -144,39 +144,81 @@ func TestALaterOrderCancelsAStandingPickup(t *testing.T) {
 	}
 }
 
-// TestAStandingPickupDisarmsWhenTheSackGoesAway is settlePickup's second exit.
-// The original walks on and completes the pickup without a transfer (AI-645);
-// this build drops it (DIV-3470).
-//
-// THE SACK IS REMOVED BY THE ORDINARY PRIMITIVE, TakeSack itself, called for a
-// second entity that starts on the sack's cell -- not by reaching into the
-// world's registry, so the state the latch then reads is the state a real
-// competing pick-up would have left.
-func TestAStandingPickupDisarmsWhenTheSackGoesAway(t *testing.T) {
+// vanishedSackRun orders the hero to the sack and, after the order's first
+// tick, lets a second body standing on the sack's cell take it (taken) or
+// leave it there; it walks that body away and
+// ticks until the hero's pickup order has ended and two further ticks have run.
+// It returns the hero then and the tick the pickup completed on (actor state 2).
+func vanishedSackRun(t *testing.T, taken bool) (*sim.World, *mapWorld, sim.Entity, int) {
+	t.Helper()
+	const other = poHeroID + 1
 	w, err := sim.NewLootWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, sim.Terrain{},
-		[]sim.Entity{{ID: poHeroID, X: poHeroX, Y: poHeroY}, {ID: poHeroID + 1, X: poSackX, Y: poSackY}},
+		[]sim.Entity{{ID: poHeroID, X: poHeroX, Y: poHeroY}, {ID: other, X: poSackX, Y: poSackY}},
 		nil, sim.Relations{},
 		[]sim.Sack{{X: poSackX, Y: poSackY, Items: []uint16{eqSwordCode}}})
 	if err != nil {
 		t.Fatalf("NewLootWorld: %v", err)
 	}
 	mw := grabWorld(t, w, poHeroID, missionSource{})
-
 	mw.grab(poHeroID, poSackX, poSackY, true)
-	if !mw.pickup.set {
+	mw.tick()
+	if e, _ := mw.entity(poHeroID); !mw.pickup.set || e.PendingOrder.Kind != sim.PendingPickup {
 		t.Fatal("setup: the standing order did not arm")
 	}
-	if err := w.TakeSack(poHeroID+1, poSackX, poSackY); err != nil {
-		t.Fatalf("setup: the competing take failed: %v", err)
+	if taken {
+		if err := w.TakeSack(other, poSackX, poSackY); err != nil {
+			t.Fatalf("setup: the competing take failed: %v", err)
+		}
 	}
-
-	mw.tick()
-
-	if mw.pickup.set {
-		t.Error("the standing order survived a tick with no sack left at its cell")
+	mw.enqueue(uint32(other), poSackX, poSackY+6)
+	completed, after := -1, -1
+	for i := 2; i <= 400 && (after < 0 || i <= after+2); i++ {
+		mw.tick()
+		e, _ := mw.entity(poHeroID)
+		if completed < 0 && e.ActorState == 2 {
+			completed = i
+		}
+		if after < 0 && e.PendingOrder.Kind != sim.PendingPickup && !mw.pickup.set {
+			after = i
+		}
 	}
+	if after < 0 {
+		t.Fatal("the pickup order never ended")
+	}
+	e, _ := mw.entity(poHeroID)
+	return w, mw, e, completed
+}
+
+// TestAPickupWhoseSackWentCompletesWithoutATransfer: a sack another body takes
+// before the ordered unit arrives is not tested on the walk. The unit reaches
+// the cell and the pickup completes as a taken sack's does, without the
+// transfer; the next AI pass acquires (AI-645).
+func TestAPickupWhoseSackWentCompletesWithoutATransfer(t *testing.T) {
+	_, _, control, controlDone := vanishedSackRun(t, false)
+	w, mw, got, done := vanishedSackRun(t, true)
+
 	if codes, _ := w.Carried(poHeroID); len(codes) != 0 {
-		t.Errorf("Carried(%d) = %v, want none -- the ordered unit never reached the cell", poHeroID, codes)
+		t.Errorf("Carried(%d) = %v, want none -- there was no sack to transfer", poHeroID, codes)
+	}
+	if codes, _ := w.Carried(poHeroID + 1); len(codes) != 1 {
+		t.Errorf("Carried(%d) = %v, want the competing body's one code", poHeroID+1, codes)
+	}
+	if got.X != poSackX || got.Y != poSackY {
+		t.Fatalf("the hero is at (%d,%d), want the sack's cell (%d,%d)", got.X, got.Y, poSackX, poSackY)
+	}
+	if done < 0 || done != controlDone {
+		t.Errorf("the pickup completed on tick %d, want %d, the tick a taken sack's completes on", done, controlDone)
+	}
+	if got.ActorState != 0xc || got.PostX != poSackX || got.PostY != poSackY || got.PendingOrder.Kind != sim.PendingNone || got.HasTarget {
+		t.Errorf("end state: actor state %#x post (%d,%d) pending %d target %v, want acquire 0xc, post at the cell, no pending order, no walk",
+			got.ActorState, got.PostX, got.PostY, got.PendingOrder.Kind, got.HasTarget)
+	}
+	if got.ActorState != control.ActorState || got.PostX != control.PostX || got.PostY != control.PostY ||
+		got.PendingOrder != control.PendingOrder || got.HasTarget != control.HasTarget || got.CommandGroup != control.CommandGroup {
+		t.Errorf("end state differs from a completed pickup's: got %+v, control %+v", got, control)
+	}
+	if mw.pickup.set {
+		t.Error("the standing order is still armed after it completed")
 	}
 }
 

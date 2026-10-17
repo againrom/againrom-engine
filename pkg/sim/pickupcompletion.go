@@ -37,7 +37,9 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 		e.clearTurn()
 	}
 	e.ActorState = actorStatePickupComplete
+	e.PostX, e.PostY = e.X, e.Y // the completion stores the post at the own cell (AI-645)
 	w.syncSavedOrderState(i)
+	w.syncSavedPost(i)
 	w.syncCurrentActorOrder(i)
 	w.normaliseSavedTargetOrders()
 	return true

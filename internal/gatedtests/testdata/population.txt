@@ -1247,3 +1247,4 @@ pkg/game.TestReleaseMapEditorTriggerFrames
 pkg/game.TestReleaseFogStampAfterColdLoad
 pkg/game.TestReleaseFogFootprintIsTheClassTileSize
 pkg/game.TestReleaseFogHeightPlaneIsTheParserGrid
+pkg/game.TestReleaseAPickupWhoseSackWentCompletesAfterColdLoad
