@@ -1314,7 +1314,10 @@ func partyPanelSubject(p mapload.PartyMember, t *mapload.Table, installed ...ui.
 		Weight: int(mapload.PartyLoad(p, t)), WeightKnown: true,
 		Char: ui.UnitCharacter{Known: true, UnitNameIndex: int(p.Class), Name: p.Name, Mage: p.Mage, Band: ui.CharacterBandPerson,
 			Body: int(d.Body), Reaction: int(d.Reaction), Mind: int(d.Mind), Spirit: int(d.Spirit),
-			Experience: int(d.Experience), Sight: int(d.Sight)},
+			Experience: int(d.Experience), Sight: int(d.Sight),
+			// A hired member keeps his class type and so stays outside the
+			// player-character band (DIV-3613).
+			ExperienceWithheld: p.Hired() && !sim.InPersistBand(p.Class)},
 	}
 	for i := range s.Char.Skills {
 		s.Char.Skills[i] = int(d.Skill[i])
@@ -5064,6 +5067,10 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 				total += int(xp)
 			}
 			char.Experience = mw.retainedHumanExperience(e, total)
+			// Only the player-character band trains (HERO-SKILLGATE-074), and it
+			// holds exactly the heroes and the npcs that join as one
+			// (HERO-JOIN-120); every other card omits the XP line (DIV-3613).
+			char.ExperienceWithheld = !sim.InPersistBand(e.TypeID)
 		}
 
 		spell, weaponSpellKnown := sim.WeaponSpellCharacteristicsFor(mw.world.Rules(), e, spells)

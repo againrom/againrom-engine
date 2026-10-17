@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1][ROM2] The character card shows experience (XP) only for your
+  heroes and for the characters who can join you as one, such as Brian and
+  Naira, also before they join. Other people, hired mercenaries and
+  creatures, who gain no experience, no longer show an XP line.
 - [ROM1] The map editor opens each map on a Map panel, also reachable from
   the Map menu. Its lines state the size, name, description, players and
   sides, mode, start point, victory, defeat, report and test play, and a

@@ -126,6 +126,7 @@ copying those counts.
 | `docs/divergences/client-cursor-and-selection.md` |
 | `docs/divergences/client-documents-panel.md` |
 | `docs/divergences/client-input-and-keys.md` |
+| `docs/divergences/client-minimap.md` |
 | `docs/divergences/client-mission-screen.md` |
 | `docs/divergences/client-presentation-other.md` |
 | `docs/divergences/client-presentation-sound.md` |

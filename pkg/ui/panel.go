@@ -379,6 +379,12 @@ type UnitCharacter struct {
 	// when Known, exactly as the four statistics above are.
 	Experience int
 
+	// ExperienceWithheld omits the XP line for a character outside the
+	// player-character band: one that is not a player's hero and cannot become
+	// one (DIV-3613). The zero value states the line, so a producer that knows
+	// no actor type keeps the card it always drew.
+	ExperienceWithheld bool
+
 	// Protection and Resistance are the five elemental protections and the
 	// five damage-kind resistances a recompute produces. Protection is displayed
 	// in Fire-through-Astral column order. Resistance is displayed in
@@ -1193,7 +1199,7 @@ func panelText(s PanelSubject, f PanelField) (string, bool) {
 		worn, ok := panelWornText(s.Worn)
 		return worn, ok && panelDetailAtLeast(s, 7)
 	case PanelFieldExperience:
-		return fmt.Sprintf("%d", s.Char.Experience), s.Char.Known
+		return fmt.Sprintf("%d", s.Char.Experience), s.Char.Known && !s.Char.ExperienceWithheld
 	case PanelFieldProtection:
 		return panelFamilyText(s.Char.Protection), s.Char.Known && panelDetailAtLeast(s, 6)
 	case PanelFieldResistance:

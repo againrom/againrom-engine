@@ -84,6 +84,7 @@ func TestOnlyTheEntityTheLoadKnowsACharacterForStatesOne(t *testing.T) {
 	want := hero
 	want.Skills = [ui.PanelSkillSlots]int{}
 	want.Experience = 0
+	want.ExperienceWithheld = true // type 0 is outside the player-character band
 
 	for _, d := range sheetDriver(t, map[sim.EntityID]ui.UnitCharacter{1: hero}).entityDraws() {
 		switch d.ID {
