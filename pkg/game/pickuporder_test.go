@@ -145,9 +145,8 @@ func TestALaterOrderCancelsAStandingPickup(t *testing.T) {
 }
 
 // TestAStandingPickupDisarmsWhenTheSackGoesAway is settlePickup's second exit.
-// The original refuses the same case one tick later rather than at issue: its
-// arm looks the cell up in the registry, so a sack taken by someone else
-// between the order and the arrival leaves nothing to find.
+// The original walks on and completes the pickup without a transfer (AI-645);
+// this build drops it (DIV-3470).
 //
 // THE SACK IS REMOVED BY THE ORDINARY PRIMITIVE, TakeSack itself, called for a
 // second entity that starts on the sack's cell -- not by reaching into the

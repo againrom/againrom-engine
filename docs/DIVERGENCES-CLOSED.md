@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## Reacquisition direction
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-1631 | AI / reacquisition direction outside controlled centres | Match enemy selection | `AI-361` supplies 81 deltas for size 1 actors at fractions 128/128 and cells centred on 50/50. `MAGIC-242` (High) gives the helper's formula for any input: the signs and a 2:1 magnitude test of the fine centres, each P + (n-1)*128 with the sub-cell bytes included, rounded to one of eight multiples of 0x20. `MOVE-175` (High) reads the whole centre-bearing helper: a half-sector table over the signs and the 2:1 tests, equal axes and an exact 2:1 ratio to the diagonal, a zero delta to `0xe0`, and every delta of two 16-bit centres classified by the table. `MOVE-174` (High for the step bodies) places a stepping mover's sub bytes at the stride-advanced value | `headingBetween` measures both footprint centres on the fine grid (`moverFinePoint`), truncated to 16 bits, and takes the axis when one magnitude exceeds twice the other, else the diagonal of the two signs; coincident centres return 224. It gives `MOVE-175`'s facing for every delta in the square up to 800 fine units and a sweep of the 16-bit range (`TestHeadingOfMatchesTheCentreBearingTableForEveryDelta`); the 81 published cases and circular byte score match (`TestReacquisitionDirectionMatchesControlledCentres`). Reacquisition, the creature step cell and Prismatic Spray share it | UNKNOWN | Closed: `MOVE-175` answers the strictness of the 2:1 comparison and the 16-bit range, and this build's law is that table. The position a stepping mover is read at is DIV-348's | - | CLOSED |
+
 ## Hold Position and a pickup's two passes
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

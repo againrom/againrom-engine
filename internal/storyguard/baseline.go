@@ -2514,6 +2514,10 @@ package storyguard
 // CommentBytes rises for the map editor's trigger and node popups, the
 // script operation signatures and trigger areas in pkg/mapload, the areas on
 // the map and their tests, this note included.
+//
+// CommentBytes rises for the hand-over witness's doc comment
+// (pkg/sim/handoverstrike_test.go), net of a shorter comment in
+// pkg/game/pickuporder_test.go, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4551,
 	TestFileCount:  264,
@@ -2537,5 +2541,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9093521,
+	CommentBytes: 9093958,
 }
