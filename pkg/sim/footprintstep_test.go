@@ -6,38 +6,49 @@ import (
 	"testing"
 )
 
-// A size-n mover stores its footprint's top-left cell, and the centre every
-// reader takes is that corner plus (n-1)*128 per axis. The expected cells are
-// worked here from explicit 8.8 coordinates.
-func TestFleeCellMeasuresAWideMoverAtItsFootprintCentre(t *testing.T) {
+// The flee picker reads the actor's raw position record, cell*256 plus the
+// sub-cell byte, and not its footprint centre (MOVE-174). A size-n actor
+// standing on (20,20) is read at 5248 on both axes whatever n is. The
+// expected cells are worked here from explicit 8.8 coordinates; the centre
+// reading, corner plus (n-1)*128, is the loss control.
+func TestFleeCellReadsTheActorAtItsRawPositionRecord(t *testing.T) {
 	t.Parallel()
 	hostile := withdrawalFighter(2, 3, 24, 20, 100)
 	for _, tc := range []struct {
-		name         string
-		size         uint8
-		wantX, wantY int32
+		name             string
+		size             uint8
+		centreX, centreY int32
 	}{
-		// Centre 20*256+128 = 5248; hostile centre 6272; dx = -1024, dy = 0
-		// becomes +1; three cells west give 4480 and 5248, cell (17,20).
+		// Raw 5248; hostile centre 6272; dx = -1024, dy = 0 becomes +1; three
+		// cells west give 4480 and 5248, cell (17,20) for every size.
 		{"size 1", 1, 17, 20},
-		// Centre 5376 on both axes; dx = -896, dy = 128; x moves to 4608
-		// (cell 18) and y by 768*128/896 = 109 to 5485 (cell 21).
+		// A centre reading would start from 5376: dx = -896, dy = 128, cell
+		// (18,21).
 		{"size 2", 2, 18, 21},
-		// Centre 5504 on both axes; dx = -768, dy = 256; x moves to 4736
-		// (cell 18) and y by 768*256/768 = 256 to 5760 (cell 22).
+		// A centre reading would start from 5504: dx = -768, dy = 256, cell
+		// (18,22).
 		{"size 3", 3, 18, 22},
 	} {
 		self := withdrawalFighter(1, 2, 20, 20, 10)
 		self.TokenSize = tc.size
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, hostile)
 		x, y, ok := w.fleeCell(0, []int{1})
-		if !ok || x != tc.wantX || y != tc.wantY {
-			t.Errorf("%s: flees to (%d,%d,%t), want (%d,%d,true)", tc.name, x, y, ok, tc.wantX, tc.wantY)
+		if !ok || x != 17 || y != 20 {
+			t.Errorf("%s: flees to (%d,%d,%t), want (17,20,true)", tc.name, x, y, ok)
+		}
+		if tc.size > 1 && x == tc.centreX && y == tc.centreY {
+			t.Errorf("%s: flees to the cell the footprint centre gives", tc.name)
+		}
+		// The second game keeps the footprint centre.
+		w.rom2 = &rom2ScriptState{}
+		if x, y, ok := w.fleeCell(0, []int{1}); !ok || x != tc.centreX || y != tc.centreY {
+			t.Errorf("%s second game: flees to (%d,%d,%t), want the centre's (%d,%d,true)", tc.name, x, y, ok, tc.centreX, tc.centreY)
 		}
 	}
 }
 
-// A wide hostile is read at its centre too.
+// A wide hostile is read at its footprint centre; no claim states the read
+// form of the hostile sums, and DIV-348 records it.
 func TestFleeCellMeasuresAWideHostileAtItsFootprintCentre(t *testing.T) {
 	t.Parallel()
 	self := withdrawalFighter(1, 2, 20, 20, 10)

@@ -267,6 +267,31 @@ func TestTakeSackMovesEveryCodeAndAllTheGoldInSackOrderAndRemovesIt(t *testing.T
 	}
 }
 
+// A pickup transfers its sack once. A second take on the emptied cell finds
+// no sack and changes nothing, as the original's arm does after its lookup
+// returns 0 (AI-634).
+func TestASecondTakeOnTheEmptiedCellTransfersNothing(t *testing.T) {
+	w, err := NewStockedWorld(1, cyBounds, ModeCanonical, Terrain{},
+		[]Entity{{ID: 1, X: 3, Y: 3, Owner: 5}}, nil, Relations{},
+		[]Sack{{X: 3, Y: 3, Gold: 40, Items: []uint16{9}}}, nil)
+	if err != nil {
+		t.Fatalf("NewStockedWorld: %v", err)
+	}
+	if err := w.TakeSack(1, 3, 3); err != nil {
+		t.Fatalf("first TakeSack: %v", err)
+	}
+	before := w.Hash()
+	if err := w.TakeSack(1, 3, 3); err == nil {
+		t.Fatal("a second TakeSack on the emptied cell was accepted")
+	}
+	if got := w.Hash(); got != before {
+		t.Fatalf("the second TakeSack changed the hash from %d to %d", before, got)
+	}
+	if got, _ := w.Carried(1); w.Purse(5) != 40 || !equalCodes(got, []uint16{9}) {
+		t.Fatalf("after two takes: purse %d carried %v, want 40 and [9]", w.Purse(5), got)
+	}
+}
+
 func TestTakeSackWrapsGoldAt32Bits(t *testing.T) {
 	w, err := NewStockedWorld(1, cyBounds, ModeCanonical, Terrain{},
 		[]Entity{{ID: 1, X: 1, Y: 1, Owner: 2}, {ID: 2, X: 3, Y: 3, Owner: 2}}, nil, Relations{},

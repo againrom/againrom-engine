@@ -115,3 +115,19 @@ func TestStandGroundWritesTheSavedCompletionWordZero(t *testing.T) {
 		t.Fatalf("completion word %d after Hold, want 0", got)
 	}
 }
+
+// A player Move writes the saved completion word 0 for its member when it
+// installs group order 4, so the order 4 arm never reads a completed pickup's
+// 1 (AI-635).
+func TestPlayerMoveWritesTheSavedCompletionWordZeroWithOrderFour(t *testing.T) {
+	w := lcBuild(t, SelfSlot, true, 0)
+	binary.LittleEndian.PutUint32(w.savedOrder(lcArcherID).Raw[0x50:], 1)
+	Step(w, []Command{MoveTo(lcArcherID, CellPoint{X: 30, Y: 20})})
+	g := w.savedGroupFor(lcArcherID)
+	if g == nil || g.AI[0x20] != orderMove {
+		t.Fatalf("fixture: the member's saved group after Move is %+v, want order 4", g)
+	}
+	if got := binary.LittleEndian.Uint32(w.savedOrder(lcArcherID).Raw[0x50:]); got != 0 {
+		t.Fatalf("completion word %d with group order 4 installed, want 0", got)
+	}
+}

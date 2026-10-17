@@ -21,6 +21,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   shelf or the merchant's table.
 - [ROM2] A mage no longer uses up a book of a spell he already knows in a
   mission inventory.
+- [ROM1] A unit larger than one cell that flees or is ordered to Retreat
+  chooses where to run from the same spot as in the original.
 
 ## 0.124.0
 

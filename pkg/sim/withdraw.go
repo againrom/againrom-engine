@@ -179,9 +179,11 @@ func (w *World) withdrawFrom(i int, hostile []int) bool {
 
 // fleeCell is the cell the decoded arithmetic sends actor i to from the whole
 // filtered list, or false for an empty list. It reads and writes no state.
-// Every position is the mover's fine position on the 8.8 grid: the cell centre
-// for a mover standing on a cell, and the paid part of the accepted stride for
-// one between cells (AI-WITHDRAW-028, AI-RETREAT-273).
+// In the first game the actor is read at its raw position record, cell*256
+// plus the sub-cell byte per axis, with no footprint centre: 0x80 standing on
+// a cell, and the paid part of the accepted stride between cells (MOVE-174).
+// The second game keeps the centre until its own evidence says otherwise. The
+// hostiles are read at their centres (moverFinePoint); DIV-348 records both.
 func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 	var sx, sy int64
 	for _, ci := range hostile {
@@ -196,6 +198,10 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 
 	mx, my := sx/count, sy/count
 	px, py := w.moverFinePoint(w.entities[i])
+	if !w.SecondGame() {
+		rx, ry := w.savedProjectileTargetPoint(w.entities[i])
+		px, py = int64(rx), int64(ry)
+	}
 	dx, dy := px-mx, py-my
 	if dx == 0 {
 		dx = 1
@@ -217,7 +223,7 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 // moverFinePoint is e's centre on the 8.8 grid. A mover of side n stores its
 // footprint's top-left cell and a sub-cell offset, and the centre the range,
 // edge-gap and bearing readers take is that corner plus (n-1)*128 per axis
-// (MOVE-087). The corner is the retained current motion of a loaded actor, the
+// (MOVE-087, MOVE-175). The corner is the retained current motion of a loaded actor, the
 // accepted stride's paid steps for an actor between cells, and the cell centre
 // (0x80 on both axes) for one standing on a cell.
 func (w *World) moverFinePoint(e Entity) (int64, int64) {

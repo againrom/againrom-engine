@@ -88,22 +88,25 @@ func retreatTarget(t *testing.T, w *sim.World) (int32, int32) {
 	return 0, 0
 }
 
-func TestReleaseWideMoverRetreatsFromItsFootprintCentre(t *testing.T) {
+// The flee picker reads the retreating mover at its raw position record, the
+// centre of its anchor cell when it stands, for every footprint side
+// (MOVE-174).
+func TestReleaseWideMoverRetreatsFromItsRawPosition(t *testing.T) {
 	r := openAreaCostRig(t)
 	cases := map[uint8]int{1: 0, 2: 0, 3: 0}
 	for side := range cases {
 		w, at := retreatWorld(t, r, side, 200)
-		wantX, wantY := fleeExpected((at[0])*256+int(side)*128, at[1]*256+int(side)*128, (at[0]+4)*256+128, at[1]*256+128)
+		wantX, wantY := fleeExpected(at[0]*256+128, at[1]*256+128, (at[0]+4)*256+128, at[1]*256+128)
 		gotX, gotY := retreatTarget(t, w)
 		if int(gotX) != wantX || int(gotY) != wantY {
 			t.Errorf("side %d: retreat destination (%d,%d), want (%d,%d)", side, gotX, gotY, wantX, wantY)
 		}
 		if side > 1 {
-			// Loss control: reading the mover at the centre of its anchor cell
-			// gives another cell, so this witness separates the two readings.
-			cornerX, cornerY := fleeExpected(at[0]*256+128, at[1]*256+128, (at[0]+4)*256+128, at[1]*256+128)
-			if cornerX == wantX && cornerY == wantY {
-				t.Errorf("side %d: the anchor-centre reading gives the same cell (%d,%d), so the witness does not see the footprint centre", side, wantX, wantY)
+			// Loss control: reading the mover at its footprint centre gives
+			// another cell, so this witness separates the two readings.
+			centreX, centreY := fleeExpected(at[0]*256+int(side)*128, at[1]*256+int(side)*128, (at[0]+4)*256+128, at[1]*256+128)
+			if centreX == wantX && centreY == wantY {
+				t.Errorf("side %d: the footprint-centre reading gives the same cell (%d,%d), so the witness does not see the raw record", side, wantX, wantY)
 			}
 		}
 		// SAVE and a cold LOAD carry the decision, and both worlds continue alike.

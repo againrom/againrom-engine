@@ -2505,6 +2505,11 @@ package storyguard
 //
 // CommentBytes rises for the map editor's popup builder, drop-down widget,
 // top bar and object popup and their tests, this note included.
+//
+// CommentBytes rises for the flee picker's raw-record read (pkg/sim/withdraw.go)
+// and the witnesses of the loaded cycle, bearing and pickup rows
+// (pkg/sim/bearingtable_test.go, pkg/sim/cyclefacing_test.go and three
+// existing test files), this note included.
 var Committed = Baseline{
 	TestIdentCount: 4551,
 	TestFileCount:  264,
@@ -2528,5 +2533,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9065704,
+	CommentBytes: 9067821,
 }
