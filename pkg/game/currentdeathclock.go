@@ -15,6 +15,9 @@ type currentDeathAge struct {
 
 func (mw *mapWorld) captureCurrentDeathAges() []currentDeathAge {
 	var rows []currentDeathAge
+	if mw.world == nil {
+		return nil
+	}
 	for _, e := range mw.world.Entities() {
 		if e.Alive() {
 			continue
@@ -32,13 +35,13 @@ func (mw *mapWorld) captureCurrentDeathAges() []currentDeathAge {
 	return rows
 }
 
-func validateCurrentDeathAges(rows []currentDeathAge, bound map[sim.EntityID]bool) error {
+func validateCurrentDeathAges(rows []currentDeathAge) error {
 	if len(rows) > 131072 {
 		return fmt.Errorf("current death-age population exceeds bound")
 	}
 	seen := make(map[sim.EntityID]bool, len(rows))
 	for _, row := range rows {
-		if seen[row.Entity] || row.Age < 0 || row.Age > maxCurrentDeathAge || !bound[row.Entity] {
+		if seen[row.Entity] || row.Age < 0 || row.Age > maxCurrentDeathAge {
 			return fmt.Errorf("invalid current death age for actor %d", row.Entity)
 		}
 		seen[row.Entity] = true

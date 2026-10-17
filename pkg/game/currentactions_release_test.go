@@ -84,8 +84,7 @@ func currentActionSample(t *testing.T, f *FrontEnd, runtime uint32) json.RawMess
 		Heals        []SnapshotHealBurst
 		Runs         []SnapshotCastRun
 	}{Tick: w.Tick(), Actor: actor, HP: e.HP, Mana: e.Mana, Book: e.Book, Items: items, Scrolls: a.Scrolls, Scripts: a.Scripts, Books: a.Books, Reservations: reservations, WorldEffects: len(w.CurrentWorldEffectOrder())}
-	var visuals SnapshotResidue
-	f.live.actionVisuals(&visuals)
+	visuals := f.live.residue()
 	value.Bolts, value.Heals, value.Runs = visuals.SpellBolts, visuals.HealBursts, visuals.CastRuns
 	for i := range value.Runs {
 		value.Runs[i].Entity, _ = runtimeID(value.Runs[i].Entity, false)

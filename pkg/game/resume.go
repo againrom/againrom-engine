@@ -17,43 +17,12 @@ import (
 	"againrom/pkg/ui"
 )
 
+// residue reads every residue carrier out of the running map.
 func (mw *mapWorld) residue() SnapshotResidue {
-	r := SnapshotResidue{
-		PendingGameOptions: pendingGameOptions(mw.pending),
-		PendingQueue:       &SnapshotPendingQueue{Commands: append([]sim.Command(nil), mw.pending...)},
-		Swing:              make(map[uint32]int, len(mw.swing)),
-		Phase:              make(map[uint32]uint8, len(mw.phase)),
-		GroupTag:           mw.groupTag,
+	var r SnapshotResidue
+	for _, c := range residueCarriers {
+		c.capture(mw, &r)
 	}
-	if len(mw.pending) != 0 {
-		r.PendingQueue.Ignored = make([]bool, len(mw.pending))
-		copy(r.PendingQueue.Ignored, mw.pendingIgnored)
-	}
-	r.MissionLost = mw.mission != nil && mw.mission.outcome == sim.OutcomeLost
-	if mw.mission != nil {
-		r.PendingMessages = slices.Clone(mw.mission.pendingMessages)
-		// Party order makes the envelope deterministic, without map iteration.
-		for _, id := range mw.mission.guarded {
-			if mw.mission.departed[id] {
-				r.DepartedCharacters = append(r.DepartedCharacters, uint32(id))
-			}
-		}
-	}
-	for id := range mw.commanded {
-		r.Commanded = append(r.Commanded, uint32(id))
-	}
-	for id, n := range mw.swing {
-		r.Swing[uint32(id)] = n
-	}
-	for id, p := range mw.phase {
-		r.Phase[uint32(id)] = uint8(p)
-	}
-	if mw.fog != nil {
-		r.FogCols, r.FogRows = mw.fog.cols, mw.fog.rows
-		r.FogExplored = append([]byte(nil), mw.fog.explored...)
-		r.FogVisible = append([]byte(nil), mw.fog.visible...)
-	}
-	mw.actionVisuals(&r)
 	return r
 }
 
@@ -68,45 +37,8 @@ func (mw *mapWorld) residue() SnapshotResidue {
 // could read as wrong. Everything else in the residue is keyed by entity id and
 // an id the reopened world does not hold is simply never looked up.
 func (mw *mapWorld) applyResidue(r SnapshotResidue) {
-	mw.restoreActionVisuals(r.SpellBolts, r.HealBursts)
-	mw.restoreTargetMarks(r.TargetMarks)
-	mw.restoreCastRuns(r.CastRuns)
-	mw.restoreVisualIdentities(r.VisualIdentities, r.VisualNext)
-	if r.PendingQueue != nil {
-		mw.pending = slices.Clone(r.PendingQueue.Commands)
-		mw.pendingIgnored = slices.Clone(r.PendingQueue.Ignored)
-	} else {
-		for _, order := range r.PendingGameOptions {
-			mw.applyGameOption(order.Option, order.Value)
-		}
-	}
-	for _, id := range r.Commanded {
-		mw.commanded[sim.EntityID(id)] = true
-	}
-	for id, n := range r.Swing {
-		mw.swing[sim.EntityID(id)] = n
-	}
-	for id, p := range r.Phase {
-		mw.phase[sim.EntityID(id)] = sim.AttackPhase(p)
-	}
-	mw.groupTag = r.GroupTag
-	mw.restoreNativeFog(r)
-	if mw.mission != nil {
-		for _, id := range r.DepartedCharacters {
-			if mw.isGuarded(sim.EntityID(id)) {
-				if mw.mission.departed == nil {
-					mw.mission.departed = make(map[sim.EntityID]bool)
-				}
-				mw.mission.departed[sim.EntityID(id)] = true
-			}
-		}
-		if r.MissionLost || mw.guardedCharacterLost() || mw.world.Outcome() == sim.OutcomeLost {
-			alreadyShown := mw.mission.outcome == sim.OutcomeLost && mw.mission.outcomeShown
-			mw.mission.announced, mw.mission.outcome = true, sim.OutcomeLost
-			if !alreadyShown {
-				mw.showOutcome()
-			}
-		}
+	for _, c := range residueCarriers {
+		c.restore.snapshot(mw, r)
 	}
 }
 
@@ -212,7 +144,6 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	s.ghost = &ghost
 	s.Residue = f.live.residue()
 	f.campaign().captureMission(f, &s)
-	s.deathAges = f.live.captureCurrentDeathAges()
 	s.ApplicationState, err = f.captureApplicationState(f.live)
 	if err != nil {
 		return Snapshot{}, "", err

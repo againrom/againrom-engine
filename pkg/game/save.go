@@ -48,7 +48,6 @@ type Snapshot struct {
 	noticeOpen    bool
 	shop          *Shop
 	terrainBase   *sim.Terrain
-	deathAges     []currentDeathAge
 	mapAnimation  *ui.AnimationState
 	mapMotion     []currentAnimationClock
 	CityObjects   *cityObjectTopology
@@ -252,10 +251,11 @@ type SnapshotResidue struct {
 	FogRows     int
 	FogExplored []byte
 	FogVisible  []byte
-}
 
-func (r SnapshotResidue) hasMissionState() bool {
-	return len(r.PendingMessages) != 0 || len(r.PendingGameOptions) != 0 || r.PendingQueue != nil || len(r.SpellBolts) != 0 || len(r.HealBursts) != 0 || len(r.TargetMarks) != 0 || len(r.CastRuns) != 0 || len(r.VisualIdentities) != 0 || r.VisualNext != 0 || r.MissionLost || len(r.DepartedCharacters) != 0 || len(r.Commanded) != 0 || len(r.Swing) != 0 || len(r.Phase) != 0 || r.GroupTag != 0 || r.FogCols != 0 || r.FogRows != 0 || len(r.FogExplored) != 0 || len(r.FogVisible) != 0
+	// deathAges is how long each fallen actor has lain.
+	deathAges []currentDeathAge
+	// keyed holds a carrier with no field of its own, by its SAV key name.
+	keyed map[string]any
 }
 
 // snapshotTown reads the town's five fields out. It is a function in this

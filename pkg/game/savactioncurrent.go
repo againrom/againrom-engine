@@ -131,6 +131,8 @@ type currentActionData struct {
 	NativeAreas          []currentNativeArea              `json:",omitempty"`
 	NativeDeliveries     []currentNativeDelivery          `json:",omitempty"`
 	Session              *currentSessionData              `json:",omitempty"`
+	// Residue holds each keyed residue carrier's rows under its name.
+	Residue map[string]json.RawMessage `json:",omitempty"`
 }
 
 func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
@@ -155,9 +157,6 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	if a.Program != nil && (doc.World == nil || a.Policy == nil) {
 		return nil, fmt.Errorf("current script program lacks world/register policy")
 	}
-	if err := validateCurrentDepartedCharacters(a.DepartedCharacters); err != nil {
-		return nil, err
-	}
 	if err := matchCurrentNativeBasis(doc, &a); err != nil {
 		return nil, err
 	}
@@ -178,20 +177,6 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	}
 	if a.GroupParticipants != nil && a.GroupPlayers == nil && a.PlayerIdentities == nil {
 		return nil, fmt.Errorf("current Participant presence lacks exact Player identities")
-	}
-	if err := validatePendingGameOptions(a.Options); err != nil {
-		return nil, err
-	}
-	if err := validateCurrentPending(a.Pending); err != nil {
-		return nil, err
-	}
-	if a.Fog != nil {
-		if err := a.Fog.validate(); err != nil {
-			return nil, err
-		}
-	}
-	if len(a.PendingMessages) > 65536 {
-		return nil, fmt.Errorf("current mission notice queue exceeds its bound")
 	}
 	if err := validateCurrentSession(a.Session); err != nil {
 		return nil, err
@@ -214,16 +199,7 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	if err := validateCurrentActorManifest(&a); err != nil {
 		return nil, err
 	}
-	if err := validateActionVisuals(a.Bolts, a.Heals); err != nil {
-		return nil, err
-	}
-	if err := validateTargetMarks(a.TargetMarks); err != nil {
-		return nil, err
-	}
-	if err := validateCastRuns(a.Runs); err != nil {
-		return nil, err
-	}
-	if err := validateCurrentAnimation(a.Animation, a.Runs); err != nil {
+	if err := validateResidueCarriers(&a); err != nil {
 		return nil, err
 	}
 	actorBindings := make(map[sim.EntityID]bool, len(a.Bindings))
@@ -232,30 +208,8 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 			actorBindings[binding.ID] = true
 		}
 	}
-	for _, row := range a.TargetMarks {
-		if !actorBindings[row.Entity] {
-			return nil, fmt.Errorf("current target mark actor lacks a binding")
-		}
-	}
-	for _, row := range a.Animation {
-		if !actorBindings[row.Entity] {
-			return nil, fmt.Errorf("current animation actor lacks a binding")
-		}
-	}
-	if err := validateCurrentDeathAges(a.DeathAges, actorBindings); err != nil {
+	if err := checkResidueActorBindings(&a, actorBindings); err != nil {
 		return nil, err
-	}
-	for _, raw := range a.DepartedCharacters {
-		if !actorBindings[sim.EntityID(raw)] {
-			return nil, fmt.Errorf("current departed character lacks an actor binding")
-		}
-	}
-	ids, labels := map[sim.EntityID]bool{}, map[sim.EntityID]bool{}
-	for _, v := range a.VisualIdentities {
-		if ids[v.Entity] || labels[v.Label] {
-			return nil, fmt.Errorf("repeated current visual identity")
-		}
-		ids[v.Entity], labels[v.Label] = true, true
 	}
 	return &a, nil
 }
@@ -377,25 +331,11 @@ func sourceActorDocumentClass(class uint8) string {
 // layer relocates these addresses with every reindex/retirement; final key
 // completion is independent. Constructor objects may still have a zero wire key.
 func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w *sim.World, s Snapshot, table *mapload.Table, captured ...sim.CurrentWorldPolicy) error {
-	a := currentActionData{Version: 1, WriterCarriers: 0, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases(), Options: s.Residue.PendingGameOptions,
-		Bolts: s.Residue.SpellBolts, Heals: s.Residue.HealBursts, TargetMarks: s.Residue.TargetMarks, Runs: s.Residue.CastRuns, GroupTag: s.Residue.GroupTag, VisualIdentities: s.Residue.VisualIdentities, VisualNext: s.Residue.VisualNext}
-	if w.Script().Dialect() == sim.ScriptROM2 {
-		a.Fog = captureCurrentMissionFog(s.Residue)
-	}
-	a.PendingMessages = slices.Clone(s.Residue.PendingMessages)
+	a := currentActionData{Version: 1, WriterCarriers: 0, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases()}
 	a.Program = captureCurrentScriptProgram(w)
 	if _, err := a.Program.compile(); err != nil {
 		return err
 	}
-	a.DepartedCharacters = append([]uint32(nil), s.Residue.DepartedCharacters...)
-	if err := validateCurrentDepartedCharacters(a.DepartedCharacters); err != nil {
-		return err
-	}
-	a.Animation = mergeCurrentMapMotion(captureCurrentAnimation(s.Residue), s.mapMotion)
-	if err := validateCurrentAnimation(a.Animation, a.Runs); err != nil {
-		return err
-	}
-	a.DeathAges = s.deathAges
 	a.AbsentSessionHead = captureAbsentSessionHead(doc, w)
 	policy := w.CurrentPolicy()
 	if len(captured) != 0 {
@@ -587,6 +527,12 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 			byActor[dead.ID] = index
 		}
 	}
+	if err := writeResidueCarriers(residueProjection{r: s.Residue, s: s, w: w, a: &a, actors: byActor, structures: byStructure}); err != nil {
+		return err
+	}
+	if err := validateResidueCarriers(&a); err != nil {
+		return err
+	}
 	// An inert body's old endpoints use the old carrier's local labels. Resolve
 	// every one through its bound object before assigning this save's labels.
 	// Missing endpoints get distinct local labels without mutating the World.
@@ -698,10 +644,8 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	if err := a.Program.remap(ref); err != nil {
 		return err
 	}
-	for _, raw := range a.DepartedCharacters {
-		if _, err := ref(sim.EntityID(raw), false); err != nil {
-			return err
-		}
+	if err := bindResidueActors(&a, true, ref); err != nil {
+		return err
 	}
 	for _, body := range w.OriginalDeadActors() {
 		if _, err := ref(body.ID, false); err != nil {
@@ -744,30 +688,8 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	if err := (&sim.ActionContinuations{Actors: a.Held}).RemapActors(ref); err != nil {
 		return err
 	}
-	for _, r := range a.Runs {
-		if _, err := ref(r.Entity, false); err != nil {
-			return err
-		}
-	}
-	for _, r := range a.TargetMarks {
-		if _, err := ref(r.Entity, false); err != nil {
-			return err
-		}
-	}
-	for _, r := range a.Animation {
-		if _, err := ref(r.Entity, false); err != nil {
-			return err
-		}
-	}
-	for _, r := range a.DeathAges {
-		if _, err := ref(r.Entity, false); err != nil {
-			return err
-		}
-	}
-	for _, v := range a.VisualIdentities {
-		if _, err := ref(v.Entity, false); err != nil {
-			return err
-		}
+	if err := bindResidueActors(&a, false, ref); err != nil {
+		return err
 	}
 	for _, v := range a.Actions.Actors {
 		if byActor[v.Entity] == 0 {
@@ -822,15 +744,6 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 			return 0
 		})
 	}
-	if err := validateActionVisuals(a.Bolts, a.Heals); err != nil {
-		return err
-	}
-	if err := validateTargetMarks(a.TargetMarks); err != nil {
-		return err
-	}
-	if err := validateCastRuns(a.Runs); err != nil {
-		return err
-	}
 	if g := w.SavedSpellGraph(); g != nil && state.WorldEffects != nil {
 		for i, n := range g.Nodes {
 			if !n.Retired && n.HasCaster {
@@ -875,10 +788,6 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 		return err
 	}
 	if err := captureCurrentEffectWidths(doc, state, w, &a); err != nil {
-		return err
-	}
-	a.Pending, err = projectCurrentPending(s.Residue, byActor, byStructure)
-	if err != nil {
 		return err
 	}
 	if err := captureCurrentNativeBasis(doc, &a); err != nil {
@@ -1499,55 +1408,8 @@ func (mw *mapWorld) restoreOriginalActionView() error {
 			}
 		}
 	}
-	if err := restoreCurrentDepartedCharacters(mw, a.DepartedCharacters, ids); err != nil {
+	if err := loadResidueCarriers(residueLoad{mw: mw, a: a, ids: ids, objects: byObject}); err != nil {
 		return err
-	}
-	for i := range a.Runs {
-		id, ok := ids[a.Runs[i].Entity]
-		if !ok {
-			return fmt.Errorf("current cast animation actor is absent")
-		}
-		a.Runs[i].Entity = id
-	}
-	for i := range a.TargetMarks {
-		id, ok := ids[a.TargetMarks[i].Entity]
-		if !ok {
-			return fmt.Errorf("current target mark actor is absent")
-		}
-		a.TargetMarks[i].Entity = id
-	}
-	var visualIDs []SnapshotVisualIdentity
-	for _, v := range a.VisualIdentities {
-		if id, ok := ids[v.Entity]; ok {
-			v.Entity = id
-			visualIDs = append(visualIDs, v)
-		}
-	}
-	if a.Pending != nil {
-		if err := mw.restoreCurrentPending(a.Pending, byObject); err != nil {
-			return err
-		}
-	} else {
-		for _, o := range a.Options {
-			mw.applyGameOption(o.Option, o.Value)
-		}
-	}
-	mw.restoreActionVisuals(a.Bolts, a.Heals)
-	mw.restoreTargetMarks(a.TargetMarks)
-	mw.restoreCastRuns(a.Runs)
-	if err := mw.restoreCurrentAnimation(a.Animation, ids); err != nil {
-		return err
-	}
-	if err := mw.restoreCurrentDeathAges(a.DeathAges, ids); err != nil {
-		return err
-	}
-	mw.restoreVisualIdentities(visualIDs, a.VisualNext)
-	mw.groupTag = a.GroupTag
-	if a.Fog != nil && !mw.restoreNativeFog(a.Fog.residue()) {
-		return fmt.Errorf("current visibility belongs to a different mission extent")
-	}
-	if mw.mission != nil {
-		mw.mission.pendingMessages = slices.Clone(a.PendingMessages)
 	}
 	if len(a.DeathAges) != 0 {
 		mw.view.SetEntities(mw.entityDraws())

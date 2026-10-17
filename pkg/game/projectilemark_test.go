@@ -44,8 +44,7 @@ func targetMarkCold(t *testing.T, f *FrontEnd, factories ...func(*testing.T) *Fr
 	if err != nil || a == nil || len(a.Heals) != 0 {
 		t.Fatal("expected empty legacy Heals", err)
 	}
-	var visuals SnapshotResidue
-	f.live.actionVisuals(&visuals)
+	visuals := f.live.residue()
 	if !reflect.DeepEqual(a.TargetMarks, visuals.TargetMarks) {
 		t.Fatal("SAV did not write current packed target marks")
 	}
@@ -178,7 +177,7 @@ func TestRetainedProjectileTargetMarkColdLOAD(t *testing.T) {
 func TestTargetMarkSavedInputDefaultsAndBounds(t *testing.T) {
 	legacy := []SnapshotHealBurst{{At: image.Pt(4, 4), Picture: 20, Tile: 1, Age: 7}}
 	mw := sbWorld(t)
-	mw.restoreActionVisuals(nil, legacy)
+	mw.restoreHealBursts(legacy)
 	mw.restoreTargetMarks(nil)
 	if len(mw.healBursts) != 1 || mw.healBursts[0].age != 7 || len(mw.markElements) != 0 || len(mw.healSpriteDraws()) == 0 {
 		t.Fatal("old saved Heals or absent target-mark default changed")
@@ -213,8 +212,7 @@ func TestProjectileTargetMarkActorZeroUsesTheSameBuilder(t *testing.T) {
 	if len(mw.markElements) != 1 || mw.markElements[0].Entity != 0 || len(mw.markDraws(0, 1)) == 0 || len(mw.healBursts) != 0 {
 		t.Fatal("actor zero was treated as a point or missing target", mw.markElements)
 	}
-	var r SnapshotResidue
-	mw.actionVisuals(&r)
+	r := mw.residue()
 	mw.restoreTargetMarks(r.TargetMarks)
 	if len(r.TargetMarks) != 1 || r.TargetMarks[0].Entity != 0 || len(mw.markDraws(0, 1)) == 0 {
 		t.Fatal("actor-zero mark lost through current visual residue")

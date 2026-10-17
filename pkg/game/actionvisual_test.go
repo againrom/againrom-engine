@@ -107,8 +107,7 @@ func TestCurrentVisualContinuationKeepsBirthDelayPathAndExpiry(t *testing.T) {
 				mw.advanceHealBursts()
 				mw.advanceCastRuns()
 			}
-			var saved SnapshotResidue
-			mw.actionVisuals(&saved)
+			saved := mw.residue()
 			wire, err := json.Marshal(saved)
 			if err != nil {
 				t.Fatal(err)
@@ -123,12 +122,10 @@ func TestCurrentVisualContinuationKeepsBirthDelayPathAndExpiry(t *testing.T) {
 				t.Fatalf("the visual snapshot carries %d bolts, want none", len(saved.SpellBolts))
 			}
 			cold := spellSoundFireBallWorld(t, 100)
-			cold.restoreActionVisuals(back.SpellBolts, back.HealBursts)
+			cold.restoreHealBursts(back.HealBursts)
 			cold.restoreCastRuns(back.CastRuns)
 			for tick := 0; tick < 100; tick++ {
-				var a, b SnapshotResidue
-				mw.actionVisuals(&a)
-				cold.actionVisuals(&b)
+				a, b := mw.residue(), cold.residue()
 				if !reflect.DeepEqual(a.HealBursts, b.HealBursts) || !reflect.DeepEqual(a.CastRuns, b.CastRuns) || !reflect.DeepEqual(mw.healSpriteDraws(), cold.healSpriteDraws()) {
 					t.Fatalf("spell%d visual cut differs at%d", spell, tick)
 				}

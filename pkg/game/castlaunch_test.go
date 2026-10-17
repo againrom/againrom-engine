@@ -160,7 +160,7 @@ func TestACastObjectLeavesTheCastersStaffTip(t *testing.T) {
 func TestALegacyVisualSnapshotBoltIsDropped(t *testing.T) {
 	t.Parallel()
 	restored := spWorld(t)
-	restored.restoreActionVisuals([]SnapshotSpellBolt{{From: image.Pt(2, 2), To: image.Pt(9, 2), Picture: 10, Life: 9, Age: 3}}, nil)
+	restored.applyResidue(SnapshotResidue{SpellBolts: []SnapshotSpellBolt{{From: image.Pt(2, 2), To: image.Pt(9, 2), Picture: 10, Life: 9, Age: 3}}})
 	if got := flightRecords(restored); len(got) != 0 || len(restored.flights) != 0 {
 		t.Fatalf("a legacy bolt restored %+v", got)
 	}

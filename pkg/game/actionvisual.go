@@ -45,30 +45,6 @@ type SnapshotCastRun struct {
 }
 type SnapshotVisualIdentity struct{ Entity, Label sim.EntityID }
 
-func (mw *mapWorld) actionVisuals(r *SnapshotResidue) {
-	r.VisualIdentities, r.VisualNext = mw.currentVisualIdentities()
-	for _, b := range mw.healBursts {
-		r.HealBursts = append(r.HealBursts, SnapshotHealBurst{b.at, b.picture, b.owner, b.seed, b.tile, b.drain, b.age})
-	}
-	for _, el := range mw.markElements {
-		if el.Transient && mw.markTargetPresent(el) {
-			r.TargetMarks = append(r.TargetMarks, SnapshotTargetMark{el.Entity, uint32(el.Kind)<<16 | uint32(el.Count), el.Seed})
-		}
-	}
-	for id, c := range mw.castRun {
-		r.CastRuns = append(r.CastRuns, SnapshotCastRun{id, c.left, c.span, mw.swing[id], mw.phase[id]})
-	}
-	slices.SortFunc(r.CastRuns, func(a, b SnapshotCastRun) int {
-		if a.Entity < b.Entity {
-			return -1
-		}
-		if a.Entity > b.Entity {
-			return 1
-		}
-		return 0
-	})
-}
-
 // Native IDs supply the initial seed vocabulary. Once LOAD changes local IDs,
 // these labels and their allocator remain independent of that address space.
 // SAVE previews the same assignments without changing presentation state.
@@ -157,14 +133,20 @@ func (mw *mapWorld) restoreCastRuns(runs []SnapshotCastRun) {
 		mw.phase[r.Entity] = r.Phase
 	}
 }
-func validateActionVisuals(bolts []SnapshotSpellBolt, heals []SnapshotHealBurst) error {
-	if len(bolts) > 65536 || len(heals) > 65536 {
+func validateSpellBolts(bolts []SnapshotSpellBolt) error {
+	if len(bolts) > 65536 {
 		return fmt.Errorf("current visual population exceeds bound")
 	}
 	for _, b := range bolts {
 		if b.Age < 0 || b.Life <= 0 || b.Age >= b.Life || b.Delay < 0 || b.Picture < 0 {
 			return fmt.Errorf("invalid current spell visual lifetime")
 		}
+	}
+	return nil
+}
+func validateHealBursts(heals []SnapshotHealBurst) error {
+	if len(heals) > 65536 {
+		return fmt.Errorf("current visual population exceeds bound")
 	}
 	for _, b := range heals {
 		if b.Age < 0 || b.Age >= healBurstLife || b.Picture < 0 || b.Tile < 1 {
@@ -173,7 +155,17 @@ func validateActionVisuals(bolts []SnapshotSpellBolt, heals []SnapshotHealBurst)
 	}
 	return nil
 }
-func (mw *mapWorld) restoreActionVisuals(_ []SnapshotSpellBolt, heals []SnapshotHealBurst) {
+func validateVisualIdentities(rows []SnapshotVisualIdentity) error {
+	ids, labels := map[sim.EntityID]bool{}, map[sim.EntityID]bool{}
+	for _, v := range rows {
+		if ids[v.Entity] || labels[v.Label] {
+			return fmt.Errorf("repeated current visual identity")
+		}
+		ids[v.Entity], labels[v.Label] = true, true
+	}
+	return nil
+}
+func (mw *mapWorld) restoreHealBursts(heals []SnapshotHealBurst) {
 	mw.healBursts = nil
 	for _, b := range heals {
 		mw.healBursts = append(mw.healBursts, healBurst{b.At, b.Picture, b.Owner, b.Seed, b.Tile, b.Drain, b.Age})
