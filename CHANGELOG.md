@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A guard walking back to its post or a unit closing on the ally it
+  escorts now attacks an enemy within reach when its path is blocked, instead
+  of standing still.
+- [ROM1] A unit in a group move whose path was blocked tries again at the
+  group's next turn instead of staying where it stopped.
 - [ROM1] A unit sent to pick up a sack that someone else takes first still
   walks to the sack's place and finishes there as after a pickup, ready to
   attack an enemy in reach, as in the original.

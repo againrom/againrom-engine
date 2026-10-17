@@ -1113,10 +1113,12 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				}
 				continue
 			}
+			// A first-game walk with no victim ends refused (answerRefusedWalk).
 			e.Stall++
 			if e.Stall >= stallLimit {
+				walk := !e.HasAttackTarget && !w.SecondGame()
 				refused := w.pursuitRefused(scratch, i)
-				if w.restAt(scratch, i) && refused {
+				if w.restAt(scratch, i) && (refused || walk) {
 					w.answerRefusedPursuit(i)
 				}
 			}

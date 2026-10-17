@@ -467,7 +467,7 @@ func (w *World) aimsAtDestination(i int, sub cell) bool {
 // refused pursuit and keep their own handling.
 func (w *World) answerRefusedPursuit(i int) {
 	if !w.attackerRefusable(i) {
-		w.answerRefusedPickupWalk(i)
+		w.answerRefusedWalk(i)
 		return
 	}
 	e := &w.entities[i]
@@ -479,18 +479,45 @@ func (w *World) answerRefusedPursuit(i int) {
 	e.PursuitIdle = true
 }
 
-// answerRefusedPickupWalk is answerRefusedPursuit for a walk to a sack: the
-// pick-up state is not the move's own, so the nearest hostile within reach
-// replaces the request. With none, or for a short-reach human mage, the request
-// stays (AI-375, AI-350).
-func (w *World) answerRefusedPickupWalk(i int) {
+// answerRefusedWalk answers a refused walk with no victim by its walk state
+// (AI-649): a walk to a sack and, in the first game, each state the tail
+// sends to the reach pick (a guard's walk to its post, an escort closing) take
+// the hostile nearest within reach (AI-648). With none the actor stays.
+func (w *World) answerRefusedWalk(i int) {
 	e := &w.entities[i]
-	if e.PendingOrder.Kind != PendingPickup || e.HasAttackTarget || e.OffMap {
+	if e.HasAttackTarget || e.OffMap {
+		return
+	}
+	if e.PendingOrder.Kind != PendingPickup && !w.refusedWalkTakesPick(i) {
 		return
 	}
 	if victim := w.reacquisitionVictim(i); victim >= 0 && !w.suppressedAcquirer(*e) {
 		w.orderAcquire(i, w.entities[victim].ID)
 	}
+}
+
+// refusedWalkTakesPick reports whether the tail sends actor i's refused walk
+// to the reach pick. Move, Swarm, Swarm 2 and Roam members and state 1 walk at state
+// 1, which the tail stands down for the group pass to send again (AI-519); a
+// patrol, a withdrawal and another pending order keep their own answers.
+func (w *World) refusedWalkTakesPick(i int) bool {
+	e := w.entities[i]
+	if w.SecondGame() || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
+		return false
+	}
+	if e.ActorState == actorStatePatrol || e.ActorState == actorStateRetreat {
+		return false
+	}
+	if o := w.savedOrder(e.ID); o != nil && (o.State == 1 || o.State == uint32(actorStatePatrol) || o.State == uint32(actorStateRetreat)) {
+		return false
+	}
+	if g := w.savedGroupFor(e.ID); g != nil {
+		switch g.AI[0x20] {
+		case orderSwarm, orderMove, orderSwarm2, orderRoam:
+			return false
+		}
+	}
+	return true
 }
 
 // closedOn reports whether attacker i has walked close enough to victim ti

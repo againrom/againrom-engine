@@ -188,10 +188,11 @@ func (w *World) savedGroupMove(i int, o *SavedActorOrder, move bool) {
 		w.savedAcquire(i, o)
 		return
 	}
-	// The Move arm re-issues the move only for a Group holding a rate byte
-	// (AI-MOVE-023); a member of any other Move Group keeps the walk or the
-	// action it holds. The Swarm 2 fallback keeps its re-issue.
-	if g := w.savedGroupFor(e.ID); move && (g == nil || g.AI[0x44] == 0) {
+	// The arm re-issues the move to every unlatched member (AI-649). Without
+	// a rate byte this build sends only an idle one, a refused walk: a pick-up
+	// or a fight stays inside the Move Group here, not in the original.
+	idle := arrived(e) && !e.HasAttackTarget && e.PendingOrder.Kind == PendingNone
+	if g := w.savedGroupFor(e.ID); move && !idle && (g == nil || g.AI[0x44] == 0) {
 		return
 	}
 	w.savedMove(i, o)
