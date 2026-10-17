@@ -101,28 +101,33 @@ with three triggers):
 
 | Test | What it proves | Loss control |
 |---|---|---|
-| `TestAreaHandlesRewriteTheirParameters/box_corner`, `/box_edge`, `/box_edge_clamped`, `/radius`, `/cell` | each handle writes the bytes `SetFields` writes for the same values on a twin editor; one Undo restores the map byte-equal; Redo writes it again | per handle, below |
+| `TestAreaHandlesRewriteTheirParameters/box_corner`, `/box_edge`, `/box_edge_clamped`, `/radius`, `/cell` | each handle writes the bytes `SetFields` writes for the same values on a twin editor; one Undo restores the map byte-equal; Redo writes it again | corner, edge, radius, cell, below |
+| `TestAreaRimWritesTheConstantWithItsBias` | a check-15 pair `square < constant 5` reads radius 4, bias 1; a rim drag to radius 6 writes 7 into the constant, as `SetFields` does; one Undo restores | radius bias, below |
 | `TestAreaDragCancelledWritesNothing` | Esc during a drag, a click on a handle, showing areas, selecting, and the draw tool cancelled with Esc write nothing | - |
-| `TestAreaSharedNodeAsksBeforeTheChange` | a shared radius constant (T2, T3) and a shared action node (T1, T3) ask first; Cancel writes nothing; Change all writes the `SetFields` bytes; one Undo restores | - |
-| `TestAreaDrawnBoxGoesToTheChosenTrigger` | Create with New trigger writes the bytes of the node, the pair and the trigger placed directly through `mapedit`; Undo restores; the drop-down attaches a box to T2's empty pair; a full trigger is refused; Cancel writes nothing | - |
+| `TestAreaSharedNodeAsksBeforeTheChange` | a shared radius constant (T2, T3) and a shared action node (T1, T3) ask first; Cancel writes nothing; Change all writes the `SetFields` bytes; one Undo restores | shared notice, below |
+| `TestAreaDrawnBoxGoesToTheChosenTrigger` | Create with New trigger writes the bytes of the node, the pair and the trigger placed directly through `mapedit`; Undo restores; the drop-down attaches a box to T2's empty pair; a full trigger is refused; Cancel writes nothing | new trigger first, below |
 | `TestAreaDrawnBoxAddsItsConstantWhenNoneIsFree` | with no reusable constant 1 the pair compares with a new constant after the box | - |
 | `TestScriptAreaNamesTheSlotsItComesFrom` (`pkg/mapload`) | the slots, radius node, slot and bias of each shape | - |
 
-Loss controls, each run on the committed tree with one arm removed and then
-restored; the results are in the story's notes directory:
+Loss controls, each a one-line change to `pkg/ui/mapeditorareaedit.go` on
+the committed tree, run against the named test and then restored
+(`loss.py` and `loss.log` in the story's notes directory); every one fails:
 
 | Arm removed | Failing test |
 |---|---|
-| corner: the left/right X update in `areaDragTo` | `TestAreaHandlesRewriteTheirParameters/box_corner` |
+| corner: the X2 update of a right-side handle in `areaDragTo` | `TestAreaHandlesRewriteTheirParameters/box_corner` |
 | edge: the clamp of the left side against X2 | `TestAreaHandlesRewriteTheirParameters/box_edge_clamped` |
-| radius: the bias added on release | `TestAreaHandlesRewriteTheirParameters/radius` |
+| radius: the Chebyshev radius update in `areaDragTo` | `TestAreaHandlesRewriteTheirParameters/radius` |
+| radius bias: the bias added on release | `TestAreaRimWritesTheConstantWithItsBias` |
 | cell: the cell update in `areaDragTo` | `TestAreaHandlesRewriteTheirParameters/cell` |
+| shared notice: the notice before a shared write | `TestAreaSharedNodeAsksBeforeTheChange/shared_constant`, `/shared_node` |
+| new trigger first: the drop-down row offset in `areaCreate` | `TestAreaDrawnBoxGoesToTheChosenTrigger` |
 
 Release witnesses (`pkg/game/mapeditorareaedit_release_test.go`), EN and RU:
 
 - `TestReleaseMapEditorAreaDragsSaveAndReopen`: on `scenario/100.alm`
-  trigger T8, the box (26,123)-(27,124) dragged by its far corner to
-  (28,125); on `scenario/10.alm` trigger T3, the square at (36,51) radius 3
+  trigger T8, the one-cell box 26,123 dragged by its far corner to 28,125
+  (X 26..28, Y 123..125); on `scenario/10.alm` trigger T3, the square at (36,51) radius 3
   dragged to radius 4 through its shared constant (notice, Change all). Each
   map is saved, reopened with `alm.Open`, and `mapload.ScriptAreas` shows the
   moved area; `mapload.CompileScript` builds the script and its check holds

@@ -176,6 +176,35 @@ func TestAreaHandlesRewriteTheirParameters(t *testing.T) {
 	}
 }
 
+// A check 15 pair `square < constant 5` holds within radius 4: a rim drag to
+// radius 6 writes 7 into the constant, the radius plus the comparison's
+// bias, as SetFields writes it.
+func TestAreaRimWritesTheConstantWithItsBias(t *testing.T) {
+	conditions := []scriptNode{
+		{label: "far", opcode: 15, id: 1, values: []uint32{1, 20, 20}, tags: []uint32{3, 5, 6}},
+		{label: "five", opcode: 0x10002, id: 2, values: []uint32{5}, tags: []uint32{1}},
+	}
+	actions := []scriptNode{{label: "talk", opcode: 2, id: 1, values: []uint32{7}, tags: []uint32{1}}}
+	o := synth.ALMOptions{Width: 40, Height: 40, Type7Payload: areaScript(actions, conditions, []areaTrigger{
+		{name: "Less", pairs: [][3]uint32{{1, 2, 3}}, acts: []uint32{1}},
+	})}
+	b := built(t, o, nil, nil).Bytes()
+	e, twin := areaEditors(t, b)
+	areaSelect(t, e, 0)
+	a := areaOf(t, e, 0, ui.AreaSquare, image.Pt(20, 20))
+	if a.Radius != 4 || a.RadiusBias != 1 {
+		t.Fatalf("the square reads radius %d bias %d, want 4 and 1", a.Radius, a.RadiusBias)
+	}
+	areaPress(e, e.AreaCornerPoint(image.Pt(a.Rect.Max.X, 20)), e.CellPoint(image.Pt(26, 20)), true)
+	want, err := twin.Document().Edits.(ui.InspectionFieldSet).SetFields("Condition", 1, []ui.InspectionFieldValue{{Key: "value0", Value: 7}})
+	if err != nil || !bytes.Equal(e.Document().SourceBytes, want.SourceBytes) {
+		t.Fatalf("the rim drag wrote other bytes than the constant 7: %v; message %q", err, e.Message())
+	}
+	if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, b) {
+		t.Fatalf("one Undo did not restore the map: %v", err)
+	}
+}
+
 // A drag cancelled with Esc, a click on a handle, showing the areas,
 // selecting a trigger and the draw tool cancelled with Esc write nothing.
 func TestAreaDragCancelledWritesNothing(t *testing.T) {
