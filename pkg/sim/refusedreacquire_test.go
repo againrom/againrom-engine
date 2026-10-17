@@ -229,14 +229,15 @@ func TestAVictimNoTerrainRouteServesRefusesThePursuit(t *testing.T) {
 	}
 }
 
-func TestARefusedPursuitOfAShortReachHumanMageTakesNoPick(t *testing.T) {
+func TestARefusedPursuitOfAShortReachHumanMageIdlesThePick(t *testing.T) {
 	t.Parallel()
 	_, e := stepsUntilRefused(t, islandWorld(t, true, 1, false), []Command{Attack(1, 2)})
 	if !e.AcquirePursuit || e.AttackTarget != 11 {
 		t.Fatalf("fighter of reach 1: acquisition %v victim %d; want the adjacent hostile taken", e.AcquirePursuit, e.AttackTarget)
 	}
 	_, e = stepsUntilRefused(t, islandWorld(t, true, 1, true), []Command{Attack(1, 2)})
-	if !e.PursuitIdle || e.AcquirePursuit || e.AttackTarget != 2 {
-		t.Fatalf("mage of reach 1: idle %v acquisition %v victim %d; want the idle order on victim 2", e.PursuitIdle, e.AcquirePursuit, e.AttackTarget)
+	// The pick is written and the order idles (AI-542).
+	if !e.PursuitIdle || e.AcquirePursuit || e.AttackTarget != 11 {
+		t.Fatalf("mage of reach 1: idle %v acquisition %v victim %d; want the idle order on the pick 11", e.PursuitIdle, e.AcquirePursuit, e.AttackTarget)
 	}
 }

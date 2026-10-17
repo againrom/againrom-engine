@@ -105,20 +105,34 @@ func mageOf(e Entity) Entity {
 	return e
 }
 
-// TestExplicitRetreatOfAHumanMageOfReachOneTakesNoPick is the suppression clause
-// both reacquisition and engagement carry: a human participant's mage of reach
-// below two does not take the pick, so the refused flee leaves it standing with
-// no order (AI-GUARD-007, AI-328).
-func TestExplicitRetreatOfAHumanMageOfReachOneTakesNoPick(t *testing.T) {
+// stepIdlePick steps w n times and fails unless the mage at index 0 stays at
+// (x, y) with no walk and holds, when it holds a victim, the pick 2 with the
+// order idle; it reports whether the idle pick was ever held.
+func stepIdlePick(t *testing.T, w *World, n int, x, y int32) bool {
+	t.Helper()
+	held := false
+	for k := 0; k < n; k++ {
+		Step(w, nil)
+		e := w.entities[0]
+		if e.HasTarget || e.X != x || e.Y != y || e.HasAttackTarget && (!e.PursuitIdle || e.AttackTarget != 2) {
+			t.Fatalf("tick %d: mage at (%d,%d) holds attack %t on %d idle %t destination %t, want it standing with at most the idle pick",
+				w.tick, e.X, e.Y, e.HasAttackTarget, e.AttackTarget, e.PursuitIdle, e.HasTarget)
+		}
+		held = held || e.HasAttackTarget
+	}
+	return held
+}
+
+// TestExplicitRetreatOfAHumanMageOfReachOneIdlesThePick is the suppression
+// clause the reacquisition carries: a human participant's mage of reach below
+// two writes the pick and idles the order, so the refused flee leaves it
+// standing (AI-GUARD-007, AI-542).
+func TestExplicitRetreatOfAHumanMageOfReachOneIdlesThePick(t *testing.T) {
 	w := pocketWorld(t, mageOf(retreatFighter(1, 20, 20)), sturdy(retreatIntruder(2, 21, 20), sturdyHP), retreatRelations(t))
 	w.tick = scriptPassPhase
 	Step(w, []Command{GroupRetreat(1, SelfSlot, 91)})
-	for n := 0; n < 96; n++ {
-		Step(w, nil)
-		if e := w.entities[0]; e.HasAttackTarget || e.HasTarget || e.X != 20 || e.Y != 20 {
-			t.Fatalf("tick %d: mage at (%d,%d) holds attack %t destination %t, want it standing with no order",
-				w.tick, e.X, e.Y, e.HasAttackTarget, e.HasTarget)
-		}
+	if !stepIdlePick(t, w, 96, 20, 20) {
+		t.Error("the refused flee never wrote the adjacent hostile as an idle pick")
 	}
 	if blows := blowsOn(w, 1); blows != 0 {
 		t.Errorf("mage landed %d blow(s), want none", blows)
@@ -141,20 +155,19 @@ func TestExplicitRetreatOfAHumanMageOfReachTwoTakesThePick(t *testing.T) {
 	}
 }
 
-// TestWithdrawalOfAHumanMageOfReachOneTakesNoPick is the same clause on the
-// automatic arm: the fixed-radius withdrawal writes a flee cell nothing leads to
-// and the unit is left with no order.
-func TestWithdrawalOfAHumanMageOfReachOneTakesNoPick(t *testing.T) {
+// TestWithdrawalOfAHumanMageOfReachOneIdlesThePick is the same clause on the
+// automatic arm: the fixed-radius withdrawal writes a flee cell nothing leads
+// to and the unit stands with the pick idle.
+func TestWithdrawalOfAHumanMageOfReachOneIdlesThePick(t *testing.T) {
 	mage := mageOf(withdrawalFighter(1, SelfSlot, 20, 20, 30))
 	mage.Withdraw = 30
 	w := pocketWorld(t, mage, sturdy(withdrawalFighter(2, 2, 21, 20, sturdyHP), sturdyHP),
 		engRel(t, [3]uint32{SelfSlot, 2, 1}, [3]uint32{2, SelfSlot, 2}))
-	for n := 0; n < 96; n++ {
-		Step(w, nil)
-		if e := w.entities[0]; e.HasAttackTarget || e.HasTarget || e.X != 20 || e.Y != 20 {
-			t.Fatalf("tick %d: mage at (%d,%d) holds attack %t destination %t, want it standing with no order",
-				w.tick, e.X, e.Y, e.HasAttackTarget, e.HasTarget)
-		}
+	if !stepIdlePick(t, w, 96, 20, 20) {
+		t.Error("the refused withdrawal never wrote the adjacent hostile as an idle pick")
+	}
+	if blows := blowsOn(w, 1); blows != 0 {
+		t.Errorf("mage landed %d blow(s), want none", blows)
 	}
 }
 

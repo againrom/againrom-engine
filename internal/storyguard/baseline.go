@@ -2559,6 +2559,11 @@ package storyguard
 // CommentBytes rose by the doc comments of the staff-less mage engage refusal
 // in pkg/sim (reacquire.go, escort.go, guardarm.go, savedgroupsai.go) and its
 // tests, and this paragraph.
+//
+// CommentBytes rose by the doc comments of the idled pick, the defender's
+// crowding check and the acquisition's order byte (pkg/sim refusedroute.go,
+// escort.go, savedgroupsai.go, currentorder.go, combat.go) and their tests in
+// pkg/sim and pkg/game, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2582,5 +2587,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9140767,
+	CommentBytes: 9145212,
 }

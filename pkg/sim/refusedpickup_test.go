@@ -70,6 +70,24 @@ func TestARefusedPickupWalkTakesTheHostileWithinReach(t *testing.T) {
 	}
 }
 
+// A short-reach human mage's refused pick-up walk writes the hostile within
+// reach and idles the order, which replaces the pick-up (AI-542).
+func TestARefusedPickupWalkOfAShortReachMageIdlesThePick(t *testing.T) {
+	w := pickupBeyondWall(t, true, 1, true)
+	e := stepsUntilWalkEnds(t, w, PickUp(1, CellPoint{X: 20, Y: 4}))
+	if !e.PursuitIdle || e.AcquirePursuit || !e.HasAttackTarget || e.AttackTarget != 11 || e.PendingOrder.Kind != PendingNone {
+		t.Fatalf("idle %v acquisition %v victim %v/%d pending %d; want hostile 11 held idle in place of the pick-up request",
+			e.PursuitIdle, e.AcquirePursuit, e.HasAttackTarget, e.AttackTarget, e.PendingOrder.Kind)
+	}
+	hp := laEnt(t, w, 11).HP
+	for range 160 {
+		Step(w, nil)
+	}
+	if laEnt(t, w, 11).HP != hp {
+		t.Fatal("the mage struck its idled pick")
+	}
+}
+
 // Controls: a refused move stands; an unanswered pick-up keeps its request.
 func TestARefusedMoveAndAnUnansweredPickupTakeNoPick(t *testing.T) {
 	w := pickupBeyondWall(t, true, 2, false)
@@ -79,7 +97,6 @@ func TestARefusedMoveAndAnUnansweredPickupTakeNoPick(t *testing.T) {
 	}
 	for name, w := range map[string]*World{
 		"no hostile":         pickupBeyondWall(t, false, 2, false),
-		"short-reach mage":   pickupBeyondWall(t, true, 1, true),
 		"hostile past reach": pickupBeyondWallAt(t, true, 12, 6, 1, false),
 	} {
 		e := stepsUntilWalkEnds(t, w, PickUp(1, CellPoint{X: 20, Y: 4}))

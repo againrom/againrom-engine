@@ -461,11 +461,12 @@ func (w *World) aimsAtDestination(i int, sub cell) bool {
 // answerRefusedPursuit is the order machine's answer to a refused route for a
 // unit attacker. The walk is already ended. The pick is the hostile nearest
 // within the attacker's reach, the previous victim not excluded, which becomes
-// its acquisition order (AI-ROUTE-045, AI-327). With none in reach, or for a
-// human participant's short-reach mage (AI-GUARD-007), the order goes idle and
-// the victim field is left as it was, since the failure exit never writes it
-// (AI-328): nothing walks, turns or strikes until another order is written,
-// including a group's reissue at the same victim.
+// its acquisition order (AI-ROUTE-045, AI-327); a first-game human
+// participant's short-reach mage holds the pick with the order idle
+// (AI-GUARD-007). With none in reach the order goes idle and the victim field
+// is left as it was, since the failure exit never writes it (AI-328): nothing
+// walks, turns or strikes until another order is written, including a group's
+// reissue at the same victim.
 // Acquisition turns, structure victims and a cycle in progress are not a
 // refused pursuit and keep their own handling.
 func (w *World) answerRefusedPursuit(i int, by routeSearch) {

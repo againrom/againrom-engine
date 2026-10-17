@@ -7,7 +7,8 @@ import (
 
 // ProjectActorOrderTargets changes typed endpoints, preserving other bytes.
 func ProjectActorOrderTargets(e Entity, o SavedActorOrder, attack, escort uint32) SavedActorOrder {
-	attackOrder := o.State == 3 || o.Raw[8] == 2 || o.Raw[8] == 5 || o.Raw[8] == 6
+	// An idled pick keeps its victim at +0c under order 0 (AI-542, AI-328).
+	attackOrder := o.State == 3 || o.Raw[8] == 2 || o.Raw[8] == 5 || o.Raw[8] == 6 || e.PursuitIdle && o.Raw[8] == 0
 	_, _, hasRequested := e.RequestedAttackTarget()
 	if attackOrder && (hasRequested || o.Authored) {
 		if !hasRequested {

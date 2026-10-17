@@ -64,8 +64,9 @@ func TestAuthoredControlRefusedAcquisitionAndColdRestore(t *testing.T) {
 				live.answerRefusedPursuit(0, searchNear)
 				e := live.entities[0]
 				if tc.human {
-					if !e.PursuitIdle || e.AcquirePursuit || e.AttackTarget != 3 {
-						t.Fatalf("zero control acquired a target: idle %v acquire %v target %d", e.PursuitIdle, e.AcquirePursuit, e.AttackTarget)
+					// The pick is written and the order idles (AI-542).
+					if !e.PursuitIdle || e.AcquirePursuit || e.AttackTarget != 2 {
+						t.Fatalf("zero control did not idle the adjacent pick: idle %v acquire %v target %d", e.PursuitIdle, e.AcquirePursuit, e.AttackTarget)
 					}
 				} else if !e.AcquirePursuit || e.PursuitIdle || !e.HasAttackTarget || e.AttackTarget != 2 {
 					t.Fatalf("nonzero control did not acquire the adjacent target: %+v", e)

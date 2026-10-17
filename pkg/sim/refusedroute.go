@@ -13,7 +13,7 @@ const (
 )
 
 // refusedNone is what a refused route leaves when the reach pick names no
-// victim, or names one for a suppressed acquirer (AI-GUARD-007).
+// victim, or, in the second game, names one for a suppressed acquirer.
 type refusedNone uint8
 
 const (
@@ -62,6 +62,16 @@ func (w *World) answerRefusedRoute(i int, r refusedRoute) {
 	e := &w.entities[i]
 	phase, countdown := e.AttackPhase, e.AttackCountdown
 	victim := w.reacquisitionVictim(i)
+	if victim >= 0 && w.engageRefused(i) {
+		// The pick is written before the suppression idles the order, and
+		// the strike setter is not reached (AI-542).
+		w.idlePick(i, w.entities[victim].ID)
+		if a.keepPhase {
+			e.AttackPhase, e.AttackCountdown = phase, countdown
+		}
+		return
+	}
+	// The second game keeps its refusal row; no second-game claim reads it.
 	if victim < 0 || w.suppressedAcquirer(*e) {
 		w.answerRefusedNone(i, a.none)
 		return

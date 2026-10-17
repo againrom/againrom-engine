@@ -66,7 +66,9 @@ func TestSavedGroupsStandingOffMapRetainsOrderAndCannotAcquireAcrossSave(t *test
 					if hostile && (!active.HasAttackTarget || active.AttackTarget != 30) {
 						t.Fatal("visible successor did not acquire the hostile", active)
 					}
-					if !hostile && (active.HasTarget || w.savedOrder(10).Raw[8] != 0xb) {
+					// A human participant's unit with no target leaves the
+					// order 0 (AI-ACQUIRE-002, AI-349).
+					if !hostile && (active.HasTarget || w.savedOrder(10).Raw[8] != 0) {
 						t.Fatal("visible successor did not execute peaceful acquire", active)
 					}
 				}

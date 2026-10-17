@@ -134,14 +134,21 @@ func (w *World) savedPrimaryIssue(g *SavedGroup) string {
 
 func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 	w.acquireStanding(i)
-	if o != nil {
-		if w.engageRefused(i) && w.entities[i].PursuitIdle {
-			o.Raw[8] = 0
-		} else if w.entities[i].HasAttackTarget {
-			o.Raw[8] = 5
-		} else {
-			o.Raw[8] = 0xb
-		}
+	if o == nil {
+		return
+	}
+	e := w.entities[i]
+	switch {
+	case w.engageRefused(i) && e.PursuitIdle:
+		o.Raw[8] = 0
+	case e.HasAttackTarget:
+		o.Raw[8] = 5
+	case !w.SecondGame() && e.Owner != 0 && w.humanParticipantUnit(e):
+		// A human participant's unit with no target takes the heal arm, which
+		// leaves the order 0 unless it casts (AI-ACQUIRE-002, AI-349).
+		o.Raw[8] = 0
+	default:
+		o.Raw[8] = 0xb
 	}
 }
 

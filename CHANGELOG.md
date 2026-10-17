@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A mage of yours without a staff that cannot get where it was going
+  keeps the enemy within its reach as its target without striking it, as in
+  the original; on its way to a sack it gives the sack up. Defending a unit
+  while standing right beside it, with an enemy next to the mage and none
+  threatening that unit, it steps back to its defending distance.
 - [ROM1] A mage of yours without a staff no longer goes into melee on its
   own, as in the original. Defending your hero it stays beside him, heals him
   and casts an armed spell at his attacker; under Stand Ground, Guard or Swarm

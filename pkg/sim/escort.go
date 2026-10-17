@@ -30,7 +30,9 @@ func (w *World) armDefend(i int) {
 		return
 	}
 	w.coverEngage(i, ti)
-	if w.entities[i].HasAttackTarget {
+	// A pursuit means the defender is busy this tick; an idled pick leaves
+	// the order at 0, which falls to the crowding check (AI-FOLLOWTAB-113).
+	if e := w.entities[i]; e.HasAttackTarget && !(e.PursuitIdle && w.engageRefused(i)) {
 		return
 	}
 	if dist < escortCrowd {
@@ -254,15 +256,27 @@ func (w *World) acquireStanding(i int) {
 		return
 	}
 	if w.engageRefused(i) {
-		// The pick is written and the order idles, as the acquisition
-		// pursuit arm leaves a suppressed acquirer (AI-PURSUE-040).
-		w.orderAttack(i, w.entities[at].ID)
-		if e := &w.entities[i]; e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && !e.AcquirePursuit {
-			e.PursuitIdle = true
-		}
+		// The acquisition pursuit arm leaves a suppressed acquirer this way
+		// (AI-PURSUE-040).
+		w.idlePick(i, w.entities[at].ID)
 		return
 	}
 	w.orderAcquire(i, w.entities[at].ID)
+}
+
+// idlePick writes victim as actor i's target and idles the order: ord+0x0c
+// holds the pick and ord+0x08 is 0, so nothing walks, turns or strikes until
+// another order is written (AI-GUARD-007, AI-542).
+func (w *World) idlePick(i int, victim EntityID) {
+	w.orderAttack(i, victim)
+	e := &w.entities[i]
+	if !e.HasAttackTarget || e.AttackTargetKind != AttackTargetUnit || e.AcquirePursuit {
+		return
+	}
+	e.PursuitIdle = true
+	if o := w.savedOrder(e.ID); o != nil {
+		o.Raw[8] = 0
+	}
 }
 
 func (w *World) actorCandidates(i int) []int {
