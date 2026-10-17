@@ -115,6 +115,10 @@ func TestAnArmedHealWithNoPatientLeavesTheMageToItsAttack(t *testing.T) {
 	t.Parallel()
 
 	armed, unarmed := hrMelee(t, 6, 100, false), hrMelee(t, 0, 100, false)
+	// A player's mage of reach below 2 starts no strike on its own
+	// (AI-GUARD-007); this is a mage with a staff's.
+	armed.entities[indexOfEntity(armed.entities, 1)].Reach = 2
+	unarmed.entities[indexOfEntity(unarmed.entities, 1)].Reach = 2
 	for k := 0; k < 400; k++ {
 		Step(armed, nil)
 		Step(unarmed, nil)

@@ -203,6 +203,9 @@ func (w *World) coverEngage(i, ti int) {
 		w.acquireStanding(i)
 		return
 	}
+	if w.engageRefused(i) {
+		return
+	}
 	at := -1
 	best := int64(-1)
 	for _, ci := range live {
@@ -247,6 +250,15 @@ func (w *World) acquireStanding(i int) {
 		w.entities[i].releaseBetweenCycles(PendingRelease)
 		if escortState(w.entities[i].ActorState) && !w.humanParticipantUnit(w.entities[i]) {
 			w.entities[i].EscortOrder = escortOrderIdle
+		}
+		return
+	}
+	if w.engageRefused(i) {
+		// The pick is written and the order idles, as the acquisition
+		// pursuit arm leaves a suppressed acquirer (AI-PURSUE-040).
+		w.orderAttack(i, w.entities[at].ID)
+		if e := &w.entities[i]; e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && !e.AcquirePursuit {
+			e.PursuitIdle = true
 		}
 		return
 	}

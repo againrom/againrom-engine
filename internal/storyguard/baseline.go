@@ -2555,6 +2555,10 @@ package storyguard
 // member (pkg/sim/combat.go, the refusing searches in pkg/sim/step.go and
 // pkg/sim/pursuitsearch.go) and its witness in pkg/sim/refusedmove_test.go,
 // this note included.
+//
+// CommentBytes rose by the doc comments of the staff-less mage engage refusal
+// in pkg/sim (reacquire.go, escort.go, guardarm.go, savedgroupsai.go) and its
+// tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2578,5 +2582,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9138690,
+	CommentBytes: 9140767,
 }

@@ -68,3 +68,10 @@ func (w *World) reacquisitionVictim(i int) int {
 func (w *World) suppressedAcquirer(e Entity) bool {
 	return e.Owner != 0 && w.humanParticipantUnit(e) && isMage(e) && e.Reach < 2
 }
+
+// engageRefused reports whether the engage routine refuses actor i outright:
+// a first-game suppressed acquirer. The second game keeps its engage; no
+// second-game claim reads this test (AI-GUARD-007).
+func (w *World) engageRefused(i int) bool {
+	return !w.SecondGame() && w.suppressedAcquirer(w.entities[i])
+}

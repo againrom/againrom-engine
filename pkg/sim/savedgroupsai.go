@@ -135,7 +135,9 @@ func (w *World) savedPrimaryIssue(g *SavedGroup) string {
 func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 	w.acquireStanding(i)
 	if o != nil {
-		if w.entities[i].HasAttackTarget {
+		if w.engageRefused(i) && w.entities[i].PursuitIdle {
+			o.Raw[8] = 0
+		} else if w.entities[i].HasAttackTarget {
 			o.Raw[8] = 5
 		} else {
 			o.Raw[8] = 0xb
@@ -156,6 +158,13 @@ func (w *World) savedGuard(i int, o *SavedActorOrder) {
 	// sides of this routine, the original-runtime one here and the per-actor
 	// one the actor layer reaches. Its filter, its ordering and its
 	// engage-then-continue shape are this scan's own, lifted whole.
+	if w.postRefused(i, cell{x: e.PostX, y: e.PostY}) {
+		if postLeashed(*e) {
+			binary.LittleEndian.PutUint16(o.Raw[10:], binary.LittleEndian.Uint16(o.Raw[:]))
+			w.savedMove(i, o)
+		}
+		return
+	}
 	if w.postEngage(i, cell{x: e.PostX, y: e.PostY}) {
 		o.Raw[8] = 5
 		return
@@ -280,7 +289,9 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 			}
 		}
 		human := w.entities[i].Owner != 0 && w.humanParticipantUnit(w.entities[i])
-		if at >= 0 {
+		if at >= 0 && w.engageRefused(i) {
+			// The engage refuses outright and writes nothing (AI-GUARD-007).
+		} else if at >= 0 {
 			w.orderAttack(i, w.entities[at].ID)
 			if o != nil {
 				o.Raw[8] = 5

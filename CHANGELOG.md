@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A mage of yours without a staff no longer goes into melee on its
+  own, as in the original. Defending your hero it stays beside him, heals him
+  and casts an armed spell at his attacker; under Stand Ground, Guard or Swarm
+  it does not strike an enemy beside it. Your own attack order still sends it.
 - [ROM1] A unit in a group move or attack move that cannot get through no
   longer stands still while enemies hit it, as in the original. When no way
   exists at all it stops and fights what is within reach; when its way is
@@ -20,8 +24,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   tier and health.
 - [ROM1] A mage of yours heals itself and its wounded companions while an
   enemy shoots it from outside the mage's own reach, as in the original; an
-  enemy standing within its reach still keeps it fighting. The automatic
-  casting level (Minimum, Average, Maximum) follows the same rule.
+  enemy standing within its reach still stops it healing unless you set Heal
+  to cast automatically. The automatic casting level (Minimum, Average,
+  Maximum) follows the same rule.
 - [Starter] On macOS, Browse opens the system folder chooser and adds the
   chosen folder. The map editor's Open and Save As use the same system
   chooser; Open shows every file and has no file-type menu.

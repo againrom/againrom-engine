@@ -20,7 +20,9 @@ func owWorld(t *testing.T, foes ...[2]int32) *World {
 	mage := effectMage(owMage, 5, 9, 1<<1)
 	mage.HP, mage.MaxHP, mage.Speed, mage.Capacity = 5000, 5000, 21, 1411
 	mage.MaxMana, mage.Mana, mage.AttackCharge, mage.AttackRelax = 5000, 5000, 8, 12
-	mage.ScanRange, mage.AutoSpell = engSight, 1
+	// Reach 2: a player's mage of shorter reach engages nothing on its own
+	// and walks the Swarm through (AI-GUARD-007).
+	mage.ScanRange, mage.AutoSpell, mage.Reach = engSight, 1, 2
 	ents := []Entity{fighter, archer, mage}
 	for k, at := range foes {
 		ents = append(ents, engFighter(EntityID(10+k), 2, at[0], at[1]))

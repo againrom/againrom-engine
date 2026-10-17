@@ -50,17 +50,38 @@ const postRadius = coverRadius
 //
 // AI-FILTER-001
 func (w *World) postEngage(i int, post cell) bool {
-	for ci, candidate := range w.entities {
-		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() ||
-			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {
-			continue
-		}
-		w.orderAttack(i, candidate.ID)
+	for _, ci := range w.postCandidates(i, post) {
+		w.orderAttack(i, w.entities[ci].ID)
 		if w.entities[i].HasAttackTarget {
 			return true
 		}
 	}
 	return false
+}
+
+func (w *World) postCandidates(i int, post cell) []int {
+	var out []int
+	for ci, candidate := range w.entities {
+		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() ||
+			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {
+			continue
+		}
+		out = append(out, ci)
+	}
+	return out
+}
+
+// postRefused reports whether the block scan names a candidate the engage
+// then refuses outright (engageRefused): the arm writes nothing past it.
+func (w *World) postRefused(i int, post cell) bool {
+	return w.engageRefused(i) && len(w.postCandidates(i, post)) > 0
+}
+
+// postLeashed is the sight test before the block scan: the actor stands at
+// least its sight radius from its post (AI-BREAK-041). Only a refused engage
+// leaves its walk home standing.
+func postLeashed(e Entity) bool {
+	return cellOf(&e).chebyshevTo(cell{x: e.PostX, y: e.PostY}) >= int64(e.ScanRange)
 }
 
 func (w *World) armGuard(i int) {
@@ -70,6 +91,12 @@ func (w *World) armGuard(i int) {
 	e := &w.entities[i]
 	if e.PostX == 0 && e.PostY == 0 {
 		e.PostX, e.PostY = e.X, e.Y
+	}
+	if w.postRefused(i, cell{x: e.PostX, y: e.PostY}) {
+		if postLeashed(*e) {
+			w.guardWalkHome(i)
+		}
+		return
 	}
 	if w.postEngage(i, cell{x: e.PostX, y: e.PostY}) {
 		return

@@ -272,7 +272,9 @@ func TestCheatSummonJoinsSavedDispatchAndPreservesExactPlayer(t *testing.T) {
 	if err := w.ImportSavedGroupPlayers([]SavedGroupPlayer{{ID: 10, Slot: SelfSlot}, {ID: 20, Slot: SelfSlot}}, []SavedGroupContainer{{GroupID: 1, PlayerID: 20}}); err != nil {
 		t.Fatal(err)
 	}
-	template := Entity{Owner: SelfSlot, HP: 20, MaxHP: 20, Reach: 1, TokenSize: 1, MaxMana: 100,
+	// Reach 2: a player's mage of shorter reach engages nothing on its own
+	// (AI-GUARD-007).
+	template := Entity{Owner: SelfSlot, HP: 20, MaxHP: 20, Reach: 2, TokenSize: 1, MaxMana: 100,
 		ActorLoad: ActorLoad{Present: true, ContainerPresent: true, Source: SourceActor{Class: 1, ManaFloor: 100, ManaReservePercent: 95}}}
 	id, err := w.CheatSummon(template, nil, [EquipSlots]ItemInstance{}, 1, 1)
 	if err != nil {

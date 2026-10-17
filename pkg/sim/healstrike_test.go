@@ -23,6 +23,10 @@ func hsToSecondCharge(t *testing.T, w *World, ordered bool) {
 	var first []Command
 	if ordered {
 		first = []Command{Attack(1, 3)}
+	} else {
+		// A player's mage of reach below 2 starts no strike on its own
+		// (AI-GUARD-007); the unordered series is a mage with a staff's.
+		w.entities[indexOfEntity(w.entities, 1)].Reach = 2
 	}
 	Step(w, first)
 	for k := 0; k < 200; k++ {
