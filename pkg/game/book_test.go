@@ -108,3 +108,24 @@ func TestInventoryBookUseKeepsABookOfAKnownSpell(t *testing.T) {
 		t.Fatalf("carried before %#v after %#v, want the book kept", before, after)
 	}
 }
+
+func TestReadBookCommandOfAKnownSpellKeepsTheBookWithoutTheWindow(t *testing.T) {
+	book := gameSpellBook(26)
+	mw := bookMission(t, true, book, book)
+	mw.enqueueEquip(0)
+	mw.tick()
+	beforeItems, _ := mw.world.CarriedItems(7)
+	beforeEntity := releaseEntity(t, mw, 7)
+	if len(beforeItems) != 1 || beforeEntity.KnownSpells != uint32(1)<<26 {
+		t.Fatalf("setup: carried %#v known %#x, want one book and Teleport", beforeItems, beforeEntity.KnownSpells)
+	}
+	sim.Step(mw.world, []sim.Command{sim.ReadBook(7, sim.ItemSlot(0))})
+	afterItems, _ := mw.world.CarriedItems(7)
+	afterEntity := releaseEntity(t, mw, 7)
+	if !reflect.DeepEqual(afterItems, beforeItems) {
+		t.Fatalf("carried before %#v after %#v, want the known book kept", beforeItems, afterItems)
+	}
+	if afterEntity.Book != beforeEntity.Book || afterEntity.KnownSpells != beforeEntity.KnownSpells {
+		t.Fatalf("a refused read changed the reader: %+v -> %+v", beforeEntity, afterEntity)
+	}
+}

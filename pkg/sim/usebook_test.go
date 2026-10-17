@@ -49,14 +49,16 @@ func TestReadingAOneSpellBookLearnsAndConsumesExactlyOneUnit(t *testing.T) {
 		t.Fatalf("carried after first read = %#v (ok %v), want one identical book", stacks, ok)
 	}
 
-	// A valid duplicate is still a consumed book: learning is idempotent, use
-	// is not. The mask stays fixed while the final unit leaves the container.
+	// A book of a spell the reader knows is refused by the command itself:
+	// the book and the reader stay as they were.
+	before := bookEntity(t, w, 7)
 	Step(w, []Command{{Kind: KindReadBook, Entity: 7, X: 0}})
-	if got := bookEntity(t, w, 7).KnownSpells; got != uint32(1)<<26 {
-		t.Fatalf("KnownSpells after duplicate = %#x, want unchanged Teleport bit", got)
+	after := bookEntity(t, w, 7)
+	if after.KnownSpells != before.KnownSpells || after.Book != before.Book {
+		t.Fatalf("a refused duplicate changed the reader: %+v -> %+v", before, after)
 	}
-	if stacks, _ := w.CarriedStacks(7); len(stacks) != 0 {
-		t.Fatalf("carried after second read = %#v, want empty", stacks)
+	if stacks, _ := w.CarriedStacks(7); len(stacks) != 1 || stacks[0].Count != 1 {
+		t.Fatalf("carried after duplicate read = %#v, want the book kept", stacks)
 	}
 }
 

@@ -695,14 +695,16 @@ func (t *townScreen) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember
 	if member == nil || !member.Mage {
 		return nil, 0, ui.TownAction{}, true
 	}
-	if sim.KnowsBookSpell(member.Book, member.KnownSpells, spell) {
+	if !partyBookReader(member).Admits(spell) {
 		return nil, 0, ui.TownAction{}, true
 	}
 	return member, spell, ui.TownAction{}, true
 }
 
-func (t *townScreen) shopLearnBook(member *mapload.PartyMember, spell uint16) {
-	learnPartySpell(member, spell, t.in.Table)
+// shopReadBook is the town side of the one read-book transaction: consume
+// runs after the spell is learned into the view and before the member keeps it.
+func (t *townScreen) shopReadBook(member *mapload.PartyMember, spell uint16, consume func() bool) bool {
+	return readPartyBook(member, spell, t.in.Table, consume)
 }
 
 // shopEquipFromPack wears the shown member's own pack strip cell i (spec
@@ -745,10 +747,9 @@ func (t *townScreen) shopEquipFromPackValues(i int) ui.TownAction {
 		if reader == nil {
 			return refusal
 		}
-		if !t.shopTakeOnePackItem(item) {
+		if !t.shopReadBook(reader, spell, func() bool { return t.shopTakeOnePackItem(item) }) {
 			return ui.TownAction{}
 		}
-		t.shopLearnBook(reader, spell)
 		return ui.TownInfo("learned")
 	}
 	slot, ok, refusal := t.shopWearInstance(item)
@@ -815,11 +816,15 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 		if item.Price > 0 && int32(t.sess.Town.Gold()) < item.Price {
 			return ui.TownAction{}
 		}
-		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
+		if !t.shopReadBook(reader, spell, func() bool {
+			if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
+				return false
+			}
+			t.sess.Town.gold -= int(item.Price)
+			return true
+		}) {
 			return ui.TownAction{}
 		}
-		t.sess.Town.gold -= int(item.Price)
-		t.shopLearnBook(reader, spell)
 		return ui.TownInfo(fmt.Sprintf("bought and learned for %d gold; you have %d left", item.Price, t.sess.Town.Gold()))
 	}
 	slot, ok, refusal := t.shopWearInstance(item.Instance())
@@ -890,14 +895,19 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 		if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
 			return ui.TownAction{}
 		}
-		taken, ok := t.sess.Shop.TakeOffTable(i, 1)
-		if !ok {
+		var taken ShopPlace
+		if !t.shopReadBook(reader, spell, func() bool {
+			var ok bool
+			if taken, ok = t.sess.Shop.TakeOffTable(i, 1); !ok {
+				return false
+			}
+			if !taken.Mine {
+				t.sess.Town.gold -= int(taken.Price)
+			}
+			return true
+		}) {
 			return ui.TownAction{}
 		}
-		if !taken.Mine {
-			t.sess.Town.gold -= int(taken.Price)
-		}
-		t.shopLearnBook(reader, spell)
 		if taken.Mine {
 			return ui.TownInfo("learned")
 		}

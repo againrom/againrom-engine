@@ -2531,6 +2531,9 @@ package storyguard
 //
 // CommentBytes rises for the refused withdrawal's answer (pkg/sim/combat.go)
 // and its witnesses (pkg/sim/refusedwithdrawal_test.go), this note included.
+//
+// CommentBytes rises for the one read-book admission and transaction
+// (pkg/sim/usebook.go, pkg/game/originalspellbook.go), this note included.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2554,5 +2557,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9106117,
+	CommentBytes: 9107404,
 }

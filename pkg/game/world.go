@@ -2432,7 +2432,7 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 		if !readable || !mw.invParty.mage {
 			return
 		}
-		if reader, ok := mw.world.Entity(id); !ok || !sim.MayReadBook(reader, spell) {
+		if reader, ok := mw.world.Entity(id); !ok || !sim.EntityBookReader(reader).Admits(spell) {
 			return
 		}
 		mw.pending = append(mw.pending, sim.ReadBook(id, sim.ItemSlot(idx)))

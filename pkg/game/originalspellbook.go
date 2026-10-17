@@ -24,6 +24,27 @@ func learnPartySpell(p *mapload.PartyMember, id uint16, table *mapload.Table) {
 	refreshDerivedPartyBook(p, table)
 }
 
+// partyBookReader projects a town party member into the read-book view. Town
+// members carry no life state, so they are alive.
+func partyBookReader(p *mapload.PartyMember) sim.BookReader {
+	return sim.BookReader{Alive: true, Mage: p.Mage, Book: p.Book, Known: p.KnownSpells}
+}
+
+// readPartyBook runs the one read-book transaction on a party member and
+// learns the spell into the member once the book is consumed.
+func readPartyBook(p *mapload.PartyMember, spell uint16, table *mapload.Table, consume func() bool) bool {
+	r := partyBookReader(p)
+	return sim.ReadBookSpell(&r, spell, mapload.SpellRules(table), func(sim.BookReader) bool {
+		if !consume() {
+			return false
+		}
+		// The consume step may rebuild the member's carry, so the spell is
+		// learned into the member as it stands afterwards.
+		learnPartySpell(p, spell, table)
+		return true
+	})
+}
+
 func refreshPartyBook(r sim.Rules, p *mapload.PartyMember, table []sim.SpellRule) {
 	e := sim.Entity{Book: p.Book, KnownSpells: p.KnownSpells, Skill: p.Hero.Skill, Mind: p.Hero.Mind}
 	sim.RefreshBook(r, &e, table)

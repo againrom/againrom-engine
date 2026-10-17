@@ -1057,10 +1057,13 @@ func (t *townScreen) cityShopUse(item ShopItem, take func() (ShopItem, error), p
 		if reader == nil {
 			return ui.TownAction{}, shopRefusal("refused")
 		}
-		if _, err := take(); err != nil {
-			return ui.TownAction{}, err
+		var takeErr error
+		if !t.shopReadBook(&t.sess.Carried[t.shopMemberIndex()], spell, func() bool {
+			_, takeErr = take()
+			return takeErr == nil
+		}) {
+			return ui.TownAction{}, takeErr
 		}
-		t.shopLearnBook(&t.sess.Carried[t.shopMemberIndex()], spell)
 		return ui.TownInfo("learned"), nil
 	}
 	slot, ok, _ := t.shopWearInstance(item.Instance())

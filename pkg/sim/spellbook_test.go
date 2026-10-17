@@ -139,8 +139,12 @@ func TestSourceBookActualReadAndEquipmentTeaching(t *testing.T) {
 		before := w.entities[0].Book
 		Step(w, []Command{{Kind: KindReadBook, Entity: 7, X: 0}})
 		applyEquipmentItemState(&w.entities[0], ItemInstance{}, testSpellBook(26), w.spells)
-		if len(w.carried[0]) != 0 || w.entities[0].Book != before {
-			t.Fatal("duplicate read/equip replaced instance")
+		wantLeft := 0
+		if state == BookPresent {
+			wantLeft = 1
+		}
+		if len(w.carried[0]) != wantLeft || w.entities[0].Book != before {
+			t.Fatal("duplicate read/equip replaced instance or consumed a known book")
 		}
 	}
 }
