@@ -12,6 +12,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   scrollable list, open units, buildings, groups, sacks, players and triggers
   from the bar, and edit every field of a selected object in one window with
   drop-downs, Apply and Cancel, in English or Russian.
+- [ROM1] The map editor's trigger window reads as the rule: its conditions,
+  the comparison in words and its actions by name. Edit each line with a
+  drop-down, a number or a click on the map, add and remove conditions and
+  actions, and create or delete triggers. The places triggers watch are
+  outlined on the map in each trigger's colour with its number and name; a
+  click on one opens its trigger, and View hides them.
 - [ROM1] A unit on Hold Position that is ordered to attack leaves Hold, as in
   the original.
 - [ROM1] Original mission saves that would not load now load: a unit

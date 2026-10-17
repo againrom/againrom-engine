@@ -42,17 +42,21 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script) {
 			s.structures[id] = append(s.structures[id], t)
 		}
 	}
+	model := scriptModel(d, m)
 	for _, family := range []struct {
 		kind  string
 		nodes []alm.ScriptNode
-	}{{"Action", script.Actions}, {"Condition", script.Conditions}} {
+		out   *[]ui.InspectionScriptNode
+	}{{"Action", script.Actions, &model.Actions}, {"Condition", script.Conditions, &model.Conditions}} {
 		for i, n := range family.nodes {
 			r := ui.InspectionRecord{Kind: family.kind, Section: 7, Index: i, Label: n.Label}
 			s.node(&r, family.kind, n)
+			*family.out = append(*family.out, ui.InspectionScriptNode{Record: len(d.Records), ID: n.ID, Opcode: n.Opcode, Label: n.Label, Types: n.Type, Values: n.Value})
 			d.Records = append(d.Records, r)
 		}
 	}
 	for i, t := range script.Triggers {
+		model.Triggers = append(model.Triggers, ui.InspectionTrigger{Record: len(d.Records), Name: t.Name, Left: t.Left, Right: t.Right, Cmp: t.Cmp, Acts: t.Acts, Once: t.Once})
 		r := ui.InspectionRecord{Kind: "Trigger", Section: 7, Index: i, Label: t.Name}
 		once := "repeat while conditions hold"
 		if t.Once != 0 {
@@ -114,6 +118,83 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script) {
 		}
 		d.Records = append(d.Records, r)
 	}
+	areas, _ := mapload.ScriptAreas(m, script)
+	for _, a := range areas {
+		node := model.Actions
+		if a.Condition {
+			node = model.Conditions
+		}
+		model.Areas = append(model.Areas, ui.InspectionArea{Trigger: a.Trigger, Node: node[a.Node].Record, Shape: int(a.Shape), Rect: a.Rect, Centre: a.Centre, Radius: a.Radius})
+	}
+	model.Catalog = scriptCatalog()
+	d.Script = model
+}
+
+// scriptCatalog is the decoder's knowledge of the operations, for the trigger
+// editor: each opcode with whether a claim names it, the group commands, and
+// the signatures the claims state.
+func scriptCatalog() ui.InspectionScriptCatalog {
+	family := func(condition bool) []ui.InspectionScriptOperation {
+		var out []ui.InspectionScriptOperation
+		for _, op := range mapload.ScriptOperations(condition) {
+			out = append(out, ui.InspectionScriptOperation{Opcode: op.Opcode, Named: mapload.ScriptOperationNamed(condition, op.Opcode)})
+		}
+		return out
+	}
+	return ui.InspectionScriptCatalog{Checks: family(true), Actions: family(false), GroupCommands: mapload.ScriptGroupCommands,
+		Signature: func(condition bool, opcode, command uint32) ([10]ui.InspectionScriptSlot, bool) {
+			sig, ok := mapload.ScriptSignature(condition, opcode, command)
+			var out [10]ui.InspectionScriptSlot
+			for i, slot := range sig {
+				out[i] = ui.InspectionScriptSlot{Type: slot.Type, Role: slot.Role}
+			}
+			return out, ok
+		}}
+}
+
+// scriptModel is the trigger editor's view of what the map's parameters can
+// name: each unit id, group id, player slot and structure id the map holds,
+// with the record it stands for.
+func scriptModel(d *ui.InspectionDocument, m *alm.Map) *ui.InspectionScriptModel {
+	model := &ui.InspectionScriptModel{Targets: map[uint32][]ui.InspectionScriptTarget{}}
+	units, structures, players := map[int]int{}, map[int]int{}, map[int]int{}
+	for i, r := range d.Records {
+		switch r.Kind {
+		case "Unit":
+			units[r.Index] = i
+		case "Structure":
+			structures[r.Index] = i
+		case "Player":
+			players[r.Index] = i
+		}
+	}
+	groups := map[uint32]int{}
+	var order []uint32
+	for i, u := range m.Units {
+		if u.UnitID > 0 {
+			model.Targets[mapload.ScriptUnit] = append(model.Targets[mapload.ScriptUnit], ui.InspectionScriptTarget{Value: uint32(u.UnitID), Record: units[i], Name: d.Records[units[i]].Label})
+		}
+		if _, ok := groups[u.GroupID]; !ok {
+			order = append(order, u.GroupID)
+		}
+		groups[u.GroupID]++
+	}
+	for _, g := range order {
+		model.Targets[mapload.ScriptGroup] = append(model.Targets[mapload.ScriptGroup], ui.InspectionScriptTarget{Value: g, Record: -1, Members: groups[g]})
+	}
+	for i, g := range m.Groups {
+		t := ui.InspectionScriptTarget{Value: uint32(i + 1), Record: -1, Name: alm.DecodeText([]byte(g.Name))}
+		if r, ok := players[i]; ok {
+			t.Record, t.Name = r, d.Records[r].Label
+		}
+		model.Targets[mapload.ScriptPlayer] = append(model.Targets[mapload.ScriptPlayer], t)
+	}
+	for i, o := range m.Objects {
+		if o.Field12 > 0 {
+			model.Targets[mapload.ScriptStructure] = append(model.Targets[mapload.ScriptStructure], ui.InspectionScriptTarget{Value: uint32(o.Field12), Record: structures[i], Name: d.Records[structures[i]].Label})
+		}
+	}
+	return model
 }
 
 func (s *inspectionScript) nodeMap(kind string) map[uint32][]alm.ScriptNode {

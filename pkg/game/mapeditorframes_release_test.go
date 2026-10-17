@@ -13,6 +13,41 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+// writeEditorFrame draws the editor headless, checks that the window's text
+// overlay keeps every glyph of the installed fonts outside cover, and writes
+// the frame as a PNG to path when write is set.
+func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle) {
+	t.Helper()
+	screen := ebiten.NewImage(1280, 800)
+	e.Draw(screen)
+	screen.Dispose()
+	for _, ft := range e.TextFates() {
+		if ft.Fate == textsmooth.Hidden && image.Pt(ft.Call.X, ft.Call.Y).In(cover) {
+			continue
+		}
+		if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank && ft.Fate != textsmooth.Repeat {
+			t.Errorf("%s: glyph at %d,%d is %s", filepath.Base(path), ft.Call.X, ft.Call.Y, ft.Fate)
+		}
+	}
+	pic, _, err := e.HeadlessFrame()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !write {
+		return
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := png.Encode(f, pic); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestReleaseMapEditorOwnerFrames writes the editor's popups, rendered
 // headless from the install, as PNGs into AGAINROM_EDITOR_FRAMES: the frames
 // the owner looks at. Without that directory it only drives the same steps.
@@ -35,34 +70,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	}
 	shot := func(e *ui.MapEditor, name string, cover image.Rectangle) {
 		t.Helper()
-		screen := ebiten.NewImage(1280, 800)
-		e.Draw(screen)
-		screen.Dispose()
-		for _, ft := range e.TextFates() {
-			if ft.Fate == textsmooth.Hidden && image.Pt(ft.Call.X, ft.Call.Y).In(cover) {
-				continue
-			}
-			if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank && ft.Fate != textsmooth.Repeat {
-				t.Errorf("%s: glyph at %d,%d is %s", name, ft.Call.X, ft.Call.Y, ft.Fate)
-			}
-		}
-		pic, _, err := e.HeadlessFrame()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if dir == "" {
-			return
-		}
-		f, err := os.Create(filepath.Join(dir, name+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := png.Encode(f, pic); err != nil {
-			t.Fatal(err)
-		}
-		if err := f.Close(); err != nil {
-			t.Fatal(err)
-		}
+		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", cover)
 	}
 	fresh := func() *ui.MapEditor {
 		e := x.Editor()

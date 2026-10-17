@@ -67,7 +67,7 @@ func (e *MapEditor) promptFields() []InspectionField {
 // field. Each accepted change is one history entry.
 func (e *MapEditor) recordKey(key string) error {
 	if key == "tab" && e.objectTyping() {
-		e.obj.focus, e.obj.open = (e.obj.focus+1)%len(e.obj.fields), -1
+		e.obj.focus, e.obj.open = e.nextObjectField(e.obj.focus), -1
 		return nil
 	}
 	if key == "tab" {
@@ -223,6 +223,10 @@ func (e *MapEditor) pickAt(p image.Point) {
 	}
 	if pick == pickDrop {
 		e.dropAt(image.Pt(x, y))
+		return
+	}
+	if pick == pickScriptCell {
+		e.scriptCellPicked(image.Pt(x, y))
 		return
 	}
 	if pick == pickMove {

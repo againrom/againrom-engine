@@ -136,6 +136,11 @@ func (e *MapEditor) selectAt(p image.Point) {
 	hits := e.hitsAt(p)
 	if len(hits) == 0 {
 		e.selected = -1
+		if x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y)); ok {
+			if t, ok := e.areaAt(image.Pt(x, y)); ok {
+				e.selectTrigger(t, false)
+			}
+		}
 		return
 	}
 	chosen := hits[0]

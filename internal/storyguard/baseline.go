@@ -2510,6 +2510,10 @@ package storyguard
 // and the witnesses of the loaded cycle, bearing and pickup rows
 // (pkg/sim/bearingtable_test.go, pkg/sim/cyclefacing_test.go and three
 // existing test files), this note included.
+//
+// CommentBytes rises for the map editor's trigger and node popups, the
+// script operation signatures and trigger areas in pkg/mapload, the areas on
+// the map and their tests, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4551,
 	TestFileCount:  264,
@@ -2533,5 +2537,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9072800,
+	CommentBytes: 9092251,
 }

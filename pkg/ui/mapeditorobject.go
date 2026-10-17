@@ -18,6 +18,9 @@ type InspectionFieldValue struct {
 	Value     int64
 	Text      bool
 	TextValue string
+	// New asks for a new script node of the key's kind, whose id the key
+	// then takes: a trigger's condition or action slot.
+	New bool
 }
 
 // InspectionFieldSet is implemented by edits that write several fields of
@@ -42,6 +45,22 @@ type objectEdit struct {
 	first  int // the spec row of the first field
 	data   int // the spec row of the data heading
 	cell   int // the spec row of the cell, -1 when it is not movable
+	// rowField maps a spec row to the field it edits; rowActs are the
+	// actions of a script popup row's buttons.
+	rowField map[int]int
+	rowActs  map[int][]string
+	// added marks a trigger's pairs (0..2) and action slots (3..6) shown
+	// before a node is chosen for them; types are a node's slot types as
+	// its chosen operation sets them; pickField is the field a cell pick
+	// fills, -1 for none.
+	added     [7]bool
+	types     [10]uint32
+	pickField int
+	// signature is the operation and group command types was set for.
+	signature [2]int64
+	// fontText reports that the choice labels are in the font's encoding
+	// already: the trigger editor's words and installed names.
+	fontText bool
 }
 
 // loadObject reads the selected record's fields when the record or the
@@ -51,9 +70,13 @@ func (e *MapEditor) loadObject() {
 	if o.doc == e.doc && o.record == e.selected {
 		return
 	}
-	*o = objectEdit{doc: e.doc, record: e.selected, focus: -1, open: -1, cell: -1}
+	*o = objectEdit{doc: e.doc, record: e.selected, focus: -1, open: -1, cell: -1, pickField: -1}
 	kind, index := e.selectedRecord()
 	if index < 0 || !e.editable() {
+		return
+	}
+	if v, ok := e.scriptPopup(); ok {
+		e.loadScriptObject(v)
 		return
 	}
 	o.fields = e.doc.Edits.Fields(kind, index)
@@ -86,7 +109,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
 	o.first = len(s.Rows)
+	o.rowField = map[int]int{}
 	for i, f := range o.fields {
+		o.rowField[len(s.Rows)] = i
 		row := popupRow{Kind: popupEdit, Label: editorClip(e.bodyFont(), e.editorHostText(f.Label), 150), Value: o.buf[i], Focus: i == o.focus}
 		if len(f.Choices) > 0 {
 			row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
@@ -125,7 +150,31 @@ func (e *MapEditor) objectDirty() bool {
 			return true
 		}
 	}
+	if v, ok := e.scriptPopup(); ok {
+		return e.scriptDirty(v)
+	}
 	return false
+}
+
+// fieldRow is the spec row of field i, -1 when no row shows it.
+func (e *MapEditor) fieldRow(i int) int {
+	for r, f := range e.obj.rowField {
+		if f == i {
+			return r
+		}
+	}
+	return -1
+}
+
+// nextObjectField is the field after i that a row shows.
+func (e *MapEditor) nextObjectField(i int) int {
+	n := len(e.obj.fields)
+	for k := 1; k <= n; k++ {
+		if j := (i + k) % n; e.fieldRow(j) >= 0 {
+			return j
+		}
+	}
+	return (i + 1) % n
 }
 
 // objectRowPress is a press on a field row or the cell's pick button.
@@ -136,11 +185,19 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		e.armPick(pickMove)
 		return
 	}
-	i := n - o.first
-	if len(o.fields) == 0 || i < 0 || i >= len(o.fields) {
+	i, ok := o.rowField[n]
+	if len(o.fields) == 0 || !ok || i < 0 || i >= len(o.fields) {
 		return
 	}
 	o.focus = i
+	if _, script := e.scriptPopup(); script && i == trigOnce && o.fields[i].Key == "once" {
+		if strings.TrimSpace(o.buf[i]) == "0" {
+			o.buf[i] = "1"
+		} else {
+			o.buf[i] = "0"
+		}
+		return
+	}
 	if len(o.fields[i].Choices) > 0 {
 		if o.open == i {
 			o.open = -1
@@ -151,7 +208,11 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		rows := make([]PickerRow, len(f.Choices))
 		sel := 0
 		for k, c := range f.Choices {
-			rows[k] = PickerRow{Text: e.editorHostText(c.Label), Choosable: true}
+			label := c.Label
+			if !o.fontText {
+				label = e.editorHostText(label)
+			}
+			rows[k] = PickerRow{Text: label, Choosable: true}
 			if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[i]) {
 				sel = k
 			}
@@ -172,7 +233,7 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 		return dropdown{}, false
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if rr.Index == o.first+o.open {
+		if rr.Index == e.fieldRow(o.open) {
 			return dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: min(10, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}, true
 		}
 	}
@@ -239,6 +300,7 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 	o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[row].Value, 10)
 	o.choice.Select(row)
 	o.open = -1
+	e.retypeNode()
 }
 
 // chooseObjectChoiceKeep sets the open drop-down's field to its highlighted
@@ -250,6 +312,7 @@ func (e *MapEditor) chooseObjectChoiceKeep() {
 			o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[k].Value, 10)
 		}
 	}
+	e.retypeNode()
 }
 
 // objectStep moves the focused choice field by delta, wrapping: the
@@ -279,6 +342,7 @@ func (e *MapEditor) objectStep(delta int) bool {
 		dropdownStep(m, delta)
 	}
 	o.buf[o.focus] = strconv.FormatInt(f.Choices[m.Selection()].Value, 10)
+	e.retypeNode()
 	return true
 }
 
@@ -335,6 +399,23 @@ func (e *MapEditor) applyObject() {
 	o := &e.obj
 	kind, index := e.selectedRecord()
 	if index < 0 || len(o.fields) == 0 {
+		return
+	}
+	if v, ok := e.scriptPopup(); ok {
+		values, err := e.scriptValues(v)
+		if err == nil && len(values) == 0 {
+			return
+		}
+		var next *InspectionDocument
+		if err == nil {
+			next, err = e.setFields(kind, index, values)
+		}
+		if err != nil {
+			o.note = err.Error()
+			return
+		}
+		o.open, o.note = -1, ""
+		_ = e.adoptEdit(next, nil)
 		return
 	}
 	var values []InspectionFieldValue

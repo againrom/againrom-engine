@@ -31,6 +31,7 @@ const (
 	popMenu
 	popBar
 	popStatus
+	popArea // a trigger area's label on the map
 )
 
 // editorChrome is the chrome's state: the fonts, where each popup stands, the
@@ -64,11 +65,14 @@ type editorChrome struct {
 	obj                    objectEdit
 	groupSel               editorGroup
 	exitAsked              bool
+	// backTrigger is the index of the trigger a node popup was opened from,
+	// -1 for none.
+	backTrigger int
 }
 
 // editorView is the View menu's switches over the map's annotations.
 type editorView struct {
-	hideDrops, hideFootprints, hideIssues, grid bool
+	hideDrops, hideFootprints, hideIssues, grid, hideAreas bool
 }
 
 // SetBodyFont sets the plain font of rows, labels, values and report text.
@@ -195,7 +199,7 @@ func (e *MapEditor) FieldRect(n int) (image.Rectangle, bool) {
 		return image.Rectangle{}, false
 	}
 	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if r.Index == e.obj.first+n {
+		if r.Index == e.fieldRow(n) {
 			return r.Control, true
 		}
 	}
@@ -246,6 +250,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"footprints", mark(!e.view.hideFootprints, e.word("editor.view.footprints"))},
 			{"issues", mark(!e.view.hideIssues, e.word("editor.view.issues"))},
 			{"grid", mark(e.view.grid, e.word("editor.view.grid"))},
+			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
 			{"report", e.word("editor.view.report")},
 			{"fit", e.word("editor.view.fit")},
 		}
@@ -331,6 +336,8 @@ func (e *MapEditor) menuAct(key string) {
 		e.view.hideIssues = !e.view.hideIssues
 	case "grid":
 		e.view.grid = !e.view.grid
+	case "areas":
+		e.view.hideAreas = !e.view.hideAreas
 	default:
 		if e.Key(key) == ebiten.Termination {
 			e.exitAsked = true
@@ -459,7 +466,11 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 			break
 		}
 		for n, id := range e.rows() {
-			rows = append(rows, PickerRow{Text: e.recordSummary(id), Choosable: true})
+			text := e.recordSummary(id)
+			if v, ok := e.scriptViewOf(id); ok && v.trigger != nil {
+				text = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1) + "  " + v.trigger.Name
+			}
+			rows = append(rows, PickerRow{Text: text, Choosable: true})
 			if id == e.selected {
 				sel = n
 			}
@@ -650,6 +661,11 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	if e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
+	if v, ok := e.scriptPopup(); ok {
+		s, links := e.scriptSpec(v)
+		e.obj.data = -1
+		return s, links, true
+	}
 	if !e.objPlaced {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
 	}
@@ -791,6 +807,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	if f := e.bodyFont(); f != nil {
 		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusText(), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}
+	e.drawAreaLabels(pic)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 	}
@@ -859,6 +876,9 @@ func (e *MapEditor) statusText() string {
 		}
 		parts = append(parts, mark+e.editorHostText(e.doc.Source))
 	}
+	if e.pick == pickScriptCell {
+		parts = append(parts, e.word("editor.trigger.pickcell"))
+	}
 	parts = append(parts, strings.Join(e.helpLines(), "  /  "))
 	return strings.Join(parts, "   |   ")
 }
@@ -912,6 +932,9 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	}
 	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popList
+	}
+	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
+		return popArea
 	}
 	if p.Y < e.barHeight() {
 		return popBar
@@ -1040,6 +1063,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		}
 	case popObject:
 		e.objectPress(p)
+	case popArea:
+		if t, ok := e.areaLabelAt(p); ok {
+			e.selectTrigger(t, false)
+		}
 	case popList:
 		s, _ := e.listSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
@@ -1087,7 +1114,15 @@ func (e *MapEditor) objectPress(p image.Point) {
 		e.closeObject()
 	case popupTitle:
 		e.drag, e.dragFrom = popObject, p
-	case popupRowLine, popupRowControl, popupRowButton:
+	case popupRowButton:
+		if _, ok := e.scriptPopup(); ok {
+			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {
+				e.scriptRowButton(row, k)
+			}
+			return
+		}
+		e.objectRowPress(part, n)
+	case popupRowLine, popupRowControl:
 		if n < len(links) && links[n] > 0 {
 			e.followReference(links[n])
 			return
@@ -1098,6 +1133,10 @@ func (e *MapEditor) objectPress(p image.Point) {
 		}
 		e.objectRowPress(part, n)
 	case popupButton:
+		if v, ok := e.scriptPopup(); ok {
+			e.scriptButton(v, n)
+			return
+		}
 		e.objectButton(n)
 	}
 }

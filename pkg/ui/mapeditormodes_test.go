@@ -286,7 +286,7 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:menu-open":
 		menu("map", 2)
 	case "ui:menu-fit":
-		menu("view", 5)
+		menu("view", 6)
 	case "ui:bar-undo":
 		modesClick(e, bar("undo"))
 	case "ui:bar-redo":

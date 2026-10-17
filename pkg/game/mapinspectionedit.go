@@ -271,8 +271,10 @@ func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.Inspe
 			var err error
 			if v.Text {
 				c, err = setTextFieldOn(m, k, index, v.Key, v.TextValue)
+			} else if v.New {
+				c, err = s.setNewNodeOn(m, k, index, v.Key)
 			} else {
-				c, err = s.setFieldOn(m, kind, k, index, v.Key, v.Value)
+				c, err = s.setField(m, kind, k, index, v.Key, v.Value, false)
 			}
 			if err != nil {
 				return false, err
@@ -280,12 +282,41 @@ func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.Inspe
 			changed = changed || c
 		}
 		m.Squash(mark)
+		if changed {
+			// A node's variable register is checked on the node the whole set
+			// leaves, not between its fields.
+			if err := scriptVariableAllowed(m, k, index); err != nil {
+				return false, err
+			}
+		}
 		return changed, nil
 	})
 }
 
+// setNewNodeOn places a new node of the kind trigger slot key names, as
+// AddScript does, and points the slot at it.
+func (s *mapInspectionEdits) setNewNodeOn(m *mapedit.Editor, k mapedit.Kind, index int, key string) (bool, error) {
+	node := mapedit.KindCondition
+	if strings.HasPrefix(key, "action") {
+		node = mapedit.KindAction
+	}
+	if k != mapedit.KindTrigger || !(node == mapedit.KindAction || strings.HasPrefix(key, "left") || strings.HasPrefix(key, "right")) {
+		return false, fmt.Errorf("no new node for the field %q", key)
+	}
+	id, err := addScriptRecord(m, node)
+	if err != nil {
+		return false, err
+	}
+	return s.setFieldOn(m, "Trigger", k, index, key, int64(id))
+}
+
 // setFieldOn sets one numeric field on the model m after its checks.
 func (s *mapInspectionEdits) setFieldOn(m *mapedit.Editor, kind string, k mapedit.Kind, index int, key string, value int64) (bool, error) {
+	return s.setField(m, kind, k, index, key, value, true)
+}
+
+// setField is setFieldOn with the node's variable check when variable is set.
+func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.Kind, index int, key string, value int64, variable bool) (bool, error) {
 	if k == mapedit.KindTrigger && key == "order" {
 		if value < 0 || value >= int64(m.Count(k)) {
 			return false, fmt.Errorf("no trigger position %d", value)
@@ -318,8 +349,10 @@ func (s *mapInspectionEdits) setFieldOn(m *mapedit.Editor, kind string, k mapedi
 	if err := m.SetField(k, index, key, value); err != nil {
 		return false, err
 	}
-	if err := scriptVariableAllowed(m, k, index); err != nil {
-		return false, err
+	if variable {
+		if err := scriptVariableAllowed(m, k, index); err != nil {
+			return false, err
+		}
 	}
 	view, err := m.Map()
 	if err != nil {

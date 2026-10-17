@@ -20,6 +20,8 @@ const (
 	pickGoal      pickKind = "goal"  // a unit or structure for the selected script arm
 	pickStructure pickKind = "structure"
 	pickMove      pickKind = "move" // a cell to move the selected record to
+	// pickScriptCell is a cell for the open node popup's cell parameter.
+	pickScriptCell pickKind = "scriptcell"
 )
 
 // promptKind is the text prompt in the rail.

@@ -22,37 +22,45 @@ func (s *mapInspectionEdits) AddScript(kind string) (*ui.InspectionDocument, err
 		return nil, fmt.Errorf("no script kind %q", kind)
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		var rec []byte
-		if k == mapedit.KindTrigger {
-			if m.Count(k) >= 1000 {
-				return false, fmt.Errorf("the script already holds 1000 triggers")
-			}
-			rec = make([]byte, 184)
-			copy(rec, "Trigger")
-			binary.LittleEndian.PutUint32(rec[0xb4:], 1)
-		} else {
-			if k == mapedit.KindCondition && m.Count(k) >= 100 {
-				return false, fmt.Errorf("the script already uses 100 check registers")
-			}
-			id, e := m.NextScriptID(k)
-			if e != nil {
-				return false, e
-			}
-			if id > 5000 {
-				return false, fmt.Errorf("the next node ID exceeds 5000")
-			}
-			op, value := uint32(2), uint32(1)
-			if k == mapedit.KindCondition {
-				op, value = 0x10002, 0
-			}
-			rec, err = mapedit.NewScriptNode(mapload.ScriptOperationName(k == mapedit.KindCondition, op), op, id, mapedit.ScriptParam{Type: 1, Value: value})
-			if err != nil {
-				return false, err
-			}
-		}
-		_, err = m.Place(k, rec)
+		_, err := addScriptRecord(m, k)
 		return err == nil, err
 	})
+}
+
+// addScriptRecord places a new script record of kind k: a trigger named
+// "Trigger" that fires once, a constant 0 condition or a "Send message 1"
+// action under the next free node id. It returns the new node's id.
+func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
+	var rec []byte
+	var id uint32
+	if k == mapedit.KindTrigger {
+		if m.Count(k) >= 1000 {
+			return 0, fmt.Errorf("the script already holds 1000 triggers")
+		}
+		rec = make([]byte, 184)
+		copy(rec, "Trigger")
+		binary.LittleEndian.PutUint32(rec[0xb4:], 1)
+	} else {
+		if k == mapedit.KindCondition && m.Count(k) >= 100 {
+			return 0, fmt.Errorf("the script already uses 100 check registers")
+		}
+		var err error
+		if id, err = m.NextScriptID(k); err != nil {
+			return 0, err
+		}
+		if id > 5000 {
+			return 0, fmt.Errorf("the next node ID exceeds 5000")
+		}
+		op, value := uint32(2), uint32(1)
+		if k == mapedit.KindCondition {
+			op, value = 0x10002, 0
+		}
+		if rec, err = mapedit.NewScriptNode(mapload.ScriptOperationName(k == mapedit.KindCondition, op), op, id, mapedit.ScriptParam{Type: 1, Value: value}); err != nil {
+			return 0, err
+		}
+	}
+	_, err := m.Place(k, rec)
+	return id, err
 }
 
 func scriptFieldChoices(kind, key string, sc alm.Script) []ui.InspectionChoice {

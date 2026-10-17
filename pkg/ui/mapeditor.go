@@ -46,8 +46,9 @@ type InspectionDocument struct {
 	Records       []InspectionRecord
 	SourceBytes   []byte // exact current model bytes, not a re-encoded map
 	ScriptNotice  string
-	Drops         []image.Point   // the cells the map's script drops the party on
-	Edits         InspectionEdits // optional; host owns persistence and safety
+	Drops         []image.Point          // the cells the map's script drops the party on
+	Script        *InspectionScriptModel // the script the trigger editor reads; nil: none
+	Edits         InspectionEdits        // optional; host owns persistence and safety
 }
 
 type InspectionEdits interface {
@@ -135,7 +136,7 @@ type MapEditor struct {
 
 func NewMapEditor(font *text.Font, maps []EditorMap, open InspectionOpener) *MapEditor {
 	return &MapEditor{font: font, maps: maps, open: open, selected: -1, editorMode: editorMode{catalog: true}, window: image.Pt(1280, 800), textSmoothingEnabled: true,
-		editorChrome: editorChrome{obj: objectEdit{record: -1, focus: -1, open: -1, cell: -1}}}
+		editorChrome: editorChrome{obj: objectEdit{record: -1, focus: -1, open: -1, cell: -1, pickField: -1}, backTrigger: -1}}
 }
 
 func (e *MapEditor) SetTextSmoothing(enabled bool) { e.textSmoothingEnabled = enabled }
@@ -209,10 +210,13 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	}
 	e.selected, e.objectTop, e.objectHidden = index, 0, false
 	e.focusedReference, e.objectWheel = 0, 0
-	e.groupSel = editorGroup{}
+	e.groupSel, e.backTrigger = editorGroup{}, -1
 	r := e.doc.Records[index]
 	if jump && r.Spatial {
 		e.centerOn(r.Cell)
+	}
+	if c, ok := e.triggerCentre(index); jump && ok {
+		e.centerOn(c)
 	}
 	return true
 }
@@ -571,6 +575,7 @@ func (e *MapEditor) markerLines() []editorLine {
 			out = append(out, editorLine{float32(x) + d[0], float32(y) + d[1], float32(x) + d[2], float32(y) + d[3], editorCondition})
 		}
 	}
+	out = append(out, e.areaLines()...)
 	out = append(out, e.referenceMarkerLines()...)
 	out = append(out, e.brushMarkerLines()...)
 	out = append(out, e.groupMarkerLines()...)

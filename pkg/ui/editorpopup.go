@@ -22,6 +22,7 @@ const (
 	popupChoice                      // a label and a drop-down
 	popupPick                        // a label, an edit field and a pick-on-map button
 	popupLink                        // a label and a value that opens what it names
+	popupSwitch                      // a label and a button that switches its value
 )
 
 // popupRow is one row of a popup.
@@ -31,6 +32,9 @@ type popupRow struct {
 	Ink          color.RGBA // the value's ink; zero is the popup's paper
 	Focus        bool       // the keyboard edits this row
 	Caret        int        // the caret's pixel offset in a focused edit
+	// Buttons are the captions of the row's own buttons, at its right end;
+	// a pick row without them carries the popup's PickLabel.
+	Buttons []string
 }
 
 // popupSpec is a popup as data. At is its top-left corner in window pixels,
@@ -62,7 +66,8 @@ type popupSpec struct {
 type popupRowRect struct {
 	Index                int
 	Rect, Label, Control image.Rectangle
-	Button               image.Rectangle // the pick button; empty otherwise
+	Button               image.Rectangle   // the first row button; empty otherwise
+	Buttons              []image.Rectangle // every row button, left to right
 }
 
 // popupLayout is a built popup: every rectangle the painter fills and the
@@ -149,9 +154,24 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			if row.Value == "" { // a line of text runs across the row
 				rr.Label, rr.Control = rr.Rect, image.Rectangle{}
 			}
-		case popupPick:
-			rr.Button = image.Rect(rr.Control.Max.X-popupButtonW, rr.Control.Min.Y, rr.Control.Max.X, rr.Control.Max.Y)
-			rr.Control.Max.X = rr.Button.Min.X - 4
+		}
+		if caps := rowButtons(s, row); len(caps) > 0 {
+			x := rr.Rect.Max.X
+			rr.Buttons = make([]image.Rectangle, len(caps))
+			for k := len(caps) - 1; k >= 0; k-- {
+				w := popupButtonW
+				if len(row.Buttons) > 0 && body != nil {
+					w = max(48, body.Advance(caps[k])+16)
+				}
+				rr.Buttons[k] = image.Rect(x-w, y+1, x, y+pitch-1)
+				x -= w + 4
+			}
+			rr.Button = rr.Buttons[0]
+			if rr.Control.Empty() {
+				rr.Label.Max.X = min(rr.Label.Max.X, x)
+			} else {
+				rr.Control.Max.X = x
+			}
 		}
 		l.Rows = append(l.Rows, rr)
 		y += pitch
@@ -177,6 +197,29 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	return l
 }
 
+// rowButtons are the captions of row's buttons.
+func rowButtons(s popupSpec, row popupRow) []string {
+	if len(row.Buttons) > 0 {
+		return row.Buttons
+	}
+	if row.Kind == popupPick {
+		return []string{s.PickLabel}
+	}
+	return nil
+}
+
+// rowButtonAt is the row and the button of that row under p.
+func (l popupLayout) rowButtonAt(p image.Point) (row, button int, ok bool) {
+	for _, r := range l.Rows {
+		for k, b := range r.Buttons {
+			if p.In(b) {
+				return r.Index, k, true
+			}
+		}
+	}
+	return 0, 0, false
+}
+
 // popupPart is what a press on a popup lands on.
 type popupPart uint8
 
@@ -187,7 +230,7 @@ const (
 	popupClose                       // the close button
 	popupRowLine                     // a row's label or value
 	popupRowControl                  // a row's control
-	popupRowButton                   // a row's pick button
+	popupRowButton                   // a row's own button
 	popupListRow                     // a list row
 	popupListBar                     // the list's scroll bar
 	popupButton                      // a button of the button row
@@ -204,10 +247,11 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	if p.In(l.Title) {
 		return popupTitle, 0
 	}
+	if row, _, ok := l.rowButtonAt(p); ok {
+		return popupRowButton, row
+	}
 	for _, r := range l.Rows {
 		switch {
-		case p.In(r.Button):
-			return popupRowButton, r.Index
 		case p.In(r.Control):
 			return popupRowControl, r.Index
 		case p.In(r.Rect):
@@ -275,13 +319,15 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 					body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), row.Value, at.X, at.Y, value)
 				}
 			})
-			if row.Kind == popupPick {
-				drawPushButton(dst, body, pushButton{Rect: rr.Button, Label: s.PickLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(rr.Button)})
-			}
+		case popupSwitch:
+			drawPushButton(dst, body, pushButton{Rect: rr.Control, Label: row.Value, Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
 		case popupChoice:
 			drawDropdown(dst, body, frames, dropdown{Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
 		default:
 			bodyText(rr.Control, row.Value, value)
+		}
+		for k, b := range rr.Buttons {
+			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(b)})
 		}
 	}
 	if l.HasList && s.ListText != nil {
