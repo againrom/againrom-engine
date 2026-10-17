@@ -53,6 +53,13 @@ func areaScript(actions, conditions []scriptNode, triggers []areaTrigger) []byte
 // is run by two triggers. withOne adds an unshared constant 1.
 func areaEditMap(t *testing.T, withOne bool) []byte {
 	t.Helper()
+	return areaEditMapWith(t, withOne, 4, nil)
+}
+
+// areaEditMapWith is areaEditMap with the value of the radius constant four
+// and more actions after the three.
+func areaEditMapWith(t *testing.T, withOne bool, four uint32, more []scriptNode) []byte {
+	t.Helper()
 	one := scriptNode{label: "one", opcode: 0x10002, id: 2, values: []uint32{1}, tags: []uint32{1}}
 	if !withOne {
 		one.values = []uint32{0}
@@ -62,13 +69,14 @@ func areaEditMap(t *testing.T, withOne bool) []byte {
 		one,
 		{label: "near", opcode: 3, id: 3, values: []uint32{10001, 20, 20, 3}, tags: []uint32{4, 5, 6, 1}},
 		{label: "far", opcode: 15, id: 4, values: []uint32{1, 30, 10}, tags: []uint32{3, 5, 6}},
-		{label: "four", opcode: 0x10002, id: 5, values: []uint32{4}, tags: []uint32{1}},
+		{label: "four", opcode: 0x10002, id: 5, values: []uint32{four}, tags: []uint32{1}},
 	}
 	actions := []scriptNode{
 		{label: "cast", opcode: 21, id: 1, values: []uint32{12, 25, 14, 25, 3, 0}, tags: []uint32{5, 6, 5, 6, 1, 1}},
 		{label: "talk", opcode: 2, id: 2, values: []uint32{7}, tags: []uint32{1}},
 		{label: "move", opcode: 27, id: 3, values: []uint32{10001, 33, 33}, tags: []uint32{4, 5, 6}},
 	}
+	actions = append(actions, more...)
 	o := synth.ALMOptions{Width: 40, Height: 40, Type7Payload: areaScript(actions, conditions, []areaTrigger{
 		{name: "Box", pairs: [][3]uint32{{1, 2, 0}}, acts: []uint32{1, 3}},
 		{name: "Near", pairs: [][3]uint32{{3, 2, 0}, {4, 5, 0}}, acts: []uint32{2}},
@@ -434,5 +442,103 @@ func TestAreaDrawnBoxAddsItsConstantWhenNoneIsFree(t *testing.T) {
 	if box.Opcode != 2 || box.Value != [10]uint32{10001, 2, 30, 6, 33} || one.Opcode != mapload.ScriptConstant || one.Value[0] != 1 ||
 		tr.Left != [3]uint32{box.ID} || tr.Right != [3]uint32{one.ID} || tr.Cmp != [3]uint32{} || tr.Acts != [4]uint32{} || tr.Once != 1 {
 		t.Fatalf("decoded: box %+v constant %+v trigger %+v", box, one, tr)
+	}
+}
+
+// multiplayerMap is b with the map's player capacity set to four.
+func multiplayerMap(t *testing.T, b []byte) []byte {
+	t.Helper()
+	m, err := mapedit.New(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.SetWord70(ui.MapModeMultiplayer); err != nil {
+		t.Fatal(err)
+	}
+	return m.Bytes()
+}
+
+// A map with player capacity above one resolves no hero, so the draw tool
+// refuses there, from L and from the View menu item, and writes nothing; the
+// same map in single-player mode arms it.
+func TestAreaDrawRefusesOnAMultiplayerMap(t *testing.T) {
+	single := areaEditMap(t, true)
+	multi := multiplayerMap(t, single)
+	for _, c := range []struct {
+		name  string
+		bytes []byte
+		armed bool
+	}{{"single-player", single, true}, {"multiplayer", multi, false}} {
+		for _, route := range []string{"key", "menu"} {
+			t.Run(c.name+"/"+route, func(t *testing.T) {
+				e, _ := areaEditors(t, c.bytes)
+				e.Fit()
+				if route == "key" {
+					_ = e.Key("drawarea")
+				} else {
+					r, ok := e.BarRect("view")
+					trigClick(t, e, r, ok, "View")
+					r, ok = e.MenuRowRect(7)
+					trigClick(t, e, r, ok, "Draw trigger area")
+				}
+				if e.AreaDrawArmed() != c.armed {
+					t.Fatalf("armed %v, want %v; message %q", e.AreaDrawArmed(), c.armed, e.Message())
+				}
+				if !c.armed && !strings.Contains(e.Message(), "multiplayer map cannot hold") {
+					t.Fatalf("the refusal is not stated: %q", e.Message())
+				}
+				if !bytes.Equal(e.Document().SourceBytes, c.bytes) || e.Dirty() {
+					t.Fatal("the draw tool wrote the map")
+				}
+			})
+		}
+	}
+	// Create never writes the box there either.
+	m, err := mapedit.New(multi)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := addBoxArea(m, image.Rect(2, 30, 7, 34), -1); err == nil || !bytes.Equal(m.Bytes(), multi) {
+		t.Fatalf("a box on a multiplayer map: error %v, bytes unchanged %v", err, bytes.Equal(m.Bytes(), multi))
+	}
+	m, _ = mapedit.New(single)
+	if err := addBoxArea(m, image.Rect(2, 30, 7, 34), -1); err != nil {
+		t.Fatalf("the same box on a single-player map: %v", err)
+	}
+}
+
+// The box's new constant takes the register after the box's own; a script
+// variable that addresses it refuses the edit, in the prompt, and nothing is
+// written. A variable on another register does not.
+func TestAreaDrawnBoxRefusesAVariableOnTheConstantRegister(t *testing.T) {
+	for _, c := range []struct {
+		variable uint32
+		refused  bool
+	}{{6, true}, {5, true}, {7, false}} {
+		b := areaEditMapWith(t, false, 4, []scriptNode{{label: "var", opcode: 3, id: 4, values: []uint32{c.variable, 2}, tags: []uint32{1, 1}}})
+		e, _ := areaEditors(t, b)
+		areaDraw(t, e, image.Pt(2, 30), image.Pt(6, 33))
+		_ = e.Key("enter")
+		notes := strings.Join(e.PromptNotes(), "")
+		_, open := e.PromptRect()
+		if c.refused != strings.Contains(notes, "would share the register") || c.refused != open {
+			t.Fatalf("variable %d: refused %v, prompt open %v, notes %q", c.variable, c.refused, open, notes)
+		}
+		if c.refused == !bytes.Equal(e.Document().SourceBytes, b) {
+			t.Fatalf("variable %d: refused %v but bytes changed %v", c.variable, c.refused, !bytes.Equal(e.Document().SourceBytes, b))
+		}
+	}
+}
+
+// A constant 1 that a distance check is compared with is not reused: a later
+// rim drag on that square would rewrite the box's constant. The box takes a
+// new constant, as when no constant 1 exists.
+func TestAreaDrawnBoxDoesNotReuseARadiusConstant(t *testing.T) {
+	b := areaEditMapWith(t, false, 1, nil)
+	e, _ := areaEditors(t, b)
+	areaDraw(t, e, image.Pt(2, 30), image.Pt(6, 33))
+	_ = e.Key("enter")
+	if want := boxAreaBytes(t, b, 2, 30, 6, 33, -1, 0, 0, true); !bytes.Equal(e.Document().SourceBytes, want) {
+		t.Fatalf("the box reused the radius constant or wrote other bytes; message %q", e.Message())
 	}
 }

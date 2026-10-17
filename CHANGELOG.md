@@ -22,7 +22,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   condition or action names, one Undo step each. When another trigger or
   pair uses the same condition, the editor names them first and you can
   cancel. L draws a box on the map and makes it a condition "the hero
-  stands here" for a new trigger or one you pick from a list.
+  stands here" for a new trigger or one you pick from a list; on a
+  multiplayer map, where scripts cannot name a hero, L says so and draws
+  nothing.
 
 ## 0.126.0
 

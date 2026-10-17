@@ -84,13 +84,22 @@ edit:
   Y2 (types 5, 6, 5, 6) the box's inclusive corners;
 - the pair `box == constant 1`, the box on the left, as 9 of the 10 shipped
   box pairs (EN); a constant 1 that names one node and that no set-variable
-  action (3, 8) or variable check (19) addresses is reused, otherwise a new
-  constant (opcode `0x10002`, int type, value 1) takes the next id;
+  action (3, 8) or variable check (19) addresses and no pair compares with a
+  distance check (7, 15, 16) is reused, otherwise a new constant (opcode
+  `0x10002`, int type, value 1) takes the next id;
 - a new trigger ("Trigger", once) when New trigger is chosen, else the
   chosen trigger's first empty pair. A trigger with three pairs is refused
   in the prompt ("Trigger N already has three condition pairs.").
 - The script's 100-register and 5000-id limits and a register a variable
-  already uses refuse the edit; the prompt shows the reason and stays open.
+  already uses, the box's or the new constant's, refuse the edit; the prompt
+  shows the reason and stays open.
+- On a map whose player capacity (type-0 +0x70) is above 1 the draw tool
+  refuses, from L and from the View item, with "A multiplayer map cannot hold
+  a drawn trigger area: its scripts cannot name a hero." and Create writes
+  nothing there: such a map resolves no hero for unit 10001
+  (`TRIG-HEROORD-075`, `TRIG-HEROFAIL-078`), so the pair would compare
+  register 0 with itself (`TRIG-BINDORDER-101`). Handles on existing areas
+  work as before.
 
 The new trigger is then selected and shows its area and handles.
 
@@ -107,11 +116,17 @@ with three triggers):
 | `TestAreaSharedNodeAsksBeforeTheChange` | a shared radius constant (T2, T3) and a shared action node (T1, T3) ask first; Cancel writes nothing; Change all writes the `SetFields` bytes; one Undo restores | shared notice, below |
 | `TestAreaDrawnBoxGoesToTheChosenTrigger` | Create with New trigger writes the bytes of the node, the pair and the trigger placed directly through `mapedit`; Undo restores; the drop-down attaches a box to T2's empty pair; a full trigger is refused; Cancel writes nothing | new trigger first, below |
 | `TestAreaDrawnBoxAddsItsConstantWhenNoneIsFree` | with no reusable constant 1 the pair compares with a new constant after the box | - |
+| `TestAreaDrawRefusesOnAMultiplayerMap` | on a multiplayer fixture L and the View item refuse with the multiplayer word and leave the bytes; `addBoxArea` refuses and writes nothing; the single-player twin arms | draw guard, host guard, below |
+| `TestAreaDrawnBoxRefusesAVariableOnTheConstantRegister` | with no constant 1 a set-variable action on register 6 (the constant's) or 5 (the box's) refuses and writes nothing; on 7 the box is written | constant register, below |
+| `TestAreaDrawnBoxDoesNotReuseARadiusConstant` | a constant 1 that a check 15 pair compares with is not reused: a new constant follows the box | radius constant, below |
+| `TestScriptAreaRadiusBiasOfEachComparison` (`pkg/mapload`) | the radius and bias of all six comparison codes, check on either side | code 4 bias, below |
 | `TestScriptAreaNamesTheSlotsItComesFrom` (`pkg/mapload`) | the slots, radius node, slot and bias of each shape | - |
 
-Loss controls, each a one-line change to `pkg/ui/mapeditorareaedit.go` on
-the committed tree, run against the named test and then restored
-(`loss.py` and `loss.log` in the story's notes directory); every one fails:
+Loss controls, each a one-line change to production code on the committed
+tree (`pkg/ui/mapeditorareaedit.go`; the last five rows `pkg/ui/mapeditorareaedit.go`,
+`pkg/game/mapinspectionareas.go` and `pkg/mapload/scriptareas.go`), run
+against the named test and then restored (`loss.py`, `loss2.py` and their
+logs in the story's notes directory); every one fails:
 
 | Arm removed | Failing test |
 |---|---|
@@ -122,6 +137,11 @@ the committed tree, run against the named test and then restored
 | cell: the cell update in `areaDragTo` | `TestAreaHandlesRewriteTheirParameters/cell` |
 | shared notice: the notice before a shared write | `TestAreaSharedNodeAsksBeforeTheChange/shared_constant`, `/shared_node` |
 | new trigger first: the drop-down row offset in `areaCreate` | `TestAreaDrawnBoxGoesToTheChosenTrigger` |
+| draw guard: the multiplayer test in `keyDrawArea` | `TestAreaDrawRefusesOnAMultiplayerMap` |
+| host guard: the multiplayer test in `addBoxArea` | `TestAreaDrawRefusesOnAMultiplayerMap` |
+| constant register: `registerCollision` back to the box's register only | `TestAreaDrawnBoxRefusesAVariableOnTheConstantRegister` |
+| radius constant: the exclusion of constants a distance check is compared with | `TestAreaDrawnBoxDoesNotReuseARadiusConstant` |
+| code 4 bias: `>=` moved to the bias-0 arm of `mapload.radius` | `TestScriptAreaRadiusBiasOfEachComparison` |
 
 Release witnesses (`pkg/game/mapeditorareaedit_release_test.go`), EN and RU:
 
@@ -136,6 +156,9 @@ Release witnesses (`pkg/game/mapeditorareaedit_release_test.go`), EN and RU:
 - `TestReleaseMapEditorAreasUntouchedMapsSaveTheirBytes`: every installed map
   (EN 38, RU 34) opened, its areas shown (EN 394, RU 393), its first trigger
   selected, drawn, and saved with Save As writes the installed bytes.
+- `TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps`: on the installed
+  multiplayer map `loose/Beast.alm` (EN) or `loose/LUMOIR.ALM` (RU), L and the
+  View item refuse and the map's bytes are unchanged.
 - `TestReleaseMapEditorAreaFrames`: the handles, a drag in progress, the
   armed draw tool, the trigger choice, its open drop-down and the shared
   notice, with every glyph kept outside an open prompt or list.
@@ -144,8 +167,7 @@ Release witnesses (`pkg/game/mapeditorareaedit_release_test.go`), EN and RU:
 
 - Moving a whole box or a square's centre by dragging its inside is not
   built; the handles only resize, and a cell handle moves the cell.
-- A drawn box always names hero ordinal 0 (10001). On a multiplayer map every
-  ordinal resolves to 0, so the condition reads the first player's hero; the
-  unit is edited in the node's fields afterwards.
+- A drawn box always names hero ordinal 0 (10001), so it is drawn on
+  single-player maps only; a multiplayer map gets no drawn box.
 - The shared notice counts trigger references; a radius constant that a
   set-variable action also writes is not named in the notice.

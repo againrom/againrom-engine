@@ -16,7 +16,8 @@ import (
 // to a constant 1, as every shipped box pair but one is written.
 
 // boxAreaUnit is the box check's unit: hero ordinal 0, the first player's
-// primary character (TRIG-HEROORD-075).
+// primary character (TRIG-HEROORD-075). A map with player capacity above one
+// resolves no hero, so the box is not drawn there.
 const boxAreaUnit = 10001
 
 // AddBoxArea adds a box check over box's cells, Max exclusive, to trigger
@@ -40,6 +41,9 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	sc, err := view.Script()
 	if err != nil {
 		return err
+	}
+	if view.Meta.Word70 > 1 {
+		return fmt.Errorf("a map with player capacity above one cannot name a hero for the box")
 	}
 	if box.Empty() || !box.In(image.Rect(0, 0, min(view.Width, 256), min(view.Height, 256))) {
 		return fmt.Errorf("the box %v lies outside the map", box)
@@ -65,7 +69,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	if need := 1 + refCount(!found); len(sc.Conditions)+need > 100 {
 		return fmt.Errorf("the script already uses 100 check registers")
 	}
-	if err := registerCollides(sc, uint32(len(sc.Conditions))); err != nil {
+	if err := registerCollision(sc, 1+refCount(!found)); err != nil {
 		return err
 	}
 	id, err := m.NextScriptID(mapedit.KindCondition)
@@ -106,8 +110,9 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 }
 
 // unsharedConstant is the id of a constant condition holding value that no
-// variable reads or writes: its id names one node, and no set-variable
-// action or variable check addresses its register (TRIG-COND-003).
+// variable reads or writes and no pair compares with a distance check: its id
+// names one node, and no set-variable action or variable check addresses its
+// register (TRIG-COND-003).
 func unsharedConstant(sc alm.Script, value uint32) (uint32, bool) {
 	ids := map[uint32]int{}
 	for _, n := range sc.Conditions {
@@ -124,8 +129,22 @@ func unsharedConstant(sc alm.Script, value uint32) (uint32, bool) {
 			variable[scriptVariable(n)] = true
 		}
 	}
+	opcode := map[uint32]uint32{}
+	for _, n := range sc.Conditions {
+		opcode[n.ID] = n.Opcode
+	}
+	radius := map[uint32]bool{}
+	for _, t := range sc.Triggers {
+		for k := range t.Left {
+			for _, p := range [][2]uint32{{t.Left[k], t.Right[k]}, {t.Right[k], t.Left[k]}} {
+				if op := opcode[p[1]]; p[0] != 0 && (op == 7 || op == 15 || op == 16) {
+					radius[p[0]] = true
+				}
+			}
+		}
+	}
 	for i, n := range sc.Conditions {
-		if n.Opcode == mapload.ScriptConstant && n.ID != 0 && ids[n.ID] == 1 && !variable[uint32(i)] &&
+		if n.Opcode == mapload.ScriptConstant && n.ID != 0 && ids[n.ID] == 1 && !variable[uint32(i)] && !radius[n.ID] &&
 			(n.Type[0] == mapload.ScriptInt || n.Type[0] == mapload.ScriptConst) && n.Value[0] == value {
 			return n.ID, true
 		}

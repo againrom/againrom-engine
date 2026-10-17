@@ -1273,3 +1273,4 @@ pkg/game.TestReleaseMapPanelFrames
 pkg/game.TestReleaseMapEditorAreaDragsSaveAndReopen
 pkg/game.TestReleaseMapEditorAreasUntouchedMapsSaveTheirBytes
 pkg/game.TestReleaseMapEditorAreaFrames
+pkg/game.TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps

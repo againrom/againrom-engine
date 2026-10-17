@@ -471,6 +471,10 @@ func (e *MapEditor) keyDrawArea(string) error {
 		e.message = e.word("editor.area.noscript")
 		return nil
 	}
+	if p, ok := e.mapPanel(); ok && p.MapFacts().Mode > 1 {
+		e.message = e.word("editor.area.multiplayer")
+		return nil
+	}
 	e.leave(leaveDrag | leavePrompt | leaveReport | leaveBrush)
 	e.view.hideAreas = false
 	e.armPick(pickArea)

@@ -231,3 +231,30 @@ func areaKey(a ScriptArea) string {
 	}
 	return "T" + string(rune('0'+a.Trigger)) + " " + k + string(rune('0'+a.Node))
 }
+
+// Each comparison code, with the check on either side of the pair, reads the
+// square the game reads: the check holds while d < c or d >= c with the check
+// on the left, so those two stop one short of the constant (TRIG-CMP-006).
+func TestScriptAreaRadiusBiasOfEachComparison(t *testing.T) {
+	const c = 6
+	// bias[code] with the check on the left; the constant on the left mirrors
+	// the code.
+	left := [6]int{0, 0, 0, 1, 1, 0}
+	mirror := [6]int{0, 1, 3, 2, 5, 4}
+	for code := range left {
+		for _, constLeft := range []bool{false, true} {
+			want, l, r := left[code], uint32(1), uint32(2)
+			if constLeft {
+				want, l, r = left[mirror[code]], 2, 1
+			}
+			sc := alm.Script{Conditions: []alm.ScriptNode{
+				areaNode(15, 1, [2]uint32{ScriptPlayer, 1}, [2]uint32{ScriptX, 20}, [2]uint32{ScriptY, 10}),
+				areaNode(ScriptConstant, 2, [2]uint32{ScriptConst, c}),
+			}, Triggers: []alm.ScriptTrigger{pair(l, r, uint32(code))}}
+			a, _ := onlyArea(t, sc)
+			if a.RadiusBias != want || a.Radius != c-want || a.RadiusSlot != 0 {
+				t.Errorf("code %d constant on the left %v: radius %d bias %d slot %d, want bias %d", code, constLeft, a.Radius, a.RadiusBias, a.RadiusSlot, want)
+			}
+		}
+	}
+}

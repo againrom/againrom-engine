@@ -6,6 +6,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -342,4 +343,46 @@ func TestReleaseMapEditorAreaFrames(t *testing.T) {
 		}
 	}
 	t.Fatal("no installed square area shares its radius or its node")
+}
+
+// TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps tries the draw tool, by
+// L and by the View menu item, on the installed multiplayer maps Beast and
+// LuMoir, as the root has them: it refuses with the multiplayer word and the
+// map's bytes are unchanged.
+func TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps(t *testing.T) {
+	x := installedInspector(t)
+	tried := 0
+	for _, key := range editorKeys(x) {
+		if k := strings.ToLower(key); k != "loose/beast.alm" && k != "loose/lumoir.alm" {
+			continue
+		}
+		for _, route := range []string{"key", "menu"} {
+			e := x.Editor()
+			e.Layout(1280, 800)
+			if err := e.Open(key); err != nil {
+				t.Fatal(err)
+			}
+			if m, err := alm.Open(e.Document().SourceBytes); err != nil || m.Meta.Word70 <= 1 {
+				t.Fatalf("%s is not a multiplayer map (%v)", key, err)
+			}
+			before := bytes.Clone(e.Document().SourceBytes)
+			e.Fit()
+			if route == "key" {
+				_ = e.Key("drawarea")
+			} else {
+				r, ok := e.BarRect("view")
+				trigClick(t, e, r, ok, "View")
+				r, ok = e.MenuRowRect(7)
+				trigClick(t, e, r, ok, "Draw trigger area")
+			}
+			if e.AreaDrawArmed() || e.Message() == "" || e.Dirty() || !bytes.Equal(e.Document().SourceBytes, before) {
+				t.Fatalf("%s by %s: armed %v, message %q, dirty %v", key, route, e.AreaDrawArmed(), e.Message(), e.Dirty())
+			}
+			t.Logf("%s by %s: %q", key, route, e.Message())
+		}
+		tried++
+	}
+	if tried == 0 {
+		t.Fatal("no installed multiplayer map of the two named was found")
+	}
 }

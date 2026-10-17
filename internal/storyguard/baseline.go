@@ -2580,6 +2580,8 @@ package storyguard
 // draw tool and the shared notice (pkg/ui/mapeditorareaedit.go), the drawn
 // box's host (pkg/game/mapinspectionareas.go), the slots an area comes from
 // (pkg/mapload/scriptareas.go) and their tests, this note included.
+// The correction adds the multiplayer refusal and the constant checks of the
+// drawn box (pkg/game/mapinspectionareas.go) and their tests.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2603,5 +2605,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9195118,
+	CommentBytes: 9196783,
 }

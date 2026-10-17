@@ -292,6 +292,7 @@
 "editor.view.drawarea" = "Draw trigger area (L)"
 "editor.area.draw" = "Drag a box on the map for a new trigger area; Esc cancels."
 "editor.area.noscript" = "This map has no script to hold a trigger."
+"editor.area.multiplayer" = "A multiplayer map cannot hold a drawn trigger area: its scripts cannot name a hero."
 "editor.area.newtitle" = "New trigger area"
 "editor.area.newtext" = "The box %d,%d to %d,%d becomes a condition: the hero stands in it. Which trigger takes it?"
 "editor.area.trigger" = "Trigger"
