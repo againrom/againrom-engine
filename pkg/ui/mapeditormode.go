@@ -35,6 +35,11 @@ const (
 	promptAdd // the Add window; its text is the current step's
 	// promptLeave asks what to do with unsaved changes before a step runs.
 	promptLeave
+	// promptNotice warns before test play or a save into a mod and lets
+	// the author continue past it.
+	promptNotice
+	// promptNewMode asks whether a new map is single-player or multiplayer.
+	promptNewMode
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -45,7 +50,10 @@ type editorPrompt struct {
 	path  string
 	scope string
 	add   *addRun
-	then  leaveStep // the step a promptLeave holds
+	then  leaveStep // the step a promptLeave holds, or the new map a promptNewMode opens
+	// notice is what a promptNotice continues to: test play or the save
+	// into the mod.
+	notice noticeStep
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }
@@ -60,6 +68,7 @@ type editorMode struct {
 	pick    pickKind
 	brush   brushState
 	report  reportState
+	panel   bool // the Map panel stands in the list popup under any list
 }
 
 // free reports that no layer takes the canvas: the catalogue, a prompt and an
@@ -81,6 +90,7 @@ const (
 	leaveReport                    // the report or script panel
 	leaveCatalog                   // the catalogue
 	leaveBrush                     // the brush mode and its stroke
+	leavePanel                     // the Map panel
 )
 
 // leave clears what the named layers own, the list's fractional wheel
@@ -106,6 +116,17 @@ func (e *MapEditor) leave(x exits) {
 		e.brush.mode = brushOff
 		e.brush.endStroke()
 	}
+	if x&leavePanel != 0 {
+		e.panel = false
+	}
+}
+
+// openPanel shows the Map panel in the list popup: the records list it
+// stands under closes.
+func (e *MapEditor) openPanel() {
+	e.leave(leaveCatalog | leaveReport | leaveBrush)
+	e.panel = true
+	e.listShown, e.filter = false, 0
 }
 
 // resetList puts the list popup back at its first row and drops the wheel's

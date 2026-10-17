@@ -8,6 +8,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The map editor opens each map on a Map panel, also reachable from
+  the Map menu. Its lines state the size, name, description, players and
+  sides, mode, start point, victory, defeat, report and test play, and a
+  click on a line opens the place that sets it. A map with no start point,
+  or with nothing that wins it, is marked on the panel and in the report,
+  and Test play and Save into a mod first name the problem in one notice
+  you can continue past; neither refuses a save. A new map asks whether it
+  is single-player or multiplayer, single-player by default, and starts the
+  party at the map's centre. The map's metadata (M) sets the mode by name.
+
 ## 0.126.0
 
 - [ROM1] Units placed on a map now keep the strengths, skills and

@@ -215,7 +215,7 @@ func playerMissionMap(t *testing.T, x *MapInspector, class int16, edited bool) s
 		apply(s.SetField("Player", 2, "relation0", 1))
 		apply(s.SetField("Unit", 0, "owner", 3))
 	}
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("save into mod: %v, dirty %v", err, e.Dirty())
 	}
 	return root

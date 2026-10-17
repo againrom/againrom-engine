@@ -35,6 +35,9 @@ type mapInspectionEdits struct {
 	reportedFor   []byte
 	reportedTexts string // the texts folder stamp the report was made under
 
+	facts    *ui.InspectionMapFacts // the Map panel's facts of the bytes in factsFor
+	factsFor []byte
+
 	// batch is the model every edit call writes while AddRecord runs the
 	// calls of one new record; nil otherwise.
 	batch *mapedit.Editor

@@ -59,6 +59,7 @@ func openRecords(t *testing.T) ([]byte, *ui.MapEditor) {
 	}
 	e.Layout(1280, 800)
 	e.Document().Viewer.SetFlat(true)
+	closeMapPanel(t, e)
 	return b, e
 }
 

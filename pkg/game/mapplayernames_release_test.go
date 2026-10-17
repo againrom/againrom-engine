@@ -62,7 +62,7 @@ func TestReleaseMapEditorPlayerNamesKeepSAVBytes(t *testing.T) {
 			if !strings.HasSuffix(row.Label, x.inspectionUTF8("Медь")) {
 				t.Fatalf("roster display changed: %q", row.Label)
 			}
-			if err := e.Key("saveas"); err != nil || e.Dirty() {
+			if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 				t.Fatalf("save into mod: %v", err)
 			}
 			path := filepath.Join(root, newMapModID, "mission", "map.alm")

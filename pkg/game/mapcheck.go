@@ -86,10 +86,14 @@ var mapRules = []mapRule{
 		Authority: "ALM-SACK-065",
 		Meaning:   "two ground sacks share a cell and the world merges them into one",
 		run:       (*mapCheck).sackDuplicate},
-	{ID: "drop-cell", Error: false,
-		Authority: "MISSION-DROP-002",
-		Meaning:   "a drop cell lies outside the map or on a cell the party cannot stand on, or the map has none and the fallback cells leave the map",
+	{ID: ui.RuleDropCell, Error: false,
+		Authority: "MISSION-DROP-002, TRIG-DROP-013",
+		Meaning:   "the map has no start point and the party lands at a random cell, or a drop cell lies outside the map or on a cell the party cannot stand on",
 		run:       (*mapCheck).dropCell},
+	{ID: ui.RuleVictory, Error: false,
+		Authority: "TRIG-END-009, MISSION-WIN-003",
+		Meaning:   "no trigger runs instant 4, the one action that wins a map: nothing wins this map and it is endless",
+		run:       (*mapCheck).victory},
 	{ID: "stock-link", Error: false,
 		Authority: "ALM-ORD-068",
 		Meaning:   "a unit's stock link names no owned record, or a stock has no unique placed owner",
@@ -600,7 +604,8 @@ func (c *mapCheck) dropCell() []mapHit {
 // fallbackDrop (DIV-3212) answers the finding for a map whose drop cells give the party no
 // cell, or only some (the start picks one at random): the start then draws one cell from the fallback square on each axis
 // (MISSION-DROP-002), and the finding counts the cells of that square the party
-// cannot stand on, outside the map or blocked.
+// cannot stand on, outside the map or blocked. A map with no drop cell at all
+// has no start point and is always named.
 func (c *mapCheck) fallbackDrop(cells []mapload.Cell) []mapHit {
 	zero := 0
 	for _, d := range cells {
@@ -622,6 +627,13 @@ func (c *mapCheck) fallbackDrop(cells []mapload.Cell) []mapHit {
 			}
 		}
 	}
+	if len(cells) == 0 {
+		text := fmt.Sprintf("the map has no start point: the party lands on a random cell of %d to %d on each axis", low, high)
+		if lost > 0 {
+			text += fmt.Sprintf(", and %d of its %d cells are outside the %dx%d map or blocked", lost, total, c.width(), c.height())
+		}
+		return []mapHit{{Text: text}}
+	}
 	if lost == 0 {
 		return nil
 	}
@@ -629,7 +641,7 @@ func (c *mapCheck) fallbackDrop(cells []mapload.Cell) []mapHit {
 		return []mapHit{{Text: fmt.Sprintf("%d of the map's %d drop cells have a zero coordinate; the start picks one drop cell at random, and such a pick sends the party to a random cell of %d to %d on each axis: %d of its %d cells are outside the %dx%d map or blocked",
 			zero, len(cells), low, high, lost, total, c.width(), c.height())}}
 	}
-	return []mapHit{{Text: fmt.Sprintf("the map has no drop cell, and the party lands on a random cell of %d to %d on each axis: %d of its %d cells are outside the %dx%d map or blocked",
+	return []mapHit{{Text: fmt.Sprintf("no drop cell of the map is usable, and the party lands on a random cell of %d to %d on each axis: %d of its %d cells are outside the %dx%d map or blocked",
 		low, high, lost, total, c.width(), c.height())}}
 }
 

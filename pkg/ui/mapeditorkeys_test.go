@@ -325,7 +325,7 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 }
 
 // modeFields are the selector chains that enter or leave a mode.
-var modeFields = []string{".catalog", ".pick", ".prompt", ".prompt.kind", ".report", ".report.open", ".report.goals", ".brush.mode", ".editorMode"}
+var modeFields = []string{".catalog", ".pick", ".prompt", ".prompt.kind", ".report", ".report.open", ".report.goals", ".brush.mode", ".panel", ".editorMode"}
 
 func selectorChain(x ast.Expr) string {
 	switch x := x.(type) {

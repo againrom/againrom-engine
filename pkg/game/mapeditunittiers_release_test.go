@@ -516,6 +516,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 		if err := e.Open(key); err != nil {
 			t.Fatal(err)
 		}
+		closeMapPanel(t, e)
 		return e
 	}
 	addUnit := func(e *ui.MapEditor, cell image.Point, class int16, tier uint16) {

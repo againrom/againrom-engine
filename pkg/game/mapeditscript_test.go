@@ -82,6 +82,7 @@ func openGoalMap(t *testing.T, b []byte) (*ui.MapEditor, string) {
 	}
 	e.Layout(1280, 800)
 	e.Document().Viewer.SetFlat(true)
+	closeMapPanel(t, e)
 	return e, path
 }
 

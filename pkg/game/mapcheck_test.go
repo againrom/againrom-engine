@@ -46,14 +46,31 @@ type scriptNode struct {
 	values, tags []uint32
 }
 
-// scriptPayloadWithDrop is scriptPayload for a fixture the party can start on:
-// a script with no drop cell gets one after its actions. A test of the
-// drop-cell rule lays the payload out itself.
+// scriptPayloadWithDrop is scriptPayload for a fixture the party can start on
+// and win: a script with no drop cell gets one after its actions, then an
+// instant 4 and one trigger that runs it. A test of the drop-cell or the
+// victory rule lays the payload out itself.
 func scriptPayloadWithDrop(actions, conditions []scriptNode) []byte {
 	if !slices.ContainsFunc(actions, func(n scriptNode) bool { return n.opcode == dropActionOpcode }) {
 		actions = append(slices.Clone(actions), scriptNode{label: "Drop location", opcode: dropActionOpcode, id: 99, values: []uint32{16, 16}, tags: []uint32{5, 6}})
 	}
-	return scriptPayload(actions, conditions)
+	actions = append(slices.Clone(actions), scriptNode{label: "Mission complete", opcode: scriptOpWin, id: winActionID})
+	b := scriptPayload(actions, conditions)
+	b = binary.LittleEndian.AppendUint32(b[:len(b)-4], 1)
+	return append(b, winTrigger("Win", winActionID)...)
+}
+
+// winActionID is the id of the fixtures' instant 4.
+const winActionID = 97
+
+// winTrigger is a 184-byte trigger record named name that runs action id
+// once.
+func winTrigger(name string, id uint32) []byte {
+	rec := make([]byte, 184)
+	copy(rec, name)
+	binary.LittleEndian.PutUint32(rec[0x98:], id)
+	binary.LittleEndian.PutUint32(rec[0xb4:], 1)
+	return rec
 }
 
 func scriptPayload(actions, conditions []scriptNode) []byte {
@@ -159,7 +176,7 @@ func ofRule(rows []ui.InspectionFinding, rule string) []ui.InspectionFinding {
 
 func TestMapRuleTableIsDataWithAKindPerRow(t *testing.T) {
 	errs := []string{"terrain-planes", "mission-build", "record-outside", "script-reference", "owner-slot", "item-code", "structure-kind"}
-	warnings := []string{"unit-terrain", "structure-overlap", "sack-duplicate", "drop-cell", "stock-link", "mod-message-text"}
+	warnings := []string{"unit-terrain", "structure-overlap", "sack-duplicate", "drop-cell", "victory", "stock-link", "mod-message-text"}
 	var gotErrs, gotWarnings []string
 	seen := map[string]bool{}
 	for _, r := range mapRules {

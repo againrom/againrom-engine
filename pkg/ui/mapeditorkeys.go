@@ -273,6 +273,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.closeObject()
 	case e.listShown:
 		e.closeList()
+	case e.panel:
+		e.leave(leavePanel)
 	case e.Dirty():
 		e.askLeave(leaveStep{})
 	default:
@@ -309,6 +311,10 @@ func (e *MapEditor) keyEnter(string) error {
 	switch e.prompt.kind {
 	case promptLeave:
 		return e.leaveSaveAs()
+	case promptNotice:
+		return e.noticeContinue()
+	case promptNewMode:
+		return e.newModeOpen(false)
 	case promptAdd:
 		if !e.addPicking() {
 			e.addNext()
@@ -319,7 +325,8 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptItemRecipe:
 		return e.setItemRecipe(e.prompt.path)
 	case promptRectangle:
-		return e.Open("new/" + strings.TrimSpace(e.prompt.path))
+		e.askNewMode("new/" + strings.TrimSpace(e.prompt.path))
+		return nil
 	case promptSave:
 		return e.saveAs(strings.TrimSpace(e.prompt.path))
 	case promptOpen:
@@ -391,6 +398,9 @@ func (e *MapEditor) keyStep(key string) error {
 
 func (e *MapEditor) keySaveAs(string) error {
 	if m, ok := e.modSave(); ok {
+		if e.askNotice(noticeModSave) {
+			return nil
+		}
 		return e.saveIntoMod(m)
 	}
 	if e.editable() {

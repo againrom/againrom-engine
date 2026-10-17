@@ -58,7 +58,8 @@ func newArmsMod(t *testing.T, withArms bool) string {
 		name string
 		do   func() (*ui.InspectionDocument, error)
 	}{
-		{"drop cell", func() (*ui.InspectionDocument, error) { return s.SetDropCell(image.Pt(16, 16)) }},
+		// A new map's drop cell is its centre, 16,16; the window moves it.
+		{"drop cell", func() (*ui.InspectionDocument, error) { return s.SetDropCell(image.Pt(14, 16)) }},
 		{"enemy", func() (*ui.InspectionDocument, error) { return s.AddUnit(image.Pt(22, 22), int64(class)) }},
 		{"party unit", func() (*ui.InspectionDocument, error) { return s.AddUnit(image.Pt(12, 22), int64(class)) }},
 		{"party side", func() (*ui.InspectionDocument, error) { return s.SetField("Unit", 1, "owner", partySlot) }},
@@ -76,7 +77,7 @@ func newArmsMod(t *testing.T, withArms bool) string {
 			t.Fatalf("add the lose arm: %v", err)
 		}
 	}
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("Save into the mod: %v", err)
 	}
 	return root
@@ -220,7 +221,7 @@ func armsCopyMod(t *testing.T, c armsCopy, add func(s ui.InspectionScript)) stri
 	}
 	e.Layout(1280, 800)
 	add(e.Document().Edits.(ui.InspectionScript))
-	if err := e.Key("saveas"); err != nil || e.Dirty() {
+	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("Save into the mod: %v", err)
 	}
 	return root

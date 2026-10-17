@@ -104,6 +104,7 @@ func openTestMapEditor(t *testing.T, b []byte) (*MapInspector, *ui.MapEditor, st
 	}
 	e.Layout(1280, 800)
 	e.Document().Viewer.SetFlat(true)
+	closeMapPanel(t, e)
 	return x, e, path
 }
 

@@ -82,6 +82,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 		if err := e.Open("scenario/10.alm"); err != nil {
 			t.Fatal(err)
 		}
+		closeMapPanel(t, e)
 		return e
 	}
 	first := func(e *ui.MapEditor, kind string) int {

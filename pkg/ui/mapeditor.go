@@ -187,8 +187,11 @@ func (e *MapEditor) openMap(source string) error {
 	next.Viewer.editorView = true
 	e.doc = next
 	e.Layout(e.window.X, e.window.Y)
-	e.leave(leaveDrag | leaveReport | leaveCatalog | leavePrompt)
+	e.leave(leaveDrag | leaveReport | leaveCatalog | leavePrompt | leavePanel)
 	e.selected, e.filter, e.listShown = -1, 0, false
+	if _, ok := e.mapPanel(); ok {
+		e.openPanel()
+	}
 	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
 	e.listWheel, e.objectWheel = 0, 0
 	e.message = ""

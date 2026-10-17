@@ -64,24 +64,12 @@ func (e *MapEditor) leaveSpec() popupSpec {
 	if e.prompt.then.open {
 		title, proceed = e.word("editor.leave.title.open"), e.word("editor.leave.open")
 	}
-	w := min(560, e.window.X-16)
-	s := popupSpec{Title: title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
-	s.Buttons = []string{e.word("editor.leave.saveas"), proceed, e.word("editor.button.cancel")}
-	if f := e.bodyFont(); f != nil {
-		for _, b := range s.Buttons {
-			s.ButtonW = max(s.ButtonW, f.Advance(b)+16)
-		}
-		s.Width = min(max(s.Width, 3*s.ButtonW+4*popupPad), e.window.X-16)
-	}
 	name := ""
 	if e.doc != nil {
 		name = e.leaveName(e.doc.Source)
 	}
-	text := s.Width - 2*popupPad - 60
-	s.Notes = append(s.Notes, editorWrap(e.bodyFont(), fmt.Sprintf(e.word("editor.leave.text"), name), text)...)
-	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3))
-	return s
+	return e.questionSpec(title, []string{fmt.Sprintf(e.word("editor.leave.text"), name)},
+		[]string{e.word("editor.leave.saveas"), proceed, e.word("editor.button.cancel")})
 }
 
 // leaveName is the map as the question names it: a file by its own name, a

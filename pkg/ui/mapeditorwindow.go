@@ -184,7 +184,7 @@ func (e *MapEditor) MenuRowRect(n int) (image.Rectangle, bool) {
 // that row is shown.
 func (e *MapEditor) ListRowRect(n int) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
-	if !ok || e.model == nil {
+	if !ok || e.model == nil || s.List == nil {
 		return image.Rectangle{}, false
 	}
 	top, count := e.model.Visible()
@@ -245,6 +245,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"saveas", e.word("editor.menu.save")},
 			{"saveto", e.word("editor.menu.saveas")},
 			{"testplay", e.word("editor.menu.testplay")},
+			{"panel", e.word("editor.menu.panel")},
 			{"close", e.word("editor.menu.exit")},
 		}
 	case "view":
@@ -324,6 +325,11 @@ func (e *MapEditor) menuAct(key string) {
 	e.menu = ""
 	e.endFieldTyping()
 	switch key {
+	case "panel":
+		if _, ok := e.mapPanel(); ok {
+			e.leave(leaveDrag | leavePick)
+			e.openPanel()
+		}
 	case "catalog":
 		e.leave(leaveDrag | leaveReport)
 		e.enterCatalog()
@@ -387,6 +393,8 @@ func (e *MapEditor) closeList() {
 		e.leave(leaveReport)
 	case "brush":
 		e.leave(leaveBrush)
+	case "panel":
+		e.leave(leavePanel)
 	default:
 		e.listShown, e.filter = false, 0
 	}
@@ -404,6 +412,8 @@ func (e *MapEditor) listKind() string {
 		return "brush"
 	case e.listShown && e.doc != nil:
 		return "records"
+	case e.panel && e.doc != nil:
+		return "panel"
 	}
 	return ""
 }
@@ -570,6 +580,10 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 	if kind == "" {
 		return popupSpec{}, false
 	}
+	if kind == "panel" {
+		s, _ := e.panelSpec()
+		return s, true
+	}
 	m := e.syncList(kind, e.listWindow())
 	if !e.listPlaced {
 		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
@@ -624,8 +638,10 @@ func (e *MapEditor) listChoose(n int, open bool) {
 			return
 		}
 		e.model.Select(n)
-		if open {
-			_ = e.Open(e.maps[maps[n]].Key)
+		if key := e.maps[maps[n]].Key; open && strings.HasPrefix(key, "new/") {
+			e.askNewMode(key)
+		} else if open {
+			_ = e.Open(key)
 		}
 	case "report":
 		e.selectFinding(n)
@@ -753,8 +769,13 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 		s, _ := e.addSpec()
 		return s, true
 	}
-	if e.prompt.kind == promptLeave {
+	switch e.prompt.kind {
+	case promptLeave:
 		return e.leaveSpec(), true
+	case promptNotice:
+		return e.noticeSpec(), true
+	case promptNewMode:
+		return e.newModeSpec(), true
 	}
 	w := min(560, e.window.X-16)
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
@@ -1048,7 +1069,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 	switch target {
 	case popList:
-		if e.model != nil {
+		if e.model != nil && e.listKind() != "panel" {
 			rows := editorWheelRows(&e.listWheel, wheel)
 			if e.listKind() == "catalog" {
 				e.catalogStep(rows)
@@ -1095,8 +1116,15 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.addPress(p, double)
 			return
 		}
-		if e.prompt.kind == promptLeave {
+		switch e.prompt.kind {
+		case promptLeave:
 			e.leavePress(p)
+			return
+		case promptNotice:
+			e.noticePress(p)
+			return
+		case promptNewMode:
+			e.newModePress(p)
 			return
 		}
 		s, _ := e.promptSpec()
@@ -1118,6 +1146,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.selectTrigger(t, false)
 		}
 	case popList:
+		if e.listKind() == "panel" {
+			e.panelPress(p)
+			return
+		}
 		s, _ := e.listSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
 		switch part, n := l.hit(p); part {

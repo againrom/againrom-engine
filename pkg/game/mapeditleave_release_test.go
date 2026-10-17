@@ -65,6 +65,7 @@ func TestReleaseMapEditorCloseWithUnsavedChangesAsks(t *testing.T) {
 		if e.Dirty() {
 			t.Fatal("a freshly opened copy is dirty")
 		}
+		closeMapPanel(t, e)
 		s := e.Document().Edits.(*mapInspectionEdits)
 		if _, err := s.AddPlayer(); err != nil {
 			t.Fatal(err)
