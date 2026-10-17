@@ -8,8 +8,8 @@ var refusedRouteEntries = []struct {
 	name string
 	call func(w *World, i int)
 }{
-	{"pursuit", func(w *World, i int) { w.answerRefusedPursuit(i) }},
-	{"walk", func(w *World, i int) { w.answerRefusedWalk(i) }},
+	{"pursuit", func(w *World, i int) { w.answerRefusedPursuit(i, searchNear) }},
+	{"walk", func(w *World, i int) { w.answerRefusedWalk(i, searchNear) }},
 	{"flee", func(w *World, i int) { w.reacquireWithinReach(i) }},
 	{"retreat failure", func(w *World, i int) {
 		w.ensureRetreatContinuation(i)

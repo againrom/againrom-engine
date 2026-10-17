@@ -67,10 +67,11 @@ func TestARefusedPlayerRetreatWalkTakesTheHostileWithinReach(t *testing.T) {
 	}
 }
 
-// Each side of refusedWalkTakesPick the Group order and the withdrawal
-// decide, pinned on the answer to one refused walk. The walker stands three
-// cells from the hostile with reach 3 and no victim. A Group order 0 guard
-// takes the pick; a Move, Swarm (order 2), Swarm 2 or Roam member takes none;
+// Each side of refusedWalkArm the Group order and the withdrawal decide,
+// pinned on the answer to one refused walk. The walker stands three cells
+// from the hostile with reach 3 and no victim. A Group order 0 guard takes
+// the pick; a Swarm (order 2) or Roam member takes none, and a Move or
+// Swarm 2 member takes none on this first refusal;
 // a withdrawal takes it in any of those Groups, with retreat progress 1
 // (AI-365, AI-649).
 func TestARefusedWalkTakesThePickByGroupOrderAndWithdrawal(t *testing.T) {
@@ -109,7 +110,7 @@ func TestARefusedWalkTakesThePickByGroupOrderAndWithdrawal(t *testing.T) {
 		if o := w.savedOrder(e.ID); o != nil && o.State == 1 {
 			t.Fatalf("%s: fixture: the walker holds a loaded state 1 order", tc.name)
 		}
-		w.answerRefusedWalk(i)
+		w.answerRefusedWalk(i, searchNear)
 		got := w.entities[i]
 		pick := got.HasAttackTarget && got.AttackTarget == 3 && got.AcquirePursuit
 		if pick != tc.pick {

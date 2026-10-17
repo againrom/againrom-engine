@@ -49,6 +49,27 @@ type SavedActorOrder struct {
 	// Raw excludes the replaced +90 list pointer.
 	Raw    [144]byte
 	Patrol []uint16
+	// stoodDown marks a Move or Swarm 2 member whose state 1 walk a refusal
+	// stood down to State 0xc (AI-649); only the setters clear it. LOAD
+	// derives it from State 0xc in a Group at order 4 or 5.
+	stoodDown bool
+}
+
+// stoodDownWalk reports whether o is a stood-down walk: marked and at the
+// stand-down. Only then does the mark decide anything, and only then does
+// the byte form carry it.
+func (s *savedGroupState) stoodDownWalk(o *SavedActorOrder) bool {
+	return o.stoodDown && s.atStandDown(o)
+}
+
+// atStandDown reports whether o is at State 0xc in a Group at order 4 or 5,
+// the state a refusal stands a Move or Swarm 2 member down to.
+func (s *savedGroupState) atStandDown(o *SavedActorOrder) bool {
+	if o.State != uint32(actorStateAcquire) {
+		return false
+	}
+	g := savedGroupForIn(s, o.Entity)
+	return g != nil && (g.AI[0x20] == orderMove || g.AI[0x20] == orderSwarm2)
 }
 
 type savedGroupState struct {
@@ -143,8 +164,10 @@ func (w *World) ImportSavedGroups(groups []SavedGroup, orders []SavedActorOrder)
 		return err
 	}
 	w.savedGroups = s
-	for _, o := range s.Orders {
+	for k := range s.Orders {
+		o := &s.Orders[k]
 		w.entities[indexOfEntity(w.entities, o.Entity)].attackNotice = attackNotice{}
+		o.stoodDown = s.atStandDown(o)
 	}
 	return nil
 }

@@ -49,7 +49,8 @@ func (w *World) appendSavedGroups(b []byte) []byte {
 		for _, o := range s.Orders {
 			b = le.AppendUint32(b, uint32(o.Entity))
 			b = le.AppendUint32(b, o.State)
-			b = append(b, layoutBool(o.Authored), o.RepairStage)
+			// Bit 1 of the construction byte is the stood-down walk.
+			b = append(b, layoutBool(o.Authored)|layoutBool(s.stoodDownWalk(&o))<<1, o.RepairStage)
 			b = le.AppendUint32(b, uint32(o.EscortTarget))
 			b = append(b, layoutBool(o.EscortBound))
 			raw := w.maskedOrderRaw(o)
@@ -146,10 +147,10 @@ func splitSavedGroups(b []byte) ([]byte, *savedGroupState, error) {
 		get(&o.State)
 		var authored uint8
 		get(&authored)
-		if authored > 1 {
+		if authored > 3 {
 			err = fmt.Errorf("sim: invalid actor order construction mode")
 		}
-		o.Authored = authored == 1
+		o.Authored, o.stoodDown = authored&1 == 1, authored&2 != 0
 		get(&o.RepairStage)
 		get(&o.EscortTarget)
 		var bound uint8

@@ -155,9 +155,11 @@ func (w *World) groupOrder(cmds []Command, first int, consumed []bool) {
 	switch kind {
 	case KindGroupMoveTo:
 		w.commandGroup(members, orderMove, ordered)
+		w.walkAtStateOne(members)
 		w.issueGroupDestination(members, ordered)
 	case KindGroupSwarmTo:
 		w.commandGroup(members, orderSwarm2, ordered)
+		w.walkAtStateOne(members)
 		w.issueGroupDestination(members, ordered)
 	case KindGroupStance:
 		w.commandStance(members, ordered.x)

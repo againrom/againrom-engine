@@ -35,7 +35,7 @@ func referenceAppendSavedGroups(w *World, b []byte) []byte {
 		for _, o := range s.Orders {
 			put(o.Entity)
 			put(o.State)
-			put(o.Authored)
+			put(layoutBool(o.Authored) | layoutBool(s.stoodDownWalk(&o))<<1)
 			put(o.RepairStage)
 			put(o.EscortTarget)
 			put(o.EscortBound)
@@ -73,7 +73,7 @@ func randomSavedGroups(rng *rand.Rand) *savedGroupState {
 	}
 	for i := rng.Intn(4); i > 0; i-- {
 		o := SavedActorOrder{Entity: EntityID(rng.Intn(3)), State: rng.Uint32(), Authored: rng.Intn(2) == 1, RepairStage: uint8(rng.Uint32()),
-			EscortTarget: EntityID(rng.Uint32()), EscortBound: rng.Intn(2) == 1, Patrol: words()}
+			EscortTarget: EntityID(rng.Uint32()), EscortBound: rng.Intn(2) == 1, Patrol: words(), stoodDown: rng.Intn(2) == 1}
 		rng.Read(o.Raw[:])
 		s.Orders = append(s.Orders, o)
 	}

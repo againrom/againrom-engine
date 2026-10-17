@@ -1,6 +1,9 @@
 package sim
 
-import "fmt"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 // AttackPhase is where an attacker stands in its attack cycle: charging
 // toward a blow, casting toward a release, relaxing after either, or between
@@ -465,27 +468,48 @@ func (w *World) aimsAtDestination(i int, sub cell) bool {
 // including a group's reissue at the same victim.
 // Acquisition turns, structure victims and a cycle in progress are not a
 // refused pursuit and keep their own handling.
-func (w *World) answerRefusedPursuit(i int) {
+func (w *World) answerRefusedPursuit(i int, by routeSearch) {
 	if !w.attackerRefusable(i) {
-		w.answerRefusedWalk(i)
+		w.answerRefusedWalk(i, by)
 		return
 	}
 	w.answerRefusedRoute(i, refusedPursuit)
 }
 
+// routeSearch names the search that refused a route. The far search is the
+// original's static search, and the stalled near search its near search
+// (AI-658, AI-659).
+type routeSearch uint8
+
+const (
+	searchNear routeSearch = iota
+	searchStatic
+)
+
 // answerRefusedWalk answers a refused walk with no victim by its walk state
 // (AI-649): a walk to a sack and, in the first game, each state the tail
-// sends to the reach pick (a guard's walk to its post, an escort closing) take
-// the hostile nearest within reach (AI-648). With none the actor stays. A
-// withdrawal takes the pick through the retreat failure tail, the answer a
+// sends to the reach pick (a guard's walk to its post, an escort closing, a
+// stood-down Move member) take the hostile nearest within reach (AI-648).
+// With none the actor stays. A walk at state 1 stands down instead. A
+// static search's refusal of a Move walk also latches it (latchRefusedWalk).
+// A withdrawal takes the pick through the retreat failure tail, the answer a
 // loaded route-failure flag takes, which also writes its progress (AI-365).
-func (w *World) answerRefusedWalk(i int) {
+func (w *World) answerRefusedWalk(i int, by routeSearch) {
 	e := &w.entities[i]
 	if e.HasAttackTarget || e.OffMap {
 		return
 	}
-	if e.PendingOrder.Kind != PendingPickup && !w.refusedWalkTakesPick(i) {
-		return
+	if by == searchStatic && w.moveWalk(i) {
+		defer w.latchRefusedWalk(i)
+	}
+	if e.PendingOrder.Kind != PendingPickup {
+		switch w.refusedWalkArm(i) {
+		case walkArmStandDown:
+			w.standDownRefusedWalk(i)
+			return
+		case walkArmNone:
+			return
+		}
 	}
 	if e.ActorState == actorStateRetreat && e.PendingOrder.Kind == PendingNone {
 		w.ensureRetreatContinuation(i)
@@ -496,33 +520,97 @@ func (w *World) answerRefusedWalk(i int) {
 	w.answerRefusedRoute(i, refusedWalk)
 }
 
-// refusedWalkTakesPick reports whether the tail sends actor i's refused walk
-// to the reach pick. A withdrawal does, whatever its Group (AI-365, AI-649).
-// Move and Swarm 2 members and state 1 walk at state 1, which the tail stands
-// down for the group pass to send again (AI-519, AI-648). The command state of
-// a Swarm (order 2) or Roam member is Unknown; they take none. A patrol and
-// another pending order keep their own answers.
-func (w *World) refusedWalkTakesPick(i int) bool {
+// walkArm is the executor tail's arm for a refused walk with no victim.
+type walkArm uint8
+
+const (
+	walkArmNone walkArm = iota
+	walkArmStandDown
+	walkArmPick
+)
+
+// refusedWalkArm reports the tail's arm for actor i's refused walk. A
+// withdrawal takes the pick, whatever its Group (AI-365, AI-649). A walk at
+// state 1 stands down (walksAtStateOne); a stood-down Move or Swarm 2 member
+// then takes the pick. The command state of a Swarm (order 2) or Roam member
+// is Unknown; they take none. A patrol and another pending order keep their
+// own answers.
+func (w *World) refusedWalkArm(i int) walkArm {
 	e := w.entities[i]
 	if w.SecondGame() || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
-		return false
+		return walkArmNone
 	}
 	if e.ActorState == actorStateRetreat {
-		return true
+		return walkArmPick
 	}
 	if e.ActorState == actorStatePatrol {
+		return walkArmNone
+	}
+	if o := w.savedOrder(e.ID); o != nil && (o.State == uint32(actorStatePatrol) || o.State == uint32(actorStateRetreat)) {
+		return walkArmNone
+	}
+	if w.walksAtStateOne(i) {
+		return walkArmStandDown
+	}
+	if g := w.savedGroupFor(e.ID); g != nil && (g.AI[0x20] == orderSwarm || g.AI[0x20] == orderRoam) {
+		return walkArmNone
+	}
+	return walkArmPick
+}
+
+// walksAtStateOne reports whether actor i walks at command state 1: an order
+// loaded at state 1, or a member of a Move or Swarm 2 Group, which the setter
+// puts at state 1 (AI-648), that no refusal has stood down since.
+func (w *World) walksAtStateOne(i int) bool {
+	o := w.savedOrder(w.entities[i].ID)
+	if o != nil && o.State == 1 {
+		return true
+	}
+	if o != nil && w.savedGroups.stoodDownWalk(o) {
 		return false
 	}
-	if o := w.savedOrder(e.ID); o != nil && (o.State == 1 || o.State == uint32(actorStatePatrol) || o.State == uint32(actorStateRetreat)) {
-		return false
+	g := w.savedGroupFor(w.entities[i].ID)
+	return g != nil && (g.AI[0x20] == orderMove || g.AI[0x20] == orderSwarm2)
+}
+
+// moveWalk reports whether actor i's walk is a Move walk the order 4 arm's
+// path (b) reads: one at state 1, or a stood-down Move or Swarm 2 member's.
+func (w *World) moveWalk(i int) bool {
+	if w.refusedWalkArm(i) == walkArmStandDown {
+		return true
 	}
-	if g := w.savedGroupFor(e.ID); g != nil {
-		switch g.AI[0x20] {
-		case orderSwarm, orderMove, orderSwarm2, orderRoam:
-			return false
-		}
+	o := w.savedOrder(w.entities[i].ID)
+	return o != nil && w.savedGroups.stoodDownWalk(o) && w.entities[i].ActorState != actorStateRetreat
+}
+
+// latchRefusedWalk is path (b) of the order 4 arm after a static search's
+// refusal (AI-658): the member stands down to state 0xc on its cell with the
+// arrival latch 1, so the Group acquires for it and sends it nowhere. The
+// original stores it on the next Group pass; nothing reads the latch before.
+func (w *World) latchRefusedWalk(i int) {
+	if w.entities[i].OffMap {
+		return
 	}
-	return true
+	w.standDownRefusedWalk(i)
+	o := w.savedOrder(w.entities[i].ID)
+	binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
+	if w.entities[i].HasAttackTarget {
+		o.Raw[8] = 6
+	}
+}
+
+// standDownRefusedWalk is the tail's state 1 arm (AI-541, AI-649): the
+// member stands down to state 0xc with its post on its current cell, the
+// pending kind 0, the arrival latch 0 and its reach in ord+0x14. The Group's
+// next pass sends it again at 0xc, so a later refusal takes the pick.
+func (w *World) standDownRefusedWalk(i int) {
+	e := &w.entities[i]
+	e.ActorState, e.PostX, e.PostY = actorStateAcquire, e.X, e.Y
+	o := w.ensureSavedOrder(i)
+	o.State, o.stoodDown = uint32(actorStateAcquire), true
+	binary.LittleEndian.PutUint16(o.Raw[:], uint16(e.X)|uint16(e.Y)<<8)
+	o.Raw[8], o.Raw[0x14] = 0, uint8(e.Reach)
+	binary.LittleEndian.PutUint32(o.Raw[0x50:], 0)
 }
 
 // closedOn reports whether attacker i has walked close enough to victim ti

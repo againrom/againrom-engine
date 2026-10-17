@@ -2544,6 +2544,17 @@ package storyguard
 // CommentBytes rises for the heal arm's reach condition (pkg/sim/spell.go,
 // pkg/sim/engage.go) and its witnesses (pkg/sim/healreach_test.go), this note
 // included.
+//
+// CommentBytes rises for the refused Move member's stand-down
+// (pkg/sim/combat.go, pkg/sim/savedgroups.go, pkg/sim/savedgroupcommands.go)
+// and its witnesses (pkg/sim/refusedmove_test.go,
+// pkg/game/refusedmove_release_test.go, the club wait in
+// pkg/game/quest81_release_test.go), this note included.
+//
+// CommentBytes rises for the static search's latch of a refused Move
+// member (pkg/sim/combat.go, the refusing searches in pkg/sim/step.go and
+// pkg/sim/pursuitsearch.go) and its witness in pkg/sim/refusedmove_test.go,
+// this note included.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2567,5 +2578,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9132992,
+	CommentBytes: 9138690,
 }

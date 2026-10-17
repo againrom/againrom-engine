@@ -110,6 +110,19 @@ func TestReleaseMission81QuestItemHandoverAndColdSAV(t *testing.T) {
 					t.Fatal("handover fired without all installed preconditions")
 				}
 			}
+			// A holder whose walk beside the ogres is refused strikes one on its
+			// later refusal (AI-649), and the ogres' Group then engages it. A
+			// club wait keeps the holder at full health each tick, as the heals
+			// beside it do, so the flow reaches its checks.
+			wait := func(n int) {
+				t.Helper()
+				for k := 0; k < n; k++ {
+					f.LiveAdvance(1)
+					if e, _ := w.Entity(holder); mode == "club" && e.Alive() && e.HP < e.MaxHP {
+						quest81OK(t, w.HeadlessHeal(holder))
+					}
+				}
+			}
 			// Proximity alone neither consumes an item nor wins the mission.
 			move(near)
 			f.LiveAdvance(32)
@@ -138,7 +151,7 @@ func TestReleaseMission81QuestItemHandoverAndColdSAV(t *testing.T) {
 				// Club plus proximity is still insufficient while ogres are hostile.
 				quest81OK(t, w.HeadlessHeal(holder))
 				move(near)
-				f.LiveAdvance(32)
+				wait(32)
 				unchanged()
 				if w.Relations().Byte(2, 1) == 0 || !quest81Carries(w, holder, item) {
 					t.Fatalf("hostile control: relation=%d club=%v peace latches=%v/%v", w.Relations().Byte(2, 1), quest81Carries(w, holder, item), w.ScriptLatched(5), w.ScriptLatched(7))
@@ -150,13 +163,13 @@ func TestReleaseMission81QuestItemHandoverAndColdSAV(t *testing.T) {
 					t.Fatal("authored downed ogre u50 is absent")
 				}
 				quest81OK(t, w.HeadlessHeal(ogre))
-				f.LiveAdvance(32)
+				wait(32)
 				if w.Relations().Byte(2, 1) != 0 || !w.ScriptLatched(5) || !w.ScriptLatched(7) {
 					t.Fatal("installed healed-ogre script did not establish peace")
 				}
 			}
 			move(far)
-			f.LiveAdvance(32)
+			wait(32)
 			unchanged()
 			// A newly raised message while an earlier modal is open is discarded.
 			// Finish the healed-ogre dialogue before approaching for the reward.

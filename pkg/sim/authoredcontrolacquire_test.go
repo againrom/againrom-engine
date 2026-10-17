@@ -61,7 +61,7 @@ func TestAuthoredControlRefusedAcquisitionAndColdRestore(t *testing.T) {
 			}
 			cold := worldRoundTripForTest(t, w)
 			for _, live := range []*World{w, cold} {
-				live.answerRefusedPursuit(0)
+				live.answerRefusedPursuit(0, searchNear)
 				e := live.entities[0]
 				if tc.human {
 					if !e.PursuitIdle || e.AcquirePursuit || e.AttackTarget != 3 {

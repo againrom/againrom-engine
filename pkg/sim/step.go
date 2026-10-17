@@ -1034,7 +1034,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				// raised route-failure flag: the order is idled or handed to the
 				// victim nearest within reach (DIV-1520).
 				if w.restAt(scratch, i) {
-					w.answerRefusedPursuit(i)
+					w.answerRefusedPursuit(i, searchStatic)
 				}
 				continue
 			}
@@ -1109,7 +1109,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// passes for a few ticks cannot end it.
 			if e.Owner != SelfSlot && w.aimsAtDestination(i, sub) && w.attackerRefusable(i) {
 				if w.restAt(scratch, i) {
-					w.answerRefusedPursuit(i)
+					w.answerRefusedPursuit(i, searchNear)
 				}
 				continue
 			}
@@ -1119,7 +1119,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				walk := !e.HasAttackTarget && !w.SecondGame()
 				refused := w.pursuitRefused(scratch, i)
 				if w.restAt(scratch, i) && (refused || walk) {
-					w.answerRefusedPursuit(i)
+					w.answerRefusedPursuit(i, searchNear)
 				}
 			}
 			continue

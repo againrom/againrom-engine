@@ -402,11 +402,24 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 			if order == 4 || order == 5 {
 				// The move setter writes every member's destination; a member
 				// Stone holds walks once it thaws.
-				w.issueSavedGroupDestination(g, w.savedOnMap(g), cell{x, y})
+				on := w.savedOnMap(g)
+				w.walkAtStateOne(on)
+				w.issueSavedGroupDestination(g, on, cell{x, y})
 			}
 		case subCommandPatrol:
 			g.AI[0x20] = 0
 			w.setSavedPatrol(members, point)
+		}
+	}
+}
+
+// walkAtStateOne is the Move and Swarm 2 setters' command state (AI-648):
+// each member walks at state 1, so a member a refusal stood down walks at
+// state 1 again.
+func (w *World) walkAtStateOne(members []int) {
+	for _, i := range members {
+		if o := w.savedOrder(w.entities[i].ID); o != nil {
+			o.stoodDown = false
 		}
 	}
 }

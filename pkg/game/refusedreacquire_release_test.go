@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 const (
@@ -20,6 +21,34 @@ type unreachableArena struct {
 }
 
 func openUnreachableArena(t *testing.T, placeBeside bool, offset int32, heroAt ...int32) *unreachableArena {
+	t.Helper()
+	a, app := openUnreachableMission(t, placeBeside, offset, heroAt...)
+	live := a.live
+	if err := app.HeadlessKey("attack"); err != nil {
+		t.Fatal(err)
+	}
+	victim, _ := live.entity(releaseUnreachableFoe)
+	inspectionCentre(live, int(victim.X), int(victim.Y))
+	x, y, err := app.HeadlessEntityPoint(uint32(releaseUnreachableFoe))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, edge := range []string{"press", "release"} {
+		if err := app.HeadlessPointer(edge, x, y); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(live.pending) != 1 || live.pending[0].Kind != sim.KindAttack || live.pending[0].Entity != a.hero ||
+		live.pending[0].X != int32(releaseUnreachableFoe) {
+		t.Fatalf("the click queued %+v, want the hero's attack on creature %d", live.pending, releaseUnreachableFoe)
+	}
+	return a
+}
+
+// openUnreachableMission opens mission 10 with its hero selected, the
+// unreachable creature checked and, when asked, the weakest other fighting
+// hostile placed about offset cells from the hero.
+func openUnreachableMission(t *testing.T, placeBeside bool, offset int32, heroAt ...int32) (*unreachableArena, *ui.App) {
 	t.Helper()
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
@@ -96,24 +125,7 @@ func openUnreachableArena(t *testing.T, placeBeside bool, offset int32, heroAt .
 	if err := app.HeadlessSelectEntity(uint32(heroID)); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessKey("attack"); err != nil {
-		t.Fatal(err)
-	}
-	inspectionCentre(live, int(victim.X), int(victim.Y))
-	x, y, err := app.HeadlessEntityPoint(uint32(releaseUnreachableFoe))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, edge := range []string{"press", "release"} {
-		if err := app.HeadlessPointer(edge, x, y); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if len(live.pending) != 1 || live.pending[0].Kind != sim.KindAttack || live.pending[0].Entity != heroID ||
-		live.pending[0].X != int32(releaseUnreachableFoe) {
-		t.Fatalf("the click queued %+v, want the hero's attack on creature %d", live.pending, releaseUnreachableFoe)
-	}
-	return &unreachableArena{front: f, live: live, hero: heroID, beside: beside}
+	return &unreachableArena{front: f, live: live, hero: heroID, beside: beside}, app
 }
 
 func (a *unreachableArena) get(id sim.EntityID) sim.Entity {

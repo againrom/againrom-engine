@@ -108,7 +108,7 @@ func (w *World) pursue(s *routeScratch, i, ti int, heldFirstCall bool) {
 			if e.Stall >= stallLimit {
 				refused := w.pursuitRefused(s, i)
 				if w.restAt(s, i) && refused {
-					w.answerRefusedPursuit(i)
+					w.answerRefusedPursuit(i, searchNear)
 				}
 			}
 			return
@@ -141,6 +141,6 @@ func (w *World) countPursuitPass(i int, from cell) {
 func (w *World) cancelPursuit(s *routeScratch, i int) {
 	w.entities[i].Pursuit = PursuitSearch{}
 	if w.restAt(s, i) {
-		w.answerRefusedPursuit(i)
+		w.answerRefusedPursuit(i, searchNear)
 	}
 }

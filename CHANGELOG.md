@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A unit in a group move or attack move that cannot get through no
+  longer stands still while enemies hit it, as in the original. When no way
+  exists at all it stops and fights what is within reach; when its way is
+  only blocked by others it attacks an enemy within reach the second time it
+  is blocked. Saves made in between keep this.
 - [ROM1] The map editor picks a creature's tier from a drop-down, also when
   placing a new unit, and draws each creature in its tier's colours. A unit's
   popup shows its characteristics as the game builds them at Normal
