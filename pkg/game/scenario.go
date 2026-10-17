@@ -658,6 +658,19 @@ func (p *PlayWorld) entity(id sim.EntityID) (sim.Entity, bool) {
 	return sim.Entity{}, false
 }
 
+func (p *PlayWorld) registryGroupOrPlaced(e sim.Entity) uint32 {
+	if groups, _, ok := p.World.SavedGroups(); ok {
+		for _, g := range groups {
+			for _, m := range g.Members {
+				if m.Bound && m.Entity == e.ID {
+					return g.Selector
+				}
+			}
+		}
+	}
+	return e.Group
+}
+
 // HeadlessCell is a point and the Chebyshev radius around it that counts as
 // being there. A radius is required rather than defaulted to zero because the
 // cell itself is routinely occupied and a mission check that measures a distance
@@ -895,8 +908,8 @@ func (a *HeadlessUnitAssertion) check(p *PlayWorld, ref string) error {
 	if a.Owner != nil && e.Owner != *a.Owner {
 		return fmt.Errorf("unit %s owner = %d, want %d", ref, e.Owner, *a.Owner)
 	}
-	if a.Group != nil && e.Group != *a.Group {
-		return fmt.Errorf("unit %s group = %d, want %d", ref, e.Group, *a.Group)
+	if g := p.registryGroupOrPlaced(e); a.Group != nil && g != *a.Group {
+		return fmt.Errorf("unit %s group = %d, want %d", ref, g, *a.Group)
 	}
 	if a.ManaAtLeast != nil && e.Mana < *a.ManaAtLeast {
 		return fmt.Errorf("unit %s mana = %d, want at least %d", ref, e.Mana, *a.ManaAtLeast)
@@ -1229,7 +1242,7 @@ func (p *PlayWorld) worldState(start map[sim.EntityID]int32, units bool) Headles
 	for _, e := range p.World.Entities() {
 		state.Units = append(state.Units, HeadlessUnitState{
 			Ref: names[e.ID], Entity: uint32(e.ID), X: e.X, Y: e.Y,
-			HP: e.HP, MaxHP: e.MaxHP, Owner: e.Owner, Group: e.Group,
+			HP: e.HP, MaxHP: e.MaxHP, Owner: e.Owner, Group: p.registryGroupOrPlaced(e),
 		})
 	}
 	return state

@@ -699,3 +699,26 @@ func TestPickItemWalksToTheSackAndTakesItUnderfoot(t *testing.T) {
 		t.Fatalf("the sack stayed on the ground: %+v", w.Sacks())
 	}
 }
+
+func TestAGroupExpectationReadsTheRegistryGroupThatHoldsTheUnit(t *testing.T) {
+	play := scenarioWorld(t,
+		sim.Entity{ID: 0, X: 3, Y: 3, Owner: 1, Group: 14, HP: 20, MaxHP: 20},
+		sim.Entity{ID: 1, X: 5, Y: 5, Owner: 1, Group: 6, HP: 20, MaxHP: 20})
+	check := func(group uint32) error {
+		a := HeadlessUnitAssertion{Group: &group}
+		return a.check(play, "p0")
+	}
+	if err := check(14); err != nil {
+		t.Fatalf("placed group without a registry: %v", err)
+	}
+	g := sim.SavedGroup{ID: 71, Selector: 17, Members: []sim.SavedGroupMember{{Archive: 1, Entity: 0, Bound: true}}}
+	if err := play.World.ImportSavedGroups([]sim.SavedGroup{g}, []sim.SavedActorOrder{{Entity: 0}, {Entity: 1}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := check(17); err != nil {
+		t.Fatalf("registry group: %v", err)
+	}
+	if err := check(14); err == nil || !strings.Contains(err.Error(), "group = 17, want 14") {
+		t.Fatalf("placed group still answered for a held unit: %v", err)
+	}
+}
