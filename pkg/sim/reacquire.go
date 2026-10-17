@@ -1,29 +1,11 @@
 package sim
 
 // reacquireWithinReach is the order machine's answer to a raised route-failure
-// flag for an actor that does not patrol: the pending order is cleared and the
-// victim is chosen from actors admitted by the running-nearest whole-cell gate,
-// then diplomacy, health and circular-byte turn scoring (AI-360/361). The
-// pick becomes the actor's attack order, which nothing in the pursuit arms ends
-// (AI-PURSUE-040, AI-BREAK-041); the next dispatch of the actor's state arm is
-// what rewrites it. With none in reach the order goes idle and no victim is
-// written (AI-328).
-//
-// A human participant's mage of reach below two takes no pick: the clause both
-// this routine and the engage routine carry writes the order idle after the
-// target is chosen (AI-GUARD-007).
+// flag for an actor that does not patrol, the flee row of refusedAnswers. The
+// pick becomes the attack order, which nothing in the pursuit arms ends
+// (AI-PURSUE-040, AI-BREAK-041).
 func (w *World) reacquireWithinReach(i int) {
-	victim := w.reacquisitionVictim(i)
-	e := &w.entities[i]
-	if victim < 0 || w.suppressedAcquirer(*e) {
-		w.clearOrder(i)
-		e.clearAttack()
-		return
-	}
-	w.orderAcquire(i, w.entities[victim].ID)
-	if e.ActorState == actorStateRetreat && e.HasAttackTarget {
-		e.Retreat.Progress, e.Retreat.Counter, e.Retreat.Complete = 1, 0, false
-	}
+	w.answerRefusedRoute(i, refusedFlee)
 }
 
 // reacquisitionVictim is the index of the hostile actor the reacquisition

@@ -52,7 +52,7 @@ func (w *World) dispatchRetreatPending(i int) {
 	e.TargetX, e.TargetY, e.HasTarget = x, y, true
 	w.answerRefusedFlee(i)
 	if e.HasAttackTarget {
-		e.Retreat.Progress, e.Retreat.Counter = 1, 0
+		e.Retreat.restartStrike()
 	}
 }
 
@@ -64,12 +64,7 @@ func (w *World) retreatFailureTail(i int) {
 	}
 	e.Retreat.Failure = false
 	e.Retreat.Pending = false
-	phase, countdown := e.AttackPhase, e.AttackCountdown
-	w.reacquireWithinReach(i)
-	if e.HasAttackTarget {
-		e.AttackPhase, e.AttackCountdown = phase, countdown
-		e.Retreat.Progress, e.Retreat.Counter, e.Retreat.Complete = 1, 0, false
-	}
+	w.answerRefusedRoute(i, refusedRetreatFailure)
 }
 
 func (w *World) stepRetreatExecutor(i int) bool {
@@ -111,7 +106,7 @@ func (w *World) stepRetreatExecutor(i int) bool {
 			e.clearActiveAttack()
 		}
 		if !e.Retreat.Pending && e.HasAttackTarget && e.AcquirePursuit {
-			e.Retreat.Progress, e.Retreat.Counter, e.Retreat.Complete = 1, 0, false
+			e.Retreat.restartStrike()
 		}
 	}
 	w.retreatFailureTail(i)

@@ -470,13 +470,7 @@ func (w *World) answerRefusedPursuit(i int) {
 		w.answerRefusedWalk(i)
 		return
 	}
-	e := &w.entities[i]
-	if victim := w.reacquisitionVictim(i); victim >= 0 && !w.suppressedAcquirer(*e) {
-		if w.orderAcquire(i, w.entities[victim].ID) {
-			return
-		}
-	}
-	e.PursuitIdle = true
+	w.answerRefusedRoute(i, refusedPursuit)
 }
 
 // answerRefusedWalk answers a refused walk with no victim by its walk state
@@ -499,9 +493,7 @@ func (w *World) answerRefusedWalk(i int) {
 		w.retreatFailureTail(i)
 		return
 	}
-	if victim := w.reacquisitionVictim(i); victim >= 0 && !w.suppressedAcquirer(*e) {
-		w.orderAcquire(i, w.entities[victim].ID)
-	}
+	w.answerRefusedRoute(i, refusedWalk)
 }
 
 // refusedWalkTakesPick reports whether the tail sends actor i's refused walk
