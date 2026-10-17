@@ -436,9 +436,9 @@ func (w *World) Sight(owner uint32) []byte {
 // fogStamp ORs one body's fog stamp into stamp. In the first game it is the
 // client stamp (TERR-FOG-266): the walk centres on the body's cell, and each
 // positive accumulator cell marks the 2x2 block (x,y)..(x+1,y+1) around a write
-// centre shifted by half the footprint side. The footprint side stands in for
-// the class value the write centre adds; a one-cell body's write centre is its
-// cell. The second game keeps one cell per positive accumulator cell. Only the
+// centre shifted by half the footprint side, which equals the class TileSize
+// the original adds on every shipped row (TERR-FOG-273); a one-cell body's write
+// centre is its cell. The second game keeps one cell per positive accumulator cell. Only the
 // fog reads this; the AI reader marches unchanged.
 func (w *World) fogStamp(stamp []byte, e *Entity) {
 	from := cellOf(e)
@@ -483,7 +483,7 @@ func (w *World) SightOf(owner uint32, ids []EntityID) []byte {
 // high byte is ScanRange: a source-derived actor's own word; else the scan
 // range with the low byte a loaded document supplied; else, for a Human, the
 // fraction its Mind and Reaction give; else the whole-cell range. The SAV
-// writer and the fog stamp both read it.
+// writer and the fog stamp both read it (TERR-FOG-275).
 func (e Entity) SightWord(human bool) uint16 {
 	switch {
 	case e.ActorLoad.Source.Class != 0:

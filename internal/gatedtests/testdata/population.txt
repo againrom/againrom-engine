@@ -1245,3 +1245,5 @@ pkg/game.TestReleaseMapEditorTriggerAreaCensus
 pkg/game.TestReleaseMapEditorSignatureCensus
 pkg/game.TestReleaseMapEditorTriggerFrames
 pkg/game.TestReleaseFogStampAfterColdLoad
+pkg/game.TestReleaseFogFootprintIsTheClassTileSize
+pkg/game.TestReleaseFogHeightPlaneIsTheParserGrid
