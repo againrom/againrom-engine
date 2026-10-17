@@ -42,10 +42,7 @@ func (v *Viewer) paintShroud(dst shroudTarget, ink *ebiten.Image) {
 func (v *Viewer) drawShroudTiles(dst triangleTarget, ink *ebiten.Image) {
 	op := &ebiten.DrawTrianglesOptions{Blend: ebiten.BlendCopy}
 	v.forEachDrawnTile(func(col, row int) {
-		verts := flatTileVertices(v.cam, col, row)
-		if v.Mode() == ModeDisplaced {
-			verts = tileVertices(v.cam, v.proj, col, row)
-		}
+		verts := v.cellSpace().vertices(v.cam, col, row)
 		for i, p := range [4]image.Point{{col, row}, {col + 1, row}, {col, row + 1}, {col + 1, row + 1}} {
 			verts[i].SrcX, verts[i].SrcY = 0.5, 0.5
 			verts[i].ColorR, verts[i].ColorG, verts[i].ColorB = 1, 1, 1

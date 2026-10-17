@@ -234,17 +234,12 @@ func (e *MapEditor) centerOn(cell image.Point) {
 	v.cam.Clamp()
 }
 
+// cellCenter is the world centre of cell, clamped into the map: the point
+// where the game draws a path leg on that cell.
 func (e *MapEditor) cellCenter(cell image.Point) (float64, float64) {
-	v := e.doc.Viewer
 	cell.X = max(0, min(cell.X, e.doc.Width-1))
 	cell.Y = max(0, min(cell.Y, e.doc.Height-1))
-	x, y := cell.X*32+16, cell.Y*32+16
-	if v.Mode() == ModeDisplaced {
-		left, top := v.proj.WorldCorner(cell.X, cell.Y)
-		right, bottom := v.proj.WorldCorner(cell.X+1, cell.Y+1)
-		x, y = (left+right)/2, (top+bottom)/2
-	}
-	return float64(x), float64(y)
+	return e.doc.Viewer.cellWorldCentre(cell)
 }
 
 var editorFilters = []string{"All", "Units", "Build", "Sacks", "Scenery", "Other", "Issues", "Triggers"}
@@ -553,10 +548,7 @@ func (e *MapEditor) markerLines() []editorLine {
 					if cx < 0 || cy < 0 || cx >= e.doc.Width || cy >= e.doc.Height {
 						continue
 					}
-					verts := flatTileVertices(v.cam, cx, cy)
-					if v.Mode() == ModeDisplaced {
-						verts = tileVertices(v.cam, v.proj, cx, cy)
-					}
+					verts := v.cellSpace().vertices(v.cam, cx, cy)
 					for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
 						a, b := verts[edge[0]], verts[edge[1]]
 						out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})

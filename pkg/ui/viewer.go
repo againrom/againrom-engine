@@ -4102,73 +4102,6 @@ func withScales(verts [4]ebiten.Vertex, sc [4]float32) [4]ebiten.Vertex {
 	return out
 }
 
-// tileVertices is tile (tx,ty)'s four screen-space corners, in the order
-// quadIndices assumes: TL, TR, BL, BR — mesh vertices (tx,ty), (tx+1,ty),
-// (tx,ty+1) and (tx+1,ty+1).
-//
-// It is pure and needs no graphics context: an ebiten.Vertex is a struct
-// literal, so the whole of the displaced geometry is reachable in a test and
-// only the DrawTriangles call itself needs a window.
-//
-//   - Dst is WorldToScreen of WorldCorner, submitted UNROUNDED; the only rounding
-//     is the float32 the vertex takes, which the overlay rects already accept.
-//     Every vertex comes from the shared projection, so there is no second height
-//     convention here to disagree with it.
-//   - Src spans 0..CellSize. Only the terrain draw offsets it by one pixel
-//     into a padded texture; shroud and editor paths use the raw geometry.
-//   - The colour is 1,1,1,1 and deliberately NOT the zero value: ebiten
-//     documents ColorA == 0 as fully transparent, which would draw the entire
-//     terrain invisible with every geometry test still passing.
-func tileVertices(cam *camera.Camera, proj *terrain.Projection, tx, ty int) [4]ebiten.Vertex {
-	var out [4]ebiten.Vertex
-	i := 0
-	for _, d := range [4][2]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
-		wx, wy := proj.WorldCorner(tx+d[0], ty+d[1])
-		sx, sy := cam.WorldToScreen(float64(wx), float64(wy))
-		out[i] = ebiten.Vertex{
-			DstX:   float32(sx),
-			DstY:   float32(sy),
-			SrcX:   float32(d[0] * terrain.CellSize),
-			SrcY:   float32(d[1] * terrain.CellSize),
-			ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1,
-		}
-		i++
-	}
-	return out
-}
-
-// flatTileVertices is flat mode's sibling to tileVertices: tile (tx,ty)'s
-// four screen-space corners over the UN-displaced cell lattice, in the same
-// TL, TR, BL, BR order quadIndices assumes — mesh vertices (tx,ty),
-// (tx+1,ty), (tx,ty+1) and (tx+1,ty+1), each corner simply *CellSize with no
-// altitude term, each through cam.WorldToScreen. Its TL corner is exactly
-// what flatTileScreen(tx,ty) already computes; the other three carry the
-// same transform to the far edges of the same cell, which flat mode never
-// needed before it drew a quad instead of a translated square.
-//
-// It is pure and needs no graphics context, mirroring tileVertices: the
-// source span is the sub-cell's own bounds and the colour is 1,1,1,1,
-// deliberately not the zero value, for the same reason tileVertices' own doc
-// gives.
-func flatTileVertices(cam *camera.Camera, tx, ty int) [4]ebiten.Vertex {
-	var out [4]ebiten.Vertex
-	i := 0
-	for _, d := range [4][2]int{{0, 0}, {1, 0}, {0, 1}, {1, 1}} {
-		wx := float64((tx + d[0]) * terrain.CellSize)
-		wy := float64((ty + d[1]) * terrain.CellSize)
-		sx, sy := cam.WorldToScreen(wx, wy)
-		out[i] = ebiten.Vertex{
-			DstX:   float32(sx),
-			DstY:   float32(sy),
-			SrcX:   float32(d[0] * terrain.CellSize),
-			SrcY:   float32(d[1] * terrain.CellSize),
-			ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1,
-		}
-		i++
-	}
-	return out
-}
-
 // cornerScales combines terrain and spell lighting. Fog is applied after all
 // world art by drawShroud, so terrain and protruding structures share one mask.
 func (v *Viewer) cornerScales(tx, ty int) [4]float32 {
@@ -4267,7 +4200,7 @@ func (v *Viewer) tileWord(col, row int) uint16 {
 // It carries no altitude term at all. Displaced mode places its corners through
 // tileVertices instead.
 func (v *Viewer) flatTileScreen(col, row int) (sx, sy float64) {
-	return v.cam.WorldToScreen(float64(col*terrain.CellSize), float64(row*terrain.CellSize))
+	return v.cam.WorldToScreen(cellSpace{}.corner(col, row))
 }
 
 // cellImage resolves a tile word at its world position to a GPU image,

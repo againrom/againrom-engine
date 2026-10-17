@@ -53,13 +53,7 @@ func (e *MapEditor) TriggerAreas(t int) []InspectionArea {
 
 // corner is world corner c of the cell grid on the map frame.
 func (e *MapEditor) corner(c image.Point) (float32, float32) {
-	v := e.doc.Viewer
-	wx, wy := float64(c.X*32), float64(c.Y*32)
-	if v.Mode() == ModeDisplaced {
-		x, y := v.proj.WorldCorner(c.X, c.Y)
-		wx, wy = float64(x), float64(y)
-	}
-	x, y := v.cam.WorldToScreen(wx, wy)
+	x, y := e.doc.Viewer.cellScreenCorner(c.X, c.Y)
 	return float32(x), float32(y)
 }
 

@@ -89,12 +89,10 @@ func (e *MapEditor) referenceWorldCorners(t InspectionTarget) ([4]image.Point, b
 		return [4]image.Point{}, false
 	}
 	points := [4]image.Point{box.Min, {X: box.Max.X, Y: box.Min.Y}, box.Max, {X: box.Min.X, Y: box.Max.Y}}
+	cells := e.doc.Viewer.cellSpace()
 	for j, p := range points {
-		x, y := p.X*32, p.Y*32
-		if e.doc.Viewer.Mode() == ModeDisplaced {
-			x, y = e.doc.Viewer.proj.WorldCorner(p.X, p.Y)
-		}
-		points[j] = image.Pt(x, y)
+		x, y := cells.corner(p.X, p.Y)
+		points[j] = image.Pt(int(x), int(y))
 	}
 	return points, true
 }

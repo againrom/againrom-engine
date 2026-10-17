@@ -377,10 +377,7 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 					continue
 				}
 				seen[cell] = true
-				verts := flatTileVertices(v.cam, cell.X, cell.Y)
-				if v.Mode() == ModeDisplaced {
-					verts = tileVertices(v.cam, v.proj, cell.X, cell.Y)
-				}
+				verts := v.cellSpace().vertices(v.cam, cell.X, cell.Y)
 				for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
 					a, b := verts[edge[0]], verts[edge[1]]
 					out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})

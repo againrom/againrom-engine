@@ -3,8 +3,6 @@ package ui
 import (
 	"image"
 	"image/color"
-
-	"againrom/pkg/render/terrain"
 )
 
 // The path overlay: the line a selected unit is about to walk, drawn from the
@@ -102,34 +100,7 @@ type pathSegment struct {
 // endpoints would blink out exactly when a unit walks past the edge of the view.
 // Clipping the drawn line is the drawer's job and it already does it.
 func (v *Viewer) pathCellCentre(cell image.Point) (float64, float64) {
-	wx, wy := v.cellWorldCentre(cell)
-	return v.cam.WorldToScreen(wx, wy)
-}
-
-// cellWorldCentre is the WORLD point at the middle of a cell as this viewer
-// draws it: the flat lattice's centre, plus displaced mode's own per-cell lift.
-//
-// It is the half of pathCellCentre that stops short of the camera, split out
-// because a second caller needs the point rather than the pixel — 0088 aims the
-// camera AT a cell, and a camera transform is exactly what it must not have
-// already applied.
-//
-// THE LIFT IS THE SAME EXPRESSION placeArm APPLIES, sign and origin alike:
-// -AnchorHeight(cell) - MinV, the shift WorldCorner already carries on terrain.
-// Keeping one expression is the point — a marker, a health bar, a path leg and
-// now a start view all sit on one cell, and a copy is what would let one of them
-// drift off the mark on relief while every flat test stayed green.
-//
-// The guard is v.Mode() == ModeDisplaced and not the weaker v.proj != nil, for
-// the reason placeArm's is: a projection can exist while SetFlat has
-// deliberately selected flat, and nothing may carry a height offset there.
-func (v *Viewer) cellWorldCentre(cell image.Point) (float64, float64) {
-	wx := cell.X*terrain.CellSize + terrain.CellSize/2
-	wy := cell.Y*terrain.CellSize + terrain.CellSize/2
-	if v.Mode() == ModeDisplaced {
-		wy += -v.proj.AnchorHeight(cell.X, cell.Y) - v.proj.MinV
-	}
-	return float64(wx), float64(wy)
+	return v.cellScreenCentre(cell)
 }
 
 // pathScreenSegments is every leg of every drawn path, in the order the units

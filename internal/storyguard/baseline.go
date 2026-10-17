@@ -2534,6 +2534,12 @@ package storyguard
 //
 // CommentBytes rises for the one read-book admission and transaction
 // (pkg/sim/usebook.go, pkg/game/originalspellbook.go), this note included.
+//
+// CommentBytes rises for the one cell projection (pkg/ui/cellprojection.go),
+// its archtest scan (internal/archtest/cellprojection*.go) and witnesses
+// (pkg/ui/cellprojection*_test.go), net of the replaced corner and centre
+// comments in pkg/ui, this note included. Three long comment groups and one
+// bare story number left with the replaced code.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2546,7 +2552,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1864,
 		"scclause":        505,
-		"barestorynumber": 1723,
+		"barestorynumber": 1722,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2555,7 +2561,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1718,
+		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9116205,
+	CommentBytes: 9119061,
 }

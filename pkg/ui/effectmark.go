@@ -44,8 +44,8 @@ type UnitMark struct {
 // spelled here as the actor's own cell anchor in world pixels — the very point
 // StaticAnchor puts a unit sprite's anchor at — plus the record's dx and dy,
 // minus the record's depth, minus the sheet's two centring halves. The relief
-// lift and the displaced origin are subtracted here rather than in placeArm
-// because the band's other entries take them the same way, through UnitPlace:
+// lift and the displaced origin arrive with cellWorldCentre rather than through
+// placeArm because the band's other entries take them the same way, through UnitPlace:
 // a mark and the actor under it must be lifted by one expression or they part
 // company on a slope.
 //
@@ -59,14 +59,10 @@ func (v *Viewer) entityMarkRects(e MapEntity) (back, front []staticScreenRect) {
 	if len(e.Marks) == 0 {
 		return nil, nil
 	}
-	lift, originY := 0, 0
-	if v.Mode() == ModeDisplaced {
-		lift = v.proj.AnchorHeight(e.Cell.X, e.Cell.Y)
-		originY = v.proj.MinV
-	}
 	shift := v.entityShift(e)
-	anchorX := e.Cell.X*terrain.CellSize + terrain.CellSize/2 + shift.X
-	anchorY := e.Cell.Y*terrain.CellSize + terrain.CellSize/2 + shift.Y - lift - originY
+	cx, cy := v.cellWorldCentre(e.Cell)
+	anchorX := int(cx) + shift.X
+	anchorY := int(cy) + shift.Y
 
 	for _, m := range e.Marks {
 		f := m.Sheet.Frame(m.Mark.Phase)

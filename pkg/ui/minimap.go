@@ -569,13 +569,10 @@ func (v *Viewer) minimapViewCells() image.Rectangle {
 	for row := r0; row < r1; row++ {
 		visible := false
 		for col := r.Col0; col < r.Col1; col++ {
-			_, y00 := v.proj.WorldCorner(col, row)
-			_, y10 := v.proj.WorldCorner(col+1, row)
-			_, y01 := v.proj.WorldCorner(col, row+1)
-			_, y11 := v.proj.WorldCorner(col+1, row+1)
-			cellMin := min(min(y00, y10), min(y01, y11))
-			cellMax := max(max(y00, y10), max(y01, y11))
-			if float64(cellMax) > top && float64(cellMin) < bottom {
+			q := cellSpace{proj: v.proj}.quad(col, row)
+			cellMin := min(min(q[0][1], q[1][1]), min(q[2][1], q[3][1]))
+			cellMax := max(max(q[0][1], q[1][1]), max(q[2][1], q[3][1]))
+			if cellMax > top && cellMin < bottom {
 				visible = true
 				break
 			}

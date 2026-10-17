@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"againrom/pkg/render/frame"
-	"againrom/pkg/render/terrain"
 )
 
 // This file is the scenario vocabulary's POINTER half (1005 round 2, seventh
@@ -684,7 +683,7 @@ func (a *App) HeadlessCellPoint(col, row int) (int, int, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	sx, sy := v.cam.WorldToScreen(float64(col*terrain.CellSize+terrain.CellSize/2), float64(row*terrain.CellSize+terrain.CellSize/2))
+	sx, sy := v.cellScreenCentre(image.Pt(col, row))
 	if c, r, inside := v.groundCellAt(sx, sy); !inside || c != col || r != row {
 		return 0, 0, fmt.Errorf("headless cell point: cell (%d,%d) is not under frame point (%.0f,%.0f)", col, row, sx, sy)
 	}

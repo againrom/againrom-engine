@@ -16,6 +16,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   behind a new Settings button, so the main window shows only the base game,
   mods and mod settings. Close or Esc returns to the main window; the values
   and the saved file are unchanged.
+- [ROM1] In the map editor on sloped ground, the cross of a selected unit or
+  structure, the cross on a linked footprint and the centre cross of a square
+  trigger area now sit where the game draws that cell's path line.
 - [BASE] Each release offers only the three game ZIPs, without separate
   .sha256 checksum files.
 - [ROM1] A guard walking back to its post or a unit closing on the ally it

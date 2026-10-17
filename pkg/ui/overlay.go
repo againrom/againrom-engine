@@ -206,18 +206,7 @@ const gridLineWidth = 1
 
 // TERR-SPR-039
 func (v *Viewer) gridWorldQuad(col, row int) [4][2]float64 {
-	if v.Mode() == ModeDisplaced {
-		var out [4][2]float64
-		for i, d := range [4][2]int{{0, 0}, {1, 0}, {1, 1}, {0, 1}} {
-			x, y := v.proj.WorldCorner(col+d[0], row+d[1])
-			out[i] = [2]float64{float64(x), float64(y)}
-		}
-		return out
-	}
-	cs := float64(terrain.CellSize)
-	x0, y0 := float64(col)*cs, float64(row)*cs
-	x1, y1 := x0+cs, y0+cs
-	return [4][2]float64{{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}}
+	return v.cellSpace().quad(col, row)
 }
 
 // gridScreenSegments places the cell lattice in the current view: the four
@@ -1334,21 +1323,6 @@ func (v *Viewer) overlayScreenRects(
 // would be a second set of values for a caller to forget to refresh.
 func (v *Viewer) placeArm(cell image.Point, arm image.Rectangle) (screenRect, bool) {
 	return v.placeLifted(v.cellLift(cell), arm)
-}
-
-// cellLift is the vertical world-pixel offset every glyph on one cell carries:
-// the displaced mode's own -AnchorHeight - MinV, and 0 in flat mode.
-//
-// It is split out because a glyph that spans TWO cells cannot take either
-// cell's lift whole. A spell figure runs from the caster's cell to the target's
-// and the two stand at different altitudes, so its stamps interpolate between
-// the two lifts this returns (spellBoltLift, spellbolt.go). Every glyph that
-// belongs to one cell still reaches it through placeArm and is unchanged.
-func (v *Viewer) cellLift(cell image.Point) int {
-	if v.Mode() != ModeDisplaced {
-		return 0
-	}
-	return -v.proj.AnchorHeight(cell.X, cell.Y) - v.proj.MinV
 }
 
 // placeLifted is placeArm over a lift the caller has already computed: the
