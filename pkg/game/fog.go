@@ -181,6 +181,21 @@ func (mw *mapWorld) stampMoved() {
 	mw.fog.fold(mw.world.SightOf(sim.SelfSlot, moved))
 }
 
+// stampAfterLoad is the party's first stamp after a LOAD (TERR-FOG-268): a
+// freshly created drawable stamps on its first presentation call, so before
+// the first visible frame the party's sight is ORed into the visible and the
+// explored layers on top of the restored Fog plane. Every first-game LOAD
+// takes it; the second game's map screen keeps the periodic refresh alone.
+func (mw *mapWorld) stampAfterLoad() {
+	if mw.fog == nil || mw.world == nil || mw.world.SecondGame() {
+		return
+	}
+	mw.fog.fold(mw.world.Sight(sim.SelfSlot))
+	if mw.view != nil {
+		mw.push()
+	}
+}
+
 // fold ORs a stamp into the visible and explored layers without clearing.
 func (p *fogPlane) fold(stamp []byte) {
 	n := len(p.visible)

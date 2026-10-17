@@ -297,6 +297,7 @@ func TestApplication1170NativeCheckpointPreservesApplication(t *testing.T) {
 	if !sameResave(t, f, cold) {
 		t.Fatal("second SAVE changed the ordinary document")
 	}
+	expectLoadedFog(t, &before)
 	a, b := reflect.ValueOf(before), reflect.ValueOf(after)
 	for i := 0; i < a.NumField(); i++ {
 		if !a.Field(i).CanInterface() || a.Type().Field(i).Name == "SavedDocument" {

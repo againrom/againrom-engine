@@ -1,6 +1,10 @@
 package data
 
-import "math"
+import (
+	"math"
+
+	"againrom/pkg/rules"
+)
 
 // SkillSlots is how many skill levels a hero carries: six, not five and not
 // ten. Slot 0 is the one the character sheet does not show; slots 1 to 5 are the
@@ -223,8 +227,8 @@ func (h Hero) Speed() int32 {
 // is taken over, and the term added after it. Each is a named floating-point
 // immediate in the routine that computes it.
 const (
-	sightDivisor int32 = 25
-	sightBase    int32 = 4
+	sightDivisor = rules.SightDivisor
+	sightBase    = rules.SightBase
 )
 
 // Sight is the whole-cell sight of Hero.Recompute with a zero Profile and an
@@ -295,5 +299,5 @@ func pow11(n int32) float64 { return math.Pow(statBase, float64(n)) }
 // SightSubCells is HERO-SIGHT-007's sight word, `((mind + reaction)/25 + 4)`
 // in 1/256 cell, whose high byte is the whole-cell radius Derived.Sight holds.
 func SightSubCells(mind, reaction int32) int32 {
-	return (mind+reaction)*256/sightDivisor + sightBase*256
+	return rules.SightSubCells(mind, reaction)
 }

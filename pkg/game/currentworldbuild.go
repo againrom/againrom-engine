@@ -728,13 +728,7 @@ func currentActorSource(e sim.Entity, source sim.SourceActor) sim.SourceActor {
 		binary.LittleEndian.PutUint16(source.Defence[6+2*i:], uint16(v))
 		source.Defence[17+i] = e.Resistance[i]
 	}
-	source.MoverSpeed, source.Sight = uint8(e.RotationSpeed), uint16(e.ScanRange)<<8
-	if source.Class == 2 {
-		source.Sight = data.SightWord(e.Mind, e.Reaction, int32(e.ScanRange))
-	}
-	if e.NativeBasis.ScalarIsKnown(sim.ScalarUA4) {
-		source.Sight = uint16(e.ScanRange)<<8 | uint16(e.NativeBasis.Scalars[sim.ScalarUA4]&0xff)
-	}
+	source.MoverSpeed, source.Sight = uint8(e.RotationSpeed), e.SightWord(source.Class == 2)
 	source.Reach, source.AttackCharge, source.AttackRelax, source.EquipmentRuntimePresent = e.Reach, uint8(e.AttackCharge), uint8(e.AttackRelax), true
 	binary.LittleEndian.PutUint16(source.Modifier[10:], uint16(e.HealthRegeneration))
 	binary.LittleEndian.PutUint16(source.Modifier[14:], uint16(e.ManaRegeneration))

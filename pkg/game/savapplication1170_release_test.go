@@ -396,8 +396,15 @@ func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.
 	if err != nil || !bytes.Equal(fog.Cells, wantFog) {
 		t.Fatal("ordinary SAVE kept historical Fog")
 	}
-	if bytes.Equal(first.Residue.FogExplored, wantFog) || slices.Equal(first.ApplicationState.View.Selection, wantSelection) {
-		t.Fatal("frozen-source loss controls did not distinguish current state")
+	// LOAD already stamps the party into exploration (TERR-FOG-268), so the
+	// Fog control is the loaded document's own plane, not the first snapshot.
+	sourceFile, err := sav.Open(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceFog, _, err := sourceFile.Fog()
+	if err != nil || bytes.Equal(sourceFog.Cells, wantFog) || slices.Equal(first.ApplicationState.View.Selection, wantSelection) {
+		t.Fatal("frozen-source loss controls did not distinguish current state", err)
 	}
 	clear(input)
 	clear(native)

@@ -23,6 +23,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   mission inventory.
 - [ROM1] A unit larger than one cell that flees or is ordered to Retreat
   chooses where to run from the same spot as in the original.
+- [ROM1] The party reveals the map as far around it as in the original, and
+  loading a save shows what the party sees at once.
 
 ## 0.124.0
 

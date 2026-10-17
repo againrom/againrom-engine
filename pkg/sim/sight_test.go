@@ -612,6 +612,9 @@ func TestTheCostTableIsBoundedAtShift7(t *testing.T) {
 	}
 }
 
+// The exported fog reader is the client stamp: each disc cell widened to its
+// 2x2 block (TERR-FOG-266), so the flat-ground disc of 9..145 cells lights
+// 16..172.
 func TestTheExportedSightMatchesTheFlatGroundDiscThroughAnEntity(t *testing.T) {
 	t.Parallel()
 
@@ -619,7 +622,7 @@ func TestTheExportedSightMatchesTheFlatGroundDiscThroughAnEntity(t *testing.T) {
 	for _, tc := range []struct {
 		r    uint8
 		want int
-	}{{1, 9}, {2, 21}, {3, 45}, {4, 69}, {5, 105}, {6, 145}} {
+	}{{1, 16}, {2, 32}, {3, 60}, {4, 88}, {5, 128}, {6, 172}} {
 		w, err := NewTerrainWorld(1, sightBounds, ModeCanonical, Terrain{}, []Entity{
 			{ID: 1, X: centre.x, Y: centre.y, Owner: 1, ScanRange: tc.r},
 		}, nil)

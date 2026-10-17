@@ -299,12 +299,7 @@ func RepairSkillLevel(level, xp int32) int32 {
 // ((mind+reaction)/25 + 4) carries, and the whole-cell byte is replaced by
 // cells, the value the derive reports after equipment and effects.
 func SightWord(mind, reaction int32, cells int32) uint16 {
-	raw := SightSubCells(mind, reaction)
-	raw += cells<<8 - raw&^0xff
-	if raw <= 0 || raw > 0xffff {
-		return uint16(max(0, min(cells, 255)) << 8)
-	}
-	return uint16(raw)
+	return rules.SightWord(mind, reaction, cells)
 }
 
 // Recompute is a native character's derived set: his four statistics, his

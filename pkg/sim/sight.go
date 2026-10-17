@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/rules"
+
 // THE SIGHT PREDICATE: what a unit can see, and why it is not a circle.
 //
 // The region a unit's sight admits is NOT a radius and NOT a shape. It is a
@@ -291,12 +293,18 @@ func fogInset(w *World, i int, c cell) bool {
 // half of that seam.
 func (w *World) marchSight(reader sightReader, stamp []byte, from cell, scanRange int32) {
 	var acc [sightArea]int32
-	acc[sightOffset(0, 0)] = sightSeed(scanRange<<8, reader.shift)
+	w.marchInto(reader, stamp, &acc, from, scanRange<<8)
+}
+
+// marchInto is marchSight's walk into a caller's accumulator from a sight in
+// 1/256 cell. A nil stamp marks no cell: the fog stamp reads the accumulator.
+func (w *World) marchInto(reader sightReader, stamp []byte, acc *[sightArea]int32, from cell, sight256 int32) {
+	acc[sightOffset(0, 0)] = sightSeed(sight256, reader.shift)
 
 	// The observer's own cell is marked before any ring and outside the inset
 	// test: the law's walk marks it directly, and a unit that could not see the
 	// cell it is standing in would not be found by its own group's sweep.
-	if i, ok := w.cellIndex(from.x, from.y); ok {
+	if i, ok := w.cellIndex(from.x, from.y); ok && stamp != nil {
 		stamp[i] = 1
 	}
 	observer := int32(int8(w.heightAt(from)))
@@ -304,7 +312,7 @@ func (w *World) marchSight(reader sightReader, stamp []byte, from cell, scanRang
 	for r := int32(1); r <= sightRings; r++ {
 		lit := false
 		for _, d := range sightRing(r) {
-			if w.marchCell(reader, stamp, &acc, from, d[0], d[1], observer) {
+			if w.marchCell(reader, stamp, acc, from, d[0], d[1], observer) {
 				lit = true
 			}
 		}
@@ -345,7 +353,9 @@ func (w *World) marchCell(reader sightReader, stamp []byte, acc *[sightArea]int3
 	if v <= 0 {
 		return false
 	}
-	stamp[i] = 1
+	if stamp != nil {
+		stamp[i] = 1
+	}
 	return true
 }
 
@@ -418,9 +428,40 @@ func (w *World) Sight(owner uint32) []byte {
 		if e.Owner != owner || e.Decay >= decayDarkStage || e.ScanRange == 0 {
 			continue
 		}
-		w.marchSight(fogSight, stamp, cellOf(&e), int32(e.ScanRange))
+		w.fogStamp(stamp, &e)
 	}
 	return stamp
+}
+
+// fogStamp ORs one body's fog stamp into stamp. In the first game it is the
+// client stamp (TERR-FOG-266): the walk centres on the body's cell, and each
+// positive accumulator cell marks the 2x2 block (x,y)..(x+1,y+1) around a write
+// centre shifted by half the footprint side. The footprint side stands in for
+// the class value the write centre adds; a one-cell body's write centre is its
+// cell. The second game keeps one cell per positive accumulator cell. Only the
+// fog reads this; the AI reader marches unchanged.
+func (w *World) fogStamp(stamp []byte, e *Entity) {
+	from := cellOf(e)
+	if w.SecondGame() {
+		w.marchSight(fogSight, stamp, from, int32(e.ScanRange))
+		return
+	}
+	var acc [sightArea]int32
+	w.marchInto(fogSight, nil, &acc, from, int32(e.SightWord(e.Humanoid)))
+	half := footprintSide(e.TokenSize) / 2
+	for dy := int32(-sightHalf); dy <= sightHalf; dy++ {
+		for dx := int32(-sightHalf); dx <= sightHalf; dx++ {
+			if acc[sightOffset(dx, dy)] <= 0 {
+				continue
+			}
+			x, y := from.x+half+dx, from.y+half+dy
+			for _, c := range [4]cell{{x, y}, {x + 1, y}, {x, y + 1}, {x + 1, y + 1}} {
+				if i, ok := w.cellIndex(c.x, c.y); ok {
+					stamp[i] = 1
+				}
+			}
+		}
+	}
 }
 
 // SightOf is Sight restricted to the named entities: the same population
@@ -433,9 +474,26 @@ func (w *World) SightOf(owner uint32, ids []EntityID) []byte {
 		if e.Owner != owner || e.Decay >= decayDarkStage || e.ScanRange == 0 || !containsEntityID(ids, e.ID) {
 			continue
 		}
-		w.marchSight(fogSight, stamp, cellOf(&e), int32(e.ScanRange))
+		w.fogStamp(stamp, &e)
 	}
 	return stamp
+}
+
+// SightWord is the body's sight word in 1/256 cell (HERO-SIGHT-007), whose
+// high byte is ScanRange: a source-derived actor's own word; else the scan
+// range with the low byte a loaded document supplied; else, for a Human, the
+// fraction its Mind and Reaction give; else the whole-cell range. The SAV
+// writer and the fog stamp both read it.
+func (e Entity) SightWord(human bool) uint16 {
+	switch {
+	case e.ActorLoad.Source.Class != 0:
+		return e.ActorLoad.Source.Sight
+	case e.NativeBasis.ScalarIsKnown(ScalarUA4):
+		return uint16(e.ScanRange)<<8 | uint16(e.NativeBasis.Scalars[ScalarUA4]&0xff)
+	case human:
+		return rules.SightWord(e.Mind, e.Reaction, int32(e.ScanRange))
+	}
+	return uint16(e.ScanRange) << 8
 }
 
 func containsEntityID(ids []EntityID, id EntityID) bool {

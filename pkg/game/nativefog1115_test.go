@@ -8,6 +8,11 @@ import (
 	"againrom/pkg/sim"
 )
 
+// An ordinary SAVE between two scheduled samples carries exploration only
+// (SAV-FOG-061). LOAD re-derives the visible layer as the party's stamp at the
+// loaded state and ORs it into exploration (TERR-FOG-268), so the cells the
+// sample still showed behind a moved body are not visible after LOAD; the two
+// continuations agree again from the next scheduled sample.
 func TestNativeFog1115CheckpointBetweenSamples(t *testing.T) {
 	f, app, _ := sackObjectsOpen1115(t, nil)
 	opening := append([]byte(nil), f.live.fog.visible...)
@@ -23,6 +28,7 @@ func TestNativeFog1115CheckpointBetweenSamples(t *testing.T) {
 	}
 	visible := append([]byte(nil), f.live.fog.visible...)
 	explored := append([]byte(nil), f.live.fog.explored...)
+	stamp := f.live.world.Sight(sim.SelfSlot)
 	newSample := newFogPlane(f.live.fog.cols, f.live.fog.rows)
 	newSample.refresh(f.live.world, sim.SelfSlot)
 	if bytes.Equal(newSample.visible, visible) {
@@ -55,18 +61,38 @@ func TestNativeFog1115CheckpointBetweenSamples(t *testing.T) {
 		t.Fatal("current SAV checkpoint", err)
 	}
 	itemMutationSame1115(t, before, after)
-	if !bytes.Equal(visible, cold.live.fog.visible) || !bytes.Equal(explored, cold.live.fog.explored) {
-		t.Fatal("native LOAD revealed constructor-only terrain")
+	wantExplored := append([]byte(nil), explored...)
+	stale := 0
+	for i := range visible {
+		lit := i < len(stamp) && stamp[i] != 0
+		if lit {
+			wantExplored[i] = 1
+		}
+		if visible[i] != 0 && !lit {
+			stale++
+		}
+		if (cold.live.fog.visible[i] != 0) != lit {
+			t.Fatalf("cell %d: visible after LOAD is %d, the party's stamp %t", i, cold.live.fog.visible[i], lit)
+		}
+	}
+	if !bytes.Equal(wantExplored, cold.live.fog.explored) {
+		t.Fatal("LOAD exploration is not the saved plane ORed with the party's stamp")
+	}
+	if stale == 0 {
+		t.Fatal("the saved sample showed no cell outside the party's stamp; the fixture does not discriminate")
 	}
 	refreshes := 0
 	for range 64 {
 		f.live.tick()
 		cold.live.tick()
-		if f.live.world.Hash() != cold.live.world.Hash() || !bytes.Equal(f.live.fog.visible, cold.live.fog.visible) || !bytes.Equal(f.live.fog.explored, cold.live.fog.explored) || !bytes.Equal(f.live.fog.project(), cold.live.fog.project()) {
-			t.Fatal("native fog or simulation continuation differs", f.live.world.Tick())
+		if f.live.world.Hash() != cold.live.world.Hash() || !bytes.Equal(f.live.fog.explored, cold.live.fog.explored) {
+			t.Fatal("exploration or simulation continuation differs", f.live.world.Tick())
 		}
 		if f.live.world.Tick()%fogPeriod == 0 {
 			refreshes++
+		}
+		if refreshes != 0 && (!bytes.Equal(f.live.fog.visible, cold.live.fog.visible) || !bytes.Equal(f.live.fog.project(), cold.live.fog.project())) {
+			t.Fatal("visible continuation differs after a scheduled sample", f.live.world.Tick())
 		}
 	}
 	if refreshes != 2 {

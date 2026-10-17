@@ -116,6 +116,10 @@ func TestSavedCurrentOrder1115ScriptToDocumentAndNativeContinuation(t *testing.T
 					break
 				}
 			}
+			// The steps bypassed the map screen's stamps. One refresh lights
+			// what the party now sees, as the next period would, so a LOAD's
+			// own stamp adds no explored cell to the resave.
+			front.live.fog.refresh(front.live.world, sim.SelfSlot)
 			beforeSave := front.live.world.Hash()
 			current = groupDocumentSnapshot(t, front)
 			if current.SavedDocument.GroupBindings.Unavailable != "" {

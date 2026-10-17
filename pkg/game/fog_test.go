@@ -96,8 +96,9 @@ func TestOneRefreshLightsSomeCellsAndLeavesOthersUnseen(t *testing.T) {
 	if unseen == 0 {
 		t.Error("one refresh lit the whole plane, leaving nothing unseen — this fixture's bounds are meant to leave most of the map dark")
 	}
-	if got, want := visible, 105; got != want {
-		t.Errorf("a range-5 entity on flat ground lights %d cell(s) through fogPlane.refresh, want %d (AC-2's own count)", got, want)
+	// The 105-cell disc, each cell widened to its 2x2 block (TERR-FOG-266).
+	if got, want := visible, 128; got != want {
+		t.Errorf("a range-5 entity on flat ground lights %d cell(s) through fogPlane.refresh, want %d", got, want)
 	}
 }
 

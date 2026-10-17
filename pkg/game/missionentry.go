@@ -414,6 +414,7 @@ func settleMission(r missionRequest, mw *mapWorld, v *ui.Viewer, ms *Mission, fo
 			return err
 		}
 		mw.seedRestoredRuns()
+		mw.stampAfterLoad()
 	}
 	// A snapshot with no application record carries the camera on its own,
 	// and so does one whose record is the local-only game-option form, whose

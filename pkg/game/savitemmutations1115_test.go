@@ -102,6 +102,32 @@ func itemMutationOpen(t *testing.T, defensive int32, shared bool) (*FrontEnd, *u
 	return f, app
 }
 
+// expectLoadedFog is what a first-game LOAD makes of a saved snapshot's fog.
+// Exploration crosses SAV (SAV-FOG-061); the visible layer is the party's
+// stamp at the loaded state (TERR-FOG-268), ORed into exploration, rather than
+// the sample taken before the SAVE. The second game restores both planes.
+func expectLoadedFog(t *testing.T, s *Snapshot) {
+	t.Helper()
+	if s.Residue.FogVisible == nil {
+		return
+	}
+	var world sim.World
+	if err := world.UnmarshalBinary(s.World); err != nil {
+		t.Fatal(err)
+	}
+	if world.SecondGame() {
+		return
+	}
+	stamp := world.Sight(sim.SelfSlot)
+	visible, explored := make([]byte, len(s.Residue.FogVisible)), slices.Clone(s.Residue.FogExplored)
+	for i := range visible {
+		if i < len(stamp) && stamp[i] != 0 {
+			visible[i], explored[i] = 1, 1
+		}
+	}
+	s.Residue.FogVisible, s.Residue.FogExplored = visible, explored
+}
+
 func itemMutationSame1115(t *testing.T, want, got Snapshot) {
 	t.Helper()
 	// The retained input Document is transport provenance, not the live item
@@ -112,6 +138,7 @@ func itemMutationSame1115(t *testing.T, want, got Snapshot) {
 	if err := world.UnmarshalBinary(want.World); err != nil {
 		t.Fatal(err)
 	}
+	expectLoadedFog(t, &want)
 	want.CurrentRoster = maps.Clone(want.CurrentRoster)
 	for _, e := range world.Entities() {
 		member, ok := want.CurrentRoster[e.ID]

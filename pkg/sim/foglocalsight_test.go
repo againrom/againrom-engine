@@ -15,7 +15,7 @@ func litCount(stamp []byte) int {
 // The fog reader lights bodies below decay stage 3, never a zero scan range.
 func TestLocalSightFollowsDecayStageAndScanRange(t *testing.T) {
 	t.Parallel()
-	const flatDisc = 145
+	const flatDisc = 172 // the range-6 disc's 145 cells, each widened to its 2x2 block
 	for _, tc := range []struct {
 		name string
 		e    Entity
