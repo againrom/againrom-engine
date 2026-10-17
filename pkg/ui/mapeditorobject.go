@@ -58,9 +58,6 @@ type objectEdit struct {
 	pickField int
 	// signature is the operation and group command types was set for.
 	signature [2]int64
-	// fontText reports that the choice labels are in the font's encoding
-	// already: the trigger editor's words and installed names.
-	fontText bool
 }
 
 // loadObject reads the selected record's fields when the record or the
@@ -208,11 +205,7 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		rows := make([]PickerRow, len(f.Choices))
 		sel := 0
 		for k, c := range f.Choices {
-			label := c.Label
-			if !o.fontText {
-				label = e.editorHostText(label)
-			}
-			rows[k] = PickerRow{Text: label, Choosable: true}
+			rows[k] = PickerRow{Text: c.Label, Choosable: true}
 			if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[i]) {
 				sel = k
 			}

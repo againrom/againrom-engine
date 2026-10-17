@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/render/debugtext"
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/textfit"
 )
 
 // modScreenState is the state of the registered mod screens: the screens, the
@@ -498,14 +499,7 @@ func (a *App) drawModMenuEntries(pix *image.RGBA) {
 
 // fitModText clips s to width pixels.
 func (a *App) fitModText(s string, width int) string {
-	if a.modMeasure(s) <= width {
-		return s
-	}
-	r := []rune(s)
-	for len(r) > 0 && a.modMeasure(string(r)+clipMark) > width {
-		r = r[:len(r)-1]
-	}
-	return string(r) + clipMark
+	return textfit.Spec{Measure: a.modMeasure, Unit: textfit.Rune, Side: textfit.End}.Fit(s, width)
 }
 
 // stepModMenu drives the main menu's mod entries. It reports whether the entries

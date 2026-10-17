@@ -28,15 +28,7 @@ func (a *App) GameMenuPanel() *image.RGBA {
 	if message := a.gameMenuAcknowledgement(); message != "" {
 		font := a.flow.menuFont
 		r := image.Rect(pickerLeft, pickerMessageY, pickerLeft+pickerCols*pickerAdvance, pickerMessageY+pickerLine)
-		if w, _ := font.Measure(message); w > r.Dx() {
-			for len(message) > 0 {
-				message = message[:len(message)-1]
-				if w, _ := font.Measure(message + clipMark); w <= r.Dx() {
-					message += clipMark
-					break
-				}
-			}
-		}
+		message = menuFit(font).Fit(message, r.Dx())
 		font.Draw(dst.SubImage(r).(*image.RGBA), message, r.Min.X, r.Min.Y, color.RGBA{255, 255, 255, 255})
 	}
 	return dst

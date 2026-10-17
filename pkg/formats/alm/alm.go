@@ -49,6 +49,7 @@ const (
 	objectExtSize    = 8    // type4 kind==0x21 extension
 	objectExtKind    = 0x21 // type4 kind (+0x08) value that appends an extension
 	groupRecordSize  = 76   // type5 record
+	groupNameLen     = 32   // type5 record: the player name at +0x0c
 	groupRelationOff = 0x2c // type5 record: the sixteen u16 diplomacy words
 	groupRelationLen = 16   // type5 record: how many of them there are
 	unitRecordSize   = 70   // type6 record
@@ -690,9 +691,9 @@ func decodeMetaPayload(p []byte) (angle float32, info Info, meta Meta, err error
 	angle = math.Float32frombits(binary.LittleEndian.Uint32(p[metaAngle : metaAngle+4]))
 	info.Width = int(binary.LittleEndian.Uint32(p[metaW : metaW+4]))
 	info.Height = int(binary.LittleEndian.Uint32(p[metaH : metaH+4]))
-	info.Name = decodeASCII(p[metaName : metaName+metaNameLen])
-	info.Description = decodeCP1251(p[metaDesc : metaDesc+metaDescLen])
-	info.ListDescription = decodeCP1251(bytes.ReplaceAll(p[metaDesc:metaDesc+metaBlockLen], []byte{0x0a}, []byte{'#'}))
+	info.Name = mapNameASCII.Decode(p[metaName : metaName+metaNameLen])
+	info.Description = DescriptionText.Decode(p[metaDesc : metaDesc+metaDescLen])
+	info.ListDescription = DescriptionText.Decode(bytes.ReplaceAll(p[metaDesc:metaDesc+metaBlockLen], []byte{0x0a}, []byte{'#'}))
 
 	slots := make([]byte, metaSlotsLen)
 	copy(slots, p[metaSlots:metaSlots+metaSlotsLen])
@@ -815,7 +816,7 @@ func (m *Map) decodeGroups(p []byte) error {
 			Color:       binary.LittleEndian.Uint32(rec[0:4]),
 			Participant: binary.LittleEndian.Uint32(rec[4:8]),
 			Scalar:      binary.LittleEndian.Uint32(rec[0x08:0x0c]),
-			Name:        decodeASCII(rec[0x0c:0x2c]),
+			Name:        string(cstr(rec[0x0c : 0x0c+groupNameLen])),
 		}
 		for k := 0; k < groupRelationLen; k++ {
 			off := groupRelationOff + 2*k

@@ -97,7 +97,7 @@ func TestReleaseMapEditorPlayerNamesKeepSAVBytes(t *testing.T) {
 			if actor := playerMissionActor(t, f); actor.Owner != 3 {
 				t.Fatal("authored owner", actor.Owner)
 			}
-			display := alm.DecodeText(tc.wire)
+			display := alm.PlayerNameText.Decode(tc.wire)
 			if got := f.live.cheatDisplayPlayerName(3); got != EncodeInstallText(display, f.live.view.TextSelector()) {
 				t.Fatalf("game display name = %x", []byte(got))
 			}

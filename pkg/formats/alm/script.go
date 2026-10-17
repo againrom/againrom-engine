@@ -39,9 +39,9 @@ const (
 // the same record and are told apart only by which array they were read from
 // (ALM-TRIG-045).
 //
-// Label is the map author's own text and is decoded as ASCII from a fixed
-// 64-byte buffer whose tail is uninitialised editor memory, so only the bytes
-// before the first NUL are read. It names nothing the engine dispatches on: the
+// Label is the map author's own text, decoded through ScriptLabelText from a
+// fixed 64-byte buffer whose tail is uninitialised editor memory, so only the
+// bytes before the first NUL are read. It names nothing the engine dispatches on: the
 // runtime dispatches on Opcode, and a node whose label disagrees with its opcode
 // is still built and still measures what its opcode says.
 //
@@ -197,7 +197,7 @@ func readScriptNodes(b []byte, off int, n int64, what string) ([]ScriptNode, int
 	for i := range out {
 		rec := b[off+i*scriptNodeSize : off+(i+1)*scriptNodeSize]
 		node := ScriptNode{
-			Label:  decodeASCII(rec[0x000:scriptLabelLen]),
+			Label:  ScriptLabelText.Decode(rec[0x000:scriptLabelLen]),
 			Opcode: binary.LittleEndian.Uint32(rec[0x040:0x044]),
 			ID:     binary.LittleEndian.Uint32(rec[0x044:0x048]),
 		}
@@ -222,7 +222,7 @@ func readScriptTriggers(b []byte, off int, n int64) ([]ScriptTrigger, int, error
 	for i := range out {
 		rec := b[off+i*scriptTriggerSize : off+(i+1)*scriptTriggerSize]
 		t := ScriptTrigger{
-			Name: decodeASCII(rec[0x00:scriptLabelLen]),
+			Name: ScriptLabelText.Decode(rec[0x00:scriptLabelLen]),
 			Once: binary.LittleEndian.Uint32(rec[0xb4:0xb8]),
 		}
 		for k := 0; k < scriptPairs; k++ {

@@ -12,6 +12,8 @@ import (
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -100,6 +102,7 @@ type InspectionField struct {
 	Choices    []InspectionChoice
 }
 
+// InspectionChoice is one value a field can take; Label is in the font's bytes.
 type InspectionChoice struct {
 	Value int64
 	Label string
@@ -499,15 +502,17 @@ func editorWrap(f *text.Font, s string, width int) []string {
 	return append(lines, line)
 }
 
+// editorFit is how the editor fits its text: in the font's bytes, one byte
+// one glyph, cut at the end.
+func editorFit(f *text.Font) textfit.Spec {
+	return textfit.Spec{Measure: f.Advance, Unit: textfit.Byte, Side: textfit.End}
+}
+
 func editorClip(f *text.Font, s string, width int) string {
-	if f == nil || f.Advance(s) <= width {
+	if f == nil {
 		return s
 	}
-	r := []byte(s)
-	for len(r) > 0 && f.Advance(string(r)+"...") > width {
-		r = r[:len(r)-1]
-	}
-	return string(r) + "..."
+	return editorFit(f).Fit(s, width)
 }
 
 func (e *MapEditor) drawMarkers(dst *ebiten.Image) {

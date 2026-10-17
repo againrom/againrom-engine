@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/render/textfit"
 	"againrom/pkg/sim"
 )
 
@@ -159,7 +160,7 @@ func TestARefusalTooLongForTheLineIsMarkedWhereItIsCut(t *testing.T) {
 	if len([]rune(drawn)) != pickerCols {
 		t.Fatalf("the drawn line is %d runes, want pickerCols = %d", len([]rune(drawn)), pickerCols)
 	}
-	if !strings.HasSuffix(drawn, clipMark) {
+	if !strings.HasSuffix(drawn, textfit.Mark) {
 		t.Errorf("the cut is not marked: %q", drawn)
 	}
 }

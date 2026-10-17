@@ -10,8 +10,10 @@ import (
 
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
 	"againrom/pkg/render/textsmooth"
 	"againrom/pkg/words"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -468,7 +470,7 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		for n, id := range e.rows() {
 			text := e.recordSummary(id)
 			if v, ok := e.scriptViewOf(id); ok && v.trigger != nil {
-				text = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1) + "  " + v.trigger.Name
+				text = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1) + "  " + e.editorHostText(v.trigger.Name)
 			}
 			rows = append(rows, PickerRow{Text: text, Choosable: true})
 			if id == e.selected {
@@ -738,7 +740,10 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 		paths := editorParagraphs(e.bodyFont(), e.editorHostText(e.prompt.path), text)
 		if len(paths) > 6 {
 			paths = paths[len(paths)-6:]
-			paths[0] = "..." + paths[0]
+			paths[0] = textfit.Mark + paths[0]
+			if f := e.bodyFont(); f != nil {
+				paths[0] = textfit.Spec{Measure: f.Advance, Unit: textfit.Byte, Side: textfit.Start}.Continued(paths[0][len(textfit.Mark):], text)
+			}
 		}
 		for i, p := range paths {
 			row := popupRow{Kind: popupEdit, Value: p}
@@ -758,7 +763,11 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 	if e.message != "" {
 		errors := editorWrap(e.bodyFont(), e.editorHostText(e.message), text)
 		if len(errors) > 6 {
-			errors = append(errors[:5], editorClip(e.bodyFont(), errors[5], text-20)+"...")
+			more := errors[5] + textfit.Mark
+			if f := e.bodyFont(); f != nil {
+				more = editorFit(f).Continued(errors[5], text)
+			}
+			errors = append(errors[:5], more)
 		}
 		s.Notes = append(s.Notes, errors...)
 		s.Notes = append(s.Notes, e.word("editor.message.kept"))

@@ -40,7 +40,7 @@ type Field struct {
 	Offset   int
 	Width    int // byte width; numeric fields are little-endian
 	Signed   bool
-	Text     bool
+	Text     *alm.TextField // a text field and its codec; nil: a number
 	Min, Max int64
 	Check    FieldCheck
 	Element  int
@@ -93,7 +93,7 @@ func (e *Editor) FieldValue(k Kind, i int, key string) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("mapedit: no %s field %q", sections[k].name, key)
 	}
-	if f.Text {
+	if f.Text != nil {
 		return 0, fmt.Errorf("mapedit: %s is a text field", f.Label)
 	}
 	if f.Offset >= len(rec) {
@@ -139,7 +139,7 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 		if !ok {
 			return fmt.Errorf("mapedit: no %s field %q", w.sec.name, set.Key)
 		}
-		if f.Text {
+		if f.Text != nil {
 			return fmt.Errorf("mapedit: %s is a text field", f.Label)
 		}
 		if seen[set.Key] {
@@ -176,20 +176,20 @@ func (e *Editor) SetFields(k Kind, i int, sets ...FieldSet) error {
 	return nil
 }
 
-// TextFieldValue reads a fixed-width Windows-1251 field, stopping at its first NUL.
+// TextFieldValue reads a text field through its codec, stopping at its first NUL.
 func (e *Editor) TextFieldValue(k Kind, i int, key string) (string, error) {
 	rec, err := e.Record(k, i)
 	if err != nil {
 		return "", err
 	}
 	f, ok := fieldByKey(sections[k].fields(e, rec), key)
-	if !ok || !f.Text {
+	if !ok || f.Text == nil {
 		return "", fmt.Errorf("mapedit: no %s text field %q", sections[k].name, key)
 	}
-	return alm.DecodeText(rec[f.Offset : f.Offset+f.Width]), nil
+	return f.Text.Decode(rec[f.Offset : f.Offset+f.Width]), nil
 }
 
-// SetTextField writes one fixed-width Windows-1251 field as one undo step.
+// SetTextField writes one text field through its codec as one undo step.
 func (e *Editor) SetTextField(k Kind, i int, key, value string) error {
 	w, err := e.walkIndex(k, "set a text field of", i)
 	if err != nil {
@@ -197,21 +197,16 @@ func (e *Editor) SetTextField(k Kind, i int, key, value string) error {
 	}
 	at, l := w.at(i)
 	f, ok := fieldByKey(w.sec.fields(e, e.data[at:at+l]), key)
-	if !ok || !f.Text {
+	if !ok || f.Text == nil {
 		return fmt.Errorf("mapedit: no %s text field %q", w.sec.name, key)
 	}
 	if !utf8.ValidString(value) || strings.IndexByte(value, 0) >= 0 {
 		return fmt.Errorf("mapedit: %s needs valid text without NUL", f.Label)
 	}
-	encoded, err := alm.EncodeText(value)
+	out, err := f.Text.Image(value)
 	if err != nil {
-		return fmt.Errorf("mapedit: %s must fit Windows-1251: %w", f.Label, err)
+		return fmt.Errorf("mapedit: %s: %w", f.Label, err)
 	}
-	if len(encoded) > f.Width {
-		return fmt.Errorf("mapedit: %s is %d bytes, maximum %d", f.Label, len(encoded), f.Width)
-	}
-	out := make([]byte, f.Width)
-	copy(out, encoded)
 	p := at + f.Offset
 	e.apply(edit{replace(p, e.data[p:p+f.Width], out)})
 	return nil

@@ -85,7 +85,7 @@ func (c InspectionScriptCatalog) signature(condition bool, opcode, command uint3
 type InspectionScriptNode struct {
 	Record        int // its document record
 	ID, Opcode    uint32
-	Label         string
+	Label         string // UTF-8, the text its name field edits
 	Types, Values [10]uint32
 }
 
@@ -93,7 +93,7 @@ type InspectionScriptNode struct {
 // actions and once flag.
 type InspectionTrigger struct {
 	Record           int
-	Name             string
+	Name             string // UTF-8, the text its name field edits
 	Left, Right, Cmp [3]uint32
 	Acts             [4]uint32
 	Once             uint32

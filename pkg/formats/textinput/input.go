@@ -1,8 +1,13 @@
-// Package textinput converts the one-rune input accepted by character
-// generation into the byte alphabet used by an install's character field.
+// Package textinput is the install text codec: it converts a typed rune or a
+// UTF-8 text into the byte alphabet an install's fonts draw and its character
+// field and save label store.
 package textinput
 
-import "golang.org/x/text/encoding/charmap"
+import (
+	"fmt"
+
+	"golang.org/x/text/encoding/charmap"
+)
 
 // EncodeRune encodes r as one Windows-1251 byte, the byte a typed character
 // stores in an install's character field, for every selector. Control bytes and
@@ -87,4 +92,41 @@ func DecodeByte(b byte, selector int) (rune, bool) {
 		return 0, false
 	}
 	return runes[0], true
+}
+
+// Unrepresentable is what EncodeText does with a rune EncodeRune refuses.
+type Unrepresentable int
+
+const (
+	// Refuse refuses the whole text: a save label, which is stored.
+	Refuse Unrepresentable = iota
+	// Drop leaves the rune out: install and engine words, which are drawn.
+	Drop
+	// Substitute draws '?' for the rune: the map editor's host text, so a
+	// path or message keeps the place of every character.
+	Substitute
+)
+
+// RefusedError names the first rune a Refuse encode could not store.
+type RefusedError struct{ Rune rune }
+
+func (e RefusedError) Error() string { return fmt.Sprintf("textinput: %U has no byte", e.Rune) }
+
+// EncodeText is the install text codec: s rune by rune through EncodeRune
+// under selector, a refused rune handled by policy. Only Refuse returns an
+// error, a RefusedError.
+func EncodeText(s string, selector int, policy Unrepresentable) (string, error) {
+	b := make([]byte, 0, len(s))
+	for _, r := range s {
+		c, ok := EncodeRune(r, selector)
+		switch {
+		case ok:
+			b = append(b, c)
+		case policy == Refuse:
+			return "", RefusedError{r}
+		case policy == Substitute:
+			b = append(b, '?')
+		}
+	}
+	return string(b), nil
 }

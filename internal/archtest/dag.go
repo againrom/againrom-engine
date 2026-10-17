@@ -111,6 +111,8 @@ var allow = map[string][]string{
 	// outgoing edge: it knows nothing about a font file, a UI widget or a
 	// window, only the pixels a Draw call already placed.
 	"pkg/render/textsmooth": {"pkg/render/text"},
+	// The one text fit: a pure function over a caller's measure.
+	"pkg/render/textfit": {},
 	// The final-frame scaler leaf holds the Catmull-Rom kernel, its Kage
 	// source and a reference resampler as plain data plus arithmetic.
 	"pkg/render/catmullrom": {},
@@ -401,7 +403,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports nothing of this tree.
 	"pkg/launch": {},

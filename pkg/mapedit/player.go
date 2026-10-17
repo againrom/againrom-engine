@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"againrom/pkg/formats/alm"
 )
 
 const (
@@ -17,7 +19,7 @@ const (
 )
 
 var playerBaseFields = []Field{
-	{Key: "name", Label: "Name", Offset: playerName, Width: playerNameSize, Text: true},
+	{Key: "name", Label: "Name", Offset: playerName, Width: playerNameSize, Text: &alm.PlayerNameText},
 	{Key: "colour", Label: "Colour slot", Offset: 0, Width: 4, Min: 0, Max: 15},
 	{Key: "control", Label: "Control (0 human, 1 computer)", Offset: 4, Width: 4, Min: 0, Max: 1},
 }
@@ -60,7 +62,7 @@ func validatePlayerPlacement(_ *Editor, w walk, rec []byte) error {
 		return fmt.Errorf("mapedit: the roster already has %d players; maximum %d", w.n(), playerLimit)
 	}
 	for _, f := range playerBaseFields {
-		if !f.Text {
+		if f.Text == nil {
 			if v := f.decode(rec[f.Offset:]); v < f.Min || v > f.Max {
 				return fmt.Errorf("mapedit: %s %d is outside %d..%d", f.Label, v, f.Min, f.Max)
 			}

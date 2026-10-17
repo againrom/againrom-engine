@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/textfit"
 )
 
 const (
@@ -72,14 +73,7 @@ func (a *App) saveTextWidth(value string) int {
 }
 
 func (a *App) saveTextFit(value string, width int) string {
-	if a.saveTextWidth(value) <= width {
-		return value
-	}
-	runes := []rune(value)
-	for len(runes) > 0 && a.saveTextWidth(string(runes)+"...") > width {
-		runes = runes[:len(runes)-1]
-	}
-	return string(runes) + "..."
+	return textfit.Spec{Measure: a.saveTextWidth, Unit: textfit.Rune, Side: textfit.End}.Fit(value, width)
 }
 
 // Hard wrapping preserves every character of an exact target path, including

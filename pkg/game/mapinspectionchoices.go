@@ -19,7 +19,7 @@ func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) [
 		}
 		var out []ui.InspectionChoice
 		for i, p := range m.Groups {
-			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("%d: %s", i+1, s.inspector.inspectionUTF8(alm.DecodeText([]byte(p.Name))))})
+			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("%d: %s", i+1, s.inspector.inspectionUTF8(alm.PlayerNameText.Decode([]byte(p.Name))))})
 		}
 		return out
 	}

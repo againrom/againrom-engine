@@ -208,9 +208,9 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		}
 	}
 	for _, f := range fields {
-		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text}
+		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil}
 		row.Choices = s.RecordChoices(kind, index, f.Key)
-		if f.Text {
+		if f.Text != nil {
 			row.TextValue, err = s.model.TextFieldValue(k, index, f.Key)
 		} else {
 			row.Value, err = s.model.FieldValue(k, index, f.Key)
@@ -219,9 +219,9 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 			return nil
 		}
 		if scriptView != nil {
-			row.Choices = scriptFieldChoices(kind, f.Key, script)
+			row.Choices = scriptFieldChoices(kind, f.Key, script, s.inspector.inspectionUTF8)
 			if strings.HasPrefix(f.Key, "value") {
-				row.Choices = scriptValueChoices(scriptView, k, index, f.Key)
+				row.Choices = scriptValueChoices(scriptView, k, index, f.Key, s.inspector.inspectionUTF8)
 			}
 		}
 		out = append(out, row)

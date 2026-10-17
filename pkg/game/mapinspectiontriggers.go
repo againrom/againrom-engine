@@ -15,15 +15,19 @@ func inspectionOperation(kind string, opcode uint32) string {
 }
 
 type inspectionScript struct {
-	doc *ui.InspectionDocument
-	m   *alm.Map
+	doc  *ui.InspectionDocument
+	m    *alm.Map
+	text func(string) string // UTF-8 to the font's bytes
 	// Slice-valued maps preserve duplicate identities rather than choosing one.
 	conditions, actions       map[uint32][]alm.ScriptNode
 	units, groups, structures map[uint32][]ui.InspectionTarget
 }
 
-func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script) {
-	s := inspectionScript{doc: d, m: m, conditions: make(map[uint32][]alm.ScriptNode), actions: make(map[uint32][]alm.ScriptNode), units: make(map[uint32][]ui.InspectionTarget), groups: make(map[uint32][]ui.InspectionTarget), structures: make(map[uint32][]ui.InspectionTarget)}
+// inspectScript adds the script's records and model to d. Records and lines
+// carry the font's bytes through text; the model's names stay UTF-8, the text
+// the name fields edit.
+func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text func(string) string) {
+	s := inspectionScript{doc: d, m: m, text: text, conditions: make(map[uint32][]alm.ScriptNode), actions: make(map[uint32][]alm.ScriptNode), units: make(map[uint32][]ui.InspectionTarget), groups: make(map[uint32][]ui.InspectionTarget), structures: make(map[uint32][]ui.InspectionTarget)}
 	for _, n := range script.Conditions {
 		s.conditions[n.ID] = append(s.conditions[n.ID], n)
 	}
@@ -42,14 +46,14 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script) {
 			s.structures[id] = append(s.structures[id], t)
 		}
 	}
-	model := scriptModel(d, m)
+	model := scriptModel(d, m, text)
 	for _, family := range []struct {
 		kind  string
 		nodes []alm.ScriptNode
 		out   *[]ui.InspectionScriptNode
 	}{{"Action", script.Actions, &model.Actions}, {"Condition", script.Conditions, &model.Conditions}} {
 		for i, n := range family.nodes {
-			r := ui.InspectionRecord{Kind: family.kind, Section: 7, Index: i, Label: n.Label}
+			r := ui.InspectionRecord{Kind: family.kind, Section: 7, Index: i, Label: text(n.Label)}
 			s.node(&r, family.kind, n)
 			*family.out = append(*family.out, ui.InspectionScriptNode{Record: len(d.Records), ID: n.ID, Opcode: n.Opcode, Label: n.Label, Types: n.Type, Values: n.Value})
 			d.Records = append(d.Records, r)
@@ -57,7 +61,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script) {
 	}
 	for i, t := range script.Triggers {
 		model.Triggers = append(model.Triggers, ui.InspectionTrigger{Record: len(d.Records), Name: t.Name, Left: t.Left, Right: t.Right, Cmp: t.Cmp, Acts: t.Acts, Once: t.Once})
-		r := ui.InspectionRecord{Kind: "Trigger", Section: 7, Index: i, Label: t.Name}
+		r := ui.InspectionRecord{Kind: "Trigger", Section: 7, Index: i, Label: text(t.Name)}
 		once := "repeat while conditions hold"
 		if t.Once != 0 {
 			once = "at most once per session"
@@ -155,7 +159,7 @@ func scriptCatalog() ui.InspectionScriptCatalog {
 // scriptModel is the trigger editor's view of what the map's parameters can
 // name: each unit id, group id, player slot and structure id the map holds,
 // with the record it stands for.
-func scriptModel(d *ui.InspectionDocument, m *alm.Map) *ui.InspectionScriptModel {
+func scriptModel(d *ui.InspectionDocument, m *alm.Map, text func(string) string) *ui.InspectionScriptModel {
 	model := &ui.InspectionScriptModel{Targets: map[uint32][]ui.InspectionScriptTarget{}}
 	units, structures, players := map[int]int{}, map[int]int{}, map[int]int{}
 	for i, r := range d.Records {
@@ -183,7 +187,7 @@ func scriptModel(d *ui.InspectionDocument, m *alm.Map) *ui.InspectionScriptModel
 		model.Targets[mapload.ScriptGroup] = append(model.Targets[mapload.ScriptGroup], ui.InspectionScriptTarget{Value: g, Record: -1, Members: groups[g]})
 	}
 	for i, g := range m.Groups {
-		t := ui.InspectionScriptTarget{Value: uint32(i + 1), Record: -1, Name: alm.DecodeText([]byte(g.Name))}
+		t := ui.InspectionScriptTarget{Value: uint32(i + 1), Record: -1, Name: text(alm.PlayerNameText.Decode([]byte(g.Name)))}
 		if r, ok := players[i]; ok {
 			t.Record, t.Name = r, d.Records[r].Label
 		}
@@ -237,7 +241,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind string, n alm.Scrip
 	role := strings.ToLower(kind)
 	op := inspectionOperation(kind, n.Opcode)
 	s.line(r, fmt.Sprintf("%s ID %d: %s", kind, n.ID, op), role)
-	s.line(r, fmt.Sprintf("Label: %s / opcode %d", n.Label, n.Opcode), "")
+	s.line(r, fmt.Sprintf("Label: %s / opcode %d", s.text(n.Label), n.Opcode), "")
 	if len(s.nodeMap(kind)[n.ID]) > 1 {
 		s.issue(r, fmt.Sprintf("Ambiguous %s ID %d", kind, n.ID))
 	}
@@ -308,7 +312,7 @@ func (s *inspectionScript) parameter(r *ui.InspectionRecord, role string, tag, i
 			s.issue(r, fmt.Sprintf("Unresolved player slot %d", id))
 			return
 		}
-		s.line(r, fmt.Sprintf("Player slot %d: %s (no map anchor)", id, alm.DecodeText([]byte(s.m.Groups[id-1].Name))), role)
+		s.line(r, fmt.Sprintf("Player slot %d: %s (no map anchor)", id, s.text(alm.PlayerNameText.Decode([]byte(s.m.Groups[id-1].Name)))), role)
 		return
 	case 4:
 		if id >= 10001 {

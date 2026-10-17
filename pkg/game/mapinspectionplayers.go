@@ -46,7 +46,7 @@ func inspectionPlayer(model *mapedit.Editor, index int, name string) ui.Inspecti
 		return r
 	}
 	for _, f := range fields {
-		if f.Text {
+		if f.Text != nil {
 			continue
 		}
 		v, err := model.FieldValue(mapedit.KindPlayer, index, f.Key)

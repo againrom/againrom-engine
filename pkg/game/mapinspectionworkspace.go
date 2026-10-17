@@ -174,7 +174,7 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		if err != nil {
 			return nil
 		}
-		out := []ui.InspectionField{workspaceText("name", "Map name (1251, 63 bytes)", alm.DecodeText([]byte(m.Name))), workspaceText("description", "Description (1251, 63 bytes)", m.Description)}
+		out := []ui.InspectionField{workspaceText("name", "Map name (1251, 63 bytes)", alm.MapNameText.Decode([]byte(m.Name))), workspaceText("description", "Description (1251, 63 bytes)", m.Description)}
 		for _, row := range []struct {
 			key   string
 			value uint32
@@ -334,7 +334,7 @@ func (s *mapInspectionEdits) setMapMetadata(key, value string) (*ui.InspectionDo
 		switch key {
 		case "name":
 			var encoded []byte
-			encoded, err = alm.EncodeText(value)
+			encoded, err = alm.MapNameText.Encode(value)
 			if err == nil {
 				err = m.SetEncodedName(encoded)
 			}

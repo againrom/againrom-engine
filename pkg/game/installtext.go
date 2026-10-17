@@ -178,22 +178,22 @@ func EncodeModText(s string, selector int) string {
 	return string(encodeInstallRunes(s, selector, true))
 }
 
-// encodeInstallRunes is the one per-rune encoder. With fallback set, a rune in
-// modTextFallback is replaced by its plain form first.
+// encodeInstallRunes is the install text codec under its Drop policy. With
+// fallback set, a rune in modTextFallback is replaced by its plain form first.
 func encodeInstallRunes(s string, selector int, fallback bool) []byte {
-	var b []byte
-	for _, r := range s {
-		if fallback {
-			if plain, ok := modTextFallback[r]; ok {
-				b = append(b, plain...)
-				continue
+	if fallback {
+		var plain strings.Builder
+		for _, r := range s {
+			if p, ok := modTextFallback[r]; ok {
+				plain.WriteString(p)
+			} else {
+				plain.WriteRune(r)
 			}
 		}
-		if c, ok := textinput.EncodeRune(r, selector); ok {
-			b = append(b, c)
-		}
+		s = plain.String()
 	}
-	return b
+	b, _ := textinput.EncodeText(s, selector, textinput.Drop)
+	return []byte(b)
 }
 
 // ModTextDropped reports the first rune of a mod's text file that the base
@@ -458,14 +458,7 @@ func (w *InstallWords) Words() ui.Words {
 	if w != nil {
 		book := words.For(w.Language)
 		out.Engine = book
-		encode := func(s string) string {
-			var b []byte
-			for _, r := range s {
-				c, _ := textinput.EncodeRune(r, w.Selector)
-				b = append(b, c)
-			}
-			return string(b)
-		}
+		encode := func(s string) string { return EncodeInstallText(s, w.Selector) }
 		out.ItemMagic = encode(book.Text("item.magic"))
 		out.DurationUnit = encode(book.Text("item.duration_unit"))
 		out.ItemSpellOf = encode(book.Text("item.spell_of"))

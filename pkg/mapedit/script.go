@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+
+	"againrom/pkg/formats/alm"
 )
 
 // The type-7 payload is three counted arrays: actions and conditions of 796
@@ -93,7 +95,7 @@ func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 // nodeFields offers identity, parameter kinds and typed values. Unedited
 // bytes, including unknown parameter values and slot names, stay carried.
 func nodeFields(rec []byte) []Field {
-	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: 64, Text: true},
+	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: nodeLabelLen, Text: &alm.ScriptLabelText},
 		{Key: "opcode", Label: "Operation", Offset: nodeOpcode, Width: 4, Min: 1, Max: math.MaxUint32},
 		{Key: "id", Label: "Node ID", Offset: nodeID, Width: 4, Min: 1, Max: scriptMaxID}}
 	for i := 0; i < nodeSlots; i++ {
@@ -127,7 +129,7 @@ func nodeFields(rec []byte) []Field {
 }
 
 func triggerFields() []Field {
-	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: 64, Text: true}}
+	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: nodeLabelLen, Text: &alm.ScriptLabelText}}
 	for i := 0; i < 3; i++ {
 		out = append(out, Field{Key: fmt.Sprintf("left%d", i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: triggerPairs + 8*i, Width: 4, Max: scriptMaxID},
 			Field{Key: fmt.Sprintf("right%d", i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: triggerPairs + 8*i + 4, Width: 4, Max: scriptMaxID},

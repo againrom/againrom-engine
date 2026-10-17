@@ -63,7 +63,7 @@ func TestPlayerFieldsAreTheRosterSectionRows(t *testing.T) {
 	}
 	want := []string{"name", "colour", "control", "relation0", "relation1", "relation2", "relation3"}
 	for i, f := range fields {
-		if f.Key != want[i] || (f.Text != (i == 0)) {
+		if f.Key != want[i] || ((f.Text != nil) != (i == 0)) {
 			t.Fatalf("field %d: %+v", i, f)
 		}
 	}

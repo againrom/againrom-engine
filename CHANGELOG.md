@@ -20,6 +20,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   attack an enemy in reach, as in the original.
 - [ROM1] A unit ordered to retreat whose way is blocked now attacks an enemy
   within reach instead of standing still, as in the original.
+- [ROM1] In the map editor a trigger or script node named in Cyrillic shows
+  its name in the record list, the trigger popup and the map's area labels,
+  keeps it after saving, and can be edited again. Drop-down lists show
+  Cyrillic player and item names instead of question marks.
 
 ## 0.125.0
 

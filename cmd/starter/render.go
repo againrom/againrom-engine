@@ -5,6 +5,8 @@ import (
 	"image/color"
 	"image/draw"
 
+	"againrom/pkg/render/textfit"
+
 	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
@@ -39,27 +41,13 @@ func textWidth(s string) int { return font.MeasureString(bitmapfont.Face, s).Cei
 
 // fitHead cuts s to maxW pixels, ending with "..." when it was cut.
 func fitHead(s string, maxW int) string {
-	if textWidth(s) <= maxW {
-		return s
-	}
-	r := []rune(s)
-	for len(r) > 0 && textWidth(string(r)+"...") > maxW {
-		r = r[:len(r)-1]
-	}
-	return string(r) + "..."
+	return textfit.Spec{Measure: textWidth, Unit: textfit.Rune, Side: textfit.End}.Fit(s, maxW)
 }
 
 // fitTail keeps the end of s within maxW pixels, starting with "..." when it
 // was cut: the end of a path is the part that tells folders apart.
 func fitTail(s string, maxW int) string {
-	if textWidth(s) <= maxW {
-		return s
-	}
-	r := []rune(s)
-	for len(r) > 0 && textWidth("..."+string(r)) > maxW {
-		r = r[1:]
-	}
-	return "..." + string(r)
+	return textfit.Spec{Measure: textWidth, Unit: textfit.Rune, Side: textfit.Start}.Fit(s, maxW)
 }
 
 func drawText(dst *image.RGBA, s string, x, y int, c color.RGBA) {

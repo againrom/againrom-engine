@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/render/textfit"
 )
 
 func modActionScreens() []ModScreen {
@@ -185,7 +186,7 @@ func TestLongModRowLabelIsClippedToItsRow(t *testing.T) {
 	a.flow.openGameMenu(ScreenTown)
 	rows := a.flow.menuRows()
 	got := rows[len(rows)-1].Label
-	if len(got) >= len(long) || got[len(got)-len(clipMark):] != clipMark {
+	if len(got) >= len(long) || got[len(got)-len(textfit.Mark):] != textfit.Mark {
 		t.Fatalf("label %q", got)
 	}
 }

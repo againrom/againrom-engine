@@ -85,7 +85,7 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 		if e.FromArchive {
 			key = "scenario/" + e.Source
 		}
-		e.Name = alm.DecodeText([]byte(e.Name))
+		e.Name = alm.MapNameText.Decode([]byte(e.Name))
 		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text())})
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
@@ -97,20 +97,15 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 	return e
 }
 
+// inspectionUTF8 is the editor's host text in the font's bytes: the install
+// text codec under its Substitute policy.
 func (x *MapInspector) inspectionUTF8(s string) string {
 	selector := 0
 	if x.font != nil {
 		selector = x.font.Selector
 	}
-	var b []byte
-	for _, r := range s {
-		c, ok := textinput.EncodeRune(r, selector)
-		if !ok {
-			c = '?'
-		}
-		b = append(b, c)
-	}
-	return string(b)
+	b, _ := textinput.EncodeText(s, selector, textinput.Substitute)
+	return b
 }
 
 // Open accepts a catalogue key or an explicit host ALM path. It returns a
@@ -160,7 +155,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 	v.SetAnimated(false)
 	v.SetTimeFlow(false)
 	v.ShowReadout(false)
-	d := &ui.InspectionDocument{Viewer: v, Source: source, Name: alm.DecodeText([]byte(m.Name)),
+	d := &ui.InspectionDocument{Viewer: v, Source: source, Name: alm.MapNameText.Decode([]byte(m.Name)),
 		Width: m.Width, Height: m.Height, SourceBytes: model.Bytes()}
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
@@ -290,11 +285,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 		add(r)
 	}
 	for i, g := range m.Groups {
-		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.DecodeText([]byte(g.Name)))))
+		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))))
 	}
 	script, scriptErr := m.Script()
 	if scriptErr == nil {
-		inspectScript(d, m, script)
+		inspectScript(d, m, script, x.inspectionUTF8)
 		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions", len(script.Triggers), len(script.Conditions), len(script.Actions))
 		if len(script.Triggers) == 0 {
 			d.ScriptNotice = "No authored triggers"
@@ -335,7 +330,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 			r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Unresolved enchantment grammar: %d authored records", m.TileMarkers.Count))
 		}
 		if id == 0 {
-			r.Details = append(r.Details, x.inspectionUTF8(alm.DecodeText([]byte(m.Name))), x.inspectionUTF8(m.Description), fmt.Sprintf("Metadata: %+v", m.Meta))
+			r.Details = append(r.Details, x.inspectionUTF8(alm.MapNameText.Decode([]byte(m.Name))), x.inspectionUTF8(m.Description), fmt.Sprintf("Metadata: %+v", m.Meta))
 		}
 		add(r)
 	}

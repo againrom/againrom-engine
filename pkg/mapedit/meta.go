@@ -88,7 +88,7 @@ func (e *Editor) SetEncodedName(value []byte) error {
 	if len(value) >= len(img) || bytes.IndexByte(value, 0) >= 0 {
 		return fmt.Errorf("mapedit: name needs at most %d bytes without NUL", len(img)-1)
 	}
-	back, err := alm.EncodeText(alm.DecodeText(value))
+	back, err := alm.MapNameText.Encode(alm.MapNameText.Decode(value))
 	if err != nil || !bytes.Equal(back, value) {
 		return fmt.Errorf("mapedit: name bytes do not round trip through Windows-1251")
 	}

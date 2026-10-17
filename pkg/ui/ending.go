@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
 )
 
 // EndingView supplies the campaign ending and the independent main-menu hall.
@@ -344,14 +345,7 @@ func (a *App) fitEndingText(value string, width int) string {
 	if a.endingFont() == nil {
 		return value
 	}
-	if a.endingTextWidth(value) <= width {
-		return value
-	}
-	r := []rune(value)
-	for len(r) > 0 && a.endingTextWidth(string(r)+"...") > width {
-		r = r[:len(r)-1]
-	}
-	return string(r) + "..."
+	return textfit.Spec{Measure: a.endingTextWidth, Unit: textfit.Rune, Side: textfit.End}.Fit(value, width)
 }
 
 func (a *App) endingFont() *text.Font {

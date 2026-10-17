@@ -316,7 +316,6 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 // loadScriptObject fills the edit state of a script record.
 func (e *MapEditor) loadScriptObject(v scriptView) {
 	o := &e.obj
-	o.fontText = true
 	if v.node != nil {
 		o.types = v.node.Types
 		o.signature = [2]int64{int64(v.node.Opcode), int64(groupCommand(v.condition, v.node.Opcode, v.node.Values))}
@@ -448,7 +447,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	}
 	if v.trigger != nil {
 		s.Title = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1)
-		add(popupRow{Kind: popupEdit, Label: o.fields[trigName].Label, Value: o.buf[trigName]}, trigName)
+		add(popupRow{Kind: popupEdit, Label: o.fields[trigName].Label, Value: e.editorHostText(o.buf[trigName])}, trigName)
 		once := e.word("editor.trigger.once.no")
 		if strings.TrimSpace(o.buf[trigOnce]) != "0" {
 			once = e.word("editor.trigger.once.yes")
@@ -510,6 +509,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		}
 		for i, f := range o.fields {
 			row := popupRow{Kind: popupEdit, Label: editorClip(e.bodyFont(), f.Label, 140), Value: o.buf[i]}
+			if f.Key == "name" {
+				row.Value = e.editorHostText(o.buf[i])
+			}
 			var acts []string
 			switch {
 			case strings.HasPrefix(f.Key, "cell"):

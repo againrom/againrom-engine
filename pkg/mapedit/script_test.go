@@ -98,7 +98,7 @@ func TestScriptNodesAreRowsOfTheSectionTable(t *testing.T) {
 		}
 		return mapedit.Field{}
 	}
-	if err != nil || find(fields, "value0").Check != mapedit.CheckScriptUnit || find(fields, "type9").Max != 9 || !find(fields, "name").Text {
+	if err != nil || find(fields, "value0").Check != mapedit.CheckScriptUnit || find(fields, "type9").Max != 9 || find(fields, "name").Text == nil {
 		t.Fatalf("fields of the unit-alive check: %+v, %v", fields, err)
 	}
 	if fields, _ = e.Fields(mapedit.KindAction, 0); find(fields, "value0").Max != 255 || find(fields, "value1").Max != 255 {

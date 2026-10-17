@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -258,18 +259,15 @@ func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapsh
 // encodeSaveLabel uses the same byte alphabet as installed display text.
 // Unrepresentable characters reject the label before output is prepared.
 func encodeSaveLabel(label string, selector int) (string, error) {
-	encoded := make([]byte, 0, len(label))
-	for _, r := range label {
-		b, ok := textinput.EncodeRune(r, selector)
-		if !ok {
-			// %U, not %q: the rune this reports is by definition one the
-			// alphabet the message itself is drawn in cannot show, so a
-			// player-legible message needs its ASCII code point instead.
-			return "", fmt.Errorf("SAV label cannot represent %U; choose a different name", r)
-		}
-		encoded = append(encoded, b)
+	encoded, err := textinput.EncodeText(label, selector, textinput.Refuse)
+	var refused textinput.RefusedError
+	if errors.As(err, &refused) {
+		// %U, not %q: the rune this reports is by definition one the
+		// alphabet the message itself is drawn in cannot show, so a
+		// player-legible message needs its ASCII code point instead.
+		return "", fmt.Errorf("SAV label cannot represent %U; choose a different name", refused.Rune)
 	}
-	return string(encoded), nil
+	return encoded, err
 }
 
 // playerCitySave retains the existing dialog seam and shares the current

@@ -160,7 +160,7 @@ func (e *MapEditor) areaLabels() []areaLabel {
 		}
 		done[a.Trigger] = true
 		t := e.doc.Script.Triggers[a.Trigger]
-		text := editorClip(f, fmt.Sprintf("T%d %s", a.Trigger+1, t.Name), 160)
+		text := editorClip(f, fmt.Sprintf("T%d %s", a.Trigger+1, e.editorHostText(t.Name)), 160)
 		w := 8
 		if f != nil {
 			w += f.Advance(text)

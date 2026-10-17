@@ -3,6 +3,9 @@ package ui
 import (
 	"fmt"
 	"strings"
+
+	"againrom/pkg/render/text"
+	"againrom/pkg/render/textfit"
 )
 
 // SaveGame is the legacy automatic-save seam. Applications configuring only
@@ -160,21 +163,20 @@ func (f *flow) withModRows(rows []gameMenuRow) []gameMenuRow {
 func (f *flow) fitMenuRowLabel(label string) string {
 	room := gameMenuPanelW - gameMenuRowLeft - gameMenuRowInsetR - gameMenuTextX
 	if f.menuFont == nil {
-		if max := room / pickerAdvance; len(label) > max {
-			return label[:max-len(clipMark)] + clipMark
-		}
-		return label
+		count := func(s string) int { return len(s) }
+		return textfit.Spec{Measure: count, Unit: textfit.Byte, Side: textfit.End}.Fit(label, room/pickerAdvance)
 	}
-	if w, _ := f.menuFont.Measure(label); w <= room {
-		return label
+	return menuFit(f.menuFont).Fit(label, room)
+}
+
+// menuFit is how the game menu fits text in the install's code page: one byte
+// one glyph, measured by the menu font, cut at the end.
+func menuFit(font *text.Font) textfit.Spec {
+	measure := func(s string) int {
+		w, _ := font.Measure(s)
+		return w
 	}
-	for len(label) > 0 {
-		label = label[:len(label)-1]
-		if w, _ := f.menuFont.Measure(label + clipMark); w <= room {
-			break
-		}
-	}
-	return label + clipMark
+	return textfit.Spec{Measure: measure, Unit: textfit.Byte, Side: textfit.End}
 }
 
 func (f *flow) menuDisplayText(s string) string {

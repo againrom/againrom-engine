@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/locale"
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/textfit"
 )
 
 // LOAD rows remain UTF-8 until drawing. Its installed font uses the same
@@ -141,12 +142,5 @@ func (a *App) fitLoadText(value string, width int) string {
 		w, _ := a.flow.menuFont.Measure(a.flow.menuDisplayText(s))
 		return w
 	}
-	if measure(value) <= width {
-		return value
-	}
-	runes := []rune(value)
-	for len(runes) > 0 && measure(string(runes)+clipMark) > width {
-		runes = runes[:len(runes)-1]
-	}
-	return string(runes) + clipMark
+	return textfit.Spec{Measure: measure, Unit: textfit.Rune, Side: textfit.End}.Fit(value, width)
 }

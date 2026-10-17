@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"unicode/utf8"
+
+	"againrom/pkg/render/textfit"
 )
 
 // Map-picker layout, in frame pixels of the 640x480 virtual frame.
@@ -291,21 +294,8 @@ func (p *Picker) RowText(i int) string {
 // mark and the text is cut silently, which is the old behaviour for a width
 // nothing readable fits in anyway.
 func clipRunes(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	r := []rune(s)
-	if len(r) <= n {
-		return s
-	}
-	if n <= len(clipMark) {
-		return string(r[:n])
-	}
-	return string(r[:n-len(clipMark)]) + clipMark
+	return textfit.Spec{Measure: utf8.RuneCountInString, Unit: textfit.Rune, Side: textfit.End}.Fit(s, n)
 }
-
-// clipMark is what clipRunes leaves where it cut.
-const clipMark = "..."
 
 func clampIndex(i, n int) int {
 	if i < 0 {

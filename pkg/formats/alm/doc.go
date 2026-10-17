@@ -26,12 +26,12 @@
 // it was read or manufactured: a caller writing a map back must never emit a
 // record whose Present is false, because those bytes were never in the input.
 //
-// Strings: the type-0 (and type5) name fields are ASCII; the type-0 description
-// is code-page text decoded as Windows-1251 (CP1251), which reproduces ASCII
-// unchanged. Both convert to UTF-8. EncodeName and EncodeDescription are the
-// write halves of those same two rules, each building a whole fixed-width
-// field image — the text's bytes in that field's codec, then NUL fill — or
-// rejecting the string, so that a value this package decoded from a field is
+// Strings: each authored text field has one TextField, which states its width,
+// its code page and its refusal of a rune the code page cannot hold, and is
+// both its reader and its writer. The type-0 name is ASCII to EncodeName; the
+// description, player names and script labels are Windows-1251 (CP1251), which
+// reproduces ASCII unchanged. A field image is the text's bytes, then NUL
+// fill, or a refusal, so that a value this package decoded from a field is
 // written back as that field's own bytes or not written at all.
 //
 // Round trip: beside the interpreted reader sits a raw-backed Document.

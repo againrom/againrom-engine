@@ -477,10 +477,5 @@ func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMembe
 // encodeEngineWord is an engine word in the install's code page, the form the
 // fonts draw.
 func encodeEngineWord(word string, selector int) string {
-	var b []byte
-	for _, r := range word {
-		c, _ := textinput.EncodeRune(r, selector)
-		b = append(b, c)
-	}
-	return string(b)
+	return EncodeInstallText(word, selector)
 }

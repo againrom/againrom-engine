@@ -63,7 +63,9 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	return id, err
 }
 
-func scriptFieldChoices(kind, key string, sc alm.Script) []ui.InspectionChoice {
+// scriptFieldChoices are a script field's choices, their labels in the font's
+// bytes through text.
+func scriptFieldChoices(kind, key string, sc alm.Script, text func(string) string) []ui.InspectionChoice {
 	var out []ui.InspectionChoice
 	switch {
 	case key == "opcode":
@@ -92,7 +94,7 @@ func scriptFieldChoices(kind, key string, sc alm.Script) []ui.InspectionChoice {
 		}
 		for _, n := range nodes {
 			if n.ID > 0 && counts[n.ID] == 1 && !(strings.HasPrefix(key, "action") && n.Opcode >= 0x10000) {
-				out = append(out, ui.InspectionChoice{Value: int64(n.ID), Label: fmt.Sprintf("%d: %s", n.ID, n.Label)})
+				out = append(out, ui.InspectionChoice{Value: int64(n.ID), Label: fmt.Sprintf("%d: %s", n.ID, text(n.Label))})
 			}
 		}
 	}
@@ -293,7 +295,7 @@ func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key strin
 	return nil
 }
 
-func scriptValueChoices(view *alm.Map, k mapedit.Kind, index int, key string) []ui.InspectionChoice {
+func scriptValueChoices(view *alm.Map, k mapedit.Kind, index int, key string, text func(string) string) []ui.InspectionChoice {
 	if k != mapedit.KindAction && k != mapedit.KindCondition {
 		return nil
 	}
@@ -327,7 +329,7 @@ func scriptValueChoices(view *alm.Map, k mapedit.Kind, index int, key string) []
 		}
 	case 3:
 		for i, p := range view.Groups {
-			add(uint32(i+1), fmt.Sprintf("Player %d: %s", i+1, alm.DecodeText([]byte(p.Name))))
+			add(uint32(i+1), fmt.Sprintf("Player %d: %s", i+1, text(alm.PlayerNameText.Decode([]byte(p.Name)))))
 		}
 	case 4:
 		counts := map[uint16]int{}

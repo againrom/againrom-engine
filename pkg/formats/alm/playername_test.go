@@ -24,7 +24,7 @@ func TestPlayerNameIsBoundedLegacyText(t *testing.T) {
 		if got := m.Groups[0].Name; got != string(encoded) {
 			t.Fatalf("name bytes = %x, want %x", got, encoded)
 		}
-		if got := DecodeText([]byte(m.Groups[0].Name)); got != name {
+		if got := PlayerNameText.Decode([]byte(m.Groups[0].Name)); got != name {
 			t.Fatalf("display name = %q, want %q", got, name)
 		}
 	}

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"againrom/pkg/render/textfit"
 )
 
 const pickerTestRows = 38
@@ -566,11 +568,11 @@ func TestPicker(t *testing.T) {
 			// longer row with the same first 104 runes drew identically and neither
 			// said it had been cut.
 			body := strings.TrimPrefix(got, wantPrefix)
-			if !strings.HasSuffix(body, clipMark) {
+			if !strings.HasSuffix(body, textfit.Mark) {
 				t.Fatalf("RowText(%d) body %q does not end in the clip mark %q",
-					i, body, clipMark)
+					i, body, textfit.Mark)
 			}
-			if !strings.HasPrefix(long, strings.TrimSuffix(body, clipMark)) {
+			if !strings.HasPrefix(long, strings.TrimSuffix(body, textfit.Mark)) {
 				t.Fatalf("RowText(%d) body %q is not a prefix of the row text",
 					i, body)
 			}
