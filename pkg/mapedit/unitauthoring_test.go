@@ -147,7 +147,7 @@ func TestSetUnitFieldRefusalWritesNothing(t *testing.T) {
 		i   int
 		key string
 		v   int64
-	}{{1, "owner", 0}, {1, "owner", 1 << 32}, {1, "class", 32768}, {1, "hp", -32769}, {1, "definition", -1}, {1, "group", -1}, {1, "group", 1 << 32}, {2, "hp", 1}} {
+	}{{1, "owner", 0}, {1, "owner", 1 << 32}, {1, "class", 32768}, {1, "hp", -32769}, {1, "definition", -1}, {1, "group", -1}, {1, "group", 1 << 32}, {1, "tier", -1}, {1, "tier", 1 << 16}, {2, "hp", 1}} {
 		if err := e.SetUnitField(c.i, c.key, c.v); err == nil {
 			t.Fatalf("unit %d %s=%d accepted", c.i, c.key, c.v)
 		}
@@ -165,7 +165,7 @@ func TestUnitFieldTableNamesFieldsInsideTheRecord(t *testing.T) {
 		}
 		seen[f.Key] = true
 	}
-	if len(seen) != 5 || !seen["group"] {
+	if len(seen) != 6 || !seen["group"] || !seen["tier"] {
 		t.Fatalf("table has %d fields", len(seen))
 	}
 }
@@ -232,5 +232,30 @@ func TestCloneUnitOnAScriptedMapWithNothingDeletedTakesTheNextID(t *testing.T) {
 		t.Fatal(err)
 	} else if m, _ := e.Map(); m.Units[i].UnitID != 4 {
 		t.Fatalf("clone id %d, want 4", m.Units[i].UnitID)
+	}
+}
+
+// The tier field is the record's u16 at +0x0a: a set writes those two bytes
+// alone, Undo restores the record and Redo the set.
+func TestSetUnitTierWritesTheSecondaryKeyWord(t *testing.T) {
+	b, p := authoringFixture(t)
+	e := newEditor(t, b)
+	if v, err := e.UnitFieldValue(0, "tier"); err != nil || v != 2 {
+		t.Fatalf("tier reads %d, %v; want 2", v, err)
+	}
+	if err := e.SetUnitField(0, "tier", 0x0403); err != nil {
+		t.Fatal(err)
+	}
+	want := append([]byte(nil), b...)
+	binary.LittleEndian.PutUint16(want[p+0x0a:], 0x0403)
+	edited := e.Bytes()
+	if !bytes.Equal(edited, want) {
+		t.Fatal("the tier set wrote other bytes than +0x0a")
+	}
+	if !e.Undo() || !bytes.Equal(e.Bytes(), b) {
+		t.Fatal("Undo does not restore the record")
+	}
+	if !e.Redo() || !bytes.Equal(e.Bytes(), edited) {
+		t.Fatal("Redo does not restore the set")
 	}
 }

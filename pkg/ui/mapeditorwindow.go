@@ -697,6 +697,10 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	}
 	lines = append(lines, r.Lines...)
 	for _, l := range lines {
+		if l.Role == "heading" {
+			add(popupRow{Kind: popupHeading, Label: l.Text}, 0)
+			continue
+		}
 		kind := popupText
 		if l.Reference > 0 {
 			kind = popupLink
@@ -877,6 +881,9 @@ func (e *MapEditor) statusText() string {
 	var parts []string
 	if e.hoverOK {
 		parts = append(parts, fmt.Sprintf("%d,%d", e.hoverCell.X, e.hoverCell.Y))
+		if h := e.hoverRecord(); h != "" {
+			parts = append(parts, h)
+		}
 	}
 	if e.doc != nil {
 		mark := ""
@@ -1148,6 +1155,20 @@ func (e *MapEditor) objectPress(p image.Point) {
 		}
 		e.objectButton(n)
 	}
+}
+
+// hoverRecord is the hover line of the first record on the hovered cell that
+// carries one.
+func (e *MapEditor) hoverRecord() string {
+	if e.doc == nil {
+		return ""
+	}
+	for _, r := range e.doc.Records {
+		if r.Spatial && r.Hover != "" && r.Cell == e.hoverCell {
+			return r.Hover
+		}
+	}
+	return ""
 }
 
 // hoverAt records the cell under the frame position p for the status strip.

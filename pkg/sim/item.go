@@ -114,6 +114,10 @@ func (i ItemInstance) Empty() bool {
 // stored value alone does not make an item enchanted.
 func (i ItemInstance) HasEnchantment() bool { return len(i.Effects) != 0 }
 
+// InnateWeapon reports a weapon the death drop leaves on the body: a source
+// weapon whose definition is not suitable to carry.
+func (i ItemInstance) InnateWeapon() bool { return i.innateWeapon() }
+
 func (i ItemInstance) innateWeapon() bool {
 	return i.SourceEquipment.Class == SourceWeapon && i.SourceEquipment.Definition.Present && i.SourceEquipment.Definition.Suitable == 0
 }

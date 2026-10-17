@@ -39,6 +39,9 @@ type InspectionRecord struct {
 	Lines          []InspectionLine
 	References     []InspectionReference
 	Player, Group  int // a unit's owner slot and group number; 0 is none
+	// Hover is the status strip's line while the pointer is on the record's
+	// cell, in the font's encoding; empty shows nothing.
+	Hover string
 }
 
 type InspectionDocument struct {

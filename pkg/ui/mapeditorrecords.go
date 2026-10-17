@@ -47,6 +47,8 @@ func (e *MapEditor) promptFields() []InspectionField {
 		return nil
 	case promptNewUnit:
 		return e.newRecordField("Unit", "class", "Class key for the new unit")
+	case promptNewUnitTier:
+		return e.newUnitTierField()
 	case promptNewSack:
 		return e.newRecordField("Sack", "item", "Item code for the new sack")
 	case promptNewStructure:
@@ -179,6 +181,8 @@ func (e *MapEditor) setField(text string) error {
 			}
 			newKind = kinds[v]
 			next, err = e.doc.Edits.(InspectionScriptAuthor).AddScript(newKind)
+		} else if e.prompt.kind == promptNewUnit && e.askUnitTier(v) {
+			return nil
 		} else if adds {
 			next, newKind, err = e.addRecord(e.prompt.cell, v)
 		} else {

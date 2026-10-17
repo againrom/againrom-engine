@@ -39,6 +39,7 @@ const (
 	promptRectangle
 	promptWorkspace
 	promptNewScript
+	promptNewUnitTier // the new unit's tier, when its class has several
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -49,11 +50,12 @@ type editorPrompt struct {
 	field int
 	path  string
 	scope string
+	class int64 // the new unit's class while its tier is asked
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }
 func (p editorPrompt) adds() bool {
-	return p.kind == promptNewSack || p.kind == promptNewUnit || p.kind == promptNewStructure || p.kind == promptNewScript
+	return p.kind == promptNewSack || p.kind == promptNewUnit || p.kind == promptNewUnitTier || p.kind == promptNewStructure || p.kind == promptNewScript
 }
 func (p editorPrompt) fields() bool {
 	return p.kind == promptField || p.kind == promptItemRecipe || p.kind == promptWorkspace || p.adds()

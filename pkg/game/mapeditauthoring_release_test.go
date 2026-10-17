@@ -38,8 +38,14 @@ func recordAddInput(t *testing.T, e *ui.MapEditor, key string, cell image.Point,
 	}
 	clickCell(e, cell)
 	e.TextInput(strconv.FormatInt(value, 10))
+	before := len(e.Document().Records)
 	if err := e.Key("enter"); err != nil {
 		t.Fatalf("%s: %v", key, err)
+	}
+	if key == "unit" && len(e.Document().Records) == before {
+		if err := e.Key("enter"); err != nil {
+			t.Fatalf("%s tier: %v", key, err)
+		}
 	}
 }
 

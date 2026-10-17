@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The map editor picks a creature's tier from a drop-down, also when
+  placing a new unit, and draws each creature in its tier's colours. A unit's
+  popup shows its characteristics as the game builds them at Normal
+  difficulty and what its corpse drops; hovering a unit names it with its
+  tier and health.
 - [ROM1] A mage of yours heals itself and its wounded companions while an
   enemy shoots it from outside the mage's own reach, as in the original; an
   enemy standing within its reach still keeps it fighting. The automatic

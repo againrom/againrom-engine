@@ -13,12 +13,15 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
 
-// MapInspector opens authored data only: it never constructs a World, mission,
-// scheduler, save store or audio device. All installed resources are read-only.
+// MapInspector opens authored data. It builds a World only to read what the
+// game spawns from a map (the unit sheet, the report's mission build) and never
+// steps one; it opens no scheduler, save store or audio device. All installed
+// resources are read-only.
 type MapInspector struct {
 	archives      *Archives
 	tiles         *terrain.Tileset
@@ -35,6 +38,7 @@ type MapInspector struct {
 	testPlay      *TestPlayHost // the game the test play key starts; nil: no test play
 	rules         []mapRule     // the map report's rule table; nil is mapRules
 	recordOptions map[string][]ui.InspectionChoice
+	tiers         *tierCache // tiersOf's answers; nil computes each time
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {
@@ -42,7 +46,7 @@ func NewMapInspector(root string) (*MapInspector, error) {
 	if err != nil {
 		return nil, err
 	}
-	x := &MapInspector{archives: a, tiles: terrain.LoadTileset(a.Containers)}
+	x := &MapInspector{archives: a, tiles: terrain.LoadTileset(a.Containers), tiers: &tierCache{}}
 	if x.statics, err = LoadStatics(a.Containers); err != nil {
 		return nil, err
 	}
@@ -167,6 +171,19 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 		d.Records = append(d.Records, r)
 	}
 	var entities []ui.MapEntity
+	// The tier each placement draws at, and the actor it spawns as, are the
+	// game's: entityTiers and the world built at Normal difficulty. The build
+	// takes a fresh decode, being free to change the map it is given.
+	tiers := entityTiers(m, x.table)
+	var sheets []unitSheet
+	sheetErr := fmt.Errorf("no installed tables")
+	if x.table != nil {
+		if built, err := model.Map(); err != nil {
+			sheetErr = err
+		} else {
+			sheets, sheetErr = unitSheets(built, x.table)
+		}
+	}
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))
 		r := ui.InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID)}
@@ -176,9 +193,10 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 		}
 		e := ui.MapEntity{ID: uint32(i), Cell: cell, Art: c, Owner: u.Owner}
 		e.DrawCategory = terrain.UnitCategoryFor(c, 0)
-		if c != nil && len(c.Frames) > 0 {
-			idx, mirror := terrain.SelectUnitFrame(c.Anim, len(c.Frames), false, 0, 0, 0)
-			e.Frame, e.Mirror = c.Frames[idx], mirror
+		tier := tiers[sim.EntityID(i)]
+		if frames := c.TierFrames(tier); len(frames) > 0 {
+			idx, mirror := terrain.SelectUnitFrame(c.Anim, len(frames), false, 0, 0, 0)
+			e.Frame, e.Mirror = frames[idx], mirror
 			shade := u.Owner
 			if u.Owner > 0 && uint64(u.Owner) <= uint64(len(m.Groups)) {
 				shade = m.Groups[u.Owner-1].Color
@@ -191,6 +209,10 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 			r.Label, r.Preview = c.Name, e.Frame
 			r.Size = image.Pt(max(1, c.TileSize), max(1, c.TileSize))
 		}
+		multi := len(x.tiersOf(u)) > 1
+		if multi {
+			r.Label += x.inspectionUTF8(fmt.Sprintf("  %s %d", x.word("editor.unit.tier"), u.ClassSubID))
+		}
 		if e.Frame == nil {
 			r.Warning = "Unresolved unit art; anchor shown"
 		}
@@ -202,6 +224,13 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 			fmt.Sprintf("Owner: %d  Unit: %d", u.Owner, u.UnitID), fmt.Sprintf("Group: %d  Flags: %#x", u.GroupID, u.Flags),
 			fmt.Sprintf("Definition: %d (%s row %d)", u.DefID, resolved.Arm, resolved.Index), fmt.Sprintf("HP raw: %d (-1 = default)", u.CurrentHP),
 			"Authored placement; idle pose, no simulation"}
+		if i < len(sheets) {
+			r.Lines = append(r.Lines, x.sheetLines(u, resolved, sheets[i])...)
+			v := sheets[i].Values
+			r.Hover = r.Label + x.inspectionUTF8("  "+fmt.Sprintf(x.word("editor.unit.hover"), v.HP, v.MaxHP))
+		} else {
+			r.Lines = append(r.Lines, ui.InspectionLine{Text: x.inspectionUTF8(fmt.Sprintf(x.word("editor.unit.unavailable"), sheetErr)), Role: "warning"})
+		}
 		entities = append(entities, e)
 		add(r)
 	}

@@ -102,30 +102,7 @@ const newUnitFraction = 128
 // (DIV-3209). The class is checked against the installed tables as a field
 // edit's is.
 func (s *mapInspectionEdits) AddUnit(cell image.Point, class int64) (*ui.InspectionDocument, error) {
-	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "unit cell"); err != nil {
-			return false, err
-		}
-		if class < math.MinInt16 || class > math.MaxInt16 {
-			return false, fmt.Errorf("class key %d is outside %d..%d", class, math.MinInt16, math.MaxInt16)
-		}
-		view, err := m.Map()
-		if err != nil {
-			return false, err
-		}
-		owner := uint32(min(2, max(1, len(view.Groups))))
-		secondary, err := s.inspector.secondaryKey(int16(class))
-		if err != nil {
-			return false, err
-		}
-		x, y := cellWords(cell, newUnitFraction, newUnitFraction)
-		rec, err := m.NewUnitRecord(x, y, int16(class), secondary, owner)
-		if err != nil {
-			return false, err
-		}
-		_, err = m.PlaceUnit(rec)
-		return err == nil, err
-	})
+	return s.AddUnitTier(cell, class, 0)
 }
 
 // secondaryKey is the secondary key of the first installed definition row that

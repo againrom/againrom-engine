@@ -23,6 +23,13 @@ func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) [
 		}
 		return out
 	}
+	if key == "tier" {
+		m, err := s.model.Map()
+		if err != nil || index < 0 || index >= len(m.AuthoredUnits) {
+			return nil
+		}
+		return tierChoices(s.inspector.tiersOf(m.AuthoredUnits[index]))
+	}
 	if key == "recipeitem" {
 		m, err := s.model.Map()
 		if err != nil {

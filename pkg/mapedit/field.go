@@ -28,6 +28,7 @@ const (
 	CheckScriptPlayer
 	CheckStructureIdentity
 	CheckItemRecipe
+	CheckUnitTier // a secondary key that selects a Units row of the unit's class (ALM-CLS-052)
 )
 
 // Field is one settable field of a record, at a record-relative
@@ -58,6 +59,7 @@ type (
 var unitFields = []Field{
 	{Key: "owner", Label: "Owner slot", Offset: 0x14, Width: 4, Min: 1, Max: math.MaxUint32, Check: CheckRosterSlot},
 	{Key: "class", Label: "Class", Offset: 0x08, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16, Check: CheckClassKey},
+	{Key: "tier", Label: "Tier", Offset: 0x0a, Width: 2, Min: 0, Max: math.MaxUint16, Check: CheckUnitTier},
 	{Key: "definition", Label: "Human definition (0 = class)", Offset: 0x10, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckDefinitionID},
 	{Key: "hp", Label: "Hit points (-1 = default)", Offset: 0x20, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
 	{Key: "group", Label: "Group id (0 = none)", Offset: 0x42, Width: 4, Min: 0, Max: math.MaxUint32},

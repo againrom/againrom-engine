@@ -297,7 +297,7 @@ func (e *MapEditor) keyEnter(string) error {
 		return nil
 	}
 	switch e.prompt.kind {
-	case promptField, promptNewSack, promptNewUnit, promptNewStructure, promptWorkspace, promptNewScript:
+	case promptField, promptNewSack, promptNewUnit, promptNewUnitTier, promptNewStructure, promptWorkspace, promptNewScript:
 		return e.setField(e.prompt.path)
 	case promptItemRecipe:
 		return e.setItemRecipe(e.prompt.path)

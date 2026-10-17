@@ -11,7 +11,7 @@ import (
 // These DTOs contain presentation data only. The game adapter resolves authored
 // identifiers; UI never imports an ALM decoder or compiles a script.
 type InspectionLine struct {
-	Text, Role string // condition, action, warning, or plain
+	Text, Role string // condition, action, warning, heading, or plain
 	Reference  int    // 1-based References index; 0 is not a link
 }
 
