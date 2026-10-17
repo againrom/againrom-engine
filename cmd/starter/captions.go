@@ -76,6 +76,8 @@ const (
 	cCheck        captionID = "check"
 	cSaveSettings captionID = "save-settings"
 	cMapEditor    captionID = "map-editor"
+	cSettings     captionID = "settings"
+	cClose        captionID = "close"
 
 	cReadSettingsFailed captionID = "read-settings-failed"
 	cSettingsLine       captionID = "settings-line"
@@ -198,6 +200,8 @@ var captionRows = []captionRow{
 	row(cCheck, "Check", "Проверить", ""),
 	row(cSaveSettings, "Save settings", "Сохранить установки", "dialogs.txt: Save Game, Reset settings"),
 	row(cMapEditor, "Map editor", "Редактор карт", ""),
+	row(cSettings, "Settings", "Настройки", ""),
+	row(cClose, "Close", "Закрыть", "main.txt: Close"),
 
 	row(cReadSettingsFailed, "cannot read settings %s: %v", "не удалось прочитать установки %s: %v", ""),
 	row(cSettingsLine, "settings %s: %s (%d such line(s); the lines are kept as they are)", "установки %s: %s (таких строк: %d; строки оставлены как есть)", ""),

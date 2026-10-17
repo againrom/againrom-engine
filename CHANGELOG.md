@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [Starter] The starter's settings (sound, volume, movies, markers, saves
+  folder, mission, skill, extra arguments and the starter's own options) moved
+  behind a new Settings button, so the main window shows only the base game,
+  mods and mod settings. Close or Esc returns to the main window; the values
+  and the saved file are unchanged.
 - [BASE] Each release offers only the three game ZIPs, without separate
   .sha256 checksum files.
 - [ROM1] A guard walking back to its post or a unit closing on the ally it

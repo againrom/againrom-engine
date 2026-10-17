@@ -124,11 +124,17 @@ func rigWithLanguage(t *testing.T, language string) *rig {
 // windowCaptions are the captions the layout always shows, with the control
 // each belongs to, in the order they are checked.
 var windowCaptions = []captionID{
-	cHeadBase, cHeadMods, cHeadParams, cHeadAdvanced, cHeadStarter, cHeadModSettings,
-	cAddPath, cAdd, cBrowse, cRemove, cFolder, cRescan, cTickHint, cSound, cVolume, cMovies,
+	cHeadBase, cHeadMods, cHeadModSettings,
+	cAddPath, cAdd, cBrowse, cRemove, cFolder, cRescan, cTickHint, cSelectMod,
+	cPlay, cCheck, cSaveSettings, cMapEditor, cSettings,
+}
+
+// settingsCaptions are the captions the settings view shows.
+var settingsCaptions = []captionID{
+	cHeadParams, cHeadAdvanced, cHeadStarter, cSound, cVolume, cMovies,
 	cMissionMovies, cMarkers, cSavesFolder, cMissionNumber, cMapPicker, cChicken, cSkill,
-	cExtraArgs, cCloseAfterPlay, cGameProgram, cLoadUnmarked, cSelectMod, cPlay, cCheck,
-	cSaveSettings, cMapEditor,
+	cExtraArgs, cCloseAfterPlay, cGameProgram, cLoadUnmarked,
+	cPlay, cCheck, cSaveSettings, cMapEditor, cClose,
 }
 
 func TestWindowShowsEveryCaptionInBothLanguages(t *testing.T) {
@@ -137,25 +143,36 @@ func TestWindowShowsEveryCaptionInBothLanguages(t *testing.T) {
 		if a.lang() != tc.lang {
 			t.Fatalf("%s base: language %q", tc.language, a.lang())
 		}
-		shown := strings.Join(windowTexts(a), "\n")
-		for _, id := range windowCaptions {
-			want := caption(tc.lang, id)
-			found := false
-			for _, line := range strings.Split(shown, "\n") {
-				if line == want {
-					found = true
-				}
-			}
-			if !found {
-				t.Errorf("%s window lacks %q (%s)", tc.lang, want, id)
+		for _, view := range []struct {
+			v   viewKind
+			ids []captionID
+		}{{viewMain, windowCaptions}, {viewSettings, settingsCaptions}} {
+			a.setView(view.v)
+			checkWindowCaptions(t, a, tc.lang, view.ids)
+		}
+	}
+}
+
+func checkWindowCaptions(t *testing.T, a *app, lang string, ids []captionID) {
+	t.Helper()
+	shown := windowTexts(a)
+	for _, id := range ids {
+		want := caption(lang, id)
+		found := false
+		for _, line := range shown {
+			if line == want {
+				found = true
 			}
 		}
-		if tc.lang == "ru" {
-			for _, line := range strings.Split(shown, "\n") {
-				for _, id := range windowCaptions {
-					if en := caption("en", id); line == en && en != caption("ru", id) {
-						t.Errorf("ru window shows the English caption %q", line)
-					}
+		if !found {
+			t.Errorf("%s window lacks %q (%s)", lang, want, id)
+		}
+	}
+	if lang == "ru" {
+		for _, line := range shown {
+			for _, id := range ids {
+				if en := caption("en", id); line == en && en != caption("ru", id) {
+					t.Errorf("ru window shows the English caption %q", line)
 				}
 			}
 		}
@@ -201,15 +218,18 @@ func TestFirstProblemIsWordedInTheBaseLanguage(t *testing.T) {
 
 func TestRussianCaptionsFitTheirControls(t *testing.T) {
 	a := rigWithLanguage(t, "russian").app()
-	for _, it := range a.layout() {
-		switch it.kind {
-		case iButton:
-			if w := textWidth(it.text); w > it.rect.Dx()-8 {
-				t.Errorf("button %q is %d px wide in %d", it.text, w, it.rect.Dx()-8)
-			}
-		case iText:
-			if it.rect.Dx() == 135 && textWidth(it.text) > 135 {
-				t.Errorf("label %q is %d px wide in 135", it.text, textWidth(it.text))
+	for _, v := range []viewKind{viewMain, viewSettings} {
+		a.setView(v)
+		for _, it := range a.layout() {
+			switch it.kind {
+			case iButton:
+				if w := textWidth(it.text); w > it.rect.Dx()-8 {
+					t.Errorf("button %q is %d px wide in %d", it.text, w, it.rect.Dx()-8)
+				}
+			case iText:
+				if it.rect.Dx() == 300 && textWidth(it.text) > 300 {
+					t.Errorf("label %q is %d px wide in 300", it.text, textWidth(it.text))
+				}
 			}
 		}
 	}

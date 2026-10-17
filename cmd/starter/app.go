@@ -80,6 +80,16 @@ const (
 	aSettingReset
 	aMapEditor
 	aChooseBase
+	aSettingsOpen
+	aSettingsClose
+)
+
+// viewKind is which of the starter's two views the window shows.
+type viewKind int
+
+const (
+	viewMain viewKind = iota
+	viewSettings
 )
 
 type action struct {
@@ -163,6 +173,7 @@ type app struct {
 	declared  map[string]declaredSetts // settings.toml of each scanned mod
 	addText   string
 	focus     fieldID
+	view      viewKind
 	scroll    [2]int // base list, mod list
 	status    string
 	statusBad bool
@@ -438,6 +449,7 @@ func (a *app) layout() []item {
 		it = append(it, item{kind: iText, rect: rect(x, y, w, 16), text: s, tone: t})
 	}
 	text := func(x, y int, s string, t tone) { textW(x, y, winW-x-10, s, t) }
+	const lw = winW - 20 // width of the main view's lists and notes
 	heading := func(x, y int, s string) { it = append(it, item{kind: iHeading, rect: rect(x, y, 0, 16), text: s}) }
 	button := func(r image.Rectangle, s string, act action) {
 		it = append(it, item{kind: iButton, rect: r, text: s, act: act})
@@ -454,151 +466,157 @@ func (a *app) layout() []item {
 	text(330, 6, a.t(cLaunches, gameVersion), toneDim)
 	text(10, 24, a.t(cSettingsFile, a.iniPath), toneDim)
 
-	// Base games.
-	heading(10, 48, a.t(cHeadBase))
-	bases := a.s.Bases
-	top := clampScroll(&a.scroll[0], len(bases), baseRows)
-	for k := 0; k < baseRows && top+k < len(bases); k++ {
-		b := bases[top+k]
-		info := a.infos[b.Path]
-		r := item{kind: iBaseRow, rect: rect(10, 66+18*k, 365, 18), checked: strings.EqualFold(b.Key, a.s.LastBase), act: action{aSelectBase, top + k}}
-		if info.Valid() {
-			r.tone = toneGood
-			r.text = a.t(cBaseOK, b.Key, b.Path, a.baseLabel(info))
-		} else {
-			r.tone = toneBad
-			r.text = a.t(cBaseBad, b.Key, b.Path, strings.Join(info.Missing, ", "))
-		}
-		it = append(it, r)
-	}
-	if len(bases) == 0 {
-		textW(10, 66, 365, a.t(cNoBase), toneDim)
-	}
-	text(10, 162, a.t(cAddPath), toneDim)
-	field(rect(76, 158, 100, 22), fAddBase)
-	button(rect(182, 158, 64, 22), a.t(cBrowse), action{kind: aChooseBase})
-	button(rect(252, 158, 50, 22), a.t(cAdd), action{kind: aAddBase})
-	button(rect(308, 158, 67, 22), a.t(cRemove), action{kind: aRemoveBase})
-
-	// Mods.
-	heading(10, 190, a.t(cHeadMods))
-	text(10, 214, a.t(cFolder), toneDim)
-	field(rect(76, 210, 224, 22), fModsDir)
-	button(rect(306, 210, 69, 22), a.t(cRescan), action{kind: aRescan})
-	if a.s.ModsDir == "" {
-		textW(76, 234, 299, a.t(cModsDefault, mod.DefaultDir(a.selfDir())), toneDim)
-	}
-	rows := a.modRows()
-	top = clampScroll(&a.scroll[1], len(rows), modRows)
-	for k := 0; k < modRows && top+k < len(rows); k++ {
-		m := rows[top+k]
-		label := m.label
-		tn := toneNormal
-		if m.enabled {
-			n := 0
-			for _, e := range a.s.Enabled {
-				n++
-				if e == m.id {
-					break
-				}
-			}
-			label = fmt.Sprintf("%d. %s", n, label)
-		}
-		if m.problem != "" {
-			tn = toneBad
-		}
-		it = append(it, item{kind: iModRow, rect: rect(10, 250+18*k, 365, 18), text: label, tone: tn, checked: m.enabled, act: action{aToggleMod, top + k}})
-	}
-	if a.scanErr != nil {
-		textW(10, 382, 365, a.t(cModsReadError, a.scanErr.Error()), toneBad)
-	} else if len(rows) == 0 {
-		textW(10, 250, 365, a.t(cNoMods), toneDim)
-	}
-	textW(10, 362, 365, a.t(cTickHint), toneDim)
-
-	// Parameters.
-	heading(395, 48, a.t(cHeadParams))
-	row := func(i int, label string) int { y := 66 + 24*i; textW(395, y+3, 135, label, toneNormal); return y }
-	ctl := func(y int) image.Rectangle { return rect(535, y, 215, 22) }
-	y := row(0, a.t(cSound))
-	button(ctl(y), a.valueText(a.s.Sound), action{kind: aSound})
-	y = row(1, a.t(cVolume))
-	field(ctl(y), fVolume)
-	y = row(2, a.t(cMovies))
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Movies), checked: a.s.Movies, act: action{kind: aMovies}})
-	y = row(3, a.t(cMissionMovies))
-	button(ctl(y), a.valueText(a.s.Video), action{kind: aVideo})
-	y = row(4, a.t(cMarkers))
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Markers), checked: a.s.Markers, act: action{kind: aMarkers}})
-	y = row(5, a.t(cSavesFolder))
-	field(ctl(y), fSaves)
-	heading(395, 214, a.t(cHeadAdvanced))
-	y = row(7, a.t(cMissionNumber))
-	field(ctl(y), fMission)
-	y = row(8, a.t(cMapPicker))
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
-	y = row(9, a.t(cChicken))
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
-	y = row(10, a.t(cSkill))
-	field(ctl(y), fSkill)
-	y = row(11, a.t(cExtraArgs))
-	field(ctl(y), fExtra)
-	heading(395, 356, a.t(cHeadStarter))
-	y = row(13, a.t(cCloseAfterPlay))
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-	y = row(14, a.t(cGameProgram))
-	field(ctl(y), fAgainrom)
-	y = row(15, a.t(cLoadUnmarked))
-	it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
-
-	// Mod settings.
-	heading(10, panelTop, a.t(cHeadModSettings))
-	if id, ok := a.panelMod(); !ok {
-		textW(10, panelTop+22, 365, a.t(cSelectMod), toneDim)
+	if a.view == viewSettings {
+		// Parameters.
+		heading(10, 48, a.t(cHeadParams))
+		row := func(i int, label string) int { y := 66 + 24*i; textW(10, y+3, 300, label, toneNormal); return y }
+		ctl := func(y int) image.Rectangle { return rect(320, y, winW-330, 22) }
+		y := row(0, a.t(cSound))
+		button(ctl(y), a.valueText(a.s.Sound), action{kind: aSound})
+		y = row(1, a.t(cVolume))
+		field(ctl(y), fVolume)
+		y = row(2, a.t(cMovies))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Movies), checked: a.s.Movies, act: action{kind: aMovies}})
+		y = row(3, a.t(cMissionMovies))
+		button(ctl(y), a.valueText(a.s.Video), action{kind: aVideo})
+		y = row(4, a.t(cMarkers))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Markers), checked: a.s.Markers, act: action{kind: aMarkers}})
+		y = row(5, a.t(cSavesFolder))
+		field(ctl(y), fSaves)
+		heading(10, 214, a.t(cHeadAdvanced))
+		y = row(7, a.t(cMissionNumber))
+		field(ctl(y), fMission)
+		y = row(8, a.t(cMapPicker))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
+		y = row(9, a.t(cChicken))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
+		y = row(10, a.t(cSkill))
+		field(ctl(y), fSkill)
+		y = row(11, a.t(cExtraArgs))
+		field(ctl(y), fExtra)
+		heading(10, 356, a.t(cHeadStarter))
+		y = row(13, a.t(cCloseAfterPlay))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
+		y = row(14, a.t(cGameProgram))
+		field(ctl(y), fAgainrom)
+		y = row(15, a.t(cLoadUnmarked))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 	} else {
-		state, tn := a.t(cModNotEnabled), toneDim
-		if a.s.modEnabled(id) {
-			state, tn = a.t(cModEnabled), toneNormal
-		}
-		textW(120, panelTop, 170, a.t(cModState, id, state), tn)
-		decl, err := a.settingsOf(id)
-		switch {
-		case err != nil:
-			textW(10, panelTop+22, 365, a.t(cSettingsToml, a.errText(err)), toneBad)
-		case len(decl) == 0:
-			textW(10, panelTop+22, 365, a.t(cNoModSettings), toneDim)
-		default:
-			button(rect(300, panelTop-3, 75, 22), a.t(cDefaults), action{kind: aSettingReset})
-			for i := 0; i < settingRows && i < len(decl); i++ {
-				st, y := decl[i], panelTop+24+24*i
-				label := st.Label(a.lang())
-				if st.Kind == mod.KindInt {
-					label = fmt.Sprintf("%s (%d..%d)", label, st.Min, st.Max)
-				}
-				textW(10, y+3, 200, label, toneNormal)
-				ctl, val := rect(215, y, 160, 22), a.settingText(id, st)
-				switch st.Kind {
-				case mod.KindInt:
-					it = append(it, item{kind: iField, rect: ctl, text: val, focused: a.focus == fSetting0+fieldID(i), act: action{aFocus, int(fSetting0) + i}})
-				case mod.KindBool:
-					v, perr := st.Parse(val)
-					it = append(it, item{kind: iToggle, rect: ctl, text: a.onOff(perr == nil && v.Bool), checked: perr == nil && v.Bool, act: action{aSettingCycle, i}})
-				default:
-					button(ctl, val, action{aSettingCycle, i})
-				}
+		// Base games.
+		heading(10, 48, a.t(cHeadBase))
+		bases := a.s.Bases
+		top := clampScroll(&a.scroll[0], len(bases), baseRows)
+		for k := 0; k < baseRows && top+k < len(bases); k++ {
+			b := bases[top+k]
+			info := a.infos[b.Path]
+			r := item{kind: iBaseRow, rect: rect(10, 66+18*k, lw, 18), checked: strings.EqualFold(b.Key, a.s.LastBase), act: action{aSelectBase, top + k}}
+			if info.Valid() {
+				r.tone = toneGood
+				r.text = a.t(cBaseOK, b.Key, b.Path, a.baseLabel(info))
+			} else {
+				r.tone = toneBad
+				r.text = a.t(cBaseBad, b.Key, b.Path, strings.Join(info.Missing, ", "))
 			}
-			if len(decl) > settingRows {
-				textW(10, panelTop+24+24*settingRows, 365, a.t(cMoreSettings, len(decl)-settingRows), toneDim)
+			it = append(it, r)
+		}
+		if len(bases) == 0 {
+			textW(10, 66, lw, a.t(cNoBase), toneDim)
+		}
+		text(10, 162, a.t(cAddPath), toneDim)
+		field(rect(76, 158, 100, 22), fAddBase)
+		button(rect(182, 158, 64, 22), a.t(cBrowse), action{kind: aChooseBase})
+		button(rect(252, 158, 50, 22), a.t(cAdd), action{kind: aAddBase})
+		button(rect(308, 158, 67, 22), a.t(cRemove), action{kind: aRemoveBase})
+
+		// Mods.
+		heading(10, 190, a.t(cHeadMods))
+		text(10, 214, a.t(cFolder), toneDim)
+		field(rect(76, 210, 224, 22), fModsDir)
+		button(rect(306, 210, 69, 22), a.t(cRescan), action{kind: aRescan})
+		if a.s.ModsDir == "" {
+			textW(76, 234, lw-66, a.t(cModsDefault, mod.DefaultDir(a.selfDir())), toneDim)
+		}
+		rows := a.modRows()
+		top = clampScroll(&a.scroll[1], len(rows), modRows)
+		for k := 0; k < modRows && top+k < len(rows); k++ {
+			m := rows[top+k]
+			label := m.label
+			tn := toneNormal
+			if m.enabled {
+				n := 0
+				for _, e := range a.s.Enabled {
+					n++
+					if e == m.id {
+						break
+					}
+				}
+				label = fmt.Sprintf("%d. %s", n, label)
+			}
+			if m.problem != "" {
+				tn = toneBad
+			}
+			it = append(it, item{kind: iModRow, rect: rect(10, 250+18*k, lw, 18), text: label, tone: tn, checked: m.enabled, act: action{aToggleMod, top + k}})
+		}
+		if a.scanErr != nil {
+			textW(10, 382, lw, a.t(cModsReadError, a.scanErr.Error()), toneBad)
+		} else if len(rows) == 0 {
+			textW(10, 250, lw, a.t(cNoMods), toneDim)
+		}
+		textW(10, 362, lw, a.t(cTickHint), toneDim)
+
+		// Mod settings.
+		heading(10, panelTop, a.t(cHeadModSettings))
+		if id, ok := a.panelMod(); !ok {
+			textW(10, panelTop+22, lw, a.t(cSelectMod), toneDim)
+		} else {
+			state, tn := a.t(cModNotEnabled), toneDim
+			if a.s.modEnabled(id) {
+				state, tn = a.t(cModEnabled), toneNormal
+			}
+			textW(120, panelTop, 300, a.t(cModState, id, state), tn)
+			decl, err := a.settingsOf(id)
+			switch {
+			case err != nil:
+				textW(10, panelTop+22, lw, a.t(cSettingsToml, a.errText(err)), toneBad)
+			case len(decl) == 0:
+				textW(10, panelTop+22, lw, a.t(cNoModSettings), toneDim)
+			default:
+				button(rect(winW-85, panelTop-3, 75, 22), a.t(cDefaults), action{kind: aSettingReset})
+				for i := 0; i < settingRows && i < len(decl); i++ {
+					st, y := decl[i], panelTop+24+24*i
+					label := st.Label(a.lang())
+					if st.Kind == mod.KindInt {
+						label = fmt.Sprintf("%s (%d..%d)", label, st.Min, st.Max)
+					}
+					textW(10, y+3, 310, label, toneNormal)
+					ctl, val := rect(330, y, winW-340, 22), a.settingText(id, st)
+					switch st.Kind {
+					case mod.KindInt:
+						it = append(it, item{kind: iField, rect: ctl, text: val, focused: a.focus == fSetting0+fieldID(i), act: action{aFocus, int(fSetting0) + i}})
+					case mod.KindBool:
+						v, perr := st.Parse(val)
+						it = append(it, item{kind: iToggle, rect: ctl, text: a.onOff(perr == nil && v.Bool), checked: perr == nil && v.Bool, act: action{aSettingCycle, i}})
+					default:
+						button(ctl, val, action{aSettingCycle, i})
+					}
+				}
+				if len(decl) > settingRows {
+					textW(10, panelTop+24+24*settingRows, lw, a.t(cMoreSettings, len(decl)-settingRows), toneDim)
+				}
 			}
 		}
 	}
-
 	// Actions.
 	by := 410 + panelH
 	button(rect(10, by, 100, 28), a.t(cPlay), action{kind: aPlay})
 	button(rect(118, by, 100, 28), a.t(cCheck), action{kind: aCheck})
 	button(rect(226, by, 140, 28), a.t(cSaveSettings), action{kind: aSave})
 	button(rect(374, by, 130, 28), a.t(cMapEditor), action{kind: aMapEditor})
+	if a.view == viewSettings {
+		button(rect(512, by, 110, 28), a.t(cClose), action{kind: aSettingsClose})
+	} else {
+		button(rect(512, by, 110, 28), a.t(cSettings), action{kind: aSettingsOpen})
+	}
 	if cmd, err := a.command(); err != nil {
 		text(10, by+36, a.errText(err), toneBad)
 	} else {
@@ -792,7 +810,26 @@ func (a *app) apply(act action) {
 		a.save()
 	case aMapEditor:
 		a.openMapEditor()
+	case aSettingsOpen:
+		a.setView(viewSettings)
+	case aSettingsClose:
+		a.setView(viewMain)
 	}
+}
+
+// setView shows v and drops the focus, which may sit on a field v does not
+// show.
+func (a *app) setView(v viewKind) {
+	a.view, a.focus, a.dirty = v, fNone, true
+}
+
+// fieldShown reports whether the current view shows the field id.
+func (a *app) fieldShown(id fieldID) bool {
+	switch id {
+	case fVolume, fSaves, fMission, fSkill, fExtra, fAgainrom:
+		return a.view == viewSettings
+	}
+	return a.view == viewMain
 }
 
 // cycleSetting flips the bool setting in panel row i, or steps the choice
@@ -893,9 +930,11 @@ func (a *app) enter() {
 	a.dirty = true
 }
 
+// escape drops the focus and leaves the settings view.
 func (a *app) escape() {
 	if a.folderDialogResults == nil {
 		a.focus, a.dirty = fNone, true
+		a.view = viewMain
 	}
 }
 
@@ -906,7 +945,7 @@ func (a *app) tab() {
 	}
 	for n := 0; n < int(fieldCount); n++ {
 		a.focus = a.focus%(fieldCount-1) + 1
-		if a.field(a.focus) != nil {
+		if a.field(a.focus) != nil && a.fieldShown(a.focus) {
 			break
 		}
 	}
@@ -930,10 +969,13 @@ func (a *app) wheel(p image.Point, lines int) {
 	if a.folderDialogResults != nil {
 		return
 	}
+	if a.view != viewMain {
+		return
+	}
 	switch {
-	case p.In(image.Rect(10, 66, 375, 156)):
+	case p.In(image.Rect(10, 66, winW-10, 156)):
 		a.scroll[0] += lines
-	case p.In(image.Rect(10, 250, 375, 360)):
+	case p.In(image.Rect(10, 250, winW-10, 360)):
 		a.scroll[1] += lines
 	default:
 		return

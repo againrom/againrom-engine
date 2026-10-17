@@ -109,6 +109,15 @@ func do(t *testing.T, a *app, act action) {
 	t.Fatalf("no item carries %+v", act)
 }
 
+// openSettings clicks the Settings button.
+func openSettings(t *testing.T, a *app) {
+	t.Helper()
+	do(t, a, action{kind: aSettingsOpen})
+	if a.view != viewSettings {
+		t.Fatal("the Settings button did not open the settings view")
+	}
+}
+
 func typeInto(t *testing.T, a *app, id fieldID, s string) {
 	t.Helper()
 	do(t, a, action{aFocus, int(id)})
@@ -389,6 +398,7 @@ func TestSaveWritesTheIniAndKeepsUnknownKeys(t *testing.T) {
 	a := r.app()
 	typeInto(t, a, fAddBase, r.root)
 	a.enter()
+	openSettings(t, a)
 	do(t, a, action{kind: aSound})
 	do(t, a, action{kind: aMovies})
 	typeInto(t, a, fVolume, "55")
@@ -414,6 +424,7 @@ func TestSaveWritesTheIniAndKeepsUnknownKeys(t *testing.T) {
 func TestSettingsCyclesAndToggles(t *testing.T) {
 	r := newRig(t, "")
 	a := r.app()
+	openSettings(t, a)
 	var seen []string
 	for i := 0; i < 3; i++ {
 		do(t, a, action{kind: aSound})
@@ -442,6 +453,7 @@ func TestSettingsCyclesAndToggles(t *testing.T) {
 func TestFieldEditing(t *testing.T) {
 	r := newRig(t, "")
 	a := r.app()
+	openSettings(t, a)
 	typeInto(t, a, fExtra, "ab\tc\n")
 	if a.s.Extra != "abc" {
 		t.Fatalf("control characters kept: %q", a.s.Extra)
@@ -458,12 +470,12 @@ func TestFieldEditing(t *testing.T) {
 		t.Fatalf("tab went to %v", a.focus)
 	}
 	a.tab()
-	if a.focus != fAddBase {
-		t.Fatalf("tab wrapped to %v", a.focus)
+	if a.focus != fVolume {
+		t.Fatalf("tab wrapped to %v, want the first field of the settings view", a.focus)
 	}
 	a.escape()
 	a.typed("ignored")
-	if a.addText != "" {
+	if a.view != viewMain || a.s.Volume != "" || a.addText != "" {
 		t.Fatal("typed into nothing")
 	}
 	a.click(image.Pt(winW-1, winH-1))
@@ -501,7 +513,7 @@ func TestWheelScrollsOnlyOverLists(t *testing.T) {
 	if first, n := count(); !strings.HasPrefix(first, "c ") || n != modRows {
 		t.Fatalf("scroll not clamped: %q %d", first, n)
 	}
-	a.wheel(image.Pt(600, 300), -5)
+	a.wheel(image.Pt(600, 200), -5)
 	a.wheel(image.Pt(100, 300), -50)
 	if first, _ := count(); !strings.HasPrefix(first, "a ") {
 		t.Fatalf("%q", first)

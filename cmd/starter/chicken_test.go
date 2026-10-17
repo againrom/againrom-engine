@@ -35,6 +35,7 @@ func TestChickenCheckboxIsOffAndPlayForwardsOnlyItsFlag(t *testing.T) {
 			r := newRig(t, "[starter]\nlast-base = en\n[bases]\nen = {root}\n")
 			r.fakes.validRoots[r.root] = profileInfo(profile, true)
 			a := r.app()
+			openSettings(t, a)
 			found := false
 			for _, item := range a.layout() {
 				if item.act.kind == aChicken {
