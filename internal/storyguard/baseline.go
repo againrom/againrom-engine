@@ -2515,13 +2515,18 @@ package storyguard
 // script operation signatures and trigger areas in pkg/mapload, the areas on
 // the map and their tests, this note included.
 //
+// CommentBytes rises for the campaign chain to the end of the campaign and its
+// side missions (pkg/game/campaignchain_release_test.go) and the objective
+// actions it adds (pkg/game/documents1176_release_test.go), this note
+// included. TestIdentCount falls by renaming four numbered test helpers.
+//
 // CommentBytes rises for the fog stamp's input release tests in
 // pkg/game/fogfootprint_release_test.go, two reworded doc comments in
 // pkg/sim/sight.go, and the hand-over witness's doc comment
 // (pkg/sim/handoverstrike_test.go) net of a shorter comment in
 // pkg/game/pickuporder_test.go, this note included.
 var Committed = Baseline{
-	TestIdentCount: 4551,
+	TestIdentCount: 4539,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2543,5 +2548,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1718,
 	},
-	CommentBytes: 9095026,
+	CommentBytes: 9098766,
 }

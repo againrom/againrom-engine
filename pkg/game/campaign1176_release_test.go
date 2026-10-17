@@ -158,7 +158,7 @@ func campaignCold(t *testing.T, store SaveStore) (*FrontEnd, *ui.App) {
 	return f, app
 }
 
-func campaignMenu1176(t *testing.T, app *ui.App) {
+func campaignMenu(t *testing.T, app *ui.App) {
 	t.Helper()
 	if app.Screen() == ui.ScreenEnding || app.Screen() == ui.ScreenCredits {
 		for i := 0; i < 3 && (app.Screen() == ui.ScreenEnding || app.Screen() == ui.ScreenCredits); i++ {
@@ -294,9 +294,9 @@ func TestReleaseCampaign1176TerminalAndSideRecovery(t *testing.T) {
 					t.Fatal("town checkpoint accidentally retained completed World")
 				}
 			}
-			campaignMenu1176(t, app)
+			campaignMenu(t, app)
 			if reopenedApp != nil {
-				campaignMenu1176(t, reopenedApp)
+				campaignMenu(t, reopenedApp)
 			}
 			if mission == 151 {
 				if err := reopenedApp.OpenMission(reopened.MissionOpenerWith(150, reopened.NextParty())); err != nil || reopened.liveMission != 150 {

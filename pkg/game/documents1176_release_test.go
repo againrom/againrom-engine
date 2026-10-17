@@ -19,7 +19,7 @@ var documentPairs = []Document{{1, DocumentText}, {2, DocumentText}, {3, Documen
 // The exact tuples come from REG-SCN-097, independently of the code granting
 // them. DAT-DOC-021 identifies the physical item. Its fresh grant is owner
 // direction (DIV-305), not a claim that ROM1 grants it during chargen.
-func documentsState1176(f *FrontEnd, onMap bool, pages int) error {
+func documentsState(f *FrontEnd, onMap bool, pages int) error {
 	if got := f.Town.Documents(); !reflect.DeepEqual(got, documentPairs[:pages]) && !(pages == 0 && len(got) == 0) {
 		return fmt.Errorf("collected pages=%v, want %v", got, documentPairs[:pages])
 	}
@@ -64,12 +64,12 @@ func documentsState1176(f *FrontEnd, onMap bool, pages int) error {
 
 func requireDocuments(t *testing.T, f *FrontEnd, onMap bool, pages int) {
 	t.Helper()
-	if err := documentsState1176(f, onMap, pages); err != nil {
+	if err := documentsState(f, onMap, pages); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func documentsFrame1176(t *testing.T, f *FrontEnd, app *ui.App) {
+func documentsFrame(t *testing.T, f *FrontEnd, app *ui.App) {
 	t.Helper()
 	if _, kind, up := f.LiveNotice(); up && kind != ui.NoticeSuccess {
 		if err := app.HeadlessActivate("notice"); err != nil {
@@ -106,13 +106,54 @@ func documentsObjective(t *testing.T, f *FrontEnd, app *ui.App, mission int) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			documentsFrame1176(t, f, app)
+			documentsFrame(t, f, app)
+		case "kill_player":
+			if count, err := p.World.HeadlessKillPlayer(*step.Player); err != nil || count == 0 {
+				t.Fatal("kill_player", *step.Player, count, err)
+			}
+			documentsFrame(t, f, app)
+		case "heal":
+			id, err := p.Resolve(step.Unit)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := p.World.HeadlessHeal(id); err != nil {
+				t.Fatal(err)
+			}
+			documentsFrame(t, f, app)
+		case "order":
+			// The front end's order queue, drained by the next App frame.
+			cmds, err := step.commands(&p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.live.pending = append(f.live.pending, cmds...)
+			documentsFrame(t, f, app)
+		case "pick_item":
+			// The player's pick-up order; App frames walk and take the sack.
+			id, err := p.Resolve(step.Unit)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := f.live.sackAt(*step.X, *step.Y); !ok {
+				t.Fatalf("pick_item: (%d,%d) holds no sack", *step.X, *step.Y)
+			}
+			f.live.orderPickup(id, *step.X, *step.Y)
+			for i := 0; ; i++ {
+				if _, ok := f.live.sackAt(*step.X, *step.Y); !ok {
+					break
+				}
+				if i >= headlessDefaultWait {
+					t.Fatalf("pick_item: the sack at (%d,%d) was not taken", *step.X, *step.Y)
+				}
+				documentsFrame(t, f, app)
+			}
 		case "wait_ticks", "wait_until":
 			for i := 0; i < step.Ticks; i++ {
 				if step.Command == "wait_until" && p.World.Outcome() == sim.OutcomeWon {
 					break
 				}
-				documentsFrame1176(t, f, app)
+				documentsFrame(t, f, app)
 			}
 		case "assert_world":
 			if p.World.Outcome() != sim.OutcomeWon {
@@ -126,7 +167,7 @@ func documentsObjective(t *testing.T, f *FrontEnd, app *ui.App, mission int) {
 		if _, kind, up := f.LiveNotice(); up && kind == ui.NoticeSuccess {
 			return
 		}
-		documentsFrame1176(t, f, app)
+		documentsFrame(t, f, app)
 	}
 	t.Fatal("objective script won without a usable Victory notice")
 }
@@ -134,13 +175,13 @@ func documentsObjective(t *testing.T, f *FrontEnd, app *ui.App, mission int) {
 func documentsPanel1176(t *testing.T, f *FrontEnd, app *ui.App, pages int) {
 	t.Helper()
 	for i := 0; i < 10; i++ {
-		documentsFrame1176(t, f, app)
+		documentsFrame(t, f, app)
 	}
 	for i := 0; i < 128; i++ {
 		if _, _, up := f.LiveNotice(); !up {
 			break
 		}
-		documentsFrame1176(t, f, app)
+		documentsFrame(t, f, app)
 	}
 	var hero sim.EntityID
 	for i, p := range f.live.mission.party {
@@ -411,7 +452,7 @@ func documentsLossControls1176(t *testing.T, raw []byte) {
 						t.Fatal("loss control next mission", err)
 					}
 				}
-				if documentsState1176(f, onMap, 5) == nil {
+				if documentsState(f, onMap, 5) == nil {
 					t.Fatal("source loss was silently reconstructed on LOAD or entry", loss, onMap)
 				}
 				if loss == "missing_page" {
