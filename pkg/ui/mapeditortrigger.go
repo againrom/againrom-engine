@@ -883,10 +883,13 @@ func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool
 	return image.Rectangle{}, false
 }
 
-// DropdownRowRect is the window rectangle of row n of the object popup's
-// open drop-down, when that row is shown.
+// DropdownRowRect is the window rectangle of row n of the open drop-down,
+// the object popup's or the trigger choice's, when that row is shown.
 func (e *MapEditor) DropdownRowRect(n int) (image.Rectangle, bool) {
 	d, ok := e.openDropdown()
+	if !ok {
+		d, ok = e.openAreaDropdown()
+	}
 	if !ok {
 		return image.Rectangle{}, false
 	}
@@ -901,6 +904,9 @@ func (e *MapEditor) DropdownRowRect(n int) (image.Rectangle, bool) {
 func (e *MapEditor) DropdownChoices() []string {
 	d, ok := e.openDropdown()
 	if !ok {
+		d, ok = e.openAreaDropdown()
+	}
+	if !ok {
 		return nil
 	}
 	var out []string
@@ -914,5 +920,7 @@ func (e *MapEditor) DropdownChoices() []string {
 func (e *MapEditor) ScrollDropdown(n int) {
 	if _, ok := e.openDropdown(); ok {
 		e.obj.choice.Scroll(n)
+	} else if d, ok := e.openAreaDropdown(); ok {
+		d.List.Scroll(n)
 	}
 }

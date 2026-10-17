@@ -17,6 +17,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   you can continue past; neither refuses a save. A new map asks whether it
   is single-player or multiplayer, single-player by default, and starts the
   party at the map's centre. The map's metadata (M) sets the mode by name.
+- [ROM1] In the map editor a selected trigger's areas carry handles: drag
+  a box's corner or edge, a square's rim or a cell to change the area its
+  condition or action names, one Undo step each. When another trigger or
+  pair uses the same condition, the editor names them first and you can
+  cancel. L draws a box on the map and makes it a condition "the hero
+  stands here" for a new trigger or one you pick from a list.
 
 ## 0.126.0
 

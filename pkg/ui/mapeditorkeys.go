@@ -107,6 +107,7 @@ func init() {
 		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(line5)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys / F2: scripts")},
+		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys("L: draw a trigger area")},
 		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenMove, "Move: click a cell"}, {screenAddCell, "Cell: click a cell"}}},
 		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenMove, "Esc: cancel"}, {screenAdd, addLine}, {screenAddCell, "Esc: back"}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}, {screenAdd, addChoose}}},
@@ -223,7 +224,7 @@ func (e *MapEditor) Key(key string) error {
 		case promptDeaf:
 			return nil
 		case promptFields:
-			if !e.prompt.fields() && !e.objectTyping() {
+			if !e.prompt.fields() && !e.objectTyping() && e.prompt.kind != promptAreaTrigger {
 				return nil
 			}
 		}
@@ -251,6 +252,8 @@ func (e *MapEditor) keyEscape(string) error {
 	case e.pick != pickNone:
 		e.leave(leavePick)
 		e.message = ""
+	case e.prompt.kind == promptAreaTrigger && e.prompt.area.open:
+		e.prompt.area.open = false
 	case e.prompt.open():
 		e.leave(leavePrompt)
 		e.saveThen = nil
@@ -315,6 +318,12 @@ func (e *MapEditor) keyEnter(string) error {
 		return e.noticeContinue()
 	case promptNewMode:
 		return e.newModeOpen(false)
+	case promptAreaTrigger:
+		e.areaCreate()
+		return nil
+	case promptAreaShared:
+		e.areaSharedContinue()
+		return nil
 	case promptAdd:
 		if !e.addPicking() {
 			e.addNext()
@@ -358,6 +367,10 @@ func (e *MapEditor) keyStep(key string) error {
 	}
 	if e.prompt.kind == promptAdd {
 		e.addMove(delta)
+		return nil
+	}
+	if e.prompt.kind == promptAreaTrigger {
+		e.areaStep(delta)
 		return nil
 	}
 	if e.prompt.fields() {

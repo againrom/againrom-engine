@@ -32,7 +32,17 @@ type ScriptArea struct {
 	Rect      image.Rectangle
 	Centre    image.Point
 	Radius    int
+	// Slots are the node's parameter slots its cells come from: a box's
+	// X, Y, X2, Y2, a cell's or a square's centre X, Y in the first two;
+	// -1 where none, as for a square around a unit.
+	Slots [4]int
+	// RadiusNode is the condition whose slot RadiusSlot holds the radius
+	// plus RadiusBias; -1 when no parameter holds it.
+	RadiusNode, RadiusSlot, RadiusBias int
 }
+
+// noSlots marks an area no parameter places.
+var noSlots = [4]int{-1, -1, -1, -1}
 
 // ScriptPlaceNote is one node a trigger names, with whether it is drawn and,
 // when not, why: the census's row.
@@ -131,12 +141,14 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 	}
 	n := nodes[i]
 	note.Opcode = n.Opcode
-	add := func(shape ScriptAreaShape, r image.Rectangle, centre image.Point, radius int) {
+	add := func(shape ScriptAreaShape, r image.Rectangle, centre image.Point, radius int, slots [4]int, rad radiusSource) {
 		p.areas = append(p.areas, ScriptArea{Trigger: t, Condition: condition, Node: i, Opcode: n.Opcode, Shape: shape,
-			Rect: r.Intersect(image.Rect(0, 0, p.m.Width, p.m.Height)), Centre: centre, Radius: radius})
+			Rect: r.Intersect(image.Rect(0, 0, p.m.Width, p.m.Height)), Centre: centre, Radius: radius,
+			Slots: slots, RadiusNode: rad.node, RadiusSlot: rad.slot, RadiusBias: rad.bias})
 		note.Drawn = true
 	}
-	cells := scriptCells(n)
+	cells, at := scriptCells(n), scriptCellSlots(n)
+	cellSlots := func(k int) [4]int { return [4]int{at[k], at[k] + 1, -1, -1} }
 	reason := NoPlace
 	switch {
 	case condition && n.Opcode == 2 && len(cells) == 2:
@@ -149,9 +161,10 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 			reason = OutsideMap
 			break
 		}
-		add(AreaBox, image.Rectangle{Min: a, Max: b.Add(image.Pt(1, 1))}, a, 0)
+		add(AreaBox, image.Rectangle{Min: a, Max: b.Add(image.Pt(1, 1))}, a, 0, [4]int{at[0], at[0] + 1, at[1], at[1] + 1}, noRadius)
 	case condition && n.Opcode == 3 && len(cells) == 1:
 		r, ok := scriptPlain(n, 0)
+		slot := scriptPlainSlot(n, 0)
 		if !ok || r > 255 {
 			reason = WideRadius
 			break
@@ -160,7 +173,7 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 			reason = OutsideMap
 			break
 		}
-		add(AreaSquare, square(cells[0], int(r)), cells[0], int(r))
+		add(AreaSquare, square(cells[0], int(r)), cells[0], int(r), cellSlots(0), radiusSource{node: i, slot: slot})
 	case condition && n.Opcode == 6:
 		reason = p.unitSquare(n, c, add)
 	case condition && (n.Opcode == 7 || n.Opcode == 15 || n.Opcode == 16) && len(cells) == 1:
@@ -168,17 +181,17 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 			reason = OutsideMap
 			break
 		}
-		if r, ok := p.radius(c); ok {
-			add(AreaSquare, square(cells[0], r), cells[0], r)
+		if r, rad, ok := p.radius(c); ok {
+			add(AreaSquare, square(cells[0], r), cells[0], r, cellSlots(0), rad)
 		} else {
-			add(AreaCell, square(cells[0], 0), cells[0], 0)
+			add(AreaCell, square(cells[0], 0), cells[0], 0, cellSlots(0), noRadius)
 			reason = PointOnly
 		}
 	default:
 		reason = OutsideMap
-		for _, cl := range cells {
+		for k, cl := range cells {
 			if p.inside(cl) {
-				add(AreaCell, square(cl, 0), cl, 0)
+				add(AreaCell, square(cl, 0), cl, 0, cellSlots(k), noRadius)
 			}
 		}
 		if len(cells) == 0 {
@@ -193,7 +206,7 @@ func (p *placer) node(t int, condition bool, id uint32, c comparison) {
 
 // unitSquare draws check 6's distance as a square around its first unit's
 // placement, the radius its constant comparison gives.
-func (p *placer) unitSquare(n alm.ScriptNode, c comparison, add func(ScriptAreaShape, image.Rectangle, image.Point, int)) string {
+func (p *placer) unitSquare(n alm.ScriptNode, c comparison, add func(ScriptAreaShape, image.Rectangle, image.Point, int, [4]int, radiusSource)) string {
 	var id uint32
 	found := false
 	for s, tag := range n.Type {
@@ -209,23 +222,29 @@ func (p *placer) unitSquare(n alm.ScriptNode, c comparison, add func(ScriptAreaS
 	if !p.inside(at[0]) {
 		return OutsideMap
 	}
-	r, ok := p.radius(c)
+	r, _, ok := p.radius(c)
 	if !ok {
-		add(AreaCell, square(at[0], 0), at[0], 0)
+		add(AreaCell, square(at[0], 0), at[0], 0, noSlots, noRadius)
 		return PointOnly
 	}
-	add(AreaSquare, square(at[0], r), at[0], r)
+	add(AreaSquare, square(at[0], r), at[0], r, noSlots, noRadius)
 	return ""
 }
 
+// radiusSource is the condition slot that holds a square's radius plus bias.
+type radiusSource struct{ node, slot, bias int }
+
+var noRadius = radiusSource{node: -1, slot: -1}
+
 // radius is the distance a pair compares its condition with when the other
 // side is a constant (TRIG-COND-003): the outline of the cells within that
-// distance, -1 when the comparison leaves none.
-func (p *placer) radius(c comparison) (int, bool) {
+// distance, false when the comparison leaves none; and the constant's slot.
+func (p *placer) radius(c comparison) (int, radiusSource, bool) {
 	i := scriptNodeIndex(p.sc.Conditions, c.other)
 	if c.other == 0 || i < 0 || p.sc.Conditions[i].Opcode != ScriptConstant {
-		return 0, false
+		return 0, noRadius, false
 	}
+	bias := 0
 	v := int64(int32(p.sc.Conditions[i].Value[0]))
 	code := c.code
 	if !c.left { // constant OP distance reads distance OP' constant
@@ -237,14 +256,15 @@ func (p *placer) radius(c comparison) (int, bool) {
 	switch code {
 	case 3, 4: // < v, >= v: the cells at distance up to v-1
 		v--
+		bias = 1
 	case 0, 1, 2, 5: // ==, !=, > v, <= v: the cells at distance up to v
 	default:
-		return 0, false
+		return 0, noRadius, false
 	}
 	if v < 0 || v > 255 {
-		return 0, false
+		return 0, noRadius, false
 	}
-	return int(v), true
+	return int(v), radiusSource{node: i, slot: 0, bias: bias}, true
 }
 
 func (p *placer) inside(c image.Point) bool {
@@ -265,6 +285,31 @@ func scriptCells(n alm.ScriptNode) []image.Point {
 		}
 	}
 	return out
+}
+
+// scriptCellSlots are the X slots of the node's cells, in scriptCells' order.
+func scriptCellSlots(n alm.ScriptNode) []int {
+	var out []int
+	for s := 0; s+1 < len(n.Type); s++ {
+		if n.Type[s] == ScriptX && n.Type[s+1] == ScriptY {
+			out = append(out, s)
+			s++
+		}
+	}
+	return out
+}
+
+// scriptPlainSlot is the slot of the node's k-th int slot, -1 for none.
+func scriptPlainSlot(n alm.ScriptNode, k int) int {
+	for s, tag := range n.Type {
+		if tag == ScriptInt || tag == ScriptConst {
+			if k == 0 {
+				return s
+			}
+			k--
+		}
+	}
+	return -1
 }
 
 // scriptPlain is the node's plain parameter k past its cells: the k-th int

@@ -182,3 +182,52 @@ func TestScriptSignaturesAreWellFormed(t *testing.T) {
 		t.Error("group command 6 has no case and no signature")
 	}
 }
+
+// Each area names the parameter slots its shape comes from: a box's four
+// coordinates, a cell's two, a check 3 radius in its own slot, a check 15
+// radius in the constant with the bias its comparison gives, and none for a
+// square around a unit.
+func TestScriptAreaNamesTheSlotsItComesFrom(t *testing.T) {
+	sc := alm.Script{Conditions: []alm.ScriptNode{
+		areaNode(2, 1, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 3}, [2]uint32{ScriptY, 4}, [2]uint32{ScriptX, 8}, [2]uint32{ScriptY, 6}),
+		areaNode(ScriptConstant, 2, [2]uint32{ScriptInt, 1}),
+		areaNode(3, 3, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 20}, [2]uint32{ScriptY, 10}, [2]uint32{ScriptInt, 4}),
+		areaNode(15, 4, [2]uint32{ScriptPlayer, 1}, [2]uint32{ScriptX, 12}, [2]uint32{ScriptY, 13}),
+		areaNode(ScriptConstant, 5, [2]uint32{ScriptConst, 6}),
+		areaNode(6, 6, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptUnit, 8}),
+	}, Actions: []alm.ScriptNode{areaNode(27, 1, [2]uint32{ScriptUnit, 7}, [2]uint32{ScriptX, 30}, [2]uint32{ScriptY, 3})},
+		Triggers: []alm.ScriptTrigger{
+			{Left: [3]uint32{1, 3, 4}, Right: [3]uint32{2, 2, 5}, Cmp: [3]uint32{0, 0, 3}, Acts: [4]uint32{1}},
+			{Left: [3]uint32{5}, Right: [3]uint32{4}, Cmp: [3]uint32{2}},
+			pair(6, 5, 5),
+		}}
+	areas, _ := ScriptAreas(areaMap(), sc)
+	type want struct {
+		slots                  [4]int
+		radiusNode, slot, bias int
+	}
+	got := map[string]want{}
+	for _, a := range areas {
+		got[areaKey(a)] = want{a.Slots, a.RadiusNode, a.RadiusSlot, a.RadiusBias}
+	}
+	for key, w := range map[string]want{
+		"T0 C0": {[4]int{1, 2, 3, 4}, -1, -1, 0},
+		"T0 C2": {[4]int{1, 2, -1, -1}, 2, 3, 0},
+		"T0 C3": {[4]int{1, 2, -1, -1}, 4, 0, 1},
+		"T0 A0": {[4]int{1, 2, -1, -1}, -1, -1, 0},
+		"T1 C3": {[4]int{1, 2, -1, -1}, 4, 0, 1},
+		"T2 C5": {[4]int{-1, -1, -1, -1}, -1, -1, 0},
+	} {
+		if g, ok := got[key]; !ok || g != w {
+			t.Errorf("%s: got %+v (%v), want %+v; all %+v", key, g, ok, w, areas)
+		}
+	}
+}
+
+func areaKey(a ScriptArea) string {
+	k := "A"
+	if a.Condition {
+		k = "C"
+	}
+	return "T" + string(rune('0'+a.Trigger)) + " " + k + string(rune('0'+a.Node))
+}

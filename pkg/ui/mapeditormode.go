@@ -19,6 +19,9 @@ const (
 	pickAddCell pickKind = "addcell"
 	// pickScriptCell is a cell for the open node popup's cell parameter.
 	pickScriptCell pickKind = "scriptcell"
+	// pickArea is the draw tool: the next drag on the map draws a new
+	// trigger area.
+	pickArea pickKind = "area"
 )
 
 // promptKind is the text prompt in the rail.
@@ -40,6 +43,11 @@ const (
 	promptNotice
 	// promptNewMode asks whether a new map is single-player or multiplayer.
 	promptNewMode
+	// promptAreaTrigger asks which trigger takes a box drawn on the map.
+	promptAreaTrigger
+	// promptAreaShared warns that an area drag changes a node other
+	// triggers or pairs share, before it writes.
+	promptAreaShared
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -54,6 +62,8 @@ type editorPrompt struct {
 	// notice is what a promptNotice continues to: test play or the save
 	// into the mod.
 	notice noticeStep
+	// area is what an area prompt holds: the drawn box or the held edit.
+	area *areaPrompt
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

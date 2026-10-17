@@ -257,6 +257,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
 			{"report", e.word("editor.view.report")},
 			{"fit", e.word("editor.view.fit")},
+			{"drawarea", e.word("editor.view.drawarea")},
 		}
 	}
 	return nil
@@ -776,6 +777,10 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 		return e.noticeSpec(), true
 	case promptNewMode:
 		return e.newModeSpec(), true
+	case promptAreaTrigger:
+		return e.areaTriggerSpec(), true
+	case promptAreaShared:
+		return e.areaSharedSpec(), true
 	}
 	w := min(560, e.window.X-16)
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
@@ -877,6 +882,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 		e.drawAddPreview(pic, s)
 	}
 	e.drawOpenDropdown(pic)
+	e.drawAreaDropdown(pic)
 	if b, ok := e.openMenuEntry(); ok {
 		d := e.menuDropdown(b, true)
 		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
@@ -940,6 +946,9 @@ func (e *MapEditor) statusText() string {
 	if e.pick == pickScriptCell {
 		parts = append(parts, e.word("editor.trigger.pickcell"))
 	}
+	if e.pick == pickArea {
+		parts = append(parts, e.word("editor.area.draw"))
+	}
 	parts = append(parts, strings.Join(e.helpLines(), "  /  "))
 	return strings.Join(parts, "   |   ")
 }
@@ -985,7 +994,7 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	if b, ok := e.openMenuEntry(); ok && p.In(e.menuDropdown(b, true).Bounds(e.font)) {
 		return popMenu
 	}
-	if s, ok := e.promptSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
+	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.areaDropdownHit(p)) {
 		return popPrompt
 	}
 	if s, _, ok := e.objectSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.openDropdownHit(p)) {
@@ -1086,7 +1095,9 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 			e.menuModel.Move(editorWheelRows(&e.listWheel, wheel))
 		}
 	case popPrompt:
-		e.addWheel(wheel)
+		if !e.areaWheel(wheel) {
+			e.addWheel(wheel)
+		}
 	}
 }
 
@@ -1125,6 +1136,12 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			return
 		case promptNewMode:
 			e.newModePress(p)
+			return
+		case promptAreaTrigger:
+			e.areaTriggerPress(p)
+			return
+		case promptAreaShared:
+			e.areaSharedPress(p)
 			return
 		}
 		s, _ := e.promptSpec()
