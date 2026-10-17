@@ -2573,8 +2573,8 @@ package storyguard
 //
 // CommentBytes rises for the map editor's Map panel and its two checks
 // (pkg/ui/mapeditormappanel.go, pkg/game/mapinspectionpanel.go, the new map's
-// mode and drop cell in pkg/game/mapinspectionnew.go) and their tests, this
-// note included.
+// mode and drop cell in pkg/game/mapinspectionnew.go) and their tests, with
+// the new-map test of cmd/mapedit, this note included.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2598,5 +2598,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9182668,
+	CommentBytes: 9182801,
 }
