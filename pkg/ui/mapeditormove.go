@@ -109,6 +109,8 @@ type editorRecordDrag struct {
 	press         image.Point
 	grab, cell    image.Point
 	moved         bool
+	// area is the trigger area handle the drag carries; nil for a record.
+	area *areaHandle
 }
 
 func (e *MapEditor) cancelRecordDrag() {
@@ -167,6 +169,12 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		return true
 	}
 	inside := p.In(image.Rect(0, 0, rail, e.doc.Viewer.cam.ViewH))
+	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() {
+		if h, ok := e.areaPress(p); ok {
+			e.recordDrag = &editorRecordDrag{record: -1, index: -1, press: p, area: h}
+			e.doc.Viewer.dragging = false
+		}
+	}
 	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && e.free() {
 		hit := -1
 		for _, i := range e.hitsAt(p) {
@@ -188,6 +196,9 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 	d := e.recordDrag
 	if d == nil {
 		return false
+	}
+	if d.area != nil {
+		return e.dragArea(d, in, p, inside)
 	}
 	e.down = in.PrimaryDown
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))

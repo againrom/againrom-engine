@@ -91,10 +91,17 @@ func (e *MapEditor) areaLines() []editorLine {
 		return nil
 	}
 	sel := e.selectedTrigger()
-	var out, top []editorLine
-	for _, a := range e.doc.Script.Areas {
+	drag := e.areaDrag()
+	var out, top, handles []editorLine
+	for i, a := range e.doc.Script.Areas {
+		if drag != nil && drag.area == i {
+			a.Rect, a.Radius = e.areaPreview(drag), drag.radius // preview only; no write until release
+		}
 		if a.Rect.Empty() {
 			continue
+		}
+		if a.Trigger == sel && e.editable() && areaEditable(a) {
+			handles = append(handles, e.areaHandleLines(a, a.Rect)...)
 		}
 		ink := areaInk(a.Trigger)
 		lines := e.areaOutline(a.Rect, ink)
@@ -113,7 +120,12 @@ func (e *MapEditor) areaLines() []editorLine {
 			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
 		}
 	}
-	return append(out, top...)
+	if drag != nil && drag.kind == handleDraw {
+		for _, l := range e.areaOutline(e.areaPreview(drag), editorGold) {
+			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
+		}
+	}
+	return append(append(out, top...), handles...)
 }
 
 // areaLabel is one trigger's label on the map: where it stands in the

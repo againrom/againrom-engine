@@ -115,6 +115,13 @@ type InspectionArea struct {
 	Rect    image.Rectangle
 	Centre  image.Point
 	Radius  int
+	// Slots are the node's parameter slots the cells come from: a box's
+	// X, Y, X2, Y2, a cell's or a square's centre X, Y in the first two;
+	// -1 where none. An area with no slots has no handles.
+	Slots [4]int
+	// RadiusNode is the document record of the condition whose slot
+	// RadiusSlot holds a square's radius plus RadiusBias; -1 for none.
+	RadiusNode, RadiusSlot, RadiusBias int
 }
 
 // InspectionScriptTarget is one value a parameter can name, the document

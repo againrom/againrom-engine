@@ -128,7 +128,12 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		if a.Condition {
 			node = model.Conditions
 		}
-		model.Areas = append(model.Areas, ui.InspectionArea{Trigger: a.Trigger, Node: node[a.Node].Record, Shape: int(a.Shape), Rect: a.Rect, Centre: a.Centre, Radius: a.Radius})
+		radius := -1
+		if a.RadiusNode >= 0 {
+			radius = model.Conditions[a.RadiusNode].Record
+		}
+		model.Areas = append(model.Areas, ui.InspectionArea{Trigger: a.Trigger, Node: node[a.Node].Record, Shape: int(a.Shape), Rect: a.Rect, Centre: a.Centre, Radius: a.Radius,
+			Slots: a.Slots, RadiusNode: radius, RadiusSlot: a.RadiusSlot, RadiusBias: a.RadiusBias})
 	}
 	model.Catalog = scriptCatalog()
 	d.Script = model
