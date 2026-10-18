@@ -38,11 +38,11 @@ func TestMapEditor1093TriggerListLateLinkOpensItsTargetAt640(t *testing.T) {
 	r.Lines = append(r.Lines, InspectionLine{Text: "late target link", Role: "action", Reference: 1})
 	r.References = []InspectionReference{{Label: "target", Role: "action", Targets: []InspectionTarget{{Cell: image.Pt(35, 20), Size: image.Pt(1, 1)}}}}
 	e.doc.Records = append(e.doc.Records, r)
-	chromeClick(e, barPoint(t, e, "triggers"))
+	chromeClick(e, barPoint(t, e, "scripts"))
 	if e.filter != 7 || len(e.rows()) != 1 {
-		t.Fatal("the Triggers entry did not list the trigger")
+		t.Fatal("the Scripts entry did not list the trigger")
 	}
-	chromeClick(e, listRowPoint(t, e, 0))
+	chromeClick(e, listRowPoint(t, e, 1))
 	selected := e.selected
 	if selected != 40 {
 		t.Fatalf("selected %d", selected)

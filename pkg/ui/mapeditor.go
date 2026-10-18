@@ -218,6 +218,12 @@ func (e *MapEditor) fitZoom() float64 {
 }
 
 func (e *MapEditor) Select(index int, jump bool) bool {
+	if _, ok := e.scriptVariableRow(index); ok {
+		e.selected, e.objectTop, e.objectHidden = index, 0, false
+		e.groupSel, e.backTrigger = editorGroup{}, -1
+		e.obj.open, e.obj.focus = -1, -1
+		return true
+	}
 	if e.doc == nil || index < 0 || index >= len(e.doc.Records) {
 		return false
 	}
@@ -252,11 +258,16 @@ func (e *MapEditor) cellCenter(cell image.Point) (float64, float64) {
 	return e.doc.Viewer.cellWorldCentre(cell)
 }
 
-var editorFilters = []string{"All", "Units", "Build", "Sacks", "Scenery", "Other", "Issues", "Triggers"}
-
 func (e *MapEditor) rows() []int {
 	if e.doc == nil {
 		return nil
+	}
+	if e.filter == editorScriptsFilter {
+		var out []int
+		for _, section := range e.scriptSections() {
+			out = append(out, section...)
+		}
+		return out
 	}
 	var out []int
 	for i, r := range e.doc.Records {
@@ -274,12 +285,8 @@ func (e *MapEditor) rows() []int {
 			show = !r.Spatial
 		case 6:
 			show = r.Warning != ""
-		case 7:
-			show = r.Kind == "Trigger" || (r.Kind == "Section" && r.Section == 7)
 		case editorPlayersFilter:
 			show = r.Kind == "Player"
-		case editorScriptsFilter:
-			show = scriptRecord(r.Kind)
 		}
 		if show {
 			out = append(out, i)

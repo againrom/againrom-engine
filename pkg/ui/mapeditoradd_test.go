@@ -81,7 +81,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 			filters[f] = k.Kind
 		}
 	}
-	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", 7: "Trigger", editorPlayersFilter: "Player", editorScriptsFilter: "Script", editorGroupsFilter: "Group"}
+	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script", editorGroupsFilter: "Group"}
 	for f, kind := range want {
 		if filters[f] != kind {
 			t.Errorf("list %d adds %q, want %q", f, filters[f], kind)
@@ -124,7 +124,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 			t.Errorf("key %s opened %q, wrote %v", c.key, addKindNow(e), calls.lines)
 		}
 	}
-	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", 7: "Trigger", editorPlayersFilter: "Player", editorScriptsFilter: "Script", editorGroupsFilter: "Group"} {
+	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script", editorGroupsFilter: "Group"} {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		_ = e.Key("player")

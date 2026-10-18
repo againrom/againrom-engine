@@ -101,7 +101,7 @@ var addKinds = []addKindRow{
 	{Kind: "Player", Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
 		addNamed, {Key: "colour", Word: "editor.add.colour", Control: addNumber},
 		{Key: "control", Word: "editor.add.control", Control: addChoice}}},
-	{Kind: "Trigger", Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Filters: []int{7}, Steps: []addStep{
+	{Kind: "Trigger", Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Steps: []addStep{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
 	{Kind: "Script", Word: "editor.add.script", Filters: []int{editorScriptsFilter}, Steps: []addStep{
 		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []string{"Action", "Condition", "Trigger"}}}},

@@ -83,10 +83,12 @@ func (c InspectionScriptCatalog) signature(condition bool, opcode, command uint3
 
 // InspectionScriptNode is one condition or action node.
 type InspectionScriptNode struct {
-	Record        int // its document record
-	ID, Opcode    uint32
-	Label         string // UTF-8, the text its name field edits
-	Types, Values [10]uint32
+	Record            int // its document record
+	ID, Opcode        uint32
+	Label             string // UTF-8, the text its name field edits
+	Types, Values     [10]uint32
+	AddressesVariable bool
+	VariableRegister  uint32
 }
 
 // InspectionTrigger is one trigger: its condition pairs, comparisons,

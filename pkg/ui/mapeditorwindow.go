@@ -134,7 +134,7 @@ func (e *MapEditor) barEntries() []barEntry {
 		{key: "groups", label: e.word("editor.bar.groups")},
 		{key: "sacks", label: e.word("editor.bar.sacks")},
 		{key: "players", label: e.word("editor.bar.players")},
-		{key: "triggers", label: e.word("editor.bar.triggers")},
+		{key: "scripts", label: e.word("editor.list.scripts")},
 		{key: "view", label: e.word("editor.bar.view"), menu: true},
 		{key: "undo", label: e.word("editor.bar.undo"), disabled: !e.editable() || !e.doc.Edits.CanUndo()},
 		{key: "redo", label: e.word("editor.bar.redo"), disabled: !e.editable() || !e.doc.Edits.CanRedo()},
@@ -192,6 +192,13 @@ func (e *MapEditor) ListRowRect(n int) (image.Rectangle, bool) {
 		return image.Rectangle{}, false
 	}
 	return layoutPopup(s, e.font, e.bodyFont()).List.Row(n - top), true
+}
+
+func (e *MapEditor) ListRowCount() int {
+	if s, ok := e.listSpec(); ok && s.List != nil {
+		return s.List.Len()
+	}
+	return 0
 }
 
 // FieldRect is the window rectangle of the control of field n of the object
@@ -258,6 +265,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"report", e.word("editor.view.report")},
 			{"fit", e.word("editor.view.fit")},
 			{"drawarea", e.word("editor.view.drawarea")},
+			{"records", e.word("editor.view.records")},
 		}
 	}
 	return nil
@@ -312,8 +320,8 @@ func (e *MapEditor) barAct(key string) {
 		e.showRecords(3)
 	case "players":
 		e.showRecords(editorPlayersFilter)
-	case "triggers":
-		e.showRecords(7)
+	case "scripts":
+		e.showRecords(editorScriptsFilter)
 	case "undo", "redo":
 		_ = e.Key(key)
 	case "save":
@@ -326,6 +334,8 @@ func (e *MapEditor) menuAct(key string) {
 	e.menu = ""
 	e.endFieldTyping()
 	switch key {
+	case "records":
+		e.showRecords(0)
 	case "panel":
 		if _, ok := e.mapPanel(); ok {
 			e.leave(leaveDrag | leavePick)
@@ -367,9 +377,11 @@ func (e *MapEditor) showRecords(filter int) {
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
 	e.message = ""
 	e.filter, e.listShown = filter, true
-	if filter == editorPlayersFilter {
+	if filter == editorPlayersFilter || filter == editorScriptsFilter {
 		if rows := e.rows(); len(rows) > 0 && !e.selectedIn(rows) {
 			e.Select(rows[0], false)
+		} else if len(rows) == 0 && filter == editorScriptsFilter {
+			e.selected = -1
 		}
 	}
 }
@@ -470,6 +482,23 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		}
 		sel = e.brush.sel[e.brush.mode]
 	case "records":
+		if e.filter == editorScriptsFilter {
+			headings := []string{e.word("editor.scripts.triggers"), e.word("editor.scripts.variables"), e.word("editor.scripts.conditions"), e.word("editor.scripts.actions")}
+			for section, ids := range e.scriptSections() {
+				text := headings[section]
+				if len(ids) == 0 {
+					text = fmt.Sprintf(e.word("editor.scripts.emptyheading"), text)
+				}
+				rows = append(rows, PickerRow{Text: text})
+				for _, id := range ids {
+					if id == e.selected {
+						sel = len(rows)
+					}
+					rows = append(rows, PickerRow{Text: e.scriptRowText(id, section), Choosable: true})
+				}
+			}
+			break
+		}
 		if e.filter == editorGroupsFilter {
 			for n, g := range e.groups() {
 				rows = append(rows, PickerRow{Text: e.groupLabel(g), Choosable: true})
@@ -526,8 +555,6 @@ func (e *MapEditor) listTitle(kind string) string {
 		return e.word("editor.bar.structures")
 	case 3:
 		return e.word("editor.bar.sacks")
-	case 7:
-		return e.word("editor.bar.triggers")
 	case editorPlayersFilter:
 		return e.word("editor.bar.players")
 	case editorScriptsFilter:
@@ -605,13 +632,13 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		s.Buttons = []string{e.word("editor.button.open"), e.word("editor.button.file")}
 	case "records":
 		if e.filter == editorScriptsFilter {
-			s.Notes = []string{"A: add script record / E: fields"}
+			s.Notes = []string{e.word("editor.scripts.hint")}
+			if len(e.rows()) == 0 && e.doc.ScriptNotice != "" {
+				s.Notes = append(s.Notes, e.doc.ScriptNotice)
+			}
 		}
 		if _, ok := e.listAdd(); ok {
 			s.Buttons = []string{e.word("editor.button.add")}
-		}
-		if m.Len() == 0 && e.filter == 7 && e.doc != nil {
-			s.Notes = []string{editorClip(e.bodyFont(), e.doc.ScriptNotice, 380)}
 		}
 	}
 	if m.Len() > 0 {
@@ -649,6 +676,20 @@ func (e *MapEditor) listChoose(n int, open bool) {
 	case "brush":
 		e.brushRowClick(n)
 	case "records":
+		if e.filter == editorScriptsFilter {
+			row := 0
+			for _, ids := range e.scriptSections() {
+				row++
+				for _, id := range ids {
+					if row == n {
+						e.Select(id, true)
+						return
+					}
+					row++
+				}
+			}
+			return
+		}
 		if e.filter == editorGroupsFilter {
 			if gs := e.groups(); n >= 0 && n < len(gs) {
 				e.chooseGroup(gs[n])
@@ -685,6 +726,9 @@ func (e *MapEditor) catalogOpen() {
 // objectSpec is the selected record's popup as data, and the reference each
 // link row opens.
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
+	if v, ok := e.scriptVariableRow(e.selected); ok && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
+		return e.variableSpec(v)
+	}
 	if s, links, ok := e.groupSpec(); ok {
 		return s, links, true
 	}
@@ -1216,6 +1260,9 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupTitle:
 		e.drag, e.dragFrom = popObject, p
 	case popupRowButton:
+		if _, ok := e.scriptVariableRow(e.selected); ok {
+			return
+		}
 		if _, ok := e.scriptPopup(); ok {
 			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {
 				e.scriptRowButton(row, k)
@@ -1232,8 +1279,15 @@ func (e *MapEditor) objectPress(p image.Point) {
 			e.Select(-links[n]-1, true)
 			return
 		}
+		if _, ok := e.scriptVariableRow(e.selected); ok {
+			return
+		}
 		e.objectRowPress(part, n)
 	case popupButton:
+		if _, ok := e.scriptVariableRow(e.selected); ok {
+			e.closeObject()
+			return
+		}
 		if v, ok := e.scriptPopup(); ok {
 			e.scriptButton(v, n)
 			return

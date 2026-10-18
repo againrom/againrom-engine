@@ -285,19 +285,15 @@ func TestReleaseMapEditorAddWindowFrames(t *testing.T) {
 		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", image.Rectangle{})
 	}
 	clicker := &editorClicker{t: t}
-	for _, bar := range []string{"units", "structures", "sacks", "groups", "players", "triggers", "scripts"} {
+	for _, bar := range []string{"units", "structures", "sacks", "groups", "players", "scripts"} {
 		e := x.Editor()
 		e.Layout(1280, 800)
 		if err := e.Open(in.key); err != nil {
 			t.Fatal(err)
 		}
 		closeMapPanel(t, e)
-		if bar == "scripts" {
-			_ = e.Key(bar)
-		} else {
-			r, ok := e.BarRect(bar)
-			clicker.click(e, r, ok, "the "+bar+" entry")
-		}
+		r, ok := e.BarRect(bar)
+		clicker.click(e, r, ok, "the "+bar+" entry")
 		shot(e, "list-"+bar)
 	}
 	for _, c := range addCases(in) {

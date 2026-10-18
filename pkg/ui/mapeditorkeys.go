@@ -123,7 +123,7 @@ func init() {
 		{key: "clear", live: promptHears, act: (*MapEditor).keyClear, unlisted: unlistedPrompt},
 		{key: "backspace", live: promptHears, act: (*MapEditor).keyBackspace, unlisted: unlistedPrompt},
 		{key: "fit", act: (*MapEditor).keyFit, unlisted: unlistedRail},
-		{key: "triggers", act: (*MapEditor).keyTriggers, unlisted: "the rail has a filter for it"},
+		{key: "triggers", act: (*MapEditor).keyScripts, unlisted: "the Scripts entry opens it"},
 		{key: "pageup", act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "pagedown", act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "home", act: (*MapEditor).keyPage, unlisted: "list travel"},
@@ -272,7 +272,7 @@ func (e *MapEditor) keyEscape(string) error {
 		e.leave(leaveBrush)
 	case e.catalog && e.doc != nil:
 		e.leave(leaveCatalog)
-	case e.groupSel.set && !e.objectHidden || e.selected >= 0 && !e.objectHidden:
+	case e.groupSel.set && !e.objectHidden || e.selected != -1 && !e.objectHidden:
 		e.closeObject()
 	case e.listShown:
 		e.closeList()
@@ -470,11 +470,6 @@ func (e *MapEditor) keyBackspace(string) error {
 
 func (e *MapEditor) keyFit(string) error {
 	e.Fit()
-	return nil
-}
-
-func (e *MapEditor) keyTriggers(string) error {
-	e.showRecords(7)
 	return nil
 }
 
