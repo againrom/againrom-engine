@@ -287,7 +287,7 @@ func TestWindowKeysMoveTheDropCellAndRetargetAnArm(t *testing.T) {
 	// G lists the arms; Enter arms the pick; a click on a unit retargets.
 	_ = e.Key("goals")
 	rows, open := e.ReportOpen()
-	if !open || len(rows) != 4 || e.ReportSelected() != 0 {
+	if !open || len(rows) != 5 || e.ReportSelected() != 0 {
 		t.Fatalf("the script panel: open %v, %d rows", open, len(rows))
 	}
 	_ = e.Key("enter")

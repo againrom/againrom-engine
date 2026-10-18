@@ -470,7 +470,7 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		for n, f := range e.report.rows {
 			label := reportLabel(f)
 			if len(e.report.goals) > 0 {
-				label = goalLabel(e.report.goals[n])
+				label = e.goalText(e.report.goals[n])
 			}
 			rows = append(rows, PickerRow{Text: label, Choosable: true})
 		}
@@ -624,6 +624,11 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		return editorClip(e.bodyFont(), rows[row].Text, width)
 	}
 	switch kind {
+	case "report":
+		if len(e.report.goals) > 0 {
+			s.Width, s.ListAside = 560, 84
+			s.Notes = []string{e.word("editor.arms.hint")}
+		}
 	case "catalog":
 		if e.doc == nil {
 			s.Notes = []string{e.word("editor.picker.hint")}
@@ -929,6 +934,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	e.drawAreaLabels(pic)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+		e.drawGoalLinks(pic, s)
 	}
 	if s, _, ok := e.objectSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
@@ -1226,6 +1232,14 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		}
 		s, _ := e.listSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
+		if len(e.report.goals) > 0 {
+			for row := range e.report.goals {
+				if r := e.goalButton(l, row); !r.Empty() && p.In(r) {
+					e.openGoal(row)
+					return
+				}
+			}
+		}
 		switch part, n := l.hit(p); part {
 		case popupClose:
 			e.closeList()

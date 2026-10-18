@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The map editor's G panel opens each arm's script and the drop cell's
+  action. Back returns to the selected row; Enter and D keep their target picks.
 - [ROM1] In the map editor, Show message picks a page by its first line.
   Open edits its text and speaker; New message creates a page that travels
   with Save As and mod export. Undo restores the page and its node value.

@@ -177,8 +177,32 @@ func goalListing(m *alm.Map, sc alm.Script, g goalRow) ui.InspectionGoal {
 		who = fmt.Sprintf("trigger %q", sc.Triggers[g.trigger].Name)
 	}
 	target, cell, has := describeTarget(m, g.param, g.value)
+	openKind, openIndex := "Condition", g.node
+	if g.trigger >= 0 {
+		openKind, openIndex = "Trigger", g.trigger
+	}
 	return ui.InspectionGoal{Arm: g.arm, Pick: pick, Kind: "Condition", Index: g.node, Cell: cell, HasCell: has,
+		OpenKind: openKind, OpenIndex: openIndex,
 		Text: fmt.Sprintf("%s: %s, %s", who, strings.ToLower(inspectionOperation("Condition", n.Opcode)), target)}
+}
+
+func (s *mapInspectionEdits) DropGoals() []ui.InspectionGoal {
+	m, err := s.model.Map()
+	if err != nil {
+		return nil
+	}
+	sc, err := m.Script()
+	if err != nil {
+		return nil
+	}
+	var rows []ui.InspectionGoal
+	for i, n := range sc.Actions {
+		if n.Opcode == 0x10002 {
+			rows = append(rows, ui.InspectionGoal{Arm: "Drop", Kind: "Action", Index: i,
+				OpenKind: "Action", OpenIndex: i, Cell: image.Pt(int(n.Value[0]), int(n.Value[1])), HasCell: true})
+		}
+	}
+	return rows
 }
 
 // describeTarget names what a target value points at on the map, and the cell

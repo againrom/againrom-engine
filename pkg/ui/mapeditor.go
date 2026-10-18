@@ -93,6 +93,8 @@ type InspectionGoal struct {
 	Index     int
 	Cell      image.Point
 	HasCell   bool
+	OpenKind  string
+	OpenIndex int
 }
 
 // InspectionField is one settable field of a selected record and its value.

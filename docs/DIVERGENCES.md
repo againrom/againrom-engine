@@ -177,6 +177,7 @@ copying those counts.
 | `docs/divergences/town.md` |
 | `docs/divergences/ui-and-settings.md` |
 | `docs/divergences/ui-map-editor.md` |
+| `docs/divergences/ui-map-editor-areas.md` |
 | `docs/divergences/ui-map-editor-new-map.md` |
 | `docs/divergences/ui-widget-kit.md` |
 | `docs/divergences/world-map.md` |

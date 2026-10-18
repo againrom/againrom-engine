@@ -166,7 +166,7 @@ func TestWindowKeysAddAWinArmAndAnInstalledArmStaysUnchanged(t *testing.T) {
 	e, _ := openGoalMap(t, b)
 	_ = e.Key("goals")
 	rows, open := e.ReportOpen()
-	if !open || len(rows) != 5 {
+	if !open || len(rows) != 6 {
 		t.Fatalf("the script panel: open %v, %d rows", open, len(rows))
 	}
 	_ = e.Key("enter")

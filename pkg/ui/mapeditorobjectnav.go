@@ -11,6 +11,10 @@ type objectPlace struct {
 	group      editorGroup
 	register   uint32
 	draft      *objectEdit
+	goals      bool
+	listTop    int
+	goalRow    int
+	hidden     bool
 }
 
 func objectParameter(t uint32) bool {
@@ -64,6 +68,20 @@ func (e *MapEditor) backObject() {
 	p := e.objectBack[len(e.objectBack)-1]
 	back := e.objectBack[:len(e.objectBack)-1]
 	e.messagePage = 0
+	if p.goals {
+		if s, ok := e.script(); ok && !e.report.open {
+			e.openGoals(s, p.goalRow)
+			e.listSpec()
+		}
+		e.selectFinding(p.goalRow)
+		e.objectBack, e.objectHidden, e.objectTop = back, p.hidden, p.top
+		e.obj.open, e.obj.focus = -1, -1
+		if e.model != nil {
+			top, _ := e.model.Visible()
+			e.model.Scroll(p.listTop - top)
+		}
+		return
+	}
 	if p.kind == "Variable" {
 		for i, v := range e.scriptVariables() {
 			if v.register == p.register {
