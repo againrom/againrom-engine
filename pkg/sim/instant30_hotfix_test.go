@@ -25,6 +25,21 @@ func instant30World(t *testing.T) *World {
 	return w
 }
 
+func TestInstantThirtyMatchesFullParameter(t *testing.T) {
+	w := instant30World(t)
+	before, beforeHash := laForm(t, w), w.Hash()
+	laNode(w, ScriptInstant{Op: ScriptInstantUnitEffectAge, Unit: 1, HasUnit: true,
+		Args: [scriptParams]int32{276, 500}})
+	if w.attached[0].Remaining != 111 || w.Hash() != beforeHash || !bytes.Equal(laForm(t, w), before) {
+		t.Fatalf("p0=276 changed spell-20 Remaining to %d or changed hashed/saved state", w.attached[0].Remaining)
+	}
+	laNode(w, ScriptInstant{Op: ScriptInstantUnitEffectAge, Unit: 1, HasUnit: true,
+		Args: [scriptParams]int32{20, 500}})
+	if w.attached[0].Remaining != 500 || w.Hash() == beforeHash {
+		t.Fatalf("p0=20 left Remaining=%d or failed to change hashed state", w.attached[0].Remaining)
+	}
+}
+
 func TestInstantThirtyWritesEveryCanonicalMatchAndNothingElse(t *testing.T) {
 	t.Parallel()
 
@@ -35,7 +50,7 @@ func TestInstantThirtyWritesEveryCanonicalMatchAndNothingElse(t *testing.T) {
 	beforeHash := w.Hash()
 
 	laNode(w, ScriptInstant{Op: ScriptInstantUnitEffectAge, Unit: 1, HasUnit: true,
-		Args: [scriptParams]int32{276, 60000}})
+		Args: [scriptParams]int32{20, 60000}})
 
 	if got, expected := laForm(t, w), laForm(t, want); !bytes.Equal(got, expected) {
 		t.Fatal("instant 30 changed state outside the two target-and-byte-spell Remaining fields")
@@ -66,7 +81,7 @@ func TestInstantThirtyRunsThroughNewScriptAndStepTraced(t *testing.T) {
 			base := instant30World(t)
 			program, err := NewScript(nil, []ScriptInstant{{
 				Op: ScriptInstantUnitEffectAge, Unit: 1, HasUnit: true,
-				Args: [scriptParams]int32{276, duration},
+				Args: [scriptParams]int32{20, duration},
 			}}, []ScriptTrigger{{
 				Instants: [4]int32{0, ScriptNone, ScriptNone, ScriptNone}, Once: true,
 			}})
@@ -100,7 +115,7 @@ func TestInstantThirtyZeroDurationRoundTripsBeforeNextEffectPass(t *testing.T) {
 	base := instant30World(t)
 	program, err := NewScript(nil, []ScriptInstant{{
 		Op: ScriptInstantUnitEffectAge, Unit: 1, HasUnit: true,
-		Args: [scriptParams]int32{276, 0},
+		Args: [scriptParams]int32{20, 0},
 	}}, []ScriptTrigger{{
 		Instants: [4]int32{0, ScriptNone, ScriptNone, ScriptNone}, Once: true,
 	}})
@@ -252,7 +267,7 @@ func TestInstantThirtyNoOpPopulationIsByteIdentical(t *testing.T) {
 	}
 }
 
-func TestInstantThirtyUsesByteSpellAndWordDuration(t *testing.T) {
+func TestInstantThirtyUsesByteEffectIDFullParameterAndWordDuration(t *testing.T) {
 	t.Parallel()
 
 	for _, duration := range []int32{0, 1, 255, 256, 60000} {
@@ -287,8 +302,9 @@ func TestInstantThirtyUsesByteSpellAndWordDuration(t *testing.T) {
 		{"zero matches 256", 256, 0, true},
 		{"one matches 257", 257, 1, true},
 		{"255 matches 255", 255, 255, true},
-		{"256 matches 256", 256, 256, true},
+		{"256 does not match byte zero", 256, 256, false},
 		{"one does not match 256", 1, 256, false},
+		{"negative does not match 20", 20, -236, false},
 	} {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {

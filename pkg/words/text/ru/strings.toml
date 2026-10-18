@@ -376,6 +376,7 @@
 "editor.param.cell" = "Клетка"
 "editor.param.const" = "Константа"
 "editor.param.item" = "Предмет"
+"editor.param.nospell" = "Нет заклинания"
 "editor.param.structure" = "Постройка"
 "editor.param.kind" = "Вид %d"
 "editor.param.hero" = "герой %d"

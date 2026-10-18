@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Map script spell and effect parameters pick spells by number and name,
+  using the installed game's language. Unknown values keep their number.
 - [ROM1] The map editor's G panel opens each arm's script and the drop cell's
   action. Back returns to the selected row; Enter and D keep their target picks.
 - [ROM1] In the map editor, Show message picks a page by its first line.

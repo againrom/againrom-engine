@@ -799,7 +799,7 @@ func instantOracle(in sim.ScriptInstant, before, after instantObservation, run s
 	case sim.ScriptInstantCellEffectAge:
 		return cellEffectAge(in, before, after, run), "TRIG-EFFECTTIME-034/TRIG-CELLEFFECT-045: all matches at the 16-bit ADD cell key whose effect-id byte equals the full 32-bit spell parameter take the authored word duration; no match is a no-op"
 	case sim.ScriptInstantUnitEffectAge:
-		return unitEffectAge(in, before, after, run), "TRIG-EFFECTTIME-034: matching attached effect takes the authored word duration; no match is a no-op"
+		return unitEffectAge(in, before, after, run), "TRIG-EFFECTTIME-034/TRIG-EFFECTDOMAIN-142: attached effect id byte equals the full dword parameter; every match takes the authored word duration; no match is a no-op"
 	case sim.ScriptInstantGroupOffMap:
 		return groupPresence(in, before, after, run, true), "TRIG-MAPGROUP-043: every member carrying the raw group id loses map presence"
 	case sim.ScriptInstantGroupOnMap:
@@ -1110,10 +1110,11 @@ func cellEffectAge(in sim.ScriptInstant, before, after instantObservation, run s
 	return matched > 0 || run.Outcome == sim.ScriptInstantNoStateChange
 }
 
+// unitEffectAge follows TRIG-EFFECTTIME-034 and TRIG-EFFECTDOMAIN-142.
 func unitEffectAge(in sim.ScriptInstant, before, after instantObservation, run sim.ScriptInstantRun) bool {
 	matched := 0
 	for _, b := range before.Attached {
-		if b.Target != in.Unit || byte(b.Spell) != byte(in.Args[0]) {
+		if b.Target != in.Unit || int32(byte(b.Spell)) != in.Args[0] {
 			continue
 		}
 		matched++

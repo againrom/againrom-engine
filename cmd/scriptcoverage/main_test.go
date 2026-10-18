@@ -3,7 +3,29 @@ package main
 import (
 	"os"
 	"testing"
+
+	"againrom/pkg/sim"
 )
+
+func TestUnitEffectAgeMatchesFullParameter(t *testing.T) {
+	before := instantObservation{Attached: []sim.ActiveEffect{{Target: 1, Spell: 20, Remaining: 32}}}
+	after := instantObservation{Attached: []sim.ActiveEffect{{Target: 1, Spell: 20, Remaining: 500}}}
+	in := sim.ScriptInstant{Op: sim.ScriptInstantUnitEffectAge, Unit: 1, HasUnit: true}
+	in.Args[0], in.Args[1] = 276, 500
+	if !unitEffectAge(in, before, before, sim.ScriptInstantRun{Outcome: sim.ScriptInstantNoStateChange}) {
+		t.Error("p0=276 no-op rejected by the effect oracle")
+	}
+	if unitEffectAge(in, before, after, sim.ScriptInstantRun{Outcome: sim.ScriptInstantStateChanged}) {
+		t.Error("p0=276 byte-alias mutation accepted by the effect oracle")
+	}
+	in.Args[0] = 20
+	if !unitEffectAge(in, before, after, sim.ScriptInstantRun{Outcome: sim.ScriptInstantStateChanged}) {
+		t.Error("p0=20 Remaining write rejected by the effect oracle")
+	}
+	if unitEffectAge(in, before, before, sim.ScriptInstantRun{Outcome: sim.ScriptInstantNoStateChange}) {
+		t.Error("p0=20 missing Remaining write accepted by the effect oracle")
+	}
+}
 
 func TestTheClaimBackedOperationDenominatorHasFiftyTwoUniqueRows(t *testing.T) {
 	keys := operationKeys()

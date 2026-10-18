@@ -51,14 +51,13 @@ func (w *World) setNativeAttachedEffectMask(target EntityID, spell uint16, prese
 	}
 }
 
-// setAttachedEffectDuration is instant 30's canonical store
-// (TRIG-EFFECTTIME-034). The original effect id is a byte, so both the stored
-// id and the authored parameter are compared after byte narrowing. Every
-// target-and-spell match is written; a missing match creates nothing.
-func (w *World) setAttachedEffectDuration(target EntityID, spell uint8, duration uint16) {
+// setAttachedEffectDuration compares the zero-extended effect byte with the
+// full parameter (TRIG-EFFECTTIME-034, TRIG-EFFECTDOMAIN-142). Every match is
+// written; a missing match creates nothing.
+func (w *World) setAttachedEffectDuration(target EntityID, spell int32, duration uint16) {
 	for i := range w.attached {
 		e := &w.attached[i]
-		if e.Target == target && uint8(e.Spell) == spell {
+		if e.Target == target && int32(uint8(e.Spell)) == spell {
 			e.Remaining = duration
 		}
 	}

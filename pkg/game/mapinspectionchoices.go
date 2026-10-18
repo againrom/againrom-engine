@@ -138,10 +138,22 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 			}
 		}
 	case "spell":
-		add(0, "No spell")
+		add(0, x.inspectionUTF8(x.word("editor.param.nospell")))
+		var names *TextTable
+		if x.archives != nil {
+			names = LoadTextTable(x.archives.Containers, SpellNamesTextPath, InstallTextCode(x.archives.Containers, x.archives.Game().Edition()))
+		}
 		if x.table != nil && x.table.Spells != nil {
 			for i := 1; i < x.table.Spells.Len() && i <= math.MaxInt16; i++ {
-				add(int64(i), x.table.Spells.EntryName(i))
+				name := x.table.Spells.EntryName(i)
+				if x.archives != nil {
+					var ok bool
+					name, ok = names.At(i - 1)
+					if !ok {
+						continue
+					}
+				}
+				add(int64(i), name)
 			}
 		}
 	case "effect", "head":

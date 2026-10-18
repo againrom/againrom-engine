@@ -313,7 +313,7 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 			for _, c := range e.doc.Script.Catalog.GroupCommands {
 				f.Choices = append(f.Choices, InspectionChoice{int64(c), e.commandName(c)})
 			}
-		case objectParameter(kind):
+		case objectParameter(kind), kind >= ScriptSpellParameter && kind <= ScriptAreaSpellParameter:
 			f.Choices = e.parameterChoices(kind, f.Value)
 		}
 		out = append(out, f)

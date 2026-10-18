@@ -71,6 +71,20 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 		name := strings.TrimPrefix(item.Label, fmt.Sprintf("%d: ", item.Value))
 		add(mapload.ScriptItem, value, -1, name, fmt.Sprintf("%d: %s", value, name), 0)
 	}
+	for _, spell := range x.recordCatalog("spell") {
+		value := uint32(spell.Value)
+		if value < 1 || value > 28 {
+			continue
+		}
+		add(ui.ScriptSpellParameter, value, -1, spell.Label, spell.Label, 0)
+		if value != 26 {
+			add(ui.ScriptEntrySpellParameter, value, -1, spell.Label, spell.Label, 0)
+		}
+		switch value {
+		case 3, 7, 8, 12, 17, 19:
+			add(ui.ScriptAreaSpellParameter, value, -1, spell.Label, spell.Label, 0)
+		}
+	}
 	registers := map[uint32]bool{}
 	for _, nodes := range [][]ui.InspectionScriptNode{d.Script.Actions, d.Script.Conditions} {
 		for _, n := range nodes {

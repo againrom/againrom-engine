@@ -185,10 +185,9 @@ const (
 	// onto the addressed cell's own record. See celltail.go.
 	ScriptInstantCellTail int32 = 25
 
-	// ScriptInstantUnitEffectAge is opcode 30, the unit-side twin of opcode
-	// 29 (`TRIG-EFFECTTIME-034`): the attached effect whose id matches
-	// `(u8)p0` gets `(u16)p1` as its remaining duration. 29 re-times what
-	// stands on a CELL and this re-times what is attached to a UNIT.
+	// ScriptInstantUnitEffectAge is opcode 30 (TRIG-EFFECTTIME-034,
+	// TRIG-EFFECTDOMAIN-142): attached effects whose zero-extended id byte
+	// equals full-dword p0 receive (u16)p1 as their remaining duration.
 	ScriptInstantUnitEffectAge int32 = 30
 
 	// ScriptInstantProperty is opcode 34 (`TRIG-PROPERTY-036`): a word-wide
@@ -1863,7 +1862,7 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 // attached list owns existence and remaining duration; SpellFX is presentation
 // state and does not participate in matching.
 func (w *World) setUnitEffectTime(i int, spell, duration int32) {
-	w.setAttachedEffectDuration(w.entities[i].ID, uint8(spell), uint16(duration))
+	w.setAttachedEffectDuration(w.entities[i].ID, spell, uint16(duration))
 }
 
 // setUnitProperty is instant 34's whole arm.

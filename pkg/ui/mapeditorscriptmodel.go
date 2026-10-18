@@ -62,6 +62,12 @@ const ScriptMessageParameter uint32 = 11
 
 const NewMessageChoice int64 = 1 << 32
 
+const (
+	ScriptSpellParameter uint32 = 12 + iota
+	ScriptEntrySpellParameter
+	ScriptAreaSpellParameter
+)
+
 // operations are the catalog's operations of a family.
 func (c InspectionScriptCatalog) operations(condition bool) []InspectionScriptOperation {
 	if condition {

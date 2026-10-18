@@ -393,6 +393,7 @@
 "editor.param.cell" = "Cell"
 "editor.param.const" = "Constant"
 "editor.param.item" = "Item"
+"editor.param.nospell" = "No spell"
 "editor.param.structure" = "Structure"
 "editor.param.kind" = "Kind %d"
 "editor.param.hero" = "hero %d"

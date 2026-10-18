@@ -287,10 +287,28 @@ func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot i
 	if !condition && opcode == 2 && slot == 0 && types[slot] == mapload.ScriptInt {
 		return ui.ScriptMessageParameter
 	}
+	if !condition && (types[slot] == 1 || types[slot] == 7) {
+		argument := 0
+		for _, tag := range types[:slot] {
+			switch tag {
+			case 2, 3, 4, 8, 9:
+			default:
+				argument++
+			}
+		}
+		switch {
+		case opcode == 21 && argument == 4, opcode == 24 && argument == 2, opcode == 30 && argument == 0:
+			return ui.ScriptSpellParameter
+		case opcode == 25 && argument == 0:
+			return ui.ScriptEntrySpellParameter
+		case opcode == 29 && argument == 2:
+			return ui.ScriptAreaSpellParameter
+		}
+	}
 	if scriptAddressesVariable(condition, opcode) && scriptVariableSlot(types) == slot {
 		return ui.ScriptVariableParameter
 	}
-	if types[slot] == ui.ScriptVariableParameter || types[slot] == ui.ScriptMessageParameter {
+	if types[slot] >= ui.ScriptVariableParameter && types[slot] <= ui.ScriptAreaSpellParameter {
 		return 0
 	}
 	return types[slot]
