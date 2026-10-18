@@ -175,6 +175,16 @@ func (e *MapEditor) setField(text string) error {
 		return err
 	}
 	e.leave(leavePrompt)
+	if !field.Text && strings.TrimSpace(text) == strconv.FormatInt(NewMessageChoice, 10) {
+		e.obj.doc = nil
+		e.loadObject()
+		for i, f := range e.obj.fields {
+			if f.Key == field.Key && e.messageField(i) {
+				e.openParameter(i)
+				break
+			}
+		}
+	}
 	return nil
 }
 
@@ -225,6 +235,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 // selectNewest selects the record of kind with the highest index, which is
 // where a clone or a new record is appended.
 func (e *MapEditor) selectNewest(kind string) {
+	e.messagePage = 0
 	best := -1
 	for i, r := range e.doc.Records {
 		if r.Kind == kind && (best < 0 || r.Index > e.doc.Records[best].Index) {

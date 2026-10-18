@@ -14,7 +14,7 @@ type objectPlace struct {
 }
 
 func objectParameter(t uint32) bool {
-	return t == scriptUnit || t == scriptGroup || t == scriptPlayer || t == scriptStructure || t == scriptItem || t == ScriptVariableParameter
+	return t == scriptUnit || t == scriptGroup || t == scriptPlayer || t == scriptStructure || t == scriptItem || t == ScriptVariableParameter || t == ScriptMessageParameter
 }
 
 func (e *MapEditor) objectPlace() objectPlace {
@@ -63,6 +63,7 @@ func (e *MapEditor) backObject() {
 	}
 	p := e.objectBack[len(e.objectBack)-1]
 	back := e.objectBack[:len(e.objectBack)-1]
+	e.messagePage = 0
 	if p.kind == "Variable" {
 		for i, v := range e.scriptVariables() {
 			if v.register == p.register {
@@ -128,6 +129,14 @@ func (e *MapEditor) openParameter(field int) {
 	if !ok || !e.objectMayLeave() {
 		return
 	}
+	if strings.HasPrefix(e.obj.fields[field].Key, "value") {
+		vw, _ := e.scriptPopup()
+		slot, _ := strconv.Atoi(strings.TrimPrefix(e.obj.fields[field].Key, "value"))
+		if e.nodeParameterKind(vw, uint32(e.obj.signature[0]), e.obj.types, slot) == ScriptMessageParameter {
+			e.openMessage(target.Value)
+			return
+		}
+	}
 	if target.Record >= 0 || target.Record <= -2 {
 		e.openObjectRecord(target.Record, false)
 		return
@@ -150,7 +159,10 @@ func (e *MapEditor) nodeParameterKind(v scriptView, opcode uint32, types [10]uin
 	if f := e.doc.Script.Catalog.ParameterKind; f != nil {
 		return f(v.condition, opcode, types, slot)
 	}
-	if types[slot] == ScriptVariableParameter {
+	if !v.condition && opcode == 2 && slot == 0 && types[slot] == scriptInt {
+		return ScriptMessageParameter
+	}
+	if types[slot] == ScriptVariableParameter || types[slot] == ScriptMessageParameter {
 		return scriptNone
 	}
 	return types[slot]
@@ -160,8 +172,8 @@ func (e *MapEditor) parameterChoices(kind uint32, value int64) []InspectionChoic
 	var out []InspectionChoice
 	found := false
 	for _, target := range e.doc.Script.Targets[kind] {
-		out = append(out, InspectionChoice{int64(target.Value), target.ChoiceText()})
-		found = found || int64(target.Value) == value
+		out = append(out, InspectionChoice{target.ChoiceValue(), target.ChoiceText()})
+		found = found || target.ChoiceValue() == value
 	}
 	if !found {
 		out = append(out, InspectionChoice{value, strconv.FormatInt(value, 10)})

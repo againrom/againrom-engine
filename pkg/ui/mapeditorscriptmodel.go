@@ -58,6 +58,10 @@ const scriptGroupCommand = 6
 // ScriptVariableParameter is a view kind, not an ALM type.
 const ScriptVariableParameter uint32 = 10
 
+const ScriptMessageParameter uint32 = 11
+
+const NewMessageChoice int64 = 1 << 32
+
 // operations are the catalog's operations of a family.
 func (c InspectionScriptCatalog) operations(condition bool) []InspectionScriptOperation {
 	if condition {
@@ -132,12 +136,20 @@ type InspectionArea struct {
 // InspectionScriptTarget is one value a parameter can name, the document
 // record link (-1 none, <=-2 a variable row), member count and display name.
 type InspectionScriptTarget struct {
-	Value   uint32
-	Record  int
-	Members int
-	Name    string
-	Choice  string
-	Uses    []InspectionScriptUse
+	Value      uint32
+	Record     int
+	Members    int
+	Name       string
+	Choice     string
+	NewMessage bool
+	Uses       []InspectionScriptUse
+}
+
+func (t InspectionScriptTarget) ChoiceValue() int64 {
+	if t.NewMessage {
+		return NewMessageChoice
+	}
+	return int64(t.Value)
 }
 
 // InspectionScriptUse is one parameter and the triggers naming its node.
@@ -153,7 +165,7 @@ func (m *InspectionScriptModel) OpenTarget(kind, value uint32) *InspectionScript
 	}
 	for i := range m.Targets[kind] {
 		t := &m.Targets[kind][i]
-		if t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0) {
+		if !t.NewMessage && t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0 || kind == ScriptMessageParameter) {
 			return t
 		}
 	}

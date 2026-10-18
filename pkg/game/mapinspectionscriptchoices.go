@@ -12,7 +12,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc alm.Script) map[uint32][]ui.InspectionScriptTarget {
+func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc alm.Script, pages map[string][]byte) map[uint32][]ui.InspectionScriptTarget {
 	out := map[uint32][]ui.InspectionScriptTarget{}
 	add := func(kind, value uint32, record int, name, choice string, members int) {
 		out[kind] = append(out[kind], ui.InspectionScriptTarget{Value: value, Record: record, Name: name, Choice: choice, Members: members})
@@ -97,6 +97,7 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 			break
 		}
 	}
+	x.messageTargets(out, pages)
 	return out
 }
 
@@ -110,8 +111,14 @@ func (s *mapInspectionEdits) scriptParameterChoices(sc alm.Script, k mapedit.Kin
 	}
 	n := scriptNodes(sc, k)[index]
 	var out []ui.InspectionChoice
-	for _, target := range s.scriptTargets[scriptParameterKind(k == mapedit.KindCondition, n.Opcode, n.Type, slot)] {
-		out = append(out, ui.InspectionChoice{Value: int64(target.Value), Label: target.ChoiceText()})
+	kind := scriptParameterKind(k == mapedit.KindCondition, n.Opcode, n.Type, slot)
+	current, found := int64(int32(n.Value[slot])), false
+	for _, target := range s.scriptTargets[kind] {
+		out = append(out, ui.InspectionChoice{Value: target.ChoiceValue(), Label: target.ChoiceText()})
+		found = found || target.ChoiceValue() == current
+	}
+	if kind == ui.ScriptMessageParameter && !found {
+		out = append(out, ui.InspectionChoice{Value: current, Label: strconv.FormatInt(current, 10)})
 	}
 	return out
 }

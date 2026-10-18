@@ -304,6 +304,10 @@ func (e *MapEditor) keyCatalog(string) error {
 
 func (e *MapEditor) keyEnter(string) error {
 	if e.objectTyping() {
+		if e.messagePage != 0 && e.obj.focus == 0 {
+			e.objectText("\n", false)
+			return nil
+		}
 		e.applyObject()
 		return nil
 	}
@@ -450,7 +454,11 @@ func (e *MapEditor) keyHistory(key string) error {
 	} else {
 		next, err = e.doc.Edits.Redo()
 	}
-	return e.adoptEdit(next, err)
+	if err := e.adoptEdit(next, err); err != nil {
+		return err
+	}
+	e.refreshMessagePage()
+	return nil
 }
 
 func (e *MapEditor) keyBackspace(string) error {

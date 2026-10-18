@@ -64,7 +64,7 @@ func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument,
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}
-	d, err := s.inspector.inspectModel(m, s.source)
+	d, err := s.inspector.inspectModel(m, s.source, s.workspace.Pages)
 	if err == nil {
 		d.Edits = s
 		if d.Script != nil {
@@ -267,6 +267,13 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 // range, its reference check and the record's placement check pass on the
 // edited map.
 func (s *mapInspectionEdits) SetField(kind string, index int, key string, value int64) (*ui.InspectionDocument, error) {
+	if value == ui.NewMessageChoice && kind == "Action" && key == "value0" {
+		if view, err := s.model.Map(); err == nil {
+			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == ui.ScriptMessageParameter {
+				return s.NewMessage(kind, index, key)
+			}
+		}
+	}
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err

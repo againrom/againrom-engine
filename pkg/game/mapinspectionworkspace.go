@@ -123,6 +123,9 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 	*from = (*from)[:len(*from)-1]
 	s.model, s.workspace = next, last.workspace
 	s.workspaceImage = workspaceBytes(s.workspace)
+	if d.Script != nil {
+		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
+	}
 	return d, nil
 }
 
@@ -163,6 +166,9 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	s.rememberWorkspace(false)
 	s.workspace = next
 	s.workspaceImage = image
+	if d.Script != nil {
+		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
+	}
 	return d, nil
 }
 

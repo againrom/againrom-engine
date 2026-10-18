@@ -433,23 +433,33 @@ func (a EventAudience) speakerFacts(tag string) (female, mage, resolved bool) {
 // part n's", free to pick a different tag from the one the words came from on
 // exactly the inputs where the containment above is doing something surprising.
 func eventPartTag(payload []byte, n int, aud EventAudience) (tag, body string, ok bool) {
-	tag, body, ok = eventPartTail(payload, n, aud)
-	if end := strings.IndexByte(body, '<'); end >= 0 {
-		body = body[:end]
+	open, close, end, ok := eventPartRange(payload, n, aud)
+	if !ok {
+		return "", "", false
 	}
-	return
+	s := string(payload)
+	return s[open+1 : close], s[close+1 : end], true
 }
 
 func eventPartTail(payload []byte, n int, aud EventAudience) (tag, body string, ok bool) {
-	if n < 0 {
+	open, close, _, ok := eventPartRange(payload, n, aud)
+	if !ok {
 		return "", "", false
+	}
+	s := string(payload)
+	return s[open+1 : close], s[close+1:], true
+}
+
+func eventPartRange(payload []byte, n int, aud EventAudience) (open, close, end int, ok bool) {
+	if n < 0 {
+		return 0, 0, 0, false
 	}
 	want := partMark + strconv.Itoa(n)
 	s := string(payload)
 	for i := 0; i < len(s); {
 		open := strings.IndexByte(s[i:], '<')
 		if open < 0 {
-			return "", "", false
+			return 0, 0, 0, false
 		}
 		open += i
 		close := strings.IndexByte(s[open:], '>')
@@ -457,16 +467,20 @@ func eventPartTail(payload []byte, n int, aud EventAudience) (tag, body string, 
 			// An unterminated tag is the end of the scan: there is no body to
 			// test and nothing after it can be a part, because a part begins at
 			// a '>' this payload does not have.
-			return "", "", false
+			return 0, 0, 0, false
 		}
 		close += open
 
 		if containsFold(s[open+1:close], want) && aud.accepts(s[open+1:close]) {
-			return s[open+1 : close], s[close+1:], true
+			end := len(s)
+			if next := strings.IndexByte(s[close+1:], '<'); next >= 0 {
+				end = close + 1 + next
+			}
+			return open, close, end, true
 		}
 		i = close + 1
 	}
-	return "", "", false
+	return 0, 0, 0, false
 }
 
 // EventHasSpeaker reports whether an event text mentions a speaker ANYWHERE

@@ -210,8 +210,8 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 		}
 		e.TextInput(text)
 	}
-	// editNode opens the node behind a trigger row, types a new value into
-	// its first typed parameter and checks the bytes against SetFields.
+	// editNode opens a referenced node, edits one parameter and checks
+	// its bytes against SetFields.
 	editNode := func(what string, row int, condition bool, id uint32) {
 		t.Helper()
 		n, _ := scriptNodeOf(e.Document().Script, condition, id)
@@ -224,7 +224,20 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 		}
 		index := e.Document().Records[n.Record].Index
 		var want []ui.InspectionFieldValue
-		if n.Types[s] == 5 {
+		if !condition && n.Opcode == 2 && s == 0 && n.Types[s] == 1 {
+			chosen := false
+			for row, target := range e.Document().Script.Targets[ui.ScriptMessageParameter] {
+				if !target.NewMessage && target.Value != n.Values[s] {
+					chooseRow(field, row)
+					want = []ui.InspectionFieldValue{value(fmt.Sprintf("value%d", s), int64(target.Value))}
+					chosen = true
+					break
+				}
+			}
+			if !chosen {
+				t.Fatal("message parameter has no alternative page")
+			}
+		} else if n.Types[s] == 5 {
 			cx, cy := int64(n.Values[s]), int64(n.Values[s+1])
 			if cx > 0 {
 				cx--

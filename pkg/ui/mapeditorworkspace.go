@@ -54,13 +54,16 @@ func (e *MapEditor) multilinePrompt() bool {
 }
 
 func (e *MapEditor) keyNewline(string) error {
-	if e.multilinePrompt() {
+	if e.multilinePrompt() || e.messagePage != 0 && e.objectTyping() && e.obj.focus == 0 {
 		e.TextInput("\n")
 	}
 	return nil
 }
 
 func (e *MapEditor) keyClear(string) error {
+	if e.messagePage != 0 && e.objectTyping() {
+		e.obj.buf[e.obj.focus] = ""
+	}
 	if e.prompt.open() {
 		e.prompt.path = ""
 	}

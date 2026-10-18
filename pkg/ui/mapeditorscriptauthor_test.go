@@ -2,8 +2,7 @@ package ui
 
 import "testing"
 
-// The script list's Add window offers Action, Condition and Trigger; Up and
-// Down cycle the choice without writing, and Esc leaves.
+// Up and Down cycle the Add kind without writing; Esc leaves.
 func TestEditorFieldChoicesCycleWithoutCommitting(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	_ = e.Key("scripts")
@@ -18,7 +17,7 @@ func TestEditorFieldChoicesCycleWithoutCommitting(t *testing.T) {
 	}
 	_ = e.Key("up")
 	_ = e.Key("up")
-	if e.prompt.path != "2" {
+	if e.prompt.path != "3" {
 		t.Fatalf("wrapped choice %q", e.prompt.path)
 	}
 	if e.Dirty() || len(calls.lines) != 0 {

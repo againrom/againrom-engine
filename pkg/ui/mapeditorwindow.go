@@ -69,6 +69,7 @@ type editorChrome struct {
 	exitAsked              bool
 	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
+	messagePage            uint32
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -724,6 +725,9 @@ func (e *MapEditor) catalogOpen() {
 // objectSpec is the selected record's popup as data, and the reference each
 // link row opens.
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
+	if e.messagePage != 0 && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
+		return e.messageSpec()
+	}
 	if v, ok := e.scriptVariableRow(e.selected); ok && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
 		s, links, ok := e.variableSpec(v)
 		e.objectBackButton(&s)

@@ -69,6 +69,15 @@ func (e *MapEditor) loadObject() {
 		return
 	}
 	*o = objectEdit{doc: e.doc, record: e.selected, focus: -1, open: -1, cell: -1, pickField: -1}
+	if e.messagePage != 0 {
+		if host, ok := e.doc.Edits.(InspectionMessages); ok {
+			o.fields = host.MessageFields(e.messagePage)
+			for _, f := range o.fields {
+				o.buf = append(o.buf, fieldInput(f))
+			}
+		}
+		return
+	}
 	kind, index := e.selectedRecord()
 	if index < 0 || !e.editable() {
 		return
@@ -291,6 +300,12 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 	if o.open < 0 || o.open >= len(o.fields) || row < 0 || row >= len(o.fields[o.open].Choices) {
 		return
 	}
+	if o.fields[o.open].Choices[row].Value == NewMessageChoice && e.messageField(o.open) {
+		field := o.open
+		o.open = -1
+		e.newMessage(field)
+		return
+	}
 	o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[row].Value, 10)
 	o.choice.Select(row)
 	o.open = -1
@@ -390,6 +405,16 @@ func (e *MapEditor) objectButton(n int) {
 // parse, or a field the host refuses, shows its reason in the popup and
 // changes nothing.
 func (e *MapEditor) applyObject() {
+	if e.messagePage != 0 {
+		e.applyMessage()
+		return
+	}
+	for i := range e.obj.fields {
+		if e.obj.buf[i] == strconv.FormatInt(NewMessageChoice, 10) && e.messageField(i) {
+			e.newMessage(i)
+			return
+		}
+	}
 	o := &e.obj
 	kind, index := e.selectedRecord()
 	if index < 0 || len(o.fields) == 0 {
@@ -471,6 +496,7 @@ func (e *MapEditor) setFields(kind string, index int, values []InspectionFieldVa
 
 // closeObject closes the object popup; the selection stays.
 func (e *MapEditor) closeObject() {
+	e.messagePage = 0
 	e.objectHidden = true
 	e.obj.open, e.obj.focus = -1, -1
 	e.groupSel = editorGroup{}
@@ -543,6 +569,7 @@ func (e *MapEditor) groupLabel(g editorGroup) string {
 // chooseGroup highlights a group's members, frames them and opens the group
 // popup.
 func (e *MapEditor) chooseGroup(g editorGroup) {
+	e.messagePage = 0
 	e.selected, e.focusedReference = -1, 0
 	e.objectBack = nil
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0

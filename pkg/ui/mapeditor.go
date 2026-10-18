@@ -194,6 +194,7 @@ func (e *MapEditor) openMap(source string) error {
 	}
 	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
 	e.objectBack = nil
+	e.messagePage = 0
 	e.listWheel, e.objectWheel = 0, 0
 	e.message = ""
 	e.brush.endStroke()
@@ -219,6 +220,7 @@ func (e *MapEditor) fitZoom() float64 {
 }
 
 func (e *MapEditor) Select(index int, jump bool) bool {
+	e.messagePage = 0
 	if _, ok := e.scriptVariableRow(index); ok {
 		e.selected, e.objectTop, e.objectHidden = index, 0, false
 		e.groupSel, e.objectBack = editorGroup{}, nil

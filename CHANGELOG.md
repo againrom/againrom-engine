@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] In the map editor, Show message picks a page by its first line.
+  Open edits its text and speaker; New message creates a page that travels
+  with Save As and mod export. Undo restores the page and its node value.
 - [ROM1] Map editor unit, structure, group and player popups list the scripts
   that use them. Open a listed trigger and return with Back; unapplied object
   fields stay intact.

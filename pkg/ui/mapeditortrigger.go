@@ -53,6 +53,9 @@ func (e *MapEditor) scriptViewOf(id int) (scriptView, bool) {
 // scriptPopup reports that the object popup shows the selected record as a
 // trigger or a node.
 func (e *MapEditor) scriptPopup() (scriptView, bool) {
+	if e.messagePage != 0 {
+		return scriptView{}, false
+	}
 	if !e.editable() {
 		return scriptView{}, false
 	}
@@ -293,6 +296,9 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 		}
 		kind := e.nodeParameterKind(v, opcode, types, s)
 		switch {
+		case kind == ScriptMessageParameter:
+			f.Label = e.word("editor.message.parameter")
+			f.Choices = e.parameterChoices(kind, f.Value)
 		case kind == ScriptVariableParameter:
 			f.Label = e.word("editor.role.variable")
 			f.Choices = e.parameterChoices(kind, f.Value)

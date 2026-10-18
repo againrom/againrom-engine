@@ -104,7 +104,8 @@ var addKinds = []addKindRow{
 	{Kind: "Trigger", Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Steps: []addStep{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
 	{Kind: "Script", Word: "editor.add.script", Filters: []int{editorScriptsFilter}, Steps: []addStep{
-		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []string{"Action", "Condition", "Trigger"}}}},
+		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []string{"Action", "Condition", "Trigger", "Message"}}}},
+	{Kind: "Message", Word: "editor.message.new", ChoiceWord: "editor.message.new"},
 	{Kind: "Action", Word: "editor.add.action", ChoiceWord: "editor.add.kind.action"},
 	{Kind: "Condition", Word: "editor.add.condition", ChoiceWord: "editor.add.kind.condition"},
 }
@@ -439,6 +440,19 @@ func (e *MapEditor) addFinish() {
 		return
 	}
 	e.leave(leavePrompt)
+	if r.kind == "Message" {
+		e.messagePage = 0
+		e.selectNewest("Action")
+		e.obj.doc = nil
+		e.loadObject()
+		for i, f := range e.obj.fields {
+			if f.Key == "value0" {
+				e.openParameter(i)
+				return
+			}
+		}
+		return
+	}
 	if r.kind != "Group" {
 		e.selectNewest(r.kind)
 		return

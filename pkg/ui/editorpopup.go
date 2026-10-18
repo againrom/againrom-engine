@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"strings"
 
 	"againrom/pkg/render/text"
 )
@@ -23,6 +24,7 @@ const (
 	popupPick                        // a label, an edit field and a pick-on-map button
 	popupLink                        // a label and a value that opens what it names
 	popupSwitch                      // a label and a button that switches its value
+	popupMultiline
 )
 
 // popupRow is one row of a popup.
@@ -115,6 +117,11 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	}
 	shown = max(0, shown)
 	h := titleH + popupPad + shown*pitch
+	for i := 0; i < shown; i++ {
+		if s.Rows[s.Top+i].Kind == popupMultiline {
+			h += 5 * pitch
+		}
+	}
 	var list listBox
 	if s.List != nil {
 		list = newListBox(image.Rect(0, 0, w-2*popupPad-widgetSpriteSize, 0), max(1, s.ListRows), body)
@@ -149,9 +156,16 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	y := l.Title.Max.Y + popupPad
 	for i := 0; i < shown; i++ {
 		row := s.Rows[s.Top+i]
-		rr := popupRowRect{Index: s.Top + i, Rect: image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad, y+pitch)}
+		rowH := pitch
+		if row.Kind == popupMultiline {
+			rowH = 6 * pitch
+		}
+		rr := popupRowRect{Index: s.Top + i, Rect: image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad, y+rowH)}
 		rr.Label = image.Rect(rr.Rect.Min.X, y, rr.Rect.Min.X+labelW, y+pitch)
 		rr.Control = image.Rect(rr.Label.Max.X+4, y+1, rr.Rect.Max.X, y+pitch-1)
+		if row.Kind == popupMultiline {
+			rr.Control.Max.Y = y + rowH - 1
+		}
 		switch row.Kind {
 		case popupHeading:
 			rr.Label, rr.Control = rr.Rect, image.Rectangle{}
@@ -179,7 +193,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			}
 		}
 		l.Rows = append(l.Rows, rr)
-		y += pitch
+		y += rowH
 	}
 	if s.List != nil {
 		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.ListAside, y), max(1, s.ListRows), body)
@@ -325,6 +339,33 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		}
 		bodyText(rr.Label, row.Label, ink.Label)
 		switch row.Kind {
+		case popupMultiline:
+			drawFrame(dst, panelFrame(rr.Control, ink.Ground, ink.Edge))
+			if body != nil {
+				var lines []string
+				for _, line := range strings.Split(row.Value, "\n") {
+					lines = append(lines, editorWrap(body, line, rr.Control.Dx()-8)...)
+				}
+				visible := max(1, (rr.Control.Dy()-8)/fontHeight(body, 15))
+				start := 0
+				if row.Focus {
+					start = max(0, len(lines)-visible)
+				}
+				clip := dst.SubImage(rr.Control.Inset(3)).(*image.RGBA)
+				y := rr.Control.Min.Y + 4
+				for _, line := range lines[start:min(len(lines), start+visible)] {
+					body.Draw(clip, line, rr.Control.Min.X+4, y, value)
+					y += fontHeight(body, 15)
+				}
+				if row.Focus {
+					x := min(rr.Control.Max.X-4, rr.Control.Min.X+4+body.Advance(lines[len(lines)-1]))
+					for yy := y - fontHeight(body, 15); yy < y; yy++ {
+						if image.Pt(x, yy).In(clip.Bounds()) {
+							clip.SetRGBA(x, yy, value)
+						}
+					}
+				}
+			}
 		case popupEdit, popupPick:
 			drawEditField(dst, editField{Rect: rr.Control, TextH: fontHeight(body, 15), Focus: row.Focus, Phase: true, Caret: row.Caret}, func(at image.Point) {
 				if body != nil {

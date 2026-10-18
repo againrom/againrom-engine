@@ -129,6 +129,9 @@ func newRecordKindOf(kind string) (newRecordKind, error) {
 // AddRecord adds the new record r as one edit: its kind's add call, then
 // every value the call does not take as a field of the new record.
 func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
+	if r.Kind == "Message" {
+		return s.NewMessage("Message", 0, "")
+	}
 	k, err := newRecordKindOf(r.Kind)
 	if err != nil {
 		return nil, err
