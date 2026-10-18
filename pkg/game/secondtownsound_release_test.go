@@ -52,14 +52,14 @@ func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 	}
 	secondTownSteps(t, app, 200)
 	mark("square")
-	secondShopActivate(t, app, "SHOP")
+	secondShopActivate(t, f, app, "SHOP")
 	mark("shop")
 	f.Town.gold = 5000
-	secondShopActivate(t, app, "ITEM 1", "BUY")
+	secondShopActivate(t, f, app, "ITEM 1", "BUY")
 	mark("buy")
-	secondShopActivate(t, app, "MINE 1", "SELL")
+	secondShopActivate(t, f, app, "MINE 1", "SELL")
 	mark("sell")
-	secondShopActivate(t, app, "SHELF 3", "ITEM 1", "SHELF 1")
+	secondShopActivate(t, f, app, "SHELF 3", "ITEM 1", "SHELF 1")
 	mark("shelf")
 	if err := app.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)

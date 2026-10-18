@@ -28,7 +28,8 @@ func pick(rnd Rand, n int) int { return (rnd() * n) >> 15 }
 // Fill draws a whole stock from record r (R2-ENGINE-265). The magic category
 // first takes each admitted book at quantity 2 and the six potions; each draw
 // then picks a candidate, redrawing a book; an enchanted category enchants its
-// pick and drops a price outside the range.
+// pick and drops a price outside the range. The mods' stocked items then
+// join the stock by placement; they take no draw.
 func (t Tables) Fill(r Record, rnd Rand) Stock {
 	var s Stock
 	for c, cat := range r {
@@ -51,6 +52,10 @@ func (t Tables) Fill(r Record, rnd Rand) Stock {
 			list = t.draw(list, cands, cat, rnd)
 		}
 		s[c] = list
+	}
+	for _, it := range t.Stocked {
+		c := Place(r, it)
+		s[c] = Insert(s[c], it)
 	}
 	return s
 }

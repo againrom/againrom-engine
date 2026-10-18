@@ -122,7 +122,7 @@ func TestTakingFromTheShelfAndBuyingPutsTheGoodsInThePack(t *testing.T) {
 	if len(f.Shop.Table()) != 1 {
 		t.Fatalf("the table holds %d places, want one joined place", len(f.Shop.Table()))
 	}
-	if got := f.Shop.Table()[0].Count; got != 2 {
+	if got := f.Shop.Table()[0].ShopItem.Count; got != 2 {
 		t.Fatalf("the joined place holds %d units, want two", got)
 	}
 	if got := shelfUnits(f.Shop, ShelfArmour); got != shelf-2 {
@@ -183,7 +183,7 @@ func TestAPackItemOnTheTableComesBackWhenTheTableIsCleared(t *testing.T) {
 	if got := len(f.Carried[0].Carry.Items); got != 1 {
 		t.Fatalf("the pack holds %d units after one stack moved, want 1", got)
 	}
-	if places := f.Shop.Table(); len(places) != 1 || !places[0].Mine || places[0].Count != 2 {
+	if places := f.Shop.Table(); len(places) != 1 || !places[0].Mine || places[0].ShopItem.Count != 2 {
 		t.Fatalf("the table holds %+v, want his customer's stack of two", places)
 	}
 
@@ -275,7 +275,7 @@ func TestRepeatedDefaultClicksOnOneStackJoinOneTablePlace(t *testing.T) {
 		t.Fatalf("the pack holds %d units after one default click, want 2 left behind", got)
 	}
 	places := f.Shop.Table()
-	if len(places) != 1 || !places[0].Mine || places[0].Count != 1 {
+	if len(places) != 1 || !places[0].Mine || places[0].ShopItem.Count != 1 {
 		t.Fatalf("the table holds %+v, want one place of one unit", places)
 	}
 
@@ -288,7 +288,7 @@ func TestRepeatedDefaultClicksOnOneStackJoinOneTablePlace(t *testing.T) {
 		t.Fatalf("the pack holds %d units after three default clicks, want the stack gone", got)
 	}
 	places = f.Shop.Table()
-	if len(places) != 1 || !places[0].Mine || places[0].Count != 3 {
+	if len(places) != 1 || !places[0].Mine || places[0].ShopItem.Count != 3 {
 		t.Fatalf("the table holds %+v, want ONE place of three units, not three places of one", places)
 	}
 }
@@ -328,7 +328,7 @@ func TestShiftClickMovesTheWholeStackToTheTableInOneCall(t *testing.T) {
 		t.Fatalf("the pack holds %d units after the shift-click, want the one item left", got)
 	}
 	places := f.Shop.Table()
-	if len(places) != 1 || !places[0].Mine || places[0].Count != 3 {
+	if len(places) != 1 || !places[0].Mine || places[0].ShopItem.Count != 3 {
 		t.Fatalf("the table holds %+v, want one place of all three", places)
 	}
 }
@@ -348,7 +348,7 @@ func TestDefaultClickTakesOneUnitOffTheTableAndLeavesTheRest(t *testing.T) {
 		t.Fatalf("the pack holds %d units after one default take, want 1", got)
 	}
 	places := f.Shop.Table()
-	if len(places) != 1 || places[0].Count != 2 {
+	if len(places) != 1 || places[0].ShopItem.Count != 2 {
 		t.Fatalf("the table holds %+v, want the same place at count 2", places)
 	}
 }
@@ -387,7 +387,7 @@ func TestAStackOfOneMovesWhollyByDefaultOrByShift(t *testing.T) {
 			t.Fatalf("shift=%v: the pack holds %d units after moving its one item, want 0", shift, got)
 		}
 		places := f.Shop.Table()
-		if len(places) != 1 || places[0].Count != 1 {
+		if len(places) != 1 || places[0].ShopItem.Count != 1 {
 			t.Fatalf("shift=%v: the table holds %+v, want one place of one", shift, places)
 		}
 

@@ -178,6 +178,7 @@ func TestReleaseOriginalGround1076RejectedLoadPreservesLiveGame(t *testing.T) {
 	after, _, err := f.Snapshot(true)
 	uiNow := *f.townUI
 	uiNow.openMission, oldTownUI.openMission = nil, nil
+	uiNow.shop, oldTownUI.shop = shopHost{}, shopHost{}
 	if err != nil || !reflect.DeepEqual(after, before) || f.live != oldLive || f.Town != oldTown ||
 		f.Shop != oldShop || f.originalCity != oldCity || f.Units != oldUnits ||
 		!reflect.DeepEqual(uiNow, oldTownUI) || oldLive.world.Hash() != oldHash {

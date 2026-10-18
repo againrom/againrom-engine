@@ -24,6 +24,18 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   map has no cancel, as in the original.
 - [ROM2] After the first mission the party goes straight on to the next one,
   as in the original, because no town is open yet.
+- [ROM2] What the hero buys in a town shop is kept in the hero's own bag. Saves
+  from earlier versions keep the hero's shop items.
+- [ROM2] Armour and shields a mod puts in the shops are on sale in the town
+  shops too.
+- [ROM2] The town shops use the same shop screen as the first game: item
+  pictures and prices on the shelf, a table for the deal and the hero's bag
+  below it. Click a category in the room to show it, click or drag an item to
+  put one unit on the table, and shift-click to move the whole stack. Point at
+  an item to read it. The mouse wheel over the table scrolls it when the deal
+  holds more than five places. Books and enchanted items each take their own
+  place. A purchase that would overfill the hero's bag is refused. The hero's
+  portrait panel is not shown yet.
 - [ROM1] Map editor unit, structure, group and player popups list the scripts
   that use them. Open a listed trigger and return with Back; unapplied object
   fields stay intact.

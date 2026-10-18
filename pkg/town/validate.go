@@ -143,20 +143,6 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 			}
 		}
 	}
-	lists := map[string]bool{}
-	for i, g := range r.Grids {
-		where := fmt.Sprintf("grid %d", i)
-		if g.List == "" || lists[g.List] {
-			return fail("%s shows no list or a repeated one %q", where, g.List)
-		}
-		lists[g.List] = true
-		if g.Count <= 0 || g.First.Rectangle().Empty() {
-			return fail("%s needs cells and a first cell", where)
-		}
-		if err := needArt(where, g.Back); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -984,7 +970,7 @@ func onlyEqual(p, o PickSpec) bool {
 // the game does not answer.
 func (d *Description) checkVocabulary(vocab Vocabulary) error {
 	lists := map[string][]string{"hook": vocab.Hooks, "condition": vocab.Conditions, "value": vocab.Values,
-		"event": vocab.Events, "page": vocab.Pages, "list": vocab.Lists}
+		"event": vocab.Events, "page": vocab.Pages}
 	for _, u := range d.uses() {
 		if !vocab.has(lists[u.kind], u.name) {
 			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, u.kind, u.name)
@@ -1061,9 +1047,6 @@ func (d *Description) uses() []nameUse {
 		use("page", "room "+r.Name, r.Page)
 		for _, b := range r.Buttons {
 			use("condition", "room "+r.Name+" button "+b.Name, b.If)
-		}
-		for _, g := range r.Grids {
-			use("list", "room "+r.Name, g.List)
 		}
 		for _, s := range append(append([]Step{}, r.Enter...), r.Exit...) {
 			use("hook", "room "+r.Name, s.Hook)

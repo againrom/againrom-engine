@@ -1,0 +1,170 @@
+package secondshop
+
+import "againrom/pkg/sim"
+
+// The hero's bag holds the engine's one item instance, one per unit. The
+// item ID is material<<12 | part<<8 | class<<5 | row (R2-ENGINE-403,
+// R2-ENGINE-327); a magic item takes part 14 and a book part 14 with row
+// bit 7 set (DIV-3043's chosen codes). Effects are the item's Effect list:
+// tag, flags and the u32 at +0x40 (R2-ENGINE-403, R2-ENGINE-414).
+const (
+	partWeapon   = 1
+	partShield   = 2
+	partMagic    = 0xe
+	bookRow      = 0x80
+	tagCastSpell = 41
+	tagTeach     = 42
+	// typeArmor and typeWeapon are the +0x44 type bytes placement reads
+	// (R2-ENGINE-333); the other kinds' bytes are Unknown and stay zero.
+	typeArmor  = 1
+	typeWeapon = 2
+)
+
+// Instance is one unit of it as the bag holds it, or false when the item
+// has no ID form: a part outside the equipment range or a row past 5 bits.
+func (t Tables) Instance(it Item) (sim.ItemInstance, bool) {
+	out := sim.ItemInstance{Price: int32(min(it.Price, priceCap))}
+	switch it.Kind {
+	case Armor, Shield, Weapon:
+		part := t.Part(it)
+		if part < partWeapon || part >= partMagic || it.Row < 0 || it.Row > 0x1f || it.Class < 0 || it.Class > 7 || it.Material < 0 || it.Material > 0xf {
+			return sim.ItemInstance{}, false
+		}
+		out.Code = uint16(it.Material)<<12 | uint16(part)<<8 | uint16(it.Class)<<5 | uint16(it.Row)
+		switch it.Kind {
+		case Armor:
+			out.Kind = typeArmor
+		case Weapon:
+			out.Kind = typeWeapon
+		}
+		if it.Level > 0 {
+			out.Effects = []sim.ItemEffect{{Kind: tagCastSpell, Operand: uint32(it.Spell&0xffff) | uint32(it.Level&0xffff)<<16}}
+		}
+	case Magic:
+		if it.Row < 0 || it.Row >= bookRow {
+			return sim.ItemInstance{}, false
+		}
+		out.Code = partMagic<<8 | uint16(it.Row)
+	case Book:
+		if it.Spell < 0 || it.Spell >= bookRow {
+			return sim.ItemInstance{}, false
+		}
+		out.Code = partMagic<<8 | bookRow | uint16(it.Spell)
+		out.Effects = []sim.ItemEffect{{Kind: tagTeach, Operand: uint32(it.Spell)}}
+	default:
+		return sim.ItemInstance{}, false
+	}
+	return out, true
+}
+
+// FromInstance reads one bag unit back as a shop item of quantity 1, or
+// false when the instance is not one Instance writes.
+func FromInstance(in sim.ItemInstance) (Item, bool) {
+	part := int(in.Code>>8) & 0xf
+	it := Item{Quantity: 1, Price: int64(in.Price)}
+	if in.Price < 0 || in.ObjectID != 0 || in.NativeRecord != nil || in.WeightPresent || in.Weight != 0 || in.SourceEquipment != (sim.SourceEquipment{}) {
+		return Item{}, false
+	}
+	switch {
+	case part == partMagic && in.Code&bookRow != 0:
+		it.Kind, it.Spell = Book, int(in.Code&(bookRow-1))
+		if in.Code>>12 != 0 || in.Kind != 0 || len(in.Effects) != 1 || in.Effects[0] != (sim.ItemEffect{Kind: tagTeach, Operand: uint32(it.Spell)}) {
+			return Item{}, false
+		}
+		return it, true
+	case part == partMagic:
+		it.Kind, it.Row = Magic, int(in.Code&0xff)
+		return it, in.Code>>12 == 0 && in.Kind == 0 && len(in.Effects) == 0
+	case part == partWeapon && in.Kind == typeWeapon:
+		it.Kind = Weapon
+	case part == partShield && in.Kind == 0:
+		it.Kind = Shield
+	case part > partShield && part < partMagic && in.Kind == typeArmor:
+		it.Kind = Armor
+	default:
+		return Item{}, false
+	}
+	it.Material, it.Class, it.Row = int(in.Code>>12), int(in.Code>>5)&7, int(in.Code)&0x1f
+	switch len(in.Effects) {
+	case 0:
+	case 1:
+		e := in.Effects[0]
+		if e.Kind != tagCastSpell || e.Mode != 0 || e.Operand>>16 == 0 {
+			return Item{}, false
+		}
+		it.Spell, it.Level = int(e.Operand&0xffff), int(e.Operand>>16)
+	default:
+		return Item{}, false
+	}
+	return it, true
+}
+
+// Units is it as bag units: Quantity instances of one unit each.
+func (t Tables) Units(it Item) ([]sim.ItemInstance, bool) {
+	unit, ok := t.Instance(it)
+	if !ok || it.Quantity < 0 {
+		return nil, false
+	}
+	out := make([]sim.ItemInstance, it.Quantity)
+	for i := range out {
+		out[i] = unit.Clone()
+	}
+	return out, true
+}
+
+// Stacks is a bag as shop items: units merge into the first equal item by
+// Insert's rule, in the order they first appear. It is false when a unit is
+// not one Instance writes.
+func Stacks(bag []sim.ItemInstance) ([]Item, bool) {
+	out, _, ok := stacks(bag)
+	return out, ok
+}
+
+// stacks is Stacks with the stack each unit went to.
+func stacks(bag []sim.ItemInstance) ([]Item, []int, bool) {
+	var out []Item
+	at := make([]int, len(bag))
+	for k, in := range bag {
+		it, ok := FromInstance(in)
+		if !ok {
+			return nil, nil, false
+		}
+		at[k] = len(out)
+		for s := range out {
+			if out[s].Same(it) && it.Stackable() {
+				at[k] = s
+				break
+			}
+		}
+		out = Insert(out, it)
+	}
+	return out, at, true
+}
+
+// TakeUnits removes every unit of stack i of bag, as Stacks numbers them,
+// and answers the bag left, the units taken and the stack they make.
+func TakeUnits(bag []sim.ItemInstance, i int) (left, taken []sim.ItemInstance, stack Item, ok bool) {
+	all, at, ok := stacks(bag)
+	if !ok || i < 0 || i >= len(all) {
+		return bag, nil, Item{}, false
+	}
+	for k, in := range bag {
+		if at[k] == i {
+			taken = append(taken, in.Clone())
+		} else {
+			left = append(left, in.Clone())
+		}
+	}
+	return left, taken, all[i], true
+}
+
+// Stocked reads a mod's armour or shield code as one unit of a shop item at
+// price, or false when the code is neither in the bag's item form.
+func Stocked(code uint16, price int32) (Item, bool) {
+	for _, kind := range []uint8{typeArmor, 0} {
+		if it, ok := FromInstance(sim.ItemInstance{Code: code, Kind: kind, Price: price}); ok && (it.Kind == Armor || it.Kind == Shield) {
+			return it, true
+		}
+	}
+	return Item{}, false
+}

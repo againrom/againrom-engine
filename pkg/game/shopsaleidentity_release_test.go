@@ -155,7 +155,7 @@ func TestReleaseShopSoldStaffPreservesInstanceAndMagicShelf(t *testing.T) {
 		t.Fatal(err)
 	}
 	places := f.Shop.Table()
-	if len(places) != 1 || !places[0].Mine || places[0].Code != 33037 || places[0].Count != 1 {
+	if len(places) != 1 || !places[0].Mine || places[0].ShopItem.Code != 33037 || places[0].ShopItem.Count != 1 {
 		t.Fatalf("ordinary preparation produced table %+v", places)
 	}
 	sold := staffSaleObserveLot(places[0].ShopItem, 0, f.Town.cityObjects)
@@ -308,7 +308,7 @@ func TestReleaseShopSoldStaffPreservesInstanceAndMagicShelf(t *testing.T) {
 	}
 	point("shelf", index-s.ShopScreen().ShelfOffset, "press", "release")
 	merchant := f.Shop.Table()
-	if len(merchant) != 1 || merchant[0].Mine || merchant[0].From != ShelfMagic || merchant[0].Count != 1 || !staffSaleValueEqual(merchant[0].Instance(), sold.Instance) {
+	if len(merchant) != 1 || merchant[0].Mine || merchant[0].From != ShelfMagic || merchant[0].ShopItem.Count != 1 || !staffSaleValueEqual(merchant[0].ShopItem.Instance(), sold.Instance) {
 		t.Fatal("ordinary shelf click did not stage the sold full value", merchant)
 	}
 	merchantLot := staffSaleObserveLot(merchant[0].ShopItem, 0, f.Town.cityObjects)

@@ -66,7 +66,7 @@ func TestReleaseShopStagedGoodsF2CurrentSAV(t *testing.T) {
 			beforeRoots := f.Town.cityObjects.Clone()
 			item := screen.shopPackStacks()[0]
 			screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
-			if len(f.Shop.table) != 1 || !f.Shop.table[0].Mine || f.Shop.table[0].Count != 1 {
+			if len(f.Shop.table) != 1 || !f.Shop.table[0].Mine || f.Shop.table[0].ShopItem.Count != 1 {
 				t.Fatal("pack drag did not stage one owned unit")
 			}
 			screen.shopMember = 1

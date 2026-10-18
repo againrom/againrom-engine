@@ -90,7 +90,7 @@ func TestReleaseTownDoubleClickWearsTheRecoveredCap(t *testing.T) {
 			f, app, store, shop := recoveredCapShop(t, raw)
 			recoveredCapShow(t, app, shop, "hero")
 			recoveredCapTap(t, app, "pack", recoveredCapCell(t, shop))
-			if table := f.Shop.Table(); len(table) != 1 || uint16(table[0].Code) != recoveredCap || !table[0].Mine {
+			if table := f.Shop.Table(); len(table) != 1 || uint16(table[0].ShopItem.Code) != recoveredCap || !table[0].Mine {
 				t.Fatalf("the hero's click staged %+v, want the cap alone", table)
 			}
 			recoveredCapShow(t, app, shop, "npc:22")

@@ -372,7 +372,7 @@ func TestShopWeaponRemovalLeavesTheShieldWorn(t *testing.T) {
 					t.Fatalf("shopUnequipToTable = %+v", act)
 				}
 				table := f.Shop.Table()
-				if len(table) != 1 || table[0].Code != data.ItemCode(weapon.Code) || table[0].Price != weapon.Price {
+				if len(table) != 1 || table[0].ShopItem.Code != data.ItemCode(weapon.Code) || table[0].ShopItem.Price != weapon.Price {
 					t.Fatalf("table = %+v, want complete weapon", table)
 				}
 			} else if act := s.shopUnequipDoll(1); act.Msg != "off, into the pack" {

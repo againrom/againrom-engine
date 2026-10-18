@@ -105,7 +105,7 @@ func TestReleaseTownScrollUseKeepsTheStagedUnit(t *testing.T) {
 	gold := f.Town.Gold()
 	shopPointer1090(t, app, "pack", index+1, "press", "release", "press", "release")
 	held := f.Shop.Table()
-	if len(held) != 1 || !held[0].Mine || held[0].Count != 1 || !sim.ItemEqual(held[0].Instance(), before[index].Instance()) || held[0].Price != before[index].Price || p.KnownSpells != known || f.Town.Gold() != gold {
+	if len(held) != 1 || !held[0].Mine || held[0].ShopItem.Count != 1 || !sim.ItemEqual(held[0].ShopItem.Instance(), before[index].Instance()) || held[0].ShopItem.Price != before[index].Price || p.KnownSpells != known || f.Town.Gold() != gold {
 		t.Fatalf("town scroll refusal lost or learned the staged unit: before=%+v held=%+v", before, held)
 	}
 	kept := append(append([]sim.ItemStack(nil), before[:index]...), before[index+1:]...)

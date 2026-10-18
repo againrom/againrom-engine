@@ -132,6 +132,7 @@ type shopStarState struct {
 	ready                   bool
 	chosen, member          int
 	shelfOffset, packOffset int
+	tableOffset             int
 	shelf                   [shopShelfN]uint32
 	table, pack             [shopStripN]uint32
 }
@@ -145,8 +146,10 @@ func (s *shopStarState) prepare(v *ShopScreenView, origin ShopControl, dragging 
 	if !s.ready {
 		s.ready = true
 		s.chosen, s.member = v.Chosen, v.Member
-		s.shelfOffset, s.packOffset = v.ShelfOffset, v.PackOffset
+		s.shelfOffset, s.packOffset, s.tableOffset = v.ShelfOffset, v.PackOffset, v.TableOffset
 	}
+	shiftItemStarPhases(s.table[:], v.TableOffset-s.tableOffset)
+	s.tableOffset = v.TableOffset
 	if s.chosen != v.Chosen {
 		s.shelf = [shopShelfN]uint32{}
 		s.chosen, s.shelfOffset = v.Chosen, v.ShelfOffset
@@ -210,7 +213,7 @@ func (s *shopStarState) advance(v *ShopScreenView) {
 			s.shelf[i]++
 		}
 	}
-	if !v.Book {
+	if !v.bookOpen() {
 		for i := range v.Table {
 			if v.Table[i].Star && v.Table[i].Icon != nil {
 				s.table[i]++

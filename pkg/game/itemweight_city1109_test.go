@@ -186,7 +186,7 @@ func TestInstanceWeightLegacyCitySalesKeepImportPolicy(t *testing.T) {
 	}
 	f = roundtrip(f, 2, 3008)
 	city1102Take(t, f, 1)
-	if len(f.Shop.table) != 1 || f.Shop.table[0].Count != 1 || f.Shop.table[0].WeightPresent || f.Shop.table[0].Weight != 0 {
+	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 1 || f.Shop.table[0].ShopItem.WeightPresent || f.Shop.table[0].ShopItem.Weight != 0 {
 		t.Fatal("next sale did not stage one undefined-weight unit", f.Shop.table)
 	}
 	result := f.TownScreen().(*townScreen).ShopClick(ui.ShopControl{Kind: ui.ShopControlButton, Index: 2})

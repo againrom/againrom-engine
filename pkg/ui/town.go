@@ -400,7 +400,7 @@ func (f *flow) scrollShop(at image.Point, rows int) bool {
 	if !ok || !s.AtTownShop() {
 		return false
 	}
-	region := ShopWheelAt(at)
+	region := s.ShopScreen().layout().WheelAt(at)
 	if region == ShopWheelNone {
 		return false
 	}

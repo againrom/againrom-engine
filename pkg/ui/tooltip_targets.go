@@ -317,7 +317,7 @@ func shopTooltip(v ShopScreenView, w Words, p image.Point) tooltipTarget {
 		return hint
 	}
 	if lines, ok := ShopHoverLines(v, p); ok {
-		return tooltipTarget{tooltipText, fmt.Sprintf("shop-item/%d/%d/%d/%d", character.Subject.ID, v.Chosen, v.PackOffset, v.ShelfOffset), lines, v.Font}
+		return tooltipTarget{tooltipText, fmt.Sprintf("shop-item/%d/%d/%d/%d/%d", character.Subject.ID, v.Chosen, v.PackOffset, v.ShelfOffset, v.TableOffset), lines, v.Font}
 	}
 	c, ok := shopScreenControlAt(v, p)
 	if !ok {
@@ -342,7 +342,7 @@ func shopTooltip(v ShopScreenView, w Words, p image.Point) tooltipTarget {
 	case ShopControlShelfCell:
 		slot = 60
 	case ShopControlTableCell:
-		if !v.Book {
+		if !v.bookOpen() {
 			slot = 59
 		}
 	case ShopControlPackCell:

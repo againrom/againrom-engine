@@ -88,7 +88,7 @@ func TestCitySaleCurrentLoadRefreshAndTrainingContinueAcrossSAV(t *testing.T) {
 	if staged != wantStaged || f.Town.Gold() != 3000 || len(f.Shop.table) != 1 {
 		t.Fatal("staging changed current Human fields or committed payment", staged, f.Shop.table)
 	}
-	if place := f.Shop.table[0]; place.cityID != targetID || place.cityID == sourceID || place.ObjectID != 0 || place.Count != 3 || place.Price != 5 || !place.Mine || f.Town.cityObjects.NextID != targetID+3 {
+	if place := f.Shop.table[0]; place.ShopItem.cityID != targetID || place.ShopItem.cityID == sourceID || place.ShopItem.ObjectID != 0 || place.ShopItem.Count != 3 || place.ShopItem.Price != 5 || !place.Mine || f.Town.cityObjects.NextID != targetID+3 {
 		t.Fatal("table merge changed its destination, quantity, price or issued floor", f.Shop.table)
 	}
 	s := f.TownScreen().(*townScreen)
@@ -171,16 +171,16 @@ func city1102NativeReload(t *testing.T, f *FrontEnd) {
 func citySalePendingReload(t *testing.T, f *FrontEnd) {
 	t.Helper()
 	party, graph, gold, shop := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone(), f.Town.Gold(), cloneShopMutation(f.Shop)
-	if gold != 3000 || len(shop.table) != 1 || !shop.table[0].Mine || shop.table[0].Count != 1 {
+	if gold != 3000 || len(shop.table) != 1 || !shop.table[0].Mine || shop.table[0].ShopItem.Count != 1 {
 		t.Fatal("pending sale fixture has no unpaid unit", gold, shop.table)
 	}
 	place := shop.table[0]
 	wantGraph, wantParty := graph.Clone(), mapload.CloneParty(party)
 	root, err := cityMutationParty(wantGraph, "hero")
-	if err != nil || len(root.Pack) != 1 || place.cityID == 0 || place.cityID == root.Pack[0] {
+	if err != nil || len(root.Pack) != 1 || place.ShopItem.cityID == 0 || place.ShopItem.cityID == root.Pack[0] {
 		t.Fatal("pending sale fixture lacks distinct returned and surviving roots", err)
 	}
-	root.Pack = []sim.SavedObjectID{place.cityID, root.Pack[0]}
+	root.Pack = []sim.SavedObjectID{place.ShopItem.cityID, root.Pack[0]}
 	for i := range wantParty {
 		if wantParty[i].ID != "hero" {
 			continue
@@ -189,9 +189,9 @@ func citySalePendingReload(t *testing.T, f *FrontEnd) {
 		if carry == nil || carry.LiveLoad == nil || len(carry.OrderedStacks) != 1 || carry.OrderedStacks[0].Count != 4 || carry.LiveLoad.Inventory.Accumulator != 28 {
 			t.Fatal("pending sale fixture lost its four-unit survivor or staged weight")
 		}
-		carry.OrderedStacks = append([]sim.ItemStack{sim.StackItem(place.Instance(), 1)}, carry.OrderedStacks...)
-		carry.ItemInstances = append([]sim.ItemInstance{place.Instance()}, carry.ItemInstances...)
-		carry.Items = append([]uint16{uint16(place.Code)}, carry.Items...)
+		carry.OrderedStacks = append([]sim.ItemStack{sim.StackItem(place.ShopItem.Instance(), 1)}, carry.OrderedStacks...)
+		carry.ItemInstances = append([]sim.ItemInstance{place.ShopItem.Instance()}, carry.ItemInstances...)
+		carry.Items = append([]uint16{uint16(place.ShopItem.Code)}, carry.Items...)
 		carry.LiveLoad.Inventory.Accumulator = 35
 	}
 	raw := cityProjectionSave(t, f)

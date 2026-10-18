@@ -160,21 +160,11 @@ var (
 )
 
 // ShopCellAt is cell i of one grid, in frame coordinates (SHOP-SCREEN-031).
-func ShopShelfCellRect(i int) image.Rectangle {
-	col, row := i%shopShelfCols, i/shopShelfCols
-	x, y := 1+shopCellSize*col, 31+shopCellSize*row
-	return image.Rect(x, y, x+shopCellSize, y+shopCellSize)
-}
+func ShopShelfCellRect(i int) image.Rectangle { return firstShopLayout.ShelfCellRect(i) }
 
-func ShopTableCellRect(i int) image.Rectangle {
-	x := 32 + shopCellSize*i
-	return image.Rect(x, 303, x+shopCellSize, 303+shopCellSize)
-}
+func ShopTableCellRect(i int) image.Rectangle { return firstShopLayout.TableCellRect(i) }
 
-func ShopPackCellRect(i int) image.Rectangle {
-	x := 32 + shopCellSize*i
-	return image.Rect(x, 395, x+shopCellSize, 395+shopCellSize)
-}
+func ShopPackCellRect(i int) image.Rectangle { return firstShopLayout.PackCellRect(i) }
 
 // ShopCellBack is which cell background a cell takes (SHOP-SCREEN-036, whose
 // per-hero usability arm 0162 added).
@@ -238,6 +228,10 @@ type ShopCell struct {
 	// Info is the characteristics hover, and it is this build's own addition to
 	// a screen the original draws no item text on.
 	Info []string
+
+	// Text is the item's name, a word or two a line, drawn in the cell when
+	// the item has no picture.
+	Text []string
 }
 
 // Occupied reports whether the cell holds an item. An empty cell draws NOTHING
@@ -291,6 +285,8 @@ type ShopScreenArt struct {
 
 // ShopScreenView is the whole screen's state for one frame.
 type ShopScreenView struct {
+	// Layout is the page's geometry and panels; nil is the first game's.
+	Layout        *ShopLayout
 	SuppressHover bool  // App paints the shared delayed overlay after widening.
 	InputEpoch    *byte // transient stock identity, never written to a save
 	Shelf         [shopShelfN]ShopCell
@@ -316,6 +312,8 @@ type ShopScreenView struct {
 	// the decoded asymmetric scroll without learning item identity.
 	ShelfOffset int
 	PackOffset  int
+	// TableOffset is the first table place the strip shows.
+	TableOffset int
 	// PackBack and PackForward say whether the strip can turn that way; a
 	// corner that cannot shows its resting cap instead of the arrow.
 	PackBack, PackForward bool
@@ -452,53 +450,57 @@ type ShopControl struct {
 // A POINT IN THE GAP BETWEEN TWO CELLS IS A MISS. The three grids are tested
 // cell by cell rather than by their regions, so the two-pixel gutters the cell
 // formulas leave hit nothing (spec AC-11).
-func ShopControlAt(p image.Point) (ShopControl, bool) {
-	if p.In(shopPackLeftRect) {
+func ShopControlAt(p image.Point) (ShopControl, bool) { return firstShopLayout.controlAt(p) }
+
+// controlAt is ShopControlAt on this layout. A panel the layout does not show
+// answers no control.
+func (l *ShopLayout) controlAt(p image.Point) (ShopControl, bool) {
+	if p.In(l.PackLeft) {
 		return ShopControl{Kind: ShopControlPackLeft}, true
 	}
-	if p.In(shopPackRightRect) {
+	if p.In(l.PackRight) {
 		return ShopControl{Kind: ShopControlPackRight}, true
 	}
-	for i, r := range shopButtonRects {
+	for i, r := range l.Button {
 		if p.In(r) {
 			return ShopControl{Kind: ShopControlButton, Index: i}, true
 		}
 	}
-	if p.In(shopArrowUpRect) {
+	if p.In(l.ArrowUp) {
 		return ShopControl{Kind: ShopControlArrowUp}, true
 	}
-	if p.In(shopArrowDownRect) {
+	if p.In(l.ArrowDown) {
 		return ShopControl{Kind: ShopControlArrowDown}, true
 	}
 	for i := 0; i < shopShelfN; i++ {
-		if p.In(ShopShelfCellRect(i)) {
+		if p.In(l.ShelfCellRect(i)) {
 			return ShopControl{Kind: ShopControlShelfCell, Index: i}, true
 		}
 	}
 	for i := 0; i < shopStripN; i++ {
-		if p.In(ShopTableCellRect(i)) {
+		if p.In(l.TableCellRect(i)) {
 			return ShopControl{Kind: ShopControlTableCell, Index: i}, true
 		}
-		if p.In(ShopPackCellRect(i)) {
+		if p.In(l.PackCellRect(i)) {
 			return ShopControl{Kind: ShopControlPackCell, Index: i}, true
 		}
 	}
-	if p.In(shopPickerPrevRect) {
+	if l.Character && p.In(shopPickerPrevRect) {
 		return ShopControl{Kind: ShopControlPickerPrev}, true
 	}
-	if p.In(shopPickerNextRect) {
+	if l.Character && p.In(shopPickerNextRect) {
 		return ShopControl{Kind: ShopControlPickerNext}, true
 	}
-	if p.In(shopCharacterModeRect) {
+	if l.Character && p.In(shopCharacterModeRect) {
 		return ShopControl{Kind: ShopControlCharacterMode}, true
 	}
-	if shopBookCornerHitAt(p) {
+	if l.Character && l.Book && shopBookCornerHitAt(p) {
 		return ShopControl{Kind: ShopControlBook}, true
 	}
-	if p.In(shopMerchantRect) {
+	if p.In(l.Merchant) {
 		return ShopControl{Kind: ShopControlMerchant}, true
 	}
-	for i, r := range shopShelfPickRects {
+	for i, r := range l.ShelfPick {
 		if p.In(r) {
 			return ShopControl{Kind: ShopControlShelfPick, Index: i}, true
 		}
@@ -518,7 +520,7 @@ func ShopControlAt(p image.Point) (ShopControl, bool) {
 // The pane bounds, Book and the bottom controls refuse before the mask read.
 // The newly visible feet between those controls remain interactive.
 func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool) {
-	if mask == nil || mask.W <= 0 || mask.H <= 0 {
+	if mask == nil || mask.W <= 0 || mask.H <= 0 || !v.layout().Character {
 		return 0, false
 	}
 	if !shopDollAreaAt(v, p) {
@@ -537,8 +539,8 @@ func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool)
 // held item is tested before every corner, so no corner claims the release,
 // and the figure's own pixels are not required (TOWN-348). The mission's
 // heldItemBox is the same question.
-func shopPaneTakesItemAt(p image.Point) bool {
-	return p.In(shopCharRegion)
+func shopPaneTakesItemAt(v ShopScreenView, p image.Point) bool {
+	return v.layout().Character && p.In(shopCharRegion)
 }
 
 // shopDollAreaAt is shopDollSlotAt's own geometry, less the mask lookup: a
@@ -611,10 +613,10 @@ func shopGridControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 			return ShopControl{Kind: ShopControlDoll, Index: slot}, true
 		}
 	}
-	if v.Book && p.In(shopTableRegion) {
+	if v.bookOpen() && p.In(v.layout().Table) {
 		return ShopControl{}, false
 	}
-	if c, ok := ShopControlAt(p); ok {
+	if c, ok := v.layout().controlAt(p); ok {
 		switch c.Kind {
 		case ShopControlShelfCell, ShopControlPackCell, ShopControlTableCell:
 			return c, true
@@ -636,19 +638,19 @@ func shopGridControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 // `s&3 != 0`, unconditional on Statistics), so there is nothing left to
 // suppress.
 func shopScreenControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
-	if v.Book && p.In(shopTableRegion) {
+	if v.bookOpen() && p.In(v.layout().Table) {
 		i := -1
 		if _, n, ok := shopSpellEntryAt(v, p); ok {
 			i = n
 		}
 		return ShopControl{Kind: ShopControlSpell, Index: i}, true
 	}
-	return ShopControlAt(p)
+	return v.layout().controlAt(p)
 }
 
 // The same inspection book serves all three city rooms.
 func drawTownBook(dst *image.RGBA, v ShopScreenView) {
-	if !v.Book {
+	if !v.bookOpen() {
 		return
 	}
 	var book *image.RGBA
@@ -665,7 +667,7 @@ func shopSpellColumns() int {
 }
 
 func shopSpellEntryAt(v ShopScreenView, p image.Point) (SpellEntry, int, bool) {
-	if !v.Book {
+	if !v.bookOpen() {
 		return SpellEntry{}, 0, false
 	}
 	for i, r := range bookCellRects(shopTableRegion, shopSpellColumns()) {
@@ -696,6 +698,10 @@ func shopSpellEntryAt(v ShopScreenView, p image.Point) (SpellEntry, int, bool) {
 // A NON-DOLL ORIGIN needs no such widening: shelf, pack and table cells carry
 // no suppression, so shopGridControlAt's ordinary (possibly doll-suppressed,
 // but that is irrelevant off the doll) read already answers correctly.
+// bookOpen reports whether the spell book covers the table strip: the view
+// asks for it and the layout has the panel.
+func (v ShopScreenView) bookOpen() bool { return v.Book && v.layout().Book }
+
 func shopReleaseIsOrigin(v ShopScreenView, origin ShopControl, p image.Point) bool {
 	if origin.Kind == ShopControlDoll {
 		slot, ok := shopDollSlotAt(v, v.OrdinaryDollMask, p)
@@ -721,20 +727,15 @@ const (
 	// ShopWheelPack is the shown member's container, along the bottom. It
 	// moves by one place.
 	ShopWheelPack
+	// ShopWheelTable is the table strip of a layout whose table scrolls. It
+	// moves by one place.
+	ShopWheelTable
 )
 
-// ShopWheelAt is which region the point stands in. The table does not scroll:
-// it holds five places and no more, and the original gives it no scroll base
-// at all (SHOP-SCREEN-033).
-func ShopWheelAt(p image.Point) ShopWheelRegion {
-	switch {
-	case p.In(shopShelfRegion):
-		return ShopWheelShelf
-	case p.In(shopPackRegion):
-		return ShopWheelPack
-	}
-	return ShopWheelNone
-}
+// ShopWheelAt is which region the point stands in on the first game's page.
+// Its table does not scroll: it holds five places and no more, and the
+// original gives it no scroll base at all (SHOP-SCREEN-033).
+func ShopWheelAt(p image.Point) ShopWheelRegion { return firstShopLayout.WheelAt(p) }
 
 // ShopHoverLines is the characteristics of the item under the point, and
 // whether there is one. It answers only the three grids; every other control
@@ -773,7 +774,7 @@ func ShopHoverLines(v ShopScreenView, p image.Point) ([]string, bool) {
 	case ShopControlShelfCell:
 		cell = v.Shelf[c.Index]
 	case ShopControlTableCell:
-		if v.Book {
+		if v.bookOpen() {
 			return nil, false
 		}
 		cell = v.Table[c.Index]
@@ -903,6 +904,9 @@ func drawShopCell(dst *image.RGBA, art *ShopScreenArt, font, priceFont *text.Fon
 	// Shop order is background, base icon, trail, quantity, then the later
 	// price layers (ITEM-STARCOMP-100). The +1 y origin is the measured shop
 	// painter's own placement; drawItemStarTrail applies only the global clip.
+	if cell.Icon == nil && font != nil {
+		drawShopCellText(dst, font, cell.Text, r)
+	}
 	if cell.Star && cell.Icon != nil {
 		drawItemStarTrail(dst, image.Pt(r.Min.X, r.Min.Y+1), cell.StarPhase, field)
 	}
@@ -920,6 +924,19 @@ func drawShopCell(dst *image.RGBA, art *ShopScreenArt, font, priceFont *text.Fon
 // so that its pen ends shopPriceRightInset pixels left of the cell's right edge,
 // one pixel below the cell's top, in the gold ramp over a flat shadow one pixel
 // right and down, as the text renderer draws every line.
+// shopTextLine is one name line's height in a text cell; the lines stand
+// centred between the price plaque and the quantity.
+const shopTextLine = 14
+
+// drawShopCellText draws a text cell's name lines.
+func drawShopCellText(dst *image.RGBA, font *text.Font, lines []string, r image.Rectangle) {
+	top := r.Min.Y + (r.Dy()-shopTextLine*len(lines))/2
+	for n, line := range lines {
+		y := top + n*shopTextLine
+		DrawTownCaption(dst, font, line, image.Rect(r.Min.X+2, y, r.Max.X-2, y+shopTextLine))
+	}
+}
+
 func drawShopPlaque(dst *image.RGBA, art *ShopScreenArt, font *text.Font, cell ShopCell, r image.Rectangle) {
 	if pic := shopPlaquePicture(art, cell); pic != nil {
 		blit(dst, pic, r.Max.X-pic.Bounds().Dx(), r.Min.Y+1)
@@ -1023,24 +1040,24 @@ func outline(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
 func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragIcon *image.RGBA, hasDrag bool) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, shopScreenW, shopScreenH))
 	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: shopScreenFill}, image.Point{}, draw.Src)
-	art := v.Art
+	art, l := v.Art, v.layout()
 
 	if art != nil {
-		blit(dst, art.Shelf, shopShelfRegion.Min.X, shopShelfRegion.Min.Y)
-		blit(dst, art.Room, shopRoomOrigin.X, shopRoomOrigin.Y)
-		blit(dst, art.Frame, shopFrameOrigin.X, shopFrameOrigin.Y)
-		blit(dst, art.Table, shopTableRegion.Min.X, shopTableRegion.Min.Y)
+		blit(dst, art.Shelf, l.Shelf.Min.X, l.Shelf.Min.Y)
+		blit(dst, art.Room, l.Room.X, l.Room.Y)
+		blit(dst, art.Frame, l.Frame.X, l.Frame.Y)
+		blit(dst, art.Table, l.Table.Min.X, l.Table.Min.Y)
 	}
 	panel := shopButtonPanel(v, hover, hasHover)
 	panel.drawBody(dst)
 	panel.drawButtons(dst, v.Font)
 	if art != nil {
-		blit(dst, art.Arrow[0], shopArrowUpRect.Min.X, shopArrowUpRect.Min.Y)
-		blit(dst, art.Arrow[1], shopArrowDownRect.Min.X, shopArrowDownRect.Min.Y)
-		blit(dst, art.PackCap[0], shopPackLeftRect.Min.X, shopPackLeftRect.Min.Y)
-		blit(dst, art.PackCap[1], shopPackRightRect.Min.X, shopPackRightRect.Min.Y)
+		blit(dst, art.Arrow[0], l.ArrowUp.Min.X, l.ArrowUp.Min.Y)
+		blit(dst, art.Arrow[1], l.ArrowDown.Min.X, l.ArrowDown.Min.Y)
+		blit(dst, art.PackCap[0], l.PackLeft.Min.X, l.PackLeft.Min.Y)
+		blit(dst, art.PackCap[1], l.PackRight.Min.X, l.PackRight.Min.Y)
 		for i, on := range [2]bool{v.PackBack, v.PackForward} {
-			r := [2]image.Rectangle{shopPackLeftRect, shopPackRightRect}[i]
+			r := [2]image.Rectangle{l.PackLeft, l.PackRight}[i]
 			if on {
 				n := i
 				if hasHover && hover.In(r) {
@@ -1054,13 +1071,13 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 		}
 	}
 	for i := 0; i < shopShelfN; i++ {
-		drawShopCell(dst, art, v.Font, v.PriceFont, v.Shelf[i], ShopShelfCellRect(i), false, &itemStarFields[1])
+		drawShopCell(dst, art, v.Font, v.PriceFont, v.Shelf[i], l.ShelfCellRect(i), false, &itemStarFields[1])
 	}
 	for i := 0; i < shopStripN; i++ {
-		if !v.Book {
-			drawShopCell(dst, art, v.Font, v.PriceFont, v.Table[i], ShopTableCellRect(i), false, &itemStarFields[2])
+		if !v.bookOpen() {
+			drawShopCell(dst, art, v.Font, v.PriceFont, v.Table[i], l.TableCellRect(i), false, &itemStarFields[2])
 		}
-		drawShopCell(dst, art, v.Font, v.PriceFont, v.Pack[i], ShopPackCellRect(i), true, &itemStarFields[3])
+		drawShopCell(dst, art, v.Font, v.PriceFont, v.Pack[i], l.PackCellRect(i), true, &itemStarFields[3])
 	}
 	drawTownBook(dst, v)
 
@@ -1081,7 +1098,9 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 	// to restore the x=464..480 overlap the blanking had covered.
 	character := shopCharacterView(v)
 
-	DrawTownCharacterRegion(dst, character)
+	if l.Character {
+		DrawTownCharacterRegion(dst, character)
+	}
 	if !character.Statistics {
 		drawShopMessage(dst, v)
 	}
@@ -1130,15 +1149,18 @@ func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonP
 	}
 	labels := [4]string{v.Words.ShopUndo, v.Words.ShopBuy, v.Words.ShopSell, v.Words.ShopExit}
 	numbers := [4]int32{v.Purse, v.Buy, v.Sell, v.Total}
-	buttons := make([]panelButton, len(shopButtonRects))
-	for i, r := range shopButtonRects {
+	l := v.layout()
+	buttons := make([]panelButton, len(l.Button))
+	for i, r := range l.Button {
 		b := &buttons[i]
 		b.Captions = []string{labels[i], GroupDigits(int64(numbers[i]))}
 		b.Hover = hasHover && hover.In(r)
 		b.Inside, b.Disabled = b.Hover, !v.Live[i]
 		b.Pressed = v.Press == (ShopControl{Kind: ShopControlButton, Index: i})
 	}
-	return buildButtonPanel(shopPanel, art, buttons)
+	comp := shopPanel
+	comp.Body, comp.Plaques = l.Buttons, l.Button[:]
+	return buildButtonPanel(comp, art, buttons)
 }
 
 // shopMessageRect is where the answer to the last press is written: the bottom
@@ -1154,18 +1176,18 @@ func drawShopMessage(dst *image.RGBA, v ShopScreenView) {
 	if v.Font == nil || v.Msg == "" {
 		return
 	}
-	s := v.Msg
+	s, l := v.Msg, v.layout()
 	for {
 		w, _ := v.Font.Measure(s)
-		if w <= shopMessageRect.Dx() || len(s) <= 1 {
+		if w <= l.Message.Dx() || len(s) <= 1 {
 			break
 		}
 		s = s[:len(s)-1]
 	}
 	w, _ := v.Font.Measure(s)
-	x := shopMessageRect.Min.X + (shopMessageRect.Dx()-w)/2
-	v.Font.Draw(dst, s, x+1, shopMessageRect.Min.Y+1, shopShadowColor)
-	v.Font.Draw(dst, s, x, shopMessageRect.Min.Y, shopTextColor)
+	x := l.Message.Min.X + (l.Message.Dx()-w)/2
+	v.Font.Draw(dst, s, x+1, l.Message.Min.Y+1, shopShadowColor)
+	v.Font.Draw(dst, s, x, l.Message.Min.Y, shopTextColor)
 }
 
 // wrapShopTip splits s into lines that each measure no wider than width under

@@ -207,8 +207,8 @@ func TestShopCellsKeepDistinctEffectsAndCloneAcrossEveryModelTransfer(t *testing
 		t.Fatal("TakeFromShelf refused the enchanted item")
 	}
 	view := shop.Table()
-	view[0].Effects[0].Operand = 77
-	if shop.Table()[0].Effects[0].Operand != 4 {
+	view[0].ShopItem.Effects[0].Operand = 77
+	if shop.Table()[0].ShopItem.Effects[0].Operand != 4 {
 		t.Fatal("Table exposed an effect alias")
 	}
 	shop.ClearTable()
@@ -226,11 +226,11 @@ func TestShopCellsKeepDistinctEffectsAndCloneAcrossEveryModelTransfer(t *testing
 	}
 	put.Effects[0].Operand = 88
 	off, ok := shop.TakeOffTable(0, 1)
-	if !ok || off.Effects[0].Operand != 5 {
+	if !ok || off.ShopItem.Effects[0].Operand != 5 {
 		t.Fatalf("TakeOffTable did not return the complete cloned instance: %+v", off)
 	}
-	off.Effects[0].Operand = 66
-	if table := shop.Table(); len(table) != 1 || table[0].Count != 1 || table[0].Effects[0].Operand != 5 {
+	off.ShopItem.Effects[0].Operand = 66
+	if table := shop.Table(); len(table) != 1 || table[0].ShopItem.Count != 1 || table[0].ShopItem.Effects[0].Operand != 5 {
 		t.Fatalf("partial TakeOffTable exposed an internal effect alias: %+v", table)
 	}
 	if _, ok := shop.Sell(); !ok {

@@ -7,17 +7,17 @@ import (
 	"againrom/pkg/ui"
 )
 
-func (t *townScreen) shopMoveWithinPack(source, target int, whole bool) ui.TownAction {
+func (t *shopController) shopMoveWithinPack(source, target int, whole bool) ui.TownAction {
 	stacks := t.shopPackStacks()
 	if source == target || source < 0 || target < 0 || source >= len(stacks) || target >= len(stacks) {
 		return ui.TownAction{}
 	}
-	return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) {
+	return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) {
 		return ui.TownAction{}, n.cityShopMovePack(source, target, whole)
 	})
 }
 
-func (t *townScreen) cityShopMovePack(source, target int, whole bool) error {
+func (t *shopController) cityShopMovePack(source, target int, whole bool) error {
 	from, incoming, err := t.cityShopPackSelection(source)
 	if err != nil {
 		return err

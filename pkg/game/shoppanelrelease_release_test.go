@@ -35,7 +35,7 @@ func panelReleaseSnapshot(s *townScreen) panelReleaseState {
 		}
 	}
 	for _, place := range f.Shop.Table() {
-		st.table = append(st.table, uint16(place.Code))
+		st.table = append(st.table, uint16(place.ShopItem.Code))
 		st.mine = append(st.mine, place.Mine)
 	}
 	return st

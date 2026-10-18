@@ -2587,6 +2587,8 @@ func shopDragGridBase(v ShopScreenView, origin ShopControl) int {
 		return v.ShelfOffset
 	case ShopControlPackCell:
 		return v.PackOffset
+	case ShopControlTableCell:
+		return v.TableOffset
 	default:
 		return 0
 	}
@@ -2632,7 +2634,7 @@ func (a *App) shopDragCursorName(v ShopScreenView, in appInput) string {
 	if !a.shopDragArmed || a.shopDragMoved < TapSlop || !a.shopDragHoldsShelfStamp(v) {
 		return a.shopCursorRestore()
 	}
-	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && shopPaneTakesItemAt(p) {
+	if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && shopPaneTakesItemAt(v, p) {
 		return "cantput"
 	}
 	return a.shopCursorRestore()
@@ -3018,7 +3020,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 						// The model decides the accepted same-family pairs.
 						a.flow.dragShop(held, dest)
 						a.syncViewerLayout()
-					} else if origin.Kind != ShopControlDoll && shopPaneTakesItemAt(p) {
+					} else if origin.Kind != ShopControlDoll && shopPaneTakesItemAt(shopView, p) {
 						// THE PANE TAKES THE ITEM ANYWHERE IN ITS RECTANGLE, corners and
 						// statistics card included (TOWN-348, DIV-315): shopGridControlAt
 						// answered !ok above because no slot's layer is painted at p, or

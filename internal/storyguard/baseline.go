@@ -2586,6 +2586,9 @@ package storyguard
 // single-trigger return path are replaced by shared choices and navigation.
 // CommentBytes rises for the new target-use and popup-link API docs in
 // pkg/ui/mapeditorscriptmodel.go and pkg/ui/mapeditortrigger.go, plus this note.
+// CommentBytes rises for the one shop deal core's new docs in
+// pkg/game/shopdeal.go, both games' shop rules and the mod stock fill, plus
+// this note.
 //
 // CommentBytes rises for the one world-map builder: the world-map description
 // types in pkg/game/worldmapdescription.go, the shared state machine in
@@ -2593,6 +2596,21 @@ package storyguard
 // pkg/ui/worldmap.go, the shared input rules in pkg/game/worldmapinput.go,
 // the second game's map in pkg/game/secondworldmap.go and the docs of its
 // fixture and release tests, including this paragraph.
+// CommentBytes is the sum of main's world-map rise and this branch's shop
+// page layout docs in pkg/ui/shoplayout.go after the merge.
+// CommentBytes rises for the second game's shop item conversions in
+// pkg/game/secondtownshop.go and the Shop's rules field.
+// CommentBytes rises for the one shop controller and its room hooks in
+// pkg/game/shopcontroller.go and the city book mutation's generic form.
+// CommentBytes rises for the second game's shop room on the one page in
+// pkg/game/secondshoproom.go and the Shop's SellBack.
+// CommentBytes rises for the second game's bag bound in pkg/game/secondparty.go
+// and the shop page's pack bound in pkg/game/shoproom.go, plus this note.
+// CommentBytes rises for the shop page's join rule in pkg/game/shoproom.go.
+// CommentBytes rises for the scrolling table strip: pkg/ui/shoplayout.go's
+// TableScroll, the table wheel region and offset, and the controller's base.
+// CommentBytes rises for the city shop's deal-core decisions in
+// pkg/game/cityshopmutation.go, where the city graph is only transport.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2616,5 +2634,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1714,
 	},
-	CommentBytes: 9211044,
+	CommentBytes: 9233966,
 }

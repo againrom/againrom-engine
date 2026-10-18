@@ -58,27 +58,50 @@ func secondShopTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen,
 // scene; the page's art must load.
 func secondShopEnter(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampaignScreen) (*town.Scene, *town.Art) {
 	t.Helper()
-	secondShopActivate(t, app, "SHOP")
+	secondShopActivate(t, f, app, "SHOP")
 	c := f.Town.second
 	d, ok := s.composedTown()
 	if !ok || c.room != secondTownShop || f.TownScreen().Header() != "ROM2 campaign: shop" {
 		t.Fatalf("SHOP opened room %d", c.room)
 	}
-	if a := s.roomArt(d, "shop"); a.err != nil || !s.AtTownSquare() {
-		t.Fatal("the shop page's art did not load:", a.err)
-	}
-	s.TownSquareActive(true)
+	secondShopArtLoaded(t, s)
+	s.ShopInteriorActive(true)
 	return s.scene(d, "shop"), s.roomArt(d, "shop").scene
 }
 
-// secondShopRows reports whether the shown page offers row text.
-func secondShopRows(s *secondCampaignScreen, text string) bool {
-	for _, r := range s.Rows() {
-		if r.Text == text {
-			return true
+// secondShopArtLoaded requires the shop page in place of the square, with
+// the town's room, frame, shelf, table, menu, arrows and buttons
+// (R2-ENGINE-249) and its scene's interior.
+func secondShopArtLoaded(t *testing.T, s *secondCampaignScreen) {
+	t.Helper()
+	d, _ := s.composedTown()
+	if a := s.roomArt(d, "shop"); a.err != nil || !s.AtTownShop() || s.AtTownSquare() {
+		t.Fatal("the shop page's art did not load:", a.err)
+	}
+	v := s.ShopScreen()
+	art := v.Art
+	if art == nil || v.Scene == nil || v.Layout == nil {
+		t.Fatal("the shop page has no art, scene or layout")
+	}
+	pics := []*image.RGBA{art.Room, art.Frame, art.Shelf, art.Table, art.Menu, art.Arrow[0], art.Arrow[1]}
+	pics = append(pics, art.Button[:]...)
+	for i, p := range pics {
+		if p == nil {
+			t.Fatalf("shop picture %d did not load", i)
 		}
 	}
-	return false
+}
+
+// secondShopPaint is the shop page's frame with no pointer.
+func secondShopPaint(s *secondCampaignScreen) *image.RGBA {
+	return ui.ComposeShopScreen(s.ShopScreen(), image.Point{}, false, nil, false)
+}
+
+// secondShopRows reports whether the shown page offers category k: a
+// pixel of the room answers its rectangle.
+func secondShopRows(app *ui.App, k int) bool {
+	_, _, err := app.HeadlessShopPoint("shelf_pick", k)
+	return err == nil
 }
 
 // TestReleaseSecondTownShopLaterTowns opens the town 2 and town 3 shops from
@@ -103,14 +126,14 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 				secondShopDruidGate(t, f, app, s)
 			}
 			secondShopEnter(t, f, app, s)
-			if c.shop.filled != tc.id || len(c.shop.stock[0]) == 0 || len(c.shop.stock[1]) == 0 || len(c.shop.stock[2]) == 0 {
+			if c.shop.filled != tc.id || len(c.shop.shelves[0]) == 0 || len(c.shop.shelves[1]) == 0 || len(c.shop.shelves[2]) == 0 {
 				t.Fatalf("town %d stock: filled %d, %d/%d/%d/%d entries", tc.id, c.shop.filled,
-					len(c.shop.stock[0]), len(c.shop.stock[1]), len(c.shop.stock[2]), len(c.shop.stock[3]))
+					len(c.shop.shelves[0]), len(c.shop.shelves[1]), len(c.shop.shelves[2]), len(c.shop.shelves[3]))
 			}
 			// Every equipment entry of a category without enchantment is
 			// priced inside its record's range, rounding aside (R2-ENGINE-264,
 			// R2-ENGINE-267): the town's own record filled it.
-			for k, list := range c.shop.stock {
+			for k, list := range c.shop.stock() {
 				cat := c.shop.records[tc.id][k]
 				for _, it := range list {
 					if it.Kind != secondshop.Book && it.Kind != secondshop.Magic && cat.Mask&(1<<29) == 0 && (it.Price < int64(cat.Min) || it.Price > int64(cat.Max)+1) {
@@ -122,22 +145,22 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			secondShopWitness(t, app, witness+"-shop-open")
 			f.Town.gold = 500000
 			first := c.shop.shelf()[c.shop.visibleShelf()[0]]
-			secondShopActivate(t, app, "ITEM 1", "BUY")
-			if f.Town.gold != 500000-int(first.Price) || len(c.shop.hero) != 1 || c.shop.hero[0].Quantity != 1 {
-				t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.shop.hero)
+			secondShopActivate(t, f, app, "ITEM 1", "BUY")
+			if f.Town.gold != 500000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Quantity != 1 {
+				t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.heroItems())
 			}
 			gold := f.Town.gold
-			secondShopActivate(t, app, "MINE 1", "SELL")
-			if f.Town.gold != gold+int(secondshop.SaleCredit(first.Price, 1)) || len(c.shop.hero) != 0 {
+			secondShopActivate(t, f, app, "MINE 1", "SELL")
+			if f.Town.gold != gold+int(secondshop.SaleCredit(first.Price, 1)) || len(c.heroItems()) != 0 {
 				t.Fatalf("sale of one at %d: gold %d -> %d", first.Price, gold, f.Town.gold)
 			}
-			secondShopActivate(t, app, "SHELF 2", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
-			if c.shop.category != 0 || len(c.shop.hero) != 1 || len(c.shop.buying) != 1 {
-				t.Fatalf("second deal: hero %v buying %v", c.shop.hero, c.shop.buying)
+			secondShopActivate(t, f, app, "SHELF 2", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
+			if c.shop.category != 0 || len(c.heroItems()) != 1 || len(c.shop.buying()) != 1 {
+				t.Fatalf("second deal: hero %v buying %v", c.heroItems(), c.shop.buying())
 			}
 			secondShopWitness(t, app, witness+"-shop-deal-open")
-			saved, savedGold, old := captureSecondShop(c.shop), f.Town.gold, secondShopUndone(c.shop)
-			if saved.Records != c.shop.records {
+			saved, savedGold, old := captureSecondCampaign(c), f.Town.gold, secondShopUndone(c.shop)
+			if saved.Shop.Records != c.shop.records {
 				t.Fatal("the captured records are not the campaign's")
 			}
 			dir := secondMissionSaveDirectory(t)
@@ -147,12 +170,12 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			}
 			// Loss control: another town's records in the written shop are
 			// not the shop the continuous run holds.
-			lost := saved.clone()
+			lost := saved.Shop.clone()
 			lost.Records[tc.id] = lost.Records[1]
-			if reflect.DeepEqual(lost, saved) {
+			if reflect.DeepEqual(lost, saved.Shop) {
 				t.Fatal("loss control compares equal")
 			}
-			proof, err := json.Marshal(secondShopProof{Shop: saved, Gold: savedGold, Old: old})
+			proof, err := json.Marshal(secondShopProof{Shop: saved.Shop, Party: saved.Party, Gold: savedGold, Old: old})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -161,8 +184,8 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 				t.Fatal(err)
 			}
 			runSpellWitnessChild(t, path, "AGAINROM_SECOND_SHOP_INPUT")
-			if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare || len(c.shop.buying) != 0 {
-				t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying))
+			if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare || len(c.shop.buying()) != 0 {
+				t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying()))
 			}
 			t.Logf("town %d shop: %d/%d/%d/%d entries; bought at %d, sold for %d; SAV %d bytes", tc.id, len(old[0]),
 				len(old[1]), len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(first.Price, 1), len(raw))
@@ -181,12 +204,11 @@ func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampai
 		t.Fatal("bank slot 770 is set at stage 60")
 	}
 	_, art := secondShopEnter(t, f, app, s)
-	view := s.TownSquareView().Scene
-	shut := druidPaint(s)
-	if secondShopRows(s, "SHELF 4") || app.HeadlessActivate("SHELF 4") == nil || c.shop.category == 3 {
+	shut := secondShopPaint(s)
+	if secondShopRows(app, 3) {
 		t.Fatal("the fourth category is offered with bank slot 770 zero")
 	}
-	if ctl, ok := view.ControlAt(image.Pt(305, 224)); ok && ctl.Kind == ui.TownSquareControlDoor && s.Rows()[ctl.Door].Text == "SHELF 4" {
+	if shopTap(t, app, image.Pt(305, 224), "press", "release"); c.shop.category == 3 || s.shopChosen == 3 {
 		t.Fatal("a click on the fourth category's rectangle chose it with bank slot 770 zero")
 	}
 	elven, elvenAt := art.Pictures("elven")[0], image.Pt(257, 172)
@@ -199,8 +221,8 @@ func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampai
 	// record without class 4 holds nothing in it.
 	c.bank[770] = 1
 	secondShopEnter(t, f, app, s)
-	if !secondShopRows(s, "SHELF 4") || len(c.shop.stock[3]) != 0 || c.shop.filled != 3 {
-		t.Fatalf("slot 770 = 1 before the conversation: fourth category %d entries, filled %d", len(c.shop.stock[3]), c.shop.filled)
+	if !secondShopRows(app, 3) || len(c.shop.shelves[3]) != 0 || c.shop.filled != 3 {
+		t.Fatalf("slot 770 = 1 before the conversation: fourth category %d entries, filled %d", len(c.shop.shelves[3]), c.shop.filled)
 	}
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
 		t.Fatal("escape", err)
@@ -216,7 +238,7 @@ func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampai
 	}
 	c.shop.filled = 3
 	secondShopEnter(t, f, app, s)
-	if len(c.shop.stock[3]) != 0 {
+	if len(c.shop.shelves[3]) != 0 {
 		t.Fatal("the loss control's stock gained a fourth category")
 	}
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
@@ -225,21 +247,17 @@ func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampai
 	c.shop.filled = 0
 	secondShopEnter(t, f, app, s)
 	secondShopClassFour(t, c)
-	open := druidPaint(s)
-	if !druidProbe(open, elven, elvenAt, p) || !secondShopRows(s, "SHELF 4") {
+	open := secondShopPaint(s)
+	if !druidProbe(open, elven, elvenAt, p) || !secondShopRows(app, 3) {
 		t.Fatal("the fourth category is not drawn or offered with bank slot 770 set")
 	}
-	ctl, ok := view.ControlAt(image.Pt(305, 224))
-	if !ok || ctl.Kind != ui.TownSquareControlDoor || s.Rows()[ctl.Door].Text != "SHELF 4" {
-		t.Fatal("the fourth category's rectangle reaches no row", ctl, ok)
-	}
-	s.Choose(ctl.Door)
+	shopTap(t, app, image.Pt(305, 224), "press", "release")
 	hili := art.Pictures("shelf/3")[0]
-	if c.shop.category != 3 || !druidProbe(druidPaint(s), hili, elvenAt, druidDiffPoint(t, open, hili, elvenAt)) {
+	if c.shop.category != 3 || s.shopChosen != 3 || !druidProbe(secondShopPaint(s), hili, elvenAt, druidDiffPoint(t, open, hili, elvenAt)) {
 		t.Fatalf("the fourth category: category %d", c.shop.category)
 	}
 	secondShopWitness(t, app, "town3-shop-elven")
-	secondShopActivate(t, app, "SHELF 1")
+	secondShopActivate(t, f, app, "SHELF 1")
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
 		t.Fatal("escape", err)
 	}
@@ -249,13 +267,13 @@ func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampai
 // and every one of them to admit class 4.
 func secondShopClassFour(t *testing.T, c *secondCampaign) {
 	t.Helper()
-	if c.shop.filled != 3 || len(c.shop.stock[3]) == 0 {
-		t.Fatalf("after the conversation: filled %d, fourth category %d entries", c.shop.filled, len(c.shop.stock[3]))
+	if c.shop.filled != 3 || len(c.shop.shelves[3]) == 0 {
+		t.Fatalf("after the conversation: filled %d, fourth category %d entries", c.shop.filled, len(c.shop.shelves[3]))
 	}
 	if c.shop.records[3][3].Mask&secondShopClass4 == 0 {
 		t.Fatal("record 3 category 3 lacks the class-4 bit")
 	}
-	for _, it := range c.shop.stock[3] {
+	for _, it := range c.shop.stock()[3] {
 		if it.Kind != secondshop.Book && it.Kind != secondshop.Magic && it.Class != 4 {
 			t.Fatalf("fourth category entry %+v is not class 4", it)
 		}
@@ -267,7 +285,7 @@ func secondShopClassFour(t *testing.T, c *secondCampaign) {
 func secondShopKeeperFrame(t *testing.T, s *secondCampaignScreen, base image.Image, pic image.Image, at image.Point, what string) {
 	t.Helper()
 	p := druidDiffPoint(t, base, pic, at)
-	if !druidProbe(druidPaint(s), pic, at, p) {
+	if !druidProbe(secondShopPaint(s), pic, at, p) {
 		t.Fatalf("%s is not drawn at %v", what, at)
 	}
 }
@@ -302,16 +320,17 @@ func TestReleaseSecondTownShopKeepers(t *testing.T) {
 			keeper := scene.Actor("keeper").(*town.Priority)
 			step := func(n int) {
 				for range n {
-					kaargStep(s, now, 100*time.Millisecond)
+					*now = now.Add(100 * time.Millisecond)
+					s.AdvanceShopInteriorAnimation()
 				}
 			}
 			step(1) // the first paint of the process stamps the episode baseline
-			rest := druidPaint(s)
+			rest := secondShopPaint(s)
 			if !druidProbe(rest, art.Pictures("keeper")[0], tc.at, tc.at) || keeper.Running() >= 0 {
 				t.Fatal("the keeper does not rest on its first file")
 			}
 			if tc.id == 1 {
-				secondShopActivate(t, app, "SHELF 2")
+				secondShopActivate(t, f, app, "SHELF 2")
 				step(1)
 				secondShopKeeperFrame(t, s, rest, art.Pictures("yes")[0], tc.at, "Yes file 2 after a category change")
 				step(11)
@@ -319,13 +338,13 @@ func TestReleaseSecondTownShopKeepers(t *testing.T) {
 					t.Fatalf("Yes did not end at counter 12: running %d index %d", keeper.Running(), keeper.Index)
 				}
 				f.Town.gold = 0
-				secondShopActivate(t, app, "ITEM 1", "BUY")
+				secondShopActivate(t, f, app, "ITEM 1", "BUY")
 				step(1)
 				secondShopKeeperFrame(t, s, rest, art.Pictures("no")[0], tc.at, "No file 2 after a buy beyond the gold")
 				step(11)
-				secondShopActivate(t, app, "UNDO")
+				secondShopActivate(t, f, app, "UNDO")
 				f.Town.gold = 100000
-				secondShopActivate(t, app, "ITEM 1", "BUY", "MINE 1", "SELL")
+				secondShopActivate(t, f, app, "ITEM 1", "BUY", "MINE 1", "SELL")
 				if keeper.Running() != 1 {
 					t.Fatal("a credited sale raised no Yes", keeper.Running())
 				}
@@ -351,14 +370,14 @@ func TestReleaseSecondTownShopKeepers(t *testing.T) {
 			}
 			// A refused buy starts nothing; an affordable buy starts a2.
 			f.Town.gold = 0
-			secondShopActivate(t, app, "ITEM 1", "BUY")
+			secondShopActivate(t, f, app, "ITEM 1", "BUY")
 			step(1)
 			if keeper.Running() >= 0 {
 				t.Fatal("a refused buy started an episode")
 			}
-			secondShopActivate(t, app, "UNDO")
+			secondShopActivate(t, f, app, "UNDO")
 			f.Town.gold = 500000
-			secondShopActivate(t, app, "ITEM 1", "BUY")
+			secondShopActivate(t, f, app, "ITEM 1", "BUY")
 			step(1)
 			secondShopKeeperFrame(t, s, rest, art.Pictures("a2")[0], tc.at, "a2 file 0002 after a buy")
 			steps := len(art.Pictures("a2")) + 1
@@ -386,7 +405,7 @@ func TestReleaseSecondTownShopKeepers(t *testing.T) {
 			}
 			if tc.id == 2 {
 				fire := scene.Actor("fire").(*town.Transit)
-				secondShopActivate(t, app, "SHELF 4")
+				secondShopActivate(t, f, app, "SHELF 4")
 				if cell, selected := fire.Shown(); !selected || fire.Dir != 1 {
 					t.Fatalf("weapons chosen: cell %d selected %v direction %d", cell, selected, fire.Dir)
 				}
@@ -397,7 +416,7 @@ func TestReleaseSecondTownShopKeepers(t *testing.T) {
 				firePic := art.Pictures("fire-cicle-select")[fire.Cursor-12]
 				secondShopKeeperFrame(t, s, rest, firePic, image.Pt(357, 204), "the selected cicle cell")
 				secondShopWitness(t, app, "town2-shop-fire")
-				secondShopActivate(t, app, "SHELF 1")
+				secondShopActivate(t, f, app, "SHELF 1")
 				step(18)
 				if cell, selected := fire.Shown(); cell > 5 || selected {
 					t.Fatalf("the fire did not return to its lite loop: cell %d selected %v", cell, selected)

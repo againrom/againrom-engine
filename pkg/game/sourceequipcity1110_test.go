@@ -57,7 +57,7 @@ func TestSourceEquipment1110CityAllOriginsNativeNextRemoval(t *testing.T) {
 				if origin == "merchant table" {
 					want = fmt.Sprintf("bought and worn for 10 gold; you have %d left", gold-10)
 				}
-				if a := screen.shopEquipFromTable(0); a.Msg != want || f.Shop.Table()[0].Count != 1 {
+				if a := screen.shopEquipFromTable(0); a.Msg != want || f.Shop.Table()[0].ShopItem.Count != 1 {
 					t.Fatal(a)
 				}
 			}

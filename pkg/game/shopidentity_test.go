@@ -43,12 +43,12 @@ func TestShopIdentifiedPackMovesSelectedCountAndReequips(t *testing.T) {
 	}
 	clickShift(screen, ui.ShopControlPackCell, 2)
 	requireShopPackIDs(t, f, 101)
-	if table := f.Shop.Table(); len(table) != 1 || table[0].ObjectID != 202 || table[0].Count != 2 {
+	if table := f.Shop.Table(); len(table) != 1 || table[0].ShopItem.ObjectID != 202 || table[0].ShopItem.Count != 2 {
 		t.Fatalf("selected whole stack on table = %+v", table)
 	}
 	click(screen, ui.ShopControlPackCell, 1)
 	requireShopPackIDs(t, f)
-	if table := f.Shop.Table(); len(table) != 2 || table[1].ObjectID != 101 || table[1].Count != 1 {
+	if table := f.Shop.Table(); len(table) != 2 || table[1].ShopItem.ObjectID != 101 || table[1].ShopItem.Count != 1 {
 		t.Fatalf("equal-valued distinct table node = %+v", table)
 	}
 	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlTableCell, Index: 0}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "worn" {
@@ -57,11 +57,11 @@ func TestShopIdentifiedPackMovesSelectedCountAndReequips(t *testing.T) {
 	if worn := f.Carried[0].Carry.EquippedItems[slot-1]; worn.ObjectID != 202 {
 		t.Fatalf("worn table node = %+v", worn)
 	}
-	if table := f.Shop.Table(); len(table) != 2 || table[0].ObjectID != 202 || table[0].Count != 1 || table[1].ObjectID != 101 || table[1].Count != 1 {
+	if table := f.Shop.Table(); len(table) != 2 || table[0].ShopItem.ObjectID != 202 || table[0].ShopItem.Count != 1 || table[1].ShopItem.ObjectID != 101 || table[1].ShopItem.Count != 1 {
 		t.Fatalf("table after taking one selected unit = %+v", table)
 	}
 	screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlDoll, Index: slot - 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
-	if table := f.Shop.Table(); len(table) != 2 || table[0].ObjectID != 202 || table[0].Count != 2 || table[1].ObjectID != 101 || table[1].Count != 1 {
+	if table := f.Shop.Table(); len(table) != 2 || table[0].ShopItem.ObjectID != 202 || table[0].ShopItem.Count != 2 || table[1].ShopItem.ObjectID != 101 || table[1].ShopItem.Count != 1 {
 		t.Fatalf("table after returning worn node = %+v", table)
 	}
 	screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlTableCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlPackCell})

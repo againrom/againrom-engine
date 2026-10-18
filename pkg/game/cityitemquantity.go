@@ -34,7 +34,7 @@ func (g *cityObjectTopology) trimWornCounts() {
 	}
 }
 
-func (t *townScreen) cityShopNodeCount(id sim.SavedObjectID) (uint32, error) {
+func (t *shopController) cityShopNodeCount(id sim.SavedObjectID) (uint32, error) {
 	p, err := newCityObjectProjection(t.sess.Town.cityObjects, t.sess.Carried, t.in.Table)
 	if err != nil {
 		return 0, err

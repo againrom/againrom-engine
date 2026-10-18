@@ -404,7 +404,7 @@ func TestReleaseShopItemInformationHasNoPriceLine(t *testing.T) {
 	}
 	click("shelf", c)
 	table := f.Shop.Table()
-	if len(table) == 0 || table[0].Mine || table[0].Price <= 0 {
+	if len(table) == 0 || table[0].Mine || table[0].ShopItem.Price <= 0 {
 		t.Fatalf("table after the shelf click %+v, want a merchant item at a positive price", table)
 	}
 	view = s.ShopScreen()
@@ -412,9 +412,9 @@ func TestReleaseShopItemInformationHasNoPriceLine(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hover("table", p, view.Table[0].Info, table[0].Instance())
-	if view.Table[0].Price != table[0].Price || !shopNumberDrawn(view, view.Table[0], ui.ShopTableCellRect(0), table[0].Price) {
-		t.Fatalf("table cell 0: grid number %d, want the stored price %d drawn", view.Table[0].Price, table[0].Price)
+	hover("table", p, view.Table[0].Info, table[0].ShopItem.Instance())
+	if view.Table[0].Price != table[0].ShopItem.Price || !shopNumberDrawn(view, view.Table[0], ui.ShopTableCellRect(0), table[0].ShopItem.Price) {
+		t.Fatalf("table cell 0: grid number %d, want the stored price %d drawn", view.Table[0].Price, table[0].ShopItem.Price)
 	}
 
 	// Taking a worn item off with a tap on the doll puts it in the pack, where

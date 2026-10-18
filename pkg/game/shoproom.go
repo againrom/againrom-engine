@@ -14,17 +14,17 @@ import (
 
 // shopBuy commits the merchant's places and puts what was bought in the
 // pack.
-func (t *townScreen) shopBuy() ui.TownAction {
+func (t *shopController) shopBuy() ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation((*townScreen).cityShopBuy)
+		return t.withCityShopMutation((*shopController).cityShopBuy)
 	}
-	if len(t.sess.Shop.Table()) == 0 {
+	if len(t.deal().Table()) == 0 {
 		return ui.TownAction{}
 	}
 	if !t.shopHasActorContainer() {
 		return ui.TownAction{}
 	}
-	shop := cloneShopMutation(t.sess.Shop)
+	shop := cloneShopMutation(t.deal())
 	bought, spend, ok := shop.Buy(int32(t.sess.Town.Gold()))
 	if !ok {
 		return ui.TownAction{}
@@ -37,40 +37,78 @@ func (t *townScreen) shopBuy() ui.TownAction {
 			units++
 		}
 	}
-	if !t.setShopPackItemInstances(items) {
+	if !t.packHolds(len(items)) || !t.setShopPackItemInstances(items) {
 		return ui.TownAction{}
 	}
-	*t.sess.Shop = *shop
+	*t.deal() = *shop
 	t.sess.Town.gold -= int(spend)
 	return ui.TownInfo(fmt.Sprintf("bought %d item(s) for %d gold; you have %d left",
 		units, spend, t.sess.Town.Gold()))
 }
 
+// packHolds reports whether the customer's pack may hold n units beside
+// the units he offers on the table; packUnits bounds them, zero is no bound.
+func (t *shopController) packHolds(n int) bool {
+	if t.packUnits == 0 {
+		return true
+	}
+	for _, place := range t.deal().Table() {
+		if place.Mine {
+			n += int(place.ShopItem.Count)
+		}
+	}
+	return n <= t.packUnits
+}
+
+// shopBuyFits reports whether the pack takes what a buy would put in it.
+func (t *shopController) shopBuyFits() bool {
+	if t.packUnits == 0 || t.hasCityShopTopology() {
+		return true
+	}
+	bought, _, ok := cloneShopMutation(t.deal()).Buy(int32(t.sess.Town.Gold()))
+	n := len(t.shopPackItemInstances())
+	for _, item := range bought {
+		n += int(item.Count)
+	}
+	return !ok || t.packHolds(n)
+}
+
 // shopSell commits the player's places. The goods left his pack when they
 // went on the table, so nothing is taken from it here.
-func (t *townScreen) shopSell() ui.TownAction {
+func (t *shopController) shopSell() ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation((*townScreen).cityShopSell)
+		return t.withCityShopMutation((*shopController).cityShopSell)
 	}
-	if len(t.sess.Shop.Table()) == 0 {
+	if len(t.deal().Table()) == 0 {
 		return ui.TownAction{}
 	}
 	var candidate *originalCityTrade
 	if t.sess.originalCity != nil {
 		candidate, t.sess.originalCity.trade = t.sess.originalCity.trade, nil
 	}
-	before, gold := t.sess.Shop.Table(), t.sess.Town.Gold()
-	paid, ok := t.sess.Shop.Sell()
+	before, gold := t.deal().Table(), t.sess.Town.Gold()
+	shop := cloneShopMutation(t.deal())
+	paid, back, ok := shop.SellBack()
+	if ok && len(back) > 0 {
+		items := t.shopPackItemInstances()
+		for _, item := range back {
+			for n := int32(0); n < item.Count; n++ {
+				items = append(items, item.Instance())
+			}
+		}
+		ok = t.setShopPackItemInstancesRefresh(items, false)
+	}
 	if !ok {
 		if t.sess.originalCity != nil {
 			t.sess.originalCity.trade = candidate
 		}
 		return ui.TownAction{}
 	}
+	*t.deal() = *shop
 	t.sess.Town.gold += int(paid)
 	t.finishOriginalCitySale(candidate, before, gold, int(paid))
 	msg := fmt.Sprintf("he pays %d; you have %d", paid, t.sess.Town.Gold())
-	if left := len(t.sess.Shop.Table()); left > 0 {
+	if left := len(t.deal().Table()); left > 0 {
 		msg += fmt.Sprintf("   (%d place(s) still on the table)", left)
 	}
 	return ui.TownInfo(msg)
@@ -79,14 +117,14 @@ func (t *townScreen) shopSell() ui.TownAction {
 // shopClear returns player places to the selected member's pack and merchant
 // places to their source shelves. The current graph path commits the whole
 // transfer atomically, including any destination merges.
-func (t *townScreen) shopClear() ui.TownAction {
+func (t *shopController) shopClear() ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation((*townScreen).cityShopClear)
+		return t.withCityShopMutation((*shopController).cityShopClear)
 	}
-	if !t.shopHasActorContainer() && len(t.sess.Shop.Table()) != 0 {
+	if !t.shopHasActorContainer() && len(t.deal().Table()) != 0 {
 		return ui.TownAction{}
 	}
-	shop := cloneShopMutation(t.sess.Shop)
+	shop := cloneShopMutation(t.deal())
 	back := shop.ClearTable()
 	if len(back) > 0 {
 		items := t.shopPackItemInstances()
@@ -99,8 +137,8 @@ func (t *townScreen) shopClear() ui.TownAction {
 			return ui.TownAction{}
 		}
 	}
-	if t.sess.Shop != nil {
-		*t.sess.Shop = *shop
+	if t.deal() != nil {
+		*t.deal() = *shop
 	}
 	return ui.TownInfo("the table is cleared")
 }
@@ -111,11 +149,11 @@ func (t *townScreen) shopClear() ui.TownAction {
 // exactly as this method always took it before this hotfix (owner, DIV-046,
 // DIV-047). A place already down to one unit leaves the table either way,
 // because TakeOffTable's own "at or above" test takes it all.
-func (t *townScreen) shopOffTable(i int, whole bool) ui.TownAction {
+func (t *shopController) shopOffTable(i int, whole bool) ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopOffTable(i, whole) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopOffTable(i, whole) })
 	}
-	table := t.sess.Shop.Table()
+	table := t.deal().Table()
 	if i < 0 || i >= len(table) {
 		return ui.TownAction{}
 	}
@@ -124,26 +162,26 @@ func (t *townScreen) shopOffTable(i int, whole bool) ui.TownAction {
 	}
 	n := int32(1)
 	if whole {
-		n = table[i].Count
+		n = table[i].ShopItem.Count
 	}
-	shop := cloneShopMutation(t.sess.Shop)
+	shop := cloneShopMutation(t.deal())
 	place, ok := shop.TakeOffTable(i, n)
 	if !ok {
 		return ui.TownAction{}
 	}
 	if !place.Mine {
 		shop.returnToShelf(place.From, place.ShopItem)
-		*t.sess.Shop = *shop
+		*t.deal() = *shop
 		return ui.TownInfo("back on his shelf")
 	}
 	items := t.shopPackItemInstances()
-	for k := int32(0); k < place.Count; k++ {
-		items = append(items, place.Instance())
+	for k := int32(0); k < place.ShopItem.Count; k++ {
+		items = append(items, place.ShopItem.Instance())
 	}
 	if !t.setShopPackItemInstances(items) {
 		return ui.TownAction{}
 	}
-	*t.sess.Shop = *shop
+	*t.deal() = *shop
 	return ui.TownInfo("back in your pack")
 }
 
@@ -154,22 +192,42 @@ func shopFindHisPlace(table []ShopPlace, code data.ItemCode, price int32, from S
 }
 
 func shopFindHisItemPlace(table []ShopPlace, item ShopItem, from ShopShelf) (int, bool) {
+	return shopFindJoinPlace(table, item, false, from, shopItemEqual)
+}
+
+// shopFindJoinPlace finds the place of one side a lot joins by join; a
+// merchant place must also have come off the lot's shelf.
+func shopFindJoinPlace(table []ShopPlace, item ShopItem, mine bool, from ShopShelf, join func(held, lot ShopItem) bool) (int, bool) {
 	for i, place := range table {
-		if !place.Mine && shopItemEqual(place.ShopItem, item) && place.From == from {
+		if place.Mine == mine && (mine || place.From == from) && join(place.ShopItem, item) {
 			return i, true
 		}
 	}
 	return -1, false
 }
 
+// shopJoin is the page's rule for a lot joining a held table place or pack
+// stack: an equal item, admitted by the deal's join where its rules set one
+// (the second game's: a stackable item, R2-ENGINE-265). The first game's
+// rules set none, and the page folds every equal lot.
+func (t *shopController) shopJoin() func(held, lot ShopItem) bool {
+	var join func(a, b ShopItem) bool
+	if d := t.deal(); d != nil {
+		join = d.rules().join
+	}
+	return func(held, lot ShopItem) bool {
+		return shopItemEqual(held, lot) && (join == nil || join(held, lot))
+	}
+}
+
 // shopFromShelf moves one unit, or the whole shelf occurrence when requested
 // (DIV-046, DIV-047). Compatible merchant lots from that shelf can join an
 // existing place, so repeated unit takes do not exhaust table positions.
-func (t *townScreen) shopFromShelf(i int, whole bool) ui.TownAction {
+func (t *shopController) shopFromShelf(i int, whole bool) ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopStageShelf(i, whole) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopStageShelf(i, whole) })
 	}
-	items := t.sess.Shop.Shelf(t.shopShelf)
+	items := t.deal().Shelf(t.shopShelf)
 	if i < 0 || i >= len(items) {
 		return ui.TownAction{}
 	}
@@ -179,20 +237,20 @@ func (t *townScreen) shopFromShelf(i int, whole bool) ui.TownAction {
 	if whole || st.Count <= 1 {
 		n = st.Count
 	}
-	if idx, found := shopFindHisItemPlace(t.sess.Shop.Table(), st, t.shopShelf); found {
-		if _, ok := t.sess.Shop.RemoveFromShelf(t.shopShelf, i, n); !ok {
+	if idx, found := shopFindJoinPlace(t.deal().Table(), st, false, t.shopShelf, t.shopJoin()); found {
+		if _, ok := t.deal().RemoveFromShelf(t.shopShelf, i, n); !ok {
 			return ui.TownAction{}
 		}
-		if !t.sess.Shop.GrowTablePlace(idx, n) {
+		if !t.deal().GrowTablePlace(idx, n) {
 			return ui.TownAction{}
 		}
-		t.shopItemResponse(st)
+		t.say(st)
 		return ui.TownAction{}
 	}
-	if !t.sess.Shop.TakeFromShelf(t.shopShelf, i, n) {
+	if !t.deal().TakeFromShelf(t.shopShelf, i, n) {
 		return ui.TownAction{}
 	}
-	t.shopItemResponse(st)
+	t.say(st)
 	return ui.TownAction{}
 }
 
@@ -204,24 +262,19 @@ func shopFindMinePlace(table []ShopPlace, code data.ItemCode, price int32) (int,
 }
 
 func shopFindMineItemPlace(table []ShopPlace, item ShopItem) (int, bool) {
-	for i, place := range table {
-		if place.Mine && shopItemEqual(place.ShopItem, item) {
-			return i, true
-		}
-	}
-	return -1, false
+	return shopFindJoinPlace(table, item, true, 0, shopItemEqual)
 }
 
 // shopFromPack moves one unit, or the whole selected stack (DIV-046, DIV-047).
 // It joins a compatible player place before consuming another table position.
 // The place retains a unit price; its payout uses only the quantity moved.
-func (t *townScreen) shopFromPack(i int, whole bool) ui.TownAction {
+func (t *shopController) shopFromPack(i int, whole bool) ui.TownAction {
 	stacks := t.shopPackStacks()
 	if i < 0 || i >= len(stacks) {
 		return ui.TownAction{}
 	}
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopStagePack(i, whole) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopStagePack(i, whole) })
 	}
 	st := stacks[i]
 	t.shopRevealTradeTable()
@@ -235,9 +288,9 @@ func (t *townScreen) shopFromPack(i int, whole bool) ui.TownAction {
 	shopItem.Price = price
 	shopItem = t.ownShopItem(shopItem, i)
 	candidate := t.prepareOriginalCitySale(item, n)
-	shop := cloneShopMutation(t.sess.Shop)
+	shop := cloneShopMutation(t.deal())
 
-	if idx, found := shopFindMineItemPlace(t.sess.Shop.Table(), shopItem); found {
+	if idx, found := shopFindJoinPlace(t.deal().Table(), shopItem, true, 0, t.shopJoin()); found {
 		if !shop.growOwnedTablePlace(idx, shopItem) {
 			return ui.TownAction{}
 		}
@@ -258,7 +311,7 @@ func (t *townScreen) shopFromPack(i int, whole bool) ui.TownAction {
 	if left != 0 || !t.setShopPackItemInstancesRefresh(kept, false) {
 		return ui.TownAction{}
 	}
-	*t.sess.Shop = *shop
+	*t.deal() = *shop
 	t.stageOriginalCitySale(candidate)
 	if price <= 0 {
 		return ui.TownAction{}
@@ -275,7 +328,7 @@ func (t *townScreen) shopFromPack(i int, whole bool) ui.TownAction {
 // shopWornSlots is the shown-or-named member's own worn array, Carry's over
 // a fresh member's own — shopPackItems' own Carry-vs-fresh fallback,
 // restated for equipment. Its result aliases the party record.
-func (t *townScreen) shopWornSlots(i int) *[sim.EquipSlots]uint16 {
+func (t *shopController) shopWornSlots(i int) *[sim.EquipSlots]uint16 {
 	party := t.shopParty()
 	if i < 0 || i >= len(party) {
 		return nil
@@ -286,7 +339,7 @@ func (t *townScreen) shopWornSlots(i int) *[sim.EquipSlots]uint16 {
 	return &party[i].Worn
 }
 
-func (t *townScreen) shopWornItemSlots(i int) *[sim.EquipSlots]sim.ItemInstance {
+func (t *shopController) shopWornItemSlots(i int) *[sim.EquipSlots]sim.ItemInstance {
 	party := t.shopParty()
 	if i < 0 || i >= len(party) {
 		return nil
@@ -336,7 +389,7 @@ func syncShopWornCodes(member *mapload.PartyMember, items [sim.EquipSlots]sim.It
 // index shopWornSlots resolves into equipment. Its result aliases the same
 // backing slice shopWornSlots' pointer does, so a caller that clears
 // member.Weapon writes into the record the doll is drawn from.
-func (t *townScreen) shopPartyMember(i int) *mapload.PartyMember {
+func (t *shopController) shopPartyMember(i int) *mapload.PartyMember {
 	party := t.shopParty()
 	if i < 0 || i >= len(party) {
 		return nil
@@ -346,7 +399,7 @@ func (t *townScreen) shopPartyMember(i int) *mapload.PartyMember {
 
 // shopMemberPack is member's own container, shopPackItems' own Carry-vs-
 // Carried read restated for an arbitrary member rather than the shown one.
-func (t *townScreen) shopPackItemInstances() []sim.ItemInstance {
+func (t *shopController) shopPackItemInstances() []sim.ItemInstance {
 	party := t.shopParty()
 	if len(party) == 0 {
 		return nil
@@ -377,16 +430,16 @@ func (t *townScreen) shopPackItemInstances() []sim.ItemInstance {
 	return out
 }
 
-func (t *townScreen) setShopPackItemInstances(items []sim.ItemInstance) bool {
+func (t *shopController) setShopPackItemInstances(items []sim.ItemInstance) bool {
 	return t.setShopPackItemInstancesRefresh(items, true)
 }
 
-func (t *townScreen) shopHasActorContainer() bool {
+func (t *shopController) shopHasActorContainer() bool {
 	m := t.shopPartyMember(t.shopMemberIndex())
 	return m == nil || m.Carry == nil || m.Carry.LiveLoad == nil || m.Carry.LiveLoad.Inventory.ContainerPresent
 }
 
-func (t *townScreen) setShopPackItemInstancesRefresh(items []sim.ItemInstance, refresh bool) bool {
+func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstance, refresh bool) bool {
 	party := t.shopParty()
 	if len(party) == 0 {
 		return false
@@ -424,7 +477,7 @@ func (t *townScreen) setShopPackItemInstancesRefresh(items []sim.ItemInstance, r
 	return true
 }
 
-func (t *townScreen) shopWeaponFallbackCode(i int) (code uint16, ok bool) {
+func (t *shopController) shopWeaponFallbackCode(i int) (code uint16, ok bool) {
 	member := t.shopPartyMember(i)
 	if member == nil || member.Weapon == nil || member.WeaponMaterialized {
 		return 0, false
@@ -435,7 +488,7 @@ func (t *townScreen) shopWeaponFallbackCode(i int) (code uint16, ok bool) {
 // shopSlot1Code prefers real worn equipment, then the unmaterialized starting
 // weapon used by the doll and drag views. viaFallback tells a consumer to
 // materialize the weapon instead of clearing an already-empty array slot.
-func (t *townScreen) shopSlot1Code(i int, worn *[sim.EquipSlots]uint16) (code uint16, viaFallback bool) {
+func (t *shopController) shopSlot1Code(i int, worn *[sim.EquipSlots]uint16) (code uint16, viaFallback bool) {
 	if worn[0] != 0 {
 		return worn[0], false
 	}
@@ -449,13 +502,13 @@ func (t *townScreen) shopSlot1Code(i int, worn *[sim.EquipSlots]uint16) (code ui
 // to its member's pack. Slot 1 also resolves the starting-weapon fallback.
 // Every real slot-1 write sets WeaponMaterialized so that fallback cannot
 // reappear after the real weapon is removed.
-func (t *townScreen) shopWearInto(slot int, code uint16) {
+func (t *shopController) shopWearInto(slot int, code uint16) {
 	t.shopWearItemInto(slot, mapload.ItemInstanceFromCode(code, t.in.Table))
 }
 
-func (t *townScreen) shopWearItemInto(slot int, item sim.ItemInstance) {
+func (t *shopController) shopWearItemInto(slot int, item sim.ItemInstance) {
 	if t.hasCityShopTopology() {
-		t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) {
+		t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) {
 			bound, err := n.cityShopBind(shopItemFromInstance(item, 1))
 			if err != nil {
 				return ui.TownAction{}, err
@@ -469,17 +522,17 @@ func (t *townScreen) shopWearItemInto(slot int, item sim.ItemInstance) {
 		})
 		return
 	}
-	t.withCityBookMutation(func(n *townScreen) ui.TownAction {
+	t.withCityBookMutation(func(n *shopController) ui.TownAction {
 		n.shopWearItemValues(slot, item)
 		return ui.TownAction{}
 	})
 }
 
-func (t *townScreen) shopWearItemValues(slot int, item sim.ItemInstance) {
+func (t *shopController) shopWearItemValues(slot int, item sim.ItemInstance) {
 	_ = t.shopWearItemValuesOrdered(slot, item, nil)
 }
 
-func (t *townScreen) shopWearItemValuesOrdered(slot int, item sim.ItemInstance, complete func(before mapload.PartyMember, old, other sim.ItemInstance, otherSlot int) error) error {
+func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstance, complete func(before mapload.PartyMember, old, other sim.ItemInstance, otherSlot int) error) error {
 	if member := t.shopPartyMember(t.shopMemberIndex()); member != nil && mapload.HasSourceActor(*member) {
 		if next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, item, false); ok {
 			t.commitShopSourceEquipment(member, next, slot)
@@ -582,7 +635,7 @@ func (t *townScreen) shopWearItemValuesOrdered(slot int, item sim.ItemInstance, 
 // member's own pack, reporting whether one was there to take — shopFromPack's
 // own removal loop (its own doc), narrowed to one unit taken by code rather
 // than by stack index, since a doll drop names an item and not a position.
-func (t *townScreen) shopTakeOnePackUnit(code uint16) bool {
+func (t *shopController) shopTakeOnePackUnit(code uint16) bool {
 	return t.shopTakeOnePackItem(sim.PlainItem(code))
 }
 
@@ -593,7 +646,7 @@ func shopItemMatchesSelection(candidate, selected sim.ItemInstance) bool {
 	return sim.ItemEqual(candidate, selected) && candidate.Price == selected.Price
 }
 
-func (t *townScreen) shopTakeOnePackItem(item sim.ItemInstance) bool {
+func (t *shopController) shopTakeOnePackItem(item sim.ItemInstance) bool {
 	items := t.shopPackItemInstances()
 	for i, candidate := range items {
 		if shopItemMatchesSelection(candidate, item) {
@@ -608,7 +661,7 @@ func (t *townScreen) shopTakeOnePackItem(item sim.ItemInstance) bool {
 // enqueueEquip (world.go) restated over the party record. EITHER REFUSAL
 // TOUCHES NOTHING: both are asked before shopWearInto, on equip's own
 // totality.
-func (t *townScreen) shopWear(code data.ItemCode) (slot int, ok bool, action ui.TownAction) {
+func (t *shopController) shopWear(code data.ItemCode) (slot int, ok bool, action ui.TownAction) {
 	slot, ok = EquipTarget(code, t.in.Table)
 	if !ok {
 		return 0, false, ui.TownAction{}
@@ -625,7 +678,7 @@ func (t *townScreen) shopWear(code data.ItemCode) (slot int, ok bool, action ui.
 	return slot, true, ui.TownAction{}
 }
 
-func (t *townScreen) shopWearInstance(item sim.ItemInstance) (int, bool, ui.TownAction) {
+func (t *shopController) shopWearInstance(item sim.ItemInstance) (int, bool, ui.TownAction) {
 	if _, layer := mapload.LayerItem(t.in.Table, item.Code); layer {
 		return 0, false, ui.TownAction{}
 	}
@@ -653,7 +706,7 @@ func (t *townScreen) shopWearInstance(item sim.ItemInstance) (int, bool, ui.Town
 	return slot, true, ui.TownAction{}
 }
 
-func (t *townScreen) commitShopSourceEquipment(member *mapload.PartyMember, next mapload.PartyMember, slot int) {
+func (t *shopController) commitShopSourceEquipment(member *mapload.PartyMember, next mapload.PartyMember, slot int) {
 	if slot == 1 {
 		materializeStartingWeapon(&next)
 	}
@@ -666,7 +719,7 @@ func (t *townScreen) commitShopSourceEquipment(member *mapload.PartyMember, next
 
 // shopShieldDisplacesWeapon reports whether wearing a shield takes the shown
 // member's weapon, real or drawn as the starting fallback, off into the pack.
-func (t *townScreen) shopShieldDisplacesWeapon() bool {
+func (t *shopController) shopShieldDisplacesWeapon() bool {
 	i := t.shopMemberIndex()
 	worn := t.shopWornItemSlots(i)
 	if worn == nil {
@@ -686,7 +739,7 @@ func (t *townScreen) shopShieldDisplacesWeapon() bool {
 // shopBookReader recognizes the shop's non-World equivalent of KindReadBook.
 // It only validates; callers remove or buy exactly one source unit before
 // committing the spellbook bit, so every refusal is mutation-free.
-func (t *townScreen) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember, uint16, ui.TownAction, bool) {
+func (t *shopController) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember, uint16, ui.TownAction, bool) {
 	spell, readable := item.BookSpell()
 	if !readable {
 		return nil, 0, ui.TownAction{}, false
@@ -703,7 +756,7 @@ func (t *townScreen) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember
 
 // shopReadBook is the town side of the one read-book transaction: consume
 // runs after the spell is learned into the view and before the member keeps it.
-func (t *townScreen) shopReadBook(member *mapload.PartyMember, spell uint16, consume func() bool) bool {
+func (t *shopController) shopReadBook(member *mapload.PartyMember, spell uint16, consume func() bool) bool {
 	return readPartyBook(member, spell, t.in.Table, consume)
 }
 
@@ -714,7 +767,7 @@ func (t *townScreen) shopReadBook(member *mapload.PartyMember, spell uint16, con
 // PackCell arm's numbering — the money cell counted at 0 — so a press on
 // the money cell resolves to no stack and is refused the same way an empty
 // cell already is.
-func (t *townScreen) shopEquipFromPack(i int) ui.TownAction {
+func (t *shopController) shopEquipFromPack(i int) ui.TownAction {
 	if action, handled := t.shopToggleLayer(i); handled {
 		return action
 	}
@@ -722,12 +775,12 @@ func (t *townScreen) shopEquipFromPack(i int) ui.TownAction {
 		if k := t.packBase + i - 1; k < 0 || k >= len(t.shopPackStacks()) {
 			return ui.TownAction{}
 		}
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopEquipPack(n.packBase + i - 1) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopEquipPack(n.packBase + i - 1) })
 	}
-	return t.withCityBookMutation(func(n *townScreen) ui.TownAction { return n.shopEquipFromPackValues(i) })
+	return t.withCityBookMutation(func(n *shopController) ui.TownAction { return n.shopEquipFromPackValues(i) })
 }
 
-func (t *townScreen) shopEquipFromPackValues(i int) ui.TownAction {
+func (t *shopController) shopEquipFromPackValues(i int) ui.TownAction {
 	stacks := t.shopPackStacks()
 	k := t.packBase + i - 1
 	if k < 0 || k >= len(stacks) {
@@ -775,22 +828,22 @@ func (t *townScreen) shopEquipFromPackValues(i int) ui.TownAction {
 // shopEquipFromShelf buys and equips the raw shelf index (DIV-087). Slot,
 // class and purse checks precede removal; refusal preserves stock and gold.
 // Original shelf-to-doll payment remains unestablished by that divergence.
-func (t *townScreen) shopEquipFromShelf(i int) ui.TownAction {
+func (t *shopController) shopEquipFromShelf(i int) ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopEquipShelf(n.shelfBase + i) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopEquipShelf(n.shelfBase + i) })
 	}
-	return t.withCityBookMutation(func(n *townScreen) ui.TownAction { return n.shopEquipFromShelfValues(i) })
+	return t.withCityBookMutation(func(n *shopController) ui.TownAction { return n.shopEquipFromShelfValues(i) })
 }
 
-func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
-	if t.shopChosen < 0 || t.shopChosen >= len(shopRoomShelves) {
+func (t *shopController) shopEquipFromShelfValues(i int) ui.TownAction {
+	if t.shopChosen < 0 || t.shopChosen >= len(t.rack()) {
 		return ui.TownAction{}
 	}
-	room := shopRoomShelves[t.shopChosen]
+	room := t.rack()[t.shopChosen]
 	if !room.stocked {
 		return ui.TownAction{}
 	}
-	items := t.sess.Shop.Shelf(room.shelf)
+	items := t.deal().Shelf(room.shelf)
 	k := t.shelfBase + i
 	if k < 0 || k >= len(items) {
 		return ui.TownAction{}
@@ -803,7 +856,7 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 		if item.Price > 0 && int32(t.sess.Town.Gold()) < item.Price {
 			return ui.TownAction{}
 		}
-		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
+		if _, ok := t.deal().RemoveFromShelf(room.shelf, k, 1); !ok {
 			return ui.TownAction{}
 		}
 		t.sess.Town.gold -= int(item.Price)
@@ -817,7 +870,7 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 			return ui.TownAction{}
 		}
 		if !t.shopReadBook(reader, spell, func() bool {
-			if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
+			if _, ok := t.deal().RemoveFromShelf(room.shelf, k, 1); !ok {
 				return false
 			}
 			t.sess.Town.gold -= int(item.Price)
@@ -840,7 +893,7 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 		if !ok {
 			return ui.TownAction{}
 		}
-		if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
+		if _, ok := t.deal().RemoveFromShelf(room.shelf, k, 1); !ok {
 			return ui.TownAction{}
 		}
 		t.sess.Town.gold -= int(item.Price)
@@ -851,7 +904,7 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 	// `DIV-322`, and this gesture buys and wears exactly one: the purse is
 	// debited item.Price once, just below, so taking the whole stack would
 	// wear one and give the rest away.
-	if _, ok := t.sess.Shop.RemoveFromShelf(room.shelf, k, 1); !ok {
+	if _, ok := t.deal().RemoveFromShelf(room.shelf, k, 1); !ok {
 		return ui.TownAction{}
 	}
 	t.sess.Town.gold -= int(item.Price)
@@ -859,50 +912,50 @@ func (t *townScreen) shopEquipFromShelfValues(i int) ui.TownAction {
 	return ui.TownInfo(fmt.Sprintf("bought and worn for %d gold; you have %d left", item.Price, t.sess.Town.Gold()))
 }
 
-func (t *townScreen) shopEquipFromTable(i int) ui.TownAction {
+func (t *shopController) shopEquipFromTable(i int) ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopEquipTable(i) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopEquipTable(i) })
 	}
-	return t.withCityBookMutation(func(n *townScreen) ui.TownAction { return n.shopEquipFromTableValues(i) })
+	return t.withCityBookMutation(func(n *shopController) ui.TownAction { return n.shopEquipFromTableValues(i) })
 }
 
-func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
-	table := t.sess.Shop.Table()
+func (t *shopController) shopEquipFromTableValues(i int) ui.TownAction {
+	table := t.deal().Table()
 	if i < 0 || i >= len(table) {
 		return ui.TownAction{}
 	}
 	place := table[i]
-	if user, refusal, potion := t.shopPotionUser(place.Instance()); potion {
+	if user, refusal, potion := t.shopPotionUser(place.ShopItem.Instance()); potion {
 		if user == nil {
 			return refusal
 		}
-		if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
+		if !place.Mine && place.ShopItem.Price > 0 && int32(t.sess.Town.Gold()) < place.ShopItem.Price {
 			return ui.TownAction{}
 		}
-		taken, ok := t.sess.Shop.TakeOffTable(i, 1)
+		taken, ok := t.deal().TakeOffTable(i, 1)
 		if !ok {
 			return ui.TownAction{}
 		}
 		if !taken.Mine {
-			t.sess.Town.gold -= int(taken.Price)
+			t.sess.Town.gold -= int(taken.ShopItem.Price)
 		}
 		return ui.TownInfo("used")
 	}
-	if reader, spell, refusal, readable := t.shopBookReader(place.Instance()); readable {
+	if reader, spell, refusal, readable := t.shopBookReader(place.ShopItem.Instance()); readable {
 		if reader == nil {
 			return refusal
 		}
-		if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
+		if !place.Mine && place.ShopItem.Price > 0 && int32(t.sess.Town.Gold()) < place.ShopItem.Price {
 			return ui.TownAction{}
 		}
 		var taken ShopPlace
 		if !t.shopReadBook(reader, spell, func() bool {
 			var ok bool
-			if taken, ok = t.sess.Shop.TakeOffTable(i, 1); !ok {
+			if taken, ok = t.deal().TakeOffTable(i, 1); !ok {
 				return false
 			}
 			if !taken.Mine {
-				t.sess.Town.gold -= int(taken.Price)
+				t.sess.Town.gold -= int(taken.ShopItem.Price)
 			}
 			return true
 		}) {
@@ -911,54 +964,54 @@ func (t *townScreen) shopEquipFromTableValues(i int) ui.TownAction {
 		if taken.Mine {
 			return ui.TownInfo("learned")
 		}
-		return ui.TownInfo(fmt.Sprintf("bought and learned for %d gold; you have %d left", taken.Price, t.sess.Town.Gold()))
+		return ui.TownInfo(fmt.Sprintf("bought and learned for %d gold; you have %d left", taken.ShopItem.Price, t.sess.Town.Gold()))
 	}
-	slot, ok, refusal := t.shopWearInstance(place.Instance())
+	slot, ok, refusal := t.shopWearInstance(place.ShopItem.Instance())
 	if !ok {
 		return refusal
 	}
-	if !place.Mine && place.Price > 0 && int32(t.sess.Town.Gold()) < place.Price {
+	if !place.Mine && place.ShopItem.Price > 0 && int32(t.sess.Town.Gold()) < place.ShopItem.Price {
 		return ui.TownAction{}
 	}
 	member := t.shopPartyMember(t.shopMemberIndex())
 	if mapload.HasSourceActor(*member) {
-		next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, place.Instance(), false)
+		next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, place.ShopItem.Instance(), false)
 		if !ok {
 			return ui.TownAction{}
 		}
-		if _, ok := t.sess.Shop.TakeOffTable(i, 1); !ok {
+		if _, ok := t.deal().TakeOffTable(i, 1); !ok {
 			return ui.TownAction{}
 		}
 		if !place.Mine {
-			t.sess.Town.gold -= int(place.Price)
+			t.sess.Town.gold -= int(place.ShopItem.Price)
 		}
 		t.commitShopSourceEquipment(member, next, slot)
 		return ui.TownInfo("worn")
 	}
-	taken, ok := t.sess.Shop.TakeOffTable(i, 1)
+	taken, ok := t.deal().TakeOffTable(i, 1)
 	if !ok {
 		return ui.TownAction{}
 	}
 	if taken.Mine {
-		t.shopWearItemValues(slot, taken.Instance())
+		t.shopWearItemValues(slot, taken.ShopItem.Instance())
 		return ui.TownInfo("worn")
 	}
-	t.sess.Town.gold -= int(taken.Price)
-	t.shopWearItemValues(slot, taken.Instance())
-	return ui.TownInfo(fmt.Sprintf("bought and worn for %d gold; you have %d left", taken.Price, t.sess.Town.Gold()))
+	t.sess.Town.gold -= int(taken.ShopItem.Price)
+	t.shopWearItemValues(slot, taken.ShopItem.Instance())
+	return ui.TownInfo(fmt.Sprintf("bought and worn for %d gold; you have %d left", taken.ShopItem.Price, t.sess.Town.Gold()))
 }
 
 // shopUnequipDoll moves the one-based worn slot into the pack. Slot 1 can
 // resolve the drawn starting-weapon fallback and permanently materializes it,
 // preventing another removal from creating a second starting weapon.
-func (t *townScreen) shopUnequipDoll(slot int) ui.TownAction {
+func (t *shopController) shopUnequipDoll(slot int) ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopUnequip(slot, false) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopUnequip(slot, false) })
 	}
-	return t.withCityBookMutation(func(n *townScreen) ui.TownAction { return n.shopUnequipDollValues(slot) })
+	return t.withCityBookMutation(func(n *shopController) ui.TownAction { return n.shopUnequipDollValues(slot) })
 }
 
-func (t *townScreen) shopUnequipDollValues(slot int) ui.TownAction {
+func (t *shopController) shopUnequipDollValues(slot int) ui.TownAction {
 	if member := t.shopPartyMember(t.shopMemberIndex()); member != nil && mapload.HasSourceActor(*member) {
 		next, _, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, sim.ItemInstance{}, true)
 		if !ok {
@@ -1008,24 +1061,24 @@ func (t *townScreen) shopUnequipDollValues(slot int) ui.TownAction {
 // shopUnequipToTable moves the worn occurrence to a player table place
 // (DIV-089). A full table leaves equipment unchanged. Slot 1 resolves and
 // retires the starting-weapon fallback, as removal to the pack does.
-func (t *townScreen) shopUnequipToTable(slot int) ui.TownAction {
+func (t *shopController) shopUnequipToTable(slot int) ui.TownAction {
 	if t.hasCityShopTopology() {
-		return t.withCityShopMutation(func(n *townScreen) (ui.TownAction, error) { return n.cityShopUnequip(slot, true) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopUnequip(slot, true) })
 	}
-	return t.withCityBookMutation(func(n *townScreen) ui.TownAction { return n.shopUnequipToTableValues(slot) })
+	return t.withCityBookMutation(func(n *shopController) ui.TownAction { return n.shopUnequipToTableValues(slot) })
 }
 
-func (t *townScreen) shopUnequipToTableValues(slot int) ui.TownAction {
+func (t *shopController) shopUnequipToTableValues(slot int) ui.TownAction {
 	if member := t.shopPartyMember(t.shopMemberIndex()); member != nil && mapload.HasSourceActor(*member) {
 		next, item, ok := mapload.SourceTownEquipment(*member, t.in.Table, -1, slot, sim.ItemInstance{}, false)
 		if !ok {
 			return ui.TownAction{}
 		}
-		trade := cloneShopMutation(t.sess.Shop)
+		trade := cloneShopMutation(t.deal())
 		shopItem := shopItemFromInstance(item, 1)
 		shopItem.Price = t.shopItemValue(item)
 		shopItem = t.ownShopItem(shopItem, -1)
-		if idx, found := shopFindMineItemPlace(trade.Table(), shopItem); found {
+		if idx, found := shopFindJoinPlace(trade.Table(), shopItem, true, 0, t.shopJoin()); found {
 			ok = trade.growOwnedTablePlace(idx, shopItem)
 		} else {
 			ok = trade.PutOnTable(shopItem)
@@ -1034,7 +1087,7 @@ func (t *townScreen) shopUnequipToTableValues(slot int) ui.TownAction {
 			return ui.TownAction{}
 		}
 		t.shopRevealTradeTable()
-		*t.sess.Shop = *trade
+		*t.deal() = *trade
 		t.commitShopSourceEquipment(member, next, slot)
 		return ui.TownInfo("on the table")
 	}
@@ -1062,11 +1115,11 @@ func (t *townScreen) shopUnequipToTableValues(slot int) ui.TownAction {
 	shopItem := shopItemFromInstance(item, 1)
 	shopItem.Price = price
 	shopItem = t.ownShopItem(shopItem, -1)
-	if idx, found := shopFindMineItemPlace(t.sess.Shop.Table(), shopItem); found {
-		if !t.sess.Shop.growOwnedTablePlace(idx, shopItem) {
+	if idx, found := shopFindJoinPlace(t.deal().Table(), shopItem, true, 0, t.shopJoin()); found {
+		if !t.deal().growOwnedTablePlace(idx, shopItem) {
 			return ui.TownAction{}
 		}
-	} else if !t.sess.Shop.PutOnTable(shopItem) {
+	} else if !t.deal().PutOnTable(shopItem) {
 		return ui.TownAction{}
 	}
 	// shopUnequipDoll's own rule, on the same slot and for the same reason
@@ -1093,7 +1146,7 @@ func (t *townScreen) shopUnequipToTableValues(slot int) ui.TownAction {
 // full table. Every production producer converges here: shelf, pack, and doll.
 // Closing first also makes a genuine full-table refusal self-explanatory,
 // because the five occupied places are visible on the frame that reports it.
-func (t *townScreen) shopRevealTradeTable() {
+func (t *shopController) shopRevealTradeTable() {
 	if t != nil {
 		t.shopBook = false
 	}
@@ -1103,11 +1156,12 @@ func (t *townScreen) shopRevealTradeTable() {
 // somewhere to land. NextParty answers a fresh default hero where nothing has
 // been carried yet, and that hero is who walks out of the gates — so writing him
 // down here is what makes the item he just bought his.
-func (t *townScreen) shopParty() []mapload.PartyMember {
-	if len(t.sess.Carried) == 0 {
-		t.sess.Carried = t.nextParty()
+func (t *shopController) shopParty() []mapload.PartyMember {
+	party := t.customers()
+	if len(*party) == 0 && t.shop.fresh != nil {
+		*party = t.shop.fresh()
 	}
-	return t.sess.Carried
+	return *party
 }
 
 // shopPackItems is the SHOWN party member's container (SHOP-PICKER-043: the
@@ -1118,7 +1172,7 @@ func (t *townScreen) shopParty() []mapload.PartyMember {
 // him. mapload.Carry is reached by pointer precisely so that a wholly zero
 // Equipped array means "wearing nothing"; minting one here for a member who has
 // never finished a mission would strip what he starts wearing.
-func (t *townScreen) shopPackItems() []uint16 {
+func (t *shopController) shopPackItems() []uint16 {
 	party := t.shopParty()
 	if len(party) == 0 {
 		return nil
@@ -1132,7 +1186,7 @@ func (t *townScreen) shopPackItems() []uint16 {
 
 // shopPackStacks is the pack folded into stacks, which is what a row and a
 // table place both address.
-func (t *townScreen) shopPackStacks() []sim.ItemStack {
+func (t *shopController) shopPackStacks() []sim.ItemStack {
 	if t.hasCityShopTopology() {
 		if member := t.shopPartyMember(t.shopMemberIndex()); member != nil {
 			return cityMemberStacks(*member, t.in.Table)
@@ -1147,10 +1201,11 @@ func (t *townScreen) shopPackStacks() []sim.ItemStack {
 		return out
 	}
 	var out []sim.ItemStack
+	join := t.shopJoin()
 	for _, item := range t.shopPackItemInstances() {
 		found := -1
 		for i := range out {
-			if out[i].ObjectID == item.ObjectID && sim.ItemEqual(out[i].Instance(), item) && out[i].Price == item.Price {
+			if join(shopItemFromInstance(out[i].Instance(), 1), shopItemFromInstance(item, 1)) {
 				found = i
 				break
 			}
@@ -1175,11 +1230,14 @@ func (t *townScreen) shopPackStacks() []sim.ItemStack {
 // `elem+0x1c != 0` test reads as an item the shop will not pay for. Class 14 —
 // the carried class, the quest documents and everything the mission scripts hand
 // out — is the one a player will meet.
-func (t *townScreen) shopItemPrice(c data.ItemCode) int32 {
+func (t *shopController) shopItemPrice(c data.ItemCode) int32 {
 	return t.shopItemValue(sim.PlainItem(uint16(c)))
 }
 
-func (t *townScreen) shopItemValue(item sim.ItemInstance) int32 {
+func (t *shopController) shopItemValue(item sim.ItemInstance) int32 {
+	if t.value != nil {
+		return t.value(item)
+	}
 	if item.Price != 0 {
 		return item.Price
 	}

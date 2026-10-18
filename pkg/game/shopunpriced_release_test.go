@@ -319,11 +319,11 @@ func TestReleaseShopGridDrawsThePlaqueOfAnUnpricedItem(t *testing.T) {
 	// A click on the zero-priced shelf cell puts it on the merchant's table; a
 	// click on the access item in the pack puts it on the player's side.
 	click("shelf", 1)
-	if table := f.Shop.Table(); len(table) != 1 || table[0].Mine || table[0].Code != combos[0] {
+	if table := f.Shop.Table(); len(table) != 1 || table[0].Mine || table[0].ShopItem.Code != combos[0] {
 		t.Fatalf("table after the shelf click %+v, want the merchant's zero-priced item", table)
 	}
 	click("pack", packCell)
-	if table := f.Shop.Table(); len(table) != 2 || !table[1].Mine || table[1].Price != -1 {
+	if table := f.Shop.Table(); len(table) != 2 || !table[1].Mine || table[1].ShopItem.Price != -1 {
 		t.Fatalf("table after the pack click %+v, want the access item at price -1 on the player's side", table)
 	}
 	verify("table", unpricedWant{"table", 0, false, 0})

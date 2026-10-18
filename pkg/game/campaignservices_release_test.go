@@ -364,7 +364,7 @@ func serviceShop(t *testing.T, raw []byte, town chainTown, controls bool) {
 	bought := f.Shop.Shelf(shopRoomShelves[rack].shelf)[index]
 	s.ShopScroll(ui.ShopWheelShelf, index/2)
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: index - s.shelfBase})
-	if table := f.Shop.Table(); len(table) != 1 || table[0].Mine || table[0].Code != bought.Code || table[0].Count != 1 {
+	if table := f.Shop.Table(); len(table) != 1 || table[0].Mine || table[0].ShopItem.Code != bought.Code || table[0].ShopItem.Count != 1 {
 		t.Fatalf("shelf %d item %d did not reach the table: %+v", rack, index, table)
 	}
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlButton, Index: 1})
@@ -387,10 +387,10 @@ func serviceShop(t *testing.T, raw []byte, town chainTown, controls bool) {
 	s.ShopScroll(ui.ShopWheelPack, sell)
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: sell + 1 - s.packBase})
 	table := f.Shop.Table()
-	if len(table) != 1 || !table[0].Mine || uint16(table[0].Code) != sold.Code || table[0].Count != 1 || table[0].Price <= 0 {
+	if len(table) != 1 || !table[0].Mine || uint16(table[0].ShopItem.Code) != sold.Code || table[0].ShopItem.Count != 1 || table[0].ShopItem.Price <= 0 {
 		t.Fatalf("pack stack %d (%#x) did not reach the table as one unit: %+v", sell, sold.Code, table)
 	}
-	price := int(table[0].Price)
+	price := int(table[0].ShopItem.Price)
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlButton, Index: 2})
 	purse += (price + 1) / 2
 	pack[sold.Code]--

@@ -258,7 +258,7 @@ func TestReleaseTownRoomsRequestTheCensusSounds(t *testing.T) {
 	if len(table) != 1 {
 		t.Fatalf("before the buy the table holds %d place(s), want 1", len(table))
 	}
-	bought := uint16(table[0].Code)
+	bought := uint16(table[0].ShopItem.Code)
 	gold := f.Town.gold
 	f.Town.gold = 0
 	base = len(rec.requests)

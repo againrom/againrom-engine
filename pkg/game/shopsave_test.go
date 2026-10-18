@@ -122,7 +122,7 @@ func TestShopSaveReturnsWholeGraphToOwnerAcrossColdLoad(t *testing.T) {
 			}
 			coldScreen := cold.TownScreen().(*townScreen)
 			shopSaveStage(t, coldScreen, 0, 1, true)
-			if cold.Shop.table[0].cityID != roots[1] {
+			if cold.Shop.table[0].ShopItem.cityID != roots[1] {
 				t.Fatal("next shop action selected another item identity")
 			}
 			if action := coldScreen.shopClear(); action.Msg != "the table is cleared" {
@@ -139,14 +139,14 @@ func TestShopSavePartialStackKeepsOwnerAndUnpaidMerchantGoods(t *testing.T) {
 	gold := f.Town.Gold()
 	root := cityShopRoots(t, f, 0).Pack[0]
 	shopSaveStage(t, screen, 0, 0, false)
-	ownedID := f.Shop.table[0].cityID
+	ownedID := f.Shop.table[0].ShopItem.cityID
 	merchant := ShopItem{Code: 0xe0e, Price: 11, Count: 2, Kind: 1, WeightPresent: true}
 	f.Shop.shelves[ShelfMagic] = []ShopItem{merchant}
 	screen.shopShelf = ShelfMagic
 	if action := screen.shopFromShelf(0, true); strings.Contains(action.Msg, "cannot") || len(f.Shop.table) != 2 {
 		t.Fatal("stage merchant goods", action)
 	}
-	merchantID := f.Shop.table[1].cityID
+	merchantID := f.Shop.table[1].ShopItem.cityID
 	screen.shopMember = 1
 	live := f
 	f = cityShopColdLoad(t, f)
@@ -182,14 +182,14 @@ func TestShopSaveFailedPreparationKeepsGoodsReachable(t *testing.T) {
 	f := shopSaveFixture(t, 3)
 	screen := f.TownScreen().(*townScreen)
 	shopSaveStage(t, screen, 0, 0, true)
-	before := sim.StackItem(f.Shop.table[0].Instance(), uint32(f.Shop.table[0].Count))
+	before := sim.StackItem(f.Shop.table[0].ShopItem.Instance(), uint32(f.Shop.table[0].ShopItem.Count))
 	gold := f.Town.Gold()
 	store := SaveStore{Dir: t.TempDir()}
 	_, err := f.SaveDialogSeams(store, OriginalStore{}).Prepare(ui.SaveRequest{Directory: store.Dir, Name: "../bad", Format: ui.SaveSAV})
 	if err == nil {
 		t.Fatal("invalid save name was accepted")
 	}
-	if len(f.Shop.table) != 1 || !sim.StackStateEqual(before, sim.StackItem(f.Shop.table[0].Instance(), uint32(f.Shop.table[0].Count))) || f.Town.Gold() != gold {
+	if len(f.Shop.table) != 1 || !sim.StackStateEqual(before, sim.StackItem(f.Shop.table[0].ShopItem.Instance(), uint32(f.Shop.table[0].ShopItem.Count))) || f.Town.Gold() != gold {
 		t.Fatal("failed SAVE preparation destroyed or paid for staged goods")
 	}
 }
@@ -200,13 +200,13 @@ func TestShopSaveMergedOwnersKeepQuantitiesAndCurrentIdentity(t *testing.T) {
 	kept, retired := cityShopRoots(t, f, 0).Pack[0], cityShopRoots(t, f, 1).Pack[0]
 	shopSaveStage(t, screen, 0, 0, true)
 	shopSaveStage(t, screen, 1, 0, true)
-	if len(f.Shop.table) != 1 || f.Shop.table[0].Count != 5 || f.Shop.table[0].cityID != kept {
+	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 5 || f.Shop.table[0].ShopItem.cityID != kept {
 		t.Fatal("fixture did not reach a mixed-owner merge", f.Shop.table)
 	}
 	if cityItemTopologyByID(f.Town.cityObjects.Items, retired) != nil {
 		t.Fatal("fixture did not retire the detached merge input")
 	}
-	current := f.Shop.table[0].Instance()
+	current := f.Shop.table[0].ShopItem.Instance()
 	keptChildren := *cityItemTopologyByID(f.Town.cityObjects.Items, kept)
 	cold := cityShopColdLoad(t, f)
 	for i, count := range []uint32{2, 3} {
@@ -241,7 +241,7 @@ func TestShopSaveCapturedReceiptsSurviveLiveSaleAndRepeatedExport(t *testing.T) 
 	screen := f.TownScreen().(*townScreen)
 	gold := f.Town.Gold()
 	shopSaveStage(t, screen, 0, 0, true)
-	want := sim.StackItem(f.Shop.table[0].Instance(), uint32(f.Shop.table[0].Count))
+	want := sim.StackItem(f.Shop.table[0].ShopItem.Instance(), uint32(f.Shop.table[0].ShopItem.Count))
 	snapshot, _, err := f.Snapshot(false)
 	if err != nil {
 		t.Fatal(err)
@@ -286,7 +286,7 @@ func TestShopSaveMixedEquipmentAndPackKeepCurrentValues(t *testing.T) {
 		t.Fatal(action)
 	}
 	shopSaveStage(t, screen, 0, 0, true)
-	if len(f.Shop.table) != 1 || f.Shop.table[0].Count != 2 {
+	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 2 {
 		t.Fatal("equipment and pack did not merge on table", f.Shop.table)
 	}
 	cold := cityShopColdLoad(t, f)
@@ -307,7 +307,7 @@ func TestShopSavePartialMergedTransferConsumesOwnerQuantities(t *testing.T) {
 	screen := f.TownScreen().(*townScreen)
 	shopSaveStage(t, screen, 0, 0, true)
 	shopSaveStage(t, screen, 1, 0, true)
-	if action := screen.shopOffTable(0, false); action.Msg != "returned" || f.Shop.table[0].Count != 4 {
+	if action := screen.shopOffTable(0, false); action.Msg != "returned" || f.Shop.table[0].ShopItem.Count != 4 {
 		t.Fatal("partial transfer from merged table", action)
 	}
 	cold := cityShopColdLoad(t, f)

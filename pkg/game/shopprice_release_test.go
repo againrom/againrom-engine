@@ -308,7 +308,7 @@ func TestReleaseShopGridPriceFigureIsRightAlignedWithAShadow(t *testing.T) {
 		t.Fatal("shelf 0 has no priced cell in view")
 	}
 	click("shelf", c)
-	if table := f.Shop.Table(); len(table) == 0 || table[0].Mine || table[0].Price <= 0 {
+	if table := f.Shop.Table(); len(table) == 0 || table[0].Mine || table[0].ShopItem.Price <= 0 {
 		t.Fatalf("table after the shelf click %+v, want a merchant item at a positive price", table)
 	}
 	check("table", "table")

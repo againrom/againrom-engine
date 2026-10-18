@@ -131,10 +131,10 @@ func TestReleaseMission81PlacedScrollKeepsDescriptionAcrossSAV(t *testing.T) {
 	}
 	cityShopPointer(t, townApp, "pack", packCell, "press", "release")
 	places := town.Shop.Table()
-	if len(places) != 1 || !places[0].Mine || places[0].Price != source.Price || places[0].Count != 1 {
+	if len(places) != 1 || !places[0].Mine || places[0].ShopItem.Price != source.Price || places[0].ShopItem.Count != 1 {
 		t.Fatal("actual placed scroll did not reach the sale table unchanged", places)
 	}
-	sold := places[0].Instance()
+	sold := places[0].ShopItem.Instance()
 	gold := town.Town.Gold()
 	cityShopPointer(t, townApp, "button", 2, "press", "release")
 	if town.Town.Gold()-gold != int(shopHalfUp(source.Price)) || len(town.Shop.Table()) != 0 {
@@ -235,7 +235,7 @@ func TestReleaseShopEnchantedSalesKeepMagicShelfAndValues(t *testing.T) {
 				}
 				before := staffSaleObserve(screen)
 				cityShopPointer(t, app, "pack", packCell(index), "shift-press", "shift-release")
-				if placed := f.Shop.Table(); len(placed) != 1 || placed[0].Count != 3 || !staffSaleValueEqual(placed[0].Instance(), item) {
+				if placed := f.Shop.Table(); len(placed) != 1 || placed[0].ShopItem.Count != 3 || !staffSaleValueEqual(placed[0].ShopItem.Instance(), item) {
 					t.Fatal("App pack staging lost value or count", placed)
 				}
 				cityShopPointer(t, app, "button", 2, "press", "release")

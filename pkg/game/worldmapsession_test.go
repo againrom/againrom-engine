@@ -283,6 +283,7 @@ func TestRestoreOriginalMissingMapPreservesSession(t *testing.T) {
 	}
 	after := *f.townUI
 	after.openMission, beforeUI.openMission = nil, nil
+	after.shop, beforeUI.shop = shopHost{}, shopHost{}
 	if !reflect.DeepEqual(*f, before) || !reflect.DeepEqual(after, beforeUI) {
 		t.Fatal("failed original mission opener changed the previous session")
 	}

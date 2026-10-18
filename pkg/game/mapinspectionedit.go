@@ -479,7 +479,7 @@ func (x *MapInspector) checkItem(code int64) error {
 	if t == nil {
 		return fmt.Errorf("no installed tables to check item code %d against", code)
 	}
-	if _, ok := t.Names.NameFor(data.ItemCode(code)); !ok {
+	if _, ok := mapload.ShippedItemName(t, data.ItemCode(code)); !ok {
 		return fmt.Errorf("item code %d names no installed item", code)
 	}
 	return nil

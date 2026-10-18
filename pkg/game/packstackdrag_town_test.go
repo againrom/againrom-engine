@@ -287,10 +287,10 @@ func TestReleasePackStackDragTownControlsAndTrading(t *testing.T) {
 		}
 		shopDrag(t, r.app, from, image.Pt(x, y), "press", "move", "release")
 		places := r.f.Shop.Table()
-		if quantity() != before-1 || len(places) != 1 || places[0].Count != 1 || !places[0].Mine {
+		if quantity() != before-1 || len(places) != 1 || places[0].ShopItem.Count != 1 || !places[0].Mine {
 			t.Fatal("existing pack-to-table staging changed", quantity(), places)
 		}
-		payout := (places[0].Price + 1) / 2
+		payout := (places[0].ShopItem.Price + 1) / 2
 		cityShopPointer(t, r.app, "button", 2, "press", "release")
 		if r.f.Town.Gold() != gold+int(payout) || len(r.f.Shop.Table()) != 0 {
 			t.Fatal("existing sell payment changed", r.f.Town.Gold(), gold, payout)
@@ -324,10 +324,10 @@ func TestReleasePackStackDragTownControlsAndTrading(t *testing.T) {
 		}
 		shopDrag(t, r.app, shelf, r.point(t, 0), "press", "move", "release")
 		places = r.f.Shop.Table()
-		if len(places) != 1 || places[0].Mine || places[0].Count != 1 || uint16(places[0].Code) != code || quantity() != before-1 {
+		if len(places) != 1 || places[0].Mine || places[0].ShopItem.Count != 1 || uint16(places[0].ShopItem.Code) != code || quantity() != before-1 {
 			t.Fatal("existing shelf-to-pack staging changed", places, quantity())
 		}
-		cost := int(places[0].Price)
+		cost := int(places[0].ShopItem.Price)
 		closeShopTip(t, r.app, r.s)
 		cityShopPointer(t, r.app, "button", 1, "press", "release")
 		if quantity() != before || r.f.Town.Gold() != gold+int(payout)-cost || len(r.f.Shop.Table()) != 0 {

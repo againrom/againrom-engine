@@ -249,7 +249,7 @@ func TestTheTableHoldsFivePlacesAndStampsEachSide(t *testing.T) {
 	if !s.PutOnTable(ShopItem{Code: 0x1234, Price: 9, Count: 2}) {
 		t.Fatal("putting a pack item on the table was refused")
 	}
-	if place := s.Table()[1]; !place.Mine || place.Count != 2 {
+	if place := s.Table()[1]; !place.Mine || place.ShopItem.Count != 2 {
 		t.Errorf("player's place = %+v, want his, count 2", place)
 	}
 
@@ -301,7 +301,7 @@ func TestTwoShelfElementsOfTheSameCodeDoNotMerge(t *testing.T) {
 		t.Fatalf("the table holds %+v, want two SEPARATE places of the identical code, not one merged", places)
 	}
 	for i, p := range places {
-		if p.Mine || p.Code != 0x0101 || p.Price != 40 || p.Count != 1 || p.From != ShelfWeapons {
+		if p.Mine || p.ShopItem.Code != 0x0101 || p.ShopItem.Price != 40 || p.ShopItem.Count != 1 || p.From != ShelfWeapons {
 			t.Errorf("place %d = %+v, want the merchant's own one-unit weapon-shelf stamp", i, p)
 		}
 	}

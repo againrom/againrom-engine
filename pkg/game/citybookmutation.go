@@ -123,23 +123,35 @@ func (s *CampaignSession) commitCityBookCandidate(n *CampaignSession) {
 
 // Run the existing value operation on detached current state. Graph admission
 // precedes publishing the party, purse, table and training history together.
+func (t *shopController) withCityBookMutation(action func(*shopController) ui.TownAction) ui.TownAction {
+	return cityBookMutation(t, func(c *shopController) **CampaignSession { return &c.sess }, t.in, action)
+}
+
 func (t *townScreen) withCityBookMutation(action func(*townScreen) ui.TownAction) ui.TownAction {
-	if t.sess.Town == nil || t.sess.Town.cityObjects == nil {
+	return cityBookMutation(t, func(c *townScreen) **CampaignSession { return &c.sess }, t.in, action)
+}
+
+// cityBookMutation runs action on a copy of t whose session is a candidate,
+// then publishes the candidate with the graph's book changes.
+func cityBookMutation[T any](t *T, sess func(*T) **CampaignSession, in *InstallResources, action func(*T) ui.TownAction) ui.TownAction {
+	s := *sess(t)
+	if s.Town == nil || s.Town.cityObjects == nil {
 		return action(t)
 	}
-	if err := t.sess.Town.cityObjects.Validate(); err != nil {
+	if err := s.Town.cityObjects.Validate(); err != nil {
 		return ui.TownAction{Msg: err.Error()}
 	}
 	n := *t
-	n.sess = t.sess.cityBookCandidate()
+	*sess(&n) = s.cityBookCandidate()
 	result := action(&n)
-	graph, err := prepareCityPartyBookChanges(n.sess.Town.cityObjects, t.sess.Carried, n.sess.Carried, t.in.Table)
+	c := *sess(&n)
+	graph, err := prepareCityPartyBookChanges(c.Town.cityObjects, s.Carried, c.Carried, in.Table)
 	if err != nil {
 		return ui.TownAction{Msg: "cannot update city book: " + err.Error()}
 	}
-	n.sess.Town.cityObjects = graph
-	t.sess.commitCityBookCandidate(n.sess)
-	n.sess = t.sess
+	c.Town.cityObjects = graph
+	s.commitCityBookCandidate(c)
+	*sess(&n) = s
 	*t = n
 	return result
 }

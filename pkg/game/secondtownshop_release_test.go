@@ -2,17 +2,21 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
+	"image"
 	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/random"
 	"againrom/pkg/secondshop"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -20,29 +24,71 @@ import (
 // shop state the SAV holds, the gold, and the stock the live shop held at
 // SAVE with its deal undone, which a LOAD must not bring back.
 type secondShopProof struct {
-	Shop *currentSecondShop
-	Gold int
-	Old  secondshop.Stock
+	Shop  *currentSecondShop
+	Party []currentPartyMember
+	Gold  int
+	Old   secondshop.Stock
 }
 
-func secondShopActivate(t *testing.T, app *ui.App, rows ...string) {
+// secondShopActivate acts as a player does: a square row by its name; on
+// the shop page a press and release at the control a name stands for:
+// "ITEM n" the shelf cell of the shown category's n-th entry with units,
+// "MINE n" the pack cell of the hero's n-th stack, "SHELF k" the room's
+// category rectangle k, and UNDO, BUY, SELL and EXIT the four buttons.
+func secondShopActivate(t *testing.T, f *FrontEnd, app *ui.App, rows ...string) {
 	t.Helper()
+	buttons := map[string]int{"UNDO": 0, "BUY": 1, "SELL": 2, "EXIT": 3}
 	for _, row := range rows {
-		if err := app.HeadlessActivate(row); err != nil {
-			t.Fatalf("shop row %q: %v", row, err)
+		s, ok := f.TownScreen().(*secondCampaignScreen)
+		if !ok || !s.AtTownShop() {
+			if err := app.HeadlessActivate(row); err != nil {
+				t.Fatalf("town row %q: %v", row, err)
+			}
+			continue
 		}
+		kind, index := "button", -1
+		var n int
+		switch {
+		case strings.HasPrefix(row, "ITEM "):
+			fmt.Sscanf(row, "ITEM %d", &n)
+			if visible := f.Town.second.shop.visibleShelf(); n >= 1 && n <= len(visible) {
+				kind, index = "shelf", visible[n-1]-s.shelfBase
+			}
+		case strings.HasPrefix(row, "MINE "):
+			fmt.Sscanf(row, "MINE %d", &n)
+			kind, index = "pack", n-s.packBase
+		case strings.HasPrefix(row, "SHELF "):
+			fmt.Sscanf(row, "SHELF %d", &n)
+			kind, index = "shelf_pick", n-1
+		default:
+			if i, ok := buttons[row]; ok {
+				index = i
+			}
+		}
+		x, y, err := app.HeadlessShopPoint(kind, index)
+		if err != nil {
+			t.Fatalf("shop control %q: %v", row, err)
+		}
+		shopTap(t, app, image.Pt(x, y), "press", "release")
 	}
+}
+
+// secondPartyJSON is the party as the document writes it: a decoded member
+// holds empty lists where the captured one holds none.
+func secondPartyJSON(p []currentPartyMember) string {
+	raw, _ := json.Marshal(p)
+	return string(raw)
 }
 
 // secondShopUndone is the stock s holds once its open deal is undone,
 // without changing s.
 func secondShopUndone(s secondShop) secondshop.Stock {
-	for c := range s.stock {
-		s.stock[c] = append([]secondshop.Item(nil), s.stock[c]...)
+	for c := range s.shelves {
+		s.shelves[c] = append([]ShopItem(nil), s.shelves[c]...)
 	}
-	s.hero = append([]secondshop.Item(nil), s.hero...)
-	s.undo()
-	return s.stock
+	var bag []sim.ItemInstance
+	s.undo(&bag)
+	return s.stock()
 }
 
 // secondShopSAVFields answers the sorted field names of the shop the SAV's
@@ -70,8 +116,9 @@ func secondShopSAVFields(t *testing.T, doc *sav.DocumentData) []string {
 }
 
 // secondShopSaved checks the SAV holds the captured shop and no stock: its
-// shop document has exactly the records and the hero's items.
-func secondShopSaved(t *testing.T, raw []byte, saved *currentSecondShop) *currentActionData {
+// shop document has exactly the records, and the hero is written through
+// the party member producer.
+func secondShopSaved(t *testing.T, raw []byte, saved *currentSecondCampaign) *currentActionData {
 	t.Helper()
 	doc, err := sav.DecodeDocumentData(raw)
 	if err != nil {
@@ -81,11 +128,16 @@ func secondShopSaved(t *testing.T, raw []byte, saved *currentSecondShop) *curren
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := actions.Session.Second.Shop; !reflect.DeepEqual(got, saved) {
-		t.Fatal("the SAV's shop differs from the captured shop")
+	if got := actions.Session.Second; !reflect.DeepEqual(got.Shop, saved.Shop) || secondPartyJSON(got.Party) != secondPartyJSON(saved.Party) || len(got.Party) != 1 {
+		t.Fatal("the SAV's shop or hero differs from the captured campaign")
 	}
-	if fields := secondShopSAVFields(t, &doc); !reflect.DeepEqual(fields, []string{"Hero", "Records"}) {
-		t.Fatalf("the SAV's shop holds fields %v, want only Hero and Records: a SAV carries no stock", fields)
+	want := []string{"Records"}
+	if saved.Shop == nil {
+		// A new game's records are not written.
+		want = nil
+	}
+	if fields := secondShopSAVFields(t, &doc); !reflect.DeepEqual(fields, want) {
+		t.Fatalf("the SAV's shop holds fields %v, want only Records: a SAV carries no stock", fields)
 	}
 	return actions
 }
@@ -107,17 +159,18 @@ func secondShopColdProof(t *testing.T, path string, id int) {
 	}
 	f, app := secondTownCold(t, filepath.Dir(path), filepath.Base(path))
 	c := f.Town.second
-	got := captureSecondShop(c.shop)
-	if c.current != (secondLocation{2, id}) || c.room != secondTownShop || f.Town.gold != proof.Gold || !reflect.DeepEqual(got, proof.Shop) {
-		t.Fatalf("cold LOAD: current %v room %d gold %d/%d shop equal %v", c.current, c.room, f.Town.gold, proof.Gold, reflect.DeepEqual(got, proof.Shop))
+	got := captureSecondCampaign(c)
+	equal := reflect.DeepEqual(got.Shop, proof.Shop) && secondPartyJSON(got.Party) == secondPartyJSON(proof.Party)
+	if c.current != (secondLocation{2, id}) || c.room != secondTownShop || f.Town.gold != proof.Gold || !equal {
+		t.Fatalf("cold LOAD: current %v room %d gold %d/%d shop and hero equal %v", c.current, c.room, f.Town.gold, proof.Gold, equal)
 	}
 	tables, ok := secondShopTables(f.Table)
 	if !ok {
 		t.Fatal("no shop tables")
 	}
 	fresh := tables.Fill(c.shop.records[id], random.NewService(f.randomService().Session()).Stream(random.ShopStock).Raw)
-	if c.shop.filled != id || !reflect.DeepEqual(c.shop.stock, fresh) {
-		t.Fatalf("cold LOAD: filled %d, stock equals a fresh draw %v", c.shop.filled, reflect.DeepEqual(c.shop.stock, fresh))
+	if c.shop.filled != id || !reflect.DeepEqual(c.shop.stock(), fresh) {
+		t.Fatalf("cold LOAD: filled %d, stock equals a fresh draw %v", c.shop.filled, reflect.DeepEqual(c.shop.stock(), fresh))
 	}
 	// Loss control: the stock the SAVE saw is not the fresh draw, so a
 	// restored stock would fail the check above.
@@ -125,9 +178,9 @@ func secondShopColdProof(t *testing.T, path string, id int) {
 		t.Fatal("loss control: the stock at SAVE equals the fresh draw")
 	}
 	first := c.shop.shelf()[c.shop.visibleShelf()[0]]
-	hero := len(c.shop.hero)
-	secondShopActivate(t, app, "UNDO", "ITEM 1", "BUY")
-	if f.Town.gold != proof.Gold-int(first.Price) || len(c.shop.hero) < hero || f.TownScreen().Header() != "ROM2 campaign: shop" {
+	hero := len(c.heroItems())
+	secondShopActivate(t, f, app, "UNDO", "ITEM 1", "BUY")
+	if f.Town.gold != proof.Gold-int(first.Price) || len(c.heroItems()) < hero || f.TownScreen().Header() != "ROM2 campaign: shop" {
 		t.Fatalf("cold purchase at %d: gold %d/%d", first.Price, f.Town.gold, proof.Gold)
 	}
 	t.Logf("fresh-process LOAD of town %d: gold, records and items kept; stock drawn anew, %d/%d/%d/%d entries", id,
@@ -201,42 +254,39 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 		return
 	}
 	f, app := secondTownNew(t, false, false)
-	secondShopActivate(t, app, "SHOP")
+	secondShopActivate(t, f, app, "SHOP")
 	c := f.Town.second
-	if c.room != secondTownShop || f.TownScreen().Header() != "ROM2 campaign: shop" || len(c.shop.stock[0]) == 0 || c.shop.filled != 1 {
-		t.Fatalf("SHOP opened room %d, filled %d, %d entries", c.room, c.shop.filled, len(c.shop.stock[0]))
+	if c.room != secondTownShop || f.TownScreen().Header() != "ROM2 campaign: shop" || len(c.shop.shelves[0]) == 0 || c.shop.filled != 1 {
+		t.Fatalf("SHOP opened room %d, filled %d, %d entries", c.room, c.shop.filled, len(c.shop.shelves[0]))
 	}
-	if s, ok := f.TownScreen().(*secondCampaignScreen); !ok || !s.AtTownSquare() {
-		d, _ := s.composedTown()
-		t.Fatal("the shop page's art did not load:", s.roomArt(d, "shop").err)
-	}
+	secondShopArtLoaded(t, f.TownScreen().(*secondCampaignScreen))
 	secondShopWitness(t, app, "town1-shop-open")
 	secondShopNamesResolve(t, f)
 	f.Town.gold = 5000
 	first := c.shop.shelf()[c.shop.visibleShelf()[0]]
-	secondShopActivate(t, app, "ITEM 1", "BUY")
-	if f.Town.gold != 5000-int(first.Price) || len(c.shop.hero) != 1 || c.shop.hero[0].Quantity != 1 {
-		t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.shop.hero)
+	secondShopActivate(t, f, app, "ITEM 1", "BUY")
+	if f.Town.gold != 5000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Quantity != 1 {
+		t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.heroItems())
 	}
 	secondShopWitness(t, app, "town1-shop-bought")
 	gold := f.Town.gold
-	secondShopActivate(t, app, "MINE 1", "SELL")
-	if f.Town.gold != gold+int(secondshop.SaleCredit(first.Price, 1)) || len(c.shop.hero) != 0 {
+	secondShopActivate(t, f, app, "MINE 1", "SELL")
+	if f.Town.gold != gold+int(secondshop.SaleCredit(first.Price, 1)) || len(c.heroItems()) != 0 {
 		t.Fatalf("sale of one at %d: gold %d -> %d", first.Price, gold, f.Town.gold)
 	}
-	secondShopActivate(t, app, "SHELF 3", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
-	if len(c.shop.hero) != 1 || len(c.shop.buying) != 1 {
-		t.Fatalf("second deal: hero %v buying %v", c.shop.hero, c.shop.buying)
+	secondShopActivate(t, f, app, "SHELF 3", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
+	if len(c.heroItems()) != 1 || len(c.shop.buying()) != 1 {
+		t.Fatalf("second deal: hero %v buying %v", c.heroItems(), c.shop.buying())
 	}
 	secondShopWitness(t, app, "town1-shop-deal-open")
-	saved, savedGold, old := captureSecondShop(c.shop), f.Town.gold, secondShopUndone(c.shop)
+	saved, savedGold, old := captureSecondCampaign(c), f.Town.gold, secondShopUndone(c.shop)
 	dir := secondMissionSaveDirectory(t)
 	raw := secondTownNamedSave(t, f, app, dir, "Shop")
 	secondShopSaved(t, raw, saved)
-	if len(c.shop.buying) != 1 {
+	if len(c.shop.buying()) != 1 {
 		t.Fatal("SAVE closed the deal")
 	}
-	proof, err := json.Marshal(secondShopProof{Shop: saved, Gold: savedGold, Old: old})
+	proof, err := json.Marshal(secondShopProof{Shop: saved.Shop, Party: saved.Party, Gold: savedGold, Old: old})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,8 +295,8 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 		t.Fatal(err)
 	}
 	runSpellWitnessChild(t, path, "AGAINROM_SECOND_SHOP_INPUT")
-	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare || len(c.shop.buying) != 0 {
-		t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying))
+	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare || len(c.shop.buying()) != 0 {
+		t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying()))
 	}
 	t.Logf("town 1 shop: %d/%d/%d/%d entries; bought at %d, sold for %d; SAV %d bytes", len(old[0]), len(old[1]),
 		len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(first.Price, 1), len(raw))

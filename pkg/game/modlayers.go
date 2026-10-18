@@ -96,7 +96,7 @@ func (mw *mapWorld) refuseLayer() {
 // bool reports whether the cell holds a layer at all. Every other route that
 // would wear a layer in a slot (the shelf, the table) is refused in
 // shopWearInstance.
-func (t *townScreen) shopToggleLayer(i int) (ui.TownAction, bool) {
+func (t *shopController) shopToggleLayer(i int) (ui.TownAction, bool) {
 	stacks := t.shopPackStacks()
 	k := t.packBase + i - 1
 	if k < 0 || k >= len(stacks) {

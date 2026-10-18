@@ -335,13 +335,13 @@ func documentsShop1176(t *testing.T, f *FrontEnd, app *ui.App, pages int) {
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: findPack(worn[slot-1])})
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: findPack(0x0e1c)})
 	table := f.Shop.Table()
-	if len(table) != 2 || table[0].Price <= 0 || table[1].Code != data.QuestDocumentCode || table[1].Price != -1 {
+	if len(table) != 2 || table[0].ShopItem.Price <= 0 || table[1].ShopItem.Code != data.QuestDocumentCode || table[1].ShopItem.Price != -1 {
 		t.Fatal("mixed sale needs a real priced item beside the unpriced physical document", table)
 	}
 	gold := f.Town.Gold()
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlButton, Index: 2})
 	left := f.Shop.Table()
-	if len(left) != 1 || left[0].Code != data.QuestDocumentCode || left[0].Price != -1 || !left[0].Mine || f.Town.Gold() != gold+int((table[0].Count*table[0].Price+1)/2) {
+	if len(left) != 1 || left[0].ShopItem.Code != data.QuestDocumentCode || left[0].ShopItem.Price != -1 || !left[0].Mine || f.Town.Gold() != gold+int((table[0].ShopItem.Count*table[0].ShopItem.Price+1)/2) {
 		t.Fatal("mixed sale lost the document or failed to sell its priced control", left, gold, f.Town.Gold())
 	}
 	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlTableCell, Index: 0})

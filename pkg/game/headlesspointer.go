@@ -285,7 +285,7 @@ func (f *FrontEnd) headlessShopCell(surface string, code uint16) (int, error) {
 		return 0, fmt.Errorf("at.shop.code %d: the shown member's pack holds none of it", code)
 	case "table":
 		for i, place := range t.sess.Shop.Table() {
-			if uint16(place.Code) == code {
+			if uint16(place.ShopItem.Code) == code {
 				return i, nil
 			}
 		}
@@ -437,7 +437,7 @@ func (f *FrontEnd) headlessShop() *HeadlessShopState {
 	}
 	for _, place := range t.sess.Shop.Table() {
 		state.Table = append(state.Table, HeadlessTablePlace{
-			Code: uint16(place.Code), Price: place.Price, Count: place.Count, Mine: place.Mine})
+			Code: uint16(place.ShopItem.Code), Price: place.ShopItem.Price, Count: place.ShopItem.Count, Mine: place.Mine})
 	}
 	return state
 }

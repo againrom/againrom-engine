@@ -45,11 +45,15 @@ const shopShelfCols = 2
 // rectangle: consumables upper left, magic upper right, weapons lower left,
 // armour lower right. The owner-directed fourth shelf currently contains
 // books; scrolls and potions remain outside its model.
-var shopRoomShelves = [4]struct {
+// shopRack is a rack of the room: the shelf it shows, whether it is stocked
+// and its name.
+type shopRack struct {
 	shelf   ShopShelf
 	stocked bool
 	name    string
-}{
+}
+
+var shopRoomShelves = [4]shopRack{
 	{ShelfArmour, true, "armour"},
 	{ShelfWeapons, true, "weapons"},
 	{ShelfMagic, true, "magic"},
@@ -67,10 +71,10 @@ func shopRoomShelfName(room int, table *mapload.Table) string {
 }
 
 // Open the first stocked shelf on entry: armour, weapons, magic, then books.
-func (t *townScreen) openStockedShopShelf() {
+func (t *shopController) openStockedShopShelf() {
 	t.shopChosen, t.shopShelf, t.shelfBase = shopNoShelf, ShelfArmour, 0
-	for i, room := range shopRoomShelves {
-		if room.stocked && len(t.sess.Shop.Shelf(room.shelf)) > 0 {
+	for i, room := range t.rack() {
+		if room.stocked && len(t.deal().Shelf(room.shelf)) > 0 {
 			t.shopChosen, t.shopShelf = i, room.shelf
 			return
 		}
@@ -80,19 +84,16 @@ func (t *townScreen) openStockedShopShelf() {
 // AtTownShop is on townscreen.go; ShopScreen and ShopClick complete the seam.
 
 // ShopScreen composes the whole screen for one frame.
-func (t *townScreen) ShopScreen() ui.ShopScreenView {
+func (t *shopController) ShopScreen() ui.ShopScreenView {
 	v := ui.ShopScreenView{Chosen: shopNoShelf}
 	if t == nil {
 		return v
 	}
-	v.Art = t.art.shopScreen()
-	v.Scene = roomScene{t.shopPage()}
 	v.Font = t.in.Font.Value()
 	v.PriceFont = t.in.tipFont()
 	v.Words = t.in.Words
-	v.TipPanel = t.roomTipView(roomShop, t.shopTip)
 
-	shop := t.sess.Shop
+	shop := t.deal()
 	if shop != nil {
 		v.InputEpoch = shop.inputEpoch
 	}
@@ -112,9 +113,9 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 	t.packBase = min(t.packBase, t.packScrollMax())
 	v.PackOffset = t.packBase
 	v.PackBack, v.PackForward = t.packBase > 0, t.packBase < t.packScrollMax()
-	if t.shopChosen >= 0 && t.shopChosen < len(shopRoomShelves) {
-		room := shopRoomShelves[t.shopChosen]
-		v.ShelfName = shopRoomShelfName(t.shopChosen, t.in.Table)
+	if t.shopChosen >= 0 && t.shopChosen < len(t.rack()) {
+		room := t.rack()[t.shopChosen]
+		v.ShelfName = t.rackName(t.shopChosen)
 		if room.stocked {
 			items := shop.Shelf(room.shelf)
 			for i := 0; i < len(v.Shelf); i++ {
@@ -122,16 +123,17 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 				if k < 0 || k >= len(items) {
 					continue
 				}
-				v.Shelf[i] = t.shopShelfCell(items[k], purse)
+				v.Shelf[i] = t.labelled(t.shopShelfCell(items[k], purse), items[k].Instance())
 			}
 		}
 	}
 
-	for i, place := range table {
-		if i >= len(v.Table) {
-			break
+	t.tableBase = min(max(t.tableBase, 0), t.tableScrollMax())
+	v.TableOffset = t.tableBase
+	for i := range v.Table {
+		if k := t.tableBase + i; k < len(table) {
+			v.Table[i] = t.labelled(t.shopPlaceCell(table[k]), table[k].ShopItem.Instance())
 		}
-		v.Table[i] = t.shopPlaceCell(place)
 	}
 
 	// THE BOTTOM STRIP IS THE SHOWN MEMBER'S OWN CONTAINER, not a party-wide
@@ -147,7 +149,7 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 		case k == 0:
 			v.Pack[i] = ui.ShopCell{Money: true, Count: uint32(purse)}
 		case k >= 1 && k-1 < len(stacks):
-			v.Pack[i] = t.shopPackCell(stacks[k-1])
+			v.Pack[i] = t.labelled(t.shopPackCell(stacks[k-1]), stacks[k-1].Instance())
 			if t.hasCityShopTopology() && v.Pack[i].UseItemKey != "" {
 				if member := t.shopPartyMember(t.shopMemberIndex()); member != nil {
 					if root, err := cityMutationParty(t.sess.Town.cityObjects, member.ID); err == nil && k-1 < len(root.Pack) {
@@ -200,7 +202,9 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 			v.SlotMask = t.shopSuppressMask
 		}
 	}
-	v.Character = t.townCharacterView()
+	if t.shop.dress != nil {
+		t.shop.dress(&v)
+	}
 	// The drag preview changes only the picture. townCharacterView resolves
 	// canonical statistics and equipment, so copying the suppressed figure
 	// into that view makes the doll look unequipped while its numbers remain
@@ -210,7 +214,7 @@ func (t *townScreen) ShopScreen() ui.ShopScreenView {
 	return v
 }
 
-func (t *townScreen) fillTownBook(v *ui.ShopScreenView) {
+func (t *shopController) fillTownBook(v *ui.ShopScreenView) {
 	party := t.shopParty()
 	v.Book = t.shopBook
 	if v.Book && len(party) > 0 {
@@ -239,12 +243,12 @@ func (t *townScreen) fillTownBook(v *ui.ShopScreenView) {
 // SlotInfo and SlotIcon both answered nothing for a slot the figure and mask
 // both named, so a shop doll drawn wearing a weapon through the fallback had
 // no hover text and no drag icon over that slot.
-func (t *townScreen) shopEquippedCode(i, n int) (data.ItemCode, bool) {
+func (t *shopController) shopEquippedCode(i, n int) (data.ItemCode, bool) {
 	item, ok := t.shopEquippedItem(i, n)
 	return data.ItemCode(item.Code), ok
 }
 
-func (t *townScreen) shopEquippedItem(i, n int) (sim.ItemInstance, bool) {
+func (t *shopController) shopEquippedItem(i, n int) (sim.ItemInstance, bool) {
 	if n < 1 || n > sim.EquipSlots {
 		return sim.ItemInstance{}, false
 	}
@@ -265,8 +269,8 @@ func (t *townScreen) shopEquippedItem(i, n int) (sim.ItemInstance, bool) {
 // pairs share the simulation's quantity and merge decision. Trade staging
 // passes the release's Shift modifier to its existing one/whole operation.
 // A miss or same-cell release leaves every item at its origin.
-func (t *townScreen) ShopDrag(from, to ui.ShopControl) ui.TownAction {
-	if t == nil || t.room != roomShop {
+func (t *shopController) ShopDrag(from, to ui.ShopControl) ui.TownAction {
+	if !t.shownRoom() {
 		return ui.TownAction{}
 	}
 	return t.shopTableSounds(from.Kind == ui.ShopControlTableCell, func() ui.TownAction { return t.shopDrag(from, to) })
@@ -277,25 +281,36 @@ func (t *townScreen) ShopDrag(from, to ui.ShopControl) ui.TownAction {
 // when the take refuses; a gesture that puts units on the table requests its
 // drop sound after them (SHOP-SOUND-135). Moves between the shelf, the
 // backpack and the figure request nothing.
-func (t *townScreen) shopTableSounds(pick bool, act func() ui.TownAction) ui.TownAction {
+func (t *shopController) shopTableSounds(pick bool, act func() ui.TownAction) ui.TownAction {
 	if pick {
-		t.roomSound("shop", "table-pick")
+		t.play("table-pick")
 	}
-	before := t.shopTableUnits()
+	before, places := t.shopTableUnits(), t.shopTablePlaces()
 	a := act()
 	if !pick && t.shopTableUnits() > before {
-		t.roomSound("shop", "table-drop")
+		t.play("table-drop")
+	}
+	if t.shopTablePlaces() > places {
+		// A new place shows: the strip turns to the last one.
+		t.tableBase = t.tableScrollMax()
 	}
 	return a
 }
 
-func (t *townScreen) shopTableUnits() int64 {
-	if t.sess == nil || t.sess.Shop == nil {
+func (t *shopController) shopTablePlaces() int {
+	if t.sess == nil || t.deal() == nil {
+		return 0
+	}
+	return len(t.deal().Table())
+}
+
+func (t *shopController) shopTableUnits() int64 {
+	if t.sess == nil || t.deal() == nil {
 		return 0
 	}
 	var n int64
-	for _, p := range t.sess.Shop.Table() {
-		n += int64(p.Count)
+	for _, p := range t.deal().Table() {
+		n += int64(p.ShopItem.Count)
 	}
 	return n
 }
@@ -304,23 +319,23 @@ func (t *townScreen) shopTableUnits() int64 {
 // Undo on button 0, Out on button 3, Scroll on the shelf and backpack
 // arrows (SHOP-SOUND-136, SHOP-SOUND-138). Buttons 1 and 2 request nothing
 // on the press.
-func (t *townScreen) ShopPress(c ui.ShopControl) {
-	if t == nil || t.room != roomShop {
+func (t *shopController) ShopPress(c ui.ShopControl) {
+	if !t.shownRoom() {
 		return
 	}
 	switch c.Kind {
 	case ui.ShopControlButton:
 		if c.Index == 0 || c.Index == 3 {
-			t.roomSound("shop", fmt.Sprintf("button-press-%d", c.Index))
+			t.play(fmt.Sprintf("button-press-%d", c.Index))
 		}
 	case ui.ShopControlArrowUp, ui.ShopControlArrowDown:
-		t.roomSound("shop", "shelf-arrow")
+		t.play("shelf-arrow")
 	case ui.ShopControlPackLeft, ui.ShopControlPackRight:
-		t.roomSound("shop", "pack-arrow")
+		t.play("pack-arrow")
 	}
 }
 
-func (t *townScreen) shopDrag(from, to ui.ShopControl) ui.TownAction {
+func (t *shopController) shopDrag(from, to ui.ShopControl) ui.TownAction {
 	switch {
 	case from.Kind == ui.ShopControlPackCell && to.Kind == ui.ShopControlPackCell:
 		return t.shopMoveWithinPack(t.packBase+from.Index-1, t.packBase+to.Index-1, from.Shift)
@@ -357,10 +372,11 @@ func (t *townScreen) shopDrag(from, to ui.ShopControl) ui.TownAction {
 		// the pack with no purse ever consulted.
 		return t.shopClickShelfCell(from.Index, from.Shift)
 	case from.Kind == ui.ShopControlTableCell && (to.Kind == ui.ShopControlPackCell || to.Kind == ui.ShopControlShelfCell):
-		return t.shopOffTable(from.Index, from.Shift)
+		return t.shopOffTable(t.tableBase+from.Index, from.Shift)
 	case from.Kind == ui.ShopControlTableCell && to.Kind == ui.ShopControlDoll:
 		// A merchant-owned place keeps its shelf stamp and stays (DIV-1668).
-		if table := t.sess.Shop.Table(); from.Index < 0 || from.Index >= len(table) || !table[from.Index].Mine {
+		i := t.tableBase + from.Index
+		if table := t.deal().Table(); i < 0 || i >= len(table) || !table[i].Mine {
 			return ui.TownAction{}
 		}
 		// COUNTEREXAMPLE 3 (round-2 adversarial review): the one pair among the
@@ -368,7 +384,7 @@ func (t *townScreen) shopDrag(from, to ui.ShopControl) ui.TownAction {
 		// shopEquipFromTable is the table's own take-and-wear gesture,
 		// shopEquipFromPack's and shopEquipFromShelf's own pattern restated over
 		// TakeOffTable.
-		return t.shopEquipFromTable(from.Index)
+		return t.shopEquipFromTable(i)
 	}
 	return ui.TownAction{}
 }
@@ -377,8 +393,8 @@ func (t *townScreen) shopDrag(from, to ui.ShopControl) ui.TownAction {
 // world.go's own refreshDollDrag): slot is 1-based, 0 for none, and a call
 // naming the same slot already in force costs one compare and no recompose,
 // refreshDollDrag's own guard restated.
-func (t *townScreen) ShopSuppressDoll(slot int) {
-	if t == nil || t.room != roomShop {
+func (t *shopController) ShopSuppressDoll(slot int) {
+	if !t.shownRoom() {
 		return
 	}
 	t.refreshShopDrag(slot)
@@ -398,7 +414,7 @@ func (t *townScreen) ShopSuppressDoll(slot int) {
 // OTHER slot of that member would have suppressed a figure missing the
 // weapon layer the ordinary figure still shows, `DIV-085`'s own disagreement
 // between a hit test and a drawn pixel.
-func (t *townScreen) refreshShopDrag(want int) {
+func (t *shopController) refreshShopDrag(want int) {
 	if want == t.shopSuppressSlot {
 		return
 	}
@@ -453,14 +469,14 @@ func (t *townScreen) refreshShopDrag(want int) {
 // party that shrank between two frames cannot leave it pointing past the end,
 // and it never rests on a tavern hire while the party holds anyone else
 // (townPickerIndex).
-func (t *townScreen) shopMemberIndex() int {
+func (t *shopController) shopMemberIndex() int {
 	return townPickerIndex(t.shopParty(), t.shopMember)
 }
 
 // clampTownMember keeps the one town-wide character selection valid after a
 // roster mutation. The historical field name predates the shared shell; the
 // value now deliberately survives movement between every town room.
-func (t *townScreen) clampTownMember() {
+func (t *shopController) clampTownMember() {
 	if t == nil {
 		return
 	}
@@ -477,7 +493,7 @@ func (t *townScreen) clampTownMember() {
 // and marks the figure for recomposition in the same eight steps. Here that is
 // the index, the strip's own base returned to the first place, and the composed
 // figure taken from the cache the room filled on the way in.
-func (t *townScreen) shopStepMember(step int) ui.TownAction {
+func (t *shopController) shopStepMember(step int) ui.TownAction {
 	party := t.shopParty()
 	roster := townPickerMembers(party)
 	n := len(roster)
@@ -492,8 +508,9 @@ func (t *townScreen) shopStepMember(step int) ui.TownAction {
 	to := (at + step%n + n) % n
 	i := roster[to]
 	t.shopMember, t.packBase = i, 0
-	t.clearSchoolSelection()
-	t.retargetSchoolColumn(party[previous].Mage, party[i].Mage)
+	if t.shop.stepped != nil {
+		t.shop.stepped(party[previous], party[i])
+	}
 	name := party[i].Name
 	if name == "" {
 		name = fmt.Sprintf("member %d", to+1)
@@ -510,7 +527,7 @@ func (t *townScreen) shopStepMember(step int) ui.TownAction {
 // widget into two screens, so what it shares instead is the composition: one
 // pass over the party fills the map, and the town dialogue's own speaker figures
 // and this panel both read it.
-func (t *townScreen) shopFigure(i int) *image.RGBA {
+func (t *shopController) shopFigure(i int) *image.RGBA {
 	if i < 0 || i >= len(t.shopFigures) {
 		return nil
 	}
@@ -529,7 +546,7 @@ func (t *townScreen) shopFigure(i int) *image.RGBA {
 // the column was not read, so the rule does not apply, and the cell keeps the
 // background it had before this rule existed. A missing table answers the same
 // way, for the same reason.
-func (t *townScreen) shopUsable(code data.ItemCode) bool {
+func (t *shopController) shopUsable(code data.ItemCode) bool {
 	table := t.in.Table
 	if table == nil {
 		return true
@@ -567,7 +584,7 @@ func shopCellBack(usable, affordable bool) ui.ShopCellBack {
 // whether the shown member can use it and whether the purse covers one unit of
 // it (SHOP-SCREEN-036 arms c, d and e) and its plaque is the merchant's family
 // at the full price (SHOP-SCREEN-037).
-func (t *townScreen) shopShelfCell(item ShopItem, purse int32) ui.ShopCell {
+func (t *shopController) shopShelfCell(item ShopItem, purse int32) ui.ShopCell {
 	// THE PURSE TEST IS AGAINST ONE UNIT AND NOT AGAINST THE STACK. A cell
 	// can hold several units since `DIV-322`, and its background answers
 	// whether the member can use it and whether the purse covers a unit of
@@ -616,19 +633,19 @@ func shopGridPrice(code data.ItemCode, price int32, mine bool) int32 {
 // family and the figure: the player's side prints ceil(price/2), which is what
 // the merchant pays a unit, on the plaque of the whole price (SHOP-SCREEN-037,
 // SHOP-TRAY-027).
-func (t *townScreen) shopPlaceCell(place ShopPlace) ui.ShopCell {
-	instance := place.Instance()
+func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
+	instance := place.ShopItem.Instance()
 	useKey := ""
 	if place.Mine && t.shopDollTakes(instance) {
-		useKey = fmt.Sprintf("city:%d/from:%d/%#v", place.cityID, place.From, instance)
+		useKey = fmt.Sprintf("city:%d/from:%d/%#v", place.ShopItem.cityID, place.From, instance)
 	}
 	return ui.ShopCell{
 		UseItemKey:  useKey,
 		Icon:        t.shopItemIcon(instance),
-		Count:       uint32(place.Count),
-		Price:       shopGridPrice(place.Code, place.Price, place.Mine),
-		PlaquePrice: shopClientPrice(place.Code, place.Price),
-		Back:        shopCellBack(t.shopUsable(place.Code), false),
+		Count:       uint32(place.ShopItem.Count),
+		Price:       shopGridPrice(place.ShopItem.Code, place.ShopItem.Price, place.Mine),
+		PlaquePrice: shopClientPrice(place.ShopItem.Code, place.ShopItem.Price),
+		Back:        shopCellBack(t.shopUsable(place.ShopItem.Code), false),
 		Mine:        place.Mine,
 		Star:        itemShowsStarTrail(instance),
 		Info:        itemInstanceInfoLines(instance, t.in.Table, t.in.Words),
@@ -636,7 +653,7 @@ func (t *townScreen) shopPlaceCell(place ShopPlace) ui.ShopCell {
 }
 
 // shopPackCell is one stack of the player's own pack, always on his side.
-func (t *townScreen) shopPackCell(st sim.ItemStack) ui.ShopCell {
+func (t *shopController) shopPackCell(st sim.ItemStack) ui.ShopCell {
 	code := data.ItemCode(st.Code)
 	instance := st.Instance()
 	useKey := ""
@@ -662,7 +679,7 @@ func (t *townScreen) shopPackCell(st sim.ItemStack) ui.ShopCell {
 // a potion or scroll is used there (DIV-584), and an item with an equipment
 // slot is worn there or refused by the doll's wear rule (ITEM-WEAR-057,
 // DIV-1465). Any other item keeps the immediate single click.
-func (t *townScreen) shopDollTakes(item sim.ItemInstance) bool {
+func (t *shopController) shopDollTakes(item sim.ItemInstance) bool {
 	if item.Kind == 3 || item.Kind == 4 {
 		return true
 	}
@@ -673,14 +690,14 @@ func (t *townScreen) shopDollTakes(item sim.ItemInstance) bool {
 // shopItemIcon returns only the code-keyed base icon. The measured shelf,
 // trade-tray and shown-member pack painters add the trail from ShopCell.Star;
 // worn dolls and the held drag cursor reuse this base and remain unmarked.
-func (t *townScreen) shopItemIcon(item sim.ItemInstance) *image.RGBA {
+func (t *shopController) shopItemIcon(item sim.ItemInstance) *image.RGBA {
 	return t.shopIcon(data.ItemCode(item.Code))
 }
 
 // shopIcon is one item's own picture, through the inventory's own loader and
 // the front end's own cache, so an item shows the same picture in the shop as
 // it does in the pack.
-func (t *townScreen) shopIcon(code data.ItemCode) *image.RGBA {
+func (t *shopController) shopIcon(code data.ItemCode) *image.RGBA {
 	cache := t.shopIcons()
 	if icon, tried := cache[uint16(code)]; tried {
 		return icon
@@ -699,7 +716,7 @@ func (t *townScreen) shopIcon(code data.ItemCode) *image.RGBA {
 // shopIcons is the icon cache the screen resolves through, allocated on first
 // use. It is the front end's, not the frame's: a screen that rebuilt it every
 // frame would re-read every picture sixty times a second.
-func (t *townScreen) shopIcons() map[uint16]*image.RGBA {
+func (t *shopController) shopIcons() map[uint16]*image.RGBA {
 	if t.shopIconCache == nil {
 		t.shopIconCache = map[uint16]*image.RGBA{}
 	}
@@ -710,15 +727,15 @@ func (t *townScreen) shopIcons() map[uint16]*image.RGBA {
 //
 // A CONTROL THE MODEL REFUSES ANSWERS A REASON AND MOVES NOTHING. An index
 // outside its own family is a miss, not a panic.
-func (t *townScreen) ShopClick(c ui.ShopControl) ui.TownAction {
-	if t == nil || t.room != roomShop {
+func (t *shopController) ShopClick(c ui.ShopControl) ui.TownAction {
+	if !t.shownRoom() {
 		return ui.TownAction{}
 	}
 	pick := c.Kind == ui.ShopControlTableCell && !t.shopBook
 	return t.shopTableSounds(pick, func() ui.TownAction { return t.shopClick(c) })
 }
 
-func (t *townScreen) shopClick(c ui.ShopControl) ui.TownAction {
+func (t *shopController) shopClick(c ui.ShopControl) ui.TownAction {
 	switch c.Kind {
 	case ui.ShopControlButton:
 		return t.shopButton(c.Index)
@@ -733,10 +750,10 @@ func (t *townScreen) shopClick(c ui.ShopControl) ui.TownAction {
 	case ui.ShopControlShelfCell:
 		return t.shopClickShelfCell(c.Index, c.Shift)
 	case ui.ShopControlTableCell:
-		if t.shopBook {
+		if t.shopBook || c.Index < 0 {
 			return ui.TownAction{}
 		}
-		return t.shopOffTable(c.Index, c.Shift)
+		return t.shopOffTable(t.tableBase+c.Index, c.Shift)
 	case ui.ShopControlPackCell:
 		// The strip's first element is the money element, so a cell's own
 		// index is one past it in the stack list.
@@ -748,7 +765,7 @@ func (t *townScreen) shopClick(c ui.ShopControl) ui.TownAction {
 	case ui.ShopControlPickerNext:
 		return t.shopStepMember(+1)
 	case ui.ShopControlCharacterMode:
-		t.townStats = !t.townStats
+		t.toggleStats()
 	case ui.ShopControlBook:
 		t.shopBook = !t.shopBook
 	case ui.ShopControlSpell:
@@ -771,8 +788,8 @@ func (t *townScreen) shopClick(c ui.ShopControl) ui.TownAction {
 // ShopScroll turns the region the pointer stands in (owner, DIV-005). The
 // rack pages by whole rows, which is the arrows' own step; the strip moves
 // by one place.
-func (t *townScreen) ShopScroll(region ui.ShopWheelRegion, rows int) {
-	if t == nil || t.room != roomShop {
+func (t *shopController) ShopScroll(region ui.ShopWheelRegion, rows int) {
+	if !t.shownRoom() {
 		return
 	}
 	switch region {
@@ -780,50 +797,53 @@ func (t *townScreen) ShopScroll(region ui.ShopWheelRegion, rows int) {
 		t.scrollShelf(rows)
 	case ui.ShopWheelPack:
 		t.scrollPack(rows)
+	case ui.ShopWheelTable:
+		t.tableBase = min(max(t.tableBase+rows, 0), t.tableScrollMax())
 	}
 }
 
 // shopButton runs one of the four commands (SHOP-SCREEN-035).
-func (t *townScreen) shopButton(i int) ui.TownAction {
+func (t *shopController) shopButton(i int) ui.TownAction {
 	switch i {
 	case 0:
 		// The clear picks every table element, one pick sound each
 		// (SHOP-SOUND-135).
-		for range t.sess.Shop.Table() {
-			t.roomSound("shop", "table-pick")
+		for range t.deal().Table() {
+			t.play("table-pick")
 		}
 		return t.shopClear()
 	case 1:
-		// Buy requests buy, or nofit when the purse is short, and nothing
-		// for an empty purchase (SHOP-SOUND-136).
-		total := t.sess.Shop.BuyTotal()
+		// Buy requests buy, or nofit when the purse is short or the pack
+		// would pass its bound, and nothing for an empty purchase
+		// (SHOP-SOUND-136).
+		total := t.deal().BuyTotal()
 		if total == 0 {
 			return t.shopBuy()
 		}
-		if int32(t.sess.Town.Gold()) < total {
-			t.shopPage().Event("merchant-no")
+		if int32(t.sess.Town.Gold()) < total || !t.shopBuyFits() {
+			t.keeper(shopKeeperRefused)
 			a := t.shopBuy()
-			t.roomSound("shop", "buy-short")
+			t.play("buy-short")
 			return a
 		}
-		t.shopPage().Event("merchant-yes")
+		t.keeper(shopKeeperBought)
 		a := t.shopBuy()
-		t.roomSound("shop", "buy")
+		t.play("buy")
 		return a
 	case 2:
 		// Sell requests sell after the trade only for a nonzero value.
-		if t.sess.Shop.SellTotal() == 0 {
+		if t.deal().SellTotal() == 0 {
 			return t.shopSell()
 		}
-		t.shopPage().Event("merchant-yes")
+		t.keeper(shopKeeperSold)
 		a := t.shopSell()
-		t.roomSound("shop", "sell")
+		t.play("sell")
 		return a
 	case 3:
 		// Clear the table, then leave. Back already clears it on the way out, so
 		// leaving is the whole command. It posts no line: the original's leave
 		// sends its own message and no text (SHOP-SCREEN-035).
-		t.Back()
+		t.leave()
 	}
 	return ui.TownAction{}
 }
@@ -831,11 +851,11 @@ func (t *townScreen) shopButton(i int) ui.TownAction {
 // shopClickShelfCell puts the item in that cell on the table. whole is the
 // shift+click convention, carried to shopFromShelf: a cell can hold several
 // units since `DIV-322`.
-func (t *townScreen) shopClickShelfCell(i int, whole bool) ui.TownAction {
-	if t.shopChosen < 0 || t.shopChosen >= len(shopRoomShelves) {
+func (t *shopController) shopClickShelfCell(i int, whole bool) ui.TownAction {
+	if t.shopChosen < 0 || t.shopChosen >= len(t.rack()) {
 		return ui.TownAction{}
 	}
-	room := shopRoomShelves[t.shopChosen]
+	room := t.rack()[t.shopChosen]
 	if !room.stocked {
 		return ui.TownAction{}
 	}
@@ -844,20 +864,20 @@ func (t *townScreen) shopClickShelfCell(i int, whole bool) ui.TownAction {
 }
 
 // chooseRoomShelf makes one of the four room rectangles the shown shelf and
-// returns the grid to its first row (SHOP-SCREEN-034).
-func (t *townScreen) chooseRoomShelf(i int) ui.TownAction {
-	if i < 0 || i >= len(shopRoomShelves) {
+// returns the grid to its first row (SHOP-SCREEN-034); a rack that is not
+// stocked cannot be chosen.
+func (t *shopController) chooseRoomShelf(i int) ui.TownAction {
+	if i < 0 || i >= len(t.rack()) || !t.rack()[i].stocked {
 		return ui.TownAction{}
 	}
 	if i != t.shopChosen {
-		t.roomSound("shop", "rack-changed")
+		t.play("rack-changed")
 	}
-	t.shopPage().Event("rack", i)
+	t.keeper(shopKeeperRack, i)
 	t.shopChosen, t.shelfBase = i, 0
-	room := shopRoomShelves[i]
-	t.shopShelf = room.shelf
-	if !room.stocked {
-		return ui.TownAction{}
+	t.shopShelf = t.rack()[i].shelf
+	if t.shop.chose != nil {
+		t.shop.chose(i)
 	}
 	return ui.TownAction{}
 }
@@ -868,14 +888,14 @@ func (t *townScreen) chooseRoomShelf(i int) ui.TownAction {
 // THE BASE NEVER LEAVES THE SHELF. Scrolling down past the last row stops at
 // the last row that still holds an item, so an arrow press can never leave a
 // stocked shelf showing nothing.
-func (t *townScreen) scrollShelf(rows int) {
-	if t.shopChosen < 0 || t.shopChosen >= len(shopRoomShelves) {
+func (t *shopController) scrollShelf(rows int) {
+	if t.shopChosen < 0 || t.shopChosen >= len(t.rack()) {
 		return
 	}
-	room := shopRoomShelves[t.shopChosen]
+	room := t.rack()[t.shopChosen]
 	n := 0
 	if room.stocked {
-		n = len(t.sess.Shop.Shelf(room.shelf))
+		n = len(t.deal().Shelf(room.shelf))
 	}
 	t.shelfBase = clampGridBase(t.shelfBase+rows*shopShelfCols, n, shopShelfCols)
 }
@@ -885,14 +905,20 @@ func (t *townScreen) scrollShelf(rows int) {
 //
 // THE LIST IS ONE LONGER THAN THE STACK COUNT because its first element is the
 // money element (SHOP-SCREEN-036 arm a), which scrolls with everything else.
-func (t *townScreen) scrollPack(places int) {
+func (t *shopController) scrollPack(places int) {
 	t.packBase = min(max(t.packBase+places, 0), t.packScrollMax())
+}
+
+// tableScrollMax is the furthest the table strip turns: the last place in
+// the last cell. A table of five places or fewer never turns.
+func (t *shopController) tableScrollMax() int {
+	return max(0, t.shopTablePlaces()-len(ui.ShopScreenView{}.Table))
 }
 
 // packScrollMax is the furthest the strip turns: the last element is in the
 // last slot and nothing scrolls into empty slots. The list is the money element
 // and the stacks, so five or fewer never scroll.
-func (t *townScreen) packScrollMax() int {
+func (t *shopController) packScrollMax() int {
 	return max(0, len(t.shopPackStacks())+1-len(ui.ShopScreenView{}.Pack))
 }
 

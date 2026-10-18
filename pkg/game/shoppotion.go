@@ -8,7 +8,7 @@ import (
 
 // shopPotionUser refuses a scroll. A usable potion is consumed by the caller and
 // changes nothing: the town has no clock (DIV-1691).
-func (t *townScreen) shopPotionUser(item sim.ItemInstance) (*mapload.PartyMember, ui.TownAction, bool) {
+func (t *shopController) shopPotionUser(item sim.ItemInstance) (*mapload.PartyMember, ui.TownAction, bool) {
 	if item.Kind == 4 {
 		return nil, ui.TownAction{}, true
 	}

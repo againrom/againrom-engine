@@ -15,7 +15,7 @@ type shopOwnerQuantity struct {
 	Count     int32
 }
 
-func (t *townScreen) ownShopItem(item ShopItem, pack int) ShopItem {
+func (t *shopController) ownShopItem(item ShopItem, pack int) ShopItem {
 	index := t.shopMemberIndex()
 	member := t.shopPartyMember(index)
 	if member != nil {
@@ -62,7 +62,7 @@ func (s *Shop) growOwnedTablePlace(index int, incoming ShopItem) bool {
 	if !s.GrowTablePlace(index, incoming.Count) {
 		return false
 	}
-	s.table[index].owners = append(slices.Clone(s.table[index].owners), incoming.owners...)
+	s.table[index].ShopItem.owners = append(slices.Clone(s.table[index].ShopItem.owners), incoming.owners...)
 	return true
 }
 
@@ -76,8 +76,8 @@ func (f *FrontEnd) captureShop() *Shop {
 		index = townPickerIndex(f.Carried, f.townUI.shopMember)
 	}
 	for i, place := range shop.table {
-		if place.Mine && len(place.owners) == 0 && index >= 0 && index < len(f.Carried) {
-			shop.table[i].owners = []shopOwnerQuantity{{PartyID: f.Carried[index].ID, Member: index, PackIndex: -1, Count: place.Count}}
+		if place.Mine && len(place.ShopItem.owners) == 0 && index >= 0 && index < len(f.Carried) {
+			shop.table[i].ShopItem.owners = []shopOwnerQuantity{{PartyID: f.Carried[index].ID, Member: index, PackIndex: -1, Count: place.ShopItem.Count}}
 		}
 	}
 	return shop
@@ -114,7 +114,7 @@ func groupedShopOwners(owners []shopOwnerQuantity) []shopOwnerQuantity {
 	return out
 }
 
-func (t *townScreen) restoreShopOwner(item ShopItem, owner shopOwnerQuantity) error {
+func (t *shopController) restoreShopOwner(item ShopItem, owner shopOwnerQuantity) error {
 	index, err := shopOwnerMember(t.sess.Carried, owner)
 	if err != nil {
 		return err
@@ -137,8 +137,10 @@ func (t *townScreen) restoreShopOwner(item ShopItem, owner shopOwnerQuantity) er
 	return nil
 }
 
-// DIV-1443: only the detached SAV capture settles the table. Live trade,
-// payment and selection remain unchanged after SAVE, cancellation or failure.
+// DIV-1443: only the detached SAV capture settles the table, by the one
+// open-deal policy (shopDeal.settle): a customer place goes back to its
+// owners' packs through the city graph. Live trade, payment and selection
+// remain unchanged after SAVE, cancellation or failure.
 func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 	if s.Mission != 0 || s.shop == nil || len(s.shop.table) == 0 {
 		return s, nil
@@ -146,8 +148,9 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 	in := f.InstallResources
 	n := &CampaignSession{
 		Town: restoreTown(f.Campaign.Value(), s), Carried: mapload.CloneParty(s.Party), Shop: cloneShopMutation(s.shop)}
-	t := &townScreen{sess: n, in: &in, pc: &PersistenceContext{}, room: roomShop}
+	t := &townScreen{shopController: shopController{sess: n, in: &in}, pc: &PersistenceContext{}, room: roomShop}
 	t.bindServices(&RuntimeServices{}, &in, &Presentation{})
+	t.bindShop()
 	p, err := newCityObjectProjection(n.Town.cityObjects, n.Carried, in.Table)
 	if err != nil {
 		return Snapshot{}, err
@@ -156,50 +159,43 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 	if err := t.validateCityShopValues(p); err != nil {
 		return Snapshot{}, err
 	}
-	for len(n.Shop.table) != 0 {
-		index := len(n.Shop.table) - 1
-		place := n.Shop.table[index]
-		if !place.Mine {
-			n.Shop.table = slices.Delete(n.Shop.table, index, index+1)
-			shelf := place.From
-			if shelf < 0 || shelf >= numShopShelves {
-				shelf = ShelfMagic
-			}
-			n.Shop.shelves[shelf] = append(n.Shop.shelves[shelf], place.ShopItem.Clone())
-			continue
-		}
-		item, err := t.cityShopBind(place.ShopItem)
+	err = n.Shop.settle(n.Shop.rules(), func(index int, staged ShopItem) error {
+		item, err := t.cityShopBind(staged)
 		if err != nil {
-			return Snapshot{}, err
+			return err
 		}
 		owners := groupedShopOwners(item.owners)
 		var total int64
 		for _, owner := range owners {
 			if owner.Count <= 0 {
-				return Snapshot{}, fmt.Errorf("staged shop owner has invalid quantity")
+				return fmt.Errorf("staged shop owner has invalid quantity")
 			}
 			total += int64(owner.Count)
 		}
 		if len(owners) == 0 || total != int64(item.Count) {
-			return Snapshot{}, fmt.Errorf("staged shop ownership differs from current quantity")
+			return fmt.Errorf("staged shop ownership differs from current quantity")
 		}
 		n.Shop.table[index].ShopItem = item
 		for i := len(owners) - 1; i > 0; i-- {
 			part, err := t.cityShopSplitQuantity(item, cityItemLocation{}, owners[i].Count)
 			if err != nil {
-				return Snapshot{}, err
+				return err
 			}
 			item = n.Shop.table[index].ShopItem
 			item.owners = slices.Clone(owners[:i])
 			n.Shop.table[index].ShopItem = item
 			if err := t.restoreShopOwner(part, owners[i]); err != nil {
-				return Snapshot{}, err
+				return err
 			}
 		}
 		n.Shop.table = slices.Delete(n.Shop.table, index, index+1)
 		if err := t.restoreShopOwner(item, owners[0]); err != nil {
-			return Snapshot{}, err
+			return err
 		}
+		return nil
+	})
+	if err != nil {
+		return Snapshot{}, err
 	}
 	if err := t.validateCityShopRoots(); err != nil {
 		return Snapshot{}, err

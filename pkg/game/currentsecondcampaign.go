@@ -15,9 +15,10 @@ type currentSecondCampaign struct {
 	Bank      [1024]int32
 	Current   currentSecondLocation
 	Available []currentSecondLocation
-	Room      *secondTownRoom    `json:",omitempty"`
-	Aux       *secondAux         `json:",omitempty"`
-	Shop      *currentSecondShop `json:",omitempty"`
+	Room      *secondTownRoom      `json:",omitempty"`
+	Aux       *secondAux           `json:",omitempty"`
+	Shop      *currentSecondShop   `json:",omitempty"`
+	Party     []currentPartyMember `json:",omitempty"`
 }
 
 const maxSecondAvailable = 130
@@ -30,6 +31,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 		Room      *secondTownRoom
 		Aux       json.RawMessage
 		Shop      *currentSecondShop
+		Party     []currentPartyMember
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -44,7 +46,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop}
+	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop, Party: fields.Party}
 	copy(next.Bank[:], bank)
 	if next.Aux, err = decodeSecondAux(fields.Aux); err != nil {
 		return err
@@ -81,9 +83,19 @@ func decodeSecondAux(raw json.RawMessage) (*secondAux, error) {
 }
 
 func (c *currentSecondCampaign) validate() error {
+	if err := validateSecondParty(c.Party); err != nil {
+		return err
+	}
 	if c.Shop != nil {
 		if err := c.Shop.validate(); err != nil {
 			return err
+		}
+		units := secondBagUnits(c.Party)
+		for _, it := range c.Shop.Hero {
+			units += it.Quantity
+		}
+		if units > maxSecondBagUnits {
+			return fmt.Errorf("current second campaign bag holds too many units")
 		}
 	}
 	if c.Current.Kind == 2 {
@@ -143,7 +155,7 @@ func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop)}
+	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop, c.legacyHero), Party: captureSecondParty(c)}
 	if c.current.kind == 2 {
 		room := c.room
 		out.Room = &room
@@ -160,6 +172,12 @@ func (c *currentSecondCampaign) clone() *currentSecondCampaign {
 	out := *c
 	out.Available = slices.Clone(c.Available)
 	out.Shop = c.Shop.clone()
+	if c.Party != nil {
+		out.Party = make([]currentPartyMember, len(c.Party))
+		for i, p := range c.Party {
+			out.Party[i] = captureCurrentParty(p.Entity, p.restore())
+		}
+	}
 	if c.Aux != nil {
 		aux := *c.Aux
 		out.Aux = &aux
@@ -174,7 +192,10 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &secondCampaign{bank: c.Bank, current: secondLocation{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore()}
+	out := &secondCampaign{bank: c.Bank, current: secondLocation{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore(), party: restoreSecondParty(c.Party)}
+	if c.Shop != nil {
+		out.legacyHero = slices.Clone(c.Shop.Hero)
+	}
 	if c.Aux != nil {
 		// A document with the array predates the records in the shop: they
 		// are rebuilt from the bank's departures (R2-ENGINE-330).

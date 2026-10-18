@@ -46,7 +46,7 @@ func TestCityShopSoldStaffKeepsCurrentSourceWithoutOwnedSpell(t *testing.T) {
 			if action := screen.shopFromPack(0, true); strings.Contains(action.Msg, "cannot") {
 				t.Fatal("current staff staging failed", action)
 			}
-			if places := f.Shop.Table(); len(places) != 1 || !staffSaleValueEqual(places[0].Instance(), incoming) || places[0].SourceEquipment.Spell.Present {
+			if places := f.Shop.Table(); len(places) != 1 || !staffSaleValueEqual(places[0].ShopItem.Instance(), incoming) || places[0].ShopItem.SourceEquipment.Spell.Present {
 				t.Fatal("staging changed the current staff value or invented an owned Spell", places)
 			}
 			gold := f.Town.Gold()

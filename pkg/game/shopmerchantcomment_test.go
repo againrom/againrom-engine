@@ -235,7 +235,7 @@ func TestCityShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		if !place.Mine {
 			t.Fatalf("city pack staging put a merchant place on the table: %+v", place)
 		}
-		staged += place.Count
+		staged += place.ShopItem.Count
 	}
 	if staged != 2 || len(r.samples) != 0 {
 		t.Fatalf("city pack click and drag staged %d unit(s) and started %d recording(s); want 2 and 0", staged, len(r.samples))

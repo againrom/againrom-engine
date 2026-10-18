@@ -176,11 +176,7 @@ func shopItemStateEqual(a, b ShopItem) bool {
 //
 // From is the shelf a merchant-owned place came off, so clearing the table puts
 // it back where it was. It is meaningless on a player-owned place.
-type ShopPlace struct {
-	ShopItem
-	Mine bool
-	From ShopShelf
-}
+type ShopPlace = shopPlace[ShopItem, ShopShelf]
 
 // Shop is the merchant: what is on his shelves, and what is on the table between
 // him and the player.
@@ -190,8 +186,9 @@ type Shop struct {
 	// original's one per-shop parameter (SHOP-CAP-004, SHOP-MISSION-018).
 	ceiling int32
 
-	shelves [numShopShelves][]ShopItem
-	table   []ShopPlace
+	// shopDeal holds the shelves and the table; rules are the first game's
+	// values.
+	shopDeal[ShopItem, ShopShelf]
 
 	// tbl supplies definition rows for sale classification and shelf ordering.
 	tbl *mapload.Table
@@ -204,6 +201,10 @@ type Shop struct {
 	// drawSeed is the seed of the last Generate. A tavern restock reads it to
 	// decide whether a mod's stocked item is offered again (modStockOffered).
 	drawSeed int64
+
+	// trade is the rules the shop trades by when they are not the first
+	// game's: the second game's shop sets its own (secondShop.rules).
+	trade *shopRules[ShopItem, ShopShelf]
 }
 
 // NewShop is an empty shop at a ceiling. It stocks nothing: generation is the
@@ -520,19 +521,10 @@ func shopWeaponPool(t *mapload.Table, ceiling int32) []data.ShopCandidate {
 //
 // A full table refuses and changes nothing, and so does n <= 0.
 func (s *Shop) TakeFromShelf(shelf ShopShelf, i int, n int32) bool {
-	if s == nil || len(s.table) >= ShopTablePlaces || n <= 0 {
+	if s == nil {
 		return false
 	}
-	items := s.Shelf(shelf)
-	if i < 0 || i >= len(items) {
-		return false
-	}
-	moved, ok := s.RemoveFromShelf(shelf, i, n)
-	if !ok {
-		return false
-	}
-	s.table = append(s.table, ShopPlace{ShopItem: moved, From: shelf})
-	return true
+	return s.takeFromShelf(s.rules(), shelf, i, int64(n))
 }
 
 // RemoveFromShelf takes n units of element i OFF THE SHELF, reporting what
@@ -545,22 +537,10 @@ func (s *Shop) TakeFromShelf(shelf ShopShelf, i int, n int32) bool {
 // more, or the whole element where it does not, in which case the element
 // leaves the shelf. n <= 0 is refused, as an index out of range already is.
 func (s *Shop) RemoveFromShelf(shelf ShopShelf, i int, n int32) (ShopItem, bool) {
-	if s == nil || n <= 0 {
+	if s == nil {
 		return ShopItem{}, false
 	}
-	items := s.Shelf(shelf)
-	if i < 0 || i >= len(items) {
-		return ShopItem{}, false
-	}
-	item := items[i]
-	if n >= item.Count {
-		s.shelves[shelf] = append(items[:i:i], items[i+1:]...)
-		return item, true
-	}
-	moved := item
-	moved.Count = n
-	s.shelves[shelf][i].Count -= n
-	return moved, true
+	return s.removeFromShelf(s.rules(), shelf, i, int64(n))
 }
 
 // PutOnTable puts an item the player already owns on the table, stamped as his,
@@ -573,11 +553,7 @@ func (s *Shop) RemoveFromShelf(shelf ShopShelf, i int, n int32) (ShopItem, bool)
 // is the one this build applies, and GrowTablePlace below is what a caller
 // that found a match uses instead of a second call here.
 func (s *Shop) PutOnTable(item ShopItem) bool {
-	if s == nil || len(s.table) >= ShopTablePlaces || item.Count <= 0 {
-		return false
-	}
-	s.table = append(s.table, ShopPlace{ShopItem: item.Clone(), Mine: true})
-	return true
+	return s != nil && s.putOnTable(s.rules(), item)
 }
 
 // GrowTablePlace adds n units to table place i's own count, in place: no new
@@ -586,11 +562,7 @@ func (s *Shop) PutOnTable(item ShopItem) bool {
 // place to join by its own identity rule (shopFindMinePlace, shoproom.go) —
 // this method makes no ownership or identity decision of its own.
 func (s *Shop) GrowTablePlace(i int, n int32) bool {
-	if s == nil || i < 0 || i >= len(s.table) || n <= 0 {
-		return false
-	}
-	s.table[i].Count += n
-	return true
+	return s != nil && s.growPlace(s.rules(), i, int64(n))
 }
 
 // TakeOffTable moves up to n units off place i, so the caller can put them
@@ -598,20 +570,10 @@ func (s *Shop) GrowTablePlace(i int, n int32) bool {
 // carries exactly what moved: n itself where the place holds more, or the
 // whole original where it does not.
 func (s *Shop) TakeOffTable(i int, n int32) (ShopPlace, bool) {
-	if s == nil || i < 0 || i >= len(s.table) || n <= 0 {
+	if s == nil {
 		return ShopPlace{}, false
 	}
-	place := s.table[i]
-	place.ShopItem = place.ShopItem.Clone()
-	if n >= place.Count {
-		s.table = append(s.table[:i:i], s.table[i+1:]...)
-		return place, true
-	}
-	moved := place
-	moved.Count = n
-	s.table[i].Count -= n
-	moved.owners, s.table[i].owners = takeShopOwners(place.owners, n)
-	return moved, true
+	return s.takeOffTable(s.rules(), i, int64(n))
 }
 
 // ClearTable sends every place home and reports what the PLAYER gets back
@@ -624,16 +586,7 @@ func (s *Shop) ClearTable() []ShopItem {
 	if s == nil {
 		return nil
 	}
-	var mine []ShopItem
-	for _, place := range s.table {
-		if place.Mine {
-			mine = append(mine, place.ShopItem.Clone())
-			continue
-		}
-		s.returnToShelf(place.From, place.ShopItem)
-	}
-	s.table = nil
-	return mine
+	return s.clearTable(s.rules())
 }
 
 // returnToShelf puts an item back. IT MERGES INTO AN EQUAL ELEMENT, which is
@@ -645,22 +598,7 @@ func (s *Shop) ClearTable() []ShopItem {
 // on an already-sorted shelf, so this is reached for its own sake only on the
 // open-a-new-cell arm.
 func (s *Shop) returnToShelf(shelf ShopShelf, item ShopItem) {
-	item.owners = nil
-	if shelf < 0 || shelf >= numShopShelves {
-		shelf = ShelfMagic
-	}
-	if item.Count <= 0 {
-		return
-	}
-	items := s.shelves[shelf]
-	for i := range items {
-		if shopItemEqual(items[i], item) {
-			items[i].Count += item.Count
-			return
-		}
-	}
-	s.shelves[shelf] = append(items, item.Clone())
-	shopSortShelf(s.shelves[shelf], s.tbl)
+	s.shopDeal.returnToShelf(s.rules(), shelf, item)
 }
 
 // BuyTotal is what the merchant's places on the table cost: the sum of
@@ -670,13 +608,7 @@ func (s *Shop) BuyTotal() int32 {
 	if s == nil {
 		return 0
 	}
-	var total int32
-	for _, place := range s.table {
-		if !place.Mine {
-			total += place.Count * place.Price
-		}
-	}
-	return total
+	return int32(s.buyTotal(s.rules()))
 }
 
 // SHOP-TRAY-026
@@ -684,13 +616,7 @@ func (s *Shop) SellTotal() int32 {
 	if s == nil {
 		return 0
 	}
-	var total int32
-	for _, place := range s.table {
-		if place.Mine {
-			total += ((place.Price + 1) / 2) * place.Count
-		}
-	}
-	return total
+	return int32(s.sellTotal(s.rules()))
 }
 
 // SellPayout is what Sell will actually credit: ceil(quantity x price / 2) per
@@ -700,13 +626,7 @@ func (s *Shop) SellPayout() int32 {
 	if s == nil {
 		return 0
 	}
-	var total int32
-	for _, place := range s.table {
-		if place.Mine {
-			total += shopHalfUp(place.Count * place.Price)
-		}
-	}
-	return total
+	return int32(s.sellPayout(s.rules()))
 }
 
 // shopHalfUp is ceil(n/2) for a non-negative n — the integer form of
@@ -735,30 +655,8 @@ func (s *Shop) Buy(purse int32) (bought []ShopItem, spend int32, ok bool) {
 	if s == nil {
 		return nil, 0, false
 	}
-	total := s.BuyTotal()
-	if total == 0 || purse < total {
-		return nil, 0, false
-	}
-
-	left := purse
-	kept := make([]ShopPlace, 0, len(s.table))
-	for _, place := range s.table {
-		if place.Mine {
-			kept = append(kept, place)
-			continue
-		}
-		cost := place.Count * place.Price
-		if cost > left {
-			// SHOP-BUY-009's JMP past the iterator: the rest of the basket
-			// is not bought either. The guard above makes this unreachable.
-			kept = append(kept, place)
-			break
-		}
-		left -= cost
-		bought = append(bought, place.ShopItem)
-	}
-	s.table = kept
-	return bought, purse - left, true
+	bought, spent, ok := s.buy(s.rules(), int64(purse))
+	return bought, int32(spent), ok
 }
 
 // Sell commits the player's places (SHOP-SELL-010, SHOP-TRAY-026).
@@ -775,29 +673,21 @@ func (s *Shop) Buy(purse int32) (bought []ShopItem, spend int32, ok bool) {
 // that logs and files the item under Magic Items). A sold item may never have
 // been on a shelf at all, so there is no origin to put it back to.
 func (s *Shop) Sell() (paid int32, ok bool) {
-	if s == nil || s.SellTotal() == 0 {
+	if s == nil {
 		return 0, false
 	}
-	kept := make([]ShopPlace, 0, len(s.table))
-	for _, place := range s.table {
-		if !place.Mine {
-			kept = append(kept, place)
-			continue
-		}
-		// Retain unpriced goods on the tray. Fresh Documents carry the
-		// installed -1 sentinel (DAT-DOC-021), not the zero used by the
-		// older control. A priced neighbour must not make that physical
-		// item disappear for no payment. Keep its source price unchanged;
-		// positive-price accounting still follows SHOP-SELL-010.
-		if place.Price <= 0 {
-			kept = append(kept, place)
-			continue
-		}
-		paid += shopHalfUp(place.Count * place.Price)
-		s.returnToShelf(shopShelfForItem(place.ShopItem, s.tbl), place.ShopItem)
+	paid, _, ok = s.SellBack()
+	return paid, ok
+}
+
+// SellBack is Sell reporting too the customer's places the rules return to
+// him unpriced (the second game's); the first game's rules return none.
+func (s *Shop) SellBack() (paid int32, back []ShopItem, ok bool) {
+	if s == nil {
+		return 0, nil, false
 	}
-	s.table = kept
-	return paid, true
+	got, back, ok := s.sell(s.rules())
+	return int32(got), back, ok
 }
 
 // shopShelfFor is which shelf an item sold to the merchant lands on
@@ -883,4 +773,49 @@ func shopRestockSeed(seed int64, ordinal uint64) int64 {
 		h *= 1099511628211
 	}
 	return int64(h >> 1)
+}
+
+// rules are the first game's buying and selling values: five table places
+// (SHOP-TRAY-024), the client's whole-basket buy guard (SHOP-TRAY-026), an
+// unpriced sale kept on the table, an emptied entry leaving the shelf, a
+// sold item shelved by its class (SHOP-SELL-010) and a returned item merged
+// into an equal entry, else filed in the shelf's order (SHOP-DUP-028,
+// shopsort.go).
+func (s *Shop) rules() shopRules[ShopItem, ShopShelf] {
+	if s.trade != nil {
+		return *s.trade
+	}
+	return shopRules[ShopItem, ShopShelf]{
+		places: ShopTablePlaces, wholeBasket: true, fallback: ShelfMagic,
+		count: func(i ShopItem) int64 { return int64(i.Count) },
+		price: func(i ShopItem) int64 { return int64(i.Price) },
+		withCount: func(i ShopItem, n int64) ShopItem {
+			i.Count = int32(n)
+			return i
+		},
+		clone: ShopItem.Clone,
+		split: func(i ShopItem, n int64) (ShopItem, ShopItem) {
+			moved, rest := i, i
+			moved.Count, rest.Count = int32(n), i.Count-int32(n)
+			moved.owners, rest.owners = takeShopOwners(i.owners, int32(n))
+			return moved, rest
+		},
+		home:   func(p ShopPlace) ShopShelf { return p.From },
+		shelve: func(i ShopItem) ShopShelf { return shopShelfForItem(i, s.tbl) },
+		put: func(items []ShopItem, item ShopItem) []ShopItem {
+			item.owners = nil
+			if item.Count <= 0 {
+				return items
+			}
+			for i := range items {
+				if shopItemEqual(items[i], item) {
+					items[i].Count += item.Count
+					return items
+				}
+			}
+			items = append(items, item.Clone())
+			shopSortShelf(items, s.tbl)
+			return items
+		},
+	}
 }

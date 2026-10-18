@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"againrom/pkg/mapload"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -38,6 +39,11 @@ type secondCampaign struct {
 	payload   []byte
 	part      int
 	shop      secondShop
+	// party is the hero alone; his bag is the shop's customer.
+	party []mapload.PartyMember
+	// legacyHero is an older document's hero list waiting for the
+	// install's tables to load into the bag.
+	legacyHero []secondshop.Item
 	// mapOpen is the map's current opening (openMap); nil while the party
 	// stands at a location and after a LOAD at the map.
 	mapOpen *secondMapOpening
@@ -202,6 +208,8 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 }
 
 type secondCampaignScreen struct {
+	// shopController is the shop room's page.
+	shopController
 	session *CampaignSession
 	install *InstallResources
 	open    missionDoor
@@ -235,9 +243,11 @@ func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 }
 
 func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
-	return &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
+	t := &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
 		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
 		composed: newSecondTownState(f), mapArt: f.worldMapAssets}
+	t.bindShop()
+	return t
 }
 
 func (t *secondCampaignScreen) StartNewGame() error {

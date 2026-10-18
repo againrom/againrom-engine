@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
@@ -41,12 +42,7 @@ func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) [
 		}
 		var out []ui.InspectionChoice
 		for i, item := range loot.Records[index].Elements {
-			name := fmt.Sprintf("item %#04x", item.ItemCode())
-			if s.inspector.table != nil {
-				if known, ok := s.inspector.table.Names.NameFor(data.ItemCode(item.ItemCode())); ok {
-					name = known
-				}
-			}
+			name := mapload.ItemDisplayName(s.inspector.table, data.ItemCode(item.ItemCode()), "", fmt.Sprintf("item %#04x", item.ItemCode()))
 			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Item %d: %s", i+1, name)})
 		}
 		return out

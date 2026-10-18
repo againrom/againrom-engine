@@ -59,7 +59,7 @@ func TestReleaseShopClicksTransferOnTheReleaseFrame(t *testing.T) {
 	}
 	first := stock[0]
 	tap("shelf", 0)
-	if held := f.Shop.Table(); len(held) != 1 || held[0].Count != 1 || held[0].Code != first.Code || held[0].Mine || s.ShopScreen().Table[0].Count != 1 {
+	if held := f.Shop.Table(); len(held) != 1 || held[0].ShopItem.Count != 1 || held[0].ShopItem.Code != first.Code || held[0].Mine || s.ShopScreen().Table[0].Count != 1 {
 		t.Fatal("shelf release did not paint one merchant unit", held)
 	}
 	tap("table", 0)
@@ -85,7 +85,7 @@ func TestReleaseShopClicksTransferOnTheReleaseFrame(t *testing.T) {
 	wantID, wantGold := member.ID, f.Town.Gold()
 	want := mapload.MemberCarriedItems(*member, f.Table)
 	tap("pack", cell)
-	if held := f.Shop.Table(); len(held) != 1 || held[0].Count != 1 || held[0].Code != first.Code || !held[0].Mine || s.ShopScreen().Table[0].Count != 1 || len(mapload.MemberCarriedItems(*s.shopPartyMember(s.shopMemberIndex()), f.Table)) != len(want)-1 {
+	if held := f.Shop.Table(); len(held) != 1 || held[0].ShopItem.Count != 1 || held[0].ShopItem.Code != first.Code || !held[0].Mine || s.ShopScreen().Table[0].Count != 1 || len(mapload.MemberCarriedItems(*s.shopPartyMember(s.shopMemberIndex()), f.Table)) != len(want)-1 {
 		t.Fatal("pack release deferred or lost the owned unit", held)
 	}
 	for range 28 {
@@ -93,7 +93,7 @@ func TestReleaseShopClicksTransferOnTheReleaseFrame(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if len(f.Shop.Table()) != 1 || f.Shop.Table()[0].Count != 1 {
+	if len(f.Shop.Table()) != 1 || f.Shop.Table()[0].ShopItem.Count != 1 {
 		t.Fatal("idle double-click expiry moved another unit")
 	}
 	saved := cityRosterF2Save(t, app, store, "responsive-shop")

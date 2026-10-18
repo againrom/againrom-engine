@@ -121,7 +121,7 @@ func TestReleaseShopPaneReleaseBySourceOverEachRectangle(t *testing.T) {
 		if len(f.Shop.Table()) != 1 {
 			t.Fatalf("shelf-to-table staged %+v", f.Shop.Table())
 		}
-		place, ok := f.Shop.TakeOffTable(0, f.Shop.Table()[0].Count)
+		place, ok := f.Shop.TakeOffTable(0, f.Shop.Table()[0].ShopItem.Count)
 		if !ok {
 			t.Fatal("loss control: the staged place did not come off the table")
 		}

@@ -110,8 +110,8 @@ func shopShiftDragCounts(f *FrontEnd, s *townScreen) (pack, table, shelf int32) 
 		}
 	}
 	for _, place := range f.Shop.Table() {
-		if uint16(place.Code) == shopShiftDragHelm {
-			table += place.Count
+		if uint16(place.ShopItem.Code) == shopShiftDragHelm {
+			table += place.ShopItem.Count
 		}
 	}
 	for _, item := range f.Shop.Shelf(ShelfArmour) {

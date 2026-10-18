@@ -102,8 +102,8 @@ func releaseShiftDragCounts(s *townScreen, item ShopItem) (pack, table, shelf in
 		}
 	}
 	for _, place := range s.sess.Shop.Table() {
-		if place.Code == item.Code {
-			table += place.Count
+		if place.ShopItem.Code == item.Code {
+			table += place.ShopItem.Count
 		}
 	}
 	for _, it := range s.sess.Shop.Shelf(ShelfArmour) {
@@ -133,7 +133,7 @@ func releaseShiftDragShelf(f *FrontEnd) string {
 func releaseShiftDragTable(f *FrontEnd) string {
 	var out []string
 	for _, place := range f.Shop.Table() {
-		out = append(out, fmt.Sprintf("%#04x x%d @%d mine=%v", uint16(place.Code), place.Count, place.Price, place.Mine))
+		out = append(out, fmt.Sprintf("%#04x x%d @%d mine=%v", uint16(place.ShopItem.Code), place.ShopItem.Count, place.ShopItem.Price, place.Mine))
 	}
 	return "[" + strings.Join(out, " ") + "]"
 }

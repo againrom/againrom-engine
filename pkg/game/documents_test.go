@@ -213,7 +213,7 @@ func TestSellKeepsAPlaceTheShopWillNotPayFor(t *testing.T) {
 	}
 
 	table := s.Table()
-	if len(table) != 1 || table[0].Code != free.Code || table[0].Count != 1 || !table[0].Mine {
+	if len(table) != 1 || table[0].ShopItem.Code != free.Code || table[0].ShopItem.Count != 1 || !table[0].Mine {
 		t.Fatalf("after the sell the table holds %+v, want the unpriced place alone", table)
 	}
 	if got := s.Shelf(ShelfMagic); len(got) != 0 {

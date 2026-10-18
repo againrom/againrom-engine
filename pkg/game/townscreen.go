@@ -7,7 +7,6 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
-	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
@@ -72,11 +71,9 @@ var townDoors = [...]struct {
 // Opening a conversation registers its offer and no key does, so the model is
 // decidable with no conversation anywhere near it.
 type townScreen struct {
-	// The screen's ports: campaign state, install, audio and draw sources,
-	// art caches, tip preference and the mission opener. All are nil together
-	// on a screen bound to no game.
-	sess        *CampaignSession
-	in          *InstallResources
+	// shopController is the shop page; its session and install are the
+	// screen's campaign state and install too.
+	shopController
 	sound       townAudio
 	draws       townDraws
 	art         townArt
@@ -118,22 +115,6 @@ type townScreen struct {
 	talkDiagnostic string
 	speech         townSpeech
 
-	// The shop screen's own state. shopChosen is which of the four rectangles
-	// in the merchant's room has been clicked, shopNoShelf while none has;
-	// shopShelf is the shelf that pairs with it; the two bases are the first
-	// item each scrolling grid shows. All four are PRESENTATION state and live
-	// here rather than on Shop for the reason the conversation does: the model
-	// is decidable with no screen anywhere near it.
-	shopChosen int
-	shopShelf  ShopShelf
-	shelfBase  int
-	packBase   int
-
-	// shopMember is which roster entry the character panel shows and whose
-	// container the bottom strip is bound to (SHOP-PICKER-043's view+0x130).
-	// It is presentation for the same reason the four above are.
-	shopMember int
-
 	// tavernSelection, schoolCell and townStats are the shared shell's
 	// presentation state. The tavern stores a producer-stable key rather than
 	// a cell index, because an accepted offer or a hired/returned squad can
@@ -156,7 +137,6 @@ type townScreen struct {
 	// pages are the room pages the composer builds, by room name.
 	pages     map[string]*town.Scene
 	townStats bool
-	shopBook  bool
 
 	// schoolSounds holds the school's own chrgen skill instances
 	// (VIDEO-SFX-059); presentation only.
@@ -172,41 +152,6 @@ type townScreen struct {
 	tavernDetailInfo   [12][]string
 	tavernDetailPixels *image.RGBA
 	tavernDetailText   []text.DrawCall
-
-	// shopFigures is every party member composed in his own equipment, in
-	// roster order, filled by composeShopFaces when a room is entered. It is
-	// the composition cache SHOP-LIMIT-049 names as the borrowed panel's own
-	// carried state, shared here between the character panel and the town
-	// dialogue's speaker figures rather than composed twice.
-	shopFigures []*image.RGBA
-
-	// shopFigureMasks is composeShopFaces' own SlotMask beside each entry of
-	// shopFigures, in the same roster order (1005 round 2, `SHOP-FIGURE-041`,
-	// `DIV-085` restated for the shop): the per-pixel slot lookup the doll's
-	// hover, tap and drag all read, built beside the figure by the same
-	// composeInventorySubject call rather than derived from it afterwards.
-	shopFigureMasks []*ui.SlotMask
-
-	// shopSuppressSlot is the 1-based slot the shop's drag machine last lifted
-	// off the shown member's doll, or 0. shopSuppressFigure and
-	// shopSuppressMask are the figure and mask composed with that slot cleared,
-	// and shopSuppressMember is the roster index they were composed for:
-	// ShopScreen substitutes them only while the panel still shows that member.
-	shopSuppressSlot   int
-	shopSuppressMember int
-	shopSuppressFigure *image.RGBA
-	shopSuppressMask   *ui.SlotMask
-
-	// shopIconCache is the base item pictures the screen has resolved, keyed
-	// by item code and held across frames. Animated stars are a cell-paint
-	// layer and never mutate or duplicate these pictures.
-	shopIconCache map[uint16]*image.RGBA
-
-	// shopSpellAtlasImg/shopSpellAtlasTried/shopSpellIcons are the shop's
-	// install-owned cache for the same spellbook strip the mission view uses.
-	shopSpellAtlasImg   *bmp.Image
-	shopSpellAtlasTried bool
-	shopSpellIcons      map[uint16]*image.RGBA
 
 	// shopTip is the tip widget's own text, loaded once when the shop room is
 	// entered (SHOP-TIP-045; `DIV-132`). Empty whenever the install ships no
@@ -292,7 +237,7 @@ func (t *townScreen) resetForNewGame() {
 	t.dialogueButtonState, t.dialoguePolicy = ui.DialogueButtonState{}, ui.DialogueBackdrop{}
 	t.innQueue = nil
 	t.shopChosen, t.shopShelf = shopNoShelf, ShelfArmour
-	t.shelfBase, t.packBase = 0, 0
+	t.shelfBase, t.packBase, t.tableBase = 0, 0, 0
 	t.shopMember, t.tavernSelection, t.schoolCell = 0, tavernCandidateKey{}, schoolNoSelection
 	t.tavernSlotRequests = nil
 	t.schoolSpent = [schoolLatchCount]bool{}
@@ -557,7 +502,7 @@ func (f *FrontEnd) chapterTownScreen() ui.TownScreen {
 		// schoolNoSelection for the same reason: 0 is a real skill, and a
 		// freshly built town must not open the school with one already
 		// selected and its price quoted.
-		f.townUI = f.bindTown(&townScreen{shopChosen: shopNoShelf, schoolCell: schoolNoSelection,
+		f.townUI = f.bindTown(&townScreen{shopController: shopController{shopChosen: shopNoShelf}, schoolCell: schoolNoSelection,
 			pages: map[string]*town.Scene{}})
 		// The screen is constructed already at roomSquare (townRoom's own
 		// zero value; atSquare's doc), so this is that room's own entry load
@@ -664,11 +609,7 @@ func (t *townScreen) AtTownSurface() bool {
 // and the shop's character panel are the same picture of the same member in the
 // same equipment, so they are composed once, here, and read from
 // townScreen.shopFigures afterwards.
-func (t *townScreen) composeShopFaces() {
-	// A cached talk panel may show a party member; the party just changed.
-	if t.tavernDetailType < 0 {
-		t.clearTavernDetail()
-	}
+func (t *shopController) composeShopFaces() {
 	party := t.shopParty()
 	for i := range party {
 		mapload.NormalizePartyShieldLoadout(&party[i], t.in.Table)
@@ -732,20 +673,8 @@ func (t *townScreen) composeShopFaces() {
 	// that equipment or entered a room the drag machine has not run in yet —
 	// refreshShopDrag rebuilds it the next frame a drag is actually live.
 	t.shopSuppressSlot, t.shopSuppressMember, t.shopSuppressFigure, t.shopSuppressMask = 0, 0, nil, nil
-	// THE TOWN HOLDS NO WORLD, so a speaker no cast answers takes the
-	// synthesised arm. That arm is deliberately bare: the school's quest giver
-	// is a portrait, not a hero whose starting equipment should be layered onto
-	// it. The tavern's client actors are the stock mercenary units, so a tavern
-	// resolver answers a Human record with the unit it admits, in that unit's
-	// own worn set (TAVERN-TALKPIC-016); the shop and the school have no cast.
-	t.resolver = speakerResolver{src: src, units: t.in.Units, npcFaces: t.in.NPCFaces,
-		portraits: make(map[string]*image.RGBA), figurePics: make(map[figureCacheKey]*image.RGBA),
-		playerFigure: playerFigure, playerFigures: playerFigures}
-	if t.room == roomTavern {
-		t.resolver.cast = t.tavernSpeakerCast()
-	}
-	if dir, ok := playerDirection(party); ok {
-		t.resolver.cast.playerDir, t.resolver.cast.hasPlayer = dir, true
+	if t.shop.faces != nil {
+		t.shop.faces(src, party, playerFigure, playerFigures)
 	}
 }
 
@@ -1235,6 +1164,7 @@ func (f *FrontEnd) townLine(n int) string {
 // bindTown hands the front end's components to a town screen.
 func (f *FrontEnd) bindTown(t *townScreen) *townScreen {
 	t.sess, t.in, t.pc = &f.CampaignSession, &f.InstallResources, &f.PersistenceContext
+	t.bindShop()
 	t.bindServices(&f.RuntimeServices, &f.InstallResources, &f.Presentation)
 	t.openMission = f.MissionOpener
 	return t
@@ -1244,4 +1174,28 @@ func (t *townScreen) nextParty() []mapload.PartyMember {
 	return t.sess.nextParty(func() []mapload.PartyMember {
 		return MissionParty(t.in.StartWeapon.Value(), t.in.Bodies, t.in.Table)
 	})
+}
+
+// shopFaces is the town's part of a recomposition: a cached talk panel may
+// show a party member, and the conversation's portraits read the new figures.
+func (t *townScreen) shopFaces(src entrySource, party []mapload.PartyMember, playerFigure *image.RGBA, playerFigures map[int]*image.RGBA) {
+	// A cached talk panel may show a party member; the party just changed.
+	if t.tavernDetailType < 0 {
+		t.clearTavernDetail()
+	}
+	// THE TOWN HOLDS NO WORLD, so a speaker no cast answers takes the
+	// synthesised arm. That arm is deliberately bare: the school's quest giver
+	// is a portrait, not a hero whose starting equipment should be layered onto
+	// it. The tavern's client actors are the stock mercenary units, so a tavern
+	// resolver answers a Human record with the unit it admits, in that unit's
+	// own worn set (TAVERN-TALKPIC-016); the shop and the school have no cast.
+	t.resolver = speakerResolver{src: src, units: t.in.Units, npcFaces: t.in.NPCFaces,
+		portraits: make(map[string]*image.RGBA), figurePics: make(map[figureCacheKey]*image.RGBA),
+		playerFigure: playerFigure, playerFigures: playerFigures}
+	if t.room == roomTavern {
+		t.resolver.cast = t.tavernSpeakerCast()
+	}
+	if dir, ok := playerDirection(party); ok {
+		t.resolver.cast.playerDir, t.resolver.cast.hasPlayer = dir, true
+	}
 }

@@ -21,6 +21,9 @@ type Collection interface {
 // are the item classes and Materials the materials (R2-ENGINE-264).
 type Tables struct {
 	Shapes, Materials, Armors, Shields, Weapons, MagicItems, Spells Collection
+	// Stocked are the items mods put in the shop: one unit each, filed by
+	// placement into every stock a fill draws.
+	Stocked []Item
 }
 
 // Rand answers one rand() value in 0..32767.

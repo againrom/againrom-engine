@@ -385,7 +385,7 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 		return 0, 0, fmt.Errorf("headless shop point: unknown surface %q; doll, doll_box, shelf, "+
 			"pack, table, picker_prev, picker_next, shelf_pick, button and merchant are supported", kind)
 	}
-	region := shopWantRegion(want)
+	region := shopWantRegion(view.layout(), want)
 	hits := shopHitPixels(view, want, grid, dollSlot, region)
 	if len(hits) == 0 {
 		return 0, 0, fmt.Errorf("headless shop point: the open room answers no pixel for %s %d", kind, index)
@@ -398,30 +398,33 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 	return wx, wy, nil
 }
 
-func shopWantRegion(want ShopControl) image.Rectangle {
+func shopWantRegion(l *ShopLayout, want ShopControl) image.Rectangle {
 	frame := image.Rect(0, 0, shopScreenW, shopScreenH)
 	region := frame
 	switch want.Kind {
 	case ShopControlDoll:
 		region = frame.Intersect(townCharacterFigure)
 	case ShopControlShelfCell:
-		region = frame.Intersect(ShopShelfCellRect(want.Index))
+		region = frame.Intersect(l.ShelfCellRect(want.Index))
 	case ShopControlPackCell:
-		region = frame.Intersect(ShopPackCellRect(want.Index))
+		region = frame.Intersect(l.PackCellRect(want.Index))
 	case ShopControlTableCell:
-		region = frame.Intersect(ShopTableCellRect(want.Index))
+		region = frame.Intersect(l.TableCellRect(want.Index))
 	case ShopControlPickerPrev:
 		region = frame.Intersect(shopPickerPrevRect)
 	case ShopControlPickerNext:
 		region = frame.Intersect(shopPickerNextRect)
 	case ShopControlMerchant:
-		region = frame.Intersect(shopMerchantRect)
+		region = frame.Intersect(l.Merchant)
 	case ShopControlButton:
-		region = frame.Intersect(ShopButtonRect(want.Index))
+		region = image.Rectangle{}
+		if want.Index >= 0 && want.Index < len(l.Button) {
+			region = frame.Intersect(l.Button[want.Index])
+		}
 	case ShopControlShelfPick:
 		region = image.Rectangle{}
-		if want.Index >= 0 && want.Index < len(shopShelfPickRects) {
-			region = frame.Intersect(shopShelfPickRects[want.Index])
+		if want.Index >= 0 && want.Index < len(l.ShelfPick) {
+			region = frame.Intersect(l.ShelfPick[want.Index])
 		}
 	}
 	return region

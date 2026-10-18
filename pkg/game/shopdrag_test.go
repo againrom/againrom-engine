@@ -360,7 +360,7 @@ func TestShopUnequipToTableStagesTheItemForSale(t *testing.T) {
 		t.Error("the slot is still worn after the table move")
 	}
 	table := f.Shop.Table()
-	if len(table) != 1 || !table[0].Mine || table[0].Code != code || table[0].Price != price || table[0].Count != 1 {
+	if len(table) != 1 || !table[0].Mine || table[0].ShopItem.Code != code || table[0].ShopItem.Price != price || table[0].ShopItem.Count != 1 {
 		t.Errorf("table = %+v, want one player place of %d at %d", table, code, price)
 	}
 }
@@ -478,7 +478,7 @@ func TestShopDragDispatchesTheFourTablePairs(t *testing.T) {
 	// the success signal here, not act.Msg.
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: 0}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 	table := f.Shop.Table()
-	if len(table) != 1 || table[0].Code != code || table[0].Mine {
+	if len(table) != 1 || table[0].ShopItem.Code != code || table[0].Mine {
 		t.Fatalf("shelf-to-table drag left table = %+v, want the shelf's own item staged, not Mine", table)
 	}
 
@@ -490,7 +490,7 @@ func TestShopDragDispatchesTheFourTablePairs(t *testing.T) {
 	f.Carried[0].Carry.Items = []uint16{uint16(code)}
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 	table = f.Shop.Table()
-	if len(table) != 1 || !table[0].Mine || table[0].Code != code {
+	if len(table) != 1 || !table[0].Mine || table[0].ShopItem.Code != code {
 		t.Fatalf("pack-to-table drag left table = %+v, want the pack's own item staged, Mine", table)
 	}
 
@@ -575,7 +575,7 @@ func TestShopDragPackToShelfStagesOnTheTable(t *testing.T) {
 
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlShelfCell})
 	table := f.Shop.Table()
-	if len(table) != 1 || !table[0].Mine || table[0].Code != code || table[0].Price != price {
+	if len(table) != 1 || !table[0].Mine || table[0].ShopItem.Code != code || table[0].ShopItem.Price != price {
 		t.Fatalf("pack-to-shelf drag left table = %+v, want one Mine place of %d at %d", table, code, price)
 	}
 	if got := f.Carried[0].Carry.Items; len(got) != 0 {
@@ -592,7 +592,7 @@ func TestShopDragShelfToPackStagesOnTheTable(t *testing.T) {
 
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlShelfCell, Index: 0}, ui.ShopControl{Kind: ui.ShopControlPackCell})
 	table := f.Shop.Table()
-	if len(table) != 1 || table[0].Mine || table[0].Code != code {
+	if len(table) != 1 || table[0].Mine || table[0].ShopItem.Code != code {
 		t.Fatalf("shelf-to-pack drag left table = %+v, want one non-Mine place of %d", table, code)
 	}
 	if got := f.Carried[0].Carry.Items; len(got) != 0 {
@@ -856,7 +856,7 @@ func TestShopUnequipToTableTakesOffAFallbackWeapon(t *testing.T) {
 		t.Error("member.WeaponMaterialized still false after the fallback weapon moved to the table")
 	}
 	table := f.Shop.Table()
-	if len(table) != 1 || !table[0].Mine || table[0].Code != weaponCode || table[0].Price != price {
+	if len(table) != 1 || !table[0].Mine || table[0].ShopItem.Code != weaponCode || table[0].ShopItem.Price != price {
 		t.Errorf("table = %+v, want one player place of %d at %d", table, weaponCode, price)
 	}
 }

@@ -18,15 +18,18 @@ type cityShopSelection struct {
 	Count    uint32
 }
 
-func (t *townScreen) hasCityShopTopology() bool {
-	return t.sess.Town != nil && t.sess.Town.cityObjects != nil
+// hasCityShopTopology reports whether a trade mutates the city object graph:
+// the graph holds the session's own shop and party, so a deal a selector
+// answers is outside it.
+func (t *shopController) hasCityShopTopology() bool {
+	return t.dealOf == nil && t.sess.Town != nil && t.sess.Town.cityObjects != nil
 }
 
 type shopRefusal string
 
 func (r shopRefusal) Error() string { return string(r) }
 
-func (t *townScreen) withCityShopMutation(action func(*townScreen) (ui.TownAction, error)) ui.TownAction {
+func (t *shopController) withCityShopMutation(action func(*shopController) (ui.TownAction, error)) ui.TownAction {
 	if t.sess == nil || t.sess.Town == nil {
 		return ui.TownAction{}
 	}
@@ -126,7 +129,7 @@ func cityShelfJoins(held, incoming sim.ItemInstance, table *mapload.Table) bool 
 	return ok && sim.ItemEqual(held, v)
 }
 
-func (t *townScreen) validateCityShopRoots() error {
+func (t *shopController) validateCityShopRoots() error {
 	g := t.sess.Town.cityObjects
 	for _, member := range t.sess.Carried {
 		root, err := cityMutationParty(g, member.ID)
@@ -173,7 +176,7 @@ func (t *townScreen) validateCityShopRoots() error {
 	return nil
 }
 
-func (t *townScreen) validateCityShopValues(p *cityObjectProjection) error {
+func (t *shopController) validateCityShopValues(p *cityObjectProjection) error {
 	if t.sess.Shop == nil {
 		return nil
 	}
@@ -227,7 +230,7 @@ func (t *townScreen) validateCityShopValues(p *cityObjectProjection) error {
 	return nil
 }
 
-func (t *townScreen) cityShopPackSelection(index int) (cityShopSelection, sim.ItemStack, error) {
+func (t *shopController) cityShopPackSelection(index int) (cityShopSelection, sim.ItemStack, error) {
 	member := t.shopPartyMember(t.shopMemberIndex())
 	if member == nil {
 		return cityShopSelection{}, sim.ItemStack{}, fmt.Errorf("city item selection has no party member")
@@ -272,7 +275,7 @@ func mintCityShopItem(g *cityObjectTopology, value sim.ItemInstance) (sim.SavedO
 	return id, g.Validate()
 }
 
-func (t *townScreen) cityShopBind(item ShopItem) (ShopItem, error) {
+func (t *shopController) cityShopBind(item ShopItem) (ShopItem, error) {
 	if item.Code == 0 || item.Count <= 0 || uint64(item.Count) > sim.MaxOriginalHoldingValues {
 		return ShopItem{}, fmt.Errorf("city item has invalid quantity")
 	}
@@ -295,7 +298,7 @@ func (t *townScreen) cityShopBind(item ShopItem) (ShopItem, error) {
 	return item, nil
 }
 
-func (t *townScreen) cityShopSetPack(index int, stacks []sim.ItemStack, refresh bool) error {
+func (t *shopController) cityShopSetPack(index int, stacks []sim.ItemStack, refresh bool) error {
 	before := mapload.CloneParty([]mapload.PartyMember{t.sess.Carried[index]})[0]
 	next := mapload.CloneParty([]mapload.PartyMember{before})[0]
 	next = mapload.MaterializePartyCarry(next, t.in.Table)
@@ -310,7 +313,7 @@ func (t *townScreen) cityShopSetPack(index int, stacks []sim.ItemStack, refresh 
 	return nil
 }
 
-func (t *townScreen) cityShopSetNode(id sim.SavedObjectID, value sim.ItemInstance, count uint32, refresh bool) error {
+func (t *shopController) cityShopSetNode(id sim.SavedObjectID, value sim.ItemInstance, count uint32, refresh bool) error {
 	if id == 0 || value.Empty() || count == 0 || count > sim.MaxOriginalHoldingValues {
 		return fmt.Errorf("city node update has invalid current operands")
 	}
@@ -380,11 +383,11 @@ func (t *townScreen) cityShopSetNode(id sim.SavedObjectID, value sim.ItemInstanc
 	return nil
 }
 
-func (t *townScreen) cityShopSplit(item ShopItem, from cityItemLocation) (ShopItem, error) {
+func (t *shopController) cityShopSplit(item ShopItem, from cityItemLocation) (ShopItem, error) {
 	return t.cityShopSplitQuantity(item, from, 1)
 }
 
-func (t *townScreen) cityShopSplitQuantity(item ShopItem, from cityItemLocation, count int32) (ShopItem, error) {
+func (t *shopController) cityShopSplitQuantity(item ShopItem, from cityItemLocation, count int32) (ShopItem, error) {
 	if count <= 0 || count >= item.Count {
 		return ShopItem{}, fmt.Errorf("city partial take has no surviving quantity")
 	}
@@ -406,7 +409,7 @@ func (t *townScreen) cityShopSplitQuantity(item ShopItem, from cityItemLocation,
 	return next, nil
 }
 
-func (t *townScreen) cityShopTakePack(index int, whole, refresh bool) (ShopItem, error) {
+func (t *shopController) cityShopTakePack(index int, whole, refresh bool) (ShopItem, error) {
 	selected, stack, err := t.cityShopPackSelection(index)
 	if err != nil {
 		return ShopItem{}, err
@@ -436,7 +439,7 @@ func (t *townScreen) cityShopTakePack(index int, whole, refresh bool) (ShopItem,
 	return item, nil
 }
 
-func (t *townScreen) cityShopTakeShelf(shelf ShopShelf, index int, whole bool) (ShopItem, error) {
+func (t *shopController) cityShopTakeShelf(shelf ShopShelf, index int, whole bool) (ShopItem, error) {
 	if shelf < 0 || shelf >= numShopShelves || index < 0 || index >= len(t.sess.Shop.shelves[shelf]) {
 		return ShopItem{}, fmt.Errorf("city shelf selection is outside stock")
 	}
@@ -452,7 +455,7 @@ func (t *townScreen) cityShopTakeShelf(shelf ShopShelf, index int, whole bool) (
 	return item, nil
 }
 
-func (t *townScreen) cityShopTakeTable(index int, whole bool) (ShopPlace, error) {
+func (t *shopController) cityShopTakeTable(index int, whole bool) (ShopPlace, error) {
 	if index < 0 || index >= len(t.sess.Shop.table) {
 		return ShopPlace{}, fmt.Errorf("city table selection is outside places")
 	}
@@ -473,7 +476,7 @@ func (t *townScreen) cityShopTakeTable(index int, whole bool) (ShopPlace, error)
 
 // A gameplay merge keeps the explicitly selected destination and its children.
 // Removing the detached input occurrence does not remove its other aliases.
-func (t *townScreen) cityShopMerge(target, incoming ShopItem) (ShopItem, error) {
+func (t *shopController) cityShopMerge(target, incoming ShopItem) (ShopItem, error) {
 	if target.cityID == 0 || incoming.cityID == 0 || target.cityID == incoming.cityID || target.Count <= 0 || incoming.Count <= 0 ||
 		uint64(target.Count)+uint64(incoming.Count) > sim.MaxOriginalHoldingValues {
 		return ShopItem{}, fmt.Errorf("city merge has invalid identities or quantity")
@@ -496,10 +499,10 @@ func (t *townScreen) cityShopMerge(target, incoming ShopItem) (ShopItem, error) 
 	return target, nil
 }
 
-func (t *townScreen) cityShopPutTable(incoming ShopPlace) error {
+func (t *shopController) cityShopPutTable(incoming ShopPlace) error {
 	for i, place := range t.sess.Shop.table {
-		if place.cityID == incoming.cityID || place.Mine != incoming.Mine || !place.Mine && place.From != incoming.From ||
-			place.Price != incoming.Price || !sim.ItemEqual(place.Instance(), incoming.Instance()) {
+		if place.ShopItem.cityID == incoming.ShopItem.cityID || place.Mine != incoming.Mine || !place.Mine && place.From != incoming.From ||
+			place.ShopItem.Price != incoming.ShopItem.Price || !sim.ItemEqual(place.ShopItem.Instance(), incoming.ShopItem.Instance()) {
 			continue
 		}
 		target, err := t.cityShopBind(place.ShopItem)
@@ -521,7 +524,7 @@ func (t *townScreen) cityShopPutTable(incoming ShopPlace) error {
 	return nil
 }
 
-func (t *townScreen) cityShopReturnToShelf(shelf ShopShelf, incoming ShopItem) error {
+func (t *shopController) cityShopReturnToShelf(shelf ShopShelf, incoming ShopItem) error {
 	incoming.owners = nil
 	if shelf < 0 || shelf >= numShopShelves {
 		shelf = ShelfMagic
@@ -547,7 +550,7 @@ func (t *townScreen) cityShopReturnToShelf(shelf ShopShelf, incoming ShopItem) e
 	return nil
 }
 
-func (t *townScreen) cityShopStagePack(index int, whole bool) (ui.TownAction, error) {
+func (t *shopController) cityShopStagePack(index int, whole bool) (ui.TownAction, error) {
 	item, err := t.cityShopTakePack(index, whole, false)
 	if err != nil {
 		return ui.TownAction{}, err
@@ -567,7 +570,7 @@ func (t *townScreen) cityShopStagePack(index int, whole bool) (ui.TownAction, er
 	return ui.TownAction{}, nil
 }
 
-func (t *townScreen) cityShopStageShelf(index int, whole bool) (ui.TownAction, error) {
+func (t *shopController) cityShopStageShelf(index int, whole bool) (ui.TownAction, error) {
 	item, err := t.cityShopTakeShelf(t.shopShelf, index, whole)
 	if err != nil {
 		return ui.TownAction{}, err
@@ -576,11 +579,11 @@ func (t *townScreen) cityShopStageShelf(index int, whole bool) (ui.TownAction, e
 		return ui.TownAction{}, err
 	}
 	t.shopRevealTradeTable()
-	t.shopItemResponse(item)
+	t.say(item)
 	return ui.TownAction{}, nil
 }
 
-func (t *townScreen) cityShopOffTable(index int, whole bool) (ui.TownAction, error) {
+func (t *shopController) cityShopOffTable(index int, whole bool) (ui.TownAction, error) {
 	place, err := t.cityShopTakeTable(index, whole)
 	if err != nil {
 		return ui.TownAction{}, err
@@ -593,76 +596,140 @@ func (t *townScreen) cityShopOffTable(index int, whole bool) (ui.TownAction, err
 	return ui.TownInfo("returned"), err
 }
 
-func (t *townScreen) cityShopBuy() (ui.TownAction, error) {
+// The city graph is the transport of the first game's deal: the deal core
+// decides a buy, a sale or a clear on a copy of the deal by the first game's
+// rules, and the graph moves exactly the places the decision took off the
+// table, checking each one's identity against it.
+
+// cityShopDecided is which places of table a decision took off it: kept is
+// the decision's table, table less those places in order.
+func cityShopDecided(table, kept []ShopPlace) ([]bool, error) {
+	gone := make([]bool, len(table))
+	k := 0
+	for i, place := range table {
+		if k < len(kept) && cityShopSamePlace(kept[k], place) {
+			k++
+			continue
+		}
+		gone[i] = true
+	}
+	if k != len(kept) {
+		return nil, fmt.Errorf("city deal decision does not match the table")
+	}
+	return gone, nil
+}
+
+func cityShopSamePlace(a, b ShopPlace) bool {
+	return a.Mine == b.Mine && a.From == b.From && a.ShopItem.cityID == b.ShopItem.cityID && shopItemStateEqual(a.ShopItem, b.ShopItem)
+}
+
+// cityShopMove takes each decided place off the table through the graph, in
+// table order, and hands it to move; items, when given, are the decision's
+// own items for those places, which each must match.
+func (t *shopController) cityShopMove(gone []bool, items []ShopItem, move func(ShopPlace) error) error {
+	removed, k := 0, 0
+	for j, g := range gone {
+		if !g {
+			continue
+		}
+		if items != nil {
+			at := t.sess.Shop.table[j-removed].ShopItem
+			if k >= len(items) || items[k].cityID != at.cityID || !shopItemStateEqual(items[k], at) {
+				return fmt.Errorf("city deal decision does not match the table")
+			}
+			k++
+		}
+		place, err := t.cityShopTakeTable(j-removed, true)
+		if err != nil {
+			return err
+		}
+		removed++
+		if err := move(place); err != nil {
+			return err
+		}
+	}
+	if items != nil && k != len(items) {
+		return fmt.Errorf("city deal decision does not match the table")
+	}
+	return nil
+}
+
+func (t *shopController) cityShopBuy() (ui.TownAction, error) {
 	if len(t.sess.Shop.table) == 0 {
 		return ui.TownAction{}, nil
 	}
-	var spend int64
 	for _, place := range t.sess.Shop.table {
-		if !place.Mine {
-			if place.Count <= 0 || place.Price < 0 {
-				return ui.TownAction{}, fmt.Errorf("invalid merchant quantity or price")
-			}
-			spend += int64(place.Count) * int64(place.Price)
+		if !place.Mine && (place.ShopItem.Count <= 0 || place.ShopItem.Price < 0) {
+			return ui.TownAction{}, fmt.Errorf("invalid merchant quantity or price")
 		}
 	}
-	if spend <= 0 || spend > int64(t.sess.Town.Gold()) || spend > 1<<31-1 {
+	decision := cloneShopMutation(t.sess.Shop)
+	bought, spend, ok := decision.buy(t.sess.Shop.rules(), int64(t.sess.Town.Gold()))
+	if !ok || spend > 1<<31-1 {
 		return ui.TownAction{}, shopRefusal("he will not sell you that: check the table and your purse")
 	}
-	for i := 0; i < len(t.sess.Shop.table); {
-		if t.sess.Shop.table[i].Mine {
-			i++
-			continue
-		}
-		place, err := t.cityShopTakeTable(i, true)
-		if err != nil {
-			return ui.TownAction{}, err
-		}
-		if err := t.cityShopPutPack(place.ShopItem, true); err != nil {
-			return ui.TownAction{}, err
-		}
+	gone, err := cityShopDecided(t.sess.Shop.table, decision.table)
+	if err == nil {
+		err = t.cityShopMove(gone, bought, func(place ShopPlace) error { return t.cityShopPutPack(place.ShopItem, true) })
+	}
+	if err != nil {
+		return ui.TownAction{}, err
 	}
 	t.sess.Town.gold -= int(spend)
 	return ui.TownInfo(fmt.Sprintf("bought for %d gold; you have %d left", spend, t.sess.Town.Gold())), nil
 }
 
-func (t *townScreen) cityShopClear() (ui.TownAction, error) {
-	for len(t.sess.Shop.table) != 0 {
-		place, err := t.cityShopTakeTable(0, true)
-		if err != nil {
-			return ui.TownAction{}, err
+func (t *shopController) cityShopClear() (ui.TownAction, error) {
+	r := t.sess.Shop.rules()
+	decision := cloneShopMutation(t.sess.Shop)
+	mine := decision.clearTable(r)
+	gone, err := cityShopDecided(t.sess.Shop.table, decision.table)
+	if err != nil {
+		return ui.TownAction{}, err
+	}
+	k := 0
+	err = t.cityShopMove(gone, nil, func(place ShopPlace) error {
+		if !place.Mine {
+			return t.cityShopReturnToShelf(r.home(place), place.ShopItem)
 		}
-		if place.Mine {
-			err = t.cityShopPutPack(place.ShopItem, false)
-		} else {
-			err = t.cityShopReturnToShelf(place.From, place.ShopItem)
+		if k >= len(mine) || mine[k].cityID != place.ShopItem.cityID {
+			return fmt.Errorf("city deal decision does not match the table")
 		}
-		if err != nil {
-			return ui.TownAction{}, err
-		}
+		k++
+		return t.cityShopPutPack(place.ShopItem, false)
+	})
+	if err != nil {
+		return ui.TownAction{}, err
 	}
 	return ui.TownInfo("the table is cleared"), nil
 }
 
-func (t *townScreen) cityShopSell() (ui.TownAction, error) {
+func (t *shopController) cityShopSell() (ui.TownAction, error) {
 	if len(t.sess.Shop.table) == 0 {
 		return ui.TownAction{}, nil
 	}
-	var paid int64
-	owners := map[string]bool{}
 	for _, place := range t.sess.Shop.table {
-		if place.Mine && place.Price > 0 {
-			if place.Count <= 0 {
-				return ui.TownAction{}, fmt.Errorf("invalid sale quantity")
-			}
-			paid += (int64(place.Count)*int64(place.Price) + 1) / 2
-			for _, id := range place.cityOrigins {
+		if place.Mine && place.ShopItem.Price > 0 && place.ShopItem.Count <= 0 {
+			return ui.TownAction{}, fmt.Errorf("invalid sale quantity")
+		}
+	}
+	r := t.sess.Shop.rules()
+	decision := cloneShopMutation(t.sess.Shop)
+	paid, back, ok := decision.sell(r)
+	if !ok || len(back) != 0 || paid <= 0 || paid > 1<<31-1 || int64(t.sess.Town.Gold())+paid > 1<<31-1 {
+		return ui.TownAction{}, fmt.Errorf("sale has no valid payout")
+	}
+	gone, err := cityShopDecided(t.sess.Shop.table, decision.table)
+	if err != nil {
+		return ui.TownAction{}, err
+	}
+	owners := map[string]bool{}
+	for i, place := range t.sess.Shop.table {
+		if gone[i] {
+			for _, id := range place.ShopItem.cityOrigins {
 				owners[id] = true
 			}
 		}
-	}
-	if paid <= 0 || paid > 1<<31-1 || int64(t.sess.Town.Gold())+paid > 1<<31-1 {
-		return ui.TownAction{}, fmt.Errorf("sale has no valid payout")
 	}
 	for i, member := range t.sess.Carried {
 		if owners[member.ID] {
@@ -671,19 +738,11 @@ func (t *townScreen) cityShopSell() (ui.TownAction, error) {
 			}
 		}
 	}
-	for i := 0; i < len(t.sess.Shop.table); {
-		place := t.sess.Shop.table[i]
-		if !place.Mine || place.Price <= 0 {
-			i++
-			continue
-		}
-		place, err := t.cityShopTakeTable(i, true)
-		if err != nil {
-			return ui.TownAction{}, err
-		}
-		if err := t.cityShopReturnToShelf(shopShelfForItem(place.ShopItem, t.sess.Shop.tbl), place.ShopItem); err != nil {
-			return ui.TownAction{}, err
-		}
+	err = t.cityShopMove(gone, nil, func(place ShopPlace) error {
+		return t.cityShopReturnToShelf(r.shelve(place.ShopItem), place.ShopItem)
+	})
+	if err != nil {
+		return ui.TownAction{}, err
 	}
 	t.sess.Town.gold += int(paid)
 	return ui.TownInfo(fmt.Sprintf("he pays %d; you have %d", paid, t.sess.Town.Gold())), nil
@@ -695,7 +754,7 @@ type cityShopOccurrence struct {
 	Ticket       uint32
 }
 
-func (t *townScreen) cityShopSourceEquipment(index, slot int, incoming ShopItem, toPack bool) (ShopItem, error) {
+func (t *shopController) cityShopSourceEquipment(index, slot int, incoming ShopItem, toPack bool) (ShopItem, error) {
 	memberIndex := t.shopMemberIndex()
 	before := t.sess.Carried[memberIndex]
 	g := t.sess.Town.cityObjects
@@ -966,7 +1025,7 @@ func (t *townScreen) cityShopSourceEquipment(index, slot int, incoming ShopItem,
 	return out, nil
 }
 
-func (t *townScreen) cityShopNativeWear(slot int, item ShopItem) error {
+func (t *shopController) cityShopNativeWear(slot int, item ShopItem) error {
 	memberIndex := t.shopMemberIndex()
 	counts := map[sim.SavedObjectID]uint32{}
 	initial, err := cityMutationParty(t.sess.Town.cityObjects, t.sess.Carried[memberIndex].ID)
@@ -1043,7 +1102,7 @@ func (t *townScreen) cityShopNativeWear(slot int, item ShopItem) error {
 	})
 }
 
-func (t *townScreen) cityShopUse(item ShopItem, take func() (ShopItem, error), packIndex int) (ui.TownAction, error) {
+func (t *shopController) cityShopUse(item ShopItem, take func() (ShopItem, error), packIndex int) (ui.TownAction, error) {
 	if user, _, potion := t.shopPotionUser(item.Instance()); potion {
 		if user == nil {
 			return ui.TownAction{}, shopRefusal("refused")
@@ -1086,7 +1145,7 @@ func (t *townScreen) cityShopUse(item ShopItem, take func() (ShopItem, error), p
 	return ui.TownInfo("worn"), err
 }
 
-func (t *townScreen) cityShopEquipPack(index int) (ui.TownAction, error) {
+func (t *shopController) cityShopEquipPack(index int) (ui.TownAction, error) {
 	_, stack, err := t.cityShopPackSelection(index)
 	if err != nil {
 		return ui.TownAction{}, err
@@ -1094,11 +1153,11 @@ func (t *townScreen) cityShopEquipPack(index int) (ui.TownAction, error) {
 	return t.cityShopUse(shopItemFromInstance(stack.Instance(), int32(stack.Count)), func() (ShopItem, error) { return t.cityShopTakePack(index, false, true) }, index)
 }
 
-func (t *townScreen) cityShopEquipShelf(index int) (ui.TownAction, error) {
-	if t.shopChosen < 0 || t.shopChosen >= len(shopRoomShelves) || !shopRoomShelves[t.shopChosen].stocked {
+func (t *shopController) cityShopEquipShelf(index int) (ui.TownAction, error) {
+	if t.shopChosen < 0 || t.shopChosen >= len(t.rack()) || !t.rack()[t.shopChosen].stocked {
 		return ui.TownAction{}, fmt.Errorf("no selected merchant shelf")
 	}
-	shelf := shopRoomShelves[t.shopChosen].shelf
+	shelf := t.rack()[t.shopChosen].shelf
 	if index < 0 || index >= len(t.sess.Shop.shelves[shelf]) {
 		return ui.TownAction{}, fmt.Errorf("shelf selection is outside stock")
 	}
@@ -1117,15 +1176,15 @@ func (t *townScreen) cityShopEquipShelf(index int) (ui.TownAction, error) {
 	return action, err
 }
 
-func (t *townScreen) cityShopEquipTable(index int) (ui.TownAction, error) {
+func (t *shopController) cityShopEquipTable(index int) (ui.TownAction, error) {
 	if index < 0 || index >= len(t.sess.Shop.table) {
 		return ui.TownAction{}, fmt.Errorf("table selection is outside places")
 	}
 	place := t.sess.Shop.table[index]
-	if !place.Mine && place.Price < 0 {
+	if !place.Mine && place.ShopItem.Price < 0 {
 		return ui.TownAction{}, fmt.Errorf("merchant item has no valid price")
 	}
-	if !place.Mine && place.Price > 0 && int64(t.sess.Town.Gold()) < int64(place.Price) {
+	if !place.Mine && place.ShopItem.Price > 0 && int64(t.sess.Town.Gold()) < int64(place.ShopItem.Price) {
 		return ui.TownAction{}, shopRefusal("you cannot afford that")
 	}
 	action, err := t.cityShopUse(place.ShopItem, func() (ShopItem, error) {
@@ -1133,13 +1192,13 @@ func (t *townScreen) cityShopEquipTable(index int) (ui.TownAction, error) {
 		return p.ShopItem, err
 	}, -1)
 	if err == nil && !place.Mine {
-		t.sess.Town.gold -= int(place.Price)
-		action.Msg = fmt.Sprintf("bought and %s for %d gold; you have %d left", action.Msg, place.Price, t.sess.Town.Gold())
+		t.sess.Town.gold -= int(place.ShopItem.Price)
+		action.Msg = fmt.Sprintf("bought and %s for %d gold; you have %d left", action.Msg, place.ShopItem.Price, t.sess.Town.Gold())
 	}
 	return action, err
 }
 
-func (t *townScreen) cityShopUnequip(slot int, table bool) (ui.TownAction, error) {
+func (t *shopController) cityShopUnequip(slot int, table bool) (ui.TownAction, error) {
 	memberIndex := t.shopMemberIndex()
 	if memberIndex < 0 || memberIndex >= len(t.sess.Carried) || slot < 1 || slot > sim.EquipSlots {
 		return ui.TownAction{}, fmt.Errorf("invalid equipment selection")
@@ -1174,7 +1233,7 @@ func (t *townScreen) cityShopUnequip(slot int, table bool) (ui.TownAction, error
 	return ui.TownInfo("off, into the pack"), nil
 }
 
-func (t *townScreen) cityShopNativeUnequip(slot int, toPack bool) (ShopItem, error) {
+func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem, error) {
 	i := t.shopMemberIndex()
 	member := t.shopPartyMember(i)
 	before := mapload.CloneParty([]mapload.PartyMember{*member})[0]
@@ -1238,7 +1297,7 @@ func (t *townScreen) cityShopNativeUnequip(slot int, toPack bool) (ShopItem, err
 	return item, nil
 }
 
-func (t *townScreen) cityShopPutPack(item ShopItem, refresh bool) error {
+func (t *shopController) cityShopPutPack(item ShopItem, refresh bool) error {
 	memberIndex := t.shopMemberIndex()
 	member := t.shopPartyMember(memberIndex)
 	if member == nil || !t.shopHasActorContainer() {

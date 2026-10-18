@@ -4,27 +4,138 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/secondshop"
+	"againrom/pkg/sim"
 )
 
 // secondShop is the second game's shop as the campaign holds it: each
-// location's assortment record, the one stock the town shops share
-// (R2-ENGINE-374), the location that stock was drawn for, the hero's items
-// the shop deals in (DIV-3043), and the open deal. The deal is the page's:
-// a capture writes it undone, and writes neither the stock nor its location
-// (DIV-3045).
+// location's assortment record, the shop's deal core with the one stock the
+// town shops share (R2-ENGINE-374) as its four shelves, and the location
+// that stock was drawn for. The customer's places hold stacks of the hero's
+// bag, the party's one pack. A capture writes the deal settled, and writes
+// neither the stock nor its location (DIV-3045).
 type secondShop struct {
 	records [4]secondshop.Record
-	stock   secondshop.Stock
+	// Shop holds the stock and the open deal as the one shop item, traded
+	// by the second game's rules.
+	Shop
 	// filled is the location the stock was drawn for; zero before the first
 	// fill.
 	filled int
-	hero   []secondshop.Item
+	// tables price and code what the deal moves into the bag; the last
+	// fill's.
+	tables secondshop.Tables
 
-	category        int
-	buying, selling []secondshop.Item
+	category int
+}
+
+// rules are the second game's buying and selling values (R2-ENGINE-266,
+// R2-ENGINE-333, R2-ENGINE-375): an unbounded deal, a buy that takes the
+// items before the first one the gold cannot pay (DIV-3065), an unpriced
+// item offered returned to the hero, an emptied entry kept as a placeholder
+// until the hero leaves, a returned or sold item filed by its record's
+// placement and merged by Insert, and an equal stackable lot joining its
+// place. They become the Shop's rules, so the Shop's own deal methods
+// trade by them.
+func (s *secondShop) rules() shopRules[ShopItem, ShopShelf] {
+	record, tables := s.records[s.filled], s.tables
+	place := func(i ShopItem) ShopShelf { return ShopShelf(secondshop.Place(record, secondItem(i))) }
+	r := shopRules[ShopItem, ShopShelf]{
+		unpricedBack: true, keepEmptied: true, fallback: ShopShelf(len(secondshop.Record{}) - 1),
+		count: func(i ShopItem) int64 { return int64(i.Count) },
+		price: func(i ShopItem) int64 { return int64(i.Price) },
+		withCount: func(i ShopItem, n int64) ShopItem {
+			i.Count = int32(n)
+			return i
+		},
+		clone: ShopItem.Clone,
+		split: func(i ShopItem, n int64) (ShopItem, ShopItem) {
+			moved, rest := i, i
+			moved.Count, rest.Count = int32(n), i.Count-int32(n)
+			return moved, rest
+		},
+		home:   func(p ShopPlace) ShopShelf { return place(p.ShopItem) },
+		shelve: place,
+		put: func(items []ShopItem, i ShopItem) []ShopItem {
+			return secondShopItems(tables, secondshop.Insert(secondItems(items), secondItem(i)))
+		},
+		join: func(a, b ShopItem) bool {
+			x, y := secondItem(a), secondItem(b)
+			return x.Same(y) && y.Stackable()
+		},
+	}
+	s.trade = &r
+	return r
+}
+
+// secondShopItem is it as the one shop item: its bag unit with its
+// quantity; false when it has no bag form.
+func secondShopItem(t secondshop.Tables, it secondshop.Item) (ShopItem, bool) {
+	in, ok := t.Instance(it)
+	return shopItemFromInstance(in, int32(it.Quantity)), ok
+}
+
+// secondShopItems are items as shop items; one with no bag form, which the
+// hero can never carry, is left out.
+func secondShopItems(t secondshop.Tables, items []secondshop.Item) []ShopItem {
+	var out []ShopItem
+	for _, it := range items {
+		if i, ok := secondShopItem(t, it); ok {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+// secondItem reads a shop item back as the second game's item.
+func secondItem(i ShopItem) secondshop.Item {
+	it, _ := secondshop.FromInstance(i.Instance())
+	it.Quantity = int(i.Count)
+	return it
+}
+
+func secondItems(items []ShopItem) []secondshop.Item {
+	out := make([]secondshop.Item, 0, len(items))
+	for _, i := range items {
+		out = append(out, secondItem(i))
+	}
+	return out
+}
+
+// stockOf is a drawn stock on the shelves.
+func stockOf(t secondshop.Tables, stock secondshop.Stock) [shopShelfCount][]ShopItem {
+	var out [shopShelfCount][]ShopItem
+	for k := range stock {
+		out[k] = secondShopItems(t, stock[k])
+	}
+	return out
+}
+
+// stock is the shelves as the second game's items.
+func (s *secondShop) stock() secondshop.Stock {
+	var out secondshop.Stock
+	for k := range s.shelves {
+		out[k] = secondItems(s.shelves[k])
+	}
+	return out
+}
+
+// buying and selling are the deal's shop items and the hero's offered
+// stacks, each in the order they were put down.
+func (s *secondShop) buying() []secondshop.Item  { return secondItems(s.side(false)) }
+func (s *secondShop) selling() []secondshop.Item { return secondItems(s.side(true)) }
+
+func (s *secondShop) side(mine bool) []ShopItem {
+	var out []ShopItem
+	for _, p := range s.table {
+		if p.Mine == mine {
+			out = append(out, p.ShopItem)
+		}
+	}
+	return out
 }
 
 func newSecondShop() secondShop { return secondShop{records: secondshop.NewGameRecords} }
@@ -138,7 +249,7 @@ func replayRecords(bank [1024]int32) [4]secondshop.Record {
 }
 
 // secondShopTables answers the shop's data.bin collections from the
-// install's table.
+// install's table, and the mods' stocked armour and shields.
 func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 	if t == nil {
 		return secondshop.Tables{}, false
@@ -153,29 +264,34 @@ func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 		c, is := x.src.(secondshop.Collection)
 		*x.dst, ok = c, ok && is && c != nil
 	}
+	for _, m := range t.Mods.Items {
+		if it, is := secondshop.Stocked(m.Code, m.Price); m.Stock && is {
+			out.Stocked = append(out.Stocked, it)
+		}
+	}
 	return out, ok
 }
 
 // enter opens the page at location: the stock is drawn from the location's
 // record when its first category is empty (R2-ENGINE-266) or when it was
 // drawn for another location (DIV-3045); the first category shows.
-func (s *secondShop) enter(tables secondshop.Tables, location int, rnd secondshop.Rand) {
-	s.undo()
-	s.category = 0
+func (s *secondShop) enter(tables secondshop.Tables, location int, rnd secondshop.Rand, bag *[]sim.ItemInstance) {
+	s.undo(bag)
+	s.category, s.tables = 0, tables
 	if location < 0 || location >= len(s.records) {
 		return
 	}
-	if len(s.stock[0]) == 0 || s.filled != location {
-		s.stock, s.filled = tables.Fill(s.records[location], rnd), location
+	if len(s.shelves[0]) == 0 || s.filled != location {
+		s.shelves, s.filled = stockOf(tables, tables.Fill(s.records[location], rnd)), location
 	}
 }
 
 // shelf is the category the page shows.
-func (s *secondShop) shelf() []secondshop.Item { return s.stock[s.category] }
+func (s *secondShop) shelf() []secondshop.Item { return secondItems(s.shelves[s.category]) }
 
 // choose shows category c.
 func (s *secondShop) choose(c int) bool {
-	if c < 0 || c >= len(s.stock) || c == s.category {
+	if c < 0 || c >= len(s.shelves) || c == s.category {
 		return false
 	}
 	s.category = c
@@ -185,97 +301,94 @@ func (s *secondShop) choose(c int) bool {
 // take moves one unit of entry i of the shown category into the purchase
 // (R2-ENGINE-375); a unit already taken stays there.
 func (s *secondShop) take(i int) bool {
-	stock, it, ok := secondshop.Take(s.stock, s.category, i, 1)
+	return s.takeFromShelf(s.rules(), ShopShelf(s.category), i, 1)
+}
+
+// offer moves the bag's stack i, every unit of it, into the sale.
+func (s *secondShop) offer(bag *[]sim.ItemInstance, i int) bool {
+	left, _, stack, ok := secondshop.TakeUnits(*bag, i)
 	if !ok {
 		return false
 	}
-	s.stock = stock
-	s.buying = secondshop.Insert(s.buying, it)
+	item, ok := secondShopItem(s.tables, stack)
+	if !ok || !s.putOnTable(s.rules(), item) {
+		return false
+	}
+	*bag = left
 	return true
 }
 
-// offer moves the hero's item i, its whole stack, into the sale.
-func (s *secondShop) offer(i int) bool {
-	if i < 0 || i >= len(s.hero) {
-		return false
+// toBag puts items into the bag as units.
+func (s *secondShop) toBag(bag *[]sim.ItemInstance, items []ShopItem) {
+	for _, it := range items {
+		if units, ok := s.tables.Units(secondItem(it)); ok {
+			*bag = append(*bag, units...)
+		}
 	}
-	it := s.hero[i]
-	s.hero = append(s.hero[:i:i], s.hero[i+1:]...)
-	s.selling = append(s.selling, it)
-	return true
 }
 
 // buy settles the purchase against gold (R2-ENGINE-266): the bought items
-// enter the hero's items, the unaffordable rest stays in the deal.
-func (s *secondShop) buy(gold *int) bool {
-	if len(s.buying) == 0 {
+// enter the bag, the unaffordable rest stays in the deal. A purchase holding
+// an item with no bag form is refused whole.
+func (s *secondShop) buy(bag *[]sim.ItemInstance, gold *int) bool {
+	for _, it := range s.side(false) {
+		if _, ok := s.tables.Units(secondItem(it)); !ok {
+			return false
+		}
+	}
+	bought, spent, ok := s.shopDeal.buy(s.rules(), int64(*gold))
+	if !ok {
 		return false
 	}
-	bought, left, after := secondshop.Buy(s.buying, int64(*gold))
-	for _, it := range bought {
-		s.hero = secondshop.Insert(s.hero, it)
-	}
-	s.buying, *gold = left, int(after)
+	s.toBag(bag, bought)
+	*gold -= int(spent)
 	return len(bought) > 0
 }
 
 // sell settles the sale (R2-ENGINE-266): each priced item credits its sale
-// credit and goes to its category (R2-ENGINE-333).
-func (s *secondShop) sell(gold *int) bool {
-	if len(s.selling) == 0 {
+// credit and goes to its category (R2-ENGINE-333); an unpriced one returns
+// to the bag.
+func (s *secondShop) sell(bag *[]sim.ItemInstance, gold *int) bool {
+	paid, back, ok := s.shopDeal.sell(s.rules())
+	if !ok {
 		return false
 	}
-	var unpriced []secondshop.Item
-	for _, it := range s.selling {
-		if it.Price == 0 {
-			unpriced = append(unpriced, it)
-		}
-	}
-	stock, after := secondshop.Sell(s.stock, s.records[s.filled], s.selling, int64(*gold))
-	s.stock, *gold, s.selling = stock, int(after), nil
-	for _, it := range unpriced {
-		s.hero = secondshop.Insert(s.hero, it)
-	}
+	s.toBag(bag, back)
+	*gold += int(paid)
 	return true
 }
 
-// undo ends the deal (R2-ENGINE-266): the hero's items return to the hero,
-// the shop's go to their category by placement.
-func (s *secondShop) undo() {
-	for _, it := range s.selling {
-		s.hero = secondshop.Insert(s.hero, it)
-	}
-	for _, it := range s.buying {
-		c := secondshop.Place(s.records[s.filled], it)
-		s.stock[c] = secondshop.Insert(s.stock[c], it)
-	}
-	s.buying, s.selling = nil, nil
+// undo ends the deal (R2-ENGINE-266): the offered units return to the bag,
+// the shop's items go to their category by placement.
+func (s *secondShop) undo(bag *[]sim.ItemInstance) {
+	s.toBag(bag, s.clearTable(s.rules()))
 }
 
 // leave ends the deal and drops the emptied entries (R2-ENGINE-266).
-func (s *secondShop) leave() {
-	s.undo()
-	s.stock = secondshop.Leave(s.stock)
+func (s *secondShop) leave(bag *[]sim.ItemInstance) {
+	s.undo(bag)
+	s.dropEmptied(s.rules())
 }
 
 // restock draws the stock of location anew from its record: the draw a LOAD
 // of a save made in a town makes before the shop can be entered. A SAV
 // carries no stock; reloading is what restocks the shop.
 func (s *secondShop) restock(tables secondshop.Tables, location int, rnd secondshop.Rand) {
-	s.buying, s.selling, s.category = nil, nil, 0
+	s.table, s.category, s.tables = nil, 0, tables
 	if location <= 0 || location >= len(s.records) {
-		s.stock, s.filled = secondshop.Stock{}, 0
+		s.shelves, s.filled = [shopShelfCount][]ShopItem{}, 0
 		return
 	}
-	s.stock, s.filled = tables.Fill(s.records[location], rnd), location
+	s.shelves, s.filled = stockOf(tables, tables.Fill(s.records[location], rnd)), location
 }
 
-// currentSecondShop is the shop as the SAV writes it: the records and the
-// hero's items, with the open deal undone. The stock is never written: a
-// LOAD draws it anew.
+// currentSecondShop is the shop as the SAV writes it: the records. The
+// stock is never written: a LOAD draws it anew. Hero is the hero's items as
+// a document written before the bag held them; it loads into the bag and is
+// written only while that load waits for the install's tables.
 type currentSecondShop struct {
 	Records [4]secondshop.Record
-	Hero    []secondshop.Item
+	Hero    []secondshop.Item `json:",omitempty"`
 }
 
 // UnmarshalJSON reads the shop. A document this engine wrote earlier also
@@ -297,27 +410,28 @@ func (c *currentSecondShop) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
-// maxSecondShopItems bounds the saved list.
+// maxSecondShopItems bounds the older hero list's entries; its units share
+// the bag's bound.
 const maxSecondShopItems = 4096
 
-func captureSecondShop(s secondShop) *currentSecondShop {
-	hero := append([]secondshop.Item(nil), s.hero...)
-	for _, it := range s.selling {
-		hero = secondshop.Insert(hero, it)
-	}
-	if s.records == secondshop.NewGameRecords && len(hero) == 0 {
+func captureSecondShop(s secondShop, legacy []secondshop.Item) *currentSecondShop {
+	if s.records == secondshop.NewGameRecords && len(legacy) == 0 {
 		return nil
 	}
-	return &currentSecondShop{Records: s.records, Hero: hero}
+	return &currentSecondShop{Records: s.records, Hero: slices.Clone(legacy)}
 }
 
 func (c *currentSecondShop) validate() error {
 	if len(c.Hero) > maxSecondShopItems {
 		return fmt.Errorf("current second campaign shop list is too long")
 	}
+	units := 0
 	for _, it := range c.Hero {
 		if it.Kind < secondshop.Armor || it.Kind > secondshop.Book || it.Quantity < 0 || it.Price < 0 {
 			return fmt.Errorf("current second campaign shop holds an invalid item")
+		}
+		if units += it.Quantity; units > maxSecondBagUnits {
+			return fmt.Errorf("current second campaign shop list holds too many units")
 		}
 	}
 	return nil
@@ -329,7 +443,7 @@ func (c *currentSecondShop) restore() secondShop {
 	if c == nil {
 		return newSecondShop()
 	}
-	return secondShop{records: c.Records, hero: append([]secondshop.Item(nil), c.Hero...)}
+	return secondShop{records: c.Records}
 }
 
 func (c *currentSecondShop) clone() *currentSecondShop {

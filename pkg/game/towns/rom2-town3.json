@@ -234,44 +234,36 @@
      ],
      "exit": [{"hook": "shop-leave", "cite": ["R2-ENGINE-266"]}],
      "art": [
-       {"name": "cell-stock", "format": "frame", "key": "graphics/interface/shopitem.256", "frame": 0, "size": [80, 80], "required": true, "cite": ["R2-ENGINE-249", "R2-ASSET-070"]},
-       {"name": "cell-hero", "format": "frame", "key": "graphics/interface/myitem.256", "frame": 0, "size": [80, 80], "required": true, "cite": ["R2-ENGINE-249", "R2-ASSET-070"]},
-       {"name": "button/undo", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton1.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
-       {"name": "button/buy", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton2.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
-       {"name": "button/sell", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton3.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
-       {"name": "button/exit", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton4.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "shelf", "format": "picture", "key": "graphics/interface/shop_druid/shopinv.bmp", "size": [164, 303], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "frame", "format": "frame", "key": "graphics/interface/shop_druid/shopframe.256", "frame": 0, "size": [316, 303], "required": true, "cite": ["R2-ENGINE-270", "R2-ENGINE-259"]},
+       {"name": "room", "format": "picture", "key": "graphics/interface/shop_druid/shopmain.bmp", "size": [288, 288], "required": true, "cite": ["R2-ENGINE-259"]},
+       {"name": "menu", "format": "picture", "key": "graphics/interface/shop_druid/shopmenu.bmp", "size": [176, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "table", "format": "picture", "key": "graphics/interface/shop_druid/shoptable.bmp", "size": [472, 87], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
        {"name": "arrow/0", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow1.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
        {"name": "arrow/1", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow2.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
        {"name": "arrow/2", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow3.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-       {"name": "arrow/3", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow4.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]}
+       {"name": "arrow/3", "format": "picture", "key": "graphics/interface/shop_druid/shoparrow4.bmp", "size": [72, 32], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+       {"name": "button/0", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton1.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "button/1", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton2.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "button/2", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton3.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "button/3", "format": "picture", "key": "graphics/interface/shop_druid/shopbutton4.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
+       {"name": "back/0", "format": "picture", "key": "graphics/interface/backinvg.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "back/1", "format": "picture", "key": "graphics/interface/backinvb.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "back/2", "format": "picture", "key": "graphics/interface/backinvs.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "back/3", "format": "picture", "key": "graphics/interface/backinvg.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "plaque-merchant", "format": "picture", "key": "graphics/interface/costs%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "plaque-player", "format": "picture", "key": "graphics/interface/costm%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]}
      ],
      "buttons": [
-       {"name": "undo", "rect": [494, 15, 614, 67], "off": "button/undo", "caption": 72, "cite": ["R2-ENGINE-249", "R2-ENGINE-266", "R2-ENGINE-259"]},
-       {"name": "buy", "rect": [483, 67, 623, 113], "off": "button/buy", "caption": 70, "cite": ["R2-ENGINE-249", "R2-ENGINE-266", "R2-ENGINE-259"]},
-       {"name": "sell", "rect": [483, 114, 623, 160], "off": "button/sell", "caption": 71, "cite": ["R2-ENGINE-249", "R2-ENGINE-266", "R2-ENGINE-259"]},
-       {"name": "exit", "rect": [494, 160, 614, 212], "off": "button/exit", "caption": 73, "cite": ["R2-ENGINE-249", "R2-ENGINE-250", "R2-ENGINE-259"]},
        {"name": "shelf/0", "rect": [169, 112, 257, 224], "cite": ["R2-ENGINE-269", "DIV-3064"]},
        {"name": "shelf/1", "rect": [169, 52, 265, 112], "cite": ["R2-ENGINE-269", "DIV-3064"]},
        {"name": "shelf/2", "rect": [285, 36, 357, 148], "cite": ["R2-ENGINE-269", "DIV-3064"]},
        {"name": "shelf/3", "rect": [257, 172, 353, 276], "if": "bank-770-set", "cite": ["R2-ENGINE-269", "DIV-3064"]},
-       {"name": "stock-back", "rect": [484, 250, 556, 282], "off": "arrow/0", "cite": ["R2-ENGINE-249", "DIV-3046"]},
-       {"name": "stock-on", "rect": [560, 250, 632, 282], "off": "arrow/1", "cite": ["R2-ENGINE-249", "DIV-3046"]},
-       {"name": "hero-back", "rect": [484, 400, 556, 432], "off": "arrow/2", "cite": ["R2-ENGINE-249", "DIV-3046"]},
-       {"name": "hero-on", "rect": [560, 400, 632, 432], "off": "arrow/3", "cite": ["R2-ENGINE-249", "DIV-3046"]}
-     ],
-     "grids": [
-       {"list": "stock", "first": [0, 306, 80, 386], "step": [80, 0], "count": 6, "back": "cell-stock", "cite": ["R2-ENGINE-249", "R2-ENGINE-267", "DIV-3046"]},
-       {"list": "hero", "first": [0, 395, 80, 475], "step": [80, 0], "count": 6, "back": "cell-hero", "cite": ["R2-ENGINE-249", "R2-ENGINE-267", "DIV-3046"]},
-       {"list": "info", "first": [8, 24, 156, 280], "step": [0, 0], "count": 1, "cite": ["R2-ENGINE-249", "R2-ENGINE-267", "DIV-3046"]}
+       {"name": "merchant", "rect": [361, 92, 433, 256], "cite": ["R2-ENGINE-259", "DIV-3064"]}
      ],
      "scene": {
        "view": {"size": [640, 480], "cite": ["R2-ENGINE-249"]},
        "art": [
-         {"name": "info", "format": "picture", "key": "graphics/interface/shop_druid/shopinv.bmp", "size": [164, 303], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"name": "frame", "format": "frame", "key": "graphics/interface/shop_druid/shopframe.256", "frame": 0, "size": [316, 303], "required": true, "cite": ["R2-ENGINE-270", "R2-ENGINE-259"]},
-         {"name": "main", "format": "picture", "key": "graphics/interface/shop_druid/shopmain.bmp", "size": [288, 288], "required": true, "cite": ["R2-ENGINE-259"]},
-         {"name": "menu", "format": "picture", "key": "graphics/interface/shop_druid/shopmenu.bmp", "size": [176, 238], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"name": "table", "format": "picture", "key": "graphics/interface/shop_druid/shoptable.bmp", "size": [472, 87], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
          {"name": "elven", "format": "picture", "key": "graphics/interface/shop_druid/elven.bmp", "size": [96, 104], "required": true, "cite": ["R2-ENGINE-259"]},
          {"name": "shelf/0", "format": "picture", "key": "graphics/interface/shop_druid/hili_armor.bmp", "size": [88, 112], "required": true, "cite": ["R2-ENGINE-259", "DIV-3064"]},
          {"name": "shelf/1", "format": "picture", "key": "graphics/interface/shop_druid/hili_magic.bmp", "size": [96, 60], "required": true, "cite": ["R2-ENGINE-259", "DIV-3064"]},
@@ -306,17 +298,12 @@
           "cite": ["R2-ENGINE-259", "DIV-3063"]}
        ],
        "layers": [
-         {"group": "back", "art": "info", "mode": "copy", "at": [0, 0], "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"group": "back", "art": "frame", "mode": "over", "at": [164, 0], "cite": ["R2-ENGINE-259"]},
-         {"group": "back", "art": "main", "mode": "copy", "at": [169, 8], "cite": ["R2-ENGINE-259"]},
-         {"group": "back", "art": "elven", "mode": "copy", "at": [257, 172], "when": {"if": "bank-770-set", "cite": ["R2-ENGINE-259"]}, "cite": ["R2-ENGINE-259"]},
-         {"group": "back", "art": "shelf/0", "mode": "copy", "at": [169, 112], "when": {"if": "shelf-0", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
-         {"group": "back", "art": "shelf/1", "mode": "copy", "at": [169, 52], "when": {"if": "shelf-1", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
-         {"group": "back", "art": "shelf/2", "mode": "copy", "at": [285, 36], "when": {"if": "shelf-2", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
-         {"group": "back", "art": "shelf/3", "mode": "copy", "at": [257, 172], "when": {"if": "shelf-3", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
-         {"group": "back", "actor": "keeper", "mode": "copy", "at": [361, 92], "cite": ["R2-ENGINE-259"]},
-         {"group": "back", "art": "menu", "mode": "copy", "at": [464, 0], "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"group": "back", "art": "table", "mode": "copy", "at": [0, 303], "cite": ["R2-ENGINE-249", "DIV-3046"]}
+         {"group": "interior", "art": "elven", "mode": "copy", "at": [257, 172], "when": {"if": "bank-770-set", "cite": ["R2-ENGINE-259"]}, "cite": ["R2-ENGINE-259"]},
+         {"group": "interior", "art": "shelf/0", "mode": "copy", "at": [169, 112], "when": {"if": "shelf-0", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "interior", "art": "shelf/1", "mode": "copy", "at": [169, 52], "when": {"if": "shelf-1", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "interior", "art": "shelf/2", "mode": "copy", "at": [285, 36], "when": {"if": "shelf-2", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "interior", "art": "shelf/3", "mode": "copy", "at": [257, 172], "when": {"if": "shelf-3", "cite": ["R2-ENGINE-259", "DIV-3064"]}, "cite": ["R2-ENGINE-259", "DIV-3064"]},
+         {"group": "interior", "actor": "keeper", "mode": "copy", "at": [361, 92], "cite": ["R2-ENGINE-259"]}
        ],
        "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
      "cite": ["R2-ENGINE-249", "R2-ENGINE-263", "R2-ENGINE-266", "R2-ENGINE-267", "R2-ENGINE-330", "R2-ENGINE-259"]}

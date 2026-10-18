@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 
+	"againrom/pkg/screenart"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -41,6 +42,18 @@ func loadShopArt(d *town.Description, src entrySource) *ui.ShopScreenArt {
 	if err != nil {
 		return art
 	}
+	art = shopArtOf(set)
+	art.Scene, _ = loadRoomSceneArt(d, "shop", src)
+	return art
+}
+
+// shopArtOf is the screen's pictures from a shop room's loaded page art, by
+// the entry names both games' descriptions give them.
+func shopArtOf(set *screenart.Set) *ui.ShopScreenArt {
+	art := &ui.ShopScreenArt{}
+	if set == nil {
+		return art
+	}
 	pic := func(name string) *image.RGBA { return rgbaOf(set.Picture(name)) }
 	art.Shelf, art.Table, art.Room = pic("shelf"), pic("table"), pic("room")
 	art.Frame, art.Menu, art.Coin = pic("frame"), pic("menu"), pic("coin")
@@ -67,7 +80,6 @@ func loadShopArt(d *town.Description, src entrySource) *ui.ShopScreenArt {
 		art.Plaque[0][i] = pic(fmt.Sprintf("plaque-merchant/%d", i))
 		art.Plaque[1][i] = pic(fmt.Sprintf("plaque-player/%d", i))
 	}
-	art.Scene, _ = loadRoomSceneArt(d, "shop", src)
 	return art
 }
 

@@ -257,7 +257,7 @@ func TestStagingARealWeaponOnTheTableRetiresTheFallback(t *testing.T) {
 	if code, ok := s.shopWeaponFallbackCode(0); ok {
 		t.Errorf("the shop offers fallback %d into the slot just emptied onto the table", code)
 	}
-	if table := f.Shop.Table(); len(table) != 1 || table[0].Code != real {
+	if table := f.Shop.Table(); len(table) != 1 || table[0].ShopItem.Code != real {
 		t.Errorf("table = %+v, want the one real weapon %d", table, real)
 	}
 }

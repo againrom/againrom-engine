@@ -9,7 +9,6 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/render/text"
 	"againrom/pkg/screenart"
-	"againrom/pkg/secondshop"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -65,7 +64,7 @@ var secondTownHooks = map[string]func(t *secondCampaignScreen, room string){
 		c.room = secondTownSquare
 	},
 	"shop-open":  secondShopOpen,
-	"shop-leave": func(t *secondCampaignScreen, _ string) { t.state().shop.leave() },
+	"shop-leave": func(t *secondCampaignScreen, _ string) { c := t.state(); c.shop.leave(c.heroBag()) },
 }
 
 // secondGateText is the town text section the closed gate shows
@@ -78,7 +77,7 @@ const secondInnExit = "EXIT"
 // secondTownVocabulary is the hook, condition, value and page names the
 // second game's campaign answers.
 func secondTownVocabulary() town.Vocabulary {
-	v := town.Vocabulary{Pages: secondTownPages, Lists: secondTownLists, Events: secondShopEvents}
+	v := town.Vocabulary{Pages: secondTownPages, Events: secondShopEvents}
 	for name := range secondTownHooks {
 		v.Hooks = append(v.Hooks, name)
 	}
@@ -111,11 +110,6 @@ type secondTownState struct {
 	seatStamp  time.Time
 	innShown   bool
 
-	// shopOffsets are the first entries the shop's stock and hero grids
-	// show; shopInfo is the item the information panel shows.
-	shopOffsets [2]int
-	shopInfo    *secondshop.Item
-
 	action ui.TownAction
 }
 
@@ -124,6 +118,8 @@ type secondTownArt struct {
 	scene *town.Art
 	page  *screenart.Set
 	err   error
+	// shop is the shop page's pictures from page, made on first use.
+	shop *ui.ShopScreenArt
 }
 
 func newSecondTownState(f *FrontEnd) *secondTownState {
@@ -207,10 +203,10 @@ func (t *secondCampaignScreen) composedRoom() (*town.Description, string, bool) 
 }
 
 // AtTownSquare reports whether the composed town is shown: its square or its
-// inn page, with that room's art loaded.
+// inn page, with that room's art loaded. The shop room is the shop page's.
 func (t *secondCampaignScreen) AtTownSquare() bool {
 	_, _, ok := t.composedRoom()
-	return ok
+	return ok && !t.AtTownShop()
 }
 
 // TownSquareView answers the composed room the ui draws and hit-tests.
@@ -223,11 +219,17 @@ func (t *secondCampaignScreen) TownSquareView() ui.TownSquareView {
 }
 
 // TownSquareActive runs the shown room's scene and pauses and hides every
-// other; leaving the composed town hides them all.
+// other; leaving the composed town hides them all. The shop page runs its
+// room through ShopInteriorActive.
 func (t *secondCampaignScreen) TownSquareActive(active bool) {
-	if t.composed == nil || t.state() == nil {
+	if t.composed == nil || t.state() == nil || t.AtTownShop() {
 		return
 	}
+	t.roomActive(active)
+}
+
+// roomActive runs the shown room's scene and pauses and hides every other.
+func (t *secondCampaignScreen) roomActive(active bool) {
 	d, room, shown := t.composedRoom()
 	for key, s := range t.composed.scenes {
 		show := shown && key == d.Town+"/"+room
@@ -259,7 +261,7 @@ func (t *secondCampaignScreen) TownSquareActive(active bool) {
 // TownSquarePointer delivers one pointer update to the shown room's scene.
 func (t *secondCampaignScreen) TownSquarePointer(p image.Point) {
 	d, room, ok := t.composedRoom()
-	if !ok {
+	if !ok || t.AtTownShop() {
 		return
 	}
 	t.TownSquareActive(true)
@@ -269,6 +271,13 @@ func (t *secondCampaignScreen) TownSquarePointer(p image.Point) {
 // AdvanceTownSquareAnimation is one paint of the shown room: its scene's
 // steps, then the selected seat's frame.
 func (t *secondCampaignScreen) AdvanceTownSquareAnimation() {
+	if !t.AtTownShop() {
+		t.advanceRoom()
+	}
+}
+
+// advanceRoom is one paint of the shown room's scene and its seats.
+func (t *secondCampaignScreen) advanceRoom() {
 	d, room, ok := t.composedRoom()
 	if !ok {
 		return
@@ -344,10 +353,10 @@ func (t *secondCampaignScreen) seatFrame(i int) int {
 
 // composedRows are the composed town's list rows: on the square one per
 // hotspot with a row, in row order; in a page with seats one row per seat,
-// then EXIT.
+// then EXIT. The shop room has none: the shop page takes its input.
 func (t *secondCampaignScreen) composedRows(d *town.Description, c *secondCampaign) []ui.TownRow {
 	if r := d.Room(t.roomName()); r != nil && r.Page == "shop" {
-		return t.shopRows(c)
+		return nil
 	} else if r != nil {
 		return append(c.innRows(), ui.TownRow{Text: secondInnExit, Choosable: true})
 	}
@@ -369,7 +378,7 @@ func (t *secondCampaignScreen) chooseComposed(d *town.Description, c *secondCamp
 	square := t.scene(d, d.Square.Name)
 	room := t.roomName()
 	if r := d.Room(room); r != nil && r.Page == "shop" {
-		return t.chooseShop(d, c, room, i)
+		return ui.TownAction{}
 	} else if r != nil {
 		if seats, _ := c.innSeats(); i < len(seats) {
 			if r.Seats != nil {
@@ -439,9 +448,6 @@ func (v secondTownView) Paint(dst *image.RGBA) {
 	words, font := v.t.install.Words, v.t.install.Font.Value()
 	if seats := r.Seats; seats != nil {
 		v.paintSeats(dst, seats, page, words, font)
-	}
-	if len(r.Grids) > 0 {
-		v.paintShopGrids(dst, r)
 	}
 	s.Paint(dst, "front")
 	for _, b := range s.ShownButtons(r.Buttons) {
@@ -541,7 +547,7 @@ func (v secondTownView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 		return ui.TownSquareControl{}, false
 	}
 	if r.Page == "shop" {
-		return v.shopControlAt(r, p)
+		return ui.TownSquareControl{}, false
 	}
 	list, hires := v.t.state().innSeats()
 	seats := len(list)

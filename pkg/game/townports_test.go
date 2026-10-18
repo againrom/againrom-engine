@@ -12,11 +12,7 @@ func bareTownScreen(t *testing.T) *townScreen {
 	c := townCampaign(t)
 	town := NewTown(c)
 	town.Arrive()
-	return &townScreen{
-		sess: &CampaignSession{Town: town, Carried: []mapload.PartyMember{{ID: "a"}}},
-		in:   &InstallResources{Campaign: resolved(c, nil)},
-		pc:   &PersistenceContext{},
-	}
+	return &townScreen{shopController: shopController{sess: &CampaignSession{Town: town, Carried: []mapload.PartyMember{{ID: "a"}}}, in: &InstallResources{Campaign: resolved(c, nil)}}, pc: &PersistenceContext{}}
 }
 
 func TestTownScreenFooterReadsSessionAndInstallPorts(t *testing.T) {

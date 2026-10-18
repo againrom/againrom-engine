@@ -279,7 +279,7 @@ func setCityMemberItems(m *mapload.PartyMember, items []sim.ItemInstance) {
 	mapload.UpdatePartyLoad(before, m, nil, false, false)
 }
 
-func (t *townScreen) prepareOriginalCitySale(item sim.ItemInstance, quantity int32) *originalCityTrade {
+func (t *shopController) prepareOriginalCitySale(item sim.ItemInstance, quantity int32) *originalCityTrade {
 	state := t.sess.originalCity
 	party := t.shopParty()
 	if state == nil || len(party) == 0 || quantity <= 0 || quantity > 65535 {
@@ -353,7 +353,7 @@ func (t *townScreen) prepareOriginalCitySale(item sim.ItemInstance, quantity int
 	return &originalCityTrade{partyID: member.ID, sales: sales, staged: staged, completed: completed, gold: t.sess.Town.Gold()}
 }
 
-func (t *townScreen) stageOriginalCitySale(candidate *originalCityTrade) {
+func (t *shopController) stageOriginalCitySale(candidate *originalCityTrade) {
 	if t.sess.originalCity == nil {
 		return
 	}
@@ -366,7 +366,7 @@ func (t *townScreen) stageOriginalCitySale(candidate *originalCityTrade) {
 		return
 	}
 	for _, place := range t.sess.Shop.Table() {
-		if !place.Mine || place.Price <= 0 {
+		if !place.Mine || place.ShopItem.Price <= 0 {
 			return
 		}
 	}
@@ -374,7 +374,7 @@ func (t *townScreen) stageOriginalCitySale(candidate *originalCityTrade) {
 	t.sess.originalCity.trade = candidate
 }
 
-func (t *townScreen) finishOriginalCitySale(candidate *originalCityTrade, before []ShopPlace, gold, paid int) {
+func (t *shopController) finishOriginalCitySale(candidate *originalCityTrade, before []ShopPlace, gold, paid int) {
 	if candidate == nil || t.sess.originalCity == nil || gold != candidate.gold || t.sess.Town.Gold() != gold+paid ||
 		len(t.sess.Shop.Table()) != 0 || !reflect.DeepEqual(before, candidate.table) {
 		return

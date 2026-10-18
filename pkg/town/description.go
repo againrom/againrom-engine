@@ -478,10 +478,7 @@ type RoomSpec struct {
 	// page draws the campaign's roster in, and its buttons in index order.
 	Seats   *SeatSpec    `json:"seats"`
 	Buttons []ButtonSpec `json:"buttons"`
-	// Grids are the page's item grids: each shows a list the page kind
-	// names, one entry per cell.
-	Grids []GridSpec `json:"grids"`
-	Cite  []string   `json:"cite"`
+	Cite    []string     `json:"cite"`
 }
 
 // Step is one entry or exit step: a composer step ("reset" the square view)
@@ -566,7 +563,6 @@ type Vocabulary struct {
 	Values     []string
 	Events     []string
 	Pages      []string
-	Lists      []string
 }
 
 func (v Vocabulary) has(list []string, name string) bool {

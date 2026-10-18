@@ -156,10 +156,14 @@ func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 		r.firstCampaignRules.arriveLoaded(f, c)
 		return
 	}
+	tables, ok := secondShopTables(f.Table)
+	if ok {
+		second.adoptLegacyHero(tables)
+	}
 	if second.current.kind != 2 {
 		return
 	}
-	if tables, ok := secondShopTables(f.Table); ok {
+	if ok {
 		second.shop.restock(tables, second.current.id, f.randomService().Stream(random.ShopStock).Raw)
 	}
 }

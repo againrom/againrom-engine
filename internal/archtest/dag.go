@@ -84,8 +84,9 @@ var allow = map[string][]string{
 	// nothing of this tree, so every tier that draws can name it.
 	"pkg/random": {},
 	// The second game's shop rules read collections through their own
-	// interface and draw through a caller's rand(): a leaf.
-	"pkg/secondshop": {},
+	// interface and draw through a caller's rand(); they code the hero's bag
+	// as the engine's one item instance, so they read the simulation's item.
+	"pkg/secondshop": {"pkg/sim"},
 	"pkg/mapload":    {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
 	"pkg/mapedit":    {"pkg/formats/alm"},
 	"pkg/render":     {"pkg/sim", "pkg/vfs"},

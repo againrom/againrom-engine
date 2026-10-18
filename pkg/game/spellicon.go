@@ -100,7 +100,7 @@ func (mw *mapWorld) spellIcon(id uint16) *image.RGBA {
 // shopSpellIcon is the town shop's reuse of the mission spellbook atlas.
 // Both views read the same installed strip and the same id-to-slot table;
 // only their caches differ because a townScreen has no mapWorld.
-func (t *townScreen) shopSpellIcon(id uint16) *image.RGBA {
+func (t *shopController) shopSpellIcon(id uint16) *image.RGBA {
 	if t == nil {
 		return nil
 	}

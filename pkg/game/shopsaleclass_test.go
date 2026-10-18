@@ -94,7 +94,7 @@ func TestShopSaleUsesWeaponSuitabilityAndRetainsOtherShelves(t *testing.T) {
 					if action := screen.shopFromPack(0, true); strings.Contains(action.Msg, "cannot") {
 						t.Fatal("city sale staging", action)
 					}
-					if places := f.Shop.Table(); len(places) != 1 || !staffSaleValueEqual(places[0].Instance(), item) || places[0].Count != 3 {
+					if places := f.Shop.Table(); len(places) != 1 || !staffSaleValueEqual(places[0].ShopItem.Instance(), item) || places[0].ShopItem.Count != 3 {
 						t.Fatal("city route changed the sale control value", places)
 					}
 					gold := f.Town.Gold()

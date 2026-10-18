@@ -198,7 +198,7 @@ func scrollDescriptionSellRestoredPack(t *testing.T, f *FrontEnd, app *ui.App, s
 		cell := shopScrollPackCell(t, app, screen, index)
 		cityShopPointer(t, app, "pack", cell, "shift-press", "shift-release")
 		placed := f.Shop.Table()
-		if len(placed) != 1 || placed[0].Count != int32(stack.Count) || !placed[0].Mine || !staffSaleValueEqual(placed[0].Instance(), item) {
+		if len(placed) != 1 || placed[0].ShopItem.Count != int32(stack.Count) || !placed[0].Mine || !staffSaleValueEqual(placed[0].ShopItem.Instance(), item) {
 			t.Fatal("next App action lost the restored sale tuple", stack, placed)
 		}
 		gold := f.Town.Gold()

@@ -108,7 +108,7 @@ func TestTheRoomJoinsASecondUnitToTheSamePlace(t *testing.T) {
 	if len(places) != 1 {
 		t.Fatalf("six clicks opened %d places: %+v, want one joined place", len(places), places)
 	}
-	if places[0].Count != 6 || places[0].Mine || places[0].From != ShelfArmour {
+	if places[0].ShopItem.Count != 6 || places[0].Mine || places[0].From != ShelfArmour {
 		t.Errorf("place = %+v, want the merchant's six units off the armour shelf", places[0])
 	}
 	if got := shelfUnits(f.Shop, ShelfArmour); got != 0 {
@@ -124,7 +124,7 @@ func TestADefaultClickTakesOneUnitAndShiftTakesTheStack(t *testing.T) {
 	click(s, ui.ShopControlShelfPick, roomArmour)
 
 	click(s, ui.ShopControlShelfCell, 0)
-	if got := f.Shop.Table()[0].Count; got != 1 {
+	if got := f.Shop.Table()[0].ShopItem.Count; got != 1 {
 		t.Errorf("a default click moved %d units, want one", got)
 	}
 	if got := shelfUnits(f.Shop, ShelfArmour); got != 3 {
@@ -132,7 +132,7 @@ func TestADefaultClickTakesOneUnitAndShiftTakesTheStack(t *testing.T) {
 	}
 
 	clickShift(s, ui.ShopControlShelfCell, 0)
-	if got := f.Shop.Table()[0].Count; got != 4 {
+	if got := f.Shop.Table()[0].ShopItem.Count; got != 4 {
 		t.Errorf("shift+click left the place at %d units, want all four joined", got)
 	}
 	if got := len(f.Shop.Shelf(ShelfArmour)); got != 0 {

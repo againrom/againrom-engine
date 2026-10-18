@@ -22,18 +22,18 @@ func TestReleaseSecondTownDruidStaleStockSave(t *testing.T) {
 		secondShopClassFour(t, c)
 		drawn := secondShopUndone(c.shop)
 		secondShopEnter(t, f, app, f.TownScreen().(*secondCampaignScreen))
-		if !reflect.DeepEqual(drawn, c.shop.stock) {
+		if !reflect.DeepEqual(drawn, c.shop.stock()) {
 			t.Fatal("the entry after LOAD drew the stock again")
 		}
-		t.Logf("fresh-process LOAD: fourth category %d entries", len(c.shop.stock[3]))
+		t.Logf("fresh-process LOAD: fourth category %d entries", len(c.shop.shelves[3]))
 		return
 	}
 	f, app, s, _ := secondShopLaterTown(t, 3)
 	c := f.Town.second
 	c.bank[770] = 1
 	secondShopEnter(t, f, app, s)
-	if len(c.shop.stock[3]) != 0 || c.shop.filled != 3 {
-		t.Fatalf("before the conversation: fourth category %d entries, filled %d", len(c.shop.stock[3]), c.shop.filled)
+	if len(c.shop.shelves[3]) != 0 || c.shop.filled != 3 {
+		t.Fatalf("before the conversation: fourth category %d entries, filled %d", len(c.shop.shelves[3]), c.shop.filled)
 	}
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
 		t.Fatal("escape", err)
@@ -52,10 +52,10 @@ func TestReleaseSecondTownKaargDepartureStale(t *testing.T) {
 	f, app, s, _ := secondShopLaterTown(t, 2)
 	c := f.Town.second
 	secondShopEnter(t, f, app, s)
-	if c.shop.filled != 2 || len(c.shop.stock[0]) == 0 {
+	if c.shop.filled != 2 || len(c.shop.shelves[0]) == 0 {
 		t.Fatalf("first visit: filled %d", c.shop.filled)
 	}
-	first := c.shop.stock
+	first := c.shop.shelves
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
 		t.Fatal("escape", err)
 	}
@@ -71,7 +71,7 @@ func TestReleaseSecondTownKaargDepartureStale(t *testing.T) {
 	}
 	c.current = secondLocation{2, 2}
 	secondShopEnter(t, f, app, s)
-	if c.shop.filled != 2 || len(c.shop.stock[0]) == 0 || reflect.DeepEqual(first, c.shop.stock) {
+	if c.shop.filled != 2 || len(c.shop.shelves[0]) == 0 || reflect.DeepEqual(first, c.shop.shelves) {
 		t.Fatalf("next entry did not draw again: filled %d", c.shop.filled)
 	}
 }

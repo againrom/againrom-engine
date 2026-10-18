@@ -91,33 +91,3 @@ func ButtonAt(buttons []ButtonSpec, p image.Point) int {
 
 // Sound requests a slot's own sound, as a "sound <slot>" step does.
 func (s *Scene) Sound(slot string) { s.sound(slot, "") }
-
-// GridSpec is one of a page's item grids: Count cells, the first at First
-// and each next one Step further, showing the page's list named List from
-// its first entry; Back is the page art drawn behind each cell.
-type GridSpec struct {
-	List  string   `json:"list"`
-	First Rect     `json:"first"`
-	Step  Point    `json:"step"`
-	Count int      `json:"count"`
-	Back  string   `json:"back"`
-	Cite  []string `json:"cite"`
-}
-
-// Cell answers cell i's rectangle, empty outside the grid.
-func (g *GridSpec) Cell(i int) image.Rectangle {
-	if i < 0 || i >= g.Count {
-		return image.Rectangle{}
-	}
-	return g.First.Rectangle().Add(image.Pt(g.Step[0]*i, g.Step[1]*i))
-}
-
-// CellAt answers the first cell that holds p, -1 for none.
-func (g *GridSpec) CellAt(p image.Point) int {
-	for i := 0; i < g.Count; i++ {
-		if p.In(g.Cell(i)) {
-			return i
-		}
-	}
-	return -1
-}
