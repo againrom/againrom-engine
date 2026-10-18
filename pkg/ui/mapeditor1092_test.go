@@ -195,6 +195,7 @@ func TestMapEditor1092FractionalWheelOwnsTravelPerPopup(t *testing.T) {
 	e.model.Select(0)
 	cameraBefore := *e.doc.Viewer.cam
 	listAt := listRowPoint(t, e, 0)
+	listAt.X = e.listAt.X + popupPad + 4
 	_, l := objectLayout(t, e)
 	objectAt := center(l.Rows[0].Rect)
 	if e.chromeHit(listAt) != popList || e.chromeHit(objectAt) != popObject {

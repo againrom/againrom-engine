@@ -8,6 +8,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Map editor lists stop at their ends and their scroll bars drag.
+  Add starts ready to place, with a translucent preview at the cursor.
+  Unit settings explain stored values and show the game's character card.
+  Cancel closes the window and discards its pending changes.
 - [ROM1] A spell cast at a unit or a cell out of reach is no longer lost: the
   caster walks until the target is in reach and casts there. Any other order
   cancels it. An enemy mage now casts at the unit it is fighting.

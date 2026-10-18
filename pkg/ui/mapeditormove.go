@@ -46,6 +46,7 @@ func (e *MapEditor) saveAs(path string) error {
 	}
 	e.doc.Source = source
 	e.leave(leavePrompt)
+	e.cancelRestore = nil
 	e.message = ""
 	e.afterSave()
 	return e.leaveSaved(then)
@@ -90,6 +91,8 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 		kind, index = r.Kind, r.Index
 	}
 	e.doc = next
+	e.cancelRestore = nil
+	e.listRestore = nil
 	e.closeReport()
 	e.selected = -1
 	for i, r := range next.Records {

@@ -219,8 +219,8 @@ func (e *MapEditor) pickAt(p image.Point) {
 	}
 	if pick == pickMove {
 		if kind, index := e.selectedRecord(); index >= 0 && editableKind(kind) {
-			next, err := e.doc.Edits.Move(kind, index, image.Pt(x, y))
-			_ = e.adoptEdit(next, err)
+			cell := image.Pt(x, y)
+			e.obj.move = &cell
 		}
 		return
 	}

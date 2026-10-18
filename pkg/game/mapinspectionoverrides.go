@@ -113,12 +113,14 @@ func templateSheets(m *alm.Map, t *mapload.Table) ([]unitSheet, error) {
 // unitTemplateView is placement index's view for the popup's field labels;
 // its template sheet is built on the first label that needs it.
 type unitTemplateView struct {
-	s     *mapInspectionEdits
-	m     *alm.Map
-	index int
-	built bool
-	v     unitValues
-	ok    bool
+	actualBuilt, actualOK bool
+	actual                unitValues
+	s                     *mapInspectionEdits
+	m                     *alm.Map
+	index                 int
+	built                 bool
+	v                     unitValues
+	ok                    bool
 }
 
 // unitTemplate is the label view of record index of kind k; nil for a
@@ -142,6 +144,16 @@ func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 		return "", true
 	}
 	x := u.s.inspector
+	switch f.Key {
+	case "owner":
+		return x.word("editor.unit.field.owner"), true
+	case "class":
+		return x.word("editor.unit.field.class"), true
+	case "definition":
+		return x.word("editor.unit.field.definition"), true
+	case "group":
+		return x.word("editor.unit.field.group"), true
+	}
 	if f.Check == mapedit.CheckUnitGear {
 		return x.overrideName(f.Key), gearOffered(u.m.Units[u.index], x.table)
 	}
@@ -150,7 +162,7 @@ func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 	}
 	if !u.built {
 		u.built = true
-		if sheets, err := templateSheets(u.m, x.table); err == nil && u.index < len(sheets) {
+		if sheets := u.s.unitViewSheets(true); u.index < len(sheets) {
 			u.v, u.ok = sheets[u.index].Values, true
 		}
 	}

@@ -114,6 +114,7 @@ func (e *MapEditor) leave(x exits) {
 	}
 	if x&leavePrompt != 0 {
 		e.prompt = editorPrompt{}
+		e.cancelRestore = nil
 	}
 	if x&leaveReport != 0 {
 		e.closeReport()
@@ -131,9 +132,12 @@ func (e *MapEditor) leave(x exits) {
 	}
 }
 
+func (e *MapEditor) restoreMode(mode editorMode) { e.editorMode = mode }
+
 // openPanel shows the Map panel in the list popup: the records list it
 // stands under closes.
 func (e *MapEditor) openPanel() {
+	e.rememberListCancel("panel")
 	e.leave(leaveCatalog | leaveReport | leaveBrush)
 	e.panel = true
 	e.listShown, e.filter = false, 0
@@ -147,6 +151,7 @@ func (e *MapEditor) resetList(int) {
 
 // enterCatalog shows the catalogue at its first row.
 func (e *MapEditor) enterCatalog() {
+	e.rememberListCancel("catalog")
 	e.catalog = true
 	e.resetList(0)
 }
@@ -158,11 +163,19 @@ func (e *MapEditor) armPick(kind pickKind) {
 
 // openPrompt replaces the prompt.
 func (e *MapEditor) openPrompt(p editorPrompt) {
+	e.rememberCancel()
 	e.prompt, e.message = p, ""
 }
 
 // toggleBrush switches the brush mode on, or off when it already is mode.
 func (e *MapEditor) toggleBrush(mode brushMode) {
+	if !e.catalog {
+		if e.brush.mode == mode {
+			e.listRestore = nil
+		} else {
+			e.rememberListCancel("brush")
+		}
+	}
 	e.leave(leaveDrag | leaveReport | leavePick | leavePrompt)
 	e.message = ""
 	e.brush.endStroke()
@@ -176,6 +189,7 @@ func (e *MapEditor) toggleBrush(mode brushMode) {
 // restored when the panel closes. goals is set while the rows are the script
 // panel's arms.
 func (e *MapEditor) openReport(rows []InspectionFinding, note string, goals []InspectionGoal) {
+	e.rememberListCancel("report")
 	e.report.open, e.report.rows, e.report.note, e.report.sel = true, rows, note, 0
 	e.report.goals = goals
 	e.report.flagged = map[string]bool{}

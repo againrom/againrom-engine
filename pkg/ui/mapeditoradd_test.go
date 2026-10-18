@@ -180,7 +180,12 @@ func addAdvance(t *testing.T, e *MapEditor, n int) bool {
 // writes nothing; finishing writes once.
 func TestMapEditorAddCancelAtEveryStepWritesNothing(t *testing.T) {
 	ways := map[string]func(e *MapEditor){
-		"escape": func(e *MapEditor) { _ = e.Key("escape") },
+		"escape": func(e *MapEditor) {
+			if e.pick != pickNone {
+				_ = e.Key("escape")
+			}
+			_ = e.Key("escape")
+		},
 		"cancel": func(e *MapEditor) {
 			s, _ := e.addSpec()
 			modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[2]))
@@ -222,8 +227,7 @@ func TestMapEditorAddCancelAtEveryStepWritesNothing(t *testing.T) {
 }
 
 // The cell step's pick button hands the next map click to the window; the
-// clicked cell becomes the step's value and the window shows again. Esc while
-// picking returns to the window.
+// clicked cell places the object. Esc while picking disarms the pick.
 func TestMapEditorAddCellPickedOnTheMap(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	_ = e.Key("unit")
@@ -246,8 +250,8 @@ func TestMapEditorAddCellPickedOnTheMap(t *testing.T) {
 	if !e.addPicking() || e.helpScreen() != screenAddCell {
 		t.Fatal("the pick button did not arm the cell pick")
 	}
-	if s, ok := e.promptSpec(); ok || len(s.Rows) != 0 {
-		t.Fatal("the window covers the map while picking")
+	if s, ok := e.promptSpec(); !ok || len(s.Rows) == 0 {
+		t.Fatal("the armed Add window disappeared")
 	}
 	_ = e.Key("escape")
 	if e.addPicking() || addKindNow(e) != "Unit" {
@@ -256,10 +260,9 @@ func TestMapEditorAddCellPickedOnTheMap(t *testing.T) {
 	pick()
 	e.Fit()
 	modesClick(e, e.CellPoint(image.Pt(25, 20)))
-	if e.addPicking() || e.prompt.path != "25,20" || len(calls.lines) != 0 {
-		t.Fatal("the clicked cell is not the step's value", e.prompt.path, calls.lines)
+	if e.addPicking() || e.prompt.open() || len(calls.lines) != 1 {
+		t.Fatal("the clicked cell did not place immediately", e.prompt.path, calls.lines)
 	}
-	_ = e.Key("enter")
 	if addKindNow(e) != "" || len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Unit (25,20) true") {
 		t.Fatal("the picked cell did not reach the add", calls.lines)
 	}

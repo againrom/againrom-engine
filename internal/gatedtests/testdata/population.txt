@@ -4,6 +4,10 @@
 # matches these IDs against its runtime JSON skip census.
 pkg/game.TestReleaseMapEditorUsedByCensusPreservesBytes
 pkg/game.TestReleaseMapEditorUsedByFrames
+pkg/game.TestReleaseEditorCancelPreservesInstalledMapBytes
+pkg/game.TestReleaseEditorCharacterCardsMatchGameSample
+pkg/game.TestReleaseEditorInheritedMeaningsWithStatOverride
+pkg/game.TestReleaseEditorInteractionFrames
 pkg/game.TestAttackTargetOwnerSave
 pkg/game.TestReleaseDecodedInstallFixtureIsolation
 pkg/game.TestReleaseOriginalStreamStartDrawsAFacingForEveryRingPlacement

@@ -30,10 +30,16 @@ type InspectionFieldSet interface {
 	SetFields(kind string, index int, values []InspectionFieldValue) (*InspectionDocument, error)
 }
 
+type InspectionObjectSet interface {
+	SetObject(string, int, []InspectionFieldValue, *image.Point) (*InspectionDocument, error)
+}
+
 // objectEdit is the object popup's edit state: the fields read for one record
 // of one document, each field's typed text, the focused field and an open
 // drop-down.
 type objectEdit struct {
+	move   *image.Point
+	unit   unitSettingsView
 	doc    *InspectionDocument
 	record int
 	fields []InspectionField
@@ -117,6 +123,11 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
 	o.first = len(s.Rows)
 	o.rowField = map[int]int{}
+	card, fields := e.unitSettings()
+	if card != nil {
+		s.Card = card
+		s.CardFont = e.cardFont
+	}
 	for i, f := range o.fields {
 		o.rowField[len(s.Rows)] = i
 		row := popupRow{Kind: popupEdit, Label: editorClip(e.bodyFont(), e.editorHostText(f.Label), 150), Value: o.buf[i], Focus: i == o.focus}
@@ -131,6 +142,22 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			}
 		}
 		s.Rows, *links = append(s.Rows, row), append(*links, 0)
+		meaning := f.Meaning
+		if fields == nil && o.buf[i] != fieldInput(f) {
+			meaning = ""
+		}
+		for _, current := range fields {
+			if current.Key == f.Key {
+				meaning = current.Meaning
+				break
+			}
+		}
+		if meaning != "" {
+			for _, part := range editorWrap(e.bodyFont(), e.editorHostText(meaning), 378) {
+				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: part})
+				*links = append(*links, 0)
+			}
+		}
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 	s.Disabled = []bool{!e.objectDirty(), false}
@@ -152,6 +179,9 @@ func choiceText(f InspectionField, text string) string {
 }
 
 func (e *MapEditor) objectDirty() bool {
+	if e.obj.move != nil {
+		return true
+	}
 	for i, f := range e.obj.fields {
 		if e.obj.buf[i] != fieldInput(f) {
 			return true
@@ -276,9 +306,6 @@ func (e *MapEditor) openDropdownPress(p image.Point) bool {
 		o.open = -1
 		return true
 	case dropdownBar:
-		if req, _ := listBar(d.listBox(e.bodyFont()), d.List).press(p); req != barNone {
-			listBarRequest(d.List, req, 0)
-		}
 		return true
 	}
 	o.open = -1
@@ -324,7 +351,7 @@ func (e *MapEditor) chooseObjectChoiceKeep() {
 	e.retypeNode()
 }
 
-// objectStep moves the focused choice field by delta, wrapping: the
+// objectStep moves the focused choice field by delta, clamping: the
 // drop-down's keyboard path.
 func (e *MapEditor) objectStep(delta int) bool {
 	o := &e.obj
@@ -348,7 +375,7 @@ func (e *MapEditor) objectStep(delta int) bool {
 		m.Select(0)
 	} else {
 		m.Select(at)
-		dropdownStep(m, delta)
+		editorListStep(m, delta)
 	}
 	o.buf[o.focus] = strconv.FormatInt(f.Choices[m.Selection()].Value, 10)
 	e.retypeNode()
@@ -394,8 +421,7 @@ func (e *MapEditor) objectText(s string, back bool) {
 // objectButton is Apply (0) or Cancel (1).
 func (e *MapEditor) objectButton(n int) {
 	if n == 1 {
-		e.obj.doc = nil
-		e.loadObject()
+		e.cancelPopup()
 		return
 	}
 	e.applyObject()
@@ -453,15 +479,24 @@ func (e *MapEditor) applyObject() {
 		}
 		values = append(values, v)
 	}
-	if len(values) == 0 {
+	if len(values) == 0 && o.move == nil {
 		return
 	}
-	next, err := e.setFields(kind, index, values)
+	var next *InspectionDocument
+	var err error
+	if host, ok := e.doc.Edits.(InspectionObjectSet); ok {
+		next, err = host.SetObject(kind, index, values, o.move)
+	} else if o.move != nil {
+		next, err = e.doc.Edits.Move(kind, index, *o.move)
+	} else {
+		next, err = e.setFields(kind, index, values)
+	}
 	if err != nil {
 		o.note = err.Error()
 		return
 	}
 	o.open, o.note = -1, ""
+	o.move = nil
 	_ = e.adoptEdit(next, nil)
 }
 

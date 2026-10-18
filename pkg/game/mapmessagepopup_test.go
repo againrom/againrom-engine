@@ -58,6 +58,13 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" {
 		t.Fatal("Cancel changed page")
 	}
+	for i, line := range e.PopupLines() {
+		if strings.HasPrefix(line, "Open Message") {
+			r, ok := e.PopupRowRect(i)
+			messageClick(t, e, r, ok)
+			break
+		}
+	}
 	messageField(t, e, 0)
 	e.TextInput("First")
 	_ = e.Key("newline")

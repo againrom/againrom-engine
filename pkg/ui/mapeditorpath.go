@@ -59,6 +59,7 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 }
 
 func (e *MapEditor) askPath(kind pathdialog.Kind) {
+	e.rememberCancel()
 	if e.pathDialog.ask == nil {
 		e.pathFallback(kind, nil)
 		return
@@ -101,15 +102,21 @@ func (e *MapEditor) PollPathDialog() bool {
 		case reply.err != nil:
 			e.pathFallback(kind, reply.err)
 		case reply.result.Cancelled:
-			e.saveThen = nil
+			e.cancelPopup()
 		case reply.result.Path == "":
 			e.pathFallback(kind, fmt.Errorf("no path returned"))
 		default:
 			e.leave(leaveDrag | leaveReport | leavePick)
+			var err error
 			if kind == pathdialog.SaveFile {
-				_ = e.saveAs(reply.result.Path)
+				err = e.saveAs(reply.result.Path)
 			} else {
-				_ = e.Open(reply.result.Path)
+				err = e.Open(reply.result.Path)
+			}
+			if err != nil {
+				message := e.message
+				e.cancelPopup(popPrompt)
+				e.message = message
 			}
 		}
 	default:

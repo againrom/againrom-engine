@@ -115,6 +115,11 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 		seen[entry.FromArchive] = true
 		hasReference := refs[id] && idCount[id] == 1
 		t.Run(key, func(t *testing.T) {
+			closeSettings := func(editor *ui.MapEditor) {
+				if r, ok := editor.PopupButtonRect(1); ok {
+					trigClick(t, editor, r, true, "Cancel settings")
+				}
+			}
 			e.Layout(1280, 800)
 			closeMapPanel(t, e)
 			recordIndex := -1
@@ -144,6 +149,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			if e.Selected() != recordIndex {
 				t.Fatalf("pointer selected record %d, want unit record %d", e.Selected(), recordIndex)
 			}
+			closeSettings(e)
 			to := from.Add(image.Pt(3, 2))
 			before, note, err := e.HeadlessFrame()
 			if err != nil {
@@ -169,6 +175,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			if !strings.Contains(inspectText1093(e.Document().Records[recordIndex]), text) {
 				t.Fatal("installed coordinate detail is stale")
 			}
+			closeSettings(e)
 			after, _, err := e.HeadlessFrame()
 			if err != nil {
 				t.Fatal(err)
@@ -237,6 +244,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 			fresh.Layout(1280, 800)
 			closeMapPanel(t, fresh)
 			fresh.Select(recordIndex, false)
+			closeSettings(fresh)
 			*fresh.Document().Viewer.Camera() = *e.Document().Viewer.Camera()
 			reopened, _, err := fresh.HeadlessFrame()
 			if err != nil {

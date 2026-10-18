@@ -237,11 +237,10 @@ func TestReleaseMapEditorAddWindowWritesTheRouteBytes(t *testing.T) {
 				if !addStepsN(t, e, c.values, at) {
 					break
 				}
-				if err := e.Key("escape"); err != nil {
-					t.Fatal(err)
-				}
+				r, ok := e.PromptButtonRect(2)
+				trigClick(t, e, r, ok, "Cancel Add")
 				if _, _, open := e.AddStep(); open || e.Dirty() || !bytes.Equal(objectEdits(t, e).model.Bytes(), source) {
-					t.Fatalf("Esc at step %d left the window open or changed the map", at)
+					t.Fatalf("Cancel at step %d left the window open or changed the map", at)
 				}
 			}
 		})

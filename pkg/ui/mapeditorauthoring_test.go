@@ -62,10 +62,11 @@ func TestMapEditorNewRecordNamesAreVisibleBeforeCommit(t *testing.T) {
 			}
 			_ = e.Key("down")
 			_ = e.Key("down")
-			if e.prompt.path != "10" || len(calls.lines) != 0 {
-				t.Fatal("Down did not wrap to the first choice", e.prompt.path, calls.lines)
+			if e.prompt.path != "20" || len(calls.lines) != 0 {
+				t.Fatal("Down did not clamp to the last choice", e.prompt.path, calls.lines)
 			}
 			_ = e.Key("up")
+			_ = e.Key("down")
 			if row := addFocus(t, e); key != "sack" && row.Value != "20: Second named record" {
 				t.Fatal("the asked row does not name the choice", row.Value)
 			}

@@ -40,6 +40,7 @@ const (
 // list popup's model, the open menu and a press in progress.
 type editorChrome struct {
 	body                   *text.Font
+	cardFont               *text.Font
 	book                   words.Book
 	hasBook                bool
 	listShown              bool
@@ -54,6 +55,7 @@ type editorChrome struct {
 	drag                   editorPopupID
 	dragFrom               image.Point
 	uiDown                 bool
+	scroll                 editorScroll
 	objectTop              int
 	objectWheel, listWheel float64
 	clicks                 doubleClick
@@ -80,6 +82,8 @@ type editorView struct {
 // SetBodyFont sets the plain font of rows, labels, values and report text.
 // Titles, the top bar and headings keep the editor's first font.
 func (e *MapEditor) SetBodyFont(f *text.Font) { e.body = f }
+
+func (e *MapEditor) SetCardFont(f *text.Font) { e.cardFont = f }
 
 // SetWords sets the word table the editor's own words are read from.
 func (e *MapEditor) SetWords(b words.Book) { e.book, e.hasBook = b, true }
@@ -373,6 +377,7 @@ func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
 	}
+	e.rememberListCancel("records")
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
 	e.message = ""
 	e.filter, e.listShown = filter, true
@@ -708,11 +713,22 @@ func (e *MapEditor) listChoose(n int, open bool) {
 
 // catalogStep moves the picker's highlighted map, skipping headings.
 func (e *MapEditor) catalogStep(delta int) {
-	if e.model == nil || e.listKind() != "catalog" {
+	if e.model == nil || e.listKind() != "catalog" || delta == 0 {
 		return
 	}
 	rows := e.model.Rows()
-	for i := e.model.Selection() + delta; i >= 0 && i < len(rows); i += delta {
+	step := 1
+	if delta < 0 {
+		step = -1
+	}
+	start := clampIndex(e.model.Selection()+delta, len(rows))
+	for i := start; i >= 0 && i < len(rows); i += step {
+		if rows[i].Choosable {
+			e.model.Select(i)
+			return
+		}
+	}
+	for i := start; i >= 0 && i < len(rows); i -= step {
 		if rows[i].Choosable {
 			e.model.Select(i)
 			return
@@ -757,6 +773,10 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
 	}
 	r := e.doc.Records[e.selected]
+	e.loadObject()
+	if e.obj.move != nil {
+		r.Cell = *e.obj.move
+	}
 	s := popupSpec{Title: fmt.Sprintf("%s #%d", r.Kind, r.Index), At: e.objectAt, Width: 420, Bounds: e.popupBounds(), NoteInk: editorWarning}
 	var links []int
 	add := func(row popupRow, link int) {
@@ -799,6 +819,9 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		}
 	}
 	e.objectBackButton(&s)
+	if s.Card != nil {
+		s.Width += compactPanelW + popupPad
+	}
 	s.MaxRows = e.objectRowsShown(len(s.Buttons) > 0 || e.objectHasFields())
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
 	s.Top = e.objectTop
@@ -822,7 +845,7 @@ func (e *MapEditor) objectRowsShown(buttons bool) int {
 
 // promptSpec is the prompt and the message as one popup.
 func (e *MapEditor) promptSpec() (popupSpec, bool) {
-	if !e.prompt.open() && e.message == "" || e.addPicking() {
+	if !e.prompt.open() && e.message == "" {
 		return popupSpec{}, false
 	}
 	if e.prompt.kind == promptAdd {
@@ -868,6 +891,9 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 			s.Rows = append(s.Rows, row)
 		}
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
+		if fields := e.promptFields(); e.prompt.fields() && e.prompt.field < len(fields) && fields[e.prompt.field].Meaning != "" {
+			s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(fields[e.prompt.field].Meaning), text)...)
+		}
 	} else {
 		s.Title = e.word("editor.message.title")
 		s.Buttons = []string{e.word("editor.button.ok")}
@@ -1085,6 +1111,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	p := image.Pt(in.CursorX, in.CursorY)
 	e.pointer, e.pointerOK = p, true
 	pressed := in.PrimaryDown && !e.down
+	if e.scrollPointer(in, p, pressed) {
+		return true
+	}
 	if e.drag != popNone {
 		if in.PrimaryDown {
 			d := p.Sub(e.dragFrom)
@@ -1211,12 +1240,12 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 		switch {
 		case part == popupClose || part == popupButton && n == 1:
-			_ = e.Key("escape")
+			e.cancelPopup()
 		case part == popupButton && n == 0:
 			if e.prompt.open() {
 				_ = e.Key("enter")
 			} else {
-				e.message = ""
+				e.cancelPopup(popPrompt)
 			}
 		}
 	case popObject:
@@ -1242,7 +1271,7 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		}
 		switch part, n := l.hit(p); part {
 		case popupClose:
-			e.closeList()
+			e.cancelPopup(popList)
 		case popupTitle:
 			e.drag, e.dragFrom = popList, p
 		case popupListRow:
@@ -1254,13 +1283,6 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			double = double && row == e.lastRow
 			e.lastRow = row
 			e.listChoose(row, e.listKind() != "catalog" || double)
-		case popupListBar:
-			if req, _ := listBar(l.List, e.model).press(p); req != barNone {
-				listBarRequest(e.model, req, 0)
-				if e.listKind() == "catalog" && !e.model.Rows()[e.model.Selection()].Choosable {
-					e.catalogStep(1)
-				}
-			}
 		case popupButton:
 			if e.listKind() == "catalog" {
 				if n == 0 {
@@ -1283,7 +1305,7 @@ func (e *MapEditor) objectPress(p image.Point) {
 	s, links, _ := e.objectSpec()
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
-		e.closeObject()
+		e.cancelPopup()
 	case popupTitle:
 		e.drag, e.dragFrom = popObject, p
 	case popupRowButton:
@@ -1324,7 +1346,7 @@ func (e *MapEditor) objectPress(p image.Point) {
 			return
 		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {
-			e.closeObject()
+			e.cancelPopup()
 			return
 		}
 		if v, ok := e.scriptPopup(); ok {

@@ -199,7 +199,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenPlayers: {"players"},
 		screenPrompt:  {"ui:select0", "field"},
 		screenMove:    {"ui:select0", "ui:pick-move"},
-		screenAdd:     {"unit"},
+		screenAdd:     {"unit", "escape"},
 		screenAddCell: {"unit", "enter", "enter", "ui:add-pick"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
@@ -253,8 +253,8 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"save prompt", []string{"saveas", "ui:text-7"}, false, escapes, false},
 		{"field prompt", []string{"ui:select0", "field", "tab"}, false, escapes, false},
 		{"player name prompt", []string{"players", "field"}, false, escapes, false},
-		{"new sack window", []string{"sack", "ui:click-cell", "ui:text-7"}, false, escapes, false},
-		{"new unit window", []string{"unit", "ui:click-cell", "ui:text-7"}, false, escapes, false},
+		{"new sack window", []string{"sack", "escape", "ui:text-7"}, false, escapes, false},
+		{"new unit window", []string{"unit", "escape", "ui:text-7"}, false, escapes, false},
 		{"new unit cell pick", []string{"unit", "enter", "enter", "ui:add-pick"}, false, escapes, false},
 		{"new unit completes", []string{"unit", "enter", "enter", "ui:add-pick", "ui:click-cell", "enter"}, false, nil, true},
 		{"field completes", []string{"ui:select0", "field", "ui:text-7", "enter"}, false, nil, true},
@@ -279,7 +279,7 @@ func TestMapEditorLeavingAModeClearsWhatItOwned(t *testing.T) {
 		{"catalogue", []string{"catalog"}, true, escapes, false},
 		{"catalogue toggles", []string{"catalog"}, true, []string{"catalog"}, false},
 		{"new map prompt", []string{"new"}, false, escapes, false},
-		{"new map catalogue after cancel", []string{"new", "escape"}, true, escapes, false},
+		{"new map returns after cancel", []string{"new", "escape"}, false, escapes, true},
 		{"catalogue under a prompt", []string{"catalog", "open"}, false, escapes, false},
 	}
 	for _, c := range cases {

@@ -27,7 +27,7 @@ func (e *MapEditor) stepChoice(delta int) bool {
 	if at < 0 {
 		at = 0
 	} else {
-		at = (at + delta + len(choices)) % len(choices)
+		at = min(max(at+delta, 0), len(choices)-1)
 	}
 	e.prompt.path = strconv.FormatInt(choices[at].Value, 10)
 	return true

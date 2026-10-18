@@ -268,9 +268,9 @@ func TestReleaseMapEditorPaintedTerrainChangesWhereAPartyWalks(t *testing.T) {
 		e.ShowCell(route.at(4, 0))
 		brushWindow(t, e, "terrain", paletteRow(t, mapedit.ClassMountain))
 		pointerStroke(e, band)
-		back := len(mapedit.Palette) - paletteRow(t, mapedit.ClassMountain) + paletteRow(t, mapedit.ClassGrass)
+		back := paletteRow(t, mapedit.ClassMountain) - paletteRow(t, mapedit.ClassGrass)
 		for i := 0; i < back; i++ {
-			_ = e.Key("down")
+			_ = e.Key("up")
 		}
 		pointerStroke(e, band)
 	})

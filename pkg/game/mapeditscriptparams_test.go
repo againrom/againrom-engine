@@ -309,6 +309,7 @@ func TestScriptParameterPickCancelAndDirtyNavigation(t *testing.T) {
 	if !bytes.Equal(before, e.Document().SourceBytes) || e.Dirty() {
 		t.Fatal("Cancel wrote bytes")
 	}
+	e.Select(trigRecord(t, e, "Action", 0), false)
 	if !strings.Contains(trigLines(e), "Unit 10:") {
 		t.Fatal("Cancel retained pick", trigLines(e))
 	}
@@ -336,6 +337,7 @@ func TestScriptVariableChoicesAndTypedBytes(t *testing.T) {
 		}
 	}
 	before := bytes.Clone(e.Document().SourceBytes)
+	e.Select(trigRecord(t, e, "Action", 1), false)
 	trigChoose(t, e, 2, "Funds")
 	if !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("pick wrote before Apply")
@@ -368,6 +370,7 @@ func TestScriptNewVariableAndOpenStack(t *testing.T) {
 	if !bytes.Equal(before, e.Document().SourceBytes) {
 		t.Fatal("Cancel new variable wrote")
 	}
+	e.Select(trigRecord(t, e, "Action", 1), false)
 	trigChoose(t, e, 2, "Funds")
 	r, ok = e.PopupButtonRect(0)
 	trigClick(t, e, r, ok, "Apply variable")

@@ -667,8 +667,7 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 	case n == 0:
 		e.applyObject()
 	case n == 1:
-		e.obj.doc = nil
-		e.loadObject()
+		e.cancelPopup()
 	case v.trigger != nil && n == 2:
 		e.newTrigger()
 	case v.trigger != nil && n == 3:

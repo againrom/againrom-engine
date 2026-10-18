@@ -3,6 +3,7 @@ package ui
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"strings"
 
 	"againrom/pkg/render/text"
@@ -44,6 +45,8 @@ type popupRow struct {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
+	Card     *PanelSubject
+	CardFont *text.Font
 	Title    string
 	At       image.Point
 	Width    int
@@ -64,6 +67,7 @@ type popupSpec struct {
 	ButtonW int
 	// PickLabel is the pick-on-map button's caption.
 	PickLabel string
+	PickArmed bool
 	// LabelWidth is the label column; zero is two fifths of the width.
 	LabelWidth int
 }
@@ -79,6 +83,7 @@ type popupRowRect struct {
 // popupLayout is a built popup: every rectangle the painter fills and the
 // hit test reads.
 type popupLayout struct {
+	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
 	Rows               []popupRowRect
 	List               listBox
@@ -108,6 +113,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := fontHeight(title, 15) + popupRowExtra
 	w := max(160, s.Width)
+	if s.MaxRows > 0 && len(s.Rows) > s.MaxRows {
+		w += widgetSpriteSize + 2
+	}
 	if !s.Bounds.Empty() {
 		w = min(w, s.Bounds.Dx())
 	}
@@ -149,9 +157,17 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	l := popupLayout{Rect: r, Pitch: pitch}
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
 	l.Close = image.Rect(r.Max.X-titleH, r.Min.Y+2, r.Max.X-2, r.Min.Y+titleH-2)
+	contentRight := r.Max.X - popupPad
+	if s.Card != nil {
+		contentRight -= compactPanelW + popupPad
+	}
+	if s.MaxRows > 0 && len(s.Rows) > s.MaxRows {
+		l.RowBar = image.Rect(contentRight-widgetSpriteSize, l.Title.Max.Y+popupPad, contentRight, l.Title.Max.Y+popupPad+shown*pitch)
+		contentRight -= widgetSpriteSize + 2
+	}
 	labelW := s.LabelWidth
 	if labelW <= 0 {
-		labelW = (w - 2*popupPad) * 2 / 5
+		labelW = (contentRight - r.Min.X - popupPad) * 2 / 5
 	}
 	y := l.Title.Max.Y + popupPad
 	for i := 0; i < shown; i++ {
@@ -160,7 +176,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		if row.Kind == popupMultiline {
 			rowH = 6 * pitch
 		}
-		rr := popupRowRect{Index: s.Top + i, Rect: image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad, y+rowH)}
+		rr := popupRowRect{Index: s.Top + i, Rect: image.Rect(r.Min.X+popupPad, y, contentRight, y+rowH)}
 		rr.Label = image.Rect(rr.Rect.Min.X, y, rr.Rect.Min.X+labelW, y+pitch)
 		rr.Control = image.Rect(rr.Label.Max.X+4, y+1, rr.Rect.Max.X, y+pitch-1)
 		if row.Kind == popupMultiline {
@@ -313,6 +329,21 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		return
 	}
 	drawFrame(dst, panelFrame(l.Rect, ink.Ground, ink.Edge))
+	if !l.RowBar.Empty() {
+		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: len(s.Rows) - s.MaxRows + 1}.withPointer(pointer, pointerOK))
+	}
+	if s.Card != nil {
+		font := s.CardFont
+		if font == nil {
+			font = body
+		}
+		start := markCapture()
+		if pic := RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card); pic != nil {
+			at := image.Pt(l.Rect.Max.X-popupPad-compactPanelW, l.Title.Max.Y+popupPad)
+			draw.Draw(dst, pic.Bounds().Add(at), pic, pic.Bounds().Min, draw.Over)
+			shiftCapture(start, at)
+		}
+	}
 	drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
 	if title != nil {
 		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
@@ -381,7 +412,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			bodyText(rr.Control, row.Value, value)
 		}
 		for k, b := range rr.Buttons {
-			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(b)})
+			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Hover: pointerOK && pointer.In(b)})
 		}
 	}
 	if l.HasList && s.ListText != nil {

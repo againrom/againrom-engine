@@ -276,7 +276,7 @@ func (e *MapEditor) panelPress(p image.Point) {
 	s, links := e.panelSpec()
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
-		e.leave(leavePanel)
+		e.cancelPopup(popList)
 	case popupTitle:
 		e.drag, e.dragFrom = popList, p
 	case popupRowLine, popupRowControl:
@@ -448,7 +448,7 @@ func (e *MapEditor) noticePress(p image.Point) {
 	part, n := layoutPopup(e.noticeSpec(), e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == noticeStay:
-		_ = e.Key("escape")
+		e.cancelPopup()
 	case part == popupButton && n == noticeGo:
 		_ = e.noticeContinue()
 	}
@@ -489,7 +489,7 @@ func (e *MapEditor) newModePress(p image.Point) {
 	part, n := layoutPopup(e.newModeSpec(), e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == newModeStay:
-		_ = e.Key("escape")
+		e.cancelPopup()
 	case part == popupButton && (n == newModeSingle || n == newModeMulti):
 		_ = e.newModeOpen(n == newModeMulti)
 	}

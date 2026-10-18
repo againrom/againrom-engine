@@ -40,6 +40,8 @@ type MapInspector struct {
 	rules         []mapRule     // the map report's rule table; nil is mapRules
 	recordOptions map[string][]ui.InspectionChoice
 	tiers         *tierCache // tiersOf's answers; nil computes each time
+	panelWords    *ui.Words
+	cardFont      *text.Font
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {
@@ -62,12 +64,23 @@ func NewMapInspector(root string) (*MapInspector, error) {
 		return nil, err
 	}
 	x.sacks = LoadSackFrames(a.Containers)
+	panelWords := LoadInstallWords(a.Containers, InstallTextCode(a.Containers, a.Game().Edition())).Words()
+	x.panelWords = &panelWords
 	// Shipped font1 keeps catalogue/body text legible at the small supported
 	// window size. It carries the install's byte conversion selector too.
 	if x.font, err = LoadFont(a.Containers, DefaultFont, FontShades); err != nil {
 		return nil, err
 	}
 	x.font.Selector = LanguageSelector(a.Containers)
+	x.cardFont = x.font
+	if d := GeneratorDescription(a.Base.Profile); !a.Base.Profile.Limits.NoCharacterGeneration && d != nil && d.Words.TipFont == "text" {
+		card, err := chargenFont(a.artSource(), d.Words.TextFont)
+		if err != nil {
+			return nil, err
+		}
+		card.Selector = x.font.Selector
+		x.cardFont = card
+	}
 	// The documents font is the install's plain reading face; the editor's
 	// rows, labels, values and reports use it, its titles font1.
 	// An install without it keeps font1 throughout.
@@ -95,6 +108,7 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
 	e.SetBodyFont(x.body)
+	e.SetCardFont(x.cardFont)
 	if x.archives != nil {
 		e.SetWords(words.For(x.archives.Base.Profile.Language))
 	}
@@ -158,6 +172,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		return nil, err
 	}
 	v.SetAnimated(false)
+	if x.panelWords != nil {
+		v.SetWords(*x.panelWords)
+	}
 	v.SetTimeFlow(false)
 	v.ShowReadout(false)
 	d := &ui.InspectionDocument{Viewer: v, Source: source, Name: alm.MapNameText.Decode([]byte(m.Name)),

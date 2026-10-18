@@ -124,10 +124,10 @@ func init() {
 		{key: "backspace", live: promptHears, act: (*MapEditor).keyBackspace, unlisted: unlistedPrompt},
 		{key: "fit", act: (*MapEditor).keyFit, unlisted: unlistedRail},
 		{key: "triggers", act: (*MapEditor).keyScripts, unlisted: "the Scripts entry opens it"},
-		{key: "pageup", act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
-		{key: "pagedown", act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
-		{key: "home", act: (*MapEditor).keyPage, unlisted: "list travel"},
-		{key: "end", act: (*MapEditor).keyPage, unlisted: "list travel"},
+		{key: "pageup", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
+		{key: "pagedown", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
+		{key: "home", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
+		{key: "end", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
 	}
 	editorKeyByName = map[string]*keyRow{}
 	for i := range editorKeyRows {
@@ -229,7 +229,22 @@ func (e *MapEditor) Key(key string) error {
 			}
 		}
 	}
-	return row.act(e, key)
+	switch key {
+	case "open", "saveas", "new", "unit", "structure", "sack", "player", "recipe", "metadata", "pages", "package", "field", "close", "testplay":
+		if !e.prompt.open() {
+			e.rememberCancel()
+		}
+	}
+	wasPrompt := e.prompt.open()
+	restore, document := e.cancelRestore, e.doc
+	err := row.act(e, key)
+	if e.prompt.open() && e.doc == document && restore != nil {
+		e.cancelRestore = restore
+	}
+	if !wasPrompt && !e.prompt.open() && e.pathDialog.pending == nil {
+		e.cancelRestore = nil
+	}
+	return err
 }
 
 func (e *MapEditor) keyClose(string) error {
@@ -243,8 +258,7 @@ func (e *MapEditor) keyClose(string) error {
 	return ebiten.Termination
 }
 
-// keyEscape leaves the foremost state: a drag, a pick, the prompt, the panel,
-// the message, the brush and the catalogue, in that order, then the window.
+// keyEscape cancels the foremost gesture, popup or mode.
 func (e *MapEditor) keyEscape(string) error {
 	switch {
 	case e.recordDrag != nil:
@@ -255,29 +269,27 @@ func (e *MapEditor) keyEscape(string) error {
 	case e.prompt.kind == promptAreaTrigger && e.prompt.area.open:
 		e.prompt.area.open = false
 	case e.prompt.open():
-		e.leave(leavePrompt)
-		e.saveThen = nil
-		e.message = ""
+		e.cancelPopup()
 	case e.menu != "":
 		e.menu = ""
 	case e.dropdownOpen():
 		e.obj.open = -1
 	case e.objectTyping():
-		e.obj.focus = -1
+		e.cancelPopup()
 	case e.report.open && e.message == "":
-		e.leave(leaveReport)
+		e.cancelPopup(popList)
 	case e.message != "":
 		e.message = ""
-	case e.brush.mode != brushOff:
-		e.leave(leaveBrush)
 	case e.catalog && e.doc != nil:
-		e.leave(leaveCatalog)
+		e.cancelPopup(popList)
+	case e.brush.mode != brushOff:
+		e.cancelPopup(popList)
 	case e.groupSel.set && !e.objectHidden || e.selected != -1 && !e.objectHidden:
-		e.closeObject()
+		e.cancelPopup()
 	case e.listShown:
-		e.closeList()
+		e.cancelPopup(popList)
 	case e.panel:
-		e.leave(leavePanel)
+		e.cancelPopup(popList)
 	case e.Dirty():
 		e.askLeave(leaveStep{})
 	default:
@@ -329,9 +341,7 @@ func (e *MapEditor) keyEnter(string) error {
 		e.areaSharedContinue()
 		return nil
 	case promptAdd:
-		if !e.addPicking() {
-			e.addNext()
-		}
+		e.addNext()
 		return nil
 	case promptField, promptWorkspace:
 		return e.setField(e.prompt.path)
@@ -383,7 +393,7 @@ func (e *MapEditor) keyStep(key string) error {
 	}
 	if e.objectTyping() {
 		if e.dropdownOpen() {
-			dropdownStep(e.obj.choice, delta)
+			editorListStep(e.obj.choice, delta)
 			e.chooseObjectChoiceKeep()
 		} else {
 			e.objectStep(delta)
@@ -484,10 +494,18 @@ func (e *MapEditor) keyFit(string) error {
 // keyPage pages the list popup: the map picker's highlight, else the list's
 // cursor.
 func (e *MapEditor) keyPage(key string) error {
-	if e.model == nil || e.listKind() == "" {
+	m := e.model
+	add := false
+	if r, ok := e.addRunning(); ok {
+		m, add = r.list, true
+	} else if e.dropdownOpen() {
+		m = e.obj.choice
+	} else if e.prompt.kind == promptAreaTrigger {
+		m = e.prompt.area.choice
+	}
+	if m == nil {
 		return nil
 	}
-	m := e.model
 	switch key {
 	case "pageup":
 		listKey(m, false, false, true, false)
@@ -497,6 +515,9 @@ func (e *MapEditor) keyPage(key string) error {
 		m.Select(0)
 	case "end":
 		m.Select(m.Len() - 1)
+	}
+	if add {
+		e.addTake(m.Selection())
 	}
 	if e.catalog && m.Len() > 0 && !m.Rows()[m.Selection()].Choosable {
 		if key == "end" || key == "pagedown" {

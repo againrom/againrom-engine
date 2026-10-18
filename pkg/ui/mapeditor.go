@@ -100,6 +100,7 @@ type InspectionGoal struct {
 // InspectionField is one settable field of a selected record and its value.
 type InspectionField struct {
 	Key, Label string
+	Meaning    string
 	Value      int64
 	Text       bool
 	TextValue  string
@@ -118,26 +119,31 @@ type InspectionOpener func(string) (*InspectionDocument, error)
 // MapEditor is an authored-map canvas. It has no game App, command queue,
 // mission or simulation ticking seam. Host callbacks own edits and file writes.
 type MapEditor struct {
-	doc                    *InspectionDocument
-	font                   *text.Font
-	maps                   []EditorMap
-	open                   InspectionOpener
-	hostText               func(string) string
-	pathDialog             editorPathDialog
-	selected               int
-	filter                 int
-	editorMode             // the window's mode: catalogue, prompt, pick, brush and report
-	message                string
-	down, moved            bool
-	press                  image.Point
-	window                 image.Point
-	focusedReference       int // 1-based on the selected record; 0 means none
-	recordDrag             *editorRecordDrag
-	cancelledDrag          bool // consume the remainder of a cancelled press
-	textSmoothingEnabled   bool
-	textOverlay            textOverlay
-	textLayers             []textLayer
-	textCaptured, textKept int
+	doc                         *InspectionDocument
+	font                        *text.Font
+	maps                        []EditorMap
+	open                        InspectionOpener
+	hostText                    func(string) string
+	pathDialog                  editorPathDialog
+	selected                    int
+	filter                      int
+	editorMode                  // the window's mode: catalogue, prompt, pick, brush and report
+	message                     string
+	down, moved                 bool
+	press                       image.Point
+	window                      image.Point
+	focusedReference            int // 1-based on the selected record; 0 means none
+	recordDrag                  *editorRecordDrag
+	cancelledDrag               bool // consume the remainder of a cancelled press
+	textSmoothingEnabled        bool
+	textOverlay                 textOverlay
+	textLayers                  []textLayer
+	textCaptured, textKept      int
+	placementKey                string
+	placementDoc, placementView *InspectionDocument
+	placementErr                error
+	cancelRestore               func()
+	listRestore                 func()
 	editorChrome
 }
 
@@ -188,12 +194,11 @@ func (e *MapEditor) openMap(source string) error {
 	}
 	next.Viewer.editorView = true
 	e.doc = next
+	e.cancelRestore = nil
+	e.listRestore = nil
 	e.Layout(e.window.X, e.window.Y)
 	e.leave(leaveDrag | leaveReport | leaveCatalog | leavePrompt | leavePanel)
 	e.selected, e.filter, e.listShown = -1, 0, false
-	if _, ok := e.mapPanel(); ok {
-		e.openPanel()
-	}
 	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
 	e.objectBack = nil
 	e.messagePage = 0
@@ -201,6 +206,9 @@ func (e *MapEditor) openMap(source string) error {
 	e.message = ""
 	e.brush.endStroke()
 	e.Fit()
+	if _, ok := e.mapPanel(); ok {
+		e.openPanel()
+	}
 	return nil
 }
 
@@ -301,10 +309,15 @@ func (e *MapEditor) rows() []int {
 }
 
 func (e *MapEditor) Pointer(in Input, now time.Time) {
+	if in.SecondaryDown && e.pick != pickNone {
+		e.leave(leavePick)
+		return
+	}
 	if e.pathDialog.pending != nil {
 		return
 	}
 	if e.chromePointer(in, now) {
+		e.hoverOK = false
 		if e.doc != nil {
 			e.doc.Viewer.dragging = false
 		}
@@ -476,6 +489,11 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 		}
 		v.canvas.Clear()
 		v.drawFrame(v.canvas)
+		if f, ok := e.placement(); ok {
+			for _, s := range f.Sprites {
+				v.drawPlaneSprite(v.canvas, s)
+			}
+		}
 		e.drawMarkers(v.canvas)
 		ox, oy := v.place.Origin()
 		op := &ebiten.DrawImageOptions{}
@@ -549,6 +567,17 @@ type editorLine struct {
 func (e *MapEditor) markerLines() []editorLine {
 	v := e.doc.Viewer
 	var out []editorLine
+	if f, ok := e.placement(); ok {
+		c := editorGold
+		if f.Refused {
+			c = editorWarning
+		}
+		verts := v.cellSpace().vertices(v.cam, f.Cell.X, f.Cell.Y)
+		for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
+			a, b := verts[edge[0]], verts[edge[1]]
+			out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})
+		}
+	}
 	for i, r := range e.doc.Records {
 		if e.recordDrag != nil && e.recordDrag.moved && i == e.recordDrag.record {
 			r.Cell = e.recordDrag.cell // preview only; no model mutation until release

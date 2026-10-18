@@ -151,13 +151,13 @@ func (e *MapEditor) brushKey(key string) bool {
 		if !e.brushActive() {
 			return false
 		}
-		n := len(e.brushRows())
-		if n > 0 {
-			d := 1
-			if key == "up" {
-				d = n - 1
-			}
-			e.brush.sel[e.brush.mode] = (e.brush.sel[e.brush.mode] + d) % n
+		d := 1
+		if key == "up" {
+			d = -1
+		}
+		m := e.syncList("brush", e.listWindow())
+		if editorListStep(m, d) {
+			e.brushRowClick(m.Selection())
 		}
 		return true
 	}
@@ -315,6 +315,7 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error) error 
 	nv.editorView = true
 	nv.flat, nv.unshaded, nv.showGrid = old.flat, old.unshaded, old.showGrid
 	e.doc = next
+	e.cancelRestore, e.listRestore = nil, nil
 	e.Layout(e.window.X, e.window.Y)
 	nv.syncWorld()
 	nv.cam.Zoom, nv.cam.X, nv.cam.Y = old.cam.Zoom, old.cam.X, old.cam.Y

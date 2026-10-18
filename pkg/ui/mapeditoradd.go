@@ -164,11 +164,17 @@ func (e *MapEditor) openAdd(kind string) {
 	if _, host := e.addHost(); !ok || !host {
 		return
 	}
+	e.rememberCancel()
+	restore := e.cancelRestore
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
+	e.cancelRestore = restore
 	run := &addRun{kind: row.Kind, title: e.word(row.Word)}
 	run.setSteps(row.Steps)
 	e.openPrompt(editorPrompt{kind: promptAdd, add: run})
 	e.enterAddStep(0, 1)
+	if row.Kind == "Unit" || row.Kind == "Structure" || row.Kind == "Sack" {
+		e.armPick(pickAddCell)
+	}
 }
 
 func (r *addRun) setSteps(steps []addStep) {
@@ -480,7 +486,7 @@ func (e *MapEditor) addMove(delta int) {
 		return
 	}
 	if _, ok := r.choiceAt(e.prompt.path); ok || r.steps[r.at].Control == addMany && e.prompt.path != "" {
-		dropdownStep(r.list, delta)
+		editorListStep(r.list, delta)
 	}
 	e.addTake(r.list.Selection())
 }
@@ -511,9 +517,21 @@ func (e *MapEditor) addFollow() {
 
 // addPicked takes a cell clicked on the map as the cell step's value.
 func (e *MapEditor) addPicked(cell image.Point) {
-	if _, ok := e.addRunning(); ok {
-		e.message = ""
-		e.prompt.path = fmt.Sprintf("%d,%d", cell.X, cell.Y)
+	r, ok := e.addRunning()
+	if !ok {
+		return
+	}
+	rec := e.addPlacement(cell)
+	host, _ := e.addHost()
+	next, err := host.AddRecord(rec)
+	if err != nil {
+		r.note = e.editorHostText(err.Error())
+		e.armPick(pickAddCell)
+		return
+	}
+	if next != nil && e.adoptEdit(next, nil) == nil {
+		e.leave(leavePrompt)
+		e.selectNewest(r.kind)
 	}
 }
 
@@ -561,7 +579,7 @@ func (e *MapEditor) addValueText(r *addRun, i int) string {
 func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 	r, _ := e.addRunning()
 	w := min(480, e.window.X-16)
-	s := popupSpec{Title: r.title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, PickLabel: e.word("editor.object.pick")}
+	s := popupSpec{Title: r.title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, PickLabel: e.word("editor.object.pick"), PickArmed: e.addPicking()}
 	var acts []addRowAct
 	body := e.bodyFont()
 	for i, st := range r.steps {
@@ -592,6 +610,10 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 		}
 		if row.Value == "" && row.Kind == popupText {
 			row.Value = " "
+		}
+		if st.Control == addCell {
+			row.Kind = popupPick
+			act.button = "pick"
 		}
 		_, chosen := r.choiceAt(e.prompt.path)
 		if row.Focus && !(row.Kind == popupChoice && chosen) && body != nil {
@@ -660,7 +682,7 @@ func (e *MapEditor) AddStep() (key, note string, ok bool) {
 
 // addSpecOK is the Add window as data while it is open, else no acts.
 func (e *MapEditor) addSpecOK() (popupSpec, []addRowAct) {
-	if _, ok := e.addRunning(); !ok || e.addPicking() {
+	if _, ok := e.addRunning(); !ok {
 		return popupSpec{}, nil
 	}
 	return e.addSpec()
@@ -673,7 +695,7 @@ func (e *MapEditor) addPress(p image.Point, double bool) {
 	l := layoutPopup(s, e.font, e.bodyFont())
 	switch part, n := l.hit(p); part {
 	case popupClose:
-		e.leave(leavePrompt)
+		e.cancelPopup()
 	case popupButton:
 		switch {
 		case n == 0 && !s.Disabled[0]:
@@ -681,7 +703,7 @@ func (e *MapEditor) addPress(p image.Point, double bool) {
 		case n == 1:
 			e.addNext()
 		case n == 2:
-			e.leave(leavePrompt)
+			e.cancelPopup()
 		}
 	case popupRowButton:
 		a := acts[n]
@@ -710,10 +732,6 @@ func (e *MapEditor) addPress(p image.Point, double bool) {
 		e.addTake(top + n)
 		if double {
 			e.addNext()
-		}
-	case popupListBar:
-		if req, _ := listBar(l.List, r.list).press(p); req != barNone {
-			listBarRequest(r.list, req, 0)
 		}
 	}
 }

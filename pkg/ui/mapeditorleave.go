@@ -87,7 +87,7 @@ func (e *MapEditor) leavePress(p image.Point) {
 	part, n := l.hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == leaveStay:
-		_ = e.Key("escape")
+		e.cancelPopup()
 	case part == popupButton && n == leaveSave:
 		_ = e.leaveSaveAs()
 	case part == popupButton && n == leaveGo:

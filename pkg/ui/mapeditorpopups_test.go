@@ -294,6 +294,7 @@ func TestEditorObjectPopupApplyIsOneUndoStep(t *testing.T) {
 		t.Fatal("Cancel kept the typed text or wrote")
 	}
 	// A refused value shows its reason and writes nothing.
+	e.Select(2, false)
 	chromeClick(e, center(fieldRowRect(t, e, 0).Control))
 	e.TextInput("0")
 	_ = e.Key("backspace")
@@ -305,8 +306,7 @@ func TestEditorObjectPopupApplyIsOneUndoStep(t *testing.T) {
 	if string(e.doc.SourceBytes) != original || !strings.Contains(strings.Join(s.Notes, " "), "below 0") || e.message != "" {
 		t.Fatalf("refusal: bytes %q notes %v message %q calls %v buf %q note %q", e.doc.SourceBytes, s.Notes, e.message, h.calls, e.obj.buf, e.obj.note)
 	}
-	// Esc leaves the field, then closes the popup; the selection stays.
-	_ = e.Key("escape")
+	// Esc cancels the popup; the selection stays.
 	_ = e.Key("escape")
 	if _, _, ok := e.objectSpec(); ok || e.selected != 2 {
 		t.Fatal("Esc did not close the object popup")

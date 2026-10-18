@@ -42,6 +42,7 @@ func (e *MapEditor) setWorkspaceField(value string) error {
 		return err
 	}
 	e.leave(leavePrompt)
+	e.cancelRestore = nil
 	return nil
 }
 

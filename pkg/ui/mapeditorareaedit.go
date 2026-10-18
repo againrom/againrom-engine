@@ -444,7 +444,7 @@ func (e *MapEditor) areaSharedPress(p image.Point) {
 	part, n := layoutPopup(e.areaSharedSpec(), e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == areaSharedStay:
-		_ = e.Key("escape")
+		e.cancelPopup()
 	case part == popupButton && n == areaSharedGo:
 		e.areaSharedContinue()
 	}
@@ -572,9 +572,6 @@ func (e *MapEditor) areaTriggerPress(p image.Point) {
 			a.open, a.note = false, ""
 			return
 		case dropdownBar:
-			if req, _ := listBar(d.listBox(e.bodyFont()), d.List).press(p); req != barNone {
-				listBarRequest(d.List, req, 0)
-			}
 			return
 		}
 		a.open = false
@@ -582,7 +579,7 @@ func (e *MapEditor) areaTriggerPress(p image.Point) {
 	part, n := layoutPopup(e.areaTriggerSpec(), e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == areaCreateStay:
-		_ = e.Key("escape")
+		e.cancelPopup()
 	case part == popupButton && n == areaCreateGo:
 		e.areaCreate()
 	}
@@ -591,7 +588,7 @@ func (e *MapEditor) areaTriggerPress(p image.Point) {
 // areaStep moves the trigger choice by delta: the arrow keys.
 func (e *MapEditor) areaStep(delta int) {
 	a := e.prompt.area
-	dropdownStep(a.choice, delta)
+	editorListStep(a.choice, delta)
 	a.note = ""
 }
 

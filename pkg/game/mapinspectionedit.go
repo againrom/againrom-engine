@@ -20,6 +20,7 @@ import (
 // One retained byte-model and checkpoint own the document. A candidate clone
 // retains history and is adopted only after its full inspection view succeeds.
 type mapInspectionEdits struct {
+	unitViews                    *inspectionUnitViews
 	inspector                    *MapInspector
 	model                        *mapedit.Editor
 	source                       string
@@ -248,6 +249,9 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		}
 		if err != nil {
 			return nil
+		}
+		if k == mapedit.KindUnit {
+			row.Meaning = template.meaning(f.Key, row.Value)
 		}
 		if scriptView != nil {
 			row.Choices = scriptFieldChoices(kind, f.Key, script, s.inspector.inspectionUTF8)
