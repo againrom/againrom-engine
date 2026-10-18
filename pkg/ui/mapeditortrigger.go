@@ -825,6 +825,19 @@ func (e *MapEditor) PopupLines() []string {
 	return append(out, s.Notes...)
 }
 
+// PopupRecordLinks returns each popup row's record destination, or -1.
+func (e *MapEditor) PopupRecordLinks() []int {
+	s, links, _ := e.objectSpec()
+	out := make([]int, len(s.Rows))
+	for i := range out {
+		out[i] = -1
+		if i < len(links) && links[i] < 0 {
+			out[i] = -links[i] - 1
+		}
+	}
+	return out
+}
+
 func (e *MapEditor) PopupRowRect(n int) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok {

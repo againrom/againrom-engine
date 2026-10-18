@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Map editor unit, structure, group and player popups list the scripts
+  that use them. Open a listed trigger and return with Back; unapplied object
+  fields stay intact.
 - [ROM1] Map message pages now stay beside a saved map, with all source languages
   and shared pages preserved by Save As and mod export. The editor loads them
   for Pages and Test play, and reports missing pages for the map or mod by name.

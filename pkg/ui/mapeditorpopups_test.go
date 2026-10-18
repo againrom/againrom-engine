@@ -353,7 +353,7 @@ func TestEditorGroupRowHighlightsExactlyItsMembers(t *testing.T) {
 		t.Fatalf("the group marks %d lines, want two boxes", n)
 	}
 	s, links := func() (popupSpec, []int) { s, l, _ := e.objectSpec(); return s, l }()
-	if len(s.Rows) != 4 || links[2] != -1 || links[3] != -3 {
+	if len(s.Rows) != 5 || links[2] != -1 || links[3] != -3 || s.Rows[4].Label != "Used by: none" {
 		t.Fatalf("group popup rows %+v links %v", s.Rows, links)
 	}
 	chromeClick(e, center(objectRowRect(t, e, 3).Rect))

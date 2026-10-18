@@ -175,28 +175,20 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 	}
 	s := popupSpec{Title: e.variableTitle(v), At: e.objectAt, Width: 420, Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
 	var links []int
-	link := func(id int, title string) {
-		for _, part := range editorWrap(e.bodyFont(), title, s.Width-2*popupPad-8) {
-			s.Rows, links = append(s.Rows, popupRow{Kind: popupLink, Label: part}), append(links, -id-1)
-		}
-	}
 	for _, group := range []struct {
 		title string
 		ids   []int
 	}{
 		{e.word("editor.scripts.writers"), v.writers}, {e.word("editor.scripts.readers"), v.readers},
 	} {
-		title := group.title
-		if len(group.ids) == 0 {
-			title = fmt.Sprintf(e.word("editor.scripts.emptyheading"), title)
-		}
-		s.Rows, links = append(s.Rows, popupRow{Kind: popupText, Label: title}), append(links, 0)
+		var rows []scriptPopupLink
 		for _, id := range group.ids {
-			link(id, e.scriptRowText(id, 0))
+			rows = append(rows, scriptPopupLink{record: id, title: e.scriptRowText(id, 0)})
 		}
+		e.scriptLinkSection(&s, &links, group.title, rows)
 	}
 	if v.constant >= 0 {
-		link(v.constant, e.scriptRowText(v.constant, 2))
+		e.scriptPopupLink(&s, &links, scriptPopupLink{record: v.constant, title: e.scriptRowText(v.constant, 2)})
 	}
 	s.MaxRows = e.objectRowsShown(true)
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))

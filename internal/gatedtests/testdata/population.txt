@@ -2,6 +2,8 @@
 # Scan in both directions. pipeline/check-release-tests.sh independently
 # TestScanMatchesTheCheckedInPopulationList requires an exact match with
 # matches these IDs against its runtime JSON skip census.
+pkg/game.TestReleaseMapEditorUsedByCensusPreservesBytes
+pkg/game.TestReleaseMapEditorUsedByFrames
 pkg/game.TestAttackTargetOwnerSave
 pkg/game.TestReleaseDecodedInstallFixtureIsolation
 pkg/game.TestReleaseOriginalStreamStartDrawsAFacingForEveryRingPlacement

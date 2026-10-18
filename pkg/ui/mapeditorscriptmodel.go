@@ -137,6 +137,27 @@ type InspectionScriptTarget struct {
 	Members int
 	Name    string
 	Choice  string
+	Uses    []InspectionScriptUse
+}
+
+// InspectionScriptUse is one parameter and the triggers naming its node.
+type InspectionScriptUse struct {
+	Node, Slot int
+	Triggers   []int
+}
+
+// OpenTarget admits exactly the host choices that parameter Open can follow.
+func (m *InspectionScriptModel) OpenTarget(kind, value uint32) *InspectionScriptTarget {
+	if m == nil || kind == scriptItem || kind == scriptUnit && value >= 10001 {
+		return nil
+	}
+	for i := range m.Targets[kind] {
+		t := &m.Targets[kind][i]
+		if t.Value == value && (t.Record >= 0 || kind == ScriptVariableParameter && t.Record <= -2 || kind == scriptGroup && value != 0 && t.Members > 0) {
+			return t
+		}
+	}
+	return nil
 }
 
 func (t InspectionScriptTarget) ChoiceText() string {

@@ -2584,6 +2584,8 @@ package storyguard
 // drawn box (pkg/game/mapinspectionareas.go) and their tests.
 // CommentBytes falls when the duplicate script choice builder and the
 // single-trigger return path are replaced by shared choices and navigation.
+// CommentBytes rises for the new target-use and popup-link API docs in
+// pkg/ui/mapeditorscriptmodel.go and pkg/ui/mapeditortrigger.go, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2607,5 +2609,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9198679,
+	CommentBytes: 9199052,
 }

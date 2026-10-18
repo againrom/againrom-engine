@@ -24,7 +24,9 @@ func groupLinks(t *testing.T, e *MapEditor) []int {
 	}
 	var out []int
 	for _, l := range links[2:] {
-		out = append(out, -l-1)
+		if l < 0 && e.doc.Records[-l-1].Kind == "Unit" {
+			out = append(out, -l-1)
+		}
 	}
 	return out
 }

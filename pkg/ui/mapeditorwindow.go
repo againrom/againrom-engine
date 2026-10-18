@@ -757,6 +757,9 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		add(popupRow{Kind: popupText, Label: e.word("editor.object.cell"), Value: fmt.Sprintf("%d,%d  %dx%d", r.Cell.X, r.Cell.Y, r.Size.X, r.Size.Y)}, 0)
 	}
 	e.objectFieldRows(&s, &links)
+	if e.hasUsedBy() {
+		e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
+	}
 	e.obj.data = len(s.Rows)
 	add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
 	width := 420 - 2*popupPad - 4
@@ -1286,7 +1289,11 @@ func (e *MapEditor) objectPress(p image.Point) {
 			return
 		}
 		if n < len(links) && links[n] < 0 {
-			e.openObjectRecord(-links[n]-1, true)
+			if e.hasUsedBy() && scriptRecord(e.doc.Records[-links[n]-1].Kind) {
+				e.openObjectUse(-links[n] - 1)
+			} else {
+				e.openObjectRecord(-links[n]-1, true)
+			}
 			return
 		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {

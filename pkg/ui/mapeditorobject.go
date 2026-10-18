@@ -570,6 +570,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 			links = append(links, -(id + 1))
 		}
 	}
+	e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
 	s.MaxRows = e.objectRowsShown(len(e.objectBack) > 0)
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
 	s.Top = e.objectTop

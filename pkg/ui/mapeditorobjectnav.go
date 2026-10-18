@@ -10,6 +10,7 @@ type objectPlace struct {
 	index, top int
 	group      editorGroup
 	register   uint32
+	draft      *objectEdit
 }
 
 func objectParameter(t uint32) bool {
@@ -83,6 +84,18 @@ func (e *MapEditor) backObject() {
 	e.objectBack, e.objectTop = back, p.top
 	e.obj.doc = nil
 	e.loadObject()
+	if p.draft != nil {
+		for i, f := range p.draft.fields {
+			if p.draft.buf[i] == fieldInput(f) {
+				continue
+			}
+			for j, current := range e.obj.fields {
+				if current.Key == f.Key {
+					e.obj.buf[j] = p.draft.buf[i]
+				}
+			}
+		}
+	}
 }
 
 func (e *MapEditor) parameterTarget(field int) (InspectionScriptTarget, bool) {
@@ -101,13 +114,11 @@ func (e *MapEditor) parameterTarget(field int) (InspectionScriptTarget, bool) {
 	}
 	t := e.nodeParameterKind(vw, uint32(o.signature[0]), o.types, slot)
 	v, err := strconv.ParseUint(strings.TrimSpace(o.buf[field]), 10, 32)
-	if err != nil || t == scriptItem || t == scriptUnit && v >= 10001 {
+	if err != nil {
 		return InspectionScriptTarget{}, false
 	}
-	for _, target := range e.doc.Script.Targets[t] {
-		if target.Value == uint32(v) && (target.Record >= 0 || t == ScriptVariableParameter && target.Record <= -2 || t == scriptGroup && v != 0) {
-			return target, true
-		}
+	if target := e.doc.Script.OpenTarget(t, uint32(v)); target != nil {
+		return *target, true
 	}
 	return InspectionScriptTarget{}, false
 }
