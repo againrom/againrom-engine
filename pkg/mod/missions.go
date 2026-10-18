@@ -1,13 +1,13 @@
 package mod
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
-	"sort"
 	"strings"
 )
 
@@ -67,6 +67,8 @@ type Mission struct {
 	Chapter int
 	Gold    int
 	Carry   string
+
+	language string
 
 	// MapBytes and TextFiles are the map and the text files as read from the
 	// mod folder when the mod loaded. TextFiles is keyed by file name.
@@ -145,7 +147,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 		if t.name != "mission" || !t.array {
 			return MissionData{}, bad(t.line, "unknown table %q (this file holds [[mission]])", t.name)
 		}
-		m := Mission{Mod: id, File: file, Line: t.line, Kind: MissionGuest, Carry: CarryJoin}
+		m := Mission{Mod: id, File: file, Line: t.line, Kind: MissionGuest, Carry: CarryJoin, language: lang}
 		have := map[string]bool{}
 		for _, p := range t.pairs {
 			have[p.key] = true
@@ -292,37 +294,84 @@ func (m *Mission) ReadFiles(dir string) error {
 		return bad("map: %v", err)
 	}
 	m.MapBytes = b
-	m.TextFiles = map[string][]byte{}
-	if m.Texts == "" {
-		return nil
-	}
-	if _, _, err := ReadInside(dir, m.Texts); err == nil {
-		return bad("texts %q is a file, not a folder", m.Texts)
-	}
-	entries, err := os.ReadDir(filepath.Join(dir, filepath.FromSlash(m.Texts)))
+	m.TextFiles, err = m.ReadTexts(dir, m.language)
 	if err != nil {
-		return bad("texts: %s: no such folder in the mod folder", m.Texts)
-	}
-	var names []string
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		if !missionTextName.MatchString(e.Name()) {
-			return bad("texts: %s/%s is not a mission text file name (a-z, 0-9 and '_', then .txt)", m.Texts, e.Name())
-		}
-		names = append(names, e.Name())
-	}
-	if len(names) > MaxMissionTexts {
-		return bad("texts: %s holds %d files; at most %d", m.Texts, len(names), MaxMissionTexts)
-	}
-	sort.Strings(names)
-	for _, n := range names {
-		b, _, err := ReadInside(dir, m.Texts+"/"+n)
-		if err != nil {
-			return bad("texts: %v", err)
-		}
-		m.TextFiles[n] = b
+		return bad("texts: %v", err)
 	}
 	return nil
+}
+
+// ReadTexts reads a map's pages before its declared mission text folder.
+func (m Mission) ReadTexts(dir, lang string) (map[string][]byte, error) {
+	if lang == "" {
+		lang = path.Base(m.Texts)
+		if lang != "en" && lang != "ru" {
+			lang = "en"
+		}
+	}
+	if lang != "en" && lang != "ru" {
+		return nil, fmt.Errorf("unsupported page language %q", lang)
+	}
+	folder := strings.TrimSuffix(m.Map, path.Ext(m.Map)) + ".text"
+	folders := []string{folder + "/" + lang, folder}
+	fallback := ""
+	if m.Texts != "" {
+		declared := strings.ReplaceAll(m.Texts, "{lang}", lang)
+		folders = append(folders, declared)
+		if tail := path.Base(declared); tail == "en" || tail == "ru" {
+			fallback = path.Dir(declared)
+		}
+	}
+	files, err := readMissionTexts(dir, fallback, folders...)
+	if errors.Is(err, os.ErrNotExist) && m.Texts == "" {
+		return map[string][]byte{}, nil
+	}
+	return files, err
+}
+
+func readMissionTexts(dir, fallback string, folders ...string) (map[string][]byte, error) {
+	files := map[string][]byte{}
+	found := false
+	if fallback != "" {
+		folders = append(folders, fallback)
+	}
+	for _, folder := range folders {
+		if !insidePath(folder) && !(folder == "." && folder == fallback) {
+			return nil, fmt.Errorf("texts %q is not a path inside its folder", folder)
+		}
+		entries, err := os.ReadDir(filepath.Join(dir, filepath.FromSlash(folder)))
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		found = true
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			if !missionTextName.MatchString(e.Name()) {
+				if folder == fallback {
+					continue
+				}
+				return nil, fmt.Errorf("%s is not a mission text file name (a-z, 0-9 and '_', then .txt)", filepath.Join(dir, filepath.FromSlash(folder), e.Name()))
+			}
+			if _, exists := files[e.Name()]; exists {
+				continue
+			}
+			if len(files) >= MaxMissionTexts {
+				return nil, fmt.Errorf("at most %d files", MaxMissionTexts)
+			}
+			b, _, err := ReadInside(dir, folder+"/"+e.Name())
+			if err != nil {
+				return nil, err
+			}
+			files[e.Name()] = b
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("no such folder %s: %w", filepath.Join(dir, filepath.FromSlash(folders[len(folders)-1])), os.ErrNotExist)
+	}
+	return files, nil
 }

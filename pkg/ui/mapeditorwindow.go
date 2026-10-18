@@ -834,7 +834,10 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 	text := w - 2*popupPad - 60
 	if e.prompt.open() {
 		s.Title = e.promptTitle()
-		paths := editorParagraphs(e.bodyFont(), e.editorHostText(e.prompt.path), text)
+		var paths []string
+		for _, line := range strings.Split(strings.ReplaceAll(e.prompt.path, "\r\n", "\n"), "\n") {
+			paths = append(paths, editorWrap(e.bodyFont(), e.editorHostText(line), text)...)
+		}
 		if len(paths) > 6 {
 			paths = paths[len(paths)-6:]
 			paths[0] = textfit.Mark + paths[0]

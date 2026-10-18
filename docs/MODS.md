@@ -148,6 +148,22 @@ win. Nothing but the guest's own state carries back: the mission's purse,
 loot and payment stay behind. A SAVE inside the mission names the mod and the
 mission; a LOAD without that mod refuses.
 
+A map's own pages take priority: `<stem>.text/<lang>/`, then
+`<stem>.text/` beside its ALM. The declared `texts` folder supplies missing
+pages; a folder ending in `/en` or `/ru` also reads page files in its parent
+as a fallback. Other files in that parent are ignored. A replacing campaign mission finally keeps the install's
+page for a number the map and mod leave out. Priority applies per file.
+
+The map editor's Save As copies every language folder and unlanguaged page
+beside the new ALM into `<stem>.text/`. Changed workspace pages go into
+`<stem>.text/<lang>/`. Both destinations must be new and outside the install,
+even when the source has no pages. W copies the same tree to `mission/text/` and declares
+`texts = "mission/text/{lang}"`. An older package with only `mission/text/`
+continues to load. Saving an editor-owned package keeps its recorded
+unlanguaged and other-language pages. Unchanged unlanguaged pages stay
+unlanguaged. A language folder never substitutes for another language.
+Page storage does not change ALM or SAV layout.
+
 ```toml
 [[mission]]
 key      = "prologue"

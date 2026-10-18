@@ -527,8 +527,8 @@ func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
 }
 
 func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
-	if !bytes.Equal(s.savedWorkspace, s.workspaceImage) {
-		return "", fmt.Errorf("save authored pages and route into a mod package with W, then Ctrl+S")
+	if err := s.prepareWorkspace(); err != nil {
+		return "", err
 	}
 	if err := s.gate(); err != nil {
 		return "", err
@@ -541,11 +541,16 @@ func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
 	}
-	target, err := writeEditedMap(root, s.source, path, b)
+	pages, err := s.exportPageTree("", nil)
+	if err != nil {
+		return "", err
+	}
+	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage())
 	if err != nil {
 		return "", err
 	}
 	s.saved, s.source = s.model.Bytes(), target
+	s.checkpointPages()
 	return target, nil
 }
 

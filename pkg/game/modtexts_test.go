@@ -139,18 +139,18 @@ func TestMapRuleModMessageTextNamesAMessageTheModGivesNoPage(t *testing.T) {
 	}
 	m := built(t, withScript(cleanOptions(), messageScript(3, 7, 255, 7)), nil, nil)
 	x := checkInspector()
-	if rows := ofRule(findings(t, x, m, host), "mod-message-text"); len(rows) != 0 {
-		t.Fatalf("no mod named: %+v", rows)
+	if rows := ofRule(findings(t, x, m, host), "mod-message-text"); len(rows) != 2 || !strings.Contains(rows[0].Text, "map ") {
+		t.Fatalf("loose map without pages: %+v", rows)
 	}
 	x.mod = &editorMod{dir: dir, id: "m", missions: mod.MissionData{Missions: []mod.Mission{
 		{Mod: "m", Key: "k", Number: 25, Map: "map.alm", Texts: "t"}}}}
 	rows := ofRule(findings(t, x, m, host), "mod-message-text")
-	if len(rows) != 1 || rows[0].Error || !strings.Contains(rows[0].Text, "message 7") || !strings.Contains(rows[0].Text, "event07.txt") {
+	if len(rows) != 1 || rows[0].Error || !strings.Contains(rows[0].Text, "message 7") || !strings.Contains(rows[0].Text, "event07.txt") || !strings.Contains(rows[0].Text, `mod "m"`) {
 		t.Fatalf("one warning for message 7 expected, got %+v", rows)
 	}
-	// A map no mission of the mod names is not this rule's business.
-	if rows := ofRule(findings(t, x, m, "scenario/9.alm"), "mod-message-text"); len(rows) != 0 {
-		t.Fatalf("a map the mod does not name: %+v", rows)
+	// An unbound campaign map uses its own page source.
+	if rows := ofRule(findings(t, x, m, "scenario/9.alm"), "mod-message-text"); len(rows) != 2 {
+		t.Fatalf("campaign map without pages: %+v", rows)
 	}
 	// A mission with no texts folder gives no page for any message.
 	x.mod.missions.Missions[0].Texts = ""

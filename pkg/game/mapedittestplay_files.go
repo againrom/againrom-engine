@@ -74,6 +74,9 @@ func missionPackageOwnership(folder, recordName string, protected []string) ([]s
 	seen := map[string]bool{}
 	for _, rel := range record.Files {
 		page := strings.TrimPrefix(rel, testPlayTexts+"/")
+		if lang, rest, ok := strings.Cut(page, "/"); ok && (lang == "en" || lang == "ru") {
+			page = rest
+		}
 		fixed := rel == mod.ManifestName || rel == "main.star" || rel == mod.MissionsFile || rel == testPlayMap
 		if seen[rel] || !fixed && (page == rel || !missionPageName(page)) {
 			return nil, fmt.Errorf("%s has an invalid recorded path %q", folder, rel)

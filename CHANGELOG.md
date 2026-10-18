@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Map message pages now stay beside a saved map, with all source languages
+  and shared pages preserved by Save As and mod export. The editor loads them
+  for Pages and Test play, and reports missing pages for the map or mod by name.
 - [ROM1] The map editor's Scripts entry and F2 open one list of triggers,
   variables, and conditions and actions not attached to a trigger. Add
   opens the script record wizard. Each used variable opens a read-only list

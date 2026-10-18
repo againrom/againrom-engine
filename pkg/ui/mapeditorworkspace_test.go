@@ -6,6 +6,17 @@ import (
 	"testing"
 )
 
+func TestMapEditorPagePromptSplitsLinesBeforeFontEncoding(t *testing.T) {
+	e := NewMapEditor(nil, nil, nil)
+	e.Layout(640, 480)
+	e.SetHostTextEncoder(func(s string) string { return strings.ReplaceAll(s, "\n", "?") })
+	e.prompt = editorPrompt{kind: promptWorkspace, scope: "pages", path: "First\nSecond"}
+	s, ok := e.promptSpec()
+	if !ok || len(s.Rows) != 2 || s.Rows[0].Value != "First" || s.Rows[1].Value != "Second" {
+		t.Fatalf("multiline page was encoded before splitting: %+v", s.Rows)
+	}
+}
+
 func TestMapEditorPopupsStayInsideTheWindow(t *testing.T) {
 	for _, size := range []image.Point{image.Pt(640, 480), image.Pt(1280, 800), image.Pt(1920, 1080)} {
 		for _, path := range []string{"list", "selected", "clone", "sack", "unit", "drop", "goals", "goals-pick", "terrain", "height", "objects", "players", "field", "open", "saveas"} {

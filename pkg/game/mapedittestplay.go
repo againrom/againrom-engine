@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"againrom/pkg/base"
+	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -136,10 +137,7 @@ func TestPlayArgs(root, modsDir string, n int) []string {
 	return append(args, "-mods", TestPlayModID, "-mods-dir", modsDir, "-mission", strconv.Itoa(n))
 }
 
-// testPlayMission is the guest mission the test mod declares for the map b
-// opened from source, with the text pages that map's mission ships: the
-// installed pages of a campaign map, or the pages of its entry in the mod
-// Save writes into.
+// testPlayMission wraps the map and its shared page source in a guest mission.
 func (x *MapInspector) testPlayMission(source string, b []byte) (mod.Mission, error) {
 	c, err := LoadCampaign(x.archives.Containers)
 	if err != nil {
@@ -152,14 +150,13 @@ func (x *MapInspector) testPlayMission(source string, b []byte) (mod.Mission, er
 	m.MapBytes = b
 	m.TextFiles = map[string][]byte{}
 	if p := x.editorPages(source); p != nil {
+		if p.err != nil {
+			return mod.Mission{}, p.err
+		}
 		for name, t := range p.files {
 			if missionPageName(name) {
 				m.TextFiles[name] = t
 			}
-		}
-	} else if n := sourceMission(source); n > 0 {
-		if m.TextFiles, err = installedPages(x.archives.Containers, n); err != nil {
-			return mod.Mission{}, err
 		}
 	}
 	if len(m.TextFiles) > 0 {
@@ -244,7 +241,11 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 		}
 		return fenceEditorWrite(root, dir, "Test play")
 	})
-	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m)
+	lang := "en"
+	if l, ok := locale.ByBaseSuffix(BaseID(InspectInstall(root))); ok {
+		lang = l.Code
+	}
+	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m, lang)
 	if err := testPlayTargets(folder, old, files); err != nil {
 		return "", err
 	}

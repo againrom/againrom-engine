@@ -136,6 +136,9 @@ func (e *MapEditor) fieldTitle() string {
 	if e.prompt.field >= len(fields) {
 		return "Field / Enter: set"
 	}
+	if e.prompt.kind == promptWorkspace && e.prompt.scope == "pages" {
+		return fmt.Sprintf(e.word("editor.pages.prompt"), e.editorHostText(choiceTitle(fields[e.prompt.field], e.prompt.path)))
+	}
 	return fmt.Sprintf("%s / Tab: next / Enter: set", choiceTitle(fields[e.prompt.field], e.prompt.path))
 }
 

@@ -15,11 +15,14 @@ import (
 
 const editorPackageRecord = ".editor-files.json"
 
-func missionPackageFiles(title, description string, m mod.Mission) map[string][]byte {
+func missionPackageFiles(title, description string, m mod.Mission, lang string) map[string][]byte {
+	if m.Texts != "" {
+		m.Texts = testPlayTexts + "/{lang}"
+	}
 	manifest := fmt.Sprintf("id = %q\ntitle = %q\nversion = \"1.0.0\"\nauthor = \"Againrom\"\ndescription = %q\napi = 1\napplies-to = [\"rom1\"]\nentry = \"main.star\"\n", m.Mod, title, description)
 	files := map[string][]byte{mod.ManifestName: []byte(manifest), "main.star": []byte(testPlayEntry), mod.MissionsFile: testPlayMissions(m), testPlayMap: bytes.Clone(m.MapBytes)}
 	for name, b := range m.TextFiles {
-		files[testPlayTexts+"/"+name] = bytes.Clone(b)
+		files[testPlayTexts+"/"+lang+"/"+name] = bytes.Clone(b)
 	}
 	return files
 }
@@ -154,7 +157,25 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if rows := x.CheckModMap(m, address); hasError(rows) {
 		return "", &ui.ReportRefusal{Findings: rows}
 	}
-	files := missionPackageFiles(p.Title, "Map editor mission package", m)
+	files := missionPackageFiles(p.Title, "Map editor mission package", m, x.pageLanguage())
+	pages, err := s.exportPageTree(folder, old)
+	if err != nil {
+		return "", err
+	}
+	for name := range files {
+		if strings.HasPrefix(name, testPlayTexts+"/") {
+			delete(files, name)
+		}
+	}
+	for name, b := range pages {
+		files[testPlayTexts+"/"+name] = b
+	}
+	if len(pages) > 0 {
+		m.Texts = testPlayTexts + "/{lang}"
+	} else {
+		m.Texts = ""
+	}
+	files[mod.MissionsFile] = testPlayMissions(m)
 	for name, b := range files {
 		if !strings.HasPrefix(name, testPlayTexts+"/") || slices.Contains(old, name) {
 			continue

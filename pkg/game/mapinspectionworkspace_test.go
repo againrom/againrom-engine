@@ -105,9 +105,6 @@ func TestMapEditorWorkspaceMetadataAndPagesShareHistory(t *testing.T) {
 	if !e.Dirty() || !s.CanUndo() {
 		t.Fatal("page edit is absent from dirty/history")
 	}
-	if _, err := s.SaveAs(filepath.Join(t.TempDir(), "only.alm")); err == nil {
-		t.Fatal("ALM-only save hid unsaved pages")
-	}
 	for _, before := range [][]byte{description, name, original} {
 		if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, before) {
 			t.Fatalf("undo: %v", err)

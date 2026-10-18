@@ -222,22 +222,23 @@ func TestReleaseTestPlayRefusesAnOversizedModPageBeforeWritingOrStarting(t *test
 	if code != 0 || !strings.Contains(out, "mod 1: "+game.TestPlayModID+" ") || !strings.Contains(out, "againrom: mission ") {
 		t.Fatalf("in-bound -check %q: exit=%d stdout=%q stderr=%q", args, code, out, stderr)
 	}
-	copied, err := os.ReadFile(filepath.Join(runtimeProfile.Directory, game.TestPlayModID, game.TestPlayModID, "mission", "text", "event01.txt"))
+	copied, err := os.ReadFile(filepath.Join(runtimeProfile.Directory, game.TestPlayModID, game.TestPlayModID, "mission", "text", lang, "event01.txt"))
 	if err != nil || !bytes.Equal(copied, bound) {
 		t.Fatalf("in-bound test page was not published intact: %v", err)
 	}
 
 	write(page, append(bound, 'A'))
-	if err := e.Open(opened); err != nil {
-		t.Fatal(err)
-	}
 	profileBefore := testPlayFileSnapshot(t, profile)
 	sourceBefore = testPlayFileSnapshot(t, folder)
+	documentBefore := e.Document()
 	started = nil
-	refusal := e.Key("testplay")
+	refusal := e.Open(opened)
 	message := e.Message()
-	if refusal == nil || message != refusal.Error() || len(started) != 0 || !strings.Contains(message, "mission/text/event01.txt") || !strings.Contains(message, "larger than "+strconv.Itoa(mod.MaxFileBytes)+" bytes") {
+	if refusal == nil || message != refusal.Error() || len(started) != 0 || !strings.Contains(message, page) || !strings.Contains(message, "larger than "+strconv.Itoa(mod.MaxFileBytes)+" bytes") {
 		t.Fatalf("oversized page: error=%v starts=%d message=%q", refusal, len(started), message)
+	}
+	if e.Document() != documentBefore {
+		t.Fatal("refused page source replaced the editor document")
 	}
 	if !reflect.DeepEqual(testPlayFileSnapshot(t, profile), profileBefore) {
 		t.Fatal("refused test play changed the existing owned destination or profile")

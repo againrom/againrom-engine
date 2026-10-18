@@ -141,7 +141,7 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 	if got[testPlayMap] != string(edited) || bytes.Equal(edited, original) {
 		t.Fatal("the test mod does not hold the edited map with its unsaved edit")
 	}
-	if got["mission/text/event01.txt"] != "Page one" || len(got) != 6 || got[testPlayRecord] == "" {
+	if got["mission/text/en/event01.txt"] != "Page one" || got["mission/text/en/event02.txt"] != "Page two" || len(got) != 7 || got[testPlayRecord] == "" {
 		t.Fatalf("the test mod holds %v", keys(got))
 	}
 	// The declaration is a guest mission the game's own mod load and
@@ -186,13 +186,13 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 		t.Fatal(err)
 	}
 	got = tree(t, folder)
-	if got[testPlayMap] != string(mustSaveBytes(t, s2)) || got["mission/text/event02.txt"] != "Page two" {
+	if got[testPlayMap] != string(mustSaveBytes(t, s2)) || got["mission/text/en/event02.txt"] != "Page two" {
 		t.Fatalf("the second test play holds %v", keys(got))
 	}
-	if _, ok := got["mission/text/event01.txt"]; ok {
+	if _, ok := got["mission/text/en/event01.txt"]; ok {
 		t.Fatal("a page of the earlier test play is still served")
 	}
-	if _, ok := got["mission/text/notes.txt"]; ok {
+	if _, ok := got["mission/text/en/notes.txt"]; ok {
 		t.Fatal("a file the mission does not read was copied")
 	}
 	if entries, _ := os.ReadDir(f.profile); len(entries) != 1 {

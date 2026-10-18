@@ -112,7 +112,7 @@ func TestTestPlayRefusesAnOwnedDestinationOverlappingTheSelectedModFolder(t *tes
 
 func TestTestPlayRefusesAnUnrecordedPageCollisionInAnOwnedDestination(t *testing.T) {
 	f, folder := ownedTestPlayFixture(t)
-	writeTestPlayInput(t, filepath.Join(folder, "mission", "text", "event01.txt"), []byte("Author page never written by test play"))
+	writeTestPlayInput(t, filepath.Join(folder, "mission", "text", "en", "event01.txt"), []byte("Author page never written by test play"))
 	modDir := writeEditorMod(t, t.TempDir(), editorModMissions+"texts = \"mission/{lang}/text\"\n")
 	opened := filepath.Join(modDir, "mission", "en", "map.alm")
 	writeTestPlayInput(t, opened, synth.ALM(synth.ALMOptions{Width: 4, Height: 4, Name: "authored"}))

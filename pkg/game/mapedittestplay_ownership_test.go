@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,6 +11,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/mod"
+	"againrom/pkg/ui"
 )
 
 func writeTestPlayInput(t *testing.T, name string, b []byte) {
@@ -116,8 +118,9 @@ func TestTestPlayRefusesAModLoadBeforeReplacingTheDestination(t *testing.T) {
 	before, source := tree(t, f.profile), tree(t, modDir)
 	s := editorEdits(t, f.x, opened)
 	_, err := s.TestPlay()
-	if err == nil || !strings.Contains(err.Error(), "mission/text/event01.txt is larger than 1048576 bytes") {
-		t.Fatalf("game loader refusal: %v", err)
+	var refusal *ui.ReportRefusal
+	if !errors.As(err, &refusal) || len(refusal.Findings) != 1 || !strings.Contains(refusal.Findings[0].Text, "mission/en/text/event01.txt is larger than 1048576 bytes") {
+		t.Fatalf("page source refusal: %v (%+v)", err, refusal)
 	}
 	if len(f.started) != 0 || !reflect.DeepEqual(before, tree(t, f.profile)) || !reflect.DeepEqual(source, tree(t, modDir)) {
 		t.Fatal("mod-load refusal published files, changed the source or started the game")

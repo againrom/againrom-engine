@@ -15,6 +15,7 @@ import (
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 type editorPackageSpec struct {
@@ -52,6 +53,14 @@ func workspaceBytes(w *editorWorkspaceState) []byte {
 	return b
 }
 
+func (s *mapInspectionEdits) checkpointPages() {
+	var saved editorWorkspaceState
+	_ = json.Unmarshal(s.savedWorkspace, &saved)
+	w := *s.workspace
+	w.Package = saved.Package
+	s.savedWorkspace = workspaceBytes(&w)
+}
+
 func (s *mapInspectionEdits) prepareWorkspace() error {
 	if s.workspace != nil {
 		return nil
@@ -59,24 +68,21 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 	w := &editorWorkspaceState{Pages: map[string][]byte{}, Package: editorPackageSpec{ID: "authored-map", Title: "Authored map", Kind: mod.MissionGuest}}
 	x := s.inspector
 	if p := x.editorPages(s.source); p != nil {
+		if p.err != nil {
+			return p.err
+		}
 		for name, b := range p.files {
 			if missionPageName(name) {
 				w.Pages[name] = bytes.Clone(b)
 			}
 		}
-		m := p.entry
-		w.Package = editorPackageSpec{ID: m.Mod, Title: m.Mod, Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold}
-		if x.mod != nil && x.mod.title != "" {
-			w.Package.Title = x.mod.title
-		}
-	} else if x.archives != nil && x.archives.Containers != nil {
-		if n := sourceMission(s.source); n > 0 {
-			pages, err := installedPages(x.archives.Containers, n)
-			if err != nil {
-				return err
+		if x.mod != nil {
+			if m, ok := x.mod.entryFor(s.source); ok {
+				w.Package = editorPackageSpec{ID: m.Mod, Title: x.mod.title, Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold}
 			}
-			w.Pages = pages
 		}
+	}
+	if w.Package.Number == 0 && x.archives != nil && x.archives.Containers != nil {
 		if c, err := LoadCampaign(x.archives.Containers); err == nil {
 			if m, err := testPlayGuest(c, x.archives.Containers); err == nil {
 				w.Package.Number, w.Package.After, w.Package.Guest, w.Package.Chapter = m.Number, m.After, m.Guest, m.Chapter
@@ -200,7 +206,8 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 				value = decoded
 			}
 		}
-		return []ui.InspectionField{workspaceText("page", "Page: title/briefing/eventNN/tipsNN.txt", s.page), workspaceText("body", "Page text (Shift+Enter: line)", string(value))}
+		book := words.For(s.inspector.pageLanguage())
+		return []ui.InspectionField{workspaceText("page", book.Text("editor.pages.file"), s.page), workspaceText("body", book.Text("editor.pages.body"), string(value))}
 	case "package":
 		p := s.workspace.Package
 		dir := ""
@@ -373,11 +380,21 @@ func (s *mapInspectionEdits) setMapMetadata(key, value string) (*ui.InspectionDo
 }
 
 func (s *mapInspectionEdits) currentPages() *modPages {
-	if s.workspace == nil {
-		return s.inspector.editorPages(s.source)
+	p := s.inspector.editorPages(s.source)
+	if s.workspace == nil || p.err != nil {
+		return p
 	}
-	m := s.workspace.Package.mission(s.model.Bytes(), s.workspace.Pages)
-	return &modPages{id: m.Mod, entry: m, files: s.workspace.Pages}
+	var saved editorWorkspaceState
+	_ = json.Unmarshal(s.savedWorkspace, &saved)
+	for name, b := range s.workspace.Pages {
+		if before, exists := saved.Pages[name]; !exists || !bytes.Equal(before, b) {
+			p.files[name] = b
+		}
+	}
+	m := s.workspace.Package.mission(s.model.Bytes(), p.files)
+	m.Mod = p.entry.Mod
+	p.entry = m
+	return p
 }
 
 func (p editorPackageSpec) mission(b []byte, pages map[string][]byte) mod.Mission {
