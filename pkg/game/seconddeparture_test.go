@@ -117,10 +117,8 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 			}
 			return fmt.Errorf("unavailable row %s", target)
 		}
-		for _, target := range []string{"town 2", "CANCEL", "town 2", "ENTER"} {
-			if err := choose(target); err != nil {
-				t.Fatal(err)
-			}
+		if err := secondMapTravel(app, screen, secondLocation{2, 2}); err != nil {
+			t.Fatal(err)
 		}
 		if c.current != (secondLocation{2, 2}) || !screen.CanSave() || screen.Header() != "ROM2 campaign: town 2" {
 			t.Fatal("quiet town2", c)
@@ -157,18 +155,13 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 			t.Fatal("town2 departure removed available node")
 		}
 		if gate != 0 {
-			for _, target := range []string{"mission 21", "CANCEL", "mission 21"} {
-				if err := choose(target); err != nil {
-					t.Fatal(err)
-				}
-			}
-			if choose("ENTER") == nil {
+			if secondMapTravel(app, screen, secondLocation{1, 21}) == nil {
 				t.Fatal("absent mission map admitted")
 			}
 			if c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, want) {
 				t.Fatal("failed installed entry changed campaign")
 			}
-		} else if choose("mission 21") == nil {
+		} else if secondMapTravel(app, screen, secondLocation{1, 21}) == nil {
 			t.Fatal("zero772 enabled21")
 		}
 	}

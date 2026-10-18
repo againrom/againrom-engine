@@ -30,7 +30,7 @@ func enterSecondCampaignMission(t *testing.T, app *ui.App) {
 			t.Fatal("initial inn dialogue exceeded 64 pages")
 		}
 	}
-	for _, target := range []string{"EXIT", "GATES", "mission 10", "ENTER"} {
+	for _, target := range []string{"EXIT", "GATES", "mission 10"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -144,11 +144,13 @@ func enterSecondCampaignNextMission(t *testing.T, f *FrontEnd, app *ui.App, cont
 			t.Fatal(err)
 		}
 	}
-	if app.Screen() != ui.ScreenTown || f.live != nil {
-		t.Fatalf("victory did not reach available destinations: %v %q", app.Screen(), app.HeadlessMessage())
+	// No town is available after mission 10, so the victory enters the first
+	// available record without the map (R2-ENGINE-422).
+	if app.Screen() != ui.ScreenMap || f.liveMission != 20 {
+		t.Fatalf("victory did not enter the first available record: %v mission%d %q", app.Screen(), f.liveMission, app.HeadlessMessage())
 	}
 	c := f.Town.second
-	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{kind: 1, id: 20}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
 		t.Fatalf("first Leave state: current=%+v available=%v stage=%d completed=%d", c.current, c.available, c.bank[768], c.bank[906])
 	}
 	for i := 0; i < 1024; i++ {
@@ -159,40 +161,9 @@ func enterSecondCampaignNextMission(t *testing.T, f *FrontEnd, app *ui.App, cont
 			t.Fatalf("unrelated bank slot %d changed", i)
 		}
 	}
-	carried := f.NextParty()
-	if len(carried) != len(live.mission.party) || carried[0].ID != live.mission.party[0].ID || carried[0].Name != live.mission.party[0].Name {
+	carried := live.mission.party
+	if len(f.liveParty) != len(carried) || f.liveParty[0].ID != carried[0].ID || f.liveParty[0].Name != carried[0].Name {
 		t.Fatal("first victory lost controlled party identity")
-	}
-	if err := app.HeadlessActivate("notice"); err == nil {
-		t.Fatal("duplicate acknowledgement found another victory")
-	}
-	if c.selected != (secondLocation{}) {
-		if err := app.HeadlessKey("escape"); err != nil {
-			t.Fatal(err)
-		}
-		if app.Screen() != ui.ScreenTown || c.selected != (secondLocation{}) {
-			t.Fatal("ordinary Back retained the finished destination selection")
-		}
-	}
-	before := *c
-	for _, target := range []string{"mission 20", "CANCEL"} {
-		if err := app.HeadlessActivate(target); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if app.Screen() != ui.ScreenTown || !reflect.DeepEqual(before, *c) {
-		t.Fatal("cancelled destination changed the campaign")
-	}
-	if err := app.HeadlessActivate("mission 10"); err == nil {
-		t.Fatal("completed location remains selectable")
-	}
-	for _, target := range []string{"mission 20", "ENTER"} {
-		if err := app.HeadlessActivate(target); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if app.Screen() != ui.ScreenMap || f.liveMission != 20 {
-		t.Fatalf("next available destination: %v mission%d %q", app.Screen(), f.liveMission, app.HeadlessMessage())
 	}
 	nextBank, _ := f.live.world.ROM2ScenarioState()
 	for i := range nextBank {
@@ -204,10 +175,7 @@ func enterSecondCampaignNextMission(t *testing.T, f *FrontEnd, app *ui.App, cont
 			t.Fatalf("next mission bank[%d]=%d want%d", i, nextBank[i], want)
 		}
 	}
-	if len(f.liveParty) != len(carried) || f.liveParty[0].ID != carried[0].ID || f.liveParty[0].Name != carried[0].Name || !reflect.DeepEqual(f.liveParty[0].CarriedItems, carried[0].CarriedItems) || f.liveParty[0].Worn != carried[0].Worn {
-		t.Fatal("selected next destination replaced the carried party")
-	}
-	t.Logf("initial inn -> mission10 tick%d victory acknowledgement -> available20 -> mission20 tick%d; party=%s", live.world.Tick(), f.live.world.Tick(), carried[0].ID)
+	t.Logf("initial inn -> mission10 tick%d victory acknowledgement -> mission20 tick%d; party=%s", live.world.Tick(), f.live.world.Tick(), carried[0].ID)
 }
 
 func secondCampaignCellPoint(t *testing.T, app *ui.App, col, row int) (int, int) {

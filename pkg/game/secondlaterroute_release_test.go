@@ -27,14 +27,12 @@ func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32
 			t.Fatal("initial inn dialogue exceeded 64 pages")
 		}
 	}
+	if err := app.HeadlessActivate("EXIT"); err != nil {
+		t.Fatal(err)
+	}
 	c := f.Town.second
 	c.current, c.available, c.room = secondLocation{2, 2}, []secondLocation{{2, 2}, {1, n}}, secondTownSquare
 	c.bank[768] = stage
-	// A held selection makes Back rebuild the rows from the placed state.
-	c.selected = secondLocation{2, 2}
-	if err := app.HeadlessKey("escape"); err != nil || c.selected != (secondLocation{}) {
-		t.Fatal("town Back", err)
-	}
 	if err := app.HeadlessActivate("GATES"); err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +51,7 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 	enterSecondCampaignMission(t, app)
 	enterSecondCampaignNextMission(t, f, app, false)
 	secondTwentyWin(t, f, app, false)
-	secondLaterChoose(t, app, "notice", "town 2", "ENTER", "TAVERN")
+	secondLaterChoose(t, app, "notice", "town 2", "TAVERN")
 	c := f.Town.second
 	if c.current != (secondLocation{2, 2}) || c.room != secondTownInn || c.bank[768] != 30 {
 		t.Fatalf("town 2 inn: current=%v room=%d stage=%d", c.current, c.room, c.bank[768])
@@ -97,7 +95,7 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 
 func secondLaterEnter(t *testing.T, f *FrontEnd, app *ui.App, n int) {
 	t.Helper()
-	for _, target := range []string{secondLocationName(secondLocation{1, n}), "ENTER"} {
+	for _, target := range []string{secondLocationName(secondLocation{1, n})} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(target, err)
 		}

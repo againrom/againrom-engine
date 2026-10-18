@@ -13,7 +13,7 @@ import (
 // the route to an anchor is the sampled fallback line.
 func travelInputsScreen(home image.Point, anchors ...image.Point) *townScreen {
 	s := (&FrontEnd{}).bindTown(&townScreen{worldMap: &worldMapState{
-		selected: -1, hovered: -1, assets: &worldMapAssets{}, current: home,
+		selected: -1, hovered: -1, assets: &worldMapAssets{desc: worldMapDescriptions["rom1"]}, current: home,
 	}})
 	for i, anchor := range anchors {
 		s.worldMap.missions = append(s.worldMap.missions,

@@ -161,6 +161,7 @@ copying those counts.
 | `docs/divergences/rendering.md` |
 | `docs/divergences/rom2.md` |
 | `docs/divergences/rom2-character-generator.md` |
+| `docs/divergences/rom2-global-map.md` |
 | `docs/divergences/rom2-humans.md` |
 | `docs/divergences/rom2-menu-and-save-pages.md` |
 | `docs/divergences/rom2-music.md` |

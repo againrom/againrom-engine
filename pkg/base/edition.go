@@ -55,6 +55,10 @@ type Edition struct {
 	// life, art, light and sound rules.
 	Spells string
 
+	// WorldMap names the world-map description: the campaign map's art,
+	// modes, pick rule, travel and text as data.
+	WorldMap string
+
 	// Options names the Game Options column a stepping option row reads its
 	// offered values and its new-game value from.
 	Options string
@@ -124,6 +128,7 @@ var firstEdition = Edition{
 	Music:                     "rom1",
 	Rooms:                     "rom1",
 	Screens:                   "rom1",
+	WorldMap:                  "rom1",
 	CreatureResistanceHeading: true,
 	CastNeedsSight:            true,
 	Tips:                      "rom1",
@@ -146,6 +151,7 @@ var secondEdition = Edition{
 	Generator:    "rom2",
 	Music:        "rom2",
 	Screens:      "rom2",
+	WorldMap:     "rom2",
 	Tips:         "rom2",
 	Options:      "rom2",
 	Spells:       "rom2",

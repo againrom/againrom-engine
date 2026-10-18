@@ -125,7 +125,7 @@ func (secondCampaignRules) canEnter(town *Town, n int) bool {
 
 func (secondCampaignRules) enterMission(town *Town, n int) {
 	if town != nil && town.second != nil {
-		town.second.current = secondLocation{kind: 1, id: n}
+		town.second.current, town.second.mapOpen = secondLocation{kind: 1, id: n}, nil
 	}
 }
 
@@ -212,7 +212,7 @@ func (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, st
 			break
 		}
 	}
-	return 0, ""
+	return town.second.enteredWithoutMap(), ""
 }
 
 func (r secondCampaignRules) route(f *FrontEnd, n, successor int) winRoute {
@@ -221,6 +221,9 @@ func (r secondCampaignRules) route(f *FrontEnd, n, successor int) winRoute {
 	}
 	if successor < 0 {
 		return winStay
+	}
+	if successor > 0 {
+		return winMission
 	}
 	return winTown
 }

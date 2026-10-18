@@ -302,7 +302,7 @@ func TestSecondDepartureMovieAtAcknowledgement(t *testing.T) {
 			app.SetCutscenes(movies)
 			c := newSecondCampaign()
 			c.bank[768] = int32(tc.n - tc.n%10)
-			c.current, c.available = secondLocation{1, tc.n}, []secondLocation{{1, tc.n}}
+			c.current, c.available = secondLocation{1, tc.n}, []secondLocation{{1, tc.n}, {2, 2}}
 			f.Town.second = c
 			w := secondGameScriptWorld(t, []sim.ScriptInstant{{Op: sim.ScriptInstantWin}}, []sim.ScriptTrigger{missionTrigger(3, 1, true, 0)})
 			bank := c.bank
@@ -419,8 +419,9 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 		}
 		t.Fatalf("unavailable row %s in %v", target, screen.Rows())
 	}
-	choose("town 3")
-	choose("ENTER")
+	if err := secondMapTravel(app, screen, secondLocation{2, 3}); err != nil {
+		t.Fatal(err)
+	}
 	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}, {Text: "INNKEEPER", Choosable: true}, {Text: "SHOPKEEPER", Choosable: true}, {Text: "SHOP", Choosable: true}}) {
 		t.Fatal("town 3 screen", c.current, screen.Header(), screen.Rows())
 	}

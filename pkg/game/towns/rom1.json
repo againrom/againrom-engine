@@ -594,17 +594,6 @@
        {"hook": "tip", "cite": ["owner"]},
        {"hook": "navigate", "cite": ["TOWN-475"]}
      ],
-     "art": [
-       {"name": "background", "format": "picture", "key": "main/graphics/global.map/gmap.bmp", "cite": ["TOWN-120"]},
-       {"name": "path", "format": "mask", "key": "graphics/global.map/pathmap.bmp", "cite": ["TOWN-119"]},
-       {"name": "ball", "format": "picture", "key": "graphics/global.map/ballmap.bmp", "transparent": "black", "cite": ["TOWN-120"]},
-       {"name": "flag", "format": "sprites", "key": "graphics/global.map/flag/sprites.16a", "cite": ["TOWN-529"]},
-       {"name": "available", "format": "sprites", "key": "graphics/global.map/flag1/sprites.16a", "cite": ["TOWN-529"]},
-       {"name": "cross", "format": "sprites", "key": "graphics/global.map/cross/sprites.16a", "cite": ["TOWN-530", "TOWN-531"]},
-       {"name": "scroll", "format": "picture", "key": "graphics/global.map/scroll0%d.bmp", "index": [{"count": 3, "base": 1, "cite": ["TOWN-036"]}], "transparent": "black", "cite": ["TOWN-036"]},
-       {"name": "pressed", "format": "picture", "key": "graphics/global.map/scrollp%d.bmp", "index": [{"count": 3, "base": 1, "cite": ["TOWN-036"]}], "transparent": "black", "cite": ["TOWN-036"]},
-       {"name": "marker", "format": "frame", "key": "main/graphics/global.map/%s.256", "bound": true, "cite": ["TOWN-120"]}
-     ],
      "cite": ["TOWN-475", "TOWN-477"]}
   ],
   "save": {"admitted-when": "save-admitted", "cite": ["SAV-CAMPAIGN-081", "owner"]}

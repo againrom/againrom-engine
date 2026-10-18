@@ -2586,6 +2586,13 @@ package storyguard
 // single-trigger return path are replaced by shared choices and navigation.
 // CommentBytes rises for the new target-use and popup-link API docs in
 // pkg/ui/mapeditorscriptmodel.go and pkg/ui/mapeditortrigger.go, plus this note.
+//
+// CommentBytes rises for the one world-map builder: the world-map description
+// types in pkg/game/worldmapdescription.go, the shared state machine in
+// pkg/game/worldmapstate.go, the placement and text block docs in
+// pkg/ui/worldmap.go, the shared input rules in pkg/game/worldmapinput.go,
+// the second game's map in pkg/game/secondworldmap.go and the docs of its
+// fixture and release tests, including this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2607,7 +2614,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1715,
+		"longcommentgroups":      1714,
 	},
-	CommentBytes: 9198940,
+	CommentBytes: 9211254,
 }

@@ -11,6 +11,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] In the map editor, Show message picks a page by its first line.
   Open edits its text and speaker; New message creates a page that travels
   with Save As and mod export. Undo restores the page and its node value.
+- [ROM2] The global map replaces the list of destinations. Leaving the first
+  town shows the road to the first mission and the party walks it by itself;
+  leaving any other town, or winning a mission, opens the map with every place
+  you can go marked by a flag. Point at a flag to see the place's name, its
+  description and the road there; click to set off. A click or a key during
+  the walk skips to its end, and the party enters the place it reached. The
+  map has no cancel, as in the original.
+- [ROM2] After the first mission the party goes straight on to the next one,
+  as in the original, because no town is open yet.
 - [ROM1] Map editor unit, structure, group and player popups list the scripts
   that use them. Open a listed trigger and return with Back; unapplied object
   fields stay intact.

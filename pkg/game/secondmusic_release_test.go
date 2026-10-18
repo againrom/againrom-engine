@@ -183,7 +183,7 @@ func TestReleaseSecondGameMusicScreens(t *testing.T) {
 		t.Fatal(err)
 	}
 	tail.expect(t, "destinations", []string{"stop", "request:map.wav"}, []string{"stop", "start"})
-	for _, target := range []string{"mission 10", "ENTER"} {
+	for _, target := range []string{"mission 10"} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(err)
 		}
@@ -379,6 +379,9 @@ func TestReleaseSecondGameMusicAreas(t *testing.T) {
 // Without the music archive every request is silent (R2-ENGINE-339).
 func TestReleaseSecondGameMusicStops(t *testing.T) {
 	f, app, m := firstSuccessApp(t)
+	// A town available after the victory makes the map its destination
+	// (R2-ENGINE-422); mission 10 alone enters mission 20.
+	f.Town.second.available = append(f.Town.second.available, secondLocation{kind: 2, id: 2})
 	device := secondMusicDevice(t, f)
 	tail := &secondMusicTail{app: app, device: device, log: len(app.MusicRequestLog()), events: len(device.events)}
 	if err := app.HeadlessActivate("notice"); err != nil {

@@ -100,28 +100,49 @@ func ReadGlobalMap(r *reg.Reg) (*globalMapData, error) {
 }
 
 type worldMapAssets struct {
-	data       *globalMapData
-	background *image.RGBA
-	path       *image.Paletted
-	graph      *worldMapNodeGraph
-	ball       *image.RGBA
-	// flag, available and cross hold every decoded frame of the
-	// current-position Flag, the task Flag1 and the destination Cross, in
-	// stream order: each is drawn from a frame counter (`TOWN-529`,
-	// `TOWN-530`), so the picker at paint time needs the whole sheet.
-	flag        []*image.RGBA
+	// desc is the map's description; nil only for assets a test builds.
+	desc *WorldMapDescription
+	data *globalMapData
+	// modes holds each description mode's art, by mode index.
+	modes []worldMapModeArt
+	ball  *image.RGBA
+	// available and cross hold every decoded frame of the task Flag1 and the
+	// destination Cross, in stream order: each is drawn from a frame counter
+	// (`TOWN-529`, `TOWN-530`), so the picker at paint time needs the whole
+	// sheet. rules holds each marker rule's sheet, by rule index.
 	available   []*image.RGBA
 	cross       []*image.RGBA
+	rules       [][]*image.RGBA
 	scroll      [3]*image.RGBA
 	pressed     [3]*image.RGBA
 	markers     map[int]*image.RGBA
 	markerTried map[int]bool
 	texts       map[int]worldMapText
-	problem     string
-	reads       map[string]int
-	// art reads the gates room's page art and each marker it binds.
+	// recordText is the decoded text source of a description's text block.
+	recordText      string
+	recordTextTried bool
+	problem         string
+	reads           map[string]int
+	// art reads the description's art and each record picture it binds.
 	art      *screenart.Library
 	manifest []screenart.Entry
+}
+
+// worldMapModeArt is one mode's art: its background, its route image and
+// graph, and the party sheet.
+type worldMapModeArt struct {
+	background *image.RGBA
+	path       *image.Paletted
+	graph      *worldMapNodeGraph
+	party      []*image.RGBA
+}
+
+// mode is mode i's art; an absent mode has none.
+func (a *worldMapAssets) mode(i int) worldMapModeArt {
+	if a == nil || i < 0 || i >= len(a.modes) {
+		return worldMapModeArt{}
+	}
+	return a.modes[i]
 }
 
 // flagFrame and availableFrame pick frame n, wrapping around the sheet's own
@@ -129,7 +150,9 @@ type worldMapAssets struct {
 // it (`TOWN-530`): the Cross plays once and stays on its last frame, the one
 // with the full cross (`TOWN-531`). Each returns nil for an undecoded or
 // empty sheet, which worldMapOptionalImage reports as absent.
-func (a *worldMapAssets) flagFrame(n int) *image.RGBA      { return worldMapPickFrame(a.flag, n) }
+func (a *worldMapAssets) flagFrame(mode, n int) *image.RGBA {
+	return worldMapPickFrame(a.mode(mode).party, n)
+}
 func (a *worldMapAssets) availableFrame(n int) *image.RGBA { return worldMapPickFrame(a.available, n) }
 func (a *worldMapAssets) crossFrame(n int) *image.RGBA {
 	if last := len(a.cross) - 1; n > last {
@@ -181,9 +204,9 @@ func coldWorldMapData(cache lazy[*worldMapAssets], archives *Archives) *globalMa
 	return nil
 }
 
-// loadWorldMapAssets reads the campaign map's registry, and its pictures as
-// the gates room of the install's room description names them. Every picture
-// is optional: one that does not read is absent and drawn as nothing.
+// loadWorldMapAssets reads the campaign map's records and its art as the
+// install's world-map description names them. Every picture is optional: one
+// that does not read is absent and drawn as nothing.
 func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 	a := &worldMapAssets{
 		markers: make(map[int]*image.RGBA), markerTried: make(map[int]bool),
@@ -194,34 +217,34 @@ func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 		return a
 	}
 	src := archives.Containers
-	if raw, err := a.read(src, globalMapRegistry); err == nil {
-		if parsed, err := reg.Parse(raw); err == nil {
-			a.data, err = ReadGlobalMap(parsed)
-			if err != nil {
-				a.problem = err.Error()
+	a.desc = WorldMapDescriptionFor(archives.Base.Profile)
+	if a.desc == nil {
+		a.problem = "world map description is unavailable"
+		return a
+	}
+	if a.desc.Records == "registry" {
+		if raw, err := a.read(src, globalMapRegistry); err == nil {
+			if parsed, err := reg.Parse(raw); err == nil {
+				a.data, err = ReadGlobalMap(parsed)
+				if err != nil {
+					a.problem = err.Error()
+				}
+			} else {
+				a.problem = fmt.Sprintf("%s: %v", globalMapRegistry, err)
 			}
 		} else {
-			a.problem = fmt.Sprintf("%s: %v", globalMapRegistry, err)
+			a.problem = err.Error()
 		}
-	} else {
-		a.problem = err.Error()
 	}
 	a.art = screenart.NewLibrary(screenArtSource{countedSource{src, a.reads}})
-	if d := RoomDescription(archives.Base.Profile); d != nil {
-		for _, r := range d.Rooms {
-			if r.Name == "gates" {
-				a.manifest = r.Art
-			}
-		}
-	}
+	a.manifest = a.desc.Art
 	set, _ := a.art.Load("world-map", a.manifest)
-	pic := func(name string) *image.RGBA { return rgbaOf(set.Picture(name)) }
-	a.background, a.ball = pic("background"), pic("ball")
-	a.path = set.Mask("path")
-	a.graph = buildWorldMapNodeGraph(a.path)
-	// Hero.bmp is read by no path this build follows any more: `TOWN-120`
-	// (High) states the own-paint routine never reads it, and the
-	// current-position marker it stood in for is `Flag` (`DIV-130`).
+	pic := func(name string) *image.RGBA {
+		if name == "" {
+			return nil
+		}
+		return rgbaOf(set.Picture(name))
+	}
 	frames := func(name string) []*image.RGBA {
 		var out []*image.RGBA
 		for _, f := range set.Pictures(name) {
@@ -229,10 +252,24 @@ func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 		}
 		return out
 	}
-	a.flag, a.available, a.cross = frames("flag"), frames("available"), frames("cross")
-	for i := 0; i < 3; i++ {
-		a.scroll[i] = pic(fmt.Sprintf("scroll/%d", i))
-		a.pressed[i] = pic(fmt.Sprintf("pressed/%d", i))
+	for _, m := range a.desc.Modes {
+		art := worldMapModeArt{background: pic(m.Background), party: frames(m.Party.Art)}
+		if m.Path != "" {
+			art.path = set.Mask(m.Path)
+			art.graph = buildWorldMapNodeGraph(art.path)
+		}
+		a.modes = append(a.modes, art)
+	}
+	a.ball = pic(a.desc.Ball)
+	a.available, a.cross = frames(a.desc.Task.Art), frames(a.desc.Cross.Art)
+	for _, r := range a.desc.Markers {
+		a.rules = append(a.rules, frames(r.Art))
+	}
+	if c := a.desc.Cards; c != nil {
+		for i := 0; i < 3; i++ {
+			a.scroll[i] = pic(fmt.Sprintf("%s/%d", c.Scroll, i))
+			a.pressed[i] = pic(fmt.Sprintf("%s/%d", c.Pressed, i))
+		}
 	}
 	return a
 }
@@ -263,7 +300,10 @@ func (a *worldMapAssets) marker(mission int, obj globalMapObject) *image.RGBA {
 	if obj.Picture == "" || strings.EqualFold(obj.Picture, "nothing") || a.art == nil {
 		return nil
 	}
-	frames, err := a.art.Bind("world-map", a.manifest, "marker", obj.Picture)
+	if a.desc == nil || a.desc.RecordArt == "" {
+		return nil
+	}
+	frames, err := a.art.Bind("world-map", a.manifest, a.desc.RecordArt, obj.Picture)
 	if err != nil || len(frames) == 0 {
 		return nil
 	}
@@ -294,61 +334,6 @@ func (a *worldMapAssets) missionText(src entrySource, mission int) worldMapText 
 	}
 	a.texts[mission] = t
 	return t
-}
-
-type worldMapState struct {
-	assets        *worldMapAssets
-	missions      []ui.WorldMapMission
-	selected      int
-	hovered       int
-	scrollHovered bool
-	route         []image.Point
-	shown         int
-	// returnMission identifies a completed mission's pending homeward trip.
-	// It is separate from selected: home is MapObject 0, not a mission scroll.
-	returnMission int
-	// current is the party's own current-position field (`TOWN-120`/
-	// `TOWN-121`, High), copied in from townScreen.worldPosition on entry
-	// and written back only at arrival (arriveWorldMap).
-	current image.Point
-	// frame is the current-position Flag's animation counter, advanced once
-	// per paint — once per WorldMapTick call, which the reveal cadence now
-	// gates the same way (`TOWN-120`, High; `DIV-136`).
-	frame int
-	// cross is the destination Cross's animation counter: zero when a route
-	// starts, one more per paint while the route is held (`TOWN-120`, High).
-	// The animation has passed its end once the counter reaches the sheet's
-	// frame count, and arrival waits for that as well as for the reveal
-	// (`TOWN-121`, High; DIV-1545).
-	cross int
-}
-
-// crossPassedEnd reports whether the Cross animation has played through its
-// sheet. A state with no Cross sheet has nothing to wait for.
-func (s *worldMapState) crossPassedEnd() bool {
-	return s.assets == nil || s.cross >= len(s.assets.cross)
-}
-
-// finishCross assigns the Cross counter the sheet's frame count plus one, as
-// the original's progress helper does to its Cross counter whatever the counter
-// held (`TOWN-486`, High). The frame drawn until the next tick follows that
-// counter.
-func (s *worldMapState) finishCross() {
-	if s.assets != nil {
-		s.cross = len(s.assets.cross) + 1
-	}
-}
-
-// skipTravel is the skip a click that misses every scroll makes (`TOWN-121`,
-// High): once the reveal has begun, on the outward and on the homeward trip
-// alike, it sets the reveal to the route's own end and the Cross counter past
-// its end, so that the next tick arrives. Before the first reveal tick it does
-// nothing (DIV-1516).
-func (s *worldMapState) skipTravel() {
-	if (s.selected >= 0 || s.returnMission != 0) && s.shown > 0 {
-		s.shown = len(s.route)
-		s.finishCross()
-	}
 }
 
 // worldMapHomePoint is the first MapObject's own point: the party's home
@@ -416,19 +401,8 @@ func (t *townScreen) enterWorldMap() {
 	// offering inaccessible scrolls indefinitely (DIV-137).
 	if s.current != worldMapHomePoint(a) && t.sess.Town.restoredCampaign() {
 		s.returnMission = t.sess.Town.selectedMission()
-		s.route = worldMapRoute(a.graph, s.current, worldMapHomePoint(a), worldMapFallbackStep)
+		s.route = worldMapRoute(a.mode(s.mode).graph, s.current, worldMapHomePoint(a), worldMapFallbackStep)
 	}
-}
-
-func (s *worldMapState) hideScrolls() bool {
-	return s.returnMission != 0 || s.current != worldMapHomePoint(s.assets)
-}
-
-// travellingTo reports whether the party is on its way to mission i: the
-// mission is selected and its route is held. Arrival, an immediate open and
-// the town scroll clear both, so a held route is travel not yet arrived.
-func (s *worldMapState) travellingTo(i int) bool {
-	return s.selected == i && len(s.route) > 0
 }
 
 func (t *townScreen) AtWorldMap() bool { return t != nil && t.room == roomGates }
@@ -452,7 +426,7 @@ func (t *townScreen) beginWorldMapReturn(mission int) {
 	t.room = roomGates
 	t.enterWorldMap() // Town.Available now excludes the completed mission.
 	t.worldMap.returnMission = mission
-	t.worldMap.route = worldMapRoute(a.graph, t.worldPosition, worldMapHomePoint(a), worldMapFallbackStep)
+	t.worldMap.route = worldMapRoute(a.mode(t.worldMap.mode).graph, t.worldPosition, worldMapHomePoint(a), worldMapFallbackStep)
 }
 
 func (t *townScreen) WorldMapView() ui.WorldMapView {
@@ -460,25 +434,23 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
 	}
 	s, a := t.worldMap, t.worldMap.assets
-	cardBase := ui.WorldMapCardPageBase(s.selected)
 	var src entrySource
 	if t.in.Archives != nil {
 		src = t.in.Archives.Containers
 	}
-	missions := append([]ui.WorldMapMission(nil), s.missions...)
-	for i := range missions {
+	v := s.view(worldMapViewInput{font: t.art.documentFont(), detail: t.in.tipFont(), words: t.in.Words, task: t.worldFlag1Frame})
+	for i := range v.Missions {
 		// `DIV-128`: a picture-bearing mission's own marker paints only once
 		// it has been selected at least once this game (`TOWN-123`/
 		// `TOWN-040`, High).
-		if missions[i].Enabled && src != nil && t.worldSelectedOnce[missions[i].Number] {
-			obj := a.data.Objects[missions[i].Object]
-			missions[i].Marker = worldMapOptionalImage(a.marker(missions[i].Number, obj))
+		if v.Missions[i].Enabled && src != nil && t.worldSelectedOnce[v.Missions[i].Number] {
+			obj := a.data.Objects[v.Missions[i].Object]
+			v.Missions[i].Marker = worldMapOptionalImage(a.marker(v.Missions[i].Number, obj))
 		}
 	}
-	var markers []ui.WorldMapMarker
 	if src != nil && a.data != nil {
-		shown := make(map[int]bool, len(missions))
-		for _, m := range missions {
+		shown := make(map[int]bool, len(v.Missions))
+		for _, m := range v.Missions {
 			shown[m.Number] = true
 		}
 		for _, mission := range sortedSelectedMissions(t.worldSelectedOnce) {
@@ -488,28 +460,11 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 			}
 			obj := a.data.Objects[object]
 			if picture := worldMapOptionalImage(a.marker(mission, obj)); picture != nil {
-				markers = append(markers, ui.WorldMapMarker{Anchor: obj.Point, Picture: picture})
+				v.Markers = append(v.Markers, ui.WorldMapMarker{Anchor: obj.Point, Picture: picture})
 			}
 		}
 	}
-	return ui.WorldMapView{
-		Markers:    markers,
-		Background: worldMapOptionalImage(a.background), Ball: worldMapOptionalImage(a.ball),
-		Flag: worldMapOptionalImage(a.flagFrame(s.frame)), Available: worldMapOptionalImage(a.availableFrame(t.worldFlag1Frame)),
-		Cross: worldMapOptionalImage(a.crossFrame(s.cross)),
-		Scroll: [3]image.Image{
-			worldMapOptionalImage(a.scroll[0]), worldMapOptionalImage(a.scroll[1]), worldMapOptionalImage(a.scroll[2]),
-		},
-		Pressed: [3]image.Image{
-			worldMapOptionalImage(a.pressed[0]), worldMapOptionalImage(a.pressed[1]), worldMapOptionalImage(a.pressed[2]),
-		},
-		Font: t.art.documentFont(), DetailFont: t.in.tipFont(), ScrollHovered: s.scrollHovered, Words: t.in.Words, Missions: missions, CardBase: cardBase,
-		Hovered: s.hovered, Selected: s.selected, Route: append([]image.Point(nil), s.route...),
-		RouteShown: s.shown, Position: s.current, AtHome: s.current == worldMapHomePoint(a),
-		HideScrolls: s.hideScrolls(),
-		Returning:   s.returnMission != 0, Destination: worldMapHomePoint(a),
-		Problem: a.problem,
-	}
+	return v
 }
 
 func worldMapOptionalImage(pic *image.RGBA) image.Image {
@@ -519,137 +474,39 @@ func worldMapOptionalImage(pic *image.RGBA) image.Image {
 	return pic
 }
 
-func (t *townScreen) WorldMapHover(p image.Point) {
-	if t == nil || t.worldMap == nil {
-		return
+// The first game's town screen is a world-map campaign: its input methods are
+// the one builder's, with its own record choice, leave and arrival.
+
+func (t *townScreen) worldMapNow() *worldMapState {
+	if t == nil {
+		return nil
 	}
-	v := t.WorldMapView()
-	t.worldMap.scrollHovered = false
-	if i, ok := ui.WorldMapCardAt(v, p); ok {
-		t.worldMap.scrollHovered = true
-		t.worldMap.hovered = i
-		return
-	}
-	if i, ok := ui.WorldMapRegionAt(v, p); ok {
-		t.worldMap.hovered = i
-		return
-	}
-	t.worldMap.hovered = -1
+	return t.worldMap
 }
 
-// WorldMapMove selects the next enabled mission before the selected one for
-// delta -1 (Up, the wheel away from the user) and after it for +1 (Down, the
-// wheel toward the user). Reaching the mission the party is already travelling
-// to selects nothing, so its route and reveal keep running (DIV-1515), as a
-// click on its scroll leaves them (DIV-1479).
-func (t *townScreen) WorldMapMove(delta int) {
-	if t == nil || t.worldMap == nil || len(t.worldMap.missions) == 0 || delta == 0 {
-		return
-	}
-	if t.worldMap.hideScrolls() {
-		return
-	}
-	i := t.worldMap.selected
-	if i < 0 && delta < 0 {
-		// A backward move from the before-first sentinel begins after the last
-		// item, just as a forward move begins before the first.
-		i = 0
-	}
-	for attempts := 0; attempts < len(t.worldMap.missions); attempts++ {
-		i = (i + delta + len(t.worldMap.missions)) % len(t.worldMap.missions)
-		if t.worldMap.missions[i].Enabled {
-			if !t.worldMap.travellingTo(i) {
-				t.selectWorldMission(i)
-			}
-			return
-		}
-	}
-}
+func (t *townScreen) WorldMapHover(p image.Point)               { worldMapHover(t, p) }
+func (t *townScreen) WorldMapMove(delta int)                    { worldMapMove(t, delta) }
+func (t *townScreen) WorldMapChoose() ui.TownAction             { return worldMapChoose(t) }
+func (t *townScreen) WorldMapClick(p image.Point) ui.TownAction { return worldMapClick(t, p) }
 
-// WorldMapChoose is Enter. The original's key-down and character slots call
-// the progress helper a missed scroll click calls, without reading the key
-// value or the selection (`TOWN-485`, `TOWN-486`, High; `TOWN-487` binds Return
-// through the campaign). So Enter does what a click that misses every scroll
-// does at the same moment (skipTravel): nothing at zero progress, otherwise the
-// reveal to the route's end and the Cross counter assigned its frame count plus
-// one, and the next tick arrives. It never opens a mission itself and reports
-// no mission problem (DIV-1546).
-func (t *townScreen) WorldMapChoose() ui.TownAction {
-	if t == nil || t.worldMap == nil {
-		return ui.TownAction{}
-	}
-	t.worldMap.skipTravel()
-	return ui.TownAction{}
-}
-
-// WorldMapClick selects through the mission scrolls only (`TOWN-118`, High):
-// a mission is selected by clicking its scroll entry, and the map-rectangle
-// override hit-tests a region without calling mission selection or route
-// construction (DIV-105). A scroll click starts travel to its mission, and a
-// click on another mission's scroll restarts travel toward that one. A click
-// on the scroll of the mission already being travelled to leaves the route and
-// its reveal running (DIV-1479). There is no second click that opens a mission
-// — arrival opens it by itself (`TOWN-121`, High; `DIV-135` closed). A click
-// that lands on no card while travel is in progress, a mission's map region
-// included, is the miss-a-scroll skip arm: once the reveal has begun it sets
-// the reveal to the route's own end and the Cross counter past its end, and
-// the very next WorldMapTick call opens the destination. `TOWN-121` skips only
-// at non-zero route progress, so the same click before the first tick does
-// nothing (DIV-1516).
-func (t *townScreen) WorldMapClick(p image.Point) ui.TownAction {
-	if t == nil || t.worldMap == nil {
-		return ui.TownAction{}
-	}
-	v := t.WorldMapView()
-	if i, ok := ui.WorldMapCardAt(v, p); ok {
-		if i < 0 {
-			t.worldMap.route, t.worldMap.shown, t.worldMap.cross, t.worldMap.selected = nil, 0, 0, -1
-			t.atSquare()
-			return ui.TownAction{}
-		}
-		if t.worldMap.travellingTo(i) {
-			return ui.TownAction{}
-		}
-		t.selectWorldMission(i)
-		return ui.TownAction{}
-	}
-	t.worldMap.skipTravel()
-	return ui.TownAction{}
-}
-
-// WorldMapTick advances the Flag's animation counter, and while a route is
-// held the Cross counter by one and the route reveal by 8 coordinates,
-// clamped to the route's own length (`TOWN-120`, High). It opens the
-// destination, with no second click, the moment the reveal has reached the
-// route's own end and the Cross animation has passed its end — from the tick
-// that finishes the later of the two or from a skip that WorldMapClick set up
-// (`TOWN-121`, High; DIV-1545). The call rate that gates how often this fires
-// is authored (`DIV-136`): `TOWN-121` grades the driving message's own
-// real-time cadence Unknown.
+// WorldMapTick also advances the task Flag1's counter, which the town screen
+// keeps across entries (`TOWN-529`).
 func (t *townScreen) WorldMapTick() ui.TownAction {
 	if t == nil || t.worldMap == nil {
 		return ui.TownAction{}
 	}
-	s := t.worldMap
-	s.frame++
 	t.worldFlag1Frame++
-	if (s.selected < 0 && s.returnMission == 0) || len(s.route) == 0 {
-		return ui.TownAction{}
-	}
-	s.cross++
-	// shown may already equal len(s.route) here — the skip arm in
-	// WorldMapClick and a Cross animation that outlasts the reveal both leave
-	// it there — so this call still falls through to the arrival test rather
-	// than treating that as idle.
-	shown := s.shown + worldMapRouteReveal
-	if shown > len(s.route) {
-		shown = len(s.route)
-	}
-	s.shown = shown
-	if shown < len(s.route) || !s.crossPassedEnd() {
-		return ui.TownAction{}
-	}
-	return t.arriveWorldMap()
+	return worldMapTick(t)
+}
+
+// chooseWorldRecord is the scroll pick's choice of mission i.
+func (t *townScreen) chooseWorldRecord(i int) { t.selectWorldMission(i) }
+
+// leaveWorldMap is the town scroll: it drops the travel and returns to the
+// square.
+func (t *townScreen) leaveWorldMap() {
+	t.worldMap.route, t.worldMap.shown, t.worldMap.cross, t.worldMap.selected = nil, 0, 0, -1
+	t.atSquare()
 }
 
 // arriveWorldMap is `TOWN-121`'s own paint-completion step (High): copy
@@ -692,12 +549,9 @@ func (t *townScreen) selectWorldMission(i int) {
 		return
 	}
 	m := t.worldMap.missions[i]
-	t.worldMap.selected = i
-	t.worldMap.route, t.worldMap.shown, t.worldMap.cross = nil, 0, 0
-	if !m.Enabled {
+	if !t.worldMap.startTravel(i) {
 		return
 	}
-	t.worldMap.route = worldMapRoute(t.worldMap.assets.graph, t.worldMap.current, m.Anchor, worldMapFallbackStep)
 	if t.sess != nil {
 		t.sess.Town.selectMission(m.Number)
 	}
@@ -1012,9 +866,9 @@ func (f *FrontEnd) WorldMapSweep() (string, error) {
 		ok   bool
 	}
 	fixed := []fixedAsset{
-		{"background", a.background != nil}, {"path mask", a.path != nil},
+		{"background", a.mode(0).background != nil}, {"path mask", a.mode(0).path != nil},
 		{"route stamp", a.ball != nil},
-		{"current-position flag", len(a.flag) > 0}, {"hover flag", len(a.available) > 0},
+		{"current-position flag", len(a.mode(0).party) > 0}, {"hover flag", len(a.available) > 0},
 		{"destination cross", len(a.cross) > 0},
 	}
 	for i := range a.scroll {
@@ -1133,7 +987,7 @@ func (f *FrontEnd) WorldMapGraphWitness() (string, error) {
 		return "", fmt.Errorf("world map graph witness: incomplete front end")
 	}
 	a := f.worldMapAssets()
-	if a.path == nil {
+	if a.mode(0).path == nil {
 		return "", fmt.Errorf("world map graph witness: path mask did not decode: %s", a.problem)
 	}
 	var points []image.Point
@@ -1144,7 +998,7 @@ func (f *FrontEnd) WorldMapGraphWitness() (string, error) {
 			}
 		}
 	}
-	return worldMapGraphDigest(a.path, points), nil
+	return worldMapGraphDigest(a.mode(0).path, points), nil
 }
 
 // WorldMapCriterionWitness reports how far apart the two readings of
@@ -1156,7 +1010,7 @@ func (f *FrontEnd) WorldMapCriterionWitness() (string, error) {
 		return "", fmt.Errorf("world map criterion witness: incomplete front end")
 	}
 	a := f.worldMapAssets()
-	if a.path == nil {
+	if a.mode(0).path == nil {
 		return "", fmt.Errorf("world map criterion witness: path mask did not decode: %s", a.problem)
 	}
 	var points []image.Point
@@ -1167,5 +1021,5 @@ func (f *FrontEnd) WorldMapCriterionWitness() (string, error) {
 			}
 		}
 	}
-	return worldMapCriterionDigest(a.path, points), nil
+	return worldMapCriterionDigest(a.mode(0).path, points), nil
 }

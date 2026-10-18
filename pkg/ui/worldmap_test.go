@@ -377,7 +377,8 @@ func TestWorldMapTaskFlagFollowsHoverThenStaysOnTheChosenTask(t *testing.T) {
 		flag.Pix[i] = 0xff
 	}
 	v := WorldMapView{Missions: missions, Hovered: 1, Selected: 0, AtHome: true, Available: flag,
-		Route: route, RouteShown: 1, Position: image.Pt(20, 460), HideScrolls: true}
+		AvailableAt: WorldMapPlace{Offset: image.Pt(-4, -32), TopLeft: true},
+		Route:       route, RouteShown: 1, Position: image.Pt(20, 460), HideScrolls: true}
 	got := ComposeWorldMap(v)
 	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	if c := got.RGBAAt(196, 268); c != white {
