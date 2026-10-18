@@ -131,6 +131,9 @@ func (e *MapEditor) slotLabel(condition bool, opcode, command uint32, s int, t u
 // targetText names value v of a parameter of type t: a unit, a group with its
 // members, a player, a structure, or the number itself.
 func (e *MapEditor) targetText(t, v uint32) string {
+	if t == ScriptVariableParameter {
+		return strconv.FormatUint(uint64(v), 10)
+	}
 	if t == scriptUnit && v >= 10001 {
 		if v <= 11000 {
 			return fmt.Sprintf(e.word("editor.param.hero"), v-10000)
@@ -288,7 +291,11 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 		if t != n.Types[s] {
 			f.Value = 0
 		}
+		kind := e.nodeParameterKind(v, opcode, types, s)
 		switch {
+		case kind == ScriptVariableParameter:
+			f.Label = e.word("editor.role.variable")
+			f.Choices = e.parameterChoices(kind, f.Value)
 		case t == scriptX && s+1 < len(types) && types[s+1] == scriptY:
 			f.Key, f.Text = fmt.Sprintf("cell%d", s), true
 			f.TextValue = fmt.Sprintf("%d,%d", f.Value, n.Values[s+1])
@@ -300,13 +307,8 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 			for _, c := range e.doc.Script.Catalog.GroupCommands {
 				f.Choices = append(f.Choices, InspectionChoice{int64(c), e.commandName(c)})
 			}
-		case t == scriptUnit || t == scriptGroup || t == scriptPlayer || t == scriptStructure:
-			for _, target := range e.doc.Script.Targets[t] {
-				f.Choices = append(f.Choices, InspectionChoice{int64(target.Value), e.targetText(t, target.Value)})
-			}
-			if t == scriptUnit && n.Values[s] >= 10001 && t == n.Types[s] {
-				f.Choices = append(f.Choices, InspectionChoice{int64(n.Values[s]), e.targetText(t, n.Values[s])})
-			}
+		case objectParameter(kind):
+			f.Choices = e.parameterChoices(kind, f.Value)
 		}
 		out = append(out, f)
 	}
@@ -415,7 +417,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-scriptPopupWidth, e.barHeight()+8), true
 	}
 	s := popupSpec{At: e.objectAt, Width: scriptPopupWidth, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
-	o.rowField, o.rowActs = map[int]int{}, map[int][]string{}
+	o.rowField, o.rowActs, o.rowOpen = map[int]int{}, map[int][]string{}, map[int]int{}
 	var links []int
 	width := scriptPopupWidth - 2*popupPad - 8
 	add := func(row popupRow, field int, acts ...string) {
@@ -524,16 +526,17 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 				row.Label = ""
 			}
 			add(row, i, acts...)
+			if _, ok := e.parameterTarget(i); ok {
+				o.rowOpen[len(s.Rows)] = i
+				add(popupRow{Kind: popupLink, Label: e.word("editor.param.open") + " " + f.Label}, -1)
+			}
 			if f.Key == "opcode" && len(o.fields) > 2 {
 				add(popupRow{Kind: popupHeading, Label: e.word("editor.node.parameters")}, -1)
 			}
 		}
 		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 		s.Disabled = []bool{!e.objectDirty(), false}
-		if e.backTrigger >= 0 {
-			s.Buttons = append(s.Buttons, e.word("editor.trigger.back"))
-			s.Disabled = append(s.Disabled, false)
-		}
+
 	}
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), width)...)
@@ -632,39 +635,15 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 	}
 }
 
-// editSlotNode opens the node trigger field f names in its own popup, with a
-// Back button to the trigger. A trigger with changes not applied keeps its
-// popup and says so.
 func (e *MapEditor) editSlotNode(f int) {
 	o := &e.obj
-	if e.objectDirty() {
-		o.note = e.word("editor.trigger.applyfirst")
-		return
-	}
 	id, _ := strconv.ParseInt(strings.TrimSpace(o.buf[f]), 10, 64)
 	n, ok := e.nodeByID(f < trigActs, uint32(id))
 	if id <= 0 || !ok {
 		o.note = e.word("editor.trigger.choosefirst")
 		return
 	}
-	back := e.doc.Records[e.selected].Index
-	e.Select(n.Record, false)
-	e.backTrigger = back
-}
-
-// backToTrigger returns from a node popup to the trigger it was opened from.
-func (e *MapEditor) backToTrigger() {
-	if e.objectDirty() {
-		e.obj.note = e.word("editor.trigger.applyfirst")
-		return
-	}
-	for _, t := range e.doc.Script.Triggers {
-		if e.doc.Records[t.Record].Index == e.backTrigger {
-			e.Select(t.Record, false)
-			return
-		}
-	}
-	e.backTrigger = -1
+	e.openObjectRecord(n.Record, false)
 }
 
 // scriptCellPicked writes the clicked cell into the pick's field.
@@ -689,7 +668,7 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 	case v.trigger != nil && n == 3:
 		e.deleteTrigger(v)
 	case v.node != nil && n == 2:
-		e.backToTrigger()
+		e.backObject()
 	}
 }
 
@@ -844,6 +823,19 @@ func (e *MapEditor) PopupLines() []string {
 		out = append(out, strings.TrimSpace(r.Label+" "+r.Value))
 	}
 	return append(out, s.Notes...)
+}
+
+func (e *MapEditor) PopupRowRect(n int) (image.Rectangle, bool) {
+	s, _, ok := e.objectSpec()
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	for _, row := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+		if row.Index == n {
+			return row.Rect, true
+		}
+	}
+	return image.Rectangle{}, false
 }
 
 // PopupButtonRect is the window rectangle of button n of the object popup's

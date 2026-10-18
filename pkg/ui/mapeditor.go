@@ -141,7 +141,7 @@ type MapEditor struct {
 
 func NewMapEditor(font *text.Font, maps []EditorMap, open InspectionOpener) *MapEditor {
 	return &MapEditor{font: font, maps: maps, open: open, selected: -1, editorMode: editorMode{catalog: true}, window: image.Pt(1280, 800), textSmoothingEnabled: true,
-		editorChrome: editorChrome{obj: objectEdit{record: -1, focus: -1, open: -1, cell: -1, pickField: -1}, backTrigger: -1}}
+		editorChrome: editorChrome{obj: objectEdit{record: -1, focus: -1, open: -1, cell: -1, pickField: -1}}}
 }
 
 func (e *MapEditor) SetTextSmoothing(enabled bool) { e.textSmoothingEnabled = enabled }
@@ -193,6 +193,7 @@ func (e *MapEditor) openMap(source string) error {
 		e.openPanel()
 	}
 	e.focusedReference, e.objectTop, e.groupSel = 0, 0, editorGroup{}
+	e.objectBack = nil
 	e.listWheel, e.objectWheel = 0, 0
 	e.message = ""
 	e.brush.endStroke()
@@ -220,7 +221,7 @@ func (e *MapEditor) fitZoom() float64 {
 func (e *MapEditor) Select(index int, jump bool) bool {
 	if _, ok := e.scriptVariableRow(index); ok {
 		e.selected, e.objectTop, e.objectHidden = index, 0, false
-		e.groupSel, e.backTrigger = editorGroup{}, -1
+		e.groupSel, e.objectBack = editorGroup{}, nil
 		e.obj.open, e.obj.focus = -1, -1
 		return true
 	}
@@ -229,7 +230,7 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	}
 	e.selected, e.objectTop, e.objectHidden = index, 0, false
 	e.focusedReference, e.objectWheel = 0, 0
-	e.groupSel, e.backTrigger = editorGroup{}, -1
+	e.groupSel, e.objectBack = editorGroup{}, nil
 	r := e.doc.Records[index]
 	if jump && r.Spatial {
 		e.centerOn(r.Cell)

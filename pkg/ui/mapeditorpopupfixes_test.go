@@ -29,6 +29,24 @@ func groupLinks(t *testing.T, e *MapEditor) []int {
 	return out
 }
 
+func TestEditorLargeGroupKeepsBackInsidePopup(t *testing.T) {
+	e, _ := popupEditor(t)
+	_ = e.Open("popups")
+	for _, height := range []int{800, 480} {
+		e.Layout(1280, height)
+		g := editorGroup{player: 1, group: 1, set: true}
+		for i := 0; i < 32; i++ {
+			g.members = append(g.members, 0)
+		}
+		e.chooseGroup(g)
+		e.objectBack = []objectPlace{{kind: "Unit", index: 0}}
+		_, l := objectLayout(t, e)
+		if len(l.Buttons) != 1 || !l.Buttons[0].In(l.Rect) || !l.Buttons[0].In(e.popupBounds()) {
+			t.Fatalf("height %d: Back %v exceeds popup %v or bounds %v", height, l.Buttons, l.Rect, e.popupBounds())
+		}
+	}
+}
+
 func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 	e, h := popupEditor(t)
 	_ = e.Open("popups")

@@ -40,7 +40,8 @@ type mapInspectionEdits struct {
 
 	// batch is the model every edit call writes while AddRecord runs the
 	// calls of one new record; nil otherwise.
-	batch *mapedit.Editor
+	batch         *mapedit.Editor
+	scriptTargets map[uint32][]ui.InspectionScriptTarget
 }
 
 func (s *mapInspectionEdits) Dirty() bool {
@@ -66,6 +67,9 @@ func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument,
 	d, err := s.inspector.inspectModel(m, s.source)
 	if err == nil {
 		d.Edits = s
+		if d.Script != nil {
+			s.scriptTargets = d.Script.Targets
+		}
 	}
 	return d, err
 }
@@ -248,7 +252,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		if scriptView != nil {
 			row.Choices = scriptFieldChoices(kind, f.Key, script, s.inspector.inspectionUTF8)
 			if strings.HasPrefix(f.Key, "value") {
-				row.Choices = scriptValueChoices(scriptView, k, index, f.Key, s.inspector.inspectionUTF8)
+				row.Choices = s.scriptParameterChoices(script, k, index, f.Key)
 			}
 		}
 		out = append(out, row)

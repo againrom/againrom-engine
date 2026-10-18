@@ -49,6 +49,7 @@ type objectEdit struct {
 	// actions of a script popup row's buttons.
 	rowField map[int]int
 	rowActs  map[int][]string
+	rowOpen  map[int]int
 	// added marks a trigger's pairs (0..2) and action slots (3..6) shown
 	// before a node is chosen for them; types are a node's slot types as
 	// its chosen operation sets them; pickField is the field a cell pick
@@ -473,6 +474,7 @@ func (e *MapEditor) closeObject() {
 	e.objectHidden = true
 	e.obj.open, e.obj.focus = -1, -1
 	e.groupSel = editorGroup{}
+	e.objectBack = nil
 }
 
 // followReference frames reference n and, when it names one record's cell,
@@ -487,7 +489,7 @@ func (e *MapEditor) followReference(n int) {
 	}
 	for i, r := range e.doc.Records {
 		if i != e.selected && r.Spatial && r.Cell == targets[0].Cell && dragRank[r.Kind] > 0 {
-			e.Select(i, false)
+			e.openObjectRecord(i, false)
 			return
 		}
 	}
@@ -542,6 +544,7 @@ func (e *MapEditor) groupLabel(g editorGroup) string {
 // popup.
 func (e *MapEditor) chooseGroup(g editorGroup) {
 	e.selected, e.focusedReference = -1, 0
+	e.objectBack = nil
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0
 	if len(g.members) > 0 {
 		e.centerOn(e.doc.Records[g.members[0]].Cell)
@@ -554,6 +557,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 	if !g.set || e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected >= 0 {
 		return popupSpec{}, nil, false
 	}
+	e.loadObject()
 	if !e.objPlaced {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
 	}
@@ -566,7 +570,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 			links = append(links, -(id + 1))
 		}
 	}
-	s.MaxRows = e.objectRowsShown(false)
+	s.MaxRows = e.objectRowsShown(len(e.objectBack) > 0)
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
 	s.Top = e.objectTop
 	return s, links, true

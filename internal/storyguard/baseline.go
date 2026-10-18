@@ -2582,6 +2582,8 @@ package storyguard
 // (pkg/mapload/scriptareas.go) and their tests, this note included.
 // The correction adds the multiplayer refusal and the constant checks of the
 // drawn box (pkg/game/mapinspectionareas.go) and their tests.
+// CommentBytes falls when the duplicate script choice builder and the
+// single-trigger return path are replaced by shared choices and navigation.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2605,5 +2607,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1715,
 	},
-	CommentBytes: 9199622,
+	CommentBytes: 9199300,
 }

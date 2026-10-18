@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"image"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -70,9 +71,10 @@ func trigChoose(t *testing.T, e *ui.MapEditor, n int, want string) {
 	r, ok := e.FieldRect(n)
 	trigClick(t, e, r, ok, "field")
 	choices := e.DropdownChoices()
+	e.ScrollDropdown(-len(choices))
 	for row, c := range choices {
 		if strings.Contains(c, want) {
-			for k := 0; k < 30; k++ {
+			for k := 0; k < len(choices)+10; k++ {
 				if r, ok := e.DropdownRowRect(row); ok {
 					trigClick(t, e, r, ok, "choice "+want)
 					return
@@ -92,12 +94,12 @@ func TestTriggerPopupReadsAsTheRule(t *testing.T) {
 	got := trigLines(e)
 	for _, want := range []string{
 		"Name Far", "Fire once Yes: fires once", "Conditions: all must hold",
-		"Pair 1 #3 Distance from cell to player's nearest unit", "Player 1:",
-		"Cell 20,20", "Comparison equals", "Compared with #4 Number", "Value 4",
+		"Pair 1 #3 Distance from cell to player's nearest unit", "Player 1: Self, Cell 20,20",
+		"Comparison equals", "Compared with #4 Number", "Value 4",
 		"Actions: run in order", "Action 1 #2 Win", "Action 2 #3 Cast spell from cell at cell",
 		"Cell 1,2, Target cell 30,31, Spell 3, Power 0",
 	} {
-		if !strings.Contains(got, want) {
+		if !slices.Contains(e.PopupLines(), want) {
 			t.Errorf("the popup lacks %q:\n%s", want, got)
 		}
 	}

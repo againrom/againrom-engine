@@ -12,6 +12,10 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   variables, and conditions and actions not attached to a trigger. Add
   opens the script record wizard. Each used variable opens a read-only list
   of the triggers that read or change it, with links to those triggers.
+- [ROM1] In the map editor, script parameters choose units, groups, players,
+  structures, variables and items by name. Open follows a parameter to its
+  record, and Back returns through the opened records. Item rows show the
+  parameter number beside the name. New variable skips every condition slot.
 - [ROM1][ROM2] The character card shows experience (XP) only for your
   heroes and for the characters who can join you as one, such as Brian and
   Naira, also before they join. Other people, hired mercenaries and

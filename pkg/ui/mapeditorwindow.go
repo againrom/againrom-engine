@@ -68,9 +68,7 @@ type editorChrome struct {
 	groupSel               editorGroup
 	exitAsked              bool
 	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
-	// backTrigger is the index of the trigger a node popup was opened from,
-	// -1 for none.
-	backTrigger int
+	objectBack             []objectPlace
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -727,9 +725,12 @@ func (e *MapEditor) catalogOpen() {
 // link row opens.
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	if v, ok := e.scriptVariableRow(e.selected); ok && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
-		return e.variableSpec(v)
+		s, links, ok := e.variableSpec(v)
+		e.objectBackButton(&s)
+		return s, links, ok
 	}
 	if s, links, ok := e.groupSpec(); ok {
+		e.objectBackButton(&s)
 		return s, links, true
 	}
 	// A cell pick moves the object popup aside: the pick is a click on the map.
@@ -740,6 +741,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	if v, ok := e.scriptPopup(); ok {
 		s, links := e.scriptSpec(v)
 		e.obj.data = -1
+		e.objectBackButton(&s)
 		return s, links, true
 	}
 	if !e.objPlaced {
@@ -784,6 +786,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 			add(popupRow{Kind: kind, Label: part, Ink: inspectionRoleColor(l.Role)}, l.Reference)
 		}
 	}
+	e.objectBackButton(&s)
 	s.MaxRows = e.objectRowsShown(len(s.Buttons) > 0 || e.objectHasFields())
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
 	s.Top = e.objectTop
@@ -1271,12 +1274,16 @@ func (e *MapEditor) objectPress(p image.Point) {
 		}
 		e.objectRowPress(part, n)
 	case popupRowLine, popupRowControl:
+		if f, ok := e.obj.rowOpen[n]; ok && s.Rows[n].Kind == popupLink {
+			e.openParameter(f)
+			return
+		}
 		if n < len(links) && links[n] > 0 {
 			e.followReference(links[n])
 			return
 		}
 		if n < len(links) && links[n] < 0 {
-			e.Select(-links[n]-1, true)
+			e.openObjectRecord(-links[n]-1, true)
 			return
 		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {
@@ -1284,6 +1291,10 @@ func (e *MapEditor) objectPress(p image.Point) {
 		}
 		e.objectRowPress(part, n)
 	case popupButton:
+		if len(e.objectBack) > 0 && n == len(s.Buttons)-1 {
+			e.backObject()
+			return
+		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {
 			e.closeObject()
 			return

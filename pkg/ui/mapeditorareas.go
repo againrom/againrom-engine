@@ -32,7 +32,11 @@ func (e *MapEditor) selectedTrigger() int {
 		if v.trigger != nil {
 			return v.index
 		}
-		return e.backTrigger
+		for i := len(e.objectBack) - 1; i >= 0; i-- {
+			if p := e.objectBack[i]; p.kind == "Trigger" {
+				return p.index
+			}
+		}
 	}
 	return -1
 }

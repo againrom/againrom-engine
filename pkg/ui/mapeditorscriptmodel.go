@@ -9,8 +9,7 @@ type InspectionScriptModel struct {
 	Conditions, Actions []InspectionScriptNode
 	Triggers            []InspectionTrigger
 	Areas               []InspectionArea
-	// Targets are the values a parameter of a type code can take: units,
-	// groups, players and structures the map holds.
+	// Targets are named values by host parameter kind.
 	Targets map[uint32][]InspectionScriptTarget
 	// Catalog is what the host's decoder knows of the operations.
 	Catalog InspectionScriptCatalog
@@ -23,6 +22,7 @@ type InspectionScriptCatalog struct {
 	Checks, Actions []InspectionScriptOperation
 	GroupCommands   []uint32
 	Signature       func(condition bool, opcode, command uint32) ([10]InspectionScriptSlot, bool)
+	ParameterKind   func(condition bool, opcode uint32, types [10]uint32, slot int) uint32
 }
 
 // InspectionScriptOperation is one opcode and whether a claim names it.
@@ -54,6 +54,9 @@ const (
 
 // scriptGroupCommand is the action whose first parameter is a group command.
 const scriptGroupCommand = 6
+
+// ScriptVariableParameter is a view kind, not an ALM type.
+const ScriptVariableParameter uint32 = 10
 
 // operations are the catalog's operations of a family.
 func (c InspectionScriptCatalog) operations(condition bool) []InspectionScriptOperation {
@@ -127,10 +130,18 @@ type InspectionArea struct {
 }
 
 // InspectionScriptTarget is one value a parameter can name, the document
-// record it stands for (-1 none), the members it counts and its own name.
+// record link (-1 none, <=-2 a variable row), member count and display name.
 type InspectionScriptTarget struct {
 	Value   uint32
 	Record  int
 	Members int
 	Name    string
+	Choice  string
+}
+
+func (t InspectionScriptTarget) ChoiceText() string {
+	if t.Choice != "" {
+		return t.Choice
+	}
+	return t.Name
 }

@@ -247,10 +247,17 @@ func scriptVariableAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 		return err
 	}
 	n := scriptNodes(sc, k)[index]
-	if !(k == mapedit.KindAction && (n.Opcode == 3 || n.Opcode == 8)) && !(k == mapedit.KindCondition && n.Opcode == 19) {
+	if !scriptAddressesVariable(k == mapedit.KindCondition, n.Opcode) {
 		return nil
 	}
-	variable := scriptVariable(n)
+	return scriptRegisterAllowed(sc, scriptVariable(n))
+}
+
+func scriptAddressesVariable(condition bool, opcode uint32) bool {
+	return condition && opcode == 19 || !condition && (opcode == 3 || opcode == 8)
+}
+
+func scriptRegisterAllowed(sc alm.Script, variable uint32) error {
 	if variable >= 100 {
 		return fmt.Errorf("variable register %d is outside 0..99", variable)
 	}
@@ -261,12 +268,29 @@ func scriptVariableAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 }
 
 func scriptVariable(n alm.ScriptNode) uint32 {
-	for p, tag := range n.Type {
-		if tag == 1 || tag == 5 || tag == 6 || tag == 7 {
-			return n.Value[p]
-		}
+	if p := scriptVariableSlot(n.Type); p >= 0 {
+		return n.Value[p]
 	}
 	return 0
+}
+
+func scriptVariableSlot(types [10]uint32) int {
+	for p, tag := range types {
+		if tag == 1 || tag == 5 || tag == 6 || tag == 7 {
+			return p
+		}
+	}
+	return -1
+}
+
+func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot int) uint32 {
+	if scriptAddressesVariable(condition, opcode) && scriptVariableSlot(types) == slot {
+		return ui.ScriptVariableParameter
+	}
+	if types[slot] == ui.ScriptVariableParameter {
+		return 0
+	}
+	return types[slot]
 }
 
 func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key string, value int64) error {
@@ -293,64 +317,4 @@ func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key strin
 		return fmt.Errorf("coordinate %d is outside 0..%d", value, limit-1)
 	}
 	return nil
-}
-
-func scriptValueChoices(view *alm.Map, k mapedit.Kind, index int, key string, text func(string) string) []ui.InspectionChoice {
-	if k != mapedit.KindAction && k != mapedit.KindCondition {
-		return nil
-	}
-	sc, err := view.Script()
-	if err != nil {
-		return nil
-	}
-	n := scriptNodes(sc, k)[index]
-	slot, err := strconv.Atoi(strings.TrimPrefix(key, "value"))
-	if err != nil || slot < 0 || slot >= 10 {
-		return nil
-	}
-	var out []ui.InspectionChoice
-	add := func(v uint32, label string) { out = append(out, ui.InspectionChoice{Value: int64(v), Label: label}) }
-	if slot == 0 && ((k == mapedit.KindAction && (n.Opcode == 3 || n.Opcode == 8)) || (k == mapedit.KindCondition && n.Opcode == 19)) {
-		for v := uint32(0); v < 100; v++ {
-			if int(v) >= len(sc.Conditions) || sc.Conditions[v].Opcode == 0x10002 {
-				add(v, fmt.Sprintf("Variable register %d", v))
-			}
-		}
-		return out
-	}
-	switch n.Type[slot] {
-	case 2:
-		seen := map[uint32]bool{}
-		for _, u := range view.Units {
-			if !seen[u.GroupID] {
-				seen[u.GroupID] = true
-				add(u.GroupID, fmt.Sprintf("Group %d", u.GroupID))
-			}
-		}
-	case 3:
-		for i, p := range view.Groups {
-			add(uint32(i+1), fmt.Sprintf("Player %d: %s", i+1, text(alm.PlayerNameText.Decode([]byte(p.Name)))))
-		}
-	case 4:
-		counts := map[uint16]int{}
-		for _, u := range view.Units {
-			counts[u.UnitID]++
-		}
-		for _, u := range view.Units {
-			if u.UnitID > 0 && counts[u.UnitID] == 1 {
-				add(uint32(u.UnitID), fmt.Sprintf("Unit %d", u.UnitID))
-			}
-		}
-	case 9:
-		counts := map[uint16]int{}
-		for _, u := range view.Objects {
-			counts[u.Field12]++
-		}
-		for _, u := range view.Objects {
-			if u.Field12 > 0 && counts[u.Field12] == 1 {
-				add(uint32(u.Field12), fmt.Sprintf("Structure %d", u.Field12))
-			}
-		}
-	}
-	return out
 }

@@ -332,6 +332,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string) (*ui.I
 	script, scriptErr := m.Script()
 	if scriptErr == nil {
 		inspectScript(d, m, script, x.inspectionUTF8)
+		d.Script.Targets = x.scriptTargets(d, m, script)
 		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions", len(script.Triggers), len(script.Conditions), len(script.Actions))
 		if len(script.Triggers) == 0 {
 			d.ScriptNotice = "No authored triggers"
