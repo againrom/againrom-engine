@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A spell cast at a unit or a cell out of reach is no longer lost: the
+  caster walks until the target is in reach and casts there. Any other order
+  cancels it. An enemy mage now casts at the unit it is fighting.
 - [ROM1] Map script spell and effect parameters pick spells by number and name,
   using the installed game's language. Unknown values keep their number.
 - [ROM1] The map editor's G panel opens each arm's script and the drop cell's

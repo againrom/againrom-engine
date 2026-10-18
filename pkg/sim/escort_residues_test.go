@@ -9,8 +9,11 @@ func residueDefender(t *testing.T, hp, mana int32, percent uint32) *World {
 	caster := spMage(2, 22, 20, 100, 50, mana, 1<<6)
 	caster.Owner, caster.Group, caster.ScanRange = 2, 7, 10
 	enemy := laFighter(3, 3, 9, 23, 20)
+	// A defensive heal stays out of the mage's own engage draw (MAGIC-AI-012).
+	heal := hlHeal()
+	heal.Defensive = true
 	w, err := NewStockedSpelledWorld(7, engBounds, ModeCanonical, Terrain{},
-		[]Entity{charge, caster, enemy}, nil, engRel(t, [3]uint32{2, 3, 1}), nil, nil, []SpellRule{hlHeal()})
+		[]Entity{charge, caster, enemy}, nil, engRel(t, [3]uint32{2, 3, 1}), nil, nil, []SpellRule{heal})
 	if err != nil {
 		t.Fatal(err)
 	}

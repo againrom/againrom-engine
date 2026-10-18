@@ -20,7 +20,7 @@ func TestManualCastPreemptsCurrentAction(t *testing.T) {
 				e := &w.entities[0]
 				switch action {
 				case "attack":
-					w.orderAttack(0, 2)
+					w.attachAttack(0, 2, AttackTargetUnit, false)
 					e.AttackPhase, e.AttackCountdown = AttackCharging, 1
 				case "recovery":
 					e.CastWait = 200

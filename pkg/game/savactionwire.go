@@ -186,7 +186,7 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 		if phase == 2 {
 			wirePhase = 7
 		}
-		// An armed creature cast is an order that has not installed its cast:
+		// An armed cast is an order that has not installed its cast:
 		// the actor stays in its walking state and the order sits at progress 0.
 		armed := book && phase == sim.BookPhaseApproach
 		if !armed {

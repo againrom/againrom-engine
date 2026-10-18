@@ -16,6 +16,7 @@ func (w *World) commandDefend(members []int, subject EntityID) {
 	}
 	for _, mi := range members {
 		w.cancelScroll(mi)
+		w.dropCastApproach(mi)
 	}
 	w.commandGroup(members, orderNone, cell{})
 	for _, mi := range members {

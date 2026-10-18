@@ -104,8 +104,8 @@ func TestTheSecondGameCastReachStaysTheAnchorCells(t *testing.T) {
 	if got := wide.BookSpellRefusal(1, 2, 1); got != refusalTargetOutOfRange {
 		t.Fatalf("second game, a two-wide target at anchor distance 8: refusal %q, want %q", got, refusalTargetOutOfRange)
 	}
-	if events := spRunCast(wide, spCast(1, 2, 1)); len(events) != 0 {
-		t.Fatalf("second game: the release at anchor distance 8 produced %d events, want none", len(events))
+	if events := StepObserved(wide, []Command{spCast(1, 2, 1)}); len(events) != 0 || !wide.orderStateAt(0).approaching() {
+		t.Fatalf("second game: the cast at anchor distance 8 produced %d events or armed no approach", len(events))
 	}
 	// Anchor distance 7: admitted and released, wide or not.
 	near := second(3, 2)

@@ -51,7 +51,7 @@ func TestMidStrikeManualCastKeepsBodyAndDispatchesAfterProgress(t *testing.T) {
 		w.entities[0].AlwaysHits, w.entities[0].DamageBase = true, 5
 		w.entities[0].Reach = 1
 		w.entities[1].HP, w.entities[1].MaxHP = 200, 200
-		w.orderAttack(0, 2)
+		w.attachAttack(0, 2, AttackTargetUnit, false)
 		w.entities[0].AttackPhase, w.entities[0].AttackCountdown = AttackCharging, 3
 		old := w.entities[0]
 		cmd := Cast(1, 2, 1)
@@ -105,7 +105,7 @@ func TestMidStrikeOptionalTailKeepsTacticalBlockingWeaponEffects(t *testing.T) {
 	w := scrollFixtureWorld(t, 12, 2)
 	w.entities[0].WeaponSpell, w.entities[0].WeaponSpellLevel, w.entities[0].WeaponSpellSource = 1, 77, WeaponSpellLegacy
 	w.entities[1].X, w.entities[1].Y = 2, 1
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	w.entities[0].AttackPhase, w.entities[0].AttackCountdown = AttackCasting, 3
 	w.releaseAttack(0)
 	w.DeclareStructures([]Structure{{ID: 1, Col: 6, Row: 6, Width: 1, Height: 1, Attach: 1, Blocking: 2}})
@@ -187,7 +187,7 @@ func TestMidStrikeReadyCastAndPendingReplacementKeepAdmittedBounds(t *testing.T)
 		t.Fatal("ready cast failed immediate admission")
 	}
 	w = manualCastWorld(t)
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	w.entities[0].AttackPhase, w.entities[0].AttackCountdown = AttackCharging, 10
 	Step(w, []Command{Cast(1, 2, 1), CastAt(1, 26, CellPoint{X: 6, Y: 3})})
 	p := w.entities[0].PendingOrder
@@ -209,7 +209,7 @@ func TestMidStrikeScrollPointerWaitsBesideActiveWeaponSpell(t *testing.T) {
 	e := &w.entities[0]
 	e.AttackCharge, e.AttackRelax, e.Reach = 20, 2, 1
 	w.entities[1].X, w.entities[1].Y = e.X+1, e.Y
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	e.AttackPhase, e.AttackCountdown = AttackCharging, 3
 	e.WeaponSpell, e.WeaponSpellLevel, e.WeaponSpellSource = 9, 77, WeaponSpellLegacy
 	old := *e
@@ -281,7 +281,7 @@ func TestMidStrikeWeaponCleanupReplacesPendingScrollPointer(t *testing.T) {
 	e := &w.entities[0]
 	e.AttackCharge, e.AttackRelax, e.Reach = 20, 2, 1
 	w.entities[1].X, w.entities[1].Y = e.X+1, e.Y
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	e.AttackPhase, e.AttackCountdown = AttackCasting, 2
 	e.WeaponSpell, e.WeaponSpellLevel, e.WeaponSpellSource = 1, 77, WeaponSpellLegacy
 	Step(w, []Command{UseScroll(1, 0, 2)})
@@ -299,7 +299,7 @@ func TestMidStrikeKnownProgressRowsKeepPhysicalCarrier(t *testing.T) {
 		w := manualCastWorld(t)
 		w.entities[0].AlwaysHits, w.entities[0].DamageBase = true, 5
 		w.entities[1].HP, w.entities[1].MaxHP = 200, 200
-		w.orderAttack(0, 2)
+		w.attachAttack(0, 2, AttackTargetUnit, false)
 		e := &w.entities[0]
 		e.ActorState = actorStateRetreat
 		e.Retreat = RetreatContinuation{Known: true}
@@ -350,7 +350,7 @@ func TestMidStrikeKnownProgressScrollPointerAndRowAdmission(t *testing.T) {
 		w := scrollFixtureWorld(t, 2, 2)
 		w.entities[0].AlwaysHits, w.entities[0].DamageBase = true, 5
 		w.entities[1].HP, w.entities[1].MaxHP = 200, 200
-		w.orderAttack(0, 2)
+		w.attachAttack(0, 2, AttackTargetUnit, false)
 		e := &w.entities[0]
 		e.ActorState = actorStateRetreat
 		e.Retreat = RetreatContinuation{Known: true}
@@ -399,7 +399,7 @@ func TestMidStrikeRetreatReplacesQueuedCast(t *testing.T) {
 		w.entities[1].Owner = 1
 		w.relations.Set(2, 1, 1)
 		w.relations.Set(1, 2, 1)
-		w.orderAttack(0, 2)
+		w.attachAttack(0, 2, AttackTargetUnit, false)
 		w.entities[0].AttackPhase, w.entities[0].AttackCountdown = AttackCharging, 6
 		cmd := Cast(1, 2, 1)
 		if cellCast {

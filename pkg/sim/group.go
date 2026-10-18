@@ -151,6 +151,7 @@ func (w *World) groupOrder(cmds []Command, first int, consumed []bool) {
 	}
 	for _, i := range members {
 		w.cancelScroll(i)
+		w.dropCastApproach(i)
 	}
 	switch kind {
 	case KindGroupMoveTo:

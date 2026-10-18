@@ -343,7 +343,6 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 				}
 			}
 		}
-		w.aiCast(i, obs)
 	})
 	if roam {
 		w.savedGroupByID(id).AI[0x15]++

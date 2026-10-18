@@ -191,35 +191,32 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 		return
 	}
 	for _, g := range w.aiGroups() {
-		// THE MEMBER LIST IS NOT FILTERED BY WHO CAST. decide reads g.members
-		// for the guard centroid and candidates reads it for the decider and
-		// for the shared group sight stamp, so removing a caster moved the
-		// group's notice circle and dropped that member's vision for the same
-		// pass; a group whose every member cast skipped its decision entirely.
-		// A member that began a cast is protected by orderAttack's own cast
-		// guard instead, and a destination written to it stands until the cast
-		// releases.
-		for _, mi := range g.members {
-			w.aiCast(mi, obs)
-		}
 		w.decide(g)
 	}
 	w.joinEngagedGroups()
 }
 
-// aiCast is the spell arm of one decoded AI decision. Map-owned mages filter
-// their books to affordable non-defensive rows, choose uniformly and reuse the
-// ordinary cast/apply path. The high-Mind 30-percent hand-back and every other
-// refusal leave the unit to the ordinary group decision on this pass; so does a
-// cast that begins, since the member stays in its group's member list either
-// way. The reported bool is whether a cast began.
-func (w *World) aiCast(i int, _ *castObs) bool {
+// mageEngageCast is the full-book draw of the engage routine (AI-554,
+// MAGIC-AI-012) for a computer mage given its victim. Above Mind 59 a 30 in
+// 100 draw hands the pass back to the ordinary engage. Otherwise it draws
+// uniformly from the affordable non-defensive ids 1..28 of its book; an empty
+// list casts id 28 when the book holds it. The cast is aimed at the victim; out
+// of reach the mage walks into reach with the cast armed. It reports whether
+// the cast took the pass.
+func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
-	if w.humanParticipantUnit(e) || w.orderStateAt(i).recoveryWaiting() || !isMage(e) {
+	if w.humanParticipantUnit(e) || !isMage(e) || w.orderStateAt(i).recoveryWaiting() {
 		return false
 	}
+	if e.Mind > 59 && w.rng.aiRange(100) < 30 {
+		return false
+	}
+	first := !w.SecondGame()
 	var choices []SpellRule
 	for _, rule := range w.spells {
+		if first && (rule.ID < 1 || rule.ID > lastBookSpellID) {
+			continue
+		}
 		var resolved bool
 		rule, resolved = BookRuleFor(e, rule)
 		if !resolved || rule.Defensive || !bookAffords(e, rule) ||
@@ -228,15 +225,44 @@ func (w *World) aiCast(i int, _ *castObs) bool {
 		}
 		choices = append(choices, rule)
 	}
-	// Both draws are the AI range idiom (MAGIC-AI-012): the hand-back is
-	// exactly 30 in 100, and the pick draws once even over one choice.
-	if len(choices) == 0 || (e.Mind > 59 && w.rng.aiRange(100) < 30) {
+	var id uint32
+	switch {
+	case len(choices) > 0:
+		id = uint32(choices[w.rng.aiRange(int32(len(choices)))].ID)
+	case first && knowsSpell(e, lastBookSpellID):
+		id = lastBookSpellID
+	default:
 		return false
 	}
-	rule := choices[w.rng.aiRange(int32(len(choices)))]
-	target, ok := w.autoCastTarget(i, rule)
-	return ok && w.beginBookSpell(i, target, uint32(rule.ID))
+	w.dropCastApproach(i)
+	refusal := w.creatureCastRefusal(i, victim, 0, 0, false, id, false)
+	if refusal == "" {
+		w.standForCreatureCast(i)
+		return w.beginBookSpellMode(i, victim, id, true)
+	}
+	rest := refusal
+	if isRangeRefusal(refusal) {
+		rest = w.creatureCastRefusal(i, victim, 0, 0, false, id, true)
+	}
+	switch rest {
+	case "":
+		return w.armCreatureCast(i, victim, victim, 0, 0, false, id)
+	case "insufficient mana":
+		// Admission refuses on mana alone and the order waits (MAGIC-348);
+		// only the unfiltered last spell reaches here.
+		vi := indexOfEntity(w.entities, victim)
+		if vi < 0 {
+			return false
+		}
+		w.standForCreatureCast(i)
+		v := w.entities[vi]
+		return w.queueBookCast(bookCast{Caster: e.ID, Target: victim, Spell: uint16(id), X: v.X, Y: v.Y, Retained: true})
+	}
+	return false
 }
+
+// lastBookSpellID is the last id of the first game's spell book walk.
+const lastBookSpellID = 28
 
 // underCommand reports whether e is executing a player's order rather than
 // available to be decided over.

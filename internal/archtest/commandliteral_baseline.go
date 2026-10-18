@@ -19,5 +19,5 @@ package archtest
 // Production has no baseline because its rule is an absolute: no non-test file
 // outside pkg/sim/command.go writes one.
 var CommittedCommandLiterals = CommandLiteralBaseline{
-	Tests: 911,
+	Tests: 910,
 }

@@ -232,11 +232,19 @@ func TestACastReadsEveryTableThroughTheWorld(t *testing.T) {
 	if got := spAt(t, cast(r, 9), 2).HP; got != 100-30 {
 		t.Errorf("a range bonus of 4 over 5 did not reach 9 cells: %d health", got)
 	}
-	if got := spAt(t, cast(r, 10), 2).HP; got != 100 {
-		t.Errorf("a cast 10 cells away over a reach of 9 landed: %d health", got)
+	// Out of reach the cast arms an approach instead of landing in place.
+	armed := func(r Rules, dist int32) bool {
+		caster := spMage(1, 0, 0, 60, 50, 20, 1<<1)
+		w := spWorld(t, 42, []SpellRule{spell}, caster, spEnt(2, dist, 0))
+		w.SetRules(r)
+		Step(w, []Command{spCast(1, 2, 1)})
+		return w.orderStateAt(0).approaching() && spAt(t, w, 2).HP == 100
 	}
-	if got := spAt(t, cast(Rules{}, 9), 2).HP; got != 100 {
-		t.Errorf("without the table 9 cells is out of range: %d health", got)
+	if !armed(r, 10) {
+		t.Error("a cast 10 cells away over a reach of 9 did not arm an approach")
+	}
+	if !armed(Rules{}, 9) {
+		t.Error("without the table 9 cells is out of range, yet no approach armed")
 	}
 }
 

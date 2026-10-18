@@ -1299,3 +1299,4 @@ pkg/game.TestReleaseScriptSpellCurrentPicksPreserveEveryMap
 pkg/game.TestReleaseScriptSpellPickerFrames
 pkg/game.TestReleaseMapEditorArmsOpenAndKeepBytes
 pkg/game.TestReleaseMapEditorArmsFrames
+pkg/game.TestReleasePlayerCastApproachSaveColdLoad

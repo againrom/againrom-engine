@@ -45,7 +45,7 @@ func TestSourceBookAIUsesInstanceCostAndExactZeroDefensive(t *testing.T) {
 		target := spEnt(2, 5, 2)
 		target.Owner = SelfSlot
 		w := hlWorld(t, 31, acEnemies(t), []SpellRule{rule}, mage, target)
-		if got := w.aiCast(0, nil); got != (defensive == 0) {
+		if got := w.mageEngageCast(0, 2); got != (defensive == 0) {
 			t.Fatalf("AI defensive%d admitted%v", defensive, got)
 		}
 		if defensive == 0 {

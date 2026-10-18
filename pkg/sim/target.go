@@ -68,14 +68,24 @@ func (w *World) clearInvalidTargetReferences(target EntityID) {
 		}
 	}
 
-	books := w.bookCasts[:0]
+	books, walkers := w.bookCasts[:0], []EntityID(nil)
 	for _, cast := range w.bookCasts {
 		if !cast.AtCell && cast.Target == target && !w.spellIDTargetable(targetState, uint32(cast.Spell)) {
+			if cast.Phase == bookApproach {
+				walkers = append(walkers, cast.Caster)
+			}
 			continue
 		}
 		books = append(books, cast)
 	}
 	w.bookCasts = books
+	// A caster walking to its lost target's cell stands; a pursuer's attack
+	// order ended above.
+	for _, id := range walkers {
+		if ci := indexOfEntity(w.entities, id); ci >= 0 && !w.castApproachPursues(w.entities[ci]) {
+			w.standCaster(ci)
+		}
+	}
 
 	scripts := w.casts[:0]
 	for _, cast := range w.casts {

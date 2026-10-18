@@ -127,8 +127,9 @@ func TestReleaseMission81QuestItemHandoverAndColdSAV(t *testing.T) {
 			move(near)
 			f.LiveAdvance(32)
 			unchanged()
-			if mode == "club" {
-				// Hostile guards stand around the club; they fall first.
+			// Hostile guards stand around the club; they fall first, and any
+			// that reached it while the holder walked fall at the club.
+			clearGuards := func() int {
 				guards := 0
 				for _, e := range w.Entities() {
 					if e.Alive() && w.Relations().Hostile(e.Owner, sim.SelfSlot) && max(e.X-sack[0], sack[0]-e.X, e.Y-sack[1], sack[1]-e.Y) <= 4 {
@@ -136,12 +137,17 @@ func TestReleaseMission81QuestItemHandoverAndColdSAV(t *testing.T) {
 						guards++
 					}
 				}
-				if guards == 0 {
-					t.Fatal("no hostile guard stands near the club")
-				}
+				return guards
+			}
+			if mode == "club" && clearGuards() == 0 {
+				t.Fatal("no hostile guard stands near the club")
 			}
 			move(sack)
 			f.LiveAdvance(1)
+			if mode == "club" {
+				clearGuards()
+				finishLoadedCycle(t, f.live, holder)
+			}
 			quest81Dismiss(t, f, a)
 			quest81OK(t, a.HeadlessKey("grab"))
 			if !quest81Carries(w, holder, item) {

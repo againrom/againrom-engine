@@ -11,7 +11,7 @@ func holdStrikeCastWorld(t *testing.T, cellCast bool) *World {
 	w.entities[0].AlwaysHits, w.entities[0].DamageBase = true, 5
 	w.entities[0].Reach = 1
 	w.entities[1].HP, w.entities[1].MaxHP = 200, 200
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	w.entities[0].AttackPhase, w.entities[0].AttackCountdown = AttackCharging, 6
 	cmd := Cast(1, 2, 1)
 	if cellCast {

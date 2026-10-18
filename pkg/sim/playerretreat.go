@@ -36,6 +36,7 @@ func (w *World) retreatOrder(cmds []Command, first int, consumed []bool) {
 		if !w.orderState(&w.entities[i]).scrollBegun() {
 			w.cancelScroll(i)
 		}
+		w.dropCastApproach(i)
 		e := &w.entities[i]
 		w.clearEscort(i)
 		e.PendingOrder = PendingOrder{}

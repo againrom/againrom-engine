@@ -62,13 +62,18 @@ func TestFireballPointUsesBookRangeAcrossTerrainHeights(t *testing.T) {
 				if refusal != want {
 					t.Fatalf("refusal=%q, want%q", refusal, want)
 				}
-				events := spRunCast(w, Command{Kind: KindCastAt, Entity: 1, X: 32 + p[0], Y: 32 + p[1], Spell: 2})
-				if p[0] <= 12 {
-					if len(events) != 1 || w.entities[0].Mana != 95 || w.entities[2].HP >= 100 {
-						t.Fatalf("Full-range cast: events=%v mana=%d HP=%d", events, w.entities[0].Mana, w.entities[2].HP)
+				cmd := CastAt(1, 2, CellPoint{X: 32 + p[0], Y: 32 + p[1]})
+				if p[0] > 12 {
+					events := StepObserved(w, []Command{cmd})
+					k, armed := w.bookCastIndex(1)
+					if len(events) != 0 || w.entities[0].Mana != 100 || w.entities[2].HP != 100 || !armed || w.bookCasts[k].Phase != bookApproach {
+						t.Fatal("Out-of-range cast released, paid or did not arm its approach")
 					}
-				} else if len(events) != 0 || w.entities[0].Mana != 100 || w.entities[2].HP != 100 {
-					t.Fatal("Out-of-range cast released or paid")
+					return
+				}
+				events := spRunCast(w, cmd)
+				if len(events) != 1 || w.entities[0].Mana != 95 || w.entities[2].HP >= 100 {
+					t.Fatalf("Full-range cast: events=%v mana=%d HP=%d", events, w.entities[0].Mana, w.entities[2].HP)
 				}
 				if w.entities[0].X != 32 || w.entities[0].Y != 32 {
 					t.Fatal("Cast moved the caster")

@@ -99,8 +99,11 @@ func isRangeRefusal(refusal string) bool {
 // selection took the pass.
 func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
-	if e.Owner == 0 || w.suppressedAcquirer(e) || !e.Alive() || !e.hasCreatureSpells() {
+	if e.Owner == 0 || w.suppressedAcquirer(e) || !e.Alive() {
 		return false
+	}
+	if !e.hasCreatureSpells() {
+		return w.mageEngageCast(i, victim)
 	}
 	w.engageDrew = append(w.engageDrew, e.ID)
 	id := w.creatureSpellPick(e)
@@ -109,8 +112,8 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 		return false
 	}
 	if id == 0 {
-		w.dropCreatureApproach(i)
-		return false
+		w.dropCastApproach(i)
+		return w.mageEngageCast(i, victim)
 	}
 	if !knowsSpell(e, id) || w.creatureAim(id) == creatureAimNone {
 		return true
@@ -119,7 +122,7 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	if !ok {
 		return false
 	}
-	w.dropCreatureApproach(i)
+	w.dropCastApproach(i)
 	refusal := w.creatureCastRefusal(i, target, x, y, atCell, id, false)
 	if refusal == "" {
 		w.standForCreatureCast(i)
@@ -155,31 +158,53 @@ func (w *World) standForCreatureCast(i int) {
 func (w *World) armCreatureCast(i int, victim, target EntityID, x, y int32, atCell bool, id uint32) bool {
 	c := bookCast{Caster: w.entities[i].ID, Target: target, Spell: uint16(id), X: x, Y: y,
 		AtCell: atCell, Retained: true}
-	return w.armCreatureApproach(i, &c, victim) && w.queueBookCast(c)
+	return w.armCastApproach(i, &c, victim, true) && w.queueBookCast(c)
 }
 
-// dropCreatureApproach ends an armed approach: another order replaced it.
-func (w *World) dropCreatureApproach(i int) {
+// dropCastApproach ends an armed approach: another order replaced it.
+func (w *World) dropCastApproach(i int) {
 	if s := w.orderStateAt(i); s.approaching() {
 		w.bookCasts = append(w.bookCasts[:s.bookAt], w.bookCasts[s.bookAt+1:]...)
 	}
 }
 
-// armCreatureApproach makes c an armed approach for a creature caster and
-// points the creature at victim, the unit it walks toward. It reports whether
-// the cast stays armed. The victim of a retained cast that went out of range is
-// its target, or for a cast at a cell the creature's own attack target.
-func (w *World) armCreatureApproach(i int, c *bookCast, victim EntityID) bool {
+// castApproachPursues reports how a caster walks its armed cast into reach. A
+// computer caster pursues its victim with the attack's pursuit (MAGIC-239: the
+// actor approach passes the target to the pursuit step), and so does a human
+// participant's creature on its own class-slot cast, which holds that attack.
+// The human participant's book order walks to the cell: the cast's cell, or
+// its target's cell.
+func (w *World) castApproachPursues(e Entity) bool {
+	return !w.humanParticipantUnit(e) || e.hasCreatureSpells() && e.HasAttackTarget
+}
+
+// armCastApproach is the one builder of an armed approach (the original's
+// pending kind 8 or 9 whose reach gate failed, MAGIC-340). It points the
+// caster's walk into reach and reports whether the cast stays armed. victim
+// is the unit a pursuing caster walks toward; pursue picks the pursuit over
+// the walk to the cell.
+func (w *World) armCastApproach(i int, c *bookCast, victim EntityID, pursue bool) bool {
 	e := w.entities[i]
-	if !c.Retained || !e.hasCreatureSpells() {
+	if !c.Retained {
 		return false
 	}
-	if !(e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && e.AttackTarget == victim) &&
-		!w.attachAttack(i, victim, AttackTargetUnit, false) {
-		return false
+	if pursue {
+		if !(e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit && e.AttackTarget == victim) &&
+			!w.attachAttack(i, victim, AttackTargetUnit, false) {
+			return false
+		}
+	} else {
+		w.attachMoveOrder(i, c.X, c.Y, false)
 	}
 	c.Phase, c.Remaining, c.Progress, c.Complete = bookApproach, 0, 0, false
 	return true
+}
+
+// rearmCastApproach turns a retained cast refused for range at a later
+// admission back into an approach. Only a pursuing caster holds such a cast.
+func (w *World) rearmCastApproach(i int, c *bookCast, refusal string) bool {
+	victim, ok := w.approachVictim(i, *c)
+	return ok && isRangeRefusal(refusal) && w.castApproachPursues(w.entities[i]) && w.armCastApproach(i, c, victim, true)
 }
 
 // approachVictim is the unit a retained cast that went out of range walks
@@ -193,11 +218,16 @@ func (w *World) approachVictim(i int, c bookCast) (EntityID, bool) {
 }
 
 // startApproachedCast begins the wind-up of an armed cast that is now in
-// range, facing its target as admission does.
+// range, facing its target as admission does. A walking caster stands, as the
+// install stands the member (MAGIC-340).
 func (w *World) startApproachedCast(i int, c *bookCast) {
 	e := w.entities[i]
-	retained := c.Retained && e.hasCreatureSpells() && e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
+	pursues := w.castApproachPursues(e)
+	retained := c.Retained && pursues && e.HasAttackTarget && e.AttackTargetKind == AttackTargetUnit
 	w.standForCreatureCast(i)
+	if !pursues {
+		w.standCaster(i)
+	}
 	caster := w.entities[i]
 	rule, _ := w.bookSpell(caster, uint32(c.Spell))
 	c.Phase, c.Remaining, c.Progress, c.Complete = bookCharging, castWindupTicks(caster), 0, false
@@ -208,6 +238,30 @@ func (w *World) startApproachedCast(i int, c *bookCast) {
 		w.turnToActor(i, ti)
 	}
 	w.chargeBookCast(i, rule)
+}
+
+// approachTargetGone reports an armed unit cast whose target left the map
+// (script removal keeps the body off map): the approach ends unpaid
+// (DIV-3682).
+func (w *World) approachTargetGone(c bookCast) bool {
+	ti := indexOfEntity(w.entities, c.Target)
+	return !c.AtCell && ti >= 0 && w.entities[ti].OffMap
+}
+
+// walkApproach keeps a walking caster's approach on a unit aimed at the
+// unit's cell. A cast at a cell keeps its cell.
+func (w *World) walkApproach(i int, c *bookCast) {
+	if c.AtCell || w.castApproachPursues(w.entities[i]) {
+		return
+	}
+	ti := indexOfEntity(w.entities, c.Target)
+	if ti < 0 {
+		return
+	}
+	if t := w.entities[ti]; t.X != c.X || t.Y != c.Y {
+		c.X, c.Y = t.X, t.Y
+		w.attachMoveOrder(i, t.X, t.Y, false)
+	}
 }
 
 // creatureReplaceCastOrder is what a draw does to the retained cast order of a

@@ -627,8 +627,8 @@ func TestOrderAttackIsTheOnlySetterAndDecidesOnlyClearerIsTheRelease(t *testing.
 	if setters := funcsAssigning(t, "HasAttackTarget", "true", "binary.go"); len(setters) != 2 || setters[0] != "ImportOriginalActorActions" || setters[1] != "attachAttack" {
 		t.Errorf("HasAttackTarget = true is written (outside binary.go) by %v, want exactly [ImportOriginalActorActions attachAttack]", setters)
 	}
-	if callers := funcsCalling(t, "attachAttack"); len(callers) != 4 || callers[0] != "armCreatureApproach" || callers[1] != "cmdGroupAttack" || callers[2] != "orderAttack" || callers[3] != "stepWorld" {
-		t.Errorf("attachAttack is called by %v, want exactly [armCreatureApproach cmdGroupAttack orderAttack stepWorld]", callers)
+	if callers := funcsCalling(t, "attachAttack"); len(callers) != 4 || callers[0] != "armCastApproach" || callers[1] != "cmdGroupAttack" || callers[2] != "orderAttack" || callers[3] != "stepWorld" {
+		t.Errorf("attachAttack is called by %v, want exactly [armCastApproach cmdGroupAttack orderAttack stepWorld]", callers)
 	}
 	if callers := funcsCalling(t, "releaseAttack"); len(callers) != 2 || callers[0] != "decide" || callers[1] != "savedDecision" {
 		t.Errorf("releaseAttack is called by %v, want exactly [decide savedDecision]", callers)

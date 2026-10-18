@@ -1408,9 +1408,9 @@ const (
 	bookRelaxing
 	bookBoundaryOne
 	bookBoundaryTwo
-	// bookApproach is a creature's retained cast order that is out of range:
-	// the caster walks toward its victim and the order stays armed until it
-	// is in range or another order replaces it.
+	// bookApproach is a cast order that is out of range: the caster walks
+	// into range and the order stays armed until it is in range or another
+	// order replaces it.
 	bookApproach
 )
 
@@ -1778,10 +1778,12 @@ func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, 
 	return ""
 }
 
-// The two admission refusals a creature's drawn cast turns into a walk.
+// The two admission refusals a cast turns into a walk, and the sight refusal
+// a walking caster walks on through.
 const (
 	refusalTargetOutOfRange = "target out of range"
 	refusalCellOutOfRange   = "cell out of range"
+	refusalTargetNotVisible = "target not currently visible"
 )
 
 func (w *World) bookSpellRefusal(ci int, victim EntityID, spellID uint32, retained, allowInsufficient bool) string {
@@ -1792,8 +1794,8 @@ func (w *World) bookSpellAdmission(ci int, victim EntityID, spellID uint32, reta
 	return w.bookSpellAdmissionRange(ci, victim, spellID, retained, allowInsufficient, checkAction, false)
 }
 
-// bookSpellAdmissionRange is bookSpellAdmission with the range test optionally
-// skipped, for the caller that asks whether a cast is refused for range alone.
+// bookSpellAdmissionRange is bookSpellAdmission with the sight and range tests
+// optionally skipped, for the caller that asks whether a walk would admit it.
 func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32, retained, allowInsufficient, checkAction, skipRange bool) string {
 	caster := w.entities[ci]
 	if !caster.Alive() {
@@ -1833,8 +1835,8 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if rule.Restorative && target.MaxHP <= 0 {
 		return "heal target has no health system"
 	}
-	if !w.actorSeesEntity(ci, vi) {
-		return "target not currently visible"
+	if !skipRange && !w.actorSeesEntity(ci, vi) {
+		return refusalTargetNotVisible
 	}
 	var level int32
 	if rule.School < skillSlots {
@@ -1937,7 +1939,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				i++
 				continue
 			}
-			if victim, ok := w.approachVictim(ci, *c); ok && isRangeRefusal(refusal) && w.armCreatureApproach(ci, c, victim) {
+			if w.rearmCastApproach(ci, c, refusal) {
 				i++
 				continue
 			}
@@ -1962,12 +1964,29 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			continue
 		case bookApproach:
 			refusal := w.retainedBookRefusal(ci, *c)
+			held := w.approachHeld(ci, *c)
 			switch {
+			case w.approachTargetGone(*c):
+				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
+				if held && !w.castApproachPursues(w.entities[ci]) {
+					w.standCaster(ci)
+				}
+				continue
 			case refusal == "":
 				w.startApproachedCast(ci, c)
-			case !isRangeRefusal(refusal) || !w.approachHeld(ci, *c):
+			case refusal == "insufficient mana" && held && c.Retained && w.castApproachPursues(w.entities[ci]):
+				// In reach without the mana, a retained order waits for it as
+				// the admission retries (MAGIC-340, AI-554).
+				w.standForCreatureCast(ci)
+				c.Phase, c.Progress, c.Complete = bookPending, 0, false
+			case !held || !w.approachWalksOn(ci, refusal):
 				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
+				if held && !w.castApproachPursues(w.entities[ci]) {
+					w.standCaster(ci)
+				}
 				continue
+			default:
+				w.walkApproach(ci, c)
 			}
 			i++
 			continue
@@ -2001,7 +2020,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			i++
 			continue
 		}
-		if victim, ok := w.approachVictim(ci, *c); ok && isRangeRefusal(refusal) && w.armCreatureApproach(ci, c, victim) {
+		if w.rearmCastApproach(ci, c, refusal) {
 			i++
 			continue
 		}

@@ -102,11 +102,18 @@ func TestReleaseAnAttackedGroupAtKadaganPostFightsAsAGroup(t *testing.T) {
 			if fightingAt[k] != 0 {
 				continue
 			}
+			// A mage fights by casting at its engage victim (AI-554).
 			e, _ := w.Entity(id)
-			if !e.Alive() || !e.HasAttackTarget || e.AttackPhase == sim.AttackReady {
+			target, fights := e.AttackTarget, e.Alive() && e.HasAttackTarget && e.AttackPhase != sim.AttackReady
+			for _, c := range w.Actions().Books {
+				if c.Caster == id && e.Alive() && !c.AtCell {
+					target, fights = c.Target, true
+				}
+			}
+			if !fights {
 				continue
 			}
-			if victim, held := w.Entity(e.AttackTarget); held && w.Relations().Hostile(e.Owner, victim.Owner) {
+			if victim, held := w.Entity(target); held && w.Relations().Hostile(e.Owner, victim.Owner) {
 				fightingAt[k] = w.Tick()
 				remaining--
 				if firstAt == 0 {

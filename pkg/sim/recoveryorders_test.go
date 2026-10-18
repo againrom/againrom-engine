@@ -39,7 +39,7 @@ func recoveryMage(t *testing.T, ph AttackPhase) *World {
 	w := manualCastWorld(t)
 	w.entities[0].AlwaysHits, w.entities[0].DamageBase, w.entities[0].Reach = true, 5, 1
 	w.entities[1].HP, w.entities[1].MaxHP = 200, 200
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	recoveryForce(w, ph)
 	return w
 }
@@ -50,7 +50,7 @@ func recoveryScroll(t *testing.T, ph AttackPhase) *World {
 	e := &w.entities[0]
 	e.AttackCharge, e.AttackRelax, e.Reach = 20, 8, 1
 	w.entities[1].X, w.entities[1].Y = e.X+1, e.Y
-	w.orderAttack(0, 2)
+	w.attachAttack(0, 2, AttackTargetUnit, false)
 	recoveryForce(w, ph)
 	return w
 }

@@ -559,6 +559,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		switch c.Kind {
 		case KindUseStructure:
 			if w.beginStructureUse(i, StructureID(uint32(c.X))) {
+				w.dropCastApproach(i)
 				claim(e.ID)
 			}
 		case KindMoveTo, KindPickUp:
@@ -588,6 +589,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				continue
 			}
 			w.cancelScroll(i)
+			w.dropCastApproach(i)
 			// A stored route's last cell must equal the entity's target, or the
 			// route must be empty (decodeRoutes, binary.go). The walk below
 			// rebuilds a mismatched route on the same tick for an ordinary
@@ -664,6 +666,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				continue
 			}
 			w.cancelScroll(i)
+			w.dropCastApproach(i)
 			// AN ORDER NAMING THE VICTIM ALREADY HELD LEAVES THE CYCLE ALONE, and it
 			// ENDS WHATEVER WALK THIS UNIT WAS ON. Both rules moved into orderAttack
 			// when the engagement decision became a second producer of this order: a
@@ -762,6 +765,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			w.usePotion(i, int(c.X))
 		case KindUseScroll, KindUseScrollAt:
 			if w.beginScroll(i, int(c.Spell), EntityID(uint32(c.X)), c.X, c.Y, c.Kind == KindUseScrollAt) {
+				w.dropCastApproach(i)
 				claim(e.ID)
 			}
 		}

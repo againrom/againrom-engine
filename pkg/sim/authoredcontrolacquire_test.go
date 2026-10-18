@@ -92,7 +92,7 @@ func TestAuthoredControlMageBookChoiceAndColdRestore(t *testing.T) {
 			cold := worldRoundTripForTest(t, w)
 			for _, live := range []*World{w, cold} {
 				before := live.rng
-				if got := live.aiCast(0, nil); got == tc.human {
+				if got := live.mageEngageCast(0, 2); got == tc.human {
 					t.Fatalf("book choice admitted %v for human %v", got, tc.human)
 				}
 				k, cast := live.bookCastIndex(1)

@@ -57,8 +57,14 @@ func TestAUnitCastFollowsTheEditedManaRangeAndDamage(t *testing.T) {
 	if mana, lost := cast(edit, 2); mana != 9 || lost != 60 {
 		t.Errorf("edited row at range 2: mana %d, lost %d, want 9 and 60", mana, lost)
 	}
-	if mana, lost := cast(edit, 5); mana != 0 || lost != 0 {
-		t.Errorf("edited range 2 still reaches 5: mana %d, lost %d", mana, lost)
+	// Out of the edited reach the caster walks into it before casting.
+	w := castWorld(t, edit, castMage(1, 0, 0), castEnt(2, 5, 0))
+	if r := w.BookSpellRefusal(1, 2, 1); r != "target out of range" {
+		t.Fatalf("edited range 2 at 5 refuses %q, want the reach", r)
+	}
+	castRun(w, sim.Cast(1, 2, 1))
+	if c := entityOf(t, w, 1); c.X == 0 || 40-c.Mana != 9 || 100-entityOf(t, w, 2).HP != 60 {
+		t.Errorf("edited range 2 at 5: caster at %d, mana %d, lost %d, want a walk, 9 and 60", c.X, 40-c.Mana, 100-entityOf(t, w, 2).HP)
 	}
 	global := mod.SpellData{Global: mod.SpellGlobal{Mana: ratio(2, 1), Damage: ratio(3, 1)}}
 	if mana, lost := cast(global, 5); mana != 6 || lost < 24 || lost > 48 {

@@ -393,7 +393,9 @@ func (w *World) approach(s *routeScratch, i int) int {
 		return -1
 	}
 	latched := w.entities[i].AttackPhase != AttackReady
-	if w.closedOn(i, ti) {
+	// An armed cast approach closes to the cast's reach, which its own
+	// admission tests each tick, not to the weapon's (MAGIC-239).
+	if w.closedOn(i, ti) && !w.orderStateAt(i).approaching() {
 		if !latched {
 			w.turnToActor(i, ti)
 		}

@@ -101,7 +101,7 @@ func TestAICastPickDrawsOnceOverOneChoice(t *testing.T) {
 			for range tc.draws {
 				want.raw()
 			}
-			if w.aiCast(0, nil) {
+			if w.mageEngageCast(0, 999) {
 				t.Fatalf("mind %d original %v: a cast began with no target", tc.mind, original)
 			}
 			if w.rng.state != want.state {

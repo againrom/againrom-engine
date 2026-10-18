@@ -2611,6 +2611,13 @@ package storyguard
 // TableScroll, the table wheel region and offset, and the controller's base.
 // CommentBytes rises for the city shop's deal-core decisions in
 // pkg/game/cityshopmutation.go, where the city graph is only transport.
+// CommentBytes rises for the one cast approach builder and the computer mage's
+// engage cast: the new functions' docs in pkg/sim/creaturecast.go,
+// manualcast.go, engage.go and target.go, their tests in
+// pkg/sim/castapproach_test.go and pkg/game/castapproach_release_test.go,
+// the tests whose choreography the cast approach changed, the approach's
+// off-map end, strike queue and mana wait, less
+// the removed aiCast, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4539,
 	TestFileCount:  264,
@@ -2634,5 +2641,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1714,
 	},
-	CommentBytes: 9233966,
+	CommentBytes: 9237525,
 }

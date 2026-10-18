@@ -67,7 +67,7 @@ func TestImportedNonPartyBookAIUsesRawDefensiveAndSignedCost(t *testing.T) {
 		if err := w.ImportOriginalActorSpellbooks([]OriginalActorSpellbook{{ID: 0, KnownSpells: 1 << 1, Book: book}}); err != nil {
 			t.Fatal(err)
 		}
-		if got := w.aiCast(0, nil); got != (defensive == 0) {
+		if got := w.mageEngageCast(0, 1); got != (defensive == 0) {
 			t.Fatalf("raw Defensive%d: AI ordered %t", defensive, got)
 		}
 		if defensive != 0 {
