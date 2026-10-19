@@ -134,8 +134,8 @@ func TestMageCityTrainDerivesAllFieldsAndOrdinarySAVBook(t *testing.T) {
 	file, _ := sav.Open(raw)
 	p, _ := file.CityProvenance()
 	for _, c := range p.Roster() {
-		if c.Hero && c.Experience != 16450 {
-			t.Fatalf("DIV-2472 SAV aggregate = %d, want16450", c.Experience)
+		if c.Hero && c.Experience != 23450 {
+			t.Fatalf("SAV aggregate = %d, want23450", c.Experience)
 		}
 		if c.Hero && (len(c.Spells) != 1 || c.Spells[0].Range != 6 || c.Spells[0].Defensive != 2 || c.Spells[0].ManaCost != 65535) {
 			t.Fatalf("SAV instance %+v", c.Spells)
@@ -146,7 +146,7 @@ func TestMageCityTrainDerivesAllFieldsAndOrdinarySAVBook(t *testing.T) {
 		t.Fatalf("current mage SAV LOAD: town=%t err=%v", town, err)
 	}
 	got := trainingPartyMember(t, fresh, "hero")
-	assertMageAggregateXP1101(t, got, 16450)
+	assertMageAggregateXP1101(t, got, 23450)
 	if got.Book != m.Book || got.Hero != m.Hero || got.Saved.Mana != 90 || got.Saved.MaxMana != 112 {
 		t.Fatal("SAV continuation lost mage state")
 	}
@@ -154,10 +154,9 @@ func TestMageCityTrainDerivesAllFieldsAndOrdinarySAVBook(t *testing.T) {
 		t.Fatalf("second current SAV LOAD %v", err)
 	}
 	got = trainingPartyMember(t, fresh, "hero")
-	assertMageAggregateXP1101(t, got, 16450)
-	wantMember, gotMember := mageWithoutAggregateWords1101(t, m), mageWithoutAggregateWords1101(t, got)
-	if !reflect.DeepEqual(gotMember, wantMember) {
-		currentItemFieldDiagnostics(t, "Mage", reflect.ValueOf(wantMember), reflect.ValueOf(gotMember))
+	assertMageAggregateXP1101(t, got, 23450)
+	if !reflect.DeepEqual(got, m) {
+		currentItemFieldDiagnostics(t, "Mage", reflect.ValueOf(m), reflect.ValueOf(got))
 		t.Fatal("native mage continuation differs")
 	}
 }
@@ -172,19 +171,6 @@ func assertMageAggregateXP1101(t *testing.T, member mapload.PartyMember, want ui
 	}
 }
 
-func mageWithoutAggregateWords1101(t *testing.T, member mapload.PartyMember) mapload.PartyMember {
-	t.Helper()
-	if member.OriginalHuman == nil || member.Carry == nil || member.Carry.LiveLoad == nil {
-		t.Fatal("mage lost current aggregate XP carriers")
-	}
-	member = mapload.CloneParty([]mapload.PartyMember{member})[0]
-	// DIV-2472 writes the six-slot sum 16450 over the retained aggregate 23450.
-	// Both aggregates are asserted separately; every other member field is exact.
-	member.OriginalHuman.State.Experience = 0
-	member.Carry.LiveLoad.Inventory.Source.Experience = 0
-	return member
-}
-
 func assertMageFieldDiff1101(t *testing.T, source, trained []byte) {
 	t.Helper()
 	f, _ := sav.Open(source)
@@ -197,8 +183,7 @@ func assertMageFieldDiff1101(t *testing.T, source, trained []byte) {
 			for off, value := range map[int]uint16{18: 56, 24: 112, 32: 1689} {
 				binary.LittleEndian.PutUint16(u.Scalar2[off:], value)
 			}
-			// The saved aggregate is the sum of the six slot experiences.
-			binary.LittleEndian.PutUint32(u.Scalar2[35:], 16450)
+			binary.LittleEndian.PutUint32(u.Scalar2[35:], 23450)
 			binary.LittleEndian.PutUint32(u.XP[4:], 16450)
 			binary.LittleEndian.PutUint16(u.RawA6, 4)
 			binary.LittleEndian.PutUint16(u.RawA6[4:], 33)

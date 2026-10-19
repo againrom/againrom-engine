@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Saving in town keeps each hero's full experience when the game is loaded again.
 - [ROM1] Map editor lists stop at their ends and their scroll bars drag.
   Add starts ready to place, with a translucent preview at the cursor.
   Unit settings explain stored values and show the game's character card.

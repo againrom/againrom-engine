@@ -2619,7 +2619,7 @@ package storyguard
 // off-map end, strike queue and mana wait, less
 // the removed aiCast, plus this note.
 var Committed = Baseline{
-	TestIdentCount: 4539,
+	TestIdentCount: 4538,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2641,5 +2641,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1714,
 	},
-	CommentBytes: 9237365,
+	CommentBytes: 9237149,
 }
