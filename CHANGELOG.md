@@ -14,6 +14,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   screen at any time.
 - [BASE] Hold the middle mouse button (the wheel) and move the mouse to drag
   the mission map.
+- [ROM1] Map editor: a Brushes menu on the top bar turns on the terrain, height,
+  objects and passability brushes. The terrain list shows a picture of each terrain.
+  View > Passability shades open cells white and blocked cells red, and the status
+  line names what blocks the cell under the pointer. The passability brush (Q)
+  blocks and unblocks cells; the height brush shows the height under the pointer.
 - [BASE] The game finds its files whatever the case of their names, so an
   install copied to a case-sensitive system works without renaming.
 - [ROM1] Arrows and homing spells aim at the centres of large creatures.

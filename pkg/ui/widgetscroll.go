@@ -370,7 +370,13 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 				outline(dst, r, listSelectEdge)
 				ink = listSelectedInk
 			}
-			f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, r.Dx()-2*listTextX), r.Min.X+listTextX, r.Min.Y+listTextY, ink)
+			x, width := r.Min.X+listTextX, r.Dx()-2*listTextX
+			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Icon != nil {
+				side := max(1, r.Dy()-2)
+				editorBlit(dst, rows[top+i].Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
+				x, width = x+side+listTextX, width-side-listTextX
+			}
+			f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, width), x, r.Min.Y+listTextY, ink)
 		}
 	}
 	drawVScrollBar(dst, frames, listBar(l, m).withPointer(pointer, pointerOK))

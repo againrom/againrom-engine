@@ -478,7 +478,8 @@ func TestAreaDrawRefusesOnAMultiplayerMap(t *testing.T) {
 				} else {
 					r, ok := e.BarRect("view")
 					trigClick(t, e, r, ok, "View")
-					r, ok = e.MenuRowRect(7)
+					n, _ := e.MenuRow("view", "drawarea")
+					r, ok = e.MenuRowRect(n)
 					trigClick(t, e, r, ok, "Draw trigger area")
 				}
 				if e.AreaDrawArmed() != c.armed {

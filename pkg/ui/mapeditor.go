@@ -55,6 +55,10 @@ type InspectionDocument struct {
 	Drops         []image.Point          // the cells the map's script drops the party on
 	Script        *InspectionScriptModel // the script the trigger editor reads; nil: none
 	Edits         InspectionEdits        // optional; host owns persistence and safety
+	// Passability is, per cell and row-major, the arms that close the cell
+	// to a ground mover in the world the game builds from this map: zero for
+	// an open cell. nil: the host derives none and the view draws nothing.
+	Passability []PassArm
 }
 
 type InspectionEdits interface {
@@ -432,7 +436,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyQ, "passability"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !heldkey.Pressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -555,6 +559,7 @@ func (e *MapEditor) drawMarkers(dst *ebiten.Image) {
 	v := e.doc.Viewer
 	// Clip annotations to the canvas, including strokes at its very edge.
 	clip := dst.SubImage(image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH)).(*ebiten.Image)
+	e.drawPassability(clip)
 	for _, s := range e.markerLines() {
 		vector.StrokeLine(clip, s.x0, s.y0, s.x1, s.y1, 1, s.color, false)
 	}

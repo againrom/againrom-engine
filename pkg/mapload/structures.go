@@ -270,12 +270,19 @@ func StructureCensus(m *alm.Map, t *Table) StructureCounts {
 // walk. Neither exported entry point above hands both to a caller — a world's
 // signature is not widened for an instrument — but they cannot be produced apart.
 func derive(m *alm.Map, t *Table) ([]byte, StructureCounts) {
+	plane, c, _ := deriveTaken(m, t)
+	return plane, c
+}
+
+// deriveTaken is derive with the occupancy beside the plane: which cells a
+// footprint attached, nil when no footprint was walked.
+func deriveTaken(m *alm.Map, t *Table) ([]byte, StructureCounts, []bool) {
 	plane := Passability(m)
 	w, h, ok := extent(m)
 	if !ok {
 		// No cells: there is nothing for a footprint to attach to, so the
 		// placements are not resolved either and every counter stays zero.
-		return plane, StructureCounts{}
+		return plane, StructureCounts{}, nil
 	}
 
 	prints, c := Footprints(m, t)
@@ -283,13 +290,13 @@ func derive(m *alm.Map, t *Table) ([]byte, StructureCounts) {
 		// Nothing to walk, so no occupancy is allocated: the no-table path —
 		// which is every world the game front-end builds — costs exactly what
 		// it cost before this story.
-		return plane, c
+		return plane, c, nil
 	}
 	taken := make([]bool, w*h)
 	for _, f := range prints {
 		walk(f, plane, taken, w, h, &c)
 	}
-	return plane, c
+	return plane, c, taken
 }
 
 // walk applies one footprint: every cell its ATTACH set names, row by row from

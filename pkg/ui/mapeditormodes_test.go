@@ -236,7 +236,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "clear", "newline", "drawarea", "bogus"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "clear", "newline", "drawarea", "bogus"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:menu-fit", "ui:bar-undo", "ui:bar-redo", "ui:bar-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
 
@@ -297,7 +297,8 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:menu-open":
 		menu("map", 2)
 	case "ui:menu-fit":
-		menu("view", 6)
+		n, _ := e.MenuRow("view", "fit")
+		menu("view", n)
 	case "ui:bar-undo":
 		modesClick(e, bar("undo"))
 	case "ui:bar-redo":
@@ -488,6 +489,8 @@ var modesPaths = []modesPath{
 	{"objects", []string{"objects"}},
 	{"objects-stroke", []string{"objects", "down", "ui:press-cell"}},
 	{"objects-report", []string{"objects", "report"}},
+	{"passability", []string{"passability"}},
+	{"passability-stroke", []string{"passability", "down", "ui:press-cell"}},
 	{"terrain-open", []string{"terrain", "open"}},
 	{"terrain-clone", []string{"ui:select0", "terrain", "clone"}},
 	{"terrain-report", []string{"terrain", "report"}},

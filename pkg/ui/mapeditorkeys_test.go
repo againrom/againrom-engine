@@ -188,19 +188,20 @@ func helpEntries(screen helpScreen) []keyRow {
 // shows or does.
 func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 	entry := map[helpScreen][]string{
-		screenKeys:    {"ui:select0"},
-		screenClone:   {"ui:select0", "clone"},
-		screenDrop:    {"drop"},
-		screenGoal:    {"goals", "enter"},
-		screenGoals:   {"goals"},
-		screenTerrain: {"terrain"},
-		screenHeight:  {"height"},
-		screenObjects: {"objects"},
-		screenPlayers: {"players"},
-		screenPrompt:  {"ui:select0", "field"},
-		screenMove:    {"ui:select0", "ui:pick-move"},
-		screenAdd:     {"unit", "escape"},
-		screenAddCell: {"unit", "enter", "enter", "ui:add-pick"},
+		screenKeys:        {"ui:select0"},
+		screenClone:       {"ui:select0", "clone"},
+		screenDrop:        {"drop"},
+		screenGoal:        {"goals", "enter"},
+		screenGoals:       {"goals"},
+		screenTerrain:     {"terrain"},
+		screenHeight:      {"height"},
+		screenObjects:     {"objects"},
+		screenPassability: {"passability"},
+		screenPlayers:     {"players"},
+		screenPrompt:      {"ui:select0", "field"},
+		screenMove:        {"ui:select0", "ui:pick-move"},
+		screenAdd:         {"unit", "escape"},
+		screenAddCell:     {"unit", "enter", "enter", "ui:add-pick"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)

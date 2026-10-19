@@ -16,15 +16,16 @@ import (
 type helpScreen uint8
 
 const (
-	screenKeys    helpScreen = iota // no pick, panel or brush: the keys
-	screenClone                     // a clone is armed
-	screenDrop                      // the drop cell is armed
-	screenGoal                      // a script arm's target is armed
-	screenGoals                     // the script panel is open
-	screenTerrain                   // the terrain brush
-	screenHeight                    // the height brush
-	screenObjects                   // the objects brush
-	screenPlayers                   // the roster list
+	screenKeys        helpScreen = iota // no pick, panel or brush: the keys
+	screenClone                         // a clone is armed
+	screenDrop                          // the drop cell is armed
+	screenGoal                          // a script arm's target is armed
+	screenGoals                         // the script panel is open
+	screenTerrain                       // the terrain brush
+	screenHeight                        // the height brush
+	screenObjects                       // the objects brush
+	screenPassability                   // the passability brush
+	screenPlayers                       // the roster list
 	screenPrompt
 	screenMove
 	screenAdd     // the Add window
@@ -92,8 +93,9 @@ func init() {
 		{key: "terrain", label: "T", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, line2}, {screenTerrain, "T: off / Drag: paint / [ ]: size"}}},
 		{key: "height", label: "H", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, line2}, {screenHeight, "H: off / Drag: shape / [ ]: size"}}},
 		{key: "objects", label: "B", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, line2}, {screenObjects, "B: off / Drag: place / [ ]: size"}}},
-		{key: "radiusdown", label: "[", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}}},
-		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}}},
+		{key: "passability", label: "Q", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, "Q: passability brush"}, {screenPassability, "Q: off / Drag: mark / [ ]: size"}}},
+		{key: "radiusdown", label: "[", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}, {screenPassability, "Q: off / Drag: mark / [ ]: size"}}},
+		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}, {screenPassability, "Q: off / Drag: mark / [ ]: size"}}},
 		{key: "new", label: "N", act: (*MapEditor).keyNew, help: keys(line3)},
 		{key: "unit", label: "U", act: (*MapEditor).keyUnit, help: keys(line3)},
 		{key: "structure", label: "J", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
@@ -162,7 +164,7 @@ func EditorHelpLines() []string {
 }
 
 // brushScreens is the help screen of each brush mode.
-var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects}
+var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects, brushPassability: screenPassability}
 
 // pickScreens is the help screen of each armed pick.
 var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickDrop: screenDrop, pickGoal: screenGoal, pickMove: screenMove, pickAddCell: screenAddCell}

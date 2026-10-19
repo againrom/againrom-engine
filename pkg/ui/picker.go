@@ -56,6 +56,10 @@ type PickerRow struct {
 
 	// Word70 and Word74 fill the last two columns.
 	Word70, Word74 uint32
+
+	// Icon is a picture a list box draws at the row's left, square at the
+	// row's height, with the text after it; nil draws the text alone.
+	Icon *image.RGBA
 }
 
 // Column edges in frame pixels from pickerLeft (TEXT-083); the hover

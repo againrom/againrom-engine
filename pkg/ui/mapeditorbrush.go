@@ -7,10 +7,13 @@ import (
 	"image/color"
 )
 
-// BrushTerrain is one terrain the host lets the window paint.
+// BrushTerrain is one terrain the host lets the window paint. Swatch is a
+// picture of the terrain the list shows beside its name; nil shows the name
+// alone.
 type BrushTerrain struct {
-	Class int
-	Name  string
+	Class  int
+	Name   string
+	Swatch *image.RGBA
 }
 
 // BrushObject is one row of the objects list the host lets the window paint:
@@ -27,10 +30,12 @@ const (
 	BrushPlaneTerrain BrushPlane = iota
 	BrushPlaneHeight
 	BrushPlaneObjects
+	BrushPlanePassability
 )
 
 // BrushStroke is one pointer stroke as data: the plane, the value at each cell
-// (a terrain class, a height change or an object class code), the brush radius
+// (a terrain class, a height change, an object class code, or 1 to set and 0
+// to clear the tile word's impassable flag), the brush radius
 // in cells and the cells the pointer visited.
 type BrushStroke struct {
 	Plane  BrushPlane
@@ -54,6 +59,8 @@ const (
 	brushTerrain
 	brushHeight
 	brushObjects
+	brushPassability
+	brushModeCount
 )
 
 // The brush settings the window offers: the radius a stroke starts with and
@@ -64,17 +71,30 @@ const (
 	brushHeightStep    = 8
 )
 
-// brushKeyModes is the brush mode each brush key switches, and brushModeNames
-// the word the status line gives it.
-var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects}
-var brushModeNames = map[brushMode]string{brushTerrain: "Terrain", brushHeight: "Height", brushObjects: "Objects"}
+// brushKeyModes is the brush mode each brush key switches.
+var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects, "passability": brushPassability}
+
+// brushModeWord is the word the Brushes menu and the list title give mode.
+func (e *MapEditor) brushModeWord(mode brushMode) string {
+	switch mode {
+	case brushTerrain:
+		return e.word("editor.brush.terrain")
+	case brushHeight:
+		return e.word("editor.brush.height")
+	case brushObjects:
+		return e.word("editor.brush.objects")
+	case brushPassability:
+		return e.word("editor.brush.passability")
+	}
+	return e.word("editor.brush.off")
+}
 
 var brushHeightRows = [...]string{"Raise", "Lower"}
 
 type brushState struct {
 	mode    brushMode
-	sel     [4]int // selected row per mode
-	radius  int    // meaningful once radiusSet
+	sel     [brushModeCount]int // selected row per mode
+	radius  int                 // meaningful once radiusSet
 	stroke  []image.Point
 	down    bool
 	hover   image.Point
@@ -108,6 +128,9 @@ func (e *MapEditor) brushRows() []string {
 		return rows
 	case brushHeight:
 		return brushHeightRows[:]
+	case brushPassability:
+		// The first row sets the impassable flag, the second clears it.
+		return []string{e.word("editor.brush.block"), e.word("editor.brush.unblock")}
 	case brushObjects:
 		var rows []string
 		if h := e.brushHost(); h != nil {
@@ -127,11 +150,11 @@ func (e *MapEditor) brushRadius() int {
 	return e.brush.radius
 }
 
-// brushKey handles the keys that choose a brush: T, H and B switch their mode
-// on or off, the bracket keys set the radius, Up and Down choose the row.
+// brushKey handles the keys that choose a brush: T, H, B and Q switch their
+// mode on or off, the bracket keys set the radius, Up and Down choose the row.
 func (e *MapEditor) brushKey(key string) bool {
 	switch key {
-	case "terrain", "height", "objects":
+	case "terrain", "height", "objects", "passability":
 		mode := brushKeyModes[key]
 		if e.brushHost() == nil || e.catalog {
 			return true
@@ -177,7 +200,21 @@ func (e *MapEditor) brushStatus() string {
 	if sel >= len(rows) {
 		return ""
 	}
-	return fmt.Sprintf("%s: %s  size %d", brushModeNames[e.brush.mode], rows[sel], e.brushRadius())
+	return fmt.Sprintf("%s: %s  size %d", e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
+}
+
+// chooseBrush is a Brushes menu row: it turns mode on, or every brush off
+// for brushOff, and leaves a brush already on as it is.
+func (e *MapEditor) chooseBrush(mode brushMode) {
+	if e.brushHost() == nil || e.catalog {
+		return
+	}
+	switch {
+	case mode == brushOff && e.brush.mode != brushOff:
+		e.toggleBrush(e.brush.mode)
+	case mode != brushOff && e.brush.mode != mode:
+		e.toggleBrush(mode)
+	}
 }
 
 // brushCell is the grid cell under the frame position p, if it is on the map.
@@ -260,6 +297,11 @@ func (e *MapEditor) brushCommit() {
 			return
 		}
 		op.Plane, op.Value = BrushPlaneObjects, objects[sel].Code
+	case brushPassability:
+		op.Plane, op.Value = BrushPlanePassability, 1
+		if sel == 1 {
+			op.Value = 0
+		}
 	default:
 		terrains := host.BrushTerrains()
 		if sel >= len(terrains) {

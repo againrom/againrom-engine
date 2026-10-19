@@ -64,6 +64,7 @@ func (e *MapEditor) HeadlessFrame() (*image.RGBA, string, error) {
 	if ghost := e.placementPicture(); ghost != nil {
 		draw.Draw(canvas, canvas.Bounds(), ghost, image.Point{}, draw.Over)
 	}
+	e.paintPassability(canvas)
 	for _, s := range e.markerLines() {
 		dx, dy := float64(s.x1-s.x0), float64(s.y1-s.y0)
 		n := max(1, int(math.Ceil(math.Max(math.Abs(dx), math.Abs(dy)))))

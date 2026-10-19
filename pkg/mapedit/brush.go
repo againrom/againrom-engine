@@ -11,9 +11,10 @@ import (
 type Plane uint8
 
 const (
-	PlaneTile   Plane = iota + 1 // type 1, 16-bit tile words
-	PlaneHeight                  // type 2, one height byte per cell
-	PlaneObject                  // type 3, one static-object class code per cell
+	PlaneTile       Plane = iota + 1 // type 1, 16-bit tile words
+	PlaneHeight                      // type 2, one height byte per cell
+	PlaneObject                      // type 3, one static-object class code per cell
+	PlaneImpassable                  // type 1, bit 13 of each tile word alone
 )
 
 // Falloff names how a brush's effect fades from its centre to its rim.
@@ -27,7 +28,8 @@ const (
 // Brush is the one operation the grid planes share, as data. On the tile plane
 // Value is the terrain class the disc takes (a Palette entry's Class); on the
 // height plane Value is the signed height change at the centre; on the object
-// plane Value is the class code every cell of the disc takes, 0 clearing it. A
+// plane Value is the class code every cell of the disc takes, 0 clearing it;
+// on the impassable plane Value 1 sets and 0 clears the tile word's bit 13. A
 // stroke is a Brush and the centres the pointer visited.
 type Brush struct {
 	Plane   Plane
@@ -119,6 +121,11 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 	case PlaneObject:
 		var err error
 		if ed, err = e.objectStroke(f, b, at, w, h); err != nil {
+			return false, err
+		}
+	case PlaneImpassable:
+		var err error
+		if ed, err = e.impassableStroke(f, b, at, w, h); err != nil {
 			return false, err
 		}
 	default:
@@ -317,6 +324,48 @@ func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, erro
 		for ; j < len(next) && next[j] != old[j]; j++ {
 		}
 		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
+		i = j
+	}
+	return ed, nil
+}
+
+// impassableStroke sets (Value 1) or clears (Value 0) bit 13 of the tile word
+// of every cell of the disc (ALM-GRID-012) and writes no other bit, cell or
+// record: the tile-group mask reads bits 0-9 alone, so it cannot move.
+func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, error) {
+	if b.Value != 0 && b.Value != 1 {
+		return nil, fmt.Errorf("mapedit: %d is not an impassable flag value", b.Value)
+	}
+	span := f.required(tileTypeID)
+	old := make([]uint16, w*h)
+	for i := range old {
+		old[i] = binary.LittleEndian.Uint16(e.data[span.abs(2*i):])
+	}
+	next := append([]uint16(nil), old...)
+	for _, cell := range at {
+		disc(cell, b.Radius, w, h, func(x, y, _ int) {
+			i := y*w + x
+			next[i] = old[i] &^ blockedBit
+			if b.Value == 1 {
+				next[i] |= blockedBit
+			}
+		})
+	}
+	var ed edit
+	var word [2]byte
+	for i := 0; i < len(next); {
+		if next[i] == old[i] {
+			i++
+			continue
+		}
+		j := i
+		var run []byte
+		for ; j < len(next) && next[j] != old[j]; j++ {
+			binary.LittleEndian.PutUint16(word[:], next[j])
+			run = append(run, word[:]...)
+		}
+		pos := span.abs(2 * i)
+		ed = append(ed, replace(pos, e.data[pos:pos+2*(j-i)], run))
 		i = j
 	}
 	return ed, nil

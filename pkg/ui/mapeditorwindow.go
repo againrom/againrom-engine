@@ -66,6 +66,7 @@ type editorChrome struct {
 	hoverCell              image.Point
 	hoverOK                bool
 	chromeImage            *ebiten.Image
+	passInk                *ebiten.Image // the passability fills' one white pixel
 	obj                    objectEdit
 	groupSel               editorGroup
 	exitAsked              bool
@@ -77,6 +78,7 @@ type editorChrome struct {
 // editorView is the View menu's switches over the map's annotations.
 type editorView struct {
 	hideDrops, hideFootprints, hideIssues, grid, hideAreas bool
+	passability                                            bool
 }
 
 // SetBodyFont sets the plain font of rows, labels, values and report text.
@@ -139,6 +141,7 @@ func (e *MapEditor) barEntries() []barEntry {
 		{key: "players", label: e.word("editor.bar.players")},
 		{key: "scripts", label: e.word("editor.list.scripts")},
 		{key: "view", label: e.word("editor.bar.view"), menu: true},
+		{key: "brushes", label: e.word("editor.bar.brushes"), menu: true, disabled: e.brushHost() == nil},
 		{key: "undo", label: e.word("editor.bar.undo"), disabled: !e.editable() || !e.doc.Edits.CanUndo()},
 		{key: "redo", label: e.word("editor.bar.redo"), disabled: !e.editable() || !e.doc.Edits.CanRedo()},
 		{key: "save", label: e.word("editor.bar.save"), disabled: !e.editable()},
@@ -153,7 +156,7 @@ func (e *MapEditor) barEntries() []barEntry {
 		if entries[i].menu {
 			w += h
 		}
-		if i > 0 && i < 7 && e.doc == nil || i >= 8 && e.doc == nil {
+		if e.doc == nil && entries[i].key != "map" && entries[i].key != "view" {
 			entries[i].disabled = true
 		}
 		entries[i].rect = image.Rect(x, 3, x+w, h-3)
@@ -264,15 +267,25 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"footprints", mark(!e.view.hideFootprints, e.word("editor.view.footprints"))},
 			{"issues", mark(!e.view.hideIssues, e.word("editor.view.issues"))},
 			{"grid", mark(e.view.grid, e.word("editor.view.grid"))},
+			{"passview", mark(e.view.passability, e.word("editor.view.passability"))},
 			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
 			{"report", e.word("editor.view.report")},
 			{"fit", e.word("editor.view.fit")},
 			{"drawarea", e.word("editor.view.drawarea")},
 			{"records", e.word("editor.view.records")},
 		}
+	case "brushes":
+		var items []menuItem
+		for _, m := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
+			items = append(items, menuItem{brushMenuKeys[m], mark(e.brush.mode == m, e.brushModeWord(m))})
+		}
+		return append(items, menuItem{brushMenuKeys[brushOff], mark(e.brush.mode == brushOff, e.brushModeWord(brushOff))})
 	}
 	return nil
 }
+
+// brushMenuKeys is the Brushes menu row of each brush mode.
+var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability", brushOff: "brush.off"}
 
 // menuDropdown is the open menu as a drop-down anchored on its bar entry.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
@@ -306,7 +319,7 @@ func (e *MapEditor) openMenuEntry() (barEntry, bool) {
 func (e *MapEditor) barAct(key string) {
 	e.endFieldTyping()
 	switch key {
-	case "map", "view":
+	case "map", "view", "brushes":
 		if e.menu == key {
 			e.menu = ""
 		} else {
@@ -359,6 +372,14 @@ func (e *MapEditor) menuAct(key string) {
 		e.view.hideIssues = !e.view.hideIssues
 	case "grid":
 		e.view.grid = !e.view.grid
+	case "passview":
+		e.view.passability = !e.view.passability
+	case "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.off":
+		for mode, k := range brushMenuKeys {
+			if k == key {
+				e.chooseBrush(mode)
+			}
+		}
 	case "areas":
 		e.view.hideAreas = !e.view.hideAreas
 	default:
@@ -481,8 +502,16 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		}
 		sel = e.report.sel
 	case "brush":
-		for _, s := range e.brushRows() {
-			rows = append(rows, PickerRow{Text: s, Choosable: true})
+		var terrains []BrushTerrain
+		if h := e.brushHost(); h != nil && e.brush.mode == brushTerrain {
+			terrains = h.BrushTerrains()
+		}
+		for n, s := range e.brushRows() {
+			row := PickerRow{Text: s, Choosable: true}
+			if n < len(terrains) {
+				row.Icon = terrains[n].Swatch
+			}
+			rows = append(rows, row)
 		}
 		sel = e.brush.sel[e.brush.mode]
 	case "records":
@@ -955,7 +984,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	draw.Draw(pic, status, image.NewUniform(editorPanel), image.Point{}, draw.Src)
 	draw.Draw(pic, image.Rect(0, status.Min.Y, e.window.X, status.Min.Y+1), image.NewUniform(editorGold), image.Point{}, draw.Src)
 	if f := e.bodyFont(); f != nil {
-		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusText(), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
+		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}
 	e.drawAreaLabels(pic)
 	if s, ok := e.listSpec(); ok {
@@ -1018,11 +1047,54 @@ func fitRect(size image.Point, box image.Rectangle) screenRect {
 // statusText is the strip's line: the cell under the pointer, the map's
 // saved state and the mode's keys.
 func (e *MapEditor) statusText() string {
+	parts, help := e.statusParts()
+	return statusJoin(parts, help)
+}
+
+// statusJoin is the strip's line of the lead parts and the help lines.
+func statusJoin(parts, help []string) string {
+	return strings.Join(append(parts, strings.Join(help, "  /  ")), "   |   ")
+}
+
+// statusFitted is the line the strip draws in f within width: while the
+// whole line is wider, the help loses its first line, so the last, which
+// names F1 for every key, stays in view.
+func (e *MapEditor) statusFitted(f *text.Font, width int) string {
+	parts, help := e.statusParts()
+	line := statusJoin(parts, help)
+	for f != nil && len(help) > 1 && f.Advance(line) > width {
+		help = help[1:]
+		line = statusJoin(parts, help)
+	}
+	return line
+}
+
+// StatusFit is the status line as the strip draws it at the window's size,
+// its width and the whole line's width in the body font, and the strip's
+// width, for a headless driver.
+func (e *MapEditor) StatusFit() (line string, width, whole, limit int) {
+	f := e.bodyFont()
+	limit = e.statusRect().Dx() - 16
+	line = e.statusFitted(f, limit)
+	if f == nil {
+		return line, 0, 0, limit
+	}
+	return line, f.Advance(line), f.Advance(e.statusText()), limit
+}
+
+// statusParts is the strip's lead parts and the mode's help lines.
+func (e *MapEditor) statusParts() ([]string, []string) {
 	var parts []string
 	if e.hoverOK {
 		parts = append(parts, fmt.Sprintf("%d,%d", e.hoverCell.X, e.hoverCell.Y))
 		if h := e.hoverRecord(); h != "" {
 			parts = append(parts, h)
+		}
+		if h, ok := e.hoverHeight(); ok {
+			parts = append(parts, h)
+		}
+		if p, ok := e.hoverPassability(); ok {
+			parts = append(parts, p)
 		}
 	}
 	if e.doc != nil {
@@ -1038,8 +1110,7 @@ func (e *MapEditor) statusText() string {
 	if e.pick == pickArea {
 		parts = append(parts, e.word("editor.area.draw"))
 	}
-	parts = append(parts, strings.Join(e.helpLines(), "  /  "))
-	return strings.Join(parts, "   |   ")
+	return parts, e.helpLines()
 }
 
 // drawChrome uploads the chrome over screen and reports the text calls the

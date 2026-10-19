@@ -303,7 +303,8 @@ func TestTriggerAreasShowSelectAndHide(t *testing.T) {
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
 	r, ok = e.BarRect("view")
 	trigClick(t, e, r, ok, "View")
-	r, ok = e.MenuRowRect(4)
+	n, _ := e.MenuRow("view", "areas")
+	r, ok = e.MenuRowRect(n)
 	trigClick(t, e, r, ok, "Trigger areas")
 	if _, ok := e.AreaLabelRect(1); ok {
 		t.Fatal("the View switch did not hide the areas")

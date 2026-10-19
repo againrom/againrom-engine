@@ -28,6 +28,7 @@ type MapInspector struct {
 	tiles         *terrain.Tileset
 	statics       *terrain.StaticSet
 	objectRows    []ui.BrushObject // the objects list: the clear row, then each drawable class
+	swatches      []*image.RGBA    // the terrain list's pictures, by Palette row; nil until first asked
 	structures    *terrain.StructureSet
 	units         *terrain.UnitSet
 	sacks         []*terrain.StaticFrame
@@ -182,6 +183,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
 	}
+	d.Passability = passArms(mapload.GroundArms(m, x.table))
 	add := func(r ui.InspectionRecord) {
 		if r.Spatial && (r.Cell.X < 0 || r.Cell.Y < 0 || r.Cell.X >= m.Width || r.Cell.Y >= m.Height) {
 			r.Warning = joinInspectionWarning(r.Warning, "Anchor outside map; marker clamped to edge")
