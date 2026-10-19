@@ -533,16 +533,20 @@ func TestStartupWindowRequestsNativeFullscreenOnMac(t *testing.T) {
 	for _, tc := range []struct {
 		name, goos            string
 		monW, monH            int
+		windowed              bool
 		fullscreen, decorated bool
 	}{
-		{"mac fullscreen", "darwin", 1280, 800, true, true},
-		{"windows borderless", "windows", 1920, 1080, false, false},
-		{"linux borderless", "linux", 2560, 1440, false, false},
-		{"mac fallback", "darwin", 0, 0, false, true},
-		{"windows fallback", "windows", 0, 0, false, true},
+		{"mac fullscreen", "darwin", 1280, 800, false, true, true},
+		{"windows borderless", "windows", 1920, 1080, false, false, false},
+		{"linux borderless", "linux", 2560, 1440, false, false, false},
+		{"mac fallback", "darwin", 0, 0, false, false, true},
+		{"windows fallback", "windows", 0, 0, false, false, true},
+		{"mac window", "darwin", 1440, 900, true, false, true},
+		{"windows window", "windows", 1920, 1080, true, false, true},
+		{"linux window", "linux", 2560, 1440, true, false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			configureStartupWindow(tc.monW, tc.monH, tc.goos)
+			configureStartupWindow(tc.monW, tc.monH, tc.goos, tc.windowed)
 			if got := ebiten.IsFullscreen(); got != tc.fullscreen {
 				t.Errorf("fullscreen = %v, want %v", got, tc.fullscreen)
 			}
@@ -550,6 +554,9 @@ func TestStartupWindowRequestsNativeFullscreenOnMac(t *testing.T) {
 				t.Errorf("decorated = %v, want %v", got, tc.decorated)
 			}
 			wantW, wantH, _ := startupWindow(tc.monW, tc.monH)
+			if tc.windowed {
+				wantW, wantH = windowedSize(tc.monW, tc.monH)
+			}
 			if gotW, gotH := ebiten.WindowSize(); gotW != wantW || gotH != wantH {
 				t.Errorf("window = %dx%d, want %dx%d", gotW, gotH, wantW, wantH)
 			}

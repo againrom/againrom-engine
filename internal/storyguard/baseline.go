@@ -2631,6 +2631,10 @@ package storyguard
 // CommentBytes rises for the reading device a silent test process reads its
 // players with (pkg/ui/readingdevice.go, its tests, the device-layer seam in
 // deviceoutput.go and sounddev.go), plus this note.
+// CommentBytes rises for the window mode and the middle-button map drag:
+// pkg/ui/windowmode.go, the viewer's middle drag, the starter and game window
+// flag and their tests, plus this note. It rises again for the restore of a
+// maximized window before a form switch and its test.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2654,5 +2658,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1707,
 	},
-	CommentBytes: 9236831,
+	CommentBytes: 9244616,
 }

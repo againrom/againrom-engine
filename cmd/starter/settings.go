@@ -68,6 +68,9 @@ type settings struct {
 	Picker  bool
 	Skill   string
 	Extra   string // free arguments, split like a command line
+	// Windowed opens the game in a decorated window rather than over the
+	// whole screen.
+	Windowed bool
 }
 
 func defaultSettings() settings {
@@ -111,6 +114,7 @@ func loadSettings(f *ini.File) settings {
 	}
 	s.Markers = parseBool(get(secOptions, "markers"), false)
 	s.Chicken = parseBool(get(secOptions, "chicken"), false)
+	s.Windowed = parseBool(get(secOptions, "window"), false)
 	s.Saves = get(secOptions, "saves")
 	s.Mission = get(secOptions, "mission")
 	s.Picker = parseBool(get(secOptions, "picker"), false)
@@ -158,6 +162,7 @@ func (s settings) store(f *ini.File) {
 	f.Set(secOptions, "video", s.Video)
 	f.Set(secOptions, "markers", formatBool(s.Markers))
 	f.Set(secOptions, "chicken", formatBool(s.Chicken))
+	f.Set(secOptions, "window", formatBool(s.Windowed))
 	f.Set(secOptions, "saves", s.Saves)
 	f.Set(secOptions, "mission", s.Mission)
 	f.Set(secOptions, "picker", formatBool(s.Picker))
@@ -347,6 +352,9 @@ func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string,
 	}
 	if s.Chicken {
 		args = append(args, "-chicken")
+	}
+	if s.Windowed {
+		args = append(args, "-window")
 	}
 	if v := strings.TrimSpace(s.Saves); v != "" {
 		args = append(args, "-saves", v)

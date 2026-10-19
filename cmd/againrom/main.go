@@ -97,7 +97,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-chicken] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-chicken] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // markersUsage is the -markers flag's own help text. Named rather than
 // written inline so the wording has ONE home, mirroring cmd/mapview's flag
@@ -351,6 +351,9 @@ type options struct {
 	check   bool
 	markers bool
 	chicken bool
+	// window opens the game in a decorated window instead of over the whole
+	// screen; Alt+Enter switches between the two while the game runs.
+	window bool
 	// seed is -seed, the fixed session seed, when seedSet; originalRandom is
 	// -original-random, the original's random number generator.
 	seed           uint64
@@ -423,6 +426,7 @@ func parse(args []string) (options, error) {
 	fs.BoolVar(&o.check, "check", false, "load the assets and the map list, print a summary, and exit without a window")
 	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
 	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
+	fs.BoolVar(&o.window, "window", false, "open in a decorated window instead of over the whole screen; Alt+Enter switches between the two")
 	fs.Func("seed", "fix the session seed every new game draws from (default: the clock at each new game)", func(v string) error {
 		n, err := strconv.ParseUint(v, 0, 64)
 		if err != nil {
@@ -979,6 +983,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	}
 	app := front.App(fmt.Sprintf("againrom [%s %s]", filepath.Base(source), stamp))
 	app.SetMenuLabel(menuLabel())
+	app.SetWindowed(o.window)
 	if err := app.SetModScreens(game.ModScreens(modRun.Screens)); err != nil {
 		fmt.Fprintln(stderr, "againrom:", err)
 		return 2

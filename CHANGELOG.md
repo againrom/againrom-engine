@@ -9,6 +9,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 ## Unreleased
 
 - [BASE] The game now builds for Linux without a C compiler.
+- [BASE] The starter's "In a window" option opens the game in a window instead
+  of over the whole screen. Alt+Enter switches between the window and the whole
+  screen at any time.
+- [BASE] Hold the middle mouse button (the wheel) and move the mouse to drag
+  the mission map.
 - [BASE] The game finds its files whatever the case of their names, so an
   install copied to a case-sensitive system works without renaming.
 - [ROM1] Arrows and homing spells aim at the centres of large creatures.

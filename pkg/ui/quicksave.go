@@ -17,6 +17,7 @@ func (v *Viewer) cancelPointerGesture() {
 	v.dragMoved = 0
 	v.primaryDown, v.secondaryDown = false, false
 	v.rightDragging, v.rightPanned = false, false
+	v.middleDragging = false
 	v.paneSecondaryGrab, v.paneCornerGrab, v.minimapGrab = false, false, false
 	v.cmdDragCell = -1
 	v.invGrab, v.invEquipTap = false, false

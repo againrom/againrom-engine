@@ -114,7 +114,7 @@ func (v *Viewer) visiblePanelSelection(present []MapEntity) []MapEntity {
 
 func (v *Viewer) hoverInspection() (InspectionSubject, bool) {
 	if !v.hasCursor || v.popupOpen() || v.primaryDown || v.secondaryDown ||
-		v.dragging || v.rightDragging || v.held || v.invGrab || v.dragCandKind != dragNone || v.dragActive ||
+		v.dragging || v.rightDragging || v.middleDragging || v.held || v.invGrab || v.dragCandKind != dragNone || v.dragActive ||
 		!v.mapSurfaceCaptures(v.cursorX, v.cursorY) || v.groundSurfaceCaptures(v.cursorX, v.cursorY) {
 		return InspectionSubject{}, false
 	}

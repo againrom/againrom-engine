@@ -112,6 +112,8 @@ func (a *App) HeadlessKey(name string) error {
 		in.Readout = true
 	case "f12", "fps":
 		in.FPS = true
+	case "alt-enter":
+		in.Viewer.Alt, in.WindowToggle = true, true
 	case "alt-backspace":
 		in.Viewer.Alt, in.Backspace = true, true
 	case "alt-f12":

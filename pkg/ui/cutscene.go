@@ -120,7 +120,7 @@ func (a *App) nextCutscene() bool {
 		if v := a.flow.viewer; v != nil {
 			v.StopAmbient()
 			v.clearAttackMode()
-			v.dragging, v.boxing, v.rightDragging = false, false, false
+			v.dragging, v.boxing, v.rightDragging, v.middleDragging = false, false, false, false
 			v.primaryDown, v.secondaryDown, v.rightPanned = false, false, false
 			v.ctrlLatch, v.altLatch, v.shiftLatch = false, false, false
 		}

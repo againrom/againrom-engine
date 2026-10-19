@@ -56,18 +56,8 @@ func startupWindow(monW, monH int) (w, h int, whole bool) {
 	return monW, monH, true
 }
 
-func configureStartupWindow(monW, monH int, goos string) {
-	w, h, whole := startupWindow(monW, monH)
-	// macOS needs native fullscreen to keep the Dock and menu bar off the game.
-	// Retain decorations for its windowed return; other desktops use borderless.
-	nativeFullscreen := whole && goos == "darwin"
-	ebiten.SetWindowDecorated(!whole || nativeFullscreen)
-	if whole && !nativeFullscreen {
-		ebiten.SetWindowPosition(0, 0)
-	}
-	ebiten.SetWindowSize(w, h)
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.SetFullscreen(nativeFullscreen)
+func configureStartupWindow(monW, monH int, goos string, windowed bool) {
+	applyWindowForm(windowPlan(monW, monH, goos, windowed))
 }
 
 // monitorSize reports the current monitor's size in the device-independent
@@ -135,6 +125,9 @@ type appInput struct {
 	Home       bool
 	End        bool
 	SelectText bool
+	// WindowToggle is Alt+Enter, which switches between the window and the
+	// whole screen. The same press does not also arrive as Enter.
+	WindowToggle bool
 	// AI-KEY-125: F2 Save and F3 Load/Diplomacy. These are distinct from
 	// the main menu's existing L shortcut. Press-edge policy is DIV-526.
 	SaveGame   bool
@@ -537,7 +530,7 @@ func readAppInput() appInput {
 	cx, cy := ebiten.CursorPosition()
 	_, wy := ebiten.Wheel()
 	shiftHeld := heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight)
-	return appInput{
+	in := appInput{
 		AnyKey:            len(inpututil.AppendJustPressedKeys(nil)) != 0,
 		AnyHeld:           len(heldkey.AppendPressed(nil)) != 0,
 		Close:             ebiten.IsWindowBeingClosed(),
@@ -739,6 +732,8 @@ func readAppInput() appInput {
 		GroupKey:   groupDigit() >= 0 && !barePauseKey(),
 		GroupDigit: max(groupDigit(), 0),
 	}
+	in.Enter, in.WindowToggle = splitAltEnter(altHeld(), in.Enter)
+	return in
 }
 
 // barePauseKey is the clock pause: the digit row's or the numpad's zero with
@@ -819,6 +814,11 @@ type App struct {
 	assets         *menu.Assets
 	flow           *flow
 	mapEntry       func(*Viewer)
+	// windowed is the form the game window has now: a decorated window when
+	// true, the whole screen when false. window is the window system a
+	// switch goes through; nil is the engine's own window calls.
+	windowed bool
+	window   windowSystem
 	// backgroundFlush waits for work the front end started off the frame
 	// thread, such as an automatic save being written.
 	backgroundFlush func()
@@ -1499,6 +1499,9 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			a.pollTimedAutosave(exit, in.Unfocused)
 		}
 	}()
+	if in.WindowToggle {
+		a.toggleWindow()
+	}
 	squareBefore, squareRevision := a.townEntryState()
 	screenBefore := a.flow.screen
 	a.pointer = image.Pt(in.CursorX, in.CursorY)
@@ -5087,7 +5090,7 @@ func (a *App) Run() error {
 	ebiten.SetWindowTitle(a.title)
 	a.clicks.read = systemclick.Read
 	w, h := monitorSize()
-	configureStartupWindow(w, h, runtime.GOOS)
+	configureStartupWindow(w, h, runtime.GOOS, a.windowed)
 	a.PlayStartupCutscenes()
 
 	if err := runGame(a); err != nil && err != ebiten.Termination {

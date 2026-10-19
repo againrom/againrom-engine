@@ -42,7 +42,8 @@ func (v *Viewer) frameToWindow(p image.Point, what string) (int, int, error) {
 // App.step, the same dispatch a windowed session's Update produces.
 //
 // action is `press`, `move` or `release` for the primary button and
-// `right-press`, `right-move` or `right-release` for the secondary. A press and
+// `right-press`, `right-move` or `right-release` for the secondary and
+// `middle-press`, `middle-move` or `middle-release` for the middle. A press and
 // a move both carry that button's Down flag on the viewer half, so the viewer's
 // own drag accumulator sees a held button; a release carries neither, which is
 // what ends the gesture. Dispatch uses App's shared headless clock.
@@ -81,12 +82,15 @@ func (a *App) HeadlessPointer(action string, x, y int) error {
 		in.Viewer.SecondaryDown = true
 	case "right-release":
 		in.SecondaryReleased = true
+	case "middle-press", "middle-move":
+		in.Viewer.MiddleDown = true
+	case "middle-release":
 	case "wheel-up":
 		in.WheelY, in.Viewer.WheelY = 1, 1
 	case "wheel-down":
 		in.WheelY, in.Viewer.WheelY = -1, -1
 	default:
-		return fmt.Errorf("headless pointer: unknown action %q; use hover, press, move, release, right-press, right-move, right-release, wheel-up or wheel-down, each with an optional shift- prefix", action)
+		return fmt.Errorf("headless pointer: unknown action %q; use hover, press, move, release, right-press, right-move, right-release, middle-press, middle-move, middle-release, wheel-up or wheel-down, each with an optional shift- prefix", action)
 	}
 	a.headlessPointer, a.hasHeadlessPointer = image.Pt(x, y), true
 	if a.step(in, a.headlessAt()) {

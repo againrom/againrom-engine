@@ -1266,6 +1266,11 @@ type Viewer struct {
 	rightDragX, rightDragY int
 	rightDragging          bool
 
+	// middleDragX/middleDragY is where the middle button was last sampled
+	// while it is held; middleDragging is whether it is held.
+	middleDragX, middleDragY int
+	middleDragging           bool
+
 	// pointerDeferred is whether the CALLER composes this viewer's pointer,
 	// after whatever it draws over the frame this viewer returns (DeferPointer).
 	// False is the standalone developer viewer, which has nothing above it and
@@ -2786,6 +2791,9 @@ type Input struct {
 	SecondaryDown bool
 	Ctrl          bool
 	Alt           bool
+	// MiddleDown is the middle button (the wheel) held. Moving the pointer
+	// while it is held drags the map (DIV-3723).
+	MiddleDown bool
 }
 
 // readInput samples this tick's viewer input from the engine.
@@ -2814,6 +2822,7 @@ func readInput() Input {
 		// pair, the two being one modifier and not two — the same reading Shift
 		// above already has.
 		SecondaryDown: ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight),
+		MiddleDown:    ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle),
 		Ctrl:          heldkey.Pressed(ebiten.KeyControlLeft) || heldkey.Pressed(ebiten.KeyControlRight),
 		Alt:           heldkey.Pressed(ebiten.KeyAltLeft) || heldkey.Pressed(ebiten.KeyAltRight),
 	}
@@ -2939,6 +2948,7 @@ func (v *Viewer) step(in Input, now time.Time) {
 		v.stepAmbient(now)
 		v.dragging, v.held = false, false
 		v.rightDragging, v.rightPanned = false, false
+		v.middleDragging = false
 		v.paneSecondaryGrab = false
 		v.ctrlLatch, v.altLatch, v.shiftLatch = false, false, false
 		v.secondaryDown = false
@@ -3000,6 +3010,12 @@ func (v *Viewer) step(in Input, now time.Time) {
 			dx += rdx
 			dy += rdy
 		}
+	}
+	// The middle drag pans only while neither other button is held, so a
+	// right drag or a marquee with the wheel also held moves the view once.
+	if mdx, mdy := v.middleDragIntent(in); !in.PrimaryDown && !in.SecondaryDown {
+		dx += mdx
+		dy += mdy
 	}
 	if in.PrimaryDown {
 		ddx, ddy := v.dragIntent(in)
@@ -3205,6 +3221,29 @@ func (v *Viewer) rightDragIntent(in Input, pan bool) (dx, dy float64) {
 		return 0, 0
 	}
 	v.rightPanned = true
+	z := v.cam.Zoom
+	return -float64(sdx) / z, -float64(sdy) / z
+}
+
+// middleDragIntent is the middle button's drag, in world pixels: the camera
+// moves opposite the pointer's frame-pixel delta divided by the zoom, so the
+// point under the pointer stays under it until the clamp holds the view at
+// the map's edge. A press without movement and the press tick itself move
+// nothing. The gesture selects, cancels and marks nothing, so it leaves every
+// other button's gesture as it was. The original has no such drag (DIV-3723).
+func (v *Viewer) middleDragIntent(in Input) (dx, dy float64) {
+	if !in.MiddleDown {
+		v.middleDragging = false
+		return 0, 0
+	}
+	if !v.middleDragging {
+		v.middleDragging = true
+		v.middleDragX, v.middleDragY = in.CursorX, in.CursorY
+		return 0, 0
+	}
+	sdx := in.CursorX - v.middleDragX
+	sdy := in.CursorY - v.middleDragY
+	v.middleDragX, v.middleDragY = in.CursorX, in.CursorY
 	z := v.cam.Zoom
 	return -float64(sdx) / z, -float64(sdy) / z
 }

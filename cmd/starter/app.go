@@ -82,6 +82,7 @@ const (
 	aChooseBase
 	aSettingsOpen
 	aSettingsClose
+	aWindowed
 )
 
 // viewKind is which of the starter's two views the window shows.
@@ -483,23 +484,25 @@ func (a *app) layout() []item {
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Markers), checked: a.s.Markers, act: action{kind: aMarkers}})
 		y = row(5, a.t(cSavesFolder))
 		field(ctl(y), fSaves)
-		heading(10, 214, a.t(cHeadAdvanced))
-		y = row(7, a.t(cMissionNumber))
+		y = row(6, a.t(cWindowed))
+		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Windowed), checked: a.s.Windowed, act: action{kind: aWindowed}})
+		heading(10, 238, a.t(cHeadAdvanced))
+		y = row(8, a.t(cMissionNumber))
 		field(ctl(y), fMission)
-		y = row(8, a.t(cMapPicker))
+		y = row(9, a.t(cMapPicker))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
-		y = row(9, a.t(cChicken))
+		y = row(10, a.t(cChicken))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
-		y = row(10, a.t(cSkill))
+		y = row(11, a.t(cSkill))
 		field(ctl(y), fSkill)
-		y = row(11, a.t(cExtraArgs))
+		y = row(12, a.t(cExtraArgs))
 		field(ctl(y), fExtra)
-		heading(10, 356, a.t(cHeadStarter))
-		y = row(13, a.t(cCloseAfterPlay))
+		heading(10, 380, a.t(cHeadStarter))
+		y = row(14, a.t(cCloseAfterPlay))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-		y = row(14, a.t(cGameProgram))
+		y = row(15, a.t(cGameProgram))
 		field(ctl(y), fAgainrom)
-		y = row(15, a.t(cLoadUnmarked))
+		y = row(16, a.t(cLoadUnmarked))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 	} else {
 		// Base games.
@@ -796,6 +799,8 @@ func (a *app) apply(act action) {
 		a.s.Markers = !a.s.Markers
 	case aChicken:
 		a.s.Chicken = !a.s.Chicken
+	case aWindowed:
+		a.s.Windowed = !a.s.Windowed
 	case aPicker:
 		a.s.Picker = !a.s.Picker
 	case aAcceptUnmarked:

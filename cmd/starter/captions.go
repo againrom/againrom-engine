@@ -50,6 +50,7 @@ const (
 	cMissionMovies  captionID = "mission-movies"
 	cMarkers        captionID = "markers"
 	cSavesFolder    captionID = "saves-folder"
+	cWindowed       captionID = "windowed"
 	cMissionNumber  captionID = "mission-number"
 	cMapPicker      captionID = "map-picker"
 	cChicken        captionID = "chicken"
@@ -174,6 +175,7 @@ var captionRows = []captionRow{
 	row(cMissionMovies, "Mission movies", "Видеоролики миссий", "dialogs.txt: View Cutscenes; main.txt: Mission Completed"),
 	row(cMarkers, "Markers", "Метки", ""),
 	row(cSavesFolder, "Saves folder", "Папка сохранений", "dialogs.txt: Saved Games"),
+	row(cWindowed, "In a window", "В окне", ""),
 	row(cMissionNumber, "Mission number", "Номер миссии", "dialogs.txt: Enter Number & Name; main.txt: Mission Completed"),
 	row(cMapPicker, "Map picker", "Выбор карты", "dialogs.txt: Select map to play"),
 	row(cChicken, "#Chicken each mission", "#Chicken за миссию", ""),
