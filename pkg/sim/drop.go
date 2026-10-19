@@ -179,6 +179,7 @@ func (w *World) dropFromEquipment(i, slot int, destX, destY int32) {
 				if slot == slotWeapon+1 {
 					syncWeaponItem(&n.entities[i], ItemInstance{})
 				}
+				ok = n.takeOffWeaponSpell(&item)
 			}
 		}
 		if !ok || !n.putGroundObjectAt(i, x, y, 0, StackItem(item, 1)) || !source && !n.finishLoadMutation(i, before) || !n.savedMutationValid() {
@@ -216,6 +217,7 @@ func (w *World) dropFromEquipment(i, slot int, destX, destY int32) {
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}
+	w.takeOffWeaponSpell(&item)
 	w.finishLoadMutation(i, before)
 	w.dropToGround(i, item, destX, destY)
 	// Finish the item move before normalizing a resulting health loss, so the

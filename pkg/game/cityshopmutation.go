@@ -1068,6 +1068,7 @@ func (t *shopController) cityShopNativeWear(slot int, item ShopItem) error {
 			if err != nil {
 				return err
 			}
+			dropCityItemSpell(g, id, displaced.value, t.in.Table)
 			returned := shopItemFromInstance(displaced.value, int32(counts[id]))
 			returned.cityID = id
 			returns = append(returns, returned)
@@ -1247,6 +1248,7 @@ func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem,
 	if value.Empty() {
 		return ShopItem{}, shopRefusal("nothing is worn in that slot")
 	}
+	value = takenOffWeapon(value, t.in.Table)
 	if toPack && !t.shopHasActorContainer() {
 		return ShopItem{}, shopRefusal("no pack")
 	}
@@ -1273,6 +1275,7 @@ func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem,
 	if err != nil {
 		return ShopItem{}, err
 	}
+	dropCityItemSpell(g, item.cityID, value, t.in.Table)
 	worn[slot-1] = sim.ItemInstance{}
 	syncShopWornCodes(member, *worn)
 	t.sess.Town.cityObjects = g

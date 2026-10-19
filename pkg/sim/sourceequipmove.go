@@ -225,29 +225,15 @@ func (w *World) sourcePrepareWeaponTraced(item *ItemInstance, trace *sourceEquip
 	return true // no matching Effect does not clear an existing owned Spell
 }
 
-// BuildWornWeaponSpells gives each party actor's worn Weapon that holds no
-// Spell and whose first castSpell Effect names a known spell the Spell an
-// equip builds (ITEM-SPELLMOVE-132). A plain worn item takes construct's
-// operands first, the ones SAVE writes for it, or without construct the
-// World's constructor row for its code. It reports how many Spells it built.
-func (w *World) BuildWornWeaponSpells(construct func(ItemInstance) ItemInstance) int {
-	built := 0
-	for i := range w.entities {
-		if w.buildWornWeaponSpell(i, construct) {
-			built++
-		}
-	}
-	return built
-}
-
-// buildWornWeaponSpell closes actor i's gap in place (DIV-3362): an equip
-// route that builds no Spell, a hand-over, or a loaded record without one
-// leaves it. Another player's actor keeps its Weapon as it stands. Only the
-// item changes: no actor load or pool is derived again. A held Spell keeps
-// its values; a Weapon whose saved views disagree keeps its gap.
-func (w *World) buildWornWeaponSpell(i int, construct func(ItemInstance) ItemInstance) bool {
+// buildWornWeaponSpell closes actor i's gap in place: an equip route that
+// builds no Spell leaves it for any owner (ITEM-187), and a hand-over to the
+// party (DIV-3362). Without anyOwner another player's actor keeps its Weapon
+// as it stands. Only the item changes: no actor load or pool is derived
+// again. A held Spell keeps its values; a Weapon whose saved views disagree
+// keeps its gap.
+func (w *World) buildWornWeaponSpell(i int, anyOwner bool) bool {
 	item := w.equipment[i][slotWeapon].Clone()
-	if w.entities[i].Owner != SelfSlot || item.Empty() || item.SourceEquipment.Spell.Present {
+	if !anyOwner && w.entities[i].Owner != SelfSlot || item.Empty() || item.SourceEquipment.Spell.Present {
 		return false
 	}
 	id, _, ok := item.CastSpell()
@@ -256,9 +242,7 @@ func (w *World) buildWornWeaponSpell(i int, construct func(ItemInstance) ItemIns
 		return false
 	}
 	source := item.SourceEquipment
-	if source.Class == 0 && construct != nil {
-		source = construct(item.Clone()).SourceEquipment
-	} else if source.Class == 0 {
+	if source.Class == 0 {
 		source = w.itemConstructor(item.Code)
 	}
 	if source.Class != SourceWeapon {
@@ -294,13 +278,30 @@ func (w *World) buildWornWeaponSpell(i int, construct func(ItemInstance) ItemIns
 	return true
 }
 
-// closeWornSpellGap is the live build after a route that makes a classed
-// Weapon worn or hands its wearer to the party; the second game keeps the
-// World's Spell as it stands.
+// closeWornSpellGap is the live build after a route that hands a wearer to
+// the party; equipWornSpell the build after a route that makes a classed
+// Weapon worn, for any owner. The second game keeps the World's Spell as it
+// stands.
 func (w *World) closeWornSpellGap(i int) {
 	if i >= 0 && i < len(w.entities) && !w.SecondGame() {
-		w.buildWornWeaponSpell(i, nil)
+		w.buildWornWeaponSpell(i, false)
 	}
+}
+
+func (w *World) equipWornSpell(i int) {
+	if i >= 0 && i < len(w.entities) && !w.SecondGame() {
+		w.buildWornWeaponSpell(i, true)
+	}
+}
+
+// takeOffWeaponSpell deletes the Spell of a Weapon taken off and leaves it
+// holding none, as removal does in the first game (ITEM-187); the next equip
+// builds a new one from the castSpell Effect.
+func (w *World) takeOffWeaponSpell(item *ItemInstance) bool {
+	if w.SecondGame() || item.SourceEquipment.Class != SourceWeapon || !item.SourceEquipment.Spell.Present {
+		return true
+	}
+	return w.replaceObjectSpell(item, SourceItemSpell{})
 }
 
 func (w *World) sourceWeaponFields(i int, item ItemInstance, sign int32) bool {

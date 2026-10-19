@@ -2643,6 +2643,12 @@ package storyguard
 // strip's fitted group note and their tests.
 // CommentBytes rises for the doc comments of the idle-pursuit standing draw and
 // its test, plus this note.
+// CommentBytes rises for the spell weapon without its Spell: the removal
+// helpers and the cast gate's docs in pkg/sim, the town's takenOffWeapon and
+// dropCityItemSpell, the tests in pkg/sim/spelllessweapon_test.go and
+// pkg/game/spelllessweapon_release_test.go, less the removed SAVE and mission
+// open builds, plus this note. It rises again for the weapon swap's sameHeld
+// and the two release tests a removed Spell changed.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2666,5 +2672,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1707,
 	},
-	CommentBytes: 9269895,
+	CommentBytes: 9274106,
 }

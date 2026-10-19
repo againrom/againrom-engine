@@ -677,7 +677,26 @@ func weaponSpellFor(spells []SpellRule, e Entity) (SpellRule, bool) {
 }
 
 func (w *World) weaponSpell(e Entity) (SpellRule, bool) {
+	if !w.wornWeaponHoldsSpell(e) {
+		return SpellRule{}, false
+	}
 	return weaponSpellFor(w.spells, e)
+}
+
+// wornWeaponHoldsSpell reports whether e's worn Weapon, the source of its
+// weapon spell, holds the Spell an equip builds. In the first game a Weapon
+// without it, classed or plain, neither replaces the attack with a cast nor
+// rides the strike (MAGIC-379, MAGIC-AUTOCAST-020) until an equip builds it;
+// an innate spell has no Weapon to hold one.
+func (w *World) wornWeaponHoldsSpell(e Entity) bool {
+	if w.SecondGame() || e.WeaponSpellSource != WeaponSpellItem {
+		return true
+	}
+	i := indexOfEntity(w.entities, e.ID)
+	if i < 0 {
+		return true
+	}
+	return w.equipment[i][slotWeapon].SourceEquipment.Spell.Present
 }
 
 // weaponRiderSpellFor answers the FIGHTER's rider arm of a weapon-borne
@@ -1307,7 +1326,7 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 func (w *World) weaponRiderApply(ai, ti int, positiveLivingHit bool, obs *castObs) {
 	a := w.entities[ai]
 	rule, ok := weaponRiderSpellFor(w.spells, a)
-	if !ok {
+	if !ok || !w.wornWeaponHoldsSpell(a) {
 		return
 	}
 	if !positiveLivingHit && rule.arm() != 2 {

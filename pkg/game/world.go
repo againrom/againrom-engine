@@ -936,7 +936,6 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	src entrySource, faces FaceSource, npcFaces map[int32]data.NPCFace) *mapWorld {
 	tableCampaign(t).openMission(v)
 	normalizeMissionShieldLoadouts(ms, t)
-	buildMissionWornSpells(ms, t)
 	// NO SCHEDULE. A mission's units are moved by its script and by the AI, and
 	// by nothing else. The owner saw it and asked for it out; the generator now
 	// exists only as test support, in schedule_test.go, where its one remaining

@@ -1,9 +1,6 @@
 package sim
 
-import (
-	"reflect"
-	"testing"
-)
+import "testing"
 
 // wornSpellWorld is a party actor without source operands that carries one
 // saved spell weapon and equips it on the native saved-object route.
@@ -14,7 +11,17 @@ func wornSpellWorld(t *testing.T, item ItemInstance) *World {
 
 func wornSpellWorldOf(t *testing.T, item ItemInstance, owner uint32) *World {
 	t.Helper()
+	return wornSpellWorldWith(t, item, owner, nil)
+}
+
+// wornSpellWorldWith is wornSpellWorldOf with weights declared before the
+// equip, so a plain item finds its constructor.
+func wornSpellWorldWith(t *testing.T, item ItemInstance, owner uint32, weights []ItemWeight) *World {
+	t.Helper()
 	w := mustWorld(t, 1, Bounds{8, 8}, []Entity{{ID: 7, X: 1, Y: 1, HP: 20, MaxHP: 20, Owner: owner}, {ID: 8, X: 2, Y: 1, HP: 20, MaxHP: 20, Owner: owner}})
+	if err := w.DeclareItemWeights(weights); err != nil {
+		t.Fatal(err)
+	}
 	w.spells = []SpellRule{{ID: 14, MaxRange: 7, ManaCost: 80}, {ID: 6, MaxRange: 6, ManaCost: 5, Defensive: true}}
 	w.carried[0] = []ItemStack{StackItem(item, 1)}
 	w.recomputeLoad(0)
@@ -32,15 +39,16 @@ func staffEffects(spell, power uint32) []ItemEffect {
 
 // TestNativeEquipBuildsTheWornWeaponSpell: a party actor's native equip of a
 // classed staff gives the saved row a new Spell from the rule
-// (ITEM-SPELLMOVE-132) and changes no actor value beyond the equip; another
-// player's equip, the control, builds none.
+// (ITEM-SPELLMOVE-132) and changes no actor value beyond the equip; a staff
+// without a castSpell Effect, the control, builds none.
 func TestNativeEquipBuildsTheWornWeaponSpell(t *testing.T) {
 	item := sourceEquipmentWeapon(0x0102, 2, 5, 7, 6, 1)
-	item.Effects = staffEffects(14, 20)
-	control := wornSpellWorldOf(t, item, 3)
+	item.Effects = []ItemEffect{{Kind: 12, Operand: 2}}
+	control := wornSpellWorld(t, item)
 	if id := control.equipment[0][0].ObjectID; control.savedObjects.item(id).Spell != 0 || control.equipment[0][0].SourceEquipment.Spell.Present {
-		t.Fatal("control: another player's native equip built a Spell")
+		t.Fatal("control: a staff without a castSpell Effect built a Spell")
 	}
+	item.Effects = staffEffects(14, 20)
 	w := wornSpellWorld(t, item)
 	id := w.equipment[0][0].ObjectID
 	row := w.savedObjects.item(id)
@@ -52,7 +60,7 @@ func TestNativeEquipBuildsTheWornWeaponSpell(t *testing.T) {
 		t.Fatal("the worn view differs from its saved row")
 	}
 	first := row.Spell
-	if built := w.BuildWornWeaponSpells(nil); built != 0 || w.savedObjects.item(id).Spell != first {
+	if w.equipWornSpell(0); w.savedObjects.item(id).Spell != first {
 		t.Fatal("a held Spell was built again")
 	}
 	cold := reloadOperations(t, w)
@@ -61,20 +69,36 @@ func TestNativeEquipBuildsTheWornWeaponSpell(t *testing.T) {
 	}
 }
 
-// TestBuildWornWeaponSpellsClosesALoadedGap: a party actor whose worn staff
-// holds no Spell, as a loaded record can, gains it from the build without an
-// actor value changing.
-func TestBuildWornWeaponSpellsClosesALoadedGap(t *testing.T) {
+// wornGapWorld is wornSpellWorldOf with the worn staff's Spell deleted, the
+// state a loaded record without one holds.
+func wornGapWorld(t *testing.T, item ItemInstance, owner uint32) *World {
+	t.Helper()
+	w := wornSpellWorldOf(t, item, owner)
+	worn := w.equipment[0][0].Clone()
+	if !w.replaceObjectSpell(&worn, SourceItemSpell{}) || w.equipment[0][0].SourceEquipment.Spell.Present {
+		t.Fatal("the worn staff keeps its Spell")
+	}
+	return w
+}
+
+// TestALoadedGapStaysThroughSaveAndLoad: a party actor whose worn classed
+// staff holds no Spell, as a loaded record can, keeps the gap through SAVE and
+// LOAD and does not cast (ITEM-187, MAGIC-379); a re-equip builds it
+// (TestASpelllessSpellWeaponWornAgainCasts). The same staff holding its
+// Spell, the control, casts.
+func TestALoadedGapStaysThroughSaveAndLoad(t *testing.T) {
 	item := sourceEquipmentWeapon(0x0102, 2, 5, 7, 6, 1)
 	item.Effects = staffEffects(14, 20)
-	w := wornSpellWorldOf(t, item, 3)
-	w.entities[0].Owner = SelfSlot
-	entities := append([]Entity(nil), w.entities...)
-	if built := w.BuildWornWeaponSpells(nil); built != 1 {
-		t.Fatalf("built %d Spells, want 1", built)
+	if control := wornSpellWorld(t, item); !control.wornWeaponHoldsSpell(control.entities[0]) {
+		t.Fatal("control: the staff holding its Spell does not cast")
 	}
-	if !w.equipment[0][0].SourceEquipment.Spell.Present || !reflect.DeepEqual(entities, w.entities) {
-		t.Fatal("the build left the gap or changed an actor value")
+	w := wornGapWorld(t, item, SelfSlot)
+	cold := reloadOperations(t, w)
+	if cold.equipment[0][0].SourceEquipment.Spell.Present || cold.savedObjects.item(cold.equipment[0][0].ObjectID).Spell != 0 {
+		t.Fatal("SAVE and LOAD built the worn staff's Spell")
+	}
+	if _, cast := cold.weaponSpell(cold.entities[0]); cast {
+		t.Fatal("the loaded gap casts")
 	}
 }
 
@@ -83,32 +107,29 @@ func TestBuildWornWeaponSpellsClosesALoadedGap(t *testing.T) {
 func TestHandOverBuildsTheWornWeaponSpell(t *testing.T) {
 	item := sourceEquipmentWeapon(0x0102, 2, 5, 7, 6, 1)
 	item.Effects = staffEffects(14, 20)
-	control := wornSpellWorldOf(t, item, 3)
+	control := wornGapWorld(t, item, 3)
 	control.handOver(0, 2)
 	if control.equipment[0][0].SourceEquipment.Spell.Present {
 		t.Fatal("control: a hand-over to another player built a Spell")
 	}
-	w := wornSpellWorldOf(t, item, 3)
+	w := wornGapWorld(t, item, 3)
 	w.handOver(0, SelfSlot)
 	if w.entities[0].Owner != SelfSlot || !w.equipment[0][0].SourceEquipment.Spell.Present {
 		t.Fatalf("the hand-over left the worn staff with Spell %+v", w.equipment[0][0].SourceEquipment.Spell)
 	}
 }
 
-// TestBuildWornWeaponSpellsConstructsAPlainStaff: a plain worn item takes the
-// constructor's operands, its definition row in its token, and the Spell.
-func TestBuildWornWeaponSpellsConstructsAPlainStaff(t *testing.T) {
+// TestEquipConstructsAPlainStaff: an equip of a plain staff gives it the
+// constructor's operands, its definition row in its token, and the Spell;
+// without a constructor, the control, it stays plain and holds none.
+func TestEquipConstructsAPlainStaff(t *testing.T) {
 	plain := ItemInstance{Code: 0x0102, Kind: 2, WeightPresent: true, Weight: 2, Effects: staffEffects(6, 3)}
-	w := wornSpellWorld(t, plain)
-	id := w.equipment[0][0].ObjectID
+	if control := wornSpellWorld(t, plain); control.equipment[0][0].SourceEquipment.Class != 0 || control.equipment[0][0].SourceEquipment.Spell.Present {
+		t.Fatal("control: a plain staff without a constructor was built")
+	}
 	constructed := sourceEquipmentWeapon(0x0102, 2, 5, 7, 6, 1)
-	construct := func(item ItemInstance) ItemInstance {
-		item.SourceEquipment = constructed.SourceEquipment
-		return item
-	}
-	if built := w.BuildWornWeaponSpells(construct); built != 1 {
-		t.Fatalf("built %d Spells, want 1", built)
-	}
+	w := wornSpellWorldWith(t, plain, SelfSlot, []ItemWeight{{Code: 0x0102, Weight: 2, Constructor: constructed.SourceEquipment}})
+	id := w.equipment[0][0].ObjectID
 	row := w.savedObjects.item(id)
 	want := constructed.SourceEquipment
 	want.Spell = SourceItemSpell{Present: true, ID: 6, Range: 6, Defensive: 1, ManaCost: 5}
@@ -118,31 +139,22 @@ func TestBuildWornWeaponSpellsConstructsAPlainStaff(t *testing.T) {
 	reloadOperations(t, w)
 }
 
-// TestBuildWornWeaponSpellsLeavesUnbuildableWeapons: no castSpell, spell id
-// zero, an id the table lacks, a plain item without a constructor, and
-// another player's actor keep their state.
-func TestBuildWornWeaponSpellsLeavesUnbuildableWeapons(t *testing.T) {
+// TestEquipLeavesUnbuildableWeapons: no castSpell, spell id zero and an id
+// the table lacks build no Spell on equip.
+func TestEquipLeavesUnbuildableWeapons(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		effects []ItemEffect
-		plain   bool
-		owner   uint32
 	}{
-		{"no castSpell", []ItemEffect{{Kind: 12, Operand: 2}}, false, SelfSlot},
-		{"spell zero", staffEffects(0, 9), false, SelfSlot},
-		{"unknown spell", staffEffects(15, 9), false, SelfSlot},
-		{"plain without constructor", staffEffects(14, 9), true, SelfSlot},
-		{"another player's actor", staffEffects(14, 9), false, 3},
+		{"no castSpell", []ItemEffect{{Kind: 12, Operand: 2}}},
+		{"spell zero", staffEffects(0, 9)},
+		{"unknown spell", staffEffects(15, 9)},
 	} {
 		item := sourceEquipmentWeapon(0x0102, 2, 5, 7, 6, 1)
-		if tc.plain {
-			item = ItemInstance{Code: 0x0102, Kind: 2, WeightPresent: true, Weight: 2}
-		}
 		item.Effects = tc.effects
-		w := wornSpellWorldOf(t, item, tc.owner)
-		before := mustMarshal(t, w)
-		if built := w.BuildWornWeaponSpells(nil); built != 0 || !reflect.DeepEqual(before, mustMarshal(t, w)) {
-			t.Fatalf("%s: built %d Spells or changed the World", tc.name, built)
+		w := wornSpellWorld(t, item)
+		if w.equipment[0][0].SourceEquipment.Spell.Present || w.savedObjects.item(w.equipment[0][0].ObjectID).Spell != 0 {
+			t.Fatalf("%s: the equip built a Spell", tc.name)
 		}
 	}
 }

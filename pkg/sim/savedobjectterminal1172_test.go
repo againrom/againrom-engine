@@ -97,8 +97,9 @@ func TestAcquiredSavedItem1172TerminalMixedHoldings(t *testing.T) {
 				if row == nil || !w.savedObjects.HasLocation(row.ID, SavedItemLocation{Owner: owner, Index: uint32(k)}) || row.Value.Code != code || row.Value.Count != count {
 					t.Fatal("terminal drop changed owner, count or order", row)
 				}
-				if code == weapon.Code && (len(row.Effects) != 2 || row.Effects[0] == row.Effects[1] || row.Spell == 0) {
-					t.Fatal("terminal acquisition lost distinct Effect/Spell graph", row)
+				// Death unequips the Weapon, which deletes its Spell (ITEM-DEATH-012, ITEM-187).
+				if code == weapon.Code && (len(row.Effects) != 2 || row.Effects[0] == row.Effects[1] || row.Spell != 0 || row.Value.SourceEquipment.Spell.Present) {
+					t.Fatal("terminal acquisition lost distinct Effects or kept the Spell", row)
 				}
 				wantItems[k] = row.Value.Clone()
 			}

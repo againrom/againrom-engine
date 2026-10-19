@@ -590,6 +590,7 @@ func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstan
 		}
 	}
 	worn[slot-1] = item.Clone()
+	old, other = takenOffWeapon(old, t.in.Table), takenOffWeapon(other, t.in.Table)
 	syncShopWornCodes(member, *worn)
 	// A restored book is authoritative at the next mint. Commit teaching
 	// from this NEW equip now; replaying every worn item would change the
@@ -1051,7 +1052,7 @@ func (t *shopController) shopUnequipDollValues(slot int) ui.TownAction {
 		worn[slot-1] = sim.ItemInstance{}
 	}
 	syncShopWornCodes(member, *worn)
-	t.setShopPackItemInstances(append(t.shopPackItemInstances(), item))
+	t.setShopPackItemInstances(append(t.shopPackItemInstances(), takenOffWeapon(item, t.in.Table)))
 	mapload.UpdatePartyLoad(before, member, t.in.Table, true, true)
 	refreshDerivedPartyBook(member, t.in.Table)
 	t.composeShopFaces()
@@ -1111,6 +1112,7 @@ func (t *shopController) shopUnequipToTableValues(slot int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	t.shopRevealTradeTable()
+	item = takenOffWeapon(item, t.in.Table)
 	price := t.shopItemValue(item)
 	shopItem := shopItemFromInstance(item, 1)
 	shopItem.Price = price

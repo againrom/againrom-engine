@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A mage whose staff lost its spell, as in a game loaded from a save
+  that holds the staff without it, now makes its ordinary ranged attack (the
+  shot looks like Fire Arrows) instead of casting the staff's spell, as in the
+  original. Take the staff off and put it on again and the mage casts its
+  spell. A staff taken off, dropped or left by a fallen mage loses its spell
+  until it is worn again.
 - [ROM1] A unit that holds an enemy as its target but neither walks nor
   strikes, such as a mage without a staff whose way to the enemy is refused,
   now stands as an idle unit does; before, it was drawn making a swing.

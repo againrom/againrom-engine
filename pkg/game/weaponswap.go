@@ -82,7 +82,7 @@ func (mw *mapWorld) observeWeapons() {
 		if s.seen == nil {
 			s.seen, s.previous = make(map[sim.EntityID]heldPair), make(map[sim.EntityID]heldPair)
 		}
-		if old, had := s.seen[id]; had && !old.weapon.Empty() && !sim.ItemEqual(old.weapon, cur.weapon) {
+		if old, had := s.seen[id]; had && !old.weapon.Empty() && !sameHeld(old.weapon, cur.weapon) {
 			s.previous[id] = old
 		}
 		s.seen[id] = cur
@@ -163,23 +163,23 @@ func (mw *mapWorld) nextSwapCommand(p *weaponSwapPlan) (sim.Command, bool) {
 	freeHand := mapload.WeaponAllowsShield(data.ItemCode(w.Code), t)
 	if p.stage == swapStageWeapon {
 		p.stage = swapStageShield
-		if !sim.ItemEqual(worn[0], w) {
+		if !sameHeld(worn[0], w) {
 			idx := mw.packIndex(p.id, w)
 			if idx < 0 || !mw.swapWears(member, w, 1) {
 				return none, false
 			}
 			var displace sim.EquipSlot
-			if !worn[1].Empty() && (shield.Empty() || !sim.ItemEqual(worn[1], shield) || !freeHand) {
+			if !worn[1].Empty() && (shield.Empty() || !sameHeld(worn[1], shield) || !freeHand) {
 				displace = 2
 			}
 			return sim.EquipDisplacing(p.id, sim.ItemSlot(idx), 1, displace), true
 		}
 	}
-	if p.stage != swapStageShield || !sim.ItemEqual(worn[0], w) {
+	if p.stage != swapStageShield || !sameHeld(worn[0], w) {
 		return none, false
 	}
 	p.stage = swapStageDone
-	if !shield.Empty() && sim.ItemEqual(worn[1], shield) {
+	if !shield.Empty() && sameHeld(worn[1], shield) {
 		return none, false
 	}
 	if !shield.Empty() && freeHand && mw.swapWears(member, shield, 2) {
@@ -191,6 +191,15 @@ func (mw *mapWorld) nextSwapCommand(p *weaponSwapPlan) (sim.Command, bool) {
 		return sim.Unequip(p.id, 2), true
 	}
 	return none, false
+}
+
+// sameHeld reports whether a and b are one held item. A Weapon's owned Spell
+// is left out: removal deletes it and the next equip builds it again
+// (ITEM-187), so the Weapon taken off is the one worn before.
+func sameHeld(a, b sim.ItemInstance) bool {
+	a, b = a.Clone(), b.Clone()
+	a.SourceEquipment.Spell, b.SourceEquipment.Spell = sim.SourceItemSpell{}, sim.SourceItemSpell{}
+	return sim.ItemEqual(a, b)
 }
 
 // swapWears reports whether item goes to equipment slot slot and member's
@@ -215,7 +224,7 @@ func (mw *mapWorld) packIndex(id sim.EntityID, item sim.ItemInstance) int {
 		return -1
 	}
 	for i, st := range stacks {
-		if st.Count > 0 && sim.ItemEqual(st.Instance(), item) {
+		if st.Count > 0 && sameHeld(st.Instance(), item) {
 			return i
 		}
 	}

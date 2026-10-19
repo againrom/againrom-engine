@@ -148,6 +148,16 @@ func (w *qolWitness) holds(t *testing.T, label string, weapon, packed sim.ItemIn
 	return e
 }
 
+// chargedOff is the Fire Arrow staff taken off: in the first game it holds
+// no Spell (ITEM-187), and worn again it builds one.
+func (w *qolWitness) chargedOff() sim.ItemInstance {
+	off := w.charged.Clone()
+	if !tableFiles(w.f.Table).storedWeaponSpell {
+		off.SourceEquipment.Spell = sim.SourceItemSpell{}
+	}
+	return off
+}
+
 // qolWitnessSave writes the mission through the game menu and returns to the
 // map.
 func qolWitnessSave(t *testing.T, w *qolWitness) (SaveStore, string, []byte) {
@@ -173,7 +183,8 @@ func qolWitnessRun(t *testing.T, keys bool) *qolWitness {
 	w.packCell(t, w.plain)
 	w.pause(t, false)
 	w.steps(t, 4)
-	if e := w.holds(t, "the plain staff worn", w.plain, w.charged); e.WeaponSpell == w.start.WeaponSpell {
+	off := w.chargedOff()
+	if e := w.holds(t, "the plain staff worn", w.plain, off); e.WeaponSpell == w.start.WeaponSpell {
 		t.Fatalf("the plain staff left the weapon spell %d of the Fire Arrow staff", e.WeaponSpell)
 	}
 
@@ -196,7 +207,7 @@ func qolWitnessRun(t *testing.T, keys bool) *qolWitness {
 		w.key(t, "zoom-reset")
 		w.key(t, "speed-reset")
 	} else {
-		w.packCell(t, w.charged)
+		w.packCell(t, off)
 		w.pointer(t, "right-press", "right-release")
 	}
 	w.pause(t, false)
@@ -274,7 +285,7 @@ func TestReleaseQualityOfLifeKeysSaveOnlyOrdinaryOrders(t *testing.T) {
 	loaded.holds(t, "W after LOAD", keyed.charged, keyed.plain)
 	keyed.key(t, "w")
 	keyed.steps(t, 4)
-	keyed.holds(t, "control: W on the running mission", keyed.plain, keyed.charged)
+	keyed.holds(t, "control: W on the running mission", keyed.plain, keyed.chargedOff())
 }
 
 // A SAV written while W's order for a companion that is not the inventory

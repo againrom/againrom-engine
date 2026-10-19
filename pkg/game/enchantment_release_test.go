@@ -780,14 +780,19 @@ func TestReleaseGeneratedMagicStaffKeepsItsSpellAndExactPriceThroughTheWholePath
 	if err != nil {
 		t.Fatalf("build generated Staff world: %v", err)
 	}
+	// The World binds the staff's constructor as a mission's does.
+	mapload.DeclareCodeWeights(w, f.Table, []uint16{uint16(generated.Code)})
 	pack, _ := w.CarriedStacks(caster.ID)
 	if len(pack) != 1 || pack[0].Count != 1 || !reflect.DeepEqual(pack[0].Instance(), generated.Instance()) {
 		t.Fatalf("purchased Staff pack = %+v, want exact generated instance", pack)
 	}
 	sim.Step(w, []sim.Command{{Kind: sim.KindEquip, Entity: caster.ID, X: 0, Y: 1}})
+	// The equip constructs the plain staff and builds its Spell (ITEM-187).
+	wornStaff := generated.Instance()
+	wornStaff.SourceEquipment = mapload.SourceEquippedItem(generated.Instance(), f.Table).SourceEquipment
 	worn, _ := w.EquippedItems(caster.ID)
 	equipped := releaseEntityByID(t, w, caster.ID)
-	if !reflect.DeepEqual(worn[0], generated.Instance()) || equipped.WeaponSpellSource != sim.WeaponSpellItem ||
+	if !wornStaff.SourceEquipment.Spell.Present || !reflect.DeepEqual(worn[0], wornStaff) || equipped.WeaponSpellSource != sim.WeaponSpellItem ||
 		equipped.WeaponSpell != spellID || equipped.WeaponSpellLevel != power {
 		t.Fatalf("equipped generated Staff/source = %+v / %+v", worn[0], equipped)
 	}
@@ -805,7 +810,7 @@ func TestReleaseGeneratedMagicStaffKeepsItsSpellAndExactPriceThroughTheWholePath
 	}
 	restoredWorn, _ := restored.EquippedItems(caster.ID)
 	restoredCaster := releaseEntityByID(t, &restored, caster.ID)
-	if !reflect.DeepEqual(restoredWorn[0], generated.Instance()) ||
+	if !reflect.DeepEqual(restoredWorn[0], wornStaff) ||
 		restoredCaster.WeaponSpellSource != sim.WeaponSpellItem || restoredCaster.WeaponSpell != spellID ||
 		restoredCaster.WeaponSpellLevel != power {
 		t.Fatalf("restored generated Staff/source = %+v / %+v", restoredWorn[0], restoredCaster)
