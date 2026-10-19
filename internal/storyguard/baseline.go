@@ -2641,6 +2641,8 @@ package storyguard
 // this note. It rises again for the paste's movement-domain check, its clone
 // from a copy of the same map, its fresh group ids in another map, the status
 // strip's fitted group note and their tests.
+// CommentBytes rises for the doc comments of the idle-pursuit standing draw and
+// its test, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2664,5 +2666,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1707,
 	},
-	CommentBytes: 9269041,
+	CommentBytes: 9269895,
 }

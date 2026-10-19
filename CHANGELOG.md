@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A unit that holds an enemy as its target but neither walks nor
+  strikes, such as a mage without a staff whose way to the enemy is refused,
+  now stands as an idle unit does; before, it was drawn making a swing.
 - [BASE] With a spell picked in the spell book, closing the book (Space, B,
   or the book button) or choosing the Attack order puts the cursor back to
   normal, and a click on an enemy now attacks it instead of casting the spell.

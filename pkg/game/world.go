@@ -5254,7 +5254,14 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		// `MAGIC-CASTANIM-029` fixes that a cast plays the caster's own Attack
 		// run, once, one frame per tick, and that run is the same track
 		// SelectAttackFrame already indexes for a swing.
-		swinging := !stone && e.Alive() && !e.Turning() && (e.HasAttackTarget || mw.casting(e.ID)) && !moving
+		//
+		// AN IDLE PURSUIT HOLDS A VICTIM AND DRAWS NO SWING. The refused route
+		// leaves the victim held with no strike and no walk, and the strike's
+		// arm is the one that installs action 3 (AI-542: the staff-less mage's
+		// branch stores order 0 and returns before it); a held victim alone
+		// is not an attack. The unit stands.
+		heldIdle := e.PursuitIdle && e.AttackPhase == sim.AttackReady && !mw.casting(e.ID)
+		swinging := !stone && e.Alive() && !e.Turning() && (e.HasAttackTarget || mw.casting(e.ID)) && !heldIdle && !moving
 
 		// THE ORANGE MARK IS THE FALLBACK for a shot this build cannot draw: a
 		// physical ranged swing whose class names no projectile, or one whose
