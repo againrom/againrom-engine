@@ -225,15 +225,13 @@ func (w *World) sourcePrepareWeaponTraced(item *ItemInstance, trace *sourceEquip
 	return true // no matching Effect does not clear an existing owned Spell
 }
 
-// buildWornWeaponSpell closes actor i's gap in place: an equip route that
-// builds no Spell leaves it for any owner (ITEM-187), and a hand-over to the
-// party (DIV-3362). Without anyOwner another player's actor keeps its Weapon
-// as it stands. Only the item changes: no actor load or pool is derived
-// again. A held Spell keeps its values; a Weapon whose saved views disagree
-// keeps its gap.
-func (w *World) buildWornWeaponSpell(i int, anyOwner bool) bool {
+// buildWornWeaponSpell gives actor i's worn Weapon the Spell an equip builds
+// when it holds none, for any owner (ITEM-187). Only the item changes: no
+// actor load or pool is derived again. A held Spell keeps its values; a
+// Weapon whose saved views disagree keeps its gap.
+func (w *World) buildWornWeaponSpell(i int) bool {
 	item := w.equipment[i][slotWeapon].Clone()
-	if !anyOwner && w.entities[i].Owner != SelfSlot || item.Empty() || item.SourceEquipment.Spell.Present {
+	if item.Empty() || item.SourceEquipment.Spell.Present {
 		return false
 	}
 	id, _, ok := item.CastSpell()
@@ -278,19 +276,12 @@ func (w *World) buildWornWeaponSpell(i int, anyOwner bool) bool {
 	return true
 }
 
-// closeWornSpellGap is the live build after a route that hands a wearer to
-// the party; equipWornSpell the build after a route that makes a classed
-// Weapon worn, for any owner. The second game keeps the World's Spell as it
-// stands.
-func (w *World) closeWornSpellGap(i int) {
-	if i >= 0 && i < len(w.entities) && !w.SecondGame() {
-		w.buildWornWeaponSpell(i, false)
-	}
-}
-
+// equipWornSpell is the build after a route that makes a classed Weapon worn,
+// for any owner. A script hand-over, a join and a SAVE build nothing
+// (ITEM-212). The second game keeps the World's Spell as it stands.
 func (w *World) equipWornSpell(i int) {
 	if i >= 0 && i < len(w.entities) && !w.SecondGame() {
-		w.buildWornWeaponSpell(i, true)
+		w.buildWornWeaponSpell(i)
 	}
 }
 

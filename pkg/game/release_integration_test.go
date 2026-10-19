@@ -123,9 +123,8 @@ func TestReleaseSave666ProductionHeadlessScenarioKeepsCharacterOwnership(t *test
 		t.Fatal("save-666 scenario ended with no live Reniesta staff spell")
 	}
 	// HeadlessSnapshot shares the final item-instance boundary with the live
-	// popup. The later staff-tooltip hotfix therefore replaces the localized
-	// raw damage/effect lines with its dedicated spell block here too.
-	wantDamage := fmt.Sprintf("%s %d-%d", ui.AuthoredWords().ItemDamage, base, base+spread)
+	// popup, so its staff text states the filled Spell's damage line too.
+	wantDamage := fmt.Sprintf("%s: %d-%d", castWeaponWords(ui.AuthoredWords()).Hover[118], base, base+spread)
 	physicalZeroLine := ui.AuthoredWords().ItemDamage + " 0-0"
 	found, physicalZero := false, false
 	for _, piece := range reniesta.Worn {
@@ -1507,16 +1506,20 @@ func TestReleaseReniestaTavernJoinAndMapKeepBothCharacters(t *testing.T) {
 		t.Fatalf("Reniesta live panel did not fold dress and cloak defence:\n%s", sheet)
 	}
 
-	// The worn-cell tooltip must name the exact interval the selected live
-	// entity would release through the staff. This crosses the production
-	// presenter and the headless observation surface; neither may fall back to
-	// the staff row's unused physical 0-0.
+	// The worn-cell tooltip states the Weapon stream (ITEM-211): the Spell
+	// filled from the staff's spell id and power, and the staff's own range.
+	// This crosses the production presenter and the headless observation
+	// surface; neither may fall back to the staff row's unused physical 0-0.
 	f.live.switchInventorySubject(uint32(reniestaID))
-	spellBase, spellSpread, ok := f.live.world.WeaponSpellDamage(reniestaID)
-	if !ok {
-		t.Fatal("Reniesta's equipped Wood Staff has no live weapon-spell interval")
+	reniestaWorn, _ := f.live.world.EquippedItems(reniestaID)
+	reniestaCast, reniestaPower, ok := f.live.itemWeaponDamage(data.ItemCode(reniestaEquipment[0]))
+	if !ok || reniestaWorn[0].Code != reniestaEquipment[0] {
+		t.Fatal("Reniesta's equipped Wood Staff has no weapon spell")
 	}
-	wantStaffDamage := fmt.Sprintf("%s %d-%d", f.Words.ItemDamage, spellBase, spellBase+spellSpread)
+	reniestaStaff, err := data.WeaponFromCode(data.ItemCode(reniestaEquipment[0]), f.Table.Shapes, f.Table.Materials, f.Table.Weapons)
+	if err != nil {
+		t.Fatalf("resolve Reniesta staff: %v", err)
+	}
 	hasLine := func(lines []string, want string) bool {
 		for _, line := range lines {
 			if line == want {
@@ -1539,18 +1542,24 @@ func TestReleaseReniestaTavernJoinAndMapKeepBothCharacters(t *testing.T) {
 	if int(reniestaSpell.ID) < len(f.Words.ItemSpellNames) && f.Words.ItemSpellNames[reniestaSpell.ID] != "" {
 		reniestaSpellName = f.Words.ItemSpellNames[reniestaSpell.ID]
 	}
-	wantStaffCast := fmt.Sprintf("%s %s", f.Words.ItemCasts, reniestaSpellName)
-	wantStaffRange := fmt.Sprintf("%s %d", f.Words.ItemRange, reniestaSpell.MaxRange)
+	filled := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), reniestaSpell, int32(uint8(reniestaPower)))
+	if !reniestaSpellFound || reniestaSpell.ID != uint16(uint8(reniestaCast)) || filled.DamageMax == 0 {
+		t.Fatalf("Reniesta's staff casts %d, live spell %+v found %t, filled %+v", reniestaCast, reniestaSpell, reniestaSpellFound, filled)
+	}
+	labels := castWeaponWords(f.Words)
+	wantStaffDamage := fmt.Sprintf("%s: %d-%d", labels.Hover[118], filled.DamageMin, filled.DamageMax)
+	wantStaffCast := "#" + labels.Hover[92] + " " + reniestaSpellName + labels.Hover[93]
+	wantStaffRange := fmt.Sprintf("%s: %d", labels.Hover[123], uint8(reniestaStaff.Range))
 	if !reniestaSpellFound || !hasLine(staffInfo, magicLine) || !hasLine(staffInfo, wantStaffCast) ||
 		!hasLine(staffInfo, wantStaffDamage) || !hasLine(staffInfo, wantStaffRange) ||
 		hasLine(staffInfo, f.Words.ItemDamage+" 0-0") {
 		t.Fatalf("Reniesta Wood Staff tooltip = %v, want Magic/%q/%q/%q and no physical 0-0",
 			staffInfo, wantStaffCast, wantStaffDamage, wantStaffRange)
 	}
-	authoredWords := ui.AuthoredWords()
-	headlessCast := fmt.Sprintf("%s %s", authoredWords.ItemCasts, f.Table.Spells.EntryName(int(reniestaSpell.ID)))
-	headlessDamage := fmt.Sprintf("%s %d-%d", authoredWords.ItemDamage, spellBase, spellBase+spellSpread)
-	headlessRange := fmt.Sprintf("%s %d", authoredWords.ItemRange, reniestaSpell.MaxRange)
+	authoredWords := castWeaponWords(ui.AuthoredWords())
+	headlessCast := "#" + authoredWords.Hover[92] + " " + weaponSpellName(reniestaSpell.ID, f.Table) + authoredWords.Hover[93]
+	headlessDamage := fmt.Sprintf("%s: %d-%d", authoredWords.Hover[118], filled.DamageMin, filled.DamageMax)
+	headlessRange := fmt.Sprintf("%s: %d", authoredWords.Hover[123], uint8(reniestaStaff.Range))
 	headless := f.HeadlessSnapshot(ui.ScreenMap)
 	headlessReniesta, err := findHeadlessMember(headless, "npc:22")
 	if err != nil {

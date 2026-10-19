@@ -11,7 +11,7 @@ var CommittedActorLiterals = map[string]int{
 	"cmd/areaoverlaycheck/main.go":   1,
 	"cmd/weaponspellcheck/main.go":   1,
 	"pkg/game/chargen.go":            1,
-	"pkg/game/iteminfo.go":           2,
+	"pkg/game/iteminfo.go":           1,
 	"pkg/game/originalspellbook.go":  3,
 	"pkg/game/shopview.go":           1,
 	"pkg/game/world.go":              1,

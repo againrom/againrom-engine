@@ -589,7 +589,7 @@ func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstan
 			worn[0] = sim.ItemInstance{}
 		}
 	}
-	worn[slot-1] = item.Clone()
+	worn[slot-1] = equippedWeapon(item.Clone(), t.in.Table)
 	old, other = takenOffWeapon(old, t.in.Table), takenOffWeapon(other, t.in.Table)
 	syncShopWornCodes(member, *worn)
 	// A restored book is authoritative at the next mint. Commit teaching

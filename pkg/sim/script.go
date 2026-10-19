@@ -1396,7 +1396,6 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 // handOver moves an actor to a new owner's singleton Group and applies
 // Stand Ground, including the current post and pending-order reset (AI-351).
 func (w *World) handOver(i int, player uint32) {
-	defer w.closeWornSpellGap(i)
 	w.handOverReference(i, player)
 	if !w.groupDialectNative() {
 		w.handOverSaved(i, player)

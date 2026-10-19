@@ -37,7 +37,7 @@ func statesPrice(lines, labels []string) bool {
 
 // unpricedInfo is the information an item composes when its stored price is
 // 0: the lines the original composes for it, which state no price.
-func unpricedInfo(item sim.ItemInstance, f *FrontEnd, resolve weaponDamageResolver, words ui.Words) []string {
+func unpricedInfo(item sim.ItemInstance, f *FrontEnd, resolve weaponCastResolver, words ui.Words) []string {
 	item = item.Clone()
 	item.Price = 0
 	return itemInstanceInfoLinesWithWeaponDamage(item, f.Table, resolve, words)

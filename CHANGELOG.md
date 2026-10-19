@@ -26,6 +26,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   bringing his son home in Dragon Clan, now shows "Picked up 10000 gold" on
   the message line, as gold picked up from the ground does. So does gold from
   the `#create N Gold` cheat.
+- [ROM1] A spell weapon's description now reads as in the original: it names
+  the spell, its damage, the weapon's own range (5 for a Staff, 4 for a Shaman
+  Staff) rather than the spell's, and the spell's duration, and it is the same
+  whether the weapon is worn, carried, on a shop shelf or on the ground. A
+  mage's card shows one damage row, the damage of the spell its weapon casts,
+  and no attack row; other units show their own damage and attack. A staff that
+  lost its spell no longer gets it back when a script gives its owner to you,
+  when a guest joins in town, when the party starts the next mission or when
+  the town is saved; take it off and put it on again.
 - [BASE] With a spell picked in the spell book, closing the book (Space, B,
   or the book button) or choosing the Attack order puts the cursor back to
   normal, and a click on an enemy now attacks it instead of casting the spell.

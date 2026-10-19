@@ -724,14 +724,11 @@ func TestReleaseGeneratedMagicStaffKeepsItsSpellAndExactPriceThroughTheWholePath
 	if name := f.Words.ItemSpellNames[spellID]; name != "" {
 		castSpell = name
 	}
-	castLine := fmt.Sprintf("%s %s", f.Words.ItemCasts, castSpell)
+	// The Weapon stream's cast lines (ITEM-211): the caption pair around the
+	// spell name, the filled Spell's damage and the Staff's own range.
+	labels := castWeaponWords(f.Words)
+	castLine := "#" + labels.Hover[92] + " " + castSpell + labels.Hover[93]
 	spellRules := mapload.SpellRules(f.Table)
-	spellBase, spellSpread, spellDamage := sim.WeaponSpellDamageFor(sim.Rules{}, sim.Entity{
-		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
-	}, spellRules)
-	if !spellDamage {
-		t.Fatal("generated Staff's attached cast has no damage interval")
-	}
 	var castRule sim.SpellRule
 	castRuleFound := false
 	for _, rule := range spellRules {
@@ -743,8 +740,16 @@ func TestReleaseGeneratedMagicStaffKeepsItsSpellAndExactPriceThroughTheWholePath
 	if !castRuleFound {
 		t.Fatalf("generated Staff's spell %d has no rule", spellID)
 	}
-	castDamageLine := fmt.Sprintf("%s %d-%d", f.Words.ItemDamage, spellBase, spellBase+spellSpread)
-	castRangeLine := fmt.Sprintf("%s %d", f.Words.ItemRange, castRule.MaxRange)
+	filled := sim.SpellCharacteristicsAtPower(mapload.TableRules(f.Table), castRule, power)
+	if filled.DamageMax == 0 {
+		t.Fatal("generated Staff's attached cast has no damage interval")
+	}
+	staffRow, err := data.WeaponFromCode(data.ItemCode(generated.Code), f.Table.Shapes, f.Table.Materials, f.Table.Weapons)
+	if err != nil {
+		t.Fatal(err)
+	}
+	castDamageLine := fmt.Sprintf("%s: %d-%d", labels.Hover[118], filled.DamageMin, filled.DamageMax)
+	castRangeLine := fmt.Sprintf("%s: %d", labels.Hover[123], uint8(staffRow.Range))
 	rawCastLine := fmt.Sprintf("#%s %s power %d", f.Words.ItemStats[41],
 		f.Table.Spells.EntryName(int(spellID)), power)
 	magicLine := roomCaptionRawLine(t, roomCaptionRaw(t, f, "main/text/main.txt"), 189)

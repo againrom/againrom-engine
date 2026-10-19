@@ -102,20 +102,29 @@ func TestALoadedGapStaysThroughSaveAndLoad(t *testing.T) {
 	}
 }
 
-// TestHandOverBuildsTheWornWeaponSpell: a hand-over to the party closes the
-// worn staff's gap; a hand-over to another player, the control, does not.
-func TestHandOverBuildsTheWornWeaponSpell(t *testing.T) {
+// TestHandOverKeepsTheWornWeaponSpell: a script hand-over makes no item call,
+// so the worn staff keeps its state (ITEM-212): a staff without its Spell
+// stays without it after a hand-over to the party, and a staff holding its
+// Spell, the control, keeps the same Spell object.
+func TestHandOverKeepsTheWornWeaponSpell(t *testing.T) {
 	item := sourceEquipmentWeapon(0x0102, 2, 5, 7, 6, 1)
 	item.Effects = staffEffects(14, 20)
-	control := wornGapWorld(t, item, 3)
-	control.handOver(0, 2)
-	if control.equipment[0][0].SourceEquipment.Spell.Present {
-		t.Fatal("control: a hand-over to another player built a Spell")
+	control := wornSpellWorldOf(t, item, 3)
+	held := control.savedObjects.item(control.equipment[0][0].ObjectID).Spell
+	control.handOver(0, SelfSlot)
+	if held == 0 || control.savedObjects.item(control.equipment[0][0].ObjectID).Spell != held {
+		t.Fatal("control: the hand-over replaced the held Spell")
 	}
 	w := wornGapWorld(t, item, 3)
 	w.handOver(0, SelfSlot)
-	if w.entities[0].Owner != SelfSlot || !w.equipment[0][0].SourceEquipment.Spell.Present {
-		t.Fatalf("the hand-over left the worn staff with Spell %+v", w.equipment[0][0].SourceEquipment.Spell)
+	if w.entities[0].Owner != SelfSlot {
+		t.Fatal("the hand-over did not reach the party")
+	}
+	if w.equipment[0][0].SourceEquipment.Spell.Present || w.savedObjects.item(w.equipment[0][0].ObjectID).Spell != 0 {
+		t.Fatalf("the hand-over built the worn staff's Spell %+v", w.equipment[0][0].SourceEquipment.Spell)
+	}
+	if _, cast := w.weaponSpell(w.entities[0]); cast {
+		t.Fatal("the handed-over gap casts")
 	}
 }
 

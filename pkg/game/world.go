@@ -1358,6 +1358,16 @@ func partyPanelSubject(p mapload.PartyMember, t *mapload.Table, installed ...ui.
 	if weapon := mapload.MemberWeapon(p, t); weapon != nil {
 		s.Char.Weapon = weapon.Name
 	}
+	if !tableFiles(t).releasedSpellReadout {
+		if p.Mage {
+			s.Combat.WeaponSpellKnown = true
+			worn := mapload.MemberItemEquipment(p, t)
+			base, spread, ok := mageCardDamage(worn[0], mapload.TableRules(t), mapload.SpellRules(t))
+			s.Combat.WeaponSpellDamageKnown = ok
+			s.Combat.SpellDamageBase, s.Combat.SpellDamageSpread = base, spread
+		}
+		return s
+	}
 	spellID, _ := mapload.SpellIDByToken(t, d.Combat.SpellName)
 	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(t), sim.Entity{MaxMana: mana, WeaponSpell: spellID,
 		WeaponSpellLevel: d.Combat.SpellPower}, mapload.SpellRules(t))
@@ -2864,18 +2874,18 @@ func (mw *mapWorld) currentWeaponFallbackActive() bool {
 // interval. An equipped weapon is answered only by the live World, including
 // a false answer; an unequipped starting weapon may still describe its stored
 // spell while it sits in the pack.
-func (mw *mapWorld) itemWeaponDamage(code data.ItemCode) (weaponDamageInterval, bool) {
+func (mw *mapWorld) itemWeaponDamage(code data.ItemCode) (uint16, int32, bool) {
 	if mw == nil || mw.world == nil {
-		return weaponDamageInterval{}, false
+		return 0, 0, false
 	}
 	id := sim.EntityID(mw.invSubject.ID)
 	if equipped, ok := mw.world.Equipped(id); ok && equipped[0] == uint16(code) {
-		return liveWeaponSpellDamage(mw.world, id, code)
+		return liveWeaponCast(mw.world, id, code)
 	}
 	if mw.currentWeaponFallbackActive() {
-		return storedWeaponSpellDamage(code, mw.invParty.startWeapon, mw.invParty.mage, mw.invParty.table)
+		return storedWeaponCast(code, mw.invParty.startWeapon, mw.invParty.table)
 	}
-	return weaponDamageInterval{}, false
+	return 0, 0, false
 }
 
 func (mw *mapWorld) refreshEquipment() {
@@ -5073,8 +5083,16 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 
 		spell, weaponSpellKnown := sim.WeaponSpellCharacteristicsFor(mw.world.Rules(), e, spells)
 		spellBase, spellSpread := int64(0), int64(0)
-		if weaponSpellKnown && spell.HasDamage {
+		spellDamageKnown := weaponSpellKnown && spell.HasDamage
+		if spellDamageKnown {
 			spellBase, spellSpread = spell.DamageMin, spell.DamageMax-spell.DamageMin
+		}
+		if !mw.world.SecondGame() {
+			weaponSpellKnown, spellDamageKnown, spellBase, spellSpread = char.Known && char.Mage, false, 0, 0
+			if weaponSpellKnown {
+				worn, _ := mw.world.EquippedItems(e.ID)
+				spellBase, spellSpread, spellDamageKnown = mageCardDamage(worn[0], mw.world.Rules(), spells)
+			}
 		}
 		nameIndex := int(e.TypeID)
 		nativeClassName := e.SourceBinding.Class == 0 && e.ActorLoad.Source.Class == 0 &&
@@ -5159,7 +5177,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			Combat: ui.UnitCombat{Known: true,
 				DamageBase: int(e.DamageBase), DamageSpread: int(e.DamageSpread),
 				WeaponSpellKnown:       weaponSpellKnown,
-				WeaponSpellDamageKnown: weaponSpellKnown && spell.HasDamage,
+				WeaponSpellDamageKnown: spellDamageKnown,
 				SpellDamageBase:        spellBase, SpellDamageSpread: spellSpread,
 				ToHit: int(e.ToHit), Defence: int(e.Defence), Absorption: int(e.Absorption),
 				AttackCharge: int(e.AttackCharge), AttackRelax: int(e.AttackRelax),

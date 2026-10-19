@@ -114,10 +114,11 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 	member, ok := s.Town.guestMission().joining(chapter, npc)
 	if ok {
 		s.Town.guest = nil
-	} else if member, ok = townCompanion(in, chapter, npc, s.Carried); !ok {
+	} else if member, ok = townCompanion(in, chapter, npc, s.Carried); ok {
+		joinedWornSpells(member.WornItems[:], in.table)
+	} else {
 		return false
 	}
-	joinedWornSpells(member.WornItems[:], in.table)
 	s.Carried = mapload.OwnParty(append(s.Carried, member))
 	return true
 }

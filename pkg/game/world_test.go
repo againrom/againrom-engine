@@ -3403,54 +3403,70 @@ func TestRefreshDollDragEquipmentSourceAgreesWithTheOrdinaryFigure(t *testing.T)
 // shown. Persistence is not the boundary: campaign purse/documents are
 // primary-only, but a temporary ally or mercenary still owns their doll,
 // worn slots and pack while selected.
-func TestEntityDrawCarriesTheLiveWeaponSpellIntervalToTheSheet(t *testing.T) {
-	w, err := sim.NewSpelledWorld(1,
-		sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, nil,
-		[]sim.Entity{{ID: 7, X: 3, Y: 3, HP: 100, MaxHP: 100, MaxMana: 50, Mana: 50,
-			DamageBase: 2, WeaponSpell: 1, WeaponSpellLevel: 10}}, nil,
-		[]sim.SpellRule{{ID: 1, DamageMin: 15, DamageMax: 18, MaxRange: 5,
-			TargetsUnit: true, Damaging: true}})
-	if err != nil {
-		t.Fatalf("NewSpelledWorld: %v", err)
-	}
-	m := worldFixtureMap()
-	mw := newMapWorld(w, nil, nil, worldFixtureViewer(t, m))
-	draws := mw.entityDraws()
-	if len(draws) != 1 {
-		t.Fatalf("entityDraws length = %d, want 1", len(draws))
-	}
-	c := draws[0].Combat
-	if c.DamageBase != 2 || c.DamageSpread != 0 {
-		t.Fatalf("physical damage = %d + %d, want staff's own 2 + 0", c.DamageBase, c.DamageSpread)
-	}
-	if !c.WeaponSpellKnown || !c.WeaponSpellDamageKnown || c.SpellDamageBase != 20 || c.SpellDamageSpread != 4 {
-		t.Fatalf("weapon-spell damage = %d + %d, known %v; want live interval 20 + 4, true",
-			c.SpellDamageBase, c.SpellDamageSpread, c.WeaponSpellDamageKnown)
-	}
-}
 
-func TestEntityDrawSuppressesStoneCursePhysicalDamage(t *testing.T) {
-	rule := sim.SpellRule{ID: 20, MaxRange: 5, TargetsUnit: true, SpellDuration: 10,
-		EffectKind: sim.EffectAbsorption, EffectMode: sim.EffectDuration}
-	w, err := sim.NewSpelledWorld(1,
-		sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, nil,
+// cardCombat is the combat a mission card draws for one actor wearing weapon,
+// with MaxMana 50 and the weapon spell its castSpell Effect fills, whose
+// sheet carries the mage bit when mage is set.
+func cardCombat(t *testing.T, weapon sim.ItemInstance, mage bool, rule sim.SpellRule) ui.UnitCombat {
+	t.Helper()
+	w, err := sim.NewStockedSpelledWorld(1,
+		sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, sim.Terrain{},
 		[]sim.Entity{{ID: 7, X: 3, Y: 3, HP: 100, MaxHP: 100, MaxMana: 50, Mana: 50,
-			DamageBase: 20, WeaponSpell: 20, WeaponSpellLevel: 1}}, nil, []sim.SpellRule{rule})
+			DamageBase: 2, DamageSpread: 3, ToHit: 9}}, nil,
+		sim.Relations{}, nil, []sim.Stock{{ID: 7, Equipped: [sim.EquipSlots]uint16{weapon.Code},
+			EquippedItems: [sim.EquipSlots]sim.ItemInstance{weapon}}}, []sim.SpellRule{rule})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("NewStockedSpelledWorld: %v", err)
 	}
 	mw := newMapWorld(w, nil, nil, worldFixtureViewer(t, worldFixtureMap()))
+	mw.chars = map[sim.EntityID]ui.UnitCharacter{7: {Known: true, Mage: mage, Band: ui.CharacterBandPerson}}
 	before := w.Hash()
 	draws := mw.entityDraws()
 	if len(draws) != 1 {
 		t.Fatalf("entityDraws length = %d, want 1", len(draws))
 	}
-	c := draws[0].Combat
-	if !c.WeaponSpellKnown || c.WeaponSpellDamageKnown {
-		t.Fatalf("Stone Curse combat = %+v; want spell release without damage", c)
+	if w.Hash() != before {
+		t.Fatal("the card projection changed the World hash")
 	}
-	if got := w.Hash(); got != before {
-		t.Fatalf("panel projection changed World hash: %#x, want %#x", got, before)
+	return draws[0].Combat
+}
+
+// TestCardDamageFollowsTheMageBit: a mage's card draws one damage row, the
+// Spell filled from its worn Weapon's castSpell Effect, the same with and
+// without the Weapon's built Spell; a mage whose Weapon casts nothing, or
+// whose spell has no damage (Stone Curse), draws none. A drawable without the
+// mage bit draws its own damage and attack, though it wears the same staff
+// and has a mana pool (HERO-172). Spell 1 at power 10: factor 1.33 gives 20
+// and 24 from 15 and 18 (TEXT-096).
+func TestCardDamageFollowsTheMageBit(t *testing.T) {
+	fire := sim.SpellRule{ID: 1, DamageMin: 15, DamageMax: 18, MaxRange: 5, TargetsUnit: true, Damaging: true}
+	staff := sim.ItemInstance{Code: 0x0101, Kind: 2, Effects: []sim.ItemEffect{{Kind: 41, Operand: 1 | 10<<16}}}
+	built := staff.Clone()
+	built.SourceEquipment = sim.SourceEquipment{Class: sim.SourceWeapon,
+		Spell: sim.SourceItemSpell{Present: true, ID: 1, Range: 5}}
+	for name, weapon := range map[string]sim.ItemInstance{"without its Spell": staff, "with its Spell": built} {
+		c := cardCombat(t, weapon, true, fire)
+		if !c.WeaponSpellKnown || !c.WeaponSpellDamageKnown || c.SpellDamageBase != 20 || c.SpellDamageSpread != 4 {
+			t.Errorf("mage %s: %+v, want spell damage 20 + 4", name, c)
+		}
+		subject := ui.PanelSubject{Combat: c, Char: ui.UnitCharacter{Known: true, Mage: true}}
+		if got := strings.Join(ui.PanelStatement(ui.CompactPanelLayout(nil), subject), "\n"); strings.Contains(got, "ATTACK") || !strings.Contains(got, "DMG 20-24") {
+			t.Errorf("mage %s card = %q, want DMG 20-24 and no ATTACK", name, got)
+		}
+	}
+	plain := sim.ItemInstance{Code: 0x0101, Kind: 2}
+	if c := cardCombat(t, plain, true, fire); !c.WeaponSpellKnown || c.WeaponSpellDamageKnown {
+		t.Errorf("mage without a castSpell Weapon: %+v, want no damage row", c)
+	}
+	curse := sim.SpellRule{ID: 20, MaxRange: 5, TargetsUnit: true, SpellDuration: 10,
+		EffectKind: sim.EffectAbsorption, EffectMode: sim.EffectDuration}
+	stone := sim.ItemInstance{Code: 0x0101, Kind: 2, Effects: []sim.ItemEffect{{Kind: 41, Operand: 20 | 1<<16}}}
+	if c := cardCombat(t, stone, true, curse); !c.WeaponSpellKnown || c.WeaponSpellDamageKnown {
+		t.Errorf("Stone Curse mage: %+v, want no damage row", c)
+	}
+	c := cardCombat(t, staff, false, fire)
+	if c.WeaponSpellKnown || c.WeaponSpellDamageKnown || c.DamageBase != 2 || c.DamageSpread != 3 || c.ToHit != 9 {
+		t.Errorf("non-mage: %+v, want its own damage 2 + 3 and attack 9", c)
 	}
 }
 

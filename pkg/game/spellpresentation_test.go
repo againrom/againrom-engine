@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -226,31 +227,32 @@ func TestEachGameNamesItsSpellsFromItsOwnTables(t *testing.T) {
 	}
 }
 
-// The item card's duration and ray lines follow the row's arm: the second
-// game's Stone Curse is row 18 and its Prismatic Spray row 11, the first
-// game's rows 20 and 14 (DIV-1977).
+// The second game's item card keeps the spell its attack releases: the
+// duration and ray lines follow the row's arm, its Stone Curse row 18 and its
+// Prismatic Spray row 11, and the range is the spell's (DIV-1977). The first
+// game's table, the loss control, composes the Weapon's stream instead.
 func TestItemSpellLinesFollowTheArm(t *testing.T) {
-	weapons := dbCollection{{}, {name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)}}
-	table := &mapload.Table{Shapes: emptyScale{}, Materials: emptyScale{}, Weapons: weapons}
-	staff, err := data.ResolveWeapon("Wood Staff", table.Shapes, table.Materials, table.Weapons)
-	if err != nil {
-		t.Fatalf("resolve staff: %v", err)
-	}
-	lines := func(c weaponDamageInterval) []string {
-		return itemInfoLinesWithWeaponDamage(staff.Code, table, func(data.ItemCode) (weaponDamageInterval, bool) { return c, true })
-	}
+	second := base.GameROM2.Edition()
 	words := ui.AuthoredWords()
-	curse := weaponDamageInterval{SpellID: 18, Arm: 20, DurationTicks: 80, MaxRange: 5, HasDuration: true}
-	if got := lines(curse); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 5)) || slices.Contains(got, fmt.Sprintf("%s %s", words.ItemCasts, weaponSpellName(18, table))) {
+	lines := func(id int, name string, power int32, duration int32, edition *base.Edition) []string {
+		table, weapon := staffTooltipTable(t, id, name, power, 6, 5, 15, duration)
+		if edition != nil {
+			table.Edition, table.SpellArms = edition, mapload.SecondGameSpellArms
+		}
+		item := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{castSpellEffect(uint16(id), power)}}
+		return itemInstanceInfoLines(item, table, words)
+	}
+	if got := lines(18, "Stone Curse", 0, 10, &second); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 6)) ||
+		!slices.Contains(got, "Stone Curse 10 "+words.DurationUnit) {
 		t.Fatalf("second-game Stone Curse card = %q", got)
 	}
-	spray := weaponDamageInterval{SpellID: 11, Arm: 14, RayCount: 4, MaxRange: 6}
-	if got := lines(spray); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) {
+	if got := lines(11, "Prismatic Spray", 40, 0, &second); !slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) ||
+		!slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRange, 6)) {
 		t.Fatalf("second-game Prismatic Spray card = %q", got)
 	}
-	// Loss control: the row id alone, read as the first game's, gives no rays.
-	if got := lines(weaponDamageInterval{SpellID: 14, Arm: 17, RayCount: 4}); slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) {
-		t.Fatalf("row 14 of another arm drew rays: %q", got)
+	if got := lines(11, "Prismatic Spray", 40, 0, nil); slices.Contains(got, fmt.Sprintf("%s %d", words.ItemRays, 4)) ||
+		!slices.Contains(got, words.ItemRange+": 5") {
+		t.Fatalf("first-game row 11 card = %q", got)
 	}
 }
 

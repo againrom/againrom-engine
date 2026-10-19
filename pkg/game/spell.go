@@ -317,9 +317,14 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 
 type spellDetailContext uint8
 
+// A Scroll's and a Weapon's description share the item formatter's tag-50 arm
+// (TEXT-129): its range line reads the filled Spell for a Scroll and the
+// Weapon's own range for any other class, with no zero test (ITEM-211). The
+// weaponDetails caller puts that range in the knower's Range.
 const (
 	spellbookDetails spellDetailContext = iota
 	scrollDetails
+	weaponDetails
 )
 
 func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, context spellDetailContext) []string {
@@ -338,18 +343,19 @@ func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, conte
 		rangeMin, rangeMax = min(rangeMin, k.c.Range), max(rangeMax, k.c.Range)
 		durMin, durMax = min(durMin, k.c.Duration), max(durMax, k.c.Duration)
 	}
+	item := context != spellbookDetails
 	showDamage := damageMax != 0
-	if context == scrollDetails {
+	if item {
 		showDamage = damageMax != damageMin
 	}
 	if showDamage {
 		value := spellPair(damageMin, damageMax, "%d", "-")
-		if context == scrollDetails {
+		if item {
 			value = fmt.Sprintf("%d-%d", damageMin, damageMax)
 		}
 		lines = add(lines, spellLabelDamage, value)
 	}
-	if rangeMax != 0 {
+	if rangeMax != 0 || context == weaponDetails {
 		lines = add(lines, spellLabelRange, spellPair(rangeMin, rangeMax, "%d", "-"))
 	}
 	if durMax != 0 {
@@ -359,7 +365,7 @@ func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, conte
 	// block that holds a value is the only caption shown.
 	caption := ""
 	order := []int{182, 183, 184, 185, 187, 186, 217}
-	if context == scrollDetails {
+	if item {
 		order = []int{182, 185, 187, 183, 186, 184}
 	}
 	for _, label := range order {
@@ -376,7 +382,7 @@ func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, conte
 				continue
 			}
 			v, ok := block.value(k.rule, k.c)
-			if !ok || context == scrollDetails && v == 0 {
+			if !ok || item && v == 0 {
 				continue
 			}
 			if !held {

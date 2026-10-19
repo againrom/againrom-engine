@@ -84,6 +84,11 @@ type Table struct {
 	// first game's.
 	ClassCreatureBooks bool
 
+	// CarriedWornSpellBuild builds a missing worn Weapon Spell at mission
+	// start for a member who arrives with carried state too; false is the
+	// first game's, which keeps his Weapons as held (ITEM-212).
+	CarriedWornSpellBuild bool
+
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules

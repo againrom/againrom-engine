@@ -5,9 +5,10 @@ import (
 	"againrom/pkg/sim"
 )
 
-// joinedWornSpells gives a first-game member who joins in the town each worn
-// Weapon's Spell as a mission start builds it, so the town state is the one
-// its SAVE writes (DIV-3362).
+// joinedWornSpells gives a first-game member constructed from his definition
+// row, a tavern hire or a town companion who was not a guest, each worn
+// Weapon's Spell as the Human constructor's template equip builds it
+// (ITEM-203, ITEM-212). A member who already exists keeps his Weapons as held.
 func joinedWornSpells(worn []sim.ItemInstance, table *mapload.Table) {
 	if table == nil || tableFiles(table).storedWeaponSpell {
 		return
@@ -27,6 +28,21 @@ func takenOffWeapon(item sim.ItemInstance, table *mapload.Table) sim.ItemInstanc
 	}
 	item = item.Clone()
 	item.SourceEquipment.Spell = sim.SourceItemSpell{}
+	return item
+}
+
+// equippedWeapon is a Weapon a first-game town member puts on: equip builds
+// its Spell from the first castSpell Effect when it holds none (ITEM-187); a
+// spell id without an installed Spells row keeps the gap.
+func equippedWeapon(item sim.ItemInstance, table *mapload.Table) sim.ItemInstance {
+	if table == nil || tableFiles(table).storedWeaponSpell || item.SourceEquipment.Class != sim.SourceWeapon || item.SourceEquipment.Spell.Present {
+		return item
+	}
+	spell, err := nativeCityWeaponSpell(item, true, table)
+	if err != nil || !spell.Present {
+		return item
+	}
+	item.SourceEquipment.Spell = spell
 	return item
 }
 

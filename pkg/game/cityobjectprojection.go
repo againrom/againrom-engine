@@ -188,13 +188,6 @@ func newCityObjectProjection(source *cityObjectTopology, party []mapload.PartyMe
 		if err != nil {
 			return 0, err
 		}
-		// A first-game worn Weapon loaded without its Spell gains one; a spell
-		// id without an installed Spells row keeps the gap (DIV-3362).
-		if equipped && !ownedSpell.Present && native.SourceEquipment.Class != 0 && !tableFiles(table).storedWeaponSpell {
-			if built, err := nativeCityWeaponSpell(value, true, table); err == nil {
-				ownedSpell = built
-			}
-		}
 		value.SourceEquipment.Spell = ownedSpell
 		index, exists := nodes[id]
 		if !exists {

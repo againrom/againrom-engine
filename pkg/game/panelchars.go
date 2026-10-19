@@ -156,3 +156,32 @@ func missionCharacters(m *alm.Map, t *mapload.Table, ms *Mission) map[sim.Entity
 	}
 	return out
 }
+
+// mageCardDamage is the one damage row a mage's card draws (HERO-172): the
+// damage of a Spell filled from the spell id and power bytes of the worn
+// Weapon's last castSpell Effect, drawn when the base and spread are not both
+// zero. A mage without such a Weapon has no damage row. The row reads neither
+// the Weapon's built Spell nor the wearer's state.
+func mageCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
+	var cast sim.ItemEffect
+	for _, effect := range weapon.Effects {
+		if effect.Kind == 41 {
+			cast, ok = effect, true
+		}
+	}
+	if !ok {
+		return 0, 0, false
+	}
+	id, power := uint16(uint8(cast.Operand)), int32(uint8(cast.Operand>>16))
+	for _, rule := range spells {
+		if rule.ID != id {
+			continue
+		}
+		c := sim.SpellCharacteristicsAtPower(rules, rule, power)
+		if c.DamageMax == 0 {
+			return 0, 0, false
+		}
+		return c.DamageMin, c.DamageMax - c.DamageMin, true
+	}
+	return 0, 0, false
+}

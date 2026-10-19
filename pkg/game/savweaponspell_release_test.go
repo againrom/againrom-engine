@@ -328,11 +328,11 @@ func townCompanionStaff(t *testing.T, stored bool) (*FrontEnd, int) {
 	return nil, 0
 }
 
-// TestReleaseTownCompanionWearsItsStaffSpell: a companion who joins in the
-// town wears his staff with the Spell a mission start builds from its
-// castSpell Effect and the Spells row, and the town's SAVE and cold LOAD keep
-// that Weapon as it was (DIV-3362). With the build switched off the joined
-// staff holds none.
+// TestReleaseTownCompanionWearsItsStaffSpell: a companion the town constructs
+// from his row wears his staff with the Spell the template equip builds from
+// its castSpell Effect and the Spells row (ITEM-203), and the town's SAVE and
+// cold LOAD keep that Weapon as held (ITEM-212). With the build switched off
+// the joined staff holds none.
 func TestReleaseTownCompanionWearsItsStaffSpell(t *testing.T) {
 	control, i := townCompanionStaff(t, true)
 	if control.Carried[i].WornItems[0].SourceEquipment.Spell.Present {

@@ -20,7 +20,7 @@ func TestDrainLifeItemCardsUseCurrentSpellAcrossProducers(t *testing.T) {
 	for _, tc := range []struct {
 		power int32
 		line  string
-	}{{0, "Damage 3-5"}, {30, "Damage 6-10"}} {
+	}{{0, "Damage: 3-5"}, {30, "Damage: 6-10"}} {
 		table, weapon := staffTooltipTable(t, 11, "Drain Life", tc.power, 7, 3, 5, 0)
 		item := sim.ItemInstance{Code: uint16(weapon.Code), Price: 123, Effects: []sim.ItemEffect{
 			{Kind: 41, Operand: 11 | uint32(uint16(tc.power))<<16},
@@ -45,20 +45,21 @@ func TestDrainLifeItemCardsUseCurrentSpellAcrossProducers(t *testing.T) {
 		beforeHash := world.Hash()
 		words := ui.AuthoredWords()
 		words.ItemSpellNames[11] = "Localized Drain Life"
-		want := []string{"Staff", "MAGIC:", "Casts Localized Drain Life", tc.line, "Range 7"}
+		want := []string{"Staff", "MAGIC:", "#Casts Localized Drain Life", tc.line, "Range: 5"}
 		for _, route := range []struct {
 			name    string
-			resolve weaponDamageResolver
+			resolve weaponCastResolver
 		}{
-			{"live", func(code data.ItemCode) (weaponDamageInterval, bool) { return liveWeaponSpellDamage(world, 7, code) }},
-			{"stored", func(code data.ItemCode) (weaponDamageInterval, bool) {
-				return storedWeaponSpellDamage(code, weapon, true, table)
-			}},
+			{"live", func(code data.ItemCode) (uint16, int32, bool) { return liveWeaponCast(world, 7, code) }},
+			{"stored", func(code data.ItemCode) (uint16, int32, bool) { return storedWeaponCast(code, weapon, table) }},
 			{"instance", nil},
 		} {
 			got := itemInstanceInfoLinesWithWeaponDamage(item, table, route.resolve, words)
 			if !slices.Equal(got, want) {
 				t.Errorf("synthetic power %d %s card = %q, want literal %q", tc.power, route.name, got, want)
+			}
+			if code := itemInfoLinesWithWeaponDamage(weapon.Code, table, route.resolve, words); route.resolve != nil && !slices.Equal(code, want) {
+				t.Errorf("synthetic power %d %s code card = %q, want literal %q", tc.power, route.name, code, want)
 			}
 		}
 		afterWorld, err := world.MarshalBinary()
@@ -72,11 +73,8 @@ func TestDrainLifeItemCardsUseCurrentSpellAcrossProducers(t *testing.T) {
 		if beforeHash != world.Hash() || !bytes.Equal(beforeWorld, afterWorld) || !bytes.Equal(beforeItem, afterItem) {
 			t.Fatal("card projection changed complete item or World bytes/hash")
 		}
-		if _, ok := storedWeaponSpellDamage(weapon.Code, weapon, false, table); ok {
-			t.Fatal("non-mage stored control obtained a caster projection")
-		}
-		if _, ok := liveWeaponSpellDamage(world, 7, weapon.Code+1); ok {
-			t.Fatal("unequipped-code live control obtained a projection")
+		if _, _, ok := liveWeaponCast(world, 7, weapon.Code+1); ok {
+			t.Fatal("unequipped-code live control obtained a cast")
 		}
 		for _, rule := range world.Spells() {
 			if rule.ID == 11 && rule.Damaging {
@@ -119,6 +117,11 @@ func TestDrainLifeItemAliasPreservesRawNamesAndSpellbookNames(t *testing.T) {
 	}
 }
 
+// TestUndescribedCastUsesInstalledNameWithoutDamage: a castSpell Weapon whose
+// spell carries no damage flag still states the filled Spell's damage when its
+// spread is nonzero, and the Weapon's range (ITEM-211, TEXT-129); a spell id
+// without a Spells row states its number and the range; a teach-spell Effect
+// keeps its fragment.
 func TestUndescribedCastUsesInstalledNameWithoutDamage(t *testing.T) {
 	table, weapon := staffTooltipTable(t, 6, "Heal", 30, 7, 3, 5, 0)
 	words := ui.AuthoredWords()
@@ -126,30 +129,19 @@ func TestUndescribedCastUsesInstalledNameWithoutDamage(t *testing.T) {
 	item := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{{Kind: 41, Operand: 6 | 30<<16}}}
 	before := item.Clone()
 	got := itemInstanceInfoLines(item, table, words)
-	if !slices.Contains(got, "#Casts Localized Heal") || slices.Contains(got, "#Casts Heal") ||
-		slices.Contains(got, "Damage 6-10") || slices.Contains(got, "Range 7") {
-		t.Fatalf("non-damaging Heal fallback = %q, want only localized spell caption", got)
+	if want := []string{"Staff", "MAGIC:", "#Casts Localized Heal", "Damage: 6-10", "Range: 5"}; !slices.Equal(got, want) {
+		t.Fatalf("Heal staff = %q, want %q", got, want)
 	}
 	if !reflect.DeepEqual(item, before) {
-		t.Fatal("fallback changed the complete item")
-	}
-	plain := sim.ItemInstance{Code: item.Code}
-	if _, ok := itemWeaponSpellDamage(plain, table); ok {
-		t.Fatal("plain same-code control obtained a spell projection")
+		t.Fatal("the text changed the complete item")
 	}
 	unknown := item.Clone()
 	unknown.Effects[0].Operand = 65535 | 30<<16
-	if _, ok := itemWeaponSpellDamage(unknown, table); ok {
-		t.Fatal("unknown spell control obtained a projection")
-	}
-	if got := itemInstanceInfoLines(unknown, table, words); !slices.Contains(got, "#Casts spell 65535") {
-		t.Fatalf("unknown spell fallback = %q", got)
+	if got, want := itemInstanceInfoLines(unknown, table, words), []string{"Staff", "MAGIC:", "#Casts spell 255", "Range: 5"}; !slices.Equal(got, want) {
+		t.Fatalf("unknown spell = %q, want %q", got, want)
 	}
 	teach := item.Clone()
 	teach.Effects[0] = sim.ItemEffect{Kind: 42, Operand: 6}
-	if _, ok := itemWeaponSpellDamage(teach, table); ok {
-		t.Fatal("kind42 control became a weapon cast")
-	}
 	if got := itemInstanceInfoLines(teach, table, words); got[len(got)-1] != "MAGIC: of Localized Heal" {
 		t.Fatalf("kind42 fragment changed: %q", got)
 	}

@@ -36,6 +36,10 @@ type gameFiles struct {
 	// storedWeaponSpell writes a worn Weapon's Spell as the World holds it,
 	// without building a missing one: no second-game claim states the rule.
 	storedWeaponSpell bool
+	// releasedSpellReadout describes a spell weapon and states a caster's card
+	// damage from the spell its attack releases, the readout this build kept
+	// before ITEM-211 and HERO-172: no second-game claim states either.
+	releasedSpellReadout bool
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
@@ -78,14 +82,15 @@ var secondGameFiles = gameFiles{
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
 	},
-	unitKeys:           mapload.ServerUnitKeys,
-	spellArms:          mapload.SecondGameSpellArms,
-	freshPlayers:       mapload.NoFreshPlayers,
-	storedFormMerge:    true,
-	classCreatureBooks: true,
-	storedOwnWeight:    true,
-	storedWeaponSpell:  true,
-	itemNameKeys:       worldPrefix + "data/itemname.bin",
+	unitKeys:             mapload.ServerUnitKeys,
+	spellArms:            mapload.SecondGameSpellArms,
+	freshPlayers:         mapload.NoFreshPlayers,
+	storedFormMerge:      true,
+	classCreatureBooks:   true,
+	storedOwnWeight:      true,
+	storedWeaponSpell:    true,
+	releasedSpellReadout: true,
+	itemNameKeys:         worldPrefix + "data/itemname.bin",
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,

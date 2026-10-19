@@ -27,80 +27,46 @@ func itemInstanceInfoLines(item sim.ItemInstance, table *mapload.Table, installe
 	return itemInstanceInfoLinesWithWeaponDamage(item, table, nil, installed...)
 }
 
-// weaponDamageInterval retains the established internal name while carrying
-// the complete simulation-owned item-spell projection. Stone Curse needs its
-// duration and Prismatic Spray needs its ray count in addition to damage.
-type weaponDamageInterval = sim.WeaponSpellCharacteristics
+// weaponCastResolver answers the castSpell Effect a weapon code carries when
+// the caller holds the code without its Effects: the spell id and the stored
+// power. It names the item's own Effect, never the wearer's state, so a worn,
+// a carried and a shelved weapon describe one text (ITEM-211).
+type weaponCastResolver func(data.ItemCode) (spell uint16, power int32, ok bool)
 
-type weaponDamageResolver func(data.ItemCode) (weaponDamageInterval, bool)
-
-// liveWeaponSpellDamage refuses an interval unless code is the entity's
-// currently equipped weapon. The answer then comes from World directly: the
-// same entity fields, spell row and arithmetic releaseWeaponSpell uses.
-func liveWeaponSpellDamage(w *sim.World, id sim.EntityID, code data.ItemCode) (weaponDamageInterval, bool) {
+// liveWeaponCast answers the castSpell Effect of the weapon entity id wears
+// when code is that weapon. A worn item kept without its Effects falls back to
+// the entity's item-borne spell pair; an innate spell has no Weapon to describe.
+func liveWeaponCast(w *sim.World, id sim.EntityID, code data.ItemCode) (uint16, int32, bool) {
 	if w == nil {
-		return weaponDamageInterval{}, false
+		return 0, 0, false
 	}
-	equipped, ok := w.Equipped(id)
-	if !ok || equipped[0] != uint16(code) {
-		return weaponDamageInterval{}, false
+	worn, ok := w.EquippedItems(id)
+	if !ok || worn[0].Code != uint16(code) {
+		return 0, 0, false
+	}
+	if spell, power, ok := worn[0].CastSpell(); ok {
+		return spell, power, true
 	}
 	for _, entity := range w.Entities() {
-		if entity.ID != id {
-			continue
+		if entity.ID == id && entity.WeaponSpell != 0 && entity.WeaponSpellSource != sim.WeaponSpellInnate {
+			return uint16(entity.WeaponSpell), entity.WeaponSpellLevel, true
 		}
-		rule, ok := w.Spell(uint32(entity.WeaponSpell))
-		if !ok {
-			return weaponDamageInterval{}, false
-		}
-		return sim.WeaponSpellCharacteristicsFor(w.Rules(), entity, []sim.SpellRule{rule})
 	}
-	return weaponDamageInterval{}, false
+	return 0, 0, false
 }
 
-// storedWeaponSpellDamage keeps an unequipped starting staff informative in
-// the pack and makes town snapshots agree with the mission it will open. The
-// spell pair is the party member's stored weapon identity; sim's canonical
-// reader still performs every lookup, applicability gate and damage
-// calculation. MaxMana is only the reader's mage/non-mage gate here.
-func storedWeaponSpellDamage(code data.ItemCode, weapon *data.Weapon, mage bool,
-	table *mapload.Table) (weaponDamageInterval, bool) {
-	if !mage || weapon == nil || weapon.Code != code {
-		return weaponDamageInterval{}, false
+// storedWeaponCast answers a party member's stored weapon identity, its
+// castSpell name and power, for a code the pack or a town snapshot holds
+// without its Effects.
+func storedWeaponCast(code data.ItemCode, weapon *data.Weapon, table *mapload.Table) (uint16, int32, bool) {
+	if weapon == nil || weapon.Code != code {
+		return 0, 0, false
 	}
 	spellID, ok := mapload.SpellIDByToken(table, weapon.SpellName)
 	if !ok {
-		return weaponDamageInterval{}, false
+		return 0, 0, false
 	}
-	rules := mapload.SpellRules(table)
-	characteristics, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
-		MaxMana:          1,
-		WeaponSpell:      spellID,
-		WeaponSpellLevel: weapon.SpellPower,
-	}, rules)
-	if !ok {
-		return weaponDamageInterval{}, false
-	}
-	return characteristics, true
-}
-
-// itemWeaponSpellDamage resolves a complete kind-41 item effect without a
-// live Entity. Shop cells own the ItemInstance itself, so they can state the
-// same spell name, powered damage interval and range before the item is ever
-// equipped. The simulation helper remains the sole power arithmetic.
-func itemWeaponSpellDamage(item sim.ItemInstance, table *mapload.Table) (weaponDamageInterval, bool) {
-	spellID, power, ok := item.CastSpell()
-	if !ok {
-		return weaponDamageInterval{}, false
-	}
-	rules := mapload.SpellRules(table)
-	characteristics, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
-		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
-	}, rules)
-	if !ok {
-		return weaponDamageInterval{}, false
-	}
-	return characteristics, true
+	return uint16(spellID), weapon.SpellPower, true
 }
 
 func weaponSpellName(spell uint16, table *mapload.Table) string {
@@ -112,6 +78,170 @@ func weaponSpellName(spell uint16, table *mapload.Table) string {
 		}
 	}
 	return name
+}
+
+func itemInfoLinesWithWeaponDamage(code data.ItemCode, table *mapload.Table, resolve weaponCastResolver, installed ...ui.Words) []string {
+	words := itemWords(installed)
+	if resolve != nil {
+		if spell, power, ok := resolve(code); ok {
+			item := sim.ItemInstance{Code: uint16(code), Effects: []sim.ItemEffect{castSpellEffect(spell, power)}}
+			if lines, ok := castWeaponInfoLines(item, table, words); ok {
+				return lines
+			}
+		}
+	}
+	return itemBaseInfoLines(code, table, &words)
+}
+
+func castSpellEffect(spell uint16, power int32) sim.ItemEffect {
+	return sim.ItemEffect{Kind: 41, Operand: uint32(spell) | uint32(uint16(int16(power)))<<16}
+}
+
+// itemBaseInfoLines is the name and the base characteristics of an item
+// without a castSpell Effect.
+func itemBaseInfoLines(code data.ItemCode, table *mapload.Table, words *ui.Words) []string {
+	lines := []string{itemName(code, table)}
+	if table == nil {
+		return lines
+	}
+	if w, err := data.WeaponFromCode(code, table.Shapes, table.Materials, table.Weapons); err == nil {
+		// THE SHEET'S OWN COMPOSITION (panel.go's PanelFieldDamage): the
+		// first number is the base and the second is base + spread, the
+		// roll's own bounds (data.Combat's own doc — the roll is
+		// `base + U[0, spread]`, not a minimum and a maximum). Stating the
+		// spread itself, as "base + spread", would read as a range the roll
+		// cannot produce; the panel and the popup must agree.
+		base, spread := int64(w.DamageBase), int64(w.DamageSpread)
+		lines = append(lines, fmt.Sprintf("#%s: %d-%d", words.ItemStats[43], base, base+spread))
+		lines = append(lines, fmt.Sprintf("#%s: %d", words.ItemStats[12], w.ToHit))
+		lines = append(lines, fmt.Sprintf("#%s: %d", words.ItemStats[15], w.Defence))
+		if w.Ranged() || w.AttackType == data.SkillShoot {
+			lines = append(lines, weaponRangeLine(w.Range, words))
+		}
+		return lines
+	}
+	if a, err := data.ArmorFromCode(code, table.Shapes, table.Materials, table.Armors); err == nil {
+		lines = append(lines, wornProtectionLines(a.Defence, a.Absorption, words)...)
+	} else if table.Shields != nil {
+		if s, err := data.ShieldFromCode(code, table.Shapes, table.Materials, table.Shields); err == nil {
+			lines = append(lines, wornProtectionLines(s.Defence, s.Absorption, words)...)
+		}
+	}
+	return lines
+}
+
+// castWeaponInfoLines is the information text of a Weapon with a castSpell
+// Effect, in the stream order of ITEM-211: the name; the damage, to-hit,
+// defence and range pairs only when sutableFor has bit 0 (a Staff and a
+// Shaman Staff have 2 and get none); the magic heading; then each Effect in
+// list order. A castSpell Effect gives its casts line and the lines of a Spell
+// filled from its own spell id and power bytes (TEXT-127): damage when the
+// spread is nonzero, the Weapon's range, duration when nonzero and one caption.
+// Nothing here reads the wearer or the Weapon's built Spell.
+func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.Words) ([]string, bool) {
+	spellID, power, ok := item.CastSpell()
+	if !ok || table == nil {
+		return nil, false
+	}
+	code := data.ItemCode(item.Code)
+	w, err := data.WeaponFromCode(code, table.Shapes, table.Materials, table.Weapons)
+	if err != nil {
+		return nil, false
+	}
+	if tableFiles(table).releasedSpellReadout {
+		lines, ok := releasedSpellLines(code, table, spellID, power, words)
+		if !ok {
+			return nil, false
+		}
+		for _, effect := range item.Effects {
+			switch effect.Kind {
+			case 41:
+			case 42:
+				lines[len(lines)-1] += itemSpellFragment(uint16(effect.Operand), table, words)
+			default:
+				lines = append(lines, itemEffectInfoLine(effect, table, words))
+			}
+		}
+		return lines, true
+	}
+	labels := castWeaponWords(words)
+	lines := []string{itemName(code, table)}
+	if suitable, known := data.SuitabilityFromCode(code, table.Weapons, table.Shields, table.Armors); known && suitable.Fighter {
+		base, spread := int64(w.DamageBase), int64(w.DamageSpread)
+		lines = append(lines, fmt.Sprintf("#%s: %d-%d", words.ItemStats[43], base, base+spread))
+		if w.ToHit > 0 {
+			lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[12], uint8(w.ToHit)))
+		}
+		if w.Defence > 0 {
+			lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[15], uint8(w.Defence)))
+		}
+		if uint8(w.Range) > 1 {
+			lines = append(lines, fmt.Sprintf("#%s %d", words.ItemStats[38], uint8(w.Range)))
+		}
+	}
+	lines = append(lines, labels.Hover[189])
+	rules := mapload.SpellRules(table)
+	for _, effect := range item.Effects {
+		switch effect.Kind {
+		case 41:
+			spell, power := uint16(uint8(effect.Operand)), int32(uint8(effect.Operand>>16))
+			name := weaponSpellName(spell, table)
+			if int(spell) < len(words.ItemSpellNames) && words.ItemSpellNames[spell] != "" {
+				name = words.ItemSpellNames[spell]
+			}
+			lines = append(lines, "#"+labels.Hover[92]+" "+name+labels.Hover[93])
+			knower := spellKnower{rule: sim.SpellRule{ID: spell}}
+			for _, rule := range rules {
+				if rule.ID == spell {
+					knower = spellKnower{rule, sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rule, power)}
+					break
+				}
+			}
+			knower.c.Range = int64(uint8(w.Range))
+			lines = spellDetailsLines([]spellKnower{knower}, lines, &labels, weaponDetails)
+		case 42:
+			lines[len(lines)-1] += itemSpellFragment(uint16(effect.Operand), table, words)
+		default:
+			lines = append(lines, itemEffectInfoLine(effect, table, words))
+		}
+	}
+	return lines, true
+}
+
+// releasedSpellLines is the second game's spell weapon text: the spell the
+// attack releases at the stored power, its damage, rays and spell range, with
+// no base lines (DIV-1977); the other Effects follow.
+func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16, power int32, words ui.Words) ([]string, bool) {
+	spell, ok := sim.WeaponSpellCharacteristicsFor(mapload.TableRules(table), sim.Entity{
+		MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: power,
+	}, mapload.SpellRules(table))
+	if !ok {
+		return nil, false
+	}
+	name := weaponSpellName(spell.SpellID, table)
+	if int(spell.SpellID) < len(words.ItemSpellNames) && words.ItemSpellNames[spell.SpellID] != "" {
+		name = words.ItemSpellNames[spell.SpellID]
+	}
+	lines := []string{itemName(code, table), words.ItemMagic}
+	switch spell.Arm {
+	case 20:
+		return append(lines,
+			fmt.Sprintf("%s %s", name, spellDurationText(spell.DurationTicks, &words)),
+			fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
+	case 14:
+		lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
+		if spell.HasDamage {
+			lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))
+		}
+		return append(lines,
+			fmt.Sprintf("%s %d", words.ItemRays, spell.RayCount),
+			fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
+	}
+	lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
+	if spell.HasDamage {
+		lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))
+	}
+	return append(lines, fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
 }
 
 func spellDurationSeconds(ticks uint16) string {
@@ -132,68 +262,18 @@ func spellDurationText(ticks uint16, words *ui.Words) string {
 	return spellDurationSeconds(ticks) + " " + unit
 }
 
-func itemInfoLinesWithWeaponDamage(code data.ItemCode, table *mapload.Table, resolve weaponDamageResolver, installed ...ui.Words) []string {
-	words := itemWords(installed)
-	lines := []string{itemName(code, table)}
-	if table == nil {
-		return lines
-	}
-	if w, err := data.WeaponFromCode(code, table.Shapes, table.Materials, table.Weapons); err == nil {
-		// THE SHEET'S OWN COMPOSITION (panel.go's PanelFieldDamage): the
-		// first number is the base and the second is base + spread, the
-		// roll's own bounds (data.Combat's own doc — the roll is
-		// `base + U[0, spread]`, not a minimum and a maximum). Stating the
-		// spread itself, as "base + spread", would read as a range the roll
-		// cannot produce; the panel and the popup must agree.
-		if resolve != nil {
-			if spell, ok := resolve(code); ok {
-				name := weaponSpellName(spell.SpellID, table)
-				if int(spell.SpellID) < len(words.ItemSpellNames) && words.ItemSpellNames[spell.SpellID] != "" {
-					name = words.ItemSpellNames[spell.SpellID]
-				}
-				lines = append(lines, words.ItemMagic)
-				switch spell.Arm { // DIV-1977
-				case 20:
-					lines = append(lines,
-						fmt.Sprintf("%s %s", name, spellDurationText(spell.DurationTicks, &words)),
-						fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange),
-					)
-				case 14:
-					lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
-					if spell.HasDamage {
-						lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))
-					}
-					lines = append(lines,
-						fmt.Sprintf("%s %d", words.ItemRays, spell.RayCount),
-						fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange),
-					)
-				default:
-					lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
-					if spell.HasDamage {
-						lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))
-					}
-					lines = append(lines, fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange))
-				}
-				return lines
-			}
-		}
-		base, spread := int64(w.DamageBase), int64(w.DamageSpread)
-		lines = append(lines, fmt.Sprintf("#%s: %d-%d", words.ItemStats[43], base, base+spread))
-		lines = append(lines, fmt.Sprintf("#%s: %d", words.ItemStats[12], w.ToHit))
-		lines = append(lines, fmt.Sprintf("#%s: %d", words.ItemStats[15], w.Defence))
-		if w.Ranged() || w.AttackType == data.SkillShoot {
-			lines = append(lines, weaponRangeLine(w.Range, &words))
-		}
-		return lines
-	}
-	if a, err := data.ArmorFromCode(code, table.Shapes, table.Materials, table.Armors); err == nil {
-		lines = append(lines, wornProtectionLines(a.Defence, a.Absorption, &words)...)
-	} else if table.Shields != nil {
-		if s, err := data.ShieldFromCode(code, table.Shapes, table.Materials, table.Shields); err == nil {
-			lines = append(lines, wornProtectionLines(s.Defence, s.Absorption, &words)...)
+// castWeaponWords fills the install's main.txt captions a castSpell Weapon's
+// text uses with this build's authored words where no install states them.
+func castWeaponWords(words ui.Words) ui.Words {
+	for _, f := range []struct {
+		index    int
+		fallback string
+	}{{189, words.ItemMagic}, {92, words.ItemCasts}, {spellLabelDamage, words.ItemDamage}, {spellLabelRange, words.ItemRange}} {
+		if words.Hover[f.index] == "" {
+			words.Hover[f.index] = f.fallback
 		}
 	}
-	return lines
+	return words
 }
 
 // wornProtectionLines are the base pairs an Armor or Shield writes ahead of its
@@ -223,37 +303,25 @@ func weaponRangeLine(rng int32, words *ui.Words) string {
 }
 
 func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload.Table,
-	resolve weaponDamageResolver, installed ...ui.Words) []string {
+	resolve weaponCastResolver, installed ...ui.Words) []string {
 	words := itemWords(installed)
-	itemSpell, hasItemSpell := itemWeaponSpellDamage(item, table)
-	describedItemSpell := false
-	combined := resolve
-	if hasItemSpell {
-		combined = func(code data.ItemCode) (weaponDamageInterval, bool) {
-			if resolve != nil {
-				if spell, ok := resolve(code); ok {
-					describedItemSpell = true
-					return spell, true
-				}
-			}
-			if uint16(code) == item.Code {
-				describedItemSpell = true
-				return itemSpell, true
-			}
-			return weaponDamageInterval{}, false
+	if _, _, ok := item.CastSpell(); !ok && resolve != nil {
+		if spell, power, ok := resolve(data.ItemCode(item.Code)); ok {
+			item = item.Clone()
+			item.Effects = append(item.Effects, castSpellEffect(spell, power))
 		}
 	}
-	lines := itemInfoLinesWithWeaponDamage(data.ItemCode(item.Code), table, combined, words)
+	if lines, ok := castWeaponInfoLines(item, table, words); ok {
+		return lines
+	}
+	lines := itemBaseInfoLines(data.ItemCode(item.Code), table, &words)
 	// Class-14 spell effects continue the name line (TEXT-090, TEXT-092).
 	book := item.Code&0xf00 == 0xe00
-	magic := describedItemSpell
+	magic := false
 	for index, effect := range item.Effects {
 		if !book && !magic {
 			lines = append(lines, words.ItemMagic)
 			magic = true
-		}
-		if describedItemSpell && effect.Kind == 41 {
-			continue
 		}
 		if effect.Kind == 42 || book && effect.Kind == 41 {
 			id := uint16(effect.Operand)
@@ -386,7 +454,7 @@ func slotInfoLines(eq data.Equipment, table *mapload.Table) [12][]string {
 	return slotInfoLinesWithWeaponDamage(eq, table, nil)
 }
 
-func slotInfoLinesWithWeaponDamage(eq data.Equipment, table *mapload.Table, resolve weaponDamageResolver) [12][]string {
+func slotInfoLinesWithWeaponDamage(eq data.Equipment, table *mapload.Table, resolve weaponCastResolver) [12][]string {
 	var out [12][]string
 	for n := 1; n <= data.EquipSlots; n++ {
 		occupied, _ := eq.Occupied(n)
@@ -400,7 +468,7 @@ func slotInfoLinesWithWeaponDamage(eq data.Equipment, table *mapload.Table, reso
 }
 
 func slotItemInfoLinesWithWeaponDamage(eq [sim.EquipSlots]sim.ItemInstance, table *mapload.Table,
-	resolve weaponDamageResolver, installed ...ui.Words) [sim.EquipSlots][]string {
+	resolve weaponCastResolver, installed ...ui.Words) [sim.EquipSlots][]string {
 	var out [sim.EquipSlots][]string
 	for i, item := range eq {
 		if item.Empty() {
@@ -419,7 +487,7 @@ func packInfoLines(stacks []sim.ItemStack, table *mapload.Table) [][]string {
 	return packInfoLinesWithWeaponDamage(stacks, table, nil)
 }
 
-func packInfoLinesWithWeaponDamage(stacks []sim.ItemStack, table *mapload.Table, resolve weaponDamageResolver, installed ...ui.Words) [][]string {
+func packInfoLinesWithWeaponDamage(stacks []sim.ItemStack, table *mapload.Table, resolve weaponCastResolver, installed ...ui.Words) [][]string {
 	if len(stacks) == 0 {
 		return nil
 	}

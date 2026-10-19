@@ -114,117 +114,22 @@ func TestItemFormatterUsesInstalledStatsLabelsAndOriginalLiteralForms(t *testing
 // physical pair in the Weapons row. The fixture deliberately gives the staff
 // a physical 0-0 so the owner's exact regression is visible if the resolver
 // is removed.
-func TestItemInfoLinesUsesTheLiveWeaponSpellInsteadOfStaffPhysicalDamage(t *testing.T) {
-	weaponParams := chargenWeaponParams(data.SkillBlade)
-	weaponParams[6], weaponParams[7] = 0, 0
-	weapons := dbCollection{{}, {name: "Wood Staff", params: weaponParams}}
-	spellParams := make([]int32, 19)
-	spellParams[1], spellParams[2], spellParams[4], spellParams[6] = 3, 1, 1, 7
-	spellParams[16], spellParams[17] = 15, 18
-	table := &mapload.Table{
-		Shapes: emptyScale{}, Materials: emptyScale{}, Weapons: weapons,
-		Spells: dbCollection{{}, {name: "Fire Arrow", params: spellParams}},
-	}
-	staff, err := data.ResolveWeapon("Wood Staff {castSpell=Fire_Arrow:10}",
-		table.Shapes, table.Materials, table.Weapons)
-	if err != nil {
-		t.Fatalf("resolve staff: %v", err)
-	}
-	table.Names = data.ItemNames{staff.Code: "Wood Staff"}
-	spellID, ok := mapload.SpellIDByToken(table, staff.SpellName)
-	if !ok {
-		t.Fatal("fixture staff spell did not resolve")
-	}
-	w, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: 2, Height: 2}, sim.ModeCanonical,
-		sim.Terrain{}, []sim.Entity{{ID: 7, MaxMana: 1, WeaponSpell: spellID,
-			WeaponSpellLevel: staff.SpellPower}}, nil, sim.Relations{}, nil,
-		[]sim.Stock{{ID: 7, Equipped: [sim.EquipSlots]uint16{uint16(staff.Code)}}},
-		mapload.SpellRules(table))
-	if err != nil {
-		t.Fatalf("build spelled world: %v", err)
-	}
-	base, spread, ok := w.WeaponSpellDamage(7)
-	if !ok {
-		t.Fatal("live world refused the equipped staff spell")
-	}
-
-	got := itemInfoLinesWithWeaponDamage(staff.Code, table, func(code data.ItemCode) (weaponDamageInterval, bool) {
-		return liveWeaponSpellDamage(w, 7, code)
-	})
-	want := []string{"Wood Staff", "MAGIC:", "Casts Fire Arrow",
-		fmt.Sprintf("Damage %d-%d", base, base+spread), "Range 7"}
-	if !slices.Equal(got, want) {
-		t.Fatalf("staff tooltip = %v, want %v", got, want)
-	}
-	if slices.Contains(got, "#Damage: 0-0") {
-		t.Fatalf("staff tooltip exposed unused physical damage: %v", got)
-	}
-}
-
-func TestItemInstanceInfoLinesDescribesAnAttachedStaffCastOnce(t *testing.T) {
-	weaponParams := chargenWeaponParams(data.SkillBlade)
-	weaponParams[6], weaponParams[7] = 0, 0
-	weapons := dbCollection{{}, {name: "Staff", params: weaponParams}}
-	spellParams := make([]int32, 19)
-	spellParams[1], spellParams[2], spellParams[4], spellParams[6] = 3, 1, 1, 5
-	spellParams[16], spellParams[17] = 5, 10
-	table := &mapload.Table{
-		Shapes: emptyScale{}, Materials: emptyScale{}, Weapons: weapons,
-		Spells: dbCollection{{}, {name: "Fire Arrow", params: spellParams}},
-	}
-	staff, err := data.ResolveWeapon("Staff", table.Shapes, table.Materials, table.Weapons)
-	if err != nil {
-		t.Fatalf("resolve staff: %v", err)
-	}
-	table.Names = data.ItemNames{staff.Code: "Staff"}
-	item := sim.ItemInstance{Code: uint16(staff.Code), Effects: []sim.ItemEffect{{Kind: 41,
-		Operand: uint32(1) | uint32(uint16(0))<<16}}}
-
-	got := itemInstanceInfoLines(item, table)
-	want := []string{"Staff", "MAGIC:", "Casts Fire Arrow", "Damage 5-10", "Range 5"}
-	if !slices.Equal(got, want) {
-		t.Fatalf("attached-cast staff tooltip = %v, want %v", got, want)
-	}
-	for _, line := range got {
-		if line == "Cast Fire Arrow power 0" {
-			t.Fatalf("attached-cast staff tooltip duplicated its raw effect line: %v", got)
-		}
-	}
-}
-
-func TestItemInstanceInfoLinesUsesTheInstallWordsForAStaffSpell(t *testing.T) {
-	weaponParams := chargenWeaponParams(data.SkillBlade)
-	weaponParams[6], weaponParams[7] = 0, 0
-	weapons := dbCollection{{}, {name: "Staff", params: weaponParams}}
-	spellParams := make([]int32, 19)
-	spellParams[1], spellParams[2], spellParams[4], spellParams[6] = 3, 1, 1, 5
-	spellParams[16], spellParams[17] = 5, 10
-	table := &mapload.Table{
-		Shapes: emptyScale{}, Materials: emptyScale{}, Weapons: weapons,
-		Spells: dbCollection{{}, {name: "Fire Arrow", params: spellParams}},
-	}
-	staff, err := data.ResolveWeapon("Staff", table.Shapes, table.Materials, table.Weapons)
-	if err != nil {
-		t.Fatalf("resolve staff: %v", err)
-	}
-	table.Names = data.ItemNames{staff.Code: "Staff"}
-	item := sim.ItemInstance{Code: uint16(staff.Code), Effects: []sim.ItemEffect{{Kind: 41,
-		Operand: uint32(1) | uint32(uint16(0))<<16}}}
-
-	words := ui.AuthoredWords()
-	words.ItemCasts, words.ItemDamage, words.ItemRange = "C", "D", "R"
-	words.ItemSpellNames[1] = "Spell"
-	got := itemInstanceInfoLines(item, table, words)
-	want := []string{"Staff", "MAGIC:", "C Spell", "D 5-10", "R 5"}
-	if !slices.Equal(got, want) {
-		t.Fatalf("staff tooltip = %v, want %v", got, want)
-	}
-}
+// staffTooltipTable is a Weapons table of one Staff row, usable by a mage only
+// (sutableFor 2) with range column 5, and a Spells table whose row spellID
+// carries maxRange, duration and the damage pair; the returned weapon carries
+// a castSpell Effect at power.
 func staffTooltipTable(t *testing.T, spellID int, spellName string, power int32,
 	maxRange, damageMin, damageMax, duration int32) (*mapload.Table, *data.Weapon) {
 	t.Helper()
+	return spellWeaponTable(t, "Staff", 5, 2, spellID, spellName, power, maxRange, damageMin, damageMax, duration)
+}
+
+func spellWeaponTable(t *testing.T, weaponName string, weaponRange, suitable int32, spellID int, spellName string,
+	power, maxRange, damageMin, damageMax, duration int32) (*mapload.Table, *data.Weapon) {
+	t.Helper()
 	weaponParams := chargenWeaponParams(data.SkillBlade)
 	weaponParams[6], weaponParams[7] = 0, 0
+	weaponParams[11], weaponParams[15] = weaponRange, suitable
 	spells := make(dbCollection, 21)
 	for i := 1; i < len(spells); i++ {
 		spells[i] = dbEntry{name: fmt.Sprintf("Spell %d", i), params: make([]int32, 19)}
@@ -238,94 +143,161 @@ func staffTooltipTable(t *testing.T, spellID int, spellName string, power int32,
 	spells[spellID].params[17] = damageMax
 	table := &mapload.Table{
 		Shapes: emptyScale{}, Materials: emptyScale{},
-		Weapons: dbCollection{{}, {name: "Staff", params: weaponParams}},
+		Weapons: dbCollection{{}, {name: weaponName, params: weaponParams}},
 		Spells:  spells,
 	}
-	weapon, err := data.ResolveWeapon(fmt.Sprintf("Staff {castSpell=%s:%d}",
+	weapon, err := data.ResolveWeapon(fmt.Sprintf("%s {castSpell=%s:%d}", weaponName,
 		strings.ReplaceAll(spellName, " ", "_"), power), table.Shapes, table.Materials, table.Weapons)
 	if err != nil {
-		t.Fatalf("resolve %s staff: %v", spellName, err)
+		t.Fatalf("resolve %s %s: %v", spellName, weaponName, err)
 	}
-	table.Names = data.ItemNames{weapon.Code: "Staff"}
+	table.Names = data.ItemNames{weapon.Code: weaponName}
 	return table, &weapon
 }
 
-func TestMagicStaffTooltipsDescribeStoneAndPrismaticAcrossEveryProducer(t *testing.T) {
+// spellWeaponWords are words whose main.txt captions name themselves, so a
+// line shows which caption the composition took.
+func spellWeaponWords() ui.Words {
+	words := ui.AuthoredWords()
+	for i, label := range map[int]string{189: "Magic:", 92: "casts", 118: "Damage", 123: "Range",
+		124: "Duration", 186: "Rays"} {
+		words.Hover[i] = label
+	}
+	return words
+}
+
+// spellWeaponProducers composes one castSpell Weapon's text on every route
+// that describes it: worn with its Spell, worn without it, a shop shelf, a
+// pack cell, and the code-only worn and pack routes that answer the cast from
+// the live World and from the member's stored weapon.
+func spellWeaponProducers(t *testing.T, table *mapload.Table, weapon *data.Weapon, words ui.Words) map[string][]string {
+	t.Helper()
+	spellID, ok := mapload.SpellIDByToken(table, weapon.SpellName)
+	if !ok {
+		t.Fatal("fixture spell did not resolve")
+	}
+	item := sim.ItemInstance{Code: uint16(weapon.Code), Kind: 2, Price: 50, Effects: []sim.ItemEffect{
+		{Kind: 41, Operand: uint32(spellID) | uint32(uint16(int16(weapon.SpellPower)))<<16}}}
+	built := item.Clone()
+	built.SourceEquipment = sim.SourceEquipment{Class: sim.SourceWeapon,
+		Spell: sim.SourceItemSpell{Present: true, ID: uint8(spellID), Range: 9, ManaCost: 7}}
+	world, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: 2, Height: 2}, sim.ModeCanonical,
+		sim.Terrain{}, []sim.Entity{{ID: 7, MaxMana: 1, WeaponSpell: spellID, WeaponSpellLevel: weapon.SpellPower}},
+		nil, sim.Relations{}, nil, []sim.Stock{{ID: 7, Equipped: [sim.EquipSlots]uint16{uint16(weapon.Code)}}},
+		mapload.SpellRules(table))
+	if err != nil {
+		t.Fatal(err)
+	}
+	live := func(code data.ItemCode) (uint16, int32, bool) { return liveWeaponCast(world, 7, code) }
+	stored := func(code data.ItemCode) (uint16, int32, bool) { return storedWeaponCast(code, weapon, table) }
+	var worn, wornGap [sim.EquipSlots]sim.ItemInstance
+	worn[0], wornGap[0] = built, item
+	return map[string][]string{
+		"worn with its Spell":    slotItemInfoLinesWithWeaponDamage(worn, table, live, words)[0],
+		"worn without its Spell": slotItemInfoLinesWithWeaponDamage(wornGap, table, live, words)[0],
+		"shop shelf":             itemInstanceInfoLines(item, table, words),
+		"pack":                   packInfoLinesWithWeaponDamage([]sim.ItemStack{sim.StackItem(item, 1)}, table, nil, words)[0],
+		"worn code, live":        itemInfoLinesWithWeaponDamage(weapon.Code, table, live, words),
+		"pack code, stored":      itemInfoLinesWithWeaponDamage(weapon.Code, table, stored, words),
+	}
+}
+
+// TestSpellWeaponTextFollowsTheWeaponStream: a castSpell Weapon's text is the
+// stream ITEM-211 composes, the same on every route, worn or not, with or
+// without its Spell. The range line is the Weapon's range column (Staff 5,
+// Shaman Staff 4), not the spell's Max Range 7; a Weapon usable by fighters
+// (sutableFor bit 0) first states its own damage and its range above 1.
+// Damage is the Spells row filled at the Effect's power (TEXT-096): at power
+// 30 the factor is 2, so 5 and 10 give 10 and 20.
+func TestSpellWeaponTextFollowsTheWeaponStream(t *testing.T) {
+	words := spellWeaponWords()
 	for _, tc := range []struct {
-		name                           string
-		spellID                        int
-		power, maxRange                int32
-		damageMin, damageMax, duration int32
-		want                           []string
+		name               string
+		weaponRange, suits int32
+		want               []string
 	}{
-		{name: "Stone Curse", spellID: 20, power: 1, maxRange: 5, duration: 10,
-			want: []string{"Staff", "MAGIC:", "Stone Curse 10.19 sec", "Range 5"}},
-		{name: "Prismatic Spray", spellID: 14, power: 30, maxRange: 7, damageMin: 5, damageMax: 15,
-			want: []string{"Staff", "MAGIC:", "Casts Prismatic Spray", "Damage 10-30", "Rays 3", "Range 7"}},
+		{"Staff", 5, 2, []string{"Staff", "Magic:", "#casts Fire Arrow", "Damage: 10-20", "Range: 5"}},
+		{"Shaman Staff", 4, 2, []string{"Shaman Staff", "Magic:", "#casts Fire Arrow", "Damage: 10-20", "Range: 4"}},
+		{"Crossbow", 6, 1, []string{"Crossbow", "#" + words.ItemStats[43] + ": 0-0", "#" + words.ItemStats[38] + " 6",
+			"Magic:", "#casts Fire Arrow", "Damage: 10-20", "Range: 6"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			table, weapon := staffTooltipTable(t, tc.spellID, tc.name, tc.power,
-				tc.maxRange, tc.damageMin, tc.damageMax, tc.duration)
-			spellID, ok := mapload.SpellIDByToken(table, weapon.SpellName)
-			if !ok || int(spellID) != tc.spellID {
-				t.Fatalf("spell token resolved as %d, %v", spellID, ok)
-			}
-			world, err := sim.NewStockedSpelledWorld(1, sim.Bounds{Width: 2, Height: 2}, sim.ModeCanonical,
-				sim.Terrain{}, []sim.Entity{{ID: 7, MaxMana: 1, WeaponSpell: spellID,
-					WeaponSpellLevel: tc.power}}, nil, sim.Relations{}, nil,
-				[]sim.Stock{{ID: 7, Equipped: [sim.EquipSlots]uint16{uint16(weapon.Code)}}},
-				mapload.SpellRules(table))
-			if err != nil {
-				t.Fatalf("build spelled world: %v", err)
-			}
-
-			live, liveOK := liveWeaponSpellDamage(world, 7, weapon.Code)
-			stored, storedOK := storedWeaponSpellDamage(weapon.Code, weapon, true, table)
-			item := sim.ItemInstance{Code: uint16(weapon.Code), Price: 123,
-				Effects: []sim.ItemEffect{{Kind: 41,
-					Operand: uint32(spellID) | uint32(uint16(tc.power))<<16}}}
-			attached, attachedOK := itemWeaponSpellDamage(item, table)
-			if !liveOK || !storedOK || !attachedOK || live != stored || stored != attached {
-				t.Fatalf("producer projections differ: live=%+v/%v stored=%+v/%v attached=%+v/%v",
-					live, liveOK, stored, storedOK, attached, attachedOK)
-			}
-
-			for name, resolve := range map[string]weaponDamageResolver{
-				"live": func(code data.ItemCode) (weaponDamageInterval, bool) {
-					return liveWeaponSpellDamage(world, 7, code)
-				},
-				"stored": func(code data.ItemCode) (weaponDamageInterval, bool) {
-					return storedWeaponSpellDamage(code, weapon, true, table)
-				},
-				"attached": nil,
-			} {
-				t.Run(name, func(t *testing.T) {
-					got := itemInstanceInfoLinesWithWeaponDamage(item, table, resolve)
-					if !slices.Equal(got, tc.want) {
-						t.Fatalf("tooltip = %v, want %v", got, tc.want)
+			table, weapon := spellWeaponTable(t, tc.name, tc.weaponRange, tc.suits, 1, "Fire Arrow", 30, 7, 5, 10, 0)
+			for route, got := range spellWeaponProducers(t, table, weapon, words) {
+				if !slices.Equal(got, tc.want) {
+					t.Errorf("%s: %q, want %q", route, got, tc.want)
+				}
+				for _, line := range got {
+					if strings.HasSuffix(line, ": 7") || strings.HasSuffix(line, ": 8") {
+						t.Errorf("%s states the spell's Max Range: %q", route, got)
 					}
-					for _, line := range got {
-						if strings.HasPrefix(line, "#") || strings.Contains(line, " power ") {
-							t.Fatalf("tooltip retained a raw literal/power line: %v", got)
-						}
-					}
-				})
+				}
 			}
 		})
 	}
 }
 
-func TestStoneCurseStaffDurationUsesInstallLanguage(t *testing.T) {
-	table, weapon := staffTooltipTable(t, 20, "Stone Curse", 1, 5, 0, 0, 10)
-	russian := LoadInstallWords(installFixture{LanguagePath: []byte("russian 1")}, TextCode{})
-	russian.Language = "russian"
-	w := russian.Words()
-	got := itemInfoLinesWithWeaponDamage(weapon.Code, table,
-		func(code data.ItemCode) (weaponDamageInterval, bool) {
-			return storedWeaponSpellDamage(code, weapon, true, table)
-		}, w)
-	if len(got) < 3 || got[2] != "Stone Curse 10.19 \xe1\xa5\xaa" {
-		t.Fatalf("RU Stone Curse duration = %q", got)
+// TestSpellWeaponTextStatesDurationAndCaption: Stone Curse states no damage
+// (its spread is zero) and the duration line at %5.1f; Prismatic Spray states
+// its ray caption, min(power/20+2, 7) (TEXT-129, TEXT-133).
+func TestSpellWeaponTextStatesDurationAndCaption(t *testing.T) {
+	words := spellWeaponWords()
+	for _, tc := range []struct {
+		name                                  string
+		spellID                               int
+		power, maxRange, dmin, dmax, duration int32
+		want                                  []string
+	}{
+		{"Stone Curse", 20, 0, 5, 0, 0, 10, []string{"Staff", "Magic:", "#casts Stone Curse", "Range: 5", "Duration:  10.0"}},
+		{"Prismatic Spray", 14, 30, 7, 5, 15, 0, []string{"Staff", "Magic:", "#casts Prismatic Spray", "Damage: 10-30", "Range: 5", "Rays: 3"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			table, weapon := staffTooltipTable(t, tc.spellID, tc.name, tc.power, tc.maxRange, tc.dmin, tc.dmax, tc.duration)
+			for route, got := range spellWeaponProducers(t, table, weapon, words) {
+				if !slices.Equal(got, tc.want) {
+					t.Errorf("%s: %q, want %q", route, got, tc.want)
+				}
+			}
+		})
+	}
+}
+
+// TestSpellWeaponTextUsesTheInstallCaptions: an install's main.txt captions
+// 189, 92, 93, 118 and 123 label the lines; without them the authored words
+// stand in, and an absent duration caption drops its line.
+func TestSpellWeaponTextUsesTheInstallCaptions(t *testing.T) {
+	table, weapon := staffTooltipTable(t, 1, "Fire Arrow", 0, 7, 5, 10, 0)
+	item := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{{Kind: 41, Operand: 1}}}
+	words := ui.AuthoredWords()
+	words.Hover[189], words.Hover[92], words.Hover[93] = "M:", "c", "!"
+	words.Hover[118], words.Hover[123] = "D", "R"
+	words.ItemSpellNames[1] = "Spell"
+	if got, want := itemInstanceInfoLines(item, table, words), []string{"Staff", "M:", "#c Spell!", "D: 5-10", "R: 5"}; !slices.Equal(got, want) {
+		t.Fatalf("installed captions: %q, want %q", got, want)
+	}
+	authored := ui.AuthoredWords()
+	if got, want := itemInstanceInfoLines(item, table), []string{"Staff", authored.ItemMagic, "#" + authored.ItemCasts + " Fire Arrow",
+		authored.ItemDamage + ": 5-10", authored.ItemRange + ": 5"}; !slices.Equal(got, want) {
+		t.Fatalf("authored fallback: %q, want %q", got, want)
+	}
+}
+
+// TestSpellWeaponTextKeepsTheEffectOrder: the heading precedes every Effect
+// and a castSpell Effect's lines stand where the Effect stands in the list;
+// an unknown spell id still states the Weapon's range.
+func TestSpellWeaponTextKeepsTheEffectOrder(t *testing.T) {
+	table, weapon := staffTooltipTable(t, 1, "Fire Arrow", 0, 7, 5, 10, 0)
+	words := spellWeaponWords()
+	item := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{
+		{Kind: 12, Operand: 3}, {Kind: 41, Operand: 1}}}
+	got := itemInstanceInfoLines(item, table, words)
+	want := []string{"Staff", "Magic:", itemEffectInfoLine(item.Effects[0], table, words), "#casts Fire Arrow", "Damage: 5-10", "Range: 5"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("effect order: %q, want %q", got, want)
+	}
+	unknown := sim.ItemInstance{Code: uint16(weapon.Code), Effects: []sim.ItemEffect{{Kind: 41, Operand: 19}}}
+	if got, want := itemInstanceInfoLines(unknown, table, words), []string{"Staff", "Magic:", "#casts Spell 19", "Range: 5"}; !slices.Equal(got, want) {
+		t.Fatalf("unknown spell: %q, want %q", got, want)
 	}
 }
 

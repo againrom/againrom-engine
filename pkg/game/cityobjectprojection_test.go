@@ -517,3 +517,85 @@ func TestCityObjectProjectionCurrentNativeIDsSurviveTwoCycles(t *testing.T) {
 		}
 	}
 }
+
+// TestCityObjectProjectionWritesTheWornWeaponAsHeld: a town SAVE writes a
+// worn castSpell Weapon's Spell as held, a missing Spell as null, though the
+// installed Spells row would build one, and the cold LOAD restores it as
+// written (ITEM-212). The Spell the fixture's Weapon holds is the control:
+// it is written unchanged.
+func TestCityObjectProjectionWritesTheWornWeaponAsHeld(t *testing.T) {
+	spells, _ := staffTooltipTable(t, 1, "Fire Arrow", 10, 5, 3, 5, 0)
+	for _, null := range []bool{true, false} {
+		raw, newFront := cityProjectionSource(t)
+		f := cityProjectionLoad(t, raw, newFront)
+		f.Table.Spells = spells.Spells
+		want := f.Carried[0].Carry.EquippedItems[0].SourceEquipment.Spell
+		if null {
+			want = sim.SourceItemSpell{}
+		} else if !want.Present {
+			t.Fatal("control: the fixture's worn Weapon holds no Spell")
+		}
+		worn := 0
+		recast := func(item *sim.ItemInstance) {
+			if item.SourceEquipment.Class == sim.SourceWeapon {
+				item.SourceEquipment.Spell = want
+				item.Effects = []sim.ItemEffect{{Kind: 41, Operand: 1 | 10<<16}}
+			}
+		}
+		for i := range f.Carried {
+			member := &f.Carried[i]
+			for slot := range member.Carry.EquippedItems {
+				recast(&member.Carry.EquippedItems[slot])
+				recast(&member.WornItems[slot])
+			}
+			if member.Carry.EquippedItems[0].SourceEquipment.Class == sim.SourceWeapon {
+				worn++
+			}
+			for slot := range member.Carry.ItemInstances {
+				recast(&member.Carry.ItemInstances[slot])
+			}
+			for slot := range member.CarriedItems {
+				recast(&member.CarriedItems[slot])
+			}
+			for slot := range member.Carry.OrderedStacks {
+				stack := &member.Carry.OrderedStacks[slot]
+				if stack.SourceEquipment.Class == sim.SourceWeapon {
+					stack.SourceEquipment.Spell = want
+					stack.Effects = []sim.ItemEffect{{Kind: 41, Operand: 1 | 10<<16}}
+				}
+			}
+		}
+		if worn == 0 {
+			t.Fatal("fixture wears no Weapon")
+		}
+		raw = cityProjectionSave(t, f)
+		doc, _, _ := cityProjectionWire(t, raw)
+		written := 0
+		for i, record := range doc.Objects {
+			if record.Class != "Weapon" {
+				continue
+			}
+			item, err := savedItemRecord(&doc, uint16(i+1))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(item.Value.Effects) == 1 && item.Value.Effects[0].Operand == 1|10<<16 {
+				written++
+				if item.Value.SourceEquipment.Spell != want {
+					t.Fatalf("town SAVE wrote the worn Weapon's Spell %+v, want %+v", item.Value.SourceEquipment.Spell, want)
+				}
+			}
+		}
+		if written == 0 {
+			t.Fatal("the SAVE wrote no worn castSpell Weapon")
+		}
+		g := cityProjectionLoad(t, raw, newFront)
+		for _, member := range g.Carried {
+			for _, item := range cityMemberEquipment(member, g.Table) {
+				if item.SourceEquipment.Class == sim.SourceWeapon && len(item.Effects) == 1 && item.SourceEquipment.Spell != want {
+					t.Fatalf("cold LOAD restored the worn Weapon's Spell %+v, want %+v", item.SourceEquipment.Spell, want)
+				}
+			}
+		}
+	}
+}

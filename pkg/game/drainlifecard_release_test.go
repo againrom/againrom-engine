@@ -77,9 +77,13 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 		}
 	}
 	nameInput := rawTextLine(t, f, SpellNamesTextPath, 10)
-	castCaption := rawTextLine(t, f, MainTextPath, 92)
-	damageCaption := rawTextLine(t, f, StatsTextPath, 43)
-	rangeCaption := rawTextLine(t, f, StatsTextPath, 38)
+	castCaption, castTail := rawTextLine(t, f, MainTextPath, 92), rawTextLine(t, f, MainTextPath, 93)
+	damageCaption := rawTextLine(t, f, MainTextPath, 118)
+	rangeCaption := rawTextLine(t, f, MainTextPath, 123)
+	staff, err := data.WeaponFromCode(data.ItemCode(item.Code), f.Table.Shapes, f.Table.Materials, f.Table.Weapons)
+	if err != nil {
+		t.Fatal(err)
+	}
 	minimum := int64(row[16]) * (int64(power) + 30) / 30
 	maximum := minimum + max(int64(0), int64(row[17])*(int64(power)+30)/30-minimum)
 	bookWant := itemName(data.ItemCode(0x0e17), f.Table) + " " + rawTextLine(t, f, MainTextPath, 90) + " " + nameBytes + rawTextLine(t, f, MainTextPath, 91)
@@ -91,7 +95,7 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 	teachWant := rawTextLine(t, f, MainTextPath, 189) + " " + rawTextLine(t, f, MainTextPath, 90) + " " + nameBytes + rawTextLine(t, f, MainTextPath, 91)
 	teachControl := teachLines[len(teachLines)-1] == teachWant
 	for _, line := range teachLines {
-		if line == fmt.Sprintf("%s %d-%d", damageCaption, minimum, maximum) || line == fmt.Sprintf("%s %d", rangeCaption, row[6]) {
+		if line == fmt.Sprintf("%s: %d-%d", damageCaption, minimum, maximum) || strings.HasPrefix(line, rangeCaption+": ") {
 			teachControl = false
 		}
 	}
@@ -102,8 +106,8 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 		}
 	}
 	want := []string{itemName(data.ItemCode(item.Code), f.Table), rawTextLine(t, f, MainTextPath, 189),
-		castCaption + " " + nameBytes, fmt.Sprintf("%s %d-%d", damageCaption, minimum, maximum),
-		fmt.Sprintf("%s %d", rangeCaption, row[6])}
+		"#" + castCaption + " " + nameBytes + castTail, fmt.Sprintf("%s: %d-%d", damageCaption, minimum, maximum),
+		fmt.Sprintf("%s: %d", rangeCaption, uint8(staff.Range))}
 	f.Shop.shelves[ShelfMagic] = []ShopItem{shopItemFromInstance(item, 1)}
 	x, y, err := app.HeadlessShopPoint("shelf_pick", 2)
 	if err != nil {
@@ -146,7 +150,7 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 	writePicture("actual", actual)
 	writePicture("expected", expected)
 	wrong := slices.Clone(want)
-	wrong[2] = castCaption + " " + wrongName
+	wrong[2] = "#" + castCaption + " " + wrongName + castTail
 	losses := map[string]bool{}
 	for _, loss := range []struct {
 		name  string

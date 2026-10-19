@@ -838,9 +838,13 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		// be minted with (the generation screen's consequence block) reads the
 		// same expression this loop mints from, rather than a second copy of
 		// it that could drift.
+		// A member constructed for this mission wears his Weapon's Spell as
+		// the template equip builds it; a carried member keeps his Weapons as
+		// held, a missing Spell included (ITEM-212).
+		build := p.Carry == nil || t != nil && t.CarriedWornSpellBuild
 		equippedItems := MemberItemEquipment(p, t)
 		for slot := range equippedItems {
-			if _, _, carriesSpell := equippedItems[slot].CastSpell(); carriesSpell {
+			if _, _, carriesSpell := equippedItems[slot].CastSpell(); carriesSpell && build {
 				equippedItems[slot] = SourceEquippedItem(equippedItems[slot], t)
 			}
 		}

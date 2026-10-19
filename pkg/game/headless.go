@@ -787,13 +787,13 @@ func (f *FrontEnd) HeadlessSnapshot(screen ui.Screen) HeadlessState {
 		if hasLiveID {
 			id = ids[i]
 		}
-		resolveDamage := func(code data.ItemCode) (weaponDamageInterval, bool) {
+		resolveDamage := func(code data.ItemCode) (uint16, int32, bool) {
 			if hasLiveID && f.live != nil {
 				if equipped, ok := f.live.world.Equipped(id); ok && equipped[0] == uint16(code) {
-					return liveWeaponSpellDamage(f.live.world, id, code)
+					return liveWeaponCast(f.live.world, id, code)
 				}
 			}
-			return storedWeaponSpellDamage(code, mapload.MemberWeapon(member, f.Table), member.Mage, f.Table)
+			return storedWeaponCast(code, mapload.MemberWeapon(member, f.Table), f.Table)
 		}
 		m.Worn = headlessWorn(m.Equipment, f.Table, resolveDamage)
 		state.Members = append(state.Members, m)
@@ -830,7 +830,7 @@ func (f *FrontEnd) HeadlessSnapshot(screen ui.Screen) HeadlessState {
 }
 
 func headlessWorn(slots [sim.EquipSlots]uint16, table *mapload.Table,
-	resolveDamage weaponDamageResolver) []HeadlessWornSnapshot {
+	resolveDamage weaponCastResolver) []HeadlessWornSnapshot {
 	out := make([]HeadlessWornSnapshot, 0, sim.EquipSlots)
 	for i, raw := range slots {
 		if raw == 0 {

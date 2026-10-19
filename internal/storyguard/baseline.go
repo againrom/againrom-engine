@@ -2657,6 +2657,11 @@ package storyguard
 // their tests, plus this note.
 // CommentBytes rises for the armed-cast U44 rule in
 // pkg/game/savactionwire.go, plus this note.
+// CommentBytes rises for the spell weapon's Weapon-stream text in
+// pkg/game/iteminfo.go, the mage card's damage in pkg/game/panelchars.go, the
+// worn Spell routes, their route and witness tests, plus this note; then for
+// the mission-entry build of a member with no carried state, the town equip
+// build and the second game's carried build.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2680,5 +2685,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1707,
 	},
-	CommentBytes: 9278416,
+	CommentBytes: 9285711,
 }
