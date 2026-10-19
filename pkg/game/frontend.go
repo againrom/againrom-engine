@@ -289,8 +289,8 @@ type RuntimeServices struct {
 	// [0,n). Nil uses a private generator, never simulation RNG.
 	TownAnimationRandom func(n int) int
 
-	// TownAmbientRandom is the birds' separate bounded presentation source.
-	// Keeping it separate preserves the established sign/fluger draw stream.
+	// TownAmbientRandom supplies bounded bird and school-yard draws.
+	// Seeded uses a separate stream; Original joins the shared stream.
 	TownAmbientRandom func(n int) int
 
 	// TavernRandom is the tavern interior's separate bounded draw

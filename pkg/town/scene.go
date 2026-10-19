@@ -253,10 +253,7 @@ func NewScene(d *Description, room string, host Host, proc *Process) *Scene {
 	return s
 }
 
-// Actor answers the runtime of the named actor or actor member: an *Episode,
-// *Pendulum, *Stepper, *Driven, *Flock, *Families, *Loop, *Alternating,
-// *Selector, *Priority, *Bounce, *Cycle, *Target, *Training or *Transit; nil
-// for an unknown name.
+// Actor answers a named actor or member, or nil when absent.
 func (s *Scene) Actor(name string) any {
 	if a, ok := s.byName[name]; ok {
 		return a

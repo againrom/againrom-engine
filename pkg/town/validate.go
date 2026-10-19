@@ -152,7 +152,7 @@ var phases = map[string][]string{
 	"driven": {"advance"}, "flock": {"settle", "arm", "advance"}, "families": {"advance", "schedule"}, "route": {"schedule", "advance"},
 	"loop": {"publish", "advance"}, "alternating": {"arm", "publish", "cue", "advance"},
 	"selector": {"advance"}, "priority": {"arm", "cue", "advance"}, "bounce": {"advance"},
-	"cycle": {"advance"}, "target": {}, "training": {"advance"}, "transit": {"advance"},
+	"cycle": {"advance"}, "target": {}, "training": {"advance"}, "transit": {"advance"}, "sound-cycle": {"advance"},
 }
 
 // actions are the event actions each program answers; a priority actor
@@ -171,17 +171,18 @@ func listed(list []string, name string) bool {
 }
 
 type sceneNames struct {
-	random   map[string]bool
-	art      map[string]bool
-	longest  map[string]int
-	slots    map[string]bool
-	keyed    map[string]bool
-	spots    map[string]bool
-	clocks   map[string]*SceneClock
-	programs map[string]string
-	armable  map[string]bool
-	rooms    map[string]bool
-	fail     func(string, ...any) error
+	random    map[string]bool
+	art       map[string]bool
+	longest   map[string]int
+	slots     map[string]bool
+	keyed     map[string]bool
+	spots     map[string]bool
+	clocks    map[string]*SceneClock
+	programs  map[string]string
+	endpoints map[string]int
+	armable   map[string]bool
+	rooms     map[string]bool
+	fail      func(string, ...any) error
 }
 
 func (n *sceneNames) needDraw(where, source string) error {
@@ -231,7 +232,7 @@ func (n *sceneNames) needKeyedSlot(where, slot string) error {
 func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail func(string, ...any) error) error {
 	n := &sceneNames{
 		random: map[string]bool{}, art: map[string]bool{}, longest: map[string]int{}, slots: map[string]bool{}, keyed: map[string]bool{},
-		spots: map[string]bool{}, clocks: map[string]*SceneClock{}, programs: map[string]string{},
+		spots: map[string]bool{}, clocks: map[string]*SceneClock{}, programs: map[string]string{}, endpoints: map[string]int{},
 		armable: map[string]bool{}, rooms: rooms, fail: fail,
 	}
 	switch s.Lifecycle {
@@ -340,6 +341,7 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 			return fail("actor %q has unknown program %q", a.Name, a.Program)
 		}
 		n.programs[a.Name] = a.Program
+		n.endpoints[a.Name] = len(a.Endpoints)
 		for _, m := range a.Members {
 			n.programs[m.Name] = a.Program
 		}
@@ -748,6 +750,37 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 			}
 		}
 		return n.needArt(where, a.Art)
+	case "sound-cycle":
+		if n.programs[a.Column] != "target" {
+			return fail("needs a target actor")
+		}
+		endpoints := n.endpoints[a.Column]
+		if len(a.States) != endpoints || a.DelayMS < 0 {
+			return fail("needs one state per endpoint and a nonnegative opening delay")
+		}
+		for _, pick := range []*PickSpec{a.Delay, a.HoldPick} {
+			if err := n.needPick(where, pick); err != nil {
+				return err
+			}
+			if lo, _ := pickRange(*pick); lo < 0 {
+				return fail("negative wait")
+			}
+		}
+		for _, slot := range []string{a.FirstSound, a.LastSound} {
+			if err := n.needKeyedSlot(where, slot); err != nil {
+				return err
+			}
+		}
+		for _, state := range a.States {
+			if len(state.StartSounds) == 0 {
+				return fail("state needs start sounds")
+			}
+			for _, slot := range append(append([]string{}, state.StartSounds...), state.EndSounds...) {
+				if err := n.needKeyedSlot(where, slot); err != nil {
+					return err
+				}
+			}
+		}
 	case "training":
 		if err := needClock(true); err != nil {
 			return err

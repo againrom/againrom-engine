@@ -520,7 +520,8 @@
        {"name": "skill/1/4/2", "format": "picture", "key": "graphics/interface/training/column/mage/astral/shine_on.bmp", "max-size": [80, 36], "transparent": "black", "required": true, "cite": ["TOWN-018", "TOWN-150"]}
      ],
      "scene": {
-       "random": [{"name": "training", "source": "host", "cite": ["TOWN-433"]}],
+       "random": [{"name": "training", "source": "host", "cite": ["TOWN-433"]},
+                  {"name": "ambient", "source": "host", "cite": ["TOWN-552", "DIV-3340"]}],
        "art": [
          {"name": "column", "format": "series", "key": "graphics/interface/training/column/rt%04d.bmp", "first": 0, "count": 16,
           "size": [148, 208], "required": true, "cite": ["TOWN-146", "TOWN-147", "TOWN-149"]},
@@ -539,7 +540,12 @@
          "slots": [{"name": "rotate", "source": "school-training", "key": "town/school/rotate.wav", "untracked": true,
                     "cite": ["TOWN-147", "TOWN-430", "TOWN-554"]},
                    {"name": "enter", "source": "school-training", "key": "town/school/enter.wav", "cite": ["TOWN-551"]},
-                   {"name": "out", "source": "school-training", "key": "out.wav", "cite": ["TOWN-551"]}],
+                   {"name": "out", "source": "school-training", "key": "out.wav", "cite": ["TOWN-551"]},
+                   {"name": "command1", "source": "school-yard", "key": "town/school/command1.wav", "cite": ["TOWN-552"]},
+                   {"name": "command2", "source": "school-yard", "key": "town/school/command2.wav", "cite": ["TOWN-552"]},
+                   {"name": "command3", "source": "school-yard", "key": "town/school/command3.wav", "cite": ["TOWN-552"]},
+                   {"name": "fight1", "source": "school-yard", "key": "town/school/fight1.wav", "loop": true, "cite": ["TOWN-552"]},
+                   {"name": "fight2", "source": "school-yard", "key": "town/school/fight2.wav", "loop": true, "cite": ["TOWN-552"]}],
          "triggers": [
            {"on": "teach", "slot": "rotate", "key": "town/school/teach.wav", "cite": ["TOWN-551", "TOWN-554"]},
            {"on": "leave-press", "slot": "out", "cite": ["TOWN-551"]}
@@ -551,6 +557,14 @@
        "enter-active": true,
        "enter": ["sound enter"],
        "actors": [
+         {"name": "yard", "program": "sound-cycle", "column": "column", "delay-ms": 1500,
+          "first-sound": "command1", "last-sound": "command3",
+          "delay": {"draw": "ambient", "base": 3500, "n": 1000, "cite": ["TOWN-552", "DIV-3340"]},
+          "hold-pick": {"draw": "ambient", "base": 40000, "n": 40000, "cite": ["TOWN-552", "DIV-3340"]},
+          "states": [
+            {"name": "fighter", "start-sounds": ["command2", "fight1"], "end-sounds": ["fight1"], "cite": ["TOWN-552"]},
+            {"name": "mage", "start-sounds": ["command2", "fight2"], "end-sounds": ["fight2"], "cite": ["TOWN-552"]}
+          ], "cite": ["TOWN-552", "DIV-3340"]},
          {"name": "column", "program": "target", "art": "column", "frames": 16, "endpoints": [0, 15], "value": "member-class",
           "wait": {"base-ms": 83, "compare": "greater", "cite": ["TOWN-147"]},
           "cite": ["TOWN-146", "TOWN-147", "DIV-814"]},
@@ -576,7 +590,7 @@
           "cite": ["TOWN-541", "TOWN-542", "DIV-121"]}
        ],
        "steps": [
-         {"run": ["advance diamond", "advance shine", "advance training"], "cite": ["TOWN-380", "TOWN-430", "TOWN-542"]}
+         {"run": ["advance yard", "advance diamond", "advance shine", "advance training"], "cite": ["TOWN-552", "TOWN-380", "TOWN-430", "TOWN-542"]}
        ],
        "layers": [
          {"group": "movies", "actor": "mage", "mode": "copy", "at": [0, 200], "clip": [0, 0, 480, 480], "cite": ["TOWN-428"]},

@@ -34,7 +34,7 @@ func TestReleaseSchoolColumnClassTransitionInstalledPixelsAndSound(t *testing.T)
 	f.Town.gold = 100000
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
-	recorder := &schoolRotateRecorder{}
+	recorder := &schoolRotateRecorder{ignoreSource: "school-yard"}
 	f.SoundPlayer, f.SoundBank = recorder, OpenSounds(f.Archives.Root)
 	if f.SoundBank == nil {
 		t.Fatal("installed sound archive did not open")

@@ -2618,6 +2618,7 @@ package storyguard
 // the tests whose choreography the cast approach changed, the approach's
 // off-map end, strike queue and mana wait, less
 // the removed aiCast, plus this note.
+// Shorter actor API documentation offsets the SoundCycle contract.
 // CommentBytes falls as the world-map Cross tests replace the per-route reset
 // contract with the claimed enter-only counter and strict completion bounds.
 var Committed = Baseline{
@@ -2643,5 +2644,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1709,
 	},
-	CommentBytes: 9227507,
+	CommentBytes: 9227411,
 }

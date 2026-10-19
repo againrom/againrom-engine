@@ -112,7 +112,7 @@ func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T)
 		}
 		return 0
 	}
-	recorder := &schoolRotateRecorder{}
+	recorder := &schoolRotateRecorder{ignoreSource: "school-yard"}
 	soundBank := OpenSounds(f.Archives.Root)
 	if soundBank == nil {
 		t.Fatal("installed sound archive did not open")

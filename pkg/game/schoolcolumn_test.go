@@ -14,8 +14,9 @@ import (
 )
 
 type schoolRotateRecorder struct {
-	samples []audio.Sample
-	places  []audio.Placement
+	ignoreSource string
+	samples      []audio.Sample
+	places       []audio.Placement
 }
 
 func (r *schoolRotateRecorder) Play(s audio.Sample, p audio.Placement) {
@@ -24,6 +25,9 @@ func (r *schoolRotateRecorder) Play(s audio.Sample, p audio.Placement) {
 }
 
 func (r *schoolRotateRecorder) RequestSample(s audio.Sample, request audio.Request) audio.Voice {
+	if r.ignoreSource != "" && request.Source == r.ignoreSource {
+		return nil
+	}
 	r.Play(s, request.Placement)
 	return nil
 }

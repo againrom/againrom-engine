@@ -248,10 +248,8 @@ type CueSpec struct {
 	Cite []string `json:"cite"`
 }
 
-// ActorSpec is one animated element and its program: episode, pendulum,
-// stepper, driven, flock, families, route, loop, alternating, selector,
-// priority, bounce, cycle, target, training or transit, in any scene. The fields each program
-// reads are named on its runtime type.
+// ActorSpec names an actor program and its parameters. Each runtime type
+// defines the fields its program reads.
 type ActorSpec struct {
 	Name    string `json:"name"`
 	Program string `json:"program"`

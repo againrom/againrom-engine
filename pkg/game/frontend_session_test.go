@@ -176,7 +176,7 @@ func TestResetSessionForNewGameDropsExactlyTheSessionPopulation(t *testing.T) {
 		"TownSchoolArt":       keepReason,
 		"TownAnimationNow":    "the process-level presentation clock service; animation phase belongs to townScreen and resets there",
 		"TownAnimationRandom": "the process-level presentation random service; per-visit generator state belongs to townScreen and resets there",
-		"TownAmbientRandom":   "the separate process-level bird random service; it cannot perturb the established sign/fluger stream",
+		"TownAmbientRandom":   "the process-level bird and school draw seam; its presentation state belongs to town scenes",
 		"townProcess":         "the town composer's process-scoped state, retained independently of a campaign",
 		"TavernRandom":        "the separate process-level tavern presentation random service; per-visit generator state belongs to townScreen and resets there",
 		"ShopRandom":          "the separate process-level shop presentation random service; per-visit generator state belongs to townScreen and resets there",
