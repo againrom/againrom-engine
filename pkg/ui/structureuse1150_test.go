@@ -9,7 +9,7 @@ func TestStructureUse1150RealPointerAndGates(t *testing.T) {
 	a, v := inspectionFixture(t, image.Pt(1024, 768))
 	v.structureInfo[7].ID, v.structureInfo[7].Usable = 28, true
 	v.entities[0].PlayerCharacter = true
-	v.SetStructures([]MapStructure{{ID: 7, Health: 0, MaxHealth: 1, Cell: image.Pt(6, 6)}})
+	v.SetStructures([]MapStructure{{ID: 7, Kind: 28, Size: image.Pt(1, 1), Health: 0, MaxHealth: 1, Cell: image.Pt(6, 6), UseAdmission: structureAdmission(28, image.Pt(1, 1))}})
 	var calls [][2]uint32
 	v.SetStructureUseSink(func(e, s uint32) { calls = append(calls, [2]uint32{e, s}) })
 	ref := InspectionSubject{InspectionStructure, 7}
@@ -31,8 +31,10 @@ func TestStructureUse1150RealPointerAndGates(t *testing.T) {
 	}
 	for _, clear := range []func(){
 		func() { v.entities[0].PlayerCharacter = false },
-		func() { v.entities[0].PlayerCharacter = true; v.structureInfo[7].Usable = false },
-		func() { v.structureInfo[7].Usable = true; v.structureInfo[7].ID = 39 },
+		func() {
+			v.entities[0].PlayerCharacter = true
+			v.structureStates[0].UseAdmission = structureAdmission(28, image.Point{})
+		},
 	} {
 		clear()
 		if name, ok := v.missionHoverCursor(); ok && name == "town" {

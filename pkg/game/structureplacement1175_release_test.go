@@ -94,7 +94,7 @@ func TestReleaseBuilding1175AuthoredZeroAndColdSave(t *testing.T) {
 			}
 			t.Logf("%d authored-zero structures; %d ruin entries; %d/%d script references reach those structures",
 				len(zeroIDs), ruinEntries, zeroRefs, len(refs))
-			coldBuilding1175(t, f)
+			coldBuilding(t, f)
 
 			// A saved live value takes precedence over the ALM starting value.
 			// This isolated import changes one existing word without a damage or
@@ -106,12 +106,12 @@ func TestReleaseBuilding1175AuthoredZeroAndColdSave(t *testing.T) {
 				t.Fatal(err)
 			}
 			f.live.push()
-			coldBuilding1175(t, f)
+			coldBuilding(t, f)
 		})
 	}
 }
 
-func coldBuilding1175(t *testing.T, f *FrontEnd) {
+func coldBuilding(t *testing.T, f *FrontEnd) {
 	t.Helper()
 	want := f.live.world.Structures()
 	snapshot, label, err := f.Snapshot(true)

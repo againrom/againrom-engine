@@ -1,11 +1,13 @@
 package game
 
 import (
+	"encoding/binary"
 	"fmt"
 	"testing"
 	"time"
 
 	"againrom/pkg/data"
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -14,10 +16,13 @@ import (
 // Real installed structures, potion rows, pointer dispatch and cold SaveStore.
 // Only the actor position/population are controlled; no original-runtime claim.
 func TestReleaseStructureUse1150(t *testing.T) {
-	for _, tc := range []struct {
-		mission, id int
-		kind        uint16
-	}{{90, 27, 16}, {90, 38, 15}, {91, 9, 28}, {101, 11, 29}} {
+	placements := []usablePlacement{{90, 27, 16}, {90, 38, 15}, {91, 9, 28}, {101, 11, 29}}
+	for _, p := range shippedUsablePlacements(t, releaseFront(t)) {
+		if p.kind != 15 && p.kind != 16 && p.kind != 28 && p.kind != 29 {
+			placements = append(placements, p)
+		}
+	}
+	for _, tc := range placements {
 		t.Run(fmt.Sprintf("mission%d-kind%d", tc.mission, tc.kind), func(t *testing.T) {
 			f := releaseFront(t)
 			f.SetDeterministicFrames(true)
@@ -62,6 +67,9 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if err := world.ImportOriginalCellTails(live.world.CellTails()); err != nil {
+				t.Fatal(err)
+			}
 			witness := *live.mission.state
 			witness.World = world
 			if err = constructCurrentBuildings(&witness, f.Archives.Containers); err != nil {
@@ -85,7 +93,11 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, edge := range []string{"hover", "press", "release"} {
+			if err = a.HeadlessPointer("hover", x, y); err != nil {
+				t.Fatal(err)
+			}
+			usableHoverProof(t, f, a, tc.kind, uint32(target.ID))
+			for _, edge := range []string{"press", "release"} {
 				if err = a.HeadlessPointer(edge, x, y); err != nil {
 					t.Fatal(err)
 				}
@@ -116,7 +128,15 @@ func TestReleaseStructureUse1150(t *testing.T) {
 				t.Fatal(err)
 			}
 			if world.Hash() != cold.live.world.Hash() {
-				t.Fatal("cold approach changed")
+				x, _ := world.MarshalBinary()
+				y, _ := cold.live.world.MarshalBinary()
+				for at := 0; at < len(x) && at < len(y); at++ {
+					if x[at] != y[at] {
+						t.Logf("first world byte delta at%d live%x cold%x lengths%d/%d", at, x[max(0, at-8):min(len(x), at+16)], y[max(0, at-8):min(len(y), at+16)], len(x), len(y))
+						break
+					}
+				}
+				t.Fatalf("cold approach changed %x/%x", world.Hash(), cold.live.world.Hash())
 			}
 			for tick := 0; tick < 1000 && len(world.StructureUses()) > 0; tick++ {
 				live.tick()
@@ -134,7 +154,7 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			if target.Field42 == 0 {
 				want = 1
 			}
-			if tc.kind >= 28 && state.Field42 != want {
+			if (tc.kind == 28 || tc.kind == 29) && state.Field42 != want {
 				t.Fatal("lever did not toggle", state.Field42)
 			}
 			if tc.kind == 15 && (got.HP != actor.HP+100 || state.Field42 != 2) {
@@ -143,13 +163,58 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			if tc.kind == 16 && (got.Mana != actor.Mana+100 || state.Field42 != 2) {
 				t.Fatalf("mana=%d->%d charges=%d", actor.Mana, got.Mana, state.Field42)
 			}
-			if tc.kind >= 28 {
+			if tc.kind == 28 || tc.kind == 29 {
 				entries, ruins := live.view.StructureRuinFrames(uint32(target.ID))
 				if entries == 0 || state.Field42 == 0 && ruins == 0 {
 					t.Fatalf("lever art not switched %d/%d", entries, ruins)
 				}
 			}
 			t.Logf("completed at tick%d HP=%d mana=%d state=%d", world.Tick(), got.HP, got.Mana, state.Field42)
+			name, err = save(true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, err := (SaveStore{Dir: dir}).Read(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			file, err := sav.Open(raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			buildings, _, err := file.Buildings()
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, b := range buildings {
+				if int32(b.Col) == state.Col && int32(b.Row) == state.Row && uint16(b.Kind) == tc.kind {
+					found = true
+					if b.Health != state.Field42 || b.MaxHealth != state.MaxHealth {
+						t.Fatal("SAV producer lost current pair", b)
+					}
+					pair := file.Body[b.Off+60 : b.Off+64]
+					if binary.LittleEndian.Uint16(pair) != state.Field42 || binary.LittleEndian.Uint16(pair[2:]) != state.MaxHealth {
+						t.Fatalf("SAV body60..63=%x", pair)
+					}
+					t.Logf("SAV class%d structure%d body60..63=%x", tc.kind, tc.id, pair)
+				}
+			}
+			if !found {
+				t.Fatal("missing current SAV structure")
+			}
+			coldBuilding(t, f)
+			open, town, err = load(localOriginalSaveToken(name))
+			if err != nil || town {
+				t.Fatal("completed use cold load", town, err)
+			}
+			if err = ca.OpenMission(open); err != nil {
+				t.Fatal(err)
+			}
+			if world.Hash() != cold.live.world.Hash() {
+				t.Fatalf("completed use hash %x != cold %x", world.Hash(), cold.live.world.Hash())
+			}
+			t.Logf("completed use cold SAV hash=%016x", world.Hash())
 		})
 	}
 }

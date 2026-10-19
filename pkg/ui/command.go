@@ -1506,7 +1506,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 	// this identity, on the acting release. Do not fall back to selected subject.
 	if g.tap && g.cursor == "attack" {
 		if ref, hit := v.inspectionAt(g.x, g.y); hit && ref.Kind == InspectionStructure {
-			if panel, exists := v.inspectionPanel(ref); exists && panel.HP > 0 {
+			if s, exists := v.structureState(ref); exists && s.MaxHealth != 0 && int16(s.Health) > 0 {
 				g.structure = ref
 			}
 		}

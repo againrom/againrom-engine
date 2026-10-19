@@ -2387,7 +2387,7 @@ func (v *Viewer) SetFlat(on bool) {
 // at the draw, in the per-counter pass, exactly where the animation switch is.
 func (v *Viewer) SetRuins(on bool) { v.ruinedStructures = on }
 
-// MapStructure is live, read-only health and location for art and inspection.
+// MapStructure is a read-only mission structure snapshot.
 type MapStructure struct {
 	ID        uint32
 	Health    uint16
@@ -2396,9 +2396,10 @@ type MapStructure struct {
 	// Kind is the structures.reg class id, Owner the owner roster slot (0 for
 	// none known) and Size the object's own cell extents. The minimap reads
 	// them for a structure's mark (MISSION-085).
-	Kind  uint16
-	Owner uint32
-	Size  image.Point
+	Kind         uint16
+	Owner        uint32
+	Size         image.Point
+	UseAdmission interface{ Usable() bool }
 }
 
 // SetStructures adopts the current inspection snapshot and destroyed set.

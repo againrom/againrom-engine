@@ -27,6 +27,9 @@ func TestReleaseActivePauseRenderedWorld(t *testing.T) {
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS required for installed GPU presentation")
 	}
+	if os.Getenv("AGAINROM_HEADLESS_ONLY") == "1" {
+		t.Skip("AGAINROM_HEADLESS_ONLY: installed GPU presentation requires a window")
+	}
 	dir := t.TempDir()
 	if out := os.Getenv("AGAINROM_PAUSED_PRESENTATION_OUTPUT"); out != "" {
 		var err error

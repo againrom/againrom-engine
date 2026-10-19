@@ -196,13 +196,14 @@ func (v *Viewer) inspectionPanel(ref InspectionSubject) (PanelSubject, bool) {
 		if c == nil {
 			break
 		}
-		for _, s := range v.structureStates {
-			// Bridges and mission decorations have no health pool. They draw
-			// normally but must not become inspection or command subjects.
-			// A destroyed building still has a maximum and keeps its card.
-			if s.ID == ref.ID && s.MaxHealth != 0 {
+		if s, ok := v.structureState(ref); ok {
+			if s.MaxHealth != 0 || v.usableStructure(ref) {
+				hp, maximum := int(int16(s.Health)), int(s.MaxHealth)
+				if maximum == 0 {
+					hp, maximum = 1000, 1000
+				}
 				return PanelSubject{Kind: InspectionStructure, ID: s.ID, ClassID: c.ID, Name: structureCardName(v.words, c),
-					HP: int(int16(s.Health)), MaxHP: int(s.MaxHealth), Cell: s.Cell,
+					HP: hp, MaxHP: maximum, Cell: s.Cell,
 					DetailLevel: 7, DetailSet: true, Words: v.words}, true
 			}
 		}

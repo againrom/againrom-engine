@@ -4657,7 +4657,7 @@ func (mw *mapWorld) structureDraws() []ui.MapStructure {
 	for _, s := range structures {
 		out = append(out, ui.MapStructure{ID: uint32(s.ID), Health: s.Field42,
 			MaxHealth: s.MaxHealth, Cell: image.Pt(int(s.Col), int(s.Row)),
-			Kind: s.Kind, Owner: owners[s.ID], Size: image.Pt(int(s.Width), int(s.Height))})
+			Kind: s.Kind, Owner: owners[s.ID], Size: image.Pt(int(s.Width), int(s.Height)), UseAdmission: s})
 	}
 	mw.structureStateScratch = out
 	return out

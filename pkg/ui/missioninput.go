@@ -222,11 +222,15 @@ func (v *Viewer) hoverMask(x, y int) (mask uint32, hit uint32, hasHit bool) {
 	return mask, hit, hasHit
 }
 
-// structureHoverHit skips a class that is indestructible and not usable
-// (AI-CURSOR-231, REG-STR-080).
+// structureHoverHit keeps pooled physical hits and admitted uses.
+// AI-CURSOR-231, REG-STR-080.
 func (v *Viewer) structureHoverHit(ref InspectionSubject) bool {
 	c := v.structureInfo[ref.ID]
-	return c == nil || c.Usable || !c.Indestructible
+	if c == nil || v.usableStructure(ref) || !c.Indestructible {
+		return true
+	}
+	s, ok := v.structureState(ref)
+	return ok && s.MaxHealth != 0 && c.Usable
 }
 
 // sackMaskAt answers `hoverMaskDrawable` when this build's own sack registry

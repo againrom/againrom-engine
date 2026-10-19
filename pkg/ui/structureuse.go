@@ -4,10 +4,19 @@ type MapStructureUse func(entity, structure uint32)
 
 func (v *Viewer) SetStructureUseSink(fn MapStructureUse) { v.structureUseSink = fn }
 
-func (v *Viewer) usableStructure(ref InspectionSubject) bool {
+func (v *Viewer) structureState(ref InspectionSubject) (MapStructure, bool) {
 	if ref.Kind != InspectionStructure {
-		return false
+		return MapStructure{}, false
 	}
-	c := v.structureInfo[ref.ID]
-	return c != nil && c.Usable && (c.ID == 15 || c.ID == 16 || c.ID == 28 || c.ID == 29)
+	for _, s := range v.structureStates {
+		if s.ID == ref.ID {
+			return s, true
+		}
+	}
+	return MapStructure{}, false
+}
+
+func (v *Viewer) usableStructure(ref InspectionSubject) bool {
+	s, ok := v.structureState(ref)
+	return ok && s.UseAdmission != nil && s.UseAdmission.Usable()
 }

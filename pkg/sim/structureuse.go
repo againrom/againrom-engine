@@ -15,7 +15,14 @@ type StructureUse struct {
 func (w *World) StructureUses() []StructureUse { return slices.Clone(w.structureUses) }
 
 func (s Structure) Usable() bool {
-	return s.Width > 0 && s.Height > 0 && (s.Kind == 28 || s.Kind == 29 || (s.Kind == 15 || s.Kind == 16) && s.UseAmount > 0)
+	if s.Width == 0 || s.Height == 0 {
+		return false
+	}
+	switch s.Kind {
+	case 15, 16, 28, 29, 34, 35, 39, 40, 66:
+		return true
+	}
+	return false
 }
 
 func (w *World) pruneStructureUses() {
@@ -177,7 +184,7 @@ func (w *World) applyStructureUse(i, si int) {
 		}
 		return
 	}
-	if int16(s.Field42) <= 0 || !w.sourceMutationReady(i) {
+	if (s.Kind != 15 && s.Kind != 16) || s.UseAmount <= 0 || int16(s.Field42) <= 0 || !w.sourceMutationReady(i) {
 		return
 	}
 	// The installed named potion supplies the amount. Use the same source

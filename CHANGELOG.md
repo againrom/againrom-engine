@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Usable wells, switches and graves show the use cursor and their
+  readout. Clicking walks the character to them; wells restore health or mana
+  while charged, and switches toggle. Charges and switch state survive SAVE/LOAD.
 - [ROM1] Saving in town keeps each hero's full experience when the game is loaded again.
 - [ROM1] Map editor lists stop at their ends and their scroll bars drag.
   Add starts ready to place, with a translucent preview at the cursor.

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func useWorld1150(t *testing.T, kind uint16) *World {
+func structureUseWorld(t *testing.T, kind uint16) *World {
 	t.Helper()
 	a, s := structureCombatActor(), structureCombatTarget()
 	a.HP, a.MaxHP, a.Mana, a.MaxMana = 10, 150, 20, 180
@@ -15,7 +15,7 @@ func useWorld1150(t *testing.T, kind uint16) *World {
 	return structureCombatWorld(t, 1150, a, s)
 }
 
-func finishUse1150(t *testing.T, w *World) {
+func finishStructureUse(t *testing.T, w *World) {
 	t.Helper()
 	for range 400 {
 		cold := retreatRoundTrip1089(t, w)
@@ -36,15 +36,15 @@ func TestStructureUse1150FountainPoolsAndCharges(t *testing.T) {
 		kind     uint16
 		hp, mana int32
 	}{{15, 110, 20}, {16, 10, 120}} {
-		w := useWorld1150(t, tc.kind)
+		w := structureUseWorld(t, tc.kind)
 		Step(w, []Command{{Kind: KindUseStructure, Entity: 0, X: 0}})
-		finishUse1150(t, w)
+		finishStructureUse(t, w)
 		if e := w.entities[0]; e.HP != tc.hp || e.Mana != tc.mana || w.structures[0].Field42 != 2 {
 			t.Fatalf("kind%d pools=%d/%d charge=%d", tc.kind, e.HP, e.Mana, w.structures[0].Field42)
 		}
 		w.entities[0].HP, w.entities[0].Mana = 150, 180
 		Step(w, []Command{{Kind: KindUseStructure, Entity: 0, X: 0}})
-		finishUse1150(t, w)
+		finishStructureUse(t, w)
 		if w.structures[0].Field42 != 1 || w.entities[0].HP != 150 || w.entities[0].Mana != 180 {
 			t.Fatal("full pool must still consume exactly one charge")
 		}
@@ -53,30 +53,30 @@ func TestStructureUse1150FountainPoolsAndCharges(t *testing.T) {
 			w.entities[0].HP, w.entities[0].Mana = 10, 20
 			w.tick = 20
 			Step(w, []Command{{Kind: KindUseStructure, Entity: 0, X: 0}})
-			finishUse1150(t, w)
+			finishStructureUse(t, w)
 			if w.entities[0].HP != 10 || w.entities[0].Mana != 20 || w.structures[0].Field42 != empty {
 				t.Fatal("empty/negative charge applied a potion")
 			}
 		}
 	}
-	w := useWorld1150(t, 16)
+	w := structureUseWorld(t, 16)
 	w.entities[0].Mana, w.entities[0].MaxMana = 0, 0
 	Step(w, []Command{{Kind: KindUseStructure, X: 0}})
-	finishUse1150(t, w)
+	finishStructureUse(t, w)
 	if w.structures[0].Field42 != 2 || w.entities[0].Mana != 0 {
 		t.Fatal("fighter mana use changed class or failed to spend")
 	}
 }
 
 func TestStructureUse1150ApproachFacingAndCancellation(t *testing.T) {
-	w := useWorld1150(t, 28)
+	w := structureUseWorld(t, 28)
 	w.structures[0].Col, w.structures[0].Row = 12, 12
 	w.structures[0].Field42, w.structures[0].MaxHealth = 0, 1
 	Step(w, []Command{{Kind: KindUseStructure, X: 0}})
 	if len(w.StructureUses()) != 1 || w.structures[0].Field42 != 0 {
 		t.Fatal("distant click did not queue approach")
 	}
-	finishUse1150(t, w)
+	finishStructureUse(t, w)
 	if w.structures[0].Field42 != 1 || cellOf(&w.entities[0]).chebyshevTo(cell{12, 12}) > 1 {
 		t.Fatal("lever not used at reachable boundary")
 	}
@@ -101,7 +101,7 @@ func TestStructureUse1150ApproachFacingAndCancellation(t *testing.T) {
 	if len(w.StructureUses()) != 0 {
 		t.Fatal("death retained use")
 	}
-	w = useWorld1150(t, 29)
+	w = structureUseWorld(t, 29)
 	w.entities[0].Facing = 192
 	w.entities[0].RotationSpeed = 10
 	w.structures[0].Field42 = 65535
@@ -109,19 +109,19 @@ func TestStructureUse1150ApproachFacingAndCancellation(t *testing.T) {
 	if len(w.StructureUses()) != 1 || w.structures[0].Field42 != 65535 {
 		t.Fatal("used before facing")
 	}
-	finishUse1150(t, w)
+	finishStructureUse(t, w)
 	if w.structures[0].Field42 != 0 {
 		t.Fatal("nonzero lever did not toggle to zero")
 	}
 	Step(w, []Command{{Kind: KindUseStructure, X: 0}})
-	finishUse1150(t, w)
+	finishStructureUse(t, w)
 	if w.structures[0].Field42 != 1 {
 		t.Fatal("zero-health lever was not usable")
 	}
 }
 
 func TestStructureUse1150RechargeAndRetiredActors(t *testing.T) {
-	w := useWorld1150(t, 15)
+	w := structureUseWorld(t, 15)
 	// The filter reads the session sub-tick after the step's head has
 	// incremented it (SESS-TICK-006): entry 58 reads 59, entry 59 reads 60.
 	w.structures[0].Field42, w.tick = 0, 58
@@ -162,7 +162,7 @@ func TestStructureUse1150Footer(t *testing.T) {
 			t.Fatal("frozen form88 hash changed")
 		}
 	}
-	w := useWorld1150(t, 28)
+	w := structureUseWorld(t, 28)
 	w.structures[0].Col = 13
 	Step(w, []Command{{Kind: KindUseStructure, X: 0}})
 	b := mustMarshal(t, w)
@@ -205,7 +205,7 @@ func TestStructureUse1150SourcePoolAndFailedCallback(t *testing.T) {
 }
 
 func TestStructureUse1150UnreachableRetires(t *testing.T) {
-	w := useWorld1150(t, 28)
+	w := structureUseWorld(t, 28)
 	w.structures[0].Col = 13
 	w.grid = make([]byte, 256)
 	for y := 0; y < 16; y++ {

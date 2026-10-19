@@ -16,7 +16,7 @@ type StructureID uint32
 
 // Structure is one live building. Fresh placements use their map-object index
 // as ID. Saved source-only buildings receive independent native handles; absent
-// ALM buildings are absent here too. Field42 is current health. Saved cell links
+// ALM buildings are absent here too. Field42 is health, charge or switch state. Saved cell links
 // select area targets independently of this record's geometric footprint.
 //
 // Field42 keeps the original offset in its name because script opcodes expose

@@ -575,6 +575,19 @@ func (a *App) HeadlessStructureReadout() (pix *image.RGBA, at image.Point, lines
 	return pic, at, v.structKey.lines, nil
 }
 
+// HeadlessMissionCursor returns the cursor picture and position used by Viewer.Draw.
+func (a *App) HeadlessMissionCursor() (*image.RGBA, image.Point, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return nil, image.Point{}, err
+	}
+	pic, at, ok := v.mapCursorPresent()
+	if !ok {
+		return nil, image.Point{}, fmt.Errorf("headless mission cursor: no cursor is drawn")
+	}
+	return pic, at, nil
+}
+
 // HeadlessSelectedStructure is the structure a plain click selected, if any.
 func (a *App) HeadlessSelectedStructure() (InspectionSubject, bool) {
 	if a == nil || a.flow == nil || a.flow.viewer == nil {
