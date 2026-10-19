@@ -196,12 +196,8 @@ const (
 // beside this function rather than inside it, and what arrives here is only the
 // flag's value.
 //
-// spell is the book's own selection as this frame began, armed's own shape
-// and armed's own reason: it is STATE, not an edge, so it is read across
-// from the viewer rather than raised by anything in this struct — the
-// click that selects a spell is decided in command, beside the swallow the
-// inventory window's own click already gets, and never inside this pure
-// function.
+// spell is the book's selection as this frame began: state read from the
+// viewer, used only under the cast cursor.
 type gesture struct {
 	// Explicit physical attack hit, resolved with the visible sprite identity.
 	structure InspectionSubject
@@ -564,6 +560,10 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 	}
 
 	kind := cursorOrderKind(g.cursor)
+	// Only the cast cursor carries the spell (AI-CLICK-050).
+	if kind != orderKindCast {
+		g.spell, g.pointCast = 0, false
+	}
 	if kind == orderKindCast {
 		present = bookCasters(present, g.spell)
 		if len(present) == 0 {

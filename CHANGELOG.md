@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] With a spell picked in the spell book, closing the book (Space, B,
+  or the book button) or choosing the Attack order puts the cursor back to
+  normal, and a click on an enemy now attacks it instead of casting the spell.
 - [BASE] The game now builds for Linux without a C compiler.
 - [BASE] The starter's "In a window" option opens the game in a window instead
   of over the whole screen. Alt+Enter switches between the window and the whole
