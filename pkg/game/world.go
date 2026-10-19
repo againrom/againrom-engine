@@ -4138,6 +4138,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 		}
 	}
 	mw.observeScriptMessages(report.ScriptMessages)
+	mw.observePurseCredits(report.PurseCredits)
 	for _, observe := range reportSink {
 		observe(report)
 	}

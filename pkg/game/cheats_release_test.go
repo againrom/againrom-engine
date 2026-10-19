@@ -172,8 +172,20 @@ func TestReleaseCheatCreateUsesAppAndOrdinarySAV(t *testing.T) {
 				return
 			}
 			if kind == "gold" {
+				words := f.live.view.Words()
+				gold := pickupGoldLine(&words, 37)
+				for _, line := range f.live.view.MessageLines() {
+					if line.Text == gold {
+						t.Fatal("a refused create stated the gold line")
+					}
+				}
 				cheatChat(t, a, "#create 37 Gold")
 				cheatNoticeWant(t, f, 7)
+				// The credit states the gold line a sack take states, ahead of
+				// the success notice (MENU-104, ITEM-PICKTEXT-145).
+				if lines := f.live.view.MessageLines(); len(lines) < 2 || lines[len(lines)-2].Text != gold {
+					t.Fatalf("create gold lines %+v, want %q before the notice", lines, gold)
+				}
 				if got := f.live.world.Purse(sim.SelfSlot); got != purse+37 {
 					t.Fatalf("create gold=%d, want %d", got, purse+37)
 				}

@@ -79,6 +79,11 @@ type Table struct {
 	// first game's (DIV-762).
 	StoredFormMerge bool
 
+	// ClassCreatureBooks builds a Dragon or Daemon book from its class cells
+	// alone, without the first game's fixed creature books; false is the
+	// first game's.
+	ClassCreatureBooks bool
+
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules

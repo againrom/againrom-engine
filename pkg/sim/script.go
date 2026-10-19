@@ -1570,7 +1570,9 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 
 	case ScriptInstantGiveMoney:
 		if in.HasPlayer && in.Player < relationSlots {
+			before := w.purses[in.Player]
 			w.purses[in.Player] += uint32(in.Args[0])
+			obs.recordPurseCredit(in.Player, before, w.purses[in.Player])
 		}
 	case ScriptInstantGiveAll:
 		// THE POUR: the WHOLE of Unit's container becomes the tail of Unit2's —

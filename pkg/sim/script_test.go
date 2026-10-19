@@ -732,6 +732,30 @@ func TestGiveMoneyWithoutAPlayerChangesNoPurse(t *testing.T) {
 	}
 }
 
+// TestGiveMoneyReportsTheCredit: the step report names the grant's player and
+// the purse before and after it, once; a node naming no player reports none.
+func TestGiveMoneyReportsTheCredit(t *testing.T) {
+	for _, named := range []bool{true, false} {
+		s := fireOnce(t, []ScriptInstant{{
+			Op: ScriptInstantGiveMoney, Args: [scriptParams]int32{500},
+			Player: SelfSlot, HasPlayer: named,
+		}}, 0)
+		w := scriptWorld(t, s, nil)
+		w.purses[SelfSlot] = 70
+		var got []PurseCredit
+		for range 32 {
+			got = append(got, StepReported(w, nil).PurseCredits...)
+		}
+		want := []PurseCredit{{Player: SelfSlot, Before: 70, After: 570}}
+		if !named {
+			want = nil
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("named=%t: credits %+v, want %+v", named, got, want)
+		}
+	}
+}
+
 func TestAnEmptyScriptAndNoneAreOneWorld(t *testing.T) {
 	empty := mustScript(t, nil, nil, nil)
 	a := scriptWorld(t, nil, []Entity{{ID: 1}})

@@ -990,6 +990,9 @@ func unitRowBlock(class int32, index int, def data.UnitDef, worn [sim.EquipSlots
 			skill[i] = 30
 		}
 	}
+	if t == nil || !t.ClassCreatureBooks {
+		addFixedCreatureBook(def.TypeID, def.Face, t, &known, &book, &skill)
+	}
 	nativeBasis := nativeInitialModifier(nativeInitialBase(nil), &worn, t, skill[0], false, true)
 	return spawnBlock{class: class, health: def.HealthMax, domain: domainFor(def),
 		nativeBasis: nativeBasis.WithBody(uint16(def.Body)),

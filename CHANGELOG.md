@@ -17,6 +17,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] A unit that holds an enemy as its target but neither walks nor
   strikes, such as a mage without a staff whose way to the enemy is refused,
   now stands as an idle unit does; before, it was drawn making a swing.
+- [ROM1] Dragons and Daemons cast spells again, as in the original: each
+  Dragon knows the spells of its kind (Fire Ball, Wall of Fire, Lightning and
+  more for the stronger ones) and has the matching magic skills. This takes
+  effect when a mission starts; a dragon in a save made earlier keeps its
+  empty book until the mission is started again.
+- [ROM1] Gold a mission script hands you, such as the farmer's 10000 for
+  bringing his son home in Dragon Clan, now shows "Picked up 10000 gold" on
+  the message line, as gold picked up from the ground does. So does gold from
+  the `#create N Gold` cheat.
 - [BASE] With a spell picked in the spell book, closing the book (Space, B,
   or the book button) or choosing the Attack order puts the cursor back to
   normal, and a click on an enemy now attacks it instead of casting the spell.

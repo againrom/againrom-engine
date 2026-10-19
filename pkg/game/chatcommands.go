@@ -145,7 +145,11 @@ func (mw *mapWorld) runChatCommand(row chatCommandRow, arg string) bool {
 		count, name := cheatCount(arg)
 		ok := false
 		if name == "Gold" || row.foldGold && strings.EqualFold(name, "Gold") {
+			before := mw.world.Purse(hero.Owner)
 			ok = mw.world.CheatAddGold(hero.Owner, count)
+			if ok && hero.Owner == sim.SelfSlot && !mw.world.SecondGame() {
+				mw.announcePurseGain(before, mw.world.Purse(hero.Owner))
+			}
 		} else if item, found := mapload.CheatItem(EncodeInstallText(name, mw.view.TextSelector()), mw.mission.table); found {
 			ok = mw.world.CheatAddItem(hero.ID, sim.StackItem(item, count))
 		}

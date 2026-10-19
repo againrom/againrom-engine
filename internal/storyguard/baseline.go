@@ -2649,6 +2649,14 @@ package storyguard
 // pkg/game/spelllessweapon_release_test.go, less the removed SAVE and mission
 // open builds, plus this note. It rises again for the weapon swap's sameHeld
 // and the two release tests a removed Spell changed.
+// CommentBytes rises for the Dragon and Daemon fixed books in
+// pkg/mapload/spell.go, the second game's switch that keeps them off, their
+// tests, plus this note.
+// CommentBytes rises for the gold line a script money grant and the cheat's
+// gold state (pkg/game/pickup_words.go, the step report's purse credits),
+// their tests, plus this note.
+// CommentBytes rises for the armed-cast U44 rule in
+// pkg/game/savactionwire.go, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2672,5 +2680,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1707,
 	},
-	CommentBytes: 9274106,
+	CommentBytes: 9278416,
 }

@@ -100,6 +100,21 @@ type castObs struct {
 	flightStarts     []FlightStart
 	projectilePhases []ProjectilePhase
 	projectileMarks  []ProjectileMark
+	purseCredits     []PurseCredit
+}
+
+// PurseCredit is one script money grant to a player's purse: the purse
+// before and after the grant. The client states the gain as a pickup does
+// (TRIG-MONEY-028, ITEM-PICKTEXT-145).
+type PurseCredit struct {
+	Player        uint32
+	Before, After uint32
+}
+
+func (o *castObs) recordPurseCredit(player, before, after uint32) {
+	if o != nil {
+		o.purseCredits = append(o.purseCredits, PurseCredit{Player: player, Before: before, After: after})
+	}
 }
 
 // ProjectileMark is one resolved actor target's picture-20 or picture-30

@@ -33,18 +33,72 @@ func unitSpellbook(params []int32, t *Table, typeID int32) (uint32, sim.Spellboo
 		if id > 28 || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
 			continue
 		}
-		rule := rules[id-1]
-		entry := sim.BookSpell{Range: rule.MaxRange, ManaCost: uint16(rule.ManaCost)}
-		if rule.Defensive {
-			entry.Defensive = 1
-		}
-		book.Slots[id-1] = entry
+		book.Slots[id-1] = bookSpell(rules[id-1])
 		known |= uint32(1) << uint(id)
 		if cell+1 < len(params) {
 			slots[(cell-firstSpell)/2] = sim.CreatureSpellFor(id, params[cell+1])
 		}
 	}
 	return known, book, slots
+}
+
+// fixedCreatureBook is the spawn's own book for Dragon (by face) and Daemon:
+// the spells it inserts after forcing the book, and the elemental skill words
+// it then writes (UNIT-SPELL-007; observed in every original save of these
+// classes). A face outside 1..4 adds nothing. A skill of -1 is left as it is.
+type fixedCreatureBook struct {
+	spells []int32
+	skill  [6]int32 // general, fire, water, air, earth, astral
+}
+
+var dragonBooks = [4]fixedCreatureBook{
+	{[]int32{2, 3, 13}, [6]int32{-1, 30, -1, 30, -1, -1}},
+	{[]int32{2, 3, 13, 11, 27}, [6]int32{-1, 50, 60, 50, -1, 20}},
+	{[]int32{2, 8, 11, 14, 27}, [6]int32{-1, 50, 50, 50, -1, 50}},
+	{[]int32{2, 8, 11, 14, 17, 20}, [6]int32{-1, 90, 90, 90, 0, -1}},
+}
+
+var daemonBook = fixedCreatureBook{[]int32{2, 8, 11, 14, 17, 20}, [6]int32{-1, 99, 99, 99, 20, -1}}
+
+func creatureBookFor(typeID int32, face int32) (fixedCreatureBook, bool) {
+	switch {
+	case typeID == 0x48:
+		return daemonBook, true
+	case typeID == 0x47 && face >= 1 && face <= 4:
+		return dragonBooks[face-1], true
+	}
+	return fixedCreatureBook{}, false
+}
+
+// addFixedCreatureBook inserts the class's fixed spells into book and writes
+// its skill words. Each entry is the installed spell row, as a class cell
+// spell is.
+func addFixedCreatureBook(typeID, face int32, t *Table, known *uint32, book *sim.Spellbook, skill *[data.SkillSlots]int32) {
+	fixed, ok := creatureBookFor(typeID, face)
+	if !ok {
+		return
+	}
+	rules := SpellRules(t)
+	for _, id := range fixed.spells {
+		if int(id) > len(rules) || rules[id-1].ID != uint16(id) {
+			continue
+		}
+		book.Slots[id-1] = bookSpell(rules[id-1])
+		*known |= uint32(1) << uint(id)
+	}
+	for i, v := range fixed.skill {
+		if v >= 0 && i < len(skill) {
+			skill[i] = v
+		}
+	}
+}
+
+func bookSpell(rule sim.SpellRule) sim.BookSpell {
+	entry := sim.BookSpell{Range: rule.MaxRange, ManaCost: uint16(rule.ManaCost)}
+	if rule.Defensive {
+		entry.Defensive = 1
+	}
+	return entry
 }
 
 // spellRules converts pkg/data's own loaded spell rows into pkg/sim's

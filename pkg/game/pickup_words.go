@@ -78,6 +78,28 @@ func pickupLinesForTake(reached []sim.ItemStack, gained int32, table *mapload.Ta
 	return append(lines, pickupLinesForItems(reached, table, words)...)
 }
 
+// announcePurseGain posts the gold line a sack take posts for a purse that
+// went from before to after. A script money grant and the cheat's gold reach
+// the same client arm a sack's gold does (TRIG-MONEY-028, MENU-104,
+// ITEM-PICKTEXT-145), so they state the same line.
+func (mw *mapWorld) announcePurseGain(before, after uint32) {
+	words := mw.view.Words()
+	announce(mw.view, pickupLinesForTake(nil, purseGain(before, after), nil, &words))
+}
+
+// observePurseCredits states each script money grant to the local player.
+// The second game's grant is not covered and states nothing.
+func (mw *mapWorld) observePurseCredits(credits []sim.PurseCredit) {
+	if mw.world.SecondGame() {
+		return
+	}
+	for _, c := range credits {
+		if c.Player == sim.SelfSlot {
+			mw.announcePurseGain(c.Before, c.After)
+		}
+	}
+}
+
 // announce posts each line to the map message line in white for announceLife.
 func announce(view *ui.Viewer, lines []string) {
 	for _, line := range lines {

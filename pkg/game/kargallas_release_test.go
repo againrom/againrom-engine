@@ -44,7 +44,11 @@ func kargallasLoad(t *testing.T, raw []byte) (*FrontEnd, *ui.App) {
 	return f, a
 }
 
-func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
+// TestReleaseKargallasDragonHasTheFixedDragonBook: the installed Dragon rows
+// author no class spell, and the spawn gives the Dragon.2 placement its fixed
+// book. The two owner SAVs were written before that book existed; their empty
+// books load as saved.
+func TestReleaseKargallasDragonHasTheFixedDragonBook(t *testing.T) {
 	f := releaseFront(t)
 	rows := 0
 	for i := 1; i < f.Table.Units.Len(); i++ {
@@ -62,7 +66,7 @@ func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
 	if rows != 4 {
 		t.Fatalf("Dragon rows=%d, want four", rows)
 	}
-	check := func(t *testing.T, f *FrontEnd, a *ui.App, interact bool) {
+	check := func(t *testing.T, f *FrontEnd, a *ui.App, interact bool, want uint32) {
 		t.Helper()
 		var e sim.Entity
 		found := 0
@@ -76,7 +80,7 @@ func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
 			t.Fatalf("dragon records=%d", found)
 		}
 		id := e.ID
-		if e.TypeID != 71 || e.Owner != 9 || e.Book.State != sim.BookPresent || e.KnownSpells != 0 || e.Book.Slots != ([28]sim.BookSpell{}) || e.CreatureSpells != ([sim.CreatureSpellSlots]sim.CreatureSpell{}) {
+		if e.TypeID != 71 || e.Owner != 9 || e.Book.State != sim.BookPresent || e.KnownSpells != want || want == 0 && e.Book.Slots != ([28]sim.BookSpell{}) || e.CreatureSpells != ([sim.CreatureSpellSlots]sim.CreatureSpell{}) {
 			t.Fatalf("dragon book/owner=%+v", e)
 		}
 		if interact {
@@ -87,10 +91,10 @@ func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
 			t.Fatalf("book catalog=%d fixed=%v", len(entries), fixed)
 		}
 		for _, entry := range entries {
-			if !entry.Unavailable {
-				t.Fatalf("dragon knows spell %d", entry.ID)
+			if entry.Unavailable != (want&(1<<entry.ID) == 0) {
+				t.Fatalf("dragon spell %d unavailable=%v, known %b", entry.ID, entry.Unavailable, want)
 			}
-			if !interact {
+			if !interact || !entry.Unavailable {
 				continue
 			}
 			x, y, err := a.HeadlessSpellPoint(entry.ID)
@@ -103,11 +107,11 @@ func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
 				}
 			}
 			if _, current, armed := f.live.view.QuickSpellState(); current != 0 || armed {
-				t.Fatalf("empty book arms %d (%v)", current, armed)
+				t.Fatalf("unknown spell %d arms %d (%v)", entry.ID, current, armed)
 			}
 		}
 		if interact && len(f.live.pending) != 0 {
-			t.Fatal("empty book issued an order")
+			t.Fatal("an unknown spell issued an order")
 		}
 	}
 	t.Run("fresh", func(t *testing.T) {
@@ -116,7 +120,7 @@ func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
 		if err := a.OpenMission(f.MissionOpener(90)); err != nil {
 			t.Fatal(err)
 		}
-		check(t, f, a, true)
+		check(t, f, a, true, spellMask(2, 3, 11, 13, 27))
 	})
 	for _, c := range []struct{ key, hash string }{
 		{"AGAINROM_KARGALLAS_SAV", "7298b24b9d72c3ac1e149b5b01f8dbbcb9fb1d44f3450621d2d62b41263d01f8"},
@@ -145,7 +149,7 @@ func TestReleaseKargallasDragonHasTheInstalledEmptyBook(t *testing.T) {
 				t.Fatal("source has no dragon book")
 			}
 			f, a := kargallasLoad(t, raw)
-			check(t, f, a, false)
+			check(t, f, a, false, 0)
 		})
 	}
 }

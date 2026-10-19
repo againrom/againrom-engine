@@ -173,7 +173,9 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 			}
 		}
 		stateCode, inner := uint32(0xd), byte(8)
-		if book && spellKey != 0 {
+		// An armed cast has not installed its spell, so the actor's selection
+		// stays the spell it last admitted, which U44 already carries.
+		if book && spellKey != 0 && phase != sim.BookPhaseApproach {
 			savedObjectSetValue(r, "U44", spellKey)
 		}
 		if atCell {
