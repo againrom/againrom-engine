@@ -2,11 +2,11 @@ package game
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"sync"
 
+	"againrom/pkg/installpath"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -54,8 +54,9 @@ func installShareKey(root string) (string, bool) {
 		return "", false
 	}
 	key := root + "|" + abs
+	files := installpath.New(abs)
 	for _, name := range RequiredArchives() {
-		st, err := os.Stat(filepath.Join(abs, name))
+		st, err := files.Stat(name)
 		if err != nil || !st.Mode().IsRegular() {
 			return "", false
 		}

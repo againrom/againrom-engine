@@ -2,8 +2,6 @@ package game
 
 import (
 	_ "embed"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -62,7 +60,8 @@ func MusicTrackNames() []string {
 // success nor failure, so the retained player is the sole owner of current
 // track bytes.
 type MusicBank struct {
-	path string
+	root string
+	rel  string
 	desc *ui.MusicDescription
 	once sync.Once
 	src  *vfs.FS
@@ -77,7 +76,7 @@ func OpenMusicFor(root string, d *ui.MusicDescription) *MusicBank {
 	if root == "" || d == nil {
 		return nil
 	}
-	return &MusicBank{path: filepath.Join(root, filepath.FromSlash(d.Archive.Path)), desc: d}
+	return &MusicBank{root: root, rel: d.Archive.Path, desc: d}
 }
 
 func (b *MusicBank) open() *vfs.FS {
@@ -85,29 +84,11 @@ func (b *MusicBank) open() *vfs.FS {
 		return nil
 	}
 	b.once.Do(func() {
-		b.src, _ = vfs.OpenFileBacked([]string{foldedHostPath(b.path)}, nil)
+		if path, err := InstallFile(b.root, b.rel); err == nil {
+			b.src, _ = vfs.OpenFileBacked([]string{path}, nil)
+		}
 	})
 	return b.src
-}
-
-// foldedHostPath is path, or the entry of its directory whose name equals
-// its base ignoring case; the two games' roots spell the archive in either
-// case.
-func foldedHostPath(path string) string {
-	if _, err := os.Stat(path); err == nil {
-		return path
-	}
-	dir, name := filepath.Split(path)
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return path
-	}
-	for _, e := range entries {
-		if !e.IsDir() && strings.EqualFold(e.Name(), name) {
-			return filepath.Join(dir, e.Name())
-		}
-	}
-	return path
 }
 
 // Track resolves one member of the description's manifest and decodes it as

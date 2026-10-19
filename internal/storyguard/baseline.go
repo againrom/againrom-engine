@@ -2621,6 +2621,10 @@ package storyguard
 // Shorter actor API documentation offsets the SoundCycle contract.
 // CommentBytes falls as the world-map Cross tests replace the per-route reset
 // contract with the claimed enter-only counter and strict completion bounds.
+// CommentBytes rises for the install name resolver: pkg/installpath and its
+// tests, the vfs loose tier and the readers that build install paths through
+// it, and internal/archtest's install-name rule, plus this note.
+// barestorynumber falls with the retired loose-tier case limitation note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2633,7 +2637,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1864,
 		"scclause":        505,
-		"barestorynumber": 1720,
+		"barestorynumber": 1718,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2644,5 +2648,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1708,
 	},
-	CommentBytes: 9224271,
+	CommentBytes: 9231304,
 }

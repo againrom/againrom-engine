@@ -1,8 +1,9 @@
 package game
 
 import (
-	"os"
 	"strings"
+
+	"againrom/pkg/installpath"
 )
 
 // ResolveAssetRoot returns the game asset root directory from configuration,
@@ -33,10 +34,9 @@ func ResolveAssetRoot(flagValue, envValue string) string {
 // moment later, so a directory this function accepts is one OpenArchives can
 // open.
 //
-// The file-name comparison folds case. The two lawful installs disagree: the EN
-// root ships `graphics.res` and the RU root ships `GRAPHICS.RES`. Folding case
-// here gives the same answer on a case-sensitive filesystem as on Windows' own,
-// rather than leaving the result to depend on the host being forgiving.
+// The file-name comparison folds case through the install name resolver. The
+// two lawful installs disagree: the EN root ships `graphics.res` and the RU
+// root ships `GRAPHICS.RES`.
 func DiscoverAssetRoot(candidates ...string) string {
 	for _, candidate := range candidates {
 		dir := strings.TrimSpace(candidate)
@@ -51,31 +51,22 @@ func DiscoverAssetRoot(candidates ...string) string {
 }
 
 // hasRequiredArchives reports whether dir holds every name RequiredArchives
-// lists, comparing file names with case folded.
+// lists as a file, through the install name resolver: one listing of dir,
+// names compared with case folded, so a case-sensitive filesystem gives the
+// answer Windows' own does.
 //
-// It reads the directory once and then answers from that listing. Calling
-// os.Stat per archive would ask the host filesystem to do the case folding,
-// which Windows does and a case-sensitive filesystem does not, so the two would
-// disagree about the same install.
-//
-// An unreadable directory is not an install. A missing or permission-denied
-// candidate returns false rather than an error: this function's caller is
-// deciding between candidates, and a candidate it cannot read is one it cannot
-// use.
+// An unreadable directory is not an install, and neither is one holding two
+// names that differ only by case: this function's caller is deciding between
+// candidates, and a candidate it cannot read unambiguously is one it cannot use.
 func hasRequiredArchives(dir string) bool {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return false
-	}
-	present := make(map[string]bool, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		present[strings.ToLower(entry.Name())] = true
-	}
+	return requiredArchivesIn(installpath.New(dir))
+}
+
+// requiredArchivesIn is hasRequiredArchives over the resolver of a directory.
+func requiredArchivesIn(files *installpath.Resolver) bool {
 	for _, name := range RequiredArchives() {
-		if !present[strings.ToLower(name)] {
+		e, err := files.Resolve(name)
+		if err != nil || e.Dir {
 			return false
 		}
 	}

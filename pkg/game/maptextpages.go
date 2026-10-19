@@ -60,7 +60,7 @@ func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (m
 	if !isNewSource(s.source) && !strings.HasPrefix(s.source, "scenario/") {
 		source := s.source
 		if strings.HasPrefix(source, "loose/") && x.archives != nil {
-			source = filepath.Join(x.archives.Root, filepath.FromSlash(strings.TrimPrefix(source, "loose/")))
+			source = looseHostPath(x.archives.Root, source)
 		}
 		if err := readPageTree(filepath.Dir(source), filepath.Base(mapTextFolder(source)), files, true, x.pageLanguage()); err != nil {
 			return nil, err
@@ -190,7 +190,7 @@ func (x *MapInspector) editorPages(source string) *modPages {
 	if !strings.HasPrefix(source, "scenario/") && !isNewSource(source) {
 		path := source
 		if strings.HasPrefix(source, "loose/") && x.archives != nil {
-			path = filepath.Join(x.archives.Root, filepath.FromSlash(strings.TrimPrefix(source, "loose/")))
+			path = looseHostPath(x.archives.Root, source)
 		}
 		m := mod.Mission{Map: filepath.Base(path)}
 		files, err := m.ReadTexts(filepath.Dir(path), x.pageLanguage())

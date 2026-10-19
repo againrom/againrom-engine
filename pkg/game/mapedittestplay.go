@@ -103,7 +103,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if strings.HasPrefix(input, "scenario/") || isNewSource(input) {
 		input = ""
 	} else if strings.HasPrefix(input, "loose/") {
-		input = filepath.Join(x.archives.Root, filepath.FromSlash(strings.TrimPrefix(input, "loose/")))
+		input = looseHostPath(x.archives.Root, input)
 	}
 	var protected []string
 	if input != "" {

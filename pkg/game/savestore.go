@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"againrom/pkg/installpath"
 )
 
 // SaveStore holds authored saves. Only a launch-issued private profile can
@@ -671,8 +674,8 @@ func directoryHasRequiredArchives(dir string) (bool, error) {
 	// The shipped game and the supported runtime are Windows, where a direct
 	// lookup is case-insensitive. Besides being cheaper, these probes still
 	// work when the sandbox permits naming a child but refuses enumerating a
-	// broad ancestor such as the user profile. ReadDir below supplies the same
-	// case-insensitive census on case-sensitive development filesystems.
+	// broad ancestor such as the user profile. The install name resolver below
+	// supplies the same case-insensitive census on case-sensitive filesystems.
 	direct, absent := 0, 0
 	for name := range want {
 		info, err := os.Stat(filepath.Join(dir, name))
@@ -694,21 +697,23 @@ func directoryHasRequiredArchives(dir string) (bool, error) {
 	if runtime.GOOS == "windows" && absent == len(want) {
 		return false, nil
 	}
-	entries, err := os.ReadDir(dir)
-	if errors.Is(err, os.ErrNotExist) || (errors.Is(err, os.ErrPermission) && direct == 0) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	for _, entry := range entries {
-		name := strings.ToLower(entry.Name())
-		if _, ok := want[name]; ok && !entry.IsDir() {
-			want[name] = true
+	files := installpath.New(dir)
+	for name, found := range want {
+		if found {
+			continue
 		}
-	}
-	for _, found := range want {
-		if !found {
+		e, err := files.Resolve(name)
+		if errors.Is(err, fs.ErrNotExist) || (errors.Is(err, os.ErrPermission) && direct == 0) {
+			return false, nil
+		}
+		if errors.Is(err, installpath.ErrAmbiguous) {
+			// Two spellings of a required archive still mark an install.
+			continue
+		}
+		if err != nil {
+			return false, err
+		}
+		if e.Dir {
 			return false, nil
 		}
 	}
@@ -763,7 +768,11 @@ func (s OriginalStore) Read(name string) ([]byte, error) {
 	if name != filepath.Base(name) || name == "." || name == ".." {
 		return nil, fmt.Errorf("%q is not a save name", name)
 	}
-	return os.ReadFile(filepath.Join(s.Dir, name))
+	path, err := InstallFile(s.Dir, name)
+	if err != nil {
+		return nil, err
+	}
+	return os.ReadFile(path)
 }
 
 // IsOriginal reports whether a name from the load window belongs to the original

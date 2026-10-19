@@ -1,14 +1,16 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"againrom/pkg/formats/winicon"
+	"againrom/pkg/installpath"
 )
 
 // WindowIconExecutable is the file of an install that holds the game's icon:
@@ -41,17 +43,16 @@ func WindowIcon(root string) ([]image.Image, error) {
 	return deepestPerSize(group.Images), nil
 }
 
-// installFilePath finds the file of an install by name, comparing names with
-// case folded: the two lawful installs disagree, EN ships rom.exe and RU ROM.EXE.
+// installFilePath finds the file of an install by name whatever the case of
+// its name: the two lawful installs disagree, EN ships rom.exe and RU ROM.EXE.
 func installFilePath(root, name string) (string, error) {
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return "", err
+	files := installpath.New(root)
+	e, err := files.Resolve(name)
+	if err == nil && !e.Dir {
+		return files.Path(e.Rel)
 	}
-	for _, e := range entries {
-		if !e.IsDir() && strings.EqualFold(e.Name(), name) {
-			return filepath.Join(root, e.Name()), nil
-		}
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", err
 	}
 	return "", fmt.Errorf("%s is not in %s", name, root)
 }

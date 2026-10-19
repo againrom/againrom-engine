@@ -419,7 +419,7 @@ func (s *mapInspectionEdits) packageProtected() []string {
 	if !isNewSource(s.source) && !strings.HasPrefix(s.source, "scenario/") {
 		input := s.source
 		if strings.HasPrefix(input, "loose/") && s.inspector.archives != nil {
-			input = filepath.Join(s.inspector.archives.Root, filepath.FromSlash(strings.TrimPrefix(input, "loose/")))
+			input = looseHostPath(s.inspector.archives.Root, input)
 		}
 		out = append(out, filepath.Dir(input))
 	}

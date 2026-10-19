@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -268,7 +267,7 @@ func (f *FrontEnd) wireGameOptions(a *ui.App) {
 			// The label line ends in its own colon; the row adds one.
 			c.Words.Labels[ui.GameOptionAutoCast] = strings.TrimSuffix(strings.TrimSpace(c.Words.Labels[ui.GameOptionAutoCast]), ":")
 		}
-		if patch, err := OpenContainers(filepath.Join(f.Archives.Root, patchArchive)); err == nil {
+		if patch, err := openInstallContainers(f.Archives, patchArchive); err == nil {
 			table := LoadTextTable(patch, patchTextPath, f.textCode())
 			for i, o := range [...]ui.GameOption{ui.GameOptionShadows, ui.GameOptionLighting, ui.GameOptionAnimation} {
 				if s, ok := table.At(patchGraphicsRow + i); ok {

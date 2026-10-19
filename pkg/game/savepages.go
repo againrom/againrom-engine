@@ -40,7 +40,7 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 	patch := &TextTable{}
 	if f.Archives != nil {
 		dialogs = LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
-		if p, err := OpenContainers(filepath.Join(f.Archives.Root, patchArchive)); err == nil {
+		if p, err := openInstallContainers(f.Archives, patchArchive); err == nil {
 			patch = LoadTextTable(p, patchTextPath, f.textCode())
 		}
 	}

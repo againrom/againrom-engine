@@ -6,9 +6,9 @@
 // the engine has on it. Detect reads the directory (read-only) and returns the
 // profile it matches, or an error that says why no profile fits.
 //
-// The package imports nothing of this repository and reads no game byte beyond
-// the size and SHA-256 digest of the main archive. The digests are constants: a
-// hash is not an install byte.
+// The package imports only the install name resolver of this repository and
+// reads no game byte beyond the size and SHA-256 digest of the main archive. The
+// digests are constants: a hash is not an install byte.
 package base
 
 import (
@@ -17,9 +17,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
+
+	"againrom/pkg/installpath"
 )
 
 // Profile identifiers. Mods name a base by these ids in applies-to.
@@ -323,19 +323,28 @@ func Detect(root string, language Language) (Match, error) {
 
 // DetectIn is Detect over the given profiles.
 func DetectIn(root string, profiles []Profile, language Language) (Match, error) {
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return Match{}, &NotInstallError{Root: root, Missing: RequiredArchives()}
-	}
-	actual := make(map[string]string, len(entries))
-	for _, e := range entries {
-		if !e.IsDir() {
-			actual[strings.ToLower(e.Name())] = e.Name()
+	return detect(installpath.New(root), root, profiles, language)
+}
+
+// detect is DetectIn over files, the resolver of root; every name is looked
+// up, stated and read through it.
+func detect(files *installpath.Resolver, root string, profiles []Profile, language Language) (Match, error) {
+	// present reports whether a file stands under root by name, whatever the
+	// case of its name; two names differing only by case are an error.
+	present := func(name string) (bool, error) {
+		e, err := files.Resolve(name)
+		if errors.Is(err, installpath.ErrAmbiguous) {
+			return false, err
 		}
+		return err == nil && !e.Dir, nil
 	}
 	var missing []string
 	for _, name := range RequiredArchives() {
-		if _, ok := actual[name]; !ok {
+		ok, err := present(name)
+		if err != nil {
+			return Match{}, err
+		}
+		if !ok {
 			missing = append(missing, name)
 		}
 	}
@@ -344,13 +353,20 @@ func DetectIn(root string, profiles []Profile, language Language) (Match, error)
 	}
 	game := GameROM2
 	for _, name := range rom2Marks {
-		if _, ok := actual[name]; !ok {
+		ok, err := present(name)
+		if err != nil {
+			return Match{}, err
+		}
+		if !ok {
 			game = GameROM1
 		}
 	}
 	profiles = inGame(profiles, game)
-	mainPath := filepath.Join(root, actual[MainArchive])
-	st, err := os.Stat(mainPath)
+	mainPath, err := files.Path(MainArchive)
+	if err != nil {
+		return Match{}, err
+	}
+	st, err := files.Stat(MainArchive)
 	if err != nil {
 		return Match{}, fmt.Errorf("%s: %w", mainPath, err)
 	}
@@ -361,7 +377,7 @@ func DetectIn(root string, profiles []Profile, language Language) (Match, error)
 				continue
 			}
 			if digest == "" {
-				if digest, err = fileDigest(mainPath); err != nil {
+				if digest, err = fileDigest(files, MainArchive); err != nil {
 					return Match{}, fmt.Errorf("%s: %w", mainPath, err)
 				}
 			}
@@ -370,7 +386,11 @@ func DetectIn(root string, profiles []Profile, language Language) (Match, error)
 			}
 			var absent []string
 			for _, f := range p.Files {
-				if _, ok := actual[strings.ToLower(f)]; !ok {
+				ok, err := present(f)
+				if err != nil {
+					return Match{}, err
+				}
+				if !ok {
 					absent = append(absent, f)
 				}
 			}
@@ -405,9 +425,9 @@ func inGame(profiles []Profile, game Game) []Profile {
 	return out
 }
 
-// fileDigest is the SHA-256 of the file at path, in lower-case hex.
-func fileDigest(path string) (string, error) {
-	f, err := os.Open(path)
+// fileDigest is the SHA-256 of the file rel names, in lower-case hex.
+func fileDigest(files *installpath.Resolver, rel string) (string, error) {
+	f, err := files.Open(rel)
 	if err != nil {
 		return "", err
 	}

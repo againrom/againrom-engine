@@ -595,7 +595,7 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 	if strings.HasPrefix(source, "scenario/") || isNewSource(source) {
 		input = "" // archive address or a map built from nothing, never a writable host path
 	} else if strings.HasPrefix(source, "loose/") {
-		input = filepath.Join(root, filepath.FromSlash(strings.TrimPrefix(source, "loose/")))
+		input = looseHostPath(root, source)
 	}
 	if input != "" {
 		resolvedInput, err := resolvePathForSaveSafety(input)

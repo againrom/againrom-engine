@@ -76,7 +76,7 @@ var allow = map[string][]string{
 	// The graph copier is a reflection leaf a decoder uses to hand each
 	// reader its own copy of one decoded value.
 	"pkg/graphcopy": {},
-	"pkg/vfs":       {"pkg/formats/res"},
+	"pkg/vfs":       {"pkg/formats/res", "pkg/installpath"},
 	"pkg/data":      {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
 	"pkg/sim":       {"pkg/rules", "pkg/random"},
 	"pkg/rules":     {},
@@ -397,9 +397,13 @@ var allow = map[string][]string{
 	// layout, read through the mods' own lookup. pkg/ui and pkg/game read it.
 	"pkg/words": {"pkg/mod", "pkg/locale"},
 	// The base profile leaf names the known game installs and detects one from
-	// a directory listing and the main archive's digest. It imports nothing of
-	// this tree; pkg/game and the commands read it.
-	"pkg/base": {},
+	// a directory listing and the main archive's digest. It imports only the
+	// install name resolver; pkg/game and the commands read it.
+	"pkg/base": {"pkg/installpath"},
+	// The install name resolver maps a name under an install root onto the
+	// file on disk whatever the case of its name. It imports nothing of this
+	// tree; every reader of an install file builds its path through it.
+	"pkg/installpath": {},
 	// The mod runtime runs a mod's Starlark script and hands the simulation
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.

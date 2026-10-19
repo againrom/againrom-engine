@@ -683,7 +683,7 @@ func (s *mapInspectionEdits) textsStamp() string {
 	tree := map[string][]byte{}
 	source := s.source
 	if strings.HasPrefix(source, "loose/") && s.inspector.archives != nil {
-		source = filepath.Join(s.inspector.archives.Root, filepath.FromSlash(strings.TrimPrefix(source, "loose/")))
+		source = looseHostPath(s.inspector.archives.Root, source)
 	}
 	var err error
 	if !isNewSource(source) && !strings.HasPrefix(source, "scenario/") {

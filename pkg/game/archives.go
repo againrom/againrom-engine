@@ -2,8 +2,10 @@ package game
 
 import (
 	"path/filepath"
+	"strings"
 
 	"againrom/pkg/base"
+	"againrom/pkg/installpath"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/screenart"
 	"againrom/pkg/vfs"
@@ -97,6 +99,21 @@ type Archives struct {
 	art *screenart.Library
 }
 
+// InstallPath is the host path of the install file rel names under Root,
+// whatever the case of its name on disk (installpath.Resolver.Path). It
+// lists afresh: an Archives is shared between front ends and keeps no
+// listing.
+func (a *Archives) InstallPath(rel string) (string, error) {
+	return InstallFile(a.Root, rel)
+}
+
+// InstallFile is the host path of the install file rel names under root,
+// whatever the case of its name on disk. It is the one builder of a path
+// under an install root for a reader that holds a root and no Archives.
+func InstallFile(root, rel string) (string, error) {
+	return installpath.New(root).Path(rel)
+}
+
 // Game is the game of the profile the root was detected as.
 func (a *Archives) Game() base.Game { return a.Base.Profile.GameOf() }
 
@@ -132,10 +149,15 @@ func (a *Archives) Game() base.Game { return a.Base.Profile.GameOf() }
 // same string, and with the transitional handles gone there is no longer a
 // second place in this function that could produce it.
 func OpenArchives(root string) (*Archives, error) {
+	files := installpath.New(root)
 	names := RequiredArchives()
 	hosts := make([]string, 0, len(names))
 	for _, name := range names {
-		hosts = append(hosts, filepath.Join(root, name))
+		host, err := files.Path(name)
+		if err != nil {
+			return nil, err
+		}
+		hosts = append(hosts, host)
 	}
 	containers, err := vfs.Open(hosts, nil)
 	if err != nil {
@@ -175,6 +197,27 @@ func OpenArchives(root string) (*Archives, error) {
 // from one place rather than a wrapper stacked on top of it.
 func OpenContainers(path string) (*vfs.FS, error) {
 	return vfs.Open([]string{path}, nil)
+}
+
+// looseHostPath is the host path of the loose map a catalogue key
+// "loose/<name>" names under root, whatever the case of its name on disk. An
+// ambiguous name keeps the requested spelling; reading it reports the pair.
+func looseHostPath(root, source string) string {
+	rel := strings.TrimPrefix(source, "loose/")
+	if path, err := InstallFile(root, rel); err == nil {
+		return path
+	}
+	return filepath.Join(root, filepath.FromSlash(rel))
+}
+
+// openInstallContainers opens the container filesystem over the archive rel
+// names under the install, whatever the case of its name on disk.
+func openInstallContainers(a *Archives, rel string) (*vfs.FS, error) {
+	path, err := a.InstallPath(rel)
+	if err != nil {
+		return nil, err
+	}
+	return OpenContainers(path)
 }
 
 // OpenGraphics opens the container filesystem over the graphics archive at path

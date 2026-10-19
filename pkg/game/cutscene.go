@@ -2,14 +2,17 @@ package game
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"againrom/pkg/base"
+	"againrom/pkg/installpath"
 	"againrom/pkg/vfs"
 	"againrom/pkg/video"
 )
@@ -188,32 +191,26 @@ func cutsceneMember(name string) (string, error) {
 	return name, nil
 }
 
-// cutsceneInstallPath folds each known component over the selected install.
-// The resulting absolute DLL path is the only one given to the native helper.
+// cutsceneInstallPath resolves the components, one path segment each, under
+// the selected install whatever the case of their names on disk. The resulting
+// absolute DLL path is the only one given to the native helper.
 func cutsceneInstallPath(root string, components ...string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("video: no asset root")
 	}
-	path, err := filepath.Abs(root)
+	abs, err := filepath.Abs(root)
 	if err != nil {
 		return "", err
 	}
-	for _, component := range components {
-		entries, err := os.ReadDir(path)
-		if err != nil {
+	files := installpath.New(abs)
+	for i := range components {
+		rel := strings.Join(components[:i+1], "/")
+		if _, err := files.Resolve(rel); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return "", fmt.Errorf("video: installed %s missing", components[i])
+			}
 			return "", err
 		}
-		found := false
-		for _, entry := range entries {
-			if strings.EqualFold(entry.Name(), component) {
-				path = filepath.Join(path, entry.Name())
-				found = true
-				break
-			}
-		}
-		if !found {
-			return "", fmt.Errorf("video: installed %s missing", component)
-		}
 	}
-	return path, nil
+	return files.Path(strings.Join(components, "/"))
 }

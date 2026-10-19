@@ -464,5 +464,5 @@ func resolveArchive(assetsFlag, graphicsFlag string) (string, error) {
 	if root == "" {
 		return "", fmt.Errorf("no asset root configured; pass -assets, set AGAINROM_ASSETS, or give -graphics")
 	}
-	return filepath.Join(root, graphicsArchive), nil
+	return game.InstallFile(root, graphicsArchive)
 }

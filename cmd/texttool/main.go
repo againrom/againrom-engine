@@ -22,7 +22,6 @@ import (
 	"image/png"
 	"io"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -69,7 +68,11 @@ func loadFont(assets, base string) (*text.Font, error) {
 	if root == "" {
 		return nil, fmt.Errorf("no asset root configured; pass -assets or set AGAINROM_ASSETS")
 	}
-	src, err := game.OpenContainers(filepath.Join(root, graphicsArchive))
+	path, err := game.InstallFile(root, graphicsArchive)
+	if err != nil {
+		return nil, err
+	}
+	src, err := game.OpenContainers(path)
 	if err != nil {
 		return nil, err
 	}

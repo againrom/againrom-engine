@@ -1,7 +1,6 @@
 package game
 
 import (
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -64,7 +63,11 @@ const SfxRegistry = sfxPrefix + "sfx.reg"
 // open and one small registry parse regardless of how many of the corpus's
 // slots a session ever plays.
 func OpenSounds(root string) *SoundBank {
-	containers, err := OpenContainers(filepath.Join(root, SfxArchive))
+	path, err := InstallFile(root, SfxArchive)
+	if err != nil {
+		return nil
+	}
+	containers, err := OpenContainers(path)
 	if err != nil {
 		return nil
 	}

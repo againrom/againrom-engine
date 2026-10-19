@@ -60,7 +60,17 @@ func (s fameStore) read() ([]fame.Record, error) {
 	if s.OriginalDir == "" {
 		return nil, os.ErrNotExist
 	}
-	rows, _, err := readFameFile(filepath.Join(s.OriginalDir, fameFileName))
+	return readInstalledFame(s.OriginalDir)
+}
+
+// readInstalledFame reads the hall the install ships, whatever the case of its
+// file name.
+func readInstalledFame(dir string) ([]fame.Record, error) {
+	path, err := InstallFile(dir, fameFileName)
+	if err != nil {
+		return nil, err
+	}
+	rows, _, err := readFameFile(path)
 	return rows, err
 }
 
@@ -87,7 +97,7 @@ func (s fameStore) add(row fame.Record) ([]fame.Record, error) {
 	if before != nil {
 		rows, old, err = readFameFile(path)
 	} else if s.OriginalDir != "" {
-		rows, _, err = readFameFile(filepath.Join(s.OriginalDir, fameFileName))
+		rows, err = readInstalledFame(s.OriginalDir)
 		if errors.Is(err, os.ErrNotExist) {
 			err = nil
 		}

@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"againrom/pkg/formats/res"
+	"againrom/pkg/installpath"
 )
 
 // identityMax is the byte length an archive identity is cut to. It is a
@@ -27,7 +26,10 @@ const identityMax = 15
 // handle once open (C-2). The zero value is not usable; construct one with Open.
 type FS struct {
 	archives []archiveSource
-	dirs     []string
+	// dirs makes, per listed directory, the resolver one lookup uses. A lookup
+	// lists afresh, so the FS keeps no listing a shared install could be seen
+	// to change, and a file added later is found.
+	dirs []func() *installpath.Resolver
 	// overlay holds addresses a caller added after opening: the bytes served
 	// ahead of every archive and directory. Enumeration does not list them.
 	overlay map[string]func() ([]byte, error)
@@ -139,7 +141,10 @@ func OpenFileBacked(archives, dirs []string) (*FS, error) {
 func openArchives(archives, dirs []string, open func(string) (archiveReader, error)) (*FS, error) {
 	f := &FS{
 		archives: make([]archiveSource, 0, len(archives)),
-		dirs:     append([]string(nil), dirs...),
+		dirs:     make([]func() *installpath.Resolver, 0, len(dirs)),
+	}
+	for _, dir := range dirs {
+		f.dirs = append(f.dirs, func() *installpath.Resolver { return installpath.New(dir) })
 	}
 	for _, host := range archives {
 		identity, err := Identity(host)
@@ -303,7 +308,7 @@ func (f *FS) Locate(address string) (Source, bool) {
 	if i, _, ok := f.findArchive(head, rest); ok {
 		return Source{Tier: TierArchive, Identity: f.archives[i].identity, Index: i}, true
 	}
-	if i, _, ok := f.findDir(folded, 0); ok {
+	if i, _, _, ok, _ := f.findDir(folded, 0); ok {
 		return Source{Tier: TierDir, Index: i}, true
 	}
 	return Source{}, false
@@ -383,12 +388,15 @@ func (f *FS) shadowed(i int, identity, path string) bool {
 // there is not held, so the walk continues to the next directory.
 func (f *FS) readDirs(folded string) (b []byte, served bool, err error) {
 	for from := 0; ; {
-		i, host, ok := f.findDir(folded, from)
+		i, files, rel, ok, ferr := f.findDir(folded, from)
+		if ferr != nil {
+			return nil, false, ferr
+		}
 		if !ok {
 			return nil, false, nil
 		}
 		from = i + 1
-		data, rerr := os.ReadFile(host)
+		data, rerr := files.ReadFile(rel)
 		if rerr != nil {
 			if errors.Is(rerr, fs.ErrNotExist) {
 				// It stood there a moment ago and does not now: this directory
@@ -402,31 +410,38 @@ func (f *FS) readDirs(folded string) (b []byte, served bool, err error) {
 }
 
 // findDir walks the listed directories from position from onwards and
-// returns the position and host path of the first one holding folded. It is
-// the only thing that decides whether a directory holds an address, so the
-// read and the report stop at the same directory.
+// returns the position and the resolved relative name of the first one
+// holding folded. It is the only thing that decides whether a directory holds
+// an address, so the read and the report stop at the same directory.
 //
-// The host path is joined from the folded segments verbatim, never through
-// filepath.Clean, and an address carrying a ".", ".." or empty segment is
-// held by no directory at all: cleaning "a/../b" would resolve outside the
-// root the caller listed.
-func (f *FS) findDir(folded string, from int) (int, string, bool) {
+// Each segment is matched against the directory's own listing with case
+// folded (installpath), so a file shipped as TOMB.ALM answers the folded
+// address on a case-sensitive host too. An address carrying a ".", ".." or
+// empty segment is held by no directory at all. Two entries differing only by
+// case are an error: that directory is named as the source and the read
+// reports the pair rather than picking one.
+func (f *FS) findDir(folded string, from int) (int, *installpath.Resolver, string, bool, error) {
 	segs, ok := segments(folded)
 	if !ok {
-		return 0, "", false
+		return 0, nil, "", false, nil
 	}
+	rel := strings.Join(segs, "/")
 	for i := from; i < len(f.dirs); i++ {
-		host := f.dirs[i]
-		for _, seg := range segs {
-			host += string(filepath.Separator) + seg
+		files := f.dirs[i]()
+		name, rerr := files.Name(rel)
+		if errors.Is(rerr, installpath.ErrAmbiguous) {
+			return i, files, "", true, rerr
 		}
-		info, serr := os.Stat(host)
+		if rerr != nil {
+			continue
+		}
+		info, serr := files.Stat(name)
 		if serr != nil || !info.Mode().IsRegular() {
 			continue
 		}
-		return i, host, true
+		return i, files, name, true, nil
 	}
-	return 0, "", false
+	return 0, nil, "", false, nil
 }
 
 // snapshotOf takes one archive's entry snapshot. The reader's entry paths are

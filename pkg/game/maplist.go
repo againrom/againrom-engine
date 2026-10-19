@@ -291,10 +291,9 @@ type dirMaps struct {
 // the host beside it.
 //
 // An address is FOLDED before it is looked up, so the row a scan listed as
-// `Tomb.ALM` is read as `tomb.alm` under the root. That is the disclosed
-// case-folding limitation (0027 C-3) reaching shipped behaviour: on a
-// case-sensitive host such a file stops resolving and its row lists as unreadable
-// rather than vanishing (0027 R-2). Shipped installs live on hosts that fold.
+// `Tomb.ALM` is read as `tomb.alm`, and the loose tier matches that against
+// the root's own listing with case folded: the file resolves on a
+// case-sensitive host as on Windows.
 func DirMaps(root string, loose *vfs.FS) (NamedReader, error) {
 	ents, err := os.ReadDir(root)
 	if err != nil {
