@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] The world-map flag stands above your current position. Arrival waits
+  for the destination cross to finish; clicking outside the scrolls skips the trip.
+
 - [ROM1] Usable wells, switches and graves show the use cursor and their
   readout. Clicking walks the character to them; wells restore health or mana
   while charged, and switches toggle. Charges and switch state survive SAVE/LOAD.

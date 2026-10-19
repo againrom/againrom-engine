@@ -517,7 +517,7 @@ func (t *townScreen) leaveWorldMap() {
 func (t *townScreen) arriveWorldMap() ui.TownAction {
 	s := t.worldMap
 	i := s.selected
-	s.route, s.shown, s.cross, s.selected = nil, 0, 0, -1
+	s.route, s.shown, s.selected = nil, 0, -1
 	if s.returnMission != 0 {
 		s.returnMission = 0
 		s.current = worldMapHomePoint(s.assets)

@@ -35,8 +35,8 @@ type worldMapState struct {
 	// (`TOWN-120`, R2-ENGINE-430; `DIV-136`).
 	frame int
 	marks int
-	// cross is the destination Cross's animation counter: zero when a route
-	// starts, one more per paint while the route is held (`TOWN-120`, High).
+	// cross advances on drawn paints; the description chooses whether it
+	// starts at enter or at each route (`TOWN-530`).
 	// The animation has passed its end once the counter reaches the sheet's
 	// frame count plus the description's hold, and arrival waits for that as
 	// well as for the reveal (`TOWN-121`, R2-ENGINE-432; DIV-1545).
@@ -74,11 +74,15 @@ func (s *worldMapState) travelling() bool {
 	return (s.selected >= 0 || s.returnMission != 0) && len(s.route) > 0
 }
 
-// crossPassedEnd reports whether the Cross animation has played through its
-// sheet and the description's hold. A state with no Cross sheet has nothing
-// to wait for.
+func (s *worldMapState) routeEnd() int {
+	if d := s.desc(); d != nil && d.RoutePastEnd {
+		return len(s.route) + 1
+	}
+	return len(s.route)
+}
+
 func (s *worldMapState) crossPassedEnd() bool {
-	if s.assets == nil {
+	if s.assets == nil || len(s.assets.cross) == 0 {
 		return true
 	}
 	hold := 0
@@ -108,7 +112,7 @@ func (s *worldMapState) skipTravel() {
 		return
 	}
 	if d := s.desc(); s.shown > 0 || d != nil && d.SkipAtStart {
-		s.shown = len(s.route)
+		s.shown = s.routeEnd()
 		s.finishCross()
 	}
 }
@@ -135,7 +139,10 @@ func (s *worldMapState) startTravel(i int) bool {
 	}
 	m := s.missions[i]
 	s.selected = i
-	s.route, s.shown, s.cross = nil, 0, 0
+	s.route, s.shown = nil, 0
+	if d := s.desc(); d == nil || !d.CrossAtEnter {
+		s.cross = 0
+	}
 	if !m.Enabled {
 		return false
 	}
@@ -186,9 +193,22 @@ func (s *worldMapState) tick() bool {
 		s.openTravel()
 		return false
 	}
-	s.cross++
-	s.shown = min(s.shown+worldMapRouteReveal, len(s.route))
-	return s.shown >= len(s.route) && s.crossPassedEnd()
+	if s.crossDrawn() {
+		s.cross++
+	}
+	s.shown = min(s.shown+worldMapRouteReveal, s.routeEnd())
+	return s.shown >= s.routeEnd() && s.crossPassedEnd()
+}
+
+func (s *worldMapState) crossDrawn() bool {
+	if !s.travelling() {
+		return false
+	}
+	destination := worldMapHomePoint(s.assets)
+	if s.returnMission == 0 && s.selected < len(s.missions) {
+		destination = s.missions[s.selected].Anchor
+	}
+	return destination != s.current || s.current != worldMapHomePoint(s.assets)
 }
 
 // openTravel starts the travel to the first record when the mode says so
@@ -226,7 +246,7 @@ func (s *worldMapState) view(in worldMapViewInput) ui.WorldMapView {
 		Font: in.font, DetailFont: in.detail, ScrollHovered: s.scrollHovered, Words: in.words,
 		Missions: append([]ui.WorldMapMission(nil), s.missions...), CardBase: ui.WorldMapCardPageBase(s.selected),
 		Hovered: s.hovered, Selected: s.selected, Route: append([]image.Point(nil), s.route...),
-		RouteShown: s.shown, Position: s.current, AtHome: s.current == worldMapHomePoint(a),
+		RouteShown: min(s.shown, len(s.route)), Position: s.current, AtHome: s.current == worldMapHomePoint(a),
 		HideScrolls: s.hideScrolls(),
 		Returning:   s.returnMission != 0, Destination: worldMapHomePoint(a),
 		Problem: a.problem,

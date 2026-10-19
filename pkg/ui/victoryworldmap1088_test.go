@@ -15,6 +15,7 @@ func TestWorldMap1088ReturnPaintsHomeCrossWithoutScrolls(t *testing.T) {
 	}
 	v := WorldMapView{
 		Background: background, Position: image.Pt(500, 400), Destination: image.Pt(350, 300),
+		Route:     []image.Point{{500, 400}, {350, 300}},
 		Returning: true, HideScrolls: true, Selected: -1, Hovered: -1,
 		Missions: []WorldMapMission{{Number: 40, Title: "NEXT", Enabled: true}},
 	}

@@ -47,7 +47,9 @@ type WorldMapDescription struct {
 	Cross WorldMapPlace `json:"cross"`
 	// CrossHold is how many paints past its sheet the Cross counter runs
 	// before a travel may end.
-	CrossHold int `json:"cross-hold"`
+	CrossHold    int  `json:"cross-hold"`
+	CrossAtEnter bool `json:"cross-at-enter"`
+	RoutePastEnd bool `json:"route-past-end"`
 	// Task is the sheet drawn at the chosen record while the party stands at
 	// the map's home point; empty for none.
 	Task WorldMapPlace `json:"task"`

@@ -340,9 +340,9 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 	if v.MarkersOverRoute {
 		drawWorldMapMarkers(dst, v)
 	}
-	if v.Returning {
+	if len(v.Route) > 0 && v.Returning && (v.Destination != v.Position || !v.AtHome) {
 		placeSprite(dst, v.Cross, v.Destination, v.CrossAt, worldMapMark, 4)
-	} else if v.Selected >= 0 && v.Selected < len(v.Missions) && v.Missions[v.Selected].Enabled {
+	} else if len(v.Route) > 0 && v.Selected >= 0 && v.Selected < len(v.Missions) && v.Missions[v.Selected].Enabled && (v.Missions[v.Selected].Anchor != v.Position || !v.AtHome) {
 		placeSprite(dst, v.Cross, v.Missions[v.Selected].Anchor, v.CrossAt, worldMapMark, 4)
 	}
 	if i := worldMapTaskFlag(v); i >= 0 {

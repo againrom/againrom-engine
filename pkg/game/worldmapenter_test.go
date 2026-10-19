@@ -84,7 +84,7 @@ func TestWorldMapEnterDoesWhatAMissedClickDoes(t *testing.T) {
 			}
 			wantTicks := 1
 			if !skipped {
-				wantTicks = max(reveal, frames)
+				wantTicks = max(reveal, frames+2)
 			}
 			for tick := 1; ; tick++ {
 				if tick > 2*frames {

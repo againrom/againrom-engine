@@ -14,11 +14,14 @@
   "records": "registry",
   "modes": [
     {"name": "town", "background": "background", "path": "path",
-     "party": {"art": "flag", "cite": ["TOWN-120"]},
+     "party": {"art": "flag", "at": [-10, -24], "cite": ["TOWN-529", "TOWN-531"]},
      "cite": ["TOWN-120", "TOWN-121"]}
   ],
   "pick": "scroll",
   "ball": "ball",
+  "cross-hold": 2,
+  "cross-at-enter": true,
+  "route-past-end": true,
   "cross": {"art": "cross", "cite": ["TOWN-120", "TOWN-530"]},
   "task": {"art": "available", "at": [-4, -32], "cite": ["TOWN-528"]},
   "cards": {"scroll": "scroll", "pressed": "pressed", "cite": ["TOWN-036", "TOWN-118"]},

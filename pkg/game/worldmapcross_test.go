@@ -62,11 +62,7 @@ func waitsForTheCross(t *testing.T, s *townScreen, route []image.Point, home ima
 	t.Fatalf("%q did not open by tick %d", mission, want)
 }
 
-// TestWorldMapArrivalWaitsForTheCrossAnimationToPassItsEnd checks DIV-1545. A
-// route that reveals in fewer ticks than the Cross sheet has frames does not
-// open its mission when the reveal ends: the party arrives on the tick the
-// Cross animation passes its end, with the reveal complete and the party still
-// at its starting point until then (TOWN-121).
+// TOWN-530 requires two paints beyond the loaded sheet's frame count.
 func TestWorldMapArrivalWaitsForTheCrossAnimationToPassItsEnd(t *testing.T) {
 	const frames = 6
 	home, anchor := image.Pt(320, 240), image.Pt(320, 160)
@@ -77,41 +73,53 @@ func TestWorldMapArrivalWaitsForTheCrossAnimationToPassItsEnd(t *testing.T) {
 		t.Fatalf("setup: selected %d, shown %d, %d reveal ticks; want a route that reveals in two or more ticks and fewer than the Cross sheet's %d frames",
 			started.Selected, started.RouteShown, revealTicks(started.Route), frames)
 	}
-	waitsForTheCross(t, s, started.Route, home, frames, "travelling to mission 30")
+	waitsForTheCross(t, s, started.Route, home, frames+2, "travelling to mission 30")
 	if s.worldPosition != anchor {
 		t.Fatalf("arrival at %v, want %v", s.worldPosition, anchor)
 	}
 }
 
-// TestWorldMapCrossAnimationStartsWithEachRoute checks DIV-1545. Whatever the
-// idle ticks before it, the destination Cross starts at the sheet's first frame
-// when a scroll click starts a route and again when a click on another scroll
-// restarts it, and the second route then waits for its own Cross animation.
-func TestWorldMapCrossAnimationStartsWithEachRoute(t *testing.T) {
+func TestWorldMapCrossAnimationContinuesAcrossScrolls(t *testing.T) {
 	const frames = 8
 	home := image.Pt(320, 240)
-	first, second := image.Pt(320, 160), image.Pt(400, 240)
-	s := crossScreen(frames, home, first, second)
-	sheet := s.worldMap.assets.cross
+	s := crossScreen(frames, home, image.Pt(320, 160), image.Pt(400, 240))
 	for i := 0; i < 3; i++ {
 		s.WorldMapTick()
 	}
 	clickScroll(s, 0)
-	if got := s.WorldMapView().Cross; got != image.Image(sheet[0]) {
-		t.Fatalf("Cross frame right after the first scroll click, after 3 idle ticks: %v, want the sheet's frame 0", got)
+	if s.worldMap.cross != 0 {
+		t.Fatal("idle paints advanced the Cross")
 	}
 	s.WorldMapTick()
 	s.WorldMapTick()
-	if got := s.WorldMapView().Cross; got != image.Image(sheet[2]) {
-		t.Fatalf("Cross frame after two ticks of the first route: %v, want the sheet's frame 2", got)
-	}
 	clickScroll(s, 1)
 	v := s.WorldMapView()
-	if v.Selected != 1 || v.RouteShown != 0 || v.Cross != image.Image(sheet[0]) {
-		t.Fatalf("after the click on the second scroll: selected %d, shown %d, Cross %v; want mission 40's route from nothing with the Cross at frame 0",
-			v.Selected, v.RouteShown, v.Cross)
+	if v.Selected != 1 || v.RouteShown != 0 || s.worldMap.cross != 2 || v.Cross != image.Image(s.worldMap.assets.cross[2]) {
+		t.Fatalf("second scroll reset the Cross: selected %d shown %d counter %d", v.Selected, v.RouteShown, s.worldMap.cross)
 	}
 	waitsForTheCross(t, s, v.Route, home, frames, "travelling to mission 40")
+	if s.worldMap.cross != frames+2 {
+		t.Fatalf("arrival reset the Cross to %d", s.worldMap.cross)
+	}
+	s.enterWorldMap()
+	if s.worldMap.cross != 0 {
+		t.Fatal("enter did not reset the Cross")
+	}
+}
+
+func TestWorldMapArrivalPassesAnExactRouteEnd(t *testing.T) {
+	s := crossScreen(1, image.Pt(320, 240), image.Pt(0, 0))
+	clickScroll(s, 0)
+	s.worldMap.route = make([]image.Point, 24)
+	s.worldMap.cross = 10
+	for tick := 1; tick <= 3; tick++ {
+		if act := s.WorldMapTick(); act.Open != nil {
+			t.Fatalf("arrived on tick %d before passing all 24 coordinates", tick)
+		}
+	}
+	if act := s.WorldMapTick(); act.Open == nil {
+		t.Fatal("did not arrive after passing the exact route end")
+	}
 }
 
 // TestWorldMapMissedClickSkipsTheCrossAnimationToo checks TOWN-121: a click
@@ -176,13 +184,13 @@ func TestWorldMapReturnHomeWaitsForTheCrossAnimationToPassItsEnd(t *testing.T) {
 		t.Fatalf("setup: returning %v, shown %d, %d reveal ticks; want a homeward route that reveals in two or more ticks and fewer than %d",
 			back.Returning, back.RouteShown, revealTicks(back.Route), frames)
 	}
-	for tick := 1; tick <= frames; tick++ {
+	for tick := 1; tick <= frames+2; tick++ {
 		if act := r.WorldMapTick(); act.Open != nil {
 			t.Fatalf("the homeward trip opened a mission on tick %d", tick)
 		}
 		if r.AtTownSquare() {
-			if tick != frames {
-				t.Fatalf("the party reached the square on tick %d, want tick %d (the reveal takes %d ticks)", tick, frames, revealTicks(back.Route))
+			if tick != frames+2 {
+				t.Fatalf("the party reached the square on tick %d, want tick %d (the reveal takes %d ticks)", tick, frames+2, revealTicks(back.Route))
 			}
 			return
 		}
@@ -190,5 +198,27 @@ func TestWorldMapReturnHomeWaitsForTheCrossAnimationToPassItsEnd(t *testing.T) {
 			t.Fatalf("tick %d: returning %v, position %v; want the trip under way from %v", tick, v.Returning, v.Position, back.Position)
 		}
 	}
-	t.Fatalf("the party did not reach the square by tick %d", frames)
+	t.Fatalf("the party did not reach the square by tick %d", frames+2)
+}
+
+func TestWorldMapCrossAdvancesOnlyWhenDrawn(t *testing.T) {
+	home := image.Pt(320, 240)
+	for _, at := range []image.Point{home, image.Pt(300, 220)} {
+		s := crossScreen(6, home, at)
+		s.worldMap.assets.available = []*image.RGBA{image.NewRGBA(image.Rect(0, 0, 1, 1))}
+		clickScroll(s, 0)
+		v := s.WorldMapView()
+		frame := ui.ComposeWorldMap(v)
+		v.Cross = image.NewRGBA(s.worldMap.assets.cross[0].Bounds())
+		bare := ui.ComposeWorldMap(v)
+		in, out := secondMapChanged(frame, bare, image.Rect(0, 0, 640, 480))
+		s.WorldMapTick()
+		want := 1
+		if at == home {
+			want = 0
+		}
+		if (in > 0 || out > 0) != (want == 1) || s.worldMap.cross != want {
+			t.Fatalf("destination %v: changed pixels %d, counter %d; want drawn and advanced %v", at, in+out, s.worldMap.cross, want == 1)
+		}
+	}
 }

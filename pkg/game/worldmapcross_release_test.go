@@ -1,6 +1,7 @@
 package game
 
 import (
+	"crypto/sha256"
 	"image"
 	"reflect"
 	"testing"
@@ -201,13 +202,23 @@ func (w *crossWitness) opened() {
 		w.t.Fatalf("arrival: position %v (field %v), selected %d, route %d points; want %v with the route cleared",
 			v.Position, w.screen.worldPosition, v.Selected, len(v.Route), w.anchor)
 	}
+	snapshot, label, err := w.front.Snapshot(true)
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	raw, err := w.front.ExportCurrentSave(snapshot, label)
+	if err != nil {
+		w.t.Fatal(err)
+	}
+	w.t.Logf("arrival state: World=%x SAV=%x", w.front.live.world.Hash(), sha256.Sum256(raw))
+
 }
 
 // TestReleaseWorldMapArrivalWaitsForTheCrossAnimation clicks the scroll of
 // mission 40 on a chapter-40 city, whose installed route reveals in 8 ticks
 // while the installed Cross sheet has 13 frames, and lets App's own cadence run.
 // The reveal is complete and the party still at the city on tick 8, and the
-// mission opens on tick 13, when the Cross animation passes its end
+// mission opens on tick 15, when the Cross animation passes its end
 // (`TOWN-121`, DIV-1545). A click that misses every scroll after tick 8 sets
 // both counters past their ends, so the next tick opens the mission.
 func TestReleaseWorldMapArrivalWaitsForTheCrossAnimation(t *testing.T) {
@@ -215,7 +226,7 @@ func TestReleaseWorldMapArrivalWaitsForTheCrossAnimation(t *testing.T) {
 		w := startCrossWitness(t)
 		reveal := revealTicks(w.route)
 		opened := w.idleUntil(nil)
-		if want := max(reveal, w.frames); opened != want {
+		if want := max(reveal, w.frames+2); opened != want {
 			t.Fatalf("the mission opened on tick %d, want tick %d (the reveal ends on tick %d, the Cross sheet has %d frames)",
 				opened, want, reveal, w.frames)
 		}

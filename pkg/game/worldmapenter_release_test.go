@@ -57,7 +57,7 @@ func TestReleaseWorldMapEnterHastensTravel(t *testing.T) {
 		w.key("enter")
 		w.steady("Enter before the first reveal tick", 0)
 		opened := w.idleUntil(nil)
-		if want := max(revealTicks(w.route), w.frames); opened != want {
+		if want := max(revealTicks(w.route), w.frames+2); opened != want {
 			t.Fatalf("after Enter before the first tick the mission opened on tick %d, want tick %d, as with no input", opened, want)
 		}
 		w.opened()
@@ -91,11 +91,11 @@ func TestReleaseWorldMapEnterHastensTravel(t *testing.T) {
 			opened := w.idleUntil(nil)
 			if opened != pressed+1 {
 				t.Fatalf("Enter on tick %d: the mission opened on tick %d, want the next tick, tick %d (without Enter it opens on tick %d)",
-					pressed, opened, pressed+1, max(reveal, w.frames))
+					pressed, opened, pressed+1, max(reveal, w.frames+2))
 			}
 			w.opened()
 			t.Logf("Enter on tick %d (%d coordinates drawn, reveal of %d ticks) hastened the arrival; the mission opened on tick %d instead of tick %d",
-				pressed, shown, reveal, opened, max(reveal, w.frames))
+				pressed, shown, reveal, opened, max(reveal, w.frames+2))
 		})
 	}
 }

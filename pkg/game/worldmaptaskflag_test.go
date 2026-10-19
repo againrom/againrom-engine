@@ -56,8 +56,8 @@ func TestWorldMapTaskFlagAnimatesAndTheCrossHolds(t *testing.T) {
 		ticks++
 		act := s.WorldMapTick()
 		if act.Open != nil {
-			if step != crossFrames {
-				t.Fatalf("arrived on route step %d, want step %d", step, crossFrames)
+			if step != crossFrames+2 {
+				t.Fatalf("arrived on route step %d, want step %d", step, crossFrames+2)
 			}
 			break
 		}

@@ -2618,6 +2618,8 @@ package storyguard
 // the tests whose choreography the cast approach changed, the approach's
 // off-map end, strike queue and mana wait, less
 // the removed aiCast, plus this note.
+// CommentBytes falls as the world-map Cross tests replace the per-route reset
+// contract with the claimed enter-only counter and strict completion bounds.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2641,5 +2643,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1714,
 	},
-	CommentBytes: 9237374,
+	CommentBytes: 9236737,
 }

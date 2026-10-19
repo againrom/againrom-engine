@@ -87,8 +87,8 @@ func TestReleaseWorldMapTaskFlagAnimatesAndTheCrossHolds(t *testing.T) {
 		}
 	}
 	opened := w.idleUntil(func(tick int) bool { check(tick); return false })
-	if opened != len(a.cross) {
-		t.Fatalf("the mission opened on tick %d, want tick %d", opened, len(a.cross))
+	if opened != len(a.cross)+2 {
+		t.Fatalf("the mission opened on tick %d, want tick %d", opened, len(a.cross)+2)
 	}
 	w.opened()
 	t.Logf("mission %d: Flag1 drawn and changing on each of %d ticks at %v, Cross held at frame %d from tick %d; selected %d before the click",
