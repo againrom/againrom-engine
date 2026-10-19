@@ -957,10 +957,9 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	}
 	target := &w.entities[vi]
 	healthBefore := target.HP
-	// Actor-directed releases revalidate current perception before any cost,
-	// turn, event or effect. Once this returns true and the release applies,
-	// later visibility is irrelevant to the already committed client object.
-	if !w.actorSeesEntity(ci, vi) {
+	// The second game revalidates perception at release; the first game's
+	// release has no sight gate (MAGIC-403).
+	if w.SecondGame() && !w.actorSeesEntity(ci, vi) {
 		return false
 	}
 	// A target without a health system spends nothing. A commanded heal on a
@@ -977,7 +976,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	// 6. within the decoded power-scaled range, in whole cells, by the same Chebyshev
 	// distance the rest of this package measures a separation with —
 	// cell.chebyshevTo (route.go), reused rather than restated.
-	if !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast)) {
+	if w.SecondGame() && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast)) {
 		return false
 	}
 	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
@@ -1100,9 +1099,9 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	// Point orders use the book's range, not the caster's personal sight.
-	// The player view gates the clicked ground before producing this order.
-	if _, inside := cellIndexIn(w.bounds, x, y); !inside ||
+	// Point orders use the book's range, not the caster's personal sight. The
+	// first game's release asks no range again (MAGIC-403).
+	if _, inside := cellIndexIn(w.bounds, x, y); !inside || w.SecondGame() &&
 		(cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) ||
 		w.orderState(caster).recoveryWaiting() || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
 		return false
@@ -2010,7 +2009,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 			continue
 		}
 		state := *c
-		refusal := w.retainedBookRefusal(ci, state)
+		refusal := w.releaseBookRefusal(ci, state)
 		if refusal == "insufficient mana" {
 			if !c.Retained {
 				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
@@ -2081,6 +2080,21 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 		i = castIndex + 1
 	}
 	return released
+}
+
+// releaseBookRefusal is what the end of a wind-up asks before application.
+// The first game's release repeats no mana, reach, facing or sight gate
+// (MAGIC-403, MAGIC-406), so it keeps only the target's state and the
+// application's own checks (MAGIC-404); a creature therefore arms no
+// approach there. The second game asks the whole admission again.
+func (w *World) releaseBookRefusal(ci int, c bookCast) string {
+	if w.SecondGame() {
+		return w.retainedBookRefusal(ci, c)
+	}
+	if c.AtCell {
+		return w.bookSpellCellAdmissionRange(ci, c.X, c.Y, uint32(c.Spell), true, c.Paid, true, true)
+	}
+	return w.bookSpellAdmissionRange(ci, c.Target, uint32(c.Spell), true, c.Paid, true, true)
 }
 
 func (w *World) retainedBookRefusal(ci int, c bookCast) string {

@@ -15,6 +15,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] The school yard sounds its commands and looping practice fights at timed intervals.
 - [ROM1] Spell effects last for their full duration after each hit:
   Freezing Cloud's Slow and Light and Darkness sight changes.
+- [ROM1] A spell whose casting has finished is cast even when its target has stepped
+  out of range or out of sight meanwhile; creatures no longer break it off to walk
+  after the target. Mana is not charged again.
 
 ## 0.127.0
 
