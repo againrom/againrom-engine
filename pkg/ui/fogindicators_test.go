@@ -158,7 +158,7 @@ func TestAShotMarkDoesNotLeakThroughTheFog(t *testing.T) {
 
 // TestADamageNumeralDoesNotLeakThroughTheFog covers BOTH halves of the
 // numeral's gate, which is why it is one test in two parts: creation, in
-// ingestDamage, and placement, in numeralPlacements.
+// receiveDamageNumeral, and placement, in numeralPlacements.
 //
 // The second part is the one a creation-only gate would fail: a victim struck
 // in the LIGHT and then walking into the DARK carries a figure that is still
@@ -173,8 +173,7 @@ func TestADamageNumeralDoesNotLeakThroughTheFog(t *testing.T) {
 
 		hit := fiSnapshot()
 		hit[0].HP = 10 // the enemy in the DARK takes 40
-		v.SetEntities(hit)
-		v.step(Input{}, now.Add(time.Millisecond))
+		numeralMessageFrame(v, now.Add(time.Millisecond), hit...)
 
 		if _, live := v.DamageNumerals(); live != 0 {
 			t.Errorf("%d figures for a blow landed on an enemy in the fog, want 0 — "+
@@ -185,8 +184,7 @@ func TestADamageNumeralDoesNotLeakThroughTheFog(t *testing.T) {
 		// absence above is the fog and not a broken fixture.
 		lit := fiSnapshot()
 		lit[1].HP = 10
-		v.SetEntities(lit)
-		v.step(Input{}, now.Add(2*time.Millisecond))
+		numeralMessageFrame(v, now.Add(2*time.Millisecond), lit...)
 		if _, live := v.DamageNumerals(); live != 1 {
 			t.Errorf("%d figures for a blow landed in the light, want 1", live)
 		}
@@ -201,8 +199,7 @@ func TestADamageNumeralDoesNotLeakThroughTheFog(t *testing.T) {
 
 		hit := fiSnapshot()
 		hit[1].HP = 10 // the enemy in the LIGHT takes 40
-		v.SetEntities(hit)
-		v.step(Input{}, now.Add(time.Millisecond))
+		numeralMessageFrame(v, now.Add(time.Millisecond), hit...)
 		if got := len(v.numeralPlacements()); got != 1 {
 			t.Fatalf("%d placements for a visible victim, want 1", got)
 		}

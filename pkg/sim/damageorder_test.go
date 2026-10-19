@@ -24,6 +24,9 @@ func TestDamageMessagesKeepPhysicalApplicationOrder(t *testing.T) {
 			commands := []Command{cbOrder(1, 3), cbOrder(2, 3)}
 			report := StepReported(observed, commands)
 			Step(plain, commands)
+			if report.Tick != observed.Tick() || report.Tick != 1 {
+				t.Fatal("report lost raw tick", report.Tick)
+			}
 			want := []DamageEvent{{Target: 3, BeforeHP: 100, AfterHP: 93}, {Target: 3, BeforeHP: 93, AfterHP: 82}}
 			if zeroFirst {
 				want = []DamageEvent{{Target: 3, BeforeHP: 100, AfterHP: 100}, {Target: 3, BeforeHP: 100, AfterHP: 89}}

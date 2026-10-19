@@ -18,12 +18,12 @@ func TestReleaseDamageNumeralsStartAtTheUnitWithInstalledFont(t *testing.T) {
 	v.SetPeriod(20000)
 	v.SetLocalOwner(1)
 	hp := 1000
-	push(v, at0, numeralUnit(1, 2, hp))
+	numeralMessageFrame(v, at0, numeralUnit(1, 2, hp))
 	var origin image.Point
 	var glyph []byte
 	for hit := 0; hit < 25; hit++ {
 		hp -= 7
-		push(v, at0.Add(time.Duration(hit)*100*time.Millisecond), numeralUnit(1, 2, hp))
+		numeralMessageFrame(v, at0.Add(time.Duration(hit)*100*time.Millisecond), numeralUnit(1, 2, hp))
 		placements := v.numeralPlacements()
 		if len(placements) != len(v.numerals) || len(placements) == 0 {
 			t.Fatalf("hit %d: placed %d of %d live numerals", hit, len(placements), len(v.numerals))

@@ -144,7 +144,7 @@ type mapWorld struct {
 	prev             map[sim.EntityID]image.Point
 	died             map[sim.EntityID]int
 	hurt             map[sim.EntityID]int
-	pendingDamage    []sim.DamageEvent
+	pendingDamage    []damageTickEvent
 	soundEntities    []ui.MapEntity
 	clock            *terrain.Ticker
 	last             time.Time
@@ -4146,7 +4146,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// Damage observation is consumed before the scene clock advances. The
 	// recorder stamps the NEXT scene, which is the one this tick will push, so
 	// the first jolt phase is visible rather than already one tick old.
-	mw.observeDamage(report.Damages)
+	mw.observeDamage(report.Damages, report.Tick)
 	// A GiveUnit/GiveGroup instant becomes an ordinary hero in the same tick it
 	// changes owner, before rearm, notice settlement or the viewer projection can
 	// observe an in-between state.
@@ -4599,7 +4599,7 @@ func (mw *mapWorld) push() {
 		for _, event := range mw.pendingDamage {
 			if draw, ok := byID[uint32(event.Target)]; ok {
 				draw.HP = int(event.BeforeHP)
-				messages = append(messages, ui.DamageMessage{Entity: draw, AfterHP: int(event.AfterHP)})
+				messages = append(messages, ui.DamageMessage{Tick: event.Tick, Entity: draw, AfterHP: int(event.AfterHP)})
 			}
 		}
 		mw.view.AppendDamageMessages(messages)
@@ -5585,10 +5585,21 @@ var fallenDamageJolt = [...]image.Point{
 	{X: -1},
 }
 
-// observeDamage retains application order for delivery and diagnostic counts.
+type damageTickEvent struct {
+	sim.DamageEvent
+	Tick uint64
+}
+
+// observeDamage retains application order and the raw tick for delivery.
 // A decrease on a fallen body restarts its short jolt; expiry removes old ids.
-func (mw *mapWorld) observeDamage(events []sim.DamageEvent) {
-	mw.pendingDamage = append(mw.pendingDamage, events...)
+func (mw *mapWorld) observeDamage(events []sim.DamageEvent, ticks ...uint64) {
+	tick := mw.world.Tick()
+	if len(ticks) != 0 {
+		tick = ticks[0]
+	}
+	for _, event := range events {
+		mw.pendingDamage = append(mw.pendingDamage, damageTickEvent{DamageEvent: event, Tick: tick})
+	}
 	nextScene := mw.scene + 1
 	for id, at := range mw.hurt {
 		if nextScene-at >= len(fallenDamageJolt) {

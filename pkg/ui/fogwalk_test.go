@@ -67,7 +67,6 @@ var fogWalkTable = map[string]struct {
 	"minimapOriginalMarks": {fogWalkGated, "the first game's minimap unit mark"},
 	"minimapMarkColours":   {fogWalkNotADraw, "the colour set the headless mark witness compares against; it draws nothing"},
 	"shotScreenRects":      {fogWalkGated, "the shot mark"},
-	"ingestDamage":         {fogWalkGated, "the damage numeral's creation half"},
 	"stepSound":            {fogWalkGated, "the blow grunt -- the numeral's other half, and a positional sound carries the direction too"},
 	"selectionScreenRects": {fogWalkGated, "the selection rim over a selected enemy that walked into the dark"},
 	"pathScreenSegments":   {fogWalkGated, "the ordered route of a selected unit — where he is AND where he is going"},

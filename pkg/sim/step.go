@@ -391,6 +391,7 @@ func StepObserved(w *World, cmds []Command) []CastEvent {
 // built inside one advance and dropped by a caller that does not want them, and
 // a world advanced by Step is the same world byte for byte.
 type Report struct {
+	Tick           uint64
 	ScriptMessages []int32
 	Casts          []CastEvent
 	ScriptCasts    []ScriptCastEvent
@@ -408,7 +409,7 @@ type Report struct {
 func StepReported(w *World, cmds []Command) Report {
 	var obs castObs
 	stepWorld(w, cmds, nil, &obs, nil)
-	return Report{ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
+	return Report{Tick: w.Tick(), ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
 		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, FlightStarts: obs.flightStarts,
 		ProjectilePhases: obs.projectilePhases, ProjectileMarks: obs.projectileMarks}
 }

@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] [ROM2] Damage numbers combine hits on the same unit in one game tick;
+  hits in different ticks keep separate numbers.
 - [ROM1] The world-map flag stands above your current position. Arrival waits
   for the destination cross to finish; clicking outside the scrolls skips the trip.
 

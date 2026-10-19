@@ -1462,34 +1462,8 @@ type Viewer struct {
 
 	minimapActX, minimapActY int
 
-	// The floating damage numerals. numeral.go holds the rules; these are the
-	// three pieces of state they need.
-	//
-	// numeralHP is the health this viewer last saw for each entity, and it is the
-	// ONLY source of a damage figure in the tree — the front end subtracts, the
-	// way the original's client does, because what crosses the seam is a health
-	// level and never a delta. It is rebuilt from each frame's own entities, so a
-	// viewer reused across two maps cannot attribute one map's health to the
-	// other's entity of the same id.
-	//
-	// numeralsHidden IS STORED INVERTED, so that SHOWN is the zero value: the
-	// display is on from the moment a map opens (it is the original's own
-	// default), and a default that is the zero value is one no struct literal can
-	// get wrong. It is the readout's own idiom, one field family over.
-	// numeralTick is the ambient animation count the drift was last stepped at,
-	// so a frame that crossed several ticks drifts a figure several steps and one
-	// that crossed none drifts nothing. Its zero value is the counter's own, and
-	// nothing drifts before the first record exists.
-	//
-	// numeralImgs is the upload cache, one texture per PLACEMENT SLOT rather
-	// than per record: the placement list is rebuilt every frame and is short,
-	// and a texture per record would tie GPU state to a value the ingest
-	// appends to. A slot's texture is reallocated only when the picture at that
-	// slot changes size, which is the panel's own rule; nothing in this tree
-	// disposes a texture, so the cache is bounded by the most figures ever live
-	// at once and not by how many blows have landed.
+	// Floating damage figures and their presentation clocks.
 	numerals       []damageNumeral
-	numeralHP      map[uint32]int
 	numeralTick    uint32
 	numeralLast    time.Time
 	numeralPaused  bool
@@ -1527,7 +1501,7 @@ type Viewer struct {
 	//
 	// voices is each drawable's voice memory (sound.go), keyed by entity id.
 	// IT IS REBUILT EVERY stepSound CALL FROM THE FRAME'S OWN ENTITIES,
-	// carrying an entry forward only for an id still present — numeralHP's own
+	// carrying an entry forward only for an id still present — the snapshot memory's own
 	// reason, one field family over: a viewer reused across two maps must not
 	// let a stale timestamp from one map's entity gate a different entity that
 	// happens to reuse its id in the next one.

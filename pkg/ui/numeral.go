@@ -10,29 +10,6 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// The floating damage numeral: what a landed blow leaves behind (0083).
-//
-// The whole of what the original does when a blow lands is a numeral and two
-// sounds. This file is the numeral. The two sounds are no longer out of
-// scope — 0126 built the audio layer this file's own stepNumerals call
-// (below) now reaches on every frame — and this file's own job did not
-// change: sound.go, beside it in this package, owns which slot plays, for
-// whom, how often and where; pkg/game's sound.go owns the archive and the
-// class table behind it; this file remains the numeral alone.
-//
-// FOUR THINGS A NAIVE BUILD GETS WRONG, and three of them are decoded rather
-// than chosen:
-//
-// AND ONE THING THAT MUST NOT BE BUILT. The original chooses a three-band
-// severity colour on every landed blow — at or above half the victim's maximum,
-// at or above a quarter, below — and reads that choice NOWHERE: three writes and
-// zero reads across the whole containing routine, with no address taken of the
-// slot either (ANIM-NUM-021). It is precisely the shape a "damage flash" reaches
-// for, and rendering one would add what the original computes and deliberately
-// discards. Nothing here computes a health band. That absence is a requirement
-// and not an omission, which is why it is written down where it would otherwise
-// be invisible.
-
 // DamageNumeralLife is how long a figure lives: 1000 ms of WALL CLOCK
 // (ANIM-NUM-020, High). A record at exactly the bound is still drawn — the
 // original's own comparison is "at most", not "less than".
@@ -94,43 +71,18 @@ var DamageNumeralColors = [8]color.RGBA{
 	{R: 0xff, G: 0x98, B: 0x30, A: 0xff},
 }
 
-// damageNumeral is ONE floating figure.
-//
-// It carries an accumulated OFFSET rather than a screen position, and that is
-// the decision the follow rests on: where it is drawn is recomputed every
-// frame from the struck unit's current placed position plus this offset, so a
-// figure follows a walking unit.
+// damageNumeral follows its victim and merges only at the same raw tick.
 type damageNumeral struct {
-	// victim identifies the unit used by numeralPlacements for the anchor.
-	// Each blow remains a separate figure; this is not a merge key.
 	victim uint32
-	// damage is what is drawn, as a decimal numeral and nothing else. It is
-	// always positive — born from a strict decrease — and FIXED at birth: a
-	// later blow on the same victim makes its own record instead of adding into
-	// this one (hotfix, docs/hotfix/LEDGER.md).
+	tick   uint64
 	damage int
-	// born retains each figure's own life. Player pause shifts it by the held
-	// wall span; a popup alone still lets that life expire.
-	born time.Time
-	// off is the accumulated offset from the struck unit's drawn position, in
-	// cell-local pixels with +y downward — so the vertical term is negative from
-	// birth and only falls.
-	off image.Point
-	// drift is the horizontal step per tick, +1 or -1, fixed at birth by
-	// ownership. It is stored rather than recomputed because it must survive a
-	// change of local participant mid-flight the way the original's stored flag
-	// does.
-	drift int
-	// colour is the struck unit's owner's, resolved at birth.
+	born   time.Time
+	off    image.Point
+	drift  int
 	colour color.RGBA
-	// pic is the composed figure — shadow and face in one image — or nil for a
-	// viewer holding no font, which draws nothing and is the ordinary state of
-	// the standalone developer viewer.
-	pic *image.RGBA
-	// blit is pic without its glyphs, and calls those glyphs, when the text
-	// overlay draws them (glyphPicture).
-	blit  *image.RGBA
-	calls []text.DrawCall
+	pic    *image.RGBA
+	blit   *image.RGBA
+	calls  []text.DrawCall
 }
 
 // numeralsOn reports whether the display is showing. It is stored INVERTED on
@@ -161,84 +113,22 @@ func (v *Viewer) ToggleDamageNumerals() bool {
 	return v.numeralsOn()
 }
 
-// ingestDamage is the CLIENT'S OWN SUBTRACTION, and the whole of where a
-// figure comes from.
-//
-// It is not an approximation of a per-blow event seam. The original's engine
-// sends the victim's NEW HEALTH AS A LEVEL and never the delta, and the client
-// subtracts the health it was already holding to get the figure (ANIM-BLOW-019,
-// High). This package is already told a unit's health every frame, so the
-// subtraction here is the same subtraction, made from the same kind of value.
-//
-// THE REMEMBERED HEALTH IS WRITTEN BEFORE EITHER GATE IS CONSULTED, and the
-// order is the contract. Written after a gate it would go stale exactly where it
-// matters: a blow taken with the display off would leave the old value standing,
-// and the next blow would show the sum of both — a merge across a window that
-// had already expired.
-//
-// An entity absent from this push is dropped from the memory on this push, so a
-// viewer reused across two maps cannot attribute one map's health to the other
-// map's entity of the same id. An entity seen for the FIRST time is remembered
-// at what it arrives holding and produces nothing: arriving is not a wound.
-//
-// NOTHING HERE READS A HEALTH BAND. See the severity note at the top of the
-// file: the band the original computes has no consumer, and one built here would
-// be a consumer the original does not have.
-func (v *Viewer) ingestDamage(now time.Time) {
-	seen := make(map[uint32]int, len(v.entities))
-	for _, e := range v.entities {
-		seen[e.ID] = e.HP
-		had, known := v.numeralHP[e.ID]
-		// THE FOG GATE JOINS THE DISPLAY GATE HERE (hotfix), AFTER the remembered
-		// health is written and never before it: this method's own contract two
-		// paragraphs up is that the memory is written before ANY gate is
-		// consulted, so a blow taken out of sight leaves no arrears to be paid as
-		// one figure when the fog lifts.
-		//
-		// It gates CREATION, which is this method's whole subject, and it is
-		// not the only fog gate the numeral takes: numeralPlacements gates
-		// the DRAWING as well. Two gates rather than one, because the two
-		// answer different questions — a display flag is the player's choice
-		// and holds for a record's whole life, while a cell's visibility
-		// changes UNDER a record that already exists, so a victim struck in
-		// the light and walking into the dark needs the second one.
-		if !known || e.HP >= had || !v.numeralsOn() ||
-			!v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
-			continue
-		}
-		// A BODY ALREADY DOWN TAKES NO FIGURE, and the test is the health this
-		// viewer was ALREADY HOLDING rather than the one that just arrived — so
-		// the killing blow, which lands on a living victim and leaves a dead
-		// one, still shows its number, and only the decreases AFTER it are
-		// dropped.
-		//
-		// The decay walk takes a point off a corpse every second full tick all
-		// the way to -600, which without this test is some six hundred figures
-		// per body: a `-1` climbing off every corpse on the map, forever. The
-		// original shows none of them. Its engine sends a health LEVEL to the
-		// client on a blow and the client subtracts (ANIM-BLOW-019, High), but a
-		// dead actor's falling health reaches the client only as the corpse
-		// STAGE byte — "the thresholds never reach the client as numbers"
-		// (ANIM-DEATH-007, High). So the subtraction this file is named for is
-		// over a LIVING victim's level, and this line is where that is said.
-		if had <= 0 {
-			continue
-		}
-		v.addDamageNumeral(e, had-e.HP, now)
+// receiveDamageNumeral consumes a causal message, never a snapshot decrease.
+// ANIM-071: merging changes the amount without refreshing birth or position.
+func (v *Viewer) receiveDamageNumeral(e soundEntity, tick uint64, damage int, now time.Time) {
+	if damage <= 0 || !v.numeralsOn() || !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
+		return
 	}
-	v.numeralHP = seen
-}
-
-// addDamageNumeral makes a figure for one blow. It never merges into a
-// figure already standing for the same victim (hotfix,
-// docs/hotfix/LEDGER.md): every application gets its own record, its own
-// clock and its own amount, so a source that hits often — a wall of fire,
-// any other periodic effect — reads as many small figures rather than one
-// sum that periodically pops.
-//
-// Every figure starts at the unit's fixed birth offset. Older figures' flight
-// and lifetime do not move the next figure's origin.
-func (v *Viewer) addDamageNumeral(e MapEntity, damage int, now time.Time) {
+	for i := range v.numerals {
+		n := &v.numerals[i]
+		if n.victim == e.ID && n.tick == tick {
+			n.damage += damage
+			n.pic, n.blit, n.calls = glyphPicture(v.textSmoothingEnabled && v.font != nil, func() *image.RGBA {
+				return v.composeNumeral(n.damage, n.colour)
+			})
+			return
+		}
+	}
 	drift := damageNumeralDrift
 	if e.Owner != v.localOwner {
 		drift = -damageNumeralDrift
@@ -247,36 +137,19 @@ func (v *Viewer) addDamageNumeral(e MapEntity, damage int, now time.Time) {
 	pic, blit, calls := glyphPicture(v.textSmoothingEnabled && v.font != nil, func() *image.RGBA {
 		return v.composeNumeral(damage, colour)
 	})
+	age := 0
+	if v.lightClock >= tick {
+		age = int(v.lightClock - tick)
+	}
 	v.numerals = append(v.numerals, damageNumeral{
-		victim: e.ID,
-		damage: damage,
-		born:   now,
-		// The birth offset carries the SAME sign the drift will, so a figure
-		// starts out of the unit on the side it goes on to travel toward
-		// rather than starting on it and choosing afterwards.
-		off:    image.Pt(drift*damageNumeralOffsetX, -damageNumeralOffsetY),
-		drift:  drift,
-		colour: colour,
-		pic:    pic,
-		blit:   blit,
-		calls:  calls,
+		victim: e.ID, tick: tick, damage: damage, born: now,
+		off:   image.Pt(drift*(damageNumeralOffsetX+age), -damageNumeralOffsetY-age*damageNumeralRise),
+		drift: drift, colour: colour, pic: pic, blit: blit, calls: calls,
 	})
 }
 
-// stepNumerals is the figures' whole per-frame life, called from the
-// viewer's step so that it runs once per frame from both entry points.
-//
-// IT READS THE ENTITIES THE TICK HAS JUST PUSHED. The entity setter is the one
-// push of per-entity health into this package but it takes no clock, and a
-// record needs an instant; the step is given one and already establishes the
-// ambient animation baseline from it. So the ingest reads what the setter left
-// and stamps it with the frame's own time, in one place.
-//
-// The standalone developer viewer holds no entities, so this does nothing there
-// under every input, which is what keeps that entry point drawing the frame it
-// always drew.
+// stepNumerals advances flight and lifetime before consuming the client stream.
 func (v *Viewer) stepNumerals(now time.Time) {
-	v.stepSound(now)
 	// Include the first resumed span: its previous sample was still paused.
 	if !v.numeralLast.IsZero() && (v.playerPaused || v.numeralPaused) {
 		if elapsed := now.Sub(v.numeralLast); elapsed > 0 {
@@ -287,8 +160,8 @@ func (v *Viewer) stepNumerals(now time.Time) {
 	}
 	v.numeralLast, v.numeralPaused = now, v.playerPaused
 	v.driftNumerals()
-	v.ingestDamage(now)
 	v.expireNumerals(now)
+	v.stepSound(now)
 }
 
 // driftNumerals moves every live figure by however many ANIMATION TICKS have
@@ -451,7 +324,7 @@ func (v *Viewer) numeralPlacements() []numeralPlacement {
 		//
 		// This is the half of the numeral's fog gate that catches a victim
 		// struck in the light who walks into the dark while his figure is
-		// still rising; ingestDamage carries the other half, over creation.
+		// still rising; receiveDamageNumeral carries the other half, over creation.
 		if !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
 			continue
 		}
@@ -485,4 +358,21 @@ func (v *Viewer) entityByID(id uint32) (MapEntity, bool) {
 		}
 	}
 	return MapEntity{}, false
+}
+
+// DamageNumeralState is a read-only record for headless event witnesses.
+type DamageNumeralState struct {
+	Victim uint32
+	Tick   uint64
+	Amount int
+	Offset image.Point
+}
+
+// DamageNumeralStates copies the live records without their glyph storage.
+func (v *Viewer) DamageNumeralStates() []DamageNumeralState {
+	out := make([]DamageNumeralState, len(v.numerals))
+	for i, n := range v.numerals {
+		out[i] = DamageNumeralState{Victim: n.victim, Tick: n.tick, Amount: n.damage, Offset: n.off}
+	}
+	return out
 }

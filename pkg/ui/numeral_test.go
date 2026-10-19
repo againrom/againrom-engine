@@ -40,6 +40,21 @@ func push(v *Viewer, now time.Time, ents ...MapEntity) {
 	v.step(Input{}, now)
 }
 
+// numeralMessageFrame supplies synthetic causal messages, then a snapshot.
+// Each call stands for a different simulation tick.
+func numeralMessageFrame(v *Viewer, now time.Time, ents ...MapEntity) {
+	tick := uint64(0)
+	for _, n := range v.numerals {
+		tick = max(tick, n.tick+1)
+	}
+	for _, e := range ents {
+		if before, ok := v.entityByID(e.ID); ok {
+			v.AppendDamageMessages([]DamageMessage{{Tick: tick, Entity: before, AfterHP: e.HP}})
+		}
+	}
+	push(v, now, ents...)
+}
+
 // at0 is a fixed instant, so every elapsed time below is exact.
 var at0 = time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC)
 
@@ -47,12 +62,12 @@ func TestAStrictDecreaseMakesAFigureOfTheDifference(t *testing.T) {
 	v := numeralViewer(t)
 
 	// The FIRST push an entity is ever seen in makes nothing, whatever it holds.
-	push(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
 	if _, live := v.DamageNumerals(); live != 0 {
 		t.Fatalf("the first sighting of an entity made %d figure(s); arriving is not a wound", live)
 	}
 
-	push(v, at0, numeralUnit(1, 1, 31))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 31))
 	if _, live := v.DamageNumerals(); live != 1 {
 		t.Fatalf("a nine-point drop made %d figure(s), want 1", live)
 	}
@@ -71,8 +86,8 @@ func TestAHealthThatDidNotFallMakesNothing(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			v := numeralViewer(t)
-			push(v, at0, numeralUnit(1, 1, 40))
-			push(v, at0, numeralUnit(1, 1, tc.then))
+			numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+			numeralMessageFrame(v, at0, numeralUnit(1, 1, tc.then))
 			if _, live := v.DamageNumerals(); live != 0 {
 				t.Errorf("a health that %s made %d figure(s)", tc.name, live)
 			}
@@ -98,12 +113,12 @@ func TestTheRememberedHealthFollowsEveryPush(t *testing.T) {
 			if tc.off {
 				v.ToggleDamageNumerals()
 			}
-			push(v, at0, numeralUnit(1, 1, 40))
-			push(v, at0, numeralUnit(1, 1, tc.mid))
+			numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+			numeralMessageFrame(v, at0, numeralUnit(1, 1, tc.mid))
 			if tc.off {
 				v.ToggleDamageNumerals()
 			}
-			push(v, at0, numeralUnit(1, 1, tc.mid-5))
+			numeralMessageFrame(v, at0, numeralUnit(1, 1, tc.mid-5))
 			if _, live := v.DamageNumerals(); live != 1 {
 				t.Fatalf("live = %d, want 1", live)
 			}
@@ -120,9 +135,9 @@ func TestADeadUnitIsRememberedAndStillShowsItsBlow(t *testing.T) {
 	v := numeralViewer(t)
 	e := numeralUnit(1, 1, 4)
 	e.Life = LifeDead
-	push(v, at0, e)
+	numeralMessageFrame(v, at0, e)
 	e.HP = -6
-	push(v, at0, e)
+	numeralMessageFrame(v, at0, e)
 	if _, live := v.DamageNumerals(); live != 1 || v.numerals[0].damage != 10 {
 		t.Errorf("a blow on a body made %d figure(s) of %v, want 1 of 10", live, v.numerals)
 	}
@@ -139,11 +154,11 @@ func TestADeadUnitIsRememberedAndStillShowsItsBlow(t *testing.T) {
 func TestTheDecayWalkOnABodyMakesNoFigures(t *testing.T) {
 	v := numeralViewer(t)
 	e := numeralUnit(1, 1, 3)
-	push(v, at0, e)
+	numeralMessageFrame(v, at0, e)
 
 	// The blow that fells him: 3 -> -2, one figure of 5.
 	e.HP, e.Life = -2, LifeDead
-	push(v, at0, e)
+	numeralMessageFrame(v, at0, e)
 	if _, live := v.DamageNumerals(); live != 1 || v.numerals[0].damage != 5 {
 		t.Fatalf("the killing blow made %d figure(s) of %v, want 1 of 5", live, v.numerals)
 	}
@@ -171,8 +186,8 @@ func TestTheDisplayGatesCreationAndNotDrawing(t *testing.T) {
 		t.Fatalf("the toggle reported on after flipping from on")
 	}
 
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 25))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 25))
 	if _, live := v.DamageNumerals(); live != 0 {
 		t.Fatalf("a blow under a hidden display made %d figure(s)", live)
 	}
@@ -182,28 +197,24 @@ func TestTheDisplayGatesCreationAndNotDrawing(t *testing.T) {
 	if _, live := v.DamageNumerals(); live != 0 {
 		t.Fatalf("turning the display on revealed %d figure(s) that had accrued invisibly", live)
 	}
-	push(v, at0, numeralUnit(1, 1, 20))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 20))
 	if _, live := v.DamageNumerals(); live != 1 || v.numerals[0].damage != 5 {
 		t.Errorf("the next blow made %d figure(s) of %v, want 1 of 5 — this blow's own damage",
 			live, v.numerals)
 	}
 }
 
-// A second blow inside the window the original would have merged into is its
-// OWN figure beside the first (hotfix, docs/hotfix/LEDGER.md): an
-// owner-directed divergence from ANIM-NUM-020's decoded merge, so a
-// frequently-hit victim shows one number per blow instead of one sum that
-// periodically pops.
+// Distinct simulation ticks keep independent birth clocks and offsets.
 func TestASecondBlowMakesAnIndependentFigureAtTheSameBirthOffset(t *testing.T) {
 	v := numeralViewer(t)
 	// A cadence no elapsed time below can cross, so nothing here drifts either
 	// figure between the two blows.
 	v.SetPeriod(1 << 30)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 31))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 31))
 	firstDamage, firstBorn, firstOff := v.numerals[0].damage, v.numerals[0].born, v.numerals[0].off
 
-	push(v, at0.Add(300*time.Millisecond), numeralUnit(1, 1, 27))
+	numeralMessageFrame(v, at0.Add(300*time.Millisecond), numeralUnit(1, 1, 27))
 	if _, live := v.DamageNumerals(); live != 2 {
 		t.Fatalf("a second blow made %d figure(s), want 2 — no merge", live)
 	}
@@ -230,11 +241,11 @@ func TestRepeatedDamageNumeralsKeepTheirBirthPosition(t *testing.T) {
 		v.SetLocalOwner(1)
 		v.SetPeriod(20000)
 		hp := 1000
-		push(v, at0, numeralUnit(1, owner, hp))
+		numeralMessageFrame(v, at0, numeralUnit(1, owner, hp))
 		var origin image.Point
 		for hit := 0; hit < 50; hit++ {
 			hp--
-			push(v, at0.Add(time.Duration(hit)*100*time.Millisecond), numeralUnit(1, owner, hp))
+			numeralMessageFrame(v, at0.Add(time.Duration(hit)*100*time.Millisecond), numeralUnit(1, owner, hp))
 			placements := v.numeralPlacements()
 			if len(placements) != len(v.numerals) || len(placements) == 0 {
 				t.Fatalf("owner %d hit %d: %d placed of %d live figures", owner, hit, len(placements), len(v.numerals))
@@ -252,20 +263,16 @@ func TestRepeatedDamageNumeralsKeepTheirBirthPosition(t *testing.T) {
 	}
 }
 
-// N applications inside what was the merge window each make their own
-// figure, with that application's own amount, in application order, and no
-// record anywhere holds their sum (hotfix, docs/hotfix/LEDGER.md) — the
-// shape of a wall of fire or any other frequently-ticking source, which used
-// to read as one number that grew and popped roughly once a second.
+// Repeated ticks inside one second keep each application separate.
 func TestNApplicationsInsideTheOldMergeWindowEachMakeTheirOwnFigure(t *testing.T) {
 	v := numeralViewer(t)
 	v.SetPeriod(1 << 30)
 	hp := 100
-	push(v, at0, numeralUnit(1, 1, hp))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, hp))
 	amounts := []int{3, 5, 2, 7, 4}
 	for i, dmg := range amounts {
 		hp -= dmg
-		push(v, at0.Add(time.Duration(i)*150*time.Millisecond), numeralUnit(1, 1, hp))
+		numeralMessageFrame(v, at0.Add(time.Duration(i)*150*time.Millisecond), numeralUnit(1, 1, hp))
 	}
 	if _, live := v.DamageNumerals(); live != len(amounts) {
 		t.Fatalf("%d applications made %d figure(s), want %d — one each", len(amounts), live, len(amounts))
@@ -287,9 +294,9 @@ func TestNApplicationsInsideTheOldMergeWindowEachMakeTheirOwnFigure(t *testing.T
 func TestTheColourIsTheStruckUnitsOwners(t *testing.T) {
 	v := numeralViewer(t)
 	v.SetLocalOwner(1)
-	push(v, at0,
+	numeralMessageFrame(v, at0,
 		numeralUnit(1, 1, 40), numeralUnit(2, 2, 40), numeralUnit(3, 2, 40), numeralUnit(4, 0, 40))
-	push(v, at0,
+	numeralMessageFrame(v, at0,
 		numeralUnit(1, 1, 30), numeralUnit(2, 2, 30), numeralUnit(3, 2, 30), numeralUnit(4, 0, 30))
 
 	by := map[uint32]int{}
@@ -316,8 +323,8 @@ func TestNoPropertyOfAFigureDependsOnTheVictimsRemainingHealth(t *testing.T) {
 	v := numeralViewer(t)
 	// Three victims of one owner at three bands: above half, between a quarter
 	// and a half, and below a quarter. Equal damage on each.
-	push(v, at0, numeralUnit(1, 1, 90), numeralUnit(2, 1, 45), numeralUnit(3, 1, 20))
-	push(v, at0, numeralUnit(1, 1, 80), numeralUnit(2, 1, 35), numeralUnit(3, 1, 10))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 90), numeralUnit(2, 1, 45), numeralUnit(3, 1, 20))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 80), numeralUnit(2, 1, 35), numeralUnit(3, 1, 10))
 	if len(v.numerals) != 3 {
 		t.Fatalf("three blows made %d figures", len(v.numerals))
 	}
@@ -346,8 +353,8 @@ func TestTheBirthOffsetTakesTheOwnershipSign(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			v := numeralViewer(t)
 			v.SetLocalOwner(tc.local)
-			push(v, at0, numeralUnit(1, tc.owner, 40))
-			push(v, at0, numeralUnit(1, tc.owner, 33))
+			numeralMessageFrame(v, at0, numeralUnit(1, tc.owner, 40))
+			numeralMessageFrame(v, at0, numeralUnit(1, tc.owner, 33))
 			if got := v.numerals[0].off; got != tc.want {
 				t.Errorf("birth offset = %v, want %v", got, tc.want)
 			}
@@ -364,9 +371,9 @@ func TestTheBirthOffsetTakesTheOwnershipSign(t *testing.T) {
 func TestEveryOwnerValueTakesAColour(t *testing.T) {
 	v := numeralViewer(t)
 	for _, owner := range []uint32{0, 1, 7, 8, 9, 1 << 31, ^uint32(0)} {
-		v.numerals, v.numeralHP = nil, nil
-		push(v, at0, numeralUnit(1, owner, 40))
-		push(v, at0, numeralUnit(1, owner, 30))
+		v.numerals, v.voices = nil, nil
+		numeralMessageFrame(v, at0, numeralUnit(1, owner, 40))
+		numeralMessageFrame(v, at0, numeralUnit(1, owner, 30))
 		if len(v.numerals) != 1 {
 			t.Fatalf("owner %d made %d figures", owner, len(v.numerals))
 		}
@@ -378,9 +385,9 @@ func TestEveryOwnerValueTakesAColour(t *testing.T) {
 // map's entity of the same id.
 func TestAnEntityAbsentFromAPushIsForgotten(t *testing.T) {
 	v := numeralViewer(t)
-	push(v, at0, numeralUnit(1, 1, 90))
-	push(v, at0) // the map closed
-	push(v, at0, numeralUnit(1, 1, 20))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 90))
+	numeralMessageFrame(v, at0) // the map closed
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 20))
 	if _, live := v.DamageNumerals(); live != 0 {
 		t.Errorf("a re-arrival at a lower health made %d figure(s); it is an arrival, not a wound", live)
 	}
@@ -403,8 +410,8 @@ func clockViewer(t *testing.T, local, owner uint32) (*Viewer, time.Time) {
 	v := numeralViewer(t)
 	v.SetLocalOwner(local)
 	v.SetPeriod(tickPeriodUS)
-	push(v, at0, numeralUnit(1, owner, 40)) // baseline: no elapsed yet
-	push(v, at0, numeralUnit(1, owner, 33)) // the blow
+	numeralMessageFrame(v, at0, numeralUnit(1, owner, 40)) // baseline: no elapsed yet
+	numeralMessageFrame(v, at0, numeralUnit(1, owner, 33)) // the blow
 	if _, live := v.DamageNumerals(); live != 1 {
 		t.Fatalf("the fixture made %d figures, want 1", live)
 	}
@@ -425,14 +432,14 @@ func TestAFigureDriftsOnePerTickSidewaysAndTwoUp(t *testing.T) {
 			born := v.numerals[0].off
 
 			// A frame that crossed no tick drifts nothing.
-			push(v, now, numeralUnit(1, tc.owner, 33))
+			numeralMessageFrame(v, now, numeralUnit(1, tc.owner, 33))
 			if got := v.numerals[0].off; got != born {
 				t.Fatalf("a frame crossing no tick moved the figure to %v from %v", got, born)
 			}
 
 			// Three ticks in one frame move it three steps, not one.
 			now = now.Add(3 * time.Millisecond)
-			push(v, now, numeralUnit(1, tc.owner, 33))
+			numeralMessageFrame(v, now, numeralUnit(1, tc.owner, 33))
 			want := born.Add(image.Pt(3*tc.signX, -6))
 			if got := v.numerals[0].off; got != want {
 				t.Errorf("after three ticks the offset is %v, want %v", got, want)
@@ -445,11 +452,11 @@ func TestAFigureDriftsOnePerTickSidewaysAndTwoUp(t *testing.T) {
 // not turn a figure round.
 func TestAFigureInFlightKeepsTheDirectionItSetOffIn(t *testing.T) {
 	v, now := clockViewer(t, 1, 1)
-	push(v, now.Add(time.Millisecond), numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, now.Add(time.Millisecond), numeralUnit(1, 1, 33))
 	after := v.numerals[0].off
 
 	v.SetLocalOwner(2) // the same unit is now somebody else's
-	push(v, now.Add(2*time.Millisecond), numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, now.Add(2*time.Millisecond), numeralUnit(1, 1, 33))
 	if got := v.numerals[0].off.X - after.X; got != +1 {
 		t.Errorf("the figure stepped %+d after the local participant changed, want +1", got)
 	}
@@ -473,9 +480,9 @@ func TestTheLifeIsAThousandMillisecondsOfWallClock(t *testing.T) {
 			}{{999, 1}, {1000, 1}, {1001, 0}} {
 				v := numeralViewer(t)
 				v.SetPeriod(tc.period)
-				push(v, at0, numeralUnit(1, 1, 40))
-				push(v, at0, numeralUnit(1, 1, 33))
-				push(v, at0.Add(time.Duration(at.ms)*time.Millisecond), numeralUnit(1, 1, 33))
+				numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+				numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
+				numeralMessageFrame(v, at0.Add(time.Duration(at.ms)*time.Millisecond), numeralUnit(1, 1, 33))
 				if _, live := v.DamageNumerals(); live != at.live {
 					t.Errorf("at %d ms: %d figure(s) live, want %d", at.ms, live, at.live)
 				}
@@ -484,23 +491,19 @@ func TestTheLifeIsAThousandMillisecondsOfWallClock(t *testing.T) {
 	}
 }
 
-// Two figures over one victim each expire on their OWN clock (hotfix,
-// docs/hotfix/LEDGER.md): the first blow's figure is gone once its own 1000
-// ms has passed even while the second blow's figure, born later, still has
-// life left — the opposite of the merge this replaces, which tied both to
-// the first blow's clock alone.
+// Figures from different ticks expire on their own clocks.
 func TestASecondFigureExpiresOnItsOwnClockNotTheFirsts(t *testing.T) {
 	v := numeralViewer(t)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 33)) // figure 1: born at0, damage 7
-	push(v, at0.Add(900*time.Millisecond), numeralUnit(1, 1, 30))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 33)) // figure 1: born at0, damage 7
+	numeralMessageFrame(v, at0.Add(900*time.Millisecond), numeralUnit(1, 1, 30))
 	if _, live := v.DamageNumerals(); live != 2 { // figure 2: born +900ms, damage 3
 		t.Fatalf("two blows produced %d figure(s), want 2", live)
 	}
 
 	// 1001 ms after the FIRST blow: it is gone, but the second, only 101 ms
 	// into its own life, still stands.
-	push(v, at0.Add(1001*time.Millisecond), numeralUnit(1, 1, 30))
+	numeralMessageFrame(v, at0.Add(1001*time.Millisecond), numeralUnit(1, 1, 30))
 	if _, live := v.DamageNumerals(); live != 1 {
 		t.Fatalf("at 1001 ms: %d figure(s) live, want 1 — the second's own clock", live)
 	}
@@ -509,7 +512,7 @@ func TestASecondFigureExpiresOnItsOwnClockNotTheFirsts(t *testing.T) {
 	}
 
 	// 1901 ms after the first is 1001 ms after the second: gone too.
-	push(v, at0.Add(1901*time.Millisecond), numeralUnit(1, 1, 30))
+	numeralMessageFrame(v, at0.Add(1901*time.Millisecond), numeralUnit(1, 1, 30))
 	if _, live := v.DamageNumerals(); live != 0 {
 		t.Errorf("%d figure(s) survived past the second blow's own window", live)
 	}
@@ -518,9 +521,9 @@ func TestASecondFigureExpiresOnItsOwnClockNotTheFirsts(t *testing.T) {
 // A clock that went backwards must not reap a figure it cannot have aged.
 func TestAClockThatWentBackwardsReapsNothing(t *testing.T) {
 	v := numeralViewer(t)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 33))
-	push(v, at0.Add(-time.Hour), numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, at0.Add(-time.Hour), numeralUnit(1, 1, 33))
 	if _, live := v.DamageNumerals(); live != 1 {
 		t.Errorf("a backwards clock left %d figure(s), want 1", live)
 	}
@@ -558,8 +561,8 @@ func litViewer(t *testing.T) *Viewer {
 // pixel down and right, in a different colour (AC-12).
 func TestAFigureIsDrawnTwiceAShadowUnderAFace(t *testing.T) {
 	v := litViewer(t)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
 	pic := v.numerals[0].pic
 	if pic == nil {
 		t.Fatalf("a viewer holding a font composed nothing")
@@ -596,8 +599,8 @@ func TestAFigureIsDrawnTwiceAShadowUnderAFace(t *testing.T) {
 // and simply draws nothing.
 func TestAViewerWithNoFontStillKeepsTheRecord(t *testing.T) {
 	v := numeralViewer(t)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
 	if _, live := v.DamageNumerals(); live != 1 {
 		t.Fatalf("a fontless viewer made %d record(s), want 1", live)
 	}
@@ -611,8 +614,8 @@ func TestAViewerWithNoFontStillKeepsTheRecord(t *testing.T) {
 func TestAFigureIsPlacedOffTheStruckUnitsOwnPosition(t *testing.T) {
 	v := litViewer(t)
 	v.SetLocalOwner(1)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
 
 	base := v.numeralPlacements()
 	if len(base) != 1 {
@@ -656,9 +659,9 @@ func TestAFigureIsPlacedOffTheStruckUnitsOwnPosition(t *testing.T) {
 func TestAFigureCarriesTheUnitsOwnDisplacement(t *testing.T) {
 	v := litViewer(t)
 	e := numeralUnit(1, 1, 40)
-	push(v, at0, e)
+	numeralMessageFrame(v, at0, e)
 	e.HP = 33
-	push(v, at0, e)
+	numeralMessageFrame(v, at0, e)
 	still := v.numeralPlacements()[0].At
 
 	// The phase pair is what turns the displacement on: a viewer never told
@@ -674,16 +677,16 @@ func TestAFigureCarriesTheUnitsOwnDisplacement(t *testing.T) {
 // A record whose unit is not in this frame places nothing and is NOT destroyed.
 func TestAFigureOverAnAbsentUnitPlacesNothingAndSurvives(t *testing.T) {
 	v := litViewer(t)
-	push(v, at0, numeralUnit(1, 1, 40))
-	push(v, at0, numeralUnit(1, 1, 33))
-	push(v, at0.Add(time.Millisecond)) // the unit is gone from the snapshot
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 40))
+	numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
+	numeralMessageFrame(v, at0.Add(time.Millisecond)) // the unit is gone from the snapshot
 	if got := v.numeralPlacements(); got != nil {
 		t.Errorf("a figure over an absent unit placed %v", got)
 	}
 	if _, live := v.DamageNumerals(); live != 1 {
 		t.Errorf("the record was destroyed rather than left to expire")
 	}
-	push(v, at0.Add(1001*time.Millisecond))
+	numeralMessageFrame(v, at0.Add(1001*time.Millisecond))
 	if _, live := v.DamageNumerals(); live != 0 {
 		t.Errorf("the record did not expire on its own clock")
 	}

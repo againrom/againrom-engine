@@ -133,7 +133,7 @@ func runPausedPresentationProbe(dir string) error {
 	if app.HeadlessNoticeOpen() {
 		return fmt.Errorf("installed damage producer remains under a notice")
 	}
-	f.LiveDamage(uint32(id), 7)
+	f.live.pending = append(f.live.pending, sim.Damage(id, 7))
 	wounded, _ := f.live.world.Entity(id)
 	if err := app.HeadlessStep(); err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -11,7 +12,7 @@ import (
 
 // HeadlessMapFrame composes a w by h map window centred on cell on the CPU:
 // the production terrain triangles with their corner scales, then the
-// production art submissions source-over with their colour scales, nearest
+// production art and numeral submissions source-over with their colour scales, nearest
 // sampling at pixel centres. Shroud, HUD, diagnostics and GPU blend modes are
 // not composed. The camera is restored afterwards. The art submissions are
 // returned with the frame.
@@ -38,6 +39,9 @@ func (v *Viewer) HeadlessMapFrame(cell image.Point, w, h int) (*image.RGBA, []He
 	}
 	for _, d := range draws {
 		compositeHeadlessArt(r.pix, d)
+	}
+	for _, p := range v.numeralPlacements() {
+		draw.Draw(r.pix, p.Pic.Bounds().Add(p.At), p.Pic, p.Pic.Bounds().Min, draw.Over)
 	}
 	return r.pix, draws, nil
 }

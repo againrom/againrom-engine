@@ -303,11 +303,13 @@ func (v *Viewer) beginSoundEntry() {
 // DamageMessage carries a causal health application with its drawable context.
 // Entity.HP is server context; the receiver compares AfterHP to client memory.
 type DamageMessage struct {
+	Tick    uint64
 	Entity  MapEntity
 	AfterHP int
 }
 
 type soundMessage struct {
+	tick    uint64
 	entity  soundEntity
 	damage  bool
 	afterHP int
@@ -336,7 +338,7 @@ func soundEntityOf(e MapEntity) soundEntity {
 // replacement cannot overwrite them; stepSound consumes the stream once.
 func (v *Viewer) AppendDamageMessages(messages []DamageMessage) {
 	for _, message := range messages {
-		v.soundMessages = append(v.soundMessages, soundMessage{entity: soundEntityOf(message.Entity), damage: true, afterHP: message.AfterHP})
+		v.soundMessages = append(v.soundMessages, soundMessage{tick: message.Tick, entity: soundEntityOf(message.Entity), damage: true, afterHP: message.AfterHP})
 	}
 }
 
@@ -353,6 +355,7 @@ func (v *Viewer) stepSound(now time.Time) {
 		m := v.voices[e.ID]
 		if message.damage {
 			hp := int(int16(message.afterHP))
+			v.receiveDamageNumeral(e, message.tick, e.HP-message.afterHP, now)
 			if m.framed {
 				if m.hp == hp {
 					if v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {

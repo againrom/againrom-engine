@@ -312,7 +312,7 @@ func TestASmoothedFigureCarriesItsGlyphsAndAPictureWithoutThem(t *testing.T) {
 		v.SetTextSmoothing(on)
 		v.SetLocalOwner(1)
 		push(v, at0, numeralUnit(1, 1, 40))
-		push(v, at0, numeralUnit(1, 1, 33))
+		numeralMessageFrame(v, at0, numeralUnit(1, 1, 33))
 		placed := v.numeralPlacements()
 		if len(placed) != 1 || placed[0].Pic == nil {
 			t.Fatalf("overlay %v: placed %d figures", on, len(placed))
