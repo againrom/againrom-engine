@@ -314,33 +314,18 @@ func validateSavedProjectileDocument(doc *sav.DocumentData, current sim.SavedPro
 }
 
 func completeSavedProjectileRecord(doc *sav.DocumentData, id uint16) bool {
-	state := &doc.State
-	leaves := func(path string) []sav.CityStateValueData {
-		var out []sav.CityStateValueData
-		for _, i := range stateLeafRecords(state.RootKind, state.DirectoryRecords, state.ValueRecords, path) {
-			out = append(out, state.ValueRecords[i].Value)
-		}
-		return out
-	}
-	ids, free := leaves("/Projectiles/IDs"), leaves("/Projectiles/FreeIndex")
-	if len(ids) != 1 || len(free) > 1 {
+	ids, present, err := doc.State.ReadLeaf("/Projectiles/IDs")
+	if err != nil || !present || ids.Kind != 2 && (ids.Kind != 6 || len(ids.Bytes)%4 != 0) {
 		return false
 	}
-	if v := ids[0]; v.Kind != 2 && (v.Kind != 6 || len(v.Bytes)%4 != 0) {
-		return false
-	}
-	if len(free) == 1 && free[0].Kind != 2 {
+	free, present, err := doc.State.ReadLeaf("/Projectiles/FreeIndex")
+	if err != nil || present && free.Kind != 2 {
 		return false
 	}
 	root := "/Prj" + strconv.Itoa(int(id))
 	for _, name := range projectileFieldNames {
-		count := 0
-		for _, v := range leaves(root + "/" + name) {
-			if v.Kind == 2 {
-				count++
-			}
-		}
-		if count != 1 {
+		value, present, err := doc.State.ReadLeaf(root + "/" + name)
+		if err != nil || !present || value.Kind != 2 {
 			return false
 		}
 	}

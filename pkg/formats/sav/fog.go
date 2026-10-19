@@ -1,6 +1,9 @@
 package sav
 
-import "fmt"
+import (
+	"againrom/pkg/formats/reg"
+	"fmt"
+)
 
 // The explored-terrain record, in the uncompressed tail's state store
 // (SAV-FOG-061).
@@ -60,24 +63,29 @@ type Fog struct {
 // array and nothing in the format forbids one; a decoder that treated it as a
 // length would size a plane from it.
 func (f *File) Fog() (*Fog, bool, error) {
-	r, ok := f.StateStore()
-	if !ok {
+	r := f.StateLeaves()
+	dataValue, ok, err := r.ReadLeaf("/Fog/Data")
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok || dataValue.Dir || dataValue.Type != reg.TypeIntArray {
 		return nil, false, nil
 	}
-	data, ok := r.GetIntArray(fogSection, fogData)
-	if !ok {
-		return nil, false, nil
-	}
+	data := dataValue.Ints
 	// FirstState is read after Data on purpose: a store carrying one leaf and
 	// not the other is a store with no usable record, and Data is the leaf
 	// that decides that. A missing FirstState is refused rather than defaulted
 	// to zero, because zero is a POLARITY and supplying one would invert the
 	// plane on a file that never said which way round it goes.
-	first, ok := r.GetInt(fogSection, fogFirstState)
-	if !ok {
+	firstValue, ok, err := r.ReadLeaf("/Fog/FirstState")
+	if err != nil {
+		return nil, false, err
+	}
+	if !ok || firstValue.Dir || firstValue.Type != reg.TypeInt {
 		return nil, false, fmt.Errorf("sav: %s/%s is present and %s/%s is not",
 			fogSection, fogData, fogSection, fogFirstState)
 	}
+	first := firstValue.Int
 	g := &Fog{FirstState: first, Runs: append([]int32(nil), data...)}
 	total := 0
 	for i, n := range data {

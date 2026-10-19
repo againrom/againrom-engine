@@ -82,13 +82,14 @@ func validateApplicationState(s *SnapshotApplicationState) error {
 }
 
 func readOriginalStateLeaf(doc *sav.DocumentData, path string, kind uint32) (sav.CityStateValueData, error) {
-	var value sav.CityStateValueData
-	at := stateLeafRecords(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, path)
-	if len(at) == 0 {
+	value, present, err := doc.State.ReadLeaf(path)
+	if err != nil {
+		return value, err
+	}
+	if !present {
 		return value, fmt.Errorf("original application is missing %s", path)
 	}
-	value = doc.State.ValueRecords[at[0]].Value
-	if len(at) > 1 || value.Kind != kind {
+	if value.Kind != kind {
 		return value, fmt.Errorf("original application has ambiguous or invalid %s", path)
 	}
 	if kind == 2 && len(value.Bytes) != 0 || kind == 6 && (value.Int32 != 0 || len(value.Bytes)%4 != 0) {

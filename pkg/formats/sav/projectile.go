@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strconv"
+
+	"againrom/pkg/formats/reg"
 )
 
 // The Projectiles state-store subtree (SAV-PROJSTORE-428, SAV-PROJLOAD-429):
@@ -90,32 +92,33 @@ type ProjectileStore struct {
 // never exercises this arm — every observed Prj<id> section carries all
 // sixteen leaves.
 func (f *File) Projectiles() (ProjectileStore, bool, error) {
-	r, ok := f.StateStore()
-	if !ok {
-		return ProjectileStore{}, false, nil
+	r := f.StateLeaves()
+	free, hasFree, err := r.ReadLeaf("/Projectiles/FreeIndex")
+	if err != nil {
+		return ProjectileStore{}, false, err
 	}
-	freeIndex, hasFreeIndex := r.GetInt(projectilesSection, projectilesFreeIndex)
-	array, hasArray := r.GetIntArray(projectilesSection, projectilesIDs)
-	var singleton int32
-	hasSingleton := false
-	if !hasArray {
-		singleton, hasSingleton = r.GetInt(projectilesSection, projectilesIDs)
+	ids, hasIDs, err := r.ReadLeaf("/Projectiles/IDs")
+	if err != nil {
+		return ProjectileStore{}, false, err
 	}
-	if !hasFreeIndex && !hasArray && !hasSingleton {
+	hasFree = hasFree && !free.Dir && free.Type == reg.TypeInt
+	hasIDs = hasIDs && !ids.Dir && (ids.Type == reg.TypeInt || ids.Type == reg.TypeIntArray)
+	if !hasFree && !hasIDs {
 		return ProjectileStore{}, false, nil
 	}
 	store := ProjectileStore{}
-	if hasFreeIndex {
-		store.FreeIndex = uint16(uint32(freeIndex))
+	if hasFree {
+		store.FreeIndex = uint16(free.Int)
 	}
-	switch {
-	case hasArray:
+	if hasIDs {
+		array := []int32{ids.Int}
+		if ids.Type == reg.TypeIntArray {
+			array = ids.Ints
+		}
 		store.IDs = make([]uint16, len(array))
 		for i, v := range array {
-			store.IDs[i] = uint16(uint32(v))
+			store.IDs[i] = uint16(v)
 		}
-	case hasSingleton:
-		store.IDs = []uint16{uint16(uint32(singleton))}
 	}
 	seen := make(map[uint16]bool, len(store.IDs))
 	for _, id := range store.IDs {
@@ -124,9 +127,16 @@ func (f *File) Projectiles() (ProjectileStore, bool, error) {
 		}
 		seen[id] = true
 		section := "Prj" + strconv.FormatUint(uint64(id), 10)
+		var leafErr error
 		leaf := func(name string) int32 {
-			v, _ := r.GetInt(section, name)
-			return v
+			v, present, err := r.ReadLeaf("/" + section + "/" + name)
+			if err != nil && leafErr == nil {
+				leafErr = err
+			}
+			if !present || v.Dir || v.Type != reg.TypeInt {
+				return 0
+			}
+			return v.Int
 		}
 		store.Items = append(store.Items, Projectile{
 			ID: id,
@@ -138,6 +148,9 @@ func (f *File) Projectiles() (ProjectileStore, bool, error) {
 			ActionPhase: leaf("actionphase"), ActionSegments: leaf("actionsegments"),
 			ActionSpell: leaf("actionspell"),
 		})
+		if leafErr != nil {
+			return ProjectileStore{}, false, leafErr
+		}
 	}
 	return store, true, nil
 }

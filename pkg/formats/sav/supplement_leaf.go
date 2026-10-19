@@ -106,23 +106,21 @@ func (d *supplementLeaf) check(kind uint32, b []byte) error {
 	return nil
 }
 
-// lookup finds the validated value by case-folded path; it aliases the state.
 func (d *supplementLeaf) lookup(state DocumentStateData) ([]byte, bool, error) {
-	var value []byte
-	found := false
-	for _, r := range state.ValueRecords {
-		if !strings.EqualFold(r.Path, d.path) {
-			continue
-		}
-		if found || r.Path != d.path || r.Value.Int32 != 0 {
-			return nil, false, errors.New(d.refusals.ambiguous)
-		}
-		if err := d.check(r.Value.Kind, r.Value.Bytes); err != nil {
-			return nil, false, err
-		}
-		value, found = r.Value.Bytes, true
+	value, found, err := state.ReadLeaf(d.path)
+	if err != nil {
+		return nil, false, errors.New(d.refusals.ambiguous)
 	}
-	return value, found, nil
+	if !found {
+		return nil, false, nil
+	}
+	if value.Int32 != 0 {
+		return nil, false, errors.New(d.refusals.ambiguous)
+	}
+	if err := d.check(value.Kind, value.Bytes); err != nil {
+		return nil, false, err
+	}
+	return value.Bytes, true, nil
 }
 
 func (d *supplementLeaf) payload(b []byte) []byte {
@@ -144,10 +142,11 @@ func (d *supplementLeaf) store(state *DocumentStateData, b []byte) error {
 	}
 	r := CityStateRecordData{Path: d.path, Value: CityStateValueData{Kind: d.kind, Bytes: b}}
 	records := slices.Clone(state.ValueRecords)
-	if i := slices.IndexFunc(records, func(x CityStateRecordData) bool { return x.Path == d.path }); i < 0 {
+	if at := StateLeafRecords(state.RootKind, state.DirectoryRecords, records, d.path); len(at) == 0 {
 		records = append(records, r)
 	} else {
-		records[i] = r
+		r.Path = records[at[0]].Path
+		records[at[0]] = r
 	}
 	slices.SortFunc(records, func(a, b CityStateRecordData) int { return strings.Compare(a.Path, b.Path) })
 	state.ValueRecords = records
@@ -169,7 +168,9 @@ func (d *supplementLeaf) remove(state *DocumentStateData) {
 	if state == nil {
 		return
 	}
-	state.ValueRecords = slices.DeleteFunc(slices.Clone(state.ValueRecords), func(r CityStateRecordData) bool { return r.Path == d.path })
+	state.ValueRecords = slices.DeleteFunc(slices.Clone(state.ValueRecords), func(r CityStateRecordData) bool {
+		return StateRecordIs(state.RootKind, state.DirectoryRecords, r.Path, d.path)
+	})
 }
 
 // placeSupplementLeaves inserts each present leaf the form carries where its
@@ -178,12 +179,17 @@ func placeSupplementLeaves(state *cityState, shape []stateDirectory, form leafFo
 	if state == nil {
 		return shape, nil
 	}
+	lookup := state.leafIndex()
 	for _, d := range supplementLeaves {
-		value, ok := state.values[d.path]
+		record, ok, err := lookup.read(d.path)
+		if err != nil {
+			return nil, err
+		}
+		value := record.Value
 		if d.forms&form == 0 || !ok {
 			continue
 		}
-		if err := d.check(value.kind, value.bytes); err != nil {
+		if err := d.check(value.Kind, value.Bytes); err != nil {
 			return nil, err
 		}
 		for i := range shape {
@@ -201,9 +207,11 @@ func placeSupplementLeaves(state *cityState, shape []stateDirectory, form leafFo
 	return shape, nil
 }
 
-// IsNativeActionsLeaf matches a store leaf as the lookup does.
-func IsNativeActionsLeaf(directory, name string) bool {
-	return strings.EqualFold(directory, nativeActionsLeaf.directory) && strings.EqualFold(name, nativeActionsLeaf.name)
+// HasNativeActionsLeaf includes collisions so a malformed authored save cannot
+// fall through to the original-save route.
+func (f *File) HasNativeActionsLeaf() bool {
+	_, present, err := f.StateLeaves().ReadLeaf(nativeActionsLeaf.path)
+	return present || err != nil
 }
 
 // MayCarryNativeMods: the mod mark's name appears in the save's bytes.

@@ -35,9 +35,13 @@ func projectCityApplication(data *sav.CityData, app *SnapshotApplicationState, l
 			"/View/X": raw.ViewX, "/View/Y": raw.ViewY,
 		}
 	case len(loaded) > 0:
-		for _, r := range loaded {
-			if r.Value.Kind == 2 {
-				values[r.Path] = r.Value.Int32
+		for _, path := range cityApplicationLeaves {
+			value, present, err := sav.ReadStateLeaf(17, nil, loaded, path)
+			if err != nil {
+				return err
+			}
+			if present && value.Kind == 2 {
+				values[path] = value.Int32
 			}
 		}
 	default:

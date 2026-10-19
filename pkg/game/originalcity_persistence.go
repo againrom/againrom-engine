@@ -25,7 +25,7 @@ type SnapshotOriginalCity struct {
 	// loadedState is the loaded town file's state-store records when its
 	// provenance is unavailable, so a save still writes the file's own
 	// options and view. It is not persisted.
-	loadedState []sav.CityStateRecordData
+	loadedState sav.DocumentStateData
 }
 
 type SnapshotCityBinding struct {
@@ -57,10 +57,13 @@ func (state *originalCitySaveState) snapshot() *SnapshotOriginalCity {
 	if state.unavailable != nil {
 		out.Unavailable = state.unavailable.Error()
 		loaded := state.loadedState
-		if document, ok := state.document.(interface{ Data() sav.CityData }); ok && loaded == nil {
-			loaded = document.Data().State.ValueRecords
+		if document, ok := state.document.(interface{ Data() sav.CityData }); ok && loaded.ValueRecords == nil {
+			data := document.Data().State
+			loaded = sav.DocumentStateData{RootKind: data.RootKind, DirectoryRecords: data.DirectoryRecords, ValueRecords: data.ValueRecords}
 		}
-		out.loadedState = append([]sav.CityStateRecordData(nil), loaded...)
+		out.loadedState = loaded
+		out.loadedState.DirectoryRecords = append([]sav.CityStateDirectoryData(nil), loaded.DirectoryRecords...)
+		out.loadedState.ValueRecords = append([]sav.CityStateRecordData(nil), loaded.ValueRecords...)
 		return out
 	}
 	// Production documents implement this seam. Test doubles for SAVE dispatch

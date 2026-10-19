@@ -398,12 +398,19 @@ func (p *CityProvenance) Marshal(update CityUpdate) ([]byte, error) {
 	}
 	state := cloneCityState(p.state)
 	if update.Shortcuts != nil {
-		value := state.values["/SpellBook/Shortcuts"]
+		record, present, err := state.leafIndex().read("/SpellBook/Shortcuts")
+		if err != nil {
+			return nil, err
+		}
+		if !present {
+			return nil, fmt.Errorf("sav: city update lacks SpellBook/Shortcuts")
+		}
+		value := state.values[record.Path]
 		value.bytes = make([]byte, 16)
 		for i, cell := range update.Shortcuts {
 			binary.LittleEndian.PutUint32(value.bytes[4*i:], uint32(cell))
 		}
-		state.values["/SpellBook/Shortcuts"] = value
+		state.values[record.Path] = value
 	}
 	campaign := cloneCityCampaign(p.campaign)
 	participant := document.objects[p.participantSourceIndex]
@@ -476,9 +483,16 @@ func (p *CityProvenance) Marshal(update CityUpdate) ([]byte, error) {
 	if heroName == "" {
 		return nil, fmt.Errorf("sav: city update gives the primary character an empty name")
 	}
-	nameState := state.values["/Character/Name"]
+	nameRecord, present, err := state.leafIndex().read("/Character/Name")
+	if err != nil {
+		return nil, err
+	}
+	if !present {
+		return nil, fmt.Errorf("sav: city update lacks Character/Name")
+	}
+	nameState := state.values[nameRecord.Path]
 	nameState.bytes = append(append([]byte(nil), heroName...), 0)
-	state.values["/Character/Name"] = nameState
+	state.values[nameRecord.Path] = nameState
 	if update.Campaign != nil {
 		if err := applyCityCampaignProjection(campaign, *update.Campaign); err != nil {
 			return nil, err

@@ -179,6 +179,7 @@ func TestNativeActionIdentityFramingDifferential(t *testing.T) {
 			switch name {
 			case "case":
 				r.Path = "/CurrentState/againromActions"
+				state.ValueRecords = append(state.ValueRecords, CityStateRecordData{Path: NativeActionsPath, Value: r.Value})
 			case "duplicate":
 				state.ValueRecords = append(state.ValueRecords, *r)
 			case "kind":

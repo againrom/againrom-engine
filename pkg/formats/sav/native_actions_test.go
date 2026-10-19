@@ -26,6 +26,7 @@ func TestNativeActionRegistryFramingIsStrict(t *testing.T) {
 		switch which {
 		case "case":
 			r.Path = "/CurrentState/againromActions"
+			s.ValueRecords = append(s.ValueRecords, CityStateRecordData{Path: NativeActionsPath, Value: r.Value})
 		case "duplicate":
 			s.ValueRecords = append(s.ValueRecords, *r)
 		case "version":

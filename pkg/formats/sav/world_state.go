@@ -96,28 +96,34 @@ func worldStateShape(state *cityState) ([]stateDirectory, error) {
 	// newly constructed canonical state supplies both leaves with IDs kind 6.
 	// Missing per-projectile fields are different: their constructor defaults
 	// are not supplied by this codec, so each referenced section must be whole.
+	lookup := state.leafIndex()
 	if _, present := state.directoryKinds["/Projectiles"]; present {
 		projectiles := stateDirectory{directory: "Projectiles"}
-		if _, ok := state.values["/Projectiles/FreeIndex"]; ok {
+		if _, ok, err := lookup.read("/Projectiles/FreeIndex"); err != nil {
+			return nil, err
+		} else if ok {
 			projectiles.children = append(projectiles.children, stateLeaf{"FreeIndex", 2})
 		}
 		var ids []uint16
-		if value, ok := state.values["/Projectiles/IDs"]; ok {
-			switch value.kind {
+		if r, ok, err := lookup.read("/Projectiles/IDs"); err != nil {
+			return nil, err
+		} else if ok {
+			value := r.Value
+			switch value.Kind {
 			case 2:
-				ids = []uint16{uint16(value.int32)}
+				ids = []uint16{uint16(value.Int32)}
 			case 6:
-				if len(value.bytes)/4 > maxWorldStateProjectiles {
+				if len(value.Bytes)/4 > maxWorldStateProjectiles {
 					return nil, fmt.Errorf("sav: world state has more than 65536 projectile IDs")
 				}
-				ids = make([]uint16, len(value.bytes)/4)
+				ids = make([]uint16, len(value.Bytes)/4)
 				for i := range ids {
-					ids[i] = uint16(binary.LittleEndian.Uint32(value.bytes[4*i:]))
+					ids[i] = uint16(binary.LittleEndian.Uint32(value.Bytes[4*i:]))
 				}
 			default:
-				return nil, fmt.Errorf("sav: world state Projectiles/IDs has unsupported kind %d", value.kind)
+				return nil, fmt.Errorf("sav: world state Projectiles/IDs has unsupported kind %d", value.Kind)
 			}
-			projectiles.children = append(projectiles.children, stateLeaf{"IDs", value.kind})
+			projectiles.children = append(projectiles.children, stateLeaf{"IDs", value.Kind})
 		}
 		shape = append(shape, projectiles)
 		seen := make(map[uint16]bool, len(ids))

@@ -206,6 +206,7 @@ func validateStateShape(state *cityState, shape []stateDirectory) error {
 		return fmt.Errorf("sav: state store has %d directories, want %d", len(state.directoryKinds), len(shape))
 	}
 	leaves := 0
+	lookup := state.leafIndex()
 	for _, directory := range shape {
 		leaves += len(directory.children)
 	}
@@ -223,20 +224,26 @@ func validateStateShape(state *cityState, shape []stateDirectory) error {
 		}
 		for _, child := range directory.children {
 			path := "/" + directory.directory + "/" + child.name
-			value, ok := state.values[path]
+			record, ok, err := lookup.read(path)
+			if err != nil {
+				return err
+			}
+			value := record.Value
 			if !ok {
 				return fmt.Errorf("sav: city state lacks %s", path)
 			}
-			if value.kind != child.kind {
-				return fmt.Errorf("sav: city state %s kind is %d, want %d", path, value.kind, child.kind)
+			if value.Kind != child.kind {
+				return fmt.Errorf("sav: city state %s kind is %d, want %d", path, value.Kind, child.kind)
 			}
 		}
 	}
-	name := state.values["/Character/Name"].bytes
+	nameRecord, _, _ := lookup.read("/Character/Name")
+	name := nameRecord.Value.Bytes
 	if len(name) == 0 || name[len(name)-1] != 0 || strings.IndexByte(string(name[:len(name)-1]), 0) >= 0 {
 		return fmt.Errorf("sav: city state Character/Name is not one NUL-terminated string")
 	}
-	if shortcuts := state.values["/SpellBook/Shortcuts"].bytes; len(shortcuts) != 16 {
+	shortcutsRecord, _, _ := lookup.read("/SpellBook/Shortcuts")
+	if shortcuts := shortcutsRecord.Value.Bytes; len(shortcuts) != 16 {
 		return fmt.Errorf("sav: city state SpellBook/Shortcuts has %d bytes, want 16", len(shortcuts))
 	}
 	return nil
@@ -279,16 +286,25 @@ func serializeStateStore(state *cityState, shape []stateDirectory) ([]byte, erro
 		records = append(records, record{name: directory.directory, value: uint32(childAt), size: uint32(len(directory.children)), kind: state.directoryKinds["/"+directory.directory]})
 		childAt += len(directory.children)
 	}
+	lookup := state.leafIndex()
 	var pool []byte
 	for _, directory := range shape {
 		for _, child := range directory.children {
 			path := "/" + directory.directory + "/" + child.name
-			value := state.values[path]
-			r := record{name: child.name, kind: value.kind, value: uint32(value.int32)}
-			if value.kind == 0 || value.kind == 6 {
+			leaf, present, err := lookup.read(path)
+			if err != nil {
+				return nil, err
+			}
+			if !present {
+				return nil, fmt.Errorf("sav: state store lacks %s", path)
+			}
+			value := leaf.Value
+			_, name := splitStatePath(leaf.Path)
+			r := record{name: name, kind: value.Kind, value: uint32(value.Int32)}
+			if value.Kind == 0 || value.Kind == 6 {
 				r.value = uint32(len(pool))
-				r.size = uint32(len(value.bytes))
-				pool = append(pool, value.bytes...)
+				r.size = uint32(len(value.Bytes))
+				pool = append(pool, value.Bytes...)
 			}
 			records = append(records, r)
 		}

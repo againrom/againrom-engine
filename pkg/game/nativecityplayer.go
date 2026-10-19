@@ -44,12 +44,13 @@ func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState
 		setting = app.Original.Formation
 		mode = formationModeOfSetting(setting)
 	} else {
-		for _, r := range loaded {
-			if r.Path == "/GameOptions/Formation" && r.Value.Kind == 2 {
-				setting = r.Value.Int32
-				mode = formationModeOfSetting(setting)
-				break
-			}
+		value, present, err := sav.ReadStateLeaf(17, nil, loaded, "/GameOptions/Formation")
+		if err != nil {
+			return err
+		}
+		if present && value.Kind == 2 {
+			setting = value.Int32
+			mode = formationModeOfSetting(setting)
 		}
 	}
 	if world != nil {

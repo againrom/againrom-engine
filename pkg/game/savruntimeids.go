@@ -101,12 +101,23 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 		}
 	}
 	targets := map[int]uint16{}
-	for i, leaf := range doc.State.ValueRecords {
-		root, _ := splitStatePath(leaf.Path)
-		if len(root) < 3 || !stateRecordIs(doc.State.RootKind, doc.State.DirectoryRecords, leaf.Path, "/Prj"+root[3:]+"/actiontarget") {
+	seenRoots := map[string]bool{}
+	for _, record := range doc.State.ValueRecords {
+		root, _ := splitStatePath(record.Path)
+		if len(root) < 3 || seenRoots[root] || !stateRootMatches(doc.State.RootKind, record.Path, "Prj"+root[3:]) {
 			continue
 		}
-		old := uint32(leaf.Value.Int32)
+		seenRoots[root] = true
+		path := "/Prj" + root[3:] + "/actiontarget"
+		value, present, err := doc.State.ReadLeaf(path)
+		if err != nil {
+			return err
+		}
+		if !present {
+			continue
+		}
+		i := stateLeafRecords(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, path)[0]
+		old := uint32(value.Int32)
 		if old == 0 {
 			continue
 		}

@@ -30,6 +30,7 @@ func TestNativeModsFramingIsStrict(t *testing.T) {
 		switch which {
 		case "case":
 			r.Path = "/CurrentState/againromMods"
+			s.ValueRecords = append(s.ValueRecords, CityStateRecordData{Path: NativeModsPath, Value: r.Value})
 		case "duplicate":
 			s.ValueRecords = append(s.ValueRecords, *r)
 		case "version":

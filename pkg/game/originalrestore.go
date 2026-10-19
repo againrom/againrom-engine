@@ -250,7 +250,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	if cityErr != nil {
 		s.originalCity = &originalCitySaveState{unavailable: fmt.Errorf("original-compatible town save provenance: %w", cityErr)}
 		if doc, err := sav.DecodeDocumentData(saved); err == nil {
-			s.originalCity.loadedState = doc.State.ValueRecords
+			s.originalCity.loadedState = doc.State
 		}
 	} else {
 		bindingParty := restored

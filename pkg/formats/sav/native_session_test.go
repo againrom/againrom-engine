@@ -22,6 +22,7 @@ func TestNativeSessionFramingIsStrict(t *testing.T) {
 		switch which {
 		case "case":
 			r.Path = "/CurrentState/againromSeed"
+			s.ValueRecords = append(s.ValueRecords, CityStateRecordData{Path: NativeSessionPath, Value: r.Value})
 		case "duplicate":
 			s.ValueRecords = append(s.ValueRecords, *r)
 		case "version":

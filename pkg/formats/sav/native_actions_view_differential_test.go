@@ -307,7 +307,8 @@ func nativeActionsViewFixtures(t *testing.T) []nativeActionsViewFixture {
 		r := &state.ValueRecords[index]
 		switch name {
 		case "case":
-			r.Path = "/currentstate/againromactions"
+			r.Path = "/CurrentState/againromActions"
+			state.ValueRecords = append(state.ValueRecords, CityStateRecordData{Path: NativeActionsPath, Value: r.Value})
 		case "duplicate", "duplicate-case":
 			duplicate := *r
 			if name == "duplicate-case" {

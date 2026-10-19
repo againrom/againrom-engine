@@ -3,7 +3,6 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
-	"slices"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
@@ -458,20 +457,25 @@ func currentCityItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {
 	return item
 }
 
-// townApplicationOptions takes the option and view leaves of a loaded town.
-func townApplicationOptions(city *SnapshotOriginalCity) []sav.CityStateRecordData {
+// townApplicationOptions selects with the source directory kinds, then captures
+// canonical names for the transient town options used by the native producers.
+func townApplicationOptions(city *SnapshotOriginalCity) ([]sav.CityStateRecordData, error) {
 	if city == nil {
-		return nil
+		return nil, nil
 	}
-	records := city.Document.State.ValueRecords
+	state := sav.DocumentStateData{RootKind: city.Document.State.RootKind, DirectoryRecords: city.Document.State.DirectoryRecords, ValueRecords: city.Document.State.ValueRecords}
 	if city.Unavailable != "" {
-		records = city.loadedState
+		state = city.loadedState
 	}
 	var out []sav.CityStateRecordData
-	for _, r := range records {
-		if r.Value.Kind == 2 && (r.Path == "/GameOptions/Formation" || slices.Contains(cityApplicationLeaves, r.Path)) {
-			out = append(out, r)
+	for _, path := range append([]string{"/GameOptions/Formation"}, cityApplicationLeaves...) {
+		value, present, err := state.ReadLeaf(path)
+		if err != nil {
+			return nil, err
+		}
+		if present && value.Kind == 2 {
+			out = append(out, sav.CityStateRecordData{Path: path, Value: value})
 		}
 	}
-	return out
+	return out, nil
 }

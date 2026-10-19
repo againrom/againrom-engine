@@ -37,7 +37,7 @@ type originalCitySaveState struct {
 	baselineCampaignMarkerSelected bool
 	baselineQuickSpells            [4]uint32
 	unavailable                    error
-	loadedState                    []sav.CityStateRecordData
+	loadedState                    sav.DocumentStateData
 	trade                          *originalCityTrade
 }
 

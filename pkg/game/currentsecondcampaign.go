@@ -231,14 +231,8 @@ func validateOriginalGame(saved []byte, game base.Game) error {
 		if parseErr != nil {
 			return parseErr
 		}
-		if store, present := sf.StateStore(); present {
-			for _, section := range store.Root.Children {
-				for _, leaf := range section.Children {
-					if sav.IsNativeActionsLeaf(section.Name, leaf.Name) {
-						return fmt.Errorf("authored current SAV document is malformed: %w", err)
-					}
-				}
-			}
+		if sf.HasNativeActionsLeaf() {
+			return fmt.Errorf("authored current SAV document is malformed: %w", err)
 		}
 		return nil
 	}
