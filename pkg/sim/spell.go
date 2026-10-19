@@ -1259,11 +1259,8 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 	if !w.actorSeesEntity(ai, ti) {
 		return
 	}
-	// 3. within the row's MaxRange, in whole cells — the SAME admission
-	// closedOn (combat.go) asks while the actor is still approaching, so
-	// "walked close enough" and "close enough to release" cannot come apart
-	//.
-	if (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y}) > int64(rule.MaxRange) {
+	// 3. within weaponCastInRange, the distance closedOn stops at.
+	if !w.weaponCastInRange(*a, *t, rule) {
 		return
 	}
 	// 4. and the row must actually land: weaponSpellApply's own refusals.

@@ -37,6 +37,7 @@ func TestItemAreaTrainsPerDamageEventWithoutHalfManaAward(t *testing.T) {
 	rule := SpellRule{ID: 2, School: 1, ManaCost: 100, TargetsUnit: true, MaxRange: 5,
 		Area: true, Radius: 1, Damaging: true, DamageMin: 1, DamageMax: 1}
 	caster := itemTrainingCaster(2, 1)
+	caster.Reach = 5
 	a, b := spEnt(2, 2, 2), spEnt(3, 3, 2)
 	a.Owner, a.XPValue, b.Owner, b.XPValue = 3, 100, 4, 100
 	w := spWorld(t, 1, []SpellRule{rule}, caster, a, b)

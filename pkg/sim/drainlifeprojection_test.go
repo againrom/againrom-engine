@@ -70,6 +70,7 @@ func TestDrainLifeWeaponReleaseKeepsTransferResistanceAndRawRange(t *testing.T) 
 	}{{7, true}, {8, false}} {
 		victim.X = tc.x
 		world := spWorld(t, 1, []SpellRule{rule}, caster, victim)
+		world.rom2 = &rom2ScriptState{} // the first game stops at the weapon reach instead
 		if got := world.closedOn(indexOfEntity(world.entities, 1), indexOfEntity(world.entities, 2)); got != tc.closed {
 			t.Fatalf("raw range7 at distance%d admission = %v, want %v", tc.x, got, tc.closed)
 		}

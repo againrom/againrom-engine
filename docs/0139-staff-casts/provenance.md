@@ -18,6 +18,7 @@
 | FR-16 (event-driven item training, slot selection and signed persistence) | `MAGIC-ITEMTRAIN-116`, `HERO-ITEMSKILL-096`, `ITEM-CASTSTATE-056`, `SAV-HEROXP-063`, `SAV-HEROSKILL-064` | High |
 | FR-17 (surviving attribution, delayed death and serialized fields) | `MAGIC-ITEMKILL-117`, `MAGIC-ATTRGATE-118` | High for writers and gates; Medium for history-dependent recipient |
 | FR-10 (the generator hands a caster a staff and only a staff) | `MAGIC-STAFF-022` | High |
+| FR-12, first game (a caster stops and starts the cast at edge distance at most its weapon reach; the spell row's max range is the operand of neither, and sex, skills and controller do not enter the weapon path) | `MAGIC-409`, `MAGIC-410`, `AI-PURSUE-040`, `HERO-REACH-025`, `MAGIC-AUTOCAST-021` (amended), `AI-678`, `MAGIC-411` | High for the operands; Medium for the visible stopping point and for the completeness of the path's distance tests |
 
 **FR-9 is a composition and is recorded as one.** `MAGIC-AUTOCAST-020` states the arm's write order:
 `actor+0x64`, `actor+0x68 = weapon`, `actor+0x54 = 0xd`, and *then* `R0268` validates.
@@ -35,7 +36,7 @@ rather than asserted in the contract.
 | FR-1b — `_` in a token stands for a space in a `Spells` row name | Nothing decoded says how the token reaches a row. The substitution is the smallest rule that resolves every shipped token; it is measured rather than assumed (AC-1). |
 | FR-2b — the trigger additionally requires the id to name a row of the loaded table | The original allocates a `Spell` from any id byte. A trigger that armed on an id naming nothing would leave a caster who diverts from every strike and releases nothing — strictly worse than the swing it replaced. |
 | FR-11 — the wind-up is the actor's own charge | `actor+0x134` is named as the wind-up length and no column is decoded for it. The charge is the one cadence number this tree holds for the actor and it is the staff's own row column, so a cast costs what the swing it replaced would have cost. |
-| FR-12 — the cast's admission distance is the spell row's own max range | `MAGIC-AUTOCAST-021` says the admission changes hands and is `R0268`'s; it does not state the comparison. 0127 already admits a commanded cast by the row's max range in Chebyshev cells, and this reuses it rather than inventing a second rule. |
+| FR-12 — what the claims leave open | The first-game release still refuses a victim beyond the weapon reach, though `MAGIC-403` reads no reach gate in the release branch (DIV-3721). A player-controlled mage with weapon reach below 2 still attacks, though `AI-678` diverts it to standing acquisition (DIV-3722). Under computer control the book-cast choice stays the engine's (DIV-3268). The second game keeps the spell row's max range in whole cells; no claim cited here covers it. `spec.md` FR-12 states the replaced first-game rule. |
 
 ## Research correction
 

@@ -186,29 +186,29 @@ func TestAWeaponSpellNamingNoLoadedRowStrikesNormally(t *testing.T) {
 }
 
 func TestClosedOnIsTheCastAdmissionForAnEligibleCasterAndInReachOtherwise(t *testing.T) {
-	rule := wpnRule(6, 6, 4)
-	caster := wpnCaster(1, 0, 0, 1, 30, 1, 0) // reach 1, range 4
+	rule := wpnRule(6, 6, 1)
+	caster := wpnCaster(1, 0, 0, 1, 30, 1, 0)
+	caster.Reach = 4                          // reach 4, range 1
 	striker := wpnCaster(2, 0, 5, 0, 0, 1, 0) // WeaponSpell 0: an ordinary striker, reach 1
 	victimA := spEnt(3, 3, 0)                 // distance 3 from (0,0)
 	victimB := spEnt(4, 3, 5)                 // distance 3 from (0,5)
 	w := spWorld(t, 1, []SpellRule{rule}, caster, striker, victimA, victimB)
 
 	if ic, iv := indexOfEntity(w.entities, 1), indexOfEntity(w.entities, 3); !w.closedOn(ic, iv) {
-		t.Error("a caster at distance 3 with a spell range of 4 is not closedOn, want true")
+		t.Error("a caster at distance 3 with a weapon reach of 4 is not closedOn, want true")
 	}
 	if is, iv := indexOfEntity(w.entities, 2), indexOfEntity(w.entities, 4); w.closedOn(is, iv) {
 		t.Error("a striker at distance 3 with a reach of 1 is closedOn, want false")
 	}
 }
 
-// TestACasterStopsAtSpellRangeNotMeleeReach is AC-7 end to end: a caster
-// whose victim stands beyond the weapon's own melee reach but within the
-// spell's range stops walking there and casts, rather than closing all the
-// way to reach 1.
-func TestACasterStopsAtSpellRangeNotMeleeReach(t *testing.T) {
+// TestACasterStopsAtItsLongWeaponReach: a caster whose victim stands within
+// its weapon's reach of 4 stops walking there and casts, rather than closing
+// all the way to 1 (MAGIC-409).
+func TestACasterStopsAtItsLongWeaponReach(t *testing.T) {
 	rule := wpnRule(6, 6, 4)
 	caster := wpnCaster(1, 0, 0, 1, 30, 1, 0)
-	caster.Speed = 40
+	caster.Speed, caster.Reach = 40, 4
 	victim := spEnt(2, 10, 0)
 	w := spWorld(t, 5, []SpellRule{rule}, caster, victim)
 
@@ -220,10 +220,10 @@ func TestACasterStopsAtSpellRangeNotMeleeReach(t *testing.T) {
 	a := spAt(t, w, 1)
 	dist := (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: 10, y: 0})
 	if dist > 4 {
-		t.Fatalf("the caster stands %d cell(s) from its victim after 150 advances, want at most 4 (the spell's own range)", dist)
+		t.Fatalf("the caster stands %d cell(s) from its victim after 150 advances, want at most 4 (the weapon's reach)", dist)
 	}
 	if dist <= 1 {
-		t.Errorf("the caster stands %d cell(s) from its victim, want more than 1 — it walked all the way to melee reach", dist)
+		t.Errorf("the caster stands %d cell(s) from its victim, want more than 1 — it walked all the way to touch", dist)
 	}
 	if hp := spAt(t, w, 2).HP; hp == 100 {
 		t.Errorf("the victim's health is still 100 — the caster never released from range")

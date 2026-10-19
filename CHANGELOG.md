@@ -19,6 +19,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 - [ROM1] A spell whose casting has finished is cast even when its target has stepped
   out of range or out of sight meanwhile; creatures no longer break it off to walk
   after the target. Mana is not charged again.
+- [ROM1] A mage whose staff casts a spell attacks from the staff's range, 5 cells with a
+  Staff and 4 with a Shaman Staff, not from the spell's range; the same holds for any
+  weapon that casts. Spells cast from the book keep their own range.
 
 ## 0.127.0
 

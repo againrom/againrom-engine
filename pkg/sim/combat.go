@@ -349,8 +349,7 @@ func (w *World) approach(s *routeScratch, i int) int {
 		return -1
 	}
 	latched := w.entities[i].AttackPhase != AttackReady
-	// An armed cast approach closes to the cast's reach, which its own
-	// admission tests each tick, not to the weapon's (MAGIC-239).
+	// An armed approach closes to closedOn's own distance (MAGIC-239).
 	if w.closedOn(i, ti) && !w.orderStateAt(i).approaching() {
 		if !latched {
 			w.turnToActor(i, ti)
@@ -573,28 +572,35 @@ func (w *World) standDownRefusedWalk(i int) {
 }
 
 // closedOn reports whether attacker i has walked close enough to victim ti
-// to stop and act: approach's own stop test and no other caller's, so
-// "walked close enough" and "close enough to act" cannot come apart for a
-// caster any more than inReach's own doc already keeps them from coming
-// apart for a striker.
+// to stop and act: approach's own stop test and no other caller's.
 //
-// IT IS THE CAST'S ADMISSION DISTANCE WHILE weaponSpell (spell.go) SAYS i IS
-// EVEN NOW ELIGIBLE (FR-2b) — measured the same way castSpell's own range
-// test is, by chebyshevTo in whole cells — AND inReach OTHERWISE.
+// A caster whose weaponSpell is eligible (FR-2b) is closed on at
+// weaponCastInRange, the distance its release also tests, and a striker at
+// inReach.
 //
 // A CASTER IS CLOSED ON ONLY WHILE IT SEES THE VICTIM, OR STANDS NEXT TO IT.
 // The release refuses a target the caster's own sight does not reach
-// (DIV-1311), so stopping at the spell's range with the victim still unseen
-// left a caster standing, never casting, while the rest of its group fought
-// (DIV-1524). Unseen, it keeps walking as a plain fighter does until it is
-// beside the victim, where it cannot come closer and waits for sight.
+// (DIV-1311); unseen, it keeps walking as a plain fighter does until it is
+// beside the victim, where it waits for sight (DIV-1524).
 func (w *World) closedOn(i, ti int) bool {
 	a, t := w.entities[i], w.entities[ti]
 	if rule, ok := w.weaponSpell(a); ok {
 		d := (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y})
-		return d <= int64(rule.MaxRange) && (d <= 1 || w.actorSeesEntity(i, ti))
+		return w.weaponCastInRange(a, t, rule) && (d <= 1 || w.actorSeesEntity(i, ti))
 	}
 	return inReach(a, t)
+}
+
+// weaponCastInRange reports whether caster a stands close enough to t to
+// begin and to release its weapon spell. The first game compares the edge
+// distance with the weapon reach, the operand of both the approach stop and
+// the act gate; the spell's range is neither (MAGIC-409, MAGIC-410). The
+// second game keeps the spell row's MaxRange in whole Chebyshev cells.
+func (w *World) weaponCastInRange(a, t Entity, rule SpellRule) bool {
+	if w.SecondGame() {
+		return (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y}) <= int64(rule.MaxRange)
+	}
+	return edgeDistance(&a, &t) <= a.Reach
 }
 
 // walkTo gives entity i a destination and takes it out of its layer's plane if
