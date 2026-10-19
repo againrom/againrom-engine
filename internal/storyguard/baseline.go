@@ -2635,6 +2635,12 @@ package storyguard
 // pkg/ui/windowmode.go, the viewer's middle drag, the starter and game window
 // flag and their tests, plus this note. It rises again for the restore of a
 // maximized window before a form switch and its test.
+// CommentBytes rises for the map editor's group selection, copy and paste and
+// its words: pkg/ui/mapeditorselection.go, pkg/game/mapinspectionselection.go,
+// mapedit's CloneFrom, the batched passability fills and their tests, plus
+// this note. It rises again for the paste's movement-domain check, its clone
+// from a copy of the same map, its fresh group ids in another map, the status
+// strip's fitted group note and their tests.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2658,5 +2664,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1707,
 	},
-	CommentBytes: 9252859,
+	CommentBytes: 9269041,
 }

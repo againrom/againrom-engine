@@ -72,21 +72,22 @@ func (e *MapEditor) keyClear(string) error {
 }
 
 func (e *MapEditor) keyHelp(string) error {
-	if e.report.open && e.report.note == "Map editor keys" {
+	title := e.word("editor.keys.title")
+	if e.report.open && e.report.note == title {
 		e.leave(leaveReport)
 		return nil
 	}
 	var rows []InspectionFinding
 	seen := map[string]bool{}
-	for _, line := range EditorHelpLines() {
+	for _, line := range e.allHelpLines() {
 		if seen[line] {
 			continue
 		}
 		seen[line] = true
-		rows = append(rows, InspectionFinding{Rule: "keys", Text: line})
+		rows = append(rows, InspectionFinding{Rule: keyListRule, Text: line})
 	}
-	rows = append(rows, InspectionFinding{Rule: "keys", Text: e.saveHelp()})
+	rows = append(rows, InspectionFinding{Rule: keyListRule, Text: e.saveHelp()})
 	e.leave(leaveDrag | leavePick)
-	e.openReport(rows, "Map editor keys", nil)
+	e.openReport(rows, title, nil)
 	return nil
 }

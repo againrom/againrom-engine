@@ -89,7 +89,45 @@ func (e *MapEditor) brushModeWord(mode brushMode) string {
 	return e.word("editor.brush.off")
 }
 
-var brushHeightRows = [...]string{"Raise", "Lower"}
+// terrainWord is the word the terrain list gives the palette row the host
+// names name; a name the table lacks reads as the host gave it.
+func (e *MapEditor) terrainWord(name string) string {
+	switch name {
+	case "Grass":
+		return e.word("editor.terrain.grass")
+	case "Land":
+		return e.word("editor.terrain.land")
+	case "Sand":
+		return e.word("editor.terrain.sand")
+	case "Cracked":
+		return e.word("editor.terrain.cracked")
+	case "Flowers":
+		return e.word("editor.terrain.flowers")
+	case "Stones":
+		return e.word("editor.terrain.stones")
+	case "Savanna":
+		return e.word("editor.terrain.savanna")
+	case "Mountain":
+		return e.word("editor.terrain.mountain")
+	case "Water":
+		return e.word("editor.terrain.water")
+	case "Road":
+		return e.word("editor.terrain.road")
+	}
+	return name
+}
+
+// objectWord is the word the objects list gives o: its class name, the clear
+// row's word, or the class code where the class has no name.
+func (e *MapEditor) objectWord(o BrushObject) string {
+	switch {
+	case o.Code == 0:
+		return e.word("editor.brush.noobject")
+	case o.Name == "":
+		return fmt.Sprintf(e.word("editor.brush.object"), o.Code)
+	}
+	return o.Name
+}
 
 type brushState struct {
 	mode    brushMode
@@ -122,12 +160,13 @@ func (e *MapEditor) brushRows() []string {
 		var rows []string
 		if h := e.brushHost(); h != nil {
 			for _, t := range h.BrushTerrains() {
-				rows = append(rows, t.Name)
+				rows = append(rows, e.terrainWord(t.Name))
 			}
 		}
 		return rows
 	case brushHeight:
-		return brushHeightRows[:]
+		// The first row raises the cells, the second lowers them.
+		return []string{e.word("editor.brush.raise"), e.word("editor.brush.lower")}
 	case brushPassability:
 		// The first row sets the impassable flag, the second clears it.
 		return []string{e.word("editor.brush.block"), e.word("editor.brush.unblock")}
@@ -135,7 +174,7 @@ func (e *MapEditor) brushRows() []string {
 		var rows []string
 		if h := e.brushHost(); h != nil {
 			for _, o := range h.BrushObjects() {
-				rows = append(rows, o.Name)
+				rows = append(rows, e.objectWord(o))
 			}
 		}
 		return rows
@@ -200,7 +239,7 @@ func (e *MapEditor) brushStatus() string {
 	if sel >= len(rows) {
 		return ""
 	}
-	return fmt.Sprintf("%s: %s  size %d", e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
+	return fmt.Sprintf(e.word("editor.brush.status"), e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
 }
 
 // chooseBrush is a Brushes menu row: it turns mode on, or every brush off
@@ -358,6 +397,7 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error) error 
 	nv.flat, nv.unshaded, nv.showGrid = old.flat, old.unshaded, old.showGrid
 	e.doc = next
 	e.cancelRestore, e.listRestore = nil, nil
+	e.clearSelection()
 	e.Layout(e.window.X, e.window.Y)
 	nv.syncWorld()
 	nv.cam.Zoom, nv.cam.X, nv.cam.Y = old.cam.Zoom, old.cam.X, old.cam.Y

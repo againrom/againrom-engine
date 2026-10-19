@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"againrom/pkg/words"
 )
 
 // helpTokens splits a help line into the words a key can be named by.
@@ -45,8 +47,8 @@ func keyTableProblems(rows []keyRow) []string {
 			out = append(out, "key "+r.key+" is in the help and marked unlisted")
 		}
 		for _, h := range r.help {
-			if !helpTokens(h.line)[r.label] {
-				out = append(out, "help line \""+h.line+"\" does not name key "+r.key+" as "+r.label)
+			if line := words.For("").Text(h.line.Word); !helpTokens(line)[r.label] {
+				out = append(out, "help line \""+line+"\" does not name key "+r.key+" as "+r.label)
 			}
 		}
 	}
@@ -65,7 +67,7 @@ func TestMapEditorKeyTableRowsAreComplete(t *testing.T) {
 // above: a table with each fault is refused.
 func TestMapEditorKeyTableCheckFindsEachProblem(t *testing.T) {
 	act := func(*MapEditor, string) error { return nil }
-	line := []helpEntry{{screenKeys, "X: do it"}}
+	line := []helpEntry{{screenKeys, helpLine{Word: "X: do it"}}}
 	for name, rows := range map[string][]keyRow{
 		"no action":    {{key: "x", label: "X", help: line}},
 		"two rows":     {{key: "x", label: "X", act: act, help: line}, {key: "x", label: "X", act: act, help: line}},
@@ -202,6 +204,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenMove:        {"ui:select0", "ui:pick-move"},
 		screenAdd:         {"unit", "escape"},
 		screenAddCell:     {"unit", "enter", "enter", "ui:add-pick"},
+		screenSelection:   {"ui:group"},
 	}
 	for screen := helpScreen(0); screen < screenCount; screen++ {
 		rows := helpEntries(screen)

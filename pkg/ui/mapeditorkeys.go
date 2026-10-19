@@ -2,6 +2,7 @@ package ui
 
 import (
 	"againrom/pkg/pathdialog"
+	"againrom/pkg/words"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -28,15 +29,19 @@ const (
 	screenPlayers                       // the roster list
 	screenPrompt
 	screenMove
-	screenAdd     // the Add window
-	screenAddCell // the Add window's cell is armed
+	screenAdd       // the Add window
+	screenAddCell   // the Add window's cell is armed
+	screenSelection // several records are selected
 	screenCount
 )
+
+// helpLine is a help line: the message id of its words.
+type helpLine struct{ Word string }
 
 // helpEntry is a line of a help screen.
 type helpEntry struct {
 	screen helpScreen
-	line   string
+	line   helpLine
 }
 
 // promptLive says when a key acts while a prompt is open.
@@ -70,57 +75,94 @@ const (
 var (
 	editorKeyRows   []keyRow
 	editorKeyByName map[string]*keyRow
-	editorHelp      [screenCount][]string
+	editorHelp      [screenCount][]helpLine
+)
+
+// The help lines, each once.
+var (
+	lineMove          = helpLine{Word: "editor.keys.move"}
+	lineFields        = helpLine{Word: "editor.keys.fields"}
+	lineBrush         = helpLine{Word: "editor.keys.brush"}
+	lineNew           = helpLine{Word: "editor.keys.new"}
+	linePlayers       = helpLine{Word: "editor.keys.players"}
+	lineMap           = helpLine{Word: "editor.keys.map"}
+	lineStructure     = helpLine{Word: "editor.keys.structure"}
+	lineHelp          = helpLine{Word: "editor.keys.help"}
+	lineArea          = helpLine{Word: "editor.keys.area"}
+	linePassability   = helpLine{Word: "editor.keys.passability"}
+	lineSelect        = helpLine{Word: "editor.keys.select"}
+	lineSelectClick   = helpLine{Word: "editor.keys.selectclick"}
+	lineCopy          = helpLine{Word: "editor.keys.copy"}
+	linePrompt        = helpLine{Word: "editor.keys.prompt"}
+	lineAddNext       = helpLine{Word: "editor.keys.addnext"}
+	lineAddChoose     = helpLine{Word: "editor.keys.addchoose"}
+	lineArms          = helpLine{Word: "editor.keys.arms"}
+	lineRoster        = helpLine{Word: "editor.keys.roster"}
+	lineRosterFields  = helpLine{Word: "editor.keys.rosterfields"}
+	lineTarget        = helpLine{Word: "editor.keys.target"}
+	lineTerrain       = helpLine{Word: "editor.keys.terrain"}
+	lineHeight        = helpLine{Word: "editor.keys.height"}
+	lineObjects       = helpLine{Word: "editor.keys.objects"}
+	linePassBrush     = helpLine{Word: "editor.keys.passbrush"}
+	lineCloneCell     = helpLine{Word: "editor.keys.clonecell"}
+	lineDropCell      = helpLine{Word: "editor.keys.dropcell"}
+	lineTargetCell    = helpLine{Word: "editor.keys.targetcell"}
+	lineTargetCancel  = helpLine{Word: "editor.keys.targetcancel"}
+	lineMoveCell      = helpLine{Word: "editor.keys.movecell"}
+	lineAddCell       = helpLine{Word: "editor.keys.addcell"}
+	lineCancel        = helpLine{Word: "editor.keys.cancel"}
+	lineRecords       = helpLine{Word: "editor.keys.records"}
+	lineBack          = helpLine{Word: "editor.keys.back"}
+	lineSelectionMove = helpLine{Word: "editor.keys.selectionmove"}
+	lineSelectionEsc  = helpLine{Word: "editor.keys.selectionclear"}
 )
 
 func init() {
-	keys := func(line string) []helpEntry { return []helpEntry{{screenKeys, line}} }
-	line0, line1, line2, line3 := "Drag: move / C: clone / Del", "E: fields / S: sack / R: report", "D: drop / G: arms / T, H, B: brush", "N: new map / U: unit"
-	line4, line5 := "P: players / F5: test play", "M: map / X: pages / W: mod"
-	promptLine := "Enter: set / Tab: next / Esc: back"
-	addLine, addChoose := "Enter: next / Esc: cancel", "Up, Down: choose"
-	arms := "Up, Down: select / G: close"
-	players, playerFields := "P: records / A: add / Del: delete", "Up, Down: select / E: fields"
+	keys := func(line helpLine) []helpEntry { return []helpEntry{{screenKeys, line}} }
+	brushes := []helpEntry{{screenTerrain, lineTerrain}, {screenHeight, lineHeight}, {screenObjects, lineObjects}, {screenPassability, linePassBrush}}
 	editorKeyRows = []keyRow{
-		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, "Enter: pick a target"}, {screenPrompt, promptLine}, {screenAdd, addLine}}},
-		{key: "clone", label: "C", act: (*MapEditor).recordKey, help: keys(line0)},
-		{key: "delete", label: "Del", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, line0}, {screenPlayers, players}}},
-		{key: "field", label: "E", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, line1}, {screenPlayers, playerFields}}},
-		{key: "sack", label: "S", act: (*MapEditor).recordKey, help: keys(line1)},
-		{key: "report", label: "R", act: (*MapEditor).keyReport, help: keys(line1)},
-		{key: "drop", label: "D", act: (*MapEditor).recordKey, help: keys(line2)},
-		{key: "goals", label: "G", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, line2}, {screenGoals, arms}}},
-		{key: "terrain", label: "T", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, line2}, {screenTerrain, "T: off / Drag: paint / [ ]: size"}}},
-		{key: "height", label: "H", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, line2}, {screenHeight, "H: off / Drag: shape / [ ]: size"}}},
-		{key: "objects", label: "B", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, line2}, {screenObjects, "B: off / Drag: place / [ ]: size"}}},
-		{key: "passability", label: "Q", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, "Q: passability brush"}, {screenPassability, "Q: off / Drag: mark / [ ]: size"}}},
-		{key: "radiusdown", label: "[", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}, {screenPassability, "Q: off / Drag: mark / [ ]: size"}}},
-		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenTerrain, "T: off / Drag: paint / [ ]: size"}, {screenHeight, "H: off / Drag: shape / [ ]: size"}, {screenObjects, "B: off / Drag: place / [ ]: size"}, {screenPassability, "Q: off / Drag: mark / [ ]: size"}}},
-		{key: "new", label: "N", act: (*MapEditor).keyNew, help: keys(line3)},
-		{key: "unit", label: "U", act: (*MapEditor).keyUnit, help: keys(line3)},
-		{key: "structure", label: "J", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
-		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
-		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys("J: structure / K: stock / I: recipe")},
-		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, line4}, {screenPlayers, players}}},
-		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, players}}},
-		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(line4)},
-		{key: "scripts", label: "F2", act: (*MapEditor).keyScripts, help: keys("F1: all keys / F2: scripts")},
-		{key: "metadata", label: "M", act: (*MapEditor).keyWorkspace, help: keys(line5)},
-		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(line5)},
-		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(line5)},
-		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys("F1: all keys / F2: scripts")},
-		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys("L: draw a trigger area")},
-		{label: "click", help: []helpEntry{{screenClone, "Clone: click a cell"}, {screenDrop, "Drop cell: click a cell"}, {screenGoal, "Target: click a unit or"}, {screenMove, "Move: click a cell"}, {screenAddCell, "Cell: click a cell"}}},
-		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, "Esc: cancel"}, {screenDrop, "Esc: cancel"}, {screenGoal, "structure / Esc: cancel"}, {screenPlayers, "Esc: map records"}, {screenPrompt, promptLine}, {screenMove, "Esc: cancel"}, {screenAdd, addLine}, {screenAddCell, "Esc: back"}}},
-		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}, {screenAdd, addChoose}}},
-		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, arms}, {screenPlayers, playerFields}, {screenAdd, addChoose}}},
+		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, lineTarget}, {screenPrompt, linePrompt}, {screenAdd, lineAddNext}}},
+		{key: "clone", label: "C", act: (*MapEditor).recordKey, help: keys(lineMove)},
+		{key: "delete", label: "Del", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, lineMove}, {screenPlayers, lineRoster}, {screenSelection, lineSelectionMove}}},
+		{key: "field", label: "E", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, lineFields}, {screenPlayers, lineRosterFields}}},
+		{key: "sack", label: "S", act: (*MapEditor).recordKey, help: keys(lineFields)},
+		{key: "report", label: "R", act: (*MapEditor).keyReport, help: keys(lineFields)},
+		{key: "drop", label: "D", act: (*MapEditor).recordKey, help: keys(lineBrush)},
+		{key: "goals", label: "G", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, lineBrush}, {screenGoals, lineArms}}},
+		{key: "terrain", label: "T", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenTerrain, lineTerrain}}},
+		{key: "height", label: "H", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenHeight, lineHeight}}},
+		{key: "objects", label: "B", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenObjects, lineObjects}}},
+		{key: "passability", label: "Q", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, linePassability}, {screenPassability, linePassBrush}}},
+		{key: "radiusdown", label: "[", act: (*MapEditor).brushKeyRow, help: brushes},
+		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: brushes},
+		{key: "new", label: "N", act: (*MapEditor).keyNew, help: keys(lineNew)},
+		{key: "unit", label: "U", act: (*MapEditor).keyUnit, help: keys(lineNew)},
+		{key: "structure", label: "J", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
+		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
+		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
+		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, linePlayers}, {screenPlayers, lineRoster}}},
+		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, lineRoster}}},
+		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},
+		{key: "scripts", label: "F2", act: (*MapEditor).keyScripts, help: keys(lineHelp)},
+		{key: "metadata", label: "M", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
+		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
+		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
+		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
+		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
+		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenAddCell, lineAddCell}}},
+		{label: "Shift", help: []helpEntry{{screenKeys, lineSelect}, {screenKeys, lineSelectClick}}},
+		{key: "copy", label: "Ctrl+C", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
+		{key: "paste", label: "Ctrl+V", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
+		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, lineCancel}, {screenDrop, lineCancel}, {screenGoal, lineTargetCancel}, {screenPlayers, lineRecords}, {screenPrompt, linePrompt}, {screenMove, lineCancel}, {screenAdd, lineAddNext}, {screenAddCell, lineBack}, {screenSelection, lineSelectionEsc}}},
+		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
+		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
 		{key: "close", live: promptHears, act: (*MapEditor).keyClose, unlisted: unlistedWindow},
 		{key: "open", act: (*MapEditor).keyOpen, unlisted: unlistedRail},
 		{key: "catalog", act: (*MapEditor).keyCatalog, unlisted: unlistedRail},
 		{key: "saveas", act: (*MapEditor).keySaveAs, unlisted: unlistedSaveLine},
 		{key: "undo", act: (*MapEditor).keyHistory, unlisted: unlistedSaveLine},
 		{key: "redo", act: (*MapEditor).keyHistory, unlisted: unlistedSaveLine},
-		{key: "tab", label: "Tab", live: promptFields, act: (*MapEditor).recordKey, help: []helpEntry{{screenPrompt, promptLine}}},
+		{key: "tab", label: "Tab", live: promptFields, act: (*MapEditor).recordKey, help: []helpEntry{{screenPrompt, linePrompt}}},
 		{key: "newline", live: promptHears, act: (*MapEditor).keyNewline, unlisted: unlistedPrompt},
 		{key: "clear", live: promptHears, act: (*MapEditor).keyClear, unlisted: unlistedPrompt},
 		{key: "backspace", live: promptHears, act: (*MapEditor).keyBackspace, unlisted: unlistedPrompt},
@@ -138,11 +180,20 @@ func init() {
 			editorKeyByName[r.key] = r
 		}
 		for _, h := range r.help {
-			if !containsString(editorHelp[h.screen], h.line) {
+			if !containsLine(editorHelp[h.screen], h.line) {
 				editorHelp[h.screen] = append(editorHelp[h.screen], h.line)
 			}
 		}
 	}
+}
+
+func containsLine(list []helpLine, l helpLine) bool {
+	for _, x := range list {
+		if x == l {
+			return true
+		}
+	}
+	return false
 }
 
 func containsString(list []string, s string) bool {
@@ -154,11 +205,38 @@ func containsString(list []string, s string) bool {
 	return false
 }
 
-// EditorHelpLines is every help line the editor window shows.
-func EditorHelpLines() []string {
+// EditorHelpLines is every help line the editor window shows, in English.
+func EditorHelpLines() []string { return EditorHelpLinesIn("") }
+
+// EditorHelpLinesIn is every help line the editor window shows, in UTF-8, in
+// the words of the install language lang.
+func EditorHelpLinesIn(lang string) []string {
 	var out []string
 	for _, lines := range editorHelp {
-		out = append(out, lines...)
+		out = append(out, helpWords(words.For(lang).Text, lines)...)
+	}
+	return out
+}
+
+// helpWords is the words of lines read through text.
+func helpWords(text func(string) string, lines []helpLine) []string {
+	out := make([]string, len(lines))
+	for i, l := range lines {
+		out[i] = text(l.Word)
+	}
+	return out
+}
+
+// allHelpLines is every help line in the window's words, each once: the F1
+// list.
+func (e *MapEditor) allHelpLines() []string {
+	var out []string
+	for _, lines := range editorHelp {
+		for _, line := range helpWords(e.word, lines) {
+			if !containsString(out, line) {
+				out = append(out, line)
+			}
+		}
 	}
 	return out
 }
@@ -187,6 +265,9 @@ func (e *MapEditor) helpScreen() helpScreen {
 	if s, ok := pickScreens[e.pick]; ok {
 		return s
 	}
+	if e.selectionShown() {
+		return screenSelection
+	}
 	if len(e.report.goals) > 0 {
 		return screenGoals
 	}
@@ -198,17 +279,17 @@ func (e *MapEditor) helpScreen() helpScreen {
 
 func (e *MapEditor) helpLines() []string {
 	if e.helpScreen() != screenKeys {
-		return editorHelp[e.helpScreen()]
+		return helpWords(e.word, editorHelp[e.helpScreen()])
 	}
-	var out []string
+	var out []helpLine
 	for _, key := range []string{"new", "players", "metadata", "help"} {
 		for _, h := range editorKeyByName[key].help {
-			if h.screen == screenKeys && !containsString(out, h.line) {
+			if h.screen == screenKeys && !containsLine(out, h.line) {
 				out = append(out, h.line)
 			}
 		}
 	}
-	return out
+	return helpWords(e.word, out)
 }
 
 // Key and Pointer are the same input doors used by Update and headless proof.
@@ -286,6 +367,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.cancelPopup(popList)
 	case e.brush.mode != brushOff:
 		e.cancelPopup(popList)
+	case e.selectionShown():
+		e.clearSelection()
 	case e.groupSel.set && !e.objectHidden || e.selected != -1 && !e.objectHidden:
 		e.cancelPopup()
 	case e.listShown:

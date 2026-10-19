@@ -381,8 +381,8 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 // At 1280x800 the status strip holds its whole line in the editor's ordinary
 // states: the keys help with the pointer on a cell, and each brush's help.
 // With the passability view naming every terrain arm of the hovered cell, the
-// keys help gives up its leading lines and keeps "F1: all keys", which leads
-// to the rest. Its control: that whole line, measured in the same font, is
+// keys help gives up its leading lines and keeps the F1 line, which leads to
+// the rest. Its control: that whole line, measured in the same font, is
 // wider than the strip, so the check fails if the fit stops dropping lines.
 func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	x := installedInspector(t)
@@ -396,7 +396,7 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	c := image.Pt(d.Width/2, d.Height/2)
 	d.Passability[c.Y*d.Width+c.X] = ui.PassBorder | ui.PassMountain | ui.PassWater | ui.PassFlag | ui.PassObject
 	e.ShowCell(c)
-	const tail = "F1: all keys / F2: scripts"
+	tail, newMap := x.inspectionUTF8(x.word("editor.keys.help")), x.inspectionUTF8(x.word("editor.keys.new"))
 	check := func(what string, whole bool) string {
 		t.Helper()
 		hoverStatus(e, c)
@@ -431,7 +431,7 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	if full <= limit {
 		t.Fatalf("control: the whole line with every arm is %d wide within %d; the case does not test the fit", full, limit)
 	}
-	if !strings.HasSuffix(line, tail) || !strings.Contains(e.StatusLine(), "N: new map") || strings.Contains(line, "N: new map") {
+	if !strings.HasSuffix(line, tail) || !strings.Contains(e.StatusLine(), newMap) || strings.Contains(line, newMap) {
 		t.Fatalf("the fitted line %q does not keep the F1 line in place of the leading ones", line)
 	}
 	for _, key := range []string{"terrain", "height", "objects", "passability"} {

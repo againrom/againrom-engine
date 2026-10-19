@@ -91,6 +91,9 @@ func (e *MapEditor) recordKey(key string) error {
 		e.scriptKey(key)
 		return nil
 	}
+	if key == "delete" && e.selectionShown() {
+		return e.deleteSelection()
+	}
 	if key == "field" && e.report.open && len(e.objectBack) == 0 && e.goalRecord(e.report.sel) >= 0 {
 		e.openGoal(e.report.sel)
 		return nil

@@ -1,5 +1,7 @@
 package ui
 
+import "fmt"
+
 // InspectionModSave is implemented by edits whose host saves into a mod
 // folder. While ModTarget names a mod, Save (Ctrl+S) writes the map to the
 // path the mod's mission entry for it names instead of asking for a new path.
@@ -45,7 +47,7 @@ func (e *MapEditor) saveIntoMod(m InspectionModSave) error {
 // mod when one is named.
 func (e *MapEditor) saveHelp() string {
 	if m, ok := e.modSave(); ok {
-		return editorClip(e.font, "Ctrl+Z / Ctrl+Y / Ctrl+S: save into mod "+m.ModTarget(), 300)
+		return editorClip(e.font, fmt.Sprintf(e.word("editor.keys.modsave"), m.ModTarget()), 300)
 	}
 	return "Ctrl+Z / Ctrl+Y / Ctrl+S"
 }

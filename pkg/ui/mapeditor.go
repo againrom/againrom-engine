@@ -149,6 +149,7 @@ type MapEditor struct {
 	placementErr                error
 	cancelRestore               func()
 	listRestore                 func()
+	selection                   selectionState
 	editorChrome
 }
 
@@ -210,6 +211,7 @@ func (e *MapEditor) openMap(source string) error {
 	e.listWheel, e.objectWheel = 0, 0
 	e.message = ""
 	e.brush.endStroke()
+	e.clearSelection()
 	e.Fit()
 	if _, ok := e.mapPanel(); ok {
 		e.openPanel()
@@ -248,6 +250,8 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	e.selected, e.objectTop, e.objectHidden = index, 0, false
 	e.focusedReference, e.objectWheel = 0, 0
 	e.groupSel, e.objectBack = editorGroup{}, nil
+	e.selection.refs = nil
+	e.noteSelection("", nil)
 	r := e.doc.Records[index]
 	if jump && r.Spatial {
 		e.centerOn(r.Cell)
@@ -339,6 +343,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	if e.brushPointer(in, p, rail) {
 		return
 	}
+	if e.marqueePointer(in, p, rail) {
+		return
+	}
 	if e.dragRecord(in, p, rail) {
 		return
 	}
@@ -425,6 +432,12 @@ func (e *MapEditor) Update() error {
 			}
 			if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 				_ = e.Key("saveas")
+			}
+			if inpututil.IsKeyJustPressed(ebiten.KeyC) {
+				_ = e.Key("copy")
+			}
+			if inpututil.IsKeyJustPressed(ebiten.KeyV) {
+				_ = e.Key("paste")
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyO) {
@@ -585,21 +598,23 @@ func (e *MapEditor) markerLines() []editorLine {
 		}
 	}
 	for i, r := range e.doc.Records {
-		if e.recordDrag != nil && e.recordDrag.moved && i == e.recordDrag.record {
-			r.Cell = e.recordDrag.cell // preview only; no model mutation until release
+		member := e.inSelection(i)
+		if d := e.recordDrag; d != nil && d.moved && (i == d.record || d.group && member) {
+			r.Cell = r.Cell.Add(d.cell.Sub(d.origin)) // preview only; no model mutation until release
 		}
 		issue := !e.view.hideIssues && (r.Warning != "" || e.report.flagged[findingKey(r.Kind, r.Index)])
-		if !r.Spatial || (!issue && i != e.selected) {
+		chosen := i == e.selected || member
+		if !r.Spatial || (!issue && !chosen) {
 			continue
 		}
 		wx, wy := e.cellCenter(r.Cell)
 		x, y := v.cam.WorldToScreen(wx, wy)
 		c := editorWarning
-		if i == e.selected {
+		if chosen {
 			c = editorGold
 		}
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), c}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), c})
-		if i == e.selected && !e.view.hideFootprints {
+		if chosen && !e.view.hideFootprints {
 			for cy := r.Cell.Y; cy < r.Cell.Y+max(1, r.Size.Y); cy++ {
 				for cx := r.Cell.X; cx < r.Cell.X+max(1, r.Size.X); cx++ {
 					if cx < 0 || cy < 0 || cx >= e.doc.Width || cy >= e.doc.Height {
@@ -633,6 +648,7 @@ func (e *MapEditor) markerLines() []editorLine {
 	out = append(out, e.referenceMarkerLines()...)
 	out = append(out, e.brushMarkerLines()...)
 	out = append(out, e.groupMarkerLines()...)
+	out = append(out, e.marqueeLines()...)
 	return append(e.gridLines(), out...)
 }
 

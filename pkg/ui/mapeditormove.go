@@ -78,6 +78,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	if e.terrainDiffers(next) {
 		return e.adoptTerrainEdit(next, nil)
 	}
+	e.clearSelection()
 	// A record edit does not change terrain. Retain the live viewer (camera,
 	// GPU caches and render settings) and refresh entities, structures and sacks.
 	old := e.doc.Viewer
@@ -111,7 +112,11 @@ type editorRecordDrag struct {
 	record, index int
 	press         image.Point
 	grab, cell    image.Point
+	origin        image.Point // the record's cell at the press
 	moved         bool
+	// group is set when the record is one of several selected: the drag
+	// moves them all by the record's offset.
+	group bool
 	// area is the trigger area handle the drag carries; nil for a record.
 	area *areaHandle
 }
@@ -144,6 +149,7 @@ func (e *MapEditor) selectAt(p image.Point) {
 	hits := e.hitsAt(p)
 	if len(hits) == 0 {
 		e.selected = -1
+		e.clearSelection()
 		if x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y)); ok {
 			if t, ok := e.areaAt(image.Pt(x, y)); ok {
 				e.selectTrigger(t, false)
@@ -192,7 +198,8 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		if hit >= 0 {
 			r := e.doc.Records[hit]
 			x, y, _ := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
-			e.recordDrag = &editorRecordDrag{kind: r.Kind, record: hit, index: r.Index, press: p, grab: image.Pt(x, y).Sub(r.Cell), cell: r.Cell}
+			e.recordDrag = &editorRecordDrag{kind: r.Kind, record: hit, index: r.Index, press: p, grab: image.Pt(x, y).Sub(r.Cell), cell: r.Cell, origin: r.Cell,
+				group: e.selectionShown() && e.inSelection(hit)}
 			e.doc.Viewer.dragging = false
 		}
 	}
@@ -211,7 +218,7 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		return true
 	}
 	if math.Abs(float64(p.X-d.press.X)) > 4 || math.Abs(float64(p.Y-d.press.Y)) > 4 {
-		if !d.moved && e.selected != d.record {
+		if !d.moved && e.selected != d.record && !d.group {
 			e.Select(d.record, false)
 		}
 		d.moved = true
@@ -219,7 +226,9 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 	d.cell = cell
 	if !in.PrimaryDown {
 		e.recordDrag = nil
-		if d.moved {
+		if d.moved && d.group {
+			_ = e.moveSelection(cell.Sub(d.origin))
+		} else if d.moved {
 			next, err := e.doc.Edits.Move(d.kind, d.index, cell)
 			_ = e.adoptEdit(next, err)
 		} else {

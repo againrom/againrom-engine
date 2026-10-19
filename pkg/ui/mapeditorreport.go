@@ -173,8 +173,15 @@ func (e *MapEditor) reportStep(delta int) {
 	}
 }
 
-// reportLabel is the finding as one list row.
+// keyListRule is the rule of the F1 key list's rows, which the report window
+// shows; each row is one help line.
+const keyListRule = "keys"
+
+// reportLabel is the finding as one list row; a key list row is its line.
 func reportLabel(f InspectionFinding) string {
+	if f.Rule == keyListRule {
+		return f.Text
+	}
 	mark := "W"
 	if f.Error {
 		mark = "E"

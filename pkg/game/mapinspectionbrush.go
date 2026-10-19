@@ -103,9 +103,10 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke) (bool, error) {
 
 // objectBrushRows builds the objects list: the clear row, then every class of
 // the object registry the game can draw (a class with a frame), in placement
-// byte order, named by its DescText or, where it has none, by its code.
+// byte order, named by its DescText. The editor words the clear row and a
+// class without a DescText in the install's language.
 func objectBrushRows(src terrain.EntrySource, set *terrain.StaticSet) []ui.BrushObject {
-	rows := []ui.BrushObject{{Code: 0, Name: "No object"}}
+	rows := []ui.BrushObject{{Code: 0}}
 	if set == nil {
 		return rows
 	}
@@ -125,11 +126,7 @@ func objectBrushRows(src terrain.EntrySource, set *terrain.StaticSet) []ui.Brush
 		if c := set.Classes[b]; c == nil || c.Frame == nil {
 			continue
 		}
-		name := names[b]
-		if name == "" {
-			name = fmt.Sprintf("Object %d", b)
-		}
-		rows = append(rows, ui.BrushObject{Code: b, Name: name})
+		rows = append(rows, ui.BrushObject{Code: b, Name: names[b]})
 	}
 	return rows
 }

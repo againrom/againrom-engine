@@ -22,6 +22,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   View > Passability shades open cells white and blocked cells red, and the status
   line names what blocks the cell under the pointer. The passability brush (Q)
   blocks and unblocks cells; the height brush shows the height under the pointer.
+- [ROM1] Map editor: Shift and a drag on the map selects every unit, structure and
+  sack in a rectangle; Shift and a click adds or removes one. Dragging one of them
+  moves them all, Del deletes them, Ctrl+C copies them and Ctrl+V pastes them at the
+  pointer, also into another map; each is one undo step, and the status line names
+  each record that cannot stand where it would land. Flying units may land over
+  water and mountains; a unit pasted into another map takes a group number no
+  unit or script of that map uses. On the Russian install the brush lists, the
+  brush help and the F1 key list are in Russian, and the F1 list shows each key
+  line.
 - [BASE] The game finds its files whatever the case of their names, so an
   install copied to a case-sensitive system works without renaming.
 - [ROM1] Arrows and homing spells aim at the centres of large creatures.

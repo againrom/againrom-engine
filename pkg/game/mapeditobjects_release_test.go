@@ -43,14 +43,14 @@ func TestReleaseMapEditorObjectListOffersOnlyDrawableClasses(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := objectEdits(t, e).BrushObjects()
-	if rows[0] != (ui.BrushObject{Code: 0, Name: "No object"}) {
+	if rows[0] != (ui.BrushObject{Code: 0}) {
 		t.Fatalf("the first row is %v", rows[0])
 	}
 	offered := map[int]bool{}
 	last := 0
 	for _, r := range rows[1:] {
 		c := x.statics.Classes[r.Code]
-		if c == nil || c.Frame == nil || r.Code <= last || r.Name == "" {
+		if c == nil || c.Frame == nil || r.Code <= last {
 			t.Fatalf("row %v is not a drawable class in placement order", r)
 		}
 		offered[r.Code], last = true, r.Code

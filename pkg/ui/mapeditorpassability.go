@@ -126,7 +126,10 @@ func (e *MapEditor) passabilityQuads() []passQuad {
 }
 
 // drawPassability fills the cells on the GPU canvas, over the map's art and
-// under every editor line.
+// under every editor line. The fills are drawn at every zoom: at the
+// smallest a cell is a few pixels, and its colour still reads where the
+// grid's outline would not, so the cost is held down by drawing them in a
+// few batches instead of one call per cell.
 func (e *MapEditor) drawPassability(dst *ebiten.Image) {
 	quads := e.passabilityQuads()
 	if len(quads) == 0 {
@@ -137,17 +140,42 @@ func (e *MapEditor) drawPassability(dst *ebiten.Image) {
 		e.passInk.Fill(color.White)
 	}
 	op := &ebiten.DrawTrianglesOptions{}
-	for _, q := range quads {
-		verts := q.verts
-		for i := range verts {
-			verts[i].SrcX, verts[i].SrcY = 0.5, 0.5
-			verts[i].ColorR = float32(q.fill.R) / 255
-			verts[i].ColorG = float32(q.fill.G) / 255
-			verts[i].ColorB = float32(q.fill.B) / 255
-			verts[i].ColorA = float32(q.fill.A) / 255
-		}
-		dst.DrawTriangles(verts[:], quadIndices[:], e.passInk, op)
+	verts, indices := passBatches(quads)
+	for i := range verts {
+		dst.DrawTriangles(verts[i], indices[i], e.passInk, op)
 	}
+}
+
+// passBatchQuads is the most cells one batch holds: four vertices each, so
+// every index of the batch fits the 16-bit index type.
+const passBatchQuads = 1 << 14
+
+// passBatches is the cells' fills as triangle batches: each cell's four
+// corners carry its colour and its two triangles split it as quadIndices does.
+func passBatches(quads []passQuad) ([][]ebiten.Vertex, [][]uint16) {
+	var verts [][]ebiten.Vertex
+	var indices [][]uint16
+	for start := 0; start < len(quads); start += passBatchQuads {
+		part := quads[start:min(len(quads), start+passBatchQuads)]
+		vs := make([]ebiten.Vertex, 0, 4*len(part))
+		is := make([]uint16, 0, 6*len(part))
+		for _, q := range part {
+			base := uint16(len(vs))
+			for _, v := range q.verts {
+				v.SrcX, v.SrcY = 0.5, 0.5
+				v.ColorR = float32(q.fill.R) / 255
+				v.ColorG = float32(q.fill.G) / 255
+				v.ColorB = float32(q.fill.B) / 255
+				v.ColorA = float32(q.fill.A) / 255
+				vs = append(vs, v)
+			}
+			for _, k := range quadIndices {
+				is = append(is, base+k)
+			}
+		}
+		verts, indices = append(verts, vs), append(indices, is)
+	}
+	return verts, indices
 }
 
 // paintPassability is drawPassability on the CPU frame: each cell's two

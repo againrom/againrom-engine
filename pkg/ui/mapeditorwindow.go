@@ -1047,26 +1047,57 @@ func fitRect(size image.Point, box image.Rectangle) screenRect {
 // statusText is the strip's line: the cell under the pointer, the map's
 // saved state and the mode's keys.
 func (e *MapEditor) statusText() string {
-	parts, help := e.statusParts()
+	parts, help := e.statusParts(e.wholeSelectionNote())
 	return statusJoin(parts, help)
+}
+
+// wholeSelectionNote is the group edit's note as the whole line names it.
+func (e *MapEditor) wholeSelectionNote() string {
+	return e.selectionNote(e.selection.refusals[:min(selectionShownRefusals, len(e.selection.refusals))])
 }
 
 // statusJoin is the strip's line of the lead parts and the help lines.
 func statusJoin(parts, help []string) string {
+	if len(help) == 0 {
+		return strings.Join(parts, "   |   ")
+	}
 	return strings.Join(append(parts, strings.Join(help, "  /  ")), "   |   ")
 }
 
 // statusFitted is the line the strip draws in f within width: while the
 // whole line is wider, the help loses its first line, so the last, which
-// names F1 for every key, stays in view.
+// names F1 for every key, stays in view. A group edit's note that still does
+// not fit names its first refusal alone, cut to the room left, and counts the
+// rest; the last help line stays while that refusal keeps a part beside the
+// cut mark, and goes when it does not.
 func (e *MapEditor) statusFitted(f *text.Font, width int) string {
-	parts, help := e.statusParts()
+	parts, help := e.statusParts(e.wholeSelectionNote())
 	line := statusJoin(parts, help)
 	for f != nil && len(help) > 1 && f.Advance(line) > width {
 		help = help[1:]
 		line = statusJoin(parts, help)
 	}
-	return line
+	if f == nil || f.Advance(line) <= width || len(e.selection.refusals) == 0 {
+		return line
+	}
+	first := e.selection.refusals[0]
+	for _, h := range [][]string{help, nil} {
+		withFirst := func(r string) string {
+			p, _ := e.statusParts(e.selectionNote([]string{r}))
+			return statusJoin(p, h)
+		}
+		if l := withFirst(first); f.Advance(l) <= width {
+			return l
+		}
+		room := width - f.Advance(withFirst(""))
+		if cut := editorFit(f).Fit(first, room); strings.HasSuffix(cut, textfit.Mark) && len(cut) > len(textfit.Mark) {
+			if l := withFirst(cut); f.Advance(l) <= width {
+				return l
+			}
+		}
+	}
+	p, _ := e.statusParts(e.selectionNote(nil))
+	return statusJoin(p, nil)
 }
 
 // StatusFit is the status line as the strip draws it at the window's size,
@@ -1082,8 +1113,9 @@ func (e *MapEditor) StatusFit() (line string, width, whole, limit int) {
 	return line, f.Advance(line), f.Advance(e.statusText()), limit
 }
 
-// statusParts is the strip's lead parts and the mode's help lines.
-func (e *MapEditor) statusParts() ([]string, []string) {
+// statusParts is the strip's lead parts, ending in the group's part with
+// note, and the mode's help lines.
+func (e *MapEditor) statusParts(note string) ([]string, []string) {
 	var parts []string
 	if e.hoverOK {
 		parts = append(parts, fmt.Sprintf("%d,%d", e.hoverCell.X, e.hoverCell.Y))
@@ -1110,6 +1142,7 @@ func (e *MapEditor) statusParts() ([]string, []string) {
 	if e.pick == pickArea {
 		parts = append(parts, e.word("editor.area.draw"))
 	}
+	parts = append(parts, e.selectionStatus(note)...)
 	return parts, e.helpLines()
 }
 

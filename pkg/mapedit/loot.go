@@ -1,6 +1,7 @@
 package mapedit
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -143,21 +144,21 @@ func refuseOwnedStockDeletion(e *Editor, units walk, index int) ([]part, error) 
 	return nil, nil
 }
 
-func cloneUnitStockParts(e *Editor, units walk, source int, rec []byte) ([]part, error) {
+func cloneUnitStockParts(e *Editor, units walk, src *Editor, sunits walk, source int, rec []byte, _ bool) ([]part, error) {
 	binary.LittleEndian.PutUint32(rec[unitLootLink:], 0)
-	if !e.locate().carries(lootTypeID) {
+	if !src.locate().carries(lootTypeID) {
 		return nil, nil
 	}
-	loot, err := e.walkSection(KindLoot, "clone unit stock")
+	loot, err := src.walkSection(KindLoot, "clone unit stock")
 	if err != nil {
 		return nil, nil
 	}
-	at, _ := units.at(source)
-	id := uint32(binary.LittleEndian.Uint16(e.data[at+unitID:]))
+	at, _ := sunits.at(source)
+	id := uint32(binary.LittleEndian.Uint16(src.data[at+unitID:]))
 	stock := -1
 	for i := 0; i < loot.n(); i++ {
 		p, _ := loot.at(i)
-		if id != 0 && e.u32(p+lootOwner) == id {
+		if id != 0 && src.u32(p+lootOwner) == id {
 			if stock >= 0 {
 				return nil, fmt.Errorf("mapedit: unit identity %d owns several stocks", id)
 			}
@@ -167,19 +168,27 @@ func cloneUnitStockParts(e *Editor, units walk, source int, rec []byte) ([]part,
 	if stock < 0 {
 		return nil, nil
 	}
-	for i := 0; i < units.n(); i++ {
-		p, _ := units.at(i)
-		if i != source && uint32(binary.LittleEndian.Uint16(e.data[p+unitID:])) == id {
+	for i := 0; i < sunits.n(); i++ {
+		p, _ := sunits.at(i)
+		if i != source && uint32(binary.LittleEndian.Uint16(src.data[p+unitID:])) == id {
 			return nil, fmt.Errorf("mapedit: stocked unit identity %d is ambiguous", id)
 		}
 	}
-	if link := e.u32(at + unitLootLink); link != 0 && link != uint32(stock)+1 {
+	if link := src.u32(at + unitLootLink); link != 0 && link != uint32(stock)+1 {
 		return nil, fmt.Errorf("mapedit: unit %d stock link disagrees with its owned stock", source)
 	}
 	p, size := loot.at(stock)
-	copy := cloneBytes(e.data[p : p+size])
+	copy := cloneBytes(src.data[p : p+size])
 	binary.LittleEndian.PutUint32(copy[lootOwner:], uint32(binary.LittleEndian.Uint16(rec[unitID:])))
-	extra, err := cloneStockRecipeParts(e, copy)
+	if src != e {
+		if loot, err = e.placementSection(KindLoot, "clone unit stock"); err != nil {
+			return nil, err
+		}
+		if lootLength(e, copy) != len(copy) {
+			return nil, fmt.Errorf("mapedit: cannot clone unit %d: this map's sack records have another layout", source)
+		}
+	}
+	extra, err := cloneStockRecipeParts(e, src, copy, false)
 	if err != nil {
 		return nil, err
 	}
@@ -188,30 +197,55 @@ func cloneUnitStockParts(e *Editor, units walk, source int, rec []byte) ([]part,
 	return append(ed, extra...), nil
 }
 
-func cloneStockRecipeParts(e *Editor, rec []byte) ([]part, error) {
-	var recipes walk
+// cloneSackRecipeParts copies the recipes a ground sack's items link when the
+// sack comes from another map; a clone within one map shares them, and so
+// does a clone from a copy of this map where the recipe still stands.
+func cloneSackRecipeParts(e *Editor, _ walk, src *Editor, _ walk, _ int, rec []byte, copyOf bool) ([]part, error) {
+	if src == e {
+		return nil, nil
+	}
+	return cloneStockRecipeParts(e, src, rec, copyOf)
+}
+
+// cloneStockRecipeParts appends to e a copy of each recipe of src that an item
+// of rec links, and points the item at its copy. With share, a link whose
+// recipe e holds byte for byte at the same index keeps that link.
+func cloneStockRecipeParts(e, src *Editor, rec []byte, share bool) ([]part, error) {
+	var recipes, from walk
 	var data []byte
-	count := 0
+	count, walked := 0, false
 	for p := e.lootHead() + 6; p < len(rec); p += lootElementSize {
 		link := binary.LittleEndian.Uint32(rec[p:])
 		if link == 0 {
 			continue
 		}
-		if count == 0 {
+		if !walked {
+			walked = true
 			var err error
 			recipes, err = e.walkSection(KindEnchantment, "clone stock item recipes")
 			if err != nil {
 				return nil, err
 			}
+			from = recipes
+			if src != e {
+				if from, err = src.walkSection(KindEnchantment, "clone stock item recipes"); err != nil {
+					return nil, err
+				}
+			}
 		}
-		if uint64(link) > uint64(recipes.n()) {
+		if uint64(link) > uint64(from.n()) {
 			return nil, fmt.Errorf("mapedit: stock item links missing recipe %d", link)
 		}
-		at, size := recipes.at(int(link - 1))
-		if e.u32(at+4) != 0 || e.u32(at+8) != 0 {
+		at, size := from.at(int(link - 1))
+		if src.u32(at+4) != 0 || src.u32(at+8) != 0 {
 			return nil, fmt.Errorf("mapedit: stock item links coordinate-bearing recipe %d", link)
 		}
-		data = append(data, e.data[at:at+size]...)
+		if share && src != e && uint64(link) <= uint64(recipes.n()) {
+			if here, n := recipes.at(int(link - 1)); n == size && bytes.Equal(e.data[here:here+n], src.data[at:at+size]) {
+				continue
+			}
+		}
+		data = append(data, src.data[at:at+size]...)
 		count++
 		binary.LittleEndian.PutUint32(rec[p:], uint32(recipes.n()+count))
 	}

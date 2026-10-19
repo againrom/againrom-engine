@@ -165,6 +165,29 @@ func (p *modesFull) SetTextField(k string, i int, key, value string) (*Inspectio
 }
 func (p *modesFull) Report() []InspectionFinding { return modesFindings }
 
+// modesClip is the full host's copied group.
+type modesClip []RecordRef
+
+func (c modesClip) Len() int { return len(c) }
+
+func (p *modesFull) group(format string, a ...any) (SelectionEdit, error) {
+	d, err := p.next(format, a...)
+	return SelectionEdit{Doc: d, Note: "group edit"}, err
+}
+func (p *modesFull) MoveRecords(refs []RecordRef, offset image.Point) (SelectionEdit, error) {
+	return p.group("MoveRecords %v %v", refs, offset)
+}
+func (p *modesFull) DeleteRecords(refs []RecordRef) (SelectionEdit, error) {
+	return p.group("DeleteRecords %v", refs)
+}
+func (p *modesFull) CopyRecords(refs []RecordRef) (InspectionClip, string, error) {
+	p.calls.add("CopyRecords %v", refs)
+	return modesClip(refs), "copied", nil
+}
+func (p *modesFull) PasteRecords(c InspectionClip, cell image.Point) (SelectionEdit, error) {
+	return p.group("PasteRecords %v %v", c, cell)
+}
+
 // modesMod is a full host that saves into a mod.
 type modesMod struct{ modesFull }
 
@@ -274,6 +297,11 @@ func modesAct(e *MapEditor, name string) string {
 		e.Select(0, false)
 	case "ui:select2":
 		e.Select(2, false)
+	case "ui:group":
+		e.Select(0, false)
+		p := cell(20, 10)
+		e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true, Shift: true}, time.Unix(1, 0))
+		e.Pointer(Input{CursorX: p.X, CursorY: p.Y, Shift: true}, time.Unix(1, 0))
 	case "ui:click-cell":
 		modesClick(e, cell(25, 20))
 	case "ui:click-unit":

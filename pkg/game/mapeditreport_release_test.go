@@ -280,8 +280,8 @@ func TestReleaseEveryInstalledMapReportsNoError(t *testing.T) {
 
 func TestReleaseMapEditorHelpLinesFitTheRail(t *testing.T) {
 	x := installedInspector(t)
-	for _, line := range ui.EditorHelpLines() {
-		if width := x.font.Advance(line); width > 300 {
+	for _, line := range ui.EditorHelpLinesIn(x.archives.Base.Profile.Language) {
+		if width := x.font.Advance(x.inspectionUTF8(line)); width > 300 {
 			t.Errorf("%q is %d wide; the rail holds 300", line, width)
 		}
 	}

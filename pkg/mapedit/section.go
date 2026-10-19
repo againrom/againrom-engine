@@ -43,8 +43,11 @@ type section struct {
 	// cellless reports a record whose coordinates the game never reads.
 	cellless func(rec []byte) bool
 	// renumber gives a clone its identity; nil copies every byte.
-	renumber   func(e *Editor, w walk, rec []byte) error
-	cloneParts func(e *Editor, w walk, source int, rec []byte) ([]part, error)
+	renumber func(e *Editor, w walk, rec []byte) error
+	// cloneParts copies into e what a clone of src's record source carries
+	// with it; src is e for a clone within one map, and copyOf says src is an
+	// earlier copy of e's own map.
+	cloneParts func(e *Editor, w walk, src *Editor, sw walk, source int, rec []byte, copyOf bool) ([]part, error)
 	// reshape restores the grammar after a field write; nil keeps the length.
 	reshape func(rec []byte) []byte
 	// fields lists the settable fields of one record.
@@ -71,9 +74,10 @@ func init() {
 			renumber: renumberStructure,
 		},
 		KindLoot: {name: "sack", typeID: lootTypeID, count: metaCount8, x: lootX, y: lootY, create: true, insertAfter: 9,
-			length:   lootLength,
-			cellless: func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
-			fields:   lootFields,
+			length:     lootLength,
+			cellless:   func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
+			fields:     lootFields,
+			cloneParts: cloneSackRecipeParts,
 		},
 		KindAction:    scriptSection("action", 0),
 		KindCondition: scriptSection("condition", 1),
@@ -300,14 +304,43 @@ func (e *Editor) insertSectionParts(w walk, record []byte, count int) edit {
 // and returns the new index as one edit. Section hooks assign identity and
 // independent ownership. A record without a cell is refused.
 func (e *Editor) CloneRecord(k Kind, i int, x, y uint32) (int, error) {
-	w, err := e.walkIndex(k, "clone", i)
+	return e.CloneFrom(e, k, i, x, y)
+}
+
+// CloneFrom is CloneRecord with the source record read from src, which may be
+// another map's model; src is only read. The copy takes its identity from
+// this map, and the records a section hook carries with it (a unit's stock
+// and its recipes, a ground sack's recipes) are copied into this map.
+func (e *Editor) CloneFrom(src *Editor, k Kind, i int, x, y uint32) (int, error) {
+	return e.cloneFrom(src, false, k, i, x, y)
+}
+
+// CloneFromCopy is CloneFrom for a src that is a copy of this map taken
+// earlier. A ground sack's item keeps its recipe link, as a clone within one
+// map keeps it, wherever this map still holds that recipe's bytes at that
+// index; any other link is copied as CloneFrom copies it.
+func (e *Editor) CloneFromCopy(src *Editor, k Kind, i int, x, y uint32) (int, error) {
+	return e.cloneFrom(src, true, k, i, x, y)
+}
+
+func (e *Editor) cloneFrom(src *Editor, copyOf bool, k Kind, i int, x, y uint32) (int, error) {
+	sw, err := src.walkIndex(k, "clone", i)
 	if err != nil {
 		return -1, err
 	}
-	at, l := w.at(i)
-	rec := cloneBytes(e.data[at : at+l])
-	if w.sec.cellless != nil && w.sec.cellless(rec) {
-		return -1, fmt.Errorf("mapedit: cannot clone %s %d: it has no map cell", w.sec.name, i)
+	at, l := sw.at(i)
+	rec := cloneBytes(src.data[at : at+l])
+	if sw.sec.cellless != nil && sw.sec.cellless(rec) {
+		return -1, fmt.Errorf("mapedit: cannot clone %s %d: it has no map cell", sw.sec.name, i)
+	}
+	w := sw
+	if src != e {
+		if w, err = e.placementSection(k, "clone a "+sectionName(k)); err != nil {
+			return -1, err
+		}
+		if w.sec.length(e, rec) != len(rec) {
+			return -1, fmt.Errorf("mapedit: cannot clone %s %d: this map's %s records have another layout", w.sec.name, i, w.sec.name)
+		}
 	}
 	binary.LittleEndian.PutUint32(rec[w.sec.x:], x)
 	binary.LittleEndian.PutUint32(rec[w.sec.y:], y)
@@ -318,7 +351,7 @@ func (e *Editor) CloneRecord(k Kind, i int, x, y uint32) (int, error) {
 	}
 	var extra []part
 	if w.sec.cloneParts != nil {
-		extra, err = w.sec.cloneParts(e, w, i, rec)
+		extra, err = w.sec.cloneParts(e, w, src, sw, i, rec, copyOf)
 		if err != nil {
 			return -1, err
 		}

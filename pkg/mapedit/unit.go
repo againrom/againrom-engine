@@ -107,7 +107,7 @@ func (e *Editor) highestScriptUnit() (uint32, error) {
 	return e.highestScriptTarget(scriptUnitParam, scriptHeroBand)
 }
 
-func (e *Editor) highestScriptTarget(param, limit uint32) (uint32, error) {
+func (e *Editor) highestScriptTarget(param uint32, limit uint64) (uint32, error) {
 	m, err := e.Map()
 	if err != nil {
 		return 0, err
@@ -120,13 +120,32 @@ func (e *Editor) highestScriptTarget(param, limit uint32) (uint32, error) {
 	for _, nodes := range [][]alm.ScriptNode{sc.Actions, sc.Conditions} {
 		for _, n := range nodes {
 			for k, t := range n.Type {
-				if t == param && n.Value[k] < limit {
+				if t == param && uint64(n.Value[k]) < limit {
 					highest = max(highest, n.Value[k])
 				}
 			}
 		}
 	}
 	return highest, nil
+}
+
+// HighestGroup is the highest group id a type-6 record holds or a
+// Target_Group parameter of the type-7 script names, 0 when there is none: a
+// group id above it is one no record and no script of the map uses.
+func (e *Editor) HighestGroup() (uint64, error) {
+	m, err := e.Map()
+	if err != nil {
+		return 0, err
+	}
+	highest, err := e.highestScriptTarget(paramGroup, 1<<32)
+	if err != nil {
+		return 0, err
+	}
+	out := uint64(highest)
+	for _, u := range m.Units {
+		out = max(out, uint64(u.GroupID))
+	}
+	return out, nil
 }
 
 // sizeWordPart is the part that moves a located record's own payloadSize word,
