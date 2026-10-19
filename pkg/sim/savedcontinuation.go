@@ -469,7 +469,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) *ProjectileMark {
 		}
 		if at := indexOfEntity(w.entities, d.Target); !deadTarget && at >= 0 {
 			target := w.entities[at]
-			p.ActionX, p.ActionY = w.savedProjectileTargetPoint(target)
+			p.ActionX, p.ActionY = w.projectileAimPoint(target)
 			resolved = true
 		}
 		if resolved && p.ActionSegments > 0 && !w.SecondGame() && (p.Picture == 20 || p.Picture == 30) {
@@ -580,7 +580,7 @@ func (w *World) detachSavedProjectileTargets(id EntityID) {
 	if at < 0 {
 		return
 	}
-	x, y := w.savedProjectileTargetPoint(w.entities[at])
+	x, y := w.projectileAimPoint(w.entities[at])
 	for _, dead := range w.OriginalDeadActors() {
 		if dead.ID == id && dead.Current.RuntimeID != 0 {
 			x, y = int32(dead.Current.Cell&255)*256+int32(dead.Current.FineX), int32(dead.Current.Cell>>8)*256+int32(dead.Current.FineY)

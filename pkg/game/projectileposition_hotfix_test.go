@@ -37,7 +37,7 @@ func projectilePainterAnchor(t *testing.T, v *ui.Viewer, b ui.SpellBolt) image.P
 	return image.Point{}
 }
 
-func TestOrdinaryBowProjectilePainterReachesTargetAnchor(t *testing.T) {
+func TestOrdinaryBowProjectilePainterReachesTargetCentre(t *testing.T) {
 	for _, delta := range []image.Point{{3, 0}, {3, 3}, {0, 3}, {-3, 3}, {-3, 0}, {-3, -3}, {0, -3}, {3, -3}} {
 		t.Run(fmt.Sprint(delta), func(t *testing.T) {
 			units, set := shotArchive(t)
@@ -55,9 +55,9 @@ func TestOrdinaryBowProjectilePainterReachesTargetAnchor(t *testing.T) {
 				before := mw.world.Hash()
 				b := mw.savedProjectileDraws()[0]
 				got := projectilePainterAnchor(t, mw.view, b)
-				want := image.Pt(int(target.X)*32+16, int(target.Y)*32+16)
+				want := image.Pt(int(target.X)*32+32, int(target.Y)*32+32)
 				if got != want {
-					t.Errorf("ordinary release landed at fine(%d,%d), painter anchor%v, target anchor%v", p.X, p.Y, got, want)
+					t.Errorf("ordinary release landed at fine(%d,%d), painter anchor%v, target centre%v", p.X, p.Y, got, want)
 				}
 				if mw.world.Hash() != before || !reflect.DeepEqual(items, mw.world.SavedProjectiles().Items) {
 					t.Fatal("painting changed simulation/projectile state")

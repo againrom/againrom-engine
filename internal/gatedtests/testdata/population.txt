@@ -1311,3 +1311,4 @@ pkg/game.TestReleaseDamageNumeralsMergeCommandsWithinRawTick
 pkg/game.TestReleaseSecondGameDamageNumeralsMergeCommandsWithinRawTick
 pkg/game.TestReleaseSchoolYardSounds
 pkg/game.TestReleaseSchoolYardDrawsKeepMissionHashes
+pkg/game.TestReleaseAttackFacingMissionTrace

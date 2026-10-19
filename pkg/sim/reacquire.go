@@ -75,3 +75,16 @@ func (w *World) suppressedAcquirer(e Entity) bool {
 func (w *World) engageRefused(i int) bool {
 	return !w.SecondGame() && w.suppressedAcquirer(w.entities[i])
 }
+
+// AI-673: row 6 rechecks suppression before a progress-zero gate or turn.
+func (w *World) suppressAcquisition(i int) bool {
+	e := &w.entities[i]
+	if e.AttackPhase != AttackReady || !e.AcquirePursuit || !w.engageRefused(i) {
+		return false
+	}
+	e.AcquirePursuit, e.PursuitIdle = false, true
+	if o := w.savedOrder(e.ID); o != nil {
+		o.Raw[8] = 0
+	}
+	return true
+}

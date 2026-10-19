@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Arrows and homing spells aim at the centres of large creatures.
+  A suppressed automatic attack keeps the unit facing its previous direction.
 - [ROM1] The school yard sounds its commands and looping practice fights at timed intervals.
 - [ROM1] Spell effects last for their full duration after each hit:
   Freezing Cloud's Slow and Light and Darkness sight changes.

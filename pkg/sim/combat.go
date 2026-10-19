@@ -323,56 +323,12 @@ func attackFault(e Entity) error {
 	return nil
 }
 
-// approach is the PURSUIT half of an attack order: one attacker's
-// destination for this tick, decided from where its victim stands right now.
-//
-// It is what lets an order name a victim its attacker cannot yet reach. Without
-// it an attack order at a distance is a cycle that charges and relaxes forever
-// against a blow the reach test refuses, and the only reachable order is one the
-// player has already walked his unit next to. What is being reconstructed puts a
-// victim and a stop distance in ONE order block, so an engage survives being
-// farther away than reach; the two fields here are that one block, and this is
-// the routine that keeps them agreeing.
-//
-// The three outcomes, and the order is the contract:
-//
-//   - a victim the world no longer holds or this actor cannot currently see
-//     ends the walk;
-//   - a victim CLOSED ON ends the walk too, and that is the stop distance. It
-//     is closedOn and not a second comparison, so "walked close enough" and
-//     "close enough to act" are one predicate and cannot come apart — the
-//     cast's own admission distance while weaponSpell says this attacker is
-//     even now eligible, inReach otherwise. THE ATTACKER
-//     TURNS TO FACE IT HERE, on this arm and nowhere else;
-//   - acquisition turns in place; engagement returns the victim's index, and
-//     the movement pass runs pursue for it (AI-PURSUE-040). Every other
-//     outcome returns -1.
-//
-// Health is not a pursuit refusal. A linked, reachable target remains the
-// retained target until the group/order teardown removes or replaces it, and
-// advanceAttack therefore sees the same health-independent application path
-// whether the target reached non-positive health this tick or an earlier one.
-//
-// THE STAND-AND-FACE IS THE STOP ARM'S, and that placement is decoded rather
-// than convenient (AI-FACE-066, AI-FACE-067). Facing is a PRECONDITION of an
-// attack in the original — the act-state is entered only while the direction
-// from attacker to victim equals the attacker's current facing, and at
-// progress 0 the test is re-run every tick, so a victim that circles its
-// attacker drops it back to the arm that turns to face and stands. The strike
-// itself neither tests a facing nor writes one. So the turn goes on the arm
-// that stops the walk, beside the stop distance, and advanceAttack withholds
-// the charge while that turn is still owed.
-//
-// THE CYCLE LATCHES (AI-ORDER-039, AI-RETREAT-272, HERO-CADENCE-112). The
-// order switch holding the pursuit arms runs only at progress 0; a passing
-// facing test latches progress 1, and progress arm 1 keeps the act-state
-// until the cycle completes. So from the charge load to the next AttackReady
-// this neither turns nor walks: a victim that moves mid-cycle is re-faced or
-// chased only once the cycle ends, and a blow whose victim left reach misses.
-//
-// A victim on the attacker's OWN cell is a zero delta, which names no direction,
-// and face leaves the facing as it found it.
+// approach dispatches progress-zero pursuit: engage approaches, acquisition
+// turns in place. A loaded cycle retains its facing and victim (AI-672).
 func (w *World) approach(s *routeScratch, i int) int {
+	if w.suppressAcquisition(i) {
+		return -1
+	}
 	if w.entities[i].AttackTargetKind == AttackTargetStructure {
 		w.approachStructure(s, i)
 		return -1
@@ -758,16 +714,7 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		return
 	}
 
-	// NOTHING HERE TURNS THE ATTACKER, and the absence is the decoded shape
-	// rather than an omission (AI-FACE-066, AI-FACE-067). The swing start and
-	// the strike were both read end to end and neither contains a facing test, a
-	// facing write or a call to any turn routine; the complete turn-to-face
-	// producer set is six routines and not one of them is on this path. A
-	// consumer that turned an attacker as part of its swing would have invented a
-	// coupling the original does not have.
-	//
-	// The turn belongs to the APPROACH, and approach is where this package makes
-	// it: the stop-distance arm stands and faces. See the note there.
+	// Only progress zero runs the facing gate; the loaded cycle keeps its pair.
 	if e.AttackPhase == AttackBoundaryOne {
 		e.AttackPhase = AttackBoundaryTwo
 		return
@@ -777,6 +724,9 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		return
 	}
 	if e.AttackPhase == AttackReady {
+		if w.suppressAcquisition(i) {
+			return
+		}
 		if e.HasTarget || !closed || e.Turning() || e.PursuitIdle {
 			return
 		}

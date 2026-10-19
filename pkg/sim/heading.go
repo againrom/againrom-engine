@@ -51,7 +51,7 @@ func (w *World) headingBetween(a, b Entity) uint8 {
 }
 
 // structureHeading is headingBetween toward a structure, a size-1 token at
-// its anchor cell's centre (AI-445; the point is DIV-1769).
+// its anchor cell's centre (AI-445, MOVE-184).
 func (w *World) structureHeading(a Entity, s Structure) uint8 {
 	ax, ay := w.actorCentre(a)
 	bx, by := int64(uint16(s.Col*256+128)), int64(uint16(s.Row*256+128))
@@ -93,4 +93,14 @@ func (w *World) turnToCell(i int, x, y int32) bool {
 
 func (w *World) turnToStep(i int, x, y int32) bool {
 	return w.turnTo(i, heading(w.stepHeading(w.entities[i], x, y)))
+}
+
+// projectileAimPoint supplies the cached-centre geometry for actor targets.
+// AI-674, AI-675
+func (w *World) projectileAimPoint(e Entity) (int32, int32) {
+	if w.SecondGame() {
+		return w.savedProjectileTargetPoint(e)
+	}
+	x, y := w.moverFinePoint(e)
+	return int32(x), int32(y)
 }

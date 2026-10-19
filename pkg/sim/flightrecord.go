@@ -61,7 +61,7 @@ func (w *World) ReleaseCast(c CastRecord) (uint16, bool) {
 			return 0, false
 		}
 		record.ActionTarget = key
-		record.ActionX, record.ActionY = w.savedProjectileTargetPoint(target)
+		record.ActionX, record.ActionY = w.projectileAimPoint(target)
 		driver = SavedProjectileDriver{Phases: c.Phases, Owner: c.Owner, Target: target.ID, HasTarget: true}
 	}
 	if c.Client {
@@ -69,7 +69,7 @@ func (w *World) ReleaseCast(c CastRecord) (uint16, bool) {
 	} else {
 		record.Dir, record.ActionDir = c.Dir&15, c.Dir&15
 		if at := indexOfEntity(w.entities, c.Caster); c.HasTarget && at >= 0 {
-			cx, cy := w.savedProjectileTargetPoint(w.entities[at])
+			cx, cy := w.projectileAimPoint(w.entities[at])
 			record.ActionDir = ProjectileDirection(record.ActionX-cx, record.ActionY-cy)
 		}
 	}
