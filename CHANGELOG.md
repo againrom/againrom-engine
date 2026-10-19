@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] Spell effects last for their full duration after each hit:
+  Freezing Cloud's Slow and Light and Darkness sight changes.
+
 ## 0.127.0
 
 - [ROM1] [ROM2] Damage numbers combine hits on the same unit in one game tick;

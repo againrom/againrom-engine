@@ -217,10 +217,12 @@ func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
 	if first != want {
 		t.Fatalf("Stone Curse lifetime %d, want %d", first, want)
 	}
-	// Poison's continuous counter is 8*16 (MAGIC-303). Freezing Cloud and
-	// Light keep their unscaled Effects-string durations 20 and 1, where the
-	// claim reads 320 and 16 through a Medium parser join (DIV-3003).
-	for id, counter := range map[uint16]uint16{8: 128, 7: 20, 12: 1} {
+	for id, counter := range map[uint16]uint16{
+		8:  128, // MAGIC-POISONINPUT-157
+		7:  320, // MAGIC-398
+		12: 16,  // MAGIC-398
+		17: 16,  // MAGIC-398
+	} {
 		if got := byID[id].EffectDuration; got != counter {
 			t.Errorf("spell %d template counter %d, want %d", id, got, counter)
 		}

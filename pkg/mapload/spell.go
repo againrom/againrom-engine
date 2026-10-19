@@ -68,7 +68,7 @@ func unitSpellbook(params []int32, t *Table, typeID int32) (uint32, sim.Spellboo
 // MaxRange approaches 256 and a refusal over that would turn every spell
 // this build has ever loaded red for a reason a reader could learn nothing
 // from.
-func spellRules(spells []data.Spell) []sim.SpellRule {
+func spellRules(spells []data.Spell, second bool) []sim.SpellRule {
 	out := make([]sim.SpellRule, len(spells))
 	for i, sp := range spells {
 		out[i] = sim.SpellRule{
@@ -97,10 +97,8 @@ func spellRules(spells []data.Spell) []sim.SpellRule {
 			EffectMagnitude: sp.Effect.Magnitude,
 			EffectDuration:  sp.Effect.Duration,
 		}
-		// MAGIC-POISONINPUT-157 joins this spell producer's parsed numeric
-		// duration to the original word counter. Charges and other grammars
-		// keep their own units; Poison scales magnitude, not this duration.
-		if i+1 == 8 && out[i].EffectKind == sim.EffectHealth && out[i].EffectMode == sim.EffectContinuous {
+		// MAGIC-397: ROM1 numerical modes store low16(16*N).
+		if !second && sp.Effect.Mode&(data.SpellEffectDuration|data.SpellEffectContinuous|data.SpellEffectCharges) != 0 {
 			out[i].EffectDuration = uint16(uint32(sp.Effect.Duration) << 4)
 		}
 	}
@@ -145,7 +143,7 @@ func SpellRules(t *Table) []sim.SpellRule {
 		maxDamage = 255
 	}
 	applyModSpells(spells, t.Mods.Spells, maxDamage)
-	rules := spellRules(spells)
+	rules := spellRules(spells, t.SpellArms != nil)
 	if t.SpellArms != nil {
 		t.SpellArms(rules)
 	}

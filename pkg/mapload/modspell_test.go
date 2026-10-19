@@ -89,7 +89,7 @@ func TestEachRowKeyChangesItsOwnColumnOnly(t *testing.T) {
 			func(r sim.SpellRule) bool { return r.DamageMin == 7 && r.DamageMax == 13 && r.Damaging }, 2},
 		"effect": {mod.SpellRow{Target: "Freezing Cloud", Effect: &mod.SpellEffectEdit{Kind: "health", Mode: "continuous",
 			Magnitude: spellInt(-9), Duration: spellInt(77)}}, 7, func(r sim.SpellRule) bool {
-			return r.EffectKind == sim.EffectHealth && r.EffectMode == sim.EffectContinuous && r.EffectMagnitude == -9 && r.EffectDuration == 77
+			return r.EffectKind == sim.EffectHealth && r.EffectMode == sim.EffectContinuous && r.EffectMagnitude == -9 && r.EffectDuration == 77<<4
 		}, 4},
 	} {
 		got := mapload.SpellRules(withSpells(mod.SpellData{Rows: []mod.SpellRow{c.row}}))
@@ -117,7 +117,7 @@ func TestEachRowKeyChangesItsOwnColumnOnly(t *testing.T) {
 func TestEffectEditKeepsTheRowsOwnFieldsItDoesNotName(t *testing.T) {
 	d := mod.SpellData{Rows: []mod.SpellRow{{Target: "Freezing Cloud", Effect: &mod.SpellEffectEdit{Magnitude: spellInt(-8)}}}}
 	r := ruleByID(t, mapload.SpellRules(withSpells(d)), 7)
-	if r.EffectKind != sim.EffectSpeed || r.EffectMode != sim.EffectDuration || r.EffectMagnitude != -8 || r.EffectDuration != 40 {
+	if r.EffectKind != sim.EffectSpeed || r.EffectMode != sim.EffectDuration || r.EffectMagnitude != -8 || r.EffectDuration != 40<<4 {
 		t.Errorf("%+v", r)
 	}
 }
@@ -147,7 +147,7 @@ func TestGlobalMultipliersRoundTowardZeroAndClamp(t *testing.T) {
 		t.Errorf("wall %+v", w)
 	}
 	five := ruleByID(t, got, 5)
-	if five.SpellDuration != 60 || five.EffectDuration != 100 {
+	if five.SpellDuration != 60 || five.EffectDuration != 100<<4 {
 		t.Errorf("five %+v", five)
 	}
 	heal := ruleByID(t, got, 6)
@@ -160,7 +160,7 @@ func TestGlobalMultipliersRoundTowardZeroAndClamp(t *testing.T) {
 	if four := ruleByID(t, got, 4); four.ManaCost != 0 || four.MaxRange != 0 || four.Damaging {
 		t.Errorf("a zero stays zero: %+v", four)
 	}
-	if c := ruleByID(t, got, 7); c.EffectDuration != 80 || c.EffectMagnitude != -3 {
+	if c := ruleByID(t, got, 7); c.EffectDuration != 80<<4 || c.EffectMagnitude != -3 {
 		t.Errorf("a global leaves magnitude alone: %+v", c)
 	}
 
@@ -171,7 +171,7 @@ func TestGlobalMultipliersRoundTowardZeroAndClamp(t *testing.T) {
 		r.DamageMax != mod.SpellMaxDamage || r.AreaDuration != mod.SpellMaxAreaLife {
 		t.Errorf("clamp %+v", r)
 	}
-	if r := ruleByID(t, got, 5); r.SpellDuration != mod.SpellMaxDuration || r.EffectDuration != mod.SpellMaxDuration {
+	if r := ruleByID(t, got, 5); r.SpellDuration != mod.SpellMaxDuration || r.EffectDuration != uint16(uint32(mod.SpellMaxDuration)<<4&0xffff) {
 		t.Errorf("duration clamp %+v", r)
 	}
 }

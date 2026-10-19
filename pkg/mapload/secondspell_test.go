@@ -16,11 +16,11 @@ func TestSecondGameRulesClassifyTheDamagePairByArm(t *testing.T) {
 		rows[id-1].DamageMin, rows[id-1].DamageMax = 4, 8
 		rows[id-1].Damaging, rows[id-1].Restorative = data.ClassifySpell(id, 4, 8)
 	}
-	first := spellRules(rows)
+	first := spellRules(rows, false)
 	if !first[23].Damaging || first[5].Damaging || !first[5].Restorative || first[10].Damaging {
 		t.Fatal("the first-game classification changed")
 	}
-	second := spellRules(rows)
+	second := spellRules(rows, true)
 	SecondGameSpellArms(second)
 	want := map[int][2]bool{5: {true, false}, 6: {true, false}, 11: {true, false}, 24: {false, true}, 26: {false, false}}
 	for id, w := range want {

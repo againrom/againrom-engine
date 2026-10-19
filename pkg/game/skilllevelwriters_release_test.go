@@ -623,7 +623,11 @@ func censusMismatch(got savSheet, e sim.Entity, town bool) []string {
 		check("Load", int64(got.stats[6]), int64(e.Load))
 	}
 	check("Capacity", int64(got.stats[7]), int64(e.Capacity))
-	check("Sight", int64(got.sight), int64((e.Mind+e.Reaction)*256/25+4*256))
+	sight := (e.Mind+e.Reaction)*256/25 + 4*256
+	if !town {
+		sight = int32(e.ScanRange)<<8 | sight&255
+	}
+	check("Sight", int64(got.sight), int64(sight))
 	return bad
 }
 
