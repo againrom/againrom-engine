@@ -19,7 +19,7 @@ PUBLIC_FILES = (
     "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
     "LICENSES/Apache-2.0.txt", "LICENSES/BSD-3-Clause.txt",
     "LICENSES/LGPL-2.1.txt", "LICENSES/lz4-BSD-3-Clause.txt",
-    "LICENSES/starlark-BSD-3-Clause.txt",
+    "LICENSES/starlark-BSD-3-Clause.txt", "LICENSES/ebiten-NOTICE.md",
 )
 INSTALL_ARCHIVES = {"main.res", "graphics.res", "scenario.res", "world.res", "movies.res"}
 

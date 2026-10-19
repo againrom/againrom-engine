@@ -17,6 +17,7 @@ import (
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/render/text"
+	"againrom/pkg/ui/heldkey"
 	"againrom/pkg/ui/systemclick"
 	"againrom/pkg/video"
 )
@@ -535,10 +536,10 @@ func onlyKey(key ebiten.Key) func(ebiten.Key) bool {
 func readAppInput() appInput {
 	cx, cy := ebiten.CursorPosition()
 	_, wy := ebiten.Wheel()
-	shiftHeld := ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+	shiftHeld := heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight)
 	return appInput{
 		AnyKey:            len(inpututil.AppendJustPressedKeys(nil)) != 0,
-		AnyHeld:           len(inpututil.AppendPressedKeys(nil)) != 0,
+		AnyHeld:           len(heldkey.AppendPressed(nil)) != 0,
 		Close:             ebiten.IsWindowBeingClosed(),
 		Viewer:            readInput(),
 		CursorX:           cx,
@@ -568,7 +569,7 @@ func readAppInput() appInput {
 		// SPACE IS THE ORIGINAL'S PANEL-SET TOGGLE (`AI-KEY-125`); the clock
 		// pause is the bare zero key (DIV-2263).
 		Panels: inpututil.IsKeyJustPressed(ebiten.KeySpace) && !altHeld() &&
-			!ebiten.IsKeyPressed(ebiten.KeyShiftLeft) && !ebiten.IsKeyPressed(ebiten.KeyShiftRight),
+			!heldkey.Pressed(ebiten.KeyShiftLeft) && !heldkey.Pressed(ebiten.KeyShiftRight),
 		Pause: barePauseKey(),
 		// CTRL IS GUARDED OFF BOTH (round 3). `keyboard.tsv` rows 21 and 22 give
 		// the speed step "Ctrl NOT held", and rows 23 and 24 give `Ctrl`+numpad
@@ -746,7 +747,7 @@ func readAppInput() appInput {
 func barePauseKey() bool {
 	return (inpututil.IsKeyJustPressed(ebiten.KeyDigit0) || inpututil.IsKeyJustPressed(ebiten.KeyNumpad0)) &&
 		!ctrlHeld() && !altHeld() &&
-		!ebiten.IsKeyPressed(ebiten.KeyShiftLeft) && !ebiten.IsKeyPressed(ebiten.KeyShiftRight)
+		!heldkey.Pressed(ebiten.KeyShiftLeft) && !heldkey.Pressed(ebiten.KeyShiftRight)
 }
 
 // groupDigit is which of the ten group keys was pressed this frame, or -1.
@@ -772,12 +773,12 @@ func groupDigit() int {
 // depend on the same modifier reading. A split pair such as bare/modified
 // numpad +/- must not drift and leave a press claimed by both arms or neither.
 func ctrlHeld() bool {
-	return ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight)
+	return heldkey.Pressed(ebiten.KeyControlLeft) || heldkey.Pressed(ebiten.KeyControlRight)
 }
 
 // altHeld is the Alt modifier: either Alt key.
 func altHeld() bool {
-	return ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight)
+	return heldkey.Pressed(ebiten.KeyAltLeft) || heldkey.Pressed(ebiten.KeyAltRight)
 }
 
 type dialoguePointerOwner struct {

@@ -69,7 +69,7 @@ func devicePlayersScaleOnlyTheDeviceGain(t *testing.T) {
 			if p.Volume() != engine {
 				t.Errorf("level %v %s: Volume() = %v, want engine gain %v", level, name, p.Volume(), engine)
 			}
-			if got := p.Player.Volume(); got != engine*level {
+			if got := p.deviceStream.Volume(); got != engine*level {
 				t.Errorf("level %v %s: device gain = %v, want %v", level, name, got, engine*level)
 			}
 		}

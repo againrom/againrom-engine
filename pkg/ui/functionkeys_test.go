@@ -50,7 +50,7 @@ func TestFunctionKeysHavePhysicalBindingsAndKeepDiagnostics(t *testing.T) {
 	if bindings["ShiftHeld"] != "shiftHeld" {
 		t.Errorf("ShiftHeld = %q, want the shared Shift level", bindings["ShiftHeld"])
 	}
-	if got, want := bindingLocalSource(t, "shiftHeld"), "ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight)"; got != want {
+	if got, want := bindingLocalSource(t, "shiftHeld"), "heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight)"; got != want {
 		t.Errorf("shiftHeld = %q, want %q", got, want)
 	}
 	for field, expr := range bindings {

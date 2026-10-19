@@ -8,6 +8,7 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The game now builds for Linux without a C compiler.
 - [BASE] The game finds its files whatever the case of their names, so an
   install copied to a case-sensitive system works without renaming.
 - [ROM1] Arrows and homing spells aim at the centres of large creatures.

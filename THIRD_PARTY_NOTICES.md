@@ -14,18 +14,18 @@ by way of `internal/notices`, which fails if the two disagree.
 
 | Module | Version | License (SPDX) |
 |---|---|---|
-| `golang.org/x/text` | v0.40.0 | BSD-3-Clause |
-| `github.com/hajimehoshi/ebiten/v2` | v2.9.9 | Apache-2.0 |
-| `github.com/hajimehoshi/bitmapfont/v4` | v4.1.0 | Apache-2.0 |
-| `golang.org/x/image` | v0.31.0 | BSD-3-Clause |
-| `github.com/ebitengine/gomobile` | v0.0.0-20250923094054-ea854a63cce1 | BSD-3-Clause |
+| `golang.org/x/text` | v0.41.0 | BSD-3-Clause |
+| `github.com/hajimehoshi/ebiten/v2` | v2.10.5 | Apache-2.0 |
+| `github.com/hajimehoshi/bitmapfont/v4` | v4.2.0 | Apache-2.0 |
+| `golang.org/x/image` | v0.45.0 | BSD-3-Clause |
+| `github.com/ebitengine/gomobile` | v0.0.0-20260820040257-d11f821a26a6 | BSD-3-Clause |
 | `github.com/ebitengine/hideconsole` | v1.0.0 | Apache-2.0 |
-| `github.com/ebitengine/oto/v3` | v3.4.0 | Apache-2.0 |
-| `github.com/ebitengine/purego` | v0.9.0 | Apache-2.0 |
-| `github.com/jezek/xgb` | v1.1.1 | BSD-3-Clause |
-| `github.com/pierrec/lz4/v4` | v4.1.22 | BSD-3-Clause |
+| `github.com/ebitengine/oto/v3` | v3.5.0 | Apache-2.0 |
+| `github.com/ebitengine/purego` | v0.11.0 | Apache-2.0 |
+| `github.com/jfreymuth/pulse` | v0.1.3 | MIT |
+| `github.com/pierrec/lz4/v4` | v4.1.29 | BSD-3-Clause |
 | `golang.org/x/sync` | v0.22.0 | BSD-3-Clause |
-| `golang.org/x/sys` | v0.42.0 | BSD-3-Clause |
+| `golang.org/x/sys` | v0.47.0 | BSD-3-Clause |
 | `go.starlark.net` | v0.0.0-20260930220527-d7438c5a85ac | BSD-3-Clause |
 
 The x/image license is the retained `LICENSES/BSD-3-Clause.txt` (Copyright
@@ -33,6 +33,11 @@ The x/image license is the retained `LICENSES/BSD-3-Clause.txt` (Copyright
 2015 Pierre Curto and its named endorsement clause, is retained separately
 in `LICENSES/lz4-BSD-3-Clause.txt`. The Starlark interpreter's license (Copyright (c) 2017 The Bazel Authors) is retained in
 `LICENSES/starlark-BSD-3-Clause.txt`. bitmapfont uses `LICENSES/Apache-2.0.txt`.
+The PulseAudio client's MIT license (Copyright (c) 2019 Johann Freymuth) is
+retained in `LICENSES/pulse-MIT.txt`; Linux builds use it for audio output.
+Ebitengine's `NOTICE.md`, which reproduces the licenses of the code it bundles
+(GLFW, Go, go-gl/gl, go-gl/glfw and oksvg), is retained verbatim in
+`LICENSES/ebiten-NOTICE.md`.
 
 ## Source-derived (ported) code
 

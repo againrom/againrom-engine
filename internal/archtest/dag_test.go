@@ -347,10 +347,11 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// frames and has no game/sim dependency; the random service is a leaf every
 	// drawing tier names; pkg/words holds the engine's own word tables; pkg/locale
 	// is the stdlib-only table of install languages; pkg/ui/systemclick is the
-	// UI tier's own leaf that reads the system's double-click setting.
+	// UI tier's own leaf that reads the system's double-click setting;
+	// pkg/ui/heldkey is its leaf that reads held keyboard keys.
 	// pkg/pathdialog is the shared system path service; it imports no game state.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/pathdialog"}
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {

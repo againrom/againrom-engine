@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textfit"
+	"againrom/pkg/ui/heldkey"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -379,7 +380,7 @@ func (e *MapEditor) Update() error {
 		return nil
 	}
 	if e.pathDialog.rearm {
-		if len(inpututil.AppendPressedKeys(nil)) == 0 && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle) {
+		if len(heldkey.AppendPressed(nil)) == 0 && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle) {
 			e.pathDialog.rearm = false
 		}
 		return nil
@@ -398,7 +399,7 @@ func (e *MapEditor) Update() error {
 	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}, {ebiten.KeyArrowUp, "up"}, {ebiten.KeyArrowDown, "down"}} {
 		if inpututil.IsKeyJustPressed(k.key) {
 			name := k.name
-			if name == "enter" && ebiten.IsKeyPressed(ebiten.KeyShift) && e.multilinePrompt() {
+			if name == "enter" && heldkey.Pressed(ebiten.KeyShift) && e.multilinePrompt() {
 				name = "newline"
 			}
 			if err := e.Key(name); err == ebiten.Termination {
@@ -407,10 +408,10 @@ func (e *MapEditor) Update() error {
 		}
 	}
 	if !e.prompt.open() && !e.objectTyping() {
-		if ebiten.IsKeyPressed(ebiten.KeyControl) {
+		if heldkey.Pressed(ebiten.KeyControl) {
 			if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 				key := "undo"
-				if ebiten.IsKeyPressed(ebiten.KeyShift) {
+				if heldkey.Pressed(ebiten.KeyShift) {
 					key = "redo"
 				}
 				_ = e.Key(key)
@@ -432,21 +433,21 @@ func (e *MapEditor) Update() error {
 			key  ebiten.Key
 			name string
 		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}} {
-			if inpututil.IsKeyJustPressed(k.key) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
+			if inpututil.IsKeyJustPressed(k.key) && !heldkey.Pressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyF) {
 			e.Fit()
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyR) && !ebiten.IsKeyPressed(ebiten.KeyControl) {
+		if inpututil.IsKeyJustPressed(ebiten.KeyR) && !heldkey.Pressed(ebiten.KeyControl) {
 			_ = e.Key("report")
 		}
 	} else {
 		if (e.prompt.fields() || e.objectTyping()) && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
 			_ = e.Key("tab")
 		}
-		if ebiten.IsKeyPressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		if heldkey.Pressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyA) {
 			_ = e.Key("clear")
 		}
 	}

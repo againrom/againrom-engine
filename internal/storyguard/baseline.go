@@ -2625,6 +2625,12 @@ package storyguard
 // tests, the vfs loose tier and the readers that build install paths through
 // it, and internal/archtest's install-name rule, plus this note.
 // barestorynumber falls with the retired loose-tier case limitation note.
+// CommentBytes rises for the Ebitengine v2.10 adaptation: pkg/ui/heldkey and
+// its tests, the device player's Close, the heldkey allow-map grant and its
+// pin in internal/archtest, plus this note.
+// CommentBytes rises for the reading device a silent test process reads its
+// players with (pkg/ui/readingdevice.go, its tests, the device-layer seam in
+// deviceoutput.go and sounddev.go), plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2648,5 +2654,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1708,
 	},
-	CommentBytes: 9232073,
+	CommentBytes: 9235106,
 }

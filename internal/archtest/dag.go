@@ -148,11 +148,13 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/pathdialog"},
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.
 	"pkg/ui/systemclick": {},
+	// heldkey reads held keyboard keys for the game and the launcher.
+	"pkg/ui/heldkey":     {},
 	"cmd/cutscenehelper": {"pkg/video"},
 	"cmd/audioprobe":     {"pkg/video"},
 	"pkg/game":           {"pkg/"},
@@ -408,7 +410,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui/heldkey", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports nothing of this tree.
 	"pkg/launch": {},

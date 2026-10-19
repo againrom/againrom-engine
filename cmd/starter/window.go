@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"againrom/pkg/pathdialog"
+	"againrom/pkg/ui/heldkey"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -56,7 +57,7 @@ func (w *window) Update() error {
 			a.wheel(image.Pt(x, y), 1)
 		}
 	}
-	ctrl := ebiten.IsKeyPressed(ebiten.KeyControl)
+	ctrl := heldkey.Pressed(ebiten.KeyControl)
 	switch {
 	case ctrl && inpututil.IsKeyJustPressed(ebiten.KeyV):
 		a.pasteText()
@@ -94,7 +95,7 @@ func (w *window) blockDialogInput(held bool) bool {
 }
 
 func starterInputHeld() bool {
-	return len(inpututil.AppendPressedKeys(nil)) != 0 ||
+	return len(heldkey.AppendPressed(nil)) != 0 ||
 		ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) ||
 		ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) ||
 		ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle)

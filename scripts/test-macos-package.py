@@ -92,7 +92,7 @@ def verify(arguments):
         "againrom/README.md", "againrom/LICENSE", "againrom/THIRD_PARTY_NOTICES.md",
         "againrom/LICENSES/Apache-2.0.txt", "againrom/LICENSES/BSD-3-Clause.txt",
         "againrom/LICENSES/LGPL-2.1.txt", "againrom/LICENSES/lz4-BSD-3-Clause.txt",
-        "againrom/LICENSES/starlark-BSD-3-Clause.txt",
+        "againrom/LICENSES/starlark-BSD-3-Clause.txt", "againrom/LICENSES/ebiten-NOTICE.md",
     ))
     with zipfile.ZipFile(package["zip"]) as archive:
         assert_true(archive.namelist() == expected, "ZIP contents differ from the exact public allowlist.")

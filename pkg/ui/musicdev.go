@@ -3,15 +3,13 @@ package ui
 import (
 	"sync"
 
-	ebitenaudio "github.com/hajimehoshi/ebiten/v2/audio"
-
 	"againrom/pkg/audio"
 )
 
 // musicDevice retains exactly one player. Replacing or stopping closes the
 // previous player before another stream can start.
 type musicDevice struct {
-	ctx *ebitenaudio.Context
+	ctx deviceOutput
 	mu  sync.Mutex
 	st  audio.Settings
 	pl  *devicePlayer

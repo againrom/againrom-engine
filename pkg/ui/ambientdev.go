@@ -18,7 +18,7 @@ type ambientStream struct {
 // ambientDevice owns one retained stream for each recovered loop selector.
 // Placement changes rebuild only that stream and seek to its prior phase.
 type ambientDevice struct {
-	ctx   *ebitenaudio.Context
+	ctx   deviceOutput
 	mu    sync.Mutex
 	st    audio.Settings
 	loops [ambientLoopCount]ambientStream

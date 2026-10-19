@@ -22,6 +22,7 @@ import (
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
+	"againrom/pkg/ui/heldkey"
 )
 
 // Viewer UX constants — ours, not decoded from the game.
@@ -2808,13 +2809,13 @@ func readInput() Input {
 		CursorY:     cy,
 		WheelY:      wy,
 		PrimaryDown: ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft),
-		Shift:       ebiten.IsKeyPressed(ebiten.KeyShiftLeft) || ebiten.IsKeyPressed(ebiten.KeyShiftRight),
+		Shift:       heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight),
 		// THE SECONDARY LEVEL AND THE TWO MISSION MODIFIERS. EITHER key of each
 		// pair, the two being one modifier and not two — the same reading Shift
 		// above already has.
 		SecondaryDown: ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight),
-		Ctrl:          ebiten.IsKeyPressed(ebiten.KeyControlLeft) || ebiten.IsKeyPressed(ebiten.KeyControlRight),
-		Alt:           ebiten.IsKeyPressed(ebiten.KeyAltLeft) || ebiten.IsKeyPressed(ebiten.KeyAltRight),
+		Ctrl:          heldkey.Pressed(ebiten.KeyControlLeft) || heldkey.Pressed(ebiten.KeyControlRight),
+		Alt:           heldkey.Pressed(ebiten.KeyAltLeft) || heldkey.Pressed(ebiten.KeyAltRight),
 	}
 }
 

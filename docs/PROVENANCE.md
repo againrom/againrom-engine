@@ -51,7 +51,9 @@ Each admitted component meets four conditions:
 
 1. Its licence permits distribution as part of a GPL-3.0-or-later binary.
 2. `THIRD_PARTY_NOTICES.md` lists it with its version and SPDX licence, and its
-   full licence text is under `LICENSES/`.
+   full licence text is under `LICENSES/`. A NOTICE file the component carries,
+   such as Ebitengine's `NOTICE.md`, is kept there verbatim and shipped with
+   the release packages.
 3. A ported file carries a header that names the library, its version, its
    author and its licence.
 4. It contains nothing from the original game's program or data.

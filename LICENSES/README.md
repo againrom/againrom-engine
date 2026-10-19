@@ -9,6 +9,9 @@ Module-specific copyright or clause variants keep a separate file.
 `lz4-BSD-3-Clause.txt` preserves the lz4 module's exact full license.
 `starlark-BSD-3-Clause.txt` preserves the go.starlark.net module's license (Copyright
 (c) 2017 The Bazel Authors).
+`pulse-MIT.txt` preserves the github.com/jfreymuth/pulse module's license
+(Copyright (c) 2019 Johann Freymuth). `ebiten-NOTICE.md` is Ebitengine's own
+`NOTICE.md`, kept as Apache-2.0 section 4(d) requires.
 
 It also holds the license text for third-party **source-derived** code ported
 into this tree by hand rather than pulled in as a Go module (no `go.mod`

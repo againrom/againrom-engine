@@ -35,7 +35,7 @@ try {
         'againrom/README.md', 'againrom/LICENSE', 'againrom/THIRD_PARTY_NOTICES.md',
         'againrom/LICENSES/Apache-2.0.txt', 'againrom/LICENSES/BSD-3-Clause.txt',
         'againrom/LICENSES/LGPL-2.1.txt', 'againrom/LICENSES/lz4-BSD-3-Clause.txt',
-        'againrom/LICENSES/starlark-BSD-3-Clause.txt' | Sort-Object)
+        'againrom/LICENSES/starlark-BSD-3-Clause.txt', 'againrom/LICENSES/ebiten-NOTICE.md' | Sort-Object)
     Assert-True (($actual -join "`n") -ceq ($expected -join "`n")) 'ZIP contents differ from the public allowlist.'
 } finally { $archive.Dispose() }
 $extracted = Join-Path $evidence 'extracted'

@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"sync"
+	"testing"
 
 	ebitenaudio "github.com/hajimehoshi/ebiten/v2/audio"
 
@@ -13,7 +14,7 @@ import (
 // devices share that context, but retain their own settings and voices.
 var (
 	audioContextOnce sync.Once
-	audioContext     *ebitenaudio.Context
+	audioContext     deviceOutput
 	audioContextErr  error
 )
 
@@ -56,14 +57,25 @@ func OpenAudio(st audio.Settings) (audio.Player, error) {
 	}}, nil
 }
 
-func openAudioContext() (*ebitenaudio.Context, error) {
+// readingDeviceSelected reports whether the process reads its players with
+// the reading device: only a test process that plays silently. A shipped
+// program is never a test process and always opens the Ebitengine context.
+func readingDeviceSelected(testProcess bool, level float64) bool {
+	return testProcess && level == 0
+}
+
+func openAudioContext() (deviceOutput, error) {
 	audioContextOnce.Do(func() {
+		if readingDeviceSelected(testing.Testing(), deviceOutputLevel) {
+			audioContext = newReadingDevice(audio.DeviceRate)
+			return
+		}
 		defer func() {
 			if r := recover(); r != nil {
 				audioContextErr = fmt.Errorf("audio: opening the device: %v", r)
 			}
 		}()
-		audioContext = ebitenaudio.NewContext(audio.DeviceRate)
+		audioContext = ebitenOutput{ctx: ebitenaudio.NewContext(audio.DeviceRate)}
 	})
 	if audioContextErr != nil {
 		return nil, audioContextErr

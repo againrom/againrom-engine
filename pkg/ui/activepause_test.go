@@ -153,7 +153,7 @@ func TestActivePauseDimsWorldBeforeReadableHUDAndResumesExactly(t *testing.T) {
 func TestActivePauseNativeBindingIsBareZeroAndSpaceIsPanels(t *testing.T) {
 	bindings := bindingSource(t)
 	panels, pause, group := bindings["Panels"], bindings["Pause"], bindings["GroupKey"]
-	if !strings.Contains(panels, "inpututil.IsKeyJustPressed(ebiten.KeySpace)") || !strings.Contains(panels, "!altHeld()") || !strings.Contains(panels, "!ebiten.IsKeyPressed(ebiten.KeyShiftLeft)") || !strings.Contains(panels, "!ebiten.IsKeyPressed(ebiten.KeyShiftRight)") {
+	if !strings.Contains(panels, "inpututil.IsKeyJustPressed(ebiten.KeySpace)") || !strings.Contains(panels, "!altHeld()") || !strings.Contains(panels, "!heldkey.Pressed(ebiten.KeyShiftLeft)") || !strings.Contains(panels, "!heldkey.Pressed(ebiten.KeyShiftRight)") {
 		t.Fatal("physical Space binding is not the panel-set toggle", panels)
 	}
 	if pause != "barePauseKey()" || !strings.Contains(group, "!barePauseKey()") {
