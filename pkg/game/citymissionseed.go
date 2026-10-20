@@ -182,6 +182,9 @@ func currentCityMissionObjects(graph *cityObjectTopology, party []mapload.PartyM
 		container := sim.SavedObjectContainer{Owner: owner, Present: len(root.Pack) != 0, Items: slices.Clone(root.Pack)}
 		if load := entities[entity].ActorLoad; load.Present {
 			container.Present, container.InsertIndex, container.Accumulator = load.ContainerPresent, load.InsertIndex, load.Accumulator
+		} else {
+			// The world's sum counts table-weighted items.
+			container.Accumulator, _ = world.ContainerWeight(entity)
 		}
 		for index, id := range root.Pack {
 			if id == 0 {

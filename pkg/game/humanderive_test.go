@@ -482,8 +482,9 @@ func TestReleaseNativeAndOriginalHumanShareOneDerivedBlock(t *testing.T) {
 			}
 		}
 	}
-	// DIV-2761: the control writes the pack's running weight the original keeps.
-	overloadOrderSetAccumulator(t, &odoc, uint32(carried))
+	if got := overloadOrderRecordAccumulator(t, odoc); got != carried {
+		t.Fatalf("SAV running weight %d, want the pack weight %d", got, carried)
+	}
 	for i := range odoc.Objects {
 		r := &odoc.Objects[i]
 		if r.Class == "Human" && humanSpeedValue(t, r, "ManaMax") != 0 && humanSpeedValue(t, r, "ManaRegen") == 0 {

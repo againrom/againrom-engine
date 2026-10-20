@@ -79,8 +79,10 @@ func projectCurrentItemGraphMode(state *SnapshotSAVDocument, world *sim.World, f
 			}
 			for _, v := range values {
 				c.Items = append(c.Items, v.ObjectID)
-				c.Accumulator += int32(v.Weight) * int32(v.Count)
 			}
+			// The world's sum counts table-weighted items.
+			carried, _ := world.ContainerWeight(a.EntityID)
+			c.Accumulator += carried
 			if e, ok := world.Entity(a.EntityID); ok && e.ActorLoad.Present {
 				c.Present = e.ActorLoad.ContainerPresent
 				c.InsertIndex, c.Accumulator = e.ActorLoad.InsertIndex, e.ActorLoad.Accumulator

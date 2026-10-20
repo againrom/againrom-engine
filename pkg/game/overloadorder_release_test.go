@@ -133,9 +133,8 @@ func TestReleaseOverloadedHastedHeroMovesInTheClaimedOrder(t *testing.T) {
 	odoc.State.ValueRecords = slices.DeleteFunc(odoc.State.ValueRecords, func(row sav.CityStateRecordData) bool {
 		return row.Path == sav.NativeActionsPath
 	})
-	// The native writer takes the pack's running weight from instance
-	// weights, and an item weighed by the table writes zero (DIV-2761). The
-	// original keeps that sum on the container; the control writes it.
+	// The SAV holds the pack's running weight the original keeps on the
+	// container, table-weighted items included.
 	hero = overloadOrderHero(t, f)
 	pack, _ := f.live.world.CarriedStacks(hero.ID)
 	var carried int32
@@ -149,7 +148,9 @@ func TestReleaseOverloadedHastedHeroMovesInTheClaimedOrder(t *testing.T) {
 	if carried/2 != hero.Load {
 		t.Fatalf("pack weight %d does not give load %d", carried, hero.Load)
 	}
-	overloadOrderSetAccumulator(t, &odoc, uint32(carried))
+	if got := overloadOrderRecordAccumulator(t, odoc); got != carried {
+		t.Fatalf("SAV running weight %d, want the pack weight %d", got, carried)
+	}
 	// The fixture caster's restored mana pool has no regeneration period, which
 	// an original profile refuses; give it one so the file loads.
 	for i := range odoc.Objects {

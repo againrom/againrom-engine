@@ -173,6 +173,16 @@ func (w *World) containerWeight(i int) int32 {
 	return sum
 }
 
+// ContainerWeight is entity id's container running sum, containerWeight's
+// value.
+func (w *World) ContainerWeight(id EntityID) (int32, bool) {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 {
+		return 0, false
+	}
+	return w.containerWeight(i), true
+}
+
 // wornWeight is the actor's OWN weight, `actor+0x8e`: the total weight of
 // what he is wearing and holding.
 //

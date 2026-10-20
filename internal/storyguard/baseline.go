@@ -2687,6 +2687,9 @@ package storyguard
 // (pkg/game/savecapture.go), the one Group-drop applier
 // (pkg/sim/savedgroupplayers.go), the capture rule
 // (internal/archtest/savecapture.go), their tests, plus this note.
+// CommentBytes rises for the world's container weight reader
+// (pkg/sim/weight.go), the native pack writers that read it, the leafless
+// reload tests (pkg/game/resavestate_release_test.go), plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2710,5 +2713,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1703,
 	},
-	CommentBytes: 9324150,
+	CommentBytes: 9325698,
 }

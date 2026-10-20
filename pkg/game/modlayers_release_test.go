@@ -425,7 +425,8 @@ func TestReleaseModLayersInTheMissionInventory(t *testing.T) {
 		source := sim.SourceActor{Class: 2}
 		source.Stats[4], source.Stats[6], source.Stats[7] = uint16(src.Speed), uint16(src.Load), uint16(src.Capacity)
 		source.Stats[8], source.Stats[9] = uint16(src.HP), uint16(src.MaxHP)
-		snap := sim.ActorLoadSnapshot{Inventory: sim.ActorLoad{Present: true, ContainerPresent: true, Source: source},
+		carried, _ := bmw.world.ContainerWeight(bid)
+		snap := sim.ActorLoadSnapshot{Inventory: sim.ActorLoad{Present: true, ContainerPresent: true, Accumulator: carried, Source: source},
 			Load: src.Load, Capacity: src.Capacity, Speed: src.Speed}
 		if err := bmw.world.RestoreActorLoad(bid, snap); err != nil {
 			t.Fatalf("a stand-in original-save hero: %v", err)

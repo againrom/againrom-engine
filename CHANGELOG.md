@@ -8,6 +8,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A hero whose pack holds items weighed by the game's item table now
+  keeps his load when a save Againrom wrote is saved again by the original game
+  and loaded back. Before, the save recorded such a pack as weightless, so
+  after that reload the hero carried less than he did, and an overloaded hero
+  walked faster.
 - [ROM1] A unit in a group move that has no way to its spot and is already
   standing where it can get closest now stops at once and, from the group's next
   turn, only fights what comes into reach, as in the original. A unit blocked
