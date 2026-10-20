@@ -17,6 +17,24 @@ var overrideKeys = []string{"hp", "mana", "body", "mind", "spirit", "reaction", 
 	"skill.blade", "skill.axe", "skill.bludgeon", "skill.pike", "skill.shooting",
 	"protection.fire", "protection.water", "protection.air", "protection.earth", "protection.astral"}
 
+// overrideGroup is the unit popup group key shows under; "" for a key that
+// is no override.
+func overrideGroup(x *MapInspector, key string) string {
+	switch {
+	case key == "hp" || key == "mana":
+		return x.word("editor.unit.group.vitals")
+	case key == "body" || key == "mind" || key == "spirit" || key == "reaction":
+		return x.word("editor.unit.group.attributes")
+	case key == "defence" || key == "absorption":
+		return x.word("editor.unit.group.defence")
+	case strings.HasPrefix(key, "skill."):
+		return x.word("editor.unit.group.skills")
+	case strings.HasPrefix(key, "protection."):
+		return x.word("editor.unit.group.protections")
+	}
+	return ""
+}
+
 // overrideAbsent is the value that leaves key's template value standing.
 func overrideAbsent(key string) int64 {
 	if key == "hp" || key == "mana" {
@@ -110,20 +128,17 @@ func templateSheets(m *alm.Map, t *mapload.Table) ([]unitSheet, error) {
 	return unitSheets(&bare, t)
 }
 
-// unitTemplateView is placement index's view for the popup's field labels;
-// its template sheet is built on the first label that needs it.
+// unitTemplateView is placement index's view for the popup's fields; its
+// in-game sheet is built on the first field that needs it.
 type unitTemplateView struct {
 	actualBuilt, actualOK bool
 	actual                unitValues
 	s                     *mapInspectionEdits
 	m                     *alm.Map
 	index                 int
-	built                 bool
-	v                     unitValues
-	ok                    bool
 }
 
-// unitTemplate is the label view of record index of kind k; nil for a
+// unitTemplate is the field view of record index of kind k; nil for a
 // record that is no unit.
 func (s *mapInspectionEdits) unitTemplate(k mapedit.Kind, index int) *unitTemplateView {
 	if k != mapedit.KindUnit {
@@ -136,9 +151,8 @@ func (s *mapInspectionEdits) unitTemplate(k mapedit.Kind, index int) *unitTempla
 	return &unitTemplateView{s: s, m: m, index: index}
 }
 
-// label is the unit popup's label for field f: an override field's name
-// with its template value in brackets. offered is false for a field the
-// placement does not take.
+// label is the unit popup's label for field f. offered is false for a field
+// the placement does not take.
 func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 	if u == nil {
 		return "", true
@@ -157,20 +171,10 @@ func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 	if f.Check == mapedit.CheckUnitGear {
 		return x.overrideName(f.Key), gearOffered(u.m.Units[u.index], x.table)
 	}
-	if _, ok := overrideTemplate(unitValues{}, f.Key); !ok || x.table == nil {
+	if _, ok := overrideTemplate(unitValues{}, f.Key); !ok {
 		return "", true
 	}
-	if !u.built {
-		u.built = true
-		if sheets := u.s.unitViewSheets(true); u.index < len(sheets) {
-			u.v, u.ok = sheets[u.index].Values, true
-		}
-	}
-	if !u.ok {
-		return x.overrideName(f.Key), true
-	}
-	v, _ := overrideTemplate(u.v, f.Key)
-	return fmt.Sprintf("%s (%d)", x.overrideName(f.Key), v), true
+	return x.overrideName(f.Key), true
 }
 
 // gearError refuses flag bit 7 on a placement whose constructor does not

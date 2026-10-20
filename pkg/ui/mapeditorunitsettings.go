@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type InspectionUnitSettings interface {
@@ -31,9 +30,9 @@ func (e *MapEditor) unitSettings() (*PanelSubject, []InspectionField) {
 			if o.buf[i] == fieldInput(f) {
 				continue
 			}
-			v, err := strconv.ParseInt(o.buf[i], 10, 64)
+			v, err := fieldNumber(f, o.buf[i])
 			if err != nil {
-				return nil, nil
+				continue
 			}
 			values = append(values, InspectionFieldValue{Key: f.Key, Value: v})
 		}

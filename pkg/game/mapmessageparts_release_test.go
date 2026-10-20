@@ -6,16 +6,26 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/render/textfit"
 	"againrom/pkg/ui"
 )
 
-func messageFirstLine(body string) string {
+// messageFirstLine is the first line a message row shows, marked when more
+// lines follow, and every line the action's popup shows.
+func messageFirstLine(body string) (string, []string) {
+	var lines []string
 	for _, line := range strings.Split(messageMarkup.ReplaceAllString(body, ""), "\n") {
 		if line = strings.TrimSpace(line); line != "" {
-			return line
+			lines = append(lines, line)
 		}
 	}
-	return ""
+	switch len(lines) {
+	case 0:
+		return "", nil
+	case 1:
+		return lines[0], lines
+	}
+	return lines[0] + textfit.Mark, lines
 }
 
 func TestReleaseMessagePickerParts(t *testing.T) {
@@ -48,9 +58,15 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 					absent++
 					body = decoded
 				}
-				want := x.inspectionUTF8(fmt.Sprintf("%d: %s", row.Value, messageFirstLine(body)))
+				first, lines := messageFirstLine(body)
+				want := x.inspectionUTF8(fmt.Sprintf("%d: %s", row.Value, first))
 				if row.Name != want || row.Choice != want {
 					t.Errorf("row differs from game part 1: got %q want %q", row.Choice, want)
+				}
+				for _, line := range lines {
+					if !strings.Contains(row.Text, x.inspectionUTF8(line)) {
+						t.Errorf("the whole text lacks %q", line)
+					}
 				}
 				fields := s.MessageFields(row.Value)
 				if len(fields) != 2 {
@@ -117,7 +133,7 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 				speakerEdits++
 				checkUndo()
 				if x.pageLanguage() == "ru" && (key == "scenario/10.alm" && row.Value == 2 || key == "scenario/30.alm" && row.Value == 15) {
-					t.Logf("%s page=%d first_speaker=%d line=%q; text/speaker Apply preserve other parts and Undo restores exact bytes", key, row.Value, speaker, messageFirstLine(body))
+					t.Logf("%s page=%d first_speaker=%d line=%q; text/speaker Apply preserve other parts and Undo restores exact bytes", key, row.Value, speaker, first)
 				}
 			})
 		}

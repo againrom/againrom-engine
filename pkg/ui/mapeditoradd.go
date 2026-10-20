@@ -435,6 +435,14 @@ func (r *addRun) first() int {
 // its last step with the reason.
 func (e *MapEditor) addFinish() {
 	r, _ := e.addRunning()
+	if r.kind == "Message" {
+		if _, ok := e.doc.Edits.(InspectionMessages); ok {
+			e.leave(leavePrompt)
+			e.objectBack = nil
+			e.beginMessage(messageOwner{kind: "Message"}, false)
+			return
+		}
+	}
 	host, _ := e.addHost()
 	rec := e.addRecord(r, len(r.steps))
 	next, err := host.AddRecord(rec)
@@ -665,7 +673,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 	s.Disabled = []bool{r.at <= r.first(), false, false}
 	l := layoutPopup(s, e.font, body)
 	// The top stays put while the steps grow the window downward.
-	s.At = image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, e.window.Y/8))
+	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, e.window.Y/8)))
 	return s, acts
 }
 

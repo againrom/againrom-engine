@@ -148,7 +148,10 @@ type InspectionScriptTarget struct {
 	Name       string
 	Choice     string
 	NewMessage bool
-	Uses       []InspectionScriptUse
+	// Text is a message page's whole text, line by line; the choice label
+	// shows its first line.
+	Text string
+	Uses []InspectionScriptUse
 }
 
 func (t InspectionScriptTarget) ChoiceValue() int64 {

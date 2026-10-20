@@ -251,7 +251,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 			return nil
 		}
 		if k == mapedit.KindUnit {
-			row.Meaning = template.meaning(f.Key, row.Value)
+			template.describe(&row)
 		}
 		if scriptView != nil {
 			row.Choices = scriptFieldChoices(kind, f.Key, script, s.inspector.inspectionUTF8)

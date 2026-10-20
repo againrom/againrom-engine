@@ -235,6 +235,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 			}
 			r.Label, r.Preview = c.Name, e.Frame
 			r.Size = image.Pt(max(1, c.TileSize), max(1, c.TileSize))
+			if i < len(sheets) && sheets[i].Life != ui.LifeAlive {
+				x.fallenDraw(&e, c, tier, sheets[i], shade)
+			}
 		}
 		multi := len(x.tiersOf(u)) > 1
 		if multi {

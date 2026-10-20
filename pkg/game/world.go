@@ -5147,12 +5147,8 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// installed captions. It deliberately does not reuse Mage or
 			// AlwaysHits: neither is part of either original predicate.
 			OriginalPanel: originalPanelActor(playerCharacter, e.TypeID, panelXPValue),
-			// THE EIGHT NUMBERS A BLOW READS, for the unit panel to state. They are
-			// read off the entity on the tick they are pushed, through the same
-			// copy-handing entity read as everything else here, so the panel states
-			// the simulation's own answer and never a value accumulated beside it.
-			// Known is set for every entity of a running world, because every entity
-			// of a running world has them.
+			// The eight numbers a blow reads, off this tick's entity, for the unit
+			// panel to state.
 			Combat: ui.UnitCombat{Known: true,
 				DamageBase: int(e.DamageBase), DamageSpread: int(e.DamageSpread),
 				WeaponSpellKnown:       weaponSpellKnown,
@@ -5161,34 +5157,18 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 				ToHit: int(e.ToHit), Defence: int(e.Defence), Absorption: int(e.Absorption),
 				AttackCharge: int(e.AttackCharge), AttackRelax: int(e.AttackRelax),
 				AlwaysHits: e.AlwaysHits},
-			// AND THE CHARACTER THEY WERE DERIVED FROM, where the load knew one. An
-			// id with no entry states none, which is the tier lookup's own rule —
-			// and the set that misses is no longer "every unit a map placed": a
-			// placement reaching a definition entry now states its row's own sheet,
-			// and only one reaching none misses. Two of its members are then overlaid
-			// live — char, built just above.
+			// The character they were derived from, where the load knew one; an id
+			// with no entry states none. Two of its members are overlaid live.
 			Char: char,
-			// The speed input, carried whole for the readout to state and interpreted
-			// nowhere on either side. It is read through the same copy-handing entity
-			// read as everything else here, so it is the simulation's own answer and
-			// not a second derivation.
+			// The speed input, the simulation's own, for the readout to state.
 			Speed: humanSpeedStat(e),
-			// The group rate term beside it, carried and never composed with it.
-			// Which of the two actually moves the entity is a rule this package does
-			// not hold and must not restate: the seam that composes them is the
-			// simulation's own, and the readout states both numbers precisely so that
-			// the composition can be read rather than copied.
+			// The group rate term beside it; the simulation composes the two.
 			GroupSpeed: int(mw.world.GroupRateTerm(e.ID)),
-			// The carried load, on the speed's own terms: the simulation's own field,
-			// carried whole for the sheet to state and interpreted nowhere on either
-			// side. The overload penalty it feeds is applied inside the simulation
-			// and is already inside e.Speed's consumers, so nothing here composes the
-			// two.
+			// The carried load, the simulation's own; its overload penalty is
+			// already inside e.Speed's consumers.
 			Load: int(e.Load),
-			// The crossing this step is part of, carried whole so the window tier can
-			// run the displacement over it. Both are the simulation's own, read
-			// through the same copy-handing entity read as everything else here, and
-			// neither is state of this seam's.
+			// The crossing this step is part of, for the window tier's
+			// displacement.
 			Transit: int(e.Transit), TransitSpan: int(e.TransitTotal),
 			FinePosition: finePosition, FineX: fineX, FineY: fineY,
 			// The live client class's own Sound array, including an
@@ -5205,76 +5185,25 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// which is that key's own registry default.
 			Marks: mw.markDraws(e.ID, markTileSize(classes[e.Class]))}
 
-		// ANIM-DIR-006
-		facing := ((int(e.DrawnFacing()) >> 4) + 8) & 15
+		facing := drawnFacing(e)
 		oct := facing >> 1
 
-		// The death path, and it is the first thing tried for an entity the world
-		// reports not alive — downed and dead alike. The frames come out of the
-		// CORPSE class the loader resolved: its sheet, its descriptor and its
-		// canvas, since the substitution is a whole class. The elapsed count
-		// carries NO per-entity offset, unlike the live selection's effective
-		// tick: a fall begins at its own first frame.
-		//
-		// THE TIER IS THIS PLACEMENT'S, looked up once and read by both arms
-		// below. It selects WHICH FRAME SLICE of whichever class supplies the
-		// frames — the entity's own here, the corpse class's on the death path
-		// — so a substitution can never draw one class's pixels through another
-		// class's colours. An id with no entry states no tier, which the selector
-		// answers the sheet's own frames for.
+		// Not-alive entities, downed and dead alike, draw from the corpse class
+		// the loader resolved; a fall's elapsed count has no per-entity offset.
+		// The tier is this placement's and picks the frame slice of whichever
+		// class supplies the frames.
 		tier := mw.tiers[e.ID]
 
-		// A SWING IS DRAWN FIRST among the living selections, and the test is
-		// holding a victim and not `moving`. `moving` is the step memory's, which
-		// holds its cell for the whole of a crossing — so it means "is
-		// mid-stride, or moved", and an attacker walking to a distant victim draws
-		// its walk rather than a swing. In the engine the two states are exclusive
-		// by construction, one action code being current at a time; here they are
-		// two independent readings, and this is what orders them.
-		//
-		// It does NOT ask whether the victim is in reach. The reach is a
-		// simulation law behind an unexported predicate, and a copy of it here is
-		// what the crossing and the rate composition are already refused for; the
-		// cost is that an attacker standing still and OUT of reach — blocked, or
-		// its victim fled — draws a swing too.
-		//
-		// WHETHER THE RUN IS STILL PLAYING is not asked here either: the swing
-		// clock passes the track's length and the selection refuses, which is the
-		// engine's own "the run counter reached zero, force the state to 0" seen
-		// from the fall-through side.
-		//
-		// A unit that is not alive holds no victim, so this can never contend with
-		// the death path below: a blow clears the order it fells a unit out of.
-		// The ordering is still written as it is, death first, because that is the
-		// contract and not an accident of which flag happens to be set. AND A BOOK
-		// CASTER SWINGS TOO, for as long as its cast run stands:
-		// `MAGIC-CASTANIM-029` fixes that a cast plays the caster's own Attack
-		// run, once, one frame per tick, and that run is the same track
-		// SelectAttackFrame already indexes for a swing.
-		//
-		// AN IDLE PURSUIT HOLDS A VICTIM AND DRAWS NO SWING. The refused route
-		// leaves the victim held with no strike and no walk, and the strike's
-		// arm is the one that installs action 3 (AI-542: the staff-less mage's
-		// branch stores order 0 and returns before it); a held victim alone
-		// is not an attack. The unit stands.
+		// A swing draws first among the living selections: a held victim, not
+		// moving, not an idle pursuit (AI-542). Reach and run length are not
+		// asked, so an attacker standing out of reach draws a swing too. A book
+		// caster swings while its cast run stands (MAGIC-CASTANIM-029).
 		heldIdle := e.PursuitIdle && e.AttackPhase == sim.AttackReady && !mw.casting(e.ID)
 		swinging := !stone && e.Alive() && !e.Turning() && (e.HasAttackTarget || mw.casting(e.ID)) && !heldIdle && !moving
 
-		// THE ORANGE MARK IS THE FALLBACK for a shot this build cannot draw: a
-		// physical ranged swing whose class names no projectile, or one whose
-		// sheet did not load. Every other ranged swing draws its class's own
-		// shot (unitshot.go), and a cast leaves a World record at its release
-		// (flight.go). The remaining gates are the contract's own: an
-		// actual attack target held, a reach past plain adjacency, and a victim
-		// the world still answers for at two or more cells away by
-		// chebyshevDist's own simplified test.
-		//
-		// THE PROGRESS IS THE SWING CLOCK OVER THE CHARGE, both counted in
-		// ticks: mw.swing[e.ID] counts ticks since the charging phase began —
-		// the same clock SelectAttackFrame indexes below — and e.AttackCharge
-		// is the countdown chargeTicks (pkg/sim, unexported) loads at that same
-		// instant and floors at 1. num is capped at den so a clock that has run
-		// past its own charge never overshoots the victim's cell.
+		// The orange mark stands in for a physical ranged shot whose class
+		// draws none: a held target past adjacency, two or more cells away. Its
+		// progress is the swing clock over the charge, capped at the charge.
 		_, _, classDrawsShot := mw.classShot(clientClass)
 		if swinging && e.HasAttackTarget && e.Reach > 1 && mw.shots.physical(e.ID) && !classDrawsShot {
 			if vcell, ok := mw.attackTargetCell(e); ok {
@@ -5295,40 +5224,11 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 
 		if !e.Alive() {
 			elapsed := mw.observeDeath(e.ID)
-			if c != nil && c.Corpse != nil {
-				d := c.Corpse
-				frames := d.TierFrames(tier)
-				// THE BONES FIRST, and the test is the simulation's own decay stage. A
-				// body past its fall is drawn from the bone block and not from the last
-				// frame of the dying one, and the stage is the ONLY thing consulted:
-				// this tier is handed an integer and never asks what a body is, which is
-				// what keeps the stage the simulation's to advance and nothing else's.
-				//
-				// It stands above the fall for the reason the fall stands above
-				// the live selection: the chain is read top to bottom and each
-				// link refuses rather than answering a frame the caller cannot
-				// tell from a real one. So a corpse class with no bone block
-				// falls through to its own last dying frame, and one with no
-				// dying block through that to the drawing it had before either
-				// path existed.
-				if frame, mirror, ok := terrain.SelectBoneFrame(d.Anim, len(frames), oct,
-					int(e.Decay)); ok {
-					draws[i].Art = d
-					draws[i].Frame = frames[frame]
-					draws[i].Mirror = mirror
-					continue
-				}
-				if frame, mirror, ok := terrain.SelectDeathFrame(d.Anim, len(frames), oct, elapsed); ok {
-					draws[i].Art = d
-					draws[i].Frame = frames[frame]
-					draws[i].Mirror = mirror
-					continue
-				}
+			if art, frame, mirror, ok := corpseFrame(c, tier, oct, int(e.Decay), elapsed); ok {
+				draws[i].Art, draws[i].Frame, draws[i].Mirror = art, frame, mirror
+				continue
 			}
-			// NEVER VANISH, and it is a fall-through rather than a decision: no
-			// corpse link, a corpse class holding no frames and an index that sheet
-			// cannot hold all arrive here, and here is the drawing this entity had
-			// before the death path existed.
+			// No corpse frame falls through to the live drawing: never vanish.
 		}
 
 		frames := c.TierFrames(tier)
@@ -5338,16 +5238,10 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			continue
 		}
 
-		// THE SWING PATH, and it falls through exactly as the death path above
-		// does: a class with no attack block, an empty track, a failed gate or an
-		// index its own sheet cannot hold all arrive at the live selection, which
-		// is the drawing this entity had before a swing could be drawn at all.
+		// A swing with no frame falls through to the live selection.
 		if swinging && len(frames) > 0 {
-			// THE RUN INDEX IS SCALED FOR A CAST AND RAW FOR A BLOW (the owner's own
-			// rule): a cast's swing is stretched or compressed to cover exactly the
-			// interval its projectile crosses in, so every projectile has one
-			// complete swing behind it however fast the casts come. A melee blow
-			// keeps the one-frame-per-tick clock it has always had.
+			// A cast's run is scaled to its projectile's flight; a blow's is
+			// one frame per tick.
 			run := mw.swing[e.ID]
 			if span, casting := mw.castSwingSpan(e); casting {
 				run = scaleRun(run, span, len(c.Anim.AttackTrack))
@@ -5369,54 +5263,25 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			draws[i].Mirror = mirror
 		}
 	}
-	// AN OFF-MAP UNIT IS NOT DRAWN, and so cannot be picked: the window tier
-	// resolves a click against the entities in this list and against nothing
-	// else, so one rule removes the unit from the picture and from selection
-	// together.
-	//
-	// THE COMPACTION IS DONE HERE, AFTER THE LOOP, and not as a `continue`
-	// inside it: every one of the twenty-odd writes above addresses draws[i]
-	// by the entity's own index, so a skipped entity would leave a zero-value
-	// MapEntity at its slot — an entity of id 0 drawn at the map's corner —
-	// rather than no entry at all. Filtering the built slice keeps the loop's
-	// indexing exactly as it was and states the rule once.
-	//
-	// THE ORDER WITHIN THIS FILTER IS UNCHANGED: this loop is a stable filter
-	// over draws, which is built in the world's ascending entity id order,
-	// and the compaction above still relies on that per-index correspondence.
-	// The slice this FUNCTION returns is no longer globally ascending by id,
-	// though: virtualDeadDraws' entries are appended below, after this loop
-	// finishes, so they trail every live entity's draw regardless of id.
+	// An off-map unit is not drawn, so it cannot be picked. The filter runs
+	// after the loop because the loop writes draws[i] by entity index; it is
+	// stable, and virtualDeadDraws' entries trail it.
 	kept := draws[:0]
 	for i, e := range ents {
 		if e.OffMap {
 			continue
 		}
-		// AND AN INVISIBLE ACTOR THIS PARTICIPANT DOES NOT DETECT IS NOT
-		// DRAWN (1002; MAGIC-ACTOR-066). The original gates the whole actor
-		// sprite on a per-player bit and skips the sprite when it is clear;
-		// dropping the entry here rather than blanking its art removes it
-		// from the picture and from selection together, which is the rule
-		// OffMap above already states. The local participant is SelfSlot,
-		// the slot this front end pushes as its own (SetLocalOwner).
+		// An invisible actor the local participant does not detect is not
+		// drawn and cannot be picked (MAGIC-ACTOR-066).
 		if mw.world.InvisibleTo(e.ID, sim.SelfSlot) {
 			continue
 		}
 		draw := draws[i]
-		// STONE OVERRIDES THE OWNER SHADE ONLY THROUGH THE FIRST BONE STAGE
-		// (MAGIC-STONEDRAW-084, REG-UNITS-050, PAL-BLIT-024). Both original
-		// Stone draw overrides share the drawable+0x15a <= 2 gate; that field is
-		// the corpse stage: 0 live, 1 fallen and 2 the first bone. The attached
-		// effect can outlive that boundary, so the effect fact carried into the
-		// selection loop is narrowed here to the presentation fact the viewer
-		// receives. At stages 3 and 4 the ordinary frame and owner-palette paths
-		// resume even while the effect remains attached.
-		//
-		// This gate and guard sit after every frame-selection arm converges, so
-		// they cover the normal, attack, dying, bone, hero-body and substituted
-		// corpse populations together. A presented Stone entry reaches the
-		// viewer's fixed neutral grayscale path from the selected base frame; an
-		// entry outside the gate keeps the ordinary owner rule below.
+		// Stone overrides the owner shade only through the first bone stage
+		// (MAGIC-STONEDRAW-084, REG-UNITS-050, PAL-BLIT-024): the effect can
+		// outlive it, and from stage 3 the ordinary frame and owner palette
+		// resume. The gate follows every frame-selection arm, so it covers each
+		// population at once.
 		draw.Stone = draw.Stone && e.Decay <= sim.DecayBones
 		if draw.Stone {
 			// MAGIC-STONEDRAW-084
@@ -5424,8 +5289,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			if draw.Art != nil {
 				frames := draw.Art.TierFrames(mw.tiers[e.ID])
 				if len(frames) > 0 {
-					facing := ((int(e.DrawnFacing()) >> 4) + 8) & 15
-					frame, mirror := terrain.SelectStandingFrame(draw.Art.Anim, len(frames), facing)
+					frame, mirror := terrain.SelectStandingFrame(draw.Art.Anim, len(frames), drawnFacing(e))
 					draw.Frame, draw.Mirror = frames[frame], mirror
 				}
 			}
@@ -5438,6 +5302,36 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 	}
 	kept = append(kept, mw.virtualDeadDraws()...)
 	return kept
+}
+
+// drawnFacing is the sheet facing, 0..15, entity e draws in (ANIM-DIR-006).
+func drawnFacing(e sim.Entity) int {
+	return ((int(e.DrawnFacing()) >> 4) + 8) & 15
+}
+
+// corpseFrame is the body a unit of class c that is not alive draws: its
+// corpse class's art, and the frame of tier facing octant oct at decay stage
+// decay, elapsed ticks after its fall began. ok is false where the corpse
+// class answers no frame.
+//
+// THE BONES FIRST, and the test is the simulation's own decay stage. A body
+// past its fall is drawn from the bone block and not from the last frame of
+// the dying one; the stage is the only thing consulted. A corpse class with
+// no bone block falls through to its own dying frame, and one with no dying
+// block refuses.
+func corpseFrame(c *terrain.UnitClass, tier, oct, decay, elapsed int) (*terrain.UnitClass, *terrain.StaticFrame, bool, bool) {
+	if c == nil || c.Corpse == nil {
+		return nil, nil, false, false
+	}
+	d := c.Corpse
+	frames := d.TierFrames(tier)
+	if frame, mirror, ok := terrain.SelectBoneFrame(d.Anim, len(frames), oct, decay); ok {
+		return d, frames[frame], mirror, true
+	}
+	if frame, mirror, ok := terrain.SelectDeathFrame(d.Anim, len(frames), oct, elapsed); ok {
+		return d, frames[frame], mirror, true
+	}
+	return nil, nil, false, false
 }
 
 // virtualDeadDraws renders current stage-2..4 records outside the live entity

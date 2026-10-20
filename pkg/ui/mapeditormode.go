@@ -6,6 +6,8 @@ package ui
 // This file is the only place that enters or leaves a layer; a test scans the
 // package for an assignment anywhere else.
 
+import "image"
+
 // pickKind is what the next click on the canvas picks.
 type pickKind string
 
@@ -164,7 +166,7 @@ func (e *MapEditor) armPick(kind pickKind) {
 // openPrompt replaces the prompt.
 func (e *MapEditor) openPrompt(p editorPrompt) {
 	e.rememberCancel()
-	e.prompt, e.message = p, ""
+	e.prompt, e.message, e.promptShift = p, "", image.Point{}
 }
 
 // toggleBrush switches the brush mode on, or off when it already is mode.

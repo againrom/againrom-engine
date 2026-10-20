@@ -30,7 +30,21 @@ type overrideTyper struct {
 func (o overrideTyper) set(key string, v int64) {
 	o.t.Helper()
 	fields := objectEdits(o.t, o.e).Fields("Unit", o.i)
-	n := fieldIndex(o.t, fields, key)
+	f := fields[fieldIndex(o.t, fields, key)]
+	switch {
+	case len(f.Choices) != 0:
+		o.choose(key, v)
+	case f.Inherit && v == f.Absent:
+		o.text(key, "")
+	default:
+		o.text(key, fmt.Sprint(v))
+	}
+}
+
+// field scrolls field key into view and presses it.
+func (o overrideTyper) field(key string) int {
+	o.t.Helper()
+	n := fieldIndex(o.t, objectEdits(o.t, o.e).Fields("Unit", o.i), key)
 	o.e.ScrollDetails(-1000)
 	r, ok := o.e.FieldRect(n)
 	for k := 0; !ok && k < 60; k++ {
@@ -38,10 +52,40 @@ func (o overrideTyper) set(key string, v int64) {
 		r, ok = o.e.FieldRect(n)
 	}
 	o.c.click(o.e, r, ok, "the "+key+" field")
+	return n
+}
+
+// text types s over field key and presses Apply.
+func (o overrideTyper) text(key, s string) {
+	o.t.Helper()
+	o.field(key)
 	for k := 0; k < 16; k++ {
 		_ = o.e.Key("backspace")
 	}
-	o.e.TextInput(fmt.Sprint(v))
+	o.e.TextInput(s)
+	r, ok := o.e.PopupButtonRect(0)
+	o.c.click(o.e, r, ok, "Apply")
+}
+
+// choose picks choice v of field key's drop-down and presses Apply.
+func (o overrideTyper) choose(key string, v int64) {
+	o.t.Helper()
+	fields := objectEdits(o.t, o.e).Fields("Unit", o.i)
+	f := fields[fieldIndex(o.t, fields, key)]
+	o.field(key)
+	row := slices.IndexFunc(f.Choices, func(c ui.InspectionChoice) bool { return c.Value == v })
+	r, ok := o.e.DropdownRowRect(row)
+	o.c.click(o.e, r, ok, fmt.Sprintf("%s choice %d", key, v))
+	r, ok = o.e.PopupButtonRect(0)
+	o.c.click(o.e, r, ok, "Apply")
+}
+
+// clear presses field key's Inherit button and Apply.
+func (o overrideTyper) clear(key string) {
+	o.t.Helper()
+	n := o.field(key)
+	r, ok := o.e.RowButtonRect(n, 0, false)
+	o.c.click(o.e, r, ok, "the "+key+" Inherit button")
 	r, ok = o.e.PopupButtonRect(0)
 	o.c.click(o.e, r, ok, "Apply")
 }
@@ -89,9 +133,18 @@ func TestReleaseMapEditorOverridePopupWritesTheSetFieldBytes(t *testing.T) {
 		{"protection.astral", 55, 1}, {"hp", 50, 2}, {"mana", 7, 2}, {"gear", 1, 1}} {
 		before := e.Document().SourceBytes
 		fields := objectEdits(t, e).Fields("Unit", i)
-		label := fields[fieldIndex(t, fields, c.key)].Label
-		if was, ok := overrideTemplate(template[i].Values, c.key); ok && !strings.HasSuffix(label, fmt.Sprintf(" (%d)", was)) {
-			t.Fatalf("%s: label %q does not carry the template's %d", c.key, label, was)
+		f := fields[fieldIndex(t, fields, c.key)]
+		label := f.Label
+		current, err := alm.Open(before)
+		if err != nil {
+			t.Fatal(err)
+		}
+		now, err := unitSheets(current, x.table)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if was, ok := overrideTemplate(now[i].Values, c.key); ok && (!f.Inherit || f.Inherited != fmt.Sprint(was)) {
+			t.Fatalf("%s: the empty field's hint %q is not the game's %d", c.key, f.Inherited, was)
 		}
 		typer.set(c.key, c.v)
 		edited := e.Document().SourceBytes

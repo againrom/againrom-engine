@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"strconv"
@@ -131,11 +132,45 @@ func (e *MapEditor) recordKey(key string) error {
 	return nil
 }
 
+// fieldInput is field f's value as its edit shows it; an inheriting value
+// shows empty.
 func fieldInput(f InspectionField) string {
 	if f.Text {
 		return f.TextValue
 	}
+	if f.Inherit && f.Value == f.Absent {
+		return ""
+	}
 	return strconv.FormatInt(f.Value, 10)
+}
+
+// errStoredAsInherited refuses a typed 0 in a field whose record stores 0 as
+// "inherit".
+var errStoredAsInherited = errors.New("0 is stored as inherited")
+
+// fieldNumber is the number text writes into field f: an empty inheriting
+// field writes its Absent value.
+func fieldNumber(f InspectionField, text string) (int64, error) {
+	text = strings.TrimSpace(text)
+	if f.Inherit && text == "" {
+		return f.Absent, nil
+	}
+	n, err := strconv.ParseInt(text, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if f.Inherit && f.Absent == 0 && n == 0 {
+		return 0, errStoredAsInherited
+	}
+	return n, nil
+}
+
+// fieldNumberNote is the popup's reason a typed value of field f is refused.
+func (e *MapEditor) fieldNumberNote(f InspectionField, err error) string {
+	if errors.Is(err, errStoredAsInherited) {
+		return fmt.Sprintf(e.word("editor.unit.zero.error"), f.Label)
+	}
+	return fmt.Sprintf("%s: %s", f.Label, e.word("editor.object.number"))
 }
 
 func (e *MapEditor) fieldTitle() string {
@@ -170,29 +205,41 @@ func (e *MapEditor) setField(text string) error {
 		kind, index := e.selectedRecord()
 		next, err = host.SetTextField(kind, index, field.Key, text)
 	} else {
-		v, parseErr := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
+		v, parseErr := fieldNumber(field, text)
+		if errors.Is(parseErr, errStoredAsInherited) {
+			e.message = e.fieldNumberNote(field, parseErr)
+			return parseErr
+		}
 		if parseErr != nil {
 			e.message = "Enter a whole number."
 			return parseErr
 		}
 		kind, index := e.selectedRecord()
+		if v == NewMessageChoice {
+			if i := e.messageFieldOf(field.Key); i >= 0 {
+				e.leave(leavePrompt)
+				e.beginMessage(messageOwner{kind: kind, index: index, key: field.Key}, true)
+				return nil
+			}
+		}
 		next, err = e.doc.Edits.SetField(kind, index, field.Key, v)
 	}
 	if err := e.adoptEdit(next, err); err != nil {
 		return err
 	}
 	e.leave(leavePrompt)
-	if !field.Text && strings.TrimSpace(text) == strconv.FormatInt(NewMessageChoice, 10) {
-		e.obj.doc = nil
-		e.loadObject()
-		for i, f := range e.obj.fields {
-			if f.Key == field.Key && e.messageField(i) {
-				e.openParameter(i)
-				break
-			}
+	return nil
+}
+
+// messageFieldOf is the object popup's message field of key, -1 for none.
+func (e *MapEditor) messageFieldOf(key string) int {
+	e.loadObject()
+	for i, f := range e.obj.fields {
+		if f.Key == key && e.messageField(i) {
+			return i
 		}
 	}
-	return nil
+	return -1
 }
 
 // pickAt finishes an armed pick on the ground cell under p.

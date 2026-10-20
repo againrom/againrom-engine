@@ -11,9 +11,9 @@ import (
 )
 
 type inspectionUnitViews struct {
-	model        *mapedit.Editor
-	actual, bare []unitSheet
-	entities     []ui.MapEntity
+	model    *mapedit.Editor
+	actual   []unitSheet
+	entities []ui.MapEntity
 }
 
 func (s *mapInspectionEdits) unitViewCache() *inspectionUnitViews {
@@ -23,21 +23,14 @@ func (s *mapInspectionEdits) unitViewCache() *inspectionUnitViews {
 	return s.unitViews
 }
 
-func (s *mapInspectionEdits) unitViewSheets(bare bool) []unitSheet {
+func (s *mapInspectionEdits) unitViewSheets() []unitSheet {
 	c := s.unitViewCache()
-	if bare && c.bare != nil {
-		return c.bare
-	}
-	if !bare && c.actual != nil {
+	if c.actual != nil {
 		return c.actual
 	}
 	m, err := s.model.Map()
 	if err != nil {
 		return nil
-	}
-	if bare {
-		c.bare, _ = templateSheets(m, s.inspector.table)
-		return c.bare
 	}
 	c.actual, _ = unitSheets(m, s.inspector.table)
 	return c.actual
@@ -88,6 +81,41 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 	return ui.MapEntity{}, nil, fmt.Errorf("unit %d has no actor", index)
 }
 
+// describe fills the unit popup's view of field row: an identity field's
+// meaning; an override field's group, its stored "inherit" value and the
+// value the game uses while it inherits; the equipment flag's two choices.
+func (u *unitTemplateView) describe(row *ui.InspectionField) {
+	if u == nil {
+		return
+	}
+	x := u.s.inspector
+	if row.Key == "gear" {
+		row.Group = x.word("editor.unit.group.equipment")
+		row.Choices = []ui.InspectionChoice{{Value: 0, Label: x.word("editor.unit.meaning.gear")}, {Value: 1, Label: x.word("editor.unit.meaning.skipgear")}}
+		return
+	}
+	if group := overrideGroup(x, row.Key); group != "" {
+		row.Group, row.Inherit, row.Absent = group, true, overrideAbsent(row.Key)
+	}
+	row.Meaning = u.meaning(row.Key, row.Value)
+	if row.Inherit && row.Value == row.Absent && u.actualValues() {
+		actual, _ := overrideTemplate(u.actual, row.Key)
+		row.Inherited = strconv.FormatInt(actual, 10)
+	}
+}
+
+// actualValues builds the placement's in-game values once; false when the
+// tables cannot build them.
+func (u *unitTemplateView) actualValues() bool {
+	if !u.actualBuilt {
+		u.actualBuilt = true
+		if sheets := u.s.unitViewSheets(); u.index < len(sheets) {
+			u.actual, u.actualOK = sheets[u.index].Values, true
+		}
+	}
+	return u.actualOK
+}
+
 func (u *unitTemplateView) meaning(key string, value int64) string {
 	if u == nil {
 		return ""
@@ -113,35 +141,21 @@ func (u *unitTemplateView) meaning(key string, value int64) string {
 		return fmt.Sprintf(x.word("editor.unit.meaning.definition"), value)
 	case "group":
 		return fmt.Sprintf(x.word("editor.unit.meaning.group"), value)
-	case "gear":
-		if value == 0 {
-			return x.word("editor.unit.meaning.gear")
-		}
-		return x.word("editor.unit.meaning.skipgear")
 	}
-	if _, ok := overrideTemplate(unitValues{}, key); !ok || x.table == nil {
+	if _, ok := overrideTemplate(unitValues{}, key); !ok || x.table == nil || value == overrideAbsent(key) || !u.actualValues() {
 		return ""
 	}
-	if !u.actualBuilt {
-		u.actualBuilt = true
-		if sheets := u.s.unitViewSheets(false); u.index < len(sheets) {
-			u.actual, u.actualOK = sheets[u.index].Values, true
-		}
-	}
-	if !u.actualOK {
-		return ""
-	}
+	// A set value carries a line only where the game does not show it as
+	// typed: an NPC-arm placement skips the stores (DIV-3580), and the
+	// derivation or a lone Shooting byte (DIV-3581) can leave another value.
 	actual, _ := overrideTemplate(u.actual, key)
-	if value == overrideAbsent(key) {
-		return fmt.Sprintf(x.word("editor.unit.meaning.template"), actual)
-	}
 	if mapload.Resolve(u.m.Units[u.index], x.table).Arm == mapload.ArmNPC && key != "hp" && key != "mana" && key != "body" && key != "mind" && key != "spirit" && key != "reaction" {
 		return fmt.Sprintf(x.word("editor.unit.meaning.ignored"), actual)
 	}
 	if actual != value {
 		return fmt.Sprintf(x.word("editor.unit.meaning.result"), actual)
 	}
-	return fmt.Sprintf(x.word("editor.unit.meaning.explicit"), strconv.FormatInt(value, 10))
+	return ""
 }
 
 var _ ui.InspectionUnitSettings = (*mapInspectionEdits)(nil)

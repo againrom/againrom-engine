@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
+	"againrom/pkg/render/textfit"
 	"againrom/pkg/ui"
 )
 
@@ -47,17 +48,40 @@ func (x *MapInspector) messageTargets(targets map[uint32][]ui.InspectionScriptTa
 	rows := make([]ui.InspectionScriptTarget, 0, len(ids)+1)
 	for _, n := range ids {
 		body, _ := splitMessage(x.messageUTF8(pages[messageFilename(n)]))
+		lines := messageLines(body)
 		line := ""
-		for _, candidate := range strings.Split(messageMarkup.ReplaceAllString(body, ""), "\n") {
-			if line = strings.TrimSpace(candidate); line != "" {
-				break
-			}
+		if len(lines) > 0 {
+			line = lines[0]
+		}
+		if len(lines) > 1 {
+			line += textfit.Mark
 		}
 		label := x.inspectionUTF8(fmt.Sprintf("%d: %s", n, line))
-		rows = append(rows, ui.InspectionScriptTarget{Value: n, Record: -1, Name: label, Choice: label})
+		for i := range lines {
+			lines[i] = x.inspectionUTF8(lines[i])
+		}
+		rows = append(rows, ui.InspectionScriptTarget{Value: n, Record: -1, Name: label, Choice: label, Text: strings.Join(lines, "\n")})
 	}
 	rows = append(rows, ui.InspectionScriptTarget{Record: -1, Name: x.inspectionUTF8(x.word("editor.message.new")), NewMessage: true})
 	targets[ui.ScriptMessageParameter] = rows
+}
+
+// messageLines are a message body's lines as the player reads them: markup
+// removed, each line trimmed, the empty lines before the first and after the
+// last dropped.
+func messageLines(body string) []string {
+	var lines []string
+	for _, candidate := range strings.Split(messageMarkup.ReplaceAllString(body, ""), "\n") {
+		line := strings.TrimSpace(candidate)
+		if line == "" && len(lines) == 0 {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	for len(lines) > 0 && lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+	return lines
 }
 
 func (x *MapInspector) messageUTF8(b []byte) string {
@@ -97,10 +121,14 @@ func (s *mapInspectionEdits) MessageFields(page uint32) []ui.InspectionField {
 	if s.prepareWorkspace() != nil {
 		return nil
 	}
-	if _, exists := s.workspace.Pages[messageFilename(page)]; !exists {
-		return nil
+	raw := []byte(newMessagePage)
+	if page != ui.NewMessagePage {
+		var exists bool
+		if raw, exists = s.workspace.Pages[messageFilename(page)]; !exists {
+			return nil
+		}
 	}
-	body, speaker := splitMessage(s.inspector.messageUTF8(s.workspace.Pages[messageFilename(page)]))
+	body, speaker := splitMessage(s.inspector.messageUTF8(raw))
 	x := s.inspector
 	choices := []ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.message.nospeaker"))}}
 	if x.archives != nil && x.archives.Containers != nil {
@@ -178,6 +206,37 @@ func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64)
 	return s.SetWorkspaceField("pages", "body", prefix+"<"+header+">"+separator+body+suffix)
 }
 
+// newMessagePage is the text of a new message page: part 1, empty.
+const newMessagePage = "<part=1>\n"
+
+// CreateMessage makes a new message page holding body and speaker and names
+// it in field key of the record, or in a new action for kind "Message": the
+// page NewMessage makes with the text SetMessage writes, as one edit. A
+// refused text or speaker changes nothing.
+func (s *mapInspectionEdits) CreateMessage(kind string, index int, key, body string, speaker int64) (*ui.InspectionDocument, uint32, error) {
+	if err := s.prepareWorkspace(); err != nil {
+		return nil, 0, err
+	}
+	n := freeMessage(s.workspace.Pages)
+	saved := *s
+	saved.undoWorkspace = slices.Clone(s.undoWorkspace)
+	d, err := s.NewMessage(kind, index, key)
+	if err != nil {
+		return nil, 0, err
+	}
+	steps := len(s.undoWorkspace)
+	text, err := s.SetMessage(n, body, speaker)
+	if err != nil {
+		*s = saved
+		return nil, 0, err
+	}
+	if text != nil {
+		d = text
+	}
+	s.undoWorkspace = s.undoWorkspace[:steps]
+	return d, n, nil
+}
+
 func (s *mapInspectionEdits) NewMessage(kind string, index int, key string) (*ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
@@ -211,7 +270,7 @@ func (s *mapInspectionEdits) NewMessage(kind string, index int, key string) (*ui
 	}
 	next.Squash(mark)
 	w := cloneWorkspace(s.workspace)
-	w.Pages[messageFilename(n)] = []byte("<part=1>\n")
+	w.Pages[messageFilename(n)] = []byte(newMessagePage)
 	d, err := s.project(next)
 	if err != nil {
 		return nil, err

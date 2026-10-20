@@ -110,6 +110,15 @@ type InspectionField struct {
 	Text       bool
 	TextValue  string
 	Choices    []InspectionChoice
+	// Group is the heading the field shows under; "" for none.
+	Group string
+	// Inherit marks a value the record may leave to its template: Absent is
+	// the value the record stores for that, which an empty field writes, and
+	// Inherited is the value the game uses meanwhile. An Absent of 0 means
+	// the record cannot store 0 itself.
+	Inherit   bool
+	Absent    int64
+	Inherited string
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.

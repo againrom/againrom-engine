@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -128,7 +129,18 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.Card = card
 		s.CardFont = e.cardFont
 	}
-	for i, f := range o.fields {
+	group := ""
+	for _, i := range fieldOrder(o.fields) {
+		f := o.fields[i]
+		if f.Group != group {
+			group = f.Group
+			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
+			if note := e.groupNote(f.Group); note != "" {
+				for _, part := range editorWrap(e.bodyFont(), note, 378) {
+					s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
+				}
+			}
+		}
 		o.rowField[len(s.Rows)] = i
 		row := popupRow{Kind: popupEdit, Label: editorClip(e.bodyFont(), e.editorHostText(f.Label), 150), Value: o.buf[i], Focus: i == o.focus}
 		if len(f.Choices) > 0 {
@@ -136,22 +148,30 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		} else if f.Text {
 			row.Value = e.editorHostText(o.buf[i])
 		}
+		meaning := f.Meaning
+		if fields == nil && o.buf[i] != fieldInput(f) {
+			meaning = ""
+		}
+		inherited := f.Inherited
+		for _, current := range fields {
+			if current.Key == f.Key {
+				meaning, inherited = current.Meaning, current.Inherited
+				break
+			}
+		}
+		if f.Inherit {
+			if row.Value == "" {
+				row.Hint = inherited
+			} else {
+				row.Ink, row.Buttons = editorGold, []string{e.word("editor.unit.clear")}
+			}
+		}
 		if row.Focus && row.Kind == popupEdit {
 			if b := e.bodyFont(); b != nil {
 				row.Caret = b.Advance(row.Value)
 			}
 		}
 		s.Rows, *links = append(s.Rows, row), append(*links, 0)
-		meaning := f.Meaning
-		if fields == nil && o.buf[i] != fieldInput(f) {
-			meaning = ""
-		}
-		for _, current := range fields {
-			if current.Key == f.Key {
-				meaning = current.Meaning
-				break
-			}
-		}
 		if meaning != "" {
 			for _, part := range editorWrap(e.bodyFont(), e.editorHostText(meaning), 378) {
 				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: part})
@@ -164,6 +184,45 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), 400)...)
 	}
+}
+
+// fieldOrder is the order the popup shows fields in: the fields of no group
+// first, then each group's fields together, groups in the order they first
+// appear.
+func fieldOrder(fields []InspectionField) []int {
+	var order []int
+	var groups []string
+	for i, f := range fields {
+		if f.Group == "" {
+			order = append(order, i)
+		} else if !slices.Contains(groups, f.Group) {
+			groups = append(groups, f.Group)
+		}
+	}
+	for _, g := range groups {
+		for i, f := range fields {
+			if f.Group == g {
+				order = append(order, i)
+			}
+		}
+	}
+	return order
+}
+
+// groupNote says under a group's heading what an empty field and a 0 mean
+// for its values.
+func (e *MapEditor) groupNote(group string) string {
+	note := ""
+	for _, f := range e.obj.fields {
+		if f.Group != group || !f.Inherit {
+			continue
+		}
+		if f.Absent == 0 {
+			return e.word("editor.unit.zero.refused")
+		}
+		note = e.word("editor.unit.zero.allowed")
+	}
+	return note
 }
 
 // choiceText is the label of the choice whose value the text holds.
@@ -203,15 +262,18 @@ func (e *MapEditor) fieldRow(i int) int {
 	return -1
 }
 
-// nextObjectField is the field after i that a row shows.
+// nextObjectField is the field after i, in the order the rows show them,
+// that a row shows.
 func (e *MapEditor) nextObjectField(i int) int {
-	n := len(e.obj.fields)
+	order := fieldOrder(e.obj.fields)
+	n := len(order)
+	at := slices.Index(order, i)
 	for k := 1; k <= n; k++ {
-		if j := (i + k) % n; e.fieldRow(j) >= 0 {
+		if j := order[(at+k+n)%n]; e.fieldRow(j) >= 0 {
 			return j
 		}
 	}
-	return (i + 1) % n
+	return order[(at+1+n)%n]
 }
 
 // objectRowPress is a press on a field row or the cell's pick button.
@@ -224,6 +286,10 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	}
 	i, ok := o.rowField[n]
 	if len(o.fields) == 0 || !ok || i < 0 || i >= len(o.fields) {
+		return
+	}
+	if part == popupRowButton && o.fields[i].Inherit {
+		o.buf[i], o.focus, o.note = "", -1, ""
 		return
 	}
 	o.focus = i
@@ -470,9 +536,9 @@ func (e *MapEditor) applyObject() {
 		}
 		v := InspectionFieldValue{Key: f.Key, Text: f.Text, TextValue: o.buf[i]}
 		if !f.Text {
-			n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64)
+			n, err := fieldNumber(f, o.buf[i])
 			if err != nil {
-				o.note = fmt.Sprintf("%s: %s", f.Label, e.word("editor.object.number"))
+				o.note = e.fieldNumberNote(f, err)
 				return
 			}
 			v.Value = n

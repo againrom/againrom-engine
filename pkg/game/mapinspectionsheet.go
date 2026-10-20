@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -30,6 +31,10 @@ type unitSheet struct {
 	Worn       [sim.EquipSlots]sim.ItemInstance
 	Carried    []sim.ItemInstance
 	Suppressed bool // the template's name holds NPC: the inventory is deleted at death
+	// Life, Decay and Facing are how the game draws the actor at mission
+	// start: its life state, decay stage and sheet facing.
+	Life          uint8
+	Decay, Facing int
 }
 
 // valuesOf reads the popup's numbers off a spawned actor. The damage range is
@@ -73,7 +78,7 @@ func unitSheets(m *alm.Map, t *mapload.Table) ([]unitSheet, error) {
 		if !ok {
 			return nil, fmt.Errorf("the world holds no actor for placement %d", i)
 		}
-		s := unitSheet{Values: valuesOf(e), Suppressed: e.SuppressCorpseLoot}
+		s := unitSheet{Values: valuesOf(e), Suppressed: e.SuppressCorpseLoot, Life: lifeOf(e), Decay: int(e.Decay), Facing: drawnFacing(e)}
 		s.Worn, _ = w.EquippedItems(id)
 		s.Carried, _ = w.CarriedItems(id)
 		out[i] = s
@@ -164,4 +169,26 @@ func (x *MapInspector) sheetLines(u alm.Unit, r mapload.Resolution, s unitSheet)
 		line(enc(x.word("editor.unit.loot.nogold")))
 	}
 	return out
+}
+
+// fallHeld is an elapsed count past every fall: the dying block's last frame,
+// which the game holds once the fall it starts at mission start has played.
+const fallHeld = 1 << 30
+
+// fallenDraw draws placement entity e of class c, which the game spawns not
+// alive, as the game draws it once its fall has played: the game's own
+// corpse selection at the actor's tier, facing and decay stage, in its
+// owner's colours.
+func (x *MapInspector) fallenDraw(e *ui.MapEntity, c *terrain.UnitClass, tier int, sheet unitSheet, shade uint32) {
+	art, frame, mirror, ok := corpseFrame(c, tier, sheet.Facing>>1, sheet.Decay, fallHeld)
+	if !ok {
+		return
+	}
+	e.Art, e.Frame, e.Mirror, e.Life = art, frame, mirror, sheet.Life
+	e.DrawCategory = terrain.UnitCategoryFor(c, uint8(sheet.Decay))
+	if palette := x.units.OwnerPalette(art, shade); palette != nil {
+		tinted := *frame
+		tinted.Palette = *palette
+		e.Frame = &tinted
+	}
 }

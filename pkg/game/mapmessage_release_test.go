@@ -168,10 +168,10 @@ func TestReleaseMessagePickerCampaignPage(t *testing.T) {
 	if err := e.Key("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if len(e.PopupLines()) != 2 {
-		t.Fatal("E New did not open page", e.PopupLines())
+	if len(e.PopupLines()) != 2 || len(s.workspace.Pages[messageFilename(number)]) != 0 || !bytes.Equal(before, s.model.Bytes()) {
+		t.Fatal("E New did not open an unmade page", e.PopupLines())
 	}
-	fields := s.MessageFields(number)
+	fields := s.MessageFields(ui.NewMessagePage)
 	if len(fields[1].Choices) < 2 {
 		t.Fatal("npc.reg has no speakers")
 	}

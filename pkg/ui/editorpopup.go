@@ -38,6 +38,11 @@ type popupRow struct {
 	// Buttons are the captions of the row's own buttons, at its right end;
 	// a pick row without them carries the popup's PickLabel.
 	Buttons []string
+	// Lines is a multi-line row's height in rows, zero for six; First is
+	// the first text line it shows while it is not typed in.
+	Lines, First int
+	// Hint is an empty edit row's grey text: the value it stands for.
+	Hint string
 }
 
 // popupSpec is a popup as data. At is its top-left corner in window pixels,
@@ -100,6 +105,14 @@ const (
 	popupButtonW  = 96
 )
 
+// multilineRows is a multi-line row's height in rows.
+func multilineRows(row popupRow) int {
+	if row.Lines > 0 {
+		return row.Lines
+	}
+	return 6
+}
+
 func fontHeight(f *text.Font, fallback int) int {
 	if f != nil && f.Height() > 0 {
 		return f.Height()
@@ -126,8 +139,8 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	shown = max(0, shown)
 	h := titleH + popupPad + shown*pitch
 	for i := 0; i < shown; i++ {
-		if s.Rows[s.Top+i].Kind == popupMultiline {
-			h += 5 * pitch
+		if row := s.Rows[s.Top+i]; row.Kind == popupMultiline {
+			h += (multilineRows(row) - 1) * pitch
 		}
 	}
 	var list listBox
@@ -174,7 +187,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		row := s.Rows[s.Top+i]
 		rowH := pitch
 		if row.Kind == popupMultiline {
-			rowH = 6 * pitch
+			rowH = multilineRows(row) * pitch
 		}
 		rr := popupRowRect{Index: s.Top + i, Rect: image.Rect(r.Min.X+popupPad, y, contentRight, y+rowH)}
 		rr.Label = image.Rect(rr.Rect.Min.X, y, rr.Rect.Min.X+labelW, y+pitch)
@@ -317,6 +330,9 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 }
 
 // popupInk is the editor popup's palette.
+// popupHintInk is the grey of an empty field's hint.
+var popupHintInk = color.RGBA{0x8a, 0x80, 0x6c, 255}
+
 type popupInk struct {
 	Ground, Edge, TitleGround, Title, Label, Value color.RGBA
 }
@@ -378,7 +394,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 					lines = append(lines, editorWrap(body, line, rr.Control.Dx()-8)...)
 				}
 				visible := max(1, (rr.Control.Dy()-8)/fontHeight(body, 15))
-				start := 0
+				start := max(0, min(row.First, len(lines)-visible))
 				if row.Focus {
 					start = max(0, len(lines)-visible)
 				}
@@ -399,9 +415,14 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			}
 		case popupEdit, popupPick:
 			drawEditField(dst, editField{Rect: rr.Control, TextH: fontHeight(body, 15), Focus: row.Focus, Phase: true, Caret: row.Caret}, func(at image.Point) {
-				if body != nil {
-					body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), row.Value, at.X, at.Y, value)
+				if body == nil {
+					return
 				}
+				if row.Value == "" && row.Hint != "" {
+					body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), row.Hint, at.X, at.Y, popupHintInk)
+					return
+				}
+				body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), row.Value, at.X, at.Y, value)
 			})
 		case popupSwitch:
 			// A long value ends in an ellipsis inside its button.

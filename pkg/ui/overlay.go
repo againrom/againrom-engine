@@ -855,6 +855,16 @@ func (v *Viewer) SetEntityAutocast(entity, spell uint32) {
 // derivation, and returning the slice would invite a write through it.
 func (v *Viewer) EntityMarkers() (entities int) { return len(v.entities) }
 
+// EntityOf is a copy of the held entity id.
+func (v *Viewer) EntityOf(id uint32) (MapEntity, bool) {
+	for _, e := range v.entities {
+		if e.ID == id {
+			return e, true
+		}
+	}
+	return MapEntity{}, false
+}
+
 // SackMarkers reports how many ground sacks the viewer holds and how many
 // frames its sack sheet carries, for EntityMarkers' reason and one sharper one
 // (docs/0111-sacks: plan R-4).

@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -171,20 +172,21 @@ func TestReleaseEditorCharacterCardsMatchGameSample(t *testing.T) {
 	t.Logf("root=%s sample maps=2 cards=%d; Normal difficulty, tick zero, full card detail, no campaign party substitution", os.Getenv("AGAINROM_ASSETS"), total)
 }
 
-func TestReleaseEditorInheritedMeaningsWithStatOverride(t *testing.T) {
+func TestReleaseEditorInheritedHintsWithStatOverride(t *testing.T) {
 	x := installedInspector(t)
 	doc, err := x.Open("scenario/141.alm")
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := doc.Edits.(*mapInspectionEdits)
-	actual, bare := s.unitViewSheets(false), s.unitViewSheets(true)
-	if len(actual) == 0 || len(bare) == 0 || actual[0].Values.HP != 112 || bare[0].Values.HP != 163 {
-		t.Fatal("mission unit 0 must have derived health 112 and type health 163")
+	m, err := s.model.Map()
+	if err != nil {
+		t.Fatal(err)
 	}
-	format := "Inherited; in game: %d"
-	if installLanguage(x) == "ru" {
-		format = "Наследуется; в игре: %d"
+	actual := s.unitViewSheets()
+	bare, err := templateSheets(m, x.table)
+	if err != nil || len(actual) == 0 || len(bare) == 0 || actual[0].Values.HP != 112 || bare[0].Values.HP != 163 {
+		t.Fatal("mission unit 0 must have derived health 112 and type health 163", err)
 	}
 	count := 0
 	for _, f := range s.Fields("Unit", 0) {
@@ -193,8 +195,8 @@ func TestReleaseEditorInheritedMeaningsWithStatOverride(t *testing.T) {
 			continue
 		}
 		count++
-		if want := fmt.Sprintf(format, value); f.Meaning != want {
-			t.Errorf("%s=%d: inherited meaning %q, want %q", f.Key, f.Value, f.Meaning, want)
+		if !f.Inherit || f.Absent != f.Value || f.Inherited != strconv.FormatInt(value, 10) || f.Meaning != "" || f.Group == "" {
+			t.Errorf("%s=%d: inherited hint %q meaning %q group %q, want %d and no meaning", f.Key, f.Value, f.Inherited, f.Meaning, f.Group, value)
 		}
 	}
 	if count != len(overrideKeys)-4 {

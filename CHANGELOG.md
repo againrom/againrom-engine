@@ -17,6 +17,13 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [ROM1] In the map editor, a Show message action shows the whole message, and Cancel in New message no longer leaves an empty message behind.
+- [ROM1] The map editor's unit settings are grouped into Health and mana, Attributes, Defence, Weapon skills, Protections and Equipment. Leave a field empty to keep the game's value, shown greyed, or type a value to change it; Inherit takes the change back.
+- [ROM1] In the map editor, a unit given Health 0 starts the mission fallen and is drawn fallen on the map.
+- [ROM1] Every window of the map editor, the Add window and the map name among them, moves by its title bar.
+
 ## 0.129.0
 
 ### For players

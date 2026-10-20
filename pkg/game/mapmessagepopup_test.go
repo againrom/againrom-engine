@@ -44,27 +44,31 @@ func messagePopupFixture(t *testing.T, value uint32) (*ui.MapEditor, *mapInspect
 func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	e, s := messagePopupFixture(t, 77)
 	before := bytes.Clone(s.model.Bytes())
+	unchanged := func(what string) {
+		t.Helper()
+		if len(s.workspace.Pages) != 0 || !bytes.Equal(before, s.model.Bytes()) || s.CanUndo() {
+			t.Fatal(what, "made a page, changed the map or took an Undo step")
+		}
+	}
 	messageField(t, e, 2)
 	r, ok := e.DropdownRowRect(0)
 	messageClick(t, e, r, ok)
-	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" || len(e.PopupLines()) != 2 {
-		t.Fatal("New did not open page", e.PopupLines())
+	if len(e.PopupLines()) != 2 {
+		t.Fatal("New did not open the text", e.PopupLines())
 	}
+	unchanged("New")
 	messageField(t, e, 0)
 	e.TextInput("First")
 	_ = e.Key("enter")
 	e.TextInput("Second")
 	messageButton(t, e, 1)
-	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" {
-		t.Fatal("Cancel changed page")
+	unchanged("Cancel")
+	if lines := strings.Join(e.PopupLines(), " "); !strings.Contains(lines, "77") {
+		t.Fatal("Cancel did not return to the action", e.PopupLines())
 	}
-	for i, line := range e.PopupLines() {
-		if strings.HasPrefix(line, "Open Message") {
-			r, ok := e.PopupRowRect(i)
-			messageClick(t, e, r, ok)
-			break
-		}
-	}
+	messageField(t, e, 2)
+	r, ok = e.DropdownRowRect(0)
+	messageClick(t, e, r, ok)
 	messageField(t, e, 0)
 	e.TextInput("First")
 	_ = e.Key("newline")
@@ -77,8 +81,9 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 		t.Fatal("multi-line display flattened or substituted newline", e.PopupLines())
 	}
 	messageButton(t, e, 2)
-	if !strings.Contains(strings.Join(e.PopupLines(), " "), "1: First") {
-		t.Fatal("Back lost node or refreshed choices", e.PopupLines())
+	lines := strings.Join(e.PopupLines(), " ")
+	if !strings.Contains(lines, "1: First...") || !strings.Contains(lines, "First") || !strings.Contains(lines, "Second") {
+		t.Fatal("Back lost node, refreshed choices or the whole text", e.PopupLines())
 	}
 	opened := false
 	for i, line := range e.PopupLines() {
@@ -93,11 +98,8 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 		t.Fatal("Open link did not open page", e.PopupLines())
 	}
 	messageButton(t, e, 2)
-	if err := e.Key("undo"); err != nil || string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" {
-		t.Fatal("page Undo", err)
-	}
 	if err := e.Key("undo"); err != nil || len(s.workspace.Pages) != 0 || !bytes.Equal(s.model.Bytes(), before) {
-		t.Fatal("New Undo", err)
+		t.Fatal("one Undo did not remove the new message", err)
 	}
 }
 
@@ -163,8 +165,12 @@ func TestMessageWizardWindowOpensPage(t *testing.T) {
 	if err := e.Key("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if len(e.PopupLines()) != 2 || string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" {
-		t.Fatal("wizard did not open new page", e.PopupLines())
+	if len(e.PopupLines()) != 2 || len(s.workspace.Pages) != 0 || len(e.Document().Script.Actions) != 1 {
+		t.Fatal("wizard did not open an unmade page", e.PopupLines())
+	}
+	messageButton(t, e, 0)
+	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\n" {
+		t.Fatal("wizard Apply did not make the page")
 	}
 	messageButton(t, e, 2)
 	if len(e.Document().Script.Actions) != 2 {
@@ -181,6 +187,10 @@ func TestMessagePopupRemovedPageReturnsToNode(t *testing.T) {
 	messageField(t, e, 2)
 	r, ok := e.DropdownRowRect(0)
 	messageClick(t, e, r, ok)
+	messageButton(t, e, 0)
+	if len(s.workspace.Pages) != 1 {
+		t.Fatal("Apply made no page")
+	}
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}

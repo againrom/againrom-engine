@@ -54,6 +54,7 @@ type editorChrome struct {
 	menuModel              *Picker
 	drag                   editorPopupID
 	dragFrom               image.Point
+	promptShift            image.Point // a dragged prompt's offset from its own place
 	uiDown                 bool
 	scroll                 editorScroll
 	objectTop              int
@@ -73,6 +74,7 @@ type editorChrome struct {
 	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
 	messagePage            uint32
+	messageNew             messageOwner // where a new message is named, while messagePage is NewMessagePage
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -875,6 +877,7 @@ func (e *MapEditor) objectRowsShown(buttons bool) int {
 // promptSpec is the prompt and the message as one popup.
 func (e *MapEditor) promptSpec() (popupSpec, bool) {
 	if !e.prompt.open() && e.message == "" {
+		e.promptShift = image.Point{}
 		return popupSpec{}, false
 	}
 	if e.prompt.kind == promptAdd {
@@ -942,8 +945,78 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 		s.Notes = append(s.Notes, e.word("editor.prompt.multiline"))
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3))
+	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3)))
 	return s, true
+}
+
+// promptPlace is a prompt popup's corner: its own place at, moved by the
+// drag of its title.
+func (e *MapEditor) promptPlace(at image.Point) image.Point {
+	return at.Add(e.promptShift)
+}
+
+// movableSpec is the popup id as drawn: the list, the object or the prompt
+// popup.
+func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
+	switch id {
+	case popList:
+		return e.listSpec()
+	case popObject:
+		s, _, ok := e.objectSpec()
+		return s, ok
+	case popPrompt:
+		return e.promptSpec()
+	}
+	return popupSpec{}, false
+}
+
+// TitleRect is the title bar of the front popup: the prompt, the object or
+// the list popup.
+func (e *MapEditor) TitleRect() (image.Rectangle, bool) {
+	for _, id := range []editorPopupID{popPrompt, popObject, popList} {
+		if s, ok := e.movableSpec(id); ok {
+			return layoutPopup(s, e.font, e.bodyFont()).Title, true
+		}
+	}
+	return image.Rectangle{}, false
+}
+
+// titlePress starts the editor's one popup drag when p lies on the title bar
+// of popup id; an open drop-down over the bar takes the press instead.
+func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
+	if id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
+		return false
+	}
+	s, ok := e.movableSpec(id)
+	if !ok {
+		return false
+	}
+	if part, _ := layoutPopup(s, e.font, e.bodyFont()).hit(p); part != popupTitle {
+		return false
+	}
+	e.drag, e.dragFrom = id, p
+	return true
+}
+
+// dragPopup moves the dragged popup by d. The popup builder's bounds clamp
+// keeps it inside the window, and the kept place is the clamped one, so a
+// drag back moves it at once.
+func (e *MapEditor) dragPopup(d image.Point) {
+	s, ok := e.movableSpec(e.drag)
+	if !ok {
+		return
+	}
+	from := s.At
+	s.At = layoutPopup(s, e.font, e.bodyFont()).Rect.Min.Add(d)
+	to := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
+	switch e.drag {
+	case popList:
+		e.listAt = to
+	case popObject:
+		e.objectAt = to
+	case popPrompt:
+		e.promptShift = e.promptShift.Add(to.Sub(from))
+	}
 }
 
 func (e *MapEditor) promptTitle() string {
@@ -1222,11 +1295,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		if in.PrimaryDown {
 			d := p.Sub(e.dragFrom)
 			e.dragFrom = p
-			if e.drag == popList {
-				e.listAt = e.listAt.Add(d)
-			} else {
-				e.objectAt = e.objectAt.Add(d)
-			}
+			e.dragPopup(d)
 		} else {
 			e.drag = popNone
 			e.uiDown = false
@@ -1299,6 +1368,9 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 
 // chromePress is a press on a chrome part.
 func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool) {
+	if e.titlePress(target, p) {
+		return
+	}
 	switch target {
 	case popMenu:
 		b, _ := e.openMenuEntry()
@@ -1376,8 +1448,6 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		switch part, n := l.hit(p); part {
 		case popupClose:
 			e.cancelPopup(popList)
-		case popupTitle:
-			e.drag, e.dragFrom = popList, p
 		case popupListRow:
 			top, count := e.model.Visible()
 			if n >= count {
@@ -1410,8 +1480,6 @@ func (e *MapEditor) objectPress(p image.Point) {
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
 		e.cancelPopup()
-	case popupTitle:
-		e.drag, e.dragFrom = popObject, p
 	case popupRowButton:
 		if _, ok := e.scriptVariableRow(e.selected); ok {
 			return

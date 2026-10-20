@@ -22,10 +22,10 @@ func TestMessageChoicesUseWorkspaceFirstLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows := d.Script.Targets[ui.ScriptMessageParameter]
-	if len(rows) < 1 || rows[0].Value != 2 || rows[0].ChoiceText() != "2: Second page" {
+	if len(rows) < 1 || rows[0].Value != 2 || rows[0].ChoiceText() != "2: Second page..." || rows[0].Text != "Second page\nAnother line" {
 		t.Fatalf("message choices: %+v", rows)
 	}
-	if len(rows) != 3 || rows[1].Value != 4 || rows[1].ChoiceText() != s.inspector.inspectionUTF8("4: Текст страницы") {
+	if len(rows) != 3 || rows[1].Value != 4 || rows[1].ChoiceText() != s.inspector.inspectionUTF8("4: Текст страницы...") || rows[1].Text != s.inspector.inspectionUTF8("Текст страницы")+"\n"+s.inspector.inspectionUTF8("Дальше") {
 		t.Fatal("registry-first header, CRLF or Cyrillic label", rows)
 	}
 	if fields := s.MessageFields(4); fields[1].Value != 51 {

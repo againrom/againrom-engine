@@ -277,8 +277,6 @@ func (e *MapEditor) panelPress(p image.Point) {
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
 		e.cancelPopup(popList)
-	case popupTitle:
-		e.drag, e.dragFrom = popList, p
 	case popupRowLine, popupRowControl:
 		if n < len(links) {
 			e.panelFollow(links[n])
@@ -511,6 +509,6 @@ func (e *MapEditor) questionSpec(title string, notes, buttons []string) popupSpe
 		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), n, text)...)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3))
+	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3)))
 	return s
 }

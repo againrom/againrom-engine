@@ -85,6 +85,7 @@ var fogWalkTable = map[string]struct {
 	"RestoreSaveApplication": {fogWalkNotADraw, "validates saved selection identities before restoring viewer state; emits no map pixels"},
 	"SelectedUnits":          {fogWalkNotADraw, "returns the already-selected accepted ID population for book composition; emits no map pixels"},
 	"SetEntityAutocast":      {fogWalkNotADraw, "writes one autocast spell id into the held snapshot; emits no map pixels"},
+	"EntityOf":               {fogWalkNotADraw, "hands a headless witness a copy of one held entry; emits no map pixels"},
 	"quickSpell":             {fogWalkNotADraw, "checks selected ownership before arming Cast; emits no map pixels"},
 	"issuePlayerRetreat":     {fogWalkNotADraw, "checks the owned selection and queues immediate Retreat; draws no map pixels"},
 	"ArmItemCast":            {fogWalkNotADraw, "validates the owned selected actor; emits no map pixels"},

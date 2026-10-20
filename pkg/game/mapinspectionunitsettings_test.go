@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"strings"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -92,13 +91,20 @@ func TestEditorUnitMeaningsAndCardUseGameProjectionWithoutWriting(t *testing.T) 
 			t.Fatalf("editor card diverges from game: %+v / %+v", entity, want)
 		}
 		for _, f := range fields {
-			if f.Meaning == "" {
-				t.Errorf("%s=%d has no meaning", f.Key, f.Value)
-			}
-			if f.Key == "hp" || f.Key == "mana" {
-				if f.Value == -1 && !strings.Contains(f.Meaning, "Inherited; in game:") {
-					t.Error(f)
+			_, override := overrideTemplate(unitValues{}, f.Key)
+			switch {
+			case f.Key == "gear":
+				if len(f.Choices) != 2 || f.Group == "" {
+					t.Errorf("gear choices %+v", f)
 				}
+			case !override:
+				if f.Meaning == "" {
+					t.Errorf("%s=%d has no meaning", f.Key, f.Value)
+				}
+			case !f.Inherit || f.Absent != overrideAbsent(f.Key) || f.Group == "":
+				t.Errorf("%s is no inheriting field: %+v", f.Key, f)
+			case f.Value == f.Absent && (f.Inherited == "" || f.Meaning != ""):
+				t.Errorf("%s inherits without its in-game value: %+v", f.Key, f)
 			}
 		}
 		if !bytes.Equal(s.model.Bytes(), raw) || s.model.Mark() != 0 {
@@ -112,8 +118,8 @@ func TestEditorUnitMeaningsAndCardUseGameProjectionWithoutWriting(t *testing.T) 
 				t.Fatal(key, value, err)
 			}
 			f := fields[fieldIndex(t, fields, key)]
-			if f.Meaning == "" || value == overrideAbsent(key) && !strings.Contains(f.Meaning, "Inherited; in game:") {
-				t.Fatalf("%s=%d meaning %q", key, value, f.Meaning)
+			if value == overrideAbsent(key) && (f.Inherited == "" || f.Meaning != "") || value != overrideAbsent(key) && f.Inherited != "" {
+				t.Fatalf("%s=%d hint %q meaning %q", key, value, f.Inherited, f.Meaning)
 			}
 		}
 	}
