@@ -11,7 +11,7 @@ import (
 func TestReleaseMeleeHeroIsRefusedAFlierAndABowHeroIsNot(t *testing.T) {
 	f := releaseFront(t)
 	shapes, materials, weapons := missionTableWeapons(f.Table)
-	bow, err := resolveWeaponForSlot(false, shapes, materials, weapons, data.SkillShoot)
+	bow, err := resolveWeaponForSlot(false, false, shapes, materials, weapons, data.SkillShoot)
 	if err != nil || bow.Range < 2 {
 		t.Fatalf("no bow for the shoot slot: %v %+v", err, bow)
 	}

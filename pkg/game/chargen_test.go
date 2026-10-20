@@ -247,6 +247,7 @@ func TestChargenPreviewCardCoversEveryGeneratedIdentity(t *testing.T) {
 		{name: "Bronze Pike", params: chargenWeaponParams(data.SkillPike)},
 		{name: "Uncommon Wood Short Bow", params: chargenWeaponParams(data.SkillShoot)},
 		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
+		{name: "Uncommon Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
 	}
 	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{Weapons: weapons}, Humans: fourBaseHumans(), Bodies: data.NewBodyList("unarmed", "mage")}}
 	fighterWeapons := []string{"Iron Short Sword", "Uncommon Bronze Axe", "Uncommon Bronze Mace", "Bronze Pike", "Uncommon Wood Short Bow"}
@@ -262,7 +263,10 @@ func TestChargenPreviewCardCoversEveryGeneratedIdentity(t *testing.T) {
 				}
 				wantWeapon := fighterWeapons[skill]
 				if class != 0 {
-					wantWeapon = "Wood Staff {castSpell=Fire_Arrow:10}"
+					wantWeapon = "Uncommon Wood Staff {castSpell=Fire_Arrow:10}"
+					if sex != 0 {
+						wantWeapon = "Wood Staff {castSpell=Fire_Arrow:10}"
+					}
 				}
 				if got := party[0].Weapon.Name; got != wantWeapon {
 					t.Errorf("sex/class/skill %d/%d/%d weapon = %q, want %q", sex, class, skill, got, wantWeapon)
@@ -608,8 +612,8 @@ func TestAC1TheNoFlagPartyMatchesTodaysHeroLiterally(t *testing.T) {
 	tbl := &mapload.Table{Humans: humans, Weapons: weapons, Shapes: emptyScale{}, Materials: emptyScale{}}
 
 	const wantWeaponName = "Iron Short Sword" // hero.go's own startingWeapons[data.SkillBlade]
-	if got, ok := StartingWeaponName(false, data.SkillBlade); !ok || got != wantWeaponName {
-		t.Fatalf("setup: StartingWeaponName(false, SkillBlade) = (%q, %v), want (%q, true)", got, ok, wantWeaponName)
+	if got, ok := StartingWeaponName(false, false, data.SkillBlade); !ok || got != wantWeaponName {
+		t.Fatalf("setup: StartingWeaponName(false, false, SkillBlade) = (%q, %v), want (%q, true)", got, ok, wantWeaponName)
 	}
 	sword, err := data.ResolveWeapon(wantWeaponName, tbl.Shapes, tbl.Materials, tbl.Weapons)
 	if err != nil {
@@ -778,6 +782,7 @@ func TestChargenDerivedUsesTheLiveStaffSpellAsDamage(t *testing.T) {
 	weapons := dbCollection{
 		{},
 		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
+		{name: "Uncommon Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
 	}
 	spell := make([]int32, 19)
 	spell[1], spell[2], spell[4], spell[6] = 3, 1, 1, 7
@@ -1008,9 +1013,10 @@ func TestAC4AMageHoldsTheMagesWeaponForEverySkillChoice(t *testing.T) {
 	weapons := dbCollection{
 		{},
 		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
+		{name: "Uncommon Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
 	}
 	f := &FrontEnd{InstallResources: InstallResources{Table: &mapload.Table{Weapons: weapons, Shapes: emptyScale{}, Materials: emptyScale{}}, Bodies: data.NewBodyList("unarmed")}}
-	const wantName = "Wood Staff {castSpell=Fire_Arrow:10}"
+	const wantName = "Uncommon Wood Staff {castSpell=Fire_Arrow:10}"
 	for skill := 0; skill < 5; skill++ {
 		res := ui.ChargenResult{Choices: []int{0, 1, skill}, Stats: []int{25, 25, 25, 25}}
 		p := f.ChargenParty(res)

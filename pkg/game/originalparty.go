@@ -514,7 +514,7 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 					}
 				}
 			} else if mage && withoutCode.Empty() {
-				if staff, err := data.ResolveWeapon(mageWeaponName, t.Shapes, t.Materials, t.Weapons); err == nil && staff.Code == code {
+				if staff, ok := matchMageStaff(code, t); ok {
 					weapon = &staff
 				}
 			}

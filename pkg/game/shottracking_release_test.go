@@ -24,7 +24,7 @@ type trackedShot struct {
 func walkUnderFire(t *testing.T, saveAt int) (trackedShot, bool) {
 	dir := t.TempDir()
 	f := releaseFront(t)
-	bow, err := resolveWeaponForSlot(false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
+	bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -464,7 +464,7 @@ func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMembe
 	}
 
 	shapes, materials, weapons := f.tableWeapons()
-	w, _ := resolveWeaponForSlot(class, shapes, materials, weapons, slot)
+	w, _ := resolveWeaponForSlot(class, female, shapes, materials, weapons, slot)
 
 	return assembleParty(partyInputs{
 		Name:      res.Name,

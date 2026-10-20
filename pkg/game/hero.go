@@ -50,7 +50,7 @@ func PartySkillSlot() int32 { return partySkillSlot }
 // EVERY slot, which would make this refusal accept a slot the fighter arm
 // — the one this setting actually trains — still refuses.
 func SetPartySkill(slot int32) error {
-	if _, ok := StartingWeaponName(false, slot); !ok {
+	if _, ok := StartingWeaponName(false, false, slot); !ok {
 		return fmt.Errorf("skill slot %d trains no weapon", slot)
 	}
 	partySkillSlot = slot
@@ -141,31 +141,37 @@ var highStartingWeapons = [data.SkillSlots]string{
 	data.SkillShoot:   "Uncommon Magic Wood Short Bow",
 }
 
-// mageWeaponName is the shipped mage arm's own literal, WHOLE (D-11, 0139
-// D-13, cite `HERO-START-039`): ONE weapon, not a table indexed by slot —
-// the corpus names exactly one mage literal, and five copies of it would
-// assert a variation nothing states.
-//
-// THE ATTACHMENT IS CARRIED, AS OF 0139 — until this story it was dropped
-// and disclosed here (spec 0134 R-4; plan 0134 D-11's own rejection),
-// because no weapon in this tree carried a spell and there was nowhere for
-// `{castSpell=Fire_Arrow:10}` to land. Something can now (data.Weapon's own
-// SpellName and SpellPower, 0139 T1), so the constant becomes the shipped
-// literal whole: data.ResolveWeapon already reads that suffix rather than
-// only stripping it, and MissionPartyAs's own mage arm resolves this string
-// through the SAME resolveWeaponForSlot every other slot's literal resolves
-// through, so a mage's staff carries its spell by the one weapon resolution
-// this file has, not by a second reading of the literal.
-const mageWeaponName = "Wood Staff {castSpell=Fire_Arrow:10}"
+// The two staff literals character generation hands a mage, both carrying
+// the same spell at the same power. The sex test the original makes picks
+// between them: the woman gets the plain staff and the man the Uncommon one
+// (MAGIC-STAFF-022). The two resolve to the same Weapons row and differ in
+// the item code, and so in the picture the doll draws.
+const (
+	mageWeaponName      = "Wood Staff {castSpell=Fire_Arrow:10}"
+	mageWeaponNameMale  = "Uncommon Wood Staff {castSpell=Fire_Arrow:10}"
+	mageWeaponNameCount = 2
+)
+
+// mageWeaponNames is every staff literal a generated mage can start with.
+var mageWeaponNames = [mageWeaponNameCount]string{mageWeaponName, mageWeaponNameMale}
+
+// mageStaffName is the staff literal for a mage's sex.
+func mageStaffName(female bool) string {
+	if female {
+		return mageWeaponName
+	}
+	return mageWeaponNameMale
+}
 
 // StartingWeaponName is the literal character generation hands a trained
-// slot: mage's own ONE literal when mage is true, WHATEVER slot names —
-// the class axis decides FIRST and the trained slot SECOND, so a mage reads
-// no further than the flag — and the fighter arm's per-slot literal
-// otherwise, false for a slot that arm trains no weapon for.
-func StartingWeaponName(mage bool, slot int32) (string, bool) {
+// slot: a mage's staff for his or her sex when mage is true, WHATEVER slot
+// names - the class axis decides FIRST and the trained slot SECOND, so a mage
+// reads no further than the two flags - and the fighter arm's per-slot
+// literal otherwise (female does not matter there), false for a slot that arm
+// trains no weapon for.
+func StartingWeaponName(mage, female bool, slot int32) (string, bool) {
 	if mage {
-		return mageWeaponName, true
+		return mageStaffName(female), true
 	}
 	if slot <= data.SkillGeneral || slot >= data.SkillSlots {
 		return "", false
@@ -193,8 +199,8 @@ func StartingWeaponName(mage bool, slot int32) (string, bool) {
 // already holding the definition table's own parsed collections (a
 // FrontEnd's Table, after construction) does not have to re-parse the file
 // to reach them a second time.
-func resolveWeaponForSlot(mage bool, shapes, materials data.ScaleTable, weapons data.Collection, slot int32) (*data.Weapon, error) {
-	name, ok := StartingWeaponName(mage, slot)
+func resolveWeaponForSlot(mage, female bool, shapes, materials data.ScaleTable, weapons data.Collection, slot int32) (*data.Weapon, error) {
+	name, ok := StartingWeaponName(mage, female, slot)
 	if !ok {
 		return nil, fmt.Errorf("no starting weapon for skill slot %d", slot)
 	}
@@ -216,7 +222,7 @@ func resolveWeaponForSlot(mage bool, shapes, materials data.ScaleTable, weapons 
 // (defaultChargenAxes, below) — there is no class choice yet at this call,
 // only the ordinary slot -skill may have set.
 func resolveStartingWeapon(f *databin.File, slot int32) (*data.Weapon, error) {
-	return resolveWeaponForSlot(false, f.Collection(databin.Shapes), f.Collection(databin.Materials), f.Collection(databin.Weapons), slot)
+	return resolveWeaponForSlot(false, false, f.Collection(databin.Shapes), f.Collection(databin.Materials), f.Collection(databin.Weapons), slot)
 }
 
 func partyBody(w *data.Weapon, list data.BodyList) (data.HeroBody, bool) {
@@ -558,7 +564,7 @@ func MissionPartyAs(mage bool, w *data.Weapon, list data.BodyList, t *mapload.Ta
 	if mage {
 		class = true
 		shapes, materials, weapons := missionTableWeapons(t)
-		w, _ = resolveWeaponForSlot(true, shapes, materials, weapons, PartySkillSlot())
+		w, _ = resolveWeaponForSlot(true, female, shapes, materials, weapons, PartySkillSlot())
 	}
 	humans := missionHumans(t)
 	base, i, ok := data.ChargenBase(humans, class, female)

@@ -126,38 +126,49 @@ func TestTheStartingWeaponLiterals(t *testing.T) {
 		data.SkillShoot:   "Uncommon Wood Short Bow",
 	}
 	for slot, w := range want {
-		got, ok := game.StartingWeaponName(false, slot)
+		got, ok := game.StartingWeaponName(false, false, slot)
 		if !ok || got != w {
 			t.Errorf("slot %d = (%q, %v), want (%q, true)", slot, got, ok, w)
 		}
 	}
 	for _, slot := range []int32{-1, data.SkillGeneral, data.SkillSlots, 99} {
-		if got, ok := game.StartingWeaponName(false, slot); ok {
+		if got, ok := game.StartingWeaponName(false, false, slot); ok {
 			t.Errorf("slot %d named %q, want none", slot, got)
 		}
 	}
 }
 
-// mageStaffLiteral is the shipped mage weapon literal, WHOLE (0139 spec
-// D-13; cite HERO-START-039): `{castSpell=Fire_Arrow:10}` and all, as of
-// this story — the attachment used to be cut and disclosed here (0134 R-4),
-// because nothing in this tree could hold it; T1 gave a Weapon a place for
-// it and T3 gives the loader a lookup to turn it into an id, so the literal
-// this suite asserts against is the one the corpus actually names.
-const mageStaffLiteral = "Wood Staff {castSpell=Fire_Arrow:10}"
+// The two shipped mage staff literals, WHOLE, `{castSpell=Fire_Arrow:10}` and
+// all (HERO-START-039, MAGIC-STAFF-022): the plain one for a woman and the
+// Uncommon one for a man.
+const (
+	mageStaffLiteralFemale = "Wood Staff {castSpell=Fire_Arrow:10}"
+	mageStaffLiteralMale   = "Uncommon Wood Staff {castSpell=Fire_Arrow:10}"
+)
 
-func TestTheMageArmNamesOneLiteralWhateverSlot(t *testing.T) {
-	for _, slot := range []int32{data.SkillGeneral, data.SkillBlade, data.SkillAxe,
-		data.SkillBludgen, data.SkillPike, data.SkillShoot, -1, data.SkillSlots, 99} {
-		got, ok := game.StartingWeaponName(true, slot)
-		if !ok || got != mageStaffLiteral {
-			t.Errorf("mage, slot %d = (%q, %v), want (%q, true)", slot, got, ok, mageStaffLiteral)
+func TestTheMageArmNamesOneLiteralPerSexWhateverSlot(t *testing.T) {
+	for _, female := range []bool{false, true} {
+		want := mageStaffLiteralMale
+		if female {
+			want = mageStaffLiteralFemale
+		}
+		for _, slot := range []int32{data.SkillGeneral, data.SkillBlade, data.SkillAxe,
+			data.SkillBludgen, data.SkillPike, data.SkillShoot, -1, data.SkillSlots, 99} {
+			got, ok := game.StartingWeaponName(true, female, slot)
+			if !ok || got != want {
+				t.Errorf("mage, female %v, slot %d = (%q, %v), want (%q, true)", female, slot, got, ok, want)
+			}
+		}
+	}
+	for _, female := range []bool{false, true} {
+		if got, ok := game.StartingWeaponName(false, female, data.SkillBlade); !ok || got == mageStaffLiteralMale || got == mageStaffLiteralFemale {
+			t.Errorf("fighter, female %v got %q, %v: the sex must not reach the fighter arm", female, got, ok)
 		}
 	}
 }
 
 func TestChargenPartyResolvesTheChosenSlotsOwnWeapon(t *testing.T) {
-	name, ok := game.StartingWeaponName(false, data.SkillAxe)
+	name, ok := game.StartingWeaponName(false, false, data.SkillAxe)
 	if !ok {
 		t.Fatal("setup: SkillAxe trains no weapon")
 	}
@@ -293,7 +304,7 @@ func TestMissionPartyAsResolvesTheMageArmsOwnWeapon(t *testing.T) {
 		return synth.DataBinRow{Name: name, Doubles: d}
 	}
 	var db synth.DataBin
-	db.Rows[synth.DataBinShapes] = []synth.DataBinRow{scale("Common", 0.2)}
+	db.Rows[synth.DataBinShapes] = []synth.DataBinRow{scale("Common", 0.2), scale("Uncommon", 1)}
 	db.Rows[synth.DataBinMaterials] = []synth.DataBinRow{scale("Wood", 1), scale("Iron", 1)}
 	db.Rows[synth.DataBinWeapons] = []synth.DataBinRow{
 		{Name: "Staff", Params: []int32{-1, -1, -1, -1, -1, data.SkillBlade, 10, 20, 0, 0, -1, 1, 6, 4, -1}},
@@ -310,7 +321,7 @@ func TestMissionPartyAsResolvesTheMageArmsOwnWeapon(t *testing.T) {
 		t.Fatalf("setup: ResolveWeapon(Iron Short Sword): %v", err)
 	}
 
-	const wantMageName = "Wood Staff {castSpell=Fire_Arrow:10}"
+	const wantMageName = "Uncommon Wood Staff {castSpell=Fire_Arrow:10}"
 	p := game.MissionPartyAs(true, &fighter, list, d.Table)
 	if len(p) != 1 {
 		t.Fatalf("party of %d, want 1", len(p))
@@ -561,7 +572,7 @@ func TestSetPartySkillGeneratesAnArmedHero(t *testing.T) {
 		if d.StartWeaponErr != nil {
 			t.Fatalf("StartWeaponErr = %v", d.StartWeaponErr)
 		}
-		wantName, ok := game.StartingWeaponName(false, data.SkillShoot)
+		wantName, ok := game.StartingWeaponName(false, false, data.SkillShoot)
 		if !ok {
 			t.Fatalf("fixture: the shoot slot trains no weapon by StartingWeaponName's own account")
 		}

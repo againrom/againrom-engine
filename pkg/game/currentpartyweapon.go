@@ -32,12 +32,23 @@ func captureNamedPartyWeapon(p mapload.PartyMember, item sim.ItemInstance) *curr
 	return out
 }
 
+// matchMageStaff is the generated mage staff, either sex's, whose item code is
+// code.
+func matchMageStaff(code data.ItemCode, t *mapload.Table) (data.Weapon, bool) {
+	for _, name := range mageWeaponNames {
+		staff, err := data.ResolveWeapon(name, t.Shapes, t.Materials, t.Weapons)
+		if err == nil && staff.Code == code {
+			return staff, true
+		}
+	}
+	return data.Weapon{}, false
+}
+
 func canonicalMageWeapon(weapon *data.Weapon, mage bool, t *mapload.Table) *data.Weapon {
 	if !mage || weapon == nil || t == nil {
 		return weapon
 	}
-	staff, err := data.ResolveWeapon(mageWeaponName, t.Shapes, t.Materials, t.Weapons)
-	if err == nil && staff.Code == weapon.Code && staff.SpellName == weapon.SpellName && staff.SpellPower == weapon.SpellPower {
+	if staff, ok := matchMageStaff(weapon.Code, t); ok && staff.SpellName == weapon.SpellName && staff.SpellPower == weapon.SpellPower {
 		return &staff
 	}
 	return weapon

@@ -917,7 +917,7 @@ func TestSkillFlag(t *testing.T) {
 		// starting weapon, StartWeapon would still be the blade's sword.
 		// This is armed with the bow instead, which only holds if the
 		// setting reached LoadDefinitions before it ran.
-		wantName, ok := game.StartingWeaponName(false, data.SkillShoot)
+		wantName, ok := game.StartingWeaponName(false, false, data.SkillShoot)
 		if !ok {
 			t.Fatalf("fixture: the shoot slot trains no weapon by StartingWeaponName's own account")
 		}

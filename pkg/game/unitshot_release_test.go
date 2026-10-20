@@ -134,7 +134,7 @@ func runShotScenario(t *testing.T, sc shotScenario) {
 	f := releaseFront(t)
 	switch sc.party {
 	case shotPartyBow:
-		bow, err := resolveWeaponForSlot(false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
+		bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A male mage made in the character generator now starts with the
+  Uncommon Wood Staff, as in the original, and the generator shows that staff in
+  his hand: a plain shaft with a small red-orange top. Before, he was given the
+  woman's staff with the large pale crystal ball. The female mage and every
+  fighter are unchanged. A new campaign's male mage carries the Uncommon staff
+  in a SAVE.
 - [BASE] Hovering over an item worn on the doll now shows that item's
   description, on the character creation screen and on the hero's pane in the
   tavern and the school, as it already did in the inventory and the shop.

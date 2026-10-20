@@ -19,7 +19,7 @@ func TestReleaseFreshMageStaffUsesCompleteEffectPrice(t *testing.T) {
 		Choices: []int{0, 1, 0},
 		Stats:   []int{25, 25, 25, 25},
 	}
-	literal, ok := StartingWeaponName(true, data.SkillBlade)
+	literal, ok := StartingWeaponName(true, false, data.SkillBlade)
 	if !ok {
 		t.Fatal("mage starting weapon literal unavailable")
 	}
@@ -35,8 +35,8 @@ func TestReleaseFreshMageStaffUsesCompleteEffectPrice(t *testing.T) {
 	base := mapload.ItemInstanceFromCode(uint16(party[0].Weapon.Code), f.Table)
 	complete := base.Clone()
 	complete.Effects = append([]sim.ItemEffect(nil), effects...)
-	complete.Price = 1659
-	if base.Code != 0x810d || base.Price != 167 || effects[0].Operand != 0x000a0001 ||
+	complete.Price = 1825
+	if base.Code != 0x812d || base.Price != 333 || effects[0].Operand != 0x000a0001 ||
 		f.Table.Spells.EntryParams(1)[20] != 50 {
 		t.Fatalf("installed initial staff inputs changed: base=%+v effects=%+v", base, effects)
 	}
@@ -80,15 +80,15 @@ func TestReleaseInitialMageStaffPriceReachesCurrentSAV(t *testing.T) {
 	if len(party) != 1 || party[0].Weapon == nil {
 		t.Fatal("no fresh mage")
 	}
-	literal, _ := StartingWeaponName(true, data.SkillBlade)
+	literal, _ := StartingWeaponName(true, false, data.SkillBlade)
 	_, effects, rejected, err := mapload.ParseItemCell(literal, f.Table)
 	if err != nil || rejected != 0 || len(effects) != 1 {
 		t.Fatalf("literal parse: %+v %d %v", effects, rejected, err)
 	}
 	want := mapload.ItemInstanceFromCode(uint16(party[0].Weapon.Code), f.Table)
 	want.Effects = append([]sim.ItemEffect(nil), effects...)
-	want.Price = 1659
-	if want.Code != 0x810d || effects[0].Operand != 0x000a0001 || f.Table.Spells.EntryParams(1)[20] != 50 {
+	want.Price = 1825
+	if want.Code != 0x812d || effects[0].Operand != 0x000a0001 || f.Table.Spells.EntryParams(1)[20] != 50 {
 		t.Fatalf("installed initial staff inputs changed: %+v", want)
 	}
 

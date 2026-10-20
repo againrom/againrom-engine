@@ -98,7 +98,7 @@ func shotContinuation(t *testing.T, raw []byte, want shotRun) error {
 func TestReleaseFreshShotWritesProjectileRecord(t *testing.T) {
 	dir := t.TempDir()
 	f := releaseFront(t)
-	bow, err := resolveWeaponForSlot(false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
+	bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
 	if err != nil {
 		t.Fatal(err)
 	}

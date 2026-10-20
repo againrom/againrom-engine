@@ -178,7 +178,7 @@ func TestMovingTheWeaponMovesTheDerivedBody(t *testing.T) {
 // slot — is retired along with PartyBody: there is no second authored fact
 // left for it to drift from, because the body is no longer authored at all.
 func TestTheAuthoredSkillTrainsARealWeapon(t *testing.T) {
-	if n, ok := game.StartingWeaponName(false, game.PartySkillSlot()); !ok || n == "" {
+	if n, ok := game.StartingWeaponName(false, false, game.PartySkillSlot()); !ok || n == "" {
 		t.Errorf("the authored slot trains no weapon (%q, %v)", n, ok)
 	}
 }

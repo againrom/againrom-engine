@@ -380,7 +380,7 @@ func TestReleaseStagedBurstSurvivesSaveAndLoad(t *testing.T) {
 func TestReleaseStructureShotSurvivesSaveAndLoad(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
-	bow, err := resolveWeaponForSlot(false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
+	bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)
 	if err != nil {
 		t.Fatal(err)
 	}
