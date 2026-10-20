@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -130,7 +131,12 @@ func TestCurrentActionWriterCarriersRejectAmbiguousRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	leaf, present, err := sav.NativeActions(doc.State)
-	if err != nil || !present || bytes.Count(leaf, []byte(`"WriterCarriers":0`)) != 1 {
+	want := uint32(0)
+	if _, held := f.live.world.SavedCellPlanes(); held {
+		want = currentWriterCarriers
+	}
+	canonical := []byte(fmt.Sprintf(`"WriterCarriers":%d`, want))
+	if err != nil || !present || bytes.Count(leaf, canonical) != 1 {
 		t.Fatal("canonical writer record", present, err)
 	}
 	for _, tc := range ambiguousWriterCarrierRecords() {
@@ -140,7 +146,7 @@ func TestCurrentActionWriterCarriersRejectAmbiguousRecords(t *testing.T) {
 				bad           bool
 			}{{"canonical control", tc.control, false}, {"ambiguous", tc.members, true}} {
 				t.Run(variant.name, func(t *testing.T) {
-					modified := bytes.Replace(leaf, []byte(`"WriterCarriers":0`), []byte(variant.members), 1)
+					modified := bytes.Replace(leaf, canonical, []byte(variant.members), 1)
 					if err := sav.SetNativeActions(&doc.State, modified); err != nil {
 						t.Fatal(err)
 					}
@@ -177,9 +183,14 @@ func TestCurrentActionWriterCarriersRejectAmbiguousRecords(t *testing.T) {
 	}
 }
 
-func TestCurrentActionWriterEmitsNoCarrierClaims(t *testing.T) {
+func TestCurrentActionWriterRecordsHeldCarriers(t *testing.T) {
 	f := currentArchiveFixture(t)
 	hash := f.live.world.Hash()
+	want := "0"
+	if _, held := f.live.world.SavedCellPlanes(); held {
+		want = fmt.Sprint(currentWriterCarriers)
+	}
+	t.Logf("fixture World holds cell planes: %t", want != "0")
 	s, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
@@ -203,8 +214,8 @@ func TestCurrentActionWriterEmitsNoCarrierClaims(t *testing.T) {
 	if err := json.Unmarshal(leaf, &fields); err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(fields["WriterCarriers"], []byte("0")) {
-		t.Fatalf("current writer carrier record = %s, want explicit 0", fields["WriterCarriers"])
+	if !bytes.Equal(fields["WriterCarriers"], []byte(want)) {
+		t.Fatalf("current writer carrier record = %s, want explicit %s", fields["WriterCarriers"], want)
 	}
 	cold := openCurrentArchive(t, raw)
 	if cold.live.world.Hash() != hash {

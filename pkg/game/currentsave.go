@@ -277,6 +277,9 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 	b := generatedDocumentBuilder{doc: doc, table: f.Table, reservedKeys: keys, runtimeIDs: savedRuntimeIDs(doc.Objects)}
 	b.reserveCurrentParty(s.Party)
 	a := currentActionData{Version: 1}
+	if f.Table != nil && f.Table.TerrainCosts != nil {
+		a.WriterCarriers = currentWriterCarriers
+	}
 	var actors []uint16
 	for i, r := range doc.Objects {
 		if r.Class == "Human" || r.Class == "Unit" {

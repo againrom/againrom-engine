@@ -13,7 +13,12 @@ unknown JSON fields and trailing values.
 which original carriers the writer built from its World. The field is metadata;
 it neither creates a carrier at LOAD nor changes World state. A missing field
 has the deterministic value zero, meaning that the writer held none of the
-listed carriers. The current writer emits `"WriterCarriers":0` explicitly.
+listed carriers. The current writer emits the field explicitly. It records
+`"WriterCarriers":1024` (bit 10, TerrainBlockPlane) when the saved World holds
+the cell planes, which every first-game World does from mission start, and on a
+town SAVE of an install whose Worlds hold them (the installed `map.reg` cost
+table). A second-game SAVE, whose Worlds hold no planes (DIV-3095), records 0.
+Bits 0..9 stay clear (DIV-2885, `docs/1482/story.md`).
 
 Production LOAD rejects an ambiguous record with
 `current actions: invalid WriterCarriers record` and a bounded reason. The

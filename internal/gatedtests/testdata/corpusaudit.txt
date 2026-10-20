@@ -36,6 +36,7 @@ pkg/game.TestMilestone2Trailer
 pkg/game.TestMilestone2UnitCombat
 pkg/game.TestMilestone2UnitScalars
 pkg/game.TestMilestone2WriterBitAdmission
+pkg/game.TestMilestone2WriterCarrierInstruments
 pkg/game.TestMilestone2WriterCurrentRoundTrip
 pkg/game.TestMilestone2WriterLossControls
 pkg/game.TestMilestone2WriterOriginalAdmission

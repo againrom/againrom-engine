@@ -618,6 +618,17 @@ func secondMissionSaveLosses(t *testing.T, mission int) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A second-game World holds no cell planes (DIV-3095), so its SAV claims no carrier.
+	doc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, held := f.live.world.SavedCellPlanes(); held {
+		t.Fatal("second-game World holds cell planes")
+	}
+	if a, err := readCurrentActions(&doc); err != nil || a == nil || a.WriterCarriers != 0 {
+		t.Fatalf("second-game SAV writer carriers: present=%t err=%v", a != nil, err)
+	}
 	for _, loss := range []string{"dialect", "bank absent", "campaign absent", "game absent", "game unknown", "current destination", "available overflow", "fog absent", "fog extent", "fog plane", "activity duplicate", "unavailable", "foreign kind", "unsupported pair"} {
 		t.Run(loss, func(t *testing.T) {
 			changed := secondChangeSave(t, raw, func(a *currentActionData) {

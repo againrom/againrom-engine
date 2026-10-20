@@ -271,9 +271,10 @@ func TestMilestone2WriterCurrentRoundTrip(t *testing.T) {
 	}
 	mf := milestone2File{rel: "current writer", raw: raw, f: mustMilestone2Open(t, raw), present: true}
 	bits, written, err := milestone2WriterCarriers(mf)
-	if err != nil || !written || bits != 0 {
+	if err != nil || !written || bits != currentWriterCarriers {
 		t.Fatalf("current writer bits=%#x admitted=%t err=%v", bits, written, err)
 	}
+	milestone2WriterMaskApplies(t, mf)
 	milestone2WriterRoundTrip(t, assets, mf, false)
 	ms := f.live.mission
 	if refusal := f.CampaignSession.carryMissionHome(f.townInstall(), 10, ms.party, f.live.world, ms.ids, nil); refusal != "" {
@@ -286,10 +287,22 @@ func TestMilestone2WriterCurrentRoundTrip(t *testing.T) {
 	}
 	townFile := milestone2File{rel: "current town writer", raw: townRaw, f: mustMilestone2Open(t, townRaw)}
 	bits, written, err = milestone2WriterCarriers(townFile)
-	if err != nil || !written || bits != 0 || townFile.f.World != nil || milestone2CarrierApplies(t, townFile, currentCarrierDeadRoots) {
+	if err != nil || !written || bits != currentWriterCarriers || townFile.f.World != nil {
 		t.Fatalf("current town writer bits=%#x admitted=%t err=%v", bits, written, err)
 	}
+	milestone2WriterMaskApplies(t, townFile)
 	milestone2WriterRoundTrip(t, assets, townFile, false)
+}
+
+// milestone2WriterMaskApplies requires that exactly the written bits select
+// their original-carrier instruments.
+func milestone2WriterMaskApplies(t *testing.T, mf milestone2File) {
+	t.Helper()
+	for bit := uint32(1); bit <= currentCarrierTerrainBlockPlane; bit <<= 1 {
+		if got := milestone2CarrierApplies(t, mf, bit); got != (currentWriterCarriers&bit != 0) {
+			t.Fatalf("%s: written bit %#x applies=%t", mf.rel, bit, got)
+		}
+	}
 }
 
 func TestMilestone2WriterBitAdmission(t *testing.T) {

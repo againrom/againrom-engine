@@ -61,6 +61,14 @@ const (
 	currentCarrierAll = (currentCarrierTerrainBlockPlane << 1) - 1
 )
 
+// currentWriterCarriers are the carriers a SAVE builds from a World that holds
+// the cell planes, and that LOAD of the written file binds as it binds an
+// original's: the Blocks are the World's planes (currentSpatialPlanes). A town
+// SAVE of an install whose Worlds hold the planes records the same bits. The
+// other bits stay clear while the written carrier still holds a constructor
+// value or LOAD drops it (DIV-2885).
+const currentWriterCarriers = currentCarrierTerrainBlockPlane
+
 type currentActionData struct {
 	structureGenerated   map[uint32]bool
 	StructureBindings    *[]currentStructureBinding   `json:",omitempty"`
@@ -331,7 +339,10 @@ func sourceActorDocumentClass(class uint8) string {
 // layer relocates these addresses with every reindex/retirement; final key
 // completion is independent. Constructor objects may still have a zero wire key.
 func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w *sim.World, s Snapshot, table *mapload.Table, captured ...sim.CurrentWorldPolicy) error {
-	a := currentActionData{Version: 1, WriterCarriers: 0, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases()}
+	a := currentActionData{Version: 1, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases()}
+	if _, held := w.SavedCellPlanes(); held {
+		a.WriterCarriers = currentWriterCarriers
+	}
 	a.Program = captureCurrentScriptProgram(w)
 	if _, err := a.Program.compile(); err != nil {
 		return err

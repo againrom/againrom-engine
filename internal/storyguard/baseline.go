@@ -2690,6 +2690,10 @@ package storyguard
 // CommentBytes rises for the world's container weight reader
 // (pkg/sim/weight.go), the native pack writers that read it, the leafless
 // reload tests (pkg/game/resavestate_release_test.go), plus this note.
+// CommentBytes rises for the writer carrier record
+// (pkg/game/savactioncurrent.go), the carrier instrument test and the terrain
+// instrument helper it shares (pkg/game/milestone2_acceptance_*_test.go), the
+// second-game witness (pkg/game/secondmissionsave_release_test.go), plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2713,5 +2717,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1703,
 	},
-	CommentBytes: 9325821,
+	CommentBytes: 9327935,
 }

@@ -122,6 +122,7 @@ const (
 	writerCensusIDKey      = "constructed sack runtime id|MOVE-ID-016"
 	writerCensusMaskKey    = "constructed sack T18|SAV-655"
 	writerCensusItemKey    = "sack item|no original record"
+	writerCensusCarrierKey = "writer carrier|WriterCarriers"
 )
 
 // writerCensusItemClasses are the item classes a Sack's contents hold.
@@ -152,10 +153,15 @@ type writerCensusResult struct {
 	known      map[string][]string
 	knownIssue string
 	took       time.Duration
+	// carrierFile and carrierRecords count the written world file the
+	// claimed carriers' instruments checked.
+	carrierFile    bool
+	carrierRecords int
 }
 
 type writerCensusTally struct {
 	discovered, changed, written int
+	carrierFiles, carrierRecords int
 	refused                      map[string]int
 	mismatches                   map[string]int
 	known                        map[string]int
@@ -1004,6 +1010,10 @@ func writerCensusRun(t *testing.T, assets string, mf milestone2File) writerCensu
 		r.stage, r.err = "CHECK", err
 	} else {
 		r.known, r.knownIssue = writerCensusKnownNewInputs(mf, w.raw, r.mismatch)
+		if !w.town {
+			r.carrierFile = true
+			r.carrierRecords, r.mismatch[writerCensusCarrierKey] = milestone2WriterCarrierCheck(t, assets, mf.rel, w.raw)
+		}
 	}
 	return r
 }
@@ -1114,6 +1124,7 @@ func TestSAVWriterCensusChangedWorldsPart6(t *testing.T) { writerCensusChangedWo
 // completes the set reads it.
 type writerCensusPartSummary struct {
 	Discovered, Changed, Written                              int
+	CarrierFiles, CarrierRecords                              int
 	Refused, Mismatches, Known, Debt, Unnamed, Changes, Ruled map[string]int
 	Wall, Sum, SlowestTook                                    time.Duration
 	SlowestRel                                                string
@@ -1178,6 +1189,10 @@ func writerCensusChangedWorlds(t *testing.T, part int) {
 			t.Errorf("SAV-WRITERCENSUS-KNOWN %s: %s", r.rel, r.knownIssue)
 		}
 		tally.written++
+		if r.carrierFile {
+			tally.carrierFiles++
+			tally.carrierRecords += r.carrierRecords
+		}
 		for _, key := range writerCensusSortedLines(r.mismatch) {
 			for _, line := range r.mismatch[key] {
 				tally.mismatches[key]++
@@ -1205,6 +1220,7 @@ func writerCensusChangedWorlds(t *testing.T, part int) {
 		}
 	}
 	mine := writerCensusPartSummary{Discovered: tally.discovered, Changed: tally.changed, Written: tally.written,
+		CarrierFiles: tally.carrierFiles, CarrierRecords: tally.carrierRecords,
 		Refused: tally.refused, Mismatches: tally.mismatches, Known: tally.known, Debt: tally.debt, Unnamed: tally.unnamed,
 		Changes: tally.changes, Ruled: tally.ruled, Wall: time.Since(start), Sum: sum}
 	for _, r := range results {
@@ -1226,6 +1242,8 @@ func writerCensusChangedWorlds(t *testing.T, part int) {
 		whole.discovered += p.Discovered
 		whole.changed += p.Changed
 		whole.written += p.Written
+		whole.carrierFiles += p.CarrierFiles
+		whole.carrierRecords += p.CarrierRecords
 		for _, add := range []struct{ to, from map[string]int }{{whole.refused, p.Refused}, {whole.mismatches, p.Mismatches},
 			{whole.known, p.Known}, {whole.debt, p.Debt}, {whole.unnamed, p.Unnamed}, {whole.changes, p.Changes}, {whole.ruled, p.Ruled}} {
 			for k, n := range add.from {
@@ -1244,6 +1262,9 @@ func writerCensusChangedWorlds(t *testing.T, part int) {
 	if whole.known[writerCensusSackKey] != 4 || whole.known[writerCensusItemKey] != 0 || whole.known[writerCensusMissingKey] != 0 {
 		t.Errorf("SAV-WRITERCENSUS-KNOWN expected source T1C 4 and item/missing 0/0; got %d/%d/%d",
 			whole.known[writerCensusSackKey], whole.known[writerCensusItemKey], whole.known[writerCensusMissingKey])
+	}
+	if currentWriterCarriers != 0 && whole.carrierFiles == 0 {
+		t.Error("SAV-WRITERCENSUS-CARRIER no written world file checked by a claimed carrier's instrument")
 	}
 	for _, f := range writerCensusFailures(whole) {
 		t.Error(f)
@@ -1295,6 +1316,8 @@ func writerCensusReport(t *testing.T, tally *writerCensusTally, took time.Durati
 	for _, k := range writerCensusSorted(tally.debt) {
 		t.Logf("SAV-WRITERCENSUS-DEBT %s=%d: %s", k, tally.debt[k], writerCensusDebt[k])
 	}
+	t.Logf("SAV-WRITERCENSUS-CARRIER WriterCarriers=%#x: %d written world file(s), %d carrier record(s) checked by %s; differences=%d",
+		currentWriterCarriers, tally.carrierFiles, tally.carrierRecords, milestone2WriterCarrierNames(), tally.mismatches[writerCensusCarrierKey])
 	t.Logf("SAV-WRITERCENSUS-CENSUS discovered=%d changed=%d written=%d refused=%d mismatched=%d known=%d unexpected=%d unnamed=%d runtime=%s",
 		tally.discovered, tally.changed, tally.written, refused, mismatched, tally.known[writerCensusSackKey]+tally.known[writerCensusItemKey]+tally.known[writerCensusMissingKey],
 		mismatched-tally.known[writerCensusSackKey]-tally.known[writerCensusItemKey]-tally.known[writerCensusMissingKey], unnamed, took.Round(time.Second))
