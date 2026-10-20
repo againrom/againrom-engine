@@ -71,13 +71,7 @@ corpus played	2026-08-30/EXP-0278-human-runtime-en/game0011.sav played	accepted	
 corpus played	2026-08-30/EXP-0278-human-runtime-en/game0015.sav played	accepted	-
 corpus played	2026-08-30/EXP-0278-human-runtime-en/game0019.sav played	accepted	-
 corpus played	2026-08-30/EXP-0278-human-runtime-en/game0020.sav played	accepted	-
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	-
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	mismatch advanced.world.originalDead.OriginalDeadActor.Source.State.HP
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	mismatch advanced.world.originalDead.OriginalDeadActor.Source.State.RuntimeID
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	mismatch advanced.world.originalDead.OriginalDeadActor.Source.State.Stage
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	mismatch world.originalDead.OriginalDeadActor.Source.State.HP
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	mismatch world.originalDead.OriginalDeadActor.Source.State.RuntimeID
-corpus played	2026-10-02/projectiles-original-en/game0024.sav played	mismatched	mismatch world.originalDead.OriginalDeadActor.Source.State.Stage
+corpus played	2026-10-02/projectiles-original-en/game0024.sav played	accepted	-
 corpus played	2026-10-06/game0008-original-m70-dying.sav played	accepted	-
 corpus played	2027-09-07/game0032.sav played	accepted	-
 corpus played	2027-09-07/game0036.sav played	accepted	-

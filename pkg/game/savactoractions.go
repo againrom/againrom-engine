@@ -178,7 +178,16 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 		// The wire timer is a byte. A wider native retained interval is
 		// explicitly carried by Actions; never modulo-truncate its next tick.
 		if !keepLoadedOrder {
-			savedObjectSetValue(r, "U6C", uint32(min(max(e.AttackCountdown, 0), 255)))
+			countdown := worldOrderCountdown(e)
+			if residue := e.HeldOrder; residue.Kind == sim.HeldOrderResidue {
+				if complete == 0 {
+					complete = residue.Complete
+				}
+				if countdown == 0 {
+					countdown = residue.Countdown
+				}
+			}
+			savedObjectSetValue(r, "U6C", countdown)
 			savedObjectSetValue(r, "U136", complete)
 		}
 		if p := e.PendingOrder; p.Kind != sim.PendingNone {
@@ -460,6 +469,9 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		return err
 	}
 	ms.World.ImportOriginalPointCasts(pointCasts)
+	if err := holdOrderResidues(state, ms.World, held); err != nil {
+		return err
+	}
 	rows := make([]sim.HeldOrderRecord, 0, len(held))
 	for _, e := range ms.World.Entities() {
 		if o, ok := held[e.ID]; ok {
@@ -506,6 +518,63 @@ func originalAttackCycle(phase, complete, action uint32, progress byte, countdow
 		return sim.AttackReady, int32(countdown), true
 	}
 	return sim.AttackReady, int32(countdown), false
+}
+
+// holdOrderResidues keeps the completion and countdown bytes of a living
+// actor in sub-phase 0 where they differ from the words the World writes for
+// it: no order cycle reads them before a charge start overwrites them
+// (HERO-CROSSHOLD-146, HERO-CADENCE-112).
+func holdOrderResidues(state *SnapshotSAVDocument, w *sim.World, held map[sim.EntityID]sim.HeldOrder) error {
+	byID := map[sim.EntityID]sim.Entity{}
+	for _, e := range w.Entities() {
+		byID[e.ID] = e
+	}
+	for _, b := range state.Actors {
+		e, ok := byID[b.EntityID]
+		if _, taken := held[b.EntityID]; b.Retired || !ok || taken || !e.Alive() {
+			continue
+		}
+		r := &state.Document.Objects[b.ObjectIndex-1]
+		phase, err := savedMotionRaw(r, "U58", 4)
+		if err != nil {
+			return err
+		}
+		complete, err := savedStructureValue(r, "U136")
+		if err != nil {
+			return err
+		}
+		countdown, err := savedStructureValue(r, "U6C")
+		if err != nil {
+			return err
+		}
+		if binary.LittleEndian.Uint32(phase) != 0 {
+			continue
+		}
+		residue := sim.HeldOrder{Kind: sim.HeldOrderResidue}
+		if worldOrderComplete(e) == 0 {
+			residue.Complete = complete
+		}
+		if worldOrderCountdown(e) == 0 {
+			residue.Countdown = countdown
+		}
+		if residue.Complete != 0 || residue.Countdown != 0 {
+			held[b.EntityID] = residue
+		}
+	}
+	return nil
+}
+
+// worldOrderComplete and worldOrderCountdown are the completion and countdown
+// bytes the World's own attack and retreat state give an actor.
+func worldOrderComplete(e sim.Entity) uint32 {
+	if (e.HasAttackTarget || e.Retreat.Known) && e.AttackPhase == sim.AttackBoundaryOne || e.Retreat.Known && e.Retreat.Complete {
+		return 1
+	}
+	return 0
+}
+
+func worldOrderCountdown(e sim.Entity) uint32 {
+	return uint32(min(max(e.AttackCountdown, 0), 255))
 }
 
 // holdBodyOrder keeps a live actor's order on a body the World does not

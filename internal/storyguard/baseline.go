@@ -2666,6 +2666,11 @@ package storyguard
 // lines for script and cheat grants (pkg/game/pickup_words.go, the shared
 // card name in pkg/game/carddisplayname.go, the step report's item grants),
 // their tests, plus this note.
+// CommentBytes rises for the idle actor's order residue (pkg/sim/heldorder.go,
+// pkg/game/savactoractions.go), its witnesses
+// (pkg/game/orderresidue_release_test.go, pkg/sim/heldorder_test.go), the
+// Player tail witness (pkg/game/playertailfallback_test.go), the virtual
+// body's terminal tests, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2689,5 +2694,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1704,
 	},
-	CommentBytes: 9291060,
+	CommentBytes: 9293360,
 }

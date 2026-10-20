@@ -99,8 +99,10 @@ func TestVirtualCorpseSessionPhaseAndTerminalBoundary(t *testing.T) {
 			if want.Stage == 5 {
 				want.RuntimeID = 0
 			}
-			if got.Source != input.Source || got.Current != want {
-				t.Fatalf("source/current = %+v, want source unchanged and current %+v", got, want)
+			source := input.Source
+			source.State = want
+			if got.Source != source || got.Current != want {
+				t.Fatalf("source/current = %+v, want one state copy %+v", got, want)
 			}
 			data, err := w.MarshalBinary()
 			if err != nil {
@@ -155,5 +157,40 @@ func TestVirtualCorpseBinaryRejectsRewrittenHistory(t *testing.T) {
 	putDeadState(section[62:], valid)
 	if _, err := decodeOriginalDead(section[:originalDeadRecordLen], w.bounds, w.entities, w.carried, w.equipment); err != nil {
 		t.Fatal("current dead state cannot continue through the existing binary form", err)
+	}
+}
+
+func TestVirtualCorpseTerminalKeepsOneHashedSourceState(t *testing.T) {
+	w := deadWorld(t)
+	input := deadInput(10, 4, -598)
+	input.Source.MapUnitID = 0
+	if err := w.ImportOriginalDeadActors([]OriginalDeadActor{input}); err != nil {
+		t.Fatal(err)
+	}
+	for range 4096 {
+		if w.OriginalDeadActors()[0].Current.Stage == 5 {
+			break
+		}
+		Step(w, nil)
+	}
+	got := w.OriginalDeadActors()[0]
+	want := input.Source.State
+	want.Stage, want.HP, want.RuntimeID = 5, -10001, 0
+	if got.Current != want || got.Source.State != want {
+		t.Fatalf("terminal source/current = %+v/%+v, want both %+v", got.Source.State, got.Current, want)
+	}
+	// Control: a second copy left at the loaded tuple is hashed state, so a
+	// round trip that restores one copy would differ from the saving World.
+	form, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stale World
+	if err := stale.UnmarshalBinary(form); err != nil || stale.Hash() != w.Hash() {
+		t.Fatal("terminal record did not survive the byte form", err)
+	}
+	stale.originalDead[0].Source.State = input.Source.State
+	if stale.Hash() == w.Hash() {
+		t.Fatal("the World hash does not see the source state")
 	}
 }

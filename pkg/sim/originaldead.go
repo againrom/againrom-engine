@@ -246,7 +246,8 @@ func (w *World) OriginalDeadActors() []OriginalDeadRecord {
 }
 
 // decayHeldDead applies the dead-list ladder to records without an authored
-// entity. It never replays teardown, drops, rewards or live-actor actions.
+// entity and publishes each mutation as the source state (SAV-1239). It
+// never replays teardown, drops, rewards or live-actor actions.
 func (w *World) decayHeldDead(decrement bool) {
 	for i := range w.originalDead {
 		r := &w.originalDead[i]
@@ -264,7 +265,7 @@ func (w *World) decayHeldDead(decrement bool) {
 		} else if uint8(stage) > s.Stage {
 			s.Stage = uint8(stage)
 		}
-		if r.Source.MapUnitID != 0 && (beforeHP != s.HP || beforeStage != s.Stage) {
+		if beforeHP != s.HP || beforeStage != s.Stage {
 			r.Source.State.HP, r.Source.State.Stage, r.Source.State.RuntimeID = s.HP, s.Stage, s.RuntimeID
 		}
 	}

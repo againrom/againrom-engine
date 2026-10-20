@@ -9,16 +9,21 @@ import (
 	"againrom/pkg/ui"
 )
 
-func TestReleaseVirtualDeadSourceHPStaysDistinctFromCurrentSave(t *testing.T) {
+// A virtual body's record holds one state copy through LOAD, play, SAVE and
+// cold LOAD: the dead-list clock publishes each decay to the source state.
+// game0024's body is loaded at stage 4 and played to its terminal stage.
+func TestReleaseVirtualDeadSourceStateFollowsCurrentSave(t *testing.T) {
 	for _, tc := range []struct {
 		name, hash string
 		hp         int16
+		terminal   bool
 	}{
-		{"game0032.sav", "7375f0c08c8361b2fa32d20564802acba688d5e5a445ab5ca635c609632499ed", -58},
-		{"game0033.sav", "b6ffd904f44717c76e22f12d8801a21b3dfca3dd8563b7e02aaecbf93a4c740a", -86},
+		{"2027-09-07/game0032.sav", "7375f0c08c8361b2fa32d20564802acba688d5e5a445ab5ca635c609632499ed", -58, false},
+		{"2027-09-07/game0033.sav", "b6ffd904f44717c76e22f12d8801a21b3dfca3dd8563b7e02aaecbf93a4c740a", -86, false},
+		{"2026-10-02/projectiles-original-en/game0024.sav", "0de5da52950f124ca2d8c492be3a3dc82e30c603e1e55ed79b6ddddac09cb934", -140, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, original := groundCorpusFile(t, "2027-09-07/"+tc.name, tc.hash)
+			_, original := groundCorpusFile(t, tc.name, tc.hash)
 			deadFromSAV := func(raw []byte, key uint32) sav.DeadActor {
 				t.Helper()
 				file, err := sav.Open(raw)
@@ -49,7 +54,7 @@ func TestReleaseVirtualDeadSourceHPStaysDistinctFromCurrentSave(t *testing.T) {
 				if err != nil || town {
 					t.Fatalf("mission LOAD: town=%t error=%v", town, err)
 				}
-				if err := front.App("virtual dead source health").OpenMission(mission); err != nil {
+				if err := front.App("virtual dead source state").OpenMission(mission); err != nil {
 					t.Fatal(err)
 				}
 				return front
@@ -65,19 +70,29 @@ func TestReleaseVirtualDeadSourceHPStaysDistinctFromCurrentSave(t *testing.T) {
 				return sim.OriginalDeadRecord{}
 			}
 			first := open(original)
-			if body := bodyFromWorld(first); body.Source.State.HP != tc.hp || body.Current.HP != tc.hp {
-				t.Fatalf("original LOAD source/current HP = %d/%d, want %d/%d", body.Source.State.HP, body.Current.HP, tc.hp, tc.hp)
+			loadedBody := bodyFromWorld(first)
+			if loadedBody.Source.State.HP != tc.hp || loadedBody.Current.HP != tc.hp {
+				t.Fatalf("original LOAD source/current HP = %d/%d, want %d/%d", loadedBody.Source.State.HP, loadedBody.Current.HP, tc.hp, tc.hp)
 			}
 			var before sim.OriginalDeadRecord
-			for tick := 0; tick < 128; tick++ {
+			for tick := 0; tick < 40000; tick++ {
 				first.LiveAdvance(1)
 				before = bodyFromWorld(first)
-				if before.Current.HP < tc.hp {
+				if before.Source.State != before.Current {
+					t.Fatalf("tick %d source state %+v differs from current %+v", tick, before.Source.State, before.Current)
+				}
+				if !tc.terminal && before.Current.HP < tc.hp || tc.terminal && before.Current.Stage == 5 {
 					break
 				}
 			}
-			if before.Source.State.HP != tc.hp || before.Current.HP >= tc.hp {
-				t.Fatalf("played source/current HP = %d/%d; expected distinct source %d", before.Source.State.HP, before.Current.HP, tc.hp)
+			if tc.terminal && (before.Current.Stage != 5 || before.Current.HP != -10001 || before.Current.RuntimeID != 0) ||
+				!tc.terminal && before.Current.HP >= tc.hp {
+				t.Fatalf("played body %+v did not reach the wanted state", before.Current)
+			}
+			// Control: the played record is not the loaded one, so an equal cold
+			// record below is not a comparison of two unplayed copies.
+			if before == loadedBody {
+				t.Fatal("play did not change the body record")
 			}
 			beforeHash := first.live.world.Hash()
 			dir := t.TempDir()
@@ -98,13 +113,12 @@ func TestReleaseVirtualDeadSourceHPStaysDistinctFromCurrentSave(t *testing.T) {
 			if first.live.world.Hash() != beforeHash {
 				t.Fatal("SAVE changed the live World")
 			}
-			if got := deadFromSAV(written, source.Identity); got.HP != before.Current.HP {
-				t.Fatalf("written ordinary Health=%d, want current HP %d", got.HP, before.Current.HP)
+			if got := deadFromSAV(written, source.Identity); got.HP != before.Current.HP || got.Stage != before.Current.Stage {
+				t.Fatalf("written ordinary Health/Stage=%d/%d, want current %d/%d", got.HP, got.Stage, before.Current.HP, before.Current.Stage)
 			}
 			cold := open(written)
-			loaded := bodyFromWorld(cold)
-			if loaded.Source.State.HP != before.Source.State.HP || loaded.Current.HP != before.Current.HP || cold.live.world.Hash() != beforeHash {
-				t.Fatalf("cold source/current HP %d/%d hash %016x; want %d/%d hash %016x", loaded.Source.State.HP, loaded.Current.HP, cold.live.world.Hash(), before.Source.State.HP, before.Current.HP, beforeHash)
+			if loaded := bodyFromWorld(cold); loaded != before || cold.live.world.Hash() != beforeHash {
+				t.Fatalf("cold record %+v hash %016x; want %+v hash %016x", loaded, cold.live.world.Hash(), before, beforeHash)
 			}
 			first.LiveAdvance(1)
 			cold.LiveAdvance(1)

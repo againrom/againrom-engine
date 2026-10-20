@@ -47,8 +47,10 @@ func TestOriginalDead1143TwoUnboundActorsKeepStateAndLeaveGameplayAlone(t *testi
 			t.Fatalf("unbound cold continuation differs at tick %d", tick)
 		}
 		for i, record := range w.OriginalDeadActors() {
-			if record.Source != batch[i].Source {
-				t.Fatal("dead-list continuation rewrote source provenance")
+			source := record.Source
+			source.State = batch[i].Source.State
+			if source != batch[i].Source || record.Source.State != record.Current {
+				t.Fatal("dead-list continuation rewrote source provenance or kept a second state copy")
 			}
 		}
 		if !reflect.DeepEqual(w.Entities(), control.Entities()) || !reflect.DeepEqual(w.Stock(), control.Stock()) ||

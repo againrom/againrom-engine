@@ -24,6 +24,7 @@ var savDocumentFallbacks = []savDocumentFallback{
 	{"Human.v.SpellsHeader", "0-3", "", "sav/objects.md", "Meaning remains unknown on the named format page: opaque Spellbook+18 dword; wire shape known."},
 	{"Human.v.T08", "2-3", "", "sav/token.md", "Meaning remains unknown on the named format page: upperword Token+08 outside mapped lowword meaning."},
 	{"Human.v.T1C", "0-3", "", "sav/token.md", "Meaning remains unknown on the named format page: Human Token+1c meaning unnamed."},
+	{"Player.r.PRaw32", "0-30", "", "sav/player.md", "Meaning remains unknown on the named format page: settings bytes beside formation byte +1f; no writer or reader named (SAV-662)."},
 	{"Player.r.Raw10", "0-7", "", "sav/player.md", "Meaning remains unknown on the named format page: Player+10 literal8; meaning/default unnamed."},
 	{"Player.v.F48", "0-3", "", "sav/player.md", "Meaning remains unknown on the named format page: XOR-coded word; gameplay meaning unnamed."},
 	{"Player.v.F4C", "0-1", "", "sav/player.md", "Meaning remains unknown on the named format page: saturated word, gameplay meaning unnamed."},

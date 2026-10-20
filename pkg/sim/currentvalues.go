@@ -38,8 +38,8 @@ type ActorRuntimeCoordinate struct {
 	Wire, Value uint32
 }
 
-// ActorDeadSourceHealth retains a virtual body's imported HP while its
-// ordinary Health field writes the current HP. An edited ordinary HP wins.
+// ActorDeadSourceHealth retains an older SAV's virtual body source HP until
+// the body's next decay. An edited ordinary HP wins.
 type ActorDeadSourceHealth struct {
 	Wire, Value int16
 }

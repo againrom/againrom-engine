@@ -15,6 +15,10 @@ const (
 	// targetable floor. The World drops that target, so the order words stay
 	// as loaded until the World advances.
 	HeldOrderBody
+	// HeldOrderResidue is an idle living actor's completion and countdown
+	// bytes. Only a charge start overwrites them (HERO-CADENCE-112,
+	// HERO-CROSSHOLD-146), so they stay as loaded while the actor is idle.
+	HeldOrderResidue
 )
 
 // HeldOrder is an original actor's order words the World carries but does
@@ -47,7 +51,9 @@ func heldOrderFault(e Entity) error {
 	case o.Kind == HeldOrderNone && o != (HeldOrder{}),
 		o.Kind == HeldOrderFrozen && (o.Target != 0 || o.Countdown != 0 || o.Phase == 0 && o.Complete == 0 || e.Alive() || e.Dying()),
 		o.Kind == HeldOrderBody && (o.Phase != 5 && o.Phase != 7 || !e.Alive() && !e.Dying()),
-		o.Kind > HeldOrderBody:
+		o.Kind == HeldOrderResidue && (o.Target != 0 || o.Phase != 0 || o.Countdown > 255 || o.Complete > 255 ||
+			o.Countdown == 0 && o.Complete == 0 || !e.Alive()),
+		o.Kind > HeldOrderResidue:
 		return fmt.Errorf("sim: invalid held order for actor %d", e.ID)
 	}
 	return nil
@@ -72,14 +78,26 @@ func (w *World) RestoreHeldOrders(rows []HeldOrderRecord) error {
 }
 
 // releaseHeldOrders ends every held order the advancing World now runs: a
-// body order at once, a frozen order when its actor lives again.
+// body order at once, a frozen order when its actor lives again, a residue
+// when its actor is no longer idle.
 func (w *World) releaseHeldOrders() {
 	for i := range w.entities {
 		e := &w.entities[i]
-		if e.HeldOrder.Kind == HeldOrderBody || e.HeldOrder.Kind == HeldOrderFrozen && (e.Alive() || e.Dying()) {
+		if e.HeldOrder.Kind == HeldOrderBody || e.HeldOrder.Kind == HeldOrderFrozen && (e.Alive() || e.Dying()) ||
+			e.HeldOrder.Kind == HeldOrderResidue && !w.residueIdle(e) {
 			e.HeldOrder = HeldOrder{}
 		}
 	}
+}
+
+// residueIdle reports a living actor that runs no attack, retreat, pending
+// order or cast, so the World writes no completion or countdown of its own.
+func (w *World) residueIdle(e *Entity) bool {
+	if !e.Alive() || e.HasAttackTarget || e.HasPendingAttackTarget || e.Retreat.Known || e.PendingOrder.Kind != PendingNone {
+		return false
+	}
+	phase := w.orderState(e).phase()
+	return phase == orderPhaseNone || phase == orderPhaseStep
 }
 
 const heldOrderFormVersion byte = 118

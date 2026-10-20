@@ -156,8 +156,7 @@ func formation1159Initial(t *testing.T, raw []byte, f *FrontEnd) {
 
 // formation1159CurrentProjection checks the current Player bindings against the
 // initial Snapshot. residue also compares the 31 opaque PRaw32 bytes before the
-// mode byte; the SAV producer writes them as zero, so a front loaded from a SAV
-// keeps identity and mode only.
+// mode byte, which the SAV producer writes from the loaded file.
 func formation1159CurrentProjection(t *testing.T, f *FrontEnd, initial Snapshot, residue bool) {
 	t.Helper()
 	current, _, err := f.Snapshot(true)
@@ -376,7 +375,7 @@ func formation1159SaveCycle(t *testing.T, raw []byte, front func(*testing.T) *Fr
 				t.Fatal("cross-session exact formations or Group owners differ")
 			}
 			formation1159CurrentProjection(t, f, initial, true)
-			formation1159CurrentProjection(t, fresh, initial, false)
+			formation1159CurrentProjection(t, fresh, initial, true)
 			// The second SAVE belongs to the source-free session; a third front
 			// loads it.
 			if err := app2.HeadlessKey("escape"); err != nil {

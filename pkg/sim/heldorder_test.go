@@ -52,7 +52,12 @@ func TestHeldOrdersRefuseAnImpossibleOrder(t *testing.T) {
 		"empty frozen words": {ID: 3, Order: HeldOrder{Kind: HeldOrderFrozen}},
 		"body on a dead":     {ID: 3, Order: HeldOrder{Kind: HeldOrderBody, Target: 1, Phase: 5}},
 		"body without phase": {ID: 1, Order: HeldOrder{Kind: HeldOrderBody, Target: 3}},
-		"unknown kind":       {ID: 1, Order: HeldOrder{Kind: 3}},
+		"unknown kind":       {ID: 1, Order: HeldOrder{Kind: 4}},
+		"residue on a dead":  {ID: 3, Order: HeldOrder{Kind: HeldOrderResidue, Complete: 1}},
+		"empty residue":      {ID: 1, Order: HeldOrder{Kind: HeldOrderResidue}},
+		"residue with phase": {ID: 1, Order: HeldOrder{Kind: HeldOrderResidue, Phase: 5, Complete: 1}},
+		"residue target":     {ID: 1, Order: HeldOrder{Kind: HeldOrderResidue, Target: 3, Complete: 1}},
+		"residue word":       {ID: 1, Order: HeldOrder{Kind: HeldOrderResidue, Countdown: 256}},
 	} {
 		w := mustWorld(t, 3, Bounds{Width: 8, Height: 8}, []Entity{
 			{ID: 1, X: 1, Y: 1, HP: 20, MaxHP: 20},
@@ -62,5 +67,40 @@ func TestHeldOrdersRefuseAnImpossibleOrder(t *testing.T) {
 		if err := w.RestoreHeldOrders([]HeldOrderRecord{row}); err == nil || w.Hash() != before {
 			t.Error(name, "was admitted or changed the World")
 		}
+	}
+}
+
+func TestHeldOrderResidueStaysWhileIdleAndLapsesOnAnOrder(t *testing.T) {
+	w := mustWorld(t, 3, Bounds{Width: 8, Height: 8}, []Entity{
+		{ID: 1, X: 1, Y: 1, HP: 20, MaxHP: 20, Owner: 1},
+		{ID: 2, X: 6, Y: 6, HP: 20, MaxHP: 20, Owner: 2},
+	})
+	residue := HeldOrder{Kind: HeldOrderResidue, Countdown: 116, Complete: 1}
+	before := w.Hash()
+	if err := w.RestoreHeldOrders([]HeldOrderRecord{{ID: 1, Order: residue}}); err != nil {
+		t.Fatal(err)
+	}
+	if w.Hash() == before {
+		t.Fatal("a residue is not hashed World state")
+	}
+	form, err := w.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cold World
+	if err := cold.UnmarshalBinary(form); err != nil || cold.entities[0].HeldOrder != residue {
+		t.Fatal("a residue did not survive the byte form", err)
+	}
+	for range 8 {
+		Step(w, nil)
+		Step(&cold, nil)
+		if w.entities[0].HeldOrder != residue || w.Hash() != cold.Hash() {
+			t.Fatal("an idle actor lost its residue or the cold World diverged")
+		}
+	}
+	// Control: the same actor given an order no longer holds the loaded bytes.
+	Step(w, []Command{Attack(1, 2)})
+	if w.entities[0].HeldOrder != (HeldOrder{}) {
+		t.Fatal("an ordered actor kept its residue", w.entities[0].HeldOrder)
 	}
 }
