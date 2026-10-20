@@ -69,8 +69,8 @@ func TestARefusedPlayerRetreatWalkTakesTheHostileWithinReach(t *testing.T) {
 
 // Each side of refusedWalkArm the Group order and the withdrawal decide,
 // pinned on the answer to one refused walk. The walker stands three cells
-// from the hostile with reach 3 and no victim. A Group order 0 guard takes
-// the pick; a Swarm (order 2) or Roam member takes none, and a Move or
+// from the hostile with reach 3 and no victim. A Group order 0 guard, a
+// Swarm (order 2) and a Roam member take the pick (AI-685); a Move or
 // Swarm 2 member takes none on this first refusal;
 // a withdrawal takes it in any of those Groups, with retreat progress 1
 // (AI-365, AI-649).
@@ -84,9 +84,9 @@ func TestARefusedWalkTakesThePickByGroupOrderAndWithdrawal(t *testing.T) {
 	}{
 		{"order 0", orderNone, false, true},
 		{"Move", orderMove, false, false},
-		{"Swarm order 2", orderSwarm, false, false},
+		{"Swarm order 2", orderSwarm, false, true},
 		{"Swarm 2", orderSwarm2, false, false},
-		{"Roam", orderRoam, false, false},
+		{"Roam", orderRoam, false, true},
 		{"withdrawal in order 0", orderNone, true, true},
 		{"withdrawal in Move", orderMove, true, true},
 		{"withdrawal in Swarm order 2", orderSwarm, true, true},

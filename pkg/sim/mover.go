@@ -80,6 +80,8 @@ type moverRecord struct {
 	Entity EntityID
 	Mask   byte
 	Joined bool
+	// Claim is the walk's claim (walkClaim); the claims form carries it.
+	Claim walkClaim
 }
 
 const moverRecordLen = 2
@@ -153,7 +155,7 @@ func moverRate(e Entity) uint8 {
 
 // heldMover is the record a World keeps of an actor's Mover bytes m.
 func heldMover(e Entity, m *[180]byte, joined bool) moverRecord {
-	return moverRecord{Entity: e.ID, Mask: m[5], Joined: joined}
+	return moverRecord{Entity: e.ID, Mask: m[5], Joined: joined, Claim: readWalkClaim(m)}
 }
 
 // builtMover is the record the builder gives e.
@@ -287,6 +289,7 @@ func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 		cost = w.stepCostWord(e, moverCell(e))
 	}
 	binary.LittleEndian.PutUint16(m[0x72:], cost)
+	putWalkClaim(m, r.Claim)
 	return true
 }
 

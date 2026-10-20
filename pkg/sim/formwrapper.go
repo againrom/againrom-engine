@@ -54,6 +54,7 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{walkClaimFormVersion, "WCL1", trailerSpan32, baseOlder, (*World).unmarshalWalkClaims},
 		{flightRunFormVersion, "FLR1", trailerSpan32, baseOlder, (*World).unmarshalFlightRuns},
 		{originalDeadHealthFormVersion, "DMH1", trailerSpan32, baseOlder, (*World).unmarshalOriginalDeadHealth},
 		{moverFormVersion, "MVR1", trailerSpan32, baseOlder, (*World).unmarshalMovers},

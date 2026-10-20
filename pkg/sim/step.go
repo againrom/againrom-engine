@@ -1005,7 +1005,14 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		}
 
 		sub, serves := w.subGoal(scratch, i)
+		if !serves && w.heldClaim(i) {
+			// The walk stands on the cell its claim was refused for: it ends
+			// with no search, its arrival flag raised (walkClaim).
+			w.restAt(scratch, i)
+			continue
+		}
 		if !serves {
+			w.clearClaimArrival(i)
 			// The stored route does not serve, so one far search: terrain alone,
 			// the whole map, the order's real destination, the budget of the
 			// mover's owner, and leave to SETTLE for a cell near the goal if it

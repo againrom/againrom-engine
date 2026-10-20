@@ -447,18 +447,19 @@ const (
 // answerRefusedWalk answers a refused walk with no victim by its walk state
 // (AI-649): a walk to a sack and, in the first game, each state the tail
 // sends to the reach pick (a guard's walk to its post, an escort closing, a
-// stood-down Move member) take the hostile nearest within reach (AI-648).
-// With none the actor stays. A walk at state 1 stands down instead. A
-// static search's refusal of a Move walk also latches it (latchRefusedWalk).
-// A withdrawal takes the pick through the retreat failure tail, the answer a
-// loaded route-failure flag takes, which also writes its progress (AI-365).
+// stood-down member) take the hostile nearest within reach (AI-648). With
+// none the actor stays. A walk at state 1 stands down instead. A static
+// search's refusal also claims the member's cell (claimRefusedCell), which
+// the order 4 arm's next pass latches (claimLatch). A withdrawal takes the
+// pick through the retreat failure tail, the answer a loaded route-failure
+// flag takes, which also writes its progress (AI-365).
 func (w *World) answerRefusedWalk(i int, by routeSearch) {
 	e := &w.entities[i]
 	if e.HasAttackTarget || e.OffMap {
 		return
 	}
-	if by == searchStatic && w.moveWalk(i) {
-		defer w.latchRefusedWalk(i)
+	if by == searchStatic && w.claimsWalk(i) {
+		w.claimRefusedCell(i)
 	}
 	if e.PendingOrder.Kind != PendingPickup {
 		switch w.refusedWalkArm(i) {
@@ -489,10 +490,9 @@ const (
 
 // refusedWalkArm reports the tail's arm for actor i's refused walk. A
 // withdrawal takes the pick, whatever its Group (AI-365, AI-649). A walk at
-// state 1 stands down (walksAtStateOne); a stood-down Move or Swarm 2 member
-// then takes the pick. The command state of a Swarm (order 2) or Roam member
-// is Unknown; they take none. A patrol and another pending order keep their
-// own answers.
+// state 1 stands down (walksAtStateOne); every other state takes the pick,
+// a member of a Swarm (order 2) or Roam Group included (AI-685). A patrol and
+// another pending order keep their own answers.
 func (w *World) refusedWalkArm(i int) walkArm {
 	e := w.entities[i]
 	if w.SecondGame() || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
@@ -510,9 +510,6 @@ func (w *World) refusedWalkArm(i int) walkArm {
 	if w.walksAtStateOne(i) {
 		return walkArmStandDown
 	}
-	if g := w.savedGroupFor(e.ID); g != nil && (g.AI[0x20] == orderSwarm || g.AI[0x20] == orderRoam) {
-		return walkArmNone
-	}
 	return walkArmPick
 }
 
@@ -529,32 +526,6 @@ func (w *World) walksAtStateOne(i int) bool {
 	}
 	g := w.savedGroupFor(w.entities[i].ID)
 	return g != nil && (g.AI[0x20] == orderMove || g.AI[0x20] == orderSwarm2)
-}
-
-// moveWalk reports whether actor i's walk is a Move walk the order 4 arm's
-// path (b) reads: one at state 1, or a stood-down Move or Swarm 2 member's.
-func (w *World) moveWalk(i int) bool {
-	if w.refusedWalkArm(i) == walkArmStandDown {
-		return true
-	}
-	o := w.savedOrder(w.entities[i].ID)
-	return o != nil && w.savedGroups.stoodDownWalk(o) && w.entities[i].ActorState != actorStateRetreat
-}
-
-// latchRefusedWalk is path (b) of the order 4 arm after a static search's
-// refusal (AI-658): the member stands down to state 0xc on its cell with the
-// arrival latch 1, so the Group acquires for it and sends it nowhere. The
-// original stores it on the next Group pass; nothing reads the latch before.
-func (w *World) latchRefusedWalk(i int) {
-	if w.entities[i].OffMap {
-		return
-	}
-	w.standDownRefusedWalk(i)
-	o := w.savedOrder(w.entities[i].ID)
-	binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
-	if w.entities[i].HasAttackTarget {
-		o.Raw[8] = 6
-	}
 }
 
 // standDownRefusedWalk is the tail's state 1 arm (AI-541, AI-649): the

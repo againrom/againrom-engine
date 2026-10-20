@@ -27,17 +27,18 @@ func heroWalkState(w *sim.World, id sim.EntityID) (state uint32, latch byte, ord
 
 // A hero sent by a Move onto the unreachable creature's cell is refused by
 // the far search, the original's static search (AI-658). The refusal stands
-// it down to state 0xc with its post on its cell and the arrival latch set,
-// and takes no victim; the Move Group then acquires for it and does not send
-// it again, so it takes the hostile beside it and strikes. SAVE and cold LOAD
-// at the stand-down restore the same World, and the loaded hero takes the
-// pick and strikes on the same ticks as the live one.
+// it down to state 0xc with its post on its cell and the arrival latch 0,
+// and takes no victim; the next Group pass latches it (AI-682), then
+// acquires for it and does not send it again, so it takes the hostile beside
+// it and strikes. SAVE and cold LOAD at the stand-down restore the same
+// World, and the loaded hero is latched, takes the pick and strikes on the
+// same ticks as the live one.
 func TestReleaseARefusedMoveTakesTheHostileBesideTheHeroAfterItsStandDown(t *testing.T) {
 	a, _ := openUnreachableMission(t, true, 1, 19, 64)
 	foe := a.get(releaseUnreachableFoe)
 	a.live.pending = append(a.live.pending, sim.GroupMoveTo(a.hero, sim.CellPoint{X: foe.X, Y: foe.Y}, 1))
 	start := a.get(a.beside).HP
-	var stood, picked, struck int
+	var stood, latchedAt, picked, struck int
 	var latch byte
 	var cold *FrontEnd
 	for n := 0; n < 600 && struck == 0; n++ {
@@ -47,8 +48,8 @@ func TestReleaseARefusedMoveTakesTheHostileBesideTheHeroAfterItsStandDown(t *tes
 		justLoaded := false
 		if stood == 0 && order == 4 && state == 0xc {
 			stood, latch = n+1, latched
-			if latch != 1 {
-				t.Fatalf("tick %d: the far search's refusal left arrival latch %d, want 1", n, latch)
+			if latch != 0 {
+				t.Fatalf("tick %d: the far search's refusal left arrival latch %d, want 0 until the Group pass", n, latch)
 			}
 			if h.HasAttackTarget || h.ActorState != 0xc || h.PostX != h.X || h.PostY != h.Y {
 				t.Fatalf("tick %d: the stand-down left victim %v/%d, state %#x, post (%d,%d) at (%d,%d)",
@@ -62,6 +63,12 @@ func TestReleaseARefusedMoveTakesTheHostileBesideTheHeroAfterItsStandDown(t *tes
 			cold.live.tick()
 			assertEntitiesEqual(t, a.live.world, cold.live.world, []sim.EntityID{a.hero, releaseUnreachableFoe, a.beside}, "successor of the stood-down Move member")
 		}
+		if stood != 0 && latchedAt == 0 && latched == 1 {
+			latchedAt = n + 1
+			if !a.live.world.ScriptPassJustRan() {
+				t.Fatalf("tick %d: the latch came on a tick with no Group pass", n)
+			}
+		}
 		if picked == 0 && h.HasAttackTarget && h.AttackTarget == a.beside {
 			picked = n + 1
 			if stood == 0 {
@@ -72,11 +79,11 @@ func TestReleaseARefusedMoveTakesTheHostileBesideTheHeroAfterItsStandDown(t *tes
 			struck = n + 1
 		}
 	}
-	if stood == 0 || picked == 0 || struck == 0 {
+	if stood == 0 || latchedAt <= stood || picked < latchedAt || struck == 0 {
 		h := a.get(a.hero)
 		state, _, order := heroWalkState(a.live.world, a.hero)
-		t.Fatalf("stand-down tick %d, pick tick %d, first blow tick %d; hero at (%d,%d) state %#x/%#x order %d victim %v/%d",
-			stood, picked, struck, h.X, h.Y, h.ActorState, state, order, h.HasAttackTarget, h.AttackTarget)
+		t.Fatalf("stand-down tick %d, latch tick %d, pick tick %d, first blow tick %d; hero at (%d,%d) state %#x/%#x order %d victim %v/%d",
+			stood, latchedAt, picked, struck, h.X, h.Y, h.ActorState, state, order, h.HasAttackTarget, h.AttackTarget)
 	}
-	t.Logf("stand-down at tick %d with arrival latch %d, pick at tick %d, first blow on it at tick %d", stood, latch, picked, struck)
+	t.Logf("stand-down at tick %d with arrival latch %d, latch at tick %d, pick at tick %d, first blow on it at tick %d", stood, latch, latchedAt, picked, struck)
 }

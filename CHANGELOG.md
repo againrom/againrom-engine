@@ -8,6 +8,12 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A unit in a group move that has no way to its spot and is already
+  standing where it can get closest now stops at once and, from the group's next
+  turn, only fights what comes into reach, as in the original. A unit blocked
+  only by other units is sent on again each turn instead. A unit in a group
+  swarm or roam order that cannot get through now also takes on the enemy
+  beside it. A save keeps where such a unit stopped.
 - [ROM1] A male mage made in the character generator now starts with the
   Uncommon Wood Staff, as in the original, and the generator shows that staff in
   his hand: a plain shaft with a small red-orange top. Before, he was given the

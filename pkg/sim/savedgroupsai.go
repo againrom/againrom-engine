@@ -199,6 +199,8 @@ func (w *World) savedGroupMove(i int, o *SavedActorOrder, move bool) {
 		o.Raw[0x14] = uint8(e.Reach)
 		binary.LittleEndian.PutUint32(o.Raw[0x50:], 1)
 		w.clearOrder(i)
+	} else {
+		w.claimLatch(i, o)
 	}
 	if binary.LittleEndian.Uint32(o.Raw[0x50:]) != 0 {
 		w.savedAcquire(i, o)
