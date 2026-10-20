@@ -252,11 +252,13 @@ func (f *FrontEnd) witnessSpeechFocus(t *townScreen, voice audio.Voice, report i
 		return fmt.Errorf("speech buffer did not establish a nonzero phase before focus loss")
 	}
 	save := func() ([]byte, error) {
-		snapshot, _, err := f.Snapshot(false)
-		if err != nil {
-			return nil, err
-		}
-		return f.ExportCurrentSave(snapshot, "Speech focus witness")
+		var raw []byte
+		err := f.captureSave(captureTimer, false, func(snapshot Snapshot, _ string) error {
+			var err error
+			raw, err = f.ExportCurrentSave(snapshot, "Speech focus witness")
+			return err
+		})
+		return raw, err
 	}
 	raw, err := save()
 	if err != nil {

@@ -255,7 +255,11 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 	start.StartingHero = true
 	f.Town.Arrive()
 	f.retainReturnCity(in, n, w)
-	s, _, err := f.Snapshot(false)
+	var s Snapshot
+	err := f.captureSave(captureTimer, false, func(c Snapshot, _ string) error {
+		s = c
+		return nil
+	})
 	if err == nil {
 		var stash []byte
 		if stash, err = f.ExportCurrentSave(s, "guest"); err == nil {

@@ -140,7 +140,11 @@ func (f *FrontEnd) configureTimedAutosave(app *ui.App, current *SaveStore, fence
 				return nil
 			}
 			deadline = now.Add(time.Minute)
-			snapshot, _, err := f.Snapshot(onMap)
+			var snapshot Snapshot
+			err := f.captureSave(captureTimer, onMap, func(s Snapshot, _ string) error {
+				snapshot = s
+				return nil
+			})
 			if err != nil {
 				return err
 			}

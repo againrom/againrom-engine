@@ -137,7 +137,7 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 			// overwrite must leave the World and its hash as they were.
 			var raw []byte
 			var notice string
-			err = f.playerSnapshotUnwritten(request.OnMap, func(s Snapshot) error {
+			err = f.captureSave(captureTentative, request.OnMap, func(s Snapshot, _ string) error {
 				notifySaveCapture(observers, "f2", s)
 				var err error
 				raw, notice, err = f.playerMissionSave(s, label)
@@ -156,7 +156,7 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 				prepared.Commit = func(overwrite bool) ([]string, error) {
 					paths, err := commit(overwrite)
 					if err == nil {
-						_, _ = pruneGroupsForSave(f, request.OnMap)
+						_ = f.captureSave(captureCommitted, request.OnMap, nil)
 					}
 					return paths, err
 				}

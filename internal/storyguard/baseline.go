@@ -2680,6 +2680,10 @@ package storyguard
 // CommentBytes rises for the script Group selector rule and SAVE's empty-Group
 // prune (pkg/sim/savedgroupcommands.go, pkg/sim/savedgroupplayers.go,
 // pkg/game/resume.go, pkg/game/citygroupcarry.go), their tests, plus this note.
+// CommentBytes rises for the one SAVE capture and its mode table
+// (pkg/game/savecapture.go), the one Group-drop applier
+// (pkg/sim/savedgroupplayers.go), the capture rule
+// (internal/archtest/savecapture.go), their tests, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2703,5 +2707,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1703,
 	},
-	CommentBytes: 9316494,
+	CommentBytes: 9319203,
 }

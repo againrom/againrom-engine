@@ -36,7 +36,11 @@ func TestMissionSaveDropsOnlyParticipantZeroEmptyGroups(t *testing.T) {
 			if groups, _, _ := f.live.world.SavedGroups(); len(groups) != 5 {
 				t.Fatal("LOAD did not restore all five Groups", groups)
 			}
-			s, _, err := f.playerSnapshot(true)
+			var s Snapshot
+			err = f.captureSave(captureCommitted, true, func(c Snapshot, _ string) error {
+				s = c
+				return nil
+			})
 			if err != nil {
 				t.Fatal(err)
 			}

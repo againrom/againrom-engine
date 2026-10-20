@@ -176,7 +176,11 @@ func (f *FrontEnd) witnessOwnerFidelity(root, output string, report io.Writer) e
 	if err := a.HeadlessGameMenuAction("return"); err != nil {
 		return err
 	}
-	s, _, err := f.Snapshot(true)
+	var s Snapshot
+	err = f.captureSave(captureTimer, true, func(c Snapshot, _ string) error {
+		s = c
+		return nil
+	})
 	if err != nil {
 		return err
 	}

@@ -171,20 +171,16 @@ func (t *Town) pruneCityGroupsForSave(party []mapload.PartyMember) {
 		return
 	}
 	groups, order := reconcileCityGroups(t.cityGroups, party)
-	kept := groups[:0:0]
-	for g := range groups {
-		if sim.SaveKeepsGroup(0, len(order[g])) {
-			kept = append(kept, groups[g])
-		}
-	}
-	t.cityGroups = kept
+	t.cityGroups, _ = sim.KeepGroupsForSave(groups, func(g int) (uint32, int, bool) {
+		return 0, len(order[g]), true
+	})
 }
 
 // writeCityGroups replaces the constructed single town group with the live
 // groups. Each group keeps its own field values and holds its members in live
 // order. When loaded, the groups came from a LOADed file and a group left with
 // no member is not written if the written Player's participant word +28 is
-// zero (sim.SaveKeepsGroup); a campaign that never LOADed writes every group.
+// zero (sim.KeepGroupsForSave); a campaign that never LOADed writes every group.
 // The owner and group keys were remapped to the written Player or cleared
 // when the group was recorded.
 //
@@ -204,9 +200,15 @@ func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cit
 		participant = binary.LittleEndian.Uint32(written.Fixed[15:19])
 	}
 	groups, order := reconcileCityGroups(live, party)
+	var drops []bool
+	if loaded {
+		_, drops = sim.KeepGroupsForSave(groups, func(g int) (uint32, int, bool) {
+			return participant, len(order[g]), true
+		})
+	}
 	written.Groups = nil
 	for g := range groups {
-		if loaded && !sim.SaveKeepsGroup(participant, len(order[g])) {
+		if drops != nil && drops[g] {
 			continue
 		}
 		p := groups[g].Payload

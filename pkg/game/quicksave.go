@@ -82,7 +82,11 @@ func (f *FrontEnd) configureQuickSave(app *ui.App, current *SaveStore, fences []
 			if current.Dir == "" {
 				return fmt.Errorf("no quicksave directory")
 			}
-			snapshot, _, err := f.playerSnapshot(onMap)
+			var snapshot Snapshot
+			err := f.captureSave(captureCommitted, onMap, func(s Snapshot, _ string) error {
+				snapshot = s
+				return nil
+			})
 			if err != nil {
 				return err
 			}

@@ -78,45 +78,6 @@ func (mw *mapWorld) applyExplored(cols, rows int, explored []byte) bool {
 	return true
 }
 
-// playerSnapshot is Snapshot for a SAVE the player asks for. It first removes
-// the Groups sim.SaveKeepsGroup drops from the live lists a LOAD set, the
-// mission World's or the town's (SAV-1251), so the file and the play that
-// follows hold the same lists. An autosave captures without it: a timer must
-// not change hashed state.
-func (f *FrontEnd) playerSnapshot(onMap bool) (Snapshot, string, error) {
-	_, _ = pruneGroupsForSave(f, onMap)
-	return f.Snapshot(onMap)
-}
-
-// pruneGroupsForSave is the one entry point at which a SAVE removes the Groups
-// the original's SAVE removes. It returns the function that
-// restores the lists, for a caller that builds the file before it is known
-// that the file is written.
-func pruneGroupsForSave(f *FrontEnd, onMap bool) (bool, func()) {
-	if onMap && f.live != nil && f.live.world != nil && f.liveMission != 0 {
-		return f.live.world.PruneGroupsForSaveUndo()
-	}
-	if !onMap && f.Town != nil {
-		before := f.Town.cityGroups
-		f.Town.pruneCityGroupsForSave(f.Carried)
-		return true, func() { f.Town.cityGroups = before }
-	}
-	return false, func() {}
-}
-
-// playerSnapshotUnwritten is playerSnapshot for a request that may write
-// nothing. It captures the pruned lists, then puts the live lists back; the
-// caller prunes again (pruneGroupsForSave) when the file is written.
-func (f *FrontEnd) playerSnapshotUnwritten(onMap bool, build func(Snapshot) error) error {
-	_, undo := pruneGroupsForSave(f, onMap)
-	defer undo()
-	s, _, err := f.Snapshot(onMap)
-	if err != nil {
-		return err
-	}
-	return build(s)
-}
-
 // Snapshot captures the running game.
 //
 // IT REFUSES A MAP THAT IS NOT A MISSION. A map opened from the picker names no
@@ -462,20 +423,21 @@ func (f *FrontEnd) SaveSeams(store SaveStore, orig OriginalStore, now func() tim
 		now = time.Now
 	}
 	save := func(onMap bool) (string, error) {
-		s, label, err := f.playerSnapshot(onMap)
-		if err != nil {
-			return "", err
-		}
-		notifySaveCapture(observers, "manual", s)
-		encoded, err := encodeSaveLabel(label, f.textSelector())
-		if err != nil {
-			return "", err
-		}
-		b, err := f.ExportCurrentSave(s, encoded)
-		if err != nil {
-			return "", err
-		}
-		return store.WriteOriginal(orig.Dir, b)
+		var path string
+		err := f.captureSave(captureCommitted, onMap, func(s Snapshot, label string) error {
+			notifySaveCapture(observers, "manual", s)
+			encoded, err := encodeSaveLabel(label, f.textSelector())
+			if err != nil {
+				return err
+			}
+			b, err := f.ExportCurrentSave(s, encoded)
+			if err != nil {
+				return err
+			}
+			path, err = store.WriteOriginal(orig.Dir, b)
+			return err
+		})
+		return path, err
 	}
 	// OURS FIRST, THE ORIGINAL GAME'S AFTER, and the two are NOT interleaved by
 	// time. A player who has just saved wants his own file at the top, and the

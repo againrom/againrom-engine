@@ -14,7 +14,11 @@ func (f *FrontEnd) autosaveMissionStart(viewer *ui.Viewer, store SaveStore, orig
 		f.live.mission == nil || f.live.mission.resumed || f.live.world.Tick() != 0 {
 		return
 	}
-	captured, _, err := f.Snapshot(true)
+	var captured Snapshot
+	err := f.captureSave(captureTimer, true, func(s Snapshot, _ string) error {
+		captured = s
+		return nil
+	})
 	if err != nil {
 		viewer.PostMessage("cannot autosave mission start: "+err.Error(), ui.MessageWhite, 15*time.Second)
 		return

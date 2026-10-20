@@ -195,6 +195,34 @@ func SaveKeepsGroup(participant uint32, members int) bool {
 	return members != 0 || participant != 0
 }
 
+// KeepGroupsForSave is the one applier of SaveKeepsGroup: the World's prune,
+// the town's prune and the town writer decide through it. at answers Group
+// i's Player participant word, its member count and whether a Player holds
+// it; a Group no Player holds is kept. It returns the kept Groups in order and
+// whether SAVE drops each Group; with no drop it returns groups and nil.
+func KeepGroupsForSave[G any](groups []G, at func(i int) (participant uint32, members int, held bool)) ([]G, []bool) {
+	var drops []bool
+	for i := range groups {
+		participant, members, held := at(i)
+		if held && !SaveKeepsGroup(participant, members) {
+			if drops == nil {
+				drops = make([]bool, len(groups))
+			}
+			drops[i] = true
+		}
+	}
+	if drops == nil {
+		return groups, nil
+	}
+	kept := groups[:0:0]
+	for i, g := range groups {
+		if !drops[i] {
+			kept = append(kept, g)
+		}
+	}
+	return kept, drops
+}
+
 // PruneGroupsForSave applies SaveKeepsGroup to the live lists, as the
 // original's SAVE removes the Groups from its live Player lists before it
 // opens the file (SAV-1251). The World half and the document a SAVE writes
@@ -213,7 +241,15 @@ func (w *World) PruneGroupsForSave() bool {
 // confirmed an overwrite, so it undoes the prune after the build and prunes
 // again when the file is written. The undo is never nil.
 func (w *World) PruneGroupsForSaveUndo() (bool, func()) {
-	if w.groupDialectNative() || w.savedGroups.fresh || !slices.ContainsFunc(w.savedGroups.Groups, w.saveDropsGroup) {
+	if w.groupDialectNative() || w.savedGroups.fresh {
+		return false, func() {}
+	}
+	s := cloneSavedGroups(w.savedGroups)
+	kept, drops := KeepGroupsForSave(s.Groups, func(i int) (uint32, int, bool) {
+		participant, held := w.savedGroupParticipant(&s.Groups[i])
+		return participant, len(s.Groups[i].Members), held
+	})
+	if drops == nil {
 		return false, func() {}
 	}
 	before := w.savedGroups
@@ -222,13 +258,12 @@ func (w *World) PruneGroupsForSaveUndo() (bool, func()) {
 		bindings[i] = w.entities[i].SourceBinding
 	}
 	dropped := map[uint32]bool{}
-	for _, g := range w.savedGroups.Groups {
-		if w.saveDropsGroup(g) {
+	for i, g := range s.Groups {
+		if drops[i] {
 			dropped[g.ID] = true
 		}
 	}
-	s := cloneSavedGroups(w.savedGroups)
-	s.Groups = slices.DeleteFunc(s.Groups, w.saveDropsGroup)
+	s.Groups = kept
 	w.savedGroups = s
 	w.rebindDroppedSourceGroups(dropped)
 	w.syncSourceGroupSelectors()
@@ -259,11 +294,6 @@ func (w *World) rebindDroppedSourceGroups(dropped map[uint32]bool) {
 			b.GroupOwnerSlot, b.GroupOwnerResolved = uint16(g.Owner.Owner), g.Owner.Class != 0
 		}
 	}
-}
-
-func (w *World) saveDropsGroup(g SavedGroup) bool {
-	participant, held := w.savedGroupParticipant(&g)
-	return held && !SaveKeepsGroup(participant, len(g.Members))
 }
 
 // savedGroupParticipant answers the participant word of the Player whose list
