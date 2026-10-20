@@ -10,9 +10,9 @@ func publishSessionEntry(ms *Mission) {
 		return
 	}
 	registry := ms.World.SavedObjects()
-	for _, id := range carried {
-		if row, ok := registry.Item(id); ok {
-			ms.pendingPickups = append(ms.pendingPickups, row.Value)
+	for _, held := range carried {
+		if row, ok := registry.Item(held.ID); ok {
+			ms.pendingPickups = append(ms.pendingPickups, heldStack{stack: row.Value, holder: held.Holder})
 		}
 	}
 	if ms.savedDocument == nil || ms.savedDocument.Objects == nil || ms.savedDocument.Document == nil {

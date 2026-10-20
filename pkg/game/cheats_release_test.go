@@ -173,7 +173,10 @@ func TestReleaseCheatCreateUsesAppAndOrdinarySAV(t *testing.T) {
 			}
 			if kind == "gold" {
 				words := f.live.view.Words()
-				gold := pickupGoldLine(&words, 37)
+				gold := grantGoldLine(&words, 37)
+				if lit := releaseRootText(f.live, "Received 37 gold", "Получено: 37 монет"); gold != lit {
+					t.Fatalf("the cheat gold line reads %q, want %q", gold, lit)
+				}
 				for _, line := range f.live.view.MessageLines() {
 					if line.Text == gold {
 						t.Fatal("a refused create stated the gold line")
@@ -181,8 +184,8 @@ func TestReleaseCheatCreateUsesAppAndOrdinarySAV(t *testing.T) {
 				}
 				cheatChat(t, a, "#create 37 Gold")
 				cheatNoticeWant(t, f, 7)
-				// The credit states the gold line a sack take states, ahead of
-				// the success notice (MENU-104, ITEM-PICKTEXT-145).
+				// The credit states the received gold line, naming nobody, ahead
+				// of the success notice (MENU-104, DIV-3767).
 				if lines := f.live.view.MessageLines(); len(lines) < 2 || lines[len(lines)-2].Text != gold {
 					t.Fatalf("create gold lines %+v, want %q before the notice", lines, gold)
 				}
@@ -203,6 +206,16 @@ func TestReleaseCheatCreateUsesAppAndOrdinarySAV(t *testing.T) {
 				if got := cheatItemCount(t, f.live.world, id, code); got != before+2 {
 					t.Fatalf("created item count=%d, want %d", got, before+2)
 				}
+				// The created Item states the received line with its count and
+				// the hero's name, ahead of the success notice (DIV-3766).
+				lines, holder := f.live.view.MessageLines(), messageHolder(t, f.live, id)
+				words := f.live.view.Words()
+				want := grantItemLine(&words, itemName(data.ItemCode(code), f.live.invParty.table), uint32(before+2), holder)
+				lead := releaseRootText(f.live, "Received ", "Получено: ")
+				if len(lines) < 2 || lines[len(lines)-2].Text != want || !strings.HasPrefix(want, lead) || !strings.HasSuffix(want, ", "+holder+")") {
+					t.Fatalf("create item lines %+v, want %q before the notice", lines, want)
+				}
+				t.Logf("cheat item line %q", messageShown(t, f.Font.Value(), want))
 				cold, coldID := cheatCold(t, f)
 				if got := cheatItemCount(t, cold.live.world, coldID, code); got != before+2 {
 					t.Fatalf("cold item count=%d, want %d", got, before+2)
@@ -705,7 +718,7 @@ func TestReleaseCheatPickupAllUsesAppAndOrdinarySAV(t *testing.T) {
 	// Each sack is an ordinary pickup: its lines precede the reply and the
 	// frame log line, the gold line among them, and the pickup completes.
 	words := f.live.view.Words()
-	gold, posted := pickupGoldLine(&words, int32(want-before)), lines[lineCount:len(lines)-2]
+	gold, posted := pickupGoldLine(&words, int32(want-before), messageHolder(t, f.live, id)), lines[lineCount:len(lines)-2]
 	hasGold := false
 	for _, line := range posted {
 		hasGold = hasGold || line.Text == gold

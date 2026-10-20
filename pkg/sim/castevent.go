@@ -101,6 +101,7 @@ type castObs struct {
 	projectilePhases []ProjectilePhase
 	projectileMarks  []ProjectileMark
 	purseCredits     []PurseCredit
+	itemGrants       []ItemGrant
 }
 
 // PurseCredit is one script money grant to a player's purse: the purse
@@ -114,6 +115,20 @@ type PurseCredit struct {
 func (o *castObs) recordPurseCredit(player, before, after uint32) {
 	if o != nil {
 		o.purseCredits = append(o.purseCredits, PurseCredit{Player: player, Before: before, After: after})
+	}
+}
+
+// ItemGrant is one Item a mission script gave a unit: the unit and its carried
+// stacks before and after the grant. The client states each stack the grant
+// reached, named for the unit (DIV-3766).
+type ItemGrant struct {
+	Holder        EntityID
+	Before, After []ItemStack
+}
+
+func (o *castObs) recordItemGrant(holder EntityID, before, after []ItemStack) {
+	if o != nil {
+		o.itemGrants = append(o.itemGrants, ItemGrant{Holder: holder, Before: before, After: after})
 	}
 }
 

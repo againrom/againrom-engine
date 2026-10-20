@@ -113,7 +113,7 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 	if len(mainLines) <= 89 || mainLines[88] == "" || mainLines[89] == "" {
 		t.Fatalf("main.txt holds %d lines, want the gold words 88 and 89", len(mainLines))
 	}
-	goldLine := mainLines[88] + " 200 " + mainLines[89]
+	goldLine := mainLines[88] + " 200 " + mainLines[89] + " (" + messageHolder(t, f.live, id) + ")"
 	requireInkedNoticeGlyphs(t, font, goldLine)
 	if rows := f.live.view.MessageLines(); !reflect.DeepEqual(rows, announced(goldLine)) {
 		t.Fatalf("natural gold pickup posted %+v, want the one line %q", rows, goldLine)

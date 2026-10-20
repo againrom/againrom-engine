@@ -137,6 +137,7 @@ func TestInstallWordsWithoutTablesAreAuthored(t *testing.T) {
 				want.ItemMagic, want.ItemSpellOf = "\x8c\x80\x83\x88\x9f:", "\xe1 \xa7\xa0\xaa\xab\xa8\xad\xa0\xad\xa8\xa5\xac"
 				want.DurationUnit = "\xe1\xa5\xaa"
 				want.ItemRays, want.TavernSleep = "\x8b\xe3\xe7\xa8", "\x91\xaf\xa0\xe2\xec"
+				want.Received = "\x8f\xae\xab\xe3\xe7\xa5\xad\xae:"
 			}
 			if got := w.Words(); got != want {
 				t.Fatal("missing tables did not retain authored labels for the chosen language")

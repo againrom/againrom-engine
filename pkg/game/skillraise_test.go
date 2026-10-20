@@ -81,7 +81,8 @@ func TestSkillRaiseNoticeUsesTheViewerInstallLine(t *testing.T) {
 }
 
 // Every slot 1..5 takes its own line of the resolved word set, in both
-// classes, and slot 0 has none.
+// classes, then the raised character's name in parentheses (DIV-1449), and
+// slot 0 has none.
 func TestSkillRiseRowsTakeTheResolvedLineForEverySlot(t *testing.T) {
 	words := ui.AuthoredWords()
 	for i := range words.SkillRaised {
@@ -92,7 +93,7 @@ func TestSkillRiseRowsTakeTheResolvedLineForEverySlot(t *testing.T) {
 		for slot := range current {
 			current[slot] = int32(20 + slot)
 		}
-		got := skillRiseRows(&words, mage, last, current)
+		got := skillRiseRows(&words, mage, last, current, "Gord")
 		if len(got) != 5 {
 			t.Fatalf("mage=%v: %+v, want five rows and none for slot 0", mage, got)
 		}
@@ -101,7 +102,7 @@ func TestSkillRiseRowsTakeTheResolvedLineForEverySlot(t *testing.T) {
 			if mage {
 				line += 5
 			}
-			if want := fmt.Sprintf("line %d: %d", line, 21+i); row != want {
+			if want := fmt.Sprintf("line %d: %d (Gord)", line, 21+i); row != want {
 				t.Errorf("mage=%v slot %d = %q, want %q", mage, i+1, row, want)
 			}
 		}

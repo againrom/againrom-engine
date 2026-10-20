@@ -85,7 +85,7 @@ type Mission struct {
 	actorRegistry      *originalActorRegistry
 	originalSaveReport *OriginalSaveResume
 	savedDocument      *SnapshotSAVDocument
-	pendingPickups     []sim.ItemStack
+	pendingPickups     []heldStack
 
 	// DeadArt resolves a virtual corpse's TypeID. Original LOAD and the admitted
 	// document on native LOAD both reconstruct this presentation-only map.

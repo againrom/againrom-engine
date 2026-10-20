@@ -173,6 +173,10 @@ type Words struct {
 	PickedUpPieces   string
 	PickedUpGold     string
 	PickedUpGoldUnit string
+	// Received is the engine's own lead of the line an Item or gold given by a
+	// mission script or the cheat states, in the install's language
+	// (DIV-3766, DIV-3767).
+	Received string
 
 	// SettingNotice is main.txt global slots 94..116 and 218..220 at their own
 	// subscripts: the line a settings key posts for its new state (retreat
@@ -320,6 +324,7 @@ func AuthoredWords() Words {
 		PickedUpPieces:   "pieces",
 		PickedUpGold:     "Picked up",
 		PickedUpGoldUnit: "gold",
+		Received:         english.Text("item.received"),
 	}
 	for i, s := range map[int]string{
 		15: "BODY", 16: "AGILITY", 17: "MIND", 18: "SPIRIT",

@@ -1667,6 +1667,10 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 			n := w.sourceMutationCopy(i)
 			w = &n
 		}
+		var held []ItemStack
+		if obs != nil && i < len(w.carried) {
+			held = cloneStacks(w.carried[i])
+		}
 		before := w.beginLoadMutation(i)
 		if !w.addCarried(i, StackItem(PlainItem(in.Item), 1)) {
 			return
@@ -1676,6 +1680,9 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		}
 		if w != live {
 			*live = *w
+		}
+		if obs != nil && i < len(live.carried) {
+			obs.recordItemGrant(live.entities[i].ID, held, cloneStacks(live.carried[i]))
 		}
 
 	case ScriptInstantTakeItem:

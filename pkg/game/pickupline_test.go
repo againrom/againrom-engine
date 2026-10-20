@@ -98,7 +98,8 @@ func TestSackPickupMergedIntoACarriedItemStatesItsNewCount(t *testing.T) {
 }
 
 // Items a LOAD publishes at session entry post the same line, one row per
-// flagged carried Item, each stating its own count (SAV-1114, SAV-1115).
+// flagged carried Item, each stating its own count (SAV-1114, SAV-1115) and
+// its holder.
 func TestSessionEntryPickupRowsStateThePickedUpLine(t *testing.T) {
 	w, err := sim.NewLootWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH}, sim.ModeCanonical, sim.Terrain{},
 		[]sim.Entity{{ID: 7, X: 3, Y: 3, Owner: sim.SelfSlot, HP: 20, MaxHP: 20}}, nil, sim.Relations{}, nil)
@@ -109,9 +110,12 @@ func TestSessionEntryPickupRowsStateThePickedUpLine(t *testing.T) {
 	ms := &Mission{Number: 1, Map: m, World: w,
 		Party:          []mapload.PartyMember{{PlayerCharacter: true, StartingHero: true}},
 		Start:          mapload.Start{IDs: []sim.EntityID{7}},
-		pendingPickups: []sim.ItemStack{sim.PlainStack(eqSwordCode, 1), sim.PlainStack(eqSwordCode, 3)}}
+		pendingPickups: []heldStack{{sim.PlainStack(eqSwordCode, 1), 7}, {sim.PlainStack(eqSwordCode, 3), 7}, {sim.PlainStack(eqSwordCode, 2), 0}}}
+	ms.Party[0].Name = "Gord"
 	mw := openMission(ms, eqDefsTable(t), nil, worldFixtureViewer(t, m), missionSource{}, nil, nil)
-	want := announced("Picked up Sword", "Picked up Sword (now 3 pieces)")
+	// Each line names its holder (DIV-3765); an Item whose holder the world no
+	// longer holds names nobody.
+	want := announced("Picked up Sword (Gord)", "Picked up Sword (now 3 pieces, Gord)", "Picked up Sword (now 2 pieces)")
 	if rows := mw.view.MessageLines(); !reflect.DeepEqual(rows, want) {
 		t.Fatalf("session entry posted %+v, want %+v", rows, want)
 	}

@@ -51,15 +51,24 @@ func (w *World) PublishSessionEntry(recipient uint32) int {
 	return cleared
 }
 
+// HeldObject is a saved object and the entity whose pack holds it.
+type HeldObject struct {
+	Holder EntityID
+	ID     SavedObjectID
+}
+
 // PublishSessionEntryWithCarried also returns each flagged carried Item reached
-// by the publication. Equipped Items still clear their flags without a line.
-func (w *World) PublishSessionEntryWithCarried(recipient uint32) (int, []SavedObjectID) {
+// by the publication and its holder. Equipped Items still clear their flags
+// without a line.
+func (w *World) PublishSessionEntryWithCarried(recipient uint32) (int, []HeldObject) {
 	cleared := 0
-	var announced []SavedObjectID
+	var announced []HeldObject
 	for i := range w.entities {
 		n, carried := w.publishActorItems(i, recipient, true)
 		cleared += n
-		announced = append(announced, carried...)
+		for _, id := range carried {
+			announced = append(announced, HeldObject{Holder: w.entities[i].ID, ID: id})
+		}
 	}
 	return cleared, announced
 }

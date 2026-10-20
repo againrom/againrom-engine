@@ -1155,7 +1155,11 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// set is installed, including any joined actor recovered from a saved world.
 	mw.push()
 	words := v.Words()
-	announce(v, pickupLinesForItems(ms.pendingPickups, t, &words))
+	var pending []namedStack
+	for _, p := range ms.pendingPickups {
+		pending = append(pending, mw.named([]sim.ItemStack{p.stack}, p.holder)...)
+	}
+	announce(v, pickupLinesForItems(pending, t, &words))
 	ms.pendingPickups = nil
 
 	// A saved Player outcome is already reported state, not a new script edge.
@@ -3199,7 +3203,7 @@ func (mw *mapWorld) skillRises() []string {
 		if words == nil {
 			words = mw.skillRaiseWords()
 		}
-		rows = append(rows, skillRiseRows(words, e.MaxMana > 0, last, e.Skill)...)
+		rows = append(rows, skillRiseRows(words, e.MaxMana > 0, last, e.Skill, mw.shownName(e.ID))...)
 	}
 	if mw.view != nil {
 		announce(mw.view, rows)
@@ -3228,10 +3232,11 @@ func (mw *mapWorld) skillRaiseWords() *ui.Words {
 // passing the same array for both answers nil (AC-9's "a tick with no raise
 // posts nothing", read down to this function's own domain).
 //
-// Each row is the slot's raise line and its new level (DIV-1449), in slot
-// order. Slot 0 has no raise line and posts nothing: no mission award raises
-// it (HERO-SKILLGATE-074, HERO-SKILLBUY-076).
-func skillRiseRows(words *ui.Words, mage bool, last, current [data.SkillSlots]int32) []string {
+// Each row is the slot's raise line, its new level and the raised
+// character's name in parentheses (DIV-1449), in slot order. Slot 0 has no
+// raise line and posts nothing: no mission award raises it
+// (HERO-SKILLGATE-074, HERO-SKILLBUY-076).
+func skillRiseRows(words *ui.Words, mage bool, last, current [data.SkillSlots]int32, name string) []string {
 	var rows []string
 	for slot := int32(0); slot < data.SkillSlots; slot++ {
 		if current[slot] <= last[slot] {
@@ -3241,7 +3246,11 @@ func skillRiseRows(words *ui.Words, mage bool, last, current [data.SkillSlots]in
 		if !ok {
 			continue
 		}
-		rows = append(rows, fmt.Sprintf("%s: %d", line, current[slot]))
+		row := fmt.Sprintf("%s: %d", line, current[slot])
+		if name != "" {
+			row += " (" + name + ")"
+		}
+		rows = append(rows, row)
 	}
 	return rows
 }
@@ -3684,13 +3693,13 @@ func (mw *mapWorld) announceTake(id, primary sim.EntityID, primaryOK bool, take 
 	if !take() {
 		return false
 	}
-	var reached []sim.ItemStack
+	var reached []namedStack
 	for k, holder := range holders {
 		after, _ := mw.world.CarriedStacks(holder)
-		reached = append(reached, reachedStacks(before[k], after)...)
+		reached = append(reached, mw.named(reachedStacks(before[k], after), holder)...)
 	}
 	words := mw.view.Words()
-	announce(mw.view, pickupLinesForTake(reached, purseGain(purse, mw.world.Purse(sim.SelfSlot)), mw.invParty.table, &words))
+	announce(mw.view, pickupLinesForTake(reached, purseGain(purse, mw.world.Purse(sim.SelfSlot)), mw.shownName(id), mw.invParty.table, &words))
 	return true
 }
 
@@ -4148,7 +4157,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 		}
 	}
 	mw.observeScriptMessages(report.ScriptMessages)
-	mw.observePurseCredits(report.PurseCredits)
+	mw.observeGrants(report.PurseCredits, report.ItemGrants)
 	for _, observe := range reportSink {
 		observe(report)
 	}
@@ -5018,13 +5027,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			c = body
 		}
 
-		name := ""
-		if c != nil {
-			name = c.Name
-		}
-		if saved, ok := mw.actorNames[e.ID]; ok {
-			name = saved
-		}
+		name, nameIndex, definitionCharName := mw.drawnName(&e, c, unitNames)
 
 		// THE TWO EXPERIENCE-BEARING MEMBERS ARE OVERLAID FROM THE ENTITY OF THIS
 		// TICK, not from what the load computed — Combat below already reads e
@@ -5048,19 +5051,9 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		// (world.go), so the map itself moves for that one field and this loop
 		// reads the current name by reading the map — no second resolve on a
 		// tick, and no per-entity work for the entities that cannot re-arm.
-		ordinary := (e.SourceBinding.ActorClass() == 1 || !sim.InPersistBand(e.TypeID)) &&
-			mw.missionPartyMember(e.ID) == nil
-		definitionName := ""
-		if ordinary && mw.mission != nil {
-			definitionName = sourceActorDefinitionName(mw.mission.table, e.SourceBinding)
-		}
-		sourceClassName := definitionName != "" && mw.actorNames[e.ID] == definitionName
 		char := mw.chars[e.ID]
-		if ordinary && definitionName != "" && char.Name == definitionName {
+		if definitionCharName {
 			char.Name = ""
-		}
-		if char.Name != "" {
-			name = char.Name
 		}
 		if char.Known {
 			for k := range char.Protection {
@@ -5092,20 +5085,6 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			if weaponSpellKnown {
 				worn, _ := mw.world.EquippedItems(e.ID)
 				spellBase, spellSpread, spellDamageKnown = mageCardDamage(worn[0], mw.world.Rules(), spells)
-			}
-		}
-		nameIndex := int(e.TypeID)
-		nativeClassName := e.SourceBinding.Class == 0 && e.ActorLoad.Source.Class == 0 &&
-			e.NativeBasis.HasValues() && c != nil && mw.actorNames[e.ID] == c.Name
-		if !ordinary && char.UnitNameIndex != 0 {
-			nameIndex = char.UnitNameIndex
-		}
-		if (ordinary || char.Known) && char.Name == "" && (mw.actorNames[e.ID] == "" || nativeClassName || sourceClassName) {
-			if ordinary {
-				name = ""
-			}
-			if nameIndex >= 0 && nameIndex < len(unitNames) && unitNames[nameIndex] != "" {
-				name = unitNames[nameIndex]
 			}
 		}
 		playerCharacter := mw.isGuarded(e.ID)

@@ -147,11 +147,16 @@ func (mw *mapWorld) runChatCommand(row chatCommandRow, arg string) bool {
 		if name == "Gold" || row.foldGold && strings.EqualFold(name, "Gold") {
 			before := mw.world.Purse(hero.Owner)
 			ok = mw.world.CheatAddGold(hero.Owner, count)
-			if ok && hero.Owner == sim.SelfSlot && !mw.world.SecondGame() {
-				mw.announcePurseGain(before, mw.world.Purse(hero.Owner))
+			if ok && hero.Owner == sim.SelfSlot {
+				mw.announcePurseGrant(before, mw.world.Purse(hero.Owner))
 			}
 		} else if item, found := mapload.CheatItem(EncodeInstallText(name, mw.view.TextSelector()), mw.mission.table); found {
+			before, _ := mw.world.CarriedStacks(hero.ID)
 			ok = mw.world.CheatAddItem(hero.ID, sim.StackItem(item, count))
+			if ok {
+				after, _ := mw.world.CarriedStacks(hero.ID)
+				mw.announceItemGrant(hero.ID, before, after)
+			}
 		}
 		if !ok {
 			mw.cheatNotice(6)

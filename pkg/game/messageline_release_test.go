@@ -75,10 +75,10 @@ func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
 		if len(got) != 1 || got[0].Count != held+2 {
 			t.Fatalf("the take left %+v of the Item in the pack, want one Item of %d", got, held+2)
 		}
-		name := itemName(data.ItemCode(code), live.invParty.table)
+		name, holder := itemName(data.ItemCode(code), live.invParty.table), messageHolder(t, live, hero)
 		requireMessageLines(t, f, []string{
-			words[3] + " " + strconv.FormatUint(uint64(sack.Gold), 10) + " " + words[4],
-			messageItemLine(words, name, got[0].Count),
+			words[3] + " " + strconv.FormatUint(uint64(sack.Gold), 10) + " " + words[4] + " (" + holder + ")",
+			messageItemLine(words, name, got[0].Count, holder),
 		})
 		requireMessageExpiry(t, f, app, live, 2)
 	})
@@ -109,7 +109,7 @@ func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
 			t.Fatalf("the take left %+v in the pack, want one Item of one", got)
 		}
 		name := itemName(data.ItemCode(code), live.invParty.table)
-		requireMessageLines(t, f, []string{messageItemLine(words, name, 1)})
+		requireMessageLines(t, f, []string{messageItemLine(words, name, 1, messageHolder(t, live, hero))})
 	})
 
 	t.Run("a unit merged into a carried Item", func(t *testing.T) {
@@ -137,28 +137,29 @@ func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
 			t.Fatalf("the take left %+v in the pack, want the carried Item back at %d", got, count)
 		}
 		name := itemName(data.ItemCode(code), live.invParty.table)
-		requireMessageLines(t, f, []string{messageItemLine(words, name, count)})
+		requireMessageLines(t, f, []string{messageItemLine(words, name, count, messageHolder(t, live, hero))})
 	})
 
 	t.Run("gold and four Items", func(t *testing.T) {
-		f, _, live, _ := openSave(t)
+		f, _, live, hero := openSave(t)
+		holder := messageHolder(t, live, hero)
 		codes := []data.ItemCode{data.QuestDocumentCode, 0xf70d, 0x810e, 0xfc1b}
-		var reached []sim.ItemStack
-		want := []string{words[3] + " 272 " + words[4]}
+		var reached []namedStack
+		want := []string{words[3] + " 272 " + words[4] + " (" + holder + ")"}
 		for _, code := range codes {
-			reached = append(reached, sim.PlainStack(uint16(code), 1))
-			want = append(want, messageItemLine(words, itemName(code, live.invParty.table), 1))
+			reached = append(reached, namedStack{sim.PlainStack(uint16(code), 1), holder})
+			want = append(want, messageItemLine(words, itemName(code, live.invParty.table), 1, holder))
 		}
 		if words[0] == "Picked up" {
 			enNames := []string{"Valuable Documents", "Mage's Robe", "Wood Shaman Staff", "Mage's Shoes"}
 			for i, n := range enNames {
-				if want[i+1] != "Picked up "+n {
-					t.Fatalf("row %d reads %q, want %q", i+1, want[i+1], "Picked up "+n)
+				if want[i+1] != "Picked up "+n+" ("+holder+")" {
+					t.Fatalf("row %d reads %q, want %q", i+1, want[i+1], "Picked up "+n+" ("+holder+")")
 				}
 			}
 		}
 		view := f.Words
-		announce(live.view, pickupLinesForTake(reached, 272, live.invParty.table, &view))
+		announce(live.view, pickupLinesForTake(reached, 272, holder, live.invParty.table, &view))
 		requireMessageLines(t, f, want)
 	})
 
@@ -171,6 +172,7 @@ func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
 		}
 		lines := strings.Split(string(raw), "\r\n")
 		before, after, _ := raiseSkillByOrders(t, f, false)
+		holder := messageHolder(t, f.live, f.live.mission.ids[0])
 		slot := -1
 		for s := range after.Skill {
 			if after.Skill[s] != before.Skill[s] {
@@ -180,7 +182,7 @@ func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
 		if slot < 1 || slot > 5 || len(lines) <= 130+slot-1 {
 			t.Fatalf("skills %v -> %v: want one weapon skill raised", before.Skill, after.Skill)
 		}
-		requireMessageLines(t, f, []string{lines[130+slot-1] + ": " + strconv.Itoa(int(after.Skill[slot]))})
+		requireMessageLines(t, f, []string{lines[130+slot-1] + ": " + strconv.Itoa(int(after.Skill[slot])) + " (" + holder + ")"})
 	})
 }
 
@@ -212,14 +214,33 @@ func messageInstalledWords(t *testing.T, f *FrontEnd) [5]string {
 	return want
 }
 
-// messageItemLine is the documented Item line: string 85 and the name, and for
-// a count above one ` (`, string 86, the count, string 87 and `)`, each part
-// after one space.
-func messageItemLine(words [5]string, name string, count uint32) string {
+// messageItemLine is the documented Item line: string 85 and the name, then in
+// parentheses for a count above one string 86, the count and string 87, each
+// part after one space, and the holder's name after `, ` (DIV-3765).
+func messageItemLine(words [5]string, name string, count uint32, holder string) string {
 	if count > 1 {
-		return fmt.Sprintf("%s %s (%s %d %s)", words[0], name, words[1], count, words[2])
+		return fmt.Sprintf("%s %s (%s %d %s, %s)", words[0], name, words[1], count, words[2], holder)
 	}
-	return words[0] + " " + name
+	return words[0] + " " + name + " (" + holder + ")"
+}
+
+// messageHolder is the name the selection card shows for id, read from the
+// entity the map draws, which a line about that character states; it fails
+// when the card shows none or the lines' own reading differs.
+func messageHolder(t *testing.T, live *mapWorld, id sim.EntityID) string {
+	t.Helper()
+	for _, d := range live.entityDraws() {
+		if d.ID != uint32(id) {
+			continue
+		}
+		name, ok := ui.PanelSubjectName(ui.PanelSubject{Kind: ui.InspectionUnit, Name: d.Name, UnitNameIndex: d.UnitNameIndex, Words: live.view.Words()})
+		if !ok || name == "" || name != live.shownName(id) {
+			t.Fatalf("the card shows %q (%v) for entity %d, the lines name %q", name, ok, id, live.shownName(id))
+		}
+		return name
+	}
+	t.Fatalf("the map draws no entity %d", id)
+	return ""
 }
 
 // messageStacks is the carried stacks of code in hero's pack.

@@ -93,7 +93,7 @@ func TestReleaseSkillRaiseInTheFirstTickAfterLoadPostsItsNotice(t *testing.T) {
 			held++
 			continue
 		}
-		want := announced(fresh.Words.SkillRaised[data.SkillBlade-1] + ": " + strconv.Itoa(int(after.Skill[data.SkillBlade])))
+		want := announced(fresh.Words.SkillRaised[data.SkillBlade-1] + ": " + strconv.Itoa(int(after.Skill[data.SkillBlade])) + " (" + messageHolder(t, fresh.live, id) + ")")
 		if len(got) != 1 || got[0].Text != want[0].Text {
 			t.Fatalf("the first-tick raise after LOAD posted %+v, want %+v", got, want)
 		}

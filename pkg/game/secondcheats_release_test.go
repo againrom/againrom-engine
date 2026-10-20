@@ -230,12 +230,28 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 	secondCheatWantNothing(t, f, secondCheatLines(t, f, a, "#Chicken"), hash, "another game's unlock line")
 
 	// #create (R2-ENGINE-299): gold ignores case; an item by name; a refusal.
-	secondCheatWantReply(t, f, secondCheatLines(t, f, a, "#create 250 gOLD"), 7, sim.SelfSlot)
+	// Each grant states the received line before the reply, as in the first
+	// game (DIV-3766, DIV-3767).
+	gw := mw.view.Words()
+	created := secondCheatLines(t, f, a, "#create 250 gOLD")
+	if len(created) == 0 || created[0].Text != grantGoldLine(&gw, 250) || created[0].Text != releaseRootText(mw, "Received ", "Получено: ")+"250 "+gw.PickedUpGoldUnit {
+		t.Fatalf("#create 250 gOLD lines %+v, want the received gold line first", created)
+	}
+	secondCheatWantReply(t, f, created[1:], 7, sim.SelfSlot)
 	if got := mw.world.Purse(sim.SelfSlot); got != gold+250 {
 		t.Fatalf("purse %d, want %d", got, gold+250)
 	}
 	name, code := secondCheatItemName(t, f)
-	secondCheatWantReply(t, f, secondCheatLines(t, f, a, "#create 1 "+name), 7, sim.SelfSlot)
+	pack, _ := mw.world.CarriedStacks(id)
+	created = secondCheatLines(t, f, a, "#create 1 "+name)
+	now, _ := mw.world.CarriedStacks(id)
+	holder := messageHolder(t, mw, id)
+	if want := grantLinesForItems(mw.named(reachedStacks(pack, now), id), mw.invParty.table, &gw); len(want) != 1 || len(created) == 0 || created[0].Text != want[0] ||
+		!strings.HasPrefix(want[0], releaseRootText(mw, "Received ", "Получено: ")) || !strings.HasSuffix(want[0], holder+")") {
+		t.Fatalf("#create 1 %s lines %+v, want the received line naming %q first", name, created, holder)
+	}
+	t.Logf("second game #create: %q, %q", messageShown(t, f.Font.Value(), created[0].Text), messageShown(t, f.Font.Value(), grantGoldLine(&gw, 250)))
+	secondCheatWantReply(t, f, created[1:], 7, sim.SelfSlot)
 	if carried, _ := mw.world.Carried(id); !slices.Contains(carried, code) {
 		t.Fatalf("#create %s did not reach the inventory: %v", name, carried)
 	}
@@ -300,9 +316,12 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 	purse := mw.world.Purse(sim.SelfSlot)
 	picked := secondCheatLines(t, f, a, "#pickup all")
 	words := mw.view.Words()
-	if len(picked) == 0 || picked[0].Text != pickupGoldLine(&words, 40) {
+	// The second game names the taker as the first does (DIV-3765).
+	taker := messageHolder(t, mw, id)
+	if want := "Picked up 40 gold (" + taker + ")"; len(picked) == 0 || picked[0].Text != pickupGoldLine(&words, 40, taker) || words.PickedUpGold == "Picked up" && picked[0].Text != want {
 		t.Fatalf("#pickup all lines %+v, want the gold line first", picked)
 	}
+	t.Logf("second game #pickup all: %q", picked[0].Text)
 	secondCheatWantReply(t, f, picked[1:], 7, sim.SelfSlot)
 	if len(mw.world.Sacks()) != 0 || mw.world.Purse(sim.SelfSlot) != purse+40 {
 		t.Fatalf("#pickup all left sacks %d purse %d, want 0 and %d", len(mw.world.Sacks()), mw.world.Purse(sim.SelfSlot), purse+40)

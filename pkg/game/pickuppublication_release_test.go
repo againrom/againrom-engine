@@ -242,14 +242,18 @@ func TestReleasePickupPublicationClearsSavedPickupFlag(t *testing.T) {
 	f := releaseFront(t)
 	app, _ := openOriginalSAVApp(t, f, raw, "pickup.sav")
 	hero, held := pickupPublicationHero(t, f)
+	// Each session-entry line names the hero whose pack holds the Item
+	// (DIV-3765).
 	wantAnnouncement := map[string]uint32{}
+	holder := messageHolder(t, f.live, hero)
 	reg := f.live.world.SavedObjects()
 	for _, row := range reg.Items {
 		for _, at := range reg.Locations(row.ID) {
 			if at.Owner.Kind == sim.SavedOwnerActorPack && at.Owner.Entity == hero {
-				line := f.Words.PickedUp + " " + itemName(data.ItemCode(row.Value.Code), f.Table)
+				line := f.Words.PickedUp + " " + itemName(data.ItemCode(row.Value.Code), f.Table) + " (" + holder + ")"
 				if row.Value.Count > 1 {
-					line += fmt.Sprintf(" (%s %d %s)", f.Words.PickedUpNow, row.Value.Count, f.Words.PickedUpPieces)
+					line = fmt.Sprintf("%s %s (%s %d %s, %s)", f.Words.PickedUp, itemName(data.ItemCode(row.Value.Code), f.Table),
+						f.Words.PickedUpNow, row.Value.Count, f.Words.PickedUpPieces, holder)
 				}
 				wantAnnouncement[line]++
 			}
@@ -280,7 +284,7 @@ func TestReleasePickupPublicationClearsSavedPickupFlag(t *testing.T) {
 	}
 	now, _ := f.live.world.CarriedStacks(hero)
 	words := f.live.view.Words()
-	wantLines := announced(pickupLinesForTake(reachedStacks(carried, now), int32(sack.Gold), f.live.invParty.table, &words)...)
+	wantLines := announced(pickupLinesForTake(f.live.named(reachedStacks(carried, now), hero), int32(sack.Gold), messageHolder(t, f.live, hero), f.live.invParty.table, &words)...)
 	if got := f.live.view.MessageLines(); len(wantLines) == 0 || !reflect.DeepEqual(got, wantLines) {
 		t.Fatalf("pickup lines %+v, want %+v", got, wantLines)
 	}

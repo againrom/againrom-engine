@@ -47,7 +47,7 @@ func TestReachedStacksKnowASavedItemByItsObject(t *testing.T) {
 
 func TestPickupLinesForTakeOfAGoldOnlySackStatesTheGain(t *testing.T) {
 	words := ui.AuthoredWords()
-	got := pickupLinesForTake(nil, 500, nil, &words)
+	got := pickupLinesForTake(nil, 500, "", nil, &words)
 	if !reflect.DeepEqual(got, []string{"Picked up 500 gold"}) {
 		t.Fatalf("pickupLinesForTake(gold 500) = %q, want the one gold line", got)
 	}
@@ -190,7 +190,7 @@ func TestMapWorldGrabsLinesMatchWhatTheContainerReceived(t *testing.T) {
 		t.Fatalf("CarriedStacks(7) = %v, %v, want the sack's two Items, true", stacks, ok)
 	}
 	words := mw.view.Words()
-	want := announced(pickupLinesForItems(stacks, mw.invParty.table, &words)...)
+	want := announced(pickupLinesForItems(mw.named(stacks, 7), mw.invParty.table, &words)...)
 	if rows := mw.view.MessageLines(); len(rows) != 2 || !reflect.DeepEqual(rows, want) {
 		t.Errorf("grab posted %+v, want the lines of the two Items the container received %+v", rows, want)
 	}

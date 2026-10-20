@@ -64,7 +64,7 @@ func TestWordsHoldsExactlyTheNamedVocabularyFields(t *testing.T) {
 		"WorldHomeDetail": false, "WorldPayment": false, "SelectionStatus": false,
 		"SkillRaised": false,
 		"PickedUp":    false, "PickedUpNow": false, "PickedUpPieces": false,
-		"PickedUpGold": false, "PickedUpGoldUnit": false,
+		"PickedUpGold": false, "PickedUpGoldUnit": false, "Received": false,
 		"SettingNotice": false, "NoHeroSelected": false,
 	}
 	if ft.NumField() != len(want) {

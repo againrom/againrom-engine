@@ -95,6 +95,9 @@
 "item.rays" = "Лучи"
 "item.spell_of" = "с заклинанием"
 "tavern.sleep" = "Спать"
+# The lead of the line an Item or gold given by a mission script or the cheat
+# states (DIV-3766, DIV-3767).
+"item.received" = "Получено:"
 "chargen.restore" = "Вернуть"
 # The owner's alias for Drain Life on item cards (DIV-2177).
 "item.drain_life_alias" = "Вампиризм"

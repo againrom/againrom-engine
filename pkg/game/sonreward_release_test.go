@@ -59,7 +59,10 @@ func sonRewardRun(t *testing.T, heal bool, limit int) (int, uint32, []ui.Message
 		}
 	}
 	words := mw.view.Words()
-	want := pickupGoldLine(&words, 10000)
+	want := grantGoldLine(&words, 10000)
+	if lit := releaseRootText(mw, "Received 10000 gold", "Получено: 10000 монет"); want != lit {
+		t.Fatalf("the script gold line reads %q, want %q", want, lit)
+	}
 	start := mw.world.Purse(sim.SelfSlot)
 	for step := 0; step < limit; step++ {
 		mw.tickStep(nil, false)
@@ -79,8 +82,8 @@ func sonRewardRun(t *testing.T, heal bool, limit int) (int, uint32, []ui.Message
 
 // TestReleaseDragonClanSonRewardPaysWithThePickupLine: the son raised and
 // walked home pays 10000 gold, opens the thank-you page and states the gold
-// on the message line as a sack take does (TRIG-MONEY-028,
-// ITEM-PICKTEXT-145). The loss control leaves the son fallen: over the same
+// on the message line as received, naming nobody (TRIG-MONEY-028,
+// DIV-3767). The loss control leaves the son fallen: over the same
 // steps nothing is paid, no gold line stands and the page never opens.
 func TestReleaseDragonClanSonRewardPaysWithThePickupLine(t *testing.T) {
 	const limit = 6000

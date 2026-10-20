@@ -1134,12 +1134,17 @@ func TestSkillRiseRowsNamesTheWarriorSkillAndItsNewLevel(t *testing.T) {
 	current[data.SkillBludgen] = 11
 
 	words := ui.AuthoredWords()
-	got := skillRiseRows(&words, false, last, current)
+	got := skillRiseRows(&words, false, last, current, "")
 	if len(got) != 1 {
 		t.Fatalf("skillRiseRows = %+v, want exactly one row", got)
 	}
 	if want := "Bludgeon skill improved: 11"; got[0] != want {
 		t.Errorf("row 0 = %q, want %q", got[0], want)
+	}
+	// The raised character's name follows in parentheses (DIV-1449); a
+	// character the card names nothing for has none.
+	if got := skillRiseRows(&words, false, last, current, "Gord"); len(got) != 1 || got[0] != "Bludgeon skill improved: 11 (Gord)" {
+		t.Errorf("named row = %q, want \"Bludgeon skill improved: 11 (Gord)\"", got)
 	}
 }
 
@@ -1149,7 +1154,7 @@ func TestSkillRiseRowsNamesTheMageSkillForACarrier(t *testing.T) {
 	current[data.SkillBludgen] = 11
 
 	words := ui.AuthoredWords()
-	got := skillRiseRows(&words, true, last, current)
+	got := skillRiseRows(&words, true, last, current, "")
 	if len(got) != 1 {
 		t.Fatalf("skillRiseRows = %+v, want exactly one row", got)
 	}
@@ -1166,7 +1171,7 @@ func TestSkillRiseRowsPostsOneRowPerSlotThatRose(t *testing.T) {
 	current := [data.SkillSlots]int32{0, 10, 5, 0, 0, 1}
 
 	words := ui.AuthoredWords()
-	got := skillRiseRows(&words, false, last, current)
+	got := skillRiseRows(&words, false, last, current, "")
 	if len(got) != 2 {
 		t.Fatalf("skillRiseRows = %+v, want exactly two rows", got)
 	}
@@ -1187,13 +1192,13 @@ func TestSkillRiseRowsPostsOneRowPerSlotThatRose(t *testing.T) {
 func TestSkillRiseRowsWithNothingRisenAnswersNil(t *testing.T) {
 	same := [data.SkillSlots]int32{0, 10, 0, 3, 0, 0}
 	words := ui.AuthoredWords()
-	if got := skillRiseRows(&words, false, same, same); got != nil {
+	if got := skillRiseRows(&words, false, same, same, ""); got != nil {
 		t.Errorf("skillRiseRows(same, same) = %+v, want nil", got)
 	}
 
 	last := [data.SkillSlots]int32{0, 10, 0, 0, 0, 0}
 	fallen := [data.SkillSlots]int32{0, 9, 0, 0, 0, 0}
-	if got := skillRiseRows(&words, false, last, fallen); got != nil {
+	if got := skillRiseRows(&words, false, last, fallen, ""); got != nil {
 		t.Errorf("skillRiseRows(last, fallen) = %+v, want nil — a drop is not a rise", got)
 	}
 }

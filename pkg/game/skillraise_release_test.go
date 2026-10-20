@@ -19,8 +19,9 @@ import (
 // player's orders until one award raises a skill: a Blade fighter by attack
 // orders, a Fire mage by move and cast orders. The one posted row must be the
 // installed main.txt line for that class and slot, read here straight from
-// the container, then ": " and the new level, and every byte must draw an
-// inked glyph of the map font under the install's own language selector.
+// the container, then ": ", the new level and the character's name in
+// parentheses, and every byte must draw an inked glyph of the map font under
+// the install's own language selector.
 func TestReleaseSkillRaiseNoticeIsInstalledText(t *testing.T) {
 	for _, mage := range []bool{false, true} {
 		t.Run(map[bool]string{false: "fighter", true: "mage"}[mage], func(t *testing.T) {
@@ -62,7 +63,13 @@ func TestReleaseSkillRaiseNoticeIsInstalledText(t *testing.T) {
 			if mage {
 				index += 5
 			}
-			want := announced(lines[index] + ": " + strconv.Itoa(int(after.Skill[slot])))
+			// The raised character's name follows in parentheses: the
+			// generated character's own name, which its card shows (DIV-1449).
+			holder := messageHolder(t, f.live, after.ID)
+			if holder != "Raise" {
+				t.Fatalf("the raised character is named %q, want its generated name \"Raise\"", holder)
+			}
+			want := announced(lines[index] + ": " + strconv.Itoa(int(after.Skill[slot])) + " (Raise)")
 			if !reflect.DeepEqual(rows, want) {
 				t.Fatalf("the raise posted %+v, want one line %q", rows, want[0].Text)
 			}
@@ -72,7 +79,7 @@ func TestReleaseSkillRaiseNoticeIsInstalledText(t *testing.T) {
 				if shown, err = charmap.CodePage866.NewDecoder().String(rows[0].Text); err != nil {
 					t.Fatal(err)
 				}
-				for _, r := range strings.TrimSuffix(shown, ": "+strconv.Itoa(int(after.Skill[slot]))) {
+				for _, r := range strings.TrimSuffix(shown, ": "+strconv.Itoa(int(after.Skill[slot]))+" (Raise)") {
 					if r != ' ' && !unicode.Is(unicode.Cyrillic, r) {
 						t.Fatalf("RU notice %q holds non-Cyrillic %q", shown, r)
 					}

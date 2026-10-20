@@ -10,19 +10,22 @@ import (
 )
 
 // The gold line is install string 88, the gain and install string 89, each
-// after one space; a word the install does not state falls back to the
-// authored one (ITEM-PICKTEXT-145).
+// after one space, then the taker's name in parentheses (DIV-3765); a word the
+// install does not state falls back to the authored one (ITEM-PICKTEXT-145).
 func TestPickupGoldLineStatesTheGainBetweenTheInstallWords(t *testing.T) {
 	words := ui.AuthoredWords()
-	if got, want := pickupGoldLine(&words, 500), "Picked up 500 gold"; got != want {
+	if got, want := pickupGoldLine(&words, 500, "Gord"), "Picked up 500 gold (Gord)"; got != want {
 		t.Fatalf("pickupGoldLine(500) = %q, want %q", got, want)
 	}
+	if got, want := pickupGoldLine(&words, 500, ""), "Picked up 500 gold"; got != want {
+		t.Fatalf("pickupGoldLine(500) naming nobody = %q, want %q", got, want)
+	}
 	words.PickedUpGold, words.PickedUpGoldUnit = "Took", "coins"
-	if got, want := pickupGoldLine(&words, 1), "Took 1 coins"; got != want {
+	if got, want := pickupGoldLine(&words, 1, "Gord"), "Took 1 coins (Gord)"; got != want {
 		t.Fatalf("pickupGoldLine(1) with installed words = %q, want %q", got, want)
 	}
 	words.PickedUpGold = ""
-	if got, want := pickupGoldLine(&words, 2147483647), "Picked up 2147483647 coins"; got != want {
+	if got, want := pickupGoldLine(&words, 2147483647, "Gord"), "Picked up 2147483647 coins (Gord)"; got != want {
 		t.Fatalf("pickupGoldLine with string 88 missing = %q, want %q", got, want)
 	}
 }
@@ -54,16 +57,16 @@ func TestPurseGainIsTheSignedRiseAndNothingElse(t *testing.T) {
 func TestGoldPickupKeepsItemTextAndOrder(t *testing.T) {
 	table := eqDefsTable(t)
 	table.Names = data.ItemNames{data.ItemCode(eqSwordCode): "Gold", data.ItemCode(eqNoSlotCode): "Arrow"}
-	reached := []sim.ItemStack{sim.PlainStack(eqSwordCode, 2), sim.PlainStack(eqNoSlotCode, 1)}
+	reached := []namedStack{{sim.PlainStack(eqSwordCode, 2), "Gord"}, {sim.PlainStack(eqNoSlotCode, 1), "Gord"}}
 	words := ui.AuthoredWords()
-	items := []string{"Picked up Gold (now 2 pieces)", "Picked up Arrow"}
-	if got := pickupLinesForTake(reached, 0, table, &words); !slices.Equal(got, items) {
+	items := []string{"Picked up Gold (now 2 pieces, Gord)", "Picked up Arrow (Gord)"}
+	if got := pickupLinesForTake(reached, 0, "Gord", table, &words); !slices.Equal(got, items) {
 		t.Fatalf("a take with no gold stated %q, want %q", got, items)
 	}
-	if got, want := pickupLinesForTake(reached, 500, table, &words), append([]string{"Picked up 500 gold"}, items...); !slices.Equal(got, want) {
+	if got, want := pickupLinesForTake(reached, 500, "Gord", table, &words), append([]string{"Picked up 500 gold (Gord)"}, items...); !slices.Equal(got, want) {
 		t.Fatalf("a take with gold stated %q, want %q", got, want)
 	}
-	if got := pickupLinesForTake(nil, 500, nil, &words); !slices.Equal(got, []string{"Picked up 500 gold"}) {
+	if got := pickupLinesForTake(nil, 500, "", nil, &words); !slices.Equal(got, []string{"Picked up 500 gold"}) {
 		t.Fatalf("a gold-only take stated %q, want the gold line alone", got)
 	}
 }

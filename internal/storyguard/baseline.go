@@ -2662,6 +2662,10 @@ package storyguard
 // worn Spell routes, their route and witness tests, plus this note; then for
 // the mission-entry build of a member with no carried state, the town equip
 // build and the second game's carried build.
+// CommentBytes rises for the lines that name a character and the received
+// lines for script and cheat grants (pkg/game/pickup_words.go, the shared
+// card name in pkg/game/carddisplayname.go, the step report's item grants),
+// their tests, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2685,5 +2689,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1704,
 	},
-	CommentBytes: 9285319,
+	CommentBytes: 9291060,
 }

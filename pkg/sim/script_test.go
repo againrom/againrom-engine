@@ -756,6 +756,34 @@ func TestGiveMoneyReportsTheCredit(t *testing.T) {
 	}
 }
 
+// TestAddItemReportsTheGrant: the step report names the unit an instant-12
+// node gave an Item and its carried stacks before and after, once per node; a
+// node naming no unit gives nothing and reports none.
+func TestAddItemReportsTheGrant(t *testing.T) {
+	for _, named := range []bool{true, false} {
+		node := addNode(itCure)
+		node.HasUnit = named
+		w := itWorld(t, fireOnce(t, []ScriptInstant{node, node}, 0, 1), []Stock{{ID: itHero, Items: []uint16{itOther}}})
+		var got []ItemGrant
+		for range 32 {
+			got = append(got, StepReported(w, nil).ItemGrants...)
+		}
+		if !named {
+			if got != nil {
+				t.Fatalf("a node naming no unit reported %+v", got)
+			}
+			continue
+		}
+		if len(got) != 2 || got[0].Holder != itHero || got[1].Holder != itHero {
+			t.Fatalf("grants %+v, want two to the hero", got)
+		}
+		if !itEqual(got[0].Before, PlainStack(itOther, 1)) || !itEqual(got[0].After, PlainStack(itOther, 1), PlainStack(itCure, 1)) ||
+			!itEqual(got[1].Before, got[0].After...) || !itEqual(got[1].After, PlainStack(itOther, 1), PlainStack(itCure, 2)) {
+			t.Fatalf("grants %+v, want the Cure added then merged to two", got)
+		}
+	}
+}
+
 func TestAnEmptyScriptAndNoneAreOneWorld(t *testing.T) {
 	empty := mustScript(t, nil, nil, nil)
 	a := scriptWorld(t, nil, []Entity{{ID: 1}})

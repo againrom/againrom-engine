@@ -8,6 +8,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Message lines now say who they are about. A skill-raise line ends with
+  the character's name in parentheses, as in `Blade skill improved: 11 (Gord)`,
+  and a pickup line names the character who picked the item up:
+  `Picked up Wood Short Bow (Gord)`, `Picked up Bronze Long Sword (now 2
+  pieces, Gord)`, `Picked up 78 gold (Gord)`. An item a mission gives you or
+  `#create` makes now shows `Received Cure for Plague (Gord)`, with the count
+  before the name when there is more than one; before, it showed nothing. Gold
+  a mission gives or `#create` makes shows `Received 10000 gold`, with no name,
+  because it goes to the shared purse. The Russian game uses `Получено:`. The
+  name is the one the character's card shows: your hero shows your name.
 - [ROM1] A weapon's description now lists what the original lists, in its
   order: the damage, the attack and defence bonuses when they are above zero,
   and the range of every weapon whose range is above 1, bows and crossbows

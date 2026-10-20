@@ -95,6 +95,9 @@
 "item.rays" = "Rays"
 "item.spell_of" = "of"
 "tavern.sleep" = "Sleep"
+# The lead of the line an Item or gold given by a mission script or the cheat
+# states (DIV-3766, DIV-3767).
+"item.received" = "Received"
 "chargen.restore" = "Restore"
 # The item spell name shown for Drain Life in place of the installed one
 # (DIV-2177); empty keeps the installed name.

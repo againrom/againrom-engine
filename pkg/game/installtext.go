@@ -464,6 +464,7 @@ func (w *InstallWords) Words() ui.Words {
 		out.ItemSpellOf = encode(book.Text("item.spell_of"))
 		out.ItemRays = encode(book.Text("item.rays"))
 		out.TavernSleep = encode(book.Text("tavern.sleep"))
+		out.Received = encode(book.Text("item.received"))
 		// An install in any language but the engine's reference one states
 		// these three words in its own stats.txt; the reference language keeps
 		// the engine's.
