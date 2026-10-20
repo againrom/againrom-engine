@@ -118,3 +118,64 @@ func TestReleaseNotesScriptPrintsAVersionSection(t *testing.T) {
 		t.Fatalf("install text or revision missing:\n%s", tail)
 	}
 }
+
+// releaseNotesBody runs scripts/release-notes.ps1 on a changelog file and
+// returns the text before the install separator.
+func releaseNotesBody(t *testing.T, changelog, version string) string {
+	t.Helper()
+	shell := powershell(t)
+	abs, err := filepath.Abs(changelog)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(shell, "-NoProfile", "-NonInteractive", "-File", "scripts/release-notes.ps1",
+		"-Version", version, "-Revision", "0123456789ab", "-Changelog", abs)
+	cmd.Dir = "../.."
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("release-notes.ps1 -Version %s: %v\n%s", version, err, out)
+	}
+	body, _, ok := strings.Cut(strings.ReplaceAll(string(out), "\r\n", "\n"), "\n\n---\n")
+	if !ok {
+		t.Fatalf("no install separator:\n%s", out)
+	}
+	return body
+}
+
+func TestReleaseNotesScriptJoinsWrappedEntries(t *testing.T) {
+	fixture := filepath.Join(t.TempDir(), "CHANGELOG.md")
+	text := "# Changelog\n\n## Unreleased\n\n## 1.0.0\n\n### For players\n\n" +
+		"- [ROM1] First entry that is wrapped\n  over three\n  lines.\n" +
+		"  - Nested bullet that is wrapped\n    over two lines.\n" +
+		"- Second entry on one line.\n\n" +
+		"### For developers\n\n- Third entry\n  wrapped.\n\n## 0.9.0\n\n- Older entry\n  wrapped.\n"
+	if err := os.WriteFile(fixture, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	want := "### For players\n\n" +
+		"- [ROM1] First entry that is wrapped over three lines.\n" +
+		"  - Nested bullet that is wrapped over two lines.\n" +
+		"- Second entry on one line.\n\n" +
+		"### For developers\n\n- Third entry wrapped."
+	if got := releaseNotesBody(t, fixture, "1.0.0"); got != want {
+		t.Fatalf("joined section:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestReleaseNotesScriptPrintsOneLinePerEntry(t *testing.T) {
+	body := releaseNotesBody(t, "../../CHANGELOG.md", "0.129.0")
+	var entries, headings int
+	for _, line := range strings.Split(body, "\n") {
+		switch {
+		case strings.HasPrefix(line, "- "):
+			entries++
+		case strings.HasPrefix(line, "### "):
+			headings++
+		case strings.TrimSpace(line) != "":
+			t.Errorf("line that is neither an entry nor a heading (a broken entry): %q", line)
+		}
+	}
+	if entries != 7 || headings != 2 {
+		t.Fatalf("0.129.0 prints %d entries and %d headings, want 7 and 2:\n%s", entries, headings, body)
+	}
+}

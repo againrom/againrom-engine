@@ -1,50 +1,36 @@
 # Changelog
 
-What changed for players in each release. A release lists every change since
-the previous release, including fixes that reached `main` between releases.
-New entries go under Unreleased; a release renames that heading to its version.
-Each entry starts with its scope: [BASE] for the engine under both games,
-[ROM1] for the first game, [ROM2] for the second game.
+What changed in each release, in plain words for the people who use it. A
+release lists every change since the previous release, including fixes that
+reached `main` between releases. New entries go under Unreleased; a release
+renames that heading to its version.
+
+Each entry goes under one of three headings, in this order, and an empty
+heading is left out: `### For players`, `### For map makers and modders`,
+`### For developers`. An entry is one or two short sentences on one line: what
+the reader now sees or can do, then, if it helps, what was wrong before. Use
+the words a player sees in the game, not internal names: no routines, file
+fields, record or row numbers, claim or divergence IDs. An entry starts with
+the tag of what it changes: `[ROM1]` the first game, `[ROM2]` the second game,
+`[BASE]` both games, `[Starter]` the starter. A change no player, map maker,
+modder or developer can notice gets no entry.
 
 ## Unreleased
 
 ## 0.129.0
 
-- [ROM1] A hero whose pack holds items weighed by the game's item table now
-  keeps his load when a save Againrom wrote is saved again by the original game
-  and loaded back. Before, the save recorded such a pack as weightless, so
-  after that reload the hero carried less than he did, and an overloaded hero
-  walked faster.
-- [ROM1] A unit in a group move that has no way to its spot and is already
-  standing where it can get closest now stops at once and, from the group's next
-  turn, only fights what comes into reach, as in the original. A unit blocked
-  only by other units is sent on again each turn instead. A unit in a group
-  swarm or roam order that cannot get through now also takes on the enemy
-  beside it. A save keeps where such a unit stopped.
-- [ROM1] A male mage made in the character generator now starts with the
-  Uncommon Wood Staff, as in the original, and the generator shows that staff in
-  his hand: a plain shaft with a small red-orange top. Before, he was given the
-  woman's staff with the large pale crystal ball. The female mage and every
-  fighter are unchanged. A new campaign's male mage carries the Uncommon staff
-  in a SAVE.
-- [BASE] Hovering over an item worn on the doll now shows that item's
-  description, on the character creation screen and on the hero's pane in the
-  tavern and the school, as it already did in the inventory and the shop.
-- [BASE] The README now explains how to build and run the game on Linux.
-- [BASE] A save now keeps the campaign's travel words as the loaded file held
-  them, so the original game reads an Againrom save of an original save the way
-  it reads the original file: the party stands where it stood on the world map,
-  and the mission the original would send it to next is unchanged. Missions
-  marked on the world map are saved in the order they were marked.
-- [ROM1] In a game loaded from a save whose campaign sends the party back to
-  its current main mission, winning a mission now does what the original does:
-  the mission is not counted as done, nothing is paid, the town does not open,
-  and the party goes back to the current main mission's map point, where that
-  mission starts again. Thirty saves in the project's collection hold
-  such a campaign, and so does an older Againrom save of a won mission 20.
-  Before, the win completed the mission and led on to the next mission or the
-  town. Winning the campaign's last mission still ends the campaign.
-  Campaigns started in Againrom are unchanged.
+### For players
+
+- [ROM1] A male mage made in the character generator now starts with the Uncommon Wood Staff and holds it in the generator, as in the original. Before, he got the woman's staff with the large crystal ball.
+- [BASE] Hovering over an item on the character doll now shows its description in the character generator, the tavern and the school, as it already did in the inventory and the shop.
+- [ROM1] Units in a group move that cannot reach their spot now stop and fight only what comes within reach, as in the original. Units held up only by other units keep trying, and stuck units in a swarm or roam order now attack an enemy next to them.
+- [BASE] A save made in Againrom from an original save now keeps the party's place on the world map and the next mission, so the original game continues it exactly as it would the original file.
+- [ROM1] When the original game saves over an Againrom save, heroes keep their full pack weight after loading it again. Before, some items counted as weightless, so an overloaded hero walked too fast.
+- [ROM1] Winning a mission in an old save whose campaign sends the party back to its current main mission now does what the original does: the party returns to that mission's map point and plays it again. Before, the win counted and the campaign moved on. Campaigns started in Againrom are unchanged.
+
+### For developers
+
+- [BASE] The README explains how to build and run the game on Linux.
 
 ## 0.128.0
 

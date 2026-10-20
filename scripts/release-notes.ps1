@@ -12,5 +12,21 @@ $match = [regex]::Match($text, $pattern)
 if (-not $match.Success) { throw "CHANGELOG.md has no section for $Version." }
 $changes = $match.Groups[1].Value.Trim()
 if ($changes -eq '') { throw "CHANGELOG.md section $Version is empty." }
+# GitHub renders a release body's newlines as hard breaks, so an entry wrapped
+# over several lines is joined into one line with single spaces. Blank lines,
+# headings and bullets (nested ones too) start a new line.
+$lines = New-Object System.Collections.Generic.List[string]
+$open = $false
+foreach ($line in $changes -split "`n") {
+    if ($line -match '^\s*$' -or $line -match '^\s*#' -or $line -match '^\s*[-*+]\s') {
+        $lines.Add($line.TrimEnd())
+        $open = $line -match '^\s*[-*+]\s'
+    } elseif ($open) {
+        $lines[$lines.Count - 1] += ' ' + $line.Trim()
+    } else {
+        $lines.Add($line.TrimEnd())
+    }
+}
+$changes = $lines -join "`n"
 $install = 'Windows AMD64, macOS Intel and macOS Apple Silicon. Unpack into a separate folder and run starter.exe on Windows or ./starter on macOS. The map editor, mapedit.exe on Windows or ./mapedit on macOS, opens from the starter''s Map editor button. Mac builds are unsigned and not notarized; see README.md for Gatekeeper instructions. A lawfully owned game install is required. No game assets or player profiles are included.'
 "$changes`n`n---`n`n$install`n`nSource commit: $Revision"
