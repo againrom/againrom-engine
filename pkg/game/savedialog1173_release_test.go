@@ -218,16 +218,22 @@ func TestReleaseSaveDialog1173MissionCity(t *testing.T) {
 	})
 }
 
+// saveOriginalMissionReturn wins an original mission SAV and writes the city
+// it reaches. The mission-111 file holds AutoGetMission 0 at main 110, so its
+// win reaches no city: the party goes back to mission 110 (SAV-1329).
 func saveOriginalMissionReturn(t *testing.T) {
-	for _, tc := range []struct{ name, path, hash string }{
-		{"side_mission", "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345"},
-		{"mission111", "2026-09-09/game0076.sav", "ca6f2980986859fb19c7b602a00b92b0e3ae95b1d00adc6c757152d596ed556c"},
+	for _, tc := range []struct {
+		name, path, hash string
+		travel           int
+	}{
+		{"side_mission", "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345", 0},
+		{"mission111", "2026-09-09/game0076.sav", "ca6f2980986859fb19c7b602a00b92b0e3ae95b1d00adc6c757152d596ed556c", 110},
 	} {
-		t.Run(tc.name, func(t *testing.T) { saveOriginalMissionReturnFile(t, tc.path, tc.hash) })
+		t.Run(tc.name, func(t *testing.T) { saveOriginalMissionReturnFile(t, tc.path, tc.hash, tc.travel) })
 	}
 }
 
-func saveOriginalMissionReturnFile(t *testing.T, path, hash string) {
+func saveOriginalMissionReturnFile(t *testing.T, path, hash string, travel int) {
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, path, hash)
 	open, town, err := f.RestoreOriginal(raw)
@@ -238,7 +244,14 @@ func saveOriginalMissionReturnFile(t *testing.T, path, hash string) {
 	if err := a.OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
+	won := f.liveMission
 	n, line, err := f.LiveCompleteCampaign()
+	if travel != 0 {
+		if err != nil || n != travel || f.Town.Done(won) {
+			t.Fatal("mission return", n, line, err)
+		}
+		return
+	}
 	if err != nil || n != 0 || !f.Town.Open() {
 		t.Fatal("mission return", n, line, err)
 	}

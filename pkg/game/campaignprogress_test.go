@@ -14,6 +14,8 @@ import (
 	"againrom/pkg/ui"
 )
 
+// campaignProjectionAt is an original SAV's campaign record at main mission:
+// its AutoGetMission is the one the record loader stores for that record.
 func campaignProjectionAt(c Campaign, mission int) sav.CampaignProjection {
 	ch := c.Chapters[mission]
 	p := sav.CampaignProjection{
@@ -22,6 +24,7 @@ func campaignProjectionAt(c Campaign, mission int) sav.CampaignProjection {
 			Payment: uint32(ch.Payment), ShopMin: uint32(ch.ShopMin), ShopMax: uint32(ch.ShopMax),
 		},
 		SelectedMission: uint32(mission), FirstMapPoint: true,
+		AutoGetMission:   autoGetMissionValue(c, mission),
 		MercenaryWorking: make([]uint16, 15), MercenaryPristine: make([]uint16, 15),
 		MercenaryHired: make([]bool, 15),
 	}
@@ -314,6 +317,8 @@ func TestSelectedMarkersDedupesAndIgnoresNonPositiveValues(t *testing.T) {
 
 func TestCompletingRestoredSideReturnsToMainWithoutLowerReplay(t *testing.T) {
 	c, town := restoredTownFixture(t)
+	// The record's own -1: the fixture's 50 at main 50 takes the travel arm.
+	town.progress.autoGet = 0xFFFFFFFF
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}, CampaignSession: CampaignSession{Town: town}}
 	next, line := f.FinishMissionWithRoster(41, nil, nil, nil, nil)
 	if next != 0 || f.Offered != 50 || f.Town.Chapter() != 50 || f.Town.selectedMission() != 50 {

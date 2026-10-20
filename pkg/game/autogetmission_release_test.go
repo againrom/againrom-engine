@@ -225,12 +225,14 @@ func TestReleaseMissionTenWinSAVRoutesMissionTwentyHome(t *testing.T) {
 		h.X, h.Y, w.X, w.Y, first.Main, first.AutoGetMission)
 }
 
-// TestReleaseOwnerMissionTwentyEndSAVRoutesHome loads the owner's engine SAV
-// of won mission 20, which an earlier build wrote with mission 10's
-// AutoGetMission 20: the original then sends the party back to mission 20's
-// map object. F2 SAVE writes the loaded 20 back (SAV-1330), and a cold LOAD
-// of the new file still reaches the town on the engine's Victory (DIV-1497).
-func TestReleaseOwnerMissionTwentyEndSAVRoutesHome(t *testing.T) {
+// TestReleaseOwnerMissionTwentyEndSAVTravelsToMissionTwenty loads the owner's
+// engine SAV of won mission 20, which an earlier build wrote with mission
+// 10's AutoGetMission 20. F2 SAVE writes the loaded 20 back (SAV-1330). At
+// the Victory of a cold LOAD of the new file the 20, equal to the current main
+// mission, takes SAV-1329's travel arm: mission 20 is not completed, the
+// town stays closed and mission 20 opens again, as the original sent the
+// owner's party back to mission 20's map object.
+func TestReleaseOwnerMissionTwentyEndSAVTravelsToMissionTwenty(t *testing.T) {
 	path := os.Getenv("AGAINROM_MISSION20_END_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_MISSION20_END_SAV: the owner's mission20end save is an owner input")
@@ -272,15 +274,20 @@ func TestReleaseOwnerMissionTwentyEndSAVRoutesHome(t *testing.T) {
 	if g.liveMission != 20 || g.live == nil {
 		t.Fatalf("cold LOAD of the resaved SAV opened mission %d, want 20", g.liveMission)
 	}
+	won := g.live.world
 	autoGetVictory(t, g, gapp, 256, "owner mission 20")
-	for i := 0; i < 4000 && (gapp.Screen() != ui.ScreenTown || !g.townUI.AtTownSquare()); i++ {
-		if err := gapp.HeadlessStep(); err != nil {
-			t.Fatal("return frame:", err)
-		}
+	if gapp.Screen() != ui.ScreenMap || g.liveMission != 20 || g.live == nil || g.live.world == won ||
+		g.live.world.Outcome() != sim.OutcomeUndecided {
+		t.Fatalf("Victory left screen %s at mission %d; want mission 20 opened again", gapp.Screen(), g.liveMission)
 	}
-	if gapp.Screen() != ui.ScreenTown || !g.townUI.AtTownSquare() || !g.Town.Open() || g.Town.Chapter() != 30 {
-		t.Fatalf("Victory returned to screen %s, town open=%v chapter %d: want the town square at chapter 30",
-			gapp.Screen(), g.Town.Open(), g.Town.Chapter())
+	if g.Town.Open() || g.Town.Done(20) || g.Town.Chapter() != 20 {
+		t.Fatalf("after the Victory: town open=%v, mission 20 done %v, chapter %d; want no completion and no town",
+			g.Town.Open(), g.Town.Done(20), g.Town.Chapter())
+	}
+	_, after := autoGetF2Save(t, g, gapp, "9402 after victory")
+	if c := autoGetCampaign(t, after); c.AutoGetMission != 20 || c.Main.Mission != 20 || !c.Main.Announced || c.SelectedMission != 20 {
+		t.Fatalf("SAVE after the Victory holds AutoGetMission %#x, main %+v, selected %d; want 0x14 at mission 20 announced",
+			c.AutoGetMission, c.Main, c.SelectedMission)
 	}
 	t.Logf("resaved main record %+v, AutoGetMission %#x, selected %d", c.Main, c.AutoGetMission, c.SelectedMission)
 }

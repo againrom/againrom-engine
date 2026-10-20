@@ -371,9 +371,10 @@ func (p *campaignProgress) advanceMain(c Campaign, mission int) {
 		return
 	}
 	// REG-SCN-063: a won record whose AutoGetMission names the next mission
-	// loads it and latches its announce flag; loading writes +0x110 anew. The
-	// latch follows the won record's own declaration, so a carried value
-	// does not change where the engine sends the party (DIV-1497).
+	// loads it and latches its announce flag; loading writes +0x110 anew. A
+	// completion is reached only for a carried -1 or a value above the main
+	// mission, and the latch follows the won record's own declaration
+	// (DIV-3800).
 	routed := autoGetMissionValue(c, mission) == uint32(next)
 	p.loadMain(c, next, routed)
 }

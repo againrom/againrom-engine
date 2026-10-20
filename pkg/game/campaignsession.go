@@ -161,11 +161,22 @@ type townArrival struct {
 func (s *CampaignSession) recordWin(campaign Campaign, n int, party []mapload.PartyMember,
 	w *sim.World, ids []sim.EntityID, roster map[sim.EntityID]mapload.PartyMember,
 	arrival townArrival) (next int, message string) {
+	// SAV-1329: a loaded AutoGetMission other than -1 and not above the
+	// current main mission sends the party to that main mission's map object.
+	// Nothing is completed or paid and the town is not reached (DIV-3799).
+	// The campaign's ending is checked first (SAV-1336), by the won mission's
+	// declared LastMission rather than the carried word (DIV-3800).
+	if main, ok := s.Town.missionEndTravel(campaign.TerminalMission(n)); ok {
+		s.Offered = 0
+		if _, addressable := MissionMap(main); addressable {
+			return main, fmt.Sprintf("mission %d won - the party goes back to mission %d's map point; mission %d opens again", n, main, main)
+		}
+		return 0, fmt.Sprintf("mission %d won - the party goes back to mission %d's map point and this tree can open no such mission: choose a row", n, main)
+	}
 	// THE TOWN'S RECORD OF THE WIN, WRITTEN BESIDE THE PARTY AND FOR ITS
-	// REASON: unconditionally, before anything else is decided, because a
-	// campaign this tree could not read still finished this mission and still
-	// owes its payment. Won() is idempotent and pays once, so no path below can
-	// double it.
+	// REASON: before anything else is decided, because a campaign this tree
+	// could not read still finished this mission and still owes its payment.
+	// Won() is idempotent and pays once, so no path below can double it.
 	//
 	// It does NOT open the town.
 	payment := s.Town.campaignPayment(n)

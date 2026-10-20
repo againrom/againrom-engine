@@ -91,6 +91,27 @@ func (t *Town) announceMission(mission int) {
 	}
 }
 
+// missionEndTravel is the travel arm of a mission end (SAV-1329) for a
+// restored campaign whose AutoGetMission is not -1 and not above the current
+// main mission. It latches the main record's announce flag, selects that
+// record and answers its mission; it completes nothing. A higher value and -1
+// answer false and take the ordinary completion, as does the win of the
+// campaign's terminal mission, whose ending precedes the arm.
+func (t *Town) missionEndTravel(terminal bool) (int, bool) {
+	if terminal || t == nil || t.progress == nil {
+		return 0, false
+	}
+	p := t.progress
+	request := int64(int32(p.autoGet))
+	if request == -1 || request > int64(p.main.mission) {
+		return 0, false
+	}
+	p.main.announced = true
+	p.selected = p.main.mission
+	t.refreshAvailable()
+	return p.main.mission, true
+}
+
 func (t *Town) refreshAvailable() {
 	t.available = make(map[int]bool)
 	r := t.currentRecords()

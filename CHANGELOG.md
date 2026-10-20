@@ -23,6 +23,15 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   it reads the original file: the party stands where it stood on the world map,
   and the mission the original would send it to next is unchanged. Missions
   marked on the world map are saved in the order they were marked.
+- [ROM1] In a game loaded from a save whose campaign sends the party back to
+  its current main mission, winning a mission now does what the original does:
+  the mission is not counted as done, nothing is paid, the town does not open,
+  and the party goes back to the current main mission's map point, where that
+  mission starts again. Thirty saves in the project's collection hold
+  such a campaign, and so does an older Againrom save of a won mission 20.
+  Before, the win completed the mission and led on to the next mission or the
+  town. Winning the campaign's last mission still ends the campaign.
+  Campaigns started in Againrom are unchanged.
 
 ## 0.128.0
 

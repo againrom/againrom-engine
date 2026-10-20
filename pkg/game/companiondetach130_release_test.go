@@ -40,10 +40,9 @@ func requireMintedSack(t *testing.T, w *sim.World) {
 	t.Fatalf("no registry-bound death sack on the ground: %d sacks", len(w.Sacks()))
 }
 
-// returnKilledCompanion130 wins mission 130 by the installed "We defeat
-// Veglud" trigger, acknowledges Victory through the App, and checks the town
-// party live and across a town SAVE and cold LOAD.
-func returnKilledCompanion130(t *testing.T, f *FrontEnd, app *ui.App) {
+// winCompanion130 wins mission 130 by the installed "We defeat Veglud"
+// trigger and acknowledges Victory through the App.
+func winCompanion130(t *testing.T, f *FrontEnd, app *ui.App) {
 	t.Helper()
 	if f.live.world.Outcome() == sim.OutcomeUndecided {
 		if n, err := f.live.world.HeadlessKillPlayer(8); err != nil || n == 0 {
@@ -69,6 +68,48 @@ func returnKilledCompanion130(t *testing.T, f *FrontEnd, app *ui.App) {
 	if err := app.HeadlessActivate("notice"); err != nil {
 		t.Fatal("Victory acknowledgment", err)
 	}
+}
+
+// travelKilledCompanion130 wins the owner's mission-130 SAV, whose campaign
+// holds AutoGetMission 0 at main 130: the mission end sends the party back to
+// mission 130's map point and opens it again (SAV-1329), without the town. The
+// killed companion is gone from the reopened party, live and across a SAVE
+// and cold LOAD.
+func travelKilledCompanion130(t *testing.T, f *FrontEnd, app *ui.App) {
+	t.Helper()
+	won := f.live.world
+	winCompanion130(t, f, app)
+	if app.Screen() != ui.ScreenMap || f.liveMission != 130 || f.live == nil || f.live.world == won ||
+		f.live.world.Outcome() != sim.OutcomeUndecided || f.Town.Done(130) {
+		t.Fatal("Victory did not open mission 130 again", app.Screen(), f.liveMission, f.Town.Done(130))
+	}
+	requireNoCompanion22(t, f, "reopened mission 130")
+	requireNoCompanion22InMission(t, f, "reopened mission 130")
+	saved, _ := autoGetF2Save(t, f, app, "Mission 130 again")
+	cold, _ := autoGetSession(t, saved)
+	if cold.liveMission != 130 || cold.live == nil {
+		t.Fatal("cold LOAD of the reopened mission opened", cold.liveMission)
+	}
+	requireNoCompanion22InMission(t, cold, "cold mission 130 SAV")
+}
+
+// requireNoCompanion22InMission fails when NPC22 stands in the live mission's
+// party.
+func requireNoCompanion22InMission(t *testing.T, f *FrontEnd, stage string) {
+	t.Helper()
+	for _, p := range f.live.mission.party {
+		if p.CompanionNPC == 22 {
+			t.Fatalf("%s: killed traitor NPC22 is in the mission party as %s", stage, p.ID)
+		}
+	}
+}
+
+// returnKilledCompanion130 wins mission 130 by the installed "We defeat
+// Veglud" trigger, acknowledges Victory through the App, and checks the town
+// party live and across a town SAVE and cold LOAD.
+func returnKilledCompanion130(t *testing.T, f *FrontEnd, app *ui.App) {
+	t.Helper()
+	winCompanion130(t, f, app)
 	for i := 0; i < 4000 && (app.Screen() != ui.ScreenTown || !f.townUI.AtTownSquare()); i++ {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal("return frame", err)
@@ -163,6 +204,6 @@ func TestReleaseMission130KilledCompanionLeavesParty(t *testing.T) {
 		if !departed {
 			t.Fatal("owner save does not hold NPC22 as departed")
 		}
-		returnKilledCompanion130(t, f, app)
+		travelKilledCompanion130(t, f, app)
 	})
 }

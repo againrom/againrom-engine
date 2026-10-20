@@ -1,6 +1,11 @@
 package game
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+
+	"againrom/pkg/formats/sav"
+)
 
 // Every original mission-10 SAV holds AutoGetMission 20 and every original
 // mission-20 SAV holds -1 with its main record announced (REG-SCN-063). A
@@ -48,10 +53,9 @@ func TestAWonMissionTenWritesTheSecondMissionsOwnRouting(t *testing.T) {
 
 // A LOAD keeps the file's AutoGetMission and LastMission: the original's
 // reader stores both raw, and only a main record loaded above the current one
-// replaces them (SAV-1330). The next SAVE writes them unchanged. A mission end
+// replaces them (SAV-1330). The next SAVE writes them unchanged. A completion
 // loads the next main record, which writes that record's own values, and the
-// announce latch it sets follows the won record's own declaration, so a
-// carried value does not change the route (DIV-1497).
+// announce latch it sets follows the won record's own declaration (DIV-3800).
 func TestALoadedSAVKeepsItsAutoGetMissionUntilAMissionEnd(t *testing.T) {
 	c := townCampaign(t)
 	for _, tc := range []struct {
@@ -111,5 +115,86 @@ func TestAFreshMissionTenWinAnnouncesTheSecondMission(t *testing.T) {
 	if projection.Main.Mission != 20 || projection.AutoGetMission != 0xFFFFFFFF || !projection.Main.Announced {
 		t.Fatalf("fresh mission 20 writes main %d, AutoGetMission %#x, announced %v; want 20, 0xffffffff, true",
 			projection.Main.Mission, projection.AutoGetMission, projection.Main.Announced)
+	}
+}
+
+// A loaded AutoGetMission other than -1 and not above the current main
+// mission takes the travel arm at a mission end (SAV-1329): the main record is
+// announced and opens again, nothing is completed or paid, and the town is not
+// reached. -1 completes into the town and 20 at mission 10 loads mission 20,
+// as before.
+func TestALoadedAutoGetMissionAtOrBelowTheMainTravelsToTheMain(t *testing.T) {
+	c := townCampaign(t)
+	for _, tc := range []struct {
+		name           string
+		main, won      int
+		stored         uint32
+		next           int
+		done, arrived  bool
+		gold, wantMain int
+	}{
+		{"0 at main 10", 10, 10, 0, 10, false, false, 0, 10},
+		{"20 at main 20", 20, 20, 20, 20, false, false, 0, 20},
+		{"0 at main 30", 30, 30, 0, 30, false, false, 0, 30},
+		{"0 at main 30, side 31 won", 30, 31, 0, 30, false, false, 0, 30},
+		{"-2 at main 30", 30, 30, 0xFFFFFFFE, 30, false, false, 0, 30},
+		{"20 at main 10", 10, 10, 20, 20, true, false, 0, 20},
+		{"-1 at main 30", 30, 30, 0xFFFFFFFF, 0, true, true, 1000, 40},
+	} {
+		projection := campaignProjectionAt(c, tc.main)
+		projection.AutoGetMission = tc.stored
+		if tc.won != tc.main {
+			ch := c.Chapters[tc.won]
+			projection.Children = []sav.CampaignRecord{{Mission: uint32(tc.won), MapObject: uint32(c.MapObjects[tc.won]),
+				Payment: uint32(ch.Payment), Announced: true}}
+			projection.SelectedMission = uint32(tc.won)
+		}
+		progress, err := campaignProgressFromSAV(c, projection)
+		if err != nil {
+			t.Fatal(tc.name, err)
+		}
+		s := CampaignSession{Town: newTownFromCampaignProgress(c, progress), Offered: 5}
+		s.Town.gold = 0
+		arrived := false
+		next, msg := s.recordWin(c, tc.won, nil, nil, nil, nil,
+			townArrival{arrive: func() { arrived = true }, welcome: func(int) {}})
+		var snap Snapshot
+		snapshotTown(s.Town, &snap)
+		travel := !tc.done
+		if next != tc.next || s.Town.Done(tc.won) != tc.done || arrived != tc.arrived || s.Town.Gold() != tc.gold ||
+			int(snap.Campaign.Main.Mission) != tc.wantMain || s.Offered != 0 && travel {
+			t.Errorf("%s: next %d done %v arrived %v gold %d main %d offered %d (%s); want next %d done %v arrived %v gold %d main %d",
+				tc.name, next, s.Town.Done(tc.won), arrived, s.Town.Gold(), snap.Campaign.Main.Mission, s.Offered, msg,
+				tc.next, tc.done, tc.arrived, tc.gold, tc.wantMain)
+			continue
+		}
+		if !travel {
+			continue
+		}
+		if !snap.Campaign.Main.Announced || snap.Campaign.SelectedMission != uint32(tc.main) || snap.Campaign.AutoGetMission != tc.stored {
+			t.Errorf("%s: travel writes main %+v selected %d AutoGetMission %#x; want main %d announced, selected, %#x kept",
+				tc.name, snap.Campaign.Main, snap.Campaign.SelectedMission, snap.Campaign.AutoGetMission, tc.main, tc.stored)
+		}
+		if tc.won != tc.main && len(snap.Campaign.Children) != 1 {
+			t.Errorf("%s: the won side record was removed: children %+v", tc.name, snap.Campaign.Children)
+		}
+		if want := fmt.Sprintf("mission %d won - the party goes back to mission %d's map point; mission %d opens again", tc.won, tc.main, tc.main); msg != want {
+			t.Errorf("%s: message %q, want %q", tc.name, msg, want)
+		}
+	}
+	// The campaign's ending comes before the arm: a won terminal mission
+	// completes although its loaded word is 0 (SAV-1336).
+	terminal := townCampaign(t)
+	terminal.Last = map[int]bool{40: true}
+	projection := campaignProjectionAt(terminal, 40)
+	projection.AutoGetMission = 0
+	progress, err := campaignProgressFromSAV(terminal, projection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := CampaignSession{Town: newTownFromCampaignProgress(terminal, progress)}
+	next, msg := s.recordWin(terminal, 40, nil, nil, nil, nil, townArrival{arrive: func() {}, welcome: func(int) {}})
+	if !s.Town.Done(40) || next == 40 {
+		t.Errorf("terminal 0 at main 40: next %d done %v (%s); want the mission completed and no travel", next, s.Town.Done(40), msg)
 	}
 }
