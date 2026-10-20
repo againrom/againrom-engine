@@ -162,10 +162,21 @@ type ChargenDetailed struct {
 }
 
 // ChargenPreview is one atomically replaced detailed-page projection. Doll is
-// nil when its required base image cannot be read.
+// nil when its required base image cannot be read. Worn is the Doll's hover
+// data, nil when the Doll has none.
 type ChargenPreview struct {
 	Subject PanelSubject
 	Doll    image.Image
+	Worn    *ChargenDollHover
+}
+
+// ChargenDollHover is what the hover over the generator's doll reads: Mask
+// names, per Doll pixel, the worn slot (1..12) that painted it, and Info holds
+// the item information lines of each worn slot, the same lines every other
+// screen shows for that item.
+type ChargenDollHover struct {
+	Mask *SlotMask
+	Info [PanelWornSlots][]string
 }
 
 // ChargenDerived is one consequence of the current spread: a label and a

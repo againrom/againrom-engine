@@ -1024,3 +1024,28 @@ func (c *Chargen) reservedNames() []string {
 	}
 	return nil
 }
+
+// chargenDollHoverLines is the item information of the worn slot whose doll
+// pixel lies under p on the detailed page, with the one-based slot number.
+// The mask is read from the figure's drawn origin, clipped to the doll box
+// exactly as composeChargenDetailedPage draws the figure.
+func chargenDollHoverLines(c *Chargen, p image.Point) ([]string, int, bool) {
+	if c == nil {
+		return nil, 0, false
+	}
+	l := c.layout()
+	if l == nil || c.stage != DetailedStage || c.preview.Doll == nil || c.preview.Worn == nil {
+		return nil, 0, false
+	}
+	d := &l.Detail
+	box := d.Doll.Rect.Rectangle()
+	if !p.In(box) {
+		return nil, 0, false
+	}
+	at := box.Min.Add(d.Preview.FigureOffset.Pt())
+	n, ok := c.preview.Worn.Mask.At(p.X-at.X, p.Y-at.Y)
+	if !ok || n < 1 || n > len(c.preview.Worn.Info) || len(c.preview.Worn.Info[n-1]) == 0 {
+		return nil, 0, false
+	}
+	return c.preview.Worn.Info[n-1], n, true
+}

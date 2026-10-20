@@ -283,6 +283,9 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 		if hint := characterStatsTooltip(surface.Hero, w, p); hint.key() != "" {
 			return hint
 		}
+		if lines, ok := TownHeroHoverLines(surface, p); ok {
+			return tooltipTarget{tooltipText, fmt.Sprintf("hero-item/%d/%d", surface.Hero.Subject.ID, surface.Hero.Member), lines, surface.Font}
+		}
 		if lines, ok := TownCandidateHoverLines(surface, p); ok {
 			return tooltipTarget{tooltipText, fmt.Sprintf("candidate-item/%d", surface.Candidate.Subject.ID), lines, surface.Font}
 		}
@@ -414,6 +417,9 @@ func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 		}
 		if card := d.Card.Rect.Rectangle(); slot == -1 && p.In(card) {
 			return characterStatsTooltip(c.CardView(), w, p)
+		}
+		if lines, n, ok := chargenDollHoverLines(c, p); ok && slot == -1 {
+			return tooltipTarget{tooltipItem, fmt.Sprintf("chargen-item/%d/%d", c.stage, n), lines, font}
 		}
 	}
 	return mainTooltip(w, slot, fmt.Sprintf("chargen/%d/%d/%d", c.stage, id, slot), font)

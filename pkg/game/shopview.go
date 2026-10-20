@@ -518,6 +518,52 @@ func (t *shopController) shopStepMember(step int) ui.TownAction {
 	return ui.TownInfo(fmt.Sprintf("showing %s", name))
 }
 
+// shopDollHover is member i's doll slot map and the item information lines of
+// each slot the member wears: the lines the shop's own SlotInfo carries, for a
+// screen that shows the same doll without the shop's drag.
+//
+// IT READS THE PARTY AND CHANGES NOTHING. shopEquippedItem fills the member's
+// worn items from the worn codes it finds unfilled, which is right in the
+// shop's own paint and wrong in a room whose paint must leave the town's saved
+// state alone, so the worn items are resolved here on a copy.
+func (t *shopController) shopDollHover(i int) (*ui.SlotMask, [12][]string) {
+	var info [12][]string
+	if i < 0 || i >= len(t.shopFigureMasks) {
+		return nil, info
+	}
+	m := t.shopPartyMember(i)
+	if m == nil {
+		return t.shopFigureMasks[i], info
+	}
+	var items [sim.EquipSlots]sim.ItemInstance
+	if m.Carry != nil {
+		items = m.Carry.EquippedItems
+		if itemEquipmentEmptyGame(items) {
+			for k, code := range m.Carry.Equipped {
+				items[k] = sim.PlainItem(code)
+			}
+		}
+	} else {
+		items = m.WornItems
+		if itemEquipmentEmptyGame(items) {
+			for k, code := range m.Worn {
+				items[k] = mapload.ItemInstanceFromCode(code, t.in.Table)
+			}
+		}
+	}
+	if items[0].Empty() {
+		if code, ok := t.shopWeaponFallbackCode(i); ok {
+			items[0] = mapload.ItemInstanceFromCode(code, t.in.Table)
+		}
+	}
+	for n, item := range items {
+		if !item.Empty() {
+			info[n] = itemInstanceInfoLines(item, t.in.Table, t.in.Words)
+		}
+	}
+	return t.shopFigureMasks[i], info
+}
+
 // shopFigure is member i composed in his own equipment, 160x240, from the cache
 // the room filled when it was entered (composeShopFaces).
 //

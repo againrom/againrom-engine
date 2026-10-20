@@ -8,6 +8,9 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] Hovering over an item worn on the doll now shows that item's
+  description, on the character creation screen and on the hero's pane in the
+  tavern and the school, as it already did in the inventory and the shop.
 - [BASE] The README now explains how to build and run the game on Linux.
 
 ## 0.128.0

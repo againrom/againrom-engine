@@ -312,10 +312,15 @@ type TownSurfaceView struct {
 	Buttons       []TownSurfaceButton
 	// Press is the control currently pressed AND under the cursor; it draws
 	// the button's own on-bitmap instead of its off-bitmap (1017).
-	Press   TownSurfaceControl
-	Hero    TownCharacterView
-	Message string
-	Font    *text.Font
+	Press TownSurfaceControl
+	Hero  TownCharacterView
+	// HeroSlotMask and HeroSlotInfo are the shown member's doll slot map and
+	// the item information lines of each worn slot, the same lines the shop
+	// shows over the same doll. They are read only for hover.
+	HeroSlotMask *SlotMask
+	HeroSlotInfo [12][]string
+	Message      string
+	Font         *text.Font
 	// CardFont is the compact 48x64 tavern card's text font. The room chrome
 	// keeps Font; the card uses the already-loaded smaller production font so
 	// the complete whole-squad price remains inside its shipped bounds.
@@ -409,6 +414,20 @@ func TownCandidateHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) 
 		return nil, false
 	}
 	return v.CandidateSlotInfo[slot-1], true
+}
+
+// TownHeroHoverLines returns the item information of the worn slot whose
+// doll pixel lies under p on the shared character pane, or false while the
+// pane shows statistics, over a corner control or over a blank pixel.
+func TownHeroHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) {
+	if !v.Hero.HasSubject || v.Hero.Statistics || v.HeroSlotMask == nil || !shopDollAreaAt(ShopScreenView{}, p) {
+		return nil, false
+	}
+	n, ok := v.HeroSlotMask.At(p.X-shopFigureRect.Min.X, p.Y-shopFigureRect.Min.Y)
+	if !ok || n < 1 || n > len(v.HeroSlotInfo) || len(v.HeroSlotInfo[n-1]) == 0 {
+		return nil, false
+	}
+	return v.HeroSlotInfo[n-1], true
 }
 
 type TownSurfaceControlKind uint8

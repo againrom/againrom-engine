@@ -332,7 +332,10 @@ func (f *FrontEnd) ChargenPreview(res ui.ChargenResult) ui.ChargenPreview {
 	if f.Archives == nil {
 		return preview
 	}
-	preview.Doll, _ = composeUnitFigure(f.Archives.Containers, equipmentFromSlots(member.Worn), memberFigureID(member))
+	var mask *ui.SlotMask
+	preview.Doll, mask = composeUnitFigure(f.Archives.Containers, equipmentFromSlots(member.Worn), memberFigureID(member))
+	preview.Worn = &ui.ChargenDollHover{Mask: mask,
+		Info: slotItemInfoLinesWithWeaponDamage(mapload.MemberItemEquipment(member, f.Table), f.Table, nil, f.Words)}
 	return preview
 }
 
