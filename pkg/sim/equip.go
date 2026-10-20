@@ -17,7 +17,7 @@ func (w *World) equip(i, cindex, slot, displace int) {
 			*w = n
 			w.clearFelled(i)
 			if slot == slotWeapon+1 {
-				w.equipWornSpell(i)
+				w.wearWorn(i, slot)
 			}
 		}
 		return
@@ -52,7 +52,7 @@ func (w *World) equip(i, cindex, slot, displace int) {
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], item)
 	}
-	w.takeOffWeaponSpell(&held)
+	w.takeOffWorn(i, slot, &held)
 	switch {
 	case w.carried[i][cindex].Count > 1:
 		w.carried[i][cindex].Count--
@@ -70,7 +70,7 @@ func (w *World) equip(i, cindex, slot, displace int) {
 		if displace == slotWeapon+1 {
 			syncWeaponItem(&w.entities[i], ItemInstance{})
 		}
-		w.takeOffWeaponSpell(&other)
+		w.takeOffWorn(i, displace, &other)
 		w.addCarried(i, StackItem(other, 1))
 	}
 	if !w.entities[i].ActorLoad.Present && !hasNullOrderedSlot(w.carried[i]) {
@@ -82,7 +82,7 @@ func (w *World) equip(i, cindex, slot, displace int) {
 	// so clearFelled drops the final loadout once and no later writer restores it.
 	w.clearFelled(i)
 	if slot == slotWeapon+1 {
-		w.equipWornSpell(i)
+		w.wearWorn(i, slot)
 	}
 }
 
@@ -141,7 +141,7 @@ func (w *World) unequip(i, slot int) {
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}
-	w.takeOffWeaponSpell(&item)
+	w.takeOffWorn(i, slot, &item)
 	w.addCarried(i, StackItem(item, 1))
 	w.finishLoadMutation(i, before)
 	w.clearFelled(i)

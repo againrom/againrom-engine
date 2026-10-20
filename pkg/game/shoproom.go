@@ -589,8 +589,7 @@ func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstan
 			worn[0] = sim.ItemInstance{}
 		}
 	}
-	worn[slot-1] = equippedWeapon(item.Clone(), t.in.Table)
-	old, other = takenOffWeapon(old, t.in.Table), takenOffWeapon(other, t.in.Table)
+	worn[slot-1] = wearTown(t.in.Table, slot, item.Clone())
 	syncShopWornCodes(member, *worn)
 	// A restored book is authoritative at the next mint. Commit teaching
 	// from this NEW equip now; replaying every worn item would change the
@@ -605,6 +604,7 @@ func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstan
 			}
 		}
 	}
+	// The city route takes old and other off where it knows their city nodes.
 	if complete != nil {
 		if err := complete(before, old, other, otherSlot); err != nil {
 			return err
@@ -613,6 +613,8 @@ func (t *shopController) shopWearItemValuesOrdered(slot int, item sim.ItemInstan
 		t.composeShopFaces()
 		return nil
 	}
+	values := townWornHolder{table: t.in.Table}
+	old, other = takeOffTown(values, slot, old), takeOffTown(values, otherSlot, other)
 	pack := t.shopPackItemInstances()
 	changedPack := false
 	if !old.Empty() {
@@ -1052,7 +1054,7 @@ func (t *shopController) shopUnequipDollValues(slot int) ui.TownAction {
 		worn[slot-1] = sim.ItemInstance{}
 	}
 	syncShopWornCodes(member, *worn)
-	t.setShopPackItemInstances(append(t.shopPackItemInstances(), takenOffWeapon(item, t.in.Table)))
+	t.setShopPackItemInstances(append(t.shopPackItemInstances(), takeOffTown(townWornHolder{table: t.in.Table}, slot, item)))
 	mapload.UpdatePartyLoad(before, member, t.in.Table, true, true)
 	refreshDerivedPartyBook(member, t.in.Table)
 	t.composeShopFaces()
@@ -1112,7 +1114,7 @@ func (t *shopController) shopUnequipToTableValues(slot int) ui.TownAction {
 		return ui.TownAction{}
 	}
 	t.shopRevealTradeTable()
-	item = takenOffWeapon(item, t.in.Table)
+	item = takeOffTown(townWornHolder{table: t.in.Table}, slot, item)
 	price := t.shopItemValue(item)
 	shopItem := shopItemFromInstance(item, 1)
 	shopItem.Price = price

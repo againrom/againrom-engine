@@ -2482,6 +2482,9 @@ package storyguard
 // who joins in the town, its per-game flag and the tests that pin it, this
 // note included.
 //
+// CommentBytes rises for the doc comments of the town take-off's node edge
+// clear and its two tests, this note included.
+//
 // CommentBytes rises for the doc comments of the World decoder's pooled
 // canonical comparison, its proven-form memo, the in-place saved-object
 // search and their tests, this note included.
@@ -2707,5 +2710,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1703,
 	},
-	CommentBytes: 9319203,
+	CommentBytes: 9324150,
 }

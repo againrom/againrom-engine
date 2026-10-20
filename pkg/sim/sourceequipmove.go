@@ -2,7 +2,6 @@ package sim
 
 import (
 	"encoding/binary"
-	"fmt"
 	"sort"
 )
 
@@ -223,76 +222,6 @@ func (w *World) sourcePrepareWeaponTraced(item *ItemInstance, trace *sourceEquip
 		return w.sourceTraceSpell(trace, ticket, item.SourceEquipment.Spell)
 	}
 	return true // no matching Effect does not clear an existing owned Spell
-}
-
-// buildWornWeaponSpell gives actor i's worn Weapon the Spell an equip builds
-// when it holds none, for any owner (ITEM-187). Only the item changes: no
-// actor load or pool is derived again. A held Spell keeps its values; a
-// Weapon whose saved views disagree keeps its gap.
-func (w *World) buildWornWeaponSpell(i int) bool {
-	item := w.equipment[i][slotWeapon].Clone()
-	if item.Empty() || item.SourceEquipment.Spell.Present {
-		return false
-	}
-	id, _, ok := item.CastSpell()
-	rule, known := w.findSpell(uint32(uint8(id)))
-	if !ok || !known || uint8(id) == 0 {
-		return false
-	}
-	source := item.SourceEquipment
-	if source.Class == 0 {
-		source = w.itemConstructor(item.Code)
-	}
-	if source.Class != SourceWeapon {
-		return false
-	}
-	source.Spell = sourceSpellFromRule(rule)
-	before, worn := w.savedObjects, w.equipment[i][slotWeapon]
-	if item.ObjectID == 0 {
-		item.SourceEquipment = source
-	} else {
-		objects := w.savedObjects.Clone()
-		err := objects.mutate(func(r *SavedObjects) error {
-			row := r.item(item.ObjectID)
-			if row == nil || row.Spell != 0 || !StackStateEqual(row.Value, r.stackForItem(item)) {
-				return fmt.Errorf("sim: stale worn Weapon")
-			}
-			spell := source.Spell
-			source.Spell = SourceItemSpell{}
-			row.Value.SourceEquipment, row.Token.T0C = source, source.DefinitionRow
-			return r.putItemSpell(row, spell)
-		})
-		if err != nil {
-			return false
-		}
-		w.savedObjects = objects
-		item = objects.item(item.ObjectID).Value.Instance()
-	}
-	w.equipment[i][slotWeapon] = item
-	if !w.savedMutationValid() {
-		w.savedObjects, w.equipment[i][slotWeapon] = before, worn
-		return false
-	}
-	return true
-}
-
-// equipWornSpell is the build after a route that makes a classed Weapon worn,
-// for any owner. A script hand-over, a join and a SAVE build nothing
-// (ITEM-212). The second game keeps the World's Spell as it stands.
-func (w *World) equipWornSpell(i int) {
-	if i >= 0 && i < len(w.entities) && !w.SecondGame() {
-		w.buildWornWeaponSpell(i)
-	}
-}
-
-// takeOffWeaponSpell deletes the Spell of a Weapon taken off and leaves it
-// holding none, as removal does in the first game (ITEM-187); the next equip
-// builds a new one from the castSpell Effect.
-func (w *World) takeOffWeaponSpell(item *ItemInstance) bool {
-	if w.SecondGame() || item.SourceEquipment.Class != SourceWeapon || !item.SourceEquipment.Spell.Present {
-		return true
-	}
-	return w.replaceObjectSpell(item, SourceItemSpell{})
 }
 
 func (w *World) sourceWeaponFields(i int, item ItemInstance, sign int32) bool {

@@ -60,7 +60,7 @@ func TestNativeEquipBuildsTheWornWeaponSpell(t *testing.T) {
 		t.Fatal("the worn view differs from its saved row")
 	}
 	first := row.Spell
-	if w.equipWornSpell(0); w.savedObjects.item(id).Spell != first {
+	if w.wearWorn(0, 1); w.savedObjects.item(id).Spell != first {
 		t.Fatal("a held Spell was built again")
 	}
 	cold := reloadOperations(t, w)

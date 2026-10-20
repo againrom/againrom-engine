@@ -1597,7 +1597,7 @@ func (w *World) dropTerminalLoot(i int) bool {
 				w.equipment[i][slotSecond] = ItemInstance{}
 			}
 			if item := w.equipment[i][slotWeapon].Clone(); !item.Empty() && !item.innateWeapon() {
-				w.takeOffWeaponSpell(&item)
+				w.takeOffWorn(i, slotWeapon+1, &item)
 				items = append(items, item)
 				w.equipment[i][slotWeapon] = ItemInstance{}
 			}

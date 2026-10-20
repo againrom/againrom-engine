@@ -225,7 +225,7 @@ func (w *World) terminalSavedNative(i int, x, y int32, validCell bool) bool {
 			return false
 		}
 		w.equipment[i][slot-1] = ItemInstance{}
-		if !w.takeOffWeaponSpell(&item) || !w.addCarried(i, StackItem(item, 1)) {
+		if !w.takeOffWorn(i, slot, &item) || !w.addCarried(i, StackItem(item, 1)) {
 			return false
 		}
 	}

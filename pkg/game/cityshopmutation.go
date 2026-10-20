@@ -1054,10 +1054,14 @@ func (t *shopController) cityShopNativeWear(slot int, item ShopItem) error {
 			if displaced.value.Empty() {
 				continue
 			}
+			value := displaced.value
 			id := root.Worn[displaced.slot]
 			from := cityItemLocation{PartyID: before.ID, Kind: cityItemWorn, Index: displaced.slot}
-			if id == 0 {
-				id, err = mintCityShopItem(g, currentCityItem(displaced.value, t.in.Table))
+			minted := id == 0
+			if minted {
+				// A node minted from the taken-off value holds no Spell edge.
+				value = takeOffTown(townWornHolder{table: t.in.Table}, displaced.slot+1, value)
+				id, err = mintCityShopItem(g, currentCityItem(value, t.in.Table))
 				from = cityItemLocation{}
 				counts[id] = 1
 			}
@@ -1068,8 +1072,10 @@ func (t *shopController) cityShopNativeWear(slot int, item ShopItem) error {
 			if err != nil {
 				return err
 			}
-			dropCityItemSpell(g, id, displaced.value, t.in.Table)
-			returned := shopItemFromInstance(displaced.value, int32(counts[id]))
+			if !minted {
+				value = takeOffTown(townWornHolder{table: t.in.Table, g: g, id: id}, displaced.slot+1, value)
+			}
+			returned := shopItemFromInstance(value, int32(counts[id]))
 			returned.cityID = id
 			returns = append(returns, returned)
 		}
@@ -1248,7 +1254,6 @@ func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem,
 	if value.Empty() {
 		return ShopItem{}, shopRefusal("nothing is worn in that slot")
 	}
-	value = takenOffWeapon(value, t.in.Table)
 	if toPack && !t.shopHasActorContainer() {
 		return ShopItem{}, shopRefusal("no pack")
 	}
@@ -1257,25 +1262,31 @@ func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem,
 		return ShopItem{}, err
 	}
 	g := t.sess.Town.cityObjects
-	item := shopItemFromInstance(value, 1)
-	item.cityID, item.cityOrigins = root.Worn[slot-1], []string{member.ID}
+	id, count := root.Worn[slot-1], int32(1)
 	from := cityItemLocation{PartyID: member.ID, Kind: cityItemWorn, Index: slot - 1}
-	if item.cityID == 0 {
-		item.cityID, err = mintCityShopItem(g, currentCityItem(value, t.in.Table))
+	minted := id == 0
+	if minted {
+		// A node minted from the taken-off value holds no Spell edge.
+		value = takeOffTown(townWornHolder{table: t.in.Table}, slot, value)
+		id, err = mintCityShopItem(g, currentCityItem(value, t.in.Table))
 		from = cityItemLocation{}
 	} else {
-		var count uint32
-		count, err = t.cityShopNodeCount(item.cityID)
-		item.Count = int32(count)
+		var n uint32
+		n, err = t.cityShopNodeCount(id)
+		count = int32(n)
 	}
 	if err != nil {
 		return ShopItem{}, err
 	}
-	g, err = moveCityItemRoot(g, item.cityID, from, cityItemLocation{})
+	g, err = moveCityItemRoot(g, id, from, cityItemLocation{})
 	if err != nil {
 		return ShopItem{}, err
 	}
-	dropCityItemSpell(g, item.cityID, value, t.in.Table)
+	if !minted {
+		value = takeOffTown(townWornHolder{table: t.in.Table, g: g, id: id}, slot, value)
+	}
+	item := shopItemFromInstance(value, 1)
+	item.cityID, item.cityOrigins, item.Count = id, []string{member.ID}, count
 	worn[slot-1] = sim.ItemInstance{}
 	syncShopWornCodes(member, *worn)
 	t.sess.Town.cityObjects = g

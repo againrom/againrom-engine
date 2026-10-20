@@ -115,7 +115,7 @@ func (w *World) equipSavedNative(i, index, slot, displace int) bool {
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], item.Instance())
 	}
-	if !w.takeOffWeaponSpell(&held) || !held.Empty() && !w.addCarried(i, StackItem(held, 1)) {
+	if !w.takeOffWorn(i, slot, &held) || !held.Empty() && !w.addCarried(i, StackItem(held, 1)) {
 		return false
 	}
 	if displace != 0 {
@@ -129,7 +129,7 @@ func (w *World) equipSavedNative(i, index, slot, displace int) bool {
 			if displace == slotWeapon+1 {
 				syncWeaponItem(&w.entities[i], ItemInstance{})
 			}
-			if !w.takeOffWeaponSpell(&other) || !w.addCarried(i, StackItem(other, 1)) {
+			if !w.takeOffWorn(i, displace, &other) || !w.addCarried(i, StackItem(other, 1)) {
 				return false
 			}
 		}
@@ -151,7 +151,7 @@ func (w *World) unequipSavedNative(i, slot int) bool {
 	if slot == slotWeapon+1 {
 		syncWeaponItem(&w.entities[i], ItemInstance{})
 	}
-	if !w.takeOffWeaponSpell(&item) || !w.addCarried(i, StackItem(item, 1)) {
+	if !w.takeOffWorn(i, slot, &item) || !w.addCarried(i, StackItem(item, 1)) {
 		return false
 	}
 	return w.finishLoadMutation(i, before)

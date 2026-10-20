@@ -20,41 +20,65 @@ func joinedWornSpells(worn []sim.ItemInstance, table *mapload.Table) {
 	}
 }
 
-// takenOffWeapon is a Weapon a first-game town member takes off: removal
-// deletes its Spell (ITEM-187), and the next equip builds a new one.
-func takenOffWeapon(item sim.ItemInstance, table *mapload.Table) sim.ItemInstance {
-	if table == nil || tableFiles(table).storedWeaponSpell || item.SourceEquipment.Class != sim.SourceWeapon || !item.SourceEquipment.Spell.Present {
-		return item
-	}
-	item = item.Clone()
+// townWornHolder is a town member's worn slot as a sim.WornHolder. Its Spell
+// store is the item value; g and id name the item's city node when the town
+// keeps its city topology, whose Spell edge then goes with the value. A
+// table that keeps a stored Spell, or none, is the second game's row.
+type townWornHolder struct {
+	table *mapload.Table
+	g     *cityObjectTopology
+	id    sim.SavedObjectID
+}
+
+func (h townWornHolder) KeepsWeaponSpell() bool {
+	return h.table == nil || tableFiles(h.table).storedWeaponSpell
+}
+
+func (h townWornHolder) DropWeaponSpell(_ int, item *sim.ItemInstance) bool {
+	*item = item.Clone()
 	item.SourceEquipment.Spell = sim.SourceItemSpell{}
-	return item
+	h.dropNodeSpell()
+	return true
 }
 
-// equippedWeapon is a Weapon a first-game town member puts on: equip builds
-// its Spell from the first castSpell Effect when it holds none (ITEM-187); a
-// spell id without an installed Spells row keeps the gap.
-func equippedWeapon(item sim.ItemInstance, table *mapload.Table) sim.ItemInstance {
-	if table == nil || tableFiles(table).storedWeaponSpell || item.SourceEquipment.Class != sim.SourceWeapon || item.SourceEquipment.Spell.Present {
-		return item
-	}
-	spell, err := nativeCityWeaponSpell(item, true, table)
-	if err != nil || !spell.Present {
-		return item
-	}
-	item.SourceEquipment.Spell = spell
-	return item
-}
-
-// dropCityItemSpell drops a first-game city Item id's Spell edge once the
-// Weapon taken off holds no Spell, so the town SAVE writes it without one.
-func dropCityItemSpell(g *cityObjectTopology, id sim.SavedObjectID, value sim.ItemInstance, table *mapload.Table) {
-	if g == nil || table == nil || tableFiles(table).storedWeaponSpell || value.SourceEquipment.Spell.Present {
+// dropNodeSpell clears the Spell edge of the item's city node.
+func (h townWornHolder) dropNodeSpell() {
+	if h.g == nil {
 		return
 	}
-	for k := range g.Items {
-		if g.Items[k].ID == id {
-			g.Items[k].Spell = 0
+	for k := range h.g.Items {
+		if h.g.Items[k].ID == h.id {
+			h.g.Items[k].Spell = 0
 		}
 	}
+}
+
+// BuildWeaponSpell builds the Spell from the first castSpell Effect; a spell
+// id without an installed Spells row keeps the gap.
+func (h townWornHolder) BuildWeaponSpell(_ int, item *sim.ItemInstance) bool {
+	if item.SourceEquipment.Class != sim.SourceWeapon {
+		return false
+	}
+	spell, err := nativeCityWeaponSpell(*item, true, h.table)
+	if err != nil || !spell.Present {
+		return false
+	}
+	item.SourceEquipment.Spell = spell
+	return true
+}
+
+// takeOffTown is sim.TakeOffWorn for a town member's item leaving slot; in the
+// first game a node edge whose value holds no Spell is cleared, for any class.
+func takeOffTown(h townWornHolder, slot int, item sim.ItemInstance) sim.ItemInstance {
+	item, _ = sim.TakeOffWorn(h, slot, item)
+	if !h.KeepsWeaponSpell() && !item.SourceEquipment.Spell.Present {
+		h.dropNodeSpell()
+	}
+	return item
+}
+
+// wearTown is sim.WearWorn for a town member's item entering slot.
+func wearTown(table *mapload.Table, slot int, item sim.ItemInstance) sim.ItemInstance {
+	item, _ = sim.WearWorn(townWornHolder{table: table}, slot, item)
+	return item
 }
