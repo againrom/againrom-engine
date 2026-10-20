@@ -366,9 +366,8 @@ const generatedCityTrailerLen = 400
 // t.available (both mean "taken from a building or routed to by a declared
 // successor, not yet won" — confirmed against newTownFromCampaignProgress's
 // own seeding).
-// AutoGetMission is now the scenario's own declared successor, or -1 where it
-// declares none (REG-SCN-063); LastMission is still written zero
-// because no method in campaignprogress.go reads it (DIV-882). scalars[1]/[6]
+// AutoGetMission and LastMission are what the record loader stores for the
+// chapter's main record (REG-SCN-063, SAV-1332). scalars[1]/[6]
 // are NOT part of sav.CampaignProjection and applyCityCampaignProjection never
 // touches them (DIV-888); SAVE writes scalars[1] from the difficulty.
 //
@@ -427,13 +426,14 @@ func nativeCampaignProjectionForChapter(f *FrontEnd, s Snapshot, chapter int) (s
 		InnNPC: u16sFromInts(innMissions.npc), InnMission: u16sFromInts(innMissions.mission),
 		TCMission: u16sFromInts(filterOffered(TownSchool, buildingData.School)), ShopMission: u16sFromInts(filterOffered(TownShop, buildingData.Shop)),
 		SelectedMission: uint32(t.selectedMission()),
-		// A town SAVE can only ever be taken at home: WorldMapReturn != nil
-		// already refuses every away-from-home shape before this function is
-		// called (DIV-905).
+		// A native town's party stands on MapPoint 0: travel away from it
+		// ends in a mission, and WorldMapReturn refuses a SAVE on the way
+		// back (SAV-1331).
 		FirstMapPoint: true,
 		// REG-SCN-063: the scenario's own declared successor, or -1
 		// where [Mission<chapter>] declares none.
 		AutoGetMission: autoGetMissionValue(f.Campaign.Value(), chapter),
+		LastMission:    lastMissionValue(f.Campaign.Value(), chapter),
 	}
 	if len(out.PermanentMercenaries) == 0 {
 		merc := t.mercEnabled

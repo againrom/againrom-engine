@@ -167,9 +167,6 @@ func parseCityCampaign(raw []byte) (*cityCampaign, error) {
 			return nil, err
 		}
 	}
-	if p.scalars[4] > 1 {
-		return nil, fmt.Errorf("sav: city campaign first-MapPoint flag is %d", p.scalars[4])
-	}
 	markers, err := c.u32("marker count")
 	if err != nil {
 		return nil, err
@@ -331,9 +328,6 @@ func serializeCityCampaign(p *cityCampaign) ([]byte, error) {
 		}
 		out = cityAppendU32(out, carrier[0])
 		out = cityAppendU32(out, carrier[1])
-	}
-	if p.scalars[4] > 1 {
-		return nil, fmt.Errorf("sav: city campaign first-MapPoint flag is %d", p.scalars[4])
 	}
 	for _, v := range p.scalars {
 		out = cityAppendU32(out, v)

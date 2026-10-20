@@ -46,35 +46,50 @@ func TestAWonMissionTenWritesTheSecondMissionsOwnRouting(t *testing.T) {
 	}
 }
 
-// A LOAD takes AutoGetMission from the loaded main record's own section, not
-// from the file: an engine SAV written before this rule holds mission 10's 20
-// at mission 20, and saves descended from older engine documents hold 0
-// (DIV-1497).
-func TestALoadedSAVWritesTheMainRecordsOwnAutoGetMission(t *testing.T) {
+// A LOAD keeps the file's AutoGetMission and LastMission: the original's
+// reader stores both raw, and only a main record loaded above the current one
+// replaces them (SAV-1330). The next SAVE writes them unchanged. A mission end
+// loads the next main record, which writes that record's own values, and the
+// announce latch it sets follows the won record's own declaration, so a
+// carried value does not change the route (DIV-1497).
+func TestALoadedSAVKeepsItsAutoGetMissionUntilAMissionEnd(t *testing.T) {
 	c := townCampaign(t)
 	for _, tc := range []struct {
-		main         int
-		stored, want uint32
+		main   int
+		stored uint32
+		last   uint32
 	}{
-		{10, 20, 20},
-		{10, 0, 20},
-		{10, 0xFFFFFFFF, 20},
-		{20, 0xFFFFFFFF, 0xFFFFFFFF},
-		{20, 20, 0xFFFFFFFF},
-		{20, 0, 0xFFFFFFFF},
-		{30, 20, 0xFFFFFFFF},
-		{30, 0, 0xFFFFFFFF},
+		{10, 20, 0},
+		{10, 0, 0},
+		{10, 0xFFFFFFFF, 7},
+		{20, 0xFFFFFFFF, 0},
+		{20, 20, 0},
+		{20, 0, 1},
+		{30, 20, 0},
+		{30, 0, 0},
 	} {
 		projection := campaignProjectionAt(c, tc.main)
-		projection.AutoGetMission = tc.stored
+		projection.AutoGetMission, projection.LastMission = tc.stored, tc.last
 		progress, err := campaignProgressFromSAV(c, projection)
 		if err != nil {
 			t.Fatal(err)
 		}
+		town := newTownFromCampaignProgress(c, progress)
 		var s Snapshot
-		snapshotTown(newTownFromCampaignProgress(c, progress), &s)
-		if s.Campaign.AutoGetMission != tc.want {
-			t.Errorf("main %d stored %#x writes AutoGetMission %#x, want %#x", tc.main, tc.stored, s.Campaign.AutoGetMission, tc.want)
+		snapshotTown(town, &s)
+		if s.Campaign.AutoGetMission != tc.stored || s.Campaign.LastMission != tc.last {
+			t.Errorf("main %d stored %#x/%d writes AutoGetMission %#x, LastMission %d", tc.main, tc.stored, tc.last, s.Campaign.AutoGetMission, s.Campaign.LastMission)
+		}
+		if side, ok := town.Won(tc.main); side || !ok {
+			t.Fatalf("Won(%d) = side %v, ok %v", tc.main, side, ok)
+		}
+		var won Snapshot
+		snapshotTown(town, &won)
+		next := tc.main + mainMissionStride
+		if won.Campaign.Main.Mission != uint32(next) || won.Campaign.AutoGetMission != autoGetMissionValue(c, next) ||
+			won.Campaign.LastMission != lastMissionValue(c, next) || won.Campaign.Main.Announced != (tc.main == 10) {
+			t.Errorf("main %d stored %#x: after the win main %d, AutoGetMission %#x, LastMission %d, announced %v",
+				tc.main, tc.stored, won.Campaign.Main.Mission, won.Campaign.AutoGetMission, won.Campaign.LastMission, won.Campaign.Main.Announced)
 		}
 	}
 }

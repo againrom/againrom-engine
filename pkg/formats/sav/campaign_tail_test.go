@@ -220,8 +220,6 @@ func TestCampaignProjectionRejectsMalformedSetsWithoutAValue(t *testing.T) {
 	_, body := campaignProjectionFixture()
 	hireBlock := campaignPatternOffset(t, body, campaignDWords(15, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), "hire flags")
 	documentBlock := campaignPatternOffset(t, body, campaignDWords(2, 1, 1, 2, 0), "documents")
-	selectedBlock := campaignPatternOffset(t, body,
-		campaignDWords(41, 0xfeedbeef, 50, 40, 1, 1234, 0xdeadbeef), "selected scalars")
 	markerPicture := campaignPatternOffset(t, body, []byte("mark.bmp\x00"), "marker picture")
 	cases := []struct {
 		name string
@@ -246,10 +244,6 @@ func TestCampaignProjectionRejectsMalformedSetsWithoutAValue(t *testing.T) {
 			binary.LittleEndian.PutUint32(b[documentBlock+8:], 2)
 			return b
 		}, "document 0 kind"},
-		{"first MapPoint flag", func(b []byte) []byte {
-			binary.LittleEndian.PutUint32(b[selectedBlock+16:], 2)
-			return b
-		}, "first-MapPoint flag"},
 		{"zero marker string", func(b []byte) []byte {
 			binary.LittleEndian.PutUint32(b[markerPicture-4:], 0)
 			return b
@@ -283,5 +277,27 @@ func TestCampaignProjectionRejectsMalformedSetsWithoutAValue(t *testing.T) {
 				t.Fatalf("malformed parse returned partial state: %+v", got)
 			}
 		})
+	}
+}
+
+// LOAD places the party on MapPoint 0 for any nonzero first-MapPoint word
+// (SAV-1331): 2 reads as set, and the raw record keeps the word for a byte
+// round trip. 0 reads as clear.
+func TestCampaignFirstMapPointReadsAnyNonzeroWord(t *testing.T) {
+	want, body := campaignProjectionFixture()
+	scalars := campaignPatternOffset(t, body,
+		campaignDWords(41, 0xfeedbeef, 50, 40, 1, 1234, 0xdeadbeef), "selected scalars")
+	for _, word := range []uint32{2, 0} {
+		mut := append([]byte(nil), body...)
+		binary.LittleEndian.PutUint32(mut[scalars+16:], word)
+		got, err := parseCampaignProjection(mut)
+		if err != nil {
+			t.Fatalf("word %d: %v", word, err)
+		}
+		expect := want
+		expect.FirstMapPoint = word != 0
+		if !reflect.DeepEqual(got, expect) {
+			t.Fatalf("word %d: projection %+v, want %+v", word, got, expect)
+		}
 	}
 }

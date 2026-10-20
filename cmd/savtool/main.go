@@ -221,6 +221,18 @@ func campaignVerb(out io.Writer, path string, f *sav.File) error {
 	fmt.Fprintf(out, "%s head_mission=%d main=%d selected=%d mercenaries=%d permanent=%d documents=%d\n",
 		path, f.Head.Mission, proj.Main.Mission, proj.SelectedMission,
 		len(proj.Mercenaries), len(proj.PermanentMercenaries), len(proj.Documents))
+	var hired []int
+	for i, h := range proj.MercenaryHired {
+		if h {
+			hired = append(hired, i)
+		}
+	}
+	var markers []uint32
+	for _, m := range proj.Markers {
+		markers = append(markers, m.Value)
+	}
+	fmt.Fprintf(out, "  tail      autoget=%d last=%d firstmappoint=%t time=%d counter=%d markers=%v hired=%v\n",
+		int32(proj.AutoGetMission), proj.LastMission, proj.FirstMapPoint, proj.MissionTime, proj.ScoreEvents, markers, hired)
 	if proj.CarrierRecords != 0 {
 		if proj.Payload != nil {
 			fmt.Fprintf(out, "  payload   %d carrier records, envelope version %d, %d bytes, sha256 %x\n",

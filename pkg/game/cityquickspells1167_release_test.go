@@ -18,6 +18,25 @@ import (
 
 // This oracle locates the physical record, independently of the production
 // ID map, CityData projection and originalQuickSpells reader.
+// cityQuickFirstMapPoint returns raw with the control's first-MapPoint
+// word.
+func cityQuickFirstMapPoint(t *testing.T, raw, control []byte) []byte {
+	t.Helper()
+	want := autoGetCampaign(t, control).FirstMapPoint
+	f, err := sav.Open(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	word := uint32(0)
+	if want {
+		word = 1
+	}
+	if err := f.SetCampaignScalar(4, word); err != nil {
+		t.Fatal(err)
+	}
+	return f.Marshal()
+}
+
 func cityQuickRaw1167(t *testing.T, raw []byte, want [4]int32) (*sav.File, int) {
 	t.Helper()
 	f, err := sav.Open(raw)
@@ -216,6 +235,9 @@ func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			// The probe's mission open moved the party to the mission's map
+			// object, the committed selection the probe admits (SAV-1331).
+			raw = cityQuickFirstMapPoint(t, raw, control)
 			actual, at := cityQuickRaw1167(t, raw, firstCells)
 			base, baseAt := cityQuickRaw1167(t, control, [4]int32{-1, -1, -1, -1})
 			comparison := bytes.Clone(actual.Store)

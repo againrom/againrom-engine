@@ -197,9 +197,13 @@ type townScreen struct {
 	// worldSelectedOnce is which missions have been registered or selected
 	// at least once this loaded game (`DIV-128`/`DIV-138`; `TOWN-123`/
 	// `TOWN-040`, High): the persisted marker cache's own selection gate. A
-	// native Snapshot copies this set in sorted order and installs it after the
-	// full per-game reset on restore; new game and original import leave it nil.
+	// native Snapshot copies this set in worldSelectedOrder and installs it
+	// after the full per-game reset on restore; new game and original import
+	// leave it nil.
 	worldSelectedOnce map[int]bool
+	// worldSelectedOrder lists those missions in the order they entered the
+	// set: a new marker is appended at the end of the record (SAV-1333).
+	worldSelectedOrder []int
 
 	resolver speakerResolver
 }
@@ -222,7 +226,7 @@ func (t *townScreen) resetWorldMarkers() {
 	if t == nil {
 		return
 	}
-	t.worldSelectedOnce = nil
+	t.worldSelectedOnce, t.worldSelectedOrder = nil, nil
 }
 
 // resetForNewGame drops room/session state while retaining process services.

@@ -589,7 +589,8 @@ func TestSelectionAfterZeroMarkerImportRoundTripsToTheProductionWorldMap(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.Campaign.FirstMapPoint || !snapshot.CampaignMarkerSelected || len(snapshot.Campaign.Markers) != 1 ||
+	// Selection starts travel; the party still stands on MapPoint 0 (SAV-1331).
+	if !snapshot.Campaign.FirstMapPoint || !snapshot.CampaignMarkerSelected || len(snapshot.Campaign.Markers) != 1 ||
 		snapshot.Campaign.Markers[0].Value != 30 || snapshot.Campaign.Markers[0].Picture != `main\graphics\Global.Map\absent-marker.256` {
 		t.Fatalf("selected current marker was not projected: %v/%+v",
 			snapshot.CampaignMarkerSelected, snapshot.Campaign.Markers)
@@ -600,7 +601,7 @@ func TestSelectionAfterZeroMarkerImportRoundTripsToTheProductionWorldMap(t *test
 	}
 	doc, err := sav.DecodeDocumentData(encoded)
 	if err != nil || doc.Campaign.Scalars[4] != 1 {
-		t.Fatal("town SAV did not project the home map point (DIV-905)", err)
+		t.Fatal("town SAV did not project the home map point (SAV-1331)", err)
 	}
 	g := &FrontEnd{InstallResources: f.InstallResources}
 	if open, town, err := g.RestoreOriginal(encoded); err != nil || open != nil || !town {

@@ -141,9 +141,10 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
+	second := false
 	if projection, ok := f.campaign().campaignProjection(s); ok {
 		s.Campaign = projection
-		s.CampaignState = true
+		s.CampaignState, second = true, true
 	}
 	if !s.CampaignState {
 		var err error
@@ -180,8 +181,11 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 		// on the world map. scenario.reg's own [Mission<n>] section is the
 		// current-state source (Campaign.AutoAdvance), not a literal table.
 		s.Campaign.AutoGetMission = autoGetMissionValue(campaign, mission)
-		// Newly constructed missions start without a town map point.
+		// A native mission's party stands on the mission's map object.
 		s.Campaign.FirstMapPoint = false
+	}
+	if !second {
+		s.Campaign = f.campaignTail(s.Campaign)
 	}
 	return currentWorldDocument(s, native, f.Table)
 }
@@ -308,10 +312,10 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 	if err := projectCurrentCityParty(&b.doc, s.Party, actors, &a, f.Table); err != nil {
 		return sav.DocumentData{}, err
 	}
-	campaign := s.Campaign
+	campaign, second := s.Campaign, false
 	if projection, ok := f.campaign().campaignProjection(s); ok {
 		campaign = projection
-		s.CampaignState = true
+		s.CampaignState, second = true, true
 	}
 	if !s.CampaignState {
 		campaign, err = nativeCampaignProjection(f, s)
@@ -319,7 +323,12 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 			return sav.DocumentData{}, err
 		}
 	}
-	campaign.FirstMapPoint = true
+	if second {
+		// The second game's town record keeps its own home word.
+		campaign.FirstMapPoint = true
+	} else {
+		campaign = f.campaignTail(campaign)
+	}
 	b.doc, _, err = sav.ReindexDocumentData(b.doc)
 	if err != nil {
 		return sav.DocumentData{}, err

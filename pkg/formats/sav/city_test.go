@@ -373,6 +373,16 @@ func TestCityCampaignOverlayPreservesUnknownScalarAndWritesScoreHistory(t *testi
 	if len(full.markers) != 1 || string(full.markers[0].text) != "marker.bmp\x00" {
 		t.Fatalf("markers = %#v", full.markers)
 	}
+	// A nonzero first-MapPoint word other than 1 is a lawful LOAD input
+	// (SAV-1331); the raw record writes it back unchanged.
+	full.scalars[4] = 2
+	again, err := serializeCityCampaign(full)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reread, err := parseCityCampaign(again); err != nil || reread.scalars[4] != 2 {
+		t.Fatalf("first-MapPoint word 2 round trip: %v", err)
+	}
 	projection.ScoreEventsKnown = false // old AGS did not carry this wire value
 	projection.ScoreEvents = 0
 	raw, err = provenance.Marshal(CityUpdate{Label: []byte("legacy"), Characters: cityTestUpdates(provenance.Roster()), Campaign: &projection})

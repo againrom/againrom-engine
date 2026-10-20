@@ -18,6 +18,11 @@ Each entry starts with its scope: [BASE] for the engine under both games,
   description, on the character creation screen and on the hero's pane in the
   tavern and the school, as it already did in the inventory and the shop.
 - [BASE] The README now explains how to build and run the game on Linux.
+- [BASE] A save now keeps the campaign's travel words as the loaded file held
+  them, so the original game reads an Againrom save of an original save the way
+  it reads the original file: the party stands where it stood on the world map,
+  and the mission the original would send it to next is unchanged. Missions
+  marked on the world map are saved in the order they were marked.
 
 ## 0.128.0
 

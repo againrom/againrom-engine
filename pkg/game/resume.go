@@ -231,6 +231,8 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 					return Snapshot{}, "", err
 				}
 				s.CampaignState = true
+				// The party stands on the mission's map object (SAV-1331).
+				s.Campaign.FirstMapPoint = false
 				s.HeroGrantState, s.ConsumedHeroGrants = false, nil
 				// A guest's mission is no mission of the waiting campaign.
 				if !s.guest.playing(s.Mission) {

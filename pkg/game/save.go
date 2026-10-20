@@ -142,8 +142,8 @@ type Snapshot struct {
 	// previous-chapter child at age1. Historical entry ages are not recoverable.
 	CampaignRecords *SnapshotCampaignRecords
 
-	// WorldSelectedOnce is the sorted set of missions selected at least once
-	// on this build's world map. It is separate from Campaign.Markers for the
+	// WorldSelectedOnce is the set of missions selected at least once on this
+	// build's world map, in the order they entered it. It is separate from Campaign.Markers for the
 	// same reason as CampaignMarkerSelected: a native snapshot persists its
 	// own presentation gate without inventing an original-format record.
 	WorldSelectedOnce []int
@@ -336,19 +336,29 @@ func snapshotTown(t *Town, s *Snapshot) {
 	sortOffers(s.Taken)
 }
 
-// snapshotWorldSelectedOnce copies townScreen's set into Snapshot's canonical
-// sorted slice. False map values are not members of the set and are not
+// snapshotWorldSelectedOnce copies townScreen's set into Snapshot in the order
+// its members entered it; a member installed without an order follows in
+// ascending order. False map values are not members of the set and are not
 // serialized merely because a test or future caller left a key behind.
 func snapshotWorldSelectedOnce(t *townScreen, s *Snapshot) {
 	if t == nil || s == nil {
 		return
 	}
-	for mission, selected := range t.worldSelectedOnce {
-		if selected {
+	listed := make(map[int]bool, len(t.worldSelectedOrder))
+	for _, mission := range t.worldSelectedOrder {
+		if t.worldSelectedOnce[mission] && !listed[mission] {
+			listed[mission] = true
 			s.WorldSelectedOnce = append(s.WorldSelectedOnce, mission)
 		}
 	}
-	sortInts(s.WorldSelectedOnce)
+	var rest []int
+	for mission, selected := range t.worldSelectedOnce {
+		if selected && !listed[mission] {
+			rest = append(rest, mission)
+		}
+	}
+	sortInts(rest)
+	s.WorldSelectedOnce = append(s.WorldSelectedOnce, rest...)
 }
 
 // restoreTown builds a detached current town over c. Ordinary campaign records

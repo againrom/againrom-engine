@@ -183,6 +183,7 @@ func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapsh
 	if len(captured.WorldSelectedOnce) != 0 {
 		screen := n.TownScreen().(*townScreen)
 		screen.worldSelectedOnce, _ = worldSelectedOnceFromSnapshot(captured.WorldSelectedOnce)
+		screen.worldSelectedOrder = append([]int(nil), captured.WorldSelectedOnce...)
 	}
 	var err error
 	n.originalCity, err = originalCityFromSnapshot(captured)

@@ -333,9 +333,7 @@ func parseCampaignProjection(b []byte) (CampaignProjection, error) {
 	if err != nil {
 		return CampaignProjection{}, err
 	}
-	if first > 1 {
-		return CampaignProjection{}, fmt.Errorf("sav: campaign first-MapPoint flag is %d, want 0 or 1", first)
-	}
+	// LOAD places the party on MapPoint 0 for any nonzero word (SAV-1331).
 	out.FirstMapPoint = first != 0
 	if out.MissionTime, err = c.u32("mission time"); err != nil {
 		return CampaignProjection{}, err

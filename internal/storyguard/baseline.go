@@ -2671,6 +2671,8 @@ package storyguard
 // (pkg/game/orderresidue_release_test.go, pkg/sim/heldorder_test.go), the
 // Player tail witness (pkg/game/playertailfallback_test.go), the virtual
 // body's terminal tests, plus this note.
+// CommentBytes rises for the campaign tail's position word and append-order
+// markers (pkg/game/campaigntail.go), their tests, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2694,5 +2696,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1703,
 	},
-	CommentBytes: 9296183,
+	CommentBytes: 9300396,
 }

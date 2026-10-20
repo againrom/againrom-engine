@@ -137,9 +137,9 @@ func validateCampaignLocation(c Campaign, p *campaignProgress, mission int, sour
 
 // campaignProgressFromSAV validates the complete projection before returning
 // any state. Callers install only the returned value, so a malformed field set
-// cannot partially replace a running campaign. AutoGetMission is the main
-// record's own declaration, as the record loader writes it (REG-SCN-063); a
-// file's stale value is not carried (DIV-1497).
+// cannot partially replace a running campaign. AutoGetMission and
+// LastMission are carried as loaded: the original's reader stores them raw and
+// only a main record loaded above the current one replaces them (SAV-1330).
 func campaignProgressFromSAV(c Campaign, in sav.CampaignProjection) (*campaignProgress, error) {
 	if in.Main.Mission == 0 || !containsMission(c.Main, int(in.Main.Mission)) {
 		return nil, fmt.Errorf("original campaign main mission %d is not a declared main mission", in.Main.Mission)
@@ -161,7 +161,7 @@ func campaignProgressFromSAV(c Campaign, in sav.CampaignProjection) (*campaignPr
 		tcMission:        intsFromU16(in.TCMission),
 		shopMission:      intsFromU16(in.ShopMission),
 		selected:         int(in.SelectedMission),
-		autoGet:          autoGetMissionValue(c, int(in.Main.Mission)),
+		autoGet:          in.AutoGetMission,
 		last:             int(in.LastMission),
 		firstMapPoint:    in.FirstMapPoint,
 		missionTime:      in.MissionTime,
@@ -371,8 +371,10 @@ func (p *campaignProgress) advanceMain(c Campaign, mission int) {
 		return
 	}
 	// REG-SCN-063: a won record whose AutoGetMission names the next mission
-	// loads it and latches its announce flag; loading writes +0x110 anew.
-	routed := p.autoGet == uint32(next)
+	// loads it and latches its announce flag; loading writes +0x110 anew. The
+	// latch follows the won record's own declaration, so a carried value
+	// does not change where the engine sends the party (DIV-1497).
+	routed := autoGetMissionValue(c, mission) == uint32(next)
 	p.loadMain(c, next, routed)
 }
 
@@ -380,6 +382,7 @@ func (p *campaignProgress) loadMain(c Campaign, main int, announced bool) {
 	ch := c.Chapters[main]
 	p.campaignRecords.loadMain(c, main, announced)
 	p.autoGet = autoGetMissionValue(c, main)
+	p.last = int(lastMissionValue(c, main))
 	p.mercenaries = append(p.mercenaries[:0], ch.Mercenaries...)
 	p.innNPC = append(p.innNPC[:0], ch.InnNPC...)
 	p.innMission = append(p.innMission[:0], ch.Inn...)
@@ -465,7 +468,6 @@ func (p *campaignProgress) selectMission(mission int) bool {
 		return false
 	}
 	p.selected = mission
-	p.firstMapPoint = false
 	p.markerSelected = true
 	return true
 }

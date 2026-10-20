@@ -10,6 +10,9 @@ import (
 	"againrom/pkg/formats/sav"
 )
 
+// A town SAV writes the first-MapPoint word from the party's position
+// (SAV-1331): a loaded town whose word is 0 stands on the selected mission's
+// map object and writes 0 again; 1 stands on MapPoint 0 and writes 1.
 func TestReleaseCitySaveProjectsCurrentMapPoint(t *testing.T) {
 	f := releaseFront(t)
 	reachabilityWalkArrive(t, f, "City point witness")
@@ -52,8 +55,8 @@ func TestReleaseCitySaveProjectsCurrentMapPoint(t *testing.T) {
 				t.Fatal("input flag was not retained literally", err)
 			}
 			out, err := sav.DecodeDocumentData(write(g))
-			if err != nil || out.World != nil || out.Head.Mission != 0 || out.Campaign.Scalars[4] != 1 {
-				t.Fatal("city SAVE retained a mission map point", out.Campaign.Scalars[4], err)
+			if err != nil || out.World != nil || out.Head.Mission != 0 || out.Campaign.Scalars[4] != flag {
+				t.Fatal("city SAVE moved the party", out.Campaign.Scalars[4], err)
 			}
 			after, _, err := g.Snapshot(false)
 			if err != nil || !reflect.DeepEqual(before, after) {

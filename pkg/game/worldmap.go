@@ -581,6 +581,9 @@ func (t *townScreen) markWorldSelected(mission int) {
 	if t.worldSelectedOnce == nil {
 		t.worldSelectedOnce = make(map[int]bool)
 	}
+	if !t.worldSelectedOnce[mission] {
+		t.worldSelectedOrder = append(t.worldSelectedOrder, mission)
+	}
 	t.worldSelectedOnce[mission] = true
 }
 

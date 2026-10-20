@@ -227,8 +227,8 @@ func TestReleaseMissionTenWinSAVRoutesMissionTwentyHome(t *testing.T) {
 // TestReleaseOwnerMissionTwentyEndSAVRoutesHome loads the owner's engine SAV
 // of won mission 20, which an earlier build wrote with mission 10's
 // AutoGetMission 20: the original then sends the party back to mission 20's
-// map object. F2 SAVE writes mission 20's own -1, and a cold LOAD of the new
-// file still reaches the town on the engine's Victory.
+// map object. F2 SAVE writes the loaded 20 back (SAV-1330), and a cold LOAD
+// of the new file still reaches the town on the engine's Victory (DIV-1497).
 func TestReleaseOwnerMissionTwentyEndSAVRoutesHome(t *testing.T) {
 	path := os.Getenv("AGAINROM_MISSION20_END_SAV")
 	if path == "" {
@@ -262,8 +262,8 @@ func TestReleaseOwnerMissionTwentyEndSAVRoutesHome(t *testing.T) {
 		t.Fatalf("SAV label %q %v", label, err)
 	}
 	c := autoGetCampaign(t, out)
-	if c.AutoGetMission != 0xFFFFFFFF || c.Main.Mission != 20 || c.SelectedMission != 20 {
-		t.Fatalf("resaved SAV holds AutoGetMission %#x, main %+v, selected %d; want 0xffffffff at mission 20",
+	if c.AutoGetMission != 20 || c.Main.Mission != 20 || c.SelectedMission != 20 {
+		t.Fatalf("resaved SAV holds AutoGetMission %#x, main %+v, selected %d; want the loaded 0x14 at mission 20",
 			c.AutoGetMission, c.Main, c.SelectedMission)
 	}
 
